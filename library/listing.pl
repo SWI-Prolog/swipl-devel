@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2018, University of Amsterdam
+    Copyright (c)  2001-2019, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -597,16 +597,22 @@ is_meta(portray_goal).
 do_portray_clause(Out, Var, Options) :-
     var(Var),
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     pprint(Out, Var, 1200, Options).
 do_portray_clause(Out, (Head :- true), Options) :-
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     pprint(Out, Head, 1200, Options),
     full_stop(Out).
 do_portray_clause(Out, Term, Options) :-
     clause_term(Term, Head, Neck, Body),
     !,
-    inc_indent(0, 1, Indent),
+    option(indent(LeftMargin), Options, 0),
+    inc_indent(LeftMargin, 1, Indent),
     infix_op(Neck, RightPri, LeftPri),
+    indent(Out, LeftMargin),
     pprint(Out, Head, LeftPri, Options),
     format(Out, ' ~w', [Neck]),
     (   nonvar(Body),
@@ -621,7 +627,8 @@ do_portray_clause(Out, Term, Options) :-
         portray_body(LocalBody, BodyIndent, noindent, 1200, Out, Options),
         nlindent(Out, Indent),
         write(Out, ')')
-    ;   setting(listing:body_indentation, BodyIndent),
+    ;   setting(listing:body_indentation, BodyIndent0),
+        BodyIndent is LeftMargin+BodyIndent0,
         portray_body(Body, BodyIndent, indent, RightPri, Out, Options)
     ),
     full_stop(Out).
@@ -629,21 +636,32 @@ do_portray_clause(Out, (:-use_module(File, Imports)), Options) :-
     length(Imports, Len),
     Len > 3,
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
+    ListIndent is LeftMargin+14,
     format(Out, ':- use_module(~q,', [File]),
-    portray_list(Imports, 14, Out, Options),
+    portray_list(Imports, ListIndent, Out, Options),
     write(Out, ').\n').
 do_portray_clause(Out, (:-module(Module, Exports)), Options) :-
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
+    ModuleIndent is LeftMargin+10,
     format(Out, ':- module(~q,', [Module]),
-    portray_list(Exports, 10, Out, Options),
+    portray_list(Exports, ModuleIndent, Out, Options),
     write(Out, ').\n').
 do_portray_clause(Out, (:-Directive), Options) :-
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     write(Out, ':- '),
-    portray_body(Directive, 3, noindent, 1199, Out, Options),
+    DIndent is LeftMargin+3,
+    portray_body(Directive, DIndent, noindent, 1199, Out, Options),
     full_stop(Out).
 do_portray_clause(Out, Fact, Options) :-
-    portray_body(Fact, 0, noindent, 1200, Out, Options),
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
+    portray_body(Fact, LeftMargin, noindent, 1200, Out, Options),
     full_stop(Out).
 
 clause_term((Head:-Body), Head, :-, Body).
@@ -1057,6 +1075,9 @@ listing_write_options(Pri,
 
 nlindent(Out, N) :-
     nl(Out),
+    indent(Out, N).
+
+indent(Out, N) :-
     setting(listing:tab_distance, D),
     (   D =:= 0
     ->  tab(Out, N)
