@@ -1,0 +1,32 @@
+%-----------------------------------------------------------------------
+%  The classical stalemate game.  For the query ?- win(X) <- Cond. it
+%  should produce the answers:
+%
+%		X = a	Cond = [\+win(a)]
+%		X = b	Cond = []
+%-----------------------------------------------------------------------
+
+:- export test/0, win/1.
+:- import member/2 from basics.
+
+% :- auto_table.
+:- table win/1.
+
+win(X) :- move(X,Y), tnot(win(Y)).
+
+move(a,a).
+move(a,b).
+move(b,c).
+
+%-----------------------------------------------------------------------
+
+test :- win(X), write('Call succeeds: '), writeln(win(X)), fail.
+test :- member(X, [a,b,c]), write('Result: '), write(X),
+	( win(X) ->
+		( tnot(win(X)) ->
+			writeln(' is neither a winning nor a loosing position')
+		; writeln(' is a winning position')
+		)
+	; writeln(' is a loosing position')
+	), fail.
+test.

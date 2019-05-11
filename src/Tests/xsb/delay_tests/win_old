@@ -1,0 +1,5 @@
+Call succeeds: win(a)
+Call succeeds: win(b)
+Result: a is neither a winning nor a loosing position
+Result: b is a winning position
+Result: c is a loosing position

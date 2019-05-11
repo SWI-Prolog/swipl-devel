@@ -1,0 +1,5 @@
+p(a,f(b))
+p(a,f2(b,c))
+p(a,f3(b,c,d))
+p(a,f3(b,c,e))
+p(a,f3(b,f(1,c),d))

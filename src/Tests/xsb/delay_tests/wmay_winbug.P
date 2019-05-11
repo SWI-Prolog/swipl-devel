@@ -1,0 +1,23 @@
+
+test:- win(X),writeln(win(X)),fail.
+test:- lose(X),writeln(lose(X)),fail.
+test.
+
+
+% :- auto_table.
+:- table win/1.
+pos(a). pos(b). pos(c). pos(d). pos(e). pos(f). pos(l).
+win(X) :-  move(X,Y), tnot win(Y).
+lose(X) :- pos(X), tnot win(X).
+move(a,b).   move(a,f).
+move(b,c).
+move(c,d).   move(c,l).
+move(d,e).
+move(e,a).
+move(l,d).
+
+end_of_file.
+
+_ Since c is won, lose(b) must be true, not undefined (the only
+  move from b is to c.
+* Since d is won, lose(l) must also be true.

@@ -158,7 +158,7 @@ ensure_slash(Dir, DirS) :-
 
 xwam_state(2, DelayReg) :-
     !,
-    (   nb_current('$delay_list', [_|_])
+    (   '$tbl_delay_list'([_|_])
     ->  DelayReg = 1
     ;   DelayReg = 0
     ).

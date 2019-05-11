@@ -1,0 +1,22 @@
+1st Pass: Success
+1st Pass: call succeeds: t(1)
+1st Pass: call succeeds: t(3)
+1st Pass: call succeeds: t(4)
+1st Pass: call succeeds: t(5)
+1st Pass: call succeeds: t(6)
+1st Pass: t(1) is true
+1st Pass: t(3) is true
+1st Pass: t(4) is undefined
+1st Pass: t(5) is undefined
+1st Pass: t(6) is undefined
+2nd Pass: Success
+2nd Pass: call succeeds: t(1)
+2nd Pass: call succeeds: t(3)
+2nd Pass: call succeeds: t(4)
+2nd Pass: call succeeds: t(5)
+2nd Pass: call succeeds: t(6)
+2nd Pass: t(1) is true
+2nd Pass: t(3) is true
+2nd Pass: t(4) is undefined
+2nd Pass: t(5) is undefined
+2nd Pass: t(6) is undefined

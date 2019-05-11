@@ -1,0 +1,44 @@
+%
+% The well-founded model is: {t(1), ~t(2), t(3)}
+% Ground atoms t(4), t(5), and t(6) have ``unknown'' truth value.
+%
+
+:- table t/1.
+
+t(Z) :- t0(Z).
+t(Z) :- g(X,_,Z), t(X).
+t(Z) :- g(_,Y,Z), tnot(t(Y)).
+
+t0(1).
+
+g(1,2,3).
+g(2,5,4).
+g(2,4,5).
+g(5,3,6).
+
+%--------------------------------------------------------------------------
+
+test :- t(6), fail.
+test :- t(X), stub1, write('call succeeds: '), writeln(t(X)), fail.
+test :- t(X),
+	( tnot(t(X)) -> stub1, write(t(X)), writeln(' is undefined')
+	; stub1, write(t(X)), writeln(' is true')
+	), fail.
+test :- ( ( t(1), \+ tnot(t(1)), tnot(t(2)), t(3), \+ tnot(t(3)),
+	    t(4), tnot(t(4)), t(5), tnot(t(5)), t(6), tnot(t(6)) ) ->
+		stub1, writeln('Success')
+	; stub1, writeln('Failure')
+	), abolish_all_tables, fail.
+test :- t(X), stub2, write('call succeeds: '), writeln(t(X)), fail.
+test :- t(X),
+	( tnot(t(X)) -> stub2, write(t(X)), writeln(' is undefined')
+	; stub2, write(t(X)), writeln(' is true')
+	), fail.
+test :- ( ( t(1), \+ tnot(t(1)), tnot(t(2)), t(3), \+ tnot(t(3)),
+	    t(4), tnot(t(4)), t(5), tnot(t(5)), t(6), tnot(t(6)) ) ->
+		stub2, writeln('Success')
+	; stub2, writeln('Failure')
+	).
+
+stub1 :- write('1st Pass: ').
+stub2 :- write('2nd Pass: ').

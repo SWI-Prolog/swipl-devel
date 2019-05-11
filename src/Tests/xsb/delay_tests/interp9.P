@@ -1,0 +1,42 @@
+%------------------------------------------------------------------------
+% Program that causes a bus error when memory allocation is big.
+% It is a simplified version of program interp4.
+%
+% Model T = {}, F = {p,q,r}, U = {}.
+%------------------------------------------------------------------------
+
+:- dynamic rule/2.
+
+:- table interp_g/1, interp/1.
+
+interp([]).
+interp([tnot(G)|Gs]) :- tnot(interp_g(G)),interp(Gs).
+interp([G|Gs]) :- interp_g(G),interp(Gs).
+
+interp_g(G) :- rule(G,B),interp(B).
+
+%-------------------------------------------------------------------------------
+
+test :- new_program, query(Goal), interp_g(Goal), fail.
+test :- ( interp_g(p) ->
+		( tnot(interp_g(p)) -> writeln('i(p) is undefined')
+		; writeln('i(p) is true') )
+	; writeln('i(p) is false (OK)') ),
+        ( interp_g(q) ->
+		( tnot(interp_g(q)) -> writeln('i(q) is undefined')
+		; writeln('i(q) is true') )
+	; writeln('i(q) is false (OK)') ),
+	( interp_g(r) ->
+		( tnot(interp_g(r)) -> writeln('i(r) is undefined')
+		; writeln('i(r) is true') )
+	; writeln('i(r) is false (OK)') ), fail.
+test :- writeln('Program interp9 finished execution...').
+
+%-------------------------------------------------------------------------------
+
+new_program :- cleanup, assert(query(p)),
+	assert(rule(p,[tnot(q),r])),
+	assert(rule(r,[tnot(q),p])),
+	assert(rule(p,[tnot(r),p])).
+
+cleanup :- retractall(query(_)), retractall(rule(_,_)), abolish_all_tables.

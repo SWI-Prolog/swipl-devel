@@ -101,8 +101,13 @@ test_term(Line, _) :-
     !,
     fail.
 test_term(Line, Term) :-
-    catch(term_string(Term, Line), error(syntax_error(_),_), fail),
+    catch(term_string(Term, Line, [module(xsb_tests)]),
+          error(syntax_error(_),_),
+          fail),
     !,
     numbervars(Term).
 test_term(Line, line(Line)).
+
+% Normally 900, but we need to process tnot x - true as tnot(x)-true
+:- op(499, fy, tnot).
 

@@ -1,0 +1,55 @@
+:- export b/3, test/0.
+:- import hitb/2, ambb/3 from usermod.
+
+%:- auto_table.
+%:- suppl_table.
+:- table b/3, mayHit/2, pro/2, hitBySame/3, hh/2.
+
+:- edb hitb/2.
+:- edb ambb/3.
+
+hit(sts(X),Y)   :- hitb(X,Y).
+amb(sts(X),Y,Z) :- ambb(X,Y,Z).
+
+:- import ensure_dync_loaded/1 from consult.
+
+:- ensure_dync_loaded('q6.data').
+
+test :- (b(X,Y,Z), writeln(b(X,Y,Z)), fail ; true).
+
+hh(P1, P2) :-
+	hitBySame(G, F, P2),
+	hitBySame(G, F, P1),
+	\+ P1 = P2.
+
+ph(P, Y) :-
+	alter21(P, Y).
+
+alter21(P, Y) :- hit(P, Y).
+alter21(P, Y) :- pro(P, Y).
+
+b(P, sts(N), NewM) :-
+	b(O, P, M),
+	NewM is M + 1,
+	hh(P, sts(N)),
+	tnot(b(X, sts(N), _)).
+
+hitBySame(G, F, P) :-
+	ph(P, G),
+	ph(P, F),
+	\+ G = F.
+
+pro(Q, W) :-
+	amb(Q, W, _),
+	mayHit(Q, W).
+
+b(sts(Start), sts(Start), 0) :-
+	Start = 2.
+
+mayHit(Q, W) :-
+	hit(Q, Y),
+	hit(P, W),
+	hit(P, Y),
+	\+ P = Q,
+	\+ Y = W.
+

@@ -1,0 +1,114 @@
+test :- abolish_all_tables, fail.
+test :- tnot(tnot_gfpg(q(4,4))),writeln(yes),fail.
+test :- pr.
+
+:- op(1050, xfx, (<-)).
+
+:- import get_residual/2 from tables.
+
+:- table gfp/1.
+
+gfp(true) :- !.
+gfp((G1,G2)) :- !, gfp(G1), gfp(G2).
+gfp(G) :- make_ground(G),	writeln('Call_gfp'(G)),
+	  tnot(tnot_gfpg(G)),	writeln('Return_gfp'(G)).
+
+:- table tnot_gfpg/1.
+
+tnot_gfpg(G) :- tnot(gfpg(G)).
+
+:- table gfpg/1.
+
+gfpg(G) :- (G<-B), gfp(B).
+
+make_ground(G) :- var(G),!,domain(G).
+make_ground(G) :- atomic(G),!.
+make_ground(G) :- G=..[_|As],make_groundl(As).
+
+make_groundl([]).
+make_groundl([A|As]) :- make_ground(A),make_groundl(As).
+
+domain(X) :- between(3,X,4).
+
+between(L,L,H) :- L=<H.
+between(L,M,H) :- L<H,L1 is L+1,between(L1,M,H).
+
+q(X,Y) <- a(X,Y).
+q(X,Y) <- q(X,Z),a(Z,Y).
+a(3,4) <- true.
+
+%-------------------------------
+pr :- pr(gfp(_)), pr(tnot_gfpg(_)), pr(gfpg(_)).
+
+pr(X) :- get_residual(X,L), write(X),
+	 ( L == [] -> true ; writeln(' :-'), tab(8), write(L) ), writeln('.'),
+	 fail.
+pr(_).
+%-------------------------------
+
+/*************************************************
+
+and to my thinking the following query should fail, but I get:
+
+| ?- tnot(tnot_gfpg(q(4,4))),writeln(yes),fail.
+c_gfp(a(4,4))
+c_gfp(q(4,3))
+c_gfp(a(4,3))
+c_gfp(q(4,4))
+r_gfp(q(4,3))
+c_gfp(a(3,4))
+r_gfp(a(3,4))
+r_gfp(q(4,4))
+c_gfp(a(3,3))
+yes
+
+no
+| ?- %%% and then I print out the table.
+| ?- pr(gfp(_)), pr(tnot_gfpg(_)), pr(gfpg(_)).
+gfp(true):-
+	[].
+gfp(q(4,4)):-
+	[tnot(tnot_gfpg(q(4,4)))].
+gfp(a(3,4)):-
+	[].
+
+tnot_gfpg(a(3,3)):-
+	[].
+tnot_gfpg(a(4,3)):-
+	[].
+tnot_gfpg(a(4,4)):-
+	[].
+tnot_gfpg(q(4,3)):-
+	[].
+tnot_gfpg(q(4,4)):-
+	[tnot(gfpg(q(4,4)))].
+
+gfpg(a(3,4)):-
+	[].
+
+
+no
+| ?-
+
+The one that is bothering me is:
+	gfp(q(4,4)):-
+		[tnot(tnot_gfpg(q(4,4)))].
+
+To my thinking, that should fail.  I think we should get a (admittedly
+nonexistent) intermediate step sort of like::
+
+	gfp(q(4,4)) :- tnot(tnot_gfpg(q(4,4))),tnot(tnot_gfpg(a(4,4))).
+
+which delays the first literal, but the second one should fail (and
+looks like it should according to the residual program printed), which
+should mean the whole clause fails.  Can it be that somehow
+simplification is not working in this recursive case?  Seems unlikely.
+
+Am I missing something simple?  Any and all help appreciated.
+
+Best,
+-David
+(I'll be gone through the end of the week (and maybe you won't be back
+to look at this till after then anyway), so we'll have to work this
+out after that.)
+***********************************************************/

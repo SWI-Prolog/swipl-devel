@@ -1,0 +1,32 @@
+%------------------------------------------------------------------------
+% Program that I thought it gave wrong results.
+%
+% Model T = {}, F = {p,q,r,s}.
+%------------------------------------------------------------------------
+
+:- table p/0, q/0, r/0, s/0.
+
+p :- tnot(q), r.
+p :- q.
+
+s :- tnot(r), q.
+
+q :- tnot(s), p.
+
+r :- fail.
+
+%------------------------------------------------------------------------
+
+test :- s, fail.
+test :- ( p ->	( tnot(p) -> writeln('p is undefined')
+		; writeln('p is true') )
+	; writeln('p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('q is undefined')
+		; writeln('q is true') )
+	; writeln('q is false (OK)') ),
+	( r ->  ( tnot(r) -> writeln('t is undefined')
+		; writeln('r is true') )
+	; writeln('r is false (OK)') ),
+	( s ->  ( tnot(s) -> writeln('s is undefined')
+		; writeln('s is true') )
+	; writeln('s is false (OK)') ).

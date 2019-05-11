@@ -1,0 +1,124 @@
+:- import numbervars/1 from num_vars.
+:- import get_residual/2 from tables.
+:- import select/3 from lists.
+/*
+:- import member/2 from basics.
+:- import get_delay_lists/2 from tables.
+:- import get_calls/3, get_returns/3 from tables.
+ */
+
+test :- abolish_all_tables, fail.
+test :-	test(C,D), numbervars(C), numbervars(D),
+	write(C), ( D \== [] -> write(' :- ') ; true ), write_body(D), fail.
+test :- test_2nd_arg_bound, fail.
+test.
+
+write_body([]) :- writeln('.').
+write_body([H|T]) :- write(H), (T \== [] -> write(', ') ; true), write_body(T).
+
+test_2nd_arg_bound :-
+	get_residual(p4(X), R0),
+	select(tnot(p3), R0, R1),
+	select(p2, R1, R2),
+	sort(R2, R),
+	write(p4(X)), write(' :- '), write(R), writeln('.').
+
+call_them :-
+	t(_), u(_), up(_), p, p2, p3, p4(_), p5(_,_,_,_,_), p6(_),
+	pfff(_), p(_,_), pos(_,_,_), p(_,_,_), L = [_|_], p(_,L,_),
+	nlin(_), nlin(_,_), mdl(_).
+
+t(_,_) :- call_them, fail.
+t(C,D) :- C = p, gcr(C,D).
+t(C,D) :- C = p2, gcr(C,D).
+t(C,D) :- C = p4(_), gcr(C,D).
+
+test(_,_) :- call_them, fail.
+test(C,D) :- C = t(_), gcr(C,D).
+test(C,D) :- C = u(_), gcr(C,D).
+test(C,D) :- C = up(_), gcr(C,D).
+test(C,D) :- C = p, gcr(C,D).
+test(C,D) :- C = p2, gcr(C,D).
+test(C,D) :- C = p3, gcr(C,D).
+test(C,D) :- C = p4(_), gcr(C,D).
+test(C,D) :- C = p5(_,_,_,_,_), gcr(C,D).
+test(C,D) :- C = p6(_), gcr(C,D).
+test(C,D) :- C = p(_,_), gcr(C,D).
+test(C,D) :- C = p(_,_,_), gcr(C,D).
+test(C,D) :- L = [_|_], C = p(_,L,_), gcr(C,D).
+test(C,D) :- C = pf(_), gcr(C,D).
+test(C,D) :- C = pff(_), gcr(C,D).
+test(C,D) :- C = pfff(_), gcr(C,D).
+test(C,D) :- C = nlin(_), gcr(C,D).
+test(C,D) :- C = nlin(_,_), gcr(C,D).
+test(C,D) :- C = mdl(_), gcr(C,D).
+
+%----------------------------------------------------------------------------
+
+gcr(C,D) :- get_residual(C,D0), sort(D0, D).
+/*
+	get_calls(C,S,R), get_returns(S,R,L), get_delay_lists(L,DLs),
+	( DLs == [] -> D = [] ; DLs = [DL] -> D = DL ; member(D, DLs) ).
+ */
+
+%----------------------------------------------------------------------------
+
+:- table t/1, pos/3, u/1, up/1, p/0, p2/0, p3/0, p4/1, p5/5, p6/1, p/2, p/3.
+
+t(1).
+
+u(f(1)) :- tnot(u(f(1))).
+
+up(X) :- X = f(1), u(X).
+
+p :- tnot(p).
+
+p2 :- tnot(p2), p.
+
+p3 :- p, p2, tnot(p3).
+
+p4(Y) :- p, tnot(p3), X = 11, p(X,Y), p2.
+
+p5(1,2.1,a,[],55) :- tnot(p5(1,2.1,a,[],55)), tnot(p2).
+
+p6(Y) :- p, p2, tnot(p3), X = 11, p(X,Y), p2, Z = a, p(_,Z,F), float(F).
+
+p(11,22) :- tnot(p(11,22)).
+
+pos(1,2,3) :- X = 11, Y = 22, p(X,Y), p(X,_).
+
+p(1,a,1.1) :- tnot(p(1,a,1.1)), p.
+p(1,a,1.1) :- tnot(p(2,f(a,g(b,1),c),3)), p2.
+p(2,f(a,g(b,1),c),3) :- p.
+p(3,[a],_) :- tnot(p(3,[a],3)).
+p(_,[a,b|Y],Y) :- tnot(p(4,[a,b],[])).
+
+%------------------- TESTS WITH NESTED STRUCTURES ------------------------------
+
+:- table pf/1, pff/1, pfff/1.
+
+pf(f(g(a),1,h(i(1,a),[1,2,3]))) :- tnot(pf(f(g(a),1,h(i(1,a),[1,2,3])))).
+
+pff(X) :- Y = f(g(X),1,h(i(1,a),[1,2|_])), pf(Y).
+
+pfff(X) :- pff(X), Y = f(g(X),_,h(i(1,a),[1|_])), pf(Y).
+
+%------------------- TESTS OF NON-LINEARITY ------------------------------------
+
+:- table nlin/1, nlin/2.
+
+nlin(X) :- nlin(X,X).
+
+nlin(X,X) :- X = f(f(f(f(f(1,2,3,4,5))))), tnot(nlin(X,X)), p2.
+
+%------------------- TESTS OF MULTIPLE DELAY LISTS -----------------------------
+
+:- table mdl/1.
+
+% The following should have two answers, one with three DLs and another with one.
+
+mdl(X) :- up(X).
+mdl(X) :- nlin(X).
+mdl(f(1)) :- p, p2, tnot(p3).
+mdl(X) :- X = f(1), tnot(u(X)).
+

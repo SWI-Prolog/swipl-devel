@@ -1,0 +1,17 @@
+Call_gfp(a(3,3))
+Call_gfp(a(3,4))
+Call_gfp(a(4,3))
+Call_gfp(a(4,4))
+Call_gfp(q(4,3))
+Call_gfp(q(4,4))
+Return_gfp(a(3,4))
+Return_gfp(q(4,3))
+Return_gfp(q(4,4))
+gfp(a(3,4)).
+gfp(true).
+gfpg(a(3,4)).
+tnot_gfpg(a(3,3)).
+tnot_gfpg(a(4,3)).
+tnot_gfpg(a(4,4)).
+tnot_gfpg(q(4,3)).
+tnot_gfpg(q(4,4)).

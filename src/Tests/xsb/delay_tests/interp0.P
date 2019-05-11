@@ -1,0 +1,15 @@
+:- table interp_g/1.
+
+interp([]).
+interp([G|Gs]) :- interp_g(G),interp(Gs).
+interp_g(tnot(G)) :- tnot(interp_g(G)).
+interp_g(G) :- rule(G,B),interp(B).
+
+rule(p, [tnot(q),p]).
+rule(q, [tnot(q),p]).
+rule(q, [tnot(p)]).
+
+%-------------------------------------------------------------------------------
+
+test :- Goal = p, interp_g(Goal), fail.
+test :- writeln('Program interp0 finished execution...').

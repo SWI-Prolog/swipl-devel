@@ -1,0 +1,6 @@
+a is true (OK)
+a(0) is true (OK)
+a(1) is undefined (OK)
+b is false (OK)
+b(0) is false (OK)
+b(1) is undefined (OK)

@@ -1,0 +1,25 @@
+%------------------------------------------------------------------------
+% Program that gives wrong results.
+%
+% No simplification is possible (Model T = {q}, F = {p,r}, U = {}).
+%------------------------------------------------------------------------
+
+% :- auto_table.
+:- table p/0, q/0, r/0.
+
+p :- tnot(q), p.
+q :- tnot(p).
+r :- tnot(q).
+
+%------------------------------------------------------------------------
+
+test :- r, fail.
+test :- ( p ->	( tnot(p) -> writeln('p is undefined')
+		; writeln('p is true') )
+	; writeln('p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('q is undefined')
+		; writeln('q is true (OK)') )
+	; writeln('q is false') ),
+	( r ->  ( tnot(r) -> writeln('r  is undefined')
+		; writeln('r is true') )
+	; writeln('r is false (OK)') ).

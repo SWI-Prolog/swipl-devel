@@ -1,0 +1,72 @@
+%-----------------------------------------------------------------------
+% To test delay lists with variables.
+%-----------------------------------------------------------------------
+
+:- import numbervars/1 from num_vars.
+:- import get_residual/2 from tables.
+:- import member/2 from lists.
+
+test :- abolish_all_tables, fail.
+test :-	test(C,D), numbervars((C:-D)),
+	write(C),
+	( D \== [] -> write(' :- ') ; true ),
+	sort(D,Dsort),
+	write('['), write_body(Dsort),
+	fail.
+test.
+
+test(_,_) :- call_them, fail.
+test(C,D) :- C = p(_,_), get_canonical_residual(C,D).
+test(C,D) :- C = p2(_,_), get_canonical_residual(C,D).
+test(C,D) :- C = r2(_,_), get_canonical_residual(C,D).
+test(C,D) :- C = app1(_,_,_), get_canonical_residual(C,D).
+test(C,D) :- C = reverse([_,_,_], _), get_canonical_residual(C,D).
+
+get_canonical_residual(G, D) :-
+    setof(G-D, D0^(get_residual(G,D0),sort(D0,D)), L),
+    member(G-D, L).
+
+%call_them :- p(_,_), p2(_,_), app1(_,_,_), reverse([_,_,_],_).
+call_them :- p(_,_).
+call_them :- p2(_,_).
+call_them :- app1(_,_,_).
+call_them :- reverse([_,_,_],_).
+
+write_body([]) :- writeln('].').
+write_body([H|T]) :- write(H), (T \== [] -> write(', ') ; true), write_body(T).
+
+/*--------------------------------------------------------------------*/
+
+:- table und/0.
+
+und :- tnot(und).
+
+:- table p/2, q/2, r/1, r/2.
+:- table p2/2, q2/2, r2/2.
+:- table app1/3, app/3.
+:- table reverse/2.
+
+p(f(88,X), _XX) :- q(X, f(Y,g(Z))), r(Y), Y=h(_DD,_EE,_FF), Z=fff(_).
+%p(f(88,X), XX) :- q(X, f(Y,g(Z))), r(Y), Y=h(_DD,_EE,_FF), Z=fff(_),writeln(p(f(88,X),XX)).
+p(_X, XX) :- r(XX, t(ZZ)), XX = fff(_SS,_TT), r(ZZ).
+q(ggg(_X,Y,_Z,8),_) :- und, Y = 555.
+r(_,_) :- und.
+r(_) :- und.
+
+p2(X,Y) :- q2(X,Y), r2(X,Y), X = 5.
+p2(X,Y) :- r2(X,Y), X = 10.
+q2(_,_) :- und.
+r2(X,Y) :- q2(X,Y).
+
+app1(X,Y,[A,B,C]) :- app(X,Y,[A,B,C]), A = 1, B = 2, C = 3.
+app([], L, L) :- und.
+app([X|L1], L2, [X|L3]) :- app(L1, L2, L3).
+
+
+%-----------------------------------------------------------------------
+% reverse/2 is written in this way to prevent specialization
+%-----------------------------------------------------------------------
+reverse(In, Result) :- In = [X], Result = [X], und.
+reverse(In, Result) :- In = [Head|Tail],
+               reverse(Tail,ReversedTail),
+               app(ReversedTail,[Head],Result).

@@ -1,0 +1,28 @@
+%------------------------------------------------------------------------
+% Program for which ANSWER COMPLETION is needed.
+%------------------------------------------------------------------------
+
+:- table p/0, s/0, r/0.
+
+p :- p.
+p :- tnot(s).
+
+s :- tnot(r).
+s :- p.
+
+r :- tnot(s), r.
+
+%------------------------------------------------------------------------
+
+test :- abolish_all_tables, fail.
+test :- p, fail.
+test :-
+	( p ->
+	    ( tnot(p) -> writeln('p is undefined') ; writeln('p is true') )
+	; writeln('p is false (OK)') ),
+	( s ->
+	    ( tnot(s) -> writeln('s is undefined') ; writeln('s is true (OK)') )
+	; writeln('s is false') ),
+	( r ->
+	    ( tnot(r) -> writeln('r is undefined') ; writeln('r is true') )
+	; writeln('r is false (OK)') ).

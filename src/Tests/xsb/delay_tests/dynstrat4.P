@@ -1,0 +1,40 @@
+%--------------------------------------------------------------
+% Program that requires a fair amount of simplification (only
+% negative though).  Its well-founded model is two valued:
+%	T = {b(1), c, e(2)}
+%	F = {a, b(2), d}
+%--------------------------------------------------------------
+
+:- table a/0, b/1, c/0, d/0, e/1.
+
+a :- b(_), d.
+
+b(X) :- tnot(c), e(X).
+b(1).
+
+c :- tnot(a).
+
+d :- fail.
+
+e(2).
+
+%--------------------------------------------------------------
+
+:- import get_residual/2 from tables.
+
+test :- abolish_all_tables, fail.
+test :- a, fail.
+test :-
+	( a -> writeln('a is true') ; writeln('a is false (OK)') ),
+	( c ->
+	    ( tnot(c) -> writeln('c is undefined') ; writeln('c is true (OK)') )
+	; writeln('c is false')
+	),
+	( d -> writeln('d is true') ; writeln('d is false (OK)') ), fail.
+test :- C = b(_), get_residual(C, L), write(C),
+	( L == [] -> writeln(' is true (OK)') ; writeln(' is undefined') ),
+	fail.
+test.
+
+%--------------------------------------------------------------
+
