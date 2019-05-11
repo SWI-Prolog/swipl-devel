@@ -33,13 +33,19 @@
 */
 
 :- module(wfs,
-          [ (tnot)/1,                           % :Goal
-            unknown/0,
+          [ unknown/0,
+
+            call_residual_program/2,            % :Goal, -Clauses
+
+            call_delays/2,                      % :Goal, -Delays
+            delays_residual_program/2,          % +Delays, -Clauses
             answer_residual/2,                  % :Goal, :Residual
 
             op(900, fy, tnot)
           ]).
 :- use_module(library(error)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
 /** <module> Well Founded Semantics interface
 
@@ -48,18 +54,13 @@ Semantics (WFS) support in SWI-Prolog.
 */
 
 :- meta_predicate
-    tnot(0),
+    call_delays(0, :),
+    delays_residual_program(:, :),
+    call_residual_program(0, :),
     answer_residual(:, :).
 
 :- table
     unknown/0.
-
-%!  tnot(:Goal)
-%
-%   This predicate provides a tabled alternative to \+/1 (or not/1) that
-%   provides well founded semantics.
-
-% tnot/1 is defined in boot/tabling.pl
 
 %!  unknown
 %
@@ -67,6 +68,78 @@ Semantics (WFS) support in SWI-Prolog.
 
 unknown :-
     tnot(unknown).
+
+%!  call_delays(:Goal, -Delays)
+%
+%   True when Goal is true with Delays.   Delays is `true` if the answer
+%   is unconditionally true and a conjuctions   of tabled goals that are
+%   _unknown_ according to the  Well   Founded  Semantics otherwise. The
+%   global delay list is  cleared  before   running  Goal  and  restored
+%   regardless of whether Goal succeeds, fails or raises an error.
+
+call_delays(Goal, Delays) :-
+    '$wfs_call'(Goal, Delays).
+
+%!  delays_residual_program(+Delays, -Clauses)
+%
+%   Given a delay as returned by call_delays/2, produce a set of clauses
+%   the represents the complete residual   program responsible for these
+%   delays, The program contains at least one loop through tnot/1 and is
+%   either inconsistent or has multiple models   according to the stable
+%   model semantics.
+
+delays_residual_program(Delays, M:Clauses) :-
+    phrase(residual_program(Delays, [], _), Program),
+    maplist(unqualify_clause(M), Program, Clauses0),
+    list_to_set(Clauses0, Clauses).
+
+%!  call_residual_program(:Goal, -Clauses)
+%
+%   Call Goal and return the full residual program as a list of Clauses.
+
+call_residual_program(Goal, M:Clauses) :-
+    '$wfs_call'(Goal, 0:R0),                    % 0: leave qualified
+    phrase(residual_program(R0, [], _), Program),
+    maplist(unqualify_clause(M), Program, Clauses).
+
+residual_program(true, Done, Done) -->
+    !.
+residual_program(G, Done, Done) -->
+    { member(G2, Done),
+      G2 =@= G
+    }, !.
+residual_program((A;B), Done0, Done) -->
+    !,
+    residual_program(A, Done0, Done1),
+    residual_program(B, Done1, Done).
+residual_program((A,B), Done0, Done) -->
+    !,
+    residual_program(A, Done0, Done1),
+    residual_program(B, Done1, Done).
+residual_program(tnot(A), Done0, Done) -->
+    !,
+    residual_program(A, Done0, Done).
+residual_program(Goal0, Done0, Done) -->
+    { (   predicate_property(Goal0, imported_from(M2))
+      ->  Goal0 = _:G,
+          Goal = M2:G
+      ;   Goal = Goal0
+      ),
+      (   current_table(Goal, Trie)
+      ->  true
+      ;   '$tabling':more_general_table(Goal, Trie)
+      ->  true
+      ;   writeln(user_error, 'OOPS: Missing Call? '(Goal))
+      ),
+      '$tbl_table_status'(Trie, _Status, Goal, Skeleton),
+      '$tbl_answer'(Trie, Skeleton, Condition)
+    },
+    [ (Goal :- Condition) ],
+    residual_program(Condition, [Goal|Done0], Done).
+
+unqualify_clause(M, (Head0 :- Body0), (Head :- Body)) :-
+    unqualify(Head0, M, Head),
+    unqualify(Body0, M, Body).
 
 %!  answer_residual(:Goal, :Residual)
 %
@@ -100,6 +173,11 @@ unqualify(tnot(A0), M, G) :-
     !,
     G = tnot(A),
     unqualify(A0, M, A).
+unqualify(M:G0, MG, G) :-
+    '$c_current_predicate'(_, MG:G0),
+    predicate_property(MG:G0, imported_from(M)),
+    !,
+    G = G0.
 unqualify(M:G0, M, G) :-
     !,
     G = G0.

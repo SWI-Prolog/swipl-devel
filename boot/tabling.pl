@@ -497,12 +497,17 @@ reset_delays :-
 
 %!  '$wfs_call'(:Goal, :Delays)
 %
-%   Call Goal and provide WFS delayed goals as a conjunction in Delays.
+%   Call Goal and provide WFS delayed goals  as a conjunction in Delays.
+%   This  predicate  is  teh  internal  version  of  call_delays/2  from
+%   library(wfs).
 
 '$wfs_call'(Goal, M:Delays) :-
+    '$tbl_delay_list'(DL0),
     reset_delays,
     call(Goal),
-    delay_list(M, Delays).
+    delay_list(M, Delays),
+    '$append'(DL0, Delays, DL),
+    '$tbl_set_delay_list'(DL).
 
 delay_list(M, Delays) :-
     '$tbl_delay_list'(DL),

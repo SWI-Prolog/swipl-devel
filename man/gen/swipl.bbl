@@ -100,6 +100,12 @@ Konstantinos Sagonas and Terrance Swift.
   logic programs.
 \newblock {\em {ACM} Trans. Program. Lang. Syst.}, 20(3):586--634, 1998.
 
+\bibitem[Sagonas {\em et al.}, 2000]{SAGONAS20001}
+Konstantinos Sagonas, Terrance Swift, and David~S. Warren.
+\newblock An abstract machine for efficiently computing queries to well-founded
+  models.
+\newblock {\em The Journal of Logic Programming}, 45(1):1 -- 41, 2000.
+
 \bibitem[Schimpf, 2002]{logicalloops:2002}
 Joachim Schimpf.
 \newblock Logical loops.
