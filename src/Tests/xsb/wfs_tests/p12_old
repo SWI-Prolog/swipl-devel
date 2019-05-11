@@ -1,0 +1,4 @@
+Evaluating p12 : win(A)
+win(a) is: false (OK)
+win(b) is: true (OK)
+win(c) is: false (OK)

@@ -1,0 +1,48 @@
+/*------------------------------------------------------------------------
+   test(ProgramName):
+	a failure loop for testing many examples that are loaded together,
+	where each example is identified by a program name and a query in
+   query(PgmName,Query,TabledSubgoals,TrueInstances,UndefinedInstances).
+  ------------------------------------------------------------------------*/
+
+:- import memberchk/2 from basics.
+:- import numbervars/1 from num_vars.
+
+test(P) :-
+	consult(P), tell(temp),
+	query(P,Q,SGs,Tr,Un),
+	call_top_query(P,Q),
+	test_tv(SGs,Tr,Un),
+	told.
+
+test :-
+	abolish_all_tables,
+	query(P,Q,SGs,Tr,Un),
+	call_top_query(P,Q),
+	test_tv(SGs,Tr,Un).
+
+call_top_query(P,Q) :-
+	( numbervars(Q), write('Evaluating '), writeln(P:Q), fail ; true ),
+	( call(Q), fail ; true ).
+
+test_tv([],_,_).
+test_tv([SG|SGs], Trues, Undefs) :-
+	find_tv(SG, T), real_tv(SG, Trues, Undefs, R), check_tv(SG, T, R),
+	test_tv(SGs, Trues, Undefs).
+
+find_tv(SG, _) :- SG, fail.
+find_tv(SG, T) :- SG, !, ( tnot(SG) -> T = undefined ; T = true).
+find_tv(_, false).
+
+real_tv(SG, Trues, Undefs, R) :-
+	( memberchk(SG, Trues) -> R = true
+	; memberchk(SG, Undefs) -> R = undefined
+	; R = false
+	).
+
+check_tv(SG, T, R) :-
+	write(SG), write(' is: '), write(T),
+	( T == R -> writeln(' (OK)')
+	; write(' should be: '), write(R), writeln(' (WRONG)')
+	).
+

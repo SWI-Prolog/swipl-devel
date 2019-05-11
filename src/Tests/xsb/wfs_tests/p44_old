@@ -1,0 +1,5 @@
+Evaluating p44 : w(A)
+w(a) is: undefined (OK)
+w(b) is: undefined (OK)
+w(c) is: true (OK)
+w(d) is: false (OK)

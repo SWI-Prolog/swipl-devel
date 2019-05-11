@@ -1,0 +1,4 @@
+Evaluating p31 : (q(A),q(b))
+q(a) is: false (OK)
+q(b) is: undefined (OK)
+r is: undefined (OK)

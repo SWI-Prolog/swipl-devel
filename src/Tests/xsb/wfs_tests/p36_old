@@ -1,0 +1,7 @@
+Evaluating p36 : noise(1)
+loaded(0) is: true (OK)
+loaded(1) is: true (OK)
+noise(0) is: false (OK)
+noise(1) is: true (OK)
+shoots(0) is: false (OK)
+shoots(1) is: true (OK)
