@@ -601,6 +601,7 @@ init_debug_flags :-
                        [ portray(true), quoted(true), numbervars(true) ],
                        []),
     create_prolog_flag(toplevel_residue_vars, false, []),
+    create_prolog_flag(toplevel_list_wfs_residual_program, true, []),
     '$set_debugger_write_options'(print).
 
 %!  setup_backtrace
