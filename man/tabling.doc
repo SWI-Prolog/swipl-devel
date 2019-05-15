@@ -375,7 +375,7 @@ answer for some tabled predicate, record this answer as a
 \jargon{conditional} answer, in this case with the condition
 \term{tnot}{p}.
     \item
-If a conditonal answer is added to a table, it is propagated to its
+If a conditional answer is added to a table, it is propagated to its
 \jargon{followers}, say $f$, adding the pair \{$f$,answer\} to the
 delay list. If this leads to an answer, the answer is conditonal
 on this pair.
@@ -384,7 +384,7 @@ After the continuations of all unresolved tnot/1 calls have
 been executed the various tables may have conditional answers
 in addition to normal answers.
     \item
-If there is a negative literals that has neither conditional answers
+If there are negative literals that have neither conditional answers
 nor unconditional answers, the condition \term{tnot}{g} is true.
 This conclusion is propagated by simplifying the conditions for
 all answers that depend on \term{tnot}{g}.  This may result in
@@ -434,6 +434,8 @@ or a multiple stable models as in the program below, where both \{p\}
 and \{q\} are stable models.
 
 \begin{code}
+:- table p/0, q/0.
+
 p :- tnot(q).
 q :- tnot(p).
 \end{code}
@@ -441,6 +443,82 @@ q :- tnot(p).
 Note that it is possible that some literals have the same truth value in
 all stable models but are still \jargon{unknown} under the stable model
 semantics.
+
+The residual program is an explanation of why an answer is unknown.
+SWI-Prolog offers the following predicates to access the residual
+program.
+
+\begin{description}
+    \predicate{call_residual_program}{:Goal, -Program}
+True when \arg{Goal} is an answer according to the Well Founded
+Semantics.  If \arg{Program} is the empty list, \arg{Goal} is
+unconditionally true.  Otherwise this is a program as described
+by delays_residual_program/2.
+
+    \predicate{call_delays}{2}{:Goal, -Condition}
+True when \arg{Goal} is an answer that is true when Condition can be
+satisfied. If \arg{Condition} is \const{true}, \arg{Answer} is
+unconditional. Otherwise it is a conjunction of goals, each of which is
+associated with a tabled predicate.
+
+    \predicate{delays_residual_program}{2}{:Condition, -Program}
+Program is a list of clauses that represents the connected program
+associated with \arg{Condition}.  Each clause head represents a
+conditional answer from a table and each corresponding clause body
+is the condition that must hold for this answer to be true.  The
+body is a disjunction of conjunctions.  Each leaf in this condition
+is either a term \term{tnot}{Goal} or a plain \arg{Goal}.  Each
+\arg{Goal} is associated with a tabled predicate.  The program
+always contains at least one cycle that involves tnot/1.
+\end{description}
+
+
+\subsection{Well founded semantics and the toplevel}
+\label{sec:wfs-toplevel}
+
+The toplevel supports two modes for reporting that it is unknown whether
+the current answer is true. The mode is selected by the Prolog flag
+\prologflag{toplevel_list_wfs_residual_program}. If \const{true}, the
+toplevel uses call_delays/2 and delays_residual_program/2 to find the
+conditional answers used and the \jargon{residual} program associated
+with these answers. It then prints the residual program, followed by the
+answer and the conditional answers. For unknown/0, this results in the
+following output:
+
+\begin{code}
+?- unknown.
+% WFS residual program
+    unknown :-
+        tnot(unknown).
+unknown.
+\end{code}
+
+If the \prologflag{toplevel_list_wfs_residual_program} is false, any
+unknown answer is a conjunction with unknown/0.  See the program and
+output below.
+
+\begin{code}
+:- table p/0, q/0.
+
+p :- tnot(q).
+q :- tnot(p).
+\end{code}
+
+\begin{code}
+?- p.
+% WFS residual program
+    p :-
+        tnot(q).
+    q :-
+        tnot(p).
+p.
+
+?- set_prolog_flag(toplevel_list_wfs_residual_program, false).
+true.
+
+?- p.
+unknown.
+\end{code}
 
 
 \section{Tabling predicate reference}

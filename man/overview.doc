@@ -1792,11 +1792,10 @@ used and the toplevel is \const{default}, the toplevel is set to
 \const{halt} (see halt/0).
 
     \prologflagitem{toplevel_list_wfs_residual_program}{bool}{rw}
-If \const{true} (default \const{false}) and the answer is
-\jargon{unknown} according to the Well Founded Semantics (see
-\secref{WFS}. list the \jargon{residual program} before the answer.
-Otherwise the answer terminated with \textbf{unknown}.  See also
-unknown/0.
+If \const{true} (default) and the answer is \jargon{unknown} according
+to the Well Founded Semantics (see \secref{WFS}), list the
+\jargon{residual program} before the answer. Otherwise the answer
+terminated with \textbf{unknown}. See also unknown/0.
 
     \prologflagitem{toplevel_mode}{atom}{rw}
 If \const{backtracking} (default), the toplevel backtracks after
