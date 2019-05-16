@@ -313,6 +313,7 @@ struct PL_global_data
     int64_t	cgc_count;		/* # clause GC calls */
     int64_t	cgc_reclaimed;		/* # clauses reclaimed */
     double	cgc_time;		/* Total time spent in CGC */
+    size_t	dirty;			/* # dirty clauses */
     size_t	erased;			/* # erased pending clauses */
     size_t	erased_size;		/* memory used by them */
     size_t	erased_size_last;	/* memory used by them after last CGC */
