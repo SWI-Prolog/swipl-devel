@@ -618,10 +618,12 @@ UNREC_DELAY(trie_node *r)
 { return (record_t)(((uintptr_t)r)&~(uintptr_t)1);
 }
 
+#ifndef NDEBUG					/* only used in assert() */
 static int
 IS_REC_DELAY(trie_node *r)
 { return (uintptr_t)r & 0x1;
 }
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
