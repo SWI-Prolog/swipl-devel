@@ -52,7 +52,6 @@ static void	freeClauseRef(ClauseRef cref);
 static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def ARG_LD);
 static void	unregisterDirtyDefinition(Definition def);
-static size_t	clause_count_in_dirty_predicates(ARG1_LD);
 
 /* Enforcing this limit demands we propagate NULL from lookupProcedure()
    through the whole system.  This is not done
@@ -263,6 +262,9 @@ resetProcedure(Procedure proc, bool isnew)
   if ( (true(def, P_DYNAMIC) /*&& def->references == 0*/) ||
        !def->impl.any.defined )
     isnew = TRUE;
+
+  if ( true(def, P_DIRTYREG) )
+    ATOMIC_SUB(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
 
   def->flags ^= def->flags & ~(SPY_ME|P_DIRTYREG);
   if ( stringAtom(def->functor->name)[0] != '$' )
@@ -1219,6 +1221,8 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules++;
   ATOMIC_INC(&GD->statistics.clauses);
+  if ( true(def, P_DIRTYREG) )
+    ATOMIC_INC(&GD->clauses.dirty);
 #ifdef O_LOGICAL_UPDATE
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
@@ -1339,6 +1343,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   { ATOMIC_SUB(&def->module->code_size, memory);
     ATOMIC_ADD(&GD->clauses.erased_size, memory);
     ATOMIC_ADD(&GD->clauses.erased, deleted);
+    if( true(def, P_DIRTYREG) )
+      ATOMIC_SUB(&GD->clauses.dirty, deleted);
 
     registerDirtyDefinition(def PASS_LD);
     DEBUG(CHK_SECURE, checkDefinition(def));
@@ -1386,6 +1392,8 @@ retractClauseDefinition(Definition def, Clause clause)
   ATOMIC_SUB(&def->module->code_size, size);
   ATOMIC_ADD(&GD->clauses.erased_size, size);
   ATOMIC_INC(&GD->clauses.erased);
+  if( true(def, P_DIRTYREG) )
+    ATOMIC_DEC(&GD->clauses.dirty);
 
   registerDirtyDefinition(def PASS_LD);
 
@@ -1640,6 +1648,8 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
     { ATOMIC_SUB(&def->module->code_size, memory);
       ATOMIC_ADD(&GD->clauses.erased_size, memory);
       ATOMIC_ADD(&GD->clauses.erased, deleted);
+      if( true(def, P_DIRTYREG) )
+        ATOMIC_SUB(&GD->clauses.dirty, deleted);
 
       registerDirtyDefinition(def PASS_LD);
     }
@@ -1949,7 +1959,7 @@ considerClauseGC(ARG1_LD)
 
     LD->clauses.cgc_inferences = LD->statistics.inferences + 500;
 
-    stats.dirty_pred_clauses = clause_count_in_dirty_predicates(PASS_LD1);
+    stats.dirty_pred_clauses = GD->clauses.dirty;
     if ( stats.dirty_pred_clauses == (size_t)-1 )
       return FALSE;			/* already clicked in */
 
@@ -2005,7 +2015,9 @@ registerDirtyDefinition(Definition def ARG_LD)
 
     ddi->oldest_generation = GEN_NEW_DIRTY;		/* see (*) */
     if ( addHTable(GD->procedures.dirty, def, ddi) == ddi )
-      set(def, P_DIRTYREG);
+    { set(def, P_DIRTYREG);
+      ATOMIC_ADD(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
+    }
     else
       PL_free(ddi);			/* someone else did this */
   }
@@ -2022,6 +2034,7 @@ unregisterDirtyDefinition(Definition def)
   if ( (ddi=deleteHTable(GD->procedures.dirty, def)) )
   { PL_free(ddi);
     clear(def, P_DIRTYREG);
+    ATOMIC_SUB(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
   }
 }
 
@@ -2042,34 +2055,6 @@ maybeUnregisterDirtyDefinition(Definition def)
       freeHeap(def, sizeof(*def));
     }
   }
-}
-
-
-static int
-sum_dirty_clauses(void *n, size_t *countp)
-{ Definition def = n;
-
-  if ( GD->clauses.cgc_active )
-  { *countp = (size_t)-1;
-    return FALSE;
-  }
-
-  if ( false(def, P_FOREIGN) &&
-       def->impl.clauses.erased_clauses > 0 )
-    *countp += def->impl.clauses.number_of_clauses;
-
-  return TRUE;
-}
-
-
-static size_t
-clause_count_in_dirty_predicates(ARG1_LD)
-{ size_t ccount = 0;
-
-  for_table_as_long_as(GD->procedures.dirty, n, v,
-		       sum_dirty_clauses(n, &ccount));
-
-  return ccount;
 }
 
 
