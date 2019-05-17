@@ -345,7 +345,7 @@ value is often referred to as \jargon{bottom}, \jargon{undefined} or
 \jargon{unknown}.  SWI-Prolog uses unknown/0.
 
 Well Founded Semantics allows for reasoning about programs with
-contraditions or multiple answer sets. It allows for obtaining
+contradictions or multiple answer sets. It allows for obtaining
 true/false results for literals that do not depend on the sub program
 that has no unambiguous solution, propagating the notion of
 \jargon{unknown} to literals that cannot be resolved otherwise and
@@ -358,7 +358,14 @@ tnot/1, as the name implies, must be a goal associated with a tabled
 predicate (see table/1).  In a nutshell, resolving a goal that implies
 tnot/1 is implemented as follows:
 
-Consider a \jargon{body term} \exam{..., tnot(p), q)}.
+Consider the following partial \jargon{body term}:
+
+\begin{code}
+	...,
+	tnot(p),
+        q.
+\end{code}
+
 
 \begin{enumerate}
     \item
