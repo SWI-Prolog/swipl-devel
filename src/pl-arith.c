@@ -934,7 +934,7 @@ arithChar(Word p ARG_LD)
   if ( isInteger(*p) )
   { intptr_t chr = valInt(*p);
 
-    if ( chr >= 0 && chr <= 0x10ffff )	/* UNICODE_MAX */
+    if ( chr >= 0 && chr <= PLMAXWCHAR )
       return (int)chr;
   } else if ( isAtom(*p) )
   { PL_chars_t txt;

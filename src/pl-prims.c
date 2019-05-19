@@ -3761,12 +3761,6 @@ PRED_IMPL("number_string", 2, number_string, 0)
 }
 
 
-#if SIZEOF_WCHAR_T == 2
-#define CHARCODE_MAX 0xffff
-#else
-#define CHARCODE_MAX 0x10ffff
-#endif
-
 static
 PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PRED_LD
@@ -3797,7 +3791,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
   { if ( !PL_get_integer_ex(chr, &n) )
       fail;
 
-    if ( n >= 0 && n <= CHARCODE_MAX )
+    if ( n >= 0 && n <= PLMAXWCHAR )
       cchr = n;
     else if ( n < 0 || n > 0x10ffff )
       return PL_type_error("character_code", chr);
@@ -3824,7 +3818,7 @@ is_code(word w)
 { if ( isTaggedInt(w) )
   { intptr_t code = valInt(w);
 
-    return code >= 0 && code <= CHARCODE_MAX;
+    return code >= 0 && code <= PLMAXWCHAR;
   }
 
   return FALSE;
