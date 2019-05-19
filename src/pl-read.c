@@ -5250,7 +5250,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
        !PL_get_atom_ex(A2, &class) )
     return FALSE;
 
-  if ( code > 0x10ffff )
+  if ( code > PLMAXWCHAR )
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
 
   c = PL_atom_chars(class);

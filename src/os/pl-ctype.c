@@ -268,7 +268,7 @@ char_type_by_name(atom_t name, int arity)
 static int
 advanceGen(generator *gen)
 { if ( gen->do_enum & ENUM_CHAR )
-  { if ( ++gen->current > 0x10ffff )
+  { if ( ++gen->current > PLMAXWCHAR )
       fail;
   } else
   { gen->class++;
