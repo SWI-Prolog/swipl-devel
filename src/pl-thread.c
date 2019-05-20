@@ -6399,7 +6399,7 @@ localiseDefinition(Definition def)
   ATOMIC_ADD(&local->module->code_size, sizeof(*local));
   DEBUG(MSG_PROC_COUNT, Sdprintf("Localise %s\n", predicateName(def)));
 
-  createSupervisor(local);
+  setSupervisor(local);
   registerLocalDefinition(def);
 
   return local;

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2017, University of Amsterdam
+    Copyright (c)  2008-2019, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -36,10 +36,11 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-inline.h"
+#include "pl-wrap.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
-static Code
+Code
 allocCodes(size_t n)
 { Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
 
@@ -75,19 +76,29 @@ free_codes_ptr(void *ptr)
 
 
 void
+freeSupervisor(Definition def, Code codes, int do_linger)
+{ size_t size = (size_t)codes[-1];
+
+  if ( size > 0 )		/* 0: built-in, see initSupervisors() */
+  { if ( do_linger )
+      linger(&def->lingering, free_codes_ptr, codes);
+    else
+      freeHeap(&codes[-1], (size+1)*sizeof(code));
+  }
+}
+
+
+void
 freeCodesDefinition(Definition def, int do_linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
   { if ( (codes = def->codes) )
-    { size_t size = (size_t)codes[-1];
-
-      def->codes = SUPERVISOR(virgin);
-      if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-      { if ( do_linger )
-	  linger(&def->lingering, free_codes_ptr, codes);
-	else
-	  freeHeap(&codes[-1], (size+1)*sizeof(code));
+    { if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+      { resetWrappedSupervisor(def);
+      } else
+      { def->codes = SUPERVISOR(virgin);
+	freeSupervisor(def, codes, do_linger);
       }
     } else
       def->codes = SUPERVISOR(virgin);
@@ -364,18 +375,11 @@ createUndefSupervisor(Definition def)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-createSupervisor()  is  synchronised  with  unloadFile()  (reconsult/1).
-Seems this is not yet enough to   stop all racer conditions between this
-code.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
+Code
 createSupervisor(Definition def)
 { Code codes;
   int has_codes;
 
-  PL_LOCK(L_PREDICATE);
   has_codes = ((codes = undefSupervisor(def)) ||
 	       (codes = multifileSupervisor(def)) ||
 	       (codes = singleClauseSupervisor(def)) ||
@@ -383,11 +387,27 @@ createSupervisor(Definition def)
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
   codes = chainMetaPredicateSupervisor(def, codes);
+
+  return codes;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+setSupervisor() is synchronised with   unloadFile() (reconsult/1). Seems
+this is not yet enough to stop all racer conditions between this code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+setSupervisor(Definition def)
+{ Code codes;
+
+  PL_LOCK(L_PREDICATE);
+  codes = createSupervisor(def);
   MemoryBarrier();
   def->codes = codes;
   PL_UNLOCK(L_PREDICATE);
 
-  succeed;
+  return TRUE;
 }
 
 
@@ -441,4 +461,5 @@ initSupervisors(void)
   MAKE_SV1(thread_local, S_THREAD_LOCAL);
   MAKE_SV1(multifile,    S_MULTIFILE);
   MAKE_SV1(staticp,      S_STATIC);
+  MAKE_SV1(wrapper,      S_WRAP);
 }

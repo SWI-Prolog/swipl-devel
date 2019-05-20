@@ -73,6 +73,7 @@ typedef struct
     code thread_local[3];		/* S_THREAD_LOCAL */
     code multifile[3];			/* S_MULTIFILE */
     code staticp[3];			/* S_STATIC */
+    code wrapper[3];			/* S_WRAP */
   } supervisors;
 } PL_code_data_t;
 

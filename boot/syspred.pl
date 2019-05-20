@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -788,6 +789,9 @@ generate_current_predicate(Name, Module, Head) :-
 
 :- meta_predicate
     predicate_property(:, ?).
+
+:- multifile
+    '$predicate_property'/2.
 
 :- '$iso'(predicate_property/2).
 

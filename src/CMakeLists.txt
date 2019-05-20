@@ -80,7 +80,8 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-version.c pl-codetable.c pl-supervisor.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
-    pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c)
+    pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
+    pl-wrap.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}
@@ -143,7 +144,8 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
-    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl)
+    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
+    prolog_wrap.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()

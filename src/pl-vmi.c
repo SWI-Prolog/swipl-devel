@@ -2751,7 +2751,7 @@ VMI(S_VIRGIN, 0, 0, ())
 #endif
   }
 
-  if ( createSupervisor(DEF) )
+  if ( setSupervisor(DEF) )
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
   } else				/* TBD: temporary */
@@ -2904,6 +2904,30 @@ VMI(S_THREAD_LOCAL, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_WRAP: Call a wrapped predicate from a closure.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_WRAP, 0, 0, ())
+{ Code codes = DEF->impl.wrapped.supervisor;
+
+  if ( codes[0] == encode(S_VIRGIN) )
+  { PL_LOCK(L_PREDICATE);
+    codes = createSupervisor(DEF->impl.wrapped.predicate);
+    MemoryBarrier();
+    DEF->impl.wrapped.supervisor = codes;
+    PL_UNLOCK(L_PREDICATE);
+  }
+
+  DEF = DEF->impl.wrapped.predicate;
+  setFramePredicate(FR, DEF);
+  setGenerationFrame(FR);
+
+  PC = codes;
+  NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_MULTIFILE: Multifile predicate.  These need to be aware of new
 clauses that can be added at runtime.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2923,6 +2947,25 @@ TBD: get rid of clause-references
 VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF))
 { ClauseRef cref = (ClauseRef)*PC++;
 
+  ARGP = argFrameP(FR, 0);
+  TRUST_CLAUSE(cref);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+S_CALLWRAPPER: Trust the wrapper clause.  The implementation is the same
+as S_TRUSTME, but we use a different instruction to find the wrapper and
+add additional information.  Arguments:
+
+  - 0: The clause to call (in a wrapper predicate __wrap$P)
+  - 1: The closure blob
+  - 2: Name of the wrapper (an atom)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
+{ ClauseRef cref = (ClauseRef)*PC;
+
+  PC += 3;
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
 }
@@ -4638,6 +4681,7 @@ BEGIN_SHAREDVARS
   functor_t functor;
   int arity;
   Word args;
+  closure *clsp;
 
 #ifdef O_CALL_AT_MODULE
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4867,6 +4911,7 @@ undefined predicate for call/N.
     popTermRef();
     THROW_EXCEPTION;
   }
+  clsp = NULL;
   goto i_usercall_common;
 }
 
@@ -4882,16 +4927,25 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
 
   NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the (now) instantiated */
-  deRef(a);			/* variable */
+  deRef(a);				/* variable */
 
   module = NULL;
   if ( !(a = stripModule(a, &module, 0 PASS_LD)) )
     THROW_EXCEPTION;
 
-  if ( isTextAtom(goal = *a) )
-  { arity   = 0;
-    functor = lookupFunctorDef(goal, callargs);
-    args    = NULL;
+  clsp = NULL;
+  if ( isAtom(goal = *a) )
+  { Atom ap = atomValue(goal);
+    arity   = 0;
+
+    if ( true(ap->type, PL_BLOB_TEXT) )
+    { functor = lookupFunctorDef(goal, callargs);
+      args    = NULL;
+    } else if ( ap->type == &_PL_closure_blob )
+    { clsp = (closure*)ap->name;
+    } else
+    { goto call_type_error;
+    }
   } else if ( isTerm(goal) )
   { FunctorDef fdef = valueFunctor(functorTerm(goal));
 
@@ -4965,7 +5019,11 @@ to be called to get the context module   right. We must build a complete
 environment before we can call trapUndefined() to make shift/GC happy.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  DEF = resolveProcedure(functor, module)->definition;
+  if ( clsp )
+  { DEF = &clsp->def;
+  } else
+  { DEF = resolveProcedure(functor, module)->definition;
+  }
 
 mcall_cont:
   setNextFrameFlags(NFR, FR);

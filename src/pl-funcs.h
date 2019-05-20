@@ -81,10 +81,13 @@ COMMON(void)		unallocStream(IOSTREAM *s);
 
 /* pl-supervisor.c */
 
+COMMON(Code)		allocCodes(size_t len);
 COMMON(void)		freeCodesDefinition(Definition def, int linger);
+COMMON(void)		freeSupervisor(Definition def, Code code, int linger);
 COMMON(int)		createForeignSupervisor(Definition def, Func f);
 COMMON(int)		createUndefSupervisor(Definition def);
-COMMON(int)		createSupervisor(Definition def);
+COMMON(Code)		createSupervisor(Definition def);
+COMMON(int)		setSupervisor(Definition def);
 COMMON(size_t)		supervisorLength(Code base);
 COMMON(void)		initSupervisors(void);
 

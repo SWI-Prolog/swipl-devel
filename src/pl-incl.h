@@ -1273,6 +1273,12 @@ typedef struct impl_foreign
   Func		function;		/* Function pointer */
 } impl_foreign, *ImplForeign;
 
+typedef struct impl_wrapped
+{ arg_info     *args;			/* Meta and indexing info */
+  Definition	predicate;		/* Wrapped predicate */
+  Code		supervisor;		/* Supervisor to use */
+} impl_wrapped, *ImplWrapped;
+
 typedef struct clause_list
 { arg_info     *args;			/* Meta and indexing info */
   ClauseRef	first_clause;		/* clause list of procedure */
@@ -1439,6 +1445,7 @@ struct definition
   { impl_any	any;			/* has some value */
     clause_list	clauses;		/* (Indexed) list of clauses */
     impl_foreign foreign;		/* Foreign implementation */
+    impl_wrapped wrapped;		/* Wrapped predicate */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
   unsigned int  flags;			/* booleans (P_*) */

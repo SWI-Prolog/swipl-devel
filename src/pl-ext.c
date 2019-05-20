@@ -391,6 +391,7 @@ DECL_PLIST(tabling);
 DECL_PLIST(mutex);
 DECL_PLIST(zip);
 DECL_PLIST(cbtrace);
+DECL_PLIST(wrap);
 
 void
 initBuildIns(void)
@@ -458,6 +459,7 @@ initBuildIns(void)
   REG_PLIST(mutex);
   REG_PLIST(zip);
   REG_PLIST(cbtrace);
+  REG_PLIST(wrap);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -521,6 +523,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
   PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
   PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("unwrap_predicate", 2, "system"), ":?");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
