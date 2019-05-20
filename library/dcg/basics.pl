@@ -347,11 +347,22 @@ exp --> "E".
 %
 %	Generate or extract an integer from   a  sequence of hexadecimal
 %	digits. Hexadecimal characters include both  uppercase (A-F) and
-%	lowercase (a-f) letters.
+%	lowercase (a-f) letters. The value may   be  preceeded by a sign
+%	(+/-)
 
 xinteger(Val, Head, Tail) :-
-	integer(Val),
+	integer(Val), !,
 	format(codes(Head, Tail), '~16r', [Val]).
+xinteger(Val) -->
+	sign(C), !,
+	xdigit(D0),
+	xdigits(D),
+	{ mkval([D0|D], 16, Val0),
+	  (   C == 0'-
+	  ->  Val is -Val0
+	  ;   Val = Val0
+	  )
+	}.
 xinteger(Val) -->
 	xdigit(D0),
 	xdigits(D),
