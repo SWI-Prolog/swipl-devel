@@ -4826,10 +4826,19 @@ undefined predicate for call/N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   goal = *a;
-  if ( isCallableAtom(goal) )
-  { functor = lookupFunctorDef(goal, 0);
-    arity   = 0;
-    args    = NULL;
+  clsp = NULL;
+  if ( isAtom(goal) )
+  { Atom ap = atomValue(goal);
+
+    if ( true(ap->type, PL_BLOB_TEXT) || goal == ATOM_nil )
+    { functor = lookupFunctorDef(goal, 0);
+      arity   = 0;
+      args    = NULL;
+    } else if ( ap->type == &_PL_closure_blob )
+    { clsp = (closure*)ap->name;
+    } else
+    { goto call_type_error;
+    }
   } else if ( isTerm(goal) )
   { FunctorDef fd;
 
@@ -4911,7 +4920,6 @@ undefined predicate for call/N.
     popTermRef();
     THROW_EXCEPTION;
   }
-  clsp = NULL;
   goto i_usercall_common;
 }
 
