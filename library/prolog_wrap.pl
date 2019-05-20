@@ -80,31 +80,7 @@ calls the original wrapped definition somewhere.
 %   using initialization/1.
 
 wrap_predicate(M:Head, WName, Wrapped, Body) :-
-    callable_name_arguments(Head, PName, Args),
-    distinct_vars(Args, Head, Arity),
-    atomic_list_concat(['__wrap$', PName], WrapName),
-    volatile(M:WrapName/Arity),
-    WHead =.. [WrapName|Args],
-    unify_wrapped(Closure, Args, Wrapped),
-    '$wrap_predicate'(M:Head, WName, Closure, M:(WHead :- Body)).
-
-unify_wrapped(Closure, _Args, Wrapped) :-
-    compound(Wrapped),
-    compound_name_arity(Wrapped, call, A),
-    A >= 1,
-    arg(1, Wrapped, Closure).
-unify_wrapped(Closure, Args, Wrapped) :-
-    Wrapped =.. [call, Closure | Args].
-
-
-distinct_vars(Vars, _, Arity) :-
-    maplist(must_be(var), Vars),
-    sort(Vars, Sorted),
-    length(Vars, Arity),
-    length(Sorted, Arity),
-    !.
-distinct_vars(_, Head, _) :-
-    domain_error('most_general_term', Head).
+    '$wrap_predicate'(M:Head, WName, Wrapped, Body).
 
 %!  unwrap_predicate(:PI, ?Name) is semidet.
 %
@@ -163,13 +139,3 @@ body_closure_args(_, _, _, _, _).
 '$syspreds':'$predicate_property'(wrapped(List), Pred) :-
     '$wrapped_predicate'(Pred, Pairs),
     pairs_keys(Pairs, List).
-
-
-callable_name_arguments(Head, PName, Args) :-
-    atom(Head),
-    !,
-    PName = Head,
-    Args = [].
-callable_name_arguments(Head, PName, Args) :-
-    compound_name_arguments(Head, PName, Args).
-

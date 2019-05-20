@@ -201,13 +201,13 @@ assert_wrapper(term_t clause ARG_LD)
 		 *	      PROLOG		*
 		 *******************************/
 
-/** '$wrap_predicate'(:Head, +Name, -Closure, +Body)
+/** '$c_wrap_predicate'(:Head, +Name, -Closure, +Body)
  *
  * Install a wrapper for the predicate Head
  */
 
 static
-PRED_IMPL("wrap_predicate", 4, wrap_predicate, PL_FA_TRANSPARENT)
+PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure proc;
   atom_t wname;
@@ -367,7 +367,7 @@ PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
 		 *******************************/
 
 BeginPredDefs(wrap)
-  PRED_DEF("$wrap_predicate",    4, wrap_predicate,    PL_FA_TRANSPARENT)
+  PRED_DEF("$c_wrap_predicate",  4, c_wrap_predicate,  PL_FA_TRANSPARENT)
   PRED_DEF("unwrap_predicate",   2, uwrap_predicate,   PL_FA_TRANSPARENT)
   PRED_DEF("$wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$closure_predicate", 2, closure_predicate, 0)
