@@ -903,6 +903,17 @@ extend(Goal, N, GoalEx, TermPosIn, TermPosOut, _) :-
     extend_term_pos(TermPosIn, N, TermPosOut),
     append(List, Extra, ListEx),
     GoalEx =.. ListEx.
+extend(Closure, N, M:GoalEx, TermPosIn, TermPosOut, OTerm) :-
+    blob(Closure, closure),             % call(Closure, A1, ...)
+    !,
+    '$closure_predicate'(Closure, M:Name/Arity),
+    length(Extra, N),
+    extend_term_pos(TermPosIn, N, TermPosOut),
+    GoalEx =.. [Name|Extra],
+    (   N =:= Arity
+    ->  true
+    ;   print_reference(Closure, TermPosIn, closure_arity_mismatch, OTerm)
+    ).
 extend(Goal, _, _, TermPos, _, OTerm) :-
     print_reference(Goal, TermPos, not_callable, OTerm).
 

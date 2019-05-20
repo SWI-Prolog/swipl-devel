@@ -345,6 +345,23 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
   return FALSE;
 }
 
+
+static
+PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(A1, &data, NULL, &type) &&
+       type == &_PL_closure_blob )
+  { closure *c = data;
+
+    return unify_definition(MODULE_user, A2, &c->def, 0, GP_QUALIFY|GP_NAMEARITY);
+  }
+
+  return PL_type_error("closure", A1);
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -353,4 +370,5 @@ BeginPredDefs(wrap)
   PRED_DEF("$wrap_predicate",    4, wrap_predicate,    PL_FA_TRANSPARENT)
   PRED_DEF("unwrap_predicate",   2, uwrap_predicate,   PL_FA_TRANSPARENT)
   PRED_DEF("$wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
+  PRED_DEF("$closure_predicate", 2, closure_predicate, 0)
 EndPredDefs
