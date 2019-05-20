@@ -196,6 +196,39 @@ assert_wrapper(term_t clause ARG_LD)
 }
 
 
+static int
+unify_wrapped(term_t wrapped, atom_t closure, term_t head ARG_LD)
+{ Word from;
+
+retry:
+  from = valTermRef(head);
+  deRef(from);
+  if ( isTerm(*from) )
+  { Functor fd = valueTerm(*from);
+    size_t arity = arityFunctor(fd->definition);
+    Word to = allocGlobalNoShift(arity+1);
+
+    if ( to )
+    { word w  = consPtr(to, TAG_COMPOUND|STG_GLOBAL);
+      Word f  = fd->arguments;
+
+      *to++ = PL_new_functor(closure, arity);
+      for(; arity > 0; arity--)
+	*to++ = linkVal(f++);
+
+      return _PL_unify_atomic(wrapped, w);
+    } else
+    { int rc;
+
+      if ( (rc = ensureGlobalSpace(1+arity, ALLOW_GC)) == TRUE )
+	goto retry;
+
+      return raiseStackOverflow(rc);
+    }
+  } else
+  { return PL_unify_atom(wrapped, closure);
+  }
+}
 
 		 /*******************************
 		 *	      PROLOG		*
@@ -212,15 +245,17 @@ PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
   Procedure proc;
   atom_t wname;
   Code codes = NULL;
+  term_t head = PL_new_term_ref();
+  term_t closure = PL_new_term_ref();
 
   if ( !PL_get_atom_ex(A2, &wname) ||
-       !get_procedure(A1, &proc, 0, GP_DEFINE) )
+       !get_procedure(A1, &proc, head, GP_DEFINE) )
     return FALSE;
 
   if ( (codes = find_wrapper(proc->definition, wname)) )
   { ClauseRef cref;
 
-    if ( !PL_unify_atom(A3, (atom_t)codes[2]) )
+    if ( !unify_wrapped(A3, (atom_t)codes[2], head PASS_LD) )
       return FALSE;
 
     if ( (cref = assert_wrapper(A4 PASS_LD)) )
@@ -232,11 +267,12 @@ PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
       return TRUE;
     }
   } else
-  { if ( unify_closure(A3, proc->definition, proc->definition->codes) )
+  { if ( unify_closure(closure, proc->definition, proc->definition->codes) )
     { ClauseRef cref;
       atom_t aref;
 
-      if ( !PL_get_atom_ex(A3, &aref) )
+      if ( !PL_get_atom_ex(closure, &aref) ||
+	   !unify_wrapped(A3, aref, head PASS_LD) )
 	return FALSE;				/* something really wrong */
 
       if ( (cref = assert_wrapper(A4 PASS_LD)) )

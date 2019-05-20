@@ -1490,23 +1490,13 @@ set_prolog_gc_thread(Status) :-
 :- meta_predicate
     '$wrap_predicate'(:, +, -, +).
 
-'$wrap_predicate'(M:Head, WName, Wrapped, Body) :-
+'$wrap_predicate'(M:Head, WName, call(Wrapped), Body) :-
     callable_name_arguments(Head, PName, Args),
     distinct_vars(Args, Head, Arity),
     atomic_list_concat(['__wrap$', PName], WrapName),
     volatile(M:WrapName/Arity),
     WHead =.. [WrapName|Args],
-    unify_wrapped(Closure, Args, Wrapped),
-    '$c_wrap_predicate'(M:Head, WName, Closure, M:(WHead :- Body)).
-
-unify_wrapped(Closure, _Args, Wrapped) :-
-    compound(Wrapped),
-    compound_name_arity(Wrapped, call, A),
-    A >= 1,
-    arg(1, Wrapped, Closure).
-unify_wrapped(Closure, Args, Wrapped) :-
-    Wrapped =.. [call, Closure | Args].
-
+    '$c_wrap_predicate'(M:Head, WName, Wrapped, M:(WHead :- Body)).
 
 distinct_vars(Vars, _, Arity) :-
     all_vars(Vars),

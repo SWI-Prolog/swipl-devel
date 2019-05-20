@@ -4848,13 +4848,19 @@ undefined predicate for call/N.
 
     fd = valueFunctor(functor);
     if ( !isCallableAtom(fd->name) )
-      goto call_type_error;
+    { Atom ap = atomValue(fd->name);
+
+      if ( ap->type == &_PL_closure_blob )
+	clsp = (closure*)ap->name;
+      else
+	goto call_type_error;
+    }
     if ( false(fd, CONTROL_F) &&
 	 !(fd->name == ATOM_call && fd->arity > 8) )
     { args    = argTermP(goal, 0);
       arity   = (int)fd->arity;
     } else if ( true(FR, FR_INRESET) )
-    { if ( false(fd, CONTROL_F) && !(fd->name == ATOM_call) )
+    { if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
       { /* arity > 8 will raise existence error */
 	args  = argTermP(goal, 0);
 	arity = (int)fd->arity;

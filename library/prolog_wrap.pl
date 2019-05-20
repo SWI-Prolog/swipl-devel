@@ -62,7 +62,7 @@ calls the original wrapped definition somewhere.
 %   definition through Wrapped. Wrapped is a   term  of the shape below,
 %   where _Closure_ is an opaque _blob_.
 %
-%       call(Closure, A1, ...)
+%       call(Closure(A1, ...))
 %
 %   Name names the wrapper for  inspection using predicate_property/2 or
 %   deletion using unwrap_predicate/2. If Head has   a wrapper with Name
@@ -104,12 +104,11 @@ current_predicate_wrapper(M:Head, Name, Wrapped, Body) :-
     WHead =.. [_|Args],
     body_closure(Body0, Wrapped, Body).
 
-body_closure(Wrapped0, Wrapped, Wrapped) :-
-    compound(Wrapped0),
-    compound_name_arguments(Wrapped0, call, [Closure|Args]),
+body_closure(call(ClosureTerm), Wrapped, Wrapped) :-
+    callable(ClosureTerm),
+    functor(ClosureTerm, Closure, _Arity),
     blob(Closure, closure),
-    !,
-    compound_name_arguments(Wrapped, call, [_|Args]).
+    !.
 body_closure(Body0, Wrapped, Body) :-
     compound(Body0),
     !,
