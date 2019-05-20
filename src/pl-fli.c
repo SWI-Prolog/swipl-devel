@@ -2267,9 +2267,18 @@ isCallable(word w ARG_LD)
 { if ( isTerm(w) )
   { Functor f = valueTerm(w);
     FunctorDef fd = valueFunctor(f->definition);
+    Atom ap = atomValue(fd->name);
 
-    if ( isCallableAtom(fd->name) )
+    if ( true(ap->type, PL_BLOB_TEXT) || fd->name == ATOM_nil )
       return TRUE;
+    if ( ap->type == &_PL_closure_blob )
+    { closure *c = (closure*)ap->name;
+
+      if ( c->def.functor->arity == fd->arity )
+	return TRUE;
+    }
+
+    return FALSE;
   }
 
   return isTextAtom(w) != 0;

@@ -515,6 +515,20 @@ walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
     walk_option_clause(OTerm, ClauseRef),
     register_possible_meta_clause(ClauseRef),
     walk_meta_call(1, Head, Meta, M, ArgPosList, E-E, OTerm).
+walk_called(Closure, _, _, _) :-
+    blob(Closure, closure),
+    !,
+    '$closure_predicate'(Closure, Module:Name/Arity),
+    functor(Head, Name, Arity),
+    '$get_predicate_attribute'(Module:Head, defined, 1).
+walk_called(ClosureCall, _, _, _) :-
+    compound(ClosureCall),
+    functor(ClosureCall, Closure, _),
+    blob(Closure, closure),
+    !,
+    '$closure_predicate'(Closure, Module:Name/Arity),
+    functor(Head, Name, Arity),
+    '$get_predicate_attribute'(Module:Head, defined, 1).
 walk_called(Goal, Module, _, _) :-
     nonvar(Module),
     '$get_predicate_attribute'(Module:Goal, defined, 1),
