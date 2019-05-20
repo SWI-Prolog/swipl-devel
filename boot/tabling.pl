@@ -46,6 +46,8 @@
             start_tabling/2,            % +Wrapper, :Worker
             start_tabling/4,            % +Wrapper, :Worker, :Variant, ?ModeArgs
 
+            '$wrap_tabled'/1,		% :Head
+            '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
             '$wfs_call'/2               % :Goal, -Delays
           ]).
 
@@ -132,6 +134,10 @@ table(PIList) :-
 %
 %   @compat This interface may change or disappear without notice
 %           from future versions.
+
+'$wrap_tabled'(Head) :-
+    '$wrap_predicate'(Head, table, Wrapped,
+                      start_tabling(Head, Wrapped)).
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
@@ -265,6 +271,13 @@ add_answer_or_suspend(Continuation, Skeleton, WorkList,
 %
 %   As start_tabling/2, but in addition separates the data stored in the
 %   answer trie in the Variant and ModeArgs.
+
+'$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
+    '$wrap_predicate'(Head, table, Wrapped,
+                      (   ModeTest,
+                          start_tabling(Head, Wrapped, WrapperNoModes, ModeArgs)
+                      )).
+
 
 start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
@@ -602,7 +615,6 @@ current_table(M:Variant, Trie) :-
 
 :- multifile
     system:term_expansion/2,
-    prolog:rename_predicate/2,
     tabled/2.
 :- dynamic
     system:term_expansion/2.
@@ -626,63 +638,36 @@ wrappers(Name/Arity) -->
     { atom(Name), integer(Arity), Arity >= 0,
       !,
       functor(Head, Name, Arity),
-      check_undefined(Name/Arity),
-      atom_concat(Name, ' tabled', WrapName),
-      Head =.. [Name|Args],
-      WrappedHead =.. [WrapName|Args],
       prolog_load_context(module, Module),
       '$tbl_trienode'(Reserved)
     },
     [ '$tabled'(Head),
       '$table_mode'(Head, Head, Reserved),
-      (   Head :-
-             start_tabling(Module:Head, WrappedHead)
-      )
+      (:- initialization('$wrap_tabled'(Module:Head), now))
     ].
 wrappers(ModeDirectedSpec) -->
     { callable(ModeDirectedSpec),
       !,
       functor(ModeDirectedSpec, Name, Arity),
       functor(Head, Name, Arity),
-      check_undefined(Name/Arity),
-      atom_concat(Name, ' tabled', WrapName),
-      Head =.. [Name|Args],
-      WrappedHead =.. [WrapName|Args],
       extract_modes(ModeDirectedSpec, Head, Variant, Modes, Moded),
       updater_clauses(Modes, Head, UpdateClauses),
       prolog_load_context(module, Module),
       mode_check(Moded, ModeTest),
       (   ModeTest == true
-      ->  WrapClause = (Head :- start_tabling(Module:Head, WrappedHead))
-      ;   WrapClause = (Head :- ModeTest,
-                            start_tabling(Module:Head, WrappedHead,
-                                          Module:Variant, Moded))
+      ->  WrapClause = '$wrap_tabled'(Module:Head)
+      ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
+          Module:Variant, Moded)
       )
     },
     [ '$tabled'(Head),
       '$table_mode'(Head, Variant, Moded),
-      WrapClause
+      (:- initialization(WrapClause, now))
     | UpdateClauses
     ].
 wrappers(TableSpec) -->
     { '$type_error'(table_desclaration, TableSpec)
     }.
-
-%!  check_undefined(+PI)
-%
-%   Verify the predicate has no clauses when the :- table is declared.
-%
-%   @tbd: future versions may rename the existing predicate.
-
-check_undefined(Name/Arity) :-
-    functor(Head, Name, Arity),
-    prolog_load_context(module, Module),
-    current_predicate(Module:Name/Arity),
-    \+ '$get_predicate_attribute'(Module:Head, imported, _),
-    clause(Module:Head, _),
-    !,
-    '$permission_error'(table, procedure, Name/Arity).
-check_undefined(_).
 
 %!  mode_check(+Moded, -TestCode)
 %
@@ -866,29 +851,6 @@ sum(S0, S1, S) :- S is S0+S1.
 		 /*******************************
 		 *         RENAME WORKER	*
 		 *******************************/
-
-%!  prolog:rename_predicate(:Head0, :Head) is semidet.
-%
-%   Hook into term_expansion for  post   processing  renaming of the
-%   generated predicate.
-
-prolog:rename_predicate(M:Head0, M:Head) :-
-    current_predicate(M:'$tabled'/1),
-    call(M:'$tabled'(Head0)),
-    \+ '$get_predicate_attribute'(M:'$tabled'(_), imported, _),
-    \+ current_prolog_flag(xref, true),
-    !,
-    rename_term(Head0, Head).
-
-rename_term(Compound0, Compound) :-
-    compound(Compound0),
-    !,
-    compound_name_arguments(Compound0, Name, Args),
-    atom_concat(Name, ' tabled', WrapName),
-    compound_name_arguments(Compound, WrapName, Args).
-rename_term(Name, WrapName) :-
-    atom_concat(Name, ' tabled', WrapName).
-
 
 system:term_expansion((:- table(Preds)),
                       [ (:- multifile('$tabled'/1)),
