@@ -2049,8 +2049,7 @@ unregisterDirtyDefinition(Definition def)
 
 static void
 maybeUnregisterDirtyDefinition(Definition def)
-{ if ( false(def, P_DYNAMIC) &&
-       true(def, P_DIRTYREG) &&
+{ if ( true(def, P_DIRTYREG) &&
        def->impl.clauses.erased_clauses == 0 )
   { unregisterDirtyDefinition(def);
   }
@@ -2960,7 +2959,6 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
 
     set(def, P_DYNAMIC);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
-    registerDirtyDefinition(def PASS_LD);	/* always considered dirty */
   } else				/* dynamic --> static */
   { clear(def, P_DYNAMIC);
     freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
