@@ -6899,13 +6899,11 @@ pushPredicateAccess__LD(Definition def ARG_LD)
   enterDefinition(def);			/* probably not needed in the end */
   dref = &refs->blocks[idx][top];
   dref->predicate  = def;
+  dref->generation = global_generation();
+  refs->top = top;
   do
   { dref->generation = global_generation();
-    if ( unlikely(GD->clauses.cgc_active) )
-      cgcActivatePredicate__LD(def, dref->generation PASS_LD);
   } while ( dref->generation != global_generation() );
-
-  refs->top = top;
 
   return dref->generation;
 }
