@@ -1542,8 +1542,8 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  if ( csf )
 	    csf->current_procedure = proc;
 
-	  assertProcedureSource(csf, proc, clause PASS_LD);
 	  GD->statistics.codes += clause->code_size;
+	  assertProcedureSource(csf, proc, clause PASS_LD);
 	}
 
         discardBuffer(&buf);
