@@ -165,31 +165,23 @@ destroyDefinition(Definition def)
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
   { freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
     removeClausesPredicate(def, 0, FALSE);
-    DEBUG(MSG_CGC_PRED,
-	  Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
-    if ( true(def, P_DIRTYREG) )
-    { DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
-      def->module = NULL;
-      set(def, P_ERASED);
-    } else
-    { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
-      freeHeap(def, sizeof(*def));
-    }
   } else					/* foreign and thread-local */
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
 				   predicateName(def)));
-    if ( true(def, P_DIRTYREG) )
-    { DEBUG(0, if ( GD->cleaning == CLN_NORMAL )
-	         Sdprintf("Destroying dirty predicate: %s\n",
-			  predicateName(def)));
-      unregisterDirtyDefinition(def);
-    }
-
 #ifdef O_PLMT
     if ( true(def, P_THREAD_LOCAL) )
       destroyLocalDefinitions(def);
 #endif
+  }
 
+  DEBUG(MSG_CGC_PRED,
+	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
+  if ( true(def, P_DIRTYREG) )
+  { DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
+    def->module = NULL;
+    set(def, P_ERASED);
+  } else
+  { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
     freeHeap(def, sizeof(*def));
   }
 }
