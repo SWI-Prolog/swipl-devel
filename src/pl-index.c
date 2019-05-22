@@ -338,7 +338,9 @@ static void
 setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
 { while ( cref &&
 	  cref->value.clause->generation.erased <= generation )
-    cref = cref->next;
+  { cref = cref->next;
+    LD->clauses.erased_skipped++;
+  }
 
   chp->cref = cref;
 }
