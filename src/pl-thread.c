@@ -5034,6 +5034,47 @@ enumerate:
   }
 }
 
+static
+PRED_IMPL("message_queue_set", 2, message_queue_set, 0)
+{ PRED_LD
+  message_queue *q;
+  atom_t name;
+  size_t arity;
+  int rc;
+
+  if ( !get_message_queue__LD(A1, &q PASS_LD) )
+    return FALSE;
+
+  if ( PL_get_name_arity(A2, &name, &arity) && arity == 1 )
+  { term_t a = PL_new_term_ref();
+
+    _PL_get_arg(1, A2, a);
+    if ( name == ATOM_max_size )
+    { size_t mx;
+
+      if ( (rc=PL_get_size_ex(a, &mx)) )
+      { size_t omax = q->max_size;
+
+	q->max_size = mx;
+
+	if ( mx > omax && q->wait_for_drain )
+	{ DEBUG(MSG_QUEUE, Sdprintf("Queue drained. wakeup writers\n"));
+	  cv_signal(&q->drain_var);
+	}
+
+	rc = TRUE;
+      }
+    } else
+    { rc = PL_domain_error("message_queue_property", A2);
+    }
+  } else
+    rc = PL_type_error("compound", A2);
+
+  release_message_queue(q);
+
+  return rc;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 thread_get_message(+Queue, -Message)
@@ -7038,6 +7079,8 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_create",   1,	message_queue_create,  0)
   PRED_DEF("message_queue_create",   2,	message_queue_create2, PL_FA_ISO)
   PRED_DEF("message_queue_property", 2,	message_property,      NDET|PL_FA_ISO)
+  PRED_DEF("message_queue_set",      2, message_queue_set,     0)
+
   PRED_DEF("thread_send_message",    2,	thread_send_message,   PL_FA_ISO)
   PRED_DEF("thread_send_message",    3,	thread_send_message,   0)
   PRED_DEF("thread_get_message",     1,	thread_get_message,    PL_FA_ISO)

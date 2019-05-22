@@ -570,6 +570,19 @@ The \term{size}{Size} property is always present and may be used to
 enumerate the created message queues.  Note that this predicate does
 \emph{not enumerate} threads, but can be used to query the properties
 of the default queue of a thread.
+
+    \predicate{message_queue_set}{2}{+Queue, +Property}
+Set a property on the queue.  Supported properties are:
+
+    \begin{description}
+        \termitem{max_size}{+Size}
+Change the number of terms that may appear in the message queue before
+the next thread_send_message/2,3 blocks on it.  If the value is higher
+then the current maximum and the queue has writers waiting, wakeup the
+writers.  The value can be lower than the current number of terms in
+the queue.  In that case writers will block until the queue is drained
+below the new maximum.
+    \end{description}
 \end{description}
 
 Explicit message queues are designed with the \jargon{worker-pool} model
