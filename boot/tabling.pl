@@ -453,31 +453,30 @@ join_delays(AN,  WorkList, Delays, [VNode+AN|Delays]) :-
 
 tnot(Goal) :-
     '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
-    (   Status == complete
-    ->  tdebug(tnot, 'tnot: ~p: complete', [Goal]),
-        tnot_completed(Trie)
+    (   '$tbl_answer_dl'(Trie, _, true)
+    ->  fail
+    ;   '$tbl_answer_dl'(Trie, _, _)
+    ->  add_delay(Trie)
+    ;   Status == complete
+    ->  true
     ;   Status == fresh
     ->  tdebug(tnot, 'tnot: ~p: fresh', [Goal]),
         (   call(Goal),
             fail
         ;   '$tbl_variant_table'(Goal, Trie, NewStatus, NewSkeleton),
             tdebug(tnot, 'tnot: fresh ~p now ~p', [Goal, NewStatus]),
-            (   NewStatus == complete
-            ->  tnot_completed(Trie)
+            (   '$tbl_answer_dl'(Trie, _, true)
+            ->  fail
+            ;   '$tbl_answer_dl'(Trie, _, _)
+            ->  add_delay(Trie)
+            ;   NewStatus == complete
+            ->  true
             ;   negation_suspend(Goal, NewSkeleton, NewStatus)
             )
         )
     ;   negation_suspend(Goal, Skeleton, Status)
     ).
 
-tnot_completed(Trie) :-
-    (   '$tbl_answer_dl'(Trie, _, AN)
-    ->  (   AN == true
-        ->  !, fail
-        ;   add_delay(Trie)
-        )
-    ;   true
-    ).
 
 %!  negation_suspend(+Goal, +Skeleton, +Worklist)
 %
