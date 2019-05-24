@@ -863,6 +863,41 @@ PRED_IMPL("$tbl_set_delay_list", 1, tbl_set_delay_list, 0)
 }
 
 
+/* Push a positive delay node.  If the answer is ground this is a
+ * term atrie+answer, else it is a term atrie+wrapper.
+ */
+
+static int
+push_delay(term_t atrie, term_t wrapper, trie_node *answer ARG_LD)
+{ Word p;
+
+  if ( (p = allocGlobal(6)) )
+  { Word dl = valTermRef(LD->tabling.delay_list);
+
+    assert(isTerm(*dl));
+    dl = argTermP(*dl, 0);
+
+    p[0] = FUNCTOR_dot2;
+    p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+    p[2] = *dl;
+    p[3] = FUNCTOR_plus2;
+    p[4] = linkVal(valTermRef(atrie));
+    if ( is_ground_trie_node(answer) )
+    { p[5] = consInt(pointerToInt(answer));
+    } else
+    { p[5] = linkVal(valTermRef(wrapper));
+    }
+
+    TrailAssignment(dl);
+    *dl = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /** '$tbl_add_global_delays'(+Delays0, -Delays) is det.
  *
  *  Delays is the result of appending the  global delay list to Delays0.
@@ -3053,9 +3088,47 @@ PRED_IMPL("$tbl_answer_dl", 3, tbl_answer_dl, PL_FA_NONDETERMINISTIC)
 { return trie_gen(A1, A2, 0, A3, unify_delay_info_dl, NULL, PL__ctx);
 }
 
+
+/** '$tbl_answer_update_dl'(+ATrie, +Wrapper, -Skeleton) is nondet.
+ *
+ * Obtain an answer from ATrie.  If the answer is conditional, update
+ * the global delay list.  If the answer is ground with a term
+ * ATrie+ANode and otherwise ATrie+Wrapper
+ */
+
+typedef struct
+{ term_t atrie;
+} update_dl_ctx;
+
+static int
+answer_update_delay_list(term_t wrapper, trie_node *answer, void *vctx ARG_LD)
+{ update_dl_ctx *ctx = vctx;
+
+  if ( answer_is_conditional(answer) )
+  { return push_delay(ctx->atrie, wrapper, answer PASS_LD);
+  } else
+  { return TRUE;
+  }
+}
+
+static
+PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
+	  PL_FA_NONDETERMINISTIC)
+{ update_dl_ctx ctx;
+
+  ctx.atrie   = A1;
+
+  return trie_gen(A1, A3, 0, A2, answer_update_delay_list, &ctx, PL__ctx);
+}
+
+
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
+
+#define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
@@ -3068,7 +3141,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_negative",		1, tbl_wkl_negative,	     0)
   PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
-  PRED_DEF("$tbl_wkl_work",		9, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$tbl_wkl_work",		9, tbl_wkl_work,          NDET)
   PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
@@ -3088,8 +3161,9 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_scc",                  1, tbl_scc,                  0)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
   PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
-  PRED_DEF("$tbl_answer",               3, tbl_answer,    PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$tbl_answer_dl",		3, tbl_answer_dl, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$tbl_answer",               3, tbl_answer,            NDET)
+  PRED_DEF("$tbl_answer_dl",		3, tbl_answer_dl,         NDET)
+  PRED_DEF("$tbl_answer_update_dl",     3, tbl_answer_update_dl,  NDET)
   PRED_DEF("$tbl_force_truth_value",    3, tbl_force_truth_value,    0)
   PRED_DEF("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)

@@ -142,7 +142,7 @@ table(PIList) :-
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
     (   Status == complete
-    ->  table_answer(Trie, Wrapper, Skeleton)
+    ->  '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC),
         tdebug(user_goal(Wrapper, Goal)),
@@ -158,30 +158,13 @@ start_tabling(Wrapper, Worker) :-
         shift(call_info(Skeleton, Status))
     ).
 
-%!  table_answer(+Trie, +Wrapper, -Skeleton) is nondet.
-%
-%   Get answers from an answer trie. If the answer is conditional we add
-%   a positive delay node (thanks David!).
-%
-%   @tbd: Move to C.  Apparently we only need to know whether or not the
-%   condition is true, also simplifying update_delay_list().
-
-table_answer(Trie, Wrapper, Skeleton) :-
-    '$tbl_answer_dl'(Trie, Skeleton, AN),
-    (   AN == true
-    ->  true
-    ;   AN == nonground
-    ->  add_delay(Trie+Wrapper)
-    ;   add_delay(Trie+AN)
-    ).
-
 done_leader(complete, _SCC, Wrapper, Skeleton, Trie) :-
     !,
-    table_answer(Trie, Wrapper, Skeleton).
+    '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton).
 done_leader(final, SCC, Wrapper, Skeleton, Trie) :-
     !,
     '$tbl_free_component'(SCC),
-    table_answer(Trie, Wrapper, Skeleton).
+    '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton).
 done_leader(_,_,_,_,_).
 
 finished_leader(exit, _, _) :-
