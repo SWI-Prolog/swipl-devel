@@ -2275,7 +2275,7 @@ PRED_IMPL("$tbl_wkl_answer_trie", 2, tbl_wkl_answer_trie, 0)
 }
 
 
-/** '$tbl_wkl_work'(+Worklist, -Answer, -ModeArgs, -IsDelay,
+/** '$tbl_wkl_work'(+Worklist, -Answer, -ModeArgs,
  *		    -Goal, -Continuation, -Wrapper, -TargetTable,
  *		    -Delays) is nondet.
  *
