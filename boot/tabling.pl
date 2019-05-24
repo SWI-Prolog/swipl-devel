@@ -490,11 +490,9 @@ negation_suspend(Wrapper, Skeleton, Worklist) :-
     tdebug(tnot, 'negation_suspend ~p (wl=~p)', [Wrapper, Worklist]),
     '$tbl_wkl_negative'(Worklist),
     shift(call_info(Skeleton, tnot(Worklist))),
-    (   '$tbl_wkl_is_false'(Worklist)
-    ->  tdebug(tnot, 'negation_suspend: assume ~p is true', [Wrapper])
-    ;   tdebug(tnot, 'negation_suspend: resume ~p incomplete', [Wrapper]),
-        fail
-    ).
+    tdebug(tnot, 'negation resume ~p (wl=~p)', [Wrapper, Worklist]),
+    '$tbl_wkl_is_false'(Worklist).
+
 
 		 /*******************************
 		 *           DELAY LISTS	*
