@@ -394,15 +394,14 @@ completion_(SCC) :-
 completion_step(WorkList) :-
     (   '$tbl_trienode'(Reserved),
         '$tbl_wkl_work'(WorkList,
-                        Answer, ModeArgs, IsDelay,
-                        Goal, Continuation, Wrapper, TargetWorklist, Delays0),
-        join_delays(IsDelay, WorkList, Delays0, Delays),
+                        Answer, ModeArgs,
+                        Goal, Continuation, Wrapper, TargetWorklist, Delays),
         tdebug(wl_goal(WorkList, SourceGoal, _)),
         tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
         (   ModeArgs == Reserved
         ->  tdebug(delay_goals(Delays, Cond)),
-            tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays(~p) = ~p)',
-                   [TargetGoal, SourceGoal, Answer, IsDelay, Cond]),
+            tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays = ~p)',
+                   [TargetGoal, SourceGoal, Answer, Cond]),
             Goal = Answer,
             delim(Wrapper, Continuation, TargetWorklist, Delays)
         ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
@@ -413,15 +412,6 @@ completion_step(WorkList) :-
         fail
     ;   true
     ).
-
-%!  join_delays(+NewDelay, +Worklist, +Delays0, -Delays)
-
-join_delays(false, _, Delays, Delays) :- !.
-join_delays(-,  WorkList, Delays, [VNode|Delays]) :-
-    !,
-    '$tbl_wkl_answer_trie'(WorkList, VNode).
-join_delays(AN,  WorkList, Delays, [VNode+AN|Delays]) :-
-    '$tbl_wkl_answer_trie'(WorkList, VNode).
 
 
 		 /*******************************

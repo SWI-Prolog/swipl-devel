@@ -862,6 +862,18 @@ PRED_IMPL("$tbl_set_delay_list", 1, tbl_set_delay_list, 0)
   return TRUE;
 }
 
+static int
+push_delay_list(Word p ARG_LD)
+{ Word dl = valTermRef(LD->tabling.delay_list);
+
+  assert(isTerm(*dl));
+  dl = argTermP(*dl, 0);
+  p[2] = *dl;
+  TrailAssignment(dl);
+  *dl = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+
+  return TRUE;
+}
 
 /* Push a positive delay node.  If the answer is ground this is a
  * term atrie+answer, else it is a term atrie+wrapper.
@@ -872,14 +884,8 @@ push_delay(term_t atrie, term_t wrapper, trie_node *answer ARG_LD)
 { Word p;
 
   if ( (p = allocGlobal(6)) )
-  { Word dl = valTermRef(LD->tabling.delay_list);
-
-    assert(isTerm(*dl));
-    dl = argTermP(*dl, 0);
-
-    p[0] = FUNCTOR_dot2;
+  { p[0] = FUNCTOR_dot2;
     p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
-    p[2] = *dl;
     p[3] = FUNCTOR_plus2;
     p[4] = linkVal(valTermRef(atrie));
     if ( is_ground_trie_node(answer) )
@@ -888,10 +894,7 @@ push_delay(term_t atrie, term_t wrapper, trie_node *answer ARG_LD)
     { p[5] = linkVal(valTermRef(wrapper));
     }
 
-    TrailAssignment(dl);
-    *dl = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
-
-    return TRUE;
+    return push_delay_list(p PASS_LD);
   }
 
   return FALSE;
@@ -2320,9 +2323,10 @@ unify_arg_term(term_t a, Word v ARG_LD)
 }
 
 static int
-unify_dependency(term_t a0, term_t dependency ARG_LD)
-{ if ( tTop + 4 < tMax ||
-       makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
+unify_dependency(term_t a0, term_t dependency,
+		 worklist *wl, trie_node *answer ARG_LD)
+{ if ( ensureTrailSpace(4) &&
+       ensureGlobalSpace(6, ALLOW_GC) )
   { Word dp = valTermRef(dependency);
     Functor f;
 
@@ -2336,6 +2340,31 @@ unify_dependency(term_t a0, term_t dependency ARG_LD)
     unify_arg_term(a0+2, &f->arguments[2] PASS_LD);
     unify_arg_term(a0+3, &f->arguments[3] PASS_LD);
     unify_arg_term(a0+4, &f->arguments[4] PASS_LD);
+
+    if ( !answer )				/* negative delay */
+    { Word p = allocGlobalNoShift(3);
+
+      assert(p);
+      p[0] = FUNCTOR_dot2;
+      p[1] = wl->table->symbol;
+
+      return push_delay_list(p PASS_LD);
+    } else if ( unlikely(answer_is_conditional(answer)) )
+    { Word p = allocGlobalNoShift(6);
+
+      assert(p);
+      p[0] = FUNCTOR_dot2;
+      p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+      p[3] = FUNCTOR_plus2;
+      p[4] = wl->table->symbol;
+      if ( is_ground_trie_node(answer) )
+      { p[5] = consInt(pointerToInt(answer));
+      } else
+      { p[5] = linkVal(&f->arguments[0]);
+      }
+
+      return push_delay_list(p PASS_LD);
+    }
 
     return TRUE;
   }
@@ -2373,20 +2402,6 @@ advance_wkl_state(wkl_step_state *state)
 }
 
 
-static int
-unify_delay(term_t d, trie_node *an ARG_LD)
-{ delay_info *di;
-
-  if ( !an )					/* negative delay */
-  { return PL_unify_atom(d, ATOM_minus);
-  } else if ( (di=answer_delay_info(NULL, an, FALSE)) &&
-	      !isEmptyBuffer(&di->delay_sets) )	/* positive delay */
-  { return PL_unify_pointer(d, an);
-  } else					/* no delay */
-  { return PL_unify_atom(d, ATOM_false);
-  }
-}
-
 /**
  * '$tbl_wkl_work'(+WorkList,
  *		   -Answer, -ModeArgs,
@@ -2395,7 +2410,7 @@ unify_delay(term_t d, trie_node *an ARG_LD)
  */
 
 static
-PRED_IMPL("$tbl_wkl_work", 9, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   wkl_step_state *state;
 
@@ -2489,8 +2504,8 @@ next:
 	      tbl_put_trie_value(modeargs, an PASS_LD) &&
 	      PL_recorded(UNTNOT(sr), suspension) &&
 	      PL_unify_output(A3, modeargs) &&
-	      unify_delay(A4, an PASS_LD) &&
-	      unify_dependency(A5, suspension PASS_LD) /* unifies A5..A9 */
+					/* unifies A4..A8 */
+	      unify_dependency(A4, suspension, state->list, an PASS_LD)
          ) )
       { freeForeignState(state, sizeof(*state));
 	return FALSE;			/* resource error */
@@ -3141,7 +3156,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_negative",		1, tbl_wkl_negative,	     0)
   PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
-  PRED_DEF("$tbl_wkl_work",		9, tbl_wkl_work,          NDET)
+  PRED_DEF("$tbl_wkl_work",		8, tbl_wkl_work,          NDET)
   PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)

@@ -4518,7 +4518,7 @@ int
 ensureTrailSpace(size_t cells)
 { GET_LD
 
-  if ( tTop+cells <= tMax )
+  if ( tTop+cells+BIND_TRAIL_SPACE <= tMax )
     return TRUE;
 
   if ( LD->exception.processing || LD->gc.status.active == TRUE )
