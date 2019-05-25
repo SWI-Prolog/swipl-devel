@@ -2390,13 +2390,19 @@ tbl_put_trie_value(term_t t, trie_node *node ARG_LD)
 }
 
 
-static void
+static int
 advance_wkl_state(wkl_step_state *state)
 { if ( --state->scp_index == 0 )
   { state->scp_index = scp_size(state->scp);
     if ( --state->acp_index == 0 )
+    { cluster *acp;
+
       state->next_step = TRUE;
+      return ((acp=state->list->riac) && acp->next);
+    }
   }
+
+  return TRUE;
 }
 
 
@@ -2505,7 +2511,8 @@ next:
 					/* unifies A4..A8 */
 	      unify_dependency(A4, suspension, state->list, an PASS_LD)
          ) )
-      { freeForeignState(state, sizeof(*state));
+      { state->list->executing = FALSE;
+	freeForeignState(state, sizeof(*state));
 	return FALSE;			/* resource error */
       }
 
@@ -2517,9 +2524,13 @@ next:
 	      PL_write_term(Serror, suspension, 1200, PL_WRT_NEWLINE);
 	    });
 
-      advance_wkl_state(state);
-
-      ForeignRedoPtr(state);
+      if ( advance_wkl_state(state) )
+      { ForeignRedoPtr(state);
+      } else
+      { state->list->executing = FALSE;
+	freeForeignState(state, sizeof(*state));
+	return TRUE;
+      }
     }
   }
 
