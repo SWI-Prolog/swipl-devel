@@ -2299,8 +2299,6 @@ typedef struct
 { worklist *list;
   cluster *acp;
   cluster *scp;
-  int acp_size;
-  int scp_size;
   int acp_index;
   int scp_index;
   int iteration;
@@ -2395,7 +2393,7 @@ tbl_put_trie_value(term_t t, trie_node *node ARG_LD)
 static void
 advance_wkl_state(wkl_step_state *state)
 { if ( --state->scp_index == 0 )
-  { state->scp_index = state->scp_size;
+  { state->scp_index = scp_size(state->scp);
     if ( --state->acp_index == 0 )
       state->next_step = TRUE;
   }
@@ -2430,8 +2428,8 @@ PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 	  state->list	   = wl;
 	  state->acp	   = acp;
 	  state->scp	   = scp;
-	  state->acp_index = state->acp_size = acp_size(acp);
-	  state->scp_index = state->scp_size = scp_size(scp);
+	  state->acp_index = acp_size(acp);
+	  state->scp_index = scp_size(scp);
 	  wl->executing    = TRUE;
 
 	  break;
@@ -2465,8 +2463,8 @@ next:
       wkl_swap_clusters(state->list, acp, scp);
       state->acp       = acp;
       state->scp       = scp;
-      state->acp_index = state->acp_size = acp_size(acp);
-      state->scp_index = state->scp_size = scp_size(scp);
+      state->acp_index = acp_size(acp);
+      state->scp_index = scp_size(scp);
       state->next_step = FALSE;
     } else
     { DEBUG(MSG_TABLING_WORK,
