@@ -45,7 +45,7 @@
 static void	free_worklist(worklist *wl);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
-static cluster *new_answer_cluster(trie_node *first);
+static cluster *new_answer_cluster(worklist *wl, trie_node *first);
 static void	wkl_append_left(worklist *wl, cluster *c);
 static int	wkl_add_answer(worklist *wl, trie_node *node ARG_LD);
 static int	tbl_put_trie_value(term_t t, trie_node *node ARG_LD);
@@ -338,7 +338,7 @@ negative_worklist(tbl_component *scc ARG_LD)
 		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	      });
 
-	c = new_answer_cluster(NULL);
+	c = new_answer_cluster(wl, NULL);
 	wkl_append_left(wl, c);
 	if ( !wl->riac )
 	  wl->riac = c;
@@ -1470,12 +1470,17 @@ clearThreadTablingData(PL_local_data_t *ld)
 		 *******************************/
 
 static cluster *
-new_answer_cluster(trie_node *first)
+new_answer_cluster(worklist *wl, trie_node *first)
 { cluster *c;
 
-  c = PL_malloc(sizeof(*c));
-  c->type = CLUSTER_ANSWERS;
-  initBuffer(&c->members);
+  if ( (c=wl->free_clusters) )
+  { wl->free_clusters = c->next;
+    c->type = CLUSTER_ANSWERS;
+  } else
+  { c = PL_malloc(sizeof(*c));
+    c->type = CLUSTER_ANSWERS;
+    initBuffer(&c->members);
+  }
   addBuffer(&c->members, first, trie_node*);
 
   return c;
@@ -1500,7 +1505,6 @@ merge_answer_clusters(cluster *to, cluster *from)
 		    baseBuffer(&from->members, trie_node*),
 		    entriesBuffer(&from->members, trie_node*),
 		    TrieNode);
-  free_answer_cluster(from);
 }
 
 static trie_node*
@@ -1526,16 +1530,21 @@ IS_TNOT(record_t r)
 }
 
 static cluster *
-new_suspension_cluster(term_t first, int is_tnot ARG_LD)
+new_suspension_cluster(worklist *wl, term_t first, int is_tnot ARG_LD)
 { cluster *c;
   record_t r;
 
   if ( !(r=PL_record(first)) )
     return NULL;
 
-  c = PL_malloc(sizeof(*c));
-  c->type = CLUSTER_SUSPENSIONS;
-  initBuffer(&c->members);
+  if ( (c=wl->free_clusters) )
+  { wl->free_clusters = c->next;
+    c->type = CLUSTER_SUSPENSIONS;
+  } else
+  { c = PL_malloc(sizeof(*c));
+    c->type = CLUSTER_SUSPENSIONS;
+    initBuffer(&c->members);
+  }
   addBuffer(&c->members, TNOT(r, is_tnot), record_t);
 
   return c;
@@ -1567,15 +1576,17 @@ add_to_suspension_cluster(cluster *c, term_t suspension, int is_tnot ARG_LD)
 }
 
 static void
-merge_suspension_cluster(cluster *to, cluster *from)
+merge_suspension_cluster(cluster *to, cluster *from, int do_free)
 { typedef record_t* Record;
 
   addMultipleBuffer(&to->members,
 		    baseBuffer(&from->members, record_t*),
 		    entriesBuffer(&from->members, record_t*),
 		    Record);
-  discardBuffer(&from->members);
-  PL_free(from);
+  if ( do_free )
+  { discardBuffer(&from->members);
+    PL_free(from);
+  }
 }
 
 
@@ -1634,7 +1645,10 @@ free_worklist(worklist *wl)
 
   for(c=wl->head; c; c = next)
   { next = c->next;
-
+    free_cluster(c);
+  }
+  for(c=wl->free_clusters; c; c = next)
+  { next = c->next;
     free_cluster(c);
   }
 
@@ -1753,7 +1767,7 @@ wkl_add_answer(worklist *wl, trie_node *node ARG_LD)
   if ( wl->head && wl->head->type == CLUSTER_ANSWERS )
   { add_to_answer_cluster(wl->head, node);
   } else
-  { cluster *c = new_answer_cluster(node);
+  { cluster *c = new_answer_cluster(wl, node);
     wkl_append_left(wl, c);
     if ( !wl->riac )
       wl->riac = c;
@@ -1773,7 +1787,7 @@ wkl_add_suspension(worklist *wl, term_t suspension, int is_tnot ARG_LD)
   { if ( !add_to_suspension_cluster(wl->tail, suspension, is_tnot PASS_LD) )
       return FALSE;
   } else
-  { cluster *c = new_suspension_cluster(suspension, is_tnot PASS_LD);
+  { cluster *c = new_suspension_cluster(wl, suspension, is_tnot PASS_LD);
     if ( !c )
       return FALSE;
     wkl_append_right(wl, c);
@@ -2189,13 +2203,14 @@ PRED_IMPL("$tbl_wkl_make_follower", 1, tbl_wkl_make_follower, 0)
       if ( c->type == CLUSTER_ANSWERS )
       { if ( acp )
 	{ merge_answer_clusters(acp, c);
+	  free_answer_cluster(c);
 	} else
 	{ acp = c;
 	  acp->prev = acp->next = NULL;
 	}
       } else
       { if ( scp )
-	{ merge_suspension_cluster(scp, c);
+	{ merge_suspension_cluster(scp, c, TRUE);
 	} else
 	{ scp = c;
 	  scp->prev = scp->next = NULL;
@@ -2395,7 +2410,25 @@ advance_wkl_state(wkl_step_state *state)
 { if ( --state->scp_index == 0 )
   { state->scp_index = scp_size(state->scp);
     if ( --state->acp_index == 0 )
-    { cluster *acp;
+    { cluster *acp, *scp;
+
+      if ( (scp=state->scp)->prev && scp->prev->type == CLUSTER_SUSPENSIONS )
+      { scp->prev->next = scp->next;
+	scp->next->prev = scp->prev;
+	merge_suspension_cluster(scp->prev, scp, FALSE);
+	seekBuffer(&scp->members, 0, record_t);
+	scp->next = state->list->free_clusters;
+	state->list->free_clusters = scp;
+      }
+
+      if ( (acp=state->acp)->next && acp->next->type == CLUSTER_ANSWERS )
+      { acp->prev->next = acp->next;
+	acp->next->prev = acp->prev;
+	merge_answer_clusters(acp->next, acp);
+	seekBuffer(&acp->members, 0, trie_node*);
+	acp->next = state->list->free_clusters;
+	state->list->free_clusters = acp;
+      }
 
       state->next_step = TRUE;
       return ((acp=state->list->riac) && acp->next);
@@ -2489,13 +2522,15 @@ next:
       term_t modeargs   = av+1;
 
       if ( an == NULL && !IS_TNOT(sr) )
-      { advance_wkl_state(state);
-	goto next;
+      { if ( advance_wkl_state(state) )
+	  goto next;
+	goto out_fail;
       }
       if ( an != NULL && IS_TNOT(sr) &&
 	   answer_is_conditional(an) )
-      { advance_wkl_state(state);
-	goto next;
+      { if ( advance_wkl_state(state) )
+	  goto next;
+	goto out_fail;
       }
 
       /* WFS: need to add a positive node to the delay list if `an`
@@ -2534,6 +2569,7 @@ next:
     }
   }
 
+out_fail:
   state->list->executing = FALSE;
   freeForeignState(state, sizeof(*state));
   return FALSE;

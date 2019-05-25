@@ -97,6 +97,7 @@ typedef struct worklist
 { cluster      *head;			/* answer and dependency clusters */
   cluster      *tail;
   cluster      *riac;			/* rightmost inner answer cluster */
+  cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
   unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
