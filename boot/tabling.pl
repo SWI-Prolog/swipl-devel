@@ -223,32 +223,22 @@ activate(Wrapper, Worker, Trie, WorkList) :-
 
 delim(Wrapper, Worker, WorkList, Delays) :-
     reset(Worker, SourceCall, Continuation),
-    add_answer_or_suspend(Continuation, Wrapper,
-                          WorkList, SourceCall, Delays, Complete),
-    (   Complete == !
-    ->  !,
-        fail
-    ;   true
-    ).
-
-add_answer_or_suspend(0, Wrapper, WorkList, _, Delays, Complete) :-
-    !,
     '$tbl_add_global_delays'(Delays, AllDelays),
     tdebug(wl_goal(WorkList, Goal, _)),
     tdebug(delay_goals(AllDelays, Cond)),
-    tdebug(answer, 'New answer ~p for ~p (delay = ~p)',
-           [Wrapper,Goal,Cond]),
-    '$tbl_wkl_add_answer'(WorkList, Wrapper, AllDelays, Complete).
-add_answer_or_suspend(Continuation, Skeleton, WorkList,
-                      call_info(SrcSkeleton, SourceWL),
-                      Delays, _) :-
-    tdebug(wl_goal(WorkList, Wrapper, _)),
-    tdebug(wl_goal(SourceWL, SrcWrapper, _)),
-    tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcWrapper, Wrapper]),
-    '$tbl_add_global_delays'(Delays, AllDelays),
-    '$tbl_wkl_add_suspension'(
-        SourceWL,
-        dependency(SrcSkeleton, Continuation, Skeleton, WorkList, AllDelays)).
+    (   Continuation == 0
+    ->  tdebug(answer, 'New answer ~p for ~p (delay = ~p)',
+               [Wrapper, Goal, Cond]),
+        '$tbl_wkl_add_answer'(WorkList, Wrapper, AllDelays, Complete),
+        Complete == !,
+        !
+    ;   SourceCall = call_info(SrcSkeleton, SourceWL),
+        tdebug(wl_goal(SourceWL, SrcWrapper, _)),
+        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcWrapper, Wrapper]),
+        '$tbl_wkl_add_suspension'(
+            SourceWL,
+            dependency(SrcSkeleton, Continuation, Wrapper, WorkList, AllDelays))
+    ).
 
 %!  start_tabling(:Wrapper, :Implementation, +Variant, +ModeArgs)
 %
