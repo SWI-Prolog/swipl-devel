@@ -2363,9 +2363,19 @@ unify_dependency(term_t a0, term_t dependency,
 
       return push_delay_list(p PASS_LD);
     } else if ( unlikely(answer_is_conditional(answer)) )
-    { Word p = allocGlobalNoShift(6);
+    { term_t av = PL_new_term_refs(3);
+      Word p;
 
+      if ( !PL_recorded(wl->table->data.skeleton, av+0) )
+	return FALSE;
+      _PL_get_arg(1, av+0, av+1);	/* wrapper */
+      _PL_get_arg(2, av+0, av+2);	/* skeleton */
+      if ( !PL_unify(a0+0, av+2) )
+	return FALSE;
+
+      p = allocGlobalNoShift(6);
       assert(p);
+
       p[0] = FUNCTOR_dot2;
       p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
       p[3] = FUNCTOR_plus2;
@@ -2373,7 +2383,7 @@ unify_dependency(term_t a0, term_t dependency,
       if ( is_ground_trie_node(answer) )
       { p[5] = consInt(pointerToInt(answer));
       } else
-      { p[5] = linkVal(&f->arguments[0]);
+      { p[5] = linkVal(valTermRef(av+1));
       }
 
       return push_delay_list(p PASS_LD);
