@@ -649,48 +649,63 @@ typedef enum
 static int
 update_delay_list(worklist *wl, trie_node *answer,
 		  term_t skel, term_t delays ARG_LD)
-{ if ( delays )
-  { Word dlp = valTermRef(delays);
+{ Word ldlp = valTermRef(delays);
+  Word gdlp = valTermRef(LD->tabling.delay_list);
 
-    if ( isNil(*dlp) )
-    { delay_info *di;
+  deRef(gdlp);
+  gdlp = argTermP(*gdlp, 0);
+  deRef(gdlp);
+  deRef(ldlp);
 
-      if ( (di=answer->data.delayinfo) )
-      { answer->data.delayinfo = NULL;
-	destroy_delay_info(di);
-      }
+  if ( isNil(*ldlp) && isNil(*gdlp) )
+  { delay_info *di;
 
-      if ( wl->ground )
-	return UDL_COMPLETE;
-      return UDL_TRUE;
-    } else
-    { delay_info *di;
-      delay_set  *ds;
-      intptr_t len;
-      Word tail;
+    if ( (di=answer->data.delayinfo) )
+    { answer->data.delayinfo = NULL;
+      destroy_delay_info(di);
+    }
 
-      len = skip_list(dlp, &tail PASS_LD);
-      if ( !isNil(*tail) )
-      { PL_type_error("list", delays);
+    if ( wl->ground )
+      return UDL_COMPLETE;
+    return UDL_TRUE;
+  } else
+  { delay_info *di;
+    delay_set  *ds;
+    intptr_t len;
+    Word tail;
+
+    len = skip_list(ldlp, &tail PASS_LD);
+    if ( !isNil(*tail) )
+    { PL_type_error("list", delays);
+      return UDL_FALSE;
+    }
+    len += skip_list(gdlp, &tail PASS_LD);
+    assert(isNil(*tail));
+
+    if ( !hasGlobalSpace(3+len*3) )
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(3+len*3, ALLOW_GC)) == TRUE )
+      { ldlp = valTermRef(delays);
+	deRef(ldlp);
+	gdlp = valTermRef(LD->tabling.delay_list);
+	gdlp = argTermP(*gdlp, 0);
+      } else
+      { raiseStackOverflow(rc);
 	return UDL_FALSE;
       }
-      if ( !hasGlobalSpace(3+len*3) )
-      { int rc;
+    }
 
-	if ( (rc=ensureGlobalSpace(3+len*3, ALLOW_GC)) == TRUE )
-	{ dlp = valTermRef(delays);
-	  deRef(dlp);
-	} else
-	{ raiseStackOverflow(rc);
-	  return UDL_FALSE;
-	}
-      }
+    di = answer_delay_info(wl, answer, TRUE);
+    ds = create_delay_set(di);
 
-      di = answer_delay_info(wl, answer, TRUE);
-      ds = create_delay_set(di);
+    if ( ds )
+    { word conj = 0;
+      int pass = 0;
+      Word dlp;
 
-      if ( ds )
-      { word conj = 0;
+      for(pass = 0; pass <= 1; pass++)
+      { dlp = pass ? ldlp : gdlp;
 
 	for(; !isNil(*dlp); dlp = TailList(dlp))
 	{ Word h;
@@ -754,50 +769,48 @@ update_delay_list(worklist *wl, trie_node *answer,
 	  if ( !add_to_delay_set(di, ds, at, an) )
 	    goto nomem;
 	} /*for list*/
+      } /*for pass*/
 
-	if ( conj )
-	{ record_t r;
-	  Word vt = allocGlobalNoShift(3);
-	  word rt;
+      if ( conj )
+      { record_t r;
+	Word vt = allocGlobalNoShift(3);
+	word rt;
 
-	  assert(vt);
-	  vt[0] = FUNCTOR_plus2;
-	  vt[1] = linkVal(valTermRef(skel));
-	  vt[2] = conj;
-	  rt    = consPtr(vt, TAG_COMPOUND|STG_GLOBAL);
+	assert(vt);
+	vt[0] = FUNCTOR_plus2;
+	vt[1] = linkVal(valTermRef(skel));
+	vt[2] = conj;
+	rt    = consPtr(vt, TAG_COMPOUND|STG_GLOBAL);
 
-	  r = PL_record(pushWordAsTermRef(&rt));
-	  popTermRef();
-	  if ( r )
-	  { if ( !add_to_delay_set(di, ds, NULL, REC_DELAY(r)) )
-	      goto nomem;
-	  } else
-	  { return UDL_FALSE;
-	  }
+	r = PL_record(pushWordAsTermRef(&rt));
+	popTermRef();
+	if ( r )
+	{ if ( !add_to_delay_set(di, ds, NULL, REC_DELAY(r)) )
+	    goto nomem;
+	} else
+	{ return UDL_FALSE;
 	}
-
-	if ( !simplify_delay_set(di, ds) )
-	{ delay *d = baseBuffer(&di->delays, delay);
-	  unsigned int i, e = ds->offset+ds->size;
-
-	  for(i=ds->offset; i<e; i++)
-	  { if ( d[i].variant )
-	    { if ( !add_to_wl_delays(d[i].variant, answer) )
-		return UDL_FALSE;
-	    }
-	  }
-	}
-
-	return UDL_TRUE;
       }
 
-    nomem:
-      PL_resource_error("memory");
-      return UDL_FALSE;
-    }
-  }
+      if ( !simplify_delay_set(di, ds) )
+      { delay *d = baseBuffer(&di->delays, delay);
+	unsigned int i, e = ds->offset+ds->size;
 
-  return UDL_TRUE;
+	for(i=ds->offset; i<e; i++)
+	{ if ( d[i].variant )
+	  { if ( !add_to_wl_delays(d[i].variant, answer) )
+	      return UDL_FALSE;
+	  }
+	}
+      }
+
+      return UDL_TRUE;
+    }
+
+  nomem:
+    PL_resource_error("memory");
+    return UDL_FALSE;
+  }
 }
 
 

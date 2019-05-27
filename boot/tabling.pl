@@ -223,16 +223,17 @@ activate(Wrapper, Worker, Trie, WorkList) :-
 
 delim(Wrapper, Worker, WorkList, Delays) :-
     reset(Worker, SourceCall, Continuation),
-    '$tbl_add_global_delays'(Delays, AllDelays),
     tdebug(wl_goal(WorkList, Goal, _)),
-    tdebug(delay_goals(AllDelays, Cond)),
     (   Continuation == 0
-    ->  tdebug(answer, 'New answer ~p for ~p (delay = ~p)',
+    ->  tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
+        tdebug(delay_goals(AllDelays, Cond)),
+        tdebug(answer, 'New answer ~p for ~p (delays = ~p)',
                [Wrapper, Goal, Cond]),
-        '$tbl_wkl_add_answer'(WorkList, Wrapper, AllDelays, Complete),
+        '$tbl_wkl_add_answer'(WorkList, Wrapper, Delays, Complete),
         Complete == !,
         !
     ;   SourceCall = call_info(SrcSkeleton, SourceWL),
+        '$tbl_add_global_delays'(Delays, AllDelays),
         tdebug(wl_goal(SourceWL, SrcWrapper, _)),
         tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcWrapper, Wrapper]),
         '$tbl_wkl_add_suspension'(
