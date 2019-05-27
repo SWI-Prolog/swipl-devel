@@ -93,6 +93,10 @@ wl_goal(WorkList, Goal, Skeleton) :-
     '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton),
     unqualify_goal(Wrapper, user, Goal).
 
+trie_goal(ATrie, Goal, Skeleton) :-
+    '$tbl_table_status'(ATrie, _Status, Wrapper, Skeleton),
+    unqualify_goal(Wrapper, user, Goal).
+
 delay_goals(List, Goal) :-
     delay_goals(List, user, Goal).
 
@@ -142,7 +146,7 @@ table(PIList) :-
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
     (   Status == complete
-    ->  '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton)
+    ->  '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC),
         tdebug(user_goal(Wrapper, Goal)),
@@ -153,19 +157,19 @@ start_tabling(Wrapper, Worker) :-
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
-        done_leader(LStatus, SCC, Wrapper, Skeleton, Trie)
+        done_leader(LStatus, SCC, Skeleton, Trie)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
 
-done_leader(complete, _SCC, Wrapper, Skeleton, Trie) :-
+done_leader(complete, _SCC, Skeleton, Trie) :-
     !,
-    '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton).
-done_leader(final, SCC, Wrapper, Skeleton, Trie) :-
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_leader(final, SCC, Skeleton, Trie) :-
     !,
     '$tbl_free_component'(SCC),
-    '$tbl_answer_update_dl'(Trie, Wrapper, Skeleton).
-done_leader(_,_,_,_,_).
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_leader(_,_,_,_).
 
 finished_leader(exit, _, _) :-
     !.
@@ -844,19 +848,22 @@ system:term_expansion((:- table(Preds)),
 %   @see called from C, pl-tabling.c, answer_completion()
 
 answer_completion(AnswerTrie) :-
-    call_cleanup(answer_completion_guarded(AnswerTrie),
-                 abolish_table_subgoals(eval_subgoal_in_residual(_))).
+    tdebug(trie_goal(AnswerTrie, Goal, _Return)),
+    tdebug(ac(start), 'START: Answer completion for ~p', [Goal]),
+    call_cleanup(answer_completion_guarded(AnswerTrie, Propagated),
+                 abolish_table_subgoals(eval_subgoal_in_residual(_))),
+    (   Propagated > 0
+    ->  answer_completion(AnswerTrie)
+    ;   true
+    ).
 
-answer_completion_guarded(AnswerTrie) :-
+answer_completion_guarded(AnswerTrie, Propagated) :-
     (   eval_subgoal_in_residual(AnswerTrie),
         fail
     ;   true
     ),
     delete_answers_for_failing_calls(Propagated),
-    (   Propagated > 0
-    ->  answer_completion(AnswerTrie)
-    ;   mark_succeeding_calls_as_answer_completed
-    ).
+    mark_succeeding_calls_as_answer_completed.
 
 %!  delete_answers_for_failing_calls(-Propagated)
 %
@@ -868,7 +875,9 @@ delete_answers_for_failing_calls(Propagated) :-
     State = state(0),
     (   subgoal_residual_trie(ASGF, ESGF),
         \+ trie_gen(ESGF, _ETmp),
-        '$trie_gen_node'(ASGF, _Return, ALeaf),
+        tdebug(trie_goal(ASGF, Goal, _0Return)),
+        '$trie_gen_node'(ASGF, _0Return, ALeaf),
+        tdebug(ac(prune), '  Removing answer ~p', [Goal]),
 	'$tbl_force_truth_value'(ALeaf, false, Count),
         arg(1, State, Prop0),
         Prop is Prop0+Count-1,
@@ -879,8 +888,11 @@ delete_answers_for_failing_calls(Propagated) :-
 
 mark_succeeding_calls_as_answer_completed :-
     (   subgoal_residual_trie(ASGF, _ESGF),
-        (   trie_gen(ASGF, _Return)
-        ->  '$tbl_set_answer_completed'(ASGF)
+        (   '$tbl_answer_dl'(ASGF, _0Return, true)
+        ->  tdebug(trie_goal(ASGF, Answer, _0Return)),
+            tdebug(trie_goal(ASGF, Goal, _0Return)),
+            tdebug(ac(prune), '  Completed ~p on ~p', [Goal, Answer]),
+            '$tbl_set_answer_completed'(ASGF)
         ),
         fail
     ;   true
@@ -896,6 +908,8 @@ subgoal_residual_trie(ASGF, ESGF) :-
 %   Evaluate a condition by only looking at   the  residual goals of the
 %   involved calls.
 
+eval_dl_in_residual(true) :-
+    !.
 eval_dl_in_residual((A;B)) :-
     !,
     (   eval_dl_in_residual(A)
@@ -905,8 +919,6 @@ eval_dl_in_residual((A,B)) :-
     !,
     eval_dl_in_residual(A),
     eval_dl_in_residual(B).
-eval_dl_in_residual(true) :-
-    !.
 eval_dl_in_residual(tnot(G)) :-
     !,
     tdebug(ac, ' ? tnot(~p)', [G]),
@@ -943,17 +955,9 @@ all_vars([H|T]) :-
 %
 %   Derive answers for the variant represented   by  AnswerTrie based on
 %   the residual goals only.
-%
-%   The first clause comes from the XSB code,  but seems wrong to me. We
-%   might be using the flag wrongly.
 
-% eval_subgoal_in_residual(AnswerTrie) :-
-%     '$tbl_is_answer_completed'(AnswerTrie),
-%     !.
 eval_subgoal_in_residual(AnswerTrie) :-
-    '$tbl_answer'(AnswerTrie, _Return, Condition),
-    tdebug(ac, 'Condition for ~p is ~p', [AnswerTrie, Condition]),
-    (   Condition == true
-    ->  true
-    ;   eval_dl_in_residual(Condition)
-    ).
+    '$tbl_answer'(AnswerTrie, _0Return, Condition),
+    tdebug(trie_goal(AnswerTrie, Goal, _0Return)),
+    tdebug(ac, 'Condition for ~p is ~p', [Goal, Condition]),
+    eval_dl_in_residual(Condition).

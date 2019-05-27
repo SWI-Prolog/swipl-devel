@@ -83,8 +83,6 @@ typedef struct trie_allocation_pool
   size_t	limit;			/* Limit of the pool */
 } trie_allocation_pool;
 
-#define AT_ANSWER_COMPLETED	0x0001
-
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
   int			magic;		/* TRIE_MAGIC */
@@ -99,7 +97,6 @@ typedef struct trie
   { struct worklist *worklist;		/* tabling worklist */
     trie_node	    *variant;		/* node in variant trie */
     fastheap_term   *skeleton;		/* Wrapper-Vars */
-    unsigned int     flags;
   } data;
 } trie;
 

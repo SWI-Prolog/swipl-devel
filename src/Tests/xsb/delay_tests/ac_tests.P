@@ -99,9 +99,9 @@ test(Goal) :-
 :- import append/3 from basics.
 
 print_residual_pgm(Goal) :-
-	abolish_table_pred(print_residual_pgm(_,_,_)),
 	get_calls(Goal,SGF,Tmp),
-	print_residual_pgm(Goal,SGF,Tmp).
+	call_cleanup(print_residual_pgm(Goal,SGF,Tmp),
+		     abolish_table_pred(print_residual_pgm(_,_,_))).
 print_residual_pgm(_Goal).
 
 :- table print_residual_pgm/3 as variant, opaque.
@@ -151,8 +151,13 @@ key_variants([H|T0], [K-H|T]) :-
 	key_variants(T0, T).
 
 unkey([], []).
-unkey([_-H|T0], [H|T]) :-
-	unkey(T0, T).
+unkey([K-H|T0], [H|T]) :-
+	skip_same_key(T0, K, T1),
+	unkey(T1, T).
+
+skip_same_key([K-_|T0], K, T) :- !,
+	skip_same_key(T0, K, T).
+skip_same_key(T, _, T).
 
 :- table b/1.
 b(p) :- b(q).

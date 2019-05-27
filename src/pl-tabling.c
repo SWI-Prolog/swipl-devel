@@ -53,6 +53,8 @@ static void	del_child_component(tbl_component *parent, tbl_component *child);
 static void	free_components_set(component_set *cs, int destroy);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
+static void	print_delay(const char *msg,
+			    trie_node *variant, trie_node *answer);
 #endif
 static int	simplify_component(tbl_component *scc);
 
@@ -65,6 +67,8 @@ static int	simplify_component(tbl_component *scc);
 #define WLFS_FREE_NONE		0x0000
 #define WLFS_KEEP_COMPLETE	0x0001
 #define WLFS_FREE_ALL		0x0002
+
+#define DV_DELETED		((trie*)0x1)
 
 
 		 /*******************************
@@ -514,6 +518,7 @@ create_delay_set(delay_info *di)
        (ds=allocFromBuffer(&di->delay_sets, sizeof(*ds))) )
   { ds->offset = entriesBuffer(&di->delays, delay);
     ds->size   = 0;
+    ds->active = 0;
 
     return ds;
   }
@@ -529,6 +534,8 @@ add_to_delay_set(delay_info *di, delay_set *ds,
   if ( (d=allocFromBuffer(&di->delays, sizeof(*d))) )
   { d->variant = variant;
     d->answer  = answer;
+    if ( variant )
+      ds->active++;
     return ++ds->size;
   } else
   { return 0;
@@ -559,6 +566,12 @@ add_to_wl_delays(trie *at, trie_node *answer)
   }
 
   return TRUE;
+}
+
+
+static void
+add_to_wl_pos_undefined(worklist *wl, trie_node *answer)
+{ addBuffer(&wl->pos_undefined, answer, trie_node *);
 }
 
 
@@ -637,7 +650,7 @@ TBD: If we make an answer unconditional,  should we propagate this? Note
 that the worklists still  point  to   this  answer.  That should trigger
 propagation?
 
-FIXME: delete record delays
+FIXME: delete variable sharing record
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef enum
@@ -649,13 +662,14 @@ typedef enum
 static int
 update_delay_list(worklist *wl, trie_node *answer,
 		  term_t skel, term_t delays ARG_LD)
-{ Word ldlp = valTermRef(delays);
-  Word gdlp = valTermRef(LD->tabling.delay_list);
+{ Word ldlp;
+  Word gdlp;
 
-  deRef(gdlp);
+retry:
+  deRef2(valTermRef(LD->tabling.delay_list), gdlp);
   gdlp = argTermP(*gdlp, 0);
   deRef(gdlp);
-  deRef(ldlp);
+  deRef2(valTermRef(delays), ldlp);
 
   if ( isNil(*ldlp) && isNil(*gdlp) )
   { delay_info *di;
@@ -669,43 +683,34 @@ update_delay_list(worklist *wl, trie_node *answer,
       return UDL_COMPLETE;
     return UDL_TRUE;
   } else
-  { delay_info *di;
-    delay_set  *ds;
-    intptr_t len;
+  { delay_info *di = answer_delay_info(wl, answer, TRUE);
+    delay_set  *ds = create_delay_set(di);
+    size_t count;
     Word tail;
 
-    len = skip_list(ldlp, &tail PASS_LD);
+    count = skip_list(ldlp, &tail PASS_LD);
     if ( !isNil(*tail) )
-    { PL_type_error("list", delays);
-      return UDL_FALSE;
-    }
-    len += skip_list(gdlp, &tail PASS_LD);
-    assert(isNil(*tail));
+      return PL_type_error("delay_list", delays);
+    count += skip_list(gdlp, &tail PASS_LD);
+    if ( !isNil(*tail) )
+      return PL_type_error("delay_list", LD->tabling.delay_list);
 
-    if ( !hasGlobalSpace(3+len*3) )
+    if ( !hasGlobalSpace(count+2) )
     { int rc;
 
-      if ( (rc=ensureGlobalSpace(3+len*3, ALLOW_GC)) == TRUE )
-      { ldlp = valTermRef(delays);
-	deRef(ldlp);
-	gdlp = valTermRef(LD->tabling.delay_list);
-	gdlp = argTermP(*gdlp, 0);
-      } else
-      { raiseStackOverflow(rc);
-	return UDL_FALSE;
-      }
+      if ( (rc = ensureGlobalSpace(count+2, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
+      goto retry;
     }
 
-    di = answer_delay_info(wl, answer, TRUE);
-    ds = create_delay_set(di);
-
     if ( ds )
-    { word conj = 0;
-      int pass = 0;
+    { int pass = 0;
       Word dlp;
+      Word   tshare = NULL;
+      size_t nshare = 0;
 
       for(pass = 0; pass <= 1; pass++)
-      { dlp = pass ? ldlp : gdlp;
+      {	dlp = pass ? ldlp : gdlp;
 
 	for(; !isNil(*dlp); dlp = TailList(dlp))
 	{ Word h;
@@ -735,25 +740,39 @@ update_delay_list(worklist *wl, trie_node *answer,
 	      if ( isInteger(*p) )
 	      { assert(isTaggedInt(*p));
 		an = intToPointer(valInt(*p));
+		assert(is_ground_trie_node(an));
 	      } else
-	      { DEBUG(MSG_TABLING_DELAY,
-		      { Sdprintf("Instantiated DL: ");
-			pl_writeln(pushWordAsTermRef(p));
-			popTermRef();
-		      });
+	      { int rc;
 
-		if ( !conj )
-		{ conj = *p;
-		} else
-		{ Word c = allocGlobalNoShift(3);
-
-		  assert(c);
-		  c[0] = FUNCTOR_comma2;
-		  c[1] = *p;
-		  c[2] = conj;
-		  conj = consPtr(c, TAG_COMPOUND|STG_GLOBAL);
+		/* ground__LD() returns first var */
+		if ( ground__LD(p PASS_LD) != NULL )
+		{ if ( !tshare )
+		  { tshare = allocGlobalNoShift(3);
+		    assert(tshare);
+		    tshare[1] = linkVal(valTermRef(skel));
+		    tshare[2] = *p;
+		    nshare = 1;
+		  } else
+		  { Word s = allocGlobalNoShift(1);
+		    assert(s);
+		    s[0] = *p;
+		    nshare++;
+		  }
 		}
-		continue;
+
+		if ( (rc=trie_lookup(at, &an, p, TRUE PASS_LD)) == TRUE )
+		{ // TBD: can we immediately simplify if this already has a value?
+		  DEBUG(MSG_TABLING_DELAY_VAR,
+			print_delay("Waiting for instantiated",
+				    at->data.variant, an));
+		  // TBD: at->data.worklist?
+		  add_to_wl_pos_undefined(wl, an);
+		} else
+		{ term_t trie = PL_new_term_ref();
+
+		  PL_put_atom(trie, wl->table->symbol);
+		  return trie_error(rc, trie);
+		}
 	      }
 	    } else
 	    { PL_type_error("delay_list", delays);
@@ -771,18 +790,12 @@ update_delay_list(worklist *wl, trie_node *answer,
 	} /*for list*/
       } /*for pass*/
 
-      if ( conj )
-      { record_t r;
-	Word vt = allocGlobalNoShift(3);
-	word rt;
+      if ( tshare )
+      { word w = consPtr(tshare, TAG_COMPOUND|STG_GLOBAL);
+	record_t r;
 
-	assert(vt);
-	vt[0] = FUNCTOR_plus2;
-	vt[1] = linkVal(valTermRef(skel));
-	vt[2] = conj;
-	rt    = consPtr(vt, TAG_COMPOUND|STG_GLOBAL);
-
-	r = PL_record(pushWordAsTermRef(&rt));
+	tshare[0] = PL_new_functor(ATOM_v, nshare+1);
+	r = PL_record(pushWordAsTermRef(&w));
 	popTermRef();
 	if ( r )
 	{ if ( !add_to_delay_set(di, ds, NULL, REC_DELAY(r)) )
@@ -792,7 +805,7 @@ update_delay_list(worklist *wl, trie_node *answer,
 	}
       }
 
-      if ( !simplify_delay_set(di, ds) )
+      if ( tshare || !simplify_delay_set(di, ds) )
       { delay *d = baseBuffer(&di->delays, delay);
 	unsigned int i, e = ds->offset+ds->size;
 
@@ -1090,6 +1103,10 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
   { delay_set *ds, *dz;
     delay *db = baseBuffer(&di->delays, delay);
 
+    DEBUG(MSG_TABLING_SIMPLIFY,
+	  print_delay("	 answer",
+		      di->variant, answer));
+
     for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
     { unsigned o;
       unsigned oe = ds->offset+ds->size;
@@ -1114,16 +1131,16 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 
 	    found = TRUE;
 
-	    if ( res )
-	    { memmove(d, d+1, sizeof(*d)*(oe-o-1));
-	      if ( --ds->size == 0 )
+	    if ( res )			/* remove member from conjunction */
+	    { d->variant = DV_DELETED;
+	      if ( --ds->active == 0 )
 	      { make_answer_unconditional(agenda, answer);
 		return found;
 	      }
 	    } else
 	    { memmove(ds, ds+1, sizeof(*ds)*(dz-ds-1));
 	      (void)popBufferP(&di->delay_sets, delay_set);
-	      ds--;				/* compensafe for(;;ds++) */
+	      ds--;			/* compensafe for(;;ds++) */
 	      dz--;
 	      break;
 	    }
@@ -1215,6 +1232,28 @@ simplify_component(tbl_component *scc)
 	  propagate_result(&agenda, p->worklist, p->answer, p->result);
       }
 
+      if ( !isEmptyBuffer(&wl->pos_undefined) )
+      { trie_node **bn = baseBuffer(&wl->pos_undefined, trie_node *);
+	trie_node **en = topBuffer(&wl->pos_undefined, trie_node *);
+	trie_node **on = bn;
+
+	for(; bn < en; bn++)
+	{ trie_node *an = *bn;
+
+	  if ( !answer_is_conditional(an) )
+	  { DEBUG(MSG_TABLING_SIMPLIFY,
+		  Sdprintf("Propagating instantiated answer\n"));
+	    count++;
+	    push_propagate(&agenda, wl, an, an->value != 0);
+	    while( (p=pop_propagate(&agenda)) )
+	      propagate_result(&agenda, p->worklist, p->answer, p->result);
+	  } else
+	  { *on++ = an;
+	  }
+	}
+	wl->pos_undefined.top = (char*)on;
+      }
+
       if ( wl->undefined )
 	undefined++;
     }
@@ -1230,6 +1269,109 @@ simplify_component(tbl_component *scc)
   else
     return TRUE;
 }
+
+		 /*******************************
+		 *	ANSWER COMPLETION	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The role of answer completion  is  to   remove  positive  loops from the
+remaining delay lists. We do   this by calling answer_completion(+ATrie)
+in  boot/tabling.pl.  This  predicate  uses  recursive  tabling  on  the
+residual program that involves the given  ATrie and removing all answers
+deduced as false and marking those deduced as true as `answer_completed`
+
+We search for a candidate worklist as one that is undefined (e.g., has a
+residual program) and has at  least  one   depending  answer  that has a
+positive delay element because a positive loop needs to include at least
+one positive dependency.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+call_answer_completion(worklist *wl ARG_LD)
+{ fid_t fid;
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { static predicate_t pred = NULL;
+    term_t av = PL_new_term_refs(1);
+    int rc;
+    tbl_component *scc_old = LD->tabling.component;
+    int hsc = LD->tabling.has_scheduling_component;
+
+    if ( !pred )
+      pred = PL_predicate("answer_completion", 1, "$tabling");
+
+    DEBUG(MSG_TABLING_AC,
+	  { term_t t = PL_new_term_ref();
+	    unify_trie_term(wl->table->data.variant, t PASS_LD);
+	    Sdprintf("Calling answer completion for: ");
+	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  });
+
+    LD->tabling.component = NULL;
+    LD->tabling.has_scheduling_component = FALSE;
+    LD->tabling.in_answer_completion = TRUE;
+    rc = ( PL_put_atom(av+0, wl->table->symbol) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+    LD->tabling.in_answer_completion = FALSE;
+    LD->tabling.has_scheduling_component = hsc;
+    LD->tabling.component = scc_old;
+
+    PL_close_foreign_frame(fid);
+    return rc;
+  } else
+    return FALSE;				/* stack overflow */
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A variant can only be subject to answer   completion  if it has at least
+one answer that  is  undefined  and   has  a  condition  containing only
+positive delay elements.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+has_positive_dl(trie_node *n)
+{ delay_info *di;
+
+  if ( n->value && (di=n->data.delayinfo) )
+  { delay_set *ds, *dz;
+    delay *db = baseBuffer(&di->delays, delay);
+
+    for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
+    { unsigned o;
+      unsigned oe = ds->offset+ds->size;
+
+      for(o=ds->offset; o<oe; o++)
+      { delay *d = &db[o];
+
+	if ( d->variant && d->variant != DV_DELETED )
+	{ if ( d->answer )
+	    return TRUE;
+	}
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+static int
+is_ac_candidate_wl(worklist *wl)
+{ if ( wl->undefined && !wl->answer_completed &&
+       !isEmptyBuffer(&wl->delays) )
+  { trie_node **n = baseBuffer(&wl->delays, trie_node*);
+    trie_node **z =  topBuffer(&wl->delays, trie_node*);
+
+    for( ; n < z; n++)
+    { if ( has_positive_dl(*n) )
+	return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
 
 static int
 answer_completion(tbl_component *scc)
@@ -1248,40 +1390,9 @@ answer_completion(tbl_component *scc)
   for(; wlp < top; wlp++)
   { worklist *wl = *wlp;
 
-    if ( wl->undefined && !(wl->table->data.flags & AT_ANSWER_COMPLETED) )
-    { fid_t fid;
-
-      if ( (fid = PL_open_foreign_frame()) )
-      { static predicate_t pred = NULL;
-	term_t av = PL_new_term_refs(1);
-	int rc;
-	tbl_component *scc_old = LD->tabling.component;
-	int hsc = LD->tabling.has_scheduling_component;
-
-	if ( !pred )
-	  pred = PL_predicate("answer_completion", 1, "$tabling");
-
-	DEBUG(MSG_TABLING_AC,
-	      { term_t t = PL_new_term_ref();
-		unify_trie_term(wl->table->data.variant, t PASS_LD);
-		Sdprintf("Calling answer completion for: ");
-		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	      });
-
-	LD->tabling.component = NULL;
-	LD->tabling.has_scheduling_component = FALSE;
-	LD->tabling.in_answer_completion = TRUE;
-	rc = ( PL_put_atom(av+0, wl->table->symbol) &&
-	       PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
-	LD->tabling.in_answer_completion = FALSE;
-	LD->tabling.has_scheduling_component = hsc;
-	LD->tabling.component = scc_old;
-
-	PL_close_foreign_frame(fid);
-	if ( !rc )
-	  return FALSE;
-      } else
-	return FALSE;				/* stack overflow */
+    if ( is_ac_candidate_wl(wl) )
+    { if ( !call_answer_completion(wl PASS_LD) )
+	return FALSE;
     }
   }
 
@@ -1362,9 +1473,15 @@ PRED_IMPL("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
 { trie *trie;
 
   if ( get_trie(A1, &trie) )
-  { trie->data.flags |= AT_ANSWER_COMPLETED;
+  { worklist *wl;
 
-    return TRUE;
+    if ( WL_IS_WORKLIST((wl=trie->data.worklist)) )
+    { wl->answer_completed = TRUE;
+
+      return TRUE;
+    }
+
+    return PL_permission_error("set_answer_complete", "trie", A1);
   }
 
   return FALSE;
@@ -1375,7 +1492,12 @@ PRED_IMPL("$tbl_is_answer_completed", 1, tbl_is_answer_completed, 0)
 { trie *trie;
 
   if ( get_trie(A1, &trie) )
-  { return (trie->data.flags & AT_ANSWER_COMPLETED) != 0;
+  { worklist *wl;
+
+    if ( WL_IS_WORKLIST((wl=trie->data.worklist)) )
+      return wl->answer_completed;
+
+    return wl == WL_COMPLETE;
   }
 
   return FALSE;
@@ -1644,6 +1766,7 @@ new_worklist(trie *trie)
     wl->ground = TRUE;
   trie->data.worklist = wl;
   initBuffer(&wl->delays);
+  initBuffer(&wl->pos_undefined);
 
   return wl;
 }
@@ -2376,17 +2499,7 @@ unify_dependency(term_t a0, term_t dependency,
 
       return push_delay_list(p PASS_LD);
     } else if ( unlikely(answer_is_conditional(answer)) )
-    { term_t av = PL_new_term_refs(3);
-      Word p;
-
-      if ( !PL_recorded(wl->table->data.skeleton, av+0) )
-	return FALSE;
-      _PL_get_arg(1, av+0, av+1);	/* wrapper */
-      _PL_get_arg(2, av+0, av+2);	/* skeleton */
-      if ( !PL_unify(a0+0, av+2) )
-	return FALSE;
-
-      p = allocGlobalNoShift(6);
+    { Word p = allocGlobalNoShift(6);
       assert(p);
 
       p[0] = FUNCTOR_dot2;
@@ -2396,7 +2509,7 @@ unify_dependency(term_t a0, term_t dependency,
       if ( is_ground_trie_node(answer) )
       { p[5] = consInt(pointerToInt(answer));
       } else
-      { p[5] = linkVal(valTermRef(av+1));
+      { p[5] = linkVal(valTermRef(a0+0));
       }
 
       return push_delay_list(p PASS_LD);
@@ -3054,40 +3167,75 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
 { delay *base, *top;
   term_t av = PL_new_term_refs(4);
   int count = 0;
+  term_t gshare = 0;
+  term_t gskel = 0;
+  size_t arity = 0;
 
   get_delay_set(di, set, &base, &top);
-  for(--top; top >= base; top--, count++)
+
+  /* Get the variable sharing term */
+  if ( top > base && top[-1].answer && !top[-1].variant )
+  { record_t r;
+
+    assert(IS_REC_DELAY(top[-1].answer));
+    r = UNREC_DELAY(top[-1].answer);
+    if ( !(gshare = PL_new_term_refs(2)) ||
+	 !PL_recorded(r, gshare) )
+      return FALSE;
+    PL_get_name_arity(gshare, NULL, &arity);
+    gskel = gshare+1;
+    _PL_get_arg(1, gshare, gskel);
+    if ( !PL_unify(gskel, ctx->skel) )
+    { DEBUG(0, Sdprintf("Oops, global skeleton doesn't unify\n"));
+      return FALSE;
+    }
+
+    top--;
+
+    DEBUG(MSG_TABLING_DELAY_VAR,
+	  { Sdprintf("Got sharing skeleton of size %zd\n", arity);
+	    pl_writeln(gshare);
+	  });
+  }
+
+  for(--top; top >= base; top--)
   { term_t c1 = count == 0 ? cond : av+0;
 
+    if ( top->variant == DV_DELETED )
+    { if ( top->answer && !is_ground_trie_node(top->answer) )
+	arity--;
+      continue;
+    }
     if ( top->answer )
-    { if ( top->variant )
-      { term_t skel = av+1;
-	term_t ans  = av+2;
-	term_t tmp  = av+3;
+    { term_t skel = av+1;
+      term_t ans  = av+2;
+      term_t tmp  = av+3;
 
-	PL_put_variable(c1);
-	PL_put_variable(ans);
-	PL_put_variable(skel);
+      PL_put_variable(c1);
+      PL_put_variable(ans);
+      PL_put_variable(skel);
 
-	if ( !unify_trie_term(top->variant->data.variant, c1 PASS_LD) )
-	  return FALSE;
-	if ( !( unify_trie_term(top->answer, ans PASS_LD) &&
-		PL_recorded(top->variant->data.skeleton, skel) &&
-		_PL_get_arg(1, skel, tmp) &&
-		PL_unify(c1, tmp) &&
-		_PL_get_arg(2, skel, tmp) &&
-		PL_unify(ans, tmp) ) )
-	  return FALSE;
-      } else
-      { term_t rd  = av+1;
-	term_t tmp = av+2;
+      if ( !unify_trie_term(top->variant->data.variant, c1 PASS_LD) )
+	return FALSE;
+      if ( !( unify_trie_term(top->answer, ans PASS_LD) &&
+	      PL_recorded(top->variant->data.skeleton, skel) &&
+	      _PL_get_arg(1, skel, tmp) &&
+	      PL_unify(c1, tmp) &&
+	      _PL_get_arg(2, skel, tmp) &&
+	      PL_unify(ans, tmp) ) )
+      { return FALSE;
+      }
+      if ( !is_ground_trie_node(top->answer) )
+      { assert(gshare);
 
-	assert(IS_REC_DELAY(top->answer));
-	if ( !( PL_recorded(UNREC_DELAY(top->answer), rd) &&
-		_PL_get_arg(1, rd, tmp) &&
-		PL_unify(tmp, ctx->skel) &&
-		_PL_get_arg(2, rd, c1) ) )
+	_PL_get_arg(arity, gshare, gskel);
+	if ( !PL_unify(gskel, ans) )
+	{ DEBUG(0, Sdprintf("Oops, skeleton %zd does not unify\n", arity));
+	  pl_writeln(gskel);
+	  pl_writeln(skel);
 	  return FALSE;
+	}
+	arity--;
       }
     } else
     { PL_put_variable(c1);
@@ -3096,7 +3244,7 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
 	return FALSE;
     }
 
-    if ( count > 0 )
+    if ( count++ > 0 )
     { if ( !PL_cons_functor(cond, FUNCTOR_comma2, c1, cond) )
 	return FALSE;
     }
@@ -3172,7 +3320,7 @@ PRED_IMPL("$tbl_answer_dl", 3, tbl_answer_dl, PL_FA_NONDETERMINISTIC)
 }
 
 
-/** '$tbl_answer_update_dl'(+ATrie, +Wrapper, -Skeleton) is nondet.
+/** '$tbl_answer_update_dl'(+ATrie, -Skeleton) is nondet.
  *
  * Obtain an answer from ATrie.  If the answer is conditional, update
  * the global delay list.  If the answer is ground with a term
@@ -3195,13 +3343,13 @@ answer_update_delay_list(term_t wrapper, trie_node *answer, void *vctx ARG_LD)
 }
 
 static
-PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
+PRED_IMPL("$tbl_answer_update_dl", 2, tbl_answer_update_dl,
 	  PL_FA_NONDETERMINISTIC)
 { update_dl_ctx ctx;
 
   ctx.atrie   = A1;
 
-  return trie_gen(A1, A3, 0, A2, answer_update_delay_list, &ctx, PL__ctx);
+  return trie_gen(A1, A2, 0, A2, answer_update_delay_list, &ctx, PL__ctx);
 }
 
 
@@ -3246,7 +3394,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
   PRED_DEF("$tbl_answer",               3, tbl_answer,            NDET)
   PRED_DEF("$tbl_answer_dl",		3, tbl_answer_dl,         NDET)
-  PRED_DEF("$tbl_answer_update_dl",     3, tbl_answer_update_dl,  NDET)
+  PRED_DEF("$tbl_answer_update_dl",     2, tbl_answer_update_dl,  NDET)
   PRED_DEF("$tbl_force_truth_value",    3, tbl_force_truth_value,    0)
   PRED_DEF("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)

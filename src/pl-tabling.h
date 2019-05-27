@@ -106,12 +106,14 @@ typedef struct worklist
   unsigned	neg_delayed : 1;	/* Negative node was delayed */
   unsigned	neg_completed : 1;	/* Negative node is complete (false) */
   unsigned	has_answers : 1;	/* Negative node has >= one answer */
+  unsigned	answer_completed : 1;	/* Is answer completed */
   size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */
   trie	       *table;			/* My answer table */
 
   buffer	delays;			/* Delayed answers */
+  buffer	pos_undefined;		/* Positive undefined */
 } worklist;
 
 
@@ -152,6 +154,7 @@ typedef struct delay
 typedef struct delay_set
 { unsigned	     offset;		/* offset in delays */
   unsigned	     size;		/* size of the conjunction */
+  unsigned	     active;		/* active members of conjunction */
 } delay_set;
 
 typedef struct delay_info
