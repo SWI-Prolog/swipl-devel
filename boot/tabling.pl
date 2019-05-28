@@ -928,8 +928,14 @@ more_general_table(G, Trie) :-
     length(Vars, Len),
     '$tbl_variant_table'(VariantTrie),
     trie_gen(VariantTrie, G, Trie),
+    all_vars(Vars),
     sort(Vars, V2),
     length(V2, Len).
+
+all_vars([]).
+all_vars([H|T]) :-
+    var(H),
+    all_vars(T).
 
 :- table eval_subgoal_in_residual/1.
 
