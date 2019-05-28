@@ -596,7 +596,7 @@ get_trie_form_node(trie_node *node)
 int
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
-  { if ( tag(node->key) == TAG_VAR )
+  { if ( tag(node->key) == TAG_VAR && node->key != TRIE_KEY_POP )
       return FALSE;
   }
 
