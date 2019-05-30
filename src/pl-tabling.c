@@ -55,6 +55,8 @@ static void	free_components_set(component_set *cs, int destroy);
 static void	print_worklist(const char *prefix, worklist *wl);
 static void	print_delay(const char *msg,
 			    trie_node *variant, trie_node *answer);
+static void	print_answer(const char *msg, trie_node *answer);
+static int	put_delay_info(term_t t, trie_node *answer);
 #endif
 static int	simplify_component(tbl_component *scc);
 
@@ -558,9 +560,13 @@ add_to_wl_delays(trie *at, trie_node *answer)
   { DEBUG(MSG_TABLING_SIMPLIFY,
 	  { GET_LD
 	    term_t t = PL_new_term_ref();
+	    term_t v = PL_new_term_ref();
 	    unify_trie_term(at->data.variant, t PASS_LD);
-	    Sdprintf("Adding propagation to worklist for: ");
-	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	    unify_trie_term(answer, v PASS_LD);
+	    Sdprintf("Adding propagation to worklist for ");
+	    PL_write_term(Serror, t, 999, 0);
+	    Sdprintf(" to answer ");
+	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
 	  });
     addBuffer(&wl->delays, answer, trie_node *);
   }
@@ -677,6 +683,8 @@ retry:
     if ( (di=answer->data.delayinfo) )
     { answer->data.delayinfo = NULL;
       destroy_delay_info(di);
+      DEBUG(MSG_TABLING_SIMPLIFY,
+	    Sdprintf("Unconditional answer after conditional\n"));
     }
 
     if ( wl->ground )
@@ -1038,7 +1046,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
   assert(wl->magic == WORKLIST_MAGIC);
 
   DEBUG(MSG_TABLING_SIMPLIFY,
-	print_delay("Making answer unconditional", di->variant, answer));
+	print_delay("   Making answer unconditional", di->variant, answer));
 
   answer->data.delayinfo = NULL;
   destroy_delay_info(di);
@@ -1060,7 +1068,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
   assert(wl->magic == WORKLIST_MAGIC);
 
   DEBUG(MSG_TABLING_SIMPLIFY,
-	print_delay("Removing conditional answer", di->variant, answer));
+	print_delay("    Removing conditional answer", di->variant, answer));
 
   answer->data.delayinfo = NULL;
   trie_delete(at, answer, FALSE);		/* cannot prune as may be */
@@ -1090,6 +1098,9 @@ if  the  resulting  delay  list  becomes    empty  the  answer  is  made
 unconditional. Otherwise the delay list can   no longer become satisfied
 and we remove the delay list. If this was the last delay list the answer
 is definitely invalid and can be removed from the answer trie.
+
+Answer to propagate is <wl,panswer> with truth result.
+This answer is propagate to `answer`
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1099,13 +1110,11 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
   trie *variant = wl->table;
   int found = FALSE;
 
+  DEBUG(MSG_TABLING_SIMPLIFY, print_answer("  to", answer));
+
   if ( (di=answer_delay_info(NULL, answer, FALSE)) )
   { delay_set *ds, *dz;
     delay *db = baseBuffer(&di->delays, delay);
-
-    DEBUG(MSG_TABLING_SIMPLIFY,
-	  print_delay("	 answer",
-		      di->variant, answer));
 
     for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
     { unsigned o;
@@ -1117,6 +1126,9 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	if ( d->variant == variant )
 	{ if ( d->answer == panswer || d->answer == NULL )
 	  { int res;
+
+	    DEBUG(MSG_TABLING_SIMPLIFY,
+		  Sdprintf("   found\n"));
 
 	    if ( d->answer == NULL )
 	    { if ( result == FALSE &&
@@ -1135,10 +1147,10 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	      { make_answer_unconditional(agenda, answer);
 		return found;
 	      }
-	    } else
+	    } else			/* remove the conjunction */
 	    { memmove(ds, ds+1, sizeof(*ds)*(dz-ds-1));
 	      (void)popBufferP(&di->delay_sets, delay_set);
-	      ds--;			/* compensafe for(;;ds++) */
+	      ds--;			/* compensate for(;;ds++) */
 	      dz--;
 	      break;
 	    }
@@ -1153,6 +1165,9 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
     }
   }
 
+  if ( found )
+    DEBUG(MSG_TABLING_SIMPLIFY, print_answer("  now", answer));
+
   return found;
 }
 
@@ -1161,8 +1176,11 @@ static int
 propagate_result(spf_agenda *agenda,
 		 worklist *wl, trie_node *panswer, int result)
 { DEBUG(MSG_TABLING_SIMPLIFY,
-	print_delay(result ? "Propagating TRUE" : "Propagating FALSE",
-		    wl->table->data.variant, panswer));
+	{ print_delay(result ? "Propagating TRUE" : "Propagating FALSE",
+		      wl->table->data.variant, panswer);
+	  Sdprintf("  %zd dependent answers\n",
+		   entriesBuffer(&wl->delays, trie_node*));
+	});
 
   while( !isEmptyBuffer(&wl->delays) )
   { trie_node *answer = popBuffer(&wl->delays, trie_node*);
@@ -1525,6 +1543,31 @@ print_delay(const char *msg, trie_node *variant, trie_node *answer)
     PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
   }
 }
+
+static void
+print_answer(const char *msg, trie_node *answer)
+{ GET_LD
+  trie *at = get_trie_form_node(answer);
+  term_t t = PL_new_term_ref();
+
+  unify_trie_term(at->data.variant, t PASS_LD);
+  Sdprintf("%s: variant ", msg);
+  PL_write_term(Serror, t, 999, 0);
+  PL_put_variable(t);
+  unify_trie_term(answer, t PASS_LD);
+  Sdprintf(", answer: ");
+  PL_write_term(Serror, t, 999, 0);
+  if ( !answer->value )
+    Sdprintf(" (NULL)");
+  if ( answer_is_conditional(answer) )
+  { put_delay_info(t, answer);
+    Sdprintf(" (IF ");
+    PL_write_term(Serror, t, 999, 0);
+    Sdprintf(")\n");
+  } else
+    Sdprintf("\n");
+}
+
 #endif
 
 
@@ -3260,7 +3303,6 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
   return TRUE;
 }
 
-
 static int
 unify_delay_info(term_t t, trie_node *answer, void *ctxp ARG_LD)
 { delay_info *di;
@@ -3293,6 +3335,18 @@ unify_delay_info(term_t t, trie_node *answer, void *ctxp ARG_LD)
   { return PL_unify_atom(t, ATOM_true);
   }
 }
+
+#if O_DEBUG
+static int
+put_delay_info(term_t t, trie_node *answer)
+{ GET_LD
+  answer_ctx ctx;
+
+  ctx.skel = PL_new_term_ref();			/* TBD */
+  PL_put_variable(t);
+  return unify_delay_info(t, answer, &ctx PASS_LD);
+}
+#endif
 
 /** '$tbl_answer'(+Trie, ?Skeleton, -Condition) is nondet.
  */
