@@ -863,7 +863,10 @@ answer_completion_guarded(AnswerTrie, Propagated) :-
     ;   true
     ),
     delete_answers_for_failing_calls(Propagated),
-    mark_succeeding_calls_as_answer_completed.
+    (   Propagated == 0
+    ->  mark_succeeding_calls_as_answer_completed
+    ;   true
+    ).
 
 %!  delete_answers_for_failing_calls(-Propagated)
 %
