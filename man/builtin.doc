@@ -973,7 +973,7 @@ annotated using `0' (see meta_predicate/1). Other cases need a real
 predicate definition.
 
 The expansion hook can use prolog_load_context/2 to obtain information
-about the context in which the goal is exanded such as the module,
+about the context in which the goal is expanded such as the module,
 variable names or the encapsulating term.
 
     \predicate{expand_goal}{2}{+Goal1, -Goal2}
