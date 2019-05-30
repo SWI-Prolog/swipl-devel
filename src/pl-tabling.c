@@ -1119,10 +1119,8 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	  { int res;
 
 	    if ( d->answer == NULL )
-	    { if ( !wl->negative )
-		continue;
-	      if ( result == FALSE &&
-		   wl->table->value_count > 0 )
+	    { if ( result == FALSE &&
+		   (wl->has_answers || wl->undefined) )
 		continue;
 	      res = !result;
 	    } else
