@@ -1199,6 +1199,7 @@ simplify_component(tbl_component *scc)
   worklist **top  = topBuffer(&scc->created_worklists->members, worklist*);
   worklist **wlp;
   int undefined;
+  int tcount = 0;
 
   DEBUG(MSG_TABLING_SIMPLIFY,
 	Sdprintf("Simplifying SCC %zd\n", pointerToInt(scc)));
@@ -1258,13 +1259,19 @@ simplify_component(tbl_component *scc)
 	undefined++;
     }
 
+    tcount += count;
+
     if ( count == 0 || undefined == 0 )
       break;
   }
 
   exit_spf_agenda(&agenda);
 
-  if ( undefined )
+  /* DSW: there cannot be any "uncovering" of a positive loop if there
+   * was no simplification
+   */
+
+  if ( undefined && tcount )
     return answer_completion(scc);
   else
     return TRUE;
