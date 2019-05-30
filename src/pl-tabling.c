@@ -1188,21 +1188,6 @@ propagate_result(spf_agenda *agenda,
     propagate_to_answer(agenda, wl, panswer, result, answer);
   }
 
-#if 0
-  trie_node **base = baseBuffer(&wl->delays, trie_node*);
-  trie_node **top  = topBuffer(&wl->delays, trie_node*);
-  trie_node **to   = base;
-
-  for( ; base < top; base++)
-  { trie_node *answer = *base;
-
-    if ( !propagate_to_answer(agenda, wl, panswer, result, answer) )
-      *to++ = answer;
-  }
-
-  wl->delays.top = (char*)to;
-#endif
-
   return TRUE;
 }
 
@@ -2915,29 +2900,14 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
 }
 
 
-
 static
-PRED_IMPL("$tbl_create_component", 1, tbl_create_component, 0)
-{ PRED_LD
-
-  if ( !LD->tabling.has_scheduling_component )
-  { LD->tabling.has_scheduling_component = TRUE;
-    if ( !LD->tabling.component )
-      LD->tabling.component = new_component();
-    else
-      LD->tabling.component->status = SCC_ACTIVE;
-    return PL_unify_pointer(A1, LD->tabling.component);
-  }
-
-  return FALSE;
-}
-
-
-static
-PRED_IMPL("$tbl_create_subcomponent", 1, tbl_create_subcomponent, 0)
+PRED_IMPL("$tbl_create_subcomponent", 2, tbl_create_subcomponent, 0)
 { PRED_LD
   tbl_component *c, *p;
+  trie *leader;
 
+  if ( !get_trie(A2, &leader) )
+    return FALSE;
 					/* no component; create main */
   if ( !LD->tabling.has_scheduling_component )
   { LD->tabling.has_scheduling_component = TRUE;
@@ -2949,6 +2919,7 @@ PRED_IMPL("$tbl_create_subcomponent", 1, tbl_create_subcomponent, 0)
   }
 
   c = new_component();
+  c->leader = leader;
   c->parent = (p=LD->tabling.component);
   LD->tabling.component = c;
   add_child_component(p, c);
@@ -3438,8 +3409,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
-  PRED_DEF("$tbl_create_component",	1, tbl_create_component,     0)
-  PRED_DEF("$tbl_create_subcomponent",  1, tbl_create_subcomponent,  0)
+  PRED_DEF("$tbl_create_subcomponent",  2, tbl_create_subcomponent,  0)
   PRED_DEF("$tbl_component_status",     2, tbl_component_status,     0)
   PRED_DEF("$tbl_abolish_all_tables",   0, tbl_abolish_all_tables,   0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)

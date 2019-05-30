@@ -148,7 +148,7 @@ start_tabling(Wrapper, Worker) :-
     (   Status == complete
     ->  '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   Status == fresh
-    ->  '$tbl_create_subcomponent'(SCC),
+    ->  '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
         setup_call_catcher_cleanup(
@@ -262,7 +262,7 @@ start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     (   Status == complete
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
-    ->  '$tbl_create_subcomponent'(SubComponent),
+    ->  '$tbl_create_subcomponent'(SubComponent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Wrapper, WrapperNoModes, ModeArgs,

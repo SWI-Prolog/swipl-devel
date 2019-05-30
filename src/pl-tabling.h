@@ -79,6 +79,7 @@ typedef struct tbl_component
   component_set        *children;		/* Child components */
   worklist_set         *worklist;		/* Worklist of current query */
   worklist_set         *created_worklists;	/* Worklists created */
+  trie		       *leader;			/* Leading variant */
 } tbl_component;
 
 
