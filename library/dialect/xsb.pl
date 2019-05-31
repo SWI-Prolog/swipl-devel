@@ -59,6 +59,7 @@
             is_most_general_term/1,		% @Term
 
             cputime/1,				% -Seconds
+            walltime/1,				% -Seconds
 
             op(1050,  fy, import),
             op(1050,  fx, export),
@@ -557,6 +558,14 @@ is_most_general_term(Term) :-
 cputime(Seconds) :-
     statistics(cputime, Seconds).
 
+%!  walltime(-Seconds) is det.
+%
+%   True when Seconds is the wall time sice Prolog was started
+
+walltime(Seconds) :-
+    get_time(Now),
+    statistics(epoch, Epoch),
+    Seconds is Now - Epoch.
 
 		 /*******************************
 		 *           MESSAGES		*
