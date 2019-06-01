@@ -33,6 +33,44 @@
 */
 
 :- module(string,
-          [ str_cat/3
+          [ str_cat/3,
+            concat_atom/2                       % +List, ?Atom
           ]).
 :- use_module(machine).
+:- use_module(library(error)).
+:- use_module(library(lists)).
+
+%!  concat_atom(+List, ?Atom)
+%
+%   True when the concatination of the   atomic elements in List produce
+%   the atom Atom.  List may contain variables.
+
+concat_atom(List, Atom) :-
+    var(Atom),
+    !,
+    atomic_list_concat(List, Atom).
+concat_atom(List, Atom) :-
+    must_be(list, List),
+    split_atom(List, Atom).
+
+split_atom([], '').
+split_atom([H|T], Atom) :-
+    nonvar(H),
+    !,
+    atom_concat(H, Rest, Atom),
+    split_atom(T, Rest).
+split_atom(List, Atom) :-
+    append(Vars, [H|T], List),
+    atomic(H),
+    !,
+    sub_atom(Atom, Before, _, After, H),
+    sub_atom(Atom, 0, Before, _, BAtom),
+    gen_split(Vars, BAtom),
+    sub_atom(Atom, _, After, 0, AAtom),
+    split_atom(T, AAtom).
+
+gen_split([V], V).
+gen_split([H|T], Atom) :-
+    atom_concat(H, R, Atom),
+    gen_split(T, R).
+

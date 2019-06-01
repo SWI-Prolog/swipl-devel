@@ -61,6 +61,9 @@
             cputime/1,				% -Seconds
             walltime/1,				% -Seconds
 
+            path_sysop/2,                       % +Op, ?Value
+            path_sysop/3,                       % +Op, ?Value1, ?Value2
+
             op(1050,  fy, import),
             op(1050,  fx, export),
             op(1040, xfx, from),
@@ -566,6 +569,78 @@ walltime(Seconds) :-
     get_time(Now),
     statistics(epoch, Epoch),
     Seconds is Now - Epoch.
+
+
+%!  path_sysop(+Op, ?Value)
+%!  path_sysop(+Op, ?Arg1, ?Arg2)
+%
+%   Unified interface to the  operations  on   files.  All  these  calls
+%   succeed iff the corresponding system call succeeds.
+%
+%   @compat The below implementation covers all operations from XSB 3.8.
+%   SWI file name operations are always on   POSIX style file names. The
+%   implementation may have semantic differences.
+
+path_sysop(isplain, File) :-
+    exists_file(File).
+path_sysop(isdir, Dir) :-
+    exists_directory(Dir).
+path_sysop(rm, File) :-
+    delete_file(File).
+path_sysop(rmdir, Dir) :-
+    delete_directory(Dir).
+path_sysop(rmdir_rec, Dir) :-
+    delete_directory_and_contents(Dir).
+path_sysop(cwd, CWD) :-
+    working_directory(CWD, CWD).
+path_sysop(chdir, CWD) :-
+    working_directory(_, CWD).
+path_sysop(mkdir, Dir) :-
+    make_directory(Dir).
+path_sysop(exists, Entry) :-
+    access_file(Entry, exist).
+path_sysop(readable, Entry) :-
+    access_file(Entry, read).
+path_sysop(writable, Entry) :-
+    access_file(Entry, write).
+path_sysop(executable, Entry) :-
+    access_file(Entry, execute).
+path_sysop(tmpfilename, Name) :-
+    tmp_file(swi, Name).
+path_sysop(isabsolute, Name) :-
+    is_absolute_file_name(Name).
+
+
+path_sysop(rename, Old, New) :-
+    rename_file(Old, New).
+path_sysop(copy, From, To) :-
+    copy_file(From, To).
+path_sysop(link, From, To) :-
+    link_file(From, To, symbolic).
+path_sysop(modtime, Path, Time) :-
+    time_file(Path, Time).
+path_sysop(newerthan, Path1, Path2) :-
+    time_file(Path1, Time1),
+    (   catch(time_file(Path2, Time2), error(existence_error(_,_),_), fail)
+    ->  Time1 > Time2
+    ;   true
+    ).
+path_sysop(size, Path, Size) :-
+    size_file(Path, Size).
+path_sysop(extension, Path, Ext) :-
+    file_name_extension(_, Ext, Path).
+path_sysop(basename, Path, Base) :-
+    file_base_name(Path, File),
+    file_name_extension(Base, _, File).
+path_sysop(dirname, Path, Dir) :-
+    file_directory_name(Path, Dir0),
+    (   sub_atom(Dir0, _, _, 0, /)
+    ->  Dir = Dir0
+    ;   atom_concat(Dir0, /, Dir)
+    ).
+path_sysop(expand, Name, Path) :-
+    absolute_file_name(Name, Path).
+
 
 		 /*******************************
 		 *           MESSAGES		*
