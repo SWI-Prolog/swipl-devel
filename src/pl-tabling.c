@@ -1820,6 +1820,8 @@ free_worklist(worklist *wl)
   { next = c->next;
     free_cluster(c);
   }
+  discardBuffer(&wl->delays);
+  discardBuffer(&wl->pos_undefined);
 
   PL_free(wl);
 }
