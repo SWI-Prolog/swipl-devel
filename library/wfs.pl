@@ -33,7 +33,7 @@
 */
 
 :- module(wfs,
-          [ unknown/0,
+          [ undefined/0,
 
             call_residual_program/2,            % :Goal, -Clauses
 
@@ -60,14 +60,14 @@ Semantics (WFS) support in SWI-Prolog.
     answer_residual(:, :).
 
 :- table
-    unknown/0.
+    undefined/0.
 
-%!  unknown
+%!  undefined
 %
 %   Expresses the value _bottom_ from the well founded semantics.
 
-unknown :-
-    tnot(unknown).
+undefined :-
+    tnot(undefined).
 
 %!  call_delays(:Goal, -Delays)
 %

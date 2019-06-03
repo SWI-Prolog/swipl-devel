@@ -144,8 +144,8 @@ iso_message(permission_error(Action, Type, Object)) -->
 iso_message(evaluation_error(Which)) -->
     [ 'Arithmetic: evaluation error: `~p'''-[Which] ].
 iso_message(existence_error(procedure, Proc)) -->
-    [ 'Undefined procedure: ~q'-[Proc] ],
-    undefined_proc_msg(Proc).
+    [ 'Unknown procedure: ~q'-[Proc] ],
+    unknown_proc_msg(Proc).
 iso_message(existence_error(answer_variable, Var)) -->
     [ '$~w was not bound by a previous query'-[Var] ].
 iso_message(existence_error(Type, Object)) -->
@@ -200,25 +200,25 @@ permission_error(Action, Type, Object) -->
     [ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 
 
-undefined_proc_msg(_:(^)/2) -->
+unknown_proc_msg(_:(^)/2) -->
     !,
-    undefined_proc_msg((^)/2).
-undefined_proc_msg((^)/2) -->
+    unknown_proc_msg((^)/2).
+unknown_proc_msg((^)/2) -->
     !,
     [nl, '  ^/2 can only appear as the 2nd argument of setof/3 and bagof/3'].
-undefined_proc_msg((:-)/2) -->
+unknown_proc_msg((:-)/2) -->
     !,
     [nl, '  Rules must be loaded from a file'],
     faq('ToplevelMode').
-undefined_proc_msg((:-)/1) -->
+unknown_proc_msg((:-)/1) -->
     !,
     [nl, '  Directives must be loaded from a file'],
     faq('ToplevelMode').
-undefined_proc_msg((?-)/1) -->
+unknown_proc_msg((?-)/1) -->
     !,
     [nl, '  ?- is the Prolog prompt'],
     faq('ToplevelMode').
-undefined_proc_msg(Proc) -->
+unknown_proc_msg(Proc) -->
     { dwim_predicates(Proc, Dwims) },
     (   {Dwims \== []}
     ->  [nl, '  However, there are definitions for:', nl],
@@ -292,7 +292,7 @@ syntax_error(cannot_start_term) -->
 syntax_error(punct(Punct, End)) -->
     [ 'Unexpected `~w\' before `~w\''-[Punct, End] ].
 syntax_error(undefined_char_escape(C)) -->
-    [ 'Undefined character escape in quoted atom or string: `\\~w\''-[C] ].
+    [ 'Unknown character escape in quoted atom or string: `\\~w\''-[C] ].
 syntax_error(void_not_allowed) -->
     [ 'Empty argument list "()"' ].
 syntax_error(Message) -->
@@ -645,7 +645,7 @@ prolog_message(load_file(done(Level, File, Action, Module, Time, Clauses))) -->
 prolog_message(dwim_undefined(Goal, Alternatives)) -->
     { goal_to_predicate_indicator(Goal, Pred)
     },
-    [ 'Undefined procedure: ~q'-[Pred], nl,
+    [ 'Unknown procedure: ~q'-[Pred], nl,
       '    However, there are definitions for:', nl
     ],
     dwim_message(Alternatives).
@@ -1233,7 +1233,7 @@ delays(Goal, Options) -->
     !,
     [ ansi([bold], '~W', [Goal, Options]) ].
 delays(_, _Options) -->
-    [ ansi([bold,fg(cyan)], unknown, []) ].
+    [ ansi([bold,fg(cyan)], undefined, []) ].
 
 :- public list_clauses/1.
 

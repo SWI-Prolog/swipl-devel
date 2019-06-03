@@ -342,13 +342,13 @@ conclusions from a set of logical rules". Well Founded Semantics (WFS)
 defines a \jargon{three valued logic} representing \jargon{true},
 \jargon{false} and something that is neither true or false. This latter
 value is often referred to as \jargon{bottom}, \jargon{undefined} or
-\jargon{unknown}.  SWI-Prolog uses unknown/0.
+\jargon{unknown}.  SWI-Prolog uses undefined/0.
 
 Well Founded Semantics allows for reasoning about programs with
 contradictions or multiple answer sets. It allows for obtaining
 true/false results for literals that do not depend on the sub program
 that has no unambiguous solution, propagating the notion of
-\jargon{unknown} to literals that cannot be resolved otherwise and
+\jargon{undefined} to literals that cannot be resolved otherwise and
 obtaining the \jargon{residual} program that expresses why an answer is
 not unambiguous.
 
@@ -397,8 +397,8 @@ This conclusion is propagated by simplifying the conditions for
 all answers that depend on \term{tnot}{g}.  This may result in
 a definite \jargon{false} condition, in which case the answer
 is removed or a definite \jargon{true} condition in which case
-the answer is made unconditional.  Both events can make another
-tnot/1 node definitely true or false, etc.
+the answer is made unconditional.  Both events can make other
+conditional answers definitely true or false, etc.
     \item
 At the end of the simplifying process some answers may still be
 conditional.  A final \jargon{answer completion} step analyses
@@ -412,18 +412,18 @@ positive loops exist and no further simplification is possible.
 The above process may complete without any remaining conditional
 answers, in which case we are back in the normal Prolog world. It is
 also possible that some answers remain conditional. The most obvious
-case is represented by unknown/0. The toplevel responds with
-\textbf{unknown} instead of \textbf{true} if an answer is conditional.
+case is represented by undefined/0. The toplevel responds with
+\textbf{undefined} instead of \textbf{true} if an answer is conditional.
 
 \begin{description}
-    \predicate{unknown}{0}{}
+    \predicate{undefined}{0}{}
 Unknown represents neither \const{true} nor \const{false} in the
 well formed model.  It is implemented as
 
 \begin{code}
-:- table unknown/0.
+:- table undefined/0.
 
-unknown :- tnot(unknown).
+undefined :- tnot(undefined).
 \end{code}
 \end{description}
 
@@ -436,7 +436,7 @@ disjunction of conjunctions where each literal is either a tabled
 goal or tnot/1 of a tabled goal.   The remaining model has at least a
 cycle through a negative literal (tnot/1) and has no single
 solution in the \jargon{stable model semantics}, i.e., it either
-expresses a contradition (as unknown/0, i.e., there is no stable model)
+expresses a contradition (as undefined/0, i.e., there is no stable model)
 or a multiple stable models as in the program below, where both \{p\}
 and \{q\} are stable models.
 
@@ -448,10 +448,10 @@ q :- tnot(p).
 \end{code}
 
 Note that it is possible that some literals have the same truth value in
-all stable models but are still \jargon{unknown} under the stable model
+all stable models but are still \jargon{undefined} under the stable model
 semantics.
 
-The residual program is an explanation of why an answer is unknown.
+The residual program is an explanation of why an answer is undefined.
 SWI-Prolog offers the following predicates to access the residual
 program.
 
@@ -483,25 +483,25 @@ always contains at least one cycle that involves tnot/1.
 \subsection{Well founded semantics and the toplevel}
 \label{sec:wfs-toplevel}
 
-The toplevel supports two modes for reporting that it is unknown whether
+The toplevel supports two modes for reporting that it is undefined whether
 the current answer is true. The mode is selected by the Prolog flag
 \prologflag{toplevel_list_wfs_residual_program}. If \const{true}, the
 toplevel uses call_delays/2 and delays_residual_program/2 to find the
 conditional answers used and the \jargon{residual} program associated
 with these answers. It then prints the residual program, followed by the
-answer and the conditional answers. For unknown/0, this results in the
+answer and the conditional answers. For undefined/0, this results in the
 following output:
 
 \begin{code}
-?- unknown.
+?- undefined.
 % WFS residual program
-    unknown :-
-        tnot(unknown).
-unknown.
+    undefined :-
+        tnot(undefined).
+undefined.
 \end{code}
 
 If the \prologflag{toplevel_list_wfs_residual_program} is false, any
-unknown answer is a conjunction with unknown/0.  See the program and
+undefined answer is a conjunction with undefined/0.  See the program and
 output below.
 
 \begin{code}
@@ -524,7 +524,7 @@ p.
 true.
 
 ?- p.
-unknown.
+undefined.
 \end{code}
 
 
