@@ -412,12 +412,12 @@ add_newly_created_worklist(worklist *wl)
 }
 
 static void
-reset_newly_created_worklists(tbl_component *c)
+reset_newly_created_worklists(tbl_component *c, int flags)
 { worklist_set *wls;
 
   if ( c && (wls = c->created_worklists) )
   { c->created_worklists = NULL;
-    free_worklist_set(wls, WLFS_KEEP_COMPLETE);
+    free_worklist_set(wls, flags);
   }
 }
 
@@ -1613,6 +1613,10 @@ release_variant_table_node(trie *variant_table, trie_node *node)
   if ( node->value )
   { trie *vtrie = symbol_trie(node->value);
     record_t r;
+    worklist *wl;
+
+    if ( WL_IS_WORKLIST(wl=vtrie->data.worklist) )
+      free_worklist(wl);
 
     assert(vtrie->data.variant == node);
     vtrie->data.variant = NULL;
@@ -1666,7 +1670,7 @@ get_variant_table(term_t t, int create ARG_LD)
 void
 clearThreadTablingData(PL_local_data_t *ld)
 { reset_global_worklist(ld->tabling.component);
-  reset_newly_created_worklists(ld->tabling.component);
+  reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
   clear_variant_table(ld);
 }
 
@@ -1866,6 +1870,26 @@ free_worklist(worklist *wl)
 }
 
 
+static void
+complete_worklist(worklist *wl)
+{ cluster *c, *next;
+
+  for(c=wl->head; c; c = next)
+  { next = c->next;
+    free_cluster(c);
+  }
+  wl->head = wl->tail = NULL;
+
+  for(c=wl->free_clusters; c; c = next)
+  { next = c->next;
+    free_cluster(c);
+  }
+  wl->free_clusters = NULL;
+
+  wl->completed = TRUE;
+}
+
+
 static int
 worklist_negative(worklist *wl)
 { if ( !wl->negative )
@@ -2041,13 +2065,17 @@ unify_table_status(term_t t, trie *trie, int merge ARG_LD)
 { worklist *wl = trie->data.worklist;
 
   if ( WL_IS_WORKLIST(wl) )
-  { if ( merge && wl->component != LD->tabling.component )
+  { if ( wl->completed )
+      return PL_unify_atom(t, ATOM_complete);
+
+    if ( merge && wl->component != LD->tabling.component )
     { DEBUG(MSG_TABLING_WORK,
 	    Sdprintf("Merging into %p (current = %p)\n",
 		     wl->component, LD->tabling.component));
       merge_component(wl->component);
       LD->tabling.component = wl->component;
     }
+
     return PL_unify_pointer(t, wl);
   }
   if ( wl == WL_COMPLETE )
@@ -2888,9 +2916,14 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      trie->data.worklist = WL_COMPLETE;
+      if ( !wl->undefined && isEmptyBuffer(&wl->delays) )
+      { free_worklist(wl);
+	trie->data.worklist = WL_COMPLETE;
+      } else
+      { complete_worklist(wl);
+      }
     }
-    reset_newly_created_worklists(c);
+    reset_newly_created_worklists(c, WLFS_FREE_NONE);
     c->status = SCC_COMPLETED;
 
     if ( c->parent && LD->tabling.component == c )
@@ -2950,7 +2983,7 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
 
 	prune_node(LD->tabling.variant_table, trie->data.variant);
       }
-      reset_newly_created_worklists(c);
+      reset_newly_created_worklists(c, WLFS_KEEP_COMPLETE);
     }
     reset_global_worklist(c);
     // FIXME: just pop?

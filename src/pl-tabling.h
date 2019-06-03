@@ -102,12 +102,13 @@ typedef struct worklist
   cluster      *riac;			/* rightmost inner answer cluster */
   cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
+  unsigned	completed : 1;		/* Really completed */
   unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
   unsigned	negative : 1;		/* this is a suspended negation */
   unsigned	neg_delayed : 1;	/* Negative node was delayed */
-  unsigned	has_answers : 1;	/* Negative node has >= one answer */
+  unsigned	has_answers : 1;	/* At least one unconditional answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
   size_t	undefined;		/* #undefined answers */
 
