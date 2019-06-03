@@ -105,7 +105,6 @@ typedef struct worklist
   unsigned	in_global_wl : 1;	/* already in global worklist */
   unsigned	negative : 1;		/* this is a suspended negation */
   unsigned	neg_delayed : 1;	/* Negative node was delayed */
-  unsigned	neg_completed : 1;	/* Negative node is complete (false) */
   unsigned	has_answers : 1;	/* Negative node has >= one answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
   size_t	undefined;		/* #undefined answers */

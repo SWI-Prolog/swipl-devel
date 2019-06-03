@@ -201,8 +201,7 @@ wl_set_component(worklist *wl, tbl_component *c)
 		   pointerToInt(c)));
     if ( c->neg_status == SCC_NEG_NONE )
       c->neg_status = SCC_NEG_DELAY;
-    else if ( c->neg_status == SCC_NEG_SIMPLIFY &&
-	      !wl->neg_completed )
+    else if ( c->neg_status == SCC_NEG_SIMPLIFY )
       c->neg_status = SCC_NEG_DELAY;
   }
 }
@@ -330,7 +329,6 @@ negative_worklist(tbl_component *scc ARG_LD)
     { worklist *wl = *wlp;
 
       if ( wl->negative &&
-	   !wl->neg_completed &&
 	   !wl->neg_delayed &&
 	   !wl->has_answers )
       { cluster *c;
@@ -1217,7 +1215,6 @@ simplify_component(tbl_component *scc)
 
       if ( wl->negative &&
 	   wl->neg_delayed &&
-	   !wl->neg_completed &&
 	   wl->table->value_count == 0 &&
 	   !isEmptyBuffer(&wl->delays) )
       { DEBUG(MSG_TABLING_SIMPLIFY,
@@ -1839,7 +1836,7 @@ worklist_negative(worklist *wl)
 static int
 worklist_is_false(worklist *wl)
 { assert(wl->negative);
-  return (wl->neg_completed || wl->neg_delayed) && !wl->has_answers;
+  return (wl->neg_delayed) && !wl->has_answers;
 }
 
 
