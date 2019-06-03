@@ -51,6 +51,7 @@ static int	wkl_add_answer(worklist *wl, trie_node *node ARG_LD);
 static int	tbl_put_trie_value(term_t t, trie_node *node ARG_LD);
 static void	del_child_component(tbl_component *parent, tbl_component *child);
 static void	free_components_set(component_set *cs, int destroy);
+static int	unify_skeleton(trie *trie, term_t wrapper, term_t skel ARG_LD);
 #ifdef O_DEBUG
 static void	print_worklist(const char *prefix, worklist *wl);
 static void	print_delay(const char *msg,
@@ -1295,16 +1296,17 @@ one positive dependency.
 static int
 call_answer_completion(worklist *wl ARG_LD)
 { fid_t fid;
+  trie *atrie = wl->table;
 
   if ( (fid = PL_open_foreign_frame()) )
   { static predicate_t pred = NULL;
-    term_t av = PL_new_term_refs(1);
+    term_t av = PL_new_term_refs(2);
     int rc;
     tbl_component *scc_old = LD->tabling.component;
     int hsc = LD->tabling.has_scheduling_component;
 
     if ( !pred )
-      pred = PL_predicate("answer_completion", 1, "$tabling");
+      pred = PL_predicate("answer_completion", 2, "$tabling");
 
     DEBUG(MSG_TABLING_AC,
 	  { term_t t = PL_new_term_ref();
@@ -1316,7 +1318,8 @@ call_answer_completion(worklist *wl ARG_LD)
     LD->tabling.component = NULL;
     LD->tabling.has_scheduling_component = FALSE;
     LD->tabling.in_answer_completion = TRUE;
-    rc = ( PL_put_atom(av+0, wl->table->symbol) &&
+    rc = ( PL_put_atom(av+0, atrie->symbol) &&
+	   unify_skeleton(atrie, 0, av+1 PASS_LD) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
     LD->tabling.in_answer_completion = FALSE;
     LD->tabling.has_scheduling_component = hsc;
@@ -2017,11 +2020,16 @@ unify_skeleton(trie *trie, term_t wrapper, term_t skeleton ARG_LD)
 { if ( trie->data.skeleton )
   { term_t av;
 
-    return ( (av=PL_new_term_refs(2)) &&
-	     PL_recorded(trie->data.skeleton, av+0) &&
-	     _PL_get_arg(1, av+0, av+1) &&
-	     PL_unify(wrapper, av+1) &&
-	     _PL_get_arg(2, av+0, av+1) &&
+    if ( !(av=PL_new_term_refs(2)) ||
+	 !PL_recorded(trie->data.skeleton, av+0) )
+      return FALSE;
+    if ( wrapper )
+    { if ( !_PL_get_arg(1, av+0, av+1) ||
+	   !PL_unify(wrapper, av+1) )
+	return FALSE;
+    }
+
+    return ( _PL_get_arg(2, av+0, av+1) &&
 	     PL_unify(skeleton, av+1) );
   } else
   { term_t av;

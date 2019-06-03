@@ -831,9 +831,9 @@ system:term_expansion((:- table(Preds)),
 		 *      ANSWER COMPLETION	*
 		 *******************************/
 
-:- public answer_completion/1.
+:- public answer_completion/2.
 
-%!  answer_completion(+AnswerTrie) is det.
+%!  answer_completion(+AnswerTrie, +Return) is det.
 %
 %   Find  positive  loops  in  the  residual   program  and  remove  the
 %   corresponding answers, possibly causing   additional simplification.
@@ -847,18 +847,18 @@ system:term_expansion((:- table(Preds)),
 %   @author This code is by David Warren as part of XSB.
 %   @see called from C, pl-tabling.c, answer_completion()
 
-answer_completion(AnswerTrie) :-
+answer_completion(AnswerTrie, Return) :-
     tdebug(trie_goal(AnswerTrie, Goal, _Return)),
     tdebug(ac(start), 'START: Answer completion for ~p', [Goal]),
-    call_cleanup(answer_completion_guarded(AnswerTrie, Propagated),
-                 abolish_table_subgoals(eval_subgoal_in_residual(_))),
+    call_cleanup(answer_completion_guarded(AnswerTrie, Return, Propagated),
+                 abolish_table_subgoals(eval_subgoal_in_residual(_,_))),
     (   Propagated > 0
-    ->  answer_completion(AnswerTrie)
+    ->  answer_completion(AnswerTrie, Return)
     ;   true
     ).
 
-answer_completion_guarded(AnswerTrie, Propagated) :-
-    (   eval_subgoal_in_residual(AnswerTrie),
+answer_completion_guarded(AnswerTrie, Return, Propagated) :-
+    (   eval_subgoal_in_residual(AnswerTrie, Return),
         fail
     ;   true
     ),
@@ -904,7 +904,7 @@ mark_succeeding_calls_as_answer_completed :-
 subgoal_residual_trie(ASGF, ESGF) :-
     '$tbl_variant_table'(VariantTrie),
     context_module(M),
-    trie_gen(VariantTrie, M:eval_subgoal_in_residual(ASGF), ESGF).
+    trie_gen(VariantTrie, M:eval_subgoal_in_residual(ASGF, _), ESGF).
 
 %!  eval_dl_in_residual(+Condition)
 %
@@ -926,7 +926,8 @@ eval_dl_in_residual(tnot(G)) :-
     !,
     tdebug(ac, ' ? tnot(~p)', [G]),
     current_table(G, SGF),
-    tnot(eval_subgoal_in_residual(SGF)).
+    '$tbl_table_status'(SGF, _Status, _Wrapper, Return),
+    tnot(eval_subgoal_in_residual(SGF, Return)).
 eval_dl_in_residual(G) :-
     tdebug(ac, ' ? ~p', [G]),
     (   current_table(G, SGF)
@@ -936,7 +937,8 @@ eval_dl_in_residual(G) :-
     ;	writeln(user_error, 'MISSING CALL? '(G)),
         fail
     ),
-    eval_subgoal_in_residual(SGF).
+    '$tbl_table_status'(SGF, _Status, _Wrapper, Return),
+    eval_subgoal_in_residual(SGF, Return).
 
 more_general_table(G, Trie) :-
     term_variables(G, Vars),
@@ -952,15 +954,15 @@ all_vars([H|T]) :-
     var(H),
     all_vars(T).
 
-:- table eval_subgoal_in_residual/1.
+:- table eval_subgoal_in_residual/2.
 
-%!  eval_subgoal_in_residual(+AnswerTrie)
+%!  eval_subgoal_in_residual(+AnswerTrie, ?Return)
 %
 %   Derive answers for the variant represented   by  AnswerTrie based on
 %   the residual goals only.
 
-eval_subgoal_in_residual(AnswerTrie) :-
-    '$tbl_answer'(AnswerTrie, _0Return, Condition),
-    tdebug(trie_goal(AnswerTrie, Goal, _0Return)),
+eval_subgoal_in_residual(AnswerTrie, Return) :-
+    '$tbl_answer'(AnswerTrie, Return, Condition),
+    tdebug(trie_goal(AnswerTrie, Goal, Return)),
     tdebug(ac, 'Condition for ~p is ~p', [Goal, Condition]),
     eval_dl_in_residual(Condition).
