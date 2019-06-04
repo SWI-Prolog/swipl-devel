@@ -35,9 +35,10 @@
 */
 
 :- module('$tabling',
-          [ (table)/1,                  % +PI ...
+          [ (table)/1,                  % :PI ...
+            untable/1,                  % :PI ...
 
-            (tnot)/1,                     % :Goal
+            (tnot)/1,                   % :Goal
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
@@ -53,6 +54,7 @@
 
 :- meta_predicate
     table(:),
+    untable(:),
     tnot(0),
     start_tabling(+, 0),
     start_tabling(+, 0, +, ?),
@@ -108,9 +110,11 @@ user_goal(Goal, UGoal) :-
 
 %!  table(:PredicateIndicators)
 %
-%   Prepare the given PredicateIndicators for   tabling. Can only be
-%   used as a directive. The example   below  prepares the predicate
-%   edge/2 and the non-terminal statement//1 for tabled execution.
+%   Prepare the given PredicateIndicators for tabling. This predicate is
+%   normally used as a directive,  but   SWI-Prolog  also allows runtime
+%   conversion of non-tabled predicates to  tabled predicates by calling
+%   table/1. The example below prepares  the   predicate  edge/2 and the
+%   non-terminal statement//1 for tabled execution.
 %
 %     ==
 %     :- table edge/2, statement//1.
@@ -160,6 +164,51 @@ dyn_tabling('$table_mode'(Head, Variant, Moded), M) :-
         )
     ;   assertz(M:'$table_mode'(Head, Variant, Moded))
     ).
+
+%!  untable(M:PIList) is det.
+%
+%   Remove tabling for the predicates in  PIList.   This  can be used to
+%   undo the effect of table/1 at runtime.   In addition to removing the
+%   tabling instrumentation this also removes possibly associated tables
+%   using abolish_table_subgoals/1.
+%
+%   @arg PIList is a comma-list that is compatible ith table/1.
+
+untable(M:PIList) :-
+    untable(PIList, M).
+
+untable(Var, _) :-
+    var(Var),
+    !,
+    '$instantiation_error'(Var).
+untable((A,B), M) :-
+    !,
+    untable(A, M),
+    untable(B, M).
+untable(Name//Arity, M) :-
+    atom(Name), integer(Arity), Arity >= 0,
+    !,
+    Arity1 is Arity+2,
+    untable(Name/Arity1, M).
+untable(Name/Arity, M) :-
+    !,
+    functor(Head, Name, Arity),
+    (   predicate_property(M:Head, tabled(_))
+    ->  abolish_table_subgoals(M:Head),
+        dynamic(M:'$tabled'/1),
+        dynamic(M:'$table_mode'/3),
+        retractall(M:'$tabled'(Head)),
+        retractall(M:'$table_mode'(Head, _Variant, _Moded)),
+        unwrap_predicate(M:Name/Arity, table)
+    ;   true
+    ).
+untable(Head, M) :-
+    callable(Head),
+    !,
+    functor(Head, Name, Arity),
+    untable(Name/Arity, M).
+untable(TableSpec, _) :-
+    '$type_error'(table_desclaration, TableSpec).
 
 
 %!  start_tabling(:Wrapper, :Implementation)
