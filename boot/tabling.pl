@@ -52,6 +52,7 @@
           ]).
 
 :- meta_predicate
+    table(:),
     tnot(0),
     start_tabling(+, 0),
     start_tabling(+, 0, +, ?),
@@ -105,7 +106,7 @@ user_goal(Goal, UGoal) :-
 
 :- endif.
 
-%!  table(+PredicateIndicators)
+%!  table(:PredicateIndicators)
 %
 %   Prepare the given PredicateIndicators for   tabling. Can only be
 %   used as a directive. The example   below  prepares the predicate
@@ -126,8 +127,40 @@ user_goal(Goal, UGoal) :-
 %   _Mode directed tabling_ is  discussed   in  the general introduction
 %   section about tabling.
 
-table(PIList) :-
-    throw(error(context_error(nodirective, table(PIList)), _)).
+table(M:PIList) :-
+    setup_call_cleanup(
+        '$set_source_module'(OldModule, M),
+        expand_term((:- table(PIList)), Clauses),
+        '$set_source_module'(OldModule)),
+    dyn_tabling_list(Clauses, M).
+
+dyn_tabling_list([], _).
+dyn_tabling_list([H|T], M) :-
+    dyn_tabling(H, M),
+    dyn_tabling_list(T, M).
+
+dyn_tabling((:- multifile(PI)), M) :-
+    !,
+    multifile(M:PI),
+    dynamic(M:PI).
+dyn_tabling(:- initialization(Wrap, now), M) :-
+    !,
+    M:Wrap.
+dyn_tabling('$tabled'(Head), M) :-
+    (   clause(M:'$tabled'(Head), true)
+    ->  true
+    ;   assertz(M:'$tabled'(Head))
+    ).
+dyn_tabling('$table_mode'(Head, Variant, Moded), M) :-
+    (   clause(M:'$table_mode'(Head, Variant0, Moded0), true, Ref)
+    ->  (   t(Head, Variant, Moded) =@= t(Head, Variant0, Moded0)
+        ->  true
+        ;   erase(Ref),
+            assertz(M:'$table_mode'(Head, Variant, Moded))
+        )
+    ;   assertz(M:'$table_mode'(Head, Variant, Moded))
+    ).
+
 
 %!  start_tabling(:Wrapper, :Implementation)
 %
