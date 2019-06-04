@@ -532,25 +532,32 @@ undefined.
 \label{sec:tabling-preds}
 
 \begin{description}
-    \directive{table}{1}{+PredicateIndicators}
-Prepare the given \arg{PredicateIndicators} for tabling. The example
-below prepares the predicate edge/2 and the non-terminal statement//1
-for tabled execution.
+    \directive{table}{1}{:Specification}
+Prepare the predicates specified by \arg{Specification} for tabled
+execution.  \arg{Specification} is a \jargon{comma-list}, each member
+specifying tabled execution for a specific predicate.  The individual
+specification is either a \jargon{predicate indicator} (name/arity or
+name//arity) or head specifing tabling with \jargon{answer subsumption}.
+
+Although table/1 is normally used as a directive, SWI-Prolog allows
+calling it as a runtime predicate to prepare an existing predicate for
+tabled execution. The predicate untable/1 can be used to remove the
+tabling instrumentation from a predicate.
+
+The example below prepares the predicate edge/2 and the
+non-terminal statement//1 for tabled execution.
 
 \begin{code}
 :- table edge/2, statement//1.
 \end{code}
 
-In addition to using \jargon{predicate indicators}, a predicate can be
-declared for \jargon{mode directed tabling} using a term where each
-argument declares the intended mode. For example:
+Below is an example declaring a predicate to use tabling with
+\jargon{answer subsumption}. Answer subsumption or \jargon{mode directed
+tabling} is discussed in \secref{tabling-mode-directed}.
 
 \begin{code}
 :- table connection(_,_,min).
 \end{code}
-
-\jargon{Mode directed tabling} is discussed in the general introduction
-section of \chapref{tabling}.
 
     \predicate{tnot}{1}{:Goal}
 The tnot/1 predicate implements \jargon{tabled negation}. This predicate
@@ -558,6 +565,12 @@ realises \jargon{Well Founded Semantics}. See \secref{WFS} for details.
 
     \predicate{current_table}{2}{:Variant, -Trie}
 True when \arg{Trie} is the answer table for \arg{Variant}.
+
+    \predicate{untable}{:Specification}
+Remove the tabling instrumentation for the specified predicates.
+\arg{Specification} is compatible with table/1, although tabling with
+\jargon{answer subsumption} may be removed using a name/arity
+specification.
 
     \predicate{abolish_all_tables}{0}{}
 Remove all tables. This is normally used to free up the space or

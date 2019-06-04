@@ -731,6 +731,7 @@ suggest predicates from a keyword.
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unsetenv}{1}{Delete shell environment variable}
+\predicatesummary{untable}{1}{Remove tabling instrumentation}
 \predicatesummary{upcase_atom}{2}{Convert atom to upper-case}
 \predicatesummary{use_foreign_library}{1}{Load DLL/shared object (directive)}
 \predicatesummary{use_foreign_library}{2}{Load DLL/shared object (directive)}
