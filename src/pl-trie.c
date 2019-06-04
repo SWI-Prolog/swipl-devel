@@ -1362,27 +1362,38 @@ unify_key(ukey_state *state, word key ARG_LD)
 	  Sdprintf("%s at %s\n",
 		   print_val(key, NULL), print_addr(state->ptr,NULL)));
 
-    if ( isIndirect(key) )
+    if ( unlikely(isIndirect(key)) )
     { w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
       if ( !w )
 	return GLOBAL_OVERFLOW;
-    } else
-      w = key;
 
-    if ( state->umode == uwrite )
-    { if ( isAtom(w) )
-	pushVolatileAtom(w);
-      *p = w;
-    } else if ( canBind(*p) )
-    { if ( isAtom(w) )
-	pushVolatileAtom(w);
+      if ( state->umode == uwrite )
+      { *p = w;
+      } else if ( canBind(*p) )
+      { if ( hasGlobalSpace(0) )
+	  bindConst(p, w);
+	else
+	  return overflowCode(0);
+      } else
+      { if ( !equalIndirect(w, *p) )
+	  return FALSE;
+      }
+    } else					/* not indirect */
+    { if ( state->umode == uwrite )
+      { if ( isAtom(key) )
+	  pushVolatileAtom(key);
+	*p = key;
+      } else if ( canBind(*p) )
+      { if ( isAtom(key) )
+	  pushVolatileAtom(key);
 
-      if ( hasGlobalSpace(0) )
-	bindConst(p, w);
-      else
-	return overflowCode(0);
-    } else if ( *p != w )
-      return FALSE;
+	if ( hasGlobalSpace(0) )
+	  bindConst(p, key);
+	else
+	  return overflowCode(0);
+      } else if ( *p != key )
+	return FALSE;
+    }
 
     state->ptr++;
     return TRUE;
