@@ -586,9 +586,11 @@ abolish_all_tables :-
 
 abolish_table_subgoals(M:SubGoal) :-
     '$tbl_variant_table'(VariantTrie),
+    !,
     current_module(M),
     forall(trie_gen(VariantTrie, M:SubGoal, Trie),
            '$tbl_destroy_table'(Trie)).
+abolish_table_subgoals(_).
 
 
                  /*******************************
