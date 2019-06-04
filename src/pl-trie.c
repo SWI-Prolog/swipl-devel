@@ -60,7 +60,8 @@ TODO
   - Make trie_gen/3 take the known prefix into account
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define RESERVED_TRIE_VAL(n) (((word)(-(intptr_t)n)<<LMASK_BITS) | TAG_VAR)
+#define RESERVED_TRIE_VAL(n) (((word)(-(intptr_t)n)<<LMASK_BITS) | \
+			      TAG_VAR|STG_LOCAL)
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
 #define TRIE_KEY_POP         RESERVED_TRIE_VAL(2)
 
@@ -1243,161 +1244,178 @@ find_var(ukey_state *state, size_t index)
 
 static int
 unify_key(ukey_state *state, word key ARG_LD)
-{ Word p;
+{ Word p = state->ptr;
 
-  if ( key == TRIE_KEY_POP )
-  { Word wp = *--aTop;
-    state->umode = ((int)(uintptr_t)wp & uwrite);
-    state->ptr   = (Word)((intptr_t)wp&~uwrite);
+  switch(tagex(key))
+  { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
+    { Word wp = *--aTop;
+      state->umode = ((int)(uintptr_t)wp & uwrite);
+      state->ptr   = (Word)((intptr_t)wp&~uwrite);
 
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("U Popped %zd, mode=%d\n", state->ptr-gBase, state->umode));
-    return TRUE;
-  }
+      assert(key == TRIE_KEY_POP);
+      DEBUG(MSG_TRIE_PUT_TERM,
+	    Sdprintf("U Popped %zd, mode=%d\n",
+		     state->ptr-gBase, state->umode));
+      return TRUE;
+    }
+    case TAG_ATOM|STG_GLOBAL:			/* functor */
+    { size_t arity = arityFunctor(key);
 
-  p = state->ptr;
-  if ( state->umode == uread )
-    deRef(p);
+      DEBUG(MSG_TRIE_PUT_TERM,
+	    Sdprintf("U Pushed %s %zd, mode=%d\n",
+		     functorName(key), state->ptr+1-gBase, state->umode));
+      pushArgumentStack((Word)((intptr_t)(p + 1)|state->umode));
 
-  if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
-  { size_t arity = arityFunctor(key);
+      if ( state->umode == uwrite )
+      { Word t;
 
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("U Pushed %s %zd, mode=%d\n",
-		   functorName(key), state->ptr+1-gBase, state->umode));
-    pushArgumentStack((Word)((intptr_t)(state->ptr + 1)|state->umode));
-
-    if ( state->umode == uwrite )
-    { Word t;
-
-      if ( (t=allocGlobalNoShift(arity+1)) )
-      { t[0] = key;
-	*p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
-	state->ptr = &t[1];
-	return TRUE;
-      } else
-	return GLOBAL_OVERFLOW;
-    } else
-    { if ( canBind(*p) )
-      { state->umode = uwrite;
-
-	if ( isAttVar(*p) )
-	{ Word t;
-	  word w;
-	  size_t i;
-
-	  if ( (t=allocGlobalNoShift(arity+1)) )
-	  { if ( !hasGlobalSpace(0) )
-	      return overflowCode(0);
-	    w = consPtr(&t[0], TAG_COMPOUND|STG_GLOBAL);
-	    t[0] = key;
-	    for(i=0; i<arity; i++)
-	      setVar(t[i+1]);
-	    assignAttVar(p, &w PASS_LD);
-	    state->ptr = &t[1];
-	    return TRUE;
-	  } else
-	    return GLOBAL_OVERFLOW;
-	} else
-	{ Word t;
-
-	  if ( (t=allocGlobalNoShift(arity+1)) )
-	  { if ( unlikely(tTop+1 >= tMax) )
-	      return  TRAIL_OVERFLOW;
-	    t[0] = key;
-	    Trail(p, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
-	    state->ptr = &t[1];
-	    return TRUE;
-	  } else
-	    return GLOBAL_OVERFLOW;
-	}
-      } else if ( isTerm(*p) )
-      { Functor f = valueTerm(*p);
-
-	if ( f->definition == key )
-	{ state->ptr = &f->arguments[0];
+	if ( (t=allocGlobalNoShift(arity+1)) )
+	{ t[0] = key;
+	  *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  state->ptr = &t[1];
 	  return TRUE;
 	} else
-	  return FALSE;
+	  return GLOBAL_OVERFLOW;
       } else
-      { return FALSE;
-      }
+      { deRef(p);
+
+	if ( canBind(*p) )
+	{ state->umode = uwrite;
+
+	  if ( isAttVar(*p) )
+	  { Word t;
+	    word w;
+	    size_t i;
+
+	    if ( (t=allocGlobalNoShift(arity+1)) )
+	    { if ( !hasGlobalSpace(0) )
+		return overflowCode(0);
+	      w = consPtr(&t[0], TAG_COMPOUND|STG_GLOBAL);
+	      t[0] = key;
+	      for(i=0; i<arity; i++)
+		setVar(t[i+1]);
+	      assignAttVar(p, &w PASS_LD);
+	      state->ptr = &t[1];
+	      return TRUE;
+	    } else
+	      return GLOBAL_OVERFLOW;
+	  } else
+	  { Word t;
+
+	    if ( (t=allocGlobalNoShift(arity+1)) )
+	    { if ( unlikely(tTop+1 >= tMax) )
+		return  TRAIL_OVERFLOW;
+	      t[0] = key;
+	      Trail(p, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+	      state->ptr = &t[1];
+	      return TRUE;
+	    } else
+	      return GLOBAL_OVERFLOW;
+	  }
+	} else if ( isTerm(*p) )
+	{ Functor f = valueTerm(*p);
+
+	  if ( f->definition == key )
+	  { state->ptr = &f->arguments[0];
+	    return TRUE;
+	  } else
+	    return FALSE;
+	} else
+	{ return FALSE;
+	}
+      } /*uread*/
     }
-  } else if ( tag(key) == TAG_VAR )
-  { size_t index = (size_t)(key>>LMASK_BITS);
-    Word *v = find_var(state, index);
+    assert(0);
+    case TAG_VAR:
+    { size_t index = (size_t)(key>>LMASK_BITS);
+      Word *v = find_var(state, index);
 
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  { char b1[64]; char b2[64];
-	    Sdprintf("var %zd at %s (v=%p, *v=%s)\n",
-		     index,
-		     print_addr(state->ptr,b1),
-		     v, print_addr(*v,b2));
-	  });
+      DEBUG(MSG_TRIE_PUT_TERM,
+	    { char b1[64]; char b2[64];
+	      Sdprintf("var %zd at %s (v=%p, *v=%s)\n",
+		       index,
+		       print_addr(state->ptr,b1),
+		       v, print_addr(*v,b2));
+	    });
 
-    if ( state->umode == uwrite )
-    { if ( !*v )
-      { setVar(*state->ptr);
-	*v = state->ptr;
+      if ( state->umode == uwrite )
+      { if ( !*v )
+	{ setVar(*state->ptr);
+	  *v = state->ptr;
+	} else
+	{ *state->ptr = makeRefG(*v);
+	}
       } else
-      { *state->ptr = makeRefG(*v);
-      }
-    } else
-    { if ( !*v )
-      { *v = state->ptr;
-      } else
-      { int rc;
+      { deRef(p);
 
-	if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE PASS_LD)) != TRUE )
-	  return rc;
+	if ( !*v )
+	{ *v = state->ptr;
+	} else
+	{ int rc;
+
+	  if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE PASS_LD)) != TRUE )
+	    return rc;
+	}
       }
+
+      break;
     }
+    assert(0);
+    case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
+    case STG_GLOBAL|TAG_STRING:
+    case STG_GLOBAL|TAG_FLOAT:
+    { word w;
 
-    state->ptr++;
-    return TRUE;
-  } else
-  { word w;
-
-    DEBUG(MSG_TRIE_PUT_TERM,
-	  Sdprintf("%s at %s\n",
-		   print_val(key, NULL), print_addr(state->ptr,NULL)));
-
-    if ( unlikely(isIndirect(key)) )
-    { w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
+      w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
       if ( !w )
 	return GLOBAL_OVERFLOW;
 
       if ( state->umode == uwrite )
       { *p = w;
-      } else if ( canBind(*p) )
-      { if ( hasGlobalSpace(0) )
-	  bindConst(p, w);
-	else
-	  return overflowCode(0);
       } else
-      { if ( !equalIndirect(w, *p) )
-	  return FALSE;
+      { deRef(p);
+
+	if ( canBind(*p) )
+	{ if ( hasGlobalSpace(0) )
+	    bindConst(p, w);
+	  else
+	    return overflowCode(0);
+	} else
+	{ if ( !equalIndirect(w, *p) )
+	    return FALSE;
+	}
       }
-    } else					/* not indirect */
-    { if ( state->umode == uwrite )
-      { if ( isAtom(key) )
-	  pushVolatileAtom(key);
-	*p = key;
-      } else if ( canBind(*p) )
-      { if ( isAtom(key) )
-	  pushVolatileAtom(key);
 
-	if ( hasGlobalSpace(0) )
-	  bindConst(p, key);
-	else
-	  return overflowCode(0);
-      } else if ( *p != key )
-	return FALSE;
+      break;
     }
+    case TAG_ATOM:
+      pushVolatileAtom(key);
+      /*FALLTHROUGH*/
+    case TAG_INTEGER:
+    { if ( state->umode == uwrite )
+      { *p = key;
+      } else
+      { deRef(p);
 
-    state->ptr++;
-    return TRUE;
+	if ( canBind(*p) )
+	{ if ( hasGlobalSpace(0) )
+	    bindConst(p, key);
+	  else
+	    return overflowCode(0);
+	} else
+	{ if ( *p != key )
+	    return FALSE;
+	}
+      }
+      break;
+    }
+    default:
+      assert(0);
   }
+
+  state->ptr++;
+
+  return TRUE;
 }
 
 
