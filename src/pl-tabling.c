@@ -43,6 +43,7 @@
 #define PL_erase(r)	  free_fastheap(r)
 
 static void	free_worklist(worklist *wl);
+static void	clean_worklist(worklist *wl);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
 static int	wl_has_work(const worklist *wl);
@@ -1215,8 +1216,8 @@ simplify_component(tbl_component *scc)
   worklist **wlp0 = baseBuffer(&scc->created_worklists->members, worklist*);
   worklist **top  = topBuffer(&scc->created_worklists->members, worklist*);
   worklist **wlp;
-  int undefined;
 #ifndef O_AC_EAGER
+  int undefined, pass;
   size_t simplified0 = scc->simplifications;
   tbl_component *c;
 #endif
@@ -1226,13 +1227,17 @@ simplify_component(tbl_component *scc)
 
   init_spf_agenda(&agenda);
 
-  for(;;)
+  for(pass=0; ;pass++)
   { int count = 0;
+    size_t simplified = scc->simplifications;
 
     undefined = 0;
 
     for(wlp = wlp0; wlp < top; wlp++)
     { worklist *wl = *wlp;
+
+      if ( pass == 0 )
+	clean_worklist(wl);
 
       if ( wl->negative &&
 	   wl->neg_delayed &&
@@ -1871,20 +1876,31 @@ free_worklist(worklist *wl)
 
 
 static void
-complete_worklist(worklist *wl)
+clean_worklist(worklist *wl)
 { cluster *c, *next;
 
-  for(c=wl->head; c; c = next)
-  { next = c->next;
-    free_cluster(c);
+  wl->riac = NULL;
+  if ( wl->head )
+  { for(c=wl->head; c; c = next)
+    { next = c->next;
+      free_cluster(c);
+    }
+    wl->head = wl->tail = NULL;
   }
-  wl->head = wl->tail = NULL;
 
-  for(c=wl->free_clusters; c; c = next)
-  { next = c->next;
-    free_cluster(c);
+  if ( wl->free_clusters )
+  { for(c=wl->free_clusters; c; c = next)
+    { next = c->next;
+      free_cluster(c);
+    }
+    wl->free_clusters = NULL;
   }
-  wl->free_clusters = NULL;
+}
+
+
+static void
+complete_worklist(worklist *wl)
+{ clean_worklist(wl);
 
   wl->completed = TRUE;
 }
