@@ -1229,7 +1229,6 @@ simplify_component(tbl_component *scc)
 
   for(pass=0; ;pass++)
   { int count = 0;
-    size_t simplified = scc->simplifications;
 
     undefined = 0;
 
@@ -2795,13 +2794,14 @@ next:
       term_t suspension = av+0;
       term_t modeargs   = av+1;
 
-      if ( an == NULL && !IS_TNOT(sr) )
-      { if ( advance_wkl_state(state) )
-	  goto next;
-	goto out_fail;
-      }
-      if ( an != NULL && IS_TNOT(sr) &&
-	   answer_is_conditional(an) )
+      /* Ignore (1) dummy restart for delayed negation,
+       *        (2) conditional answer for tnot
+       *        (3) removed answer due to simplification
+       */
+
+      if ( (an == NULL && !IS_TNOT(sr)) ||
+	   (an != NULL && IS_TNOT(sr) && answer_is_conditional(an)) ||
+	   (an != NULL && an->value == 0) )
       { if ( advance_wkl_state(state) )
 	  goto next;
 	goto out_fail;
