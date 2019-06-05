@@ -1614,6 +1614,7 @@ get_variant_table(term_t t, int create ARG_LD)
       node->value = trie_symbol(vt);
       vt->data.variant = node;
       vt->alloc_pool = &LD->tabling.node_pool;
+      ATOMIC_INC(&variants->value_count);
       return vt;
     } else
       return NULL;
@@ -2178,7 +2179,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
     { trie *vtrie = get_trie_form_node(table->data.variant);
 
       if ( vtrie == LD->tabling.variant_table )
-      { prune_node(vtrie, table->data.variant);
+      { trie_delete(vtrie, table->data.variant, TRUE);
 	return TRUE;
       }
 

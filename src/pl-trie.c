@@ -184,6 +184,7 @@ trie_create(void)
   if ( (trie = PL_malloc(sizeof(*trie))) )
   { memset(trie, 0, sizeof(*trie));
     trie->magic = TRIE_MAGIC;
+    trie->node_count = 1;		/* the root */
 
     return trie;
   } else
@@ -283,16 +284,17 @@ next:
   if ( n->value )
     release_value(n->value);
 
-  if ( children.any &&
-       COMPARE_AND_SWAP(&n->children.any, children.any, NULL) )
-  { if ( dealloc )
-    { ATOMIC_DEC(&trie->node_count);
-      if ( trie->alloc_pool )
-	ATOMIC_SUB(&trie->alloc_pool->size, sizeof(trie_node));
-      PL_free(n);
-    }
+  if ( dealloc )
+  { ATOMIC_DEC(&trie->node_count);
+    if ( trie->alloc_pool )
+      ATOMIC_SUB(&trie->alloc_pool->size, sizeof(trie_node));
+    PL_free(n);
+  } else
+  { n->children.any = NULL;
+  }
 
-    switch( children.any->type )
+  if ( children.any )
+  { switch( children.any->type )
     { case TN_KEY:
       { n = children.key->child;
         PL_free(children.key);
@@ -1741,6 +1743,14 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       } else if ( name == ATOM_size )
       { trie_stats stats;
 	stat_trie(trie, &stats);
+	if ( stats.nodes != trie->node_count )
+	  Sdprintf("OOPS: trie_property/2: counted %zd nodes, admin says %zd\n",
+		   stats.nodes, trie->node_count);
+	if ( stats.values != trie->value_count )
+	  Sdprintf("OOPS: trie_property/2: counted %zd values, admin says %zd\n",
+		   stats.values, trie->value_count);
+	// assert(stats.nodes  == trie->node_count);
+	// assert(stats.values == trie->value_count);
 	return PL_unify_int64(arg, stats.bytes);
       } else if ( name == ATOM_hashed )
       { trie_stats stats;
