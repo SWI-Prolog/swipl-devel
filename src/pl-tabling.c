@@ -3177,6 +3177,19 @@ PRED_IMPL("$tbl_scc_data", 2, tbl_scc_data, 0)
 
 
 static int
+uc_put_trie_value(term_t t, trie_node *an ARG_LD)
+{ static atom_t anull;
+
+  if ( !anull )
+    anull = PL_new_atom("NULL");
+
+  if ( !an || an->value )
+    return tbl_put_trie_value(t, an PASS_LD);
+  else
+    return PL_put_atom(t, anull);
+}
+
+static int
 unify_cluster(term_t t, cluster *c, int is_riac)
 { GET_LD
 
@@ -3198,11 +3211,13 @@ unify_cluster(term_t t, cluster *c, int is_riac)
     term_t modeav = PL_new_term_ref();
 
     for(; ap < top; ap++)
-    { if ( !PL_put_variable(answer) ||
+    { trie_node *an = *ap;
+
+      if ( !PL_put_variable(answer) ||
 	   !PL_unify_list(tail, head, tail) ||
-	   !tbl_unify_trie_term(*ap, answer PASS_LD) ||
-	   !tbl_put_trie_value(modeav, *ap PASS_LD) ||
-	   !PL_unify_term(head, PL_FUNCTOR_CHARS, "-", 2,
+	   !tbl_unify_trie_term(an, answer PASS_LD) ||
+	   !uc_put_trie_value(modeav, an PASS_LD) ||
+	   !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_minus2,
 			          PL_TERM, answer, PL_TERM, modeav) )
 	return FALSE;
     }
