@@ -1502,13 +1502,13 @@ add_choice(trie_gen_state *state, trie_node *node)
 }
 
 
-static int
+static trie_choice *
 descent_node(trie_gen_state *state, trie_choice *ch)
 { while( ch->child->children.any )
   { ch = add_choice(state, ch->child);
   }
 
-  return ch->child->value != 0;
+  return ch;
 }
 
 
@@ -1529,15 +1529,14 @@ advance_node(trie_choice *ch)
 }
 
 
-static int
-next_choice(trie_gen_state *state)
+static trie_choice *
+next_choice0(trie_gen_state *state)
 { trie_choice *btm = base_choice(state);
   trie_choice  *ch = top_choice(state)-1;
 
   while(ch >= btm)
-  { if ( advance_node(ch) &&
-	 descent_node(state, ch) )
-      return TRUE;
+  { if ( advance_node(ch) )
+      return descent_node(state, ch);
 
     if ( ch->choice.table )
       freeTableEnum(ch->choice.table);
@@ -1547,6 +1546,18 @@ next_choice(trie_gen_state *state)
   }
 
   return FALSE;
+}
+
+
+static int
+next_choice(trie_gen_state *state)
+{ trie_choice *ch;
+
+  do
+  { ch = next_choice0(state);
+  } while (ch && ch->child->value == 0);
+
+  return ch != NULL;
 }
 
 
@@ -1594,10 +1605,14 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
       if ( get_trie(Trie, &trie) )
       { if ( trie->root.children.any )
-	{ acquire_trie(trie);
+	{ trie_choice *ch;
+
+	  acquire_trie(trie);
 	  state = &state_buf;
 	  init_trie_state(state, trie);
-	  if ( !descent_node(state, add_choice(state, &trie->root)) &&
+	  ch = add_choice(state, &trie->root);
+	  ch = descent_node(state, ch);
+	  if ( !ch->child->value &&
 	       !next_choice(state) )
 	  { clear_trie_state(state);
 	    return FALSE;
