@@ -422,6 +422,8 @@ is_lamdba_params(Free/Params) :-
     !,
     is_lambda_free(Free),
     is_list(Params).
+is_lamdba_params(Params) :-
+    is_list(Params).
 
 is_lambda_free(Free) :-
     nonvar(Free), !, (Free = {_} -> true ; Free == {}).
