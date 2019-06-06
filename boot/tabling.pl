@@ -81,7 +81,13 @@ goal_expansion(tdebug(Topic, Fmt, Args), Expansion) :-
     ).
 goal_expansion(tdebug(Goal), Expansion) :-
     (   current_prolog_flag(prolog_debug, true)
-    ->  Expansion = (Goal->true;print_message(error, goal_failed(Goal)))
+    ->  Expansion = (   debugging(tabling(_))
+                    ->  (   Goal
+                        ->  true
+                        ;   print_message(error, goal_failed(Goal))
+                        )
+                    ;   true
+                    )
     ;   Expansion = true
     ).
 
@@ -320,8 +326,9 @@ delim(Wrapper, Worker, WorkList, Delays) :-
         !
     ;   SourceCall = call_info(SrcSkeleton, SourceWL),
         '$tbl_add_global_delays'(Delays, AllDelays),
-        tdebug(wl_goal(SourceWL, SrcWrapper, _)),
-        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcWrapper, Wrapper]),
+        tdebug(wl_goal(SourceWL, SrcGoal, _)),
+        tdebug(wl_goal(WorkList, DstGoal, _)),
+        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcGoal, DstGoal]),
         '$tbl_wkl_add_suspension'(
             SourceWL,
             dependency(SrcSkeleton, Continuation, Wrapper, WorkList, AllDelays))
@@ -476,7 +483,8 @@ completion_step(WorkList) :-
         tdebug(wl_goal(WorkList, SourceGoal, _)),
         tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
         (   ModeArgs == Reserved
-        ->  tdebug(delay_goals(Delays, Cond)),
+        ->  tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
+            tdebug(delay_goals(AllDelays, Cond)),
             tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays = ~p)',
                    [TargetGoal, SourceGoal, Answer, Cond]),
             Goal = Answer,
