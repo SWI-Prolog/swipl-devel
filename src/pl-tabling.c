@@ -45,6 +45,7 @@
 static void	free_worklist(worklist *wl);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
+static int	wl_has_work(const worklist *wl);
 static cluster *new_answer_cluster(worklist *wl, trie_node *first);
 static void	wkl_append_left(worklist *wl, cluster *c);
 static int	wkl_add_answer(worklist *wl, trie_node *node ARG_LD);
@@ -194,7 +195,7 @@ static void
 wl_set_component(worklist *wl, tbl_component *c)
 { wl->component = c;
   wl->executing = FALSE;
-  if ( !wl->in_global_wl )
+  if ( !wl->in_global_wl && wl_has_work(wl) )
     add_global_worklist(wl);
   if ( wl->negative )
   { DEBUG(MSG_TABLING_NEG,
@@ -286,27 +287,6 @@ add_global_worklist(worklist *wl)
 }
 
 
-#ifdef O_DEBUG
-static int
-is_in_global_worklist(worklist *wl)
-{ tbl_component *c = wl->component;
-  worklist_set *wls;
-
-  if ( (wls = c->worklist) )
-  { worklist **wlp = baseBuffer(&wls->members, worklist*);
-    worklist **elp = topBuffer(&wls->members, worklist*);
-
-    for( ; wlp < elp; wlp++)
-    { if ( *wlp == wl )
-	return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-#endif
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Normal completion is done. There  may   be  worklists that are suspended
 using negation_suspend/3. We wake  these  up   by  adding  a  new answer
@@ -370,15 +350,23 @@ negative_worklist(tbl_component *scc ARG_LD)
 }
 
 
+static int
+wl_has_work(const worklist *wl)
+{ return wl->riac && wl->riac->next;
+}
+
 static worklist *
 pop_worklist(tbl_component *c ARG_LD)
-{ worklist_set *wls;
+{ worklist_set *wls = c->worklist;
 
-  if ( (wls=c->worklist) && !isEmptyBuffer(&wls->members) )
-  { worklist *wl = popBuffer(&wls->members, worklist*);
-    wl->in_global_wl = FALSE;
+  if ( wls )
+  { while( !isEmptyBuffer(&wls->members) )
+    { worklist *wl = popBuffer(&wls->members, worklist*);
+      wl->in_global_wl = FALSE;
 
-    return wl;
+      if ( wl_has_work(wl) )
+	return wl;
+    }
   }
 
   return NULL;
@@ -2405,7 +2393,8 @@ PRED_IMPL("$tbl_wkl_make_follower", 1, tbl_wkl_make_follower, 0)
     if ( scp )
       wkl_append_right(wl, scp);
 
-    DEBUG(0, assert(is_in_global_worklist(wl)));
+    if ( acp && scp )
+      add_global_worklist(wl);
 
     return TRUE;
   }
