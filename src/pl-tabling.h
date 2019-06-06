@@ -159,6 +159,7 @@ typedef struct delay_set
 
 typedef struct delay_info
 { trie_node      *variant;		/* Variant trie node */
+  unsigned	  has_share_records;	/* We have variable sharing records */
   buffer          delay_sets;		/* The disjunctive conditions */
   buffer	  delays;		/* Store for the delays */
 } delay_info;
@@ -170,5 +171,6 @@ typedef struct delay_info
 
 COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
 COMMON(term_t)	init_delay_list(void);
+COMMON(void)	destroy_delay_info(delay_info *di);
 
 #endif /*_PL_TABLING_H*/

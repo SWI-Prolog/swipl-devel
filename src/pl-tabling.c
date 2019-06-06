@@ -462,6 +462,21 @@ populate_answers(worklist *wl)
 		 *	 TABLE DELAY LISTS	*
 		 *******************************/
 
+static inline trie_node *
+REC_DELAY(record_t r)
+{ return (trie_node*)(((uintptr_t)r)|0x1);
+}
+
+static inline record_t
+UNREC_DELAY(trie_node *r)
+{ return (record_t)(((uintptr_t)r)&~(uintptr_t)1);
+}
+
+static int
+IS_REC_DELAY(trie_node *r)
+{ return (uintptr_t)r & 0x1;
+}
+
 static int
 answer_is_conditional(trie_node *answer)
 { delay_info *di;
@@ -480,9 +495,11 @@ answer_delay_info(worklist *wl, trie_node *answer, int create)
   { return NULL;
   } else if ( (di=malloc(sizeof(*di))) )
   { di->variant = wl->table->data.variant;
+    di->has_share_records = FALSE;
     initBuffer(&di->delay_sets);
     initBuffer(&di->delays);
     answer->data.delayinfo = di;
+
 
     return di;
   } else
@@ -491,9 +508,19 @@ answer_delay_info(worklist *wl, trie_node *answer, int create)
 }
 
 
-static void
+void
 destroy_delay_info(delay_info *di)
-{ discardBuffer(&di->delay_sets);
+{ if ( di->has_share_records )
+  { delay *d = baseBuffer(&di->delays, delay);
+    delay *z = topBuffer(&di->delays, delay);
+
+    for(; d < z; d++)		/* keep a flag to see whether we have these */
+    { if ( IS_REC_DELAY(d->answer) )
+	PL_erase(UNREC_DELAY(d->answer));
+    }
+  }
+
+  discardBuffer(&di->delay_sets);
   discardBuffer(&di->delays);
   free(di);
 }
@@ -613,23 +640,6 @@ simplify_delay_set(delay_info *di, delay_set *ds)
 
   return FALSE;
 }
-
-static inline trie_node *
-REC_DELAY(record_t r)
-{ return (trie_node*)(((uintptr_t)r)|0x1);
-}
-
-static inline record_t
-UNREC_DELAY(trie_node *r)
-{ return (record_t)(((uintptr_t)r)&~(uintptr_t)1);
-}
-
-#ifndef NDEBUG					/* only used in assert() */
-static int
-IS_REC_DELAY(trie_node *r)
-{ return (uintptr_t)r & 0x1;
-}
-#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -795,6 +805,7 @@ retry:
 	if ( r )
 	{ if ( !add_to_delay_set(di, ds, NULL, REC_DELAY(r)) )
 	    goto nomem;
+	  di->has_share_records = TRUE;
 	} else
 	{ return UDL_FALSE;
 	}
@@ -1058,6 +1069,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 	print_delay("    Removing conditional answer", di->variant, answer));
 
   answer->data.delayinfo = NULL;
+  destroy_delay_info(di);
   trie_delete(at, answer, FALSE);		/* cannot prune as may be */
   agenda->done++;				/* in worklist delay lists */
   wl->undefined--;
@@ -1568,10 +1580,16 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 
   if ( node->value )
   { trie *vtrie = symbol_trie(node->value);
+    record_t r;
 
     assert(vtrie->data.variant == node);
     vtrie->data.variant = NULL;
     vtrie->data.worklist = NULL;
+    if ( (r=vtrie->data.skeleton) )
+    { vtrie->data.skeleton = 0;
+      PL_erase(r);
+    }
+
     trie_empty(vtrie);
   }
 }
@@ -2167,7 +2185,13 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
     { trie *vtrie = get_trie_form_node(table->data.variant);
 
       if ( vtrie == LD->tabling.variant_table )
-      { trie_delete(vtrie, table->data.variant, TRUE);
+      { record_t r;
+
+	if ( (r=table->data.skeleton) )
+	{ table->data.skeleton = 0;
+	  PL_erase(r);
+	}
+	trie_delete(vtrie, table->data.variant, TRUE);
 	return TRUE;
       }
 

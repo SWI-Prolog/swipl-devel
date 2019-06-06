@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "pl-trie.h"
+#include "pl-tabling.h"
 #include "pl-indirect.h"
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
@@ -283,6 +284,8 @@ next:
   release_key(n->key);
   if ( n->value )
     release_value(n->value);
+  if ( n->data.delayinfo )		/* hacky */
+    destroy_delay_info(n->data.delayinfo);
 
   if ( dealloc )
   { ATOMIC_DEC(&trie->node_count);
