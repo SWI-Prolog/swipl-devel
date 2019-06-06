@@ -108,6 +108,8 @@ free_component(tbl_component *c, int flags)
     del_child_component(c->parent, c);
   if ( c->worklist )
     free_worklist_set(c->worklist, WLFS_FREE_NONE);
+  if ( c->delay_worklists )
+    free_worklist_set(c->delay_worklists, WLFS_FREE_NONE);
   if ( c->created_worklists )
     free_worklist_set(c->created_worklists, WLFS_FREE_ALL);
   if ( c->children )
@@ -265,6 +267,8 @@ merge_one_component(tbl_component *c, tbl_component *m)
 
   merge_worklists(&c->worklist, &m->worklist);
   merge_worklists(&c->created_worklists, &m->created_worklists);
+  merge_worklists(&c->delay_worklists, &m->delay_worklists);
+
   m->status = SCC_MERGED;
 }
 
@@ -272,18 +276,40 @@ merge_one_component(tbl_component *c, tbl_component *m)
 		 *           WORKLISTS		*
 		 *******************************/
 
+static worklist_set *
+new_worklist_set(worklist *wl)
+{ worklist_set *wls = PL_malloc(sizeof(*wls));
+
+  initBuffer(&wls->members);
+  addBuffer(&wls->members, wl, worklist*);
+
+  return wls;
+}
+
+
 static void
 add_global_worklist(worklist *wl)
 { tbl_component *c = wl->component;
   worklist_set *wls;
 
   if ( !(wls=c->worklist) )
-  { wls	= c->worklist = PL_malloc(sizeof(*c->worklist));
-    initBuffer(&wls->members);
-  }
+    c->worklist = new_worklist_set(wl);
+  else
+    addBuffer(&wls->members, wl, worklist*);
 
-  addBuffer(&wls->members, wl, worklist*);
   wl->in_global_wl = TRUE;
+}
+
+
+static void
+add_delay_worklist(worklist *wl)
+{ tbl_component *c = wl->component;
+  worklist_set *wls;
+
+  if ( !(wls=c->delay_worklists) )
+    c->delay_worklists = new_worklist_set(wl);
+  else
+    addBuffer(&wls->members, wl, worklist*);
 }
 
 
@@ -291,27 +317,15 @@ add_global_worklist(worklist *wl)
 Normal completion is done. There  may   be  worklists that are suspended
 using negation_suspend/3. We wake  these  up   by  adding  a  new answer
 cluster with a NULL node.
-
-For WFS we need to pass the condition we represent in the delay list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static worklist *
 negative_worklist(tbl_component *scc ARG_LD)
-{ worklist **wlp = baseBuffer(&scc->created_worklists->members, worklist*);
-  worklist **top = topBuffer(&scc->created_worklists->members, worklist*);
+{ if ( scc->delay_worklists )
+  { while( !isEmptyBuffer(&scc->delay_worklists->members) )
+    { worklist *wl = popBuffer(&scc->delay_worklists->members, worklist*);
 
-  if ( scc->neg_status == SCC_NEG_DELAY )
-  { DEBUG(MSG_TABLING_NEG,
-	  Sdprintf("Searching delayed negative literals in SCC %zd\n",
-		   pointerToInt(scc)));
-
-    wlp = baseBuffer(&scc->created_worklists->members, worklist*);
-    for(; wlp < top; wlp++)
-    { worklist *wl = *wlp;
-
-      if ( wl->negative &&
-	   !wl->neg_delayed &&
-	   !wl->has_answers )
+      if ( !wl->has_answers )	/* we have an unconditional answers, so no delay */
       { cluster *c;
 
 	wl->neg_delayed = TRUE;
@@ -1836,9 +1850,12 @@ free_worklist(worklist *wl)
 
 static int
 worklist_negative(worklist *wl)
-{ wl->negative = TRUE;
-  if ( wl->component->neg_status == SCC_NEG_NONE )
-    wl->component->neg_status = SCC_NEG_DELAY;
+{ if ( !wl->negative )
+  { wl->negative = TRUE;
+    add_delay_worklist(wl);
+    if ( wl->component->neg_status == SCC_NEG_NONE )
+      wl->component->neg_status = SCC_NEG_DELAY;
+  }
 
   return TRUE;
 }
