@@ -37,6 +37,19 @@
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We provide two answer completion strategies:
+
+  - Eager AC: #define O_AC_EAGER 1
+    Complete each component fully before continuing to the next.
+  - Lazy AC:  #undef O_AC_EAGER
+    Only complete the leader of a component.  This is what XSB is
+    doing.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define O_AC_EAGER 1
+// #undef O_AC_EAGER
+
 #define record_t fastheap_term *
 #define PL_record(t)      term_to_fastheap(t PASS_LD)
 #define PL_recorded(r, t) put_fastheap(r, t PASS_LD)
@@ -1216,8 +1229,8 @@ simplify_component(tbl_component *scc)
   worklist **wlp0 = baseBuffer(&scc->created_worklists->members, worklist*);
   worklist **top  = topBuffer(&scc->created_worklists->members, worklist*);
   worklist **wlp;
-#ifndef O_AC_EAGER
   int undefined, pass;
+#ifndef O_AC_EAGER
   size_t simplified0 = scc->simplifications;
   tbl_component *c;
 #endif
