@@ -1503,6 +1503,9 @@ PRED_IMPL("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
       return TRUE;
     }
 
+    if ( wl == WL_COMPLETE )
+      return TRUE;
+
     return PL_permission_error("set_answer_complete", "trie", A1);
   }
 

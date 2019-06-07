@@ -985,7 +985,7 @@ delete_answers_for_failing_calls(Propagated) :-
 
 mark_succeeding_calls_as_answer_completed :-
     (   subgoal_residual_trie(ASGF, _ESGF),
-        (   '$tbl_answer_dl'(ASGF, _0Return, true)
+        (   '$tbl_answer_dl'(ASGF, _0Return, _True)
         ->  tdebug(trie_goal(ASGF, Answer, _0Return)),
             tdebug(trie_goal(ASGF, Goal, _0Return)),
             tdebug(ac(prune), '  Completed ~p on ~p', [Goal, Answer]),
@@ -1055,6 +1055,10 @@ all_vars([H|T]) :-
 %   Derive answers for the variant represented   by  AnswerTrie based on
 %   the residual goals only.
 
+eval_subgoal_in_residual(AnswerTrie, _Return) :-
+    '$tbl_is_answer_completed'(AnswerTrie),
+    !,
+    undefined.
 eval_subgoal_in_residual(AnswerTrie, Return) :-
     '$tbl_answer'(AnswerTrie, Return, Condition),
     tdebug(trie_goal(AnswerTrie, Goal, Return)),
