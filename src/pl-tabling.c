@@ -1431,12 +1431,12 @@ answer_completion(tbl_component *scc)
     return TRUE;
 #endif
 
+  if ( LD->tabling.in_answer_completion )
+    return TRUE;			/* not recursive! */
+
 #ifdef O_AC_EAGER
   worklist **wlp = baseBuffer(&scc->created_worklists->members, worklist*);
   worklist **top = topBuffer(&scc->created_worklists->members, worklist*);
-
-  if ( LD->tabling.in_answer_completion )
-    return TRUE;				/* Warn? */
 
   for(; wlp < top; wlp++)
   { worklist *wl = *wlp;
