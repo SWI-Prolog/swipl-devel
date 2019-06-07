@@ -1917,12 +1917,6 @@ worklist_negative(worklist *wl)
   return TRUE;
 }
 
-static int
-worklist_is_false(worklist *wl)
-{ assert(wl->negative);
-  return (wl->neg_delayed) && !wl->has_answers;
-}
-
 
 /* The work is done if there is no answer cluster or there is
    no suspension right of the answer cluster
@@ -2537,15 +2531,24 @@ PRED_IMPL("$tbl_wkl_negative", 1, tbl_wkl_negative, 0)
 
 /** '$tbl_tbl_wkl_is_false'(+Worklist) is semidet.
  *
- * True if the worklist is is a negative node that is true (has no
- * solutions)
+ * True if the worklist is is  a  negative   node  that  is true (has no
+ * definite solutions). This is used at   the end of negation_suspend/4,
+ * after we delayed the negation. This  means   we  must fail if we have
+ * definite answers, but succeed if  there   are  conditional answers as
+ * simplification has not yet been done.
  */
 
 static
 PRED_IMPL("$tbl_wkl_is_false", 1, tbl_wkl_is_false, 0)
 { worklist *wl;
 
-  return get_worklist(A1, &wl) && worklist_is_false(wl);
+  if ( get_worklist(A1, &wl) )
+  { assert(wl->negative);
+
+    return wl->neg_delayed && !wl->has_answers;
+  }
+
+  return FALSE;
 }
 
 /** '$tbl_wkl_answer_trie'(+Worklist, -Trie) is det.
