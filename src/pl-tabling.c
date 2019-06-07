@@ -1236,7 +1236,12 @@ simplify_component(tbl_component *scc)
 #endif
 
   DEBUG(MSG_TABLING_SIMPLIFY,
-	Sdprintf("Simplifying SCC %zd\n", pointerToInt(scc)));
+	{ GET_LD
+	  term_t t = PL_new_term_ref();
+	  unify_trie_term(scc->leader->data.variant, t PASS_LD);
+	  Sdprintf("Simplifying SCC %zd; leader = ", pointerToInt(scc));
+	  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	});
 
   init_spf_agenda(&agenda);
 
@@ -1309,6 +1314,10 @@ simplify_component(tbl_component *scc)
   /* DSW: there cannot be any "uncovering" of a positive loop if there
    * was no simplification
    */
+
+  DEBUG(MSG_TABLING_SIMPLIFY,
+	Sdprintf("Simplified SCC %zd; undefined = %d; simplifications: %zd\n",
+		 undefined, scc->simplifications));
 
   if ( undefined && scc->simplifications )
     return answer_completion(scc);
