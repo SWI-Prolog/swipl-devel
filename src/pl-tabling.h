@@ -75,6 +75,7 @@ typedef struct tbl_component
 { int			magic;			/* COMPONENT_MAGIC */
   scc_status	        status;			/* SCC_* */
   scc_neg_status	neg_status;		/* SCC_NEG_* */
+  size_t		simplifications;        /* # simplifications */
   struct tbl_component *parent;
   component_set        *children;		/* Child components */
   worklist_set         *worklist;		/* Worklist of current query */

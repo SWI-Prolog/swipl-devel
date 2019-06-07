@@ -1064,6 +1064,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
   destroy_delay_info(di);
   agenda->done++;
   wl->undefined--;
+  wl->component->simplifications++;
 
   if ( !isEmptyBuffer(&wl->delays) )
     push_propagate(agenda, wl, answer, TRUE);
@@ -1077,6 +1078,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
   trie *at = symbol_trie(di->variant->value);
   worklist *wl = at->data.worklist;
+
   assert(wl->magic == WORKLIST_MAGIC);
 
   DEBUG(MSG_TABLING_SIMPLIFY,
@@ -1087,6 +1089,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
   trie_delete(at, answer, FALSE);		/* cannot prune as may be */
   agenda->done++;				/* in worklist delay lists */
   wl->undefined--;
+  wl->component->simplifications++;
 
   if ( !isEmptyBuffer(&wl->delays) )
     push_propagate(agenda, wl, answer, FALSE);
@@ -1213,7 +1216,10 @@ simplify_component(tbl_component *scc)
   worklist **top  = topBuffer(&scc->created_worklists->members, worklist*);
   worklist **wlp;
   int undefined;
-  int tcount = 0;
+#ifndef O_AC_EAGER
+  size_t simplified0 = scc->simplifications;
+  tbl_component *c;
+#endif
 
   DEBUG(MSG_TABLING_SIMPLIFY,
 	Sdprintf("Simplifying SCC %zd\n", pointerToInt(scc)));
@@ -1272,19 +1278,22 @@ simplify_component(tbl_component *scc)
 	undefined++;
     }
 
-    tcount += count;
-
     if ( count == 0 || undefined == 0 )
       break;
   }
 
   exit_spf_agenda(&agenda);
 
+#ifndef O_AC_EAGER
+  for(c = scc->parent; c; c = c->parent)
+    c->simplifications += simplified0 - scc->simplifications;
+#endif
+
   /* DSW: there cannot be any "uncovering" of a positive loop if there
    * was no simplification
    */
 
-  if ( undefined && tcount )
+  if ( undefined && scc->simplifications )
     return answer_completion(scc);
   else
     return TRUE;
@@ -2245,9 +2254,14 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
     if ( (wl=pop_worklist(scc PASS_LD)) )
       return PL_unify_pointer(A2, wl);
 
-    if ( scc->neg_status != SCC_NEG_NONE &&
-	 (wl=negative_worklist(scc PASS_LD)) )
-      return PL_unify_pointer(A2, wl);
+    if (
+#ifndef O_AC_EAGER
+	  scc->simplifications ||
+#endif
+	  scc->neg_status != SCC_NEG_NONE )
+    { if ( (wl=negative_worklist(scc PASS_LD)) )
+	return PL_unify_pointer(A2, wl);
+    }
   }
 
   return FALSE;
