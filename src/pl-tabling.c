@@ -527,7 +527,7 @@ answer_delay_info(worklist *wl, trie_node *answer, int create)
     initBuffer(&di->delay_sets);
     initBuffer(&di->delays);
     answer->data.delayinfo = di;
-
+    wl->undefined++;
 
     return di;
   } else
@@ -708,6 +708,7 @@ retry:
     if ( (di=answer->data.delayinfo) )
     { answer->data.delayinfo = NULL;
       destroy_delay_info(di);
+      wl->undefined--;
       DEBUG(MSG_TABLING_SIMPLIFY,
 	    Sdprintf("Unconditional answer after conditional\n"));
     }
@@ -1078,7 +1079,6 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
   destroy_delay_info(di);
   agenda->done++;
   wl->undefined--;
-  wl->component->simplifications++;
 
   if ( !isEmptyBuffer(&wl->delays) )
     push_propagate(agenda, wl, answer, TRUE);
@@ -1103,7 +1103,6 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
   trie_delete(at, answer, FALSE);		/* cannot prune as may be */
   agenda->done++;				/* in worklist delay lists */
   wl->undefined--;
-  wl->component->simplifications++;
 
   if ( !isEmptyBuffer(&wl->delays) )
     push_propagate(agenda, wl, answer, FALSE);
@@ -1158,7 +1157,9 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	  { int res;
 
 	    DEBUG(MSG_TABLING_SIMPLIFY,
-		  Sdprintf("   found\n"));
+		  Sdprintf("   found (SCC=%zd, simplifications = %zd)\n",
+			   pointerToInt(wl->component),
+			   wl->component->simplifications));
 
 	    if ( d->answer == NULL )
 	    { if ( result == FALSE &&
@@ -1170,6 +1171,7 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 	    }
 
 	    found = TRUE;
+	    wl->component->simplifications++;
 
 	    if ( res )			/* remove member from conjunction */
 	    { d->variant = DV_DELETED;
@@ -1232,7 +1234,6 @@ simplify_component(tbl_component *scc)
   int undefined, pass;
 #ifndef O_AC_EAGER
   size_t simplified0 = scc->simplifications;
-  tbl_component *c;
 #endif
 
   DEBUG(MSG_TABLING_SIMPLIFY,
@@ -1307,8 +1308,13 @@ simplify_component(tbl_component *scc)
   exit_spf_agenda(&agenda);
 
 #ifndef O_AC_EAGER
-  for(c = scc->parent; c; c = c->parent)
-    c->simplifications += simplified0 - scc->simplifications;
+  if ( (simplified0 != scc->simplifications) )
+  { size_t cnt = scc->simplifications - simplified0 ;
+    tbl_component *c;
+
+    for(c = scc->parent; c; c = c->parent)
+      c->simplifications += cnt;
+  }
 #endif
 
   /* DSW: there cannot be any "uncovering" of a positive loop if there
@@ -1317,7 +1323,7 @@ simplify_component(tbl_component *scc)
 
   DEBUG(MSG_TABLING_SIMPLIFY,
 	Sdprintf("Simplified SCC %zd; undefined = %d; simplifications: %zd\n",
-		 undefined, scc->simplifications));
+		 pointerToInt(scc), undefined, scc->simplifications));
 
   if ( undefined && scc->simplifications )
     return answer_completion(scc);
@@ -2027,9 +2033,7 @@ static int
 wkl_add_answer(worklist *wl, trie_node *node ARG_LD)
 { potentially_add_to_global_worklist(wl PASS_LD);
 
-  if ( answer_is_conditional(node) )
-    wl->undefined++;
-  else
+  if ( !answer_is_conditional(node) )
     wl->has_answers = TRUE;
 
   if ( wl->head && wl->head->type == CLUSTER_ANSWERS )
