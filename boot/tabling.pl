@@ -39,6 +39,7 @@
             untable/1,                  % :PI ...
 
             (tnot)/1,                   % :Goal
+            undefined/0,
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
@@ -1059,3 +1060,13 @@ eval_subgoal_in_residual(AnswerTrie, Return) :-
     tdebug(trie_goal(AnswerTrie, Goal, Return)),
     tdebug(ac, 'Condition for ~p is ~p', [Goal, Condition]),
     eval_dl_in_residual(Condition).
+
+%!  undefined
+%
+%   Expresses the value _bottom_ from the well founded semantics.
+
+:- table
+    undefined/0.
+
+undefined :-
+    tnot(undefined).

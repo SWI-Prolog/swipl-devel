@@ -54,8 +54,6 @@
             not_exists/1,			% :Goal
             sk_not/1,				% :Goal
 
-            undefined/0,
-
             is_most_general_term/1,		% @Term
 
             cputime/1,				% -Seconds
@@ -501,18 +499,6 @@ not_exists(P) :-
 
 sk_not(P) :-
     not_exists(P).
-
-
-%!  undefined
-%
-%   Explicit undefined evaluation.
-%
-%   @tbd Move to dedicated library?
-
-:- table undefined/0.
-
-undefined :-
-    tnot(undefined).
 
 
 %!  is_most_general_term(@X) is semidet.
