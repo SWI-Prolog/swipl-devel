@@ -1308,9 +1308,8 @@ one positive dependency.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-call_answer_completion(worklist *wl ARG_LD)
+call_answer_completion(trie *atrie ARG_LD)
 { fid_t fid;
-  trie *atrie = wl->table;
 
   if ( (fid = PL_open_foreign_frame()) )
   { static predicate_t pred = NULL;
@@ -1324,7 +1323,7 @@ call_answer_completion(worklist *wl ARG_LD)
 
     DEBUG(MSG_TABLING_AC,
 	  { term_t t = PL_new_term_ref();
-	    unify_trie_term(wl->table->data.variant, t PASS_LD);
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
 	    Sdprintf("Calling answer completion for: ");
 	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	  });
@@ -1352,6 +1351,7 @@ one answer that  is  undefined  and   has  a  condition  containing only
 positive delay elements.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_AC_EAGER
 static int
 has_positive_dl(trie_node *n)
 { delay_info *di;
@@ -1393,18 +1393,21 @@ is_ac_candidate_wl(worklist *wl)
 
   return FALSE;
 }
+#endif /*O_AC_EAGER*/
 
 
 static int
 answer_completion(tbl_component *scc)
 { GET_LD
-  worklist **wlp = baseBuffer(&scc->created_worklists->members, worklist*);
-  worklist **top = topBuffer(&scc->created_worklists->members, worklist*);
 
 #ifdef O_DEBUG
   if ( DEBUGGING(TABLING_NO_AC) )
     return TRUE;
 #endif
+
+#ifdef O_AC_EAGER
+  worklist **wlp = baseBuffer(&scc->created_worklists->members, worklist*);
+  worklist **top = topBuffer(&scc->created_worklists->members, worklist*);
 
   if ( LD->tabling.in_answer_completion )
     return TRUE;				/* Warn? */
@@ -1413,12 +1416,15 @@ answer_completion(tbl_component *scc)
   { worklist *wl = *wlp;
 
     if ( is_ac_candidate_wl(wl) )
-    { if ( !call_answer_completion(wl PASS_LD) )
+    { if ( !call_answer_completion(wl->table PASS_LD) )
 	return FALSE;
     }
   }
 
   return TRUE;
+#else
+  return call_answer_completion(scc->leader PASS_LD);
+#endif /*O_AC_EAGER*/
 }
 
 /** '$tbl_force_truth_value'(+AnswerNode, +Value, -Count)
@@ -2956,6 +2962,7 @@ PRED_IMPL("$tbl_create_subcomponent", 2, tbl_create_subcomponent, 0)
       LD->tabling.component = new_component();
     else
       LD->tabling.component->status = SCC_ACTIVE;
+    LD->tabling.component->leader = leader;
     return PL_unify_pointer(A1, LD->tabling.component);
   }
 
