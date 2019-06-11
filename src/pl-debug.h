@@ -171,6 +171,7 @@
 
 #define MSG_TRIE_PUT_TERM	 200
 #define MSG_TRIE_GC		 201
+#define MSG_TRIE_GEN		 202
 
 #define MSG_THREAD_LOCAL	 240
 
