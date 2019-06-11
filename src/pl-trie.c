@@ -389,9 +389,9 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	    addHTable(hnode->table, (void*)children.key->key,
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
-	    if ( tagex(children.key->key) == (TAG_VAR|STG_STATIC) )
+	    if ( tagex(children.key->key) == TAG_VAR )
 	      hnode->var_keys++;
-	    if ( tagex(new->key) == (TAG_VAR|STG_STATIC) )
+	    if ( tagex(new->key) == TAG_VAR )
 	      hnode->var_keys++;
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
@@ -411,7 +411,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	  if ( new == old )
 	  { new->parent = n;
-	    if ( tagex(new->key) == (TAG_VAR|STG_STATIC) )
+	    if ( tagex(new->key) == TAG_VAR )
 	      ATOMIC_INC(&children.hash->var_keys);
 	  } else
 	  { destroy_node(trie, new);
@@ -1442,10 +1442,17 @@ typedef struct trie_choice
 
 typedef struct
 { trie        *trie;		/* trie we operate on */
-  int	       allocated;
+  int	       allocated;	/* If TRUE, the state is persistent */
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
 } trie_gen_state;
 
+typedef struct
+{ Word	       term;		/* Term we are descending */
+  int	       compound;	/* Initialized for compound */
+  int	       prune;		/* Use for pruning */
+  segstack     stack;		/* Stack for argument handling */
+  Word	       buffer[64];	/* Quick buffer for stack */
+} descent_state;
 
 static void
 init_trie_state(trie_gen_state *state, trie *trie)
@@ -1478,35 +1485,109 @@ clear_trie_state(trie_gen_state *state)
 }
 
 
+static void
+clear_descent_state(descent_state *dstate)
+{ if ( dstate->compound )
+    clearSegStack(&dstate->stack);
+}
+
+static int
+get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
+{ Word p;
+
+  deRef2(dstate->term, p);
+
+  if ( canBind(*p) )
+  { return FALSE;
+  } else if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+
+    *key = f->definition;
+    if ( !dstate->compound )
+    { dstate->compound = TRUE;
+      initSegStack(&dstate->stack, sizeof(Word),
+		   sizeof(dstate->buffer), dstate->buffer);
+    }
+    pushSegStack(&dstate->stack, dstate->term+1, Word);
+    //Sdprintf("Pushed %p\n", dstate->term+1);
+    dstate->term = &f->arguments[0];
+    return TRUE;
+  } else
+  { dstate->term++;
+
+    if ( isIndirect(*p) )
+    { *key = trie_intern_indirect(state->trie, *p, FALSE PASS_LD);
+      return *key != 0;
+    } else
+    { *key = *p;
+      return TRUE;
+    }
+  }
+}
+
+
 trie_choice *
-add_choice(trie_gen_state *state, trie_node *node)
+add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 { trie_children children = node->children;
-  trie_choice *ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+  trie_choice *ch;
+  int has_key;
+  word k;
+
+  if ( dstate->prune )
+  { if ( !(has_key = get_key(state, dstate, &k PASS_LD)) )
+      dstate->prune = FALSE;
+  } else
+    has_key = FALSE;
 
   if ( children.any )
   { switch( children.any->type )
     { case TN_KEY:
+      if ( !has_key ||
+	   k == children.key->key ||
+	   tagex(children.key->key) == TAG_VAR ||
+	   children.key->key == TRIE_KEY_POP )
       {	word key   = children.key->key;
 
+	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
 	ch->key    = key;
 	ch->child  = children.key->child;
         ch->choice.any = NULL;
-	break;
-      }
-      case TN_HASHED:
-      { void *k, *v;
 
-	ch->choice.table = newTableEnum(children.hash->table);
-        advanceTableEnum(ch->choice.table, &k, &v);
-	ch->key   = (word)k;
-	ch->child = (trie_node*)v;
+	if ( children.key->key == TRIE_KEY_POP && dstate->compound )
+	{ popSegStack(&dstate->stack, &dstate->term, Word);
+	  //Sdprintf("Popped %p\n", dstate->term);
+	}
 	break;
-      }
+      } else
+	return NULL;
+      case TN_HASHED:
+	if ( has_key && children.hash->var_keys == 0 )
+	{ trie_node *child;
+
+	  if ( (child = lookupHTable(children.hash->table, (void*)k)) )
+	  { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	    ch->key = k;
+	    ch->child = child;
+	    ch->choice.any = NULL;
+	  } else
+	    return NULL;
+	} else
+	{ void *k, *v;
+
+	  dstate->prune = FALSE;
+	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	  ch->choice.table = newTableEnum(children.hash->table);
+	  advanceTableEnum(ch->choice.table, &k, &v);
+	  ch->key   = (word)k;
+	  ch->child = (trie_node*)v;
+	}
+	break;
       default:
 	assert(0);
     }
   } else
-  { memset(ch, 0, sizeof(*ch));
+  { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+    memset(ch, 0, sizeof(*ch));
     ch->child = node;
   }
 
@@ -1515,9 +1596,9 @@ add_choice(trie_gen_state *state, trie_node *node)
 
 
 static trie_choice *
-descent_node(trie_gen_state *state, trie_choice *ch)
-{ while( ch->child->children.any )
-  { ch = add_choice(state, ch->child);
+descent_node(trie_gen_state *state, descent_state *dstate, trie_choice *ch ARG_LD)
+{ while( ch && ch->child->children.any )
+  { ch = add_choice(state, dstate, ch->child PASS_LD);
   }
 
   return ch;
@@ -1542,13 +1623,13 @@ advance_node(trie_choice *ch)
 
 
 static trie_choice *
-next_choice0(trie_gen_state *state)
+next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
 { trie_choice *btm = base_choice(state);
   trie_choice  *ch = top_choice(state)-1;
 
   while(ch >= btm)
   { if ( advance_node(ch) )
-      return descent_node(state, ch);
+      return descent_node(state, dstate, ch PASS_LD);
 
     if ( ch->choice.table )
       freeTableEnum(ch->choice.table);
@@ -1562,11 +1643,15 @@ next_choice0(trie_gen_state *state)
 
 
 static int
-next_choice(trie_gen_state *state)
+next_choice(trie_gen_state *state ARG_LD)
 { trie_choice *ch;
+  descent_state dstate;
+
+  dstate.prune    = FALSE;
+  dstate.compound = FALSE;
 
   do
-  { ch = next_choice0(state);
+  { ch = next_choice0(state, &dstate PASS_LD);
   } while (ch && ch->child->value == 0);
 
   return ch != NULL;
@@ -1618,14 +1703,22 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
       if ( get_trie(Trie, &trie) )
       { if ( trie->root.children.any )
 	{ trie_choice *ch;
+	  descent_state dstate;
+	  int rc;
+
+	  dstate.term     = valTermRef(Key);
+	  dstate.compound = FALSE;
+	  dstate.prune	  = TRUE;
+	  deRef(dstate.term);
 
 	  acquire_trie(trie);
 	  state = &state_buf;
 	  init_trie_state(state, trie);
-	  ch = add_choice(state, &trie->root);
-	  ch = descent_node(state, ch);
-	  if ( !ch->child->value &&
-	       !next_choice(state) )
+	  rc = ( (ch = add_choice(state, &dstate, &trie->root PASS_LD)) &&
+		 (ch = descent_node(state, &dstate, ch PASS_LD)) &&
+		 (ch->child->value || next_choice(state PASS_LD)) );
+	  clear_descent_state(&dstate);
+	  if ( !rc )
 	  { clear_trie_state(state);
 	    return FALSE;
 	  }
@@ -1647,7 +1740,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
   }
 
   fid = PL_open_foreign_frame();
-  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
+  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state PASS_LD) )
   { int rc;
 
     for(;;)
@@ -1669,7 +1762,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
     if ( (!Value || unify_value(Value, n->value PASS_LD)) &&
 	 (!Data  || unify_data(Data, n, ctx PASS_LD)) )
-    { if ( next_choice(state) )
+    { if ( next_choice(state PASS_LD) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
