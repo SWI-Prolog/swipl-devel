@@ -489,7 +489,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   trie_node *node = &trie->root;
   size_t var_number = 0;
   int rc = TRUE;
-  int compounds = 0;
+  size_t compounds = 0;
 
   initTermAgenda_P(&agenda, 1, k);
   while( node )
@@ -499,9 +499,12 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
     if ( !(p=nextTermAgenda_P(&agenda)) )
       break;
     if ( p == AC_TERM_POP )
-    { if ( !(node = follow_node(trie, node, TRIE_KEY_POP, add PASS_LD)) )
-	break;
-      continue;
+    { if ( --compounds > 0 )
+      { if ( !(node = follow_node(trie, node, TRIE_KEY_POP, add PASS_LD)) )
+	  break;
+	continue;
+      } else
+	break;				/* finished toplevel */
     }
 
     w = *p;
@@ -521,7 +524,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
       { Functor f = valueTerm(w);
         size_t arity = arityFunctor(f->definition);
 
-	if ( add && ++compounds == 1000 && !is_acyclic(p PASS_LD) )
+	if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
 	{ rc = TRIE_LOOKUP_CYCLIC;
 	  prune_error(trie, node PASS_LD);
 	  node = NULL;
