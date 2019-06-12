@@ -383,11 +383,16 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	  } else
 	  { trie_children_hashed *hnode = PL_malloc(sizeof(*hnode));
 
-	    hnode->type  = TN_HASHED;
-	    hnode->table = newHTable(4);
+	    hnode->type     = TN_HASHED;
+	    hnode->table    = newHTable(4);
+	    hnode->var_keys = 0;
 	    addHTable(hnode->table, (void*)children.key->key,
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
+	    if ( tagex(children.key->key) == (TAG_VAR|STG_STATIC) )
+	      hnode->var_keys++;
+	    if ( tagex(new->key) == (TAG_VAR|STG_STATIC) )
+	      hnode->var_keys++;
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
@@ -406,6 +411,8 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	  if ( new == old )
 	  { new->parent = n;
+	    if ( tagex(new->key) == (TAG_VAR|STG_STATIC) )
+	      ATOMIC_INC(&children.hash->var_keys);
 	  } else
 	  { destroy_node(trie, new);
 	  }
