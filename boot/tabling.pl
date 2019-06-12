@@ -589,7 +589,7 @@ delay_goals([AT+AN|T], M, Goal) :-
     (   integer(AN)
     ->  at_delay_goal(AT, G0, Answer),
         trie_term(AN, Answer)
-    ;   AN = G0
+    ;   '$tbl_table_status'(AT, _Status, G0, AN)
     ),
     unqualify_goal(G0, M, G1),
     GN = G1,
