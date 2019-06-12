@@ -225,7 +225,8 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 
 #if AC_TERM_WALK_POP
 
-#define AC_TERM_POP ((Word)~(uintptr_t)0)
+#define AC_TERM_POP(n)		((Word)(((n)<<1)|0x1))
+#define IS_AC_TERM_POP(p)	(((uintptr_t)(p)&0x1) ? (uintptr_t)(p)>>1 : 0)
 
 typedef struct aNode_P
 { Word		location;
@@ -263,8 +264,11 @@ nextTermAgenda_P__LD(term_agenda_P *a ARG_LD)
 { Word p;
 
   while ( a->work.size == 0 )
-  { if ( a->work.depth-- > 0 )
-      return AC_TERM_POP;
+  { size_t popn;
+    if ( (popn=a->work.depth) > 0 )
+    { a->work.depth = 0;
+      return AC_TERM_POP(popn);
+    }
     if ( !popSegStack(&a->stack, &a->work, aNode_P) )
       return NULL;
   }

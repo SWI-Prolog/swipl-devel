@@ -61,10 +61,15 @@ TODO
   - Make trie_gen/3 take the known prefix into account
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define RESERVED_TRIE_VAL(n) (((word)(-(intptr_t)n)<<LMASK_BITS) | \
+#define RESERVED_TRIE_VAL(n) (((word)((uintptr_t)n)<<LMASK_BITS) | \
 			      TAG_VAR|STG_LOCAL)
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
-#define TRIE_KEY_POP         RESERVED_TRIE_VAL(2)
+#define TRIE_KEY_POP(n)      RESERVED_TRIE_VAL(10+(n))
+
+#define IS_TRIE_KEY_POP(w)   ((tagex(w) == (TAG_VAR|STG_LOCAL) && \
+			       ((w)>>LMASK_BITS) > 10) ? ((w)>>LMASK_BITS) - 10 \
+						       : 0)
+
 
 #define NVARS_FAST 100
 
@@ -495,12 +500,14 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   while( node )
   { Word p;
     word w;
+    size_t popn;
 
     if ( !(p=nextTermAgenda_P(&agenda)) )
       break;
-    if ( p == AC_TERM_POP )
-    { if ( --compounds > 0 )
-      { if ( !(node = follow_node(trie, node, TRIE_KEY_POP, add PASS_LD)) )
+    if ( (popn = IS_AC_TERM_POP(p)) )
+    { compounds -= popn;
+      if ( compounds > 0 )
+      { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add PASS_LD)) )
 	  break;
 	continue;
       } else
@@ -612,7 +619,7 @@ get_trie_form_node(trie_node *node)
 int
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
-  { if ( tag(node->key) == TAG_VAR && node->key != TRIE_KEY_POP )
+  { if ( tagex(node->key) == TAG_VAR )
       return FALSE;
   }
 
@@ -1263,14 +1270,18 @@ unify_key(ukey_state *state, word key ARG_LD)
 
   switch(tagex(key))
   { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
-    { Word wp = *--aTop;
+    { size_t popn = IS_TRIE_KEY_POP(key);
+      Word wp;
+
+      assert(popn);
+      aTop -= popn;
+      wp = *aTop;
       state->umode = ((int)(uintptr_t)wp & uwrite);
       state->ptr   = (Word)((intptr_t)wp&~uwrite);
 
-      assert(key == TRIE_KEY_POP);
       DEBUG(MSG_TRIE_PUT_TERM,
-	    Sdprintf("U Popped %zd, mode=%d\n",
-		     state->ptr-gBase, state->umode));
+	    Sdprintf("U Popped(%zd) %zd, mode=%d\n",
+		     popn, state->ptr-gBase, state->umode));
       return TRUE;
     }
     case TAG_ATOM|STG_GLOBAL:			/* functor */
@@ -1548,7 +1559,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
       if ( !has_key ||
 	   k == children.key->key ||
 	   tagex(children.key->key) == TAG_VAR ||
-	   children.key->key == TRIE_KEY_POP )
+	   IS_TRIE_KEY_POP(children.key->key) )
       {	word key   = children.key->key;
 
 	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
@@ -1556,7 +1567,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	ch->child  = children.key->child;
         ch->choice.any = NULL;
 
-	if ( children.key->key == TRIE_KEY_POP && dstate->compound )
+	if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
 	{ popSegStack(&dstate->stack, &dstate->term, Word);
 	  //Sdprintf("Popped %p\n", dstate->term);
 	}
