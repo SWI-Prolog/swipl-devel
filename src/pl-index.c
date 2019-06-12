@@ -2110,6 +2110,11 @@ compar_keys(const void *p1, const void *p2)
 Only the final call gets a clause_count > 0. Here we do the remainder of
 the assessment. We could consider  for   a  seperate  function to merely
 reduce the set.
+
+(*) Currently we cannot  combine  variables   with  functor  indexes  as
+firstClause() deterministically goes into the matching functor and after
+going into the recursive indexes  we  loose   the  context  to  find the
+unbound clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -2173,7 +2178,8 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 		 a->size * a->var_count * SIZEOF_CREF_CLAUSE );
 
     if ( a->speedup < 0.8*(float)clause_count &&
-	 a->funct_count > 0 )
+	 a->funct_count > 0 &&
+	 a->var_count == 0 )		/* See (*) */
     { a->list = TRUE;
       a->space += a->size * SIZEOF_CREF_LIST;
     }
