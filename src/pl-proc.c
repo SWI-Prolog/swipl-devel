@@ -1465,14 +1465,6 @@ announceErasedClause(Clause clause)
 }
 
 
-static void
-freeLingeringDefinition(Definition def, DirtyDefInfo ddi)
-{ gen_t gen = ddi->oldest_generation == GEN_MAX ? global_generation()
-						: ddi->oldest_generation;
-  free_lingering(&def->lingering, gen);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 cleanDefinition()
     This function has two tasks. If the predicate needs to be rehashed,
@@ -1574,7 +1566,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
       cleanClauseIndexes(def, &def->impl.clauses, active);
       UNLOCKDEF(def);
     }
-    freeLingeringDefinition(def, ddi);
+    free_lingering(&def->lingering, active);
 
     DEBUG(CHK_SECURE,
 	  LOCKDEF(def);
