@@ -37,6 +37,9 @@
 #include "pl-indirect.h"
 #include "pl-copyterm.h"
 
+/* keep statistics on trie accesses */
+#define O_TRIE_STATS 1
+
 #define TRIE_MAGIC  0x4bcbcf87
 #define TRIE_CMAGIC 0x4bcbcf88
 
@@ -94,6 +97,14 @@ typedef struct trie
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
   trie_allocation_pool *alloc_pool;	/* Node allocation pool */
+#ifdef O_TRIE_STATS
+  struct
+  { uint64_t		lookups;	/* trie_lookup */
+    uint64_t		gen_call;	/* trie_gen calls */
+    uint64_t		gen_exit;	/* trie_gen unifications succeeded */
+    uint64_t		gen_fail;	/* trie_gen unifications failed */
+  } stats;
+#endif
   struct
   { struct worklist *worklist;		/* tabling worklist */
     trie_node	    *variant;		/* node in variant trie */

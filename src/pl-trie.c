@@ -70,8 +70,13 @@ TODO
 			       ((w)>>LMASK_BITS) > 10) ? ((w)>>LMASK_BITS) - 10 \
 						       : 0)
 
-
 #define NVARS_FAST 100
+
+#ifdef O_TRIE_STATS
+#define TRIE_STAT_INC(t, v) ATOMIC_INC(&t->stats.v)
+#else
+#define TRIE_STAT_INC(t, v) ((void)0)
+#endif
 
 /* Will eventually be shared in pl-wam.c */
 typedef enum
@@ -495,6 +500,8 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   size_t var_number = 0;
   int rc = TRUE;
   size_t compounds = 0;
+
+  TRIE_STAT_INC(trie, lookups);
 
   initTermAgenda_P(&agenda, 1, k);
   while( node )
@@ -1720,6 +1727,8 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 	  descent_state dstate;
 	  int rc;
 
+	  TRIE_STAT_INC(trie, gen_call);
+
 	  dstate.term     = valTermRef(Key);
 	  dstate.compound = FALSE;
 	  dstate.prune	  = TRUE;
@@ -1733,7 +1742,8 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 		 (ch->child->value || next_choice(state PASS_LD)) );
 	  clear_descent_state(&dstate);
 	  if ( !rc )
-	  { clear_trie_state(state);
+	  { TRIE_STAT_INC(trie, gen_fail);
+	    clear_trie_state(state);
 	    return FALSE;
 	  }
 	  break;
@@ -1776,7 +1786,8 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
     if ( (!Value || unify_value(Value, n->value PASS_LD)) &&
 	 (!Data  || unify_data(Data, n, ctx PASS_LD)) )
-    { if ( next_choice(state PASS_LD) )
+    { TRIE_STAT_INC(state->trie, gen_exit);
+      if ( next_choice(state PASS_LD) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
@@ -1805,7 +1816,9 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 	return TRUE;
       }
     } else
+    { TRIE_STAT_INC(state->trie, gen_fail);
       PL_rewind_foreign_frame(fid);
+    }
 
 next:;
   }
@@ -1845,6 +1858,20 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 { PRED_LD
   trie *trie;
 
+#ifdef O_TRIE_STATS
+  static atom_t ATOM_lookup_count = 0;
+  static atom_t ATOM_gen_call_count = 0;
+  static atom_t ATOM_gen_exit_count = 0;
+  static atom_t ATOM_gen_fail_count = 0;
+
+  if ( !ATOM_lookup_count )
+  { ATOM_lookup_count   = PL_new_atom("lookup_count");
+    ATOM_gen_call_count = PL_new_atom("gen_call_count");
+    ATOM_gen_exit_count = PL_new_atom("gen_exit_count");
+    ATOM_gen_fail_count = PL_new_atom("gen_fail_count");
+  }
+#endif
+
   if ( get_trie(A1, &trie) )
   { atom_t name; size_t arity;
 
@@ -1873,6 +1900,16 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { trie_stats stats;
 	stat_trie(trie, &stats);
 	return PL_unify_int64(arg, stats.hashes);
+#ifdef O_TRIE_STATS
+      } else if ( name == ATOM_lookup_count )
+      { return PL_unify_int64(arg, trie->stats.lookups);
+      } else if ( name == ATOM_gen_call_count)
+      { return PL_unify_int64(arg, trie->stats.gen_call);
+      } else if ( name == ATOM_gen_exit_count)
+      { return PL_unify_int64(arg, trie->stats.gen_exit);
+      } else if ( name == ATOM_gen_fail_count)
+      { return PL_unify_int64(arg, trie->stats.gen_fail);
+#endif
       }
     }
   }
