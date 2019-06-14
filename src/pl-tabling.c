@@ -2943,6 +2943,21 @@ PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
 
 
 static
+PRED_IMPL("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
+{ PRED_LD
+  trie *trie;
+
+  if ( (trie=get_variant_table(A1, FALSE PASS_LD)) )
+  { return ( _PL_unify_atomic(A2, trie->symbol) &&
+	     unify_table_status(A3, trie, TRUE PASS_LD)  &&
+	     unify_skeleton(trie, A1, A4 PASS_LD) );
+  }
+
+  return FALSE;
+}
+
+
+static
 PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, 0)
 { PRED_LD
   trie *trie = LD->tabling.variant_table;
@@ -3639,6 +3654,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
   PRED_DEF("$tbl_wkl_work",		8, tbl_wkl_work,          NDET)
   PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
+  PRED_DEF("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)

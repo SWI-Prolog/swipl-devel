@@ -46,9 +46,10 @@
             abolish_table_subgoals/1,   % :Subgoal
 
             start_tabling/2,            % +Wrapper, :Worker
+            start_subsumptive_tabling/2,% +Wrapper, :Worker
             start_tabling/4,            % +Wrapper, :Worker, :Variant, ?ModeArgs
 
-            '$wrap_tabled'/1,		% :Head
+            '$wrap_tabled'/2,		% :Head, +Mode
             '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
             '$wfs_call'/2               % :Goal, -Delays
           ]).
@@ -234,10 +235,16 @@ untable(TableSpec, _) :-
 %   @compat This interface may change or disappear without notice
 %           from future versions.
 
-'$wrap_tabled'(Head) :-
+'$wrap_tabled'(Head, variant) :-
+    !,
     '$set_predicate_attribute'(Head, tabled, true),
     '$wrap_predicate'(Head, table, Wrapped,
                       start_tabling(Head, Wrapped)).
+'$wrap_tabled'(Head, subsumptive) :-
+    !,
+    '$set_predicate_attribute'(Head, tabled, true),
+    '$wrap_predicate'(Head, table, Wrapped,
+                      start_subsumptive_tabling(Head, Wrapped)).
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
@@ -257,6 +264,33 @@ start_tabling(Wrapper, Worker) :-
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
+
+
+%!  start_subsumptive_tabling(:Wrapper, :Implementation)
+
+start_subsumptive_tabling(Wrapper, Worker) :-
+    (   '$tbl_existing_variant_table'(Wrapper, Trie, Status, Skeleton)
+    ->  (   Status == complete
+        ->  '$tbl_answer_update_dl'(Trie, Skeleton)
+        ;    shift(call_info(Skeleton, Status))
+        )
+    ;   more_general_table(Wrapper, ATrie),
+        '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
+    ->  '$tbl_answer_update_dl'(ATrie, Skeleton)
+    ;   '$tbl_variant_table'(Wrapper, Trie, _0Status, Skeleton),
+        tdebug(_0Status == fresh),
+        '$tbl_create_subcomponent'(SCC, Trie),
+        tdebug(user_goal(Wrapper, Goal)),
+        tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+        setup_call_catcher_cleanup(
+            true,
+            run_leader(Skeleton, Worker, Trie, SCC, LStatus),
+            Catcher,
+            finished_leader(Catcher, SCC, Wrapper)),
+        tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+        done_leader(LStatus, SCC, Skeleton, Trie)
+    ).
+
 
 done_leader(complete, _SCC, Skeleton, Trie) :-
     !,
@@ -711,7 +745,7 @@ wrappers(Name/Arity, Opts) -->
     },
     [ '$tabled'(Head, TMode),
       '$table_mode'(Head, Head, Reserved),
-      (:- initialization('$wrap_tabled'(Module:Head), now))
+      (:- initialization('$wrap_tabled'(Module:Head, TMode), now))
     ].
 wrappers(ModeDirectedSpec, Opts) -->
     { '$option'(mode(TMode), Opts, variant),
@@ -724,7 +758,7 @@ wrappers(ModeDirectedSpec, Opts) -->
       prolog_load_context(module, Module),
       mode_check(Moded, ModeTest),
       (   ModeTest == true
-      ->  WrapClause = '$wrap_tabled'(Module:Head)
+      ->  WrapClause = '$wrap_tabled'(Module:Head, TMode)
       ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
           Module:Variant, Moded)
       )
