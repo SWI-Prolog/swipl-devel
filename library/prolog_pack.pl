@@ -90,7 +90,7 @@ makes installed packages available as libaries.
                  *          CONSTANTS           *
                  *******************************/
 
-:- setting(server, atom, 'http://www.swi-prolog.org/pack/',
+:- setting(server, atom, 'https://www.swi-prolog.org/pack/',
            'Server to exchange pack information').
 
 
