@@ -943,10 +943,10 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 '$predicate_property'(defined, Pred) :-
     '$get_predicate_attribute'(Pred, defined, 1).
-'$predicate_property'(tabled(default), M:Pred) :-
-    '$get_predicate_attribute'(M:Pred, tabled, 1),
-    '$c_current_predicate'(_, M:'$tabled'(_)),
-    M:'$tabled'(Pred).
+'$predicate_property'(tabled(Mode), Pred) :-
+    '$get_predicate_attribute'(Pred, tabled, 1),
+    '$tbl_implementation'(Pred, M:Head),
+    M:'$tabled'(Head, Mode).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).

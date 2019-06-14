@@ -157,10 +157,15 @@ dyn_tabling((:- multifile(PI)), M) :-
 dyn_tabling(:- initialization(Wrap, now), M) :-
     !,
     M:Wrap.
-dyn_tabling('$tabled'(Head), M) :-
-    (   clause(M:'$tabled'(Head), true)
+dyn_tabling('$tabled'(Head, TMode), M) :-
+    (   clause(M:'$tabled'(Head, OMode), true, Ref),
+        (   OMode \== TMode
+        ->  erase(Ref),
+            fail
+        ;   true
+        )
     ->  true
-    ;   assertz(M:'$tabled'(Head))
+    ;   assertz(M:'$tabled'(Head, TMode))
     ).
 dyn_tabling('$table_mode'(Head, Variant, Moded), M) :-
     (   clause(M:'$table_mode'(Head, Variant0, Moded0), true, Ref)
@@ -202,9 +207,9 @@ untable(Name/Arity, M) :-
     functor(Head, Name, Arity),
     (   predicate_property(M:Head, tabled(_))
     ->  abolish_table_subgoals(M:Head),
-        dynamic(M:'$tabled'/1),
+        dynamic(M:'$tabled'/2),
         dynamic(M:'$table_mode'/3),
-        retractall(M:'$tabled'(Head)),
+        retractall(M:'$tabled'(Head, _TMode)),
         retractall(M:'$table_mode'(Head, _Variant, _Moded)),
         unwrap_predicate(M:Name/Arity, table),
         '$set_predicate_attribute'(M:Head, tabled, false)
@@ -674,34 +679,43 @@ current_table(M:Variant, Trie) :-
 :- dynamic
     system:term_expansion/2.
 
-wrappers(Var) -->
+wrappers(Spec) -->
+    wrappers(Spec, #{}).
+
+wrappers(Var, _) -->
     { var(Var),
       !,
       '$instantiation_error'(Var)
     }.
-wrappers((A,B)) -->
+wrappers(Spec as Options, Opts0) -->
     !,
-    wrappers(A),
-    wrappers(B).
-wrappers(Name//Arity) -->
+    { table_options(Options, Opts0, Opts) },
+    wrappers(Spec, Opts).
+wrappers((A,B), Opts) -->
+    !,
+    wrappers(A, Opts),
+    wrappers(B, Opts).
+wrappers(Name//Arity, Opts) -->
     { atom(Name), integer(Arity), Arity >= 0,
       !,
       Arity1 is Arity+2
     },
-    wrappers(Name/Arity1).
-wrappers(Name/Arity) -->
-    { atom(Name), integer(Arity), Arity >= 0,
+    wrappers(Name/Arity1, Opts).
+wrappers(Name/Arity, Opts) -->
+    { '$option'(mode(TMode), Opts, variant),
+      atom(Name), integer(Arity), Arity >= 0,
       !,
       functor(Head, Name, Arity),
       prolog_load_context(module, Module),
       '$tbl_trienode'(Reserved)
     },
-    [ '$tabled'(Head),
+    [ '$tabled'(Head, TMode),
       '$table_mode'(Head, Head, Reserved),
       (:- initialization('$wrap_tabled'(Module:Head), now))
     ].
-wrappers(ModeDirectedSpec) -->
-    { callable(ModeDirectedSpec),
+wrappers(ModeDirectedSpec, Opts) -->
+    { '$option'(mode(TMode), Opts, variant),
+      callable(ModeDirectedSpec),
       !,
       functor(ModeDirectedSpec, Name, Arity),
       functor(Head, Name, Arity),
@@ -715,14 +729,30 @@ wrappers(ModeDirectedSpec) -->
           Module:Variant, Moded)
       )
     },
-    [ '$tabled'(Head),
+    [ '$tabled'(Head, TMode),
       '$table_mode'(Head, Variant, Moded),
       (:- initialization(WrapClause, now))
     | UpdateClauses
     ].
-wrappers(TableSpec) -->
+wrappers(TableSpec, _Opts) -->
     { '$type_error'(table_desclaration, TableSpec)
     }.
+
+%!  table_options(+Options, +OptDictIn, -OptDictOut)
+%
+%   Handler the ... as _options_ ... construct.
+
+table_options(Options, _Opts0, _Opts) :-
+    var(Options),
+    '$instantiation_error'(Options).
+table_options((A,B), Opts0, Opts) :-
+    table_options(A, Opts0, Opts1),
+    table_options(B, Opts1, Opts).
+table_options(subsumptive, Opts0, Opts1) :-
+    put_dict(mode, Opts0, subsumptive, Opts1).
+table_options(variant, Opts0, Opts1) :-
+    put_dict(mode, Opts0, variant, Opts1).
+
 
 %!  mode_check(+Moded, -TestCode)
 %
@@ -908,7 +938,7 @@ sum(S0, S1, S) :- S is S0+S1.
 		 *******************************/
 
 system:term_expansion((:- table(Preds)),
-                      [ (:- multifile('$tabled'/1)),
+                      [ (:- multifile('$tabled'/2)),
                         (:- multifile('$table_mode'/3)),
                         (:- multifile('$table_update'/4))
                       | Clauses
