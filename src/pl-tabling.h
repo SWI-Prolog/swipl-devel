@@ -78,6 +78,7 @@ typedef struct tbl_component
   size_t		simplifications;        /* # simplifications */
   struct tbl_component *parent;
   component_set        *children;		/* Child components */
+  component_set        *merged;			/* Child components */
   worklist_set         *worklist;		/* Worklist of current query */
   worklist_set         *created_worklists;	/* Worklists created */
   worklist_set	       *delay_worklists;	/* Worklists in need for delays */

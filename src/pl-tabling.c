@@ -128,6 +128,8 @@ free_component(tbl_component *c, int flags)
     free_worklist_set(c->created_worklists, WLFS_FREE_ALL);
   if ( c->children )
     free_components_set(c->children, flags|FC_CHILD);
+  if ( c->merged )
+    free_components_set(c->merged, flags|FC_CHILD);
 
   PL_free(c);
 }
@@ -145,21 +147,6 @@ add_child_component(tbl_component *parent, tbl_component *child)
 
   addBuffer(&cs->members, child, tbl_component*);
 }
-
-/*
-static void
-print_component_set(char *why, component_set *cs)
-{ tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
-  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
-
-  Sdprintf("%s:", why);
-  for(;	bp < tp; bp++)
-  { tbl_component *c = *bp;
-    Sdprintf(" %p", c);
-  }
-  Sdprintf("\n");
-}
-*/
 
 static void
 del_child_component(tbl_component *parent, tbl_component *child)
@@ -193,7 +180,7 @@ Merge all subcomponets of c into c.   The properties of the subcomponets
 are destroyed and .status is set to SCC_MERGED.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void merge_children(tbl_component *c, component_set *cs);
+static void merge_children(tbl_component *c, tbl_component *m);
 static void merge_one_component(tbl_component *c, tbl_component *m);
 static void wls_set_component(worklist_set *wls, size_t size0, tbl_component *c);
 
@@ -209,7 +196,7 @@ merge_component(tbl_component *c)
   size_t s_created = wls_size(c->created_worklists);
 
   if ( c->children )
-    merge_children(c, c->children);
+    merge_children(c, c);
 
   wls_set_component(c->worklist, s_global, c);
   wls_set_component(c->created_worklists, s_created, c);
@@ -259,12 +246,39 @@ wls_set_component(worklist_set *wls, size_t size0, tbl_component *c)
 }
 
 static void
-merge_children(tbl_component *c, component_set *cs)
-{ tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
-  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+merge_component_sets(component_set **into, component_set **from)
+{ typedef tbl_component* Component;
 
-  for(;	bp < tp; bp++)
-    merge_one_component(c, *bp);
+  if ( *into && *from )
+  { tbl_component **s = baseBuffer(&(*from)->members, tbl_component*);
+    size_t        cnt = entriesBuffer(&(*from)->members, tbl_component*);
+    Buffer	    b = &(*into)->members;
+
+    addMultipleBuffer(b, s, cnt, Component);
+    free_components_set(*from, 0);
+    *from = NULL;
+  } else if ( *from )
+  { *into = *from;
+    *from = NULL;
+  }
+}
+
+
+/* Merge all components of cs into c */
+
+static void
+merge_children(tbl_component *c, tbl_component *m)
+{ component_set *cs;
+
+  if ( (cs=m->children) )
+  { tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+    tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+    for( ; bp < tp; bp++)
+      merge_one_component(c, *bp);
+
+    merge_component_sets(&m->merged, &m->children);
+  }
 }
 
 
@@ -294,8 +308,7 @@ merge_one_component(tbl_component *c, tbl_component *m)
   if ( m->status != SCC_ACTIVE )
     return;
 
-  if ( m->children )
-    merge_children(c, m->children);
+  merge_children(c, m);
 
   DEBUG(MSG_TABLING_MERGE,
 	Sdprintf("Merged %p into %p, %zd worklists, %zd created\n",
