@@ -560,6 +560,17 @@ ensureLocalSpace__LD(size_t bytes ARG_LD)
   return raiseStackOverflow(rc);
 }
 
+static inline int
+ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
+{ gcells += BIND_GLOBAL_SPACE;
+  tcells += BIND_TRAIL_SPACE;
+
+  if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
+    return TRUE;
+
+  return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
+}
+
 
 		 /*******************************
 		 *	     ARITHMETIC		*

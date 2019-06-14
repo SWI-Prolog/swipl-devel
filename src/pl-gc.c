@@ -4448,31 +4448,31 @@ makeMoreStackSpace(int overflow, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int ensureGlobalSpace(size_t cell, int flags)
+int f_ensureStackSpace__LD(size_t gcell, size_t tcells int flags ARG_LD)
 
-Makes sure we have the requested amount of space on the global stack. If
-the space is not available
+Makes sure we have the requested amount of space on the global stack
+and trail stack. If the space is not available
 
   1. If allowed, try GC
   2. If GC or SHIFT is allowed, try shifting the stacks
   3. Use the spare stack and raise a GC request.
 
 Returns TRUE, FALSE or *_OVERFLOW
+
+Normally called through the inline function ensureStackSpace__LD() and
+the macros ensureTrailSpace() and ensureGlobalSpace()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-ensureGlobalSpace(size_t cells, int flags)
-{ GET_LD
-
-  cells += BIND_GLOBAL_SPACE;
-  if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+f_ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
+{ if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
     return TRUE;
 
   if ( LD->gc.active )
   { enableSpareStack((Stack)&LD->stacks.global, TRUE);
     enableSpareStack((Stack)&LD->stacks.trail,  TRUE);
 
-    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+    if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
       return TRUE;
   }
 
@@ -4485,66 +4485,32 @@ ensureGlobalSpace(size_t cells, int flags)
     { if ( (rc=garbageCollect(GC_GLOBAL_OVERFLOW)) != TRUE )
 	return rc;
 
-      if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+      if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
 	return TRUE;
     }
 
     /* Consider a stack-shift.  ALLOW_GC implies ALLOW_SHIFT */
 
-    if ( gTop+cells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
-      gmin = cells*sizeof(word);
+    if ( gTop+gcells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
+      gmin = gcells*sizeof(word);
     else
       gmin = 0;
 
-    if ( tight((Stack)&LD->stacks.trail PASS_LD) )
-      tmin = BIND_TRAIL_SPACE*sizeof(struct trail_entry);
+    if ( tTop+tcells > tMax || tight((Stack)&LD->stacks.trail PASS_LD) )
+      tmin = tcells*sizeof(struct trail_entry);
     else
       tmin = 0;
 
     if ( (rc=growStacks(0, gmin, tmin)) != TRUE )
       return rc;
-    if ( gTop+cells <= gMax && tTop+BIND_TRAIL_SPACE <= tMax )
+    if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
       return TRUE;
   }
 
-  if ( gTop+cells > gMax )
+  if ( gTop+gcells > gMax )
     return GLOBAL_OVERFLOW;
   else
     return TRAIL_OVERFLOW;
-}
-
-
-int
-ensureTrailSpace(size_t cells)
-{ GET_LD
-
-  if ( tTop+cells+BIND_TRAIL_SPACE <= tMax )
-    return TRUE;
-
-  if ( LD->exception.processing || LD->gc.status.active == TRUE )
-  { enableSpareStack((Stack)&LD->stacks.trail, TRUE);
-
-    if ( tTop+cells <= tMax )
-      return TRUE;
-  }
-
-  if ( considerGarbageCollect(NULL) )
-  { if ( !garbageCollect(GC_TRAIL_OVERFLOW) )
-      return FALSE;
-
-    if ( tTop+cells <= tMax )
-      return TRUE;
-  }
-
-  { size_t tmin = cells*sizeof(struct trail_entry);
-
-    if ( !growStacks(0, 0, tmin) )
-      return FALSE;
-    if ( tTop+cells <= tMax )
-      return TRUE;
-  }
-
-  return TRAIL_OVERFLOW;
 }
 
 

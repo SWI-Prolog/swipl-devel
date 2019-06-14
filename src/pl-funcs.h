@@ -326,8 +326,8 @@ COMMON(int)		shiftTightStacks(void);
 COMMON(int)		growStacks(size_t l, size_t g, size_t t);
 COMMON(size_t)		nextStackSize(Stack s, size_t minfree);
 COMMON(int)		makeMoreStackSpace(int overflow, int flags);
-COMMON(int)		ensureGlobalSpace(size_t cells, int flags);
-COMMON(int)		ensureTrailSpace(size_t cells);
+COMMON(int)		f_ensureStackSpace__LD(size_t gcells, size_t tcells,
+					       int flags ARG_LD);
 COMMON(int)		growLocalSpace__LD(size_t bytes, int flags ARG_LD);
 COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(void)		clearLocalVariablesFrame(LocalFrame fr);

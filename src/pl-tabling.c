@@ -2680,8 +2680,7 @@ unify_arg_term(term_t a, Word v ARG_LD)
 static int
 unify_dependency(term_t a0, term_t dependency,
 		 worklist *wl, trie_node *answer ARG_LD)
-{ if ( ensureTrailSpace(4) &&
-       ensureGlobalSpace(6, ALLOW_GC) )
+{ if ( likely(ensureStackSpace__LD(6, 5, ALLOW_GC PASS_LD)) )
   { Word dp = valTermRef(dependency);
     Functor f;
 
