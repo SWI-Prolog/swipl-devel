@@ -2217,9 +2217,8 @@ get_scc(term_t t, tbl_component **cp)
 }
 
 static int
-get_worklist(term_t t, worklist **wlp)
-{ GET_LD
-  void *ptr;
+get_worklist(term_t t, worklist **wlp ARG_LD)
+{ void *ptr;
 
   if ( PL_get_pointer(t, &ptr) )
   { worklist *wl = ptr;
@@ -2379,7 +2378,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 { PRED_LD
   worklist *wl;
 
-  if ( get_worklist(A1, &wl) )
+  if ( get_worklist(A1, &wl PASS_LD) )
   { Word kp;
     trie_node *node;
     int rc;
@@ -2440,7 +2439,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 { PRED_LD
   worklist *wl;
 
-  if ( get_worklist(A1, &wl) )
+  if ( get_worklist(A1, &wl PASS_LD) )
   { Word kp;
     trie_node *node;
     int rc;
@@ -2519,9 +2518,10 @@ PRED_IMPL("$tbl_wkl_add_suspension", 2, tbl_wkl_add_suspension, 0)
 
 static
 PRED_IMPL("$tbl_wkl_make_follower", 1, tbl_wkl_make_follower, 0)
-{ worklist *wl;
+{ PRED_LD
+  worklist *wl;
 
-  if ( get_worklist(A1, &wl) )
+  if ( get_worklist(A1, &wl PASS_LD) )
   { cluster *scp = NULL;
     cluster *acp = NULL;
     cluster *c, *next;
@@ -2574,9 +2574,10 @@ PRED_IMPL("$tbl_wkl_make_follower", 1, tbl_wkl_make_follower, 0)
 
 static
 PRED_IMPL("$tbl_wkl_done", 1, tbl_wkl_done, 0)
-{ worklist *wl;
+{ PRED_LD
+  worklist *wl;
 
-  return get_worklist(A1, &wl) && worklist_work_done(wl);
+  return get_worklist(A1, &wl PASS_LD) && worklist_work_done(wl);
 }
 
 /** '$tbl_wkl_negative'(+Worklist) is semidet.
@@ -2586,9 +2587,10 @@ PRED_IMPL("$tbl_wkl_done", 1, tbl_wkl_done, 0)
 
 static
 PRED_IMPL("$tbl_wkl_negative", 1, tbl_wkl_negative, 0)
-{ worklist *wl;
+{ PRED_LD
+  worklist *wl;
 
-  return get_worklist(A1, &wl) && worklist_negative(wl);
+  return get_worklist(A1, &wl PASS_LD) && worklist_negative(wl);
 }
 
 
@@ -2603,9 +2605,10 @@ PRED_IMPL("$tbl_wkl_negative", 1, tbl_wkl_negative, 0)
 
 static
 PRED_IMPL("$tbl_wkl_is_false", 1, tbl_wkl_is_false, 0)
-{ worklist *wl;
+{ PRED_LD
+  worklist *wl;
 
-  if ( get_worklist(A1, &wl) )
+  if ( get_worklist(A1, &wl PASS_LD) )
   { assert(wl->negative);
 
     return wl->neg_delayed && !wl->has_answers;
@@ -2624,7 +2627,7 @@ PRED_IMPL("$tbl_wkl_answer_trie", 2, tbl_wkl_answer_trie, 0)
 { GET_LD
   worklist *wl;
 
-  return ( get_worklist(A1, &wl) &&
+  return ( get_worklist(A1, &wl PASS_LD) &&
 	   PL_unify_atom(A2, wl->table->symbol) );
 }
 
@@ -2794,7 +2797,7 @@ PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   { case FRG_FIRST_CALL:
     { worklist *wl;
 
-      if ( get_worklist(A1, &wl) )
+      if ( get_worklist(A1, &wl PASS_LD) )
       { cluster *acp, *scp;
 
 	if ( (acp=wl->riac) && (scp=acp->next) )
@@ -3344,7 +3347,7 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
 { PRED_LD
   worklist *wl;
 
-  if ( get_worklist(A1, &wl) )
+  if ( get_worklist(A1, &wl PASS_LD) )
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
     static functor_t f = 0;
