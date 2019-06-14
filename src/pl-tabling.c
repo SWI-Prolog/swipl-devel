@@ -195,15 +195,28 @@ are destroyed and .status is set to SCC_MERGED.
 
 static void merge_children(tbl_component *c, component_set *cs);
 static void merge_one_component(tbl_component *c, tbl_component *m);
-static void wls_set_component(worklist_set *wls, tbl_component *c);
+static void wls_set_component(worklist_set *wls, size_t size0, tbl_component *c);
+
+static size_t
+wls_size(const worklist_set *wls)
+{ return wls ? entriesBuffer(&wls->members, worklist*) : 0;
+}
+
 
 static void
 merge_component(tbl_component *c)
-{ if ( c->children )
+{ size_t s_global  = wls_size(c->worklist);
+  size_t s_created = wls_size(c->created_worklists);
+
+  if ( c->children )
     merge_children(c, c->children);
 
-  wls_set_component(c->worklist, c);
-  wls_set_component(c->created_worklists, c);
+  wls_set_component(c->worklist, s_global, c);
+  wls_set_component(c->created_worklists, s_created, c);
+
+  DEBUG(MSG_TABLING_MERGE,
+	Sdprintf("Grown SCC %p from %zd to %zd worklists\n",
+		 c, s_created, wls_size(c->created_worklists)));
 }
 
 
@@ -214,7 +227,7 @@ wl_set_component(worklist *wl, tbl_component *c)
   if ( !wl->in_global_wl && wl_has_work(wl) )
     add_global_worklist(wl);
   if ( wl->negative )
-  { DEBUG(MSG_TABLING_NEG,
+  { DEBUG(MSG_TABLING_MERGE,
 	  Sdprintf("Merging negative literal into SCC %zd\n",
 		   pointerToInt(c)));
     if ( c->neg_status == SCC_NEG_NONE )
@@ -226,12 +239,23 @@ wl_set_component(worklist *wl, tbl_component *c)
 
 
 static void
-wls_set_component(worklist_set *wls, tbl_component *c)
+wls_set_component(worklist_set *wls, size_t size0, tbl_component *c)
 { worklist **base = baseBuffer(&wls->members, worklist*);
   worklist **top  = topBuffer(&wls->members, worklist*);
 
+#ifdef O_DEBUG
+  size_t old = 0;
+  for(; base < top; base++, old++)
+  { if ( old < size0 )
+      assert((*base)->component == c);
+    else
+      wl_set_component(*base, c);
+  }
+#else
+  base += size0;			/* skip old ones */
   for(; base < top; base++)
     wl_set_component(*base, c);
+#endif
 }
 
 static void
@@ -273,7 +297,7 @@ merge_one_component(tbl_component *c, tbl_component *m)
   if ( m->children )
     merge_children(c, m->children);
 
-  DEBUG(MSG_TABLING_WORK,
+  DEBUG(MSG_TABLING_MERGE,
 	Sdprintf("Merged %p into %p, %zd worklists, %zd created\n",
 		 m, c,
 		 entriesBuffer(&m->worklist->members, worklist*),
