@@ -206,7 +206,8 @@ untable(Name/Arity, M) :-
         dynamic(M:'$table_mode'/3),
         retractall(M:'$tabled'(Head)),
         retractall(M:'$table_mode'(Head, _Variant, _Moded)),
-        unwrap_predicate(M:Name/Arity, table)
+        unwrap_predicate(M:Name/Arity, table),
+        '$set_predicate_attribute'(M:Head, tabled, false)
     ;   true
     ).
 untable(Head, M) :-
@@ -229,6 +230,7 @@ untable(TableSpec, _) :-
 %           from future versions.
 
 '$wrap_tabled'(Head) :-
+    '$set_predicate_attribute'(Head, tabled, true),
     '$wrap_predicate'(Head, table, Wrapped,
                       start_tabling(Head, Wrapped)).
 
@@ -341,6 +343,7 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 %   answer trie in the Variant and ModeArgs.
 
 '$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
+    '$set_predicate_attribute'(Head, tabled, true),
     '$wrap_predicate'(Head, table, Wrapped,
                       (   ModeTest,
                           start_tabling(Head, Wrapped, WrapperNoModes, ModeArgs)

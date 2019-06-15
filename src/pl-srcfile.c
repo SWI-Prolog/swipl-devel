@@ -1087,7 +1087,7 @@ associateSource(SourceFile sf, Procedure proc)
 }
 
 
-#define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
+#define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL|P_TABLED)
 
 int
 setAttrProcedureSource(SourceFile sf, Procedure proc,

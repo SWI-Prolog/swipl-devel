@@ -836,6 +836,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
+#define P_TABLED		(0x00000001) /* tabled predicate */
 #define P_CLAUSABLE		(0x00000002) /* Clause/2 always works */
 #define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */

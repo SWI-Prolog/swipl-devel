@@ -2770,6 +2770,7 @@ static const patt_mask patt_masks[] =
   { ATOM_locked,	   P_LOCKED },
   { ATOM_system,	   P_LOCKED },		/* compatibility */
   { ATOM_spy,		   SPY_ME },
+  { ATOM_tabled,	   P_TABLED },
   { ATOM_trace,		   TRACE_ME },
   { ATOM_trace_call,	   TRACE_CALL },
   { ATOM_trace_redo,	   TRACE_REDO },

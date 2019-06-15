@@ -944,6 +944,7 @@ define_or_generate(Pred) :-
 '$predicate_property'(defined, Pred) :-
     '$get_predicate_attribute'(Pred, defined, 1).
 '$predicate_property'(tabled(default), M:Pred) :-
+    '$get_predicate_attribute'(M:Pred, tabled, 1),
     '$c_current_predicate'(_, M:'$tabled'(_)),
     M:'$tabled'(Pred).
 
