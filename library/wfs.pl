@@ -77,8 +77,8 @@ call_delays(Goal, Delays) :-
 %   either inconsistent or has multiple models   according to the stable
 %   model semantics.
 
-delays_residual_program(Delays, M:Clauses) :-
-    phrase(residual_program(Delays, [], _), Program),
+delays_residual_program(GM:Delays, M:Clauses) :-
+    phrase(residual_program(Delays, GM, [], _), Program),
     maplist(unqualify_clause(M), Program, Clauses0),
     list_to_set(Clauses0, Clauses).
 
@@ -88,45 +88,52 @@ delays_residual_program(Delays, M:Clauses) :-
 
 call_residual_program(Goal, M:Clauses) :-
     '$wfs_call'(Goal, 0:R0),                    % 0: leave qualified
-    phrase(residual_program(R0, [], _), Program),
+    phrase(residual_program(R0, M, [], _), Program),
     maplist(unqualify_clause(M), Program, Clauses).
 
-residual_program(true, Done, Done) -->
+
+residual_program(Var, _, _, _) -->
+    { var(Var),
+      !,
+      instantiation_error(Var)
+    }.
+residual_program(M:G, _, Done0, Done) -->
+    !,
+    residual_program(G, M, Done0, Done).
+residual_program(true, _, Done, Done) -->
     !.
-residual_program(_:true, Done, Done) -->
-    !.
-residual_program(G, Done, Done) -->
-    { member(G2, Done),
+residual_program(G, M, Done, Done) -->
+    { member(M:G2, Done),
       G2 =@= G
     }, !.
-residual_program((A;B), Done0, Done) -->
+residual_program((A;B), M, Done0, Done) -->
     !,
-    residual_program(A, Done0, Done1),
-    residual_program(B, Done1, Done).
-residual_program((A,B), Done0, Done) -->
+    residual_program(A, M, Done0, Done1),
+    residual_program(B, M, Done1, Done).
+residual_program((A,B), M, Done0, Done) -->
     !,
-    residual_program(A, Done0, Done1),
-    residual_program(B, Done1, Done).
-residual_program(tnot(A), Done0, Done) -->
+    residual_program(A, M, Done0, Done1),
+    residual_program(B, M, Done1, Done).
+residual_program(tnot(A), M, Done0, Done) -->
     !,
-    residual_program(A, Done0, Done).
-residual_program(Goal0, Done0, Done) -->
-    { (   predicate_property(Goal0, imported_from(M2))
-      ->  Goal0 = _:G,
-          Goal = M2:G
-      ;   Goal = Goal0
-      ),
-      (   current_table(Goal, Trie)
+    residual_program(A, M, Done0, Done).
+residual_program(Goal0, M, Done0, Done) -->
+    { predicate_property(M:Goal0, imported_from(M2))
+    },
+    !,
+    residual_program(Goal0, M2, Done0, Done).
+residual_program(Goal, M, Done0, Done) -->
+    { (   current_table(M:Goal, Trie)
       ->  true
-      ;   '$tabling':more_general_table(Goal, Trie)
+      ;   '$tabling':more_general_table(M:Goal, Trie)
       ->  true
-      ;   writeln(user_error, 'OOPS: Missing Call? '(Goal))
+      ;   format(user_error, 'OOPS: Missing Call? ~p', [M:Goal])
       ),
-      '$tbl_table_status'(Trie, _Status, Goal, Skeleton),
+      '$tbl_table_status'(Trie, _Status, M:Goal, Skeleton),
       '$tbl_answer'(Trie, Skeleton, Condition)
     },
-    [ (Goal :- Condition) ],
-    residual_program(Condition, [Goal|Done0], Done).
+    [ (M:Goal :- Condition) ],
+    residual_program(Condition, M, [M:Goal|Done0], Done).
 
 unqualify_clause(M, (Head0 :- Body0), (Head :- Body)) :-
     unqualify(Head0, M, Head),

@@ -584,34 +584,32 @@ delay_goals([], _, true) :-
 delay_goals([AT+AN|T], M, Goal) :-
     !,
     (   integer(AN)
-    ->  at_delay_goal(AT, G0, Answer),
+    ->  at_delay_goal(AT, M, G0, Answer),
         trie_term(AN, Answer)
     ;   '$tbl_table_status'(AT, _Status, G0, AN)
     ),
-    unqualify_goal(G0, M, G1),
-    GN = G1,
+    GN = G0,
     (   T == []
     ->  Goal = GN
     ;   Goal = (GN,GT),
         delay_goals(T, M, GT)
     ).
 delay_goals([AT|T], M, Goal) :-
-    at_delay_goal(AT, G0, _Skeleton),
-    unqualify_goal(G0, M, G1),
-    GN = tnot(G1),
+    at_delay_goal(AT, M, G0, _Skeleton),
+    GN = tnot(G0),
     (   T == []
     ->  Goal = GN
     ;   Goal = (GN,GT),
         delay_goals(T, M, GT)
     ).
 
-at_delay_goal(tnot(Trie), tnot(Goal), Skeleton) :-
+at_delay_goal(tnot(Trie), M, tnot(Goal), Skeleton) :-
     !,
     '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton),
-    unqualify_goal(Wrapper, user, Goal).
-at_delay_goal(Trie, Goal, Skeleton) :-
+    unqualify_goal(Wrapper, M, Goal).
+at_delay_goal(Trie, M, Goal, Skeleton) :-
     '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton),
-    unqualify_goal(Wrapper, user, Goal).
+    unqualify_goal(Wrapper, M, Goal).
 
 unqualify_goal(M:Goal, M, Goal0) :-
     !,
