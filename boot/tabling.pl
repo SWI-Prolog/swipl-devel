@@ -574,13 +574,10 @@ reset_delays :-
     '$tbl_delay_list'(DL0),
     reset_delays,
     call(Goal),
-    delay_list(M, Delays),
-    '$append'(DL0, Delays, DL),
+    '$tbl_delay_list'(DL1),
+    delay_goals(DL1, M, Delays),
+    '$append'(DL0, DL1, DL),
     '$tbl_set_delay_list'(DL).
-
-delay_list(M, Delays) :-
-    '$tbl_delay_list'(DL),
-    delay_goals(DL, M, Delays).
 
 delay_goals([], _, true) :-
     !.
