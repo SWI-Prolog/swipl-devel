@@ -3577,6 +3577,46 @@ PRED_IMPL("$tbl_answer_update_dl", 2, tbl_answer_update_dl,
 }
 
 
+/** '$tbl_implementation'(:G0, -G) is det.
+ *
+ * Find location where G is actually defined and raise an error of the
+ * predicate is not tabled.
+ */
+
+static
+PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module m = NULL;
+  term_t t = PL_new_term_ref();
+  functor_t f = 0;
+  Procedure proc;
+  Definition def;
+
+  if ( !PL_strip_module(A1, &m, t) )
+    return FALSE;
+  if ( !PL_get_functor(t, &f) )
+    return PL_type_error("callable", A1);
+  if ( !(proc = resolveProcedure(f, m)) )
+    return FALSE;				/* should not happen */
+
+  if ( !isDefinedProcedure(proc) )
+    trapUndefined(getProcDefinition(proc) PASS_LD);
+  def = getProcDefinition(proc);
+
+  if ( false(def, P_TABLED) )
+  { return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_tnot, ATOM_non_tabled_procedure, proc);
+  }
+
+  if ( def->module == m )
+  { return PL_unify(A2, A1);
+  } else
+  { return PL_unify_term(A2, PL_FUNCTOR, FUNCTOR_colon2,
+			       PL_ATOM, def->module->name,
+			       PL_TERM, t);
+  }
+}
+
 
 
 		 /*******************************
@@ -3584,6 +3624,7 @@ PRED_IMPL("$tbl_answer_update_dl", 2, tbl_answer_update_dl,
 		 *******************************/
 
 #define NDET PL_FA_NONDETERMINISTIC
+#define META PL_FA_TRANSPARENT
 
 BeginPredDefs(tabling)
   PRED_DEF("$tbl_new_worklist",		2, tbl_new_worklist,	     0)
@@ -3621,4 +3662,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_force_truth_value",    3, tbl_force_truth_value,    0)
   PRED_DEF("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)
+  PRED_DEF("$tbl_implementation",       2, tbl_implementation,    META)
 EndPredDefs

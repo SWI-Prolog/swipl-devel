@@ -510,10 +510,9 @@ completion_step(WorkList) :-
 %!  tnot(:Goal)
 %
 %   Tabled negation.
-%
-%   @tbd: verify Goal is actually tabled.
 
-tnot(Goal) :-
+tnot(Goal0) :-
+    '$tbl_implementation'(Goal0, Goal),         % verifies Goal is tabled
     '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
     (   '$tbl_answer_dl'(Trie, _, true)
     ->  fail
