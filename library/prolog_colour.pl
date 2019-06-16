@@ -1764,6 +1764,96 @@ valid_meta_decl(+).
 valid_meta_decl(-).
 valid_meta_decl(I) :- integer(I), between(0,9,I).
 
+%!  colourise_table_declarations(+Term, +TB, +Pos)
+
+colourise_table_declarations((Head,Tail), TB,
+                             term_position(_,_,_,_,[PH,PT])) :-
+    !,
+    colourise_table_declarations(Head, TB, PH),
+    colourise_table_declarations(Tail, TB, PT).
+colourise_table_declarations(as(Spec, Options), TB,
+                             term_position(_,_,FF,FT,[PH,PT])) :-
+    !,
+    colour_item(keyword(as), TB, FF-FT),
+    colourise_table_declarations(Spec, TB, PH),
+    colourise_table_options(Options, TB, PT).
+colourise_table_declarations(PI, TB, Pos) :-
+    pi_to_term(PI, _),
+    !,
+    colourise_declaration(PI, TB, Pos).
+colourise_table_declarations(Goal, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
+    callable(Goal),
+    !,
+    compound_name_arguments(Goal, _, Args),
+    goal_classification(TB, Goal, [], Class),
+    colour_item(goal(Class, Goal), TB, FF-FT),
+    colourise_table_modes(Args, TB, ArgPos).
+
+colourise_table_modes([], _, _).
+colourise_table_modes([H|T], TB, [PH|PT]) :-
+    colourise_table_mode(H, TB, PH),
+    colourise_table_modes(T, TB, PT).
+
+colourise_table_mode(H, TB, Pos) :-
+    table_mode(H, Mode),
+    !,
+    colour_item(table_mode(Mode), TB, Pos).
+colourise_table_mode(lattice(Spec), TB, term_position(_F,_T,FF,FT,[ArgPos])) :-
+    !,
+    colour_item(table_mode(lattice), TB, FF-FT),
+    table_moded_call(Spec, 3, TB, ArgPos).
+colourise_table_mode(po(Spec), TB, term_position(_F,_T,FF,FT,[ArgPos])) :-
+    !,
+    colour_item(table_mode(po), TB, FF-FT),
+    table_moded_call(Spec, 2, TB, ArgPos).
+colourise_table_mode(_, TB, Pos) :-
+    colour_item(type_error(table_mode), TB, Pos).
+
+table_mode(Var, index) :-
+    var(Var),
+    !.
+table_mode(+, index).
+table_mode(index, index).
+table_mode(-, first).
+table_mode(first, first).
+table_mode(last, last).
+table_mode(min, min).
+table_mode(max, max).
+table_mode(sum, sum).
+
+table_moded_call(Atom, Arity, TB, Pos) :-
+    atom(Atom),
+    functor(Head, Atom, Arity),
+    goal_classification(TB, Head, [], Class),
+    colour_item(goal(Class, Head), TB, Pos).
+table_moded_call(Atom/Arity, Arity, TB,
+                 term_position(_,_,FF,FT,[NP,AP])) :-
+    atom(Atom),
+    !,
+    functor(Head, Atom, Arity),
+    goal_classification(TB, Head, [], Class),
+    colour_item(goal(Class, Head), TB, NP),
+    colour_item(predicate_indicator, TB, FF-FT),
+    colour_item(arity, TB, AP).
+table_moded_call(_, _, TB, Pos) :-
+    colour_item(type_error(predicate_name_or_indicator), TB, Pos).
+
+colourise_table_options((Head,Tail), TB,
+                        term_position(_,_,_,_,[PH,PT])) :-
+    !,
+    colourise_table_options(Head, TB, PH),
+    colourise_table_options(Tail, TB, PT).
+colourise_table_options(Atom, TB, F-T) :-
+    nonvar(Atom),
+    valid_table_option(Atom),
+    !,
+    colour_item(table_option(Atom), TB, F-T).
+colourise_table_options(_, TB, Pos) :-
+    colour_item(type_error(table_option), TB, Pos).
+
+valid_table_option(subsumptive).
+valid_table_option(variant).
+
 %!  colourise_op_declaration(Op, TB, Pos) is det.
 
 colourise_op_declaration(op(P,T,N), TB, term_position(_,_,FF,FT,[PP,TP,NP])) :-
@@ -2061,7 +2151,7 @@ goal_colours(discontiguous(_),       built_in-[predicates]).
 goal_colours(multifile(_),           built_in-[predicates]).
 goal_colours(volatile(_),            built_in-[predicates]).
 goal_colours(public(_),              built_in-[predicates]).
-goal_colours(table(_),               built_in-[predicates]).
+goal_colours(table(_),               built_in-[table_declarations]).
 goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
 goal_colours(consult(_),             built_in-[file]).
 goal_colours(include(_),             built_in-[file]).
@@ -2235,6 +2325,9 @@ def_style(error,                   [background(orange)]).
 def_style(type_error(_),           [background(orange)]).
 def_style(syntax_error(_,_),       [background(orange)]).
 def_style(instantiation_error,     [background(orange)]).
+
+def_style(table_option(_),	   [bold(true)]).
+def_style(table_mode(_),	   [bold(true)]).
 
 %!  syntax_colour(?Class, ?Attributes) is nondet.
 %
@@ -2474,6 +2567,9 @@ specified_item(meta_declarations, Term, TB, Pos) :-
 specified_item(meta_declarations(Extra), Term, TB, Pos) :-
     !,
     colourise_meta_declarations(Term, Extra, TB, Pos).
+specified_item(table_declarations, Term, TB, Pos) :-
+    !,
+    colourise_table_declarations(Term, TB, Pos).
                                         % set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :-
     !,
@@ -2663,6 +2759,8 @@ syntax_message(module(Module)) -->
         )
     ;   [ 'Module ~w (not loaded)'-[Module] ]
     ).
+syntax_message(table_option(_)) -->
+    [ 'Table option' ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
