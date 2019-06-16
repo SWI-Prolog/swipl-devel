@@ -1,4 +1,4 @@
-\chapter{Tabled execution (SLG resolution)}
+>\chapter{Tabled execution (SLG resolution)}
 \label{sec:tabling}
 
 \index{SLG,resolution}%
@@ -332,6 +332,76 @@ solution.
 \end{itemlist}
 
 
+\section{Variant and subsumptive tabling}
+\label{sec:tabling-subsumptive}
+
+By default, SWI-Prolog (and other Prolog systems with tabling) create a
+table per call \jargon{variant}. A call (term) is a variant of another
+call (term) if there is a renaming of variables that makes the two terms
+equal. See \predref{=@=}{2} for details. Consider the following program:
+
+\begin{code}
+:- table p/1.
+
+p(X) :- p(Y), Y < 10 000, X is Y+1.
+p(1).
+\end{code}
+
+Calling \term{p}{X} creates a table for this variant with 10,000
+answers. Calling \term{p}{42} creates a new table where the recursive
+call (\term{p}{Y}) uses the previously created table to enumerate all
+values $1\ldots{}41$ before deriving \term{p}{42} is true. \jargon{Early
+completion} (see \secref{tnotpure}) in this case prevents enumerating
+all answers for \term{p}{Y} ($1\ldots{}10,000$). As a result, the query
+below runs in quadratic time and creates a 10,000 additional tables.
+
+\begin{code}
+?- time(forall(between(1, 10 000, X), p(X))).
+% 150,370,553 inferences, 13.256 CPU in 13.256 seconds
+\end{code}
+
+\jargon{Subsumptive} tabling answers a query using answers from a more
+general table. In this case, this means it uses basically trie_gen/2 to
+get the answer \term{p}{42} from the table \term{p}{_}.  This leads to
+the program and results shown below.
+
+\begin{code}
+:- table p/1 as subsumptive.
+
+p(X) :- p(Y), Y < 10 000, X is Y+1.
+p(1).
+\end{code}
+
+\begin{code}
+?- time(p(_)).
+% 140,066 inferences, 0.015 CPU in 0.015 seconds
+?- time(t).
+% 170,005 inferences, 0.016 CPU in 0.016 seconds
+\end{code}
+
+This may make you wonder why subsumptive tabling is not the default.
+There are also some drawbacks:
+
+\begin{itemize}
+    \item Subsumptive tabling only provides correct support if
+instances (more specific) queries indeed provides answers that
+are consistent with the more general query.  This is true for
+\jargon{pure programs}, but not guaranteed for arbitrary Prolog
+programs.
+    \item Finding more generic tables is more complicated and
+expensive than finding the call variant table and extracting the subset
+of answers that match the more specific query can be expensive.
+    \item Using subsumptive tables can create more dependencies
+in the call graph which can slow down the table completion
+process.  Larger dependent components also negatively impact the
+issues discussed in \secref{tnotpure}.
+\end{itemize}
+
+In the current implementation, SWI-Prolog only uses the more general
+table if this table is \jargon{completed}.  This is likely to change
+in future versions.
+
+
 \section{Well Founded Semantics}
 \label{sec:WFS}
 
@@ -557,6 +627,32 @@ tabling} is discussed in \secref{tabling-mode-directed}.
 
 \begin{code}
 :- table connection(_,_,min).
+\end{code}
+
+Additional tabling options can be provided using a term \funcref{as}{2},
+which can be applied to a single specification or a comma list of
+specifications.  The options themselves are a comma-list of one or more
+of the following atoms:
+
+    \begin{description}
+    \termitem{variant}{}
+    Default.  Create a table for each call variant.
+    \termitem{subsumptive}{}
+    Instead of creating a new table for each call variant, check
+    whether there is a completed table for a more general goal and
+    if this is the case extract the answers from this table.  See
+    \secref{tabling-subsumptive}.
+    \end{description}
+
+This syntax is closely related to the table declarations used in XSB
+Prolog. Where in XSB \const{as} is an operator with priority above the
+priority of the comma, it is an operator with priority below the comma
+in SWI-Prolog. Therefore, multiple predicates or options must be
+enclosed in parenthesis. For example:
+
+\begin{code}
+:- table p/1 as subsumptive.
+:- table (q/1, r/2) as subsumptive.
 \end{code}
 
     \predicate{tnot}{1}{:Goal}
