@@ -730,7 +730,7 @@ stack_name(local).
 stack_name(trail).
 
 safe_primitive('$tabling':abolish_all_tables).
-safe_primitive('$tabling':'$wrap_tabled'(Module:_Head)) :-
+safe_primitive('$tabling':'$wrap_tabled'(Module:_Head, _Mode)) :-
     prolog_load_context(module, Module),
     !.
 safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_)) :-
