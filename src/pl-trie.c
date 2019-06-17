@@ -1698,7 +1698,6 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
   trie_gen_state state_buf;
   trie_gen_state *state;
   trie_node *n;
-  fid_t fid;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -1746,7 +1745,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
       return FALSE;
   }
 
-  fid = PL_open_foreign_frame();
+  Mark(fli_context->mark);
   for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state PASS_LD) )
   { int rc;
 
@@ -1754,7 +1753,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
     { if ( (rc=unify_trie_path(Key, &n, state PASS_LD)) == TRUE )
 	break;
 
-      PL_rewind_foreign_frame(fid);
+      Undo(fli_context->mark);
       if ( rc == FALSE )
 	goto next;
 
@@ -1791,23 +1790,20 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
 	  state = nstate;
 	}
-	PL_close_foreign_frame(fid);
 	ForeignRedoPtr(state);
       } else
       { clear_trie_state(state);
-	PL_close_foreign_frame(fid);
 	return TRUE;
       }
     } else
     { TRIE_STAT_INC(state->trie, gen_fail);
-      PL_rewind_foreign_frame(fid);
+      Undo(fli_context->mark);
     }
 
 next:;
   }
 
   clear_trie_state(state);
-  PL_close_foreign_frame(fid);
   return FALSE;
 }
 
