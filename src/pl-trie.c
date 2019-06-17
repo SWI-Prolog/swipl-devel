@@ -632,7 +632,7 @@ unify_trie_term(trie_node *node, term_t term ARG_LD)
   size_t kc = 0;
   int rc = TRUE;
   trie *trie_ptr;
-  fid_t fid;
+  mark m;
 						/* get the keys */
   for( ; node->parent; node = node->parent )
   { if ( kc == keys_allocated )
@@ -657,20 +657,20 @@ unify_trie_term(trie_node *node, term_t term ARG_LD)
   trie_ptr = (trie *)((char*)node - offsetof(trie, root));
   assert(trie_ptr->magic == TRIE_MAGIC);
 
-  fid = PL_open_foreign_frame();
   for(;;)
   { ukey_state ustate;
     size_t i;
 
   retry:
+    Mark(m);
     init_ukey_state(&ustate, trie_ptr, valTermRef(term));
     for(i=kc; i-- > 0; )
     { if ( (rc=unify_key(&ustate, keys[i] PASS_LD)) != TRUE )
       { destroy_ukey_state(&ustate);
 	if ( rc == FALSE )
 	  goto out;
-	PL_rewind_foreign_frame(fid);
-	if ( makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	Undo(m);
+	if ( makeMoreStackSpace(rc, ALLOW_GC) )
 	  goto retry;
       }
     }
@@ -679,7 +679,6 @@ unify_trie_term(trie_node *node, term_t term ARG_LD)
   }
 
 out:
-  PL_close_foreign_frame(fid);
   if ( keys != fast )
     free(keys);
 

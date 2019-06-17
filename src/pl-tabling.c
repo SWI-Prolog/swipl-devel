@@ -1748,11 +1748,12 @@ get_variant_table(term_t t, term_t ret, int create ARG_LD)
   int rc;
   Word v;
   tmp_buffer vars;
-  fid_t fid = PL_open_foreign_frame();
+  mark m;
 
   initBuffer(&vars);
 
 retry:
+  Mark(m);
   v = valTermRef(t);
   if ( (rc=trie_lookup(variants, &node, v, create, &vars PASS_LD)) == TRUE )
   { if ( node->value )
@@ -1781,7 +1782,7 @@ retry:
 
       if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
       { if ( rc < 0 )
-	{ PL_rewind_foreign_frame(fid);
+	{ Undo(m);
 	  emptyBuffer(&vars);
 	  if ( makeMoreStackSpace(rc, ALLOW_GC) )
 	    goto retry;
