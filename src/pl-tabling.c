@@ -1681,7 +1681,6 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 
   if ( node->value )
   { trie *vtrie = symbol_trie(node->value);
-    record_t r;
     worklist *wl;
 
     if ( WL_IS_WORKLIST(wl=vtrie->data.worklist) )
@@ -1690,10 +1689,6 @@ release_variant_table_node(trie *variant_table, trie_node *node)
     assert(vtrie->data.variant == node);
     vtrie->data.variant = NULL;
     vtrie->data.worklist = NULL;
-    if ( (r=vtrie->data.skeleton) )
-    { vtrie->data.skeleton = 0;
-      PL_erase(r);
-    }
 
     trie_empty(vtrie);
   }
@@ -1710,25 +1705,83 @@ clear_variant_table(PL_local_data_t *ld)
 }
 
 
+#define VAR_SKEL_FAST 8
+
+static int
+unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
+{ Word *pp = baseBuffer(vars, Word);
+  Word *ep = topBuffer(vars, Word);
+  static functor_t fast[VAR_SKEL_FAST] = {0};
+  size_t arity = ep-pp;
+  functor_t vf;
+  Word p;
+
+  assert(arity > 0);
+  if ( arity < VAR_SKEL_FAST )
+  { if ( !(vf=fast[arity]) )
+      fast[arity] = vf = PL_new_functor(ATOM_ret, arity);
+  } else
+  { vf = PL_new_functor(ATOM_ret, arity);
+  }
+
+  if ( (p=allocGlobalNoShift(arity+1)) )
+  { word w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    *p++ = vf;
+
+    for(; pp < ep; pp++)
+    { Word ap = *pp;
+      *p++ = makeRefG(ap);
+    }
+
+    return _PL_unify_atomic(ret, w);
+  }
+
+  assert(0);				/* TBD: recover */
+  return GLOBAL_OVERFLOW;
+}
+
+
 static trie *
-get_variant_table(term_t t, int create ARG_LD)
+get_variant_table(term_t t, term_t ret, int create ARG_LD)
 { trie *variants = thread_variant_table(PASS_LD1);
+  trie *atrie;
   trie_node *node;
   int rc;
   Word v = valTermRef(t);
+  tmp_buffer vars;
 
-  if ( (rc=trie_lookup(variants, &node, v, create, NULL PASS_LD)) == TRUE )
+  initBuffer(&vars);
+
+  if ( (rc=trie_lookup(variants, &node, v, create, &vars PASS_LD)) == TRUE )
   { if ( node->value )
-    { return symbol_trie(node->value);
+    { atrie = symbol_trie(node->value);
     } else if ( create )
-    { trie *vt = trie_create();
-      node->value = trie_symbol(vt);
-      vt->data.variant = node;
-      vt->alloc_pool = &LD->tabling.node_pool;
+    { atrie = trie_create();
+      node->value = trie_symbol(atrie);
+      atrie->data.variant = node;
+      atrie->alloc_pool = &LD->tabling.node_pool;
       ATOMIC_INC(&variants->value_count);
-      return vt;
     } else
+    { discardBuffer(&vars);
       return NULL;
+    }
+
+    if ( isEmptyBuffer(&vars) )		/* TBD: only needed first time */
+    { if ( WL_IS_WORKLIST(atrie->data.worklist) )
+      { atrie->data.worklist->ground = TRUE;
+      } else if ( !atrie->data.worklist )
+      { atrie->data.worklist = WL_GROUND;
+      }
+      if ( !PL_unify_atom(ret, ATOM_ret) )
+	atrie = NULL;
+    } else
+    { if ( unify_trie_ret(ret, &vars PASS_LD) != TRUE )
+	atrie = NULL;
+    }
+    discardBuffer(&vars);
+    return atrie;
+  } else
+  { discardBuffer(&vars);
   }
 
   trie_error(rc, t);
@@ -2157,44 +2210,21 @@ unify_table_status(term_t t, trie *trie, int merge ARG_LD)
   return PL_unify_atom(t, ATOM_fresh);
 }
 
+
 static int
-unify_skeleton(trie *trie, term_t wrapper, term_t skeleton ARG_LD)
-{ if ( trie->data.skeleton )
-  { term_t av;
+unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
+{ if ( !wrapper )
+    wrapper = PL_new_term_ref();
 
-    if ( !(av=PL_new_term_refs(2)) ||
-	 !PL_recorded(trie->data.skeleton, av+0) )
-      return FALSE;
-    if ( wrapper )
-    { if ( !_PL_get_arg(1, av+0, av+1) ||
-	   !PL_unify(wrapper, av+1) )
-	return FALSE;
-    }
+  if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
+  { trie *trie = get_variant_table(wrapper, skeleton, FALSE PASS_LD);
 
-    return ( _PL_get_arg(2, av+0, av+1) &&
-	     PL_unify(skeleton, av+1) );
-  } else
-  { term_t av;
-    ssize_t vars;
+    assert(trie == atrie);
 
-    if ( (av = PL_new_term_ref()) &&
-	 (vars=term_var_skeleton(wrapper, av PASS_LD)) >= 0 &&
-	 PL_unify(av, skeleton) &&
-	 PL_cons_functor(av, FUNCTOR_minus2, wrapper, av) )
-    { trie->data.skeleton = PL_record(av);
-      if ( vars == 0 )
-      { if ( WL_IS_WORKLIST(trie->data.worklist) )
-	{ trie->data.worklist->ground = TRUE;
-	} else
-	{ assert(!trie->data.worklist);
-	  trie->data.worklist = WL_GROUND;
-	}
-      }
-      return TRUE;
-    }
-
-    return FALSE;
+    return TRUE;
   }
+
+  return FALSE;
 }
 
 
@@ -2319,13 +2349,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
     { trie *vtrie = get_trie_form_node(table->data.variant);
 
       if ( vtrie == LD->tabling.variant_table )
-      { record_t r;
-
-	if ( (r=table->data.skeleton) )
-	{ table->data.skeleton = 0;
-	  PL_erase(r);
-	}
-	trie_delete(vtrie, table->data.variant, TRUE);
+      { trie_delete(vtrie, table->data.variant, TRUE);
 	return TRUE;
       }
 
@@ -2932,10 +2956,9 @@ PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie=get_variant_table(A1, TRUE PASS_LD)) )
+  if ( (trie=get_variant_table(A1, A4, TRUE PASS_LD)) )
   { return ( _PL_unify_atomic(A2, trie->symbol) &&
-	     unify_table_status(A3, trie, TRUE PASS_LD)  &&
-	     unify_skeleton(trie, A1, A4 PASS_LD) );
+	     unify_table_status(A3, trie, TRUE PASS_LD) );
   }
 
   return FALSE;
@@ -2947,10 +2970,9 @@ PRED_IMPL("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie=get_variant_table(A1, FALSE PASS_LD)) )
+  if ( (trie=get_variant_table(A1, A4, FALSE PASS_LD)) )
   { return ( _PL_unify_atomic(A2, trie->symbol) &&
-	     unify_table_status(A3, trie, TRUE PASS_LD)  &&
-	     unify_skeleton(trie, A1, A4 PASS_LD) );
+	     unify_table_status(A3, trie, TRUE PASS_LD) );
   }
 
   return FALSE;
@@ -2978,11 +3000,13 @@ static
 PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 { PRED_LD
   trie *trie;
+  term_t wv = PL_new_term_ref();
 
   return ( get_trie(A1, &trie) &&
 	   unify_table_status(A2, trie, FALSE PASS_LD) &&
-	   (!trie->data.skeleton ||
-	    unify_skeleton(trie, A3, A4 PASS_LD)) );
+	   unify_skeleton(trie, wv, A4 PASS_LD) &&
+	   PL_unify(A3, wv)
+	 );
 }
 
 /** '$tbl_table_complete_all'(+SCC)
@@ -3435,24 +3459,20 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
       continue;
     }
     if ( top->answer )
-    { term_t skel = av+1;
-      term_t ans  = av+2;
-      term_t tmp  = av+3;
+    { term_t ans  = av+1;
 
       PL_put_variable(c1);
       PL_put_variable(ans);
-      PL_put_variable(skel);
 
       if ( !unify_trie_term(top->variant->data.variant, c1 PASS_LD) )
 	return FALSE;
-      if ( !( unify_trie_term(top->answer, ans PASS_LD) &&
-	      PL_recorded(top->variant->data.skeleton, skel) &&
-	      _PL_get_arg(1, skel, tmp) &&
-	      PL_unify(c1, tmp) &&
-	      _PL_get_arg(2, skel, tmp) &&
-	      PL_unify(ans, tmp) ) )
-      { return FALSE;
+      if ( !get_variant_table(c1, ans, FALSE PASS_LD) )
+      { Sdprintf("OOPS! could not find variant table\n");
+	return FALSE;
       }
+      if ( !unify_trie_term(top->answer, ans PASS_LD) )
+	return FALSE;
+
       if ( !is_ground_trie_node(top->answer) )
       { assert(gshare);
 
@@ -3460,7 +3480,7 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
 	if ( !PL_unify(gskel, ans) )
 	{ DEBUG(0, Sdprintf("Oops, skeleton %zd does not unify\n", arity));
 	  pl_writeln(gskel);
-	  pl_writeln(skel);
+	  pl_writeln(ans);
 	  return FALSE;
 	}
 	arity--;

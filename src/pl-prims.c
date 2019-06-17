@@ -3047,49 +3047,6 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
     return PL_unify_nil(list);
 }
 
-/** term_var_skeleton(+Term, -Vars)
- * Get a v/n term for the variables in Term
- */
-
-#define VAR_SKEL_FAST 8
-
-ssize_t
-term_var_skeleton(term_t t, term_t vs ARG_LD)
-{ term_t v0;
-  size_t count;
-  functor_t vf;
-  static functor_t fast[VAR_SKEL_FAST] = {0};
-
-  for(;;)
-  { count = term_variables_to_termv(t, &v0, ~(size_t)0, 0 PASS_LD);
-    if ( count == TV_EXCEPTION )
-      return -1;
-    if ( count == TV_NOSPACE )
-    { PL_reset_term_refs(v0);
-      if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
-	return -1;			/* GC doesn't help */
-      continue;
-    }
-    if ( count == TV_NOMEM )
-    { PL_error(NULL, 0, NULL, ERR_NOMEM);
-      return -1;
-    }
-    break;
-  }
-
-  if ( count < VAR_SKEL_FAST )
-  { if ( !(vf=fast[count]) )
-      fast[count] = vf = PL_new_functor(ATOM_ret, count);
-  } else
-  { vf = PL_new_functor(ATOM_ret, count);
-  }
-
-  if ( !PL_cons_functor_v(vs, vf, v0) )
-    return -1;
-
-  return count;
-}
-
 
 static
 PRED_IMPL("term_variables", 2, term_variables2, PL_FA_ISO)
