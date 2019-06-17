@@ -1736,7 +1736,6 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
     return _PL_unify_atomic(ret, w);
   }
 
-  assert(0);				/* TBD: recover */
   return GLOBAL_OVERFLOW;
 }
 
@@ -1747,11 +1746,14 @@ get_variant_table(term_t t, term_t ret, int create ARG_LD)
   trie *atrie;
   trie_node *node;
   int rc;
-  Word v = valTermRef(t);
+  Word v;
   tmp_buffer vars;
+  fid_t fid = PL_open_foreign_frame();
 
   initBuffer(&vars);
 
+retry:
+  v = valTermRef(t);
   if ( (rc=trie_lookup(variants, &node, v, create, &vars PASS_LD)) == TRUE )
   { if ( node->value )
     { atrie = symbol_trie(node->value);
@@ -1775,8 +1777,17 @@ get_variant_table(term_t t, term_t ret, int create ARG_LD)
       if ( !PL_unify_atom(ret, ATOM_ret) )
 	atrie = NULL;
     } else
-    { if ( unify_trie_ret(ret, &vars PASS_LD) != TRUE )
+    { int rc;
+
+      if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
+      { if ( rc < 0 )
+	{ PL_rewind_foreign_frame(fid);
+	  emptyBuffer(&vars);
+	  if ( makeMoreStackSpace(rc, ALLOW_GC) )
+	    goto retry;
+	}
 	atrie = NULL;
+      }
     }
     discardBuffer(&vars);
     return atrie;
