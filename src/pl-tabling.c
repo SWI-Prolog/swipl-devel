@@ -831,7 +831,7 @@ retry:
 		  }
 		}
 
-		if ( (rc=trie_lookup(at, &an, p, TRUE PASS_LD)) == TRUE )
+		if ( (rc=trie_lookup(at, &an, p, TRUE, NULL PASS_LD)) == TRUE )
 		{ // TBD: can we immediately simplify if this already has a value?
 		  DEBUG(MSG_TABLING_DELAY_VAR,
 			print_delay("Waiting for instantiated",
@@ -1717,7 +1717,7 @@ get_variant_table(term_t t, int create ARG_LD)
   int rc;
   Word v = valTermRef(t);
 
-  if ( (rc=trie_lookup(variants, &node, v, create PASS_LD)) == TRUE )
+  if ( (rc=trie_lookup(variants, &node, v, create, NULL PASS_LD)) == TRUE )
   { if ( node->value )
     { return symbol_trie(node->value);
     } else if ( create )
@@ -2385,7 +2385,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 
     kp = valTermRef(A2);
 
-    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
     { if ( node->value )
       { if ( node->value == ATOM_trienode )
 	{ if ( answer_is_conditional(node) )
@@ -2450,7 +2450,7 @@ PRED_IMPL("$tbl_wkl_mode_add_answer", 4, tbl_wkl_mode_add_answer, 0)
 	    Sdprintf(": ");
 	  });
 
-    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(wl->table, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
     { if ( node->value )
       { static predicate_t PRED_update4 = 0;
 	term_t av;

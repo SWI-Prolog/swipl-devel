@@ -494,7 +494,7 @@ prune_error(trie *trie, trie_node *node ARG_LD)
 
 
 int
-trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
+trie_lookup(trie *trie, trie_node **nodep, Word k, int add, TmpBuffer vars ARG_LD)
 { term_agenda_P agenda;
   trie_node *node = &trie->root;
   size_t var_number = 0;
@@ -526,9 +526,11 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
-	{ if ( var_number++ == 0 )
-	    initBuffer(&varb);
-	  addBuffer(&varb, p, Word);
+	{ if ( var_number++ == 0 && !vars )
+	  { vars = &varb;
+	    initBuffer(vars);
+	  }
+	  addBuffer(vars, p, Word);
 	  *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
 	}
         node = follow_node(trie, node, w, add PASS_LD);
@@ -570,14 +572,15 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   clearTermAgenda_P(&agenda);
 
   if ( var_number )
-  { Word *pp = baseBuffer(&varb, Word);
-    Word *ep = topBuffer(&varb, Word);
+  { Word *pp = baseBuffer(vars, Word);
+    Word *ep = topBuffer(vars, Word);
 
     for(; pp < ep; pp++)
     { Word vp = *pp;
       setVar(*vp);
     }
-    discardBuffer(&varb);
+    if ( vars == &varb )
+      discardBuffer(vars);
   }
 
   if ( rc == TRUE )
@@ -1034,7 +1037,7 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 
     kp	= valTermRef(Key);
 
-    if ( (rc=trie_lookup(trie, &node, kp, TRUE PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(trie, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
     { word val = intern_value(Value PASS_LD);
 
       if ( nodep )
@@ -1142,7 +1145,7 @@ PRED_IMPL("trie_delete", 3, trie_delete, 0)
 
     kp = valTermRef(A2);
 
-    if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(trie, &node, kp, FALSE, NULL PASS_LD)) == TRUE )
     { if ( node->value )
       { if ( unify_value(A3, node->value PASS_LD) )
 	{ prune_node(trie, node);
@@ -1172,7 +1175,7 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 
     kp = valTermRef(A2);
 
-    if ( (rc=trie_lookup(trie, &node, kp, FALSE PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(trie, &node, kp, FALSE, NULL PASS_LD)) == TRUE )
     { if ( node->value )
 	return unify_value(A3, node->value PASS_LD);
       return FALSE;

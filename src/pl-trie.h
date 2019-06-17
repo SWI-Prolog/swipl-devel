@@ -128,7 +128,7 @@ COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
 COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
-			    int add ARG_LD);
+			    int add, TmpBuffer vars ARG_LD);
 COMMON(int)	trie_error(int rc, term_t culprit);
 COMMON(atom_t)	trie_symbol(trie *trie);
 COMMON(trie *)	symbol_trie(atom_t symbol);
