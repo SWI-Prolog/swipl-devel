@@ -37,6 +37,7 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-indirect.h"
+#define NO_AC_TERM_WALK 1
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
 
@@ -169,7 +170,6 @@ static PL_blob_t trie_blob =
 		 *******************************/
 
 static trie_node       *new_trie_node(trie *trie, word key);
-static void		clear_vars(Word k, size_t var_number ARG_LD);
 static void		destroy_node(trie *trie, trie_node *n);
 static void		clear_node(trie *trie, trie_node *n, int dealloc);
 static inline void	release_value(word value);
@@ -500,6 +500,7 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   size_t var_number = 0;
   int rc = TRUE;
   size_t compounds = 0;
+  tmp_buffer varb;
 
   TRIE_STAT_INC(trie, lookups);
 
@@ -525,7 +526,11 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
-	  *p = w = ((((word)++var_number))<<LMASK_BITS)|TAG_VAR;
+	{ if ( var_number++ == 0 )
+	    initBuffer(&varb);
+	  addBuffer(&varb, p, Word);
+	  *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	}
         node = follow_node(trie, node, w, add PASS_LD);
 	break;
       case TAG_ATTVAR:
@@ -563,7 +568,17 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
     }
   }
   clearTermAgenda_P(&agenda);
-  clear_vars(k, var_number PASS_LD);
+
+  if ( var_number )
+  { Word *pp = baseBuffer(&varb, Word);
+    Word *ep = topBuffer(&varb, Word);
+
+    for(; pp < ep; pp++)
+    { Word vp = *pp;
+      setVar(*vp);
+    }
+    discardBuffer(&varb);
+  }
 
   if ( rc == TRUE )
   { if ( node )
@@ -573,40 +588,6 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add ARG_LD)
   }
 
   return rc;
-}
-
-
-static void
-clear_vars(Word k, size_t var_number ARG_LD)
-{ if ( var_number > 0 )
-  { term_agenda agenda;
-    Word p;
-
-    initTermAgenda(&agenda, 1, k);
-    while( var_number > 0 && (p=nextTermAgenda(&agenda)) )
-    { word w = *p;
-
-      switch( tag(w) )
-      { case TAG_VAR:
-	{ if ( !isVar(*p) )
-	  { setVar(*p);
-	    --var_number;
-	  }
-	  break;
-	}
-        case TAG_COMPOUND:
-	{ Functor f = valueTerm(w);
-	  int arity = arityFunctor(f->definition);
-
-	  pushWorkAgenda(&agenda, arity, f->arguments);
-	  break;
-	}
-      }
-    }
-    clearTermAgenda(&agenda);
-
-    assert(var_number == 0);
-  }
 }
 
 

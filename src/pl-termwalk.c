@@ -60,7 +60,7 @@ typedef struct term_agenda
 } term_agenda;
 
 
-static void
+static inline void
 initTermAgenda(term_agenda *a, size_t size, Word p)
 { initSegStack(&a->stack, sizeof(aNode),
 	       sizeof(a->first_chunk), a->first_chunk);
@@ -69,7 +69,7 @@ initTermAgenda(term_agenda *a, size_t size, Word p)
 }
 
 
-static void
+static inline void
 clearTermAgenda(term_agenda *a)
 { clearSegStack(&a->stack);
 }
