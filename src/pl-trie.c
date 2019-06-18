@@ -294,8 +294,6 @@ next:
   release_key(n->key);
   if ( n->value )
     release_value(n->value);
-  if ( n->data.delayinfo )		/* hacky */
-    destroy_delay_info(n->data.delayinfo);
 
   if ( dealloc )
   { ATOMIC_DEC(&trie->node_count);

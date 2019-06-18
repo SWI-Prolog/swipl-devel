@@ -1740,8 +1740,22 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
 }
 
 
+static void
+release_answer_node(trie *atrie, trie_node *node)
+{ if ( node->data.delayinfo )
+    destroy_delay_info(node->data.delayinfo);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+get_answer_table(+Variant, -Return, int create)
+
+Find the answer table for  Variant  and   its  return  template  (a term
+ret/N). If `create` is TRUE, create the table if it does not exist.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static trie *
-get_variant_table(term_t t, term_t ret, int create ARG_LD)
+get_answer_table(term_t t, term_t ret, int create ARG_LD)
 { trie *variants = thread_variant_table(PASS_LD1);
   trie *atrie;
   trie_node *node;
@@ -1760,6 +1774,7 @@ retry:
     { atrie = symbol_trie(node->value);
     } else if ( create )
     { atrie = trie_create();
+      atrie->release_node = release_answer_node;
       node->value = trie_symbol(atrie);
       atrie->data.variant = node;
       atrie->alloc_pool = &LD->tabling.node_pool;
@@ -2229,7 +2244,7 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
     wrapper = PL_new_term_ref();
 
   if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
-  { trie *trie = get_variant_table(wrapper, skeleton, FALSE PASS_LD);
+  { trie *trie = get_answer_table(wrapper, skeleton, FALSE PASS_LD);
 
     assert(trie == atrie);
 
@@ -2968,7 +2983,7 @@ PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie=get_variant_table(A1, A4, TRUE PASS_LD)) )
+  if ( (trie=get_answer_table(A1, A4, TRUE PASS_LD)) )
   { return ( _PL_unify_atomic(A2, trie->symbol) &&
 	     unify_table_status(A3, trie, TRUE PASS_LD) );
   }
@@ -2982,7 +2997,7 @@ PRED_IMPL("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie=get_variant_table(A1, A4, FALSE PASS_LD)) )
+  if ( (trie=get_answer_table(A1, A4, FALSE PASS_LD)) )
   { return ( _PL_unify_atomic(A2, trie->symbol) &&
 	     unify_table_status(A3, trie, TRUE PASS_LD) );
   }
@@ -3478,7 +3493,7 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
 
       if ( !unify_trie_term(top->variant->data.variant, c1 PASS_LD) )
 	return FALSE;
-      if ( !get_variant_table(c1, ans, FALSE PASS_LD) )
+      if ( !get_answer_table(c1, ans, FALSE PASS_LD) )
       { Sdprintf("OOPS! could not find variant table\n");
 	return FALSE;
       }
