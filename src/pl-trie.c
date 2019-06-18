@@ -1646,7 +1646,7 @@ next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
 }
 
 
-static int
+static trie_choice *
 next_choice(trie_gen_state *state ARG_LD)
 { trie_choice *ch;
   descent_state dstate;
@@ -1658,7 +1658,15 @@ next_choice(trie_gen_state *state ARG_LD)
   { ch = next_choice0(state, &dstate PASS_LD);
   } while (ch && ch->child->value == 0);
 
-  return ch != NULL;
+  return ch;
+}
+
+
+static trie_node *
+gen_state_leaf(trie_gen_state *state)
+{ trie_choice *top = top_choice(state);
+
+  return top[-1].child;
 }
 
 
@@ -1735,7 +1743,13 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
     }
     case FRG_REDO:
       state = CTX_PTR;
-      break;
+      if ( gen_state_leaf(state)->value ||
+	   next_choice(state PASS_LD) )		/* pending choice was deleted */
+      { break;
+      } else
+      { clear_trie_state(state);
+	return FALSE;
+      }
     case FRG_CUTTED:
       state = CTX_PTR;
       clear_trie_state(state);
