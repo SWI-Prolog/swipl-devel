@@ -152,6 +152,7 @@ xsb_term_expansion((:- Directive), []) :-
     !.
 xsb_term_expansion((:- import Preds from From),
                    (:- xsb_import(Preds, From))).
+xsb_term_expansion((:- index(_PI, _, _)), []).  % what is tbis?
 xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
 xsb_term_expansion((:- ti(_PI)), []).
