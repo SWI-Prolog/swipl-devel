@@ -526,7 +526,7 @@ SWI-Prolog offers the following predicates to access the residual
 program.
 
 \begin{description}
-    \predicate{call_residual_program}{:Goal, -Program}
+    \predicate{call_residual_program}{2}{:Goal, -Program}
 True when \arg{Goal} is an answer according to the Well Founded
 Semantics.  If \arg{Program} is the empty list, \arg{Goal} is
 unconditionally true.  Otherwise this is a program as described
