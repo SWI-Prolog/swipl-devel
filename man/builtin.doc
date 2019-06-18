@@ -9264,6 +9264,14 @@ PL_halt() which preforms the following steps:
     \item Call exit(Status) to terminate the process
     \end{enumerate}
 
+halt/1 has been extended in SWI-Prolog to accept the arg \const{abort}.
+This performs as halt/1 above except that:
+
+    \begin{itemize}
+    \item Termination cannot be cancelled with cancel_halt/1.
+    \item abort() is called instead of exit(Status).
+    \end{itemize}
+
     \predicate{prolog}{0}{}
 This goal starts the default interactive top level. Queries are read
 from the stream \const{user_input}. See also the Prolog flag
