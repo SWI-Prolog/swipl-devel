@@ -1419,11 +1419,8 @@ vsysError(const char *fm, va_list args)
   time_t now;
   char tbuf[48];
 
-  switch ( active++ )
-  { case 1:
-      PL_halt(3);
-    case 2:
-      abort();
+  if ( active++ )
+  { abort();
   }
 
   now = time(NULL);
@@ -1459,7 +1456,7 @@ vsysError(const char *fm, va_list args)
 #endif /*O_DEBUGGER*/
 
   if ( GD->bootsession )
-    PL_halt(1);
+    PL_abort_process();
 
 action:
 #ifdef HAVE_GETPID
@@ -1472,9 +1469,9 @@ action:
 
   switch(getSingleChar(Sinput, FALSE))
   { case EOF:
-      Sfprintf(Serror, "EOF: exit (status 3)\n");
+      Sfprintf(Serror, "EOF: exit (status 134)\n");
     case 'e':
-      PL_halt(3);
+      PL_abort_process();
       break;
     default:
       Sfprintf(Serror,
@@ -1493,11 +1490,8 @@ vfatalError(const char *fm, va_list args)
   time_t now;
   char tbuf[48];
 
-  switch ( active++ )
-  { case 1:
-      exit(2);
-    case 2:
-      abort();
+  if ( active++ )
+  { abort();
   }
 
   now = time(NULL);
@@ -1518,8 +1512,8 @@ vfatalError(const char *fm, va_list args)
   Sfprintf(Serror, "]\n");
 #endif
 
-  PL_halt(2);
-  exit(2);				/* in case PL_halt() does not */
+  PL_abort_process();
+  assert(0); /* not reached */
 }
 
 

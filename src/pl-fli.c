@@ -4564,8 +4564,8 @@ __asan_default_options(), providing an alternative   to  the environment
 variable LSAN_OPTIONS=.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-PL_halt(int status)
+static int
+haltProlog(int status)
 { int reclaim_memory = FALSE;
 
 #if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
@@ -4583,10 +4583,24 @@ PL_halt(int status)
     __lsan_disable();
 #endif
 
-    exit(status);
+    return TRUE;
   }
 
   return FALSE;
+}
+
+int
+PL_halt(int status)
+{ if ( haltProlog(status) )
+    exit(status);
+
+  return FALSE;
+}
+
+void
+PL_abort_process(void)
+{ haltProlog(128+SIGABRT);
+  abort();
 }
 
 		 /*******************************

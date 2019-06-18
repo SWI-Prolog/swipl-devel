@@ -648,7 +648,7 @@ static void
 hupHandler(int sig)
 { (void)sig;
 
-  PL_halt(2);
+  PL_halt(128+sig);
 }
 #endif
 
@@ -663,12 +663,20 @@ static void
 terminate_handler(int sig)
 { signal(sig, SIG_DFL);
 
-  run_on_halt(&GD->os.exit_hooks, 3);
+  run_on_halt(&GD->os.exit_hooks, 128+sig);
 
 #if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
 #else
-  exit(3);
+  switch( sig )
+  { case SIGTERM:
+    case SIGQUIT:
+      exit(128+sig);
+    case SIGABRT:
+      abort();
+    default:
+      assert(0); /* not reached */
+  }
 #endif
 }
 

@@ -4703,9 +4703,13 @@ pl_true()		/* just to define it */
 
 word
 pl_halt(term_t code)
-{ int status;
+{ GET_LD
+  int status;
+  atom_t a;
 
-  if ( !PL_get_integer_ex(code, &status) )
+  if ( PL_get_atom(code, &a) && a == ATOM_abort )
+    PL_abort_process();
+  else if ( !PL_get_integer_ex(code, &status) )
     fail;
 
   PL_halt(status);
