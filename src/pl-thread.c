@@ -119,6 +119,17 @@ _syscall0(pid_t,gettid)
 #include <sys/syscall.h>
 #endif
 
+#ifdef HAVE_SYS_CPUSET_H
+#include <sys/param.h>         /* pulls sys/cdefs.h and sys/types.h for sys/cpuset.h */
+#include <sys/cpuset.h>        /* CPU_ZERO(), CPU_SET, cpuset_t */
+#endif
+#ifdef HAVE_PTHREAD_NP_H
+#include <pthread_np.h>        /* pthread_*_np */
+#endif
+#ifdef HAVE_CPUSET_T
+typedef cpuset_t cpu_set_t;
+#endif
+
 #ifdef HAVE_SEMA_INIT			/* Solaris */
 #include <synch.h>
 
