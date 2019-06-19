@@ -679,7 +679,8 @@ abolish_all_tables :-
 %
 %   Abolish all tables that unify with SubGoal.
 
-abolish_table_subgoals(M:SubGoal) :-
+abolish_table_subgoals(SubGoal0) :-
+    '$tbl_implementation'(SubGoal0, M:SubGoal),
     '$tbl_variant_table'(VariantTrie),
     !,
     current_module(M),
