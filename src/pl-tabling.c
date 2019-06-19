@@ -3665,6 +3665,24 @@ PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
 }
 
 
+/**
+ * '$is_answer_trie'(@Trie) is semidet
+ *
+ * True if Trie is an answer trie, possible already destroyed.  This
+ * is used to find remaining tables for gc_tables/1.
+ */
+
+static
+PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
+{ trie *trie;
+
+  if ( get_trie_noex(A1, &trie) )
+    return trie->release_node == release_answer_node;
+
+  return FALSE;
+}
+
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -3711,4 +3729,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)
   PRED_DEF("$tbl_implementation",       2, tbl_implementation,    META)
+  PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
 EndPredDefs

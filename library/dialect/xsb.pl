@@ -53,6 +53,7 @@
 
             not_exists/1,			% :Goal
             sk_not/1,				% :Goal
+            gc_tables/1,                        % -Remaining
 
             is_most_general_term/1,		% @Term
 
@@ -76,6 +77,7 @@
 :- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
 :- use_module(library(dialect/xsb/tables)).
+:- use_module(library(aggregate)).
 
 /** <module> XSB Prolog compatibility layer
 
@@ -503,6 +505,25 @@ not_exists(P) :-
 
 sk_not(P) :-
     not_exists(P).
+
+%!  gc_tables(-Remaining) is det.
+%
+%   The table abolish predicates leave  the   actual  destruction of the
+%   tables to the atom  garbage  collector   to  avoid  deleting  active
+%   tables. This predicate runs garbage_collect_atoms/0   and counts the
+%   remaining erased tables.
+%
+%   @compat Due to the heuristic nature of garbage_collect_atoms/0, not
+%   all tables may be reclaimed immediately.
+
+gc_tables(Remaining) :-
+    garbage_collect_atoms,
+    aggregate_all(count, remaining_table(_), Remaining).
+
+remaining_table(Trie) :-
+    current_blob(Trie, trie),
+    '$is_answer_trie'(Trie),
+    '$atom_references'(Trie, 0).
 
 
 %!  is_most_general_term(@X) is semidet.

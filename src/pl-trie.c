@@ -843,6 +843,22 @@ get_trie(term_t t, trie **tp)
 
 
 int
+get_trie_noex(term_t t, trie **tp)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(t, &data, NULL, &type) && type == &trie_blob )
+  { tref *ref = data;
+
+    *tp = ref->trie;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+int
 trie_error(int rc, term_t culprit)
 { switch(rc)
   { case TRIE_LOOKUP_CONTAINS_ATTVAR:
