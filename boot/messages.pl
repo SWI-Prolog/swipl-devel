@@ -1214,13 +1214,13 @@ wfs_residual_program(true, _Options) -->
     !.
 wfs_residual_program(Goal, _Options) -->
     { current_prolog_flag(toplevel_list_wfs_residual_program, true),
-      !,
       '$current_typein_module'(TypeIn),
       (   current_predicate(delays_residual_program/2)
       ->  true
       ;   use_module(library(wfs), [delays_residual_program/2])
       ),
-      delays_residual_program(TypeIn:Goal, TypeIn:Program)
+      delays_residual_program(TypeIn:Goal, TypeIn:Program),
+      Program \== []
     },
     !,
     [ ansi(fg(green), '% WFS residual program', []), nl ],

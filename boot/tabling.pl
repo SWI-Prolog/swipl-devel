@@ -617,7 +617,10 @@ reset_delays :-
     reset_delays,
     call(Goal),
     '$tbl_delay_list'(DL1),
-    delay_goals(DL1, M, Delays),
+    (   delay_goals(DL1, M, Delays)
+    ->  true
+    ;   Delays = undefined
+    ),
     '$append'(DL0, DL1, DL),
     '$tbl_set_delay_list'(DL).
 
@@ -646,10 +649,13 @@ delay_goals([AT|T], M, Goal) :-
     ).
 
 at_delay_goal(tnot(Trie), M, tnot(Goal), Skeleton) :-
+    is_trie(Trie),
     !,
     '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton),
     unqualify_goal(Wrapper, M, Goal).
 at_delay_goal(Trie, M, Goal, Skeleton) :-
+    is_trie(Trie),
+    !,
     '$tbl_table_status'(Trie, _Status, Wrapper, Skeleton),
     unqualify_goal(Wrapper, M, Goal).
 

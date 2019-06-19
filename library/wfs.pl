@@ -102,6 +102,8 @@ residual_program(M:G, _, Done0, Done) -->
     residual_program(G, M, Done0, Done).
 residual_program(true, _, Done, Done) -->
     !.
+residual_program(undefined, _, Done, Done) -->
+    !.
 residual_program(G, M, Done, Done) -->
     { member(M:G2, Done),
       G2 =@= G
