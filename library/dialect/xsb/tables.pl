@@ -36,6 +36,7 @@
           [ abolish_all_tables/0,
             abolish_module_tables/1,            % +Module
             abolish_table_pred/1,               % :CallableOrPI
+            abolish_table_call/1,               % :Callable
 
             tfindall/3,                         % +Template, :Goal, -Answers
             't not'/1,                          % :Goal
@@ -58,6 +59,7 @@
 
 :- meta_predicate
     abolish_table_pred(:),
+    abolish_table_call(:),
     tfindall(+, 0, -),
     't not'(0),
     get_call(:, -, -),
@@ -252,5 +254,10 @@ abolish_table_pred(M:Head) :-
 abolish_table_pred(PI) :-
     type_error(callable_or_predicate_indicator, PI).
 
+%!  abolish_table_call(+Head)
+%
+%   Same as abolish_table_subgoals/1.  See also abolish_table_pred/1.
 
+abolish_table_call(Head) :-
+    abolish_table_subgoals(Head).
 
