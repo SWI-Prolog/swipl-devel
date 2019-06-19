@@ -675,7 +675,19 @@ tabled predicates depend. Raises a permission_error when tabling is in
 progress.
 
     \predicate{abolish_table_subgoals}{1}{:Subgoal}
-Abolish all tables that unify with \arg{SubGoal}.
+Abolish all tables that unify with \arg{SubGoal}.  Tables that have
+undefined answers that depend of the abolished table are abolished
+as well (recursively).  For example, given the program below,
+\term{abolish_table_subgoals}{und} will also abolish the table
+for \nopredref{p}{0} because its answer refers to \nopredref{und}{0}.
+
+\begin{code}
+p :- und.
+und :- tnot(und).
+\end{code}
+
+    \predicate{abolish_module_tables}{1}{+Module}
+Remove all tables that belong to predicates in \arg{Module}.
 \end{description}
 
 

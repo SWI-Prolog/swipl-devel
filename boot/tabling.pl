@@ -44,6 +44,7 @@
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
+            abolish_module_tables/1,    % +Module
 
             start_tabling/2,            % +Wrapper, :Worker
             start_subsumptive_tabling/2,% +Wrapper, :Worker
@@ -685,6 +686,19 @@ abolish_table_subgoals(M:SubGoal) :-
     forall(trie_gen(VariantTrie, M:SubGoal, Trie),
            '$tbl_destroy_table'(Trie)).
 abolish_table_subgoals(_).
+
+%!  abolish_module_tables(+Module) is det.
+%
+%   Abolish all tables for predicates associated with the given module.
+
+abolish_module_tables(Module) :-
+    '$must_be'(atom, Module),
+    '$tbl_variant_table'(VariantTrie),
+    current_module(Module),
+    !,
+    forall(trie_gen(VariantTrie, Module:_, Trie),
+           '$tbl_destroy_table'(Trie)).
+abolish_module_tables(_).
 
 
                  /*******************************

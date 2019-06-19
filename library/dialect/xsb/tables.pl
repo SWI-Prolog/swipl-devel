@@ -34,7 +34,8 @@
 
 :- module(tables,
           [ abolish_all_tables/0,
-            abolish_table_pred/1,               % :Callable
+            abolish_module_tables/1,            % +Module
+            abolish_table_pred/1,               % :CallableOrPI
 
             tfindall/3,                         % +Template, :Goal, -Answers
             't not'/1,                          % :Goal

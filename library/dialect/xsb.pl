@@ -168,6 +168,9 @@ user:goal_expansion(In, Out) :-
 
 xsb_mapped_predicate(expand_file_name(File, Expanded),
                      xsb_expand_file_name(File, Expanded)).
+xsb_mapped_predicate(abolish_module_tables(UserMod),
+                     abolish_module_tables(user)) :-
+    UserMod == usermod.
 
 xsb_inlined_goal(fail_if(P), \+(P)).
 
