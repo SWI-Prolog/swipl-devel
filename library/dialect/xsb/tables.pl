@@ -182,7 +182,8 @@ semicolon_list(G) -->
 %   disjunction   of   conjunctions.   The     XSB   representation   is
 %   non-deterministic and uses a list to represent the conjunction.
 
-get_residual(Goal, DelayList) :-
+get_residual(Goal0, DelayList) :-
+    '$tbl_implementation'(Goal0, Goal),
     '$tbl_variant_table'(VariantTrie),
     trie_gen(VariantTrie, Goal, Trie),
     '$tbl_table_status'(Trie, _Status, Goal, Skeleton),
