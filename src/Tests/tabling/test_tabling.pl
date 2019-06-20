@@ -2,7 +2,7 @@
 
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
 		   Jan Wielemaker (SWI-Prolog port)
-    Copyright (c)  2016-2017, Benoit Desouter and Jan Wielemaker
+    Copyright (c)  2016-2019, Benoit Desouter and Jan Wielemaker
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -74,7 +74,10 @@ test_tabling :-
 						% tests requiring sub components
 		mode_components1,
 		mode_components2,
-                pathss
+                pathss,
+
+                bas,
+                push_ret
 	      ]).
 
 		 /*******************************
@@ -1303,6 +1306,50 @@ test(kurt, P3 = [ [bernd, ingo, kurt],
     sort(P2, P3).
 
 :- end_tests(pathss).
+
+:- begin_tests(bas, [cleanup(abolish_all_tables)]).
+
+:- table bas/2.
+bas --> "b".
+bas --> bas, "a".
+
+% tests resizing the global stack when generating answers from the
+% tries.
+
+test(bas) :-
+    call_nth(( length(As,1 000),
+               maplist(=(0'a),As),
+               bas([0'b|As],A),
+               is_list(A)
+             ), 10).
+
+:- end_tests(bas).
+
+:- begin_tests(push_ret, [cleanup(abolish_all_tables)]).
+
+:- table posInt_CollatzSteps/2.
+posInt_CollatzSteps(I,N) :-
+   (  I == 1
+   -> N = 0                                                % base case
+   ;  1 is I /\ 1
+   -> I0 is I*3+1, posInt_CollatzSteps(I0,N0), N is N0+1   % odd
+   ;  I0 is I>>1,  posInt_CollatzSteps(I0,N0), N is N0+1   % even
+   ).
+
+i0_i_maxSteps0_maxSteps(I0,I,M0,M) :-
+   (  I0 > I
+   -> M0 = M
+   ;  posInt_CollatzSteps(I0,N0),
+      I1 is I0+1,
+      M1 is max(M0,N0),
+      i0_i_maxSteps0_maxSteps(I1,I,M1,M)
+   ).
+
+test(push_ret, MaxSteps1 == MaxSteps2) :-
+    i0_i_maxSteps0_maxSteps(1,2 000,0,MaxSteps1),
+    i0_i_maxSteps0_maxSteps(1,2 000,0,MaxSteps2).
+
+:- end_tests(push_ret).
 
 
 		 /*******************************
