@@ -95,9 +95,12 @@ set_pil_off.
 %   True when Trie is an answer trie for a variant of CallTerm. See also
 %   get_calls/3.
 
-get_call(M:Goal, Trie, Skeleton) :-
-    current_table(M:Goal, Trie),
-    '$tbl_table_status'(Trie, _Status, M:Goal, Skeleton).
+get_call(Goal0, Trie, Skeleton) :-
+    '$tbl_implementation'(Goal0, M:Goal),
+    M:'$table_mode'(Goal, Table, _),
+    current_table(M:Table, Trie),
+    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton).
+
 
 %!  get_calls(:CallTerm, -Trie, -Skeleton) is nondet.
 %
@@ -108,10 +111,12 @@ get_call(M:Goal, Trie, Skeleton) :-
 %   variables in the answer template. The   `ret`  functor is compatible
 %   with XSB.
 
-get_calls(M:Goal, Trie, Skeleton) :-
+get_calls(Goal0, Trie, Skeleton) :-
     '$tbl_variant_table'(VariantTrie),
-    trie_gen(VariantTrie, M:Goal, Trie),
-    '$tbl_table_status'(Trie, _Status, M:Goal, Skeleton).
+    '$tbl_implementation'(Goal0, M:Goal),
+    M:'$table_mode'(Goal, Table, _),
+    trie_gen(VariantTrie, M:Table, Trie),
+    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton).
 
 %!  get_returns(+AnswerTrie, -Return) is nondet.
 %
