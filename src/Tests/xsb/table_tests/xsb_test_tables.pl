@@ -77,7 +77,12 @@ table_test(abolish_neg_cycle).
 table_test(abolish_neg_dag).
 table_test(pred_abolish_cycle).
 table_test(pred_abolish_dag).
-/*
-*/
+table_test(recursive_aboltest).
+table_test(ins).
+table_test(large_arity_tables).
+table_test(concomp).
+table_test(lrbug).
+table_test(tabbug1).
+table_test(pps).
 
 :- end_tests(xsb_test_tables).

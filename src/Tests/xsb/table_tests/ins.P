@@ -1,0 +1,71 @@
+%------------------------------------------------------
+:- [sets, correct].
+%------------------------------------------------------
+
+/* Fact set for a program that insert an element into
+   a list via destructive updating */
+
+/* The control-flow graph and its edge functions */
+/************** Search loop *********************/
+assign_var_to_var(start, n1, y, x).
+identity(n1, n4).
+assign_nil_to_var(n1, p2, t1).
+assign_sel_to_var(p2, n2, t1, y, cdr).
+assign_nil_to_var(n2, p3, y).
+assign_var_to_var(p3, n3, y, t1).
+identity(n3, n1).
+/************** End Search loop ****************/
+assign_new_to_var(n4, n5, t).
+assign_nil_to_var(n5, p6, t2).
+assign_sel_to_var(p6, n6, t2, y, cdr).
+assign_nil_to_sel(n6, p7, t, cdr).
+assign_var_to_sel(p7, n7, t, cdr, t2).
+assign_nil_to_sel(n7, p8, y, cdr).
+assign_var_to_sel(p8, n8, y, cdr, t).
+/**************  Clean Temporaries *************/
+assign_nil_to_var(n8, n9, t2).
+assign_nil_to_var(n9, n10, t1).
+assign_nil_to_var(n10, n11, t).
+assign_nil_to_var(n11, n12, y).
+
+/* Initial sg: x points to a list */
+init_var_edge(start, x, [x]).
+init_sel_edge(start, [x], cdr, []).
+init_sel_edge(start, [], cdr, []).
+
+init_is_shared(_,_) :- fail.
+
+
+/* ------------------------- Queries ------------------------------------ */
+
+var_edge_query(Var) :-
+	var_edge(Var, Z, NX),
+	write(var_edge(Var, Z, NX)), nl,
+	fail; true.
+
+sel_edge_query(Var) :-
+	sel_edge(Var, NX1, Sel, NX2),
+	write(sel_edge(Var, NX1, Sel, NX2)), nl,
+	fail; true.
+
+is_shared_query(Var) :-
+	is_shared(Var, NX),
+	write(is_shared(Var, NX)), nl,
+	fail; true.
+
+list_of_all_vars([n1, n2, n3, n4, n5, n6, n7, n8, n9, n10, n11, n12]).
+
+print_one_var(Var) :-
+	write('--- '),
+	write(Var),
+	write(' ---------------------------------------------'), nl,
+	var_edge_query(Var),
+	sel_edge_query(Var),
+	is_shared_query(Var).
+
+print_all_vars([]).
+print_all_vars([Var|Vars]) :-
+	print_one_var(Var),
+	print_all_vars(Vars).
+
+test :-	list_of_all_vars(Vars), print_all_vars(Vars).
