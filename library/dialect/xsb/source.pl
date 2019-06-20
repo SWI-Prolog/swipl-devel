@@ -66,7 +66,10 @@ user:term_expansion(begin_of_file, Out) :-
               | Out1
               ]
     ),
-    Out1 = [ (:- expects_dialect(xsb)) | Out2 ],
+    Out1 = [ (:- expects_dialect(xsb)),
+             (:- use_module(library(tables)))
+           | Out2
+           ],
     append(Extra, More, Out2),
     (   nonvar(Module)
     ->  setup_call_cleanup(
