@@ -1560,24 +1560,24 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
   if ( children.any )
   { switch( children.any->type )
     { case TN_KEY:
-      if ( !has_key ||
-	   k == children.key->key ||
-	   tagex(children.key->key) == TAG_VAR ||
-	   IS_TRIE_KEY_POP(children.key->key) )
-      {	word key   = children.key->key;
+	if ( !has_key ||
+	     k == children.key->key ||
+	     tagex(children.key->key) == TAG_VAR ||
+	     IS_TRIE_KEY_POP(children.key->key) )
+	{ word key   = children.key->key;
 
-	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	ch->key    = key;
-	ch->child  = children.key->child;
-        ch->choice.any = NULL;
+	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	  ch->key    = key;
+	  ch->child  = children.key->child;
+	  ch->choice.any = NULL;
 
-	if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
-	{ popSegStack(&dstate->stack, &dstate->term, Word);
-	  //Sdprintf("Popped %p\n", dstate->term);
-	}
-	break;
-      } else
-	return NULL;
+	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
+	  { popSegStack(&dstate->stack, &dstate->term, Word);
+	    //Sdprintf("Popped %p\n", dstate->term);
+	  }
+	  break;
+	} else
+	  return NULL;
       case TN_HASHED:
 	if ( has_key && children.hash->var_keys == 0 )
 	{ trie_node *child;
@@ -1803,7 +1803,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
-	  TmpBuffer ochp =  &state->choicepoints;
+	  TmpBuffer ochp = &state->choicepoints;
 
 	  nstate->trie = state->trie;
 	  nstate->allocated = TRUE;
