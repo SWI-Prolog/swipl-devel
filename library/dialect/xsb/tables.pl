@@ -251,7 +251,9 @@ abolish_table_pred(M:Name/Arity) :-
 abolish_table_pred(M:Head) :-
     callable(Head),
     !,
-    abolish_table_subgoals(M:Head).
+    functor(Head, Name, Arity),
+    functor(Generic, Name, Arity),
+    abolish_table_subgoals(M:Generic).
 abolish_table_pred(PI) :-
     type_error(callable_or_predicate_indicator, PI).
 
