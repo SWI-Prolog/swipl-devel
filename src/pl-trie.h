@@ -123,7 +123,7 @@ COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	trie_delete(trie *trie, trie_node *node, int prune);
 COMMON(void)	prune_node(trie *trie, trie_node *n);
-COMMON(trie *)	get_trie_form_node(trie_node *node);
+COMMON(trie *)	get_trie_from_node(trie_node *node);
 COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);

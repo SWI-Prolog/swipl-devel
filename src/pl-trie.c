@@ -593,13 +593,13 @@ trie_lookup(trie *trie, trie_node **nodep, Word k, int add, TmpBuffer vars ARG_L
 
 
 trie *
-get_trie_form_node(trie_node *node)
+get_trie_from_node(trie_node *node)
 { trie *trie_ptr;
 
   for( ; node->parent; node = node->parent )
     ;
   trie_ptr = (trie *)((char*)node - offsetof(trie, root));
-  assert(trie_ptr->magic == TRIE_MAGIC);
+  assert(trie_ptr->magic == TRIE_MAGIC || trie_ptr->magic == TRIE_CMAGIC);
 
   return trie_ptr;
 }
@@ -807,7 +807,6 @@ symbol_trie(atom_t symbol)
       return ref->trie;
   }
 
-  assert(0);
   return NULL;
 }
 
@@ -1014,15 +1013,32 @@ set_trie_value(trie *trie, trie_node *node, term_t value ARG_LD)
   return TRUE;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Delete a node from the trie. There are   two options: (1) simply set the
+value to 0 or (2), prune the branch   leading to this cell upwards until
+we find another existing node.
+
+TBD: create some sort of  lingering   mechanism  to allow for concurrent
+delete and gen_trie(). More modest: link up the deleted nodes and remove
+them after the references drop to 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 trie_delete(trie *trie, trie_node *node, int prune)
 { if ( node->value )
-  { if ( prune )
+  { if ( prune && trie->references == 0 )
     { prune_node(trie, node);
     } else
-    { word v = node->value;
-      node->value = 0;
-      release_value(v);
+    { word v;
+
+      if ( trie->release_node )
+	(*trie->release_node)(trie, node);
+
+      if ( (v=node->value) )
+      { node->value = 0;
+	release_value(v);
+      }
     }
     ATOMIC_DEC(&trie->value_count);
   }
@@ -1161,8 +1177,7 @@ PRED_IMPL("trie_delete", 3, trie_delete, 0)
     if ( (rc=trie_lookup(trie, &node, kp, FALSE, NULL PASS_LD)) == TRUE )
     { if ( node->value )
       { if ( unify_value(A3, node->value PASS_LD) )
-	{ prune_node(trie, node);
-	  ATOMIC_DEC(&trie->value_count);
+	{ trie_delete(trie, node, TRUE);
 	  return TRUE;
 	}
       }
@@ -1656,7 +1671,7 @@ next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
     ch--;
   }
 
-  return FALSE;
+  return NULL;
 }
 
 

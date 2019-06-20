@@ -111,6 +111,7 @@ typedef struct worklist
   unsigned	neg_delayed : 1;	/* Negative node was delayed */
   unsigned	has_answers : 1;	/* At least one unconditional answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
+  unsigned	depend_abolish : 1;	/* Scheduled for depending abolish */
   size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */
@@ -175,6 +176,5 @@ typedef struct delay_info
 
 COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
 COMMON(term_t)	init_delay_list(void);
-COMMON(void)	destroy_delay_info(delay_info *di);
 
 #endif /*_PL_TABLING_H*/

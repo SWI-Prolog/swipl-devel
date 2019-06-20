@@ -55,8 +55,10 @@ We provide two answer completion strategies:
 #define PL_recorded(r, t) put_fastheap(r, t PASS_LD)
 #define PL_erase(r)	  free_fastheap(r)
 
+static int	destroy_answer_trie(trie *atrie);
 static void	free_worklist(worklist *wl);
 static void	clean_worklist(worklist *wl);
+static void	destroy_depending_worklists(worklist *wl0);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
 static int	wl_has_work(const worklist *wl);
@@ -87,6 +89,9 @@ static int	simplify_component(tbl_component *scc);
 #define WLFS_FREE_ALL		0x0002
 
 #define DV_DELETED		((trie*)0x1)
+#define DL_UNDEFINED		((delay_info*)0x1)
+
+#define DL_IS_DELAY_LIST(dl)	((dl) && (dl) != DL_UNDEFINED)
 
 
 		 /*******************************
@@ -527,6 +532,10 @@ populate_answers(worklist *wl)
 		 *	 TABLE DELAY LISTS	*
 		 *******************************/
 
+#ifdef O_DEBUG
+static void print_dl_dependency(trie *from, trie *to);
+#endif
+
 static inline trie_node *
 REC_DELAY(record_t r)
 { return (trie_node*)(((uintptr_t)r)|0x1);
@@ -547,7 +556,7 @@ answer_is_conditional(trie_node *answer)
 { delay_info *di;
 
   return ( (di=answer->data.delayinfo) &&
-	   !isEmptyBuffer(&di->delay_sets) );
+	   (di == DL_UNDEFINED || !isEmptyBuffer(&di->delay_sets)) );
 }
 
 static delay_info *
@@ -573,21 +582,169 @@ answer_delay_info(worklist *wl, trie_node *answer, int create)
 }
 
 
-void
-destroy_delay_info(delay_info *di)
-{ if ( di->has_share_records )
-  { delay *d = baseBuffer(&di->delays, delay);
-    delay *z = topBuffer(&di->delays, delay);
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroy_delay_info(trie_node  *answer,  int  propagate)    removes   and
+deallocates the delay info  that  may   be  associated  to  `answer`. If
+`propagate` is TRUE, it also removes   the backpointers to `answer` from
+the worklist `delay` buffer of worklists   that  are references from the
+delay elements.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-    for(; d < z; d++)		/* keep a flag to see whether we have these */
-    { if ( IS_REC_DELAY(d->answer) )
-	PL_erase(UNREC_DELAY(d->answer));
+static void
+delete_answer(Buffer ab,  trie_node *answer)
+{ trie_node **ap = baseBuffer(ab, trie_node*);
+  trie_node **ep = topBuffer(ab, trie_node*);
+  trie_node **op = ap;
+
+  for(; ap < ep; ap++)
+  { if ( *ap != answer )
+      *op++ = *ap;
+  }
+
+  ab->top = (char*)op;
+}
+
+static void
+destroy_delay_info(trie *atrie, trie_node *answer, int propagate)
+{ delay_info *di = answer->data.delayinfo;
+
+  if ( DL_IS_DELAY_LIST(di) )
+  { answer->data.delayinfo = NULL;
+    if ( di->has_share_records )
+    { delay *d = baseBuffer(&di->delays, delay);
+      delay *z = topBuffer(&di->delays, delay);
+
+      for(; d < z; d++)		/* keep a flag to see whether we have these */
+      { if ( IS_REC_DELAY(d->answer) )
+	  PL_erase(UNREC_DELAY(d->answer));
+      }
+    }
+
+    if ( propagate )
+    { delay *db = baseBuffer(&di->delays, delay);
+      delay *dt = topBuffer(&di->delays, delay);
+      delay *d;
+
+      for(d=db; d < dt; d++)
+      { trie *at;
+
+	if ( (at=d->variant) && at != DV_DELETED )
+	{ worklist *wl = at->data.worklist;
+
+	  if ( WL_IS_WORKLIST(wl) && !isEmptyBuffer(&wl->delays) )
+	  { DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
+		  { GET_LD
+		    term_t tab = PL_new_term_ref();
+		    term_t dep = PL_new_term_ref();
+		    unify_trie_term(atrie->data.variant, tab PASS_LD);
+		    unify_trie_term(wl->table->data.variant, dep PASS_LD);
+		    Sdprintf("  Deleting answer from table ");
+		    PL_write_term(Serror, tab, 999, 0);
+		    Sdprintf(" <-- ");
+		    PL_write_term(Serror, dep, 999, PL_WRT_NEWLINE);
+		  });
+
+	    delete_answer(&wl->delays, answer);
+	  }
+	}
+      }
+    }
+
+    discardBuffer(&di->delay_sets);
+    discardBuffer(&di->delays);
+    free(di);
+  }
+}
+
+
+static void
+answer_set_general_undefined(trie *atrie, trie_node *answer)
+{ destroy_delay_info(atrie, answer, TRUE);
+  answer->data.delayinfo = DL_UNDEFINED;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Delete the undefined answers that depend on this worklist
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+delete_depending_answers(worklist *wl, TmpBuffer wlset)
+{ DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
+	{ GET_LD
+	  term_t t = PL_new_term_ref();
+	  unify_trie_term(wl->table->data.variant, t PASS_LD);
+	  Sdprintf("delete_depending_answers for ");
+	  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	});
+
+  while( !isEmptyBuffer(&wl->delays) )
+  { trie_node **top = topBuffer(&wl->delays, trie_node*);
+    trie_node *answer = top[-1];
+    delay_info *di;
+
+    assert(wl->depend_abolish);
+
+    if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
+    { trie *at = symbol_trie(di->variant->value);
+      worklist *dwl;
+
+      if ( WL_IS_WORKLIST((dwl=at->data.worklist)) &&
+	   !dwl->depend_abolish )
+      { assert(dwl != wl);
+	assert(dwl->table != wl->table);
+	DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
+	      print_dl_dependency(wl->table, dwl->table));
+	dwl->depend_abolish = TRUE;
+	addBuffer(wlset, dwl, worklist *);
+      }
+      answer_set_general_undefined(at, answer);
+    } else
+    { (void)popBufferP(&wl->delays, trie_node *);
     }
   }
 
-  discardBuffer(&di->delay_sets);
-  discardBuffer(&di->delays);
-  free(di);
+  discardBuffer(&wl->delays);
+  initBuffer(&wl->delays);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroy_depending_worklists(worklist *wl) destroys worklists that have
+answers pointing to this worklist and its answers.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+destroy_depending_worklists(worklist *wl0)
+{ tmp_buffer wlset;
+
+  initBuffer(&wlset);
+  wl0->depend_abolish = TRUE;
+  delete_depending_answers(wl0, &wlset);
+  while( !isEmptyBuffer(&wlset) )
+  { worklist *wl = popBuffer(&wlset, worklist *);
+
+    delete_depending_answers(wl, &wlset);
+    destroy_answer_trie(wl->table);
+  }
+  discardBuffer(&wlset);
+}
+
+
+static void *
+destroy_delay_info_answer(trie_node *answer, void *ctx)
+{ trie *atrie = ctx;
+
+  if ( DL_IS_DELAY_LIST(answer->data.delayinfo) )
+  { answer_set_general_undefined(atrie, answer);
+  }
+
+  return NULL;
+}
+
+
+static void
+destroy_delay_info_worklist(worklist *wl)
+{ map_trie_node(&wl->table->root, destroy_delay_info_answer, wl->table);
 }
 
 
@@ -632,7 +789,7 @@ completed node and we are just propagating an undefined literal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-add_to_wl_delays(trie *at, trie_node *answer)
+add_to_wl_delays(trie *at, trie_node *answer, worklist *wla)
 { worklist *wl = at->data.worklist;
 
   if ( WL_IS_WORKLIST(wl) )
@@ -640,14 +797,23 @@ add_to_wl_delays(trie *at, trie_node *answer)
 	  { GET_LD
 	    term_t t = PL_new_term_ref();
 	    term_t v = PL_new_term_ref();
+	    term_t vt = PL_new_term_ref();
 	    unify_trie_term(at->data.variant, t PASS_LD);
 	    unify_trie_term(answer, v PASS_LD);
+	    unify_trie_term(wla->table->data.variant, vt PASS_LD);
 	    Sdprintf("Adding propagation to worklist for ");
 	    PL_write_term(Serror, t, 999, 0);
 	    Sdprintf(" to answer ");
-	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
+	    PL_write_term(Serror, v, 999, 0);
+	    Sdprintf(" of table ");
+	    PL_write_term(Serror, vt, 999, PL_WRT_NEWLINE);
 	  });
     addBuffer(&wl->delays, answer, trie_node *);
+  } else
+  { /* see '$tbl_table_complete_all'/1 */
+    DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
+	  print_dl_dependency(wla->table, at));
+    assert(0);
   }
 
   return TRUE;
@@ -743,14 +909,14 @@ retry:
   { delay_info *di;
 
     if ( (di=answer->data.delayinfo) )
-    { answer->data.delayinfo = NULL;
-      destroy_delay_info(di);
+    { destroy_delay_info(wl->table, answer, TRUE);
+      answer->data.delayinfo = NULL;
       wl->undefined--;
       DEBUG(MSG_TABLING_SIMPLIFY,
 	    Sdprintf("Unconditional answer after conditional\n"));
     }
 
-    if ( wl->ground )
+    if ( wl->ground )				/* early completion */
       return UDL_COMPLETE;
     return UDL_TRUE;
   } else
@@ -797,8 +963,14 @@ retry:
 	  h = HeadList(dlp);
 	  deRef(h);
 	  if ( isAtom(*h) )		/* Answer trie symbol */
-	  { at = symbol_trie(*h);
-	    an = NULL;
+	  { if ( (at=symbol_trie(*h)) )
+	    { an = NULL;
+	    } else			/* deleted trie or 'undefined' */
+	    { undef:
+	      destroy_delay_info(wl->table, answer, TRUE);
+	      answer->data.delayinfo = DL_UNDEFINED;
+	      return UDL_TRUE;
+	    }
 	  } else if ( isTerm(*h) )
 	  { Functor f = valueTerm(*h);
 	    Word p;
@@ -806,7 +978,9 @@ retry:
 	    if ( f->definition == FUNCTOR_plus2 )
 	    { deRef2(&f->arguments[0], p);
 	      assert(isAtom(*p));
-	      at = symbol_trie(*p);
+	      if ( !(at=symbol_trie(*p)) )
+	      { goto undef;
+	      }
 	      deRef2(&f->arguments[1], p);
 	      if ( isInteger(*p) )
 	      { assert(isTaggedInt(*p));
@@ -883,7 +1057,7 @@ retry:
 
 	for(i=ds->offset; i<e; i++)
 	{ if ( d[i].variant )
-	  { if ( !add_to_wl_delays(d[i].variant, answer) )
+	  { if ( !add_to_wl_delays(d[i].variant, answer, wl) )
 	      return UDL_FALSE;
 	  }
 	}
@@ -1105,20 +1279,24 @@ static void print_delay(const char *msg, trie_node *variant, trie_node *answer);
 static int
 make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
-  trie *at = symbol_trie(di->variant->value);
-  worklist *wl = at->data.worklist;
-  assert(wl->magic == WORKLIST_MAGIC);
 
-  DEBUG(MSG_TABLING_SIMPLIFY,
-	print_delay("   Making answer unconditional", di->variant, answer));
+  if ( DL_IS_DELAY_LIST(di) )
+  { trie *at = symbol_trie(di->variant->value);
+    worklist *wl = at->data.worklist;
+    assert(wl->magic == WORKLIST_MAGIC);
 
-  answer->data.delayinfo = NULL;
-  destroy_delay_info(di);
-  agenda->done++;
-  wl->undefined--;
+    DEBUG(MSG_TABLING_SIMPLIFY,
+	  print_delay("   Making answer unconditional", di->variant, answer));
 
-  if ( !isEmptyBuffer(&wl->delays) )
-    push_propagate(agenda, wl, answer, TRUE);
+    destroy_delay_info(at, answer, TRUE);
+    agenda->done++;
+    wl->undefined--;
+
+    if ( !isEmptyBuffer(&wl->delays) )
+      push_propagate(agenda, wl, answer, TRUE);
+  } else
+  { assert(0);
+  }
 
   return TRUE;
 }
@@ -1127,22 +1305,24 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 static int
 remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
-  trie *at = symbol_trie(di->variant->value);
-  worklist *wl = at->data.worklist;
 
-  assert(wl->magic == WORKLIST_MAGIC);
+  if ( DL_IS_DELAY_LIST(di) )
+  { trie *at = symbol_trie(di->variant->value);
+    worklist *wl = at->data.worklist;
 
-  DEBUG(MSG_TABLING_SIMPLIFY,
-	print_delay("    Removing conditional answer", di->variant, answer));
+    assert(wl->magic == WORKLIST_MAGIC);
 
-  answer->data.delayinfo = NULL;
-  destroy_delay_info(di);
-  trie_delete(at, answer, FALSE);		/* cannot prune as may be */
-  agenda->done++;				/* in worklist delay lists */
-  wl->undefined--;
+    DEBUG(MSG_TABLING_SIMPLIFY,
+	  print_delay("    Removing conditional answer", di->variant, answer));
 
-  if ( !isEmptyBuffer(&wl->delays) )
-    push_propagate(agenda, wl, answer, FALSE);
+    destroy_delay_info(at, answer, TRUE);
+    trie_delete(at, answer, TRUE);		/* cannot prune as may be */
+    agenda->done++;				/* in worklist delay lists */
+    wl->undefined--;
+
+    if ( !isEmptyBuffer(&wl->delays) )
+      push_propagate(agenda, wl, answer, FALSE);
+  }
 
   return TRUE;
 }
@@ -1368,6 +1548,23 @@ simplify_component(tbl_component *scc)
     return TRUE;
 }
 
+#ifdef O_DEBUG
+static void
+print_dl_dependency(trie *from, trie *to)
+{ GET_LD
+  term_t From = PL_new_term_ref();
+  term_t To   = PL_new_term_ref();
+
+  unify_trie_term(from->data.variant, From PASS_LD);
+  unify_trie_term(to->data.variant, To PASS_LD);
+  Sdprintf("Delay list dep from %p (", from);
+  PL_write_term(Serror, From, 999, 0);
+  Sdprintf(") -> %p (", to);
+  PL_write_term(Serror, To, 999, 0);
+  Sdprintf(")\n");
+}
+#endif
+
 		 /*******************************
 		 *	ANSWER COMPLETION	*
 		 *******************************/
@@ -1434,7 +1631,7 @@ static int
 has_positive_dl(trie_node *n)
 { delay_info *di;
 
-  if ( n->value && (di=n->data.delayinfo) )
+  if ( n->value && DL_IS_DELAY_LIST(di=n->data.delayinfo) )
   { delay_set *ds, *dz;
     delay *db = baseBuffer(&di->delays, delay);
 
@@ -1528,7 +1725,7 @@ PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
 
     init_spf_agenda(&agenda);
 
-    if ( di )
+    if ( DL_IS_DELAY_LIST(di) )
     { trie *at = symbol_trie(di->variant->value);
       worklist *wl = at->data.worklist;
 
@@ -1555,7 +1752,7 @@ PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
       }
     } else					/* answer is not conditional */
     { if ( !truth )
-      { trie *at = get_trie_form_node(answer);
+      { trie *at = get_trie_from_node(answer);
 
 	trie_delete(at, answer, FALSE);		/* TBD: propagate? */
       }
@@ -1633,7 +1830,7 @@ print_delay(const char *msg, trie_node *variant, trie_node *answer)
 static void
 print_answer(const char *msg, trie_node *answer)
 { GET_LD
-  trie *at = get_trie_form_node(answer);
+  trie *at = get_trie_from_node(answer);
   term_t t = PL_new_term_ref();
 
   unify_trie_term(at->data.variant, t PASS_LD);
@@ -1684,14 +1881,25 @@ release_variant_table_node(trie *variant_table, trie_node *node)
     worklist *wl;
 
     if ( WL_IS_WORKLIST(wl=vtrie->data.worklist) )
+    { if ( !isEmptyBuffer(&wl->delays) &&
+	   variant_table->magic == TRIE_MAGIC )	/* not in final destruction */
+	destroy_depending_worklists(wl);
+      if ( wl->undefined )
+	destroy_delay_info_worklist(wl);
+      vtrie->data.worklist = NULL;
       free_worklist(wl);
+    }
 
     assert(vtrie->data.variant == node);
-    vtrie->data.variant = NULL;
-    vtrie->data.worklist = NULL;
-
     trie_empty(vtrie);
+    vtrie->data.variant = NULL;
   }
+}
+
+
+static int
+is_variant_trie(trie *trie)
+{ return trie->release_node == release_variant_table_node;
 }
 
 
@@ -1742,8 +1950,8 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
 
 static void
 release_answer_node(trie *atrie, trie_node *node)
-{ if ( node->data.delayinfo )
-    destroy_delay_info(node->data.delayinfo);
+{ if ( DL_IS_DELAY_LIST(node->data.delayinfo) )
+    destroy_delay_info(atrie, node, TRUE);
 }
 
 
@@ -2361,6 +2569,29 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
 }
 
 
+static int
+destroy_answer_trie(trie *atrie)
+{ if ( atrie->data.variant)
+  { trie *vtrie = get_trie_from_node(atrie->data.variant);
+
+    if ( is_variant_trie(vtrie) )
+    { DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
+	    { GET_LD
+	      term_t t = PL_new_term_ref();
+	      unify_trie_term(atrie->data.variant, t PASS_LD);
+	      Sdprintf("Deleting answer trie for ");
+	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	    });
+
+      trie_delete(vtrie, atrie->data.variant, TRUE);
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
 /** '$tbl_destroy_table'(+Trie)
  *
  * Destroy a single trie table.
@@ -2368,20 +2599,13 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
 
 static
 PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
-{ PRED_LD
-  trie *table;
+{ trie *table;
 
   if ( get_trie(A1, &table) )
-  { if ( table->data.variant )
-    { trie *vtrie = get_trie_form_node(table->data.variant);
+  { if ( destroy_answer_trie(table) )
+      return TRUE;
 
-      if ( vtrie == LD->tabling.variant_table )
-      { trie_delete(vtrie, table->data.variant, TRUE);
-	return TRUE;
-      }
-
-      return PL_type_error("table", A1);
-    }
+    return PL_type_error("table", A1);
   }
 
   return FALSE;
@@ -3039,6 +3263,11 @@ PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 /** '$tbl_table_complete_all'(+SCC)
  *
  * Complete and reset all newly created tables.
+ *
+ * (*) currently we keep worklists that play a role on a network
+ * of undefined answers.  That is needed for lazy answer completion
+ * (see O_AC_EAGER).  If we do not do so, we still must keep track
+ * of dependencies when abolishing tries.
  */
 
 static
@@ -3066,6 +3295,7 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
+						/* see (*) */
       if ( !wl->undefined && isEmptyBuffer(&wl->delays) )
       { free_worklist(wl);
 	trie->data.worklist = WL_COMPLETE;
@@ -3535,29 +3765,33 @@ unify_delay_info(term_t t, trie_node *answer, void *ctxp ARG_LD)
 { delay_info *di;
 
   if ( (di=answer_delay_info(NULL, answer, FALSE)) )
-  { term_t av = PL_new_term_refs(2);
-    term_t cond = av+1;
-    delay_set *base, *top;
-    int count = 0;
-    answer_ctx *ctx = ctxp;
+  { if ( DL_IS_DELAY_LIST(di) )
+    { term_t av = PL_new_term_refs(2);
+      term_t cond = av+1;
+      delay_set *base, *top;
+      int count = 0;
+      answer_ctx *ctx = ctxp;
 
-    delay_sets(di, &base, &top);
-    for(; base < top; base++)
-    { term_t c1 = count == 0 ? cond : av+0;
+      delay_sets(di, &base, &top);
+      for(; base < top; base++)
+      { term_t c1 = count == 0 ? cond : av+0;
 
-      if ( isEmptyBuffer(&di->delay_sets) )
-	continue;
+	if ( isEmptyBuffer(&di->delay_sets) )
+	  continue;
 
-      if ( !put_delay_set(c1, di, base, ctx PASS_LD) )
-	return FALSE;
-
-      if ( count++ > 0 )
-      { if ( !PL_cons_functor_v(cond, FUNCTOR_semicolon2, av) )
+	if ( !put_delay_set(c1, di, base, ctx PASS_LD) )
 	  return FALSE;
-      }
-    }
 
-    return PL_unify(t, cond);
+	if ( count++ > 0 )
+	{ if ( !PL_cons_functor_v(cond, FUNCTOR_semicolon2, av) )
+	    return FALSE;
+	}
+      }
+
+      return PL_unify(t, cond);
+    } else
+    { return PL_unify_atom(t, ATOM_undefined);
+    }
   } else
   { return PL_unify_atom(t, ATOM_true);
   }
@@ -3677,24 +3911,6 @@ PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
 			       PL_ATOM, def->module->name,
 			       PL_TERM, t);
   }
-}
-
-
-/**
- * '$is_answer_trie'(@Trie) is semidet
- *
- * True if Trie is an answer trie, possible already destroyed.  This
- * is used to find remaining tables for gc_tables/1.
- */
-
-static
-PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
-{ trie *trie;
-
-  if ( get_trie_noex(A1, &trie) )
-    return trie->release_node == release_answer_node;
-
-  return FALSE;
 }
 
 
