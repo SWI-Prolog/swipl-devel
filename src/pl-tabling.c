@@ -1714,7 +1714,6 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
   static functor_t fast[VAR_SKEL_FAST] = {0};
   size_t arity = ep-pp;
   functor_t vf;
-  Word p;
 
   assert(arity > 0);
   if ( arity < VAR_SKEL_FAST )
@@ -1724,8 +1723,9 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
   { vf = PL_new_functor(ATOM_ret, arity);
   }
 
-  if ( (p=allocGlobalNoShift(arity+1)) )
-  { word w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  if ( hasGlobalSpace(arity+1) )
+  { Word p = allocGlobalNoShift(arity+1);
+    word w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
     *p++ = vf;
 
     for(; pp < ep; pp++)
