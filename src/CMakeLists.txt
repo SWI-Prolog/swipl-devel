@@ -472,6 +472,15 @@ endif()
 include(Params)
 configure_file(parms.h.cmake parms.h)
 
+# Provide ninja etags
+file(GLOB_RECURSE etags_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.[ch]")
+add_custom_target(
+    etags
+    etags ${etags_sources}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Create TAGS file for main sources")
+
+
 ################
 # Installation
 ################
