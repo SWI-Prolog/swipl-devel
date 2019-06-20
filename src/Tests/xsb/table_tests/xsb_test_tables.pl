@@ -70,6 +70,13 @@ table_test(abol_test3b).        % atp gc diff preds + valid
 table_test(abol_test3c).        % atp gc diff preds + valid + multiple gcs
 table_test(atc_test).
 table_test(abolish_cascade).	% cascading abolish for subgoals with gc etc.
+table_test(abolish_cascade_pred).
+table_test(abolish_cycle).
+table_test(abolish_dag).
+table_test(abolish_neg_cycle).
+table_test(abolish_neg_dag).
+table_test(pred_abolish_cycle).
+table_test(pred_abolish_dag).
 /*
 */
 
