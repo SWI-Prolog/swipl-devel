@@ -928,6 +928,12 @@ update_goal(lattice(Name/Arity), S0,S1,S2, Goal) :-
     '$must_be'(oneof(integer, lattice_arity, [3]), Arity),
     '$must_be'(atom, Name),
     Goal =.. [Name,S0,S1,S2].
+update_goal(lattice(Head), S0,S1,S2, Goal) :-
+    compound(Head),
+    !,
+    compound_name_arity(Head, Name, Arity),
+    '$must_be'(oneof(integer, lattice_arity, [3]), Arity),
+    Goal =.. [Name,S0,S1,S2].
 update_goal(lattice(Name), S0,S1,S2, Goal) :-
     !,
     '$must_be'(atom, Name),

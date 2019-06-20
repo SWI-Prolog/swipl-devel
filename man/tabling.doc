@@ -250,12 +250,13 @@ indicates the portability.
 A variable (XSB), the atom \const{index} (YAP) or a \const{+}
 (B-Prolog, YAP) declare that the argument is tabled normally.
 
-    \termitem{lattice}{PI}
-\arg{PI} must be the predicate indicator of a predicate with arity~3.
-On each answer, \arg{PI} is called with three arguments: the current
-aggregated answer and the new answer are inputs.  The last argument
-must be unified with a term that represents the new aggregated answer.
-In SWI-Prolog the arity (3) may be omitted. See the example above.
+    \termitem{lattice}{Pred}
+\arg{Pred} denotes a predicate with arity~3.  It may be specified as
+an predicate indicator (\arg{Name}/3), plain predicate name (\arg{Name})
+or a head term \term{Name}{_,_,_}. On each answer, \arg{PI} is called
+with three arguments: the current aggregated answer and the new answer
+are inputs. The last argument must be unified with a term that
+represents the new aggregated answer.
 
     \termitem{po}{PI}
 \jargon{Partial Ordening}. The new answer is added iff

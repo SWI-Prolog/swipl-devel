@@ -1840,6 +1840,14 @@ table_moded_call(Atom/Arity, Arity, TB,
     colour_item(goal(Class, Head), TB, NP),
     colour_item(predicate_indicator, TB, FF-FT),
     colour_item(arity, TB, AP).
+table_moded_call(Head, Arity, TB, Pos) :-
+    Pos = term_position(_,_,FF,FT,_),
+    compound(Head),
+    !,
+    compound_name_arity(Head, _Name, Arity),
+    goal_classification(TB, Head, [], Class),
+    colour_item(goal(Class, Head), TB, FF-FT),
+    colourise_term_args(Head, TB, Pos).
 table_moded_call(_, _, TB, Pos) :-
     colour_item(type_error(predicate_name_or_indicator), TB, Pos).
 
