@@ -669,11 +669,19 @@ terminate_handler(int sig)
   kill(getpid(), sig);
 #else
   switch( sig )
-  { case SIGTERM:
+  {
+#ifdef SIGTERM
+    case SIGTERM:
+      exit(128+SIGTERM);
+#endif
+#ifdef SIGQUIT
     case SIGQUIT:
-      exit(128+sig);
+      exit(128+SIGQUIT);
+#endif
+#ifdef SIGABRT
     case SIGABRT:
       abort();
+#endif
     default:
       assert(0); /* not reached */
   }
