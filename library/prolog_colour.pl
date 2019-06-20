@@ -1788,6 +1788,11 @@ colourise_table_declarations(Goal, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
     goal_classification(TB, Goal, [], Class),
     colour_item(goal(Class, Goal), TB, FF-FT),
     colourise_table_modes(Args, TB, ArgPos).
+colourise_table_declarations(Goal, TB, Pos) :-
+    atom(Goal),
+    !,
+    goal_classification(TB, Goal, [], Class),
+    colour_item(goal(Class, Goal), TB, Pos).
 
 colourise_table_modes([], _, _).
 colourise_table_modes([H|T], TB, [PH|PT]) :-

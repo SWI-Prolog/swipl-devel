@@ -851,6 +851,8 @@ instantiated_moded_arg(Vars) :-
 %   itself. If there are multiple, this is a term s(A1,A2,...)
 
 extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
+    compound(ModeSpec),
+    !,
     compound_name_arguments(ModeSpec, Name, ModeSpecArgs),
     compound_name_arguments(Head, Name, HeadArgs),
     separate_args(ModeSpecArgs, HeadArgs, VariantArgs, Modes, ModedArgs),
@@ -863,6 +865,9 @@ extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
     ->  true
     ;   ModedAnswer =.. [s|ModedArgs]
     ).
+extract_modes(Atom, Atom, Variant, [], ModedAnswer) :-
+    atomic_list_concat([$,Atom,$,0], Variant),
+    '$tbl_trienode'(ModedAnswer).
 
 %!  separate_args(+ModeSpecArgs, +HeadArgs,
 %!		  -NoModesArgs, -Modes, -ModeArgs) is det.
