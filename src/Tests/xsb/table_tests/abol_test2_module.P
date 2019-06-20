@@ -1,0 +1,8 @@
+
+:- export mpath/2.
+% :- import arc/2 from usermod.
+
+:- table mpath/2.
+
+mpath(X,Y) :- arc(X,Y).
+mpath(X,Y) :- mpath(X,Z), arc(Z,Y).

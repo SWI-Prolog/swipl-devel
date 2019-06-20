@@ -1,0 +1,15 @@
+-------
+-------
+answer(m(a,1))
+answer(m(a,2))
+answer(m(a,3))
+answer(m(a,4))
+answer(u(a,1))
+answer(u(a,2))
+answer(u(a,3))
+answer(u(a,4))
+answer(u(b,1))
+answer(u(b,2))
+answer(u(b,3))
+answer(u(b,4))
+remaining(0)

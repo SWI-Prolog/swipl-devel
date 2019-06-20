@@ -1,0 +1,23 @@
+
+arc(1,2).
+arc(2,3).
+arc(2,4).
+arc(4,1).
+
+:- table upath/2.
+
+upath(X,Y) :- arc(X,Y).
+upath(X,Y) :- upath(X,Z), arc(Z,Y).
+
+:- import mpath/2 from abol_test2_module.
+:- import abolish_module_tables/1, get_residual/2 from tables.
+
+test:- upath(1,_),fail.
+test:- mpath(1,_),fail.
+test:- mpath(1,_X),abolish_module_tables(abol_test2_module),fail.
+test:- abolish_module_tables(abol_test2_module),fail.
+test:- upath(1,_),context_module(M), abolish_module_tables(M),fail.
+test:- get_residual(upath(1,Y),_),writeln(answer(u(a,Y))),fail.
+test:- get_residual(mpath(1,Y),_),writeln(answer(m(a,Y))),fail.
+test:- gc_tables(_N),write(remaining(0)),fail.
+test.

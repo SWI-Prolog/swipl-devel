@@ -1,0 +1,66 @@
+:- import abolish_table_call/1, get_residual/2 from tables.
+
+test:- p1(_,_,_),p1(a,b,_),s,abolish_table_call(undefined),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+%test:- writeln(one),fail.
+test:- p1(_,_,_),p1(_,_,_),s,abolish_table_call(undefined),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+%test:- writeln(two),fail.
+test:- p1(_,_,_),s,abolish_table_call(undefined),abolish_table_call(p1(_,_,_)),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+%test:- writeln(three),fail.
+%test:- p1(_,_,_),p1(_,_,_),s,abolish_table_call(undefined,[abolish_tables_singly]),fail.
+%test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+%test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+%test:- writeln(four),fail.
+test:- p2(_,_,_),abolish_table_call(r2(_,_,_)),abolish_table_call(r3(_,_,_)),fail.
+test:- get_residual(p2(A,B,C),F),writeln(get_residual(p2(A,B,C),F)),fail.
+test:- get_residual(r2(A,B,C),F),writeln(get_residual(r2(A,B,C),F)),fail.
+test:- get_residual(r3(A,B,C),F),writeln(get_residual(r3(A,B,C),F)),fail.
+test:- writeln('cascading abolish test completed').
+
+:- table p1/3, r1/3.
+p1(X,Y,Z):- r1(X,Y,Z).
+
+r1(a,b,c):- undefined.
+r1(a,b,d):- undefined.
+r1(a,c,c):- undefined.
+r1(a,c,d):- undefined.
+r1(b,c,d):- undefined.
+r1(b,c,e):- undefined.
+r1(c,c,e):- undefined.
+r1(d,c,e):- undefined.
+r1(3,c,e):- undefined.
+r1(f,c,e):- undefined.
+r1(g,c,e):- undefined.
+r1(h,c,e):- undefined.
+r1(i,c,e):- undefined.
+
+%undefined :- tnot(undefined).
+
+:- table s/0,t/0.
+s:- tnot(t).
+
+t:- tnot(undefined).
+
+:- table p2/3,  r2/3,  r3/3.
+p2(X,Y,Z):- r2(X,Y,Z).
+p2(X,Y,Z):- r3(X,Y,Z).
+
+r2(a,b,c):- undefined.
+r2(a,b,d):- undefined.
+r2(a,c,c):- undefined.
+r2(a,c,d):- undefined.
+r2(b,c,d):- undefined.
+r2(b,c,e):- undefined.
+r2(c,c,e):- undefined.
+
+r3(d,c,e):- undefined.
+r3(3,c,e):- undefined.
+r3(f,c,e):- undefined.
+r3(g,c,e):- undefined.
+r3(h,c,e):- undefined.
+r3(i,c,e):- undefined.
