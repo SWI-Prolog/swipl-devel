@@ -27,3 +27,4 @@
 1 : p9(a):-[p8(a)]
 1 : p9(b):-[p8(b)]
 1 : undefined:-[tnot undefined]
+2 : undefined:-[tnot undefined]
