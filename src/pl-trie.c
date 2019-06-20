@@ -1761,12 +1761,14 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
   Mark(fli_context->mark);
   for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state PASS_LD) )
-  { int rc;
+  { for(;;)
+    { int rc;
+      size_t asize = aTop - aBase; /* using the argument stack may be dubious */
 
-    for(;;)
-    { if ( (rc=unify_trie_path(Key, &n, state PASS_LD)) == TRUE )
+      if ( (rc=unify_trie_path(Key, &n, state PASS_LD)) == TRUE )
 	break;
 
+      aTop = aBase+asize;
       Undo(fli_context->mark);
       if ( rc == FALSE )
 	goto next;
