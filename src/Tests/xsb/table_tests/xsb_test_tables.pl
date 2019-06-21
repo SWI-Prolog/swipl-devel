@@ -85,4 +85,6 @@ table_test(lrbug).
 table_test(tabbug1).
 table_test(pps).
 
+%table_test(test_3vwfs_1).      % WFS with answer subsumption
+
 :- end_tests(xsb_test_tables).
