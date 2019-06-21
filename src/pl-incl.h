@@ -1969,26 +1969,6 @@ typedef struct
 
 
 		 /*******************************
-		 *	      EVENTS		*
-		 *******************************/
-
-typedef enum pl_event_type
-{ PLEV_ABORT,				/* Execution aborted */
-  PLEV_ERASED_CLAUSE,			/* clause was erased */
-  PLEV_ERASED_RECORD,			/* record was erased */
-  PLEV_DEBUGGING,			/* changed debugging mode */
-  PLEV_TRACING,				/* changed tracing mode */
-  PLEV_SPY,				/* changed spypoint */
-  PLEV_BREAK,				/* a break-point was set */
-  PLEV_BREAK_EXISTS,			/* existing breakpoint */
-  PLEV_NOBREAK,				/* a break-point was cleared */
-  PLEV_GCNOBREAK,			/* cleared due to clause GC */
-  PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
-  PL_EV_THREADFINISHED			/* A thread has finished */
-} pl_event_type;
-
-
-		 /*******************************
 		 *	       COMPARE		*
 		 *******************************/
 

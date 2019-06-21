@@ -5,6 +5,7 @@
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,7 @@
 #include "pl-dbref.h"
 #include "pl-wrap.h"
 #include "pl-prof.h"
+#include "pl-event.h"
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif

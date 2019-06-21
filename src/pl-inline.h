@@ -528,25 +528,6 @@ setGenerationFrame__LD(LocalFrame fr ARG_LD)
 #endif
 }
 
-static inline int WUNUSED
-callEventHook(pl_event_type ev, ...)
-{
-#ifdef O_DEBUGGER
-  if ( PROCEDURE_event_hook1->definition->impl.any.defined )
-  { va_list args;
-    int rc;
-
-    va_start(args, ev);
-    rc = PL_call_event_hook_va(ev, args);
-    va_end(args);
-
-    return rc;
-  }
-#endif
-
-  return TRUE;
-}
-
 static inline int
 ensureLocalSpace__LD(size_t bytes ARG_LD)
 { int rc;

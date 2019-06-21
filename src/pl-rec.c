@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2010, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@
 #include "pl-dbref.h"
 #include "pl-termwalk.c"
 #include "pl-dict.h"
+#include "pl-event.h"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 

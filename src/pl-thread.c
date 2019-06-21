@@ -53,6 +53,7 @@
 #include "pl-tabling.h"
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
+#include "pl-event.h"
 #include <stdio.h>
 #include <math.h>
 
