@@ -347,7 +347,7 @@ activate(Wrapper, Worker, Trie, WorkList) :-
     tdebug(activate, '~p: created wl=~p, trie=~p',
            [Wrapper, WorkList, Trie]),
     (   reset_delays,
-        delim(Wrapper, Worker, WorkList, []),   % FIXME: is this right?
+        delim(Wrapper, Worker, WorkList, []),
         fail
     ;   true
     ).
