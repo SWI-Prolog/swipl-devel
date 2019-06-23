@@ -38,29 +38,76 @@
 #define _PL_EVENT_H
 
 typedef enum pl_event_type
-{ PLEV_ABORT,				/* Execution aborted */
+{ PLEV_ABORT = 0,			/* Execution aborted */
   PLEV_ERASED_CLAUSE,			/* clause was erased */
   PLEV_ERASED_RECORD,			/* record was erased */
-  PLEV_DEBUGGING,			/* changed debugging mode */
-  PLEV_TRACING,				/* changed tracing mode */
-  PLEV_SPY,				/* changed spypoint */
   PLEV_BREAK,				/* a break-point was set */
   PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
   PLEV_GCNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
-  PL_EV_THREADFINISHED			/* A thread has finished */
+  PLEV_THREAD_EXIT,			/* A thread has finished */
+  PLEV_THIS_THREAD_EXIT			/* This thread has finished */
 } pl_event_type;
 
+typedef struct event_callback
+{ Module		 module;	/* context module */
+  Procedure		 procedure;	/* procedure to use */
+  int		       (*function)();	/* C-function */
+  union
+  { struct fastheap_term *term;		/* closure */
+    void		 *pointer;	/* for C functions */
+  } closure;
+  int			 argc;		/* #context args */
+  struct event_callback *next;		/* next in chain */
+} event_callback;
+
+typedef struct event_list
+{ event_callback *head;			/* First event handler */
+  event_callback *tail;			/* Last event handler */
+  recursiveMutex  lock;			/* Access lock */
+} event_list;
+
+typedef struct even_type
+{ pl_event_type id;
+  atom_t	name;
+  int		argc;
+  unsigned      local : 1;
+  event_list  **location;
+} event_type;
 
 COMMON(int)	delayEvents(void);
 COMMON(int)	sendDelayedEvents(int noerror);
 COMMON(int)	PL_call_event_hook(pl_event_type ev, ...);
 COMMON(int)	PL_call_event_hook_va(pl_event_type ev, va_list args);
+COMMON(int)	register_event_hook(event_list **list, int last,
+				    term_t closure, int argc);
+COMMON(int)	register_event_function(event_list **list, int last,
+					int (*func)(), void *closure, int argc);
+COMMON(void)	destroy_event_list(event_list **listp);
+COMMON(int)	predicate_update_event(Definition def,
+				       atom_t action, Clause cl ARG_LD);
+COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
+				 ARG_LD);
+
+COMMON(const event_type) PL_events[PLEV_THIS_THREAD_EXIT+2];
+
+static inline event_list**
+even_list_location(pl_event_type ev)
+{ if ( likely(!PL_events[ev].local) )
+  { return PL_events[ev].location;
+  } else
+  { GET_LD
+    return (event_list**)(((char*)LD) + (size_t)PL_events[ev].location);
+  }
+}
+
 
 static inline int WUNUSED
 callEventHook(pl_event_type ev, ...)
-{ if ( PROCEDURE_event_hook1->definition->impl.any.defined )
+{ event_list **listp = even_list_location(ev);
+
+  if ( *listp )
   { va_list args;
     int rc;
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2017, University of Amsterdam
+    Copyright (c)  1999-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -218,9 +219,10 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_UMUTEX       23
 #define L_INIT_ATOMS   24
 #define L_CGCGEN       25
+#define L_EVHOOK       26
 #ifdef __WINDOWS__
-#define L_DDE	       26
-#define L_CSTACK       27
+#define L_DDE	       27
+#define L_CSTACK       28
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

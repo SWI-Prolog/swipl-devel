@@ -1242,6 +1242,8 @@ xref_meta(order_by(_, G),       [G]).
 xref_meta(limit(_, G),          [G]).
 xref_meta(offset(_, G),         [G]).
 xref_meta(reset(G,_,_),         [G]).
+xref_meta(prolog_listen(Ev,G),  [G+N]) :- event_xargs(Ev, N).
+xref_meta(prolog_listen(Ev,G,_),[G+N]) :- event_xargs(Ev, N).
 
                                         % XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
@@ -1263,6 +1265,13 @@ setof_goal(_^EG, G) :-
     setof_goal(EG, G).
 setof_goal(G, G).
 
+event_xargs(abort,            0).
+event_xargs(erase,            1).
+event_xargs(break,            3).
+event_xargs(frame_finished,   1).
+event_xargs(thread_exit,      1).
+event_xargs(this_thread_exit, 0).
+event_xargs(PI,               2) :- pi_to_head(PI, _).
 
 %!  head_of(+Rule, -Head)
 %
@@ -1330,7 +1339,6 @@ hook(user:prolog_clause_name(_,_)).
 hook(user:prolog_list_goal(_)).
 hook(user:prolog_predicate_name(_,_)).
 hook(user:prolog_trace_interception(_,_,_,_)).
-hook(user:prolog_event_hook(_)).
 hook(user:prolog_exception_hook(_,_,_,_)).
 hook(sandbox:safe_primitive(_)).
 hook(sandbox:safe_meta_predicate(_)).

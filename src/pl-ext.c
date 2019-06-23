@@ -196,7 +196,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
-  FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
   FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 
@@ -392,6 +391,7 @@ DECL_PLIST(mutex);
 DECL_PLIST(zip);
 DECL_PLIST(cbtrace);
 DECL_PLIST(wrap);
+DECL_PLIST(event);
 
 void
 initBuildIns(void)
@@ -460,6 +460,7 @@ initBuildIns(void)
   REG_PLIST(zip);
   REG_PLIST(cbtrace);
   REG_PLIST(wrap);
+  REG_PLIST(event);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -484,10 +485,6 @@ initBuildIns(void)
   LOOKUPPROC(dinit_goal3);
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
-#endif
-#if O_DEBUGGER
-  PROCEDURE_event_hook1 =
-	PL_predicate("prolog_event_hook", 1, "user");
 #endif
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
@@ -516,7 +513,6 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("with_output_to",   2, "system"), "+0");
 #ifdef O_PLMT
   PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
-  PL_meta_predicate(PL_predicate("thread_at_exit",   1, "system"), "0");
   PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
 #endif
   PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
@@ -524,6 +520,9 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
   PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
   PL_meta_predicate(PL_predicate("unwrap_predicate", 2, "system"), ":?");
+  PL_meta_predicate(PL_predicate("prolog_listen",    2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("prolog_listen",    3, "system"), "+:+");
+  PL_meta_predicate(PL_predicate("prolog_unlisten",  2, "system"), "+:");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

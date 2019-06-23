@@ -520,37 +520,36 @@ profiler} \predicatesummary{prolog}{0}{Run interactive top level}
 \predicatesummary{prolog_choice_attribute}{3}{Examine the choice point
 stack} \predicatesummary{prolog_current_choice}{1}{Reference to most
 recent choice point}
-\predicatesummary{prolog_current_frame}{1}{Reference to goal's
-environment stack} \predicatesummary{prolog_cut_to}{1}{Realise global
-cuts} \predicatesummary{prolog_edit:locate}{2}{Locate targets for
-edit/1} \predicatesummary{prolog_edit:locate}{3}{Locate targets for
-edit/1} \predicatesummary{prolog_edit:edit_source}{1}{Call editor for
-edit/1} \predicatesummary{prolog_edit:edit_command}{2}{Specify editor
-activation} \predicatesummary{prolog_edit:load}{0}{Load edit/1
-extensions} \predicatesummary{prolog_exception_hook}{4}{Rewrite
-exceptions} \predicatesummary{prolog_file_type}{2}{Define meaning of
-file extension} \predicatesummary{prolog_frame_attribute}{3}{Obtain
-information on a goal environment}
-\predicatesummary{prolog_ide}{1}{Program access to the development
-environment} \predicatesummary{prolog_list_goal}{1}{\hook{user}
-Intercept tracer 'L' command}
-\predicatesummary{prolog_load_context}{2}{Context information for
-directives} \predicatesummary{prolog_load_file}{2}{\hook{user} Program
-load_files/2} \predicatesummary{prolog_skip_level}{2}{Indicate deepest
-recursion to trace} \predicatesummary{prolog_skip_frame}{1}{Perform
-`skip' on a frame} \predicatesummary{prolog_stack_property}{2}{Query
-properties of the stacks}
-\predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and
-OS filenames}
-\predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept
-the Prolog tracer} \predicatesummary{project_attributes}{2}{Project
-constraints to query variables} \predicatesummary{prompt1}{1}{Change
-prompt for 1 line} \predicatesummary{prompt}{2}{Change the prompt used
-by read/1} \predicatesummary{protocol}{1}{Make a log of the user
-interaction} \predicatesummary{protocola}{1}{Append log of the user
-interaction to file} \predicatesummary{protocolling}{1}{On what file is
-user interaction logged} \predicatesummary{public}{1}{Declaration that a
-predicate may be called} \predicatesummary{put}{1}{Write a character}
+\predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
+\predicatesummary{prolog_cut_to}{1}{Realise global cuts}
+\predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
+\predicatesummary{prolog_edit:locate}{3}{Locate targets for edit/1}
+\predicatesummary{prolog_edit:edit_source}{1}{Call editor for edit/1}
+\predicatesummary{prolog_edit:edit_command}{2}{Specify editor activation}
+\predicatesummary{prolog_edit:load}{0}{Load edit/1 extensions}
+\predicatesummary{prolog_exception_hook}{4}{Rewrite exceptions}
+\predicatesummary{prolog_file_type}{2}{Define meaning of file extension}
+\predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
+\predicatesummary{prolog_ide}{1}{Program access to the development environment}
+\predicatesummary{prolog_list_goal}{1}{\hook{user} Intercept tracer 'L' command}
+\predicatesummary{prolog_listen}{2}{Listen to Prolog events}
+\predicatesummary{prolog_listen}{3}{Listen to Prolog events}
+\predicatesummary{prolog_load_context}{2}{Context information for directives}
+\predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
+\predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
+\predicatesummary{prolog_skip_frame}{1}{Perform `skip' on a frame}
+\predicatesummary{prolog_stack_property}{2}{Query properties of the stacks}
+\predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
+\predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}
+\predicatesummary{prolog_unlisten}{2}{Stop listening to Prolog events}
+\predicatesummary{project_attributes}{2}{Project constraints to query variables}
+\predicatesummary{prompt1}{1}{Change prompt for 1 line}
+\predicatesummary{prompt}{2}{Change the prompt used by read/1}
+\predicatesummary{protocol}{1}{Make a log of the user interaction}
+\predicatesummary{protocola}{1}{Append log of the user interaction to file}
+\predicatesummary{protocolling}{1}{On what file is user interaction logged}
+\predicatesummary{public}{1}{Declaration that a predicate may be called}
+\predicatesummary{put}{1}{Write a character}
 \predicatesummary{put}{2}{Write a character on a stream}
 \predicatesummary{put_assoc}{4}{Add Key-Value to association tree}
 \predicatesummary{put_attr}{3}{Put attribute on a variable}

@@ -718,10 +718,8 @@ default_module(Me, Super) :-
                 *      TRACE AND EXCEPTIONS     *
                 *********************************/
 
-:- user:dynamic((exception/3,
-                 prolog_event_hook/1)).
-:- user:multifile((exception/3,
-                   prolog_event_hook/1)).
+:- dynamic   user:exception/3.
+:- multifile user:exception/3.
 
 %!  '$undefined_procedure'(+Module, +Name, +Arity, -Action) is det.
 %

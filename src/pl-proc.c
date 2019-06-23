@@ -272,6 +272,8 @@ resetProcedure(Procedure proc, bool isnew)
   if ( stringAtom(def->functor->name)[0] != '$' )
     set(def, TRACE_ME);
   def->impl.clauses.number_of_clauses = 0;
+  if ( def->events )
+    destroy_event_list(&def->events);
 
   if ( isnew )
   { deleteIndexes(&def->impl.clauses, TRUE);
@@ -1238,6 +1240,11 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
   release_def(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
+  if ( def->events &&
+       !predicate_update_event(def,
+			       where == CL_START ? ATOM_asserta : ATOM_assertz,
+			       clause PASS_LD) )
+    return NULL;
 
   return cref;
 }
@@ -1399,6 +1406,9 @@ retractClauseDefinition(Definition def, Clause clause)
 
   registerDirtyDefinition(def PASS_LD);
 
+  if ( def->events )
+    return predicate_update_event(def, ATOM_retract, clause PASS_LD);
+
   return TRUE;
 }
 
@@ -1448,22 +1458,11 @@ freeClause(Clause c)
 }
 
 
+
 static int WUNUSED			/* FALSE if there was an error */
 announceErasedClause(Clause clause)
-{
-#if O_DEBUGGER
-  int rc;
-  Definition def = clause->predicate;
-
-  rc = clearBreakPointsClause(clause) >= 0;
-  if ( PROCEDURE_event_hook1 &&
-       def != PROCEDURE_event_hook1->definition )
-    rc = callEventHook(PLEV_ERASED_CLAUSE, clause) && rc;
-
-  return rc;
-#endif
-
-  return TRUE;
+{ return ( clearBreakPointsClause(clause) >= 0 &&
+	   callEventHook(PLEV_ERASED_CLAUSE, clause) );
 }
 
 
@@ -2612,6 +2611,7 @@ pl_retractall(term_t head)
   Word argv;
   int allvars = TRUE;
   fid_t fid;
+  int rc = TRUE;
 
   if ( !get_procedure(head, &proc, thehead, GP_CREATE) )
     fail;
@@ -2627,6 +2627,9 @@ pl_retractall(term_t head)
     succeed;				/* nothing to retract */
   }
 
+  if ( !retractall_event(def, thehead, FUNCTOR_start1 PASS_LD) )
+    return FALSE;
+
   argv = valTermRef(thehead);
   deRef(argv);
   if ( isTerm(*argv) )
@@ -2639,7 +2642,6 @@ pl_retractall(term_t head)
     argv = NULL;
   }
 
-  startCritical;
   enterDefinition(def);
   setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
   fid = PL_open_foreign_frame();
@@ -2654,7 +2656,8 @@ pl_retractall(term_t head)
     acquire_def(def);
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClauseCNT(cref->value.clause, gen) )
-      { retractClauseDefinition(def, cref->value.clause);
+      { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
+	  break;
       }
     }
     release_def(def);
@@ -2662,22 +2665,23 @@ pl_retractall(term_t head)
   { struct clause_choice chp;
 
     if ( !(cref = firstClause(argv, environment_frame, def, &chp PASS_LD)) )
-    { int rc = endCritical;
-      popPredicateAccess(def);
+    { popPredicateAccess(def);
       leaveDefinition(def);
-      return rc;
+      return TRUE;
     }
 
     while( cref )
     { if ( decompileHead(cref->value.clause, thehead) )
-	retractClauseDefinition(def, cref->value.clause);
+      { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
+	  break;
+      }
 
       PL_rewind_foreign_frame(fid);
 
       if ( !chp.cref )
       { popPredicateAccess(def);
 	leaveDefinition(def);
-	return endCritical;
+	return TRUE;
       }
 
       if ( argv )				/* may be shifted */
@@ -2695,7 +2699,10 @@ pl_retractall(term_t head)
 	checkDefinition(def);
 	UNLOCKDEF(def));
 
-  return endCritical;
+  if ( rc )
+    rc = retractall_event(def, thehead, FUNCTOR_end1 PASS_LD);
+
+  return rc;
 }
 
 		/********************************

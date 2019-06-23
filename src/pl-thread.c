@@ -310,7 +310,8 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_SORTR"),
   COUNT_MUTEX_INITIALIZER("L_UMUTEX"),
   COUNT_MUTEX_INITIALIZER("L_INIT_ATOMS"),
-  COUNT_MUTEX_INITIALIZER("L_CGCGEN")
+  COUNT_MUTEX_INITIALIZER("L_CGCGEN"),
+  COUNT_MUTEX_INITIALIZER("L_EVHOOK")
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -441,7 +442,6 @@ static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, size_t max_size);
 static void	freeThreadSignals(PL_local_data_t *ld);
-static void	run_thread_exit_hooks(PL_local_data_t *ld);
 static thread_handle *create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
@@ -455,7 +455,6 @@ static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD
 static int	get_message_queue__LD(term_t t, message_queue **queue ARG_LD);
 static void	release_message_queue(message_queue *queue);
 static void	initMessageQueues(void);
-static int	thread_at_exit(term_t goal, PL_local_data_t *ld);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
 static void	init_predicate_references(PL_local_data_t *ld);
@@ -602,7 +601,9 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 			     info->pl_tid, info->status));
 
   if ( !after_fork )
-  { int rc;
+  { GET_LD
+    int rc1, rc2;
+
     PL_LOCK(L_THREAD);
     if ( info->status == PL_THREAD_RUNNING )
       info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
@@ -611,16 +612,16 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
     ld->critical++;   /* startCritical  */
     info->in_exit_hooks = TRUE;
-    if ( !(rc = callEventHook(PL_EV_THREADFINISHED, info)) )
-    { GET_LD
-
-      if ( exception_term )
-      { Sdprintf("Event hook \"thread_finished\" left an exception\n");
-	PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-	PL_clear_exception();
-      }
+    if ( LD == ld )
+      rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
+    else
+      rc1 = TRUE;
+    rc2 = callEventHook(PLEV_THREAD_EXIT, info);
+    if ( (!rc1 || !rc2) && exception_term )
+    { Sdprintf("Event hook \"thread_finished\" left an exception\n");
+      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+      PL_clear_exception();
     }
-    run_thread_exit_hooks(ld);
     info->in_exit_hooks = FALSE;
     ld->critical--;   /* endCritical */
   } else
@@ -633,6 +634,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     activateProfiler(FALSE, ld);
 #endif
 
+  destroy_event_list(&ld->event.hook.onthreadexit);
   cleanupLocalDefinitions(ld);
 
   DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
@@ -903,7 +905,7 @@ A first step towards clean destruction of the system.  Ideally, we would
 like the following to happen:
 
     * Close-down all threads except for the main one
-	+ Have all thread_at_exit/1 hooks called
+	+ Have all thread exit hooks called
     * Run the at_halt/1 hooks in the main thread
     * Exit from the main thread.
 
@@ -2017,7 +2019,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->module = PL_context();
   copy_local_data(ldnew, ldold, queue_max_size);
   if ( at_exit )
-    thread_at_exit(at_exit, ldnew);
+    register_event_hook(&ldnew->event.hook.onthreadexit, FALSE, at_exit, 0);
 
   pthread_attr_init(&attr);
   if ( info->detached )
@@ -2806,54 +2808,6 @@ error:
 		 *	     CLEANUP		*
 		 *******************************/
 
-typedef enum { EXIT_PROLOG, EXIT_C } exit_type;
-
-typedef struct _at_exit_goal
-{ struct _at_exit_goal *next;		/* Next in queue */
-  exit_type type;			/* Prolog or C */
-  union
-  { struct
-    { Module   module;			/* Module for running goal */
-      record_t goal;			/* Goal to run */
-    } prolog;
-    struct
-    { void (*function)(void *);		/* called function */
-      void *closure;			/* client data */
-    } c;
-  } goal;
-} at_exit_goal;
-
-
-static int
-thread_at_exit(term_t goal, PL_local_data_t *ld)
-{ GET_LD
-  Module m = NULL;
-  at_exit_goal *eg;
-
-  if ( !PL_strip_module(goal, &m, goal) )
-    return FALSE;
-
-  eg = allocHeapOrHalt(sizeof(*eg));
-  eg->next = NULL;
-  eg->type = EXIT_PROLOG;
-  eg->goal.prolog.module = m;
-  eg->goal.prolog.goal   = PL_record(goal);
-
-  eg->next = ld->thread.exit_goals;
-  ld->thread.exit_goals = eg;
-
-  succeed;
-}
-
-
-foreign_t
-pl_thread_at_exit(term_t goal)
-{ GET_LD
-
-  return thread_at_exit(goal, LD);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Request a function to run when the Prolog thread is about to detach, but
 still capable of running Prolog queries.
@@ -2862,111 +2816,12 @@ still capable of running Prolog queries.
 int
 PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 { GET_LD
+  event_list **list = global ? &GD->event.hook.onthreadexit
+			     : &LD->event.hook.onthreadexit;
+  int (*func)() = (void *)function;
 
-  at_exit_goal *eg = allocHeapOrHalt(sizeof(*eg));
-
-  eg->next = NULL;
-  eg->type = EXIT_C;
-  eg->goal.c.function = function;
-  eg->goal.c.closure  = closure;
-
-  if ( global )
-  { PL_LOCK(L_THREAD);
-    eg->next = GD->thread.exit_goals;
-    GD->thread.exit_goals = eg;
-    PL_UNLOCK(L_THREAD);
-  } else
-  { eg->next = LD->thread.exit_goals;
-    LD->thread.exit_goals = eg;
-  }
-
-  succeed;
+  return register_event_function(list, FALSE, func, closure, 0);
 }
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Newly pushed hooks are executed  after   all  currently registered hooks
-have finished.
-
-Q: What to do with exceptions?
-Q: Should we limit the passes?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-static int
-run_exit_hooks(at_exit_goal *eg, int free)
-{ GET_LD
-  at_exit_goal *next;
-  term_t goal;
-  fid_t fid;
-
-  if ( !(goal = PL_new_term_ref()) ||
-       !(fid = PL_open_foreign_frame()) )
-    return FALSE;
-
-  for( ; eg; eg = next)
-  { next = eg->next;
-
-    switch(eg->type)
-    { case EXIT_PROLOG:
-      { int rc = PL_recorded(eg->goal.prolog.goal, goal);
-        if ( free )
-	  PL_erase(eg->goal.prolog.goal);
-	if ( rc )
-	{ DEBUG(MSG_THREAD,
-		{ Sdprintf("Calling exit goal: ");
-		  PL_write_term(Serror, goal, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-		});
-
-	  callProlog(eg->goal.prolog.module, goal, PL_Q_NODEBUG, NULL);
-	}
-	break;
-      }
-      case EXIT_C:
-	(*eg->goal.c.function)(eg->goal.c.closure);
-        break;
-      default:
-	assert(0);
-    }
-
-    if ( exception_term )
-    { Sdprintf("Thread exit hook left an exception:\n");
-      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-      PL_clear_exception();
-    }
-
-    if ( free )
-      freeHeap(eg, sizeof(*eg));
-
-    PL_rewind_foreign_frame(fid);
-  }
-
-  PL_discard_foreign_frame(fid);
-  PL_reset_term_refs(goal);
-
-  return TRUE;
-}
-
-
-
-static void
-run_thread_exit_hooks(PL_local_data_t *ld)
-{ GET_LD
-
-  if ( LD == ld )	/* if FALSE, we are called from another thread (create) */
-  { at_exit_goal *eg;
-    fid_t fid = PL_open_foreign_frame();
-
-    while( (eg = ld->thread.exit_goals) )
-    { ld->thread.exit_goals = NULL;	/* empty these */
-
-      run_exit_hooks(eg, TRUE);
-    }
-
-    run_exit_hooks(GD->thread.exit_goals, FALSE);
-    PL_close_foreign_frame(fid);
-  }
-}
-
 
 		 /*******************************
 		 *	   THREAD SIGNALS	*

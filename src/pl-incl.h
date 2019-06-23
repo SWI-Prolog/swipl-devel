@@ -1453,6 +1453,7 @@ struct definition
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
+  struct event_list *events;		/* Forward update events */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -2244,7 +2245,6 @@ typedef struct
 #define PROCEDURE_reset3		(GD->procedures.reset3)
 #define PROCEDURE_true0			(GD->procedures.true0)
 #define PROCEDURE_fail0			(GD->procedures.fail0)
-#define PROCEDURE_event_hook1		(GD->procedures.event_hook1)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
 #define PROCEDURE_setup_call_catcher_cleanup4 \

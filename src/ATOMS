@@ -45,6 +45,7 @@ A asin			"asin"
 A asinh			"asinh"
 A assert		"assert"
 A asserta		"asserta"
+A assertz		"assertz"
 A at			"at"
 A at_equals		"=@="
 A at_exit		"at_exit"
@@ -401,6 +402,7 @@ A key			"key"
 A key_value_position	"key_value_position"
 A larger		">"
 A larger_equal		">="
+A last			"last"
 A last_modified_generation "last_modified_generation"
 A level			"level"
 A lgamma		"lgamma"
@@ -572,6 +574,7 @@ A prolog_flag_access	"prolog_flag_access"
 A prolog_flag_option	"prolog_flag_option"
 A prolog_flag_type	"prolog_flag_type"
 A prolog_identifier_continue "prolog_identifier_continue"
+A prolog_listen_option  "prolog_listen_option"
 A prolog_symbol		"prolog_symbol"
 A prolog_var_start	"prolog_var_start"
 A prompt		"|: "
@@ -630,6 +633,8 @@ A resource		"resource"
 A resource_error	"resource_error"
 A resource_handle	"resource_handle"
 A ret			"ret"
+A retract		"retract"
+A retractall		"retractall"
 A retry			"retry"
 A round			"round"
 A rshift		">>"
@@ -730,9 +735,11 @@ A terminal_capability	"terminal_capability"
 A test			"test"
 A text			"text"
 A text_stream		"text_stream"
+A this_thread_exit	"this_thread_exit"
 A thousands_sep		"thousands_sep"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
+A thread_exit		"thread_exit"
 A thread_get_message_option "thread_get_message_option"
 A thread_initialization "thread_initialization"
 A thread_local		"thread_local"
@@ -936,6 +943,7 @@ F dvard			1
 F dwakeup		1
 F e			0
 F encoding		1
+F end			1
 F end_of_stream		1
 F engine		1
 F eof_action		1
@@ -1081,6 +1089,7 @@ F softcut		2
 F spy			1
 F sqrt			1
 F star			2
+F start			1
 F status		1
 F stream		1
 F stream		4

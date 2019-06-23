@@ -255,6 +255,18 @@ struct PL_global_data
   } exceptions;
 
   struct
+  { struct
+    { struct event_list *onabort;	/* Thread aborted */
+      struct event_list *onerase;	/* erased clause or dbref */
+      struct event_list *onbreak;	/* breakpoint change */
+      struct event_list *onframefinish; /* Debugged frame finished */
+#ifdef O_PLMT
+      struct event_list *onthreadexit;	/* thread exit hook */
+#endif
+    } hook;
+  } event;
+
+  struct
   { Table		tmp_files;	/* Known temporary files */
     CanonicalDir	_canonical_dirlist;
     char *		myhome;		/* expansion of ~ */
@@ -279,7 +291,6 @@ struct PL_global_data
     Procedure	is2;			/* is/2 */
     Procedure	strict_equal2;		/* ==/2 */
     Procedure	not_strict_equal2;	/* \==/2 */
-    Procedure	event_hook1;
     Procedure	exception_hook4;
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
@@ -340,8 +351,7 @@ struct PL_global_data
 
 #ifdef O_PLMT
   struct
-  { struct _at_exit_goal *exit_goals;	/* Global thread_at_exit/1 goals */
-    int			enabled;	/* threads are enabled */
+  { int			enabled;	/* threads are enabled */
     Table		mutexTable;	/* Name --> mutex table */
     int			mutex_next_id;	/* next id for anonymous mutexes */
 #ifdef __WINDOWS__
@@ -533,6 +543,12 @@ struct PL_local_data
   struct
   { Buffer	buffered;		/* Buffered events */
     int		delay_nesting;		/* How deeply is delay nested? */
+
+#ifdef O_PLMT
+    struct
+    { struct event_list *onthreadexit;	/* thread exit hook */
+    } hook;
+#endif
   } event;
 
   struct
@@ -647,7 +663,6 @@ struct PL_local_data
     message_queue messages;		/* Message queue */
     struct _thread_sig   *sig_head;	/* Head of signal queue */
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
-    struct _at_exit_goal *exit_goals;	/* thread_at_exit/1 goals */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
   } thread;

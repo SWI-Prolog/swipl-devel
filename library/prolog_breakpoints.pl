@@ -59,11 +59,6 @@ Note that the hook must fail  after   creating  its side-effects to give
 other hooks the opportunity to react.
 */
 
-:- dynamic
-    user:prolog_event_hook/1.
-:- multifile
-    user:prolog_event_hook/1.
-
 %!  set_breakpoint(+File, +Line, +Char, -Id) is det.
 %!  set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
 %
@@ -215,13 +210,9 @@ stream_line(In, Index, Line0, Line) :-
                  *            FEEDBACK          *
                  *******************************/
 
-%!  user:prolog_event_hook(+Break)
-%
-%   Handle callEventHook() from '$break_at'/3. This  hook is called with
-%   signal handling disabled, i.e., as an _atomic_ action.
-
-user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
-    break(Set, ClauseRef, PC).
+:- initialization
+    prolog_unlisten(break, onbreak),
+    prolog_listen(break, onbreak).
 
 break(exist, ClauseRef, PC) :-
     known_breakpoint(ClauseRef, PC, _Location, Id),

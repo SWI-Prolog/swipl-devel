@@ -89,7 +89,8 @@
             hash/1,                     % :PI
             set_base_module/1,          % :Base
             eval_license/0,
-            trie_insert_new/3		% +Trie, +Term, -Node
+            trie_insert_new/3,		% +Trie, +Term, -Node
+            thread_at_exit/1            % :Goal
           ]).
 :- use_module(apply,  [maplist/2]).
 :- use_module(system, [lock_predicate/1, unlock_predicate/1]).
@@ -103,7 +104,8 @@
     sublist(1, +, ?),
     index(:),
     hash(:),
-    set_base_module(:).
+    set_base_module(:),
+    thread_at_exit(0).
 
 /** <module> Backward compatibility
 
@@ -662,3 +664,11 @@ eval_license :-
 
 trie_insert_new(Trie, Term, Handle) :-
     trie_insert(Trie, Term, [], Handle).
+
+%!  thread_at_exit(:Goal) is det.
+%
+%   Register Goal to be called when the calling thread exits.
+%   @deprecated use prolog_listen(this_thread_exit, Goal)
+
+thread_at_exit(Goal) :-
+    prolog_listen(this_thread_exit, Goal).
