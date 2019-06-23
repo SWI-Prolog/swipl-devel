@@ -81,16 +81,16 @@ PL_unify_frame(term_t t, LocalFrame fr)
 }
 
 
-void
+int
 PL_put_frame(term_t t, LocalFrame fr)
 { GET_LD
 
   if ( fr )
   { assert(fr >= lBase && fr < lTop);
 
-    PL_put_intptr(t, (Word)fr - (Word)lBase);
+    return PL_put_intptr(t, (Word)fr - (Word)lBase);
   } else
-    PL_put_atom(t, ATOM_none);
+    return PL_put_atom(t, ATOM_none);
 }
 
 

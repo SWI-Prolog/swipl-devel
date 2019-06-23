@@ -664,7 +664,7 @@ COMMON(word)		pl_leash(term_t old, term_t new);
 COMMON(word)		pl_visible(term_t old, term_t new);
 COMMON(word)		pl_debuglevel(term_t old, term_t new);
 COMMON(word)		pl_prolog_current_frame(term_t fr);
-COMMON(void)		PL_put_frame(term_t t, LocalFrame fr);
+COMMON(int)		PL_put_frame(term_t t, LocalFrame fr);
 COMMON(void)		PL_put_choice(term_t t, Choice ch);
 
 /* pl-util.c */
