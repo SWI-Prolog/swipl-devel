@@ -145,7 +145,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
-    prolog_wrap.pl)
+    prolog_wrap.pl prolog_trace.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
