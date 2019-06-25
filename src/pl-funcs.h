@@ -297,7 +297,7 @@ COMMON(void)		cleanupCodeToAtom(void);
 COMMON(void)		PL_clear_foreign_exception(LocalFrame fr);
 COMMON(except_class)    classify_exception__LD(term_t ex ARG_LD);
 COMMON(except_class)    classify_exception_p__LD(Word p ARG_LD);
-COMMON(void)		PL_abort_process(void);
+COMMON(void)		PL_abort_process(void) NORETURN;
 
 /* pl-fmt.c */
 COMMON(word)		pl_format_predicate(term_t chr, term_t descr);

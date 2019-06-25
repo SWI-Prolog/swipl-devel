@@ -2452,9 +2452,7 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
     wrapper = PL_new_term_ref();
 
   if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
-  { trie *trie = get_answer_table(wrapper, skeleton, FALSE PASS_LD);
-
-    assert(trie == atrie);
+  { get_answer_table(wrapper, skeleton, FALSE PASS_LD);
 
     return TRUE;
   }
