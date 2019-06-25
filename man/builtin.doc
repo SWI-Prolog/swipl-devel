@@ -9361,7 +9361,7 @@ the trace point is set.
 
 The predicate trace/2 activates debug mode (see debug/0).  Each time
 a port (of the 4-port model) is passed that has a trace point set, the
-goal is printed as with trace/0.  Unlike trace/0, however, the execution
+goal is printed.  Unlike trace/0, however, the execution
 is continued without asking for further information.  Examples:
 
 \begin{center}
@@ -9372,8 +9372,6 @@ is continued without asking for further information.  Examples:
 \exam{?- trace({bar}/1, -all).}  & Stop tracing {bar}/1.
 \end{tabular}
 \end{center}
-
-The predicate debugging/0 shows all currently defined trace points.
 
     \predicate{notrace}{1}{:Goal}
 Call \arg{Goal}, but suspend the debugger while \arg{Goal} is executing.
