@@ -485,13 +485,13 @@ thread and dynamic database events. We expect this mechanism to deal
 with more hooks in the future.
 
 \begin{description}
-    \predicate{prolog_listen}{2}{+Channal, :Closure}
+    \predicate{prolog_listen}{2}{+Channel, :Closure}
 \nodescription
-    \predicate{prolog_listen}{3}{+Channal, :Closure, +Options}
-Call \arg{Closure} if an event that matches \arg{Channal} happens inside
+    \predicate{prolog_listen}{3}{+Channel, :Closure, +Options}
+Call \arg{Closure} if an event that matches \arg{Channel} happens inside
 Prolog. Possible choice points are pruned as by once/1. Possible failure
 is ignored, but exceptions are propagated into the environment. Multiple
-closures can be associated with the same channal.  Execution of the list
+closures can be associated with the same channel.  Execution of the list
 of closures may be terminated by an exception. Options:
 
     \begin{description}
@@ -500,7 +500,7 @@ of closures may be terminated by an exception. Options:
 determines whether the new handler is exected as first or last.
     \end{description}
 
-Defined channals are described below. The \arg{Channal} argument is the
+Defined channels are described below. The \arg{Channel} argument is the
 name of the term listed below. The arguments are added as additional
 arguments to the given \arg{Closure}.
 
@@ -512,9 +512,9 @@ Called by abort/0.
 Called on an erased recorded database reference or clause. Note that a
 retracted clauses is not immediately removed. Clauses are reclaimed by
 garbage_collect_clauses/0, which is normally executed automatially in
-the \const{gc} thread. This specific channal is used by clause_info/5 to
+the \const{gc} thread. This specific channel is used by clause_info/5 to
 reclaim source layout of reclaimed clauses.  User applications should
-typically use the \arg{PredicateIndicator} channal.
+typically use the \arg{PredicateIndicator} channel.
 
     \termitem{break}{Action, ClauseRef, PCOffset}
 Traps events related to Prolog break points. See library
@@ -527,11 +527,11 @@ been deleted.  Used by the source level debugger to avoid that
 the stack view references non-existing frames.
 
     \termitem{thread_exit}{Thread}
-Globally registered channal that is called by any thread just
+Globally registered channel that is called by any thread just
 before the thread is terminated.
 
     \termitem{this_thread_exit}{}
-Thread local version of the \const{thread_exit} channal that
+Thread local version of the \const{thread_exit} channel that
 is also used by the \term{at_exit}{Closure} option of
 thread_create/3.
 
@@ -570,7 +570,7 @@ Updated p/1: retractall end(user:p(_12294))
 	\end{description}
     \end{description}
 
-    \predicate{prolog_unlisten}{2}{+Channal, :Closure}
+    \predicate{prolog_unlisten}{2}{+Channel, :Closure}
 Remove matching closures registered with prolog_listen/3.
 \end{description}
 
