@@ -1382,13 +1382,11 @@ prolog_message(frame(Frame, choice, PC)) -->
     !,
     prolog_message(frame(Frame, backtrace, PC)).
 prolog_message(frame(_, cut_call, _)) --> !, [].
-prolog_message(frame(Frame, trace(Port), _PC)) -->
+prolog_message(frame(Goal, trace(Port))) -->
     !,
     [ ' T ' ],
     port(Port),
-    frame_level(Frame),
-    frame_context(Frame),
-    frame_goal(Frame).
+    goal(Goal).
 prolog_message(frame(Frame, Port, _PC)) -->
     frame_flags(Frame),
     port(Port),
@@ -1399,8 +1397,12 @@ prolog_message(frame(Frame, Port, _PC)) -->
     [ flush ].
 
 frame_goal(Frame) -->
-    { prolog_frame_attribute(Frame, goal, Goal0),
-      clean_goal(Goal0, Goal),
+    { prolog_frame_attribute(Frame, goal, Goal)
+    },
+    goal(Goal).
+
+goal(Goal0) -->
+    { clean_goal(Goal0, Goal),
       current_prolog_flag(debugger_write_options, Options)
     },
     [ '~W'-[Goal, Options] ].

@@ -40,7 +40,6 @@
 #include "pl-dbref.h"
 #include <stdio.h>
 
-#define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000
 #define WFG_CHOICE	0x08000
@@ -380,23 +379,6 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     deRef(p);
     if ( *p == ATOM_aborted )
       return ACTION_CONTINUE;
-  }
-							/* trace/[1,2] */
-  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
-  { int doit = FALSE;
-
-    switch(port)
-    { case CALL_PORT: doit = true(def, TRACE_CALL); break;
-      case EXIT_PORT: doit = true(def, TRACE_EXIT); break;
-      case FAIL_PORT: doit = true(def, TRACE_FAIL); break;
-      case REDO_PORT: doit = true(def, TRACE_REDO); break;
-    }
-
-    if ( doit )
-    { SAVE_PTRS();
-      writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACE);
-      RESTORE_PTRS();
-    }
   }
 
   if ( !debugstatus.tracing &&
@@ -925,8 +907,6 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 	}
       }
     }
-    if ( rc && (flags & WFG_TRACE) )
-      rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
     if ( rc )
     { IOSTREAM *old = Suser_error;
@@ -958,7 +938,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     PL_unify_stream_or_alias(tmp, out);
 
     msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
-    msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
+    msg[1] = true(def, SPY_ME)	      ? '*' : ' ';
     msg[2] = EOS;
 
     Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));

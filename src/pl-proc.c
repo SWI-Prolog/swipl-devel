@@ -2771,8 +2771,6 @@ typedef struct patt_mask
   unsigned int  mask;
 } patt_mask;
 
-#define TRACE_ANY (TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL)
-
 static const patt_mask patt_masks[] =
 { { ATOM_dynamic,	   P_DYNAMIC },
   { ATOM_multifile,	   P_MULTIFILE },
@@ -2781,11 +2779,6 @@ static const patt_mask patt_masks[] =
   { ATOM_spy,		   SPY_ME },
   { ATOM_tabled,	   P_TABLED },
   { ATOM_trace,		   TRACE_ME },
-  { ATOM_trace_call,	   TRACE_CALL },
-  { ATOM_trace_redo,	   TRACE_REDO },
-  { ATOM_trace_exit,	   TRACE_EXIT },
-  { ATOM_trace_fail,	   TRACE_FAIL },
-  { ATOM_trace_any,	   TRACE_ANY },
   { ATOM_hide_childs,	   HIDE_CHILDS },
   { ATOM_transparent,	   P_TRANSPARENT },
   { ATOM_discontiguous,	   P_DISCONTIGUOUS },
@@ -3087,7 +3080,7 @@ pl_set_predicate_attribute(term_t pred, term_t what, term_t value)
        !(att = attribute_mask(key)) )
     return FALSE;
 
-  if ( att & (TRACE_ANY|SPY_ME) )
+  if ( (att&SPY_ME) )
   { if ( !get_procedure(pred, &proc, 0, GP_RESOLVE) )
       fail;
   } else

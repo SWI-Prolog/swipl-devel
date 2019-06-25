@@ -40,8 +40,6 @@
             style_check/1,
             (spy)/1,
             (nospy)/1,
-            trace/1,
-            trace/2,
             nospyall/0,
             debugging/0,
             rational/3,
@@ -192,94 +190,9 @@ enum_style_check(Style) :-
 %   Allow user-hooks in the Prolog debugger interaction.  See the calls
 %   below for the provided hooks.  We use a single predicate with action
 %   argument to avoid an uncontrolled poliferation of hooks.
-%
-%   TBD: What hooks to provide for trace/[1,2]
 
 :- multifile
     prolog:debug_control_hook/1.    % +Action
-
-%!  trace(:Preds) is det.
-%!  trace(:Preds, +PortSpec) is det.
-%
-%   Start printing messages if control passes specified ports of
-%   the given predicates.
-
-:- meta_predicate
-    trace(:),
-    trace(:, +).
-
-trace(Preds) :-
-    trace(Preds, +all).
-
-trace(_:X, _) :-
-    var(X),
-    !,
-    throw(error(instantiation_error, _)).
-trace(_:[], _) :- !.
-trace(M:[H|T], Ps) :-
-    !,
-    trace(M:H, Ps),
-    trace(M:T, Ps).
-trace(Pred, Ports) :-
-    '$find_predicate'(Pred, Preds),
-    Preds \== [],
-    set_prolog_flag(debug, true),
-    (   '$member'(PI, Preds),
-            pi_to_head(PI, Head),
-            (   Head = _:_
-            ->  QHead0 = Head
-            ;   QHead0 = user:Head
-            ),
-            '$define_predicate'(QHead0),
-            (   predicate_property(QHead0, imported_from(M))
-            ->  QHead0 = _:Plain,
-                QHead = M:Plain
-            ;   QHead = QHead0
-            ),
-            '$trace'(Ports, QHead),
-            trace_ports(QHead, Tracing),
-            print_message(informational, trace(QHead, Tracing)),
-        fail
-    ;   true
-    ).
-
-trace_alias(all,  [trace_call, trace_redo, trace_exit, trace_fail]).
-trace_alias(call, [trace_call]).
-trace_alias(redo, [trace_redo]).
-trace_alias(exit, [trace_exit]).
-trace_alias(fail, [trace_fail]).
-
-'$trace'([], _) :- !.
-'$trace'([H|T], Head) :-
-    !,
-    '$trace'(H, Head),
-    '$trace'(T, Head).
-'$trace'(+H, Head) :-
-    trace_alias(H, A0),
-    !,
-    tag_list(A0, +, A1),
-    '$trace'(A1, Head).
-'$trace'(+H, Head) :-
-    !,
-    trace_alias(_, [H]),
-    '$set_predicate_attribute'(Head, H, true).
-'$trace'(-H, Head) :-
-    trace_alias(H, A0),
-    !,
-    tag_list(A0, -, A1),
-    '$trace'(A1, Head).
-'$trace'(-H, Head) :-
-    !,
-    trace_alias(_, [H]),
-    '$set_predicate_attribute'(Head, H, false).
-'$trace'(H, Head) :-
-    atom(H),
-    '$trace'(+H, Head).
-
-tag_list([], _, []).
-tag_list([H0|T0], F, [H1|T1]) :-
-    H1 =.. [F, H0],
-    tag_list(T0, F, T1).
 
 :- meta_predicate
     spy(:),
@@ -366,9 +279,7 @@ debugging :-
     !,
     print_message(informational, debugging(on)),
     findall(H, spy_point(H), SpyPoints),
-    print_message(informational, spying(SpyPoints)),
-    findall(trace(H,P), trace_point(H,P), TracePoints),
-    print_message(informational, tracing(TracePoints)).
+    print_message(informational, spying(SpyPoints)).
 debugging :-
     print_message(informational, debugging(off)).
 
@@ -376,19 +287,6 @@ spy_point(Module:Head) :-
     current_predicate(_, Module:Head),
     '$get_predicate_attribute'(Module:Head, spy, 1),
     \+ predicate_property(Module:Head, imported_from(_)).
-
-trace_point(Module:Head, Ports) :-
-    current_predicate(_, Module:Head),
-        '$get_predicate_attribute'(Module:Head, trace_any, 1),
-        \+ predicate_property(Module:Head, imported_from(_)),
-        trace_ports(Module:Head, Ports).
-
-trace_ports(Head, Ports) :-
-    findall(Port,
-            (trace_alias(Port, [AttName]),
-             '$get_predicate_attribute'(Head, AttName, 1)),
-            Ports).
-
 
 %!  flag(+Name, -Old, +New) is det.
 %
