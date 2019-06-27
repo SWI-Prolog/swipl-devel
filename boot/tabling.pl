@@ -52,7 +52,9 @@
 
             '$wrap_tabled'/2,		% :Head, +Mode
             '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
-            '$wfs_call'/2               % :Goal, -Delays
+            '$wfs_call'/2,              % :Goal, -Delays
+
+            '$wrap_incremental'/1       % :Head
           ]).
 
 :- meta_predicate
@@ -1018,7 +1020,31 @@ sum(S0, S1, S) :- S is S0+S1.
 
 
 		 /*******************************
-		 *         RENAME WORKER	*
+		 *      INCREMENTAL TABLING	*
+		 *******************************/
+
+%!  '$wrap_incremental'(:Head) is det.
+%
+%   Wrap an incremental dynamic predicate to be added to the IDG.
+
+'$wrap_incremental'(Head) :-
+    abstract_goal(Head, Abstract),
+    '$wrap_predicate'(Head, incremental, Wrapped,
+                      (   '$idg_add_dyncall'(Abstract),
+                          Wrapped
+                      )).
+
+abstract_goal(M:Head, M:Abstract) :-
+    compound(Head),
+    '$get_predicate_attribute'(M:Head, abstract, 1),
+    !,
+    compound_name_arity(Head, Name, Arity),
+    functor(Abstract, Name, Arity).
+abstract_goal(Head, Head).
+
+
+		 /*******************************
+		 *      EXPAND DIRECTIVES	*
 		 *******************************/
 
 system:term_expansion((:- table(Preds)),

@@ -3552,6 +3552,14 @@ compile_aux_clauses(Clauses) :-
     ->  true
     ;   '$type_error'(integer, X)
     ).
+'$must_be'(between(Low,High), X) :- !,
+    (   integer(X)
+    ->  (   between(Low, High, X)
+        ->  true
+        ;   '$domain_error'(between(Low,High), X)
+        )
+    ;   '$type_error'(integer, X)
+    ).
 '$must_be'(callable, X) :- !,
     (   callable(X)
     ->  true
@@ -3747,6 +3755,21 @@ length(_, Length) :-
     !.
 '$prolog_list_goal'(Goal) :-
     user:listing(Goal).
+
+		 /*******************************
+		 *              MISC		*
+		 *******************************/
+
+:- meta_predicate
+    '$pi_head'(:, -).
+
+'$pi_head'(M:Name/Arity, M:Head) :-
+    !,
+    functor(Head, Name, Arity).
+'$pi_head'(M:Name//DCGArity, M:Head) :-
+    !,
+    Arity is DCGArity+2,
+    functor(Head, Name, Arity).
 
 
                  /*******************************

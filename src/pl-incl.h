@@ -863,8 +863,8 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
+#define P_ABSTRACT		(0x08000000) /* Incremental tabling */
 /** unused
-#define			(0x08000000)
 #define			(0x10000000)
 #define			(0x20000000)
 */

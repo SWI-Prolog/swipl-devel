@@ -3570,6 +3570,11 @@ approach.} Defined \arg{Options} are:
     \termitem{incremental}{+Boolean}
 Make the dynamic predicate signal depending \jargon{tables}.  See
 \secref{tabling-incremental}.
+    \termitem{abstract}{0}
+This option must be used together with \const{incremental}.  The
+only supported value is \exam{0}. With this option a call to the
+incremental dynamic predicate is recorded as the most generic
+term for the predicate rather than the specific variant.
     \termitem{thread}{+Local}
 \arg{Local} is one of \const{shared} (default) or \const{local}.
 See also thread_local/1.

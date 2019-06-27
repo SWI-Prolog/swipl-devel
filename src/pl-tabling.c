@@ -4065,6 +4065,14 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
 
 
 static
+PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
+{ Sdprintf("Adding dynamic call to IDG: ");
+  PL_write_term(Serror, A1, 999, PL_WRT_NEWLINE);
+
+  return TRUE;
+}
+
+static
 PRED_IMPL("$idg_set_current_wl", 1, idg_set_current_wl, 0)
 { PRED_LD
   worklist *wl;
@@ -4294,8 +4302,8 @@ BeginPredDefs(tabling)
   PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
 
   PRED_DEF("$idg_add_edge",             1, idg_add_edge,             0)
+  PRED_DEF("$idg_add_dyncall",          1, idg_add_dyncall,          0)
   PRED_DEF("$idg_set_current_wl",       1, idg_set_current_wl,       0)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
-
 EndPredDefs

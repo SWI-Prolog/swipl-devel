@@ -852,6 +852,8 @@ define_or_generate(Pred) :-
     M:'$tabled'(Head, Mode).
 '$predicate_property'(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
+'$predicate_property'(abstract(0), Pred) :-
+    '$get_predicate_attribute'(Pred, abstract, 1).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
@@ -944,6 +946,7 @@ clause_property(Clause, Property) :-
 %   Defined options are:
 %
 %     - incremental(+Bool)
+%     - abstract(+Level)
 %     - multifile(+Bool)
 %     - discontiguous(+Bool)
 %     - thread(+Mode)
@@ -957,6 +960,11 @@ dynamic(M:Predicates, Options) :-
 set_pprops([], _, _).
 set_pprops([H|T], M, Props) :-
     set_pprops1(Props, M:H),
+    (   '$pi_head'(M:H, Pred),
+        '$get_predicate_attribute'(Pred, incremental, 1)
+    ->  '$wrap_incremental'(Pred)
+    ;   true
+    ),
     set_pprops(T, M, Props).
 
 set_pprops1([], _).
@@ -982,6 +990,7 @@ options_properties([_|T], Options, PT) :-
     options_properties(T, Options, PT).
 
 opt_prop(incremental,   boolean,               true,  incremental).
+opt_prop(abstract,      between(0,0),          0,     abstract).
 opt_prop(multifile,     boolean,               true,  multifile).
 opt_prop(discontiguous, boolean,               true,  discontiguous).
 opt_prop(thread,        oneof([local,shared]), local, thread_local).

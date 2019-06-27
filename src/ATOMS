@@ -11,6 +11,7 @@
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
+A abstract		"abstract"
 A access		"access"
 A access_level		"access_level"
 A acos			"acos"
