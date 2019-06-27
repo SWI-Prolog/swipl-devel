@@ -206,7 +206,7 @@ resource_error(Culprit) :-
 %   types.
 %
 %   | acyclic | Acyclic term (tree); see acyclic_term/1 |
-%   | any | |
+%   | any | any term |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
 %   | boolean | One of =true= or =false= |
