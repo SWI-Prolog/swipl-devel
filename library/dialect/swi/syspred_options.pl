@@ -204,6 +204,7 @@
 		     ]).
 :- predicate_options(system:(dynamic)/2, 2,
 		     [ incremental(boolean),
+                       abstract(between(0,0)),
                        volatile(boolean),
                        discontiguous(boolean),
                        multifile(boolean),

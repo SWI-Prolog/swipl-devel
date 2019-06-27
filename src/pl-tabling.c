@@ -1997,25 +1997,27 @@ retry:
       return NULL;
     }
 
-    if ( isEmptyBuffer(&vars) )		/* TBD: only needed first time */
-    { if ( WL_IS_WORKLIST(atrie->data.worklist) )
-      { atrie->data.worklist->ground = TRUE;
-      } else if ( !atrie->data.worklist )
-      { atrie->data.worklist = WL_GROUND;
-      }
-      if ( !PL_unify_atom(ret, ATOM_ret) )
-	atrie = NULL;
-    } else
-    { int rc;
-
-      if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
-      { if ( rc < 0 )
-	{ Undo(m);
-	  emptyBuffer(&vars);
-	  if ( makeMoreStackSpace(rc, ALLOW_GC) )
-	    goto retry;
+    if ( ret )
+    { if ( isEmptyBuffer(&vars) )		/* TBD: only needed first time */
+      { if ( WL_IS_WORKLIST(atrie->data.worklist) )
+	{ atrie->data.worklist->ground = TRUE;
+	} else if ( !atrie->data.worklist )
+	{ atrie->data.worklist = WL_GROUND;
 	}
-	atrie = NULL;
+	if ( !PL_unify_atom(ret, ATOM_ret) )
+	  atrie = NULL;
+      } else
+      { int rc;
+
+	if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
+	{ if ( rc < 0 )
+	  { Undo(m);
+	    emptyBuffer(&vars);
+	    if ( makeMoreStackSpace(rc, ALLOW_GC) )
+	      goto retry;
+	  }
+	  atrie = NULL;
+	}
       }
     }
     discardBuffer(&vars);
@@ -4027,6 +4029,33 @@ set_idg_current(trie *atrie ARG_LD)
   return TRUE;
 }
 
+static int
+idg_add_edge(trie *atrie ARG_LD)
+{ atom_t current;
+  trie *ctrie;
+
+  if ( !atrie->data.IDG )
+    atrie->data.IDG = idg_new(atrie);
+  if ( (current = *valTermRef(LD->tabling.idg_current)) &&
+       (ctrie = symbol_trie(current)) )
+  { DEBUG(MSG_TABLING_IDG,
+	  { term_t f = PL_new_term_ref();
+	    term_t t = PL_new_term_ref();
+	    unify_trie_term(ctrie->data.variant, f PASS_LD);
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
+	    Sdprintf("IDG: Edge ");
+	    PL_write_term(Serror, f, 999, 0);
+	    Sdprintf(" -> ");
+	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  });
+
+    if ( !ctrie->data.IDG )			/* may be deleted */
+      ctrie->data.IDG = idg_new(atrie);
+    idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
+  }
+
+  return set_idg_current(atrie PASS_LD);
+}
 
 static
 PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
@@ -4034,31 +4063,7 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { atom_t current;
-    trie *ctrie;
-
-    if ( !atrie->data.IDG )
-      atrie->data.IDG = idg_new(atrie);
-    if ( (current = *valTermRef(LD->tabling.idg_current)) &&
-	 (ctrie = symbol_trie(current)) )
-    { DEBUG(MSG_TABLING_IDG,
-	    { term_t f = PL_new_term_ref();
-	      term_t t = PL_new_term_ref();
-	      unify_trie_term(ctrie->data.variant, f PASS_LD);
-	      unify_trie_term(atrie->data.variant, t PASS_LD);
-	      Sdprintf("IDG: Edge ");
-	      PL_write_term(Serror, f, 999, 0);
-	      Sdprintf(" -> ");
-	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	    });
-
-      if ( !ctrie->data.IDG )			/* may be deleted */
-	ctrie->data.IDG = idg_new(atrie);
-      idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
-    }
-
-    return set_idg_current(atrie PASS_LD);
-  }
+    return idg_add_edge(atrie PASS_LD);
 
   return FALSE;
 }
@@ -4066,10 +4071,13 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
 
 static
 PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
-{ Sdprintf("Adding dynamic call to IDG: ");
-  PL_write_term(Serror, A1, 999, PL_WRT_NEWLINE);
+{ PRED_LD
+  trie *atrie;
 
-  return TRUE;
+  if ( (atrie=get_answer_table(A1, 0, TRUE PASS_LD)) )
+    return idg_add_edge(atrie PASS_LD);
+
+  return FALSE;
 }
 
 static
