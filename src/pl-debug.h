@@ -189,6 +189,7 @@
 #define MSG_TABLING_AC		 306
 #define MSG_TABLING_MERGE	 307
 #define MSG_TABLING_VTRIE_DEPENDENCIES 308
+#define MSG_TABLING_IDG		 309
 
 #define TABLING_NO_SIMPLIFY	 310		/* these affect behaviour */
 #define TABLING_NO_AC		 311

@@ -249,6 +249,7 @@ untable(TableSpec, _) :-
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
+    '$idg_add_edge'(Trie),
     (   Status == complete
     ->  '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   Status == fresh
@@ -272,13 +273,16 @@ start_tabling(Wrapper, Worker) :-
 start_subsumptive_tabling(Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Wrapper, Trie, Status, Skeleton)
     ->  (   Status == complete
-        ->  '$tbl_answer_update_dl'(Trie, Skeleton)
+        ->  '$idg_add_edge'(Trie),
+            '$tbl_answer_update_dl'(Trie, Skeleton)
         ;    shift(call_info(Skeleton, Status))
         )
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
-    ->  '$tbl_answer_update_dl'(ATrie, Skeleton)
+    ->  '$idg_add_edge'(ATrie),
+        '$tbl_answer_update_dl'(ATrie, Skeleton)
     ;   '$tbl_variant_table'(Wrapper, Trie, _0Status, Skeleton),
+        '$idg_add_edge'(Trie),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
@@ -299,6 +303,7 @@ done_leader(complete, _SCC, Skeleton, Trie) :-
 done_leader(final, SCC, Skeleton, Trie) :-
     !,
     '$tbl_free_component'(SCC),
+    '$idg_reset_current',
     '$tbl_answer_update_dl'(Trie, Skeleton).
 done_leader(_,_,_,_).
 
@@ -392,6 +397,7 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 
 start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
+    '$idg_add_edge'(Trie),
     (   Status == complete
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
@@ -524,6 +530,7 @@ completion_step(WorkList) :-
         '$tbl_wkl_work'(WorkList,
                         Answer, ModeArgs,
                         Goal, Continuation, Wrapper, TargetWorklist, Delays),
+        '$idg_set_current_wl'(TargetWorklist),
         tdebug(wl_goal(WorkList, SourceGoal, _)),
         tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
         (   ModeArgs == Reserved
@@ -554,6 +561,7 @@ completion_step(WorkList) :-
 tnot(Goal0) :-
     '$tbl_implementation'(Goal0, Goal),         % verifies Goal is tabled
     '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
+    \+ \+ '$idg_add_edge'(Trie),                % do not update current node
     (   '$tbl_answer_dl'(Trie, _, true)
     ->  fail
     ;   '$tbl_answer_dl'(Trie, _, _)

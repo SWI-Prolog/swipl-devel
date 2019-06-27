@@ -109,6 +109,7 @@ typedef struct trie
   struct
   { struct worklist *worklist;		/* tabling worklist */
     trie_node	    *variant;		/* node in variant trie */
+    struct idg_node *IDG;		/* Node in the IDG graph */
   } data;
 } trie;
 

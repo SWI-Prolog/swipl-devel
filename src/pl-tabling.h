@@ -171,6 +171,21 @@ typedef struct delay_info
 
 
 		 /*******************************
+		 *	       IDG		*
+		 *******************************/
+
+typedef struct idg_node
+{ Table		affected;		/* parent nodes */
+  Table		dependent;		/* childs */
+  trie	       *atrie;			/* answer trie */
+  size_t	answer_count;		/* # answers */
+  struct	idg_node *prev;		/* Older node */
+  int		new_answer;		/* Update generated a new answer */
+  int		falsecount;		/* Invalidate count */
+} idg_node;
+
+
+		 /*******************************
 		 *	     PROTOTYPES		*
 		 *******************************/
 

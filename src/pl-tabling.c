@@ -77,6 +77,7 @@ static void	print_answer(const char *msg, trie_node *answer);
 static int	put_delay_info(term_t t, trie_node *answer);
 #endif
 static int	simplify_component(tbl_component *scc);
+static void	idg_destroy(idg_node *node);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -1893,6 +1894,10 @@ release_variant_table_node(trie *variant_table, trie_node *node)
     assert(vtrie->data.variant == node);
     trie_empty(vtrie);
     vtrie->data.variant = NULL;
+    if ( vtrie->data.IDG )
+    { idg_destroy(vtrie->data.IDG);
+      vtrie->data.IDG = NULL;
+    }
   }
 }
 
@@ -3929,6 +3934,316 @@ PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
   return FALSE;
 }
 
+		 /*******************************
+		 *	       IDG		*
+		 *******************************/
+
+/** '$idg_add_edge'(+Trie)
+ *
+ * Add Trie to the IDG
+ */
+
+static idg_node *
+idg_new(trie *atrie)
+{ idg_node *n = PL_malloc(sizeof(*n));
+
+  memset(n, 0, sizeof(*n));
+  n->atrie = atrie;
+
+  return n;
+}
+
+static void
+idg_destroy(idg_node *node)
+{ Table table;
+
+  if ( (table=node->affected) )
+  { node->affected = NULL;
+    destroyHTable(table);
+  }
+  if ( (table=node->dependent) )
+  { node->dependent = NULL;
+    destroyHTable(table);
+  }
+
+  PL_free(node);
+}
+
+static void
+idg_free_affected(void *n, void *v)
+{ idg_node *child  = v;
+  idg_node *parent = n;
+
+  assert(parent->dependent);
+  if ( !deleteHTable(parent->dependent, child) )
+    Sdprintf("OOPS: idg_free_affected() failed to delete backlink\n");
+}
+
+static void
+idg_free_dependent(void *n, void *v)
+{ idg_node *parent = v;
+  idg_node *child  = n;
+
+  assert(child->affected);
+  if ( !deleteHTable(child->affected, parent) )
+    Sdprintf("OOPS: idg_free_dependent() failed to delete backlink\n");
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create a bi-directional link between parent and   child node. We use the
+hash tables as sets only, but we use   the _other side_ as entry _value_
+to recover the full link and allow   ->free_symbol()  to delete the back
+pointer.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+idg_add_child(idg_node *parent, idg_node *child ARG_LD)
+{ if ( !child->affected )
+  { child->affected = newHTable(4);
+    child->affected->free_symbol = idg_free_affected;
+  }
+  addHTable(child->affected, parent, child);
+
+  if ( !parent->dependent )
+  { parent->dependent = newHTable(4);
+    parent->dependent->free_symbol = idg_free_dependent;
+  }
+  addHTable(parent->dependent, child, parent);
+}
+
+
+static int
+set_idg_current(trie *atrie ARG_LD)
+{ int rc;
+  Word p;
+
+  if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
+    return raiseStackOverflow(rc);
+  p = valTermRef(LD->tabling.idg_current);
+  TrailAssignment(p);
+  *p = trie_symbol(atrie);
+
+  return TRUE;
+}
+
+
+static
+PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
+{ PRED_LD
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { atom_t current;
+    trie *ctrie;
+
+    if ( !atrie->data.IDG )
+      atrie->data.IDG = idg_new(atrie);
+    if ( (current = *valTermRef(LD->tabling.idg_current)) &&
+	 (ctrie = symbol_trie(current)) )
+    { DEBUG(MSG_TABLING_IDG,
+	    { term_t f = PL_new_term_ref();
+	      term_t t = PL_new_term_ref();
+	      unify_trie_term(ctrie->data.variant, f PASS_LD);
+	      unify_trie_term(atrie->data.variant, t PASS_LD);
+	      Sdprintf("IDG: Edge ");
+	      PL_write_term(Serror, f, 999, 0);
+	      Sdprintf(" -> ");
+	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	    });
+
+      if ( !ctrie->data.IDG )			/* may be deleted */
+	ctrie->data.IDG = idg_new(atrie);
+      idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
+    }
+
+    return set_idg_current(atrie PASS_LD);
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$idg_set_current_wl", 1, idg_set_current_wl, 0)
+{ PRED_LD
+  worklist *wl;
+
+  if ( get_worklist(A1, &wl PASS_LD) )
+  { trie *atrie = wl->table;
+
+    DEBUG(MSG_TABLING_IDG,
+	  { term_t t = PL_new_term_ref();
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
+	    Sdprintf("IDG: Set current to ");
+	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  });
+
+    assert(atrie->data.IDG);
+    return set_idg_current(atrie PASS_LD);
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$idg_reset_current", 0, idg_reset_current, 0)
+{ PRED_LD
+
+  return PL_put_variable(LD->tabling.idg_current);
+}
+
+/** '$idg_edge'(+ATrie, ?Direction, ?Node)
+ *
+ * Enumerate over the edges of the dependency graph
+ */
+
+typedef struct idg_edge_state
+{ trie *	atrie;
+  Table		table;
+  TableEnum	tenum;
+  atom_t	dir;
+  int		fixed_dir;
+  int		allocated;
+  atom_t	deptrie_symbol;
+} idg_edge_state;
+
+
+static int
+advance_idg_edge_state(idg_edge_state *state)
+{ void *k, *v;
+
+retry:
+  if ( advanceTableEnum(state->tenum, &k, &v) )
+  { idg_node *n = k;
+
+    state->deptrie_symbol = trie_symbol(n->atrie);
+    return TRUE;
+  } else
+  { freeTableEnum(state->tenum);
+    state->tenum = NULL;
+
+    if ( !state->fixed_dir && state->dir == ATOM_affected )
+    { if ( (state->table = state->atrie->data.IDG->dependent) )
+      { state->dir = ATOM_dependent;
+	state->tenum = newTableEnum(state->table);
+	goto retry;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+static void
+free_idg_edge_state(idg_edge_state *state)
+{ if ( state->tenum )
+    freeTableEnum(state->tenum);
+  if ( state->allocated )
+    freeForeignState(state, sizeof(*state));
+}
+
+static idg_edge_state *
+save_idg_edge_state(idg_edge_state *state)
+{ if ( !state->allocated )
+  { idg_edge_state *n = allocForeignState(sizeof(*n));
+
+    *n = *state;
+    n->allocated = TRUE;
+    return n;
+  }
+
+  return state;
+}
+
+
+static
+PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  idg_edge_state sbuf;
+  idg_edge_state *state;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { trie *to;
+
+      state = &sbuf;
+      memset(state, 0, sizeof(*state));
+
+      if ( !get_trie(A1, &state->atrie) )
+	return FALSE;
+      if ( !state->atrie->data.IDG )
+	return FALSE;
+
+      if ( PL_is_variable(A2) )
+      { if ( (state->table = state->atrie->data.IDG->affected) )
+	{ state->dir = ATOM_affected;
+	} else if ( (state->table = state->atrie->data.IDG->dependent) )
+	{ state->dir = ATOM_dependent;
+	  if ( !PL_unify_atom(A2, ATOM_dependent) )
+	    return FALSE;
+	  state->fixed_dir = TRUE;
+	} else
+	  return FALSE;
+      } else if ( PL_get_atom_ex(A2, &state->dir) )
+      { state->fixed_dir = TRUE;
+	if ( state->dir == ATOM_affected )
+	  state->table = state->atrie->data.IDG->affected;
+	else if ( state->dir == ATOM_dependent )
+	  state->table = state->atrie->data.IDG->dependent;
+	else
+	  return PL_domain_error("idg_edge_dir", A2);
+      }
+
+      if ( !state->table )
+	return FALSE;
+
+      if ( PL_is_variable(A3) )
+      { state->tenum = newTableEnum(state->table);
+	if ( advance_idg_edge_state(state) )
+	  break;
+	free_idg_edge_state(state);
+	return FALSE;
+      } else if ( get_trie(A3, &to) )
+      { return lookupHTable(state->table, to) != NULL;
+      }
+    }
+    case FRG_REDO:
+      state = CTX_PTR;
+      break;
+    case FRG_CUTTED:
+      state = CTX_PTR;
+      free_idg_edge_state(state);
+      return TRUE;
+    default:
+      assert(0);
+      return FALSE;
+  }
+
+  Mark(fli_context->mark);
+  do
+  { if ( PL_unify_atom(A3, state->deptrie_symbol) )
+    { if ( state->fixed_dir ||
+	   PL_unify_atom(A2, state->dir) )
+      { if ( advance_idg_edge_state(state) )
+	  ForeignRedoPtr(save_idg_edge_state(state));
+	free_idg_edge_state(state);
+	return TRUE;
+      }
+    }
+
+    if ( PL_exception(0) )
+    { free_idg_edge_state(state);
+      return FALSE;
+    }
+
+    Undo(fli_context->mark);
+  } while(advance_idg_edge_state(state));
+
+  free_idg_edge_state(state);
+  return FALSE;
+}
+
 
 
 		 /*******************************
@@ -3977,4 +4292,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)
   PRED_DEF("$tbl_implementation",       2, tbl_implementation,    META)
   PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
+
+  PRED_DEF("$idg_add_edge",             1, idg_add_edge,             0)
+  PRED_DEF("$idg_set_current_wl",       1, idg_set_current_wl,       0)
+  PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
+  PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
+
 EndPredDefs
