@@ -227,15 +227,15 @@ definition of a predicate} \predicatesummary{divmod}{4}{Compute quotient
 and remainder of two integers}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
-\predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean''
-sense} \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I
-Mean'' sense} \predicatesummary{dwim_predicate}{2}{Find predicate in
-``Do What I Mean'' sense} \oppredsummary{dynamic}{1}{fx}{1150}{Indicate
-predicate definition may change} \predicatesummary{edit}{0}{Edit current
-script- or associated file} \predicatesummary{edit}{1}{Edit a file,
-predicate, module (extensible)} \predicatesummary{elif}{1}{Part of
-conditional compilation (directive)} \predicatesummary{else}{0}{Part of
-conditional compilation (directive)}
+\predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
+\predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
+\predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
+\oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
+\predicatesummary{dynamic}{2}{Indicate predicate definition may change}
+\predicatesummary{edit}{0}{Edit current script- or associated file}
+\predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
+\predicatesummary{elif}{1}{Part of conditional compilation (directive)}
+\predicatesummary{else}{0}{Part of conditional compilation (directive)}
 \predicatesummary{empty_assoc}{1}{Create/test empty association tree}
 \predicatesummary{empty_nb_set}{1}{Test/create an empty
 non-backtrackable set} \predicatesummary{encoding}{1}{Define encoding

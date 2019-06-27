@@ -202,4 +202,11 @@
 		     [ pass_to(system:write_term/3, 3),
 		       pass_to(system:read_term/3, 3)
 		     ]).
+:- predicate_options(system:(dynamic)/2, 2,
+		     [ incremental(boolean),
+                       volatile(boolean),
+                       discontiguous(boolean),
+                       multifile(boolean),
+                       thread(oneof([local,shared]))
+		     ]).
 

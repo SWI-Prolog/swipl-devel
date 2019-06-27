@@ -56,6 +56,7 @@
             '$defined_predicate'/1,
             predicate_property/2,
             '$predicate_property'/2,
+            (dynamic)/2,                        % :Predicates, +Options
             clause_property/2,
             current_module/1,                   % ?Module
             module_property/2,                  % ?Module, ?Property
@@ -86,6 +87,10 @@
 
             '$wrap_predicate'/4                 % :Head, +Name, -Wrapped, +Body
           ]).
+
+:- meta_predicate
+    dynamic(:, +).
+
 
                 /********************************
                 *           DEBUGGER            *
@@ -932,6 +937,55 @@ clause_property(Clause, Property) :-
     '$get_clause_attribute'(Clause, predicate_indicator, PI).
 '$clause_property'(module(M), Clause) :-
     '$get_clause_attribute'(Clause, module, M).
+
+%!  dynamic(:Predicates, +Options) is det.
+%
+%   Define a predicate as dynamic with optionally additional properties.
+%   Defined options are:
+%
+%     - incremental(+Bool)
+%     - multifile(+Bool)
+%     - discontiguous(+Bool)
+%     - thread(+Mode)
+%     - volatile(+Bool)
+
+dynamic(M:Predicates, Options) :-
+    '$must_be'(list, Predicates),
+    options_properties(Options, Props),
+    set_pprops(Predicates, M, [dynamic|Props]).
+
+set_pprops([], _, _).
+set_pprops([H|T], M, Props) :-
+    set_pprops1(Props, M:H),
+    set_pprops(T, M, Props).
+
+set_pprops1([], _).
+set_pprops1([H|T], P) :-
+    '$set_predicate_attribute'(P, H, true),
+    set_pprops1(T, P).
+
+options_properties(Options, Props) :-
+    G = opt_prop(_,_,_,_),
+    findall(G, G, Spec),
+    options_properties(Spec, Options, Props).
+
+options_properties([], _, []).
+options_properties([opt_prop(Name, Type, SetValue, Prop)|T],
+                   Options, [Prop|PT]) :-
+    Opt =.. [Name,V],
+    '$option'(Opt, Options),
+    '$must_be'(Type, V),
+    V == SetValue,
+    !,
+    options_properties(T, Options, PT).
+options_properties([_|T], Options, PT) :-
+    options_properties(T, Options, PT).
+
+opt_prop(incremental,   boolean,               true,  incremental).
+opt_prop(multifile,     boolean,               true,  multifile).
+opt_prop(discontiguous, boolean,               true,  discontiguous).
+opt_prop(thread,        oneof([local,shared]), local, thread_local).
+opt_prop(volatile,      boolean,               true,  volatile).
 
 
                  /*******************************

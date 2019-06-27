@@ -598,6 +598,23 @@ true.
 undefined.
 \end{code}
 
+\section{Incremental tabling}
+\label{sec:tabling-incremental}
+
+Incremental tabling maintains the consistency of a set of tabled
+predicates that depend on a set of dynamic predicates. Both the tabled
+and dynamic predicates must have the property \const{incremental} set.
+See dynamic/1 and table/1.
+
+Incremental tabling causes the engine to connect the \jargon{answer
+tries} and incremental dynamic predicates in an \jargon{Incremental
+Dependency Graph} (IDG). Modifications (asserta/1, retract/1,
+retractall/1 and friends) of an incremental dynamic predicate mark all
+depending tables as invalid.  Subsequent usage of these tables forces
+re-evaluation.
+
+TODO: details about the re-evaluation strategy, examples.
+
 
 \section{Tabling predicate reference}
 \label{sec:tabling-preds}

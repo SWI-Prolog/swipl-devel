@@ -3555,6 +3555,33 @@ alternative where each thread has its own clause list for the
 predicate.  Dynamic predicates can be turned into static ones using
 compile_predicates/1.
 
+    \predicate{dynamic}{1}{:ListOfPredicateIndicators, +Options}
+As dynamic/1, but allows for setting additional properties. This
+predicate allows for setting multiple properties on multiple
+predicates.\footnote{XSB has \exam{:- dynamic p/1, q/1 as incremental.},
+using \const{as} as a high-priority operator. SWI-Prolog, YAP and
+Logtalk use \const{as} for aliasing imported predicates where as is
+defined as a low-priority operator. With a growing number of often
+combined properties we copied the idea of setting multiple attributes
+in a single directive but opted for the common \jargon{option} based
+approach.} Defined \arg{Options} are:
+
+    \begin{description}
+    \termitem{incremental}{+Boolean}
+Make the dynamic predicate signal depending \jargon{tables}.  See
+\secref{tabling-incremental}.
+    \termitem{thread}{+Local}
+\arg{Local} is one of \const{shared} (default) or \const{local}.
+See also thread_local/1.
+    \termitem{multifile}{+Boolean}
+    \nodescription
+    \termitem{discontiguous}{+Boolean}
+    \nodescription
+    \termitem{volatile}{+Boolean}
+Set the corresponding property.  See multifile/1, discontiguous/1
+and volatile/1.
+    \end{description}
+
     \predicate{compile_predicates}{1}{:ListOfPredicateIndicators}
 Compile a list of specified dynamic predicates (see dynamic/1 and
 assert/1) into normal static predicates.  This call tells the Prolog
