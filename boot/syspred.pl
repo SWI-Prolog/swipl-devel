@@ -845,6 +845,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, tabled, 1),
     '$tbl_implementation'(Pred, M:Head),
     M:'$tabled'(Head, Mode).
+'$predicate_property'(incremental, Pred) :-
+    '$get_predicate_attribute'(Pred, incremental, 1).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).

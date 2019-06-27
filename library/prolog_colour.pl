@@ -1866,6 +1866,7 @@ colourise_table_options(_, TB, Pos) :-
 
 valid_table_option(subsumptive).
 valid_table_option(variant).
+valid_table_option(incremental).
 
 %!  colourise_op_declaration(Op, TB, Pos) is det.
 

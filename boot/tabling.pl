@@ -236,16 +236,24 @@ untable(TableSpec, _) :-
 %   @compat This interface may change or disappear without notice
 %           from future versions.
 
-'$wrap_tabled'(Head, variant) :-
+'$wrap_tabled'(Head, Options) :-
+    get_dict(mode, Options, subsumptive),
     !,
-    '$set_predicate_attribute'(Head, tabled, true),
-    '$wrap_predicate'(Head, table, Wrapped,
-                      start_tabling(Head, Wrapped)).
-'$wrap_tabled'(Head, subsumptive) :-
-    !,
-    '$set_predicate_attribute'(Head, tabled, true),
+    set_pattributes(Head, Options),
     '$wrap_predicate'(Head, table, Wrapped,
                       start_subsumptive_tabling(Head, Wrapped)).
+'$wrap_tabled'(Head, Options) :-
+    !,
+    set_pattributes(Head, Options),
+    '$wrap_predicate'(Head, table, Wrapped,
+                      start_tabling(Head, Wrapped)).
+
+set_pattributes(Head, Options) :-
+    '$set_predicate_attribute'(Head, tabled, true),
+    (   get_dict(incremental, Options, true)
+    ->  '$set_predicate_attribute'(Head, incremental, true)
+    ;   true
+    ).
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
@@ -774,7 +782,7 @@ wrappers(Name/Arity, Opts) -->
     },
     [ '$tabled'(Head, TMode),
       '$table_mode'(Head, Head, Reserved),
-      (:- initialization('$wrap_tabled'(Module:Head, TMode), now))
+      (:- initialization('$wrap_tabled'(Module:Head, Opts), now))
     ].
 wrappers(ModeDirectedSpec, Opts) -->
     { '$option'(mode(TMode), Opts, variant),
@@ -787,7 +795,7 @@ wrappers(ModeDirectedSpec, Opts) -->
       prolog_load_context(module, Module),
       mode_check(Moded, ModeTest),
       (   ModeTest == true
-      ->  WrapClause = '$wrap_tabled'(Module:Head, TMode)
+      ->  WrapClause = '$wrap_tabled'(Module:Head, Opts)
       ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
           Module:Variant, Moded)
       )
@@ -815,6 +823,8 @@ table_options(subsumptive, Opts0, Opts1) :-
     put_dict(mode, Opts0, subsumptive, Opts1).
 table_options(variant, Opts0, Opts1) :-
     put_dict(mode, Opts0, variant, Opts1).
+table_options(incremental, Opts0, Opts1) :-
+    put_dict(incremental, Opts0, true, Opts1).
 
 
 %!  mode_check(+Moded, -TestCode)
