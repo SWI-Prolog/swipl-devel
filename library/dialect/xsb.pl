@@ -582,8 +582,8 @@ walltime(Seconds) :-
     Seconds is Now - Epoch.
 
 
-%!  path_sysop(+Op, ?Value)
-%!  path_sysop(+Op, ?Arg1, ?Arg2)
+%!  path_sysop(+Op, ?Value) is semidet.
+%!  path_sysop(+Op, ?Arg1, ?Arg2) is semidet.
 %
 %   Unified interface to the  operations  on   files.  All  these  calls
 %   succeed iff the corresponding system call succeeds.
