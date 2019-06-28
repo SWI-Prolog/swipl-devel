@@ -510,26 +510,6 @@ free_worklist_set(worklist_set *wls, int freewl)
   PL_free(wls);
 }
 
-#if 0
-static void *
-pop_add_answer(trie_node *n, void *ctx)
-{ worklist *wl = ctx;
-
-  if ( n->value )
-  { GET_LD
-
-    wkl_add_answer(wl, n PASS_LD);
-  }
-
-  return NULL;
-}
-
-static void
-populate_answers(worklist *wl)
-{ map_trie_node(&wl->table->root, pop_add_answer, wl);
-}
-#endif
-
 
 		 /*******************************
 		 *	 TABLE DELAY LISTS	*
@@ -2673,31 +2653,42 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     kp = valTermRef(A2);
 
     if ( (rc=trie_lookup(wl->table, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
-    { if ( node->value )
+    { idg_node *idg;
+
+      if ( node->value )
       { if ( node->value == ATOM_trienode )
 	{ if ( answer_is_conditional(node) )
 	  { if ( update_delay_list(wl, node, A2, A3 PASS_LD) == UDL_COMPLETE )
 	      return PL_unify_atom(A4, ATOM_cut);
 	  }
+	  if ( node->data.idg.deleted )
+	  { node->data.idg.deleted = FALSE;
+	    if ( (idg=wl->table->data.IDG) )
+	      idg->answer_count++;
+	  }
+
 	  return FALSE;				/* already in trie */
 	}
 	return PL_permission_error("modify", "trie_key", A2);
-      }
-      set_trie_value_word(wl->table, node, ATOM_trienode);
+      } else
+      { set_trie_value_word(wl->table, node, ATOM_trienode);
+	if ( (idg=wl->table->data.IDG) )
+	  idg->new_answer = TRUE;
 
-      rc = update_delay_list(wl, node, A2, A3 PASS_LD);
+	rc = update_delay_list(wl, node, A2, A3 PASS_LD);
 
-      switch(rc)
-      { case UDL_FALSE:
-	  return FALSE;
-        case UDL_COMPLETE:
-	  if ( !PL_unify_atom(A4, ATOM_cut) )
+	switch(rc)
+	{ case UDL_FALSE:
 	    return FALSE;
-        default:
-	  ;
-      }
+	  case UDL_COMPLETE:
+	    if ( !PL_unify_atom(A4, ATOM_cut) )
+	      return FALSE;
+	  default:
+	    ;
+	}
 
-      return wkl_add_answer(wl, node PASS_LD);
+	return wkl_add_answer(wl, node PASS_LD);
+      }
     }
 
     return trie_error(rc, A2);
