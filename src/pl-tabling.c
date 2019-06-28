@@ -389,7 +389,7 @@ negative_worklist(tbl_component *scc ARG_LD)
 	wl->neg_delayed = TRUE;
 	DEBUG(MSG_TABLING_NEG,
 	      { term_t t = PL_new_term_ref();
-		while(wl->table->data.variant, t PASS_LD);
+		unify_trie_term(wl->table->data.variant, t PASS_LD);
 		Sdprintf("Resuming negative node with delay list %zd: ",
 			 pointerToInt(wl));
 		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
