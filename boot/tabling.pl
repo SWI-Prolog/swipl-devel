@@ -1032,7 +1032,12 @@ sum(S0, S1, S) :- S is S0+S1.
     '$wrap_predicate'(Head, incremental, Wrapped,
                       (   '$idg_add_dyncall'(Abstract),
                           Wrapped
-                      )).
+                      )),
+    '$pi_head'(PI, Head),
+    (   Head == Abstract
+    ->  prolog_listen(PI, dyn_update)
+    ;   prolog_listen(PI, dyn_update(Abstract))
+    ).
 
 abstract_goal(M:Head, M:Abstract) :-
     compound(Head),
@@ -1041,6 +1046,19 @@ abstract_goal(M:Head, M:Abstract) :-
     compound_name_arity(Head, Name, Arity),
     functor(Abstract, Name, Arity).
 abstract_goal(Head, Head).
+
+dyn_update(_Action, ClauseRef) :-
+    clause(Head, _Body, ClauseRef),
+    dyn_changed_pattern(Head).
+dyn_update(Abstract, _, _) :-
+    dyn_changed_pattern(Abstract).
+
+dyn_changed_pattern(Term) :-
+    '$tbl_variant_table'(VTable),
+    !,
+    forall(trie_gen(VTable, Term, ATrie),
+           '$idg_changed'(ATrie)).
+dyn_changed_pattern(_).
 
 
 		 /*******************************

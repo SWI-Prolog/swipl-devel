@@ -4284,6 +4284,25 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 }
 
 
+static
+PRED_IMPL("$idg_changed", 1, idg_changed, 0)
+{ PRED_LD
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { DEBUG(MSG_TABLING_IDG_CHANGED,
+	  { term_t v = PL_new_term_ref();
+
+	    unify_trie_term(atrie->data.variant, v PASS_LD);
+	    Sdprintf("IDG: dynamic change: ");
+	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
+	  });
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -4337,4 +4356,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_set_current_wl",       1, idg_set_current_wl,       0)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
+  PRED_DEF("$idg_changed",              1, idg_changed,              0)
 EndPredDefs
