@@ -85,6 +85,7 @@ static int	idg_init_variant(trie *atrie, term_t variant ARG_LD);
 
 #define WL_COMPLETE ((worklist *)0x11)
 #define WL_GROUND   ((worklist *)0x21)
+#define WL_DYNAMIC  ((worklist *)0x41)
 
 #define WLFS_FREE_NONE		0x0000
 #define WLFS_KEEP_COMPLETE	0x0001
@@ -2451,6 +2452,8 @@ unify_table_status(term_t t, trie *trie, int merge ARG_LD)
   }
   if ( wl == WL_COMPLETE )
     return PL_unify_atom(t, ATOM_complete);
+  if ( wl == WL_DYNAMIC )
+    return PL_unify_atom(t, ATOM_dynamic);
 
   assert(!wl || wl == WL_GROUND);
   return PL_unify_atom(t, ATOM_fresh);
@@ -4097,7 +4100,10 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 
   if ( (atrie=get_answer_table(A1, 0, TRUE PASS_LD)) )
   { if ( !atrie->data.IDG )
+    { assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
+      atrie->data.worklist = WL_DYNAMIC;
       atrie->data.IDG = idg_new(atrie);
+    }
     return idg_add_edge(atrie PASS_LD);
   }
 
