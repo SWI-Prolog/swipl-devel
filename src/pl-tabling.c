@@ -917,6 +917,9 @@ retry:
 	    Sdprintf("Unconditional answer after conditional\n"));
     }
 
+    DEBUG(TABLING_NO_EARLY_COMPLETION,
+	  return UDL_TRUE);
+
     if ( wl->ground )				/* early completion */
       return UDL_COMPLETE;
     return UDL_TRUE;

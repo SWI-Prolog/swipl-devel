@@ -191,8 +191,9 @@
 #define MSG_TABLING_VTRIE_DEPENDENCIES 308
 #define MSG_TABLING_IDG		 309
 
-#define TABLING_NO_SIMPLIFY	 310		/* these affect behaviour */
-#define TABLING_NO_AC		 311
+#define TABLING_NO_EARLY_COMPLETION 320
+#define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
+#define TABLING_NO_AC		 322
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
