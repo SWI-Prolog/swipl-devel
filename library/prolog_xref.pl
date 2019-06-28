@@ -980,6 +980,8 @@ process_directive(include(Files), Src) :-
     process_include(Files, Src).
 process_directive(dynamic(Dynamic), Src) :-
     process_predicates(assert_dynamic, Dynamic, Src).
+process_directive(dynamic(Dynamic, _Options), Src) :-
+    process_predicates(assert_dynamic, Dynamic, Src).
 process_directive(thread_local(Dynamic), Src) :-
     process_predicates(assert_thread_local, Dynamic, Src).
 process_directive(multifile(Dynamic), Src) :-
