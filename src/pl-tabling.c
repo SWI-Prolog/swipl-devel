@@ -4366,6 +4366,27 @@ PRED_IMPL("$idg_changed", 1, idg_changed, 0)
   return FALSE;
 }
 
+
+static
+PRED_IMPL("$idg_falsecount", 2, idg_falsecount, 0)
+{ GET_LD
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { idg_node *n;
+
+    if ( (n=atrie->data.IDG) )
+      return PL_unify_integer(A2, n->falsecount);
+
+    return FALSE;
+  }
+
+  return FALSE;
+}
+
+
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -4419,4 +4440,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
+  PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
 EndPredDefs
