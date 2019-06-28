@@ -79,6 +79,7 @@ static int	put_delay_info(term_t t, trie_node *answer);
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
 static int	idg_init_variant(trie *atrie, term_t variant ARG_LD);
+static void	reeval_complete(trie *atrie);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -3306,6 +3307,8 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
       } else
       { complete_worklist(wl);
       }
+
+      reeval_complete(trie);		/* incremental tabling */
     }
     reset_newly_created_worklists(c, WLFS_FREE_NONE);
     c->status = SCC_COMPLETED;
@@ -4416,6 +4419,38 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
   }
 
   return FALSE;
+}
+
+
+static void *
+reeval_complete_node(trie_node *n, void *ctx)
+{ trie *atrie = ctx;
+
+  if ( n->data.idg.deleted )
+  { trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
+  }
+
+  return NULL;
+}
+
+
+static void
+reeval_complete(trie *atrie)
+{ idg_node *n;
+
+  if ( (n=atrie->data.IDG) && n->prev )
+  { map_trie_node(&atrie->root, reeval_complete_node, atrie);
+
+    if ( !n->new_answer &&
+	 n->prev->answer_count == n->answer_count )
+    { Sdprintf("Reevaluation complete: same answers\n");
+    } else
+    { Sdprintf("Reevaluation complete: modified\n");
+    }
+
+    idg_destroy(n->prev);
+    n->prev = NULL;
+  }
 }
 
 
