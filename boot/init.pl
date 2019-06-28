@@ -3760,16 +3760,24 @@ length(_, Length) :-
 		 *              MISC		*
 		 *******************************/
 
-:- meta_predicate
-    '$pi_head'(:, -).
-
-'$pi_head'(M:Name/Arity, M:Head) :-
+'$pi_head'(PI, Head) :-
+    var(PI),
+    var(Head),
+    '$instantiation_error'([PI,Head]).
+'$pi_head'(M:PI, M:Head) :-
+    !,
+    '$pi_head'(PI, Head).
+'$pi_head'(Name/Arity, Head) :-
     !,
     functor(Head, Name, Arity).
-'$pi_head'(M:Name//DCGArity, M:Head) :-
+'$pi_head'(Name//DCGArity, Head) :-
     !,
-    Arity is DCGArity+2,
-    functor(Head, Name, Arity).
+    (   nonvar(DCGArity)
+    ->  Arity is DCGArity+2,
+        functor(Head, Name, Arity)
+    ;   functor(Head, Name, Arity),
+        DCGArity is Arity - 2
+    ).
 
 
                  /*******************************
