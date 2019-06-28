@@ -389,7 +389,7 @@ negative_worklist(tbl_component *scc ARG_LD)
 	wl->neg_delayed = TRUE;
 	DEBUG(MSG_TABLING_NEG,
 	      { term_t t = PL_new_term_ref();
-		unify_trie_term(wl->table->data.variant, t PASS_LD);
+		while(wl->table->data.variant, t PASS_LD);
 		Sdprintf("Resuming negative node with delay list %zd: ",
 			 pointerToInt(wl));
 		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
@@ -4284,20 +4284,82 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 }
 
 
+typedef struct idg_propagate_state
+{ size_t modified;
+  TableEnum en;
+  segstack  stack;
+  idg_node  *buf[100];
+} idg_propagate_state;
+
+
+static void
+idg_changed_loop(idg_propagate_state *state)
+{ typedef struct idg_node *IDGNode;
+
+  for(;;)
+  { void *k, *v;
+    idg_node *next;
+
+    while( advanceTableEnum(state->en, &k, &v) )
+    { idg_node *n = k;
+
+      if ( n->falsecount++ == 0 )
+      { if ( n->affected )
+	  pushSegStack(&state->stack, n, IDGNode);
+      }
+    }
+    freeTableEnum(state->en);
+
+    if ( popSegStack(&state->stack, &next, IDGNode) )
+    { assert(next->affected);
+      state->en = newTableEnum(next->affected);
+    } else
+      break;
+  }
+}
+
+
+static size_t
+idg_changed(trie *atrie)
+{ idg_node *n;
+  size_t modified = 0;
+
+  if ( (n=atrie->data.IDG) && n->falsecount == 0 )
+  { n->falsecount = 1;
+    modified++;
+
+    if ( n->affected )
+    { idg_propagate_state state;
+
+      state.modified = modified;
+      initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
+      state.en = newTableEnum(n->affected);
+      idg_changed_loop(&state);
+      clearSegStack(&state.stack);
+
+      return state.modified;
+    }
+  }
+
+  return modified;
+}
+
+
 static
 PRED_IMPL("$idg_changed", 1, idg_changed, 0)
-{ PRED_LD
-  trie *atrie;
+{ trie *atrie;
 
   if ( get_trie(A1, &atrie) )
   { DEBUG(MSG_TABLING_IDG_CHANGED,
-	  { term_t v = PL_new_term_ref();
+	  { GET_LD
+	    term_t v = PL_new_term_ref();
 
 	    unify_trie_term(atrie->data.variant, v PASS_LD);
 	    Sdprintf("IDG: dynamic change: ");
 	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
 	  });
 
+    idg_changed(atrie);
     return TRUE;
   }
 
