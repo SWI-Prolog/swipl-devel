@@ -3945,7 +3945,7 @@ PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
 }
 
 		 /*******************************
-		 *	       IDG		*
+		 *	 IDG CONSTRUCTION	*
 		 *******************************/
 
 /** '$idg_add_edge'(+Trie)
@@ -4137,6 +4137,11 @@ PRED_IMPL("$idg_reset_current", 0, idg_reset_current, 0)
 
   return PL_put_variable(LD->tabling.idg_current);
 }
+
+
+		 /*******************************
+		 *	    IDG QUERYING	*
+		 *******************************/
 
 /** '$idg_edge'(+ATrie, ?Direction, ?Node)
  *
@@ -4390,7 +4395,37 @@ PRED_IMPL("$idg_falsecount", 2, idg_falsecount, 0)
   return FALSE;
 }
 
+		 /*******************************
+		 *  INCREMENTAL RE-EVALUATION	*
+		 *******************************/
 
+static void *
+reeval_prep_node(trie_node *n, void *ctx)
+{ n->data.idg.deleted = TRUE;
+  if ( !answer_is_conditional(n) )
+    n->data.idg.unconditional = TRUE;
+
+  return NULL;
+}
+
+
+static
+PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
+{ trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { idg_node *n;
+
+    map_trie_node(&atrie->root, reeval_prep_node, NULL);
+    n = idg_new(atrie);
+    n->prev = atrie->data.IDG;
+    atrie->data.IDG = n;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
 
 
 		 /*******************************
@@ -4447,4 +4482,6 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
+
+  PRED_DEF("$tbl_reeval_prepare",       1, tbl_reeval_prepare,	     0)
 EndPredDefs

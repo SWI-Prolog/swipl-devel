@@ -78,7 +78,11 @@ typedef struct trie_node
   struct trie_node *parent;
   trie_children children;
   struct
-  { struct delay_info *delayinfo;
+  { struct delay_info *delayinfo;	/* can be unified with children */
+    struct
+    { unsigned deleted : 1;		/* Deleted for incremental re-evaluation */
+      unsigned unconditional : 1;	/* Previous answer was unconditional */
+    } idg;
   } data;
 } trie_node;
 
