@@ -3980,17 +3980,30 @@ idg_new(trie *atrie)
 }
 
 static void
-idg_destroy(idg_node *node)
+idg_clean_affected(idg_node *node)
 { Table table;
 
   if ( (table=node->affected) )
   { node->affected = NULL;
     destroyHTable(table);
   }
+}
+
+static void
+idg_clean_dependent(idg_node *node)
+{ Table table;
+
   if ( (table=node->dependent) )
   { node->dependent = NULL;
     destroyHTable(table);
   }
+}
+
+
+static void
+idg_destroy(idg_node *node)
+{ idg_clean_affected(node);
+  idg_clean_dependent(node);
 
   PL_free(node);
 }
@@ -4504,6 +4517,7 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
   { idg_node *n, *prev = atrie->data.IDG;
 
     prev->answer_count = atrie->value_count;
+    idg_clean_dependent(prev);
     map_trie_node(&atrie->root, reeval_prep_node, NULL);
     n = idg_new(atrie);
     n->prev = prev;
