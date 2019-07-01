@@ -1766,6 +1766,10 @@ valid_meta_decl(I) :- integer(I), between(0,9,I).
 
 %!  colourise_table_declarations(+Term, +TB, +Pos)
 
+colourise_table_declarations(Term, TB, parentheses_term_position(PO,PC,Pos)) :-
+    !,
+    colour_item(parentheses, TB, PO-PC),
+    colourise_table_declarations(Term, TB, Pos).
 colourise_table_declarations((Head,Tail), TB,
                              term_position(_,_,_,_,[PH,PT])) :-
     !,
