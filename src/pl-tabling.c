@@ -4323,7 +4323,7 @@ typedef struct idg_propagate_state
 
 
 static void
-idg_changed_loop(idg_propagate_state *state)
+idg_changed_loop(idg_propagate_state *state, int changed)
 { typedef struct idg_node *IDGNode;
 
   for(;;)
@@ -4333,9 +4333,16 @@ idg_changed_loop(idg_propagate_state *state)
     while( advanceTableEnum(state->en, &k, &v) )
     { idg_node *n = k;
 
-      if ( n->falsecount++ == 0 )
-      { if ( n->affected )
-	  pushSegStack(&state->stack, n, IDGNode);
+      if ( changed )
+      { if ( n->falsecount++ == 0 )
+	{ if ( n->affected )
+	    pushSegStack(&state->stack, n, IDGNode);
+	}
+      } else
+      { if ( --n->falsecount == 0 )
+	{ if ( n->affected )
+	    pushSegStack(&state->stack, n, IDGNode);
+	}
       }
     }
     freeTableEnum(state->en);
@@ -4350,28 +4357,35 @@ idg_changed_loop(idg_propagate_state *state)
 
 
 static size_t
+idg_propagate_change(idg_node *n, int changed)
+{ if ( n->affected )
+  { idg_propagate_state state;
+
+    state.modified = 0;
+    initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
+    state.en = newTableEnum(n->affected);
+    idg_changed_loop(&state, changed);
+    clearSegStack(&state.stack);
+
+    return state.modified;
+  }
+
+  return 0;
+}
+
+
+
+static size_t
 idg_changed(trie *atrie)
 { idg_node *n;
-  size_t modified = 0;
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 )
   { n->falsecount = 1;
-    modified++;
 
-    if ( n->affected )
-    { idg_propagate_state state;
-
-      state.modified = modified;
-      initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
-      state.en = newTableEnum(n->affected);
-      idg_changed_loop(&state);
-      clearSegStack(&state.stack);
-
-      return state.modified;
-    }
+    return idg_propagate_change(n, TRUE)+1;
   }
 
-  return modified;
+  return 0;
 }
 
 
@@ -4487,6 +4501,7 @@ reeval_complete(trie *atrie)
     if ( !n->new_answer &&
 	 n->prev->answer_count == n->answer_count )
     { Sdprintf("Reevaluation complete: same answers\n");
+      idg_propagate_change(n, FALSE);
     } else
     { Sdprintf("Reevaluation complete: modified\n");
     }
