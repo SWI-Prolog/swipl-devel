@@ -276,7 +276,7 @@ start_tabling(Wrapper, Worker) :-
         '$idg_set_current'(OldCurrent),
         done_leader(LStatus, SCC, Skeleton, Trie)
     ;   Status == invalid
-    ->  user:reeval(Trie),                      % debug in user land
+    ->  reeval(Trie),
         '$idg_add_edge'(Trie),
         '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
@@ -1064,6 +1064,75 @@ dyn_changed_pattern(Term) :-
     forall(trie_gen(VTable, Term, ATrie),
            '$idg_changed'(ATrie)).
 dyn_changed_pattern(_).
+
+
+%!  reeval(+ATrie)
+%
+%   Called  if  the   table   ATrie    is   out-of-date   (has  non-zero
+%   _falsecount_). This finds all dependency paths to dynamic predicates
+%   and then evaluates the nodes in   a breath-first fashion starting at
+%   the level just above the  dynamic   predicates  and  moving upwards.
+%   Bottom up evaluation is used to   profit  from upward propagation of
+%   not-modified events that may cause the evaluation to stop early.
+
+reeval(ATrie) :-
+    findall(Path, false_path(ATrie, Path), Paths),
+    reeval_paths(Paths, ATrie).
+
+reeval_paths(BottomUp, ATrie) :-
+    is_invalid(ATrie),
+    !,
+    reeval_heads(BottomUp, ATrie, BottomUp1),
+    reeval_paths(BottomUp1, ATrie).
+reeval_paths(_, _).
+
+reeval_heads(_, ATrie, _) :-
+    \+ is_invalid(ATrie),
+    !.
+reeval_heads([], _, []).
+reeval_heads([[H]|B], ATrie, BT) :-
+    !,
+    reeval_node(H),
+    reeval_heads(B, ATrie, BT).
+reeval_heads([[]|B], ATrie, BT) :-
+    !,
+    reeval_heads(B, ATrie, BT).
+reeval_heads([[H|T]|B], ATrie, [T|BT]) :-
+    !,
+    reeval_node(H),
+    reeval_heads(B, ATrie, BT).
+
+false_path(ATrie, BottomUp) :-
+    false_path(ATrie, Path, []),
+    '$reverse'(Path, BottomUp).
+
+false_path(ATrie, [ATrie|T], Seen) :-
+    is_invalid(ATrie),
+    \+ memberchk(ATrie, Seen),
+    '$idg_edge'(ATrie, dependent, Dep),
+    (   '$tbl_table_status'(Dep, dynamic, _, _),
+        T = []
+    ;   false_path(Dep, T, [ATrie|Seen])
+    ).
+
+is_invalid(ATrie) :-
+    '$idg_falsecount'(ATrie, FalseCount),
+    FalseCount > 0.
+
+reeval_node(ATrie) :-
+    is_invalid(ATrie),
+    !,
+    '$tbl_reeval_prepare'(ATrie),
+    '$tbl_table_status'(ATrie, _, Variant, _),
+    (   '$idg_reset_current',                   % move to '$tbl_scc_save'/1?
+        setup_call_cleanup(
+            '$tbl_scc_save'(State),
+            call(Variant),
+            '$tbl_scc_restore'(State)),
+        fail
+    ;   true
+    ).
+reeval_node(_).
 
 
 		 /*******************************
