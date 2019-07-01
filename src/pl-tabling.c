@@ -4486,9 +4486,11 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
 
 static void *
 reeval_prep_node(trie_node *n, void *ctx)
-{ n->data.idg.deleted = TRUE;
-  if ( !answer_is_conditional(n) )
-    n->data.idg.unconditional = TRUE;
+{ if ( n->value )
+  { n->data.idg.deleted = TRUE;
+    if ( !answer_is_conditional(n) )
+      n->data.idg.unconditional = TRUE;
+  }
 
   return NULL;
 }
@@ -4499,11 +4501,12 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { idg_node *n;
+  { idg_node *n, *prev = atrie->data.IDG;
 
+    prev->answer_count = atrie->value_count;
     map_trie_node(&atrie->root, reeval_prep_node, NULL);
     n = idg_new(atrie);
-    n->prev = atrie->data.IDG;
+    n->prev = prev;
     atrie->data.IDG = n;
 
     return TRUE;
@@ -4545,7 +4548,9 @@ reeval_complete(trie *atrie)
     { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": same answers\n"));
       idg_propagate_change(n, FALSE);
     } else
-    { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": modified\n"));
+    { DEBUG(MSG_TABLING_IDG_REEVAL,
+	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
+		     n->new_answer, n->prev->answer_count, n->answer_count));
     }
 
     idg_destroy(n->prev);
