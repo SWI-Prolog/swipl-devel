@@ -273,6 +273,9 @@ start_tabling(Wrapper, Worker) :-
             finished_leader(Catcher, SCC, Wrapper)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         done_leader(LStatus, SCC, Skeleton, Trie)
+    ;   Status == invalid
+    ->  user:reeval(Trie),                      % debug in user land
+        '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).

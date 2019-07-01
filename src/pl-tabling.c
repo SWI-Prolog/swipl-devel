@@ -2414,12 +2414,21 @@ print_worklist(const char *prefix, worklist *wl)
 		 *******************************/
 
 static int
+unify_complete_or_invalid(term_t t, trie *atrie ARG_LD)
+{ if ( atrie->data.IDG && atrie->data.IDG->falsecount > 0 )
+    return PL_unify_atom(t, ATOM_invalid);
+
+  return PL_unify_atom(t, ATOM_complete);
+}
+
+
+static int
 unify_table_status(term_t t, trie *trie, int merge ARG_LD)
 { worklist *wl = trie->data.worklist;
 
   if ( WL_IS_WORKLIST(wl) )
   { if ( wl->completed )
-      return PL_unify_atom(t, ATOM_complete);
+      return unify_complete_or_invalid(t, trie PASS_LD);
 
     if ( merge && wl->component != LD->tabling.component )
     { DEBUG(MSG_TABLING_WORK,
@@ -2432,7 +2441,7 @@ unify_table_status(term_t t, trie *trie, int merge ARG_LD)
     return PL_unify_pointer(t, wl);
   }
   if ( wl == WL_COMPLETE )
-    return PL_unify_atom(t, ATOM_complete);
+    return unify_complete_or_invalid(t, trie PASS_LD);
   if ( wl == WL_DYNAMIC )
     return PL_unify_atom(t, ATOM_dynamic);
 
