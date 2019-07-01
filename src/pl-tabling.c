@@ -4113,6 +4113,20 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
 
 
 static
+PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
+{ PRED_LD
+  trie *atrie;
+
+  if ( get_trie(A2, &atrie) )
+    return ( PL_unify(A1, LD->tabling.idg_current) &&
+	     idg_add_edge(atrie PASS_LD)
+	   );
+
+  return FALSE;
+}
+
+
+static
 PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 { PRED_LD
   trie *atrie;
@@ -4149,6 +4163,26 @@ PRED_IMPL("$idg_set_current_wl", 1, idg_set_current_wl, 0)
 
   return FALSE;
 }
+
+static
+PRED_IMPL("$idg_set_current", 1, idg_set_current, 0)
+{ PRED_LD
+  trie *atrie;
+
+  if ( get_trie_noex(A1, &atrie) )
+  { DEBUG(MSG_TABLING_IDG,
+	  { term_t t = PL_new_term_ref();
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
+	    Sdprintf("IDG: Set current to ");
+	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  });
+
+    return set_idg_current(atrie PASS_LD);
+  }
+
+  return TRUE;
+}
+
 
 static
 PRED_IMPL("$idg_reset_current", 0, idg_reset_current, 0)
@@ -4560,8 +4594,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
 
   PRED_DEF("$idg_add_edge",             1, idg_add_edge,             0)
+  PRED_DEF("$idg_add_edge",             2, idg_add_edge,             0)
   PRED_DEF("$idg_add_dyncall",          1, idg_add_dyncall,          0)
   PRED_DEF("$idg_set_current_wl",       1, idg_set_current_wl,       0)
+  PRED_DEF("$idg_set_current",          1, idg_set_current,          0)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
