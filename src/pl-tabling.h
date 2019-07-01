@@ -178,9 +178,9 @@ typedef struct idg_node
 { Table		affected;		/* parent nodes */
   Table		dependent;		/* childs */
   trie	       *atrie;			/* answer trie */
-  size_t	answer_count;		/* # answers */
-  struct	idg_node *prev;		/* Older node */
-  int		new_answer;		/* Update generated a new answer */
+  size_t	answer_count;		/* #answers in previous complete state */
+  unsigned	new_answer : 1;		/* Update generated a new answer */
+  unsigned	reevaluating : 1;	/* currently re-evaluating */
   int		falsecount;		/* Invalidate count */
 } idg_node;
 

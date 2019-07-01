@@ -2422,7 +2422,7 @@ unify_complete_or_invalid(term_t t, trie *atrie ARG_LD)
   if ( (n=atrie->data.IDG) )
   { if ( n->falsecount > 0 )
       return PL_unify_atom(t, ATOM_invalid);
-    if ( n->prev )
+    if ( n->reevaluating )
       return PL_unify_atom(t, ATOM_fresh);
   }
 
@@ -4514,14 +4514,13 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { idg_node *n, *prev = atrie->data.IDG;
+  { idg_node *idg = atrie->data.IDG;
 
-    prev->answer_count = atrie->value_count;
-    idg_clean_dependent(prev);
+    idg->answer_count = atrie->value_count;
+    idg->new_answer = FALSE;
+    idg_clean_dependent(idg);
     map_trie_node(&atrie->root, reeval_prep_node, NULL);
-    n = idg_new(atrie);
-    n->prev = prev;
-    atrie->data.IDG = n;
+    idg->reevaluating = TRUE;
 
     return TRUE;
   }
@@ -4546,7 +4545,7 @@ static void
 reeval_complete(trie *atrie)
 { idg_node *n;
 
-  if ( (n=atrie->data.IDG) && n->prev )
+  if ( (n=atrie->data.IDG) && n->reevaluating )
   { map_trie_node(&atrie->root, reeval_complete_node, atrie);
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
@@ -4557,18 +4556,17 @@ reeval_complete(trie *atrie)
 	    PL_write_term(Serror, t, 999, 0);
 	  });
 
+    n->reevaluating = FALSE;
+
     if ( !n->new_answer &&
-	 n->prev->answer_count == n->answer_count )
+	 n->answer_count == atrie->value_count )
     { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": same answers\n"));
       idg_propagate_change(n, FALSE);
     } else
     { DEBUG(MSG_TABLING_IDG_REEVAL,
 	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
-		     n->new_answer, n->prev->answer_count, n->answer_count));
+		     n->new_answer, atrie->value_count, n->answer_count));
     }
-
-    idg_destroy(n->prev);
-    n->prev = NULL;
   }
 }
 
