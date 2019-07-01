@@ -2416,7 +2416,11 @@ print_worklist(const char *prefix, worklist *wl)
 static int
 unify_complete_or_invalid(term_t t, trie *atrie ARG_LD)
 { if ( atrie->data.IDG && atrie->data.IDG->falsecount > 0 )
-    return PL_unify_atom(t, ATOM_invalid);
+  { if ( atrie->data.IDG->prev )
+      return PL_unify_atom(t, ATOM_fresh);
+    else
+      return PL_unify_atom(t, ATOM_invalid);
+  }
 
   return PL_unify_atom(t, ATOM_complete);
 }
@@ -2559,7 +2563,12 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
   trie *trie;
 
   if ( get_trie(A2, &trie) )
-  { worklist *wl = new_worklist(trie);
+  { worklist *wl;
+
+    if ( WL_IS_WORKLIST(wl=trie->data.worklist) )
+      wl->completed = FALSE;
+    else
+      wl = new_worklist(trie);
 
     wl->component = LD->tabling.component;
     add_global_worklist(wl);
