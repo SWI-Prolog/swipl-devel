@@ -4428,6 +4428,19 @@ idg_changed_loop(idg_propagate_state *state, int changed)
     while( advanceTableEnum(state->en, &k, &v) )
     { idg_node *n = k;
 
+      DEBUG(MSG_TABLING_IDG_CHANGED,
+	    { GET_LD
+		term_t v = PL_new_term_ref();
+
+	      unify_trie_term(n->atrie->data.variant, v PASS_LD);
+	      Sdprintf("IDG: propagate falsecount (re-eval=%d, falsecount=%d) to: ",
+		       n->reevaluating, n->falsecount);
+	      PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
+	    });
+
+      if ( n->reevaluating )
+	continue;
+
       if ( changed )
       { if ( n->falsecount++ == 0 )
 	{ if ( n->affected )
@@ -4613,9 +4626,7 @@ reeval_complete(trie *atrie)
 	    PL_write_term(Serror, t, 999, 0);
 	  });
 
-    n->reevaluating = FALSE;
-
-    if ( !n->new_answer &&
+    if ( n->new_answer == FALSE &&
 	 n->answer_count == atrie->value_count )
     { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": same answers\n"));
       idg_propagate_change(n, FALSE);
@@ -4624,6 +4635,8 @@ reeval_complete(trie *atrie)
 	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
 		     n->new_answer, n->answer_count, atrie->value_count));
     }
+
+    n->reevaluating = FALSE;
   }
 }
 
