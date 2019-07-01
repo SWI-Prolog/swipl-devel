@@ -4158,8 +4158,14 @@ idg_add_edge(trie *atrie ARG_LD)
     }
   }
 
-  return set_idg_current(atrie PASS_LD);
+  return TRUE;
 }
+
+/** '$idg_add_edge'(+ATrie)
+ *
+ * Create an edge from ATrie to the current node.   The notion of
+ * current is NOT UPDATED.
+ */
 
 static
 PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
@@ -4173,6 +4179,12 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
 }
 
 
+/** '$idg_add_edge'(-OldCurrent, +ATrie)
+ *
+ * Create an edge from ATrie to the current node, set the current to
+ * Atrie and return the old current.
+ */
+
 static
 PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
 { PRED_LD
@@ -4180,7 +4192,8 @@ PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
 
   if ( get_trie(A2, &atrie) )
     return ( PL_unify(A1, LD->tabling.idg_current) &&
-	     idg_add_edge(atrie PASS_LD)
+	     idg_add_edge(atrie PASS_LD) &&
+	     set_idg_current(atrie PASS_LD)
 	   );
 
   return FALSE;

@@ -259,14 +259,14 @@ set_pattributes(Head, Options) :-
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
-    '$idg_add_edge'(OldCurrent, Trie),
     (   Status == complete
-    ->  '$idg_set_current'(OldCurrent),
+    ->  '$idg_add_edge'(Trie),
         '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+        '$idg_add_edge'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Skeleton, Worker, Trie, SCC, LStatus),
@@ -277,7 +277,7 @@ start_tabling(Wrapper, Worker) :-
         done_leader(LStatus, SCC, Skeleton, Trie)
     ;   Status == invalid
     ->  user:reeval(Trie),                      % debug in user land
-        '$idg_set_current'(OldCurrent),
+        '$idg_add_edge'(Trie),
         '$tbl_answer_update_dl'(Trie, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
