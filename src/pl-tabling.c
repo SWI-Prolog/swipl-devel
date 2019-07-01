@@ -4571,7 +4571,7 @@ reeval_complete(trie *atrie)
     } else
     { DEBUG(MSG_TABLING_IDG_REEVAL,
 	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
-		     n->new_answer, atrie->value_count, n->answer_count));
+		     n->new_answer, n->answer_count, atrie->value_count));
     }
   }
 }
