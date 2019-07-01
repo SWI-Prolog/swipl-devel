@@ -2685,10 +2685,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	      return PL_unify_atom(A4, ATOM_cut);
 	  }
 	  if ( node->data.idg.deleted )
-	  { node->data.idg.deleted = FALSE;
-	    if ( (idg=wl->table->data.IDG) )
-	      idg->answer_count++;
-	  }
+	    node->data.idg.deleted = FALSE;
 
 	  return FALSE;				/* already in trie */
 	}
@@ -4516,8 +4513,17 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
+    DEBUG(MSG_TABLING_IDG_REEVAL,
+	  { GET_LD
+	    term_t t = PL_new_term_ref();
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
+	    Sdprintf("Preparing re-evaluation of ");
+	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  });
+
     idg->answer_count = atrie->value_count;
     idg->new_answer = FALSE;
+    idg->falsecount = 0;
     idg_clean_dependent(idg);
     map_trie_node(&atrie->root, reeval_prep_node, NULL);
     idg->reevaluating = TRUE;
