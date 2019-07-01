@@ -1052,9 +1052,16 @@ abstract_goal(M:Head, M:Abstract) :-
     functor(Abstract, Name, Arity).
 abstract_goal(Head, Head).
 
+dyn_update(retractall, Context) :-
+    !,
+    (   Context = start(Pattern)
+    ->  dyn_changed_pattern(Pattern)
+    ;   true
+    ).
 dyn_update(_Action, ClauseRef) :-
     clause(Head, _Body, ClauseRef),
     dyn_changed_pattern(Head).
+
 dyn_update(Abstract, _, _) :-
     dyn_changed_pattern(Abstract).
 
