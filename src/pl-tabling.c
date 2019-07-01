@@ -4134,7 +4134,7 @@ set_idg_current(trie *atrie ARG_LD)
   return TRUE;
 }
 
-static int
+static trie *
 idg_add_edge(trie *atrie ARG_LD)
 { atom_t current;
   trie *ctrie;
@@ -4155,10 +4155,11 @@ idg_add_edge(trie *atrie ARG_LD)
 	    });
 
       idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
+      return ctrie;
     }
   }
 
-  return TRUE;
+  return NULL;
 }
 
 /** '$idg_add_edge'(+ATrie)
@@ -4173,7 +4174,9 @@ PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-    return idg_add_edge(atrie PASS_LD);
+  { idg_add_edge(atrie PASS_LD);
+    return TRUE;
+  }
 
   return FALSE;
 }
@@ -4192,7 +4195,7 @@ PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
 
   if ( get_trie(A2, &atrie) )
     return ( PL_unify(A1, LD->tabling.idg_current) &&
-	     idg_add_edge(atrie PASS_LD) &&
+	     (idg_add_edge(atrie PASS_LD),TRUE) &&
 	     set_idg_current(atrie PASS_LD)
 	   );
 
@@ -4206,12 +4209,19 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
   trie *atrie;
 
   if ( (atrie=get_answer_table(A1, 0, TRUE PASS_LD)) )
-  { if ( !atrie->data.IDG )
+  { trie *ctrie;
+
+    if ( !atrie->data.IDG )
     { assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
       atrie->data.IDG = idg_new(atrie);
     }
-    return idg_add_edge(atrie PASS_LD);
+    if ( (ctrie=idg_add_edge(atrie PASS_LD)) )		/* Does not update current.  Should it? */
+    { if ( ctrie->data.IDG->reevaluating )
+	atrie->data.IDG->falsecount = 0;
+    }
+
+    return TRUE;
   }
 
   return FALSE;
