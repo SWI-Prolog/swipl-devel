@@ -4532,12 +4532,20 @@ reeval_complete(trie *atrie)
   if ( (n=atrie->data.IDG) && n->prev )
   { map_trie_node(&atrie->root, reeval_complete_node, atrie);
 
+    DEBUG(MSG_TABLING_IDG_REEVAL,
+	  { GET_LD
+	    term_t t = PL_new_term_ref();
+	    unify_trie_term(atrie->data.variant, t PASS_LD);
+	    Sdprintf("Re-evaluation of ");
+	    PL_write_term(Serror, t, 999, 0);
+	  });
+
     if ( !n->new_answer &&
 	 n->prev->answer_count == n->answer_count )
-    { Sdprintf("Reevaluation complete: same answers\n");
+    { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": same answers\n"));
       idg_propagate_change(n, FALSE);
     } else
-    { Sdprintf("Reevaluation complete: modified\n");
+    { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": modified\n"));
     }
 
     idg_destroy(n->prev);
