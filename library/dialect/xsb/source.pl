@@ -156,6 +156,8 @@ ignored_table_options(variant, variant) :-
     !.
 ignored_table_options(subsumptive, subsumptive) :-
     !.
+ignored_table_options(incremental, incremental) :-
+    !.
 ignored_table_options(opaque, true) :-
     !.
 ignored_table_options(Option, true) :-
