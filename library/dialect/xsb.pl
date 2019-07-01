@@ -78,6 +78,7 @@
 :- use_module(library(dialect/xsb/source)).
 :- use_module(library(dialect/xsb/tables)).
 :- use_module(library(aggregate)).
+:- use_module(library(options)).
 
 /** <module> XSB Prolog compatibility layer
 
@@ -456,25 +457,48 @@ clear_compiler_option(xpp_on).
 %
 %       :- import p/1 from x.
 %       :- dynamic p/1.
+%
+%   This also deals with ``:- dynamic Spec as Flags``.
 
 xsb_dynamic(M:Preds) :-
-    xsb_dynamic_(Preds, M).
+    xsb_dynamic_(Preds, M, []).
 
-xsb_dynamic_(Preds, _M) :-
+xsb_dynamic_(Preds, _M, _) :-
     var(Preds),
     !,
     instantiation_error(Preds).
-xsb_dynamic_((A,B), M) :-
+xsb_dynamic_(Spec as Flags, M, Options0) :-
     !,
-    xsb_dynamic_(A, M),
-    xsb_dynamic_(B, M).
-xsb_dynamic_(Name/Arity, M) :-
+    dyn_flags(Flags, Options0, Options),
+    xsb_dynamic_(Spec, M, Options).
+xsb_dynamic_((A,B), M, Options) :-
+    !,
+    xsb_dynamic_(A, M, Options),
+    xsb_dynamic_(B, M, Options).
+xsb_dynamic_(Name/Arity, M, Options) :-
     functor(Head, Name, Arity),
     '$get_predicate_attribute'(M:Head, imported, M2), % predicate_property/2 requires
     !,                                                % P to be defined.
-    dynamic(M2:Name/Arity).
-xsb_dynamic_(PI, M) :-
-    dynamic(M:PI).
+    dynamic([M2:Name/Arity], Options).
+xsb_dynamic_(PI, M, Options) :-
+    dynamic([M:PI], Options).
+
+dyn_flags(Var, _, _) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+dyn_flags((A,B), Options0, Options) :-
+    !,
+    dyn_flags(A, Options0, Options1),
+    dyn_flags(B, Options1, Options).
+dyn_flags(incremental, Options0, Options) :-
+    !,
+    merge_options([incremental(true)], Options0, Options).
+dyn_flags(abstract(Level), Options0, Options) :-
+    !,
+    merge_options([abstract(Level)], Options0, Options).
+dyn_flags(Flag, _, _) :-
+    domain_error(xsb_dynamic_flag, Flag).
 
 
 		 /*******************************
