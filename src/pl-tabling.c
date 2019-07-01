@@ -2240,6 +2240,8 @@ clean_worklist(worklist *wl)
     }
     wl->free_clusters = NULL;
   }
+
+  wl->component = NULL;
 }
 
 
@@ -2415,11 +2417,13 @@ print_worklist(const char *prefix, worklist *wl)
 
 static int
 unify_complete_or_invalid(term_t t, trie *atrie ARG_LD)
-{ if ( atrie->data.IDG && atrie->data.IDG->falsecount > 0 )
-  { if ( atrie->data.IDG->prev )
-      return PL_unify_atom(t, ATOM_fresh);
-    else
+{ idg_node *n;
+
+  if ( (n=atrie->data.IDG) )
+  { if ( n->falsecount > 0 )
       return PL_unify_atom(t, ATOM_invalid);
+    if ( n->prev )
+      return PL_unify_atom(t, ATOM_fresh);
   }
 
   return PL_unify_atom(t, ATOM_complete);
@@ -4061,7 +4065,10 @@ set_idg_current(trie *atrie ARG_LD)
     return raiseStackOverflow(rc);
   p = valTermRef(LD->tabling.idg_current);
   TrailAssignment(p);
-  *p = trie_symbol(atrie);
+  if ( atrie )
+    *p = trie_symbol(atrie);
+  else
+    setVar(*p);
 
   return TRUE;
 }
@@ -4147,7 +4154,7 @@ static
 PRED_IMPL("$idg_reset_current", 0, idg_reset_current, 0)
 { PRED_LD
 
-  return PL_put_variable(LD->tabling.idg_current);
+  return set_idg_current(NULL PASS_LD);
 }
 
 
