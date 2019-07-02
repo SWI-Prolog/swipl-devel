@@ -2240,8 +2240,6 @@ clean_worklist(worklist *wl)
     }
     wl->free_clusters = NULL;
   }
-
-  wl->component = NULL;
 }
 
 
