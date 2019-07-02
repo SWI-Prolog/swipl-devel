@@ -112,6 +112,7 @@ typedef struct worklist
   unsigned	has_answers : 1;	/* At least one unconditional answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
   unsigned	depend_abolish : 1;	/* Scheduled for depending abolish */
+  unsigned	abolish_on_complete : 1;/* Abolish the table on completion */
   size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */

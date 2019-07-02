@@ -2216,6 +2216,9 @@ free_worklist(worklist *wl)
   discardBuffer(&wl->delays);
   discardBuffer(&wl->pos_undefined);
 
+  if ( wl->abolish_on_complete )		/* abolished while incomplete */
+    destroy_answer_trie(wl->table);
+
   PL_free(wl);
 }
 
@@ -2615,10 +2618,16 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 { trie *table;
 
   if ( get_trie(A1, &table) )
-  { if ( destroy_answer_trie(table) )
-      return TRUE;
+  { worklist *wl;
 
-    return PL_type_error("table", A1);
+    if ( WL_IS_WORKLIST(wl=table->data.worklist) &&
+	 !wl->completed )
+    { wl->abolish_on_complete = TRUE;
+    } else if ( destroy_answer_trie(table) )
+    { return TRUE;
+    } else
+    { return PL_type_error("table", A1);
+    }
   }
 
   return FALSE;
@@ -3942,7 +3951,7 @@ PRED_IMPL("$tbl_answer_update_dl", 2, tbl_answer_update_dl,
 	  PL_FA_NONDETERMINISTIC)
 { update_dl_ctx ctx;
 
-  ctx.atrie   = A1;
+  ctx.atrie = A1;
 
   return trie_gen(A1, A2, 0, A2, answer_update_delay_list, &ctx, PL__ctx);
 }
