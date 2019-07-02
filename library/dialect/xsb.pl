@@ -477,11 +477,13 @@ xsb_dynamic_((A,B), M, Options) :-
     !,
     xsb_dynamic_(A, M, Options),
     xsb_dynamic_(B, M, Options).
+/* JW: not really clear why this is needed/desirable.
 xsb_dynamic_(Name/Arity, M, Options) :-
     functor(Head, Name, Arity),
     '$get_predicate_attribute'(M:Head, imported, M2), % predicate_property/2 requires
     !,                                                % P to be defined.
     dynamic([M2:Name/Arity], Options).
+*/
 xsb_dynamic_(PI, M, Options) :-
     dynamic([M:PI], Options).
 
