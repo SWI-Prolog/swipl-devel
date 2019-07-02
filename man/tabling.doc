@@ -706,6 +706,21 @@ und :- tnot(und).
 
     \predicate{abolish_module_tables}{1}{+Module}
 Remove all tables that belong to predicates in \arg{Module}.
+
+    \predicate{abolish_nonincremental_tables}{0}{}
+    \nodescription
+    \predicate{abolish_nonincremental_tables}{1}{+Options}
+Similar to abolish_all_tables/0, but does not abolish
+\jargon{incremental} tables as their consistency is maintained by
+the system.  Options:
+
+    \begin{description}
+    \termitem{on_incomplete}{Action}
+    \arg{Action} is one of \const{skip} or \const{error}.
+    If \arg{Action} is \const{skip}, do not delete the
+    table.\bug{XSB marks such tables for deletion after
+    completion. That is not yet implemented.}
+    \end{description}
 \end{description}
 
 

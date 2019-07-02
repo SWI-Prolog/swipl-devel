@@ -45,6 +45,8 @@
             abolish_all_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
             abolish_module_tables/1,    % +Module
+            abolish_nonincremental_tables/0,
+            abolish_nonincremental_tables/1, % +Options
 
             start_tabling/2,            % +Wrapper, :Worker
             start_subsumptive_tabling/2,% +Wrapper, :Worker
@@ -741,6 +743,42 @@ abolish_module_tables(Module) :-
     forall(trie_gen(VariantTrie, Module:_, Trie),
            '$tbl_destroy_table'(Trie)).
 abolish_module_tables(_).
+
+%!  abolish_nonincremental_tables is det.
+%
+%   Abolish all tables that are not related to incremental predicates.
+
+abolish_nonincremental_tables :-
+    '$tbl_variant_table'(VariantTrie),
+    (   trie_gen(VariantTrie, _, Trie),
+        \+ '$idg_edge'(Trie, _, _),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+
+%!  abolish_nonincremental_tables(+Options)
+%
+%   Allow for skipping incomplete tables while abolishing.
+%
+%   @tbd Mark tables for destruction such   that they are abolished when
+%   completed.
+
+abolish_nonincremental_tables(Options) :-
+    (   Options == on_incomplete(skip)
+    ;   '$option'(on_incomplete(skip), Options)
+    ),
+    !,
+    '$tbl_variant_table'(VariantTrie),
+    (   trie_gen(VariantTrie, _, Trie),
+        \+ '$idg_edge'(Trie, _, _),
+        '$tbl_table_status'(Trie, complete, _, _),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+abolish_nonincremental_tables(_) :-
+    abolish_nonincremental_tables.
 
 
                  /*******************************
