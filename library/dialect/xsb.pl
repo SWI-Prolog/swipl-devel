@@ -78,7 +78,7 @@
 :- use_module(library(dialect/xsb/source)).
 :- use_module(library(dialect/xsb/tables)).
 :- use_module(library(aggregate)).
-:- use_module(library(options)).
+:- use_module(library(option)).
 
 /** <module> XSB Prolog compatibility layer
 
