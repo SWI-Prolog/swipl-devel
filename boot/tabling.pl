@@ -751,7 +751,8 @@ abolish_module_tables(_).
 abolish_nonincremental_tables :-
     '$tbl_variant_table'(VariantTrie),
     (   trie_gen(VariantTrie, _, Trie),
-        \+ '$idg_edge'(Trie, _, _),
+        '$tbl_table_status'(Trie, _, Goal, _),
+        \+ predicate_property(Goal, incremental),
         '$tbl_destroy_table'(Trie),
         fail
     ;   true
@@ -765,14 +766,15 @@ abolish_nonincremental_tables :-
 %   completed.
 
 abolish_nonincremental_tables(Options) :-
-    (   Options == on_incomplete(skip)
+    (   Options = on_incomplete(Action)
+    ->  Action == skip
     ;   '$option'(on_incomplete(skip), Options)
     ),
     !,
     '$tbl_variant_table'(VariantTrie),
     (   trie_gen(VariantTrie, _, Trie),
-        \+ '$idg_edge'(Trie, _, _),
-        '$tbl_table_status'(Trie, complete, _, _),
+        '$tbl_table_status'(Trie, complete, Goal, _),
+        \+ predicate_property(Goal, incremental),
         '$tbl_destroy_table'(Trie),
         fail
     ;   true
