@@ -1,0 +1,23 @@
+
+:- import incr_assert/1,incr_retract/1 from increval.
+
+test:- test_seq.
+
+test_seq:- t(X),write(incr(first_t(X))),writeln('.'),fail.
+test_seq:- incr_assert((p(X):- f(1,X))),fail.
+test_seq:- t(X),write(incr(second_t(X))),writeln('.'),fail.
+test_seq:- incr_retract((p(X):- f(1,X))),fail.
+test_seq:- t(X),write(incr(third_t(X))),writeln('.'),fail.
+test_seq.
+
+:- dynamic p/1 as incremental.
+p(1).
+
+:- table t/1 as incremental.
+t(X):- p(X).
+
+f(1,2).
+f(1,3).
+f(1,4).
+f(2,5).
+f(2,6).
