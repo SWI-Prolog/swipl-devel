@@ -77,11 +77,11 @@ incremental_test(test_sound_updates).
 %incremental_test(incr_scc).
 incremental_test(incr_test_romero).
 incremental_test(test_abolish_nonincremental).
-/*
-incremental_test(test_abolish_incremental_call_single).
-incremental_test(inc_abol).             % inc tests with abolish_all_tables
+%incremental_test(test_abolish_incremental_call_single).
+%incremental_test(inc_abol).            % inc tests with abolish_all_tables
 incremental_test(inc_atc).              % inc tests with abolish_table_call
 incremental_test(inc_atc_gc).           % inc tests with abolish_table_call + gc
+/*
 incremental_test(inc_atc_gc_tricky).    % inc tests with abolish_table_call + gc
 incremental_test(test_directives).
 incremental_test(test_declarations).
