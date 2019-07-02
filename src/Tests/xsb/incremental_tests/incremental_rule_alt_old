@@ -1,0 +1,6 @@
+incr(fifth_t(2)).
+incr(fifth_t(3)).
+incr(fifth_t(4)).
+incr(second_t(2)).
+incr(second_t(3)).
+incr(second_t(4)).

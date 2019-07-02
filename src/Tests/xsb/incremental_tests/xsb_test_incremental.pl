@@ -67,10 +67,10 @@ incremental_test(incremental1).         % same as above, but with changed decls.
 incremental_test(inc_trie_dyn).         % incremental tests with trie asserts
 %incremental_test(inc_trie_alt).        % inc with interned tries - for storage.P
 incremental_test(incremental_rule).
-/*
 incremental_test(incremental_rule_alt). % inc_rule with initial empty dyn pred
 incremental_test(test_incr_depends).    % inc trans depends (cyclic)
 incremental_test(test_incr_depends_2).  % inc trans depends (non cyclic)
+/*
 incremental_test(test_inc_switch).      % test incremental <-> opaque
 incremental_test(test_visitors).        % testing executable incremental decls.
 incremental_test(test_sound_updates).

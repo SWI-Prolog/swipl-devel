@@ -1,0 +1,4 @@
+dep1(bar(A))
+dep1(fff(A))
+dep2(baz(A))
+dep2(test)
