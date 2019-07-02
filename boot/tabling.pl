@@ -751,7 +751,11 @@ abolish_module_tables(_).
 abolish_nonincremental_tables :-
     '$tbl_variant_table'(VariantTrie),
     (   trie_gen(VariantTrie, _, Trie),
-        '$tbl_table_status'(Trie, _, Goal, _),
+        '$tbl_table_status'(Trie, Status, Goal, _),
+        (   Status == complete
+        ->  true
+        ;   '$permission_error'(abolish, incomplete_table, Trie)
+        ),
         \+ predicate_property(Goal, incremental),
         '$tbl_destroy_table'(Trie),
         fail
