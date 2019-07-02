@@ -4625,7 +4625,8 @@ reeval_complete_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
 
   if ( n->data.idg.deleted )
-  { trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
+  { n->data.idg.deleted = FALSE;	/* not used by trie admin */
+    trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
   }
 
   return NULL;
