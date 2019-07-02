@@ -62,5 +62,6 @@ swi_test(M:_P) :-
 :- begin_tests(xsb_test_incremental, [sto(rational_trees)]).
 
 incremental_test(incremental).
+incremental_test(incremental1).
 
 :- end_tests(xsb_test_incremental).
