@@ -1,0 +1,56 @@
+:- compiler_options([spec_off]).
+
+test:- reset,fail.
+test:- get_residual(incr(X),_),writeln(phase1(incr(X))),fail.
+test:- get_residual(non_incr(X),_),writeln(phase1(non_incr(X))),fail.
+test:- get_residual(subsumptive(X),_),writeln(phase1(subsumptive(X))),fail.
+test:- writeln('------'),fail.
+test:- abolish_nonincremental_tables(on_incomplete(skip)),fail.
+test:- get_residual(incr(X),_),writeln(phase2(incr(X))),fail.
+test:- get_residual(non_incr(X),_),writeln(phase2(non_incr(X))),fail.
+test:- get_residual(subsumptive(X),_),writeln(phase2(subsumptive(X))),fail.
+test:- writeln('------'),fail.
+test:- reset,fail.
+test:- get_residual(incr(X),_),writeln(phase3(incr(X))),fail.
+test:- get_residual(non_incr(X),_),writeln(phase3(non_incr(X))),fail.
+test:- get_residual(subsumptive(X),_),writeln(phase3(subsumptive(X))),fail.
+test:- writeln('------'),fail.
+test:- incomp_table(1),fail.
+test:- incomp_table(2),fail.
+test:- incomp_table(3),fail.
+test:- get_residual(incr(X),_),writeln(phase4(incr(X))),fail.
+test:- get_residual(non_incr(X),_),writeln(phase4(non_incr(X))),fail.
+test:- get_residual(subsumptive(X),_),writeln(phase4(subsumptive(X))),fail.
+test:- get_residual(incomp_table(X),_),writeln(phase4(incomp_table(X))),fail.
+test:- catch(incomp_table_err(_),E,(arg(1,E,Term),functor(Term,permission_error,_A),writeln(caught_permission_error))),fail.
+test.
+
+reset:- non_incr(_),fail.
+reset:- non_incr(1).
+reset:- non_incr(2).
+reset:- incr(_),fail.
+reset:- incr(1).
+reset:- subsumptive(_),fail.
+reset.
+
+:- table non_incr/1.
+non_incr(1).
+non_incr(2).
+
+:- table subsumptive/1 as subsumptive.
+subsumptive(a).
+subsumptive(b).
+
+:- table incr/1 as incremental.
+incr(1).
+incr(2).
+
+:- table incomp_table/1.
+incomp_table(1).
+incomp_table(2):- abolish_nonincremental_tables(on_incomplete(skip)).
+incomp_table(3).
+
+:- table incomp_table_err/1.
+incomp_table_err(1).
+incomp_table_err(2):- abolish_nonincremental_tables(on_incomplete(error)).
+incomp_table_err(3).
