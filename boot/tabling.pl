@@ -54,7 +54,8 @@
             '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
             '$wfs_call'/2,              % :Goal, -Delays
 
-            '$wrap_incremental'/1       % :Head
+            '$wrap_incremental'/1,      % :Head
+            '$unwrap_incremental'/1     % :Head
           ]).
 
 :- meta_predicate
@@ -1088,6 +1089,27 @@ dyn_changed_pattern(Term) :-
            '$idg_changed'(ATrie)).
 dyn_changed_pattern(_).
 
+%!  '$unwrap_incremental'(:Head) is det.
+%
+%   Remove dynamic predicate incremenal forwarding,   reset the possible
+%   `abstract` property and remove possible tables.
+
+'$unwrap_incremental'(Head) :-
+    '$pi_head'(PI, Head),
+    (   unwrap_predicate(PI, incremental)
+    ->  abstract_goal(Head, Abstract),
+        (   Head == Abstract
+        ->  prolog_unlisten(PI, dyn_update)
+        ;   '$set_predicate_attribute'(Head, abstract, 0),
+            prolog_unlisten(PI, dyn_update(_))
+        ),
+        (   '$tbl_variant_table'(VariantTrie)
+        ->  forall(trie_gen(VariantTrie, Head, ATrie),
+                   '$tbl_destroy_table'(ATrie))
+        ;   true
+        )
+    ;   true
+    ).
 
 %!  reeval(+ATrie)
 %

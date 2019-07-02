@@ -960,17 +960,21 @@ dynamic(M:Predicates, Options) :-
 set_pprops([], _, _).
 set_pprops([H|T], M, Props) :-
     set_pprops1(Props, M:H),
-    (   strip_module(M:H, M2, P),
-        '$pi_head'(M2:P, Pred),
-        '$get_predicate_attribute'(Pred, incremental, 1)
+    strip_module(M:H, M2, P),
+    '$pi_head'(M2:P, Pred),
+    (   '$get_predicate_attribute'(Pred, incremental, 1)
     ->  '$wrap_incremental'(Pred)
-    ;   true
+    ;   '$unwrap_incremental'(Pred)
     ),
     set_pprops(T, M, Props).
 
 set_pprops1([], _).
 set_pprops1([H|T], P) :-
-    '$set_predicate_attribute'(P, H, true),
+    (   atom(H)
+    ->  '$set_predicate_attribute'(P, H, true)
+    ;   H =.. [Name,Value]
+    ->  '$set_predicate_attribute'(P, Name, Value)
+    ),
     set_pprops1(T, P).
 
 options_properties(Options, Props) :-
@@ -984,13 +988,13 @@ options_properties([opt_prop(Name, Type, SetValue, Prop)|T],
     Opt =.. [Name,V],
     '$option'(Opt, Options),
     '$must_be'(Type, V),
-    V == SetValue,
+    V = SetValue,
     !,
     options_properties(T, Options, PT).
 options_properties([_|T], Options, PT) :-
     options_properties(T, Options, PT).
 
-opt_prop(incremental,   boolean,               true,  incremental).
+opt_prop(incremental,   boolean,               Bool,  incremental(Bool)).
 opt_prop(abstract,      between(0,0),          0,     abstract).
 opt_prop(multifile,     boolean,               true,  multifile).
 opt_prop(discontiguous, boolean,               true,  discontiguous).

@@ -174,6 +174,8 @@ xsb_mapped_predicate(expand_file_name(File, Expanded),
 xsb_mapped_predicate(abolish_module_tables(UserMod),
                      abolish_module_tables(user)) :-
     UserMod == usermod.
+xsb_mapped_predicate(dynamic(Spec), xsb_dynamic(Spec)) :-
+    Spec = as(_,_).
 
 xsb_inlined_goal(fail_if(P), \+(P)).
 
@@ -494,6 +496,15 @@ dyn_flags((A,B), Options0, Options) :-
 dyn_flags(incremental, Options0, Options) :-
     !,
     merge_options([incremental(true)], Options0, Options).
+dyn_flags(opaque, Options0, Options) :-
+    !,
+    merge_options([incremental(false)], Options0, Options).
+dyn_flags(shared, Options0, Options) :-
+    !,
+    merge_options([thread(shared)], Options0, Options).
+dyn_flags(private, Options0, Options) :-
+    !,
+    merge_options([thread(local)], Options0, Options).
 dyn_flags(abstract(Level), Options0, Options) :-
     !,
     merge_options([abstract(Level)], Options0, Options).
