@@ -1052,15 +1052,20 @@ abstract_goal(M:Head, M:Abstract) :-
     functor(Abstract, Name, Arity).
 abstract_goal(Head, Head).
 
-dyn_update(retractall, Context) :-
-    !,
-    (   Context = start(Pattern)
-    ->  dyn_changed_pattern(Pattern)
+%!  dyn_update(+Action, +Context) is det.
+%
+%   Track changes to added or removed clauses. We use '$clause'/4
+%   because it works on erased clauses.
+%
+%   @tbd Add a '$clause_head'(-Head, +ClauseRef) to only decompile the
+%   head.
+
+dyn_update(_Action, ClauseRef) :-
+    (   atomic(ClauseRef)                       % avoid retractall, start(_)
+    ->  '$clause'(Head, _Body, ClauseRef, _Bindings),
+        dyn_changed_pattern(Head)
     ;   true
     ).
-dyn_update(_Action, ClauseRef) :-
-    clause(Head, _Body, ClauseRef),
-    dyn_changed_pattern(Head).
 
 dyn_update(Abstract, _, _) :-
     dyn_changed_pattern(Abstract).
