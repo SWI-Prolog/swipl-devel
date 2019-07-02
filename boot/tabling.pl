@@ -291,6 +291,10 @@ start_subsumptive_tabling(Wrapper, Worker) :-
     ->  (   Status == complete
         ->  '$idg_add_edge'(Trie),
             '$tbl_answer_update_dl'(Trie, Skeleton)
+        ;   Status == invalid
+        ->  reeval(Trie),
+            '$idg_add_edge'(Trie),
+            '$tbl_answer_update_dl'(Trie, Skeleton)
         ;    shift(call_info(Skeleton, Status))
         )
     ;   more_general_table(Wrapper, ATrie),
@@ -298,16 +302,17 @@ start_subsumptive_tabling(Wrapper, Worker) :-
     ->  '$idg_add_edge'(ATrie),
         '$tbl_answer_update_dl'(ATrie, Skeleton)
     ;   '$tbl_variant_table'(Wrapper, Trie, _0Status, Skeleton),
-        '$idg_add_edge'(Trie),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+        '$idg_add_edge'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Skeleton, Worker, Trie, SCC, LStatus),
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
+        '$idg_set_current'(OldCurrent),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         done_leader(LStatus, SCC, Skeleton, Trie)
     ).
@@ -412,20 +417,26 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 
 start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
-    '$idg_add_edge'(Trie),
     (   Status == complete
-    ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
+    ->  '$idg_add_edge'(Trie),
+        trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SubComponent, Trie),
+        '$idg_add_edge'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Wrapper, WrapperNoModes, ModeArgs,
                        Worker, Trie, SubComponent, LStatus),
             Catcher,
             finished_leader(Catcher, SubComponent, Wrapper)),
+        '$idg_set_current'(OldCurrent),
         tdebug(schedule, 'Leader ~p done, modeargs = ~p, status = ~p',
                [Wrapper, ModeArgs, LStatus]),
         moded_done_leader(LStatus, SubComponent, WrapperNoModes, ModeArgs, Trie)
+    ;   Status == invalid
+    ->  reeval(Trie),
+        '$idg_add_edge'(Trie),
+        trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Wrapper, Status))
     ).
