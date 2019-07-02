@@ -33,24 +33,119 @@
 */
 
 :- module(increval,
-          [ incr_assert/1,
-            incr_retractall/1,
-            incr_retract/1
+          [ incr_assert/1,                      % :Clause
+            incr_retractall/1,                  % :Head
+            incr_retract/1,                     % :Clause
+
+            is_incremental_subgoal/1,           % :Goal
+            incr_directly_depends/2,            % :Goal1, :Goal2
+            incr_trans_depends/2,		% :Goal1, :Goal2
+            incr_invalid_subgoals/1,            % -List
+            incr_is_invalid/1                   % :Goal
           ]).
 
 /** <module> XSB incremental dynamic predicate modification
 
-This  module  emulates  change  propagation    for  incremental  dynamic
-predicates. SWI-Prolog relies in prolog_listen/2   to forward any change
-to dynamic predicates to the table IDG  and these predicates thus simply
-call the corresponding database update.
+This module emulates the XSB module   `increval`. This module serves two
+goals: (1) provide alternatives  for   the  dynamic  clause manipulation
+predicates that propagate into the incremental  tables and (2) query the
+dynamically maintained _Incremental Depency Graph_ (IDG).
+
+The change propagation for incremental   dynamic  predicates. SWI-Prolog
+relies in prolog_listen/2 to forward any change to dynamic predicates to
+the table IDG  and  incr_assert/1  and   friends  thus  simply  call the
+corresponding database update.
 */
 
 :- meta_predicate
     incr_assert(:),
     incr_retractall(:),
-    incr_retract(:).
+    incr_retract(:),
+    is_incremental_subgoal(:),
+    incr_directly_depends(:,:),
+    incr_trans_depends(:, :),
+    incr_is_invalid(:).
 
 incr_assert(T)     :- assertz(T).
 incr_retractall(T) :- retractall(T).
 incr_retract(T)    :- retract(T).
+
+%!  is_incremental_subgoal(?SubGoal) is nondet.
+%
+%   This   predicate   non-deterministically   unifies    Subgoal   with
+%   incrementally tabled subgoals that are currently table entries.
+
+is_incremental_subgoal(SubGoal) :-
+    '$tbl_variant_table'(VTrie),
+    trie_gen(VTrie, SubGoal, ATrie),
+    (   '$idg_edge'(ATrie, _Dir, _Value)
+    ->  true
+    ).
+
+%!  incr_directly_depends(:Goal1, :Goal2) is nondet.
+%
+%   True if Goal1 depends on Goal2 in the IDG.
+%
+%   @compat: In XSB, at least one of Goal 1 or Goal 2 must be bound.
+%   This implementation may be used with both arguments unbound.
+
+incr_directly_depends(Goal1, Goal2) :-
+    '$tbl_variant_table'(VTrie),
+    (   nonvar(Goal2)
+    ->  trie_gen(VTrie, Goal2, ATrie2),
+        '$idg_edge'(ATrie2, affected, ATrie1),
+        '$tbl_table_status'(ATrie1, _Status, Goal1, _Return)
+    ;   trie_gen(VTrie, Goal1, ATrie1),
+        '$idg_edge'(ATrie1, dependent, ATrie2),
+        '$tbl_table_status'(ATrie2, _Status, Goal2, _Return)
+    ).
+
+%!  incr_trans_depends(:Goal1, Goal2) is nondet.
+%
+%   True   for   each   pair    in     the    transitive    closure   of
+%   incr_directly_depends(G1, G2).
+
+incr_trans_depends(Goal1, Goal2) :-
+    '$tbl_variant_table'(VTrie),
+    (   nonvar(Goal1)
+    ->  trie_gen(VTrie, Goal1, ATrie1),
+        incr_trans_depends(ATrie1, dependent, ATrie2, []),
+        '$tbl_table_status'(ATrie2, _Status, Goal2, _Return)
+    ;   trie_gen(VTrie, Goal2, ATrie2),
+        incr_trans_depends(ATrie2, affected, ATrie1, []),
+        '$tbl_table_status'(ATrie1, _Status, Goal1, _Return)
+    ).
+
+incr_trans_depends(ATrie1, Dir, ATrie, Done) :-
+    '$idg_edge'(ATrie1, Dir, ATrie2),
+    \+ memberchk(ATrie2, Done),
+    (   ATrie = ATrie2
+    ;   incr_trans_depends(ATrie2, Dir, ATrie, [ATrie2|Done])
+    ).
+
+%!  incr_invalid_subgoals(-List) is det.
+%
+%   List is a sorted list (set)  of   the  incremental subgoals that are
+%   currently invalid.
+
+incr_invalid_subgoals(List) :-
+    findall(Invalid, invalid_subgoal(Invalid), List0),
+    sort(List0, List).
+
+invalid_subgoal(Goal) :-
+    '$tbl_variant_table'(VTrie),
+    trie_gen(VTrie, Goal, ATrie),
+    (   '$idg_edge'(ATrie, _Dir, _Value)
+    ->  true
+    ),
+    '$idg_falsecount'(ATrie, Count),
+    Count > 0.
+
+%!  incr_is_invalid(:Subgoal) is semidet.
+%
+%   True when Subgoal's table is marked as invalid.
+
+incr_is_invalid(Subgoal) :-
+    current_table(Subgoal, Table),
+    '$idg_falsecount'(Table, Count),
+    Count > 0.
