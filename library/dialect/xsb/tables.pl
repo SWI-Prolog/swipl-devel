@@ -37,6 +37,8 @@
             abolish_module_tables/1,            % +Module
             abolish_table_pred/1,               % :CallableOrPI
             abolish_table_call/1,               % :Callable
+            abolish_table_call/2,               % :Callable, +Options
+            abolish_table_subgoals/2,           % :Callable, +Options
 
             tfindall/3,                         % +Template, :Goal, -Answers
             't not'/1,                          % :Goal
@@ -60,6 +62,8 @@
 :- meta_predicate
     abolish_table_pred(:),
     abolish_table_call(:),
+    abolish_table_call(:, +),
+    abolish_table_subgoals(:, +),
     tfindall(+, 0, -),
     't not'(0),
     get_call(:, -, -),
@@ -262,10 +266,35 @@ abolish_table_pred(M:Head) :-
 abolish_table_pred(PI) :-
     type_error(callable_or_predicate_indicator, PI).
 
-%!  abolish_table_call(+Head)
+%!  abolish_table_call(+Head) is det.
+%!  abolish_table_call(+Head, +Options) is det.
 %
 %   Same as abolish_table_subgoals/1.  See also abolish_table_pred/1.
+%
+%   @deprecated Use abolish_table_subgoals/[1,2].
 
 abolish_table_call(Head) :-
     abolish_table_subgoals(Head).
 
+abolish_table_call(Head, Options) :-
+    abolish_table_subgoals(Head, Options).
+
+%!  abolish_table_subgoals(:Head, +Options)
+%
+%   Behaves  as  abolish_table_subgoals/1,  but    allows   the  default
+%   `table_gc_action` to be over-ridden with a flag, which can be either
+%   `abolish_tables_transitively` or `abolish_tables_singly`.
+%
+%   @compat Options is compatible with XSB, but does not follow the ISO
+%   option handling conventions.
+
+abolish_table_subgoals(Head, Options) :-
+    must_be(list, Options),
+    (   Options == []
+    ->  abolish_table_subgoals(Head)
+    ;   memberchk(abolish_tables_transitively, Options)
+    ->  abolish_table_subgoals(Head)
+    ;   memberchk(abolish_tables_singly, Options)
+    ->  abolish_table_subgoals(Head)
+    ;   domain_error([abolish_tables_transitively,abolish_tables_singly], Options)
+    ).
