@@ -139,7 +139,8 @@ invalid_subgoal(Goal) :-
     ->  true
     ),
     '$idg_falsecount'(ATrie, Count),
-    Count > 0.
+    Count > 0,
+    \+ '$tbl_table_status'(ATrie, dynamic, _Goal, _Return).
 
 %!  incr_is_invalid(:Subgoal) is semidet.
 %
