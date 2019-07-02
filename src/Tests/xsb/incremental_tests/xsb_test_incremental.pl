@@ -73,10 +73,10 @@ incremental_test(test_incr_depends_2).  % inc trans depends (non cyclic)
 incremental_test(test_inc_switch).      % test incremental <-> opaque
 %incremental_test(test_visitors).       % testing executable incremental decls.
 incremental_test(test_sound_updates).
-/*
-incremental_test(test_wfs_update).
-incremental_test(incr_scc).
+%incremental_test(test_wfs_update).
+%incremental_test(incr_scc).
 incremental_test(incr_test_romero).
+/*
 incremental_test(test_abolish_nonincremental).
 incremental_test(test_abolish_incremental_call_single).
 incremental_test(inc_abol).             % inc tests with abolish_all_tables

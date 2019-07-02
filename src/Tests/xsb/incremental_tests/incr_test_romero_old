@@ -1,0 +1,13 @@
+-------------------------
+actual retract: cell(3,2,b)
+actual retract: cell(3,3,b)
+actual retract: cell(3,3,b)
+ff retract: cell(3,2,b)
+ff retract: cell(3,3,b)
+ff retract: cell(3,3,b)
+first([mark(3,2)]).
+first([mark(3,3)]).
+tt  assert: cell(3,2,o)
+tt  assert: cell(3,2,x)
+tt  assert: cell(3,3,o)
+tt  assert: cell(3,3,x)
