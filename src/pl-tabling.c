@@ -4192,10 +4192,16 @@ PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
   trie *atrie;
 
   if ( get_trie(A2, &atrie) )
-    return ( PL_unify(A1, LD->tabling.idg_current) &&
-	     (idg_add_edge(atrie PASS_LD),TRUE) &&
-	     set_idg_current(atrie PASS_LD)
-	   );
+  { atom_t current;
+
+    if ( (current = *valTermRef(LD->tabling.idg_current)) )
+    { if ( !PL_unify_atom(A1, current) )
+	return FALSE;
+    }
+    idg_add_edge(atrie PASS_LD);
+
+    return set_idg_current(atrie PASS_LD);
+  }
 
   return FALSE;
 }
@@ -4260,6 +4266,8 @@ PRED_IMPL("$idg_set_current", 1, idg_set_current, 0)
 	  });
 
     return set_idg_current(atrie PASS_LD);
+  } else
+  { return set_idg_current(NULL PASS_LD);
   }
 
   return TRUE;
