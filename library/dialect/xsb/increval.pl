@@ -41,7 +41,10 @@
             incr_directly_depends/2,            % :Goal1, :Goal2
             incr_trans_depends/2,		% :Goal1, :Goal2
             incr_invalid_subgoals/1,            % -List
-            incr_is_invalid/1                   % :Goal
+            incr_is_invalid/1,                  % :Goal
+
+            incr_invalidate_calls/1,		% :Goal
+            incr_table_update/0
           ]).
 
 /** <module> XSB incremental dynamic predicate modification
@@ -64,7 +67,8 @@ corresponding database update.
     is_incremental_subgoal(:),
     incr_directly_depends(:,:),
     incr_trans_depends(:, :),
-    incr_is_invalid(:).
+    incr_is_invalid(:),
+    incr_invalidate_calls(:).
 
 incr_assert(T)     :- assertz(T).
 incr_retractall(T) :- retractall(T).
@@ -129,10 +133,10 @@ incr_trans_depends(ATrie1, Dir, ATrie, Done) :-
 %   currently invalid.
 
 incr_invalid_subgoals(List) :-
-    findall(Invalid, invalid_subgoal(Invalid), List0),
+    findall(Invalid, invalid_subgoal(Invalid, _), List0),
     sort(List0, List).
 
-invalid_subgoal(Goal) :-
+invalid_subgoal(Goal, ATrie) :-
     '$tbl_variant_table'(VTrie),
     trie_gen(VTrie, Goal, ATrie),
     (   '$idg_edge'(ATrie, _Dir, _Value)
@@ -150,3 +154,26 @@ incr_is_invalid(Subgoal) :-
     current_table(Subgoal, Table),
     '$idg_falsecount'(Table, Count),
     Count > 0.
+
+%!  incr_invalidate_calls(:Goal) is det.
+%
+%   Invalidate all tables for subgoals of Goal   as  well as tables that
+%   are affected by these.
+
+incr_invalidate_calls(Goal) :-
+    '$tbl_variant_table'(VTable),
+    !,
+    forall(trie_gen(VTable, Goal, ATrie),
+           '$idg_changed'(ATrie)).
+
+%!  incr_table_update
+%
+%   Updated all invalid tables
+
+incr_table_update :-
+    repeat,
+    (   invalid_subgoal(_Goal, ATrie)
+    ->  '$tabling':reeval(ATrie),
+        fail
+    ;   !
+    ).
