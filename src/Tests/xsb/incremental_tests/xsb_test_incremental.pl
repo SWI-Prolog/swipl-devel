@@ -70,8 +70,8 @@ incremental_test(incremental_rule).
 incremental_test(incremental_rule_alt). % inc_rule with initial empty dyn pred
 incremental_test(test_incr_depends).    % inc trans depends (cyclic)
 incremental_test(test_incr_depends_2).  % inc trans depends (non cyclic)
-/*
 incremental_test(test_inc_switch).      % test incremental <-> opaque
+/*
 incremental_test(test_visitors).        % testing executable incremental decls.
 incremental_test(test_sound_updates).
 incremental_test(test_wfs_update).
