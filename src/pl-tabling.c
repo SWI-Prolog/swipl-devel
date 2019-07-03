@@ -80,6 +80,7 @@ static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
 static int	idg_init_variant(trie *atrie, term_t variant ARG_LD);
 static void	reeval_complete(trie *atrie);
+static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -899,6 +900,13 @@ retry:
       DEBUG(MSG_TABLING_SIMPLIFY,
 	    Sdprintf("Unconditional answer after conditional\n"));
     }
+					/* Incremental tabling */
+    if ( wl->table->data.IDG && wl->table->data.IDG->reevaluating )
+    { if ( answer->data.idg.unconditional == FALSE )
+      { answer->data.idg.unconditional = TRUE;
+	simplify_answer(wl, answer, TRUE);
+      }
+    }
 
     DEBUG(TABLING_NO_EARLY_COMPLETION,
 	  return UDL_TRUE);
@@ -1423,6 +1431,21 @@ propagate_result(spf_agenda *agenda,
 
     propagate_to_answer(agenda, wl, panswer, result, answer);
   }
+
+  return TRUE;
+}
+
+
+static int
+simplify_answer(worklist *wl, trie_node *answer, int truth)
+{ spf_agenda agenda;
+  propagate *p;
+
+  init_spf_agenda(&agenda);
+  push_propagate(&agenda, wl, answer, truth);
+  while( (p=pop_propagate(&agenda)) )
+    propagate_result(&agenda, p->worklist, p->answer, p->result);
+  exit_spf_agenda(&agenda);
 
   return TRUE;
 }
@@ -2687,12 +2710,15 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 
       if ( node->value )
       { if ( node->value == ATOM_trienode )
-	{ if ( answer_is_conditional(node) )
-	  { if ( update_delay_list(wl, node, A2, A3 PASS_LD) == UDL_COMPLETE )
-	      return PL_unify_atom(A4, ATOM_cut);
+	{ if ( node->data.idg.deleted )
+	  { node->data.idg.deleted = FALSE;
+	    goto update_dl;
+	  } else
+	  { if ( answer_is_conditional(node) )
+	    { if ( update_delay_list(wl, node, A2, A3 PASS_LD) == UDL_COMPLETE )
+		return PL_unify_atom(A4, ATOM_cut);
+	    }
 	  }
-	  if ( node->data.idg.deleted )
-	    node->data.idg.deleted = FALSE;
 
 	  return FALSE;				/* already in trie */
 	}
@@ -2702,6 +2728,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	if ( (idg=wl->table->data.IDG) )
 	  idg->new_answer = TRUE;
 
+      update_dl:
 	rc = update_delay_list(wl, node, A2, A3 PASS_LD);
 
 	switch(rc)
@@ -3316,6 +3343,22 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 
     for(i=0; i<ntables; i++)
     { worklist *wl = wls[i];
+      trie *atrie = wl->table;
+      idg_node *n;
+      int reeval, reeval_this;
+
+      // I think we either nee to reevaluate all or none
+      reeval_this = ((n=atrie->data.IDG) && n->reevaluating);
+      if ( i==0 )
+        reeval = reeval_this;
+      else
+	assert(reeval == reeval_this);
+
+      reeval_complete(atrie);		/* incremental tabling */
+    }
+
+    for(i=0; i<ntables; i++)
+    { worklist *wl = wls[i];
       trie *trie = wl->table;
 
       DEBUG(MSG_TABLING_WORK,
@@ -3333,8 +3376,6 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
       } else
       { complete_worklist(wl);
       }
-
-      reeval_complete(trie);		/* incremental tabling */
     }
     reset_newly_created_worklists(c, WLFS_FREE_NONE);
     c->status = SCC_COMPLETED;
@@ -4598,9 +4639,14 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
 
 static void *
 reeval_prep_node(trie_node *n, void *ctx)
-{ if ( n->value )
+{ trie *atrie = ctx;
+
+  if ( n->value )
   { n->data.idg.deleted = TRUE;
-    if ( !answer_is_conditional(n) )
+    if ( answer_is_conditional(n) )
+    { destroy_delay_info(atrie, n, TRUE);
+      n->data.delayinfo = NULL;
+    } else
       n->data.idg.unconditional = TRUE;
   }
 
@@ -4627,7 +4673,7 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
     idg->new_answer = FALSE;
     idg->falsecount = 0;
     idg_clean_dependent(idg);
-    map_trie_node(&atrie->root, reeval_prep_node, NULL);
+    map_trie_node(&atrie->root, reeval_prep_node, atrie);
     idg->reevaluating = TRUE;
 
     return TRUE;
@@ -4644,6 +4690,11 @@ reeval_complete_node(trie_node *n, void *ctx)
   if ( n->data.idg.deleted )
   { n->data.idg.deleted = FALSE;	/* not used by trie admin */
     trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
+    if ( !n->data.idg.unconditional )
+      simplify_answer(atrie->data.worklist, n, FALSE);
+  } else if ( n->data.idg.unconditional &&
+	      answer_is_conditional(n) )
+  { atrie->data.IDG->new_answer = TRUE;
   }
 
   return NULL;
