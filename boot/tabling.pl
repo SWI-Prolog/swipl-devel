@@ -274,6 +274,10 @@ set_pattributes(Head, Options) :-
     (   get_dict(incremental, Options, true)
     ->  '$set_predicate_attribute'(Head, incremental, true)
     ;   true
+    ),
+    (   get_dict(dynamic, Options, true)
+    ->  '$set_predicate_attribute'(Head, dynamic, true)
+    ;   true
     ).
 
 start_tabling(Wrapper, Worker) :-
@@ -916,15 +920,23 @@ table_options(Options, _Opts0, _Opts) :-
     var(Options),
     '$instantiation_error'(Options).
 table_options((A,B), Opts0, Opts) :-
+    !,
     table_options(A, Opts0, Opts1),
     table_options(B, Opts1, Opts).
 table_options(subsumptive, Opts0, Opts1) :-
+    !,
     put_dict(mode, Opts0, subsumptive, Opts1).
 table_options(variant, Opts0, Opts1) :-
+    !,
     put_dict(mode, Opts0, variant, Opts1).
 table_options(incremental, Opts0, Opts1) :-
+    !,
     put_dict(incremental, Opts0, true, Opts1).
-
+table_options(dynamic, Opts0, Opts1) :-
+    !,
+    put_dict(dynamic, Opts0, true, Opts1).
+table_options(Opt, _, _) :-
+    '$domain_error'(table_option, Opt).
 
 %!  mode_check(+Moded, -TestCode)
 %

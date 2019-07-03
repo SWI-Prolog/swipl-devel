@@ -660,6 +660,13 @@ of the following atoms:
     whether there is a completed table for a more general goal and
     if this is the case extract the answers from this table.  See
     \secref{tabling-subsumptive}.
+    \termitem{incremental}{}
+    Declare that the table depends on other tables and
+    \jargon{incremental} dynamic predicates. See
+    \secref{tabling-incremental}.
+    \termitem{dynamic}{}
+    Declare that the predicate is dynamic.  Often used together
+    with \const{incremental}.
     \end{description}
 
 This syntax is closely related to the table declarations used in XSB
