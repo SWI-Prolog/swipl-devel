@@ -899,6 +899,7 @@ retry:
       wl->undefined--;
       DEBUG(MSG_TABLING_SIMPLIFY,
 	    Sdprintf("Unconditional answer after conditional\n"));
+      simplify_answer(wl, answer, TRUE);
     }
 					/* Incremental tabling */
     if ( wl->table->data.IDG && wl->table->data.IDG->reevaluating )
