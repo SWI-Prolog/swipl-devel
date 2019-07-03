@@ -1,0 +1,79 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2019, VU University Amsterdam
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(error_handler,
+          [ check_acyclic/3,		% ?Term,+Predicate,+Arg
+            check_atom/3,		% ?Term,+Predicate,+Arg
+            check_callable/3,		% ?Term,+Predicate,+Arg
+            check_integer/3,		% ?Term,+Predicate,+Arg
+            check_nonvar/3,		% ?Term,+Predicate,+Arg
+            check_nonvar_list/3,	% ?Term,+Predicate,+Arg
+%           check_one_thread/3,         % +Operation,+Object_Type,+Predicate
+            check_stream/3,		% ?Term,+Predicate,+Arg
+            check_var/3,		% ?Term,+Predicate,+Arg
+            check_ground/3,		% ?Term,+Predicate,+Arg
+
+            abort/1                     % +Message
+          ]).
+:- use_module(library(error)).
+
+/** <module> XSB compatible error handling
+*/
+
+check_acyclic(Term, _Pred, _Arg)     :- must_be(acyclic, Term).
+check_atom(Term, _Pred, _Arg)        :- must_be(atom, Term).
+check_callable(Term, _Pred, _Arg)    :- must_be(callable, Term).
+check_integer(Term, _Pred, _Arg)     :- must_be(integer, Term).
+check_nonvar(Term, _Pred, _Arg)      :- must_be(nonvar, Term).
+check_nonvar_list(Term, _Pred, _Arg) :- must_be(list(nonvar), Term).
+check_stream(Term, _Pred, _Arg)      :- must_be(stream, Term).
+check_var(Term, _Pred, _Arg)         :- must_be(var, Term).
+check_ground(Term, _Pred, _Arg)      :- must_be(ground, Term).
+
+%!  abort(+Message:atomic)
+%
+%   Abort with a message
+
+abort(Message) :-
+    print_message(error, aborted(Message)),
+    abort.
+
+		 /*******************************
+		 *            MESSAGES		*
+		 *******************************/
+
+:- multifile prolog:message//1.
+
+prolog:message(aborted(Text)) -->
+    [ '(abort) ~w'-[Text] ].

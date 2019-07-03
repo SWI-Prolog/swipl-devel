@@ -181,7 +181,7 @@ set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl tables.pl setof.pl consult.pl
-    increval.pl)
+    increval.pl error_handler.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
 
