@@ -1,0 +1,24 @@
+------
+------
+------
+------
+------
+------
+------
+------
+test1_1 : p1(A) <- [opaque_undef]
+test1_2 : p1(1) <- []
+test1_2 : p1(A) <- [opaque_undef]
+test1_prop_1 : p1_caller(A) <- [p1(A)]
+test1_prop_2 : p1_caller(1) <- []
+test1_prop_2 : p1_caller(A) <- [p1(A)]
+test2_1 : p1(1) <- [opaque_undef]
+test2_2 : p1(1) <- []
+test2_prop_1 : p1_caller(1) <- [p1(1)]
+test2_prop_2 : p1_caller(1) <- []
+test3_1 : p1(1) <- []
+test3_2 : p1(1) <- [opaque_undef]
+testa_2 : pd(1) <- [opaque_undef]
+testa_prop_2 : pd_caller(1) <- [pd(1)]
+testd_1 : pd(1) <- [opaque_undef]
+testd_prop_1 : pd_caller(1) <- [pd(1)]

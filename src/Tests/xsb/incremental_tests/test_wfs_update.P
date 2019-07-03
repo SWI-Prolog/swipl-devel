@@ -1,0 +1,183 @@
+:- import incr_assert/1,incr_retract/1 from increval.
+
+:- dynamic data/1 as incremental.
+
+:- table opaque_undef/0 as opaque.
+opaque_undef:- tnot(opaque_undef).
+
+:- table pd/1,pd_caller/1 as incremental.
+pd_caller(X):- pd(X).
+
+pd(X):- opaque_undef,data(X).
+
+:- table p1/1 as incremental.
+p1(_X):- opaque_undef.
+p1(X):- data(X).
+
+:- table p1_caller/1 as incremental.
+p1_caller(X):- p1(X).
+
+test:- testd,fail.
+test:- writeln('------'),testa,fail.
+test:- writeln('------'),test1,fail.
+test:- writeln('------'),test2,fail.
+test:- writeln('------'),test3,fail.
+test:- writeln('------'),testd_prop,fail.
+test:- writeln('------'),testa_prop,fail.
+test:- writeln('------'),test1_prop,fail.
+test:- writeln('------'),test2_prop,fail.
+test.
+
+%---------------------------------------------------------------
+% tests removal of cond answer
+% answers should be
+% testd_1 : pd(1) <- [opaque_undef]
+
+testd:- abolish_all_tables,retractall(data(_)),
+	incr_assert(data(1)),
+	(pd(X),fail ; true),
+	write_answers(testd_1,pd(X)),
+	incr_retract(data(1)),
+	(pd(X),fail ; true),
+	write_answers(testd_2,pd(X)),
+	fail.
+
+% tests addition of cond answer.  Answers should be
+% testa_2 : pd(1) <- [opaque_undef]
+testa:- abolish_all_tables,retractall(data(_)),
+	(pd(X),fail ; true),
+	write_answers(testa_1,pd(X)),
+	incr_assert(data(1)),
+	(pd(X),fail ; true),
+	write_answers(testa_2,pd(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests addition of uncond answer
+% results should be 
+% test1_1 : p1(_h172) <- [opaque_undef]
+% test1_2 : p1(1) <- []
+% test1_2 : p1(_h172) <- [opaque_undef]
+
+test1:- abolish_all_tables,retractall(data(_)),
+	(p1(X),fail ; true),
+	write_answers(test1_1,p1(X)),
+	incr_assert(data(1)),
+	(p1(X),fail ; true),
+	write_answers(test1_2,p1(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests uncond answer override
+% results should be 
+% test2_1 : p1(1) <- [opaque_undef]
+% test2_2 : p1(1) <- []
+
+test2:- abolish_all_tables,retractall(data(_)),
+	(p1(1),fail ; true),
+	write_answers(test2_1,p1(X)),
+	incr_assert(data(1)),
+	(p1(1),fail ; true),
+	write_answers(test2_2,p1(X)),
+	fail.
+test2.
+
+%---------------------------------------------------------------
+% tests weakening of uncond > cond
+% final results should be 
+% test3_1 : p1(1) <- []
+% test3_2 : p1(1) <- [opaque_undef]
+
+test3:- abolish_all_tables,retractall(data(_)),
+	incr_assert(data(1)),
+	(p1(1),fail ; true),
+	write_answers(test3_1,p1(X)),
+	incr_retract(data(1)),
+	(p1(1),fail ; true),
+	write_answers(test3_2,p1(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests prop of removal of cond answer 
+% answers should be
+% testd_prop_1 : pd_caller(1) <- [pd(1)]
+
+testd_prop:- abolish_all_tables,retractall(data(_)),
+	incr_assert(data(1)),
+	(pd_caller(X),fail ; true),
+	write_answers(testd_prop_1,pd_caller(X)),
+	incr_retract(data(1)),
+	(pd_caller(X),fail ; true),
+	write_answers(testd_prop_2,pd_caller(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests removal of cond answer
+% answers should be
+% testa__prop_2 : pd_caller(1) <- [pd(1)]
+
+testa_prop:- abolish_all_tables,retractall(data(_)),
+	(pd_caller(X),fail ; true),
+	write_answers(testa_prop_1,pd_caller(X)),
+	incr_assert(data(1)),
+	(pd_caller(X),fail ; true),
+	write_answers(testa_prop_2,pd_caller(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests addition of uncond answer
+% results should be 
+% test1_prop_1 : p1(_h172) <- [opaque_undef]
+% test1_prop_2 : p1(1) <- []
+% test1_prop_2 : p1(_h172) <- [opaque_undef]
+
+test1_prop:- abolish_all_tables,retractall(data(_)),
+	(p1_caller(X),fail ; true),
+	write_answers(test1_prop_1,p1_caller(X)),
+	incr_assert(data(1)),
+	(p1_caller(X),fail ; true),
+	write_answers(test1_prop_2,p1_caller(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests uncond answer override
+% results should be 
+% test2_prop_1 : p1_caller(1) <- [opaque_undef]
+% test2_prop_2 : p1_caller(1) <- []
+
+test2_prop:- abolish_all_tables,retractall(data(_)),
+	(p1_caller(1),fail ; true),
+	write_answers(test2_prop_1,p1_caller(X)),
+	incr_assert(data(1)),
+%	write_answers(test2_prop_2,p1(X)),
+	(p1_caller(1),fail ; true),
+	write_answers(test2_prop_2,p1_caller(X)),
+	fail.
+
+%---------------------------------------------------------------
+% tests weakening of uncond > cond
+% final results should be 
+% test3_prop_1 : p1_caller(1) <- []
+% test3_prop_2 : p1_caller(1) <- [opaque_undef]
+
+test3_prop:- abolish_all_tables,retractall(data(_)),
+	incr_assert(data(1)),
+	(p1_caller(1),fail ; true),
+	write_answers(test3_prop_1,p1_caller(X)),
+	incr_retract(data(1)),
+	(p1_caller(1),fail ; true),
+	write_answers(test3_prop_2,p1(X)),
+	write_answers(test3_prop_2,p1_caller(X)),
+	fail.
+
+%---------------------------------------------------------------
+:- import numbervars/1 from num_vars.
+
+write_answers(Tag,Goal):- 
+	get_residual(Goal,R),
+	numbervars(get_residual(Goal,R)),
+	write(Tag),write(' : '),write(Goal), write(' <- '),writeln(R),
+	fail.
+write_answers(_,_).
+
+end_of_file.
