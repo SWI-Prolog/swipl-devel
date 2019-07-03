@@ -613,7 +613,45 @@ retractall/1 and friends) of an incremental dynamic predicate mark all
 depending tables as invalid.  Subsequent usage of these tables forces
 re-evaluation.
 
-TODO: details about the re-evaluation strategy, examples.
+Re-evaluation of invalidated tables happens on demand, i.e., on access
+to an invalid table. First the dependency graph of invalid tables that
+lead to dynamic predicates is established. Next, tables are re-evaluated
+in \jargon{bottom-up} order. For each re-evaluated table the system
+determines whether the new table has changed. If the table has not
+changed, this event is propagated to the \jargon{affected} node of the
+IDG and no further re-evaluation may be needed. Consider the following
+program:
+
+\begin{code}
+:- table (p/1, q/1) as incremental.
+:- dynamic([d/1], [incremental(true)]).
+
+p(X) :- q(X).
+q(X) :- p(X), X < 10.
+
+d(1).
+\end{code}
+
+Executing this program creates tables for $X=1$ for \nopredref{p}{1} and
+\nopredref{q}{1}. After calling \exam{assert(d(100))} the tables for
+\nopredref{p}{1} and \nopredref{q}{1} have an \jargon{invalid count} of
+$1$. Re-running \exam{p(X)} first re-evaluates \nopredref{q}{1}
+(bottom-up) which results to the same table as $X=100$ does not lead to
+a new answer. Re-evaluation clears the invalid count for
+\nopredref{q}{1} and, because the \nopredref{q}{1} tables is not
+changed, decrements the invalid count of affected tables. This sets the
+\jargon{invalid count} for \nopredref{p}{1} to zero, completing the
+re-evaluation.
+
+Note that invalidating and re-evaluation is done at the level of tables.
+Notably asserting a clause invalidates all affected tables and may lead
+to re-evaluating of all these tables. Incremental tabling automates
+manual abolishing of invalid tables in a changing world and avoids
+unnecesary re-evaluation if indirectly affected tables prove unaffected
+because the answer set of dependent tables is unaffected by the change.
+This is the same policy as implemented in XSB
+\cite{DBLP:journals/tplp/Swift14}. Future versions may implement a more
+fine grained approach.
 
 
 \section{Tabling predicate reference}
