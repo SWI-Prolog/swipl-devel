@@ -658,7 +658,9 @@ save_predicate(P, SaveClass) :-
     P = (M:H),
     functor(H, F, A),
     feedback('~nsaving ~w/~d ', [F, A]),
-    (   H = resource(_,_,_),
+    (   (   H = resource(_,_)
+        ;   H = resource(_,_,_)
+        ),
         SaveClass \== development
     ->  save_attribute(P, (dynamic)),
         (   M == user
