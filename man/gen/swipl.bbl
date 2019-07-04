@@ -123,6 +123,12 @@ L.~Sterling and E.~Shapiro.
 \newblock {\em The Art of Prolog}.
 \newblock MIT Press, Cambridge, Massachusetts, 1986.
 
+\bibitem[Swift, 2014]{DBLP:journals/tplp/Swift14}
+Terrance Swift.
+\newblock Incremental tabling in support of knowledge representation and
+  reasoning.
+\newblock {\em {TPLP}}, 14(4-5):553--567, 2014.
+
 \bibitem[Tarau, 2011]{DBLP:conf/coordination/Tarau11}
 Paul Tarau.
 \newblock Coordination and concurrency in multi-engine prolog.
