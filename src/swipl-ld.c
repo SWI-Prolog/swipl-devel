@@ -989,7 +989,7 @@ setLibDir(const char *libdir)
   appendArgList(&libdirs, libdir);
 
 #ifndef __WINDOWS__
-  char tmp[MAXPATHLEN];
+  char tmp[MAXPATHLEN+16];
 #ifdef __APPLE__
   snprintf(tmp, sizeof(tmp), "-Wl,-rpath,%s", libdir);
 #else
