@@ -174,8 +174,9 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
     stack->base = stack->top = chunk->top = CHUNK_DATA(chunk);
     stack->last = stack->first = chunk;
     stack->max  = addPointer(chunk, len);
-    memset(&chunk->allocated, 0,
-	   offsetof(segchunk,data)-offsetof(segchunk,allocated));
+    chunk->allocated = 0;
+    chunk->next      = NULL;
+    chunk->previous  = NULL;
   } else
   { memset(&stack->first, 0, sizeof(*stack)-offsetof(segstack,first));
   }
