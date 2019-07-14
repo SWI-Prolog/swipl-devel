@@ -33,8 +33,9 @@
 */
 
 :- module(prolog_trace,
-          [ trace/1,
-            trace/2
+          [ trace/1,                            % :Spec
+            trace/2,                            % :Spec, +Ports
+            tracing/2                           % :Spec, -Ports
           ]).
 :- use_module(library(apply)).
 
@@ -49,10 +50,11 @@ program.
 
 :- meta_predicate
     trace(:),
-    trace(:, +).
+    trace(:, +),
+    tracing(:, -).
 
-:- dynamic tracing/2.
-:- volatile tracing/2.
+:- dynamic tracing_mask/2.
+:- volatile tracing_mask/2.
 
 %!  trace(:Pred) is det.
 %!  trace(:Pred, +PortSpec) is det.
@@ -103,13 +105,13 @@ trace(Pred, Spec) :-
     maplist(set_trace(Spec), Preds).
 
 set_trace(Spec, Pred) :-
-    (   tracing(Pred, Spec0)
+    (   tracing_mask(Pred, Spec0)
     ->  true
     ;   Spec0 = 0
     ),
     modify(Spec, Spec0, Spec1),
-    retractall(tracing(Pred, _)),
-    asserta(tracing(Pred, Spec1)),
+    retractall(tracing_mask(Pred, _)),
+    asserta(tracing_mask(Pred, Spec1)),
     mask_ports(Spec1, Ports),
     pi_head(Pred, Head),
     (   Spec1 == 0
@@ -209,3 +211,11 @@ is_masked(Pattern0, Port, Pattern) :-
     Pattern0 /\ Mask =:= Mask,
     !,
     Pattern is Pattern0 /\ \Mask.
+
+%!  tracing(:Spec, -Ports)
+%
+%   True if Spec is traced using Ports
+
+tracing(Spec, Ports) :-
+    tracing_mask(Spec, Mask),
+    mask_ports(Mask, Ports).
