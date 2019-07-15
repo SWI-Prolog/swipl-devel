@@ -1282,7 +1282,7 @@ system:term_expansion((:- table(Preds)), Expansion) :-
     phrase(wrappers(Preds, M), Clauses),
     multifile_decls(Clauses, Directives0),
     sort(Directives0, Directives),
-    '$append'(Clauses, Directives, Expansion).
+    '$append'(Directives, Clauses, Expansion).
 
 multifile_decls([], []).
 multifile_decls([H0|T0], [H|T]) :-
