@@ -505,6 +505,8 @@ COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(void)		clear_meta_declaration(Definition def);
 COMMON(void)		setMetapredicateMask(Definition def, arg_info *args);
 COMMON(int)		isTransparentMetamask(Definition def, arg_info *args);
+COMMON(ClauseRef)	assertDefinition(Definition def, Clause clause,
+					 ClauseRef where ARG_LD);
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					ClauseRef where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);

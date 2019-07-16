@@ -385,7 +385,7 @@ Trail__LD(Word p, word v ARG_LD)
 
 static inline void
 bindConst__LD(Word p, word c ARG_LD)
-{ DEBUG(CHK_SECURE, assert(hasGlobalSpace(0)));
+{ DEBUG(0, assert(hasGlobalSpace(0)));
 
 #ifdef O_ATTVAR
   if ( isVar(*p) )

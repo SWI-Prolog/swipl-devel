@@ -1188,9 +1188,8 @@ installed, causing further clauses to have no effect.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
-assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
-{ Definition def = getProcDefinition(proc);
-  word key;
+assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
+{ word key;
   ClauseRef cref;
 
   argKey(clause->codes, 0, &key);
@@ -1233,7 +1232,7 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
   setLastModifiedPredicate(def, clause->generation.created);
 #endif
 
-  if ( false(def, P_DYNAMIC) )		/* see (*) above */
+  if ( false(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) ) /* see (*) above */
     freeCodesDefinition(def, TRUE);
 
   addClauseToIndexes(def, clause, where);
@@ -1248,6 +1247,15 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
 
   return cref;
 }
+
+
+ClauseRef
+assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
+{ Definition def = getProcDefinition(proc);
+
+  return assertDefinition(def, clause, where PASS_LD);
+}
+
 
 /*  Abolish a procedure.  Referenced  clauses  are   unlinked  and left
     dangling in the dark until the procedure referencing it deletes it.
@@ -1366,15 +1374,14 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Retract  a  clause  from  a  dynamic  procedure.  Called  from  erase/1,
 retract/1 and retractall/1. Returns FALSE  if   the  clause  was already
-retracted.
+retracted. This is also used by trie_gen_compiled/3   to  get rid of the
+clauses that represent tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 retractClauseDefinition(Definition def, Clause clause)
 { GET_LD
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
-
-  assert(true(def, P_DYNAMIC));
 
   LOCKDEF(def);
   if ( true(clause, CL_ERASED) )

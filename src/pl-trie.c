@@ -40,6 +40,7 @@
 #define NO_AC_TERM_WALK 1
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
+#include "pl-dbref.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This file implements tries of  terms.  The   trie  itself  lives  in the
@@ -99,6 +100,7 @@ static void	trie_destroy(trie *trie);
 static int	unify_key(ukey_state *state, word key ARG_LD);
 static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
 static void	destroy_ukey_state(ukey_state *state);
+static void	set_trie_clause_general_undefined(Clause cl);
 
 
 		 /*******************************
@@ -213,9 +215,26 @@ trie_destroy(trie *trie)
 }
 
 
+static void
+trie_discard_clause(trie *trie)
+{ ClauseRef cref;
+
+  if ( (cref=trie->clause) )
+  { Clause cl = cref->value.clause;
+
+    if ( COMPARE_AND_SWAP(&trie->clause, cref, NULL) )
+    { set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
+      retractClauseDefinition(cl->predicate, cl);
+    }
+  }
+}
+
+
 void
 trie_empty(trie *trie)
 { trie->magic = TRIE_CMAGIC;
+
+  trie_discard_clause(trie);
 
   if ( !trie->references )
   { indirect_table *it = trie->indirects;
@@ -988,6 +1007,7 @@ set_trie_value_word(trie *trie, trie_node *node, word val)
       acquire_key(val);
       node->value = val;
       release_value(old);
+      trie_discard_clause(trie);
 
       return TRUE;
     } else
@@ -997,6 +1017,7 @@ set_trie_value_word(trie *trie, trie_node *node, word val)
   { acquire_key(val);
     node->value = val;
     ATOMIC_INC(&trie->value_count);
+    trie_discard_clause(trie);
 
     return TRUE;
   }
@@ -1041,6 +1062,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
       }
     }
     ATOMIC_DEC(&trie->value_count);
+    trie_discard_clause(trie);
   }
 }
 
@@ -1080,6 +1102,7 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 	    acquire_key(val);
 	    node->value = val;
 	    release_value(old);
+	    trie_discard_clause(trie);
 	  } else if ( isRecord(val) )
 	  { PL_erase((record_t)val);
 	  }
@@ -1097,6 +1120,7 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
       acquire_key(val);
       node->value = val;
       ATOMIC_INC(&trie->value_count);
+      trie_discard_clause(trie);
 
       return TRUE;
     }
@@ -1941,6 +1965,465 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
   return FALSE;
 }
 
+		 /*******************************
+		 *	  COMPILED TRIES	*
+		 *******************************/
+
+typedef struct trie_compile_state
+{ trie	       *trie;				/* Trie we are working on */
+  int		try;				/* There are alternatives */
+  tmp_buffer	codes;				/* Output instructions */
+  size_t	else_loc;			/* last else */
+  size_t	maxvar;				/* Highest var index */
+} trie_compile_state;
+
+static void
+init_trie_compile_state(trie_compile_state *state, trie *trie)
+{ memset(state, 0, sizeof(*state));
+  state->trie = trie;
+  initBuffer(&state->codes);
+  state->maxvar = 0;
+}
+
+static void
+clean_trie_compile_state(trie_compile_state *state)
+{ discardBuffer(&state->codes);
+}
+
+
+static void
+add_vmi(trie_compile_state *state, vmi c)
+{ addBuffer(&state->codes, encode(c), code);
+}
+
+static void
+add_vmi_d(trie_compile_state *state, vmi c, code d)
+{ addBuffer(&state->codes, encode(c), code);
+  addBuffer(&state->codes, d, code);
+}
+
+static void
+add_vmi_else_d(trie_compile_state *state, vmi c, code d)
+{ size_t el;
+
+  addBuffer(&state->codes, encode(c), code);
+  el = entriesBuffer(&state->codes, code);
+  addBuffer(&state->codes, (code)state->else_loc, code);
+  state->else_loc = el;
+  addBuffer(&state->codes, d, code);
+}
+
+static void
+fixup_else(trie_compile_state *state)
+{ Code base = baseBuffer(&state->codes, code);
+  size_t pc = entriesBuffer(&state->codes, code);
+  size_t el = state->else_loc;
+
+  state->else_loc = base[el];
+  base[el] = pc-el-1;
+}
+
+
+static int
+compile_trie_value(Word v, trie_compile_state *state ARG_LD)
+{ term_agenda_P agenda;
+  size_t var_number = 0;
+  tmp_buffer varb;
+  int rc = TRUE;
+  int compounds = 0;
+  Word p;
+
+  initTermAgenda_P(&agenda, 1, v);
+  while( (p=nextTermAgenda_P(&agenda)) )
+  { size_t popn;
+
+    if ( (popn = IS_AC_TERM_POP(p)) )
+    { if ( popn == 1 )
+	add_vmi(state, T_POP);
+      else
+	add_vmi_d(state, T_POPN, (code)popn);
+    } else
+    { word w = *p;
+
+      switch( tag(w) )
+      { case TAG_VAR:
+	{ size_t index;
+
+	  if ( isVar(w) )
+	  { if ( var_number++ == 0 )
+	    { initBuffer(&varb);
+	    }
+	    addBuffer(&varb, p, Word);
+	    *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  }
+	  index = (size_t)(w>>LMASK_BITS);
+	  if ( index > state->maxvar )
+	    state->maxvar = index;
+	  add_vmi_d(state, T_VAR, (code)index);
+	  break;
+	}
+	case TAG_ATTVAR:
+	  rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
+	  goto out;
+	case TAG_ATOM:			/* TBD: register */
+	  add_vmi_d(state, T_ATOM, (code)w);
+	  break;
+	case TAG_INTEGER:
+	  if ( storage(w) == STG_INLINE)
+	  { add_vmi_d(state, T_SMALLINT, (code)w);
+	  } else
+	  { size_t wsize = wsizeofIndirect(w);
+	    Word ip = valIndirectP(w);
+
+	    if ( wsize == sizeof(int64_t)/sizeof(word))
+	    {
+#if SIZEOF_VOIDP == 8
+	      add_vmi_d(state, T_INTEGER, (code)ip[0]);
+#else
+	      add_vmi_d(state, T_INT64, (code)ip[0]);
+	      addBuffer(&state->codes, (code)ip[1], code);
+#endif
+#ifdef O_GMP
+	    } else
+	    { add_vmi_d(state, T_MPZ, (code)ip[-1]);
+	      addMultipleBuffer(&state->codes, ip, wsize, code);
+#endif
+	    }
+	  }
+	  break;
+	case TAG_FLOAT:
+	{ Word ip = valIndirectP(w);
+	  add_vmi_d(state, T_FLOAT, (code)ip[0]);
+#if SIZEOF_VOIDP == 4
+	  addBuffer(&state->codes, (code)ip[1], code);
+#endif
+          break;
+	}
+	case TAG_STRING:
+	{ size_t wsize = wsizeofIndirect(w);
+	  Word ip = valIndirectP(w);
+
+	  add_vmi_d(state, T_STRING, (code)ip[-1]);
+	  addMultipleBuffer(&state->codes, ip, wsize, code);
+	  break;
+	}
+	case TAG_COMPOUND:
+	{ Functor f = valueTerm(w);
+	  size_t arity = arityFunctor(f->definition);
+
+	  if ( ++compounds == 1000 && !is_acyclic(p PASS_LD) )
+	  { rc = TRIE_LOOKUP_CYCLIC;
+	    goto out;
+	  }
+	  add_vmi_d(state, T_FUNCTOR, (code)f->definition);
+	  pushWorkAgenda_P(&agenda, arity, f->arguments);
+	  break;
+	}
+      }
+    }
+  }
+out:
+  clearTermAgenda_P(&agenda);
+
+  if ( var_number )
+  { Word *pp = baseBuffer(&varb, Word);
+    Word *ep = topBuffer(&varb, Word);
+
+    for(; pp < ep; pp++)
+    { Word vp = *pp;
+      setVar(*vp);
+    }
+    discardBuffer(&varb);
+  }
+
+  return rc;
+}
+
+
+static int
+compile_trie_node(trie_node *n, trie_compile_state *state ARG_LD)
+{ trie_children children;
+  word key;
+  int rc;
+
+next:
+  children = n->children;
+  if ( n == &state->trie->root )
+    goto children;
+  key = n->key;
+
+  switch(tagex(key))
+  { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
+    { size_t popn = IS_TRIE_KEY_POP(key);
+
+      assert(popn);
+      if ( popn == 1 )
+	add_vmi(state, T_POP);
+      else
+	add_vmi_d(state, T_POPN, (code)popn);
+      break;
+    }
+    case TAG_ATOM|STG_GLOBAL:			/* functor */
+    { if ( state->try )
+	add_vmi_else_d(state, T_TRY_FUNCTOR, (code)key);
+      else
+	add_vmi_d(state, T_FUNCTOR, (code)key);
+      break;
+    }
+    case TAG_VAR:
+    { size_t index = (size_t)(key>>LMASK_BITS);
+
+      if ( index > state->maxvar )
+	state->maxvar = index;
+
+      if ( state->try )
+	add_vmi_else_d(state, T_TRY_VAR, (code)index);
+      else
+	add_vmi_d(state, T_VAR, (code)index);
+      break;
+    }
+    case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
+    case STG_GLOBAL|TAG_STRING:
+    case STG_GLOBAL|TAG_FLOAT:
+    { size_t index = key>>LMASK_BITS;
+      int idx = MSB(index);
+      indirect *h = &state->trie->indirects->array.blocks[idx][index];
+      size_t wsize = wsizeofInd(h->header);
+
+      switch(tag(key))
+      { case TAG_INTEGER:
+#if SIZEOF_VOIDP == 8
+	  if ( wsize == 1 )			/* 64-bit integer */
+	  { if ( state->try )
+	      add_vmi_else_d(state, T_TRY_INTEGER, (code)h->data[0]);
+	    else
+	      add_vmi_d(state, T_INTEGER, (code)h->data[0]);
+	    goto indirect_done;
+	  } else
+#else
+	  if ( wsize == 2 )			/* 64-bit integer */
+	  { if ( state->try )
+	      add_vmi_else_d(state, T_TRY_INT64, (code)h->data[0]);
+	    else
+	      add_vmi_d(state, T_INT64, (code)h->data[0]);
+	    addBuffer(&state->codes, (code)h->data[1], code);
+	    goto indirect_done;
+	  } else
+#endif
+	  { if ( state->try )
+	      add_vmi_else_d(state, T_TRY_MPZ, (code)h->header);
+	    else
+	      add_vmi_d(state, T_MPZ, (code)h->header);
+	  }
+	  break;
+        case TAG_STRING:
+	  if ( state->try )
+	    add_vmi_else_d(state, T_TRY_STRING, (code)h->header);
+	  else
+	    add_vmi_d(state, T_STRING, (code)h->header);
+	  break;
+        case TAG_FLOAT:
+	  if ( state->try )
+	    add_vmi_else_d(state, T_TRY_FLOAT, (code)h->data[0]);
+	  else
+	    add_vmi_d(state, T_FLOAT, (code)h->data[0]);
+#if SIZEOF_VOIDP == 4
+	  addBuffer(&state->codes, (code)h->data[1], code);
+#endif
+	  goto indirect_done;
+      }
+
+      addMultipleBuffer(&state->codes, h->data, wsize, code);
+    indirect_done:
+      break;
+    }
+    case TAG_ATOM:
+    { if ( state->try )
+	add_vmi_else_d(state, T_TRY_ATOM, (code)key);
+      else
+	add_vmi_d(state, T_ATOM, (code)key);
+      break;
+    }
+    case TAG_INTEGER:
+    { if ( state->try )
+	add_vmi_else_d(state, T_TRY_SMALLINT, (code)key);
+      else
+	add_vmi_d(state, T_SMALLINT, (code)key);
+      break;
+    }
+    default:
+      assert(0);
+  }
+
+children:
+  if ( children.any  )
+  { switch( children.any->type )
+    { case TN_KEY:
+      { state->try = FALSE;
+	n = children.key->child;
+	goto next;
+      }
+      case TN_HASHED:
+      { Table table = children.hash->table;
+	TableEnum e = newTableEnum(table);
+	void *k, *v;
+
+	if ( !advanceTableEnum(e, &k, &v) )
+	{ freeTableEnum(e);
+	  return TRUE;				/* empty path */
+	}
+
+	for(;;)
+	{ n = v;
+
+	  if ( !(state->try = advanceTableEnum(e, &k, &v)) )
+	  { freeTableEnum(e);
+	    goto next;
+	  }
+
+	  if ( (rc=compile_trie_node(n, state PASS_LD)) != TRUE )
+	  { freeTableEnum(e);
+	    return rc;
+	  }
+	  fixup_else(state);
+	}
+      }
+    }
+  } else
+  { if ( n->value )			/* what if we have none? */
+    { if ( answer_is_conditional(n) )
+	add_vmi_d(state, T_DELAY, (code)n);
+
+      add_vmi(state, T_VALUE);
+      if ( !isRecord(n->value) )
+      { if ( isAtom(n->value) )
+	{ add_vmi_d(state, T_ATOM, (code)n->value);
+	} else
+	{ add_vmi_d(state, T_SMALLINT, (code)n->value);
+	}
+      } else
+      { term_t t2;
+
+	if ( (t2=PL_new_term_ref()) &&
+	     PL_recorded((record_t)n->value, t2) )
+	{ Word p = valTermRef(t2);
+
+	  deRef(p);
+	  if ( (rc = compile_trie_value(p, state PASS_LD)) != TRUE )
+	    return rc;
+	} else
+	{ return FALSE;
+	}
+	PL_reset_term_refs(t2);
+      }
+      add_vmi(state, I_EXIT);
+    } else
+    { add_vmi(state, I_FAIL);
+      if ( n == &state->trie->root )
+	add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
+    }
+  }
+
+  return TRUE;
+}
+
+
+static int
+create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
+{ size_t code_size = entriesBuffer(&state->codes, code);
+  size_t size      = sizeofClause(code_size);
+  //size_t clsize    = size + SIZEOF_CREF_CLAUSE;
+  Clause cl;
+
+  cl = PL_malloc_atomic(size);
+  memset(cl, 0, sizeof(*cl));
+  cl->predicate = def;
+  cl->code_size = code_size;
+  cl->prolog_vars = TRIE_VAR_OFFSET + state->maxvar;
+  cl->variables = cl->prolog_vars;	/* 2: pseudo arity */
+  set(cl, UNIT_CLAUSE);			/* no body */
+  memcpy(cl->codes, baseBuffer(&state->codes, code), sizeOfBuffer(&state->codes));
+  *cp = cl;
+
+  return TRUE;
+}
+
+
+ClauseRef
+compile_trie(Definition def, trie *trie ARG_LD)
+{ ClauseRef rc;
+
+retry:
+  if ( !(rc = trie->clause) )
+  { trie_compile_state state;
+    Clause cl;
+
+    init_trie_compile_state(&state, trie);
+    add_vmi(&state, T_TRIE_GEN);
+    if ( compile_trie_node(&trie->root, &state PASS_LD) &&
+	 create_trie_clause(def, &cl, &state) )
+    { rc = assertDefinition(def, cl, CL_END PASS_LD);
+      if ( rc )
+      { if ( !COMPARE_AND_SWAP(&trie->clause, NULL, rc) )
+	{ retractClauseDefinition(def, cl);
+	  goto retry;
+	}
+      }
+    }
+    assert(state.else_loc == 0);
+    clean_trie_compile_state(&state);
+  }
+
+  return rc;
+}
+
+
+trie *
+get_trie_ptr(Word p ARG_LD)
+{ void *data = NULL;
+  term_t t;
+
+  deRef(p);
+  if ( isAtom(*p) )
+  { size_t len;
+    PL_blob_t *type;
+
+    if ( (data = PL_blob_data(*p, &len, &type)) && type == &trie_blob )
+    { tref *ref = data;
+
+      if ( ref->trie->magic == TRIE_MAGIC )
+	return ref->trie;
+    }
+  }
+
+  t = pushWordAsTermRef(p);
+  if ( data )
+    PL_existence_error("trie", t);
+  else
+    PL_type_error("trie", t);
+  popTermRef();
+
+  return NULL;
+}
+
+
+static void
+set_trie_clause_general_undefined(Clause clause)
+{ Code PC, ep;
+
+  PC = clause->codes;
+  ep = PC + clause->code_size;
+
+  for( ; PC < ep; PC = stepPC(PC) )
+  { code c = fetchop(PC);
+
+    switch(c)
+    { case T_DELAY:
+	PC[1] = (code)NULL;
+        break;
+    }
+  }
+}
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
@@ -1964,5 +2447,13 @@ EndPredDefs
 
 void
 initTries(void)
-{ PL_register_blob_type(&trie_blob);
+{ Procedure proc;
+  Definition def;
+
+  PL_register_blob_type(&trie_blob);
+
+  proc = PL_predicate("trie_gen_compiled", 3, "system");
+  def = proc->definition;
+  set(def, P_LOCKED_SUPERVISOR|P_VOLATILE);
+  def->codes = SUPERVISOR(trie_gen3);
 }

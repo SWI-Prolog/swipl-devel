@@ -1717,6 +1717,19 @@ mark_new_arguments(vm_state *state ARG_LD)
 }
 
 
+static void
+mark_trie_gen(LocalFrame fr ARG_LD)
+{ Word   sp = argFrameP(fr, 0);
+  Clause cl = fr->clause->value.clause;
+  int    mv = cl->prolog_vars;
+
+  for(; mv-- > 0; sp++)
+  { if ( !is_marked(sp) )
+      mark_local_variable(sp PASS_LD);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 walk_and_mark(walk_state *state, Code PC, code end, Code until)
     Walk along the byte code starting at PC and continuing until either
@@ -2276,6 +2289,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 	    Sdprintf("Marking arguments for [%d] %s\n",
 		     levelFrame(fr), predicateName(fr->predicate)));
       mark_arguments(fr PASS_LD);
+    } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN) )
+    { mark_trie_gen(fr PASS_LD);
     } else
     { Word argp0;
       state.frame    = fr;

@@ -864,13 +864,14 @@ with one operation, it turns out to be faster as well.
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
 #define P_ABSTRACT		(0x08000000) /* Incremental tabling */
+#define	P_LOCKED_SUPERVISOR	(0x10000000) /* Fixed supervisor */
 /** unused
-#define			(0x10000000)
 #define			(0x20000000)
 */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
-#define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|P_DISCONTIGUOUS)
+#define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
+				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
 #define P_MODIFIED		P_DIRTYREG
 #define P_NEW			SPY_ME
@@ -1362,15 +1363,16 @@ typedef struct gc_stats
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
-#define CA1_MODULE	8	/* a module */
-#define CA1_VAR		9	/* a variable(-offset) */
-#define CA1_FVAR       10	/* a variable(-offset), used as `firstvar' */
-#define CA1_CHP	       11	/* ChoicePoint (also variable(-offset)) */
-#define CA1_MPZ	       12	/* GNU mpz number */
+#define CA1_MPZ	        8	/* GNU mpz number */
+#define CA1_MODULE      9	/* a module */
+#define CA1_VAR	       10	/* a variable(-offset) */
+#define CA1_FVAR       11	/* a variable(-offset), used as `firstvar' */
+#define CA1_CHP	       12	/* ChoicePoint (also variable(-offset)) */
 #define CA1_FOREIGN    13	/* Foreign function pointer */
 #define CA1_CLAUSEREF  14	/* Clause reference */
 #define CA1_JUMP       15	/* Instructions to skip */
 #define CA1_AFUNC      16	/* Number of arithmetic function */
+#define CA1_TRIE_NODE  17	/* Tabling: answer trie node with delays */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 
@@ -2109,8 +2111,10 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
-	(likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax) && \
-	 likely(tTop+BIND_TRAIL_SPACE <= tMax))
+	hasStackSpace(n,0)
+#define hasStackSpace(g, t) \
+	(likely(gTop+(g)+BIND_GLOBAL_SPACE <= gMax) && \
+	 likely(tTop+(t)+BIND_TRAIL_SPACE <= tMax))
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )

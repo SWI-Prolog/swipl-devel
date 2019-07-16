@@ -41,6 +41,7 @@
 #include "pl-wrap.h"
 #include "pl-prof.h"
 #include "pl-event.h"
+#include "pl-tabling.h"
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif

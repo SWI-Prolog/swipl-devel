@@ -3389,7 +3389,18 @@ afterwards.
 True when \arg{Key} is associated with \arg{Value} in \arg{Trie}.
 Backtracking retrieves all pairs. Currently scans the entire
 trie, even if \arg{Key} is partly known.  Currently unsafe if \arg{Trie}
-is modified while the values are being enumerated.
+is modified while the values are being enumerated.  See also
+trie_gen_compiled/3.
+
+    \predicate[nondet]{trie_gen_compiled}{3}{+Trie, ?Key, -Value}
+Similar to trie_gen/3, but uses a \jargon{compiled} representation of
+\arg{Trie}. The compiled representation is created lazily and
+manipulations of the trie (insert, delete) invalidate the current
+compiled representation. The compiled representation generates answers
+faster and, as it runs on a snapshot of the trie, is immune to
+concurrent modifications of the trie.  This predicate is used to
+generate answers from \jargon{answer tries} as used for tabled
+execution.  See \secref{tabling}.
 
     \predicate[nondet]{trie_property}{2}{?Trie, ?Property}
 True if \arg{Trie} exists with \arg{Property}.	 Intended for

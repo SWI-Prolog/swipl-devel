@@ -81,8 +81,8 @@ incremental_test(test_abolish_nonincremental).
 %incremental_test(inc_abol).            % inc tests with abolish_all_tables
 incremental_test(inc_atc).              % inc tests with abolish_table_call
 incremental_test(inc_atc_gc).           % inc tests with abolish_table_call + gc
-/*
 incremental_test(inc_atc_gc_tricky).    % inc tests with abolish_table_call + gc
+/*
 incremental_test(test_directives).
 incremental_test(test_declarations).
 incremental_test(test_table_errors).    % testing executable incremental dirs.

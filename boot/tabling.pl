@@ -284,7 +284,7 @@ start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
     (   Status == complete
     ->  '$idg_add_edge'(Trie),
-        '$tbl_answer_update_dl'(Trie, Skeleton)
+        trie_gen_compiled(Trie, Skeleton, _)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
@@ -301,7 +301,7 @@ start_tabling(Wrapper, Worker) :-
     ;   Status == invalid
     ->  reeval(Trie),
         '$idg_add_edge'(Trie),
-        '$tbl_answer_update_dl'(Trie, Skeleton)
+        trie_gen_compiled(Trie, Skeleton, _)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
@@ -343,11 +343,11 @@ start_subsumptive_tabling(Wrapper, Worker) :-
 
 done_leader(complete, _SCC, Skeleton, Trie) :-
     !,
-    '$tbl_answer_update_dl'(Trie, Skeleton).
+    trie_gen_compiled(Trie, Skeleton, _).
 done_leader(final, SCC, Skeleton, Trie) :-
     !,
     '$tbl_free_component'(SCC),
-    '$tbl_answer_update_dl'(Trie, Skeleton).
+    trie_gen_compiled(Trie, Skeleton, _).
 done_leader(_,_,_,_).
 
 finished_leader(exit, _, _) :-

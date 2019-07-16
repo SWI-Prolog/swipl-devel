@@ -132,6 +132,42 @@ code into functions.
 #define CHECK_WAKEUP (void)0
 #endif
 
+		 /*******************************
+		 *	MAKE STACK SPACE	*
+		 *******************************/
+
+#define ENSURE_GLOBAL_SPACE(cells, onchange) \
+	ENSURE_STACK_SPACE(cells, 0, onchange)
+#define ENSURE_STACK_SPACE(g, t, onchange) \
+	if ( !hasStackSpace(g, t) )			\
+	{ int __rc;					\
+	  SAVE_REGISTERS(qid);				\
+	  __rc = ensureStackSpace(g, t);		\
+	  LOAD_REGISTERS(qid);				\
+	  if ( __rc != TRUE )				\
+	  { raiseStackOverflow(__rc);			\
+	    THROW_EXCEPTION;				\
+	  }						\
+	  onchange;					\
+	}
+
+/* Can be used for debugging to always force GC at a place */
+#define FAKE_GC(onchange) \
+	{ int __rc;					\
+	  static int __cnt = 0;				\
+	  Sdprintf("Forcing GC at %s:%d (cnt=%d)\n",	\
+		   __FILE__, __LINE__, ++__cnt);	\
+	  if ( __cnt == 131 ) trap_gdb();		\
+	  SAVE_REGISTERS(qid);				\
+	  __rc = garbageCollect(GC_GLOBAL_OVERFLOW);	\
+	  LOAD_REGISTERS(qid);				\
+	  if ( __rc != TRUE )				\
+	  { raiseStackOverflow(__rc);			\
+	    THROW_EXCEPTION;				\
+	  }						\
+	  onchange;					\
+	}
+
 
 		 /*******************************
 		 *	    DEBUGGING		*
@@ -259,18 +295,7 @@ h_const:
     NEXT_INSTRUCTION;
   }
   if ( canBind(*k) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(0, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
+  { ENSURE_GLOBAL_SPACE(0, deRef2(ARGP, k));
     bindConst(k, c);
     ARGP++;
     NEXT_INSTRUCTION;
@@ -297,18 +322,7 @@ VMI(H_NIL, 0, 0, ())
     NEXT_INSTRUCTION;
   }
   if ( canBind(*k) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(0, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
+  { ENSURE_GLOBAL_SPACE(0, deRef2(ARGP, k));
     bindConst(k, c);
     ARGP++;
     NEXT_INSTRUCTION;
@@ -338,18 +352,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
     } cvt;
     Word vp = cvt.w;
 
-    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(ARGP, k));
 
     p = gTop;
     gTop += 2+WORDS_PER_INT64;
@@ -389,18 +392,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
   { Word p;
     word c;
 
-    if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(ARGP, k));
 
     p = gTop;
     gTop += 2+WORDS_PER_INT64;
@@ -444,18 +436,7 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   { Word p;
     word c;
 
-    if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_DOUBLE, deRef2(ARGP, k));
 
     p = gTop;
     gTop += 2+WORDS_PER_DOUBLE;
@@ -515,19 +496,7 @@ VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
   { word c;
     size_t sz = gsizeIndirectFromCode(PC);
 
-    if ( !hasGlobalSpace(sz) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(sz, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, k);
-    }
-
+    ENSURE_GLOBAL_SPACE(sz, deRef2(ARGP, k));
     c = globalIndirectFromCode(&PC);
     bindConst(k, c);
     ARGP++;
@@ -674,19 +643,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     Word ap;
     word c;
 
-    if ( !hasGlobalSpace(1+arity) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(1+arity, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      deRef2(ARGP, p);
-    }
-
+    ENSURE_GLOBAL_SPACE(1+arity, deRef2(ARGP, p));
     ap = gTop;
     gTop += 1+arity;
     c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -738,19 +695,7 @@ VMI(H_RLIST, 0, 0, ())
     { Word ap;
       word c;
 
-      if ( !hasGlobalSpace(3) )
-      { int rc;
-
-	SAVE_REGISTERS(qid);
-	rc = ensureGlobalSpace(3, ALLOW_GC);
-	LOAD_REGISTERS(qid);
-	if ( rc != TRUE )
-	{ raiseStackOverflow(rc);
-	  THROW_EXCEPTION;
-	}
-	deRef2(ARGP, p);
-      }
-
+      ENSURE_GLOBAL_SPACE(3, deRef2(ARGP, p));
       ap = gTop;
       gTop += 3;
       c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -808,22 +753,12 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
       Word ap;
 
     write:
-      if ( !hasGlobalSpace(3) )
-      { int rc;
-
-	SAVE_REGISTERS(qid);
-	rc = ensureGlobalSpace(3, ALLOW_GC);
-	LOAD_REGISTERS(qid);
-	if ( rc != TRUE )
-	{ raiseStackOverflow(rc);
-	  THROW_EXCEPTION;
-	}
-	if ( umode == uwrite )
-	  p = ARGP;
-	else
-	  deRef2(ARGP, p);
-      }
-
+      ENSURE_GLOBAL_SPACE(3,
+			  { if ( umode == uwrite )
+			      p = ARGP;
+			    else
+			      deRef2(ARGP, p);
+			  });
       ap = gTop;
       gTop = ap+3;
       c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
@@ -888,18 +823,7 @@ VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
   } cvt;
   Word vp = cvt.w;
 
-  if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+  ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, (void)0);
   p = gTop;
   gTop += 2+WORDS_PER_INT64;
 
@@ -920,18 +844,7 @@ VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 { Word p;
   size_t i;
 
-  if ( !hasGlobalSpace(2+WORDS_PER_INT64) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(2+WORDS_PER_INT64, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+  ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, (void)0);
   p = gTop;
   gTop += 2+WORDS_PER_INT64;
 
@@ -953,18 +866,7 @@ representation.
 VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 { Word p;
 
-  if ( !hasGlobalSpace(2+WORDS_PER_DOUBLE) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(2+WORDS_PER_DOUBLE, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+  ENSURE_GLOBAL_SPACE(2+WORDS_PER_DOUBLE, (void)0);
   p = gTop;
   gTop += 2+WORDS_PER_DOUBLE;
 
@@ -992,18 +894,7 @@ VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { size_t sz = gsizeIndirectFromCode(PC);
 
-  if ( !hasGlobalSpace(sz) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(sz, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+  ENSURE_GLOBAL_SPACE(sz, (void)0);
   *ARGP++ = globalIndirectFromCode(&PC);
   NEXT_INSTRUCTION;
 }
@@ -1276,20 +1167,10 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
   if ( *k == c )
     NEXT_INSTRUCTION;
   if ( canBind(*k) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(0, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-      k = varFrameP(FR, (int)PC[-2]);
-      deRef(k);
-    }
-
+  { ENSURE_GLOBAL_SPACE(0,
+			{ k = varFrameP(FR, (int)PC[-2]);
+			  deRef(k);
+			});
     bindConst(k, c);
     CHECK_WAKEUP;
     NEXT_INSTRUCTION;
@@ -1474,18 +1355,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
   size_t arity = arityFunctor(f);
   Word ap;
 
-  if ( !hasGlobalSpace(1+arity) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(1+arity, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+  ENSURE_GLOBAL_SPACE(1+arity, (void)0);
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = f;
@@ -1509,18 +1379,7 @@ VMI(B_LIST, 0, 0, ())
 
 
 VMI(B_RLIST, 0, 0, ())
-{ if ( !hasGlobalSpace(3) )
-  { int rc;
-
-    SAVE_REGISTERS(qid);
-    rc = ensureGlobalSpace(3, ALLOW_GC);
-    LOAD_REGISTERS(qid);
-    if ( rc != TRUE )
-    { raiseStackOverflow(rc);
-      THROW_EXCEPTION;
-    }
-  }
-
+{ ENSURE_GLOBAL_SPACE(3, (void)0);
   *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
   ARGP = gTop;
   *ARGP++ = FUNCTOR_dot2;
@@ -3414,21 +3273,10 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   if ( debugstatus.debugging )
   { Word expr;
 
-    if ( !hasGlobalSpace(3) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(3, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-
-      np = varFrameP(FR, PC[-2]);
-      rp = varFrameP(FR, PC[-3]);
-    }
-
+    ENSURE_GLOBAL_SPACE(3,
+			{ np = varFrameP(FR, PC[-2]);
+			  rp = varFrameP(FR, PC[-3]);
+			});
     expr = gTop;
     gTop += 3;
     expr[0] = FUNCTOR_plus2;
@@ -5098,20 +4946,10 @@ VMI(I_EXITRESET, 0, 0, ())
 
   deRef(p);
   if ( canBind(*p) )
-  { if ( !hasGlobalSpace(0) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = ensureGlobalSpace(0, ALLOW_GC);
-      LOAD_REGISTERS(qid);
-      if ( rc != TRUE )
-      { raiseStackOverflow(rc);
-	THROW_EXCEPTION;
-      }
-
-      p = argFrameP(FR, 2);
-      deRef(p);
-    }
+  { ENSURE_GLOBAL_SPACE(0,
+			{ p = argFrameP(FR, 2);
+			  deRef(p);
+			});
     bindConst(p, consInt(0));
     NEXT_INSTRUCTION;
   } else
@@ -5183,4 +5021,501 @@ VMI(I_SHIFT, 0, 1, (CA1_VAR))
   }
 }
 
+END_SHAREDVARS
+
+
+		 /*******************************
+		 *	  COMPILED TRIES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trie_gen_compiled(Trie, Key, Value)
+
+This is the supervisor for trie_gen_compiled/3.  It compiles the trie on
+demand and then calls the  compiled  clause   that  belongs  to the same
+predicate.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_TRIE_GEN3, 0, 0, ())
+{ Word tp = argFrameP(FR, 0);
+  trie *t;
+  ClauseRef cref;
+
+  if ( !(t=get_trie_ptr(tp PASS_LD)) )
+    THROW_EXCEPTION;
+
+  if ( !(cref=t->clause) )
+  { if ( t->value_count == 0 )
+      FRAME_FAILED;
+
+    SAVE_REGISTERS(qid);
+    cref = compile_trie(FR->predicate, t PASS_LD);
+    LOAD_REGISTERS(qid);
+  }
+
+  ARGP = argFrameP(FR, 0);
+  TRUST_CLAUSE(cref);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Trie enumeration instructions. The trie  enumeration   is  executed by a
+single clause that starts with an  T_TRIE_GEN instruction. The state for
+generating  terms  from  the  trie  is   maintained  in  the  associated
+environment frame (FR):
+
+  argFrame(0)	The term (key)
+  argFrame(1)   The node value
+  argFrame(2)   Current term
+  argFrame(3)   Current arg in current term (1..)
+  argFrame(4)   Stack of current locations as
+		'$argp'(TermP, ArgN, Parent).
+  argFrame(5..)	Variables (counting from 1..)
+
+TBD:
+
+  - Resize stack on TrailAssignment(TrieCurrentP)
+  - The various instructions are very similar to the H_* instructions.
+    They only manage TrieCurrentP instead of ARGP. This should be merged
+    somehow.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TrieTermP     argFrameP(FR, TRIE_ARGS)
+#define TrieOffset    argFrameP(FR, TRIE_ARGS+1)
+#define TrieCurrentP  (isRef(*TrieTermP) \
+			 ? unRef(*TrieTermP) \
+		         : argTermP(*TrieTermP, valInt(*TrieOffset)-1))
+#define TrieArgStackP argFrameP(FR, TRIE_ARGS+2)
+#define TrieVarP(n)   argFrameP(FR, (TRIE_VAR_OFFSET-1+(n)))
+#define TRIE_TRY \
+	do \
+	{ intptr_t skip = *PC++;				\
+          Choice ch = newChoice(CHP_JUMP, FR PASS_LD);		\
+          ch->value.PC = PC+skip;				\
+	} while(0)
+#define TrieNextArg() \
+	do \
+	{ ENSURE_GLOBAL_SPACE(0, (void)0); \
+	  TrailAssignment(TrieOffset); \
+          (*TrieOffset = consInt(valInt(*TrieOffset)+1)); \
+	} while(0)
+#define TriePushArgP() \
+	do \
+	{ Word _astack = gTop; \
+	  assert(isTerm(*TrieTermP)); \
+	  gTop += 4; \
+	  assert(gTop < gMax); \
+	  _astack[0] = FUNCTOR_targp3; \
+	  _astack[1] = *TrieTermP; \
+	  _astack[2] = *TrieOffset; \
+	  _astack[3] = *TrieArgStackP; \
+	  TrailAssignment(TrieArgStackP); \
+	  *TrieArgStackP = consPtr(_astack, TAG_COMPOUND|STG_GLOBAL); \
+	} while(0)
+#define TriePopArgP() \
+	do  \
+	{ Word _astack = valPtr(*TrieArgStackP); \
+	  assert(_astack[0] == FUNCTOR_targp3); \
+	  *TrieTermP     = _astack[1]; \
+	  *TrieOffset    = _astack[2]; \
+	  *TrieArgStackP = _astack[3]; \
+	} while(0)
+#define UnwindTrieArgP() \
+	do \
+	{ Word _as;				\
+	  if ( *TrieArgStackP != ATOM_nil )	\
+	  { _as = valPtr(*TrieArgStackP);	\
+	    assert(_as[0] == FUNCTOR_targp3);	\
+	    while ( _as[3] != ATOM_nil )	\
+	    { assert(_as[0] == FUNCTOR_targp3);	\
+	      _as = valPtr(_as[3]);		\
+	    }					\
+	    TrailAssignment(TrieTermP);		\
+	    TrailAssignment(TrieArgStackP);	\
+	    *TrieTermP     = _as[1];		\
+	    *TrieArgStackP = ATOM_nil;		\
+	  }					\
+	} while(0)
+
+VMI(T_TRIE_GEN, 0, 0, ())
+{ Word ap;
+  size_t nvars = FR->clause->value.clause->prolog_vars - TRIE_VAR_OFFSET;
+
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_TRIE_GEN: %zd vars\n", nvars));
+
+  *TrieTermP     = ATOM_nil;
+  *TrieOffset    = consInt(1);
+  *TrieArgStackP = ATOM_nil;
+  if ( nvars )
+  { Word vp = TrieVarP(1);
+    for( ; nvars-- > 0; vp++)
+      setVar(*vp);
+  }
+
+  ENSURE_GLOBAL_SPACE(3, (void)0);
+  ap = gTop;
+  ap[0] = FUNCTOR_minus2;
+  setVar(ap[1]);
+  setVar(ap[2]);
+  gTop += 3;
+
+  /* argFrameP(FR, 0) is the trie */
+  unify_ptrs(&ap[1], argFrameP(FR, 1), 0 PASS_LD);
+  unify_ptrs(&ap[2], argFrameP(FR, 2), 0 PASS_LD);
+
+  *TrieTermP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_VALUE, 0, 0, ())
+{ ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
+
+  TrailAssignment(TrieOffset);
+  UnwindTrieArgP();
+  *TrieOffset = consInt(2);
+
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
+{ trie_node *answer = (trie_node*)*PC++;
+  atom_t atrie;
+
+  ENSURE_STACK_SPACE(12, 12, (void)0);
+  UnwindTrieArgP();
+
+  if ( answer )
+  { trie *trie = get_trie_from_node(answer);
+    atrie = trie_symbol(trie);
+  } else
+  { atrie = ATOM_nil;
+  }
+
+  tbl_push_delay(atrie, argTermP(*TrieTermP, 0), answer PASS_LD);
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_TRY_FUNCTOR, 0, 2, (CA1_JUMP,CA1_FUNC))
+{ TRIE_TRY;
+}
+VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
+{ functor_t f = (functor_t) *PC++;
+  Word p;
+
+  DEBUG(1, checkStacks(NULL));
+
+  DEBUG(MSG_TRIE_VM,
+	{ Sdprintf("T_FUNCTOR %s ", functorName(f));
+	  PL_write_term(Serror, consTermRef(TrieArgStackP), 999, PL_WRT_NEWLINE);
+	});
+
+  deRef2(TrieCurrentP, p);
+  if ( canBind(*p) )
+  { size_t arity = arityFunctor(f);
+    Word ap;
+    word c;
+
+    /* 4 extra for the '$targp3' cell for TriePushArgP() */
+    assert(isVar(*p));				/* no attvars in our tests */
+    ENSURE_STACK_SPACE(1+arity+4+6, 6, deRef2(TrieCurrentP, p));
+    assert(isVar(*p));				/* no attvars in our tests */
+    ap = gTop;
+    gTop += 1+arity;
+    c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+    TriePushArgP();
+    DEBUG(MSG_TRIE_VM,
+	  { Sdprintf("Push: ");
+	    PL_write_term(Serror, consTermRef(TrieArgStackP), 999,
+			  PL_WRT_NEWLINE);
+	  });
+    TrailAssignment(TrieTermP);
+    TrailAssignment(TrieOffset);
+    *TrieTermP  = c;
+    *TrieOffset = consInt(1);
+    *ap++ = f;
+    while(arity-->0)			/* must clear if we want to do GC */
+      setVar(*ap++);
+    bindConst(p, c);
+    DEBUG(1, checkStacks(NULL));
+    NEXT_INSTRUCTION;
+  }
+  if ( isTerm(*p) )
+  { Functor term = valueTerm(*p);
+
+    if ( term->definition == f )
+    { ENSURE_GLOBAL_SPACE(4, deRef2(TrieCurrentP, p));
+      TriePushArgP();
+      TrailAssignment(TrieTermP);
+      TrailAssignment(TrieOffset);
+      *TrieTermP  = *p;
+      *TrieOffset = consInt(1);
+      NEXT_INSTRUCTION;
+    }
+  }
+  DEBUG(1, checkStacks(NULL));
+  CLAUSE_FAILED;
+}
+
+VMI(T_POP, 0, 0, ())
+{ ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
+  TrailAssignment(TrieTermP);
+  TrailAssignment(TrieOffset);
+  TrailAssignment(TrieArgStackP);
+  TriePopArgP();
+  TrieNextArg();
+
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_POPN, 0, 1, (CA1_INTEGER))
+{ intptr_t n = (intptr_t)*PC++;
+
+  ENSURE_GLOBAL_SPACE(0, (void)0);
+  TrailAssignment(TrieTermP);
+  TrailAssignment(TrieOffset);
+  TrailAssignment(TrieArgStackP);
+  while(n-->0)
+    TriePopArgP();
+  TrieNextArg();
+
+  DEBUG(MSG_TRIE_VM,
+	{ Sdprintf("POPN: ");
+	  PL_write_term(Serror, consTermRef(TrieTermP),  999, 0);
+	  Sdprintf(" ARG: ");
+	  PL_write_term(Serror, consTermRef(TrieOffset), 999, PL_WRT_NEWLINE);
+	});
+
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_TRY_VAR, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+}
+VMI(T_VAR, 0, 1, (CA1_INTEGER))
+{ intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
+  Word vp = TrieVarP(offset);
+
+  DEBUG(MSG_TRIE_VM,
+	{ Sdprintf("VAR: %lld: ", offset);
+	  Sdprintf("TermP: ");
+	  PL_write_term(Serror, consTermRef(TrieTermP),  999, 0);
+	  Sdprintf(" Offset: ");
+	  PL_write_term(Serror, consTermRef(TrieOffset), 999, PL_WRT_NEWLINE);
+	  PL_write_term(Serror, consTermRef(vp), 999, 0);
+	  Sdprintf(" val = ");
+	  PL_write_term(Serror, pushWordAsTermRef(TrieCurrentP), 999,
+			PL_WRT_NEWLINE);
+	  popTermRef();
+	});
+
+  if ( isVar(*vp) )
+  { DEBUG(MSG_TRIE_VM, Sdprintf("First var %zd\n", offset));
+    Trail(vp, linkVal(TrieCurrentP));
+  } else
+  { int rc;
+
+    DEBUG(MSG_TRIE_VM, Sdprintf("Next var %zd\n", offset));
+    SAVE_REGISTERS(qid);
+    rc = unify_ptrs(vp, TrieCurrentP, ALLOW_GC PASS_LD);
+    LOAD_REGISTERS(qid);
+    if ( !rc )
+    { if ( exception_term )
+	THROW_EXCEPTION;
+      CLAUSE_FAILED;
+    }
+  }
+
+  TrieNextArg();
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(T_TRY_INTEGER, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+}
+VMI(T_INTEGER, 0, 1, (CA1_INTEGER))
+{ Word k;
+
+  deRef2(TrieCurrentP, k);
+  if ( canBind(*k) )
+  { Word p;
+    word c;
+    union
+    { int64_t val;
+      word w[WORDS_PER_INT64];
+    } cvt;
+    Word vp = cvt.w;
+
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(TrieCurrentP, k));
+    p = gTop;
+    gTop += 2+WORDS_PER_INT64;
+    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+
+    cvt.val = (int64_t)(intptr_t)*PC++;
+    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+    cpInt64Data(p, vp);
+    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+
+    bindConst(k, c);
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  } else if ( isBignum(*k) && valBignum(*k) == (intptr_t)*PC++ )
+  { TrieNextArg();
+    NEXT_INSTRUCTION;
+  }
+
+  CLAUSE_FAILED;
+}
+
+VMI(T_TRY_INT64, 0, 1+WORDS_PER_INT64, (CA1_JUMP,CA1_INT64))
+{ TRIE_TRY;
+}
+VMI(T_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
+{ Word k;
+
+  deRef2(TrieCurrentP, k);
+  if ( canBind(*k) )
+  { Word p;
+    word c;
+
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_INT64, deRef2(TrieCurrentP, k));
+    p = gTop;
+    gTop += 2+WORDS_PER_INT64;
+    c = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+
+    *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+    cpInt64Data(p, PC);
+    *p = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
+
+    bindConst(k, c);
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  } else if ( isBignum(*k) )
+  { Word vk = valIndirectP(*k);
+    size_t i;
+
+    for(i=0; i<WORDS_PER_INT64; i++)
+    { if ( *vk++ != (word)*PC++ )
+	CLAUSE_FAILED;
+    }
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  }
+
+  CLAUSE_FAILED;
+}
+
+VMI(T_TRY_FLOAT, 0, 1+WORDS_PER_DOUBLE, (CA1_JUMP,CA1_FLOAT))
+{ TRIE_TRY;
+}
+VMI(T_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
+{ Word k;
+
+  deRef2(TrieCurrentP, k);
+  if ( canBind(*k) )
+  { Word p;
+    word c;
+
+    ENSURE_GLOBAL_SPACE(2+WORDS_PER_DOUBLE, deRef2(TrieCurrentP, k));
+    p = gTop;
+    gTop += 2+WORDS_PER_DOUBLE;
+    c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+
+    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+    cpDoubleData(p, PC);
+    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
+
+    bindConst(k, c);
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  } else if ( isFloat(*k) )
+  { Word p = valIndirectP(*k);
+
+    switch(WORDS_PER_DOUBLE) /* depend on compiler to clean up */
+    { case 2:
+	if ( *p++ != *PC++ )
+	  CLAUSE_FAILED;
+      case 1:
+	if ( *p++ == *PC++ )
+	{ TrieNextArg();
+	  NEXT_INSTRUCTION;
+	}
+	CLAUSE_FAILED;
+      default:
+	assert(0);
+    }
+  }
+
+  CLAUSE_FAILED;
+}
+
+
+VMI(T_TRY_MPZ, 0, VM_DYNARGC, (CA1_JUMP,CA1_MPZ))
+{ TRIE_TRY;
+}
+VMI(T_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
+{ VMI_GOTO(T_STRING);
+}
+
+VMI(T_TRY_STRING, 0, VM_DYNARGC, (CA1_JUMP,CA1_STRING))
+{ TRIE_TRY;
+}
+VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
+{ Word k;
+
+  deRef2(TrieCurrentP, k);
+  if ( canBind(*k) )
+  { word c;
+    size_t sz = gsizeIndirectFromCode(PC);
+
+    ENSURE_GLOBAL_SPACE(sz, deRef2(TrieCurrentP, k));
+    c = globalIndirectFromCode(&PC);
+    bindConst(k, c);
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  } else if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
+  { TrieNextArg();
+    NEXT_INSTRUCTION;
+  }
+
+  CLAUSE_FAILED;
+}
+
+
+BEGIN_SHAREDVARS
+word c;
+Word k;
+
+VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
+{ TRIE_TRY;
+}
+VMI(T_ATOM, 0, 1, (CA1_DATA))
+{ c = (word)*PC++;
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_ATOM %s\n", PL_atom_chars(c)));
+  pushVolatileAtom(c);
+  goto t_const;
+}
+
+VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_DATA))
+{ TRIE_TRY;
+}
+VMI(T_SMALLINT, 0, 1, (CA1_DATA))
+{ c = (word)*PC++;
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", valInt(c)));
+
+t_const:
+  deRef2(TrieCurrentP, k);
+  if ( *k == c )
+  { TrieNextArg();
+    NEXT_INSTRUCTION;
+  }
+  if ( canBind(*k) )
+  { ENSURE_GLOBAL_SPACE(0, deRef2(TrieCurrentP, k));
+    bindConst(k, c);
+    TrieNextArg();
+    NEXT_INSTRUCTION;
+  }
+  CLAUSE_FAILED;
+}
 END_SHAREDVARS

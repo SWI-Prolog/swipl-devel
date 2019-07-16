@@ -72,20 +72,20 @@ typedef union trie_children
 } trie_children;
 
 
-typedef struct trie_node
-{ word value;
-  word key;
-  struct trie_node *parent;
-  trie_children children;
-  struct
-  { struct delay_info *delayinfo;	/* can be unified with children */
-    struct
-    { unsigned deleted : 1;		/* Deleted for incremental re-evaluation */
-      unsigned unconditional : 1;	/* Previous answer was unconditional */
-    } idg;
-  } data;
-} trie_node;
+#define TN_PRUNED		0x0001		/* Node path was pruned */
+#define TN_IDG_DELETED		0x0002		/* IDG pre-evaluation */
+#define TN_IDG_UNCONDITIONAL	0x0004		/* IDG: previous cond state */
 
+typedef struct trie_node
+{ word			value;
+  word			key;
+  struct trie_node     *parent;
+  trie_children		children;
+  struct
+  { struct delay_info  *delayinfo;	/* can be unified with children */
+  } data;
+  int			flags;		/* TN_* */
+} trie_node;
 
 typedef struct trie_allocation_pool
 { size_t	size;			/* # nodes in use */
@@ -102,6 +102,7 @@ typedef struct trie
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
   trie_allocation_pool *alloc_pool;	/* Node allocation pool */
+  ClauseRef		clause;		/* Compiled representation */
 #ifdef O_TRIE_STATS
   struct
   { uint64_t		lookups;	/* trie_lookup */
@@ -122,6 +123,9 @@ typedef struct trie
 			       trie_clean(t); \
 			   } while(0)
 
+#define TRIE_ARGS	3
+#define TRIE_VAR_OFFSET (TRIE_ARGS+3)
+
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
 COMMON(void)	trie_empty(trie *trie);
@@ -132,6 +136,7 @@ COMMON(trie *)	get_trie_from_node(trie_node *node);
 COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);
+COMMON(trie *)  get_trie_ptr(Word p ARG_LD);
 COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
 COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
 			    int add, TmpBuffer vars ARG_LD);
@@ -147,5 +152,6 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
 			   void *ctx, control_t PL__ctx);
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
+COMMON(ClauseRef) compile_trie(Definition def, trie *trie ARG_LD);
 
 #endif /*_PL_TRIE_H*/

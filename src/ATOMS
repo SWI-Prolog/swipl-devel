@@ -733,6 +733,7 @@ A tanh			"tanh"
 A temporary		"temporary"
 A temporary_file	"temporary_file"
 A temporary_files	"temporary_files"
+A targp			"$targp"
 A term			"term"
 A term_expansion	"term_expansion"
 A term_position		"term_position"
@@ -859,6 +860,7 @@ F alias			1
 F and			2
 F ar_equals		2
 F ar_not_equal		2
+F targp			3
 F asin			1
 F asinh			1
 F assert		1

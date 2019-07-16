@@ -401,11 +401,13 @@ int
 setSupervisor(Definition def)
 { Code codes;
 
-  PL_LOCK(L_PREDICATE);
-  codes = createSupervisor(def);
-  MemoryBarrier();
-  def->codes = codes;
-  PL_UNLOCK(L_PREDICATE);
+  if ( false(def, P_LOCKED_SUPERVISOR) )
+  { PL_LOCK(L_PREDICATE);
+    codes = createSupervisor(def);
+    MemoryBarrier();
+    def->codes = codes;
+    PL_UNLOCK(L_PREDICATE);
+  }
 
   return TRUE;
 }
@@ -462,4 +464,5 @@ initSupervisors(void)
   MAKE_SV1(multifile,    S_MULTIFILE);
   MAKE_SV1(staticp,      S_STATIC);
   MAKE_SV1(wrapper,      S_WRAP);
+  MAKE_SV1(trie_gen3,    S_TRIE_GEN3);
 }

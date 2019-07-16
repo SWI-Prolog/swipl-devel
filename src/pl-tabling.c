@@ -92,6 +92,7 @@ static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 #define WLFS_FREE_NONE		0x0000
 #define WLFS_KEEP_COMPLETE	0x0001
 #define WLFS_FREE_ALL		0x0002
+#define WLFS_DISCARD		0x0004
 
 #define DV_DELETED		((trie*)0x1)
 #define DL_UNDEFINED		((delay_info*)0x1)
@@ -496,15 +497,19 @@ worklist_set_to_array(worklist_set *wls, worklist ***wlp)
 static void
 free_worklist_set(worklist_set *wls, int freewl)
 { if ( freewl )
-  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+  { GET_LD
+    worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
     size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
 
     for(i=0; i<nwpl; i++)
     { worklist *wl = wlp[i];
+      trie *trie = wl->table;
 
-      if ( freewl == WLFS_FREE_ALL ||
+      if ( (freewl&WLFS_FREE_ALL) ||
 	   wl->table->data.worklist == WL_COMPLETE )
 	free_worklist(wl);
+      if ( (freewl&WLFS_DISCARD) )
+	prune_node(LD->tabling.variant_table, trie->data.variant);
     }
   }
 
@@ -536,7 +541,7 @@ IS_REC_DELAY(trie_node *r)
 { return (uintptr_t)r & 0x1;
 }
 
-static int
+int
 answer_is_conditional(trie_node *answer)
 { delay_info *di;
 
@@ -903,8 +908,8 @@ retry:
     }
 					/* Incremental tabling */
     if ( wl->table->data.IDG && wl->table->data.IDG->reevaluating )
-    { if ( answer->data.idg.unconditional == FALSE )
-      { answer->data.idg.unconditional = TRUE;
+    { if ( false(answer, TN_IDG_UNCONDITIONAL) )
+      { set(answer, TN_IDG_UNCONDITIONAL);
 	simplify_answer(wl, answer, TRUE);
       }
     }
@@ -1130,7 +1135,7 @@ PRED_IMPL("$tbl_set_delay_list", 1, tbl_set_delay_list, 0)
   return TRUE;
 }
 
-static int
+static void
 push_delay_list(Word p ARG_LD)
 { Word dl = valTermRef(LD->tabling.delay_list);
 
@@ -1139,33 +1144,33 @@ push_delay_list(Word p ARG_LD)
   p[2] = *dl;
   TrailAssignment(dl);
   *dl = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
-
-  return TRUE;
 }
 
 /* Push a positive delay node.  If the answer is ground this is a
  * term atrie+answer, else it is a term atrie+wrapper.
  */
 
-static int
-push_delay(term_t atrie, term_t wrapper, trie_node *answer ARG_LD)
+void
+tbl_push_delay(atom_t atrie, Word wrapper, trie_node *answer ARG_LD)
 { Word p;
 
-  if ( (p = allocGlobal(6)) )
+  if ( (p = allocGlobalNoShift(6)) )
   { p[0] = FUNCTOR_dot2;
     p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
     p[3] = FUNCTOR_plus2;
-    p[4] = linkVal(valTermRef(atrie));
-    if ( is_ground_trie_node(answer) )
+    p[4] = atrie;
+    if ( unlikely(answer == NULL) )
+    { p[5] = consInt(0);
+    } else if ( is_ground_trie_node(answer) )
     { p[5] = consInt(pointerToInt(answer));
     } else
-    { p[5] = linkVal(valTermRef(wrapper));
+    { p[5] = linkVal(wrapper);
     }
 
-    return push_delay_list(p PASS_LD);
+    push_delay_list(p PASS_LD);
+  } else
+  { assert(0);
   }
-
-  return FALSE;
 }
 
 
@@ -2711,8 +2716,8 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 
       if ( node->value )
       { if ( node->value == ATOM_trienode )
-	{ if ( node->data.idg.deleted )
-	  { node->data.idg.deleted = FALSE;
+	{ if ( true(node, TN_IDG_DELETED) )
+	  { clear(node, TN_IDG_DELETED);
 	    goto update_dl;
 	  } else
 	  { if ( answer_is_conditional(node) )
@@ -3035,7 +3040,7 @@ unify_dependency(term_t a0, term_t dependency,
       p[0] = FUNCTOR_dot2;
       p[1] = wl->table->symbol;
 
-      return push_delay_list(p PASS_LD);
+      push_delay_list(p PASS_LD);
     } else if ( unlikely(answer_is_conditional(answer)) )
     { Word p = allocGlobalNoShift(6);
       assert(p);
@@ -3050,7 +3055,7 @@ unify_dependency(term_t a0, term_t dependency,
       { p[5] = linkVal(valTermRef(a0+0));
       }
 
-      return push_delay_list(p PASS_LD);
+      push_delay_list(p PASS_LD);
     }
 
     return TRUE;
@@ -3427,19 +3432,7 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
 
   if ( get_scc(A1, &c) )
   { if ( c->created_worklists )
-    { size_t i, ntables;
-      worklist **wls;
-
-      /* Remove the associated variant tables */
-      ntables = worklist_set_to_array(c->created_worklists, &wls);
-      for(i=0; i<ntables; i++)
-      { worklist *wl = wls[i];
-	trie *trie = wl->table;
-
-	prune_node(LD->tabling.variant_table, trie->data.variant);
-      }
-      reset_newly_created_worklists(c, WLFS_KEEP_COMPLETE);
-    }
+      reset_newly_created_worklists(c, WLFS_KEEP_COMPLETE|WLFS_DISCARD);
     reset_global_worklist(c);
     // FIXME: just pop?
     LD->tabling.has_scheduling_component = FALSE;
@@ -3982,10 +3975,18 @@ answer_update_delay_list(term_t wrapper, trie_node *answer, void *vctx ARG_LD)
 { update_dl_ctx *ctx = vctx;
 
   if ( answer_is_conditional(answer) )
-  { return push_delay(ctx->atrie, wrapper, answer PASS_LD);
-  } else
-  { return TRUE;
+  { Word p;
+
+    if ( !ensureStackSpace(6, 2) )
+      return FALSE;
+    p = valTermRef(ctx->atrie);
+    deRef(p);
+    assert(isAtom(*p));
+
+   tbl_push_delay(*p, valTermRef(wrapper), answer PASS_LD);
   }
+
+  return TRUE;
 }
 
 static
@@ -4643,12 +4644,12 @@ reeval_prep_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
 
   if ( n->value )
-  { n->data.idg.deleted = TRUE;
+  { set(n, TN_IDG_DELETED);
     if ( answer_is_conditional(n) )
     { destroy_delay_info(atrie, n, TRUE);
       n->data.delayinfo = NULL;
     } else
-      n->data.idg.unconditional = TRUE;
+      set(n, TN_IDG_UNCONDITIONAL);
   }
 
   return NULL;
@@ -4688,12 +4689,12 @@ static void *
 reeval_complete_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
 
-  if ( n->data.idg.deleted )
-  { n->data.idg.deleted = FALSE;	/* not used by trie admin */
+  if ( true(n, TN_IDG_DELETED) )
+  { clear(n, TN_IDG_DELETED);		/* not used by trie admin */
     trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
-    if ( !n->data.idg.unconditional )
+    if ( false(n, TN_IDG_UNCONDITIONAL) )
       simplify_answer(atrie->data.worklist, n, FALSE);
-  } else if ( n->data.idg.unconditional &&
+  } else if ( true(n, TN_IDG_UNCONDITIONAL) &&
 	      answer_is_conditional(n) )
   { atrie->data.IDG->new_answer = TRUE;
   }
