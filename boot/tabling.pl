@@ -1298,7 +1298,7 @@ multifile_decl(M:(Head :- _Body), (:- multifile(M:Name/Arity))) :-
 multifile_decl(M:Head, (:- multifile(M:Name/Arity))) :-
     !,
     functor(Head, Name, Arity).
-multifile_decl((Head :- body), (:- multifile(Name/Arity))) :-
+multifile_decl((Head :- _Body), (:- multifile(Name/Arity))) :-
     !,
     functor(Head, Name, Arity).
 multifile_decl(Head, (:- multifile(Name/Arity))) :-
