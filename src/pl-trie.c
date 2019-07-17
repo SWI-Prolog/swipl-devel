@@ -939,15 +939,19 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 
 static word
 intern_value(term_t value ARG_LD)
-{ Word vp = valTermRef(value);
+{ if ( value )
+  { Word vp = valTermRef(value);
 
-  assert((TAG_INTEGER&0x3) && (TAG_ATOM&0x3));
+    DEBUG(0, assert((TAG_INTEGER&0x3) && (TAG_ATOM&0x3)));
 
-  deRef(vp);
-  if ( isAtom(*vp) || isTaggedInt(*vp) )
-    return *vp;
+    deRef(vp);
+    if ( isAtom(*vp) || isTaggedInt(*vp) )
+      return *vp;
 
-  return (word)PL_record(value);
+    return (word)PL_record(value);
+  } else
+  { return ATOM_trienode;
+  }
 }
 
 
@@ -1086,6 +1090,18 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
     trie_node *node;
     int rc;
 
+    if ( false(trie, TRIE_ISMAP|TRIE_ISSET) )
+    { if ( Value )
+	set(trie, TRIE_ISMAP);
+      else
+	set(trie, TRIE_ISSET);
+    } else
+    { if ( (Value  && false(trie, TRIE_ISMAP)) ||
+	   (!Value && false(trie, TRIE_ISSET)) )
+      { return PL_permission_error("insert", "trie", Trie);
+      }
+    }
+
     kp	= valTermRef(Key);
 
     if ( (rc=trie_lookup(trie, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
@@ -1147,6 +1163,23 @@ PRED_IMPL("trie_insert", 3, trie_insert, 0)
 
   return trie_insert(A1, A2, A3, NULL, FALSE PASS_LD);
 }
+
+/**
+ * trie_insert(+Trie, +Key) is semidet.
+ *
+ * True if Key was added as a new key to the trie.  False if Key was
+ * already in the trie.
+ *
+ * @error permission_error if Key was associated with a different value
+ */
+
+static
+PRED_IMPL("trie_insert", 2, trie_insert, 0)
+{ PRED_LD
+
+  return trie_insert(A1, A2, 0, NULL, FALSE PASS_LD);
+}
+
 
 /**
  * trie_update(+Trie, +Key, +Value) is semidet.
@@ -2294,27 +2327,29 @@ children:
     { if ( answer_is_conditional(n) )
 	add_vmi_d(state, T_DELAY, (code)n);
 
-      add_vmi(state, T_VALUE);
-      if ( !isRecord(n->value) )
-      { if ( isAtom(n->value) )
-	{ add_vmi_d(state, T_ATOM, (code)n->value);
+      if ( true(state->trie, TRIE_ISMAP) )
+      { add_vmi(state, T_VALUE);
+	if ( !isRecord(n->value) )
+	{ if ( isAtom(n->value) )
+	  { add_vmi_d(state, T_ATOM, (code)n->value);
+	  } else
+	  { add_vmi_d(state, T_SMALLINT, (code)n->value);
+	  }
 	} else
-	{ add_vmi_d(state, T_SMALLINT, (code)n->value);
-	}
-      } else
-      { term_t t2;
+	{ term_t t2;
 
-	if ( (t2=PL_new_term_ref()) &&
-	     PL_recorded((record_t)n->value, t2) )
-	{ Word p = valTermRef(t2);
+	  if ( (t2=PL_new_term_ref()) &&
+	       PL_recorded((record_t)n->value, t2) )
+	  { Word p = valTermRef(t2);
 
-	  deRef(p);
-	  if ( (rc = compile_trie_value(p, state PASS_LD)) != TRUE )
-	    return rc;
-	} else
-	{ return FALSE;
+	    deRef(p);
+	    if ( (rc = compile_trie_value(p, state PASS_LD)) != TRUE )
+	      return rc;
+	  } else
+	  { return FALSE;
+	  }
+	  PL_reset_term_refs(t2);
 	}
-	PL_reset_term_refs(t2);
       }
       add_vmi(state, I_EXIT);
     } else
@@ -2433,6 +2468,7 @@ BeginPredDefs(trie)
   PRED_DEF("is_trie",             1, is_trie,            0)
   PRED_DEF("trie_new",            1, trie_new,           0)
   PRED_DEF("trie_destroy",        1, trie_destroy,       0)
+  PRED_DEF("trie_insert",         2, trie_insert,        0)
   PRED_DEF("trie_insert",         3, trie_insert,        0)
   PRED_DEF("trie_insert",         4, trie_insert,        0)
   PRED_DEF("trie_update",         3, trie_update,        0)

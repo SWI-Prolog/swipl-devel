@@ -1976,14 +1976,17 @@ release_answer_node(trie *atrie, trie_node *node)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-get_answer_table(+Variant, -Return, int create)
+get_answer_table(+Variant, -Return, int flags)
 
 Find the answer table for  Variant  and   its  return  template  (a term
 ret/N). If `create` is TRUE, create the table if it does not exist.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define AT_CREATE		0x0001
+#define AT_MODED		0x0002
+
 static trie *
-get_answer_table(term_t t, term_t ret, int create ARG_LD)
+get_answer_table(term_t t, term_t ret, int flags ARG_LD)
 { trie *variants = thread_variant_table(PASS_LD1);
   trie *atrie;
   trie_node *node;
@@ -1997,11 +2000,14 @@ get_answer_table(term_t t, term_t ret, int create ARG_LD)
 retry:
   Mark(m);
   v = valTermRef(t);
-  if ( (rc=trie_lookup(variants, &node, v, create, &vars PASS_LD)) == TRUE )
+  rc = trie_lookup(variants, &node, v, (flags&AT_CREATE), &vars PASS_LD);
+
+  if ( rc == TRUE )
   { if ( node->value )
     { atrie = symbol_trie(node->value);
-    } else if ( create )
+    } else if ( (flags&AT_CREATE) )
     { atrie = trie_create();
+      set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
       atrie->release_node = release_answer_node;
       node->value = trie_symbol(atrie);
       atrie->data.variant = node;
@@ -2494,7 +2500,7 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
     wrapper = PL_new_term_ref();
 
   if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
-  { get_answer_table(wrapper, skeleton, FALSE PASS_LD);
+  { get_answer_table(wrapper, skeleton, 0 PASS_LD);
 
     return TRUE;
   }
@@ -3265,18 +3271,33 @@ out_fail:
  *   - A worklist pointer
  */
 
-static
-PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
-{ PRED_LD
-  trie *trie;
+static int
+tbl_variant_table(term_t variant, term_t Trie, term_t status, term_t ret,
+		  int flags ARG_LD)
+{ trie *atrie;
 
-  if ( (trie=get_answer_table(A1, A4, TRUE PASS_LD)) )
-  { return ( idg_init_variant(trie, A1 PASS_LD) &&
-	     _PL_unify_atomic(A2, trie->symbol) &&
-	     unify_table_status(A3, trie, TRUE PASS_LD) );
+  if ( (atrie=get_answer_table(variant, ret, flags PASS_LD)) )
+  { return ( idg_init_variant(atrie, variant PASS_LD) &&
+	     _PL_unify_atomic(Trie, atrie->symbol) &&
+	     unify_table_status(status, atrie, TRUE PASS_LD) );
   }
 
   return FALSE;
+}
+
+static
+PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
+{ PRED_LD
+
+  return tbl_variant_table(A1, A2, A3, A4, AT_CREATE PASS_LD);
+}
+
+
+static
+PRED_IMPL("$tbl_moded_variant_table", 4, tbl_moded_variant_table, 0)
+{ PRED_LD
+
+  return tbl_variant_table(A1, A2, A3, A4, AT_CREATE|AT_MODED PASS_LD);
 }
 
 
@@ -4160,7 +4181,6 @@ idg_init_variant(trie *atrie, term_t variant ARG_LD)
 	atrie->data.IDG = idg_new(atrie);
     } else
       return FALSE;
-
   }
 
   return TRUE;
@@ -4272,8 +4292,8 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
       atrie->data.worklist = WL_DYNAMIC;
       atrie->data.IDG = idg_new(atrie);
     }
-    if ( (ctrie=idg_add_edge(atrie PASS_LD)) )		/* Does not update current.  Should it? */
-    { if ( ctrie->data.IDG->reevaluating )
+    if ( (ctrie=idg_add_edge(atrie PASS_LD)) )	/* Does not update current. */
+    { if ( ctrie->data.IDG->reevaluating )	/* Should it? */
 	atrie->data.IDG->falsecount = 0;
     }
 
@@ -4754,6 +4774,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_work",		8, tbl_wkl_work,          NDET)
   PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
   PRED_DEF("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
+  PRED_DEF("$tbl_moded_variant_table",	4, tbl_moded_variant_table,  0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)

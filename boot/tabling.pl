@@ -439,7 +439,7 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 
 
 start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
-    '$tbl_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
+    '$tbl_moded_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
     (   Status == complete
     ->  '$idg_add_edge'(Trie),
         trie_gen(Trie, WrapperNoModes, ModeArgs)

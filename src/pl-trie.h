@@ -92,12 +92,16 @@ typedef struct trie_allocation_pool
   size_t	limit;			/* Limit of the pool */
 } trie_allocation_pool;
 
+#define TRIE_ISSET	0x0001		/* Trie nodes have no value */
+#define TRIE_ISMAP	0x0002		/* Trie nodes have a value */
+
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
   int			magic;		/* TRIE_MAGIC */
   int			references;	/* access count */
   unsigned int		node_count;	/* # nodes */
   unsigned int		value_count;	/* # nodes with a value */
+  unsigned int		flags;		/* misc flags */
   trie_node	        root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
