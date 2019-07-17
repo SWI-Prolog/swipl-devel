@@ -735,7 +735,9 @@ it} \predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
 \predicatesummary{trie_delete}{3}{Remove term from trie}
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}
+\predicatesummary{trie_gen_compiled}{2}{Get all terms from a trie}
 \predicatesummary{trie_gen_compiled}{3}{Get all terms from a trie}
+\predicatesummary{trie_insert}{2}{Insert term into a trie}
 \predicatesummary{trie_insert}{3}{Insert term into a trie}
 \predicatesummary{trie_insert}{4}{Insert term into a trie}
 \predicatesummary{trie_lookup}{3}{Lookup a term in a trie}

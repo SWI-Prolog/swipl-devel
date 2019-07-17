@@ -3354,6 +3354,11 @@ True if \arg{Trie} is a currently existing trie.  As this enumerates and
 then filters all known atoms this predicate is slow and should only be
 used for debugging purposes.  See also is_trie/1.
 
+    \predicate{trie_insert}{2}{+Trie, +Key}
+Insert the term \arg{Key} into \arg{Trie}. If \arg{Key} is already part
+of \arg{Trie} the predicates \emph{fails} silently.  This is the same
+as trie_insert/3, but using a fixed reserved \arg{Value}.
+
     \predicate{trie_insert}{3}{+Trie, +Key, +Value}
 Insert the term \arg{Key} into \arg{Trie} and associate it with
 \arg{Value}. \arg{Value} can be any term.  If \arg{Key}-\arg{Value}
@@ -3385,6 +3390,10 @@ The result is undefined (including crashes) if \arg{Handle} is not a
 handle returned by trie_insert_new/3 or the node has been removed
 afterwards.
 
+    \predicate[nondet]{trie_gen}{2}{+Trie, ?Key}
+True when \arg{Key} is a member of \arg{Trie}.  See also
+trie_gen_compiled/2.
+
     \predicate[nondet]{trie_gen}{3}{+Trie, ?Key, -Value}
 True when \arg{Key} is associated with \arg{Value} in \arg{Trie}.
 Backtracking retrieves all pairs. Currently scans the entire
@@ -3392,6 +3401,8 @@ trie, even if \arg{Key} is partly known.  Currently unsafe if \arg{Trie}
 is modified while the values are being enumerated.  See also
 trie_gen_compiled/3.
 
+    \predicate[nondet]{trie_gen_compiled}{2}{+Trie, ?Key}
+\nodescription
     \predicate[nondet]{trie_gen_compiled}{3}{+Trie, ?Key, -Value}
 Similar to trie_gen/3, but uses a \jargon{compiled} representation of
 \arg{Trie}. The compiled representation is created lazily and
