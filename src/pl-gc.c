@@ -2289,7 +2289,8 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 	    Sdprintf("Marking arguments for [%d] %s\n",
 		     levelFrame(fr), predicateName(fr->predicate)));
       mark_arguments(fr PASS_LD);
-    } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN) )
+    } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN2) ||
+		fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN3) )
     { mark_trie_gen(fr PASS_LD);
     } else
     { Word argp0;

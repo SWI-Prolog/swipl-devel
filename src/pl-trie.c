@@ -2394,7 +2394,7 @@ retry:
     Clause cl;
 
     init_trie_compile_state(&state, trie);
-    add_vmi(&state, T_TRIE_GEN);
+    add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
     if ( compile_trie_node(&trie->root, &state PASS_LD) &&
 	 create_trie_clause(def, &cl, &state) )
     { rc = assertDefinition(def, cl, CL_END PASS_LD);
@@ -2487,6 +2487,11 @@ initTries(void)
   Definition def;
 
   PL_register_blob_type(&trie_blob);
+
+  proc = PL_predicate("trie_gen_compiled", 2, "system");
+  def = proc->definition;
+  set(def, P_LOCKED_SUPERVISOR|P_VOLATILE);
+  def->codes = SUPERVISOR(trie_gen2);
 
   proc = PL_predicate("trie_gen_compiled", 3, "system");
   def = proc->definition;

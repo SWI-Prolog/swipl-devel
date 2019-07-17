@@ -4202,7 +4202,8 @@ argKey(Code PC, int skip, word *key)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-      case T_TRIE_GEN:
+      case T_TRIE_GEN2:
+      case T_TRIE_GEN3:
 	*key = 0;
 	fail;
       case I_NOP:
@@ -4659,7 +4660,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-      case T_TRIE_GEN:
+      case T_TRIE_GEN2:
+      case T_TRIE_GEN3:
 	{ assert(argn <= arity);
 
 	  if ( argp )

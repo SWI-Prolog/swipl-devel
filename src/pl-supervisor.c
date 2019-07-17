@@ -464,5 +464,6 @@ initSupervisors(void)
   MAKE_SV1(multifile,    S_MULTIFILE);
   MAKE_SV1(staticp,      S_STATIC);
   MAKE_SV1(wrapper,      S_WRAP);
+  MAKE_SV1(trie_gen2,    S_TRIE_GEN2);
   MAKE_SV1(trie_gen3,    S_TRIE_GEN3);
 }

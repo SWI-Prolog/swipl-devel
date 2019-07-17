@@ -5036,6 +5036,28 @@ demand and then calls the  compiled  clause   that  belongs  to the same
 predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+VMI(S_TRIE_GEN2, 0, 0, ())
+{ Word tp = argFrameP(FR, 0);
+  trie *t;
+  ClauseRef cref;
+
+  if ( !(t=get_trie_ptr(tp PASS_LD)) )
+    THROW_EXCEPTION;
+
+  if ( !(cref=t->clause) )
+  { if ( t->value_count == 0 )
+      FRAME_FAILED;
+
+    SAVE_REGISTERS(qid);
+    cref = compile_trie(FR->predicate, t PASS_LD);
+    LOAD_REGISTERS(qid);
+  }
+
+  ARGP = argFrameP(FR, 0);
+  TRUST_CLAUSE(cref);
+}
+
+
 VMI(S_TRIE_GEN3, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
   trie *t;
@@ -5137,7 +5159,37 @@ TBD:
 	  }					\
 	} while(0)
 
-VMI(T_TRIE_GEN, 0, 0, ())
+VMI(T_TRIE_GEN2, 0, 0, ())
+{ Word ap;
+  size_t nvars = FR->clause->value.clause->prolog_vars - TRIE_VAR_OFFSET;
+
+  DEBUG(MSG_TRIE_VM, Sdprintf("T_TRIE_GEN: %zd vars\n", nvars));
+
+  setVar(argFrame(FR, 2));
+  *TrieTermP     = ATOM_nil;
+  *TrieOffset    = consInt(1);
+  *TrieArgStackP = ATOM_nil;
+  if ( nvars )
+  { Word vp = TrieVarP(1);
+    for( ; nvars-- > 0; vp++)
+      setVar(*vp);
+  }
+
+  ENSURE_GLOBAL_SPACE(2, (void)0);
+  ap = gTop;
+  ap[0] = FUNCTOR_plus1;
+  setVar(ap[1]);
+  gTop += 2;
+
+  /* argFrameP(FR, 0) is the trie */
+  unify_ptrs(&ap[1], argFrameP(FR, 1), 0 PASS_LD);
+
+  *TrieTermP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+
+  NEXT_INSTRUCTION;
+}
+
+VMI(T_TRIE_GEN3, 0, 0, ())
 { Word ap;
   size_t nvars = FR->clause->value.clause->prolog_vars - TRIE_VAR_OFFSET;
 
@@ -5154,7 +5206,7 @@ VMI(T_TRIE_GEN, 0, 0, ())
 
   ENSURE_GLOBAL_SPACE(3, (void)0);
   ap = gTop;
-  ap[0] = FUNCTOR_minus2;
+  ap[0] = FUNCTOR_plus2;
   setVar(ap[1]);
   setVar(ap[2]);
   gTop += 3;
@@ -5167,6 +5219,7 @@ VMI(T_TRIE_GEN, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+
 
 VMI(T_VALUE, 0, 0, ())
 { ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
