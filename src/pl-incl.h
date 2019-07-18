@@ -864,10 +864,8 @@ with one operation, it turns out to be faster as well.
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
 #define P_ABSTRACT		(0x08000000) /* Incremental tabling */
-#define	P_LOCKED_SUPERVISOR	(0x10000000) /* Fixed supervisor */
-/** unused
-#define			(0x20000000)
-*/
+#define P_TSHARED		(0x10000000) /* Using a shared table */
+#define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\

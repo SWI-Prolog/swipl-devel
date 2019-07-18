@@ -2787,6 +2787,7 @@ static const patt_mask patt_masks[] =
   { ATOM_tabled,	   P_TABLED },
   { ATOM_incremental,	   P_INCREMENTAL },
   { ATOM_abstract,	   P_ABSTRACT },
+  { ATOM_tshared,	   P_TSHARED },
   { ATOM_trace,		   TRACE_ME },
   { ATOM_hide_childs,	   HIDE_CHILDS },
   { ATOM_transparent,	   P_TRANSPARENT },

@@ -1871,6 +1871,8 @@ colourise_table_options(_, TB, Pos) :-
 valid_table_option(subsumptive).
 valid_table_option(variant).
 valid_table_option(incremental).
+valid_table_option(shared).
+valid_table_option(private).
 
 %!  colourise_op_declaration(Op, TB, Pos) is det.
 

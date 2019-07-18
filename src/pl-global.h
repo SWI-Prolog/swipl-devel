@@ -178,6 +178,10 @@ struct PL_global_data
   } tables;
 
   struct
+  { struct trie *variant_table;		/* Variant --> table */
+  } tabling;
+
+  struct
   { Table	record_lists;		/* Available record lists */
   } recorded_db;
 

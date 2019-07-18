@@ -278,7 +278,12 @@ set_pattributes(Head, Options) :-
     (   get_dict(dynamic, Options, true)
     ->  '$set_predicate_attribute'(Head, dynamic, true)
     ;   true
+    ),
+    (   get_dict(tshared, Options, true)
+    ->  '$set_predicate_attribute'(Head, tshared, true)
+    ;   true
     ).
+
 
 start_tabling(Wrapper, Worker) :-
     '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
@@ -935,6 +940,12 @@ table_options(incremental, Opts0, Opts1) :-
 table_options(dynamic, Opts0, Opts1) :-
     !,
     put_dict(dynamic, Opts0, true, Opts1).
+table_options(shared, Opts0, Opts1) :-
+    !,
+    put_dict(tshared, Opts0, true, Opts1).
+table_options(private, Opts0, Opts1) :-
+    !,
+    put_dict(tshared, Opts0, false, Opts1).
 table_options(Opt, _, _) :-
     '$domain_error'(table_option, Opt).
 
