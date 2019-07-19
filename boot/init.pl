@@ -1969,12 +1969,20 @@ load_files(Module:Files, Options) :-
         ->  (   access_file(QlfFile, write)
             ->  print_message(informational,
                               qlf(recompile(Spec, FullFile, QlfFile, Why))),
-                Mode = qcompile
+                Mode = qcompile,
+                LoadFile = FullFile
+            ;   Why == old,
+                current_prolog_flag(home, PlHome),
+                sub_atom(FullFile, 0, _, _, PlHome)
+            ->  print_message(silent,
+                              qlf(system_lib_out_of_date(Spec, QlfFile))),
+                Mode = qload,
+                LoadFile = QlfFile
             ;   print_message(warning,
                               qlf(can_not_recompile(Spec, QlfFile, Why))),
-                Mode = compile
-            ),
-            LoadFile = FullFile
+                Mode = compile,
+                LoadFile = FullFile
+            )
         ;   Mode = qload,
             LoadFile = QlfFile
         )

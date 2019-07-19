@@ -671,6 +671,10 @@ prolog_message(qlf(can_not_recompile(Spec,QlfFile,_Reason))) -->
     [ '~p: can not recompile "~w" (access denied)'-[Spec, QlfFile], nl,
       '\tLoading from source'-[]
     ].
+prolog_message(qlf(system_lib_out_of_date(Spec,QlfFile))) -->
+    [ '~p: can not recompile "~w" (access denied)'-[Spec, QlfFile], nl,
+      '\tLoading QlfFile'-[]
+    ].
 prolog_message(redefine_module(Module, OldFile, File)) -->
     [ 'Module "~q" already loaded from ~w.'-[Module, OldFile], nl,
       'Wipe and reload from ~w? '-[File], flush
