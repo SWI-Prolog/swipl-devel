@@ -15,7 +15,7 @@ prepend(DOC_LIB lib/ ${DOC_LIB})
 set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 
 # Main files
-set(DOC_CORE intro.tex overview.tex builtin.tex module.tex
+set(DOC_CORE abstract.tex intro.tex overview.tex builtin.tex module.tex
     foreign.tex runtime.tex hack.tex summary.tex xpce.tex glossary.tex
     ide.tex license.tex threads.tex engines.tex profile.tex
     attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex
