@@ -1355,6 +1355,8 @@ initPrologFlags(void)
 #endif
 #ifdef O_PLMT
   setPrologFlag("threads",	FT_BOOL, !GD->options.nothreads, 0);
+  if ( GD->options.xpce >= 0 )
+    setPrologFlag("xpce",	FT_BOOL, GD->options.xpce, 0);
   setPrologFlag("system_thread_id", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("gc_thread",    FT_BOOL,
 		!GD->options.nothreads &&

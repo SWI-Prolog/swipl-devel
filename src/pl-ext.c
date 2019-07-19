@@ -347,6 +347,7 @@ DECL_PLIST(bag);
 DECL_PLIST(comp);
 DECL_PLIST(flag);
 DECL_PLIST(index);
+DECL_PLIST(init);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
@@ -408,6 +409,7 @@ initBuildIns(void)
   REG_PLIST(comp);
   REG_PLIST(flag);
   REG_PLIST(index);
+  REG_PLIST(init);
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);

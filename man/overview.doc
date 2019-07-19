@@ -360,6 +360,10 @@ architecture identifier.  Also available as \cmdlineoption{-v}.
 \subsection{Command line options for running Prolog}
 \label{sec:running-options}
 
+Note that \jargon{boolean options} may be written as \exam{--name},
+(true), \exam{--noname} or \exam{--no-name} (false).  They are written
+as \exam{--no-name} below as the default is `true'.
+
 \begin{description}
     \cmdlineoptionitem{--home=DIR}{}
 Use DIR as home directory.  See \secref{findhome} for details.
@@ -369,11 +373,11 @@ Use DIR as home directory.  See \secref{findhome} for details.
 Set the Prolog flag \prologflag{verbose} to \const{silent}, suppressing
 informational and banner messages.  Also available as \cmdlineoption{-q}.
 
-    \cmdlineoptionitem{--nodebug}{}
+    \cmdlineoptionitem{--no-debug}{}
 Disable debugging.  See the current_prolog_flag/2 flag
 \prologflag{generate_debug_info} for details.
 
-    \cmdlineoptionitem{--nosignals}{}
+    \cmdlineoptionitem{--no-signals}{}
 Inhibit any signal handling by Prolog, a property that is sometimes
 desirable for embedded applications. This option sets the flag
 \prologflag{signals} to \const{false}. See \secref{sigembedded} for
@@ -381,9 +385,15 @@ details.  Note that the handler to unblock system calls is still
 installed. This can be prevented using \exam{--sigalert=0} additionally.
 See \cmdlineoption{--sigalert}.
 
-    \cmdlineoptionitem{--nothreads}{}
+    \cmdlineoptionitem{--no-threads}{}
 Disable threading for the multi-threaded version at runtime.  See also
 the flags \prologflag{threads} and \prologflag{gc_thread}.
+
+    \cmdlineoptionitem{--no-pce}{}
+Enable/disable the xpce GUI subsystem. The default is to make it
+available as autoload component if it is installed and the system
+can access the graphics.  Using \exam{--pce} load the xpce system
+in user space and \exam{--no-pce} makes it unavailable in the session.
 
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch

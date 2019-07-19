@@ -622,6 +622,8 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	    Sdprintf("%s ", argv0[i]);
 	});
 
+  GD->options.xpce = -1;
+
   for(argc=argc0,argv=argv0; argc > 0 && argv[0][0] == '-'; argc--, argv++ )
   { const char *s = &argv[0][1];
 
@@ -666,6 +668,11 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  else
 	    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
 	} else
+	  return -1;
+      } else if ( (rc=is_bool_opt(s, "pce", &b)) )
+      { if ( rc == TRUE )
+	  GD->options.xpce = b;
+	else
 	  return -1;
       } else if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
@@ -1083,12 +1090,13 @@ usage(void)
     "    --home=DIR               Use DIR as SWI-Prolog home\n",
     "    --stack_limit=size[BKMG] Specify maximum size of Prolog stacks\n",
     "    --table_space=size[BKMG] Specify maximum size of SLG tables\n",
+    "    --pce[=bool]             Make the xpce gui available\n",
     "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
     "    --win_app	          Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
-    "    -d topic,topic,...       Enable maintenance debugging\n",
+    "    -d topic,topic,...       Enable C-source DEBUG channels\n",
 #endif
     "\n",
     "Boolean options may be written as --name=bool, --name, --no-name ",
@@ -1107,6 +1115,15 @@ usage(void)
 
   return TRUE;
 }
+
+
+static
+PRED_IMPL("$usage", 0, usage, 0)
+{ usage();
+
+  return TRUE;
+}
+
 
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -1595,3 +1612,14 @@ vwarning(const char *fm, va_list args)
 
   return FALSE;
 }
+
+
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(init)
+  PRED_DEF("$usage", 0, usage, 0)
+EndPredDefs

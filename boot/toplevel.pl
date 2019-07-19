@@ -341,36 +341,46 @@ path_sep -->
 
 %!  argv_files(-Files) is det.
 %
-%   Update the Prolog flag =argv=, extracting  the leading directory and
-%   files.
+%   Update the Prolog flag `argv`, extracting the leading script files.
 
 argv_files(Files) :-
     current_prolog_flag(argv, Argv),
-    no_option_files(Argv, Argv1, Files),
-    (   Argv1 \== Argv
-    ->  set_prolog_flag(argv, Argv1)
-    ;   true
+    no_option_files(Argv, Argv1, Files, ScriptArgs),
+    (   (   ScriptArgs == true
+        ;   Argv1 == []
+        )
+    ->  (   Argv1 \== Argv
+        ->  set_prolog_flag(argv, Argv1)
+        ;   true
+        )
+    ;   '$usage',
+        halt(1)
     ).
 
-no_option_files([--|Argv], Argv, []) :- !.
-no_option_files([OsScript|Argv], Argv, [Script]) :-
-    prolog_to_os_filename(Script, OsScript),
-    access_file(Script, read),
-    catch(setup_call_cleanup(
-              open(Script, read, In),
-              ( get_char(In, '#'),
-                get_char(In, '!')
-              ),
-              close(In)),
-          _, fail),
-    !.
-no_option_files([OsFile|Argv0], Argv, [File|T]) :-
+no_option_files([--|Argv], Argv, [], true) :- !.
+no_option_files([Opt|_], _, _, ScriptArgs) :-
+    ScriptArgs \== true,
+    sub_atom(Opt, 0, _, _, '-'),
+    !,
+    '$usage',
+    halt(1).
+no_option_files([OsFile|Argv0], Argv, [File|T], ScriptArgs) :-
     file_name_extension(_, Ext, OsFile),
     user:prolog_file_type(Ext, prolog),
     !,
+    ScriptArgs = true,
     prolog_to_os_filename(File, OsFile),
-    no_option_files(Argv0, Argv, T).
-no_option_files(Argv, Argv, []).
+    no_option_files(Argv0, Argv, T, ScriptArgs).
+no_option_files([OsScript|Argv], Argv, [Script], ScriptArgs) :-
+    ScriptArgs \== true,
+    !,
+    prolog_to_os_filename(Script, OsScript),
+    (   exists_file(Script)
+    ->  true
+    ;   '$existence_error'(file, Script)
+    ),
+    ScriptArgs = true.
+no_option_files(Argv, Argv, [], _).
 
 clean_argv :-
     (   current_prolog_flag(argv, [--|Argv])
