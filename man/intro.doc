@@ -41,8 +41,12 @@ because SWI-Prolog has features that are required in the application,
 such as threading or Unicode support. In general though, for example,
 GNU-Prolog is more suited for embedding because it is small and can
 compile to native code, XSB is better for deductive databases because it
-provides advanced resolution techniques (tabling), and ECLiPSe is better
-at constraint handling.
+provides a mature implementation of \jargon{tabling} including support
+for incremental updates and \jargon{Well Founded
+Semantics}\footnote{Sponsored by Kyndi and with help from the XSB
+developmers Theresa Swift and David S. Warren, SWI-Prolog now supports
+many of the XSB features.}, and ECLiPSe is better at constraint
+handling.
 
 The syntax and set of built-in predicates is based on the ISO standard
 \cite{stdprolog:98}. Most extensions follow the `Edinburgh tradition'
@@ -106,14 +110,6 @@ good at fast calling of simple predicates, but it is fast with dynamic
 code, meta-calling and predicates that contain large numbers of clauses
 or require more advanced clauses indexing. Many of SWI-Prolog's built-in
 predicates are written in C and have excellent performance.
-
-    \item [You need features not offered by SWI-Prolog]
-Todays SWI-Prolog supports most features available from other Prolog
-systems. Still, there are features that are not or poorly supported.
-Examples are tabling which, although provided, is rather slow and does
-not support e.g., \jargon{incremental tabling} and \jargon{well formed
-semantics}. If you require additional features and you have resources,
-be it financial or expertise, please contact the developers.
 \end{itemlist}
 
 On the other hand, SWI-Prolog offers some facilities that are widely
@@ -175,12 +171,12 @@ RDF, JSON, YAML, HTTP, graphics and much more.
 
 You can support the SWI-Prolog project in several ways. Academics are
 invited to cite one of the
-publications\footnote{\url{http://www.swi-prolog.org/Publications.html}}
+publications\footnote{\url{https://www.swi-prolog.org/Publications.html}}
 on SWI-Prolog. Users can help by identifying and/or fixing problems with
 the code or its
-documentation.\footnote{\url{http://www.swi-prolog.org/howto/SubmitPatch.html}}.
+documentation.\footnote{\url{https://www.swi-prolog.org/howto/SubmitPatch.html}}.
 Users can contribute new features or, more lightweight, contribute
-packs\footnote{\url{http://www.swi-prolog.org/pack/list}}. Commercial
+packs\footnote{\url{https://www.swi-prolog.org/pack/list}}. Commercial
 users may consider contacting the
 developers\footnote{\url{mailto:info@swi-prolog.org}} to sponsor the
 development of new features or seek for opportunities to cooperate with
@@ -221,6 +217,14 @@ of compiled code. The extensions include specialised instructions for
 unification, predicate invocation, some frequently used built-in
 predicates, arithmetic, and control (\predref{;}{2}, \predref{|}{2}),
 if-then (\predref{->}{2}) and negation-by-failure (\predref{\+}{1}).
+
+SWI-Prolog implements \jargon{attributed variables} (constraints) and
+\jargon{delimited continuations} following the design in hProlog by Bart
+Demoen. The \jargon{engine} implementation follows the design proposed
+by Paul Tarau. Tabling was implemented by Benoit Desouter based on
+delimited continuations. Tabling has been extended with \jargon{answer
+subsumption} by Fabrizio Riguzzi. The implementation of \jargon{well
+founded semantics} and \jargon{incremental tabling} follows XSB.
 
 
 \section{Acknowledgements}	\label{sec:acknowledge}
@@ -289,7 +293,10 @@ compatibility issues.  He also worked on the MacOS port and fixed many
 typos in the 5.6.9 release of the documentation.
 
 Kyndi (\url{https://kyndi.com/}) sponsored the development of the
-\jargon{engines} interface (\chapref{engines}).  The final API was
-established after discussion with the founding father of engines,
-Paul Tarau and Paulo Moura.  Kyndi also sponsored JIT indexing on
-multiple arguments.
+\jargon{engines} interface (\chapref{engines}). The final API was
+established after discussion with the founding father of engines, Paul
+Tarau and Paulo Moura. Kyndi also sponsored JIT indexing on multiple
+arguments as well as \jargon{deep indexing}. Kyndi currently supports
+the implementation of XSB compatible tabling, including well founded
+semantics and incrementatl tabling.  Theresa Swift, David S. Warren
+and Fabrizio Riguzzi proved input to realise advanced tabling.
