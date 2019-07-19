@@ -1102,12 +1102,16 @@ subst_chars([H|T]) -->
 residue_vars(Goal, Vars, Delays) :-
     current_prolog_flag(toplevel_residue_vars, true),
     !,
-    '$wfs_call'(call_residue_vars(Goal, Vars), Delays).
+    '$wfs_call'(call_residue_vars(stop_backtrace(Goal), Vars), Delays).
 residue_vars(Goal, [], Delays) :-
-    toplevel_call(Goal, Delays).
+    '$wfs_call'(stop_backtrace(Goal), Delays).
 
-toplevel_call(Goal, Delays) :-
-    '$wfs_call'(Goal, Delays),
+stop_backtrace(Goal) :-
+    toplevel_call(Goal),
+    no_lco.
+
+toplevel_call(Goal) :-
+    call(Goal),
     no_lco.
 
 no_lco.

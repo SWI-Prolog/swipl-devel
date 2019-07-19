@@ -182,7 +182,7 @@ backtrace(MaxDepth, Fr, PC, GoalDepth, Guard,
 
 more_stack(Parent) :-
     prolog_frame_attribute(Parent, predicate_indicator, PI),
-    \+ (   PI = '$toplevel':G,
+    \+ (   PI = ('$toplevel':G),
            G \== (toplevel_call/1)
        ),
     !.
