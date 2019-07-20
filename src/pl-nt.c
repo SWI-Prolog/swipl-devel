@@ -947,6 +947,8 @@ PRED_IMPL("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
 	  { PL_close_foreign_frame(fid);
 	    ForeignRedoInt(n);
 	  }
+	  if ( PL_exception(0) )
+	    PL_clear_exception();
 	  PL_rewind_foreign_frame(fid);
 	}
 	PL_close_foreign_frame(fid);
