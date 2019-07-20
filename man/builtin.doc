@@ -8909,6 +8909,14 @@ If \const{true}, show the window, if \const{false} hide the window.
 If present, activate the window.
 \end{description}
 
+    \predicate{win_window_color}{2}{+Which, +RGB}
+Change the color of the console window.  \arg{Which} is one of
+\const{foreground}, \const{background}, \const{selection_foreground} or
+\const{selection_background}. \arg{RGB} is a term
+\term{rgb}{Red,Green,Blue} where the components are values between 0
+and 255. The defaults are established using the Windows API
+GetSysColor().
+
     \predicate{win_has_menu}{0}{}
 True if win_insert_menu/2 and win_insert_menu_item/4 are present.
 
