@@ -1081,11 +1081,11 @@ prolog_message(query(QueryResult)) -->
     query_result(QueryResult).
 
 query_result(no) -->            % failure
-    [ ansi([bold,fg(red)], 'false.', []) ],
+    [ ansi(truth(false), 'false.', []) ],
     extra_line.
 query_result(yes(true, [])) -->      % prompt_alternatives_on: groundness
     !,
-    [ ansi(bold, 'true.', []) ],
+    [ ansi(truth(true), 'true.', []) ],
     extra_line.
 query_result(yes(Delays, Residuals)) -->
     result([], Delays, Residuals),
@@ -1124,7 +1124,7 @@ prompt(Answer, _, _, _) -->
 
 prompt(yes, empty) -->
     !,
-    [ ansi(bold, 'true.', []) ],
+    [ ansi(truth(true), 'true.', []) ],
     extra_line.
 prompt(yes, _) -->
     !,
@@ -1132,7 +1132,7 @@ prompt(yes, _) -->
     extra_line.
 prompt(more, empty) -->
     !,
-    [ ansi(bold, 'true ', []), flush ].
+    [ ansi(truth(true), 'true ', []), flush ].
 prompt(more, _) -->
     !,
     [ ' '-[], flush ].
@@ -1186,7 +1186,7 @@ value(Name, Skel, Subst, Options) -->
 
 substitution([], _) --> !.
 substitution([N=V|T], Options) -->
-    [ ', ', ansi(fg(green), '% where', []), nl,
+    [ ', ', ansi(comment, '% where', []), nl,
       '    ~w = ~W'-[N,V,Options] ],
     substitutions(T, Options).
 
@@ -1201,7 +1201,7 @@ residuals(Normal-Hidden, Options) -->
     bind_res_sep(Normal, Hidden),
     (   {Hidden == []}
     ->  []
-    ;   [ansi(fg(green), '% with pending residual goals', []), nl]
+    ;   [ansi(comment, '% with pending residual goals', []), nl]
     ),
     residuals1(Hidden, Options).
 
@@ -1227,8 +1227,8 @@ wfs_residual_program(Goal, _Options) -->
       Program \== []
     },
     !,
-    [ ansi(fg(green), '% WFS residual program', []), nl ],
-    [ ansi(fg(cyan), '~@', ['$messages':list_clauses(Program)]) ].
+    [ ansi(comment, '% WFS residual program', []), nl ],
+    [ ansi(wfs(residual_program), '~@', ['$messages':list_clauses(Program)]) ].
 wfs_residual_program(_, _) --> [].
 
 delays(true, _Options) -->
@@ -1237,9 +1237,9 @@ delays(Goal, Options) -->
     { current_prolog_flag(toplevel_list_wfs_residual_program, true)
     },
     !,
-    [ ansi([bold], '~W', [Goal, Options]) ].
+    [ ansi(truth(undefined), '~W', [Goal, Options]) ].
 delays(_, _Options) -->
-    [ ansi([bold,fg(cyan)], undefined, []) ].
+    [ ansi(truth(undefined), undefined, []) ].
 
 :- public list_clauses/1.
 
@@ -1379,7 +1379,7 @@ prolog_message(frame(Frame, backtrace, _PC)) -->
     !,
     { prolog_frame_attribute(Frame, level, Level)
     },
-    [ ansi(bold, '~t[~D] ~10|', [Level]) ],
+    [ ansi(frame(level), '~t[~D] ~10|', [Level]) ],
     frame_context(Frame),
     frame_goal(Frame).
 prolog_message(frame(Frame, choice, PC)) -->
@@ -1446,17 +1446,17 @@ frame_flags(Frame) -->
     [ '~w~w '-[T, S] ].
 
 port(Port) -->
-    { port_name(Port, Colour, Name)
+    { port_name(Port, Name)
     },
     !,
-    [ ansi([bold,fg(Colour)], '~w: ', [Name]) ].
+    [ ansi(port(Port), '~w: ', [Name]) ].
 
-port_name(call,      green,   'Call').
-port_name(exit,      green,   'Exit').
-port_name(fail,      red,     'Fail').
-port_name(redo,      yellow,  'Redo').
-port_name(unify,     blue,    'Unify').
-port_name(exception, magenta, 'Exception').
+port_name(call,      'Call').
+port_name(exit,      'Exit').
+port_name(fail,      'Fail').
+port_name(redo,      'Redo').
+port_name(unify,     'Unify').
+port_name(exception, 'Exception').
 
 clean_goal(M:Goal, Goal) :-
     hidden_module(M),
@@ -1515,11 +1515,6 @@ prolog_message(invalid_tmp_dir(Dir, Reason)) -->
 prolog_message(ambiguous_stream_pair(Pair)) -->
     [ 'Ambiguous operation on stream pair ~p'-[Pair] ].
 
-env(Name) -->
-    { current_prolog_flag(windows, true) },
-    [ '%~w%'-[Name] ].
-env(Name) -->
-    [ '$~w'-[Name] ].
 
 		 /*******************************
 		 *          DEPRECATED		*
@@ -1529,6 +1524,31 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
       'See http://www.swi-prolog.org/changes/stack-limit.html'
     ].
+
+		 /*******************************
+		 *        DEFAULT THEME		*
+		 *******************************/
+
+:- public default_theme/2.
+
+default_theme(code,                   [fg(blue)]).
+default_theme(truth(false),           [bold, fg(red)]).
+default_theme(truth(true),            [bold]).
+default_theme(truth(undefined),       [bold, fg(cyan)]).
+default_theme(comment,                [fg(green)]).
+default_theme(wfs(residual_program),  [fg(cyan)]).
+default_theme(frame(level),           [bold]).
+default_theme(port(call),             [bold, fg(green)]).
+default_theme(port(exit),             [bold, fg(green)]).
+default_theme(port(fail),             [bold, fg(red)]).
+default_theme(port(redo),             [bold, fg(yellow)]).
+default_theme(port(unify),            [bold, fg(blue)]).
+default_theme(port(exception),        [bold, fg(magenta)]).
+default_theme(message(informational), [fg(green)]).
+default_theme(message(information),   [fg(green)]).
+default_theme(message(debug(_)),      [fg(blue)]).
+default_theme(message(warning),       [fg(red)]).
+default_theme(message(error),         [bold, fg(red)]).
 
 
                  /*******************************

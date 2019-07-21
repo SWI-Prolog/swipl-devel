@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2018, VU University Amsterdam
+    Copyright (c)  2010-2019, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -52,6 +52,10 @@ the following:
 
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
+
+:- multifile
+    prolog:console_color/2.                     % +Term, -AnsiAttrs
+
 
 color_term_flag_default(true) :-
     stream_property(user_input, tty(true)),
@@ -275,16 +279,17 @@ prolog:message_line_element(S, end(Ctx)) :-
 level_attrs(Level,         Attrs) :-
     user:message_property(Level, color(Attrs)),
     !.
-level_attrs(informational, fg(green)).
-level_attrs(information,   fg(green)).
-level_attrs(debug(_),      fg(blue)).
-level_attrs(warning,       fg(red)).
-level_attrs(error,         [fg(red),bold]).
+level_attrs(Level,         Attrs) :-
+    class_attrs(message(Level), Attrs).
 
 class_attrs(Class, Attrs) :-
     user:message_property(Class, color(Attrs)),
     !.
-class_attrs(code, fg(blue)) :-
+class_attrs(Class, Attrs) :-
+    prolog:console_color(Class, Attrs),
+    !.
+class_attrs(Class, Attrs) :-
+    '$messages':default_theme(Class, Attrs),
     !.
 class_attrs(Attrs, Attrs).
 
