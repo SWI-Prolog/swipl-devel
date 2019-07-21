@@ -110,7 +110,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
     library/dialect/yap library/dialect/xsb
-    library/unicode library/lynx
+    library/unicode library/lynx library/theme
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -161,6 +161,8 @@ endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
+
+set(SWIPL_DATA_library_theme dark.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     simplex.pl clpfd.pl clpb.pl)
