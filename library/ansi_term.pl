@@ -38,6 +38,7 @@
           ]).
 :- use_module(library(apply)).
 :- use_module(library(error)).
+:- use_module(library(lists), [flatten/2]).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -100,6 +101,14 @@ init_color_term_flag :-
 %     - bold
 %     - underline
 %     - fg(Color), bg(Color), hfg(Color), hbg(Color)
+%       For fg(Color) and bg(Color), the colour name can be '#RGB' or
+%       '#RRGGBB'
+%     - fg8(Spec), bg8(Spec)
+%       8-bit color specification.  Spec is a colour name, h(Color)
+%       or an integer 0..255.
+%     - fg(R,G,B), bg(R,G,B)
+%       24-bit (direct color) specification.  The components are
+%       integers in the range 0..255.
 %
 %   Defined color constants are below.  =default=   can  be  used to
 %   access the default color of the terminal.
@@ -120,9 +129,14 @@ ansi_format(Stream, Attr, Format, Args) :-
     current_prolog_flag(color_term, true),
     !,
     (   is_list(Attr)
-    ->  maplist(sgr_code_ex, Attr, Codes),
+    ->  maplist(sgr_code_ex, Attr, Codes0),
+        flatten(Codes0, Codes),
         atomic_list_concat(Codes, ;, Code)
-    ;   sgr_code_ex(Attr, Code)
+    ;   sgr_code_ex(Attr, Code0),
+        (   is_list(Code0)
+        ->  atomic_list_concat(Code0, ;, Code)
+        ;   Code = Code0
+        )
     ),
     format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
     format(Stream, Fmt, [Code|Args]),
@@ -192,12 +206,18 @@ sgr_code(fraktur, 20).
 sgr_code(underline(double), 21).
 sgr_code(intensity(normal), 22).
 sgr_code(fg(Name), C) :-
-    ansi_color(Name, N),
-    C is N+30.
+    (   ansi_color(Name, N)
+    ->  C is N+30
+    ;   rgb(Name, R, G, B)
+    ->  sgr_code(fg(R,G,B), C)
+    ).
 sgr_code(bg(Name), C) :-
     !,
-    ansi_color(Name, N),
-    C is N+40.
+    (   ansi_color(Name, N)
+    ->  C is N+40
+    ;   rgb(Name, R, G, B)
+    ->  sgr_code(bg(R,G,B), C)
+    ).
 sgr_code(framed, 51).
 sgr_code(encircled, 52).
 sgr_code(overlined, 53).
@@ -217,6 +237,30 @@ sgr_code(hbg(Name), C) :-
     !,
     ansi_color(Name, N),
     C is N+100.
+sgr_code(fg8(Name), [38,5,N]) :-
+    (   ansi_color(Name, N)
+    ->  true
+    ;   ansi_color(h(Name), N0)
+    ->  N is N0+8
+    ;   between(0, 255, Name)
+    ->  N is Name
+    ).
+sgr_code(bg8(Name), [48,5,N]) :-
+    (   ansi_color(Name, N)
+    ->  true
+    ;   ansi_color(h(Name), N0)
+    ->  N is N0+8
+    ;   between(0, 255, Name)
+    ->  N is Name
+    ).
+sgr_code(fg(R,G,B), [38,2,R,G,B]) :-
+    between(0, 255, R),
+    between(0, 255, G),
+    between(0, 255, B).
+sgr_code(bg(R,G,B), [48,2,R,G,B]) :-
+    between(0, 255, R),
+    between(0, 255, G),
+    between(0, 255, B).
 
 off_code(italic_and_franktur, 23).
 off_code(underline, 24).
@@ -237,6 +281,27 @@ ansi_color(magenta, 5).
 ansi_color(cyan,    6).
 ansi_color(white,   7).
 ansi_color(default, 9).
+
+rgb(Name, R, G, B) :-
+    atom_codes(Name, [0'#,R1,R2,G1,G2,B1,B2]),
+    hex_color(R1,R2,R),
+    hex_color(G1,G2,G),
+    hex_color(B1,B2,B).
+rgb(Name, R, G, B) :-
+    atom_codes(Name, [0'#,R1,G1,B1]),
+    hex_color(R1,R),
+    hex_color(G1,G),
+    hex_color(B1,B).
+
+hex_color(D1,D2,V) :-
+    code_type(D1, xdigit(V1)),
+    code_type(D2, xdigit(V2)),
+    V is 16*V1+V2.
+
+hex_color(D1,V) :-
+    code_type(D1, xdigit(V1)),
+    V is 16*V1+V1.
+
 
 
                  /*******************************
