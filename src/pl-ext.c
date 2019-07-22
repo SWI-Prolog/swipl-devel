@@ -525,6 +525,7 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("prolog_listen",    2, "system"), "+:");
   PL_meta_predicate(PL_predicate("prolog_listen",    3, "system"), "+:+");
   PL_meta_predicate(PL_predicate("prolog_unlisten",  2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("with_tty_raw",     1, "system"), "0");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);
