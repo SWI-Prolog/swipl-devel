@@ -799,10 +799,11 @@ value}
 \predicatesummary{win_window_color}{2}{Win32: change colors of console window}
 \predicatesummary{win_window_pos}{1}{Win32: change size and position of window}
 \predicatesummary{window_title}{2}{Win32: change title of window}
-\predicatesummary{with_mutex}{2}{Run goal while holding
-mutex} \predicatesummary{with_output_to}{2}{Write to strings and more}
-\predicatesummary{with_quasi_quotation_input}{3}{Parse quasi quotation
-from stream} \predicatesummary{working_directory}{2}{Query/change CWD}
+\predicatesummary{with_mutex}{2}{Run goal while holding mutex}
+\predicatesummary{with_output_to}{2}{Write to strings and more}
+\predicatesummary{with_quasi_quotation_input}{3}{Parse quasi quotation from stream}
+\predicatesummary{with_tty_raw}{1}{Run goal with terminal in raw mode}
+\predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{writeln}{1}{Write term, followed by a newline}
