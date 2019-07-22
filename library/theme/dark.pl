@@ -44,6 +44,18 @@ To enable the dark theme, use
 :- multifile
     prolog:console_color/2.
 
+:- if(current_predicate(win_window_color/2)).
+set_window_colors :-
+    win_window_color(background, rgb(0,0,0)),
+    win_window_color(foreground, rgb(255,255,255)),
+    win_window_color(selection_background, rgb(0,255,255)),
+    win_window_color(selection_foreground, rgb(0,0,0)).
+
+:- initialization
+    set_window_colors.
+:- endif.
+
+
 % code embedded in messages (not used much yet)
 prolog:console_color(code,                   [hfg(blue)]).
 % toplevel truth value (undefined for well founded semantics)
