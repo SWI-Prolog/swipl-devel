@@ -1031,9 +1031,9 @@ win_window_color(term_t which, term_t color)
   else if ( strcmp(s, "background") == 0 )
     wcolor = RLC_WINDOW;
   else if ( strcmp(s, "selection_foreground") == 0 )
-    wcolor = RLC_WINDOW;
+    wcolor = RLC_HIGHLIGHTTEXT;
   else if ( strcmp(s, "selection_background") == 0 )
-    wcolor = RLC_WINDOW;
+    wcolor = RLC_HIGHLIGHT;
   else
     return PL_domain_error("window_color", which);
 
