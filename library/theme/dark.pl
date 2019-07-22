@@ -42,7 +42,8 @@ To enable the dark theme, use
 */
 
 :- multifile
-    prolog:console_color/2.
+    prolog:console_color/2,
+    pldoc_style:theme/3.
 
 :- if(current_predicate(win_window_color/2)).
 set_window_colors :-
@@ -55,6 +56,9 @@ set_window_colors :-
     set_window_colors.
 :- endif.
 
+		 /*******************************
+		 *       PROLOG MESSAGES	*
+		 *******************************/
 
 % code embedded in messages (not used much yet)
 prolog:console_color(code,                   [hfg(blue)]).
@@ -80,4 +84,16 @@ prolog:console_color(message(information),   [hfg(green)]).
 prolog:console_color(message(debug(_)),      [hfg(blue)]).
 prolog:console_color(message(warning),       [fg(yellow)]).
 prolog:console_color(message(error),         [bold, fg(red)]).
+
+
+		 /*******************************
+		 *          ONLINE HELP		*
+		 *******************************/
+
+pldoc_style:theme(var,  true,                  [color(bright_cyan)]).
+pldoc_style:theme(code, true,                  [color(bright_yellow)]).
+pldoc_style:theme(pre,  true,                  [color(bright_yellow)]).
+pldoc_style:theme(p,    class(warning),        [color(yellow)]).
+pldoc_style:theme(span, class('synopsis-hdr'), [color(bright_green)]).
+pldoc_style:theme(span, class(autoload),       [color(bright_green)]).
 
