@@ -34,9 +34,11 @@
 */
 
 :- module(ansi_term,
-          [ ansi_format/3               % +Attr, +Format, +Args
+          [ ansi_format/3,              % +Attr, +Format, +Args
+            ansi_get_color/2            % +Which, -rgb(R,G,B)
           ]).
 :- use_module(library(apply)).
+:- use_module(library(lists)).
 :- use_module(library(error)).
 :- use_module(library(lists), [flatten/2]).
 
@@ -55,7 +57,8 @@ the following:
 */
 
 :- multifile
-    prolog:console_color/2.                     % +Term, -AnsiAttrs
+    prolog:console_color/2,                     % +Term, -AnsiAttrs
+    supports_get_color/0.
 
 
 color_term_flag_default(true) :-
@@ -358,11 +361,103 @@ class_attrs(Class, Attrs) :-
     !.
 class_attrs(Attrs, Attrs).
 
+%!  keep_line_pos(+Stream, :Goal)
+%
+%   Run goal without changing the position   information on Stream. This
+%   is used to avoid that the exchange   of  ANSI sequences modifies the
+%   notion of, notably, the `line_pos` notion.
+
 keep_line_pos(S, G) :-
     stream_property(S, position(Pos)),
     !,
-    stream_position_data(line_position, Pos, LPos),
-    G,
-    set_stream(S, line_position(LPos)).
+    setup_call_cleanup(
+        stream_position_data(line_position, Pos, LPos),
+        G,
+        set_stream(S, line_position(LPos))).
 keep_line_pos(_, G) :-
-    G.
+    call(G).
+
+%!  ansi_get_color(+Which, -RGB) is semidet.
+%
+%   Obtain the RGB color for an ANSI  color parameter. Which is either a
+%   color alias or  an  integer  ANSI   color  id.  Defined  aliases are
+%   `foreground` and `background`. This predicate sends a request to the
+%   console (`user_output`) and reads the reply. This assumes an `xterm`
+%   compatible terminal.
+%
+%   @arg RGB is a term rgb(Red,Green,Blue).  The color components are
+%   integers in the range 0..65535.
+
+
+ansi_get_color(Which0, RGB) :-
+    stream_property(user_input, tty(true)),
+    supports_get_color,
+    (   color_alias(Which0, Which)
+    ->  true
+    ;   must_be(between(0,15),Which0)
+    ->  Which = Which0
+    ),
+    keep_line_pos(user_output,
+                  ansi_get_color_(Which, RGB)).
+
+supports_get_color :-
+    getenv('TERM', Term),
+    sub_atom(Term, 0, _, _, xterm).
+
+color_alias(foreground, 10).
+color_alias(background, 11).
+
+ansi_get_color_(Which, rgb(R,G,B)) :-
+    format(user_output, '\e]~w;?\a', [Which]),
+    flush_output(user_output),
+    format(codes(Id), '~w', [Which]),
+    hex4(RH),
+    hex4(GH),
+    hex4(BH),
+    append([`\e]`, Id, `;rgb:`, RH, `/`, GH, `/`, BH, `\a`], Pattern),
+    with_tty_raw(read_pattern(user_input, Pattern)),
+    !,
+    hex_val(RH, R),
+    hex_val(GH, G),
+    hex_val(BH, B).
+
+hex4([_,_,_,_]).
+
+hex_val([D1,D2,D3,D4], V) :-
+    code_type(D1, xdigit(V1)),
+    code_type(D2, xdigit(V2)),
+    code_type(D3, xdigit(V3)),
+    code_type(D4, xdigit(V4)),
+    V is (V1<<12)+(V2<<8)+(V3<<4)+V4.
+
+read_pattern(From, Pattern) :-
+    read_pattern(From, Pattern, []).
+
+read_pattern(From, Pattern, NotMatched0) :-
+    copy_term(Pattern, TryPattern),
+    append(Skip, Rest, NotMatched0),
+    append(Rest, RestPattern, TryPattern),
+    !,
+    echo(Skip),
+    try_read_pattern(From, RestPattern, NotMatched, Done),
+    (   Done == true
+    ->  Pattern = TryPattern
+    ;   read_pattern(From, Pattern, NotMatched)
+    ).
+
+%!  try_read_pattern(+From, +Pattern, -NotMatched)
+
+try_read_pattern(_, [], [], true) :-
+    !.
+try_read_pattern(From, [H|T], [C|RT], Done) :-
+    get_code(C),
+    (   C = H
+    ->  try_read_pattern(From, T, RT, Done)
+    ;   RT = [],
+        Done = false
+    ).
+
+echo([]).
+echo([H|T]) :-
+    put_code(user_output, H),
+    echo(T).
