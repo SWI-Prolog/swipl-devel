@@ -2495,6 +2495,17 @@ unify_table_status(term_t t, trie *trie, int merge ARG_LD)
 
 
 static int
+table_is_incomplete(trie *trie)
+{ worklist *wl = trie->data.worklist;
+
+  if ( WL_IS_WORKLIST(wl) && !wl->completed )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+static int
 unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
 { if ( !wrapper )
     wrapper = PL_new_term_ref();
@@ -4512,6 +4523,7 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 
 typedef struct idg_propagate_state
 { size_t modified;
+  trie *incomplete;				/* hit an incomplete trie */
   TableEnum en;
   segstack  stack;
   idg_node  *buf[100];
@@ -4543,7 +4555,9 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 	continue;
 
       if ( changed )
-      { if ( n->falsecount++ == 0 )
+      { if ( table_is_incomplete(n->atrie) )
+	  state->incomplete = n->atrie;		/* return? */
+	if ( n->falsecount++ == 0 )
 	{ if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
@@ -4565,36 +4579,54 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 }
 
 
-static size_t
+static trie *
 idg_propagate_change(idg_node *n, int changed)
 { if ( n->affected )
   { idg_propagate_state state;
 
     state.modified = 0;
+    state.incomplete = NULL;
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
     state.en = newTableEnum(n->affected);
     idg_changed_loop(&state, changed);
     clearSegStack(&state.stack);
 
-    return state.modified;
+    return state.incomplete;
   }
 
-  return 0;
+  return NULL;
 }
 
 
+static int
+change_incomplete_error(trie *atrie)
+{ GET_LD
+  term_t v;
 
-static size_t
+  return ( (v=PL_new_term_ref()) &&
+	   unify_trie_term(atrie->data.variant, v PASS_LD) &&
+	   PL_permission_error("update", "variant", v) );
+}
+
+
+static int
 idg_changed(trie *atrie)
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 )
-  { n->falsecount = 1;
+  { trie *incomplete;
 
-    return idg_propagate_change(n, TRUE)+1;
+    if ( table_is_incomplete(atrie) )
+      return change_incomplete_error(atrie);
+    n->falsecount = 1;
+
+    if ( (incomplete=idg_propagate_change(n, TRUE)) )
+      return change_incomplete_error(incomplete);
+
+    return TRUE;
   }
 
-  return 0;
+  return FALSE;
 }
 
 
@@ -4612,8 +4644,7 @@ PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
 	  });
 
-    idg_changed(atrie);
-    return TRUE;
+    return idg_changed(atrie);
   }
 
   return FALSE;
