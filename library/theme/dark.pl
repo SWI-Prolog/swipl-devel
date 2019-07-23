@@ -42,8 +42,11 @@ To enable the dark theme, use
 */
 
 :- multifile
+    prolog:theme/1,
     prolog:console_color/2,
     pldoc_style:theme/3.
+
+prolog:theme(dark).                             % make ourselves known
 
 :- if(current_predicate(win_window_color/2)).
 set_window_colors :-

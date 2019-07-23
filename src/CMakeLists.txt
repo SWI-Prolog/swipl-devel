@@ -162,7 +162,7 @@ endif()
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
 
-set(SWIPL_DATA_library_theme dark.pl)
+set(SWIPL_DATA_library_theme auto.pl dark.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     simplex.pl clpfd.pl clpb.pl)
