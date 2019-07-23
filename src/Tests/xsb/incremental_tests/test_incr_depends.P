@@ -19,7 +19,7 @@ baz(X):- foo(X).
 :- table foo/1 as incremental.
 foo(X):- bar(X).
 
-:- table bar/1, test/0 as incremental.
+:- table bar/1 as incremental.
 bar(X) :- fff(X).
 
 :- dynamic fff/1 as incremental.
