@@ -1,0 +1,104 @@
+/*
+Test of ISO semantics for incremental updating -- undefined answers.
+*/
+
+:- compiler_options([spec_off,xpp_on]).
+%#include "table_inspection_defs.h"
+:- import incr_assert/1 from increval.
+:- import variant/2 from subsumes.
+:- import numbervars/1 from num_vars.
+%:- ensure_loaded(xsbbrat).
+:- dynamic answer/1.
+
+test:- test_u1.
+
+:- table tu1/1 as incremental.
+tu1(X) :- du1(X),tnot(tu1(X)).
+:- dynamic du1/1 as incremental.
+du1(1). du1(2).
+
+test_u1:-
+       retractall(answer(_)),
+       tu1(X),get_tv(State),register(first(tu1(X,State))),
+       (du1(3) -> true ; incr_assert(du1(3))),
+       tu1(X1),get_tv(State),register(second(tu1(X1),State)),
+       fail.
+test_u1:- validate(test_u1(_)).
+test_u1([first(tu1(1,u)),first(tu1(2,u)),second(tu1(1),u),second(tu1(2),u),second(tu1(3),u)]).
+
+:- import xwam_state/2 from machine.
+get_tv(Tv):-
+	xwam_state(2,State),
+	(State == 0 -> Tv = t ; Tv = u).
+
+
+
+register(Term):-
+%        writeln(Term),
+	assert(answer(Term)).
+
+
+validate(Term):-
+	call(Term),arg(1,Term,Correct),functor(Term,F,_),
+	setof(X,answer(X),Answers),
+	numbervars(Answers),numbervars(Correct),
+	(validate_1(Answers,Correct) ->
+	    writeln('!!!succeeded'(F))
+	 ;  writeln('!!!failed'(F,Answers,Correct)) ).
+
+validate_1([],[]):- !.
+validate_1([H|T],[H1|T1]):-
+	variant(H,H1),!,%writeln(variant(H,H1)),
+	validate_1(T,T1).
+validate_1([H|_T],[H1|_T1]):- writeln(nomatch(H,H1)),!,fail.
+validate_1(A,B):- writeln(nomatch(A,B)),fail.
+
+
+end_of_file.
+
+:- table t/4 as incremental.
+t(1,X,a,Y):- d1(X),d2(Y).
+t(2,X,b,X):- d1(X).
+
+:- import new_trie/1 , trie_intern/4, trie_interned/4, trie_interned/2,  trie_unintern_nr/2, trie_intern/2,
+	  trie_unintern/2, delete_trie/1, bulk_trie_intern/2,trie_retractall/2  from intern.
+
+t2:-
+     new_trie(Trie),
+     assert(t2trie(Trie)),
+     trie_intern(p(1,2,3),Trie),
+     fail.
+t2:- t2trie(Trie),
+     trie_interned(T,Trie),
+     writeln(T),
+     fail.
+
+:- import  table_inspection_function/5 from machine.
+:- import  table_inspection_function/7 from machine.
+
+test(_A,_B,_C,_D,_,_):- t(1,X,a,Y), fail.
+test(A,B,C,D,E,F):- A = t(1,X,a,Y), table_inspection_function(TEMP_FUNCTION,A,B,C,D,E,F),writeln((A,B,C,D,E,F)),fail.
+test(_A,_B,_C,_D,_E,_F).
+
+tf2(X,Y):- t1(X), table_inspection_function(TEMP_FUNCTION_2,t1(_),Y,_,_,_,_).
+tf2(_,_).
+
+two_sols(1).
+two_sols(2).
+
+create_big_heap_structure(0,0):- !.
+create_big_heap_structure(N,f(X)):-
+	N1 is N - 1,
+	create_big_heap_structure(N1,X).
+
+
+test_heap:-
+       retractall(answer(_)),
+       th1(X),register(first(t1(X))),
+       two_sols(_M),
+       (dh1(3) -> create_big_heap_structure(100,_H) ; incr_assert(dh1(3))),
+       th1(Y),register(second(t1(Y))),
+       fail.
+test_heap:- validate(test1(_)).
+test_heap([first(t1(1)),first(t1(2)),second(t1(1)),second(t1(2)),second(t1(3))]).
+

@@ -61,7 +61,12 @@ swi_test(M:_P) :-
 
 :- begin_tests(xsb_test_nonmt, [sto(rational_trees)]).
 
+% nonmt_test(test_tc).			% relies on timed_call/2
 nonmt_test(test_iso_basic).
+nonmt_test(test_iso_mult_visit).
+nonmt_test(test_iso_hash).
+nonmt_test(test_iso_undef).
+% nonmt_test(test_iso_attr).		% relies on attributed variables
 
 :- end_tests(xsb_test_nonmt).
 
