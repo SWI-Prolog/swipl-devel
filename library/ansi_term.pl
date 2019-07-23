@@ -402,7 +402,8 @@ ansi_get_color(Which0, RGB) :-
 
 supports_get_color :-
     getenv('TERM', Term),
-    sub_atom(Term, 0, _, _, xterm).
+    sub_atom(Term, 0, _, _, xterm),
+    \+ getenv('TERM_PROGRAM', 'Apple_Terminal').
 
 color_alias(foreground, 10).
 color_alias(background, 11).
