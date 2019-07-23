@@ -589,6 +589,56 @@ indicated tokens. Only has effect if the system is compiled with the
 \end{description}
 
 
+\section{UI Themes}				\label{sec:theme}
+
+UI (colour) themes play a role in two parts: when writing to the
+\jargon{console} and for the xpce-based development tools such as
+PceEmacs or the graphical debugger. Coloured console output is based on
+ansi_format/3. The central message infra structure based on
+print_message/2 labels message (components) with a Prolog term that
+specifies the role. This is mapped to concrete colours by means of the
+hook prolog:console_color/2. Theming the IDE uses xpce \jargon{class
+variables} that are initialised from Prolog when xpce is loaded.
+
+Themes are implemented as a Prolog file in the file search path
+library/theme.  A theme can be loaded using (for example) the directive
+below in the user's initialization file (see \secref{initfile}).
+
+\begin{code}
+:- use_module(library(theme/dark)).
+\end{code}
+
+The theme file \exam{library(theme/auto)} is provided to automatically
+choose a reasonable theme based on the environment.  The current version
+detects the background color on \textit{xterm} compatible terminal
+emulators (found on most Unix systems) and loads the \const{dark} theme
+if the background is `darkish'.
+
+The following notes apply to the different platforms on which SWI-Prolog
+is supported:
+
+\begin{description}
+    \item[Unix/Linux]
+If an xterm compatible terminal emulator is used to run Prolog you may
+wish to load either an explicit theme or \exam{library(theme/auto)}.
+
+    \item[Windows]
+The \program{swipl-win.exe} graphical application can be themed by
+loading a theme file.  The theme file also sets the foreground and
+background colours for the console.
+\end{description}
+
+
+\subsection{Status of theme support}		\label{sec:theme-status}
+
+Theme support was added in SWI-Prolog 8.1.11. Only part of the IDE tools
+are covered and the only additional theme (\const{dark}) is not net well
+balanced. The interfaces between the theme file and notably the IDE
+components is not very well established.  Please contribute by improving
+the \const{dark} theme. Once that is complete and properly functioning
+we can start adding new themes.
+
+
 \section{GNU Emacs Interface}			\label{sec:gemacs}
 
 \index{GNU-Emacs}\index{Emacs}
