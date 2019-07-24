@@ -4689,8 +4689,9 @@ undefined predicate for call/N.
     }
   } else if ( isTerm(goal) )
   { FunctorDef fd;
+    Functor gt = valueTerm(goal);
 
-    functor = functorTerm(goal);
+    functor = gt->definition;
     if ( functor == FUNCTOR_colon2 )
       goto call_type_error;
 
@@ -4703,15 +4704,16 @@ undefined predicate for call/N.
       else
 	goto call_type_error;
     }
+
+    args  = gt->arguments;
+    arity = (int)fd->arity;
+
     if ( false(fd, CONTROL_F) &&
 	 !(fd->name == ATOM_call && fd->arity > 8) )
-    { args    = argTermP(goal, 0);
-      arity   = (int)fd->arity;
+    { /* common case, nothing to do */
     } else if ( true(FR, FR_INRESET) )
     { if ( false(fd, CONTROL_F) && fd->name != ATOM_call )
       { /* arity > 8 will raise existence error */
-	args  = argTermP(goal, 0);
-	arity = (int)fd->arity;
       } else
       { DEF = GD->procedures.dmeta_call1->definition;
 	goto mcall_cont;
