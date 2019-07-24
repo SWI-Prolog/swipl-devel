@@ -503,13 +503,21 @@ free_worklist_set(worklist_set *wls, int freewl)
 
     for(i=0; i<nwpl; i++)
     { worklist *wl = wlp[i];
-      trie *trie = wl->table;
+      trie *atrie = wl->table;
 
       if ( (freewl&WLFS_FREE_ALL) ||
 	   wl->table->data.worklist == WL_COMPLETE )
 	free_worklist(wl);
-      if ( (freewl&WLFS_DISCARD_INCOMPLETE) && table_is_incomplete(trie) )
-	destroy_answer_trie(trie);
+      if ( (freewl&WLFS_DISCARD_INCOMPLETE) && table_is_incomplete(atrie) )
+      { DEBUG(MSG_TABLING_EXCEPTION,
+	      { GET_LD
+		term_t tab = PL_new_term_ref();
+		unify_trie_term(atrie->data.variant, tab PASS_LD);
+		Sdprintf("Deleting incomplete answer table ");
+		PL_write_term(Serror, tab, 999, PL_WRT_NEWLINE);
+	      });
+	destroy_answer_trie(atrie);
+      }
     }
   }
 
