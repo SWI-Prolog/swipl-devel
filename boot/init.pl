@@ -97,6 +97,22 @@ attempt to call the Prolog defined trace interceptor.
 %   attributes. These predicates bail out with an error on the first
 %   failure (typically permission errors).
 
+%!  '$iso'(+Spec) is det.
+%
+%   Set the ISO  flag.  This  defines   that  the  predicate  cannot  be
+%   redefined inside a module.
+
+%!  '$clausable'(+Spec) is det.
+%
+%   Specify that we can run  clause/2  on   a  predicate,  even if it is
+%   static. ISO specifies that `public` also   plays  this role. in SWI,
+%   `public` means that the predicate can be   called, even if we cannot
+%   find a reference to it.
+
+%!  '$hide'(+Spec) is det.
+%
+%   Specify that the predicate cannot be seen in the debugger.
+
 dynamic(Spec)            :- '$set_pattr'(Spec, pred, (dynamic)).
 multifile(Spec)          :- '$set_pattr'(Spec, pred, (multifile)).
 module_transparent(Spec) :- '$set_pattr'(Spec, pred, (transparent)).
@@ -108,31 +124,34 @@ public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
 non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
+'$hide'(M:Spec)          :- '$set_pattr'(Spec, M, pred, trace, false).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
+'$set_pattr'(Pred, M, How, Attr) :-
+    '$set_pattr'(Pred, M, How, Attr, true).
 
-'$set_pattr'(X, _, _, _) :-
+'$set_pattr'(X, _, _, _, _) :-
     var(X),
     throw(error(instantiation_error, _)).
-'$set_pattr'([], _, _, _) :- !.
-'$set_pattr'([H|T], M, How, Attr) :-           % ISO
+'$set_pattr'([], _, _, _, _) :- !.
+'$set_pattr'([H|T], M, How, Attr, Val) :-           % ISO
     !,
-    '$set_pattr'(H, M, How, Attr),
-    '$set_pattr'(T, M, How, Attr).
-'$set_pattr'((A,B), M, How, Attr) :-           % ISO and traditional
+    '$set_pattr'(H, M, How, Attr, Val),
+    '$set_pattr'(T, M, How, Attr, Val).
+'$set_pattr'((A,B), M, How, Attr, Val) :-           % ISO and traditional
     !,
-    '$set_pattr'(A, M, How, Attr),
-    '$set_pattr'(B, M, How, Attr).
-'$set_pattr'(M:T, _, How, Attr) :-
+    '$set_pattr'(A, M, How, Attr, Val),
+    '$set_pattr'(B, M, How, Attr, Val).
+'$set_pattr'(M:T, _, How, Attr, Val) :-
     !,
-    '$set_pattr'(T, M, How, Attr).
-'$set_pattr'(A, M, pred, Attr) :-
+    '$set_pattr'(T, M, How, Attr, Val).
+'$set_pattr'(A, M, pred, Attr, Val) :-
     !,
-    '$set_predicate_attribute'(M:A, Attr, true).
-'$set_pattr'(A, M, directive, Attr) :-
+    '$set_predicate_attribute'(M:A, Attr, Val).
+'$set_pattr'(A, M, directive, Attr, Val) :-
     !,
-    catch('$set_predicate_attribute'(M:A, Attr, true),
+    catch('$set_predicate_attribute'(M:A, Attr, Val),
           error(E, _),
           print_message(error, error(E, context((Attr)/1,_)))).
 
@@ -159,14 +178,6 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
     '$set_pattr'(Spec, M, directive, (noprofile)).
 '$pattr_directive'(public(Spec), M) :-
     '$set_pattr'(Spec, M, directive, (public)).
-
-
-%!  '$hide'(:PI)
-%
-%   Predicates protected this way are never visible in the tracer.
-
-'$hide'(Pred) :-
-    '$set_predicate_attribute'(Pred, trace, false).
 
 :- '$iso'(((dynamic)/1, (multifile)/1, (discontiguous)/1)).
 
