@@ -4646,7 +4646,10 @@ idg_changed(trie *atrie)
     n->falsecount = 1;
 
     if ( (incomplete=idg_propagate_change(n, TRUE)) )
+    { n->falsecount = 0;
+      idg_propagate_change(n, FALSE);
       return change_incomplete_error(incomplete);
+    }
   } else
   { DEBUG(MSG_TABLING_IDG_CHANGED,
 	  if ( n ) Sdprintf(" (already changed (%d))\n", n->falsecount);
