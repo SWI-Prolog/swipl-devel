@@ -1260,9 +1260,10 @@ false_path(ATrie, [ATrie|T], Seen) :-
     is_invalid(ATrie),
     \+ memberchk(ATrie, Seen),
     '$idg_edge'(ATrie, dependent, Dep),
-    (   '$tbl_table_status'(Dep, dynamic, _, _),
-        T = []
-    ;   false_path(Dep, T, [ATrie|Seen])
+    '$tbl_table_status'(Dep, Status, _, _),
+    (   Status == invalid
+    ->  false_path(Dep, T, [ATrie|Seen])
+    ;   T = []
     ).
 
 is_invalid(ATrie) :-
