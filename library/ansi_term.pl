@@ -424,15 +424,13 @@ color_alias(foreground, 10).
 color_alias(background, 11).
 
 ansi_get_color_(Which, rgb(R,G,B)) :-
-    format(user_output, '\e]~w;?\a', [Which]),
-    flush_output(user_output),
     format(codes(Id), '~w', [Which]),
     hex4(RH),
     hex4(GH),
     hex4(BH),
     append([`\e]`, Id, `;rgb:`, RH, `/`, GH, `/`, BH, `\a`], Pattern),
     call_with_time_limit(0.05,
-                         with_tty_raw(read_pattern(user_input, Pattern))),
+                         with_tty_raw(exchange_pattern(Which, Pattern))),
     !,
     hex_val(RH, R),
     hex_val(GH, G),
@@ -451,8 +449,10 @@ hex_val([D1,D2,D3,D4], V) :-
     code_type(D4, xdigit(V4)),
     V is (V1<<12)+(V2<<8)+(V3<<4)+V4.
 
-read_pattern(From, Pattern) :-
-    read_pattern(From, Pattern, []).
+exchange_pattern(Which, Pattern) :-
+    format(user_output, '\e]~w;?\a', [Which]),
+    flush_output(user_output),
+    read_pattern(user_input, Pattern, []).
 
 read_pattern(From, Pattern, NotMatched0) :-
     copy_term(Pattern, TryPattern),
