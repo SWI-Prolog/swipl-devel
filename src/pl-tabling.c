@@ -4627,8 +4627,19 @@ static int
 idg_changed(trie *atrie)
 { idg_node *n;
 
+  DEBUG(MSG_TABLING_IDG_CHANGED,
+	{ GET_LD
+	  term_t v = PL_new_term_ref();
+
+	  unify_trie_term(atrie->data.variant, v PASS_LD);
+	  Sdprintf("IDG: dynamic change: ");
+	  PL_write_term(Serror, v, 999, 0);
+	});
+
   if ( (n=atrie->data.IDG) && n->falsecount == 0 )
   { trie *incomplete;
+
+    DEBUG(MSG_TABLING_IDG_CHANGED, Sdprintf(" (propagating)\n"));
 
     if ( table_is_incomplete(atrie) )
       return change_incomplete_error(atrie);
@@ -4636,11 +4647,13 @@ idg_changed(trie *atrie)
 
     if ( (incomplete=idg_propagate_change(n, TRUE)) )
       return change_incomplete_error(incomplete);
-
-    return TRUE;
+  } else
+  { DEBUG(MSG_TABLING_IDG_CHANGED,
+	  if ( n ) Sdprintf(" (already changed (%d))\n", n->falsecount);
+	  else Sdprintf(" (no IDG)\n"));
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 
@@ -4649,17 +4662,7 @@ PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { DEBUG(MSG_TABLING_IDG_CHANGED,
-	  { GET_LD
-	    term_t v = PL_new_term_ref();
-
-	    unify_trie_term(atrie->data.variant, v PASS_LD);
-	    Sdprintf("IDG: dynamic change: ");
-	    PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
-	  });
-
     return idg_changed(atrie);
-  }
 
   return FALSE;
 }
