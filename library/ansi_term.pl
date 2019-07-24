@@ -391,14 +391,18 @@ keep_line_pos(_, G) :-
 
 ansi_get_color(Which0, RGB) :-
     stream_property(user_input, tty(true)),
+    stream_property(user_output, tty(true)),
+    stream_property(user_error, tty(true)),
     supports_get_color,
     (   color_alias(Which0, Which)
     ->  true
     ;   must_be(between(0,15),Which0)
     ->  Which = Which0
     ),
-    keep_line_pos(user_output,
-                  ansi_get_color_(Which, RGB)).
+    catch(keep_line_pos(user_output,
+                        ansi_get_color_(Which, RGB)),
+          time_limit_exceeded,
+          no_xterm).
 
 supports_get_color :-
     getenv('TERM', Term),
@@ -416,11 +420,16 @@ ansi_get_color_(Which, rgb(R,G,B)) :-
     hex4(GH),
     hex4(BH),
     append([`\e]`, Id, `;rgb:`, RH, `/`, GH, `/`, BH, `\a`], Pattern),
-    with_tty_raw(read_pattern(user_input, Pattern)),
+    call_with_time_limit(0.05,
+                         with_tty_raw(read_pattern(user_input, Pattern))),
     !,
     hex_val(RH, R),
     hex_val(GH, G),
     hex_val(BH, B).
+
+no_xterm :-
+    print_message(warning, ansi(no_xterm_get_colour)),
+    fail.
 
 hex4([_,_,_,_]).
 
@@ -462,3 +471,11 @@ echo([]).
 echo([H|T]) :-
     put_code(user_output, H),
     echo(T).
+
+
+:- multifile prolog:message//1.
+
+prolog:message(ansi(no_xterm_get_colour)) -->
+    [ 'Terminal claims to be xterm compatible,'-[], nl,
+      'but does not report colour info'-[]
+    ].
