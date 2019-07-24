@@ -81,6 +81,7 @@ static void	idg_destroy(idg_node *node);
 static int	idg_init_variant(trie *atrie, term_t variant ARG_LD);
 static void	reeval_complete(trie *atrie);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
+static int	table_is_incomplete(trie *trie);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -92,7 +93,7 @@ static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 #define WLFS_FREE_NONE		0x0000
 #define WLFS_KEEP_COMPLETE	0x0001
 #define WLFS_FREE_ALL		0x0002
-#define WLFS_DISCARD		0x0004
+#define WLFS_DISCARD_INCOMPLETE	0x0004
 
 #define DV_DELETED		((trie*)0x1)
 #define DL_UNDEFINED		((delay_info*)0x1)
@@ -497,8 +498,7 @@ worklist_set_to_array(worklist_set *wls, worklist ***wlp)
 static void
 free_worklist_set(worklist_set *wls, int freewl)
 { if ( freewl )
-  { GET_LD
-    worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
+  { worklist **wlp = (worklist**)baseBuffer(&wls->members, worklist*);
     size_t i, nwpl = entriesBuffer(&wls->members, worklist*);
 
     for(i=0; i<nwpl; i++)
@@ -508,8 +508,8 @@ free_worklist_set(worklist_set *wls, int freewl)
       if ( (freewl&WLFS_FREE_ALL) ||
 	   wl->table->data.worklist == WL_COMPLETE )
 	free_worklist(wl);
-      if ( (freewl&WLFS_DISCARD) )
-	prune_node(LD->tabling.variant_table, trie->data.variant);
+      if ( (freewl&WLFS_DISCARD_INCOMPLETE) && table_is_incomplete(trie) )
+	destroy_answer_trie(trie);
     }
   }
 
@@ -3463,11 +3463,17 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
   tbl_component *c;
 
   if ( get_scc(A1, &c) )
-  { if ( c->created_worklists )
-      reset_newly_created_worklists(c, WLFS_KEEP_COMPLETE|WLFS_DISCARD);
+  { tbl_component *parent = c->parent;
+
+    if ( c->created_worklists )
+      reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
     reset_global_worklist(c);
-    // FIXME: just pop?
-    LD->tabling.has_scheduling_component = FALSE;
+
+    LD->tabling.component = parent;
+    free_component(c, FC_DESTROY);
+
+    if ( !parent )
+      LD->tabling.has_scheduling_component = FALSE;
   }
 
   return TRUE;
