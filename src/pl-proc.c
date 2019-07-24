@@ -1192,6 +1192,12 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 { word key;
   ClauseRef cref;
 
+  if ( def->events &&
+       !predicate_update_event(def,
+			       where == CL_START ? ATOM_asserta : ATOM_assertz,
+			       clause PASS_LD) )
+    return NULL;
+
   argKey(clause->codes, 0, &key);
   cref = newClauseRef(clause, key);
 
@@ -1239,11 +1245,6 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   release_def(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
-  if ( def->events &&
-       !predicate_update_event(def,
-			       where == CL_START ? ATOM_asserta : ATOM_assertz,
-			       clause PASS_LD) )
-    return NULL;
 
   return cref;
 }
@@ -1374,14 +1375,19 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Retract  a  clause  from  a  dynamic  procedure.  Called  from  erase/1,
 retract/1 and retractall/1. Returns FALSE  if   the  clause  was already
-retracted. This is also used by trie_gen_compiled/3   to  get rid of the
-clauses that represent tries.
+retracted or retract is vetoed by  the   update  event handling. This is
+also used by  trie_gen_compiled/3  to  get   rid  of  the  clauses  that
+represent tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 retractClauseDefinition(Definition def, Clause clause)
 { GET_LD
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
+
+  if ( def->events &&
+       !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
+    return FALSE;
 
   LOCKDEF(def);
   if ( true(clause, CL_ERASED) )
@@ -1412,9 +1418,6 @@ retractClauseDefinition(Definition def, Clause clause)
     ATOMIC_DEC(&GD->clauses.dirty);
 
   registerDirtyDefinition(def PASS_LD);
-
-  if ( def->events )
-    return predicate_update_event(def, ATOM_retract, clause PASS_LD);
 
   return TRUE;
 }
