@@ -1272,6 +1272,8 @@ is_invalid(ATrie) :-
 reeval_node(ATrie) :-
     is_invalid(ATrie),
     !,
+    tdebug(trie_goal(ATrie, Goal, _)),
+    tdebug(reeval, 'Re-evaluating ~p', [Goal]),
     '$tbl_reeval_prepare'(ATrie),
     '$tbl_table_status'(ATrie, _, Variant, _),
     (   '$idg_reset_current',                   % move to '$tbl_scc_save'/1?
