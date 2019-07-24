@@ -658,7 +658,7 @@ call_term(Module mdef, term_t goal ARG_LD)
     { Functor f = valueTerm(*p);
       FunctorDef fd = valueFunctor(f->definition);
 
-      if ( isTerm(fd->name) &&
+      if ( isTextAtom(fd->name) &&
 	   false(fd, CONTROL_F) &&
 	   !(fd->name == ATOM_call && fd->arity > 8) )
       { size_t arity = fd->arity;
@@ -726,14 +726,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 	  PRED_call1 = PL_predicate("call", 1, "system");
 
 	startCritical;
-#if 1
         rval = call_term(contextModule(fr), clean PASS_LD);
-#else
-	qid_t qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
-				  PRED_call1, clean);
-	rval = PL_next_solution(qid);
-	PL_cut_query(qid);
-#endif
 	if ( !endCritical )
 	  rval = FALSE;
 	if ( !rval && exception_term )
