@@ -612,6 +612,83 @@ unify_finished(term_t catcher, enum finished reason)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_term() calls a term from C. The  sound   and  simple way is to call
+call/1 with the term as argument, but in   most cases we can avoid that.
+As frameFinished() is rather time critical this seems worthwhile.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static int
+call1(Module mdef, term_t goal ARG_LD)
+{ static predicate_t PRED_call1 = NULL;
+  qid_t qid;
+  int rc;
+
+  if ( !PRED_call1 )
+    PRED_call1 = PL_predicate("call", 1, "system");
+
+  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
+  rc = PL_next_solution(qid);
+  PL_cut_query(qid);
+
+  return rc;
+}
+
+
+static int
+call_term(Module mdef, term_t goal ARG_LD)
+{ Word p = valTermRef(goal);
+  Module module = mdef;
+
+  deRef(p);
+  if ( (p=stripModule(p, &module, 0 PASS_LD)) )
+  { functor_t functor;
+    term_t av;
+    Procedure proc;
+    qid_t qid;
+    int rval;
+
+    if ( isAtom(*p) )
+    { if ( isTextAtom(*p) )
+      { functor = lookupFunctorDef(*p, 0);
+	av = 0;
+      } else
+	return call1(mdef, goal PASS_LD);
+    } else if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      FunctorDef fd = valueFunctor(f->definition);
+
+      if ( isTerm(fd->name) &&
+	   false(fd, CONTROL_F) &&
+	   !(fd->name == ATOM_call && fd->arity > 8) )
+      { size_t arity = fd->arity;
+	Word args = f->arguments;
+	Word ap;
+	size_t i;
+
+	av = PL_new_term_refs(arity);
+	ap = valTermRef(av);
+
+	for(i=0; i<arity; i++, ap++)
+	  *ap = linkVal(&args[i]);
+	functor = f->definition;
+      } else
+	return call1(mdef, goal PASS_LD);
+    } else
+    { return PL_type_error("callable", goal);
+    }
+
+    proc = resolveProcedure(functor, module);
+    qid = PL_open_query(module, PL_Q_PASS_EXCEPTION, proc, av);
+    rval = PL_next_solution(qid);
+    PL_cut_query(qid);
+
+    return rval;
+  } else
+    return FALSE;				/* exception in env */
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
 call_cleanup/3.  Both may call-back the Prolog engine.
@@ -644,16 +721,19 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
       { static predicate_t PRED_call1 = NULL;
 	int rval;
-	qid_t qid;
 
 	if ( !PRED_call1 )
 	  PRED_call1 = PL_predicate("call", 1, "system");
 
 	startCritical;
-	qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
-			    PRED_call1, clean);
+#if 1
+        rval = call_term(contextModule(fr), clean PASS_LD);
+#else
+	qid_t qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
+				  PRED_call1, clean);
 	rval = PL_next_solution(qid);
 	PL_cut_query(qid);
+#endif
 	if ( !endCritical )
 	  rval = FALSE;
 	if ( !rval && exception_term )
