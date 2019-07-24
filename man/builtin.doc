@@ -5154,7 +5154,7 @@ reads an entire line of input and returns the first non-blank character
 on this line, or the character code of the newline (10) if the entire
 line consisted of blank characters. See also with_tty_raw/1.
 
-    \predicate{with_tty_raw}[1]{:Goal}
+    \predicate{with_tty_raw}{1}{:Goal}
 Run goal with the user input and output streams set in \jargon{raw
 mode}, which implies the terminal makes the input available immediately
 instead of line-by-line and input that is read is not echoed. As a
