@@ -64,14 +64,16 @@ set_window_colors :-
 		 *******************************/
 
 % code embedded in messages (not used much yet)
-prolog:console_color(code,                   [hfg(blue)]).
+prolog:console_color(var,                    [hfg(cyan)]).
+prolog:console_color(code,                   [hfg(yellow)]).
+% Alert level
+prolog:console_color(comment,                [hfg(green)]).
+prolog:console_color(warning,                [fg(yellow)]).
+prolog:console_color(error,                  [bold, fg(red)]).
 % toplevel truth value (undefined for well founded semantics)
 prolog:console_color(truth(false),           [bold, fg(red)]).
 prolog:console_color(truth(true),            [bold]).
 prolog:console_color(truth(undefined),       [bold, fg(cyan)]).
-% comment (in toplevel answers)
-prolog:console_color(comment,                [hfg(green)]).
-% the WFS residual program
 prolog:console_color(wfs(residual_program),  [fg(cyan)]).
 % trace output
 prolog:console_color(frame(level),           [bold]).
@@ -85,13 +87,20 @@ prolog:console_color(port(exception),        [bold, fg(magenta)]).
 prolog:console_color(message(informational), [hfg(green)]).
 prolog:console_color(message(information),   [hfg(green)]).
 prolog:console_color(message(debug(_)),      [hfg(blue)]).
-prolog:console_color(message(warning),       [fg(yellow)]).
-prolog:console_color(message(error),         [bold, fg(red)]).
+prolog:console_color(message(Level),         Attrs) :-
+    nonvar(Level),
+    prolog:console_color(Level, Attrs).
 
 
 		 /*******************************
 		 *          ONLINE HELP		*
 		 *******************************/
+
+%!  pldoc_style:theme(+Element, +Condition, -CSSAttributes) is semidet.
+%
+%   Return a set of CSS properties to modify on the specified Element if
+%   Condition   holds.   color(Name)   is   mapped   to   fg(Name)   and
+%   color(bright_Name) to hfg(Name).
 
 pldoc_style:theme(var,  true,                  [color(bright_cyan)]).
 pldoc_style:theme(code, true,                  [color(bright_yellow)]).
@@ -236,6 +245,12 @@ pce_set_defaults :-
     term_string(Value, String),
     send(@default_table, append, Name, vector(Class, String)),
     fail ; true.
+
+%!  pce_style(+Class, -Attributes)
+%
+%   Set XPCE class variales for Class. This  is normally done by loading
+%   a _resource file_, but doing it from   Prolog keeps the entire theme
+%   in a single file.
 
 % PceEmacs
 

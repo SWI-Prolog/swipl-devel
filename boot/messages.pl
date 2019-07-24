@@ -1531,11 +1531,14 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
 
 :- public default_theme/2.
 
+default_theme(var,                    [fg(red)]).
 default_theme(code,                   [fg(blue)]).
+default_theme(comment,                [fg(green)]).
+default_theme(warning,                [fg(red)]).
+default_theme(error,                  [bold, fg(red)]).
 default_theme(truth(false),           [bold, fg(red)]).
 default_theme(truth(true),            [bold]).
 default_theme(truth(undefined),       [bold, fg(cyan)]).
-default_theme(comment,                [fg(green)]).
 default_theme(wfs(residual_program),  [fg(cyan)]).
 default_theme(frame(level),           [bold]).
 default_theme(port(call),             [bold, fg(green)]).
@@ -1547,8 +1550,9 @@ default_theme(port(exception),        [bold, fg(magenta)]).
 default_theme(message(informational), [fg(green)]).
 default_theme(message(information),   [fg(green)]).
 default_theme(message(debug(_)),      [fg(blue)]).
-default_theme(message(warning),       [fg(red)]).
-default_theme(message(error),         [bold, fg(red)]).
+default_theme(message(Level),         Attrs) :-
+    nonvar(Level),
+    default_theme(Level, Attrs).
 
 
                  /*******************************

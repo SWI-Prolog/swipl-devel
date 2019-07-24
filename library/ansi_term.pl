@@ -85,7 +85,7 @@ init_color_term_flag :-
 :- multifile
     user:message_property/2.
 
-%!  ansi_format(+Attributes, +Format, +Args) is det.
+%!  ansi_format(+ClassOrAttributes, +Format, +Args) is det.
 %
 %   Format text with ANSI  attributes.   This  predicate  behaves as
 %   format/2 using Format and Args, but if the =current_output= is a
@@ -96,10 +96,11 @@ init_color_term_flag :-
 %     ?- ansi_format([bold,fg(cyan)], 'Hello ~w', [world]).
 %     ==
 %
-%   Attributes is either a single attribute   or a list thereof. The
-%   attribute names are derived from the ANSI specification. See the
-%   source for sgr_code/2 for details. Some commonly used attributes
-%   are:
+%   Attributes is either a single attribute, a   list  thereof or a term
+%   that is mapped to concrete  attributes   based  on the current theme
+%   (see prolog:console_color/2). The attribute names   are derived from
+%   the ANSI specification. See the source   for sgr_code/2 for details.
+%   Some commonly used attributes are:
 %
 %     - bold
 %     - underline
@@ -127,10 +128,11 @@ init_color_term_flag :-
 ansi_format(Attr, Format, Args) :-
     ansi_format(current_output, Attr, Format, Args).
 
-ansi_format(Stream, Attr, Format, Args) :-
+ansi_format(Stream, Class, Format, Args) :-
     stream_property(Stream, tty(true)),
     current_prolog_flag(color_term, true),
     !,
+    class_attrs(Class, Attr),
     (   is_list(Attr)
     ->  maplist(sgr_code_ex, Attr, Codes0),
         flatten(Codes0, Codes),
@@ -305,6 +307,15 @@ hex_color(D1,V) :-
     code_type(D1, xdigit(V1)),
     V is 16*V1+V1.
 
+%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%
+%   Hook that allows  for  mapping  abstract   terms  to  concrete  ANSI
+%   attributes. This hook  is  used  by   _theme_  files  to  adjust the
+%   rendering based on  user  preferences   and  context.  Defaults  are
+%   defined in the file `boot/messages.pl`.
+%
+%   @see library(theme/dark) for an example  implementation and the Term
+%   values used by the system messages.
 
 
                  /*******************************
