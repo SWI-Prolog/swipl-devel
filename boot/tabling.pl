@@ -346,6 +346,8 @@ start_subsumptive_tabling(Wrapper, Worker) :-
     ).
 
 
+:- '$hide'((done_leader/4, finished_leader/3)).
+
 done_leader(complete, _SCC, Skeleton, Trie) :-
     !,
     trie_gen_compiled(Trie, Skeleton).
