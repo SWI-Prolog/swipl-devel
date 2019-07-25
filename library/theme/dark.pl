@@ -86,7 +86,7 @@ prolog:console_color(port(exception),        [bold, fg(magenta)]).
 % print message. the argument for debug(_) is the debug channel.
 prolog:console_color(message(informational), [hfg(green)]).
 prolog:console_color(message(information),   [hfg(green)]).
-prolog:console_color(message(debug(_)),      [hfg(blue)]).
+prolog:console_color(message(debug(_)),      [hfg(yellow)]).
 prolog:console_color(message(Level),         Attrs) :-
     nonvar(Level),
     prolog:console_color(Level, Attrs).
