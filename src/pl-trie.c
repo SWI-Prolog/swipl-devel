@@ -689,6 +689,8 @@ unify_trie_term(trie_node *node, term_t term ARG_LD)
 	Undo(m);
 	if ( makeMoreStackSpace(rc, ALLOW_GC) )
 	  goto retry;
+	else
+	  return FALSE;
       }
     }
     destroy_ukey_state(&ustate);
