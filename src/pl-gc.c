@@ -4435,7 +4435,7 @@ makeMoreStackSpace(int overflow, int flags)
        garbageCollect(gc_reason) )
     return TRUE;
 
-  if ( (flags & ALLOW_SHIFT) )
+  if ( (flags & (ALLOW_SHIFT|ALLOW_GC)) )
   { size_t l=0, g=0, t=0;
     size_t oldsize;
     int rc;
