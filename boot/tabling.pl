@@ -1224,10 +1224,31 @@ dyn_changed_pattern(_).
 %   the level just above the  dynamic   predicates  and  moving upwards.
 %   Bottom up evaluation is used to   profit  from upward propagation of
 %   not-modified events that may cause the evaluation to stop early.
+%
+%   Note that false paths either end  in   a  dynamic node or a complete
+%   node. The latter happens if we have and  IDG   "D  -> P -> Q" and we
+%   first re-evaluate P for some reason.  Now   Q  can  still be invalid
+%   after P has been re-evaluated.
 
 reeval(ATrie) :-
-    findall(Path, false_path(ATrie, Path), Paths),
-    reeval_paths(Paths, ATrie).
+    tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
+    findall(Path, false_path(ATrie, Path), Paths0),
+    sort(0, @>, Paths0, Paths),
+    split_paths(Paths, Dynamic, Complete),
+    tdebug(forall('$member'(Path, Dynamic),
+                  tdebug(reeval, 'Re-eval dynamic path: ~p', [Path]))),
+    tdebug(forall('$member'(Path, Complete),
+                  tdebug(reeval, 'Re-eval complete path: ~p', [Path]))),
+    reeval_paths(Dynamic, ATrie),
+    reeval_paths(Complete, ATrie).
+
+split_paths([], [], []).
+split_paths([[Rank-_Len|Path]|T], [Path|DT], CT) :-
+    status_rank(dynamic, Rank),
+    !,
+    split_paths(T, DT, CT).
+split_paths([[_|Path]|T], DT, [Path|CT]) :-
+    split_paths(T, DT, CT).
 
 reeval_paths(BottomUp, ATrie) :-
     is_invalid(ATrie),
@@ -1257,18 +1278,29 @@ false_path(ATrie, BottomUp) :-
     '$reverse'(Path, BottomUp).
 
 false_path(ATrie, [ATrie|T], Seen) :-
-    is_invalid(ATrie),
     \+ memberchk(ATrie, Seen),
     '$idg_edge'(ATrie, dependent, Dep),
     '$tbl_table_status'(Dep, Status, _, _),
     (   Status == invalid
     ->  false_path(Dep, T, [ATrie|Seen])
-    ;   T = []
+    ;   status_rank(Status, Rank),
+        length(Seen, Len),
+        T = [Rank-Len]
     ).
+
+status_rank(dynamic,  2) :- !.
+status_rank(complete, 1) :- !.
+status_rank(Status,   0) :-
+    format(user_error, 'Re-eval from status ~p~n', [Status]).
 
 is_invalid(ATrie) :-
     '$idg_falsecount'(ATrie, FalseCount),
     FalseCount > 0.
+
+%!  reeval_node(+ATrie)
+%
+%   Re-evaluate the invalid answer  trie  ATrie.   This  creates  a  sub
+%   tabling environment and solves the variant associated with ATrie.
 
 reeval_node(ATrie) :-
     is_invalid(ATrie),
