@@ -87,6 +87,14 @@ if(WIN32)
 
   createShortCut("SWI-Prolog" "swipl-win" "--win_app" ON)
   createShortCut("SWI-Prolog (console)" "swipl" "" OFF)
+
+  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+  ")
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+  DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+  ")
 endif()
 
 set(CPACK_PACKAGE_FILE_NAME
