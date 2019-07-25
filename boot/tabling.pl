@@ -615,7 +615,7 @@ completion_step(WorkList) :-
 %   Tabled negation.
 
 tnot(Goal0) :-
-    '$tbl_implementation'(Goal0, Goal),         % verifies Goal is tabled
+    '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
     '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
     \+ \+ '$idg_add_edge'(Trie),                % do not update current node
     (   '$tbl_answer_dl'(Trie, _, true)

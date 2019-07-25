@@ -4052,19 +4052,18 @@ PRED_IMPL("$tbl_answer_update_dl", 2, tbl_answer_update_dl,
  * predicate is not tabled.
  */
 
-static
-PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
-{ PRED_LD
-  Module m = NULL;
+static int
+tbl_implementation(term_t g0, term_t g, int must_be_tabled ARG_LD)
+{ Module m = NULL;
   term_t t = PL_new_term_ref();
   functor_t f = 0;
   Procedure proc;
   Definition def;
 
-  if ( !PL_strip_module(A1, &m, t) )
+  if ( !PL_strip_module(g0, &m, t) )
     return FALSE;
   if ( !PL_get_functor(t, &f) )
-    return PL_type_error("callable", A1);
+    return PL_type_error("callable", g0);
   if ( !(proc = resolveProcedure(f, m)) )
     return FALSE;				/* should not happen */
 
@@ -4072,20 +4071,34 @@ PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
     trapUndefined(getProcDefinition(proc) PASS_LD);
   def = getProcDefinition(proc);
 
-  if ( false(def, P_TABLED) )
+  if ( must_be_tabled && false(def, P_TABLED) )
   { return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_tnot, ATOM_non_tabled_procedure, proc);
   }
 
   if ( def->module == m )
-  { return PL_unify(A2, A1);
+  { return PL_unify(g, g0);
   } else
-  { return PL_unify_term(A2, PL_FUNCTOR, FUNCTOR_colon2,
-			       PL_ATOM, def->module->name,
-			       PL_TERM, t);
+  { return PL_unify_term(g, PL_FUNCTOR, FUNCTOR_colon2,
+			      PL_ATOM, def->module->name,
+			      PL_TERM, t);
   }
 }
 
+
+static
+PRED_IMPL("$tnot_implementation", 2, tnot_implementation, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return tbl_implementation(A1, A2, TRUE PASS_LD);
+}
+
+static
+PRED_IMPL("$tbl_implementation", 2, tbl_implementation, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return tbl_implementation(A1, A2, FALSE PASS_LD);
+}
 
 /**
  * '$is_answer_trie'(@Trie) is semidet
@@ -4852,6 +4865,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_force_truth_value",    3, tbl_force_truth_value,    0)
   PRED_DEF("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
   PRED_DEF("$tbl_is_answer_completed",  1, tbl_is_answer_completed,  0)
+  PRED_DEF("$tnot_implementation",      2, tnot_implementation,   META)
   PRED_DEF("$tbl_implementation",       2, tbl_implementation,    META)
   PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
 
