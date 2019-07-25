@@ -67,6 +67,7 @@ nonmt_test(test_iso_mult_visit).
 nonmt_test(test_iso_hash).
 nonmt_test(test_iso_undef).
 % nonmt_test(test_iso_attr).		% relies on attributed variables
+nonmt_test(test_lazy).
 
 :- end_tests(xsb_test_nonmt).
 
