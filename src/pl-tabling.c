@@ -36,6 +36,7 @@
 #include "pl-incl.h"
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
+#include "pl-wrap.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -3291,9 +3292,13 @@ out_fail:
  */
 
 static int
-tbl_variant_table(term_t variant, term_t Trie, term_t status, term_t ret,
+tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, term_t ret,
 		  int flags ARG_LD)
 { trie *atrie;
+  Definition def = NULL;
+
+  get_closure_predicate(closure, &def);
+  (void) def;
 
   if ( (atrie=get_answer_table(variant, ret, flags PASS_LD)) )
   { return ( idg_init_variant(atrie, variant PASS_LD) &&
@@ -3305,29 +3310,29 @@ tbl_variant_table(term_t variant, term_t Trie, term_t status, term_t ret,
 }
 
 static
-PRED_IMPL("$tbl_variant_table", 4, tbl_variant_table, 0)
+PRED_IMPL("$tbl_variant_table", 5, tbl_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, A4, AT_CREATE PASS_LD);
+  return tbl_variant_table(A1, A2, A3, A4, A5, AT_CREATE PASS_LD);
 }
 
 
 static
-PRED_IMPL("$tbl_moded_variant_table", 4, tbl_moded_variant_table, 0)
+PRED_IMPL("$tbl_moded_variant_table", 5, tbl_moded_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, A4, AT_CREATE|AT_MODED PASS_LD);
+  return tbl_variant_table(A1, A2, A3, A4, A5, AT_CREATE|AT_MODED PASS_LD);
 }
 
 
 static
-PRED_IMPL("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
+PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie=get_answer_table(A1, A4, FALSE PASS_LD)) )
-  { return ( _PL_unify_atomic(A2, trie->symbol) &&
-	     unify_table_status(A3, trie, TRUE PASS_LD) );
+  if ( (trie=get_answer_table(A2, A5, FALSE PASS_LD)) )
+  { return ( _PL_unify_atomic(A3, trie->symbol) &&
+	     unify_table_status(A4, trie, TRUE PASS_LD) );
   }
 
   return FALSE;
@@ -4836,9 +4841,9 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
   PRED_DEF("$tbl_wkl_work",		8, tbl_wkl_work,          NDET)
-  PRED_DEF("$tbl_variant_table",	4, tbl_variant_table,	     0)
-  PRED_DEF("$tbl_existing_variant_table", 4, tbl_existing_variant_table, 0)
-  PRED_DEF("$tbl_moded_variant_table",	4, tbl_moded_variant_table,  0)
+  PRED_DEF("$tbl_variant_table",	5, tbl_variant_table,	     0)
+  PRED_DEF("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
+  PRED_DEF("$tbl_moded_variant_table",	5, tbl_moded_variant_table,  0)
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)

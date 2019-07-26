@@ -43,5 +43,8 @@ typedef struct closure
 
 COMMON(PL_blob_t) _PL_closure_blob;
 COMMON(void)	  resetWrappedSupervisor(Definition def);
+COMMON(int)	  get_closure_predicate__LD(term_t t, Definition *def ARG_LD);
+
+#define get_closure_predicate(t, def) get_closure_predicate__LD(t, def PASS_LD)
 
 #endif /*_PL_WRAP_H*/

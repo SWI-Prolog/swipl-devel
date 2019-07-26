@@ -48,9 +48,9 @@
             abolish_nonincremental_tables/0,
             abolish_nonincremental_tables/1, % +Options
 
-            start_tabling/2,            % +Wrapper, :Worker
-            start_subsumptive_tabling/2,% +Wrapper, :Worker
-            start_tabling/4,            % +Wrapper, :Worker, :Variant, ?ModeArgs
+            start_tabling/3,            % +Closure, +Wrapper, :Worker
+            start_subsumptive_tabling/3,% +Closure, +Wrapper, :Worker
+            start_tabling/5,            % +Closure, +Wrapper, :Worker, :Variant, ?ModeArgs
 
             '$wrap_tabled'/2,		% :Head, +Mode
             '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
@@ -261,13 +261,13 @@ untable(TableSpec, _) :-
     get_dict(mode, Options, subsumptive),
     !,
     set_pattributes(Head, Options),
-    '$wrap_predicate'(Head, table, _Closure, Wrapped,
-                      start_subsumptive_tabling(Head, Wrapped)).
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_subsumptive_tabling(Closure, Head, Wrapped)).
 '$wrap_tabled'(Head, Options) :-
     !,
     set_pattributes(Head, Options),
-    '$wrap_predicate'(Head, table, _Closure, Wrapped,
-                      start_tabling(Head, Wrapped)).
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_tabling(Closure, Head, Wrapped)).
 
 set_pattributes(Head, Options) :-
     '$set_predicate_attribute'(Head, tabled, true),
@@ -285,8 +285,8 @@ set_pattributes(Head, Options) :-
     ).
 
 
-start_tabling(Wrapper, Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status, Skeleton),
+start_tabling(Closure, Wrapper, Worker) :-
+    '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
     (   Status == complete
     ->  '$idg_add_edge'(Trie),
         trie_gen_compiled(Trie, Skeleton)
@@ -314,8 +314,8 @@ start_tabling(Wrapper, Worker) :-
 
 %!  start_subsumptive_tabling(:Wrapper, :Implementation)
 
-start_subsumptive_tabling(Wrapper, Worker) :-
-    (   '$tbl_existing_variant_table'(Wrapper, Trie, Status, Skeleton)
+start_subsumptive_tabling(Closure, Wrapper, Worker) :-
+    (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
     ->  (   Status == complete
         ->  '$idg_add_edge'(Trie),
             '$tbl_answer_update_dl'(Trie, Skeleton)
@@ -329,7 +329,7 @@ start_subsumptive_tabling(Wrapper, Worker) :-
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
     ->  '$idg_add_edge'(ATrie),
         '$tbl_answer_update_dl'(ATrie, Skeleton)
-    ;   '$tbl_variant_table'(Wrapper, Trie, _0Status, Skeleton),
+    ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
@@ -439,14 +439,14 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 
 '$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
     '$set_predicate_attribute'(Head, tabled, true),
-    '$wrap_predicate'(Head, table, _CLosure, Wrapped,
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
                       (   ModeTest,
-                          start_tabling(Head, Wrapped, WrapperNoModes, ModeArgs)
+                          start_tabling(Closure, Head, Wrapped, WrapperNoModes, ModeArgs)
                       )).
 
 
-start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
-    '$tbl_moded_variant_table'(WrapperNoModes, Trie, Status, _Skeleton),
+start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
+    '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie, Status, _Skeleton),
     (   Status == complete
     ->  '$idg_add_edge'(Trie),
         trie_gen(Trie, WrapperNoModes, ModeArgs)
@@ -616,7 +616,7 @@ completion_step(WorkList) :-
 
 tnot(Goal0) :-
     '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
-    '$tbl_variant_table'(Goal, Trie, Status, Skeleton),
+    '$tbl_variant_table'(_, Goal, Trie, Status, Skeleton),
     \+ \+ '$idg_add_edge'(Trie),                % do not update current node
     (   '$tbl_answer_dl'(Trie, _, true)
     ->  fail
@@ -628,7 +628,7 @@ tnot(Goal0) :-
     ->  tdebug(tnot, 'tnot: ~p: fresh', [Goal]),
         (   call(Goal),
             fail
-        ;   '$tbl_variant_table'(Goal, Trie, NewStatus, NewSkeleton),
+        ;   '$tbl_variant_table'(_, Goal, Trie, NewStatus, NewSkeleton),
             tdebug(tnot, 'tnot: fresh ~p now ~p', [Goal, NewStatus]),
             (   '$tbl_answer_dl'(Trie, _, true)
             ->  fail

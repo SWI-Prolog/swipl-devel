@@ -128,6 +128,28 @@ unify_closure(term_t t, Definition def, Code supervisor)
 }
 
 
+/** get_closure_predicate(term_t t, Definition *def)
+ * Get the predicate that is referenced by a closure.  Fails silently
+ * if t is not a closure.
+ */
+
+int
+get_closure_predicate__LD(term_t t, Definition *def ARG_LD)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(t, &data, NULL, &type) &&
+       type == &_PL_closure_blob )
+  { closure *c = data;
+    *def = c->def.impl.wrapped.predicate;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called  from  freeCodesDefinition()  to  reset  the  eventually  wrapped
 supervisor to S_VIRGIN after a change   to the wrapped predicate. S_WRAP
