@@ -261,12 +261,12 @@ untable(TableSpec, _) :-
     get_dict(mode, Options, subsumptive),
     !,
     set_pattributes(Head, Options),
-    '$wrap_predicate'(Head, table, Wrapped,
+    '$wrap_predicate'(Head, table, _Closure, Wrapped,
                       start_subsumptive_tabling(Head, Wrapped)).
 '$wrap_tabled'(Head, Options) :-
     !,
     set_pattributes(Head, Options),
-    '$wrap_predicate'(Head, table, Wrapped,
+    '$wrap_predicate'(Head, table, _Closure, Wrapped,
                       start_tabling(Head, Wrapped)).
 
 set_pattributes(Head, Options) :-
@@ -439,7 +439,7 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 
 '$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
     '$set_predicate_attribute'(Head, tabled, true),
-    '$wrap_predicate'(Head, table, Wrapped,
+    '$wrap_predicate'(Head, table, _CLosure, Wrapped,
                       (   ModeTest,
                           start_tabling(Head, Wrapped, WrapperNoModes, ModeArgs)
                       )).
@@ -1151,7 +1151,7 @@ sum(S0, S1, S) :- S is S0+S1.
 
 '$wrap_incremental'(Head) :-
     abstract_goal(Head, Abstract),
-    '$wrap_predicate'(Head, incremental, Wrapped,
+    '$wrap_predicate'(Head, incremental, _Closure, Wrapped,
                       (   '$idg_add_dyncall'(Abstract),
                           Wrapped
                       )),

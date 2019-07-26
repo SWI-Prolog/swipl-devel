@@ -85,7 +85,7 @@
             thread_join/1,                      % +Id
             set_prolog_gc_thread/1,		% +Status
 
-            '$wrap_predicate'/4                 % :Head, +Name, -Wrapped, +Body
+            '$wrap_predicate'/5                 % :Head, +Name, -Closure, -Wrapped, +Body
           ]).
 
 :- meta_predicate
@@ -1455,21 +1455,21 @@ set_prolog_gc_thread(stop) :-
 set_prolog_gc_thread(Status) :-
     '$domain_error'(gc_thread, Status).
 
-%!  '$wrap_predicate'(:Head, +Name, -Wrapped, +Body) is det.
+%!  '$wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body) is det.
 %
 %   Would be nicer to have this   from library(prolog_wrap), but we need
 %   it for tabling, so it must be a system predicate.
 
 :- meta_predicate
-    '$wrap_predicate'(:, +, -, +).
+    '$wrap_predicate'(:, +, -, -, +).
 
-'$wrap_predicate'(M:Head, WName, call(Wrapped), Body) :-
+'$wrap_predicate'(M:Head, WName, Closure, call(Wrapped), Body) :-
     callable_name_arguments(Head, PName, Args),
     distinct_vars(Args, Head, Arity),
     atomic_list_concat(['__wrap$', PName], WrapName),
     volatile(M:WrapName/Arity),
     WHead =.. [WrapName|Args],
-    '$c_wrap_predicate'(M:Head, WName, Wrapped, M:(WHead :- Body)).
+    '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
 
 distinct_vars(Vars, _, Arity) :-
     all_vars(Vars),

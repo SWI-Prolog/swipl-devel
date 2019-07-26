@@ -80,7 +80,7 @@ calls the original wrapped definition somewhere.
 %   using initialization/1.
 
 wrap_predicate(M:Head, WName, Wrapped, Body) :-
-    '$wrap_predicate'(M:Head, WName, Wrapped, Body).
+    '$wrap_predicate'(M:Head, WName, _Closure, Wrapped, Body).
 
 %!  unwrap_predicate(:PI, ?Name) is semidet.
 %

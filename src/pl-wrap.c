@@ -234,19 +234,19 @@ retry:
 		 *	      PROLOG		*
 		 *******************************/
 
-/** '$c_wrap_predicate'(:Head, +Name, -Closure, +Body)
+/** '$c_wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body)
  *
  * Install a wrapper for the predicate Head
  */
 
 static
-PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
+PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 { PRED_LD
   Procedure proc;
   atom_t wname;
   Code codes = NULL;
   term_t head = PL_new_term_ref();
-  term_t closure = PL_new_term_ref();
+  term_t closure = A3;
 
   if ( !PL_get_atom_ex(A2, &wname) ||
        !get_procedure(A1, &proc, head, GP_DEFINE) )
@@ -254,11 +254,13 @@ PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
 
   if ( (codes = find_wrapper(proc->definition, wname)) )
   { ClauseRef cref;
+    atom_t aref = (atom_t)codes[2];
 
-    if ( !unify_wrapped(A3, (atom_t)codes[2], head PASS_LD) )
+    if ( !PL_unify_atom(closure, aref) ||
+	 !unify_wrapped(A4, aref, head PASS_LD) )
       return FALSE;
 
-    if ( (cref = assert_wrapper(A4 PASS_LD)) )
+    if ( (cref = assert_wrapper(A5 PASS_LD)) )
     { Clause cl = ((ClauseRef)codes[1])->value.clause;
 
       codes[1] = (code)cref;
@@ -272,10 +274,10 @@ PRED_IMPL("$c_wrap_predicate", 4, c_wrap_predicate, PL_FA_TRANSPARENT)
       atom_t aref;
 
       if ( !PL_get_atom_ex(closure, &aref) ||
-	   !unify_wrapped(A3, aref, head PASS_LD) )
+	   !unify_wrapped(A4, aref, head PASS_LD) )
 	return FALSE;				/* something really wrong */
 
-      if ( (cref = assert_wrapper(A4 PASS_LD)) )
+      if ( (cref = assert_wrapper(A5 PASS_LD)) )
       { codes = allocCodes(4);
 	PL_register_atom(aref);
 	PL_register_atom(wname);
@@ -403,7 +405,7 @@ PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
 		 *******************************/
 
 BeginPredDefs(wrap)
-  PRED_DEF("$c_wrap_predicate",  4, c_wrap_predicate,  PL_FA_TRANSPARENT)
+  PRED_DEF("$c_wrap_predicate",  5, c_wrap_predicate,  PL_FA_TRANSPARENT)
   PRED_DEF("unwrap_predicate",   2, uwrap_predicate,   PL_FA_TRANSPARENT)
   PRED_DEF("$wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$closure_predicate", 2, closure_predicate, 0)
