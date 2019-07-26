@@ -1887,14 +1887,21 @@ print_answer(const char *msg, trie_node *answer)
 static void release_variant_table_node(trie *trie, trie_node *node);
 
 static trie *
-thread_variant_table(ARG1_LD)
-{ if ( !LD->tabling.variant_table )
-  { LD->tabling.variant_table = trie_create();
-    trie_symbol(LD->tabling.variant_table);
-    LD->tabling.variant_table->release_node = release_variant_table_node;
+variant_table(trie **tp)
+{ if ( *tp == NULL )
+  { trie *t = trie_create();
+    atom_t symb;
+
+    t->release_node = release_variant_table_node;
+    symb = trie_symbol(t);
+
+    if ( !COMPARE_AND_SWAP(tp, NULL, t) )
+    { PL_unregister_atom(symb);
+      trie_destroy(t);
+    }
   }
 
-  return LD->tabling.variant_table;
+  return *tp;
 }
 
 
@@ -1996,14 +2003,30 @@ ret/N). If `create` is TRUE, create the table if it does not exist.
 #define AT_MODED		0x0002
 
 static trie *
-get_answer_table(term_t t, term_t ret, int flags ARG_LD)
-{ trie *variants = thread_variant_table(PASS_LD1);
+get_answer_table(Definition def, term_t t, term_t ret, int flags ARG_LD)
+{ trie *variants;
   trie *atrie;
   trie_node *node;
   int rc;
   Word v;
   tmp_buffer vars;
   mark m;
+
+  if ( !def )					/* we should avoid these */
+  { Procedure proc;
+
+    if ( get_procedure(t, &proc, 0, GP_RESOLVE) )
+    { def = proc->definition;
+    } else
+    { assert(0);
+      return NULL;
+    }
+  }
+
+  if ( false(def, P_TSHARED) )
+    variants = variant_table(&LD->tabling.variant_table);
+  else
+    variants = variant_table(&GD->tabling.variant_table);
 
   initBuffer(&vars);
 
@@ -2016,13 +2039,22 @@ retry:
   { if ( node->value )
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
-    { atrie = trie_create();
+    { atom_t symb;
+
+      atrie = trie_create();
       set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
       atrie->release_node = release_answer_node;
-      node->value = trie_symbol(atrie);
       atrie->data.variant = node;
       atrie->alloc_pool = &LD->tabling.node_pool;
-      ATOMIC_INC(&variants->value_count);
+      symb = trie_symbol(atrie);
+
+      if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
+      { ATOMIC_INC(&variants->value_count);
+      } else
+      { PL_unregister_atom(symb);
+	trie_destroy(atrie);
+	symbol_trie(node->value);
+      }
     } else
     { discardBuffer(&vars);
       return NULL;
@@ -2521,7 +2553,7 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
     wrapper = PL_new_term_ref();
 
   if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
-  { get_answer_table(wrapper, skeleton, 0 PASS_LD);
+  { get_answer_table(NULL, wrapper, skeleton, 0 PASS_LD);
 
     return TRUE;
   }
@@ -3300,7 +3332,7 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
 
   get_closure_predicate(closure, &def);
 
-  if ( (atrie=get_answer_table(variant, ret, flags PASS_LD)) )
+  if ( (atrie=get_answer_table(def, variant, ret, flags PASS_LD)) )
   { return ( idg_init_variant(atrie, def, variant PASS_LD) &&
 	     _PL_unify_atomic(Trie, atrie->symbol) &&
 	     unify_table_status(status, atrie, TRUE PASS_LD) );
@@ -3329,8 +3361,11 @@ static
 PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
 { PRED_LD
   trie *trie;
+  Definition def = NULL;
 
-  if ( (trie=get_answer_table(A2, A5, FALSE PASS_LD)) )
+  get_closure_predicate(A1, &def);
+
+  if ( (trie=get_answer_table(def, A2, A5, FALSE PASS_LD)) )
   { return ( _PL_unify_atomic(A3, trie->symbol) &&
 	     unify_table_status(A4, trie, TRUE PASS_LD) );
   }
@@ -3893,7 +3928,7 @@ put_delay_set(term_t cond, delay_info *di, delay_set *set,
 
       if ( !unify_trie_term(top->variant->data.variant, c1 PASS_LD) )
 	return FALSE;
-      if ( !get_answer_table(c1, ans, FALSE PASS_LD) )
+      if ( !get_answer_table(NULL, c1, ans, FALSE PASS_LD) )
       { Sdprintf("OOPS! could not find variant table\n");
 	return FALSE;
       }
@@ -4331,7 +4366,7 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 { PRED_LD
   trie *atrie;
 
-  if ( (atrie=get_answer_table(A1, 0, TRUE PASS_LD)) )
+  if ( (atrie=get_answer_table(NULL, A1, 0, TRUE PASS_LD)) )
   { trie *ctrie;
 
     if ( !atrie->data.IDG )

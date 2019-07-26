@@ -132,6 +132,7 @@ typedef struct trie
 
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
+COMMON(void)	trie_destroy(trie *trie);
 COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	trie_delete(trie *trie, trie_node *node, int prune);

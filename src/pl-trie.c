@@ -96,7 +96,6 @@ typedef struct ukey_state
   Word		var_buf[NVARS_FAST];	/* quick var buffer */
 } ukey_state;
 
-static void	trie_destroy(trie *trie);
 static int	unify_key(ukey_state *state, word key ARG_LD);
 static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
 static void	destroy_ukey_state(ukey_state *state);
@@ -207,7 +206,7 @@ trie_create(void)
 }
 
 
-static void
+void
 trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie_empty(trie);
