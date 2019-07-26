@@ -79,7 +79,8 @@ static int	put_delay_info(term_t t, trie_node *answer);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
-static int	idg_init_variant(trie *atrie, term_t variant ARG_LD);
+static int	idg_init_variant(trie *atrie, Definition def, term_t variant
+				 ARG_LD);
 static void	reeval_complete(trie *atrie);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
@@ -3298,10 +3299,9 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
   Definition def = NULL;
 
   get_closure_predicate(closure, &def);
-  (void) def;
 
   if ( (atrie=get_answer_table(variant, ret, flags PASS_LD)) )
-  { return ( idg_init_variant(atrie, variant PASS_LD) &&
+  { return ( idg_init_variant(atrie, def, variant PASS_LD) &&
 	     _PL_unify_atomic(Trie, atrie->symbol) &&
 	     unify_table_status(status, atrie, TRUE PASS_LD) );
   }
@@ -4215,15 +4215,19 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
 
 
 static int
-idg_init_variant(trie *atrie, term_t variant ARG_LD)
+idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
 { if ( !atrie->data.IDG )
-  { Procedure proc;
+  { if ( unlikely(!def) )
+    { Procedure proc;
 
-    if ( get_procedure(variant, &proc, 0, GP_RESOLVE|GP_EXISTENCE_ERROR) )
-    { if ( true(proc->definition, P_INCREMENTAL) )
-	atrie->data.IDG = idg_new(atrie);
-    } else
-      return FALSE;
+      if ( get_procedure(variant, &proc, 0, GP_RESOLVE|GP_EXISTENCE_ERROR) )
+	def = proc->definition;
+      else
+	return FALSE;
+    }
+
+    if ( true(def, P_INCREMENTAL) )
+      atrie->data.IDG = idg_new(atrie);
   }
 
   return TRUE;
