@@ -2048,12 +2048,18 @@ retry:
       atrie->alloc_pool = &LD->tabling.node_pool;
       symb = trie_symbol(atrie);
 
-      if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
-      { ATOMIC_INC(&variants->value_count);
+      if ( false(def, P_TSHARED) )
+      { node->value = symb;
+	ATOMIC_INC(&variants->value_count);
       } else
-      { PL_unregister_atom(symb);
-	trie_destroy(atrie);
-	symbol_trie(node->value);
+      { set(atrie, TRIE_ISSHARED);
+	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
+	{ ATOMIC_INC(&variants->value_count);
+	} else
+	{ PL_unregister_atom(symb);
+	  trie_destroy(atrie);
+	  symbol_trie(node->value);
+	}
       }
     } else
     { discardBuffer(&vars);
