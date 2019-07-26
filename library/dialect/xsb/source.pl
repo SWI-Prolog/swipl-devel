@@ -160,6 +160,8 @@ ignored_table_options(incremental, incremental) :-
     !.
 ignored_table_options(opaque, true) :-
     !.
+ignored_table_options(shared, shared) :-
+    !.
 ignored_table_options(Option, true) :-
     print_message(warning, xsb(table_option_ignored(Option))).
 
