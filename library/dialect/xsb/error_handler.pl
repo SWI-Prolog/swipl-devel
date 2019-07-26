@@ -46,6 +46,7 @@
 
             abort/1,                    % +Message
 
+            xsb_error_get_tag/2,        % +ErrorTerm, -Formal
             xsb_error_get_message/2     % +ErrorTerm, -Message
           ]).
 :- use_module(library(error)).
@@ -71,12 +72,24 @@ abort(Message) :-
     print_message(error, aborted(Message)),
     abort.
 
-%!  xsb_error_get_message(+Term, -Message)
+%!  xsb_error_get_tag(+Term, -Tag) is semidet.
 %
-%   Convert an exception ball into a human readable message.
+%   Tag is the formal part of an error(Formal,Context) term.
 
-xsb_error_get_message(Term, Message) :-
-    message_to_string(Term, Message).
+xsb_error_get_tag(error(Tag, _), Tag).
+
+%!  xsb_error_get_message(+Term, -Message) is semidet.
+%
+%   Message is the additional explanation context for an error term,
+
+xsb_error_get_message(error(_, Context), Message) :-
+    error_context_message(Context, Message).
+
+error_context_message(Var, Var) :-
+    var(Var),
+    !.
+error_context_message(context(Message, _Stack), Message).
+
 
 
 		 /*******************************

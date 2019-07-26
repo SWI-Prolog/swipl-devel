@@ -43,6 +43,7 @@
             incr_invalid_subgoals/1,            % -List
             incr_is_invalid/1,                  % :Goal
 
+            incr_invalidate_call/1,		% :Goal
             incr_invalidate_calls/1,		% :Goal
             incr_table_update/0
           ]).
@@ -68,6 +69,7 @@ corresponding database update.
     incr_directly_depends(:,:),
     incr_trans_depends(:, :),
     incr_is_invalid(:),
+    incr_invalidate_call(:),
     incr_invalidate_calls(:).
 
 incr_assert(T)     :- assertz(T).
@@ -165,6 +167,14 @@ incr_invalidate_calls(Goal) :-
     !,
     forall(trie_gen(VTable, Goal, ATrie),
            '$idg_changed'(ATrie)).
+
+%!  incr_invalidate_call(:Goal) is det.
+%
+%   This is the XSB name, but   the  manual says incr_invalidate_calls/1
+%   and the comment with the code suggests this is misnamed.
+
+incr_invalidate_call(Goal) :-
+    incr_invalidate_calls(Goal).
 
 %!  incr_table_update
 %
