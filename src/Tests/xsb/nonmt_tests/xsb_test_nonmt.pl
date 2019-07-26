@@ -69,6 +69,22 @@ nonmt_test(test_iso_undef).
 % nonmt_test(test_iso_attr).		% relies on attributed variables
 nonmt_test(test_lazy).
 nonmt_test(test_introspection).
+nonmt_test(test_invalidate).            % modified: force order, get_residual/2
+% nonmt_test(test_goal_interrupt).	% tests interrupt_with_goal/1
+% nonmt_test(test_trip).		% tests answer/variant limits
+/*
+nonmt_test(test_trip_mem).
+nonmt_test(test_trip_susp_reset).
+nonmt_test(test_maxans).
+nonmt_test(cmu_sei_083).
+nonmt_test(cmu_sei_0050).
+nonmt_test(cmu_sei_a46d).
+nonmt_test(test_recomputable).
+nonmt_test(test_set_pp).
+nonmt_test(test_dynopq).
+nonmt_test(test_memory_ovrflw_1).
+nonmt_test(test_memory_ovrflw_2).
+*/
 
 :- end_tests(xsb_test_nonmt).
 
