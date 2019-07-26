@@ -186,6 +186,7 @@ struct PL_global_data
 #else
     pthread_cond_t cvar;
 #endif
+    struct trie_array *waiting;		/* thread --> trie we are waiting for */
   } tabling;
 #endif
 

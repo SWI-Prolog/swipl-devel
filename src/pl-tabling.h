@@ -186,6 +186,12 @@ typedef struct idg_node
 } idg_node;
 
 
+typedef struct trie_array
+{ trie **blocks[MAX_BLOCKS];
+  trie *preallocated[7];
+} trie_array;
+
+
 		 /*******************************
 		 *	     PROTOTYPES		*
 		 *******************************/

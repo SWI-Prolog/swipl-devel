@@ -103,6 +103,33 @@ static int	table_is_incomplete(trie *trie);
 #define DL_IS_DELAY_LIST(dl)	((dl) && (dl) != DL_UNDEFINED)
 
 
+#ifdef O_PLMT
+#define	LOCK_SHARED_TABLES()	simpleMutexLock(&GD->tabling.mutex);
+#define	UNLOCK_SHARED_TABLES()	simpleMutexUnlock(&GD->tabling.mutex);
+
+#define COMPLETE_WORKLIST(__trie, __code) \
+	do \
+	{ LOCK_SHARED_TABLES(); \
+	  __code; \
+          unregister_waiting(__trie); \
+	  __trie->tid = 0; \
+	  cv_broadcast(&GD->tabling.cvar); \
+	  UNLOCK_SHARED_TABLES(); \
+	} while(0)
+
+static int	wait_for_table_to_complete(trie *atrie);
+static int	table_needs_work(trie *atrie);
+static void	register_waiting(int tid, trie *atrie);
+static void	unregister_waiting(trie *atrie);
+
+#else /*O_PLMT*/
+
+#define COMPLETE_WORKLIST(__code) \
+	do { __code; } while(0)
+
+#endif /*O_PLMT*/
+
+
 		 /*******************************
 		 *	     COMPONENTS		*
 		 *******************************/
@@ -2066,6 +2093,22 @@ retry:
       return NULL;
     }
 
+#ifdef O_PLMT
+    if ( true(atrie, TRIE_ISSHARED) )
+    { int mytid = PL_thread_self();
+
+      LOCK_SHARED_TABLES();
+      if ( atrie->tid )
+      { if ( atrie->tid != mytid )
+	  wait_for_table_to_complete(atrie);
+      } else if ( table_needs_work(atrie) )
+      { atrie->tid = mytid;
+	register_waiting(mytid, atrie);
+      }
+      UNLOCK_SHARED_TABLES();
+    }
+#endif
+
     if ( ret )
     { if ( isEmptyBuffer(&vars) )		/* TBD: only needed first time */
       { if ( WL_IS_WORKLIST(atrie->data.worklist) )
@@ -2273,9 +2316,9 @@ new_worklist(trie *trie)
   wl->table = trie;
   if ( trie->data.worklist == WL_GROUND )
     wl->ground = TRUE;
-  trie->data.worklist = wl;
   initBuffer(&wl->delays);
   initBuffer(&wl->pos_undefined);
+  trie->data.worklist = wl;
 
   return wl;
 }
@@ -2333,7 +2376,7 @@ static void
 complete_worklist(worklist *wl)
 { clean_worklist(wl);
 
-  wl->completed = TRUE;
+  COMPLETE_WORKLIST(wl->table, wl->completed = TRUE);
 }
 
 
@@ -3464,7 +3507,7 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 						/* see (*) */
       if ( !wl->undefined && isEmptyBuffer(&wl->delays) )
       { free_worklist(wl);
-	trie->data.worklist = WL_COMPLETE;
+	COMPLETE_WORKLIST(trie, trie->data.worklist = WL_COMPLETE);
       } else
       { complete_worklist(wl);
       }
@@ -4865,6 +4908,138 @@ reeval_complete(trie *atrie)
     n->reevaluating = FALSE;
   }
 }
+
+		 /*******************************
+		 *	    CONCURRENCY		*
+		 *******************************/
+
+#if O_PLMT
+
+static int
+table_needs_work(trie *atrie)
+{ worklist *wl = atrie->data.worklist;
+
+  if ( WL_IS_WORKLIST(wl) )
+  { if ( wl->completed )
+    { idg_node *n;
+
+    complete:
+      if ( (n=atrie->data.IDG) )
+      { if ( n->falsecount > 0 ||		/* invalid */
+	     n->reevaluating )			/* fresh (re-evaluating) */
+	  return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  if ( wl == WL_COMPLETE )
+    goto complete;
+
+  return TRUE;					/* fresh */
+}
+
+
+static trie_array *
+new_trie_array(void)
+{ trie_array *a = allocHeapOrHalt(sizeof(*a));
+
+  memset(a, 0, sizeof(*a));
+  a->blocks[0] = a->preallocated - 1;
+  a->blocks[1] = a->preallocated - 1;
+  a->blocks[2] = a->preallocated - 1;
+
+  return a;
+}
+
+
+static void
+register_waiting(int tid, trie *atrie)
+{ trie_array *ta;
+  size_t idx = MSB(tid);
+
+  if ( !(ta=GD->tabling.waiting) )
+  { ta = new_trie_array();
+    if ( !COMPARE_AND_SWAP(&GD->tabling.waiting, NULL, ta) )
+    { freeHeap(ta, sizeof(*ta));
+      ta = GD->tabling.waiting;
+    }
+  }
+
+  if ( !ta->blocks[idx] )
+  { if ( !ta->blocks[idx] )
+    { size_t bs = (size_t)1<<idx;
+      trie **newblock;
+
+      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(trie*))) )
+	outOfCore();
+
+      memset(newblock, 0, bs*sizeof(trie*));
+      if ( !COMPARE_AND_SWAP(&ta->blocks[idx], NULL, newblock-bs) )
+	PL_free(newblock);
+    }
+  }
+
+  ta->blocks[idx][tid] = atrie;
+}
+
+
+static void
+unregister_waiting(trie *atrie)
+{ int tid;
+
+  if ( (tid=atrie->tid) )
+  { size_t idx = MSB(tid);
+
+    atrie->tid = 0;
+    GD->tabling.waiting->blocks[idx][tid] = NULL;
+  }
+}
+
+
+
+static trie *
+thread_waits_for_trie(int tid)
+{ trie_array *ta;
+
+  if ( (ta=GD->tabling.waiting) )
+  { size_t idx = MSB(tid);
+
+    if ( ta->blocks[idx] )
+      return ta->blocks[idx][tid];
+  }
+
+  return NULL;
+}
+
+
+static int
+wait_for_table_to_complete(trie *atrie)
+{ DEBUG(MSG_TABLING_SHARED,
+	{ GET_LD
+	  term_t t = PL_new_term_ref();
+	  unify_trie_term(atrie->data.variant, t PASS_LD);
+	  Sdprintf("[%d]: waiting for %d to complete: ",
+		   PL_thread_self(), atrie->tid);
+	  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	});
+
+  do
+  {
+#ifdef __WINDOWS__
+    win32_cond_wait(&GD->tabling.cvar, &GD->tabling.mutex, NULL);
+#else
+    pthread_cond_wait(&GD->tabling.cvar, &GD->tabling.mutex);
+#endif
+  } while( atrie->tid != 0 );
+
+  DEBUG(MSG_TABLING_SHARED,
+	Sdprintf("[%d] table is complete\n", PL_thread_self()));
+
+  return TRUE;
+}
+#endif /*O_PLMT*/
 
 
 void

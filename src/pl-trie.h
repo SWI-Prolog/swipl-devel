@@ -103,6 +103,9 @@ typedef struct trie
   unsigned int		node_count;	/* # nodes */
   unsigned int		value_count;	/* # nodes with a value */
   unsigned int		flags;		/* misc flags */
+#ifdef O_PLMT
+  int			tid;		/* thread id doing completion or re-evaluation */
+#endif
   trie_node	        root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
