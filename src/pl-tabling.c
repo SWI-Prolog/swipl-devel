@@ -4826,6 +4826,15 @@ reeval_complete(trie *atrie)
 }
 
 
+void
+initTabling(void)
+{
+#ifdef O_PLMT
+  simpleMutexInit(&GD->tabling.mutex);
+  cv_init(&GD->tabling.cvar, NULL);
+#endif
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/

@@ -3492,7 +3492,7 @@ The resulting implementation suffers from the following problems:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-static int
+int
 win32_cond_init(win32_cond_t *cv)
 { cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
   cv->events[BROADCAST] = CreateEvent(NULL, TRUE,  FALSE, NULL);
@@ -3502,7 +3502,7 @@ win32_cond_init(win32_cond_t *cv)
 }
 
 
-static int
+int
 win32_cond_destroy(win32_cond_t *cv)
 { CloseHandle(cv->events[SIGNAL]);
   CloseHandle(cv->events[BROADCAST]);
@@ -3514,7 +3514,7 @@ win32_cond_destroy(win32_cond_t *cv)
 #define WIN_MAX_WAIT (INFINITE-1)
 #define WIN_MAX_SECS (WIN_MAX_WAIT/1000-1)
 
-static int
+int
 win32_cond_wait(win32_cond_t *cv,
 		CRITICAL_SECTION *external_mutex,
 	        struct timespec *deadline)
@@ -3583,7 +3583,7 @@ restart:
 }
 
 
-static int
+int
 win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 { if ( cv->waiters > 0 )
     SetEvent(cv->events[SIGNAL]);
@@ -3600,15 +3600,6 @@ win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
   return 0;
 }
 
-#define cv_broadcast	win32_cond_broadcast
-#define cv_signal	win32_cond_signal
-#define cv_init(cv,p)	win32_cond_init(cv)
-#define cv_destroy	win32_cond_destroy
-#else /*__WINDOWS__*/
-#define cv_broadcast	pthread_cond_broadcast
-#define cv_signal	pthread_cond_signal
-#define cv_init(cv,p)	pthread_cond_init(cv, p)
-#define cv_destroy	pthread_cond_destroy
 #endif /*__WINDOWS__*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -195,5 +195,6 @@ COMMON(term_t)	init_delay_list(void);
 COMMON(void)	tbl_push_delay(atom_t atrie, Word wrapper,
 			       trie_node *answer ARG_LD);
 COMMON(int)	answer_is_conditional(trie_node *answer);
+COMMON(void)	initTabling(void);
 
 #endif /*_PL_TABLING_H*/

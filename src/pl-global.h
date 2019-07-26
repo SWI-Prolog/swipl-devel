@@ -177,9 +177,17 @@ struct PL_global_data
   { Table	modules;		/* atom --> module */
   } tables;
 
-  struct
+#if O_PLMT
+  struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
+    simpleMutex  mutex;			/* Sync completion */
+#ifdef __WINDOWS__
+    win32_cond_t cvar;
+#else
+    pthread_cond_t cvar;
+#endif
   } tabling;
+#endif
 
   struct
   { Table	record_lists;		/* Available record lists */

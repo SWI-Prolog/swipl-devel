@@ -398,6 +398,31 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 #define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
+		 /*******************************
+		 *     CONDITION VARIABLES	*
+		 *******************************/
+
+#ifdef __WINDOWS__
+COMMON(int)	win32_cond_init(win32_cond_t *cv);
+COMMON(int)	win32_cond_destroy(win32_cond_t *cv);
+COMMON(int)	win32_cond_wait(win32_cond_t *cv,
+				CRITICAL_SECTION *external_mutex,
+				struct timespec *deadline);
+COMMON(int)	win32_cond_signal(win32_cond_t *cv);
+COMMON(int)	win32_cond_broadcast(win32_cond_t *cv);
+
+#define cv_broadcast	win32_cond_broadcast
+#define cv_signal	win32_cond_signal
+#define cv_init(cv,p)	win32_cond_init(cv)
+#define cv_destroy	win32_cond_destroy
+#else
+#define cv_broadcast	pthread_cond_broadcast
+#define cv_signal	pthread_cond_signal
+#define cv_init(cv,p)	pthread_cond_init(cv, p)
+#define cv_destroy	pthread_cond_destroy
+#endif
+
+
 #else /*O_PLMT, end of threading-stuff */
 
 		 /*******************************

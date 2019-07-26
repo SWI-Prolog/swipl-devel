@@ -118,6 +118,8 @@ setupProlog(void)
   initRecords();
   DEBUG(1, Sdprintf("Tries ...\n"));
   initTries();
+  DEBUG(1, Sdprintf("Tabling ...\n"));
+  initTabling();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
