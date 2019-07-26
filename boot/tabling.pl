@@ -1250,6 +1250,8 @@ split_paths([[Rank-_Len|Path]|T], [Path|DT], CT) :-
 split_paths([[_|Path]|T], DT, [Path|CT]) :-
     split_paths(T, DT, CT).
 
+reeval_paths([], _) :-
+    !.
 reeval_paths(BottomUp, ATrie) :-
     is_invalid(ATrie),
     !,
