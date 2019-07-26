@@ -44,7 +44,9 @@
             check_var/3,		% ?Term,+Predicate,+Arg
             check_ground/3,		% ?Term,+Predicate,+Arg
 
-            abort/1                     % +Message
+            abort/1,                    % +Message
+
+            xsb_error_get_message/2     % +ErrorTerm, -Message
           ]).
 :- use_module(library(error)).
 
@@ -68,6 +70,14 @@ check_ground(Term, _Pred, _Arg)      :- must_be(ground, Term).
 abort(Message) :-
     print_message(error, aborted(Message)),
     abort.
+
+%!  xsb_error_get_message(+Term, -Message)
+%
+%   Convert an exception ball into a human readable message.
+
+xsb_error_get_message(Term, Message) :-
+    message_to_string(Term, Message).
+
 
 		 /*******************************
 		 *            MESSAGES		*
