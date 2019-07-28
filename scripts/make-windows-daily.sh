@@ -52,7 +52,7 @@ kill $XPID
 
 find $finaldir -name '*.exe' -ctime +7 | xargs rm 2>/dev/null
 
-mv /home/prolog/src/swipl-devel/win32/*.exe $finaldir/swipl-w32*$date.exe
-mv /home/prolog/src/swipl-devel/win64/*.exe $finaldir/swipl-w64*$date.exe
+mv /home/prolog/src/swipl-devel/win32/*.exe $finaldir/swipl-w32-$date.exe
+mv /home/prolog/src/swipl-devel/win64/*.exe $finaldir/swipl-w64-$date.exe
 
 rsync -a --delete $finaldir/ $targeturl
