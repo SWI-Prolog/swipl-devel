@@ -209,6 +209,7 @@ trie_create(void)
 void
 trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
+  trie->magic = TRIE_CMAGIC;
   trie_empty(trie);
   PL_free(trie);
 }
@@ -231,9 +232,7 @@ trie_discard_clause(trie *trie)
 
 void
 trie_empty(trie *trie)
-{ trie->magic = TRIE_CMAGIC;
-
-  trie_discard_clause(trie);
+{ trie_discard_clause(trie);
 
   if ( !trie->references )
   { indirect_table *it = trie->indirects;
@@ -927,7 +926,8 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 { trie *trie;
 
   if ( get_trie(A1, &trie) )
-  { trie_empty(trie);
+  { trie->magic = TRIE_CMAGIC;
+    trie_empty(trie);
 
     return TRUE;
   }

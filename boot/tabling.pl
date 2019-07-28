@@ -64,8 +64,8 @@
     table(:),
     untable(:),
     tnot(0),
-    start_tabling(+, 0),
-    start_tabling(+, 0, +, ?),
+    start_tabling(+, +, 0),
+    start_tabling(+, +, 0, +, ?),
     current_table(:, -),
     abolish_table_subgoals(:),
     '$wfs_call'(0, :).
@@ -295,11 +295,13 @@ start_tabling(Closure, Wrapper, Worker) :-
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
         '$idg_add_edge'(OldCurrent, Trie),
-        setup_call_catcher_cleanup(
-            true,
-            run_leader(Skeleton, Worker, Trie, SCC, LStatus),
-            Catcher,
-            finished_leader(Catcher, SCC, Wrapper)),
+        catch(setup_call_catcher_cleanup(
+                  true,
+                  run_leader(Skeleton, Worker, Trie, SCC, LStatus),
+                  Catcher,
+                  finished_leader(Catcher, SCC, Wrapper)),
+              deadlock,
+              restart_tabling(Closure, Wrapper, Worker)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         '$idg_set_current'(OldCurrent),
         done_leader(LStatus, SCC, Skeleton, Trie)
@@ -310,6 +312,12 @@ start_tabling(Closure, Wrapper, Worker) :-
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
+
+
+restart_tabling(Closure, Wrapper, Worker) :-
+    tdebug(user_goal(Wrapper, Goal)),
+    tdebug(deadlock, 'Deadlock running ~p; retrying', [Goal]),
+    start_tabling(Closure, Wrapper, Worker).
 
 
 %!  start_subsumptive_tabling(:Wrapper, :Implementation)

@@ -111,7 +111,6 @@ static int	table_is_incomplete(trie *trie);
 	do \
 	{ LOCK_SHARED_TABLES(); \
 	  __code; \
-          unregister_waiting(__trie); \
 	  __trie->tid = 0; \
 	  cv_broadcast(&GD->tabling.cvar); \
 	  UNLOCK_SHARED_TABLES(); \
@@ -120,7 +119,8 @@ static int	table_is_incomplete(trie *trie);
 static int	wait_for_table_to_complete(trie *atrie);
 static int	table_needs_work(trie *atrie);
 static void	register_waiting(int tid, trie *atrie);
-static void	unregister_waiting(trie *atrie);
+static void	unregister_waiting(int tid, trie *atrie);
+static int	is_deadlock(trie *atrie);
 
 #else /*O_PLMT*/
 
@@ -1904,6 +1904,21 @@ print_answer(const char *msg, trie_node *answer)
     Sdprintf("\n");
 }
 
+static void
+print_answer_table(const char *msg, trie *atrie)
+{ GET_LD
+  term_t t = PL_new_term_ref();
+
+  unify_trie_term(atrie->data.variant, t PASS_LD);
+  if ( msg )
+  { if ( true(atrie, TRIE_ISSHARED) )
+      Sdprintf("Thread [%d]: %s ", PL_thread_self(), msg);
+    else
+      Sdprintf("%s ", msg);
+  }
+  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+}
+
 #endif
 
 
@@ -1914,7 +1929,7 @@ print_answer(const char *msg, trie_node *answer)
 static void release_variant_table_node(trie *trie, trie_node *node);
 
 static trie *
-variant_table(trie **tp)
+variant_table(trie **tp, int shared)
 { if ( *tp == NULL )
   { trie *t = trie_create();
     atom_t symb;
@@ -1922,7 +1937,12 @@ variant_table(trie **tp)
     t->release_node = release_variant_table_node;
     symb = trie_symbol(t);
 
-    if ( !COMPARE_AND_SWAP(tp, NULL, t) )
+    if ( COMPARE_AND_SWAP(tp, NULL, t) )
+    { if ( shared )
+      { set(t, TRIE_ISSHARED);
+	acquire_trie(t);			/* bit misuse */
+      }
+    } else
     { PL_unregister_atom(symb);
       trie_destroy(t);
     }
@@ -1933,30 +1953,39 @@ variant_table(trie **tp)
 
 
 static void
+reset_answer_table(trie *atrie, int cleanup)
+{ worklist *wl;
+
+  if ( WL_IS_WORKLIST(wl=atrie->data.worklist) )
+  { if ( !isEmptyBuffer(&wl->delays) && !cleanup )
+      destroy_depending_worklists(wl);
+    if ( wl->undefined )
+      destroy_delay_info_worklist(wl);
+    atrie->data.worklist = NULL;
+    free_worklist(wl);
+  } else if ( wl )
+  { atrie->data.worklist = NULL;		/* make fresh again */
+  }
+
+  if ( atrie->data.IDG )
+  { idg_destroy(atrie->data.IDG);
+    atrie->data.IDG = NULL;
+  }
+
+  trie_empty(atrie);
+}
+
+
+static void
 release_variant_table_node(trie *variant_table, trie_node *node)
 { (void)variant_table;
 
   if ( node->value )
-  { trie *vtrie = symbol_trie(node->value);
-    worklist *wl;
+  { trie *atrie = symbol_trie(node->value);
 
-    if ( WL_IS_WORKLIST(wl=vtrie->data.worklist) )
-    { if ( !isEmptyBuffer(&wl->delays) &&
-	   variant_table->magic == TRIE_MAGIC )	/* not in final destruction */
-	destroy_depending_worklists(wl);
-      if ( wl->undefined )
-	destroy_delay_info_worklist(wl);
-      vtrie->data.worklist = NULL;
-      free_worklist(wl);
-    }
-
-    assert(vtrie->data.variant == node);
-    trie_empty(vtrie);
-    vtrie->data.variant = NULL;
-    if ( vtrie->data.IDG )
-    { idg_destroy(vtrie->data.IDG);
-      vtrie->data.IDG = NULL;
-    }
+    reset_answer_table(atrie, variant_table->magic == TRIE_CMAGIC);
+    assert(atrie->data.variant == node);
+    atrie->data.variant = NULL;
   }
 }
 
@@ -1969,9 +1998,12 @@ is_variant_trie(trie *trie)
 
 static void
 clear_variant_table(PL_local_data_t *ld)
-{ if ( ld->tabling.variant_table )
-  { trie_empty(ld->tabling.variant_table);
-    PL_unregister_atom(ld->tabling.variant_table->symbol);
+{ trie *vtrie;
+
+  if ( (vtrie=ld->tabling.variant_table) )
+  { vtrie->magic = TRIE_CMAGIC;
+    trie_empty(vtrie);
+    PL_unregister_atom(vtrie->symbol);
     ld->tabling.variant_table = NULL;
   }
 }
@@ -2051,9 +2083,9 @@ get_answer_table(Definition def, term_t t, term_t ret, int flags ARG_LD)
   }
 
   if ( false(def, P_TSHARED) )
-    variants = variant_table(&LD->tabling.variant_table);
+    variants = variant_table(&LD->tabling.variant_table, FALSE);
   else
-    variants = variant_table(&GD->tabling.variant_table);
+    variants = variant_table(&GD->tabling.variant_table, TRUE);
 
   initBuffer(&vars);
 
@@ -2097,15 +2129,48 @@ retry:
     if ( true(atrie, TRIE_ISSHARED) )
     { int mytid = PL_thread_self();
 
-      LOCK_SHARED_TABLES();
-      if ( atrie->tid )
-      { if ( atrie->tid != mytid )
+      if ( atrie->tid != mytid )
+      { LOCK_SHARED_TABLES();
+	if ( atrie->tid )
+	{ register_waiting(mytid, atrie);
+	  if ( is_deadlock(atrie) )
+	  { term_t ex;
+
+	    DEBUG(MSG_TABLING_SHARED,
+		  Sdprintf("Thread [%d]: DEADLOCK\n", mytid));
+	    unregister_waiting(mytid, atrie);
+	    discardBuffer(&vars);
+	    if ( (ex = PL_new_term_ref()) &&
+		 PL_put_atom(ex, ATOM_deadlock) )
+	      PL_raise_exception(ex);
+	    UNLOCK_SHARED_TABLES();
+	    discardBuffer(&vars);
+	    return NULL;				/* must do better */
+	  }
 	  wait_for_table_to_complete(atrie);
-      } else if ( table_needs_work(atrie) )
-      { atrie->tid = mytid;
-	register_waiting(mytid, atrie);
+	  unregister_waiting(mytid, atrie);
+	  if ( !atrie->tid && table_needs_work(atrie) )
+	  { DEBUG(MSG_TABLING_SHARED,
+		  { term_t t = PL_new_term_ref();
+		    unify_trie_term(atrie->data.variant, t PASS_LD);
+		    Sdprintf("Thread [%d]: stealing abandonned trie %p for ",
+			     mytid, atrie);
+		    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+		  });
+	    atrie->tid = mytid;
+	  }
+	} else if ( table_needs_work(atrie) )
+	{ DEBUG(MSG_TABLING_SHARED,
+		{ term_t t = PL_new_term_ref();
+		  unify_trie_term(atrie->data.variant, t PASS_LD);
+		  Sdprintf("Thread [%d]: claiming shared trie %p for ",
+			   mytid, atrie);
+		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+		});
+	  atrie->tid = mytid;
+	}
+	UNLOCK_SHARED_TABLES();
       }
-      UNLOCK_SHARED_TABLES();
     }
 #endif
 
@@ -2707,6 +2772,8 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
   if ( get_trie(A2, &trie) )
   { worklist *wl;
 
+    DEBUG(0, assert(false(trie, TRIE_ISSHARED) || trie->tid));
+
     if ( WL_IS_WORKLIST(wl=trie->data.worklist) )
       wl->completed = FALSE;
     else
@@ -2729,14 +2796,14 @@ destroy_answer_trie(trie *atrie)
 
     if ( is_variant_trie(vtrie) )
     { DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
-	    { GET_LD
-	      term_t t = PL_new_term_ref();
-	      unify_trie_term(atrie->data.variant, t PASS_LD);
-	      Sdprintf("Deleting answer trie for ");
-	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	    });
+	    print_answer_table("Delete answer trie for", atrie));
 
-      trie_delete(vtrie, atrie->data.variant, TRUE);
+      if ( true(atrie, TRIE_ISSHARED) )
+      { COMPLETE_WORKLIST(atrie,		/* lock might be overkill */
+			  reset_answer_table(atrie, FALSE));
+      } else
+	trie_delete(vtrie, atrie->data.variant, TRUE);
+
       return TRUE;
     }
   }
@@ -2816,6 +2883,8 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
   { Word kp;
     trie_node *node;
     int rc;
+
+    DEBUG(0, assert(false(wl->table, TRIE_ISSHARED) || wl->table->tid));
 
     kp = valTermRef(A2);
 
@@ -3424,7 +3493,7 @@ PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
 
 
 static
-PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, 0)
+PRED_IMPL("$tbl_local_variant_table", 1, tbl_local_variant_table, 0)
 { PRED_LD
   trie *trie = LD->tabling.variant_table;
 
@@ -3432,6 +3501,58 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, 0)
     return _PL_unify_atomic(A1, trie->symbol);
 
   return FALSE;
+}
+
+
+static
+PRED_IMPL("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
+{ PRED_LD
+  trie *trie = GD->tabling.variant_table;
+
+  if ( trie )
+    return _PL_unify_atomic(A1, trie->symbol);
+
+  return FALSE;
+}
+
+
+/** '$tbl_variant_table'(?Table) is nondet.
+ *
+ *  True when Table is a variant table. If there is both a local and
+ *  global table it first returns the local one and then the global one.
+ *  '$tbl_local_variant_table'/1 and '$tbl_global_variant_table'/1 fetch
+ *  a specific table.
+ *
+ *  This predicate is in C to make it easy to be deterministic in case
+ *  there is no global table.
+ */
+
+static
+PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  trie *trie;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+      if ( (trie=LD->tabling.variant_table) )
+      { if ( _PL_unify_atomic(A1, trie->symbol) )
+	{ if ( GD->tabling.variant_table )
+	    ForeignRedoInt(1);
+	  else
+	    return TRUE;
+	}
+      }
+    /*FALLTHROUGH*/
+    case FRG_REDO:
+      if ( (trie=GD->tabling.variant_table) )
+	return _PL_unify_atomic(A1, trie->symbol);
+      return FALSE;
+    case FRG_CUTTED:
+      return TRUE;
+        default:
+      assert(0);
+      return FALSE;
+  }
 }
 
 
@@ -4986,17 +5107,11 @@ register_waiting(int tid, trie *atrie)
 
 
 static void
-unregister_waiting(trie *atrie)
-{ int tid;
+unregister_waiting(int tid, trie *atrie)
+{ size_t idx = MSB(tid);
 
-  if ( (tid=atrie->tid) )
-  { size_t idx = MSB(tid);
-
-    atrie->tid = 0;
-    GD->tabling.waiting->blocks[idx][tid] = NULL;
-  }
+  GD->tabling.waiting->blocks[idx][tid] = NULL;
 }
-
 
 
 static trie *
@@ -5014,15 +5129,36 @@ thread_waits_for_trie(int tid)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+is_deadlock() succeeds if  the  proposed  situation   would  lead  to  a
+deadlock.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+is_deadlock(trie *atrie)
+{ int mytid = atrie->tid;
+  trie *t = NULL;
+  int tid = mytid;
+
+  for(;;)
+  { t = thread_waits_for_trie(tid);
+    if ( t )
+      tid = t->tid;
+
+    if ( !t || !tid )
+      return FALSE;
+    if ( tid == mytid )
+      return TRUE;
+  }
+}
+
+
 static int
 wait_for_table_to_complete(trie *atrie)
 { DEBUG(MSG_TABLING_SHARED,
-	{ GET_LD
-	  term_t t = PL_new_term_ref();
-	  unify_trie_term(atrie->data.variant, t PASS_LD);
-	  Sdprintf("[%d]: waiting for %d to complete: ",
+	{ Sdprintf("Thread [%d]: waiting for %d to complete: ",
 		   PL_thread_self(), atrie->tid);
-	  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	  print_answer_table(NULL, atrie);
 	});
 
   do
@@ -5035,7 +5171,9 @@ wait_for_table_to_complete(trie *atrie)
   } while( atrie->tid != 0 );
 
   DEBUG(MSG_TABLING_SHARED,
-	Sdprintf("[%d] table is complete\n", PL_thread_self()));
+	print_answer_table(table_needs_work(atrie) ? "Ready (abandonned)"
+			                           : "Ready (completed)",
+			   atrie));
 
   return TRUE;
 }
@@ -5073,7 +5211,9 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_variant_table",	5, tbl_variant_table,	     0)
   PRED_DEF("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   PRED_DEF("$tbl_moded_variant_table",	5, tbl_moded_variant_table,  0)
-  PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,        0)
+  PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,	  NDET)
+  PRED_DEF("$tbl_local_variant_table",  1, tbl_local_variant_table,  0)
+  PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
