@@ -387,6 +387,7 @@ edit_command(edit,        '%e %f').
 
 edit_command(emacsclient, Command) :- edit_command(emacs, Command).
 edit_command(vim,         Command) :- edit_command(vi,    Command).
+edit_command(nvim,        Command) :- edit_command(vi,    Command).
 
 substitute(FromAtom, ToAtom, Old, New) :-
     atom_codes(FromAtom, From),
