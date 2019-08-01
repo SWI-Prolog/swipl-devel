@@ -16,7 +16,7 @@ provides valuable information to the developer.
 
 SWI-Prolog's cross-referencer is split into two parts. The standard
 Prolog library \pllib{prolog_xref} is an extensible library for
-information gathering described in \secref{lib:prologxref}, and the XPCE
+information gathering described in \secref{prologxref}, and the XPCE
 library \pllib{pce_xref} provides a graphical front-end for the
 cross-referencer described here. We demonstrate the tool on CHAT80, a
 natural language question and answer system by Fernando C.N. Pereira and

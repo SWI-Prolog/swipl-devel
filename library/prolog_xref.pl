@@ -125,18 +125,37 @@
 
 /** <module> Prolog cross-referencer data collection
 
-This module implements to data-collection  part of the cross-referencer.
-This code is used in two places:
+This library collects information on defined and used objects in Prolog
+source files. Typically these are predicates, but we expect the library
+to deal with other types of objects in the future. The library is a
+building block for tools doing dependency tracking in applications.
+Dependency tracking is useful to reveal the structure of an unknown
+program or detect missing components at compile time, but also for
+program transformation or minimising a program saved state by only
+saving the reachable objects.
 
-    * gxref/0 (part of XPCE) provides a graphical front-end for this
-    module
-    * PceEmacs (also part of XPCE) uses the cross-referencer to color
-    goals and predicates depending on their references.
+The library is exploited by two graphical tools in the SWI-Prolog
+environment: the XPCE front-end started by gxref/0, and
+library(prolog_colour), which exploits this library for its syntax
+highlighting.
+
+For all predicates described below, `Source` is the source that is
+processed. This is normally a filename in any notation acceptable to the
+file loading predicates (see load_files/2). Input handling is done by
+the library(prolog_source), which may be hooked to process any source
+that can be translated into a Prolog stream holding Prolog source text.
+`Callable` is a callable term (see callable/1). Callables do not
+carry a module qualifier unless the referred predicate is not in the
+module defined by `Source`.
 
 @bug    meta_predicate/1 declarations take the module into consideration.
         Predicates that are both available as meta-predicate and normal
         (in different modules) are handled as meta-predicate in all
         places.
+@see	Where this library analyses _source text_, library(prolog_codewalk)
+	may be used to analyse _loaded code_.  The library(check) exploits
+        library(prolog_codewalk) to report on e.g., undefined
+        predicates.
 */
 
 :- predicate_options(xref_source_file/4, 4,
