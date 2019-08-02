@@ -180,6 +180,7 @@ struct PL_global_data
 #if O_PLMT
   struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
+    trie_allocation_pool node_pool;	/* Node allocation pool for tries */
     simpleMutex  mutex;			/* Sync completion */
 #ifdef __WINDOWS__
     win32_cond_t cvar;

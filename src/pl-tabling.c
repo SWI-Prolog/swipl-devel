@@ -2104,14 +2104,15 @@ retry:
       set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
-      atrie->alloc_pool = &LD->tabling.node_pool;
       symb = trie_symbol(atrie);
 
       if ( false(def, P_TSHARED) )
-      { node->value = symb;
+      { atrie->alloc_pool = &LD->tabling.node_pool;
+	node->value = symb;
 	ATOMIC_INC(&variants->value_count);
       } else
-      { set(atrie, TRIE_ISSHARED);
+      { atrie->alloc_pool = &GD->tabling.node_pool;
+	set(atrie, TRIE_ISSHARED);
 	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
 	{ ATOMIC_INC(&variants->value_count);
 	} else
@@ -5187,6 +5188,8 @@ initTabling(void)
   simpleMutexInit(&GD->tabling.mutex);
   cv_init(&GD->tabling.cvar, NULL);
 #endif
+
+  GD->tabling.node_pool.limit = GD->options.tableSpace;
 }
 
 		 /*******************************
