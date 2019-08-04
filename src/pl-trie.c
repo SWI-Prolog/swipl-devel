@@ -2388,33 +2388,39 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 
 atom_t
 compile_trie(Definition def, trie *trie ARG_LD)
-{ atom_t rc;
+{ atom_t dbref;
 
 retry:
-  if ( !(rc = trie->clause) )
-  { trie_compile_state state;
-    Clause cl;
-    ClauseRef cref;
+  if ( !(dbref = trie->clause) )
+  { if ( trie->value_count == 0 )
+    { dbref = ATOM_fail;
+      if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+	goto retry;
+    } else
+    { trie_compile_state state;
+      Clause cl;
+      ClauseRef cref;
 
-    init_trie_compile_state(&state, trie);
-    add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
-    if ( compile_trie_node(&trie->root, &state PASS_LD) &&
-	 create_trie_clause(def, &cl, &state) )
-    { cref = assertDefinition(def, cl, CL_END PASS_LD);
-      if ( cref )
-      { rc = lookup_clref(cref->value.clause);
-	if ( !COMPARE_AND_SWAP(&trie->clause, 0, rc) )
-	{ PL_unregister_atom(rc);
-	  retractClauseDefinition(def, cref->value.clause);
-	  goto retry;
+      init_trie_compile_state(&state, trie);
+      add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
+      if ( compile_trie_node(&trie->root, &state PASS_LD) &&
+	   create_trie_clause(def, &cl, &state) )
+      { cref = assertDefinition(def, cl, CL_END PASS_LD);
+	if ( cref )
+	{ dbref = lookup_clref(cref->value.clause);
+	  if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+	  { PL_unregister_atom(dbref);
+	    retractClauseDefinition(def, cref->value.clause);
+	    goto retry;
+	  }
 	}
       }
+      assert(state.else_loc == 0);
+      clean_trie_compile_state(&state);
     }
-    assert(state.else_loc == 0);
-    clean_trie_compile_state(&state);
   }
 
-  return rc;
+  return dbref;
 }
 
 

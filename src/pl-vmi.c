@@ -5077,6 +5077,9 @@ VMI(S_TRIE_GEN, 0, 0, ())
       dbref = compile_trie(FR->predicate, t PASS_LD);
       LOAD_REGISTERS(qid);
     }
+
+    if ( dbref == ATOM_fail )
+      FRAME_FAILED;
   }
 
   cref = clause_clref(dbref);
