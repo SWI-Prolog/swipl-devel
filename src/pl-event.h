@@ -65,7 +65,9 @@ typedef struct event_callback
 typedef struct event_list
 { event_callback *head;			/* First event handler */
   event_callback *tail;			/* Last event handler */
+#ifdef O_PLMT
   recursiveMutex  lock;			/* Access lock */
+#endif
 } event_list;
 
 typedef struct even_type

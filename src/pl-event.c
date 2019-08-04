@@ -42,8 +42,17 @@
 Event interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_PLMT
+#define INIT_LIST_LOCK(l) recursiveMutexInit(&(l)->lock)
+#define DELETE_LIST_LOCK(l) recursiveMutexDelete(&(l)->lock)
 #define LOCK_LIST(l)   recursiveMutexLock(&(l)->lock)
 #define UNLOCK_LIST(l) recursiveMutexUnlock(&(l)->lock)
+#else
+#define INIT_LIST_LOCK(l)
+#define DELETE_LIST_LOCK(l)
+#define LOCK_LIST(l)
+#define UNLOCK_LIST(l)
+#endif
 
 #define EV_GLOBAL(name) (&GD->event.hook.name)
 #define EV_LOCAL(name)  (&((PL_local_data_t*)NULL)->event.hook.name)
@@ -59,8 +68,10 @@ const event_type PL_events[] =
   GEVENT(PLEV_NOBREAK,          ATOM_break,            3, onbreak),
   GEVENT(PLEV_GCNOBREAK,        ATOM_break,            3, onbreak),
   GEVENT(PLEV_FRAMEFINISHED,    ATOM_frame_finished,   1, onframefinish),
+#ifdef O_PLMT
   GEVENT(PLEV_THREAD_EXIT,      ATOM_thread_exit,      1, onthreadexit),
   LEVENT(PLEV_THIS_THREAD_EXIT, ATOM_this_thread_exit, 0, onthreadexit),
+#endif
   {0}
 };
 
@@ -128,7 +139,7 @@ get_event_list(event_list **list)
     { event_list *l = PL_malloc(sizeof(*l));
 
       memset(l, 0, sizeof(*l));
-      recursiveMutexInit(&l->lock);
+      INIT_LIST_LOCK(l);
       *list = l;
     }
     PL_UNLOCK(L_EVHOOK);
@@ -314,8 +325,7 @@ destroy_event_list(event_list **listp)
     { next = cb->next;
       free_event_callback(cb);
     }
-
-    recursiveMutexDelete(&list->lock);
+    DELETE_LIST_LOCK(list);
     PL_free(list);
   }
 }
