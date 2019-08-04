@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2015, VU University Amsterdam
+    Copyright (c)  2010-2019, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,10 +36,6 @@
 #include "pl-incl.h"
 #include "pl-dbref.h"
 
-typedef struct clref
-{ Clause clause;
-} clref;
-
 typedef struct recref
 { RecordRef record;
 } recref;
@@ -46,29 +43,29 @@ typedef struct recref
 
 static int
 write_clause_ref(IOSTREAM *s, atom_t aref, int flags)
-{ clref *ref = PL_blob_data(aref, NULL, NULL);
+{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
   (void)flags;
 
-  Sfprintf(s, "<clause>(%p)", ref->clause);
+  Sfprintf(s, "<clause>(%p)", ref->value.clause);
   return TRUE;
 }
 
 
 static void
 acquire_clause(atom_t aref)
-{ clref *ref = PL_blob_data(aref, NULL, NULL);
+{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
 
-  set(ref->clause, DBREF_CLAUSE);
+  set(ref->value.clause, DBREF_CLAUSE);
 }
 
 
 static int
 release_clause(atom_t aref)
-{ clref *ref = PL_blob_data(aref, NULL, NULL);
+{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
 
-  clear(ref->clause, DBREF_CLAUSE);
-  if ( true(ref->clause, DBREF_ERASED_CLAUSE) )
-    unallocClause(ref->clause);
+  clear(ref->value.clause, DBREF_CLAUSE);
+  if ( true(ref->value.clause, DBREF_ERASED_CLAUSE) )
+    unallocClause(ref->value.clause);
 
   return TRUE;
 }
@@ -76,10 +73,11 @@ release_clause(atom_t aref)
 
 static int
 save_clause_ref(atom_t aref, IOSTREAM *fd)
-{ clref *ref = PL_blob_data(aref, NULL, NULL);
+{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
-  return PL_warning("Cannot save reference to <clause>(%p)", ref->clause);
+  return PL_warning("Cannot save reference to <clause>(%p)",
+		    ref->value.clause);
 }
 
 
@@ -147,7 +145,7 @@ static PL_blob_t record_blob =
 
 atom_t
 lookup_clref(Clause clause)
-{ struct clref ref;
+{ clause_ref ref;
   int new;
 
   DEBUG(0,
@@ -155,22 +153,20 @@ lookup_clref(Clause clause)
 	  assert(!onStackArea(local, clause));
 	});
 
-  ref.clause = clause;
-  return lookupBlob((const char*)&ref, sizeof(ref), &clause_blob, &new);
+  ref.next = NULL;
+  ref.d.key = 0;
+  ref.value.clause = clause;
+  return lookupBlob((const char*)&ref, SIZEOF_CREF_CLAUSE, &clause_blob, &new);
 }
 
 
-Clause
+ClauseRef
 clause_clref(atom_t aref)
 { PL_blob_t *type;
-  clref *ref = PL_blob_data(aref, NULL, &type);
-  Clause clause;
+  ClauseRef ref = PL_blob_data(aref, NULL, &type);
 
-  if ( type == &clause_blob )
-  { clause = ref->clause;
-    if ( false(clause, CL_ERASED) )
-      return clause;
-  }
+  if ( type == &clause_blob && false(ref->value.clause, CL_ERASED) )
+    return ref;
 
   return NULL;
 }
@@ -178,31 +174,23 @@ clause_clref(atom_t aref)
 
 int
 PL_unify_clref(term_t t, Clause clause)
-{ struct clref ref;
+{ GET_LD
+  atom_t a = lookup_clref(clause);
+  int rc = _PL_unify_atomic(t, a);
 
-#ifndef NDEBUG
-  { GET_LD
-    assert(!onStackArea(local, clause));
-  }
-#endif
+  PL_unregister_atom(a);
 
-  ref.clause = clause;
-  return PL_unify_blob(t, &ref, sizeof(ref), &clause_blob);
+  return rc;
 }
 
 
 int
 PL_put_clref(term_t t, Clause clause)
-{ struct clref ref;
+{ atom_t a = lookup_clref(clause);
 
-#ifndef NDEBUG
-  { GET_LD
-    assert(!onStackArea(local, clause));
-  }
-#endif
+  _PL_put_atomic(t, a);
+  PL_unregister_atom(a);
 
-  ref.clause = clause;
-  PL_put_blob(t, &ref, sizeof(ref), &clause_blob);
   return TRUE;
 }
 
@@ -241,11 +229,11 @@ PL_get_dbref(term_t t, db_ref_type *type_ptr)
   }
 
   if ( type == &clause_blob )
-  { clref *ref = data;
+  { ClauseRef ref = data;
 
-    if ( false(ref->clause, CL_ERASED) )
+    if ( false(ref->value.clause, CL_ERASED) )
     { *type_ptr = DB_REF_CLAUSE;
-      return ref->clause;
+      return ref;
     }
   } else if ( type == &record_blob )
   { recref *ref = data;
@@ -271,16 +259,16 @@ Returns FALSE: error
 
 int
 PL_get_clref(term_t t, Clause *cl)
-{ struct clref *ref;
+{ ClauseRef ref;
   PL_blob_t *type;
 
   if ( !PL_get_blob(t, (void**)&ref, NULL, &type) ||
        type != &clause_blob )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_db_reference, t);
 
-  *cl = ref->clause;
+  *cl = ref->value.clause;
 
-  if ( true(ref->clause, CL_ERASED) )
+  if ( true(ref->value.clause, CL_ERASED) )
     return -1;
 
   return TRUE;

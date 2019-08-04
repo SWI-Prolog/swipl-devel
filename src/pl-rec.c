@@ -2304,7 +2304,8 @@ PRED_IMPL("instance", 2, instance, 0)
     return FALSE;
 
   if ( type == DB_REF_CLAUSE )
-  { Clause clause = ptr;
+  { ClauseRef cref = ptr;
+    Clause clause = cref->value.clause;
     gen_t generation = generationFrame(environment_frame);
 
     if ( true(clause, GOAL_CLAUSE) ||
@@ -2347,7 +2348,8 @@ PRED_IMPL("erase", 1, erase, 0)
     return FALSE;
 
   if ( type == DB_REF_CLAUSE )
-  { Clause clause = ptr;
+  { ClauseRef cref = ptr;
+    Clause clause = cref->value.clause;
     Definition def = clause->predicate;
 
     if ( !true(def, P_DYNAMIC) )

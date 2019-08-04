@@ -404,18 +404,19 @@ retry:
   { Functor f = valueTerm(*cont);
     Word ep = f->arguments;
     Word ap;
-    Clause cl;
     ClauseRef cref;
+    Clause cl;
     intptr_t pcoffset;
     size_t lneeded, lroom;
     int i;
 
-    if ( !(cl = clause_clref(*ep++)) ||
-	 arityFunctor(f->definition) != cl->variables + 2 )
+    if ( !(cref = clause_clref(*ep++)) ||
+	 arityFunctor(f->definition) != cref->value.clause->variables + 2 )
     { PL_type_error("continuation", continuation);
       return NULL;
     }
 
+    cl = cref->value.clause;
     pcoffset = valInt(*ep++);
 
     lneeded = SIZEOF_CREF_CLAUSE +
@@ -432,8 +433,7 @@ retry:
       goto retry;
     }
 
-    cref = (ClauseRef)top;
-    fr   = addPointer(cref, SIZEOF_CREF_CLAUSE);
+    fr   = top;
     top  = addPointer(top, lneeded);
 
     ap = argFrameP(fr, 0);
@@ -460,10 +460,6 @@ retry:
     }
 
     lTop = top;
-
-    cref->next         = NULL;
-    cref->d.key        = 0;
-    cref->value.clause = cl;
 
     fr->programPointer = pcret;
     fr->parent         = pfr;
