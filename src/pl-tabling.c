@@ -2070,6 +2070,7 @@ get_answer_table(Definition def, term_t t, term_t ret, int flags ARG_LD)
   Word v;
   tmp_buffer vars;
   mark m;
+  ClauseRef cref = NULL;
 
   if ( !def )					/* we should avoid these */
   { Procedure proc;
@@ -2169,6 +2170,13 @@ retry:
 		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 		});
 	  atrie->tid = mytid;
+	} else					/* complete */
+	{ if ( !(cref=atrie->clause) )
+	  { Procedure proc = ((flags&AT_MODED) ? GD->procedures.trie_gen_compiled3 :
+					         GD->procedures.trie_gen_compiled2);
+
+	    cref = compile_trie(proc->definition, atrie PASS_LD);
+	  }
 	}
 	UNLOCK_SHARED_TABLES();
       }

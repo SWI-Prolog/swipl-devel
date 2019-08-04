@@ -326,6 +326,8 @@ struct PL_global_data
 #endif
     Procedure   comment_hook3;		/* prolog:comment_hook/3 */
     Procedure	tune_gc3;		/* prolog:tune_gc */
+    Procedure	trie_gen_compiled2;
+    Procedure	trie_gen_compiled3;
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
