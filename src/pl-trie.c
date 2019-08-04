@@ -217,14 +217,16 @@ trie_destroy(trie *trie)
 
 static void
 trie_discard_clause(trie *trie)
-{ ClauseRef cref;
+{ atom_t dbref;
 
-  if ( (cref=trie->clause) )
-  { Clause cl = cref->value.clause;
+  if ( (dbref=trie->clause) )
+  { ClauseRef cref = clause_clref(dbref);
+    Clause cl = cref->value.clause;
 
-    if ( COMPARE_AND_SWAP(&trie->clause, cref, NULL) )
+    if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) )
     { set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
       retractClauseDefinition(cl->predicate, cl);
+      PL_unregister_atom(dbref);
     }
   }
 }
@@ -2385,23 +2387,26 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 }
 
 
-ClauseRef
+atom_t
 compile_trie(Definition def, trie *trie ARG_LD)
-{ ClauseRef rc;
+{ atom_t rc;
 
 retry:
   if ( !(rc = trie->clause) )
   { trie_compile_state state;
     Clause cl;
+    ClauseRef cref;
 
     init_trie_compile_state(&state, trie);
     add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
     if ( compile_trie_node(&trie->root, &state PASS_LD) &&
 	 create_trie_clause(def, &cl, &state) )
-    { rc = assertDefinition(def, cl, CL_END PASS_LD);
-      if ( rc )
-      { if ( !COMPARE_AND_SWAP(&trie->clause, NULL, rc) )
-	{ retractClauseDefinition(def, cl);
+    { cref = assertDefinition(def, cl, CL_END PASS_LD);
+      if ( cref )
+      { rc = lookup_clref(cref->value.clause);
+	if ( !COMPARE_AND_SWAP(&trie->clause, 0, rc) )
+	{ PL_unregister_atom(rc);
+	  retractClauseDefinition(def, cref->value.clause);
 	  goto retry;
 	}
       }

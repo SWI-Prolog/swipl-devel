@@ -5041,19 +5041,21 @@ predicate.
 VMI(S_TRIE_GEN2, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
   trie *t;
+  atom_t dbref;
   ClauseRef cref;
 
   if ( !(t=get_trie_ptr(tp PASS_LD)) )
     THROW_EXCEPTION;
 
-  if ( !(cref=t->clause) )
+  if ( !(dbref=t->clause) )
   { if ( t->value_count == 0 )
       FRAME_FAILED;
 
     SAVE_REGISTERS(qid);
-    cref = compile_trie(FR->predicate, t PASS_LD);
+    dbref = compile_trie(FR->predicate, t PASS_LD);
     LOAD_REGISTERS(qid);
   }
+  cref = clause_clref(dbref);
 
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
@@ -5063,19 +5065,21 @@ VMI(S_TRIE_GEN2, 0, 0, ())
 VMI(S_TRIE_GEN3, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
   trie *t;
+  atom_t dbref;
   ClauseRef cref;
 
   if ( !(t=get_trie_ptr(tp PASS_LD)) )
     THROW_EXCEPTION;
 
-  if ( !(cref=t->clause) )
+  if ( !(dbref=t->clause) )
   { if ( t->value_count == 0 )
       FRAME_FAILED;
 
     SAVE_REGISTERS(qid);
-    cref = compile_trie(FR->predicate, t PASS_LD);
+    dbref = compile_trie(FR->predicate, t PASS_LD);
     LOAD_REGISTERS(qid);
   }
+  cref = clause_clref(dbref);
 
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);

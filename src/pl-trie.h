@@ -110,7 +110,7 @@ typedef struct trie
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
   trie_allocation_pool *alloc_pool;	/* Node allocation pool */
-  ClauseRef		clause;		/* Compiled representation */
+  atom_t		clause;		/* Compiled representation */
 #ifdef O_TRIE_STATS
   struct
   { uint64_t		lookups;	/* trie_lookup */
@@ -161,6 +161,6 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
 			   void *ctx, control_t PL__ctx);
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
-COMMON(ClauseRef) compile_trie(Definition def, trie *trie ARG_LD);
+COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
 
 #endif /*_PL_TRIE_H*/
