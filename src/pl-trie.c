@@ -818,10 +818,9 @@ trie_symbol(trie *trie)
 trie *
 symbol_trie(atom_t symbol)
 { void *data;
-  size_t len;
   PL_blob_t *type;
 
-  if ( (data = PL_blob_data(symbol, &len, &type)) && type == &trie_blob )
+  if ( (data = PL_blob_data(symbol, NULL, &type)) && type == &trie_blob )
   { tref *ref = data;
 
     if ( ref->trie->magic == TRIE_MAGIC )
@@ -2416,35 +2415,6 @@ retry:
   }
 
   return rc;
-}
-
-
-trie *
-get_trie_ptr(Word p ARG_LD)
-{ void *data = NULL;
-  term_t t;
-
-  deRef(p);
-  if ( isAtom(*p) )
-  { size_t len;
-    PL_blob_t *type;
-
-    if ( (data = PL_blob_data(*p, &len, &type)) && type == &trie_blob )
-    { tref *ref = data;
-
-      if ( ref->trie->magic == TRIE_MAGIC )
-	return ref->trie;
-    }
-  }
-
-  t = pushWordAsTermRef(p);
-  if ( data )
-    PL_existence_error("trie", t);
-  else
-    PL_type_error("trie", t);
-  popTermRef();
-
-  return NULL;
 }
 
 

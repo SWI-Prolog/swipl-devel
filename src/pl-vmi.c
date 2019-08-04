@@ -5037,25 +5037,48 @@ trie_gen_compiled(Trie, Key, Value)
 This is the supervisor for trie_gen_compiled/2,3.   It compiles the trie
 on demand and then calls the compiled   clause  that belongs to the same
 predicate.
+
+Instead of passing a trie we can also   pass  the dbref for the compiled
+trie clause or `fail` to express the  trie   is  empty.  This is used to
+achieve thread-safe deletion of answer tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_TRIE_GEN, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
-  trie *t;
   atom_t dbref;
   ClauseRef cref;
 
-  if ( !(t=get_trie_ptr(tp PASS_LD)) )
-    THROW_EXCEPTION;
-
-  if ( !(dbref=t->clause) )
-  { if ( t->value_count == 0 )
-      FRAME_FAILED;
-
+  deRef(tp);
+  dbref = *tp;
+  if ( !isAtom(dbref) )
+  {
+  trie_gen_type_error:
     SAVE_REGISTERS(qid);
-    dbref = compile_trie(FR->predicate, t PASS_LD);
+    PL_type_error("trie_or_clause", pushWordAsTermRef(argFrameP(FR, 0)));
+    popTermRef();
     LOAD_REGISTERS(qid);
+    THROW_EXCEPTION;
   }
+
+  if ( dbref == ATOM_fail )
+    FRAME_FAILED;
+
+  if ( !(cref = clause_clref(dbref)) )
+  { trie *t;
+
+    if ( !(t = symbol_trie(dbref)) )
+      goto trie_gen_type_error;
+
+    if ( !(dbref=t->clause) )
+    { if ( t->value_count == 0 )
+	FRAME_FAILED;
+
+      SAVE_REGISTERS(qid);
+      dbref = compile_trie(FR->predicate, t PASS_LD);
+      LOAD_REGISTERS(qid);
+    }
+  }
+
   cref = clause_clref(dbref);
 
   ARGP = argFrameP(FR, 0);

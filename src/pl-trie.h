@@ -145,7 +145,6 @@ COMMON(trie *)	get_trie_from_node(trie_node *node);
 COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);
-COMMON(trie *)  get_trie_ptr(Word p ARG_LD);
 COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
 COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
 			    int add, TmpBuffer vars ARG_LD);
