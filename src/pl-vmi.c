@@ -5031,38 +5031,15 @@ END_SHAREDVARS
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+trie_gen_compiled(Trie, Key)
 trie_gen_compiled(Trie, Key, Value)
 
-This is the supervisor for trie_gen_compiled/3.  It compiles the trie on
-demand and then calls the  compiled  clause   that  belongs  to the same
+This is the supervisor for trie_gen_compiled/2,3.   It compiles the trie
+on demand and then calls the compiled   clause  that belongs to the same
 predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(S_TRIE_GEN2, 0, 0, ())
-{ Word tp = argFrameP(FR, 0);
-  trie *t;
-  atom_t dbref;
-  ClauseRef cref;
-
-  if ( !(t=get_trie_ptr(tp PASS_LD)) )
-    THROW_EXCEPTION;
-
-  if ( !(dbref=t->clause) )
-  { if ( t->value_count == 0 )
-      FRAME_FAILED;
-
-    SAVE_REGISTERS(qid);
-    dbref = compile_trie(FR->predicate, t PASS_LD);
-    LOAD_REGISTERS(qid);
-  }
-  cref = clause_clref(dbref);
-
-  ARGP = argFrameP(FR, 0);
-  TRUST_CLAUSE(cref);
-}
-
-
-VMI(S_TRIE_GEN3, 0, 0, ())
+VMI(S_TRIE_GEN, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
   trie *t;
   atom_t dbref;

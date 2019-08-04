@@ -2497,12 +2497,12 @@ initTries(void)
   proc = PL_predicate("trie_gen_compiled", 2, "system");
   def = proc->definition;
   set(def, P_LOCKED_SUPERVISOR|P_VOLATILE);
-  def->codes = SUPERVISOR(trie_gen2);
+  def->codes = SUPERVISOR(trie_gen);
   GD->procedures.trie_gen_compiled2 = proc;
 
   proc = PL_predicate("trie_gen_compiled", 3, "system");
   def = proc->definition;
   set(def, P_LOCKED_SUPERVISOR|P_VOLATILE);
-  def->codes = SUPERVISOR(trie_gen3);
+  def->codes = SUPERVISOR(trie_gen);
   GD->procedures.trie_gen_compiled3 = proc;
 }

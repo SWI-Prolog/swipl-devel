@@ -74,8 +74,7 @@ typedef struct
     code multifile[3];			/* S_MULTIFILE */
     code staticp[3];			/* S_STATIC */
     code wrapper[3];			/* S_WRAP */
-    code trie_gen2[3];			/* S_TRIE_GEN2 */
-    code trie_gen3[3];			/* S_TRIE_GEN3 */
+    code trie_gen[3];			/* S_TRIE_GEN */
   } supervisors;
 } PL_code_data_t;
 
