@@ -400,7 +400,7 @@ unify_head(_, _, _).
 bind_vars([]) :-
     !.
 bind_vars([Name = Var|T]) :-
-    Var = '$VAR'(Name),
+    ignore(Var = '$VAR'(Name)),
     bind_vars(T).
 
 %!  name_other_vars(+Term, +Bindings) is det.
