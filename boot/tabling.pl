@@ -312,9 +312,18 @@ start_tabling(Closure, Wrapper, Worker) :-
     ).
 
 
+%!  restart_tabling(+Closure, +Wrapper, +Worker)
+%
+%   We were aborted due to a  deadlock.   Simply  retry. We sleep a very
+%   tiny amount to give the thread against  which we have deadlocked the
+%   opportunity to grab our table. Without, it is common that we re-grab
+%   the table within our time slice  and   before  the kernel managed to
+%   wakeup the other thread.
+
 restart_tabling(Closure, Wrapper, Worker) :-
     tdebug(user_goal(Wrapper, Goal)),
     tdebug(deadlock, 'Deadlock running ~p; retrying', [Goal]),
+    sleep(0.000001),
     start_tabling(Closure, Wrapper, Worker).
 
 
