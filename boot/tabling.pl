@@ -296,14 +296,14 @@ start_tabling(Closure, Wrapper, Worker) :-
         '$idg_set_current'(OldCurrent, Trie),
         catch(setup_call_catcher_cleanup(
                   true,
-                  run_leader(Skeleton, Worker, Trie, SCC, LStatus),
+                  run_leader(Skeleton, Worker, Trie, SCC, LStatus, Clause),
                   Catcher,
                   finished_leader(Catcher, SCC, Wrapper)),
               deadlock,
               restart_tabling(Closure, Wrapper, Worker)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         '$idg_set_current'(OldCurrent),
-        done_leader(LStatus, SCC, Skeleton, Trie)
+        done_leader(LStatus, SCC, Skeleton, Clause)
     ;   Status == invalid
     ->  reeval(Trie),
         trie_gen_compiled(Trie, Skeleton)
@@ -349,23 +349,22 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         '$idg_set_current'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
-            run_leader(Skeleton, Worker, Trie, SCC, LStatus),
+            run_leader(Skeleton, Worker, Trie, SCC, LStatus, Clause),
             Catcher,
             finished_leader(Catcher, SCC, Wrapper)),
         '$idg_set_current'(OldCurrent),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
-        done_leader(LStatus, SCC, Skeleton, Trie)
+        done_leader(LStatus, SCC, Skeleton, Clause)
     ).
 
 
 :- '$hide'((done_leader/4, finished_leader/3)).
 
-done_leader(complete, _SCC, Skeleton, Trie) :-
+done_leader(complete, _SCC, Skeleton, Clause) :-
     !,
-    trie_gen_compiled(Trie, Skeleton).
-done_leader(final, SCC, Skeleton, Trie) :-
+    trie_gen_compiled(Clause, Skeleton).
+done_leader(final, SCC, Skeleton, Clause) :-
     !,
-    '$trie_compile'(Trie, Clause),
     '$tbl_free_component'(SCC),
     trie_gen_compiled(Clause, Skeleton).
 done_leader(_,_,_,_).
@@ -381,7 +380,7 @@ finished_leader(Catcher, SCC, Wrapper) :-
     ;   print_message(error, tabling(unexpected_result(Wrapper, Catcher)))
     ).
 
-%!  run_leader(+Wrapper, +Worker, +Trie, +SCC, -Status) is det.
+%!  run_leader(+Wrapper, +Worker, +Trie, +SCC, -Status, -Clause) is det.
 %
 %   Run the leader of  a  (new)   SCC,  storing  instantiated  copies of
 %   Wrapper into Trie. Status  is  the  status   of  the  SCC  when this
@@ -394,13 +393,13 @@ finished_leader(Catcher, SCC, Wrapper) :-
 %   the worklist and we shift  (suspend),   turning  our  leader into an
 %   internal node for the upper SCC.
 
-run_leader(Skeleton, Worker, Trie, SCC, Status) :-
+run_leader(Skeleton, Worker, Trie, SCC, Status, Clause) :-
     tdebug('$tbl_table_status'(Trie, _Status, Wrapper, Skeleton)),
     tdebug(user_goal(Wrapper, Goal)),
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
     activate(Skeleton, Worker, Trie, Worklist),
     tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
-    completion(SCC, Status),
+    completion(SCC, Status, Clause),
     tdebug(schedule, '-> Completed component ~p for ~p: ~p', [SCC, Goal, Status]),
     (   Status == merged
     ->  tdebug(merge, 'Turning leader ~p into follower', [Goal]),
@@ -496,7 +495,7 @@ get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
 
 run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC, Status) :-
     moded_activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, Worklist),
-    completion(SCC, Status),
+    completion(SCC, Status, _Clause),           % TBD: propagate
     (   Status == merged
     ->  tdebug(scc, 'Turning leader ~p into follower', [Wrapper]),
         (   trie_gen(Trie, WrapperNoModes1, ModeArgs1),
@@ -556,16 +555,18 @@ update(M:Wrapper, A1, A2, A3) :-
     A1 \=@= A3.
 
 
-%!  completion(+Component, -Status)
+%!  completion(+Component, -Status, -Clause) is det.
 %
 %   Wakeup suspended goals until no new answers are generated. Status is
-%   one of `merged`, `completed` or `final`.
+%   one of `merged`, `completed` or `final`.  If Status is not `merged`,
+%   Clause is a compiled  representation  for   the  answer  trie of the
+%   Component leader.
 
-completion(SCC, Status) :-
+completion(SCC, Status, Clause) :-
     (   reset_delays,
         completion_(SCC),
         fail
-    ;   '$tbl_table_complete_all'(SCC, Status, _Clause),
+    ;   '$tbl_table_complete_all'(SCC, Status, Clause),
         tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status])
     ).
 
