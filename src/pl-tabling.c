@@ -84,6 +84,7 @@ static int	idg_init_variant(trie *atrie, Definition def, term_t variant
 static void	reeval_complete(trie *atrie);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
+static trie    *idg_add_edge(trie *atrie ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2171,7 +2172,7 @@ retry:
 		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 		});
 	  atrie->tid = mytid;
-	} else					/* complete */
+	} else					/* complete and valid */
 	{ if ( !(clref=atrie->clause) )
 	  { Procedure proc = ((flags&AT_MODED) ? GD->procedures.trie_gen_compiled3 :
 					         GD->procedures.trie_gen_compiled2);
@@ -3465,9 +3466,17 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
   get_closure_predicate(closure, &def);
 
   if ( (atrie=get_answer_table(def, variant, ret, &clref, flags PASS_LD)) )
-  { return ( idg_init_variant(atrie, def, variant PASS_LD) &&
-	     _PL_unify_atomic(Trie, atrie->symbol) &&
-	     unify_table_status(status, atrie, TRUE PASS_LD) );
+  { if ( !idg_init_variant(atrie, def, variant PASS_LD) )
+      return FALSE;
+    idg_add_edge(atrie PASS_LD);
+
+    if ( clref )
+    { return ( _PL_unify_atomic(Trie, clref) &&
+	       _PL_unify_atomic(status, ATOM_complete) );
+    } else
+    { return ( _PL_unify_atomic(Trie, atrie->symbol) &&
+	       unify_table_status(status, atrie, TRUE PASS_LD) );
+    }
   }
 
   return FALSE;
@@ -4499,34 +4508,13 @@ idg_add_edge(trie *atrie ARG_LD)
   return NULL;
 }
 
-/** '$idg_add_edge'(+ATrie)
+/** '$idg_set_current'(-OldCurrent, +ATrie)
  *
- * Create an edge from ATrie to the current node.   The notion of
- * current is NOT UPDATED.
+ * Set the current to Atrie and return the old current.
  */
 
 static
-PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
-{ PRED_LD
-  trie *atrie;
-
-  if ( get_trie(A1, &atrie) )
-  { idg_add_edge(atrie PASS_LD);
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-
-/** '$idg_add_edge'(-OldCurrent, +ATrie)
- *
- * Create an edge from ATrie to the current node, set the current to
- * Atrie and return the old current.
- */
-
-static
-PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
+PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
 { PRED_LD
   trie *atrie;
 
@@ -4537,8 +4525,6 @@ PRED_IMPL("$idg_add_edge", 2, idg_add_edge, 0)
     { if ( !PL_unify_atom(A1, current) )
 	return FALSE;
     }
-    idg_add_edge(atrie PASS_LD);
-
     return set_idg_current(atrie PASS_LD);
   }
 
@@ -5260,11 +5246,10 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_implementation",       2, tbl_implementation,    META)
   PRED_DEF("$is_answer_trie",           1, is_answer_trie,           0)
 
-  PRED_DEF("$idg_add_edge",             1, idg_add_edge,             0)
-  PRED_DEF("$idg_add_edge",             2, idg_add_edge,             0)
   PRED_DEF("$idg_add_dyncall",          1, idg_add_dyncall,          0)
   PRED_DEF("$idg_set_current_wl",       1, idg_set_current_wl,       0)
   PRED_DEF("$idg_set_current",          1, idg_set_current,          0)
+  PRED_DEF("$idg_set_current",          2, idg_set_current,          0)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)

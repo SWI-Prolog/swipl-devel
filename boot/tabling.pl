@@ -288,13 +288,12 @@ set_pattributes(Head, Options) :-
 start_tabling(Closure, Wrapper, Worker) :-
     '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
     (   Status == complete
-    ->  '$idg_add_edge'(Trie),
-        trie_gen_compiled(Trie, Skeleton)
+    ->  trie_gen_compiled(Trie, Skeleton)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-        '$idg_add_edge'(OldCurrent, Trie),
+        '$idg_set_current'(OldCurrent, Trie),
         catch(setup_call_catcher_cleanup(
                   true,
                   run_leader(Skeleton, Worker, Trie, SCC, LStatus),
@@ -307,7 +306,6 @@ start_tabling(Closure, Wrapper, Worker) :-
         done_leader(LStatus, SCC, Skeleton, Trie)
     ;   Status == invalid
     ->  reeval(Trie),
-        '$idg_add_edge'(Trie),
         trie_gen_compiled(Trie, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
@@ -325,8 +323,7 @@ restart_tabling(Closure, Wrapper, Worker) :-
 start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
     ->  (   Status == complete
-        ->  '$idg_add_edge'(Trie),
-            '$tbl_answer_update_dl'(Trie, Skeleton)
+        ->  '$tbl_answer_update_dl'(Trie, Skeleton)
         ;   Status == invalid
         ->  reeval(Trie),
             '$idg_add_edge'(Trie),
@@ -335,14 +332,13 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         )
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
-    ->  '$idg_add_edge'(ATrie),
-        '$tbl_answer_update_dl'(ATrie, Skeleton)
+    ->  '$tbl_answer_update_dl'(ATrie, Skeleton)
     ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-        '$idg_add_edge'(OldCurrent, Trie),
+        '$idg_set_current'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Skeleton, Worker, Trie, SCC, LStatus),
@@ -456,11 +452,10 @@ delim(Wrapper, Worker, WorkList, Delays) :-
 start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie, Status, _Skeleton),
     (   Status == complete
-    ->  '$idg_add_edge'(Trie),
-        trie_gen(Trie, WrapperNoModes, ModeArgs)
+    ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SubComponent, Trie),
-        '$idg_add_edge'(OldCurrent, Trie),
+        '$idg_set_current'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
             true,
             run_leader(Wrapper, WrapperNoModes, ModeArgs,
@@ -473,7 +468,6 @@ start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
         moded_done_leader(LStatus, SubComponent, WrapperNoModes, ModeArgs, Trie)
     ;   Status == invalid
     ->  reeval(Trie),
-        '$idg_add_edge'(Trie),
         trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Wrapper, Status))
@@ -625,7 +619,6 @@ completion_step(WorkList) :-
 tnot(Goal0) :-
     '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
     '$tbl_variant_table'(_, Goal, Trie, Status, Skeleton),
-    \+ \+ '$idg_add_edge'(Trie),                % do not update current node
     (   '$tbl_answer_dl'(Trie, _, true)
     ->  fail
     ;   '$tbl_answer_dl'(Trie, _, _)
