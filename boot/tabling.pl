@@ -400,9 +400,8 @@ run_leader(Skeleton, Worker, Trie, SCC, Status) :-
     tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
     activate(Skeleton, Worker, Trie, Worklist),
     tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
-    completion(SCC),
-    tdebug(schedule, '-> Completed component ~p for ~p', [SCC, Goal]),
-    '$tbl_component_status'(SCC, Status),
+    completion(SCC, Status),
+    tdebug(schedule, '-> Completed component ~p for ~p: ~p', [SCC, Goal, Status]),
     (   Status == merged
     ->  tdebug(merge, 'Turning leader ~p into follower', [Goal]),
         '$tbl_wkl_make_follower'(Worklist),
@@ -497,8 +496,7 @@ get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
 
 run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, SCC, Status) :-
     moded_activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, Worklist),
-    completion(SCC),
-    '$tbl_component_status'(SCC, Status),
+    completion(SCC, Status),
     (   Status == merged
     ->  tdebug(scc, 'Turning leader ~p into follower', [Wrapper]),
         (   trie_gen(Trie, WrapperNoModes1, ModeArgs1),
@@ -558,24 +556,22 @@ update(M:Wrapper, A1, A2, A3) :-
     A1 \=@= A3.
 
 
-%!  completion(+Component)
+%!  completion(+Component, -Status)
 %
-%   Wakeup suspended goals until  no  new   answers  are  generated. The
-%   second argument of completion/2 keeps the current heap _delay list_,
-%   called the _D_ register in th XSB   literature.  It is modified from
-%   the C core (negative_worklist())   using (backtrackable) destructive
-%   assignment. The C core walks the   environment  to find completion/2
-%   and from there the delay list.
+%   Wakeup suspended goals until no new answers are generated. Status is
+%   one of `merged`, `completed` or `final`.
 
-completion(SCC) :-
+completion(SCC, Status) :-
     (   reset_delays,
         completion_(SCC),
         fail
-    ;   '$tbl_component_status'(SCC, Status),
-        (   Status == merged
-        ->  tdebug(schedule, 'Aborted completion of ~p', [scc(SCC)])
+    ;   '$tbl_component_status'(SCC, Status0),
+        (   Status0 == merged
+        ->  tdebug(schedule, 'Aborted completion of ~p', [scc(SCC)]),
+            Status = merged
         ;   tdebug(schedule, 'Completed ~p', [scc(SCC)]),
-            '$tbl_table_complete_all'(SCC)
+            '$tbl_table_complete_all'(SCC),
+            '$tbl_component_status'(SCC, Status)
         )
     ).
 
