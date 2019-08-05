@@ -565,7 +565,7 @@ completion(SCC, Status) :-
     (   reset_delays,
         completion_(SCC),
         fail
-    ;   '$tbl_table_complete_all'(SCC, Status),
+    ;   '$tbl_table_complete_all'(SCC, Status, _Clause),
         tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status])
     ).
 

@@ -3649,7 +3649,19 @@ wls_reeval_complete(worklist **wls, size_t ntables)
 }
 
 
-/** '$tbl_table_complete_all'(+SCC, -Status)
+static int
+unify_leader_clause(tbl_component *scc, term_t cl ARG_LD)
+{ trie *atrie = scc->leader;
+  Procedure proc = (true(atrie, TRIE_ISMAP)
+			     ? GD->procedures.trie_gen_compiled3
+			     : GD->procedures.trie_gen_compiled2);
+  atom_t clref = compile_trie(proc->definition, atrie PASS_LD);
+
+  return _PL_unify_atomic(cl, clref);
+}
+
+
+/** '$tbl_table_complete_all'(+SCC, -Status, -Clause)
  *
  * Complete and reset all newly created tables.
  *
@@ -3660,7 +3672,7 @@ wls_reeval_complete(worklist **wls, size_t ntables)
  */
 
 static
-PRED_IMPL("$tbl_table_complete_all", 2, tbl_table_complete_all, 0)
+PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 { PRED_LD
   tbl_component *c;
 
@@ -3671,8 +3683,10 @@ PRED_IMPL("$tbl_table_complete_all", 2, tbl_table_complete_all, 0)
   { worklist **wls;
     size_t ntables = worklist_set_to_array(c->created_worklists, &wls);
     size_t i;
+    int rc;
 
     wls_reeval_complete(wls, ntables);
+    rc = unify_leader_clause(c, A3 PASS_LD);
 
     for(i=0; i<ntables; i++)
     { worklist *wl = wls[i];
@@ -3704,6 +3718,9 @@ PRED_IMPL("$tbl_table_complete_all", 2, tbl_table_complete_all, 0)
       LD->tabling.component = c->parent;
     if ( !c->parent )
       LD->tabling.has_scheduling_component = FALSE;
+
+    if ( !rc )
+      return FALSE;
   }
 
   return unify_component_status(A2, c PASS_LD);
@@ -5245,7 +5262,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_local_variant_table",  1, tbl_local_variant_table,  0)
   PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
-  PRED_DEF("$tbl_table_complete_all",	2, tbl_table_complete_all,   0)
+  PRED_DEF("$tbl_table_complete_all",	3, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
   PRED_DEF("$tbl_create_subcomponent",  2, tbl_create_subcomponent,  0)
