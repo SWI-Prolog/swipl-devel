@@ -220,16 +220,15 @@ trie_discard_clause(trie *trie)
 { atom_t dbref;
 
   if ( (dbref=trie->clause) )
-  { ClauseRef cref = clause_clref(dbref);
+  { if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) )
+    { ClauseRef cref = clause_clref(dbref);
 
-    if ( cref )
-    { Clause cl = cref->value.clause;
-
-      if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) )
-      { set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
+      if ( cref )
+      { Clause cl = cref->value.clause;
+	set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
 	retractClauseDefinition(cl->predicate, cl);
-	PL_unregister_atom(dbref);
       }
+      PL_unregister_atom(dbref);
     }
   }
 }
