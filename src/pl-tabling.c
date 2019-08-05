@@ -3800,24 +3800,22 @@ PRED_IMPL("$tbl_component_status", 2, tbl_component_status, 0)
 }
 
 
-/** '$tbl_abolish_all_tables' is det.
+/** '$tbl_abolish_local_tables' is det.
  *
- * Clear the thread table data.
+ * Clear the thread table data.  Fails silently if tabling is in
+ * progress.
  */
 
 static
-PRED_IMPL("$tbl_abolish_all_tables", 0, tbl_abolish_all_tables, 0)
+PRED_IMPL("$tbl_abolish_local_tables", 0, tbl_abolish_local_tables, 0)
 { PRED_LD
 
   if ( !LD->tabling.has_scheduling_component )
   { clearThreadTablingData(LD);
     return TRUE;
-  } else
-  { term_t ex = PL_new_term_ref();
-
-    PL_put_atom(ex, ATOM_all);
-    return PL_permission_error("abolish", "tables", ex);
   }
+
+  return FALSE;
 }
 
 /** '$tbl_trienode'(-X) is det.
@@ -5241,7 +5239,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
   PRED_DEF("$tbl_create_subcomponent",  2, tbl_create_subcomponent,  0)
   PRED_DEF("$tbl_component_status",     2, tbl_component_status,     0)
-  PRED_DEF("$tbl_abolish_all_tables",   0, tbl_abolish_all_tables,   0)
+  PRED_DEF("$tbl_abolish_local_tables", 0, tbl_abolish_local_tables, 0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)
   PRED_DEF("$tbl_trienode",             1, tbl_trienode,             0)
   PRED_DEF("$tbl_delay_list",           1, tbl_delay_list,           0)

@@ -740,11 +740,20 @@ unqualify_goal(Goal, _, Goal).
 %   recompute the result after predicates on   which  the result for
 %   some tabled predicates depend.
 %
-%   @error  permission_error(abolish, table, all) if tabling is
-%           in progress.
+%   Abolishes both local and shared   tables. Possibly incomplete tables
+%   are marked for destruction upon completion.
 
 abolish_all_tables :-
-    '$tbl_abolish_all_tables'.
+    (   '$tbl_abolish_local_tables'
+    ->  true
+    ;   true
+    ),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
 
 %!  abolish_table_subgoals(:Subgoal) is det.
 %
