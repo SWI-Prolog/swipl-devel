@@ -338,6 +338,11 @@ dwim_message([Head|T]) -->
 
 swi_message(io_error(Op, Stream)) -->
     [ 'I/O error in ~w on stream ~p'-[Op, Stream] ].
+swi_message(thread_error(TID, false)) -->
+    [ 'Thread ~p died due to failure:'-[TID] ].
+swi_message(thread_error(TID, exception(Error))) -->
+    [ 'Thread ~p died abnormally:'-[TID], nl ],
+    translate_message(Error).
 swi_message(shell(execute, Cmd)) -->
     [ 'Could not execute `~w'''-[Cmd] ].
 swi_message(shell(signal(Sig), Cmd)) -->

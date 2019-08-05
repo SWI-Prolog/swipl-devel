@@ -1408,7 +1408,7 @@ thread_join(Id) :-
     thread_join(Id, Status),
     (   Status == true
     ->  true
-    ;   throw(error(thread_error(Status), _))
+    ;   throw(error(thread_error(Id, Status), _))
     ).
 
 %!  set_prolog_gc_thread(+Status)

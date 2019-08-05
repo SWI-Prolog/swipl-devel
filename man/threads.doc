@@ -170,7 +170,8 @@ has an alias, the alias name is returned.
     \predicate{thread_join}{1}{+Id}
 Calls thread_join/2 and succeeds if thread \arg{Id} terminated with
 success. Otherwise the exception
-\term{error}{\term{thread_error}{Status}, _} is raised.
+\term{error}{\term{thread_error}{Id, Status}, _} is raised, where
+\arg{Status} is the status as returned by thread_join/2.
 
     \predicate{thread_join}{2}{+Id, -Status}
 Wait for the termination of the thread with the given \arg{Id}.  Then unify
