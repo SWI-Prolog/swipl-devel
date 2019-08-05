@@ -2057,6 +2057,13 @@ get_answer_table(+Variant, -Return, int flags)
 
 Find the answer table for  Variant  and   its  return  template  (a term
 ret/N). If `create` is TRUE, create the table if it does not exist.
+
+(*) We must avoid a race  with   trie_discard_clause().  As  long as the
+(atom) clause reference is not garbage collected  the clause is safe. We
+first check there is an atom, then push  it as a volatile atom and check
+it again. If the atom is still valid it is not protected against atom-gc
+by pushVolatileAtom() and will  be  unified   before  anything  else  in
+'$variant_table'/5, so it remains valid.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define AT_CREATE		0x0001
@@ -2072,7 +2079,7 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   Word v;
   tmp_buffer vars;
   mark m;
-  atom_t clref = 0;
+  volatile atom_t clref = 0;
 
   if ( !def )					/* we should avoid these */
   { Procedure proc;
@@ -2121,7 +2128,7 @@ retry:
 	} else
 	{ PL_unregister_atom(symb);
 	  trie_destroy(atrie);
-	  symbol_trie(node->value);
+	  atrie = symbol_trie(node->value);
 	}
       }
     } else
@@ -2133,6 +2140,7 @@ retry:
     if ( true(atrie, TRIE_ISSHARED) )
     { int mytid = PL_thread_self();
 
+    retry_shared:
       if ( atrie->tid != mytid )
       { LOCK_SHARED_TABLES();
 	if ( atrie->tid )
@@ -2174,11 +2182,15 @@ retry:
 	  atrie->tid = mytid;
 	} else					/* complete and valid */
 	{ if ( !(clref=atrie->clause) )
-	  { Procedure proc = ((flags&AT_MODED) ? GD->procedures.trie_gen_compiled3 :
-					         GD->procedures.trie_gen_compiled2);
+	  { Procedure proc = ((flags&AT_MODED)
+					? GD->procedures.trie_gen_compiled3
+					: GD->procedures.trie_gen_compiled2);
 
 	    clref = compile_trie(proc->definition, atrie PASS_LD);
 	  }
+	  pushVolatileAtom(clref);		/* see (*) above */
+	  if ( clref != atrie->clause )
+	    goto retry_shared;
 	}
 	UNLOCK_SHARED_TABLES();
       }
