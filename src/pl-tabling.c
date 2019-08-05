@@ -2438,7 +2438,11 @@ free_worklist(worklist *wl)
   discardBuffer(&wl->pos_undefined);
 
   if ( wl->abolish_on_complete )		/* abolished while incomplete */
-    destroy_answer_trie(wl->table);
+  { trie *atrie = wl->table;
+
+    atrie->data.worklist = NULL;
+    destroy_answer_trie(atrie);
+  }
 
   PL_free(wl);
 }
