@@ -366,8 +366,9 @@ done_leader(complete, _SCC, Skeleton, Trie) :-
     trie_gen_compiled(Trie, Skeleton).
 done_leader(final, SCC, Skeleton, Trie) :-
     !,
+    '$trie_compile'(Trie, Clause),
     '$tbl_free_component'(SCC),
-    trie_gen_compiled(Trie, Skeleton).
+    trie_gen_compiled(Clause, Skeleton).
 done_leader(_,_,_,_).
 
 finished_leader(exit, _, _) :-

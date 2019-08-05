@@ -2427,6 +2427,24 @@ retry:
 }
 
 
+static
+PRED_IMPL("$trie_compile", 2, trie_compile, 0)
+{ PRED_LD
+  trie *trie;
+
+  if ( get_trie(A1, &trie) )
+  { Procedure proc = (true(trie, TRIE_ISMAP)
+			     ? GD->procedures.trie_gen_compiled3
+			     : GD->procedures.trie_gen_compiled2);
+    atom_t clref = compile_trie(proc->definition, trie PASS_LD);
+
+    return _PL_unify_atomic(A2, clref);
+  }
+
+  return FALSE;
+}
+
+
 static void
 set_trie_clause_general_undefined(Clause clause)
 { Code PC, ep;
@@ -2464,6 +2482,7 @@ BeginPredDefs(trie)
   PRED_DEF("trie_gen",            2, trie_gen,      PL_FA_NONDETERMINISTIC)
   PRED_DEF("$trie_gen_node",      3, trie_gen_node, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$trie_property",      2, trie_property,      0)
+  PRED_DEF("$trie_compile",       2, trie_compile,       0)
 EndPredDefs
 
 void
