@@ -3811,18 +3811,6 @@ unify_component_status(term_t t, tbl_component *scc ARG_LD)
   return PL_unify_atom(t, status);
 }
 
-static
-PRED_IMPL("$tbl_component_status", 2, tbl_component_status, 0)
-{ PRED_LD
-  tbl_component *c;
-
-  if ( get_scc(A1, &c) )
-    return unify_component_status(A2, c PASS_LD);
-
-  return FALSE;
-}
-
-
 /** '$tbl_abolish_local_tables' is det.
  *
  * Clear the thread table data.  Fails silently if tabling is in
@@ -5261,7 +5249,6 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
   PRED_DEF("$tbl_create_subcomponent",  2, tbl_create_subcomponent,  0)
-  PRED_DEF("$tbl_component_status",     2, tbl_component_status,     0)
   PRED_DEF("$tbl_abolish_local_tables", 0, tbl_abolish_local_tables, 0)
   PRED_DEF("$tbl_destroy_table",        1, tbl_destroy_table,        0)
   PRED_DEF("$tbl_trienode",             1, tbl_trienode,             0)
