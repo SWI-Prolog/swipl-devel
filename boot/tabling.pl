@@ -574,34 +574,33 @@ completion_(SCC) :-
     (   '$tbl_pop_worklist'(SCC, WorkList)
     ->  tdebug(wl_goal(WorkList, Goal, _)),
         tdebug(schedule, 'Complete ~p in ~p', [Goal, scc(SCC)]),
-        completion_step(WorkList),
-        fail
+        completion_step(WorkList)
     ;   !
     ).
 
+%!  completion_step(+Worklist) is fail.
+
 completion_step(WorkList) :-
-    (   '$tbl_trienode'(Reserved),
-        '$tbl_wkl_work'(WorkList,
-                        Answer, ModeArgs,
-                        Goal, Continuation, Wrapper, TargetWorklist, Delays),
-        '$idg_set_current_wl'(TargetWorklist),
-        tdebug(wl_goal(WorkList, SourceGoal, _)),
-        tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
-        (   ModeArgs == Reserved
-        ->  tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
-            tdebug(delay_goals(AllDelays, Cond)),
-            tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays = ~p)',
-                   [TargetGoal, SourceGoal, Answer, Cond]),
-            Goal = Answer,
-            delim(Wrapper, Continuation, TargetWorklist, Delays)
-        ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
-            get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
-            moded_delim(Wrapper, WrapperNoModes, Continuation, TargetWorklist,
-                        Delays)
-        ),
-        fail
-    ;   true
-    ).
+    '$tbl_trienode'(Reserved),
+    '$tbl_wkl_work'(WorkList,
+                    Answer, ModeArgs,
+                    Goal, Continuation, Wrapper, TargetWorklist, Delays),
+    '$idg_set_current_wl'(TargetWorklist),
+    tdebug(wl_goal(WorkList, SourceGoal, _)),
+    tdebug(wl_goal(TargetWorklist, TargetGoal, _Skeleton)),
+    (   ModeArgs == Reserved
+    ->  tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
+        tdebug(delay_goals(AllDelays, Cond)),
+        tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays = ~p)',
+               [TargetGoal, SourceGoal, Answer, Cond]),
+        Goal = Answer,
+        delim(Wrapper, Continuation, TargetWorklist, Delays)
+    ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
+        get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
+        moded_delim(Wrapper, WrapperNoModes, Continuation, TargetWorklist,
+                    Delays)
+    ),
+    fail.
 
 
 		 /*******************************
