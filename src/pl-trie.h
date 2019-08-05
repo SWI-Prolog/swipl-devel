@@ -95,6 +95,7 @@ typedef struct trie_allocation_pool
 #define TRIE_ISSET	0x0001		/* Trie nodes have no value */
 #define TRIE_ISMAP	0x0002		/* Trie nodes have a value */
 #define TRIE_ISSHARED	0x0004		/* This is a shared answer trie */
+#define TRIE_COMPLETE	0x0008		/* Answer trie is complete */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */

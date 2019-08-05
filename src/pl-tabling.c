@@ -79,6 +79,7 @@ static int	put_delay_info(term_t t, trie_node *answer);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
+static void	idg_reset(idg_node *node);
 static int	idg_init_variant(trie *atrie, Definition def, term_t variant
 				 ARG_LD);
 static void	reeval_complete(trie *atrie);
@@ -89,7 +90,6 @@ static trie    *idg_add_edge(trie *atrie ARG_LD);
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
 
-#define WL_COMPLETE ((worklist *)0x11)
 #define WL_GROUND   ((worklist *)0x21)
 #define WL_DYNAMIC  ((worklist *)0x41)
 
@@ -535,8 +535,7 @@ free_worklist_set(worklist_set *wls, int freewl)
     { worklist *wl = wlp[i];
       trie *atrie = wl->table;
 
-      if ( (freewl&WLFS_FREE_ALL) ||
-	   wl->table->data.worklist == WL_COMPLETE )
+      if ( (freewl&WLFS_FREE_ALL) || true(wl->table, TRIE_COMPLETE) )
 	free_worklist(wl);
       if ( (freewl&WLFS_DISCARD_INCOMPLETE) && table_is_incomplete(atrie) )
       { DEBUG(MSG_TABLING_EXCEPTION,
@@ -1838,7 +1837,7 @@ PRED_IMPL("$tbl_set_answer_completed", 1, tbl_set_answer_completed, 0)
       return TRUE;
     }
 
-    if ( wl == WL_COMPLETE )
+    if ( true(trie, TRIE_COMPLETE) )
       return TRUE;
 
     return PL_permission_error("set_answer_complete", "trie", A1);
@@ -1857,7 +1856,7 @@ PRED_IMPL("$tbl_is_answer_completed", 1, tbl_is_answer_completed, 0)
     if ( WL_IS_WORKLIST((wl=trie->data.worklist)) )
       return wl->answer_completed;
 
-    return wl == WL_COMPLETE;
+    return !!true(trie, TRIE_COMPLETE);
   }
 
   return FALSE;
@@ -1956,6 +1955,7 @@ variant_table(trie **tp, int shared)
 static void
 reset_answer_table(trie *atrie, int cleanup)
 { worklist *wl;
+  idg_node *n;
 
   if ( WL_IS_WORKLIST(wl=atrie->data.worklist) )
   { if ( !isEmptyBuffer(&wl->delays) && !cleanup )
@@ -1963,14 +1963,18 @@ reset_answer_table(trie *atrie, int cleanup)
     if ( wl->undefined )
       destroy_delay_info_worklist(wl);
     atrie->data.worklist = NULL;
+    wl->abolish_on_complete = FALSE;		/* avoid recursive delete */
     free_worklist(wl);
   } else if ( wl )
   { atrie->data.worklist = NULL;		/* make fresh again */
   }
+  clear(atrie, TRIE_COMPLETE);
 
-  if ( atrie->data.IDG )
-  { idg_destroy(atrie->data.IDG);
-    atrie->data.IDG = NULL;
+  if ( (n=atrie->data.IDG) )
+  { if ( true(atrie, TRIE_ISSHARED) )
+      idg_reset(n);
+    else
+      idg_destroy(n);
   }
 
   trie_empty(atrie);
@@ -2467,7 +2471,7 @@ static void
 complete_worklist(worklist *wl)
 { clean_worklist(wl);
 
-  COMPLETE_WORKLIST(wl->table, wl->completed = TRUE);
+  COMPLETE_WORKLIST(wl->table, set(wl->table, TRIE_COMPLETE));
 }
 
 
@@ -2650,40 +2654,36 @@ unify_complete_or_invalid(term_t t, trie *atrie ARG_LD)
 
 static int
 unify_table_status(term_t t, trie *trie, int merge ARG_LD)
-{ worklist *wl = trie->data.worklist;
+{ if ( true(trie, TRIE_COMPLETE) )
+  { return unify_complete_or_invalid(t, trie PASS_LD);
+  } else
+  { worklist *wl = trie->data.worklist;
 
-  if ( WL_IS_WORKLIST(wl) )
-  { if ( wl->completed )
-      return unify_complete_or_invalid(t, trie PASS_LD);
+    if ( WL_IS_WORKLIST(wl) )
+    { if ( merge && wl->component != LD->tabling.component )
+      { DEBUG(MSG_TABLING_WORK,
+	      Sdprintf("Merging into %p (current = %p)\n",
+		       wl->component, LD->tabling.component));
+	merge_component(wl->component);
+	LD->tabling.component = wl->component;
+      }
 
-    if ( merge && wl->component != LD->tabling.component )
-    { DEBUG(MSG_TABLING_WORK,
-	    Sdprintf("Merging into %p (current = %p)\n",
-		     wl->component, LD->tabling.component));
-      merge_component(wl->component);
-      LD->tabling.component = wl->component;
+      return PL_unify_pointer(t, wl);
     }
 
-    return PL_unify_pointer(t, wl);
-  }
-  if ( wl == WL_COMPLETE )
-    return unify_complete_or_invalid(t, trie PASS_LD);
-  if ( wl == WL_DYNAMIC )
-    return PL_unify_atom(t, ATOM_dynamic);
+    if ( wl == WL_DYNAMIC )
+      return PL_unify_atom(t, ATOM_dynamic);
 
-  assert(!wl || wl == WL_GROUND);
-  return PL_unify_atom(t, ATOM_fresh);
+    assert(!wl || wl == WL_GROUND);
+    return PL_unify_atom(t, ATOM_fresh);
+  }
 }
 
 
 static int
 table_is_incomplete(trie *trie)
-{ worklist *wl = trie->data.worklist;
-
-  if ( WL_IS_WORKLIST(wl) && !wl->completed )
-    return TRUE;
-
-  return FALSE;
+{ return ( WL_IS_WORKLIST(trie->data.worklist) &&
+	   false(trie, TRIE_COMPLETE) );
 }
 
 
@@ -2800,14 +2800,14 @@ PRED_IMPL("$tbl_new_worklist", 2, tbl_new_worklist, 0)
 
     DEBUG(0, assert(false(trie, TRIE_ISSHARED) || trie->tid));
 
-    if ( WL_IS_WORKLIST(wl=trie->data.worklist) )
-      wl->completed = FALSE;
-    else
+    if ( !WL_IS_WORKLIST(wl=trie->data.worklist) )
       wl = new_worklist(trie);
 
     wl->component = LD->tabling.component;
     add_global_worklist(wl);
     add_newly_created_worklist(wl);
+    clear(trie, TRIE_COMPLETE);
+
     return PL_unify_pointer(A1, wl);
   }
 
@@ -2848,11 +2848,12 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 { trie *table;
 
   if ( get_trie(A1, &table) )
-  { worklist *wl;
+  { if ( table_is_incomplete(table) )
+    { worklist *wl;
 
-    if ( WL_IS_WORKLIST(wl=table->data.worklist) &&
-	 !wl->completed )
-    { wl->abolish_on_complete = TRUE;
+      if ( WL_IS_WORKLIST((wl=table->data.worklist)) )
+	wl->abolish_on_complete = TRUE;
+      return TRUE;
     } else if ( destroy_answer_trie(table) )
     { return TRUE;
     } else
@@ -3656,7 +3657,7 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
       DEBUG(MSG_TABLING_WORK,
 	    { term_t t = PL_new_term_ref();
 	      unify_trie_term(trie->data.variant, t PASS_LD);
-	      Sdprintf("Setting wl %zd in scc %zd to WL_COMPLETE.  Variant: ",
+	      Sdprintf("Setting wl %zd in scc %zd to COMPLETE.  Variant: ",
 		       pointerToInt(wl), pointerToInt(c));
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
@@ -3664,7 +3665,10 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
 						/* see (*) */
       if ( !wl->undefined && isEmptyBuffer(&wl->delays) )
       { free_worklist(wl);
-	COMPLETE_WORKLIST(trie, trie->data.worklist = WL_COMPLETE);
+	COMPLETE_WORKLIST(trie,
+			  { trie->data.worklist = NULL;
+			    set(trie, TRIE_COMPLETE);
+			  });
       } else
       { complete_worklist(wl);
       }
@@ -4404,6 +4408,16 @@ idg_clean_dependent(idg_node *node)
 
 
 static void
+idg_reset(idg_node *node)
+{ idg_clean_affected(node);
+  idg_clean_dependent(node);
+  node->answer_count = 0;
+  node->new_answer   = FALSE;
+  node->reevaluating = FALSE;
+  node->falsecount   = 0;
+}
+
+static void
 idg_destroy(idg_node *node)
 { idg_clean_affected(node);
   idg_clean_dependent(node);
@@ -5051,27 +5065,19 @@ reeval_complete(trie *atrie)
 
 static int
 table_needs_work(trie *atrie)
-{ worklist *wl = atrie->data.worklist;
+{ if ( true(atrie, TRIE_COMPLETE) )
+  { idg_node *n;
 
-  if ( WL_IS_WORKLIST(wl) )
-  { if ( wl->completed )
-    { idg_node *n;
-
-    complete:
-      if ( (n=atrie->data.IDG) )
-      { if ( n->falsecount > 0 ||		/* invalid */
-	     n->reevaluating )			/* fresh (re-evaluating) */
-	  return TRUE;
-      }
+    if ( (n=atrie->data.IDG) )
+    { if ( n->falsecount > 0 ||		/* invalid */
+	   n->reevaluating )		/* fresh (re-evaluating) */
+	return TRUE;
     }
 
     return FALSE;
   }
 
-  if ( wl == WL_COMPLETE )
-    goto complete;
-
-  return TRUE;					/* fresh */
+  return TRUE;
 }
 
 

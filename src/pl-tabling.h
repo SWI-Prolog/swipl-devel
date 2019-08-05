@@ -103,7 +103,6 @@ typedef struct worklist
   cluster      *riac;			/* rightmost inner answer cluster */
   cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
-  unsigned	completed : 1;		/* Really completed */
   unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
