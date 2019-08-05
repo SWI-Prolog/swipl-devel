@@ -160,12 +160,14 @@ lookup_clref(Clause clause)
 }
 
 
+/* Note that the clause may be erased */
+
 ClauseRef
 clause_clref(atom_t aref)
 { PL_blob_t *type;
   ClauseRef ref = PL_blob_data(aref, NULL, &type);
 
-  if ( type == &clause_blob && false(ref->value.clause, CL_ERASED) )
+  if ( type == &clause_blob )
     return ref;
 
   return NULL;
