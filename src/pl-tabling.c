@@ -3619,6 +3619,35 @@ PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 	 );
 }
 
+
+static void
+wls_reeval_complete(worklist **wls, size_t ntables)
+{ size_t i;
+
+  for(i=0; i<ntables; i++)
+  { worklist *wl = wls[i];
+    trie *atrie = wl->table;
+    idg_node *n;
+    int reeval_this;
+
+    // I think we either need to reevaluate all or none
+    reeval_this = ((n=atrie->data.IDG) && n->reevaluating);
+#ifndef O_DEBUG
+    if ( !reeval_this )
+      return;
+#else
+    int reeval;
+    if ( i==0 )
+      reeval = reeval_this;
+    else
+      assert(reeval == reeval_this);
+#endif
+
+    reeval_complete(atrie);		/* incremental tabling */
+  }
+}
+
+
 /** '$tbl_table_complete_all'(+SCC)
  *
  * Complete and reset all newly created tables.
@@ -3642,21 +3671,7 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
     size_t ntables = worklist_set_to_array(c->created_worklists, &wls);
     size_t i;
 
-    for(i=0; i<ntables; i++)
-    { worklist *wl = wls[i];
-      trie *atrie = wl->table;
-      idg_node *n;
-      int reeval, reeval_this;
-
-      // I think we either nee to reevaluate all or none
-      reeval_this = ((n=atrie->data.IDG) && n->reevaluating);
-      if ( i==0 )
-        reeval = reeval_this;
-      else
-	assert(reeval == reeval_this);
-
-      reeval_complete(atrie);		/* incremental tabling */
-    }
+    wls_reeval_complete(wls, ntables);
 
     for(i=0; i<ntables; i++)
     { worklist *wl = wls[i];
