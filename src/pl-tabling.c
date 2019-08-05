@@ -83,6 +83,7 @@ static void	idg_reset(idg_node *node);
 static int	idg_init_variant(trie *atrie, Definition def, term_t variant
 				 ARG_LD);
 static void	reeval_complete(trie *atrie);
+static int	unify_component_status(term_t t, tbl_component *scc ARG_LD);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
 static trie    *idg_add_edge(trie *atrie ARG_LD);
@@ -837,7 +838,7 @@ add_to_wl_delays(trie *at, trie_node *answer, worklist *wla)
 	  });
     addBuffer(&wl->delays, answer, trie_node *);
   } else
-  { /* see '$tbl_table_complete_all'/1 */
+  { /* see '$tbl_table_complete_all'/2 */
     DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
 	  print_dl_dependency(wla->table, at));
     assert(0);
@@ -3648,7 +3649,7 @@ wls_reeval_complete(worklist **wls, size_t ntables)
 }
 
 
-/** '$tbl_table_complete_all'(+SCC)
+/** '$tbl_table_complete_all'(+SCC, -Status)
  *
  * Complete and reset all newly created tables.
  *
@@ -3659,7 +3660,7 @@ wls_reeval_complete(worklist **wls, size_t ntables)
  */
 
 static
-PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
+PRED_IMPL("$tbl_table_complete_all", 2, tbl_table_complete_all, 0)
 { PRED_LD
   tbl_component *c;
 
@@ -3703,10 +3704,9 @@ PRED_IMPL("$tbl_table_complete_all", 1, tbl_table_complete_all, 0)
       LD->tabling.component = c->parent;
     if ( !c->parent )
       LD->tabling.has_scheduling_component = FALSE;
-// FIXME: Leave destruction to GC
   }
 
-  return TRUE;
+  return unify_component_status(A2, c PASS_LD);
 }
 
 
@@ -5257,7 +5257,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_local_variant_table",  1, tbl_local_variant_table,  0)
   PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
-  PRED_DEF("$tbl_table_complete_all",	1, tbl_table_complete_all,   0)
+  PRED_DEF("$tbl_table_complete_all",	2, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
   PRED_DEF("$tbl_create_subcomponent",  2, tbl_create_subcomponent,  0)

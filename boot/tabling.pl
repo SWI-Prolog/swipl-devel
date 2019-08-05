@@ -565,14 +565,8 @@ completion(SCC, Status) :-
     (   reset_delays,
         completion_(SCC),
         fail
-    ;   '$tbl_component_status'(SCC, Status0),
-        (   Status0 == merged
-        ->  tdebug(schedule, 'Aborted completion of ~p', [scc(SCC)]),
-            Status = merged
-        ;   tdebug(schedule, 'Completed ~p', [scc(SCC)]),
-            '$tbl_table_complete_all'(SCC),
-            '$tbl_component_status'(SCC, Status)
-        )
+    ;   '$tbl_table_complete_all'(SCC, Status),
+        tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status])
     ).
 
 completion_(SCC) :-
