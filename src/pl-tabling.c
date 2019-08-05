@@ -2856,7 +2856,10 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
     { worklist *wl;
 
       if ( WL_IS_WORKLIST((wl=table->data.worklist)) )
+      { DEBUG(MSG_TABLING_ABOLISH,
+	      print_answer_table("Scheduling for delayed abolish", table));
 	wl->abolish_on_complete = TRUE;
+      }
       return TRUE;
     } else if ( destroy_answer_trie(table) )
     { return TRUE;
@@ -2869,7 +2872,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 }
 
 
-/** '$tbl_pop_worklist'(+SCC, -Worklist, -Delays) is semidet.
+/** '$tbl_pop_worklist'(+SCC, -Worklist) is semidet.
  *
  * Pop next worklist from the component.
  */
@@ -2880,18 +2883,19 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
   tbl_component *scc;
 
   if ( get_scc(A1, &scc) )
-  { worklist *wl;
+  { if ( scc->status == SCC_ACTIVE )
+    { worklist *wl;
 
-    if ( (wl=pop_worklist(scc PASS_LD)) )
-      return PL_unify_pointer(A2, wl);
-
-    if (
-#ifndef O_AC_EAGER
-	  scc->simplifications ||
-#endif
-	  scc->neg_status != SCC_NEG_NONE )
-    { if ( (wl=negative_worklist(scc PASS_LD)) )
+      if ( (wl=pop_worklist(scc PASS_LD)) )
 	return PL_unify_pointer(A2, wl);
+      if (
+#ifndef O_AC_EAGER
+	    scc->simplifications ||
+#endif
+	    scc->neg_status != SCC_NEG_NONE )
+      { if ( (wl=negative_worklist(scc PASS_LD)) )
+	  return PL_unify_pointer(A2, wl);
+      }
     }
   }
 

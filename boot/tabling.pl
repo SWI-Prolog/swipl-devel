@@ -332,12 +332,11 @@ restart_tabling(Closure, Wrapper, Worker) :-
 start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
     ->  (   Status == complete
-        ->  '$tbl_answer_update_dl'(Trie, Skeleton)
+        ->  trie_gen_compiled(Trie, Skeleton)
         ;   Status == invalid
         ->  reeval(Trie),
-            '$idg_add_edge'(Trie),
-            '$tbl_answer_update_dl'(Trie, Skeleton)
-        ;    shift(call_info(Skeleton, Status))
+            trie_gen_compiled(Trie, Skeleton)
+        ;   shift(call_info(Skeleton, Status))
         )
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
@@ -572,26 +571,23 @@ completion(SCC) :-
     (   reset_delays,
         completion_(SCC),
         fail
-    ;   true
+    ;   '$tbl_component_status'(SCC, Status),
+        (   Status == merged
+        ->  tdebug(schedule, 'Aborted completion of ~p', [scc(SCC)])
+        ;   tdebug(schedule, 'Completed ~p', [scc(SCC)]),
+            '$tbl_table_complete_all'(SCC)
+        )
     ).
 
 completion_(SCC) :-
     repeat,
-    '$tbl_component_status'(SCC, Status),
-    (   Status == active
-    ->  (   '$tbl_pop_worklist'(SCC, WorkList)
-        ->  tdebug(wl_goal(WorkList, Goal, _)),
-            tdebug(schedule, 'Complete ~p in ~p', [Goal, scc(SCC)]),
-            completion_step(WorkList),
-            fail
-        ;   tdebug(schedule, 'Completed ~p', [scc(SCC)]),
-            '$tbl_table_complete_all'(SCC)
-        )
-    ;   Status == merged
-    ->  tdebug(schedule, 'Aborted completion of ~p', [scc(SCC)])
-    ;   true
-    ),
-    !.
+    (   '$tbl_pop_worklist'(SCC, WorkList)
+    ->  tdebug(wl_goal(WorkList, Goal, _)),
+        tdebug(schedule, 'Complete ~p in ~p', [Goal, scc(SCC)]),
+        completion_step(WorkList),
+        fail
+    ;   !
+    ).
 
 completion_step(WorkList) :-
     (   '$tbl_trienode'(Reserved),
