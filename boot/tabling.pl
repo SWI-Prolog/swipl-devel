@@ -749,13 +749,16 @@ abolish_all_tables :-
 %!  abolish_table_subgoals(:Subgoal) is det.
 %
 %   Abolish all tables that unify with SubGoal.
+%
+%   @tbd: SubGoal must be callable.  Should we allow for more general
+%   patterns?
 
 abolish_table_subgoals(SubGoal0) :-
     '$tbl_implementation'(SubGoal0, M:SubGoal),
-    '$tbl_variant_table'(VariantTrie),
     !,
-    current_module(M),
-    forall(trie_gen(VariantTrie, M:SubGoal, Trie),
+    forall(( '$tbl_variant_table'(VariantTrie),
+             trie_gen(VariantTrie, M:SubGoal, Trie)
+           ),
            '$tbl_destroy_table'(Trie)).
 abolish_table_subgoals(_).
 
@@ -777,8 +780,8 @@ abolish_module_tables(_).
 %   Abolish all tables that are not related to incremental predicates.
 
 abolish_nonincremental_tables :-
-    '$tbl_variant_table'(VariantTrie),
-    (   trie_gen(VariantTrie, _, Trie),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
         '$tbl_table_status'(Trie, Status, Goal, _),
         (   Status == complete
         ->  true
@@ -803,8 +806,8 @@ abolish_nonincremental_tables(Options) :-
     ;   '$option'(on_incomplete(skip), Options)
     ),
     !,
-    '$tbl_variant_table'(VariantTrie),
-    (   trie_gen(VariantTrie, _, Trie),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
         '$tbl_table_status'(Trie, complete, Goal, _),
         \+ predicate_property(Goal, incremental),
         '$tbl_destroy_table'(Trie),
