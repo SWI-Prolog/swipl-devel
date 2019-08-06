@@ -3592,7 +3592,7 @@ win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
 }
 
 
-static int
+int
 win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
 { if ( cv->waiters > 0 )
     SetEvent(cv->events[BROADCAST]);
