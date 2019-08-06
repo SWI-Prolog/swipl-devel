@@ -126,7 +126,7 @@ static int	is_deadlock(trie *atrie);
 
 #else /*O_PLMT*/
 
-#define COMPLETE_WORKLIST(__code) \
+#define COMPLETE_WORKLIST(__trie, __code) \
 	do { __code; } while(0)
 
 #endif /*O_PLMT*/
@@ -2097,10 +2097,14 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
     }
   }
 
+#ifdef O_PLMT
   if ( false(def, P_TSHARED) )
     variants = variant_table(&LD->tabling.variant_table, FALSE);
   else
     variants = variant_table(&GD->tabling.variant_table, TRUE);
+#else
+  variants = variant_table(&LD->tabling.variant_table, FALSE);
+#endif
 
   initBuffer(&vars);
 
@@ -2121,6 +2125,7 @@ retry:
       atrie->data.variant = node;
       symb = trie_symbol(atrie);
 
+#ifdef O_PLMT
       if ( false(def, P_TSHARED) )
       { atrie->alloc_pool = &LD->tabling.node_pool;
 	node->value = symb;
@@ -2136,6 +2141,11 @@ retry:
 	  atrie = symbol_trie(node->value);
 	}
       }
+#else
+      atrie->alloc_pool = &LD->tabling.node_pool;
+      node->value = symb;
+      ATOMIC_INC(&variants->value_count);
+#endif
     } else
     { discardBuffer(&vars);
       return NULL;
@@ -3548,11 +3558,14 @@ PRED_IMPL("$tbl_local_variant_table", 1, tbl_local_variant_table, 0)
 
 static
 PRED_IMPL("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
-{ PRED_LD
+{
+#ifdef O_PLMT
+  PRED_LD
   trie *trie = GD->tabling.variant_table;
 
   if ( trie )
     return _PL_unify_atomic(A1, trie->symbol);
+#endif
 
   return FALSE;
 }
@@ -3569,6 +3582,7 @@ PRED_IMPL("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
  *  there is no global table.
  */
 
+#ifdef O_PLMT
 static
 PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
 { PRED_LD
@@ -3596,7 +3610,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
       return FALSE;
   }
 }
-
+#endif
 
 /** '$tbl_table_status'(+Trie, -Status, -Wrapper, -Skeleton)
  *
@@ -5230,9 +5244,8 @@ initTabling(void)
 #ifdef O_PLMT
   simpleMutexInit(&GD->tabling.mutex);
   cv_init(&GD->tabling.cvar, NULL);
-#endif
-
   GD->tabling.node_pool.limit = GD->options.tableSpace;
+#endif
 }
 
 		 /*******************************
@@ -5257,7 +5270,11 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_variant_table",	5, tbl_variant_table,	     0)
   PRED_DEF("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   PRED_DEF("$tbl_moded_variant_table",	5, tbl_moded_variant_table,  0)
+#ifdef O_PLMT
   PRED_DEF("$tbl_variant_table",        1, tbl_variant_table,	  NDET)
+#else
+  PRED_DEF("$tbl_variant_table",        1, tbl_local_variant_table,  0)
+#endif
   PRED_DEF("$tbl_local_variant_table",  1, tbl_local_variant_table,  0)
   PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)

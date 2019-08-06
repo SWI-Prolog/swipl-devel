@@ -242,7 +242,9 @@ static void
 unallocModule(Module m)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { if ( LD->modules.source == m ) LD->modules.source = MODULE_user;
     if ( LD->modules.typein == m ) LD->modules.typein = MODULE_user;
   }

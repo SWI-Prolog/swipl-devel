@@ -606,7 +606,9 @@ static const char *
 tmp_dir(void)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { atom_t a;
     static atom_t      tmp_aname = NULL_ATOM;
     static const char *tmp_name = NULL;
@@ -2518,7 +2520,9 @@ const char *
 prog_shell(void)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { atom_t a;
 
     if ( PL_current_prolog_flag(ATOM_posix_shell, PL_ATOM, &a) )
