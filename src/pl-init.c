@@ -482,12 +482,15 @@ static void
 initDefaults(void)
 { GET_LD
 
-  systemDefaults.arch	     = PLARCH;
-  systemDefaults.stack_limit = DEFSTACKLIMIT;
-  systemDefaults.table_space = DEFTABLE;
-  systemDefaults.goal	     = NULL;
-  systemDefaults.toplevel    = "default";
-  systemDefaults.notty       = NOTTYCONTROL;
+  systemDefaults.arch		    = PLARCH;
+  systemDefaults.stack_limit	    = DEFSTACKLIMIT;
+  systemDefaults.table_space	    = DEFTABLE;
+#ifdef O_PLMT
+  systemDefaults.shared_table_space = DEFTABLE;
+#endif
+  systemDefaults.goal		    = NULL;
+  systemDefaults.toplevel	    = "default";
+  systemDefaults.notty		    = NOTTYCONTROL;
 
 #ifdef __WINDOWS__
   getDefaultsFromRegistry();
@@ -560,17 +563,19 @@ do_value:
 
 static void
 initDefaultOptions(void)
-{ GD->options.compileOut    = store_string("a.out");
-  GD->options.stackLimit    = systemDefaults.stack_limit;
-  GD->options.tableSpace    = systemDefaults.table_space;
-  GD->options.topLevel      = store_string(systemDefaults.toplevel);
-  GD->options.initFile      = store_string(systemDefaults.startup);
-  GD->options.scriptFiles   = NULL;
-  GD->options.saveclass	    = store_string("none");
+{ GD->options.compileOut       = store_string("a.out");
+  GD->options.stackLimit       = systemDefaults.stack_limit;
+  GD->options.tableSpace       = systemDefaults.table_space;
+#ifdef O_PLMT
+  GD->options.sharedTableSpace = systemDefaults.shared_table_space;
+#endif
+  GD->options.topLevel	       = store_string(systemDefaults.toplevel);
+  GD->options.initFile	       = store_string(systemDefaults.startup);
+  GD->options.scriptFiles      = NULL;
+  GD->options.saveclass	       = store_string("none");
 
   if ( systemDefaults.goal )
     opt_append(&GD->options.goals, systemDefaults.goal);
-
 
   if ( !GD->bootsession && GD->resources.DB )
   { IOSTREAM *op = SopenZIP(GD->resources.DB, "$prolog/options.txt", RC_RDONLY);
@@ -708,6 +713,15 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  return -1;
 
 	GD->options.tableSpace = size;
+#ifdef O_PLMT
+      } else if ( (optval=is_longopt(s, "shared_table_space")) )
+      { size_t size = memarea_limit(optval);
+
+	if ( size == MEMAREA_INVALID_SIZE )
+	  return -1;
+
+	GD->options.sharedTableSpace = size;
+#endif
       } else if ( (optval=is_longopt(s, "dump-runtime-variables")) )
       { GD->options.config = store_string(optval);
       } else if ( !compile )
@@ -1090,6 +1104,9 @@ usage(void)
     "    --home=DIR               Use DIR as SWI-Prolog home\n",
     "    --stack_limit=size[BKMG] Specify maximum size of Prolog stacks\n",
     "    --table_space=size[BKMG] Specify maximum size of SLG tables\n",
+#ifdef O_PLMT
+    "    --shared_table_space=size[BKMG] Maximum size of shared SLG tables\n",
+#endif
     "    --pce[=bool]             Make the xpce gui available\n",
     "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__

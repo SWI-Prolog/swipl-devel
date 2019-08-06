@@ -522,6 +522,9 @@ use. It is a memnonic for \textbf{M}emoizing.} answers for
 \jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
 512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}
+    \cmdlineoptionitem*{-shared_table_space}{size[bkmg]}
+Limit for the table space for \jargon{shared} tables. See
+\secref{tabling-shared}.
 \end{description}
 
 
@@ -1798,6 +1801,10 @@ absolute_file_name/3.
     \prologflagitem{shared_object_search_path}{atom}{r}
 Name of the environment variable used by the system to search for shared
 objects.
+
+    \prologflagitem{shared_table_space}{integer}{rw}
+Space reserved for storing shared answer tables. See
+\secref{tabling-shared} and the Prolog flag \prologflag{table_space}.
 
     \prologflagitem{signals}{bool}{r}
 Determine whether Prolog is handling signals (software interrupts). This

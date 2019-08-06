@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2018, University of Amsterdam
+    Copyright (c)  2012-2019, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -42,6 +42,9 @@ typedef struct
   char   *startup;			/* default user startup file */
   size_t  stack_limit;			/* default stack limit (bytes) */
   size_t  table_space;			/* default table space (bytes) */
+#ifdef O_PLMT
+  size_t  shared_table_space;		/* default space for shared tables */
+#endif
   char   *goal;				/* default initialisation goal */
   char   *toplevel;			/* default top level goal */
   bool    notty;			/* use tty? */
@@ -57,6 +60,9 @@ typedef struct opt_list
 typedef struct
 { size_t	stackLimit;		/* Total stack limit */
   size_t	tableSpace;		/* table space */
+#ifdef O_PLMT
+  size_t	sharedTableSpace;	/* table space for shared tables */
+#endif
   opt_list     *goals;			/* initialization goals */
   char *	topLevel;		/* toplevel goal */
   char *	initFile;		/* -f initialisation file */

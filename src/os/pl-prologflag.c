@@ -827,6 +827,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 #endif
       if ( k == ATOM_table_space )
 	LD->tabling.node_pool.limit = (size_t)i;
+#ifdef O_PLMT
+      else if ( k == ATOM_shared_table_space )
+	GD->tabling.node_pool.limit = (size_t)i;
+#endif
       else if ( k == ATOM_stack_limit )
       { if ( !set_stack_limit((size_t)i) )
 	  return FALSE;
