@@ -838,7 +838,7 @@ add_to_wl_delays(trie *at, trie_node *answer, worklist *wla)
 	  });
     addBuffer(&wl->delays, answer, trie_node *);
   } else
-  { /* see '$tbl_table_complete_all'/2 */
+  { /* see '$tbl_table_complete_all'/3 */
     DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
 	  print_dl_dependency(wla->table, at));
     assert(0);
@@ -2438,13 +2438,6 @@ free_worklist(worklist *wl)
   discardBuffer(&wl->delays);
   discardBuffer(&wl->pos_undefined);
 
-  if ( wl->abolish_on_complete )		/* abolished while incomplete */
-  { trie *atrie = wl->table;
-
-    atrie->data.worklist = NULL;
-    destroy_answer_trie(atrie);
-  }
-
   PL_free(wl);
 }
 
@@ -3700,8 +3693,11 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-						/* see (*) */
-      if ( !wl->undefined && isEmptyBuffer(&wl->delays) )
+      if ( wl->abolish_on_complete )
+      { trie->data.worklist = NULL;
+	destroy_answer_trie(trie);
+	free_worklist(wl);
+      } else if ( !wl->undefined && isEmptyBuffer(&wl->delays) ) /* see (*) */
       { free_worklist(wl);
 	COMPLETE_WORKLIST(trie,
 			  { trie->data.worklist = NULL;
