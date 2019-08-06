@@ -287,29 +287,31 @@ set_pattributes(Head, Options) :-
 
 start_tabling(Closure, Wrapper, Worker) :-
     '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
+    tdebug(deadlock, 'Got table ~p, status ~p', [Trie, Status]),
     (   Status == complete
     ->  trie_gen_compiled(Trie, Skeleton)
     ;   Status == fresh
-    ->  '$tbl_create_subcomponent'(SCC, Trie),
-        tdebug(user_goal(Wrapper, Goal)),
-        tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-        '$idg_set_current'(OldCurrent, Trie),
-        catch(setup_call_catcher_cleanup(
-                  true,
-                  run_leader(Skeleton, Worker, Trie, SCC, LStatus, Clause),
-                  Catcher,
-                  finished_leader(Catcher, SCC, Wrapper)),
+    ->  catch(create_table(Trie, Skeleton, Wrapper, Worker),
               deadlock,
-              restart_tabling(Closure, Wrapper, Worker)),
-        tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
-        '$idg_set_current'(OldCurrent),
-        done_leader(LStatus, SCC, Skeleton, Clause)
+              restart_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
-    ->  reeval(Trie),
+    ->  reeval(Trie),                           % needs clause
         trie_gen_compiled(Trie, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
+
+create_table(Trie, Skeleton, Wrapper, Worker) :-
+    '$tbl_create_subcomponent'(SCC, Trie),
+    tdebug(user_goal(Wrapper, Goal)),
+    tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+    setup_call_catcher_cleanup(
+        '$idg_set_current'(OldCurrent, Trie),
+        run_leader(Skeleton, Worker, Trie, SCC, LStatus, Clause),
+        Catcher,
+        finished_leader(OldCurrent, Catcher, SCC, Wrapper)),
+    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+    done_leader(LStatus, SCC, Skeleton, Clause).
 
 
 %!  restart_tabling(+Closure, +Wrapper, +Worker)
@@ -346,19 +348,17 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         '$tbl_create_subcomponent'(SCC, Trie),
         tdebug(user_goal(Wrapper, Goal)),
         tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
-        '$idg_set_current'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
-            true,
+            '$idg_set_current'(OldCurrent, Trie),
             run_leader(Skeleton, Worker, Trie, SCC, LStatus, Clause),
             Catcher,
-            finished_leader(Catcher, SCC, Wrapper)),
-        '$idg_set_current'(OldCurrent),
+            finished_leader(OldCurrent, Catcher, SCC, Wrapper)),
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         done_leader(LStatus, SCC, Skeleton, Clause)
     ).
 
 
-:- '$hide'((done_leader/4, finished_leader/3)).
+:- '$hide'((done_leader/4, finished_leader/4)).
 
 done_leader(complete, _SCC, Skeleton, Clause) :-
     !,
@@ -369,14 +369,14 @@ done_leader(final, SCC, Skeleton, Clause) :-
     trie_gen_compiled(Clause, Skeleton).
 done_leader(_,_,_,_).
 
-finished_leader(exit, _, _) :-
-    !.
-finished_leader(fail, _, _) :-
-    !.
-finished_leader(Catcher, SCC, Wrapper) :-
-    '$tbl_table_discard_all'(SCC),
-    (   Catcher = exception(_)
+finished_leader(OldCurrent, Catcher, SCC, Wrapper) :-
+    '$idg_set_current'(OldCurrent),
+    (   Catcher == exit
     ->  true
+    ;   Catcher == fail
+    ->  true
+    ;   Catcher = exception(_)
+    ->  '$tbl_table_discard_all'(SCC)
     ;   print_message(error, tabling(unexpected_result(Wrapper, Catcher)))
     ).
 
@@ -462,14 +462,12 @@ start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
     ;   Status == fresh
     ->  '$tbl_create_subcomponent'(SubComponent, Trie),
-        '$idg_set_current'(OldCurrent, Trie),
         setup_call_catcher_cleanup(
-            true,
+            '$idg_set_current'(OldCurrent, Trie),
             run_leader(Wrapper, WrapperNoModes, ModeArgs,
                        Worker, Trie, SubComponent, LStatus),
             Catcher,
-            finished_leader(Catcher, SubComponent, Wrapper)),
-        '$idg_set_current'(OldCurrent),
+            finished_leader(OldCurrent, Catcher, SubComponent, Wrapper)),
         tdebug(schedule, 'Leader ~p done, modeargs = ~p, status = ~p',
                [Wrapper, ModeArgs, LStatus]),
         moded_done_leader(LStatus, SubComponent, WrapperNoModes, ModeArgs, Trie)
