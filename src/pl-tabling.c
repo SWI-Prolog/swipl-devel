@@ -2145,9 +2145,9 @@ retry:
     if ( true(atrie, TRIE_ISSHARED) )
     { int mytid = PL_thread_self();
 
-    retry_shared:
       if ( atrie->tid != mytid )
       { LOCK_SHARED_TABLE(atrie);
+      retry_shared:
 	if ( atrie->tid )
 	{ register_waiting(mytid, atrie);
 	  if ( is_deadlock(atrie) )
@@ -2175,6 +2175,8 @@ retry:
 		    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 		  });
 	    atrie->tid = mytid;
+	  } else
+	  { goto complete;
 	  }
 	} else if ( table_needs_work(atrie) )
 	{ DEBUG(MSG_TABLING_SHARED,
@@ -2186,7 +2188,8 @@ retry:
 		});
 	  atrie->tid = mytid;
 	} else					/* complete and valid */
-	{ if ( !(clref=atrie->clause) )
+	{ complete:
+	  if ( !(clref=atrie->clause) )
 	  { Procedure proc = ((flags&AT_MODED)
 					? GD->procedures.trie_gen_compiled3
 					: GD->procedures.trie_gen_compiled2);
