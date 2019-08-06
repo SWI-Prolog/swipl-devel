@@ -106,16 +106,16 @@ static trie    *idg_add_edge(trie *atrie ARG_LD);
 
 
 #ifdef O_PLMT
-#define	LOCK_SHARED_TABLES()	simpleMutexLock(&GD->tabling.mutex);
-#define	UNLOCK_SHARED_TABLES()	simpleMutexUnlock(&GD->tabling.mutex);
+#define	LOCK_SHARED_TABLE(t)	simpleMutexLock(&GD->tabling.mutex);
+#define	UNLOCK_SHARED_TABLE(t)	simpleMutexUnlock(&GD->tabling.mutex);
 
 #define COMPLETE_WORKLIST(__trie, __code) \
 	do \
-	{ LOCK_SHARED_TABLES(); \
+	{ LOCK_SHARED_TABLE(__trie); \
 	  __code; \
 	  __trie->tid = 0; \
 	  cv_broadcast(&GD->tabling.cvar); \
-	  UNLOCK_SHARED_TABLES(); \
+	  UNLOCK_SHARED_TABLE(__trie); \
 	} while(0)
 
 static int	wait_for_table_to_complete(trie *atrie);
@@ -2147,7 +2147,7 @@ retry:
 
     retry_shared:
       if ( atrie->tid != mytid )
-      { LOCK_SHARED_TABLES();
+      { LOCK_SHARED_TABLE(atrie);
 	if ( atrie->tid )
 	{ register_waiting(mytid, atrie);
 	  if ( is_deadlock(atrie) )
@@ -2160,7 +2160,7 @@ retry:
 	    if ( (ex = PL_new_term_ref()) &&
 		 PL_put_atom(ex, ATOM_deadlock) )
 	      PL_raise_exception(ex);
-	    UNLOCK_SHARED_TABLES();
+	    UNLOCK_SHARED_TABLE(atrie);
 	    discardBuffer(&vars);
 	    return NULL;				/* must do better */
 	  }
@@ -2197,7 +2197,7 @@ retry:
 	  if ( clref != atrie->clause )
 	    goto retry_shared;
 	}
-	UNLOCK_SHARED_TABLES();
+	UNLOCK_SHARED_TABLE(atrie);
       }
     }
 #endif
