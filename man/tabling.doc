@@ -1,4 +1,4 @@
->\chapter{Tabled execution (SLG resolution)}
+\chapter{Tabled execution (SLG resolution)}
 \label{sec:tabling}
 
 \index{SLG,resolution}%
@@ -653,6 +653,94 @@ This is the same policy as implemented in XSB
 \cite{DBLP:journals/tplp/Swift14}. Future versions may implement a more
 fine grained approach.
 
+\section{Shared tabling}
+\label{sec:tabling-shared}
+
+Tables can both be \jargon{private} to a thread or \jargon{shared}
+between all threads. Private tables are used only by the calling threads
+and are discarded as the thread terminates.  Shared tables are used by
+all threads and can only be discarded explicitly. Tables are declared as
+shared using, e.g.,
+
+\begin{code}
+:- table (p/1, q/2) as shared.
+\end{code}
+
+A thread may find a a table for a particular variant of a shared tabled
+predicate in any of the following states:
+
+\begin{description}
+    \item[Complete]
+If the table is complete we can simply use its answers.
+    \item[Fresh/non-existent]
+If the table is still fresh, claim ownership for it and start filling
+the table.  When completed, the ownership relation is terminated.
+    \item[Incomplete]
+If the table is incomplete and owned by the calling thread, simply
+continue. If it is owned by another thread we \emph{wait} for the table
+\emph{unless there is a cycle of threads waiting for each others table}.
+The latter situation would cause a deadlock and therefore we raise a
+\const{deadlock} exception. This exception causes the current SCC to be
+abandonned and gives other threads the opportunity to claim ownership of
+the tables that were owned by this thread. The thread that raised the
+exception and abandonned the SCC simply restarts the leader goal of the
+SCC. As other threads now have claimed more variants of the SCC it will,
+in most cases, wait for these threads instead of creating a new
+deadlock.
+\end{description}
+
+A thread that waits for a table may be faced with three results. If the
+table is complete it can use the answers. It is also possible that the
+thread that was filling the table raised an exception (either a
+\const{deadlock} or any other exception), in which case we find a
+\jargon{fresh} table for which we will try to claim ownership. Finally,
+some thread may have abolished the table. This situation is the same as
+when the owning thread raised an exception.
+
+\subsection{Abolishing shared tables}
+\label{sec:tabling-shared-abolish}
+
+This section briefly explains the interaction between deleting shared
+tables and running threads. The core rule is that \emph{abolishing a
+shared table has no effect on the semantics of the tabled predicates.}
+An attempt to abolish an incomplete table results in the table to be
+marked for destruction on completion. The thread that is completing the
+table continues to do so and continues execution with the computed table
+answers. Any other thread blocks, waiting for the the table to complete.
+Once completed, the table is destroyed and the waiting threads see a
+\jargon{fresh} table\footnote{Future versions may avoid waiting by
+converting the abolished shared table to a private table.}.
+
+The current implementation never reclaims shared tables.  Instead, they
+remain part of the global variant table and only the answers of the
+shared table are reclaimed. Future versions may garbage collect such
+tables.
+
+
+\subsection{Status and future of shared tabling}
+\label{sec:tabling-shared-status}
+
+Currently, shared tabling has many restrictions. The implementation does
+not verify that the limitations are met and violating these restrictions
+may cause incorrect results or crashes. Future versions are expected to
+resolve these issues.
+
+\begin{itemize}
+    \item Shared tabling currently only handles the basic scenario and
+    cannot yet deal with well formed semantics or incremental tabling.
+    \item As described in \secref{tabling-shared-abolish}, abolishing
+    shared tables may cause unnecessary waiting for threads to complete
+    the table.
+    \item Only the answers of shared tables can be reclaimed, not the
+    answer table itself.
+    \item There is no separete size limit for the shared tables.  The
+    limit is the same as for a single thread (see
+    \prologflag{table_space}).
+\end{itemize}
+
+SWI-Prolog's \jargon{continuation based} tabling offers the opportunity
+to perform \jargon{completion} using multiple threads.
+
 
 \section{Tabling predicate reference}
 \label{sec:tabling-preds}
@@ -698,6 +786,12 @@ of the following atoms:
     whether there is a completed table for a more general goal and
     if this is the case extract the answers from this table.  See
     \secref{tabling-subsumptive}.
+    \termitem{shared}{}
+    Declare that the table shall be shared between threads.  See
+    \secref{tabling-shared}
+    \termitem{private}{}
+    Declare that the table shall be local to the calling thread.  See
+    \secref{tabling-shared}
     \termitem{incremental}{}
     Declare that the table depends on other tables and
     \jargon{incremental} dynamic predicates. See
@@ -732,10 +826,13 @@ Remove the tabling instrumentation for the specified predicates.
 specification.
 
     \predicate{abolish_all_tables}{0}{}
-Remove all tables. This is normally used to free up the space or
-recompute the result after predicates on which the result for some
-tabled predicates depend. Raises a permission_error when tabling is in
-progress.
+Remove all tables, both \jargon{private} and \jargon{shared} (see
+\secref{tabling-shared}. Since the introduction of \jargon{incremental
+tabling} (see \secref{tabling-incremental}) abolishing tables is rarely
+required to maintain consistency of the tables with a changed
+environment.  Tables may be abolished regardless of the current state
+of the table.  \jargon{Incomplete} tables are flagged for destruction
+when they are completed.  See also \secref{tabling-shared-abolish}.
 
     \predicate{abolish_table_subgoals}{1}{:Subgoal}
 Abolish all tables that unify with \arg{SubGoal}.  Tables that have
