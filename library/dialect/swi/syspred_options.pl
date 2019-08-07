@@ -202,7 +202,7 @@
 		     [ pass_to(system:write_term/3, 3),
 		       pass_to(system:read_term/3, 3)
 		     ]).
-:- predicate_options(system:(dynamic)/2, 2,
+:- predicate_options('$syspreds':(dynamic)/2, 2,
 		     [ incremental(boolean),
                        abstract(between(0,0)),
                        volatile(boolean),
