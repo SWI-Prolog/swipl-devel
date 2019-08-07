@@ -998,8 +998,9 @@ opt_prop(incremental,   boolean,               Bool,  incremental(Bool)).
 opt_prop(abstract,      between(0,0),          0,     abstract).
 opt_prop(multifile,     boolean,               true,  multifile).
 opt_prop(discontiguous, boolean,               true,  discontiguous).
-opt_prop(thread,        oneof([local,shared]), local, thread_local).
 opt_prop(volatile,      boolean,               true,  volatile).
+opt_prop(thread,        oneof(atom, [local,shared],[local,shared]),
+                                               local, thread_local).
 
 
                  /*******************************
