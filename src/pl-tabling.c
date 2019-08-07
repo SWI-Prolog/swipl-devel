@@ -4494,17 +4494,23 @@ pointer.
 
 static void
 idg_add_child(idg_node *parent, idg_node *child ARG_LD)
-{ if ( !child->affected )
-  { child->affected = newHTable(4);
-    child->affected->free_symbol = idg_free_affected;
-  }
-  addHTable(child->affected, parent, child);
+{ volatile Table t;
 
-  if ( !parent->dependent )
-  { parent->dependent = newHTable(4);
-    parent->dependent->free_symbol = idg_free_dependent;
+  if ( !(t=child->affected) )
+  { t = newHTable(4);
+    t->free_symbol = idg_free_affected;
+    if ( !COMPARE_AND_SWAP(&child->affected, NULL, t) )
+      destroyHTable(t);
   }
-  addHTable(parent->dependent, child, parent);
+  addHTable(t, parent, child);
+
+  if ( !(t=parent->dependent) )
+  { t = newHTable(4);
+    t->free_symbol = idg_free_dependent;
+    if ( !COMPARE_AND_SWAP(&parent->dependent, NULL, t) )
+      destroyHTable(t);
+  }
+  addHTable(t, child, parent);
 }
 
 
@@ -4521,7 +4527,11 @@ idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
     }
 
     if ( true(def, P_INCREMENTAL) )
-      atrie->data.IDG = idg_new(atrie);
+    { idg_node *n = idg_new(atrie);
+
+      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+	idg_destroy(n);
+    }
   }
 
   return TRUE;
@@ -4606,9 +4616,13 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
   { trie *ctrie;
 
     if ( !atrie->data.IDG )
-    { assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
+    { idg_node *n;
+
+      assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
-      atrie->data.IDG = idg_new(atrie);
+      n = idg_new(atrie);
+      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+	idg_destroy(n);
     }
     if ( (ctrie=idg_add_edge(atrie PASS_LD)) )	/* Does not update current. */
     { if ( ctrie->data.IDG->reevaluating )	/* Should it? */
@@ -4864,12 +4878,12 @@ idg_changed_loop(idg_propagate_state *state, int changed)
       if ( changed )
       { if ( table_is_incomplete(n->atrie) )
 	  state->incomplete = n->atrie;		/* return? */
-	if ( n->falsecount++ == 0 )
+	if ( ATOMIC_INC(&n->falsecount) == 1 )
 	{ if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
       } else
-      { if ( --n->falsecount == 0 )
+      { if ( ATOMIC_DEC(&n->falsecount) == 0 )
 	{ if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
@@ -4936,12 +4950,12 @@ idg_changed(trie *atrie)
 
     if ( table_is_incomplete(atrie) )
       return change_incomplete_error(atrie);
-    n->falsecount = 1;
-
-    if ( (incomplete=idg_propagate_change(n, TRUE)) )
-    { n->falsecount = 0;
-      idg_propagate_change(n, FALSE);
-      return change_incomplete_error(incomplete);
+    if ( ATOMIC_INC(&n->falsecount) == 1 )
+    { if ( (incomplete=idg_propagate_change(n, TRUE)) )
+      { n->falsecount = 0;
+	idg_propagate_change(n, FALSE);
+	return change_incomplete_error(incomplete);
+      }
     }
   } else
   { DEBUG(MSG_TABLING_IDG_CHANGED,
