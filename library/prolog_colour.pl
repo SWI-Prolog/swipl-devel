@@ -1855,6 +1855,10 @@ table_moded_call(Head, Arity, TB, Pos) :-
 table_moded_call(_, _, TB, Pos) :-
     colour_item(type_error(predicate_name_or_indicator), TB, Pos).
 
+colourise_table_options(Options, TB,
+                        parentheses_term_position(_,_,Pos)) :-
+    !,
+    colourise_table_options(Options, TB, Pos).
 colourise_table_options((Head,Tail), TB,
                         term_position(_,_,_,_,[PH,PT])) :-
     !,
