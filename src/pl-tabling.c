@@ -86,7 +86,7 @@ static void	reeval_complete(trie *atrie);
 static int	unify_component_status(term_t t, tbl_component *scc ARG_LD);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
-static trie    *idg_add_edge(trie *atrie ARG_LD);
+static int	idg_add_edge(trie *atrie, trie **ctriep ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -3494,9 +3494,9 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
   get_closure_predicate(closure, &def);
 
   if ( (atrie=get_answer_table(def, variant, ret, &clref, flags PASS_LD)) )
-  { if ( !idg_init_variant(atrie, def, variant PASS_LD) )
+  { if ( !idg_init_variant(atrie, def, variant PASS_LD)  ||
+	 !idg_add_edge(atrie, NULL PASS_LD) )
       return FALSE;
-    idg_add_edge(atrie PASS_LD);
 
     if ( clref )
     { return ( _PL_unify_atomic(Trie, clref) &&
@@ -4410,11 +4410,6 @@ PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
 		 *	 IDG CONSTRUCTION	*
 		 *******************************/
 
-/** '$idg_add_edge'(+Trie)
- *
- * Add Trie to the IDG
- */
-
 static idg_node *
 idg_new(trie *atrie)
 { idg_node *n = PL_malloc(sizeof(*n));
@@ -4485,6 +4480,27 @@ idg_free_dependent(void *n, void *v)
 }
 
 
+/**
+ * Throw error(idg_dependency_error(Parent, Child), _)
+ */
+
+static int
+idg_dependency_error(idg_node *parent, idg_node *child ARG_LD)
+{ term_t av;
+
+  return ( (av=PL_new_term_refs(3)) &&
+	   unify_trie_term(parent->atrie->data.variant, av+0 PASS_LD) &&
+	   unify_trie_term(child->atrie->data.variant,  av+1 PASS_LD) &&
+	   PL_unify_term(av+2,
+			 PL_FUNCTOR, FUNCTOR_error2,
+		           PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
+			     PL_TERM, av+0,
+		             PL_TERM, av+1,
+		           PL_VARIABLE) &&
+	   PL_raise_exception(av+2));
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a bi-directional link between parent and   child node. We use the
 hash tables as sets only, but we use   the _other side_ as entry _value_
@@ -4492,9 +4508,13 @@ to recover the full link and allow   ->free_symbol()  to delete the back
 pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static int
 idg_add_child(idg_node *parent, idg_node *child ARG_LD)
 { volatile Table t;
+
+  if ( true(parent->atrie, TRIE_ISSHARED) &&
+       false(child->atrie, TRIE_ISSHARED) )
+    return idg_dependency_error(parent, child PASS_LD);
 
   if ( !(t=child->affected) )
   { t = newHTable(4);
@@ -4511,6 +4531,8 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
       destroyHTable(t);
   }
   addHTable(t, child, parent);
+
+  return TRUE;
 }
 
 
@@ -4555,8 +4577,17 @@ set_idg_current(trie *atrie ARG_LD)
   return TRUE;
 }
 
-static trie *
-idg_add_edge(trie *atrie ARG_LD)
+/** Add an edge from the current node to the new child represented
+ * by `atrie`.  If `ctriep` is given and the edge was created it
+ * is filled with the parent of `atrie`.  Returns:
+ *
+ *   - TRUE:  created a dependency
+ *   - FALSE: something is wrong
+ *   - -1:    there is no current node
+ */
+
+static int
+idg_add_edge(trie *atrie, trie **ctriep ARG_LD)
 { atom_t current;
   trie *ctrie;
 
@@ -4575,12 +4606,20 @@ idg_add_edge(trie *atrie ARG_LD)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
-      return ctrie;
+      if ( idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD) )
+      { if ( ctriep )
+	  *ctriep = ctrie;
+	return TRUE;
+      }
+
+      return FALSE;
     }
   }
 
-  return NULL;
+  if ( ctriep )
+    *ctriep = NULL;
+
+  return -1;
 }
 
 /** '$idg_set_current'(-OldCurrent, +ATrie)
@@ -4617,19 +4656,23 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 
     if ( !atrie->data.IDG )
     { idg_node *n;
+      Procedure proc;
 
       assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
+      if ( !( get_procedure(A1, &proc, 0, GP_RESOLVE) &&
+	      true(proc->definition, P_THREAD_LOCAL) ) )
+	set(atrie, TRIE_ISSHARED);
       n = idg_new(atrie);
       if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
-    if ( (ctrie=idg_add_edge(atrie PASS_LD)) )	/* Does not update current. */
-    { if ( ctrie->data.IDG->reevaluating )	/* Should it? */
-	atrie->data.IDG->falsecount = 0;
-    }
 
-    return TRUE;
+    if ( idg_add_edge(atrie, &ctrie PASS_LD) )
+    { if ( ctrie && ctrie->data.IDG->reevaluating )
+	atrie->data.IDG->falsecount = 0;
+      return TRUE;
+    }
   }
 
   return FALSE;

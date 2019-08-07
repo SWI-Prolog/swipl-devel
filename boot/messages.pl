@@ -343,6 +343,8 @@ swi_message(thread_error(TID, false)) -->
 swi_message(thread_error(TID, exception(Error))) -->
     [ 'Thread ~p died abnormally:'-[TID], nl ],
     translate_message(Error).
+swi_message(idg_dependency_error(Shared, Private)) -->
+    [ 'Shared table for ~p may not depend on private ~p'-[Shared, Private] ].
 swi_message(shell(execute, Cmd)) -->
     [ 'Could not execute `~w'''-[Cmd] ].
 swi_message(shell(signal(Sig), Cmd)) -->
