@@ -618,7 +618,7 @@ to an invalid table. First the dependency graph of invalid tables that
 lead to dynamic predicates is established. Next, tables are re-evaluated
 in \jargon{bottom-up} order. For each re-evaluated table the system
 determines whether the new table has changed. If the table has not
-changed, this event is propagated to the \jargon{affected} node of the
+changed, this event is propagated to the \jargon{affected} nodes of the
 IDG and no further re-evaluation may be needed. Consider the following
 program:
 
@@ -627,7 +627,7 @@ program:
 :- dynamic([d/1], [incremental(true)]).
 
 p(X) :- q(X).
-q(X) :- p(X), X < 10.
+q(X) :- d(X), X < 10.
 
 d(1).
 \end{code}
