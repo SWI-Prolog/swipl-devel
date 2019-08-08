@@ -79,6 +79,7 @@
 :- use_module(library(dialect/xsb/tables)).
 :- use_module(library(aggregate)).
 :- use_module(library(option)).
+:- use_module(library(apply)).
 
 /** <module> XSB Prolog compatibility layer
 
@@ -566,7 +567,8 @@ remaining_table(Trie) :-
 %!  is_most_general_term(@X) is semidet.
 %
 %   Succeeds if X is  compound  term   with  all  distinct  variables as
-%   arguments, or if X is an atom. (It fails if X is a cons node.)
+%   arguments, or if X is  an  atom.  If   X  is  a  list this predicate
+%   succeeds if all members of the list are distinct variables.
 %
 %      ```
 %      ?- is_most_general_term(f(_,_,_,_)).
@@ -579,11 +581,14 @@ remaining_table(Trie) :-
 %      false.
 %      ?- is_most_general_term([_|_]).
 %      false.
+%      ?- is_most_general_term([_,_]).
+%      true.
 %      ```
 
 is_most_general_term(List) :-
     is_list(List),
     !,
+    maplist(var, List),
     length(List, Len),
     sort(List, L2),
     length(L2, Len).
@@ -591,13 +596,10 @@ is_most_general_term(Term) :-
     compound(Term),
     !,
     compound_name_arity(Term, _, Arity),
-    (   Arity == 0
-    ->  true
-    ;   Term \= [_|_],
-        term_variables(Term, Vars),
-        sort(Vars, Sorted),
-        length(Sorted, Arity)
-    ).
+    compound_name_arguments(Term, _, List),
+    maplist(var, List),
+    sort(List, L2),
+    length(L2, Arity).
 is_most_general_term(Term) :-
     atom(Term).
 
