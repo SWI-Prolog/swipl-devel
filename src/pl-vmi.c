@@ -227,7 +227,12 @@ VMI(D_BREAK, 0, 0, ())
       { popArgvArithStack(pop PASS_LD);
 	AR_END();
       }
-      PC = stepPC(PC-1);		/* skip the old calling instruction */
+      if (decode(c) == I_ENTER)
+      {                                 /* Skip to the end of the clause if we are replacing I_ENTER */
+        PC = &FR->clause->value.clause->codes[FR->clause->value.clause->code_size-1];
+      } else
+      { PC = stepPC(PC-1);		/* skip the old calling instruction */
+      }
       updateAlerted(LD);
       VMI_GOTO(I_USERCALL0);
   }
