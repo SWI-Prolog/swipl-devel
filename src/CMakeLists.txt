@@ -344,7 +344,8 @@ add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
 		      OUTPUT_NAME swipl
 		      VERSION ${SWIPL_VERSION_STRING}
-		      SOVERSION ${SWIPL_VERSION_MAJOR})
+		      SOVERSION ${SWIPL_VERSION_MAJOR}
+		      GNUtoMS ON)
 target_include_directories(libswipl BEFORE PRIVATE
 			   ${CMAKE_CURRENT_BINARY_DIR}
 			   ${CMAKE_CURRENT_SOURCE_DIR}
