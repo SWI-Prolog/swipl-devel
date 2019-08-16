@@ -3691,43 +3691,46 @@ cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex, struct timespec 
 */
 
 int
-cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, struct timespec *deadline)
+cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+	     struct timespec *deadline)
 { GET_LD
 
   struct timespec tmp_timeout;
   struct timespec *api_timeout = &tmp_timeout;
   int rc;
 
-  get_current_timespec(&tmp_timeout);
-  tmp_timeout.tv_nsec += 250000000;
-  carry_timespec_nanos(&tmp_timeout);
+  for(;;)
+  { get_current_timespec(&tmp_timeout);
+    tmp_timeout.tv_nsec += 250000000;
+    carry_timespec_nanos(&tmp_timeout);
 
-  if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
-    api_timeout = deadline;
+    if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
+      api_timeout = deadline;
 
-  rc = pthread_cond_timedwait(cond, mutex, api_timeout);
+    rc = pthread_cond_timedwait(cond, mutex, api_timeout);
 
-  switch( rc )
-  { case ETIMEDOUT:
-      if ( is_signalled(LD) )
-	return EINTR;
-      if ( api_timeout == deadline )
-	return ETIMEDOUT;
-
-      return 0;
-    case 0:
-      if ( is_signalled(LD) )
-	return EINTR;
-    /*FALLTHROUGH*/
-    default:
-      return rc;
+    switch( rc )
+    { case ETIMEDOUT:
+	if ( is_signalled(LD) )
+	  return EINTR;
+	if ( api_timeout == deadline )
+	  return ETIMEDOUT;
+	continue;
+      case 0:
+	if ( is_signalled(LD) )
+	  return EINTR;
+      /*FALLTHROUGH*/
+      default:
+	return rc;
+    }
   }
 }
 
 #endif /*__WINDOWS__*/
 
 static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait,
+		   struct timespec *deadline)
 { return cv_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
 					       : &queue->drain_var),
 		      &queue->mutex,
