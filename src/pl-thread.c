@@ -3659,30 +3659,41 @@ carry_timespec_nanos(struct timespec *time)
 #ifdef __WINDOWS__
 
 int
-cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex, struct timespec *deadline)
+cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
+	     struct timespec *deadline)
 { GET_LD
   struct timespec tmp_timeout;
   DWORD api_timeout = 250;
+  int last = FALSE;
   int rc;
 
-  get_current_timespec(&tmp_timeout);
-  tmp_timeout.tv_nsec += 250000000;
-  carry_timespec_nanos(&tmp_timeout);
+  for(;;)
+  { get_current_timespec(&tmp_timeout);
+    tmp_timeout.tv_nsec += 250000000;
+    carry_timespec_nanos(&tmp_timeout);
 
-  if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
-    api_timeout = 0;
+    if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
+    { struct timespec d;
 
-  rc = SleepConditionVariableCS(cond,
-				mutex,
-				api_timeout);
+      get_current_timespec(&tmp_timeout);
+      timespec_diff(&d, &tmp_timeout, deadline);
+      if ( timespec_sign(&d) > 0 )
+	api_timeout = d.tv_nsec / 1000000;
+      else
+	return ETIMEDOUT;
 
-  if ( is_signalled(LD) )
-    return EINTR;
+      last = TRUE;
+    }
 
-  if ( !rc && api_timeout == 0 )
-    return ETIMEDOUT;
+    rc = SleepConditionVariableCS(cond, mutex, api_timeout);
 
-  return 0;
+    if ( is_signalled(LD) )
+      return EINTR;
+    if ( !rc && last )
+      return ETIMEDOUT;
+    if ( rc )
+      return 0;
+  }
 }
 
 #else /*__WINDOWS__*/
