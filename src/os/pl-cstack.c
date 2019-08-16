@@ -33,10 +33,6 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _WIN64
-#define _WIN32_WINNT 0x0501            /* get RtlCaptureContext() */
-#endif
-
 #define _GNU_SOURCE
 #include "pl-incl.h"
 #include "os/pl-cstack.h"

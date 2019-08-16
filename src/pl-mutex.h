@@ -66,9 +66,6 @@ controlled using the following macros:
 
 #if defined(__WINDOWS__)
 #define USE_CRITICAL_SECTIONS 1
-#ifndef _WIN32_WINNT
-#define _WIN32_WINNT 0x0400		/* get TryEnterCriticalSection() */
-#endif
 #endif
 
 #include <pthread.h>
