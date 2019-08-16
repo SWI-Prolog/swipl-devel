@@ -5277,12 +5277,7 @@ wait_for_table_to_complete(trie *atrie)
 	});
 
   do
-  {
-#ifdef __WINDOWS__
-    win32_cond_wait(&GD->tabling.cvar, &GD->tabling.mutex, NULL);
-#else
-    pthread_cond_wait(&GD->tabling.cvar, &GD->tabling.mutex);
-#endif
+  { cv_wait(&GD->tabling.cvar, &GD->tabling.mutex);
   } while( atrie->tid != 0 );
 
   DEBUG(MSG_TABLING_SHARED,

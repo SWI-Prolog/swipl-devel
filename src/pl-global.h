@@ -182,7 +182,7 @@ struct PL_global_data
     trie_allocation_pool node_pool;	/* Node allocation pool for tries */
     simpleMutex  mutex;			/* Sync completion */
 #ifdef __WINDOWS__
-    win32_cond_t cvar;
+    CONDITION_VARIABLE cvar;
 #else
     pthread_cond_t cvar;
 #endif

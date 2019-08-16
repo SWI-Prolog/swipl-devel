@@ -3452,156 +3452,6 @@ static int dispatch_cond_wait(message_queue *queue,
 			      queue_wait_type wait,
 			      struct timespec *deadline);
 
-#ifdef __WINDOWS__
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Earlier implementations used pthread-win32 condition   variables.  As we
-need to dispatch messages while waiting for a condition variable we need
-to use pthread_cond_timedwait() which is   really  complicated and SLOW.
-Below is an  alternative  emulation   of  pthread_cond_wait()  that does
-dispatch messages. It is not fair  nor   correct,  but  neither of these
-problems bothers us considering the promises we make about Win32 message
-queues. This implementation is about 250   times faster, providing about
-the same performance as on native pthread implementations such as Linux.
-This work was sponsored by SSS, http://www.sss.co.nz
-
-This implementation is based on   the following, summarizing discussions
-on comp.lang.thread.
-
-Strategies for Implementing POSIX Condition Variables on Win32
-Douglas C. Schmidt and Irfan Pyarali
-Department of Computer Science
-Washington University, St. Louis, Missouri
-http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
-
-It uses the second alternative, avoiding   the extra critical section as
-we assume the condition  variable  is   always  associated  to  the same
-critical section (associated to the same SWI-Prolog message queue).
-
-The resulting implementation suffers from the following problems:
-
-  * Unfairness
-    If two threads are waiting and two messages arrive on the queue it
-    is possible for one thread to consume both of them. We never
-    anticipated on `fair' behaviour in this sense in SWI-Prolog, so
-    we should not be bothered.  Nevertheless existing application may
-    have assumed fairness.
-
-  * Incorrectness
-    If two threads are waiting, a broadcast happens and a third thread
-    kicks in it is possible one of the threads does not get a wakeup.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-int
-win32_cond_init(win32_cond_t *cv)
-{ cv->events[SIGNAL]    = CreateEvent(NULL, FALSE, FALSE, NULL);
-  cv->events[BROADCAST] = CreateEvent(NULL, TRUE,  FALSE, NULL);
-  cv->waiters = 0;
-
-  return 0;
-}
-
-
-int
-win32_cond_destroy(win32_cond_t *cv)
-{ CloseHandle(cv->events[SIGNAL]);
-  CloseHandle(cv->events[BROADCAST]);
-
-  return 0;
-}
-
-
-#define WIN_MAX_WAIT (INFINITE-1)
-#define WIN_MAX_SECS (WIN_MAX_WAIT/1000-1)
-
-int
-win32_cond_wait(win32_cond_t *cv,
-		CRITICAL_SECTION *external_mutex,
-	        struct timespec *deadline)
-{ int rc, last;
-  DWORD dwMilliseconds;
-  int short_wait;
-
-restart:
-  short_wait = FALSE;
-
-  if ( deadline )
-  { struct timespec now, diff;
-
-    get_current_timespec(&now);
-    timespec_diff(&diff, deadline, &now);
-    if ( timespec_sign(&diff) <= 0 )
-      return ETIMEDOUT;
-
-    if ( diff.tv_sec > WIN_MAX_SECS )
-    { dwMilliseconds = WIN_MAX_WAIT;
-      short_wait = TRUE;
-    } else
-    { dwMilliseconds = 1000*(DWORD)(diff.tv_sec) + (diff.tv_nsec)/1000000;
-    }
-  } else
-  { dwMilliseconds = INFINITE;
-  }
-
-  cv->waiters++;
-
-  LeaveCriticalSection(external_mutex);
-  rc = MsgWaitForMultipleObjects(2,
-				 cv->events,
-				 FALSE,	/* wait for either event */
-				 dwMilliseconds,
-				 QS_ALLINPUT);
-  DEBUG(MSG_THREAD, Sdprintf("dwMilliseconds=%ld, rc=%d\n", dwMilliseconds, rc));
-  if ( rc == WAIT_OBJECT_0+2 )
-  { GET_LD
-    MSG msg;
-
-    while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
-    { TranslateMessage(&msg);
-      DispatchMessage(&msg);
-    }
-
-    if ( is_signalled(LD) )
-    { EnterCriticalSection(external_mutex);
-      return EINTR;
-    }
-  } else if ( rc == WAIT_TIMEOUT )
-  { EnterCriticalSection(external_mutex);
-    if ( short_wait )
-      goto restart;
-    return ETIMEDOUT;
-  }
-
-  EnterCriticalSection(external_mutex);
-
-  cv->waiters--;
-  last = (rc == WAIT_OBJECT_0 + BROADCAST && cv->waiters == 0);
-  if ( last )
-    ResetEvent (cv->events[BROADCAST]);
-
-  return 0;
-}
-
-
-int
-win32_cond_signal(win32_cond_t *cv)	/* must be holding associated mutex */
-{ if ( cv->waiters > 0 )
-    SetEvent(cv->events[SIGNAL]);
-
-  return 0;
-}
-
-
-int
-win32_cond_broadcast(win32_cond_t *cv)	/* must be holding associated mutex */
-{ if ( cv->waiters > 0 )
-    SetEvent(cv->events[BROADCAST]);
-
-  return 0;
-}
-
-#endif /*__WINDOWS__*/
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This code deals with telling other threads something.  The interface:
 
@@ -3808,12 +3658,31 @@ carry_timespec_nanos(struct timespec *time)
 
 #ifdef __WINDOWS__
 
-static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
-{ return win32_cond_wait((wait == QUEUE_WAIT_READ ? &queue->cond_var
-						  : &queue->drain_var),
-			 &queue->mutex,
-			 deadline);
+int
+cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex, struct timespec *deadline)
+{ GET_LD
+  struct timespec tmp_timeout;
+  DWORD api_timeout = 250;
+  int rc;
+
+  get_current_timespec(&tmp_timeout);
+  tmp_timeout.tv_nsec += 250000000;
+  carry_timespec_nanos(&tmp_timeout);
+
+  if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
+    api_timeout = 0;
+
+  rc = SleepConditionVariableCS(cond,
+				mutex,
+				api_timeout);
+
+  if ( is_signalled(LD) )
+    return EINTR;
+
+  if ( !rc && api_timeout == 0 )
+    return ETIMEDOUT;
+
+  return 0;
 }
 
 #else /*__WINDOWS__*/
@@ -3821,45 +3690,49 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *
 /* return: 0: ok, EINTR: interrupted, ETIMEDOUT: timeout
 */
 
-static int
-dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
+int
+cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, struct timespec *deadline)
 { GET_LD
+
+  struct timespec tmp_timeout;
+  struct timespec *api_timeout = &tmp_timeout;
   int rc;
 
-  for(;;)
-  { struct timespec tmp_timeout;
-    struct timespec *api_timeout = &tmp_timeout;
+  get_current_timespec(&tmp_timeout);
+  tmp_timeout.tv_nsec += 250000000;
+  carry_timespec_nanos(&tmp_timeout);
 
-    get_current_timespec(&tmp_timeout);
-    tmp_timeout.tv_nsec += 250000000;
-    carry_timespec_nanos(&tmp_timeout);
+  if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
+    api_timeout = deadline;
 
-    if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
-      api_timeout = deadline;
+  rc = pthread_cond_timedwait(cond, mutex, api_timeout);
 
-    rc = pthread_cond_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
-							 : &queue->drain_var),
-				&queue->mutex, api_timeout);
+  switch( rc )
+  { case ETIMEDOUT:
+      if ( is_signalled(LD) )
+	return EINTR;
+      if ( api_timeout == deadline )
+	return ETIMEDOUT;
 
-    switch( rc )
-    { case ETIMEDOUT:
-	if ( is_signalled(LD) )
-	  return EINTR;
-        if ( api_timeout == deadline )
-	  return ETIMEDOUT;
-
-	return 0;
-      case 0:
-	if ( is_signalled(LD) )
-	  return EINTR;
-      /*FALLTHROUGH*/
-      default:
-	return rc;
-    }
+      return 0;
+    case 0:
+      if ( is_signalled(LD) )
+	return EINTR;
+    /*FALLTHROUGH*/
+    default:
+      return rc;
   }
 }
 
 #endif /*__WINDOWS__*/
+
+static int
+dispatch_cond_wait(message_queue *queue, queue_wait_type wait, struct timespec *deadline)
+{ return cv_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
+					       : &queue->drain_var),
+		      &queue->mutex,
+		      deadline);
+}
 
 #ifdef O_QUEUE_STATS
 static uint64_t getmsg  = 0;

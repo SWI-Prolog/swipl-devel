@@ -1,6 +1,7 @@
 if(WIN32)
 
 add_compile_options(-D__WINDOWS__)
+add_compile_options(-DWIN32_WINNT=0x0600)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_options(-DWIN64)
   set(WIN64 1)

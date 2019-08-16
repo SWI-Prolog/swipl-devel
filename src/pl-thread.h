@@ -75,19 +75,6 @@ typedef enum
   PL_THREAD_CREATED,			/* just created */
 } thread_status;
 
-#ifdef __WINDOWS__
-enum
-{ SIGNAL     = 0,
-  BROADCAST  = 1,
-  MAX_EVENTS = 2
-} win32_event_t;
-
-typedef struct
-{ HANDLE events[MAX_EVENTS];		/* events to be signalled */
-  int    waiters;			/* # waiters */
-} win32_cond_t;
-#endif
-
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
   size_t	    stack_limit;	/* Stack sizes */
@@ -154,8 +141,8 @@ typedef struct thread_handle
 typedef struct message_queue
 { simpleMutex	       mutex;		/* Message queue mutex */
 #ifdef __WINDOWS__
-  win32_cond_t	       cond_var;
-  win32_cond_t	       drain_var;
+  CONDITION_VARIABLE   cond_var;
+  CONDITION_VARIABLE   drain_var;
 #else
   pthread_cond_t       cond_var;	/* condvar for reading */
   pthread_cond_t       drain_var;	/* condvar for writing */
@@ -403,24 +390,30 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 		 *******************************/
 
 #ifdef __WINDOWS__
-COMMON(int)	win32_cond_init(win32_cond_t *cv);
-COMMON(int)	win32_cond_destroy(win32_cond_t *cv);
-COMMON(int)	win32_cond_wait(win32_cond_t *cv,
-				CRITICAL_SECTION *external_mutex,
-				struct timespec *deadline);
-COMMON(int)	win32_cond_signal(win32_cond_t *cv);
-COMMON(int)	win32_cond_broadcast(win32_cond_t *cv);
 
-#define cv_broadcast	win32_cond_broadcast
-#define cv_signal	win32_cond_signal
-#define cv_init(cv,p)	win32_cond_init(cv)
-#define cv_destroy	win32_cond_destroy
+COMMON(int)	cv_timedwait(CONDITION_VARIABLE *cv,
+			     CRITICAL_SECTION *external_mutex,
+			     struct timespec *deadline);
+
+#define cv_broadcast(cv)	WakeAllConditionVariable(cv)
+#define cv_signal(cv)		WakeConditionVariable(cv)
+#define cv_init(cv,p)		InitializeConditionVariable(cv)
+#define cv_destroy(cv)		(void)cv
+
 #else
-#define cv_broadcast	pthread_cond_broadcast
-#define cv_signal	pthread_cond_signal
-#define cv_init(cv,p)	pthread_cond_init(cv, p)
-#define cv_destroy	pthread_cond_destroy
-#endif
+
+COMMON(int)	cv_timedwait(pthread_cond_t *cv,
+			     pthread_mutex_t *external_mutex,
+			     struct timespec *deadline);
+
+#define cv_broadcast(cv)	pthread_cond_broadcast(cv)
+#define cv_signal(cv)		pthread_cond_signal(cv)
+#define cv_init(cv,p)		pthread_cond_init(cv,p)
+#define cv_destroy(cv)		pthread_cond_destroy(cv)
+
+#endif /* __WINDOWS__ */
+
+#define cv_wait(cv, m)		cv_timedwait(cv, m, NULL)
 
 
 #else /*O_PLMT, end of threading-stuff */
