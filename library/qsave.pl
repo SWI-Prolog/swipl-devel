@@ -1009,7 +1009,17 @@ arch_find_shlib(Arch, FileSpec, File) :-
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
-                       ], File).
+                       ], File),
+    !.
+arch_find_shlib(Arch, foreign(Base), File) :-
+    current_prolog_flag(arch, Arch),
+    current_prolog_flag(windows, true),
+    current_prolog_flag(executable, WinExe),
+    prolog_to_os_filename(Exe, WinExe),
+    file_directory_name(Exe, BinDir),
+    file_name_extension(Base, dll, DllFile),
+    atomic_list_concat([BinDir, /, DllFile], File),
+    exists_file(File).
 
 
                  /*******************************
