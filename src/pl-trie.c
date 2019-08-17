@@ -1678,6 +1678,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	break;
       default:
 	assert(0);
+        return NULL;
     }
   } else
   { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
