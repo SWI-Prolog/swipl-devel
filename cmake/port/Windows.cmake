@@ -39,11 +39,17 @@ function(find_file_from_pattern var dir pattern)
   endif()
 endfunction()
 
-set(WIN32_DLL_PATTERNS
-    "libwinpthread*.dll"
-    "libgcc_s*.dll"
-    "zlib*.dll"
-    "libgmp*.dll")
+set(WIN32_DLL_PATTERNS zlib*.dll)
+
+if(USE_GMP)
+  list(APPEND WIN32_DLL_PATTERNS "libgmp*.dll")
+endif()
+if(MULTI_THREADED)
+  list(APPEND WIN32_DLL_PATTERNS "libwinpthread*.dll")
+endif()
+if(MINGW)
+  list(APPEND WIN32_DLL_PATTERNS "libgcc_s*.dll")
+endif()
 
 function(find_windows_dlls var)
    set(dlls)
