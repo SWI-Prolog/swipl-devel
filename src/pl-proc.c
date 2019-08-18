@@ -1728,7 +1728,11 @@ meta_declaration(term_t spec)
        !PL_get_name_arity(head, &name, &arity) )
     return FALSE;
 
+#ifdef _MSC_VER
+  arg_info *args = alloca(arity*sizeof(*args));
+#else
   arg_info args[arity];			/* GCC dynamic allocation */
+#endif
 
   for(i=0; i<arity; i++)
   { atom_t ma;
@@ -2103,14 +2107,13 @@ pl_garbage_collect_clauses(void)
 					/* sanity-check */
     for_table(GD->procedures.dirty, n, v,
 	      { DirtyDefInfo ddi = v;
-#ifdef O_DEBUG
-		Definition def = n;
-#endif
 
 		DEBUG(CHK_SECURE,
-		      LOCKDEF(def);
-		      checkDefinition(def);
-		      UNLOCKDEF(def));
+		      { Definition def = n;
+			LOCKDEF(def);
+			checkDefinition(def);
+			UNLOCKDEF(def);
+		      });
 		ddi->oldest_generation = GEN_MAX; /* see (*) */
 	      });
 

@@ -1083,7 +1083,7 @@ handleSignals(ARG1_LD)
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
-	{ __sync_and_and_fetch(&LD->signal.pending[i], ~mask);
+	{ ATOMIC_AND(&LD->signal.pending[i], ~mask);
 
 	  done++;
 	  dispatch_signal(sig, TRUE);

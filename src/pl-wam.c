@@ -297,7 +297,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
     int mask = (1 << ((sig-1)%32));
     int alerted;
 
-    __sync_or_and_fetch(&ld->signal.pending[off], mask);
+    ATOMIC_OR(&ld->signal.pending[off], mask);
 
     do
     { alerted = ld->alerted;

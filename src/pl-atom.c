@@ -389,7 +389,7 @@ static const ccharp atoms[] = {
 
 #define acquire_atom_bucket(b) (void)0
 
-#define release_atom_bucket(b) (void)0
+#define release_atom_bucket() (void)0
 
 #endif
 

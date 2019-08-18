@@ -4163,12 +4163,12 @@ PL_foreign_context_predicate(control_t h)
 static int
 has_emergency_space(void *sv, size_t needed)
 { Stack s = (Stack) sv;
-  ssize_t lacking = (s->top + needed) - s->max;
+  ssize_t lacking = ((char*)s->top + needed) - (char*)s->max;
 
   if ( lacking <= 0 )
     return TRUE;
   if ( lacking < s->spare )
-  { s->max   += lacking;
+  { s->max    = (char*)s->max + lacking;
     s->spare -= lacking;
     return TRUE;
   }
@@ -4673,7 +4673,7 @@ PL_clearsig__LD(int sig ARG_LD)
   { int off  = (sig-1)/32;
     int mask = 1 << ((sig-1)%32);
 
-    __sync_and_and_fetch(&LD->signal.pending[off], ~mask);
+    ATOMIC_AND(&LD->signal.pending[off], ~mask);
     updateAlerted(LD);
     return TRUE;
   }

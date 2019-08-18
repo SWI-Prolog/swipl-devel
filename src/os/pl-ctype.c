@@ -334,7 +334,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
       if ( !(do_enum & ENUM_CLASS) )
       { if ( !PL_get_name_arity(class, &cn, &arity) ||
-	     !(cc = char_type_by_name(cn, arity)) )
+	     !(cc = char_type_by_name(cn, (int)arity)) )
 	  return PL_error("char_type", 2, NULL,
 			  ERR_TYPE, ATOM_char_type, class);
       }

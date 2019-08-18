@@ -50,11 +50,16 @@ is supposed to give the POSIX standard one.
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
-#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+#define __MINGW_USE_VC2005_COMPAT	/* Get Windows time_t as 64-bit */
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
+#include <sys/stat.h>
 #include <windows.h>
+
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
+#endif
 #endif
 
 #include "pl-incl.h"

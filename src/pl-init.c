@@ -1213,12 +1213,12 @@ register_halt(OnHalt *where, halt_function f, void *arg)
 
 void
 PL_on_halt(halt_function f, void *arg)
-{ return register_halt(&GD->os.on_halt_list, f, arg);
+{ register_halt(&GD->os.on_halt_list, f, arg);
 }
 
 void
 PL_exit_hook(halt_function f, void *arg)
-{ return register_halt(&GD->os.exit_hooks, f, arg);
+{ register_halt(&GD->os.exit_hooks, f, arg);
 }
 
 

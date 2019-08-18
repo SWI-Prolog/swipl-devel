@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
 #endif

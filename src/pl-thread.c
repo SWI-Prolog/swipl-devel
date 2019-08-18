@@ -39,14 +39,16 @@
 #define _GNU_SOURCE 1			/* get recursive mutex stuff to */
 					/* compile clean with glibc.  Can */
 					/* this do any harm? */
+#ifdef __WINDOWS__
+#include <winsock2.h>
+#include <windows.h>
+#include <errno.h>			/* must be before pl-incl.h */
+#endif
 
 #if __MINGW32__
 #define __try
 #define __except(_) if (0)
 #define __finally
-#include <winsock2.h>
-#include <windows.h>
-#include <errno.h>			/* must be before pl-incl.h */
 #endif
 
 #include "pl-incl.h"
@@ -57,7 +59,7 @@
 #include <stdio.h>
 #include <math.h>
 
-#if __MINGW32__				/* this is a stub.  Should be detected */
+#if __WINDOWS__				/* this is a stub.  Should be detected */
 #undef HAVE_PTHREAD_SETNAME_NP		/* in configure.ac */
 #endif
 

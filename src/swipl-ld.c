@@ -83,6 +83,7 @@
 
 #define popen _popen
 #define pclose _pclose
+#pragma warning(disable : 4996)	/* deprecate open() etc */
 
 #define O_WRONLY _O_WRONLY
 #define O_RDONLY _O_RDONLY

@@ -60,7 +60,9 @@ in this array.
 #ifdef HAVE_FLOAT_H
 #include <float.h>
 #ifdef _MSC_VER
+#ifndef isnan
 #define isnan(x) _isnan(x)
+#endif
 #define copysign(x,y) _copysign(x,y)
 #endif
 #endif

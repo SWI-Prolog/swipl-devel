@@ -144,7 +144,12 @@ tz_name(int dst)
 { dst = (dst != 0);
 
   do_tzset();
+
+#ifdef _MSC_VER
+  return _tzname[dst];
+#else
   return tzname[dst];
+#endif
 }
 
 

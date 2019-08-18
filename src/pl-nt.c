@@ -33,14 +33,8 @@
 */
 
 #ifdef __WINDOWS__
-#define WINVER 0x0501
-#if (_MSC_VER >= 1300) || __MINGW32__
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
-#else
-#include <windows.h>			/* Needed for MSVC 5&6 */
-#include <winsock2.h>
-#endif
 
 #ifdef __MINGW32__
 #ifndef _WIN32_IE
@@ -658,8 +652,8 @@ typedef void * DLL_DIRECTORY_COOKIE;
 #endif
 
 static const char *dlmsg;
-static DLL_DIRECTORY_COOKIE WINAPI (*f_AddDllDirectoryW)(wchar_t* dir);
-static BOOL WINAPI (*f_RemoveDllDirectory)(DLL_DIRECTORY_COOKIE);
+static DLL_DIRECTORY_COOKIE (WINAPI *f_AddDllDirectoryW)(wchar_t* dir);
+static BOOL (WINAPI *f_RemoveDllDirectory)(DLL_DIRECTORY_COOKIE);
 
 static DWORD
 load_library_search_flags(void)
