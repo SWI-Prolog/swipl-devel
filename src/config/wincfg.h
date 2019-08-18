@@ -80,6 +80,11 @@
 /* setenv comes from uxnt.c */
 #define HAVE_SETENV 1
 
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+#pragma warning(disable : 4244)	/* possible loss of data (int conversion) */
+#endif
 
 #ifdef __MINGW32__
 #include "config.h"
@@ -101,13 +106,17 @@ typedef int mode_t;
 #define HAVE_SHLOBJ_H 1
 
 /* Define to 1 if you have the <dbghelp.h> header file. */
+#ifndef _MSC_VER
 #define HAVE_DBGHELP_H 1
+#endif
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #define HAVE_MALLOC_H 1
 
 #define inline __inline
 
+#include <stdio.h>			/* stdio.h prevents redefining */
+#undef snprintf
 #define snprintf ms_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP

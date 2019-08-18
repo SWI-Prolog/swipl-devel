@@ -38,5 +38,8 @@
 #define BOOTFILE	"boot64.prc"
 #define PLARCH		"x64-win64"
 #define SIZEOF_VOIDP	8
+#ifdef _MSC_VER
+typedef long long ssize_t;
+#endif
 
 #include "wincfg.h"

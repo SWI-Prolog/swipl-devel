@@ -86,6 +86,16 @@ MSB64(int64_t i)
 #define MemoryBarrier() (void)0
 #endif
 
+static inline size_t
+__builtin_popcount(size_t sz)
+{
+#if SIZEOF_VOIDP == 4
+  return __popcnt(sz);
+#else
+  return __popcnt64(sz);
+#endif
+}
+
 #endif /*_MSC_VER*/
 
 #if !defined(HAVE_MSB) && defined(HAVE__BUILTIN_CLZ)
@@ -289,7 +299,7 @@ true_bit(bit_vector *v, size_t which)
 static inline size_t
 popcount_bitvector(const bit_vector *v)
 { const bitv_chunk *p = v->chunk;
-  int cnt = (v->size+BITSPERE-1)/BITSPERE;
+  int cnt = (int)(v->size+BITSPERE-1)/BITSPERE;
   size_t bits = 0;
 
   while( cnt-- > 0 )

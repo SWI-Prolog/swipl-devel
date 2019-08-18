@@ -37,5 +37,8 @@
 #define BOOTFILE	"boot32.prc"
 #define PLARCH		"i386-win32"
 #define SIZEOF_VOIDP	4
+#ifdef _MSC_VER
+typedef long ssize_t;
+#endif
 
 #include "wincfg.h"
