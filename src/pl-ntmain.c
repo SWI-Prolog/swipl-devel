@@ -37,7 +37,7 @@
 #define _UNICODE 1
 #define UNICODE 1
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
 #endif
@@ -817,8 +817,8 @@ HiddenFrameClass()
   HINSTANCE instance = rlc_hinstance();
 
   if ( !winclassname[0] )
-  { snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
-	      _T("SWI-Prolog-hidden-win%d"), instance);
+  { _snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+	       _T("SWI-Prolog-hidden-win%d"), (int)(intptr_t)instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) pl_wnd_proc;
@@ -990,10 +990,10 @@ set_window_title(rlc_console c)
     *o++ = *s++;
   *o = 0;
 
-  snwprintf(title, sizeof(title)/sizeof(TCHAR),
-	    _T("SWI-Prolog (%s%sversion %d.%d.%d%s%s)"),
-	    w64, mt, major, minor, patch,
-	    wtag[0] ? _T("-") : _T(""), wtag);
+  _snwprintf(title, sizeof(title)/sizeof(TCHAR),
+	     _T("SWI-Prolog (%s%sversion %d.%d.%d%s%s)"),
+	     w64, mt, major, minor, patch,
+	     wtag[0] ? _T("-") : _T(""), wtag);
 
   rlc_title(c, title, NULL, 0);
 }
