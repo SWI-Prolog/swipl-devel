@@ -298,6 +298,7 @@ config_data_files()
 
 # Set swipl.home above binaries to a relative path to the root
 file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
+file(WRITE "${CMAKE_BINARY_DIR}/src/swipl.home" "../home\n")
 file(WRITE "${CMAKE_BINARY_DIR}/packages/swipl.home" "../home\n")
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
