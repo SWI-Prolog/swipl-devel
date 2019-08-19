@@ -109,11 +109,40 @@ static int	idg_add_edge(trie *atrie, trie **ctriep ARG_LD);
 #define	LOCK_SHARED_TABLE(t)	simpleMutexLock(&GD->tabling.mutex);
 #define	UNLOCK_SHARED_TABLE(t)	simpleMutexUnlock(&GD->tabling.mutex);
 
+static inline void
+drop_trie(trie *atrie)
+{
+#ifdef O_DEBUG
+  int mytid = PL_thread_self();
+  assert(mytid == atrie->tid);
+  int rc = COMPARE_AND_SWAP(&atrie->tid, mytid, 0);
+  assert(rc);
+#else
+  atrie->tid = 0;
+#endif
+}
+
+static inline void
+take_trie(trie *atrie, int tid)
+{
+#ifdef O_DEBUG
+  int rc = COMPARE_AND_SWAP(&atrie->tid, 0, tid);
+  assert(rc);
+#else
+  atrie->tid = tid;
+#endif
+}
+
 #define COMPLETE_WORKLIST(__trie, __code) \
 	do \
 	{ LOCK_SHARED_TABLE(__trie); \
+	  if ( __trie->tid ) \
+	  { DEBUG(0, assert(__trie->tid == PL_thread_self())); \
+	  } else \
+	  { take_trie(__trie, PL_thread_self()); \
+	  } \
 	  __code; \
-	  __trie->tid = 0; \
+	  drop_trie(__trie); \
 	  cv_broadcast(&GD->tabling.cvar); \
 	  UNLOCK_SHARED_TABLE(__trie); \
 	} while(0)
@@ -1963,7 +1992,7 @@ reset_answer_table(trie *atrie, int cleanup)
     if ( wl->undefined )
       destroy_delay_info_worklist(wl);
     atrie->data.worklist = NULL;
-    wl->abolish_on_complete = FALSE;		/* avoid recursive delete */
+    clear(atrie, TRIE_ABOLISH_ON_COMPLETE);
     free_worklist(wl);
   } else if ( wl )
   { atrie->data.worklist = NULL;		/* make fresh again */
@@ -2183,7 +2212,7 @@ retry:
 			     mytid, atrie);
 		    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 		  });
-	    atrie->tid = mytid;
+	    take_trie(atrie, mytid);
 	  } else
 	  { goto complete;
 	  }
@@ -2195,7 +2224,7 @@ retry:
 			   mytid, atrie);
 		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 		});
-	  atrie->tid = mytid;
+	  take_trie(atrie, mytid);
 	} else					/* complete and valid */
 	{ complete:
 	  if ( !(clref=atrie->clause) )
@@ -2848,6 +2877,19 @@ destroy_answer_trie(trie *atrie)
 }
 
 
+static int
+delayed_destroy_table(trie *atrie)
+{ if ( table_is_incomplete(atrie) )
+  { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
+    DEBUG(MSG_TABLING_ABOLISH,
+	  print_answer_table("Scheduling for delayed abolish", atrie));
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 /** '$tbl_destroy_table'(+Trie)
  *
  * Destroy a single trie table.
@@ -2855,23 +2897,44 @@ destroy_answer_trie(trie *atrie)
 
 static
 PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
-{ trie *table;
+{ trie *atrie;
 
-  if ( get_trie(A1, &table) )
-  { if ( table_is_incomplete(table) )
-    { worklist *wl;
+  if ( get_trie(A1, &atrie) )
+  { if ( atrie->data.variant)
+    { trie *vtrie = get_trie_from_node(atrie->data.variant);
 
-      if ( WL_IS_WORKLIST((wl=table->data.worklist)) )
-      { DEBUG(MSG_TABLING_ABOLISH,
-	      print_answer_table("Scheduling for delayed abolish", table));
-	wl->abolish_on_complete = TRUE;
+      if ( is_variant_trie(vtrie) )
+      { int mytid = PL_thread_self();
+
+	if ( true(atrie, TRIE_ISSHARED) )
+	{ LOCK_SHARED_TABLE(atrie);
+	  if ( !atrie->tid )			/* no owner */
+	  { take_trie(atrie, mytid);
+	    assert(!table_is_incomplete(atrie));
+	    reset_answer_table(atrie, FALSE);
+	    drop_trie(atrie);
+	  } else if ( atrie->tid == mytid )	/* I am the owner */
+	  { if ( !delayed_destroy_table(atrie) )
+	    { reset_answer_table(atrie, FALSE);
+	      drop_trie(atrie);
+	      cv_broadcast(&GD->tabling.cvar);
+	    }
+	  } else
+	  { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
+	    DEBUG(MSG_TABLING_ABOLISH,
+		  print_answer_table("Scheduling for delayed abolish", atrie));
+	  }
+	  UNLOCK_SHARED_TABLE(atrie);
+	} else
+	{ if ( !delayed_destroy_table(atrie) )
+	    trie_delete(vtrie, atrie->data.variant, TRUE);
+	}
+
+	return TRUE;
       }
-      return TRUE;
-    } else if ( destroy_answer_trie(table) )
-    { return TRUE;
-    } else
-    { return PL_type_error("table", A1);
     }
+
+    return PL_type_error("table", A1);
   }
 
   return FALSE;
@@ -3699,25 +3762,25 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 
     for(i=0; i<ntables; i++)
     { worklist *wl = wls[i];
-      trie *trie = wl->table;
+      trie *atrie = wl->table;
 
       DEBUG(MSG_TABLING_WORK,
 	    { term_t t = PL_new_term_ref();
-	      unify_trie_term(trie->data.variant, t PASS_LD);
+	      unify_trie_term(atrie->data.variant, t PASS_LD);
 	      Sdprintf("Setting wl %zd in scc %zd to COMPLETE.  Variant: ",
 		       pointerToInt(wl), pointerToInt(c));
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      if ( wl->abolish_on_complete )
-      { trie->data.worklist = NULL;
-	destroy_answer_trie(trie);
+      if ( true(atrie, TRIE_ABOLISH_ON_COMPLETE) )
+      { atrie->data.worklist = NULL;
+	destroy_answer_trie(atrie);
 	free_worklist(wl);
       } else if ( !wl->undefined && isEmptyBuffer(&wl->delays) ) /* see (*) */
       { free_worklist(wl);
-	COMPLETE_WORKLIST(trie,
-			  { trie->data.worklist = NULL;
-			    set(trie, TRIE_COMPLETE);
+	COMPLETE_WORKLIST(atrie,
+			  { atrie->data.worklist = NULL;
+			    set(atrie, TRIE_COMPLETE);
 			  });
       } else
       { complete_worklist(wl);
