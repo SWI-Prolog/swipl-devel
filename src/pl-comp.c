@@ -554,24 +554,19 @@ resetVarDefs(int n ARG_LD)		/* set addresses of first N to NULL */
 void
 freeVarDefs(PL_local_data_t *ld)
 { if ( ld->comp.vardefs )
-  {
-#ifndef NDEBUG
-    GET_LD
-#endif
-    VarDef *vardefs = ld->comp.vardefs;
+  { VarDef *vardefs = ld->comp.vardefs;
     int i, count=ld->comp.nvardefs;
 
-    assert(LD==ld);
+    ld->comp.vardefs = NULL;
+    ld->comp.nvardefs = 0;
+    ld->comp.filledVars = 0;
 
     for(i=0; i<count; i++)
     { if ( vardefs[i] )
 	freeHeap(vardefs[i], sizeof(vardef));
     }
 
-    GC_FREE(ld->comp.vardefs);
-    ld->comp.vardefs = NULL;
-    ld->comp.nvardefs = 0;
-    ld->comp.filledVars = 0;
+    GC_FREE(vardefs);
   }
 }
 
