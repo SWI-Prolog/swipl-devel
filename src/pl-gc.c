@@ -4915,7 +4915,6 @@ nextStackSizeAbove(size_t n)
   if ( DEBUGGING(CHK_SECURE) )
   { static int got_incr = FALSE;
     static size_t increment = 0;
-    GET_LD
 
     if ( !got_incr )
     { char *incr = getenv("PL_STACK_INCREMENT"); /* 1: random */
@@ -4933,6 +4932,7 @@ nextStackSizeAbove(size_t n)
 #ifdef __WINDOWS__
 	sz = n+rand()%10000;
 #else
+        GET_LD
 	sz = n+rand_r(&LD->gc.incr_seed)%10000;
 #endif
       } else

@@ -872,6 +872,7 @@ capture them in the application and tell   Prolog to print the stack and
 abort.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if !defined(O_DEBUG) && !defined(_DEBUG)
 static void
 exit_immediately(rlc_console c, int sig)
 { _exit(1);
@@ -889,11 +890,11 @@ fatalSignal(int sig)
   }
 }
 
-
 static void
 initSignals()
 { signal(SIGABRT, fatalSignal);
 }
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
