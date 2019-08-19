@@ -1944,8 +1944,7 @@ variant_table(trie **tp, int shared)
 	acquire_trie(t);			/* bit misuse */
       }
     } else
-    { PL_unregister_atom(symb);
-      trie_destroy(t);
+    { PL_unregister_atom(symb);			/* destroyed by atom-GC */
     }
   }
 
