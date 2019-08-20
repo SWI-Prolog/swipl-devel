@@ -594,98 +594,108 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 { PL_thread_info_t *info;
   int acknowledge;
   double time;
+  PL_local_data_t *old_ld;
+
+  { GET_LD
+    old_ld = LD;
+  }
 
   if ( !threads_ready )
     return;				/* Post-mortem */
 
-  info = ld->thread.info;
-  DEBUG(MSG_THREAD, Sdprintf("Freeing prolog thread %d (status = %d)\n",
-			     info->pl_tid, info->status));
-
-  if ( !after_fork )
+  TLD_set_LD(ld);
   { GET_LD
-    int rc1, rc2;
 
-    PL_LOCK(L_THREAD);
-    if ( info->status == PL_THREAD_RUNNING )
-      info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-    acknowledge = ld->exit_requested;
-    PL_UNLOCK(L_THREAD);
+    info = ld->thread.info;
+    DEBUG(MSG_THREAD, Sdprintf("Freeing prolog thread %d (status = %d)\n",
+			       info->pl_tid, info->status));
 
-    ld->critical++;   /* startCritical  */
-    info->in_exit_hooks = TRUE;
-    if ( LD == ld )
-      rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
-    else
-      rc1 = TRUE;
-    rc2 = callEventHook(PLEV_THREAD_EXIT, info);
-    if ( (!rc1 || !rc2) && exception_term )
-    { Sdprintf("Event hook \"thread_finished\" left an exception\n");
-      PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-      PL_clear_exception();
+    if ( !after_fork )
+    { int rc1, rc2;
+
+      PL_LOCK(L_THREAD);
+      if ( info->status == PL_THREAD_RUNNING )
+	info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
+      acknowledge = ld->exit_requested;
+      PL_UNLOCK(L_THREAD);
+
+      ld->critical++;   /* startCritical  */
+      info->in_exit_hooks = TRUE;
+      if ( LD == ld )
+	rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
+      else
+	rc1 = TRUE;
+      rc2 = callEventHook(PLEV_THREAD_EXIT, info);
+      if ( (!rc1 || !rc2) && exception_term )
+      { Sdprintf("Event hook \"thread_finished\" left an exception\n");
+	PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	PL_clear_exception();
+      }
+      info->in_exit_hooks = FALSE;
+      ld->critical--;   /* endCritical */
+    } else
+    { acknowledge = FALSE;
+      info->detached = TRUE;		/* cleanup */
     }
-    info->in_exit_hooks = FALSE;
-    ld->critical--;   /* endCritical */
-  } else
-  { acknowledge = FALSE;
-    info->detached = TRUE;		/* cleanup */
+
+  #ifdef O_PROFILE
+    if ( ld->profile.active )
+      activateProfiler(FALSE, ld);
+  #endif
+
+    destroy_event_list(&ld->event.hook.onthreadexit);
+    cleanupLocalDefinitions(ld);
+
+    DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
+    ld->magic = 0;
+    if ( ld->stacks.global.base )		/* otherwise not initialised */
+    { simpleMutexLock(&ld->thread.scan_lock);
+      freeStacks(ld);
+      simpleMutexUnlock(&ld->thread.scan_lock);
+    }
+    freePrologLocalData(ld);
+
+    /*PL_unregister_atom(ld->prompt.current);*/
+
+    freeThreadSignals(ld);
+    time = info->is_engine ? 0.0 : ThreadCPUTime(ld, CPU_USER);
+
+    if ( !after_fork )
+    { PL_LOCK(L_THREAD);
+      GD->statistics.threads_finished++;
+      assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
+      GD->statistics.thread_cputime += time;
+    }
+    destroy_thread_message_queue(&ld->thread.messages);
+    free_predicate_references(ld);
+    if ( ld->btrace_store )
+    { btrace_destroy(ld->btrace_store);
+      ld->btrace_store = NULL;
+    }
+  #ifdef O_LOCALE
+    if ( ld->locale.current )
+      releaseLocale(ld->locale.current);
+  #endif
+    info->thread_data = NULL;		/* avoid a loop */
+    info->has_tid = FALSE;		/* needed? */
+    if ( !after_fork )
+      PL_UNLOCK(L_THREAD);
+
+    if ( info->detached || acknowledge )
+      free_thread_info(info);
+
+    ld->thread.info = NULL;		/* help force a crash if ld used */
+    maybe_free_local_data(ld);
+
+    if ( acknowledge )			/* == canceled */
+    { DEBUG(MSG_CLEANUP_THREAD,
+	    Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
+      pthread_detach(pthread_self());
+      sem_post(sem_canceled_ptr);
+    }
   }
 
-#ifdef O_PROFILE
-  if ( ld->profile.active )
-    activateProfiler(FALSE, ld);
-#endif
-
-  destroy_event_list(&ld->event.hook.onthreadexit);
-  cleanupLocalDefinitions(ld);
-
-  DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
-  ld->magic = 0;
-  if ( ld->stacks.global.base )		/* otherwise not initialised */
-  { simpleMutexLock(&ld->thread.scan_lock);
-    freeStacks(ld);
-    simpleMutexUnlock(&ld->thread.scan_lock);
-  }
-  freePrologLocalData(ld);
-
-  /*PL_unregister_atom(ld->prompt.current);*/
-
-  freeThreadSignals(ld);
-  time = info->is_engine ? 0.0 : ThreadCPUTime(ld, CPU_USER);
-
-  if ( !after_fork )
-  { PL_LOCK(L_THREAD);
-    GD->statistics.threads_finished++;
-    assert(GD->statistics.threads_created - GD->statistics.threads_finished >= 1);
-    GD->statistics.thread_cputime += time;
-  }
-  destroy_thread_message_queue(&ld->thread.messages);
-  free_predicate_references(ld);
-  if ( ld->btrace_store )
-  { btrace_destroy(ld->btrace_store);
-    ld->btrace_store = NULL;
-  }
-#ifdef O_LOCALE
-  if ( ld->locale.current )
-    releaseLocale(ld->locale.current);
-#endif
-  info->thread_data = NULL;		/* avoid a loop */
-  info->has_tid = FALSE;		/* needed? */
-  if ( !after_fork )
-    PL_UNLOCK(L_THREAD);
-
-  if ( info->detached || acknowledge )
-    free_thread_info(info);
-
-  ld->thread.info = NULL;		/* help force a crash if ld used */
-  maybe_free_local_data(ld);
-
-  if ( acknowledge )			/* == canceled */
-  { DEBUG(MSG_CLEANUP_THREAD,
-	  Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
-    pthread_detach(pthread_self());
-    sem_post(sem_canceled_ptr);
-  }
+  TLD_set_LD(old_ld);
 }
 
 
