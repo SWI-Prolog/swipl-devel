@@ -74,8 +74,10 @@ test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
 
 null_file('/dev/null') :-
 	exists_file('/dev/null'), !.
-null_file(nul) :-
-	current_prolog_flag(windows, true).
+null_file(NullFile) :-
+	source_location(_:null_file(_), ThisFile),
+	file_directory_name(ThisFile, ThisDir),
+	atom_concat(ThisDir, '/data/empty', NullFile).
 
 test(iso_8_11_8, [ condition(null_file(Null)),
 		   setup(open(Null, read, S)),
