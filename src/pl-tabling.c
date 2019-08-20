@@ -76,6 +76,7 @@ static void	print_delay(const char *msg,
 			    trie_node *variant, trie_node *answer);
 static void	print_answer(const char *msg, trie_node *answer);
 static int	put_delay_info(term_t t, trie_node *answer);
+static void	print_answer_table(const char *msg, trie *atrie);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
