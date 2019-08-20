@@ -224,9 +224,12 @@ The Prolog stacks and C thread are reclaimed.
 The current implementation does not guarantee proper releasing of all
 mutexes and proper cleanup in setup_call_cleanup/3, etc. Please use the
 exception mechanism (throw/1) to abort execution using non-standard
-control.\bug{The Windows port does not call possible thread_at_exit/1
-or otherwise registered exit handlers due to a bug in
-\href{https://sourceforge.net/p/mingw-w64/bugs/469/}{MinGW}}
+control.\bug{The Windows port does not properly cleanup for
+\jargon{detached} threads while the cleanup for other threads is
+executed by the thread running thread_join/2 using the exitted thread as
+\jargon{engine}. This is due to a bug in the
+\href{https://sourceforge.net/p/mingw-w64/bugs/469/}{MinGW pthread
+implementation}.}
 
     \predicate{thread_initialization}{1}{:Goal}
 Run \arg{Goal} when thread is started.  This predicate is similar to
