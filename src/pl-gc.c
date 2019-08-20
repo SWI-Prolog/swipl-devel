@@ -1065,10 +1065,12 @@ gvars_to_term_refs(Word **saved_bar_at)
   if ( LD->gvar.nb_vars && LD->gvar.grefs > 0 )
   { TableEnum e = newTableEnum(LD->gvar.nb_vars);
     int found = 0;
-    word w;
+    void *v;
 
-    while( advanceTableEnum(e, NULL, (void**)&w) )
-    { if ( isGlobalRef(w) )
+    while( advanceTableEnum(e, NULL, &v) )
+    { word w = (word)v;
+
+      if ( isGlobalRef(w) )
       { term_t t = PL_new_term_ref_noshift();
 
 	assert(t);
