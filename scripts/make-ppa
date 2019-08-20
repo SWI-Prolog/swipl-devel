@@ -12,7 +12,7 @@ distros="xenial bionic cosmic disco"
 build=true
 buildbin=false
 push=false
-pgpkey=7C11B85B
+pgpkey=266FF04C52056213BECDDDA04EF5383C7C11B85B
 program="$0"
 
 usage()
