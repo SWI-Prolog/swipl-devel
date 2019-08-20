@@ -2910,7 +2910,9 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
     { trie *vtrie = get_trie_from_node(atrie->data.variant);
 
       if ( is_variant_trie(vtrie) )
-      { int mytid = PL_thread_self();
+      {
+#ifdef O_PLMT
+        int mytid = PL_thread_self();
 
 	if ( true(atrie, TRIE_ISSHARED) )
 	{ LOCK_SHARED_TABLE(atrie);
@@ -2932,6 +2934,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 	  }
 	  UNLOCK_SHARED_TABLE(atrie);
 	} else
+#endif
 	{ if ( !delayed_destroy_table(atrie) )
 	    trie_delete(vtrie, atrie->data.variant, TRUE);
 	}
