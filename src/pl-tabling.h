@@ -180,6 +180,7 @@ typedef struct idg_node
   size_t	answer_count;		/* #answers in previous complete state */
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */
+  unsigned	aborted : 1;		/* re-evaluation was aborted */
   int		falsecount;		/* Invalidate count */
 } idg_node;
 

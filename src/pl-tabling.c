@@ -83,6 +83,7 @@ static void	idg_reset(idg_node *node);
 static int	idg_init_variant(trie *atrie, Definition def, term_t variant
 				 ARG_LD);
 static void	reeval_complete(trie *atrie);
+static void	reset_reevaluation(trie *atrie);
 static int	unify_component_status(term_t t, tbl_component *scc ARG_LD);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
@@ -563,19 +564,23 @@ free_worklist_set(worklist_set *wls, int freewl)
 
     for(i=0; i<nwpl; i++)
     { worklist *wl = wlp[i];
-      trie *atrie = wl->table;
 
       if ( (freewl&WLFS_FREE_ALL) || true(wl->table, TRIE_COMPLETE) )
-	free_worklist(wl);
-      if ( (freewl&WLFS_DISCARD_INCOMPLETE) && table_is_incomplete(atrie) )
-      { DEBUG(MSG_TABLING_EXCEPTION,
-	      { GET_LD
-		term_t tab = PL_new_term_ref();
-		unify_trie_term(atrie->data.variant, tab PASS_LD);
-		Sdprintf("Deleting incomplete answer table ");
-		PL_write_term(Serror, tab, 999, PL_WRT_NEWLINE);
-	      });
-	destroy_answer_trie(atrie);
+      { free_worklist(wl);
+      } else if ( (freewl&WLFS_DISCARD_INCOMPLETE) )
+      { trie *atrie = wl->table;
+
+	if ( atrie->data.IDG && atrie->data.IDG->reevaluating )
+	{ atrie->data.worklist = NULL;
+	  free_worklist(wl);
+	  reset_reevaluation(atrie);
+	} else
+	{ if ( table_is_incomplete(atrie) )
+	  { DEBUG(MSG_TABLING_EXCEPTION,
+		  print_answer_table("Deleting incomplete answer table", atrie));
+	    destroy_answer_trie(atrie);
+	  }
+	}
       }
     }
   }
@@ -3011,7 +3016,8 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	}
 	return PL_permission_error("modify", "trie_key", A2);
       } else
-      { set_trie_value_word(wl->table, node, ATOM_trienode);
+      { set(node, TN_IDG_ADDED);
+	set_trie_value_word(wl->table, node, ATOM_trienode);
 	if ( (idg=wl->table->data.IDG) )
 	  idg->new_answer = TRUE;
 
@@ -5128,11 +5134,14 @@ reeval_prep_node(trie_node *n, void *ctx)
 
   if ( n->value )
   { set(n, TN_IDG_DELETED);
+
     if ( answer_is_conditional(n) )
     { destroy_delay_info(atrie, n, TRUE);
       n->data.delayinfo = NULL;
+      clear(n, TN_IDG_UNCONDITIONAL);
     } else
-      set(n, TN_IDG_UNCONDITIONAL);
+    { set(n, TN_IDG_UNCONDITIONAL);
+    }
   }
 
   return NULL;
@@ -5147,18 +5156,14 @@ PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
   { idg_node *idg = atrie->data.IDG;
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
-	  { GET_LD
-	    term_t t = PL_new_term_ref();
-	    unify_trie_term(atrie->data.variant, t PASS_LD);
-	    Sdprintf("Preparing re-evaluation of ");
-	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	  });
+	  print_answer_table("Preparing re-evaluation of", atrie));
 
     idg->answer_count = atrie->value_count;
     idg->new_answer = FALSE;
     idg->falsecount = 0;
     idg_clean_dependent(idg);
-    map_trie_node(&atrie->root, reeval_prep_node, atrie);
+    if ( !idg->aborted )
+      map_trie_node(&atrie->root, reeval_prep_node, atrie);
     idg->reevaluating = TRUE;
 
     return TRUE;
@@ -5182,6 +5187,8 @@ reeval_complete_node(trie_node *n, void *ctx)
   { atrie->data.IDG->new_answer = TRUE;
   }
 
+  clear(n, TN_IDG_MASK);
+
   return NULL;
 }
 
@@ -5194,12 +5201,7 @@ reeval_complete(trie *atrie)
   { map_trie_node(&atrie->root, reeval_complete_node, atrie);
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
-	  { GET_LD
-	    term_t t = PL_new_term_ref();
-	    unify_trie_term(atrie->data.variant, t PASS_LD);
-	    Sdprintf("Re-evaluation of ");
-	    PL_write_term(Serror, t, 999, 0);
-	  });
+	  print_answer_table("Re-evaluation of", atrie));
 
     if ( n->new_answer == FALSE &&
 	 n->answer_count == atrie->value_count )
@@ -5212,8 +5214,72 @@ reeval_complete(trie *atrie)
     }
 
     n->reevaluating = FALSE;
+    n->aborted = FALSE;
   }
 }
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+reset_reevaluation(trie *atrie)
+
+Reset a table that is  being   reevaluated  while an exception happened.
+This must ensure that a subsequent call   on  the table will restart the
+re-evaluation and forward a _not-changed_ to   the affected nodes if the
+table evaluates to the same values.
+
+We set the nodes back to the   state  after the initial preparation. The
+flag `aborted` is used by  the  subsequent   prepare  to  keep  the node
+states.
+
+TBD: the dependency links  to  dependent   nodes  (and  back)  have been
+removed during preparation. This is ok for restoring the state. It poses
+problems for propagating the falsecounts from our dependent nodes to our
+affected nodes though if there are  modifications to our dependent nodes
+while re-evaluation is in progress.  In-progress   here  means  the time
+between the node was prepared and completed.  This period can be long if
+the re-evaluation has been aborted.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void *
+reset_evaluate_node(trie_node *n, void *ctx)
+{ trie *atrie = ctx;
+
+  if ( answer_is_conditional(n) )
+  { destroy_delay_info(atrie, n, TRUE);
+    n->data.delayinfo = NULL;
+  }
+
+  if ( true(n, TN_IDG_ADDED) )
+  { trie_delete(atrie, n, TRUE);
+  } else
+  { set(n, TN_IDG_DELETED);
+    if ( true(n, TN_IDG_SAVED_UNCONDITIONAL) )
+      set(n, TN_IDG_UNCONDITIONAL);
+    else
+      clear(n, TN_IDG_UNCONDITIONAL);
+  }
+
+  return NULL;
+}
+
+
+static void
+reset_reevaluation(trie *atrie)
+{ idg_node *n = atrie->data.IDG;
+
+  DEBUG(MSG_TABLING_EXCEPTION,
+	print_answer_table("Abort reevaluation of", atrie));
+
+  map_trie_node(&atrie->root, reset_evaluate_node, atrie);
+  assert(n->answer_count == atrie->value_count);
+
+  n->new_answer = FALSE;
+  n->aborted = TRUE;
+  n->falsecount = 1;
+  set(atrie, TRIE_COMPLETE);
+  COMPLETE_WORKLIST(atrie, n->reevaluating = FALSE);
+}
+
 
 		 /*******************************
 		 *	    CONCURRENCY		*

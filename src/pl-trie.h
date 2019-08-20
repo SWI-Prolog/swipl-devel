@@ -72,9 +72,14 @@ typedef union trie_children
 } trie_children;
 
 
-#define TN_PRUNED		0x0001		/* Node path was pruned */
-#define TN_IDG_DELETED		0x0002		/* IDG pre-evaluation */
-#define TN_IDG_UNCONDITIONAL	0x0004		/* IDG: previous cond state */
+#define TN_PRUNED			0x0001	/* Node path was pruned */
+#define TN_IDG_DELETED			0x0002	/* IDG pre-evaluation */
+#define TN_IDG_ADDED			0x0004	/* IDG recovery */
+#define TN_IDG_UNCONDITIONAL		0x0008	/* IDG: previous cond state */
+#define TN_IDG_SAVED_UNCONDITIONAL	0x0010	/* IDG recovery */
+#define TN_IDG_MASK \
+	(TN_IDG_DELETED|TN_IDG_ADDED| \
+	 TN_IDG_UNCONDITIONAL|TN_IDG_SAVED_UNCONDITIONAL)
 
 typedef struct trie_node
 { word			value;
