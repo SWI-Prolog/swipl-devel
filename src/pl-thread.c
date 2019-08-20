@@ -3688,9 +3688,9 @@ cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
     { struct timespec d;
 
       get_current_timespec(&tmp_timeout);
-      timespec_diff(&d, &tmp_timeout, deadline);
+      timespec_diff(&d, deadline, &tmp_timeout);
       if ( timespec_sign(&d) > 0 )
-	api_timeout = d.tv_nsec / 1000000;
+	api_timeout = (d.tv_nsec + 1000000 - 1) / 1000000;
       else
 	return ETIMEDOUT;
 
