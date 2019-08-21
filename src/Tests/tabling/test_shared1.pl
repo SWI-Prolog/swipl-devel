@@ -119,8 +119,8 @@ b :- bq.
 %   Run into a sure deadlock between p/1 and q/1 to test the recovery.
 
 test_deadlock :-
-    prolog_debug(msg_tabling_shared),
-    prolog_debug(msg_tabling_vtrie_dependencies),
+%   prolog_debug(msg_tabling_shared),
+%   prolog_debug(msg_tabling_vtrie_dependencies),
     thread_create(bp, T1),
     thread_create(bq, T2),
     thread_join(T1),
