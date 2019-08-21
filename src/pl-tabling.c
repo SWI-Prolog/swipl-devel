@@ -1965,8 +1965,15 @@ print_answer_table(const char *msg, trie *atrie)
 static void release_variant_table_node(trie *trie, trie_node *node);
 
 static trie *
-variant_table(trie **tp, int shared)
-{ if ( *tp == NULL )
+variant_table(int shared ARG_LD)
+{ trie **tp;
+
+  if ( shared )
+    tp = &GD->tabling.variant_table;
+  else
+    tp = &LD->tabling.variant_table;
+
+  if ( *tp == NULL )
   { trie *t = trie_create();
     atom_t symb;
 
@@ -2144,7 +2151,7 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   shared = FALSE;
 #endif
 
-  variants = variant_table(&LD->tabling.variant_table, shared);
+  variants = variant_table(shared PASS_LD);
   initBuffer(&vars);
 
 retry:
