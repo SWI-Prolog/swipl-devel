@@ -331,6 +331,27 @@ defaultSystemInitFile(const char *a0)
 }
 
 
+static int
+is_hash_bang_file(const char *s)
+{ char fb[MAXPATHLEN];
+  char *fn;
+  IOSTREAM *fd;
+  int rc = FALSE;
+
+  if ( (fn = PrologPath(s, fb, sizeof(fb))) &&
+       (fd = Sopen_file(fb, "r")) )
+  { if ( Sgetc(fd) == '#' &&
+	 Sgetc(fd) == '!' )
+      rc = TRUE;
+
+    Sclose(fd);
+  }
+
+  return rc;
+}
+
+
+
 #define MEMAREA_INVALID_SIZE (uintptr_t)(~0L)
 
 static size_t
@@ -815,7 +836,7 @@ Find the resource database.
 #endif
 
 static zipper *
-openResourceDB(int argc, char **argv)
+openResourceDB(int argc, char **argv, int is_hash_bang)
 { zipper *rc;
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
@@ -824,31 +845,33 @@ openResourceDB(int argc, char **argv)
   char *exe, *exedir;
   int n;
 
-  for(n=0; n<argc-1; n++)
-  { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
-    { if ( argv[n][1] == '-' )
-	break;				/* trapped -- */
-      if ( GD->bootsession )
-      { if ( argv[n][1] == 'o' )
-	{ xfile = argv[n+1];
-	  break;
-	}
-      } else
-      { if ( argv[n][1] == 'x' )
-	{ xfile = argv[n+1];
-	  break;
+  if ( !is_hash_bang )
+  { for(n=0; n<argc-1; n++)
+    { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
+      { if ( argv[n][1] == '-' )
+	  break;				/* trapped -- */
+	if ( GD->bootsession )
+	{ if ( argv[n][1] == 'o' )
+	  { xfile = argv[n+1];
+	    break;
+	  }
+	} else
+	{ if ( argv[n][1] == 'x' )
+	  { xfile = argv[n+1];
+	    break;
+	  }
 	}
       }
     }
-  }
 
-  if ( xfile )
-  { errno = 0;
-    if ( !(rc = zip_open_archive(xfile, flags)) )
-      fatalError("Could not open resource database \"%s\": %s",
-		 xfile, errno ? OsError() : "not a ZIP file");
+    if ( xfile )
+    { errno = 0;
+      if ( !(rc = zip_open_archive(xfile, flags)) )
+	fatalError("Could not open resource database \"%s\": %s",
+		   xfile, errno ? OsError() : "not a ZIP file");
 
-    return rc;
+      return rc;
+    }
   }
 
   strcpy(tmp, GD->paths.executable);
@@ -898,6 +921,7 @@ int
 PL_initialise(int argc, char **argv)
 { int n;
   bool compile = FALSE;
+  int is_hash_bang = FALSE;
   const char *rcpath = "<none>";
 
   if ( GD->initialised )
@@ -940,23 +964,27 @@ PL_initialise(int argc, char **argv)
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* --help, --version, etc */
       exit(0);
 
-    for(n=0; n<argc; n++)		/* need to check this first */
-    { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
-	break;
-      if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
-      { GD->bootsession = TRUE;
-	break;
-      }
-      if ( streq(argv[n], "-c" ) )	/* -c: compilation */
-      { compile = TRUE;
-	break;
+    if ( argc > 1 && argv[0][0] != '-' && is_hash_bang_file(argv[0]) )
+    { is_hash_bang = TRUE;
+    } else
+    { for(n=0; n<argc; n++)		/* need to check this first */
+      { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
+	  break;
+	if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
+	{ GD->bootsession = TRUE;
+	  break;
+	}
+	if ( streq(argv[n], "-c" ) )	/* -c: compilation */
+	{ compile = TRUE;
+	  break;
+	}
       }
     }
 
     DEBUG(MSG_INITIALISE, if (GD->bootsession) Sdprintf("Boot session\n"););
 
     if ( !GD->resources.DB )
-    { if ( !(GD->resources.DB = openResourceDB(argc, argv)) )
+    { if ( !(GD->resources.DB = openResourceDB(argc, argv, is_hash_bang)) )
       { fatalError("Could not find system resources");
       }
       rcpath = zipper_file(GD->resources.DB);
