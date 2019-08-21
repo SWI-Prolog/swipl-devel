@@ -1642,6 +1642,9 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	     IS_TRIE_KEY_POP(children.key->key) )
 	{ word key   = children.key->key;
 
+	  if ( tagex(children.key->key) == TAG_VAR )
+	    dstate->prune = FALSE;
+
 	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
 	  ch->key    = key;
 	  ch->child  = children.key->child;
