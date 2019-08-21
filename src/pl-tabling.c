@@ -5096,13 +5096,7 @@ idg_changed(trie *atrie)
 { idg_node *n;
 
   DEBUG(MSG_TABLING_IDG_CHANGED,
-	{ GET_LD
-	  term_t v = PL_new_term_ref();
-
-	  unify_trie_term(atrie->data.variant, v PASS_LD);
-	  Sdprintf("IDG: dynamic change: ");
-	  PL_write_term(Serror, v, 999, 0);
-	});
+	print_answer_table("IDG: dynamic change", atrie));
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 )
   { trie *incomplete;
