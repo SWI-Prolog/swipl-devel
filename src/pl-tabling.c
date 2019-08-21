@@ -4746,6 +4746,14 @@ PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
 /** '$idg_add_dyncall'(+Variant)
  *
  * Called on a call to an incremental dynamic predicate.
+ *
+ * (*) If we make a call we should reset the `falsecount` to 0 as this
+ * may have added a new dependency.  Ideally we should keep track of the
+ * edges we have signalled, although we need to lookup the dynamic trie
+ * from the assert/removed variant anyway and propagation to node that
+ * have already been triggered stop quickly.  Setting the `falsecount`
+ * to zero should be considered similar to re-evaluating an incremental
+ * tabled predicate when it is called.
  */
 
 static
@@ -4782,11 +4790,10 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 	  idg_destroy(n);
       }
 
-      if ( idg_add_edge(atrie, ctrie PASS_LD) == TRUE )
-      { if ( ctrie->data.IDG->reevaluating ) /* TBD: is this the right place? */
-	  atrie->data.IDG->falsecount = 0;
-	return TRUE;
-      }
+      idg_add_edge(atrie, ctrie PASS_LD);
+      atrie->data.IDG->falsecount = 0;	/* see (*) above */
+
+      return TRUE;
     }
 
     return FALSE;

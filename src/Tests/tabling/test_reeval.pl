@@ -36,6 +36,7 @@
           [ test_reeval/0
           ]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Incremental tabling reevaluation tests
 */
@@ -73,4 +74,34 @@ test(mutal_dependent, Ys = [0,1,2,3]) :-
     set_max(3),
     setof(Y, p(Y), Ys).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Test reseting the `falsecount` for a dynamic node when it is called from
+a new tabled goal.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- table (p2/1, q2/1) as incremental.
+:- dynamic([d2/1], [incremental(true)]).
+
+p2(X) :- d2(X).
+q2(X) :- d2(X).
+
+d2(1).
+
+test(multiple_dependents) :-
+    answers(X, p2(X), [1]),
+    assert(d2(2)),
+    answers(X, q2(X), [1,2]),
+    assert(d2(3)),
+    answers(X, q2(X), [1,2,3]).
+
 :- end_tests(tabling_reeval).
+
+
+:- meta_predicate
+    answers(?, 0, +).
+
+answers(Templ, Goal, Expected) :-
+    findall(Templ, Goal, Got0),
+    sort(Got0, Got),
+    sort(Expected, Expected1),
+    assertion(Got =@= Expected1).
