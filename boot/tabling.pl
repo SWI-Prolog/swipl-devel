@@ -1239,13 +1239,22 @@ dyn_affected(Term, ATrie) :-
 %   after P has been re-evaluated.
 
 reeval(ATrie) :-
+    catch(try_reeval(ATrie), deadlock,
+          retry_reeval(ATrie)).
+
+retry_reeval(ATrie) :-
+    tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
+    sleep(0.000001),
+    reeval(ATrie).
+
+try_reeval(ATrie) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
     '$tbl_reeval_prepare'(ATrie),
     '$tbl_table_status'(ATrie, _, Variant, _),
     call(Variant).
-reeval(ATrie) :-
+try_reeval(ATrie) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
     sort(0, @>, Paths0, Paths),
