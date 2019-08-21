@@ -1239,14 +1239,21 @@ dyn_affected(Term, ATrie) :-
 %   after P has been re-evaluated.
 
 reeval(ATrie) :-
+    nb_current('$tbl_reeval', true),
+    !,
+    tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
+    '$tbl_reeval_prepare'(ATrie),
+    '$tbl_table_status'(ATrie, _, Variant, _),
+    call(Variant).
+reeval(ATrie) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
     sort(0, @>, Paths0, Paths),
     split_paths(Paths, Dynamic, Complete),
     tdebug(forall('$member'(Path, Dynamic),
-                  tdebug(reeval, 'Re-eval dynamic path: ~p', [Path]))),
+                  tdebug(reeval, '  Re-eval dynamic path: ~p', [Path]))),
     tdebug(forall('$member'(Path, Complete),
-                  tdebug(reeval, 'Re-eval complete path: ~p', [Path]))),
+                  tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie).
 
@@ -1319,15 +1326,23 @@ reeval_node(ATrie) :-
     tdebug(reeval, 'Re-evaluating ~p', [Goal]),
     '$tbl_reeval_prepare'(ATrie),
     '$tbl_table_status'(ATrie, _, Variant, _),
-    (   '$idg_reset_current',                   % move to '$tbl_scc_save'/1?
+    (   '$idg_reset_current',
         setup_call_cleanup(
-            '$tbl_scc_save'(State),
+            reeval_setup(State),
             call(Variant),
-            '$tbl_scc_restore'(State)),
+            reeval_cleanup(State)),
         fail
     ;   true
     ).
 reeval_node(_).
+
+reeval_setup(State) :-
+    '$tbl_scc_save'(State),
+    nb_setval('$tbl_reeval', true).
+
+reeval_cleanup(State) :-
+    '$tbl_scc_restore'(State),
+    nb_delete('$tbl_reeval').
 
 
 		 /*******************************
