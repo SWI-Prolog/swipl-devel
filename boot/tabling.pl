@@ -1195,11 +1195,12 @@ dyn_update(Abstract, _, _) :-
     dyn_changed_pattern(Abstract).
 
 dyn_changed_pattern(Term) :-
-    '$tbl_variant_table'(VTable),
-    !,
-    forall(trie_gen(VTable, Term, ATrie),
+    forall(dyn_affected(Term, ATrie),
            '$idg_changed'(ATrie)).
-dyn_changed_pattern(_).
+
+dyn_affected(Term, ATrie) :-
+    '$tbl_variant_table'(VTable),
+    trie_gen(VTable, Term, ATrie).
 
 %!  '$unwrap_incremental'(:Head) is det.
 %
