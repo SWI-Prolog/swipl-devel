@@ -88,7 +88,7 @@ static void	reset_reevaluation(trie *atrie);
 static int	unify_component_status(term_t t, tbl_component *scc ARG_LD);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
-static int	idg_add_edge(trie *atrie, trie **ctriep ARG_LD);
+static int	idg_add_edge(trie *atrie, trie *ctrie ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2106,7 +2106,10 @@ by pushVolatileAtom() and will  be  unified   before  anything  else  in
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define AT_CREATE		0x0001
-#define AT_MODED		0x0002
+#define AT_MODED		0x0002	/* moded tabling: trie has values */
+#define AT_SHARED		0x0004	/* find a shared table */
+#define AT_PRIVATE		0x0008	/* find a private table */
+#define AT_SCOPE_MASK (AT_SHARED|AT_PRIVATE)
 
 static trie *
 get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
@@ -2119,27 +2122,29 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   tmp_buffer vars;
   mark m;
   volatile atom_t clref = 0;
-
-  if ( !def )					/* we should avoid these */
-  { Procedure proc;
-
-    if ( get_procedure(t, &proc, 0, GP_RESOLVE) )
-    { def = proc->definition;
-    } else
-    { assert(0);
-      return NULL;
-    }
-  }
+  int shared;
 
 #ifdef O_PLMT
-  if ( false(def, P_TSHARED) )
-    variants = variant_table(&LD->tabling.variant_table, FALSE);
-  else
-    variants = variant_table(&GD->tabling.variant_table, TRUE);
+  if ( (flags & AT_SCOPE_MASK) )
+  { shared = !!(flags&AT_SHARED);
+  } else
+  { if ( !def )					/* we should avoid these */
+    { Procedure proc;
+
+      if ( get_procedure(t, &proc, 0, GP_RESOLVE) )
+      { def = proc->definition;
+      } else
+      { assert(0);
+	return NULL;
+      }
+    }
+    shared = !!true(def, P_TSHARED);
+  }
 #else
-  variants = variant_table(&LD->tabling.variant_table, FALSE);
+  shared = FALSE;
 #endif
 
+  variants = variant_table(&LD->tabling.variant_table, shared);
   initBuffer(&vars);
 
 retry:
@@ -2160,11 +2165,7 @@ retry:
       symb = trie_symbol(atrie);
 
 #ifdef O_PLMT
-      if ( false(def, P_TSHARED) )
-      { atrie->alloc_pool = &LD->tabling.node_pool;
-	node->value = symb;
-	ATOMIC_INC(&variants->value_count);
-      } else
+      if ( shared )
       { atrie->alloc_pool = &GD->tabling.node_pool;
 	set(atrie, TRIE_ISSHARED);
 	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
@@ -2174,12 +2175,12 @@ retry:
 	  trie_destroy(atrie);
 	  atrie = symbol_trie(node->value);
 	}
-      }
-#else
-      atrie->alloc_pool = &LD->tabling.node_pool;
-      node->value = symb;
-      ATOMIC_INC(&variants->value_count);
+      } else
 #endif
+      { atrie->alloc_pool = &LD->tabling.node_pool;
+	node->value = symb;
+	ATOMIC_INC(&variants->value_count);
+      }
     } else
     { discardBuffer(&vars);
       return NULL;
@@ -4573,6 +4574,23 @@ idg_dependency_error(idg_node *parent, idg_node *child ARG_LD)
 }
 
 
+static int
+idg_dependency_error_dyncall(idg_node *parent, term_t call ARG_LD)
+{ term_t av;
+
+  return ( (av=PL_new_term_refs(2)) &&
+	   unify_trie_term(parent->atrie->data.variant, av+0 PASS_LD) &&
+	   PL_unify_term(av+1,
+			 PL_FUNCTOR, FUNCTOR_error2,
+		           PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
+			     PL_TERM, av+0,
+		             PL_TERM, call,
+		           PL_VARIABLE) &&
+	   PL_raise_exception(av+1));
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a bi-directional link between parent and   child node. We use the
 hash tables as sets only, but we use   the _other side_ as entry _value_
@@ -4649,9 +4667,20 @@ set_idg_current(trie *atrie ARG_LD)
   return TRUE;
 }
 
+static trie *
+idg_current(ARG1_LD)
+{ atom_t current = *valTermRef(LD->tabling.idg_current);
+
+  if ( current )
+    return symbol_trie(current);
+
+  return NULL;
+}
+
+
 /** Add an edge from the current node to the new child represented
- * by `atrie`.  If `ctriep` is given and the edge was created it
- * is filled with the parent of `atrie`.  Returns:
+ * by `atrie`.  If `ctrie` is given it is used.  Otherwise idg_current()
+ * is used.
  *
  *   - TRUE:  created a dependency
  *   - FALSE: something is wrong
@@ -4659,14 +4688,12 @@ set_idg_current(trie *atrie ARG_LD)
  */
 
 static int
-idg_add_edge(trie *atrie, trie **ctriep ARG_LD)
-{ atom_t current;
-  trie *ctrie;
+idg_add_edge(trie *atrie, trie *ctrie ARG_LD)
+{ if ( atrie->data.IDG )
+  { if ( !ctrie )
+      ctrie = idg_current(PASS_LD1);
 
-  if ( atrie->data.IDG &&
-       (current = *valTermRef(LD->tabling.idg_current)) &&
-       (ctrie = symbol_trie(current)) )
-  { if ( ctrie->data.IDG )
+    if ( ctrie && ctrie->data.IDG )
     { DEBUG(MSG_TABLING_IDG,
 	    { term_t f = PL_new_term_ref();
 	      term_t t = PL_new_term_ref();
@@ -4678,18 +4705,9 @@ idg_add_edge(trie *atrie, trie **ctriep ARG_LD)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      if ( idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD) )
-      { if ( ctriep )
-	  *ctriep = ctrie;
-	return TRUE;
-      }
-
-      return FALSE;
+      return idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
     }
   }
-
-  if ( ctriep )
-    *ctriep = NULL;
 
   return -1;
 }
@@ -4718,37 +4736,58 @@ PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
 }
 
 
+/** '$idg_add_dyncall'(+Variant)
+ *
+ * Called on a call to an incremental dynamic predicate.
+ */
+
 static
 PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 { PRED_LD
-  trie *atrie;
+  trie *ctrie = idg_current(PASS_LD1);
 
-  if ( (atrie=get_answer_table(NULL, A1, 0, NULL, AT_CREATE PASS_LD)) )
-  { trie *ctrie;
+  if ( ctrie && ctrie->data.IDG )
+  { trie *atrie;
+    int flags;
 
-    if ( !atrie->data.IDG )
-    { idg_node *n;
-      Procedure proc;
+    if ( true(ctrie, TRIE_ISSHARED) )
+    { Procedure proc;
+      flags = (AT_CREATE|AT_SHARED);
 
-      assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
-      atrie->data.worklist = WL_DYNAMIC;
-      if ( !( get_procedure(A1, &proc, 0, GP_RESOLVE) &&
-	      true(proc->definition, P_THREAD_LOCAL) ) )
-	set(atrie, TRIE_ISSHARED);
-      n = idg_new(atrie);
-      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
-	idg_destroy(n);
+      /* a shared table cannot depend on a thread-local predicate */
+      /* TBD: Avoid the procedure lookup! */
+      if ( get_procedure(A1, &proc, 0, GP_RESOLVE) &&
+	   true(proc->definition, P_THREAD_LOCAL) )
+      { return idg_dependency_error_dyncall(ctrie->data.IDG, A1 PASS_LD);
+      }
+    } else
+    { flags = (AT_CREATE|AT_PRIVATE);
     }
 
-    if ( idg_add_edge(atrie, &ctrie PASS_LD) )
-    { if ( ctrie && ctrie->data.IDG->reevaluating )
-	atrie->data.IDG->falsecount = 0;
-      return TRUE;
+    if ( (atrie=get_answer_table(NULL, A1, 0, NULL, flags PASS_LD)) )
+    { if ( !atrie->data.IDG )
+      { idg_node *n;
+
+	assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
+	atrie->data.worklist = WL_DYNAMIC;
+	n = idg_new(atrie);
+	if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+	  idg_destroy(n);
+      }
+
+      if ( idg_add_edge(atrie, ctrie PASS_LD) == TRUE )
+      { if ( ctrie->data.IDG->reevaluating ) /* TBD: is this the right place? */
+	  atrie->data.IDG->falsecount = 0;
+	return TRUE;
+      }
     }
+
+    return FALSE;
+  } else
+  { return TRUE;		/* no current node, so nobody cares */
   }
-
-  return FALSE;
 }
+
 
 static
 PRED_IMPL("$idg_set_current_wl", 1, idg_set_current_wl, 0)
