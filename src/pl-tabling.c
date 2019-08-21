@@ -2116,6 +2116,7 @@ by pushVolatileAtom() and will  be  unified   before  anything  else  in
 #define AT_MODED		0x0002	/* moded tabling: trie has values */
 #define AT_SHARED		0x0004	/* find a shared table */
 #define AT_PRIVATE		0x0008	/* find a private table */
+#define AT_NOCLAIM		0x0010	/* Do not claim ownership */
 #define AT_SCOPE_MASK (AT_SHARED|AT_PRIVATE)
 
 static trie *
@@ -2194,7 +2195,7 @@ retry:
     }
 
 #ifdef O_PLMT
-    if ( true(atrie, TRIE_ISSHARED) )
+    if ( true(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
     { int mytid = PL_thread_self();
 
       if ( atrie->tid != mytid )
@@ -2746,9 +2747,8 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
     wrapper = PL_new_term_ref();
 
   if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
-  { get_answer_table(NULL, wrapper, skeleton, NULL, 0 PASS_LD);
-
-    return TRUE;
+  { return ( get_answer_table(NULL, wrapper, skeleton,
+			      NULL, AT_NOCLAIM PASS_LD) != NULL);
   }
 
   return FALSE;
