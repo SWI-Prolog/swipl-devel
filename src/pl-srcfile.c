@@ -37,6 +37,7 @@
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-event.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
@@ -1269,6 +1270,21 @@ delete_old_predicate(SourceFile sf, Procedure proc)
 { Definition def = proc->definition;
   size_t deleted;
 
+  if ( def->functor->functor == FUNCTOR_dtabled2 )
+  { GET_LD
+    ClauseRef c;
+
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+
+      if ( false(cl, CL_ERASED) &&
+	   GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) )
+	untable_from_clause(cl);
+    }
+    release_def(def);
+  }
+
   deleted = removeClausesPredicate(
 		def,
 		true(def, P_MULTIFILE) ? sf->index : 0,
@@ -1327,6 +1343,9 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
       continue;
     if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
       continue;
+
+    if ( def->functor->functor == FUNCTOR_dtabled2 )
+      untable_from_clause(c);
 
     c->generation.erased = rl->reload_gen;
     set(r, P_MODIFIED);

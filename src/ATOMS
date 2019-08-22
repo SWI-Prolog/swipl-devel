@@ -735,6 +735,7 @@ A tanh			"tanh"
 A temporary		"temporary"
 A temporary_file	"temporary_file"
 A temporary_files	"temporary_files"
+A dtabled		"$tabled"
 A targp			"$targp"
 A term			"term"
 A term_expansion	"term_expansion"
@@ -946,6 +947,7 @@ F dquasi_quotation	3
 F drecover_and_rethrow	2
 F dshift		1
 F dstream		1
+F dtabled		2
 F dthread_init		0
 F dthrow		1
 F dtime			2

@@ -5469,6 +5469,25 @@ wait_for_table_to_complete(trie *atrie)
 #endif /*O_PLMT*/
 
 
+		 /*******************************
+		 *	     UNTABLE		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This predicate is called for clauses   from  M:'$tabled'(Head, Mode) are
+deleted during reconsult. It is called from the fixup phase of reloading
+a file (see pl-srcfile.c) and we may not use any error condition.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+untable_from_clause(Clause cl)
+{
+}
+
+		 /*******************************
+		 *	       INIT		*
+		 *******************************/
+
 void
 initTabling(void)
 {
