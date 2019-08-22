@@ -1394,6 +1394,7 @@ endReconsult(SourceFile sf)
   if ( (reload=sf->reload) )
   { size_t accessed_preds = reload->procedures->size;
 
+    delayEvents();
     delete_old_predicates(sf);
 
     for_table(reload->procedures, n, v,
@@ -1427,6 +1428,8 @@ endReconsult(SourceFile sf)
     LD->gen_reload = GEN_INVALID;
 
     pl_garbage_collect_clauses();
+    if ( sendDelayedEvents(TRUE) < 0 )
+      return FALSE;
   }
 
   return TRUE;
