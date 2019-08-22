@@ -1339,6 +1339,34 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
 }
 
 
+static size_t
+end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
+{ size_t dropped_access = 0;
+
+  DEBUG(MSG_RECONSULT_CLAUSE,
+	Sdprintf("Fixup %s\n", predicateName(proc->definition)));
+
+  if ( false(r, P_NEW|P_NO_CLAUSES) )
+  { Definition def = proc->definition;
+
+    delete_pending_clauses(sf, def, r PASS_LD);
+    fix_attributes(sf, def, r PASS_LD);
+    reconsultFinalizePredicate(sf->reload, def, r PASS_LD);
+  } else
+  { dropped_access++;
+    if ( true(r, P_NO_CLAUSES) )
+    { Definition def = proc->definition;
+      fix_attributes(sf, def, r PASS_LD);
+    }
+  }
+  if ( r->args )
+    freeHeap(r->args, 0);
+  freeHeap(r, sizeof(*r));
+
+  return dropped_access;
+}
+
+
 static int
 endReconsult(SourceFile sf)
 { GET_LD
@@ -1353,22 +1381,7 @@ endReconsult(SourceFile sf)
 	      { Procedure proc = n;
 		p_reload *r = v;
 
-		if ( false(r, P_NEW|P_NO_CLAUSES) )
-		{ Definition def = proc->definition;
-
-		  delete_pending_clauses(sf, def, r PASS_LD);
-		  fix_attributes(sf, def, r PASS_LD);
-		  reconsultFinalizePredicate(reload, def, r PASS_LD);
-		} else
-		{ accessed_preds--;
-		  if ( true(r, P_NO_CLAUSES) )
-		  { Definition def = proc->definition;
-		    fix_attributes(sf, def, r PASS_LD);
-		  }
-		}
-		if ( r->args )
-		  freeHeap(r->args, 0);
-		freeHeap(r, sizeof(*r));
+		accessed_preds -= end_reconsult_proc(sf, proc, r PASS_LD);
 	      });
 
     popNPredicateAccess(accessed_preds);
