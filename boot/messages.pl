@@ -585,6 +585,8 @@ prolog_message(unknown_in_module_user) -->
     ].
 prolog_message(deprecated(What)) -->
     deprecated(What).
+prolog_message(untable(PI)) -->
+    [ 'Reconsult: removed tabling for ~p'-[PI] ].
 
 
                  /*******************************
