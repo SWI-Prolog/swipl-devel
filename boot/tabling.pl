@@ -228,7 +228,7 @@ untable(Name//Arity, M) :-
 untable(Name/Arity, M) :-
     !,
     functor(Head, Name, Arity),
-    (   predicate_property(M:Head, tabled(_))
+    (   '$get_predicate_attribute'(M:Head, tabled, 1)
     ->  abolish_table_subgoals(M:Head),
         dynamic(M:'$tabled'/2),
         dynamic(M:'$table_mode'/3),
