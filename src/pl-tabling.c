@@ -37,6 +37,7 @@
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
 #include "pl-wrap.h"
+#include "pl-event.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -5481,7 +5482,17 @@ a file (see pl-srcfile.c) and we may not use any error condition.
 
 void
 untable_from_clause(Clause cl)
-{
+{ if ( cl->codes[0] == encode(H_FUNCTOR) )
+  { GET_LD
+    functor_t f = (functor_t)cl->codes[1];
+    Module m = cl->predicate->module;
+    Procedure proc = isCurrentProcedure(f, m);
+
+    if ( proc && !callEventHook(PLEV_UNTABLE, proc) )
+      fatalError("Failed to register untable event\n");
+  } else
+  { Sdprintf("WARNING: untable_from_clause(): unexpected clause\n");
+  }
 }
 
 		 /*******************************

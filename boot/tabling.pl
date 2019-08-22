@@ -246,6 +246,13 @@ untable(Head, M) :-
 untable(TableSpec, _) :-
     '$type_error'(table_desclaration, TableSpec).
 
+untable_reconsult(PI) :-
+    print_message(informational, untable(PI)),
+    untable(PI).
+
+:- initialization
+   prolog_listen(untable, untable_reconsult).
+
 
 %!  start_tabling(:Wrapper, :Implementation)
 %

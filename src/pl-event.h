@@ -46,6 +46,8 @@ typedef enum pl_event_type
   PLEV_NOBREAK,				/* a break-point was cleared */
   PLEV_GCNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
+  PLEV_UNTABLE,				/* Stop tabling some predicate */
+					/* Keep these two at the end */
   PLEV_THREAD_EXIT,			/* A thread has finished */
   PLEV_THIS_THREAD_EXIT			/* This thread has finished */
 } pl_event_type;
@@ -70,7 +72,7 @@ typedef struct event_list
 #endif
 } event_list;
 
-typedef struct even_type
+typedef struct event_type
 { pl_event_type id;
   atom_t	name;
   int		argc;
@@ -95,7 +97,7 @@ COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
 COMMON(const event_type) PL_events[PLEV_THIS_THREAD_EXIT+2];
 
 static inline event_list**
-even_list_location(pl_event_type ev)
+event_list_location(pl_event_type ev)
 { if ( likely(!PL_events[ev].local) )
   { return PL_events[ev].location;
   } else
@@ -107,7 +109,7 @@ even_list_location(pl_event_type ev)
 
 static inline int WUNUSED
 callEventHook(pl_event_type ev, ...)
-{ event_list **listp = even_list_location(ev);
+{ event_list **listp = event_list_location(ev);
 
   if ( *listp )
   { va_list args;

@@ -278,6 +278,7 @@ struct PL_global_data
 #ifdef O_PLMT
       struct event_list *onthreadexit;	/* thread exit hook */
 #endif
+      struct event_list *onuntable;	/* Untable after reload */
     } hook;
   } event;
 

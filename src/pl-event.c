@@ -68,6 +68,7 @@ const event_type PL_events[] =
   GEVENT(PLEV_NOBREAK,          ATOM_break,            3, onbreak),
   GEVENT(PLEV_GCNOBREAK,        ATOM_break,            3, onbreak),
   GEVENT(PLEV_FRAMEFINISHED,    ATOM_frame_finished,   1, onframefinish),
+  GEVENT(PLEV_UNTABLE,		ATOM_untable,          1, onuntable),
 #ifdef O_PLMT
   GEVENT(PLEV_THREAD_EXIT,      ATOM_thread_exit,      1, onthreadexit),
   LEVENT(PLEV_THIS_THREAD_EXIT, ATOM_this_thread_exit, 0, onthreadexit),
@@ -167,7 +168,7 @@ get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
     { for(et=PL_events; et->name; et++)
       { if ( et->name == name )
 	{ assert(et->id == et-PL_events);
-	  *listpp = even_list_location(et->id);
+	  *listpp = event_list_location(et->id);
 	  *argc   = et->argc;
 
 	  return TRUE;
@@ -393,6 +394,9 @@ typedef struct delayed_event
     struct
     { Clause clause;
     } clause;
+    struct
+    { Procedure proc;
+    } proc;
   } value;
 } delayed_event;
 
@@ -416,6 +420,9 @@ delayEvent(pl_event_type ev, va_list args)
 	break;
       case PLEV_ERASED_CLAUSE:
 	dev.value.clause.clause = va_arg(args, Clause);
+        break;
+      case PLEV_UNTABLE:
+	dev.value.proc.proc = va_arg(args, Procedure);
         break;
       default:
 	assert(0);
@@ -477,6 +484,10 @@ sendDelayedEvents(int noerror)
 	    noerror = callEventHook(dev->type, dev->value.clause.clause);
 	    sent++;
 	    break;
+	  case PLEV_UNTABLE:
+	    noerror = callEventHook(dev->type, dev->value.proc.proc);
+	    sent++;
+	    break;
 	  default:
 	    assert(0);
 	}
@@ -493,7 +504,7 @@ sendDelayedEvents(int noerror)
 
 int
 PL_call_event_hook(pl_event_type ev, ...)
-{ event_list **listp = even_list_location(ev);
+{ event_list **listp = event_list_location(ev);
 
   if ( *listp && GD->cleaning != CLN_DATA )
   { va_list args;
@@ -519,7 +530,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
 { GET_LD
   wakeup_state wstate;
   int rc = TRUE;
-  event_list *list = *even_list_location(ev);
+  event_list *list = *event_list_location(ev);
   term_t av;
   const event_type *event_decl = &PL_events[ev];
 
@@ -579,6 +590,12 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     case PLEV_THIS_THREAD_EXIT:
       break;
 #endif
+    case PLEV_UNTABLE:
+    { Procedure proc = va_arg(args, Procedure);
+      rc = unify_definition(NULL, av+1, proc->definition,
+			    0, GP_QUALIFY|GP_NAMEARITY);
+      break;
+    }
     default:
       rc = warning("callEventHook(): unknown event: %d", ev);
       goto out;
