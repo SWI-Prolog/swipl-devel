@@ -3109,7 +3109,7 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
   }
   def = proc->definition;
 
-  if ( ReadingSource )
+  if ( ReadingSource && MODULE_parse == def->module )
   { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
     return setAttrProcedureSource(sf, proc, att, val PASS_LD);
   } else
