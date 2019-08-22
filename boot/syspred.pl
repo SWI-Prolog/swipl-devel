@@ -1467,7 +1467,7 @@ set_prolog_gc_thread(Status) :-
 '$wrap_predicate'(M:Head, WName, Closure, call(Wrapped), Body) :-
     callable_name_arguments(Head, PName, Args),
     distinct_vars(Args, Head, Arity),
-    atomic_list_concat(['__wrap$', PName], WrapName),
+    atomic_list_concat(['$wrap$', PName], WrapName),
     volatile(M:WrapName/Arity),
     WHead =.. [WrapName|Args],
     '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).

@@ -2822,7 +2822,7 @@ S_CALLWRAPPER: Trust the wrapper clause.  The implementation is the same
 as S_TRUSTME, but we use a different instruction to find the wrapper and
 add additional information.  Arguments:
 
-  - 0: The clause to call (in a wrapper predicate __wrap$P)
+  - 0: The clause to call (in a wrapper predicate $wrap$P)
   - 1: The closure blob
   - 2: Name of the wrapper (an atom)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */

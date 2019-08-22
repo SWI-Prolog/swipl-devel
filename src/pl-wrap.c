@@ -43,7 +43,7 @@ Wrap and unwrap predicates. Wrapping  is   realised  by manipulating the
 predicate _supervisor_:
 
   - The wrapped predicate P gets a new supervisor that calls a
-    dedicated clause in '__wrap$P'.
+    dedicated clause in '$wrap$P'.
   - This clause may use call(Closure, Arg ...), where Closure is
     a blob that contains a predicate (struct definition) that is
     a copy of P which contains

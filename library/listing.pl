@@ -289,6 +289,27 @@ decl(volatile,     volatile).
 decl(multifile,    multifile).
 decl(public,       public).
 
+%!  declaration(:Head, +Module, -Decl) is nondet.
+%
+%   True when the directive Decl (without  :-/1)   needs  to  be used to
+%   restore the state of the predicate Head.
+%
+%   @tbd Answer subsumption, dynamic/2 to   deal  with `incremental` and
+%   abstract(Depth)
+
+declaration(Pred, Source, Decl) :-
+    predicate_property(Pred, tabled(_How)),
+    Pred = M:Head,
+    (   M:'$table_mode'(Head, Head, _)
+    ->  decl_term(Pred, Source, Funct),
+        Decl0 = table(Funct)
+    ;   comment('% tabled using answer subsumption', []),
+        fail                                    % TBD
+    ),
+    (   predicate_property(Pred, incremental)
+    ->  Decl = as(Decl0, incremental)
+    ;   Decl = Decl0
+    ).
 declaration(Pred, Source, Decl) :-
     decl(Prop, Declname),
     predicate_property(Pred, Prop),
