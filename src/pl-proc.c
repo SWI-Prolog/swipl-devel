@@ -3082,9 +3082,13 @@ get_bool_or_int_ex(term_t t, int *val ARG_LD)
 }
 
 
-word
-pl_set_predicate_attribute(term_t pred, term_t what, term_t value)
-{ GET_LD
+static
+PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t pred  = A1;
+  term_t what  = A2;
+  term_t value = A3;
   Procedure proc;
   Definition def;
   atom_t key;
@@ -3114,12 +3118,12 @@ pl_set_predicate_attribute(term_t pred, term_t what, term_t value)
 }
 
 
-word
-pl_default_predicate(term_t d1, term_t d2)
+static
+PRED_IMPL("$default_predicate", 2, default_predicate, PL_FA_TRANSPARENT)
 { Procedure p1, p2;
 
-  if ( get_procedure(d1, &p1, 0, GP_FIND) &&
-       get_procedure(d2, &p2, 0, GP_FIND) )
+  if ( get_procedure(A1, &p1, 0, GP_FIND) &&
+       get_procedure(A2, &p2, 0, GP_FIND) )
   { if ( p1->definition == p2->definition || !isDefinedProcedure(p1) )
       succeed;
   }
@@ -3476,6 +3480,9 @@ pl_list_generations(term_t desc)
 		 *******************************/
 
 BeginPredDefs(proc)
+  PRED_DEF("$set_predicate_attribute", 3, set_predicate_attribute,
+	   PL_FA_TRANSPARENT)
+  PRED_DEF("$default_predicate", 2, default_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$get_clause_attribute", 3, get_clause_attribute, 0)
   PRED_DEF("retract", 1, retract,

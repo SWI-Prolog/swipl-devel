@@ -526,11 +526,9 @@ COMMON(word)		pl_retractall(term_t head);
 COMMON(word)		pl_abolish(term_t atom, term_t arity);
 COMMON(word)		pl_abolish1(term_t pred);
 COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
-COMMON(word)		pl_set_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(word)		pl_index(term_t pred);
-COMMON(word)		pl_default_predicate(term_t d1, term_t d2);
 COMMON(Definition)	autoImport(functor_t f, Module m);
 COMMON(word)		pl_require(term_t pred);
 COMMON(word)		pl_check_definition(term_t spec);

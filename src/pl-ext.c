@@ -124,10 +124,8 @@ static const PL_extension foreigns[] = {
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
-  FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
   FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$require",		1, pl_require,		     META),
-  FRG("$default_predicate",	2, pl_default_predicate,     META),
 
   FRG("repeat",			0, pl_repeat,		 NDET|ISO),
   FRG("fail",			0, pl_fail,		      ISO),
