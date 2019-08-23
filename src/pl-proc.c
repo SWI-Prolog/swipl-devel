@@ -1038,6 +1038,25 @@ then ->next because ->next might be used by some other thread traversing
 the clause chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+void
+acquire_clause(Clause cl)
+{ ATOMIC_INC(&cl->references);
+}
+
+void
+release_clause(Clause cl)
+{ if ( ATOMIC_DEC(&cl->references) == 0 )
+  { size_t size = sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
+
+    ATOMIC_SUB(&GD->clauses.erased_size, size);
+    ATOMIC_DEC(&GD->clauses.erased);
+
+    reclaimRetracted(cl);
+    freeClause(cl);
+  }
+}
+
+
 ClauseRef
 newClauseRef(Clause clause, word key)
 { ClauseRef cref = allocHeapOrHalt(SIZEOF_CREF_CLAUSE);
@@ -1050,7 +1069,7 @@ newClauseRef(Clause clause, word key)
   cref->next         = NULL;
   cref->d.key        = key;
   cref->value.clause = clause;
-  ATOMIC_INC(&clause->references);
+  acquire_clause(clause);
 
   return cref;
 }
@@ -1064,15 +1083,7 @@ freeClauseRef(ClauseRef cref)
 	Sdprintf("/**/ d(%p, %p, %d).\n",
 		 cref, cl, (int)cl->references));
 
-  if ( ATOMIC_DEC(&cl->references) == 0 )
-  { size_t size = sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
-
-    ATOMIC_SUB(&GD->clauses.erased_size, size);
-    ATOMIC_DEC(&GD->clauses.erased);
-
-    reclaimRetracted(cl);
-    freeClause(cl);
-  }
+  release_clause(cl);
 
   freeHeap(cref, SIZEOF_CREF_CLAUSE);
 }

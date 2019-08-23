@@ -514,6 +514,8 @@ COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
 COMMON(void)		unallocClause(Clause c);
 COMMON(void)		freeClause(Clause c);
 COMMON(void)		lingerClauseRef(ClauseRef c);
+COMMON(void)		acquire_clause(Clause cl);
+COMMON(void)		release_clause(Clause cl);
 COMMON(ClauseRef)	newClauseRef(Clause cl, word key);
 COMMON(size_t)		removeClausesPredicate(Definition def,
 					       int sfindex, int fromfile);

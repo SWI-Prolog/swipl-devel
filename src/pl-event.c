@@ -417,9 +417,11 @@ delayEvent(pl_event_type ev, va_list args)
       case PLEV_GCNOBREAK:
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
+	acquire_clause(dev.value.pc.clause);
 	break;
       case PLEV_ERASED_CLAUSE:
 	dev.value.clause.clause = va_arg(args, Clause);
+	acquire_clause(dev.value.pc.clause);
         break;
       case PLEV_UNTABLE:
 	dev.value.proc.proc = va_arg(args, Procedure);
@@ -479,10 +481,12 @@ sendDelayedEvents(int noerror)
 	    noerror = callEventHook(dev->type,
 				    dev->value.pc.clause, dev->value.pc.offset);
 	    sent++;
+	    release_clause(dev->value.pc.clause);
 	    break;
 	  case PLEV_ERASED_CLAUSE:
 	    noerror = callEventHook(dev->type, dev->value.clause.clause);
 	    sent++;
+	    release_clause(dev->value.pc.clause);
 	    break;
 	  case PLEV_UNTABLE:
 	    noerror = callEventHook(dev->type, dev->value.proc.proc);

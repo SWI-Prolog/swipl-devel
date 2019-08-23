@@ -52,7 +52,7 @@ write_clause_ref(IOSTREAM *s, atom_t aref, int flags)
 
 
 static void
-acquire_clause(atom_t aref)
+acquire_clause_blob(atom_t aref)
 { ClauseRef ref = PL_blob_data(aref, NULL, NULL);
 
   set(ref->value.clause, DBREF_CLAUSE);
@@ -60,7 +60,7 @@ acquire_clause(atom_t aref)
 
 
 static int
-release_clause(atom_t aref)
+release_clause_blob(atom_t aref)
 { ClauseRef ref = PL_blob_data(aref, NULL, NULL);
 
   clear(ref->value.clause, DBREF_CLAUSE);
@@ -93,10 +93,10 @@ static PL_blob_t clause_blob =
 { PL_BLOB_MAGIC,
   PL_BLOB_UNIQUE,
   "clause",
-  release_clause,
+  release_clause_blob,
   NULL,
   write_clause_ref,
-  acquire_clause,
+  acquire_clause_blob,
   save_clause_ref,
   load_clause_ref
 };
