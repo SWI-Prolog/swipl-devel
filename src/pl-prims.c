@@ -2994,6 +2994,8 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 	o++;
       }
     }
+    if ( o < i )
+      PL_reset_term_refs(v0+o);
 
     count = o;
   }
@@ -3014,7 +3016,8 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
   term_t v0;
   size_t i, maxcount, count;
 
-  if ( !(!tail && PL_skip_list(vars, 0, &maxcount) == PL_LIST) )
+  if ( !(!tail && PL_skip_list(vars, 0, &maxcount) == PL_LIST) ||
+       (flags&TV_SINGLETON) )
     maxcount = ~0;
 
   for(;;)
