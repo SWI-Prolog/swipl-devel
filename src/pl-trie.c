@@ -74,12 +74,6 @@ TODO
 
 #define NVARS_FAST 100
 
-#ifdef O_TRIE_STATS
-#define TRIE_STAT_INC(t, v) ATOMIC_INC(&t->stats.v)
-#else
-#define TRIE_STAT_INC(t, v) ((void)0)
-#endif
-
 /* Will eventually be shared in pl-wam.c */
 typedef enum
 { uread = 0,				/* Unification in read-mode */

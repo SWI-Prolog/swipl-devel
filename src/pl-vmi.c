@@ -5081,6 +5081,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
     if ( !(t = symbol_trie(dbref)) )
       goto trie_gen_type_error;
 
+    TRIE_STAT_INC(t, gen_call);
     if ( !(dbref=t->clause) )
     { if ( t->value_count == 0 )
 	FRAME_FAILED;

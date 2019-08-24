@@ -3580,7 +3580,8 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
       return FALSE;
 
     if ( clref )
-    { return ( _PL_unify_atomic(Trie, clref) &&
+    { TRIE_STAT_INC(atrie, gen_call);
+      return ( _PL_unify_atomic(Trie, clref) &&
 	       _PL_unify_atomic(status, ATOM_complete) );
     } else
     { return ( _PL_unify_atomic(Trie, atrie->symbol) &&
@@ -3748,6 +3749,7 @@ unify_leader_clause(tbl_component *scc, term_t cl ARG_LD)
 			     : GD->procedures.trie_gen_compiled2);
   atom_t clref = compile_trie(proc->definition, atrie PASS_LD);
 
+  TRIE_STAT_INC(atrie, gen_call);
   return _PL_unify_atomic(cl, clref);
 }
 

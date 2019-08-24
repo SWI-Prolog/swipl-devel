@@ -141,6 +141,12 @@ typedef struct trie
 #define TRIE_ARGS	3
 #define TRIE_VAR_OFFSET (TRIE_ARGS+3)
 
+#ifdef O_TRIE_STATS
+#define TRIE_STAT_INC(t, v) ATOMIC_INC(&t->stats.v)
+#else
+#define TRIE_STAT_INC(t, v) ((void)0)
+#endif
+
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(void);
 COMMON(void)	trie_destroy(trie *trie);
