@@ -1979,6 +1979,16 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 	// assert(stats.nodes  == trie->node_count);
 	// assert(stats.values == trie->value_count);
 	return PL_unify_int64(arg, stats.bytes);
+      } else if ( name == ATOM_compiled_size )
+      { atom_t dbref;
+	if ( (dbref = trie->clause) )
+	{ ClauseRef cref = clause_clref(dbref);
+	  if ( cref )
+	  { size_t sz = sizeofClause(cref->value.clause->code_size);
+	    return PL_unify_int64(arg, sz);
+	  }
+	}
+	return FALSE;
       } else if ( name == ATOM_hashed )
       { trie_stats stats;
 	stat_trie(trie, &stats);

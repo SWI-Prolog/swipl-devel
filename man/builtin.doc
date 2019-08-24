@@ -3424,6 +3424,9 @@ properties visit all nodes of the trie. Defined properties are
     Number of nodes in the trie.
 	\termitem{size}{-Bytes}
     Required storage space of the trie.
+	\termitem{compiled_size}{-Bytes}
+    Required storage space for the compiled representation as used
+    by trie_gen_compiled/2,3.
 	\termitem{hashed}{-Count}
     Number of nodes that use a hashed index to its children.
     \end{description}

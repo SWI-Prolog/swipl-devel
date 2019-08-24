@@ -1146,6 +1146,8 @@ current_trie(Trie) :-
 %     Number of bytes needed to store the trie.
 %     - hashed(Count)
 %     Number of hashed nodes.
+%     - compiled_size(Bytes)
+%     Size of the compiled representation (if the trie is compiled)
 
 trie_property(Trie, Property) :-
     current_trie(Trie),
@@ -1156,6 +1158,7 @@ trie_property(node_count(_)).
 trie_property(value_count(_)).
 trie_property(size(_)).
 trie_property(hashed(_)).
+trie_property(compiled_size(_)).
                                                 % below only when -DO_TRIE_STATS
 trie_property(lookup_count(_)).                 % is enabled in pl-trie.h
 trie_property(gen_call_count(_)).
