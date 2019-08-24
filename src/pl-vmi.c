@@ -2825,6 +2825,11 @@ add additional information.  Arguments:
   - 0: The clause to call (in a wrapper predicate $wrap$P)
   - 1: The closure blob
   - 2: Name of the wrapper (an atom)
+
+Note that we actually execute the  wrapper   predicate  and  we must set
+`DEF` and `FR->predicate` to the wrapper predicate to make sure GC works
+properly.  If  not,  wrapping   a    foreign   predicate   will  confuse
+setStartOfVMI().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
@@ -2832,6 +2837,7 @@ VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
 
   PC += 3;
   ARGP = argFrameP(FR, 0);
+  FR->predicate = DEF = cref->value.clause->predicate;
   TRUST_CLAUSE(cref);
 }
 
