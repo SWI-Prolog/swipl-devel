@@ -1512,17 +1512,9 @@ eval_dl_in_residual(G) :-
 
 more_general_table(G, Trie) :-
     term_variables(G, Vars),
-    length(Vars, Len),
     '$tbl_variant_table'(VariantTrie),
     trie_gen(VariantTrie, G, Trie),
-    all_vars(Vars),
-    sort(Vars, V2),
-    length(V2, Len).
-
-all_vars([]).
-all_vars([H|T]) :-
-    var(H),
-    all_vars(T).
+    is_most_general_term(Vars).
 
 :- table eval_subgoal_in_residual/2.
 
