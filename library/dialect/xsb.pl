@@ -55,8 +55,6 @@
             sk_not/1,				% :Goal
             gc_tables/1,                        % -Remaining
 
-            is_most_general_term/1,		% @Term
-
             cputime/1,				% -Seconds
             walltime/1,				% -Seconds
 
@@ -562,47 +560,6 @@ remaining_table(Trie) :-
     current_blob(Trie, trie),
     '$is_answer_trie'(Trie),
     '$atom_references'(Trie, 0).
-
-
-%!  is_most_general_term(@X) is semidet.
-%
-%   Succeeds if X is  compound  term   with  all  distinct  variables as
-%   arguments, or if X is  an  atom.  If   X  is  a  list this predicate
-%   succeeds if all members of the list are distinct variables.
-%
-%      ```
-%      ?- is_most_general_term(f(_,_,_,_)).
-%      true.
-%      ?- is_most_general_term(abc).
-%      true.
-%      ?- is_most_general_term(f(X,Y,Z,X)).
-%      false.
-%      ?- is_most_general_term(f(X,Y,Z,a)).
-%      false.
-%      ?- is_most_general_term([_|_]).
-%      false.
-%      ?- is_most_general_term([_,_]).
-%      true.
-%      ```
-
-is_most_general_term(List) :-
-    is_list(List),
-    !,
-    maplist(var, List),
-    length(List, Len),
-    sort(List, L2),
-    length(L2, Len).
-is_most_general_term(Term) :-
-    compound(Term),
-    !,
-    compound_name_arity(Term, _, Arity),
-    compound_name_arguments(Term, _, List),
-    maplist(var, List),
-    sort(List, L2),
-    length(L2, Arity).
-is_most_general_term(Term) :-
-    atom(Term).
-
 
 %!  cputime(-Seconds) is det.
 %

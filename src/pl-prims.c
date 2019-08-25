@@ -3086,6 +3086,91 @@ PRED_IMPL("term_attvars", 2, term_attvars, 0)
 }
 
 
+static int
+is_most_general_term(Word p ARG_LD)
+{ deRef(p);
+
+  if ( isAtom(*p) )
+    return TRUE;
+
+  if ( isTerm(*p) )
+  { Functor t = valueTerm(*p);
+
+    if ( t->definition == FUNCTOR_dot2 )
+    { Word tail;
+
+      (void)skip_list(p, &tail PASS_LD);
+
+      if ( isNil(*tail) )
+      { Word l = p;
+	int rc = TRUE;
+
+	while( isList(*l) )
+	{ Word h = HeadList(l);
+
+	  deRef(h);
+	  if ( !isVar(*h) )
+	  { rc = FALSE;
+	    break;
+	  }
+	  set_marked(h);
+	  l = TailList(l);
+	  deRef(l);
+	}
+	p = l;
+	while( isList(*l) )
+	{ Word h = HeadList(l);
+
+	  deRef(h);
+	  if ( is_marked(h) )
+	  { clear_marked(h);
+	    l = TailList(l);
+	    deRef(l);
+	  } else
+	  { break;
+	  }
+	}
+
+	return rc;
+      }
+    } else
+    { size_t arity = arityFunctor(t->definition);
+      size_t i, j;
+      int rc = TRUE;
+
+      for(i=0; i<arity; i++)
+      { Word a = &t->arguments[i];
+
+	deRef(a);
+	if ( !isVar(*a) )
+	{ rc = FALSE;
+	  break;
+	}
+	set_marked(a);
+      }
+      for(j=0; j<i; j++)
+      { Word a = &t->arguments[j];
+
+	deRef(a);
+	clear_marked(a);
+      }
+
+      return rc;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("is_most_general_term", 1, is_most_general_term, 0)
+{ PRED_LD
+
+  return is_most_general_term(valTermRef(A1) PASS_LD);
+}
+
+
 		 /*******************************
 		 *	      SUBSUMES		*
 		 *******************************/
@@ -5684,6 +5769,7 @@ BeginPredDefs(prims)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_singletons", 2, term_singletons, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
+  PRED_DEF("is_most_general_term", 1, is_most_general_term, 0)
   PRED_DEF("$free_variable_set", 3, free_variable_set, 0)
   PRED_DEF("unifiable", 3, unifiable, 0)
 #ifdef O_TERMHASH

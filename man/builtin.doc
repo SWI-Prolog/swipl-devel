@@ -5959,7 +5959,26 @@ the \const{singleton} option of numbervars/4.
 L = [].
 \end{code}
 
+    \predicate{is_most_general_term}{1}{@Term}
+True if \arg{Term} is a callable term where all arguments are
+non-sharing variables or \arg{Term} is a list whose members are
+all non-sharing variables.  This predicate is used to reason about
+call subsumption for tabling and is compatible with XSB. See
+also subsumes_term/2.  Examples:
 
+\begin{quote}
+\begin{tabular}{rlc}
+1 & \tt	is_most_general_term(1)	     & false \\
+2 & \tt	is_most_general_term(p)	     & true  \\
+3 & \tt	is_most_general_term(p(_))   & true  \\
+4 & \tt	is_most_general_term(p(_,a)) & false \\
+5 & \tt	is_most_general_term(p(X,X)) & false \\
+6 & \tt	is_most_general_term([])     & true  \\
+7 & \tt	is_most_general_term([_|_])  & false \\
+8 & \tt	is_most_general_term([_,_])  & true  \\
+9 & \tt	is_most_general_term([X,X])  & false \\
+\end{tabular}
+\end{quote}
 
     \predicate[ISO]{copy_term}{2}{+In, -Out}
 Create a version of \arg{In} with renamed (fresh) variables and unify it

@@ -364,10 +364,11 @@ succeed} \predicatesummary{import}{1}{Import a predicate from a module}
 level} \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an
 absolute path} \predicatesummary{is_assoc}{1}{Verify association list}
-\predicatesummary{is_engine}{1}{Type check for an engine handle}
-\predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
+\predicatesummary{is_engine}{1}{Type check for an engine handle}
+\predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{is_most_general_term}{1}{Type check for general term}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{is_trie}{1}{Type check for a trie handle}
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
