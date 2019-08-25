@@ -1695,6 +1695,27 @@ colourise_declaration(op(N,T,P), TB, Pos) :-
 colourise_declaration(_, TB, Pos) :-
     colour_item(type_error(export_declaration), TB, Pos).
 
+%!  is_predicate_indicator(@Term) is semidet.
+%
+%   True  if  Term  is  a    valid  predicate  (including  non-terminal)
+%   indicator.
+
+is_predicate_indicator(M:PI) :-
+    atom(M),
+    acyclic_term(PI),
+    !,
+    is_predicate_indicator(PI).
+is_predicate_indicator(Name/Arity) :-
+    atom(Name),
+    integer(Arity),
+    Arity >= 0,
+    !.
+is_predicate_indicator(Name//Arity) :-
+    atom(Name),
+    integer(Arity),
+    Arity >= 0,
+    !.
+
 pi_to_term(Name/Arity, Term) :-
     atom(Name), integer(Arity), Arity >= 0,
     !,
@@ -1782,7 +1803,7 @@ colourise_table_declarations(as(Spec, Options), TB,
     colourise_table_declarations(Spec, TB, PH),
     colourise_table_options(Options, TB, PT).
 colourise_table_declarations(PI, TB, Pos) :-
-    pi_to_term(PI, _),
+    is_predicate_indicator(PI),
     !,
     colourise_declaration(PI, TB, Pos).
 colourise_table_declarations(Goal, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
