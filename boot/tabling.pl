@@ -1275,9 +1275,9 @@ try_reeval(ATrie) :-
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie),
     (   is_invalid(ATrie)
-    ->  tdebug(reeval, 'Final ~p', [ATrie]),
+    ->  tdebug(reeval, 'Final re-evaluation: ~p', [ATrie]),
         reeval_node(ATrie)
-    ;   true
+    ;   tdebug(reeval, 'Valid: ~p', [ATrie])
     ).
 
 split_paths([], [], []).
