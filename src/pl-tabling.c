@@ -2085,7 +2085,10 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
       *p++ = makeRefG(ap);
     }
 
-    return _PL_unify_atomic(ret, w);
+    if ( PL_is_variable(ret) )
+      return _PL_unify_atomic(ret, w);
+    else
+      return unify_ptrs(valTermRef(ret), &w, ALLOW_RETCODE PASS_LD);
   }
 
   return GLOBAL_OVERFLOW;
