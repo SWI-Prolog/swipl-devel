@@ -4471,9 +4471,7 @@ idg_clean_affected(idg_node *node)
 { Table table;
 
   if ( (table=node->affected) )
-  { node->affected = NULL;
-    destroyHTable(table);
-  }
+    clearHTable(table);
 }
 
 static void
@@ -4481,9 +4479,7 @@ idg_clean_dependent(idg_node *node)
 { Table table;
 
   if ( (table=node->dependent) )
-  { node->dependent = NULL;
-    destroyHTable(table);
-  }
+    clearHTable(table);
 }
 
 
@@ -4499,8 +4495,16 @@ idg_reset(idg_node *node)
 
 static void
 idg_destroy(idg_node *node)
-{ idg_clean_affected(node);
-  idg_clean_dependent(node);
+{ Table table;
+
+  if ( (table=node->affected) )
+  { node->affected = NULL;
+    destroyHTable(table);
+  }
+  if ( (table=node->dependent) )
+  { node->dependent = NULL;
+    destroyHTable(table);
+  }
 
   PL_free(node);
 }
