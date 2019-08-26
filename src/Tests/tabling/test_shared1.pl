@@ -35,6 +35,8 @@
 :- module(test_shared1,
           [ test_shared1/0
           ]).
+:- if(current_prolog_flag(threads, true)).
+
 :- use_module(library(statistics)).
 :- use_module(library(debug)).
 :- use_module(library(random)).
@@ -178,3 +180,9 @@ concur(Concurrent, TimeSpec) :-
     call(Concurrent),
     debug(bg, 'Done ~p', [Concurrent]),
     fail.
+
+:- else.
+
+test_shared1.
+
+:- endif.
