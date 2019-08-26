@@ -1025,9 +1025,9 @@ colourise_goal(Goal, Origin, TB, Pos) :-
     strip_module(Goal, _, PGoal),
     nonvar(PGoal),
     (   goal_classification(TB, Goal, Origin, ClassInferred),
-        goal_colours(Goal, ClassInferred, ClassSpec-ArgSpecs)
+        call_goal_colours(Goal, ClassInferred, ClassSpec-ArgSpecs)
     ->  true
-    ;   goal_colours(Goal, ClassSpec-ArgSpecs)
+    ;   call_goal_colours(Goal, ClassSpec-ArgSpecs)
     ),
     !,                                          % specified
     functor_position(Pos, FPos, ArgPos),
@@ -2209,56 +2209,69 @@ goal_name_arity(Goal, Name, Arity) :-
     ).
 
 
+call_goal_colours(Term, Colours) :-
+    goal_colours(Term, Colours),
+    !.
+call_goal_colours(Term, Colours) :-
+    def_goal_colours(Term, Colours).
+
+call_goal_colours(Term, Class, Colours) :-
+    goal_colours(Term, Class, Colours),
+    !.
+%call_goal_colours(Term, Class, Colours) :-
+%    def_goal_colours(Term, Class, Colours).
+
+
 %       Specify colours for individual goals.
 
-goal_colours(module(_,_),            built_in-[identifier,exports]).
-goal_colours(module(_,_,_),          built_in-[identifier,exports,langoptions]).
-goal_colours(use_module(_),          built_in-[imported_file]).
-goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
-goal_colours(reexport(_),            built_in-[file]).
-goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
-goal_colours(dynamic(_),             built_in-[predicates]).
-goal_colours(thread_local(_),        built_in-[predicates]).
-goal_colours(module_transparent(_),  built_in-[predicates]).
-goal_colours(discontiguous(_),       built_in-[predicates]).
-goal_colours(multifile(_),           built_in-[predicates]).
-goal_colours(volatile(_),            built_in-[predicates]).
-goal_colours(public(_),              built_in-[predicates]).
-goal_colours(table(_),               built_in-[table_declarations]).
-goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
-goal_colours(consult(_),             built_in-[file]).
-goal_colours(include(_),             built_in-[file]).
-goal_colours(ensure_loaded(_),       built_in-[file]).
-goal_colours(load_files(_),          built_in-[file]).
-goal_colours(load_files(_,_),        built_in-[file,options]).
-goal_colours(setof(_,_,_),           built_in-[classify,setof,classify]).
-goal_colours(bagof(_,_,_),           built_in-[classify,setof,classify]).
-goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
+def_goal_colours(module(_,_),            built_in-[identifier,exports]).
+def_goal_colours(module(_,_,_),          built_in-[identifier,exports,langoptions]).
+def_goal_colours(use_module(_),          built_in-[imported_file]).
+def_goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
+def_goal_colours(reexport(_),            built_in-[file]).
+def_goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
+def_goal_colours(dynamic(_),             built_in-[predicates]).
+def_goal_colours(thread_local(_),        built_in-[predicates]).
+def_goal_colours(module_transparent(_),  built_in-[predicates]).
+def_goal_colours(discontiguous(_),       built_in-[predicates]).
+def_goal_colours(multifile(_),           built_in-[predicates]).
+def_goal_colours(volatile(_),            built_in-[predicates]).
+def_goal_colours(public(_),              built_in-[predicates]).
+def_goal_colours(table(_),               built_in-[table_declarations]).
+def_goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
+def_goal_colours(consult(_),             built_in-[file]).
+def_goal_colours(include(_),             built_in-[file]).
+def_goal_colours(ensure_loaded(_),       built_in-[file]).
+def_goal_colours(load_files(_),          built_in-[file]).
+def_goal_colours(load_files(_,_),        built_in-[file,options]).
+def_goal_colours(setof(_,_,_),           built_in-[classify,setof,classify]).
+def_goal_colours(bagof(_,_,_),           built_in-[classify,setof,classify]).
+def_goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
 % Database access
-goal_colours(assert(_),              built_in-[db]).
-goal_colours(asserta(_),             built_in-[db]).
-goal_colours(assertz(_),             built_in-[db]).
-goal_colours(assert(_,_),            built_in-[db,classify]).
-goal_colours(asserta(_,_),           built_in-[db,classify]).
-goal_colours(assertz(_,_),           built_in-[db,classify]).
-goal_colours(retract(_),             built_in-[db]).
-goal_colours(retractall(_),          built_in-[db]).
-goal_colours(clause(_,_),            built_in-[db,classify]).
-goal_colours(clause(_,_,_),          built_in-[db,classify,classify]).
+def_goal_colours(assert(_),              built_in-[db]).
+def_goal_colours(asserta(_),             built_in-[db]).
+def_goal_colours(assertz(_),             built_in-[db]).
+def_goal_colours(assert(_,_),            built_in-[db,classify]).
+def_goal_colours(asserta(_,_),           built_in-[db,classify]).
+def_goal_colours(assertz(_,_),           built_in-[db,classify]).
+def_goal_colours(retract(_),             built_in-[db]).
+def_goal_colours(retractall(_),          built_in-[db]).
+def_goal_colours(clause(_,_),            built_in-[db,classify]).
+def_goal_colours(clause(_,_,_),          built_in-[db,classify,classify]).
 % misc
-goal_colours(set_prolog_flag(_,_),   built_in-[prolog_flag_name,classify]).
-goal_colours(current_prolog_flag(_,_), built_in-[prolog_flag_name,classify]).
+def_goal_colours(set_prolog_flag(_,_),   built_in-[prolog_flag_name,classify]).
+def_goal_colours(current_prolog_flag(_,_), built_in-[prolog_flag_name,classify]).
 % XPCE stuff
-goal_colours(pce_autoload(_,_),      classify-[classify,file]).
-goal_colours(pce_image_directory(_), classify-[directory]).
-goal_colours(new(_, _),              built_in-[classify,pce_new]).
-goal_colours(send_list(_,_,_),       built_in-pce_arg_list).
-goal_colours(send(_,_),              built_in-[pce_arg,pce_selector]).
-goal_colours(get(_,_,_),             built_in-[pce_arg,pce_selector,pce_arg]).
-goal_colours(send_super(_,_),        built_in-[pce_arg,pce_selector]).
-goal_colours(get_super(_,_),         built_in-[pce_arg,pce_selector,pce_arg]).
-goal_colours(get_chain(_,_,_),       built_in-[pce_arg,pce_selector,pce_arg]).
-goal_colours(Pce,                    built_in-pce_arg) :-
+def_goal_colours(pce_autoload(_,_),      classify-[classify,file]).
+def_goal_colours(pce_image_directory(_), classify-[directory]).
+def_goal_colours(new(_, _),              built_in-[classify,pce_new]).
+def_goal_colours(send_list(_,_,_),       built_in-pce_arg_list).
+def_goal_colours(send(_,_),              built_in-[pce_arg,pce_selector]).
+def_goal_colours(get(_,_,_),             built_in-[pce_arg,pce_selector,pce_arg]).
+def_goal_colours(send_super(_,_),        built_in-[pce_arg,pce_selector]).
+def_goal_colours(get_super(_,_),         built_in-[pce_arg,pce_selector,pce_arg]).
+def_goal_colours(get_chain(_,_,_),       built_in-[pce_arg,pce_selector,pce_arg]).
+def_goal_colours(Pce,                    built_in-pce_arg) :-
     compound(Pce),
     functor_name(Pce, Functor),
     pce_functor(Functor).
@@ -2602,7 +2615,13 @@ specified_item(dcg, Term, TB, Pos) :-
 specified_item(db, Term, TB, Pos) :-
     !,
     colourise_db(Term, TB, Pos).
+                                        % error(Error)
+specified_item(error(Error), _Term, TB, Pos) :-
+    colour_item(Error, TB, Pos).
                                         % files
+specified_item(file(Path), _Term, TB, Pos) :-
+    !,
+    colour_item(file(Path), TB, Pos).
 specified_item(file, Term, TB, Pos) :-
     !,
     colourise_files(Term, TB, Pos, any).
@@ -2625,6 +2644,10 @@ specified_item(exports, Term, TB, Pos) :-
 specified_item(imports(File), Term, TB, Pos) :-
     !,
     colourise_imports(Term, File, TB, Pos).
+                                        % Name/Arity
+specified_item(import(File), Term, TB, Pos) :-
+    !,
+    colourise_import(Term, File, TB, Pos).
                                         % Name/Arity, ...
 specified_item(predicates, Term, TB, Pos) :-
     !,
