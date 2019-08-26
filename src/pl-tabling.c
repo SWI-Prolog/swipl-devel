@@ -5145,6 +5145,38 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
 		 *  INCREMENTAL RE-EVALUATION	*
 		 *******************************/
 
+/** '$tbl_reeval_wait'(+Trie, -Status) is det.
+ *
+ * Get the status for Trie as one of `complete` or `invalid`, but wait
+ * if another thread is evaluating the table.
+ *
+ * @error `deadlock` if claiming the table would cause a deadlock.
+ */
+
+static
+PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
+{ GET_LD
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { int rc;
+
+#ifdef O_PLMT
+    if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
+      return FALSE;				/* deadlock */
+    rc = unify_table_status(A2, atrie, FALSE PASS_LD);
+    COMPLETE_WORKLIST(atrie, (void)0);
+#else
+    rc = unify_complete_or_invalid(atrie, A2 PASS_LD);
+#endif
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+
 /** '$tbl_reeval_prepare'(+Trie, -Variant) is semidet.
  *
  * Prepare Trie for re-evaluation.  Fails if the trie is (no longer)
@@ -5660,4 +5692,5 @@ BeginPredDefs(tabling)
 
   PRED_DEF("$tbl_reeval_prepare",       2, tbl_reeval_prepare,	     0)
   PRED_DEF("$tbl_reeval_abandon",       1, tbl_reeval_abandon,       0)
+  PRED_DEF("$tbl_reeval_wait",          2, tbl_reeval_wait,          0)
 EndPredDefs

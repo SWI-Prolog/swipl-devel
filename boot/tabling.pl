@@ -1253,7 +1253,8 @@ retry_reeval(ATrie) :-
     '$tbl_reeval_abandon'(ATrie),
     tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
     sleep(0.000001),
-    reeval(ATrie).
+    try_reeval(ATrie).
+%   reeval(ATrie).
 
 try_reeval(ATrie) :-
     nb_current('$tbl_reeval', true),
@@ -1274,7 +1275,7 @@ try_reeval(ATrie) :-
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie),
-    (   is_invalid(ATrie)
+    (   '$tbl_reeval_wait'(ATrie, invalid)
     ->  tdebug(reeval, 'Final re-evaluation: ~p', [ATrie]),
         reeval_node(ATrie)
     ;   tdebug(reeval, 'Valid: ~p', [ATrie])
@@ -1313,6 +1314,15 @@ reeval_heads([[H|T]|B], ATrie, [T|BT]) :-
     reeval_node(H),
     reeval_heads(B, ATrie, BT).
 
+%!  false_path(+Atrie, -Path) is nondet.
+%
+%   True when Path is a list of   invalid  tries (bottom up, ending with
+%   ATrie). The last element of the list is a term `Rank-Length` that is
+%   used for sorting the paths.
+%
+%   If we find a table along the  way   that  is being worked on by some
+%   other thread we wait for it.
+
 false_path(ATrie, BottomUp) :-
     false_path(ATrie, Path, []),
     '$reverse'(Path, BottomUp).
@@ -1320,7 +1330,7 @@ false_path(ATrie, BottomUp) :-
 false_path(ATrie, [ATrie|T], Seen) :-
     \+ memberchk(ATrie, Seen),
     '$idg_edge'(ATrie, dependent, Dep),
-    '$tbl_table_status'(Dep, Status),
+    '$tbl_reeval_wait'(Dep, Status),
     tdebug(reeval, '    ~p has dependent ~p (~w)', [ATrie, Dep, Status]),
     (   Status == invalid
     ->  false_path(Dep, T, [ATrie|Seen])
