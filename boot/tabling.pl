@@ -1271,7 +1271,12 @@ try_reeval(ATrie) :-
     tdebug(forall('$member'(Path, Complete),
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
-    reeval_paths(Complete, ATrie).
+    reeval_paths(Complete, ATrie),
+    (   is_invalid(ATrie)
+    ->  tdebug(reeval, 'Final ~p', [ATrie]),
+        reeval_node(ATrie)
+    ;   true
+    ).
 
 split_paths([], [], []).
 split_paths([[Rank-_Len|Path]|T], [Path|DT], CT) :-
