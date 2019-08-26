@@ -77,7 +77,7 @@ static void	print_delay(const char *msg,
 			    trie_node *variant, trie_node *answer);
 static void	print_answer(const char *msg, trie_node *answer);
 static int	put_delay_info(term_t t, trie_node *answer);
-static void	print_answer_table(trie *atrie, const char *msg);
+static void	print_answer_table(trie *atrie, const char *msg, ...);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
@@ -1946,17 +1946,21 @@ print_answer(const char *msg, trie_node *answer)
 }
 
 static void
-print_answer_table(trie *atrie, const char *msg)
+print_answer_table(trie *atrie, const char *msg, ...)
 { GET_LD
+  va_list args;
   term_t t = PL_new_term_ref();
 
+  va_start(args, msg);
   unify_trie_term(atrie->data.variant, t PASS_LD);
   if ( msg )
   { if ( true(atrie, TRIE_ISSHARED) )
-      Sdprintf("Thread [%d]: %s: <trie>(%p) for ", PL_thread_self(), msg, atrie);
-    else
-      Sdprintf("%s: <trie>(%p) for ", msg, atrie);
+      Sdprintf("Thread [%d]: ", PL_thread_self());
+
+    Svdprintf(msg, args);
+    Sdprintf(": <trie>(%p) for ", atrie);
   }
+  va_end(args);
   PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 }
 
@@ -5568,10 +5572,7 @@ is_deadlock(trie *atrie)
 static int
 wait_for_table_to_complete(trie *atrie)
 { DEBUG(MSG_TABLING_SHARED,
-	{ Sdprintf("Thread [%d]: waiting for %d to complete: ",
-		   PL_thread_self(), atrie->tid);
-	  print_answer_table(atrie, NULL);
-	});
+	print_answer_table(atrie, "waiting for %d to complete", atrie->tid));
 
   do
   { cv_wait(&GD->tabling.cvar, &GD->tabling.mutex);
