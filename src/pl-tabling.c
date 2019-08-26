@@ -131,7 +131,7 @@ drop_trie(trie *atrie)
 
 static inline void
 take_trie(trie *atrie, int tid)
-{
+{ assert(atrie->data.worklist != WL_DYNAMIC);
 #ifdef O_DEBUG
   int rc = COMPARE_AND_SWAP(&atrie->tid, 0, tid);
   assert(rc);
@@ -2866,7 +2866,10 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { if ( atrie->data.variant)
+  { if ( atrie->data.worklist == WL_DYNAMIC )
+      return TRUE;		/* quickly ignore dynamic pseudo tables */
+
+    if ( atrie->data.variant)
     { trie *vtrie = get_trie_from_node(atrie->data.variant);
 
       if ( is_variant_trie(vtrie) )
@@ -5168,18 +5171,22 @@ PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { int rc;
+  { if ( atrie->data.worklist == WL_DYNAMIC )
+    { return PL_unify_atom(A2, ATOM_dynamic);
+    } else
+    { int rc;
 
 #ifdef O_PLMT
-    if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
-      return FALSE;				/* deadlock */
-    rc = unify_table_status(A2, atrie, FALSE PASS_LD);
-    COMPLETE_WORKLIST(atrie, (void)0);
+      if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
+	return FALSE;				/* deadlock */
+      rc = unify_table_status(A2, atrie, FALSE PASS_LD);
+      COMPLETE_WORKLIST(atrie, (void)0);
 #else
-    rc = unify_complete_or_invalid(atrie, A2 PASS_LD);
+      rc = unify_complete_or_invalid(atrie, A2 PASS_LD);
 #endif
 
-    return rc;
+      return rc;
+    }
   }
 
   return FALSE;
