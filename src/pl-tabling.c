@@ -2980,10 +2980,11 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	}
 	return PL_permission_error("modify", "trie_key", A2);
       } else
-      { set(node, TN_IDG_ADDED);
-	set_trie_value_word(wl->table, node, ATOM_trienode);
-	if ( (idg=wl->table->data.IDG) )
+      { set_trie_value_word(wl->table, node, ATOM_trienode);
+	if ( (idg=wl->table->data.IDG) && idg->reevaluating )
+	{ set(node, TN_IDG_ADDED);
 	  idg->new_answer = TRUE;
+	}
 
       update_dl:
 	rc = update_delay_list(wl, node, A2, A3 PASS_LD);
@@ -5199,6 +5200,7 @@ reeval_prep_node(trie_node *n, void *ctx)
 
   if ( n->value )
   { set(n, TN_IDG_DELETED);
+    clear(n, TN_IDG_ADDED);
 
     if ( answer_is_conditional(n) )
     { destroy_delay_info(atrie, n, TRUE);
@@ -5364,7 +5366,8 @@ reset_reevaluation(trie *atrie)
 { idg_node *n = atrie->data.IDG;
 
   DEBUG(MSG_TABLING_EXCEPTION,
-	print_answer_table(atrie, "Abort reevaluation of"));
+	print_answer_table(atrie, "Abort reevaluation of (%zd answers)",
+			   atrie->value_count));
 
   map_trie_node(&atrie->root, reset_evaluate_node, atrie);
   assert(n->answer_count == atrie->value_count);
