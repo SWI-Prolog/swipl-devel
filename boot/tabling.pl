@@ -1250,6 +1250,7 @@ reeval(ATrie) :-
           retry_reeval(ATrie)).
 
 retry_reeval(ATrie) :-
+    '$tbl_reeval_abandon'(ATrie),
     tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
     sleep(0.000001),
     reeval(ATrie).

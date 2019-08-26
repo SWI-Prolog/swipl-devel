@@ -5208,6 +5208,27 @@ PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
 }
 
 
+/** '$tbl_reeval_abandon'(+ATrie)
+ *
+ * Release ownership of ATrie if we cannot re-evaluate it
+ */
+
+static
+PRED_IMPL("$tbl_reeval_abandon", 1, tbl_reeval_abandon, 0)
+{ trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { DEBUG(MSG_TABLING_SHARED,
+	  print_answer_table("Abondon re-evaluation", atrie));
+    COMPLETE_WORKLIST(atrie, (void)0);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static void *
 reeval_complete_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
@@ -5372,7 +5393,7 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	{ term_t ex;
 
 	  DEBUG(MSG_TABLING_SHARED,
-		Sdprintf("Thread [%d]: DEADLOCK\n", mytid));
+		print_answer_table("DEADLOCK", atrie));
 	  unregister_waiting(mytid, atrie);
 	  if ( (ex = PL_new_term_ref()) &&
 	       PL_put_atom(ex, ATOM_deadlock) )
@@ -5384,24 +5405,14 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	unregister_waiting(mytid, atrie);
 	if ( !atrie->tid && table_needs_work(atrie) )
 	{ DEBUG(MSG_TABLING_SHARED,
-		{ term_t t = PL_new_term_ref();
-		  unify_trie_term(atrie->data.variant, t PASS_LD);
-		  Sdprintf("Thread [%d]: stealing abandonned trie %p for ",
-			   mytid, atrie);
-		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-		});
+		print_answer_table("stealing abandonned trie", atrie));
 	  take_trie(atrie, mytid);
 	} else
 	{ goto complete;
 	}
       } else if ( table_needs_work(atrie) )
       { DEBUG(MSG_TABLING_SHARED,
-	      { term_t t = PL_new_term_ref();
-		unify_trie_term(atrie->data.variant, t PASS_LD);
-		Sdprintf("Thread [%d]: claiming shared trie %p for ",
-			 mytid, atrie);
-		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	      });
+	      print_answer_table("claiming", atrie));
 	take_trie(atrie, mytid);
       } else					/* complete and valid */
       { complete:
@@ -5648,4 +5659,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
 
   PRED_DEF("$tbl_reeval_prepare",       2, tbl_reeval_prepare,	     0)
+  PRED_DEF("$tbl_reeval_abandon",       1, tbl_reeval_abandon,       0)
 EndPredDefs
