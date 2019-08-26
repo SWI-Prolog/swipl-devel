@@ -1977,9 +1977,11 @@ static trie *
 variant_table(int shared ARG_LD)
 { trie **tp;
 
+#ifdef O_PLMT
   if ( shared )
     tp = &GD->tabling.variant_table;
   else
+#endif
     tp = &LD->tabling.variant_table;
 
   if ( *tp == NULL )
@@ -5182,7 +5184,7 @@ PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
       rc = unify_table_status(A2, atrie, FALSE PASS_LD);
       COMPLETE_WORKLIST(atrie, (void)0);
 #else
-      rc = unify_complete_or_invalid(atrie, A2 PASS_LD);
+      rc = unify_table_status(A2, atrie, FALSE PASS_LD);
 #endif
 
       return rc;
