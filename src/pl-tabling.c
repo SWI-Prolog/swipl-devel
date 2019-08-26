@@ -77,7 +77,7 @@ static void	print_delay(const char *msg,
 			    trie_node *variant, trie_node *answer);
 static void	print_answer(const char *msg, trie_node *answer);
 static int	put_delay_info(term_t t, trie_node *answer);
-static void	print_answer_table(const char *msg, trie *atrie);
+static void	print_answer_table(trie *atrie, const char *msg);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
@@ -583,7 +583,7 @@ free_worklist_set(worklist_set *wls, int freewl)
 	} else
 	{ if ( table_is_incomplete(atrie) )
 	  { DEBUG(MSG_TABLING_EXCEPTION,
-		  print_answer_table("Deleting incomplete answer table", atrie));
+		  print_answer_table(atrie, "Deleting incomplete answer table"));
 	    destroy_answer_trie(atrie);
 	  }
 	}
@@ -1946,7 +1946,7 @@ print_answer(const char *msg, trie_node *answer)
 }
 
 static void
-print_answer_table(const char *msg, trie *atrie)
+print_answer_table(trie *atrie, const char *msg)
 { GET_LD
   term_t t = PL_new_term_ref();
 
@@ -2823,7 +2823,7 @@ destroy_answer_trie(trie *atrie)
 
     if ( is_variant_trie(vtrie) )
     { DEBUG(MSG_TABLING_VTRIE_DEPENDENCIES,
-	    print_answer_table("Delete answer trie for", atrie));
+	    print_answer_table(atrie, "Delete answer trie for"));
 
       if ( true(atrie, TRIE_ISSHARED) )
       { COMPLETE_WORKLIST(atrie,		/* lock might be overkill */
@@ -2844,7 +2844,7 @@ delayed_destroy_table(trie *atrie)
 { if ( table_is_incomplete(atrie) )
   { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
     DEBUG(MSG_TABLING_ABOLISH,
-	  print_answer_table("Scheduling for delayed abolish", atrie));
+	  print_answer_table(atrie, "Scheduling for delayed abolish"));
     return TRUE;
   }
 
@@ -2886,7 +2886,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 	  } else
 	  { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
 	    DEBUG(MSG_TABLING_ABOLISH,
-		  print_answer_table("Scheduling for delayed abolish", atrie));
+		  print_answer_table(atrie, "Scheduling for delayed abolish"));
 	  }
 	  UNLOCK_SHARED_TABLE(atrie);
 	} else
@@ -5073,7 +5073,7 @@ idg_changed(trie *atrie)
 { idg_node *n;
 
   DEBUG(MSG_TABLING_IDG_CHANGED,
-	print_answer_table("IDG: dynamic change", atrie));
+	print_answer_table(atrie, "IDG: dynamic change"));
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 )
   { trie *incomplete;
@@ -5227,7 +5227,7 @@ PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
 #endif
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
-	  print_answer_table("Preparing re-evaluation of", atrie));
+	  print_answer_table(atrie, "Preparing re-evaluation of"));
 
     idg->answer_count = atrie->value_count;
     idg->new_answer = FALSE;
@@ -5255,7 +5255,7 @@ PRED_IMPL("$tbl_reeval_abandon", 1, tbl_reeval_abandon, 0)
 
   if ( get_trie(A1, &atrie) )
   { DEBUG(MSG_TABLING_SHARED,
-	  print_answer_table("Abondon re-evaluation", atrie));
+	  print_answer_table(atrie, "Abondon re-evaluation"));
     COMPLETE_WORKLIST(atrie, (void)0);
 
     return TRUE;
@@ -5293,7 +5293,7 @@ reeval_complete(trie *atrie)
   { map_trie_node(&atrie->root, reeval_complete_node, atrie);
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
-	  print_answer_table("Re-evaluation of", atrie));
+	  print_answer_table(atrie, "Re-evaluation of"));
 
     if ( n->new_answer == FALSE &&
 	 n->answer_count == atrie->value_count )
@@ -5360,7 +5360,7 @@ reset_reevaluation(trie *atrie)
 { idg_node *n = atrie->data.IDG;
 
   DEBUG(MSG_TABLING_EXCEPTION,
-	print_answer_table("Abort reevaluation of", atrie));
+	print_answer_table(atrie, "Abort reevaluation of"));
 
   map_trie_node(&atrie->root, reset_evaluate_node, atrie);
   assert(n->answer_count == atrie->value_count);
@@ -5429,7 +5429,7 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	{ term_t ex;
 
 	  DEBUG(MSG_TABLING_SHARED,
-		print_answer_table("DEADLOCK", atrie));
+		print_answer_table(atrie, "DEADLOCK"));
 	  unregister_waiting(mytid, atrie);
 	  if ( (ex = PL_new_term_ref()) &&
 	       PL_put_atom(ex, ATOM_deadlock) )
@@ -5441,14 +5441,14 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	unregister_waiting(mytid, atrie);
 	if ( !atrie->tid && table_needs_work(atrie) )
 	{ DEBUG(MSG_TABLING_SHARED,
-		print_answer_table("stealing abandonned trie", atrie));
+		print_answer_table(atrie, "stealing abandonned trie"));
 	  take_trie(atrie, mytid);
 	} else
 	{ goto complete;
 	}
       } else if ( table_needs_work(atrie) )
       { DEBUG(MSG_TABLING_SHARED,
-	      print_answer_table("claiming", atrie));
+	      print_answer_table(atrie, "claiming"));
 	take_trie(atrie, mytid);
       } else					/* complete and valid */
       { complete:
@@ -5570,7 +5570,7 @@ wait_for_table_to_complete(trie *atrie)
 { DEBUG(MSG_TABLING_SHARED,
 	{ Sdprintf("Thread [%d]: waiting for %d to complete: ",
 		   PL_thread_self(), atrie->tid);
-	  print_answer_table(NULL, atrie);
+	  print_answer_table(atrie, NULL);
 	});
 
   do
@@ -5578,9 +5578,9 @@ wait_for_table_to_complete(trie *atrie)
   } while( atrie->tid != 0 );
 
   DEBUG(MSG_TABLING_SHARED,
-	print_answer_table(table_needs_work(atrie) ? "Ready (abandonned)"
-			                           : "Ready (completed)",
-			   atrie));
+	print_answer_table(atrie,
+			   table_needs_work(atrie) ? "Ready (abandonned)"
+			                           : "Ready (completed)"));
 
   return TRUE;
 }
