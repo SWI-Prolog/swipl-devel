@@ -5229,7 +5229,8 @@ PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
 #ifdef O_PLMT
     if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
       return FALSE;				/* deadlock */
-    assert(idg->falsecount > 0);
+    if ( idg->falsecount == 0 )			/* someone else re-evaluated it */
+      return FALSE;
 #endif
 
     DEBUG(MSG_TABLING_IDG_REEVAL,

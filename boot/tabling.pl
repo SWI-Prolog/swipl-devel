@@ -1341,8 +1341,13 @@ false_path(ATrie, [ATrie|T], Seen) :-
 
 status_rank(dynamic,  2) :- !.
 status_rank(complete, 1) :- !.
-status_rank(Status,   0) :-
-    format(user_error, 'Re-eval from status ~p~n', [Status]).
+status_rank(Status,   Rank) :-
+    var(Rank),
+    !,
+    format(user_error, 'Re-eval from status ~p~n', [Status]),
+    Rank = 0.
+status_rank(Rank,   Rank) :-
+    format(user_error, 'Re-eval from rank ~p~n', [Rank]).
 
 is_invalid(ATrie) :-
     '$idg_falsecount'(ATrie, FalseCount),
