@@ -36,6 +36,7 @@
 
 :- module(prolog_colour,
           [ prolog_colourise_stream/3,  % +Stream, +SourceID, :ColourItem
+            prolog_colourise_stream/4,  % +Stream, +SourceID, :ColourItem, +Opts
             prolog_colourise_term/4,    % +Stream, +SourceID, :ColourItem, +Opts
             prolog_colourise_query/3,   % +String, +SourceID, :ColourItem
             syntax_colour/2,            % +Class, -Attributes
@@ -50,14 +51,19 @@
 :- use_module(library(error)).
 :- use_module(library(option)).
 :- use_module(library(record)).
+:- use_module(library(apply)).
 
 :- meta_predicate
     prolog_colourise_stream(+, +, 3),
+    prolog_colourise_stream(+, +, 3, +),
     prolog_colourise_query(+, +, 3),
     prolog_colourise_term(+, +, 3, +).
 
 :- predicate_options(prolog_colourise_term/4, 4,
                      [ subterm_positions(-any)
+                     ]).
+:- predicate_options(prolog_colourise_stream/4, 4,
+                     [ operators(list(any))
                      ]).
 
 /** <module> Prolog syntax colouring support.
@@ -91,6 +97,7 @@ colour_state_source_id(State, SourceID) :-
     member(SourceID, SourceIDList).
 
 %!  prolog_colourise_stream(+Stream, +SourceID, :ColourItem) is det.
+%!  prolog_colourise_stream(+Stream, +SourceID, :ColourItem, +Opts) is det.
 %
 %   Determine colour fragments for the data   on Stream. SourceID is
 %   the  canonical  identifier  of  the  input    as  known  to  the
@@ -102,16 +109,24 @@ colour_state_source_id(State, SourceID) :-
 %     * The syntactical category
 %     * Start position (character offset) of the fragment
 %     * Length of the fragment (in characters).
+%
+%   Options
+%
+%     - operators(+Ops)
+%       Provide an initial list of additional operators.
 
 prolog_colourise_stream(Fd, SourceId, ColourItem) :-
+    prolog_colourise_stream(Fd, SourceId, ColourItem, []).
+prolog_colourise_stream(Fd, SourceId, ColourItem, Options) :-
     to_list(SourceId, SourceIdList),
     make_colour_state([ source_id_list(SourceIdList),
                         stream(Fd),
                         closure(ColourItem)
                       ],
                       TB),
+    option(operators(Ops), Options, []),
     setup_call_cleanup(
-        save_settings(TB, State),
+        save_settings(TB, Ops, State),
         colourise_stream(Fd, TB),
         restore_settings(State)).
 
@@ -150,7 +165,7 @@ colourise_stream(Fd, TB) :-
         Term == end_of_file,
     !.
 
-save_settings(TB, state(Style, Flags, OSM, Xref)) :-
+save_settings(TB, Ops, state(Style, Flags, OSM, Xref)) :-
     (   source_module(TB, SM)
     ->  true
     ;   SM = prolog_colour_ops
@@ -158,9 +173,22 @@ save_settings(TB, state(Style, Flags, OSM, Xref)) :-
     set_xref(Xref, true),
     '$set_source_module'(OSM, SM),
     colour_state_module(TB, SM),
-    push_operators([]),
+    maplist(qualify_op(SM), Ops, QOps),
+    push_operators(QOps),
     syntax_flags(Flags),
     '$style_check'(Style, Style).
+
+qualify_op(M, op(P,T,N), op(P,T,M:N)) :-
+    atom(N), !.
+qualify_op(M, op(P,T,L), op(P,T,QL)) :-
+    is_list(L), !,
+    maplist(qualify_op_name(M), L, QL).
+qualify_op(_, Op, Op).
+
+qualify_op_name(M, N, M:N) :-
+    atom(N),
+    !.
+qualify_op_name(_, N, N).
 
 restore_settings(state(Style, Flags, OSM, Xref)) :-
     restore_syntax_flags(Flags),
