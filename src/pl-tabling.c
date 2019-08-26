@@ -90,6 +90,10 @@ static int	unify_component_status(term_t t, tbl_component *scc ARG_LD);
 static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static int	table_is_incomplete(trie *trie);
 static int	idg_add_edge(trie *atrie, trie *ctrie ARG_LD);
+#ifdef O_PLMT
+static int	claim_answer_table(trie *atrie, atom_t *clrefp,
+				   int flags ARG_LD);
+#endif
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2133,7 +2137,6 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   Word v;
   tmp_buffer vars;
   mark m;
-  volatile atom_t clref = 0;
   int shared;
 
 #ifdef O_PLMT
@@ -2199,66 +2202,9 @@ retry:
     }
 
 #ifdef O_PLMT
-    if ( true(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
-    { int mytid = PL_thread_self();
-
-      if ( atrie->tid != mytid )
-      { LOCK_SHARED_TABLE(atrie);
-      retry_shared:
-	if ( atrie->tid )
-	{ register_waiting(mytid, atrie);
-	  if ( is_deadlock(atrie) )
-	  { term_t ex;
-
-	    DEBUG(MSG_TABLING_SHARED,
-		  Sdprintf("Thread [%d]: DEADLOCK\n", mytid));
-	    unregister_waiting(mytid, atrie);
-	    discardBuffer(&vars);
-	    if ( (ex = PL_new_term_ref()) &&
-		 PL_put_atom(ex, ATOM_deadlock) )
-	      PL_raise_exception(ex);
-	    UNLOCK_SHARED_TABLE(atrie);
-	    discardBuffer(&vars);
-	    return NULL;				/* must do better */
-	  }
-	  wait_for_table_to_complete(atrie);
-	  unregister_waiting(mytid, atrie);
-	  if ( !atrie->tid && table_needs_work(atrie) )
-	  { DEBUG(MSG_TABLING_SHARED,
-		  { term_t t = PL_new_term_ref();
-		    unify_trie_term(atrie->data.variant, t PASS_LD);
-		    Sdprintf("Thread [%d]: stealing abandonned trie %p for ",
-			     mytid, atrie);
-		    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-		  });
-	    take_trie(atrie, mytid);
-	  } else
-	  { goto complete;
-	  }
-	} else if ( table_needs_work(atrie) )
-	{ DEBUG(MSG_TABLING_SHARED,
-		{ term_t t = PL_new_term_ref();
-		  unify_trie_term(atrie->data.variant, t PASS_LD);
-		  Sdprintf("Thread [%d]: claiming shared trie %p for ",
-			   mytid, atrie);
-		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-		});
-	  take_trie(atrie, mytid);
-	} else					/* complete and valid */
-	{ complete:
-	  if ( !(clref=atrie->clause) )
-	  { Procedure proc = ((flags&AT_MODED)
-					? GD->procedures.trie_gen_compiled3
-					: GD->procedures.trie_gen_compiled2);
-
-	    clref = compile_trie(proc->definition, atrie PASS_LD);
-	  }
-	  pushVolatileAtom(clref);		/* see (*) above */
-	  if ( clref != atrie->clause )
-	    goto retry_shared;
-	}
-	UNLOCK_SHARED_TABLE(atrie);
-      }
+    if ( !claim_answer_table(atrie, clrefp, flags PASS_LD) )
+    { discardBuffer(&vars);
+      return NULL;
     }
 #endif
 
@@ -2286,8 +2232,6 @@ retry:
       }
     }
     discardBuffer(&vars);
-    if ( clrefp )
-      *clrefp = clref;
 
     return atrie;
   } else
@@ -3573,7 +3517,7 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, te
 		  int flags ARG_LD)
 { trie *atrie;
   Definition def = NULL;
-  atom_t clref;
+  atom_t clref = 0;
 
   get_closure_predicate(closure, &def);
 
@@ -3616,7 +3560,7 @@ PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
 { PRED_LD
   trie *trie;
   Definition def = NULL;
-  atom_t clref;
+  atom_t clref = 0;
 
   get_closure_predicate(A1, &def);
 
@@ -5372,6 +5316,93 @@ table_needs_work(trie *atrie)
     }
 
     return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Claim ownership for an answer table if the table is incomplete/invalid:
+
+  - If we alread own the table, fine
+  - Else
+    - If the table is incomplete, someone else is completing it
+      (otherwise we were the owner).  Either throw a `deadlock`
+      exception or wait.
+    - If the table needs work (fresh, invalid), try to claim it.
+    - If the table is complete, return its compiled trie.  As
+      we are in a locked region we can do so safely.
+
+Note that this code uses  a   mutex/condition  variable  pair. Currently
+there is a single mutex. Future versions could  use an array of these to
+reduce contention.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
+{ if ( true(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
+  { int mytid = PL_thread_self();
+    volatile atom_t clref = 0;
+
+    if ( atrie->tid != mytid )
+    { LOCK_SHARED_TABLE(atrie);
+    retry_shared:
+      if ( atrie->tid )
+      { register_waiting(mytid, atrie);
+	if ( is_deadlock(atrie) )
+	{ term_t ex;
+
+	  DEBUG(MSG_TABLING_SHARED,
+		Sdprintf("Thread [%d]: DEADLOCK\n", mytid));
+	  unregister_waiting(mytid, atrie);
+	  if ( (ex = PL_new_term_ref()) &&
+	       PL_put_atom(ex, ATOM_deadlock) )
+	    PL_raise_exception(ex);
+	  UNLOCK_SHARED_TABLE(atrie);
+	  return FALSE;
+	}
+	wait_for_table_to_complete(atrie);
+	unregister_waiting(mytid, atrie);
+	if ( !atrie->tid && table_needs_work(atrie) )
+	{ DEBUG(MSG_TABLING_SHARED,
+		{ term_t t = PL_new_term_ref();
+		  unify_trie_term(atrie->data.variant, t PASS_LD);
+		  Sdprintf("Thread [%d]: stealing abandonned trie %p for ",
+			   mytid, atrie);
+		  PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+		});
+	  take_trie(atrie, mytid);
+	} else
+	{ goto complete;
+	}
+      } else if ( table_needs_work(atrie) )
+      { DEBUG(MSG_TABLING_SHARED,
+	      { term_t t = PL_new_term_ref();
+		unify_trie_term(atrie->data.variant, t PASS_LD);
+		Sdprintf("Thread [%d]: claiming shared trie %p for ",
+			 mytid, atrie);
+		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
+	      });
+	take_trie(atrie, mytid);
+      } else					/* complete and valid */
+      { complete:
+	if ( clrefp )
+	{ if ( !(clref=atrie->clause) )
+	  { Procedure proc = ((flags&AT_MODED)
+				      ? GD->procedures.trie_gen_compiled3
+				      : GD->procedures.trie_gen_compiled2);
+
+	    clref = compile_trie(proc->definition, atrie PASS_LD);
+	  }
+	  pushVolatileAtom(clref);		/* see (*) above */
+	  if ( clref != atrie->clause )
+	    goto retry_shared;
+	  *clrefp = clref;
+	}
+      }
+      UNLOCK_SHARED_TABLE(atrie);
+    }
   }
 
   return TRUE;
