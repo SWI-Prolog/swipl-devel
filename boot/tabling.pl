@@ -1313,7 +1313,8 @@ false_path(ATrie, BottomUp) :-
 false_path(ATrie, [ATrie|T], Seen) :-
     \+ memberchk(ATrie, Seen),
     '$idg_edge'(ATrie, dependent, Dep),
-    '$tbl_table_status'(Dep, Status, _, _),
+    '$tbl_table_status'(Dep, Status),
+    tdebug(reeval, '    ~p has dependent ~p (~w)', [ATrie, Dep, Status]),
     (   Status == invalid
     ->  false_path(Dep, T, [ATrie|Seen])
     ;   status_rank(Status, Rank),

@@ -3697,6 +3697,22 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
 }
 #endif
 
+/** '$tbl_table_status'(+Trie, -Status)
+ *
+ * Get the status of an answer table.
+ */
+
+static
+PRED_IMPL("$tbl_table_status", 2, tbl_table_status, 0)
+{ PRED_LD
+  trie *trie;
+
+  return ( get_trie(A1, &trie) &&
+	   unify_table_status(A2, trie, FALSE PASS_LD)
+	 );
+}
+
+
 /** '$tbl_table_status'(+Trie, -Status, -Wrapper, -Skeleton)
  *
  * Get the status of Trie as well as its wrapper and Skeleton.
@@ -5543,6 +5559,7 @@ BeginPredDefs(tabling)
 #endif
   PRED_DEF("$tbl_local_variant_table",  1, tbl_local_variant_table,  0)
   PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
+  PRED_DEF("$tbl_table_status",         2, tbl_table_status,         0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
   PRED_DEF("$tbl_table_complete_all",	3, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
