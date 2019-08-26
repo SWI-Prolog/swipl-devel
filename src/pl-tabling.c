@@ -1953,9 +1953,9 @@ print_answer_table(const char *msg, trie *atrie)
   unify_trie_term(atrie->data.variant, t PASS_LD);
   if ( msg )
   { if ( true(atrie, TRIE_ISSHARED) )
-      Sdprintf("Thread [%d]: %s ", PL_thread_self(), msg);
+      Sdprintf("Thread [%d]: %s: <trie>(%p) for ", PL_thread_self(), msg, atrie);
     else
-      Sdprintf("%s ", msg);
+      Sdprintf("%s: <trie>(%p) for ", msg, atrie);
   }
   PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 }
@@ -4729,11 +4729,11 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 
   if ( ctrie && ctrie->data.IDG )
   { trie *atrie;
-    int flags;
+    int flags = (AT_CREATE|AT_NOCLAIM);
 
     if ( true(ctrie, TRIE_ISSHARED) )
     { Procedure proc;
-      flags = (AT_CREATE|AT_SHARED);
+      flags |= AT_SHARED;
 
       /* a shared table cannot depend on a thread-local predicate */
       /* TBD: Avoid the procedure lookup! */
@@ -4742,7 +4742,7 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
       { return idg_dependency_error_dyncall(ctrie->data.IDG, A1 PASS_LD);
       }
     } else
-    { flags = (AT_CREATE|AT_PRIVATE);
+    { flags |= AT_PRIVATE;
     }
 
     if ( (atrie=get_answer_table(NULL, A1, 0, NULL, flags PASS_LD)) )
