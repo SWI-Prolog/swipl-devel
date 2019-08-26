@@ -5145,6 +5145,14 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
 		 *  INCREMENTAL RE-EVALUATION	*
 		 *******************************/
 
+/** '$tbl_reeval_prepare'(+Trie, -Variant) is semidet.
+ *
+ * Prepare Trie for re-evaluation.  Fails if the trie is (no longer)
+ * invalid.
+ *
+ * @error `deadlock` if claiming the table would cause a deadlock.
+ */
+
 static void *
 reeval_prep_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
@@ -5166,11 +5174,21 @@ reeval_prep_node(trie_node *n, void *ctx)
 
 
 static
-PRED_IMPL("$tbl_reeval_prepare", 1, tbl_reeval_prepare, 0)
-{ trie *atrie;
+PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
+{ PRED_LD
+  trie *atrie;
 
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
+
+    if ( idg->falsecount == 0 ||
+	 !unify_trie_term(atrie->data.variant, A2 PASS_LD) )
+      return FALSE;
+#ifdef O_PLMT
+    if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
+      return FALSE;				/* deadlock */
+    assert(idg->falsecount > 0);
+#endif
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
 	  print_answer_table("Preparing re-evaluation of", atrie));
@@ -5629,5 +5647,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
 
-  PRED_DEF("$tbl_reeval_prepare",       1, tbl_reeval_prepare,	     0)
+  PRED_DEF("$tbl_reeval_prepare",       2, tbl_reeval_prepare,	     0)
 EndPredDefs

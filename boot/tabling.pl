@@ -1258,9 +1258,10 @@ try_reeval(ATrie) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
-    '$tbl_reeval_prepare'(ATrie),
-    '$tbl_table_status'(ATrie, _, Variant, _),
-    call(Variant).
+    (   '$tbl_reeval_prepare'(ATrie, Variant)
+    ->  call(Variant)
+    ;   true
+    ).
 try_reeval(ATrie) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
@@ -1342,12 +1343,9 @@ is_invalid(ATrie) :-
 %   tabling environment and solves the variant associated with ATrie.
 
 reeval_node(ATrie) :-
-    is_invalid(ATrie),
+    '$tbl_reeval_prepare'(ATrie, Variant),
     !,
-    tdebug(trie_goal(ATrie, Goal, _)),
-    tdebug(reeval, 'Re-evaluating ~p', [Goal]),
-    '$tbl_reeval_prepare'(ATrie),
-    '$tbl_table_status'(ATrie, _, Variant, _),
+    tdebug(reeval, 'Re-evaluating ~p', [Variant]),
     (   '$idg_reset_current',
         setup_call_cleanup(
             reeval_setup(State),
