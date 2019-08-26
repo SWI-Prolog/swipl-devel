@@ -238,6 +238,8 @@ trie_empty(trie *trie)
     clear_node(trie, &trie->root, FALSE);	/* TBD: verify not accessed */
     if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
       destroy_indirect_table(it);
+    trie->node_count = 1;
+    trie->value_count = 0;
   }
 }
 
