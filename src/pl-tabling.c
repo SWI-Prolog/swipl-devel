@@ -229,15 +229,19 @@ add_child_component(tbl_component *parent, tbl_component *child)
 
 static void
 del_child_component(tbl_component *parent, tbl_component *child)
-{ component_set *cs = parent->children;
-  tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
-  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+{ component_set *cs;
 
-  for(; *bp != child && bp < tp; bp++)
-    ;
-  assert(bp < tp);
-  memmove(bp, bp+1, (tp-bp-1)*sizeof(*bp));
-  (void)popBuffer(&cs->members, tbl_component*);
+  if ( (cs=parent->children) )			/* can be merged */
+  { tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+    tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+
+    for(; *bp != child && bp < tp; bp++)
+      ;
+    if ( bp < tp )
+    { memmove(bp, bp+1, (tp-bp-1)*sizeof(*bp));
+      (void)popBuffer(&cs->members, tbl_component*);
+    }
+  }
 }
 
 static void
@@ -3830,17 +3834,19 @@ PRED_IMPL("$tbl_table_discard_all", 1, tbl_table_discard_all, 0)
   tbl_component *c;
 
   if ( get_scc(A1, &c) )
-  { tbl_component *parent = c->parent;
+  { if ( c->status != SCC_MERGED )
+    { tbl_component *parent = c->parent;
 
-    if ( c->created_worklists )
-      reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
-    reset_global_worklist(c);
+      if ( c->created_worklists )
+	reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
+      reset_global_worklist(c);
 
-    LD->tabling.component = parent;
-    free_component(c, FC_DESTROY);
+      LD->tabling.component = parent;
+      free_component(c, FC_DESTROY);
 
-    if ( !parent )
-      LD->tabling.has_scheduling_component = FALSE;
+      if ( !parent )
+	LD->tabling.has_scheduling_component = FALSE;
+    }
   }
 
   return TRUE;
