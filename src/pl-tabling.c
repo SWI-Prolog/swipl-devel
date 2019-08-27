@@ -3690,6 +3690,17 @@ PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Finish re-evaluation of a component by  running reeval_complete() on all
+re-evaluated answer tables. Typically either none   of the answer tables
+is a re-evaluated one or all are.  In   some  cases though, there may be
+some non-reevaluated tables, either because the   table was abolished or
+because a new table gets involved into the SCC.
+
+We could maintain a flag on the   SCC telling re-evaluated tables may be
+involved. Not sure it is worth while.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 wls_reeval_complete(worklist **wls, size_t ntables)
 { size_t i;
@@ -3698,22 +3709,9 @@ wls_reeval_complete(worklist **wls, size_t ntables)
   { worklist *wl = wls[i];
     trie *atrie = wl->table;
     idg_node *n;
-    int reeval_this;
 
-    // I think we either need to reevaluate all or none
-    reeval_this = ((n=atrie->data.IDG) && n->reevaluating);
-#ifndef O_DEBUG
-    if ( !reeval_this )
-      return;
-#else
-    int reeval;
-    if ( i==0 )
-      reeval = reeval_this;
-    else
-      assert(reeval == reeval_this);
-#endif
-
-    reeval_complete(atrie);		/* incremental tabling */
+    if ( (n=atrie->data.IDG) && n->reevaluating )
+      reeval_complete(atrie);
   }
 }
 
