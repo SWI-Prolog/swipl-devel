@@ -120,6 +120,14 @@ delay_goals(List, Goal) :-
 user_goal(Goal, UGoal) :-
     unqualify_goal(Goal, user, UGoal).
 
+:- multifile
+    prolog:portray/1.
+
+user:portray(ATrie) :-
+    '$is_answer_trie'(ATrie),
+    trie_goal(ATrie, Goal, _Skeleton),
+    format('~q for ~p', [ATrie, Goal]).
+
 :- endif.
 
 %!  table(:PredicateIndicators)
