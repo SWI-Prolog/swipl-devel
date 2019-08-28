@@ -846,10 +846,9 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 '$predicate_property'(defined, Pred) :-
     '$get_predicate_attribute'(Pred, defined, 1).
-'$predicate_property'(tabled(Mode), Pred) :-
+'$predicate_property'(tabled(Flag), Pred) :-
     '$get_predicate_attribute'(Pred, tabled, 1),
-    '$tbl_implementation'(Pred, M:Head),
-    M:'$tabled'(Head, Mode).
+    table_flag(Flag, Pred).
 '$predicate_property'(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
 '$predicate_property'(abstract(0), Pred) :-
@@ -859,6 +858,18 @@ system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
+
+table_flag(variant, Pred) :-
+    '$tbl_implementation'(Pred, M:Head),
+    M:'$tabled'(Head, variant).
+table_flag(subsumptive, Pred) :-
+    '$tbl_implementation'(Pred, M:Head),
+    M:'$tabled'(Head, subsumptive).
+table_flag(shared, Pred) :-
+    '$get_predicate_attribute'(Pred, tshared, 1).
+table_flag(incremental, Pred) :-
+    '$get_predicate_attribute'(Pred, incremental, 1).
+
 
 %!  visible_predicate(:Head) is nondet.
 %

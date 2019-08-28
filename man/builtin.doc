@@ -2,7 +2,7 @@
 
 \section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
-We have tried to keep the predicate descriptions clear and concise.
+We have tried to keep the predicat descriptions clear and concise.
 First, the predicate name is printed in bold face, followed by the
 arguments in italics.  Arguments are preceded by a mode indicator.
 There is no complete agreement on mode indicators in the Prolog
@@ -3897,10 +3897,20 @@ This property is the opposite from \const{dynamic}, i.e., for each
 defined predicate, either \const{static} or \const{dynamic} is true but
 never both.
 
-    \termitem{tabled}{How}
-True of the predicate is \jargon{tabled}.  Currently, \arg{How} is
-always \const{default}, which is the same as \const{variant}. Future
-versions may provide \const{subsumptive}.  See table/1 for details.
+    \termitem{tabled}{?Flag}
+True of the predicate is \jargon{tabled} and \arg{Flag} applies.  Any
+tabled predicate has one of the mutually exclusive flags \const{variant}
+or \const{subsumptive}. In addition, tabled predicates may have one or
+more the the following flags
+
+    \begin{description}
+	\termitem{shared}{} The table is shared between threads.
+	See \secref{tabling-shared}.
+	\termitem{incremental}{} The table is subject to
+	\jargon{incremental tabling}.  See \secref{tabling-incremental}
+    \end{description}
+
+See table/1 for details.
 
     \termitem{thread_local}{}
 If true (only possible on the multithreaded version) each thread has
