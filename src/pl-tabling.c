@@ -186,10 +186,26 @@ new_component(void)
 #define FC_CHILD	0x0002
 
 static void
+push_component_set(segstack *stack, component_set *cs)
+{ tbl_component **bp = baseBuffer(&cs->members, tbl_component*);
+  tbl_component **tp = topBuffer(&cs->members, tbl_component*);
+  typedef struct tbl_component *Component;
+
+  for(; bp < tp; bp++)
+    pushSegStack(stack, *bp, Component);
+
+  discardBuffer(&cs->members);
+  PL_free(cs);
+}
+
+static void
 free_component(tbl_component *c, int flags)
 { GET_LD
   assert(c->magic == COMPONENT_MAGIC);
   c->magic = 0;
+  segstack stack;
+  typedef struct tbl_component *Component;
+  Component buf[100];
 
   if ( c == LD->tabling.component )
   { LD->tabling.component = c->parent;
@@ -197,20 +213,28 @@ free_component(tbl_component *c, int flags)
       LD->tabling.has_scheduling_component = FALSE;
   }
 
-  if ( !(flags&FC_CHILD) && c->parent )
-    del_child_component(c->parent, c);
-  if ( c->worklist )
-    free_worklist_set(c->worklist, WLFS_FREE_NONE);
-  if ( c->delay_worklists )
-    free_worklist_set(c->delay_worklists, WLFS_FREE_NONE);
-  if ( c->created_worklists )
-    free_worklist_set(c->created_worklists, WLFS_FREE_ALL);
-  if ( c->children )
-    free_components_set(c->children, flags|FC_CHILD);
-  if ( c->merged )
-    free_components_set(c->merged, flags|FC_CHILD);
+  initSegStack(&stack, sizeof(Component), sizeof(buf), buf);
+  pushSegStack(&stack, c, Component);
 
-  PL_free(c);
+  while( popSegStack(&stack, &c, Component) )
+  { if ( !(flags&FC_CHILD) && c->parent )
+      del_child_component(c->parent, c);
+    flags |= FC_CHILD;				/* only for the first */
+    if ( c->worklist )
+      free_worklist_set(c->worklist, WLFS_FREE_NONE);
+    if ( c->delay_worklists )
+      free_worklist_set(c->delay_worklists, WLFS_FREE_NONE);
+    if ( c->created_worklists )
+      free_worklist_set(c->created_worklists, WLFS_FREE_ALL);
+    if ( c->children )
+      push_component_set(&stack, c->children);
+    if ( c->merged )
+      push_component_set(&stack, c->merged);
+
+    PL_free(c);
+  }
+
+  clearSegStack(&stack);
 }
 
 
