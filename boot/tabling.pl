@@ -1261,15 +1261,14 @@ retry_reeval(ATrie) :-
     '$tbl_reeval_abandon'(ATrie),
     tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
     sleep(0.000001),
-    try_reeval(ATrie).
-%   reeval(ATrie).
+    reeval(ATrie).
 
 try_reeval(ATrie) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
     (   '$tbl_reeval_prepare'(ATrie, Variant)
-    ->  call(Variant)
+    ->  ignore(Variant)                         % assumes local scheduling
     ;   true
     ).
 try_reeval(ATrie) :-
@@ -1363,8 +1362,14 @@ is_invalid(ATrie) :-
 
 %!  reeval_node(+ATrie)
 %
-%   Re-evaluate the invalid answer  trie  ATrie.   This  creates  a  sub
-%   tabling environment and solves the variant associated with ATrie.
+%   Re-evaluate the invalid answer trie ATrie.  Initially this created a
+%   nested tabling environment, but this is dropped:
+%
+%     - It is possible for the re-evaluating variant to call into outer
+%       non/not-yet incremental tables, requiring a merge with this
+%       outer SCC.  This doesn't work well with a sub-environment.
+%     - We do not need one.  If this environment is not merged into the
+%       outer one it will complete before we continue.
 
 reeval_node(ATrie) :-
     '$tbl_reeval_prepare'(ATrie, Variant),
@@ -1372,21 +1377,13 @@ reeval_node(ATrie) :-
     tdebug(reeval, 'Re-evaluating ~p', [Variant]),
     (   '$idg_reset_current',
         setup_call_cleanup(
-            reeval_setup(State),
-            call(Variant),
-            reeval_cleanup(State)),
+            nb_setval('$tbl_reeval', true),
+            ignore(Variant),                    % assumes local scheduling
+            nb_delete('$tbl_reeval')),
         fail
-    ;   true
+    ;   tdebug(reeval, 'Re-evaluated ~p', [Variant])
     ).
 reeval_node(_).
-
-reeval_setup(State) :-
-    '$tbl_scc_save'(State),
-    nb_setval('$tbl_reeval', true).
-
-reeval_cleanup(State) :-
-    '$tbl_scc_restore'(State),
-    nb_delete('$tbl_reeval').
 
 
 		 /*******************************

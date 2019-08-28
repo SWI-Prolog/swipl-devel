@@ -3955,56 +3955,6 @@ PRED_IMPL("$tbl_trienode", 1, tbl_trienode, 0)
   return PL_unify_atom(A1, ATOM_trienode);
 }
 
-		 /*******************************
-		 *	RECURSIVE TABLING	*
-		 *******************************/
-
-static
-PRED_IMPL("$tbl_scc_save", 1, tbl_scc_save, 0)
-{ PRED_LD
-
-  if ( PL_unify_term(A1, PL_FUNCTOR, FUNCTOR_table_state3,
-		     PL_POINTER, LD->tabling.component,
-		     PL_BOOL,    LD->tabling.has_scheduling_component,
-		     PL_BOOL,    LD->tabling.in_answer_completion) )
-  { LD->tabling.component = NULL;
-    LD->tabling.has_scheduling_component = FALSE;
-    LD->tabling.in_answer_completion = FALSE;
-
-    return TRUE;
-  }
-
-  return FALSE;
-}
-
-
-static
-PRED_IMPL("$tbl_scc_restore", 1, tbl_scc_restore, 0)
-{ PRED_LD
-
-  if ( PL_is_functor(A1, FUNCTOR_table_state3) )
-  { void *ptr;
-    int hsc, iac;
-    term_t arg;
-
-    if ( (arg=PL_new_term_ref()) &&
-	 _PL_get_arg(1, A1, arg) &&
-	 PL_get_pointer(arg, &ptr) &&
-	  _PL_get_arg(2, A1, arg) &&
-	 PL_get_bool_ex(arg, &hsc) &&
-	  _PL_get_arg(3, A1, arg) &&
-	 PL_get_bool_ex(arg, &iac) )
-    { LD->tabling.component = ptr;
-      LD->tabling.has_scheduling_component = hsc;
-      LD->tabling.in_answer_completion = iac;
-
-      return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-
 
 		 /*******************************
 		 *     INSPECT TABLING DATA	*
@@ -5714,9 +5664,6 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_delay_list",           1, tbl_delay_list,           0)
   PRED_DEF("$tbl_set_delay_list",       1, tbl_set_delay_list,       0)
   PRED_DEF("$tbl_add_global_delays",    2, tbl_add_global_delays,    0)
-
-  PRED_DEF("$tbl_scc_save",             1, tbl_scc_save,             0)
-  PRED_DEF("$tbl_scc_restore",          1, tbl_scc_restore,          0)
 
   PRED_DEF("$tbl_scc",                  1, tbl_scc,                  0)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
