@@ -3592,12 +3592,35 @@ Sclose_memfile(void *handle)
   return -1;
 }
 
+static int
+Scontrol_memfile(void *handle, int action, void *arg)
+{ memfile *mf = handle;
+
+  switch(action)
+  { case SIO_SETENCODING:
+      errno = EPERM;
+      return -1;
+    case SIO_FLUSHOUTPUT:
+      return 0;
+    case SIO_GETSIZE:
+    { int64_t *szp = arg;
+
+      *szp = mf->here;
+      return 0;
+    }
+    default:
+      errno = EINVAL;
+      return -1;
+  }
+}
+
 
 IOFUNCTIONS Smemfunctions =
 { Sread_memfile,
   Swrite_memfile,
   Sseek_memfile,
-  Sclose_memfile
+  Sclose_memfile,
+  Scontrol_memfile
 };
 
 
