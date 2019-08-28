@@ -4849,6 +4849,11 @@ term(Term, In, Tail) :-
 X = [104, 101, 108, 108, 111]
 \end{code}
 
+\arg{Output} takes one of the shapes below. Except for the first, the
+system creates a temporary stream using the \const{wchar_t} internal
+encoding that points at a memory buffer. The encoding cannot be changed
+and an attempt to call set_stream/2 using \term{encoding}{Encoding}
+results in a \const{permission_error} exception.
 
 \begin{description}
     \definition{A Stream handle or alias}
