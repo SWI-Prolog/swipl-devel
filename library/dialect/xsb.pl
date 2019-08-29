@@ -47,7 +47,6 @@
             compiler_options/1,			% +Options
 
             xsb_import/2,                       % +Preds, From
-            xsb_dynamic/1,                      % +Preds
 
             fail_if/1,				% :Goal
 
@@ -87,7 +86,6 @@ system](http://xsb.sourceforge.net/)
 
 :- meta_predicate
     xsb_import(:, +),                   % Module interaction
-    xsb_dynamic(:),
 
     compile(:, +),                      % Loading files
     load_dyn(:),
@@ -159,7 +157,6 @@ xsb_term_expansion((:- index(_PI, _How)), []).
 xsb_term_expansion((:- index(_PI)), []).
 xsb_term_expansion((:- ti(_PI)), []).
 xsb_term_expansion((:- mode(_Modes)), []).
-xsb_term_expansion((:- dynamic(Preds)), (:- xsb_dynamic(Preds))).
 
 user:goal_expansion(In, Out) :-
     prolog_load_context(dialect, xsb),
@@ -173,8 +170,6 @@ xsb_mapped_predicate(expand_file_name(File, Expanded),
 xsb_mapped_predicate(abolish_module_tables(UserMod),
                      abolish_module_tables(user)) :-
     UserMod == usermod.
-xsb_mapped_predicate(dynamic(Spec), xsb_dynamic(Spec)) :-
-    Spec = as(_,_).
 
 xsb_inlined_goal(fail_if(P), \+(P)).
 
@@ -450,68 +445,6 @@ clear_compiler_option(optimize) :-
     set_prolog_flag(optimise, false).
 clear_compiler_option(allow_redefinition).
 clear_compiler_option(xpp_on).
-
-%!  xsb_dynamic(Preds)
-%
-%   Apply dynamic to the original predicate.  This deals with a sequence
-%   that seems common in XSB:
-%
-%       :- import p/1 from x.
-%       :- dynamic p/1.
-%
-%   This also deals with ``:- dynamic Spec as Flags``.
-
-xsb_dynamic(M:Preds) :-
-    xsb_dynamic_(Preds, M, []).
-
-xsb_dynamic_(Preds, _M, _) :-
-    var(Preds),
-    !,
-    instantiation_error(Preds).
-xsb_dynamic_(Spec as Flags, M, Options0) :-
-    !,
-    dyn_flags(Flags, Options0, Options),
-    xsb_dynamic_(Spec, M, Options).
-xsb_dynamic_((A,B), M, Options) :-
-    !,
-    xsb_dynamic_(A, M, Options),
-    xsb_dynamic_(B, M, Options).
-/* JW: not really clear why this is needed/desirable.
-xsb_dynamic_(Name/Arity, M, Options) :-
-    functor(Head, Name, Arity),
-    '$get_predicate_attribute'(M:Head, imported, M2), % predicate_property/2 requires
-    !,                                                % P to be defined.
-    dynamic([M2:Name/Arity], Options).
-*/
-xsb_dynamic_(PI, M, Options) :-
-    dynamic([M:PI], Options).
-
-dyn_flags(Var, _, _) :-
-    var(Var),
-    !,
-    instantiation_error(Var).
-dyn_flags((A,B), Options0, Options) :-
-    !,
-    dyn_flags(A, Options0, Options1),
-    dyn_flags(B, Options1, Options).
-dyn_flags(incremental, Options0, Options) :-
-    !,
-    merge_options([incremental(true)], Options0, Options).
-dyn_flags(opaque, Options0, Options) :-
-    !,
-    merge_options([incremental(false)], Options0, Options).
-dyn_flags(shared, Options0, Options) :-
-    !,
-    merge_options([thread(shared)], Options0, Options).
-dyn_flags(private, Options0, Options) :-
-    !,
-    merge_options([thread(local)], Options0, Options).
-dyn_flags(abstract(Level), Options0, Options) :-
-    !,
-    merge_options([abstract(Level)], Options0, Options).
-dyn_flags(Flag, _, _) :-
-    domain_error(xsb_dynamic_flag, Flag).
-
 
 		 /*******************************
 		 *            BUILT-INS		*
