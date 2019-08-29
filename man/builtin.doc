@@ -3897,6 +3897,11 @@ This property is the opposite from \const{dynamic}, i.e., for each
 defined predicate, either \const{static} or \const{dynamic} is true but
 never both.
 
+    \termitem{tabled}{}
+True of the predicate is \jargon{tabled}. The \term{tabled}{?Flag}
+property can be used to obtain details about how the predicate is
+tabled.
+
     \termitem{tabled}{?Flag}
 True of the predicate is \jargon{tabled} and \arg{Flag} applies.  Any
 tabled predicate has one of the mutually exclusive flags \const{variant}
@@ -3910,7 +3915,8 @@ more the the following flags
 	\jargon{incremental tabling}.  See \secref{tabling-incremental}
     \end{description}
 
-See table/1 for details.
+Use the \const{tabled} property to enumerate all tabled predicates. See
+table/1 for details.
 
     \termitem{thread_local}{}
 If true (only possible on the multithreaded version) each thread has

@@ -846,6 +846,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 '$predicate_property'(defined, Pred) :-
     '$get_predicate_attribute'(Pred, defined, 1).
+'$predicate_property'(tabled, Pred) :-
+    '$get_predicate_attribute'(Pred, tabled, 1).
 '$predicate_property'(tabled(Flag), Pred) :-
     '$get_predicate_attribute'(Pred, tabled, 1),
     table_flag(Flag, Pred).
