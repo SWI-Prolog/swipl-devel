@@ -2495,6 +2495,9 @@ process_predicates(Closure, Preds, Src) :-
     is_list(Preds),
     !,
     process_predicate_list(Preds, Closure, Src).
+process_predicates(Closure, as(Preds, _Options), Src) :-
+    !,
+    process_predicates(Closure, Preds, Src).
 process_predicates(Closure, Preds, Src) :-
     process_predicate_comma(Preds, Closure, Src).
 
@@ -2517,6 +2520,9 @@ process_predicate_comma((A,B), Closure, Src) :-
     !,
     process_predicate_comma(A, Closure, Src),
     process_predicate_comma(B, Closure, Src).
+process_predicate_comma(as(Spec, _Options), Closure, Src) :-
+    !,
+    process_predicate_comma(Spec, Closure, Src).
 process_predicate_comma(A, Closure, Src) :-
     call(Closure, A, Src).
 

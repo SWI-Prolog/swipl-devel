@@ -1813,35 +1813,35 @@ valid_meta_decl(+).
 valid_meta_decl(-).
 valid_meta_decl(I) :- integer(I), between(0,9,I).
 
-%!  colourise_table_declarations(+Term, +TB, +Pos)
+%!  colourise_declarations(+Term, +Which, +TB, +Pos)
 
-colourise_table_declarations(Term, TB, parentheses_term_position(PO,PC,Pos)) :-
+colourise_declarations(Term, Which, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
     colour_item(parentheses, TB, PO-PC),
-    colourise_table_declarations(Term, TB, Pos).
-colourise_table_declarations((Head,Tail), TB,
+    colourise_declarations(Term, Which, TB, Pos).
+colourise_declarations((Head,Tail), Which, TB,
                              term_position(_,_,_,_,[PH,PT])) :-
     !,
-    colourise_table_declarations(Head, TB, PH),
-    colourise_table_declarations(Tail, TB, PT).
-colourise_table_declarations(as(Spec, Options), TB,
+    colourise_declarations(Head, Which, TB, PH),
+    colourise_declarations(Tail, Which, TB, PT).
+colourise_declarations(as(Spec, Options), Which, TB,
                              term_position(_,_,FF,FT,[PH,PT])) :-
     !,
     colour_item(keyword(as), TB, FF-FT),
-    colourise_table_declarations(Spec, TB, PH),
-    colourise_table_options(Options, TB, PT).
-colourise_table_declarations(PI, TB, Pos) :-
+    colourise_declarations(Spec, Which, TB, PH),
+    colourise_decl_options(Options, Which, TB, PT).
+colourise_declarations(PI, _Which, TB, Pos) :-
     is_predicate_indicator(PI),
     !,
     colourise_declaration(PI, TB, Pos).
-colourise_table_declarations(Goal, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
+colourise_declarations(Goal, table, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
     callable(Goal),
     !,
     compound_name_arguments(Goal, _, Args),
     goal_classification(TB, Goal, [], Class),
     colour_item(goal(Class, Goal), TB, FF-FT),
     colourise_table_modes(Args, TB, ArgPos).
-colourise_table_declarations(Goal, TB, Pos) :-
+colourise_declarations(Goal, table, TB, Pos) :-
     atom(Goal),
     !,
     goal_classification(TB, Goal, [], Class),
@@ -1904,28 +1904,37 @@ table_moded_call(Head, Arity, TB, Pos) :-
 table_moded_call(_, _, TB, Pos) :-
     colour_item(type_error(predicate_name_or_indicator), TB, Pos).
 
-colourise_table_options(Options, TB,
-                        parentheses_term_position(_,_,Pos)) :-
+colourise_decl_options(Options, Which, TB,
+                       parentheses_term_position(_,_,Pos)) :-
     !,
-    colourise_table_options(Options, TB, Pos).
-colourise_table_options((Head,Tail), TB,
+    colourise_decl_options(Options, Which, TB, Pos).
+colourise_decl_options((Head,Tail), Which, TB,
                         term_position(_,_,_,_,[PH,PT])) :-
     !,
-    colourise_table_options(Head, TB, PH),
-    colourise_table_options(Tail, TB, PT).
-colourise_table_options(Atom, TB, F-T) :-
-    nonvar(Atom),
-    valid_table_option(Atom),
+    colourise_decl_options(Head, Which, TB, PH),
+    colourise_decl_options(Tail, Which, TB, PT).
+colourise_decl_options(Option, Which, TB, Pos) :-
+    ground(Option),
+    valid_decl_option(Option, Which),
     !,
-    colour_item(table_option(Atom), TB, F-T).
-colourise_table_options(_, TB, Pos) :-
-    colour_item(type_error(table_option), TB, Pos).
+    functor(Option, Name, _),
+    colour_item(decl_option(Name), TB, Pos).
+colourise_decl_options(_, Which, TB, Pos) :-
+    colour_item(type_error(decl_option(Which)), TB, Pos).
 
-valid_table_option(subsumptive).
-valid_table_option(variant).
-valid_table_option(incremental).
-valid_table_option(shared).
-valid_table_option(private).
+valid_decl_option(subsumptive,   table).
+valid_decl_option(variant,       table).
+valid_decl_option(incremental,   table).
+valid_decl_option(incremental,   dynamic).
+valid_decl_option(abstract(0),   dynamic).
+valid_decl_option(shared,        table).
+valid_decl_option(private,       table).
+valid_decl_option(shared,        dynamic).
+valid_decl_option(private,       dynamic).
+valid_decl_option(local,         dynamic).
+valid_decl_option(multifile,     _).
+valid_decl_option(discontiguous, _).
+valid_decl_option(volatile,      _).
 
 %!  colourise_op_declaration(Op, TB, Pos) is det.
 
@@ -2230,14 +2239,14 @@ def_goal_colours(use_module(_),          built_in-[imported_file]).
 def_goal_colours(use_module(File,_),     built_in-[file,imports(File)]).
 def_goal_colours(reexport(_),            built_in-[file]).
 def_goal_colours(reexport(File,_),       built_in-[file,imports(File)]).
-def_goal_colours(dynamic(_),             built_in-[predicates]).
-def_goal_colours(thread_local(_),        built_in-[predicates]).
-def_goal_colours(module_transparent(_),  built_in-[predicates]).
-def_goal_colours(discontiguous(_),       built_in-[predicates]).
-def_goal_colours(multifile(_),           built_in-[predicates]).
-def_goal_colours(volatile(_),            built_in-[predicates]).
-def_goal_colours(public(_),              built_in-[predicates]).
-def_goal_colours(table(_),               built_in-[table_declarations]).
+def_goal_colours(dynamic(_),             built_in-[declarations(dynamic)]).
+def_goal_colours(thread_local(_),        built_in-[declarations(thread_local)]).
+def_goal_colours(module_transparent(_),  built_in-[declarations(module_transparent)]).
+def_goal_colours(discontiguous(_),       built_in-[declarations(discontiguous)]).
+def_goal_colours(multifile(_),           built_in-[declarations(multifile)]).
+def_goal_colours(volatile(_),            built_in-[declarations(volatile)]).
+def_goal_colours(public(_),              built_in-[declarations(public)]).
+def_goal_colours(table(_),               built_in-[declarations(table)]).
 def_goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
 def_goal_colours(consult(_),             built_in-[file]).
 def_goal_colours(include(_),             built_in-[file]).
@@ -2412,7 +2421,7 @@ def_style(type_error(_),           [background(orange)]).
 def_style(syntax_error(_,_),       [background(orange)]).
 def_style(instantiation_error,     [background(orange)]).
 
-def_style(table_option(_),	   [bold(true)]).
+def_style(decl_option(_),	   [bold(true)]).
 def_style(table_mode(_),	   [bold(true)]).
 
 %!  syntax_colour(?Class, ?Attributes) is nondet.
@@ -2663,9 +2672,9 @@ specified_item(meta_declarations, Term, TB, Pos) :-
 specified_item(meta_declarations(Extra), Term, TB, Pos) :-
     !,
     colourise_meta_declarations(Term, Extra, TB, Pos).
-specified_item(table_declarations, Term, TB, Pos) :-
+specified_item(declarations(Which), Term, TB, Pos) :-
     !,
-    colourise_table_declarations(Term, TB, Pos).
+    colourise_declarations(Term, Which, TB, Pos).
                                         % set_prolog_flag(Name, _)
 specified_item(prolog_flag_name, Term, TB, Pos) :-
     !,
@@ -2855,8 +2864,24 @@ syntax_message(module(Module)) -->
         )
     ;   [ 'Module ~w (not loaded)'-[Module] ]
     ).
-syntax_message(table_option(_)) -->
-    [ 'Table option' ].
+syntax_message(decl_option(incremental)) -->
+    [ 'Keep affected tables consistent' ].
+syntax_message(decl_option(abstract)) -->
+    [ 'Add abstracted goal to table dependency graph' ].
+syntax_message(decl_option(volatile)) -->
+    [ 'Do not include predicate in a saved program' ].
+syntax_message(decl_option(multifile)) -->
+    [ 'Clauses are spread over multiple files' ].
+syntax_message(decl_option(discontiguous)) -->
+    [ 'Clauses are not contiguous' ].
+syntax_message(decl_option(private)) -->
+    [ 'Tables or clauses are private to a thread' ].
+syntax_message(decl_option(local)) -->
+    [ 'Tables or clauses are private to a thread' ].
+syntax_message(decl_option(shared)) -->
+    [ 'Tables or clauses are shared between threads' ].
+syntax_message(decl_option(_Opt)) -->
+    [ 'Predicate property' ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
