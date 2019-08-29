@@ -5205,12 +5205,17 @@ PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
     { return PL_unify_atom(A2, ATOM_dynamic);
     } else
     { int rc;
-
 #ifdef O_PLMT
-      if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
-	return FALSE;				/* deadlock */
-      rc = unify_table_status(A2, atrie, FALSE PASS_LD);
-      COMPLETE_WORKLIST(atrie, (void)0);
+      int tid = PL_thread_self();
+
+      if ( atrie->tid == tid )			/* remain owner */
+      { rc = unify_table_status(A2, atrie, FALSE PASS_LD);
+      } else
+      { if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
+	  return FALSE;				/* deadlock */
+	rc = unify_table_status(A2, atrie, FALSE PASS_LD);
+	COMPLETE_WORKLIST(atrie, (void)0);
+      }
 #else
       rc = unify_table_status(A2, atrie, FALSE PASS_LD);
 #endif
