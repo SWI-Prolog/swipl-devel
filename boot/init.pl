@@ -113,47 +113,47 @@ attempt to call the Prolog defined trace interceptor.
 %
 %   Specify that the predicate cannot be seen in the debugger.
 
-dynamic(Spec)            :- '$set_pattr'(Spec, pred, (dynamic)).
-multifile(Spec)          :- '$set_pattr'(Spec, pred, (multifile)).
-module_transparent(Spec) :- '$set_pattr'(Spec, pred, (transparent)).
-discontiguous(Spec)      :- '$set_pattr'(Spec, pred, (discontiguous)).
-volatile(Spec)           :- '$set_pattr'(Spec, pred, (volatile)).
-thread_local(Spec)       :- '$set_pattr'(Spec, pred, (thread_local)).
-noprofile(Spec)          :- '$set_pattr'(Spec, pred, (noprofile)).
-public(Spec)             :- '$set_pattr'(Spec, pred, (public)).
-non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
-'$iso'(Spec)             :- '$set_pattr'(Spec, pred, (iso)).
-'$clausable'(Spec)       :- '$set_pattr'(Spec, pred, (clausable)).
-'$hide'(M:Spec)          :- '$set_pattr'(Spec, M, pred, trace, false).
+dynamic(Spec)            :- '$set_pattr'(Spec, pred, dynamic(true)).
+multifile(Spec)          :- '$set_pattr'(Spec, pred, multifile(true)).
+module_transparent(Spec) :- '$set_pattr'(Spec, pred, transparent(true)).
+discontiguous(Spec)      :- '$set_pattr'(Spec, pred, discontiguous(true)).
+volatile(Spec)           :- '$set_pattr'(Spec, pred, volatile(true)).
+thread_local(Spec)       :- '$set_pattr'(Spec, pred, thread_local(true)).
+noprofile(Spec)          :- '$set_pattr'(Spec, pred, noprofile(true)).
+public(Spec)             :- '$set_pattr'(Spec, pred, public(true)).
+non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
+'$iso'(Spec)             :- '$set_pattr'(Spec, pred, iso(true)).
+'$clausable'(Spec)       :- '$set_pattr'(Spec, pred, clausable(true)).
+'$hide'(Spec)            :- '$set_pattr'(Spec, pred, trace(false)).
 
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
-'$set_pattr'(Pred, M, How, Attr) :-
-    '$set_pattr'(Pred, M, How, Attr, true).
 
-'$set_pattr'(X, _, _, _, _) :-
+'$set_pattr'(X, _, _, _) :-
     var(X),
     throw(error(instantiation_error, _)).
-'$set_pattr'([], _, _, _, _) :- !.
-'$set_pattr'([H|T], M, How, Attr, Val) :-           % ISO
+'$set_pattr'([], _, _, _) :- !.
+'$set_pattr'([H|T], M, How, Attr) :-           % ISO
     !,
-    '$set_pattr'(H, M, How, Attr, Val),
-    '$set_pattr'(T, M, How, Attr, Val).
-'$set_pattr'((A,B), M, How, Attr, Val) :-           % ISO and traditional
+    '$set_pattr'(H, M, How, Attr),
+    '$set_pattr'(T, M, How, Attr).
+'$set_pattr'((A,B), M, How, Attr) :-           % ISO and traditional
     !,
-    '$set_pattr'(A, M, How, Attr, Val),
-    '$set_pattr'(B, M, How, Attr, Val).
-'$set_pattr'(M:T, _, How, Attr, Val) :-
+    '$set_pattr'(A, M, How, Attr),
+    '$set_pattr'(B, M, How, Attr).
+'$set_pattr'(M:T, _, How, Attr) :-
     !,
-    '$set_pattr'(T, M, How, Attr, Val).
-'$set_pattr'(A, M, pred, Attr, Val) :-
+    '$set_pattr'(T, M, How, Attr).
+'$set_pattr'(A, M, pred, Attr) :-
     !,
-    '$set_predicate_attribute'(M:A, Attr, Val).
-'$set_pattr'(A, M, directive, Attr, Val) :-
+    Attr =.. [Name,Val],
+    '$set_predicate_attribute'(M:A, Name, Val).
+'$set_pattr'(A, M, directive, Attr) :-
     !,
-    catch('$set_predicate_attribute'(M:A, Attr, Val),
+    Attr =.. [Name,Val],
+    catch('$set_predicate_attribute'(M:A, Name, Val),
           error(E, _),
-          print_message(error, error(E, context((Attr)/1,_)))).
+          print_message(error, error(E, context((Name)/1,_)))).
 
 %!  '$pattr_directive'(+Spec, +Module) is det.
 %
@@ -163,21 +163,21 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, (non_terminal)).
 %   continues with the remaining predicates.
 
 '$pattr_directive'(dynamic(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (dynamic)).
+    '$set_pattr'(Spec, M, directive, dynamic(true)).
 '$pattr_directive'(multifile(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (multifile)).
+    '$set_pattr'(Spec, M, directive, multifile(true)).
 '$pattr_directive'(module_transparent(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (transparent)).
+    '$set_pattr'(Spec, M, directive, transparent(true)).
 '$pattr_directive'(discontiguous(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (discontiguous)).
+    '$set_pattr'(Spec, M, directive, discontiguous(true)).
 '$pattr_directive'(volatile(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (volatile)).
+    '$set_pattr'(Spec, M, directive, volatile(true)).
 '$pattr_directive'(thread_local(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (thread_local)).
+    '$set_pattr'(Spec, M, directive, thread_local(true)).
 '$pattr_directive'(noprofile(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (noprofile)).
+    '$set_pattr'(Spec, M, directive, noprofile(true)).
 '$pattr_directive'(public(Spec), M) :-
-    '$set_pattr'(Spec, M, directive, (public)).
+    '$set_pattr'(Spec, M, directive, public(true)).
 
 :- '$iso'(((dynamic)/1, (multifile)/1, (discontiguous)/1)).
 
