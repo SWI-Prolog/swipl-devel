@@ -129,9 +129,17 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$set_pattr'(M:Pred, How, Attr) :-
     '$set_pattr'(Pred, M, How, Attr).
 
+%!  '$set_pattr'(+Spec, +Module, +From, +Attr)
+%
+%   Set predicate attributes. From is one of `pred` or `directive`.
+
 '$set_pattr'(X, _, _, _) :-
     var(X),
-    throw(error(instantiation_error, _)).
+    '$uninstantiation_error'(X).
+'$set_pattr'(as(Spec,Options), M, How, Attr0) :-
+    !,
+    '$attr_options'(Options, Attr0, Attr),
+    '$set_pattr'(Spec, M, How, Attr).
 '$set_pattr'([], _, _, _) :- !.
 '$set_pattr'([H|T], M, How, Attr) :-           % ISO
     !,
@@ -144,6 +152,17 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$set_pattr'(M:T, _, How, Attr) :-
     !,
     '$set_pattr'(T, M, How, Attr).
+'$set_pattr'(PI, M, _, []) :-
+    !,
+    '$pi_head'(M:PI, Pred),
+    (   '$get_predicate_attribute'(Pred, incremental, 1)
+    ->  '$wrap_incremental'(Pred)
+    ;   '$unwrap_incremental'(Pred)
+    ).
+'$set_pattr'(A, M, How, [O|OT]) :-
+    !,
+    '$set_pattr'(A, M, How, O),
+    '$set_pattr'(A, M, How, OT).
 '$set_pattr'(A, M, pred, Attr) :-
     !,
     Attr =.. [Name,Val],
@@ -154,6 +173,47 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     catch('$set_predicate_attribute'(M:A, Name, Val),
           error(E, _),
           print_message(error, error(E, context((Name)/1,_)))).
+
+'$attr_options'(Var, _, _) :-
+    var(Var),
+    !,
+    '$uninstantiation_error'(Var).
+'$attr_options'((A,B), Attr0, Attr) :-
+    !,
+    '$attr_options'(A, Attr0, Attr1),
+    '$attr_options'(B, Attr1, Attr).
+'$attr_options'(Opt, Attr0, Attrs) :-
+    '$must_be'(ground, Opt),
+    (   '$attr_option'(Opt, AttrX)
+    ->  (   is_list(Attr0)
+        ->  '$join_attrs'(AttrX, Attr0, Attrs)
+        ;   '$join_attrs'(AttrX, [Attr0], Attrs)
+        )
+    ;   '$domain_error'(predicate_option, Opt)
+    ).
+
+'$join_attrs'(Attr, Attrs, Attrs) :-
+    memberchk(Attr, Attrs),
+    !.
+'$join_attrs'(Attr, Attrs, Attrs) :-
+    Attr =.. [Name,Value],
+    Gen =.. [Name,Existing],
+    memberchk(Gen, Attrs),
+    !,
+    throw(error(conflict_error(Name, Value, Existing), _)).
+'$join_attrs'(Attr, Attrs0, Attrs) :-
+    '$append'(Attrs0, [Attr], Attrs).
+
+'$attr_option'(incremental, incremental(true)).
+'$attr_option'(opaque, incremental(false)).
+'$attr_option'(abstract(Level), abstract(true)) :-
+    '$must_be'(between(0,0), Level).
+'$attr_option'(volatile, volatile(true)).
+'$attr_option'(multifile, multifile(true)).
+'$attr_option'(discontiguous, discontiguous(true)).
+'$attr_option'(shared, thread_local(false)).
+'$attr_option'(local, thread_local(true)).
+'$attr_option'(private, thread_local(true)).
 
 %!  '$pattr_directive'(+Spec, +Module) is det.
 %
@@ -3594,6 +3654,11 @@ compile_aux_clauses(Clauses) :-
     (   (X == true ; X == false)
     ->  true
     ;   '$type_error'(boolean, X)
+    ).
+'$must_be'(ground, X) :- !,
+    (   ground(X)
+    ->  true
+    ;   '$instantiation_error'(X)
     ).
 % Use for debugging
 %'$must_be'(Type, _X) :- format('Unknown $must_be type: ~q~n', [Type]).

@@ -3570,6 +3570,60 @@ In SWI-Prolog all these directives are just predicates. This implies
 they can also be called by a program.  Do not rely on this feature if
 you want to maintain portability to other Prolog implementations.
 
+Notably with the introduction of tabling (see \secref{tabling}) it is
+common that a set of predicates require multiple options to be set.
+SWI-Prolog offers two mechanisms to cope with this. The predicate
+dynamic/2 can be used to make a list of predicates dynamic and set
+additional options. In addition and for compatibility with
+XSB,\footnote{Note that \const{as} is in XSB a high-priority operator
+and in SWI a low-priority and therefore both the sets of predicate
+indicators as multiple options require parenthesis.} all the predicates
+below accept a term \term{as}{(:PredicateIndicator, \ldots),
+(+Options)}, where \arg{Options} is a \jargon{comma-list} of one of more
+of the following options:
+
+\begin{description}
+    \termitem{incremental}{}
+Include a dynamic predicate into the incremental tabling dependency
+graph.  See \secref{tabling-incremental}.
+    \termitem{opaque}{}
+Opposite of \const{incremental}. For XSB compatibility.\footnote{In XSB,
+\const{opaque} is distinct from the default in the sense that dynamic
+switching beween \const{opaque} and \const{incremental} is allowed.}
+    \termitem{abstract}{Level}
+Used together with \const{incremental} to reduce the dependency graph.
+See \secref{tabling-incremental}.
+    \termitem{volatile}{}
+Do not save this predicate.  See volatile/1.
+    \termitem{multifile}{}
+Predicate may have clauses in multiple clauses.  See multifile/1.
+    \termitem{discontiguous}{}
+Predicate clauses may not be contiguous in the file. See
+discontiguous/1.
+    \termitem{shared}{}
+Dynamic predicate is shared between all threads.  This is currently
+the default.
+    \termitem{local}{}
+    \nodescription
+    \termitem{private}{}
+Dynamic predicate has distinct set of clauses in each thread.  See
+thread_local/1.
+\end{description}
+
+Below are some examples, where the last two are semantically identical.
+
+\begin{code}
+:- dynamic person/2 as incremental.
+:- dynamic (person/2,organization/2) as (incremental, abstract(0)).
+:- dynamic([ person/2,
+	     organization/2
+	   ],
+	   [ incremental(true),
+	     abstract(0)
+	   ]).
+\end{code}
+
+
 \begin{description}
     \prefixop[ISO]{dynamic}{:PredicateIndicator, \ldots}
 Informs the interpreter that the definition of the predicate(s) may change
@@ -3580,16 +3634,13 @@ alternative where each thread has its own clause list for the
 predicate.  Dynamic predicates can be turned into static ones using
 compile_predicates/1.
 
-    \predicate{dynamic}{1}{:ListOfPredicateIndicators, +Options}
+    \predicate{dynamic}{2}{:ListOfPredicateIndicators, +Options}
 As dynamic/1, but allows for setting additional properties. This
 predicate allows for setting multiple properties on multiple
-predicates.\footnote{XSB has \exam{:- dynamic p/1, q/1 as incremental.},
-using \const{as} as a high-priority operator. SWI-Prolog, YAP and
-Logtalk use \const{as} for aliasing imported predicates where as is
-defined as a low-priority operator. With a growing number of often
-combined properties we copied the idea of setting multiple attributes
-in a single directive but opted for the common \jargon{option} based
-approach.} Defined \arg{Options} are:
+predicates in a single call.  SWI-Prolog also offers the XSB
+compatible \exam{:- dynamic (p/1) as (incremental,abstract(0)).}
+syntax. See the introduction of \secref{declare}. Defined \arg{Options}
+are:
 
     \begin{description}
     \termitem{incremental}{+Boolean}
