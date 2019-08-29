@@ -310,8 +310,7 @@ start_tabling(Closure, Wrapper, Worker) :-
               deadlock,
               restart_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
-    ->  reeval(Trie),                           % needs clause
-        trie_gen_compiled(Trie, Skeleton)
+    ->  reeval(Trie, Wrapper, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
@@ -1239,39 +1238,50 @@ dyn_affected(Term, ATrie) :-
     ;   true
     ).
 
-%!  reeval(+ATrie)
+%!  reeval(+ATrie, :Goal, ?Return) is nondet.
 %
 %   Called  if  the   table   ATrie    is   out-of-date   (has  non-zero
-%   _falsecount_). This finds all dependency paths to dynamic predicates
-%   and then evaluates the nodes in   a breath-first fashion starting at
-%   the level just above the  dynamic   predicates  and  moving upwards.
-%   Bottom up evaluation is used to   profit  from upward propagation of
-%   not-modified events that may cause the evaluation to stop early.
+%   _falsecount_). The answers of this predicate are the answers to Goal
+%   after re-evaluating the answer trie.
+%
+%   This finds all dependency  paths  to   dynamic  predicates  and then
+%   evaluates the nodes in a breath-first  fashion starting at the level
+%   just above the dynamic predicates  and   moving  upwards.  Bottom up
+%   evaluation is used to profit from upward propagation of not-modified
+%   events that may cause the evaluation to stop early.
 %
 %   Note that false paths either end  in   a  dynamic node or a complete
 %   node. The latter happens if we have and  IDG   "D  -> P -> Q" and we
 %   first re-evaluate P for some reason.  Now   Q  can  still be invalid
 %   after P has been re-evaluated.
+%
+%   @arg ATrie is the answer trie.  When shared tabling, we own this
+%   trie.
+%   @arg Goal is tabled goal (variant).  If we run into a deadlock we
+%   need to call this.
+%   @arg Return is the return skeleton. We must run
+%   trie_gen_compiled(ATrie, Return) to enumerate the answers
 
-reeval(ATrie) :-
-    catch(try_reeval(ATrie), deadlock,
-          retry_reeval(ATrie)).
+reeval(ATrie, Goal, Return) :-
+    catch(try_reeval(ATrie, Goal, Return), deadlock,
+          retry_reeval(ATrie, Goal)).
 
-retry_reeval(ATrie) :-
+retry_reeval(ATrie, Goal) :-
     '$tbl_reeval_abandon'(ATrie),
     tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
     sleep(0.000001),
-    reeval(ATrie).
+    call(Goal).
 
-try_reeval(ATrie) :-
+try_reeval(ATrie, Goal, Return) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
-    (   '$tbl_reeval_prepare'(ATrie, Variant)
-    ->  ignore(Variant)                         % assumes local scheduling
-    ;   true
+    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    (   nonvar(Clause)
+    ->  trie_gen_compiled(Clause, Return)
+    ;   call(Goal)
     ).
-try_reeval(ATrie) :-
+try_reeval(ATrie, Goal, Return) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
     sort(0, @>, Paths0, Paths),
@@ -1282,10 +1292,10 @@ try_reeval(ATrie) :-
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie),
-    (   '$tbl_reeval_wait'(ATrie, invalid)
-    ->  tdebug(reeval, 'Final re-evaluation: ~p', [ATrie]),
-        reeval_node(ATrie)
-    ;   tdebug(reeval, 'Valid: ~p', [ATrie])
+    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    (   nonvar(Clause)
+    ->  trie_gen_compiled(Clause, Return)
+    ;   call(Goal)
     ).
 
 split_paths([], [], []).
@@ -1372,7 +1382,8 @@ is_invalid(ATrie) :-
 %       outer one it will complete before we continue.
 
 reeval_node(ATrie) :-
-    '$tbl_reeval_prepare'(ATrie, Variant),
+    '$tbl_reeval_prepare'(ATrie, Variant, Clause),
+    var(Clause),
     !,
     tdebug(reeval, 'Re-evaluating ~p', [Variant]),
     (   '$idg_reset_current',

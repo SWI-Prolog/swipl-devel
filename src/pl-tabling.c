@@ -5190,10 +5190,12 @@ PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
 }
 
 
-/** '$tbl_reeval_prepare'(+Trie, -Variant) is semidet.
+/** '$tbl_reeval_prepare'(+Trie, -Variant, -Clause) is det.
  *
- * Prepare Trie for re-evaluation.  Fails if the trie is (no longer)
- * invalid.
+ * Prepare Trie for re-evaluation. If Trie is invalid, it is claimed and
+ * prepared for re-evaluation and Variant is   unified  with the goal to
+ * re-evaluate. If the Trie is (already)   valid,  unify Clause with its
+ * answer set.
  *
  * @error `deadlock` if claiming the table would cause a deadlock.
  */
@@ -5220,22 +5222,28 @@ reeval_prep_node(trie_node *n, void *ctx)
 
 
 static
-PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
+PRED_IMPL("$tbl_reeval_prepare", 3, tbl_reeval_prepare, 0)
 { PRED_LD
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
-    if ( idg->falsecount == 0 ||
-	 !unify_trie_term(atrie->data.variant, A2 PASS_LD) )
-      return FALSE;
 #ifdef O_PLMT
-    if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
-      return FALSE;				/* deadlock */
-    if ( idg->falsecount == 0 )			/* someone else re-evaluated it */
-      return FALSE;
+    if ( true(atrie, TRIE_ISSHARED) )
+    { atom_t cref = 0;
+
+      if ( !claim_answer_table(atrie, &cref, 0 PASS_LD) )
+	return FALSE;				/* deadlock */
+      if ( cref )
+	return PL_unify_atom(A3, cref);
+    }
 #endif
+    if ( idg->falsecount == 0 )			/* someone else re-evaluated it */
+      return PL_unify_atom(A3, trie_symbol(atrie));
+
+    if ( !unify_trie_term(atrie->data.variant, A2 PASS_LD) )
+      return FALSE;
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
 	  print_answer_table(atrie, "Preparing re-evaluation of"));
@@ -5709,7 +5717,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
 
-  PRED_DEF("$tbl_reeval_prepare",       2, tbl_reeval_prepare,	     0)
+  PRED_DEF("$tbl_reeval_prepare",       3, tbl_reeval_prepare,	     0)
   PRED_DEF("$tbl_reeval_abandon",       1, tbl_reeval_abandon,       0)
   PRED_DEF("$tbl_reeval_wait",          2, tbl_reeval_wait,          0)
 EndPredDefs
