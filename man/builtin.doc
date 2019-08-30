@@ -5602,13 +5602,26 @@ argument.  For lists, only the list as a whole is given to portray/1.  If
 portray/1 succeeds print/1 assumes the term has been written.
 
     \predicate[ISO]{read}{1}{-Term}
-Read the next Prolog term from the current input stream and unify it
-with \arg{Term}.  On a syntax error read/1 displays an error message,
-attempts to skip the erroneous term and fails.  On reaching end-of-file
-\arg{Term} is unified with the atom \const{end_of_file}.
+Read the next \textbf{Prolog term} from the current input stream and
+unify it with \arg{Term}. On reaching end-of-file \arg{Term} is unified
+with the atom \const{end_of_file}. This is the same as read_term/2 using
+an empty option list.
+
+\textbf{[NOTE]} You might have found this while looking for a predicate
+to read input from a file or the user. Quite likely this is not what you
+need in this case. This predicate is for reading a \textbf{Prolog term}
+which may span multiple lines and must end in a \emph{full stop} (dot
+character followed by a layout character). The predicates for reading
+and writing Prololg terms are particularly useful for storing Prolog
+data in a file or transferring them over a network communication channel
+(socket) to another Prolog process. The libraries provide a wealth of
+predicates to read data in other formats. See e.g., \pllib{readutil},
+\pllib{pure_input} or libraries from the extension packages to read XML,
+JSON, YAML, etc.
 
     \predicate[ISO]{read}{2}{+Stream, -Term}
-Read \arg{Term} from \arg{Stream}.
+Read the next \textbf{Prolog term} from \arg{Stream}.  See read/1 and
+read_term/2 for details.
 
     \predicate{read_clause}{3}{+Stream, -Term, +Options}
 Equivalent to read_term/3, but sets options according to the current
