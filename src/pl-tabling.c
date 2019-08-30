@@ -4989,14 +4989,10 @@ idg_changed_loop(idg_propagate_state *state, int changed)
     { idg_node *n = k;
 
       DEBUG(MSG_TABLING_IDG_CHANGED,
-	    { GET_LD
-		term_t v = PL_new_term_ref();
-
-	      unify_trie_term(n->atrie->data.variant, v PASS_LD);
-	      Sdprintf("IDG: propagate falsecount (re-eval=%d, falsecount=%d) to: ",
-		       n->reevaluating, n->falsecount);
-	      PL_write_term(Serror, v, 999, PL_WRT_NEWLINE);
-	    });
+	    print_answer_table(
+		n->atrie,
+		"IDG: propagate falsecount (re-eval=%d, falsecount=%d)",
+		n->reevaluating, n->falsecount));
 
       if ( n->reevaluating )
 	continue;
