@@ -1601,7 +1601,7 @@ colourise_exports(_, TB, Pos) :-
 
 colourise_exports2([G0|GT], TB, [P0|PT]) :-
     !,
-    colourise_declaration(G0, TB, P0),
+    colourise_declaration(G0, export, TB, P0),
     colourise_exports2(GT, TB, PT).
 colourise_exports2(_, _, _).
 
@@ -1668,37 +1668,14 @@ colourise_import(PI, File, TB, Pos) :-
     ),
     !.
 colourise_import(PI, _, TB, Pos) :-
-    colourise_declaration(PI, TB, Pos).
+    colourise_declaration(PI, import, TB, Pos).
 
-
-%!  colourise_declarations(+Term, +TB, +Pos)
-%
-%   Colourise the Predicate indicator lists of dynamic, multifile, etc
-%   declarations.
-
-colourise_declarations(List, TB, list_position(F,T,Elms,none)) :-
-    !,
-    colour_item(list, TB, F-T),
-    colourise_list_declarations(List, TB, Elms).
-colourise_declarations((Head,Tail), TB,
-                       term_position(_,_,_,_,[PH,PT])) :-
-    !,
-    colourise_declaration(Head, TB, PH),
-    colourise_declarations(Tail, TB, PT).
-colourise_declarations(Last, TB, Pos) :-
-    colourise_declaration(Last, TB, Pos).
-
-colourise_list_declarations([], _, []).
-colourise_list_declarations([H|T], TB, [HP|TP]) :-
-    colourise_declaration(H, TB, HP),
-    colourise_list_declarations(T, TB, TP).
-
-%!  colourise_declaration(+Decl, +TB, +Pos) is det.
+%!  colourise_declaration(+Decl, ?Which, +TB, +Pos) is det.
 %
 %   Colourise declaration sequences as used  by module/2, dynamic/1,
 %   etc.
 
-colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
+colourise_declaration(PI, _, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
     pi_to_term(PI, Goal),
     !,
     goal_classification(TB, Goal, [], Class),
@@ -1706,7 +1683,7 @@ colourise_declaration(PI, TB, term_position(F,T,FF,FT,[NamePos,ArityPos])) :-
     colour_item(goal(Class, Goal), TB, NamePos),
     colour_item(predicate_indicator, TB, FF-FT),
     colour_item(arity, TB, ArityPos).
-colourise_declaration(Module:PI, TB,
+colourise_declaration(Module:PI, _, TB,
                       term_position(_,_,QF,QT,[PM,PG])) :-
     atom(Module), pi_to_term(PI, Goal),
     !,
@@ -1717,32 +1694,51 @@ colourise_declaration(Module:PI, TB,
     colour_item(goal(extern(M), Goal), TB, NamePos),
     colour_item(predicate_indicator, TB, FF-FT),
     colour_item(arity, TB, ArityPos).
-colourise_declaration(op(N,T,P), TB, Pos) :-
+colourise_declaration(op(N,T,P), Which, TB, Pos) :-
+    (   Which == export
+    ;   Which == import
+    ),
+    !,
     colour_item(exported_operator, TB, Pos),
     colourise_op_declaration(op(N,T,P), TB, Pos).
-colourise_declaration(_, TB, Pos) :-
-    colour_item(type_error(export_declaration), TB, Pos).
-
-%!  is_predicate_indicator(@Term) is semidet.
-%
-%   True  if  Term  is  a    valid  predicate  (including  non-terminal)
-%   indicator.
-
-is_predicate_indicator(M:PI) :-
-    atom(M),
-    acyclic_term(PI),
+colourise_declaration(Goal, table, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
+    callable(Goal),
     !,
-    is_predicate_indicator(PI).
-is_predicate_indicator(Name/Arity) :-
-    atom(Name),
-    integer(Arity),
-    Arity >= 0,
+    compound_name_arguments(Goal, _, Args),
+    goal_classification(TB, Goal, [], Class),
+    colour_item(goal(Class, Goal), TB, FF-FT),
+    colourise_table_modes(Args, TB, ArgPos).
+colourise_declaration(Goal, table, TB, Pos) :-
+    atom(Goal),
+    !,
+    goal_classification(TB, Goal, [], Class),
+    colour_item(goal(Class, Goal), TB, Pos).
+colourise_declaration(Partial, _Which, TB, Pos) :-
+    compatible_with_pi(Partial),
+    !,
+    colourise_term_arg(Partial, TB, Pos).
+colourise_declaration(_, Which, TB, Pos) :-
+    colour_item(type_error(declaration(Which)), TB, Pos).
+
+compatible_with_pi(Term) :-
+    var(Term),
     !.
-is_predicate_indicator(Name//Arity) :-
-    atom(Name),
-    integer(Arity),
-    Arity >= 0,
-    !.
+compatible_with_pi(Name/Arity) :-
+    !,
+    var_or_atom(Name),
+    var_or_nonneg(Arity).
+compatible_with_pi(Name//Arity) :-
+    !,
+    var_or_atom(Name),
+    var_or_nonneg(Arity).
+compatible_with_pi(M:T) :-
+    var_or_atom(M),
+    compatible_with_pi(T).
+
+var_or_atom(X) :- var(X), !.
+var_or_atom(X) :- atom(X).
+var_or_nonneg(X) :- var(X), !.
+var_or_nonneg(X) :- integer(X), X >= 0, !.
 
 pi_to_term(Name/Arity, Term) :-
     atom(Name), integer(Arity), Arity >= 0,
@@ -1814,7 +1810,14 @@ valid_meta_decl(-).
 valid_meta_decl(I) :- integer(I), between(0,9,I).
 
 %!  colourise_declarations(+Term, +Which, +TB, +Pos)
+%
+%   Colourise  specification  for  dynamic/1,   table/1,  etc.  Includes
+%   processing options such as ``:- dynamic p/1 as incremental.``.
 
+colourise_declarations(List, Which, TB, list_position(F,T,Elms,none)) :-
+    !,
+    colour_item(list, TB, F-T),
+    colourise_list_declarations(List, Which, TB, Elms).
 colourise_declarations(Term, Which, TB, parentheses_term_position(PO,PC,Pos)) :-
     !,
     colour_item(parentheses, TB, PO-PC),
@@ -1830,22 +1833,14 @@ colourise_declarations(as(Spec, Options), Which, TB,
     colour_item(keyword(as), TB, FF-FT),
     colourise_declarations(Spec, Which, TB, PH),
     colourise_decl_options(Options, Which, TB, PT).
-colourise_declarations(PI, _Which, TB, Pos) :-
-    is_predicate_indicator(PI),
-    !,
-    colourise_declaration(PI, TB, Pos).
-colourise_declarations(Goal, table, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
-    callable(Goal),
-    !,
-    compound_name_arguments(Goal, _, Args),
-    goal_classification(TB, Goal, [], Class),
-    colour_item(goal(Class, Goal), TB, FF-FT),
-    colourise_table_modes(Args, TB, ArgPos).
-colourise_declarations(Goal, table, TB, Pos) :-
-    atom(Goal),
-    !,
-    goal_classification(TB, Goal, [], Class),
-    colour_item(goal(Class, Goal), TB, Pos).
+colourise_declarations(PI, Which, TB, Pos) :-
+    colourise_declaration(PI, Which, TB, Pos).
+
+colourise_list_declarations([], _, _, []).
+colourise_list_declarations([H|T], Which, TB, [HP|TP]) :-
+    colourise_declaration(H, Which, TB, HP),
+    colourise_list_declarations(T, Which, TB, TP).
+
 
 colourise_table_modes([], _, _).
 colourise_table_modes([H|T], TB, [PH|PT]) :-
@@ -2660,11 +2655,11 @@ specified_item(import(File), Term, TB, Pos) :-
                                         % Name/Arity, ...
 specified_item(predicates, Term, TB, Pos) :-
     !,
-    colourise_declarations(Term, TB, Pos).
+    colourise_declarations(Term, predicate_indicator, TB, Pos).
                                         % Name/Arity
 specified_item(predicate, Term, TB, Pos) :-
     !,
-    colourise_declaration(Term, TB, Pos).
+    colourise_declaration(Term, predicate_indicator, TB, Pos).
                                         % head(Arg, ...)
 specified_item(meta_declarations, Term, TB, Pos) :-
     !,
