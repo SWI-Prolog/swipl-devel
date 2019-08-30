@@ -5449,7 +5449,10 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	  UNLOCK_SHARED_TABLE(atrie);
 	  return FALSE;
 	}
-	wait_for_table_to_complete(atrie);
+	if ( !wait_for_table_to_complete(atrie) )
+	{ UNLOCK_SHARED_TABLE(atrie);
+	  return FALSE;
+	}
 	unregister_waiting(mytid, atrie);
 	if ( !atrie->tid && table_needs_work(atrie) )
 	{ DEBUG(MSG_TABLING_SHARED,
@@ -5583,7 +5586,13 @@ wait_for_table_to_complete(trie *atrie)
 	print_answer_table(atrie, "waiting for %d to complete", atrie->tid));
 
   do
-  { cv_wait(&GD->tabling.cvar, &GD->tabling.mutex);
+  { if ( cv_wait(&GD->tabling.cvar, &GD->tabling.mutex) == EINTR )
+    { if ( PL_handle_signals() < 0 )
+      { DEBUG(MSG_TABLING_SHARED,
+	      print_answer_table(atrie, "Ready (interrupted"));
+	return FALSE;
+      }
+    }
   } while( atrie->tid != 0 );
 
   DEBUG(MSG_TABLING_SHARED,
