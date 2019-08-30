@@ -4968,6 +4968,15 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) If not-changed propagation re-validates  the   table  someone may be
+waiting for it and we must release   ownership  for the table and signal
+possible waiters.
+
+It is probably possible we re-validate a   table that is claimed by some
+other thread. What should we do in this case?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 typedef struct idg_propagate_state
 { size_t modified;
   trie *incomplete;				/* hit an incomplete trie */
@@ -5006,7 +5015,14 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 	}
       } else
       { if ( ATOMIC_DEC(&n->falsecount) == 0 )
-	{ if ( n->affected )
+	{ if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
+	  { if ( n->atrie->tid == PL_thread_self() ) /* See (*) */
+	      COMPLETE_WORKLIST(n->atrie, (void)0);
+	    else
+	      Sdprintf("IDG falsecount propagation re-validated a table "
+		       "from another thread\n");
+	  }
+	  if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
       }
