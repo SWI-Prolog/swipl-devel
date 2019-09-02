@@ -262,6 +262,7 @@ update_state(_, _).
 
 update_directive(module(Module, Public), _) :-
     atom(Module),
+    is_list(Public),
     !,
     '$set_source_module'(Module),
     maplist(import_syntax(_,Module, _), Public).
