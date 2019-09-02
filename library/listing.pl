@@ -43,6 +43,7 @@
           portray_clause/3              % +Stream, +Clause, +Options
         ]).
 :- use_module(library(lists)).
+:- use_module(library(apply)).
 :- use_module(library(settings)).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -298,17 +299,14 @@ decl(public,       public).
 %   abstract(Depth)
 
 declaration(Pred, Source, Decl) :-
-    predicate_property(Pred, tabled(_How)),
+    predicate_property(Pred, tabled),
     Pred = M:Head,
     (   M:'$table_mode'(Head, Head, _)
     ->  decl_term(Pred, Source, Funct),
-        Decl0 = table(Funct)
+        table_options(Pred, Funct, TableDecl),
+        Decl = table(TableDecl)
     ;   comment('% tabled using answer subsumption', []),
         fail                                    % TBD
-    ),
-    (   predicate_property(Pred, incremental)
-    ->  Decl = as(Decl0, incremental)
-    ;   Decl = Decl0
     ).
 declaration(Pred, Source, Decl) :-
     decl(Prop, Declname),
@@ -349,6 +347,13 @@ implies_transparent(:).
 implies_transparent(//).
 implies_transparent(^).
 
+table_options(Pred, Decl0, as(Decl0, Options)) :-
+    findall(Flag, predicate_property(Pred, tabled(Flag)), [F0|Flags]),
+    !,
+    foldl(table_option, Flags, F0, Options).
+table_options(_, Decl, Decl).
+
+table_option(Flag, X, (Flag,X)).
 
 list_declarations(Pred, Source) :-
     findall(Decl, declaration(Pred, Source, Decl), Decls),

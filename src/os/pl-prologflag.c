@@ -1487,6 +1487,9 @@ initPrologFlags(void)
   setPrologFlag("posix_shell", FT_ATOM, POSIX_SHELL);
 #endif
 
+  setPrologFlag("table_incremental", FT_BOOL, FALSE, PLFLAG_TABLE_INCREMENTAL);
+  setPrologFlag("table_shared",      FT_BOOL, FALSE, PLFLAG_TABLE_SHARED);
+
   setTmpDirPrologFlag();
   setTZPrologFlag();
   setOSPrologFlags();

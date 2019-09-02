@@ -1830,6 +1830,14 @@ operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
 calling thread. See also thread_self/1.
 
+    \prologflagitem{table_incremental}{bool}{rw}
+Set the default for whether to use incremental tabling or not.
+Initially set the \const{false}.  See table/1.
+
+    \prologflagitem{table_shared}{bool}{rw}
+Set the default for whether to use shared tabling or not.
+Initially set the \const{false}.  See table/1.
+
     \prologflagitem{table_space}{integer}{rw}
 Space reserved for storing answer tables for \jargon{tabled predicates}
 (see table/1).\bug{Currently only counts the space occupied by the

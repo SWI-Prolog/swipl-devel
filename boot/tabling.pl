@@ -862,7 +862,12 @@ current_table(M:Variant, Trie) :-
     system:term_expansion/2.
 
 wrappers(Spec, M) -->
-    wrappers(Spec, M, #{}).
+    { tabling_defaults([ table_incremental-incremental,
+                         table_shared-tshared
+                       ],
+                       #{}, Defaults)
+    },
+    wrappers(Spec, M, Defaults).
 
 wrappers(Var, _, _) -->
     { var(Var),
@@ -940,6 +945,15 @@ qlist([], _)    --> [].
 qlist([H|T], M) --> [M:H], qlist(T, M).
 
 
+tabling_defaults([], Dict, Dict).
+tabling_defaults([Flag-Opt|T], Dict0, Dict) :-
+    (   current_prolog_flag(Flag, true)
+    ->  Dict1 = Dict0.put(Opt,true)
+    ;   Dict1 = Dict0
+    ),
+    tabling_defaults(T, Dict1, Dict).
+
+
 %!  table_options(+Options, +OptDictIn, -OptDictOut)
 %
 %   Handler the ... as _options_ ... construct.
@@ -960,6 +974,9 @@ table_options(variant, Opts0, Opts1) :-
 table_options(incremental, Opts0, Opts1) :-
     !,
     put_dict(incremental, Opts0, true, Opts1).
+table_options(opaque, Opts0, Opts1) :-
+    !,
+    put_dict(incremental, Opts0, false, Opts1).
 table_options(dynamic, Opts0, Opts1) :-
     !,
     put_dict(dynamic, Opts0, true, Opts1).

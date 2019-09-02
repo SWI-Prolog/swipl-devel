@@ -2348,13 +2348,13 @@ typedef struct debuginfo
 #define PLFLAG_CHARESCAPE	    0x00000001 /* handle \ in atoms */
 #define PLFLAG_GC		    0x00000002 /* do GC */
 #define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
-#define PLFLAG_TTY_CONTROL	    0x00000008 /* allow for tty control */
-//				    0x00000010 /* not used */
+#define PLFLAG_GCTHREAD		    0x00000008 /* Do atom/clause GC in a thread */
+#define PLFLAG_TTY_CONTROL	    0x00000010 /* allow for tty control */
 #define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
 #define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
 #define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
 #define PLFLAG_FILE_CASE_PRESERVING 0x00000100 /* case preserving file names */
-#define PLFLAG_DOS_FILE_NAMES       0x00000200 /* dos (8+3) file names */
+#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x00000200
 #define ALLOW_VARNAME_FUNCTOR	    0x00000400 /* Read Foo(x) as 'Foo'(x) */
 #define PLFLAG_ISO		    0x00000800 /* Strict ISO compliance */
 #define PLFLAG_OPTIMISE		    0x00001000 /* -O: optimised compilation */
@@ -2371,9 +2371,9 @@ typedef struct debuginfo
 #define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
-#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
-#define PLFLAG_GCTHREAD		    0x08000000 /* Do atom/clause GC in a thread */
-#define PLFLAG_MITIGATE_SPECTRE	    0x10000000 /* Mitigate spectre attacks */
+#define PLFLAG_MITIGATE_SPECTRE	    0x04000000 /* Mitigate spectre attacks */
+#define PLFLAG_TABLE_INCREMENTAL    0x08000000 /* By default incremental tabling */
+#define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
