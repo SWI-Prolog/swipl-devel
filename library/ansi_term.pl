@@ -40,7 +40,6 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(error)).
-:- use_module(library(lists), [flatten/2]).
 
 /** <module> Print decorated text to ANSI consoles
 
