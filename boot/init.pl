@@ -3853,14 +3853,34 @@ length(_, Length) :-
     '$pi_head'(PI, Head).
 '$pi_head'(Name/Arity, Head) :-
     !,
-    functor(Head, Name, Arity).
+    '$head_name_arity'(Head, Name, Arity).
 '$pi_head'(Name//DCGArity, Head) :-
     !,
     (   nonvar(DCGArity)
     ->  Arity is DCGArity+2,
-        functor(Head, Name, Arity)
-    ;   functor(Head, Name, Arity),
+        '$head_name_arity'(Head, Name, Arity)
+    ;   '$head_name_arity'(Head, Name, Arity),
         DCGArity is Arity - 2
+    ).
+'$pi_head'(PI, _) :-
+    '$type_error'(predicate_indicator, PI).
+
+'$head_name_arity'(Goal, Name, Arity) :-
+    (   atom(Goal)
+    ->  Name = Goal, Arity = 0
+    ;   compound(Goal)
+    ->  compound_name_arity(Goal, Name, Arity)
+    ;   var(Goal)
+    ->  (   Arity == 0
+        ->  (   atom(Name)
+            ->  Goal = Name
+            ;   blob(Name, closure)
+            ->  Goal = Name
+            ;   '$type_error'(atom, Name)
+            )
+        ;   compound_name_arity(Goal, Name, Arity)
+        )
+    ;   '$type_error'(callable, Goal)
     ).
 
 
