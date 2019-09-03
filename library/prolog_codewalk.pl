@@ -150,8 +150,8 @@ source file is passed into _Where.
 %     * module(+Module)
 %     Only process the given module
 %
-%     * module_class(+ModuleClass)
-%     Limit processing to modules of this class. See
+%     * module_class(+ModuleClassList)
+%     Limit processing to modules of the given classes. See
 %     module_property/2 for details on module classes.  Default
 %     is to scan the classes =user= and =library=.
 %
@@ -265,9 +265,21 @@ scan_module(M, OTerm) :-
 
 walk_from_initialization(OTerm) :-
     walk_option_caller(OTerm, '<initialization>'),
-    forall('$init_goal'(_File, Goal, SourceLocation),
+    forall(init_goal_in_scope(Goal, SourceLocation, OTerm),
            ( walk_option_initialization(OTerm, SourceLocation),
              walk_from_initialization(Goal, OTerm))).
+
+init_goal_in_scope(Goal, SourceLocation, OTerm) :-
+    '$init_goal'(File, Goal, SourceLocation),
+    (   walk_option_module(OTerm, M),
+        nonvar(M)
+    ->  module_property(M, file(File))
+    ;   walk_option_module_class(OTerm, Classes),
+        source_file_property(File, module(MF))
+    ->  module_property(MF, class(Class)),
+        memberchk(Class, Classes)
+    ;   true
+    ).
 
 walk_from_initialization(M:Goal, OTerm) :-
     scan_module(M, OTerm),
