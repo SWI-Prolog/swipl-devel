@@ -748,18 +748,18 @@ hidden_module(M) :-
     sub_atom(M, 0, _, _, $).
 
 current_definition(Proc, Prefix) -->
-    { pi_head(Proc, Head),
+    { pi_uhead(Proc, Head),
       predicate_property(Head, file(File)),
       predicate_property(Head, line_count(Line))
     },
-    [ '~w'-[Prefix], '~w:~d'-[File,Line], nl ].
+    [ '~w~w:~d'-[Prefix,File,Line], nl ].
 current_definition(_, _) --> [].
 
-pi_head(Module:Name/Arity, Module:Head) :-
+pi_uhead(Module:Name/Arity, Module:Head) :-
     !,
     atom(Module), atom(Name), integer(Arity),
     functor(Head, Name, Arity).
-pi_head(Name/Arity, user:Head) :-
+pi_uhead(Name/Arity, user:Head) :-
     atom(Name), integer(Arity),
     functor(Head, Name, Arity).
 
