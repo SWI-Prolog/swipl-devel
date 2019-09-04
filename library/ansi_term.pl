@@ -242,21 +242,9 @@ sgr_code(hbg(Name), C) :-
     ansi_color(Name, N),
     C is N+100.
 sgr_code(fg8(Name), [38,5,N]) :-
-    (   ansi_color(Name, N)
-    ->  true
-    ;   ansi_color(h(Name), N0)
-    ->  N is N0+8
-    ;   between(0, 255, Name)
-    ->  N is Name
-    ).
+    ansi_color8(Name, N).
 sgr_code(bg8(Name), [48,5,N]) :-
-    (   ansi_color(Name, N)
-    ->  true
-    ;   ansi_color(h(Name), N0)
-    ->  N is N0+8
-    ;   between(0, 255, Name)
-    ->  N is Name
-    ).
+    ansi_color8(Name, N).
 sgr_code(fg(R,G,B), [38,2,R,G,B]) :-
     between(0, 255, R),
     between(0, 255, G),
@@ -275,6 +263,16 @@ off_code(crossed_out, 29).
 off_code(framed, 54).
 off_code(overlined, 55).
 
+ansi_color8(h(Name), N) :-
+    !,
+    ansi_color(Name, N0),
+    N is N0+8.
+ansi_color8(Name, N) :-
+    atom(Name),
+    !,
+    ansi_color(Name, N).
+ansi_color8(N, N) :-
+    between(0, 255, N).
 
 ansi_color(black,   0).
 ansi_color(red,     1).
