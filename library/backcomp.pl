@@ -65,8 +65,6 @@
             write_ln/1,                 % +Term
             proper_list/1,              % @Term
             free_variables/2,           % +Term, -Variables
-            subsumes_chk/2,             % @Generic, @Specific
-            subsumes/2,                 % @Generic, @Specific
             hash_term/2,                % +Term, -Hash
             checklist/2,                % :Goal, +List
             sublist/3,                  % :Goal, +List, -Sublist
@@ -345,30 +343,6 @@ proper_list(List) :-
 
 free_variables(Term, Variables) :-
     term_variables(Term, Variables).
-
-%!  subsumes_chk(@Generic, @Specific)
-%
-%   True if Generic can be made equivalent to Specific without
-%   changing Specific.
-%
-%   @deprecated Replace by subsumes_term/2.
-
-subsumes_chk(Generic, Specific) :-
-    subsumes_term(Generic, Specific).
-
-%!  subsumes(+Generic, @Specific)
-%
-%   True  if  Generic  is  unified   to  Specific  without  changing
-%   Specific.
-%
-%   @deprecated It turns out that calls to this predicate almost
-%   always should have used subsumes_term/2.  Also the name is
-%   misleading.  In case this is really needed, one is adviced to
-%   follow subsumes_term/2 with an explicit unification.
-
-subsumes(Generic, Specific) :-
-    subsumes_term(Generic, Specific),
-    Generic = Specific.
 
 %!  hash_term(+Term, -Hash) is det.
 %
