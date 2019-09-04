@@ -416,7 +416,7 @@ process_use_module2(File, Imports, Src) :-
 prolog_colourise_query(QueryString, SourceID, ColourItem) :-
     query_colour_state(SourceID, ColourItem, TB),
     setup_call_cleanup(
-        save_settings(TB, State),
+        save_settings(TB, [], State),
         colourise_query(QueryString, TB),
         restore_settings(State)).
 
