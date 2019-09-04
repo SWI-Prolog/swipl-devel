@@ -68,7 +68,6 @@
             xref_used_class/2,          % ?Source, ?ClassName
             xref_defined_class/3        % ?Source, ?ClassName, -How
           ]).
-:- use_module(library(debug), [debug/3]).
 :- use_module(library(lists), [append/3, append/2, member/2, select/3]).
 :- use_module(library(operators), [push_op/3]).
 :- use_module(library(shlib), [current_foreign_library/2]).
