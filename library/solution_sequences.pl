@@ -194,7 +194,15 @@ reduced_(State, Witness1, SizeLimit) :-
 %   Limit the number of solutions. True   if Goal is true, returning
 %   at most Count solutions. Solutions are  returned as soon as they
 %   become  available.
+%
+%   @arg is either `inifinite`,  making   this  predicate  equivalent to
+%   call/1  or  an  integer.  If  `Count   <  1`  this  predicate  fails
+%   immediately.
 
+limit(Count, Goal) :-
+    Count == infinite,
+    !,
+    call(Goal).
 limit(Count, Goal) :-
     Count > 0,
     State = count(0),
