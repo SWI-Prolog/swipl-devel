@@ -375,7 +375,8 @@ load_dyn(File)       :-
         style_check(-singleton),
         load_files(File),
         '$style_check'(_, Style)).
-        load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_dyn(File).
+
+load_dyn(File, Dir)  :- must_be(oneof([z]), Dir), load_dyn(File).
 load_dync(File)      :- load_dyn(File).
 load_dync(File, Dir) :- load_dyn(File, Dir).
 
@@ -526,6 +527,9 @@ debug_ctl(prompt, off) :-
 debug_ctl(prompt, on) :-
     !,
     leash(+full).
+debug_ctl(hide, Preds) :-
+    !,
+    '$hide'(Preds).
 debug_ctl(Option, Value) :-
     print_message(warning, xsb(ignored(debug_ctl(Option, Value)))).
 
@@ -664,6 +668,8 @@ path_sysop(expand, Name, Path) :-
     prolog:message//1.
 
 prolog:message(xsb(not_in_module(File, Module, PI))) -->
-    [ '~p, implementing ~p does not export ~p'-[File, Module, PI] ].
+    [ 'XSB: ~p, implementing ~p does not export ~p'-[File, Module, PI] ].
 prolog:message(xsb(file_loaded_into_mismatched_module(File, Module))) -->
-    [ 'File ~p defines module ~p'-[File, Module] ].
+    [ 'XSB: File ~p defines module ~p'-[File, Module] ].
+prolog:message(xsb(ignored(debug_ctl(Option, Value)))) -->
+    [ 'XSB: debug_ctl(~p,~p) is not implemented'-[Option,Value] ].
