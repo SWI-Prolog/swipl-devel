@@ -44,12 +44,17 @@
             check_var/3,		% ?Term,+Predicate,+Arg
             check_ground/3,		% ?Term,+Predicate,+Arg
 
+            domain_error/4,             % +Valid_type,-Culprit,+Predicate,+Arg
+
             abort/1,                    % +Message
+
+            print_backtrace/1,		% +Backtrace
 
             xsb_error_get_tag/2,        % +ErrorTerm, -Formal
             xsb_error_get_message/2     % +ErrorTerm, -Message
           ]).
 :- use_module(library(error)).
+:- use_module(library(prolog_stack)).
 
 /** <module> XSB compatible error handling
 */
@@ -90,6 +95,20 @@ error_context_message(Var, Var) :-
     !.
 error_context_message(context(Message, _Stack), Message).
 
+%!  domain_error(+Valid_type, -Culprit, +Predicate, +Arg)
+%
+%   Throws a domain error.
+
+domain_error(Type, Culprit, _Pred, _Arg) :-
+    domain_error(Type, Culprit).
+
+%!  print_backtrace(+Backtrace)
+%
+%   This predicate, which is used by XSB’s default error handler, prints
+%   a backtrace structure to XSB’s standard error stream.
+
+print_backtrace(Backtrace) :-
+    print_prolog_backtrace(user_error, Backtrace).
 
 
 		 /*******************************

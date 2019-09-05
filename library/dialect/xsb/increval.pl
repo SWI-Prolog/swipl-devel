@@ -65,6 +65,8 @@ corresponding database update.
 
 :- meta_predicate
     incr_assert(:),
+    incr_asserta(:),
+    incr_assertz(:),
     incr_retractall(:),
     incr_retract(:),
     is_incremental_subgoal(:),

@@ -59,6 +59,9 @@
 
             debug_ctl/2,                        % +Option, +Value
 
+            fmt_write/2,                        % +Fmt, +Term
+            fmt_write/3,                        % +Stream, +Fmt, +Term
+
             path_sysop/2,                       % +Op, ?Value
             path_sysop/3,                       % +Op, ?Value1, ?Value2
 
@@ -525,6 +528,62 @@ debug_ctl(prompt, on) :-
     leash(+full).
 debug_ctl(Option, Value) :-
     print_message(warning, xsb(ignored(debug_ctl(Option, Value)))).
+
+%!  fmt_write(+Fmt, +Term) is det.
+%!  fmt_write(+Stream, +Fmt, +Term) is det.
+%
+%   C-style formatted write, where  the  arguments   are  formed  by the
+%   arguments of Term.  We map this to format/2,3.
+%
+%   @bug We need to complete the  translation of the fmt_write sequences
+%   to format/2,3 sequences. Probably we should   also  cache the format
+%   translation.
+
+fmt_write(Fmt, Term) :-
+    fmt_write(current_output, Fmt, Term).
+
+fmt_write(Stream, Fmt, Term) :-
+    (   compound(Term)
+    ->  Term =.. [_|Args]
+    ;   Args = [Term]
+    ),
+    string_codes(Fmt, Codes),
+    phrase(format_fmt(Format, []), Codes),
+    format(Stream, Format, Args).
+
+format_fmt(Format, Tail) -->
+    "%",
+    (   format_esc(Format, Tail0)
+    ->  !
+    ;   here(Rest),
+        { print_message(warning, xsb(fmt_write(ignored(Rest)))),
+          fail
+        }
+    ),
+    format_fmt(Tail0, Tail).
+format_fmt([0'~,0'~|T0], T) -->
+    "~",
+    !,
+    format_fmt(T0, T).
+format_fmt([H|T0], T) -->
+    [H],
+    !,
+    format_fmt(T0, T).
+format_fmt(T, T) --> [].
+
+format_esc(Fmt, Tail) -->
+    format_esc(Fmt0),
+    !,
+    { append(Fmt0, Tail, Fmt)
+    }.
+
+format_esc(`~16r`) --> "x".
+format_esc(`~d`) --> "d".
+format_esc(`~f`) --> "f".
+format_esc(`~s`) --> "s".
+format_esc(`%`) --> "%".
+
+here(Rest, Rest, Rest).
 
 %!  path_sysop(+Op, ?Value) is semidet.
 %!  path_sysop(+Op, ?Arg1, ?Arg2) is semidet.

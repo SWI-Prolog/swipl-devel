@@ -51,10 +51,12 @@
             conset/2,                     % +Term, +Value
             conget/2,                     % +Term, -Value
 
+            xsb_backtrace/1,              % -Backtrace
             xwam_state/2                  % +Id, -Value
           ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
+:- use_module(library(prolog_stack)).
 
 %!  gc_heap
 %
@@ -204,6 +206,14 @@ conset(Name, Value) :-
 conget(Name, Value) :-
     get_flag(Name, Value).
 
+%!  xsb_backtrace(-Backtrace)
+%
+%   Upon success Backtrace is  bound  to   a  structure  indicating  the
+%   forward continuations for  a  point   of  execution.  This structure
+%   should be treated as opaque.
+
+xsb_backtrace(Backtrace) :-
+    get_prolog_backtrace(25, Backtrace).
 
 %!  xwam_state(+Id, -Value)
 %
