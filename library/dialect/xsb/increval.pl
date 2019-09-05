@@ -34,6 +34,8 @@
 
 :- module(increval,
           [ incr_assert/1,                      % :Clause
+            incr_asserta/1,                     % :Clause
+            incr_assertz/1,                     % :Clause
             incr_retractall/1,                  % :Head
             incr_retract/1,                     % :Clause
 
@@ -73,6 +75,8 @@ corresponding database update.
     incr_invalidate_calls(:).
 
 incr_assert(T)     :- assertz(T).
+incr_asserta(T)    :- asserta(T).
+incr_assertz(T)    :- assertz(T).
 incr_retractall(T) :- retractall(T).
 incr_retract(T)    :- retract(T).
 
