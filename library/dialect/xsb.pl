@@ -57,6 +57,8 @@
             cputime/1,				% -Seconds
             walltime/1,				% -Seconds
 
+            debug_ctl/2,                        % +Option, +Value
+
             path_sysop/2,                       % +Op, ?Value
             path_sysop/3,                       % +Op, ?Value1, ?Value2
 
@@ -510,6 +512,19 @@ walltime(Seconds) :-
     statistics(epoch, Epoch),
     Seconds is Now - Epoch.
 
+%!  debug_ctl(+Option, +Value) is det.
+%
+%   Control the XSB debugger. The  current implementation merely defines
+%   the predicate. Much more can be mapped to SWI-Prolog primitives.
+
+debug_ctl(prompt, off) :-
+    !,
+    leash(-all).
+debug_ctl(prompt, on) :-
+    !,
+    leash(+full).
+debug_ctl(Option, Value) :-
+    print_message(warning, xsb(ignored(debug_ctl(Option, Value)))).
 
 %!  path_sysop(+Op, ?Value) is semidet.
 %!  path_sysop(+Op, ?Arg1, ?Arg2) is semidet.
