@@ -281,13 +281,22 @@ listSupervisor(Definition def)
 
 
 static Code
-multifileSupervisor(Definition def)
-{ if ( true(def, (P_DYNAMIC|P_MULTIFILE)) )
-  { if ( true(def, P_DYNAMIC) )
-      return SUPERVISOR(dynamic);
+dynamicSupervisor(Definition def)
+{ if ( true(def, P_DYNAMIC) )
+  { if ( true(def, P_INCREMENTAL) )
+      return SUPERVISOR(incr_dynamic);
     else
-      return SUPERVISOR(multifile);
+      return SUPERVISOR(dynamic);
   }
+
+  return NULL;
+}
+
+
+static Code
+multifileSupervisor(Definition def)
+{ if ( true(def, P_MULTIFILE) )
+    return SUPERVISOR(multifile);
 
   return NULL;
 }
@@ -381,6 +390,7 @@ createSupervisor(Definition def)
   int has_codes;
 
   has_codes = ((codes = undefSupervisor(def)) ||
+	       (codes = dynamicSupervisor(def)) ||
 	       (codes = multifileSupervisor(def)) ||
 	       (codes = singleClauseSupervisor(def)) ||
 	       (codes = listSupervisor(def)) ||
@@ -460,6 +470,7 @@ initSupervisors(void)
   MAKE_SV1(virgin,	 S_VIRGIN);
   MAKE_SV1(undef,	 S_UNDEF);
   MAKE_SV1(dynamic,      S_DYNAMIC);
+  MAKE_SV1(incr_dynamic, S_INCR_DYNAMIC);
   MAKE_SV1(thread_local, S_THREAD_LOCAL);
   MAKE_SV1(multifile,    S_MULTIFILE);
   MAKE_SV1(staticp,      S_STATIC);

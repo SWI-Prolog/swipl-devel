@@ -3075,6 +3075,8 @@ setAttrDefinition(Definition def, unsigned attr, int val)
     } else
     { set(def, attr);
     }
+    if ( attr == P_INCREMENTAL )
+      freeCodesDefinition(def, TRUE);
 
     rc = TRUE;
   }

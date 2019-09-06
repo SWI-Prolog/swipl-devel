@@ -1189,10 +1189,6 @@ sum(S0, S1, S) :- S is S0+S1.
 
 '$wrap_incremental'(Head) :-
     abstract_goal(Head, Abstract),
-    '$wrap_predicate'(Head, incremental, _Closure, Wrapped,
-                      (   '$idg_add_dyncall'(Abstract),
-                          Wrapped
-                      )),
     '$pi_head'(PI, Head),
     (   Head == Abstract
     ->  prolog_listen(PI, dyn_update)

@@ -4714,50 +4714,60 @@ PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
  * tabled predicate when it is called.
  */
 
+int
+idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
+{ trie *atrie;
+  int flags = (AT_CREATE|AT_NOCLAIM);
+
+  if ( true(ctrie, TRIE_ISSHARED) )
+  { flags |= AT_SHARED;
+
+    /* a shared table cannot depend on a thread-local predicate */
+    /* TBD: Avoid the procedure lookup! */
+    if ( !def )
+    { Procedure proc;
+
+      if ( get_procedure(variant, &proc, 0, GP_RESOLVE) &&
+	   true(proc->definition, P_THREAD_LOCAL) )
+      { return idg_dependency_error_dyncall(ctrie->data.IDG, variant PASS_LD);
+      }
+    } else if ( true(def, P_THREAD_LOCAL) )
+    { return idg_dependency_error_dyncall(ctrie->data.IDG, variant PASS_LD);
+    }
+  } else
+  { flags |= AT_PRIVATE;
+  }
+
+  if ( (atrie=get_answer_table(NULL, variant, 0, NULL, flags PASS_LD)) )
+  { if ( !atrie->data.IDG )
+    { idg_node *n;
+
+      assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
+      atrie->data.worklist = WL_DYNAMIC;
+      n = idg_new(atrie);
+      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+	idg_destroy(n);
+    }
+
+    idg_add_edge(atrie, ctrie PASS_LD);
+    atrie->data.IDG->falsecount = 0;	/* see (*) above */
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 { PRED_LD
   trie *ctrie = idg_current(PASS_LD1);
 
   if ( ctrie && ctrie->data.IDG )
-  { trie *atrie;
-    int flags = (AT_CREATE|AT_NOCLAIM);
+    return idg_add_dyncall(NULL, ctrie, A1 PASS_LD);
 
-    if ( true(ctrie, TRIE_ISSHARED) )
-    { Procedure proc;
-      flags |= AT_SHARED;
-
-      /* a shared table cannot depend on a thread-local predicate */
-      /* TBD: Avoid the procedure lookup! */
-      if ( get_procedure(A1, &proc, 0, GP_RESOLVE) &&
-	   true(proc->definition, P_THREAD_LOCAL) )
-      { return idg_dependency_error_dyncall(ctrie->data.IDG, A1 PASS_LD);
-      }
-    } else
-    { flags |= AT_PRIVATE;
-    }
-
-    if ( (atrie=get_answer_table(NULL, A1, 0, NULL, flags PASS_LD)) )
-    { if ( !atrie->data.IDG )
-      { idg_node *n;
-
-	assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
-	atrie->data.worklist = WL_DYNAMIC;
-	n = idg_new(atrie);
-	if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
-	  idg_destroy(n);
-      }
-
-      idg_add_edge(atrie, ctrie PASS_LD);
-      atrie->data.IDG->falsecount = 0;	/* see (*) above */
-
-      return TRUE;
-    }
-
-    return FALSE;
-  } else
-  { return TRUE;		/* no current node, so nobody cares */
-  }
+  return TRUE;
 }
 
 

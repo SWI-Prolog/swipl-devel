@@ -2769,6 +2769,85 @@ VMI(S_THREAD_LOCAL, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Supervisor for an  incremental  dynamic  predicate.   Must  call  the  C
+equivalent   of   '$idg_add_dyncall'/1.   We   must    create   a   term
+M:<functor>(var  ...)  for  abstract  dynamic  or  M:<functor>(arg  ...)
+otherwise.
+
+TBD: If we really want  to  go   for  performance  we could consider not
+creating the term and follow the trie   nodes  directly. Most likely not
+worth the trouble.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(S_INCR_DYNAMIC, 0, 0, ())
+{ enterDefinition(DEF);
+  atom_t current = *valTermRef(LD->tabling.idg_current);
+  trie *ctrie;
+
+  if ( current &&
+       (ctrie = symbol_trie(current)) &&
+       ctrie->data.IDG )
+  { fid_t fid;
+
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+    SAVE_REGISTERS(qid);
+    if ( (fid = PL_open_foreign_frame()) )
+    { Word ap;
+      word w;
+      term_t t = PL_new_term_ref();
+
+      if ( !(ap = allocGlobal(4+DEF->functor->arity)) )
+	THROW_EXCEPTION;
+
+      w = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+      ap[0] = FUNCTOR_colon2;
+      ap[1] = DEF->module->name;
+      ap[2] = consPtr(&ap[3], TAG_COMPOUND|STG_GLOBAL);
+      ap[3] = DEF->functor->functor;
+      ap += 4;
+
+      if ( true(DEF, P_ABSTRACT) )
+      { size_t i;
+
+	for(i=0; i<DEF->functor->arity; i++)
+	  setVar(ap[i]);
+      } else
+      { size_t i;
+	Word fp;
+
+	LOAD_REGISTERS(qid);
+	SAVE_REGISTERS(qid);
+	fp = argFrameP(FR, 0);
+
+	for(i=0; i<DEF->functor->arity; i++, fp++)
+	{ Word fa;
+
+	  deRef2(fp, fa);
+	  if ( isVar(*fa) && onStack(local, fa) )
+	  { setVar(ap[i]);
+	    LTrail(fa);
+	    *fa = makeRefG(&ap[i]);
+	  } else
+	  { ap[i] = needsRef(*fa) ? makeRef(fa) : *fa;
+	  }
+	}
+      }
+
+      *valTermRef(t) = w;
+
+      idg_add_dyncall(DEF, ctrie, t PASS_LD);
+      PL_close_foreign_frame(fid);
+    }
+    LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
+  }
+
+  VMI_GOTO(S_STATIC);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 S_WRAP: Call a wrapped predicate from a closure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

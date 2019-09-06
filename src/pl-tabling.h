@@ -202,5 +202,6 @@ COMMON(void)	tbl_push_delay(atom_t atrie, Word wrapper,
 COMMON(int)	answer_is_conditional(trie_node *answer);
 COMMON(void)	untable_from_clause(Clause cl);
 COMMON(void)	initTabling(void);
-
+COMMON(int)	idg_add_dyncall(Definition def, trie *ctrie,
+				term_t variant ARG_LD);
 #endif /*_PL_TABLING_H*/
