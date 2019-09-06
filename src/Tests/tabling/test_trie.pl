@@ -70,6 +70,11 @@ test(insert_nested, set(Copy == [v(a(x(a)),b(y),c(z))])) :-
 	trie_new(T),
 	trie_insert(T, v(a(x(a)),b(y),c(z)), true),
 	trie_gen(T, Copy, _).
+test(insert_nested2, V == 42) :-
+	trie_new(T),
+	K = user:t([1,2,3,4], [1,2,3,4]),
+	trie_insert(T, K, 42),
+	trie_gen(T, K, V).
 test(insert_nested_get, Copy == v(a(x(a)),b(y),c(z))) :-
 	trie_new(T),
 	trie_insert(T, v(a(x(a)),b(y),c(z)), true, Node),

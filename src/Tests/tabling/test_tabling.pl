@@ -77,7 +77,9 @@ test_tabling :-
                 pathss,
 
                 bas,
-                push_ret
+                push_ret,
+
+                answer_subsumption
 	      ]).
 
 		 /*******************************
@@ -1350,6 +1352,20 @@ test(push_ret, MaxSteps1 == MaxSteps2) :-
     i0_i_maxSteps0_maxSteps(1,2 000,0,MaxSteps2).
 
 :- end_tests(push_ret).
+
+:- begin_tests(answer_subsumption).
+
+:- table test1(+,+,max).
+test1(L,L2, Val) :-
+        member(Val1,L),
+        member(Val2,L2),
+        Val is Val1+Val2.
+
+test(max, Max == 206) :-
+    L1 = [1,2,3,5,98,3,103,4,4,21],
+    test1(L1, L1, Max).
+
+:- end_tests(answer_subsumption).
 
 
 		 /*******************************

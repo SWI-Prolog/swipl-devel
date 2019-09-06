@@ -1537,12 +1537,18 @@ typedef struct
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
 } trie_gen_state;
 
+typedef struct desc_tstate
+{ Word  term;
+  size_t size;
+} desc_tstate;
+
 typedef struct
 { Word	       term;		/* Term we are descending */
+  size_t       size;		/* Size of the current node */
   int	       compound;	/* Initialized for compound */
   int	       prune;		/* Use for pruning */
   segstack     stack;		/* Stack for argument handling */
-  Word	       buffer[64];	/* Quick buffer for stack */
+  desc_tstate  buffer[64];	/* Quick buffer for stack */
 } descent_state;
 
 static void
@@ -1592,19 +1598,27 @@ get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
   { return FALSE;
   } else if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
+    desc_tstate dts;
 
     *key = f->definition;
-    if ( !dstate->compound )
-    { dstate->compound = TRUE;
-      initSegStack(&dstate->stack, sizeof(Word),
-		   sizeof(dstate->buffer), dstate->buffer);
+    if ( dstate->size > 1 )
+    { if ( !dstate->compound )
+      { dstate->compound = TRUE;
+	initSegStack(&dstate->stack, sizeof(desc_tstate),
+		     sizeof(dstate->buffer), dstate->buffer);
+      }
+      dts.term = dstate->term+1;
+      dts.size = dstate->size-1;
+      pushSegStack(&dstate->stack, dts, desc_tstate);
+      DEBUG(MSG_TRIE_GEN,
+	    Sdprintf("Pushed %p, size %zd\n", dts.term, dts.size));
     }
-    pushSegStack(&dstate->stack, dstate->term+1, Word);
-    //Sdprintf("Pushed %p\n", dstate->term+1);
     dstate->term = &f->arguments[0];
+    dstate->size = arityFunctor(f->definition);
     return TRUE;
   } else
   { dstate->term++;
+    dstate->size--;
 
     if ( isIndirect(*p) )
     { *key = trie_intern_indirect(state->trie, *p, FALSE PASS_LD);
@@ -1623,6 +1637,12 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
   trie_choice *ch;
   int has_key;
   word k;
+
+  DEBUG(MSG_TRIE_GEN,
+	{ Word p;
+	  deRef2(dstate->term, p);
+	  Sdprintf("add_choice() for %s\n", print_val(*p, NULL));
+	});
 
   if ( dstate->prune )
   { if ( !(has_key = get_key(state, dstate, &k PASS_LD)) )
@@ -1648,12 +1668,18 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	  ch->choice.any = NULL;
 
 	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
-	  { popSegStack(&dstate->stack, &dstate->term, Word);
-	    //Sdprintf("Popped %p\n", dstate->term);
+	  { desc_tstate dts;
+	    popSegStack(&dstate->stack, &dts, desc_tstate);
+	    dstate->term = dts.term;
+	    dstate->size = dts.size;
+	    DEBUG(MSG_TRIE_GEN,
+		  Sdprintf("Popped %p, left %zd\n", dstate->term, dstate->size));
 	  }
 	  break;
 	} else
+	{ Sdprintf("Failed\n");
 	  return NULL;
+	}
       case TN_HASHED:
 	if ( has_key && children.hash->var_keys == 0 )
 	{ trie_node *child;
@@ -1811,6 +1837,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 	  TRIE_STAT_INC(trie, gen_call);
 
 	  dstate.term     = valTermRef(Key);
+	  dstate.size     = 1;
 	  dstate.compound = FALSE;
 	  dstate.prune	  = TRUE;
 	  deRef(dstate.term);
