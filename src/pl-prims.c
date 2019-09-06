@@ -399,10 +399,44 @@ PRED_IMPL("=", 2, unify, 0)
 static
 PRED_IMPL("\\=", 2, not_unify, 0)
 { PRED_LD
-  Word p0 = valTermRef(A1);
-  term_t ex = PL_new_term_ref();
+  Word p1 = valTermRef(A1);
+  Word p2 = p1+1;
+  word w1, w2;
+  term_t ex;
 
-  if ( can_unify(p0, p0+1, ex) )
+  deRef(p1); w1 = *p1;
+  deRef(p2); w2 = *p2;
+
+  if ( isVar(w1) || isVar(w2) )
+  { if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
+      return FALSE;			/* can unify */
+    goto full_check;
+  }
+  if ( w1 == w2 )
+    return FALSE;
+  if ( isAttVar(w1) || isAttVar(w2) )
+    goto full_check;
+  if ( tag(w1) != tag(w2) )
+    return TRUE;
+
+  switch(tag(w1))
+  { case TAG_ATOM:
+      return TRUE;
+    case TAG_INTEGER:
+      if ( storage(w1) == STG_INLINE ||
+	   storage(w2) == STG_INLINE )
+	return TRUE;
+    case TAG_STRING:
+    case TAG_FLOAT:
+      return !equalIndirect(w1, w2);
+    case TAG_COMPOUND:
+      break;
+  }
+
+full_check:
+  ex = PL_new_term_ref();
+
+  if ( can_unify(p1, p2, ex) )
     return FALSE;
   if ( !PL_is_variable(ex) )
     return PL_raise_exception(ex);
