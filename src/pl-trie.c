@@ -1677,7 +1677,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	  }
 	  break;
 	} else
-	{ Sdprintf("Failed\n");
+	{ DEBUG(MSG_TRIE_GEN, Sdprintf("Failed\n"));
 	  return NULL;
 	}
       case TN_HASHED:
