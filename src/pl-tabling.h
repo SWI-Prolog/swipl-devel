@@ -182,6 +182,12 @@ typedef struct idg_node
   unsigned	reevaluating : 1;	/* currently re-evaluating */
   unsigned	aborted : 1;		/* re-evaluation was aborted */
   int		falsecount;		/* Invalidate count */
+#ifdef O_TRIE_STATS
+  struct
+  { uint64_t	invalidated;		/* # times it was invalidated */
+    uint64_t	reevaluated;		/* # times it was re-evaluated */
+  } stats;
+#endif
 } idg_node;
 
 

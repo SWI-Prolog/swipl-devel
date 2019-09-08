@@ -1175,8 +1175,8 @@ trie_property(compiled_size(_)).
                                                 % below only when -DO_TRIE_STATS
 trie_property(lookup_count(_)).                 % is enabled in pl-trie.h
 trie_property(gen_call_count(_)).
-trie_property(gen_exit_count(_)).
-trie_property(gen_fail_count(_)).
+trie_property(invalidated(_)).
+trie_property(reevaluated(_)).
 
 
                 /********************************

@@ -1850,8 +1850,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 		 (ch->child->value || next_choice(state PASS_LD)) );
 	  clear_descent_state(&dstate);
 	  if ( !rc )
-	  { TRIE_STAT_INC(trie, gen_fail);
-	    clear_trie_state(state);
+	  { clear_trie_state(state);
 	    return FALSE;
 	  }
 	  break;
@@ -1902,8 +1901,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 
     if ( (!Value || unify_value(Value, n->value PASS_LD)) &&
 	 (!Data  || unify_data(Data, n, ctx PASS_LD)) )
-    { TRIE_STAT_INC(state->trie, gen_exit);
-      if ( next_choice(state PASS_LD) )
+    { if ( next_choice(state PASS_LD) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
@@ -1930,8 +1928,7 @@ trie_gen(term_t Trie, term_t Key, term_t Value,
 	return TRUE;
       }
     } else
-    { TRIE_STAT_INC(state->trie, gen_fail);
-      Undo(fli_context->mark);
+    { Undo(fli_context->mark);
     }
 
 next:;
@@ -1974,19 +1971,20 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 #ifdef O_TRIE_STATS
   static atom_t ATOM_lookup_count = 0;
   static atom_t ATOM_gen_call_count = 0;
-  static atom_t ATOM_gen_exit_count = 0;
-  static atom_t ATOM_gen_fail_count = 0;
+  static atom_t ATOM_invalidated = 0;
+  static atom_t ATOM_reevaluated = 0;
 
   if ( !ATOM_lookup_count )
   { ATOM_lookup_count   = PL_new_atom("lookup_count");
     ATOM_gen_call_count = PL_new_atom("gen_call_count");
-    ATOM_gen_exit_count = PL_new_atom("gen_exit_count");
-    ATOM_gen_fail_count = PL_new_atom("gen_fail_count");
+    ATOM_invalidated    = PL_new_atom("invalidated");
+    ATOM_reevaluated    = PL_new_atom("reevaluated");
   }
 #endif
 
   if ( get_trie(A1, &trie) )
   { atom_t name; size_t arity;
+    idg_node *idg;
 
     if ( PL_get_name_arity(A2, &name, &arity) && arity == 1 )
     { term_t arg = PL_new_term_ref();
@@ -2028,10 +2026,10 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { return PL_unify_int64(arg, trie->stats.lookups);
       } else if ( name == ATOM_gen_call_count)
       { return PL_unify_int64(arg, trie->stats.gen_call);
-      } else if ( name == ATOM_gen_exit_count)
-      { return PL_unify_int64(arg, trie->stats.gen_exit);
-      } else if ( name == ATOM_gen_fail_count)
-      { return PL_unify_int64(arg, trie->stats.gen_fail);
+      } else if ( name == ATOM_invalidated && (idg=trie->data.IDG))
+      { return PL_unify_int64(arg, idg->stats.invalidated);
+      } else if ( name == ATOM_reevaluated && (idg=trie->data.IDG))
+      { return PL_unify_int64(arg, idg->stats.reevaluated);
 #endif
       }
     }

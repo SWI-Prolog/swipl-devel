@@ -5020,7 +5020,8 @@ idg_changed_loop(idg_propagate_state *state, int changed)
       { if ( table_is_incomplete(n->atrie) )
 	  state->incomplete = n->atrie;		/* return? */
 	if ( ATOMIC_INC(&n->falsecount) == 1 )
-	{ if ( n->affected )
+	{ TRIE_STAT_INC(n, invalidated);
+	  if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
       } else
@@ -5093,7 +5094,8 @@ idg_changed(trie *atrie)
     if ( table_is_incomplete(atrie) )
       return change_incomplete_error(atrie);
     if ( ATOMIC_INC(&n->falsecount) == 1 )
-    { if ( (incomplete=idg_propagate_change(n, TRUE)) )
+    { TRIE_STAT_INC(n, invalidated);
+      if ( (incomplete=idg_propagate_change(n, TRUE)) )
       { n->falsecount = 0;
 	idg_propagate_change(n, FALSE);
 	return change_incomplete_error(incomplete);
@@ -5333,6 +5335,8 @@ reeval_complete(trie *atrie)
 	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
 		     n->new_answer, n->answer_count, atrie->value_count));
     }
+
+    TRIE_STAT_INC(n, reevaluated);
 
     n->reevaluating = FALSE;
     n->aborted = FALSE;
