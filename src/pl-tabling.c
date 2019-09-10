@@ -5026,13 +5026,16 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 	}
       } else
       { if ( ATOMIC_DEC(&n->falsecount) == 0 )
-	{ if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
+	{
+#ifdef O_PLMT
+	  if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
 	  { if ( n->atrie->tid == PL_thread_self() ) /* See (*) */
 	      COMPLETE_WORKLIST(n->atrie, (void)0);
 	    else
 	      Sdprintf("IDG falsecount propagation re-validated a table "
 		       "from another thread\n");
 	  }
+#endif
 	  if ( n->affected )
 	    pushSegStack(&state->stack, n, IDGNode);
 	}
