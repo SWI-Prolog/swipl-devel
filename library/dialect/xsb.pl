@@ -56,6 +56,7 @@
 
             cputime/1,				% -Seconds
             walltime/1,				% -Seconds
+            timed_call/2,                       % :Goal, :Options
 
             debug_ctl/2,                        % +Option, +Value
 
@@ -79,6 +80,7 @@
 :- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
 :- use_module(library(dialect/xsb/tables)).
+:- use_module(library(dialect/xsb/timed_call)).
 :- use_module(library(aggregate)).
 :- use_module(library(option)).
 :- use_module(library(apply)).
