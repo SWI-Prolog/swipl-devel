@@ -2420,6 +2420,9 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   memcpy(cl->codes, baseBuffer(&state->codes, code), sizeOfBuffer(&state->codes));
   *cp = cl;
 
+  ATOMIC_ADD(&GD->statistics.codes, cl->code_size);
+  ATOMIC_INC(&GD->statistics.clauses);
+
   return TRUE;
 }
 

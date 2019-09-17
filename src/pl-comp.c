@@ -1749,6 +1749,7 @@ Finish up the clause.
     memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
 
     ATOMIC_ADD(&GD->statistics.codes, clause.code_size);
+    ATOMIC_INC(&GD->statistics.clauses);
   } else
   { LocalFrame fr = lTop;
     Word p0 = argFrameP(fr, clause.variables);

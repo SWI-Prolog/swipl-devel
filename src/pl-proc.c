@@ -1240,7 +1240,6 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   def->impl.clauses.number_of_clauses++;
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules++;
-  ATOMIC_INC(&GD->statistics.clauses);
   if ( true(def, P_DIRTYREG) )
     ATOMIC_INC(&GD->clauses.dirty);
 #ifdef O_LOGICAL_UPDATE
