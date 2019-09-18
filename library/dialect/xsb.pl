@@ -533,7 +533,8 @@ debug_ctl(hide, Preds) :-
     !,
     '$hide'(Preds).
 debug_ctl(Option, Value) :-
-    print_message(warning, xsb(ignored(debug_ctl(Option, Value)))).
+    debug(xsb(compat), 'XSB: not implemented: ~p',
+          [ debug_ctl(Option, Value) ]).
 
 %!  fmt_write(+Fmt, +Term) is det.
 %!  fmt_write(+Stream, +Fmt, +Term) is det.
