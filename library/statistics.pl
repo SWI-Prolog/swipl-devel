@@ -395,8 +395,8 @@ show_profile_(Options) :-
     prof_statistics(Stat),
     prof_statistics(time, Stat, Time),
     sort_on(Options, SortKey),
-    findall(KeyedNode, prof_node(SortKey, KeyedNode), Nodes),
-    sort(1, >=, Nodes, Sorted),
+    findall(Node, prof_node(Node), Nodes),
+    sort_prof_nodes(SortKey, Nodes, Sorted),
     format('~`=t~69|~n'),
     format('Total time: ~3f seconds~n', [Time]),
     format('~`=t~69|~n'),
@@ -412,9 +412,13 @@ sort_on(Options, ticks_self) :-
     !.
 sort_on(_, ticks).
 
+sort_prof_nodes(Key, Nodes, Sorted) :-
+    key(Key, Arg),
+    sort(Arg, >=, Nodes, Sorted).
+
 show_plain([], _, _, _).
 show_plain(_, 0, _, _) :- !.
-show_plain([_-H|T], N, Stat, Key) :-
+show_plain([H|T], N, Stat, Key) :-
     show_plain(H, Stat, Key),
     N2 is N - 1,
     show_plain(T, N2, Stat, Key).
@@ -455,30 +459,29 @@ prof_statistics(nodes, Term, Ticks) :-
     arg(5, Term, Ticks).
 
 
-%!  prof_node(+Field, -Pairs) is nondet.
+%!  prof_node(-Node) is nondet.
 %
 %   Collect data for each of the interesting predicate.
 %
-%   @param Field specifies the field to use as key in each pair.
-%   @param Pair is a term of the following format:
+%   @param Node is a term of the following format:
 %
-%     ==
-%     KeyValue-node(Pred,
-%                   TimeSelf, TimeSiblings,
-%                   Calls, Redo, Recursive,
-%                   Parents)
-%     ==
+%     ```
+%     node(Pred,
+%          TimeSelf, TimeSiblings,
+%          Calls, Redo, Recursive,
+%          Parents)
+%     ```
 %
 
-prof_node(KeyOn, Node) :-
+prof_node(Node) :-
     setup_call_cleanup(
         ( current_prolog_flag(access_level, Old),
           set_prolog_flag(access_level, system)
         ),
-        get_prof_node(KeyOn, Node),
+        get_prof_node(Node),
         set_prolog_flag(access_level, Old)).
 
-get_prof_node(KeyOn, Key-Node) :-
+get_prof_node(Node) :-
     Node = node(M:H,
                 TicksSelf, TicksSiblings,
                 Call, Redo,
@@ -488,8 +491,7 @@ get_prof_node(KeyOn, Key-Node) :-
     '$prof_procedure_data'(M:H,
                            TicksSelf, TicksSiblings,
                            Call, Redo,
-                           Parents, Siblings),
-    value(KeyOn, Node, Key).
+                           Parents, Siblings).
 
 key(predicate,      1).
 key(ticks_self,     2).
