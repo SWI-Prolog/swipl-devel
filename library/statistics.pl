@@ -462,8 +462,8 @@ show_plain(Node, Stat, Key) :-
 %       - ticks_siblings:Count
 %       - calls:Count
 %       - redos:Count
-%       - callers:ListOfHeads
-%       - callees:ListOfHeads
+%       - callers:list_of(reference(Head, Calls, Redos))
+%       - callees:list_of(reference(Head, Calls, Redos))
 
 profile_data(Data) :-
     setup_call_cleanup(
@@ -495,8 +495,9 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
 %     - ticks_siblings:Count
 %     - calls:Count
 %     - redos:Count
-%     - callers:ListOfHeads
-%     - callees:ListOfHeads
+%     - exit:Count
+%     - callers:list_of(reference(Head, Calls, Redos))
+%     - callees:list_of(reference(Head, Calls, Redos))
 
 prof_node(Node) :-
     setup_call_cleanup(
@@ -509,13 +510,13 @@ prof_node(Node) :-
 get_prof_node(Node) :-
     Node = node{predicate:(M:H),
                 ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
-                call:Call, redo:Redo,
+                call:Call, redo:Redo, exit:Exit,
                 callers:Parents, callees:Siblings},
     current_predicate(_, M:H),
     \+ predicate_property(M:H, imported_from(_)),
     '$prof_procedure_data'(M:H,
                            TicksSelf, TicksSiblings,
-                           Call, Redo,
+                           Call, Redo, Exit,
                            Parents, Siblings).
 
 value(name, Data, Name) :-

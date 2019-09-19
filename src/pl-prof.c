@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,8 +81,7 @@ static void	collectSiblingsTime(void);
 
 int
 activateProfiler(prof_status active ARG_LD)
-{
-  int i;
+{ int i;
   PL_local_data_t *profiling;
 
   PL_LOCK(L_THREAD);
@@ -512,6 +512,7 @@ typedef struct prof_ref
   uintptr_t sibling_ticks;
   uintptr_t calls;			/* calls to/from this predicate */
   uintptr_t redos;			/* redos to/from this predicate */
+  uintptr_t exits;			/* exits to/from this predicate */
 } prof_ref;
 
 
@@ -521,6 +522,7 @@ typedef struct
   uintptr_t sibling_ticks;
   uintptr_t calls;
   uintptr_t redos;
+  uintptr_t exits;
   uintptr_t recur;
   prof_ref *callers;
   prof_ref *callees;
@@ -556,6 +558,7 @@ add_parent_ref(node_sum *sum,
   { if ( r->handle == handle && r->cycle == cycle )
     { r->calls += self->calls;
       r->redos += self->redos;
+      r->exits += self->exits;
       r->ticks += self->ticks;
       r->sibling_ticks += self->sibling_ticks;
 
@@ -566,6 +569,7 @@ add_parent_ref(node_sum *sum,
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = self->calls;
   r->redos = self->redos;
+  r->exits = self->exits;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
   r->handle = handle;
@@ -606,6 +610,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   { if ( r->handle == sibling->handle && r->cycle == cycle )
     { r->calls += sibling->calls;
       r->redos += sibling->redos;
+      r->exits += sibling->exits;
       r->ticks += sibling->ticks;
       r->sibling_ticks += sibling->sibling_ticks;
 
@@ -616,6 +621,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = sibling->calls;
   r->redos = sibling->redos;
+  r->exits = sibling->exits;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
   r->handle = sibling->handle;
@@ -639,6 +645,7 @@ sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
     if ( !seen )
     { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
+      sum->exits	 += n->exits;
     }
 
     if ( n->parent )
@@ -667,10 +674,10 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
-  static functor_t FUNCTOR_node6;
+  static functor_t FUNCTOR_node7;
 
-  if ( !FUNCTOR_node6 )
-    FUNCTOR_node6 = PL_new_functor(PL_new_atom("node"), 6);
+  if ( !FUNCTOR_node7 )
+    FUNCTOR_node7 = PL_new_functor(PL_new_atom("node"), 7);
 
   for( ; r; r=r->next)
   { int rc;
@@ -687,13 +694,14 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
       rc=(*r->type->unify)(tmp, r->handle);
 
     if ( !rc ||
-	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node6,
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node7,
 			PL_TERM, tmp,
 			PL_INT,  r->cycle,
 			PL_LONG, r->ticks,
 			PL_LONG, r->sibling_ticks,
 			PL_LONG, r->calls,
-			PL_LONG, r->redos) )
+			PL_LONG, r->redos,
+		        PL_LONG, r->exits) )
       fail;
   }
 
@@ -744,7 +752,7 @@ $prof_procedure_data(+Procedure,
 
 
 static
-PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
   void *handle;
   node_sum sum;
@@ -767,8 +775,9 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_integer(A3, sum.sibling_ticks) &&
 	 PL_unify_integer(A4, sum.calls) &&
 	 PL_unify_integer(A5, sum.redos) &&
-	 unify_relatives(A6, sum.callers PASS_LD) &&
-	 unify_relatives(A7, sum.callees PASS_LD)
+	 PL_unify_integer(A6, sum.exits) &&
+	 unify_relatives(A7, sum.callers PASS_LD) &&
+	 unify_relatives(A8, sum.callees PASS_LD)
        );
 
   free_relatives(sum.callers);
@@ -1242,7 +1251,7 @@ BeginPredDefs(profile)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 7, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
+  PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
 #ifdef O_PROF_PENTIUM
   PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)
