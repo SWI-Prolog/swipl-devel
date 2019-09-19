@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2018, University of Amsterdam
+    Copyright (c)  1999-2019, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -41,7 +41,8 @@
             time/1,                     % :Goal
             profile/1,                  % :Goal
             profile/2,                  % :Goal, +Options
-            show_profile/1              % +Options
+            show_profile/1,             % +Options
+            profile_data/1              % -Dict
           ]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
@@ -393,12 +394,11 @@ show_profile_(Options) :-
     !.
 show_profile_(Options) :-
     prof_statistics(Stat),
-    prof_statistics(time, Stat, Time),
     sort_on(Options, SortKey),
     findall(Node, prof_node(Node), Nodes),
     sort_prof_nodes(SortKey, Nodes, Sorted),
     format('~`=t~69|~n'),
-    format('Total time: ~3f seconds~n', [Time]),
+    format('Total time: ~3f seconds~n', [Stat.time]),
     format('~`=t~69|~n'),
     format('~w~t~w =~45|~t~w~60|~t~w~69|~n',
            [ 'Predicate', 'Box Entries', 'Calls+Redos', 'Time'
@@ -413,8 +413,7 @@ sort_on(Options, ticks_self) :-
 sort_on(_, ticks).
 
 sort_prof_nodes(Key, Nodes, Sorted) :-
-    key(Key, Arg),
-    sort(Arg, >=, Nodes, Sorted).
+    sort(Key, >=, Nodes, Sorted).
 
 show_plain([], _, _, _).
 show_plain(_, 0, _, _) :- !.
@@ -438,40 +437,66 @@ show_plain(Node, Stat, Key) :-
                  *         DATA GATHERING       *
                  *******************************/
 
+%!  profile_data(-Data) is det.
+%
+%   Gather all relevant data from profiler. This predicate may be called
+%   while profiling is active  in  which   case  it  is  suspended while
+%   collecting the data. Data is a dict providing the following fields:
+%
+%     - summary:Dict
+%       Overall statistics providing
+%       - samples:Count:
+%         Times the statistical profiler was called
+%       - ticks:Count
+%         Virtual ticks during profiling
+%       - accounting:Count
+%         Tick spent on accounting
+%       - time:Seconds
+%         Total time sampled
+%       - nodes:Count
+%         Nodes in the call graph.
+%     - nodes
+%       List of nodes.  Each node provides:
+%       - predicate:Head
+%       - ticks_self:Count
+%       - ticks_siblings:Count
+%       - calls:Count
+%       - redos:Count
+%       - callers:ListOfHeads
+%       - callees:ListOfHeads
+
+profile_data(Data) :-
+    setup_call_cleanup(
+        profiler(Old, false),
+        profile_data_(Data),
+        profiler(_, Old)).
+
+profile_data_(profile{summary:Summary, nodes:Nodes}) :-
+    prof_statistics(Summary),
+    findall(Node, prof_node(Node), Nodes).
+
 %!  prof_statistics(-Node) is det.
 %
 %   Get overall statistics
 %
 %   @param Node     term of the format prof(Ticks, Account, Time, Nodes)
 
-prof_statistics(prof(Samples, Ticks, Account, Time, Nodes)) :-
+prof_statistics(summary{samples:Samples, ticks:Ticks,
+                        accounting:Account, time:Time, nodes:Nodes}) :-
     '$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
-
-prof_statistics(samples, Term, Samples) :-
-    arg(1, Term, Samples).
-prof_statistics(ticks, Term, Ticks) :-
-    arg(2, Term, Ticks).
-prof_statistics(accounting, Term, Ticks) :-
-    arg(3, Term, Ticks).
-prof_statistics(time, Term, Ticks) :-
-    arg(4, Term, Ticks).
-prof_statistics(nodes, Term, Ticks) :-
-    arg(5, Term, Ticks).
-
 
 %!  prof_node(-Node) is nondet.
 %
-%   Collect data for each of the interesting predicate.
+%   Collect data for each of the interesting predicate.  Node is a dict
+%   with the fields:
 %
-%   @param Node is a term of the following format:
-%
-%     ```
-%     node(Pred,
-%          TimeSelf, TimeSiblings,
-%          Calls, Redo, Recursive,
-%          Parents)
-%     ```
-%
+%     - predicate:Head
+%     - ticks_self:Count
+%     - ticks_siblings:Count
+%     - calls:Count
+%     - redos:Count
+%     - callers:ListOfHeads
+%     - callees:ListOfHeads
 
 prof_node(Node) :-
     setup_call_cleanup(
@@ -482,10 +507,10 @@ prof_node(Node) :-
         set_prolog_flag(access_level, Old)).
 
 get_prof_node(Node) :-
-    Node = node(M:H,
-                TicksSelf, TicksSiblings,
-                Call, Redo,
-                Parents, Siblings),
+    Node = node{predicate:(M:H),
+                ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
+                call:Call, redo:Redo,
+                callers:Parents, callees:Siblings},
     current_predicate(_, M:H),
     \+ predicate_property(M:H, imported_from(_)),
     '$prof_procedure_data'(M:H,
@@ -493,39 +518,26 @@ get_prof_node(Node) :-
                            Call, Redo,
                            Parents, Siblings).
 
-key(predicate,      1).
-key(ticks_self,     2).
-key(ticks_siblings, 3).
-key(call,           4).
-key(redo,           5).
-key(callers,        6).
-key(callees,        7).
-
 value(name, Data, Name) :-
     !,
-    arg(1, Data, Pred),
-    predicate_functor_name(Pred, Name).
+    predicate_functor_name(Data.predicate, Name).
 value(label, Data, Label) :-
     !,
-    arg(1, Data, Pred),
-    predicate_label(Pred, Label).
+    predicate_label(Data.predicate, Label).
 value(ticks, Data, Ticks) :-
     !,
-    arg(2, Data, Self),
-    arg(3, Data, Siblings),
-    Ticks is Self + Siblings.
+    Ticks is Data.ticks_self + Data.ticks_siblings.
 value(time(Key, percentage, Stat), Data, Percent) :-
     !,
     value(Key, Data, Ticks),
-    prof_statistics(ticks, Stat, Total),
-    prof_statistics(accounting, Stat, Account),
+    Total = Stat.ticks,
+    Account = Stat.accounting,
     (   Total-Account > 0
     ->  Percent is 100 * (Ticks/(Total-Account))
     ;   Percent is 0.0
     ).
 value(Name, Data, Value) :-
-    key(Name, Arg),
-    arg(Arg, Data, Value).
+    Value = Data.Name.
 
 %!  predicate_label(+Head, -Label)
 %
