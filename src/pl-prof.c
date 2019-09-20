@@ -1055,7 +1055,23 @@ profRedo(struct call_node *node ARG_LD)
     return;
 
   if ( node )
-  { node->redos++;
+  { if ( LD->profile.current )
+    { struct call_node *n;
+
+      DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Redo: on %s; current is %s\n",
+		     node_name(node), node_name(LD->profile.current) ));
+
+      for(n=node; n && n != LD->profile.current; n = n->parent)
+      { DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("Redo: %s\n", node_name(n)));
+	n->redos++;
+      }
+    } else
+    { DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Redo: %s\n", node_name(node)));
+      node->redos++;
+    }
   }
   LD->profile.current = node;
 }
