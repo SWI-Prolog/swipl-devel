@@ -122,8 +122,6 @@ typedef struct trie
   struct
   { uint64_t		lookups;	/* trie_lookup */
     uint64_t		gen_call;	/* trie_gen calls */
-    uint64_t		gen_exit;	/* trie_gen unifications succeeded */
-    uint64_t		gen_fail;	/* trie_gen unifications failed */
   } stats;
 #endif
   struct
