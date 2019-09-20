@@ -645,7 +645,6 @@ sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
     if ( !seen )
     { sum->ticks         += n->ticks;
       sum->sibling_ticks += n->sibling_ticks;
-      sum->exits	 += n->exits;
     }
 
     if ( n->parent )
@@ -898,6 +897,19 @@ profCall(Definition handle)
     Make a call from the current node to handle.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef O_DEBUG
+static char *
+node_name(call_node *n)
+{ static char buf[100];
+
+  if ( n->type == &prof_default_type )
+    return predicateName(n->handle);
+
+  Ssprintf(buf, "%p", n->handle);
+  return buf;
+}
+#endif
+
 static call_node *
 prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 { call_node *node = LD->profile.current;
@@ -910,7 +922,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       { node->calls++;
 	LD->profile.current = node;
 	DEBUG(MSG_PROF_CALLTREE,
-	      Sdprintf("existing root %p\n", LD->profile.current));
+	      Sdprintf("Call: existing root %s\n", node_name(node)));
 
 	LD->profile.accounting = FALSE;
 	return node;
@@ -929,7 +941,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
     LD->profile.roots = node;
     LD->profile.current = node;
     LD->profile.accounting = FALSE;
-    DEBUG(MSG_PROF_CALLTREE, Sdprintf("new root %p\n", node));
+    DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Call: new root %s\n", node_name(node)));
 
     return node;
   }
@@ -937,7 +950,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 					/* straight recursion */
   if ( node->handle == handle )
   { node->recur++;
-    DEBUG(MSG_PROF_CALLTREE, Sdprintf("direct recursion\n"));
+    DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Call: direct recursion on %s\n", node_name(node)));
     LD->profile.accounting = FALSE;
     return node;
   } else				/* from same parent */
@@ -950,19 +964,20 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       { node->recur++;
 
 	LD->profile.current = node;
-	DEBUG(MSG_PROF_CALLTREE, Sdprintf("indirect recursion\n"));
+	DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("Call: indirect recursion on %s\n", node_name(node)));
 	LD->profile.accounting = FALSE;
 	return node;
       }
     }
   }
 
-
   for(node=LD->profile.current->siblings; node; node=node->next)
   { if ( node->handle == handle )
     { LD->profile.current = node;
       node->calls++;
-      DEBUG(MSG_PROF_CALLTREE, Sdprintf("existing child\n"));
+      DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Call: existing child %s\n", node_name(node)));
       LD->profile.accounting = FALSE;
       return node;
     }
@@ -979,7 +994,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
   node->next = LD->profile.current->siblings;
   LD->profile.current->siblings = node;
   LD->profile.current = node;
-  DEBUG(MSG_PROF_CALLTREE, Sdprintf("new child\n"));
+  DEBUG(MSG_PROF_CALLTREE,
+	Sdprintf("Call: new child %s\n", node_name(node)));
   LD->profile.accounting = FALSE;
 
   return node;
@@ -1014,7 +1030,9 @@ profResumeParent(struct call_node *node ARG_LD)
 
   LD->profile.accounting = TRUE;
   for(n=LD->profile.current; n && n != node; n=n->parent)
-  { n->exits++;
+  { DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Exit: %s\n", node_name(n)));
+    n->exits++;
   }
   LD->profile.accounting = FALSE;
 
