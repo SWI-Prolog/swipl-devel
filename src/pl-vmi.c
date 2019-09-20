@@ -1555,6 +1555,13 @@ retry_continue:
   {					/* play safe */
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
 
+					/* we need the autoloader and get back */
+    if ( DEF->codes[0] == encode(S_VIRGIN) &&
+	 !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+    { PC = DEF->codes;
+      NEXT_INSTRUCTION;
+    }
+
     if ( is_signalled(PASS_LD1) )
     { SAVE_REGISTERS(qid);
       DEF = getProcDefinedDefinition(DEF PASS_LD); /* see (*) above */
@@ -1579,10 +1586,7 @@ retry_continue:
       }
     }
 
-#ifdef O_PROFILE
-    if ( LD->profile.active )
-      FR->prof_node = profCall(DEF PASS_LD);
-#endif
+    Profile(FR->prof_node = profCall(DEF PASS_LD));
 
 #ifdef O_LIMIT_DEPTH
     { unsigned int depth = levelFrame(FR);
