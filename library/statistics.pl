@@ -462,8 +462,14 @@ show_plain(Node, Stat, Key) :-
 %       - ticks_siblings:Count
 %       - calls:Count
 %       - redos:Count
-%       - callers:list_of(reference(Head, Calls, Redos))
-%       - callees:list_of(reference(Head, Calls, Redos))
+%       - callers:list_of(Relative)
+%       - callees:list_of(Relative)
+%
+%    _Relative_ is a term of the shape below that represents a caller or
+%    callee. Future versions are likely to use a dict instead.
+%
+%        node(Predicate, CycleID, Ticks, TicksSiblings,
+%             Calls, Redos, Exits)
 
 profile_data(Data) :-
     setup_call_cleanup(
