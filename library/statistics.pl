@@ -487,7 +487,7 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
 
 %!  prof_node(-Node) is nondet.
 %
-%   Collect data for each of the interesting predicate.  Node is a dict
+%   Collect data for each of the  profiles   predicates.  Node is a dict
 %   with the fields:
 %
 %     - predicate:Head
@@ -500,24 +500,51 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
 %     - callees:list_of(reference(Head, Calls, Redos))
 
 prof_node(Node) :-
-    setup_call_cleanup(
-        ( current_prolog_flag(access_level, Old),
-          set_prolog_flag(access_level, system)
-        ),
-        get_prof_node(Node),
-        set_prolog_flag(access_level, Old)).
-
-get_prof_node(Node) :-
-    Node = node{predicate:(M:H),
+    Node = node{predicate:(Pred),
                 ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
                 call:Call, redo:Redo, exit:Exit,
                 callers:Parents, callees:Siblings},
-    current_predicate(_, M:H),
-    \+ predicate_property(M:H, imported_from(_)),
-    '$prof_procedure_data'(M:H,
+    profiled_predicates(Preds),
+    member(Pred, Preds),
+    '$prof_procedure_data'(Pred,
                            TicksSelf, TicksSiblings,
                            Call, Redo, Exit,
                            Parents, Siblings).
+
+profiled_predicates(Preds) :-
+    setof(Pred, prof_impl(Pred), Preds0),
+    join_impl(Preds0, Preds).
+
+join_impl([], []).
+join_impl([H|T0], [H|T]) :-
+    same(H, T0, T1),
+    join_impl(T1, T).
+
+same(H, [H|T0], T) :-
+    !,
+    same(H, T0, T).
+same(_, L, L).
+
+
+prof_impl(Pred) :-
+    prof_node_id(Node),
+    node_id_pred(Node, Pred).
+
+prof_node_id(N) :-
+    prof_node_id_below(N, -).
+
+prof_node_id_below(N, Root) :-
+    '$prof_sibling_of'(N0, Root),
+    (   N = N0
+    ;   prof_node_id_below(N, N0)
+    ).
+
+node_id_pred(Node, Pred) :-             % TBD: add as built-in
+    '$prof_node'(Node, Pred, _, _, _, _, _).
+
+%!  value(+Key, +NodeData, -Value)
+%
+%   Obtain possible computed attributes from NodeData.
 
 value(name, Data, Name) :-
     !,
