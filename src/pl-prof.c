@@ -553,6 +553,7 @@ add_parent_ref(node_sum *sum,
 
   sum->calls += self->calls;
   sum->redos += self->redos;
+  sum->exits += self->exits;
 
   for(r=sum->callers; r; r=r->next)
   { if ( r->handle == handle && r->cycle == cycle )
@@ -744,9 +745,8 @@ get_handle(term_t t, void **handle)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $prof_procedure_data(+Procedure,
 		     -Ticks, -TicksSiblings,
-		     -Calls, -Redos,
+		     -Calls, -Redos, -Exits,
 		     -Callers, -Callees)
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 

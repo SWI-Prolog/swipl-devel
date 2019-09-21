@@ -460,8 +460,9 @@ show_plain(Node, Stat, Key) :-
 %       - predicate:Head
 %       - ticks_self:Count
 %       - ticks_siblings:Count
-%       - calls:Count
-%       - redos:Count
+%       - call:Count
+%       - redo:Count
+%       - exit:Count
 %       - callers:list_of(Relative)
 %       - callees:list_of(Relative)
 %
@@ -499,8 +500,8 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
 %     - predicate:Head
 %     - ticks_self:Count
 %     - ticks_siblings:Count
-%     - calls:Count
-%     - redos:Count
+%     - call:Count
+%     - redo:Count
 %     - exit:Count
 %     - callers:list_of(reference(Head, Calls, Redos))
 %     - callees:list_of(reference(Head, Calls, Redos))
