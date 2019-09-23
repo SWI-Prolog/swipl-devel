@@ -1230,7 +1230,7 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 }
 
 static
-PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 { return notImplemented("$prof_procedure_data", 7);
 }
 
