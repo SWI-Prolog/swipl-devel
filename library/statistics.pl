@@ -42,7 +42,8 @@
             profile/1,                  % :Goal
             profile/2,                  % :Goal, +Options
             show_profile/1,             % +Options
-            profile_data/1              % -Dict
+            profile_data/1,             % -Dict
+            profile_procedure_data/2    % :Head, -Data
           ]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
@@ -53,7 +54,8 @@
 :- meta_predicate
     time(0),
     profile(0),
-    profile(0, +).
+    profile(0, +),
+    profile_procedure_data(:, -).
 
 /** <module> Get information about resource usage
 
@@ -480,7 +482,7 @@ profile_data(Data) :-
 
 profile_data_(profile{summary:Summary, nodes:Nodes}) :-
     prof_statistics(Summary),
-    findall(Node, prof_node(Node), Nodes).
+    findall(Node, profile_procedure_data(_, Node), Nodes).
 
 %!  prof_statistics(-Node) is det.
 %
@@ -492,10 +494,11 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
                         accounting:Account, time:Time, nodes:Nodes}) :-
     '$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
 
-%!  prof_node(-Node) is nondet.
+%!  profile_procedure_data(?Pred, -Data) is nondet.
 %
-%   Collect data for each of the  profiles   predicates.  Node is a dict
-%   with the fields:
+%   Collect data for Pred. If Pred is   unbound  data for each predicate
+%   that has profile data available is returned. Data is a dict with the
+%   following fields:
 %
 %     - predicate:Head
 %     - ticks_self:Count
@@ -506,17 +509,24 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
 %     - callers:list_of(reference(Head, Calls, Redos))
 %     - callees:list_of(reference(Head, Calls, Redos))
 
-prof_node(Node) :-
-    Node = node{predicate:(Pred),
+profile_procedure_data(Pred, Node) :-
+    Node = node{predicate:Pred,
                 ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
                 call:Call, redo:Redo, exit:Exit,
                 callers:Parents, callees:Siblings},
-    profiled_predicates(Preds),
-    member(Pred, Preds),
+    (   specified(Pred)
+    ->  true
+    ;   profiled_predicates(Preds),
+        member(Pred, Preds)
+    ),
     '$prof_procedure_data'(Pred,
                            TicksSelf, TicksSiblings,
                            Call, Redo, Exit,
                            Parents, Siblings).
+
+specified(Module:Head) :-
+    atom(Module),
+    callable(Head).
 
 profiled_predicates(Preds) :-
     setof(Pred, prof_impl(Pred), Preds0),
