@@ -557,7 +557,8 @@ prof_node_id_below(N, Root) :-
     ).
 
 node_id_pred(Node, Pred) :-
-    '$prof_node'(Node, Pred, _Calls, _Redos, _Exits, _Recur, _Ticks).
+    '$prof_node'(Node, Pred, _Calls, _Redos, _Exits, _Recur,
+                 _Ticks, _SiblingTicks).
 
 %!  value(+Key, +NodeData, -Value)
 %

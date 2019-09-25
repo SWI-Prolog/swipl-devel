@@ -77,7 +77,7 @@ typedef struct call_node
 } call_node;
 
 static void	freeProfileData(void);
-static void	collectSiblingsTime(void);
+static void	collectSiblingsTime(ARG1_LD);
 
 int
 activateProfiler(prof_status active ARG_LD)
@@ -473,22 +473,22 @@ unify_node_id(term_t t, call_node *n)
 
 
 static
-PRED_IMPL("$prof_node", 7, prof_node, 0)
+PRED_IMPL("$prof_node", 8, prof_node, 0)
 { PRED_LD
   call_node *n = NULL;
 
   if ( !get_node(A1, &n PASS_LD) )
-    fail;
+    return FALSE;
 
-  if ( unify_node_id(A2, n) &&
-       PL_unify_integer(A3, n->calls) &&
-       PL_unify_integer(A4, n->redos) &&
-       PL_unify_integer(A5, n->exits) &&
-       PL_unify_integer(A6, n->recur) &&
-       PL_unify_integer(A7, n->ticks) )
-    succeed;
+  collectSiblingsTime(PASS_LD1);
 
-  fail;
+  return ( unify_node_id(A2, n) &&
+	   PL_unify_integer(A3, n->calls) &&
+	   PL_unify_integer(A4, n->redos) &&
+	   PL_unify_integer(A5, n->exits) &&
+	   PL_unify_integer(A6, n->recur) &&
+	   PL_unify_integer(A7, n->ticks) &&
+	   PL_unify_integer(A8, n->sibling_ticks) );
 }
 
 
@@ -499,8 +499,10 @@ PRED_IMPL("$prof_node", 7, prof_node, 0)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 prof_procedure_data(+Head,
 		    -TimeSelf, -TimeSiblings, -Parents, -Siblings)
-    Where Parents  = list_of(reference(Head, Calls, Redos))
-      And Siblings = list_of(reference(Head, Calls, Redos))
+    Where Parents  = list_of(Relative)
+      And Siblings = list_of(Relative)
+      and Relative = node(Pred, CycleID, Ticks, SiblingTicks,
+			  Calls, Redos, Exits)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct prof_ref
@@ -762,7 +764,7 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   if ( !get_handle(A1, &handle) )
     fail;
 
-  collectSiblingsTime();
+  collectSiblingsTime(PASS_LD1);
   memset(&sum, 0, sizeof(sum));
   for(n=LD->profile.roots; n; n=n->next)
     count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
@@ -1144,10 +1146,8 @@ collectSiblingsNode(call_node *n)
 
 
 static void
-collectSiblingsTime(void)
-{ GET_LD
-
-  if ( !LD->profile.sum_ok )
+collectSiblingsTime(ARG1_LD)
+{ if ( !LD->profile.sum_ok )
   { call_node *n;
 
     for(n=LD->profile.roots; n; n=n->next)
@@ -1215,8 +1215,8 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 }
 
 static
-PRED_IMPL("$prof_node", 7, prof_node, 0)
-{ return notImplemented("profile_node", 7);
+PRED_IMPL("$prof_node", 8, prof_node, 0)
+{ return notImplemented("profile_node", 8);
 }
 
 static
@@ -1231,7 +1231,7 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 
 static
 PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
-{ return notImplemented("$prof_procedure_data", 7);
+{ return notImplemented("$prof_procedure_data", 8);
 }
 
 static
@@ -1283,7 +1283,7 @@ BeginPredDefs(profile)
   PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
-  PRED_DEF("$prof_node", 7, prof_node, 0)
+  PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
