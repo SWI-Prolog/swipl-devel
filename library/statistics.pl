@@ -482,7 +482,7 @@ profile_data(Data) :-
 
 profile_data_(profile{summary:Summary, nodes:Nodes}) :-
     prof_statistics(Summary),
-    findall(Node, profile_procedure_data(_, Node), Nodes).
+    findall(Node, profile_procedure_data(_:_, Node), Nodes).
 
 %!  prof_statistics(-Node) is det.
 %
