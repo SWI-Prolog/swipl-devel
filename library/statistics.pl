@@ -43,12 +43,13 @@
             profile/2,                  % :Goal, +Options
             show_profile/1,             % +Options
             profile_data/1,             % -Dict
-            profile_procedure_data/2    % :Head, -Data
+            profile_procedure_data/2    % :PI, -Data
           ]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(prolog_code)).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
@@ -397,7 +398,7 @@ show_profile_(Options) :-
 show_profile_(Options) :-
     prof_statistics(Stat),
     sort_on(Options, SortKey),
-    findall(Node, prof_node(Node), Nodes),
+    findall(Node, profile_procedure_data(_:_, Node), Nodes),
     sort_prof_nodes(SortKey, Nodes, Sorted),
     format('~`=t~69|~n'),
     format('Total time: ~3f seconds~n', [Stat.time]),
@@ -459,7 +460,7 @@ show_plain(Node, Stat, Key) :-
 %         Nodes in the call graph.
 %     - nodes
 %       List of nodes.  Each node provides:
-%       - predicate:Head
+%       - predicate:PredicateIndicator
 %       - ticks_self:Count
 %       - ticks_siblings:Count
 %       - call:Count
@@ -471,7 +472,7 @@ show_plain(Node, Stat, Key) :-
 %    _Relative_ is a term of the shape below that represents a caller or
 %    callee. Future versions are likely to use a dict instead.
 %
-%        node(Predicate, CycleID, Ticks, TicksSiblings,
+%        node(PredicateIndicator, CycleID, Ticks, TicksSiblings,
 %             Calls, Redos, Exits)
 
 profile_data(Data) :-
@@ -494,20 +495,11 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
                         accounting:Account, time:Time, nodes:Nodes}) :-
     '$prof_statistics'(Samples, Ticks, Account, Time, Nodes).
 
-%!  profile_procedure_data(?Pred, -Data) is nondet.
+%!  profile_procedure_data(?Pred, -Data:dict) is nondet.
 %
 %   Collect data for Pred. If Pred is   unbound  data for each predicate
-%   that has profile data available is returned. Data is a dict with the
-%   following fields:
-%
-%     - predicate:Head
-%     - ticks_self:Count
-%     - ticks_siblings:Count
-%     - call:Count
-%     - redo:Count
-%     - exit:Count
-%     - callers:list_of(reference(Head, Calls, Redos))
-%     - callees:list_of(reference(Head, Calls, Redos))
+%   that has profile data available is   returned.  Data is described in
+%   profile_data/1 as an element of the `nodes` key.
 
 profile_procedure_data(Pred, Node) :-
     Node = node{predicate:Pred,
@@ -529,19 +521,7 @@ specified(Module:Head) :-
     callable(Head).
 
 profiled_predicates(Preds) :-
-    setof(Pred, prof_impl(Pred), Preds0),
-    join_impl(Preds0, Preds).
-
-join_impl([], []).
-join_impl([H|T0], [H|T]) :-
-    same(H, T0, T1),
-    join_impl(T1, T).
-
-same(H, [H|T0], T) :-
-    !,
-    same(H, T0, T).
-same(_, L, L).
-
+    setof(Pred, prof_impl(Pred), Preds).
 
 prof_impl(Pred) :-
     prof_node_id(Node),
@@ -566,7 +546,7 @@ node_id_pred(Node, Pred) :-
 
 value(name, Data, Name) :-
     !,
-    predicate_functor_name(Data.predicate, Name).
+    predicate_sort_key(Data.predicate, Name).
 value(label, Data, Label) :-
     !,
     predicate_label(Data.predicate, Label).
@@ -584,38 +564,6 @@ value(time(Key, percentage, Stat), Data, Percent) :-
     ).
 value(Name, Data, Value) :-
     Value = Data.Name.
-
-%!  predicate_label(+Head, -Label)
-%
-%   Create a human-readable label for the given head
-
-predicate_label(M:H, Label) :-
-    !,
-    functor(H, Name, Arity),
-    (   hidden_module(M, H)
-    ->  atomic_list_concat([Name, /, Arity], Label)
-    ;   atomic_list_concat([M, :, Name, /, Arity], Label)
-    ).
-predicate_label(H, Label) :-
-    !,
-    functor(H, Name, Arity),
-    atomic_list_concat([Name, /, Arity], Label).
-
-hidden_module(system, _).
-hidden_module(user, _).
-hidden_module(M, H) :-
-    predicate_property(system:H, imported_from(M)).
-
-%!  predicate_functor_name(+Head, -Name)
-%
-%   Return the (module-free) name of the predicate for sorting
-%   purposes.
-
-predicate_functor_name(_:H, Name) :-
-    !,
-    predicate_functor_name(H, Name).
-predicate_functor_name(H, Name) :-
-    functor(H, Name, _Arity).
 
 
                  /*******************************

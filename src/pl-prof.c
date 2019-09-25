@@ -456,7 +456,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 
 static int
 identify_def(term_t t, void *handle)
-{ return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY);
+{ return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY|GP_NAMEARITY);
 }
 
 
@@ -497,7 +497,7 @@ PRED_IMPL("$prof_node", 8, prof_node, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-prof_procedure_data(+Head,
+prof_procedure_data(+PredicateIndicator,
 		    -TimeSelf, -TimeSiblings, -Parents, -Siblings)
     Where Parents  = list_of(Relative)
       And Siblings = list_of(Relative)
@@ -715,7 +715,7 @@ static int
 get_def(term_t t, void **handle)
 { Procedure proc;
 
-  if ( get_procedure(t, &proc, 0, GP_FIND) )
+  if ( get_procedure(t, &proc, 0, GP_FIND|GP_NAMEARITY) )
   { *handle = proc->definition;
     succeed;
   }
@@ -745,7 +745,7 @@ get_handle(term_t t, void **handle)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$prof_procedure_data(+Procedure,
+$prof_procedure_data(+PredicateIndicator,
 		     -Ticks, -TicksSiblings,
 		     -Calls, -Redos, -Exits,
 		     -Callers, -Callees)
@@ -956,7 +956,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 	  Sdprintf("Call: direct recursion on %s\n", node_name(node)));
     LD->profile.accounting = FALSE;
     return node;
-  } else				/* from same parent */
+  } else				/* from some parent */
   { void *parent = node->handle;
 
     for(node=node->parent; node; node = node->parent)

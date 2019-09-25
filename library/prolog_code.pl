@@ -42,9 +42,15 @@
             pi_head/2,                          % :PI, :Head
             head_name_arity/3,			% ?Goal, ?Name, ?Arity
 
-            most_general_goal/2                 % :Goal, -General
+            most_general_goal/2,                % :Goal, -General
+
+            predicate_label/2,                  % +PI, -Label
+            predicate_sort_key/2                % +PI, -Key
           ]).
 :- use_module(library(error)).
+
+:- multifile
+    user:prolog_predicate_name/2.
 
 /** <module> Utilities for reasoning about code
 
@@ -170,3 +176,56 @@ most_general_goal(Compound, General) :-
     compound_name_arity(General, Name, Arity).
 
 
+		 /*******************************
+		 *            LABELS		*
+		 *******************************/
+
+%!  predicate_label(++PI, -Label) is det.
+%
+%   Create a human-readable label  for   the  given predicate indicator.
+%   This notably hides the module qualification from `user` and built-in
+%   predicates. This predicate  is  intended   for  reporting  predicate
+%   information to the user, for example in the profiler.
+
+predicate_label(PI, Label) :-
+    must_be(ground, PI),
+    user:prolog_predicate_name(PI, Label),
+    !.
+predicate_label(M:Name/Arity, Label) :-
+    !,
+    (   hidden_module(M, Name/Arity)
+    ->  atomic_list_concat([Name, /, Arity], Label)
+    ;   atomic_list_concat([M, :, Name, /, Arity], Label)
+    ).
+predicate_label(M:Name//Arity, Label) :-
+    !,
+    (   hidden_module(M, Name//Arity)
+    ->  atomic_list_concat([Name, //, Arity], Label)
+    ;   atomic_list_concat([M, :, Name, //, Arity], Label)
+    ).
+predicate_label(Name/Arity, Label) :-
+    !,
+    atomic_list_concat([Name, /, Arity], Label).
+predicate_label(Name//Arity, Label) :-
+    !,
+    atomic_list_concat([Name, //, Arity], Label).
+
+hidden_module(system, _).
+hidden_module(user, _).
+hidden_module(M, Name/Arity) :-
+    functor(H, Name, Arity),
+    predicate_property(system:H, imported_from(M)).
+hidden_module(M, Name//DCGArity) :-
+    Arity is DCGArity+1,
+    functor(H, Name, Arity),
+    predicate_property(system:H, imported_from(M)).
+
+%!  predicate_sort_key(+PI, -Key) is det.
+%
+%   Key is the (module-free) name of the predicate for sorting purposes.
+
+predicate_sort_key(_:PI, Name) :-
+    !,
+    predicate_sort_key(PI, Name).
+predicate_sort_key(Name/_Arity, Name).
+predicate_sort_key(Name//_Arity, Name).
