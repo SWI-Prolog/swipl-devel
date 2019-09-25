@@ -374,8 +374,8 @@ Prolog query API:
 $prof_sibling_of(?Child, ?Parent)
 	Generate hierachy.  If Parent is '-', generate the roots
 
-$prof_node(+Node, -Pred, -Calls, -Redos, -Exits, -TickFraction)
-
+$prof_node(+Node, -Pred, -Calls, -Redos, -Exits,
+	   -Recursive, -Ticks)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int

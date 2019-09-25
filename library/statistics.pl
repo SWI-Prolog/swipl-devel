@@ -556,8 +556,8 @@ prof_node_id_below(N, Root) :-
     ;   prof_node_id_below(N, N0)
     ).
 
-node_id_pred(Node, Pred) :-             % TBD: add as built-in
-    '$prof_node'(Node, Pred, _, _, _, _, _).
+node_id_pred(Node, Pred) :-
+    '$prof_node'(Node, Pred, _Calls, _Redos, _Exits, _Recur, _Ticks).
 
 %!  value(+Key, +NodeData, -Value)
 %
