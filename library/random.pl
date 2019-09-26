@@ -273,9 +273,12 @@ random_select(_, List, Rest) :-
 
 %!  randset(+K:int, +N:int, -S:list(int)) is det.
 %
-%   S is a sorted list of  K   unique  random  integers in the range
-%   1..N. Implemented by enumerating 1..N   and  deciding whether or
-%   not the number should be part of the set.  For example:
+%   S is a sorted list of K unique   random  integers in the range 1..N.
+%   The implementation uses different techniques  depending on the ratio
+%   K/N. For small K/N it generates a   set of K random numbers, removes
+%   the duplicates and adds more numbers until |S| is K. For a large K/N
+%   it enumerates 1..N and decides  randomly   to  include the number or
+%   not. For example:
 %
 %     ==
 %     ?- randset(5, 5, S).
@@ -285,12 +288,14 @@ random_select(_, List, Rest) :-
 %     ==
 %
 %   @see randseq/3.
-%   @bug Slow if N is large and K is small.
 
 randset(K, N, S) :-
     must_be(nonneg, K),
     K =< N,
-    randset(K, N, [], S).
+    (   K < N//7
+    ->  randsetn(K, N, [], S)
+    ;   randset(K, N, [], S)
+    ).
 
 randset(0, _, S, S) :- !.
 randset(K, N, Si, So) :-
@@ -303,37 +308,40 @@ randset(K, N, Si, So) :-
     M is N-1,
     randset(K, M, Si, So).
 
+randsetn(K, N, Sofar, S) :-
+    length(Sofar, Len),
+    (   Len =:= K
+    ->  S = Sofar
+    ;   Needed is K-Len,
+        length(New, Needed),
+        maplist(srand(N), New),
+        (   Sofar == []
+        ->  sort(New, Sorted)
+        ;   append(New, Sofar, Sofar2),
+            sort(Sofar2, Sorted)
+        ),
+        randsetn(K, N, Sorted, S)
+    ).
+
+srand(N, E) :-
+    E is random(N)+1.
 
 %!  randseq(+K:int, +N:int, -List:list(int)) is det.
 %
 %   S is a list of K unique random   integers in the range 1..N. The
-%   order is random. Works as if defined by the following code.
+%   order is random. Defined as
 %
-%     ==
+%     ```
 %     randseq(K, N, List) :-
 %           randset(K, N, Set),
 %           random_permutation(Set, List).
-%     ==
+%     ```
 %
 %   @see randset/3.
 
-
-randseq(K, N, S) :-
-    randseq(K, N, L, []),
-    keysort(L, R),
-    pairs_values(R, S).
-
-randseq(0, _, S, S) :- !.
-randseq(K, N, [Y-N|Si], So) :-
-    random(N) < K,
-    !,
-    random(Y),
-    J is K-1,
-    M is N-1,
-    randseq(J, M, Si, So).
-randseq(K, N, Si, So) :-
-    M is N-1,
-    randseq(K, M, Si, So).
+randseq(K, N, Seq) :-
+    randset(K, N, Set),
+    random_permutation_(Set, Seq).
 
 %!  random_permutation(+List, -Permutation) is det.
 %!  random_permutation(-List, +Permutation) is det.
