@@ -56,7 +56,7 @@ typedef struct try_children_any
 typedef struct trie_children_hashed
 { tn_node_type	type;			/* TN_HASHED */
   Table		table;			/* Key --> child map */
-  unsigned	var_keys;		/* # variable keys */
+  unsigned	var_mask;		/* Variables in this place */
 } trie_children_hashed;
 
 typedef struct trie_children_key

@@ -392,6 +392,25 @@ prune_node(trie *trie, trie_node *n)
 }
 
 
+#define VMASKBITS  (sizeof(unsigned)*8)
+#define VMASK_SCAN (0x1<<(VMASKBITS-1))
+
+static inline void
+update_var_mask(trie_children_hashed *hnode, word key)
+{ if ( tagex(key) == TAG_VAR )
+  { size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
+    unsigned mask;
+
+    if ( vn < VMASKBITS )
+      mask = 0x1<<(vn-1);
+    else
+      mask = VMASK_SCAN;
+
+    ATOMIC_OR(&hnode->var_mask, mask);
+  }
+}
+
+
 static trie_node *
 insert_child(trie *trie, trie_node *n, word key ARG_LD)
 { for(;;)
@@ -411,14 +430,12 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	    hnode->type     = TN_HASHED;
 	    hnode->table    = newHTable(4);
-	    hnode->var_keys = 0;
+	    hnode->var_mask = 0;
 	    addHTable(hnode->table, (void*)children.key->key,
 				    children.key->child);
 	    addHTable(hnode->table, (void*)key, (void*)new);
-	    if ( tagex(children.key->key) == TAG_VAR )
-	      hnode->var_keys++;
-	    if ( tagex(new->key) == TAG_VAR )
-	      hnode->var_keys++;
+	    update_var_mask(hnode, children.key->key);
+	    update_var_mask(hnode, new->key);
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
 	    { PL_free(children.any);		/* TBD: Safely free */
@@ -437,8 +454,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 
 	  if ( new == old )
 	  { new->parent = n;
-	    if ( tagex(new->key) == TAG_VAR )
-	      ATOMIC_INC(&children.hash->var_keys);
+	    update_var_mask(children.hash, new->key);
 	  } else
 	  { destroy_node(trie, new);
 	  }
@@ -1523,11 +1539,12 @@ unify_key(ukey_state *state, word key ARG_LD)
 
 
 typedef struct trie_choice
-{ union
-  { void *any;
-    TableEnum table;
-  } choice;
-  word key;
+{ TableEnum  table_enum;
+  Table      table;
+  unsigned   var_mask;
+  unsigned   var_index;
+  word       novar;
+  word       key;
   trie_node *child;
 } trie_choice;
 
@@ -1551,6 +1568,8 @@ typedef struct
   desc_tstate  buffer[64];	/* Quick buffer for stack */
 } descent_state;
 
+static int	advance_node(trie_choice *ch ARG_LD);
+
 static void
 init_trie_state(trie_gen_state *state, trie *trie)
 { state->trie = trie;
@@ -1569,8 +1588,8 @@ clear_trie_state(trie_gen_state *state)
   trie_choice *top = top_choice(state);
 
   for(; chp < top; chp++)
-  { if ( chp->choice.table )
-      freeTableEnum(chp->choice.table);
+  { if ( chp->table_enum )
+      freeTableEnum(chp->table_enum);
   }
 
   discardBuffer(&state->choicepoints);
@@ -1637,6 +1656,11 @@ term we are walking is instantiated and   the trie node does not contain
 variables we walk deterministically. Once we have a variable in the term
 we unify against or find a variable in  the trie dstate->prune is set to
 FALSE, indicating we must create a real choice.
+
+If a known input value is matched against   a  trie choice node and this
+node contains variables we create a choice   from the value and variable
+mask such that  we  perform  a  couple   of  hash  lookups  rather  than
+enumerating the entire table.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 trie_choice *
@@ -1665,15 +1689,16 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	     k == children.key->key ||
 	     tagex(children.key->key) == TAG_VAR ||
 	     IS_TRIE_KEY_POP(children.key->key) )
-	{ word key   = children.key->key;
+	{ word key = children.key->key;
 
 	  if ( tagex(children.key->key) == TAG_VAR )
 	    dstate->prune = FALSE;
 
 	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	  ch->key    = key;
-	  ch->child  = children.key->child;
-	  ch->choice.any = NULL;
+	  ch->key        = key;
+	  ch->child      = children.key->child;
+	  ch->table_enum = NULL;
+	  ch->table      = NULL;
 
 	  if ( IS_TRIE_KEY_POP(children.key->key) && dstate->compound )
 	  { desc_tstate dts;
@@ -1689,27 +1714,53 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	  return NULL;
 	}
       case TN_HASHED:
-	if ( has_key && children.hash->var_keys == 0 )
-	{ trie_node *child;
+      { void *tk, *tv;
 
-	  if ( (child = lookupHTable(children.hash->table, (void*)k)) )
-	  { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	    ch->key = k;
-	    ch->child = child;
-	    ch->choice.any = NULL;
-	  } else
-	    return NULL;
-	} else
-	{ void *k, *v;
+	if ( has_key )
+	{ if ( children.hash->var_mask == 0 )
+	  { trie_node *child;
 
-	  dstate->prune = FALSE;
-	  ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
-	  ch->choice.table = newTableEnum(children.hash->table);
-	  advanceTableEnum(ch->choice.table, &k, &v);
-	  ch->key   = (word)k;
-	  ch->child = (trie_node*)v;
+	    if ( (child = lookupHTable(children.hash->table, (void*)k)) )
+	    { ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	      ch->key        = k;
+	      ch->child	     = child;
+	      ch->table_enum = NULL;
+	      ch->table      = NULL;
+
+	      return ch;
+	    } else
+	      return NULL;
+	  } else if ( children.hash->var_mask != VMASK_SCAN )
+	  { dstate->prune = FALSE;
+
+	    DEBUG(MSG_TRIE_GEN,
+		  Sdprintf("Created var choice 0x%x\n", children.hash->var_mask));
+
+	    ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	    ch->table_enum = NULL;
+	    ch->table      = children.hash->table;
+	    ch->var_mask   = children.hash->var_mask;
+	    ch->var_index  = 1;
+	    ch->novar      = k;
+	    if ( advance_node(ch PASS_LD) )
+	    { return ch;
+	    } else
+	    { state->choicepoints.top = (char*)ch;
+	      ch--;
+	      return NULL;
+	    }
+	  }
 	}
+					/* general enumeration */
+	dstate->prune = FALSE;
+	ch = allocFromBuffer(&state->choicepoints, sizeof(*ch));
+	ch->table = NULL;
+	ch->table_enum = newTableEnum(children.hash->table);
+	advanceTableEnum(ch->table_enum, &tk, &tv);
+	ch->key   = (word)tk;
+	ch->child = (trie_node*)tv;
 	break;
+      }
       default:
 	assert(0);
         return NULL;
@@ -1735,15 +1786,34 @@ descent_node(trie_gen_state *state, descent_state *dstate, trie_choice *ch ARG_L
 
 
 static int
-advance_node(trie_choice *ch)
-{ if ( ch->choice.table )
+advance_node(trie_choice *ch ARG_LD)
+{ if ( ch->table_enum )
   { void *k, *v;
 
-    if ( advanceTableEnum(ch->choice.table, &k, &v) )
+    if ( advanceTableEnum(ch->table_enum, &k, &v) )
     { ch->key   = (word)k;
       ch->child = (trie_node*)v;
 
       return TRUE;
+    }
+  } else if ( ch->table )
+  { if ( ch->novar )
+    { if ( (ch->child=lookupHTable(ch->table, (void*)ch->novar)) )
+      { ch->key = ch->novar;
+	ch->novar = 0;
+	return TRUE;
+      }
+    }
+    for( ; ch->var_index && ch->var_index < VMASKBITS; ch->var_index++ )
+    { if ( (ch->var_mask & (0x1<<(ch->var_index-1))) )
+      { word key = ((((word)ch->var_index))<<LMASK_BITS)|TAG_VAR;
+
+	if ( (ch->child=lookupHTable(ch->table, (void*)key)) )
+	{ ch->key = key;
+	  ch->var_index++;
+	  return TRUE;
+	}
+      }
     }
   }
 
@@ -1757,11 +1827,11 @@ next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
   trie_choice  *ch = top_choice(state)-1;
 
   while(ch >= btm)
-  { if ( advance_node(ch) )
+  { if ( advance_node(ch PASS_LD) )
       return descent_node(state, dstate, ch PASS_LD);
 
-    if ( ch->choice.table )
-      freeTableEnum(ch->choice.table);
+    if ( ch->table_enum )
+      freeTableEnum(ch->table_enum);
 
     state->choicepoints.top = (char*)ch;
     ch--;

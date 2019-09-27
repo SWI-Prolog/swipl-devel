@@ -130,10 +130,23 @@ test(gen_indirect, true) :-
 	trie_new(T),
 	trie_insert(T, 0.25, true),
 	trie_gen(T, 0.25).
+test(var1, set(Y == [1,2,3])) :-
+        test_var(_, Y).
+test(var2, set(Y == [1,2])) :-
+        test_var(a, Y).
+test(var3, set(Y == [1])) :-
+        test_var(c, Y).
 
 shared_list(N, t(List,N)) :-
 	length(List, N),
 	reverse(List, R),
 	R = List.
+
+test_var(X, Y) :-
+	trie_new(T),
+	trie_insert(T, f(_, 1)),
+	trie_insert(T, f(a, 2)),
+	trie_insert(T, f(b, 3)),
+	trie_gen(T, f(X, Y)).
 
 :- end_tests(trie).
