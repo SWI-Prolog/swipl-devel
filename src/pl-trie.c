@@ -1631,6 +1631,14 @@ get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Walk a step down the trie, adding  a   node  to the choice stack. If the
+term we are walking is instantiated and   the trie node does not contain
+variables we walk deterministically. Once we have a variable in the term
+we unify against or find a variable in  the trie dstate->prune is set to
+FALSE, indicating we must create a real choice.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 trie_choice *
 add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 { trie_children children = node->children;
