@@ -415,8 +415,16 @@ sort_on(Options, ticks_self) :-
     !.
 sort_on(_, ticks).
 
+sort_prof_nodes(ticks, Nodes, Sorted) :-
+    !,
+    map_list_to_pairs(key_ticks, Nodes, Keyed),
+    sort(1, >=, Keyed, KeySorted),
+    pairs_values(KeySorted, Sorted).
 sort_prof_nodes(Key, Nodes, Sorted) :-
     sort(Key, >=, Nodes, Sorted).
+
+key_ticks(Node, Ticks) :-
+    Ticks is Node.ticks_self + Node.ticks_siblings.
 
 show_plain([], _, _, _).
 show_plain(_, 0, _, _) :- !.
