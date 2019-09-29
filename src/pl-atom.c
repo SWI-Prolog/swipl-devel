@@ -1263,6 +1263,23 @@ PL_unregister_atom(atom_t a)
 }
 
 
+/* TRUE if `a` is a possible candidate for AGC
+*/
+int
+is_volatile_atom(atom_t a)
+{
+#ifdef O_ATOMGC
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p = fetchAtomArray(index);
+    return !p->references;
+  }
+#endif
+  return FALSE;
+}
+
+
 		 /*******************************
 		 *	      CHECK		*
 		 *******************************/

@@ -2954,12 +2954,15 @@ sweep_frame(LocalFrame fr, int slots ARG_LD)
 	into_relocation_chain(sp, STG_LOCAL PASS_LD);
       }
     } else
-    { if ( isGlobalRef(*sp) )
+    { word w = *sp;
+
+      if ( isGlobalRef(w) ||
+	   (isAtom(w) && is_volatile_atom(w)) )
       { DEBUG(MSG_GC_SWEEP, char b[64];
 	      Sdprintf("[%ld] %s: GC VAR(%d) (=%s)\n",
 		       levelFrame(fr), predicateName(fr->predicate),
 		       sp-argFrameP(fr, 0),
-		       print_val(*sp, b)));
+		       print_val(w, b)));
 	*sp = ATOM_garbage_collected;
       }
     }
