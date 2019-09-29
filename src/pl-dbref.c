@@ -64,6 +64,8 @@ release_clause_blob(atom_t aref)
 { ClauseRef ref = PL_blob_data(aref, NULL, NULL);
 
   clear(ref->value.clause, DBREF_CLAUSE);
+  if ( true(ref->value.clause, CL_ERASED) )
+    ATOMIC_DEC(&GD->clauses.db_erased_refs);
   if ( true(ref->value.clause, DBREF_ERASED_CLAUSE) )
     unallocClause(ref->value.clause);
 

@@ -1421,6 +1421,9 @@ retractClauseDefinition(Definition def, Clause clause)
 
 					/* update stats */
   registerRetracted(clause);
+  if ( true(clause, DBREF_CLAUSE) )
+    ATOMIC_INC(&GD->clauses.db_erased_refs);
+
   ATOMIC_SUB(&def->module->code_size, size);
   ATOMIC_ADD(&GD->clauses.erased_size, size);
   ATOMIC_INC(&GD->clauses.erased);
@@ -2049,7 +2052,16 @@ registerDirtyDefinition(Definition def ARG_LD)
   if ( !isSignalledGCThread(SIG_CLAUSE_GC PASS_LD) &&	/* already asked for */
        !GD->clauses.cgc_active &&	/* currently running */
        considerClauseGC(PASS_LD1) )
+  { if ( GD->clauses.db_erased_refs > GD->clauses.erased / 10 )
+    { DEBUG(MSG_CGC_CONSIDER,
+	    Sdprintf("CGC: %ld of %ld erased clauses has a clause ref; "
+		     "asking for AGC\n",
+		     (long)GD->clauses.db_erased_refs,
+		     (long)GD->clauses.erased));
+      signalGCThread(SIG_ATOM_GC);
+    }
     signalGCThread(SIG_CLAUSE_GC);
+  }
 }
 
 static void

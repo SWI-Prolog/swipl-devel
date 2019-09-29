@@ -347,6 +347,7 @@ struct PL_global_data
     size_t	erased;			/* # erased pending clauses */
     size_t	erased_size;		/* memory used by them */
     size_t	erased_size_last;	/* memory used by them after last CGC */
+    size_t	db_erased_refs;		/* Clause references on erased clauses */
     int		cgc_space_factor;	/* Max total/margin garbage */
     double	cgc_stack_factor;	/* Price to scan stack space */
     double	cgc_clause_factor;	/* Pce to scan clauses */
