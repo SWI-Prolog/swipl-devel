@@ -411,7 +411,12 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	{ if ( children.key->key == key )
 	  { return children.key->child;
 	  } else
-	  { trie_children_hashed *hnode = PL_malloc(sizeof(*hnode));
+	  { trie_children_hashed *hnode;
+
+	    if ( !(hnode=alloc_from_pool(trie->alloc_pool, sizeof(*hnode))) )
+	    { destroy_node(trie, new);
+	      return NULL;
+	    }
 
 	    hnode->type     = TN_HASHED;
 	    hnode->table    = newHTable(4);
@@ -423,13 +428,14 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	    update_var_mask(hnode, new->key);
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
-	    { PL_free(children.any);		/* TBD: Safely free */
+	    {					/* TBD: Safely free */
+	      free_to_pool(trie->alloc_pool, children.any, sizeof(trie_children_key));
 	      new->parent = n;
 	      return new;
 	    }
 	    destroy_node(trie, new);
 	    destroyHTable(hnode->table);
-	    PL_free(hnode);
+	    free_to_pool(trie->alloc_pool, hnode, sizeof(*hnode));
 	    continue;
 	  }
 	}
@@ -449,7 +455,12 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	  assert(0);
       }
     } else
-    { trie_children_key *child = PL_malloc(sizeof(*child));
+    { trie_children_key *child;
+
+      if ( !(child=alloc_from_pool(trie->alloc_pool, sizeof(*child))) )
+      { destroy_node(trie, new);
+	return NULL;
+      }
 
       child->type  = TN_KEY;
       child->key   = key;
@@ -460,7 +471,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	return child->child;
       }
       destroy_node(trie, new);
-      PL_free(child);
+      free_to_pool(trie->alloc_pool, child, sizeof(*child));
     }
   }
 }
