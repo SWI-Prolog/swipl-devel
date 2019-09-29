@@ -146,7 +146,7 @@ typedef struct trie
 #endif
 
 COMMON(void)	initTries(void);
-COMMON(trie *)	trie_create(void);
+COMMON(trie *)	trie_create(trie_allocation_pool *pool);
 COMMON(void)	trie_destroy(trie *trie);
 COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
@@ -172,5 +172,8 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
+COMMON(void *)	alloc_from_pool(trie_allocation_pool *pool, size_t bytes);
+COMMON(void)	free_to_pool(trie_allocation_pool *pool, void *mem, size_t bytes);
+
 
 #endif /*_PL_TRIE_H*/

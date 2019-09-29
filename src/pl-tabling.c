@@ -2004,28 +2004,35 @@ static void release_variant_table_node(trie *trie, trie_node *node);
 static trie *
 variant_table(int shared ARG_LD)
 { trie **tp;
+  trie_allocation_pool *pool;
 
 #ifdef O_PLMT
   if ( shared )
-    tp = &GD->tabling.variant_table;
-  else
+  { tp   = &GD->tabling.variant_table;
+    pool = &GD->tabling.node_pool;
+  } else
 #endif
-    tp = &LD->tabling.variant_table;
+  { tp   = &LD->tabling.variant_table;
+    pool = &LD->tabling.node_pool;
+  }
 
   if ( *tp == NULL )
-  { trie *t = trie_create();
-    atom_t symb;
+  { trie *t;
 
-    t->release_node = release_variant_table_node;
-    symb = trie_symbol(t);
+    if ( (t = trie_create(pool)) )
+    { atom_t symb;
 
-    if ( COMPARE_AND_SWAP(tp, NULL, t) )
-    { if ( shared )
-      { set(t, TRIE_ISSHARED);
-	acquire_trie(t);			/* bit misuse */
+      t->release_node = release_variant_table_node;
+      symb = trie_symbol(t);
+
+      if ( COMPARE_AND_SWAP(tp, NULL, t) )
+      { if ( shared )
+	{ set(t, TRIE_ISSHARED);
+	  acquire_trie(t);			/* bit misuse */
+	}
+      } else
+      { PL_unregister_atom(symb);			/* destroyed by atom-GC */
       }
-    } else
-    { PL_unregister_atom(symb);			/* destroyed by atom-GC */
     }
   }
 
@@ -2206,8 +2213,11 @@ retry:
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
+      trie_allocation_pool *pool = (shared ? &GD->tabling.node_pool
+					   : &LD->tabling.node_pool);
 
-      atrie = trie_create();
+      if ( !(atrie = trie_create(pool)) )
+	return NULL;
       set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
@@ -2215,8 +2225,7 @@ retry:
 
 #ifdef O_PLMT
       if ( shared )
-      { atrie->alloc_pool = &GD->tabling.node_pool;
-	set(atrie, TRIE_ISSHARED);
+      { set(atrie, TRIE_ISSHARED);
 	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
 	{ ATOMIC_INC(&variants->value_count);
 	} else
@@ -2226,8 +2235,7 @@ retry:
 	}
       } else
 #endif
-      { atrie->alloc_pool = &LD->tabling.node_pool;
-	node->value = symb;
+      { node->value = symb;
 	ATOMIC_INC(&variants->value_count);
       }
     } else

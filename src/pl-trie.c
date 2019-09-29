@@ -184,19 +184,17 @@ release_key(word key)
 
 
 trie *
-trie_create(void)
+trie_create(trie_allocation_pool *pool)
 { trie *trie;
 
-  if ( (trie = PL_malloc(sizeof(*trie))) )
+  if ( (trie = alloc_from_pool(pool, sizeof(*trie))) )
   { memset(trie, 0, sizeof(*trie));
     trie->magic = TRIE_MAGIC;
     trie->node_count = 1;		/* the root */
-
-    return trie;
-  } else
-  { PL_resource_error("memory");
-    return NULL;
+    trie->alloc_pool = pool;
   }
+
+  return trie;
 }
 
 
@@ -205,7 +203,7 @@ trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie->magic = TRIE_CMAGIC;
   trie_empty(trie);
-  PL_free(trie);
+  free_to_pool(trie->alloc_pool, trie, sizeof(*trie));
 }
 
 
@@ -277,22 +275,11 @@ static trie_node *
 new_trie_node(trie *trie, word key)
 { trie_node *n;
 
-  if ( trie->alloc_pool )
-  { if ( trie->alloc_pool->size+sizeof(trie_node) <= trie->alloc_pool->limit )
-    { ATOMIC_ADD(&trie->alloc_pool->size, sizeof(trie_node));
-    } else
-    { PL_resource_error("table_space");
-      return NULL;
-    }
-  }
-
-  if ( (n = PL_malloc(sizeof(*n))) )
+  if ( (n = alloc_from_pool(trie->alloc_pool, sizeof(*n))) )
   { ATOMIC_INC(&trie->node_count);
     memset(n, 0, sizeof(*n));
     acquire_key(key);
     n->key = key;
-  } else
-  { PL_resource_error("memory");
   }
 
   return n;
@@ -315,9 +302,7 @@ next:
 
   if ( dealloc )
   { ATOMIC_DEC(&trie->node_count);
-    if ( trie->alloc_pool )
-      ATOMIC_SUB(&trie->alloc_pool->size, sizeof(trie_node));
-    PL_free(n);
+    free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
   } else
   { n->children.any = NULL;
   }
@@ -907,7 +892,7 @@ PRED_IMPL("trie_new", 1, trie_new, 0)
 { PRED_LD
   trie *trie;
 
-  if ( (trie = trie_create()) )
+  if ( (trie = trie_create(NULL)) )
   { atom_t symbol = trie_symbol(trie);
     int rc;
 
@@ -2578,6 +2563,40 @@ set_trie_clause_general_undefined(Clause clause)
     }
   }
 }
+
+
+		 /*******************************
+		 *	     ALLOCATION		*
+		 *******************************/
+
+void *
+alloc_from_pool(trie_allocation_pool *pool, size_t bytes)
+{ void *mem;
+
+  if ( pool )
+  { if ( pool->size+bytes <= pool->limit )
+    { ATOMIC_ADD(&pool->size, bytes);
+    } else
+    { PL_resource_error("table_space");
+      return NULL;
+    }
+  }
+
+  if ( (mem=malloc(bytes)) )
+    return mem;
+
+  PL_resource_error("memory");
+  return NULL;
+}
+
+void
+free_to_pool(trie_allocation_pool *pool, void *mem, size_t bytes)
+{ free(mem);
+
+  if ( pool )
+    ATOMIC_SUB(&pool->size, bytes);
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
