@@ -2162,7 +2162,7 @@ pl_garbage_collect_clauses(void)
     GD->clauses.erased_size_last = GD->clauses.erased_size;
 
     DEBUG(MSG_CGC, Sdprintf("CGC: removed %ld clauses "
-			    "(%ld bytes of %ld pending) in %2f sec.\n",
+			    "(%ld bytes reclaimed, %ld pending) in %2f sec.\n",
 			    (long)removed,
 			    (long)erased_pending - GD->clauses.erased_size,
 			    (long)GD->clauses.erased_size,
