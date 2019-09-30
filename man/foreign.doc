@@ -1251,6 +1251,11 @@ Put a list of ASCII values in the term reference.
 Put a Prolog integer in the term reference.
 \cfunction{int}{PL_put_int64}{term_t -t, int64_t i}
 Put a Prolog integer in the term reference.
+\cfunction{int}{PL_put_uint64}{term_t -t, uint64_t i}
+Put a Prolog integer in the term reference.  Note that unbounded integer
+support is required for \ctype{uint64_t} values with the highest bit set
+to 1.  Without unbounded integer support, too large values raise a
+\const{representation_error} exception.
 \cfunction{int}{PL_put_pointer}{term_t -t, void *ptr}
 Put a Prolog integer in the term reference.  Provided \arg{ptr} is in the
 `malloc()-area', PL_get_pointer() will get the pointer back.

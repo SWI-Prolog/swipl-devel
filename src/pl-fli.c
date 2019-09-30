@@ -2642,6 +2642,22 @@ PL_put_int64(term_t t, int64_t i)
   return PL_put_int64__LD(t, i PASS_LD);
 }
 
+int
+PL_put_uint64(term_t t, uint64_t i)
+{ GET_LD
+  word w;
+  int rc;
+
+  switch ( (rc=put_uint64(&w, i, ALLOW_GC PASS_LD)) )
+  { case TRUE:
+      return setHandle(t, w);
+    case LOCAL_OVERFLOW:
+      return PL_representation_error("uint64_t");
+    default:
+      return raiseStackOverflow(rc);
+  }
+}
+
 
 #undef PL_put_integer
 int
