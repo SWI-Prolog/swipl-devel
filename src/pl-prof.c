@@ -375,7 +375,7 @@ $prof_sibling_of(?Child, ?Parent)
 	Generate hierachy.  If Parent is '-', generate the roots
 
 $prof_node(+Node, -Pred, -Calls, -Redos, -Exits,
-	   -Recursive, -Ticks)
+	   -Recursive, -Ticks, -SiblingTicks)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -861,16 +861,16 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function is responsible for collection the profiling statistics  at
-run time.  It is called by the UNIX interval timer on each clock tick of
-the  machine  (every  20  milli seconds).  If profiling is plain we just
-increment the profiling tick of the procedure on top of the stack.   For
-cumulative  profiling  we  have  to  scan the entire local stack.  As we
-don't want to increment each invokation of recursive  functions  on  the
-stack  we  maintain a flag on each function.  This flag is set the first
-time the function is found on the stack.  If is is found set the profile
-counter will not be incremented.  We do a second pass over the frames to
-clear the flags again.
+This function is responsible for collection  the profiling statistics at
+run time. It is called from a  dedicated profiler thread that by default
+triggers this function every 5ms.  First, this calls thread_prof_ticks()
+to determine the number of  ms  the   relevant  clock  (CPU or wall) has
+progressed and then calls this function with `count` set to the relevant
+clock increment, i.e., count is a number in the range 0..5.
+
+This function just ticks the leaf node   in  the dynamic call graph. The
+function collectSiblingsTime() propagates these   upward when collecting
+statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
