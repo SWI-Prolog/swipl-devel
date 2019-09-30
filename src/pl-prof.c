@@ -896,7 +896,23 @@ profile(intptr_t count, PL_local_data_t *__PL_ld)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 profCall(Definition handle)
-    Make a call from the current node to handle.
+
+A call was made from the  current  node   to  handle.  This  builds up a
+dynamic call tree. THe tree is constructed as follows:
+
+  - If there is no current node
+    - If the root-set contains a node for `handle`, use it
+    - Else create a new root node.
+  - If the current node has the same handle, increment `node->recur`
+  - If somewhere in the parent chain we find the same parent-child
+    transition, we tick this node and return it.  For example, given
+    p->q->r->p, a call to q returns the q parent node and increments
+    it recursion count.
+    JW: This seems wrong
+	- It breaks the propagation of self-ticks in the tree.
+	- I think the second `p` also creates a second cycle.
+  - If the current node has a sibling with `handle`, return it.
+  - Else, add a new sibling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_DEBUG
