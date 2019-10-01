@@ -241,6 +241,7 @@ static Table threadTable;		/* name --> reference symbol */
 static int thread_highest_id;		/* Highest handed thread-id */
 static int threads_ready = FALSE;	/* Prolog threads available */
 static Table queueTable;		/* name --> queue */
+static simpleMutex queueTable_mutex;	/* GC synchronization */
 static int will_exec;			/* process will exec soon */
 
 #ifdef HAVE___THREAD
@@ -890,6 +891,7 @@ cleanupThreads(void)
   if ( queueTable )
   { destroyHTable(queueTable);		/* removes shared queues */
     queueTable = NULL;
+    simpleMutexDelete(&queueTable_mutex);
   }
   if ( GD->thread.mutexTable )
   { destroyHTable(GD->thread.mutexTable);
@@ -4328,7 +4330,8 @@ unlocked_message_queue_create(term_t queue, long max_size)
   word id;
 
   if ( !queueTable )
-  { queueTable = newHTable(16);
+  { simpleMutexInit(&queueTable_mutex);
+    queueTable = newHTable(16);
     queueTable->free_symbol = free_queue_symbol;
   }
 
@@ -4564,11 +4567,16 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 		    ATOM_destroy, ATOM_message_queue, A1);
   }
 
+  simpleMutexLock(&queueTable_mutex);	/* see markAtomsMessageQueues() */
   deleteHTable(queueTable, (void*)q->id);
+  simpleMutexUnlock(&queueTable_mutex);
+
   if ( !q->anonymous )
     PL_unregister_atom(q->id);
 
+  simpleMutexLock(&q->gc_mutex);	/* see markAtomsMessageQueues() */
   q->destroyed = TRUE;
+  simpleMutexUnlock(&q->gc_mutex);
 
   if ( q->waiting )
     cv_broadcast(&q->cond_var);
@@ -6009,26 +6017,50 @@ atom-gc runs with the L_THREAD mutex  locked.   As  both he thread mutex
 queue tables are guarded by this  mutex, the loops in markAtomsThreads()
 are safe.
 
-We must lock the individual queues before   processing. This is safe, as
-these mutexes are never helt long  and   the  other  threads are not yet
-silenced.
+The marking must be synchronised with removing   a  message from a queue
+(get_message())  and  destroy_message_queue().  Notably  the  latter  is
+tricky as this deletes `queue->gc_mutex` and frees the queue, so we must
+ensure we do not get into   destroy_message_queue()  when AGC is marking
+the queue's messages.  There are three types of queues:
+
+  - Thread queues.  AGC is synced with thread creation and destruction
+    and thus safe.
+  - Anonymous message queues. These are reclaimed from AGC and thus
+    safe.
+  - Named queues.  These are destroyed using message_queue_destroy/1.
+    For this case we
+    - Use `queueTable_mutex` to sync deletion from `queueTable` with
+      enumeration in markAtomsMessageQueues() which ensures we safely
+      get the queue with queue->gc_mutex locked.
+    - We hold queue->gc_mutex during the scan, which delays
+      message_queue_destroy/1 to set `queue->destroyed`.
+    - If `queue->destroyed` is set, AGC cannot get the queue anymore
+      and we can safely discard it.
+
+This is implemented by Keri Harris and Jan Wielemaker. We are not really
+happy with the complicated  locking.  Alternatively   we  could  use the
+linger interface where the lingering queues   are reclaimed by AGC. That
+might be cleaner, but is a  more   involved  patch  that doesn't perform
+significantly better.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 markAtomsMessageQueue(message_queue *queue)
 { thread_message *msg;
 
-  simpleMutexLock(&queue->gc_mutex);
   for(msg=queue->head; msg; msg=msg->next)
   { markAtomsRecord(msg->message);
   }
-  simpleMutexUnlock(&queue->gc_mutex);
 }
 
 
 void
 markAtomsThreadMessageQueue(PL_local_data_t *ld)
-{ markAtomsMessageQueue(&ld->thread.messages);
+{ message_queue *q = &ld->thread.messages;
+
+  simpleMutexLock(&q->gc_mutex);
+  markAtomsMessageQueue(q);
+  simpleMutexUnlock(&q->gc_mutex);
 }
 
 
@@ -6038,8 +6070,16 @@ markAtomsMessageQueues(void)
   { message_queue *q;
     TableEnum e = newTableEnum(queueTable);
 
-    while( advanceTableEnum(e, NULL, (void**)&q) )
-    { markAtomsMessageQueue(q);
+    while ( TRUE )
+    { simpleMutexLock(&queueTable_mutex);
+      if ( !advanceTableEnum(e, NULL, (void**)&q) )
+      { simpleMutexUnlock(&queueTable_mutex);
+        break;
+      }
+      simpleMutexLock(&q->gc_mutex);
+      simpleMutexUnlock(&queueTable_mutex);
+      markAtomsMessageQueue(q);
+      simpleMutexUnlock(&q->gc_mutex);
     }
     freeTableEnum(e);
   }
