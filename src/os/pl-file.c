@@ -2936,17 +2936,6 @@ Peek input from Stream for  Len  characters   or  the  entire content of
 Stream.
 */
 
-static size_t
-roundp2(size_t i)
-{ size_t r = 2;
-
-  while(r<i)
-    r = r<<1;
-
-  return r;
-}
-
-
 PRED_IMPL("peek_string", 3, peek_string, 0)
 { PRED_LD
   IOSTREAM *s;
@@ -2956,9 +2945,7 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
     return FALSE;
 
   if ( getInputStream(A1, S_DONTCARE, &s) )
-  { if ( s->bufsize < len )
-      Ssetbuffer(s, NULL, roundp2(len));
-    for(;;)
+  { for(;;)
     { if ( s->limitp > s->bufp )
       { PL_chars_t text;
 
