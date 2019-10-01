@@ -45,6 +45,14 @@ providing transparent usage of XSB files  with neglectable impact impact
 if no XSB sources are used.
 */
 
+% xsb_max_file_size is used for buffering  the   source  in  memory when
+% reading a source file through the   gpp preprocessor. Eventually, this
+% should probably create an intermediate file.
+
+:- create_prolog_flag(xsb_max_file_size, 100 000 000,
+                      [ keep(true)
+                      ]).
+
 :- multifile
     user:prolog_file_type/2,
     user:term_expansion/2.
@@ -194,10 +202,20 @@ xsb_directives_aux(_File, Directives) :-
 
 xsb_P_directives(Directives) :-
     prolog_load_context(stream, In),
+    stream_property(In, reposition(true)),
+    !,
     setup_call_cleanup(
         stream_property(In, position(Pos)),
         findall(PI, stream_directive(In, PI), Directives),
         set_stream_position(In, Pos)).
+xsb_P_directives(Directives) :-
+    prolog_load_context(stream, In),
+    current_prolog_flag(xsb_max_file_size, MaxSize),
+    peek_string(In, MaxSize, String),
+    setup_call_cleanup(
+        open_string(String, In2),
+        findall(PI, stream_directive(In2, PI), Directives),
+        close(In2)).
 
 stream_directive(In, Directive) :-
     repeat,
