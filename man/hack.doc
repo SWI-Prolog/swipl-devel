@@ -647,11 +647,20 @@ action has been taken care of. This hook is only called if \arg{Options}
 does not contain the \term{stream}{Input} option. The hook must be
 defined in the module \const{user}.
 
-This can be used to load from unusual places. For example, library
-\pllib{http/http_load} loads Prolog directly from an HTTP server. It can
-also be used to load source in unusual forms, such as loading compressed
-files without decompressing them first. There is currently no example of
-that.
+This can be used to load from unusual places as well as dealing with
+Prolog code that is not represented as a Prolog source text (for example
+some binary representation). For example, library \pllib{http/http_load}
+loads Prolog directly from an HTTP server. See also
+prolog:open_source_hook/3, which merely allows for changing how a
+physical file is opened.
+
+    \predicate{prolog:open_source_hook}{3}{+Path, -Stream, +Options}
+This hooks is called by the compiler to overrule the default open/3 call
+\term{open}{Path, read, Stream}. \arg{Options} provide the options as
+provided to load_files/2. If the hook succeeds compilation continues by
+loading from the returned (input) stream. This hook is particularly
+suited to support running the code to a preprocessor. See also
+prolog_load_file/2.
 
     \predicate{prolog:comment_hook}{3}{+Comments, +Pos, +Term}
 This hook allows for processing comments encountered by the compiler. If

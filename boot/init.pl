@@ -1577,12 +1577,20 @@ compiling :-
 '$open_source'(Path, In, close(In, Path, Ref), Parents, Options) :-
     '$context_type'(Parents, ContextType),
     '$push_input_context'(ContextType),
-    open(Path, read, In),
+    '$open_source'(Path, In, Options),
     '$set_encoding'(In, Options),
     asserta('$load_input'(Path, In), Ref).
 
 '$context_type'([], load_file) :- !.
 '$context_type'(_, include).
+
+:- multifile prolog:open_source_hook/3.
+
+'$open_source'(Path, In, Options) :-
+    prolog:open_source_hook(Path, In, Options),
+    !.
+'$open_source'(Path, In, _Options) :-
+    open(Path, read, In).
 
 '$close_source'(close(In, Id, Ref), Message) :-
     erase(Ref),

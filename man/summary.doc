@@ -437,23 +437,21 @@ a thread-synchronisation device}
 \predicatesummary{mutex_lock}{1}{Become owner of a mutex}
 \predicatesummary{mutex_property}{2}{Query mutex properties}
 \predicatesummary{mutex_statistics}{0}{Print statistics on mutex usage}
-\predicatesummary{mutex_trylock}{1}{Become owner of a mutex
-(non-blocking)} \predicatesummary{mutex_unlock}{1}{Release ownership of
-mutex} \predicatesummary{mutex_unlock_all}{0}{Release ownership of all
-mutexes} \predicatesummary{name}{2}{Convert between atom and list of
-character codes} \predicatesummary{nb_current}{2}{Enumerate
-non-backtrackable global variables}
-\predicatesummary{nb_delete}{1}{Delete a non-backtrackable global
-variable} \predicatesummary{nb_getval}{2}{Fetch non-backtrackable global
-variable} \predicatesummary{nb_link_dict}{3}{Non-backtrackable
-assignment to dict} \predicatesummary{nb_linkarg}{3}{Non-backtrackable
-assignment to term} \predicatesummary{nb_linkval}{2}{Assign
-non-backtrackable global variable}
-\predicatesummary{nb_set_to_list}{2}{Convert non-backtrackable set to
-list} \predicatesummary{nb_set_dict}{3}{Non-backtrackable assignment to
-dict} \predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to
-term} \predicatesummary{nb_setval}{2}{Assign non-backtrackable global
-variable} \predicatesummary{nl}{0}{Generate a newline}
+\predicatesummary{mutex_trylock}{1}{Become owner of a mutex (non-blocking)}
+\predicatesummary{mutex_unlock}{1}{Release ownership of mutex}
+\predicatesummary{mutex_unlock_all}{0}{Release ownership of all mutexes}
+\predicatesummary{name}{2}{Convert between atom and list of character codes}
+\predicatesummary{nb_current}{2}{Enumerate non-backtrackable global variables}
+\predicatesummary{nb_delete}{1}{Delete a non-backtrackable global variable}
+\predicatesummary{nb_getval}{2}{Fetch non-backtrackable global variable}
+\predicatesummary{nb_link_dict}{3}{Non-backtrackable assignment to dict}
+\predicatesummary{nb_linkarg}{3}{Non-backtrackable assignment to term}
+\predicatesummary{nb_linkval}{2}{Assign non-backtrackable global variable}
+\predicatesummary{nb_set_to_list}{2}{Convert non-backtrackable set to list}
+\predicatesummary{nb_set_dict}{3}{Non-backtrackable assignment to dict}
+\predicatesummary{nb_setarg}{3}{Non-backtrackable assignment to term}
+\predicatesummary{nb_setval}{2}{Assign non-backtrackable global variable}
+\predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{nl}{1}{Generate a newline on a stream}
 \predicatesummary{nodebug}{0}{Disable debugging}
 \predicatesummary{nodebug}{1}{Disable debug-topic}
@@ -466,30 +464,31 @@ variable} \predicatesummary{nl}{0}{Generate a newline}
 \predicatesummary{normalize_space}{2}{Normalize white space}
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
-\oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not
-provable). Same as \predref{\+}{1}} \predicatesummary{notrace}{0}{Stop
-tracing} \predicatesummary{notrace}{1}{Do not debug argument goal}
+\oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not provable). Same as \predref{\+}{1}}
+\predicatesummary{notrace}{0}{Stop tracing}
+\predicatesummary{notrace}{1}{Do not debug argument goal}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
-\predicatesummary{nth_integer_root_and_remainder}{4}{Integer root and
-remainder} \predicatesummary{number}{1}{Type check for integer or float}
-\predicatesummary{number_chars}{2}{Convert between number and one-char
-atoms} \predicatesummary{number_codes}{2}{Convert between number and
-character codes} \predicatesummary{number_string}{2}{Convert between
-number and string} \predicatesummary{numbervars}{3}{Number unbound
-variables of a term} \predicatesummary{numbervars}{4}{Number unbound
-variables of a term} \predicatesummary{on_signal}{3}{Handle a software
-signal} \predicatesummary{once}{1}{Call a goal deterministically}
+\predicatesummary{nth_integer_root_and_remainder}{4}{Integer root and remainder}
+\predicatesummary{number}{1}{Type check for integer or float}
+\predicatesummary{number_chars}{2}{Convert between number and one-char atoms}
+\predicatesummary{number_codes}{2}{Convert between number and character codes}
+\predicatesummary{number_string}{2}{Convert between number and string}
+\predicatesummary{numbervars}{3}{Number unbound variables of a term}
+\predicatesummary{numbervars}{4}{Number unbound variables of a term}
+\predicatesummary{on_signal}{3}{Handle a software signal}
+\predicatesummary{once}{1}{Call a goal deterministically}
 \predicatesummary{op}{3}{Declare an operator}
 \predicatesummary{open}{3}{Open a file (creating a stream)}
 \predicatesummary{open}{4}{Open a file (creating a stream)}
 \predicatesummary{open_dde_conversation}{3}{Win32: Open DDE channel}
 \predicatesummary{open_null_stream}{1}{Open a stream to discard output}
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
-\predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so
-file)} \predicatesummary{open_shared_object}{3}{UNIX: Open shared
-library (.so file)} \predicatesummary{open_string}{2}{Open a string as a
-stream} \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to
-assoc} \predicatesummary{parse_time}{2}{Parse text to a time-stamp}
+\predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
+\predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
+\predicatesummary{open_source_hook}{3}{\hook{prolog} Open a source file}
+\predicatesummary{open_string}{2}{Open a string as a stream}
+\predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
+\predicatesummary{parse_time}{2}{Parse text to a time-stamp}
 \predicatesummary{parse_time}{3}{Parse text to a time-stamp}
 \predicatesummary{pce_dispatch}{1}{Run XPCE GUI in separate thread}
 \predicatesummary{pce_call}{1}{Run goal in XPCE GUI thread}
@@ -792,11 +791,10 @@ spawn Windows task} \predicatesummary{win_has_menu}{0}{Win32: true if
 console menu is available} \predicatesummary{win_folder}{2}{Win32: get
 special folder by CSIDL}
 \predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
-\predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to
-menu} \predicatesummary{win_shell}{2}{Win32: open document through
-Shell} \predicatesummary{win_shell}{3}{Win32: open document through
-Shell} \predicatesummary{win_registry_get_value}{3}{Win32: get registry
-value}
+\predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
+\predicatesummary{win_shell}{2}{Win32: open document through Shell}
+\predicatesummary{win_shell}{3}{Win32: open document through Shell}
+\predicatesummary{win_registry_get_value}{3}{Win32: get registry value}
 \predicatesummary{win_window_color}{2}{Win32: change colors of console window}
 \predicatesummary{win_window_pos}{1}{Win32: change size and position of window}
 \predicatesummary{window_title}{2}{Win32: change title of window}
@@ -808,12 +806,11 @@ value}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
 \predicatesummary{writeln}{1}{Write term, followed by a newline}
-\predicatesummary{writeln}{2}{Write term, followed by a newline to a
-stream} \predicatesummary{write_canonical}{1}{Write a term with quotes,
-ignore operators} \predicatesummary{write_canonical}{2}{Write a term
-with quotes, ignore operators on a stream}
-\predicatesummary{write_length}{3}{Dermine \#characters to output a
-term} \predicatesummary{write_term}{2}{Write term with options}
+\predicatesummary{writeln}{2}{Write term, followed by a newline to a stream}
+\predicatesummary{write_canonical}{1}{Write a term with quotes, ignore operators}
+\predicatesummary{write_canonical}{2}{Write a term with quotes, ignore operators on a stream}
+\predicatesummary{write_length}{3}{Dermine \#characters to output a term}
+\predicatesummary{write_term}{2}{Write term with options}
 \predicatesummary{write_term}{3}{Write term with options to stream}
 \predicatesummary{writef}{1}{Formatted write}
 \predicatesummary{writef}{2}{Formatted write on stream}
