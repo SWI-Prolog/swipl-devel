@@ -184,7 +184,7 @@ set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl tables.pl setof.pl consult.pl
     increval.pl curr_sym.pl error_handler.pl lists.pl timed_call.pl
-    standard.pl)
+    standard.pl gpp.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
 
