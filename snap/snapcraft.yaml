@@ -1,0 +1,112 @@
+name: swi-prolog
+base: core18
+adopt-info: swi-prolog
+icon: packages/swipl-win/swipl.png
+license: 'BSD-2-Clause'
+summary: ISO/Edinburgh-style Prolog implementation
+description: |
+  SWI-Prolog is a fast and powerful ISO/Edinburgh-style Prolog compiler with a
+  rich set of built-in predicates. It offers a fast, robust and small
+  environment which enables substantial applications to be developed with it.
+  .
+  SWI-Prolog additionally offers:
+  .
+  * A powerful module system
+  * Garbage collection
+  * Unicode character set handling
+  * Unbounted integer and rational number arithmetic
+  * Multithreading support
+  * A powerful C/C++ interface
+  * GNU Readline interface
+  .
+
+apps:
+  swipl:
+    command: kf5-launch $SNAP/usr/bin/swipl
+  swipl-win:
+    command: kf5-launch $SNAP/usr/bin/swipl-win
+
+plugs:
+  home:
+  network:
+  x11:
+  desktop:
+  desktop-legacy:
+  removable-media:
+  opengl:
+  audio-playback:
+  audio-record:
+  kde-frameworks-5-plug:
+    content: kde-frameworks-5-core18-all
+    interface: content
+    default-provider: kde-frameworks-5-core18
+    target: kf5
+
+grade: stable
+confinement: strict
+
+parts:
+  swi-prolog:
+    source: https://github.com/SWI-Prolog/swipl-devel.git
+    source-type: git
+    plugin: cmake
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version "$(cat VERSION)"
+    override-build: |
+      # Custom build process to enable PGO build
+      mkdir -p $SNAPCRAFT_PART_SRC/build
+      cd $SNAPCRAFT_PART_SRC/build
+      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_IN_LIB=ON -G Ninja ..
+      ../scripts/pgo-compile.sh
+      ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    build-snaps: [kde-frameworks-5-core18-sdk]
+    stage-packages:
+      # Remove packages available in the kde base
+      # - ca-certificates
+      # - libarchive13
+      # - libdb5.3
+      # - libedit2
+      # - libfontconfig1
+      # - libglu1-mesa
+      # - libgmp10
+      # - libjpeg8
+      # - libssl1.1
+      # - libx11-6
+      - libossp-uuid16
+      - libpcre3
+      - libserd-0-0
+      - libxft2
+      - libxpm4
+      - libxt6
+      - odbc-postgresql
+      - tdsodbc
+      - unixodbc
+    build-packages:
+      - libarchive-dev
+      - libdb-dev
+      - libedit-dev
+      - libgeos++-dev
+      - libgmp-dev
+      - libice-dev
+      - libjpeg-dev
+      - libossp-uuid-dev
+      - libpcre3-dev
+      - libraptor2-dev
+      - libreadline-dev
+      - libserd-dev
+      - libsqlite3-dev
+      - libssl-dev
+      - libxext-dev
+      - libxft-dev
+      - libxinerama-dev
+      - libxpm-dev
+      - libxt-dev
+      - ninja-build
+      - unixodbc-dev
+      - zlib1g-dev
+      - libyaml-dev
+  kde-frameworks-5-env:
+    plugin: dump
+    source: https://github.com/apachelogger/kf5-snap-env.git
