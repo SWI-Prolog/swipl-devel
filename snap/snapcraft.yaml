@@ -2,7 +2,7 @@ name: swipl
 base: core18
 adopt-info: swi-prolog
 license: 'BSD-2-Clause'
-summary: ISO/Edinburgh-style Prolog interpreter
+summary: ISO/Edinburgh-style Prolog implementation
 description: |
   SWI-Prolog is a fast and powerful ISO/Edinburgh-style Prolog compiler with a
   rich set of built-in predicates. It offers a fast, robust and small
@@ -21,86 +21,122 @@ description: |
 
 apps:
   swipl:
-    command: desktop-launch swipl
-    plugs:
-      - home
-      - network
-      - x11
-      - desktop
-      - desktop-legacy
-      - removable-media
+    command: desktop-launch $SNAP/usr/local/bin/swipl
+  swipl-win:
+    command: desktop-launch $SNAP/usr/local/bin/swipl-win
+
+plugs:
+  home:
+  network:
+  x11:
+  desktop:
+  desktop-legacy:
+  removable-media:
+  opengl:
+  audio-playback:
+  audio-record:
 
 grade: stable
 confinement: strict
 
 environment:
-  LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/usr/lib/swipl/lib/x86_64-linux"
+  LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/usr/local/lib/swipl/lib/$(uname -m)-linux"
 
 parts:
   swi-prolog:
-    # These can be replaced once it's upstream
-    source: https://github.com/SWI-Prolog/swipl-devel.git
-    # source: .
-    source-type: git
+    source: .
+    # source-type: git
     plugin: cmake
-    configflags: ["-DCMAKE_BUILD_TYPE=Release", "-DSWIPL_PACKAGES_JAVA=OFF", "-DCMAKE_INSTALL_PREFIX=/usr"]
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(cat VERSION)"
+    override-build: |
+      # Custom build process to enable PGO build
+      mkdir -p $SNAPCRAFT_PART_SRC/build
+      cd $SNAPCRAFT_PART_SRC/build
+      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -G Ninja ..
+      ../scripts/pgo-compile.sh
+      ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     stage-packages: 
-      - libarchive13
-      - libgmp10
-      - libossp-uuid16
-      - libssl1.1
       - ca-certificates
+      - libarchive13
       - libdb5.3
-      - libpcre3
       - libedit2
-      - libgeos-c1v5
-      - libspatialindex4v5
-      - unixodbc
-      - odbc-postgresql
-      - tdsodbc
-      - libmariadbclient18
-      - libsqlite3-0
-      - libserd-0-0
-      - libraptor2-0
       - libfontconfig1
+      - libglu1-mesa
+      - libgmp10
       - libjpeg8
+      - libmariadbclient18
+      - libossp-uuid16
+      - libpcre3
+      - libserd-0-0
+      - libssl1.1
       - libx11-6
       - libxft2
       - libxpm4
       - libxt6
+      - odbc-postgresql
+      - tdsodbc
+      - unixodbc
+      - libdouble-conversion1
+      - libgraphite2-3
+      - libharfbuzz0b
+      - libqt5core5a
+      - libqt5widgets5
     build-packages:
       - libarchive-dev
-      - libgmp-dev
-      - libossp-uuid-dev
-      - libpcre3-dev
-      - libreadline-dev
-      - libedit-dev
-      - libssl-dev
-      - zlib1g-dev
       - libdb-dev
-      - unixodbc-dev
-      - libsqlite3-dev
-      - libserd-dev
-      - libraptor2-dev
+      - libedit-dev
       - libgeos++-dev
-      - libspatialindex-dev
-      - libxext-dev
+      - libgmp-dev
       - libice-dev
       - libjpeg-dev
-      - libxinerama-dev
+      - libossp-uuid-dev
+      - libpcre3-dev
+      - libraptor2-dev
+      - libreadline-dev
+      - libserd-dev
+      - libsqlite3-dev
+      - libssl-dev
+      - libxext-dev
       - libxft-dev
+      - libxinerama-dev
       - libxpm-dev
       - libxt-dev
+      - ninja-build
+      - unixodbc-dev
+      - zlib1g-dev
+      - libyaml-dev
+      - qtbase5-dev
 
-  glib-only:
+  desktop-qt5:
     source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: glib-only
+    source-subdir: qt
     plugin: make
+    make-parameters: ["FLAVOR=qt5"]
     build-packages:
-      - libglib2.0-dev
+      - qtbase5-dev
+      - dpkg-dev
     stage-packages:
-      - libglib2.0-bin
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5 # for loading icon themes which are svg
+      - locales-all
+
+  # glib-only:
+  #   source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+  #   source-subdir: glib-only
+  #   plugin: make
+  #   build-packages:
+  #     - libglib2.0-dev
+  #   stage-packages:
+  #     - libglib2.0-bin
 
