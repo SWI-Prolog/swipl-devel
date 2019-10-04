@@ -1,0 +1,106 @@
+name: swipl
+base: core18
+adopt-info: swi-prolog
+license: 'BSD-2-Clause'
+summary: ISO/Edinburgh-style Prolog interpreter
+description: |
+  SWI-Prolog is a fast and powerful ISO/Edinburgh-style Prolog compiler with a
+  rich set of built-in predicates. It offers a fast, robust and small
+  environment which enables substantial applications to be developed with it.
+  .
+  SWI-Prolog additionally offers:
+  .
+  * A powerful module system
+  * Garbage collection
+  * Unicode character set handling
+  * Unbounted integer and rational number arithmetic
+  * Multithreading support
+  * A powerful C/C++ interface
+  * GNU Readline interface
+  .
+
+apps:
+  swipl:
+    command: desktop-launch swipl
+    plugs:
+      - home
+      - network
+      - x11
+      - desktop
+      - desktop-legacy
+      - removable-media
+
+grade: stable
+confinement: strict
+
+environment:
+  LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/usr/lib/swipl/lib/x86_64-linux"
+
+parts:
+  swi-prolog:
+    # These can be replaced once it's upstream
+    source: https://github.com/SWI-Prolog/swipl-devel.git
+    source: .
+    source-type: git
+    plugin: cmake
+    configflags: ["-DCMAKE_BUILD_TYPE=Release", "-DSWIPL_PACKAGES_JAVA=OFF", "-DCMAKE_INSTALL_PREFIX=/usr"]
+    override-pull: |
+      snapcraftctl pull
+      snapcraftctl set-version "$(cat VERSION)"
+    stage-packages: 
+      - libarchive13
+      - libgmp10
+      - libossp-uuid16
+      - libssl1.1
+      - ca-certificates
+      - libdb5.3
+      - libpcre3
+      - libedit2
+      - libgeos-c1v5
+      - libspatialindex4v5
+      - unixodbc
+      - odbc-postgresql
+      - tdsodbc
+      - libmariadbclient18
+      - libsqlite3-0
+      - libserd-0-0
+      - libraptor2-0
+      - libfontconfig1
+      - libjpeg8
+      - libx11-6
+      - libxft2
+      - libxpm4
+      - libxt6
+    build-packages:
+      - libarchive-dev
+      - libgmp-dev
+      - libossp-uuid-dev
+      - libpcre3-dev
+      - libreadline-dev
+      - libedit-dev
+      - libssl-dev
+      - zlib1g-dev
+      - libdb-dev
+      - unixodbc-dev
+      - libsqlite3-dev
+      - libserd-dev
+      - libraptor2-dev
+      - libgeos++-dev
+      - libspatialindex-dev
+      - libxext-dev
+      - libice-dev
+      - libjpeg-dev
+      - libxinerama-dev
+      - libxft-dev
+      - libxpm-dev
+      - libxt-dev
+
+  glib-only:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: glib-only
+    plugin: make
+    build-packages:
+      - libglib2.0-dev
+    stage-packages:
+      - libglib2.0-bin
+
