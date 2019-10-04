@@ -130,6 +130,12 @@ static void	initEnviron(void);
 #define DEFAULT_PATH "/bin:/usr/bin"
 #endif
 
+#if defined(HAVE_CRT_EXTERNS_H) && defined(HAVE__NSGETENVIRON)
+/* MacOS */
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
+#endif
+
 		/********************************
 		*         INITIALISATION        *
 		*********************************/
