@@ -1,6 +1,7 @@
 name: swipl
 base: core18
 adopt-info: swi-prolog
+icon: packages/swipl-win/swipl.png
 license: 'BSD-2-Clause'
 summary: ISO/Edinburgh-style Prolog implementation
 description: |
