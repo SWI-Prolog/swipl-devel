@@ -40,7 +40,7 @@ parts:
   swi-prolog:
     # These can be replaced once it's upstream
     source: https://github.com/SWI-Prolog/swipl-devel.git
-    source: .
+    # source: .
     source-type: git
     plugin: cmake
     configflags: ["-DCMAKE_BUILD_TYPE=Release", "-DSWIPL_PACKAGES_JAVA=OFF", "-DCMAKE_INSTALL_PREFIX=/usr"]
