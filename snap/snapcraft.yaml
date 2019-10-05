@@ -52,7 +52,7 @@ parts:
       # Custom build process to enable PGO build
       mkdir -p $SNAPCRAFT_PART_SRC/build
       cd $SNAPCRAFT_PART_SRC/build
-      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_DIR=swipl -DSWIPL_INSTALL_IN_LIB=ON -G Ninja ..
+      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_IN_LIB=ON -G Ninja ..
       ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
@@ -128,13 +128,3 @@ parts:
       - libgdk-pixbuf2.0-0
       - libqt5svg5 # for loading icon themes which are svg
       - locales-all
-
-  # glib-only:
-  #   source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-  #   source-subdir: glib-only
-  #   plugin: make
-  #   build-packages:
-  #     - libglib2.0-dev
-  #   stage-packages:
-  #     - libglib2.0-bin
-
