@@ -43,7 +43,7 @@ confinement: strict
 parts:
   swi-prolog:
     source: .
-    # source-type: git
+    source-type: git
     plugin: cmake
     override-pull: |
       snapcraftctl pull
