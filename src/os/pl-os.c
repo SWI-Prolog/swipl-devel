@@ -712,19 +712,24 @@ retry:
 #ifdef __WINDOWS__
 { char *tmp;
   static int temp_counter = 0;
+  int rc;
 #ifndef __LCC__
-  wchar_t *wtmp, *wtmpdir, *wid;
+  wchar_t *wtmp = NULL, *wtmpdir, *wid;
   wchar_t buf1[MAXPATHLEN], buf2[MAXPATHLEN];
 #endif
 
 #ifdef __LCC__
-  if ( (tmp = tmpnam(NULL)) )
+  rc = (tmp = tmpnam(NULL)) != NULL;
 #else
-  if ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, MAXPATHLEN)) &&
-       (wid     = _xos_os_filenameW(id,     buf2, MAXPATHLEN)) &&
-       (wtmp    = _wtempnam(wtmpdir, wid)) &&
-       (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) )
+  rc = ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, MAXPATHLEN)) &&
+	 (wid     = _xos_os_filenameW(id,     buf2, MAXPATHLEN)) &&
+	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
+	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
+  if ( wtmp )
+    free(wtmp);
 #endif
+
+  if ( rc )
   { if ( !PrologPath(tmp, temp, sizeof(temp)) )
       return NULL_ATOM;
   } else
