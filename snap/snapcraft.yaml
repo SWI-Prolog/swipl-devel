@@ -22,9 +22,9 @@ description: |
 
 apps:
   swipl:
-    command: desktop-launch $SNAP/usr/local/bin/swipl
+    command: desktop-launch $SNAP/usr/bin/swipl
   swipl-win:
-    command: desktop-launch $SNAP/usr/local/bin/swipl-win
+    command: desktop-launch $SNAP/usr/bin/swipl-win
 
 plugs:
   home:
@@ -40,9 +40,6 @@ plugs:
 grade: stable
 confinement: strict
 
-environment:
-  LD_LIBRARY_PATH: "$LD_LIBRARY_PATH:$SNAP/usr/local/lib/swipl/lib/$SNAP_ARCH-linux"
-
 parts:
   swi-prolog:
     source: .
@@ -55,7 +52,7 @@ parts:
       # Custom build process to enable PGO build
       mkdir -p $SNAPCRAFT_PART_SRC/build
       cd $SNAPCRAFT_PART_SRC/build
-      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr/local -DSWIPL_ARCH=$SNAP_ARCH-linux -G Ninja ..
+      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_DIR=swipl -DSWIPL_INSTALL_IN_LIB=ON -G Ninja ..
       ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
