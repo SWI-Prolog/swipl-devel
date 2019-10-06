@@ -47,7 +47,6 @@
 #include "config/win32.h"
 #define PLHOME       "c:/Program Files (x86)/swipl"
 #endif
-#define DEFSTARTUP   "swipl.ini"
 #else /*__WINDOWS__*/
 #include <config.h>
 #endif

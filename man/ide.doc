@@ -276,8 +276,8 @@ way to edit objects:
 ?- edit(country).
 Please select item to edit:
 
-  1 chat:country/10	 '/staff/jan/lib/prolog/chat/countr.pl':16
-  2 chat:country/1       '/staff/jan/lib/prolog/chat/world0.pl':72
+  1 chat:country/10  '/home/jan/.config/swi-prolog/lib/chat/countr.pl':16
+  2 chat:country/1   '/home/jan/.config/swi-prolog/lib/chat/world0.pl':72
 
 Your choice?
 \end{code}

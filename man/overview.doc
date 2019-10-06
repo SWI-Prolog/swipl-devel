@@ -187,31 +187,28 @@ $
 \index{startup file}%
 \index{user profile file}%
 \index{profile file}%
-After the system initialisation, the system consults (see
-consult/1) the user's startup file. The basename of this file follows
-conventions of the operating system. On MS-Windows, it is the file
-\file{swipl.ini} and on Unix systems \file{.swiplrc}. The file is
-searched using the file_search_path/2 clauses for
-\const{user_profile}.\footnote{Older versions first searched in the
-current working directory. This feature has been removed for security
-reasons. Users can implement loading a setup file from the working
-directory in their global preference file.} The table below shows the
-default value for this search path. The phrase <appdata> refers to the
-Windows CSIDL name for the folder. The actual name depends on the
-Windows language. English versions typically use \file{Application
-Data}. See also win_folder/2
+After the system initialisation, the system consults (see consult/1) the
+user's \jargon{init} file. This file is searched using
+absolute_file_name/3 using the path alias (see file_search_path/2)
+\const{app_config}.  This is a directory named \file{swi-prolog} below
+the OS default name for placing application configuration data:
 
-\begin{center}
-\begin{tabular}{|l|l|l|}
-\hline
-		& \bf Unix	& \bf Windows \\
-\hline
-\bf home	& \chr{~}	& <appdata>/SWI-Prolog \\
-\hline
-\end{tabular}
-\end{center}
+\begin{itemize}
+    \item On Windows, the CSIDL folder \const{CSIDL_APPDATA}, typically
+\verb$C:\Documents and Settings\username\Application Data$.
+    \item If the environment variable \env{XDG_DATA_HOME} is set,
+use this. This follows the \href{https://standards.freedesktop.org}{free
+desktop} standard.
+    \item The expansion of \file{~/.config}.
+\end{itemize}
 
-\noindent
+The directory can be found using this call:
+
+\begin{code}
+?- absolute_file_name(app_config(.), Dir, [file_type(directory)]).
+Dir = '/home/jan/.config/swi-prolog'.
+\end{code}
+
 After the first startup file is found it is loaded and Prolog
 stops looking for further startup files. The name of the
 startup file can be changed with the `\argoption{-f}{file}'
@@ -220,7 +217,7 @@ otherwise the file is searched for using the same conventions as for
 the default startup file. Finally, if \arg{file} is
 \const{none}, no file is loaded.
 
-The installation provides a file \file{customize/dotswiplrc} with
+The installation provides a file \file{customize/init.pl} with
 (commented) commands that are often used to customize the behaviour of
 Prolog, such as interfacing to the editor, color selection or history
 parameters. Many of the development tools provide menu entries for
@@ -442,11 +439,10 @@ does not stop Prolog from loading the personal initialisation file.
 
     \cmdlineoptionitem{-f}{file}
 Use \arg{file} as initialisation file instead of the default
-\file{.swiplrc} (Unix) or \file{swipl.ini} (Windows).
-`\argoption{-f}{none}' stops SWI-Prolog from searching for a startup
-file. This option can be used as an alternative to \argoption{-s}{file}
-that stops Prolog from loading the personal initialisation file. See
-also \secref{initfile}.
+\file{init.pl} `\argoption{-f}{none}' stops SWI-Prolog from searching
+for a startup file. This option can be used as an alternative to
+\argoption{-s}{file} that stops Prolog from loading the personal
+initialisation file. See also \secref{initfile}.
 
     \cmdlineoptionitem{-F}{script}
 Select a startup script from the SWI-Prolog home directory. The
@@ -2266,9 +2262,9 @@ an index for all \file{*.pl} files containing a module.
 Below is an example creating an indexed library directory.
 
 \begin{code}
-% mkdir ~/lib/prolog
-% cd ~/lib/prolog
-% swipl -g true -t 'make_library_index(.)'
+% mkdir ~/${XDG_DATA_HOME-.config}/swi-prolog/lib
+% cd ~/${XDG_DATA_HOME-.config}/swi-prolog/lib
+% swipl -g 'make_library_index(.)' -t halt
 \end{code}
 
 If there is more than one library file containing the desired predicate,

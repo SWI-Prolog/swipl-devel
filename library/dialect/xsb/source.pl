@@ -40,9 +40,9 @@
 /** <module> Support XSB source .P files
 
 This module is a lightweight module that  allows loading .P files as XSB
-source files. This module is intended  to be loaded from ``~/.swiplrc``,
-providing transparent usage of XSB files  with neglectable impact impact
-if no XSB sources are used.
+source  files.  This   module   is   intended    to   be   loaded   from
+``<config>/init.pl``, providing transparent usage  of   XSB  files  with
+neglectable impact impact if no XSB sources are used.
 */
 
 % xsb_max_file_size is used for buffering  the   source  in  memory when

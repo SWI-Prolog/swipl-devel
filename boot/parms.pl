@@ -51,7 +51,7 @@ user:library_directory(Dir) :-
     Dir = Dir0.
 user:library_directory(Dir) :-
     cached_library_directory(user,
-                             expand_file_name('~/lib/prolog', [Dir0]),
+                             absolute_file_name(app_config(lib), Dir0),
                              Dir0),
     Dir = Dir0.
 user:library_directory(Dir) :-

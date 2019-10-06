@@ -949,15 +949,39 @@ user:file_search_path(path, Dir) :-
     ->  atomic_list_concat(Dirs, (;), Path)
     ;   atomic_list_concat(Dirs, :, Path)
     ),
-    '$member'(Dir, Dirs),
-    '$no-null-bytes'(Dir).
+    '$member'(Dir, Dirs).
+user:file_search_path(app_data, PrologAppData) :-
+    xdg_directory(config_home, AppData),
+    ensure_slash(AppData, AppDataS),
+    atom_concat(AppDataS, 'swi-prolog', PrologAppData),
+    make_config_dir(PrologAppData).
+user:file_search_path(app_config, app_data('.')).
+% backward compatibility
+user:file_search_path(app_preferences, app_data('.')).
+user:file_search_path(user_profile, app_preferences('.')).
 
-'$no-null-bytes'(Dir) :-
-    sub_atom(Dir, _, _, _, '\u0000'),
-    !,
-    print_message(warning, null_byte_in_path(Dir)),
-    fail.
-'$no-null-bytes'(_).
+
+xdg_directory(config_home, Home) :-
+    current_prolog_flag(windows, true),
+    catch(win_folder(appdata, Home), _, fail),
+    !.
+xdg_directory(config_home, Home) :-
+    getenv('XDG_CONFIG_HOME', Home).
+xdg_directory(config_home, Home) :-
+    expand_file_name('~/.config', [Home]).
+
+make_config_dir(Dir) :-
+    exists_directory(Dir),
+    !.
+make_config_dir(Dir) :-
+    catch(make_directory(Dir), _, fail).
+
+ensure_slash(Dir, DirS) :-
+    (   sub_atom(Dir, _, _, 0, /)
+    ->  DirS = Dir
+    ;   atom_concat(Dir, /, DirS)
+    ).
+
 
 %!  expand_file_search_path(+Spec, -Expanded) is nondet.
 %

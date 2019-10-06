@@ -8,10 +8,10 @@ This is a sample user-initialisation file for SWI-Prolog. If you wish to
 customise prolog, make  a  copy  of  this   file  and  edit  it  to your
 preferences.
 
-Installation:
+This file must be installed in <config>/init.pl. <config> can be found
+using
 
-	Unix/MacOS:	~/.swiplrc
-	Windows:	<appdata>/swipl.ini (see win_folder(appdata, AppData))
+    ?- absolute_file_name(app_config(.), Dir, [file_type(directory)]).
 
 More hints on useful things you  can  put   into  this  file  are in the
 SWI-Prolog reference manual. Notably look   at debugger settings, editor

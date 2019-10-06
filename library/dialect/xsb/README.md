@@ -14,7 +14,7 @@ the xsb dialect is selected.
 
 ## Providing a transparent user experience
 
-The user may include the following  in ``~/.swiplrc`` (``swipl.ini`` for
-Windows) to activate XSB dialect support simply by loading ``.P`` files.
+The user may include the following   in ``<config>/init.pl`` to activate
+XSB dialect support simply by loading ``.P`` files.
 
     :- use_module(library(dialect/xsb/source)).

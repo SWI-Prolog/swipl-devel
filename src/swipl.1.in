@@ -195,7 +195,7 @@ This option is for system maintenance and is given for reference only.
 Use
 .I "file"
 as initialisation file instead of
-.RB "`" .swiplrc "'. `" "-f none" "'"
+.RB "`" init.pl "'. `" "-f none" "'"
 stops SWI-Prolog from searching for an initialisation file.
 .TP
 .BI \-F " file"
@@ -386,11 +386,9 @@ has probably been moved.  Use
 .P
 to find the local installation directory of SWI-Prolog.
 .TP
-.I ~/.swiplrc
+.I ~/.config/swi-prolog/init.pl
 Personal initialisation files consulted by SWI-Prolog on startup.
-If both exist
-.I .swiplrc
-is used.
+The exact location depends on the OS.
 .TP
 .I @prefix@/lib/@PL@-@PLVERSION@/bin/@PLARCH@/
 Location for the executables.

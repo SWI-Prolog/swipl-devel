@@ -46,7 +46,7 @@ This module implements  persistency  of   the  commandline  history over
 Prolog sessions on Prolog  installations  that   are  based  on  the GNU
 readline library (default for the development version on Unix systems).
 
-The history is stored  in   the  directory =|~/.swipl-dir-history|=. For
+The history is stored  in   the  directory ``<config>/dir-history``. For
 each directory for which it keeps the  history, there is file whose name
 is the base32 encoding of the directory path.
 
@@ -62,7 +62,7 @@ terminal and the system supports history.
 %   are stored.
 
 history_directory(Dir) :-
-    absolute_file_name(app_preferences('.swipl-dir-history'),
+    absolute_file_name(app_config('dir-history'),
                        Dir,
                        [ access(write),
                          file_type(directory),
@@ -70,13 +70,13 @@ history_directory(Dir) :-
                        ]),
     !.
 history_directory(Dir) :-
-    absolute_file_name(app_preferences('.'),
+    absolute_file_name(app_config('.'),
                        Home,
                        [ access(write),
                          file_type(directory),
                          file_errors(fail)
                        ]),
-    atom_concat(Home, '/.swipl-dir-history', Dir),
+    atom_concat(Home, '/dir-history', Dir),
     (   exists_directory(Dir)
     ->  fail
     ;   make_directory(Dir)

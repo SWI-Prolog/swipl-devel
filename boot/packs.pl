@@ -51,7 +51,7 @@
     pack/2.
 
 
-user:file_search_path(pack, app_data(pack)).
+user:file_search_path(pack, app_config(pack)).
 user:file_search_path(pack, swi(pack)).
 
 user:file_search_path(library, PackLib) :-
