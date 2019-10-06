@@ -18,19 +18,20 @@ usage()
 line=""
 
 HOST=`hostname`
-server="$HOME/.xpce_emacs_server"
+APPCONFIG=${XDG_DATA_HOME-$HOME/.config}/swi-prolog/xpce
+serverbase="$APPCONFIG/emacs_server"
 
 case "$DISPLAY" in
-  :*)	server=$server.$(echo "$DISPLAY" | sed 's/^:\([0-9]*\).*/\1/')
+  :*)	server=$serverbase.$(echo "$DISPLAY" | sed 's/^:\([0-9]*\).*/\1/')
 	;;
-  *)	server=$server.$HOST
+  *)	server=$serverbase.$HOST
         ;;
 esac
 
 #echo "Server = $server"
 
 if [ ! -S "$server" -o -z "$DISPLAY" ]; then
-    server="$HOME/.xpce_emacs_server"
+    server="$serverbase"
     if [ ! -S "$server" ]; then
 	echo "No PceEmacs server"
 	exec emacs "$*"
@@ -60,15 +61,20 @@ case "$file" in
 esac
 
 case "$file" in
+	*:[0-9]*:[0-9]*)
+		eval `echo $file | sed 's/\(.*\):\([0-9]*\):\([0-9]*\)$/file=\1;line=\2;charpos=\3/'`
+		;;
 	*:[0-9]*)
 		eval `echo $file | sed 's/\(.*\):\([0-9]*\)$/file=\1;line=\2/'`
 		;;
 esac
 
-if [ "$line" = "" ]; then
+if [ -z "$line" ]; then
 	cmd="edit('$file')"
-else
+elif [ -z "$charpos" ]; then
 	cmd="edit('$file', $line)"
+else
+	cmd="edit('$file', $line, $charpos)"
 fi
 
 xpce-client $server -bc "$cmd"
