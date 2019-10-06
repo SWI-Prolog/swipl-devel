@@ -151,6 +151,8 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Core_system")
 # Add the core Prolog system
 add_subdirectory(src)
 install(FILES LICENSE README.md DESTINATION ${SWIPL_INSTALL_PREFIX})
+install(FILES customize/edit customize/init.pl customize/README.md
+	DESTINATION ${SWIPL_INSTALL_PREFIX}/customize)
 
 if(INSTALL_DOCUMENTATION)
   include(Documentation)
