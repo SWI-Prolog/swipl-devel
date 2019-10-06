@@ -23,7 +23,9 @@ If other connections are needed they can be added from this [list](https://snapc
 snap install swi-prolog
 ```
 
-The shared Qt5 content snap is used for the new ui:
+The shared Qt5 content snap is used for the Qt ui, and to set the proper paths, dependencies and variables like opengl, pulseaudo, that swipl expects to find.
+
+For this reason it needs to be installed and setup as follows the first time:
 ```sh
 snap install kde-frameworks-5-core18
 snap connect swi-prolog:kde-frameworks-5-plug kde-frameworks-5-core18:kde-frameworks-5-core18-slot
