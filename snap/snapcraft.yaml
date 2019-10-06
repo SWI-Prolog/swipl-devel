@@ -1,4 +1,4 @@
-name: swipl
+name: swi-prolog
 base: core18
 adopt-info: swi-prolog
 icon: packages/swipl-win/swipl.png
@@ -22,9 +22,9 @@ description: |
 
 apps:
   swipl:
-    command: desktop-launch $SNAP/usr/bin/swipl
+    command: kf5-launch $SNAP/usr/bin/swipl
   swipl-win:
-    command: desktop-launch $SNAP/usr/bin/swipl-win
+    command: kf5-launch $SNAP/usr/bin/swipl-win
 
 plugs:
   home:
@@ -36,13 +36,18 @@ plugs:
   opengl:
   audio-playback:
   audio-record:
+  kde-frameworks-5-plug:
+    content: kde-frameworks-5-core18-all
+    interface: content
+    default-provider: kde-frameworks-5-core18
+    target: kf5
 
 grade: stable
 confinement: strict
 
 parts:
   swi-prolog:
-    source: .
+    source: https://github.com/SWI-Prolog/swipl-devel.git
     source-type: git
     plugin: cmake
     override-pull: |
@@ -56,32 +61,28 @@ parts:
       ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    build-snaps: [kde-frameworks-5-core18-sdk]
     stage-packages: 
-      - ca-certificates
-      - libarchive13
-      - libdb5.3
-      - libedit2
-      - libfontconfig1
-      - libglu1-mesa
-      - libgmp10
-      - libjpeg8
-      - libmariadbclient18
+      # Remove packages available in the kde base
+      # - ca-certificates
+      # - libarchive13
+      # - libdb5.3
+      # - libedit2
+      # - libfontconfig1
+      # - libglu1-mesa
+      # - libgmp10
+      # - libjpeg8
+      # - libssl1.1
+      # - libx11-6
       - libossp-uuid16
       - libpcre3
       - libserd-0-0
-      - libssl1.1
-      - libx11-6
       - libxft2
       - libxpm4
       - libxt6
       - odbc-postgresql
       - tdsodbc
       - unixodbc
-      - libdouble-conversion1
-      - libgraphite2-3
-      - libharfbuzz0b
-      - libqt5core5a
-      - libqt5widgets5
     build-packages:
       - libarchive-dev
       - libdb-dev
@@ -106,25 +107,6 @@ parts:
       - unixodbc-dev
       - zlib1g-dev
       - libyaml-dev
-      - qtbase5-dev
-
-  desktop-qt5:
-    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
-    source-subdir: qt
-    plugin: make
-    make-parameters: ["FLAVOR=qt5"]
-    build-packages:
-      - qtbase5-dev
-      - dpkg-dev
-    stage-packages:
-      - libxkbcommon0
-      - ttf-ubuntu-font-family
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libqt5gui5
-      - libgdk-pixbuf2.0-0
-      - libqt5svg5 # for loading icon themes which are svg
-      - locales-all
+  kde-frameworks-5-env:
+    plugin: dump
+    source: https://github.com/apachelogger/kf5-snap-env.git
