@@ -1523,7 +1523,16 @@ prolog_message(invalid_tmp_dir(Dir, Reason)) -->
     [ 'Cannot use ~p as temporary file directory: ~w'-[Dir, Reason] ].
 prolog_message(ambiguous_stream_pair(Pair)) -->
     [ 'Ambiguous operation on stream pair ~p'-[Pair] ].
-
+prolog_message(backcomp(init_file_moved(FoundFile))) -->
+    { absolute_file_name(app_config('init.pl'), InitFile,
+                         [ file_errors(fail)
+                         ])
+    },
+    [ 'The location of the config file has moved'-[], nl,
+      '  from "~w"'-[FoundFile], nl,
+      '  to   "~w"'-[InitFile], nl,
+      '  See https://swi-prolog.org/modified/config-files.html'-[]
+    ].
 
 		 /*******************************
 		 *          DEPRECATED		*

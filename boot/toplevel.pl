@@ -101,7 +101,7 @@ version(Message) :-
     !,
     ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
-    absolute_file_name(user_profile(Base), InitFile,
+    absolute_file_name(app_config(Base), InitFile,
                        [ access(read),
                          file_errors(fail)
                        ]),
@@ -109,6 +109,17 @@ version(Message) :-
     load_files(user:InitFile,
                [ scope_settings(false)
                ]).
+'$load_init_file'('init.pl') :-
+    (   current_prolog_flag(windows, true),
+        absolute_file_name(user_profile('swipl.ini'), InitFile,
+                           [ access(read),
+                             file_errors(fail)
+                           ])
+    ;   expand_file_name('~/.swiplrc', [InitFile]),
+        exists_file(InitFile)
+    ),
+    !,
+    print_message(warning, backcomp(init_file_moved(InitFile))).
 '$load_init_file'(_).
 
 '$load_system_init_file' :-
