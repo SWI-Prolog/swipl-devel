@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2016, University of Amsterdam
+    Copyright (c)  1995-2019, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -848,6 +849,8 @@ static const folderid folderids[] =
 { { CSIDL_COMMON_ALTSTARTUP, "common_altstartup" },
   { CSIDL_ALTSTARTUP, "altstartup" },
   { CSIDL_APPDATA, "appdata" },
+  { CSIDL_COMMON_APPDATA, "common_appdata" },
+  { CSIDL_LOCAL_APPDATA, "local_appdata" },
   { CSIDL_CONTROLS, "controls" },
   { CSIDL_COOKIES, "cookies" },
   { CSIDL_DESKTOP, "desktop" },
