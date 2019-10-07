@@ -1482,27 +1482,15 @@ set_prolog_gc_thread(Status) :-
 
 '$wrap_predicate'(M:Head, WName, Closure, call(Wrapped), Body) :-
     callable_name_arguments(Head, PName, Args),
-    distinct_vars(Args, Head, Arity),
+    callable_name_arity(Head, PName, Arity),
+    (   is_most_general_term(Head)
+    ->  true
+    ;   '$domain_error'(most_general_term, Head)
+    ),
     atomic_list_concat(['$wrap$', PName], WrapName),
     volatile(M:WrapName/Arity),
     WHead =.. [WrapName|Args],
     '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
-
-distinct_vars(Vars, _, Arity) :-
-    all_vars(Vars),
-    sort(Vars, Sorted),
-    length(Vars, Arity),
-    length(Sorted, Arity),
-    !.
-distinct_vars(_, Head, _) :-
-    '$domain_error'('most_general_term', Head).
-
-all_vars([]).
-all_vars([H|T]) :-
-    (   var(H)
-    ->  all_vars(T)
-    ;   '$uninstantiation_error'(H)
-    ).
 
 callable_name_arguments(Head, PName, Args) :-
     atom(Head),
@@ -1511,3 +1499,11 @@ callable_name_arguments(Head, PName, Args) :-
     Args = [].
 callable_name_arguments(Head, PName, Args) :-
     compound_name_arguments(Head, PName, Args).
+
+callable_name_arity(Head, PName, Arity) :-
+    atom(Head),
+    !,
+    PName = Head,
+    Arity = 0.
+callable_name_arity(Head, PName, Arity) :-
+    compound_name_arity(Head, PName, Arity).
