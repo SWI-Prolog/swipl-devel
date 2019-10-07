@@ -74,10 +74,6 @@ parts:
       # - libjpeg8
       # - libssl1.1
       # - libx11-6
-      - libarchive13
-      - libicu60
-      - libjpeg-turbo8
-      - libxml2
       - libossp-uuid16
       - libpcre3
       - libserd-0-0
