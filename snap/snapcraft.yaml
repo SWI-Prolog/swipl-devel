@@ -22,9 +22,11 @@ description: |
 
 apps:
   swipl:
-    command: kf5-launch $SNAP/usr/bin/swipl
+    command: swipl
+    extensions: [kde-neon]
   swipl-win:
-    command: kf5-launch $SNAP/usr/bin/swipl-win
+    command: swipl-win
+    extensions: [kde-neon]
 
 plugs:
   home:
@@ -36,11 +38,6 @@ plugs:
   opengl:
   audio-playback:
   audio-record:
-  kde-frameworks-5-plug:
-    content: kde-frameworks-5-core18-all
-    interface: content
-    default-provider: kde-frameworks-5-core18
-    target: kf5
 
 grade: stable
 confinement: strict
@@ -62,18 +59,7 @@ parts:
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     build-snaps: [kde-frameworks-5-core18-sdk]
-    stage-packages:
-      # Remove packages available in the kde base
-      # - ca-certificates
-      # - libarchive13
-      # - libdb5.3
-      # - libedit2
-      # - libfontconfig1
-      # - libglu1-mesa
-      # - libgmp10
-      # - libjpeg8
-      # - libssl1.1
-      # - libx11-6
+    stage-packages: 
       - libossp-uuid16
       - libpcre3
       - libserd-0-0
@@ -107,6 +93,3 @@ parts:
       - unixodbc-dev
       - zlib1g-dev
       - libyaml-dev
-  kde-frameworks-5-env:
-    plugin: dump
-    source: https://github.com/apachelogger/kf5-snap-env.git
