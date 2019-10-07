@@ -950,33 +950,89 @@ user:file_search_path(path, Dir) :-
     ;   atomic_list_concat(Dirs, :, Path)
     ),
     '$member'(Dir, Dirs).
-user:file_search_path(app_data, PrologAppData) :-
-    xdg_directory(config_home, AppData),
-    ensure_slash(AppData, AppDataS),
-    atom_concat(AppDataS, 'swi-prolog', PrologAppData),
-    make_config_dir(PrologAppData).
-user:file_search_path(app_config, app_data('.')).
+user:file_search_path(user_app_data, Dir) :-
+    '$xdg_prolog_directory'(data, Dir).
+user:file_search_path(common_app_data, Dir) :-
+    '$xdg_prolog_directory'(common_data, Dir).
+user:file_search_path(user_app_config, Dir) :-
+    '$xdg_prolog_directory'(config, Dir).
+user:file_search_path(common_app_config, Dir) :-
+    '$xdg_prolog_directory'(common_config, Dir).
+user:file_search_path(app_data, user_app_data('.')).
+user:file_search_path(app_data, common_app_data('.')).
+user:file_search_path(app_config, user_app_config('.')).
+user:file_search_path(app_config, common_app_config('.')).
 % backward compatibility
-user:file_search_path(app_preferences, app_data('.')).
+user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
 
+'$xdg_prolog_directory'(Which, Dir) :-
+    '$xdg_directory'(Which, XDGDir),
+    '$ensure_slash'(XDGDir, XDGDirS),
+    atom_concat(XDGDirS, 'swi-prolog', Dir),
+    '$make_config_dir'(Dir).
 
-xdg_directory(config_home, Home) :-
+% config
+'$xdg_directory'(config, Home) :-
     current_prolog_flag(windows, true),
     catch(win_folder(appdata, Home), _, fail),
     !.
-xdg_directory(config_home, Home) :-
+'$xdg_directory'(config, Home) :-
     getenv('XDG_CONFIG_HOME', Home).
-xdg_directory(config_home, Home) :-
+'$xdg_directory'(config, Home) :-
     expand_file_name('~/.config', [Home]).
+% data
+'$xdg_directory'(data, Home) :-
+    current_prolog_flag(windows, true),
+    catch(win_folder(local_appdata, Home), _, fail),
+    !.
+'$xdg_directory'(data, Home) :-
+    getenv('XDG_DATA_HOME', Home).
+'$xdg_directory'(data, Home) :-
+    expand_file_name('~/.local/share', [Home]).
+% common data
+'$xdg_directory'(common_data, Dir) :-
+    current_prolog_flag(windows, true),
+    catch(win_folder(common_appdata, Dir), _, fail),
+    !.
+'$xdg_directory'(common_data, Dir) :-
+    (   '$existing_dir_from_env_path'('XDG_DATA_DIRS', Dir0)
+    *-> Dir = Dir0
+    ;   (   Dir = '/usr/local/share'
+        ;   Dir = '/usr/share'
+        )
+    ).
+% common config
+'$xdg_directory'(common_data, Dir) :-
+    current_prolog_flag(windows, true),
+    catch(win_folder(common_appdata, Dir), _, fail),
+    !.
+'$xdg_directory'(common_data, Dir) :-
+    (   '$existing_dir_from_env_path'('XDG_CONFIG_DIRS', Dir0)
+    *-> Dir = Dir0
+    ;   Dir = '/etc/xdg'
+    ).
 
-make_config_dir(Dir) :-
+'$existing_dir_from_env_path'(Env, Dir) :-
+    getenv(Env, Path),
+    '$path_sep'(Sep),
+    atomic_list_concat(Dirs, Sep, Path),
+    '$member'(Dir, Dirs),
+    exists_directory(Dir).
+
+'$path_sep'(Char) :-
+    (   current_prolog_flag(windows, true)
+    ->  Char = ';'
+    ;   Char = ':'
+    ).
+
+'$make_config_dir'(Dir) :-
     exists_directory(Dir),
     !.
-make_config_dir(Dir) :-
+'$make_config_dir'(Dir) :-
     catch(make_directory(Dir), _, fail).
 
-ensure_slash(Dir, DirS) :-
+'$ensure_slash'(Dir, DirS) :-
     (   sub_atom(Dir, _, _, 0, /)
     ->  DirS = Dir
     ;   atom_concat(Dir, /, DirS)

@@ -569,29 +569,40 @@ use_foreign_library/1.
 
 \begin{code}
 user:file_search_path(library, X) :-
-        library_directory(X).
+    library_directory(X).
 user:file_search_path(swi, Home) :-
-        current_prolog_flag(home, Home).
+    current_prolog_flag(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
-        current_prolog_flag(arch, Arch),
-        atom_concat('lib/', Arch, ArchLib).
+    current_prolog_flag(arch, Arch),
+    atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(lib)).
 user:file_search_path(path, Dir) :-
-	getenv('PATH', Path),
-	(   current_prolog_flag(windows, true)
-	->  atomic_list_concat(Dirs, (;), Path)
-	;   atomic_list_concat(Dirs, :, Path)
-	),
-	member(Dir, Dirs).
-user:file_search_path(app_data, Dir) :-
-	xdg_directory(config_home, Dir).
-user:file_search_path(app_config, app_data('.')).
+    getenv('PATH', Path),
+    (   current_prolog_flag(windows, true)
+    ->  atomic_list_concat(Dirs, (;), Path)
+    ;   atomic_list_concat(Dirs, :, Path)
+    ),
+    member(Dir, Dirs).
+user:file_search_path(user_app_data, Dir) :-
+    '$xdg_prolog_directory'(data, Dir).
+user:file_search_path(common_app_data, Dir) :-
+    '$xdg_prolog_directory'(common_data, Dir).
+user:file_search_path(user_app_config, Dir) :-
+    '$xdg_prolog_directory'(config, Dir).
+user:file_search_path(common_app_config, Dir) :-
+    '$xdg_prolog_directory'(common_config, Dir).
+user:file_search_path(app_data, user_app_data('.')).
+user:file_search_path(app_data, common_app_data('.')).
+user:file_search_path(app_config, user_app_config('.')).
+user:file_search_path(app_config, common_app_config('.')).
 \end{code}
 
-The \nopredref{xdg_directory}{2} uses win_folder/2 using \const{appdata}
-on Windows, \env{XDG_CONFIG_HOME} if it exists and \file{~/.config}
-otherwise as basis and creates a directory \file{swi-prolog} in this
-base directory.  See also \secref{initfile}.
+\index{XDG,directories}%
+The \nopredref{'\$xdg_prolog_directory'}{2} uses either the
+\href{https://wiki.archlinux.org/index.php/XDG_Base_Directory}{XDG Base
+Directory} or win_folder/2 on Windows. On Windows, user config is mapped
+to roaming appdata (CSIDL_APPDATA), user data to the non-roaming
+(CSIDL_LOCAL_APPDATA) and common data to (CSIDL_COMMON_APPDATA).
 
 The file_search_path/2 expansion is used by all loading predicates as
 well as by absolute_file_name/[2,3].

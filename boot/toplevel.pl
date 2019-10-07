@@ -101,7 +101,7 @@ version(Message) :-
     !,
     ensure_loaded(user:InitFile).
 '$load_init_file'(Base) :-
-    absolute_file_name(app_config(Base), InitFile,
+    absolute_file_name(user_app_config(Base), InitFile,
                        [ access(read),
                          file_errors(fail)
                        ]),

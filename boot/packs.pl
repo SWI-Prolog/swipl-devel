@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, VU University Amsterdam
+    Copyright (c)  2012-2019, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,9 +51,7 @@
     pack_dir/3,
     pack/2.
 
-
-user:file_search_path(pack, app_config(pack)).
-user:file_search_path(pack, swi(pack)).
+user:file_search_path(pack, app_data(pack)).
 
 user:file_search_path(library, PackLib) :-
     pack_dir(_Name, prolog, PackLib).

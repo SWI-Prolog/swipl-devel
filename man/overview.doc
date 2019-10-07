@@ -2351,11 +2351,11 @@ registering and installing packs are provided by the library
     \predicate{attach_packs}{0}{}
 Attaches all packs in subdirectories of directories that are accessible
 through the \jargon{file search path} (see absolute_file_name/3)
-\const{pack}.  The default for this search path is:
+\const{pack}.  The default for this search path is given below.  See
+file_search_path/2 for the \const{app_data} search path.
 
 \begin{code}
 user:file_search_path(pack, app_data(pack)).
-user:file_search_path(pack, swi(pack)).
 \end{code}
 
 The predicate attach_packs/0 is called on startup of SWI-Prolog.
