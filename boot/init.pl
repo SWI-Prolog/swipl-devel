@@ -968,6 +968,7 @@ user:file_search_path(user_profile, app_preferences('.')).
 
 '$xdg_prolog_directory'(Which, Dir) :-
     '$xdg_directory'(Which, XDGDir),
+    '$make_config_dir'(XDGDir),
     '$ensure_slash'(XDGDir, XDGDirS),
     atom_concat(XDGDirS, 'swi-prolog', Dir),
     '$make_config_dir'(Dir).
@@ -989,7 +990,10 @@ user:file_search_path(user_profile, app_preferences('.')).
 '$xdg_directory'(data, Home) :-
     getenv('XDG_DATA_HOME', Home).
 '$xdg_directory'(data, Home) :-
-    expand_file_name('~/.local/share', [Home]).
+    expand_file_name('~/.local', [Local]),
+    '$make_config_dir'(Local),
+    atom_concat(Local, '/share', Home),
+    '$make_config_dir'(Home).
 % common data
 '$xdg_directory'(common_data, Dir) :-
     current_prolog_flag(windows, true),
@@ -1028,6 +1032,8 @@ user:file_search_path(user_profile, app_preferences('.')).
     exists_directory(Dir),
     !.
 '$make_config_dir'(Dir) :-
+    file_directory_name(Dir, Parent),
+    '$my_file'(Parent),
     catch(make_directory(Dir), _, fail).
 
 '$ensure_slash'(Dir, DirS) :-
