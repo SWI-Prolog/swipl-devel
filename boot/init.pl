@@ -996,27 +996,25 @@ user:file_search_path(user_profile, app_preferences('.')).
     catch(win_folder(common_appdata, Dir), _, fail),
     !.
 '$xdg_directory'(common_data, Dir) :-
-    (   '$existing_dir_from_env_path'('XDG_DATA_DIRS', Dir0)
-    *-> Dir = Dir0
-    ;   (   Dir = '/usr/local/share'
-        ;   Dir = '/usr/share'
-        )
-    ).
+    '$existing_dir_from_env_path'('XDG_DATA_DIRS',
+                                  [ '/usr/local/share',
+                                    '/usr/share'
+                                  ],
+                                  Dir).
 % common config
 '$xdg_directory'(common_data, Dir) :-
     current_prolog_flag(windows, true),
     catch(win_folder(common_appdata, Dir), _, fail),
     !.
 '$xdg_directory'(common_data, Dir) :-
-    (   '$existing_dir_from_env_path'('XDG_CONFIG_DIRS', Dir0)
-    *-> Dir = Dir0
-    ;   Dir = '/etc/xdg'
-    ).
+    '$existing_dir_from_env_path'('XDG_CONFIG_DIRS', ['/etc/xdg'], Dir).
 
-'$existing_dir_from_env_path'(Env, Dir) :-
-    getenv(Env, Path),
-    '$path_sep'(Sep),
-    atomic_list_concat(Dirs, Sep, Path),
+'$existing_dir_from_env_path'(Env, Defaults, Dir) :-
+    (   getenv(Env, Path)
+    ->  '$path_sep'(Sep),
+        atomic_list_concat(Dirs, Sep, Path)
+    ;   Dirs = Defaults
+    ),
     '$member'(Dir, Dirs),
     exists_directory(Dir).
 
