@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2018, VU University Amsterdam
+    Copyright (c)  2014-2019, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -36,10 +36,14 @@
 :- module(check_installation,
           [ check_installation/0,
             check_installation/1,               % -Issues
+            check_config_files/0,
+            update_config_files/0,
             test_installation/0,
             test_installation/1                 % +Options
           ]).
 :- use_module(option).
+:- use_module(lists).
+:- use_module(apply).
 
 /** <module> Check installation issues and features
 
@@ -146,8 +150,11 @@ issue_base('http://www.swi-prolog.org/build/issues/').
 
 check_installation :-
     print_message(informational, installation(checking)),
-    check_installation_(Issues),
+    check_installation_(InstallIssues),
     check_on_path,
+    check_config_files(ConfigIssues),
+    maplist(print_message(warning), ConfigIssues),
+    append(InstallIssues, ConfigIssues, Issues),
     (   Issues == []
     ->  print_message(informational, installation(perfect))
     ;   length(Issues, Count),
@@ -638,3 +645,143 @@ list_names([H|T]) -->
         list_names(T)
     ).
 
+
+		 /*******************************
+		 *          CONFIG FILES	*
+		 *******************************/
+
+%!  check_config_files
+%
+%   Examines the locations of config files.  The config files have moved
+%   in version 8.1.15
+
+check_config_files :-
+    check_config_files(Issues),
+    maplist(print_message(warning), Issues).
+
+check_config_files(Issues) :-
+    findall(Issue, check_config_file(Issue), Issues).
+
+check_config_file(config(Id, move(Type, OldFile, NewFile))) :-
+    old_config(Type, Id, OldFile),
+    access_file(OldFile, exist),
+    \+ ( new_config(Type, Id, NewFile),
+         access_file(NewFile, exist)
+       ),
+    once(new_config(Type, Id, NewFile)).
+check_config_file(config(Id, different(Type, OldFile, NewFile))) :-
+    old_config(Type, Id, OldFile),
+    access_file(OldFile, exist),
+    new_config(Type, Id, NewFile),
+    access_file(NewFile, exist),
+    \+ same_file(OldFile, NewFile).
+
+%!  update_config_files
+%
+%   Move config files from their old location to  the new if the file or
+%   directory exists in the old location but not in the new.
+
+update_config_files :-
+    old_config(Type, Id, OldFile),
+    access_file(OldFile, exist),
+    \+ ( new_config(Type, Id, NewFile),
+         access_file(NewFile, exist)
+       ),
+    (   new_config(Type, Id, NewFile),
+        \+ same_file(OldFile, NewFile),
+        create_parent_dir(NewFile)
+    ->  catch(rename_file(OldFile, NewFile), E,
+              print_message(warning, E)),
+        print_message(informational, config(Id, moved(Type, OldFile, NewFile)))
+    ),
+    fail.
+update_config_files.
+
+old_config(file, init, File) :-
+    current_prolog_flag(windows, true),
+    win_folder(appdata, Base),
+    atom_concat(Base, '/SWI-Prolog/swipl.ini', File).
+old_config(file, init, File) :-
+    expand_file_name('~/.swiplrc', [File]).
+old_config(directory, lib, Dir) :-
+    expand_file_name('~/lib/prolog', [Dir]).
+old_config(directory, xpce, Dir) :-
+    expand_file_name('~/.xpce', [Dir]).
+old_config(directory, history, Dir) :-
+    expand_file_name('~/.swipl-dir-history', [Dir]).
+old_config(directory, pack, Dir) :-
+    (   catch(expand_file_name('~/lib/swipl', [Dir]), _, fail)
+    ;   absolute_file_name(swi(pack), Dir,
+                           [ file_type(directory), solutions(all) ])
+    ).
+
+new_config(file, init, File) :-
+    absolute_file_name(user_app_config('init.pl'), File,
+                       [ solutions(all) ]).
+new_config(directory, lib, Dir) :-
+    config_dir(user_app_config(lib), Dir).
+new_config(directory, xpce, Dir) :-
+    config_dir(user_app_config(xpce), Dir).
+new_config(directory, history, Dir) :-
+    config_dir(user_app_config('dir-history'), Dir).
+new_config(directory, pack, Dir) :-
+    config_dir([app_data(pack), swi(pack)], Dir).
+
+config_dir(Aliases, Dir) :-
+    is_list(Aliases),
+    !,
+    (   member(Alias, Aliases),
+        absolute_file_name(Alias, Dir,
+                           [ file_type(directory), solutions(all) ])
+    *-> true
+    ;   member(Alias, Aliases),
+        absolute_file_name(Alias, Dir,
+                           [ solutions(all) ])
+    ).
+config_dir(Alias, Dir) :-
+    (   absolute_file_name(Alias, Dir,
+                           [ file_type(directory), solutions(all) ])
+    *-> true
+    ;   absolute_file_name(Alias, Dir,
+                           [ solutions(all) ])
+    ).
+
+create_parent_dir(NewFile) :-
+    file_directory_name(NewFile, Dir),
+    create_parent_dir_(Dir).
+
+create_parent_dir_(Dir) :-
+    exists_directory(Dir),
+    '$my_file'(Dir),
+    !.
+create_parent_dir_(Dir) :-
+    file_directory_name(Dir, Parent),
+    Parent \== Dir,
+    create_parent_dir_(Parent),
+    make_directory(Dir).
+
+prolog:message(config(Id, Issue)) -->
+    [ 'Config: '-[] ],
+    config_description(Id),
+    config_issue(Issue).
+
+config_description(init) -->
+    [ '(user initialization file) '-[], nl ].
+config_description(lib) -->
+    [ '(user library) '-[], nl ].
+config_description(pack) -->
+    [ '(add-ons) '-[], nl ].
+config_description(history) -->
+    [ '(command line history) '-[], nl ].
+config_description(xpce) -->
+    [ '(gui) '-[], nl ].
+
+config_issue(move(Type, Old, New)) -->
+    [ '  found ~w "~w"'-[Type, Old], nl ],
+    [ '  new location is "~w"'-[New] ].
+config_issue(moved(Type, Old, New)) -->
+    [ '  found ~w "~w"'-[Type, Old], nl ],
+    [ '  moved to new location "~w"'-[New] ].
+config_issue(different(Type, Old, New)) -->
+    [ '  found different ~w "~w"'-[Type, Old], nl ],
+    [ '  new location is "~w"'-[New] ].
