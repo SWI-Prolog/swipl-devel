@@ -145,6 +145,7 @@ check_function_exists(localeconv HAVE_LOCALECONV)
 check_function_exists(wcsdup HAVE_WCSDUP)
 check_function_exists(wcsxfrm HAVE_WCSXFRM)
 # processes
+check_function_exists(getuid HAVE_GETUID)
 check_function_exists(getpid HAVE_GETPID)
 check_function_exists(waitpid HAVE_WAITPID)
 # environment, config

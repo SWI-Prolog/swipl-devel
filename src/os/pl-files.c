@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1196,13 +1197,47 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
 
 static
-PRED_IMPL("mark_executable", 1, mark_executable, 0)
+PRED_IMPL("$mark_executable", 1, mark_executable, 0)
 { char *name;
 
   if ( !PL_get_file_name(A1, &name, 0) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, A1);
 
   return MarkExecutable(name);
+}
+
+/**
+ * '$my_file'(+Path) is semidet.
+ *
+ * True if Path exists and is owned by the same user as the current
+ * process.  If the OS or filesystem doesn't support ownership the
+ * result is true if Path exists.
+ */
+
+static
+PRED_IMPL("$my_file", 1, my_file, 0)
+{ char *n;
+
+  if ( !PL_get_file_name(A1, &n, 0) ||
+       file_name_is_iri(n) )
+    return FALSE;
+
+#ifdef HAVE_GETUID
+{
+  statstruct buf;
+  char tmp[MAXPATHLEN];
+
+  if ( statfunc(OsPath(n, tmp), &buf) < 0 )
+  { perror("tmp");
+    return FALSE;
+  }
+
+  if ( buf.st_uid != getuid() )
+    return FALSE;
+}
+#endif
+
+  return TRUE;
 }
 
 
@@ -1233,4 +1268,5 @@ BeginPredDefs(files)
   PRED_DEF("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
   PRED_DEF("$mark_executable", 1, mark_executable, 0)
   PRED_DEF("$absolute_file_name", 2, absolute_file_name, 0)
+  PRED_DEF("$my_file", 1, my_file, 0)
 EndPredDefs
