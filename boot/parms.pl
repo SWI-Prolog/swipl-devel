@@ -45,11 +45,6 @@
     library_directory_cache/2.
 
 user:library_directory(Dir) :-
-    cached_library_directory(local,
-                             Dir0=lib,
-                             Dir0),
-    Dir = Dir0.
-user:library_directory(Dir) :-
     cached_library_directory(user,
                              absolute_file_name(app_config(lib), Dir0),
                              Dir0),
