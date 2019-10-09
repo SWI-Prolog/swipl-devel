@@ -710,7 +710,7 @@ old_config(directory, xpce, Dir) :-
 old_config(directory, history, Dir) :-
     expand_file_name('~/.swipl-dir-history', [Dir]).
 old_config(directory, pack, Dir) :-
-    (   catch(expand_file_name('~/lib/swipl', [Dir]), _, fail)
+    (   catch(expand_file_name('~/lib/swipl/pack', [Dir]), _, fail)
     ;   absolute_file_name(swi(pack), Dir,
                            [ file_type(directory), solutions(all) ])
     ).
