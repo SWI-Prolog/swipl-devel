@@ -229,7 +229,7 @@ unknown_proc_msg(Proc) -->
     ).
 
 faq(Page) -->
-    [nl, '  See FAQ at http://www.swi-prolog.org/FAQ/', Page, '.txt' ].
+    [nl, '  See FAQ at https://www.swi-prolog.org/FAQ/', Page, '.txt' ].
 
 type_error_comment(_Expected, Actual) -->
     { type_of(Actual, Type),
@@ -581,7 +581,7 @@ prolog_message(unknown_in_module_user) -->
     [ 'Using a non-error value for unknown in the global module', nl,
       'causes most of the development environment to stop working.', nl,
       'Please use :- dynamic or limit usage of unknown to a module.', nl,
-      'See http://www.swi-prolog.org/howto/database.html'
+      'See https://www.swi-prolog.org/howto/database.html'
     ].
 prolog_message(deprecated(What)) -->
     deprecated(What).
@@ -1047,7 +1047,7 @@ prolog_message(user_versions) -->
     ;   []
     ).
 prolog_message(documentaton) -->
-    [ 'For online help and background, visit http://www.swi-prolog.org', nl,
+    [ 'For online help and background, visit https://www.swi-prolog.org', nl,
       'For built-in help, use ?- help(Topic). or ?- apropos(Word).'
     ].
 prolog_message(welcome) -->
@@ -1531,7 +1531,7 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
     [ 'The location of the config file has moved'-[], nl,
       '  from "~w"'-[FoundFile], nl,
       '  to   "~w"'-[InitFile], nl,
-      '  See https://swi-prolog.org/modified/config-files.html'-[]
+      '  See https://www.swi-prolog.org/modified/config-files.html'-[]
     ].
 
 		 /*******************************
@@ -1540,7 +1540,7 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
 
 deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
-      'See http://www.swi-prolog.org/changes/stack-limit.html'
+      'See https://www.swi-prolog.org/changes/stack-limit.html'
     ].
 
 		 /*******************************
