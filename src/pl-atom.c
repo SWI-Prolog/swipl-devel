@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -258,13 +258,15 @@ PL_register_blob_type(PL_blob_t *type)
 	  t = t->next;
 
 	t->next = type;
-	type->rank = t->rank+1;
       }
       if ( true(type, PL_BLOB_TEXT) )
-      { if ( true(type, PL_BLOB_WCHAR) )
+      { type->rank = ++GD->atoms.text_rank;
+	if ( true(type, PL_BLOB_WCHAR) )
 	  type->padding = sizeof(pl_wchar_t);
 	else
 	  type->padding = sizeof(char);
+      } else
+      { type->rank = --GD->atoms.nontext_rank;
       }
 
       if ( !GD->atoms.initialised )

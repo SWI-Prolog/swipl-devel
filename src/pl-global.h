@@ -223,6 +223,8 @@ struct PL_global_data
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */
+    int		text_rank;		/* next rank for text types */
+    int		nontext_rank;		/* next rank for non-text types */
   } atoms;
 
   struct

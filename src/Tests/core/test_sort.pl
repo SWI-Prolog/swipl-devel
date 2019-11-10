@@ -53,6 +53,9 @@ test(type, [error(type_error(list,L))]) :-
 test(cyclic, [sto(rational_trees),R == [a,b,c]]) :-
 	L = [a,b,c|L],
 	sort(L, R).
+test(reserved, R == [[],a,W]) :-		% blobs sort before text
+	atom_codes(W, [1040,1041]),
+	sort([a,[],W], R).
 
 :- end_tests(sort).
 
