@@ -9180,11 +9180,14 @@ absolute filenames to register source files independent of the current
 working directory. See also absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
+
 Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
-predicate is to resolve files specified as Alias(Relative).
-\arg{Option} is a list of options to guide the conversion:
+predicate is to resolve files specified as Alias(Relative). This
+predicate \emph{only returns non-directories}, unless the option
+\term{file_type}{directory} is specified. \arg{Option} is a list of
+options to guide the conversion:
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
@@ -9209,11 +9212,11 @@ is one of \const{read}, \const{write}, \const{append},
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
-\const{['.so', '']}, \const{qlf} implies \const{['.qlf', '']} and
-\const{directory} implies \const{['']}. The file type \const{source} is
-an alias for \const{prolog} for compatibility with SICStus Prolog. See
-also prolog_file_type/2. This predicate only returns non-directories,
-unless the option \term{file_type}{directory} is specified.
+\const{['.so', '']} and \const{qlf} implies \const{['.qlf', '']}. The
+\arg{Type} \const{directory} implies \const{['']} and causes this
+predicate to generate (only) directories. The file type \const{source}
+is an alias for \const{prolog} for compatibility with SICStus Prolog.
+See also prolog_file_type/2.
 
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw an \const{existence_error} exception
