@@ -9539,13 +9539,6 @@ True if the tracer is currently switched on.  tracing/0 itself cannot
 be seen in the tracer.
     \predicate{notrace}{0}{}
 Stop the tracer. notrace/0 itself cannot be seen in the tracer.
-    \predicate{guitracer}{0}{}
-Installs hooks (see prolog_trace_interception/4) into the system that
-redirect tracing information to a GUI front-end providing structured
-access to variable bindings, graphical overview of the stack and
-highlighting of relevant source code.
-    \predicate{noguitracer}{0}{}
-Revert back to the textual tracer.
     \predicate{trace}{1}{+Pred}
 Equivalent to \exam{trace(\arg{Pred}, +all)}.
     \predicate{trace}{2}{+Pred, +Ports}
@@ -9554,12 +9547,12 @@ Put a trace point on all predicates satisfying the predicate specification
 \const{redo}, \const{exit}, \const{fail}). The atom \const{all} refers
 to all ports. If the port is preceded by a \const{-} sign, the
 trace point is cleared for the port. If it is preceded by a \const{+},
-the trace point is set.
+the trace point is set. Tracing a predicate is achieved by
+\jargon{wrapping} the predicate using wrap_predicate/4.
 
-The predicate trace/2 activates debug mode (see debug/0).  Each time
-a port (of the 4-port model) is passed that has a trace point set, the
-goal is printed.  Unlike trace/0, however, the execution
-is continued without asking for further information.  Examples:
+Each time a port (of the 4-port model) is passed that has a trace point
+set, the goal is printed. Unlike trace/0, however, the execution is
+continued without asking for further information. Examples:
 
 \begin{center}
 \begin{tabular}{lp{3in}}
