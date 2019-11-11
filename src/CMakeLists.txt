@@ -151,7 +151,7 @@ if(INSTALL_DOCUMENTATION)
 endif()
 if(WIN32)
   set(SWIPL_DATA_library ${SWIPL_DATA_library}
-      dde.pl win_menu.pl)
+      dde.pl win_menu.pl progman.pl)
 else()
   has_package(swipl-win HAVE_SWIPL_WIN)
   if(HAVE_SWIPL_WIN)

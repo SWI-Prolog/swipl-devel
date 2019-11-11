@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2011, University of Amsterdam
+    Copyright (c)  1995-2019, University of Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -215,13 +216,13 @@ line([Arg|More]) -->
     !,
     line(More).
 line(Args) -->
-    char(","),
+    ",",
     !,
     line(Args).
 line([Arg|More]) -->
-    char([C]),
+    [C],
     string_val(A0),
-    (   char(",")
+    (   ","
     ;   end_of_string
     ),
     !,
@@ -231,20 +232,19 @@ line([]) -->
     [].
 
 string(Arg) -->
-    char(""""),
+    "\"",
     !,
     string_val(A0),
-    char(""""),
+    "\"",
     !,
     { name(Arg, A0) }.
 
 string_val([]) -->
     [].
 string_val([C|M]) -->
-    char([C]),
+    [C],
     string_val(M).
 
-char([C], [C|T], T).
 end_of_string([], []).
 
 %!  lines_to_atoms(+Lines, -Atoms)
