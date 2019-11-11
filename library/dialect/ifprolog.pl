@@ -1259,8 +1259,6 @@ letter(A) :-
 :- arithmetic_function(system:gused/0).
 :- arithmetic_function(system:lused/0).
 :- arithmetic_function(system:tused/0).
-:- arithmetic_function(system:sinh/1).
-:- arithmetic_function(system:cosh/1).
 
 system:time(Time) :-
 	get_time(GetTime),
@@ -1283,18 +1281,6 @@ system:lused(Size) :-
 	statistics(localused, Size).
 system:tused(Size) :-
 	statistics(trailused, Size).
-
-%%	sinh(Val)
-%
-%	Hyperbolic sine: sinh = (e^x - e^-x) / 2
-system:sinh(Val, Sinh) :-
-	Sinh is ((exp(Val) - exp(-Val)) / 2).
-
-%%	cosh(Val)
-%
-%	Hyperbolic cosine: cosh = (e^x + e^-x) / 2
-system:cosh(Val, Cosh) :-
-	Cosh is ((exp(Val) + exp(-Val)) / 2).
 
 
 		 /*******************************
