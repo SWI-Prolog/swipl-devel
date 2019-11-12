@@ -164,7 +164,8 @@ destroyDefinition(Definition def)
   freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
-  { removeClausesPredicate(def, 0, FALSE);
+  { deleteIndexes(&def->impl.clauses, TRUE);
+    removeClausesPredicate(def, 0, FALSE);
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
   } else					/* foreign and thread-local */
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
