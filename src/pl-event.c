@@ -37,6 +37,7 @@
 #include "pl-incl.h"
 #include "pl-event.h"
 #include "pl-dbref.h"
+#include "pl-copyterm.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Event interface
