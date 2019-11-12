@@ -99,10 +99,6 @@ setupProlog(void)
   GD->combined_stack.overflow_id = STACK_OVERFLOW;
 
   initPrologLocalData(PASS_LD1);
-  LD->tabling.node_pool.limit = GD->options.tableSpace;
-#ifdef O_PLMT
-  GD->tabling.node_pool.limit = GD->options.sharedTableSpace;
-#endif
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -1671,6 +1667,8 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
+  if ( ld->tabling.node_pool )
+    free_alloc_pool(ld->tabling.node_pool);
 
   clearThreadTablingData(ld);
 }

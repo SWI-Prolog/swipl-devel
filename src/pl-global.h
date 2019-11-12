@@ -36,7 +36,7 @@
 
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
-#include "pl-trie.h"
+#include "pl-allocpool.h"
 
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
@@ -180,7 +180,7 @@ struct PL_global_data
 #if O_PLMT
   struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
-    trie_allocation_pool node_pool;	/* Node allocation pool for tries */
+    alloc_pool *node_pool;		/* Node allocation pool for tries */
     simpleMutex  mutex;			/* Sync completion */
 #ifdef __WINDOWS__
     CONDITION_VARIABLE cvar;
@@ -597,7 +597,7 @@ struct PL_local_data
   struct
   { struct tbl_component *component;    /* active component */
     struct trie *variant_table;		/* Variant --> table */
-    trie_allocation_pool node_pool;	/* Node allocation pool for tries */
+    alloc_pool *node_pool;		/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */
     term_t delay_list;			/* Global delay list */

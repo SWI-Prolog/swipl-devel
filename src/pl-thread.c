@@ -1837,7 +1837,9 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
     ldnew->_debugstatus.skiplevel = SKIP_VERY_DEEP;
   }
 
-  ldnew->tabling.node_pool.limit  = ldold->tabling.node_pool.limit;
+  alloc_pool *pool = ldold->tabling.node_pool;
+  if ( pool )
+    ldnew->tabling.node_pool = new_alloc_pool(pool->name, pool->limit);
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;

@@ -828,10 +828,20 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       else
 #endif
       if ( k == ATOM_table_space )
-	LD->tabling.node_pool.limit = (size_t)i;
+      { if ( !LD->tabling.node_pool )
+	  LD->tabling.node_pool = new_alloc_pool("table_space", i);
+	else
+	  LD->tabling.node_pool->limit = (size_t)i;
+      }
 #ifdef O_PLMT
       else if ( k == ATOM_shared_table_space )
-	GD->tabling.node_pool.limit = (size_t)i;
+      { if ( !GD->tabling.node_pool )
+	{ alloc_pool *pool = new_alloc_pool("table_space", i);
+	  if ( pool && !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
+	    free_alloc_pool(pool);
+	} else
+	  GD->tabling.node_pool->limit = (size_t)i;
+      }
 #endif
       else if ( k == ATOM_stack_limit )
       { if ( !set_stack_limit((size_t)i) )
@@ -1348,7 +1358,7 @@ initPrologFlags(void)
 #ifdef O_ATOMGC
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
-  setPrologFlag("table_space", FT_INTEGER, LD->tabling.node_pool.limit);
+  setPrologFlag("table_space", FT_INTEGER, GD->options.tableSpace);
   setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);

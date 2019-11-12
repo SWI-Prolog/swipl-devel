@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -5473,8 +5474,12 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   }
 #endif
   else if (key == ATOM_table_space_used)
-    v->value.i = LD->tabling.node_pool.size;
-  else if (key == ATOM_indexes_created)
+  { alloc_pool *pool;
+    if ( (pool=LD->tabling.node_pool) )
+      v->value.i = pool->size;
+    else
+      v->value.i = 0;
+  } else if (key == ATOM_indexes_created)
     v->value.i = GD->statistics.indexes.created;
   else if (key == ATOM_indexes_destroyed)
     v->value.i = GD->statistics.indexes.destroyed;

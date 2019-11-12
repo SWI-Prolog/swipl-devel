@@ -38,6 +38,7 @@
 #include "pl-copyterm.h"
 #include "pl-wrap.h"
 #include "pl-event.h"
+#include "pl-allocpool.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -2004,16 +2005,30 @@ static void release_variant_table_node(trie *trie, trie_node *node);
 static trie *
 variant_table(int shared ARG_LD)
 { trie **tp;
-  trie_allocation_pool *pool;
+  alloc_pool *pool;
 
 #ifdef O_PLMT
   if ( shared )
   { tp   = &GD->tabling.variant_table;
-    pool = &GD->tabling.node_pool;
+    if ( !(pool = GD->tabling.node_pool) )
+    { if ( (pool = new_alloc_pool("table_space", GD->options.sharedTableSpace)) )
+      { if ( !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
+	{ free_alloc_pool(pool);
+	  pool = GD->tabling.node_pool;
+	}
+      } else
+      { return NULL;
+      }
+    }
   } else
 #endif
   { tp   = &LD->tabling.variant_table;
-    pool = &LD->tabling.node_pool;
+    if ( !(pool = LD->tabling.node_pool) )
+    { pool = LD->tabling.node_pool = new_alloc_pool("table_space",
+						    GD->options.tableSpace);
+      if ( !pool )
+	return NULL;
+    }
   }
 
   if ( *tp == NULL )
@@ -2213,8 +2228,8 @@ retry:
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
-      trie_allocation_pool *pool = (shared ? &GD->tabling.node_pool
-					   : &LD->tabling.node_pool);
+      alloc_pool *pool = (shared ? GD->tabling.node_pool
+				 : LD->tabling.node_pool);
 
       if ( !(atrie = trie_create(pool)) )
 	return NULL;
@@ -5673,7 +5688,6 @@ initTabling(void)
 #ifdef O_PLMT
   simpleMutexInit(&GD->tabling.mutex);
   cv_init(&GD->tabling.cvar, NULL);
-  GD->tabling.node_pool.limit = GD->options.tableSpace;
 #endif
 }
 

@@ -92,11 +92,6 @@ typedef struct trie_node
   int			flags;		/* TN_* */
 } trie_node;
 
-typedef struct trie_allocation_pool
-{ size_t	size;			/* # nodes in use */
-  size_t	limit;			/* Limit of the pool */
-} trie_allocation_pool;
-
 #define TRIE_ISSET	0x0001		/* Trie nodes have no value */
 #define TRIE_ISMAP	0x0002		/* Trie nodes have a value */
 #define TRIE_ISSHARED	0x0004		/* This is a shared answer trie */
@@ -116,7 +111,7 @@ typedef struct trie
   trie_node	        root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   void		      (*release_node)(struct trie *, trie_node *);
-  trie_allocation_pool *alloc_pool;	/* Node allocation pool */
+  alloc_pool	       *alloc_pool;	/* Node allocation pool */
   atom_t		clause;		/* Compiled representation */
 #ifdef O_TRIE_STATS
   struct
@@ -146,7 +141,7 @@ typedef struct trie
 #endif
 
 COMMON(void)	initTries(void);
-COMMON(trie *)	trie_create(trie_allocation_pool *pool);
+COMMON(trie *)	trie_create(alloc_pool *pool);
 COMMON(void)	trie_destroy(trie *trie);
 COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
@@ -172,8 +167,5 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
-COMMON(void *)	alloc_from_pool(trie_allocation_pool *pool, size_t bytes);
-COMMON(void)	free_to_pool(trie_allocation_pool *pool, void *mem, size_t bytes);
-
 
 #endif /*_PL_TRIE_H*/

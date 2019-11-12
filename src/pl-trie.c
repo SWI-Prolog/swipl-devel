@@ -184,7 +184,7 @@ release_key(word key)
 
 
 trie *
-trie_create(trie_allocation_pool *pool)
+trie_create(alloc_pool *pool)
 { trie *trie;
 
   if ( (trie = alloc_from_pool(pool, sizeof(*trie))) )
@@ -2574,40 +2574,6 @@ set_trie_clause_general_undefined(Clause clause)
     }
   }
 }
-
-
-		 /*******************************
-		 *	     ALLOCATION		*
-		 *******************************/
-
-void *
-alloc_from_pool(trie_allocation_pool *pool, size_t bytes)
-{ void *mem;
-
-  if ( pool )
-  { if ( pool->size+bytes <= pool->limit )
-    { ATOMIC_ADD(&pool->size, bytes);
-    } else
-    { PL_resource_error("table_space");
-      return NULL;
-    }
-  }
-
-  if ( (mem=malloc(bytes)) )
-    return mem;
-
-  PL_resource_error("memory");
-  return NULL;
-}
-
-void
-free_to_pool(trie_allocation_pool *pool, void *mem, size_t bytes)
-{ free(mem);
-
-  if ( pool )
-    ATOMIC_SUB(&pool->size, bytes);
-}
-
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
