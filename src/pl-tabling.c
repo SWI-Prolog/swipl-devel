@@ -2228,8 +2228,12 @@ retry:
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
+#ifdef O_PLMT
       alloc_pool *pool = (shared ? GD->tabling.node_pool
 				 : LD->tabling.node_pool);
+#else
+      alloc_pool *pool = LD->tabling.node_pool;
+#endif
 
       if ( !(atrie = trie_create(pool)) )
 	return NULL;
