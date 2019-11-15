@@ -611,10 +611,10 @@ db_sync(Module, gc) :-
     !,
     db_sync(Module, gc(50)).
 db_sync(Module, gc(When)) :-
-    db_dirty(Module, Dirty),
     (   When == always
     ->  true
-    ;   db_size(Module, Total),
+    ;   db_dirty(Module, Dirty),
+        db_size(Module, Total),
         (   Total > 0
         ->  Perc is (100*Dirty)/Total,
             Perc > When
