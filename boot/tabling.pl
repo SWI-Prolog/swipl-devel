@@ -358,7 +358,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     ->  (   Status == complete
         ->  trie_gen_compiled(Trie, Skeleton)
         ;   Status == invalid
-        ->  reeval(Trie),
+        ->  reeval(Trie, Wrapper, Skeleton),
             trie_gen_compiled(Trie, Skeleton)
         ;   shift(call_info(Skeleton, Status))
         )
