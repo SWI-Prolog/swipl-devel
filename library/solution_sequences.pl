@@ -195,8 +195,8 @@ reduced_(State, Witness1, SizeLimit) :-
 %   at most Count solutions. Solutions are  returned as soon as they
 %   become  available.
 %
-%   @arg is either `inifinite`,  making   this  predicate  equivalent to
-%   call/1  or  an  integer.  If  `Count   <  1`  this  predicate  fails
+%   @arg Count is either `infinite`, making this predicate equivalent to
+%   call/1 or an  integer.  If  _|Count   <  1|_  this  predicate  fails
 %   immediately.
 
 limit(Count, Goal) :-
