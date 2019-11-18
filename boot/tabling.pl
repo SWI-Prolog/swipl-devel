@@ -365,6 +365,15 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
     ->  '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
+    ;   more_general_table(Wrapper, ATrie),
+        '$tbl_table_status'(ATrie, Status, GenWrapper, GenSkeleton)
+    ->  (   Status == invalid
+        ->  reeval(ATrie, GenWrapper, GenSkeleton),
+            Wrapper = GenWrapper,
+            '$tbl_answer_update_dl'(ATrie, GenSkeleton)
+        ;   shift(call_info(GenSkeleton, Status)),
+            Wrapper = GenWrapper
+        )
     ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
