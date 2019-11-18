@@ -3152,7 +3152,8 @@ is_most_general_term(Word p ARG_LD)
 	  l = TailList(l);
 	  deRef(l);
 	}
-	p = l;
+
+	l = p;
 	while( isList(*l) )
 	{ Word h = HeadList(l);
 
