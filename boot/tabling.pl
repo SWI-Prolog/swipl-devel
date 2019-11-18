@@ -344,6 +344,14 @@ restart_tabling(Closure, Wrapper, Worker) :-
 
 
 %!  start_subsumptive_tabling(:Wrapper, :Implementation)
+%
+%   (*) We should __not__ use  trie_gen_compiled/2   here  as  this will
+%   enumerate  all  answers  while  '$tbl_answer_update_dl'/2  uses  the
+%   available trie indexing to only fetch the relevant answer(s).
+%
+%   @tbd  In  the  end  '$tbl_answer_update_dl'/2  is  problematic  with
+%   incremental and shared tabling  as  we   do  not  get the consistent
+%   update view from the compiled result.
 
 start_subsumptive_tabling(Closure, Wrapper, Worker) :-
     (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
@@ -356,7 +364,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         )
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
-    ->  '$tbl_answer_update_dl'(ATrie, Skeleton)
+    ->  '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
     ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
         '$tbl_create_subcomponent'(SCC, Trie),
