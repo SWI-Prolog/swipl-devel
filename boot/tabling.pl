@@ -372,7 +372,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
             Wrapper = GenWrapper,
             '$tbl_answer_update_dl'(ATrie, GenSkeleton)
         ;   shift(call_info(GenSkeleton, Status)),
-            Wrapper = GenWrapper
+            unify_subsumptive(Wrapper, GenWrapper)
         )
     ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
@@ -388,6 +388,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         done_leader(LStatus, SCC, Skeleton, Clause)
     ).
 
+unify_subsumptive(X,X).
 
 :- '$hide'((done_leader/4, finished_leader/4)).
 
