@@ -1,0 +1,140 @@
+/*
+ * Driver file for subsumption tests.
+ */
+
+:- import numbervars/3 from num_vars.
+:- include('Programs/traversal').
+
+backtrack_and_print(Query) :-
+	call(Query), numbervars(Query,0,_), writeq(Query), nl, fail.
+backtrack_and_print(_).
+
+
+
+lrtc(QueryCode,DataFile) :-
+	load_data(DataFile), lrtc(QueryCode).
+lrtc('XY') :-
+	backtrack_and_print( anc_l(_,_) ).
+lrtc('1Y') :-
+	backtrack_and_print( anc_l(1,_) ).
+lrtc('X8') :-
+	backtrack_and_print( anc_l(_,8) ).
+lrtc(multidown) :-
+	backtrack_and_print( anc_l(_,_) ),
+	backtrack_and_print( anc_l(X,X) ),
+	backtrack_and_print( anc_l(f(F),f(F)) ),
+	backtrack_and_print( anc_l([L],[L]) ).
+lrtc(multiup) :-
+	backtrack_and_print( anc_l([L],[L]) ),
+	backtrack_and_print( anc_l(f(F),f(F)) ),
+	backtrack_and_print( anc_l(X,X) ),
+	backtrack_and_print( anc_l(_,_) ).
+
+
+rrtc(QueryCode,DataFile) :-
+	load_data(DataFile), rrtc(QueryCode).
+rrtc('XY') :-
+	backtrack_and_print( anc_r(_,_) ).
+rrtc('1Y') :-
+	backtrack_and_print( anc_r(1,_) ).
+rrtc('X8') :-
+	backtrack_and_print( anc_r(_,8) ).
+rrtc(multidown) :-
+	backtrack_and_print( anc_r(_,_) ),
+	backtrack_and_print( anc_r(X,X) ),
+	backtrack_and_print( anc_r(f(F),f(F)) ),
+	backtrack_and_print( anc_r([L],[L]) ).
+rrtc(multiup) :-
+	backtrack_and_print( anc_r([L],[L]) ),
+	backtrack_and_print( anc_r(f(F),f(F)) ),
+	backtrack_and_print( anc_r(X,X) ),
+	backtrack_and_print( anc_r(_,_) ).
+
+
+drtc(QueryCode,DataFile) :-
+	load_data(DataFile), drtc(QueryCode).
+drtc('XY') :-
+	backtrack_and_print( anc_d(_,_) ).
+drtc('1Y') :-
+	backtrack_and_print( anc_d(1,_) ).
+drtc('X8') :-
+	backtrack_and_print( anc_d(_,8) ).
+drtc(multidown) :-
+	backtrack_and_print( anc_d(_,_) ),
+	backtrack_and_print( anc_d(X,X) ),
+	backtrack_and_print( anc_d(f(F),f(F)) ),
+	backtrack_and_print( anc_d([L],[L]) ).
+drtc(multiup) :-
+	backtrack_and_print( anc_d([L],[L]) ),
+	backtrack_and_print( anc_d(f(F),f(F)) ),
+	backtrack_and_print( anc_d(X,X) ),
+	backtrack_and_print( anc_d(_,_) ).
+
+
+sg(QueryCode,DataFile) :-
+	load_data(DataFile), sg(QueryCode).
+sg('XY') :-
+	backtrack_and_print( same_gen(_,_) ).
+sg('1Y') :-
+	backtrack_and_print( same_gen(1,_) ).
+sg('X8') :-
+	backtrack_and_print( same_gen(_,8) ).
+sg(multidown) :-
+	backtrack_and_print( same_gen(_,_) ),
+	backtrack_and_print( same_gen(X,X) ),
+	backtrack_and_print( same_gen(f(F),f(F)) ),
+	backtrack_and_print( same_gen([L],[L]) ).
+sg(multiup) :-
+	backtrack_and_print( same_gen([L],[L]) ),
+	backtrack_and_print( same_gen(f(F),f(F)) ),
+	backtrack_and_print( same_gen(X,X) ),
+	backtrack_and_print( same_gen(_,_) ).
+
+
+genome(DataFile) :-
+	load_data(DataFile),
+	backtrack_and_print( genome_l(_) ).
+
+
+decker :-
+	['Programs/decker_rules'], load_data('Data/decker_facts'),
+	backtrack_and_print(p_isa_(_,f_Researcher)).
+
+
+flora :-
+	['Programs/flora'],
+	backtrack_and_print('_$_$_flora_isa_rhs'(_,direct)).
+
+:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
+
+load_data(DataFile) :-
+	test_dir(Dir),
+	atomic_list_concat([Dir, /, DataFile], DataPath),
+	file_name_extension(DataPath, 'P', DataFileExt),
+	setup_call_cleanup(
+	    open(DataFileExt, read, In),
+	    read_facts(In),
+	    close(In)).
+
+test_dir(Dir) :-
+	source_file(load_data(_), File),
+	file_directory_name(File, Dir).
+
+:- else.
+
+load_data(DataFile) :-
+	atom_concat(DataFile, '.P', DataFileExt),
+	open(DataFileExt, read, In),
+	read_facts(In),
+	close(In).
+
+:- endif.
+
+read_facts(In) :-
+	repeat,
+	read_term(In, Term, []),
+	(   Term == end_of_file
+	->  !
+	;   assert(Term),
+	    fail
+	).

@@ -455,6 +455,7 @@ add_custom_target(check
 set(SWIPL_TEST_DIRS unprotected core attvar tabling library charset eclipse clp
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
+    xsb/sub_tests
     GC save)
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)

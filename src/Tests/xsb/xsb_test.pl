@@ -68,6 +68,8 @@ xsb_test_id(Base, TestFile, Goal) :-
 
 xsb_cmp_results(TestFile, New) :-
     string_terms(New, Me),
+    length(Me, Count),
+    debug(xsb(test), 'Got ~D answer terms', [Count]),
     read_test_output(TestFile, Gold),
     compare_terms(Me, Gold).
 

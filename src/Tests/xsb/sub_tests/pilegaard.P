@@ -1,0 +1,131 @@
+/* Henrik Pilegaard - truthspinner
+4/14/03
+*/
+/* TLS: things seem ok, but I havent verified that the results are
+   correct. */
+
+:- import length/2 from basics.
+
+
+pRG(t, *, amb(p)).
+pRG(*, p, in(s_1_1)).
+pRG(*, p, overlinein(r, p)).
+pRG(*, p, open(r)).
+pRG(t, *, amb(s_1_1)).
+pRG(*, s_1_1, overlinein(p, s_1_1)).
+pRG(*, s_1_1, overlineout(p, s_1_1)).
+pRG(*, s_1_1, amb(r)).
+pRG(s_1_1, r, in(p)).
+pRG(s_1_1, r, overlineopen(p, r)).
+pRG(s_1_1, r, out(s_1_1)).
+pRG(s_1_1, r, in(s_2_1)).
+pRG(*, s_1_1, amb(r)).
+pRG(s_1_1, r, in(p)).
+pRG(s_1_1, r, overlineopen(p, r)).
+pRG(s_1_1, r, out(s_1_1)).
+pRG(s_1_1, r, in(s_1_2)).
+pRG(t, *, amb(s_1_2)).
+pRG(*, s_1_2, overlinein(p, s_1_2)).
+pRG(*, s_1_2, overlineout(p, s_1_2)).
+pRG(*, s_1_2, amb(r)).
+pRG(s_1_2, r, in(p)).
+pRG(s_1_2, r, overlineopen(p, r)).
+pRG(s_1_2, r, out(s_1_2)).
+pRG(s_1_2, r, in(s_2_2)).
+pRG(t, *, amb(s_2_1)).
+pRG(*, s_2_1, overlinein(p, s_2_1)).
+pRG(*, s_2_1, overlineout(p, s_2_1)).
+pRG(*, s_2_1, amb(r)).
+pRG(s_2_1, r, in(p)).
+pRG(s_2_1, r, overlineopen(p, r)).
+pRG(s_2_1, r, out(s_2_1)).
+pRG(s_2_1, r, in(s_2_2)).
+pRG(t, *, amb(s_2_2)).
+pRG(*, s_2_2, overlinein(p, s_2_2)).
+
+calI(Top, Star, Mu) :-
+        amb(Mu) = T_1, pRG(Top, Star, T_1).
+calI(Top_1, _Star_2, T_1_4) :-
+        in(_Mu_3) = T_1_4,
+        pRG(Top_1, tar_2,T_1_4).  % should be Star_2??
+calI(Mup, Mu_3, Mua) :-
+        in(Mu_3) = T_1_4,
+        pRG(_Top_1, _Star_2, T_1_4),
+        overlinein(Mua, Mu_3) = T_2,
+        ccalI(Mup, Mu_3, T_2),
+        ccalI(Muq, Mup, Mu_3),
+        ccalI(Mup, Mua, T_1_4),
+        ccalI(Muq, Mup, Mua).
+calI(Mu_3, Mua, U_1) :-
+        in(Mu_3) = T_1_4,
+        pRG(_Top_1, _Star_2, T_1_4),
+        overlinein(Mua, Mu_3) = T_2,
+        ccalI(Mup, Mu_3, T_2),
+        ccalI(Muq, Mup, Mu_3),
+        ccalI(Mup, Mua, T_1_4),
+        ccalI(Muq, Mup, Mua),
+        ccalI(Mup, Mua, U_1).
+calI(Top_5, Star_6, T_1_8) :-
+        out(_Mu_7) = T_1_8,
+        pRG(Top_5, Star_6,T_1_8).
+calI(Muq_10, Mug, Mua_9) :-
+        out(Mu_7) = T_1_8,
+        pRG(_Top_5, _Star_6,T_1_8),
+        overlineout(Mua_9, Mu_7) = T_2_11,
+        ccalI(Mug,Mu_7, T_2_11),
+        ccalI(Muq_10, Mug, Mu_7),
+        ccalI(Mu_7, Mua_9, T_1_8),
+        ccalI(Mug, Mu_7,Mua_9).
+calI(Mug, Mua_9, U_1_12) :-
+        out(Mu_7) = T_1_8,
+        pRG(_Top_5, _Star_6,T_1_8),
+        overlineout(Mua_9, Mu_7) = T_2_11,
+        ccalI(Mug,Mu_7, T_2_11),
+        ccalI(_Muq_10, Mug, Mu_7),
+        ccalI(Mu_7, Mua_9, T_1_8),
+        ccalI(Mug, Mu_7,Mua_9),
+        ccalI(Mu_7, Mua_9, U_1_12).
+calI(Top_13, Star_14, T_1_16) :-
+        open(_Mu_15) = T_1_16,
+        pRG(Top_13,Star_14, T_1_16).
+calI(Muq_18, Mup_17, U_1_20) :-
+        open(Mu_15) = T_1_16,
+        pRG(_Top_13,_Star_14, T_1_16),
+        overlineopen(Mup_17, Mu_15) = T_2_19,
+        ccalI(Mup_17,Mu_15, T_2_19),
+        ccalI(Muq_18, Mup_17, Mu_15),
+        ccalI(Muq_18, Mup_17,T_1_16),
+        ccalI(Mup_17, Mu_15, U_1_20).
+calI(Top_21, Star_22, T_1_24) :-
+        overlinein(_Mu_23,_MuPr) = T_1_24,
+        pRG(Top_21, Star_22, T_1_24).
+calI(Top_25, Star_26, T_1_29) :-
+        overlineout(_Mu_27,_MuPr_28) = T_1_29,
+        pRG(Top_25, Star_26, T_1_29).
+calI(Top_30, Star_31, overlineopen(Mu, Mu1)) :-
+        pRG(Top_30, Star_31, overlineopen(Mu, Mu1)).
+
+%%:- table pRG/3.
+%%:- use_subsumptive_tabling(pRG/3).
+
+:- table calI/3.
+:- use_subsumptive_tabling(calI/3).
+
+%ccalI(A,B,C) :- writeln(c_calI(A,B,C)),calI(A,B,C),writeln(r_calI(A,B,C)).
+ccalI(A,B,C) :- calI(A,B,C).
+
+test :-
+%%      shell('rm -f tablexsb2.P.al'),
+%%      tell('tablexsb2.P.al'),
+%%      cputime(_A0),
+%%      write('calI/3 = '),
+        setof((X1,Y1,Z1),ccalI(X1,Y1,Z1),Q1), write(Q1),
+        true.
+/*      nl,length(Q1, L1), write(L1),nl,nl,
+        cputime(A1), told, Time is A1 - A0,
+        open('tablexsb.dat', 'append',File),
+        write(File, 2),write(File, ' '),
+        write(File, 6), write(File,' '),
+        write(File, L1), write(File, ' '),
+        write(File, Time), write(File, ' '),
+        close(File).*/
