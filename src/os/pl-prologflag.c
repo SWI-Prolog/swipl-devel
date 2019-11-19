@@ -1498,6 +1498,7 @@ initPrologFlags(void)
 #endif
 
   setPrologFlag("table_incremental", FT_BOOL, FALSE, PLFLAG_TABLE_INCREMENTAL);
+  setPrologFlag("table_subsumptive", FT_BOOL, FALSE, 0);
   setPrologFlag("table_shared",      FT_BOOL, FALSE, PLFLAG_TABLE_SHARED);
 
   setTmpDirPrologFlag();

@@ -1840,6 +1840,10 @@ Space reserved for storing answer tables for \jargon{tabled predicates}
 nodes in the answer tries.} When exceeded a
 \term{resource_error}{table_space} exception is raised.
 
+    \prologflagitem{table_subsumptive}{bool}{rw}
+Set the default choice between \jargon{variant} tabling and
+\jargon{subsumptive} tabling.  Initially set the \const{false}.  See table/1.
+
     \prologflagitem{threads}{bool}{rw}
 True when threads are supported.  If the system is compiled without
 thread support the value is \const{false} and read-only.  Otherwise

@@ -880,8 +880,9 @@ current_table(M:Variant, Trie) :-
     system:term_expansion/2.
 
 wrappers(Spec, M) -->
-    { tabling_defaults([ table_incremental-incremental,
-                         table_shared-tshared
+    { tabling_defaults([ table_incremental-(incremental=true),
+                         table_shared-(tshared=true),
+                         table_subsumptive-(mode=subsumptive)
                        ],
                        #{}, Defaults)
     },
@@ -964,9 +965,9 @@ qlist([H|T], M) --> [M:H], qlist(T, M).
 
 
 tabling_defaults([], Dict, Dict).
-tabling_defaults([Flag-Opt|T], Dict0, Dict) :-
+tabling_defaults([Flag-(Opt=Value)|T], Dict0, Dict) :-
     (   current_prolog_flag(Flag, true)
-    ->  Dict1 = Dict0.put(Opt,true)
+    ->  Dict1 = Dict0.put(Opt,Value)
     ;   Dict1 = Dict0
     ),
     tabling_defaults(T, Dict1, Dict).

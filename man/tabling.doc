@@ -380,8 +380,12 @@ p(1).
 % 170,005 inferences, 0.016 CPU in 0.016 seconds
 \end{code}
 
-This may make you wonder why subsumptive tabling is not the default.
-There are also some drawbacks:
+\jargon{Subsumptive} tabling can be activated in two ways. Per table
+usign the \exam{... as subsumptive} option and globally by setting the
+\prologflag{table_subsumptive} flag to \const{true}.
+
+One may wonder why subsumptive tabling is not the default. There are
+also some drawbacks:
 
 \begin{itemize}
     \item Subsumptive tabling only provides correct support if
@@ -397,10 +401,6 @@ in the call graph which can slow down the table completion
 process.  Larger dependent components also negatively impact the
 issues discussed in \secref{tnotpure}.
 \end{itemize}
-
-In the current implementation, SWI-Prolog only uses the more general
-table if this table is \jargon{completed}.  This is likely to change
-in future versions.
 
 
 \section{Well Founded Semantics}
