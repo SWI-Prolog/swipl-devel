@@ -34,7 +34,8 @@
 */
 
 :- module(consult,
-          [ ensure_dync_loaded/1	% +File
+          [ consult/1,                  % :File
+            ensure_dync_loaded/1	% +File
           ]).
 
 :- meta_predicate

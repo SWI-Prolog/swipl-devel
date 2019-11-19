@@ -51,6 +51,8 @@
             conset/2,                     % +Term, +Value
             conget/2,                     % +Term, -Value
 
+            slash/1,                      % -OSDirSlash
+
             xsb_backtrace/1,              % -Backtrace
             xwam_state/2                  % +Id, -Value
           ]).
@@ -205,6 +207,16 @@ conset(Name, Value) :-
 
 conget(Name, Value) :-
     get_flag(Name, Value).
+
+%!  slash(-Slash)
+%
+%   Return the directory separator for the platform
+
+slash(Slash) :-
+    (   current_prolog_flag(windows, true)
+    ->  Slash = '\\'
+    ;   Slash = '/'
+    ).
 
 %!  xsb_backtrace(-Backtrace)
 %
