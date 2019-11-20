@@ -543,8 +543,7 @@ debug_ctl(Option, Value) :-
 %   arguments of Term.  We map this to format/2,3.
 %
 %   @bug We need to complete the  translation of the fmt_write sequences
-%   to format/2,3 sequences. Probably we should   also  cache the format
-%   translation.
+%   to format/2,3 sequences.
 
 fmt_write(Fmt, Term) :-
     fmt_write(current_output, Fmt, Term).
@@ -554,9 +553,20 @@ fmt_write(Stream, Fmt, Term) :-
     ->  Term =.. [_|Args]
     ;   Args = [Term]
     ),
-    string_codes(Fmt, Codes),
-    phrase(format_fmt(Format, []), Codes),
+    fmt_write_format(Fmt, Format),
     format(Stream, Format, Args).
+
+:- dynamic
+    fmt_write_cache/2.
+
+fmt_write_format(Fmt, Format) :-
+    fmt_write_cache(Fmt, Format),
+    !.
+fmt_write_format(Fmt, Format) :-
+    string_codes(Fmt, FmtCodes),
+    phrase(format_fmt(Codes, []), FmtCodes),
+    atom_codes(Format, Codes),
+    asserta(fmt_write_cache(Fmt, Format)).
 
 format_fmt(Format, Tail) -->
     "%",
