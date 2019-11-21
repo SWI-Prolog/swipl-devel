@@ -23,10 +23,12 @@ description: |
 apps:
   swipl:
     command: swipl
-    extensions: [kde-neon]
+    extensions:
+      - kde-neon
   swipl-win:
     command: swipl-win
-    extensions: [kde-neon]
+    extensions:
+      - kde-neon
 
 plugs:
   home:
@@ -58,7 +60,9 @@ parts:
       ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    build-snaps: [kde-frameworks-5-core18-sdk]
+    build-snaps:
+      - kde-frameworks-5-core18-sdk
+      - kde-frameworks-5-core18
     stage-packages: 
       - libossp-uuid16
       - libpcre3
