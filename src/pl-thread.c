@@ -620,20 +620,22 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       acknowledge = ld->exit_requested;
       PL_UNLOCK(L_THREAD);
 
-      ld->critical++;   /* startCritical  */
-      info->in_exit_hooks = TRUE;
-      if ( LD == ld )
-	rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
-      else
-	rc1 = TRUE;
-      rc2 = callEventHook(PLEV_THREAD_EXIT, info);
-      if ( (!rc1 || !rc2) && exception_term )
-      { Sdprintf("Event hook \"thread_finished\" left an exception\n");
-	PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-	PL_clear_exception();
+      if ( ld->stacks.argument.base )		/* are stacks initialized? */
+      { ld->critical++;   /* startCritical  */
+	info->in_exit_hooks = TRUE;
+	if ( LD == ld )
+	  rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
+	else
+	  rc1 = TRUE;
+	rc2 = callEventHook(PLEV_THREAD_EXIT, info);
+	if ( (!rc1 || !rc2) && exception_term )
+	{ Sdprintf("Event hook \"thread_finished\" left an exception\n");
+	  PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	  PL_clear_exception();
+	}
+	info->in_exit_hooks = FALSE;
+	ld->critical--;   /* endCritical */
       }
-      info->in_exit_hooks = FALSE;
-      ld->critical--;   /* endCritical */
     } else
     { acknowledge = FALSE;
       info->detached = TRUE;		/* cleanup */
