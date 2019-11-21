@@ -475,6 +475,25 @@ in its queue and continues execution using \arg{A}~=~\const{gnat}.
    thread_send_message(Thread_1, a(gnat)),
 \end{code}
 
+\arg{Term} may contain attributed variables (see \secref{clp}), in which
+case only terms for which the constraints successfully execute are
+returned. Handle constraints applies for all predicates that extract
+terms from message queues. For example, we can get the even numbers from
+a queue using this code:
+
+\begin{code}
+get_matching_messages(Queue, Pattern, [H|T]) :-
+    copy_term(Pattern, H),
+    thread_get_message(Queue, H, [timeout(0)]),
+    !,
+    get_matching_messages(Queue, Pattern, T).
+get_matching_messages(_, _, []).
+
+even_numbers(Q, List) :-
+    freeze(Even, Even mod 2 =:= 0),
+    get_matching_messages(Q, Even, List).
+\end{code}
+
 See also thread_peek_message/1.
 
     \predicate{thread_peek_message}{1}{?Term}

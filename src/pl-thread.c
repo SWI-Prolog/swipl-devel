@@ -3856,6 +3856,15 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 		       });
 
       if ( rc )
+      { term_t ex = PL_new_term_ref();
+
+	if ( !(rc=foreignWakeup(ex PASS_LD)) )
+	{ if ( !isVar(*valTermRef(ex)) )
+	    PL_raise_exception(ex);
+	}
+      }
+
+      if ( rc )
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
 	if (GD->atoms.gc_active)
