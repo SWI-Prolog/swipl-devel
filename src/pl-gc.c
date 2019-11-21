@@ -766,7 +766,7 @@ unmark_choicepoints(PL_local_data_t *ld, Choice ch, uintptr_t mask)
 }
 
 
-static void
+void
 unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
 	      uintptr_t mask)
 { QueryFrame qf;

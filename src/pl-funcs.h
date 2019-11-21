@@ -341,6 +341,8 @@ COMMON(void)		markPredicatesInEnvironments(PL_local_data_t *ld);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
 COMMON(void)		mark_active_environment(struct bit_vector *active,
 						LocalFrame fr, Code PC);
+COMMON(void)		unmark_stacks(PL_local_data_t *ld,
+				      LocalFrame fr, Choice ch, uintptr_t mask);
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word			checkStacks(void *vm_state);
 COMMON(bool)		scan_global(int marked);

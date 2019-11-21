@@ -815,10 +815,69 @@ PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 		 *	       RESET		*
 		 *******************************/
 
+static QueryFrame
+prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( true(fr, FR_MARKED) )
+      return NULL;
+    set(fr, FR_MARKED);
+    ld->gc._local_frames++;
+
+    fr->prof_node = NULL;
+
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return queryOfFrame(fr);
+  }
+}
+
+
+static void
+prof_clear_choicepoints(PL_local_data_t *ld, Choice ch)
+{ for( ; ch; ch = ch->parent )
+  { ld->gc._choice_count++;
+    prof_clear_environments(ld, ch->frame);
+  }
+}
+
+
+static void
+prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+{ QueryFrame qf;
+
+  while(fr)
+  { qf = prof_clear_environments(ld, fr);
+    assert(qf->magic == QID_MAGIC);
+    prof_clear_choicepoints(ld, ch);
+    if ( qf->parent )
+    { QueryFrame pqf = qf->parent;
+
+      if ( !(fr = pqf->registers.fr) )
+	fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      break;
+  }
+}
+
+
 bool
 resetProfiler(void)
 { GET_LD
   stopProfiler();
+
+  assert(LD->gc._local_frames == 0);
+  assert(LD->gc._choice_count == 0);
+
+  prof_clear_stacks(LD, environment_frame, LD->choicepoints);
+  unmark_stacks(LD, environment_frame, LD->choicepoints, FR_MARKED);
+
+  assert(LD->gc._local_frames == 0);
+  assert(LD->gc._choice_count == 0);
 
   freeProfileData();
   LD->profile.samples          = 0;
