@@ -889,6 +889,8 @@ sigCrashHandler(int sig)
 	   "received fatal signal %d (%s)\n",
 	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
   print_c_backtrace("crash");
+  Sdprintf("Prolog stack:\n");
+  PL_backtrace(25, PL_BT_SAFE);
   Sdprintf("Running on_halt hooks with status %d\n", 128+sig);
   run_on_halt(&GD->os.exit_hooks, 128+sig);
 
