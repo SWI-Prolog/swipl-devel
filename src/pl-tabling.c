@@ -3741,6 +3741,44 @@ PRED_IMPL("$tbl_table_status", 4, tbl_table_status, 0)
 }
 
 
+/** '$tbl_table_pi'(+ATrie, -PredicateIndicator)
+ *
+ * Get the predicate indicator that is associated with an answer trie.
+ * This is used for e.g., abstracting the IDG to predicates.
+ */
+
+static
+PRED_IMPL("$tbl_table_pi", 2, tbl_table_pi, 0)
+{ PRED_LD
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { term_t av = PL_new_term_refs(3);
+    term_t wrapper = av+0;
+    term_t module  = av+1;
+    term_t head	   = av+2;
+
+    if ( unify_trie_term(atrie->data.variant, wrapper PASS_LD) )
+    { atom_t name;
+      size_t arity;
+
+      assert(PL_is_functor(wrapper, FUNCTOR_colon2));
+      _PL_get_arg(1, wrapper, module);
+      _PL_get_arg(2, wrapper, head);
+      if ( PL_get_name_arity(head, &name, &arity) )
+      { return PL_unify_term(A2, PL_FUNCTOR, FUNCTOR_colon2,
+				   PL_TERM, module,
+				   PL_FUNCTOR, FUNCTOR_divide2,
+				     PL_ATOM, name,
+				     PL_INTPTR, (intptr_t)arity);
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish re-evaluation of a component by  running reeval_complete() on all
 re-evaluated answer tables. Typically either none   of the answer tables
@@ -5726,6 +5764,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   PRED_DEF("$tbl_table_status",         2, tbl_table_status,         0)
   PRED_DEF("$tbl_table_status",		4, tbl_table_status,	     0)
+  PRED_DEF("$tbl_table_pi",             2, tbl_table_pi,	     0)
   PRED_DEF("$tbl_table_complete_all",	3, tbl_table_complete_all,   0)
   PRED_DEF("$tbl_free_component",       1, tbl_free_component,       0)
   PRED_DEF("$tbl_table_discard_all",    1, tbl_table_discard_all,    0)
