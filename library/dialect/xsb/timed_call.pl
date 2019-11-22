@@ -67,9 +67,9 @@ not satisfied.
 %        once/1.  Without `nesting`, a nested call raises a
 %        `permission_error` exception.
 %
-%   @see call_with_time_limit/1, alarm/4, thread_signal/2.
+%   @see call_with_time_limit/2, alarm/4, thread_signal/2.
 %
-%   @compat  This  predicate  is   a    generalization   the  SWI-Prolog
+%   @compat  This  predicate  is  a  generalization  of  the  SWI-Prolog
 %   library(time) interface. It is left in  the XSB emulation because it
 %   uses non-standard option syntax and the  time is in __milliseconds__
 %   where all SWI-Prolog time handling uses seconds.
