@@ -1607,7 +1607,13 @@ static int
 get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
 { Word p;
 
+  if ( dstate->size == 0 )
+  { *key = TRIE_KEY_POP(0);
+    return TRUE;
+  }
+
   deRef2(dstate->term, p);
+  DEBUG(CHK_SECURE, checkData(p));
 
   if ( canBind(*p) )
   { return FALSE;
