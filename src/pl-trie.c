@@ -1615,6 +1615,9 @@ get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
   { Functor f = valueTerm(*p);
     desc_tstate dts;
 
+    DEBUG(MSG_TRIE_GEN,
+	  Sdprintf("get_key() for %s\n", functorName(f->definition)));
+
     *key = f->definition;
     if ( dstate->size > 1 )
     { if ( !dstate->compound )
@@ -1666,14 +1669,14 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
   int has_key;
   word k;
 
-  DEBUG(MSG_TRIE_GEN,
-	{ Word p;
-	  deRef2(dstate->term, p);
-	  Sdprintf("add_choice() for %s\n", print_val(*p, NULL));
-	});
-
   if ( dstate->prune )
-  { if ( !(has_key = get_key(state, dstate, &k PASS_LD)) )
+  { DEBUG(MSG_TRIE_GEN,
+	  if ( dstate->size > 0 )
+	  { Word p;
+	    deRef2(dstate->term, p);
+	    Sdprintf("add_choice() for %s\n", print_val(*p, NULL));
+	  });
+    if ( !(has_key = get_key(state, dstate, &k PASS_LD)) )
       dstate->prune = FALSE;
   } else
     has_key = FALSE;
