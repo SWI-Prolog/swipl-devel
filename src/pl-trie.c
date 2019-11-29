@@ -496,11 +496,13 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
 { for(;;)
   { if ( trie->indirects )
     { return intern_indirect(trie->indirects, w, add PASS_LD);
-    } else
+    } else if ( add )
     { indirect_table *newtab = new_indirect_table();
 
       if ( !COMPARE_AND_SWAP(&trie->indirects, NULL, newtab) )
 	destroy_indirect_table(newtab);
+    } else
+    { return 0;
     }
   }
 }
