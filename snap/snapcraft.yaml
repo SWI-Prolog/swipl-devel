@@ -23,23 +23,26 @@ description: |
 apps:
   swipl:
     command: swipl
+    plugs:
+      - home
+      - network
+      - removable-media
+      - opengl
+      - audio-playback
+      - audio-record
     extensions:
       - kde-neon
   swipl-win:
     command: swipl-win
+    plugs:
+      - home
+      - network
+      - removable-media
+      - opengl
+      - audio-playback
+      - audio-record
     extensions:
       - kde-neon
-
-plugs:
-  home:
-  network:
-  x11:
-  desktop:
-  desktop-legacy:
-  removable-media:
-  opengl:
-  audio-playback:
-  audio-record:
 
 grade: stable
 confinement: strict
@@ -49,6 +52,12 @@ parts:
     source: https://github.com/SWI-Prolog/swipl-devel.git
     source-type: git
     plugin: cmake
+    configflags:
+      - -DCMAKE_BUILD_TYPE=Release 
+      - -DSWIPL_PACKAGES_JAVA=OFF
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DSWIPL_INSTALL_IN_LIB=ON
+      - -G Ninja
     override-pull: |
       snapcraftctl pull
       snapcraftctl set-version "$(cat VERSION)"
@@ -56,13 +65,12 @@ parts:
       # Custom build process to enable PGO build
       mkdir -p $SNAPCRAFT_PART_SRC/build
       cd $SNAPCRAFT_PART_SRC/build
-      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_IN_LIB=ON -G Ninja ..
+      cmake -DCMAKE_BUILD_TYPE=Release -DSWIPL_PACKAGES_JAVA=OFF -DCMAKE_INSTALL_PREFIX=/usr -DSWIPL_INSTALL_IN_LIB=ON -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-core18-sdk/current -G Ninja ..
       ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     build-snaps:
       - kde-frameworks-5-core18-sdk
-      - kde-frameworks-5-core18
     stage-packages: 
       - libossp-uuid16
       - libpcre3
@@ -97,3 +105,4 @@ parts:
       - unixodbc-dev
       - zlib1g-dev
       - libyaml-dev
+      - libglvnd-dev
