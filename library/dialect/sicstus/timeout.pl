@@ -38,7 +38,7 @@
 	  ]).
 :- use_module(library(time)).
 
-/** <module> SICStus compatible timeout handling
+/** <module> SICStus compatible time out handling
 
 @author Ulrich Neumerkel
 @author Jan Wielemaker
@@ -52,13 +52,14 @@
 %    This  library  provides  a  SICStus  compatible  implementation  of
 %    time-outs. This predicate runs Goal as   call/1 and binds Result to
 %    either `success` (the  answer  was   produced  within  Time_ms)  or
-%    `timeout` (Goal did not terminate within Time_ms). If Goal succeeds
-%    with a choice point,  backtracking  into   it  re-applies  the time
-%    limit, i.e., each solution gets a Time_ms time limit.
+%    `time_out`  (Goal  did  not  terminate  within  Time_ms).  If  Goal
+%    succeeds with a choice point, backtracking   into it re-applies the
+%    time limit, i.e., each solution gets a Time_ms time limit.
 %
-%    Calls to time_out/3 can be nested. If an outer timeout is triggered
-%    first,  the  inner  timeout  is   cancelled  using  a  time_out(Id)
-%    exception and the outer one binds Result to `time_out`.
+%    Calls to time_out/3 can  be  nested.  If   an  outer  time  out  is
+%    triggered  first,  the  inner  time  out    is  cancelled  using  a
+%    time_out(Id)  exception  and  the  outer    one   binds  Result  to
+%    `time_out`.
 %
 %    @bug Unfortunately, our emulation is not  fully compatible with the
 %    SICStus original. Notably, Time is  measured in __wall-time instead
