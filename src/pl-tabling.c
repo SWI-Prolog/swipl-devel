@@ -58,6 +58,38 @@ We provide two answer completion strategies:
 #define PL_recorded(r, t) put_fastheap(r, t PASS_LD)
 #define PL_erase(r)	  free_fastheap(r)
 
+#define SINDEX_MAX	32
+
+typedef struct sindex_key
+{ unsigned	argn;
+  unsigned	key;
+} sindex_key;
+
+typedef struct suspension
+{ record_t	term;		/* dependency/5 term with TNOT flag */
+  record_t	instance;	/* Filter for call subsumption */
+  sindex_key   *keys;		/* Index to find filter candidates */
+} suspension;
+
+typedef struct answer
+{ trie_node    *node;		/* Point into answer trie */
+} answer;
+
+typedef struct
+{ worklist     *list;		/* worklist we enumerate */
+  cluster      *acp;		/* Current answer cluster */
+  cluster      *scp;		/* Current suspension cluster */
+  answer       *answer;		/* Current answer */
+  int		acp_index;	/* Index in anser cluster */
+  struct
+  { suspension *base;
+    suspension *top;
+    suspension *here;
+  } suspensions;
+  int		keys_inited;	/* #Initialized keys */
+  sindex_key	keys[SINDEX_MAX]; /* suspension matching */
+} wkl_step_state;
+
 static int	destroy_answer_trie(trie *atrie);
 static void	free_worklist(worklist *wl);
 static void	clean_worklist(worklist *wl);
@@ -65,7 +97,7 @@ static void	destroy_depending_worklists(worklist *wl0);
 static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
 static int	wl_has_work(const worklist *wl);
-static cluster *new_answer_cluster(worklist *wl, trie_node *first);
+static cluster *new_answer_cluster(worklist *wl, answer *first);
 static void	wkl_append_left(worklist *wl, cluster *c);
 static int	wkl_add_answer(worklist *wl, trie_node *node ARG_LD);
 static int	tbl_put_trie_value(term_t t, trie_node *node ARG_LD);
@@ -486,6 +518,7 @@ negative_worklist(tbl_component *scc ARG_LD)
 
       if ( !wl->has_answers )	/* we have an unconditional answers, so no delay */
       { cluster *c;
+	answer ans = {NULL};
 
 	wl->neg_delayed = TRUE;
 	DEBUG(MSG_TABLING_NEG,
@@ -496,7 +529,7 @@ negative_worklist(tbl_component *scc ARG_LD)
 		PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	      });
 
-	c = new_answer_cluster(wl, NULL);
+	c = new_answer_cluster(wl, &ans);
 	wkl_append_left(wl, c);
 	if ( !wl->riac )
 	  wl->riac = c;
@@ -2312,13 +2345,154 @@ clearThreadTablingData(PL_local_data_t *ld)
 }
 
 
+		 /*******************************
+		 *   CALL SUBSUPTION INDEXING	*
+		 *******************************/
+
+/* TBD: Share with pl-index.c */
+
+static word
+indexOfWord(word w ARG_LD)
+{ for(;;)
+  { switch(tag(w))
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+	return 0;
+      case TAG_ATOM:
+	break;				/* atom_t */
+      case TAG_INTEGER:
+	if ( storage(w) == STG_INLINE )
+	  break;
+      /*FALLTHROUGH*/
+      case TAG_STRING:
+      case TAG_FLOAT:
+      { Word p = addressIndirect(w);
+	size_t n = wsizeofInd(*p);
+	word k;
+
+	k = MurmurHashAligned2(p+1, n*sizeof(*p), MURMUR_SEED);
+	k &= ~((word)STG_GLOBAL);	/* avoid confusion with functor_t */
+	if ( !k ) k = 1;		/* avoid no-key */
+	return k;
+      }
+      case TAG_COMPOUND:
+	w = *valPtr(w);			/* functor_t */
+	break;
+      case TAG_REFERENCE:
+	w = *unRef(w);
+	continue;
+    }
+
+    return w;
+  }
+}
+
+static unsigned int
+sindexOfWord(word w ARG_LD)
+{ word k = indexOfWord(w PASS_LD);
+  unsigned int i;
+
+  if ( k )
+  { i = (unsigned int)k&0xffffff;
+    if ( !i )
+      i = 1;
+    return i;
+  }
+
+  return 0;
+}
+
+
+static sindex_key *
+suspension_keys(term_t instance ARG_LD)
+{ Word p = valTermRef(instance);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+    size_t i, arity = arityFunctor(f->definition);
+    sindex_key keys[SINDEX_MAX];
+    sindex_key *k = keys;
+
+    if ( arity > SINDEX_MAX )
+      arity = SINDEX_MAX;
+
+    for(i=0; i<arity; i++)
+    { unsigned int ki = indexOfWord(f->arguments[i] PASS_LD);
+
+      if ( ki )
+      { k->argn = i+1;
+	k->key  = ki;
+	if ( ++k >= &keys[SINDEX_MAX-1] )
+	  break;
+      }
+    }
+
+    if ( k > keys )
+    { k->argn = 0;
+      k->key  = 0;
+      k++;
+
+      size_t bytes = (char*)k - (char*)keys;
+      sindex_key *gk = malloc(bytes);
+
+      if ( gk )
+	memcpy(gk, keys, bytes);
+      return gk;
+    }
+  }
+
+  return NULL;
+}
+
+
+static int
+suspension_matches_index(const suspension *susp, const sindex_key *skeys)
+{ if ( likely(susp->keys!=NULL) )
+  { sindex_key *k;
+
+    for(k=susp->keys; k->argn; k++)
+    { const sindex_key *sk = &skeys[k->argn];
+
+      if ( unlikely(k->key != sk->key) && likely(!!sk->key) )
+	return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+
+static int
+suspension_matches(term_t answer, const suspension *susp ARG_LD)
+{ fid_t fid;
+  term_t tmp;
+
+  if ( (fid=PL_open_foreign_frame()) &&
+       (tmp = PL_new_term_ref()) &&
+       PL_recorded(susp->instance, tmp) )
+  { int ok;
+
+    DEBUG(MSG_TABLING_CALL_SUBSUMPTION,
+	  Sdprintf("Skeleton: ");
+	  PL_write_term(Serror, tmp, 1200, 0);
+	  Sdprintf(", instance: ");
+	  PL_write_term(Serror, answer, 1200, PL_WRT_NEWLINE));
+
+    ok = PL_unify(tmp, answer);
+    PL_discard_foreign_frame(fid);
+
+    return ok ? TRUE : PL_exception(0) ? -1 : FALSE;
+  } else
+    return -1;
+}
 
 		 /*******************************
 		 *  ANSWER/SUSPENSION CLUSTERS	*
 		 *******************************/
 
 static cluster *
-new_answer_cluster(worklist *wl, trie_node *first)
+new_answer_cluster(worklist *wl, answer *ans)
 { cluster *c;
 
   if ( (c=wl->free_clusters) )
@@ -2329,7 +2503,7 @@ new_answer_cluster(worklist *wl, trie_node *first)
     c->type = CLUSTER_ANSWERS;
     initBuffer(&c->members);
   }
-  addBuffer(&c->members, first, trie_node*);
+  addBuffer(&c->members, *ans, answer);
 
   return c;
 }
@@ -2341,25 +2515,23 @@ free_answer_cluster(cluster *c)
 }
 
 static void
-add_to_answer_cluster(cluster *c, trie_node *answer)
-{ addBuffer(&c->members, answer, trie_node*);
+add_to_answer_cluster(cluster *c, answer *ans)
+{ addBuffer(&c->members, *ans, answer);
 }
 
 static void
 merge_answer_clusters(cluster *to, cluster *from)
-{ typedef trie_node* TrieNode;
+{ typedef answer* Answer;
 
   addMultipleBuffer(&to->members,
-		    baseBuffer(&from->members, trie_node*),
-		    entriesBuffer(&from->members, trie_node*),
-		    TrieNode);
+		    baseBuffer(&from->members, answer),
+		    entriesBuffer(&from->members, answer),
+		    Answer);
 }
 
-static trie_node*
+static answer *
 get_answer_from_cluster(cluster *c, size_t index)
-{ if ( index < entriesBuffer(&c->members, trie_node*) )
-    return fetchBuffer(&c->members, index, trie_node*);
-  return NULL;
+{ return &fetchBuffer(&c->members, index, answer);
 }
 
 static inline record_t
@@ -2377,12 +2549,36 @@ IS_TNOT(record_t r)
 { return (uintptr_t)r & 0x1;
 }
 
-static cluster *
-new_suspension_cluster(worklist *wl, term_t first, int is_tnot ARG_LD)
-{ cluster *c;
-  record_t r;
+static int
+new_suspension(suspension *sp, term_t term, int is_tnot,
+	       term_t instance ARG_LD)
+{ if ( !(sp->term=PL_record(term)) )
+    return FALSE;
 
-  if ( !(r=PL_record(first)) )
+  if ( unlikely(instance) )
+  { if ( !(sp->instance=PL_record(instance)) )
+    { PL_erase(sp->term);
+      return FALSE;
+    }
+    sp->keys = suspension_keys(instance PASS_LD);
+  } else
+  { sp->instance = 0;
+    sp->keys = NULL;
+  }
+
+  sp->term = TNOT(sp->term, is_tnot);
+
+  return TRUE;
+}
+
+
+static cluster *
+new_suspension_cluster(worklist *wl, term_t first, int is_tnot,
+		       term_t instance ARG_LD)
+{ cluster *c;
+  suspension s;
+
+  if ( !new_suspension(&s, first, is_tnot, instance PASS_LD) )
     return NULL;
 
   if ( (c=wl->free_clusters) )
@@ -2393,44 +2589,51 @@ new_suspension_cluster(worklist *wl, term_t first, int is_tnot ARG_LD)
     c->type = CLUSTER_SUSPENSIONS;
     initBuffer(&c->members);
   }
-  addBuffer(&c->members, TNOT(r, is_tnot), record_t);
+  addBuffer(&c->members, s, suspension);
 
   return c;
 }
 
 static void
 free_suspension_cluster(cluster *c)
-{ record_t *base = baseBuffer(&c->members, record_t);
-  size_t entries = entriesBuffer(&c->members, record_t);
+{ suspension *base = baseBuffer(&c->members, suspension);
+  size_t entries = entriesBuffer(&c->members, suspension);
   size_t i;
 
   for(i=0; i<entries; i++)
-    PL_erase(UNTNOT(base[i]));
+  { suspension *s = &base[i];
+
+    PL_erase(UNTNOT(s->term));
+    if ( s->instance )
+      PL_erase(s->instance);
+    if ( s->keys )
+      free(s->keys);
+  }
 
   discardBuffer(&c->members);
   PL_free(c);
 }
 
 static int
-add_to_suspension_cluster(cluster *c, term_t suspension, int is_tnot ARG_LD)
-{ record_t r;
+add_to_suspension_cluster(cluster *c, term_t sterm, int is_tnot,
+			  term_t instance ARG_LD)
+{ suspension s;
 
-  if ( (r=PL_record(suspension)) )
-  { addBuffer(&c->members, TNOT(r, is_tnot), record_t);
-    return TRUE;
-  }
+  if ( !new_suspension(&s, sterm, is_tnot, instance PASS_LD) )
+    return FALSE;
+  addBuffer(&c->members, s, suspension);
 
-  return FALSE;
+  return TRUE;
 }
 
 static void
 merge_suspension_cluster(cluster *to, cluster *from, int do_free)
-{ typedef record_t* Record;
+{ typedef suspension* Suspension;
 
   addMultipleBuffer(&to->members,
-		    baseBuffer(&from->members, record_t*),
-		    entriesBuffer(&from->members, record_t*),
-		    Record);
+		    baseBuffer(&from->members, suspension*),
+		    entriesBuffer(&from->members, suspension*),
+		    Suspension);
   if ( do_free )
   { discardBuffer(&from->members);
     PL_free(from);
@@ -2438,11 +2641,10 @@ merge_suspension_cluster(cluster *to, cluster *from, int do_free)
 }
 
 
-static record_t
+static suspension *
 get_suspension_from_cluster(cluster *c, size_t index)
-{ if ( index < entriesBuffer(&c->members, record_t) )
-    return fetchBuffer(&c->members, index, record_t);
-  return 0;
+{ DEBUG(CHK_SECURE, assert(index < entriesBuffer(&c->members, suspension)));
+  return &fetchBuffer(&c->members, index, suspension);
 }
 
 static void
@@ -2455,12 +2657,12 @@ free_cluster(cluster *c)
 
 static int
 acp_size(cluster *c)
-{ return entriesBuffer(&c->members, trie_node*);
+{ return entriesBuffer(&c->members, answer);
 }
 
 static int
 scp_size(cluster *c)
-{ return entriesBuffer(&c->members, record_t);
+{ return entriesBuffer(&c->members, suspension);
 }
 
 		 /*******************************
@@ -2635,16 +2837,17 @@ potentially_add_to_global_worklist(worklist *wl ARG_LD)
 
 
 static int
-wkl_add_answer(worklist *wl, trie_node *node ARG_LD)
+wkl_add_answer(worklist *wl, trie_node *an ARG_LD)
 { potentially_add_to_global_worklist(wl PASS_LD);
+  answer ans = {an};
 
-  if ( !answer_is_conditional(node) )
+  if ( !answer_is_conditional(an) )
     wl->has_answers = TRUE;
 
   if ( wl->head && wl->head->type == CLUSTER_ANSWERS )
-  { add_to_answer_cluster(wl->head, node);
+  { add_to_answer_cluster(wl->head, &ans);
   } else
-  { cluster *c = new_answer_cluster(wl, node);
+  { cluster *c = new_answer_cluster(wl, &ans);
     wkl_append_left(wl, c);
     if ( !wl->riac )
       wl->riac = c;
@@ -2658,13 +2861,14 @@ wkl_add_answer(worklist *wl, trie_node *node ARG_LD)
 
 
 static int
-wkl_add_suspension(worklist *wl, term_t suspension, int is_tnot ARG_LD)
+wkl_add_suspension(worklist *wl, term_t suspension, int is_tnot,
+		   term_t inst ARG_LD)
 { potentially_add_to_global_worklist(wl PASS_LD);
   if ( wl->tail && wl->tail->type == CLUSTER_SUSPENSIONS )
-  { if ( !add_to_suspension_cluster(wl->tail, suspension, is_tnot PASS_LD) )
+  { if ( !add_to_suspension_cluster(wl->tail, suspension, is_tnot, inst PASS_LD) )
       return FALSE;
   } else
-  { cluster *c = new_suspension_cluster(wl, suspension, is_tnot PASS_LD);
+  { cluster *c = new_suspension_cluster(wl, suspension, is_tnot, inst PASS_LD);
     if ( !c )
       return FALSE;
     wkl_append_right(wl, c);
@@ -2827,24 +3031,6 @@ tnot_get_worklist(term_t t, worklist **wlp, int *is_tnot)
   return FALSE;
 }
 
-
-
-
-/*
-static int
-get_trie_node(term_t t, trie_node **np)
-{ GET_LD
-  void *ptr;
-
-  if ( PL_get_pointer(t, &ptr) )
-  { trie_node *n = ptr;
-    *np = n;
-    return TRUE;
-  }
-
-  return PL_type_error("trie_node", t);
-}
-*/
 
 /** '$tbl_new_worklist'(-Worklist, +Trie) is det.
  *
@@ -3154,10 +3340,30 @@ PRED_IMPL("$tbl_wkl_add_suspension", 2, tbl_wkl_add_suspension, 0)
   int is_tnot;
 
   if ( tnot_get_worklist(A1, &wl, &is_tnot) )
-    return wkl_add_suspension(wl, A2, is_tnot PASS_LD);
+    return wkl_add_suspension(wl, A2, is_tnot, 0 PASS_LD);
 
   return FALSE;
 }
+
+/** '$tbl_wkl_add_suspension'(+Worklist, +Instance, +Suspension) is det.
+ *
+ * Add a suspension to the worklist for	call subsumtive tabling.  Only
+ * answers that unify with Instance must be passed down to Suspension.
+ */
+
+static
+PRED_IMPL("$tbl_wkl_add_suspension", 3, tbl_wkl_add_suspension, 0)
+{ PRED_LD
+  worklist *wl;
+  int is_tnot;
+
+  if ( tnot_get_worklist(A1, &wl, &is_tnot) )
+    return wkl_add_suspension(wl, A3, is_tnot, A2 PASS_LD);
+
+  return FALSE;
+}
+
+
 
 /** '$tbl_wkl_make_follower'(+Worklist) is det.
  *
@@ -3302,17 +3508,6 @@ PRED_IMPL("$tbl_wkl_answer_trie", 2, tbl_wkl_answer_trie, 0)
  * This replaces table_get_work/3 from the pure Prolog implementation.
  */
 
-typedef struct
-{ worklist *list;
-  cluster *acp;
-  cluster *scp;
-  int acp_index;
-  int scp_index;
-  int iteration;
-  int next_step;
-} wkl_step_state;
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Unify the 4 arguments  of  the   dependecy  structure  with subsequent 4
 output arguments.
@@ -3398,11 +3593,14 @@ tbl_put_trie_value(term_t t, trie_node *node ARG_LD)
 
 static int
 advance_wkl_state(wkl_step_state *state)
-{ if ( --state->scp_index == 0 )
-  { state->scp_index = scp_size(state->scp);
+{ next:
+
+  if ( --state->suspensions.here < state->suspensions.base )
+  { state->suspensions.here = state->suspensions.top;
     if ( --state->acp_index == 0 )
     { cluster *acp, *scp;
 
+      /* Merge adjacent suspension clusters */
       if ( (scp=state->scp)->prev && scp->prev->type == CLUSTER_SUSPENSIONS )
       { scp->prev->next = scp->next;
 	scp->next->prev = scp->prev;
@@ -3412,17 +3610,42 @@ advance_wkl_state(wkl_step_state *state)
 	state->list->free_clusters = scp;
       }
 
+      /* Merge adjacent answer clusters */
       if ( (acp=state->acp)->next && acp->next->type == CLUSTER_ANSWERS )
       { acp->prev->next = acp->next;
 	acp->next->prev = acp->prev;
 	merge_answer_clusters(acp->next, acp);
-	seekBuffer(&acp->members, 0, trie_node*);
+	seekBuffer(&acp->members, 0, answer);
 	acp->next = state->list->free_clusters;
 	state->list->free_clusters = acp;
       }
 
-      state->next_step = TRUE;
-      return ((acp=state->list->riac) && acp->next);
+      /* If more work, re-initialize */
+      if ( (acp=state->list->riac) && (scp=acp->next) )
+      { DEBUG(MSG_TABLING_WORK,
+	      print_worklist("Next step: ", state->list));
+	assert(acp->type == CLUSTER_ANSWERS);
+	assert(scp->type == CLUSTER_SUSPENSIONS);
+	wkl_swap_clusters(state->list, acp, scp);
+	state->acp       = acp;
+	state->scp       = scp;
+	state->acp_index = acp_size(acp);
+
+	if ( state->acp_index > 0 && scp_size(scp) > 0 )
+	{ state->suspensions.base = get_suspension_from_cluster(scp, 0);
+	  state->suspensions.top  = get_suspension_from_cluster(scp, scp_size(scp)-1);
+	  state->suspensions.here = state->suspensions.top;
+	  goto next_answer;
+	} else
+	{ goto next;
+	}
+      }
+
+      return FALSE;
+    } else
+    { next_answer:
+      state->answer = get_answer_from_cluster(state->acp, state->acp_index-1);
+      state->keys_inited = 0;
     }
   }
 
@@ -3441,6 +3664,7 @@ static
 PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   wkl_step_state *state;
+  trie_node *can = NULL;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -3450,19 +3674,28 @@ PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       { cluster *acp, *scp;
 
 	if ( (acp=wl->riac) && (scp=acp->next) )
-	{ DEBUG(MSG_TABLING_WORK,
-		print_worklist("First step: ", wl));
-	  wkl_swap_clusters(wl, acp, scp);
-	  state = allocForeignState(sizeof(*state));
-	  memset(state, 0, sizeof(*state));
-	  state->list	   = wl;
-	  state->acp	   = acp;
-	  state->scp	   = scp;
-	  state->acp_index = acp_size(acp);
-	  state->scp_index = scp_size(scp);
-	  wl->executing    = TRUE;
+	{ int sz_acp = acp_size(acp);
+	  int sz_scp = scp_size(scp);
 
-	  break;
+	  wkl_swap_clusters(wl, acp, scp);
+
+	  if ( sz_acp > 0 && sz_scp > 0 )
+	  { DEBUG(MSG_TABLING_WORK,
+		  print_worklist("First step: ", wl));
+	    state = allocForeignState(sizeof(*state));
+	    state->list	            = wl;
+	    state->acp	            = acp;
+	    state->scp		    = scp;
+	    state->acp_index        = sz_acp;
+	    state->answer           = get_answer_from_cluster(acp, sz_acp-1);
+	    state->suspensions.base = get_suspension_from_cluster(scp, 0);
+	    state->suspensions.top  = get_suspension_from_cluster(scp, sz_scp-1);
+	    state->suspensions.here = state->suspensions.top;
+	    state->keys_inited      = 0;
+	    wl->executing	    = TRUE;
+
+	    break;
+	  }
 	}
       }
 
@@ -3481,85 +3714,137 @@ PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       return FALSE;
   }
 
-next:
-  if ( state->next_step )
-  { cluster *acp, *scp;
+  Mark(fli_context->mark);
 
-    if ( (acp=state->list->riac) && (scp=acp->next) )
-    { DEBUG(MSG_TABLING_WORK,
-	    print_worklist("Next step: ", state->list));
-      assert(acp->type == CLUSTER_ANSWERS);
-      assert(scp->type == CLUSTER_SUSPENSIONS);
-      wkl_swap_clusters(state->list, acp, scp);
-      state->acp       = acp;
-      state->scp       = scp;
-      state->acp_index = acp_size(acp);
-      state->scp_index = scp_size(scp);
-      state->next_step = FALSE;
+  do
+  { const suspension *sp;
+    term_t av, susp, modeargs;
+    trie_node *an = state->answer->node;
+
+    /* Ignore (1) removed answer due to simplification
+     *        (2) dummy restart for delayed negation,
+     *        (3) conditional answer for tnot
+     */
+
+    if ( (an != NULL && an->value == 0) )	/* removed answer */
+    { state->suspensions.here = state->suspensions.base;/* skip all suspensions */
+      continue;
+    }
+
+    sp = state->suspensions.here;
+
+    if ( (an == NULL && !IS_TNOT(sp->term)) ||
+	 (an != NULL && IS_TNOT(sp->term) && answer_is_conditional(an)) )
+      continue;
+
+    /* We got an answer we want to pass the suspension cluster.
+     * Unify A2 with it and get the first suspension.
+     */
+
+    if ( can != an )				/* reuse the answer */
+    { if ( can )
+	Undo(fli_context->mark);
+      if ( !tbl_unify_trie_term(an, A2 PASS_LD) )
+	break;					/* resource error */
+      can = an;
+    }
+
+    /* WFS: need to add a positive node to the delay list if `an`
+     * is conditional.  The positive node contains the variant
+     * we continue and `an`, but is _independant_ from the
+     * condition on `an`.
+     */
+
+    /* Call subsumption: filter out suspensions for which the
+     * answer does not unify with the answer skeleton for the
+     * subsumed table.  Note that this implies that we often
+     * hold the same answer (an) against multiple suspensions
+     * and therefore we avoid unifying A2 with `an` multiple
+     * times.  This block may (1) just be traversed without
+     * side effects, (2) `break` on resource errors or
+     * (3) `continue`, calling advance_wkl_state() to skip
+     * if this suspension is not applicable to this answer
+     * instance.
+     */
+
+    if ( sp->instance && an )
+    { int rc;
+      Word p = valTermRef(A2);
+      Functor f;
+
+      deRef(p);
+      assert(isTerm(*p));
+      f = valueTerm(*p);
+      if ( !state->keys_inited )
+      { size_t arity = arityFunctor(f->definition);
+	size_t i;
+
+	if ( arity > SINDEX_MAX )
+	  arity = SINDEX_MAX;
+
+	for(i=0; i<arity; i++)
+	  state->keys[i].key = sindexOfWord(f->arguments[i] PASS_LD);
+
+	state->keys_inited = TRUE;
+      }
+
+      const sindex_key *skeys = state->keys;
+      skeys--;					/* key args are one based */
+
+      for(;;)
+      { if ( unlikely((suspension_matches_index(sp, skeys))) )
+	{ rc = suspension_matches(A2, sp PASS_LD);
+
+	  if ( rc == TRUE )  goto match;
+	  if ( rc != FALSE ) goto out_fail;
+	}
+
+	if ( likely((sp = --state->suspensions.here) >= state->suspensions.base) )
+	{ if ( unlikely(!sp->instance) )
+	    goto match;
+	} else
+	{ goto next;
+	}
+      }
+    }
+
+    /* Found real work to do.  If we get here we can only fail due to
+     * resource errors.  Normally we succeed with or without a choice
+     * point.
+     */
+
+  match:
+    if ( !(av=PL_new_term_refs(2)) )
+      break;
+    susp     = av+0;
+    modeargs = av+1;
+
+    if ( !( tbl_put_trie_value(modeargs, an PASS_LD) &&
+	    PL_recorded(UNTNOT(sp->term), susp) &&
+	    PL_unify_output(A3, modeargs) &&
+				      /* unifies A4..A8 */
+	    unify_dependency(A4, susp, state->list, an PASS_LD)
+	  ) )
+      break;			/* resource errors */
+
+    DEBUG(MSG_TABLING_WORK,
+	  { Sdprintf("Work: %d %d\n\t",
+		     (int)state->acp_index, (int)state->scp_index);
+	    PL_write_term(Serror, A2, 1200, PL_WRT_NEWLINE);
+	    Sdprintf("\t");
+	    PL_write_term(Serror, susp, 1200, PL_WRT_NEWLINE);
+	  });
+
+    if ( advance_wkl_state(state) )
+    { ForeignRedoPtr(state);
     } else
-    { DEBUG(MSG_TABLING_WORK,
-	    Sdprintf("No more work in worklist\n"));
+    { state->list->executing = FALSE;
+      freeForeignState(state, sizeof(*state));
+      return TRUE;
     }
-  }
-
-  if ( state->next_step == FALSE && state->acp_index > 0 )
-  { trie_node *an = get_answer_from_cluster(state->acp, state->acp_index-1);
-
-    if ( state->scp_index > 0 )
-    { record_t sr       = get_suspension_from_cluster(state->scp,
-						      state->scp_index-1);
-      term_t av         = PL_new_term_refs(2);
-      term_t suspension = av+0;
-      term_t modeargs   = av+1;
-
-      /* Ignore (1) dummy restart for delayed negation,
-       *        (2) conditional answer for tnot
-       *        (3) removed answer due to simplification
-       */
-
-      if ( (an == NULL && !IS_TNOT(sr)) ||
-	   (an != NULL && IS_TNOT(sr) && answer_is_conditional(an)) ||
-	   (an != NULL && an->value == 0) )
-      { if ( advance_wkl_state(state) )
-	  goto next;
-	goto out_fail;
-      }
-
-      /* WFS: need to add a positive node to the delay list if `an`
-       * is conditional.  The positive node contains the variant
-       * we continue and `an`, but is _independant_ from the
-       * condition on `an`.
-       */
-
-      if ( !( tbl_unify_trie_term(an, A2 PASS_LD) &&
-	      tbl_put_trie_value(modeargs, an PASS_LD) &&
-	      PL_recorded(UNTNOT(sr), suspension) &&
-	      PL_unify_output(A3, modeargs) &&
-					/* unifies A4..A8 */
-	      unify_dependency(A4, suspension, state->list, an PASS_LD)
-         ) )
-      { state->list->executing = FALSE;
-	freeForeignState(state, sizeof(*state));
-	return FALSE;			/* resource error */
-      }
-
-      DEBUG(MSG_TABLING_WORK,
-	    { Sdprintf("Work: %d %d\n\t",
-		       (int)state->acp_index, (int)state->scp_index);
-	      PL_write_term(Serror, A2, 1200, PL_WRT_NEWLINE);
-	      Sdprintf("\t");
-	      PL_write_term(Serror, suspension, 1200, PL_WRT_NEWLINE);
-	    });
-
-      if ( advance_wkl_state(state) )
-      { ForeignRedoPtr(state);
-      } else
-      { state->list->executing = FALSE;
-	freeForeignState(state, sizeof(*state));
-	return TRUE;
-      }
-    }
-  }
+  next:
+    ;
+  } while ( advance_wkl_state(state) );
 
 out_fail:
   state->list->executing = FALSE;
@@ -5747,6 +6032,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_mode_add_answer",	4, tbl_wkl_mode_add_answer,  0)
   PRED_DEF("$tbl_wkl_make_follower",    1, tbl_wkl_make_follower,    0)
   PRED_DEF("$tbl_wkl_add_suspension",	2, tbl_wkl_add_suspension,   0)
+  PRED_DEF("$tbl_wkl_add_suspension",	3, tbl_wkl_add_suspension,   0)
   PRED_DEF("$tbl_wkl_done",		1, tbl_wkl_done,	     0)
   PRED_DEF("$tbl_wkl_negative",		1, tbl_wkl_negative,	     0)
   PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)

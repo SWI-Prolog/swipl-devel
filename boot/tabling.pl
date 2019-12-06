@@ -371,8 +371,9 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         ->  reeval(ATrie, GenWrapper, GenSkeleton),
             Wrapper = GenWrapper,
             '$tbl_answer_update_dl'(ATrie, GenSkeleton)
-        ;   shift(call_info(GenSkeleton, Status)),
-            unify_subsumptive(Wrapper, GenWrapper)
+        ;   wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton),
+            shift(call_info(GenSkeleton, Skeleton, Status)),
+            unify_subsumptive(Skeleton, GenSkeleton)
         )
     ;   '$tbl_variant_table'(Closure, Wrapper, Trie, _0Status, Skeleton),
         tdebug(_0Status == fresh),
@@ -387,6 +388,16 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
         done_leader(LStatus, SCC, Skeleton, Clause)
     ).
+
+%!  wrapper_skeleton(+GenWrapper, +GenSkeleton, +Wrapper, -Skeleton)
+%
+%   Skeleton is a specialized version of   GenSkeleton  for the subsumed
+%   new consumer.
+
+wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton) :-
+    copy_term(GenWrapper+GenSkeleton, Wrapper+Skeleton),
+    tdebug(call_subsumption, 'GenSkeleton+Skeleton = ~p',
+           [GenSkeleton+Skeleton]).
 
 unify_subsumptive(X,X).
 
@@ -465,13 +476,22 @@ delim(Wrapper, Worker, WorkList, Delays) :-
         '$tbl_wkl_add_answer'(WorkList, Wrapper, Delays, Complete),
         Complete == !,
         !
-    ;   SourceCall = call_info(SrcSkeleton, SourceWL),
-        '$tbl_add_global_delays'(Delays, AllDelays),
+    ;   SourceCall = call_info(SrcSkeleton, SourceWL)
+    ->  '$tbl_add_global_delays'(Delays, AllDelays),
         tdebug(wl_goal(SourceWL, SrcGoal, _)),
         tdebug(wl_goal(WorkList, DstGoal, _)),
         tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcGoal, DstGoal]),
         '$tbl_wkl_add_suspension'(
             SourceWL,
+            dependency(SrcSkeleton, Continuation, Wrapper, WorkList, AllDelays))
+    ;   SourceCall = call_info(SrcSkeleton, InstSkeleton, SourceWL)
+    ->  '$tbl_add_global_delays'(Delays, AllDelays),
+        tdebug(wl_goal(SourceWL, SrcGoal, _)),
+        tdebug(wl_goal(WorkList, DstGoal, _)),
+        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcGoal, DstGoal]),
+        '$tbl_wkl_add_suspension'(
+            SourceWL,
+            InstSkeleton,
             dependency(SrcSkeleton, Continuation, Wrapper, WorkList, AllDelays))
     ).
 
@@ -608,6 +628,35 @@ completion_(SCC) :-
         completion_step(WorkList)
     ;   !
     ).
+
+%!  '$tbl_wkl_work'(+WorkList,
+%!                  -Answer, -ModeArgs,
+%!                  -Goal, -Continuation, -Wrapper, -TargetWorklist,
+%!                  -Delays) is nondet.
+%
+%   True when Continuation needs to run with Answer and possible answers
+%   need to be added to  TargetWorklist.   The  remaining  arguments are
+%   there to restore variable bindings and restore the delay list.
+%
+%   The  suspension  added  by  '$tbl_wkl_add_suspension'/2  is  a  term
+%   dependency(SrcWrapper,  Continuation,  Wrapper,  WorkList,  Delays).
+%   Note that:
+%
+%     - Answer and Goal must be unified to rebind the _input_ arguments
+%       for the continuation.
+%     - Wrapper is stored in TargetWorklist on successful completion
+%       of the Continuation.
+%     - If Answer Subsumption is in effect, the story is a bit more
+%       complex and ModeArgs provide the binding over which we do
+%       _aggregation_. Otherwise, ModeArgs is the the
+%       reserved trie node produced by '$tbl_trienode'/1.
+%
+%   @arg Answer is the answer term from the answer cluster (node in
+%   the answer trie)
+%   @arg ModeArgs is the associated anwser subsumption term from the
+%   answer trie.
+%   @arg Goal to Delays are extracted from the dependency/5 term in
+%   the same order.
 
 %!  completion_step(+Worklist) is fail.
 
