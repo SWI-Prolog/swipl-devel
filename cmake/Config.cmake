@@ -211,7 +211,6 @@ check_function_exists(clock HAVE_CLOCK)
 check_function_exists(times HAVE_TIMES)
 check_function_exists(delay HAVE_DELAY)
 check_function_exists(dossleep HAVE_DOSSLEEP)
-check_function_exists(clock_gettime HAVE_CLOCK_GETTIME)
 # threads and scheduling
 if(CMAKE_USE_PTHREADS_INIT)
 check_c_source_compiles(
