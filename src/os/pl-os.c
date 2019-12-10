@@ -315,6 +315,18 @@ CpuTime(cputime_kind which)
 #endif /*__WINDOWS__*/
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+clock_gettime() is provided by MinGW32,  but   where  time_t is 64 bits,
+only a 32-bit value is currectly   filled, making get_time/1 return very
+large bogus values. Ideally this should have   a  runtime check. For now
+we'll  hope  that  32-bit  Windows  is   extinct  before  32-bit  time_t
+overflows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef WIN32
+#undef HAVE_CLOCK_GETTIME
+#endif
+
 double
 WallTime(void)
 { double stime;
