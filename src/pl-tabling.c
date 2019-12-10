@@ -3829,7 +3829,8 @@ PRED_IMPL("$tbl_wkl_work", 8, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 
     DEBUG(MSG_TABLING_WORK,
 	  { Sdprintf("Work: %d %d\n\t",
-		     (int)state->acp_index, (int)state->scp_index);
+		     (int)state->acp_index,
+		     (int)(state->suspensions.here - state->suspensions.base));
 	    PL_write_term(Serror, A2, 1200, PL_WRT_NEWLINE);
 	    Sdprintf("\t");
 	    PL_write_term(Serror, susp, 1200, PL_WRT_NEWLINE);
