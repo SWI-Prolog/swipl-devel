@@ -303,13 +303,10 @@ make_library_index(Dir0) :-
            make_library_index2(Dir)).
 
 make_library_index2(Dir) :-
-    plfile_in_dir(Dir, 'MKINDEX', MkIndex, AbsMkIndex),
+    plfile_in_dir(Dir, 'MKINDEX', _MkIndex, AbsMkIndex),
     access_file(AbsMkIndex, read),
     !,
-    setup_call_cleanup(
-        working_directory(OldDir, Dir),
-        load_files(user:MkIndex, [silent(true)]),
-        working_directory(_, OldDir)).
+    load_files(user:AbsMkIndex, [silent(true)]).
 make_library_index2(Dir) :-
     findall(Pattern, source_file_pattern(Pattern), PatternList),
     make_library_index2(Dir, PatternList).
@@ -320,9 +317,10 @@ make_library_index2(Dir) :-
 %   that match any of the file-patterns in Patterns. Typically, this
 %   appears as a directive in MKINDEX.pl.  For example:
 %
-%     ==
-%     :- make_library_index(., ['*.pl']).
-%     ==
+%   ```
+%   :- prolog_load_context(directory, Dir),
+%      make_library_index(Dir, ['*.pl']).
+%   ```
 %
 %   @see make_library_index/1.
 
