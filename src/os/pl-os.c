@@ -1007,11 +1007,8 @@ cleanupExpand(void)
     remove_string(dn->name);
     PL_free(dn);
   }
-  if ( GD->paths.CWDdir )
-  { remove_string(GD->paths.CWDdir);
-    GD->paths.CWDdir = NULL;
-    GD->paths.CWDlen = 0;
-  }
+
+  PL_changed_cwd();
 }
 
 
@@ -1614,6 +1611,7 @@ AbsoluteFile(const char *spec, char *path)
   char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
+  size_t cwdlen;
 
   if ( !file )
     return (char *) NULL;
@@ -1643,14 +1641,14 @@ AbsoluteFile(const char *spec, char *path)
 
   if ( !PL_cwd(path, MAXPATHLEN) )
     return NULL;
+  cwdlen = strlen(path);
 
-  if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
+  if ( (cwdlen + strlen(file) + 1) >= MAXPATHLEN )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
 
-  strcpy(path, GD->paths.CWDdir);
-  strcpy(&path[GD->paths.CWDlen], file);
+  strcpy(&path[cwdlen], file);
 
   return canonicalisePath(path);
 }
@@ -1817,6 +1815,18 @@ DirName(const char *f, char *dir)
     on `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+is_cwd(const char *dir)
+{ int rc;
+
+  PL_LOCK(L_OS);
+  rc = (GD->paths.CWDdir && streq(dir, GD->paths.CWDdir));
+  PL_UNLOCK(L_OS);
+
+  return rc;
+}
+
+
 bool
 ChDir(const char *path)
 { char ospath[MAXPATHLEN];
@@ -1824,12 +1834,13 @@ ChDir(const char *path)
 
   OsPath(path, ospath);
 
-  if ( path[0] == EOS || streq(path, ".") ||
-       (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
+  if ( path[0] == EOS || streq(path, ".") || is_cwd(path) )
     return TRUE;
 
   if ( !AbsoluteFile(path, tmp) )
     return FALSE;
+  if ( is_cwd(tmp) )
+    return TRUE;
 
   if ( chdir(ospath) == 0 )
   { size_t len;
@@ -1839,7 +1850,7 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    PL_LOCK(L_OS);					/* Lock with PL_changed_cwd() */
+    PL_LOCK(L_OS);				/* Lock with PL_changed_cwd() */
     GD->paths.CWDlen = len;			/* and PL_cwd() */
     if ( GD->paths.CWDdir )
       remove_string(GD->paths.CWDdir);
