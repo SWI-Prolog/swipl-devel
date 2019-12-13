@@ -16,6 +16,9 @@ clone with your _fork_ (replace `me` with your github user name).
 See [How to submit a patch](http://www.swi-prolog.org/howto/SubmitPatch.html)
 for details.
 
+See also the discussion at
+[Being friendly to quick contributions](https://swi-prolog.discourse.group/t/being-friendly-to-quick-contributions/493/6)
+
 ## Building
 
 See
