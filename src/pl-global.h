@@ -287,7 +287,10 @@ struct PL_global_data
 
   struct
   { Table		tmp_files;	/* Known temporary files */
-    CanonicalDir	_canonical_dirlist;
+    struct
+    { CanonicalDir     *entries;
+      unsigned		size;
+    } dir_table;			/* Canonical OS dirs */
     char *		myhome;		/* expansion of ~ */
     char *		fred;		/* last expanded ~user */
     char *		fredshome;	/* home of fred */

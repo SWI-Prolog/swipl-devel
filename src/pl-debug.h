@@ -101,6 +101,7 @@
 #define MSG_MUTEX_GC		 56
 #define MSG_REC_ATTVAR		 57
 #define MSG_TTY			 58
+#define MSG_OS_DIR		 59
 
 #define MSG_READ_TOKEN		 60
 

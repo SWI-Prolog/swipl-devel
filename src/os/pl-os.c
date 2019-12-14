@@ -994,59 +994,125 @@ initExpand(void)
 }
 
 #ifdef O_CANONICALISE_DIRS
+#define OS_DIR_TABLE_SIZE 32
 
-static void
-cleanupExpand(void)
-{ CanonicalDir dn = canonical_dirlist, next;
+static unsigned int
+dir_key(const char *name, unsigned int size)
+{ unsigned int k = MurmurHashAligned2(name, strlen(name), MURMUR_SEED);
 
-  canonical_dirlist = NULL;
-  for( ; dn; dn = next )
-  { next = dn->next;
-    if ( dn->canonical && dn->canonical != dn->name )
-      remove_string(dn->canonical);
-    remove_string(dn->name);
-    PL_free(dn);
+  return k & (size-1);
+}
+
+static CanonicalDir
+lookupCanonicalDir(const char *name)
+{ if ( GD->os.dir_table.size )
+  { CanonicalDir cd;
+    unsigned int k = dir_key(name, GD->os.dir_table.size);
+
+    for(cd = GD->os.dir_table.entries[k]; cd; cd = cd->next)
+    { if ( streq(cd->name, name) )
+	return cd;
+    }
   }
 
-  PL_changed_cwd();
+  return NULL;
+}
+
+
+static CanonicalDir
+lookupCanonicalDirFromId(const statstruct *buf)
+{ if ( GD->os.dir_table.size )
+  { unsigned i;
+
+    for(i=0; i<GD->os.dir_table.size; i++)
+    { CanonicalDir dn = GD->os.dir_table.entries[i];
+
+      for( ; dn; dn = dn->next )
+      { if ( dn->inode  == buf->st_ino &&
+	     dn->device == buf->st_dev )
+	  return dn;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+static CanonicalDir
+createCanonicalDir(const char *name, const char *canonical, const statstruct *buf)
+{ CanonicalDir cd;
+
+  if ( !GD->os.dir_table.entries )
+  { size_t bytes = sizeof(*GD->os.dir_table.entries)*OS_DIR_TABLE_SIZE;
+
+    GD->os.dir_table.entries = PL_malloc(bytes);
+    memset(GD->os.dir_table.entries, 0, bytes);
+    GD->os.dir_table.size = OS_DIR_TABLE_SIZE;
+  }
+
+  unsigned int k = dir_key(name, GD->os.dir_table.size);
+  cd = PL_malloc(sizeof(*cd));
+  cd->name      = store_string(name);
+  cd->canonical = name == canonical ? cd->name : store_string(canonical);
+  cd->device    = buf->st_dev;
+  cd->inode     = buf->st_ino;
+
+  cd->next = GD->os.dir_table.entries[k];
+  GD->os.dir_table.entries[k] = cd;
+
+  return cd;
 }
 
 
 static void
-registerParentDirs(const char *path)
-{ const char *e = path + strlen(path);
+deleteCanonicalDir(CanonicalDir d)
+{ unsigned int k = dir_key(d->name, GD->os.dir_table.size);
 
-  while(e>path)
-  { char dirname[MAXPATHLEN];
-    char tmp[MAXPATHLEN];
-    CanonicalDir d;
-    statstruct buf;
+  if ( d == GD->os.dir_table.entries[k] )
+  { GD->os.dir_table.entries[k] = d->next;
+  } else
+  { CanonicalDir cd;
 
-    for(e--; *e != '/' && e > path + 1; e-- )
-      ;
+    for(cd=GD->os.dir_table.entries[k]; cd; cd=cd->next)
+    { if ( cd->next == d )
+      { cd->next = d->next;
 
-    strncpy(dirname, path, e-path);
-    dirname[e-path] = EOS;
-
-    for(d = canonical_dirlist; d; d = d->next)
-    { if ( streq(d->name, dirname) )
-	return;
+	remove_string(d->name);
+	if ( d->canonical != d->name )
+	  remove_string(d->canonical);
+	PL_free(d);
+      }
     }
 
-    if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn   = PL_malloc(sizeof(*dn));
-
-      dn->name		= store_string(dirname);
-      dn->inode		= buf.st_ino;
-      dn->device	= buf.st_dev;
-      dn->canonical	= dn->name;
-      dn->next		= canonical_dirlist;
-      canonical_dirlist	= dn;
-
-      DEBUG(1, Sdprintf("Registered canonical dir %s\n", dirname));
-    } else
-      return;
+    assert(0);
   }
+}
+
+
+static void
+cleanupExpand(void)
+{ if ( GD->os.dir_table.size )
+  { unsigned i;
+
+    for(i=0; i<GD->os.dir_table.size; i++)
+    { CanonicalDir dn = GD->os.dir_table.entries[i];
+      CanonicalDir next;
+
+      for( ; dn; dn = next )
+      { next = dn->next;
+	if ( dn->canonical && dn->canonical != dn->name )
+	  remove_string(dn->canonical);
+	remove_string(dn->name);
+	PL_free(dn);
+      }
+    }
+
+    GD->os.dir_table.size = 0;
+    PL_free(GD->os.dir_table.entries);
+  }
+
+  PL_changed_cwd();
 }
 
 
@@ -1065,31 +1131,15 @@ verify_entry(CanonicalDir d)
 	 d->device == buf.st_dev )
       return TRUE;
 
-    DEBUG(1, Sdprintf("%s: inode/device changed\n", d->canonical));
+    DEBUG(MSG_OS_DIR, Sdprintf("%s: inode/device changed\n", d->canonical));
 
     d->inode  = buf.st_ino;
     d->device = buf.st_dev;
     return TRUE;
   } else
-  { DEBUG(1, Sdprintf("%s: no longer exists\n", d->canonical));
+  { DEBUG(MSG_OS_DIR, Sdprintf("%s: no longer exists\n", d->canonical));
 
-    if ( d == canonical_dirlist )
-    { canonical_dirlist = d->next;
-    } else
-    { CanonicalDir cd;
-
-      for(cd=canonical_dirlist; cd; cd=cd->next)
-      { if ( cd->next == d )
-	{ cd->next = d->next;
-	  break;
-	}
-      }
-    }
-
-    remove_string(d->name);
-    if ( d->canonical != d->name )
-      remove_string(d->canonical);
-    PL_free(d);
+    deleteCanonicalDir(d);
   }
 
   return FALSE;
@@ -1098,81 +1148,52 @@ verify_entry(CanonicalDir d)
 
 static char *
 canonicaliseDir_sync(char *path)
-{ CanonicalDir d, next;
+{ CanonicalDir d;
   statstruct buf;
   char tmp[MAXPATHLEN];
 
-  DEBUG(1, Sdprintf("canonicaliseDir(%s) --> ", path));
+  DEBUG(MSG_OS_DIR, Sdprintf("canonicaliseDir(%s) --> ", path));
 
-  for(d = canonical_dirlist; d; d = next)
-  { next = d->next;
+  if ( (d=lookupCanonicalDir(path)) && verify_entry(d) )
+  { if ( d->name != d->canonical )
+      strcpy(path, d->canonical);
 
-    if ( streq(d->name, path) && verify_entry(d) )
-    { if ( d->name != d->canonical )
-	strcpy(path, d->canonical);
+    DEBUG(MSG_OS_DIR, Sdprintf("(lookup ino=%ld) %s\n", (long)d->inode, path));
+    return path;
+  }
 
-      DEBUG(1, Sdprintf("(lookup) %s\n", path));
+  if ( statfunc(OsPath(path, tmp), &buf) == 0 )
+  { char parent[MAXPATHLEN];
+    char *e = path + strlen(path);
+
+    DEBUG(MSG_OS_DIR, Sdprintf("Looking for ino=%ld\n", buf.st_ino));
+    if ( (d=lookupCanonicalDirFromId(&buf)) &&
+	 verify_entry(d) )
+    { DEBUG(MSG_OS_DIR, Sdprintf("(found by id)\n"));
+      strcpy(path, d->canonical);
+      return path;
+    }
+
+    for(e--; *e != '/' && e > path + 1; e-- )
+      ;
+    if ( e > path )
+    { strncpy(parent, path, e-path);
+      parent[e-path] = EOS;
+
+      canonicaliseDir_sync(parent);
+      strcpy(parent+strlen(parent), e);
+
+      createCanonicalDir(path, parent, &buf);
+      strcpy(path, parent);
+      DEBUG(MSG_OS_DIR, Sdprintf("(new ino=%ld) %s\n", (long)buf.st_ino, path));
+      return path;
+    } else
+    { createCanonicalDir(path, path, &buf);
       return path;
     }
   }
 
-					/* we need to use malloc() here */
-					/* because allocHeapOrHalt() only ensures */
-					/* alignment for `word', and inode_t */
-					/* is sometimes bigger! */
-
-  if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = PL_malloc(sizeof(*dn));
-    char dirname[MAXPATHLEN];
-    char *e = path + strlen(path);
-
-    dn->name   = store_string(path);
-    dn->inode  = buf.st_ino;
-    dn->device = buf.st_dev;
-
-    do
-    { strncpy(dirname, path, e-path);
-      dirname[e-path] = EOS;
-      if ( statfunc(OsPath(dirname, tmp), &buf) < 0 )
-	break;
-
-      DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
-			dirname, buf.st_dev, buf.st_ino));
-
-      for(d = canonical_dirlist; d; d = next)
-      { next = d->next;
-
-	if ( d->inode == buf.st_ino && d->device == buf.st_dev &&
-	     verify_entry(d) )
-	{ DEBUG(2, Sdprintf("Hit with %s (dev=%d,ino=%d)\n",
-			    d->canonical, d->device, d->inode));
-
-	  strcpy(dirname, d->canonical);
-	  strcat(dirname, e);
-	  strcpy(path, dirname);
-	  dn->canonical = store_string(path);
-	  dn->next = canonical_dirlist;
-	  canonical_dirlist = dn;
-	  DEBUG(1, Sdprintf("(replace) %s\n", path));
-	  registerParentDirs(path);
-	  return path;
-	}
-      }
-
-      for(e--; *e != '/' && e > path + 1; e-- )
-	;
-    } while( e > path );
-
-    dn->canonical = dn->name;
-    dn->next = canonical_dirlist;
-    canonical_dirlist = dn;
-
-    DEBUG(1, Sdprintf("(new, existing) %s\n", path));
-    registerParentDirs(path);
-    return path;
-  }
-
-  DEBUG(1, Sdprintf("(nonexisting) %s\n", path));
+  DEBUG(MSG_OS_DIR, Sdprintf("(nonexisting) %s\n", path));
   return path;
 }
 
