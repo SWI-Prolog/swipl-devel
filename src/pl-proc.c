@@ -2693,10 +2693,13 @@ pl_retractall(term_t head)
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClauseCNT(cref->value.clause, gen) )
       { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
-	  break;
+	{ if ( PL_exception(0) )
+	    break;
+	}
       }
     }
     release_def(def);
+    rc = TRUE;
   } else
   { struct clause_choice chp;
 
@@ -2709,7 +2712,9 @@ pl_retractall(term_t head)
     while( cref )
     { if ( decompileHead(cref->value.clause, thehead) )
       { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
-	  break;
+	{ if ( PL_exception(0) )
+	    break;
+	}
       }
 
       PL_rewind_foreign_frame(fid);
@@ -2726,6 +2731,7 @@ pl_retractall(term_t head)
       }
 
       cref = nextClause(&chp, argv, environment_frame, def);
+      rc = TRUE;
     }
   }
   popPredicateAccess(def);
