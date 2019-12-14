@@ -1097,7 +1097,7 @@ verify_entry(CanonicalDir d)
 
 
 static char *
-canonicaliseDir(char *path)
+canonicaliseDir_sync(char *path)
 { CanonicalDir d, next;
   statstruct buf;
   char tmp[MAXPATHLEN];
@@ -1174,6 +1174,17 @@ canonicaliseDir(char *path)
 
   DEBUG(1, Sdprintf("(nonexisting) %s\n", path));
   return path;
+}
+
+static char *
+canonicaliseDir(char *path)
+{ char *s;
+
+  PL_LOCK(L_OSDIR);
+  s = canonicaliseDir_sync(path);
+  PL_UNLOCK(L_OSDIR);
+
+  return s;
 }
 
 #else
