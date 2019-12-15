@@ -59,7 +59,7 @@
 
 \newcommand{\vmajor}{8}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{18}
+\newcommand{\vpatch}{19}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{December}
 \newcommand{\vyear}{2019}
