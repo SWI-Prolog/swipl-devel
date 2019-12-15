@@ -15,15 +15,15 @@
 PREFIX="$HOME/deps"
 
 GMP_VERSION=6.1.2
-SSL_VERSION=1.1.1c
+SSL_VERSION=1.1.1d
 JPEG_VERSION=9b
 ZLIB_VERSION=1.2.11
-ARCHIVE_VERSION=3.2.1
+ARCHIVE_VERSION=3.4.0
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 ODBC_VERSION=2.3.7
-PCRE_VERSION=8.40
-FFI_VERSION=3.2.1
+PCRE_VERSION=8.43
+FFI_VERSION=3.3
 YAML_VERSION=0.1.7
 READLINE_VERSION=8.0
 
@@ -276,7 +276,11 @@ build_libffi()
 
 download_libyaml()
 { #tested 01f3a8786127748b5bbd4614880c4484570bbd44
-  git clone https://github.com/yaml/libyaml
+  if [ -d libyaml ]; then
+    git -C libyaml pull
+  else
+    git clone https://github.com/yaml/libyaml
+  fi
 }
 
 build_libyaml()
@@ -300,6 +304,7 @@ clean_prerequisites()
   ( cd libarchive-$ARCHIVE_VERSION && make distclean )
   ( cd uuid-$UUID_VERSION && make distclean )
   ( cd ffi-$FFI_VERSION && make distclean )
+  ( cd libyaml && make distclean )
 }
 
 
