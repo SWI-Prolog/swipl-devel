@@ -18,6 +18,10 @@ build_pdf()
   )
 }
 
+# Disabled profile guide optimization for Windows as it is broken
+# in recent Ubuntu releases.  Linking the instrumented binary fails
+# due to a missing symbols in libgcov.a
+
 build_win32()
 { rm -rf build.win32
   mkdir build.win32
@@ -25,7 +29,7 @@ build_win32()
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
           -G Ninja ..
-    ../scripts/pgo-compile.sh
+#   ../scripts/pgo-compile.sh
     ninja
     cpack
   )
@@ -38,7 +42,7 @@ build_win64()
     cmake -DCMAKE_BUILD_TYPE=Release \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
           -G Ninja ..
-    ../scripts/pgo-compile.sh
+#   ../scripts/pgo-compile.sh
     ninja
     cpack
   )
