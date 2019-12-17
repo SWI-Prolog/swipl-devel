@@ -5429,14 +5429,16 @@ PRED_IMPL("peek_char", 1, peek_char1, 0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 set_prolog_IO(+In, +Out, +Error)
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define WRAP_CLEAR_FLAGS (SIO_FILE)
 
 typedef struct wrappedIO
 { void		   *wrapped_handle;	/* original handle */
   IOFUNCTIONS      *wrapped_functions;	/* original functions */
   IOSTREAM	   *wrapped_stream;	/* stream we wrapped */
   IOFUNCTIONS       functions;		/* new function block */
+  int		    saved_flags;	/* SIO_flags we must restore */
 } wrappedIO;
 
 
@@ -5476,6 +5478,8 @@ closeWrappedIO(void *handle)
 
   wio->wrapped_stream->functions = wio->wrapped_functions;
   wio->wrapped_stream->handle = wio->wrapped_handle;
+  clear(wio->wrapped_stream, WRAP_CLEAR_FLAGS);
+  set(wio->wrapped_stream, wio->saved_flags);
   PL_free(wio);
 
   return rval;
@@ -5495,7 +5499,6 @@ controlWrappedIO(void *handle, int action, void *arg)
     rval = 0;
 
   return rval;
-
 }
 
 
@@ -5508,6 +5511,8 @@ wrapIO(IOSTREAM *s,
   wio->wrapped_functions = s->functions;
   wio->wrapped_handle =	s->handle;
   wio->wrapped_stream = s;
+  wio->saved_flags    = s->flags & WRAP_CLEAR_FLAGS;
+  clear(s, WRAP_CLEAR_FLAGS);
 
   wio->functions = *s->functions;
   if ( read  ) wio->functions.read  = read;
