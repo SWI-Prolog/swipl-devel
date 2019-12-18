@@ -2638,6 +2638,16 @@ System(char *cmd)
   { char tmp[MAXPATHLEN];
     char *argv[4];
     extern char **environ;
+    int in  = Sfileno(Suser_input);
+    int out = Sfileno(Suser_output);
+    int err = Sfileno(Suser_error);
+
+    if ( in >=0 && out >= 0 && err >= 0 )
+    { if ( dup2(in,  0) < 0 ||
+	   dup2(out, 1) < 0 ||
+	   dup2(err, 2) < 0 )
+	Sdprintf("shell/1: dup of file descriptors failed\n");
+    }
 
     argv[0] = BaseName(shell, tmp);
     argv[1] = "-c";
