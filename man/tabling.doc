@@ -70,7 +70,6 @@ tabling directive and otherwise not changing the algorithm. The code
 becomes:
 
 \begin{code}
-:- use_module(library(tabling)).
 :- table fib/2.
 
 fib(0, 1) :- !.
@@ -134,7 +133,6 @@ between two cities, we cannot use the most natural logical definition to
 express that we can travel between two cities:
 
 \begin{code}
-% :- use_module(library(tabling)).
 % :- table connection/2.
 
 connection(X, Y) :-
@@ -216,7 +214,6 @@ Prolog.} This causes the tabling engine each time that it finds an new
 path to call \nopredref{shortest}{3} and keep the shortest route.
 
 \begin{code}
-:- use_module(library(tabling)).
 :- table
     connection(_,_,lattice(shortest/3)).
 
@@ -381,7 +378,7 @@ p(1).
 \end{code}
 
 \jargon{Subsumptive} tabling can be activated in two ways. Per table
-usign the \exam{... as subsumptive} option and globally by setting the
+assign the \exam{... as subsumptive} option and globally by setting the
 \prologflag{table_subsumptive} flag to \const{true}.
 
 One may wonder why subsumptive tabling is not the default. There are
