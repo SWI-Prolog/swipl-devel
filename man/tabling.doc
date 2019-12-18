@@ -243,6 +243,7 @@ indicates the portability.
     \termitem{Var}{}
 \nodescription
     \termitem{+}{}
+\nodescription
     \termitem{index}{}
 A variable (XSB), the atom \const{index} (YAP) or a \const{+}
 (B-Prolog, YAP) declare that the argument is tabled normally.
