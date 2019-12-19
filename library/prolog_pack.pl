@@ -1085,6 +1085,7 @@ foreign_file('configure.ac').
 foreign_file('configure').
 foreign_file('Makefile').
 foreign_file('makefile').
+foreign_file('CMakeLists.txt').
 
 
 %!  configure_foreign(+PackDir, +Options) is det.
@@ -1092,6 +1093,11 @@ foreign_file('makefile').
 %   Run configure if it exists.  If =|configure.ac|= or =|configure.in|=
 %   exists, first run =autoheader= and =autoconf=
 
+configure_foreign(PackDir, Options) :-
+    directory_file_path(PackDir, 'CMakeLists.txt', CMakeFile),
+    exists_file(CMakeFile),
+    !,
+    cmake_configure_foreign(PackDir, Options).
 configure_foreign(PackDir, Options) :-
     make_configure(PackDir, Options),
     directory_file_path(PackDir, configure, Configure),
@@ -1120,6 +1126,18 @@ make_configure(_, _).
 autoconf_master('configure.ac').
 autoconf_master('configure.in').
 
+%!  cmake_configure_foreign(+PackDir, +Options) is det.
+%
+%   Create a `build` directory in PackDir and run `cmake ..`
+
+cmake_configure_foreign(PackDir, _Options) :-
+    directory_file_path(PackDir, build, BuildDir),
+    make_directory_path(BuildDir),
+    current_prolog_flag(executable, Exe),
+    format(atom(CDEF), '-DSWIPL=~w', [Exe]),
+    run_process(path(cmake), [CDEF, '..'],
+                [directory(BuildDir)]).
+
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
@@ -1136,7 +1154,24 @@ pack_make(PackDir, Targets, _Options) :-
     ProcessOptions = [ directory(PackDir), env(BuildEnv) ],
     forall(member(Target, Targets),
            run_process(path(make), [Target], ProcessOptions)).
+pack_make(PackDir, Targets, _Options) :-
+    directory_file_path(PackDir, 'CMakeLists.txt', CMakefile),
+    exists_file(CMakefile),
+    directory_file_path(PackDir, 'build', BuildDir),
+    exists_directory(BuildDir),
+    !,
+    (   Targets == [distclean]
+    ->  delete_directory_contents(BuildDir)
+    ;   build_environment(BuildEnv),
+        ProcessOptions = [ directory(BuildDir), env(BuildEnv) ],
+        forall(member(Target, Targets),
+               run_cmake_target(Target, BuildDir, ProcessOptions))
+    ).
 pack_make(_, _, _).
+
+run_cmake_target(check, _, _) :- !.
+run_cmake_target(Target, _, ProcessOptions) :-
+    run_process(path(make), [Target], ProcessOptions).
 
 %!  save_build_environment(+PackDir)
 %
