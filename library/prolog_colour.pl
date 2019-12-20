@@ -1694,6 +1694,17 @@ colourise_declaration(Module:PI, _, TB,
     colour_item(goal(extern(M), Goal), TB, NamePos),
     colour_item(predicate_indicator, TB, FF-FT),
     colour_item(arity, TB, ArityPos).
+colourise_declaration(Module:PI, _, TB,
+                      term_position(_,_,QF,QT,[PM,PG])) :-
+    atom(Module), nonvar(PI), PI = Name/Arity,
+    !,                                  % partial predicate indicators
+    colourise_module(Module, TB, PM),
+    colour_item(functor, TB, QF-QT),
+    (   (var(Name) ; atom(Name)),
+        (var(Arity) ; integer(Arity), Arity >= 0)
+    ->  colourise_term_arg(PI, TB, PG)
+    ;   colour_item(type_error(predicate_indicator), TB, PG)
+    ).
 colourise_declaration(op(N,T,P), Which, TB, Pos) :-
     (   Which == export
     ;   Which == import
@@ -1701,6 +1712,17 @@ colourise_declaration(op(N,T,P), Which, TB, Pos) :-
     !,
     colour_item(exported_operator, TB, Pos),
     colourise_op_declaration(op(N,T,P), TB, Pos).
+colourise_declaration(Module:Goal, table, TB,
+                      term_position(_,_,QF,QT,
+                                    [PM,term_position(_F,_T,FF,FT,ArgPos)])) :-
+    atom(Module), callable(Goal),
+    !,
+    colourise_module(Module, TB, PM),
+    colour_item(functor, TB, QF-QT),
+    goal_classification(TB, Module:Goal, [], Class),
+    compound_name_arguments(Goal, _, Args),
+    colour_item(goal(Class, Goal), TB, FF-FT),
+    colourise_table_modes(Args, TB, ArgPos).
 colourise_declaration(Goal, table, TB, term_position(_F,_T,FF,FT,ArgPos)) :-
     callable(Goal),
     !,
