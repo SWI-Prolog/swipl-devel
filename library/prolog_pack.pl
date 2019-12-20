@@ -1169,7 +1169,13 @@ pack_make(PackDir, Targets, _Options) :-
     ).
 pack_make(_, _, _).
 
-run_cmake_target(check, _, _) :- !.
+run_cmake_target(check, BuildDir, ProcessOptions) :-
+    !,
+    (   directory_file_path(BuildDir, 'CTestTestfile.cmake', TestFile),
+        exists_file(TestFile)
+    ->  run_process(path(ctest), [], ProcessOptions)
+    ;   true
+    ).
 run_cmake_target(Target, _, ProcessOptions) :-
     run_process(path(make), [Target], ProcessOptions).
 
