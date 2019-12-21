@@ -147,7 +147,7 @@ query_loop(atom_t goal, int loop)
     if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
-  } while(loop);
+  } while(loop && !LD->exit_requested);
 
   return rc;
 }
