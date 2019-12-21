@@ -2821,7 +2821,7 @@ achieving asynchronous interprocess (or interthread) communication
 
 \begin{description}
     \predicate{on_signal}{3}{+Signal, -Old, :New}
-Determines the reaction on \arg{Signal}.  \arg{Old} is unified with
+Determines how \arg{Signal} is processed.  \arg{Old} is unified with
 the old behaviour, while the behaviour is switched to \arg{New}.  As
 with similar environment control predicates, the current value is
 retrieved using \exam{on_signal(Signal, Current, Current)}.
@@ -2833,13 +2833,15 @@ in module <Module>. The handler is called with a single argument:
 the name of the signal as an atom. The Prolog names for signals are
 explained below.
 
-Two predicate names have special meaning.  \const{throw} implies Prolog
-will map the signal onto a Prolog exception as described in
-\secref{exception}.  \const{default} resets the handler to the settings
-active before SWI-Prolog manipulated the handler.
+Three names have special meaning. \const{throw} implies Prolog will map
+the signal onto a Prolog exception as described in \secref{exception},
+\const{debug} specifies the debug interrupt prompt that is initially
+bound to \const{SIGINT} (Control-C) and \const{default} resets the
+handler to the settings active before SWI-Prolog manipulated the
+handler.
 
 Signals bound to a foreign function through PL_signal() are reported
-using the term \term{\$foreign_function}{Address}.
+using the term \term{'\$foreign_function'}{Address}.
 
 After receiving a signal mapped to \const{throw}, the exception raised
 has the following structure:
@@ -2853,9 +2855,26 @@ form {\tt SIG}<SIGNAME>. The Prolog name for a signal is the lowercase
 version of <SIGNAME>. The predicate current_signal/3 may be used to map
 between names and signals.
 
-Initially, some signals are mapped to \const{throw}, while all other
-signals are \const{default}. The following signals throw an exception:
-\const{fpe}, \const{alrm}, \const{xcpu}, \const{xfsz} and \const{vtalrm}.
+Initially, the following signals are handled unless the command line
+option \cmdlineoption{--no-signals} is specified:
+
+\begin{description}
+    \definition{int}
+Prompts the user, allowing to inspect the current state of the process
+and start the tracer.
+    \definition{usr2}
+Bound to an empty signal handler used to make blocking system calls
+return.  This allows thread_signal/2 to interrupt threads blocked in
+a system call.  See also prolog_alert_signal/2.
+    \definition{hup, term, abrt, quit}
+Causes normal Prolog cleanup (e.g., at_halt/1) before terminating the
+process with the same signal.
+    \definition{segv, ill, bus, sys}
+Dumps the C and Prolog stacks and runs cleanup before terminating the
+process with the same signal.
+    \definition{fpe, alrm, xcpu, xfsz, vtalrm}
+Throw a Prolog exception (see above).
+\end{description}
 
     \predicate{current_signal}{3}{?Name, ?Id, ?Handler}
 Enumerate the currently defined signal handling.  \arg{Name} is the
