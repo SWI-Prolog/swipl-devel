@@ -1739,7 +1739,7 @@ initTracer(void)
 
 #if defined(O_INTERRUPT) && defined(SIGINT)
   if ( truePrologFlag(PLFLAG_SIGNALS) )
-    PL_signal(SIGINT, interruptHandler);
+    PL_signal(SIGINT, PL_interrupt);
 #endif
 
   resetTracer();

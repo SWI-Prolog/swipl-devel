@@ -183,7 +183,7 @@ SWI-Prolog catches a number of signals:
     calls and allow handling of Prolog signals from them.
   - SIGTERM, SIGABRT and SIGQUIT are caught to cleanup before killing
     the process again using the same signal.
-  - SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS are caught by
+  - SIGSEGV, SIGILL, SIGBUS and SIGSYS are caught by
     os/pl-cstack.c to print a backtrace and exit.
   - SIGHUP is caught and causes the process to exit with status 2 after
     cleanup.
@@ -1224,9 +1224,13 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 	 !PL_unify_atom(old, def->functor->name) )
       return FALSE;
   } else if ( sh->handler )
-  { TRY(PL_unify_term(old,
-		      PL_FUNCTOR, FUNCTOR_foreign_function1,
-		      PL_POINTER, sh->handler));
+  { if ( sh->handler == PL_interrupt )
+    { TRY(PL_unify_atom(old, ATOM_debug));
+    } else
+    { TRY(PL_unify_term(old,
+			PL_FUNCTOR, FUNCTOR_foreign_function1,
+			PL_POINTER, sh->handler));
+    }
   }
 
   if ( PL_compare(old, new) == 0 &&
@@ -1241,6 +1245,13 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
       set(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
+    } else if ( a == ATOM_debug )
+    { sh = prepareSignal(sign);
+
+      clear(sh, PLSIG_THROW|PLSIG_SYNC);
+      sh->handler = (handler_t)PL_interrupt;
+      sh->predicate = NULL;
+
     } else
     { Module m;
       predicate_t pred;
