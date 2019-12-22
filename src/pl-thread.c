@@ -538,6 +538,7 @@ initialise_thread(PL_thread_info_t *info)
 
   if ( !initPrologStacks(info->stack_limit) )
   { info->status = PL_THREAD_NOMEM;
+    TLD_set_LD(NULL);
     return FALSE;
   }
 
@@ -5171,6 +5172,7 @@ PL_thread_attach_engine(PL_thread_attr_t *attr)
     { if ( !aliasThread(info->pl_tid, ATOM_thread, PL_new_atom(attr->alias)) )
       { free_thread_info(info);
 	errno = EPERM;
+	TLD_set_LD(NULL);
 	return -1;
       }
     }
