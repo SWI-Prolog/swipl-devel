@@ -149,6 +149,11 @@ query_loop(atom_t goal, int loop)
       break;
   } while(loop && !LD->exit_requested);
 
+  DEBUG(MSG_CLEANUP_THREAD,
+	if ( LD->exit_requested )
+	Sdprintf("Thread %d: leaving REPL loop due to exit_requested\n",
+		 PL_thread_self()));
+
   return rc;
 }
 
