@@ -2023,6 +2023,20 @@ PopTty(IOSTREAM *s, ttybuf *buf)
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+int
+Sttymode(IOSTREAM *s)
+{ return true(s, SIO_RAW) ? TTY_RAW : TTY_COOKED;
+}
+
+static void
+Sset_ttymode(IOSTREAM *s, int mode)
+{ if ( mode == TTY_RAW )
+    set(s, SIO_RAW);
+  else
+    clear(s, SIO_RAW);
+}
+
+
 static void
 ResetStdin(void)
 { Sinput->limitp = Sinput->bufp = Sinput->buffer;
@@ -2038,7 +2052,7 @@ Sread_terminal(void *handle, char *buf, size_t size)
   source_location oldsrc = LD->read_source;
 
   if ( Soutput && true(Soutput, SIO_ISATTY) )
-  { if ( LD->prompt.next && ttymode != TTY_RAW )
+  { if ( LD->prompt.next && false(Sinput, SIO_RAW) )
       PL_write_prompt(TRUE);
     else
       Sflush(Suser_output);
@@ -2123,7 +2137,8 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 #endif
 
-  ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
+  if ( fd == ttyfileno && ttytab.state )
+    ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
   return TRUE;
 }
@@ -2135,9 +2150,8 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   struct termios tio;
   int fd;
 
-  buf->mode  = ttymode;
+  buf->mode  = Sttymode(s);
   buf->state = NULL;
-  ttymode    = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
   { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
@@ -2148,6 +2162,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
     succeed;
   }
 
+  Sset_ttymode(s, mode);
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
   if ( !GetTtyState(fd, &TTY_STATE(buf)) )
@@ -2169,9 +2184,6 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 					/* Could this do any harm? */
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
-    case TTY_OUTPUT:
-	tio.c_oflag |= (OPOST|ONLCR);
-        break;
     case TTY_SAVE:
         succeed;
     default:
@@ -2190,8 +2202,9 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ ttymode = buf->mode;
-  int rc = TRUE;
+{ int rc = TRUE;
+
+  Sset_ttymode(s, buf->mode);
 
   if ( buf->state )
   { GET_LD
@@ -2223,15 +2236,15 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { struct sgttyb tio;
   int fd;
 
-  buf->mode = ttymode;
+  buf->mode = Sttymode(s);
   buf->state = NULL;
-  ttymode = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
+  Sset_ttymode(s, mode);
   buf->state = allocHeapOrHalt(sizeof((*buf->state));
   memset(buf->state, 0, sizeof(*buf->state));
 
@@ -2243,9 +2256,6 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   { case TTY_RAW:
       tio.sg_flags |= CBREAK;
       tio.sg_flags &= ~ECHO;
-      break;
-    case TTY_OUTPUT:
-      tio.sg_flags |= (CRMOD);
       break;
     case TTY_SAVE:
       succeed;
@@ -2263,8 +2273,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ ttymode = buf->mode;
-
+{ Sset_ttymode(s, buf->mode);
   if ( buf->state )
   { int fd = Sfileno(s);
 
@@ -2286,8 +2295,8 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 
 bool
 PushTty(IOSTREAM *s, ttybuf *buf, int mode)
-{ buf->mode = ttymode;
-  ttymode = mode;
+{ buf->mode = Sttymode(s);
+  Sset_ttymode(s, mode);
 
   succeed;
 }
@@ -2296,8 +2305,9 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { GET_LD
-  ttymode = buf->mode;
-  if ( ttymode != TTY_RAW )
+
+  Sset_ttymode(s, buf->mode);
+  if ( buf->mode != TTY_RAW )
     LD->prompt.next = TRUE;
 
   succeed;

@@ -385,9 +385,9 @@ initIO(void)
   Soutput->position = &Sinput->posbuf;
   Serror->position  = &Sinput->posbuf;
 
-  ttymode = TTY_COOKED;
   PushTty(Sinput, &ttytab, TTY_SAVE);
   ttymodified = FALSE;
+  ttyfileno = Sfileno(Sinput);
   LD->prompt.current = ATOM_prompt;
   PL_register_atom(ATOM_prompt);
 
@@ -1178,8 +1178,8 @@ streamStatus(IOSTREAM *s)
 		 *******************************/
 
 ttybuf	ttytab;				/* saved terminal status on entry */
-int	ttymode;			/* Current tty mode */
 int	ttymodified;			/* is tty modified? */
+int	ttyfileno = -1;
 
 typedef struct input_context * InputContext;
 typedef struct output_context * OutputContext;
@@ -1208,7 +1208,7 @@ dieIO(void)
 { if ( GD->io_initialised )
   { noprotocol();
     closeFiles(TRUE);
-    if ( ttymodified )
+    if ( ttymodified && ttyfileno == Sfileno(Sinput) )
       PopTty(Sinput, &ttytab, TRUE);
   }
 }
@@ -5448,7 +5448,7 @@ Sread_user(void *handle, char *buf, size_t size)
   wrappedIO *wio = handle;
   ssize_t rc;
 
-  if ( LD->prompt.next && ttymode != TTY_RAW )
+  if ( LD->prompt.next && Sttymode(wio->wrapped_stream) != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);

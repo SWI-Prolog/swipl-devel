@@ -4829,7 +4829,7 @@ PL_ttymode(IOSTREAM *s)
   if ( s == Suser_input )
   { if ( !truePrologFlag(PLFLAG_TTY_CONTROL) ) /* -tty in effect */
       return PL_NOTTY;
-    if ( ttymode == TTY_RAW )		/* get_single_char/1 and friends */
+    if ( Sttymode(s) == TTY_RAW )	/* get_single_char/1 and friends */
       return PL_RAWTTY;
     return PL_COOKEDTTY;		/* cooked (readline) input */
   } else

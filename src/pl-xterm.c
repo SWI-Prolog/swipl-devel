@@ -76,7 +76,7 @@ Xterm_read(void *handle, char *buffer, size_t count)
   xterm *xt = handle;
   ssize_t size;
 
-  if ( LD->prompt.next && ttymode != TTY_RAW )
+  if ( LD->prompt.next && Sttymode(Suser_input) != TTY_RAW )
     PL_write_prompt(TRUE);
   else
     Sflush(Suser_output);
