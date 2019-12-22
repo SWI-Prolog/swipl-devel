@@ -1220,9 +1220,15 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else if ( sh->predicate )			/* call predicate */
   { Definition def = sh->predicate->definition;
 
-    if ( !PL_unify_atom(mold, def->module->name) ||
-	 !PL_unify_atom(old, def->functor->name) )
-      return FALSE;
+    if ( PL_unify_atom(mold, def->module->name) )
+    { if ( !PL_unify_atom(old, def->functor->name) )
+	return FALSE;
+    } else
+    { if ( !PL_unify_term(old, PL_FUNCTOR, FUNCTOR_colon2,
+			         PL_ATOM, def->module->name,
+			         PL_ATOM, def->functor->name) )
+	return FALSE;
+    }
   } else if ( sh->handler )
   { if ( sh->handler == PL_interrupt )
     { TRY(PL_unify_atom(old, ATOM_debug));
