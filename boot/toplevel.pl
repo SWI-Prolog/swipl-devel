@@ -43,6 +43,7 @@
             version/1,                  % Add message to the banner
             prolog/0,                   % user toplevel predicate
             '$query_loop'/0,            % toplevel predicate
+            '$execute_query'/3,         % +Query, +Bindings, -Truth
             residual_goals/1,           % +Callable
             (initialization)/1,         % initialization goal (directive)
             '$thread_init'/0,           % initialise thread
@@ -792,7 +793,7 @@ prolog :-
     read_expanded_query(Level, Query, Bindings),
     (   Query == end_of_file
     ->  print_message(query, query(eof))
-    ;   '$call_no_catch'('$execute'(Query, Bindings)),
+    ;   '$call_no_catch'('$execute_query'(Query, Bindings, _)),
         (   current_prolog_flag(toplevel_mode, recursive)
         ->  '$query_loop'
         ;   '$switch_toplevel_mode'(backtracking),
@@ -805,7 +806,7 @@ prolog :-
         read_expanded_query(BreakLev, Query, Bindings),
         (   Query == end_of_file
         ->  !, print_message(query, query(eof))
-        ;   '$execute'(Query, Bindings),
+        ;   '$execute_query'(Query, Bindings, _),
             (   current_prolog_flag(toplevel_mode, recursive)
             ->  !,
                 '$switch_toplevel_mode'(recursive),
@@ -1046,15 +1047,15 @@ subst_chars([H|T]) -->
                 *           EXECUTION           *
                 ********************************/
 
-%!  '$execute'(Goal, Bindings) is det.
+%!  '$execute_query'(Goal, Bindings, -Truth) is det.
 %
 %   Execute Goal using Bindings.
 
-'$execute'(Var, _) :-
+'$execute_query'(Var, _, true) :-
     var(Var),
     !,
     print_message(informational, var_query(Var)).
-'$execute'(Goal, Bindings) :-
+'$execute_query'(Goal, Bindings, Truth) :-
     '$current_typein_module'(TypeIn),
     '$dwim_correct_goal'(TypeIn:Goal, Bindings, Corrected),
     !,
@@ -1063,14 +1064,14 @@ subst_chars([H|T]) -->
         expand_goal(Corrected, Expanded),
         '$set_source_module'(M0)),
     print_message(silent, toplevel_goal(Expanded, Bindings)),
-    '$execute_goal2'(Expanded, Bindings).
-'$execute'(_, _) :-
+    '$execute_goal2'(Expanded, Bindings, Truth).
+'$execute_query'(_, _, false) :-
     notrace,
     print_message(query, query(no)).
 
-'$execute_goal2'(Goal, Bindings) :-
+'$execute_goal2'(Goal, Bindings, true) :-
     restore_debug,
-     '$current_typein_module'(TypeIn),
+    '$current_typein_module'(TypeIn),
     residue_vars(Goal, Vars, TypeIn:Delays),
     deterministic(Det),
     (   save_debug
@@ -1081,7 +1082,7 @@ subst_chars([H|T]) -->
     (    \+ \+ write_bindings(NewBindings, Vars, Delays, Det)
     ->   !
     ).
-'$execute_goal2'(_, _) :-
+'$execute_goal2'(_, _, false) :-
     save_debug,
     print_message(query, query(no)).
 
