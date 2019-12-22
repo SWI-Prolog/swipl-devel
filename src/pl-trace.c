@@ -209,14 +209,20 @@ isDebugFrame(LocalFrame FR)
 }
 
 
-static void
-exitFromDebugger(int status)
-{
+static int
+exitFromDebugger(const char *msg, int status)
+{ GET_LD
+
 #ifdef O_PLMT
   if ( PL_thread_self() > 1 )
-    pthread_exit(NULL);
+  { Sfprintf(Sdout, "%sexit session\n", msg);
+    LD->exit_requested = EXIT_REQ_THREAD;
+    return ACTION_ABORT;
+  }
 #endif
+  Sfprintf(Sdout, "%sexit (status 4)\n", msg);
   PL_halt(status);
+  return -1;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -474,15 +480,15 @@ again:
     if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
-      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
-	exitFromDebugger(4);
+      { action = exitFromDebugger("EOF: ", 4);
+	goto out;
       }
     } else
     { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
-      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
-	exitFromDebugger(4);
+      { action = exitFromDebugger("EOF: ", 4);
+	goto out;
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -671,8 +677,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04': FeedBack("EOF: ");
-    case 'e':	FeedBack("exit (status 4)\n");
-		exitFromDebugger(4);
+    case 'e':	return exitFromDebugger("", 4);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -1657,6 +1662,7 @@ again:
 
   switch(c)
   { case 'a':	Sfprintf(Sdout, "abort\n");
+    action_a:
 		unblockSignal(sig);
 		abortProlog();
 		if ( !safe )
@@ -1681,8 +1687,8 @@ again:
 		break;
     case 04:
     case EOF:	Sfprintf(Sdout, "EOF: ");
-    case 'e':	Sfprintf(Sdout, "exit (status 4)\n");
-		exitFromDebugger(4);
+    case 'e':	if ( exitFromDebugger("", 4) == ACTION_ABORT )
+		  goto action_a;
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfprintf(Sdout, "goals\n");

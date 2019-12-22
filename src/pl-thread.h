@@ -52,6 +52,9 @@
 #define GCREQUEST_CGC   0x02
 #define GCREQUEST_ABORT 0x04
 
+#define EXIT_REQ_PROCESS 1
+#define EXIT_REQ_THREAD  2
+
 typedef enum
 { LDATA_IDLE = 0,
   LDATA_SIGNALLED,

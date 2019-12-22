@@ -618,7 +618,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       PL_LOCK(L_THREAD);
       if ( info->status == PL_THREAD_RUNNING )
 	info->status = PL_THREAD_EXITED;	/* foreign pthread_exit() */
-      acknowledge = ld->exit_requested;
+      acknowledge = (ld->exit_requested == EXIT_REQ_PROCESS);
       PL_UNLOCK(L_THREAD);
 
       if ( ld->stacks.argument.base )		/* are stacks initialized? */
@@ -961,7 +961,7 @@ exitPrologThreads(void)
 	}
 	case PL_THREAD_RUNNING:
 	{ if ( !info->is_engine )
-	  { info->thread_data->exit_requested = TRUE;
+	  { info->thread_data->exit_requested = EXIT_REQ_PROCESS;
 
 	    if ( info->cancel )
 	    { switch( (*info->cancel)(i) )
