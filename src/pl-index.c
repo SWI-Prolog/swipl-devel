@@ -1627,6 +1627,16 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
   insertIndex(ctx->predicate, clist, ci);
   UNLOCKDEF(ctx->predicate);
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Adding a pause here creates  a window where other threads may mark clauses
+as erased (CL_ERASED).  This prevents them being added to the just-created
+index.
+
+See the test_cgc_1 test case in src/Tests/GC/test_cgc_1.pl
+
+  usleep(1000);
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
   for(cref = clist->first_clause; cref; cref = cref->next)
   { if ( false(cref->value.clause, CL_ERASED) )
     { if ( !addClauseToIndex(ci, cref->value.clause, CL_END) )
