@@ -685,45 +685,44 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}
 \predicatesummary{telling}{1}{Query current output stream}
-\predicatesummary{term_expansion}{2}{\hook{user} Convert term before
-compilation} \predicatesummary{term_expansion}{4}{\hook{user} Convert
-term before compilation} \predicatesummary{term_singletons}{2}{Find
-singleton variables in a term}
+\predicatesummary{term_expansion}{2}{\hook{user} Convert term before compilation}
+\predicatesummary{term_expansion}{4}{\hook{user} Convert term before compilation}
+\predicatesummary{term_singletons}{2}{Find singleton variables in a term}
 \predicatesummary{term_string}{2}{Read/write a term from/to a string}
 \predicatesummary{term_string}{3}{Read/write a term from/to a string}
-\predicatesummary{term_subsumer}{3}{Most specific generalization of two
-terms} \predicatesummary{term_to_atom}{2}{Convert between term and atom}
-\predicatesummary{thread_affinity}{3}{Query and control the
-\jargon{affinity} mask} \predicatesummary{thread_at_exit}{1}{Register
-goal to be called at exit} \predicatesummary{thread_create}{2}{Create a
-new Prolog task} \predicatesummary{thread_create}{3}{Create a new Prolog
-task} \predicatesummary{thread_detach}{1}{Make thread cleanup after
-completion} \predicatesummary{thread_exit}{1}{Terminate Prolog task with
-value} \predicatesummary{thread_get_message}{1}{Wait for message}
+\predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
+\predicatesummary{term_to_atom}{2}{Convert between term and atom}
+\predicatesummary{thread_affinity}{3}{Query and control the \jargon{affinity} mask}
+\predicatesummary{thread_alias}{1}{Set the alias name of a thread}
+\predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
+\predicatesummary{thread_create}{2}{Create a new Prolog task}
+\predicatesummary{thread_create}{3}{Create a new Prolog task}
+\predicatesummary{thread_detach}{1}{Make thread cleanup after completion}
+\predicatesummary{thread_exit}{1}{Terminate Prolog task with value}
+\predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_get_message}{3}{Wait for message in a queue}
-\predicatesummary{thread_initialization}{1}{Run action at start of
-thread} \predicatesummary{thread_join}{1}{Wait for Prolog
-task-completion} \predicatesummary{thread_join}{2}{Wait for Prolog
-task-completion} \predicatesummary{thread_local}{1}{Declare
-thread-specific clauses for a predicate}
+\predicatesummary{thread_initialization}{1}{Run action at start of thread}
+\predicatesummary{thread_join}{1}{Wait for Prolog task-completion}
+\predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
+\predicatesummary{thread_local}{1}{Declare thread-specific clauses for a predicate}
 \predicatesummary{thread_message_hook}{3}{Thread local message_hook/3}
 \predicatesummary{thread_peek_message}{1}{Test for message}
 \predicatesummary{thread_peek_message}{2}{Test for message in a queue}
 \predicatesummary{thread_property}{2}{Examine Prolog threads}
 \predicatesummary{thread_self}{1}{Get identifier of current thread}
-\predicatesummary{thread_send_message}{2}{Send message to another
-thread} \predicatesummary{thread_send_message}{3}{Send message to
-another thread} \predicatesummary{thread_setconcurrency}{2}{Number of
-active threads} \predicatesummary{thread_signal}{2}{Execute goal in
-another thread} \predicatesummary{thread_statistics}{3}{Get statistics
-of another thread} \predicatesummary{threads}{0}{List running threads}
+\predicatesummary{thread_send_message}{2}{Send message to another thread}
+\predicatesummary{thread_send_message}{3}{Send message to another thread}
+\predicatesummary{thread_setconcurrency}{2}{Number of active threads}
+\predicatesummary{thread_signal}{2}{Execute goal in another thread}
+\predicatesummary{thread_statistics}{3}{Get statistics of another thread}
+\predicatesummary{threads}{0}{List running threads}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
 \predicatesummary{time_file}{2}{Get last modification time of file}
 \predicatesummary{tmp_file}{2}{Create a temporary filename}
-\predicatesummary{tmp_file_stream}{3}{Create a temporary file and open
-it} \predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
+\predicatesummary{tmp_file_stream}{3}{Create a temporary file and open it}
+\predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
 \predicatesummary{tnodebug}{1}{Switch off debug mode in a thread}
 \predicatesummary{tnot}{1}{Tabled negation}
 \predicatesummary{told}{0}{Close current output}

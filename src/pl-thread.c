@@ -2496,6 +2496,26 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 }
 
 
+static
+PRED_IMPL("thread_alias", 1, thread_alias, 0)
+{ PRED_LD
+  PL_thread_info_t *info = LD->thread.info;
+  thread_handle *th;
+  atom_t alias;
+
+  if ( (th = create_thread_handle(info)) &&
+       th->alias )
+  { term_t ex = PL_new_term_ref();
+
+    return ( unify_thread_id(ex, info) &&
+	     PL_permission_error("re-alias", "thread", ex) );
+  }
+
+  return ( PL_get_atom_ex(A1, &alias) &&
+	   aliasThread(PL_thread_self(), ATOM_thread, alias) );
+}
+
+
 		 /*******************************
 		 *	  THREAD PROPERTY	*
 		 *******************************/
@@ -6868,6 +6888,7 @@ markAccessedPredicates(PL_local_data_t *ld)
 
 BeginPredDefs(thread)
 #ifdef O_PLMT
+  PRED_DEF("thread_alias",           1, thread_alias,	       0)
   PRED_DEF("thread_detach",	     1,	thread_detach,	       PL_FA_ISO)
   PRED_DEF("thread_join",	     2,	thread_join,	       0)
   PRED_DEF("thread_statistics",	     3,	thread_statistics,     0)

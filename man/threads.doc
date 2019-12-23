@@ -201,6 +201,11 @@ system exceptions into readable messages.
 The thread is terminated on thread_exit/1 using the argument \arg{Term}.
 \end{description}
 
+    \predicate{thread_alias}{1}{+Alias}
+Set the alias name of the calling thread to \arg{Alias}.  An error is
+raised if the calling thread already has an alias or \arg{Alias} is
+in use for a thread or message queue.
+
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached state (see \term{detached}{Bool} option at
 thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
