@@ -1022,6 +1022,13 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) The  clause  list   may   have   been   marked    as   "dirty"   by
+deleteActiveClauseFromBucket()  even though  it  does  not  contain the
+clause being deleted. We reset the count when we have finished scanning
+the list.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 gcClauseList(ClauseList cl)
 { ClauseRef cref=cl->first_clause, prev = NULL;
@@ -1056,7 +1063,7 @@ gcClauseList(ClauseList cl)
 	  }
 	});
 
-  assert(cl->erased_clauses==0);
+  cl->erased_clauses = 0; /* see (*) */
 }
 
 
