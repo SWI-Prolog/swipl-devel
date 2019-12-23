@@ -4,7 +4,7 @@ function(doc2tex file)
   string(REPLACE ".doc" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${PROG_SWIPL} ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${tex}
+      COMMAND ${PROG_SWIPL} -f none ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${tex}
       DEPENDS ${file} ${DOC2TEX_DEPENDS})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
@@ -13,7 +13,7 @@ function(txt2tex file)
   string(REPLACE ".txt" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${PROG_SWIPL} ${PLDOC2TEX} --outdir=. ${CMAKE_CURRENT_SOURCE_DIR}/${file}
+      COMMAND ${PROG_SWIPL} -f none ${PLDOC2TEX} --outdir=. ${CMAKE_CURRENT_SOURCE_DIR}/${file}
       DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
@@ -65,7 +65,7 @@ function(pldoc file)
   get_filename_component(base ${file} NAME_WE)
   add_custom_command(
       OUTPUT ${tex}
-      COMMAND ${PROG_SWIPL} ${PLDOC2TEX} --out=${tex} ${seclevel} ${options} ${lib}
+      COMMAND ${PROG_SWIPL} -f none ${PLDOC2TEX} --out=${tex} ${seclevel} ${options} ${lib}
       DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
@@ -190,7 +190,7 @@ function(pkg_doc pkg)
 
     add_custom_command(
 	OUTPUT ${pkg}.html
-	COMMAND ${PROG_SWIPL} ${LATEX2HTML} ${pkg}
+	COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} ${pkg}
 	COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
 	DEPENDS latex2html prolog_products ${texdeps} ${bbl} ${depends})
 
