@@ -390,7 +390,8 @@ Print usage statistics on internal mutexes and mutexes associated with
 dynamic predicates. For each mutex two numbers are printed: the number
 of times the mutex was acquired and the number of \jargon{collisions}:
 the number of times the calling thread has to wait for the mutex.
-Generally collision count is close to zero on single-CPU hardware.
+The output is written to \const{current_output} and can thus be
+redirected using with_output_to/2.
 \end{description}
 
 
