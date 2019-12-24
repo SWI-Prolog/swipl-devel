@@ -2,7 +2,7 @@
 
 \section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
-We have tried to keep the predicat descriptions clear and concise.
+We have tried to keep the predicate descriptions clear and concise.
 First, the predicate name is printed in bold face, followed by the
 arguments in italics.  Arguments are preceded by a mode indicator.
 There is no complete agreement on mode indicators in the Prolog
@@ -8531,7 +8531,7 @@ should use the Prolog flag \prologflag{argv}.  See also the Prolog flag
 \label{sec:winsystem}
 
 The predicates in this section are only available on the Windows version
-of SWI-Prolog. Their use is discouraged if there are portably
+of SWI-Prolog. Their use is discouraged if there are portable
 alternatives. For example, win_exec/2 and win_shell/2 can often be
 replaced by the more portable shell/2 or the more powerful
 process_create/3.
@@ -8656,7 +8656,7 @@ defined number of seconds as sometimes a leap-second is introduced to
 synchronise properly with our earth's rotation. At the same time,
 resolution demands a range from better than pico-seconds to millions of
 years. Finally, civilizations have a wide range of calendars. Although
-there exist libraries dealing with most if this complexity, our desire
+there exist libraries dealing with most of this complexity, our desire
 to keep Prolog clean and lean stops us from fully supporting these.
 
 For human-oriented tasks, time can be broken into years, months, days,
@@ -8678,7 +8678,7 @@ second as it is the scientific unit.%
 		  readable notation of time and Julian days cannot deal
 		  naturally with leap seconds, we decided for the second as
 		  our unit.}
-We have placed our origin at 1970-1-1T0:0:0Z for compatibility with the
+We have placed our origin at 1970-01-01T0:0:0Z for compatibility with the
 POSIX notion of time as well as with older time support provided by
 SWI-Prolog.
 
@@ -8695,7 +8695,7 @@ We use the following time representations
 \begin{description}
     \definition{TimeStamp}
 A TimeStamp is a floating point number expressing the time in seconds
-since the Epoch at 1970-1-1.
+since the Epoch at 1970-01-01.
 
     \termitem{date}{Y,M,D,H,Mn,S,Off,TZ,DST}
 We call this term a \emph{date-time} structure. The first 5 fields are
@@ -8740,7 +8740,7 @@ hour, minute or second need not be normalized.  This flexibility
 allows for easy computation of the time at any given number of
 these units from a given timestamp.  Normalization can be achieved
 following this call with stamp_date_time/3.  This example computes
-the date 200 days after 2006-7-14:
+the date 200 days after 2006-07-14:
 
 \begin{code}
 ?- date_time_stamp(date(2006,7,214,0,0,0,0,-,-), Stamp),
