@@ -17,7 +17,7 @@ start --> "(".
 
 end --> ")".
 
-test('sequence/2 ground list',
+test('sequence//2 ground list',
      forall(member(t(Codes, Result, Rest),
                    [t(``, [], []),
                     t(`x`, [], `x`),
@@ -29,11 +29,11 @@ test('sequence/2 ground list',
     ) :-
     phrase(sequence(a, Result), Codes, Rest).
 
-test('sequence/2 order of solutions',
+test('sequence//2 order of solutions',
      all(List-Rest == [[a,a]-``, [a]-`a`, []-`aa`])) :-
     phrase(sequence(a, List), `aa`, Rest).
 
-test('sequence/2 det element',
+test('sequence//2 det element',
      [forall(member(t(Codes, Result, Rest),
                     [t(`a`, [a], []),
                      t(`x`, [], `x`),
@@ -47,12 +47,12 @@ test('sequence/2 det element',
     L == Result,
     R == Rest.
 
-test('sequence/2 nondet element', all(B == [b1,b2])) :-
+test('sequence//2 nondet element', all(B == [b1,b2])) :-
     phrase(sequence(b, [B,B]), `bb`, ``).
-test('sequence/2 nondet element and rest', all(B == [b1,b2])) :-
+test('sequence//2 nondet element and rest', all(B == [b1,b2])) :-
     phrase(sequence(b, [B,B]), `bbx`, `x`).
 
-test('sequence/3 det element',
+test('sequence//3 det element',
      [forall(member(t(Codes, Result, Rest),
                     [t(``, [], []),
                      t(`a`, [a], []),
@@ -67,23 +67,23 @@ test('sequence/3 det element',
     L == Result,
     R == Rest.
 
-test('sequence/3 det element trailing sep', fixme('Sep should not be consumed')) :-
+test('sequence//3 det element trailing sep', fixme('Sep should not be consumed')) :-
     phrase(sequence(a, sep, L), `a,`, R),
     L == [a],
     R == `,`.
 
-test('sequence/3 det element trailing sep', fail) :-
+test('sequence//3 det element trailing sep consumed silently', fail) :-
     phrase(sequence(a, sep, L), `a,`, R),
     L == [a],
     R == [].
 
-test('sequence/3 separator only', fail) :-
+test('sequence//3 separator only', fail) :-
     phrase(sequence(a, sep, _L), `,`).
 
-test('sequence/3 nondet element', fixme('Not sure what should happen')) :-
+test('sequence//3 nondet element', fixme('Not sure what should happen')) :-
     phrase(sequence(b, sep, _L), `b,b`, _R).
 
-test('sequence/5 det element',
+test('sequence//5 det element',
      [forall(member(t(Codes, Result, Rest),
              [t(`()`, [], []),
               t(`(a)`, [a], []),
@@ -96,18 +96,18 @@ test('sequence/5 det element',
     L == Result,
     R == Rest.
 
-test('sequence/5 det element trailing sep', fail) :-
+test('sequence//5 det element trailing sep', fail) :-
     phrase(sequence(start, a, sep, end, _L), `(a,)`, _R).
 
-test('sequence/5 sep only', fail) :-
+test('sequence//5 sep only', fail) :-
     phrase(sequence(start, a, sep, end, _L), `(,)`, _R).
 
-test('sequence/5 nondet element') :-
+test('sequence//5 nondet element') :-
     phrase(sequence(start, b, sep, end, L), `(b,b)`, R),
     L == [b1,b1],
     R == [].
 
-test('sequence/5 nondet element, not first solution', fail) :-
+test('sequence//5 nondet element, not first solution', fail) :-
     phrase(sequence(start, b, sep, end, L), `(b,b)`),
     L \== [b1,b1].
 
