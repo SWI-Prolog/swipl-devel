@@ -116,6 +116,22 @@ On the other hand, SWI-Prolog offers some facilities that are widely
 appreciated by users:
 
 \begin{itemlist}
+    \item [Comprehensive support of Prolog extensions]
+Many modern Prolog implementations extend the standard SLD resolution
+mechanism with which Prolog started and thst is described in the ISO
+standard. SWI-Prolog offers most popular extensions.
+
+\jargon{Attributed variables} provide \jargon{Constraint Logic
+Programming} and delayed execution based on instantiation
+(\jargon{coroutining}). \jargon{Tabling} or \jargon{SGL resoluton}
+provides characteristics normally associated with \jargon{bottom up
+evaluation}: better termination, better predictable performance by
+avoiding recomputation and Well Founded Semantics for negation.
+\jargon{Delimited continuations} can be used to implement high level new
+control structures and \jargon{Engines} can be used to control multiple
+Prolog goals, achieving different control structures such as massive
+numbers of cooperating agents.
+
     \item [Nice environment]
 SWI-Prolog provides a good command line environment, including `Do What I
 Mean', autocompletion, history and a tracer that operates on single
@@ -158,7 +174,14 @@ compatibility with other Prolog systems.
 
     \item [Threads]
 Robust support for multiple threads may improve performance and is a
-key enabling factor for deploying Prolog in server applications.
+key enabling factor for deploying Prolog in server applications. Threads
+also facilitates debugging and maintenance of long running processes and
+embedded Prolog engines.  The native IDE tools run in a separate thread
+The \pllib{prolog_server} library provides \program{telnet} access and
+the pack \file{libssh} provides SSH login. With some restrictions
+regarding the compatibility of old and new code, code can be replaced
+while it is being executed in another thread.  This allows for injecting
+debug/3 statements as well as fixing bugs without downtime.
 
     \item [Interfaces]
 SWI-Prolog ships with many extension packages that provide robust
@@ -224,7 +247,9 @@ Demoen. The \jargon{engine} implementation follows the design proposed
 by Paul Tarau. Tabling was implemented by Benoit Desouter based on
 delimited continuations. Tabling has been extended with \jargon{answer
 subsumption} by Fabrizio Riguzzi. The implementation of \jargon{well
-founded semantics} and \jargon{incremental tabling} follows XSB.
+founded semantics} and \jargon{incremental tabling} follows XSB and
+has been spnosored by Kyndi and mode possible by technical support from
+notably Theresa Swift and David S. Warren.
 
 
 \section{Acknowledgements}	\label{sec:acknowledge}
