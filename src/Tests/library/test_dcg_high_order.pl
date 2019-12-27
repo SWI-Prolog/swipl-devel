@@ -17,6 +17,8 @@ start --> "(".
 
 end --> ")".
 
+:- use_module(library(dcg/basics), [string//1]).
+
 test('sequence//2 ground list',
      forall(member(t(Codes, Result, Rest),
                    [t(``, [], []),
@@ -67,7 +69,7 @@ test('sequence//3 det element',
     L == Result,
     R == Rest.
 
-test('sequence//3 det element trailing sep', fixme('Sep should not be consumed')) :-
+test('sequence//3 det element trailing sep', fail) :-
     phrase(sequence(a, sep, L), `a,`, R),
     L == [a],
     R == `,`.
@@ -80,8 +82,10 @@ test('sequence//3 det element trailing sep consumed silently', fail) :-
 test('sequence//3 separator only', fail) :-
     phrase(sequence(a, sep, _L), `,`).
 
-test('sequence//3 nondet element', fixme('Not sure what should happen')) :-
-    phrase(sequence(b, sep, _L), `b,b`, _R).
+test('sequence//3 nondet element', nondet) :-
+    phrase(sequence(string, sep, L), `b,b`, R),
+    L == [`b`, `b`],
+    R == [].
 
 test('sequence//5 det element',
      [forall(member(t(Codes, Result, Rest),
@@ -103,12 +107,8 @@ test('sequence//5 sep only', fail) :-
     phrase(sequence(start, a, sep, end, _L), `(,)`, _R).
 
 test('sequence//5 nondet element') :-
-    phrase(sequence(start, b, sep, end, L), `(b,b)`, R),
-    L == [b1,b1],
+    phrase(sequence(start, string, sep, end, L), `(b,b)`, R),
+    L == [`b`, `b`],
     R == [].
-
-test('sequence//5 nondet element, not first solution', fail) :-
-    phrase(sequence(start, b, sep, end, L), `(b,b)`),
-    L \== [b1,b1].
 
 :- end_tests(sequence).
