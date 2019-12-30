@@ -50,70 +50,70 @@ csv_file(Name, File) :-
 test(normal) :-
   csv_file('normal.csv', File),
 	findall(Row, csv_read_file_row(File, Row, []), Rows),
-  Rows = [ row(a1,a2,a3),
-           row(b1,b2,b3)
-         ].
+  Rows == [ row(a1,a2,a3),
+            row(b1,b2,b3)
+          ].
 
 test(emptyline) :-
   csv_file('emptyline.csv', File),
   findall(Row, csv_read_file_row(File, Row, []), Rows),
-  Rows = [ row(a1,a2,a3),
-           row(''),
-           row(b1,b2,b3)
-         ].
+  Rows == [ row(a1,a2,a3),
+            row(''),
+            row(b1,b2,b3)
+          ].
 
 test(quoted) :-
   csv_file('quoted.csv', File),
   findall(Row, csv_read_file_row(File, Row, []), Rows),
-  Rows = [ row(a1,a2,a3),
-           row(b1,b2,b3),
-           row('c1_1"c1_2','"c2','c3"')
-         ].
+  Rows == [ row(a1,a2,a3),
+            row(b1,b2,b3),
+            row('c1_1"c1_2','"c2','c3"')
+          ].
 
 test(quoted_ignored) :-
   csv_file('quoted.csv', File),
   findall(Row, csv_read_file_row(File, Row, [ignore_quotes(true)]), Rows),
-  Rows = [ row(a1,'"a2"',a3),
-           row(b1,b2,b3),
-           row('"c1_1""c1_2"','"""c2"','"c3"""')
-         ].
+  Rows == [ row(a1,'"a2"',a3),
+            row(b1,b2,b3),
+            row('"c1_1""c1_2"','"""c2"','"c3"""')
+          ].
 
 test(quoted_lf) :-
   csv_file('quoted_lf.csv', File),
   findall(Row, csv_read_file_row(File, Row, []), Rows),
-  Rows = [ row(a1,a2,'a3_1\na3_2'),
-           row(b1,b2,b3),
-           row(c1,'c2_1\n\nc2_2',c3)
-         ].
+  Rows == [ row(a1,a2,'a3_1\na3_2'),
+            row(b1,b2,b3),
+            row(c1,'c2_1\n\nc2_2',c3)
+          ].
 
 test(quoted_lf_ignored) :-
   csv_file('quoted_lf.csv', File),
   findall(Row, csv_read_file_row(File, Row, [ignore_quotes(true)]), Rows),
-  Rows = [ row(a1,a2,'"a3_1'),
-           row('a3_2"'),
-           row(b1,b2,b3),
-           row(c1,'"c2_1'),
-           row(''),
-           row('c2_2"',c3)
-         ].
+  Rows == [ row(a1,a2,'"a3_1'),
+            row('a3_2"'),
+            row(b1,b2,b3),
+            row(c1,'"c2_1'),
+            row(''),
+            row('c2_2"',c3)
+          ].
 
 test(quoted_crlf) :-
   csv_file('quoted_crlf.csv', File),
   findall(Row, csv_read_file_row(File, Row, []), Rows),
-  Rows = [ row(a1,a2,'a3_1\na3_2'),
-           row(b1,b2,b3),
-           row(c1,'c2_1\n\nc2_2',c3)
-         ].
+  Rows == [ row(a1,a2,'a3_1\na3_2'),
+            row(b1,b2,b3),
+            row(c1,'c2_1\n\nc2_2',c3)
+          ].
 
 test(quoted_crlf_ignored) :-
   csv_file('quoted_crlf.csv', File),
   findall(Row, csv_read_file_row(File, Row, [ignore_quotes(true)]), Rows),
-  Rows = [ row(a1,a2,'"a3_1'),
-           row('a3_2"'),
-           row(b1,b2,b3),
-           row(c1,'"c2_1'),
-           row(''),
-           row('c2_2"',c3)
-         ].
+  Rows == [ row(a1,a2,'"a3_1'),
+            row('a3_2"'),
+            row(b1,b2,b3),
+            row(c1,'"c2_1'),
+            row(''),
+            row('c2_2"',c3)
+          ].
 
 :- end_tests(csv_read_file_row).
