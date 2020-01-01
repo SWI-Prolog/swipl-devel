@@ -1784,7 +1784,7 @@ argument goal. Exceptions from the  recover   goal  should be passed (to
 avoid a loop and allow for re-throwing).   With  thanks from Gertjan van
 Noord.
 
-findCatchExit() can do GC/shift!  The  return   value  is  a local-frame
+findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
