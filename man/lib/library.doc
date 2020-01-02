@@ -43,6 +43,7 @@ documented at all.
 \input{dicts}
 \input{error}
 \input{gensym}
+\input{intercept}
 \input{iostream}
 \input{lists}
 \input{main}

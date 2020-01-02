@@ -93,8 +93,11 @@
 \libsummary{help}
 \input{summaries.d/help.tex}
 
+\libsummary{intercept}
+\libsummary{summaries.d/intercept.tex}
+
 \libsummary{iostream}
-\libsummary{summaries.d/iostream/tex}
+\libsummary{summaries.d/iostream.tex}
 
 \libsummary{lists}
 \input{summaries.d/lists.tex}
