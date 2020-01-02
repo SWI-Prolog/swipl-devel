@@ -299,9 +299,10 @@ find_varname(Var, [_|T], Name) :-
 %           more complex source-translations,  falling   back  to  a
 %           heuristic method locating as much as possible.
 
-unify_clause(Read, Read, _, TermPos, TermPos) :-
-    acyclic_term(Read),
-    !.
+unify_clause(Read, Decompiled, _, TermPos, TermPos) :-
+    Read =@= Decompiled,
+    !,
+    Read = Decompiled.
                                         % XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos),
@@ -470,6 +471,13 @@ ubody(X, call(X), _,                    % X = call(X)
     !,
     arg(1, Pos, From),
     arg(2, Pos, To).
+ubody(A, B, _, P1, P2) :-
+    nonvar(A), A = (_=_),
+    nonvar(B), B = (LB=RB),
+    A =@= (RB=LB),
+    !,
+    P1 = term_position(F,T, FF,FT, [PL,PR]),
+    P2 = term_position(F,T, FF,FT, [PR,PL]).
 ubody(B, D, _, term_position(_,_,_,_,[_,RP]), TPOut) :-
     nonvar(B), B = M:R,
     ubody(R, D, M, RP, TPOut).
@@ -510,7 +518,9 @@ ubody(X0, X, M,
 ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
-    expand_goal(X0, X, M, PA0, PA).
+    expand_goal(X0, X1, M, PA0, PA),
+    X1 =@= X,
+    X1 = X.
 
                                         % 5.7.X optimizations
 ubody(_=_, true, _,                     % singleton = Any
@@ -719,9 +729,10 @@ the clause as defined in init.pl
 expand_goal(G, call(G), _, P, term_position(0,0,0,0,[P])) :-
     var(G),
     !.
-expand_goal(G, G, _, P, P) :-
+expand_goal(G, G1, _, P, P) :-
     var(G),
-    !.
+    !,
+    G1 = G.
 expand_goal(M0, M, Module, P0, P) :-
     meta(Module, M0, S),
     !,
