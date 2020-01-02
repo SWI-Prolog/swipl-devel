@@ -2118,7 +2118,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
    return PL_unify(value, consTermRef(argFrameP(fr, argn-1)));
   }
 
-  if ( arity != 0 )
+  if ( !(arity == 0 || (arity == 1 && key == ATOM_parent_goal)) )
   { unknown_key:
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_frame_attribute, what);
   }
@@ -2216,35 +2216,61 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   { Procedure proc;
     term_t head = PL_new_term_ref();
     term_t a = PL_new_term_ref();
+    fid_t fid;
 
     if ( !get_procedure(value, &proc, head, GP_FIND) )
       fail;
 
-    while( fr )
-    { while(fr && fr->predicate != proc->definition)
-	fr = parentFrame(fr);
+    if ( (fid = PL_open_foreign_frame()) )
+    { while( fr )
+      { while(fr && fr->predicate != proc->definition)
+	  fr = parentFrame(fr);
 
-      if ( fr )
-      { term_t fref = consTermRef(fr);
-	int i, arity = fr->predicate->functor->arity;
+	if ( fr )
+	{ int i, garity = fr->predicate->functor->arity;
+	  term_t fref = consTermRef(fr);
 
-	for(i=0; i<arity; i++)
-	{ term_t fa;
+	  for(i=0; i<garity; i++)
+	  { term_t fa;
 
-	  fr = (LocalFrame)valTermRef(fref);
-	  fa = consTermRef(argFrameP(fr, i));
+	    fa = consTermRef(argFrameP(fr, i));
 
-	  _PL_get_arg(i+1, head, a);
-	  if ( !PL_unify(a, fa) )
-	    break;
+	    _PL_get_arg(i+1, head, a);
+	    if ( !PL_unify(a, fa) )
+	      break;
+	    fr = (LocalFrame)valTermRef(fref);	/* deal with possible shift */
+	  }
+	  if ( i == garity )
+	  { if ( arity == 1 )
+	    { LocalFrame parent;
+	      term_t arg = PL_new_term_ref();
+
+	      _PL_get_arg(1, what, arg);
+	      if ( (parent = parentFrame(fr)) )
+	      { if ( PL_unify_frame(arg, parent) )
+		  return TRUE;
+	      } else
+	      { if ( PL_unify_atom(arg, ATOM_none) )
+		  return TRUE;
+	      }
+	    } else
+	    { return TRUE;
+	    }
+	  }
+
+	  if ( PL_exception(0) )
+	  { return FALSE;
+	  } else
+	  { PL_rewind_foreign_frame(fid);
+
+	    fr = (LocalFrame)valTermRef(fref);	/* deal with possible shift */
+	    fr = parentFrame(fr);
+	  }
+	} else
+	{ PL_close_foreign_frame(fid);
+	  return FALSE;
 	}
-        if ( i == arity )
-	  succeed;
-	fr = (LocalFrame)valTermRef(fref);
-      } else
-	fail;
-
-      fr = parentFrame(fr);
+      }
     }
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
