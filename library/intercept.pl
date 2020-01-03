@@ -91,7 +91,7 @@ Or, we can collect all records in a list using intercept_all/4:
     intercept_all(?,0,?,-),
     nb_intercept_all(?,0,?,-).
 
-%!  intercept(:Goal, ?Ball, -Handler)
+%!  intercept(:Goal, ?Ball, :Handler)
 %
 %   Run Goal as call/1.  If  somewhere   during  the  execution  of Goal
 %   send_signal/1 is called with a _Signal_  that unifies with Ball, run
@@ -115,7 +115,7 @@ Or, we can collect all records in a list using intercept_all/4:
 intercept(Goal, Ball, Handler) :-
     do_intercept(Goal, Ball, Handler, args).
 
-%!  intercept(:Goal, ?Ball, -Handler, +Arg)
+%!  intercept(:Goal, ?Ball, :Handler, +Arg)
 %
 %   Similar to intercept/3,  but  the  copy   of  Handler  is  called as
 %   call(Copy,Arg), which allows passing  large   context  arguments  or
