@@ -57,13 +57,14 @@ test_prolog_clause :-
 :- begin_tests(prolog_clause).
 
 :- style_check(-no_effect).
-:- '$clausable'((t0/0,t1/0,t2/0,t3/0,t4/0,t5/0)).
+:- '$clausable'((t0/0,t1/0,t2/0,t3/0,t4/0,t5/0,t6/0)).
 t0 :-	a(X), b(Y), X=Y.
 t1 :-	a, _ = hello, b.
 t2 :-	a(X), a(b) = X, b(X).
 t3 :-	a, _ == hello, b.
 t4 :-	a(X), x == X, b(X).
-t5 :-	i(A), B is A-1, b(B).
+t5 :-	a(X), f(x) = X, b(X).
+t6 :-	i(A), B is A-1, b(B).
 :- style_check(+no_effect).
 
 a.
@@ -82,5 +83,7 @@ test(t1) :- test_ci(t1).
 test(t2) :- test_ci(t2).
 test(t3) :- test_ci(t3).
 test(t4) :- test_ci(t4).
+test(t5) :- test_ci(t5).
+test(t6) :- test_ci(t6).
 
 :- end_tests(prolog_clause).

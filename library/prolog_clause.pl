@@ -478,6 +478,13 @@ ubody(A, B, _, P1, P2) :-
     !,
     P1 = term_position(F,T, FF,FT, [PL,PR]),
     P2 = term_position(F,T, FF,FT, [PR,PL]).
+ubody(A, B, _, P1, P2) :-
+    nonvar(A), A = (_==_),
+    nonvar(B), B = (LB==RB),
+    A =@= (RB==LB),
+    !,
+    P1 = term_position(F,T, FF,FT, [PL,PR]),
+    P2 = term_position(F,T, FF,FT, [PR,PL]).
 ubody(B, D, _, term_position(_,_,_,_,[_,RP]), TPOut) :-
     nonvar(B), B = M:R,
     ubody(R, D, M, RP, TPOut).
