@@ -8,7 +8,7 @@ D.~L. Bowen, L.~M. Byrd, and WF. Clocksin.
 
 \bibitem[Bratko, 1986]{Bratko:86}
 I.~Bratko.
-\newblock {\em Prolog Programming for Artificial Intelligence}.
+\newblock {\em {Prolog} Programming for Artificial Intelligence}.
 \newblock Addison-Wesley, Reading, Massachusetts, 1986.
 
 \bibitem[Butenhof, 1997]{Butenhof:1997:PPT}
@@ -23,7 +23,7 @@ L.~Byrd.
 
 \bibitem[Clocksin \& Melish, 1987]{Clocksin:87}
 W.~F. Clocksin and C.~S. Melish.
-\newblock {\em Programming in Prolog}.
+\newblock {\em Programming in {Prolog}}.
 \newblock Springer-Verlag, New York, {T}hird, {R}evised and {E}xtended edition,
   1987.
 
@@ -59,14 +59,14 @@ Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
 
 \bibitem[Hodgson, 1998]{stdprolog:98}
 Jonathan Hodgson.
-\newblock validation suite for conformance with part 1 of the standard, 1998,
+\newblock Validation suite for conformance with part 1 of the standard, 1998,
   \url{http://www.sju.edu/~jhodgson/pub/suite.tar.gz}.
 
 \bibitem[Holzbaur, 1992]{holzbaur:1992}
 Christian Holzbaur.
 \newblock Metastructures versus attributed variables in the context of
   extensible unification.
-\newblock In {\em PLILP}, volume 631, pages 260--268. Springer-Verlag, 1992.
+\newblock In {\em {PLILP}}, volume 631, pages 260--268. Springer-Verlag, 1992.
 \newblock LNCS 631.
 
 \bibitem[Kernighan \& Ritchie, 1978]{Kernighan:78}
@@ -82,7 +82,7 @@ Ulrich Neumerkel.
 
 \bibitem[O'Keefe, 1990]{Keefe:90}
 R.~A. O'Keefe.
-\newblock {\em The Craft of Prolog}.
+\newblock {\em The Craft of {Prolog}}.
 \newblock MIT Press, Massachussetts, 1990.
 
 \bibitem[Pereira, 1986]{CPROLOG:manual}
@@ -115,12 +115,12 @@ Joachim Schimpf.
 
 \bibitem[Schrijvers {\em et al.}, 2013]{DBLP:journals/tplp/SchrijversDDW13}
 Tom Schrijvers, Bart Demoen, Benoit Desouter, and Jan Wielemaker.
-\newblock Delimited continuations for prolog.
+\newblock Delimited continuations for {Prolog}.
 \newblock {\em {TPLP}}, 13(4-5):533--546, 2013.
 
 \bibitem[Sterling \& Shapiro, 1986]{Sterling:86}
 L.~Sterling and E.~Shapiro.
-\newblock {\em The Art of Prolog}.
+\newblock {\em The Art of {Prolog}}.
 \newblock MIT Press, Cambridge, Massachusetts, 1986.
 
 \bibitem[Swift, 2014]{DBLP:journals/tplp/Swift14}
@@ -131,17 +131,17 @@ Terrance Swift.
 
 \bibitem[Tarau, 2011]{DBLP:conf/coordination/Tarau11}
 Paul Tarau.
-\newblock Coordination and concurrency in multi-engine prolog.
+\newblock Coordination and concurrency in multi-engine {Prolog}.
 \newblock In Wolfgang~De Meuter and Gruia{-}Catalin Roman, editors, {\em
   Coordination Models and Languages - 13th International Conference,
-  {COORDINATION} 2011, Reykjavik, Iceland, June 6-9, 2011. Proceedings}, volume
-  6721 of {\em Lecture Notes in Computer Science}, pages 157--171. Springer,
-  2011.
+  {COORDINATION} 2011, {R}eykjavik, {I}celand, {J}une 6-9, 2011.
+  {P}roceedings}, volume 6721 of {\em Lecture Notes in Computer Science}, pages
+  157--171. Springer, 2011.
 
 \bibitem[Triska, 2016]{clpb:Triska2016}
 Markus Triska.
 \newblock The {Boolean} constraint solver of {SWI-Prolog}: System description.
-\newblock In {\em FLOPS}, volume 9613 of {\em LNCS}, pages 45--61, 2016.
+\newblock In {\em {FLOPS}}, volume 9613 of {\em LNCS}, pages 45--61, 2016.
 \newblock https://www.metalevel.at/swiclpb.pdf.
 
 \end{thebibliography}
