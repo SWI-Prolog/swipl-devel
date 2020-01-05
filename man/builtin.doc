@@ -3843,6 +3843,13 @@ generate_built_in(Name/Arity) :-
     \+ sub_atom(Name, 0, _, _, $).   % discard reserved names
 \end{code}
 
+The predicate predicate_property/2 is covered by part-II of the ISO
+standard (modules). Although we are not aware of any Prolog system that
+implements part-II of he ISO standard, predicate_property/2 is available
+in most systems. There is little consensus on the implemented properties
+though. SWI-Prolog's \jargon{auto loading} feature further complicate
+this predicate.
+
 \arg{Property} is one of:
 
 \begin{description}
@@ -3891,12 +3898,9 @@ default_module/2) and (2) the autoload index if the \prologflag{unknown}
 flag is not set to \const{fail} in the target module.
 
     \termitem{indexed}{Indexes}
-\arg{Indexes}\footnote{This predicate property should be used for
-analysis and statistics only. The exact representation of \arg{Indexes}
-may change between versions.} is a list of additional (hash) indexes on
-the predicate. Each element of the list is a term
-\arg{ArgSpec}-\arg{Index}. \arg{ArgSpec} denotes the indexed argument(s)
-and is one of
+\arg{Indexes} is a list of additional (hash) indexes on the predicate.
+Each element of the list is a term \arg{ArgSpec}-\arg{Index}.
+\arg{ArgSpec} denotes the indexed argument(s) and is one of
 
 \begin{description}
     \termitem{single}{Argument}
@@ -3917,6 +3921,11 @@ is the size of the index in memory in bytes and finally, \arg{IsList}
 indicates that a list is created for all clauses with the same key. This
 is used to create \jargon{deep indexes} for the arguments of compound
 terms.
+
+\textbf{Note:} This predicate property should be used for analysis and
+statistics only. The exact representation of \arg{Indexes} may change
+between versions. The utilities jiti_list/0 jiti_list/1 list the
+\jargon{jit} indexes of matching predicates in a user friendly way.
 
     \termitem{interpreted}{}
 True if the predicate is defined in Prolog. We return true on this
@@ -3949,7 +3958,7 @@ Details of the predicate are not shown by the debugger. This is the
 default for built-in predicates.  User predicates can be compiled this
 way using the Prolog flag \prologflag{generate_debug_info}.
 
-    \termitem{non_terminal}
+    \termitem{non_terminal}{}
 True if the predicate implements a \jargon{grammar rule}.  See
 non_terminal/1.
 
