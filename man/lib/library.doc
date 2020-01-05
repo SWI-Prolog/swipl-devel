@@ -57,6 +57,7 @@ documented at all.
 \input{persistency}
 \input{pio}
 \input{predicateoptions}
+\input{prologjiti}
 \input{prologpack}
 \input{prologxref}
 \input{quasiquotations}
