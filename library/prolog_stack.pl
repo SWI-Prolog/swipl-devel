@@ -35,7 +35,7 @@
 
 :- module(prolog_stack,
           [ get_prolog_backtrace/2,     % +MaxDepth, -Stack
-            get_prolog_backtrace/3,     % +Frame, -Stack, +Options
+            get_prolog_backtrace/3,     % +MaxDepth, -Stack, +Options
             prolog_stack_frame_property/2, % +Frame, ?Property
             print_prolog_backtrace/2,   % +Stream, +Stack
             print_prolog_backtrace/3,   % +Stream, +Stack, +Options
