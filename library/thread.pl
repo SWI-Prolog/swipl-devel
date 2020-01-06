@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2018, University of Amsterdam
+    Copyright (c)  2007-2020, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,7 +39,9 @@
             concurrent_maplist/2,       % :Goal, +List
             concurrent_maplist/3,       % :Goal, ?List1, ?List2
             concurrent_maplist/4,       % :Goal, ?List1, ?List2, ?List3
-            first_solution/3            % -Var, :Goals, +Options
+            first_solution/3,           % -Var, :Goals, +Options
+
+            call_in_thread/2            % +Thread, :Goal
           ]).
 :- use_module(library(debug)).
 :- use_module(library(error)).
@@ -53,7 +56,9 @@
     concurrent_maplist(1, +),
     concurrent_maplist(2, ?, ?),
     concurrent_maplist(3, ?, ?, ?),
-    first_solution(-, :, +).
+    first_solution(-, :, +),
+    call_in_thread(+, 0).
+
 
 :- predicate_options(concurrent/3, 3,
                      [ pass_to(system:thread_create/3, 3)
@@ -459,3 +464,62 @@ thread_option(global(_)).
 thread_option(trail(_)).
 thread_option(argument(_)).
 thread_option(stack(_)).
+
+
+%!  call_in_thread(+Thread, :Goal) is semidet.
+%
+%   Run Goal as an interrupt in the context  of Thread. This is based on
+%   thread_signal/2. If waiting times  out,   we  inject  a stop(Reason)
+%   exception into Goal. Interrupts can be   nested, i.e., it is allowed
+%   to run a call_in_thread/2 while the target thread is processing such
+%   an interrupt.
+%
+%   This predicate is primarily intended   for  debugging and inspection
+%   tasks.
+
+call_in_thread(Thread, Goal) :-
+    thread_self(Thread),
+    !,
+    once(Goal).
+call_in_thread(Thread, Goal) :-
+    term_variables(Goal, Vars),
+    thread_self(Me),
+    A is random(1 000 000 000),
+    thread_signal(Thread, run_in_thread(Goal,Vars,A,Me)),
+    catch(thread_get_message(in_thread(A,Result)),
+          Error,
+          forward_exception(Thread, A, Error)),
+    (   Result = true(Vars)
+    ->  true
+    ;   Result = error(Error)
+    ->  throw(Error)
+    ;   fail
+    ).
+
+run_in_thread(Goal, Vars, Id, Sender) :-
+    (   catch_with_backtrace(call(Goal), Error, true)
+    ->  (   var(Error)
+        ->  thread_send_message(Sender, in_thread(Id, true(Vars)))
+        ;   Error = stop(_)
+        ->  true
+        ;   thread_send_message(Sender, in_thread(Id, error(Error)))
+        )
+    ;   thread_send_message(Sender, in_thread(Id, false))
+    ).
+
+forward_exception(Thread, Id, Error) :-
+    kill_with(Error, Kill),
+    thread_signal(Thread, kill_task(Id, Kill)),
+    throw(Error).
+
+kill_with(time_limit_exceeded, stop(time_limit_exceeded)) :-
+    !.
+kill_with(_, stop(interrupt)).
+
+kill_task(Id, Exception) :-
+    prolog_current_frame(Frame),
+    prolog_frame_attribute(Frame, parent_goal,
+                           run_in_thread(_Goal, _Vars, Id, _Sender)),
+    !,
+    throw(Exception).
+kill_task(_, _).
