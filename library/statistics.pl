@@ -245,7 +245,8 @@ engine_counts --> [].
 thread_statistics(Thread, Stats) :-
     thread_property(Thread, status(Status)),
     human_thread_id(Thread, Id),
-    (   catch(thread_stats(Thread, Stacks, Time), _, fail)
+    Error = error(_,_),
+    (   catch(thread_stats(Thread, Stacks, Time), Error, fail)
     ->  Stats = thread{id:Id,
                        status:Status,
                        time:Time,
