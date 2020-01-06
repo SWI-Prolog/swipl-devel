@@ -44,6 +44,7 @@
     prolog:message//1,              % entire message
     prolog:error_message//1,        % 1-st argument of error term
     prolog:message_context//1,      % Context of error messages
+    prolog:deprecated//1,	    % Deprecated features
     prolog:message_location//1,     % (File) location of error messages
     prolog:message_line_element/2.  % Extend printing
 :- discontiguous
@@ -1538,6 +1539,9 @@ prolog_message(backcomp(init_file_moved(FoundFile))) -->
 		 *          DEPRECATED		*
 		 *******************************/
 
+deprecated(Term) -->
+    prolog:deprecated(Term),
+    !.
 deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
       'See https://www.swi-prolog.org/changes/stack-limit.html'

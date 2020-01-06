@@ -2478,6 +2478,7 @@ term_colours((prolog:Head --> _),
     prolog_message_hook(Head).
 
 prolog_message_hook(message(_)).
+prolog_message_hook(deprecated(_)).
 prolog_message_hook(error_message(_)).
 prolog_message_hook(message_context(_)).
 prolog_message_hook(message_location(_)).
