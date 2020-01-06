@@ -230,6 +230,9 @@ This library is only available on Windows systems.
 \libsummary{solution_sequences}
 \input{summaries.d/solutionsequences.tex}
 
+\libsummary{thread}
+\input{summaries.d/thread.tex}
+
 \libsummary{thread_pool}
 \input{summaries.d/threadpool.tex}
 
