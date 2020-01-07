@@ -311,7 +311,7 @@ next:
   { switch( children.any->type )
     { case TN_KEY:
       { n = children.key->child;
-        PL_free(children.key);
+	free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
 	dealloc = TRUE;
 	goto next;
       }
@@ -319,8 +319,11 @@ next:
       { Table table = children.hash->table;
 	TableEnum e = newTableEnum(table);
 	void *k, *v;
+	trie_children_key *os;
 
-	PL_free(children.hash);
+	if ( (os=children.hash->old_single) )	/* see insert_child() (*) note */
+	  free_to_pool(trie->alloc_pool, os, sizeof(*os));
+	free_to_pool(trie->alloc_pool, children.hash, sizeof(*children.hash));
 
 	while(advanceTableEnum(e, &k, &v))
 	{ clear_node(trie, v, TRUE);
@@ -396,6 +399,18 @@ update_var_mask(trie_children_hashed *hnode, word key)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) The single node may be  in  use   with  another  thread. We have two
+options:
+
+  - Use one of the LD _active_ pointers to acquire/release access to the
+    trie nodes and use safe delayed release.
+  - Add the ond _single_ node to the new hash node and delete it along
+    with the hash node when we clean the table.  We have opted for this
+    option as it is simple and the single key is neglectable in size
+    compared to the hash table anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static trie_node *
 insert_child(trie *trie, trie_node *n, word key ARG_LD)
 { for(;;)
@@ -426,17 +441,18 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	    addHTable(hnode->table, (void*)key, (void*)new);
 	    update_var_mask(hnode, children.key->key);
 	    update_var_mask(hnode, new->key);
+	    new->parent = n;
 
 	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
-	    {					/* TBD: Safely free */
-	      free_to_pool(trie->alloc_pool, children.any, sizeof(trie_children_key));
-	      new->parent = n;
+	    { hnode->old_single = children.key;			/* See (*) */
 	      return new;
+	    } else
+	    { hnode->old_single = NULL;
+	      destroy_node(trie, new);
+	      destroyHTable(hnode->table);
+	      free_to_pool(trie->alloc_pool, hnode, sizeof(*hnode));
+	      continue;
 	    }
-	    destroy_node(trie, new);
-	    destroyHTable(hnode->table);
-	    free_to_pool(trie->alloc_pool, hnode, sizeof(*hnode));
-	    continue;
 	  }
 	}
 	case TN_HASHED:

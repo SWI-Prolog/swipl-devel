@@ -53,17 +53,18 @@ typedef struct try_children_any
 { tn_node_type type;
 } try_children_any;
 
-typedef struct trie_children_hashed
-{ tn_node_type	type;			/* TN_HASHED */
-  Table		table;			/* Key --> child map */
-  unsigned	var_mask;		/* Variables in this place */
-} trie_children_hashed;
-
 typedef struct trie_children_key
 { tn_node_type type;
   word key;
   struct trie_node *child;
 } trie_children_key;
+
+typedef struct trie_children_hashed
+{ tn_node_type	type;			/* TN_HASHED */
+  Table		table;			/* Key --> child map */
+  unsigned	var_mask;		/* Variables in this place */
+  trie_children_key *old_single;	/* Old single node */
+} trie_children_hashed;
 
 typedef union trie_children
 { try_children_any     *any;
