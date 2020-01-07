@@ -5455,7 +5455,9 @@ the Prolog flags \prologflag{answer_write_options} and
     \termitem{module}{Module}
 Define the reference module (default \const{user}).  This defines
 the default value for the \prologflag{character_escapes} option as well
-as the operator definitions to use.  See also op/3.
+as the operator definitions to use. If \arg{Module} does not exist it is
+\emph{not} created and the \const{user} module is used.  See also op/3
+and read_term/2, providing the same option.
 
     \termitem{nl}{Bool}
 Add a newline to the output.  See also the \const{fullstop} option.
@@ -5753,9 +5755,11 @@ Defines how to read "\ldots" strings. See the Prolog flag
 
     \termitem{module}{Module}
 Specify \arg{Module} for operators, \prologflag{character_escapes} flag
-and \prologflag{double_quotes} flag. The value of the latter two is overruled
-if the corresponding read_term/3 option is provided.  If no module is
-specified, the current `source module' is used.  (SWI-Prolog).
+and \prologflag{double_quotes} flag. The value of the latter two is
+overruled if the corresponding read_term/3 option is provided. If no
+module is specified, the current `source module' is used. If the options
+is provided but the target module does not exist, module \const{user} is
+used because new modules by default inherit from \const{user}
 
     \termitem{quasi_quotations}{-List}
 If present, unify \arg{List} with the quasi quotations (see

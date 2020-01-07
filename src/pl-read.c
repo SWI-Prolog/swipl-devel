@@ -4901,7 +4901,9 @@ retry:
     return FALSE;
 
   if ( mname )
-  { rd.module = lookupModule(mname);
+  { rd.module = isCurrentModule(mname);
+    if ( !rd.module )
+      rd.module = MODULE_user;
     rd.flags  = rd.module->flags;
   }
 
