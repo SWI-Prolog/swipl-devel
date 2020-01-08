@@ -861,6 +861,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
   if ( state.pending_rubber )		/* not closed ~t: flush out */
     emit_rubber(&state);
+  if ( argc != 0 )
+    FMT_ERROR("too many arguments");
 
 out:
   return rc;
