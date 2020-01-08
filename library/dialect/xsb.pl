@@ -58,6 +58,8 @@
             walltime/1,				% -Seconds
             timed_call/2,                       % :Goal, :Options
 
+            (thread_shared)/1,                  % :Spec
+
             debug_ctl/2,                        % +Option, +Value
 
             fmt_write/2,                        % +Fmt, +Term
@@ -74,7 +76,8 @@
             op(1100,  fx, mode),                % ignored
             op(1045, xfx, as),
             op(900,   fy, tnot),
-            op(900,   fy, not)                  % defined as op in XSB
+            op(900,   fy, not),                 % defined as op in XSB
+            op(1100,  fx, thread_shared)
           ]).
 :- use_module(library(error)).
 :- use_module(library(debug)).
@@ -99,6 +102,8 @@ system](http://xsb.sourceforge.net/)
     load_dyn(:, +),
     load_dync(:),
     load_dync(:, +),
+
+    thread_shared(:),
 
     fail_if(0),                         % Meta predicates
     not_exists(0),
@@ -535,6 +540,15 @@ debug_ctl(hide, Preds) :-
 debug_ctl(Option, Value) :-
     debug(xsb(compat), 'XSB: not implemented: ~p',
           [ debug_ctl(Option, Value) ]).
+
+%!  thread_shared(+Spec)
+%
+%   Declare a dynamic predicate  as  shared.   This  is  the default for
+%   SWI-Prolog.
+
+thread_shared(Spec) :-
+    dynamic(Spec).
+
 
 %!  fmt_write(+Fmt, +Term) is det.
 %!  fmt_write(+Stream, +Fmt, +Term) is det.
