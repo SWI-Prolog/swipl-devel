@@ -1152,15 +1152,33 @@ current_trie(Trie) :-
 %   are:
 %
 %     - value_count(Count)
-%     Number of terms in the trie.
+%       Number of terms in the trie.
 %     - node_count(Count)
-%     Number of nodes in the trie.
+%       Number of nodes in the trie.
 %     - size(Bytes)
-%     Number of bytes needed to store the trie.
+%       Number of bytes needed to store the trie.
 %     - hashed(Count)
-%     Number of hashed nodes.
+%       Number of hashed nodes.
 %     - compiled_size(Bytes)
-%     Size of the compiled representation (if the trie is compiled)
+%       Size of the compiled representation (if the trie is compiled)
+%     - lookup_count(Count)
+%       Number of data lookups on the trie
+%     - gen_call_count(Count)
+%       Number of trie_gen/2 calls on this trie
+%
+%   Incremental tabling statistics:
+%
+%     - invalidated(Count)
+%       Number of times the trie was inivalidated
+%     - reevaluated(Count)
+%       Number of times the trie was re-evaluated
+%
+%   Shared tabling statistics:
+%
+%     - deadlock(Count)
+%       Number of times the table was involved in a deadlock
+%     - wait(Count)
+%       Number of times a thread had to wait for this table
 
 trie_property(Trie, Property) :-
     current_trie(Trie),
@@ -1175,8 +1193,10 @@ trie_property(compiled_size(_)).
                                                 % below only when -DO_TRIE_STATS
 trie_property(lookup_count(_)).                 % is enabled in pl-trie.h
 trie_property(gen_call_count(_)).
-trie_property(invalidated(_)).
+trie_property(invalidated(_)).                  % IDG stats
 trie_property(reevaluated(_)).
+trie_property(deadlock(_)).                     % Shared tabling stats
+trie_property(wait(_)).
 
 
                 /********************************

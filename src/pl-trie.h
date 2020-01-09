@@ -118,6 +118,10 @@ typedef struct trie
   struct
   { uint64_t		lookups;	/* trie_lookup */
     uint64_t		gen_call;	/* trie_gen calls */
+#ifdef O_PLMT
+    unsigned int	deadlock;	/* times involved in a deadlock */
+    unsigned int	wait;		/* times waited for */
+#endif
   } stats;
 #endif
   struct

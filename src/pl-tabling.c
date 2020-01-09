@@ -5826,6 +5826,7 @@ claim_answer_table(trie *atrie, atom_t *clrefp, int flags ARG_LD)
 	  UNLOCK_SHARED_TABLE(atrie);
 	  return FALSE;
 	}
+	TRIE_STAT_INC(atrie, wait);
 	if ( !wait_for_table_to_complete(atrie) )
 	{ UNLOCK_SHARED_TABLE(atrie);
 	  return FALSE;
@@ -5938,6 +5939,32 @@ is_deadlock() succeeds if  the  proposed  situation   would  lead  to  a
 deadlock.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void
+stat_deadlock(trie *atrie)
+{
+#ifdef O_TRIE_STATS
+  int mytid = atrie->tid;
+  trie *t = NULL;
+  int tid = mytid;
+
+  TRIE_STAT_INC(atrie, deadlock);
+
+  for(;;)
+  { t = thread_waits_for_trie(tid);
+    if ( t )
+    { TRIE_STAT_INC(t, deadlock);
+      tid = t->tid;
+    }
+
+    if ( !t || !tid )
+      return;
+    if ( tid == mytid )
+      return;
+  }
+#endif
+}
+
+
 static int
 is_deadlock(trie *atrie)
 { int mytid = atrie->tid;
@@ -5952,7 +5979,9 @@ is_deadlock(trie *atrie)
     if ( !t || !tid )
       return FALSE;
     if ( tid == mytid )
+    { stat_deadlock(atrie);
       return TRUE;
+    }
   }
 }
 

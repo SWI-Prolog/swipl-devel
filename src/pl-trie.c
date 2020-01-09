@@ -2127,6 +2127,12 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       { return PL_unify_int64(arg, trie->stats.lookups);
       } else if ( name == ATOM_gen_call_count)
       { return PL_unify_int64(arg, trie->stats.gen_call);
+#ifdef O_PLMT
+      } else if ( name == ATOM_wait )
+      { return PL_unify_int64(arg, trie->stats.wait);
+      } else if ( name == ATOM_deadlock )
+      { return PL_unify_int64(arg, trie->stats.deadlock);
+#endif
       } else if ( name == ATOM_invalidated && (idg=trie->data.IDG))
       { return PL_unify_int64(arg, idg->stats.invalidated);
       } else if ( name == ATOM_reevaluated && (idg=trie->data.IDG))
