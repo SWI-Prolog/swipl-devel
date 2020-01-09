@@ -2044,7 +2044,8 @@ variant_table(int shared ARG_LD)
   if ( shared )
   { tp   = &GD->tabling.variant_table;
     if ( !(pool = GD->tabling.node_pool) )
-    { if ( (pool = new_alloc_pool("table_space", GD->options.sharedTableSpace)) )
+    { if ( (pool = new_alloc_pool("shared_table_space",
+				  GD->options.sharedTableSpace)) )
       { if ( !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
 	{ free_alloc_pool(pool);
 	  pool = GD->tabling.node_pool;
@@ -2057,7 +2058,7 @@ variant_table(int shared ARG_LD)
 #endif
   { tp   = &LD->tabling.variant_table;
     if ( !(pool = LD->tabling.node_pool) )
-    { pool = LD->tabling.node_pool = new_alloc_pool("table_space",
+    { pool = LD->tabling.node_pool = new_alloc_pool("private_table_space",
 						    GD->options.tableSpace);
       if ( !pool )
 	return NULL;

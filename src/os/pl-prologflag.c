@@ -829,14 +829,14 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 #endif
       if ( k == ATOM_table_space )
       { if ( !LD->tabling.node_pool )
-	  LD->tabling.node_pool = new_alloc_pool("table_space", i);
+	  LD->tabling.node_pool = new_alloc_pool("private_table_space", i);
 	else
 	  LD->tabling.node_pool->limit = (size_t)i;
       }
 #ifdef O_PLMT
       else if ( k == ATOM_shared_table_space )
       { if ( !GD->tabling.node_pool )
-	{ alloc_pool *pool = new_alloc_pool("table_space", i);
+	{ alloc_pool *pool = new_alloc_pool("shared_table_space", i);
 	  if ( pool && !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
 	    free_alloc_pool(pool);
 	} else
