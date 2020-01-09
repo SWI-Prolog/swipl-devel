@@ -5106,7 +5106,6 @@ allocSimpleMutex(const char *name)
   GD->thread.mutexes = m;
   if ( m->next )
     m->next->prev = m;
-
   PL_UNLOCK(L_MUTEX);
 
   return m;
@@ -5121,7 +5120,7 @@ freeSimpleMutex(counting_mutex *m)
   if ( m->prev )
     m->prev->next = m->next;
   else
-    GD->thread.mutexes = NULL;
+    GD->thread.mutexes = m->next;
   PL_UNLOCK(L_MUTEX);
 
   simpleMutexDelete(&m->mutex);
