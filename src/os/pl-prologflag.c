@@ -1359,6 +1359,7 @@ initPrologFlags(void)
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
 #endif
   setPrologFlag("table_space", FT_INTEGER, GD->options.tableSpace);
+  setPrologFlag("shared_table_space", FT_INTEGER, GD->options.sharedTableSpace);
   setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
 #if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
   setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
