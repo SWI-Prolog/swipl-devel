@@ -5087,12 +5087,9 @@ recursiveMutexUnlock(recursiveMutex *m)
 
 #endif /*RECURSIVE_MUTEXES*/
 
-
-counting_mutex *
-allocSimpleMutex(const char *name)
-{ counting_mutex *m = allocHeapOrHalt(sizeof(*m));
-
-  simpleMutexInit(&m->mutex);
+void
+initSimpleMutex(counting_mutex *m, const char *name)
+{ simpleMutexInit(&m->mutex);
   m->count = 0;
   m->lock_count = 0;
 #ifdef O_CONTENTION_STATISTICS
@@ -5107,6 +5104,13 @@ allocSimpleMutex(const char *name)
   if ( m->next )
     m->next->prev = m;
   PL_UNLOCK(L_MUTEX);
+}
+
+
+counting_mutex *
+allocSimpleMutex(const char *name)
+{ counting_mutex *m = allocHeapOrHalt(sizeof(*m));
+  initSimpleMutex(m, name);
 
   return m;
 }

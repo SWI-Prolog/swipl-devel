@@ -181,7 +181,7 @@ struct PL_global_data
   struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
-    simpleMutex  mutex;			/* Sync completion */
+    counting_mutex  mutex;		/* Sync completion */
 #ifdef __WINDOWS__
     CONDITION_VARIABLE cvar;
 #else

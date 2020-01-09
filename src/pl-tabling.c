@@ -146,8 +146,8 @@ static int	claim_answer_table(trie *atrie, atom_t *clrefp,
 
 
 #ifdef O_PLMT
-#define	LOCK_SHARED_TABLE(t)	simpleMutexLock(&GD->tabling.mutex);
-#define	UNLOCK_SHARED_TABLE(t)	simpleMutexUnlock(&GD->tabling.mutex);
+#define	LOCK_SHARED_TABLE(t)	countingMutexLock(&GD->tabling.mutex);
+#define	UNLOCK_SHARED_TABLE(t)	countingMutexUnlock(&GD->tabling.mutex);
 
 static inline void
 drop_trie(trie *atrie)
@@ -5992,7 +5992,7 @@ wait_for_table_to_complete(trie *atrie)
 	print_answer_table(atrie, "waiting for %d to complete", atrie->tid));
 
   do
-  { if ( cv_wait(&GD->tabling.cvar, &GD->tabling.mutex) == EINTR )
+  { if ( cv_wait(&GD->tabling.cvar, &GD->tabling.mutex.mutex) == EINTR )
     { if ( PL_handle_signals() < 0 )
       { DEBUG(MSG_TABLING_SHARED,
 	      print_answer_table(atrie, "Ready (interrupted"));
@@ -6044,7 +6044,7 @@ void
 initTabling(void)
 {
 #ifdef O_PLMT
-  simpleMutexInit(&GD->tabling.mutex);
+  initSimpleMutex(&GD->tabling.mutex, "L_SHARED_TABLING");
   cv_init(&GD->tabling.cvar, NULL);
 #endif
 }

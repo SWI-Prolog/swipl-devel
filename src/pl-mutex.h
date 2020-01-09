@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2000-2014, University of Amsterdam
+    Copyright (c)  2000-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -149,6 +150,7 @@ typedef struct counting_mutex
 } counting_mutex;
 
 extern counting_mutex  *allocSimpleMutex(const char *name);
+extern void		initSimpleMutex(counting_mutex *m, const char *name);
 extern void		freeSimpleMutex(counting_mutex *m);
 
 #else /*O_PLMT*/
