@@ -305,7 +305,7 @@ declaration(Pred, Source, Decl) :-
     ->  decl_term(Pred, Source, Funct),
         table_options(Pred, Funct, TableDecl),
         Decl = table(TableDecl)
-    ;   comment('% tabled using answer subsumption', []),
+    ;   comment('% tabled using answer subsumption~n', []),
         fail                                    % TBD
     ).
 declaration(Pred, Source, Decl) :-
