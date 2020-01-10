@@ -44,11 +44,11 @@ show_model(_).
 
 %-------------
 
-:- table p01_a_b,p01_c_d/0,p02_a_b,p02_c_d/0.
-:- table p11_a_b,p11_c_d/0,p12_a_b,p12_c_d/0.
-:- table p21_a_b,p21_c_d/0,p22_a_b,p22_c_d/0.
-:- table p31_a_b,p31_c_d/0,p32_a_b,p32_c_d/0.
-:- table u1_a_b,u1_c_d/0,u2_a_b,u2_c_d/0.
+:- table p01_a_b/0,p01_c_d/0,p02_a_b/0,p02_c_d/0.
+:- table p11_a_b/0,p11_c_d/0,p12_a_b/0,p12_c_d/0.
+:- table p21_a_b/0,p21_c_d/0,p22_a_b/0,p22_c_d/0.
+:- table p31_a_b/0,p31_c_d/0,p32_a_b/0,p32_c_d/0.
+:- table u1_a_b/0,u1_c_d/0,u2_a_b/0,u2_c_d/0.
 
 p01_a_b:- p11_a_b.
 p01_a_b:- p12_a_b.
