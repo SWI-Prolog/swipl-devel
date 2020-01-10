@@ -981,14 +981,16 @@ wrappers(ModeDirectedSpec, Module, Opts) -->
       updater_clauses(Modes, Head, UpdateClauses),
       mode_check(Moded, ModeTest),
       (   ModeTest == true
-      ->  WrapClause = '$wrap_tabled'(Module:Head, Opts)
+      ->  WrapClause = '$wrap_tabled'(Module:Head, Opts),
+          TVariant = Head
       ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
-          Module:Variant, Moded)
+                                            Module:Variant, Moded),
+          TVariant = Variant
       )
     },
     qualify(Module,
             [ '$tabled'(Head, TMode),
-              '$table_mode'(Head, Variant, Moded)
+              '$table_mode'(Head, TVariant, Moded)
             ]),
     [ (:- initialization(WrapClause, now))
     ],
