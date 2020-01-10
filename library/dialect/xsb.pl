@@ -68,6 +68,8 @@
             path_sysop/2,                       % +Op, ?Value
             path_sysop/3,                       % +Op, ?Value1, ?Value2
 
+            abort/1,				% +Message
+
             op(1050,  fy, import),
             op(1050,  fx, export),
             op(1040, xfx, from),
@@ -686,6 +688,13 @@ path_sysop(dirname, Path, Dir) :-
 path_sysop(expand, Name, Path) :-
     absolute_file_name(Name, Path).
 
+%!  abort(+Message:atomic)
+%
+%   Abort with a message
+
+abort(Message) :-
+    print_message(error, aborted(Message)),
+    abort.
 
 		 /*******************************
 		 *           MESSAGES		*

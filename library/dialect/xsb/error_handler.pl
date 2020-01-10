@@ -46,8 +46,6 @@
 
             domain_error/4,             % +Valid_type,-Culprit,+Predicate,+Arg
 
-            abort/1,                    % +Message
-
             print_backtrace/1,		% +Backtrace
 
             xsb_error_get_tag/2,        % +ErrorTerm, -Formal
@@ -68,14 +66,6 @@ check_nonvar_list(Term, _Pred, _Arg) :- must_be(list(nonvar), Term).
 check_stream(Term, _Pred, _Arg)      :- must_be(stream, Term).
 check_var(Term, _Pred, _Arg)         :- must_be(var, Term).
 check_ground(Term, _Pred, _Arg)      :- must_be(ground, Term).
-
-%!  abort(+Message:atomic)
-%
-%   Abort with a message
-
-abort(Message) :-
-    print_message(error, aborted(Message)),
-    abort.
 
 %!  xsb_error_get_tag(+Term, -Tag) is semidet.
 %
