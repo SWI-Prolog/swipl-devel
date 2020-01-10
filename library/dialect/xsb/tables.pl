@@ -193,11 +193,16 @@ semicolon_list(G) -->
 
 get_residual(Goal0, DelayList) :-
     '$tbl_implementation'(Goal0, Goal),
+    Goal = M:Head,
+    '$tbl_trienode'(Reserved),
+    M:'$table_mode'(Head, Variant, Moded),
     '$tbl_variant_table'(VariantTrie),
-    trie_gen(VariantTrie, Goal, Trie),
-    '$tbl_table_status'(Trie, _Status, Goal, Skeleton),
-    '$tbl_answer'(Trie, Skeleton, Condition),
-    Goal = M:_,
+    trie_gen(VariantTrie, M:Variant, Trie),
+    '$tbl_table_status'(Trie, _Status, M:Variant, Skeleton),
+    (   Reserved == Moded
+    ->  '$tbl_answer'(Trie, Skeleton, Condition)
+    ;   '$tbl_answer'(Trie, Skeleton, Moded, Condition)
+    ),
     condition_delay_list(Condition, M, DelayList).
 
 condition_delay_list(true, _, List) :-

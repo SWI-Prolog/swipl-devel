@@ -4660,6 +4660,18 @@ PRED_IMPL("$tbl_answer", 3, tbl_answer, PL_FA_NONDETERMINISTIC)
   return trie_gen(A1, A2, 0, A3, unify_delay_info, &ctx, PL__ctx);
 }
 
+/** '$tbl_answer'(+Trie, ?Skeleton, ?Data, -Condition) is nondet.
+ */
+
+static
+PRED_IMPL("$tbl_answer", 4, tbl_answer, PL_FA_NONDETERMINISTIC)
+{ answer_ctx ctx;
+
+  ctx.skel = A2;
+  return trie_gen(A1, A2, A3, A4, unify_delay_info, &ctx, PL__ctx);
+}
+
+
 static int
 unify_delay_info_dl(term_t t, trie_node *answer, void *ctx ARG_LD)
 { (void) ctx;
@@ -6097,6 +6109,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
   PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
   PRED_DEF("$tbl_answer",               3, tbl_answer,            NDET)
+  PRED_DEF("$tbl_answer",               4, tbl_answer,            NDET)
   PRED_DEF("$tbl_answer_dl",		3, tbl_answer_dl,         NDET)
   PRED_DEF("$tbl_answer_update_dl",     2, tbl_answer_update_dl,  NDET)
   PRED_DEF("$tbl_force_truth_value",    3, tbl_force_truth_value,    0)
