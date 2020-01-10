@@ -2899,7 +2899,8 @@ pl_get_predicate_attribute(term_t pred,
 
   if ( !PL_strip_module(pred, &module, head) ||
        !PL_get_functor(head, &fd) ||
-       !(proc = resolveProcedure(fd, module)) )
+       ( !(proc = visibleProcedure(fd, module PASS_LD)) &&
+	 !(proc = isCurrentProcedure(fd, module)) ) )
     fail;
 
   def = proc->definition;
