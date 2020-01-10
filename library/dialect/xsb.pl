@@ -477,18 +477,31 @@ fail_if(P) :-
 		 *      TABLING BUILT-INS	*
 		 *******************************/
 
-%!  not_exists(:P).
-%!  sk_not(:P).
+%!  not_exists(:P) is semidet.
 %
-%   XSB tabled negation. According to the XSB manual, sk_not/1 is an old
-%   name for not_exists/1. The predicates   tnot/1  and not_exists/1 are
-%   not precisely the same. We ignore that for now.
+%   Tabled negation for non-ground goals. This predicate uses the tabled
+%   meta-predicate tabled_call/1. The tables  for xsb:tabled_call/1 must
+%   be cleared if `the world changes' as   well  as to avoid aggregating
+%   too many variants.
 
-not_exists(P) :-
-    tnot(P).
+not_exists(Goal) :-
+    (   tabled_call(Goal), fail
+    ;   tnot(tabled_call(Goal))
+    ).
+
+%!  sk_not(:P) is semidet.
+%
+%   Sound negation with non-ground P.  Equivalent to not_exists/1.
+%
+%   @deprecated New code should use not_exists/1.
 
 sk_not(P) :-
     not_exists(P).
+
+:- table tabled_call/1 as variant, opaque.
+
+tabled_call(X) :- call(X).
+
 
 %!  gc_tables(-Remaining) is det.
 %
