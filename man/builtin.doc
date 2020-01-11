@@ -2051,6 +2051,11 @@ binding $X$.
 True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
 provable} and the backslash (\chr{\}) is normally used to
 indicate negation in Prolog).
+
+Many Prolog implementations (including SWI-Prolog) provide not/1. The
+not/1 alternative is deprecated due to its strong link to logical
+negation.
+
 \end{description}
 
 \section{Meta-Call Predicates}		\label{sec:metacall}
@@ -2083,13 +2088,13 @@ fake the presence of \nopredref{call}{9..}. Full logical behaviour,
 generating all these pseudo predicates, is probably undesirable and will
 become impossible if \jargon{max_arity} is removed.}
 
-    \predicate{apply}{2}{:Goal, +List}
+    \predicate[deprecated]{apply}{2}{:Goal, +List}
 Append the members of \arg{List} to the arguments of \arg{Goal} and call
 the resulting term. For example: \exam{apply(plus(1), [2, X])} calls
 \exam{plus(1, 2, X)}. New code should use call/[2..] if the length of
 \arg{List} is fixed.
 
-    \predicate{not}{1}{:Goal}
+    \predicate[deprecated]{not}{1}{:Goal}
 True if \arg{Goal} cannot be proven.  Retained for compatibility
 only. New code should use \predref{\+}{1}.
 
@@ -2291,7 +2296,7 @@ that will be undone by \arg{Cleanup}.  Instead, use
 setup_call_cleanup/3 with an appropriate first argument to perform those
 side-effects.
 
-    \predicate{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
+    \predicate[deprecated]{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
 Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
 The same warning as for call_cleanup/2 applies.
 \end{description}
