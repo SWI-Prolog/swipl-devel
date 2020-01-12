@@ -2052,7 +2052,10 @@ Sread_terminal(void *handle, char *buf, size_t size)
   source_location oldsrc = LD->read_source;
 
   if ( Soutput && true(Soutput, SIO_ISATTY) )
-  { if ( LD->prompt.next && false(Sinput, SIO_RAW) )
+  { if ( LD->prompt.next &&
+	 Sinput &&
+	 false(Sinput, SIO_RAW) &&
+	 true(Sinput, SIO_ISATTY) )
       PL_write_prompt(TRUE);
     else
       Sflush(Suser_output);
