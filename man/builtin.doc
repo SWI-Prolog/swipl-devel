@@ -5909,13 +5909,19 @@ read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
 \end{code}
 
     \predicate{prompt}{2}{-Old, +New}
-Set prompt associated with read/1 and its derivatives.  \arg{Old}
-is first unified with the current prompt.  On success the prompt will be
-set to \arg{New} if this is an atom.  Otherwise an error message is
-displayed.  A prompt is printed if one of the read predicates is
-called and the cursor is at the left margin.  It is also printed
-whenever a newline is given and the term has not been terminated.
-Prompts are only printed when the current input stream is \arg{user}.
+Set prompt associated with reading from the \const{user_input} stream.
+\arg{Old} is first unified with the current prompt. On success the
+prompt will be set to \arg{New} (an atom). A prompt is printed if data
+is read from \const{user_input}, the cursor is at the left margin and
+the \const{user_input} is considered to be connected to a terminal. See
+the \term{tty}{Bool} property of stream_property/2 and set_stream/2.
+
+The default prompt is \verb$'|: '$. Note that the toplevel loop (see
+prolog/0) sets the prompt for the first prompt (see prompt1/1) to
+\verb$'?- '$, possibly decorated by the history event number,
+\jargon{break level} and debug mode. If the first line does not complete
+the term, subsequent lines are prompted for using the prompt as defined
+by prompt/2.
 
     \predicate{prompt1}{1}{+Prompt}
 Sets the prompt for the next line to be read.  Continuation lines will
