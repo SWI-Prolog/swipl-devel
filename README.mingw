@@ -401,7 +401,7 @@ build_libarchive()
     export lt_cv_deplibs_check_method='pass_all'
     export ac_cv_func__localtime64_s='no'
     export ac_cv_func__ctime64_s='no'
-    ./configure --host=$CROSS --prefix=$install --with-pic \
+    ./configure --host=$CROSS --prefix=$install --with-pic --with-zlib \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib \
     --without-lzmadec --without-lzma --without-lzo2
