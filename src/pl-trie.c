@@ -539,6 +539,16 @@ prune_error(trie *trie, trie_node *node ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Lookup `k` in `trie` and on  success   fill  `nodep`  with the leaf node
+under which `k` is represented in the trie.  If `add` is `TRUE`, add `k`
+to the trie if it is not already in the true.
+
+`vars` is either NULL or a _buffer_ In the latter case it is filled with
+pointers to the variables found  in  `k`.   This  is  used by tabling to
+create the `ret` term.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 trie_lookup(trie *trie, trie_node **nodep, Word k, int add, TmpBuffer vars ARG_LD)
 { term_agenda_P agenda;
