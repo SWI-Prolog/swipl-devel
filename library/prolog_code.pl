@@ -186,10 +186,14 @@ most_general_goal(Compound, General) :-
 %   This notably hides the module qualification from `user` and built-in
 %   predicates. This predicate  is  intended   for  reporting  predicate
 %   information to the user, for example in the profiler.
+%
+%   First   PI   is   converted   to    a     _head_    and   the   hook
+%   user:prolog_predicate_name/2 is tried.
 
 predicate_label(PI, Label) :-
     must_be(ground, PI),
-    user:prolog_predicate_name(PI, Label),
+    pi_head(PI, Head),
+    user:prolog_predicate_name(Head, Label),
     !.
 predicate_label(M:Name/Arity, Label) :-
     !,
