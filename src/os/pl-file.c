@@ -998,16 +998,23 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
 
   if ( !PL_is_variable(A1) )
   { stream_ref *ref;
-    atom_t a;
+    atom_t a = 0;
     PL_blob_t *type;
     int rc = TRUE;
 
-    if ( !PL_get_atom(A1, &a) ||
-	 !(ref=PL_blob_data(a, NULL, &type)) ||
-	 type != &stream_blob )
+    if ( PL_get_atom(A1, &a) &&
+	 (ref=PL_blob_data(a, NULL, &type)) &&
+	 type == &stream_blob )
+    { if ( ref->read && !ref->read->erased )
+	rc = rc && PL_unify_stream_or_alias(A2, ref->read);
+      if ( ref->write && !ref->write->erased )
+	rc = rc && PL_unify_stream_or_alias(A3, ref->write);
+
+      return rc;
+    } else
     { IOSTREAM *s;
 
-      if ( get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
+      if ( a && get_stream_handle(a, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
       { if ( (s->flags & SIO_INPUT) )
 	  rc = PL_unify_stream_or_alias(A2, s);
 	else
@@ -1018,13 +1025,6 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
 
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_stream_pair, A1);
     }
-
-    if ( ref->read && !ref->read->erased )
-      rc = rc && PL_unify_stream_or_alias(A2, ref->read);
-    if ( ref->write && !ref->write->erased )
-      rc = rc && PL_unify_stream_or_alias(A3, ref->write);
-
-    return rc;
   }
 
   if ( getInputStream(A2, S_DONTCARE, &in) &&
