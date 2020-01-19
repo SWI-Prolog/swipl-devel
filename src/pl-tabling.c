@@ -4443,15 +4443,15 @@ unify_cluster(term_t t, cluster *c, int is_riac)
     }
     return PL_unify_nil(tail);
   } else
-  { record_t *sp  = baseBuffer(&c->members, record_t);
-    record_t *top = topBuffer(&c->members, record_t);
+  { suspension *sp  = baseBuffer(&c->members, suspension);
+    suspension *top = topBuffer(&c->members, suspension);
     term_t tmp = PL_new_term_ref();
 
     assert(c->type == CLUSTER_SUSPENSIONS);
 
     for(; sp < top; sp++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !PL_recorded(UNTNOT(*sp), tmp) ||
+	   !PL_recorded(UNTNOT(sp->term), tmp) ||
 	   !PL_unify(tmp, head) )
 	return FALSE;
     }
