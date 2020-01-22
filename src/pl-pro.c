@@ -147,12 +147,18 @@ query_loop(atom_t goal, int loop)
     if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
-  } while(loop && !LD->exit_requested);
+#ifdef O_PLMT
+    if (LD->exit_requested)
+      loop = 0;
+#endif
+  } while(loop);
 
+#ifdef O_PLMT
   DEBUG(MSG_CLEANUP_THREAD,
 	if ( LD->exit_requested )
 	Sdprintf("Thread %d: leaving REPL loop due to exit_requested\n",
 		 PL_thread_self()));
+#endif
 
   return rc;
 }
