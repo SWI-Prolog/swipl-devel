@@ -99,14 +99,31 @@ set_pil_off.
 %   True when Trie is an answer trie for a variant of CallTerm. See also
 %   get_calls/3.
 
-get_call(Goal0, Trie, Skeleton) :-
+get_call(Goal0, Trie, Return) :-
     '$tbl_implementation'(Goal0, M:Goal),
-    M:'$table_mode'(Goal, Table, _),
+    M:'$table_mode'(Goal, Table, Moded),
     current_table(M:Table, Trie),
-    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton).
+    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton),
+    extend_return(Moded, Skeleton, Return).
 
+extend_return(Moded, Skeleton, Return) :-
+    '$tbl_trienode'(Reserved),
+    Moded == Reserved,
+    !,
+    Return = Skeleton.
+extend_return(Moded, Skeleton, Return) :-
+    var(Moded),
+    !,
+    Skeleton =.. [ret|Args0],
+    append(Args0, [Moded], Args),
+    Return =.. [ret|Args].
+extend_return(Moded, Skeleton, Return) :-
+    Moded =.. [_|Extra],
+    Skeleton =.. [ret|Args0],
+    append(Args0, Extra, Args),
+    Return =.. [ret|Args].
 
-%!  get_calls(:CallTerm, -Trie, -Skeleton) is nondet.
+%!  get_calls(:CallTerm, -Trie, -Return) is nondet.
 %
 %   True when Trie is an answer  trie   for  a variant that unifies with
 %   CallTerm and Skeleton is the answer skeleton.
@@ -115,21 +132,31 @@ get_call(Goal0, Trie, Skeleton) :-
 %   variables in the answer template. The   `ret`  functor is compatible
 %   with XSB.
 
-get_calls(Goal0, Trie, Skeleton) :-
+get_calls(Goal0, Trie, Return) :-
     '$tbl_variant_table'(VariantTrie),
     '$tbl_implementation'(Goal0, M:Goal),
-    M:'$table_mode'(Goal, Table, _),
+    M:'$table_mode'(Goal, Table, Moded),
     trie_gen(VariantTrie, M:Table, Trie),
-    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton).
+    '$tbl_table_status'(Trie, _Status, M:Table, Skeleton),
+    extend_return(Moded, Skeleton, Return).
 
-%!  get_returns(+AnswerTrie, -Return) is nondet.
+%!  get_returns(+ATrie, -Return) is nondet.
 %
 %   True when Return is an answer template for the AnswerTrie.
 %
 %   @arg Return is a term ret(...).  See get_calls/3.
 
-get_returns(AnswerTrie, Return) :-
-    trie_gen(AnswerTrie, Return).
+get_returns(ATrie, Return) :-
+    '$tbl_table_status'(ATrie, _Status, M:Table, Skeleton),
+    M:'$table_mode'(_Goal, Table, Moded),
+    '$tbl_trienode'(Reserved),
+    Moded \== Reserved,
+    !,
+    extend_return(Moded, Skeleton, Return),
+    trie_gen(ATrie, Skeleton),
+    trie_lookup_gen(ATrie, Skeleton, Moded).
+get_returns(ATrie, Return) :-
+    trie_gen(ATrie, Return).
 
 %!  get_returns(+AnswerTrie, -Return, -NodeID) is nondet.
 %
@@ -150,6 +177,19 @@ get_returns(AnswerTrie, Return, NodeID) :-
 %   once, so that using  this  predicate   may  be  more  efficient than
 %   get_residual/2 (although less informative)
 
+get_returns_and_tvs(ATrie, Return, TruthValue) :-
+    '$tbl_table_status'(ATrie, _Status, M:Table, Skeleton),
+    M:'$table_mode'(_Goal, Table, Moded),
+    '$tbl_trienode'(Reserved),
+    Moded \== Reserved,
+    !,
+    extend_return(Moded, Skeleton, Return),
+    trie_gen(ATrie, Skeleton),
+    '$tbl_answer_dl'(ATrie, Skeleton, Moded, AN),
+    (   AN == true
+    ->  TruthValue = t
+    ;   TruthValue = u
+    ).
 get_returns_and_tvs(AnswerTrie, Return, TruthValue) :-
     '$tbl_answer_dl'(AnswerTrie, Return, AN),
     (   AN == true

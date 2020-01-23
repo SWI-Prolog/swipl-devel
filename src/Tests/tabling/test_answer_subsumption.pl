@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2019, University of Amsterdam
+    Copyright (c)  2017-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -34,56 +34,52 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(test_wfs,
-	  [ test_wfs/0
+:- module(test_answer_subsumption,
+	  [ test_answer_subsumption/0
 	  ]).
 :- use_module(library(plunit)).
 :- use_module(library(wfs)).
 
-test_wfs :-
-	run_tests([ wfs_delays
-		  ]).
+test_answer_subsumption :-
+    run_tests([ answer_subsumption
+	      ]).
 
-:- begin_tests(wfs_delays).
-:- use_module(library(dialect/xsb)).
+:- begin_tests(answer_subsumption).
 
-:- table p/0, q/0, a/1.
+:- table p/2, pas(_,lattice(join(_X,_Y,_Z))).
 
-x :- q.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Mixed answer subsumption and normal tabling
 
-p :- tnot(q).
-q :- tnot(p).
+p(X, Y) :-
+    pas(X, Y).
+p(_, 1).
 
-a(true).
+pas(X, Z) :-
+    p(X, Y),
+    Y < 5,
+    Z is Y+1.
 
-:- table puas(_,lattice(join(_X,_Y,_Z))).
-join(X,Y,Z) :- Z is max(X,Y).
+join(A,B,C):-
+    (   A > B
+    ->  C = A
+    ;   C = B
+    ).
 
-puas(1,X) :-
-    not_exists(puas(1,X)).
+test(as_with_no_as, set(X == [1,2,3,4,5])) :-
+    p(1,X).
 
-test(delays, D == q) :-
-    call_delays(q, D).
-test(delays, D == q) :-
-    call_delays(x, D).
-test(delays, D == tnot(q)) :-
-    call_delays(tnot(q), D).
-test(delays, D == true) :-
-    call_delays(a(_), D).
-test(delays, D == test_wfs:mp) :-
-    call_delays(mp, D).
-test(residual, D == [(q:-tnot(p)),(p:-tnot(q))]) :-
-    call_residual_program(q, D).
-test(as, D =@= [(puas(1,_) :- tnot(tabled_call(plunit_wfs_delays:puas(1,B)))),
-		(tabled_call(plunit_wfs_delays:puas(1,B)):-puas(1,B))]) :-
-    call_residual_program(puas(1,_), D).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Test max aggregation
 
-:- end_tests(wfs_delays).
+:- table test1(+,+,max).
+test1(L,L2, Val) :-
+        member(Val1,L),
+        member(Val2,L2),
+        Val is Val1+Val2.
 
-% Use imported definitions to test qualification
+test(max, Max == 206) :-
+    L1 = [1,2,3,5,98,3,103,4,4,21],
+    test1(L1, L1, Max).
 
-:- table mp/0, mq/0.
-
-mp :- tnot(mq).
-mq :- tnot(mp).
-
+:- end_tests(answer_subsumption).

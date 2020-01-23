@@ -814,6 +814,28 @@ enclosed in parenthesis. For example:
 The tnot/1 predicate implements \jargon{tabled negation}. This predicate
 realises \jargon{Well Founded Semantics}. See \secref{WFS} for details.
 
+    \predicate{not_exists}{1}{:Goal}
+Handles tabled negation for non-ground (\jargon{floundaring}) \arg{Goal}
+as well as non tabled goals. If \arg{Goal} is ground and tabled
+not_exists/1 calls tnot/1. Otherwise it used \term{tabled_call}{Goal} to
+create a table and subsequently uses tnot/1 on the created table.
+
+Logically, \term{not_exists}{p(X)} is defined as
+\mbox{tnot($\exists{}$\arg{X}(p(\arg{X})))}
+
+Note that each \arg{Goal} variant populates a table for tabled_call/1.
+Applications may need to abolish such tables to limit memory usage or
+guarantee consistency `after the world changed'.
+
+    \predicate{tabled_call}{1}{:Goal}
+Helper predicate for not_exists/1. Defined as below. The helper is
+public because application may need to abolish its tables.
+
+\begin{code}
+:- table tabled_call/1 as variant.
+tabled_call(Goal) :- call(Goal).
+\end{code}
+
     \predicate{current_table}{2}{:Variant, -Trie}
 True when \arg{Trie} is the answer table for \arg{Variant}.
 

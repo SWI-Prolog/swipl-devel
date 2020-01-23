@@ -465,6 +465,7 @@ a thread-synchronisation device}
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
 \oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not provable). Same as \predref{\+}{1}}
+\predicatesummary{not_exists}{1}{Tabled negation for non-ground or non-tabled goals}
 \predicatesummary{notrace}{0}{Stop tracing}
 \predicatesummary{notrace}{1}{Do not debug argument goal}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
@@ -681,6 +682,7 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
 \predicatesummary{table}{1}{Declare predicate to be tabled}
+\predicatesummary{tabled_call}{1}{Helper for not_exists/1}
 \predicatesummary{tdebug}{0}{Switch all threads into debug mode}
 \predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}

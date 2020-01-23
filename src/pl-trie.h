@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2019, VU University Amsterdam
+    Copyright (c)  2017-2020, VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -73,11 +73,13 @@ typedef union trie_children
 } trie_children;
 
 
-#define TN_PRUNED			0x0001	/* Node path was pruned */
-#define TN_IDG_DELETED			0x0002	/* IDG pre-evaluation */
-#define TN_IDG_ADDED			0x0004	/* IDG recovery */
-#define TN_IDG_UNCONDITIONAL		0x0008	/* IDG: previous cond state */
-#define TN_IDG_SAVED_UNCONDITIONAL	0x0010	/* IDG recovery */
+#define TN_PRIMARY			0x0001	/* Primary value node */
+#define TN_SECONDARY			0x0002	/* Secondary value node */
+#define TN_PRUNED			0x0004	/* Node path was pruned */
+#define TN_IDG_DELETED			0x0008	/* IDG pre-evaluation */
+#define TN_IDG_ADDED			0x0010	/* IDG recovery */
+#define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
+#define TN_IDG_SAVED_UNCONDITIONAL	0x0040	/* IDG recovery */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
 	 TN_IDG_UNCONDITIONAL|TN_IDG_SAVED_UNCONDITIONAL)
@@ -90,7 +92,7 @@ typedef struct trie_node
   struct
   { struct delay_info  *delayinfo;	/* can be unified with children */
   } data;
-  int			flags;		/* TN_* */
+  unsigned		flags;		/* TN_* */
 } trie_node;
 
 #define TRIE_ISSET	0x0001		/* Trie nodes have no value */
@@ -152,20 +154,30 @@ COMMON(void)	trie_empty(trie *trie);
 COMMON(void)	trie_clean(trie *trie);
 COMMON(void)	trie_delete(trie *trie, trie_node *node, int prune);
 COMMON(void)	prune_node(trie *trie, trie_node *n);
+COMMON(void)	prune_trie(trie *trie, trie_node *root,
+			   void (*free)(trie_node *node, void *ctx), void *ctx);
 COMMON(trie *)	get_trie_from_node(trie_node *node);
 COMMON(int)	is_ground_trie_node(trie_node *node);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);
-COMMON(int)	unify_trie_term(trie_node *node, term_t term ARG_LD);
-COMMON(int)	trie_lookup(trie *trie, trie_node **nodep, Word k,
-			    int add, TmpBuffer vars ARG_LD);
+COMMON(int)	unify_trie_term(trie_node *node, trie_node **parent,
+				term_t term ARG_LD);
+COMMON(int)	trie_lookup(trie *trie, trie_node *root, trie_node **nodep,
+			    Word k, int add, TmpBuffer vars ARG_LD);
 COMMON(int)	trie_error(int rc, term_t culprit);
+COMMON(int)	trie_trie_error(int rc, trie *trie);
 COMMON(atom_t)	trie_symbol(trie *trie);
 COMMON(trie *)	symbol_trie(atom_t symbol);
 COMMON(int)	put_trie_value(term_t t, trie_node *node ARG_LD);
 COMMON(int)	set_trie_value(trie *trie, trie_node *node, term_t value ARG_LD);
 COMMON(int)	set_trie_value_word(trie *trie, trie_node *node, word val);
-COMMON(foreign_t) trie_gen(term_t Trie, term_t Key, term_t Value,
+COMMON(foreign_t) trie_gen_raw(
+		      trie *trie, trie_node *root,
+		      term_t Key, term_t Value,
+		      term_t Data,
+		      int (*unify_data)(term_t, trie_node*, void* ARG_LD),
+		      void *ctx, control_t PL__ctx);
+COMMON(foreign_t) trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 			   term_t Data,
 			   int (*unify_data)(term_t, trie_node*, void* ARG_LD),
 			   void *ctx, control_t PL__ctx);

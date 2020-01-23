@@ -219,6 +219,7 @@ A dmessage_queue	"$message_queue"
 A dmeta_call		"$meta_call"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
+A done			"done"
 A dos			"dos"
 A dot			"."
 A dotlists		"dotlists"
@@ -992,6 +993,7 @@ F floor			1
 F foreign_function	1
 F frame			3
 F frame_finished	1
+F fresh			2
 F gcd			2
 F gc_stats		8
 F gc			6

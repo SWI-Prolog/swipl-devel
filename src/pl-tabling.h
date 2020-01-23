@@ -115,6 +115,7 @@ typedef struct worklist
 
   tbl_component*component;		/* component I belong to */
   trie	       *table;			/* My answer table */
+  Definition	predicate;		/* Predicate we are associated with */
 
   buffer	delays;			/* Delayed answers */
   buffer	pos_undefined;		/* Positive undefined */

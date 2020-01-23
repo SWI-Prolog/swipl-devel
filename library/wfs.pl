@@ -125,17 +125,30 @@ residual_program(Goal0, M, Done0, Done) -->
     !,
     residual_program(Goal0, M2, Done0, Done).
 residual_program(Goal, M, Done0, Done) -->
-    { (   current_table(M:Goal, Trie)
+    { M:'$table_mode'(Goal, Variant, ModeArgs),
+      (   current_table(M:Variant, Trie)
       ->  true
-      ;   '$tabling':more_general_table(M:Goal, Trie)
-      ->  true
-      ;   format(user_error, 'OOPS: Missing Call? ~p', [M:Goal])
+      ;   '$tabling':more_general_table(M:Variant, Trie)
       ),
-      '$tbl_table_status'(Trie, _Status, M:Goal, Skeleton),
-      '$tbl_answer'(Trie, Skeleton, Condition)
+      !,
+      '$tbl_table_status'(Trie, _Status, M:Variant, Skeleton),
+      (   '$tbl_is_trienode'(ModeArgs)
+      ->  '$tbl_answer'(Trie, Skeleton, Condition0)
+      ;   '$tbl_answer'(Trie, Skeleton, ModeArgs, Condition0)
+      ),
+      as_cond(Condition0, Condition)
     },
     [ (M:Goal :- Condition) ],
     residual_program(Condition, M, [M:Goal|Done0], Done).
+residual_program(Goal, M, Done, Done) -->
+    { format(user_error, 'OOPS: Missing Call? ~p', [M:Goal])
+    },
+    [ (M:Goal :- ???) ].
+
+as_cond((M:Variant)/ModeArgs, M:Goal) :-
+    !,
+    M:'$table_mode'(Goal, Variant, ModeArgs).
+as_cond(Goal, Goal).
 
 unqualify_clause(M, (Head0 :- Body0), (Head :- Body)) :-
     unqualify(Head0, M, Head),
@@ -179,6 +192,9 @@ unqualify(M:G0, MG, G) :-
     !,
     G = G0.
 unqualify(M:G0, M, G) :-
+    !,
+    G = G0.
+unqualify(system:G0, _, G) :-
     !,
     G = G0.
 unqualify(G, _, G).

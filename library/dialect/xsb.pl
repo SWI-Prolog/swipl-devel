@@ -50,7 +50,6 @@
 
             fail_if/1,				% :Goal
 
-            not_exists/1,			% :Goal
             sk_not/1,				% :Goal
             gc_tables/1,                        % -Remaining
 
@@ -108,7 +107,6 @@ system](http://xsb.sourceforge.net/)
     thread_shared(:),
 
     fail_if(0),                         % Meta predicates
-    not_exists(0),
     sk_not(0).
 
 
@@ -477,18 +475,6 @@ fail_if(P) :-
 		 *      TABLING BUILT-INS	*
 		 *******************************/
 
-%!  not_exists(:P) is semidet.
-%
-%   Tabled negation for non-ground goals. This predicate uses the tabled
-%   meta-predicate tabled_call/1. The tables  for xsb:tabled_call/1 must
-%   be cleared if `the world changes' as   well  as to avoid aggregating
-%   too many variants.
-
-not_exists(Goal) :-
-    (   tabled_call(Goal), fail
-    ;   tnot(tabled_call(Goal))
-    ).
-
 %!  sk_not(:P) is semidet.
 %
 %   Sound negation with non-ground P.  Equivalent to not_exists/1.
@@ -497,11 +483,6 @@ not_exists(Goal) :-
 
 sk_not(P) :-
     not_exists(P).
-
-:- table tabled_call/1 as variant, opaque.
-
-tabled_call(X) :- call(X).
-
 
 %!  gc_tables(-Remaining) is det.
 %
