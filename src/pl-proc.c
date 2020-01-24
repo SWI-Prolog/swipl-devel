@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -38,6 +38,7 @@
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-event.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General  handling  of  procedures:  creation;  adding/removing  clauses;
@@ -176,6 +177,11 @@ destroyDefinition(Definition def)
 #endif
   }
 
+  if ( def->tabling )
+  { freeHeap(def->tabling, sizeof(*def->tabling));
+    def->tabling = NULL;
+  }
+
   DEBUG(MSG_CGC_PRED,
 	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
   if ( true(def, P_DIRTYREG) )
@@ -275,6 +281,8 @@ resetProcedure(Procedure proc, bool isnew)
   def->impl.clauses.number_of_clauses = 0;
   if ( def->events )
     destroy_event_list(&def->events);
+  if ( def->tabling )
+    tbl_reset_tabling_attributes(def);
 
   if ( isnew )
   { deleteIndexes(&def->impl.clauses, TRUE);
@@ -2821,7 +2829,6 @@ static const patt_mask patt_masks[] =
   { ATOM_spy,		   SPY_ME },
   { ATOM_tabled,	   P_TABLED },
   { ATOM_incremental,	   P_INCREMENTAL },
-  { ATOM_abstract,	   P_ABSTRACT },
   { ATOM_tshared,	   P_TSHARED },
   { ATOM_trace,		   TRACE_ME },
   { ATOM_hide_childs,	   HIDE_CHILDS },
@@ -2885,10 +2892,13 @@ num_visible_clauses(Definition def, atom_t key)
 }
 
 
-word
-pl_get_predicate_attribute(term_t pred,
-			   term_t what, term_t value)
-{ GET_LD
+static
+PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
+  term_t pred  = A1;
+  term_t what  = A2;
+  term_t value = A3;
   Procedure proc;
   Definition def;
   functor_t fd;
@@ -2977,6 +2987,12 @@ pl_get_predicate_attribute(term_t pred,
     if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
     return PL_unify_integer(value, num_visible_clauses(def, key));
+  } else if ( tbl_is_predicate_attribute(key) )
+  { size_t sz_value;
+
+    if ( tbl_get_predicate_attribute(def, key, &sz_value) == TRUE )
+      return PL_unify_int64(value, sz_value);
+    return FALSE;
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
@@ -3127,8 +3143,24 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
   int val;
   uintptr_t att;
 
-  if ( !PL_get_atom_ex(what, &key) ||
-       !get_bool_or_int_ex(value, &val PASS_LD) ||
+  if ( !PL_get_atom_ex(what, &key) )
+    return FALSE;
+  if ( tbl_is_predicate_attribute(key) )
+  { size_t v;
+    atom_t inf;
+
+    if ( PL_get_atom(value, &inf) && inf == ATOM_infinite )
+      v	= (size_t)-1;
+    else if ( !PL_get_size_ex(value, &v) )
+      return FALSE;
+
+    if ( get_procedure(pred, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+      return tbl_set_predicate_attribute(proc->definition, key, v) == TRUE;
+
+    return FALSE;
+  }
+
+  if ( !get_bool_or_int_ex(value, &val PASS_LD) ||
        !(att = attribute_mask(key)) )
     return FALSE;
 
@@ -3513,6 +3545,8 @@ pl_list_generations(term_t desc)
 
 BeginPredDefs(proc)
   PRED_DEF("$set_predicate_attribute", 3, set_predicate_attribute,
+	   PL_FA_TRANSPARENT)
+  PRED_DEF("$get_predicate_attribute", 3, get_predicate_attribute,
 	   PL_FA_TRANSPARENT)
   PRED_DEF("$default_predicate", 2, default_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)

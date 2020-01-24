@@ -740,6 +740,185 @@ SWI-Prolog's \jargon{continuation based} tabling offers the opportunity
 to perform \jargon{completion} using multiple threads.
 
 
+\section{Tabling restraints: bounded rationality and tripwires}
+\label{sec:tabling-restraints}
+
+Tabling avoids non-termination due to \jargon{self-recursion}. As Prolog
+allows for infinitely nested \jargon{compound terms} (\jargon{function
+symbols} in logic) and arbitrary numbers, the set of possible answers is
+not finite and thus there is no guaranteed termination.
+
+This section describes \jargon{restraints} that can be enforced to
+specific or all tabled predicates. Currently there are three defined
+restraints, limiting (1) the size of (the arguments to) goals, (2) the
+size of the answer substitution added to a table and (3) the number of
+answers allowed in any table. If any of these events occurs we can
+specify the action taken. We distinguish two classes of actions. First,
+these events can trap a \jargon{tripwire} which can be handled using a
+hook or a predefined action such as raising an exception, printing a
+warning or enter a \jargon{break level}. Second, they may continue the
+computation that results in a partial answer (\jargon{bounded
+rationality}).
+
+The tripwire actions apply for all restraints.  If a tripwire action is
+triggered, the system takes the steps below.
+
+\begin{enumerate}
+    \item Call prolog:tripwire/2.
+    \item If prolog:tripwire/2 fails, take one of the predefined
+    actions:
+    \begin{description}
+	\termitem{warning}{}
+	Print a message indicating the trapped tripwire and continue
+	execution as normal, i.e., the final answer is the same as
+	if no restraint was active.
+	\termitem{error}{}
+	Throw an exception
+	\verb$error(resource_error(tripwire(Wire,Context)))$.
+	\termitem{suspend}{}
+	Print a message and start a \jargon{break level} (see break/0).
+    \end{description}
+\end{enumerate}
+
+
+\begin{description}
+    \predicate[multifile]{prolog:tripwire}{2}{Wire, Context}
+Called when tripwire \arg{Wire} is trapped. \arg{Context} provides
+additional context for interpreting the tripwire.  The hook can take
+one of three actions:
+
+\begin{itemize}
+    \item Succeed.  In this case the tripwire is considered handled and
+    execution proceeds as if there was no tripwire.  Note that tripwires
+    only trigger at the exact value, which implies that a wire on a
+    count will be triggered only once.  The hook can install a new
+    tripwire at a higher count.
+    \item Fail.  In this case the default action is taken.
+    \item Throw an exception.  Exceptions are propagated normally.
+\end{itemize}
+\end{description}
+
+\jargon{Radial restraints} limit the sizes of subgoals or answers.
+Abstraction of a term according to the size limit is implemented by
+size_abstract_term/3.
+
+\begin{description}
+    \predicate[det]{size_abstract_term}{+Size, +Term, -Abstract}
+The size of a term is defined as the number of compound subterms of
+Term. If the size of \arg{Term} is greater than \arg{Size},
+\arg{Abstract} is an abstract copy of \arg{Term} where the first
+\arg{Size} compound terms are preserved and subsequent compound terms
+are replaced by a variable. The copy process scans the term in the usual
+depth-first left-to-right order.
+
+If the size of \arg{Term} is at most \arg{Size}, \arg{Abstract} is
+equivalent to \arg{Term}.
+
+TBD: Examples, but so far it is unclear the above is correct.
+\end{description}
+
+
+\subsection{Restraint subgoal size}
+\label{sec:tabling-restraint-subgoal}
+
+Using the \term{abstract_subgoal}{Size} attribute, a tabled subgoal that
+that is too large is \jargon{abstracted} by replacing compound subterms
+of the goal with variables. In a nutshell, a goal
+\term{p}{s(s(s(s(s(0)))))} is converted into the semantically equivalent
+subgoal if the subgoal size is limited to~3.
+
+\begin{code}
+    ...,
+    p(s(s(s(X)))), X = s(s(0)),
+    ...,
+\end{code}
+
+As a result of this, terms stored in the \jargon{variant trie} that maps
+goal variants into \jargon{answer tables} is limited. Note that does not
+limit the number of answer tables as atomic values are never abstracted
+and there are, for example, an infinite number of integers. Note that
+restraining the subgoal size does not affect the semantics, provided
+more general queries on the predicate include all answers that more
+specific queries do.  See also \jargon{call substitution} as described
+in \secref{tabling-subsumptive}.
+
+
+\subsection{Restraint answer size}
+\label{sec:tabling-restraint-answer-size}
+
+Using the \term{abstract_answer}{Size} attribute, a tabled subgoal that
+produces answer substitutions (instances of the variables in the goal)
+whose size exceed \arg{Size} are trapped. Answer abstraction defines
+four modes for dealing with too large answers:
+
+\begin{description}
+    \termitem{error}{}
+(Default) raise an exception.
+    \termitem{fail}{}
+Ignore the too large answer.  Note that this is semantically incorrect.
+    \termitem{suspend}{}
+Start a \jargon{break level}, allowing the user to examine the
+situation.
+    \termitem{bounded_rationality}{}
+In this mode, the large answer is \jargon{abstracted} in the same way as
+subgoals are abstracted (see \secref{tabling-restraint-subgoal}). This
+is semantically incorrect, but our third thruth value \jargon{undefined}
+is used to remedy this problem. In other words, the abstracted value is
+added to the table as \jargon{undefined} and all conclusions that depend
+on usage of this abstracted value are thus undefined unless they can
+also be proved some other way.
+\end{description}
+
+\subsection{Restraint answer count}
+\label{sec:tabling-restraint-answer-count}
+
+Finally, using ``as \term{max_answers}{Count}'' or the Prolog flag
+\prologflag{max_answers_for_subgoal}, the number of answers in a table
+is restrained. In addition to the tripwire actions this restraint
+supports the action \const{bounded_rationality}\footnote{The action
+\const{complete_soundly} is supported as a synonym for XSB
+compatibility}. If the restraint is reached in the bounded rationality
+mode the system takes the following actions:
+
+\begin{itemize}
+    \item Ignore the answer that triggered the restraint.
+    \item Prune the choice points of the tabled goal to avoid more
+          answers.
+    \item Add an new answer to the table that does not bind any
+          variables, i.e., an empty answer substitution.  This answer
+	  is conditional on answer_count_restraint/0.
+\end{itemize}
+
+\begin{description}
+    \predicate[undefined]{answer_count_restraint}{0}{}
+This predicate is \jargon{undefined} in the sense of well founded
+semantics (see \secref{WFS} and undefined/0). Any answer that depends on
+this condition is undefined because the \const{max_answers} restraint on
+some table was violated.
+\end{description}
+
+The program and subsequent query below illustrate the behavior.
+
+\begin{code}
+:- table p/2 as max_answers(3).
+
+p(M,N) :-
+    between(1,M,N).
+\end{code}
+
+\begin{code}
+?- p(1 000 000, X).
+X = 3 ;
+X = 2 ;
+X = 1 ;
+% WFS residual program
+    p(1000000, X) :-
+        answer_count_restraint.
+p(1000000, X).
+\end{code}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Tabling predicate reference}
 \label{sec:tabling-preds}
 

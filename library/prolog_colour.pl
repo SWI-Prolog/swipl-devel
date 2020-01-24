@@ -1935,24 +1935,44 @@ colourise_decl_options(Option, Which, TB, Pos) :-
     valid_decl_option(Option, Which),
     !,
     functor(Option, Name, _),
-    colour_item(decl_option(Name), TB, Pos).
+    colour_item(decl_option(Name), TB, Pos),
+    (   Pos = term_position(_,_,_,_,[ArgPos])
+    ->  (   arg(1, Option, Value),
+            nonneg_or_false(Value)
+        ->  colourise_term_arg(Value, TB, ArgPos)
+        ;   colour_item(type_error(decl_option_value(Which)), TB, ArgPos)
+        )
+    ;   true
+    ).
 colourise_decl_options(_, Which, TB, Pos) :-
     colour_item(type_error(decl_option(Which)), TB, Pos).
 
-valid_decl_option(subsumptive,   table).
-valid_decl_option(variant,       table).
-valid_decl_option(incremental,   table).
-valid_decl_option(opaque,        table).
-valid_decl_option(incremental,   dynamic).
-valid_decl_option(abstract(0),   dynamic).
-valid_decl_option(shared,        table).
-valid_decl_option(private,       table).
-valid_decl_option(shared,        dynamic).
-valid_decl_option(private,       dynamic).
-valid_decl_option(local,         dynamic).
-valid_decl_option(multifile,     _).
-valid_decl_option(discontiguous, _).
-valid_decl_option(volatile,      _).
+valid_decl_option(subsumptive,         table).
+valid_decl_option(variant,             table).
+valid_decl_option(incremental,         table).
+valid_decl_option(opaque,              table).
+valid_decl_option(incremental,         dynamic).
+valid_decl_option(abstract(_),         dynamic).
+valid_decl_option(shared,              table).
+valid_decl_option(private,             table).
+valid_decl_option(subgoal_abstract(_), table).
+valid_decl_option(answer_abstract(_),  table).
+valid_decl_option(max_answers(_),      table).
+valid_decl_option(shared,              dynamic).
+valid_decl_option(private,             dynamic).
+valid_decl_option(local,               dynamic).
+valid_decl_option(multifile,           _).
+valid_decl_option(discontiguous,       _).
+valid_decl_option(volatile,            _).
+
+nonneg_or_false(Value) :-
+    var(Value),
+    !.
+nonneg_or_false(Value) :-
+    integer(Value), Value >= 0,
+    !.
+nonneg_or_false(off).
+nonneg_or_false(false).
 
 %!  colourise_op_declaration(Op, TB, Pos) is det.
 

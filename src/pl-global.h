@@ -605,6 +605,14 @@ struct PL_local_data
     int in_answer_completion;		/* Running answer completion */
     term_t delay_list;			/* Global delay list */
     term_t idg_current;			/* Current node in IDG (trie symbol) */
+    struct
+    { atom_t max_table_subgoal_size_action;
+      size_t max_table_subgoal_size;
+      atom_t max_table_answer_size_action;
+      size_t max_table_answer_size;
+      atom_t max_answers_for_subgoal_action;
+      size_t max_answers_for_subgoal;
+    } restraint;
   } tabling;
 
   struct

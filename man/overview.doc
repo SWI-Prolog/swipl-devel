@@ -1608,6 +1608,38 @@ ISO Prolog flag describing there is no maximum arity to compound terms.
 Maximum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.
 
+    \prologflagitem{max_answers_for_subgoal}{integer}{rw}
+Limit the number of answers in a table. The atom
+\const{infinite} clears the flag.  By default this flag is not defined.
+See \secref{tabling-restraints} for details.
+
+    \prologflagitem{max_answers_for_subgoal_action}{atom}{rw}
+The action taken when a table reaches the number of
+answers specified in \prologflag{max_answers_for_subgoal}. Supported values
+are \const{bounded_rationality}, \const{error} (default) or
+\const{suspend}.
+
+    \prologflagitem{max_table_answer_size}{integer}{rw}
+Limit the size of an answer substitution for tabling.  The atom
+\const{infinite} clears the flag.  By default this flag is not defined.
+See \secref{tabling-restraints} for details.
+
+    \prologflagitem{max_table_answer_size_action}{atom}{rw}
+The action taken if an answer substitution larger than
+\prologflag{max_table_answer_size} is added to a table. Supported values
+are \const{error} (default), \const{bounded_rationality},
+\const{suspend} and \const{fail}.
+
+    \prologflagitem{max_table_subgoal_size}{integer}{rw}
+Limit the size of a goal term accessing a table.  The atom
+\const{infinite} clears the flag.  By default this flag is not defined.
+See \secref{tabling-restraints} for details.
+
+    \prologflagitem{max_table_subgoal_size_action}{atom}{rw}
+The action taken if a tabled goal exceeds
+\prologflagitem{max_table_subgoal_size}.  Supported values
+are \const{error} (default), \const{abstract} and \const{suspend}.
+
     \prologflagitem{max_tagged_integer}{integer}{r}
 Maximum integer value represented as a `tagged' value.  Tagged integers
 require one word storage.  Larger integers are represented as `indirect data'

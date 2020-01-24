@@ -206,14 +206,39 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 
 '$attr_option'(incremental, incremental(true)).
 '$attr_option'(opaque, incremental(false)).
-'$attr_option'(abstract(Level), abstract(true)) :-
-    '$must_be'(between(0,0), Level).
+'$attr_option'(abstract(Level0), abstract(Level)) :-
+    '$table_option'(Level0, Level).
+'$attr_option'(subgoal_abstract(Level0), subgoal_abstract(Level)) :-
+    '$table_option'(Level0, Level).
+'$attr_option'(answer_abstract(Level0), answer_abstract(Level)) :-
+    '$table_option'(Level0, Level).
+'$attr_option'(max_answers(Level0), max_answers(Level)) :-
+    '$table_option'(Level0, Level).
 '$attr_option'(volatile, volatile(true)).
 '$attr_option'(multifile, multifile(true)).
 '$attr_option'(discontiguous, discontiguous(true)).
 '$attr_option'(shared, thread_local(false)).
 '$attr_option'(local, thread_local(true)).
 '$attr_option'(private, thread_local(true)).
+
+'$table_option'(Value0, _Value) :-
+    var(Value0),
+    !,
+    '$instantiation_error'(Value0).
+'$table_option'(Value0, Value) :-
+    integer(Value0),
+    Value0 >= 0,
+    !,
+    Value = Value0.
+'$table_option'(off, -1) :-
+    !.
+'$table_option'(false, -1) :-
+    !.
+'$table_option'(infinite, -1) :-
+    !.
+'$table_option'(Value, _) :-
+    '$domain_error'(nonneg_or_false, Value).
+
 
 %!  '$pattr_directive'(+Spec, +Module) is det.
 %

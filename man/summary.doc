@@ -56,13 +56,14 @@ suggest predicates from a keyword.
 \predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
-\predicatesummary{absolute_file_name}{3}{Get absolute path name with
-options} \predicatesummary{access_file}{2}{Check access permissions of a
-file} \predicatesummary{acyclic_term}{1}{Test term for cycles}
-\predicatesummary{add_import_module}{3}{Add module to the auto-import
-list} \predicatesummary{add_nb_set}{2}{Add term to a non-backtrackable
-set} \predicatesummary{add_nb_set}{3}{Add term to a non-backtrackable
-set} \predicatesummary{append}{1}{Append to a file}
+\predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
+\predicatesummary{answer_count_restraint}{0}{Undefined answer due to \const{max_answers}}
+\predicatesummary{access_file}{2}{Check access permissions of a file}
+\predicatesummary{acyclic_term}{1}{Test term for cycles}
+\predicatesummary{add_import_module}{3}{Add module to the auto-import list}
+\predicatesummary{add_nb_set}{2}{Add term to a non-backtrackable set}
+\predicatesummary{add_nb_set}{3}{Add term to a non-backtrackable set}
+\predicatesummary{append}{1}{Append to a file}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}
@@ -640,27 +641,28 @@ goal} \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
 \predicatesummary{shift}{1}{Shift control to the closest reset/3}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
+\predicatesummary{size_abstract_term}{3}{Abstract a term (tabling support)}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
-\predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable
-set} \predicatesummary{skip}{1}{Skip to character in current input}
+\predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
+\predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
 \predicatesummary{sleep}{1}{Suspend execution for specified time}
 \predicatesummary{sort}{2}{Sort elements in a list}
 \predicatesummary{sort}{4}{Sort elements in a list}
-\predicatesummary{source_exports}{2}{Check whether source exports a
-predicate} \predicatesummary{source_file}{1}{Examine currently loaded
-source files} \predicatesummary{source_file}{2}{Obtain source file of
-predicate} \predicatesummary{source_file_property}{2}{Information about
-loaded files} \predicatesummary{source_location}{2}{Location of last
-read term} \predicatesummary{split_string}{4}{Break a string into
-substrings} \predicatesummary{spy}{1}{Force tracer on specified
-predicate} \predicatesummary{stamp_date_time}{3}{Convert time-stamp to
-date structure} \predicatesummary{statistics}{0}{Show execution
-statistics} \predicatesummary{statistics}{2}{Obtain collected
-statistics} \predicatesummary{stream_pair}{3}{Create/examine a
-bi-directional stream} \predicatesummary{stream_position_data}{3}{Access
-fields from stream position} \predicatesummary{stream_property}{2}{Get
-stream properties} \predicatesummary{string}{1}{Type check for string}
+\predicatesummary{source_exports}{2}{Check whether source exports a predicate}
+\predicatesummary{source_file}{1}{Examine currently loaded source files}
+\predicatesummary{source_file}{2}{Obtain source file of predicate}
+\predicatesummary{source_file_property}{2}{Information about loaded files}
+\predicatesummary{source_location}{2}{Location of last read term}
+\predicatesummary{split_string}{4}{Break a string into substrings}
+\predicatesummary{spy}{1}{Force tracer on specified predicate}
+\predicatesummary{stamp_date_time}{3}{Convert time-stamp to date structure}
+\predicatesummary{statistics}{0}{Show execution statistics}
+\predicatesummary{statistics}{2}{Obtain collected statistics}
+\predicatesummary{stream_pair}{3}{Create/examine a bi-directional stream}
+\predicatesummary{stream_position_data}{3}{Access fields from stream position}
+\predicatesummary{stream_property}{2}{Get stream properties}
+\predicatesummary{string}{1}{Type check for string}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_chars}{2}{Conversion between string and list of
@@ -747,6 +749,7 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{trie_update}{3}{Update associated value in trie}
 \predicatesummary{trie_term}{2}{Get term from a trie by handle}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
+\predicatesummary{tripwire}{2}{\hook{prolog} Handle a tabling tripwire event}
 \predicatesummary{true}{0}{Succeed} \predicatesummary{tspy}{1}{Set spy
 point and enable debugging in all threads}
 \predicatesummary{tspy}{2}{Set spy point and enable debugging in a

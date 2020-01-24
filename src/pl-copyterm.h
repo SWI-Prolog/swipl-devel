@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2020, VU University Amsterdam
+			 CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,5 +45,7 @@ typedef struct fastheap_term
 COMMON(fastheap_term*)	term_to_fastheap(term_t t ARG_LD);
 COMMON(void)		free_fastheap(fastheap_term *fht);
 COMMON(int)		put_fastheap(fastheap_term *fht, term_t t ARG_LD);
+COMMON(int)		size_abstract_term(term_t in, term_t copy,
+					   size_t abstract ARG_LD);
 
 #endif /*_PL_COPYTERM_H*/

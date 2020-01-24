@@ -853,8 +853,8 @@ define_or_generate(Pred) :-
     table_flag(Flag, Pred).
 '$predicate_property'(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
-'$predicate_property'(abstract(0), Pred) :-
-    '$get_predicate_attribute'(Pred, abstract, 1).
+'$predicate_property'(abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, abstract, N).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
@@ -871,6 +871,12 @@ table_flag(shared, Pred) :-
     '$get_predicate_attribute'(Pred, tshared, 1).
 table_flag(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
+table_flag(subgoal_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, subgoal_abstract, N).
+table_flag(answer_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, subgoal_abstract, N).
+table_flag(subgoal_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, max_answers, N).
 
 
 %!  visible_predicate(:Head) is nondet.

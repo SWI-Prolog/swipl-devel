@@ -87,6 +87,7 @@ applications.
 
 #define COPY_SHARE	0x01			/* Share ground terms */
 #define COPY_ATTRS	0x02			/* do copy attributes */
+#define COPY_ABSTRACT	0x04			/* Abstract compounds */
 
 static int
 mark_for_duplicate(Word p, int flags ARG_LD)
@@ -391,7 +392,7 @@ exitCyclicCopy(int flags ARG_LD)
 
 
 static int
-copy_term(Word from, Word to, int flags ARG_LD)
+copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 { term_agendaLR agenda;
   int rc = TRUE;
 
@@ -418,6 +419,8 @@ copy_term(Word from, Word to, int flags ARG_LD)
 	{ *to = VAR_MARK;
 	  *from = makeRef(to);
 	  TrailCyclic(from PASS_LD);
+	} else if ( (flags&COPY_ABSTRACT) )
+	{ *to = makeRef(from);
 	} else
 	{ setVar(*to);
 	}
@@ -465,6 +468,14 @@ copy_term(Word from, Word to, int flags ARG_LD)
 	continue;
       case TAG_COMPOUND:
       { Functor ff = valueTerm(*from);
+
+	if ( abstract == 0 )
+	{ setVar(*to);
+	  continue;
+	} else
+	{ if ( abstract != (size_t)-1 )
+	    abstract--;
+	}
 
 	if ( isRef(ff->definition) )
 	{ *to = consPtr(unRef(ff->definition), TAG_COMPOUND|STG_GLOBAL);
@@ -528,7 +539,7 @@ deferenced and to is a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-do_copy_term(Word from, Word to, int flags ARG_LD)
+do_copy_term(Word from, Word to, int abstract, int flags ARG_LD)
 { int rc;
 
 again:
@@ -546,17 +557,17 @@ again:
       return TRUE;
   }
 
-  if ( flags & COPY_SHARE )
+  if ( (flags&COPY_SHARE) )
   { DEBUG(0, { mark_for_copy(from, flags PASS_LD);
 	       cp_unmark(from, flags PASS_LD);
 	       checkData(from);
 	     });
     mark_for_copy(from, flags PASS_LD);
-  } else
+  } else if ( !(flags&COPY_ABSTRACT) )
   { mark_for_duplicate(from, flags PASS_LD);
   }
   initCyclicCopy(PASS_LD1);
-  rc = copy_term(from, to, flags PASS_LD);
+  rc = copy_term(from, to, abstract, flags PASS_LD);
   exitCyclicCopy(flags PASS_LD);
   cp_unmark(from, flags PASS_LD);
 /*DEBUG(0, if ( rc == TRUE )		May lead to "Reference to higher address"
@@ -570,7 +581,7 @@ again:
 
 
 static int
-copy_term_refs(term_t from, term_t to, int flags ARG_LD)
+copy_term_refs(term_t from, term_t to, size_t abstract, int flags ARG_LD)
 { for(;;)
   { fid_t fid;
     int rc;
@@ -587,7 +598,7 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
     *valTermRef(to) = makeRef(dest);
     src = valTermRef(from);
 
-    rc = do_copy_term(src, dest, flags PASS_LD);
+    rc = do_copy_term(src, dest, abstract, flags PASS_LD);
 
     if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
@@ -609,8 +620,15 @@ copy_term_refs(term_t from, term_t to, int flags ARG_LD)
 
 int
 duplicate_term(term_t in, term_t copy ARG_LD)
-{ return copy_term_refs(in, copy, COPY_ATTRS PASS_LD);
+{ return copy_term_refs(in, copy, (size_t)-1, COPY_ATTRS PASS_LD);
 }
+
+
+int
+size_abstract_term(term_t in, term_t copy, size_t abstract ARG_LD)
+{ return copy_term_refs(in, copy, abstract, COPY_ATTRS|COPY_ABSTRACT PASS_LD);
+}
+
 
 		 /*******************************
 		 *	  FAST HEAP TERMS	*
@@ -786,7 +804,7 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
   } else
   { term_t copy = PL_new_term_ref();
 
-    if ( copy_term_refs(A1, copy, COPY_SHARE|COPY_ATTRS PASS_LD) )
+    if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE|COPY_ATTRS PASS_LD) )
       return PL_unify(copy, A2);
 
     fail;
@@ -816,19 +834,35 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
 
-  if ( copy_term_refs(A1, copy, COPY_SHARE PASS_LD) )
+  if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE PASS_LD) )
     return PL_unify(copy, A2);
 
   fail;
 }
 
 
+static
+PRED_IMPL("size_abstract_term", 3, size_abstract_term, 0)
+{ PRED_LD
+  size_t abstract;
+
+  if ( PL_get_size_ex(A1, &abstract) )
+  { term_t copy = PL_new_term_ref();
+
+    if ( size_abstract_term(A2, copy, abstract PASS_LD) )
+      return PL_unify(copy, A3);
+  }
+
+  return FALSE;
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(copyterm)
-  PRED_DEF("copy_term", 2, copy_term, PL_FA_ISO)
-  PRED_DEF("duplicate_term", 2, duplicate_term, 0)
-  PRED_DEF("copy_term_nat", 2, copy_term_nat, 0)
+  PRED_DEF("copy_term",          2, copy_term,          PL_FA_ISO)
+  PRED_DEF("duplicate_term",     2, duplicate_term,     0)
+  PRED_DEF("copy_term_nat",      2, copy_term_nat,      0)
+  PRED_DEF("size_abstract_term", 3, size_abstract_term, 0)
 EndPredDefs

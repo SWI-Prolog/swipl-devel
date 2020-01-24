@@ -90,7 +90,11 @@ translate_message2(Term) -->
 translate_message2(Term) -->
     prolog_message(Term).
 translate_message2(error(resource_error(stack), Context)) -->
+    !,
     out_of_stack(Context).
+translate_message2(error(resource_error(tripwire(Wire, Context)), Context)) -->
+    !,
+    tripwire_message(Wire, Context).
 translate_message2(error(resource_error(Missing), _)) -->
     [ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
@@ -1255,8 +1259,15 @@ delays(_, _Options) -->
 
 list_clauses([]).
 list_clauses([H|T]) :-
-    portray_clause(user_output, H, [indent(4)]),
+    (   system_undefined(H)
+    ->  true
+    ;   portray_clause(user_output, H, [indent(4)])
+    ),
     list_clauses(T).
+
+system_undefined((undefined :- tnot(undefined))).
+system_undefined((answer_count_restraint :- tnot(answer_count_restraint))).
+system_undefined((radial_restraint :- tnot(radial_restraint))).
 
 bind_res_sep(_, []) --> !.
 bind_res_sep(_, []-[]) --> !.
@@ -1546,6 +1557,25 @@ deprecated(set_prolog_stack(_Stack,limit)) -->
     [ 'set_prolog_stack/2: limit(Size) sets the combined limit.'-[], nl,
       'See https://www.swi-prolog.org/changes/stack-limit.html'
     ].
+
+		 /*******************************
+		 *           TRIPWIRES		*
+		 *******************************/
+
+tripwire_message(Wire, Context) -->
+    [ 'Trapped tripwire ~w for '-[Wire] ],
+    tripwire_context(Wire, Context).
+
+tripwire_context(_, ATrie) -->
+    { '$is_answer_trie'(ATrie),
+      !,
+      '$tabling':atrie_goal(ATrie, QGoal),
+      user_predicate_indicator(QGoal, Goal)
+    },
+    [ '~p'-[Goal] ].
+tripwire_context(_, Ctx) -->
+    [ '~p'-[Ctx] ].
+
 
 		 /*******************************
 		 *        DEFAULT THEME		*

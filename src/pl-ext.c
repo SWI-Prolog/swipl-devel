@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -124,7 +124,6 @@ static const PL_extension foreigns[] = {
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
-  FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$require",		1, pl_require,		     META),
 
   FRG("repeat",			0, pl_repeat,		 NDET|ISO),

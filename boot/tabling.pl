@@ -41,6 +41,8 @@
             (tnot)/1,                   % :Goal
             not_exists/1,               % :Goal
             undefined/0,
+            answer_count_restraint/0,
+            radial_restraint/0,
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
@@ -289,20 +291,26 @@ untable_reconsult(PI) :-
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       start_tabling(Closure, Head, Wrapped)).
 
+%!  set_pattributes(:Head, +Options) is det.
+%
+%   Set all tabling attributes for Head. These have been collected using
+%   table_options/3 from the `:- table Head as (Attr1,...)` directive.
+
 set_pattributes(Head, Options) :-
     '$set_predicate_attribute'(Head, tabled, true),
-    (   get_dict(incremental, Options, true)
-    ->  '$set_predicate_attribute'(Head, incremental, true)
-    ;   true
-    ),
-    (   get_dict(dynamic, Options, true)
-    ->  '$set_predicate_attribute'(Head, dynamic, true)
-    ;   true
-    ),
-    (   get_dict(tshared, Options, true)
-    ->  '$set_predicate_attribute'(Head, tshared, true)
+    (   tabled_attribute(Attr),
+        get_dict(Attr, Options, Value),
+        '$set_predicate_attribute'(Head, Attr, Value),
+        fail
     ;   true
     ).
+
+tabled_attribute(incremental).
+tabled_attribute(dynamic).
+tabled_attribute(tshared).
+tabled_attribute(max_answers).
+tabled_attribute(abstract_subgoal).
+tabled_attribute(abstract_answer).
 
 
 start_tabling(Closure, Wrapper, Worker) :-
@@ -1085,8 +1093,25 @@ table_options(shared, Opts0, Opts1) :-
 table_options(private, Opts0, Opts1) :-
     !,
     put_dict(tshared, Opts0, false, Opts1).
+table_options(max_answers(Count), Opts0, Opts1) :-
+    !,
+    restraint(max_answers, Count, Opts0, Opts1).
+table_options(abstract_subgoal(Size), Opts0, Opts1) :-
+    !,
+    restraint(abstract_subgoal, Size, Opts0, Opts1).
+table_options(abstract_answer(Size), Opts0, Opts1) :-
+    !,
+    restraint(abstract_answer, Size, Opts0, Opts1).
 table_options(Opt, _, _) :-
     '$domain_error'(table_option, Opt).
+
+restraint(Name, Value0, Opts0, Opts) :-
+    '$table_option'(Value0, Value),
+    (   Value < 0
+    ->  Opts = Opts0
+    ;   put_dict(Name, Opts0, Value, Opts)
+    ).
+
 
 %!  mode_check(+Moded, -TestCode)
 %
@@ -1681,16 +1706,64 @@ eval_subgoal_in_residual(AnswerTrie, Return) :-
     tdebug(ac, 'Condition for ~p is ~p', [Goal, Condition]),
     eval_dl_in_residual(Condition).
 
-%!  undefined
+
+		 /*******************************
+		 *            TRIPWIRES		*
+		 *******************************/
+
+%!  tripwire(+Wire, +Action, +Context)
 %
-%   Expresses the value _bottom_ from the well founded semantics.
+%   Called from the tabling engine of some  tripwire is exceeded and the
+%   situation  is  not  handled  internally   (such  as  `abstract`  and
+%   `bounded_rationality`.
+
+:- public tripwire/3.
+:- multifile prolog:tripwire/3.
+
+tripwire(Wire, _Action, Context) :-
+    prolog:tripwire(Wire, Context),
+    !.
+tripwire(Wire, Action, Context) :-
+    Error = error(resource_error(tripwire(Wire, Context), _)),
+    tripwire_action(Action, Error).
+
+tripwire_action(warning, Error) :-
+    print_message(warning, Error).
+tripwire_action(error, Error) :-
+    throw(Error).
+tripwire_action(suspend, Error) :-
+    print_message(warning, Error),
+    break.
+
+
+		 /*******************************
+		 *   SYSTEM TABLED PREDICATES	*
+		 *******************************/
 
 :- table
     system:undefined/0,
+    system:answer_count_restraint/0,
+    sysetm:radial_restraint/0,
     system:tabled_call/1.
+
+%!  undefined is undefined.
+%
+%   Expresses the value _bottom_ from the well founded semantics.
 
 system:(undefined :-
     tnot(undefined)).
+
+%!  answer_count_restraint is undefined.
+%!  radial_restraint is undefined.
+%
+%   Similar  to  undefined/0,  providing  a   specific  _undefined_  for
+%   restraint violations.
+
+system:(answer_count_restraint :-
+    tnot(answer_count_restraint)).
+
+system:(radial_restraint :-
+    tnot(radial_restraint)).
 
 system:(tabled_call(X) :- call(X)).
 

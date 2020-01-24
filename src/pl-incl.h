@@ -862,7 +862,7 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
-#define P_ABSTRACT		(0x08000000) /* Incremental tabling */
+  /* unused			(0x08000000)  */
 #define P_TSHARED		(0x10000000) /* Using a shared table */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
@@ -1455,7 +1455,8 @@ struct definition
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
-  struct event_list *events;		/* Forward update events */
+  struct event_list  *events;		/* Forward update events */
+  struct table_props *tabling;		/* Extended properties for tabling */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

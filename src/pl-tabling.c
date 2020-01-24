@@ -132,6 +132,10 @@ static int	idg_set_current_wl(term_t wlref ARG_LD);
 static int	claim_answer_table(trie *atrie, atom_t *clrefp,
 				   int flags ARG_LD);
 #endif
+static atom_t	tripwire_answers_for_subgoal(worklist *wl ARG_LD);
+static int	generalise_answer_substitution(term_t spec, term_t gen ARG_LD);
+static int	add_answer_count_restraint(void);
+static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -3279,6 +3283,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
   if ( get_worklist(A1, &wl PASS_LD) )
   { Word kp;
     trie_node *node;
+    atom_t action;
     int rc;
 
     DEBUG(0, assert(false(wl->table, TRIE_ISSHARED) || wl->table->tid));
@@ -3306,8 +3311,42 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 	  return FALSE;				/* already in trie */
 	}
 	return PL_permission_error("modify", "trie_key", A2);
+      } else if ( (action=tripwire_answers_for_subgoal(wl PASS_LD)) )
+      { DEBUG(MSG_TABLING_RESTRAINT,
+	      print_answer_table(wl->table, "Answer count exceeded"));
+	if ( action == ATOM_bounded_rationality )
+	{ term_t gen;
+
+	  trie_delete(wl->table, node, TRUE);
+
+	  if ( !(gen = PL_new_term_ref()) ||
+	       !generalise_answer_substitution(A2, gen PASS_LD) ||
+	       !add_answer_count_restraint() )
+	    return FALSE;
+
+	  kp = valTermRef(gen);
+	  rc = trie_lookup(wl->table, NULL, &node, kp, TRUE, NULL PASS_LD);
+	  if ( rc == TRUE )
+	  { if ( !PL_unify_atom(A4, ATOM_cut) )
+	      return FALSE;
+	    set_trie_value_word(wl->table, node, ATOM_trienode);
+	    if ( update_delay_list(wl, node, A2, A3 PASS_LD) == UDL_FALSE )
+	      return FALSE;
+	    return TRUE;
+	  } else
+	  { return trie_error(rc, gen);
+	  }
+	} else
+	{ if ( tbl_wl_tripwire(wl, action, ATOM_max_answers_for_subgoal) )
+	  { goto add_anyway;
+	  } else
+	  { trie_delete(wl->table, node, TRUE);
+	    return FALSE;
+	  }
+	}
       } else
-      { set_trie_value_word(wl->table, node, ATOM_trienode);
+      { add_anyway:
+	set_trie_value_word(wl->table, node, ATOM_trienode);
 	if ( (idg=wl->table->data.IDG) && idg->reevaluating )
 	{ set(node, TN_IDG_ADDED);
 	  idg->new_answer = TRUE;
@@ -6137,6 +6176,282 @@ reset_reevaluation(trie *atrie)
 
 
 		 /*******************************
+		 *	     RESTRAINTS		*
+		 *******************************/
+
+int
+tbl_is_predicate_attribute(atom_t key)
+{ return ( key == ATOM_abstract ||
+	   key == ATOM_subgoal_abstract ||
+	   key == ATOM_answer_abstract ||
+	   key == ATOM_max_answers
+	 );
+}
+
+
+static void
+clear_table_props(table_props *p)
+{ p->abstract         = (size_t)-1;
+  p->subgoal_abstract = (size_t)-1;
+  p->answer_abstract  = (size_t)-1;
+  p->max_answers      = (size_t)-1;
+}
+
+
+void
+tbl_reset_tabling_attributes(Definition def)
+{ table_props *p;
+
+  if ( (p=def->tabling) )
+    clear_table_props(p);
+}
+
+
+int
+tbl_get_predicate_attribute(Definition def, atom_t att, size_t *value)
+{ table_props *p;
+
+  if ( (p=def->tabling) )
+  { size_t v0;
+
+    if ( att == ATOM_abstract )
+      v0 = p->abstract;
+    else if ( att == ATOM_subgoal_abstract )
+      v0 = p->subgoal_abstract;
+    else if ( att == ATOM_answer_abstract )
+      v0 = p->answer_abstract;
+    else if ( att == ATOM_max_answers )
+      v0 = p->max_answers;
+    else
+      return -1;
+
+    if ( v0 != (size_t)-1 )
+    { *value = v0;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+int
+tbl_set_predicate_attribute(Definition def, atom_t att, size_t value)
+{ table_props *p;
+
+  if ( !(p=def->tabling) )
+  { p = allocHeapOrHalt(sizeof(*p));
+
+    clear_table_props(p);
+    if ( !COMPARE_AND_SWAP(&def->tabling, NULL, p) )
+    { p = def->tabling;
+      freeHeap(p, sizeof(*p));
+    }
+  }
+
+  if ( att == ATOM_abstract )
+    p->abstract = value;
+  else if ( att == ATOM_subgoal_abstract )
+    p->subgoal_abstract = value;
+  else if ( att == ATOM_answer_abstract )
+    p->answer_abstract = value;
+  else if ( att == ATOM_max_answers )
+    p->max_answers = value;
+  else
+    return -1;
+
+  return TRUE;
+}
+
+
+int
+tbl_is_restraint_flag(atom_t key)
+{ return ( key == ATOM_max_table_subgoal_size_action ||
+	   key == ATOM_max_table_subgoal_size ||
+	   key == ATOM_max_table_answer_size_action ||
+	   key == ATOM_max_table_answer_size ||
+	   key == ATOM_max_answers_for_subgoal_action ||
+	   key == ATOM_max_answers_for_subgoal );
+}
+
+
+static int
+unify_restraint(term_t t, size_t val)
+{ if ( val == (size_t)-1 )
+    return FALSE;
+  else
+    return PL_unify_uint64(t, val);
+}
+
+
+int
+tbl_get_restraint_flag(term_t t, atom_t key ARG_LD)
+{ if ( key == ATOM_max_table_subgoal_size_action )
+    return PL_unify_atom(t, LD->tabling.restraint.max_table_subgoal_size_action);
+  else if ( key == ATOM_max_table_answer_size_action )
+    return PL_unify_atom(t, LD->tabling.restraint.max_table_answer_size_action);
+  else if ( key == ATOM_max_answers_for_subgoal_action )
+    return PL_unify_atom(t, LD->tabling.restraint.max_answers_for_subgoal_action);
+  else if ( key == ATOM_max_table_subgoal_size )
+    return unify_restraint(t, LD->tabling.restraint.max_table_subgoal_size);
+  else if ( key == ATOM_max_table_answer_size )
+    return unify_restraint(t, LD->tabling.restraint.max_table_answer_size);
+  else if ( key == ATOM_max_answers_for_subgoal )
+    return unify_restraint(t, LD->tabling.restraint.max_answers_for_subgoal);
+  else
+    return -1;
+}
+
+
+static int
+set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
+{ atom_t act;
+
+  if ( PL_get_atom_ex(t, &act) )
+  { if ( act == ATOM_error || act == ATOM_warning || act == ATOM_suspend )
+    { ok:
+      *valp = act;
+      return TRUE;
+    }
+
+    if ( act == ATOM_complete_soundly )	/* XSB compatibility */
+      act = ATOM_bounded_rationality;
+
+    if ( key == ATOM_max_table_subgoal_size_action &&
+	 ( act == ATOM_abstract ) )
+      goto ok;
+    if ( key == ATOM_max_table_answer_size_action &&
+	 ( act == ATOM_bounded_rationality ||
+	   act == ATOM_fail) )
+      goto ok;
+    if ( key == ATOM_max_answers_for_subgoal_action &&
+	 ( act == ATOM_bounded_rationality ) )
+      goto ok;
+
+    return PL_domain_error("restraint_value", t);
+  }
+
+  return FALSE;
+}
+
+
+static int
+set_restraint(term_t t, size_t *valp)
+{ GET_LD
+  atom_t inf;
+
+  if ( PL_get_atom(t, &inf) && inf == ATOM_infinite )
+  { *valp = (size_t)-1;
+    return TRUE;
+  }
+  return PL_get_size_ex(t, valp);
+}
+
+
+int
+tbl_set_restraint_flag(term_t t, atom_t key ARG_LD)
+{ if ( key == ATOM_max_table_subgoal_size_action )
+    return set_restraint_action(
+	       t, key,
+	       &LD->tabling.restraint.max_table_subgoal_size_action PASS_LD);
+  else if ( key == ATOM_max_table_answer_size_action )
+    return set_restraint_action(
+	       t, key,
+	       &LD->tabling.restraint.max_table_answer_size_action PASS_LD);
+  else if ( key == ATOM_max_answers_for_subgoal_action )
+    return set_restraint_action(
+	       t, key,
+	       &LD->tabling.restraint.max_answers_for_subgoal_action PASS_LD);
+  else if ( key == ATOM_max_table_subgoal_size )
+    return set_restraint(t, &LD->tabling.restraint.max_table_subgoal_size);
+  else if ( key == ATOM_max_table_answer_size )
+    return set_restraint(t, &LD->tabling.restraint.max_table_answer_size);
+  else if ( key == ATOM_max_answers_for_subgoal )
+    return set_restraint(t, &LD->tabling.restraint.max_answers_for_subgoal);
+  else
+    return -1;
+}
+
+
+static atom_t
+tripwire_answers_for_subgoal(worklist *wl ARG_LD)
+{ table_props *ps;
+  size_t limit;
+
+  if ( ((ps=wl->predicate->tabling) &&
+	(limit=ps->max_answers) != (size_t)-1) )
+  { if ( wl->table->value_count >= limit )
+      return ATOM_bounded_rationality;
+    return NULL_ATOM;
+  }
+
+  if ( (limit=LD->tabling.restraint.max_answers_for_subgoal) != (size_t)-1 )
+  { if ( wl->table->value_count == limit )
+      return LD->tabling.restraint.max_answers_for_subgoal_action;
+  }
+
+  return NULL_ATOM;
+}
+
+
+/* Create the most general ret/N term compliant with `spec`.  We need
+ * this term when the answer count restraint is exceeded.
+ */
+
+static int
+generalise_answer_substitution(term_t spec, term_t gen ARG_LD)
+{ Word p = valTermRef(spec);
+
+  deRef(p);
+  if ( isTerm(*p) )
+    return PL_unify_functor(gen, functorTerm(*p));
+  if ( *p == ATOM_ret )
+    return PL_unify_atom(gen, ATOM_ret);
+
+  return PL_type_error("answer_substitution", spec);
+}
+
+
+/* Add the condition `answer_count_restraint` to the current delay list.
+ * We can simply call the predicate as the constraint will be added to
+ * the global delay list as a result.
+ */
+
+
+static int
+add_answer_count_restraint(void)
+{ static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("answer_count_restraint", 0, "system");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+}
+
+
+static int
+tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
+{ GET_LD
+  static predicate_t pred = NULL;
+  term_t av;
+
+  if ( !pred )
+    pred = PL_predicate("tripwire", 3, "$tabling");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return ( (av = PL_new_term_refs(3)) &&
+	   PL_put_atom(av+0, wire) &&
+	   PL_put_atom(av+1, action) &&
+	   PL_put_atom(av+2, trie_symbol(wl->table)) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+}
+
+		 /*******************************
 		 *	    CONCURRENCY		*
 		 *******************************/
 
@@ -6416,11 +6731,26 @@ untable_from_clause(Clause cl)
 
 void
 initTabling(void)
-{
+{ GET_LD
+
 #ifdef O_PLMT
   initSimpleMutex(&GD->tabling.mutex, "L_SHARED_TABLING");
   cv_init(&GD->tabling.cvar, NULL);
 #endif
+
+  LD->tabling.restraint.max_table_subgoal_size_action =	ATOM_error;
+  LD->tabling.restraint.max_table_subgoal_size	      =	(size_t)-1;
+  LD->tabling.restraint.max_table_answer_size_action  =	ATOM_error;
+  LD->tabling.restraint.max_table_answer_size	      =	(size_t)-1;
+  LD->tabling.restraint.max_answers_for_subgoal_action =	ATOM_error;
+  LD->tabling.restraint.max_answers_for_subgoal	      =	(size_t)-1;
+
+  setPrologFlag("max_table_subgoal_size_action", FT_ATOM,    "error");
+  setPrologFlag("max_table_answer_size_action",	 FT_ATOM,    "error");
+  setPrologFlag("max_answers_for_subgoal_action", FT_ATOM,    "error");
+  setPrologFlag("max_table_subgoal_size",	 FT_INTEGER, -1);
+  setPrologFlag("max_table_answer_size",	 FT_INTEGER, -1);
+  setPrologFlag("max_answers_for_subgoal",	 FT_INTEGER, -1);
 }
 
 		 /*******************************

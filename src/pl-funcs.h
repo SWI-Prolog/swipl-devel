@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam,
+    Copyright (c)  1985-2020, University of Amsterdam,
                               VU University Amsterdam,
 			      CWI, Amsterdam
     All rights reserved.
@@ -530,7 +530,6 @@ COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
 COMMON(word)		pl_retractall(term_t head);
 COMMON(word)		pl_abolish(term_t atom, term_t arity);
 COMMON(word)		pl_abolish1(term_t pred);
-COMMON(word)		pl_get_predicate_attribute(term_t pred, term_t k, term_t v);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,
 					  unsigned int suppress);
 COMMON(word)		pl_index(term_t pred);

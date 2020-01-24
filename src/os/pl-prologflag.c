@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -41,6 +41,7 @@
 #include <process.h>			/* getpid() */
 #endif
 #include "pl-incl.h"
+#include "pl-tabling.h"
 #include "pl-ctype.h"
 #include <ctype.h>
 #ifdef HAVE_SYS_TIME_H
@@ -587,6 +588,9 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		      ATOM_modify, ATOM_flag, key);
 
+    if ( tbl_is_restraint_flag(k) )
+      return tbl_set_restraint_flag(value, k PASS_LD);
+
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
     { f = copy_prolog_flag(f);
@@ -1077,6 +1081,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   { return PL_unify_atom(val, accessLevel());
   } else if ( key == ATOM_stack_limit )
   { return PL_unify_int64(val, LD->stacks.limit);
+  } else if ( tbl_is_restraint_flag(key) )
+  { return tbl_get_restraint_flag(val, key PASS_LD) == TRUE;
   }
 
   switch(f->flags & FT_MASK)

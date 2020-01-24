@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2019, VU University Amsterdam
+    Copyright (c)  2016-2020, VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -199,6 +199,18 @@ typedef struct trie_array
 
 
 		 /*******************************
+		 *     PREDICATE PROPERTIES	*
+		 *******************************/
+
+typedef struct table_props
+{ size_t abstract;			/* IDG abstraction */
+  size_t subgoal_abstract;		/* Subgoal abstraction */
+  size_t answer_abstract;		/* Answer abstraction */
+  size_t max_answers;			/* Answer count limit */
+} table_props;
+
+
+		 /*******************************
 		 *	     PROTOTYPES		*
 		 *******************************/
 
@@ -211,4 +223,13 @@ COMMON(void)	untable_from_clause(Clause cl);
 COMMON(void)	initTabling(void);
 COMMON(int)	idg_add_dyncall(Definition def, trie *ctrie,
 				term_t variant ARG_LD);
+COMMON(int)	tbl_is_predicate_attribute(atom_t key);
+COMMON(void)	tbl_reset_tabling_attributes(Definition def);
+COMMON(int)	tbl_get_predicate_attribute(Definition def,
+					    atom_t att, size_t *value);
+COMMON(int)	tbl_set_predicate_attribute(Definition def,
+					    atom_t att, size_t value);
+COMMON(int)	tbl_is_restraint_flag(atom_t key);
+COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
+COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
 #endif /*_PL_TABLING_H*/
