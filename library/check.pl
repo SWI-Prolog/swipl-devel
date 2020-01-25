@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -277,6 +277,8 @@ list_redefined_.
 redefined_ok('$mode'(_,_)).
 redefined_ok('$pldoc'(_,_,_,_)).
 redefined_ok('$pred_option'(_,_,_,_)).
+redefined_ok('$table_mode'(_,_,_)).
+redefined_ok('$tabled'(_,_)).
 
 global_module(user).
 global_module(system).
