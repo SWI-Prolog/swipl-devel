@@ -43,6 +43,8 @@
           list_void_declarations/0,     % list declarations with no clauses
           list_trivial_fails/0,         % list goals that trivially fail
           list_trivial_fails/1,         % +Options
+          list_format_errors/0,         % list calls to format with wrong args
+          list_format_errors/1,		% +Options
           list_strings/0,               % list string objects in clauses
           list_strings/1                % +Options
         ]).
@@ -51,6 +53,8 @@
 :- use_module(library(option)).
 :- use_module(library(apply)).
 :- use_module(library(prolog_codewalk)).
+:- use_module(library(prolog_code)).
+:- use_module(library(prolog_format)).
 :- use_module(library(occurs)).
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -465,6 +469,48 @@ list_strings(Options) :-
 make_clause(Head, true, Head) :- !.
 make_clause(Head, Body, (Head:-Body)).
 
+%!  list_format_errors is det.
+%!  list_format_errors(+Options) is det.
+%
+%   List argument errors for format/2,3.
+
+list_format_errors :-
+    list_format_errors([module_class([user])]).
+
+list_format_errors(Options) :-
+    (   prolog_program_clause(ClauseRef, Options),
+        clause(Head, Body, ClauseRef),
+        make_clause(Head, Body, Clause),
+        Head = M:_,
+        goal_in_body(Goal, M, Body),
+        format_warning(Goal, Msg),
+        message_context(ClauseRef, Goal, Clause, Context),
+        print_message(warning, check(Msg, Goal, Context)),
+        fail
+    ;   true
+    ).
+
+format_warning(system:format(Format, Args), Msg) :-
+    ground(Format),
+    (   is_list(Args)
+    ->  length(Args, ArgC)
+    ;   nonvar(Args)
+    ->  ArgC = 1
+    ),
+    E = error(Formal,_),
+    catch(format_types(Format, Types), E, true),
+    (   var(Formal)
+    ->  length(Types, TypeC),
+        TypeC =\= ArgC,
+        Msg = format_argc(TypeC, ArgC)
+    ;   Msg = format_template(Formal)
+    ).
+format_warning(system:format(_Stream, Format, Args), Msg) :-
+    format_warning(system:format(Format, Args), Msg).
+format_warning(prolog_debug:debug(_Channel, Format, Args), Msg) :-
+    format_warning(system:format(Format, Args), Msg).
+
+
 %!  goal_in_body(-G, +M, +Body) is nondet.
 %
 %   True when G is a goal called from Body.
@@ -550,9 +596,16 @@ extend_list(G0, L, G) :-
     G =.. All.
 
 
-message_context(ClauseRef, String, Clause, file_term_position(File, StringPos)) :-
-    clause_info(ClauseRef, File, TermPos, _Vars),
-    prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos),
+%!  message_context(+ClauseRef, +Term, +Clause, -Pos) is det.
+%
+%   Find an as accurate as possible location for Term in Clause.
+
+message_context(ClauseRef, Term, Clause, file_term_position(File, TermPos)) :-
+    clause_info(ClauseRef, File, Layout, _Vars),
+    (   Term = _:Goal,
+        prolog_codewalk:subterm_pos(Goal, Clause, ==, Layout, TermPos)
+    ;   prolog_codewalk:subterm_pos(Term, Clause, ==, Layout, TermPos)
+    ),
     !.
 message_context(ClauseRef, _String, _Clause, file(File, Line, -1, _)) :-
     clause_property(ClauseRef, file(File)),
@@ -645,6 +698,7 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 
 checker(list_undefined,         'undefined predicates').
 checker(list_trivial_fails,     'trivial failures').
+checker(list_format_errors,     'format/2,3 and debug/3 templates').
 checker(list_redefined,         'redefined system and global predicates').
 checker(list_void_declarations, 'predicates with declarations but without clauses').
 checker(list_autoload,          'predicates that need autoloading').
@@ -699,8 +753,15 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
     [ ', which is called from'-[], nl ],
     referenced_by(SortedRefs).
 prolog:message(check(string_in_clause(String, Context))) -->
-    prolog:message_location(Context),
+    '$messages':swi_location(Context),
     [ 'String ~q'-[String] ].
+prolog:message(check(Msg, Goal, Context)) -->
+    '$messages':swi_location(Context),
+    { pi_head(PI, Goal) },
+    [ nl, '    '-[] ],
+    predicate(PI),
+    [ ': '-[] ],
+    check_message(Msg).
 prolog:message(check(void_declaration(P, Decl))) -->
     predicate(P),
     [ ' is declared as ~p, but has no clauses'-[Decl] ].
@@ -838,3 +899,9 @@ remove_leading_slash(Path, Local) :-
     atom_concat(/, Local, Path),
     !.
 remove_leading_slash(Path, Path).
+
+check_message(format_argc(Expected, InList)) -->
+    [ 'Template requires ~w arguments, got ~w'-[Expected, InList] ].
+check_message(format_template(Formal)) -->
+    { message_to_string(error(Formal, _), Msg) },
+    [ 'Invalid template: ~s'-[Msg] ].
