@@ -132,9 +132,13 @@ residual_program(Goal, M, Done0, Done) -->
       ),
       !,
       '$tbl_table_status'(Trie, _Status, M:Variant, Skeleton),
-      (   '$tbl_is_trienode'(ModeArgs)
-      ->  '$tbl_answer'(Trie, Skeleton, Condition0)
-      ;   '$tbl_answer'(Trie, Skeleton, ModeArgs, Condition0)
+      copy_term(Skeleton, Skeleton2),
+      (   (   '$tbl_is_trienode'(ModeArgs)
+          ->  '$tbl_answer'(Trie, Skeleton2, Condition0)
+          ;   '$tbl_answer'(Trie, Skeleton2, ModeArgs, Condition0)
+          ),
+          Skeleton2 =@= Skeleton
+      ->  Skeleton2 = Skeleton
       ),
       as_cond(Condition0, Condition)
     },
