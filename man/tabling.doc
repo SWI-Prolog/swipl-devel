@@ -803,7 +803,7 @@ Abstraction of a term according to the size limit is implemented by
 size_abstract_term/3.
 
 \begin{description}
-    \predicate[det]{size_abstract_term}{+Size, +Term, -Abstract}
+    \predicate[det]{size_abstract_term}{3}{+Size, +Term, -Abstract}
 The size of a term is defined as the number of compound subterms of
 Term. If the size of \arg{Term} is greater than \arg{Size},
 \arg{Abstract} is an abstract copy of \arg{Term} where the first
