@@ -58,7 +58,7 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '\Scons' and \Snil{} for lists}
+\subsection{Motivating '\Scons{}' and \Snil{} for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \functor{.}{2} as
