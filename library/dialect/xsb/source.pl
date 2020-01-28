@@ -160,20 +160,22 @@ ignored_table_options((A0,B0), Conj) :-
     ignored_table_options(A0, A),
     ignored_table_options(B0, B),
     mkconj(A, B, Conj).
-ignored_table_options(variant, variant) :-
-    !.
-ignored_table_options(subsumptive, subsumptive) :-
-    !.
-ignored_table_options(incremental, incremental) :-
+ignored_table_options(Option, Option) :-
+    supported_table_option(Option),
     !.
 ignored_table_options(opaque, true) :-
     !.
-ignored_table_options(shared, shared) :-
-    !.
-ignored_table_options(private, private) :-
-    !.
 ignored_table_options(Option, true) :-
     print_message(warning, xsb(table_option_ignored(Option))).
+
+supported_table_option(variant).
+supported_table_option(subsumptive).
+supported_table_option(incremental).
+supported_table_option(shared).
+supported_table_option(private).
+supported_table_option(max_answers(_)).
+supported_table_option(abstract_subgoal(_)).
+supported_table_option(abstract_answer(_)).
 
 mkconj(true, X, X) :- !.
 mkconj(X, true, X) :- !.
