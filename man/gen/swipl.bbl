@@ -57,6 +57,14 @@ Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
 \newblock In {\em {SIGPLAN} Symposium on Compiler Construction}, pages
   120--126, 1982.
 
+\bibitem[Grosof \& Swift, 2013]{DBLP:conf/aaai/GrosofS13}
+Benjamin~Nathan Grosof and Terrance Swift.
+\newblock Radial restraint: {A} semantically clean approach to bounded
+  rationality for logic programs.
+\newblock In Marie desJardins and Michael~L. Littman, editors, {\em Proceedings
+  of the Twenty-Seventh {AAAI} Conference on Artificial Intelligence, July
+  14-18, 2013, Bellevue, Washington, {USA}}. {AAAI} Press, 2013.
+
 \bibitem[Hodgson, 1998]{stdprolog:98}
 Jonathan Hodgson.
 \newblock Validation suite for conformance with part 1 of the standard, 1998,
