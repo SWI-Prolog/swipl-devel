@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2019, University of Amsterdam
+    Copyright (c)  2006-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -1264,6 +1264,8 @@ xref_meta(offset(_, G),         [G]).
 xref_meta(reset(G,_,_),         [G]).
 xref_meta(prolog_listen(Ev,G),  [G+N]) :- event_xargs(Ev, N).
 xref_meta(prolog_listen(Ev,G,_),[G+N]) :- event_xargs(Ev, N).
+xref_meta(tnot(G),		[G]).
+xref_meta(not_exists(G),	[G]).
 
                                         % XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
