@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2020, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -85,5 +85,6 @@ table_test(lrbug).
 table_test(tabbug1).
 table_test(pps).
 table_test(test_3vwfs_1).       % WFS with answer subsumption
+%table_test(test_maxans_decl).   % max_answers(Count) restraint
 
 :- end_tests(xsb_test_tables).

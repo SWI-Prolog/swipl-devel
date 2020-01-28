@@ -1,0 +1,8 @@
+:- import between/3 from basics.
+:- import numbervars/1 from num_vars.
+
+:- table p/2 as max_answers(5).
+p(X,X):- between(1,10,X).
+
+test:- p(_X,_Y),fail.
+test:- get_residual(p(X,Y),Z),numbervars([X,Y,Z]),writeln(get_residual(p(X,Y),Z)),fail.

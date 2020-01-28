@@ -1,0 +1,6 @@
+get_residual(p(1,1),[])
+get_residual(p(2,2),[])
+get_residual(p(3,3),[])
+get_residual(p(4,4),[])
+get_residual(p(5,5),[])
+get_residual(p(A,B),[restraint_number_of_answers])
