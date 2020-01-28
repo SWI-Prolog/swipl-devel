@@ -748,23 +748,29 @@ allows for infinitely nested \jargon{compound terms} (\jargon{function
 symbols} in logic) and arbitrary numbers, the set of possible answers is
 not finite and thus there is no guaranteed termination.
 
-This section describes \jargon{restraints} that can be enforced to
-specific or all tabled predicates. Currently there are three defined
-restraints, limiting (1) the size of (the arguments to) goals, (2) the
-size of the answer substitution added to a table and (3) the number of
-answers allowed in any table. If any of these events occurs we can
-specify the action taken. We distinguish two classes of actions. First,
-these events can trap a \jargon{tripwire} which can be handled using a
-hook or a predefined action such as raising an exception, printing a
-warning or enter a \jargon{break level}. Second, they may continue the
+This section describes \jargon{restraints}
+\cite{DBLP:conf/aaai/GrosofS13} that can be enforced to specific or all
+tabled predicates. Currently there are three defined restraints,
+limiting (1) the size of (the arguments to) goals, (2) the size of the
+answer substitution added to a table and (3) the number of answers
+allowed in any table. If any of these events occurs we can specify the
+action taken. We distinguish two classes of actions. First, these events
+can trap a \jargon{tripwire} which can be handled using a hook or a
+predefined action such as raising an exception, printing a warning or
+enter a \jargon{break level}. This can be used for limiting resources,
+be notified of suspicious events (debugging) or dynamically adjust the
+(tabling) strategy of the program. Second, they may continue the
 computation that results in a partial answer (\jargon{bounded
-rationality}).
+rationality}). Unlike just not exploring part of the space though, we
+use the third thruth value of well founded semantics to keep track of
+answers that have not been affected by the restraints and those that
+have been affected.
 
 The tripwire actions apply for all restraints.  If a tripwire action is
 triggered, the system takes the steps below.
 
 \begin{enumerate}
-    \item Call prolog:tripwire/2.
+    \item Call the prolog:tripwire/2 hook.
     \item If prolog:tripwire/2 fails, take one of the predefined
     actions:
     \begin{description}
@@ -840,7 +846,15 @@ and there are, for example, an infinite number of integers. Note that
 restraining the subgoal size does not affect the semantics, provided
 more general queries on the predicate include all answers that more
 specific queries do.  See also \jargon{call substitution} as described
-in \secref{tabling-subsumptive}.
+in \secref{tabling-subsumptive}.  In addition to the tripwire actions,
+the \prologflag{max_table_subgoal_size_action} can be set to the
+value \const{abstract}:
+
+\begin{description}
+    \termitem{abstract}{}
+Abstract the goal as described above and provide correctness by adding
+the required unification instructions after the goal.
+\end{description}
 
 
 \subsection{Restraint answer size}
@@ -848,17 +862,14 @@ in \secref{tabling-subsumptive}.
 
 Using the \term{abstract_answer}{Size} attribute, a tabled subgoal that
 produces answer substitutions (instances of the variables in the goal)
-whose size exceed \arg{Size} are trapped. Answer abstraction defines
-four modes for dealing with too large answers:
+whose size exceed \arg{Size} are trapped. In addition to the
+tripwire actions, answer abstraction defines two additional modes
+for dealing with too large answers as defines by the Prolog flag
+\prologflag{max_table_answer_size_action}:
 
 \begin{description}
-    \termitem{error}{}
-(Default) raise an exception.
     \termitem{fail}{}
 Ignore the too large answer.  Note that this is semantically incorrect.
-    \termitem{suspend}{}
-Start a \jargon{break level}, allowing the user to examine the
-situation.
     \termitem{bounded_rationality}{}
 In this mode, the large answer is \jargon{abstracted} in the same way as
 subgoals are abstracted (see \secref{tabling-restraint-subgoal}). This
