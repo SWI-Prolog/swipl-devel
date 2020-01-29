@@ -853,6 +853,7 @@ safe_meta('$tabling':abolish_table_subgoals(V), []) :-
 safe_meta('$tabling':current_table(V, _), []) :-
     \+ qualified(V).
 safe_meta('$tabling':tnot(G), [G]).
+safe_meta('$tabling':not_exists(G), [G]).
 
 qualified(V) :-
     nonvar(V),
