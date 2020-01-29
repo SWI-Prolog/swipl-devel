@@ -2730,9 +2730,15 @@ new_worklist(trie *trie)
 static void
 free_worklist(worklist *wl)
 { cluster *c, *next;
+  trie *atrie;
 
   assert(wl->magic == WORKLIST_MAGIC);
   wl->magic = 0;
+
+  if ( (atrie=wl->table) && atrie->data.worklist )
+  { assert(atrie->data.worklist == wl);
+    atrie->data.worklist = NULL;
+  }
 
   for(c=wl->head; c; c = next)
   { next = c->next;
