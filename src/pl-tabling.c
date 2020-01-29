@@ -2736,8 +2736,10 @@ free_worklist(worklist *wl)
   wl->magic = 0;
 
   if ( (atrie=wl->table) && atrie->data.worklist )
-  { assert(atrie->data.worklist == wl);
-    atrie->data.worklist = NULL;
+  { if ( atrie->data.worklist == wl )
+      atrie->data.worklist = NULL;
+    else
+      Sdprintf("Oops, worklist trie doesn't point back at me!\n");
   }
 
   for(c=wl->head; c; c = next)
