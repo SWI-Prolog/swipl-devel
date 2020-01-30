@@ -1415,7 +1415,8 @@ initPrologFlags(void)
   setPrologFlag("max_tagged_integer", FT_INTEGER|FF_READONLY, PLMAXTAGGEDINT);
   setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
 #ifdef O_GMP
-  setPrologFlag("bounded",		   FT_BOOL|FF_READONLY,	   FALSE, 0);
+  setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
+  setPrologFlag("rational",	      FT_BOOL, TRUE, PLFLAG_RATIONAL);
 #ifdef __GNU_MP__
   setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
 #endif

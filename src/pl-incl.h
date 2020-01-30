@@ -2375,6 +2375,7 @@ typedef struct debuginfo
 #define PLFLAG_MITIGATE_SPECTRE	    0x04000000 /* Mitigate spectre attacks */
 #define PLFLAG_TABLE_INCREMENTAL    0x08000000 /* By default incremental tabling */
 #define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
+#define PLFLAG_RATIONAL		    0x20000000 /* Natural rational numbers */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */
