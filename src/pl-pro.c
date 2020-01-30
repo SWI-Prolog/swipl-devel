@@ -703,6 +703,8 @@ last_arg:
 #ifdef O_GMP
     if ( isMPZNum(*p) )
       return 0x62f8da3c;		/* TBD: make key from MPZ */
+    if ( isMPQNum(*p) )
+      return 0xed7ef4ea;		/* TBD: make key from MPQ */
 #endif
     printk(context, "Illegal indirect datatype");
     return key;

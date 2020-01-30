@@ -314,25 +314,6 @@ update_flag(Name, Old, New) :-
     ).
 
 
-                 /*******************************
-                 *            RATIONAL          *
-                 *******************************/
-
-%!  rational(+Rat, -Numerator, -Denominator) is semidet.
-%
-%   True when Rat is a  rational   number  with  given Numerator and
-%   Denominator.
-
-rational(Rat, M, N) :-
-    rational(Rat),
-    (   Rat = rdiv(M, N)
-    ->  true
-    ;   integer(Rat)
-    ->  M = Rat,
-        N = 1
-    ).
-
-
                 /********************************
                 *             ATOMS             *
                 *********************************/

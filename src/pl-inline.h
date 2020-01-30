@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2019, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -603,6 +603,41 @@ popArgvArithStack(int n ARG_LD)
     clearNumber(LD->arith.stack.top);
   }
 }
+
+		 /*******************************
+		 *	      MPZ/MPQ		*
+		 *******************************/
+
+static inline int
+isMPQNum__LD(word w ARG_LD)
+{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
+  { Word p = addressIndirect(w);
+    size_t wsize = wsizeofInd(*p);
+
+    if ( wsize == WORDS_PER_INT64 )
+      return FALSE;
+
+    return p[1]&MP_RAT_MASK;
+  }
+
+  return FALSE;
+}
+
+static inline int
+isMPZNum__LD(word w ARG_LD)
+{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
+  { Word p = addressIndirect(w);
+    size_t wsize = wsizeofInd(*p);
+
+    if ( wsize == WORDS_PER_INT64 )
+      return FALSE;
+
+    return !(p[1]&MP_RAT_MASK);
+  }
+
+  return FALSE;
+}
+
 
 		 /*******************************
 		 *	      THREADS		*

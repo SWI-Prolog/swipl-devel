@@ -138,6 +138,7 @@ COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
 COMMON(int)		ar_sign_i(Number n1);
 COMMON(int)		ar_signbit(Number n1);
 COMMON(int)		check_float(double f);
+COMMON(int)		ar_rdiv_mpz(Number n1, Number n2, Number r);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 
 /* pl-bag.c */

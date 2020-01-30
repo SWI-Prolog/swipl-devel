@@ -1361,15 +1361,16 @@ typedef struct gc_stats
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
 #define CA1_MPZ	        8	/* GNU mpz number */
-#define CA1_MODULE      9	/* a module */
-#define CA1_VAR	       10	/* a variable(-offset) */
-#define CA1_FVAR       11	/* a variable(-offset), used as `firstvar' */
-#define CA1_CHP	       12	/* ChoicePoint (also variable(-offset)) */
-#define CA1_FOREIGN    13	/* Foreign function pointer */
-#define CA1_CLAUSEREF  14	/* Clause reference */
-#define CA1_JUMP       15	/* Instructions to skip */
-#define CA1_AFUNC      16	/* Number of arithmetic function */
-#define CA1_TRIE_NODE  17	/* Tabling: answer trie node with delays */
+#define CA1_MPQ	        9	/* GNU mpq number */
+#define CA1_MODULE     10	/* a module */
+#define CA1_VAR	       11	/* a variable(-offset) */
+#define CA1_FVAR       12	/* a variable(-offset), used as `firstvar' */
+#define CA1_CHP	       13	/* ChoicePoint (also variable(-offset)) */
+#define CA1_FOREIGN    14	/* Foreign function pointer */
+#define CA1_CLAUSEREF  15	/* Clause reference */
+#define CA1_JUMP       16	/* Instructions to skip */
+#define CA1_AFUNC      17	/* Number of arithmetic function */
+#define CA1_TRIE_NODE  18	/* Tabling: answer trie node with delays */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 

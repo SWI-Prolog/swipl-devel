@@ -2113,6 +2113,7 @@ try_fast_condition(CompileInfo ci, size_t tc_or)
       case A_INTEGER:
       case A_INT64:
       case A_MPZ:
+      case A_MPQ:
       case A_DOUBLE:
       case A_FUNC0:
       case A_FUNC1:
@@ -2246,8 +2247,14 @@ A void.  Generate either B_VOID or H_VOID.
 	    Output_n(ci, c, (Word)&val, WORDS_PER_INT64);
 	  }
 #endif
-	} else				/* MPZ NUMBER */
-	{ int c = (where & A_HEAD) ? H_MPZ : B_MPZ;
+	} else				/* MPZ/MPQ NUMBER */
+	{ int c;
+
+	  if ( p[0]&MP_RAT_MASK )
+	    c = (where & A_HEAD) ? H_MPQ : B_MPQ;
+	  else
+	    c = (where & A_HEAD) ? H_MPZ : B_MPZ;
+
 	  Output_n(ci, c, p, n+1);
 	  return TRUE;
 	}
@@ -2887,7 +2894,7 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 
   deRef(arg);
 
-  if ( isInteger(*arg) )
+  if ( isRational(*arg) )
   { if ( storage(*arg) == STG_INLINE )
     { Output_1(ci, A_INTEGER, valInt(*arg));
     } else
@@ -2916,8 +2923,12 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
 	  }
 #endif
 	}
-      } else				/* GMP */
+#ifdef O_GMP
+      } else if ( p[0]&MP_RAT_MASK )
+      { Output_n(ci, A_MPQ, p, n+1);
+      } else
       { Output_n(ci, A_MPZ, p, n+1);
+#endif
       }
     }
     succeed;
@@ -3434,7 +3445,8 @@ typedef struct type_test
   int	        (*test)(word);
 } type_test;
 
-static int fisInteger(word w)  { return isInteger(w);  }
+static int fisInteger(word w)  { GET_LD return isInteger(w);  }
+static int fisRational(word w) { return isRational(w);  }
 static int fisFloat(word w)    { return isFloat(w);    }
 static int fisNumber(word w)   { return isNumber(w);   }
 static int fisAtomic(word w)   { return isAtomic(w);   }
@@ -3445,6 +3457,7 @@ static int fisCallable(word w) { GET_LD return isCallable(w PASS_LD); }
 
 const type_test type_tests[] =
 { { FUNCTOR_integer1,  I_INTEGER,  "integer",  fisInteger  },
+  { FUNCTOR_rational1, I_RATIONAL, "rational", fisRational },
   { FUNCTOR_float1,    I_FLOAT,	   "float",    fisFloat    },
   { FUNCTOR_number1,   I_NUMBER,   "number",   fisNumber   },
   { FUNCTOR_atomic1,   I_ATOMIC,   "atomic",   fisAtomic   },
@@ -3561,6 +3574,7 @@ stepDynPC(Code PC, const code_info *ci)
   { switch(*ats)
     { case CA1_STRING:
       case CA1_MPZ:
+      case CA1_MPQ:
       { word m = *PC++;
 	PC += wsizeofInd(m);
 	break;
@@ -4182,6 +4196,7 @@ argKey(Code PC, int skip, word *key)
         goto nofunctor;
       case H_STRING:
       case H_MPZ:
+      case H_MPQ:
       { word m = *PC++;
 	size_t n = wsizeofInd(m);
 
@@ -4526,6 +4541,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
         continue;
       case H_STRING:
       case H_MPZ:
+      case H_MPQ:
         { word copy = globalIndirectFromCode(&PC);
 	  if ( !copy || !_PL_unify_atomic(argp, copy) )
 	    return FALSE;
@@ -4908,6 +4924,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 	case B_STRING:
 	case A_MPZ:
 	case B_MPZ:
+	case A_MPQ:
+	case B_MPQ:
 			  { size_t sz = gsizeIndirectFromCode(PC);
 
 			    if ( !hasGlobalSpace(sz) )
@@ -5136,6 +5154,7 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    continue;
       case I_NONVAR:	    f = FUNCTOR_nonvar1;   goto common_type_test;
       case I_INTEGER:	    f = FUNCTOR_integer1;  goto common_type_test;
+      case I_RATIONAL:	    f = FUNCTOR_rational1; goto common_type_test;
       case I_FLOAT:	    f = FUNCTOR_float1;    goto common_type_test;
       case I_NUMBER:	    f = FUNCTOR_number1;   goto common_type_test;
       case I_ATOMIC:	    f = FUNCTOR_atomic1;   goto common_type_test;
@@ -6191,6 +6210,7 @@ unify_vmi(term_t t, Code bp)
 	  break;
 	}
 	case CA1_MPZ:
+	case CA1_MPQ:
 	case CA1_STRING:
 	{ word c = globalIndirectFromCode(&bp);
 	  rc = _PL_unify_atomic(av+an, c);
@@ -6390,6 +6410,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      Output_an(ci, p, WORDS_PER_INT64);
 	    }
 	    case CA1_MPZ:
+	    case CA1_MPQ:
 	    case CA1_STRING:
 	    { Word ap = valTermRef(a);
 	      Word p;
@@ -6397,15 +6418,17 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	      deRef(ap);
 	      switch(ats[an])
-	      { case CA1_MPZ:
-		  if ( !isIndirect(*ap) ||
-		       !isInteger(*ap) )
-		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
-		  p = addressIndirect(*ap);
-		  n = wsizeofInd(*p);
-		  if ( n == WORDS_PER_INT64 )
+	      {
+#ifdef O_GMP
+	        case CA1_MPZ:
+		  if ( !isMPQNum(*ap) )
 		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
 		  break;
+		case CA1_MPQ:
+		  if ( !isMPQNum(*ap) )
+		    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_rational, a);
+		  break;
+#endif
 		case CA1_STRING:
 		  if ( !isString(*ap) )
 		    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_string, a);

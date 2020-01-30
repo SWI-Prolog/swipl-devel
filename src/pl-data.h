@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2015, University of Amsterdam
+    Copyright (c)  1996-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -206,12 +207,18 @@ and while loading .wic files.  It comes at no price.
 #define isFunctor(w)	(tagex(w) == (TAG_ATOM|STG_GLOBAL))
 #define isTextAtom(w)	(isAtom(w) && true(atomValue(w)->type, PL_BLOB_TEXT))
 #define isCallableAtom(w) (isTextAtom(w) || (w == ATOM_nil))
-#define isInteger(w)	(tag(w)   == TAG_INTEGER)
+#define isRational(w)	(tag(w)   == TAG_INTEGER)
 #define isFloat(w)	(tag(w)   == TAG_FLOAT)
 #define isString(w)	(tag(w)   == TAG_STRING)
 #define isTerm(w)	(tag(w)   == TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_ATOM, B_ATOM, H_SMALLINT, B_SMALLINT */
 
+#ifdef O_GMP
+#define isInteger(w)	( isTaggedInt(w) || \
+			  ((tag(w) == TAG_INTEGER) && !isMPQNum(w)) )
+#else
+#define isInteger(w)	isRational(w)
+#endif
 
 		 /*******************************
 		 *	    REFERENCES		*
@@ -283,11 +290,13 @@ and while loading .wic files.  It comes at no price.
 #define wsizeofIndirect(w) (wsizeofInd(*addressIndirect(w)))
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
-			/* == (isInteger(w) && storage(w) == STG_INLINE) */
 #define isBignum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
 			 wsizeofIndirect(w) == sizeof(int64_t)/sizeof(word))
-#define isMPZNum(w)	(tagex(w) == (TAG_INTEGER|STG_GLOBAL) && \
-			 wsizeofIndirect(w) > sizeof(int64_t)/sizeof(word))
+
+#define MP_RAT_MASK	(0x1)
+#define isMPQNum(w)	isMPQNum__LD(w PASS_LD)
+#define isMPZNum(w)	isMPZNum__LD(w PASS_LD)
+
 #if ALIGNOF_INT64_T == ALIGNOF_VOIDP
 #define valBignum(w)	(*(int64_t *)valIndirectP(w))
 #else
@@ -334,7 +343,7 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define nonvar(w)	(!isVar(w))
-#define isNumber(w)	(isInteger(w) || isFloat(w))
+#define isNumber(w)	(isRational(w) || isFloat(w))
 #define isAtomic(w)	(!canBind(w) && !isTerm(w))
 
 

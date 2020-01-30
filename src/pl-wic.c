@@ -1114,6 +1114,49 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
   }
 }
 
+#ifdef O_GMP
+
+static int
+mp_cpsign(ssize_t hdrsize, int mpsize)
+{ return hdrsize >= 0 ? mpsize : -mpsize;
+}
+
+static void
+mpz_hdr_size(ssize_t hdrsize, mpz_t mpz, size_t *wszp)
+{ size_t size     = hdrsize >= 0 ? hdrsize : -hdrsize;
+  size_t limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+  size_t wsize    = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+
+  mpz->_mp_size  = limpsize;
+  mpz->_mp_alloc = limpsize;
+
+  *wszp = wsize;
+}
+
+
+static void
+mpz_load_bits(IOSTREAM *fd, Word p, mpz_t mpz, size_t bytes)
+{ char fast[1024];
+  char *cbuf;
+  size_t i;
+
+  if ( bytes < sizeof(fast) )
+    cbuf = fast;
+  else
+    cbuf = PL_malloc(bytes);
+
+  for(i=0; i<bytes; i++)
+    cbuf[i] = Qgetc(fd);
+
+  mpz->_mp_d = (mp_limb_t*)p;
+  mpz_import(mpz, bytes, 1, 1, 1, 0, cbuf);
+  assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
+  if ( cbuf != fast )
+    PL_free(cbuf);
+}
+
+
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Label handling
@@ -1470,40 +1513,50 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 #ifdef O_GMP
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
 	      { ssize_t hdrsize = getInt64(fd);
-		size_t  size    = hdrsize >= 0 ? hdrsize : -hdrsize;
-		size_t wsize, i, limpsize;
+		size_t wsize;
 		mpz_t mpz;
-		char fast[1024];
-		char *cbuf;
 		word m;
 		Word p;
 
-		if ( size < sizeof(fast) )
-		  cbuf = fast;
-		else
-		  cbuf = PL_malloc(size);
-
-		for(i=0; i<size; i++)
-		  cbuf[i] = Qgetc(fd);
-
-		limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-		wsize    = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
-		m	 = mkIndHdr(wsize+1, TAG_INTEGER);
-		p	 = allocFromBuffer(&buf, sizeof(word)*(wsize+2));
+		mpz_hdr_size(hdrsize, mpz, &wsize);
+		m = mkIndHdr(wsize+1, TAG_INTEGER);
+		p = allocFromBuffer(&buf, sizeof(word)*(wsize+2));
 
 		*p++ = m;
 		p[wsize] = 0;
-		*p++ = hdrsize >= 0 ? limpsize : -limpsize;
-		mpz->_mp_size  = limpsize;
-		mpz->_mp_alloc = limpsize;
-		mpz->_mp_d     = (mp_limb_t*)p;
-
-		mpz_import(mpz, size, 1, 1, 1, 0, cbuf);
-		assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
-		if ( cbuf != fast )
-		  PL_free(cbuf);
+		*p++ = mpz_size_stack(mp_cpsign(hdrsize, mpz->_mp_size));
+		p[wsize] = 0;
+		mpz_load_bits(fd, p, mpz, abs(hdrsize));
 
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
+		break;
+	      }
+	      case CA1_MPQ:
+	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPQ from %ld\n", Stell(fd)));
+	      { ssize_t num_hdrsize = getInt64(fd);
+		ssize_t den_hdrsize = getInt64(fd);
+		size_t wsize, num_wsize, den_wsize;
+		mpz_t num;
+		mpz_t den;
+		word m;
+		Word p;
+
+		mpz_hdr_size(num_hdrsize, num, &num_wsize);
+		mpz_hdr_size(den_hdrsize, den, &den_wsize);
+		wsize = num_wsize + den_wsize;
+		m     = mkIndHdr(wsize+2, TAG_INTEGER);
+		p     = allocFromBuffer(&buf, sizeof(word)*(wsize+3));
+
+		*p++ = m;
+		*p++ = mpq_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
+		*p++ = mpq_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
+		p[num_wsize] = 0;
+		mpz_load_bits(fd, p, num, abs(num_hdrsize));
+		p += num_wsize;
+		p[den_wsize] = 0;
+		mpz_load_bits(fd, p, den, abs(den_hdrsize));
+
+		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPQ to %ld\n", Stell(fd)));
 		break;
 	      }
 #else
@@ -2423,6 +2476,43 @@ emit_wlabels(vm_wlabel_state *state, Code here, IOSTREAM *fd)
 }
 
 
+#ifdef O_GMP
+static void
+put_mpz_size(IOSTREAM *fd, mpz_t mpz, size_t *szp)
+{ size_t size = (mpz_sizeinbase(mpz, 2)+7)/8;
+  ssize_t hdrsize;
+
+  if ( mpz_sgn(mpz) < 0 )
+    hdrsize = -(ssize_t)size;
+  else
+    hdrsize = (ssize_t)size;
+
+  *szp = size;
+  putInt64(hdrsize, fd);
+}
+
+static void
+put_mpz_bits(IOSTREAM *fd, mpz_t mpz, size_t size)
+{ size_t i, count;
+  char fast[1024];
+  char *buf;
+
+  if ( size < sizeof(fast) )
+    buf = fast;
+  else
+    buf = PL_malloc(size);
+
+  mpz_export(buf, &count, 1, 1, 1, 0, mpz);
+  assert(count == size);
+  for(i=0; i<count; i++)
+    Sputc(buf[i]&0xff, fd);
+  if ( buf != fast )
+    PL_free(buf);
+}
+
+#endif
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 saveWicClause()  saves  a  clause  to  the  .qlf  file.   For  predicate
 references of I_CALL and I_DEPART, we  cannot store the predicate itself
@@ -2626,32 +2716,26 @@ saveWicClause(wic_state *state, Clause clause)
 	case CA1_MPZ:
 	{ mpz_t mpz;
 	  size_t size;
-	  ssize_t hdrsize;
-	  size_t i, count;
-	  char fast[1024];
-	  char *buf;
 
 	  bp = get_mpz_from_code(bp, mpz);
-	  size = (mpz_sizeinbase(mpz, 2)+7)/8;
-	  if ( size < sizeof(fast) )
-	    buf = fast;
-	  else
-	    buf = PL_malloc(size);
-
-	  if ( mpz_sgn(mpz) < 0 )
-	    hdrsize = -(ssize_t)size;
-	  else
-	    hdrsize = (ssize_t)size;
-
-	  mpz_export(buf, &count, 1, 1, 1, 0, mpz);
-	  assert(count == size);
-	  putInt64(hdrsize, fd);
-	  for(i=0; i<count; i++)
-	    Sputc(buf[i]&0xff, fd);
-	  if ( buf != fast )
-	    PL_free(buf);
+	  put_mpz_size(fd, mpz, &size);
+	  put_mpz_bits(fd, mpz, size);
 
 	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPZ to %ld\n", Stell(fd)));
+	  break;
+	}
+	case CA1_MPQ:
+	{ mpq_t mpq;
+	  size_t num_size;
+	  size_t den_size;
+
+	  bp = get_mpq_from_code(bp, mpq);
+	  put_mpz_size(fd, mpq_numref(mpq), &num_size);
+	  put_mpz_size(fd, mpq_denref(mpq), &den_size);
+	  put_mpz_bits(fd, mpq_numref(mpq), num_size);
+	  put_mpz_bits(fd, mpq_denref(mpq), den_size);
+
+	  DEBUG(MSG_QLF_VMI, Sdprintf("Saved MPQ to %ld\n", Stell(fd)));
 	  break;
 	}
 #endif

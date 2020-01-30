@@ -39,7 +39,7 @@
 /** <module> Test fast term I/O
 
 This module is a Unit test  for   Prolog  built-ins for fast binary term
-serizalization
+serialization
 
 @author	Jan Wielemaker
 */

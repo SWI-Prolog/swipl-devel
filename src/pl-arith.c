@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -444,6 +445,35 @@ out:
   return rc;
 }
 
+
+static
+PRED_IMPL("rational", 3, rational, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  if ( isRational(*p) )
+  { if ( isMPQNum(*p) )
+    { number n, num, den;
+
+      get_rational(*p, &n);
+      num.type = V_MPZ;
+      den.type = V_MPZ;
+      num.value.mpz[0] = *mpq_numref(n.value.mpq);
+      den.value.mpz[0] = *mpq_denref(n.value.mpq);
+
+      return ( PL_unify_number(A2, &num) &&
+	       PL_unify_number(A3, &den) );
+    } else
+    { return ( PL_unify(A1, A2) &&
+	       PL_unify_integer(A3, 1) );
+    }
+  }
+
+  return FALSE;
+}
+
+
 #endif /*O_GMP*/
 
 		/********************************
@@ -716,7 +746,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   for(;;)
   { switch(tag(*p))
     { case TAG_INTEGER:
-	get_integer(*p, n);
+	get_rational(*p, n);
         break;
       case TAG_FLOAT:
 	n->value.f = valFloat(*p);
@@ -2305,6 +2335,24 @@ ar_rationalize(Number n1, Number r)
 }
 
 
+int
+ar_rdiv_mpz(Number n1, Number n2, Number r)
+{ if ( mpz_divisible_p(n1->value.mpz, n2->value.mpz) )
+  { mpz_init(r->value.mpz);
+    r->type = V_MPZ;
+    mpz_divexact(r->value.mpz, n1->value.mpz, n2->value.mpz);
+  } else
+  { r->type = V_MPQ;
+    mpq_init(r->value.mpq);
+    mpz_set(mpq_numref(r->value.mpq), n1->value.mpz);
+    mpz_set(mpq_denref(r->value.mpq), n2->value.mpz);
+    mpq_canonicalize(r->value.mpq);
+  }
+
+  return TRUE;
+}
+
+
 static int
 ar_rdiv(Number n1, Number n2, Number r)
 { if ( toIntegerNumber(n1, 0) &&
@@ -2314,17 +2362,8 @@ ar_rdiv(Number n1, Number n2, Number r)
 
     if ( mpz_sgn(n2->value.mpz) == 0 )
       return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
-    if ( mpz_divisible_p(n1->value.mpz, n2->value.mpz) )
-    { mpz_init(r->value.mpz);
-      r->type = V_MPZ;
-      mpz_divexact(r->value.mpz, n1->value.mpz, n2->value.mpz);
-      succeed;
-    }
-    r->type = V_MPQ;
-    mpq_init(r->value.mpq);
-    mpz_set(mpq_numref(r->value.mpq), n1->value.mpz);
-    mpz_set(mpq_denref(r->value.mpq), n2->value.mpz);
-    mpq_canonicalize(r->value.mpq);
+
+    return ar_rdiv_mpz(n1, n2, r);
   } else
   { promoteToMPQNumber(n1);
     promoteToMPQNumber(n2);
@@ -2359,6 +2398,11 @@ ar_divide(Number n1, Number n2, Number r)
 	  r->type = V_INTEGER;
 	  succeed;
 	}
+#ifdef O_GMP
+	promoteToMPZNumber(n1);
+        promoteToMPZNumber(n2);
+	return ar_rdiv_mpz(n1, n2, r);
+#endif
 	break;
 #ifdef O_GMP
       case V_MPZ:
@@ -3933,6 +3977,7 @@ BeginPredDefs(arith)
   PRED_DEF("divmod", 4, divmod, 0)
   PRED_DEF("nth_integer_root_and_remainder", 4,
 	   nth_integer_root_and_remainder, 0)
+  PRED_DEF("rational", 3, rational, 0)
 #endif
   PRED_DEF("set_random", 1, set_random, 0)
 #ifdef O_RANDOM_STATE

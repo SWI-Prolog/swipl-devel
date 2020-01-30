@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1084,10 +1085,40 @@ format_float(double f, char *buf)
   return buf;
 }
 
+#ifdef O_GMP
+static int
+writeMPZ(mpz_t mpz, write_options *options ARG_LD)
+{ char tmp[1024];
+  char *buf;
+  size_t sz = mpz_sizeinbase(mpz, 10) + 2;
+  int rc;
+
+  if ( sz <= sizeof(tmp) )
+    buf = tmp;
+  else
+    buf = PL_malloc(sz);
+
+  /* mpz_get_str() can perform large intermediate allocations */
+  EXCEPTION_GUARDED({ LD->gmp.persistent++;
+		      mpz_get_str(buf, 10, mpz);
+		      LD->gmp.persistent--;
+		    },
+		    { LD->gmp.persistent--;
+		      rc = PL_rethrow();
+		    })
+  rc = PutToken(buf, options->out);
+  if ( buf != tmp )
+    PL_free(buf);
+
+  return rc;
+}
+#endif
 
 static int
 WriteNumber(Number n, write_options *options)
-{ switch(n->type)
+{ GET_LD
+
+  switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
@@ -1096,30 +1127,15 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-    { GET_LD
-      char tmp[1024];
-      char *buf;
-      size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
-      bool rc;
+      return writeMPZ(n->value.mpz, options PASS_LD);
+    case V_MPQ:
+    { mpz_t num, den;			/* num/den */
 
-      if ( sz <= sizeof(tmp) )
-	buf = tmp;
-      else
-	buf = PL_malloc(sz);
-
-      /* mpz_get_str() can perform large intermediate allocations :-( */
-      EXCEPTION_GUARDED({ LD->gmp.persistent++;
-			  mpz_get_str(buf, 10, n->value.mpz);
-			  LD->gmp.persistent--;
-			},
-			{ LD->gmp.persistent--;
-			  rc = PL_rethrow();
-			})
-      rc = PutToken(buf, options->out);
-      if ( buf != tmp )
-	PL_free(buf);
-
-      return rc;
+      num[0] = *mpq_numref(n->value.mpq);
+      den[0] = *mpq_denref(n->value.mpq);
+      return ( writeMPZ(num, options PASS_LD) &&
+	       PutToken("/", options->out) &&
+	       writeMPZ(den, options PASS_LD) );
     }
 #endif
     case V_FLOAT:

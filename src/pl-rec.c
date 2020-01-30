@@ -248,8 +248,9 @@ typedef struct
 #define PL_REC_ALLOCVAR		(16)	/* Allocate a variable on global */
 #define PL_REC_CYCLE		(17)	/* cyclic reference */
 #define PL_REC_MPZ		(18)	/* GMP integer */
+#define PL_REC_MPQ		(19)	/* GMP rational */
 
-#define PL_TYPE_EXT_COMPOUND_V2	(19)	/* Read V2 external records */
+#define PL_TYPE_EXT_COMPOUND_V2	(20)	/* Read V2 external records */
 
 static const int v2_map[] =
 { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,		/* variable..string */
@@ -536,7 +537,7 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 	  info->size += wsizeofIndirect(w) + 2;
 
-	  get_integer(w, &n);
+	  get_rational(w, &n);
 	  switch(n.type)
 	  { case V_INTEGER:
 	      addOpCode(info, PL_TYPE_INTEGER);
@@ -546,6 +547,10 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 	    case V_MPZ:
 	      addOpCode(info, PL_REC_MPZ);
 	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
+	      break;
+	    case V_MPQ:
+	      addOpCode(info, PL_REC_MPQ);
+	      addMPQToBuffer((Buffer)&info->code, n.value.mpq);
 	      break;
 #endif
 	    default:
@@ -1409,9 +1414,11 @@ copy_record(Word p, CopyInfo b ARG_LD)
       }
 #ifdef O_GMP
       case PL_REC_MPZ:
-      { b->data = loadMPZFromCharp(b->data, p, &b->gstore);
+	b->data = loadMPZFromCharp(b->data, p, &b->gstore);
 	continue;
-      }
+      case PL_REC_MPQ:
+	b->data = loadMPQFromCharp(b->data, p, &b->gstore);
+	continue;
 #endif
       case PL_TYPE_FLOAT:
       case PL_TYPE_EXT_FLOAT:
@@ -1687,6 +1694,9 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 #ifdef O_GMP
       case PL_REC_MPZ:
 	b->data = skipMPZOnCharp(b->data);
+	continue;
+      case PL_REC_MPQ:
+	b->data = skipMPQOnCharp(b->data);
 	continue;
 #endif
       case PL_TYPE_FLOAT:

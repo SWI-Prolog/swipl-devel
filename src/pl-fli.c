@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2019, University of Amsterdam
+    Copyright (c)  1996-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -2217,39 +2217,12 @@ PL_is_float(term_t t)
 }
 
 
-static inline int
-isRational(word w ARG_LD)
-{ if ( isTerm(w) )
-  { Functor f = valueTerm(w);
-
-    if ( f->definition == FUNCTOR_rdiv2 )
-    { Word p;
-
-      deRef2(&f->arguments[0], p);
-      if ( !isInteger(*p) )
-	fail;
-      deRef2(&f->arguments[1], p);
-      if ( !isInteger(*p) )
-	fail;
-      if ( *p == consInt(0) )
-	fail;
-
-      return TRUE;
-    }
-  }
-  if ( isInteger(w) )
-    return TRUE;
-
-  return FALSE;
-}
-
-
 int
 PL_is_rational(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isRational(w PASS_LD);
+  return isRational(w);
 }
 
 
@@ -2331,7 +2304,7 @@ PL_is_pair(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isList(w) ? TRUE : FALSE;
+  return !!isList(w);
 }
 
 
@@ -2339,7 +2312,7 @@ int
 PL_is_atomic__LD(term_t t ARG_LD)
 { word w = valHandle(t);
 
-  return isAtomic(w) ? TRUE : FALSE;
+  return !!isAtomic(w);
 }
 
 
@@ -2349,7 +2322,7 @@ PL_is_atomic(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isAtomic(w) ? TRUE : FALSE;
+  return !!isAtomic(w);
 }
 #define PL_is_atomic(t) PL_is_atomic__LD(t PASS_LD)
 
@@ -2359,11 +2332,7 @@ PL_is_number(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  if ( isInteger(w) ||
-       isFloat(w) )
-    return TRUE;
-
-  return FALSE;
+  return !!isNumber(w);
 }
 
 
@@ -2373,7 +2342,7 @@ PL_is_string(term_t t)
 { GET_LD
   word w = valHandle(t);
 
-  return isString(w) ? TRUE : FALSE;
+  return !!isString(w);
 }
 
 int

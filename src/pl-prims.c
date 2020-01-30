@@ -1708,8 +1708,8 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
     { number n1, n2;
       int rc;
 
-      get_integer(w1, &n1);
-      get_integer(w2, &n2);
+      get_rational(w1, &n1);
+      get_rational(w2, &n2);
       if ( eq && (n1.type != n2.type) )
 	return CMP_NOTEQ;
       rc = cmpNumbers(&n1, &n2);

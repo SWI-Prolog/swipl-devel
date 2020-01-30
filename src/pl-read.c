@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2610,6 +2611,33 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
   if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
+
+#ifdef O_GMP
+  if ( *in == '/' && isDigit(in[1]) )	/* rational number */
+  { number num, den;
+
+    in++;
+    if ( (rc=scan_decimal(&in, FALSE, &den, &grouped)) != NUM_OK )
+    { clearNumber(value);
+      return rc;			/* too large? */
+    }
+    if ( den.type == V_INTEGER && den.value.i == 0 )
+    { clearNumber(value);		/* n/0 */
+      return NUM_ERROR;
+    }
+
+    cpNumber(&num, value);
+    promoteToMPZNumber(&num);
+    promoteToMPZNumber(&den);
+    clearNumber(value);
+    ar_rdiv_mpz(&num, &den, value);
+    clearNumber(&num);
+    clearNumber(&den);
+    *end = (ucharp)in;
+    return NUM_OK;
+  }
+#endif
+
   if ( grouped )
   { *end = (ucharp)in;
     return NUM_OK;
@@ -2629,6 +2657,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
     return NUM_OK;
   }
+
 					/* floating point numbers */
   if ( *in == '.' && isDigit(in[1]) )
   { clearNumber(value);

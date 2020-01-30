@@ -47,20 +47,46 @@
 COMMON(void)	initGMP(void);
 COMMON(void)	cleanupGMP(void);
 COMMON(void)	get_integer(word w, number *n);
+COMMON(void)	get_rational(word w, number *n);
 COMMON(Code)	get_mpz_from_code(Code pc, mpz_t mpz);
+COMMON(Code)	get_mpq_from_code(Code pc, mpq_t mpq);
 COMMON(int)	promoteToMPZNumber(number *n);
 COMMON(int)	promoteToMPQNumber(number *n);
 COMMON(void)	ensureWritableNumber(Number n);
 COMMON(void)	clearGMPNumber(Number n);
 COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
+COMMON(void)	addMPQToBuffer(Buffer b, mpq_t mpq);
 COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
+COMMON(char *)	loadMPQFromCharp(const char *data, Word r, Word *store);
 COMMON(char *)	skipMPZOnCharp(const char *data);
+COMMON(char *)	skipMPQOnCharp(const char *data);
 COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 COMMON(void)	mpz_init_set_si64(mpz_t mpz, int64_t i);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
+
+static inline word
+mpz_size_stack(int sz)
+{ return ((word)sz<<1) & ~(word)MP_RAT_MASK;
+}
+
+static inline word
+mpq_size_stack(int sz)
+{ return ((word)sz<<1) | MP_RAT_MASK;
+}
+
+static inline int
+mpz_stack_size(word w)
+{ return (int)(w>>1);
+}
+
+static inline int
+mpq_stack_size(word w)
+{ return (int)(w>>1);
+}
+
 #else /*O_GMP*/
 
 #define get_integer(w, n) \

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2019, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -491,6 +491,10 @@ VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
   VMI_GOTO(H_STRING);
 }
 
+VMI(H_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
+{ SEPERATE_VMI;
+  VMI_GOTO(H_STRING);
+}
 
 VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
@@ -893,6 +897,11 @@ H_STRING.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
+{ SEPERATE_VMI;
+  VMI_GOTO(B_STRING);
+}
+
+VMI(B_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
 { SEPERATE_VMI;
   VMI_GOTO(B_STRING);
 }
@@ -2552,6 +2561,10 @@ VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_integer1, isInteger);
 }
 
+VMI(I_RATIONAL, VIF_BREAK, 1, (CA1_VAR))
+{ TYPE_TEST(FUNCTOR_rational1, isRational);
+}
+
 VMI(I_FLOAT, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_float1, isFloat);
 }
@@ -3143,17 +3156,48 @@ VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 {
 #ifdef O_GMP
   Number n = allocArithStack(PASS_LD1);
-  Word p = (Word)PC;
-  size_t size;
+  Word p = (Word)PC+1;				/* skip indirect header */
+  size_t limpsize;
+  int size = mpz_stack_size(*p++);
 
-  p++;				/* skip indirect header */
   n->type = V_MPZ;
-  n->value.mpz->_mp_size  = (int)*p++;
+  n->value.mpz->_mp_size  = size;
   n->value.mpz->_mp_alloc = 0;	/* avoid de-allocating */
-  size = sizeof(mp_limb_t) * abs(n->value.mpz->_mp_size);
+  limpsize = sizeof(mp_limb_t) * abs(size);
   n->value.mpz->_mp_d = (void*)p;
 
-  p += (size+sizeof(word)-1)/sizeof(word);
+  p += (limpsize+sizeof(word)-1)/sizeof(word);
+  PC = (Code)p;
+#endif
+  NEXT_INSTRUCTION;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A_MPQ: Push mpq integer following PC
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(A_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
+{
+#ifdef O_GMP
+  Number n = allocArithStack(PASS_LD1);
+  Word p = (Word)PC+1;				/* skip indirect header */
+  size_t limpsize;
+  int num_size = mpq_stack_size(*p++);
+  int den_size = mpq_stack_size(*p++);
+
+  n->type = V_MPQ;
+  mpq_numref(n->value.mpq)->_mp_size  = num_size;
+  mpq_numref(n->value.mpq)->_mp_alloc = 0;	/* avoid de-allocating */
+  limpsize = sizeof(mp_limb_t) * abs(num_size);
+  mpq_numref(n->value.mpq)->_mp_d = (void*)p;
+  p += (limpsize+sizeof(word)-1)/sizeof(word);
+
+  mpq_denref(n->value.mpq)->_mp_size  = den_size;
+  mpq_denref(n->value.mpq)->_mp_alloc = 0;	/* avoid de-allocating */
+  limpsize = sizeof(mp_limb_t) * abs(den_size);
+  mpq_denref(n->value.mpq)->_mp_d = (void*)p;
+  p += (limpsize+sizeof(word)-1)/sizeof(word);
+
   PC = (Code)p;
 #endif
   NEXT_INSTRUCTION;
