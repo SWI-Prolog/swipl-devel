@@ -808,27 +808,29 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 		 *	    CHAR BUFFERS	*
 		 *******************************/
 
-#define CVT_ATOM	0x0001
-#define CVT_STRING	0x0002
-#define CVT_LIST	0x0004
-#define CVT_INTEGER	0x0008
-#define CVT_FLOAT	0x0010
-#define CVT_VARIABLE	0x0020
-#define CVT_NUMBER	(CVT_INTEGER|CVT_FLOAT)
-#define CVT_ATOMIC	(CVT_NUMBER|CVT_ATOM|CVT_STRING)
-#define CVT_WRITE	0x0040
-#define CVT_WRITE_CANONICAL 0x0080
-#define CVT_WRITEQ	0x00C0
-#define CVT_ALL		(CVT_ATOMIC|CVT_LIST)
-#define CVT_MASK	0x00ff
+#define CVT_ATOM	    0x00000001
+#define CVT_STRING	    0x00000002
+#define CVT_LIST	    0x00000004
+#define CVT_INTEGER	    0x00000008
+#define CVT_RATIONAL	    0x00000010
+#define CVT_FLOAT	    0x00000020
+#define CVT_VARIABLE	    0x00000040
+#define CVT_NUMBER	    (CVT_RATIONAL|CVT_FLOAT)
+#define CVT_ATOMIC	    (CVT_NUMBER|CVT_ATOM|CVT_STRING)
+#define CVT_WRITE	    0x00000080
+#define CVT_WRITE_CANONICAL 0x00000080
+#define CVT_WRITEQ	    0x000000C0
+#define CVT_ALL		    (CVT_ATOMIC|CVT_LIST)
+#define CVT_MASK	    0x00000fff
 
-#define BUF_DISCARDABLE	0x0000
-#define BUF_RING	0x0100
-#define BUF_MALLOC	0x0200
-#define BUF_ALLOW_STACK	0x0400		/* allow pointer into (global) stack */
+#define CVT_EXCEPTION	    0x00001000	/* throw exception on error */
+#define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
 
-#define CVT_EXCEPTION	0x10000		/* throw exception on error */
-#define CVT_VARNOFAIL	0x20000		/* return 2 if argument is unbound */
+#define BUF_DISCARDABLE	    0x00000000
+#define BUF_RING	    0x00010000
+#define BUF_MALLOC	    0x00020000
+#define BUF_ALLOW_STACK	    0x00040000	/* allow pointer into (global) stack */
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Output   representation   for   PL_get_chars()     and    friends.   The
@@ -837,16 +839,16 @@ Windows we use UTF-8 which is translated   by the `XOS' layer to Windows
 UNICODE file functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define REP_ISO_LATIN_1 0x0000		/* output representation */
-#define REP_UTF8	0x1000
-#define REP_MB		0x2000
+#define REP_ISO_LATIN_1	    0x00000000	/* output representation */
+#define REP_UTF8	    0x00100000
+#define REP_MB		    0x00200000
 #ifdef __WINDOWS__
-#define REP_FN		REP_UTF8
+#define REP_FN		    REP_UTF8
 #else
-#define REP_FN		REP_MB
+#define REP_FN		    REP_MB
 #endif
 
-#define PL_DIFF_LIST	0x20000		/* PL_unify_chars() */
+#define PL_DIFF_LIST	    0x01000000	/* PL_unify_chars() */
 
 
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */

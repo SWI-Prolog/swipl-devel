@@ -183,7 +183,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       goto maybe_write;
     if ( !PL_from_stack_text(text, flags) )
       return FALSE;			/* no memory */
-  } else if ( (flags & CVT_INTEGER) && isInteger(w) )
+  } else if ( ((flags&CVT_RATIONAL) && isRational(w)) ||
+	      ((flags&CVT_INTEGER)  && isInteger(w)) )
   { number n;
 
     PL_get_number(l, &n);
@@ -205,6 +206,24 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 	  outOfCore();
 	mpz_get_str(b->base, 10, n.value.mpz);
 	b->top = b->base + strlen(b->base);
+	text->text.t  = baseBuffer(b, char);
+	text->length  = entriesBuffer(b, char);
+	text->storage = PL_CHARS_RING;
+
+	break;
+      }
+      case V_MPQ:
+      { size_t sz = ( mpz_sizeinbase(mpq_numref(n.value.mpq), 10) +
+		      mpz_sizeinbase(mpq_denref(n.value.mpq), 10) + 4 );
+	Buffer b  = findBuffer(BUF_RING);
+
+	if ( !growBuffer(b, sz) )
+	  outOfCore();
+	mpz_get_str(b->base, 10, mpq_numref(n.value.mpq));
+	b->top = b->base + strlen(b->base);
+	*b->top = '/';
+	mpz_get_str(b->top, 10, mpq_denref(n.value.mpq));
+	b->top += strlen(b->top);
 	text->text.t  = baseBuffer(b, char);
 	text->length  = entriesBuffer(b, char);
 	text->storage = PL_CHARS_RING;
