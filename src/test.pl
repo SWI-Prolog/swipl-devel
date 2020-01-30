@@ -670,20 +670,25 @@ gmp(rational-2) :-
 	rational(A, 1, 2).
 gmp(rational-3) :-
 	dec(6 rdiv 5, X),
-	X == 1 rdiv 5.
+	rational(X, 1, 5).
 gmp(rational-4) :-
 	X is 5 rdiv 3,
-	X == (5 rdiv 3).
+	rational(X, 5, 3).
+:- if(current_prolog_flag(rational, true)).
+gmp(rational-5) :-
+	5/3 is 5 rdiv 3.
+:- else.
 gmp(rational-5) :-
 	5 rdiv 3 is 5 rdiv 3.
 gmp(rational-6) :-
 	5 rdiv X is 5 rdiv 3,
 	X == 3.
+:- endif.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
-	B is rationalize(0.1), B == 1 rdiv 10,
+	B is rationalize(0.1), rational(B, 1, 10),
 	C is rationalize(10.0), C == 10,
-	D is rationalize(-0.1), D == -1 rdiv 10.
+	D is rationalize(-0.1), rational(D, -1, 10).
 gmp(rationalize-2) :-
 	pi =:= float(rationalize(pi)).
 gmp(number-1) :-
@@ -721,7 +726,7 @@ gmp(comp-1) :-
 	retractall(gmp_clause(_,_)).
 gmp(comp-2) :-
 	X is ((1 rdiv 2)*2) rdiv 3,
-	X == 1 rdiv 3.
+	rational(X, 1, 3).
 gmp(rec-1) :-
 	forall(recorded(gmp_fac, _, R), erase(R)),
 	forall(between(1, 50, X),

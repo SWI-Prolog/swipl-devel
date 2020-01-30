@@ -141,12 +141,21 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 :- begin_tests(pow).
 
 :- if(current_prolog_flag(bounded, false)).
+:- if(current_prolog_flag(rational, true)).
+test(rat, X == 32/243) :-
+	X is 2/3^5.
+test(rat, X == 1) :-
+	X is 2/3^0.
+test(rat, X == 243/32) :-
+	X is 2/3^(-5).
+:- else.
 test(rat, X == 32 rdiv 243) :-
 	X is (2 rdiv 3)^(5).
 test(rat, X == 1) :-
 	X is (2 rdiv 3)^(0).
 test(rat, X == 243 rdiv 32) :-
 	X is (2 rdiv 3)^(-5).
+:- endif.
 :- endif.
 
 :- end_tests(pow).
@@ -221,7 +230,7 @@ test(ref, R==6) :-			% Bug#12
 
 :- begin_tests(hyperbolic).
 
-round(X, R) :- R is round(X*1000)/1000.
+round(X, R) :- R is round(X*1000)/1000.0.
 
 test(sinh, V =:= 1.175) :- X is sinh(1.0), round(X,V).
 test(cosh, V =:= 1.543) :- X is cosh(1.0), round(X,V).
@@ -235,10 +244,13 @@ test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 :- begin_tests(rationalize).
 
 :- if(current_prolog_flag(bounded,false)).
-
+:- if(current_prolog_flag(rational, true)).
+test(trip, R = 51/10) :-
+	R is rationalize(5.1).
+:- else.
 test(trip, R = 51 rdiv 10) :-
 	R is rationalize(5.1).
-
+:- endif.
 :- endif.
 
 :- end_tests(rationalize).
