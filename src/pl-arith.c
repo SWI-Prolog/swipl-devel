@@ -2399,9 +2399,11 @@ ar_divide(Number n1, Number n2, Number r)
 	  succeed;
 	}
 #ifdef O_GMP
-	promoteToMPZNumber(n1);
-        promoteToMPZNumber(n2);
-	return ar_rdiv_mpz(n1, n2, r);
+	if ( truePrologFlag(PLFLAG_RATIONAL) )
+	{ promoteToMPZNumber(n1);
+	  promoteToMPZNumber(n2);
+	  return ar_rdiv_mpz(n1, n2, r);
+	}
 #endif
 	break;
 #ifdef O_GMP

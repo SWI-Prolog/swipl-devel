@@ -2613,7 +2613,8 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     return rc;				/* too large? */
 
 #ifdef O_GMP
-  if ( *in == '/' && isDigit(in[1]) )	/* rational number */
+  if ( *in == '/' && isDigit(in[1]) &&
+       truePrologFlagNoLD(PLFLAG_RATIONAL) ) /* rational number */
   { number num, den;
 
     in++;
