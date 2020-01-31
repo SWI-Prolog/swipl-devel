@@ -839,10 +839,10 @@ unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
 	if ( rc == FALSE )
 	  goto out;
 	Undo(m);
-	if ( makeMoreStackSpace(rc, ALLOW_GC) )
+	if ( (rc=makeMoreStackSpace(rc, ALLOW_GC)) )
 	  goto retry;
 	else
-	  return FALSE;
+	  goto out;
       }
     }
     destroy_ukey_state(&ustate);
