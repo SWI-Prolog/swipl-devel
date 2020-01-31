@@ -87,12 +87,13 @@ typedef struct ukey_state
   size_t	max_var_seen;
   size_t	vars_allocated;		/* # variables allocated */
   Word*		vars;
+  size_t        a_offset;		/* For resetting the argument stack */
   Word		var_buf[NVARS_FAST];	/* quick var buffer */
 } ukey_state;
 
 static int	unify_key(ukey_state *state, word key ARG_LD);
-static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
-static void	destroy_ukey_state(ukey_state *state);
+static void	init_ukey_state(ukey_state *state, trie *trie, Word p ARG_LD);
+static void	destroy_ukey_state(ukey_state *state ARG_LD);
 static void	set_trie_clause_general_undefined(Clause cl);
 
 
@@ -783,6 +784,34 @@ is_ground_trie_node(trie_node *node)
 		 *    BUILD TERM FROM PATH	*
 		 *******************************/
 
+#if 0					/* debugging help */
+static int
+print_key(word k)
+{ size_t pop;
+
+  if ( (pop = IS_TRIE_KEY_POP(k)) )
+  { Sdprintf("POP(%zd)\n", pop);
+  } else
+  { char buf[64];
+
+    Sdprintf("%s\n", print_val(k, buf));
+  }
+
+  return TRUE;
+}
+
+static int
+print_keys(Word k, size_t kc)
+{ size_t i;
+
+  for(i=kc; i-->0; )
+    print_key(k[i]);
+
+  return TRUE;
+}
+#endif
+
+
 #define MAX_FAST 256
 
 int
@@ -832,10 +861,10 @@ unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
 
   retry:
     Mark(m);
-    init_ukey_state(&ustate, trie_ptr, valTermRef(term));
+    init_ukey_state(&ustate, trie_ptr, valTermRef(term) PASS_LD);
     for(i=kc; i-- > 0; )
     { if ( (rc=unify_key(&ustate, keys[i] PASS_LD)) != TRUE )
-      { destroy_ukey_state(&ustate);
+      { destroy_ukey_state(&ustate PASS_LD);
 	if ( rc == FALSE )
 	  goto out;
 	Undo(m);
@@ -845,7 +874,7 @@ unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
 	  goto out;
       }
     }
-    destroy_ukey_state(&ustate);
+    destroy_ukey_state(&ustate PASS_LD);
     break;
   }
 
@@ -1471,17 +1500,19 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  */
 
 static void
-init_ukey_state(ukey_state *state, trie *trie, Word p)
+init_ukey_state(ukey_state *state, trie *trie, Word p ARG_LD)
 { state->trie = trie;
   state->ptr  = p;
   state->umode = uread;
   state->max_var_seen = 0;
+  state->a_offset = aTop-aBase;
 }
 
 static void
-destroy_ukey_state(ukey_state *state)
+destroy_ukey_state(ukey_state *state ARG_LD)
 { if ( state->max_var_seen && state->vars != state->var_buf )
     PL_free(state->vars);
+  aTop = aBase + state->a_offset;
 }
 
 static Word*
@@ -1573,11 +1604,14 @@ unify_key(ukey_state *state, word key ARG_LD)
 	      return GLOBAL_OVERFLOW;
 	  } else
 	  { Word t;
+	    size_t i;
 
 	    if ( (t=allocGlobalNoShift(arity+1)) )
 	    { if ( unlikely(tTop+1 >= tMax) )
 		return  TRAIL_OVERFLOW;
 	      t[0] = key;
+	      for(i=0; i<arity; i++)
+		setVar(t[i+1]);
 	      Trail(p, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
 	      state->ptr = &t[1];
 	      return TRUE;
@@ -1702,7 +1736,7 @@ typedef struct trie_choice
 } trie_choice;
 
 typedef struct
-{ trie  *trie;			/* trie we operate on */
+{ trie	      *trie;		/* trie we operate on */
   int	       allocated;	/* If TRUE, the state is persistent */
   unsigned     vflags;		/* TN_PRIMARY or TN_SECONDARY */
   tmp_buffer   choicepoints;	/* Stack of trie state choicepoints */
@@ -2041,17 +2075,17 @@ unify_trie_path(term_t term, trie_node **tn, trie_gen_state *gstate ARG_LD)
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
-  init_ukey_state(&ustate, gstate->trie, valTermRef(term));
+  init_ukey_state(&ustate, gstate->trie, valTermRef(term) PASS_LD);
   for( ; ch < top; ch++ )
   { int rc;
 
     if ( (rc=unify_key(&ustate, ch->key PASS_LD)) != TRUE )
-    { destroy_ukey_state(&ustate);
+    { destroy_ukey_state(&ustate PASS_LD);
       return rc;
     }
   }
 
-  destroy_ukey_state(&ustate);
+  destroy_ukey_state(&ustate PASS_LD);
   *tn = ch[-1].child;
 
   return TRUE;
