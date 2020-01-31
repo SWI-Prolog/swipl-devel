@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -1511,6 +1511,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	      }
 	      case CA1_MPZ:
 #ifdef O_GMP
+#define ABS(x) ((x) >= 0 ? (x) : -(x))
 	      DEBUG(MSG_QLF_VMI, Sdprintf("Loading MPZ from %ld\n", Stell(fd)));
 	      { ssize_t hdrsize = getInt64(fd);
 		size_t wsize;
@@ -1526,7 +1527,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		p[wsize] = 0;
 		*p++ = mpz_size_stack(mp_cpsign(hdrsize, mpz->_mp_size));
 		p[wsize] = 0;
-		mpz_load_bits(fd, p, mpz, abs(hdrsize));
+		mpz_load_bits(fd, p, mpz, ABS(hdrsize));
 
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPZ to %ld\n", Stell(fd)));
 		break;
@@ -1551,10 +1552,10 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 		*p++ = mpq_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
 		*p++ = mpq_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
 		p[num_wsize] = 0;
-		mpz_load_bits(fd, p, num, abs(num_hdrsize));
+		mpz_load_bits(fd, p, num, ABS(num_hdrsize));
 		p += num_wsize;
 		p[den_wsize] = 0;
-		mpz_load_bits(fd, p, den, abs(den_hdrsize));
+		mpz_load_bits(fd, p, den, ABS(den_hdrsize));
 
 		DEBUG(MSG_QLF_VMI, Sdprintf("Loaded MPQ to %ld\n", Stell(fd)));
 		break;
