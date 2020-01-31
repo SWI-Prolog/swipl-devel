@@ -2260,6 +2260,41 @@ ar_rational(Number n1, Number r)
   succeed;
 }
 
+static int
+ar_numerator(Number n1, Number r)
+{ if ( intNumber(n1) )
+  { cpNumber(r, n1);
+    return TRUE;
+  }
+  if ( n1->type == V_MPQ )
+  { r->type = V_MPZ;
+    mpz_init(r->value.mpz);
+    mpz_set(r->value.mpz, mpq_numref(n1->value.mpq));
+    return TRUE;
+  }
+
+  return PL_error("numerator", 1, NULL, ERR_AR_TYPE, ATOM_rational, n1);
+}
+
+
+static int
+ar_denominator(Number n1, Number r)
+{ if ( intNumber(n1) )
+  { r->type = V_INTEGER;
+    r->value.i = 1;
+    return TRUE;
+  }
+  if ( n1->type == V_MPQ )
+  { r->type = V_MPZ;
+    mpz_init(r->value.mpz);
+    mpz_set(r->value.mpz, mpq_denref(n1->value.mpq));
+    return TRUE;
+  }
+
+  return PL_error("denominator", 1, NULL, ERR_AR_TYPE, ATOM_rational, n1);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A is rationalize(Float)
 
@@ -3693,6 +3728,8 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_divide2,		ar_divide, F_ISO),
 #ifdef O_GMP
   ADD(FUNCTOR_rational1,	ar_rational, 0),
+  ADD(FUNCTOR_numerator1,	ar_numerator, 0),
+  ADD(FUNCTOR_denominator1,	ar_denominator, 0),
   ADD(FUNCTOR_rationalize1,	ar_rationalize, 0),
   ADD(FUNCTOR_rdiv2,		ar_rdiv, 0),
 #endif

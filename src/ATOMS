@@ -198,6 +198,7 @@ A default		"default"
 A defined		"defined"
 A deflated		"deflated"
 A delete		"delete"
+A denominator		"denominator"
 A dependent		"dependent"
 A depth			"depth"
 A depth_limit_exceeded	"depth_limit_exceeded"
@@ -525,6 +526,7 @@ A number_of_clauses	"number_of_clauses"
 A number_of_rules	"number_of_rules"
 A numbervar_option	"numbervar_option"
 A numbervars		"numbervars"
+A numerator		"numerator"
 A obfuscate		"obfuscate"
 A occurs_check		"occurs_check"
 A octet		        "octet"
@@ -1057,6 +1059,7 @@ F not_implemented	2
 F not_provable		1
 F not_strict_equal	2
 F number		1
+F numerator		1
 F occurs_check		2
 F offset		1
 F open			2
@@ -1122,6 +1125,7 @@ F start			1
 F status		1
 F stream		1
 F stream		4
+F denominator		1
 F dstream_position	4
 F strict_equal		2
 F string		1

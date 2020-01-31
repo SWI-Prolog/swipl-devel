@@ -7310,6 +7310,27 @@ A = 1 rdiv 4
 A = 1 rdiv 10
 \end{code}
 
+    \function{numerator}{1}{+RationalExpr}
+If \arg{RationalExpr} evaluates to a rational number or integer,
+evaluate to the top/left value. Evaluates to itself if
+\arg{RationalExpr} evaluates to an integer. See also
+\funcref{denominator}{1}. The following is true for any rational
+\arg{X}.
+
+\begin{code}
+X =:= numerator(X)/denominator(X).
+\end{code}
+
+    \function{denominator}{1}{+RationalExpr}
+If \arg{RationalExpr} evaluates to a rational number or integer,
+evaluate to the botom/right value. Evaluates to 1 (one) if
+\arg{RationalExpr} evaluates to an integer. See also
+\funcref{numerator}{1}. The following is true for any rational \arg{X}.
+
+\begin{code}
+X =:= numerator(X)/denominator(X).
+\end{code}
+
     \function[ISO]{float_fractional_part}{1}{+Expr}
 Fractional part of a floating point number.  Negative if \arg{Expr} is
 negative, rational if \arg{Expr} is rational and 0 if \arg{Expr} is
