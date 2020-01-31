@@ -1771,6 +1771,26 @@ production code.
 This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.
 
+    \prologflagitem{rational}{bool}{rw}
+Only provided if the system is compiled with unbounded and rational
+arithmetic support (see \prologflag{bounded}). If \const{true} (default),
+support rational numbers as first class citizens. This implies:
+
+    \begin{itemize}
+	\item Sequences the regex \verb$[-+][0-9_ ]+/[0-9_ ]+$ are
+	read as a rational number.
+	\item Division (\funcref{/}{2}) of two integers produces a
+	rational number.
+	\item Power (\funcref{^}{2}) of two integers produces a
+	rational number, \emph{also} if the second operant is a
+	negative number.  For example, \verb$2^(-2)$ evaluates to
+	\verb$1/4$.
+    \end{itemize}
+
+When \const{false}, rational numbers can only be created using the
+functions \funcref{rational}{1}, \funcref{rationalize}{1} and
+\funcref{rdiv}{2}.
+
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
 values are below. The flag may be set from the user's init file (see
