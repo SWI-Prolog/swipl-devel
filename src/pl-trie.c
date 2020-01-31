@@ -438,6 +438,7 @@ prune_trie(trie *trie, trie_node *root,
   prune:
     for(; n != root && false(n, TN_PRIMARY|TN_SECONDARY); n = p)
     { trie_children children;
+      int choice = FALSE;
 
       p = n->parent;
       children = p->children;
@@ -450,12 +451,13 @@ prune_trie(trie *trie, trie_node *root,
 	    break;
 	  case TN_HASHED:
 	    deleteHTable(children.hash->table, (void*)n->key);
+	    choice = TRUE;
 	    break;
 	}
       }
 
       destroy_node(trie, n);
-      if ( children.any->type == TN_HASHED )
+      if ( choice )
 	break;
     }
 
