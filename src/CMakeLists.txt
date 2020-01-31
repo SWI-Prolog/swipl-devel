@@ -165,7 +165,10 @@ set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
 set(SWIPL_DATA_library_theme auto.pl dark.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
-    simplex.pl clpfd.pl clpb.pl)
+    clpfd.pl clpb.pl)
+if(GMP_FOUND)
+  set(SWIPL_DATA_library_clp ${SWIPL_DATA_library_clp} simplex.pl)
+endif()
 
 set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 

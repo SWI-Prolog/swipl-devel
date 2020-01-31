@@ -540,7 +540,9 @@ safe_primitive(=:=(_,_)).
 safe_primitive(=\=(_,_)).
 safe_primitive(=<(_,_)).
 safe_primitive(<(_,_)).
+:- if(current_prolog_flag(bounded, false)).
 safe_primitive(system:nth_integer_root_and_remainder(_,_,_,_)).
+:- endif.
 
                                         % term-handling
 safe_primitive(arg(_,_,_)).
