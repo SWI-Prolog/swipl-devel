@@ -1726,11 +1726,11 @@ static int
 ar_pow(Number n1, Number n2, Number r)
 {
 #ifdef O_GMP
-  if ( intNumber(n1) && intNumber(n2) )
-  { unsigned long exp;
-    int exp_sign;
+  unsigned long exp;
+  int exp_sign;
 
-    switch(n1->type)			/* test for 0**X and 1**X */
+  if ( intNumber(n1) && intNumber(n2) )
+  { switch(n1->type)			/* test for 0**X and 1**X */
     { case V_INTEGER:
 	if ( n1->value.i == 0 )
 	{ ret0:
@@ -1772,7 +1772,14 @@ ar_pow(Number n1, Number n2, Number r)
     if ( !get_int_exponent(n2, &exp, &exp_sign) )
       return FALSE;
     if ( exp_sign < 0 )
+    { GET_LD
+
+      if ( truePrologFlag(PLFLAG_RATIONAL) )
+      { promoteToMPQNumber(n1);
+	goto int_pow_neg_int;
+      }
       goto doreal;
+    }
     if ( exp_sign == 0 )
     { r->type = V_INTEGER;
       r->value.i = 1;
@@ -1824,8 +1831,6 @@ ar_pow(Number n1, Number n2, Number r)
 
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
-    unsigned long exp;
-    int exp_sign;
 
     if ( !get_int_exponent(n2, &exp, &exp_sign) )
       return FALSE;
@@ -1836,6 +1841,7 @@ ar_pow(Number n1, Number n2, Number r)
       return TRUE;
     }
 
+  int_pow_neg_int:
     nexp.type = V_INTEGER;
     nexp.value.i = exp;
 
