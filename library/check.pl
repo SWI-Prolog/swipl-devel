@@ -46,7 +46,9 @@
           list_format_errors/0,         % list calls to format with wrong args
           list_format_errors/1,		% +Options
           list_strings/0,               % list string objects in clauses
-          list_strings/1                % +Options
+          list_strings/1,               % +Options
+          list_rationals/0,		% list rational objects in clauses
+          list_rationals/1              % +Options
         ]).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
@@ -469,6 +471,64 @@ list_strings(Options) :-
 make_clause(Head, true, Head) :- !.
 make_clause(Head, Body, (Head:-Body)).
 
+%!  list_rationals is det.
+%!  list_rationals(+Options) is det.
+%
+%   List rational numbers that appear in clauses. This predicate is used
+%   to find portability issues for changing   the Prolog flag =rational=
+%   from   =false=   to   =true=,   creating   rational   numbers   from
+%   <integer>/<nonneg>.   Options:
+%
+%      - module_class(+Classes)
+%        Determines the modules classes processed.  By default only
+%        user code is processed.  See prolog_program_clause/2.
+%      - arithmetic(+Bool)
+%        If `true` (default `false`) also warn on rationals appearing
+%        in arithmetic expressions.
+%
+%   @see Prolog flag =rational=.
+
+list_rationals :-
+    list_rationals([module_class([user])]).
+
+list_rationals(Options) :-
+    (   option(arithmetic(DoArith), Options, false),
+        prolog_program_clause(ClauseRef, Options),
+        clause(Head, Body, ClauseRef),
+        make_clause(Head, Body, Clause),
+        findall(T,
+                (   sub_term(T, Head),
+                    rational(T),
+                    \+ integer(T)
+                ;   Head = M:_,
+                    goal_in_body(Goal, M, Body),
+                    nonvar(Goal),
+                    (   DoArith == false,
+                        valid_rational_goal(Goal)
+                    ->  fail
+                    ;   sub_term(T, Goal),
+                        rational(T),
+                        \+ integer(T)
+                    )
+                ), Ts0),
+        sort(Ts0, Ts),
+        member(T, Ts),
+        message_context(ClauseRef, T, Clause, Context),
+        print_message(warning,
+                      check(rational_in_clause(T, Context))),
+        fail
+    ;   true
+    ).
+
+
+valid_rational_goal(_ is _).
+valid_rational_goal(_ =:= _).
+valid_rational_goal(_ < _).
+valid_rational_goal(_ > _).
+valid_rational_goal(_ =< _).
+valid_rational_goal(_ >= _).
+
+
 %!  list_format_errors is det.
 %!  list_format_errors(+Options) is det.
 %
@@ -755,6 +815,9 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
 prolog:message(check(string_in_clause(String, Context))) -->
     '$messages':swi_location(Context),
     [ 'String ~q'-[String] ].
+prolog:message(check(rational_in_clause(String, Context))) -->
+    '$messages':swi_location(Context),
+    [ 'Rational ~q'-[String] ].
 prolog:message(check(Msg, Goal, Context)) -->
     '$messages':swi_location(Context),
     { pi_head(PI, Goal) },
