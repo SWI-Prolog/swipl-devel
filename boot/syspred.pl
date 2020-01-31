@@ -42,7 +42,6 @@
             (nospy)/1,
             nospyall/0,
             debugging/0,
-            rational/3,
             flag/3,
             atom_prefix/2,
             dwim_match/2,

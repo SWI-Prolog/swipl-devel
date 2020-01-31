@@ -3445,7 +3445,11 @@ typedef struct type_test
   int	        (*test)(word);
 } type_test;
 
+#ifdef O_GMP
 static int fisInteger(word w)  { GET_LD return isInteger(w);  }
+#else
+static int fisInteger(word w)  { return isInteger(w);  }
+#endif
 static int fisRational(word w) { return isRational(w);  }
 static int fisFloat(word w)    { return isFloat(w);    }
 static int fisNumber(word w)   { return isNumber(w);   }

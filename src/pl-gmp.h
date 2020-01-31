@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2015, University of Amsterdam
+    Copyright (c)  2005-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -94,6 +95,8 @@ mpq_stack_size(word w)
 	{ (n)->type = V_INTEGER; \
 	  (n)->value.i = valInteger(w); \
 	} while(0)
+#define get_rational(w, n) \
+	get_integer(w, n)
 
 #define clearGMPNumber(n)	(void)0
 #define clearNumber(n)		(void)0

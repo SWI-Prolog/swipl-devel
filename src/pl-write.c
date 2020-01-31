@@ -1116,7 +1116,10 @@ writeMPZ(mpz_t mpz, write_options *options ARG_LD)
 
 static int
 WriteNumber(Number n, write_options *options)
-{ GET_LD
+{
+#ifdef O_GMP
+  GET_LD
+#endif
 
   switch(n->type)
   { case V_INTEGER:
