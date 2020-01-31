@@ -1789,7 +1789,8 @@ support rational numbers as first class citizens. This implies:
 
 When \const{false}, rational numbers can only be created using the
 functions \funcref{rational}{1}, \funcref{rationalize}{1} and
-\funcref{rdiv}{2}.
+\funcref{rdiv}{2}.  See also \secref{syntax-rational-numbers} and
+\secref{rational}.
 
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
@@ -2614,7 +2615,8 @@ and 36. ISO defines binary, octal and hexadecimal numbers using
 \exam{0{\em [bxo]}<number>}. For example: \verb$A is 0b100 \/ 0xf00$ is
 a valid expression. Such numbers are always unsigned.
 
-\subsubsection{Using digit groups in large integers} \label{sec:digitgroupsyntax}
+\subsubsection{Using digit groups in large integers}
+\label{sec:digitgroupsyntax}
 
 SWI-Prolog supports splitting long integers into \jargon{digit groups}.
 Digit groups can be separated with the sequence \bnfmeta{underscore},
@@ -2638,6 +2640,58 @@ Integers can be printed using this notation with format/2, using the
 
 The current syntax has been proposed by Ulrich Neumerkel on the
 SWI-Prolog mailinglist.
+
+
+\subsubsection{Rational number syntax}
+\label{sec:syntax-rational-numbers}
+
+As of version 8.1.22, SWI-Prolog supports rational numbers as a primary
+citizen atomic data type if SWI-Prolog is compiled with the GMP library.
+This can be tested using the \prologflag{bounded} Prolog flag. An atomic
+type also requires a syntax. Unfortunately there are few options for
+adding rational numbers without breaking the ISO
+standard.\footnote{ECLiSPe uses \arg{numerator}_\arg{denominator}. This
+syntax conflicts with SWI-Prolog digit groups (see
+\secref{digitgroupsyntax}) and does not have a recognised link to
+rational numbers. The notation \exam{1/3r} and \exam{1/3R} have also
+been proposed. The \exam{1/3r} is compatible to Ruby, but can conflict
+with Prolog if \const{r} is a postfix operator. The option \exam{1/3R}
+does not conflict, but is hard to parse due to the required look-ahead
+and not very natural. See also
+\url{https://en.wikipedia.org/wiki/Rational_data_type}.}
+
+SWI-Prolog's syntax for rational numbers ignores the abiguity issue and
+follows the most natural <integer>/<nonneg> alternative. Here, <integer>
+follows the normal rules for Prolog integers and <nonneg> does the same,
+but does not allows for a sign. Note that the parser translates a
+rational number to its canonical form which implies there are no common
+divisors in the resulting numerator and demoninator. Examples of ration
+numbers are:
+
+\begin{tabular}{ll}
+1/2		 & 1/2      \\
+2/4              & 1/2      \\
+1 000 000/33 000 & 1000/33  \\
+-3/5		 & -3/5     \\
+0xffff/10	 & 13107/2  \\
+8'56346/5'132320 & 2162/485 \\
+\end{tabular}
+
+We expect very few programs to have text parsed into a rational number
+while a term was expected. Note that for rationals appearing in an
+arithmetic expression the only difference is that evaluation moves from
+runtime to compiletime. The utility list_rationals/0 may be used on a
+loaded program to check whether the program contains rational numbers
+inside clauses and thus may be subject to compatibility issues. If a
+term is intended this can be written as \verb$/(1,2)$, \verb$(1)/2$ or
+some variation thereof.\footnote{We do not recomment using white space
+around the \chr{/} operator.  Future versions may allow for white space
+as it would allow for a more natural notation of large rational
+numbers.}
+
+Both this syntax extension and integer division and exponentation are
+controlled by the Prolog flag \prologflag{rational}.  See section
+\secref{rational} for arithmetic on rational numbers.
 
 
 \subsubsection{NaN and Infinity floats and their syntax}

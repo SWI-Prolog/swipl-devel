@@ -7010,23 +7010,17 @@ global stack. Integers that do not fit in 64 bits are represented as
 serialised GNU MPZ structures on the global stack.
 
     \item [rational number]
-Rational numbers ($Q$) are quotients of two integers. Rational
+Rational numbers ($Q$) are quotients of two integers ($N/M$). Rational
 arithmetic is only provided if GMP is used (see above). Rational numbers
-are currently not supported by a Prolog type. They are represented by
-the compound term \term{rdiv}{N,M}. Rational numbers that are returned
-from is/2 are \emph{canonical}, which means $M$ is positive and $N$ and
-$M$ have no common divisors. Rational numbers are introduced in the
-computation using the \funcref{rational}{1}, \funcref{rationalize}{1} or
-the \funcref{rdiv}{2} (rational division) function. Using the same
-functor for rational division and for representing rational numbers allows
-for passing rational numbers between computations as well as for using format/3
-for printing.
-
-In the long term, it is likely that rational numbers will become
-\emph{atomic} as well as a subtype of \emph{number}.  User code that
-creates or inspects the \term{rdiv}{M,N} terms will not be portable
-to future versions.  Rationals are created using one of the functions
-mentioned above and inspected using rational/3.
+satisfy the type tests rational/1, number/1 and atomic/1 and may satisfy
+the type test integer/1, i.e., integers are considered rational numbers.
+Rational numbers are always kept in \emph{canonical representation},
+which means $M$ is positive and $N$ and $M$ have no common divisors.
+Rational numbers are introduced into the computation using the functions
+\funcref{rational}{1}, \funcref{rationalize}{1} or the \funcref{rdiv}{2}
+(rational division) function.  If the Prolog flag \prologflag{rational}
+is \const{true} (default), division (\funcref{/}{2}) and integer power
+(\funcref{^}{2}) also produce a rational number.
 
     \item [float]
 Floating point numbers are represented using the C type \const{double}.
@@ -7048,20 +7042,22 @@ integer $\rightarrow$ rational number $\rightarrow$ floating point number
 \subsubsection{Rational number examples}	\label{sec:rational}
 
 The use of rational numbers with unbounded integers allows for exact
-integer or \jargon{fixed point} arithmetic under addition,
-subtraction, multiplication and division.  To exploit rational
-arithmetic \funcref{rdiv}{2} should be used instead of `/' and floating
-point numbers must be converted to rational using \funcref{rational}{1}.
-Omitting the \funcref{rational}{1} on floats will convert a rational
-operand to float and continue the arithmetic using floating point
-numbers. Here are some examples.
+integer or \jargon{fixed point} arithmetic under addition, subtraction,
+multiplication, division and exponentiation (\funcref{^}{2}). Support
+for rational numbers depends on the Prolog flag \prologflag{rational}.
+If this is \const{true} (default), the number division function
+(\funcref{/}{2}) and exponentiation function (\funcref{^}{2}) generate a
+rational number on integer and rational arguments and read/1 and friends
+read \verb$[-+][0-9_ ]+/[0-9_ ]+$ into a rational number.  See also
+\secref{syntax-rational-numbers}.  Here are some
+examples.
 
 \begin{center}
 \begin{tabular}{ll}
-A is 2 rdiv 6			& A = 1 rdiv 3 \\
-A is 4 rdiv 3 + 1		& A = 7 rdiv 3 \\
-A is 4 rdiv 3 + 1.5		& A = 2.83333 \\
-A is 4 rdiv 3 + rational(1.5)	& A = 17 rdiv 6 \\
+A is 2/6		     & A = 1/3 \\
+A is 4/3 + 1		     & A = 7/3 \\
+A is 4/3 + 1.5		     & A = 2.83333 \\
+A is 4/3 + rationalize(1.5)  & A = 17/6 \\
 \end{tabular}
 \end{center}
 
@@ -7075,12 +7071,31 @@ Rational numbers can be printed as decimal numbers with arbitrary
 precision using the format/3 floating point conversion:
 
 \begin{code}
-?- A is 4 rdiv 3 + rational(1.5),
+?- A is 4/3 + rational(1.5),
    format('~50f~n', [A]).
 2.83333333333333333333333333333333333333333333333333
 
-A = 17 rdiv 6
+A = 17/6
 \end{code}
+
+
+\subsubsection{Rational numbers or floats}
+\label{sec:rational-or-float}
+
+SWI-Prolog by default uses rational number arithmetic if this is defined
+for a function on the given operants. This results in perfectly precise
+answers. Unfortunately rational numbers can get really large and, if a
+precise answer is not needed, a big waste of memory and CPU time. In
+such cases one should use floating point arithmetic. Floating point
+arithmetic can be forced by forcing a float into an argument at any
+point, i.e., the result of a function with at least one float is always
+float except for the float-to-integer rounding and truncating functions
+such as \funcref{round}{1}, \funcref{rational}{1} or
+\funcref{float_integer_part}{1}.
+
+Float arithmetic is typically forced by using a floating point constant
+as initial value or operant. Alternatively, the \funcref{float} function
+forces conversion of the argument.
 
 
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
@@ -7444,28 +7459,32 @@ floating point computation, while casting the \emph{output} performs
 integer exponentiation followed by a conversion to float.
 
     \infixfunction[ISO]{^}{+Expr1}{+Expr2}
+
 In SWI-Prolog, \funcref{^}{2} is equivalent to \funcref{**}{2}. The ISO
-version	is similar, except that it produces a evaluation error if both
+version is similar, except that it produces a evaluation error if both
 \arg{Expr1} and \arg{Expr2} are integers and the result is not an
-integer.  The table below illustrates the behaviour of the exponentiation
-functions in ISO and SWI.
+integer. The table below illustrates the behaviour of the exponentiation
+functions in ISO and SWI. Note that if the exponent is negative the
+behavior of \mbox{\arg{Int}\chr{^}\arg{Int}} depends on the flag
+\prologflag{rational}, producing either a rational number or a floating
+point number.
 
 \begin{center}
 \begin{tabular}{|ll|l|l|l|}
 \hline
 \arg{Expr1}   & \arg{Expr2}  & Function &  SWI          & ISO \\
 \hline
-Int	      & Int	     & \funcref{**}{2} &  Int or Float & Float \\
-Int	      & Float	     & \funcref{**}{2} &  Float        & Float \\
-Rational      & Int	     & \funcref{**}{2} &  Rational     & - \\
-Float	      & Int	     & \funcref{**}{2} &  Float        & Float \\
-Float         & Float        & \funcref{**}{2} &  Float        & Float \\
+Int	      & Int	     & \funcref{**}{2} &  Int or Rational & Float \\
+Int	      & Float	     & \funcref{**}{2} &  Float           & Float \\
+Rational      & Int	     & \funcref{**}{2} &  Rational        & - \\
+Float	      & Int	     & \funcref{**}{2} &  Float           & Float \\
+Float         & Float        & \funcref{**}{2} &  Float           & Float \\
 \hline
-Int	      & Int	     & \funcref{^}{2}  &  Int or Float & Int or error \\
-Int	      & Float	     & \funcref{^}{2}  &  Float        & Float \\
-Rational      & Int          & \funcref{^}{2}  &  Rational     & - \\
-Float	      & Int	     & \funcref{^}{2}  &  Float        & Float \\
-Float         & Float        & \funcref{^}{2}  &  Float        & Float \\
+Int	      & Int	     & \funcref{^}{2}  &  Int or Rational & Int or error \\
+Int	      & Float	     & \funcref{^}{2}  &  Float           & Float \\
+Rational      & Int          & \funcref{^}{2}  &  Rational        & - \\
+Float	      & Int	     & \funcref{^}{2}  &  Float           & Float \\
+Float         & Float        & \funcref{^}{2}  &  Float           & Float \\
 \hline
 \end{tabular}
 \end{center}
