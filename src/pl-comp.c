@@ -2250,7 +2250,7 @@ A void.  Generate either B_VOID or H_VOID.
 	} else				/* MPZ/MPQ NUMBER */
 	{ int c;
 
-	  if ( p[0]&MP_RAT_MASK )
+	  if ( p[1]&MP_RAT_MASK )
 	    c = (where & A_HEAD) ? H_MPQ : B_MPQ;
 	  else
 	    c = (where & A_HEAD) ? H_MPZ : B_MPZ;
