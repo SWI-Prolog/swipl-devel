@@ -475,9 +475,9 @@ make_clause(Head, Body, (Head:-Body)).
 %!  list_rationals(+Options) is det.
 %
 %   List rational numbers that appear in clauses. This predicate is used
-%   to find portability issues for changing   the Prolog flag =rational=
-%   from   =false=   to   =true=,   creating   rational   numbers   from
-%   <integer>/<nonneg>.   Options:
+%   to  find  portability  issues   for    changing   the   Prolog  flag
+%   `rational_syntax`  to  `natural`,  creating  rational  numbers  from
+%   <integer>/<nonneg>. Options:
 %
 %      - module_class(+Classes)
 %        Determines the modules classes processed.  By default only
@@ -486,7 +486,7 @@ make_clause(Head, Body, (Head:-Body)).
 %        If `true` (default `false`) also warn on rationals appearing
 %        in arithmetic expressions.
 %
-%   @see Prolog flag =rational=.
+%   @see Prolog flag `rational_syntax` and `prefer_rationals`.
 
 list_rationals :-
     list_rationals([module_class([user])]).
