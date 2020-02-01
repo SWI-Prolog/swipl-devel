@@ -1543,6 +1543,10 @@ colourise_term_arg(Integer, TB, Pos) :-
     integer(Integer),
     !,
     colour_item(int, TB, Pos).
+colourise_term_arg(Rational, TB, Pos) :-
+    rational(Rational),
+    !,
+    colour_item(rational(Rational), TB, Pos).
 colourise_term_arg(Float, TB, Pos) :-
     float(Float),
     !,
@@ -2415,6 +2419,7 @@ def_style(singleton,               [bold(true), colour(red4)]).
 def_style(unbound,                 [colour(red), bold(true)]).
 def_style(quoted_atom,             [colour(navy_blue)]).
 def_style(string,                  [colour(navy_blue)]).
+def_style(rational(_),		   [colour(steel_blue)]).
 def_style(codes,                   [colour(navy_blue)]).
 def_style(chars,                   [colour(navy_blue)]).
 def_style(nofile,                  [colour(red)]).
@@ -2921,6 +2926,8 @@ syntax_message(decl_option(shared)) -->
     [ 'Tables or clauses are shared between threads' ].
 syntax_message(decl_option(_Opt)) -->
     [ 'Predicate property' ].
+syntax_message(rational(Value)) -->
+    [ 'Rational number ~w'-[Value] ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
