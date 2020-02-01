@@ -2457,6 +2457,8 @@ ar_divide(Number n1, Number n2, Number r)
 	  mpz_divexact(r->value.mpz, n1->value.mpz, n2->value.mpz);
 	  succeed;
 	}
+	if ( truePrologFlag(PLFLAG_RATIONAL) )
+	  return ar_rdiv_mpz(n1, n2, r);
         break;
       case V_MPQ:
 	if ( mpq_sgn(n2->value.mpq) == 0 )
