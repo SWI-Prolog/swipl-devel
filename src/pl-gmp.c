@@ -447,7 +447,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   p += (limpsize+sizeof(word)-1)/sizeof(word);
   mpq_denref(mpq)->_mp_d     = (mp_limb_t*)p;
 
-  return (Code)(p+wsize);
+  return pc+wsize+1;
 }
 
 
