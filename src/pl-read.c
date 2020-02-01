@@ -2551,7 +2551,7 @@ special_float(cucharp *in, cucharp start, Number value)
 
 
 strnumstat
-str_number(cucharp in, ucharp *end, Number value, int escape)
+str_number(cucharp in, ucharp *end, Number value, int flags)
 { int negative = FALSE;
   cucharp start = in;
   strnumstat rc;
@@ -2570,7 +2570,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     { case '\'':			/* 0'<char> */
       { int chr;
 
-	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
+	if ( (flags&M_CHARESCAPE) && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, '\'', NULL);
 	  if ( chr < 0 )
 	    return NUM_ERROR;
@@ -2613,8 +2613,9 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     return rc;				/* too large? */
 
 #ifdef O_GMP
-  if ( *in == '/' && isDigit(in[1]) &&
-       truePrologFlagNoLD(PLFLAG_RATIONAL) ) /* rational number */
+  if ( (*in == '/' || *in == 'R') && isDigit(in[1]) &&
+       ( (*in == '/' && (flags&RAT_NATURAL)) ||
+	 (*in == 'R' && (flags&RAT_COMPAT)) ))
   { number num, den;
 
     in++;
@@ -2854,7 +2855,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  strnumstat rc;
 
 		  if ( (rc=str_number(&rdhere[-1], &rdhere, &value,
-				      true(_PL_rd, M_CHARESCAPE))) == NUM_OK )
+				      _PL_rd->flags)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
@@ -5180,7 +5181,8 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     { ns = (char*)s;
     }
 
-    isnum = ( str_number((cucharp)ns, &e, &n, FALSE) == NUM_OK &&
+					/* TBD: rational support */
+    isnum = ( str_number((cucharp)ns, &e, &n, 0) == NUM_OK &&
 	      e == (unsigned char *)ns+len );
     if ( ns != s && ns != buf )
       free(ns);

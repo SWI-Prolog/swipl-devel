@@ -904,6 +904,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NODICT	       0x40000	/* Do not write dicts in pretty syntax */
 #define PL_WRT_NODOTINATOM     0x80000	/* never write a.b unquoted */
 #define PL_WRT_NO_LISTS	       0x100000	/* Do not write lists as [...] */
+#define PL_WRT_RAT_COMPAT      0x200000	/* Write rationals as 1R3 */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

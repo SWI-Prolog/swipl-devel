@@ -1749,6 +1749,25 @@ variable \const{TMP} or \const{TEMP} in windows. If this variable is not
 defined a default is used. This default is typically \file{/tmp} or
 \file{c:/temp} in windows.
 
+    \prologflagitem{prefer_rationals}{bool}{rw}
+Only provided if the system is compiled with unbounded and rational
+arithmetic support (see \prologflag{bounded}). If \const{true} (default),
+prefer arithmetic to produce rational numbers over floats. This implies:
+
+    \begin{itemize}
+	\item Division (\funcref{/}{2}) of two integers produces a
+	rational number.
+	\item Power (\funcref{^}{2}) of two integers produces a
+	rational number, \emph{also} if the second operant is a
+	negative number.  For example, \verb$2^(-2)$ evaluates to
+	\verb$1/4$.
+    \end{itemize}
+
+When \const{false}, rational numbers can only be created using the
+functions \funcref{rational}{1}, \funcref{rationalize}{1} and
+\funcref{rdiv}{2}. See also \prologflag{rational_syntax},
+\secref{syntax-rational-numbers} and \secref{rational}.
+
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
 Determines prompting for alternatives in the Prolog top level. Default is
@@ -1771,24 +1790,12 @@ production code.
 This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.
 
-    \prologflagitem{prefer_rationals}{bool}{rw}
-Only provided if the system is compiled with unbounded and rational
-arithmetic support (see \prologflag{bounded}). If \const{true} (default),
-support rational numbers as first class citizens. This implies:
-
-    \begin{itemize}
-	\item Division (\funcref{/}{2}) of two integers produces a
-	rational number.
-	\item Power (\funcref{^}{2}) of two integers produces a
-	rational number, \emph{also} if the second operant is a
-	negative number.  For example, \verb$2^(-2)$ evaluates to
-	\verb$1/4$.
-    \end{itemize}
-
-When \const{false}, rational numbers can only be created using the
-functions \funcref{rational}{1}, \funcref{rationalize}{1} and
-\funcref{rdiv}{2}.  See also \secref{syntax-rational-numbers} and
-\secref{rational}.
+    \prologflagitem{rational_syntax}{rw}
+Determines the read and write syntax for rational numbers.  Possible
+values are \const{natural} (e.g., \exam{1/3}), \const{compatibility}
+(e.g., \exam{1R3}) and \const{none}, which provides no syntax for
+reading a rational number and writes rational numbers as
+\const{natural}.  This flag is module sensitive.
 
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
@@ -2658,13 +2665,19 @@ does not conflict, but is hard to parse due to the required look-ahead
 and not very natural. See also
 \url{https://en.wikipedia.org/wiki/Rational_data_type}.}
 
-SWI-Prolog's syntax for rational numbers ignores the abiguity issue and
-follows the most natural <integer>/<nonneg> alternative. Here, <integer>
-follows the normal rules for Prolog integers and <nonneg> does the same,
-but does not allows for a sign. Note that the parser translates a
-rational number to its canonical form which implies there are no common
-divisors in the resulting numerator and demoninator. Examples of ration
-numbers are:
+SWI-Prolog's syntax for rational numbers is controlled by the
+module sensitive Prolog flag \prologflag{rational_syntax}, which has
+three possible values:
+
+\begin{description}
+    \termitem{natural}{}
+This is the default mode where we ignore the abiguity issue and follow
+the most natural <integer>/<nonneg> alternative. Here, <integer> follows
+the normal rules for Prolog integers and <nonneg> does the same, but
+does not allows for a sign. Note that the parser translates a rational
+number to its canonical form which implies there are no common divisors
+in the resulting numerator and demoninator. Examples of ration numbers
+are:
 
 \begin{tabular}{ll}
 1/2		 & 1/2      \\
@@ -2687,9 +2700,35 @@ around the \chr{/} operator.  Future versions may allow for white space
 as it would allow for a more natural notation of large rational
 numbers.}
 
-Both this syntax extension and integer division and exponentation are
-controlled by the Prolog flag \prologflag{rational}.  See section
-\secref{rational} for arithmetic on rational numbers.
+    \termitem{compatibility}{}
+Read and write rational numbers as e.g., \exam{1R3}.  In other words,
+this adheres to the same rules as \const{natural} above, but using the
+`\chr{R}' instead of `\chr{/}'.  As numbers nor variables (\chr{R}) can
+be operators, this syntax is invalid in traditional Prolog.
+
+    \termitem{none}{}
+This mode supports no syntax extension for reading and uses the
+\const{natural} syntax for writing. As \funcref{/}{2} creates a rational
+number if the Prolog flag \prologflag{prefer_rationals} is \const{true},
+this mode provides natural interaction without changing the syntax. The
+disadvantage is that one cannot match against rational numbers. For
+example, the following does \textbf{not work} because the result of
+the arithmetic is the rational number 1/2 which does match against the
+term \term{/}{1,2}.
+
+\begin{code}
+half(1/2) :- format("Halt way!~n").
+
+    ...,
+    X is 2/4,
+    half(X).
+\end{code}
+\end{description}
+
+While the syntax is controlled by the flag \prologflag{rational_syntax},
+behavior on integer division and exponentiation is controlled by the
+flag \prologflag{prefer_rationals}. See section \secref{rational} for
+arithmetic on rational numbers.
 
 
 \subsubsection{NaN and Infinity floats and their syntax}

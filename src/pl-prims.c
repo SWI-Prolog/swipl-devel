@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -3770,7 +3770,7 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 	}
 
 	AR_BEGIN();
-	if ( (rc=str_number(s, &q, &n, FALSE)) == NUM_OK )
+	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK ) /* TBD: rational support? */
 	{ if ( *q == EOS )
 	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
@@ -3991,7 +3991,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
     AR_BEGIN();
 
-    if ( (rc=str_number((unsigned char *)s, &q, &n, FALSE) == NUM_OK) )
+    if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) ) /* TBD: rational support */
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
         clearNumber(&n);
@@ -5694,7 +5694,7 @@ set_pl_option(const char *name, const char *value)
 	  number n;
 	  unsigned char *q;
 
-	  if ( str_number((unsigned char *)value, &q, &n, FALSE) == NUM_OK &&
+	  if ( str_number((unsigned char *)value, &q, &n, 0) == NUM_OK &&
 	       *q == EOS &&
 	       intNumber(&n) )
 	  { *val = (size_t)n.value.i;
