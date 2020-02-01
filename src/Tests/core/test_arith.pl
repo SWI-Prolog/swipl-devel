@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2020, University of Amsterdam
 			      VU University Amsterdam
+			      CWI, Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,6 +24,7 @@
 
 :- module(test_arith, [test_arith/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Prolog core arithmetic functions
 
@@ -141,13 +143,16 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 :- begin_tests(pow).
 
 :- if(current_prolog_flag(bounded, false)).
-:- if(current_prolog_flag(rational, true)).
-test(rat, X == 32/243) :-
-	X is 2/3^5.
-test(rat, X == 1) :-
-	X is 2/3^0.
-test(rat, X == 243/32) :-
-	X is 2/3^(-5).
+:- if(current_prolog_flag(prefer_rationals, true)).
+test(rat, X =:= 32/243) :-
+	X is 2/3^5,
+	assertion(atomic(X)).
+test(rat, X =:= 1) :-
+	X is 2/3^0,
+	assertion(atomic(X)).
+test(rat, X =:= 243/32) :-
+	X is 2/3^(-5),
+	assertion(atomic(X)).
 :- else.
 test(rat, X == 32 rdiv 243) :-
 	X is (2 rdiv 3)^(5).
@@ -244,13 +249,9 @@ test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 :- begin_tests(rationalize).
 
 :- if(current_prolog_flag(bounded,false)).
-:- if(current_prolog_flag(rational, true)).
-test(trip, R = 51/10) :-
-	R is rationalize(5.1).
-:- else.
-test(trip, R = 51 rdiv 10) :-
-	R is rationalize(5.1).
-:- endif.
+test(trip) :-
+	R is rationalize(5.1),
+	assertion(rational(R, 51, 10)).
 :- endif.
 
 :- end_tests(rationalize).

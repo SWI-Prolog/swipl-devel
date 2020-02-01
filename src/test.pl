@@ -674,16 +674,6 @@ gmp(rational-3) :-
 gmp(rational-4) :-
 	X is 5 rdiv 3,
 	rational(X, 5, 3).
-:- if(current_prolog_flag(rational, true)).
-gmp(rational-5) :-
-	5/3 is 5 rdiv 3.
-:- else.
-gmp(rational-5) :-
-	5 rdiv 3 is 5 rdiv 3.
-gmp(rational-6) :-
-	5 rdiv X is 5 rdiv 3,
-	X == 3.
-:- endif.
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
 	B is rationalize(0.1), rational(B, 1, 10),

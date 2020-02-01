@@ -1771,14 +1771,12 @@ production code.
 This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.
 
-    \prologflagitem{rational}{bool}{rw}
+    \prologflagitem{prefer_rationals}{bool}{rw}
 Only provided if the system is compiled with unbounded and rational
 arithmetic support (see \prologflag{bounded}). If \const{true} (default),
 support rational numbers as first class citizens. This implies:
 
     \begin{itemize}
-	\item Sequences the regex \verb$[-+][0-9_ ]+/[0-9_ ]+$ are
-	read as a rational number.
 	\item Division (\funcref{/}{2}) of two integers produces a
 	rational number.
 	\item Power (\funcref{^}{2}) of two integers produces a

@@ -7018,9 +7018,10 @@ Rational numbers are always kept in \emph{canonical representation},
 which means $M$ is positive and $N$ and $M$ have no common divisors.
 Rational numbers are introduced into the computation using the functions
 \funcref{rational}{1}, \funcref{rationalize}{1} or the \funcref{rdiv}{2}
-(rational division) function.  If the Prolog flag \prologflag{rational}
-is \const{true} (default), division (\funcref{/}{2}) and integer power
-(\funcref{^}{2}) also produce a rational number.
+(rational division) function. If the Prolog flag
+\prologflag{prefer_rationals} is \const{true} (default), division
+(\funcref{/}{2}) and integer power (\funcref{^}{2}) also produce a
+rational number.
 
     \item [float]
 Floating point numbers are represented using the C type \const{double}.
@@ -7044,13 +7045,13 @@ integer $\rightarrow$ rational number $\rightarrow$ floating point number
 The use of rational numbers with unbounded integers allows for exact
 integer or \jargon{fixed point} arithmetic under addition, subtraction,
 multiplication, division and exponentiation (\funcref{^}{2}). Support
-for rational numbers depends on the Prolog flag \prologflag{rational}.
-If this is \const{true} (default), the number division function
-(\funcref{/}{2}) and exponentiation function (\funcref{^}{2}) generate a
-rational number on integer and rational arguments and read/1 and friends
-read \verb$[-+][0-9_ ]+/[0-9_ ]+$ into a rational number.  See also
-\secref{syntax-rational-numbers}.  Here are some
-examples.
+for rational numbers depends on the Prolog flag
+\prologflag{prefer_rationals}. If this is \const{true} (default), the
+number division function (\funcref{/}{2}) and exponentiation function
+(\funcref{^}{2}) generate a rational number on integer and rational
+arguments and read/1 and friends read \verb$[-+][0-9_ ]+/[0-9_ ]+$ into
+a rational number. See also \secref{syntax-rational-numbers}. Here are
+some examples.
 
 \begin{center}
 \begin{tabular}{ll}
@@ -7466,8 +7467,8 @@ version is similar, except that it produces a evaluation error if both
 integer. The table below illustrates the behaviour of the exponentiation
 functions in ISO and SWI. Note that if the exponent is negative the
 behavior of \mbox{\arg{Int}\chr{^}\arg{Int}} depends on the flag
-\prologflag{rational}, producing either a rational number or a floating
-point number.
+\prologflag{prefer_rationals}, producing either a rational number or a
+floating point number.
 
 \begin{center}
 \begin{tabular}{|ll|l|l|l|}
