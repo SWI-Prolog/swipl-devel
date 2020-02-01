@@ -934,8 +934,12 @@ but need some manipulation to make sure they do not get truncated due
 to the limited Prolog integer range.  PL_put_pointer() and PL_get_pointer()
 guarantee pointers in the range of malloc() are handled without
 truncating.
+
 \cfunction{int}{PL_get_float}{term_t +t, double *f}
-If \arg{t} is a float or integer, its value is assigned over \arg{f}.
+If \arg{t} is a float, integer or rational number, its value is assigned
+over \arg{f}. Note that if \arg{t} is an integer or rational conversion
+may fail because the number cannot be represented as a float.
+
 \cfunction{int}{PL_get_functor}{term_t +t, functor_t *f}
 If \arg{t} is compound or an atom, the Prolog representation of the
 name-arity pair will be assigned over \arg{f}. See also

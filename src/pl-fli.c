@@ -1748,17 +1748,24 @@ PL_get_float(term_t t, double *f)
 
   if ( isFloat(w) )
   { *f = valFloat(w);
-    succeed;
+    return TRUE;
   }
-  if ( isTaggedInt(w) )
-  { *f = (double) valInt(w);
-    succeed;
+  if ( isRational(w) )
+  { number n;
+    int rc;
+
+    get_rational(w, &n);
+    if ( (rc=promoteToFloatNumber(&n)) )
+      *f = n.value.f;
+    else
+      PL_clear_exception();
+
+    clearNumber(&n);
+
+    return rc;
   }
-  if ( isBignum(w) )
-  { *f = (double) valBignum(w);
-    succeed;
-  }
-  fail;
+
+  return FALSE;
 }
 
 
