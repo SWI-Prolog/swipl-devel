@@ -742,8 +742,10 @@ typedef struct
 
 #ifdef O_GMP
 #define intNumber(n)	((n)->type <=  V_MPZ)
+#define ratNumber(n)	((n)->type <=  V_MPQ)
 #else
 #define intNumber(n)	((n)->type <  V_FLOAT)
+#define ratNumber(n)	((n)->type <  V_FLOAT)
 #endif
 #define floatNumber(n)	((n)->type >= V_FLOAT)
 

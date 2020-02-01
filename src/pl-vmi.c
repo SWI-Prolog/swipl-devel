@@ -3604,9 +3604,6 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       }
     }
 
-#ifdef O_GMP
-  can_bind:
-#endif
     ARGP++;				/* new_args must become 1 in */
     SAVE_REGISTERS(qid);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);
@@ -3645,18 +3642,14 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
   } else
   { int rc;
 
-    if ( isInteger(*k) && intNumber(n) )
+    if ( isRational(*k) && ratNumber(n) )
     { number left;
 
-      get_integer(*k, &left);
+      get_rational(*k, &left);
       rc = (cmpNumbers(&left, n) == CMP_EQUAL);
       clearNumber(&left);
     } else if ( isFloat(*k) && floatNumber(n) )
     { rc = (valFloat(*k) == n->value.f);
-#ifdef O_GMP
-    } else if ( n->type == V_MPQ )
-    { goto can_bind;
-#endif
     } else
     { rc = FALSE;
     }
