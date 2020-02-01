@@ -1080,7 +1080,7 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
     { case 0:	        v = ATOM_none;          break;
       case RAT_NATURAL: v = ATOM_natural;       break;
       case RAT_COMPAT:  v = ATOM_compatibility; break;
-      default:		assert(0);
+      default:		v = 0; assert(0);
     }
 
     return PL_unify_atom(val, v);
