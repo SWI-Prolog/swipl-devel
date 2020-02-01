@@ -48,8 +48,10 @@
 
 #ifdef O_DEBUG
 #define Qgetc(s) Sgetc(s)
+#define TRACK_POS ""
 #else
 #define Qgetc(s) Snpgetc(s)		/* ignore position recording */
+#define TRACK_POS "r"
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -964,7 +966,7 @@ loadWicFile(const char *file)
 { IOSTREAM *fd;
   int rval;
 
-  if ( !(fd = Sopen_file(file, "rbr")) )
+  if ( !(fd = Sopen_file(file, "rb" TRACK_POS)) )
   { warning("Cannot open Quick Load File %s: %s", file, OsError());
     return FALSE;
   }
@@ -3159,7 +3161,7 @@ qlfOpen(term_t file)
        !(absname = AbsoluteFile(name, tmp)) )
     return NULL;
 
-  if ( !(out = Sopen_file(name, "wbr")) )
+  if ( !(out = Sopen_file(name, "wb" TRACK_POS)) )
   { PL_error(NULL, 0, NULL, ERR_PERMISSION, ATOM_write, ATOM_file, file);
     return NULL;
   }
