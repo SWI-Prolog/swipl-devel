@@ -336,6 +336,33 @@ setBackQuotes(atom_t a, unsigned int *flagp)
 }
 
 
+int
+setRationalSyntax(atom_t a, unsigned int *flagp)
+{ GET_LD
+  unsigned int flags;
+
+  if	  ( a == ATOM_natural )
+    flags = RAT_NATURAL;
+  else if ( a == ATOM_none )
+    flags = 0;
+  else if ( a == ATOM_compatibility )
+    flags = RAT_COMPAT;
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+		    ATOM_rational_syntax, value);
+  }
+
+  *flagp &= ~RAT_MASK;
+  *flagp |= flags;
+
+  succeed;
+}
+
+
+
 static int
 setUnknown(term_t value, atom_t a, Module m)
 { unsigned int flags = m->flags & ~(UNKNOWN_MASK);
@@ -792,6 +819,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setDoubleQuotes(a, &m->flags);
       } else if ( k == ATOM_back_quotes )
       { rval = setBackQuotes(a, &m->flags);
+      } else if ( k == ATOM_rational_syntax )
+      { rval = setRationalSyntax(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
       } else if ( k == ATOM_write_attributes )
@@ -1042,6 +1071,17 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
       v = ATOM_chars;
     else
       v = ATOM_symbol_char;
+
+    return PL_unify_atom(val, v);
+  } else if ( key == ATOM_rational_syntax )
+  { atom_t v;
+
+    switch(m->flags&RAT_MASK)
+    { case 0:	        v = ATOM_none;          break;
+      case RAT_NATURAL: v = ATOM_natural;       break;
+      case RAT_COMPAT:  v = ATOM_compatibility; break;
+      default:		assert(0);
+    }
 
     return PL_unify_atom(val, v);
   } else if ( key == ATOM_unknown )
@@ -1444,6 +1484,7 @@ initPrologFlags(void)
 		GD->options.traditional ? "codes" : "string");
   setPrologFlag("back_quotes", FT_ATOM,
 		GD->options.traditional ? "symbol_char" : "codes");
+  setPrologFlag("rational_syntax", FT_ATOM, "natural");
   setPrologFlag("portable_vmi", FT_BOOL, TRUE, PLFLAG_PORTABLE_VMI);
   setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");

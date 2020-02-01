@@ -890,22 +890,25 @@ with one operation, it turns out to be faster as well.
    in pl-read.c.
 */
 
-#define M_SYSTEM		(0x0001) /* system module */
-#define M_CHARESCAPE		(0x0002) /* module */
-#define DBLQ_CHARS		(0x0004) /* "ab" --> ['a', 'b'] */
-#define DBLQ_ATOM		(0x0008) /* "ab" --> 'ab' */
-#define DBLQ_STRING		(0x0010) /* "ab" --> "ab" */
+#define M_SYSTEM		(0x00000001) /* system module */
+#define M_CHARESCAPE		(0x00000002) /* module */
+#define DBLQ_CHARS		(0x00000004) /* "ab" --> ['a', 'b'] */
+#define DBLQ_ATOM		(0x00000008) /* "ab" --> 'ab' */
+#define DBLQ_STRING		(0x00000010) /* "ab" --> "ab" */
 #define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
-#define BQ_STRING		(0x0020) /* `ab` --> "ab" */
-#define BQ_CODES		(0x0040) /* `ab` --> [97,98] */
-#define BQ_CHARS		(0x0080) /* `ab` --> [a,b] */
+#define BQ_STRING		(0x00000020) /* `ab` --> "ab" */
+#define BQ_CODES		(0x00000040) /* `ab` --> [97,98] */
+#define BQ_CHARS		(0x00000080) /* `ab` --> [a,b] */
 #define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
-#define UNKNOWN_FAIL		(0x0100) /* module */
-#define UNKNOWN_WARNING		(0x0200) /* module */
-#define UNKNOWN_ERROR		(0x0400) /* module */
+#define RAT_NATURAL		(0x00000100) /* 1/3 */
+#define RAT_COMPAT		(0x00000200) /* 1R3 */
+#define RAT_MASK		(RAT_NATURAL|RAT_COMPAT)
+#define UNKNOWN_FAIL		(0x00001000) /* module */
+#define UNKNOWN_WARNING		(0x00002000) /* module */
+#define UNKNOWN_ERROR		(0x00004000) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
-#define M_VARPREFIX		(0x0800)
-#define M_DESTROYED		(0x1000)
+#define M_VARPREFIX		(0x00008000) /* _var, Atom */
+#define M_DESTROYED		(0x00010000)
 
 /* Flags on functors */
 

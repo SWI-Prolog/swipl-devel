@@ -466,6 +466,7 @@ COMMON(word)		pl_prolog_flag5(term_t key, term_t value,
 					control_t h);
 COMMON(int)		setDoubleQuotes(atom_t a, unsigned int *flagp);
 COMMON(int)		setBackQuotes(atom_t a, unsigned int *flagp);
+COMMON(int)		setRationalSyntax(atom_t a, unsigned int *flagp);
 COMMON(void)		initPrologFlags(void);
 COMMON(void)		cleanupPrologFlags(void);
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -84,7 +85,7 @@ _lookupModule(atom_t name ARG_LD)
 #endif
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
-    set(m, DBLQ_STRING|BQ_CODES);
+    set(m, DBLQ_STRING|BQ_CODES|RAT_NATURAL);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
