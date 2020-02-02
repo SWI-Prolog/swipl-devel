@@ -145,3 +145,20 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 % provides a history and the input comes from a terminal.
 
 % :- set_prolog_flag(save_history, false).
+
+
+		 /*******************************
+		 *      RATIONAL NUMBERS	*
+		 *******************************/
+
+% As of version 8.1.22 SWI-Prolog  provides   native  support for proper
+% atomic rational nubers. This is controlled by the two flags below. The
+% default  is  conservative,  supporting  rationals  as  `1R3`  and  use
+% floating point numbers for integer   divisions  and exponentation with
+% negative exponent (e.g., `2^(-2)`).
+%
+% Please try enabling the settings below.  Future versions may switch to
+% these defaults. Please report experience on the SWI-Prolog forum.
+
+%:- set_prolog_flag(prefer_rationals, true).     % Int/Int --> Rational
+%:- set_prolog_flag(rational_syntax,  natural).  % Write as `1/3`
