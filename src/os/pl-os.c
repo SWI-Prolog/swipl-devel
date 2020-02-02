@@ -526,6 +526,7 @@ setRandom(unsigned int *seedp)
 #endif
 #endif
   }
+  seed += PL_thread_self();
 
 #ifdef HAVE_SRANDOM
   srandom(seed);
