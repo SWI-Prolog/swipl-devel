@@ -750,8 +750,15 @@ Returns non-zero if \arg{term} is a string.
     \cfunction{int}{PL_is_integer}{term_t}
 Returns non-zero if \arg{term} is an integer.
 
+    \cfunction{int}{PL_is_rational}{term_t}
+Returns non-zero if \arg{term} is a rational number ($P/Q$).  Note
+that all integers are considered rational and this test thus succeeds
+for any term for which PL_is_integer() succeeds.  See also
+PL_get_mpq() and PL_unify_mpq().
+
     \cfunction{int}{PL_is_float}{term_t}
-Returns non-zero if \arg{term} is a float.
+Returns non-zero if \arg{term} is a float. Note that the corresponding
+PL_get_float() converts rationals (and thus integers).
 
     \cfunction{int}{PL_is_callable}{term_t}
 Returns non-zero if \arg{term} is a callable term.  See callable/1
@@ -775,10 +782,11 @@ Returns non-zero if \arg{term} is a compound term using the list
 constructor.  See also PL_is_list() and PL_skip_list().
 
     \cfunction{int}{PL_is_atomic}{term_t}
-Returns non-zero if \arg{term} is atomic (not variable or compound).
+Returns non-zero if \arg{term} is atomic (not a variable or compound).
 
     \cfunction{int}{PL_is_number}{term_t}
-Returns non-zero if \arg{term} is an integer or float.
+Returns non-zero if \arg{term} is an rational (including integers) or
+float.
 
     \cfunction{int}{PL_is_acyclic}{term_t}
 Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
