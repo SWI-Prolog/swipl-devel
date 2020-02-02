@@ -371,7 +371,13 @@ overruleImportedProcedure(Procedure proc, Module target)
 { GET_LD
   Definition def = getProcDefinition(proc);
 
-  assert(def->module != target);	/* e.g., imported */
+  if ( true(def, P_AUTOLOAD) )
+    return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+		    ATOM_redefine, ATOM_imported_procedure, proc);
+
+  if ( def->module == target )
+    return TRUE;
+
   if ( true(def->module, M_SYSTEM) )
   { return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_redefine, ATOM_built_in_procedure, proc);
@@ -411,12 +417,8 @@ lookupProcedureToDefine(functor_t def, Module m)
   Procedure proc;
 
   if ( (proc = isCurrentProcedure(def, m)) )
-  { Definition def = getProcDefinition(proc);
-
-    if ( def->module != m )
-    { if ( !overruleImportedProcedure(proc, m) )
-	return NULL;
-    }
+  { if ( !overruleImportedProcedure(proc, m) )
+      return NULL;
 
     return proc;
   }
@@ -761,6 +763,17 @@ typedef struct
 } cur_enum;
 
 
+static int
+isDefinedOrAutoloadProcedure(Procedure proc)
+{ Definition def = proc->definition;
+
+  if ( true(def, PROC_DEFINED|P_AUTOLOAD) )
+    succeed;
+
+  return hasClausesDefinition(def) ? TRUE : FALSE;
+}
+
+
 static Procedure
 visibleProcedure(functor_t f, Module m ARG_LD)
 { ListCell c;
@@ -769,7 +782,7 @@ visibleProcedure(functor_t f, Module m ARG_LD)
   for(;;)
   { next:
 
-    if ( (p = isCurrentProcedure(f, m)) && isDefinedProcedure(p) )
+    if ( (p = isCurrentProcedure(f, m)) && isDefinedOrAutoloadProcedure(p) )
       return p;
 
     for(c=m->supers; c; c=c->next)
@@ -2842,6 +2855,7 @@ static const patt_mask patt_masks[] =
   { ATOM_non_terminal,	   P_NON_TERMINAL },
   { ATOM_quasi_quotation_syntax, P_QUASI_QUOTATION_SYNTAX },
   { ATOM_clausable,	   P_CLAUSABLE },
+  { ATOM_autoload,	   P_AUTOLOAD },
   { (atom_t)0,		   0 }
 };
 

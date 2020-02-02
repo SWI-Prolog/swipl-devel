@@ -71,44 +71,46 @@ suggest predicates from a keyword.
 \predicatesummary{arg}{3}{Access argument of a term}
 \predicatesummary{assoc_to_list}{2}{Convert association tree to list}
 \predicatesummary{assert}{1}{Add a clause to the database}
-\predicatesummary{assert}{2}{Add a clause to the database, give
-reference} \predicatesummary{asserta}{1}{Add a clause to the database
-(first)} \predicatesummary{asserta}{2}{Add a clause to the database
-(first)} \predicatesummary{assertion}{1}{Make assertions about your
-program} \predicatesummary{assertz}{1}{Add a clause to the database
-(last)} \predicatesummary{assertz}{2}{Add a clause to the database
-(last)} \predicatesummary{attach_console}{0}{Attach I/O console to
-thread} \predicatesummary{attach_packs}{0}{Attach add-ons}
+\predicatesummary{assert}{2}{Add a clause to the database, give reference}
+\predicatesummary{asserta}{1}{Add a clause to the database (first)}
+\predicatesummary{asserta}{2}{Add a clause to the database (first)}
+\predicatesummary{assertion}{1}{Make assertions about your program}
+\predicatesummary{assertz}{1}{Add a clause to the database (last)}
+\predicatesummary{assertz}{2}{Add a clause to the database (last)}
+\predicatesummary{attach_console}{0}{Attach I/O console to thread}
+\predicatesummary{attach_packs}{0}{Attach add-ons}
 \predicatesummary{attach_packs}{1}{Attach add-ons from directory}
 \predicatesummary{attach_packs}{2}{Attach add-ons from directory}
 \predicatesummary{attribute_goals}{3}{Project attributes to goals}
-\predicatesummary{attr_unify_hook}{2}{Attributed variable unification
-hook} \predicatesummary{attr_portray_hook}{2}{Attributed variable print
-hook} \predicatesummary{attvar}{1}{Type test for attributed variable}
+\predicatesummary{attr_unify_hook}{2}{Attributed variable unification hook}
+\predicatesummary{attr_portray_hook}{2}{Attributed variable print hook}
+\predicatesummary{attvar}{1}{Type test for attributed variable}
 \predicatesummary{at_end_of_stream}{0}{Test for end of file on input}
 \predicatesummary{at_end_of_stream}{1}{Test for end of file on stream}
 \predicatesummary{at_halt}{1}{Register goal to run at halt/1}
 \predicatesummary{atom}{1}{Type check for an atom}
-\predicatesummary{atom_chars}{2}{Convert between atom and list of
-characters} \predicatesummary{atom_codes}{2}{Convert between atom and
-list of characters codes} \predicatesummary{atom_concat}{3}{Contatenate
-two atoms} \predicatesummary{atom_length}{2}{Determine length of an
-atom} \predicatesummary{atom_number}{2}{Convert between atom and number}
+\predicatesummary{atom_chars}{2}{Convert between atom and list of characters}
+\predicatesummary{atom_codes}{2}{Convert between atom and list of characters codes}
+\predicatesummary{atom_concat}{3}{Contatenate two atoms}
+\predicatesummary{atom_length}{2}{Determine length of an atom}
+\predicatesummary{atom_number}{2}{Convert between atom and number}
 \predicatesummary{atom_prefix}{2}{Test for start of atom}
 \predicatesummary{atom_string}{2}{Conversion between atom and string}
 \predicatesummary{atom_to_term}{3}{Convert between atom and term}
 \predicatesummary{atomic}{1}{Type check for primitive}
-\predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an
-atom} \predicatesummary{atomic_list_concat}{2}{Append a list of atomics}
-\predicatesummary{atomic_list_concat}{3}{Append a list of atomics with
-separator} \predicatesummary{atomics_to_string}{2}{Concatenate list of
-inputs to a string} \predicatesummary{atomics_to_string}{3}{Concatenate
-list of inputs to a string} \predicatesummary{autoload}{0}{Autoload all
-predicates now} \predicatesummary{autoload_path}{1}{Add directories for
-autoloading} \predicatesummary{b_getval}{2}{Fetch backtrackable global
-variable} \predicatesummary{b_set_dict}{3}{Destructive assignment on a
-dict} \predicatesummary{b_setval}{2}{Assign backtrackable global
-variable} \predicatesummary{bagof}{3}{Find all solutions to a goal}
+\predicatesummary{atomic_concat}{3}{Concatenate two atomic values to an atom}
+\predicatesummary{atomic_list_concat}{2}{Append a list of atomics}
+\predicatesummary{atomic_list_concat}{3}{Append a list of atomics with separator}
+\predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
+\predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
+\predicatesummary{autoload}{1}{Declare a file for autoloading}
+\predicatesummary{autoload}{2}{Declare a file for autoloading specific predicates}
+\predicatesummary{autoload_all}{0}{Autoload all predicates now}
+\predicatesummary{autoload_path}{1}{Add directories for autoloading}
+\predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
+\predicatesummary{b_set_dict}{3}{Destructive assignment on a dict}
+\predicatesummary{b_setval}{2}{Assign backtrackable global variable}
+\predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{blob}{2}{Type check for a blob}
 \predicatesummary{break}{0}{Start interactive top level}

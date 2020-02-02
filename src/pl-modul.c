@@ -1556,7 +1556,7 @@ retry:
       } else
       { lingerDefinition(odef);
       }
-      set(old, pflags);
+      set(old, pflags|PROC_IMPORTED);
 
       succeed;
     }

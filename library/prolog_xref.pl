@@ -205,7 +205,8 @@ module defined by `Source`.
     prolog:called_by/2,             % +Goal, -Called
     prolog:meta_goal/2,             % +Goal, -Pattern
     prolog:hook/1,                  % +Callable
-    prolog:generated_predicate/1.   % :PI
+    prolog:generated_predicate/1,   % :PI
+    prolog:no_autoload_module/1.    % Module is not suitable for autoloading.
 
 :- meta_predicate
     prolog:generated_predicate(:).
@@ -744,7 +745,7 @@ collect(Src, File, In, Options) :-
         stream_position_data(line_count, TermPos, Line),
         setup_call_cleanup(
             asserta(source_line(SrcSpec), Ref),
-            catch(process(Expanded, Comments, TermPos, Src, EOF),
+            catch(process(Expanded, Comments, Term, TermPos, Src, EOF),
                   E, print_message(error, E)),
             erase(Ref)),
         EOF == true,
@@ -815,7 +816,7 @@ list_to_conj([H|T], (H,C)) :-
                  *           PROCESS            *
                  *******************************/
 
-%!  process(+Expanded, +Comments, +TermPos, +Src, -EOF) is det.
+%!  process(+Expanded, +Comments, +Term, +TermPos, +Src, -EOF) is det.
 %
 %   Process a source term that has  been   subject  to term expansion as
 %   well as its optional leading structured comments.
@@ -825,21 +826,31 @@ list_to_conj([H|T], (H,C)) :-
 %   @arg EOF is unified with a boolean to indicate whether or not
 %   processing was stopped because `end_of_file` was processed.
 
-process(Expanded, Comments, TermPos, Src, EOF) :-
+process(Expanded, Comments, Term0, TermPos, Src, EOF) :-
     is_list(Expanded),                          % term_expansion into list.
     !,
     (   member(Term, Expanded),
-        process(Term, Src),
+        process(Term, Term0, Src),
         Term == end_of_file
     ->  EOF = true
     ;   EOF = false
     ),
     xref_comments(Comments, TermPos, Src).
-process(end_of_file, _, _, _, true) :-
+process(end_of_file, _, _, _, _, true) :-
     !.
-process(Term, Comments, TermPos, Src, false) :-
-    process(Term, Src),
+process(Term, Comments, Term0, TermPos, Src, false) :-
+    process(Term, Term0, Src),
     xref_comments(Comments, TermPos, Src).
+
+%!  process(+Term, +Term0, +Src) is det.
+
+process(_, Term0, _) :-
+    ignore_raw_term(Term0),
+    !.
+process(Term, _Term0, Src) :-
+    process(Term, Src).
+
+ignore_raw_term((:- predicate_options(_,_,_))).
 
 %!  process(+Term, +Src) is det.
 
@@ -979,6 +990,8 @@ process_directive(List, Src) :-
     process_directive(consult(List), Src).
 process_directive(use_module(File, Import), Src) :-
     process_use_module2(File, Import, Src, false).
+process_directive(autoload(File, Import), Src) :-
+    process_use_module2(File, Import, Src, false).
 process_directive(expects_dialect(Dialect), Src) :-
     process_directive(use_module(library(dialect/Dialect)), Src),
     expects_dialect(Dialect).
@@ -986,6 +999,8 @@ process_directive(reexport(File, Import), Src) :-
     process_use_module2(File, Import, Src, true).
 process_directive(reexport(Modules), Src) :-
     process_use_module(Modules, Src, true).
+process_directive(autoload(Modules), Src) :-
+    process_use_module(Modules, Src, false).
 process_directive(use_module(Modules), Src) :-
     process_use_module(Modules, Src, false).
 process_directive(consult(Modules), Src) :-
@@ -1744,6 +1759,7 @@ process_use_module(library(pce), Src, Reexport) :-     % bit special
     forall(member(Import, Exports),
            process_pce_import(Import, Src, Path, Reexport)).
 process_use_module(File, Src, Reexport) :-
+    load_module_if_needed(File),
     (   xoption(Src, silent(Silent))
     ->  Extra = [silent(Silent)]
     ;   Extra = [silent(true)]
@@ -1786,6 +1802,7 @@ process_pce_import(op(P,T,N), Src, _, _) :-
 %   Process use_module/2 and reexport/2.
 
 process_use_module2(File, Import, Src, Reexport) :-
+    load_module_if_needed(File),
     (   xref_source_file(File, Path, Src)
     ->  assert(uses_file(File, Src, Path)),
         (   catch(public_list(Path, _, Meta, Export, _Public, []), _, fail)
@@ -1798,6 +1815,22 @@ process_use_module2(File, Import, Src, Reexport) :-
         )
     ;   assert(uses_file(File, Src, '<not_found>'))
     ).
+
+
+%!  load_module_if_needed(+File)
+%
+%   Load a module explicitly if  it   is  not  suitable for autoloading.
+%   Typically this is the case  if   the  module provides essential term
+%   and/or goal expansion rulses.
+
+load_module_if_needed(File) :-
+    prolog:no_autoload_module(File),
+    !,
+    use_module(File, []).
+load_module_if_needed(_).
+
+prolog:no_autoload_module(library(record)).
+prolog:no_autoload_module(library(persistency)).
 
 
 %!  xref_public_list(+Spec, +Source, +Options) is semidet.

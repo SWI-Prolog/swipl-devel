@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2019, VU University Amsterdam
+    Copyright (c)  2014-2020, VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -770,7 +770,7 @@ startReconsultFile(SourceFile sf)
   DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
 
   if ( (r = allocHeap(sizeof(*sf->reload))) )
-  { ListCell cell, next;
+  { ListCell cell;
 
     memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
@@ -780,12 +780,11 @@ startReconsultFile(SourceFile sf)
 
     LD->gen_reload = r->reload_gen;
 
-    for(cell = sf->procedures; cell; cell = next)
+    for(cell = sf->procedures; cell; cell = cell->next)
     { Procedure proc = cell->value;
       Definition def = proc->definition;
       ClauseRef c;
 
-      next = cell->next;
       if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
       { acquire_def(def);
 	for(c = def->impl.clauses.first_clause; c; c = c->next)
@@ -802,6 +801,9 @@ startReconsultFile(SourceFile sf)
 	  cl->generation.erased = r->reload_gen;
 	}
 	release_def(def);
+      }
+      if ( true(def, P_AUTOLOAD) )
+      { clear(def, P_AUTOLOAD);			/* should be be more selective? */
       }
     }
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2019, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -438,6 +438,8 @@ swi_location(stream(Stream, Line, LinePos, CharNo)) -->
     ->  swi_location(file(File, Line, LinePos, CharNo))
     ;   [ 'Stream ~w:~d:~d '-[Stream, Line, LinePos] ]
     ).
+swi_location(autoload(File:Line)) -->
+    [ '~w:~w: '-[File, Line] ].
 swi_location(_) -->
     [].
 
@@ -934,6 +936,19 @@ prolog_message(autoload(Pred, File)) -->
     [ 'autoloading ~p from ~w'-[Pred, File] ].
 prolog_message(autoload(read_index(Dir))) -->
     [ 'Loading autoload index for ~w'-[Dir] ].
+
+
+swi_message(autoload(Msg)) -->
+    [ nl, '    ' ],
+    autoload_message(Msg).
+
+autoload_message(not_exported(PI, Spec, _FullFile, _Exports)) -->
+    [ ansi(code, '~w', [Spec]),
+      ' does not export ',
+      ansi(code, '~p', [PI])
+    ].
+autoload_message(no_file(Spec)) -->
+    [ ansi(code, '~p', [Spec]), ': No such file' ].
 
 
                  /*******************************

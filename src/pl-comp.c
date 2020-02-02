@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -3704,13 +3704,11 @@ takes care of reconsult, redefinition, etc.
     }
     clause->owner_no  = of->index;
 
-    if ( def->module != mhead )
-    { if ( !overruleImportedProcedure(proc, mhead) )
-      { freeClause(clause);
-	return NULL;
-      }
-      def = getProcDefinition(proc);	/* may be changed */
+    if ( !overruleImportedProcedure(proc, mhead) )
+    { freeClause(clause);
+      return NULL;
     }
+    def = getProcDefinition(proc);	/* may be changed */
 
     if ( proc != of->current_procedure )
     { if ( def->impl.any.defined )
@@ -5654,6 +5652,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
       if ( !get_procedure(head, &proc, 0, GP_FIND) )
 	fail;
       def = getProcDefinition(proc);
+      if ( !isDefinedProcedure(proc) && true(def, P_AUTOLOAD) )
+	def = trapUndefined(def PASS_LD);
 
       if ( protected_predicate(def PASS_LD) )
 	return FALSE;

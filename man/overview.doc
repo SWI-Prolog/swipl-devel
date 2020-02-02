@@ -1259,8 +1259,12 @@ on. Used to select foreign files for the right architecture. See also
 Set if Prolog was started with a prolog file as argument.  Used by
 e.g., edit/0 to edit the initial file.
 
-    \prologflagitem{autoload}{bool}{rw}
-If \const{true} (default) autoloading of library functions is enabled.
+    \prologflagitem{autoload}{atom}{rw}
+This flag has three values, selecting no autoloading at all
+(\const{false}), only explicitly stated autoloading (\const{explicit})
+and autoloading from explicitly stated locations as well as from the
+library (\const{true}, default).  See \secref{autoload}, autoload/1
+and autoload/2.
 
     \prologflagitem{back_quotes}{codes,chars,string,symbol_char}{rw}
 Defines the term-representation for back-quoted material.  The default
@@ -2336,7 +2340,7 @@ If ---at runtime--- an undefined predicate is trapped, the system will
 first try to import the predicate from the module's default module (see
 \secref{importmodule}. If this fails the \jargon{auto loader} is
 activated.\footnote{Actually, the hook user:exception/3 is called; only
-if this hook fails does it call the autoloader.} On first activation an
+if this hook fails it calls the autoloader.} On first activation an
 index to all library files in all library directories is loaded in core
 (see library_directory/1, file_search_path/2 and
 reload_library_index/0). If the undefined predicate can be located in
@@ -2345,7 +2349,8 @@ call to the (previously undefined) predicate is restarted. By default
 this mechanism loads the file silently. The current_prolog_flag/2
 key \prologflag{verbose_autoload} is provided to get verbose loading. The
 Prolog flag \prologflag{autoload} can be used to enable/disable the
-autoload system.
+autoload system.  A more controlled form of autoloading as well as
+lazy loading application modules is provided by autoload/1,2.
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
@@ -2423,9 +2428,11 @@ public functionality of \file{trace/browse.pl} to the autoloadable
 predicates for the XPCE package.
 
 \begin{code}
-:- make_library_index('.',
+:- prolog_load_context(directory, Dir),
+   make_library_index(Dir,
 		      [ '*.pl',
-			'trace/browse.pl'
+			'trace/browse.pl',
+			'swi/*.pl'
 		      ]).
 \end{code}
 
@@ -2445,7 +2452,7 @@ order of the library directories is changed.
 When creating an executable using either qsave_program/2 or the
 \cmdlineoption{-c} command line options, it is necessarry to load
 all predicates that would normally be autoloaded explicitly.  This
-is discussed in \secref{runtime}.  See autoload/0.
+is discussed in \secref{runtime}.  See autoload_all/0.
 
 
 \section{Packs: community add-ons}		\label{sec:packs}

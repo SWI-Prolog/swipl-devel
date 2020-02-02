@@ -541,6 +541,28 @@ setStreamTypeCheck(atom_t a)
   return TRUE;
 }
 
+
+static int
+setAutoload(atom_t a)
+{ GET_LD
+
+  if ( a == ATOM_false )
+    clearPrologFlagMask(PLFLAG_AUTOLOAD);
+  else if ( a == ATOM_explicit )
+    setPrologFlagMask(PLFLAG_AUTOLOAD);
+  else if ( a == ATOM_true )
+    setPrologFlagMask(PLFLAG_AUTOLOAD);
+  else
+  { term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_autoload, value);
+  }
+
+  return TRUE;
+}
+
+
 #if O_XOS
 typedef struct access_id
 { char *name;
@@ -833,6 +855,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
+      } else if ( k == ATOM_autoload )
+      { rval = setAutoload(a);
       } else if ( k == ATOM_file_name_case_handling )
       { rval = setFileNameCaseHandling(a);
 #if O_XOS
@@ -1448,7 +1472,8 @@ initPrologFlags(void)
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");
   setPrologFlag("debugger_show_context", FT_BOOL, FALSE, 0);
-  setPrologFlag("autoload",  FT_BOOL, TRUE,  PLFLAG_AUTOLOAD);
+  setPrologFlag("autoload",  FT_ATOM, "true");
+  setPrologFlagMask(PLFLAG_AUTOLOAD);
 #ifndef O_GMP
   setPrologFlag("max_integer",	   FT_INT64|FF_READONLY, PLMAXINT);
   setPrologFlag("min_integer",	   FT_INT64|FF_READONLY, PLMININT);

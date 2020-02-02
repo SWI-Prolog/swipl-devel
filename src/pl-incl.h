@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam,
+    Copyright (c)  1985-2020, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -874,7 +874,7 @@ with one operation, it turns out to be faster as well.
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
-  /* unused			(0x08000000)  */
+#define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
 #define P_TSHARED		(0x10000000) /* Using a shared table */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
@@ -1501,6 +1501,7 @@ typedef struct definition_refs
 
 #define	PROC_WEAK	 (0x0001)	/* implicit import */
 #define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
+#define PROC_IMPORTED	 (0x0004)	/* Procedure is imported */
 
 struct procedure
 { Definition	 definition;		/* definition of procedure */

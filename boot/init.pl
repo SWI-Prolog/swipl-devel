@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -833,43 +833,12 @@ default_module(Me, Super) :-
     !,
     Action = Action0.
 '$undefined_procedure'(Module, Name, Arity, Action) :-
-    current_prolog_flag(autoload, true),
-    '$autoload'(Module, Name, Arity),
+    \+ current_prolog_flag(autoload, false),
+    '$autoload'(Module:Name/Arity),
     !,
     Action = retry.
 '$undefined_procedure'(_, _, _, error).
 
-'$autoload'(Module, Name, Arity) :-
-    source_location(File, _Line),
-    !,
-    setup_call_cleanup(
-        '$start_aux'(File, Context),
-        '$autoload2'(Module, Name, Arity),
-        '$end_aux'(File, Context)).
-'$autoload'(Module, Name, Arity) :-
-    '$autoload2'(Module, Name, Arity).
-
-'$autoload2'(Module, Name, Arity) :-
-    '$find_library'(Module, Name, Arity, LoadModule, Library),
-    functor(Head, Name, Arity),
-    '$update_autoload_level'([autoload(true)], Old),
-    (   current_prolog_flag(verbose_autoload, true)
-    ->  Level = informational
-    ;   Level = silent
-    ),
-    print_message(Level, autoload(Module:Name/Arity, Library)),
-    '$compilation_mode'(OldComp, database),
-    (   Module == LoadModule
-    ->  ensure_loaded(Module:Library)
-    ;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1),
-            \+ '$loading'(Library)
-        ->  Module:import(LoadModule:Name/Arity)
-        ;   use_module(Module:Library, [Name/Arity])
-        )
-    ),
-    '$set_compilation_mode'(OldComp),
-    '$set_autoload_level'(Old),
-    '$c_current_predicate'(_, Module:Head).
 
 %!  '$loading'(+Library)
 %
@@ -2260,22 +2229,39 @@ load_files(Module:Files, Options) :-
     '$qdo_load_file'(File, File, Module, Action, Options),
     '$run_initialization'(File, Action, Options).
 '$load_file'(File, Module, Options) :-
+    '$resolved_source_path'(File, FullFile, Options),
+    !,
+    '$already_loaded'(File, FullFile, Module, Options).
+'$load_file'(File, Module, Options) :-
+    '$resolve_source_path'(File, FullFile, Options),
+    '$mt_load_file'(File, FullFile, Module, Options),
+    '$register_resource_file'(FullFile).
+
+%!  '$resolved_source_path'(+File, -FullFile, +Options) is semidet.
+%
+%   True when File has already been resolved to an absolute path.
+
+'$resolved_source_path'(File, FullFile, Options) :-
     '$resolved_source_path'(File, FullFile),
     (   '$source_file_property'(FullFile, from_state, true)
     ;   '$source_file_property'(FullFile, resource, true)
     ;   '$option'(if(If), Options, true),
         '$noload'(If, FullFile, Options)
     ),
-    !,
-    '$already_loaded'(File, FullFile, Module, Options).
-'$load_file'(File, Module, Options) :-
+    !.
+
+%!  '$resolve_source_path'(+File, -FullFile, Options) is det.
+%
+%   Resolve a source file specification to   an absolute path. May throw
+%   existence and other errors.
+
+'$resolve_source_path'(File, FullFile, _Options) :-
     absolute_file_name(File, FullFile,
                        [ file_type(prolog),
                          access(read)
                        ]),
-    '$register_resolved_source_path'(File, FullFile),
-    '$mt_load_file'(File, FullFile, Module, Options),
-    '$register_resource_file'(FullFile).
+    '$register_resolved_source_path'(File, FullFile).
+
 
 '$register_resolved_source_path'(File, FullFile) :-
     '$resolved_source_path'(File, FullFile),
@@ -3777,6 +3763,16 @@ compile_aux_clauses(Clauses) :-
     ->  true
     ;   '$instantiation_error'(X)
     ).
+'$must_be'(filespec, X) :- !,
+    (   (   atom(X)
+        ;   string(X)
+        ;   compound(X),
+            compound_name_arity(X, _, 1)
+        )
+    ->  true
+    ;   '$type_error'(filespec, X)
+    ).
+
 % Use for debugging
 %'$must_be'(Type, _X) :- format('Unknown $must_be type: ~q~n', [Type]).
 

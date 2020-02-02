@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -706,17 +706,10 @@ property_predicate(undefined, Pred) :-
 property_predicate(visible, Pred) :-
     !,
     visible_predicate(Pred).
-property_predicate(autoload(File), _:Head) :-
+property_predicate(autoload(File), Head) :-
     !,
-    current_prolog_flag(autoload, true),
-    (   callable(Head)
-    ->  goal_name_arity(Head, Name, Arity),
-        (   '$find_library'(_, Name, Arity, _, File)
-        ->  true
-        )
-    ;   '$in_library'(Name, Arity, File),
-        functor(Head, Name, Arity)
-    ).
+    \+ current_prolog_flag(autoload, false),
+    '$autoload':autoloadable(Head, File).
 property_predicate(implementation_module(IM), M:Head) :-
     !,
     atom(M),
