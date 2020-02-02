@@ -7147,13 +7147,26 @@ $\arg{Result} = \arg{Expr1} \times \arg{Expr2}$
 
     \infixfunction[ISO]{/}{+Expr1}{+Expr2}
 $\arg{Result} = \frac{\arg{Expr1}}{\arg{Expr2}}$.
-If the flag \prologflag{iso} is \const{true}, both arguments are converted
-to float and the return value is a float. Otherwise (default), if both
-arguments are integers the operation returns an integer if the division
-is exact. If at least one of the arguments is rational and the other
-argument is integer, the operation returns a rational number. In all
-other cases the return value is a float.  See also \funcref{//}{2}
-and \funcref{rdiv}{2}.
+If the flag \prologflag{iso} is \const{true} or one of the arguments is
+a float, both arguments are converted to float and the return value is a
+float.  Otherwise the result type depends on the Prolog flag
+\prologflag{prefer_rationals}. If \const{true}, the result is always a
+rational number.  If \const{false} the result is rational if at least
+one of the arguments is rational. Otherwise (both arguments are integer)
+the result is integer if the division is exact and float otherwise.
+See also \secref{rational}, \funcref{//}{2}, and \funcref{rdiv}{2}.
+
+The current default for the Prolog flag \prologflag{prefer_rationals} is
+\const{false}. Future version may switch this to \const{true}, providing
+precise results when possible. The pitfall is that in general rational
+arithmetic is slower and can become very slow and produce huge numbers
+that require a lot of (global stack) memory. Code for which the exact
+results provided by rational numbers is not needed should force float
+results by making one of the operants float, for example by dividing by
+\exam{10.0} rather than \exam{10} or by using \funcref{float}{1}. Note
+that when one of the arguments is forced to a float the division is a
+float operation while if the result is forced to the float the division
+is done using rational arithmetic.
 
     \infixfunction[ISO]{mod}{+IntExpr1}{+IntExpr2}
 Modulo, defined as \mbox{\arg{Result} = \arg{IntExpr1} - (\arg{IntExpr1}
