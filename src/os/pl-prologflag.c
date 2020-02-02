@@ -1456,7 +1456,10 @@ initPrologFlags(void)
   setPrologFlag("min_tagged_integer", FT_INTEGER|FF_READONLY, PLMINTAGGEDINT);
 #ifdef O_GMP
   setPrologFlag("bounded",	      FT_BOOL|FF_READONLY,	   FALSE, 0);
-  setPrologFlag("prefer_rationals",   FT_BOOL, TRUE, PLFLAG_RATIONAL);
+  setPrologFlag("prefer_rationals", FT_BOOL, O_PREFER_RATIONALS, PLFLAG_RATIONAL);
+  setPrologFlag("rational_syntax",  FT_ATOM,
+		O_RATIONAL_SYNTAX == RAT_NATURAL ? "natural" :
+		O_RATIONAL_SYNTAX == RAT_COMPAT  ? "compatibility" : "none");
 #ifdef __GNU_MP__
   setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
 #endif
@@ -1484,7 +1487,6 @@ initPrologFlags(void)
 		GD->options.traditional ? "codes" : "string");
   setPrologFlag("back_quotes", FT_ATOM,
 		GD->options.traditional ? "symbol_char" : "codes");
-  setPrologFlag("rational_syntax", FT_ATOM, "natural");
   setPrologFlag("portable_vmi", FT_BOOL, TRUE, PLFLAG_PORTABLE_VMI);
   setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");

@@ -154,12 +154,14 @@ test(rat, X =:= 243/32) :-
 	X is 2/3^(-5),
 	assertion(atomic(X)).
 :- else.
-test(rat, X == 32 rdiv 243) :-
-	X is (2 rdiv 3)^(5).
+test(rat) :-
+	X is (2 rdiv 3)^(5),
+	assertion(rational(X, 32, 243)).
 test(rat, X == 1) :-
 	X is (2 rdiv 3)^(0).
-test(rat, X == 243 rdiv 32) :-
-	X is (2 rdiv 3)^(-5).
+test(rat) :-
+	X is (2 rdiv 3)^(-5),
+	assertion(rational(X, 243, 32)).
 :- endif.
 :- endif.
 

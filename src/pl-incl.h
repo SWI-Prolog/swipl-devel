@@ -144,6 +144,11 @@ handy for it someone wants to add a data type to the system.
       Use GNU gmp library for infinite precision arthmetic
   O_MITIGATE_SPECTRE
       Reduce spectre security risc.  Currently reduces timer resolution.
+  O_PREFER_RATIONALS
+      Default for the `prefer_rationals` flag.
+  O_RATIONAL_SYNTAX
+      Default support for rational syntax (RAT_NONE, RAT_NATURAL or
+      RAT_COMPAT)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -171,6 +176,12 @@ handy for it someone wants to add a data type to the system.
 #define O_GVAR			1
 #define O_CYCLIC		1
 #define O_MITIGATE_SPECTRE	1
+#ifndef O_PREFER_RATIONALS
+#define O_PREFER_RATIONALS	FALSE
+#endif
+#ifndef O_RATIONAL_SYNTAX
+#define O_RATIONAL_SYNTAX	RAT_COMPAT
+#endif
 
 #if defined(O_PLMT)
 #if defined(O_SIGPROF_PROFILE) || defined(__WINDOWS__)
@@ -902,6 +913,7 @@ with one operation, it turns out to be faster as well.
 #define BQ_CODES		(0x00000040) /* `ab` --> [97,98] */
 #define BQ_CHARS		(0x00000080) /* `ab` --> [a,b] */
 #define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
+#define RAT_NONE		(0)
 #define RAT_NATURAL		(0x00000100) /* 1/3 */
 #define RAT_COMPAT		(0x00000200) /* 1R3 */
 #define RAT_MASK		(RAT_NATURAL|RAT_COMPAT)

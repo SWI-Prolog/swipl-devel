@@ -85,7 +85,7 @@ _lookupModule(atom_t name ARG_LD)
 #endif
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
-    set(m, DBLQ_STRING|BQ_CODES|RAT_NATURAL);
+    set(m, DBLQ_STRING|BQ_CODES|O_RATIONAL_SYNTAX);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);

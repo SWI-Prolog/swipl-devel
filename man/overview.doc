@@ -1751,7 +1751,7 @@ defined a default is used. This default is typically \file{/tmp} or
 
     \prologflagitem{prefer_rationals}{bool}{rw}
 Only provided if the system is compiled with unbounded and rational
-arithmetic support (see \prologflag{bounded}). If \const{true} (default),
+arithmetic support (see \prologflag{bounded}). If \const{true},
 prefer arithmetic to produce rational numbers over floats. This implies:
 
     \begin{itemize}
@@ -1763,10 +1763,15 @@ prefer arithmetic to produce rational numbers over floats. This implies:
 	\verb$1/4$.
     \end{itemize}
 
-When \const{false}, rational numbers can only be created using the
+If \const{false}, rational numbers can only be created using the
 functions \funcref{rational}{1}, \funcref{rationalize}{1} and
-\funcref{rdiv}{2}. See also \prologflag{rational_syntax},
-\secref{syntax-rational-numbers} and \secref{rational}.
+\funcref{rdiv}{2} or by reading them. See also
+\prologflag{rational_syntax}, \secref{syntax-rational-numbers} and
+\secref{rational}.
+
+The current default is \const{false}.  We consider changing this to
+\const{true} in the future.  Users are strongly encouraged to set
+this flag to \const{true} and report issues this may cause.
 
     \prologflagitem{prompt_alternatives_on}{atom}{rw}
 \index{prompt, alternatives}%
@@ -1796,6 +1801,13 @@ values are \const{natural} (e.g., \exam{1/3}), \const{compatibility}
 (e.g., \exam{1R3}) and \const{none}, which provides no syntax for
 reading a rational number and writes rational numbers as
 \const{natural}.  This flag is module sensitive.
+
+The default for this flag is currently \const{compatibility}, which
+reads and writes rational numbers as e.g., \exam{1R3}.\footnote{There is
+still some discussion on the separating character. See
+\secref{syntax-rational-numbers}.} We will consider \const{natural} as a
+default in the future. Users are strongly encouraged to set this flag to
+\const{natural} and report issues this may cause.
 
     \prologflagitem{readline}{atom}{rw}
 Specifies which form of command line editing is provided. Possible
