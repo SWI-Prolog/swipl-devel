@@ -3247,7 +3247,7 @@ a_var_n:
   switch(tag(*p2))
   { case TAG_INTEGER:
       n = allocArithStack(PASS_LD1);
-      get_integer(*p2, n);
+      get_rational(*p2, n);
       NEXT_INSTRUCTION;
     case TAG_FLOAT:
       n = allocArithStack(PASS_LD1);
