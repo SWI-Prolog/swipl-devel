@@ -414,7 +414,7 @@ test(div, error(evaluation_error(float_overflow))) :-
 	A is 1<<10000 / 10.0,
 	writeln(A).
 test(div, error(evaluation_error(float_overflow))) :-
-	A is 1<<10000000 / ((1<<10000)+19),
+	A is float(1<<10000000) / float((1<<10000)+19),
 	writeln(A).
 
 :- endif.
