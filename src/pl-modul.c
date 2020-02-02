@@ -565,11 +565,17 @@ set_module(Module m, term_t prop ARG_LD)
       { m->class = class;
 	return TRUE;
       } else if ( class == ATOM_temporary )
-      { if ( m->procedures && m->procedures->size != 0 )
-	  return PL_error(NULL, 0,
-			  "module is not empty",
+      { Table procs;
+
+	if ( m->class == ATOM_user &&
+	     !((procs=m->procedures) && procs->size != 0) )
+	{ m->class = class;
+	} else
+	{ return PL_error(NULL, 0,
+			  m->class != ATOM_user ? "Not a user module" :
+						  "module is not empty",
 			  ERR_PERMISSION, ATOM_module_property, ATOM_class, arg);
-	m->class = class;
+	}
 	return TRUE;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
