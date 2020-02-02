@@ -72,8 +72,10 @@ queens_file(File) :-
 	atomic_list_concat([Dir, /, 'data/queens.pl'], File).
 
 tmp_queens(S) :-
-	N is random(1<<62),		% was uuid(UUID), but that is a package
-	format(atom(UUID), 'tmp-~d', [N]),
+	N is random(1<<62), % was uuid(UUID), but that is a package
+	thread_self(Me),
+	thread_property(Me, id(Id)),
+	format(atom(UUID), 'tmp-~w-~d', [Id, N]),
 	queens_file(Queens),
 	in_temporary_module(
 	    UUID,
