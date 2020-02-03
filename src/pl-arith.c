@@ -2606,7 +2606,7 @@ static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff >= 0 )
+  if ( diff > 0 )
     cpNumber(r, n1);
   else
     cpNumber(r, n2);

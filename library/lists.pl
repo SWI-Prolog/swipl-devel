@@ -562,7 +562,7 @@ max_list([H|T], Max) :-
 
 max_list([], Max, Max).
 max_list([H|T], Max0, Max) :-
-    Max1 is max(H, Max0),
+    Max1 is max(Max0, H),
     max_list(T, Max1, Max).
 
 
@@ -578,7 +578,7 @@ min_list([H|T], Min) :-
 
 min_list([], Min, Min).
 min_list([H|T], Min0, Min) :-
-    Min1 is min(H, Min0),
+    Min1 is min(Min0, H),
     min_list(T, Min1, Min).
 
 
