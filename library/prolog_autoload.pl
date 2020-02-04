@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, VU University Amsterdam
+    Copyright (c)  2011-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -34,8 +34,8 @@
 */
 
 :- module(prolog_autoload,
-          [ autoload/0,
-            autoload/1                          % +Options
+          [ autoload_all/0,
+            autoload_all/1                      % +Options
           ]).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -43,7 +43,7 @@
 :- use_module(library(prolog_codewalk)).
 :- use_module(library(check), [ list_undefined/0 ]).
 
-:- predicate_options(autoload/1, 1,
+:- predicate_options(autoload_all/1, 1,
                      [ verbose(boolean),
                        undefined(oneof([ignore,error]))
                      ]).
@@ -77,8 +77,8 @@ and all initialization goals.
 :- thread_local
     autoloaded_count/1.
 
-%!  autoload is det.
-%!  autoload(+Options) is det.
+%!  autoload_all is det.
+%!  autoload_all(+Options) is det.
 %
 %   Force all necessary autoloading to be done _now_.  Options:
 %
@@ -89,10 +89,10 @@ and all initialization goals.
 %       definitely undefined predicate.  One of `ignore` or
 %       `error`.  Default is `ignore`.
 
-autoload :-
-    autoload([]).
+autoload_all :-
+    autoload_all([]).
 
-autoload(Options) :-
+autoload_all(Options) :-
     must_be(list, Options),
     statistics(cputime, T0),
     aggregate_all(count, source_file(_), OldFileCount),

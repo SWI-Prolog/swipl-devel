@@ -622,7 +622,7 @@ run_initialize(Goal, Ctx) :-
 save_autoload(Options) :-
     option(autoload(true),  Options, true),
     !,
-    autoload(Options).
+    autoload_all(Options).
 save_autoload(_).
 
 
