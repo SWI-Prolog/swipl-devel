@@ -4082,6 +4082,7 @@ skipArgs(Code PC, int skip)
       case H_FLOAT:
       case H_STRING:
       case H_MPZ:
+      case H_MPQ:
       case H_FIRSTVAR:
       case H_VAR:
       case H_VOID:
@@ -4094,6 +4095,7 @@ skipArgs(Code PC, int skip)
       case B_FLOAT:
       case B_STRING:
       case B_MPZ:
+      case B_MPQ:
       case B_ARGVAR:
       case B_ARGFIRSTVAR:
       case B_FIRSTVAR:
