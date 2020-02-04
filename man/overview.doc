@@ -1796,11 +1796,10 @@ This option provides the default for the \term{qcompile}{+Atom} option
 of load_files/2.
 
     \prologflagitem{rational_syntax}{rw}
-Determines the read and write syntax for rational numbers.  Possible
-values are \const{natural} (e.g., \exam{1/3}), \const{compatibility}
-(e.g., \exam{1R3}) and \const{none}, which provides no syntax for
-reading a rational number and writes rational numbers as
-\const{natural}.  This flag is module sensitive.
+Determines the read and write syntax for rational numbers. Possible
+values are \const{natural} (e.g., \exam{1/3}) or \const{compatibility}
+(e.g., \exam{1r3}). The \const{compatibility} syntax is always accepted.
+This flag is module sensitive.
 
 The default for this flag is currently \const{compatibility}, which
 reads and writes rational numbers as e.g., \exam{1R3}.\footnote{There is
@@ -2671,15 +2670,16 @@ standard.\footnote{ECLiSPe uses \arg{numerator}_\arg{denominator}. This
 syntax conflicts with SWI-Prolog digit groups (see
 \secref{digitgroupsyntax}) and does not have a recognised link to
 rational numbers. The notation \exam{1/3r} and \exam{1/3R} have also
-been proposed. The \exam{1/3r} is compatible to Ruby, but can conflict
-with Prolog if \const{r} is a postfix operator. The option \exam{1/3R}
-does not conflict, but is hard to parse due to the required look-ahead
-and not very natural. See also
+been proposed. The \exam{1/3r} is compatible to Ruby, but is hard to
+parse due to the required look-ahead and not very natural. See also
 \url{https://en.wikipedia.org/wiki/Rational_data_type}.}
 
-SWI-Prolog's syntax for rational numbers is controlled by the
-module sensitive Prolog flag \prologflag{rational_syntax}, which has
-three possible values:
+ECLiSPe and SWI-Prolog have agreed to define the canonical syntax for
+rational numbers to be e.g., \exam{1r3}. In addition, ECLiSPe accepts
+\exam{1_3} and SWI-Prolog can be asked to accept \exam{1/3} using the
+module sensitive Prolog flag \prologflag{rational_syntax}, which has the
+values below. Note that write_canonical/1 always uses the compatible
+\exam{1r3} syntax.
 
 \begin{description}
     \termitem{natural}{}
@@ -2713,28 +2713,12 @@ as it would allow for a more natural notation of large rational
 numbers.}
 
     \termitem{compatibility}{}
-Read and write rational numbers as e.g., \exam{1R3}.  In other words,
+Read and write rational numbers as e.g., \exam{1r3}. In other words,
 this adheres to the same rules as \const{natural} above, but using the
-`\chr{R}' instead of `\chr{/}'.  As numbers nor variables (\chr{R}) can
-be operators, this syntax is invalid in traditional Prolog.
-
-    \termitem{none}{}
-This mode supports no syntax extension for reading and uses the
-\const{natural} syntax for writing. As \funcref{/}{2} creates a rational
-number if the Prolog flag \prologflag{prefer_rationals} is \const{true},
-this mode provides natural interaction without changing the syntax. The
-disadvantage is that one cannot match against rational numbers. For
-example, the following does \textbf{not work} because the result of
-the arithmetic is the rational number 1/2 which does match against the
-term \term{/}{1,2}.
-
-\begin{code}
-half(1/2) :- format("Halt way!~n").
-
-    ...,
-    X is 2/4,
-    half(X).
-\end{code}
+`\chr{r}' instead of `\chr{/}'. Note that this may conflict with
+traditional Prolog as `\const{r}' can be defined as an infix operator.
+The same argument holds for \exam{0x23} and similar syntax for numbers
+that are part of the ISO standard.
 \end{description}
 
 While the syntax is controlled by the flag \prologflag{rational_syntax},

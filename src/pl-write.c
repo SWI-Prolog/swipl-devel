@@ -1133,12 +1133,12 @@ WriteNumber(Number n, write_options *options)
       return writeMPZ(n->value.mpz, options PASS_LD);
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
-      char *sep = true(options, PL_WRT_RAT_COMPAT) ? "R" : "/";
+      char sep = true(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
 
       num[0] = *mpq_numref(n->value.mpq);
       den[0] = *mpq_denref(n->value.mpq);
       return ( writeMPZ(num, options PASS_LD) &&
-	       PutString(sep, options->out) &&
+	       Sputcode(sep, options->out) != EOF &&
 	       (options->out->lastc = EOF) &&
 	       writeMPZ(den, options PASS_LD) );
     }
@@ -1932,8 +1932,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
-  if ( true(options.module, RAT_COMPAT) )
-    options.flags |= PL_WRT_RAT_COMPAT;
+  if ( true(options.module, RAT_NATURAL) )
+    options.flags |= PL_WRT_RAT_NATURAL;
   if ( gportray )
   { options.portray_goal = gportray;
     if ( !put_write_options(opts, &options) ||

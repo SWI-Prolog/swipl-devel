@@ -343,8 +343,6 @@ setRationalSyntax(atom_t a, unsigned int *flagp)
 
   if	  ( a == ATOM_natural )
     flags = RAT_NATURAL;
-  else if ( a == ATOM_none )
-    flags = 0;
   else if ( a == ATOM_compatibility )
     flags = RAT_COMPAT;
   else
@@ -1077,8 +1075,7 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   { atom_t v;
 
     switch(m->flags&RAT_MASK)
-    { case 0:	        v = ATOM_none;          break;
-      case RAT_NATURAL: v = ATOM_natural;       break;
+    { case RAT_NATURAL: v = ATOM_natural;       break;
       case RAT_COMPAT:  v = ATOM_compatibility; break;
       default:		v = 0; assert(0);
     }
@@ -1459,7 +1456,7 @@ initPrologFlags(void)
   setPrologFlag("prefer_rationals", FT_BOOL, O_PREFER_RATIONALS, PLFLAG_RATIONAL);
   setPrologFlag("rational_syntax",  FT_ATOM,
 		O_RATIONAL_SYNTAX == RAT_NATURAL ? "natural" :
-		O_RATIONAL_SYNTAX == RAT_COMPAT  ? "compatibility" : "none");
+		                                   "compatibility");
 #ifdef __GNU_MP__
   setPrologFlag("gmp_version",	   FT_INTEGER|FF_READONLY, __GNU_MP__);
 #endif

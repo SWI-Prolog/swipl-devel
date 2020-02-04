@@ -2613,9 +2613,9 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     return rc;				/* too large? */
 
 #ifdef O_GMP
-  if ( (*in == '/' || *in == 'R') && isDigit(in[1]) &&
-       ( (*in == '/' && (flags&RAT_NATURAL)) ||
-	 (*in == 'R' && (flags&RAT_COMPAT)) ))
+  if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
+	 *in == 'r') &&
+       isDigit(in[1]) )
   { number num, den;
 
     in++;

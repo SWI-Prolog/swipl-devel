@@ -147,8 +147,7 @@ handy for it someone wants to add a data type to the system.
   O_PREFER_RATIONALS
       Default for the `prefer_rationals` flag.
   O_RATIONAL_SYNTAX
-      Default support for rational syntax (RAT_NONE, RAT_NATURAL or
-      RAT_COMPAT)
+      Default support for rational syntax (RAT_NATURAL or RAT_COMPAT)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -913,10 +912,9 @@ with one operation, it turns out to be faster as well.
 #define BQ_CODES		(0x00000040) /* `ab` --> [97,98] */
 #define BQ_CHARS		(0x00000080) /* `ab` --> [a,b] */
 #define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
-#define RAT_NONE		(0)
+#define RAT_COMPAT		(0)
 #define RAT_NATURAL		(0x00000100) /* 1/3 */
-#define RAT_COMPAT		(0x00000200) /* 1R3 */
-#define RAT_MASK		(RAT_NATURAL|RAT_COMPAT)
+#define RAT_MASK		(RAT_NATURAL)
 #define UNKNOWN_FAIL		(0x00001000) /* module */
 #define UNKNOWN_WARNING		(0x00002000) /* module */
 #define UNKNOWN_ERROR		(0x00004000) /* module */
