@@ -3864,6 +3864,9 @@ PL_term_type(term_t t)
 	return PL_NIL;
       return PL_BLOB;
     }
+    case PL_INTEGER:
+    { return (isInteger(w) ? PL_INTEGER : PL_RATIONAL);
+    }
     case PL_TERM:
     { functor_t f = valueTerm(w)->definition;
       FunctorDef fd = valueFunctor(f);

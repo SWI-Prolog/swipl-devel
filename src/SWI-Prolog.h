@@ -204,34 +204,35 @@ typedef union
 #define	PL_VARIABLE	 (1)		/* nothing */
 #define PL_ATOM		 (2)		/* const char * */
 #define PL_INTEGER	 (3)		/* int */
-#define PL_FLOAT	 (4)		/* double */
-#define PL_STRING	 (5)		/* const char * */
-#define PL_TERM		 (6)
+#define PL_RATIONAL	 (4)		/* rational number */
+#define PL_FLOAT	 (5)		/* double */
+#define PL_STRING	 (6)		/* const char * */
+#define PL_TERM		 (7)
 
-#define PL_NIL		 (7)		/* The constant [] */
-#define PL_BLOB		 (8)		/* non-atom blob */
-#define PL_LIST_PAIR	 (9)		/* [_|_] term */
+#define PL_NIL		 (8)		/* The constant [] */
+#define PL_BLOB		 (9)		/* non-atom blob */
+#define PL_LIST_PAIR	 (10)		/* [_|_] term */
 
 					/* PL_unify_term() */
-#define PL_FUNCTOR	 (10)		/* functor_t, arg ... */
-#define PL_LIST		 (11)		/* length, arg ... */
-#define PL_CHARS	 (12)		/* const char * */
-#define PL_POINTER	 (13)		/* void * */
+#define PL_FUNCTOR	 (11)		/* functor_t, arg ... */
+#define PL_LIST		 (12)		/* length, arg ... */
+#define PL_CHARS	 (13)		/* const char * */
+#define PL_POINTER	 (14)		/* void * */
 					/* PlArg::PlArg(text, type) */
-#define PL_CODE_LIST	 (14)		/* [ascii...] */
-#define PL_CHAR_LIST	 (15)		/* [h,e,l,l,o] */
-#define PL_BOOL		 (16)		/* PL_set_prolog_flag() */
-#define PL_FUNCTOR_CHARS (17)		/* PL_unify_term() */
-#define _PL_PREDICATE_INDICATOR (18)	/* predicate_t (Procedure) */
-#define PL_SHORT	 (19)		/* short */
-#define PL_INT		 (20)		/* int */
-#define PL_LONG		 (21)		/* long */
-#define PL_DOUBLE	 (22)		/* double */
-#define PL_NCHARS	 (23)		/* size_t, const char * */
-#define PL_UTF8_CHARS	 (24)		/* const char * */
-#define PL_UTF8_STRING	 (25)		/* const char * */
-#define PL_INT64	 (26)		/* int64_t */
-#define PL_NUTF8_CHARS	 (27)		/* size_t, const char * */
+#define PL_CODE_LIST	 (15)		/* [ascii...] */
+#define PL_CHAR_LIST	 (16)		/* [h,e,l,l,o] */
+#define PL_BOOL		 (17)		/* PL_set_prolog_flag() */
+#define PL_FUNCTOR_CHARS (18)		/* PL_unify_term() */
+#define _PL_PREDICATE_INDICATOR (19)	/* predicate_t (Procedure) */
+#define PL_SHORT	 (20)		/* short */
+#define PL_INT		 (21)		/* int */
+#define PL_LONG		 (22)		/* long */
+#define PL_DOUBLE	 (23)		/* double */
+#define PL_NCHARS	 (24)		/* size_t, const char * */
+#define PL_UTF8_CHARS	 (25)		/* const char * */
+#define PL_UTF8_STRING	 (26)		/* const char * */
+#define PL_INT64	 (27)		/* int64_t */
+#define PL_NUTF8_CHARS	 (28)		/* size_t, const char * */
 #define PL_NUTF8_CODES	 (29)		/* size_t, const char * */
 #define PL_NUTF8_STRING	 (30)		/* size_t, const char * */
 #define PL_NWCHARS	 (31)		/* size_t, const wchar_t * */

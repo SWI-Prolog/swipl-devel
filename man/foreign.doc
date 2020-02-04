@@ -718,6 +718,7 @@ dicts.
 \const{PL_BLOB}	     & A blob (see \secref{blobaccess}) \\
 \const{PL_STRING}    & A string (see \secref{strings}) \\
 \const{PL_INTEGER}   & A integer \\
+\const{PL_RATIONAL}  & A rational number \\
 \const{PL_FLOAT}     & A floating point number \\
 \const{PL_TERM}      & A compound term \\
 \const{PL_LIST_PAIR} & A list cell (\verb$[H|T]$) \\
