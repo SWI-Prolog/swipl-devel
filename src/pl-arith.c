@@ -2415,7 +2415,7 @@ ar_rdiv(Number n1, Number n2, Number r)
       return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
 
     return ar_rdiv_mpz(n1, n2, r);
-  } else
+  } else if ( ratNumber(n1) && ratNumber(n2) )
   { promoteToMPQNumber(n1);
     promoteToMPQNumber(n2);
 
@@ -2425,9 +2425,13 @@ ar_rdiv(Number n1, Number n2, Number r)
     r->type = V_MPQ;
     mpq_init(r->value.mpq);
     mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
+  } else if ( !ratNumber(n1) )
+  { return PL_error("rdiv", 2, NULL, ERR_AR_TYPE, ATOM_rational, n1);
+  } else
+  { return PL_error("rdiv", 2, NULL, ERR_AR_TYPE, ATOM_rational, n2);
   }
 
-  succeed;
+  return TRUE;
 }
 #endif /*O_GMP*/
 
