@@ -1837,7 +1837,7 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
         fail;
     }
-  }
+  } /* end if ( intNumber(n1) && intNumber(n2) ) */
 
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
