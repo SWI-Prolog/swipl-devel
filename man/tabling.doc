@@ -712,7 +712,7 @@ converting the abolished shared table to a private table.}.
 The current implementation never reclaims shared tables.  Instead, they
 remain part of the global variant table and only the answers of the
 shared table are reclaimed. Future versions may garbage collect such
-tables.
+tables.  See also abolish_shared_tables/0
 
 
 \subsection{Status and future of shared tabling}
@@ -1040,9 +1040,20 @@ Remove all tables, both \jargon{private} and \jargon{shared} (see
 \secref{tabling-shared}. Since the introduction of \jargon{incremental
 tabling} (see \secref{tabling-incremental}) abolishing tables is rarely
 required to maintain consistency of the tables with a changed
-environment.  Tables may be abolished regardless of the current state
-of the table.  \jargon{Incomplete} tables are flagged for destruction
-when they are completed.  See also \secref{tabling-shared-abolish}.
+environment. Tables may be abolished regardless of the current state of
+the table. \jargon{Incomplete} tables are flagged for destruction when
+they are completed. See \secref{tabling-shared-abolish} for the
+semantics of destroying shared tables and the following predicates for
+destroying a subset of the tables: abolish_private_tables/0,
+abolish_shared_tables/0, abolish_table_subgoals/1 and
+abolish_module_tables/1.
+
+    \predicate{abolish_private_tables}{0}{}
+Abolish all tables that are private to this thread.
+
+    \predicate{abolish_shared_tables}{0}{}
+Abolish all tables that are shared between threads. See also
+\secref{tabling-shared-abolish}
 
     \predicate{abolish_table_subgoals}{1}{:Subgoal}
 Abolish all tables that unify with \arg{SubGoal}.  Tables that have

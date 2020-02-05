@@ -46,6 +46,8 @@
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
+            abolish_private_tables/0,
+            abolish_shared_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
             abolish_module_tables/1,    % +Module
             abolish_nonincremental_tables/0,
@@ -861,6 +863,25 @@ abolish_all_tables :-
     ;   true
     ),
     (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+
+abolish_private_tables :-
+    (   '$tbl_abolish_local_tables'
+    ->  true
+    ;   (   '$tbl_local_variant_table'(VariantTrie),
+            trie_gen(VariantTrie, _, Trie),
+            '$tbl_destroy_table'(Trie),
+            fail
+        ;   true
+        )
+    ).
+
+abolish_shared_tables :-
+    (   '$tbl_global_variant_table'(VariantTrie),
         trie_gen(VariantTrie, _, Trie),
         '$tbl_destroy_table'(Trie),
         fail

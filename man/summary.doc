@@ -53,6 +53,8 @@ suggest predicates from a keyword.
 \predicatesummary{abolish_module_tables}{1}{Abolish all tables in a module}
 \predicatesummary{abolish_nonincremental_tables}{0}{Abolish non-auttomatic tables}
 \predicatesummary{abolish_nonincremental_tables}{1}{Abolish non-auttomatic tables}
+\predicatesummary{abolish_private_tables}{0}{Abolish tables of this thread}
+\predicatesummary{abolish_shared_tables}{0}{Abolish tables shared between threads}
 \predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
