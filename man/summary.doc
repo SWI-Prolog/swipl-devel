@@ -860,7 +860,7 @@ special folder by CSIDL}
 \functionsummary{cosh}{1}{Hyperbolic cosine}
 \functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
-\functionsummary{denominator}{1}{Denonimator of a rational number}
+\functionsummary{denominator}{1}{Denominator of a rational number (N/D)}
 \functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}
 \functionsummary{erf}{1}{Gauss error function}
@@ -885,7 +885,7 @@ special folder by CSIDL}
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{nan}{0}{Not a Number (NaN)}
-\functionsummary{numerator}{1}{Numertor of a natural number}
+\functionsummary{numerator}{1}{Numerator of a rational number (N/D)}
 \functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{random_float}{0}{Generate random number}
