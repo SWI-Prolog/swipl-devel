@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014, University of Amsterdam
-                         VU University Amsterdam
+    Copyright (c)  2014-2020, University of Amsterdam
+                              VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -113,8 +114,7 @@ print_term_2(Term, Options0) :-
     merge_options(Options0, Defs, Options),
     option(write_options(WrtOpts), Options),
     option(max_depth(MaxDepth), WrtOpts, infinite),
-    option(left_margin(LeftMargin), Options, 0),
-    Context = ctx(LeftMargin,0,1200,MaxDepth),
+    dict_create(Context, #, [max_depth(MaxDepth)|Options]),
     pp(Template, Context, Options),
     print_extra(Cycles, Context, 'where', Options),
     print_extra(Constraints, Context, 'with constraints', Options).
@@ -173,14 +173,18 @@ bind_non_cycles([H|T0], I, [H|T]) :-
 
 
 defaults([ output(user_output),
+           left_margin(0),
            right_margin(72),
+           depth(0),
+           indent(0),
            indent_arguments(auto),
            operators(true),
            write_options([ quoted(true),
                            numbervars(true),
                            portray(true),
                            attributes(portray)
-                         ])
+                         ]),
+           priority(1200)
          ]).
 
 
@@ -188,37 +192,18 @@ defaults([ output(user_output),
                  *             CONTEXT          *
                  *******************************/
 
-context_attribute(indent,     1).
-context_attribute(depth,      2).
-context_attribute(precedence, 3).
-context_attribute(max_depth,  4).
-
 context(Ctx, Name, Value) :-
-    context_attribute(Name, Arg),
-    arg(Arg, Ctx, Value).
+    get_dict(Name, Ctx, Value).
 
 modify_context(Ctx0, Mapping, Ctx) :-
-    functor(Ctx0, Name, Arity),
-    functor(Ctx,  Name, Arity),
-    modify_context(0, Arity, Ctx0, Mapping, Ctx).
-
-modify_context(Arity, Arity, _, _, _) :- !.
-modify_context(I, Arity, Ctx0, Mapping, Ctx) :-
-    N is I + 1,
-    (   context_attribute(Name, N),
-        memberchk(Name=Value, Mapping)
-    ->  true
-    ;   arg(N, Ctx0, Value)
-    ),
-    arg(N, Ctx, Value),
-    modify_context(N, Arity, Ctx0, Mapping, Ctx).
-
+    Ctx = Ctx0.put(Mapping).
 
 dec_depth(Ctx, Ctx) :-
     context(Ctx, max_depth, infinite),
     !.
-dec_depth(ctx(I,D,P,MD0), ctx(I,D,P,MD)) :-
-    MD is MD0 - 1.
+dec_depth(Ctx0, Ctx) :-
+    ND is Ctx0.max_depth - 1,
+    Ctx = Ctx0.out(max_depth, ND).
 
 
                  /*******************************
@@ -306,53 +291,75 @@ pp(Term, Ctx, Options) :-               % handle operators
     option(output(Out), Options),
     context(Ctx, indent, Indent),
     context(Ctx, depth, Depth),
-    context(Ctx, precedence, CPrec),
+    context(Ctx, priority, CPrec),
     NDepth is Depth + 1,
     modify_context(Ctx, [depth=NDepth], Ctx1),
     dec_depth(Ctx1, Ctx2),
+    LeftOptions  = Ctx2.put(priority, Left),
+    FuncOptions  = Ctx2.put(embrace, never),
+    RightOptions = Ctx2.put(priority, Right),
     (   Kind == prefix
     ->  arg(1, Term, Arg),
+        (   (   space_op(Name)
+            ;   need_space(Name, Arg, FuncOptions, RightOptions)
+            )
+        ->  Space = ' '
+        ;   Space = ''
+        ),
         (   CPrec >= Prec
-        ->  format(atom(Buf), '~q ', Name),
+        ->  format(atom(Buf), '~q~w', [Name, Space]),
             atom_length(Buf, AL),
             NIndent is Indent + AL,
             write(Out, Buf),
-            modify_context(Ctx2, [indent=NIndent, precedence=Right], Ctx3),
+            modify_context(Ctx2, [indent=NIndent, priority=Right], Ctx3),
             pp(Arg, Ctx3, Options)
-        ;   format(atom(Buf), '(~q ', Name),
+        ;   format(atom(Buf), '(~q', [Name,Space]),
             atom_length(Buf, AL),
             NIndent is Indent + AL,
             write(Out, Buf),
-            modify_context(Ctx2, [indent=NIndent, precedence=Right], Ctx3),
+            modify_context(Ctx2, [indent=NIndent, priority=Right], Ctx3),
             pp(Arg, Ctx3, Options),
             format(Out, ')', [])
         )
     ;   Kind == postfix
-    ->  arg(1, Term, Arg),
+    ->  (   (   space_op(Name)
+            ;   need_space(Name, Arg, FuncOptions, LeftOptions)
+            )
+        ->  Space = ' '
+        ;   Space = ''
+        ),
+        arg(1, Term, Arg),
         (   CPrec >= Prec
-        ->  modify_context(Ctx2, [precedence=Left], Ctx3),
+        ->  modify_context(Ctx2, [priority=Left], Ctx3),
             pp(Arg, Ctx3, Options),
-            format(Out, ' ~q', Name)
+            format(Out, '~w~q', [Space,Name])
         ;   format(Out, '(', []),
             NIndent is Indent + 1,
-            modify_context(Ctx2, [indent=NIndent, precedence=Left], Ctx3),
+            modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
             pp(Arg, Ctx3, Options),
-            format(Out, ' ~q)', [Name])
+            format(Out, '~w~q)', [Space,Name])
         )
     ;   arg(1, Term, Arg1),
         arg(2, Term, Arg2),
+        (   (   space_op(Name)
+            ;   need_space(Arg1, Name, LeftOptions, FuncOptions)
+            ;   need_space(Name, Arg2, FuncOptions, RightOptions)
+            )
+        ->  Space = ' '
+        ;   Space = ''
+        ),
         (   CPrec >= Prec
-        ->  modify_context(Ctx2, [precedence=Left], Ctx3),
+        ->  modify_context(Ctx2, [priority=Left], Ctx3),
             pp(Arg1, Ctx3, Options),
-            format(Out, ' ~q ', Name),
-            modify_context(Ctx2, [precedence=Right], Ctx4),
+            format(Out, '~w~q~w', [Space,Name,Space]),
+            modify_context(Ctx2, [priority=Right], Ctx4),
             pp(Arg2, Ctx4, Options)
         ;   format(Out, '(', []),
             NIndent is Indent + 1,
-            modify_context(Ctx2, [indent=NIndent, precedence=Left], Ctx3),
+            modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
             pp(Arg1, Ctx3, Options),
-            format(Out, ' ~q ', Name),
-            modify_context(Ctx2, [precedence=Right], Ctx4),
+            format(Out, '~w~q~w', [Space,Name,Space]),
+            modify_context(Ctx2, [priority=Right], Ctx4),
             pp(Arg2, Ctx4, Options),
             format(Out, ')', [])
         )
@@ -508,3 +515,211 @@ pprint(Out, Term, Ctx, Options) :-
     ->  format(Out, '...', [])
     ;   write_term(Out, Term, [max_depth(MaxDepth)|WriteOptions])
     ).
+
+
+		 /*******************************
+		 *    SHARED WITH term_html.pl	*
+		 *******************************/
+
+
+%!  is_op1(+Name, -Type, -Priority, -ArgPriority, +Options) is semidet.
+%
+%   True if Name is an operator taking one argument of Type.
+
+is_op1(Name, Type, Pri, ArgPri, Options) :-
+    operator_module(Module, Options),
+    current_op(Pri, OpType, Module:Name),
+    argpri(OpType, Type, Pri, ArgPri),
+    !.
+
+argpri(fx, prefix,  Pri0, Pri) :- Pri is Pri0 - 1.
+argpri(fy, prefix,  Pri,  Pri).
+argpri(xf, postfix, Pri0, Pri) :- Pri is Pri0 - 1.
+argpri(yf, postfix, Pri,  Pri).
+
+%!  is_op2(+Name, -LeftPri, -Pri, -RightPri, +Options) is semidet.
+%
+%   True if Name is an operator taking two arguments of Type.
+
+is_op2(Name, LeftPri, Pri, RightPri, Options) :-
+    operator_module(Module, Options),
+    current_op(Pri, Type, Module:Name),
+    infix_argpri(Type, LeftPri, Pri, RightPri),
+    !.
+
+infix_argpri(xfx, ArgPri, Pri, ArgPri) :- ArgPri is Pri - 1.
+infix_argpri(yfx, Pri, Pri, ArgPri) :- ArgPri is Pri - 1.
+infix_argpri(xfy, ArgPri, Pri, Pri) :- ArgPri is Pri - 1.
+
+
+%!  need_space(@Term1, @Term2, +LeftOptions, +RightOptions)
+%
+%   True if a space is  needed  between   Term1  and  Term2  if they are
+%   printed using the given option lists.
+
+need_space(T1, T2, _, _) :-
+    (   is_solo(T1)
+    ;   is_solo(T2)
+    ),
+    !,
+    fail.
+need_space(T1, T2, LeftOptions, RightOptions) :-
+    end_code_type(T1, TypeR, LeftOptions.put(side, right)),
+    end_code_type(T2, TypeL, RightOptions.put(side, left)),
+    \+ no_space(TypeR, TypeL).
+
+no_space(punct, _).
+no_space(_, punct).
+no_space(quote(R), quote(L)) :-
+    !,
+    R \== L.
+no_space(alnum, symbol).
+no_space(symbol, alnum).
+
+%!  end_code_type(+Term, -Code, Options)
+%
+%   True when code is the first/last character code that is emitted
+%   by printing Term using Options.
+
+end_code_type(_, Type, Options) :-
+    MaxDepth = Options.max_depth,
+    integer(MaxDepth),
+    Options.depth >= MaxDepth,
+    !,
+    Type = symbol.
+end_code_type(Term, Type, Options) :-
+    primitive(Term, _),
+    !,
+    quote_atomic(Term, S, Options),
+    end_type(S, Type, Options).
+end_code_type(Dict, Type, Options) :-
+    is_dict(Dict, Tag),
+    !,
+    (   Options.side == left
+    ->  end_code_type(Tag, Type, Options)
+    ;   Type = punct
+    ).
+end_code_type('$VAR'(Var), Type, Options) :-
+    Options.get(numbervars) == true,
+    !,
+    format(string(S), '~W', ['$VAR'(Var), [numbervars(true)]]),
+    end_type(S, Type, Options).
+end_code_type(List, Type, _) :-
+    (   List == []
+    ;   List = [_|_]
+    ),
+    !,
+    Type = punct.
+end_code_type(OpTerm, Type, Options) :-
+    compound_name_arity(OpTerm, Name, 1),
+    is_op1(Name, Type, Pri, ArgPri, Options),
+    \+ Options.get(ignore_ops) == true,
+    !,
+    (   Pri > Options.priority
+    ->  Type = punct
+    ;   (   Type == prefix
+        ->  end_code_type(Name, Type, Options)
+        ;   arg(1, OpTerm, Arg),
+            arg_options(Options, ArgOptions),
+            end_code_type(Arg, Type, ArgOptions.put(priority, ArgPri))
+        )
+    ).
+end_code_type(OpTerm, Type, Options) :-
+    compound_name_arity(OpTerm, Name, 2),
+    is_op2(Name, LeftPri, Pri, _RightPri, Options),
+    \+ Options.get(ignore_ops) == true,
+    !,
+    (   Pri > Options.priority
+    ->  Type = punct
+    ;   arg(1, OpTerm, Arg),
+        arg_options(Options, ArgOptions),
+        end_code_type(Arg, Type, ArgOptions.put(priority, LeftPri))
+    ).
+end_code_type(Compound, Type, Options) :-
+    compound_name_arity(Compound, Name, _),
+    end_code_type(Name, Type, Options).
+
+end_type(S, Type, _Options) :-
+    number(S),
+    !,
+    Type = alnum.
+end_type(S, Type, Options) :-
+    Options.side == left,
+    !,
+    sub_string(S, 0, 1, _, Start),
+    syntax_type(Start, Type).
+end_type(S, Type, _) :-
+    sub_string(S, _, 1, 0, End),
+    syntax_type(End, Type).
+
+syntax_type("\"", quote(double)) :- !.
+syntax_type("\'", quote(single)) :- !.
+syntax_type("\`", quote(back))   :- !.
+syntax_type(S, Type) :-
+    string_code(1, S, C),
+    (   code_type(C, prolog_identifier_continue)
+    ->  Type = alnum
+    ;   code_type(C, prolog_symbol)
+    ->  Type = symbol
+    ;   code_type(C, space)
+    ->  Type = layout
+    ;   Type = punct
+    ).
+
+is_solo(Var) :-
+    var(Var), !, fail.
+is_solo(',').
+is_solo(';').
+is_solo('!').
+
+%!  primitive(+Term, -Class) is semidet.
+%
+%   True if Term is a primitive term, rendered using the CSS
+%   class Class.
+
+primitive(Term, Type) :- var(Term),      !, Type = 'pl-avar'.
+primitive(Term, Type) :- atom(Term),     !, Type = 'pl-atom'.
+primitive(Term, Type) :- string(Term),   !, Type = 'pl-string'.
+primitive(Term, Type) :- integer(Term),  !, Type = 'pl-int'.
+primitive(Term, Type) :- rational(Term), !, Type = 'pl-rational'.
+primitive(Term, Type) :- float(Term),    !, Type = 'pl-float'.
+
+%!  operator_module(-Module, +Options) is det.
+%
+%   Find the module for evaluating operators.
+
+operator_module(Module, Options) :-
+    Module = Options.get(module),
+    !.
+operator_module(TypeIn, _) :-
+    '$module'(TypeIn, TypeIn).
+
+%!  arg_options(+Options, -OptionsOut) is det.
+%
+%   Increment depth in Options.
+
+arg_options(Options, Options.put(depth, NewDepth)) :-
+    NewDepth is Options.depth+1.
+
+quote_atomic(Float, String, Options) :-
+    float(Float),
+    Format = Options.get(float_format),
+    !,
+    format(string(String), Format, [Float]).
+quote_atomic(Plain, Plain, _) :-
+    number(Plain),
+    !.
+quote_atomic(Plain, String, Options) :-
+    Options.get(quoted) == true,
+    !,
+    (   Options.get(embrace) == never
+    ->  format(string(String), '~q', [Plain])
+    ;   format(string(String), '~W', [Plain, Options])
+    ).
+quote_atomic(Var, String, Options) :-
+    var(Var),
+    !,
+    format(string(String), '~W', [Var, Options]).
+quote_atomic(Plain, Plain, _).
+
+space_op(:-).
