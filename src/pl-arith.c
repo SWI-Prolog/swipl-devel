@@ -455,15 +455,25 @@ PRED_IMPL("rational", 3, rational, 0)
   if ( isRational(*p) )
   { if ( isMPQNum(*p) )
     { number n, num, den;
+      int rc;
 
       get_rational(*p, &n);
+      assert(n.type == V_MPQ);
+
       num.type = V_MPZ;
       den.type = V_MPZ;
-      num.value.mpz[0] = *mpq_numref(n.value.mpq);
-      den.value.mpz[0] = *mpq_denref(n.value.mpq);
+      mpz_init(num.value.mpz);
+      mpz_init(den.value.mpz);
+      mpz_set(num.value.mpz, mpq_numref(n.value.mpq));
+      mpz_set(den.value.mpz, mpq_denref(n.value.mpq));
 
-      return ( PL_unify_number(A2, &num) &&
-	       PL_unify_number(A3, &den) );
+      rc = ( PL_unify_number(A2, &num) &&
+	     PL_unify_number(A3, &den) );
+
+      clearNumber(&num);
+      clearNumber(&den);
+
+      return rc;
     } else
     { return ( PL_unify(A1, A2) &&
 	       PL_unify_integer(A3, 1) );
