@@ -2685,19 +2685,17 @@ values below. Note that write_canonical/1 always uses the compatible
     \termitem{natural}{}
 This is the default mode where we ignore the abiguity issue and follow
 the most natural <integer>/<nonneg> alternative. Here, <integer> follows
-the normal rules for Prolog integers and <nonneg> does the same, but
-does not allows for a sign. Note that the parser translates a rational
-number to its canonical form which implies there are no common divisors
-in the resulting numerator and demoninator. Examples of ration numbers
-are:
+the normal rules for Prolog decimal integers and <nonneg> does the same,
+but does not allows for a sign. Note that the parser translates a
+rational number to its canonical form which implies there are no common
+divisors in the resulting numerator and demoninator. Examples of ration
+numbers are:
 
 \begin{tabular}{ll}
 1/2		 & 1/2      \\
 2/4              & 1/2      \\
 1 000 000/33 000 & 1000/33  \\
 -3/5		 & -3/5     \\
-0xffff/10	 & 13107/2  \\
-8'56346/5'132320 & 2162/485 \\
 \end{tabular}
 
 We expect very few programs to have text parsed into a rational number
