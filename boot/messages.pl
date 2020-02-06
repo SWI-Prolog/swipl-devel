@@ -92,11 +92,9 @@ translate_message2(Term) -->
 translate_message2(error(resource_error(stack), Context)) -->
     !,
     out_of_stack(Context).
-translate_message2(error(resource_error(tripwire(Wire, Context)), Context)) -->
+translate_message2(error(resource_error(tripwire(Wire, Context)), _)) -->
     !,
     tripwire_message(Wire, Context).
-translate_message2(error(resource_error(Missing), _)) -->
-    [ 'Not enough resources: ~w'-[Missing] ].
 translate_message2(error(ISO, SWI)) -->
     swi_location(SWI),
     term_message(ISO),
@@ -126,6 +124,8 @@ term_message(Term) -->
 term_message(Term) -->
     [ 'Unknown error term: ~p'-[Term] ].
 
+iso_message(resource_error(Missing)) -->
+    [ 'Not enough resources: ~w'-[Missing] ].
 iso_message(type_error(evaluable, Actual)) -->
     { callable(Actual) },
     [ 'Arithmetic: `~p'' is not a function'-[Actual] ].

@@ -456,6 +456,8 @@ A max_files		"max_files"
 A max_frame_size	"max_frame_size"
 A max_length		"max_length"
 A max_path_length	"max_path_length"
+A max_rational_size	"max_rational_size"
+A max_rational_size_action "max_rational_size_action"
 A max_size		"max_size"
 A max_symbolic_links	"max_symbolic_links"
 A max_answers_for_subgoal "max_answers_for_subgoal"
@@ -777,6 +779,7 @@ A thread_property	"thread_property"
 A threads		"threads"
 A threads_created	"threads_created"
 A trienode		"trienode"
+A tripwire		"tripwire"
 A throw			"throw"
 A tilde			"~"
 A time			"time"
@@ -1150,6 +1153,7 @@ F trace			1
 F traceinterc		3
 F tracing		1
 F thread		1
+F tripwire		2
 F true			0
 F truncate		1
 F tty			1

@@ -230,6 +230,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, ATOM_float_underflow);
       break;
     }
+    case ERR_AR_TRIPWIRE:
+    { atom_t tripwire = va_arg(args, atom_t);
+      Number num      = va_arg(args, Number);
+      term_t actual   = PL_new_term_ref();
+
+      rc = (_PL_put_number(actual, num) &&
+	    PL_unify_term(formal,
+			  PL_FUNCTOR, FUNCTOR_resource_error1,
+			    PL_FUNCTOR, FUNCTOR_tripwire2,
+			      PL_ATOM, tripwire,
+			      PL_TERM, actual));
+      break;
+    }
     case ERR_DOMAIN:			/*  ERR_INSTANTIATION if var(arg) */
     { atom_t domain = va_arg(args, atom_t);
       term_t arg    = va_arg(args, term_t);

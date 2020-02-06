@@ -615,6 +615,8 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
     if ( tbl_is_restraint_flag(k) )
       return tbl_set_restraint_flag(value, k PASS_LD);
+    if ( is_arith_flag(k) )
+      return set_arith_flag(value, k PASS_LD);
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
@@ -1120,6 +1122,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   { return PL_unify_int64(val, LD->stacks.limit);
   } else if ( tbl_is_restraint_flag(key) )
   { return tbl_get_restraint_flag(val, key PASS_LD) == TRUE;
+  } else if ( is_arith_flag(key) )
+  { return get_arith_flag(val, key PASS_LD) == TRUE;
   }
 
   switch(f->flags & FT_MASK)

@@ -140,6 +140,9 @@ COMMON(int)		ar_signbit(Number n1);
 COMMON(int)		check_float(double f);
 COMMON(int)		ar_rdiv_mpz(Number n1, Number n2, Number r);
 COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
+COMMON(int)		is_arith_flag(atom_t k);
+COMMON(int)		get_arith_flag(term_t val, atom_t k ARG_LD);
+COMMON(int)		set_arith_flag(term_t val, atom_t k ARG_LD);
 
 /* pl-bag.c */
 COMMON(void)		markAtomsFindall(PL_local_data_t *ld);

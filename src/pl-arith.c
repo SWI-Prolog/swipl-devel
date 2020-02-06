@@ -699,6 +699,31 @@ check_float(double f)
 }
 
 
+#ifdef O_GMP
+static int
+check_mpq(Number r)
+{ GET_LD
+  size_t sz;
+
+  if ( (sz=LD->arith.max_rational_size) != (size_t)-1 )
+  { if ( ( mpq_numref(r->value.mpq)->_mp_size +
+	   mpq_denref(r->value.mpq)->_mp_size ) * sizeof(mp_limb_t) > sz )
+    { atom_t action = LD->arith.max_rational_size_action;
+
+      if ( action == ATOM_float )
+	promoteToFloatNumber(r);
+      else if ( action == ATOM_error )
+	return PL_error(NULL, 0, "requires more than max_rational_size bytes",
+			ERR_AR_TRIPWIRE, ATOM_max_rational_size, r);
+      else
+	assert(0);
+    }
+  }
+
+  return TRUE;
+}
+#endif
+
 		 /*******************************
 		 *	     EVALULATE		*
 		 *******************************/
@@ -1194,7 +1219,7 @@ ar_add_ui(Number n, intptr_t add)
 	mpz_submul_ui(mpq_numref(n->value.mpq), mpq_denref(n->value.mpq),
 		      (unsigned long)-add);
 
-      succeed;
+      return check_mpq(n);
     }
 #endif
     case V_FLOAT:
@@ -1248,7 +1273,7 @@ pl_ar_add(Number n1, Number n2, Number r)
     { r->type = V_MPQ;
       mpq_init(r->value.mpq);
       mpq_add(r->value.mpq, n1->value.mpq, n2->value.mpq);
-      succeed;
+      return check_mpq(r);
     }
 #endif
     case V_FLOAT:
@@ -1295,6 +1320,7 @@ ar_minus(Number n1, Number n2, Number r)
     { r->type = V_MPQ;
       mpq_init(r->value.mpq);
       mpq_sub(r->value.mpq, n1->value.mpq, n2->value.mpq);
+      return check_mpq(r);
       succeed;
     }
 #endif
@@ -1880,7 +1906,7 @@ ar_pow(Number n1, Number n2, Number r)
       clearNumber(&nrp);
       clearNumber(&ndp);
 
-      return TRUE;
+      return check_mpq(r);
     }
 
     clearNumber(&nrp);
@@ -2344,7 +2370,7 @@ ar_rationalize(Number n1, Number r)
     case V_MPQ:
       cpNumber(r, n1);
       promoteToMPQNumber(r);
-      succeed;
+      return check_mpq(r);
     case V_FLOAT:
     { if ( !check_float(n1->value.f) )
 	return FALSE;
@@ -2376,8 +2402,7 @@ ar_rationalize(Number n1, Number r)
       mpz_init_set_d(mpq_numref(r->value.mpq), p1);
       mpz_init_set_d(mpq_denref(r->value.mpq), q1);
       mpq_canonicalize(r->value.mpq);	/* is this needed? */
-
-      succeed;
+      return check_mpq(r);
     }
   }
 
@@ -2398,6 +2423,7 @@ ar_rdiv_mpz(Number n1, Number n2, Number r)
     mpz_set(mpq_numref(r->value.mpq), n1->value.mpz);
     mpz_set(mpq_denref(r->value.mpq), n2->value.mpz);
     mpq_canonicalize(r->value.mpq);
+    return check_mpq(r);
   }
 
   return TRUE;
@@ -2425,6 +2451,7 @@ ar_rdiv(Number n1, Number n2, Number r)
     r->type = V_MPQ;
     mpq_init(r->value.mpq);
     mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
+    return check_mpq(r);
   } else if ( !ratNumber(n1) )
   { return PL_error("rdiv", 2, NULL, ERR_AR_TYPE, ATOM_rational, n1);
   } else
@@ -2480,7 +2507,7 @@ ar_divide(Number n1, Number n2, Number r)
         mpq_init(r->value.mpq);
 	r->type = V_MPQ;
 	mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
-	succeed;
+	return check_mpq(r);
 #endif
       case V_FLOAT:
 	break;
@@ -2600,7 +2627,7 @@ ar_mul(Number n1, Number n2, Number r)
       r->type = V_MPQ;
       mpq_init(r->value.mpq);
       mpq_mul(r->value.mpq, n1->value.mpq, n2->value.mpq);
-      succeed;
+      return check_mpq(r);
 #else
       return PL_error("*", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
@@ -2905,7 +2932,7 @@ ar_u_minus(Number n1, Number r)
     case V_MPQ:
       mpq_init(r->value.mpq);
       mpq_neg(r->value.mpq, n1->value.mpq);
-      break;
+      return check_mpq(r);
 #endif
     case V_FLOAT:
       r->value.f = -n1->value.f;
@@ -3871,10 +3898,19 @@ registerBuiltinFunctions()
 
 void
 initArith(void)
-{ registerBuiltinFunctions();
+{ GET_LD
+  registerBuiltinFunctions();
 
 #ifdef O_INHIBIT_FP_SIGNALS
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
+#endif
+
+#ifdef O_GMP
+  LD->arith.max_rational_size = (size_t)-1;
+  LD->arith.max_rational_size_action = ATOM_error;
+
+  setPrologFlag("max_rational_size",	    FT_INTEGER, -1);
+  setPrologFlag("max_rational_size_action", FT_ATOM,    "error");
 #endif
 }
 
@@ -3894,6 +3930,71 @@ cleanupArith(void)
   }
 }
 
+int
+is_arith_flag(atom_t k)
+{ return ( k == ATOM_max_rational_size ||
+	   k == ATOM_max_rational_size_action );
+}
+
+int
+get_arith_flag(term_t val, atom_t k ARG_LD)
+{ size_t sz;
+
+  if ( k == ATOM_max_rational_size &&
+       (sz=LD->arith.max_rational_size) != (size_t)-1 )
+    return PL_unify_uint64(val, sz);
+  if ( k == ATOM_max_rational_size_action )
+    return PL_unify_atom(val, LD->arith.max_rational_size_action);
+
+  return FALSE;
+}
+
+static int
+set_restraint(term_t t, size_t *valp)
+{ GET_LD
+  atom_t inf;
+
+  if ( PL_get_atom(t, &inf) && inf == ATOM_infinite )
+  { *valp = (size_t)-1;
+    return TRUE;
+  }
+  return PL_get_size_ex(t, valp);
+}
+
+
+static int
+set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
+{ atom_t act;
+
+  if ( PL_get_atom_ex(t, &act) )
+  { if ( act == ATOM_error )
+    { ok:
+      *valp = act;
+      return TRUE;
+    }
+
+    if ( key == ATOM_max_rational_size_action &&
+	 ( act == ATOM_float ) )
+      goto ok;
+
+    return PL_domain_error("max_rational_size_action", t);
+  }
+
+  return FALSE;
+}
+
+
+int
+set_arith_flag(term_t val, atom_t key ARG_LD)
+{ if ( key == ATOM_max_rational_size )
+    return set_restraint(val, &LD->arith.max_rational_size);
+  if ( key == ATOM_max_rational_size_action )
+    return set_restraint_action(
+	       val, key,
+	       &LD->arith.max_rational_size_action PASS_LD);
+
+  return FALSE;
+}
 
 #if O_COMPILE_ARITH
 

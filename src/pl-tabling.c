@@ -6336,7 +6336,7 @@ set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
 	 ( act == ATOM_bounded_rationality ) )
       goto ok;
 
-    return PL_domain_error("restraint_value", t);
+    return PL_domain_error("restraint_action", t);
   }
 
   return FALSE;
@@ -6746,19 +6746,19 @@ initTabling(void)
   cv_init(&GD->tabling.cvar, NULL);
 #endif
 
-  LD->tabling.restraint.max_table_subgoal_size_action =	ATOM_error;
-  LD->tabling.restraint.max_table_subgoal_size	      =	(size_t)-1;
-  LD->tabling.restraint.max_table_answer_size_action  =	ATOM_error;
-  LD->tabling.restraint.max_table_answer_size	      =	(size_t)-1;
-  LD->tabling.restraint.max_answers_for_subgoal_action =	ATOM_error;
-  LD->tabling.restraint.max_answers_for_subgoal	      =	(size_t)-1;
+  LD->tabling.restraint.max_table_subgoal_size_action  = ATOM_error;
+  LD->tabling.restraint.max_table_subgoal_size	       = (size_t)-1;
+  LD->tabling.restraint.max_table_answer_size_action   = ATOM_error;
+  LD->tabling.restraint.max_table_answer_size	       = (size_t)-1;
+  LD->tabling.restraint.max_answers_for_subgoal_action = ATOM_error;
+  LD->tabling.restraint.max_answers_for_subgoal	       = (size_t)-1;
 
-  setPrologFlag("max_table_subgoal_size_action", FT_ATOM,    "error");
-  setPrologFlag("max_table_answer_size_action",	 FT_ATOM,    "error");
+  setPrologFlag("max_table_subgoal_size_action",  FT_ATOM,    "error");
+  setPrologFlag("max_table_answer_size_action",	  FT_ATOM,    "error");
   setPrologFlag("max_answers_for_subgoal_action", FT_ATOM,    "error");
-  setPrologFlag("max_table_subgoal_size",	 FT_INTEGER, -1);
-  setPrologFlag("max_table_answer_size",	 FT_INTEGER, -1);
-  setPrologFlag("max_answers_for_subgoal",	 FT_INTEGER, -1);
+  setPrologFlag("max_table_subgoal_size",	  FT_INTEGER, -1);
+  setPrologFlag("max_table_answer_size",	  FT_INTEGER, -1);
+  setPrologFlag("max_answers_for_subgoal",	  FT_INTEGER, -1);
 }
 
 		 /*******************************

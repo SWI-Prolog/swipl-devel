@@ -1619,6 +1619,20 @@ answers specified in \prologflag{max_answers_for_subgoal}. Supported values
 are \const{bounded_rationality}, \const{error} (default) or
 \const{suspend}.
 
+    \prologflagitem{max_rational_size}{integer}{rw}
+Limit the size in bytes for rational numbers. This \jargon{tripwire} can
+be used to identify cases where setting the Prolog flag
+\prologflag{prefer_rationals} to \const{true} creates excessively big
+rational numbers and, if precision is not required, one should use
+floating point arithmetic.
+
+    \prologflagitem{max_rational_size_action}{atom}{rw}
+Action when the \prologflag{max_rational_size} tripwire is exceeded.
+Possible values are \const{error} (default), which throws a tripwire
+resource error and \const{float}, which converts the rational number
+into a floating point number. Note that rational numbers may exceed the
+range for floating point numbers.
+
     \prologflagitem{max_table_answer_size}{integer}{rw}
 Limit the size of an answer substitution for tabling.  The atom
 \const{infinite} clears the flag.  By default this flag is not defined.
@@ -1762,6 +1776,10 @@ prefer arithmetic to produce rational numbers over floats. This implies:
 	negative number.  For example, \verb$2^(-2)$ evaluates to
 	\verb$1/4$.
     \end{itemize}
+
+Using \const{true} can create excessively large rational numbers. The
+Prolog flag \prologflag{max_rational_size} can be used to detect and
+act on this \jargon{tripwire}.
 
 If \const{false}, rational numbers can only be created using the
 functions \funcref{rational}{1}, \funcref{rationalize}{1} and
