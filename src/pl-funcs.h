@@ -563,7 +563,6 @@ COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
 COMMON(void)		addProcedureSourceFile(SourceFile sf, Procedure proc);
 COMMON(int)		hasProcedureSourceFile(SourceFile sf, Procedure proc);
 COMMON(int)		reloadHasClauses(SourceFile sf, Procedure proc ARG_LD);
-COMMON(int)		isDefinedProcedureSource(Procedure proc);
 COMMON(ClauseRef)	assertProcedureSource(SourceFile sf, Procedure proc,
 					      Clause clause ARG_LD);
 COMMON(int)		setAttrProcedureSource(SourceFile sf, Procedure proc,

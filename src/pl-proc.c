@@ -2933,7 +2933,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   } else if ( key == ATOM_defined )
   { int d;
 
-    if ( isDefinedProcedureSource(proc) )
+    if ( isDefinedProcedure(proc) )
       d = 1;
     else
       d = 0;
