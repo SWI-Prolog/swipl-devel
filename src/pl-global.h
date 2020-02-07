@@ -587,8 +587,10 @@ struct PL_local_data
     { gmp_randstate_t state;
       int initialised;
     } random;
-    size_t max_rational_size;
-    atom_t max_rational_size_action;
+    struct
+    { size_t max_rational_size;
+      atom_t max_rational_size_action;
+    } rat;
 #endif
     struct
     { unsigned int flags;		/* FTL_* */

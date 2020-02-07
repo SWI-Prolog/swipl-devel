@@ -750,10 +750,10 @@ check_mpq(Number r)
 { GET_LD
   size_t sz;
 
-  if ( (sz=LD->arith.max_rational_size) != (size_t)-1 )
+  if ( (sz=LD->arith.rat.max_rational_size) != (size_t)-1 )
   { if ( ( mpq_numref(r->value.mpq)->_mp_size +
 	   mpq_denref(r->value.mpq)->_mp_size ) * sizeof(mp_limb_t) > sz )
-    { atom_t action = LD->arith.max_rational_size_action;
+    { atom_t action = LD->arith.rat.max_rational_size_action;
 
       if ( action == ATOM_float )
 	promoteToFloatNumber(r);
@@ -3992,8 +3992,8 @@ initArith(void)
   const_neg_inf = strtod("-Inf", NULL);
 
 #ifdef O_GMP
-  LD->arith.max_rational_size = (size_t)-1;
-  LD->arith.max_rational_size_action = ATOM_error;
+  LD->arith.rat.max_rational_size = (size_t)-1;
+  LD->arith.rat.max_rational_size_action = ATOM_error;
 
   setPrologFlag("max_rational_size",	    FT_INTEGER, -1);
   setPrologFlag("max_rational_size_action", FT_ATOM,    "error");
@@ -4044,10 +4044,10 @@ get_arith_flag(term_t val, atom_t k ARG_LD)
   atom_t a;
 
   if ( k == ATOM_max_rational_size &&
-       (sz=LD->arith.max_rational_size) != (size_t)-1 )
+       (sz=LD->arith.rat.max_rational_size) != (size_t)-1 )
     return PL_unify_uint64(val, sz);
   if ( k == ATOM_max_rational_size_action )
-    return PL_unify_atom(val, LD->arith.max_rational_size_action);
+    return PL_unify_atom(val, LD->arith.rat.max_rational_size_action);
   if ( k == ATOM_float_overflow )
     a = LD->arith.f.flags & FLT_OVERFLOW ? ATOM_infinity : ATOM_error;
   else if ( k == ATOM_float_zero_div )
@@ -4113,11 +4113,11 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
 { atom_t a;
 
   if ( key == ATOM_max_rational_size )
-    return set_restraint(val, &LD->arith.max_rational_size);
+    return set_restraint(val, &LD->arith.rat.max_rational_size);
   if ( key == ATOM_max_rational_size_action )
     return set_restraint_action(
 	       val, key,
-	       &LD->arith.max_rational_size_action PASS_LD);
+	       &LD->arith.rat.max_rational_size_action PASS_LD);
 
   if ( PL_get_atom_ex(val, &a) )
   { if ( key == ATOM_float_overflow )
