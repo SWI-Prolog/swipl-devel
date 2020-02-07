@@ -37,7 +37,7 @@
             help/1,                     % +Object
             apropos/1                   % +Search
           ]).
-:- use_module(library(pldoc)).
+:- use_module(library(pldoc), []).
 :- use_module(library(pldoc/doc_man)).
 :- use_module(library(pldoc/man_index)).
 :- use_module(library(pldoc/doc_words)).
