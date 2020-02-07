@@ -7262,6 +7262,16 @@ evaluates to \arg{Expr1} if the sign of both expressions matches or
 notion of signs for floating point numbers, where the sign of -0.0
 and other special floats is negative.
 
+    \function{nexttoward}{2}{+Expr1, +Expr2}
+Evaluates to floating point number following \arg{Expr1} in the
+direction of \arg{Expr2}. This relates to \funcref{epsilon}{0} in the
+following way:
+
+\begin{code}
+?- epsilon =:= nexttoward(1,2)-1.
+true.
+\end{code}
+
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the
@@ -7568,16 +7578,23 @@ complementary error function.''
 
     \function[ISO]{pi}{0}{}
 Evaluate to the mathematical constant $\pi$ (3.14159\ldots).
+
     \function{e}{0}{}
 Evaluate to the mathematical constant $e$ (2.71828\ldots).
+
     \function{epsilon}{0}{}
 Evaluate to the difference between the float 1.0 and
-the first larger floating point number.
+the first larger floating point number. See also
+\funcref{nexttoward}{2}.
+
     \function{inf}{0}{}
-Evaluate to positive infinity.  See \secref{floatsyntax}.  This value
-can be negated using \funcref{-}{1}.
+Evaluate to positive infinity. See \secref{floatsyntax} and
+\secref{ieee-float}. This value can be negated using \funcref{-}{1}.
+
     \function{nan}{0}{}
-Evaluate to \emph{Not a Number}.  See \secref{floatsyntax}.
+Evaluate to \emph{Not a Number}. See \secref{floatsyntax} and
+\secref{ieee-float}.
+
     \function{cputime}{0}{}
 Evaluate to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.

@@ -505,6 +505,7 @@ A nearest		"nearest"
 A newline		"newline"
 A next			"next"
 A next_argument		"next_argument"
+A nexttoward		"nexttoward"
 A nil			"[]"
 A nl			"nl"
 A nlink			"nlink"
@@ -1066,6 +1067,7 @@ F msb			1
 F multi			1
 F nan			0
 F newline		1
+F nexttoward		2
 F nlink			1
 F nonvar		1
 F not_implemented	2

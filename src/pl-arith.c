@@ -2310,6 +2310,22 @@ ar_copysign(Number n1, Number n2, Number r)
 
 
 static int
+ar_nexttoward(Number n1, Number n2, Number r)
+{ if ( promoteToFloatNumber(n1) &&
+       promoteToFloatNumber(n2) )
+  { if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
+    { r->value.f = nexttoward(n1->value.f, n2->value.f);
+      r->type = V_FLOAT;
+
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static int
 ar_rem(Number n1, Number n2, Number r)
 { if ( !toIntegerNumber(n1, 0) )
     return PL_error("rem", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
@@ -3872,6 +3888,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_float_fractional_part1, ar_float_fractional_part, F_ISO),
   ADD(FUNCTOR_float_integer_part1, ar_float_integer_part, F_ISO),
   ADD(FUNCTOR_copysign2,	ar_copysign, 0),
+  ADD(FUNCTOR_nexttoward2,	ar_nexttoward, 0),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt, F_ISO),
   ADD(FUNCTOR_sin1,		ar_sin, F_ISO),
