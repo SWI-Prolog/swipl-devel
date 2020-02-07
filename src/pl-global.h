@@ -590,6 +590,9 @@ struct PL_local_data
     size_t max_rational_size;
     atom_t max_rational_size_action;
 #endif
+    struct
+    { unsigned int flags;		/* FTL_* */
+    } f;
   } arith;
 
 #if O_CYCLIC

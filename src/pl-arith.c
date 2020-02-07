@@ -70,6 +70,7 @@ in this array.
 #ifdef HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
+#include <fenv.h>
 
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
@@ -84,6 +85,21 @@ in this array.
 #ifndef M_E
 #define M_E (2.7182818284590452354)
 #endif
+
+/* LD->arith.float_flags values */
+#define FLT_ROUND_NEAREST	0x0001
+#define FLT_ROUND_TO_POS	0x0002
+#define FLT_ROUND_TO_NEG	0x0003
+#define FLT_ROUND_TO_ZERO	0x0004
+#define FLT_ROUND_MASK		0x000f
+#define FLT_OVERFLOW		0x0010
+#define FLT_ZERO_DIV		0x0020
+#define FLT_UNDEFINED		0x0040
+#define FLT_UNDERFLOW		0x0080
+
+static double const_nan;
+static double const_inf;
+static double const_neg_inf;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On some machines, notably  FreeBSD  upto   version  3.x,  floating point
@@ -642,14 +658,17 @@ isCurrentArithFunction(functor_t f)
 
 int
 check_float(double f)
-{
+{ PL_error_code code = ERR_NO_ERROR;
 #ifdef HAVE_FPCLASSIFY
   switch(fpclassify(f))
   { case FP_NAN:
-      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      code = ERR_AR_UNDEF;
+      break;
+    case FP_SUBNORMAL:
+      code = ERR_AR_UNDERFLOW;
       break;
     case FP_INFINITE:
-      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      code = ERR_AR_OVERFLOW;
       break;
   }
 #else
@@ -657,14 +676,16 @@ check_float(double f)
   switch(fpclass(f))
   { case FP_SNAN:
     case FP_QNAN:
-      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      code = ERR_AR_UNDEF;
       break;
     case FP_NINF:
     case FP_PINF:
-      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      code = ERR_AR_OVERFLOW;
       break;
     case FP_NDENORM:			/* pos/neg denormalized non-zero */
     case FP_PDENORM:
+      code = ERR_AR_UNDERFLOW;
+      break;
     case FP_NNORM:			/* pos/neg normalized non-zero */
     case FP_PNORM:
     case FP_NZERO:			/* pos/neg zero */
@@ -676,25 +697,49 @@ check_float(double f)
   switch(_fpclass(f))
   { case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
-      return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      code = ERR_AR_UNDEF;
       break;
     case _FPCLASS_NINF:
     case _FPCLASS_PINF:
-      return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      code = ERR_AR_OVERFLOW;
       break;
   }
 #else
 #ifdef HAVE_ISNAN
   if ( isnan(f) )
-    return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+    code = ERR_AR_UNDEF;
 #endif
 #ifdef HAVE_ISINF
   if ( isinf(f) )
-    return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+    code = ERR_AR_OVERFLOW;
 #endif
 #endif /*HAVE__FPCLASS*/
 #endif /*HAVE_FPCLASS*/
 #endif /*HAVE_FPCLASSIFY*/
+
+  if ( code != ERR_NO_ERROR )
+  { GET_LD
+
+    switch(code)
+    { case ERR_AR_OVERFLOW:
+	if ( LD->arith.f.flags & FLT_OVERFLOW )
+	  return TRUE;
+        break;
+      case ERR_AR_UNDERFLOW:
+	if ( LD->arith.f.flags & FLT_UNDERFLOW )
+	  return TRUE;
+        break;
+      case ERR_AR_UNDEF:
+	if ( LD->arith.f.flags & FLT_UNDEFINED )
+	  return TRUE;
+        break;
+      default:
+	assert(0);
+    }
+
+    return PL_error(NULL, 0, NULL, code);
+  }
+
   return TRUE;
 }
 
@@ -1955,13 +2000,36 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #endif
 }
 
+#define AR_UNDEFINED_IF(func, arity, test, r)			\
+	if ( test )						\
+	{ GET_LD						\
+	  if ( LD->arith.f.flags & FLT_UNDEFINED )		\
+	  { r->type = V_FLOAT;					\
+	    r->value.f = const_nan;				\
+	    return TRUE;					\
+	  } else						\
+	  { return PL_error(func, arity, NULL, ERR_AR_UNDEF);	\
+	  }							\
+	}
+#define AR_DIV_ZERO_IF(func, arity, n, d, r)			\
+	if ( d == 0.0 )						\
+	{ GET_LD						\
+	  if ( LD->arith.f.flags & FLT_ZERO_DIV )		\
+	  { r->type = V_FLOAT;					\
+	    r->value.f = signbit(n) == signbit(d)		\
+			? const_inf				\
+			: const_neg_inf;			\
+	    return TRUE;					\
+	  } else						\
+	  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);\
+	  }							\
+	}
 
 static int
 ar_sqrt(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  if ( n1->value.f < 0 )
-    return PL_error("sqrt", 1, NULL, ERR_AR_UNDEF);
+  AR_UNDEFINED_IF("sqrt", 1,  n1->value.f < 0, r);
   r->value.f = sqrt(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -1973,8 +2041,7 @@ static int
 ar_asin(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
-    return PL_error("asin", 1, NULL, ERR_AR_UNDEF);
+  AR_UNDEFINED_IF("asin", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = asin(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -1986,8 +2053,7 @@ static int
 ar_acos(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  if ( n1->value.f < -1.0 || n1->value.f > 1.0 )
-    return PL_error("acos", 1, NULL, ERR_AR_UNDEF);
+  AR_UNDEFINED_IF("ascos", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = acos(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -1999,8 +2065,7 @@ static int
 ar_log(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  if ( n1->value.f <= 0.0 )
-    return PL_error("log", 1, NULL, ERR_AR_UNDEF);
+  AR_UNDEFINED_IF("log", 1, n1->value.f <= 0.0 , r);
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2012,8 +2077,7 @@ static int
 ar_log10(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  if ( n1->value.f <= 0.0 )
-    return PL_error("log10", 1, NULL, ERR_AR_UNDEF);
+  AR_UNDEFINED_IF("log10", 1, n1->value.f <= 0.0, r);
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2518,8 +2582,7 @@ ar_divide(Number n1, Number n2, Number r)
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-  if ( n2->value.f == 0.0 )
-    return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+  AR_DIV_ZERO_IF("/", 2, n1->value.f, n2->value.f, r);
   r->value.f = n1->value.f / n2->value.f;
   r->type = V_FLOAT;
 
@@ -3637,7 +3700,7 @@ ar_inf(Number r)
 { static number n = {0};
 
   if ( n.type != V_FLOAT )
-  { n.value.f = strtod("Inf", NULL);
+  { n.value.f = const_inf;
     n.type = V_FLOAT;
   }
 
@@ -3652,7 +3715,7 @@ ar_nan(Number r)
 { static number n = {0};
 
   if ( n.type != V_FLOAT )
-  { n.value.f = strtod("NaN", NULL);
+  { n.value.f = const_nan;
     n.type = V_FLOAT;
   }
 
@@ -3896,6 +3959,8 @@ registerBuiltinFunctions()
 }
 
 
+static atom_t float_rounding_names[5] = {0};
+
 void
 initArith(void)
 { GET_LD
@@ -3905,6 +3970,10 @@ initArith(void)
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
 #endif
 
+  const_nan     = strtod("NaN", NULL);
+  const_inf     = strtod("Inf", NULL);
+  const_neg_inf = strtod("-Inf", NULL);
+
 #ifdef O_GMP
   LD->arith.max_rational_size = (size_t)-1;
   LD->arith.max_rational_size_action = ATOM_error;
@@ -3912,6 +3981,17 @@ initArith(void)
   setPrologFlag("max_rational_size",	    FT_INTEGER, -1);
   setPrologFlag("max_rational_size_action", FT_ATOM,    "error");
 #endif
+
+  LD->arith.f.flags = FLT_ROUND_NEAREST|FLT_UNDERFLOW;
+  setPrologFlag("float_overflow",  FT_ATOM, "error");
+  setPrologFlag("float_zero_div",  FT_ATOM, "error");
+  setPrologFlag("float_undefined", FT_ATOM, "error");
+  setPrologFlag("float_underflow", FT_ATOM, "ignore");
+  setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
+  float_rounding_names[FLT_ROUND_NEAREST]     = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_TO_POS]      = ATOM_to_positive;
+  float_rounding_names[FLT_ROUND_TO_NEG]      = ATOM_to_negative;
+  float_rounding_names[FLT_ROUND_TO_ZERO]     = ATOM_to_zero;
 }
 
 
@@ -3933,20 +4013,38 @@ cleanupArith(void)
 int
 is_arith_flag(atom_t k)
 { return ( k == ATOM_max_rational_size ||
-	   k == ATOM_max_rational_size_action );
+	   k == ATOM_max_rational_size_action ||
+	   k == ATOM_float_overflow ||
+	   k == ATOM_float_zero_div ||
+	   k == ATOM_float_undefined ||
+	   k == ATOM_float_underflow ||
+	   k == ATOM_float_rounding );
 }
 
 int
 get_arith_flag(term_t val, atom_t k ARG_LD)
 { size_t sz;
+  atom_t a;
 
   if ( k == ATOM_max_rational_size &&
        (sz=LD->arith.max_rational_size) != (size_t)-1 )
     return PL_unify_uint64(val, sz);
   if ( k == ATOM_max_rational_size_action )
     return PL_unify_atom(val, LD->arith.max_rational_size_action);
+  if ( k == ATOM_float_overflow )
+    a = LD->arith.f.flags & FLT_OVERFLOW ? ATOM_infinity : ATOM_error;
+  else if ( k == ATOM_float_zero_div )
+    a = LD->arith.f.flags & FLT_ZERO_DIV ? ATOM_infinity : ATOM_error;
+  else if ( k == ATOM_float_undefined )
+    a = LD->arith.f.flags & FLT_UNDEFINED ? ATOM_nan : ATOM_error;
+  else if ( k == ATOM_float_underflow )
+    a = LD->arith.f.flags & FLT_UNDERFLOW ? ATOM_ignore : ATOM_error;
+  else if ( k == ATOM_float_rounding )
+    a = float_rounding_names[LD->arith.f.flags&FLT_ROUND_MASK];
+  else
+    return FALSE;
 
-  return FALSE;
+  return PL_unify_atom(val, a);
 }
 
 static int
@@ -3984,14 +4082,63 @@ set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
 }
 
 
+static void
+set_rounding(int mode)
+{ static int rounding_mode[5] =
+  {0, FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
+
+  fesetround(rounding_mode[mode]);
+}
+
+
 int
 set_arith_flag(term_t val, atom_t key ARG_LD)
-{ if ( key == ATOM_max_rational_size )
+{ atom_t a;
+
+  if ( key == ATOM_max_rational_size )
     return set_restraint(val, &LD->arith.max_rational_size);
   if ( key == ATOM_max_rational_size_action )
     return set_restraint_action(
 	       val, key,
 	       &LD->arith.max_rational_size_action PASS_LD);
+
+  if ( PL_get_atom_ex(val, &a) )
+  { if ( key == ATOM_float_overflow )
+    { if (      a == ATOM_error    ) clear(&(LD->arith.f), FLT_OVERFLOW);
+      else if ( a == ATOM_infinity )   set(&(LD->arith.f), FLT_OVERFLOW);
+      else goto dom;
+    } else if ( key == ATOM_float_zero_div )
+    { if (      a == ATOM_error    ) clear(&(LD->arith.f), FLT_ZERO_DIV);
+      else if ( a == ATOM_infinity )   set(&(LD->arith.f), FLT_ZERO_DIV);
+      else goto dom;
+    } else if ( key == ATOM_float_undefined )
+    { if (      a == ATOM_error    ) clear(&(LD->arith.f), FLT_UNDEFINED);
+      else if ( a == ATOM_nan )        set(&(LD->arith.f), FLT_UNDEFINED);
+      else goto dom;
+    } else if ( key == ATOM_float_underflow )
+    { if (      a == ATOM_error    ) clear(&(LD->arith.f), FLT_UNDERFLOW);
+      else if ( a == ATOM_ignore )     set(&(LD->arith.f), FLT_UNDERFLOW);
+      else goto dom;
+    } else if ( key == ATOM_float_rounding )
+    { int i;
+
+      for(i=1; i<=FLT_ROUND_TO_ZERO; i++)
+      { if ( float_rounding_names[i] == a )
+	{ clear(&(LD->arith.f), FLT_ROUND_MASK);
+	  LD->arith.f.flags |= i;
+	  set_rounding(i);
+	  return TRUE;
+	}
+      }
+      goto dom;
+    } else
+      return FALSE;
+
+    return TRUE;
+
+  dom:
+    return PL_domain_error("flag_value", val);
+  }
 
   return FALSE;
 }

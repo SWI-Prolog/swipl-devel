@@ -7083,20 +7083,53 @@ A = 17/6
 \subsubsection{Rational numbers or floats}
 \label{sec:rational-or-float}
 
-SWI-Prolog by default uses rational number arithmetic if this is defined
-for a function on the given operants. This results in perfectly precise
+SWI-Prolog uses rational number arithmetic if the Prolog flag
+\prologflag{prefer_rationals} is \const strue and if this is defined for
+a function on the given operants. This results in perfectly precise
 answers. Unfortunately rational numbers can get really large and, if a
 precise answer is not needed, a big waste of memory and CPU time. In
-such cases one should use floating point arithmetic. Floating point
-arithmetic can be forced by forcing a float into an argument at any
-point, i.e., the result of a function with at least one float is always
-float except for the float-to-integer rounding and truncating functions
-such as \funcref{round}{1}, \funcref{rational}{1} or
-\funcref{float_integer_part}{1}.
+such cases one should use floating point arithmetic.  The Prolog flag
+\prologflag{max_rational_size} provides a \jargon{tripwire} to detect
+cases where rational numbers get big and react on these events.
+
+Floating point arithmetic can be forced by forcing a float into an
+argument at any point, i.e., the result of a function with at least one
+float is always float except for the float-to-integer rounding and
+truncating functions such as \funcref{round}{1}, \funcref{rational}{1}
+or \funcref{float_integer_part}{1}.
 
 Float arithmetic is typically forced by using a floating point constant
 as initial value or operant. Alternatively, the \funcref{float} function
 forces conversion of the argument.
+
+\subsubsection{IEEE 754 floating point arithmetic}
+\label{sec:ieee-float}
+
+The Prolog ISO standard defines that floating point arithmetic returns a
+valid floating point number or raises an exception. IEEE floating point
+arithmetic defines two modes: raising exceptions and propagating the
+special float values \const{NaN}, \const{Inf}, \const{-Inf} and
+\const{-0.0}. SWI-Prolog implements a part of the
+\href{http://eclipseclp.org/Specs/core_update_float.html}{ECLiPSe
+proposal} to support non-exception based processing of floating point
+numbers. There are four flags that define handling the four exceptional
+events in floating point arithmetic, providing the choice between
+\const{error} and returning the IEEE special value. Note that these
+flags \emph{only} apply for floating point arithmetic. For example
+rational division by zero always raises an exception.
+
+\begin{center}\begin{tabular}{lcc}
+\textbf{Flag} & \textbf{Default} & \textbf{Alternative} \\
+\prologflag{float_overflow}   & error   & infinity \\
+\prologflag{float_zero_div}   & error   & infinity \\
+\prologflag{float_undefined}  & error   & nan \\
+\prologflag{float_underflow}  & ignore  & error \\
+\end{tabular}\end{center}
+
+The Prolog flag \prologflag{float_rounding} controls the rounding mode
+for floating point arithmetic. The default rounding is \const{nearest}
+and the following alternatives are provided: \const{to_positive},
+\const{to_negative} and \const{to_zero}.
 
 
 \subsubsection{Arithmetic Functions}	\label{sec:functions}

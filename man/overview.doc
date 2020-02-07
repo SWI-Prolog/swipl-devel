@@ -1496,6 +1496,25 @@ search result satisfies the conditions. Default is 10 seconds, which
 typically avoids most repetitive searches for (library) files during
 compilation. Setting this value to 0 (zero) disables the cache.
 
+    \prologflagitem{float_overflow}{atom}{rw}
+One of \const{error} (default) or \const{infinity}.  The first is ISO
+compliant.  Using \const{infinity}, floating point overflow is mapped
+to positive or negative \const{Inf}.  See \secref{ieee-float}.
+
+    \prologflagitem{float_zero_div}{atom}{rw}
+One of \const{error} (default) or \const{infinity}. The first is ISO
+compliant. Using \const{infinity}, division by 0.0 is mapped to positive
+or negative \const{Inf}. See \secref{ieee-float}.
+
+    \prologflagitem{float_undefined}{atom}{rw}
+One of \const{error} (default) or \const{nan}. The first is ISO
+compliant. Using \const{nan}, undefined operations such as
+\term{sqrt}{-2.0} is mapped to \const{NaN}. See \secref{ieee-float}.
+
+    \prologflagitem{float_underflow}{atom}{rw}
+One of \const{error} or \const{ignore} (default). The second is ISO
+compliant, binding the result to 0.0.
+
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on
@@ -2769,20 +2788,13 @@ A = 1.5NaN.
 \end{code}
 \end{itemize}
 
-Note that, compliant with the ISO standard, SWI-Prolog arithmetic (see
-\secref{arith}) never returns one of the above values but instead raises
-an \jargon{exception}, e.g.,
-
-\begin{code}
-?- A is 1/0.
-ERROR: //2: Arithmetic: evaluation error: `zero_divisor'
-\end{code}
-
-There is one exception to this rule. For compatibility the functions
-\funcref{inf}{0} and \funcref{nan}{0} return \verb$1.0Inf$ and the
-default system \const{NaN}. The ability to create, read and write such
-values is primarily provided to exchange data with languages that can
-represent the full range of IEEE doubles.
+By default SWI-Prolog arithmetic (see \secref{arith}) follows the ISO
+standard with describes that floating point operations either produce a
+\jargon{normal} floating point number or raise an exception.
+\secref{ieee-float} describes the Prolog flags that can be used to
+support the IEEE special float values. The ability to create, read and
+write such values facilitates the exchange of data with languages that
+can represent the full range of IEEE doubles.
 
 \subsubsection{Force only underscore to introduce a variable}
 \label{sec:varprefix}
