@@ -41,7 +41,7 @@ function(add_swipl_target name)
       OUTPUT ${my_OUTPUT}
       COMMAND ${PROG_SWIPL} ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
-      DEPENDS prolog_products prolog_home
+      DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}")
   add_custom_target(
       ${name} ALL

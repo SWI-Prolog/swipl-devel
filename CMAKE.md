@@ -283,6 +283,13 @@ directory. This aims at the following scenario:
   4. Build, test and install.  Optionally use `swipl-activate` to
      use this version as default.
 
+When  developing  on  the  core  system  one  often  does  not  want  to
+re-generate documentation and possible package dependencies. This can be
+achieved using the target `core`, which   builds `swipl`, `libswipl` and
+`boot.prc`:
+
+    ninja core
+
 
 ### Testing
 

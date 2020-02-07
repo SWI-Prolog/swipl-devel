@@ -272,7 +272,7 @@ add_custom_command(
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home
 )
 
-add_custom_target(prolog_products ALL
+add_custom_target(core ALL
     DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
 )
 
@@ -434,7 +434,7 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=GENERATE -G Ninja ..
     COMMAND ninja -t clean libswipl
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling instrumented version"
-    COMMAND ninja prolog_products
+    COMMAND ninja core
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Running program"
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${PGO_DIR}
     # cannot use the target `swipl` as that causes a build before we run
@@ -442,7 +442,7 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ..
     COMMAND ninja -t clean libswipl
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling optimized version"
-    COMMAND ninja prolog_products
+    COMMAND ninja core
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_property(TARGET pgo PROPERTY

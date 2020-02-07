@@ -30,7 +30,7 @@ add_custom_command(
             --class=development --no-autoload --no-stand_alone
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
-    DEPENDS pldoc2tex.pl swipl prolog_products
+    DEPENDS pldoc2tex.pl swipl core
             pldoc clib sgml http nlp)
 
 add_custom_target(
@@ -239,7 +239,7 @@ add_custom_command(
     COMMAND touch manual.html
     COMMENT "Generating HTML documentation for core system"
     DEPENDS ${TEXFILES} ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.bbl ${cpfiles}
-	    prolog_products latex2html)
+	    core latex2html)
 
 ################
 # Windows and MacOS platform guides
@@ -250,7 +250,7 @@ if(WIN32)
       OUTPUT windows.html
       COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
-              prolog_products latex2html)
+              core latex2html)
 
   add_custom_target(
       core.doc.windows.html
@@ -269,7 +269,7 @@ if(APPLE)
       OUTPUT  macosx/macosx.html
       COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
-              prolog_products latex2html
+              core latex2html
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
 
   add_custom_target(

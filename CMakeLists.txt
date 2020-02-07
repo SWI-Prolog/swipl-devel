@@ -170,7 +170,7 @@ if(INSTALL_DOCUMENTATION)
       OUTPUT ${MAN_INDEX}
       COMMAND ${PROG_SWIPL} -f none --home=${SWIPL_BUILD_HOME}
 	                    -g cmake_save_man_index -t halt
-      DEPENDS swipl prolog_products doc.html)
+      DEPENDS swipl core doc.html)
   add_custom_target(
       man_index
       DEPENDS ${MAN_INDEX})

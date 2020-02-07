@@ -192,7 +192,7 @@ function(pkg_doc pkg)
 	OUTPUT ${pkg}.html
 	COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} ${pkg}
 	COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
-	DEPENDS latex2html prolog_products ${texdeps} ${bbl} ${depends})
+	DEPENDS latex2html core ${texdeps} ${bbl} ${depends})
 
     add_custom_target(
 	${pkg}.doc.html
