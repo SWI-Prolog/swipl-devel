@@ -53,7 +53,7 @@
 :- use_module(library(process)).
 
 :- use_module(library(lynx/html_text)).
-:- use_module(library(lynx/pldoc_style)).
+:- use_module(library(lynx/pldoc_style), []).
 
 /** <module> Text based manual
 
