@@ -526,7 +526,7 @@ autoload_from(Module:PI, LoadModule, FullFile) :-
     memberchk(PI, Imports),
     library_info(File, Ctx, FullFile, LoadModule, Exports),
     (   pi_in_exports(PI, Exports)
-    ->  do_autoload(FullFile, Module:PI, LoadModule)
+    ->  true
     ;   autoload_error(Ctx, not_exported(PI, File, FullFile, Exports)),
         fail
     ).
