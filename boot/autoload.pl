@@ -518,15 +518,11 @@ system:term_expansion((:- autoload_path(Alias)),
 
 autoload_from(Module:PI, LoadModule, FullFile) :-
     \+ current_prolog_flag(autoload, false),
-    PI = Name/Arity,
-    functor(Head, Name, Arity),
-    '$get_predicate_attribute'(Module:Head, autoload, 1),
-    !,
     current_autoload(Module:File, Ctx, import(Imports)),
     memberchk(PI, Imports),
     library_info(File, Ctx, FullFile, LoadModule, Exports),
     (   pi_in_exports(PI, Exports)
-    ->  true
+    ->  !
     ;   autoload_error(Ctx, not_exported(PI, File, FullFile, Exports)),
         fail
     ).
