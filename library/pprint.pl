@@ -203,7 +203,7 @@ dec_depth(Ctx, Ctx) :-
     !.
 dec_depth(Ctx0, Ctx) :-
     ND is Ctx0.max_depth - 1,
-    Ctx = Ctx0.out(max_depth, ND).
+    Ctx = Ctx0.put(max_depth, ND).
 
 
                  /*******************************
