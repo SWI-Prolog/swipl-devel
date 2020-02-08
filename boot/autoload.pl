@@ -693,7 +693,6 @@ autoload(File) :-
     !,
     use_module(File).
 autoload(M:File) :-
-
     '$must_be'(filespec, File),
     source_context(Context),
     retractall(M:'$autoload'(File, _, _)),
@@ -720,7 +719,7 @@ source_context(-).
 
 assert_autoload(Clause) :-
     '$initialization_context'(Source, Ctx),
-    '$store_admin_clause'(Clause, _Layout, Source, Ctx).
+    '$store_admin_clause2'(Clause, _Layout, Source, Ctx).
 
 valid_imports(Imports0, Imports) :-
     '$must_be'(list, Imports0),
