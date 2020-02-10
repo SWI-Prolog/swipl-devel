@@ -37,6 +37,8 @@
           [ autoload_all/0,
             autoload_all/1                      % +Options
           ]).
+:- use_module(library(check), []).      % uses :- public predicates
+
 :- autoload(library(aggregate),[aggregate_all/3]).
 :- autoload(library(error),[must_be/2,existence_error/2]).
 :- autoload(library(option),[option/2,option/3]).
