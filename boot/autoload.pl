@@ -517,7 +517,7 @@ system:term_expansion((:- autoload_path(Alias)),
 %   module LoadModule.
 
 autoload_from(Module:PI, LoadModule, FullFile) :-
-    \+ current_prolog_flag(autoload, false),
+    autoload_in(Module, explicit),
     current_autoload(Module:File, Ctx, import(Imports)),
     memberchk(PI, Imports),
     library_info(File, Ctx, FullFile, LoadModule, Exports),
@@ -527,14 +527,32 @@ autoload_from(Module:PI, LoadModule, FullFile) :-
         fail
     ).
 autoload_from(Module:Name/Arity, LoadModule, FullFile) :-
-    \+ current_prolog_flag(autoload, false),
+    autoload_in(Module, explicit),
     PI = Name/Arity,
     current_autoload(Module:File, Ctx, all),
     library_info(File, Ctx, FullFile, LoadModule, Exports),
     pi_in_exports(PI, Exports).
 autoload_from(Module:Name/Arity, LoadModule, Library) :-
-    current_prolog_flag(autoload, true),
+    autoload_in(Module, general),
     '$find_library'(Module, Name, Arity, LoadModule, Library).
+
+:- public autoload_in/2.                        % used in syspred
+
+autoload_in(Module, How) :-
+    current_prolog_flag(autoload, AutoLoad),
+    autoload_in(AutoLoad, How, Module),
+    !.
+
+%!  autoload_in(+AutoloadFlag, +AutoloadMode, +TargetModule) is semidet.
+
+autoload_in(true,             _,        _).
+autoload_in(explicit,         explicit, _).
+autoload_in(explicit_or_user, explicit, _).
+autoload_in(user,             explicit, user).
+autoload_in(explicit_or_user, explicit, _).
+autoload_in(user,             _,        user).
+autoload_in(explicit_or_user, general,  user).
+
 
 %!  do_autoload(+File, :PI, +LoadModule) is det.
 %
@@ -582,7 +600,7 @@ verbose_autoload(PI, Library) :-
 autoloadable(M:Head, FullFile) :-
     atom(M),
     current_module(M),
-    \+ current_prolog_flag(autoload, false),
+    autoload_in(M, explicit),
     (   callable(Head)
     ->  goal_name_arity(Head, Name, Arity),
         autoload_from(M:Name/Arity, _, FullFile)
@@ -595,8 +613,11 @@ autoloadable(M:Head, FullFile) :-
             \+ memberchk(M:Head-_, Pairs)
         )
     ).
-autoloadable(_:Head, FullFile) :-
-    current_prolog_flag(autoload, true),
+autoloadable(M:Head, FullFile) :-
+    (   var(M)
+    ->  autoload_in(any, general)
+    ;   autoload_in(M, general)
+    ),
     (   callable(Head)
     ->  goal_name_arity(Head, Name, Arity),
         (   '$find_library'(_, Name, Arity, _, FullFile)
@@ -701,7 +722,8 @@ suppress(Context, Error) :-
 %   requests for autoloading. We must do so before disabling autoloading
 %   as loading the files may require autoloading.
 
-set_autoload(false) :-
+set_autoload(FlagValue) :-
+    \+ autoload_in(FlagValue, explicit, any),
     !,
     setup_call_cleanup(
         nb_setval('$autoload_disabling', true),
@@ -717,49 +739,46 @@ materialize_autoload(Count) :-
     arg(1, State, Count).
 
 materialize_autoload(M, State) :-
-    findall(a(File,Context,Import),
-            current_autoload(M:File, Context, Import),
-            Triples),
-    abolish(M:'$autoload'/3),
-    (   '$member'(a(File,Context,Import), Triples),
+    (   current_autoload(M:File, Context, Import),
         library_info(File, Context, FullFile, _LoadModule, _Exports),
         arg(1, State, N0),
         N is N0+1,
         nb_setarg(1, State, N),
         (   Import == all
-        ->  verbose_autoload(all, FullFile),
+        ->  verbose_autoload(M:all, FullFile),
             use_module(M:FullFile)
         ;   Import = import(Preds)
-        ->  verbose_autoload(Preds, FullFile),
+        ->  verbose_autoload(M:Preds, FullFile),
             use_module(M:FullFile, Preds)
         ),
         fail
     ;   true
-    ).
+    ),
+    abolish(M:'$autoload'/3).
 
 
 		 /*******************************
 		 *          AUTOLOAD/2		*
 		 *******************************/
 
-autoload(File) :-
-    (   current_prolog_flag(autoload, false)
+autoload(M:File) :-
+    (   \+ autoload_in(M, explicit)
     ;   nb_current('$autoload_disabling', true)
     ),
     !,
-    use_module(File).
+    use_module(M:File).
 autoload(M:File) :-
     '$must_be'(filespec, File),
     source_context(Context),
     retractall(M:'$autoload'(File, _, _)),
     assert_autoload(M:'$autoload'(File, Context, all)).
 
-autoload(File, Imports) :-
-    (   current_prolog_flag(autoload, false)
+autoload(M:File, Imports) :-
+    (   \+ autoload_in(M, explicit)
     ;   nb_current('$autoload_disabling', true)
     ),
     !,
-    use_module(File, Imports).
+    use_module(M:File, Imports).
 autoload(M:File, Imports0) :-
     '$must_be'(filespec, File),
     valid_imports(Imports0, Imports),

@@ -548,9 +548,10 @@ setAutoload(atom_t a)
 
   if ( a == ATOM_false )
     clearPrologFlagMask(PLFLAG_AUTOLOAD);
-  else if ( a == ATOM_explicit )
-    setPrologFlagMask(PLFLAG_AUTOLOAD);
-  else if ( a == ATOM_true )
+  else if ( a == ATOM_explicit ||
+	    a == ATOM_true ||
+	    a == ATOM_user ||
+	    a == ATOM_user_or_explicit )
     setPrologFlagMask(PLFLAG_AUTOLOAD);
   else
   { term_t value = PL_new_term_ref();

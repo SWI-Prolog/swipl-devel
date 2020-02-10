@@ -1260,12 +1260,35 @@ Set if Prolog was started with a prolog file as argument.  Used by
 e.g., edit/0 to edit the initial file.
 
     \prologflagitem{autoload}{atom}{rw}
-This flag has three values, selecting no autoloading at all
-(\const{false}), only explicitly stated autoloading (\const{explicit})
-and autoloading from explicitly stated locations as well as from the
-library (\const{true}, default). When autoloading is switched off, all
-files that are registered for autoloading are loaded. See
-\secref{autoload}, autoload/1 and autoload/2.
+This flag controls autoloading predicates based on autoload/1 and
+autoload/2 as well as predicates from \jargon{autoload libraries}.
+It has the following values:
+
+\begin{description}
+    \termitem{false}{}
+Predicates are never auto-loaded. If predicates have been imported
+before using autoload/1,2, load the referenced files immediately using
+use_module/1,2. Note that most of the development utilities such as
+listing/1 have to be explictly imported before they can be used at the
+toplevel.
+
+    \termitem{explicit}{}
+Do not autoload from \jargon{autoload libraries}, but do use lazy
+loading for predicates imported using autoload/1,2.
+
+    \termitem{user}{}
+As \const{false}, but to autoload library predicates into the global
+\const{user} module.  This makes the development tools and library
+implicitly available to the toplevel, but not to modules.
+
+    \termitem{user_or_explicit}{}
+Combines \const{explicit} with \const{user}, providing lazy loading
+of predicates imported using autoload/1,2 and implicit access to the
+whole library for the toplevel.
+
+    \termitem{true}{}
+Provide full autoloading everywhere.  This is the default.
+\end{description}
 
     \prologflagitem{back_quotes}{codes,chars,string,symbol_char}{rw}
 Defines the term-representation for back-quoted material.  The default

@@ -649,7 +649,7 @@ current_predicate(Name, Module:Head) :-
     '$defined_predicate'(DefModule:Head),
     !.
 current_predicate(Name, Module:Head) :-
-    current_prolog_flag(autoload, true),
+    '$autoload':autoload_in(Module, general),
     \+ current_prolog_flag(Module:unknown, fail),
     (   compound(Head)
     ->  compound_name_arity(Head, Name, Arity)
