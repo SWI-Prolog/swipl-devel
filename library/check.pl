@@ -50,14 +50,19 @@
           list_rationals/0,		% list rational objects in clauses
           list_rationals/1              % +Options
         ]).
-:- use_module(library(lists)).
-:- use_module(library(pairs)).
-:- use_module(library(option)).
-:- use_module(library(apply)).
-:- use_module(library(prolog_codewalk)).
-:- use_module(library(prolog_code)).
-:- use_module(library(prolog_format)).
-:- use_module(library(occurs)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(lists),[member/2,append/3]).
+:- autoload(library(occurs),[sub_term/2]).
+:- autoload(library(option),[merge_options/3,option/3]).
+:- autoload(library(pairs),
+	    [group_pairs_by_key/2,map_list_to_pairs/3,pairs_values/2]).
+:- autoload(library(prolog_clause),
+	    [clause_info/4,predicate_name/2,clause_name/2]).
+:- autoload(library(prolog_code),[pi_head/2]).
+:- autoload(library(prolog_codewalk),
+	    [prolog_walk_code/1,prolog_program_clause/2]).
+:- autoload(library(prolog_format),[format_types/2]).
+
 
 :- set_prolog_flag(generate_debug_info, false).
 

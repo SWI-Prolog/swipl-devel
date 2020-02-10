@@ -46,9 +46,10 @@
 
             read_file_to_terms/3        % +File, -Terms, +Options
           ]).
-:- use_module(library(shlib)).
-:- use_module(library(error)).
-:- use_module(library(option)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(option),[option/3]).
+:- autoload(library(shlib),[load_foreign_library/1]).
+
 
 /** <module> Read utilities
 

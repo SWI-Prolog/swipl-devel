@@ -44,7 +44,9 @@
             lazy_list_location//1,      % -Location
             lazy_list_character_count//1 % -CharacterCount
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[type_error/2,permission_error/3]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Pure Input from files and streams

@@ -37,8 +37,13 @@
           [ edit/1,                     % +Spec
             edit/0
           ]).
-:- use_module(library(lists), [append/3, member/2, nth1/3]).
-:- use_module(library(make), [make/0]).
+:- autoload(library(lists),[member/2,append/3,nth1/3]).
+:- autoload(library(make),[make/0]).
+:- autoload(library(pce),[in_pce_thread/1]).
+:- autoload(library(pce_emacs),[emacs/1]).
+:- autoload(library(prolog_breakpoints),[breakpoint_property/2]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Editor interface

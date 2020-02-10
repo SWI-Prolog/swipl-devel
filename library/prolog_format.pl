@@ -37,9 +37,10 @@
             format_spec//1,                     % -Spec
             format_types/2                      % +Format, -Types
           ]).
-:- use_module(library(dcg/basics), [eos//0, integer//1, string_without//2]).
-:- use_module(library(when), [when/2]).
-:- use_module(library(error), [existence_error/2]).
+:- autoload(library(error),[is_of_type/2,existence_error/2]).
+:- autoload(library(when),[when/2]).
+:- autoload(library(dcg/basics),[eos//0,string_without//2,integer//1]).
+
 
 /** <module> Analyse format specifications
 

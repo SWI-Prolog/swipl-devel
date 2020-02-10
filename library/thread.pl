@@ -43,11 +43,12 @@
 
             call_in_thread/2            % +Thread, :Goal
           ]).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
-:- use_module(library(option)).
+:- autoload(library(apply),[maplist/2,maplist/3,maplist/4,maplist/5]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[subtract/3,same_length/2]).
+:- autoload(library(option),[option/3]).
+
 
 %:- debug(concurrent).
 
