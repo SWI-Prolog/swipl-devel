@@ -45,11 +45,14 @@
             profile_data/1,             % -Dict
             profile_procedure_data/2    % :PI, -Data
           ]).
-:- use_module(library(lists)).
-:- use_module(library(pairs)).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(prolog_code)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[append/3,member/2]).
+:- autoload(library(option),[option/3]).
+:- autoload(library(pairs),[map_list_to_pairs/3,pairs_values/2]).
+:- autoload(library(prolog_code),
+	    [predicate_sort_key/2,predicate_label/2]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate

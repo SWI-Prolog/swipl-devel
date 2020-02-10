@@ -38,7 +38,14 @@
             current_record_predicate/2, % ?Record, :PI
             op(1150, fx, record)
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),
+	    [ instantiation_error/1,
+	      current_type/3,
+	      domain_error/2,
+	      must_be/2
+	    ]).
+:- autoload(library(lists),[member/2]).
+
 
 /** <module> Access compound arguments by name
 
