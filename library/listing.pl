@@ -42,14 +42,16 @@
           portray_clause/2,             % +Stream, +Clause
           portray_clause/3              % +Stream, +Clause, +Options
         ]).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
-:- use_module(library(settings)).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(debug)).
-:- use_module(library(ansi_term)).
-:- use_module(library(prolog_clause)).
+:- use_module(library(settings),[setting/4,setting/2]).
+
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(apply),[foldl/4]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[instantiation_error/1,must_be/2]).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(option),[option/2,option/3,meta_options/3]).
+:- autoload(library(prolog_clause),[clause_info/5]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent

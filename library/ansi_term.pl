@@ -37,9 +37,11 @@
           [ ansi_format/3,              % +Attr, +Format, +Args
             ansi_get_color/2            % +Which, -rgb(R,G,B)
           ]).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(error)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(error),[domain_error/2,must_be/2]).
+:- autoload(library(lists),[flatten/2,append/2,append/3]).
+:- autoload(library(time),[call_with_time_limit/2]).
+
 
 /** <module> Print decorated text to ANSI consoles
 

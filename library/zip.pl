@@ -44,8 +44,9 @@
             zipper_members/2,              % +Zipper, -Entries
             zipper_file_info/3             % +Zipper, -Name, -Attrs
           ]).
-:- use_module(library(error)).
-:- use_module(library(option)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(option),[option/3]).
+
 
 :- meta_predicate
     with_zipper(+, 0).

@@ -41,11 +41,13 @@
             print_prolog_backtrace/3,   % +Stream, +Stack, +Options
             backtrace/1                 % +MaxDepth
           ]).
-:- use_module(library(prolog_clause)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[nth1/3,append/3]).
+:- autoload(library(option),[option/2,option/3,merge_options/3]).
+:- autoload(library(prolog_clause),
+	    [clause_name/2,predicate_name/2,clause_info/4]).
+
 
 :- dynamic stack_guard/1.
 :- multifile stack_guard/1.

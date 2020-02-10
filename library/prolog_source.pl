@@ -47,12 +47,14 @@
             path_segments_atom/2,       % ?Segments, ?Atom
             directory_source_files/3    % +Dir, -Files, +Options
           ]).
-:- use_module(operators).
-:- use_module(lists).
-:- use_module(debug).
-:- use_module(option).
-:- use_module(error).
-:- use_module(apply).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(debug),[debug/3,assertion/1]).
+:- autoload(library(error),[domain_error/2]).
+:- autoload(library(lists),[member/2,last/2,select/3,append/3]).
+:- autoload(library(operators),
+	    [push_op/3,push_operators/1,pop_operators/0]).
+:- autoload(library(option),[select_option/4,option/3,option/2]).
+
 
 /** <module> Examine Prolog source-files
 

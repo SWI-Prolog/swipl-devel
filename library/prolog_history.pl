@@ -36,7 +36,10 @@
 :- module(prolog_history,
           [ prolog_history/1
           ]).
-:- use_module(library(base32)).
+:- autoload(library(base32),[base32/2]).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(readutil),[read_line_to_codes/2]).
+
 
 :- multifile
     prolog:history/2.
@@ -151,8 +154,6 @@ prolog_history(_) :-
 		 *******************************/
 
 :- if(current_predicate('$rl_history'/1)).
-:- use_module(library(readutil)).
-
 prolog:history(_, load(File)) :-
     access_file(File, read),
     !,

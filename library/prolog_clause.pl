@@ -42,12 +42,13 @@
             predicate_name/2,           % +Head, -Name
             clause_name/2               % +ClauseRef, -Name
           ]).
-:- use_module(library(lists), [append/3]).
-:- use_module(library(occurs), [sub_term/2]).
-:- use_module(library(debug)).
-:- use_module(library(option)).
-:- use_module(library(listing)).
-:- use_module(library(prolog_source)).
+:- autoload(library(debug),[debugging/1,debug/3]).
+:- autoload(library(listing),[portray_clause/1]).
+:- autoload(library(lists),[append/3]).
+:- autoload(library(occurs),[sub_term/2]).
+:- autoload(library(option),[option/3]).
+:- autoload(library(prolog_source),[read_source_term_at_location/3]).
+
 
 :- public                               % called from library(trace/clause)
     unify_term/2,

@@ -57,7 +57,15 @@
             ord_seteq/2,                % +Set1, +Set2
             ord_intersection/2          % +PowerSet, -Intersection
           ]).
-:- use_module(library(oset)).
+:- autoload(library(oset),
+	    [ oset_int/3,
+	      oset_addel/3,
+	      oset_delel/3,
+	      oset_diff/3,
+	      oset_union/3
+	    ]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Ordered set manipulation

@@ -47,7 +47,11 @@
 
             win_add_dll_directory/1     % +Dir
           ]).
-:- use_module(library(lists), [reverse/2]).
+:- autoload(library(apply),[maplist/3,include/3]).
+:- autoload(library(error),[existence_error/2,domain_error/2]).
+:- autoload(library(lists),[member/2,reverse/2]).
+:- autoload(library(zip),[zipper_members/2]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Utility library for loading foreign objects (DLLs, shared objects)

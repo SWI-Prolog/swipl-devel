@@ -45,8 +45,9 @@
 
             assertion/1                 % :Goal
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(lists),[append/3,delete/3,selectchk/3,member/2]).
+:- autoload(library(prolog_stack),[backtrace/1]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
