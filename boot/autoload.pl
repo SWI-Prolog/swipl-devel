@@ -755,7 +755,9 @@ autoload(M:File) :-
     assert_autoload(M:'$autoload'(File, Context, all)).
 
 autoload(File, Imports) :-
-    current_prolog_flag(autoload, false),
+    (   current_prolog_flag(autoload, false)
+    ;   nb_current('$autoload_disabling', true)
+    ),
     !,
     use_module(File, Imports).
 autoload(M:File, Imports0) :-
