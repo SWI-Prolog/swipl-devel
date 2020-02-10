@@ -563,6 +563,22 @@ setAutoload(atom_t a)
 }
 
 
+static int
+propagateAutoload(term_t val ARG_LD)
+{ if ( !GD->bootsession )
+  { predicate_t pred;
+    term_t av;
+
+    pred = PL_predicate("set_autoload", 1, "$autoload");
+    return ( (av=PL_new_term_refs(2)) &&
+	     PL_put_term(av+0, val) &&
+	     PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+  } else
+  { return TRUE;
+  }
+}
+
+
 #if O_XOS
 typedef struct access_id
 { char *name;
@@ -608,17 +624,9 @@ get_win_file_access_check(void)
 #endif
 
 static word
-set_prolog_flag_unlocked(term_t key, term_t value, int flags)
-{ GET_LD
-  atom_t k;
-  prolog_flag *f;
-  Module m = MODULE_parse;
+set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
+{ prolog_flag *f;
   int rval = TRUE;
-
-  if ( !PL_strip_module(key, &m, key) )
-    return FALSE;
-  if ( !PL_get_atom(key, &k) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, key);
 
 					/* set existing Prolog flag */
 #ifdef O_PLMT
@@ -632,8 +640,13 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
   { if ( flags & FF_KEEP )
       return TRUE;
     if ( (f->flags&FF_READONLY) && !(flags&FF_FORCE) )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		      ATOM_modify, ATOM_flag, key);
+    { term_t key;
+
+      return ( (key = PL_new_term_ref()) &&
+	       PL_put_atom(key, k) &&
+	       PL_error(NULL, 0, NULL, ERR_PERMISSION,
+			ATOM_modify, ATOM_flag, key) );
+    }
 
     if ( tbl_is_restraint_flag(k) )
       return tbl_set_restraint_flag(value, k PASS_LD);
@@ -750,9 +763,13 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
     if ( PL_current_prolog_flag(ATOM_user_flags, PL_ATOM, &how) )
     { if ( how == ATOM_error )
-	return PL_error(NULL, 0, NULL, ERR_EXISTENCE,
-			ATOM_prolog_flag, key);
-      else if ( how == ATOM_warning )
+      { term_t key;
+
+	return ( (key = PL_new_term_ref()) &&
+		 PL_put_atom(key, k) &&
+		 PL_error(NULL, 0, NULL, ERR_EXISTENCE,
+			  ATOM_prolog_flag, key) );
+      } else if ( how == ATOM_warning )
 	Sdprintf("WARNING: Flag %s: new Prolog flags must be created using "
 		 "create_prolog_flag/3\n", stringAtom(k));
     }
@@ -855,10 +872,10 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       { rval = setEncoding(a);
       } else if ( k == ATOM_stream_type_check )
       { rval = setStreamTypeCheck(a);
-      } else if ( k == ATOM_autoload )
-      { rval = setAutoload(a);
       } else if ( k == ATOM_file_name_case_handling )
       { rval = setFileNameCaseHandling(a);
+      } else if ( k == ATOM_autoload )
+      { rval = setAutoload(a);
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);
@@ -867,9 +884,11 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
       if ( !rval )
 	fail;
 
-      PL_unregister_atom(f->value.a);
-      f->value.a = a;
-      PL_register_atom(a);
+      if ( f->value.a != a )
+      { PL_unregister_atom(f->value.a);
+	f->value.a = a;
+	PL_register_atom(a);
+      }
       break;
     }
     case FT_INTEGER:
@@ -930,10 +949,20 @@ set_prolog_flag_unlocked(term_t key, term_t value, int flags)
 
 int
 set_prolog_flag(term_t key, term_t value, int flags)
-{ int rc;
+{ GET_LD
+  atom_t k;
+  Module m = MODULE_parse;
+  int rc;
+
+  if ( !PL_strip_module(key, &m, key) ||
+       !PL_get_atom_ex(key, &k) )
+    return FALSE;
+
+  if ( k == ATOM_autoload && !propagateAutoload(value PASS_LD) )
+    return FALSE;
 
   PL_LOCK(L_PLFLAG);
-  rc = set_prolog_flag_unlocked(key, value, flags);
+  rc = set_prolog_flag_unlocked(m, k, value, flags PASS_LD);
   PL_UNLOCK(L_PLFLAG);
 
   return rc;

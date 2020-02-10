@@ -1263,8 +1263,9 @@ e.g., edit/0 to edit the initial file.
 This flag has three values, selecting no autoloading at all
 (\const{false}), only explicitly stated autoloading (\const{explicit})
 and autoloading from explicitly stated locations as well as from the
-library (\const{true}, default).  See \secref{autoload}, autoload/1
-and autoload/2.
+library (\const{true}, default). When autoloading is switched off, all
+files that are registered for autoloading are loaded. See
+\secref{autoload}, autoload/1 and autoload/2.
 
     \prologflagitem{back_quotes}{codes,chars,string,symbol_char}{rw}
 Defines the term-representation for back-quoted material.  The default

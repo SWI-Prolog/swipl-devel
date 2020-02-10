@@ -686,12 +686,66 @@ suppress(Context, Error) :-
         fail
     ).
 
+
+		 /*******************************
+		 *            CALLBACK		*
+		 *******************************/
+
+:- public
+    set_autoload/1.
+
+%!  set_autoload(+Value) is det.
+%
+%   Hook called from set_prolog_flag/2 when  autoloading is switched. If
+%   the desired value is `false` we   should  materialize all registered
+%   requests for autoloading. We must do so before disabling autoloading
+%   as loading the files may require autoloading.
+
+set_autoload(false) :-
+    !,
+    setup_call_cleanup(
+        nb_setval('$autoload_disabling', true),
+        materialize_autoload(Count),
+        nb_delete('$autoload_disabling')),
+    print_message(informational, autoload(disabled(Count))).
+set_autoload(_).
+
+materialize_autoload(Count) :-
+    State = state(0),
+    forall(current_predicate(M:'$autoload'/3),
+           materialize_autoload(M, State)),
+    arg(1, State, Count).
+
+materialize_autoload(M, State) :-
+    findall(a(File,Context,Import),
+            current_autoload(M:File, Context, Import),
+            Triples),
+    abolish(M:'$autoload'/3),
+    (   '$member'(a(File,Context,Import), Triples),
+        library_info(File, Context, FullFile, _LoadModule, _Exports),
+        arg(1, State, N0),
+        N is N0+1,
+        nb_setarg(1, State, N),
+        (   Import == all
+        ->  verbose_autoload(all, FullFile),
+            use_module(M:FullFile)
+        ;   Import = import(Preds)
+        ->  verbose_autoload(Preds, FullFile),
+            use_module(M:FullFile, Preds)
+        ),
+        fail
+    ;   true
+    ).
+
+
 		 /*******************************
 		 *          AUTOLOAD/2		*
 		 *******************************/
 
 autoload(File) :-
-    current_prolog_flag(autoload, false),
+    (   current_prolog_flag(autoload, false)
+    ;   nb_current('$autoload_disabling', true)
+    ),
     !,
     use_module(File).
 autoload(M:File) :-

@@ -936,7 +936,8 @@ prolog_message(autoload(Pred, File)) -->
     [ 'autoloading ~p from ~w'-[Pred, File] ].
 prolog_message(autoload(read_index(Dir))) -->
     [ 'Loading autoload index for ~w'-[Dir] ].
-
+prolog_message(autoload(disabled(Loaded))) -->
+    [ 'Disabled autoloading (loaded ~D files)'-[Loaded] ].
 
 swi_message(autoload(Msg)) -->
     [ nl, '    ' ],
