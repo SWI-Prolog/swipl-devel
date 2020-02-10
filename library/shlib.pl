@@ -47,10 +47,8 @@
 
             win_add_dll_directory/1     % +Dir
           ]).
-:- autoload(library(apply),[maplist/3,include/3]).
 :- autoload(library(error),[existence_error/2,domain_error/2]).
 :- autoload(library(lists),[member/2,reverse/2]).
-:- autoload(library(zip),[zipper_members/2]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -214,14 +212,34 @@ lib_to_file(Lib, Lib, false).
 
 open_foreign_in_resources(Zipper, ForeignSpecAtom, Stream) :-
     term_to_atom(foreign(Name), ForeignSpecAtom),
-    zipper_members(Zipper, Entries),
-    entries_for_name(Name, Entries, Entries1),
+    zipper_members_(Zipper, Entries),
+    entries_for_name(Entries, Name, Entries1),
     compatible_architecture_lib(Entries1, Name, CompatibleLib),
     zipper_goto(Zipper, file(CompatibleLib)),
     zipper_open_current(Zipper, Stream,
                         [ type(binary),
                           release(true)
                         ]).
+
+%!  zipper_members_(+Zipper, -Members) is det.
+%
+%   Simplified version of zipper_members/2 from library(zip). We already
+%   have a lock  on  the  zipper  and   by  moving  this  here  we avoid
+%   dependency on another library.
+%
+%   @tbd: should we cache this?
+
+zipper_members_(Zipper, Members) :-
+    zipper_goto(Zipper, first),
+    zip_members__(Zipper, Members).
+
+zip_members__(Zipper, [Name|T]) :-
+    zip_file_info_(Zipper, Name, _Attrs),
+    (   zipper_goto(Zipper, next)
+    ->  zip_members__(Zipper, T)
+    ;   T = []
+    ).
+
 
 %!  compatible_architecture_lib(+Entries, +Name, -CompatibleLib) is det.
 %
@@ -262,6 +280,15 @@ qsave_compat_arch1(Arch1, Arch2) :-
 
 qsave:compat_arch(A,A).
 
+entries_for_name([], _, []).
+entries_for_name([H0|T0], Name, [H|T]) :-
+    shlib_atom_to_term(H0, H),
+    match_filespec(Name, H0),
+    !,
+    entries_for_name(T0, Name, T).
+entries_for_name([_|T0], Name, T) :-
+    entries_for_name(T0, Name, T).
+
 shlib_atom_to_term(Atom, shlib(Arch, Name)) :-
     sub_atom(Atom, 0, _, _, 'shlib('),
     !,
@@ -269,10 +296,6 @@ shlib_atom_to_term(Atom, shlib(Arch, Name)) :-
 shlib_atom_to_term(Atom, Atom).
 
 match_filespec(Name, shlib(_,Name)).
-
-entries_for_name(Name, Entries, Filtered) :-
-    maplist(shlib_atom_to_term, Entries, Entries1),
-    include(match_filespec(Name), Entries1, Filtered).
 
 base(Path, Base) :-
     atomic(Path),
