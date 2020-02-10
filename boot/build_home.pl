@@ -34,8 +34,6 @@
 */
 
 :- module(prolog_build_home, []).
-:- use_module(library(lists)).
-:- use_module(library(pure_input)).
 
 /** <module> Setup SWI-Prolog to run from the build directory
 
@@ -99,7 +97,10 @@ cmake_source_directory(SrcDir) :-
 cmake_source_directory(SrcDir) :-
     cmake_binary_directory(BinDir),
     atomic_list_concat([BinDir, 'CMakeCache.txt'], /, CacheFile),
-    phrase_from_file(source_dir(SrcDir), CacheFile).
+    setup_call_cleanup(
+        open(CacheFile, read, In),
+        cmake_var(In, 'SWI-Prolog_SOURCE_DIR:STATIC', SrcDir),
+        close(In)).
 
 is_swi_prolog_cmake_file(File) :-
     setup_call_cleanup(
@@ -116,18 +117,20 @@ is_swi_prolog_stream(In) :-
     ),
     !.
 
-source_dir(SrcDir) -->
-    string(_),
-    "SWI-Prolog_SOURCE_DIR:STATIC=",
-    string(Codes), "\n",
-    !,
-    skip_remaining,
-    { atom_codes(SrcDir, Codes) }.
-
-string([]) --> [].
-string([H|T]) --> [H], string(T).
-
-skip_remaining(_,_).
+cmake_var(Stream, Name, Value) :-
+    repeat,
+    (   read_string(Stream, '\n', '\r', Sep, String0),
+        (   Sep \== -1
+        ->  String = String0
+        ;   String0 == ""
+        ->  !, fail
+        ;   String = String0
+        ),
+        sub_string(String, 10, _, A1, Name),
+        sub_string(String, A1, 1, A2, "="),
+        sub_atom(String, _, A2,  0, Value)
+    ->  true
+    ).
 
 
 %!  swipl_package(-Pkg, -PkgBinDir) is nondet.
@@ -139,7 +142,7 @@ swipl_package(Pkg, PkgBinDir) :-
     atomic_list_concat([CMakeBinDir, packages], /, PkgRoot),
     exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
-    member(Pkg, Candidates),
+    '$member'(Pkg, Candidates),
     \+ special(Pkg),
     atomic_list_concat([PkgRoot, Pkg], /, PkgBinDir),
     atomic_list_concat([PkgBinDir, 'CMakeFiles'], /, CMakeDir),
