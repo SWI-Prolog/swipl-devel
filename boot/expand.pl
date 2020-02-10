@@ -905,8 +905,9 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 
 allowed_expansion(QGoal) :-
     strip_module(QGoal, M, Goal),
+    E = error(Formal,_),
     catch(prolog:sandbox_allowed_expansion(M:Goal), E, true),
-    (   var(E)
+    (   var(Formal)
     ->  fail
     ;   !,
         print_message(error, E),
