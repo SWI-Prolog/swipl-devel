@@ -546,11 +546,7 @@ autoload_from(Module:Name/Arity, LoadModule, Library) :-
 do_autoload(Library, Module:Name/Arity, LoadModule) :-
     functor(Head, Name, Arity),
     '$update_autoload_level'([autoload(true)], Old),
-    (   current_prolog_flag(verbose_autoload, true)
-    ->  Level = informational
-    ;   Level = silent
-    ),
-    print_message(Level, autoload(Module:Name/Arity, Library)),
+    verbose_autoload(Module:Name/Arity, Library),
     '$compilation_mode'(OldComp, database),
     (   Module == LoadModule
     ->  ensure_loaded(Module:Library)
@@ -563,6 +559,16 @@ do_autoload(Library, Module:Name/Arity, LoadModule) :-
     '$set_compilation_mode'(OldComp),
     '$set_autoload_level'(Old),
     '$c_current_predicate'(_, Module:Head).
+
+verbose_autoload(PI, Library) :-
+    current_prolog_flag(verbose_autoload, true),
+    !,
+    set_prolog_flag(verbose_autoload, false),
+    print_message(informational, autoload(PI, Library)),
+    set_prolog_flag(verbose_autoload, true).
+verbose_autoload(PI, Library) :-
+    print_message(silent, autoload(PI, Library)).
+
 
 %!  autoloadable(:Head, -File) is nondet.
 %
