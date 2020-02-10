@@ -41,9 +41,10 @@
 
             op(900, fy, tnot)
           ]).
-:- use_module(library(error)).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(error),[instantiation_error/1,permission_error/3]).
+:- autoload(library(lists),[list_to_set/2,member/2]).
+
 
 /** <module> Well Founded Semantics interface
 

@@ -40,9 +40,10 @@
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
-:- use_module(library(prolog_clause)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[existence_error/2]).
+:- autoload(library(lists),[nth1/3]).
+:- autoload(library(prolog_clause),[clause_info/4,clause_name/2]).
 
 
 /** <module> Manage Prolog break-points

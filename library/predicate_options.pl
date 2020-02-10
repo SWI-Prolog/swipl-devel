@@ -49,12 +49,20 @@
             derive_predicate_options/0,
             check_predicate_options/1           % :PredicateIndicator
           ]).
-:- use_module(library(lists)).
-:- use_module(library(pairs)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-:- use_module(library(debug)).
-:- use_module(library(prolog_clause)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),
+	    [ existence_error/2,
+	      must_be/2,
+	      instantiation_error/1,
+	      uninstantiation_error/1,
+	      is_of_type/2
+	    ]).
+:- autoload(library(listing),[portray_clause/1]).
+:- autoload(library(lists),[member/2,nth1/3,append/3,delete/3]).
+:- autoload(library(pairs),[group_pairs_by_key/2]).
+:- autoload(library(prolog_clause),[clause_info/4]).
+
 
 :- meta_predicate
     predicate_options(:, +, +),
@@ -951,4 +959,3 @@ new_decls([H|T]) -->
                  *      SYSTEM DECLARATIONS     *
                  *******************************/
 
-:- use_module(library(dialect/swi/syspred_options)).

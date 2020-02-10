@@ -47,7 +47,8 @@
             predicate_label/2,                  % +PI, -Label
             predicate_sort_key/2                % +PI, -Key
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2]).
+
 
 :- multifile
     user:prolog_predicate_name/2.

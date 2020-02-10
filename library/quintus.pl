@@ -81,7 +81,10 @@
           raise_exception/1,            % +Exception
           on_exception/3                % +Ball, :Goal, :Recover
         ]).
-:- use_module(library(lists), [member/2]).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(date),[date_time_value/3]).
+:- autoload(library(shell),[shell/0]).
+
 
 /** <module> Quintus compatibility
 

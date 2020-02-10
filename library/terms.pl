@@ -46,7 +46,16 @@
             term_subsumer/3,            % +Special1, +Special2, -General
             term_factorized/3           % +Term, -Skeleton, -Subsitution
           ]).
-:- use_module(library(rbtrees)).
+:- autoload(library(rbtrees),
+	    [ rb_empty/1,
+	      rb_lookup/3,
+	      rb_insert/4,
+	      rb_new/1,
+	      rb_visit/2,
+	      ord_list_to_rbtree/2,
+	      rb_update/5
+	    ]).
+
 
 /** <module> Term manipulation
 

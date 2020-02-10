@@ -41,9 +41,15 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
-:- use_module(option).
-:- use_module(lists).
-:- use_module(apply).
+:- autoload(library(apply),[maplist/2,maplist/3]).
+:- autoload(library(archive),[archive_open/3,archive_close/1]).
+:- autoload(library(dialect),[exists_source/1]).
+:- autoload(library(lists),[append/3,member/2]).
+:- autoload(library(option),[option/2,merge_options/3]).
+:- autoload(library(pcre),[re_config/1]).
+:- autoload(library(prolog_source),[path_segments_atom/2]).
+:- use_module(library(settings),[setting/2]).
+
 
 /** <module> Check installation issues and features
 

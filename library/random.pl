@@ -56,9 +56,12 @@
                                         % deprecated interface
             random/3                    % +Low, +High, -Random
           ]).
-:- use_module(library(pairs)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(error),
+	    [must_be/2,domain_error/2,instantiation_error/1]).
+:- autoload(library(lists),[nth0/3,nth0/4,append/3]).
+:- autoload(library(pairs),[pairs_values/2]).
+
 
 /** <module> Random numbers
 

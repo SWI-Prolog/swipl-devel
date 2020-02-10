@@ -90,9 +90,10 @@
             trie_insert_new/3,		% +Trie, +Term, -Node
             thread_at_exit/1            % :Goal
           ]).
-:- use_module(apply,  [maplist/2]).
-:- use_module(system, [lock_predicate/1, unlock_predicate/1]).
-:- use_module(lists,  [sum_list/2]).
+:- autoload(library(apply),[maplist/3,maplist/2]).
+:- autoload(library(lists),[sum_list/2]).
+:- autoload(library(system),[lock_predicate/1,unlock_predicate/1]).
+
 
 :- meta_predicate
     at_initialization(0),

@@ -44,11 +44,12 @@
             load_foreign_resource/2             % +Resource, +Dir
           ]).
 
-:- use_module(library(shlib)).
-:- use_module(library(gensym)).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
-:- use_module(library(error)).
+:- autoload(library(apply),[exclude/3]).
+:- autoload(library(error),[existence_error/2]).
+:- autoload(library(gensym),[gensym/2]).
+:- autoload(library(lists),[member/2,append/3,select/3]).
+:- autoload(library(shlib),[load_foreign_library/1]).
+
 
 /** <module> Quintus compatible foreign loader
 

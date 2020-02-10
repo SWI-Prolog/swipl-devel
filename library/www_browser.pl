@@ -37,9 +37,10 @@
           [ www_open_url/1,             % +UrlOrSpec
             expand_url_path/2           % +Spec, -URL
           ]).
-:- use_module(library(lists)).
+:- autoload(library(lists),[member/2]).
+
 :- if(exists_source(library(process))).
-:- use_module(library(process)).
+:- autoload(library(process), [process_create/3]).
 :- endif.
 
 :- multifile

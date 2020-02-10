@@ -212,7 +212,7 @@ notably regarding auto loading.
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.
 
-    \predicate{autoload}{0}{}
+    \predicate{autoload_all}{0}{}
 Check the current Prolog program for predicates that are referred to,
 are undefined and have a definition in the Prolog library.  Load the
 appropriate libraries.

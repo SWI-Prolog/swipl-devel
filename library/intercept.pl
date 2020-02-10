@@ -40,7 +40,8 @@
             send_signal/1,                      % +Ball
             send_silent_signal/1                % +Ball
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2]).
+
 
 /** <module> Intercept and signal interface
 

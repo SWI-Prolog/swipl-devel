@@ -35,7 +35,9 @@
 :- module(dif,
           [ dif/2                               % +Term1, +Term2
           ]).
-:- use_module(library(lists)).
+:- autoload(library(lists),[append/3,reverse/2]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> The dif/2 constraint

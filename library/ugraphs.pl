@@ -73,17 +73,9 @@ Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker.
 @license GPL+SWI-exception or Artistic 2.0
 */
 
-:- use_module(library(lists), [
-        append/3,
-        member/2
-   ]).
-
-:- use_module(library(ordsets), [
-        ord_add_element/3,
-        ord_subtract/3,
-        ord_union/3,
-        ord_union/4
-   ]).
+:- autoload(library(lists),[append/3]).
+:- autoload(library(ordsets),
+	    [ord_subtract/3,ord_union/3,ord_add_element/3,ord_union/4]).
 
 
 /*

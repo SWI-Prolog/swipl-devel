@@ -53,10 +53,19 @@
             tbacktrace/1,               % +ThreadId,
             tbacktrace/2                % +ThreadId, +Options
           ]).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
-:- use_module(library(thread)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(backcomp),[thread_at_exit/1]).
+:- autoload(library(edinburgh),[nodebug/0]).
+:- autoload(library(gui_tracer),[gdebug/0]).
+:- autoload(library(lists),[max_list/2]).
+:- autoload(library(option),[merge_options/3,option/3]).
+:- autoload(library(pce),[send/2]).
+:- autoload(library(prolog_stack),
+	    [print_prolog_backtrace/2,get_prolog_backtrace/3]).
+:- autoload(library(statistics),[thread_statistics/2,show_profile/1]).
+:- autoload(library(thread),[call_in_thread/2]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -257,7 +266,6 @@ open_console(Title, In, Out, Err) :-
 
 :- if((current_prolog_flag(readline, editline),
        exists_source(library(editline)))).
-:- use_module(library(editline)).
 enable_line_editing(_In, _Out, _Err) :-
     current_prolog_flag(readline, editline),
     !,

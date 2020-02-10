@@ -36,7 +36,8 @@
           [ portray_text/1,             % +Bool
             set_portray_text/2          % +Name, +Value
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2]).
+
 
 /** <module> Portray text
 

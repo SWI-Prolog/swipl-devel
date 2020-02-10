@@ -37,9 +37,9 @@
             unwrap_predicate/2,                 % :PI, ?Name
             current_predicate_wrapper/4		% :Head, -Name, -Wrapped, -Body
           ]).
-:- use_module(library(error)).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(pairs),[pairs_keys/2]).
+
 
 :- meta_predicate
     wrap_predicate(:, +, -, +),

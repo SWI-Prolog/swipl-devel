@@ -36,8 +36,9 @@
 :- module(prolog_vm,
           [ vm_list/1
           ]).
-:- use_module(library(prolog_clause)).
-:- use_module(library(lists)).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(prolog_clause),[predicate_name/2]).
+
 
 /** <module> SWI-Prolog Virtual Machine utilities
 

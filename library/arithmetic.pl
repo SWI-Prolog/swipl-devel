@@ -36,8 +36,9 @@
           [ arithmetic_function/1,              % +Name/Arity
             arithmetic_expression_value/2       % :Expression, -Value
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(error),[type_error/2]).
+:- autoload(library(lists),[append/3]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Extensible arithmetic

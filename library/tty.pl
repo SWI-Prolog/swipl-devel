@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2002, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,11 +34,12 @@
 */
 
 :- module(tty,
-        [ tty_clear/0
-        , tty_flash/0
-        , menu/3
+        [ tty_clear/0,
+          tty_flash/0,
+          menu/3
         ]).
-:- use_module(library(lists), [append/3, nth1/3]).
+:- autoload(library(lists),[nth1/3,append/3]).
+
 
 /** <module> Terminal operations
 

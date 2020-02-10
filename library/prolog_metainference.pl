@@ -36,8 +36,9 @@
           [ infer_meta_predicate/2,             % :Head, -MetaSpec
             inferred_meta_predicate/2           % :Head, ?MetaSpec
           ]).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
+:- autoload(library(apply),[maplist/4]).
+:- autoload(library(lists),[append/3]).
+
 
 :- meta_predicate
     inferred_meta_predicate(:, ?),

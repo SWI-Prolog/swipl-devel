@@ -37,7 +37,9 @@
           [ expand_phrase/2,            % :PhraseGoal, -Goal
             expand_phrase/4             % :PhraseGoal, +Pos0, -Goal, -Pos
           ]).
-:- use_module(library(lists)).
+:- autoload(library(error),[type_error/2]).
+:- autoload(library(lists),[append/3]).
+
 
 /** <module> Goal expansion rules to avoid meta-calling
 

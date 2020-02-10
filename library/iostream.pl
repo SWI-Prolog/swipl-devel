@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015, VU University Amsterdam
+    Copyright (c)  2015-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,10 +37,13 @@
           [ open_any/5,         % +Spec, +Mode, -Stream, -Close, +Options
             close_any/1         % +Close
           ]).
-:- use_module(library(option)).
-:- use_module(library(error)).
+:- autoload(library(apply),[partition/4]).
+:- autoload(library(error),
+	    [instantiation_error/1,uninstantiation_error/1,must_be/2]).
+:- autoload(library(option),[option/2]).
+
 :- if(exists_source(library(uri))).
-:- use_module(library(uri)).
+:- use_module(library(uri), [uri_file_name/2]).
 :- endif.
 
 /** <module> Utilities to deal with streams

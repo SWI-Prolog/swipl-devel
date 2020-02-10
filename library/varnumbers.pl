@@ -39,9 +39,11 @@
             varnumbers/3,                       % +Term, +No, -Copy
             varnumbers_names/3                  % +Term, -Copy, -VariableNames
           ]).
-:- use_module(library(error)).
-:- use_module(library(assoc)).
-:- use_module(library(apply)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(assoc),
+	    [empty_assoc/1,assoc_to_list/2,get_assoc/3,put_assoc/4]).
+:- autoload(library(error),[must_be/2]).
+
 
 /** <module> Utilities for numbered terms
 

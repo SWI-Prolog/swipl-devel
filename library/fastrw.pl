@@ -39,7 +39,8 @@
             fast_write/2,               % +Stream, +Term
             fast_write_to_string/3      % +Term, -String, ?Tail
           ]).
-:- use_module(library(lists)).
+:- autoload(library(lists),[append/3]).
+
 
 /** <module> Fast reading and writing of terms
 

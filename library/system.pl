@@ -39,7 +39,8 @@
           system_mode/1,
           system_module/0
         ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2]).
+
 
 /** <module> System utilities
 

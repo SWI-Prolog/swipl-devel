@@ -36,7 +36,8 @@
           [ (coinductive)/1,
             op(1150, fx, (coinductive))
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[instantiation_error/1,must_be/2]).
+
 
 /** <module> Co-Logic Programming
 

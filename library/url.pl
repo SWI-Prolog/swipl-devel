@@ -48,9 +48,10 @@
 
             set_url_encoding/2          % ?Old, +New
           ]).
-:- use_module(library(lists)).
-:- use_module(library(error)).
-:- use_module(library(utf8)).
+:- autoload(library(error),[must_be/2,representation_error/1]).
+:- autoload(library(lists),[append/3,select/3,delete/3]).
+:- autoload(library(utf8),[utf8_codes/3]).
+
 
 /** <module> Analysing and constructing URL
 

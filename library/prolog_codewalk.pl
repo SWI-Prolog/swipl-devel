@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, VU University Amsterdam
+    Copyright (c)  2012-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,12 +37,19 @@
           [ prolog_walk_code/1,         % +Options
             prolog_program_clause/2     % -ClauseRef, +Options
           ]).
-:- use_module(library(option)).
-:- use_module(library(record)).
-:- use_module(library(debug)).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(prolog_metainference)).
+:- use_module(library(record),[record/1, op(_,_,record)]).
+
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(debug),[debug/3,debugging/1,assertion/1]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(listing),[portray_clause/1]).
+:- autoload(library(lists),[member/2,nth1/3,append/3]).
+:- autoload(library(option),[meta_options/3]).
+:- autoload(library(prolog_clause),
+	    [clause_info/4,initialization_layout/4,clause_name/2]).
+:- autoload(library(prolog_metainference),
+	    [inferred_meta_predicate/2,infer_meta_predicate/2]).
+
 
 /** <module> Prolog code walker
 

@@ -37,7 +37,10 @@
             trace/2,                            % :Spec, +Ports
             tracing/2                           % :Spec, -Ports
           ]).
-:- use_module(library(apply)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(error),[instantiation_error/1]).
+:- autoload(library(prolog_wrap),[wrap_predicate/4]).
+
 
 /** <module> Print access to predicates
 
