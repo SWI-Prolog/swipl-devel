@@ -1072,7 +1072,7 @@ subst_chars([H|T]) -->
 '$execute_goal2'(Goal, Bindings, true) :-
     restore_debug,
     '$current_typein_module'(TypeIn),
-    residue_vars(Goal, Vars, TypeIn:Delays),
+    residue_vars(TypeIn:Goal, Vars, TypeIn:Delays),
     deterministic(Det),
     (   save_debug
     ;   restore_debug, fail
