@@ -37,7 +37,7 @@
 :- module(prolog_pretty_print,
           [ print_term/2        % +Term, +Options
           ]).
-:- use_module(library(option)).
+:- autoload(library(option), [merge_options/3, option/2, option/3]).
 
 /** <module> Pretty Print Prolog terms
 

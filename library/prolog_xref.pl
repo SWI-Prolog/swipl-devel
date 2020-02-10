@@ -1830,9 +1830,11 @@ load_module_if_needed(File) :-
 load_module_if_needed(_).
 
 prolog:no_autoload_module(library(apply_macros)).
+prolog:no_autoload_module(library(arithmetic)).
 prolog:no_autoload_module(library(record)).
 prolog:no_autoload_module(library(persistency)).
 prolog:no_autoload_module(library(pldoc)).
+prolog:no_autoload_module(library(settings)).
 
 
 %!  xref_public_list(+Spec, +Source, +Options) is semidet.

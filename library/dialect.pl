@@ -37,8 +37,9 @@
             exists_source/1,            % +Source
             source_exports/2            % +Source, ?Export
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[member/2]).
+
 
 /**     <module> Support multiple Prolog dialects
 

@@ -42,16 +42,36 @@
             syntax_colour/2,            % +Class, -Attributes
             syntax_message//1           % +Class
           ]).
-:- use_module(library(prolog_xref)).
-:- use_module(library(predicate_options)).
-:- use_module(library(prolog_source)).
-:- use_module(library(lists)).
-:- use_module(library(operators)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(option)).
-:- use_module(library(record)).
-:- use_module(library(apply)).
+:- use_module(library(record),[(record)/1, op(_,_,record)]).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[is_of_type/2]).
+:- autoload(library(lists),[member/2,append/3]).
+:- autoload(library(operators),
+	    [push_operators/1,pop_operators/0,push_op/3]).
+:- autoload(library(option),[option/3]).
+:- autoload(library(predicate_options),
+	    [current_option_arg/2,current_predicate_options/3]).
+:- autoload(library(prolog_clause),[predicate_name/2]).
+:- autoload(library(prolog_source),
+	    [ load_quasi_quotation_syntax/2,
+	      read_source_term_at_location/3,
+	      prolog_canonical_source/2
+	    ]).
+:- autoload(library(prolog_xref),
+	    [ xref_option/2,
+	      xref_public_list/3,
+	      xref_op/2,
+	      xref_prolog_flag/4,
+	      xref_module/2,
+	      xref_meta/3,
+	      xref_source_file/4,
+	      xref_defined/3,
+	      xref_called/3,
+	      xref_defined_class/3,
+	      xref_exported/2,
+	      xref_hook/1
+	    ]).
 
 :- meta_predicate
     prolog_colourise_stream(+, +, 3),

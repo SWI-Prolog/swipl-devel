@@ -33,9 +33,11 @@
 */
 
 :- module(xsb_source, []).
-:- use_module(library(debug)).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
+:- autoload(library(apply),[convlist/3,partition/4]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[instantiation_error/1]).
+:- autoload(library(lists),[append/3,flatten/2]).
+
 
 /** <module> Support XSB source .P files
 

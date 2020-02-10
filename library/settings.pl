@@ -50,11 +50,14 @@
 
             convert_setting_text/3      % +Type, +Text, -Value
           ]).
-:- use_module(library(error)).
-:- use_module(library(broadcast)).
-:- use_module(library(debug)).
-:- use_module(library(option)).
-:- use_module(library(arithmetic)).
+:- use_module(library(arithmetic),[arithmetic_expression_value/2]).
+
+:- autoload(library(broadcast),[broadcast/1]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2,existence_error/2,type_error/2]).
+:- autoload(library(option),[option/3]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Setting management
