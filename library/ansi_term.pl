@@ -40,7 +40,9 @@
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(error),[domain_error/2,must_be/2]).
 :- autoload(library(lists),[flatten/2,append/2,append/3]).
+:- if(exists_source(library(time))).
 :- autoload(library(time),[call_with_time_limit/2]).
+:- endif.
 
 
 /** <module> Print decorated text to ANSI consoles
@@ -399,6 +401,7 @@ keep_line_pos(_, G) :-
 %   integers in the range 0..65535.
 
 
+:- if(current_predicate(call_with_time_limit/2)).
 ansi_get_color(Which0, RGB) :-
     stream_property(user_input, tty(true)),
     stream_property(user_output, tty(true)),
@@ -481,6 +484,12 @@ echo([]).
 echo([H|T]) :-
     put_code(user_output, H),
     echo(T).
+
+:- else.
+ansi_get_color(_Which0, _RGB) :-
+    fail.
+:- endif.
+
 
 
 :- multifile prolog:message//1.
