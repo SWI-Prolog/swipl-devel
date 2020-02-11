@@ -610,10 +610,6 @@ clearHTable(Table ht)
   DEBUG(MSG_HASH_TABLE_API,
         Sdprintf("ClearHTable(). ht: %p, kvs: %p\n", ht, kvs));
 
-  if ( !ht->free_symbol )
-  { return;
-  }
-
   while ( idx < kvs->len )
   {
     n = htable_name(kvs, idx);
@@ -630,7 +626,9 @@ clearHTable(Table ht)
 
     if ( (v) && (v != HTABLE_TOMBSTONE) )
     { kvs->entries[idx].value = HTABLE_TOMBSTONE;
-      (*ht->free_symbol)(n, v);
+      if ( ht->free_symbol )
+      { (*ht->free_symbol)(n, v);
+      }
       ht->size--;
     }
 
