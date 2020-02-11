@@ -263,6 +263,7 @@ or clause} \predicatesummary{exception}{3}{\hook{user} Handle runtime
 exceptions} \predicatesummary{exists_directory}{1}{Check existence of
 directory} \predicatesummary{exists_file}{1}{Check existence of file}
 \predicatesummary{exists_source}{1}{Check existence of a Prolog source}
+\predicatesummary{exists_source}{2}{Check existence of a Prolog source}
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
 \predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file

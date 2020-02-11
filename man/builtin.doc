@@ -713,6 +713,25 @@ of the main file.
 Present if the file is currently being \textbf{re}loaded.
     \end{description}
 
+    \predicate[semidet]{exists_source}{1}{+Source}
+True if \arg{Source} (a term valid for load_files/2) exists. Fails
+without error if this is not the case. The predicate is intended to be
+used with \jargon{conditional compilation} (see
+\secref{conditionalcompilation}  For example:
+
+\begin{code}
+:- if(exists_source(library(error))).
+:- use_module_library(error).
+:- endif.
+\end{code}
+
+The implementation uses absolute_file_name/3 using
+\term{file_type}{prolog}.
+
+    \predicate[semidet]{exists_source}{2}{+Source, -File}
+As exists_source/1, binding \arg{File} to an atom describing the full
+absolute path to the source file.
+
     \predicate{unload_file}{1}{+File}
 Remove all clauses loaded from \arg{File}.  If \arg{File} loaded a
 module, clear the module's export list and disassociate it from the

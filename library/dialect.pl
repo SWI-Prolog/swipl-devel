@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2011, University of Amsterdam
+    Copyright (c)  2007-2020, University of Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,7 @@
 :- autoload(library(lists),[member/2]).
 
 
-/**     <module> Support multiple Prolog dialects
+/** <module> Support multiple Prolog dialects
 
 The idea for this predicate  was  raised   by  Vitor  Santos  Costa in a
 discussion to reach as a portability   framework  between SWI-Prolog and
@@ -88,30 +89,6 @@ attach_dialect(Dialect) :-
     ;   true
     ).
 attach_dialect(_).
-
-
-%!  exists_source(+Source) is semidet.
-%
-%   True if Source (a term  valid   for  load_files/2) exists. Fails
-%   without error if this is not the case. The predicate is intended
-%   to be used with  :-  if,  as   in  the  example  below. See also
-%   source_exports/2.
-%
-%   ==
-%   :- if(exists_source(library(error))).
-%   :- use_module_library(error).
-%   :- endif.
-%   ==
-
-exists_source(Source) :-
-    exists_source(Source, _Path).
-
-exists_source(Source, Path) :-
-    absolute_file_name(Source, Path,
-                       [ file_type(prolog),
-                         access(read),
-                         file_errors(fail)
-                       ]).
 
 %!  source_exports(+Source, +Export) is semidet.
 %!  source_exports(+Source, -Export) is nondet.

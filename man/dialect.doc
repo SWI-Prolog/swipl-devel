@@ -77,11 +77,6 @@ Currently, this file has this functionality:
     dialect.
 \end{itemize}
 
-    \predicate{exists_source}{1}{+Spec}
-Is true if \arg{Spec} exists as a Prolog source.  \arg{Spec} uses the
-same conventions as load_files/2.  Fails without error if \arg{Spec}
-cannot be found.
-
     \predicate{source_exports}{2}{+Spec, +Export}
 Is true if source \arg{Spec} exports \arg{Export}, a predicate
 indicator.  Fails without error otherwise.

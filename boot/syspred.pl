@@ -49,6 +49,8 @@
             source_file/1,
             source_file/2,
             unload_file/1,
+            exists_source/1,                    % +Spec
+            exists_source/2,                    % +Spec, -Path
             prolog_load_context/2,
             stream_position_data/3,
             current_predicate/2,
@@ -469,6 +471,31 @@ canonical_source_file(Spec, File) :-
                            ],
                            File),
     source_file(File).
+
+
+%!  exists_source(+Source) is semidet.
+%!  exists_source(+Source, -Path) is semidet.
+%
+%   True if Source (a term  valid   for  load_files/2) exists. Fails
+%   without error if this is not the case. The predicate is intended
+%   to be used with  :-  if,  as   in  the  example  below. See also
+%   source_exports/2.
+%
+%   ```
+%   :- if(exists_source(library(error))).
+%   :- use_module_library(error).
+%   :- endif.
+%   ```
+
+exists_source(Source) :-
+    exists_source(Source, _Path).
+
+exists_source(Source, Path) :-
+    absolute_file_name(Source, Path,
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail)
+                       ]).
 
 
 %!  prolog_load_context(+Key, -Value)
