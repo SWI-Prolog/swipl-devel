@@ -894,7 +894,7 @@ by_file([File-PI|T0], [Spec-[PI|PIs]|T]) :-
 
 on_path(Library, library(Base)) :-
     file_base_name(Library, Base),
-    findall(Path, plain_source(library(Base), Path), [Library]).
+    findall(Path, plain_source(library(Base), Path), [Library]),
     !.
 on_path(Library, Library).
 
