@@ -992,6 +992,8 @@ process_directive(use_module(File, Import), Src) :-
     process_use_module2(File, Import, Src, false).
 process_directive(autoload(File, Import), Src) :-
     process_use_module2(File, Import, Src, false).
+process_directive(require(Import), Src) :-
+    process_requires(Import, Src).
 process_directive(expects_dialect(Dialect), Src) :-
     process_directive(use_module(library(dialect/Dialect)), Src),
     expects_dialect(Dialect).
@@ -1835,6 +1837,41 @@ prolog:no_autoload_module(library(record)).
 prolog:no_autoload_module(library(persistency)).
 prolog:no_autoload_module(library(pldoc)).
 prolog:no_autoload_module(library(settings)).
+
+
+%!  process_requires(+Import, +Src)
+
+process_requires(Import, Src) :-
+    is_list(Import),
+    !,
+    require_list(Import, Src).
+process_requires(Var, _Src) :-
+    var(Var),
+    !.
+process_requires((A,B), Src) :-
+    !,
+    process_requires(A, Src),
+    process_requires(B, Src).
+process_requires(PI, Src) :-
+    requires(PI, Src).
+
+require_list([], _).
+require_list([H|T], Src) :-
+    requires(H, Src),
+    require_list(T, Src).
+
+requires(PI, _Src) :-
+    '$pi_head'(PI, Head),
+    '$get_predicate_attribute'(system:Head, defined, 1),
+    !.
+requires(PI, Src) :-
+    '$pi_head'(PI, Head),
+    '$pi_head'(Name/Arity, Head),
+    '$find_library'(_Module, Name, Arity, _LoadModule, Library),
+    (   imported(Head, Src, Library)
+    ->  true
+    ;   assertz(imported(Head, Src, Library))
+    ).
 
 
 %!  xref_public_list(+Spec, +Source, +Options) is semidet.
