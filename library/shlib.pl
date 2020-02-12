@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2018, University of Amsterdam
+    Copyright (c)  1995-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -109,9 +109,7 @@ predicate defined in C.
 
 :- meta_predicate
     load_foreign_library(:),
-    load_foreign_library(:, +),
-    use_foreign_library(:),
-    use_foreign_library(:, +).
+    load_foreign_library(:, +).
 
 :- dynamic
     loading/1,                      % Lib
@@ -136,6 +134,29 @@ predicate defined in C.
 
 :- create_prolog_flag(res_keep_foreign, false,
                       [ keep(true) ]).
+
+
+%!  use_foreign_library(+FileSpec) is det.
+%!  use_foreign_library(+FileSpec, +Entry:atom) is det.
+%
+%   Load and install a foreign   library as load_foreign_library/1,2 and
+%   register the installation using  initialization/2   with  the option
+%   `now`. This is similar to using:
+%
+%   ```
+%   :- initialization(load_foreign_library(foreign(mylib))).
+%   ```
+%
+%   but using the initialization/1 wrapper  causes   the  library  to be
+%   loaded _after_ loading of the file in which it appears is completed,
+%   while use_foreign_library/1 loads the   library  _immediately_. I.e.
+%   the difference is only relevant if the   remainder  of the file uses
+%   functionality of the C-library.
+%
+%   As of SWI-Prolog 8.1.22, use_foreign_library/1,2 is in provided as a
+%   built-in predicate that, if necessary,   loads  library(shlib). This
+%   implies that these directives can be used without explicitly loading
+%   library(shlib) or relying on demand loading.
 
 
                  /*******************************
@@ -397,29 +418,6 @@ delete_foreign_lib(true, Path) :-
     catch(delete_file(Path), _, true).
 delete_foreign_lib(_, _).
 
-
-%!  use_foreign_library(+FileSpec) is det.
-%!  use_foreign_library(+FileSpec, +Entry:atom) is det.
-%
-%   Load and install a foreign   library as load_foreign_library/1,2
-%   and register the installation using   initialization/2  with the
-%   option =now=. This is similar to using:
-%
-%     ==
-%     :- initialization(load_foreign_library(foreign(mylib))).
-%     ==
-%
-%   but using the initialization/1 wrapper causes  the library to be
-%   loaded _after_ loading of  the  file   in  which  it  appears is
-%   completed,  while  use_foreign_library/1  loads    the   library
-%   _immediately_. I.e. the  difference  is   only  relevant  if the
-%   remainder of the file uses functionality of the C-library.
-
-use_foreign_library(FileSpec) :-
-    initialization(load_foreign_library(FileSpec), now).
-
-use_foreign_library(FileSpec, Entry) :-
-    initialization(load_foreign_library(FileSpec, Entry), now).
 
 %!  unload_foreign_library(+FileSpec) is det.
 %!  unload_foreign_library(+FileSpec, +Exit:atom) is det.

@@ -51,6 +51,8 @@
             unload_file/1,
             exists_source/1,                    % +Spec
             exists_source/2,                    % +Spec, -Path
+            use_foreign_library/1,		% :FileSpec
+            use_foreign_library/2,		% :FileSpec, +Install
             prolog_load_context/2,
             stream_position_data/3,
             current_predicate/2,
@@ -89,7 +91,9 @@
           ]).
 
 :- meta_predicate
-    dynamic(:, +).
+    dynamic(:, +),
+    use_foreign_library(:),
+    use_foreign_library(:, +).
 
 
                 /********************************
@@ -564,6 +568,42 @@ unload_file(File) :-
         retractall(system:'$resolved_source_path'(_, Path))
     ;   true
     ).
+
+		 /*******************************
+		 *      FOREIGN LIBRARIES	*
+		 *******************************/
+
+%!  use_foreign_library(+FileSpec) is det.
+%!  use_foreign_library(+FileSpec, +Entry:atom) is det.
+%
+%   Load and install a foreign   library as load_foreign_library/1,2
+%   and register the installation using   initialization/2  with the
+%   option =now=. This is similar to using:
+%
+%     ==
+%     :- initialization(load_foreign_library(foreign(mylib))).
+%     ==
+%
+%   but using the initialization/1 wrapper causes  the library to be
+%   loaded _after_ loading of  the  file   in  which  it  appears is
+%   completed,  while  use_foreign_library/1  loads    the   library
+%   _immediately_. I.e. the  difference  is   only  relevant  if the
+%   remainder of the file uses functionality of the C-library.
+
+use_foreign_library(FileSpec) :-
+    ensure_shlib,
+    initialization(shlib:load_foreign_library(FileSpec), now).
+
+use_foreign_library(FileSpec, Entry) :-
+    ensure_shlib,
+    initialization(shlib:load_foreign_library(FileSpec, Entry), now).
+
+ensure_shlib :-
+    '$get_predicate_attribute'(shlib:load_foreign_library(_), defined, 1),
+    '$get_predicate_attribute'(shlib:load_foreign_library(_,_), defined, 1),
+    !.
+ensure_shlib :-
+    use_module(library(shlib), []).
 
 
                  /*******************************
