@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2003-2014, University of Amsterdam
+    Copyright (c)  2003-2020, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,7 @@
           [ make/0
           ]).
 :- autoload(library(apply),[maplist/2]).
-:- autoload(library(check),[list_undefined/1,list_void_declarations/0]).
+:- autoload(library(check),[list_undefined/0,list_void_declarations/0]).
 :- autoload(library(debug),[debug/3]).
 :- autoload(library(lists),[list_to_set/2,member/2]).
 :- autoload(library(option),[merge_options/3]).
