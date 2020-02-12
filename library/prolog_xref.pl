@@ -68,21 +68,28 @@
             xref_used_class/2,          % ?Source, ?ClassName
             xref_defined_class/3        % ?Source, ?ClassName, -How
           ]).
-:- use_module(library(lists), [append/3, append/2, member/2, select/3]).
-:- use_module(library(operators), [push_op/3]).
-:- use_module(library(shlib), [current_foreign_library/2]).
-:- use_module(library(ordsets)).
-:- use_module(library(prolog_source)).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(apply)).
-:- use_module(library(debug)).
+:- autoload(library(apply),[maplist/2,partition/4,maplist/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(dialect),[expects_dialect/1]).
+:- autoload(library(error),[must_be/2,instantiation_error/1]).
+:- autoload(library(lists),[member/2,append/2,append/3,select/3]).
+:- autoload(library(modules),[in_temporary_module/3]).
+:- autoload(library(operators),[push_op/3]).
+:- autoload(library(option),[option/2,option/3]).
+:- autoload(library(ordsets),[ord_intersect/2,ord_intersection/3]).
+:- autoload(library(prolog_source),
+	    [ prolog_canonical_source/2,
+	      prolog_open_source/2,
+	      prolog_close_source/1,
+	      prolog_read_source_term/4
+	    ]).
+:- autoload(library(shlib),[current_foreign_library/2]).
+:- autoload(library(solution_sequences),[distinct/2,limit/2]).
+
 :- if(exists_source(library(pldoc))).
 :- use_module(library(pldoc), []).      % Must be loaded before doc_process
 :- use_module(library(pldoc/doc_process)).
 :- endif.
-:- use_module(library(solution_sequences)).
-:- use_module(library(modules)).
 
 :- predicate_options(xref_source/2, 2,
                      [ silent(boolean),
