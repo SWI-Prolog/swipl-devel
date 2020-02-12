@@ -39,9 +39,9 @@
             attrs_classes/2,           % +Attrs, -Classes
             style_css_attrs/2          % +Style, -Properties
           ]).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
-:- use_module(library(option)).
+:- autoload(library(apply),[maplist/3,convlist/3]).
+:- autoload(library(lists),[append/2,list_to_set/2]).
+:- autoload(library(option),[option/3]).
 
 :- multifile
     html_text:style/3.

@@ -34,7 +34,7 @@
 
 :- module(pldoc_style,
           []).
-:- use_module(library(option)).
+:- autoload(library(option),[merge_options/3]).
 
 :- multifile
     theme/3,

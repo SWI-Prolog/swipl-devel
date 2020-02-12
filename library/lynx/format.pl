@@ -35,9 +35,11 @@
 :- module(text_format,
           [ format_paragraph/2          % +Text, +Options
           ]).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2,type_error/2]).
+:- autoload(library(lists),[append/3,member/2,selectchk/3]).
+:- autoload(library(option),[select_option/3,option/2,option/3]).
 
 /** <module> Print formatted text to a terminal
 

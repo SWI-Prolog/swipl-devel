@@ -37,15 +37,21 @@
           [ html_text/1,                        % +FileName
             html_text/2                         % +FileName, Options
           ]).
-:- use_module(library(sgml)).
-:- use_module(library(lists)).
-:- use_module(library(debug)).
-:- use_module(library(apply)).
-:- use_module(library(option)).
-:- use_module(library(aggregate)).
-
-:- use_module(library(lynx/format)).
-:- use_module(library(lynx/html_style)).
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(apply),[foldl/4,maplist/3,maplist/2]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),
+	    [ append/3, list_to_set/2, reverse/2, delete/3, sum_list/2,
+	      nth1/3, max_list/2
+	    ]).
+:- autoload(library(option),[select_option/4,merge_options/3,option/3]).
+:- autoload(library(sgml),[xml_is_dom/1,load_html/3]).
+:- autoload(library(lynx/format),[format_paragraph/2]).
+:- autoload(library(lynx/html_style),
+	    [ element_css/3, css_block_options/5, css_inline_options/3,
+	      attrs_classes/2, style_css_attrs/2
+	    ]).
 
 %!  html_text(+Input) is det.
 %!  html_text(+Input, Options) is det.
