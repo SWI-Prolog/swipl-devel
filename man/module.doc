@@ -250,7 +250,8 @@ declaration occurs are to be resolved by using use_module/2 on
 available. The autoload/2 variant is tried before autoload/1. It is not
 allowed for two autoload/2 declarations to provide the same predicate
 and it is not allowed to define a predicate provided in this way
-locally.
+locally.  See also require/1, which allows specifying predicates for
+autoloading from their default location.
 
 Predicates made available using autoload/2 behave as defined predicates,
 which implies that any operation on them will perform autoloading if

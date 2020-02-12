@@ -47,13 +47,16 @@
             autoload_path/1,
 
             autoload/1,                         % +File
-            autoload/2                          % +File, +Imports
+            autoload/2,                         % +File, +Imports
+
+            require/1				% +Predicates
           ]).
 
 :- meta_predicate
     '$autoload'(:),
     autoload(:),
-    autoload(:, +).
+    autoload(:, +),
+    require(:).
 
 :- dynamic
     library_index/3,                % Head x Module x Path
@@ -846,3 +849,77 @@ pi_in_exports(PI, Exports) :-
 current_autoload(M:File, Context, Term) :-
     '$get_predicate_attribute'(M:'$autoload'(_,_,_), defined, 1),
     M:'$autoload'(File, Context, Term).
+
+                 /*******************************
+                 *             REQUIRE          *
+                 *******************************/
+
+%!  require(:ListOfPredIndicators) is det.
+%
+%   Register the predicates  in   ListOfPredIndicators  for  autoloading
+%   using autoload/2 if they are not system predicates.
+
+require(M:Spec) :-
+    (   is_list(Spec)
+    ->  List = Spec
+    ;   phrase(comma_list(Spec), List)
+    ), !,
+    require(List, M, FromLib),
+    keysort(FromLib, Sorted),
+    by_file(Sorted, Autoload),
+    forall('$member'(File-Import, Autoload),
+           autoload(M:File, Import)).
+require(_:Spec) :-
+    '$type_error'(list, Spec).
+
+require([],_, []).
+require([H|T], M, Needed) :-
+   '$pi_head'(H, Head),
+   (   '$get_predicate_attribute'(system:Head, defined, 1)
+   ->  require(T, M, Needed)
+   ;   '$pi_head'(Module:Name/Arity, M:Head),
+       (   '$find_library'(Module, Name, Arity, _LoadModule, Library)
+       ->  Needed = [Library-H|More],
+           require(T, M, More)
+       ;   print_message(error, error(existence_error(procedure, Name/Arity), _)),
+           require(T, M, Needed)
+       )
+   ).
+
+by_file([], []).
+by_file([File-PI|T0], [Spec-[PI|PIs]|T]) :-
+    on_path(File, Spec),
+    same_file(T0, File, PIs, T1),
+    by_file(T1, T).
+
+on_path(Library, library(Base)) :-
+    file_base_name(Library, Base),
+    findall(Path, plain_source(library(Base), Path), [Library]).
+    !.
+on_path(Library, Library).
+
+plain_source(Spec, Path) :-
+    absolute_file_name(Spec, PathExt,
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail),
+                         solutions(all)
+                       ]),
+    file_name_extension(Path, _, PathExt).
+
+same_file([File-PI|T0], File, [PI|PIs], T) :-
+    !,
+    same_file(T0, File, PIs, T).
+same_file(List, _, [], List).
+
+comma_list(Var) -->
+    { var(Var),
+      !,
+      '$instantiation_error'(Var)
+    }.
+comma_list((A,B)) -->
+    !,
+    comma_list(A),
+    comma_list(B).
+comma_list(A) -->
+    [A].

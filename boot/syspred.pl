@@ -76,7 +76,6 @@
             prolog_stack_property/2,
             absolute_file_name/2,
             tmp_file_stream/3,                  % +Enc, -File, -Stream
-            require/1,
             call_with_depth_limit/3,            % :Goal, +Limit, -Result
             call_with_inference_limit/3,        % :Goal, +Limit, -Result
             numbervars/3,                       % +Term, +Start, -End
@@ -1020,37 +1019,6 @@ opt_prop(discontiguous, boolean,               true,  discontiguous).
 opt_prop(volatile,      boolean,               true,  volatile).
 opt_prop(thread,        oneof(atom, [local,shared],[local,shared]),
                                                local, thread_local).
-
-
-                 /*******************************
-                 *             REQUIRE          *
-                 *******************************/
-
-:- meta_predicate
-    require(:).
-
-%!  require(:ListOfPredIndicators) is det.
-%
-%   Tag given predicates as undefined, so they will be included
-%   into a saved state through the autoloader.
-%
-%   @see autoload/0.
-
-require(M:List) :-
-    (   is_list(List)
-    ->  require(List, M)
-    ;   throw(error(type_error(list, List), _))
-    ).
-
-require([], _).
-require([N/A|T], M) :-
-    !,
-    functor(Head, N, A),
-    '$require'(M:Head),
-    require(T, M).
-require([H|_T], _) :-
-    throw(error(type_error(predicate_indicator, H), _)).
-
 
                 /********************************
                 *            MODULES            *

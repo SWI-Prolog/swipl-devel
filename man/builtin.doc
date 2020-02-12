@@ -507,21 +507,28 @@ found with the following predicates:
           between files.
     \end{itemize}
 
-    \predicate{require}{1}{+ListOfNameAndArity}
+    \predicate{require}{1}{+Predicates}
 Declare that this file/module requires the specified predicates to be
-defined ``with their commonly accepted definition''.  This predicate
-originates from the Prolog portability layer for XPCE.  It is intended
-to provide a portable mechanism for specifying that this module requires
-the specified predicates.
+defined ``with their commonly accepted definition''. \arg{Predicates} is
+either a list of predicate indicators or a \jargon{comma-list} of
+predicate indicators. First, all built-in predicates are removed from
+the set. The remaining predicates are searched using the library index
+used for autoloading and mapped to a set of autoload/2 directives. This
+implies that the targets will be loaded lazily if autoloading is not
+completely disabled and loaded using use_module/2 otherwise. See
+\prologflag{autoload}.
 
-The implementation normally first verifies whether the predicate is
-already defined.  If not, it will search the libraries and load the
-required library.
-
-SWI-Prolog, having autoloading, does {\bf not} load the library. Instead
-it creates a procedure header for the predicate if it does not exist.
-This will flag the predicate as `undefined'.  See also check/0 and
-autoload/0.
+The require/1 directive provides less control over the exact nature and
+location of the predicate. As autoload/2, it prevents a local definition
+of this predicate. As SWI-Prolog guarantees that the set of built-in
+predicates and predicates available for autoloading is unambiguous
+(i.e., has no duplicates) the specification is unambiguous. It provides
+four advantages over autoload/2: (1) the user does not have to remember
+the exact library, (2) the directive can be supported in other Prolog
+systems\footnote{SICStus provides it}, providing compatibiity despite
+differences in library and built-in predicate organization, (3) it is
+robust against changes to the SWI-Prolog libraries and (4) it is less
+typing.
 
     \predicate{encoding}{1}{+Encoding}
 This directive can appear anywhere in a source file to define how
@@ -3818,8 +3825,9 @@ predicate is considered defined if it exists in the specified module, is
 imported into the module or is defined in one of the modules from which
 the predicate will be imported if it is called (see
 \secref{importmodule}). Note that current_predicate/1 does \emph{not}
-succeed for predicates that can be \jargon{autoloaded}.  See also
-current_predicate/2 and predicate_property/2.
+succeed for predicates that can be \jargon{autoloaded} unless they are
+imported using autoload/2. See also current_predicate/2 and
+predicate_property/2.
 
 If \arg{PredicateIndicator} is not fully specified, the predicate only
 generates values that are defined in or already imported into the target
