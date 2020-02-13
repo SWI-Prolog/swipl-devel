@@ -2157,7 +2157,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   buf->mode  = Sttymode(s);
   buf->state = NULL;
 
-  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+  if ( false(s, SIO_ISATTY) )
   { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
     succeed;				/* not a terminal */
   }
@@ -2167,6 +2167,10 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   }
 
   Sset_ttymode(s, mode);
+
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;
+
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
   if ( !GetTtyState(fd, &TTY_STATE(buf)) )
