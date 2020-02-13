@@ -1642,6 +1642,19 @@ default_theme(message(Level),         Attrs) :-
 %   system.
 
 print_message(Level, Term) :-
+    nb_current('$inprint_message', true),
+    (   Level \== silent
+    ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term])
+    ;   true
+    ),
+    !.
+print_message(Level, Term) :-
+    setup_call_cleanup(
+        nb_setval('$inprint_message', true),
+        print_message_guarded(Level, Term),
+        nb_delete('$inprint_message')).
+
+print_message_guarded(Level, Term) :-
     (   must_print(Level, Term)
     ->  (   translate_message(Term, Lines, [])
         ->  (   nonvar(Term),

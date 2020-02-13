@@ -76,6 +76,8 @@ resetProlog(int clear_stacks)
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
+  LD->autoload.nesting = NULL;
+  LD->autoload.loop = NULL;
   updateAlerted(LD);
 
   return TRUE;

@@ -910,13 +910,13 @@ printMessage(atom_t severity, ...)
     { rc = PL_call_predicate(NULL, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			     pred, av);
     } else if ( LD->in_print_message <= OK_RECURSIVE*2 )
-    { Sfprintf(Serror, "Message: ");
+    { Sfprintf(Serror, "print_message/2: recursive call: ");
       if ( ReadingSource )
 	Sfprintf(Serror, "%s:%d ",
 		 PL_atom_chars(source_file_name), (int)source_line_no);
       rc = PL_write_term(Serror, av+1, 1200, 0);
       Sfprintf(Serror, "\n");
-      print_c_backtrace("printMessage()");
+      PL_backtrace(5, 1);
     } else				/* in_print_message == 2 */
     { Sfprintf(Serror, "printMessage(): recursive call\n");
     }

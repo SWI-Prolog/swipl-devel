@@ -1482,7 +1482,7 @@ struct definition
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
-};
+} definition_chain;
 
 struct dirty_def_info
 { gen_t		oldest_generation;	/* Oldest generation seen */

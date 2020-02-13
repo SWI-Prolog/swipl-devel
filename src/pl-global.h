@@ -441,7 +441,6 @@ struct PL_local_data
 #endif
   int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
-  int		autoload_nesting;	/* Nesting level in autoloader */
   gen_t		gen_reload;		/* reload generation */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
@@ -719,6 +718,11 @@ struct PL_local_data
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
   } clauses;
+
+  struct
+  { DefinitionChain nesting;		/* Nesting chain in the autoloader */
+    Definition	loop;			/* We are looping on this def */
+  } autoload;
 
   struct
   { intptr_t _total_marked;		/* # marked global cells */

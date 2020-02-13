@@ -2371,6 +2371,30 @@ found:
 }
 
 
+static int
+test_autoload_loop(Definition def ARG_LD)
+{ DefinitionChain ch;
+
+  for(ch=LD->autoload.nesting; ch; ch=ch->next)
+  { if ( ch->definition == def )
+    { LD->autoload.loop = def;
+
+      Sdprintf("ERROR: autoload loop:\n");
+      Sdprintf("ERROR:   %s\n", predicateName(def));
+
+      for(ch=LD->autoload.nesting; ch; ch=ch->next)
+      { Sdprintf("ERROR:   %s\n", predicateName(ch->definition));
+	if ( ch->definition == def )
+	  break;
+      }
+
+      return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call the autoloader for the given definition.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -2382,6 +2406,7 @@ autoLoader(Definition def)
   term_t argv;
   qid_t qid;
   atom_t answer = ATOM_nil;
+  struct definition_chain cell;
 
   if ( !GD->procedures.undefinterc4 )
     GD->procedures.undefinterc4 = PL_pred(FUNCTOR_undefinterc4,
@@ -2396,14 +2421,18 @@ autoLoader(Definition def)
   PL_put_integer( argv+2, def->functor->arity);
 
   push_input_context(ATOM_autoload);
-  LD->autoload_nesting++;
-  if ( (qid = PL_open_query(MODULE_system, PL_Q_NODEBUG,
+  cell.definition = def;
+  cell.next = LD->autoload.nesting;
+  LD->autoload.nesting = &cell;
+  if ( (qid = PL_open_query(MODULE_system, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 			    GD->procedures.undefinterc4, argv)) )
   { if ( PL_next_solution(qid) )
       PL_get_atom(argv+3, &answer);
     PL_close_query(qid);
+  } else if ( PL_exception(0) )
+  { PL_clear_exception();
   }
-  LD->autoload_nesting--;
+  LD->autoload.nesting = LD->autoload.nesting->next;
   pop_input_context();
   PL_discard_foreign_frame(cid);
 
@@ -2436,11 +2465,8 @@ trapUndefined(Definition def ARG_LD)
 
 					/* Trap via exception/3 */
   if ( truePrologFlag(PLFLAG_AUTOLOAD) && !GD->bootsession )
-  { if ( LD->autoload_nesting > 100 )
-    { LD->autoload_nesting = 1;
-      sysError("trapUndefined(): undefined: %s", predicateName(def));
-
-      return def;
+  { if ( !test_autoload_loop(def PASS_LD) )
+    { return def;
     } else
     { atom_t answer = autoLoader(def);
 
