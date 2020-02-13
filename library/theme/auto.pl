@@ -33,7 +33,7 @@
 */
 
 :- module(prolog_theme_auto, []).
-:- use_module(library(ansi_term)).
+:- use_module(library(ansi_term), [ansi_get_color/2]).
 
 /** <module> Load a sensible theme based on the environment
 
