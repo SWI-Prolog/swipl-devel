@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, CWI, Amsterdam
+    Copyright (c)  2018-2020, CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,7 @@
 	    ]).
 :- autoload(library(option),[select_option/4,merge_options/3,option/3]).
 :- autoload(library(sgml),[xml_is_dom/1,load_html/3]).
-:- autoload(library(lynx/format),[format_paragraph/2]).
+:- autoload(library(lynx/format),[format_paragraph/2,trim_line/2]).
 :- autoload(library(lynx/html_style),
 	    [ element_css/3, css_block_options/5, css_inline_options/3,
 	      attrs_classes/2, style_css_attrs/2
@@ -274,7 +274,7 @@ list_par_properties([ol|_More], N, [bullet(N)]).
 block_words(Content, RC, Words, State) :-
     phrase(bwords(Content, RC, State), Words0),
     join_whitespace(Words0, Words1),
-    text_format:trim_spaces(Words1, Words).
+    trim_line(Words1, Words).
 
 bwords([], [], _) -->
     !.
