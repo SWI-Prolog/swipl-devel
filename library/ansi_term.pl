@@ -345,7 +345,7 @@ prolog:message_line_element(S, begin(Level, Ctx)) :-
     current_prolog_flag(color_term, true),
     !,
     (   is_list(Attr)
-    ->  maplist(sgr_code, Attr, Codes),
+    ->  sgr_codes(Attr, Codes),
         atomic_list_concat(Codes, ;, Code)
     ;   sgr_code(Attr, Code)
     ),
@@ -355,6 +355,11 @@ prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
     Ctx = ansi(Reset, _),
     keep_line_pos(S, write(S, Reset)).
+
+sgr_codes([], []).
+sgr_codes([H0|T0], [H|T]) :-
+    sgr_code(H0, H),
+    sgr_codes(T0, T).
 
 level_attrs(Level,         Attrs) :-
     user:message_property(Level, color(Attrs)),
