@@ -3,7 +3,8 @@
     Author:        R.A.O'Keefe, Vitor Santos Costa, Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1984-2012, VU University Amsterdam
+    Copyright (c)  1984-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -49,7 +50,8 @@
             transpose_ugraph/2,         % +Graph, -NewGraph
             vertices/2,                 % +Graph, -Vertices
             vertices_edges_to_ugraph/3, % +Vertices, +Edges, -Graph
-            ugraph_union/3              % +Graph1, +Graph2, -Graph
+            ugraph_union/3,             % +Graph1, +Graph2, -Graph
+            connect_ugraph/3            % +Graph1, -Start, -Graph
           ]).
 
 /** <module> Graph manipulation library
@@ -526,9 +528,56 @@ neighbours(V,[_|G],Neig) :-
     neighbours(V,G,Neig).
 
 
+%!  connect_ugraph(+UGraphIn, -Start, -UGraphOut) is det.
 %
-% Simple two-step algorithm. You could be smarter, I suppose.
+%   Adds Start as an additional vertex that is connected to all vertices
+%   in UGraphIn. This can be used to   create  an topological sort for a
+%   not connected graph. Start is before any   vertex in UGraphIn in the
+%   standard order of terms.  No vertex in UGraphIn can be a variable.
 %
+%   Can be used to order a not-connected graph as follows:
+%
+%   ```
+%   top_sort_unconnected(Graph, Vertices) :-
+%       (   top_sort(Graph, Vertices)
+%       ->  true
+%       ;   connect_ugraph(Graph, Start, Connected),
+%           top_sort(Connected, Ordered0),
+%           Ordered0 = [Start|Vertices]
+%       ).
+%   ```
+
+connect_ugraph([], 0, []) :- !.
+connect_ugraph(Graph, Start, [Start-Vertices|Graph]) :-
+    vertices(Graph, Vertices),
+    Vertices = [First|_],
+    before(First, Start).
+
+%!  before(+Term, -Before) is det.
+%
+%   Unify Before to a term that comes   before  Term in the standard
+%   order of terms.
+%
+%   @error instantiation_error if Term is unbound.
+
+before(X, _) :-
+    var(X),
+    !,
+    instantiation_error(X).
+before(Number, Start) :-
+    number(Number),
+    !,
+    Start is Number - 1.
+before(_, 0).
+
+
+%!  complement(+UGraphIn, -UGraphOut)
+%
+%   UGraphOut is a ugraph with an edge between all vertices that are
+%   _not_ connected in UGraphIn and all edges from UGraphIn removed.
+%
+%   @tbd Simple two-step algorithm. You could be smarter, I suppose.
+
 complement(G, NG) :-
     vertices(G,Vs),
     complement(G,Vs,NG).
@@ -539,7 +588,10 @@ complement([V-Ns|G], Vs, [V-INs|NG]) :-
     ord_subtract(Vs,Ns1,INs),
     complement(G, Vs, NG).
 
-
+%!  reachable(+Vertex, +UGraph, -Vertices)
+%
+%   True when Vertices is  an  ordered   set  of  vertices  reachable in
+%   UGraph, including Vertex.
 
 reachable(N, G, Rs) :-
     reachable([N], G, [N], Rs).
