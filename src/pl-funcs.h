@@ -532,7 +532,6 @@ COMMON(void)		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 COMMON(void)		destroyDefinition(Definition def);
 COMMON(Procedure)	resolveProcedure__LD(functor_t f, Module module ARG_LD);
 COMMON(Definition)	trapUndefined(Definition undef ARG_LD);
-COMMON(word)		pl_retractall(term_t head);
 COMMON(word)		pl_abolish(term_t atom, term_t arity);
 COMMON(word)		pl_abolish1(term_t pred);
 COMMON(int)		redefineProcedure(Procedure proc, SourceFile sf,

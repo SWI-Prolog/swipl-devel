@@ -116,7 +116,6 @@ static const PL_extension foreigns[] = {
   FRG("abolish",		1, pl_abolish1,		     META|ISO),
   FRG("abolish",		2, pl_abolish,		     META),
   FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),
-  FRG("retractall",		1, pl_retractall,	 META|ISO),
 #ifdef O_MAINTENANCE
   FRG("$list_generations",	1, pl_list_generations,	     META),
   FRG("$check_procedure",	1, pl_check_procedure,	     META),

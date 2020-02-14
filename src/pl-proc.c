@@ -2684,9 +2684,10 @@ allVars(int argc, Word argv ARG_LD)
 }
 
 
-word
-pl_retractall(term_t head)
+static
+PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 { GET_LD
+  term_t head = A1;
   term_t thehead = PL_new_term_ref();
   Procedure proc;
   Definition def;
@@ -3584,6 +3585,7 @@ pl_list_generations(term_t desc)
 		 *******************************/
 
 BeginPredDefs(proc)
+  PRED_DEF("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("$set_predicate_attribute", 3, set_predicate_attribute,
 	   PL_FA_TRANSPARENT)
   PRED_DEF("$get_predicate_attribute", 3, get_predicate_attribute,
