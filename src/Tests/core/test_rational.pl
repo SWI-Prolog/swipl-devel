@@ -110,7 +110,7 @@ test(conversion) :-
     assertion(1 is truncate(3r2)),
     assertion(-1 is truncate(-3r2)),
     assertion(2 is integer(5r3)),
-    assertion((5)/(3) =:= float(5r3)),
+    assertion((R1 is float(5r3), R2 is (5)/(3), check_error(R1,R2))),  % compensate for rounding errors
     assertion(rationalize((1)/(2)) =:= 1r2).
 
 % rational exponent power tests (3)
