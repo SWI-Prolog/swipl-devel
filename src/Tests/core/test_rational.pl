@@ -116,7 +116,6 @@ test(conversion) :-
 % rational exponent power tests (3)
 test(float_to_rat) :-
 	assertion(8.0 is 4.0**3r2),
-	%assertion((NaN is -4.0**3r2,NaN=1.5NaN)),  % neg. base, even Q
 	assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
 	assertion(2.0 is 8.0**1r3),
 	assertion(-2.0 is -8.0**1r3),
