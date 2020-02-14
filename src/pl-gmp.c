@@ -1118,17 +1118,17 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
       break;
 #ifdef O_GMP
     case V_MPQ:
-    { word w;
-      term_t tmp;
-      int rc;
+    { if ( isRational(*p) )
+      { number n2;
+	int rc;
 
-      if ( !(tmp=PL_new_term_ref()) )
-	return FALSE;
-      if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
-	return raiseStackOverflow(rc);
+	get_rational(*p, &n2);
+	rc = (cmpNumbers(n, &n2) == CMP_EQUAL);
+	clearNumber(&n2);
 
-      *valTermRef(tmp) = w;
-      return PL_unify(t, tmp);
+	return rc;
+      }
+      break;
     }
 #endif
     case V_FLOAT:
