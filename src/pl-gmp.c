@@ -1133,7 +1133,10 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
 #endif
     case V_FLOAT:
       if ( isFloat(*p) )
-	return n->value.f == valFloat(*p);
+      {	Word ap = valIndirectP(*p);
+
+	return memcmp((char*)&n->value.f, ap, sizeof(n->value.f)) == 0;
+      }
       break;
   }
 
