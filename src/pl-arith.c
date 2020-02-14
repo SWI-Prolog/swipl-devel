@@ -4029,8 +4029,11 @@ cleanupArith(void)
 
 int
 is_arith_flag(atom_t k)
-{ return ( k == ATOM_max_rational_size ||
+{ return (
+#ifdef O_GMP
+           k == ATOM_max_rational_size ||
 	   k == ATOM_max_rational_size_action ||
+#endif
 	   k == ATOM_float_overflow ||
 	   k == ATOM_float_zero_div ||
 	   k == ATOM_float_undefined ||
@@ -4040,14 +4043,16 @@ is_arith_flag(atom_t k)
 
 int
 get_arith_flag(term_t val, atom_t k ARG_LD)
-{ size_t sz;
-  atom_t a;
+{ atom_t a;
+#ifdef O_GMP
+  size_t sz;
 
   if ( k == ATOM_max_rational_size &&
        (sz=LD->arith.rat.max_rational_size) != (size_t)-1 )
     return PL_unify_uint64(val, sz);
   if ( k == ATOM_max_rational_size_action )
     return PL_unify_atom(val, LD->arith.rat.max_rational_size_action);
+#endif
   if ( k == ATOM_float_overflow )
     a = LD->arith.f.flags & FLT_OVERFLOW ? ATOM_infinity : ATOM_error;
   else if ( k == ATOM_float_zero_div )
@@ -4064,6 +4069,7 @@ get_arith_flag(term_t val, atom_t k ARG_LD)
   return PL_unify_atom(val, a);
 }
 
+#ifdef O_GMP
 static int
 set_restraint(term_t t, size_t *valp)
 { GET_LD
@@ -4075,7 +4081,6 @@ set_restraint(term_t t, size_t *valp)
   }
   return PL_get_size_ex(t, valp);
 }
-
 
 static int
 set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
@@ -4097,6 +4102,7 @@ set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
 
   return FALSE;
 }
+#endif
 
 
 static void
@@ -4112,12 +4118,14 @@ int
 set_arith_flag(term_t val, atom_t key ARG_LD)
 { atom_t a;
 
+#ifdef O_GMP
   if ( key == ATOM_max_rational_size )
     return set_restraint(val, &LD->arith.rat.max_rational_size);
   if ( key == ATOM_max_rational_size_action )
     return set_restraint_action(
 	       val, key,
 	       &LD->arith.rat.max_rational_size_action PASS_LD);
+#endif
 
   if ( PL_get_atom_ex(val, &a) )
   { if ( key == ATOM_float_overflow )

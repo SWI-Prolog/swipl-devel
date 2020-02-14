@@ -1850,7 +1850,9 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;
   ldnew->prolog_flag.access_level = ldold->prolog_flag.access_level;
+#ifdef O_GMP
   ldnew->arith.rat                = ldold->arith.rat;
+#endif
   ldnew->arith.f                  = ldold->arith.f;
   if ( ldold->prolog_flag.table )
   { PL_LOCK(L_PLFLAG);
