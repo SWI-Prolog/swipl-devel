@@ -2763,6 +2763,11 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 	{ if ( PL_exception(0) )
 	    break;
 	}
+      } else
+      { if ( PL_exception(0) )
+	{ rc = FALSE;
+	  break;
+	}
       }
 
       PL_rewind_foreign_frame(fid);
