@@ -1958,6 +1958,96 @@ ar_pow(Number n1, Number n2, Number r)
     clearNumber(&ndp);
   }
 
+	if ( n2->type == V_MPQ ) {             // rational exponent
+		int sgn_exp = mpq_sgn(n2->value.mpq);      // sign of original exponent
+		if (sgn_exp==-1)                   // make exponent positive
+			mpz_neg(mpq_numref(n2->value.mpq),mpq_numref(n2->value.mpq));
+		long r_den = mpz_get_ui(mpq_denref(n2->value.mpq));  // denominator of exp (for nthroot)
+
+		switch (n1->type) {
+			case V_INTEGER:
+			case V_MPZ: {
+				r->type = V_MPZ;
+				if (n1->type == V_INTEGER)   // r->value.mpz must be cleared if not used
+					mpz_init_set_si(r->value.mpz,n1->value.i);
+				else
+					mpz_init_set(r->value.mpz,n1->value.mpz);
+				if ((mpz_sgn(r->value.mpz) == -1) && !(r_den & 1)) {  // undefined case
+					mpz_clear(r->value.mpz);
+					r->type = V_FLOAT;
+					r->value.f = NAN;
+					return check_float(r->value.f);  // DONE
+				}
+				if (mpz_root(r->value.mpz,r->value.mpz,r_den)) {  // if exact
+					unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+					if (r_num > LONG_MAX) {  // use default float case
+						mpz_clear(r->value.mpz);
+						goto doreal;
+					} else {
+						mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
+						if (sgn_exp == -1) { //create mpq=1/r->value
+							mpz_t tempz;  // holder for temporary z value
+							mpz_init_set(tempz,r->value.mpz);
+							mpz_clear(r->value.mpz);
+							r->type = V_MPQ;
+							mpq_init(r->value.mpq);
+							mpq_set_z(r->value.mpq,tempz);
+							mpq_inv(r->value.mpq,r->value.mpq);
+							mpz_clear(tempz);
+							return check_mpq(r);  // DONE
+						} else {
+							succeed;  // DONE
+						}
+					}
+				} else {  // use default float case
+					mpz_clear(r->value.mpz);  // need to free current mpz
+					goto doreal;
+				}
+				break;
+			}
+			case V_MPQ: {
+				r->type = V_MPQ;
+				mpq_init(r->value.mpq);      // r->value.mpq must be cleared if not used
+				mpq_set(r->value.mpq,n1->value.mpq);
+				if ((mpq_sgn(r->value.mpq) == -1) && !(r_den & 1)) {  // undefined case
+					mpq_clear(r->value.mpq);
+					r->type = V_FLOAT;
+					r->value.f = NAN;
+					return check_float(r->value.f);  // DONE
+				}
+				int rat_result =  // true is both of the following is exact
+					mpz_root(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_den) &&
+					mpz_root(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_den);
+				unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+				if (rat_result && (r_num < LONG_MAX)) { 
+					// base = base ** P
+					mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
+					mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+					if (sgn_exp==-1) mpq_inv(r->value.mpq,r->value.mpq);  // if original exponent negative, invert
+					return check_mpq(r);  // DONE
+				} else {  // use default float case
+					mpq_clear(r->value.mpq); // need to free current mpq
+					goto doreal;
+				}
+				fail;  // should return or goto before getting here
+			}
+			case V_FLOAT : {
+				r->type = V_FLOAT;
+				double d_exp = sgn_exp*mpq_get_d(n2->value.mpq);
+				if (n1->value.f < 0) {       // base negative
+					if (r_den & 1) {         // odd denominator
+						r->value.f = (mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1) // even/odd numerator
+							* pow(-(n1->value.f),d_exp);
+					}
+					else r->value.f = NAN;   // even denominator
+				} else                       // base positive
+					r->value.f = pow(n1->value.f,d_exp);
+				return check_float(r->value.f);  // DONE
+			}
+		} /* end switch (n1->type) */
+		fail;  // should return or goto before getting here
+	}/* end if ( n2->type == V_MPQ ) */
+
 doreal:
 #endif /*O_GMP*/
   if ( !promoteToFloatNumber(n1) ||
