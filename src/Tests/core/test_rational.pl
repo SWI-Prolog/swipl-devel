@@ -51,11 +51,17 @@ test_rational :-
 set_prefer_rationals(Old, New) :-
     current_prolog_flag(prefer_rationals, Old),
     set_prolog_flag(prefer_rationals, New).
+    
+set_float_undefined(Old, New) :-
+    current_prolog_flag(float_undefined, Old),
+    set_prolog_flag(float_undefined, New).
+
+
 
 :- begin_tests(rational,
 	       [ condition(current_prolog_flag(bounded, false)),
-                 setup(set_prefer_rationals(Old, true)),
-                 cleanup(set_prefer_rationals(_, Old))
+                 setup((set_prefer_rationals(Old, true), set_float_undefined(OldU, nan))),
+                 cleanup((set_prefer_rationals(_, Old), set_float_undefined(_, OldU)))
 	       ]).
 :- set_prolog_flag(rational_syntax, compatibility).
 
@@ -96,9 +102,6 @@ test(keep_precision) :-
     assertion(3r2 is 1r2 / 1r3),
     assertion(1r9 is 1r3 ** 2).
 
-test(pow, [ blocked(float), X == 1r3 ]) :-
-    X is 1r9 ** 1r2.
-
 test(conversion) :-
     assertion(2 = 4r2),
     assertion(1 is floor(3r2)),
@@ -109,6 +112,40 @@ test(conversion) :-
     assertion(2 is integer(5r3)),
     assertion((5)/(3) =:= float(5r3)),
     assertion(rationalize((1)/(2)) =:= 1r2).
+
+% rational exponent power tests (3)
+test(float_to_rat) :-
+	assertion(8.0 is 4.0**3r2),
+	%assertion((NaN is -4.0**3r2,NaN=1.5NaN)),  % neg. base, even Q
+	assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
+	assertion(2.0 is 8.0**1r3),
+	assertion(-2.0 is -8.0**1r3),
+	assertion((R1 is 8.0**2r3,check_error(R1,4))),  % compensate for rounding errors
+	assertion((R2 is -8.0**2r3,check_error(R2,4))),
+	assertion(0.5 is 8.0** -1r3),
+	assertion(-0.5 is -8.0** -1r3),
+	assertion(2**1r2 =:= sqrt(2)).
+
+test(int_to_rat) :-
+	assertion(8 is 4**3r2),
+	assertion(1.5NaN is -4**3r2),  % neg. base, even Q
+	assertion(2 is 8**1r3),
+	assertion(-2 is -8**1r3),
+	assertion(4 is 8**2r3),
+	assertion(4 is -8**2r3),
+	assertion(1r2 is 8** -1r3),
+	assertion(-1r2 is -8** -1r3),
+	assertion(2.0**1r2 =:= sqrt(2.0)).
+
+test(rat_to_rat) :-
+	assertion(1r8 is 1r4**3r2),
+	assertion(1.5NaN is -1r4**3r2),  % neg. base, even Q
+	assertion(1r2 is 1r8**1r3),
+	assertion(-1r2 is -1r8**1r3),
+	assertion(1r4 is 1r8**2r3),
+	assertion(1r4 is -1r8**2r3),
+	assertion(2 is 1r8** -1r3),
+	assertion(-2 is -1r8** -1r3).
 
 test(other_arith) :-
     assertion(1r3 is abs(1r3)),
@@ -156,3 +193,4 @@ bad_syntax(String) :-
     catch(term_string(R,String), error(syntax_error(_T), _C), true),
     var(R).		% test that exception happened
 
+check_error(N1,N2) :- abs(N1-N2) < 1e-12.
