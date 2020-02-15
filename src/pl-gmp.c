@@ -328,14 +328,14 @@ globalMPQ(Word at, mpq_t mpq, int flags ARG_LD)
   { Word p = (Word)num->_mp_d - 3;
     if ( !onStack(global, p) )
       goto copy;
-#ifndef NDEBUG
-    size_t num_size;
-    size_t den_size;
-    size_t num_wsz = mpz_wsize(num, &num_size);
-    size_t den_wsz = mpz_wsize(den, &den_size);
-    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER));
-    assert(den->_mp_d == (Word)num->_mp_d + num_wsz);
-#endif
+    DEBUG(CHK_SECURE,
+	  { size_t num_size;
+	    size_t den_size;
+	    size_t num_wsz = mpz_wsize(num, &num_size);
+	    size_t den_wsz = mpz_wsize(den, &den_size);
+	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER));
+	    assert((Word)den->_mp_d == (Word)num->_mp_d + num_wsz);
+	  });
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
 
