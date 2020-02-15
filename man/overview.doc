@@ -1529,10 +1529,10 @@ One of \const{error} (default) or \const{infinity}.  The first is ISO
 compliant.  Using \const{infinity}, floating point overflow is mapped
 to positive or negative \const{Inf}.  See \secref{ieee-float}.
 
-    \prologflagitem{float_zero_div}{atom}{rw}
-One of \const{error} (default) or \const{infinity}. The first is ISO
-compliant. Using \const{infinity}, division by 0.0 is mapped to positive
-or negative \const{Inf}. See \secref{ieee-float}.
+    \prologflagitem{float_rounding}{atom}{rw}
+Defines how arithmetic rounds to a float.  Defined values are
+\const{nearest} (default), \const{to_positive}, \const{to_negative}
+or \const{to_zero}.
 
     \prologflagitem{float_undefined}{atom}{rw}
 One of \const{error} (default) or \const{nan}. The first is ISO
@@ -1542,6 +1542,11 @@ compliant. Using \const{nan}, undefined operations such as
     \prologflagitem{float_underflow}{atom}{rw}
 One of \const{error} or \const{ignore} (default). The second is ISO
 compliant, binding the result to 0.0.
+
+    \prologflagitem{float_zero_div}{atom}{rw}
+One of \const{error} (default) or \const{infinity}. The first is ISO
+compliant. Using \const{infinity}, division by 0.0 is mapped to positive
+or negative \const{Inf}. See \secref{ieee-float}.
 
     \prologflagitem{gc}{bool}{rw}
 If true (default), the garbage collector is active.  If false, neither
