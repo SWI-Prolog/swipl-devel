@@ -4120,10 +4120,10 @@ initArith(void)
   setPrologFlag("float_undefined", FT_ATOM, "error");
   setPrologFlag("float_underflow", FT_ATOM, "ignore");
   setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
-  float_rounding_names[FLT_ROUND_NEAREST]     = ATOM_nearest;
-  float_rounding_names[FLT_ROUND_TO_POS]      = ATOM_to_positive;
-  float_rounding_names[FLT_ROUND_TO_NEG]      = ATOM_to_negative;
-  float_rounding_names[FLT_ROUND_TO_ZERO]     = ATOM_to_zero;
+  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
+  float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
+  float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;
 }
 
 
