@@ -848,6 +848,9 @@ safe_meta(system:format(Output, Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
 safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
+safe_meta(system:set_prolog_flag(Flag, Value), []) :-
+    atom(Flag),
+    safe_prolog_flag(Flag, Value).
 safe_meta('$attvar':freeze(_Var,Goal), [Goal]).
 safe_meta(phrase(NT,Xs0,Xs), [Goal]) :- % phrase/2,3 and call_dcg/2,3
     expand_nt(NT,Xs0,Xs,Goal).
@@ -1171,7 +1174,7 @@ safe_source_directive(op(_,_,Name)) :-
 safe_source_directive(set_prolog_flag(Flag, Value)) :-
     !,
     atom(Flag), ground(Value),
-    safe_directive_flag(Flag, Value).
+    safe_prolog_flag(Flag, Value).
 safe_source_directive(style_check(_)).
 safe_source_directive(initialization(_)).   % Checked at runtime
 safe_source_directive(initialization(_,_)). % Checked at runtime
@@ -1201,19 +1204,38 @@ safe_path(A/B) :-
     safe_path(B).
 
 
-%!  safe_directive_flag(+Flag, +Value) is det.
+%!  safe_prolog_flag(+Flag, +Value) is det.
 %
-%   True if it is safe to set the flag Flag in a directive to Value.
+%   True if it is safe to set the flag Flag to Value.
 %
 %   @tbd    If we can avoid that files are loaded after changing
 %           this flag, we can allow for more flags.  The syntax
 %           flags are safe because they are registered with the
 %           module.
 
-safe_directive_flag(generate_debug_info, _).
-safe_directive_flag(var_prefix, _).
-safe_directive_flag(double_quotes, _).
-safe_directive_flag(back_quotes, _).
+% misc
+safe_prolog_flag(generate_debug_info, _).
+safe_prolog_flag(optimise, _).
+safe_prolog_flag(occurs_check, _).
+% syntax
+safe_prolog_flag(var_prefix, _).
+safe_prolog_flag(double_quotes, _).
+safe_prolog_flag(back_quotes, _).
+safe_prolog_flag(rational_syntax, _).
+% arithmetic
+safe_prolog_flag(prefer_rationals, _).
+safe_prolog_flag(float_overflow, _).
+safe_prolog_flag(float_zero_div, _).
+safe_prolog_flag(float_undefined, _).
+safe_prolog_flag(float_underflow, _).
+safe_prolog_flag(float_rounding, _).
+safe_prolog_flag(float_rounding, _).
+safe_prolog_flag(max_rational_size, _).
+safe_prolog_flag(max_rational_size_action, _).
+% tabling
+safe_prolog_flag(max_answers_for_subgoal,_).
+safe_prolog_flag(max_answers_for_subgoal_action,_).
+
 
 %!  prolog:sandbox_allowed_expansion(:G) is det.
 %
