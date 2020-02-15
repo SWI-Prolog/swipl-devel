@@ -180,6 +180,7 @@ This library is only available on Windows systems.
 
 \libsummary{settings}
 
+\IfFileExists{summaries.d/simplexlib.tex}{
 \libsummary{simplex}
 
 \begin{summarylist}{ll}
@@ -194,7 +195,7 @@ This library is only available on Windows systems.
 \predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
 \predicatesummary{transportation}{4}{Solve transportation problem}
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
-\end{summarylist}
+\end{summarylist}}{}
 
 \libsummary{ugraphs}
 
