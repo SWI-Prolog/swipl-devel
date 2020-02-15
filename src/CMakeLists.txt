@@ -455,11 +455,11 @@ endif(0)
 add_custom_target(check
     COMMAND ${PROG_SWIPL} -f none -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
-set(SWIPL_TEST_DIRS unprotected core attvar tabling library charset eclipse clp
+set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
+    charset eclipse clp GC save
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
-    xsb/sub_tests
-    GC save)
+    xsb/sub_tests)
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
 endif()
