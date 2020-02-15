@@ -1956,7 +1956,122 @@ ar_pow(Number n1, Number n2, Number r)
 
     clearNumber(&nrp);
     clearNumber(&ndp);
-  }
+  } /* end MPQ^int */
+
+  if ( n2->type == V_MPQ )			/* X ^ rat */
+  { int sgn_exp = mpq_sgn(n2->value.mpq);
+    long r_den;
+
+    if ( sgn_exp == -1 )
+      mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
+
+    r_den = mpz_get_ui(mpq_denref(n2->value.mpq));
+
+    switch (n1->type)
+    { case V_INTEGER:
+      case V_MPZ:				/* int ^ rat */
+      { r->type = V_MPZ;
+
+	if ( n1->type == V_INTEGER )
+	  mpz_init_set_si(r->value.mpz,n1->value.i);
+	else
+	  mpz_init_set(r->value.mpz,n1->value.mpz);
+
+	/* neg ^ int/even is undefined */
+	if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
+	{ mpz_clear(r->value.mpz);
+	  r->type = V_FLOAT;
+	  r->value.f = NAN;
+	  return check_float(r->value.f);
+	}
+
+	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
+	{ unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+
+	  if ( r_num > LONG_MAX )
+	  { mpz_clear(r->value.mpz);
+	    goto doreal;
+	  } else
+	  { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
+
+	    if (sgn_exp == -1)  /* create mpq=1/r->value */
+	    { mpz_t tempz;
+
+	      mpz_init_set(tempz,r->value.mpz);
+	      mpz_clear(r->value.mpz);
+	      r->type = V_MPQ;
+	      mpq_init(r->value.mpq);
+	      mpq_set_z(r->value.mpq,tempz);
+	      mpq_inv(r->value.mpq,r->value.mpq);
+	      mpz_clear(tempz);
+	      return check_mpq(r);
+	    } else
+	    { return TRUE;
+	    }
+	  }
+	} else
+	{ mpz_clear(r->value.mpz);
+	  goto doreal;
+	}
+	break;
+      }
+      case V_MPQ:
+      { int rat_result;
+	unsigned long r_num;
+
+	r->type = V_MPQ;
+	mpq_init(r->value.mpq);
+	mpq_set(r->value.mpq, n1->value.mpq);
+
+	/* neg ^ int / even */
+	if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
+	{ mpq_clear(r->value.mpq);
+	  r->type = V_FLOAT;
+	  r->value.f = NAN;
+	  return check_float(r->value.f);
+	}
+
+	rat_result = ( mpz_root(mpq_numref(r->value.mpq),
+				mpq_numref(r->value.mpq),r_den) &&
+		       mpz_root(mpq_denref(r->value.mpq),
+				mpq_denref(r->value.mpq),r_den)
+		     );
+
+	r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+	if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
+	{ mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
+	  mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+
+	  /* if original exponent negative, invert */
+	  if ( sgn_exp == -1 )
+	    mpq_inv(r->value.mpq,r->value.mpq);
+
+	  return check_mpq(r);
+	} else
+	{ mpq_clear(r->value.mpq);
+	  goto doreal;
+	}
+	assert(0);
+      }
+      case V_FLOAT:
+      { double d_exp = sgn_exp*mpq_get_d(n2->value.mpq);
+
+	r->type = V_FLOAT;
+	if ( n1->value.f < 0 )
+	{ if ( r_den & 1 )			/* odd denominator */
+	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
+	    r->value.f = sign * pow(-(n1->value.f),d_exp);
+	  } else
+	  { r->value.f = NAN;			/* even denominator */
+	  }
+	} else					/* base positive */
+	{ r->value.f = pow(n1->value.f,d_exp);
+	}
+	return check_float(r->value.f);
+      }
+    } /* end switch (n1->type) */
+    assert(0);
+  } /* end if ( n2->type == V_MPQ ) */
 
 doreal:
 #endif /*O_GMP*/
