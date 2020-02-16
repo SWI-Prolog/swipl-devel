@@ -4283,6 +4283,32 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
   return FALSE;
 }
 
+
+static
+PRED_IMPL("float_class", 2, float_class, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  if ( isFloat(*p) )
+  { double f = valFloat(*p);
+    atom_t a;
+
+    switch(fpclassify(f))
+    { case FP_NAN:		a = ATOM_nan;	    break;
+      case FP_INFINITE:		a = ATOM_infinite;  break;
+      case FP_ZERO:		a = ATOM_zero;      break;
+      case FP_SUBNORMAL:	a = ATOM_subnormal; break;
+      case FP_NORMAL:		a = ATOM_normal;    break;
+      default:			assert(0); a = ATOM_false;
+    }
+
+    return PL_unify_atom(A2, a);
+  }
+
+  return PL_type_error("float", A1);
+}
+
 #if O_COMPILE_ARITH
 
 		/********************************
@@ -4410,18 +4436,21 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 		 *******************************/
 
 BeginPredDefs(arith)
-  PRED_DEF("is",   2, is,  PL_FA_ISO)
-  PRED_DEF("<",	   2, lt,  PL_FA_ISO)
-  PRED_DEF(">",	   2, gt,  PL_FA_ISO)
-  PRED_DEF("=<",   2, leq, PL_FA_ISO)
-  PRED_DEF(">=",   2, geq, PL_FA_ISO)
-  PRED_DEF("=\\=", 2, neq, PL_FA_ISO)
-  PRED_DEF("=:=",  2, eq,  PL_FA_ISO)
+  PRED_DEF("is",	  2, is,	  PL_FA_ISO)
+  PRED_DEF("<",		  2, lt,	  PL_FA_ISO)
+  PRED_DEF(">",		  2, gt,	  PL_FA_ISO)
+  PRED_DEF("=<",	  2, leq,	  PL_FA_ISO)
+  PRED_DEF(">=",	  2, geq,	  PL_FA_ISO)
+  PRED_DEF("=\\=",	  2, neq,	  PL_FA_ISO)
+  PRED_DEF("=:=",	  2, eq,	  PL_FA_ISO)
+  PRED_DEF("succ",	  2, succ,	  0)
+  PRED_DEF("plus",	  3, plus,	  0)
+  PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("float_class", 2, float_class, 0)
+
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC)
-  PRED_DEF("succ", 2, succ, 0)
-  PRED_DEF("plus", 3, plus, 0)
-  PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
+
 #ifdef O_GMP
   PRED_DEF("divmod", 4, divmod, 0)
   PRED_DEF("nth_integer_root_and_remainder", 4,
