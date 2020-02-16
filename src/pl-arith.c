@@ -510,6 +510,10 @@ int
 ar_compare(Number n1, Number n2, int what)
 { int diff = cmpNumbers(n1, n2);
 
+  if ( (n1->type == V_FLOAT && isnan(n1->value.f)) ||
+       (n2->type == V_FLOAT && isnan(n2->value.f)) )
+    return FALSE;
+
   switch(what)
   { case LT: return diff == CMP_LESS;
     case GT: return diff == CMP_GREATER;
@@ -519,7 +523,7 @@ ar_compare(Number n1, Number n2, int what)
     case EQ: return diff == CMP_EQUAL;
     default:
       assert(0);
-      fail;
+      return FALSE;
   }
 }
 
