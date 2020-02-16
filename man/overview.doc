@@ -1643,9 +1643,10 @@ SWI-Prolog behaviour.  Currently it has the following effect:
     \prologflagitem{large_files}{bool}{r}
 If present and \const{true}, SWI-Prolog has been compiled with
 \jargon{large file support} (LFS) and is capable of accessing files larger
-than 2GB on 32-bit hardware. Large file support is default on
-installations built using \program{configure} that support it and may be
-switched off using the configure option \const{--disable-largefile}.
+than 2GB. This flag is always \const{true} on 64-bit hardware and true
+on 32-bit hardware if the configuration detected support for LFS.  Note
+that it may still be the case that the \jargon{file system} on which a
+particular file resides puts limits on the file size.
 
     \prologflagitem{last_call_optimisation}{bool}{rw}
 Determines whether or not last-call optimisation is enabled. Normally
