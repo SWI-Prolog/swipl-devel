@@ -455,7 +455,7 @@ test(ieee_rmode) :-
         evalR(RExp,to_negative,Rn),
         evalR(RExp,to_zero,Rz),
         Rn =< Rc, Rc =< Rp, Rn < Rp,
-        Rz =< Rc, Rz = Rn, Rz < Rp
+        Rz =< Rc, Rz < Rp
     )),
     assertion((
         PExp = cos(-pi),  % negative value
@@ -464,7 +464,7 @@ test(ieee_rmode) :-
         evalR(PExp,to_negative,Pn),
         evalR(PExp,to_zero,Pz),
         Pn =< Pc, Pc =< Pp, Pn < Pp,
-        Pz >= Pc, Pz = Pp, Pz > Pn
+        Pz >= Pc, Pz > Pn
     )),
     assertion((
         QExp = 0.7**1r3,  % positive value
@@ -473,7 +473,7 @@ test(ieee_rmode) :-
         evalR(QExp,to_negative,Qn),
         evalR(QExp,to_zero,Qz),
         Qn =< Qc, Qc =< Qp, Qn < Qp,
-        Qz =< Qc, Qz = Qn, Qz < Qp
+        Qz =< Qc, Qz < Qp
     )),
     assertion((
         SExp = -0.7**1r3,  % negative value
@@ -482,7 +482,7 @@ test(ieee_rmode) :-
         evalR(SExp,to_negative,Sn),
         evalR(SExp,to_zero,Sz),
         Sn =< Sc, Sc =< Sp, Sn < Sp,
-        Sz >= Sc, Sz = Sp, Sz > Sn
+        Sz >= Sc, Sz > Sn
     )).
 
 :- end_tests(ieee).
