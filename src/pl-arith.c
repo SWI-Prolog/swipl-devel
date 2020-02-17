@@ -2058,7 +2058,7 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
       }
       case V_FLOAT:
-      { double d_exp = sgn_exp*mpq_get_d(n2->value.mpq);
+      { double d_exp = sgn_exp * mpX_round(mpq_get_d(n2->value.mpq));
 
 	r->type = V_FLOAT;
 	if ( n1->value.f < 0 )
@@ -3326,7 +3326,7 @@ ar_floor(Number n1, Number r)
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( n1->value.f < 0 &&
-	     mpz_get_d(r->value.mpz) > n1->value.f )
+	     mpX_round(mpz_get_d(r->value.mpz)) > n1->value.f )
 	  mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
 #else
 	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3379,7 +3379,7 @@ ar_ceil(Number n1, Number r)
 #ifdef O_GMP
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
-	if ( mpz_get_d(r->value.mpz) < n1->value.f )
+	if ( mpX_round(mpz_get_d(r->value.mpz)) < n1->value.f )
 	  mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
 #else
         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3791,7 +3791,7 @@ ar_random_float(Number r)
     mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
-    r->value.f = mpf_get_d(rop);
+    r->value.f = mpX_round(mpf_get_d(rop));
     mpf_clear(rop);
 #else
     r->value.f = _PL_Random()/(float)UINT64_MAX;
