@@ -97,10 +97,7 @@ cmake_source_directory(SrcDir) :-
 cmake_source_directory(SrcDir) :-
     cmake_binary_directory(BinDir),
     atomic_list_concat([BinDir, 'CMakeCache.txt'], /, CacheFile),
-    setup_call_cleanup(
-        open(CacheFile, read, In),
-        cmake_var(In, 'SWI-Prolog_SOURCE_DIR:STATIC', SrcDir),
-        close(In)).
+    cmake_var(CacheFile, 'SWI-Prolog_SOURCE_DIR:STATIC', SrcDir).
 
 is_swi_prolog_cmake_file(File) :-
     setup_call_cleanup(
@@ -117,21 +114,26 @@ is_swi_prolog_stream(In) :-
     ),
     !.
 
-cmake_var(Stream, Name, Value) :-
-    repeat,
-    (   read_string(Stream, '\n', '\r', Sep, String0),
-        (   Sep \== -1
-        ->  String = String0
-        ;   String0 == ""
-        ->  !, fail
-        ;   String = String0
-        ),
-        sub_string(String, 10, _, A1, Name),
-        sub_string(String, A1, 1, A2, "="),
-        sub_atom(String, _, A2,  0, Value)
-    ->  true
-    ).
+cmake_var(File, Name, Value) :-
+    setup_call_cleanup(
+        open(File, read, In),
+        cmake_var_in_stream(In, Name, Value),
+        close(In)).
 
+cmake_var_in_stream(Stream, Name, Value) :-
+    string_length(Name, NameLen),
+    repeat,
+      read_string(Stream, '\n', '\r', Sep, String0),
+      (   Sep \== -1
+      ->  String = String0
+      ;   String0 == ""
+      ->  !, fail
+      ;   String = String0
+      ),
+      sub_string(String, 0, _, _, Name),
+      sub_string(String, NameLen, 1, After, "="),
+      sub_atom(String, _, After,  0, Value),
+      !.
 
 %!  swipl_package(-Pkg, -PkgBinDir) is nondet.
 %
