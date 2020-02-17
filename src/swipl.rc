@@ -2,6 +2,10 @@
 
 SWI_Icon  ICON swipl.ico
 
+// Only include the manifest when not building under MSVC, since it generates its own manifest.
+// Not doing so leads to a duplicate resource error.
+// NOTE: The logic below is correct, the MSVC resource compiler doesn't define _MSC_VER, while MinGW does.
+#ifdef _MSC_VER
 /////////////////////////////////////////////////////////////////////////////
 //
 // RT_MANIFEST to prevent Windows Vista from asking to execute
@@ -30,4 +34,5 @@ BEGIN
     0x7572, 0x7473, 0x6e49, 0x6f66, 0x0d3e, 0x3c0a, 0x612f, 0x7373, 0x6d65,
     0x6c62, 0x3e79
 END
+#endif  // _MSC_VER
 
