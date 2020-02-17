@@ -1806,6 +1806,28 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 }
 #endif /*O_GMP*/
 
+double
+minus_pow(double base, double exp) {
+	// handles rounding mode issues calculating pow with negative base float
+	// have to reverse to_postive and to_negative
+	double res;
+	switch (fegetround()) {
+		case FE_UPWARD : {
+			fesetround(FE_DOWNWARD);
+			res = pow(base,exp);
+			fesetround(FE_UPWARD);
+			break;
+		}
+		case FE_DOWNWARD : {
+			fesetround(FE_UPWARD);
+			res = pow(base,exp);
+			fesetround(FE_DOWNWARD);
+			break;
+		}
+			default: res = pow(base,exp);
+	}
+	return res;
+}
 
 static int
 ar_pow(Number n1, Number n2, Number r)
@@ -2064,7 +2086,9 @@ ar_pow(Number n1, Number n2, Number r)
 	if ( n1->value.f < 0 )
 	{ if ( r_den & 1 )			/* odd denominator */
 	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
-	    r->value.f = sign * pow(-(n1->value.f),d_exp);
+	    // this gets a bit tricky under various rounding conditions, spcifically
+	    //  to_positive and to negative must be reversed due to negation
+	    r->value.f = sign * minus_pow(-(n1->value.f),d_exp);
 	  } else
 	  { r->value.f = NAN;			/* even denominator */
 	  }
@@ -2087,7 +2111,6 @@ doreal:
 
   return check_float(r->value.f);
 }
-
 
 static int
 ar_powm(Number base, Number exp, Number mod, Number r)
