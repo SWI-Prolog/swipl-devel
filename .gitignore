@@ -146,6 +146,7 @@ doc-version
 .doc-action
 pl-doc-*.tar.gz
 *.manifest
+!src/swipl.manifest
 config.dat
 call_vcvars.cmd
 src/reqs64.cab
