@@ -453,22 +453,40 @@ test(iEEE_min) :-				% C11 - F.10.9.3
 
 test(iEEE_rmode) :-
 	assertion((
-		RExp = exp(log(1.1)),
-		evalR(RExp,nearest,Rc),        %*** Eclipse is "to_nearest"
+		RExp = exp(log(1.1)),  % positive value
+		evalR(RExp,nearest,Rc),           %*** Eclipse is "to_nearest"
 		evalR(RExp,to_positive,Rp),
 		evalR(RExp,to_negative,Rn),
 		evalR(RExp,to_zero,Rz),
 		Rn =< Rc, Rc =< Rp, Rn < Rp,
-		Rz =< Rc, Rz < Rp
+		Rz =< Rc, Rz = Rn, Rz < Rp
 	)),
 	assertion((
-		PExp = cos(-pi),
-		evalR(PExp,nearest,Pc),        %*** Eclipse is "to_nearest"
+		PExp = cos(-pi),  % negative value
+		evalR(PExp,nearest,Pc),           %*** Eclipse is "to_nearest"
 		evalR(PExp,to_positive,Pp),
 		evalR(PExp,to_negative,Pn),
 		evalR(PExp,to_zero,Pz),
 		Pn =< Pc, Pc =< Pp, Pn < Pp,
-		Pz >= Pc, Pz > Pn
+		Pz >= Pc, Pz = Pp, Pz > Pn
+	)),
+	assertion((
+		QExp = 0.7**1r3,  % positive value
+		evalR(QExp,nearest,Qc),           %*** Eclipse is "to_nearest"
+		evalR(QExp,to_positive,Qp),
+		evalR(QExp,to_negative,Qn),
+		evalR(QExp,to_zero,Qz),
+		Qn =< Qc, Qc =< Qp, Qn < Qp,
+		Qz =< Qc, Qz = Qn, Qz < Qp
+	)),
+	assertion((
+		SExp = -0.7**1r3,  % negative value
+		evalR(SExp,nearest,Sc),           %*** Eclipse is "to_nearest"
+		evalR(SExp,to_positive,Sp),
+		evalR(SExp,to_negative,Sn),
+		evalR(SExp,to_zero,Sz),
+		Sn =< Sc, Sc =< Sp, Sn < Sp,
+		Sz >= Sc, Sz = Sp, Sz > Sn
 	)).
 
 :- end_tests(iEEE).
