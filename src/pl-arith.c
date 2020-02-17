@@ -1806,7 +1806,7 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 }
 #endif /*O_GMP*/
 
-double
+static double
 minus_pow(double base, double exp) {
 	// handles rounding mode issues calculating pow with negative base float
 	// have to reverse to_postive and to_negative
