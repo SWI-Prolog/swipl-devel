@@ -322,13 +322,13 @@ pp(Term, Ctx, Options) :-               % handle operators
             format(Out, ')', [])
         )
     ;   Kind == postfix
-    ->  (   (   space_op(Name)
+    ->  arg(1, Term, Arg),
+        (   (   space_op(Name)
             ;   need_space(Name, Arg, FuncOptions, LeftOptions)
             )
         ->  Space = ' '
         ;   Space = ''
         ),
-        arg(1, Term, Arg),
         (   CPrec >= Prec
         ->  modify_context(Ctx2, [priority=Left], Ctx3),
             pp(Arg, Ctx3, Options),
