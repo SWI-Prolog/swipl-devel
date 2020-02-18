@@ -344,10 +344,20 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
+if(MSVC AND NOT SWIPL_SHARED_LIB)
+  # MSVC does not automatically prepend 'lib' to the library name
+  # Furthermore it would generate swipl.lib in the same directory as swipl.exe, causing a
+  # linking failure:
+  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'; error code 5"
+  set(LIBSWIPL_NAME libswipl)
+else()
+  set(LIBSWIPL_NAME swipl)
+endif()
+
 add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
 add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
-		      OUTPUT_NAME swipl
+		      OUTPUT_NAME ${LIBSWIPL_NAME}
 		      VERSION ${SWIPL_VERSION_STRING}
 		      SOVERSION ${SWIPL_VERSION_MAJOR}
 		      GNUtoMS ON)
