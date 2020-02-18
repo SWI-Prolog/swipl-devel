@@ -1806,6 +1806,31 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 }
 #endif /*O_GMP*/
 
+/* minus_pow() handles rounding mode issues calculating pow with
+   negative base float have to reverse to_positive and to_negative.
+*/
+
+static double
+minus_pow(double base, double exp)
+{ double res;
+
+  switch( fegetround() )
+  { case FE_UPWARD:
+      fesetround(FE_DOWNWARD);
+      res = pow(base,exp);
+      fesetround(FE_UPWARD);
+      break;
+    case FE_DOWNWARD:
+      fesetround(FE_UPWARD);
+      res = pow(base,exp);
+      fesetround(FE_DOWNWARD);
+      break;
+    default:
+      res = pow(base,exp);
+  }
+
+  return res;
+}
 
 static int
 ar_pow(Number n1, Number n2, Number r)
@@ -2058,13 +2083,13 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
       }
       case V_FLOAT:
-      { double d_exp = sgn_exp*mpq_get_d(n2->value.mpq);
+      { double d_exp = sgn_exp * mpX_round(mpq_get_d(n2->value.mpq));
 
 	r->type = V_FLOAT;
 	if ( n1->value.f < 0 )
 	{ if ( r_den & 1 )			/* odd denominator */
 	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
-	    r->value.f = sign * pow(-(n1->value.f),d_exp);
+	    r->value.f = sign * minus_pow(-(n1->value.f),d_exp);
 	  } else
 	  { r->value.f = NAN;			/* even denominator */
 	  }
@@ -2087,7 +2112,6 @@ doreal:
 
   return check_float(r->value.f);
 }
-
 
 static int
 ar_powm(Number base, Number exp, Number mod, Number r)
@@ -3326,7 +3350,7 @@ ar_floor(Number n1, Number r)
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( n1->value.f < 0 &&
-	     mpz_get_d(r->value.mpz) > n1->value.f )
+	     mpX_round(mpz_get_d(r->value.mpz)) > n1->value.f )
 	  mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
 #else
 	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3379,7 +3403,7 @@ ar_ceil(Number n1, Number r)
 #ifdef O_GMP
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
-	if ( mpz_get_d(r->value.mpz) < n1->value.f )
+	if ( mpX_round(mpz_get_d(r->value.mpz)) < n1->value.f )
 	  mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
 #else
         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3791,7 +3815,7 @@ ar_random_float(Number r)
     mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
-    r->value.f = mpf_get_d(rop);
+    r->value.f = mpX_round(mpf_get_d(rop));
     mpf_clear(rop);
 #else
     r->value.f = _PL_Random()/(float)UINT64_MAX;
