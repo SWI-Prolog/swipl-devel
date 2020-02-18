@@ -647,10 +647,14 @@ end_code_type(Compound, Type, Options) :-
     compound_name_arity(Compound, Name, _),
     end_code_type(Name, Type, Options).
 
-end_type(S, Type, _Options) :-
+end_type(S, Type, Options) :-
     number(S),
     !,
-    Type = alnum.
+    (   (S < 0 ; S == -0.0),
+        Options.side == left
+    ->  Type = symbol
+    ;   Type = alnum
+    ).
 end_type(S, Type, Options) :-
     Options.side == left,
     !,
