@@ -3294,7 +3294,9 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     atom_t action;
     int rc;
 
+#ifdef O_PLMT
     DEBUG(0, assert(false(wl->table, TRIE_ISSHARED) || wl->table->tid));
+#endif
 
     kp = valTermRef(A2);
     if ( true(wl->table, TRIE_ISMAP) )
