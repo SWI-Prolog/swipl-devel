@@ -510,6 +510,10 @@ int
 ar_compare(Number n1, Number n2, int what)
 { int diff = cmpNumbers(n1, n2);
 
+  if ( (n1->type == V_FLOAT && isnan(n1->value.f)) ||
+       (n2->type == V_FLOAT && isnan(n2->value.f)) )
+    return FALSE;
+
   switch(what)
   { case LT: return diff == CMP_LESS;
     case GT: return diff == CMP_GREATER;
@@ -519,7 +523,7 @@ ar_compare(Number n1, Number n2, int what)
     case EQ: return diff == CMP_EQUAL;
     default:
       assert(0);
-      fail;
+      return FALSE;
   }
 }
 
@@ -1802,6 +1806,31 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 }
 #endif /*O_GMP*/
 
+/* minus_pow() handles rounding mode issues calculating pow with
+   negative base float have to reverse to_positive and to_negative.
+*/
+
+static double
+minus_pow(double base, double exp)
+{ double res;
+
+  switch( fegetround() )
+  { case FE_UPWARD:
+      fesetround(FE_DOWNWARD);
+      res = pow(base,exp);
+      fesetround(FE_UPWARD);
+      break;
+    case FE_DOWNWARD:
+      fesetround(FE_UPWARD);
+      res = pow(base,exp);
+      fesetround(FE_DOWNWARD);
+      break;
+    default:
+      res = pow(base,exp);
+  }
+
+  return res;
+}
 
 static int
 ar_pow(Number n1, Number n2, Number r)
@@ -1956,7 +1985,122 @@ ar_pow(Number n1, Number n2, Number r)
 
     clearNumber(&nrp);
     clearNumber(&ndp);
-  }
+  } /* end MPQ^int */
+
+  if ( n2->type == V_MPQ )			/* X ^ rat */
+  { int sgn_exp = mpq_sgn(n2->value.mpq);
+    long r_den;
+
+    if ( sgn_exp == -1 )
+      mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
+
+    r_den = mpz_get_ui(mpq_denref(n2->value.mpq));
+
+    switch (n1->type)
+    { case V_INTEGER:
+      case V_MPZ:				/* int ^ rat */
+      { r->type = V_MPZ;
+
+	if ( n1->type == V_INTEGER )
+	  mpz_init_set_si(r->value.mpz,n1->value.i);
+	else
+	  mpz_init_set(r->value.mpz,n1->value.mpz);
+
+	/* neg ^ int/even is undefined */
+	if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
+	{ mpz_clear(r->value.mpz);
+	  r->type = V_FLOAT;
+	  r->value.f = NAN;
+	  return check_float(r->value.f);
+	}
+
+	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
+	{ unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+
+	  if ( r_num > LONG_MAX )
+	  { mpz_clear(r->value.mpz);
+	    goto doreal;
+	  } else
+	  { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
+
+	    if (sgn_exp == -1)  /* create mpq=1/r->value */
+	    { mpz_t tempz;
+
+	      mpz_init_set(tempz,r->value.mpz);
+	      mpz_clear(r->value.mpz);
+	      r->type = V_MPQ;
+	      mpq_init(r->value.mpq);
+	      mpq_set_z(r->value.mpq,tempz);
+	      mpq_inv(r->value.mpq,r->value.mpq);
+	      mpz_clear(tempz);
+	      return check_mpq(r);
+	    } else
+	    { return TRUE;
+	    }
+	  }
+	} else
+	{ mpz_clear(r->value.mpz);
+	  goto doreal;
+	}
+	break;
+      }
+      case V_MPQ:
+      { int rat_result;
+	unsigned long r_num;
+
+	r->type = V_MPQ;
+	mpq_init(r->value.mpq);
+	mpq_set(r->value.mpq, n1->value.mpq);
+
+	/* neg ^ int / even */
+	if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
+	{ mpq_clear(r->value.mpq);
+	  r->type = V_FLOAT;
+	  r->value.f = NAN;
+	  return check_float(r->value.f);
+	}
+
+	rat_result = ( mpz_root(mpq_numref(r->value.mpq),
+				mpq_numref(r->value.mpq),r_den) &&
+		       mpz_root(mpq_denref(r->value.mpq),
+				mpq_denref(r->value.mpq),r_den)
+		     );
+
+	r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+	if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
+	{ mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
+	  mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+
+	  /* if original exponent negative, invert */
+	  if ( sgn_exp == -1 )
+	    mpq_inv(r->value.mpq,r->value.mpq);
+
+	  return check_mpq(r);
+	} else
+	{ mpq_clear(r->value.mpq);
+	  goto doreal;
+	}
+	assert(0);
+      }
+      case V_FLOAT:
+      { double d_exp = sgn_exp * mpX_round(mpq_get_d(n2->value.mpq));
+
+	r->type = V_FLOAT;
+	if ( n1->value.f < 0 )
+	{ if ( r_den & 1 )			/* odd denominator */
+	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
+	    r->value.f = sign * minus_pow(-(n1->value.f),d_exp);
+	  } else
+	  { r->value.f = NAN;			/* even denominator */
+	  }
+	} else					/* base positive */
+	{ r->value.f = pow(n1->value.f,d_exp);
+	}
+	return check_float(r->value.f);
+      }
+    } /* end switch (n1->type) */
+    assert(0);
+  } /* end if ( n2->type == V_MPQ ) */
 
 doreal:
 #endif /*O_GMP*/
@@ -1968,7 +2112,6 @@ doreal:
 
   return check_float(r->value.f);
 }
-
 
 static int
 ar_powm(Number base, Number exp, Number mod, Number r)
@@ -3207,7 +3350,7 @@ ar_floor(Number n1, Number r)
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( n1->value.f < 0 &&
-	     mpz_get_d(r->value.mpz) > n1->value.f )
+	     mpX_round(mpz_get_d(r->value.mpz)) > n1->value.f )
 	  mpz_sub_ui(r->value.mpz, r->value.mpz, 1L);
 #else
 	return PL_error("floor", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3260,7 +3403,7 @@ ar_ceil(Number n1, Number r)
 #ifdef O_GMP
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
-	if ( mpz_get_d(r->value.mpz) < n1->value.f )
+	if ( mpX_round(mpz_get_d(r->value.mpz)) < n1->value.f )
 	  mpz_add_ui(r->value.mpz, r->value.mpz, 1L);
 #else
         return PL_error("ceil", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -3672,7 +3815,7 @@ ar_random_float(Number r)
     mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
-    r->value.f = mpf_get_d(rop);
+    r->value.f = mpX_round(mpf_get_d(rop));
     mpf_clear(rop);
 #else
     r->value.f = _PL_Random()/(float)UINT64_MAX;
@@ -4005,10 +4148,10 @@ initArith(void)
   setPrologFlag("float_undefined", FT_ATOM, "error");
   setPrologFlag("float_underflow", FT_ATOM, "ignore");
   setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
-  float_rounding_names[FLT_ROUND_NEAREST]     = ATOM_nearest;
-  float_rounding_names[FLT_ROUND_TO_POS]      = ATOM_to_positive;
-  float_rounding_names[FLT_ROUND_TO_NEG]      = ATOM_to_negative;
-  float_rounding_names[FLT_ROUND_TO_ZERO]     = ATOM_to_zero;
+  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
+  float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
+  float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;
 }
 
 
@@ -4168,6 +4311,32 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
   return FALSE;
 }
 
+
+static
+PRED_IMPL("float_class", 2, float_class, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  if ( isFloat(*p) )
+  { double f = valFloat(*p);
+    atom_t a;
+
+    switch(fpclassify(f))
+    { case FP_NAN:		a = ATOM_nan;	    break;
+      case FP_INFINITE:		a = ATOM_infinite;  break;
+      case FP_ZERO:		a = ATOM_zero;      break;
+      case FP_SUBNORMAL:	a = ATOM_subnormal; break;
+      case FP_NORMAL:		a = ATOM_normal;    break;
+      default:			assert(0); a = ATOM_false;
+    }
+
+    return PL_unify_atom(A2, a);
+  }
+
+  return PL_type_error("float", A1);
+}
+
 #if O_COMPILE_ARITH
 
 		/********************************
@@ -4295,18 +4464,21 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 		 *******************************/
 
 BeginPredDefs(arith)
-  PRED_DEF("is",   2, is,  PL_FA_ISO)
-  PRED_DEF("<",	   2, lt,  PL_FA_ISO)
-  PRED_DEF(">",	   2, gt,  PL_FA_ISO)
-  PRED_DEF("=<",   2, leq, PL_FA_ISO)
-  PRED_DEF(">=",   2, geq, PL_FA_ISO)
-  PRED_DEF("=\\=", 2, neq, PL_FA_ISO)
-  PRED_DEF("=:=",  2, eq,  PL_FA_ISO)
+  PRED_DEF("is",	  2, is,	  PL_FA_ISO)
+  PRED_DEF("<",		  2, lt,	  PL_FA_ISO)
+  PRED_DEF(">",		  2, gt,	  PL_FA_ISO)
+  PRED_DEF("=<",	  2, leq,	  PL_FA_ISO)
+  PRED_DEF(">=",	  2, geq,	  PL_FA_ISO)
+  PRED_DEF("=\\=",	  2, neq,	  PL_FA_ISO)
+  PRED_DEF("=:=",	  2, eq,	  PL_FA_ISO)
+  PRED_DEF("succ",	  2, succ,	  0)
+  PRED_DEF("plus",	  3, plus,	  0)
+  PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("float_class", 2, float_class, 0)
+
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC)
-  PRED_DEF("succ", 2, succ, 0)
-  PRED_DEF("plus", 3, plus, 0)
-  PRED_DEF("between", 3, between, PL_FA_NONDETERMINISTIC)
+
 #ifdef O_GMP
   PRED_DEF("divmod", 4, divmod, 0)
   PRED_DEF("nth_integer_root_and_remainder", 4,

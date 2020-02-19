@@ -221,7 +221,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 	  outOfCore();
 	mpz_get_str(b->base, 10, mpq_numref(n.value.mpq));
 	b->top = b->base + strlen(b->base);
-	*b->top = '/';
+	*b->top++ = 'r';			/* '/' under some condition? */
 	mpz_get_str(b->top, 10, mpq_denref(n.value.mpq));
 	b->top += strlen(b->top);
 	text->text.t  = baseBuffer(b, char);

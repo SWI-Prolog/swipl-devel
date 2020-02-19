@@ -5405,7 +5405,9 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   word w;
 
 #ifdef O_DEBUG_ATOMGC
-  if ( atomLogFd ) Sfprintf(atomLogFd, "Mark global %p..%p\n", gbase, gtop);
+  DEBUG(MSG_AGC,
+	if ( atomLogFd )
+	  Sfprintf(atomLogFd, "Mark global %p..%p\n", gbase, gtop));
 #endif
 
   for(current = gbase; current < gtop; current += (offset_word(w)+1) )
@@ -5455,7 +5457,9 @@ markAtomsOnStacks(PL_local_data_t *ld)
   save_backtrace("AGC");
 #endif
 #ifdef O_DEBUG_ATOMGC
-  if ( atomLogFd ) Sfprintf(atomLogFd, "Mark atoms.unregistering\n");
+  DEBUG(MSG_AGC,
+	if ( atomLogFd )
+	  Sfprintf(atomLogFd, "Mark atoms.unregistering\n"));
 #endif
   markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
   markAtomsOnLocalStack(ld);

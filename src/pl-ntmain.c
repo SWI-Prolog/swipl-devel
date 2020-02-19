@@ -239,7 +239,7 @@ Srlc_write(void *handle, char *buffer, size_t size)
     memcpy(buf, buffer+n, i);
     for(; i<sizeof(TCHAR); i++)
       buf[i] = '?';
-    rlc_write(c, (TCHAR*)buffer, 1);
+    rlc_write(c, (TCHAR*)buf, 1);
 
     return size;
   }

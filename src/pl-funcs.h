@@ -107,14 +107,7 @@ COMMON(int)		checkAtoms_src(const char *file, int line);
 COMMON(int)		is_volatile_atom(atom_t a);
 #ifdef O_DEBUG_ATOMGC
 COMMON(word)		pl_track_atom(term_t which, term_t stream);
-COMMON(void)		_PL_debug_register_atom(atom_t a,
-					const char *file, int line,
-					const char *func);
-COMMON(void)		_PL_debug_unregister_atom(atom_t a,
-					  const char *file, int line,
-					  const char *func);
 #endif
-
 
 /* pl-arith.c */
 

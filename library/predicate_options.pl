@@ -58,6 +58,8 @@
 	      uninstantiation_error/1,
 	      is_of_type/2
 	    ]).
+:- use_module(library(dialect/swi/syspred_options)).
+
 :- autoload(library(listing),[portray_clause/1]).
 :- autoload(library(lists),[member/2,nth1/3,append/3,delete/3]).
 :- autoload(library(pairs),[group_pairs_by_key/2]).

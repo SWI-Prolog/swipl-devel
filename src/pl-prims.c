@@ -1686,7 +1686,12 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
 
 	get_number(w1, &left PASS_LD);
 	get_number(w2, &right PASS_LD);
-	rc = cmpNumbers(&left, &right);
+	if ( left.type == V_FLOAT && isnan(left.value.f) )
+	  rc = CMP_LESS;
+	else if ( right.type == V_FLOAT && isnan(right.value.f) )
+	  rc = CMP_GREATER;
+	else
+	  rc = cmpNumbers(&left, &right);
 	clearNumber(&left);
 	clearNumber(&right);
 

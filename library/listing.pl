@@ -61,7 +61,10 @@
     listing(:, +),
     portray_clause(+,+,:).
 
-:- predicate_options(portray_clause/3, 3, [pass_to(system:write_term/3, 3)]).
+:- predicate_options(portray_clause/3, 3,
+                     [ indent(nonneg),
+                       pass_to(system:write_term/3, 3)
+                     ]).
 
 :- multifile
     prolog:locate_clauses/2.        % +Spec, -ClauseRefList
