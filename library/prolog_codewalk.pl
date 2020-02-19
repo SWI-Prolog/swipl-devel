@@ -37,7 +37,7 @@
           [ prolog_walk_code/1,         % +Options
             prolog_program_clause/2     % -ClauseRef, +Options
           ]).
-:- use_module(library(record),[record/1, op(_,_,record)]).
+:- use_module(library(record),[(record)/1, op(_,_,record)]).
 
 :- autoload(library(apply),[maplist/2]).
 :- autoload(library(debug),[debug/3,debugging/1,assertion/1]).

@@ -1394,6 +1394,7 @@ static int
 pushTargetModule(target_module *tm, CompileInfo ci)
 { if ( tm->type == TM_MODULE )
   { Output_1(ci, B_ATOM, tm->module->name);
+    PL_register_atom(tm->module->name);
   } else					/* TBD: Handle islocal */
   { int index = tm->var_index;
 

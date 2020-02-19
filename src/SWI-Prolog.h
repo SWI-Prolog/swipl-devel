@@ -68,7 +68,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 80121
+#define PLVERSION 80122
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -430,7 +430,18 @@ PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
-#ifndef O_DEBUG_ATOMGC
+#ifdef O_DEBUG_ATOMGC
+#define PL_register_atom(a) \
+	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+#define PL_unregister_atom(a) \
+	_PL_debug_unregister_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
+PL_EXPORT(void)		_PL_debug_register_atom(atom_t a,
+						const char *file, int line,
+						const char *func);
+PL_EXPORT(void)		_PL_debug_unregister_atom(atom_t a,
+						  const char *file, int line,
+						  const char *func);
+#else
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif

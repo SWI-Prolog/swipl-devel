@@ -7158,6 +7158,32 @@ for floating point arithmetic. The default rounding is \const{nearest}
 and the following alternatives are provided: \const{to_positive},
 \const{to_negative} and \const{to_zero}.
 
+\begin{description}
+    \predicate[det]{float_class}{2}{+Float, -Class}
+Wraps C99 fpclassify() to access the class of a floating point number.
+Raises a type error if \arg{Float} is not a float.  Defined classes
+are below.
+
+\begin{description}
+    \termitem{nan}{}
+\arg{Float} is ``Not a number''.  See \funcref{nan}{1}.  May be
+produced if the Prolog flag \prologflag{float_undefined} is set
+to \const{nan}.
+    \termitem{infinite}{}
+\arg{Float} is positive or negative infinity.  See \funcref{inf}{1}.
+May be produced if the Prolog flag \prologflag{float_overflow} or
+the flag \prologflag{float_zero_div} is set to \const{infinity}.
+    \termitem{zero}{}
+\arg{Float} is zero (0.0 or -0.0)
+    \termitem{subnormal}{}
+\arg{Float} is too small to be represented in normalized format.
+May \textbf{not} be produced if the Prolog flag
+\prologflag{float_underflow} is set to \const{error}.
+
+    \termitem{normal}{}
+\arg{Float} is a normal floating point number.
+\end{description}
+\end{description}
 
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
 
