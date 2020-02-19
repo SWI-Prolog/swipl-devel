@@ -344,10 +344,20 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
+if(MSVC AND NOT SWIPL_SHARED_LIB)
+  # MSVC does not automatically prepend 'lib' to the library name
+  # Furthermore it would generate swipl.lib in the same directory as swipl.exe, causing a
+  # linking failure:
+  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'; error code 5"
+  set(LIBSWIPL_NAME libswipl)
+else()
+  set(LIBSWIPL_NAME swipl)
+endif()
+
 add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
 add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
-		      OUTPUT_NAME swipl
+		      OUTPUT_NAME ${LIBSWIPL_NAME}
 		      VERSION ${SWIPL_VERSION_STRING}
 		      SOVERSION ${SWIPL_VERSION_MAJOR}
 		      GNUtoMS ON)
@@ -455,11 +465,11 @@ endif(0)
 add_custom_target(check
     COMMAND ${PROG_SWIPL} -f none -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
-set(SWIPL_TEST_DIRS unprotected core attvar tabling library charset eclipse clp
+set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
+    charset eclipse clp GC save
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
-    xsb/sub_tests
-    GC save)
+    xsb/sub_tests)
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
 endif()

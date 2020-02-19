@@ -35,6 +35,8 @@
 */
 
 /*#define O_DEBUG 1*/
+#include <math.h>
+#include <fenv.h>
 #include "pl-incl.h"
 #include "pl-inline.h"
 #undef LD
@@ -328,14 +330,14 @@ globalMPQ(Word at, mpq_t mpq, int flags ARG_LD)
   { Word p = (Word)num->_mp_d - 3;
     if ( !onStack(global, p) )
       goto copy;
-#ifndef NDEBUG
-    size_t num_size;
-    size_t den_size;
-    size_t num_wsz = mpz_wsize(num, &num_size);
-    size_t den_wsz = mpz_wsize(den, &den_size);
-    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER));
-    assert(den->_mp_d == (Word)num->_mp_d + num_wsz);
-#endif
+    DEBUG(CHK_SECURE,
+	  { size_t num_size;
+	    size_t den_size;
+	    size_t num_wsz = mpz_wsize(num, &num_size);
+	    size_t den_wsz = mpz_wsize(den, &den_size);
+	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER));
+	    assert((Word)den->_mp_d == (Word)num->_mp_d + num_wsz);
+	  });
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
 
@@ -1201,6 +1203,23 @@ PL_get_number(term_t t, Number n)
 		 *	     PROMOTION		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The GMP functions which convert  mpz's   and  mpq's to double's truncate
+(round to zero) if necessary ignoring the current IEEE rounding mode. To
+correct this incorrect  rounding  when  the   mode  is  `to_postive`  or
+`to_negative` all calls  to  mpX_get_d()  should   be  wrapped  in  this
+function. Note that this function has no GMP dependencies.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+double
+mpX_round(double d) {
+  switch (fegetround()) {
+    case FE_UPWARD  : return (d>=0) ? nexttoward(d, INFINITY) : d;
+    case FE_DOWNWARD: return (d<=0) ? nexttoward(d,-INFINITY) : d;
+    default: return d;
+  }
+}
+
 int
 promoteToFloatNumber(Number n)
 { switch(n->type)
@@ -1210,7 +1229,7 @@ promoteToFloatNumber(Number n)
       break;
 #ifdef O_GMP
     case V_MPZ:
-    { double val = mpz_get_d(n->value.mpz);
+    { double val = mpX_round(mpz_get_d(n->value.mpz));
 
       if ( !check_float(val) )
 	return FALSE;
@@ -1221,7 +1240,7 @@ promoteToFloatNumber(Number n)
       break;
     }
     case V_MPQ:
-    { double val = mpq_get_d(n->value.mpq);
+    { double val = mpX_round(mpq_get_d(n->value.mpq));
 
       if ( !check_float(val) )
 	return FALSE;
@@ -1301,10 +1320,10 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d2 = mpz_get_d(n2->value.mpz);
+	d2 = mpX_round(mpz_get_d(n2->value.mpz));
 	break;
       case V_MPQ:
-	d2 = mpq_get_d(n2->value.mpq);
+	d2 = mpX_round(mpq_get_d(n2->value.mpq));
 	break;
 #endif
       default:
@@ -1325,10 +1344,10 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d1 = mpz_get_d(n1->value.mpz);
+	d1 = mpX_round(mpz_get_d(n1->value.mpz));
 	break;
       case V_MPQ:
-	d1 = mpq_get_d(n1->value.mpq);
+	d1 = mpX_round(mpq_get_d(n1->value.mpq));
 	break;
 #endif
       default:

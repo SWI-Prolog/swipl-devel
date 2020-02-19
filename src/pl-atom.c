@@ -665,8 +665,8 @@ static char *t_tracking;
 
 static int
 tracking(const Atom a)
-{ return /*a->type == &text_atom && */
-         strprefix(a->name, t_tracking);
+{ return ( a->type == &text_atom &&
+	   strcmp(a->name, t_tracking) == 0 );
 }
 
 
@@ -681,7 +681,7 @@ _PL_debug_register_atom(atom_t a,
   { Atom atom = fetchAtomArray(i);
     unsigned int refs;
 
-    refs = register_atom(atom);
+    refs = ATOM_REF_COUNT(register_atom(atom));
     if ( atomLogFd && tracking(atom) )
       Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%d)\n",
 	       file, line, func, refs, atom->name, i);

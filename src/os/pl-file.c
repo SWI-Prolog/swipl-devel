@@ -413,8 +413,6 @@ initIO(void)
 		 *	     GET HANDLES	*
 		 *******************************/
 
-#ifdef O_PLMT
-
 static inline IOSTREAM *
 getStream(IOSTREAM *s)
 { if ( s && s->magic == SIO_MAGIC && Slock(s) == 0 )
@@ -446,21 +444,6 @@ releaseStream(IOSTREAM *s)
 { if ( s->magic == SIO_MAGIC )
     Sunlock(s);
 }
-
-#else /*O_PLMT*/
-
-static inline IOSTREAM *
-getStream(IOSTREAM *s)
-{ if ( s && s->magic == SIO_MAGIC )
-    return s;
-
-  return NULL;
-}
-
-#define tryGetStream(s) (s)
-#define releaseStream(s)
-
-#endif /*O_PLMT*/
 
 int
 PL_release_stream(IOSTREAM *s)

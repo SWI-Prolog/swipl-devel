@@ -288,6 +288,7 @@ pp(Term, Ctx, Options) :-               % handle operators
     match_op(Type, Arity, Kind, Prec, Left, Right),
     option(operators(true), Options),
     !,
+    quoted_op(Name, QName),
     option(output(Out), Options),
     context(Ctx, indent, Indent),
     context(Ctx, depth, Depth),
@@ -307,13 +308,13 @@ pp(Term, Ctx, Options) :-               % handle operators
         ;   Space = ''
         ),
         (   CPrec >= Prec
-        ->  format(atom(Buf), '~q~w', [Name, Space]),
+        ->  format(atom(Buf), '~w~w', [QName, Space]),
             atom_length(Buf, AL),
             NIndent is Indent + AL,
             write(Out, Buf),
             modify_context(Ctx2, [indent=NIndent, priority=Right], Ctx3),
             pp(Arg, Ctx3, Options)
-        ;   format(atom(Buf), '(~q', [Name,Space]),
+        ;   format(atom(Buf), '(~w', [QName,Space]),
             atom_length(Buf, AL),
             NIndent is Indent + AL,
             write(Out, Buf),
@@ -322,22 +323,22 @@ pp(Term, Ctx, Options) :-               % handle operators
             format(Out, ')', [])
         )
     ;   Kind == postfix
-    ->  (   (   space_op(Name)
+    ->  arg(1, Term, Arg),
+        (   (   space_op(Name)
             ;   need_space(Name, Arg, FuncOptions, LeftOptions)
             )
         ->  Space = ' '
         ;   Space = ''
         ),
-        arg(1, Term, Arg),
         (   CPrec >= Prec
         ->  modify_context(Ctx2, [priority=Left], Ctx3),
             pp(Arg, Ctx3, Options),
-            format(Out, '~w~q', [Space,Name])
+            format(Out, '~w~w', [Space,QName])
         ;   format(Out, '(', []),
             NIndent is Indent + 1,
             modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
             pp(Arg, Ctx3, Options),
-            format(Out, '~w~q)', [Space,Name])
+            format(Out, '~w~w)', [Space,QName])
         )
     ;   arg(1, Term, Arg1),
         arg(2, Term, Arg2),
@@ -351,14 +352,14 @@ pp(Term, Ctx, Options) :-               % handle operators
         (   CPrec >= Prec
         ->  modify_context(Ctx2, [priority=Left], Ctx3),
             pp(Arg1, Ctx3, Options),
-            format(Out, '~w~q~w', [Space,Name,Space]),
+            format(Out, '~w~w~w', [Space,QName,Space]),
             modify_context(Ctx2, [priority=Right], Ctx4),
             pp(Arg2, Ctx4, Options)
         ;   format(Out, '(', []),
             NIndent is Indent + 1,
             modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
             pp(Arg1, Ctx3, Options),
-            format(Out, '~w~q~w', [Space,Name,Space]),
+            format(Out, '~w~w~w', [Space,QName,Space]),
             modify_context(Ctx2, [priority=Right], Ctx4),
             pp(Arg2, Ctx4, Options),
             format(Out, ')', [])
@@ -395,6 +396,13 @@ pp(Term, Ctx, Options) :-               % compound
         write(Out, ')')
     ).
 
+
+quoted_op(Op, Atom) :-
+    is_solo(Op),
+    !,
+    Atom = Op.
+quoted_op(Op, Q) :-
+    format(atom(Q), '~q', [Op]).
 
 pp_list_elements(_, Ctx, Options) :-
     context(Ctx, max_depth, 0),
@@ -639,10 +647,14 @@ end_code_type(Compound, Type, Options) :-
     compound_name_arity(Compound, Name, _),
     end_code_type(Name, Type, Options).
 
-end_type(S, Type, _Options) :-
+end_type(S, Type, Options) :-
     number(S),
     !,
-    Type = alnum.
+    (   (S < 0 ; S == -0.0),
+        Options.side == left
+    ->  Type = symbol
+    ;   Type = alnum
+    ).
 end_type(S, Type, Options) :-
     Options.side == left,
     !,

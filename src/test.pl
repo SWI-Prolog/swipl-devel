@@ -2635,10 +2635,17 @@ run_test_script(Script) :-
 	file_name_extension(Pred, _, Base),
 	load_files(Script, [silent(true), if(changed)]),
 	(   current_prolog_flag(verbose, normal)
-	->  format(user_error, '(~w)', [Base]), flush_output
+	->  get_time(T0),
+	    format(user_error, '(~w)', [Base]), flush_output
 	;   true
 	),
-	call_test(Pred, script).
+	call_test(Pred, script),
+	(   current_prolog_flag(verbose, normal)
+	->  get_time(T1),
+	    T is T1-T0,
+	    format(user_error, '[~3fsec]', [T]), flush_output
+	;   true
+	).
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
@@ -2776,6 +2783,7 @@ wide_character_types :-
 testdir('Tests/unprotected').
 testdir('Tests/core').
 testdir('Tests/attvar').
+testdir('Tests/debug').
 testdir('Tests/library').
 testdir('Tests/charset').
 testdir('Tests/eclipse').
