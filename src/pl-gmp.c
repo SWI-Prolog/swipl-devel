@@ -1312,7 +1312,8 @@ which is guaranteed to be a valid float.
 static int
 cmpFloatNumbers(Number n1, Number n2)
 { if ( n1->type == V_FLOAT )
-  { double d2;
+  { if (isnan(n1->value.f)) return CMP_NOTEQ;
+    double d2;
 
     switch(n2->type)
     { case V_INTEGER:
@@ -1337,7 +1338,7 @@ cmpFloatNumbers(Number n1, Number n2)
   { double d1;
 
     assert(n2->type == V_FLOAT);
-
+    if (isnan(n2->value.f)) return CMP_NOTEQ;
     switch(n1->type)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
@@ -1397,7 +1398,6 @@ cmpNumbers(Number n1, Number n2)
   assert(0);
   return CMP_EQUAL;
 }
-
 
 void
 cpNumber(Number to, Number from)
