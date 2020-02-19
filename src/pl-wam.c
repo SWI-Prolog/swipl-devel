@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -42,6 +42,7 @@
 #include "pl-prof.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif

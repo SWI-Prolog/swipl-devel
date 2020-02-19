@@ -3353,6 +3353,37 @@ common_an:
 }
 END_SHAREDVARS
 
+VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
+{ int mode = (int)*PC++;
+  Number n = allocArithStack(PASS_LD1);
+
+  __PL_ar_ctx.femode = n->value.i = fegetround();
+  n->type = V_INTEGER;
+  set_rounding(mode);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
+{ Word p = varFrameP(FR, (size_t)*PC++);
+  int rm;
+
+  deRef(p);
+  if ( isAtom(*p) && atom_to_rounding(*p, &rm) )
+  { Number n = allocArithStack(PASS_LD1);
+
+    __PL_ar_ctx.femode = n->value.i = fegetround();
+    n->type = V_INTEGER;
+    set_rounding(rm);
+    NEXT_INSTRUCTION;
+  } else
+  { resetArithStack(PASS_LD1);
+    THROW_EXCEPTION;
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_ADD: Shorthand for A_FUNC2 pl_ar_add()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3363,7 +3394,7 @@ VMI(A_ADD, 0, 0, ())
   number r;
 
   SAVE_REGISTERS(qid);
-  rc = pl_ar_add(argv, argv+1, &r);
+  rc = pl_ar_add(argv+1, argv, &r);
   LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
@@ -3385,7 +3416,7 @@ VMI(A_MUL, 0, 0, ())
   number r;
 
   SAVE_REGISTERS(qid);
-  rc = ar_mul(argv, argv+1, &r);
+  rc = ar_mul(argv+1, argv, &r);
   LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )

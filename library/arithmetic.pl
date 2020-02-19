@@ -90,6 +90,12 @@ arith_decl_clauses(NameArity,
 %   Clause is a clause  for   evaluating  the  arithmetic expression
 %   Term.
 
+eval_clause(roundtoward(_,Round), (eval(Gen,M,Result) :- Body)) :-
+    !,
+    Gen = roundtoward(Arg,Round),
+    eval_args([Arg], [PlainArg], M, Goals,
+              [Result is roundtoward(PlainArg,Round)]),
+    list_conj(Goals, Body).
 eval_clause(Term, (eval(Gen, M, Result) :- Body)) :-
     functor(Term, Name, Arity),
     functor(Gen, Name, Arity),
@@ -179,6 +185,11 @@ expand_function(Expression, NativeExpression, Goal) :-
 do_expand_function(X, X, true) :-
     evaluable(X),
     !.
+do_expand_function(roundtoward(Expr0, Round),
+                   roundtoward(Expr, Round),
+                   ArgCode) :-
+    !,
+    do_expand_function(Expr0, Expr, ArgCode).
 do_expand_function(Function, Result, ArgCode) :-
     current_arithmetic_function(Function),
     !,
@@ -232,6 +243,9 @@ evaluable(F) :-
     string(F),
     !,
     string_length(F, 1).
+evaluable(roundtoward(F,_Round)) :-
+    !,
+    evaluable(F).
 evaluable(F) :-
     current_arithmetic_function(F),
     (   compound(F)

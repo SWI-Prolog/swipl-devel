@@ -136,6 +136,9 @@ COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
 COMMON(int)		is_arith_flag(atom_t k);
 COMMON(int)		get_arith_flag(term_t val, atom_t k ARG_LD);
 COMMON(int)		set_arith_flag(term_t val, atom_t k ARG_LD);
+COMMON(void)		set_rounding(int mode);
+COMMON(int)		atom_to_rounding(atom_t a, int *m);
+COMMON(atom_t)		float_rounding_name(int m);
 
 /* pl-bag.c */
 COMMON(void)		markAtomsFindall(PL_local_data_t *ld);

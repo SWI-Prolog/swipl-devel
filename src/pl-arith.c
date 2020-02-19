@@ -4338,13 +4338,33 @@ set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
 }
 #endif
 
-
-static void
-set_rounding(int mode)
-{ static int rounding_mode[5] =
+static int rounding_mode[5] =
   {0, FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
 
-  fesetround(rounding_mode[mode]);
+int
+atom_to_rounding(atom_t a, int *m)
+{ int i;
+
+  for(i=1; i<=FLT_ROUND_TO_ZERO; i++)
+  { if ( float_rounding_names[i] == a )
+    { *m = i;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+atom_t
+float_rounding_name(int i)
+{ return float_rounding_names[i];
+}
+
+
+void
+set_rounding(int mode)
+{ fesetround(rounding_mode[mode]);
 }
 
 
@@ -4381,13 +4401,11 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
     } else if ( key == ATOM_float_rounding )
     { int i;
 
-      for(i=1; i<=FLT_ROUND_TO_ZERO; i++)
-      { if ( float_rounding_names[i] == a )
-	{ clear(&(LD->arith.f), FLT_ROUND_MASK);
-	  LD->arith.f.flags |= i;
-	  set_rounding(i);
-	  return TRUE;
-	}
+      if ( atom_to_rounding(a, &i) )
+      { clear(&(LD->arith.f), FLT_ROUND_MASK);
+	LD->arith.f.flags |= i;
+	set_rounding(i);
+	return TRUE;
       }
       goto dom;
     } else
@@ -4485,10 +4503,10 @@ ar_func_n(int findex, int argc ARG_LD)
       rval = (*f)(argv, &result);
       break;
     case 2:
-      rval = (*f)(argv, argv+1, &result);
+      rval = (*f)(argv+1, argv, &result);
       break;
     case 3:
-      rval = (*f)(argv, argv+1, argv+2, &result);
+      rval = (*f)(argv+2, argv+1, argv, &result);
       break;
     default:
       rval = FALSE;
