@@ -247,6 +247,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { atom_t domain = va_arg(args, atom_t);
       term_t arg    = va_arg(args, term_t);
 
+    case_domain_error:
       if ( PL_is_variable(arg) )
 	goto err_instantiation;
 
@@ -255,6 +256,16 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, domain,
 			   PL_TERM, arg);
       break;
+    case ERR_PTR_DOMAIN:		/* atom_t, Word */
+      { Word ptr;
+
+	domain = va_arg(args, atom_t);
+	ptr    = va_arg(args, Word);
+	arg    = PL_new_term_ref();
+
+	*valTermRef(arg) = *ptr;
+	goto case_domain_error;
+      }
     }
     case ERR_RANGE:			/*  domain_error(range(low,high), arg) */
     { term_t low  = va_arg(args, term_t);

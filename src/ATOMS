@@ -332,6 +332,7 @@ A free_of_attvar	"free_of_attvar"
 A freeze		"freeze"
 A fresh			"fresh"
 A from_state		"from_state"
+A roundtoward		"roundtoward"
 A full			"full"
 A fullstop		"fullstop"
 A functor_name		"functor_name"
@@ -1121,6 +1122,7 @@ F reset			3
 F resource_error	1
 F retry			1
 F round			1
+F roundtoward		2
 F rshift		2
 F semicolon		2
 F setup_call_catcher_cleanup 4

@@ -69,6 +69,7 @@ typedef enum
   ERR_AR_UNDERFLOW,		/* void */
   ERR_AR_TRIPWIRE,		/* atom_t tripwire, Number value */
   ERR_PTR_TYPE,			/* atom_t expected, Word value */
+  ERR_PTR_DOMAIN,		/* atom_t expected, Word value */
   ERR_BUSY,			/* mutexes */
   ERR_CHARS_TYPE,		/* char *, term */
   ERR_CLOSED_STREAM,		/* IOSTREAM * */

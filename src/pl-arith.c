@@ -130,6 +130,7 @@ static int		ar_minus(Number n1, Number n2, Number r);
 static int		mul64(int64_t x, int64_t y, int64_t *r);
 static int		notLessThanZero(const char *f, int a, Number n);
 static int		mustBePositive(const char *f, int a, Number n);
+static int		set_roundtoward(Word p, Number old ARG_LD);
 
 
 		/********************************
@@ -822,6 +823,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   int known_acyclic = FALSE;
   int pushed = 0;
   functor_t functor;
+  int old_round_mode = fegetround();
 
   deRef(p);
   start = p;
@@ -909,9 +911,21 @@ valueExpression(term_t expr, number *result ARG_LD)
 	    goto error;
 	  }
 	}
+	if ( term->definition == FUNCTOR_roundtoward2 )
+	{ number crnd;
+
+	  if ( !set_roundtoward(&term->arguments[1], &crnd PASS_LD) )
+	    goto error;
+	  if ( !pushSegStack(&arg_stack, crnd, number) )
+	  { PL_no_memory();
+	    goto error;
+	  }
+	  p = &term->arguments[0];
+	} else
+	{ p = &term->arguments[arity-1];
+	}
 	walk_ref = FALSE;
 	n = &n_tmp;
-	p = &term->arguments[arity-1];
 	continue;
       }
       default:
@@ -1030,6 +1044,7 @@ error:
     clearSegStack(&term_stack);
     while( popSegStack(&arg_stack, &n, number) )
       clearNumber(&n);
+    fesetround(old_round_mode);
   }
   LD->in_arithmetic--;
 
@@ -2478,6 +2493,39 @@ ar_nexttoward(Number n1, Number n2, Number r)
   }
 
   return FALSE;
+}
+
+static int
+set_roundtoward(Word p, Number old ARG_LD)
+{ deRef(p);
+
+  old->type = V_INTEGER;
+  old->value.i = fegetround();
+
+  if ( *p == ATOM_nearest )
+    fesetround(FE_TONEAREST);
+  else if ( *p == ATOM_to_positive )
+    fesetround(FE_UPWARD);
+  else if ( *p == ATOM_to_negative )
+    fesetround(FE_DOWNWARD);
+  else if ( *p == ATOM_to_zero )
+    fesetround(FE_TOWARDZERO);
+  else if ( isAtom(*p) )
+    return PL_error(NULL, 0, NULL, ERR_PTR_DOMAIN, ATOM_round, p);
+  else
+    return PL_error(NULL, 0, NULL, ERR_PTR_TYPE, ATOM_atom, p);
+
+  return TRUE;
+}
+
+static int
+ar_roundtoward(Number n1, Number n2, Number r)
+{ cpNumber(r, n1);
+
+  assert(n2->type == V_INTEGER);
+  fesetround(n2->value.i);
+
+  return TRUE;
 }
 
 
@@ -4074,6 +4122,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_float_integer_part1, ar_float_integer_part, F_ISO),
   ADD(FUNCTOR_copysign2,	ar_copysign, 0),
   ADD(FUNCTOR_nexttoward2,	ar_nexttoward, 0),
+  ADD(FUNCTOR_roundtoward2,	ar_roundtoward, 0),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt, F_ISO),
   ADD(FUNCTOR_sin1,		ar_sin, F_ISO),
