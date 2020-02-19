@@ -508,17 +508,13 @@ PRED_IMPL("rational", 3, rational, 0)
 
 int
 ar_compare(Number n1, Number n2, int what)
-{ int diff = cmpNumbers(n1, n2);
-
-  if ( (n1->type == V_FLOAT && isnan(n1->value.f)) ||
-       (n2->type == V_FLOAT && isnan(n2->value.f)) )
-    return FALSE;
+{ int diff = cmpNumbers(n1, n2);  // nan's only compare CMP_NOTEQ
 
   switch(what)
   { case LT: return diff == CMP_LESS;
     case GT: return diff == CMP_GREATER;
-    case LE: return diff != CMP_GREATER;
-    case GE: return diff != CMP_LESS;
+    case LE: return (diff == CMP_LESS) || (diff == CMP_EQUAL);
+    case GE: return (diff == CMP_GREATER) || (diff == CMP_EQUAL);
     case NE: return diff != CMP_EQUAL;
     case EQ: return diff == CMP_EQUAL;
     default:
@@ -1010,6 +1006,8 @@ valueExpression(term_t expr, number *result ARG_LD)
 	popForMark(&term_stack, &p, &walk_ref);
 	if ( p == start )
 	{ LD->in_arithmetic--;
+      if ((n->type == V_FLOAT) && isnan(n->value.f))
+          n->value.f = const_nan;  // map all NaN's to same as 'nan'
 	  *result = *n;
 
 	  return TRUE;
@@ -2208,7 +2206,7 @@ static int
 ar_log(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  AR_UNDEFINED_IF("log", 1, n1->value.f <= 0.0 , r);
+  AR_UNDEFINED_IF("log", 1, n1->value.f < 0.0 , r);
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2220,7 +2218,7 @@ static int
 ar_log10(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return FALSE;
-  AR_UNDEFINED_IF("log10", 1, n1->value.f <= 0.0, r);
+  //AR_UNDEFINED_IF("log10", 1, n1->value.f < 0.0, r);
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2400,7 +2398,8 @@ ar_sign_i(Number n1)
 static int
 ar_sign(Number n1, Number r)
 { if ( n1->type == V_FLOAT )
-  { r->value.f = n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0;
+  { r->value.f = isnan(n1->value.f) ? const_nan : 
+       (n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0);
     r->type = V_FLOAT;
   } else
   { r->value.i = ar_sign_i(n1);
@@ -2869,10 +2868,25 @@ static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff >= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ ) // one or both nan's?
+  {
+      if (n1->type == V_FLOAT && isnan(n1->value.f))
+        cpNumber(r, n2);
+      else
+        cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n1->type == V_FLOAT &&  // is n1 -0.0
+              n1->value.f == 0.0 &&
+              signbit(n1->value.f) )
+  {
+        cpNumber(r, n2);
+  } else 
+  {
+      if ( diff >= 0 )
+        cpNumber(r, n1);
+      else
+        cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -2882,10 +2896,25 @@ static int
 ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff <= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ ) // if one or both nan's
+  {
+      if (n1->type == V_FLOAT && isnan(n1->value.f))
+          cpNumber(r, n2);
+      else
+          cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n2->type == V_FLOAT &&  // is n2 -0.0
+              n2->value.f == 0.0 &&
+              signbit(n2->value.f) )
+  {
+        cpNumber(r, n2);
+  } else
+  {
+      if ( diff <= 0 )
+        cpNumber(r, n1);
+      else
+        cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -3829,7 +3858,7 @@ ar_random_float(Number r)
 
 static int
 ar_pi(Number r)
-{ r->value.f = M_PI;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_PI,INFINITY) : M_PI;
 
   r->type = V_FLOAT;
   succeed;
@@ -3838,11 +3867,12 @@ ar_pi(Number r)
 
 static int
 ar_e(Number r)
-{ r->value.f = M_E;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_E,INFINITY) : M_E;
 
   r->type = V_FLOAT;
   succeed;
 }
+
 
 
 static int
@@ -4148,7 +4178,7 @@ initArith(void)
   setPrologFlag("float_undefined", FT_ATOM, "error");
   setPrologFlag("float_underflow", FT_ATOM, "ignore");
   setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
-  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_to_nearest;
   float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
   float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
   float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;
