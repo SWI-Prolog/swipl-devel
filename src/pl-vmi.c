@@ -3112,6 +3112,12 @@ variable.  Also, for compilers that do register allocation it is unwise
 to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define AR_THROW_EXCEPTION		\
+	do { resetArithStack(PASS_LD1); \
+	     AR_CLEANUP();		\
+	     THROW_EXCEPTION;		\
+	   } while(0)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_ENTER: Prepare for arithmetic operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3275,8 +3281,7 @@ a_var_n:
       { pushArithStack(&result PASS_LD);
 	NEXT_INSTRUCTION;
       } else
-      { resetArithStack(PASS_LD1);
-	THROW_EXCEPTION;
+      { AR_THROW_EXCEPTION;
       }
     }
   }
@@ -3342,14 +3347,11 @@ common_an:
   rc = ar_func_n((int)fn, an PASS_LD);
   LOAD_REGISTERS(qid);
   if ( !rc )
-  { resetArithStack(PASS_LD1);
-    THROW_EXCEPTION;
-  }
+    AR_THROW_EXCEPTION;
 
   NEXT_INSTRUCTION;
 }
 END_SHAREDVARS
-
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_ADD: Shorthand for A_FUNC2 pl_ar_add()
@@ -3369,8 +3371,7 @@ VMI(A_ADD, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  resetArithStack(PASS_LD1);
-  THROW_EXCEPTION;
+  AR_THROW_EXCEPTION;
 }
 
 
@@ -3392,8 +3393,7 @@ VMI(A_MUL, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  resetArithStack(PASS_LD1);
-  THROW_EXCEPTION;
+  AR_THROW_EXCEPTION;
 }
 
 
