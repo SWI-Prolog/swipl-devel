@@ -1447,6 +1447,7 @@ This code is copied from ECLiPSe
 
 #define MIN_LIMB_DIFF (1+1024/GMP_NUMB_BITS)
 #define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
+#define MAX_ULONG_DBL ((double)~0L+1.0)
 
 static double
 mpz_fdiv(mpz_t num, mpz_t den)
@@ -1473,7 +1474,7 @@ mpz_fdiv(mpz_t num, mpz_t den)
   if ( shorter_size > longer_size )
   { longer_size = shorter_size;
     longer_d = num->_mp_d;
-    shorter_size = ABS(den->_mp_size);
+    shorter_size = (den->_mp_size >= 0 ? den->_mp_size : -den->_mp_size);
     shorter_d = den->_mp_d;
     swapped = 1;			/* abs(res) > 1 */
   } else
@@ -1501,10 +1502,10 @@ mpz_fdiv(mpz_t num, mpz_t den)
     }
     longer_d += ignored_limbs;
     shorter_d += ignored_limbs;
-    li._mp_alloc = li._mp_size = longer_size; li._mp_d = longer_d;
-    si._mp_alloc = si._mp_size = shorter_size; si._mp_d = shorter_d;
-    l = mpz_get_d(&li);
-    s = mpz_get_d(&si);
+    li->_mp_alloc = li->_mp_size = longer_size; li->_mp_d = longer_d;
+    si->_mp_alloc = si->_mp_size = shorter_size; si->_mp_d = shorter_d;
+    l = mpz_get_d(li);
+    s = mpz_get_d(si);
     res = swapped ? l/s : s/l;
   }
 
@@ -1522,34 +1523,34 @@ mpq_set_double(mpq_t q, double f)
   double x = fabs;
   mpz_t na, nb, da, db, big_xi, tmpn, tmpd;
 
-  mpz_init_set_ui(&na, 1L);
-  mpz_init_set_ui(&nb, 0L);
-  mpz_init_set_ui(&da, 0L);
-  mpz_init_set_ui(&db, 1L);
-  mpz_init(&tmpn);
-  mpz_init(&tmpd);
-  mpz_init(&big_xi);
+  mpz_init_set_ui(na, 1L);
+  mpz_init_set_ui(nb, 0L);
+  mpz_init_set_ui(da, 0L);
+  mpz_init_set_ui(db, 1L);
+  mpz_init(tmpn);
+  mpz_init(tmpd);
+  mpz_init(big_xi);
 
-  while ( mpz_fdiv(&na, &da) != fabs )
+  while ( mpz_fdiv(na, da) != fabs )
   { double xi = floor(x);
     double xf = x - xi;
 
-    mpz_swap(&tmpn, &na);
-    mpz_swap(&tmpd, &da);
+    mpz_swap(tmpn, na);
+    mpz_swap(tmpd, da);
 
-    if ( x < MAX_S_WORD_1_DBL )
-    { uword int_xi = (uword) xi;
-      mpz_mul_ui(&na, &tmpn, int_xi);
-      mpz_mul_ui(&da, &tmpd, int_xi);
+    if ( x < MAX_ULONG_DBL )
+    { unsigned long int_xi = (unsigned long) xi;
+      mpz_mul_ui(na, tmpn, int_xi);
+      mpz_mul_ui(da, tmpd, int_xi);
     } else
-    { mpz_set_d(&big_xi, xi);
-      mpz_mul(&na, &tmpn, &big_xi);
-      mpz_mul(&da, &tmpd, &big_xi);
+    { mpz_set_d(big_xi, xi);
+      mpz_mul(na, tmpn, big_xi);
+      mpz_mul(da, tmpd, big_xi);
     }
-    mpz_add(&na, &na, &nb);
-    mpz_add(&da, &da, &db);
-    mpz_swap(&nb, &tmpn);
-    mpz_swap(&db, &tmpd);
+    mpz_add(na, na, nb);
+    mpz_add(da, da, db);
+    mpz_swap(nb, tmpn);
+    mpz_swap(db, tmpd);
 
     if ( xf == 0.0 )
       break;
@@ -1557,18 +1558,18 @@ mpq_set_double(mpq_t q, double f)
   }
 
   if (f < 0.0)			/* compute q := [+-]na/da */
-      mpz_neg(&na, &na);
-  mpq_set_num(q, &na);
-  mpq_set_den(q, &da);
+      mpz_neg(na, na);
+  mpq_set_num(q, na);
+  mpq_set_den(q, da);
   mpq_canonicalize(q);
 
-  mpz_clear(&big_xi);			/* clean up */
-  mpz_clear(&tmpd);
-  mpz_clear(&tmpn);
-  mpz_clear(&db);
-  mpz_clear(&da);
-  mpz_clear(&nb);
-  mpz_clear(&na);
+  mpz_clear(big_xi);			/* clean up */
+  mpz_clear(tmpd);
+  mpz_clear(tmpn);
+  mpz_clear(db);
+  mpz_clear(da);
+  mpz_clear(nb);
+  mpz_clear(na);
 }
 
 
