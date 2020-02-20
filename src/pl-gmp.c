@@ -1421,6 +1421,157 @@ cpNumber(Number to, Number from)
   }
 }
 
+		 /*******************************
+		 *	 FLOAT <-> RATIONAL	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code is copied from ECLiPSe
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*
+ * Divide two bignums giving a double float result. The naive solution
+ *	return mpz_to_double(num) / mpz_to_double(den);
+ * suffers from floating point overflows when the numbers are huge
+ * and is inefficient because it looks at unnecessarily many digits.
+ *
+ * IEEE double precision is 53 bits mantissa and 12 bits signed exponent.
+ * So the largest integer representable with doubles is 1024 bits wide,
+ * of which the first 53 are ones, i.e. it lies between 2^1023 and 2^1024.
+ * If the dividend's MSB is more than 1024 bits higher than the divisor's,
+ * the result will always be floating point infinity (no need to divide).
+ * If we do divide, we first drop excess integer precision by keeping only
+ * DBL_PRECISION_LIMBS and ignoring the lower limbs for both operands
+ * (i.e. we effectively scale the integers down, or right-shift them).
+ */
+
+#define MIN_LIMB_DIFF (1+1024/GMP_NUMB_BITS)
+#define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
+
+static double
+mpz_fdiv(mpz_t num, mpz_t den)
+{ mp_ptr longer_d, shorter_d;
+  mp_size_t shorter_size, longer_size, ignored_limbs = 0;
+  int negative, swapped;
+  /* By declaring res volatile we make sure that the result is rounded
+   * to double precision instead of being returned with extended precision
+   * in a floating point register, which can have confusing consequences */
+  volatile double res;
+
+  shorter_size = num->_mp_size;
+  longer_size = den->_mp_size;
+  negative = 0;
+
+  if ( shorter_size < 0 )
+  { shorter_size = -shorter_size;
+    negative = !negative;
+  }
+  if ( longer_size < 0 )
+  { longer_size = -longer_size;
+    negative = !negative;
+  }
+  if ( shorter_size > longer_size )
+  { longer_size = shorter_size;
+    longer_d = num->_mp_d;
+    shorter_size = ABS(den->_mp_size);
+    shorter_d = den->_mp_d;
+    swapped = 1;			/* abs(res) > 1 */
+  } else
+  { longer_d = den->_mp_d;
+    shorter_d = num->_mp_d;
+    swapped = 0;			/* abs(res) < 1 */
+  }
+
+  if ( longer_size - shorter_size > MIN_LIMB_DIFF )
+  { res = swapped ? HUGE_VAL : 0.0;
+  } else
+  { double l,s;
+    mpz_t li, si;
+
+    /* we ignore limbs that are not significant for the result */
+    if ( longer_size > MIN_LIMB_DIFF )	/* more can't be represented */
+    { ignored_limbs = longer_size - MIN_LIMB_DIFF;
+      longer_size -= ignored_limbs;
+      shorter_size -= ignored_limbs;
+    }
+    if ( shorter_size > DBL_PRECISION_LIMBS )	/* more exceeds the precision */
+    { ignored_limbs += shorter_size - DBL_PRECISION_LIMBS;
+      longer_size -= shorter_size - DBL_PRECISION_LIMBS;
+      shorter_size = DBL_PRECISION_LIMBS;
+    }
+    longer_d += ignored_limbs;
+    shorter_d += ignored_limbs;
+    li._mp_alloc = li._mp_size = longer_size; li._mp_d = longer_d;
+    si._mp_alloc = si._mp_size = shorter_size; si._mp_d = shorter_d;
+    l = mpz_get_d(&li);
+    s = mpz_get_d(&si);
+    res = swapped ? l/s : s/l;
+  }
+
+  return negative ? -res : res;
+}
+
+double
+mpq_to_double(mpq_t q)
+{ return mpz_fdiv(mpq_numref(q), mpq_denref(q));
+}
+
+void
+mpq_set_double(mpq_t q, double f)
+{ double fabs = (f < 0.0) ? -f : f;	/* get rid of the sign */
+  double x = fabs;
+  mpz_t na, nb, da, db, big_xi, tmpn, tmpd;
+
+  mpz_init_set_ui(&na, 1L);
+  mpz_init_set_ui(&nb, 0L);
+  mpz_init_set_ui(&da, 0L);
+  mpz_init_set_ui(&db, 1L);
+  mpz_init(&tmpn);
+  mpz_init(&tmpd);
+  mpz_init(&big_xi);
+
+  while ( mpz_fdiv(&na, &da) != fabs )
+  { double xi = floor(x);
+    double xf = x - xi;
+
+    mpz_swap(&tmpn, &na);
+    mpz_swap(&tmpd, &da);
+
+    if ( x < MAX_S_WORD_1_DBL )
+    { uword int_xi = (uword) xi;
+      mpz_mul_ui(&na, &tmpn, int_xi);
+      mpz_mul_ui(&da, &tmpd, int_xi);
+    } else
+    { mpz_set_d(&big_xi, xi);
+      mpz_mul(&na, &tmpn, &big_xi);
+      mpz_mul(&da, &tmpd, &big_xi);
+    }
+    mpz_add(&na, &na, &nb);
+    mpz_add(&da, &da, &db);
+    mpz_swap(&nb, &tmpn);
+    mpz_swap(&db, &tmpd);
+
+    if ( xf == 0.0 )
+      break;
+    x = 1.0/xf;
+  }
+
+  if (f < 0.0)			/* compute q := [+-]na/da */
+      mpz_neg(&na, &na);
+  mpq_set_num(q, &na);
+  mpq_set_den(q, &da);
+  mpq_canonicalize(q);
+
+  mpz_clear(&big_xi);			/* clean up */
+  mpz_clear(&tmpd);
+  mpz_clear(&tmpn);
+  mpz_clear(&db);
+  mpz_clear(&da);
+  mpz_clear(&nb);
+  mpz_clear(&na);
+}
+
+
 
 		 /*******************************
 		 *	 PUBLIC INTERFACE	*
