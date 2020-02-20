@@ -3767,25 +3767,21 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
       if ( stext.encoding == ENC_ISO_LATIN_1 )
       { unsigned char *q, *s = (unsigned char *)stext.text.t;
 	number n;
-	AR_CTX;
 
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
 	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
 	    s++;
 	}
 
-	AR_BEGIN();
 	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK ) /* TBD: rational support? */
 	{ if ( *q == EOS )
 	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
-	    AR_END();
 	    return rc2;
 	  } else
 	    rc = NUM_ERROR;
 	  clearNumber(&n);
 	}
-	AR_END();
       } else
 	rc = NUM_ERROR;
 

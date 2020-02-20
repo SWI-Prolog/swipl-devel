@@ -1421,6 +1421,8 @@ cpNumber(Number to, Number from)
   }
 }
 
+#ifdef O_GMP
+
 		 /*******************************
 		 *	 FLOAT <-> RATIONAL	*
 		 *******************************/
@@ -1574,13 +1576,9 @@ mpq_set_double(mpq_t q, double f)
   mpz_clear(na);
 }
 
-
-
 		 /*******************************
 		 *	 PUBLIC INTERFACE	*
 		 *******************************/
-
-#ifdef O_GMP
 
 int
 PL_get_mpz(term_t t, mpz_t mpz)
