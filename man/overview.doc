@@ -1524,6 +1524,17 @@ search result satisfies the conditions. Default is 10 seconds, which
 typically avoids most repetitive searches for (library) files during
 compilation. Setting this value to 0 (zero) disables the cache.
 
+    \prologflagitem{float_max}{float}{r}
+The biggest representable floating point number.
+
+    \prologflagitem{float_max_integer}{float}{r}
+The highest integer that can be represented precisely as a floating
+point number.
+
+    \prologflagitem{float_min}{float}{r}
+The smalles representable floating point number above 0.0.  See also
+\funcref{nexttoward}{2}.
+
     \prologflagitem{float_overflow}{atom}{rw}
 One of \const{error} (default) or \const{infinity}.  The first is ISO
 compliant.  Using \const{infinity}, floating point overflow is mapped

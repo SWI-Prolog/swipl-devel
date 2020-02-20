@@ -72,6 +72,17 @@ in this array.
 #endif
 #include <fenv.h>
 
+#ifndef DBL_MAX
+#define DBL_MAX     1.7976931348623157e+308
+#endif
+#ifndef DBL_MIN
+#define DBL_MIN     2.2250738585072014e-308
+#endif
+#ifndef DBL_EPSILON
+#define DBL_EPSILON 0.00000000000000022204
+#endif
+
+
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
 #endif
@@ -2642,10 +2653,6 @@ results with rationalize/1:
     d = p1_q1 - n1->value.f;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef DBL_EPSILON			/* normal for IEEE 64-bit double */
-#define DBL_EPSILON 0.00000000000000022204
-#endif
-
 static int
 ar_rationalize(Number n1, Number r)
 { switch(n1->type)
@@ -4219,6 +4226,9 @@ initArith(void)
   float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
   float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
   float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;
+  setPrologFlag("float_min",  FT_FLOAT|FF_READONLY, DBL_MIN);
+  setPrologFlag("float_max",  FT_FLOAT|FF_READONLY, DBL_MAX);
+  setPrologFlag("float_max_integer",  FT_FLOAT|FF_READONLY, 9007199254740992.0);
 }
 
 
