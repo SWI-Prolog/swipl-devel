@@ -506,19 +506,18 @@ PRED_IMPL("rational", 3, rational, 0)
 		*           COMPARISON          *
 		*********************************/
 
+/* implements <, =<, >, >=, =:= and =\=
+ */
+
 int
 ar_compare(Number n1, Number n2, int what)
-{ int diff = cmpNumbers(n1, n2);
-
-  if ( (n1->type == V_FLOAT && isnan(n1->value.f)) ||
-       (n2->type == V_FLOAT && isnan(n2->value.f)) )
-    return FALSE;
+{ int diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
 
   switch(what)
   { case LT: return diff == CMP_LESS;
     case GT: return diff == CMP_GREATER;
-    case LE: return diff != CMP_GREATER;
-    case GE: return diff != CMP_LESS;
+    case LE: return (diff == CMP_LESS) || (diff == CMP_EQUAL);
+    case GE: return (diff == CMP_GREATER) || (diff == CMP_EQUAL);
     case NE: return diff != CMP_EQUAL;
     case EQ: return diff == CMP_EQUAL;
     default:
@@ -661,10 +660,10 @@ isCurrentArithFunction(functor_t f)
 
 
 int
-check_float(double f)
+check_float(Number n)
 { PL_error_code code = ERR_NO_ERROR;
 #ifdef HAVE_FPCLASSIFY
-  switch(fpclassify(f))
+  switch(fpclassify(n->value.f))
   { case FP_NAN:
       code = ERR_AR_UNDEF;
       break;
@@ -677,7 +676,7 @@ check_float(double f)
   }
 #else
 #ifdef HAVE_FPCLASS
-  switch(fpclass(f))
+  switch(fpclass(n->value.f))
   { case FP_SNAN:
     case FP_QNAN:
       code = ERR_AR_UNDEF;
@@ -698,7 +697,7 @@ check_float(double f)
   }
 #else
 #ifdef HAVE__FPCLASS
-  switch(_fpclass(f))
+  switch(_fpclass(n->value.f))
   { case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
       code = ERR_AR_UNDEF;
@@ -710,11 +709,11 @@ check_float(double f)
   }
 #else
 #ifdef HAVE_ISNAN
-  if ( isnan(f) )
+  if ( isnan(n->value.f) )
     code = ERR_AR_UNDEF;
 #endif
 #ifdef HAVE_ISINF
-  if ( isinf(f) )
+  if ( isinf(n->value.f) )
     code = ERR_AR_OVERFLOW;
 #endif
 #endif /*HAVE__FPCLASS*/
@@ -734,6 +733,7 @@ check_float(double f)
 	  return TRUE;
         break;
       case ERR_AR_UNDEF:
+	n->value.f = const_nan;
 	if ( LD->arith.f.flags & FLT_UNDEFINED )
 	  return TRUE;
         break;
@@ -1175,7 +1175,7 @@ toIntegerNumber(Number n, int flags)
       fail;
 #endif
     case V_FLOAT:
-      if ( !check_float(n->value.f) )
+      if ( !check_float(n) )
 	return FALSE;
       if ( (flags & TOINT_CONVERT_FLOAT) )
       { if ( double_in_int64_range(n->value.f) )
@@ -1274,7 +1274,7 @@ ar_add_ui(Number n, intptr_t add)
     case V_FLOAT:
     { n->value.f += (double)add;
 
-      return check_float(n->value.f);
+      return check_float(n);
     }
     default:
       ;
@@ -1329,7 +1329,7 @@ pl_ar_add(Number n1, Number n2, Number r)
     { r->value.f = n1->value.f + n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
     }
   }
 
@@ -1377,7 +1377,7 @@ ar_minus(Number n1, Number n2, Number r)
     { r->value.f = n1->value.f - n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
     }
   }
 
@@ -1655,7 +1655,7 @@ ar_gcd(Number n1, Number n2, Number r)
   { if ( !promoteToFloatNumber(n1) ) return FALSE; \
     r->value.f = op(n1->value.f); \
     r->type    = V_FLOAT; \
-    return check_float(r->value.f); \
+    return check_float(r); \
   }
 
 /* Binary functions requiring integer argument */
@@ -1716,7 +1716,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	 !promoteToFloatNumber(n2) ) return FALSE; \
     r->value.f = func(n1->value.f, n2->value.f); \
     r->type = V_FLOAT; \
-    return check_float(r->value.f); \
+    return check_float(r); \
   }
 
 UNAIRY_FLOAT_FUNCTION(ar_sin, sin)
@@ -2011,7 +2011,7 @@ ar_pow(Number n1, Number n2, Number r)
 	{ mpz_clear(r->value.mpz);
 	  r->type = V_FLOAT;
 	  r->value.f = NAN;
-	  return check_float(r->value.f);
+	  return check_float(r);
 	}
 
 	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
@@ -2057,7 +2057,7 @@ ar_pow(Number n1, Number n2, Number r)
 	{ mpq_clear(r->value.mpq);
 	  r->type = V_FLOAT;
 	  r->value.f = NAN;
-	  return check_float(r->value.f);
+	  return check_float(r);
 	}
 
 	rat_result = ( mpz_root(mpq_numref(r->value.mpq),
@@ -2096,7 +2096,7 @@ ar_pow(Number n1, Number n2, Number r)
 	} else					/* base positive */
 	{ r->value.f = pow(n1->value.f,d_exp);
 	}
-	return check_float(r->value.f);
+	return check_float(r);
       }
     } /* end switch (n1->type) */
     assert(0);
@@ -2110,7 +2110,7 @@ doreal:
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 static int
@@ -2143,6 +2143,11 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #endif
 }
 
+#if 0
+/* These tests originate from the days that float errors used
+ * to be signalling on many systems.  Nowadays this is no longer
+ * the case.  We leave the code in for just-in-case.
+ */
 #define AR_UNDEFINED_IF(func, arity, test, r)			\
 	if ( test )						\
 	{ GET_LD						\
@@ -2167,6 +2172,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 	  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);\
 	  }							\
 	}
+#else
+#define AR_UNDEFINED_IF(func, arity, test, r) (void)0
+#define AR_DIV_ZERO_IF(func, arity, n, d, r)  (void)0
+#endif
 
 static int
 ar_sqrt(Number n1, Number r)
@@ -2176,7 +2185,7 @@ ar_sqrt(Number n1, Number r)
   r->value.f = sqrt(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2188,7 +2197,7 @@ ar_asin(Number n1, Number r)
   r->value.f = asin(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2200,7 +2209,7 @@ ar_acos(Number n1, Number r)
   r->value.f = acos(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2212,7 +2221,7 @@ ar_log(Number n1, Number r)
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2224,7 +2233,7 @@ ar_log10(Number n1, Number r)
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2400,7 +2409,8 @@ ar_sign_i(Number n1)
 static int
 ar_sign(Number n1, Number r)
 { if ( n1->type == V_FLOAT )
-  { r->value.f = n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0;
+  { r->value.f = isnan(n1->value.f) ? const_nan :
+       (n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0);
     r->type = V_FLOAT;
   } else
   { r->value.i = ar_sign_i(n1);
@@ -2439,7 +2449,10 @@ static int
 ar_copysign(Number n1, Number n2, Number r)
 {
   if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
-  { r->value.f = copysign(n1->value.f, n2->value.f);
+  { if ( isnan(n1->value.f) )
+      r->value.f = const_nan;
+    else
+      r->value.f = copysign(n1->value.f, n2->value.f);
     r->type = V_FLOAT;
   } else
   { if ( ar_signbit(n1) != ar_signbit(n2) )
@@ -2595,7 +2608,7 @@ ar_rationalize(Number n1, Number r)
       promoteToMPQNumber(r);
       return check_mpq(r);
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
+    { if ( !check_float(n1) )
 	return FALSE;
 
       double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
@@ -2745,7 +2758,7 @@ ar_divide(Number n1, Number n2, Number r)
   r->value.f = n1->value.f / n2->value.f;
   r->type = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2857,7 +2870,7 @@ ar_mul(Number n1, Number n2, Number r)
       r->value.f = n1->value.f * n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
   }
 
   assert(0);
@@ -2865,14 +2878,31 @@ ar_mul(Number n1, Number n2, Number r)
 }
 
 
+/* min/2 and max/2 have two special cases.  If one of the arguments is
+ * NaN we must select the other and for these functions -0.0 < 0.0,
+ * while they compare == for normal float comparison.
+ */
+
 static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff >= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ )			/* one or both nan */
+  { if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+      cpNumber(r, n2);
+    else
+      cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n1->type == V_FLOAT &&		/* is n1 -0.0 */
+              n1->value.f == 0.0 &&
+              signbit(n1->value.f) )
+  { cpNumber(r, n2);
+  } else
+  { if ( diff >= 0 )
+      cpNumber(r, n1);
+    else
+      cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -2882,10 +2912,22 @@ static int
 ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff <= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ )			/* if one or both nan's */
+  { if (n1->type == V_FLOAT && isnan(n1->value.f))
+      cpNumber(r, n2);
+    else
+      cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n2->type == V_FLOAT &&		/* is n2 -0.0 */
+              n2->value.f == 0.0 &&
+              signbit(n2->value.f) )
+  { cpNumber(r, n2);
+  } else
+  { if ( diff <= 0 )
+      cpNumber(r, n1);
+    else
+      cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -3157,7 +3199,7 @@ ar_u_minus(Number n1, Number r)
       return check_mpq(r);
 #endif
     case V_FLOAT:
-      r->value.f = -n1->value.f;
+      r->value.f = isnan(n1->value.f) ? n1->value.f : -n1->value.f;
       r->type = V_FLOAT;
       break;
   }
@@ -3265,7 +3307,7 @@ ar_integer(Number n1, Number r)
     }
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
+    { if ( !check_float(n1) )
 	return FALSE;
       if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
       { if ( n1->value.f > 0 )
@@ -3330,7 +3372,7 @@ ar_floor(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
+    { if ( !check_float(n1) )
 	return FALSE;
 #ifdef HAVE_FLOOR
       r->type = V_FLOAT;
@@ -3384,7 +3426,7 @@ ar_ceil(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
+    { if ( !check_float(n1) )
 	return FALSE;
 #ifdef HAVE_CEIL
       r->type = V_FLOAT;
@@ -3829,7 +3871,7 @@ ar_random_float(Number r)
 
 static int
 ar_pi(Number r)
-{ r->value.f = M_PI;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_PI,INFINITY) : M_PI;
 
   r->type = V_FLOAT;
   succeed;
@@ -3838,7 +3880,7 @@ ar_pi(Number r)
 
 static int
 ar_e(Number r)
-{ r->value.f = M_E;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_E,INFINITY) : M_E;
 
   r->type = V_FLOAT;
   succeed;
@@ -4148,7 +4190,7 @@ initArith(void)
   setPrologFlag("float_undefined", FT_ATOM, "error");
   setPrologFlag("float_underflow", FT_ATOM, "ignore");
   setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
-  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_to_nearest;
   float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
   float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
   float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;

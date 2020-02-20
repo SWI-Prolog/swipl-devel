@@ -1231,9 +1231,6 @@ promoteToFloatNumber(Number n)
     case V_MPZ:
     { double val = mpX_round(mpz_get_d(n->value.mpz));
 
-      if ( !check_float(val) )
-	return FALSE;
-
       clearNumber(n);
       n->value.f = val;
       n->type = V_FLOAT;
@@ -1241,9 +1238,6 @@ promoteToFloatNumber(Number n)
     }
     case V_MPQ:
     { double val = mpX_round(mpq_get_d(n->value.mpq));
-
-      if ( !check_float(val) )
-	return FALSE;
 
       clearNumber(n);
       n->value.f = val;
@@ -1255,7 +1249,7 @@ promoteToFloatNumber(Number n)
       break;
   }
 
-  return TRUE;
+  return check_float(n);
 }
 
 
@@ -1314,6 +1308,9 @@ cmpFloatNumbers(Number n1, Number n2)
 { if ( n1->type == V_FLOAT )
   { double d2;
 
+    if ( isnan(n1->value.f) )
+      return CMP_NOTEQ;
+
     switch(n2->type)
     { case V_INTEGER:
 	d2 = (double)n2->value.i;
@@ -1337,6 +1334,9 @@ cmpFloatNumbers(Number n1, Number n2)
   { double d1;
 
     assert(n2->type == V_FLOAT);
+
+    if ( isnan(n2->value.f) )
+      return CMP_NOTEQ;
 
     switch(n1->type)
     { case V_INTEGER:
@@ -1397,7 +1397,6 @@ cmpNumbers(Number n1, Number n2)
   assert(0);
   return CMP_EQUAL;
 }
-
 
 void
 cpNumber(Number to, Number from)

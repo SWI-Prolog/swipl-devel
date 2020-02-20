@@ -38,8 +38,6 @@ test_ieee754 :-
     run_tests([ ieee754
 	      ]).
 
-% *** Eclipse is "to_nearest"
-
 :- begin_tests(ieee754,
 	       [ condition(current_prolog_flag(bounded, false)),
                  setup(set_float_flags(Old,
@@ -47,7 +45,7 @@ test_ieee754 :-
                                          flag(float_zero_div,infinity),
                                          flag(float_undefined,nan),
                                          flag(float_underflow,ignore),
-                                         flag(float_rounding,nearest)
+                                         flag(float_rounding,to_nearest)
                                        ])),
                  cleanup(set_float_flags(_, Old))
 	       ]).
@@ -70,20 +68,20 @@ test(ieee_flags) :-
         get_set_flag(float_underflow,error,ignore),
         get_set_flag(float_underflow,ignore,Old_u))),
     assertion((
-        get_set_flag(float_rounding,Old_r,nearest),
-        get_set_flag(float_rounding,nearest,to_positive),
+        get_set_flag(float_rounding,Old_r,to_nearest),
+        get_set_flag(float_rounding,to_nearest,to_positive),
         get_set_flag(float_rounding,to_positive,to_negative),
         get_set_flag(float_rounding,to_negative,to_zero),
         get_set_flag(float_rounding,to_zero,Old_r))).
 
 %% Basic Arithmetic Tests (from Eclipse paper) %%%%%%%%%%%%
 
-test(ieee_cmp, blocked(fail)) :-
+test(ieee_cmp):-
     assertion( 0.0 =:= -0.0),
     assertion( 0.0 \== -0.0),
     assertion( inf  >  -inf),
-    assertion( nan =\=  nan),
     assertion( nan ==   nan),
+    assertion( nan =\=  nan),
     assertion(not(nan  <  nan)),
     assertion(not(nan =<  nan)),
     assertion(not(nan >=  nan)),
@@ -119,14 +117,14 @@ test(ieee_tcmp ) :-  % placement in standard term order
     assertion(sort([1.0Inf,    0.0, -0.0, -1.0Inf, 1.5NaN],
                    [1.5NaN,-1.0Inf, -0.0,    0.0,  1.0Inf])).
 
-test(ieee_minus, blocked(fail)) :-
+test(ieee_minus) :-
     assertion(    0.0 is - -0.0),
     assertion(   -0.0 is -  0.0),
     assertion( 1.0Inf is - -inf),
     assertion(-1.0Inf is -  inf),
     assertion( 1.5NaN is -  nan).
 
-test(ieee_add, blocked(fail)) :-
+test(ieee_add) :-
     assertion(    0.0 =:= -0.0+  0.0),
     assertion(    0.0 =:=  0.0+ -0.0),
     assertion(   -0.0 =:= -0.0+ -0.0),
@@ -136,7 +134,7 @@ test(ieee_add, blocked(fail)) :-
     assertion(-1.0Inf is  -inf+  0.0),
     assertion( 1.5NaN is   nan+  inf).
 
-test(ieee_sub, blocked(fail)) :-
+test(ieee_sub) :-
     assertion(    0.0 =:=  0.0-  0.0),
     assertion(   -0.0 =:= -0.0-  0.0),
     assertion(    0.0 =:=  0.0- -0.0),
@@ -151,7 +149,7 @@ test(ieee_sub, blocked(fail)) :-
     assertion( 1.0Inf is   1.0- -inf),
     assertion( 1.5NaN is   inf-  nan).
 
-test(ieee_mul, blocked(fail)) :-
+test(ieee_mul) :-
     assertion(   -0.0 =:= -0.0*  1.0),
     assertion(    0.0 =:= -0.0* -1.0),
     assertion( 1.0Inf is   inf*  inf),
@@ -186,7 +184,7 @@ test(ieee_div, blocked(fail)) :-
     assertion( 1.5NaN is -1.0/ nan),
     assertion( 1.5NaN is  nan/ 1.0).
 
-test(ieee_sign, blocked(fail)) :-
+test(ieee_sign) :-
     assertion( 0.0    is sign(-0.0)),
     assertion( 0.0    is sign( 0.0)),
     assertion( 1.0    is sign( inf)),
@@ -255,41 +253,41 @@ test(ieee_atan2) :-						% C11 - F.10.1.4
     assertion( pi/4 =:= atan2( inf, inf)),
     assertion(-pi/4 =:= atan2(-inf, inf)).
 
-test(ieee_cos, blocked(fail)) :-				% C11 - F.10.1.5
+test(ieee_cos) :-									% C11 - F.10.1.5
     assertion(   1.0 is cos( 0.0)),
     assertion(   1.0 is cos(-0.0)),
     assertion( 1.5NaN is  cos( inf)),
     assertion( 1.5NaN is  cos(-inf)),
     assertion( 1.5NaN is  cos( nan)).
 
-test(ieee_sin, blocked(fail)) :-				% C11 - F.10.1.6
+test(ieee_sin) :-									% C11 - F.10.1.6
     assertion(   0.0 is sin( 0.0)),
     assertion(  -0.0 is sin(-0.0)),
     assertion( 1.5NaN is sin( inf)),
     assertion( 1.5NaN is sin(-inf)),
     assertion( 1.5NaN is sin( nan)).
 
-test(ieee_tan, blocked(fail)) :-				% C11 - F.10.1.7
+test(ieee_tan) :-									% C11 - F.10.1.7
     assertion(   0.0 is tan( 0.0)),
     assertion(  -0.0 is tan(-0.0)),
     assertion( 1.5NaN is tan( inf)),
     assertion( 1.5NaN is tan(-inf)),
     assertion( 1.5NaN is tan( nan)).
 
-test(ieee_acosh, blocked(fail)) :-				% C11 - F.10.2.1
+test(ieee_acosh) :-								% C11 - F.10.2.1
     assertion(   0.0 is acosh( 1.0)),
     assertion(1.0Inf is acosh( inf)),
     assertion(1.5NaN is acosh( 0.5)),
     assertion(1.5NaN is acosh( nan)).
 
-test(ieee_asinh) :-						% C11 - F.10.2.2
+test(ieee_asinh) :-									% C11 - F.10.2.2
     assertion(    0.0 is asinh( 0.0)),
     assertion(   -0.0 is asinh(-0.0)),
     assertion( 1.0Inf is asinh( inf)),
     assertion(-1.0Inf is asinh(-inf)),
     assertion( 1.5NaN is asinh( nan)).
 
-test(ieee_atanh, blocked(fail)) :-				% C11 - F.10.2.3
+test(ieee_atanh) :-								% C11 - F.10.2.3
     assertion(    0.0 is atanh( 0.0)),
     assertion(   -0.0 is atanh(-0.0)),
     assertion( 1.0Inf is atanh( 1.0)),
@@ -298,21 +296,21 @@ test(ieee_atanh, blocked(fail)) :-				% C11 - F.10.2.3
     assertion( 1.5NaN is atanh(-2.0)),
     assertion( 1.5NaN is atanh( nan)).
 
-test(ieee_cosh) :-						% C11 - F.10.2.4
+test(ieee_cosh) :-									% C11 - F.10.2.4
     assertion(    1.0 is cosh( 0.0)),
     assertion(    1.0 is cosh(-0.0)),
     assertion( 1.0Inf is cosh( inf)),
     assertion( 1.0Inf is cosh(-inf)),
     assertion( 1.5NaN is cosh( nan)).
 
-test(ieee_sinh) :-						% C11 - F.10.2.5
+test(ieee_sinh) :-									% C11 - F.10.2.5
     assertion(    0.0 is sinh( 0.0)),
     assertion(   -0.0 is sinh(-0.0)),
     assertion( 1.0Inf is sinh( inf)),
     assertion(-1.0Inf is sinh(-inf)),
     assertion( 1.5NaN is sinh( nan)).
 
-test(ieee_tanh) :-						% C11 - F.10.2.6
+test(ieee_tanh) :-									% C11 - F.10.2.6
     assertion(    0.0 is tanh( 0.0)),
     assertion(   -0.0 is tanh(-0.0)),
     assertion(    1.0 is tanh( inf)),
@@ -320,21 +318,21 @@ test(ieee_tanh) :-						% C11 - F.10.2.6
     assertion( 1.5NaN is tanh( nan)).
 
 
-test(ieee_exp) :-						% C11 - F.10.3.1
+test(ieee_exp) :-									% C11 - F.10.3.1
     assertion(    1.0 is exp( 0.0)),
     assertion(    1.0 is exp(-0.0)),
     assertion( 1.0Inf is exp( inf)),
     assertion(    0.0 is exp(-inf)),
     assertion( 1.5NaN is exp( nan)).
 
-test(ieee_log, blocked(fail)) :-				% C11 - F.10.3.7
+test(ieee_log) :-									% C11 - F.10.3.7
     assertion(-1.0Inf is log( 0.0)),
     assertion(-1.0Inf is log(-0.0)),
     assertion( 1.5NaN is log(-1.0)),
     assertion( 1.0Inf is log( inf)),
     assertion( 1.5NaN is log( nan)).
 
-test(ieee_log10, blocked(fail)) :-				% C11 - F.10.3.8
+test(ieee_log10) :-									% C11 - F.10.3.8
     assertion(-1.0Inf is log10( 0.0)),
     assertion(-1.0Inf is log10(-0.0)),
     assertion( 1.5NaN is log10(-1.0)),
@@ -342,7 +340,7 @@ test(ieee_log10, blocked(fail)) :-				% C11 - F.10.3.8
     assertion( 1.5NaN is log10( nan)).
 
 
-test(ieee_abs) :-						% C11 - F.10.4.2
+test(ieee_abs) :-									% C11 - F.10.4.2
     assertion(    0.0 is abs( 0.0)),
     assertion(    0.0 is abs(-0.0)),
     assertion( 1.0Inf is abs( inf)),
@@ -405,7 +403,7 @@ test(ieee_erfc) :-						% C11 - F.10.5.2
     assertion(    2.0 is erfc(-inf)),
     assertion( 1.5NaN is erfc( nan)).
 
-test(ieee_lgamma) :-						% C11 - F.10.5.3
+test(ieee_lgamma) :-					% C11 - F.10.5.3
     assertion(    0.0 is lgamma( 1.0)),
     assertion(    0.0 is lgamma( 2.0)),
     assertion( 1.0Inf is lgamma( 0.0)),
@@ -446,7 +444,7 @@ test(ieee_trunc, blocked(fail)) :-				% C11 - F.10.6.8
     assertion( 1.5NaN is truncate( nan)).
 
 
-test(ieee_copysign, blocked(fail)) :-				% C11 - F.10.8.1
+test(ieee_copysign) :-							% C11 - F.10.8.1
     assertion(-1.0Inf is copysign( inf, -0.0)),
     assertion( 1.0Inf is copysign(-inf,  0.0)),
     assertion(    0.0 is copysign(-0.0,  inf)),
@@ -454,7 +452,7 @@ test(ieee_copysign, blocked(fail)) :-				% C11 - F.10.8.1
     assertion(    0.0 is copysign( 0.0,  nan)),
     assertion( 1.5NaN is copysign( nan, -0.0)).
 
-test(ieee_nexttoward) :-					% C11 - F.10.8.4
+test(ieee_nexttoward) :-						% C11 - F.10.8.4
     assertion(-1.0Inf is nexttoward(-inf, -inf)),
     assertion( 1.0Inf is nexttoward( inf,  inf)),
     assertion(-1.0Inf <  nexttoward(-inf,  inf)),
@@ -467,60 +465,70 @@ test(ieee_nexttoward) :-					% C11 - F.10.8.4
     assertion( 1.5NaN is nexttoward( nan, -0.0)).
 
 
-test(ieee_max, blocked(fail)) :-				% C11 - F.10.9.2
+test(ieee_max) :-								% C11 - F.10.9.2
     assertion(-1.0Inf is max(-inf, -inf)),
     assertion( 1.0Inf is max( inf,  inf)),
     assertion( 1.0Inf is max( inf, -inf)),
     assertion(    0.0 is max(-0.0,  0.0)),
+    assertion(    0.0 is max( 0.0, -0.0)),
+    assertion(      0 is max(-0.0,  0)),
+    assertion(      0 is max(   0, -0.0)),
     assertion(-1.0Inf is max( nan, -inf)),
     assertion( 1.5NaN is max( nan,  nan)).
 
-test(ieee_min, blocked(fail)) :-				% C11 - F.10.9.3
+test(ieee_min) :-								% C11 - F.10.9.3
     assertion(-1.0Inf is min(-inf, -inf)),
     assertion( 1.0Inf is min( inf,  inf)),
     assertion(-1.0Inf is min( inf, -inf)),
     assertion(   -0.0 is min(-0.0,  0.0)),
+    assertion(   -0.0 is min( 0.0, -0.0)),
+    assertion(   -0.0 is min(-0.0,    0)),
+    assertion(   -0.0 is min(   0, -0.0)),
     assertion( 1.0Inf is min( inf,  nan)),
     assertion( 1.5NaN is min( nan,  nan)).
 
 %% End of Annex F Tests %%%%%%%%%%%%%%%%%%%%%%%%%
 
-test(ieee_rmode, blocked(fail)) :-
+test(ieee_rmode) :-
     assertion((
         RExp = exp(log(1.1)),                   % positive value
-        evalR(RExp,nearest,Rc),
+        evalR(RExp,to_nearest,Rc),
         evalR(RExp,to_positive,Rp),
         evalR(RExp,to_negative,Rn),
         evalR(RExp,to_zero,Rz),
-        Rn =< Rc, Rc =< Rp, Rn < Rp,
-        Rz =< Rc, Rz < Rp
+        Rn =< Rc, Rc =< Rp, Rn =< Rp,
+        Rz =< Rc, Rz =< Rp
     )),
     assertion((
         PExp = cos(-pi),                        % negative value
-        evalR(PExp,nearest,Pc),
+        evalR(PExp,to_nearest,Pc),
         evalR(PExp,to_positive,Pp),
         evalR(PExp,to_negative,Pn),
         evalR(PExp,to_zero,Pz),
-        Pn =< Pc, Pc =< Pp, Pn < Pp,
-        Pz >= Pc, Pz > Pn
+        Pn =< Pc, Pc =< Pp, Pn =< Pp,
+        Pz >= Pc, Pz >= Pn
     )),
     assertion((
         QExp = 0.7**1r3,                        % positive value
-        evalR(QExp,nearest,Qc),
+        evalR(QExp,to_nearest,Qc),
         evalR(QExp,to_positive,Qp),
         evalR(QExp,to_negative,Qn),
         evalR(QExp,to_zero,Qz),
-        Qn =< Qc, Qc =< Qp, Qn < Qp,
-        Qz =< Qc, Qz < Qp
+        Qn =< Qc, Qc =< Qp, Qn =< Qp,
+        Qz =< Qc, Qz =< Qp
     )),
     assertion((
         SExp = -0.7**1r3,                       % negative value
-        evalR(SExp,nearest,Sc),
+        evalR(SExp,to_nearest,Sc),
         evalR(SExp,to_positive,Sp),
         evalR(SExp,to_negative,Sn),
         evalR(SExp,to_zero,Sz),
-        Sn =< Sc, Sc =< Sp, Sn < Sp,
-        Sz >= Sc, Sz > Sn
+        Sn =< Sc, Sc =< Sp, Sn =< Sp,
+        Sz >= Sc, Sz >= Sn
+    )),
+    assertion((
+        evalR(pi,to_negative,PiL), evalR(pi,to_positive,PiH), PiL < PiH,
+        evalR( e,to_negative, EL), evalR( e,to_positive, EH), EL < EH
     )).
 
 :- end_tests(ieee754).

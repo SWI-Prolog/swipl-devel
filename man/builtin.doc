@@ -7154,9 +7154,9 @@ rational division by zero always raises an exception.
 \end{tabular}\end{center}
 
 The Prolog flag \prologflag{float_rounding} controls the rounding mode
-for floating point arithmetic. The default rounding is \const{nearest}
-and the following alternatives are provided: \const{to_positive},
-\const{to_negative} and \const{to_zero}.
+for floating point arithmetic. The default rounding is
+\const{to_nearest} and the following alternatives are provided:
+\const{to_positive}, \const{to_negative} and \const{to_zero}.
 
 \begin{description}
     \predicate[det]{float_class}{2}{+Float, -Class}
