@@ -2098,7 +2098,7 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
       }
       case V_FLOAT:
-      { double d_exp = sgn_exp * mpX_round(mpq_get_d(n2->value.mpq));
+      { double d_exp = sgn_exp * mpq_to_double(n2->value.mpq);
 
 	r->type = V_FLOAT;
 	if ( n1->value.f < 0 )
@@ -2653,41 +2653,17 @@ ar_rationalize(Number n1, Number r)
     case V_MPZ:
     case V_MPQ:
       cpNumber(r, n1);
-      promoteToMPQNumber(r);
-      return check_mpq(r);
+      return TRUE;
     case V_FLOAT:
-    { if ( !check_float(n1) )
-	return FALSE;
+      if ( isnan(n1->value.f) )
+	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      if ( isinf(n1->value.f) )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
 
-      double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
-      double e1 =	 -1.0, p1 = 1.0, q1 = 0.0;
-      double d;
-
-      do
-      { double r = floor(e0/e1);
-	double e00 = e0, p00 = p0, q00 = q0;
-	volatile double p1_q1;		/* see (*) */
-
-	e0 = e1;
-	p0 = p1;
-	q0 = q1;
-	e1 = e00 - r*e1;
-	p1 = p00 - r*p1;
-	q1 = q00 - r*q1;
-
-	DEBUG(2, Sdprintf("e = %.20f, r = %f, p1/q1 = %f/%f\n",
-			  DBL_EPSILON, r, p1, q1));
-
-	p1_q1 = p1/q1;
-	d = p1_q1 - n1->value.f;
-      } while(fabs(d) > DBL_EPSILON);
-
+      mpq_init(r->value.mpq);
+      mpq_set_double(r->value.mpq, n1->value.f);
       r->type = V_MPQ;
-      mpz_init_set_d(mpq_numref(r->value.mpq), p1);
-      mpz_init_set_d(mpq_denref(r->value.mpq), q1);
-      mpq_canonicalize(r->value.mpq);	/* is this needed? */
       return check_mpq(r);
-    }
   }
 
   assert(0);

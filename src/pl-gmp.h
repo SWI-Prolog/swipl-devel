@@ -65,6 +65,8 @@ COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 COMMON(void)	mpz_init_set_si64(mpz_t mpz, int64_t i);
 COMMON(double)	mpX_round(double f);
+COMMON(double)	mpq_to_double(mpq_t q);
+COMMON(void)	mpq_set_double(mpq_t q, double f);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)

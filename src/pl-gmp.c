@@ -1237,7 +1237,7 @@ promoteToFloatNumber(Number n)
       break;
     }
     case V_MPQ:
-    { double val = mpX_round(mpq_get_d(n->value.mpq));
+    { double val = mpq_to_double(n->value.mpq);
 
       clearNumber(n);
       n->value.f = val;
@@ -1298,8 +1298,8 @@ cmpNumbers() compares two numbers. First, both   numbers are promoted to
 the lowest (in V_* ordering) common type, after which they are compared.
 Note that if the common type is V_FLOAT, but not both are V_FLOAT we can
 run into troubles because big  integers  may   be  out  of range for the
-double representation. We trust mpz_get_d()   and mpq_get_d() return +/-
-float infinity and this compares  correctly   with  the  other argument,
+double representation. We trust mpz_get_d()   and mpq_to_double() return
++/- float infinity and this compares  correctly with the other argument,
 which is guaranteed to be a valid float.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1320,7 +1320,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	d2 = mpX_round(mpz_get_d(n2->value.mpz));
 	break;
       case V_MPQ:
-	d2 = mpX_round(mpq_get_d(n2->value.mpq));
+	d2 = mpq_to_double(n2->value.mpq);
 	break;
 #endif
       default:
@@ -1347,7 +1347,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	d1 = mpX_round(mpz_get_d(n1->value.mpz));
 	break;
       case V_MPQ:
-	d1 = mpX_round(mpq_get_d(n1->value.mpq));
+	d1 = mpq_to_double(n1->value.mpq);
 	break;
 #endif
       default:
@@ -1426,7 +1426,9 @@ cpNumber(Number to, Number from)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This code is copied from ECLiPSe
+This code is copied from ECLiPSe  7.0_53.   This  code is covered by the
+CMPL 1.1 (Cisco-style Mozilla Public License  Version 1.1), available at
+www.eclipse-clp.org/license.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 /*

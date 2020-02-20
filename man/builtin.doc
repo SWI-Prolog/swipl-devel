@@ -7432,13 +7432,14 @@ A = 3602879701896397 rdiv 36028797018963968
 \end{code}
 
     \function{rationalize}{1}{+Expr}
-Convert the \arg{Expr} to a rational number or integer.  The function
-is similar to \funcref{rational}{1}, but the result is only accurate
-within the rounding error of floating point numbers, generally producing
-a much smaller denominator.%
-	\footnote{The names \funcref{rational}{1} and
-	\funcref{rationalize}{1} as well as their semantics are inspired
-	by Common Lisp.}
+Convert the \arg{Expr} to a rational number or integer. The function is
+similar to \funcref{rational}{1}, but the result is only accurate within
+the rounding error of floating point numbers, generally producing a much
+smaller denominator.\footnote{The names \funcref{rational}{1} and
+\funcref{rationalize}{1} as well as their semantics are inspired by
+Common Lisp.}\footnote{The implementation of rationalize as well as
+converting a rational number into a float is copied from ECLiPSe and
+covered by the \textit{Cisco-style Mozilla Public License Version 1.1}.}
 
 \begin{code}
 ?- A is rationalize(0.25).
