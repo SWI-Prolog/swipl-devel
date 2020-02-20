@@ -3981,7 +3981,6 @@ PRED_IMPL("$is_char_list", 2, is_char_list, 0)
 static
 PRED_IMPL("atom_number", 2, atom_number, 0)
 { PRED_LD
-  AR_CTX
   char *s;
   size_t len;
 
@@ -3990,23 +3989,18 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
     unsigned char *q;
     strnumstat rc;
 
-    AR_BEGIN();
-
     if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) ) /* TBD: rational support */
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
         clearNumber(&n);
 
-        AR_END();
         return rc;
       } else
       { clearNumber(&n);
-        AR_END();
 	return FALSE;
       }
     } else
-    { AR_END();
-      return FALSE;
+    { return FALSE;
     }
   } else if ( PL_get_nchars(A2, &len, &s, CVT_NUMBER) )
   { return PL_unify_atom_nchars(A1, len, s);
