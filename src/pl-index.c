@@ -1757,7 +1757,7 @@ static void
 setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
 { ClauseIndex *cipo = cl->clause_indexes;
 
-  MemoryBarrier();
+  _MemoryBarrier();
   cl->clause_indexes = cip;
   if ( cipo )
     linger(&def->lingering, unalloc_index_array, cipo);

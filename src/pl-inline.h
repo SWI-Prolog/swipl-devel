@@ -38,6 +38,10 @@
 #undef LD
 #define LD LOCAL_LD
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#undef small
+#endif
 
 		 /*******************************
 		 *	 LOCK-FREE SUPPORT	*
@@ -63,10 +67,10 @@ MSB(size_t i)
 { unsigned long index;
 #if SIZEOF_VOIDP == 8
   unsigned __int64 mask = i;
-  _BitScanReverse64(&index, mask);
+  BitScanReverse64(&index, mask);
 #else
   unsigned long mask = i;
-  _BitScanReverse(&index, mask);
+  BitScanReverse(&index, mask);
 #endif
 
   return index;
@@ -76,14 +80,16 @@ MSB(size_t i)
 static inline int
 MSB64(int64_t i)
 { unsigned long index;
-  _BitScanReverse64(&index, i);
+  BitScanReverse64(&index, i);
   return index;
 }
 
 
 #define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier() (void)0
+#if defined(MemoryBarrier) || defined(_M_IX86)  // Under MSCV Win32 platforms _MemoryBarrier is an inline function in winnt.h instead of a #define
+#define _MemoryBarrier MemoryBarrier
+#else
+#define _MemoryBarrier() (void)0
 #endif
 
 static inline size_t
@@ -112,8 +118,8 @@ __builtin_popcount(size_t sz)
 
 #if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
 #define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier()			__sync_synchronize()
+#ifndef _MemoryBarrier
+#define _MemoryBarrier()			__sync_synchronize()
 #endif
 #endif
 
@@ -175,7 +181,7 @@ MSB64(int64_t i)
 
 #ifndef HAVE_MEMORY_BARRIER
 #define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() (void)0
+#define _MemoryBarrier() (void)0
 #endif
 
 		 /*******************************

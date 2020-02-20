@@ -163,7 +163,7 @@ PRED_IMPL("$new_findall_bag", 0, new_findall_bag, 0)
   init_mem_pool(&bag->records);
   initSegStack(&bag->answers, sizeof(Record),
 	       sizeof(bag->answer_buf), bag->answer_buf);
-  MemoryBarrier();
+  _MemoryBarrier();
   LD->bags.bags = bag;
 
   return TRUE;
