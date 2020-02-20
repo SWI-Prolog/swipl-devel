@@ -4885,7 +4885,7 @@ Moyle, for improving the implementation of a theorem prover.
 
 The implementation of call_with_depth_limit/3 in pl-prims.pl is
 
-================================================================
+```
 call_with_depth_limit(G, Limit, Result) :-
 	$depth_limit(Limit, OLimit, OReached),
 	(   catch(G, E, depth_limit_except(OLimit, OReached, E)),
@@ -4893,7 +4893,7 @@ call_with_depth_limit(G, Limit, Result) :-
 	    Cut
 	;   $depth_limit_false(OLimit, OReached, Result)
 	).
-================================================================
+```
 
 $depth_limit/3 sets the new limit and fetches the old values so they can
 be restored by the other calls.   '$depth_limit_true'/5 restores the old
