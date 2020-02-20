@@ -1532,7 +1532,8 @@ to positive or negative \const{Inf}.  See \secref{ieee-float}.
     \prologflagitem{float_rounding}{atom}{rw}
 Defines how arithmetic rounds to a float.  Defined values are
 \const{to_nearest} (default), \const{to_positive}, \const{to_negative}
-or \const{to_zero}.
+or \const{to_zero}. For most scenarios the function
+\funcref{roundtoward}{2} provides a safer and faster alternative.
 
     \prologflagitem{float_undefined}{atom}{rw}
 One of \const{error} (default) or \const{nan}. The first is ISO

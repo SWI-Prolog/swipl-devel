@@ -7325,6 +7325,14 @@ following way:
 true.
 \end{code}
 
+    \function{roundtoward}{2}{+Expr1, +RoundMode}
+Evaluate \arg{Expr1} using the floating point rounding mode
+\arg{RoundMode}. This provides a local alternative to the Prolog flag
+\prologflag{float_rounding}. This function can be nested. The suppored
+values for \arg{RoundMode} are the same as the flag values:
+\const{to_nearest}, \const{to_positive}, \const{to_negative} or
+\const{to_zero}.
+
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the
