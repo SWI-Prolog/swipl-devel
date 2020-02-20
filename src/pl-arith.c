@@ -2502,7 +2502,7 @@ set_roundtoward(Word p, Number old ARG_LD)
   old->type = V_INTEGER;
   old->value.i = fegetround();
 
-  if ( *p == ATOM_nearest )
+  if ( *p == ATOM_to_nearest )
     fesetround(FE_TONEAREST);
   else if ( *p == ATOM_to_positive )
     fesetround(FE_UPWARD);

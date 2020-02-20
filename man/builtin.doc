@@ -7153,10 +7153,11 @@ rational division by zero always raises an exception.
 \prologflag{float_underflow}  & ignore  & error \\
 \end{tabular}\end{center}
 
-The Prolog flag \prologflag{float_rounding} controls the rounding mode
-for floating point arithmetic. The default rounding is
-\const{to_nearest} and the following alternatives are provided:
-\const{to_positive}, \const{to_negative} and \const{to_zero}.
+The Prolog flag \prologflag{float_rounding} and the function
+\funcref{roundtoward}{2} control the rounding mode for floating point
+arithmetic. The default rounding is \const{to_nearest} and the following
+alternatives are provided: \const{to_positive}, \const{to_negative} and
+\const{to_zero}.
 
 \begin{description}
     \predicate[det]{float_class}{2}{+Float, -Class}
@@ -7166,9 +7167,14 @@ are below.
 
 \begin{description}
     \termitem{nan}{}
-\arg{Float} is ``Not a number''.  See \funcref{nan}{1}.  May be
-produced if the Prolog flag \prologflag{float_undefined} is set
-to \const{nan}.
+\arg{Float} is ``Not a number''. See \funcref{nan}{1}. May be produced
+if the Prolog flag \prologflag{float_undefined} is set to \const{nan}.
+Although IEEE 754 allows NaN to carry a \jargon{payload} and have a
+sign, SWI-Prolog has only a single NaN values.  Note that two NaN
+\jargon{terms} compare equal in the standard order of terms
+(\predref{==}{2}, etc.), they compare non-equal for arithmetic
+(\predref{=:=}{2}, etc.).
+
     \termitem{infinite}{}
 \arg{Float} is positive or negative infinity.  See \funcref{inf}{1}.
 May be produced if the Prolog flag \prologflag{float_overflow} or
