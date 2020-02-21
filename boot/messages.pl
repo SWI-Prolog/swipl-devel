@@ -1642,17 +1642,33 @@ default_theme(message(Level),         Attrs) :-
 %   system.
 
 print_message(Level, Term) :-
-    nb_current('$inprint_message', true),
+    setup_call_cleanup(
+        push_msg(Term),
+        print_message_guarded(Level, Term),
+        pop_msg),
+    !.
+print_message(Level, Term) :-
     (   Level \== silent
     ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term])
     ;   true
-    ),
-    !.
-print_message(Level, Term) :-
-    setup_call_cleanup(
-        nb_setval('$inprint_message', true),
-        print_message_guarded(Level, Term),
-        nb_delete('$inprint_message')).
+    ).
+
+push_msg(Term) :-
+    nb_current('$inprint_message', Messages),
+    !,
+    \+ ( '$member'(Msg, Messages),
+         Msg =@= Term
+       ),
+    b_setval('$inprint_message', [Term|Messages]).
+push_msg(Term) :-
+    b_setval('$inprint_message', [Term]).
+
+pop_msg :-
+    (   nb_current('$inprint_message', [_|Messages]),
+        Messages \== []
+    ->  b_setval('$inprint_message', Messages)
+    ;   nb_delete('$inprint_message')
+    ).
 
 print_message_guarded(Level, Term) :-
     (   must_print(Level, Term)
