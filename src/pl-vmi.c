@@ -2876,7 +2876,7 @@ VMI(S_WRAP, 0, 0, ())
   if ( codes[0] == encode(S_VIRGIN) )
   { PL_LOCK(L_PREDICATE);
     codes = createSupervisor(DEF->impl.wrapped.predicate);
-    _MemoryBarrier();
+    MemoryBarrier();
     DEF->impl.wrapped.supervisor = codes;
     PL_UNLOCK(L_PREDICATE);
   }

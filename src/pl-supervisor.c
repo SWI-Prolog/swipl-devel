@@ -414,7 +414,7 @@ setSupervisor(Definition def)
   if ( false(def, P_LOCKED_SUPERVISOR) )
   { PL_LOCK(L_PREDICATE);
     codes = createSupervisor(def);
-    _MemoryBarrier();
+    MemoryBarrier();
     def->codes = codes;
     PL_UNLOCK(L_PREDICATE);
   }
