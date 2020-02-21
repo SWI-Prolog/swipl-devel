@@ -37,7 +37,9 @@
 :- module(prolog_pretty_print,
           [ print_term/2        % +Term, +Options
           ]).
-:- autoload(library(option), [merge_options/3, option/2, option/3]).
+:- autoload(library(option),
+            [merge_options/3, select_option/3, select_option/4,
+             option/2, option/3]).
 
 /** <module> Pretty Print Prolog terms
 
@@ -110,10 +112,14 @@ print_term(Term, Options) :-
 
 print_term_2(Term, Options0) :-
     prepare_term(Term, Template, Cycles, Constraints),
-    defaults(Defs),
-    merge_options(Options0, Defs, Options),
-    option(write_options(WrtOpts), Options),
+    defaults(Defs0),
+    select_option(write_options(WrtDefs), Defs0, Defs),
+    select_option(write_options(WrtUser), Options0, Options1, []),
+    merge_options(WrtUser, WrtDefs, WrtOpts),
+    merge_options(Options1, Defs, Options2),
     option(max_depth(MaxDepth), WrtOpts, infinite),
+    Options = [write_options(WrtOpts)|Options2],
+
     dict_create(Context, #, [max_depth(MaxDepth)|Options]),
     pp(Template, Context, Options),
     print_extra(Cycles, Context, 'where', Options),
