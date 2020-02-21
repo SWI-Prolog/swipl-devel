@@ -617,7 +617,7 @@ redo:
         PL_free(a->name);
       a->type = ATOM_TYPE_INVALID;
       a->name = "<race>";
-      MemoryBarrier();
+      MEMORY_BARRIER();
       a->references = 0;
       goto redo;
     }
@@ -921,7 +921,7 @@ destroyAtom(Atom a, Atom **buckets)
 
   a->name = "<reclaimed>";
   a->type = ATOM_TYPE_INVALID;
-  MemoryBarrier();
+  MEMORY_BARRIER();
   a->references = 0;
 
   index = indexAtom(a->atom);

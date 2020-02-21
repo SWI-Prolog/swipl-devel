@@ -175,7 +175,7 @@ popTopOfSegStack_(segstack *stack)
 	stack->last->next = NULL;
 	chunk = stack->last;
 	stack->top  = chunk->top;
-	MemoryBarrier();		/* Sync with scanSegStack() */
+	MEMORY_BARRIER();		/* Sync with scanSegStack() */
 	stack->base = CHUNK_DATA(chunk);
 	stack->max  = addPointer(chunk, chunk->size);
 

@@ -84,14 +84,7 @@ MSB64(int64_t i)
   return index;
 }
 
-
-#define HAVE_MEMORY_BARRIER 1
-#if !defined(MemoryBarrier) && !defined(_M_IX86)
-/* Under MSCV Win32 platforms MemoryBarrier is an inline function
-   in winnt.h instead of a #define
-*/
-#define MemoryBarrier() (void)0
-#endif
+#define MEMORY_BARRIER() MemoryBarrier()
 
 static inline size_t
 __builtin_popcount(size_t sz)
@@ -117,11 +110,8 @@ __builtin_popcount(size_t sz)
 #define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
 #endif
 
-#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
-#define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier()			__sync_synchronize()
-#endif
+#ifdef HAVE__SYNC_SYNCHRONIZE
+#define MEMORY_BARRIER()		__sync_synchronize()
 #endif
 
 #ifdef O_PLMT
@@ -180,9 +170,8 @@ MSB64(int64_t i)
 #endif
 
 
-#ifndef HAVE_MEMORY_BARRIER
-#define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() (void)0
+#ifndef MEMORY_BARRIER
+#define MEMORY_BARRIER() (void)0
 #endif
 
 		 /*******************************
