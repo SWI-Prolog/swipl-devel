@@ -213,6 +213,10 @@ dec_depth(Ctx0, Ctx) :-
 pp(Primitive, Ctx, Options) :-
     (   atomic(Primitive)
     ;   var(Primitive)
+    ;   Primitive = '$VAR'(Var),
+        (   integer(Var)
+        ;   atom(Var)
+        )
     ),
     !,
     pprint(Primitive, Ctx, Options).
