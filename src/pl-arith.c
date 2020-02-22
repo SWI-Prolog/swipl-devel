@@ -3313,7 +3313,7 @@ ar_integer(Number n1, Number r)
     case V_MPZ:
 #endif
       cpNumber(r, n1);
-      succeed;
+      return TRUE;
 #ifdef O_GMP
     case V_MPQ:
     { mpq_t q;
@@ -3332,12 +3332,15 @@ ar_integer(Number n1, Number r)
       mpz_set_q(r->value.mpz, q);
       mpq_clear(q);
       mpq_clear(half);
-      succeed;
+      return TRUE;
     }
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1) )
-	return FALSE;
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
+
       if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
       { if ( n1->value.f > 0 )
 	{ r->value.i = (int64_t)(n1->value.f + 0.5);
@@ -3350,17 +3353,17 @@ ar_integer(Number n1, Number r)
 	}
 
 	r->type = V_INTEGER;
-	succeed;
+	return TRUE;
       }
 #ifdef O_GMP
       r->type = V_MPZ;
       mpz_init_set_d(r->value.mpz, n1->value.f);
-      succeed;
+      return TRUE;
 #else
 #ifdef HAVE_RINT
       r->value.f = rint(n1->value.f);
       r->type = V_FLOAT;
-      succeed;
+      return TRUE;
 #else
       return PL_error("integer", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
@@ -3369,7 +3372,7 @@ ar_integer(Number n1, Number r)
   }
 
   assert(0);
-  fail;
+  return FALSE;
 }
 
 
@@ -3401,8 +3404,10 @@ ar_floor(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1) )
-	return FALSE;
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
 #ifdef HAVE_FLOOR
       r->type = V_FLOAT;
       r->value.f = floor(n1->value.f);
@@ -3455,8 +3460,10 @@ ar_ceil(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1) )
-	return FALSE;
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
 #ifdef HAVE_CEIL
       r->type = V_FLOAT;
       r->value.f = ceil(n1->value.f);
@@ -3572,13 +3579,17 @@ ar_truncate(Number n1, Number r)
 	return ar_ceil(n1, r);
 #endif
     case V_FLOAT:
+      if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
       if ( n1->value.f >= 0.0 )
 	return ar_floor(n1, r);
       else
 	return ar_ceil(n1, r);
     default:
       cpNumber(r, n1);
-      succeed;
+      return TRUE;
   }
 }
 

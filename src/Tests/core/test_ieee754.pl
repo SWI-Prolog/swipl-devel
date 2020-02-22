@@ -382,7 +382,9 @@ test(ieee_pow, blocked(fail)) :-				% C11 - F.10.4.4
     assertion(    0.0 is  inf** -1),
     assertion( 1.0Inf is  inf**  2).
 
-test(ieee_sqrt) :-						% C11 - F.10.4.4 (see opengroup.org)
+% C11: see opengroup.org
+
+test(ieee_sqrt) :-						% C11 - F.10.4.4
     assertion(    0.0 is sqrt( 0.0)),
     assertion(   -0.0 is sqrt(-0.0)),
     assertion( 1.0Inf is sqrt( inf)),
@@ -403,7 +405,7 @@ test(ieee_erfc) :-						% C11 - F.10.5.2
     assertion(    2.0 is erfc(-inf)),
     assertion( 1.5NaN is erfc( nan)).
 
-test(ieee_lgamma) :-					% C11 - F.10.5.3
+test(ieee_lgamma) :-						% C11 - F.10.5.3
     assertion(    0.0 is lgamma( 1.0)),
     assertion(    0.0 is lgamma( 2.0)),
     assertion( 1.0Inf is lgamma( 0.0)),
@@ -413,15 +415,14 @@ test(ieee_lgamma) :-					% C11 - F.10.5.3
     assertion( 1.0Inf is lgamma(-inf)),
     assertion( 1.5NaN is lgamma( nan)).
 
-
-test(ieee_ceil, blocked(fail)) :-				% C11 - F.10.6.1
+test(ieee_ceil) :-						% C11 - F.10.6.1
     assertion(      0 is ceiling( 0.0)),
     assertion(      0 is ceiling(-0.0)),
     assertion( 1.0Inf is ceiling( inf)),
     assertion(-1.0Inf is ceiling(-inf)),
     assertion( 1.5NaN is ceiling( nan)).
 
-test(ieee_floor, blocked(fail)) :-				% C11 - F.10.6.2
+test(ieee_floor) :-						% C11 - F.10.6.2
     assertion(      0 is floor( 0.0)),
     assertion(      0 is floor(-0.0)),
     assertion( 1.0Inf is floor( inf)),
@@ -429,14 +430,14 @@ test(ieee_floor, blocked(fail)) :-				% C11 - F.10.6.2
     assertion( 1.5NaN is floor( nan)).
 
 
-test(ieee_round, blocked(crash)) :-				% C11 - F.10.6.6
+test(ieee_round) :-						% C11 - F.10.6.6
     assertion(      0 is round( 0.0)),
     assertion(      0 is round(-0.0)),
     assertion( 1.0Inf is round( inf)),
     assertion(-1.0Inf is round(-inf)),
     assertion( 1.5NaN is round( nan)).
 
-test(ieee_trunc, blocked(fail)) :-				% C11 - F.10.6.8
+test(ieee_trunc) :-						% C11 - F.10.6.8
     assertion(      0 is truncate( 0.0)),
     assertion(      0 is truncate(-0.0)),
     assertion( 1.0Inf is truncate( inf)),
@@ -444,7 +445,7 @@ test(ieee_trunc, blocked(fail)) :-				% C11 - F.10.6.8
     assertion( 1.5NaN is truncate( nan)).
 
 
-test(ieee_copysign) :-							% C11 - F.10.8.1
+test(ieee_copysign) :-						% C11 - F.10.8.1
     assertion(-1.0Inf is copysign( inf, -0.0)),
     assertion( 1.0Inf is copysign(-inf,  0.0)),
     assertion(    0.0 is copysign(-0.0,  inf)),
@@ -452,7 +453,7 @@ test(ieee_copysign) :-							% C11 - F.10.8.1
     assertion(    0.0 is copysign( 0.0,  nan)),
     assertion( 1.5NaN is copysign( nan, -0.0)).
 
-test(ieee_nexttoward) :-						% C11 - F.10.8.4
+test(ieee_nexttoward) :-					% C11 - F.10.8.4
     assertion(-1.0Inf is nexttoward(-inf, -inf)),
     assertion( 1.0Inf is nexttoward( inf,  inf)),
     assertion(-1.0Inf <  nexttoward(-inf,  inf)),
@@ -465,7 +466,7 @@ test(ieee_nexttoward) :-						% C11 - F.10.8.4
     assertion( 1.5NaN is nexttoward( nan, -0.0)).
 
 
-test(ieee_max) :-								% C11 - F.10.9.2
+test(ieee_max) :-						% C11 - F.10.9.2
     assertion(-1.0Inf is max(-inf, -inf)),
     assertion( 1.0Inf is max( inf,  inf)),
     assertion( 1.0Inf is max( inf, -inf)),
@@ -476,7 +477,7 @@ test(ieee_max) :-								% C11 - F.10.9.2
     assertion(-1.0Inf is max( nan, -inf)),
     assertion( 1.5NaN is max( nan,  nan)).
 
-test(ieee_min) :-								% C11 - F.10.9.3
+test(ieee_min) :-						% C11 - F.10.9.3
     assertion(-1.0Inf is min(-inf, -inf)),
     assertion( 1.0Inf is min( inf,  inf)),
     assertion(-1.0Inf is min( inf, -inf)),
