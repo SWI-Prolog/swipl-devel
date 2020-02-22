@@ -2586,9 +2586,7 @@ ar_rem(Number n1, Number n2, Number r)
 static int
 ar_rational(Number n1, Number r)
 { cpNumber(r, n1);
-  promoteToMPQNumber(r);
-
-  succeed;
+  return promoteToMPQNumber(r);
 }
 
 static int

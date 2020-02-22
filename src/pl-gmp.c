@@ -772,6 +772,11 @@ promoteToMPQNumber(number *n)
     case V_FLOAT:
     { double v = n->value.f;
 
+      if ( isnan(v) )
+	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+      if ( isinf(v) )
+	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+
       n->type = V_MPQ;
       mpq_init(n->value.mpq);
       mpq_set_d(n->value.mpq, v);
