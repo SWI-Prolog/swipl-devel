@@ -423,6 +423,7 @@ A larger		">"
 A larger_equal		">="
 A last			"last"
 A last_modified_generation "last_modified_generation"
+A lcm			"lcm"
 A level			"level"
 A lgamma		"lgamma"
 A li			"li"
@@ -1049,6 +1050,7 @@ F isovar		1
 F key_value_position	7
 F larger		2
 F larger_equal		2
+F lcm			2
 F lgamma		1
 F line_count		1
 F list_position		4

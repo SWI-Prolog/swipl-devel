@@ -1668,6 +1668,25 @@ same_positive_ints(const char *fname, Number n1, Number n2)
 }
 
 
+static int64_t
+i64_gcd(int64_t a, int64_t b)
+{ int64_t t;
+
+  if ( a == 0 )
+    return b;
+  if ( b == 0 )
+    return a;
+
+  while(b != 0)
+  { t = b;
+    b = a % b;
+    a = t;
+  }
+
+  return a;
+}
+
+
 static int
 ar_gcd(Number n1, Number n2, Number r)
 { if ( !same_positive_ints("gcd", n1, n2) )
@@ -1675,17 +1694,8 @@ ar_gcd(Number n1, Number n2, Number r)
 
   switch(n1->type)
   { case V_INTEGER:
-    { int64_t a = n1->value.i;
-      int64_t b = n2->value.i;
-      int64_t t;
-
-      while(b != 0)
-      { t = b;
-	b = a % b;
-	a = t;
-      }
-      r->type = V_INTEGER;
-      r->value.i = a;
+    { r->type = V_INTEGER;
+      r->value.i = i64_gcd(n1->value.i, n2->value.i);
       break;
     }
 #ifdef O_GMP
@@ -1699,7 +1709,43 @@ ar_gcd(Number n1, Number n2, Number r)
       assert(0);
   }
 
-  succeed;
+  return TRUE;
+}
+
+static int
+ar_lcm(Number n1, Number n2, Number r)
+{ if ( !same_positive_ints("lcm", n1, n2) )
+    return FALSE;
+
+  switch(n1->type)
+  { case V_INTEGER:
+    { int64_t prod;
+
+      if ( mul64(n1->value.i, n2->value.i, &prod) )
+      { r->type = V_INTEGER;
+	if ( prod != 0 )
+	  r->value.i = prod/i64_gcd(n1->value.i, n2->value.i);
+	else
+	  r->value.i = 0;
+	return TRUE;
+      }
+    }
+#ifndef O_GMP
+      return PL_error("lcm", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#else
+      promoteToMPZNumber(n1);
+      promoteToMPZNumber(n2);
+    case V_MPZ:
+      r->type = V_MPZ;
+      mpz_init(r->value.mpz);
+      mpz_lcm(r->value.mpz, n1->value.mpz, n2->value.mpz);
+      break;
+    default:
+      assert(0);
+#endif
+  }
+
+  return TRUE;
 }
 
 
@@ -4132,6 +4178,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_div2,		ar_div, F_ISO),		/* div/2 */
   ADD(FUNCTOR_gdiv2,		ar_tdiv, 0),		/* (//)/2 */
   ADD(FUNCTOR_gcd2,		ar_gcd, 0),
+  ADD(FUNCTOR_lcm2,		ar_lcm, 0),
   ADD(FUNCTOR_sign1,		ar_sign, F_ISO),
 
   ADD(FUNCTOR_and2,		ar_conjunct, F_ISO),

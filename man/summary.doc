@@ -882,12 +882,14 @@ special folder by CSIDL}
 \functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}
+\functionsummary{lcm}{2}{Least Common Multiple}
 \functionsummary{lsb}{1}{Least significant bit}
 \functionsummary{max}{2}{Maximum of two numbers}
 \functionsummary{min}{2}{Minimum of two numbers}
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{nan}{0}{Not a Number (NaN)}
+\functionsummary{nexttoward}{2}{Next float in some direction}
 \functionsummary{numerator}{1}{Numerator of a rational number (N/D)}
 \functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
@@ -897,6 +899,7 @@ special folder by CSIDL}
 \functionsummary{rdiv}{2}{Ration number division}
 \functionsummary{rem}{2}{Remainder of division}
 \functionsummary{round}{1}{Round to nearest integer}
+\functionsummary{roundtoward}{2}{Float arithmetic with specified rounding}
 \functionsummary{truncate}{1}{Truncate float to integer}
 \functionsummary{pi}{0}{Mathematical constant}
 \functionsummary{popcount}{1}{Count 1s in a bitvector}

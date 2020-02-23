@@ -7298,7 +7298,18 @@ SWI-Prolog has been compiled with rational number support. See
 \secref{rational} for details.
 
     \infixfunction{gcd}{+IntExpr1}{+IntExpr2}
-Result is the greatest common divisor of \arg{IntExpr1}, \arg{IntExpr2}.
+Result is the greatest common divisor of \arg{IntExpr1} and
+\arg{IntExpr2}. The GCD is always a positive integer. If either
+expression evaluates to zero the GCD is the result of the other
+expression.
+
+    \infixfunction{lcm}{+IntExpr1}{+IntExpr2}
+Result is the least common multiple of \arg{IntExpr1},
+\arg{IntExpr2}.\bug{If the system is compiled for bounded integers only
+\funcref{lcm}{2} produces an integer overflow if the product of the two
+expressions does not fit in a 64 bit signed integer. The default build
+with unbounded integer support has no such limit.} If either expression
+evaluates to zero the LCM is zero.
 
     \function[ISO]{abs}{1}{+Expr}
 Evaluate \arg{Expr} and return the absolute value of it.
