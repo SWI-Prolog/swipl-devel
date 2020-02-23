@@ -1615,11 +1615,11 @@ ar_shift_right(Number n1, Number n2, Number r)
 
 
 static int
-ar_gcd(Number n1, Number n2, Number r)
+same_positive_ints(const char *fname, Number n1, Number n2)
 { if ( !toIntegerNumber(n1, 0) )
-    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+    return PL_error(fname, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
   if ( !toIntegerNumber(n2, 0) )
-    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+    return PL_error(fname, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   if ( !same_type_numbers(n1, n2) )
     return FALSE;
@@ -1628,7 +1628,6 @@ ar_gcd(Number n1, Number n2, Number r)
   { case V_INTEGER:
     { int64_t a = n1->value.i;
       int64_t b = n2->value.i;
-      int64_t t;
 
       if ( a < 0 )
       { a = -(uint64_t)a;
@@ -1639,7 +1638,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	  promoteToMPZNumber(n2);
 	  goto case_gmp;
 #else
-	  return PL_error("gcd", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	  return PL_error(fname, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
 	}
       }
@@ -1648,6 +1647,38 @@ ar_gcd(Number n1, Number n2, Number r)
 	if ( b < 0 )
 	  goto promote;
       }
+
+      n1->value.i = a;
+      n2->value.i = b;
+      break;
+    }
+#ifdef O_GMP
+    case V_MPZ:
+    case_gmp:
+      /* we don't really need to make absolute here as the GMP functions
+       * ignore the sign anyway
+       */
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  return TRUE;
+}
+
+
+static int
+ar_gcd(Number n1, Number n2, Number r)
+{ if ( !same_positive_ints("gcd", n1, n2) )
+    return FALSE;
+
+  switch(n1->type)
+  { case V_INTEGER:
+    { int64_t a = n1->value.i;
+      int64_t b = n2->value.i;
+      int64_t t;
+
       while(b != 0)
       { t = b;
 	b = a % b;
@@ -1659,7 +1690,6 @@ ar_gcd(Number n1, Number n2, Number r)
     }
 #ifdef O_GMP
     case V_MPZ:
-    case_gmp:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
       mpz_gcd(r->value.mpz, n1->value.mpz, n2->value.mpz);
