@@ -1496,6 +1496,7 @@ mpz_fdiv(mpz_t num, mpz_t den)
   { res = swapped ? HUGE_VAL : 0.0;
   } else
   { double l,s;
+    long int le, se;
     mpz_t li, si;
 
     /* we ignore limbs that are not significant for the result */
@@ -1513,9 +1514,13 @@ mpz_fdiv(mpz_t num, mpz_t den)
     shorter_d += ignored_limbs;
     li->_mp_alloc = li->_mp_size = longer_size; li->_mp_d = longer_d;
     si->_mp_alloc = si->_mp_size = shorter_size; si->_mp_d = shorter_d;
-    l = mpz_get_d(li);
-    s = mpz_get_d(si);
-    res = swapped ? l/s : s/l;
+
+    l = mpz_get_d_2exp(&le, li);
+    s = mpz_get_d_2exp(&se, si);
+    if ( swapped )
+      res = (l/s) * pow(2.0, le-se);
+    else
+      res = (s/l) * pow(2.0, se-le);
   }
 
   return negative ? -res : res;
