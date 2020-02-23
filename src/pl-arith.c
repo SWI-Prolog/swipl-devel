@@ -2660,10 +2660,21 @@ ar_rationalize(Number n1, Number r)
       cpNumber(r, n1);
       return TRUE;
     case V_FLOAT:
-      if ( isnan(n1->value.f) )
-	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-      if ( isinf(n1->value.f) )
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      switch(fpclassify(n1->value.f))
+      { case FP_NAN:
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+        case FP_INFINITE:
+	  return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+        case FP_SUBNORMAL:
+	{ GET_LD
+	  if ( LD->arith.f.flags & FLT_UNDERFLOW )
+	  { r->type = V_INTEGER;
+	    r->value.i = 0;
+	    return TRUE;
+	  }
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDERFLOW);
+	}
+      }
 
       mpq_init(r->value.mpq);
       mpq_set_double(r->value.mpq, n1->value.f);
