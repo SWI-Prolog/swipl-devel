@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,9 @@
             most_general_goal/2,                % :Goal, -General
 
             predicate_label/2,                  % +PI, -Label
-            predicate_sort_key/2                % +PI, -Key
+            predicate_sort_key/2,               % +PI, -Key
+
+            is_control_goal/1                   % @Term
           ]).
 :- autoload(library(error),[must_be/2]).
 
@@ -234,3 +237,21 @@ predicate_sort_key(_:PI, Name) :-
     predicate_sort_key(PI, Name).
 predicate_sort_key(Name/_Arity, Name).
 predicate_sort_key(Name//_Arity, Name).
+
+%!  is_control_goal(@Goal)
+%
+%   True if Goal is a compiled  Prolog control structure. The difference
+%   between control structures and meta-predicates   is  rather unclear.
+%   The constructs below are recognised by   the  compiler and cannot be
+%   redefined.   Note   that   (if->then;else)     is    recognised   as
+%   ((if->then);else).
+
+is_control_goal(Goal) :-
+    var(Goal),
+    !, fail.
+is_control_goal((_,_)).
+is_control_goal((_;_)).
+is_control_goal((_->_)).
+is_control_goal((_|_)).
+is_control_goal((_*->_)).
+is_control_goal(\+(_)).
