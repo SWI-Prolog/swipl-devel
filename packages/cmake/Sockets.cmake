@@ -40,4 +40,16 @@ if(HAVE_SOCKET)
 
        int main() { int x = h_errno; return 0;}"
       HAVE_H_ERRNO)
+
+  check_c_source_compiles(
+    "#include <sys/types.h>
+     #include <sys/socket.h>
+     #include <netdb.h>
+     #include <netinet/in.h>
+
+     int main(void)
+     { struct ip_mreqn mreqn;
+       return 0;
+     }"
+     HAVE_IP_MREQN)
 endif(HAVE_SOCKET)
