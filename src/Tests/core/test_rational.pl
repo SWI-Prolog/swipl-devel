@@ -45,7 +45,8 @@
 */
 
 test_rational :-
-    run_tests([ rational
+    run_tests([ rational,
+                rationalize
 	      ]).
 
 set_prefer_rationals(Old, New) :-
@@ -190,8 +191,25 @@ test(syntax_fail) :-
 
 :- end_tests(rational).
 
+:- begin_tests(rationalize).
+
+test(roundtrip_rational) :-
+    forall(between(1,1000,_),
+           ( rfloat(F),
+             F =:= rational(F))).
+test(roundtrip_rationalize) :-
+    forall(between(1,1000,_),
+           ( rfloat(F),
+             F =:= rationalize(F))).
+
+:- end_tests(rationalize).
+
 bad_syntax(String) :-
     catch(term_string(R,String), error(syntax_error(_T), _C), true),
     var(R).		% test that exception happened
 
 check_error(N1,N2) :- abs(N1-N2) < 1e-12.
+
+rfloat(X) :-
+    random_between(-308,308,E),
+    X is random_float * 10**E.
