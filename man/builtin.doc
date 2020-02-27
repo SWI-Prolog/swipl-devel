@@ -7442,6 +7442,9 @@ A is 1 rdiv 4
 A = 3602879701896397 rdiv 36028797018963968
 \end{code}
 
+For every \jargon{normal} float \arg{X} the relation
+\mbox{\arg{X} \const{=:=} rational(\arg{X})} holds.
+
 This function raises an \term{evaluation_error}{undefined} if \arg{Expr}
 is NaN and \term{evaluation_error}{float_overflow} if \arg{Expr} is Inf.
 
@@ -7464,10 +7467,12 @@ A = 1 rdiv 4
 A = 1 rdiv 10
 \end{code}
 
+For every \jargon{normal} float \arg{X} the relation
+\mbox{\arg{X} \const{=:=} rationalize(\arg{X})} holds.
+
 In addition to the error cases for \funcref{rational}{1}, a
-\jargon{subnormal} float is mapped to \exam{0} or if the flag
-\prologflag{float_underflow} is set to \const{error},
-a \term{evaluation_error}{float_underflow} exception.
+\jargon{subnormal} raises an \term{evaluation_error}{float_underflow}
+exception if \prologflag{float_underflow} is set to \const{error}.
 
     \function{numerator}{1}{+RationalExpr}
 If \arg{RationalExpr} evaluates to a rational number or integer,

@@ -37,6 +37,7 @@
 /*#define O_DEBUG 1*/
 #include <math.h>
 #include <fenv.h>
+#include <float.h>
 #include "pl-incl.h"
 #include "pl-inline.h"
 #undef LD
@@ -1531,60 +1532,85 @@ mpq_to_double(mpq_t q)
 { return mpz_fdiv(mpq_numref(q), mpq_denref(q));
 }
 
+
+/*
+ * Try to compute a "nice" rational from a float, using continued fractions.
+ * Stop when the rational converts back into the original float exactly.
+ * If the process doesn't converge (due to numeric problems), or produces
+ * a result longer than the fast bitwise conversion from the float mantissa,
+ * then fall back to the bitwise conversion.
+ */
+
 void
-mpq_set_double(mpq_t q, double f)
+mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
 { double fabs = (f < 0.0) ? -f : f;	/* get rid of the sign */
   double x = fabs;
-  mpz_t na, nb, da, db, big_xi, tmpn, tmpd;
+  mpq_t b, c;
+  MP_INT *pna = mpq_numref(q);		/* use output q for a directly */
+  MP_INT *pda = mpq_denref(q);
+  MP_INT *pnb = mpq_numref(b);
+  MP_INT *pdb = mpq_denref(b);
+  MP_INT *pnc = mpq_numref(c);
+  MP_INT *pdc = mpq_denref(c);
+  mpz_t big_xi;
+  int half_exp;                       /* predict bitwise conversion size */
+  double fr = frexp(fabs, &half_exp);
+  int bitwise_denominator_size = DBL_MANT_DIG-(half_exp-1);
 
-  mpz_init_set_ui(na, 1L);
-  mpz_init_set_ui(nb, 0L);
-  mpz_init_set_ui(da, 0L);
-  mpz_init_set_ui(db, 1L);
-  mpz_init(tmpn);
-  mpz_init(tmpd);
-  mpz_init(big_xi);
+  (void)fr;
+  if ( bitwise_denominator_size < 1 )
+    bitwise_denominator_size = 1;
 
-  while ( mpz_fdiv(na, da) != fabs )
-  { double xi = floor(x);
+  mpz_set_ui(pna, 1L);                /* a = q = 1/0 */
+  mpz_set_ui(pda, 0L);
+  mpq_init(b);			      /* b = 0/1 */
+  mpq_init(c);			      /* auxiliary */
+  mpz_init(big_xi);                   /* auxiliary */
+
+  while ((mpz_fdiv(pna, pda)) != fabs)
+  { /* infinite x indicates failure to converge */
+    if ( !finite(x) )
+      goto _bitwise_conversion_;
+
+    double xi = floor(x);
     double xf = x - xi;
 
-    mpz_swap(tmpn, na);
-    mpz_swap(tmpd, da);
-
-    if ( x < MAX_ULONG_DBL )
+      /* compute a = a*xi + b for both numerator and denominator */
+    mpq_swap(q, b);
+    if ( x < (double)LONG_MAX )
     { unsigned long int_xi = (unsigned long) xi;
-      mpz_mul_ui(na, tmpn, int_xi);
-      mpz_mul_ui(da, tmpd, int_xi);
+      mpz_mul_ui(pnc, pnb, int_xi);
+      mpz_mul_ui(pdc, pdb, int_xi);
     } else
     { mpz_set_d(big_xi, xi);
-      mpz_mul(na, tmpn, big_xi);
-      mpz_mul(da, tmpd, big_xi);
+      mpz_mul(pnc, pnb, big_xi);
+      mpz_mul(pdc, pdb, big_xi);
     }
-    mpz_add(na, na, nb);
-    mpz_add(da, da, db);
-    mpz_swap(nb, tmpn);
-    mpz_swap(db, tmpd);
+    mpz_add(pna, pna, pnc);
+    mpz_add(pda, pda, pdc);
 
-    if ( xf == 0.0 )
-      break;
+    /* if it gets too long, fall back to bitwise conversion */
+    if (mpz_sizeinbase(pda, 2) > bitwise_denominator_size)
+      goto _bitwise_conversion_;
+
     x = 1.0/xf;
   }
 
-  if (f < 0.0)			/* compute q := [+-]na/da */
-      mpz_neg(na, na);
-  mpq_set_num(q, na);
-  mpq_set_den(q, da);
-  mpq_canonicalize(q);
+  if ( f < 0.0 )
+    mpq_neg(q, q);
+  mpq_canonicalize(q);                /* normally not be necessary */
 
-  mpz_clear(big_xi);			/* clean up */
-  mpz_clear(tmpd);
-  mpz_clear(tmpn);
-  mpz_clear(db);
-  mpz_clear(da);
-  mpz_clear(nb);
-  mpz_clear(na);
+  goto _cleanup_;
+
+_bitwise_conversion_:
+  mpq_set_d(q, f);                    /* bitwise conversion */
+
+_cleanup_:
+  mpz_clear(big_xi);
+  mpq_clear(c);
+  mpq_clear(b);
 }
+
 
 		 /*******************************
 		 *	 PUBLIC INTERFACE	*

@@ -2744,10 +2744,7 @@ ar_rationalize(Number n1, Number r)
         case FP_SUBNORMAL:
 	{ GET_LD
 	  if ( LD->arith.f.flags & FLT_UNDERFLOW )
-	  { r->type = V_INTEGER;
-	    r->value.i = 0;
-	    return TRUE;
-	  }
+	    break;
 	  return PL_error(NULL, 0, NULL, ERR_AR_UNDERFLOW);
 	}
       }
