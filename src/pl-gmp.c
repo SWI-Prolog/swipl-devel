@@ -1569,7 +1569,7 @@ mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
 
   while ((mpz_fdiv(pna, pda)) != fabs)
   { /* infinite x indicates failure to converge */
-    if ( !finite(x) )
+    if ( !isfinite(x) )
       goto _bitwise_conversion_;
 
     double xi = floor(x);
