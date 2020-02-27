@@ -260,9 +260,15 @@ walk_clauses(Clauses, OTerm) :-
 %   True if we must scan Module according to OTerm.
 
 scan_module(M, OTerm) :-
+    walk_option_module(OTerm, M1),
+    nonvar(M1),
+    !,
+    \+ M \= M1.
+scan_module(M, OTerm) :-
     walk_option_module_class(OTerm, Classes),
     module_property(M, class(Class)),
-    memberchk(Class, Classes).
+    memberchk(Class, Classes),
+    !.
 
 %!  walk_from_initialization(+OTerm)
 %
