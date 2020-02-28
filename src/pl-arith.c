@@ -1834,7 +1834,6 @@ UNAIRY_FLOAT_FUNCTION(ar_atan, atan)
 UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
 UNAIRY_FLOAT_FUNCTION(ar_erf, erf)
 UNAIRY_FLOAT_FUNCTION(ar_erfc, erfc)
-UNAIRY_FLOAT_FUNCTION(ar_lgamma, lgamma)
 
 BINAIRY_FLOAT_FUNCTION(ar_atan2, atan2)
 
@@ -2338,6 +2337,15 @@ ar_log10(Number n1, Number r)
   return check_float(r);
 }
 
+static int
+ar_lgamma(Number n1, Number r)  // custom lgamma() to ensure postive inf
+  { if ( !promoteToFloatNumber(n1) ) 
+    return FALSE; 
+    r->value.f = (n1->value.f <= 0.0) ? INFINITY : lgamma(n1->value.f);
+    r->type    = V_FLOAT;
+   
+    return check_float(r);
+  }
 
 /* IntExpr1 // IntExpr2
 
