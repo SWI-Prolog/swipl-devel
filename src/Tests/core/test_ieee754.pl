@@ -562,8 +562,9 @@ check_round([Rc,Rp,Rn,Rz]) :-
 
 fp_error(Exp,FP_flag) :-
     get_set_flag(FP_flag,Save,error),
-    catch(call(Exp),error(evaluation_error(FP_exception),_),true),
+    catch(call(Exp),Err,true),
     get_set_flag(FP_flag,_,Save),
+    Err = error(evaluation_error(FP_exception),_),
     fp_exception(FP_flag,FP_exception).
 
 fp_exception(float_overflow,FP_exception)  :- FP_exception==float_overflow.
