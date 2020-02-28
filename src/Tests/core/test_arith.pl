@@ -43,7 +43,6 @@ test_arith :-
 		    ar_builtin,
 		    eval,
 		    hyperbolic,
-		    rationalize,
                     minint,
                     minint_promotion,
                     maxint,
@@ -247,16 +246,6 @@ test(acosh, V =:= 1.0) :- X is acosh(cosh(1.0)), round(X,V).
 test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 
 :- end_tests(hyperbolic).
-
-:- begin_tests(rationalize).
-
-:- if(current_prolog_flag(bounded,false)).
-test(trip) :-
-	R is rationalize(5.1),
-	assertion(rational(R, 51, 10)).
-:- endif.
-
-:- end_tests(rationalize).
 
 :- begin_tests(minint).
 

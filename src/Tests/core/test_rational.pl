@@ -191,7 +191,13 @@ test(syntax_fail) :-
 
 :- end_tests(rational).
 
-:- begin_tests(rationalize).
+:- begin_tests(rationalize,
+               [ condition(current_prolog_flag(bounded,false))
+               ]).
+
+test(trip) :-
+	R is rationalize(5.1),
+	assertion(rational(R, 51, 10)).
 
 test(roundtrip_rational) :-
     forall(between(1,1000,_),
