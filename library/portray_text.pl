@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2011, University of Amsterdam
+    Copyright (c)  2009-2020, University of Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,10 +35,11 @@
 
 :- module(portray_text,
           [ portray_text/1,             % +Bool
-            set_portray_text/2          % +Name, +Value
+            set_portray_text/2,         % +Name, +Value
+
+            '$portray_text_enabled'/1
           ]).
 :- autoload(library(error),[must_be/2]).
-
 
 /** <module> Portray text
 
@@ -178,3 +180,11 @@ var_or_numbered(Var) :-
     var(Var),
     !.
 var_or_numbered('$VAR'(_)).
+
+%!  '$portray_text_enabled'(-Val)
+%
+%   Ask the current status of  text   portraying.  Used by the graphical
+%   debugger.
+
+'$portray_text_enabled'(Val) :-
+    do_portray_text(Val).
