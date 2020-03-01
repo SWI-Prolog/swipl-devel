@@ -504,19 +504,40 @@ test(ieee_min) :-                                       % C11 - F.10.9.3
 %% End of Annex F Tests %%%%%%%%%%%%%%%%%%%%%%%%%
 
 test(ieee_rmode) :-
-	assertion(rounding(-1/(3),_)),
-	assertion(rounding(sqrt(2),_)),
-	assertion(rounding(exp(log(2)),_)),
-	assertion(rounding(pi,_)),
-	assertion(rounding(e,_)).
+    assertion(rounding(-1/(3),_)),
+    assertion(rounding(sqrt(2),_)),
+    assertion(rounding(exp(log(2)),_)),
+    assertion(rounding(pi,_)),
+    assertion(rounding(e,_)).
 
 test(ieee_rndto) :-
-	assertion(roundto(-1/(3),_)),
-	assertion(roundto(sqrt(2),_)),
-	assertion(roundto(exp(log(2)),_)),
-	assertion(roundto(2**0.5,_)),
-	assertion(rounding(pi,_)),
-	assertion(rounding(e,_)).
+    assertion(roundto(-1/(3),_)),
+    assertion(roundto(sqrt(2),_)),
+    assertion(roundto(exp(log(2)),_)),
+    assertion(roundto(2**0.5,_)),
+    assertion(rounding(pi,_)),
+    assertion(rounding(e,_)).
+    
+    
+test(bounded) :-
+    assertion(bounded_number(1,0,10)),
+    assertion(\+(bounded_number(1,0,1r2))),
+    assertion(bounded_number(1,0.0,10.0)),
+    assertion(bounded_number(1.0,0,10)),
+    assertion(bounded_number(1.0,0.0,10.0)),
+    assertion(bounded_number(1r2,0,10)),
+    assertion(bounded_number(1r2,0.0,10.0)),
+    assertion(bounded_number(1r2,1r3,2r3)),
+    assertion(bounded_number(-1r2,-2r3,-1r3)),
+    assertion((bounded_number(-0.0,L,H),bounded_number(0.0,L,H))),
+    assertion((bounded_number(-1.0,L,H),bounded_number(-1.0,L,H))),
+    assertion((bounded_number(-1,L,H),[L,H]=[-2,0])),
+    assertion((bounded_number(-1.0,L,H),[L,H]=[-1.0000000000000002,-0.9999999999999999])),
+    assertion((bounded_number(-1r2,L,H),[L,H]=[-0.5000000000000001,-0.49999999999999994])),
+    assertion((bounded_number(10000000000000000000,L,H), [L,H]=[9999999999999999999,10000000000000000001])),
+    assertion(\+(bounded_number(1.0Inf,L,H))),
+    assertion(\+(bounded_number(-1.0Inf,L,H))),
+    assertion(\+(bounded_number(1.5NaN,L,H))).
 
 :- end_tests(ieee754).
 
