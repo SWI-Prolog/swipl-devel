@@ -368,6 +368,65 @@ PRED_IMPL("plus", 3, plus, 0)
   return rc;
 }
 
+		/********************************
+		*   LOGICAL NUMBER FUNCTION     *
+		*********************************/
+
+static
+PRED_IMPL("bounded_number", 3, bounded_number, 0)
+{ GET_LD
+  number n, lo, hi;
+  int rc;
+  int ieee_special = 0;
+ 
+    if (PL_get_number(A1, &n)) {
+        switch(n.type)
+        {
+#ifdef O_GMP
+            case V_MPZ:
+            {   lo.type = V_MPZ;
+                mpz_init(lo.value.mpz);
+                mpz_sub_ui(lo.value.mpz,n.value.mpz,1);
+                hi.type = V_MPZ;
+                mpz_init(hi.value.mpz);
+                mpz_add_ui(hi.value.mpz,n.value.mpz,1);
+                break;
+            }
+            case V_MPQ : {
+                n.type = V_FLOAT;
+                n.value.f = mpX_round(mpq_get_d(n.value.mpq));
+            }  // fall through
+#endif
+            case V_FLOAT : {
+                ieee_special = (isinf(n.value.f) || isnan(n.value.f));
+                lo.type = V_FLOAT;
+                lo.value.f = nexttoward(n.value.f,-INFINITY);
+                hi.type = V_FLOAT;
+                hi.value.f = nexttoward(n.value.f, INFINITY);
+                break;
+            }
+            case V_INTEGER: {
+                lo.type = V_INTEGER;
+                lo.value.i = n.value.i - 1;
+                hi.type = V_INTEGER;
+                hi.value.i = n.value.i + 1;
+                break;
+            }
+        }
+        rc = (! ieee_special) &&
+             ((PL_get_number(A2, &lo)) ? (cmpNumbers(&lo, &n) == -1) : PL_unify_number(A2, &lo)) &&
+             ((PL_get_number(A3, &hi)) ? (cmpNumbers(&n, &hi) == -1) : PL_unify_number(A3, &hi));
+
+    } else {
+        rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A1);
+    }
+    clearNumber(&n);
+    clearNumber(&lo);
+    clearNumber(&hi);
+
+    return rc;
+}
+
 		 /*******************************
 		 *	 BIGNUM FUNCTIONS	*
 		 *******************************/
@@ -4672,6 +4731,7 @@ BeginPredDefs(arith)
   PRED_DEF("succ",	  2, succ,	  0)
   PRED_DEF("plus",	  3, plus,	  0)
   PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("bounded_number",	  3, bounded_number,	  0)
   PRED_DEF("float_class", 2, float_class, 0)
 
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
