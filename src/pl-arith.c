@@ -368,6 +368,64 @@ PRED_IMPL("plus", 3, plus, 0)
   return rc;
 }
 
+		/********************************
+		*   LOGICAL NUMBER FUNCTION     *
+		*********************************/
+
+static
+PRED_IMPL("bounded_number", 3, bounded_number, 0)
+{ PRED_LD
+  number n, lo, hi;
+  int rc;
+
+  if ( PL_get_number(A1, &n) )
+  { switch(n.type)
+    {
+#ifdef O_GMP
+      case V_MPZ:
+#endif
+      case V_INTEGER:
+      { cpNumber(&lo, &n);
+	cpNumber(&hi, &n);
+	ar_add_ui(&lo, -1);
+	ar_add_ui(&hi, 1);
+	break;
+      }
+#if O_GMP
+      case V_MPQ:
+	promoteToFloatNumber(&n);
+      /*FALLTHROUGH*/
+#endif
+      case V_FLOAT:
+      { if ( isfinite(n.value.f) )
+	{ lo.type = V_FLOAT;
+	  lo.value.f = nexttoward(n.value.f,-INFINITY);
+	  hi.type = V_FLOAT;
+	  hi.value.f = nexttoward(n.value.f, INFINITY);
+	} else
+	{ clearNumber(&n);
+	  return FALSE;
+	}
+	break;
+      }
+    }
+
+    rc = ( ((PL_get_number(A2, &lo)) ? (cmpNumbers(&lo, &n) == -1)
+	                             : PL_unify_number(A2, &lo)) &&
+	   ((PL_get_number(A3, &hi)) ? (cmpNumbers(&n, &hi) == -1)
+				     : PL_unify_number(A3, &hi))
+	 );
+
+  } else
+  { rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A1);
+  }
+  clearNumber(&n);
+  clearNumber(&lo);
+  clearNumber(&hi);
+
+  return rc;
+}
+
 		 /*******************************
 		 *	 BIGNUM FUNCTIONS	*
 		 *******************************/
@@ -1277,6 +1335,7 @@ ar_add_ui(Number n, intptr_t add)
 	succeed;
       }
     }
+    /*FALLTHROUGH*/
 #ifdef O_GMP
     case V_MPZ:
     { if ( add > 0 )
@@ -4672,6 +4731,7 @@ BeginPredDefs(arith)
   PRED_DEF("succ",	  2, succ,	  0)
   PRED_DEF("plus",	  3, plus,	  0)
   PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("bounded_number",	  3, bounded_number,	  0)
   PRED_DEF("float_class", 2, float_class, 0)
 
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,

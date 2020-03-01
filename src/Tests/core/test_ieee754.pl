@@ -504,19 +504,39 @@ test(ieee_min) :-                                       % C11 - F.10.9.3
 %% End of Annex F Tests %%%%%%%%%%%%%%%%%%%%%%%%%
 
 test(ieee_rmode) :-
-	assertion(rounding(-1/(3),_)),
-	assertion(rounding(sqrt(2),_)),
-	assertion(rounding(exp(log(2)),_)),
-	assertion(rounding(pi,_)),
-	assertion(rounding(e,_)).
+    assertion(test_rounding(-1.0/(3))),
+    assertion(test_rounding(sqrt(2))),
+    assertion(test_rounding(exp(log(2)))),
+    assertion(test_rounding(pi)),
+    assertion(test_rounding(e)).
 
 test(ieee_rndto) :-
-	assertion(roundto(-1/(3),_)),
-	assertion(roundto(sqrt(2),_)),
-	assertion(roundto(exp(log(2)),_)),
-	assertion(roundto(2**0.5,_)),
-	assertion(rounding(pi,_)),
-	assertion(rounding(e,_)).
+    assertion(test_roundto(-1.0/(3))),
+    assertion(test_roundto(sqrt(2))),
+    assertion(test_roundto(exp(log(2)))),
+    assertion(test_roundto(2**0.5)),
+    assertion(test_rounding(pi)),
+    assertion(test_rounding(e)).
+
+test(bounded) :-
+    assertion(bounded_number(1,0,10)),
+    assertion(\+(bounded_number(1,0,1r2))),
+    assertion(bounded_number(1,0.0,10.0)),
+    assertion(bounded_number(1.0,0,10)),
+    assertion(bounded_number(1.0,0.0,10.0)),
+    assertion(bounded_number(1r2,0,10)),
+    assertion(bounded_number(1r2,0.0,10.0)),
+    assertion(bounded_number(1r2,1r3,2r3)),
+    assertion(bounded_number(-1r2,-2r3,-1r3)),
+    assertion((bounded_number(-0.0,L,H),bounded_number(0.0,L,H))),
+    assertion((bounded_number(-1.0,L,H),bounded_number(-1.0,L,H))),
+    assertion((bounded_number(-1,L,H),[L,H]=[-2,0])),
+    assertion((bounded_number(-1.0,L,H),[L,H]=[-1.0000000000000002,-0.9999999999999999])),
+    assertion((bounded_number(-1r2,L,H),[L,H]=[-0.5000000000000001,-0.49999999999999994])),
+    assertion((bounded_number(10000000000000000000,L,H), [L,H]=[9999999999999999999,10000000000000000001])),
+    assertion(\+(bounded_number(1.0Inf,L,H))),
+    assertion(\+(bounded_number(-1.0Inf,L,H))),
+    assertion(\+(bounded_number(1.5NaN,L,H))).
 
 :- end_tests(ieee754).
 
@@ -535,27 +555,38 @@ float_parts(F,Ip,Fp) :-
     Ip is float_integer_part(F),
     Fp is float_fractional_part(F).
 
-rounding(Exp,[Rc,Rp,Rn,Rz]) :- % for non-precise Exp
-    current_prolog_flag(float_rounding,Save),
+
+test_rounding(Exp) :-
+    rounding(Exp, Rounded),
+    check_round(Rounded).
+
+rounding(Exp,r(Rc,Rp,Rn,Rz)) :-                 % for non-precise Exp
+    current_prolog_flag(float_rounding, Save),
     set_prolog_flag(float_rounding,to_nearest),  Rc is Exp,
     set_prolog_flag(float_rounding,to_positive), Rp is Exp,
     set_prolog_flag(float_rounding,to_negative), Rn is Exp,
     set_prolog_flag(float_rounding,to_zero),     Rz is Exp,
-    set_prolog_flag(float_rounding,Save),
-    check_round([Rc,Rp,Rn,Rz]).
+    set_prolog_flag(float_rounding, Save).
 
-roundto(Exp,[Rc,Rp,Rn,Rz]) :- % for non-precise Exp
+test_roundto(Exp) :-
+    roundto(Exp, Rounded),
+    check_round(Rounded).
+
+roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
     Rc is roundtoward(Exp,to_nearest),
     Rp is roundtoward(Exp,to_positive),
     Rn is roundtoward(Exp,to_negative),
-    Rz is roundtoward(Exp,to_zero),
-    check_round([Rc,Rp,Rn,Rz]).
+    Rz is roundtoward(Exp,to_zero).
 
-check_round([Rc,Rp,Rn,Rz]) :-
+%!  check_round(+Round)
+%
+%   Round is a term r(Nearest, Positive, Negative, Zero)
+
+check_round(r(Rc,Rp,Rn,Rz)) :-
     Rn =< Rc, Rc =< Rp,
-    (Rc < 0
-     -> (Rz >= Rc, Rz =:= Rp, Rz > Rn)
-      ; (Rz =< Rc, Rz =:= Rn, Rz < Rp)
+    (   Rc < 0
+    ->  Rz >= Rc, Rz =:= Rp, Rz > Rn
+    ;   Rz =< Rc, Rz =:= Rn, Rz < Rp
     ),
     Rn < Rp.
 
