@@ -797,6 +797,12 @@ property_predicate(iso, _:Head) :-
     goal_name_arity(Head, Name, Arity),
     current_predicate(system:Name/Arity),
     '$predicate_property'(iso, system:Head).
+property_predicate(built_in, Module:Head) :-
+    callable(Head),
+    !,
+    goal_name_arity(Head, Name, Arity),
+    current_predicate(Module:Name/Arity),
+    '$predicate_property'(built_in, Module:Head).
 property_predicate(Property, Pred) :-
     define_or_generate(Pred),
     '$predicate_property'(Property, Pred).
