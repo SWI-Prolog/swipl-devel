@@ -2717,7 +2717,7 @@ load_files(Module:Files, Options) :-
 '$set_dialect'(Options) :-
     memberchk(dialect(Dialect), Options),
     !,
-    expects_dialect(Dialect).               % Autoloaded from library
+    '$expects_dialect'(Dialect).
 '$set_dialect'(_).
 
 '$load_id'(stream(Id, _, _), Id, Modified, Options) :-
@@ -2955,18 +2955,30 @@ load_files(Module:Files, Options) :-
 '$set_dialect'(Dialect, State) :-
     '$compilation_mode'(qlf, database),
     !,
-    expects_dialect(Dialect),
+    '$expects_dialect'(Dialect),
     '$compilation_mode'(_, qlf),
     nb_setarg(6, State, Dialect).
 '$set_dialect'(Dialect, _) :-
-    expects_dialect(Dialect).
+    '$expects_dialect'(Dialect).
 
 '$qset_dialect'(State) :-
     '$compilation_mode'(qlf),
     arg(6, State, Dialect), Dialect \== (-),
     !,
-    '$add_directive_wic'(expects_dialect(Dialect)).
+    '$add_directive_wic'('$expects_dialect'(Dialect)).
 '$qset_dialect'(_).
+
+'$expects_dialect'(Dialect) :-
+    Dialect == swi,
+    !,
+    set_prolog_flag(emulated_dialect, Dialect).
+'$expects_dialect'(Dialect) :-
+    current_predicate(expects_dialect/1),
+    !,
+    expects_dialect(Dialect).
+'$expects_dialect'(Dialect) :-
+    use_module(library(dialect), [expects_dialect/1]),
+    expects_dialect(Dialect).
 
 
                  /*******************************
