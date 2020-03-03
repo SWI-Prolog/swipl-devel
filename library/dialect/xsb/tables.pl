@@ -153,8 +153,7 @@ get_returns(ATrie, Return) :-
     Moded \== Reserved,
     !,
     extend_return(Moded, Skeleton, Return),
-    trie_gen(ATrie, Skeleton),
-    trie_lookup_gen(ATrie, Skeleton, Moded).
+    '$tabling':moded_gen_answer(ATrie, Skeleton, Moded).
 get_returns(ATrie, Return) :-
     trie_gen(ATrie, Return).
 

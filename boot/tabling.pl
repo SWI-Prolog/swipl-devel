@@ -542,6 +542,9 @@ moded_start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
         shift(call_info(Skeleton/ModeArgs, Status))
     ).
 
+:- public
+    moded_gen_answer/3.                         % XSB tables.pl
+
 moded_gen_answer(Trie, Skeleton, ModedArgs) :-
     trie_gen(Trie, Skeleton),
     '$tbl_answer_update_dl'(Trie, Skeleton, ModedArgs).
