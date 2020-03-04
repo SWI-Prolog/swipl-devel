@@ -930,6 +930,7 @@ user:(file_search_path(library, Dir) :-
 user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
 user:file_search_path(foreign, swi(ArchLib)) :-
+    \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(SoLib)) :-
