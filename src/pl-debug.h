@@ -179,6 +179,7 @@
 
 #define MSG_ZIP			 250
 #define MSG_ZIP_STATE		 251
+#define MSG_WIN_API		 252
 
 #define MSG_MODULE_REF		 260
 
