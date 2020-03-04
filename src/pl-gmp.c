@@ -631,7 +631,7 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(wsize+2, TAG_INTEGER);
   *p++ = m;
-  *p++ = mpq_size_stack(num_neg ? -num_limpsize : den_limpsize);
+  *p++ = mpq_size_stack(num_neg ? -num_limpsize : num_limpsize);
   *p++ = mpq_size_stack(den_neg ? -den_limpsize : den_limpsize);
   p[num_wsize-1] = 0;
   data = load_mpz_bits(data, num_size, num_limpsize, num_neg, p);
