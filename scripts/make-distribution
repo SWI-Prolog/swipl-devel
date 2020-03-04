@@ -41,6 +41,7 @@ build_win64()
   mkdir build.win64
   ( cd build.win64
     cmake -DCMAKE_BUILD_TYPE=Release \
+	  -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
 	  -DJAVA_COMPATIBILITY=ON \
           -G Ninja ..
