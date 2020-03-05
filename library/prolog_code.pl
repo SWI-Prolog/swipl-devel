@@ -44,13 +44,15 @@
             head_name_arity/3,			% ?Goal, ?Name, ?Arity
 
             most_general_goal/2,                % :Goal, -General
+            extend_goal/3,                      % :Goal, +Extra, -GoalOut
 
             predicate_label/2,                  % +PI, -Label
             predicate_sort_key/2,               % +PI, -Key
 
             is_control_goal/1                   % @Term
           ]).
-:- autoload(library(error),[must_be/2]).
+:- autoload(library(error),[must_be/2, instantiation_error/1]).
+:- autoload(library(lists),[append/3]).
 
 
 :- multifile
@@ -178,6 +180,27 @@ most_general_goal(M:Goal, M:General) :-
 most_general_goal(Compound, General) :-
     compound_name_arity(Compound, Name, Arity),
     compound_name_arity(General, Name, Arity).
+
+
+%!  extend_goal(:Goal0, +Extra, -Goal) is det.
+%
+%   Extend the possibly qualified Goal0   with additional arguments from
+%   Extra.
+
+extend_goal(Goal0, _, _) :-
+    var(Goal0),
+    !,
+    instantiation_error(Goal0).
+extend_goal(M:Goal0, Extra, M:Goal) :-
+    extend_goal(Goal0, Extra, Goal).
+extend_goal(Atom, Extra, Goal) :-
+    atom(Atom),
+    !,
+    Goal =.. [Atom|Extra].
+extend_goal(Goal0, Extra, Goal) :-
+    compound_name_arguments(Goal0, Name, Args0),
+    append(Args0, Extra, Args),
+    compound_name_arguments(Goal, Name, Args).
 
 
 		 /*******************************
