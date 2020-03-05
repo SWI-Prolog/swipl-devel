@@ -229,10 +229,6 @@ www_open(Id) :-
     call(www_open_url(URL)),        % avoid autoloading
     print_message(informational, opened_url(URL)).
 
-html_open(Spec) :-
-    absolute_file_name(Spec, [access(read)], Path),
-    call(win_shell(open, Path)).
-
 :- if(current_predicate(win_message_box/2)).
 
 about :-
