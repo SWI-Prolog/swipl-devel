@@ -378,7 +378,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
   number n, lo, hi;
   int rc;
 
-  if ( PL_get_number(A1, &n) )
+  if ( PL_get_number(A3, &n) )
   { switch(n.type)
     {
 #ifdef O_GMP
@@ -410,10 +410,10 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
       }
     }
 
-    rc = ( ((PL_get_number(A2, &lo)) ? (cmpNumbers(&lo, &n) == -1)
-	                             : PL_unify_number(A2, &lo)) &&
-	   ((PL_get_number(A3, &hi)) ? (cmpNumbers(&n, &hi) == -1)
-				     : PL_unify_number(A3, &hi))
+    rc = ( ((PL_get_number(A1, &lo)) ? (cmpNumbers(&lo, &n) == -1)
+	                             : PL_unify_number(A1, &lo)) &&
+	   ((PL_get_number(A2, &hi)) ? (cmpNumbers(&n, &hi) == -1)
+				     : PL_unify_number(A2, &hi))
 	 );
 
   } else

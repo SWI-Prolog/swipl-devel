@@ -519,24 +519,25 @@ test(ieee_rndto) :-
     assertion(test_rounding(e)).
 
 test(bounded) :-
-    assertion(bounded_number(1,0,10)),
-    assertion(\+(bounded_number(1,0,1r2))),
-    assertion(bounded_number(1,0.0,10.0)),
-    assertion(bounded_number(1.0,0,10)),
-    assertion(bounded_number(1.0,0.0,10.0)),
-    assertion(bounded_number(1r2,0,10)),
-    assertion(bounded_number(1r2,0.0,10.0)),
-    assertion(bounded_number(1r2,1r3,2r3)),
-    assertion(bounded_number(-1r2,-2r3,-1r3)),
-    assertion((bounded_number(-0.0,L,H),bounded_number(0.0,L,H))),
-    assertion((bounded_number(-1.0,L,H),bounded_number(-1.0,L,H))),
-    assertion((bounded_number(-1,L,H),[L,H]=[-2,0])),
-    assertion((bounded_number(-1.0,L,H),[L,H]=[-1.0000000000000002,-0.9999999999999999])),
-    assertion((bounded_number(-1r2,L,H),[L,H]=[-0.5000000000000001,-0.49999999999999994])),
-    assertion((bounded_number(10000000000000000000,L,H), [L,H]=[9999999999999999999,10000000000000000001])),
-    assertion(\+(bounded_number(1.0Inf,L,H))),
-    assertion(\+(bounded_number(-1.0Inf,L,H))),
-    assertion(\+(bounded_number(1.5NaN,L,H))).
+    assertion(bounded_number(0,10,1)),
+    assertion(\+(bounded_number(0,1r2,1))),
+    assertion(bounded_number(0.0,10.0,1)),
+    assertion(bounded_number(0,10,1.0)),
+    assertion(bounded_number(0.0,10.0,1.0)),
+    assertion(bounded_number(0,10,1r2)),
+    assertion(bounded_number(0.0,10.0,1r2)),
+    assertion(bounded_number(1r3,2r3,1r2)),
+    assertion(bounded_number(-2r3,-1r3,-1r2)),
+    assertion((bounded_number(L,H,-0.0),bounded_number(L,H,0.0))),
+    assertion((bounded_number(L,H,-1.0),bounded_number(L,H,-1.0))),
+    assertion((bounded_number(L,H,-1),[L,H]=[-2,0])),
+    assertion((bounded_number(L,H,-1.0),[L,H]=[-1.0000000000000002,-0.9999999999999999])),
+    assertion((bounded_number(L,H,-1r2),[L,H]=[-0.5000000000000001,-0.49999999999999994])),
+    assertion((bounded_number(L,H,10000000000000000000), [L,H]=[9999999999999999999,10000000000000000001])),
+    assertion(\+(bounded_number(L,H,1.0Inf))),
+    assertion(\+(bounded_number(L,H,-1.0Inf))),
+    assertion(\+(bounded_number(L,H,1.5NaN))).
+
 
 :- end_tests(ieee754).
 
