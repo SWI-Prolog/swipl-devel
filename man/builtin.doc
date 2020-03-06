@@ -7192,31 +7192,31 @@ May \textbf{not} be produced if the Prolog flag
 \end{description}
 
 \begin{description}
-    \predicate[det]{bounded_number}{3}{+Num, ?Low, ?High}
+    \predicate[det]{bounded_number}{3}{?Low, ?High, +Num}
 True if \arg{Low} < \arg{Num} < \arg{High}. Raises a type error if \arg{Num}
 is not a number. This predicate can be used both to check and generate bounds across the various numeric types. Note that a number cannot be bounded by itself and \const{NaN}, \const{Inf},
 and \const{-Inf} are not bounded numbers.
 
 If \arg{Low} and/or \arg{High} are variables they will be unified with \jargon{tightest} values that still meet the bounds criteria. The generated bounds will be integers if \arg{Num} is an integer; otherwise they will be floats (also see \funcref{nexttoward}{2} for generating float bounds). Some examples:
 \begin{code}
-?- bounded_number(1,0,10).
+?- bounded_number(0,10,1).
 true.
 
-?- bounded_number(1r2,0.0,1.0).
+?- bounded_number(0.0,1.0,1r2).
 true.
 
-?- bounded_number(1.0,L,H).
+?- bounded_number(L,H,1.0).
 L = 0.9999999999999999,
 H = 1.0000000000000002.
 
-?- bounded_number(-1,L,H).
+?- bounded_number(L,H,-1).
 L = -2,
 H = 0.
 
-?- bounded_number(1,0,1r2).
+?- bounded_number(0,1r2,1).
 false.
 
-?- bounded_number(1.0Inf,L,H).
+?- bounded_number(L,H,1.0Inf).
 false.
 \end{code}
 \end{description}
