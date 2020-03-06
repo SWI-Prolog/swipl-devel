@@ -214,8 +214,8 @@ trie_discard_clause(trie *trie)
 
   if ( (dbref=trie->clause) )
   { if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) &&
-	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause from */
-    { ClauseRef cref = clause_clref(dbref);	/* two ends */
+	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause */
+    { ClauseRef cref = clause_clref(dbref);	/* from two ends */
 
       if ( cref )
       { Clause cl = cref->value.clause;

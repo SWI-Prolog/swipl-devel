@@ -886,7 +886,7 @@ with one operation, it turns out to be faster as well.
 #define P_NEW			SPY_ME
 #define P_NO_CLAUSES		TRACE_ME
 
-/* Flags on clauses (packed in unsigned flags : 8) */
+/* Flags on clauses (unsigned int) */
 
 #define CL_ERASED		(0x0001) /* clause was erased */
 #define UNIT_CLAUSE		(0x0002) /* Clause has no body */
