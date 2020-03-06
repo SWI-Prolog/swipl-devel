@@ -160,6 +160,7 @@
 #define MSG_CGC_CONSIDER	 175
 #define MSG_CGC_STACK		 176
 #define MSG_CGC_PRED_REF	 177
+#define MSG_CGC_RETRACT		 178
 
 #define MSG_JIT			 180
 #define MSG_JIT_DELINDEX	 181

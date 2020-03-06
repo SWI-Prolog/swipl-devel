@@ -2606,6 +2606,9 @@ PRED_IMPL("retract", 1, retract,
       enterDefinition(def);			/* reference the predicate */
       setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
+      DEBUG(MSG_CGC_RETRACT,
+	    Sdprintf("Started retract from %s at gen = %lld\n",
+		     predicateName(def), generationFrame(environment_frame)));
       if ( !cref )
       { popPredicateAccess(def);
 	leaveDefinition(def);
@@ -2642,6 +2645,9 @@ PRED_IMPL("retract", 1, retract,
 	  ForeignRedoPtr(ctx);
 	} else
 	{ setGenerationFrame(environment_frame);
+	  DEBUG(MSG_CGC_RETRACT,
+		Sdprintf("Retract: first clause deleted; set gen to %lld\n",
+			 generationFrame(environment_frame)));
 	}
       }
 
