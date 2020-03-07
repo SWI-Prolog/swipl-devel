@@ -38,6 +38,7 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include "pl-trie.h"

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -54,6 +54,7 @@ handling times must be cleaned, but that not only holds for this module.
 
 #define NEEDS_SWINSOCK
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-stream.h"

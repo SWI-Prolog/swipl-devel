@@ -39,6 +39,7 @@
 #include <fenv.h>
 #include <float.h>
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-inline.h"
 #undef LD
 #define LD LOCAL_LD
@@ -773,10 +774,18 @@ promoteToMPQNumber(number *n)
     case V_FLOAT:
     { double v = n->value.f;
 
-      if ( isnan(v) )
-	return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-      if ( isinf(v) )
-	return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+      switch(fpclassify(v))
+      { case FP_NAN:
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+        case FP_INFINITE:
+	  return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
+        case FP_SUBNORMAL:
+	{ GET_LD
+	  if ( LD->arith.f.flags & FLT_UNDERFLOW )
+	    break;
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDERFLOW);
+	}
+      }
 
       n->type = V_MPQ;
       mpq_init(n->value.mpq);

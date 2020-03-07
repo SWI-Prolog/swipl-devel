@@ -109,37 +109,6 @@ COMMON(int)		is_volatile_atom(atom_t a);
 COMMON(word)		pl_track_atom(term_t which, term_t stream);
 #endif
 
-/* pl-arith.c */
-
-COMMON(int)		ar_compare(Number n1, Number n2, int what);
-COMMON(int)		ar_compare_eq(Number n1, Number n2);
-COMMON(int)		pl_ar_add(Number n1, Number n2, Number r);
-COMMON(int)		ar_mul(Number n1, Number n2, Number r);
-COMMON(word)		pl_current_arithmetic_function(term_t f, control_t h);
-COMMON(void)		initArith(void);
-COMMON(void)		cleanupArith(void);
-COMMON(int)		indexArithFunction(functor_t fdef);
-COMMON(functor_t)	functorArithFunction(unsigned int n);
-COMMON(bool)		ar_func_n(int findex, int argc ARG_LD);
-COMMON(int)		ar_add_ui(Number n, intptr_t add);
-COMMON(int)		valueExpression(term_t p, Number n ARG_LD);
-COMMON(int)		toIntegerNumber(Number n, int flags);
-COMMON(int)		arithChar(Word p ARG_LD);
-COMMON(int)		getCharExpression(Word p, Number r ARG_LD);
-COMMON(Number)		growArithStack(ARG1_LD);
-COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
-COMMON(int)		ar_sign_i(Number n1);
-COMMON(int)		ar_signbit(Number n1);
-COMMON(int)		check_float(Number n);
-COMMON(int)		ar_rdiv_mpz(Number n1, Number n2, Number r);
-COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
-COMMON(int)		is_arith_flag(atom_t k);
-COMMON(int)		get_arith_flag(term_t val, atom_t k ARG_LD);
-COMMON(int)		set_arith_flag(term_t val, atom_t k ARG_LD);
-COMMON(void)		set_rounding(int mode);
-COMMON(int)		atom_to_rounding(atom_t a, int *m);
-COMMON(atom_t)		float_rounding_name(int m);
-
 /* pl-bag.c */
 COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
 

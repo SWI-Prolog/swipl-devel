@@ -7477,6 +7477,8 @@ For every \jargon{normal} float \arg{X} the relation
 
 This function raises an \term{evaluation_error}{undefined} if \arg{Expr}
 is NaN and \term{evaluation_error}{float_overflow} if \arg{Expr} is Inf.
+If the Prolog flag \prologflag{float_underflow} is \const{error} a
+\jargon{subnormal} float raises \term{evaluation_error}{float_underflow}.
 
     \function{rationalize}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer. The function is
@@ -7500,9 +7502,8 @@ A = 1 rdiv 10
 For every \jargon{normal} float \arg{X} the relation
 \mbox{\arg{X} \const{=:=} rationalize(\arg{X})} holds.
 
-In addition to the error cases for \funcref{rational}{1}, a
-\jargon{subnormal} raises an \term{evaluation_error}{float_underflow}
-exception if \prologflag{float_underflow} is set to \const{error}.
+This function raises the same exceptions as \funcref{rational}{1} on
+non-normal floating point numbers.
 
     \function{numerator}{1}{+RationalExpr}
 If \arg{RationalExpr} evaluates to a rational number or integer,

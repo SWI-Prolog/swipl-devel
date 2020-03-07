@@ -41,6 +41,7 @@
 #include <process.h>			/* getpid() */
 #endif
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-tabling.h"
 #include "pl-ctype.h"
 #include <ctype.h>

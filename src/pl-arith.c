@@ -56,6 +56,7 @@ in this array.
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include <math.h>
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
@@ -96,17 +97,6 @@ in this array.
 #ifndef M_E
 #define M_E (2.7182818284590452354)
 #endif
-
-/* LD->arith.float_flags values */
-#define FLT_ROUND_NEAREST	0x0001
-#define FLT_ROUND_TO_POS	0x0002
-#define FLT_ROUND_TO_NEG	0x0003
-#define FLT_ROUND_TO_ZERO	0x0004
-#define FLT_ROUND_MASK		0x000f
-#define FLT_OVERFLOW		0x0010
-#define FLT_ZERO_DIV		0x0020
-#define FLT_UNDEFINED		0x0040
-#define FLT_UNDERFLOW		0x0080
 
 static double const_nan;
 static double const_inf;

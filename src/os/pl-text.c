@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-codelist.h"

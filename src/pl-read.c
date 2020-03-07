@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include <math.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"

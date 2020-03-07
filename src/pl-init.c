@@ -42,6 +42,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 /* #define O_DEBUG 1 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-zip.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"

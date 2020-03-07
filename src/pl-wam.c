@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
 #include "pl-wrap.h"
