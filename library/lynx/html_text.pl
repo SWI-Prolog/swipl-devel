@@ -54,7 +54,7 @@
 	    ]).
 
 %!  html_text(+Input) is det.
-%!  html_text(+Input, Options) is det.
+%!  html_text(+Input, +Options) is det.
 %
 %   Render HTML from Input to `current_output`.  Input is either an HTML
 %   DOM or a valid input for load_html/3. Options defined are:
