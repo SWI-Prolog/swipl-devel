@@ -2790,11 +2790,8 @@ arithmetic expression the only difference is that evaluation moves from
 runtime to compiletime. The utility list_rationals/0 may be used on a
 loaded program to check whether the program contains rational numbers
 inside clauses and thus may be subject to compatibility issues. If a
-term is intended this can be written as \verb$/(1,2)$, \verb$(1)/2$ or
-some variation thereof.\footnote{We do not recomment using white space
-around the \chr{/} operator.  Future versions may allow for white space
-as it would allow for a more natural notation of large rational
-numbers.}
+term is intended this can be written as \verb$/(1,2)$, \verb$(1)/2$,
+\verb$1 / 2$ or some variation thereof.
 
     \termitem{compatibility}{}
 Read and write rational numbers as e.g., \exam{1r3}. In other words,
