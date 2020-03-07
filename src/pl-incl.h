@@ -898,6 +898,11 @@ with one operation, it turns out to be faster as well.
 #define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
 					 /* from predicate */
 
+/* Flags on a DDI (Dirty Definition Info struct */
+
+#define DDI_MARKING		0x0001	 /* Actively using the DDI */
+#define DDI_INTERVALS		0x0002	 /* DDI collects an interval */
+
 /* Flags on module.  Most of these flags are copied to the read context
    in pl-read.c.
 */
@@ -1484,8 +1489,13 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 } definition_chain;
 
+#define PROC_DIRTY_GENS	10
+
 struct dirty_def_info
-{ gen_t		oldest_generation;	/* Oldest generation seen */
+{ unsigned short count;			/* # captured generations */
+  unsigned short flags;			/* DDI_* */
+  Definition	predicate;		/* The dirty predicate */
+  gen_t		access[PROC_DIRTY_GENS];/* Accessed generations */
 };
 
 typedef struct definition_ref

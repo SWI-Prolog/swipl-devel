@@ -6735,19 +6735,17 @@ free_predicate_references(PL_local_data_t *ld)
 }
 #endif /*O_PLMT*/
 
-void
+static void
 cgcActivatePredicate__LD(Definition def, gen_t gen ARG_LD)
 { DirtyDefInfo ddi;
 
   if ( (ddi=lookupHTable(GD->procedures.dirty, def)) )
-  { if ( gen < ddi->oldest_generation )
-      set_min_generation(ddi, gen);
-  }
+    ddi_add_access_gen(ddi, gen);
 }
 
 
-gen_t
-pushPredicateAccess__LD(Definition def ARG_LD)
+definition_ref *
+pushPredicateAccessObj(Definition def ARG_LD)
 { definition_refs *refs = &LD->predicate_references;
   definition_ref *dref;
   size_t top = refs->top+1;
@@ -6777,7 +6775,13 @@ pushPredicateAccess__LD(Definition def ARG_LD)
   { dref->generation = global_generation();
   } while ( dref->generation != global_generation() );
 
-  return dref->generation;
+  return dref;
+}
+
+
+gen_t
+pushPredicateAccess__LD(Definition def ARG_LD)
+{ return pushPredicateAccessObj(def PASS_LD)->generation;
 }
 
 

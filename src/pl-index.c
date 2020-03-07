@@ -336,8 +336,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 
 static void
 setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
-{ while ( cref &&
-	  cref->value.clause->generation.erased <= generation )
+{ while ( cref && !GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, generation) )
   { cref = cref->next;
     LD->clauses.erased_skipped++;
   }
@@ -1030,24 +1029,26 @@ the list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-gcClauseList(ClauseList cl)
-{ ClauseRef cref=cl->first_clause, prev = NULL;
+gcClauseList(ClauseList clist, DirtyDefInfo ddi, gen_t start)
+{ ClauseRef cref=clist->first_clause, prev = NULL;
 
-  while(cref && cl->erased_clauses)
-  { if ( true(cref->value.clause, CL_ERASED) )
+  while(cref && clist->erased_clauses)
+  { Clause cl = cref->value.clause;
+
+    if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, cl) )
     { ClauseRef c = cref;
 
-      cl->erased_clauses--;
+      clist->erased_clauses--;
 
       cref = cref->next;
       if ( !prev )
-      { cl->first_clause = c->next;
+      { clist->first_clause = c->next;
 	if ( !c->next )
-	  cl->last_clause = NULL;
+	  clist->last_clause = NULL;
       } else
       { prev->next = c->next;
 	if ( c->next == NULL)
-	  cl->last_clause = prev;
+	  clist->last_clause = prev;
       }
 
       lingerClauseRef(c);
@@ -1058,12 +1059,12 @@ gcClauseList(ClauseList cl)
   }
 
   DEBUG(CHK_SECURE,
-	{ for(cref=cl->first_clause; cref; cref=cref->next)
+	{ for(cref=clist->first_clause; cref; cref=cref->next)
 	  { assert(false(cref->value.clause, CL_ERASED));
 	  }
 	});
 
-  cl->erased_clauses = 0; /* see (*) */
+  clist->erased_clauses = 0; /* see (*) */
 }
 
 
@@ -1074,7 +1075,7 @@ the number of indexable entries that have been removed from the bucket.
 
 static int
 gcClauseBucket(Definition def, ClauseBucket ch,
-	       unsigned int dirty, int is_list, gen_t active)
+	       unsigned int dirty, int is_list, DirtyDefInfo ddi, gen_t start)
 { ClauseRef cref = ch->head, prev = NULL;
   int deleted = 0;
 
@@ -1083,7 +1084,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
     { ClauseList cl = &cref->value.clauses;
 
       if ( cl->erased_clauses )
-      { gcClauseList(cl);
+      { gcClauseList(cl, ddi, start);
 	dirty--;
 
 	if ( cl->first_clause == NULL )
@@ -1092,7 +1093,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
     } else
     { Clause cl = cref->value.clause;
 
-      if ( true(cl, CL_ERASED) && cl->generation.erased < active )
+      if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, cl) )
       { ClauseRef c;
 
 	dirty--;
@@ -1131,7 +1132,7 @@ gcClauseBucket(Definition def, ClauseBucket ch,
 	  { for(cref=ch->head; cref; cref=cref->next)
 	    { Clause cl = cref->value.clause;
 	      assert( false(cl, CL_ERASED) ||
-		      cl->generation.erased >= active
+		      !ddi_is_garbage(ddi, start, cl)
 		    );
 	    }
 	  }
@@ -1148,7 +1149,8 @@ See also deleteActiveClauseFromIndexes() comment
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci, gen_t active)
+cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci,
+		 DirtyDefInfo ddi, gen_t start)
 { if ( cl->number_of_clauses < ci->resize_below )
   { deleteIndex(def, cl, ci);
   } else
@@ -1158,7 +1160,7 @@ cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci, gen_t active)
 
       for(; n; n--, ch++)
       { if ( ch->dirty )
-	{ ci->size -= gcClauseBucket(def, ch, ch->dirty, ci->is_list, active);
+	{ ci->size -= gcClauseBucket(def, ch, ch->dirty, ci->is_list, ddi, start);
 	  if ( !ch->dirty && --ci->dirty == 0 )
 	    break;
 	}
@@ -1176,7 +1178,7 @@ references erased before generation `active` from the indexes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-cleanClauseIndexes(Definition def, ClauseList cl, gen_t active)
+cleanClauseIndexes(Definition def, ClauseList cl, DirtyDefInfo ddi, gen_t start)
 { ClauseIndex *cip;
 
   if ( (cip=cl->clause_indexes) )
@@ -1185,7 +1187,7 @@ cleanClauseIndexes(Definition def, ClauseList cl, gen_t active)
 
       if ( ISDEADCI(ci) )
 	continue;
-      cleanClauseIndex(def, cl, ci, active);
+      cleanClauseIndex(def, cl, ci, ddi, start);
     }
   }
 }
@@ -1768,7 +1770,8 @@ setIndexes(Definition def, ClauseList cl, ClauseIndex *cip)
 
 static void
 unalloc_ci(void *p)
-{ unallocClauseIndexTable(p);
+{ DEBUG(MSG_JIT, Sdprintf("unallocClauseIndexTable(%p)\n", p));
+  unallocClauseIndexTable(p);
 }
 
 static void				/* definition must be locked */
@@ -1776,10 +1779,10 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
 { ClauseIndex old = *cip;
 
   *cip = ci;
-  DEBUG(MSG_JIT, Sdprintf("[%d] replaceIndex(%s) %p-->%p\n",
+  DEBUG(MSG_JIT, Sdprintf("[%d] replaceIndex(%s) %p-->%p (gen=%lld)\n",
 			  PL_thread_self(),
 			  predicateName(def),
-			  old, ci));
+			  old, ci, global_generation()));
 
   if ( !ISDEADCI(old) )
   { int i;

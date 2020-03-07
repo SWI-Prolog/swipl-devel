@@ -55,6 +55,14 @@ static void	freeClauseRef(ClauseRef cref);
 static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def ARG_LD);
 static void	unregisterDirtyDefinition(Definition def);
+static gen_t	ddi_oldest_generation(DirtyDefInfo ddi);
+
+#ifdef O_DEBUG
+static int	isProtectedCRef(ClauseRef cref);
+#else
+#define unprotectCRef(cref) (void)0
+#define protectCRef(cref)   (void)0
+#endif
 
 /* Enforcing this limit demands we propagate NULL from lookupProcedure()
    through the whole system.  This is not done
@@ -1115,6 +1123,16 @@ void
 lingerClauseRef(ClauseRef cref)
 { ClauseRef o;
 
+  DEBUG(0,
+	if ( isProtectedCRef(cref) )
+	{ Clause cl = cref->value.clause;
+	  Sdprintf("Ditching clause for %s %lld-%lld\n",
+		   predicateName(cl->predicate),
+		   cl->generation.created,
+		   cl->generation.erased);
+	  assert(0);
+	});
+
   do
   { o = GD->clauses.lingering;
     cref->d.gnext = o;
@@ -1562,27 +1580,26 @@ clause GC and clause GC calls cannot run in parallel.
 static size_t
 cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
 { size_t removed = 0;
-  gen_t marked = ddi->oldest_generation;
-  gen_t active = start < marked ? start : marked;
 
   DEBUG(CHK_SECURE,
 	LOCKDEF(def);
 	checkDefinition(def);
         UNLOCKDEF(def));
 
-  if ( mustCleanDefinition(def) )
+  if ( mustCleanDefinition(def) && true(ddi, DDI_MARKING) )
   { ClauseRef cref, prev = NULL;
 #if O_DEBUG
     int left = 0;
 #endif
 
     assert(GD->clauses.cgc_active);		/* See (*) */
+
     for(cref = def->impl.clauses.first_clause;
 	cref && def->impl.clauses.erased_clauses;
 	cref=cref->next)
     { Clause cl = cref->value.clause;
 
-      if ( true(cl, CL_ERASED) && cl->generation.erased < active )
+      if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, cl) )
       { if ( !announceErasedClause(cl) )
 	  *rcp = FALSE;
 
@@ -1609,9 +1626,12 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
     }
     if ( removed )
     { LOCKDEF(def);
-      cleanClauseIndexes(def, &def->impl.clauses, active);
+      cleanClauseIndexes(def, &def->impl.clauses, ddi, start);
       UNLOCKDEF(def);
     }
+    gen_t active = ddi_oldest_generation(ddi);
+    if ( start < active )
+      active = start;
     free_lingering(&def->lingering, active);
 
     DEBUG(CHK_SECURE,
@@ -2053,6 +2073,253 @@ PRED_IMPL("$cgc_params", 6, cgc_params, 0)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Dirty Definition Info handling.  This should respect
+
+  - If a predicate is registered dirty after the preparation step
+    calling ddi_reset(), none of its clauses may be collected.
+  - If a DDI has seen ddi_reset(), the DDI info is valid and can be
+    used to safely reclaim clauses.
+
+ddi_add_access_gen() adds access  generations  to   the  dirty  def.  We
+maintain two strategies:
+
+  - Upto PROC_DIRTY_GENS, we simply add the predicates to the array.
+  - Above, the array is an array of intervals (generation pairs)
+
+
+A clause can be collected if it is invisible in all registered access
+generations.
+
+TBD: Use multiple intervals.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_DEBUG
+static char *
+ddi_generation_name(DirtyDefInfo ddi)
+{ char s[1024];
+  char *o = s;
+  *o++ = '{';
+
+  if ( false(ddi, DDI_INTERVALS) )
+  { int i;
+
+    for(i=0; i<ddi->count; i++)
+    { Ssprintf(o, "%s%lld", i==0?"":" ", ddi->access[i]);
+      o += strlen(o);
+    }
+  } else
+  { int i;
+
+    for(i=0; i<ddi->count; i++)
+    { gen_t f = ddi->access[i++];
+      gen_t t = ddi->access[i++];
+
+      Ssprintf(o, "%s%lld-%lld", i==2?"":" ", f, t);
+      o += strlen(o);
+    }
+  }
+  *o++ = '}';
+  *o = EOS;
+
+  return buffer_string(s, BUF_DISCARDABLE);
+}
+#endif /*O_DEBUG*/
+
+static DirtyDefInfo
+ddi_new(Definition def)
+{ DirtyDefInfo ddi = PL_malloc(sizeof(*ddi));
+
+  ddi->predicate = def;
+  ddi->flags = 0;
+  return ddi;
+}
+
+static void
+ddi_reset(DirtyDefInfo ddi)
+{ ddi->count = 0;
+  ddi->flags = DDI_MARKING;
+}
+
+int
+ddi_contains_gen(DirtyDefInfo ddi, gen_t access)
+{ if ( false(ddi, DDI_INTERVALS) )
+  { int i;
+
+    for(i=0; i<ddi->count; i++)
+    { if ( ddi->access[i] == access )
+	return TRUE;
+    }
+  } else
+  { int i;
+
+    for(i=0; i<ddi->count; )
+    { if ( access >= ddi->access[i++] &&
+	   access <= ddi->access[i++] )
+	return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+static void
+ddi_to_intervals(DirtyDefInfo ddi, gen_t access)
+{ gen_t min = access;
+  gen_t max = access;
+  int i;
+
+  DEBUG(MSG_CGC_GENERATION,
+	Sdprintf("DDI for %s to interval: %s\n",
+		 predicateName(ddi->predicate),
+		 ddi_generation_name(ddi)));
+
+  for(i=0; i<ddi->count; i++)
+  { gen_t a = ddi->access[i];
+
+    if ( a < min ) min = a;
+    if ( a > max ) max = a;
+  }
+
+  ddi->access[0] = min;
+  ddi->access[1] = max;
+  ddi->count = 2;
+  set(ddi, DDI_INTERVALS);
+}
+
+
+static void
+ddi_interval_add_access_gen(DirtyDefInfo ddi, gen_t access)
+{ if ( access < ddi->access[0] ) ddi->access[0] = access;
+  if ( access > ddi->access[1] ) ddi->access[1] = access;
+}
+
+
+void
+ddi_add_access_gen(DirtyDefInfo ddi, gen_t access)
+{ if ( true(ddi, DDI_MARKING) )
+  { PL_LOCK(L_CGCGEN);
+    if ( !ddi_contains_gen(ddi, access) )
+    { if ( false(ddi, DDI_INTERVALS) )
+      { if ( ddi->count < PROC_DIRTY_GENS )
+	  ddi->access[ddi->count++] = access;
+	else
+	  ddi_to_intervals(ddi, access);
+      } else
+      { ddi_interval_add_access_gen(ddi, access);
+      }
+    }
+    PL_UNLOCK(L_CGCGEN);
+  }
+}
+
+int
+ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Clause cl)
+{ assert(true(ddi, DDI_MARKING));
+
+  if ( cl->generation.erased >= start )
+    return FALSE;
+
+  if ( false(ddi, DDI_INTERVALS) )
+  { int i;
+
+    for(i=0; i<ddi->count; i++)
+    { if ( GLOBALLY_VISIBLE_CLAUSE(cl, ddi->access[i]) )
+	return FALSE;
+    }
+  } else
+  { int i;
+
+    assert(ddi->count == 2);
+
+    for(i=0; i<ddi->count; )
+    { gen_t f = ddi->access[i++];
+      gen_t t = ddi->access[i++];
+
+      if ( !(cl->generation.erased  < f ||
+	     cl->generation.created > t) )
+	return FALSE;
+    }
+  }
+
+  return TRUE;
+}
+
+static gen_t
+ddi_oldest_generation(DirtyDefInfo ddi)
+{ gen_t oldest = GEN_MAX;
+
+  if ( false(ddi, DDI_INTERVALS) )
+  { int i;
+
+    for(i=0; i<ddi->count; i++)
+    { if ( ddi->access[i] < oldest )
+	oldest = ddi->access[i];
+    }
+  } else
+  { int i;
+
+    for(i=0; i<ddi->count; i += 2)
+    { gen_t f = ddi->access[i];
+
+      if ( f < oldest )
+	oldest = f;
+    }
+  }
+
+  return oldest;
+}
+
+#ifdef O_DEBUG
+static Table protectedCRefs = NULL;
+
+static void
+protectCRef(ClauseRef cref)
+{ GET_LD
+  void *k;
+
+  if ( !protectedCRefs )
+    protectedCRefs = newHTable(64);
+
+  if ( (k=lookupHTable(protectedCRefs, cref)) )
+  { k = (void*)((intptr_t)k+1);
+    updateHTable(protectedCRefs, cref, k);
+    // Sdprintf("Protect %p --> %zd\n", cref, (intptr_t)k);
+  } else
+  { addNewHTable(protectedCRefs, cref, (void*)1);
+    // Sdprintf("Protect %p\n", cref);
+  }
+}
+
+static void
+unprotectCRef(ClauseRef cref)
+{ GET_LD
+  void *k;
+
+  if ( (k=lookupHTable(protectedCRefs, cref)) )
+  { k = (void*)((intptr_t)k-1);
+    if ( k )
+    { updateHTable(protectedCRefs, cref, k);
+      // Sdprintf("UnProtect %p --> %zd\n", cref, (intptr_t)k);
+    } else
+    { deleteHTable(protectedCRefs, cref);
+      // Sdprintf("UnProtect %p\n", cref);
+    }
+  } else
+  { assert(0);
+  }
+}
+
+static int
+isProtectedCRef(ClauseRef cref)
+{ GET_LD
+
+  return ( protectedCRefs &&
+	   lookupHTable(protectedCRefs, cref) );
+}
+#endif /*O_DEBUG*/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We set the initial oldest_generation to "very old" (0). This ensures
 that if a predicate is  registered   dirty  before clause-gc starts, the
 oldest generation is 0 and thus no clause reference will be collected.
@@ -2061,15 +2328,14 @@ oldest generation is 0 and thus no clause reference will be collected.
 static void
 registerDirtyDefinition(Definition def ARG_LD)
 { if ( false(def, P_DIRTYREG) )
-  { DirtyDefInfo ddi = PL_malloc(sizeof(*ddi));
+  { DirtyDefInfo ddi = ddi_new(def);
 
-    ddi->oldest_generation = GEN_NEW_DIRTY;		/* see (*) */
     if ( addHTable(GD->procedures.dirty, def, ddi) == ddi )
     { set(def, P_DIRTYREG);
       ATOMIC_ADD(&GD->clauses.dirty, def->impl.clauses.number_of_clauses);
+    } else
+    { PL_free(ddi);			/* someone else did this */
     }
-    else
-      PL_free(ddi);			/* someone else did this */
   }
   if ( !isSignalledGCThread(SIG_CLAUSE_GC PASS_LD) &&	/* already asked for */
        !GD->clauses.cgc_active &&	/* currently running */
@@ -2158,7 +2424,7 @@ pl_garbage_collect_clauses(void)
 			checkDefinition(def);
 			UNLOCKDEF(def);
 		      });
-		ddi->oldest_generation = GEN_MAX; /* see (*) */
+		ddi_reset(ddi);			  /* see (*) */
 	      });
 
     markPredicatesInEnvironments(LD);
@@ -2179,11 +2445,11 @@ pl_garbage_collect_clauses(void)
 		  removed += del;
 		  DEBUG(MSG_CGC_PRED,
 			Sdprintf("cleanDefinition(%s, %s): "
-				 "%ld clauses (left %ld)\n",
+				 "%zd clauses (left %d)\n",
 				 predicateName(def),
-				 generationName(ddi->oldest_generation),
-				 (long)del,
-				 (long)def->impl.clauses.erased_clauses));
+				 ddi_generation_name(ddi),
+				 del,
+				 (int)def->impl.clauses.erased_clauses));
 		}
 
 		maybeUnregisterDirtyDefinition(def);
@@ -2555,6 +2821,7 @@ PRED_IMPL("retract", 1, retract,
   if ( CTX_CNTRL == FRG_CUTTED )
   { ctx = CTX_PTR;
 
+    unprotectCRef(ctx->chp.cref);
     free_retract_context(ctx PASS_LD);
 
     return TRUE;
@@ -2566,6 +2833,7 @@ PRED_IMPL("retract", 1, retract,
     Word argv;
     atom_t b;
     fid_t fid;
+    definition_ref *dref = NULL;
 
     if ( !PL_strip_module_ex(term, &m, cl) ||
 	 !get_head_and_body_clause(cl, head, body, NULL PASS_LD) )
@@ -2604,8 +2872,12 @@ PRED_IMPL("retract", 1, retract,
       }
 
       enterDefinition(def);			/* reference the predicate */
-      setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
+      dref = pushPredicateAccessObj(def PASS_LD);
+      setGenerationFrameVal(environment_frame, dref->generation);
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
+      DEBUG(MSG_CGC_RETRACT,
+	    Sdprintf("Started retract from %s at gen = %lld\n",
+		     predicateName(def), generationFrame(environment_frame)));
       if ( !cref )
       { popPredicateAccess(def);
 	leaveDefinition(def);
@@ -2617,6 +2889,11 @@ PRED_IMPL("retract", 1, retract,
       ctx->allocated = 0;
     } else
     { ctx  = CTX_PTR;
+      DEBUG(MSG_CGC_RETRACT,
+	    Sdprintf("Retry retract from %s at gen = %lld\n",
+		     predicateName(ctx->def),
+		     generationFrame(environment_frame)));
+      unprotectCRef(ctx->chp.cref);
       cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
     }
 
@@ -2638,10 +2915,21 @@ PRED_IMPL("retract", 1, retract,
 	  if ( ctx == &ctxbuf )		/* non-determinisic; save state */
 	    ctx = alloc_retract_context(ctx);
 
+	  DEBUG(0,
+		assert(GLOBALLY_VISIBLE_CLAUSE(
+			   ctx->chp.cref->value.clause,
+			   generationFrame(environment_frame))));
+	  protectCRef(ctx->chp.cref);
+
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(ctx);
 	} else
 	{ setGenerationFrame(environment_frame);
+	  assert(dref);
+	  dref->generation = generationFrame(environment_frame);
+	  DEBUG(MSG_CGC_RETRACT,
+		Sdprintf("Retract: first clause deleted; set gen to %lld\n",
+			 generationFrame(environment_frame)));
 	}
       }
 
