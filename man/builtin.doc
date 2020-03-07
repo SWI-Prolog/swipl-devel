@@ -7706,9 +7706,9 @@ Evaluate to the mathematical constant $\pi$ (3.14159\ldots).
 Evaluate to the mathematical constant $e$ (2.71828\ldots).
 
     \function{epsilon}{0}{}
-Evaluate to the difference between the float 1.0 and
-the first larger floating point number. See also
-\funcref{nexttoward}{2}.
+Evaluate to the difference between the float 1.0 and the first larger
+floating point number. Deprecated. The function \funcref{nexttoward}{2}
+provides a better alternative.
 
     \function{inf}{0}{}
 Evaluate to positive infinity. See \secref{floatsyntax} and
