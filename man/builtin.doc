@@ -7476,9 +7476,8 @@ For every \jargon{normal} float \arg{X} the relation
 \mbox{\arg{X} \const{=:=} rational(\arg{X})} holds.
 
 This function raises an \term{evaluation_error}{undefined} if \arg{Expr}
-is NaN and \term{evaluation_error}{float_overflow} if \arg{Expr} is Inf.
-If the Prolog flag \prologflag{float_underflow} is \const{error} a
-\jargon{subnormal} float raises \term{evaluation_error}{float_underflow}.
+is NaN and \term{evaluation_error}{rational_overflow} if \arg{Expr} is
+Inf.
 
     \function{rationalize}{1}{+Expr}
 Convert the \arg{Expr} to a rational number or integer. The function is

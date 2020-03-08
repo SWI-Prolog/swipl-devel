@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -88,6 +88,14 @@ rewrite_callable(atom_t *expected, term_t actual)
   }
 }
 
+
+static int
+evaluation_error(term_t formal, atom_t which)
+{ GET_LD
+  return PL_unify_term(formal,
+		       PL_FUNCTOR, FUNCTOR_evaluation_error1,
+			 PL_ATOM, which);
+}
 
 int
 PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
@@ -213,21 +221,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
       break;
     }
     case ERR_AR_UNDEF:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_undefined);
+    { rc = evaluation_error(formal, ATOM_undefined);
       break;
     }
     case ERR_AR_OVERFLOW:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_float_overflow);
+    { rc = evaluation_error(formal, ATOM_float_overflow);
+      break;
+    }
+    case ERR_AR_RAT_OVERFLOW:
+    { rc = evaluation_error(formal, ATOM_rational_overflow);
       break;
     }
     case ERR_AR_UNDERFLOW:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_float_underflow);
+    { rc = evaluation_error(formal, ATOM_float_underflow);
       break;
     }
     case ERR_AR_TRIPWIRE:

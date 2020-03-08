@@ -778,13 +778,7 @@ promoteToMPQNumber(number *n)
       { case FP_NAN:
 	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
         case FP_INFINITE:
-	  return PL_error(NULL, 0, NULL, ERR_AR_OVERFLOW);
-        case FP_SUBNORMAL:
-	{ GET_LD
-	  if ( LD->arith.f.flags & FLT_UNDERFLOW )
-	    break;
-	  return PL_error(NULL, 0, NULL, ERR_AR_UNDERFLOW);
-	}
+	  return PL_error(NULL, 0, NULL, ERR_AR_RAT_OVERFLOW);
       }
 
       n->type = V_MPQ;
