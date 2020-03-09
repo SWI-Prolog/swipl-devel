@@ -2148,15 +2148,11 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch (n1->type)
     { case V_INTEGER:
-      { //if  ( n1->value.i == 0 )
-        //    return zero_base(r, sgn_exp);
-        mpz_init_set_si(r->value.mpz,n1->value.i);
+      { mpz_init_set_si(r->value.mpz,n1->value.i);
         goto int_to_rat;
       }
       case V_MPZ:
-      { //if  ( mpz_cmp_si(n1->value.mpz, 0) == 0 )
-        //      return zero_base(r, sgn_exp);
-        mpz_init_set(r->value.mpz,n1->value.mpz);
+      { mpz_init_set(r->value.mpz,n1->value.mpz);
       int_to_rat: r->type = V_MPZ;				/* int ^ rat */
        /* neg ^ int/even is undefined */
         if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
@@ -2267,9 +2263,9 @@ doreal:
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-  else
-    r->value.f = pow(n1->value.f, n2->value.f);
+  r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
+
   return check_float(r);
 }
 
