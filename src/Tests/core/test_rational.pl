@@ -122,13 +122,15 @@ test(float_to_rat) :-
     assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
     assertion(2.0 is 8.0**1r3),
     assertion(-2.0 is -8.0**1r3),
-    assertion((R1 is 8.0**2r3,check_error(R1,4))),  % compensate for rounding errors
-    assertion((R2 is -8.0**2r3,check_error(R2,4))),
+    assertion(4.0 is 8.0**2r3),
+    assertion(4.0 is -8.0**2r3),
     assertion(0.5 is 8.0** -1r3),
     assertion(-0.5 is -8.0** -1r3),
     assertion(2**1r2 =:= sqrt(2)).
 
 test(int_to_rat) :-
+    assertion(div0err(0** -1)),  % additional test for negative integer exp.
+    assertion(div0err(0** -1r2)),
     assertion(8 is 4**3r2),
     assertion(1.5NaN is -4**3r2),  % neg. base, even Q
     assertion(2 is 8**1r3),
@@ -219,3 +221,8 @@ check_error(N1,N2) :- abs(N1-N2) < 1e-12.
 rfloat(X) :-
     random_between(-308,308,E),
     X is random_float * 10**E.
+
+div0err(Exp) :-
+    catch(_X is Exp,Err,true),
+    nonvar(Err),
+    Err = error(evaluation_error(zero_divisor), _).

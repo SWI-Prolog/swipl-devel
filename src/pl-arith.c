@@ -1956,30 +1956,42 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 }
 #endif /*O_GMP*/
 
-/* minus_pow() handles rounding mode issues calculating pow with
+/* cond_minus_pow() handles rounding mode issues calculating pow with
    negative base float have to reverse to_positive and to_negative.
 */
 
 static double
-minus_pow(double base, double exp)
+cond_minus_pow(double base, double exp)
 { double res;
 
-  switch( fegetround() )
-  { case FE_UPWARD:
-      fesetround(FE_DOWNWARD);
-      res = pow(base,exp);
-      fesetround(FE_UPWARD);
-      break;
-    case FE_DOWNWARD:
-      fesetround(FE_UPWARD);
-      res = pow(base,exp);
-      fesetround(FE_DOWNWARD);
-      break;
-    default:
-      res = pow(base,exp);
+  if ( base < 0 )
+  { switch( fegetround() )
+    { case FE_UPWARD:
+	fesetround(FE_DOWNWARD);
+        res = -pow(-base,exp);
+	fesetround(FE_UPWARD);
+	break;
+      case FE_DOWNWARD:
+	fesetround(FE_UPWARD);
+        res = -pow(-base,exp);
+	fesetround(FE_DOWNWARD);
+	break;
+      default:
+	res = -pow(-base,exp);
+    }
+  } else
+  { res = pow(base,exp);
   }
 
   return res;
+}
+
+static inline int
+sign_f(double f)
+{ return /*isnan(f) ? const_nan :*/		/* JW: Should be handle NaN */
+         f < 0    ? -1 :
+	 f > 0    ?  1 :
+		     0;
 }
 
 static int
@@ -1989,54 +2001,57 @@ ar_pow(Number n1, Number n2, Number r)
   unsigned long exp;
   int exp_sign;
 
-  if ( intNumber(n1) && intNumber(n2) )
-  { switch(n1->type)			/* test for 0**X and 1**X */
-    { case V_INTEGER:
-	if ( n1->value.i == 0 )
-	{ ret0:
-	  r->type = V_INTEGER;
-	  if ( ar_sign_i(n2) == 0 )	/* 0**0 --> 1 */
-	    r->value.i = 1;
-	  else
-	    r->value.i = 0;
-	  succeed;
-	}
-        if ( n1->value.i == 1 )
-	{ ret1:
+  if ( intNumber(n1) )				/* test for 0**X and 1**X */
+  { if ( ar_sign_i(n1)==0 )			/* n1==0, any(n2) */
+    { int sgn_n2 = n2->type == V_FLOAT ? sign_f(n2->value.f) : ar_sign_i(n2);
+
+      switch( sgn_n2 )
+      { case -1:				/* X<0, 0**X --> 1 */
+	  return PL_error("**", 2, NULL, ERR_DIV_BY_ZERO);
+        case  0:				/* 0**0 --> 1 */
 	  r->type = V_INTEGER;
 	  r->value.i = 1;
-	  succeed;
-	}
-	if ( n1->value.i == -1 )
-	{ ret_1:
+	  break;
+	case  1:				/* X>0, 0**X --> 0 */
 	  r->type = V_INTEGER;
-	  if ( ar_even(n2) )
-	    r->value.i = 1;
-	  else
-	    r->value.i = -1;
-	  succeed;
-	}
-        break;
-      case V_MPZ:
-	if ( mpz_cmp_si(n1->value.mpz, 0) == 0 )
-	  goto ret0;
-        if ( mpz_cmp_si(n1->value.mpz, 1) == 0 )
-	  goto ret1;
-        if ( mpz_cmp_si(n1->value.mpz, -1) == 0 )
-	  goto ret_1;
-	break;
-      default:
-	assert(0);
-    }
+	  r->value.i = 0;
+      }
+      return TRUE;
+    } else					/* check n1 == 1 or -1 */
+    { long n1_val;
 
-    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+      switch (n1->type)
+      { case V_INTEGER:
+	  n1_val = n1->value.i;
+	  break;
+	case V_MPZ:
+	  n1_val = mpz_get_si(n1->value.mpz);
+	  break;
+	default:
+	  n1_val = 2;
+      }
+
+      if ( n1_val == 1 )
+      { r->type = V_INTEGER;
+        r->value.i = 1;
+        return TRUE;
+      } else if ( intNumber(n2) && (n1->value.i == -1) )
+      { r->type = V_INTEGER;
+        r->value.i = ( ar_even(n2) ) ? 1 : -1;
+        return TRUE;
+      }
+    }
+  }
+
+  if ( intNumber(n1) && intNumber(n2) )
+  { if ( !get_int_exponent(n2, &exp, &exp_sign) )
       return FALSE;
     if ( exp_sign < 0 )
     { GET_LD
 
       if ( truePrologFlag(PLFLAG_RATIONAL) )
       { promoteToMPQNumber(n1);
-	goto int_pow_neg_int;
+	    goto int_pow_neg_int;
       }
       goto doreal;
     }
@@ -2148,105 +2163,115 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch (n1->type)
     { case V_INTEGER:
-      case V_MPZ:				/* int ^ rat */
-      { r->type = V_MPZ;
+      { mpz_init_set_si(r->value.mpz,n1->value.i);
+        goto int_to_rat;
+      }
+      case V_MPZ:
+      { mpz_init_set(r->value.mpz,n1->value.mpz);
 
-	if ( n1->type == V_INTEGER )
-	  mpz_init_set_si(r->value.mpz,n1->value.i);
-	else
-	  mpz_init_set(r->value.mpz,n1->value.mpz);
-
-	/* neg ^ int/even is undefined */
-	if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
+      int_to_rat:
+	r->type = V_MPZ;			/* int ^ rat */
+						/* neg ^ int/even is undefined */
+        if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
 	{ mpz_clear(r->value.mpz);
 	  r->type = V_FLOAT;
 	  r->value.f = NAN;
 	  return check_float(r);
 	}
 
-	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
-	{ unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+        if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
+        { unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
 
-	  if ( r_num > LONG_MAX )
-	  { mpz_clear(r->value.mpz);
-	    goto doreal;
-	  } else
-	  { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
+          if ( r_num > LONG_MAX )	/* numerator exceeds mpz_pow_ui range */
+          { mpz_clear(r->value.mpz);
+            if ( promoteToFloatNumber(n1) )
+              goto doreal_mpq;
+            else return FALSE;
+          } else
+          { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
 
-	    if (sgn_exp == -1)  /* create mpq=1/r->value */
-	    { mpz_t tempz;
+            if (sgn_exp == -1)		/* create mpq=1/r->value */
+            { mpz_t tempz;
 
-	      mpz_init_set(tempz,r->value.mpz);
-	      mpz_clear(r->value.mpz);
-	      r->type = V_MPQ;
-	      mpq_init(r->value.mpq);
-	      mpq_set_z(r->value.mpq,tempz);
-	      mpq_inv(r->value.mpq,r->value.mpq);
-	      mpz_clear(tempz);
-	      return check_mpq(r);
-	    } else
-	    { return TRUE;
-	    }
-	  }
-	} else
-	{ mpz_clear(r->value.mpz);
-	  goto doreal;
-	}
-	break;
+              mpz_init_set(tempz,r->value.mpz);
+              mpz_clear(r->value.mpz);
+              r->type = V_MPQ;
+              mpq_init(r->value.mpq);
+              mpq_set_z(r->value.mpq,tempz);
+              mpq_inv(r->value.mpq,r->value.mpq);
+              mpz_clear(tempz);
+              return check_mpq(r);
+            } else
+            { return TRUE;
+            }
+          }
+        } else				/* root inexact */
+        { mpz_clear(r->value.mpz);
+          if ( promoteToFloatNumber(n1) )
+            goto doreal_mpq;
+          else return FALSE;
+        }
+        break;
       }
       case V_MPQ:
       { int rat_result;
-	unsigned long r_num;
+        unsigned long r_num;
 
-	r->type = V_MPQ;
-	mpq_init(r->value.mpq);
-	mpq_set(r->value.mpq, n1->value.mpq);
+        r->type = V_MPQ;
+        mpq_init(r->value.mpq);
+        mpq_set(r->value.mpq, n1->value.mpq);
 
-	/* neg ^ int / even */
-	if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
-	{ mpq_clear(r->value.mpq);
-	  r->type = V_FLOAT;
-	  r->value.f = NAN;
-	  return check_float(r);
-	}
+					/* neg ^ int / even */
+        if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
+        { mpq_clear(r->value.mpq);
+          r->type = V_FLOAT;
+          r->value.f = NAN;
+          return check_float(r);
+        }
 
-	rat_result = ( mpz_root(mpq_numref(r->value.mpq),
+        rat_result = ( mpz_root(mpq_numref(r->value.mpq),
 				mpq_numref(r->value.mpq),r_den) &&
 		       mpz_root(mpq_denref(r->value.mpq),
 				mpq_denref(r->value.mpq),r_den)
 		     );
 
-	r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
-	if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
-	{ mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
-	  mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+        r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+        if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
+        { mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
+          mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
 
-	  /* if original exponent negative, invert */
-	  if ( sgn_exp == -1 )
-	    mpq_inv(r->value.mpq,r->value.mpq);
+          if ( sgn_exp == -1 )
+            mpq_inv(r->value.mpq,r->value.mpq);
 
-	  return check_mpq(r);
-	} else
-	{ mpq_clear(r->value.mpq);
-	  goto doreal;
-	}
-	assert(0);
+          return check_mpq(r);
+        } else				/* exponent out of range for mpz_pow_ui */
+        { mpq_clear(r->value.mpq);
+
+          if ( promoteToFloatNumber(n1) )
+	    goto doreal_mpq;
+          else
+	    return FALSE;
+        }
+        assert(0);
       }
       case V_FLOAT:
-      { double d_exp = sgn_exp * mpq_to_double(n2->value.mpq);
+      { if ( n1->value.f < 0  && !( r_den & 1 ))
+	{ r->value.f = NAN;		/* negative base, even denominator */
+	} else
+        {
+	doreal_mpq:
+	  mpq_init(r->value.mpq);
+	  mpq_set_ui(r->value.mpq,1,mpz_get_ui(mpq_denref(n2->value.mpq)));
+	  double dexp = mpq_get_d(r->value.mpq);  /* float(1/n2.den) */
+	  mpq_clear(r->value.mpq);
+	  r->value.f = pow(cond_minus_pow(n1->value.f, dexp),
+			   mpz_get_ui(mpq_numref(n2->value.mpq)));
+	  if ( sgn_exp == -1 )
+	    r->value.f = 1.0/r->value.f;
+        }
 
-	r->type = V_FLOAT;
-	if ( n1->value.f < 0 )
-	{ if ( r_den & 1 )			/* odd denominator */
-	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
-	    r->value.f = sign * minus_pow(-(n1->value.f),d_exp);
-	  } else
-	  { r->value.f = NAN;			/* even denominator */
-	  }
-	} else					/* base positive */
-	{ r->value.f = pow(n1->value.f,d_exp);
-	}
-	return check_float(r);
+        r->type = V_FLOAT;
+        return check_float(r);
       }
     } /* end switch (n1->type) */
     assert(0);
@@ -2257,6 +2282,7 @@ doreal:
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
+
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
