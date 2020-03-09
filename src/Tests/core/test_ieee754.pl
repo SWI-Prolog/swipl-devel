@@ -586,12 +586,16 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
 check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
     Rn =< Rc, Rc =< Rp,
     (   Rc < 0
-    ->  Rz >= Rc, Rz =:= Rp, Rz > Rn
-    ;   Rz =< Rc, Rz =:= Rn, Rz < Rp
+    ->  Rz >= Rc, Rz =:= Rp, expect_less_then(Exp, n=Rn, z=Rz)
+    ;   Rz =< Rc, Rz =:= Rn, expect_less_then(Exp, z=Rz, p=Rp)
     ),
-    (   Rn < Rp
+    expect_less_then(Exp, n=Rn, p=Rp).
+
+expect_less_then(Exp, A=X, B=Y) :-
+    (   X < Y
     ->  true
-    ;   print_message(warning, ieee754_bounds(Exp, Rn, Rp))
+    ;   X == Y
+    ->  print_message(warning, ieee754_bounds(Exp, A-X, B-Y))
     ).
 
 fp_error(Exp,FP_flag) :-
@@ -607,7 +611,7 @@ fp_exception(float_undefined,FP_exception) :- FP_exception==undefined.
 
 :- multifile prolog:message//1.
 
-prolog:message(ieee754_bounds(Exp, Rn, Rp)) -->
-    [ 'IEEE 754 dubious rounding: ~p: to_negative = ~q, to_positive = ~q'-
-      [Exp, Rn, Rp]
+prolog:message(ieee754_bounds(Exp, A-X, B-Y)) -->
+    [ 'IEEE 754 dubious rounding: ~p: ~w = ~q, ~w = ~q'-
+      [Exp, A, X, B, Y]
     ].
