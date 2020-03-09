@@ -559,7 +559,7 @@ float_parts(F,Ip,Fp) :-
 
 test_rounding(Exp) :-
     rounding(Exp, Rounded),
-    check_round(Rounded).
+    check_round(Exp, Rounded).
 
 rounding(Exp,r(Rc,Rp,Rn,Rz)) :-                 % for non-precise Exp
     current_prolog_flag(float_rounding, Save),
@@ -571,7 +571,7 @@ rounding(Exp,r(Rc,Rp,Rn,Rz)) :-                 % for non-precise Exp
 
 test_roundto(Exp) :-
     roundto(Exp, Rounded),
-    check_round(Rounded).
+    check_round(Exp, Rounded).
 
 roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
     Rc is roundtoward(Exp,to_nearest),
@@ -579,17 +579,20 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
     Rn is roundtoward(Exp,to_negative),
     Rz is roundtoward(Exp,to_zero).
 
-%!  check_round(+Round)
+%!  check_round(+Exp, +Round)
 %
 %   Round is a term r(Nearest, Positive, Negative, Zero)
 
-check_round(r(Rc,Rp,Rn,Rz)) :-
+check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
     Rn =< Rc, Rc =< Rp,
     (   Rc < 0
     ->  Rz >= Rc, Rz =:= Rp, Rz > Rn
     ;   Rz =< Rc, Rz =:= Rn, Rz < Rp
     ),
-    Rn < Rp.
+    (   Rn < Rp
+    ->  true
+    ;   print_message(warning, ieee754_bounds(Exp, Rn, Rp))
+    ).
 
 fp_error(Exp,FP_flag) :-
     get_set_flag(FP_flag,Save,error),
@@ -601,3 +604,10 @@ fp_error(Exp,FP_flag) :-
 fp_exception(float_overflow,FP_exception)  :- FP_exception==float_overflow.
 fp_exception(float_zero_div,FP_exception)  :- FP_exception==zero_divisor.
 fp_exception(float_undefined,FP_exception) :- FP_exception==undefined.
+
+:- multifile prolog:message//1.
+
+prolog:message(ieee754_bounds(Exp, Rn, Rp)) -->
+    [ 'IEEE 754 dubious rounding: ~p: to_negative = ~q, to_positive = ~q'-
+      [Exp, Rn, Rp]
+    ].
