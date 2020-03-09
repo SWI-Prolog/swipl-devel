@@ -237,13 +237,13 @@ typedef struct aNode_P
 typedef struct term_agenda_P
 { aNode_P	work;			/* current work */
   segstack	stack;
-  char		first_chunk[sizeof(aNode_P)*64];
+  char		first_chunk[sizeof(segchunk)+sizeof(aNode_P)*64];
 } term_agenda_P;
 
 
 static void
 initTermAgenda_P(term_agenda_P *a, size_t size, Word p)
-{ initSegStack(&a->stack, sizeof(aNode),
+{ initSegStack(&a->stack, sizeof(aNode_P),
 	       sizeof(a->first_chunk), a->first_chunk);
   a->work.location = p;
   a->work.size     = size;
@@ -290,7 +290,7 @@ pushWorkAgenda_P(term_agenda_P *a, size_t amount, Word start)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNode_P) )
       return FALSE;
-    a->work.depth    = 1;
+    a->work.depth = 1;
   } else
     a->work.depth++;
 
