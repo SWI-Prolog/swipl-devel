@@ -172,7 +172,8 @@ help_html(Matches, How, HTML) :-
                                          [ no_manual(fail),
                                            links(false),
                                            link_source(false),
-                                           navtree(false)
+                                           navtree(false),
+                                           server(false)
                                          ])
                             ])
                      ])),
