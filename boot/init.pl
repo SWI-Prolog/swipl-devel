@@ -1646,11 +1646,10 @@ compiling :-
     '$load_input'/2.
 
 '$open_source'(stream(Id, In, Opts), In,
-               restore(In, StreamState, Id, Ref, Opts), Parents, Options) :-
+               restore(In, StreamState, Id, Ref, Opts), Parents, _Options) :-
     !,
     '$context_type'(Parents, ContextType),
     '$push_input_context'(ContextType),
-    '$set_encoding'(In, Options),
     '$prepare_load_stream'(In, Id, StreamState),
     asserta('$load_input'(stream(Id), In), Ref).
 '$open_source'(Path, In, close(In, Path, Ref), Parents, Options) :-
