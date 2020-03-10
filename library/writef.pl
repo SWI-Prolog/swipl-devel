@@ -233,11 +233,11 @@ swritef(String, Format) :-
     name(Atom, String),
     '$padout'(Atom, Size, Just).
 '$padout'(Term, Size, Just) :-
-    format(string(Atom), Term, Atom),
-    atom_length(Atom, Length),
+    format(string(String), '~w', [Term]),
+    atom_length(String, Length),
     '$padout'(Just, Size, Length, Left, Right),
     tab(Left),
-    write(Atom),
+    write(String),
     tab(Right).
 
 '$string'(0) :- !, fail.
