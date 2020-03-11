@@ -1919,7 +1919,7 @@ mpz_set_num(mpz_t mpz, Number n)
 }
 
 static int
-get_int_exponent(Number n, unsigned long *expp, int *sign)
+get_int_exponent(Number n, unsigned long *expp)
 { long exp;
   int64_t i;
 
@@ -1943,14 +1943,11 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 #endif
 
   if ( exp >= 0 )
-  { *expp = (unsigned long)exp;
-    *sign = (exp > 0);
-  } else if ( -exp != exp )
-  { *expp = (unsigned long)-exp;
-    *sign = -1;
-  } else
-  { return int_too_big();
-  }
+    *expp = (unsigned long)exp;
+  else if ( -exp != exp )
+    *expp = (unsigned long)-exp;
+  else
+   return int_too_big();
 
   return TRUE;
 }
@@ -1994,57 +1991,62 @@ sign_f(double f)
 		     0;
 }
 
+static void
+set_rnum(int type, int val, Number r)
+{
+    if (type == V_FLOAT) 
+      r->value.f = val;
+    else
+      r->value.i = val;
+    r->type = type;
+}
+    
 static int
 ar_pow(Number n1, Number n2, Number r)
 {
 #ifdef O_GMP
   unsigned long exp;
   int exp_sign;
+  int exp_nan;
 
-  if ( intNumber(n1) )				/* test for 0**X and 1**X */
-  { if ( ar_sign_i(n1)==0 )			/* n1==0, any(n2) */
-    { int sgn_n2 = n2->type == V_FLOAT ? sign_f(n2->value.f) : ar_sign_i(n2);
+  if ( n2->type == V_FLOAT) 
+  {
+    exp_nan = ( isnan(n2->value.f) );
+    exp_sign = sign_f(n2->value.f);
+  } else
+  {
+    exp_nan = FALSE;
+    exp_sign = ar_sign_i(n2);
+  }
 
-      switch( sgn_n2 )
-      { case -1:				/* X<0, 0**X --> 1 */
-	  return PL_error("**", 2, NULL, ERR_DIV_BY_ZERO);
-        case  0:				/* 0**0 --> 1 */
-	  r->type = V_INTEGER;
-	  r->value.i = 1;
-	  break;
-	case  1:				/* X>0, 0**X --> 0 */
-	  r->type = V_INTEGER;
-	  r->value.i = 0;
-      }
+  if ( exp_sign == 0 && !(exp_nan) )			/* test for X**0 */
+  { set_rnum(n1->type, 1, r);
+    return TRUE;
+  }
+    
+  if ( intNumber(n1) )  // other special cases of integer n1
+  { long n1_val = (n1->type == V_INTEGER) ? n1->value.i : mpz_get_si(n1->value.mpz);
+   
+    if ( n1_val == 1)             /* 1**X => 1 */
+    { set_rnum(V_INTEGER, 1, r);
       return TRUE;
-    } else					/* check n1 == 1 or -1 */
-    { long n1_val;
-
-      switch (n1->type)
-      { case V_INTEGER:
-	  n1_val = n1->value.i;
-	  break;
-	case V_MPZ:
-	  n1_val = mpz_get_si(n1->value.mpz);
-	  break;
-	default:
-	  n1_val = 2;
-      }
-
-      if ( n1_val == 1 )
-      { r->type = V_INTEGER;
-        r->value.i = 1;
+    }
+    if ( (n1_val == 0) && !(exp_nan) )		/* n1==0, non-zero(n2) */
+    {
+      if ( exp_sign > 0)
+      { set_rnum(n2->type, 0, r);  // positive exp => 0
         return TRUE;
-      } else if ( intNumber(n2) && (n1->value.i == -1) )
-      { r->type = V_INTEGER;
-        r->value.i = ( ar_even(n2) ) ? 1 : -1;
-        return TRUE;
-      }
+      } else                      // negative exp => Err
+        return PL_error("**", 2, NULL, ERR_DIV_BY_ZERO);
+    }
+    if ( (n1_val == -1) &&  intNumber(n2) )	/* check n1 == -1 */
+    { set_rnum(V_INTEGER, ar_even(n2) ? 1 : -1, r);
+      return TRUE;
     }
   }
 
   if ( intNumber(n1) && intNumber(n2) )
-  { if ( !get_int_exponent(n2, &exp, &exp_sign) )
+  { if ( !get_int_exponent(n2, &exp) )
       return FALSE;
     if ( exp_sign < 0 )
     { GET_LD
@@ -2054,11 +2056,6 @@ ar_pow(Number n1, Number n2, Number r)
 	    goto int_pow_neg_int;
       }
       goto doreal;
-    }
-    if ( exp_sign == 0 )
-    { r->type = V_INTEGER;
-      r->value.i = 1;
-      return TRUE;
     }
 
   { GET_LD				/* estimate the size, see above */
@@ -2107,7 +2104,7 @@ ar_pow(Number n1, Number n2, Number r)
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
 
-    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+    if ( !get_int_exponent(n2, &exp) )
       return FALSE;
 
     if ( exp_sign == 0 )
@@ -2127,18 +2124,16 @@ ar_pow(Number n1, Number n2, Number r)
     nd.value.mpz[0] = mpq_denref(n1->value.mpq)[0];
     nd.value.mpz->_mp_alloc = 0;
 
-    nrp.type = ndp.type = V_INTEGER;
-
     if ( ar_pow(&nr, &nexp, &nrp) &&
-	 ar_pow(&nd, &nexp, &ndp) )
+         ar_pow(&nd, &nexp, &ndp) )
     { r->type = V_MPQ;
       mpq_init(r->value.mpq);
       if ( exp_sign > 0 )
       { mpz_set_num(mpq_numref(r->value.mpq), &nrp);
-	mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+        mpz_set_num(mpq_denref(r->value.mpq), &ndp);
       } else
       { mpz_set_num(mpq_numref(r->value.mpq), &ndp);
-	mpz_set_num(mpq_denref(r->value.mpq), &nrp);
+        mpz_set_num(mpq_denref(r->value.mpq), &nrp);
       }
       mpq_canonicalize(r->value.mpq);
 
@@ -2153,10 +2148,9 @@ ar_pow(Number n1, Number n2, Number r)
   } /* end MPQ^int */
 
   if ( n2->type == V_MPQ )			/* X ^ rat */
-  { int sgn_exp = mpq_sgn(n2->value.mpq);
-    long r_den;
+  { long r_den;
 
-    if ( sgn_exp == -1 )
+    if ( exp_sign == -1 )
       mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
 
     r_den = mpz_get_ui(mpq_denref(n2->value.mpq));
@@ -2190,7 +2184,7 @@ ar_pow(Number n1, Number n2, Number r)
           } else
           { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
 
-            if (sgn_exp == -1)		/* create mpq=1/r->value */
+            if (exp_sign == -1)		/* create mpq=1/r->value */
             { mpz_t tempz;
 
               mpz_init_set(tempz,r->value.mpz);
@@ -2240,7 +2234,7 @@ ar_pow(Number n1, Number n2, Number r)
         { mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
           mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
 
-          if ( sgn_exp == -1 )
+          if ( exp_sign == -1 )
             mpq_inv(r->value.mpq,r->value.mpq);
 
           return check_mpq(r);
@@ -2266,7 +2260,7 @@ ar_pow(Number n1, Number n2, Number r)
 	  mpq_clear(r->value.mpq);
 	  r->value.f = pow(cond_minus_pow(n1->value.f, dexp),
 			   mpz_get_ui(mpq_numref(n2->value.mpq)));
-	  if ( sgn_exp == -1 )
+	  if ( exp_sign == -1 )
 	    r->value.f = 1.0/r->value.f;
         }
 
@@ -2282,7 +2276,7 @@ doreal:
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-
+  
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
