@@ -379,6 +379,7 @@ test(ieee_pow) :-                                       % C11 - F.10.4.4
     assertion(    1.0 is  1.0**  inf),
     assertion(    1.0 is  1.0** (-inf)),
     assertion(    1.0 is  1.0**  nan),
+    assertion( 1.5NaN is  0**  nan),
     assertion(    1.0 is  inf**  0.0),
     assertion(    1.0 is (-inf)**  0.0),
     assertion(    1.0 is  nan**  0.0),
@@ -590,8 +591,8 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
 check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
     Rn =< Rc, Rc =< Rp,
     (   Rc < 0
-    ->  Rz >= Rc, Rz =:= Rp, expect_less_then(Exp, n=Rn, z=Rz)
-    ;   Rz =< Rc, Rz =:= Rn, expect_less_then(Exp, z=Rz, p=Rp)
+    ->  Rz >= Rc, expect_less_then(Exp, n=Rn, z=Rz)
+    ;   Rz =< Rc, expect_less_then(Exp, z=Rz, p=Rp)
     ),
     expect_less_then(Exp, n=Rn, p=Rp).
 
