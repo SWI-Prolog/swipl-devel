@@ -144,13 +144,13 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 :- if(current_prolog_flag(bounded, false)).
 :- if(current_prolog_flag(prefer_rationals, true)).
 test(rat, X =:= 32/243) :-
-	X is 2/3^5,
+	X is (2/3)^5,
 	assertion(atomic(X)).
 test(rat, X =:= 1) :-
-	X is 2/3^0,
+	X is (2/3)^0,
 	assertion(atomic(X)).
 test(rat, X =:= 243/32) :-
-	X is 2/3^(-5),
+	X is (2/3)^(-5),
 	assertion(atomic(X)).
 :- else.
 test(rat) :-
