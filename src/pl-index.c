@@ -2097,6 +2097,15 @@ init_assessment_set(assessment_set *as)
 }
 
 static void
+free_keys_in_assessment_set(assessment_set *as)
+{ int i;
+  hash_assessment *a;
+  for (i=0, a=as->assessments; i<as->count; i++, a++)
+    if ( a->keys )
+      free(a->keys);
+}
+
+static void
 free_assessment_set(assessment_set *as)
 { if ( as->assessments != as->buf )
     free(as->assessments);
@@ -2620,9 +2629,11 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
 	hints->ln_buckets = MSB(nbest->size);
 	hints->speedup    = nbest->speedup;
 
+        free_keys_in_assessment_set(&aset);
 	free_assessment_set(&aset);
 	return TRUE;
       }
+      free_keys_in_assessment_set(&aset);
       free_assessment_set(&aset);
     }
   }
