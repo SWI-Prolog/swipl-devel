@@ -49,13 +49,19 @@
     ;   is_dict(Data, Tag)
     ->  eval_dict_function(Func, Tag, Data, Value)
     ;   is_list(Data)
-    ->  (   (atomic(Func) ; var(Func))
+    ->  (   is_dict_func(Func)
         ->  dict_create(Dict, _, Data),
             '$get_dict_ex'(Func, Dict, Value)
         ;   '$type_error'(atom, Func)
         )
     ;   '$type_error'(dict, Data)
     ).
+
+is_dict_func(Key) :- atomic(Key), !.
+is_dict_func(Var) :- var(Var), !.
+is_dict_func(get(_)).
+is_dict_func(put(_)).
+is_dict_func(put(_,_)).
 
 
 %!  eval_dict_function(+Func, +Tag, +Dict, -Value)
