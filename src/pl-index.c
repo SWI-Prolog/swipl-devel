@@ -2098,7 +2098,13 @@ init_assessment_set(assessment_set *as)
 
 static void
 free_assessment_set(assessment_set *as)
-{ if ( as->assessments != as->buf )
+{ int i;
+  hash_assessment *a;
+  for (i=0, a=as->assessments; i<as->count; i++, a++)
+    if ( a->keys )
+      free(a->keys);
+
+  if ( as->assessments != as->buf )
     free(as->assessments);
 }
 
@@ -2559,9 +2565,6 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
       }
 
       ainfo->assessed = TRUE;
-
-      if ( a->keys )
-	free(a->keys);
     }
 
     free_assessment_set(&aset);
