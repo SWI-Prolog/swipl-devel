@@ -824,11 +824,12 @@ are:
 	True if \arg{Module} exports the given predicates. Predicate
 	indicators are in canonical form (i.e., always using name/arity
 	and never the DCG form name//arity). Future versions may also
-	use the DCG form and include public operators. See also
-	predicate_property/2.
+	use the DCG form. See also predicate_property/2.  Succeeds with
+	an empty list if the module exports no predicates.
 	\termitem{exported_operators}{-ListOfOperators}
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
+	Succeeds with an empty list if the module exports no operators.
 	\termitem{program_size}{-Bytes}
 	Memory (in bytes) used for storing the predicates of this
 	module. This figure includes the predicate header and clauses.
