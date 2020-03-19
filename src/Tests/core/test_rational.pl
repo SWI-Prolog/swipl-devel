@@ -150,8 +150,17 @@ test(rat_to_rat) :-
     assertion(1r4 is -1r8**2r3),
     assertion(2 is 1r8** -1r3),
     assertion(-2 is -1r8** -1r3).
+    
+test(pow_special) :-
+    assertion(1 is 1r4**0),
+    assertion(1 is 1**1r2),
+    assertion(0 is 0**1r2),
+    assertion(1 is -1**2),
+    assertion(-1 is -1**3),
+    assertion(div0err(0.0** -1r2)).
 
 test(other_arith) :-
+    assertion(div0err(1r2/0)),
     assertion(1r3 is abs(1r3)),
     assertion(1r3 is abs(-1r3)),
     assertion(1 is sign(1r3)),
