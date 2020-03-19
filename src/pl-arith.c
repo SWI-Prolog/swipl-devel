@@ -807,6 +807,19 @@ check_float(Number n)
   return TRUE;
 }
 
+static int
+check_zero_div(int sign_n, Number r, char *func, int arity)
+{ GET_LD
+
+  if ( LD->arith.f.flags & FLT_ZERO_DIV )
+  { r->type = V_FLOAT;
+    r->value.f = copysign(const_inf,sign_n);
+    return TRUE;
+  } else
+  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);
+  }
+}
+
 
 #ifdef O_GMP
 static int
@@ -1986,24 +1999,10 @@ cond_minus_pow(double base, double exp)
 static inline int
 sign_f(double f)
 { return /*isnan(f) ? const_nan :*/		/* JW: Should be handle NaN */
-         f < 0    ? -1 :
-	 f > 0    ?  1 :
-		     0;
+    f < 0    ? -1 :
+    f > 0    ?  1 :
+                0 ;  // sign_f(NaN) = 0
 }
-
-static int
-set_rnum(int type, int val, Number r)
-{ if ( type == V_FLOAT )
-  { r->value.f = val;
-    r->type = V_FLOAT;
-  } else
-  { r->value.i = val;
-    r->type = V_INTEGER;
-  }
-
-  return TRUE;
-}
-
 
 static int
 ar_pow(Number n1, Number n2, Number r)
@@ -2012,6 +2011,7 @@ ar_pow(Number n1, Number n2, Number r)
   unsigned long exp;
   int exp_sign;
   int exp_nan;
+  int zero_div_sign;
 
   if ( n2->type == V_FLOAT )
   { exp_nan  = isnan(n2->value.f);
@@ -2020,24 +2020,33 @@ ar_pow(Number n1, Number n2, Number r)
   { exp_nan = FALSE;
     exp_sign = ar_sign_i(n2);
   }
+  r->type = V_INTEGER;  // for all special cases
 
   if ( exp_sign == 0 && !exp_nan )		/* test for X**0 */
-    return set_rnum(n1->type, 1, r);
+  { r->value.i = 1;
+    return TRUE;
+  }
 
   if ( intNumber(n1) )
   { long n1_val = (n1->type == V_INTEGER) ? n1->value.i
 					  : mpz_get_si(n1->value.mpz);
 
     if ( n1_val == 1 )				/* 1**X => 1 */
-      return set_rnum(V_INTEGER, 1, r);
+    { r->value.i = 1;
+      return TRUE;
+    }
     if ( n1_val == 0 && !exp_nan )		/* n1==0, non-zero(n2) */
     { if ( exp_sign > 0)
-        return set_rnum(n2->type, 0, r);	/* positive exp => 0 */
-      else					/* negative exp => Err */
-	return PL_error("**", 2, NULL, ERR_DIV_BY_ZERO);
+      { r->value.i = 0;				/* positive exp => 0 */
+        return TRUE;
+      } else					/* negative exp => zero_div */
+      { return check_zero_div(ar_sign_i(n1), r, "**", 2);
+      }
     }
     if ( n1_val == -1 && intNumber(n2) )	/* check n1 == -1 */
-      return set_rnum(V_INTEGER, ar_even(n2) ? 1 : -1, r);
+    { r->value.i = ar_even(n2) ? 1 : -1;
+      return TRUE;
+    }
   }
 
   if ( intNumber(n1) && intNumber(n2) )
@@ -2049,7 +2058,7 @@ ar_pow(Number n1, Number n2, Number r)
 
       if ( truePrologFlag(PLFLAG_RATIONAL) )
       { promoteToMPQNumber(n1);
-	goto int_pow_neg_int;
+        goto int_pow_neg_int;
       }
       goto doreal;
     }
@@ -2245,7 +2254,8 @@ ar_pow(Number n1, Number n2, Number r)
         assert(0);
       }
       case V_FLOAT:
-      { if ( n1->value.f < 0  && !( r_den & 1 ))
+      { if ( n1->value.f == 0.0 ) goto doreal;  // general case of 0.0**X
+        if ( n1->value.f < 0  && !( r_den & 1 ))
 	{ r->value.f = NAN;		/* negative base, even denominator */
 	} else
         {
@@ -2269,9 +2279,14 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
+  zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) && signbit(n1->value.f) ) ? -1 : 1;  // calculate here before promoteTo
+
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
+
+  if ( (n1->value.f == 0.0) && (exp_sign == -1) )
+    return check_zero_div(zero_div_sign, r, "**", 2);
 
   r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
@@ -2884,6 +2899,18 @@ static int
 ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
+  if ( (n2->type == V_FLOAT) && isinf(n2->value.f) )  // X/inf
+  { if (n1->type == V_FLOAT)    // float --> signed 0.0 or NaN
+    { r->type = V_FLOAT;
+      r->value.f = isfinite(n1->value.f) ? 0.0*sign_f(n1->value.f)*sign_f(n2->value.f) : const_nan;
+      return check_float(r);
+    } else                      // non-float --> 0
+    { r->type = V_INTEGER;
+      r->value.i = 0;
+      succeed;
+    }
+  }
+
   if ( !truePrologFlag(PLFLAG_ISO) )
   { if ( !same_type_numbers(n1, n2) )
       return FALSE;
@@ -2891,7 +2918,7 @@ ar_divide(Number n1, Number n2, Number r)
     switch(n1->type)
     { case V_INTEGER:
 	if ( n2->value.i == LL(0) )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
         if ( n1->value.i % n2->value.i == 0 )
 	{ r->value.i = n1->value.i / n2->value.i;
 	  r->type = V_INTEGER;
@@ -2908,7 +2935,7 @@ ar_divide(Number n1, Number n2, Number r)
 #ifdef O_GMP
       case V_MPZ:
 	if ( mpz_sgn(n2->value.mpz) == 0 )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
 	if ( mpz_divisible_p(n1->value.mpz, n2->value.mpz) )
 	{ mpz_init(r->value.mpz);
 	  r->type = V_MPZ;
@@ -2920,7 +2947,7 @@ ar_divide(Number n1, Number n2, Number r)
         break;
       case V_MPQ:
 	if ( mpq_sgn(n2->value.mpq) == 0 )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
         mpq_init(r->value.mpq);
 	r->type = V_MPQ;
 	mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
@@ -2929,13 +2956,18 @@ ar_divide(Number n1, Number n2, Number r)
       case V_FLOAT:
 	break;
     }
-  }
+  } // ! PLAG_ISO
 
 					/* TBD: How to handle Q? */
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-  AR_DIV_ZERO_IF("/", 2, n1->value.f, n2->value.f, r);
+
+  /* separate zero-div case from general overflow, Note: sign_f(nan)=0 */
+  if ( (n2->value.f == 0.0) && (sign_f(n1->value.f) != 0) )
+    return check_zero_div((signbit(n1->value.f)==signbit(n2->value.f)) ? 1 : -1,
+			  r, "/", 2);
+
   r->value.f = n1->value.f / n2->value.f;
   r->type = V_FLOAT;
 
