@@ -9,7 +9,7 @@ set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex gensym.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
     record.tex registry.tex ugraphs.tex wwwbrowser.tex)
-if(USE_GMP)
+if(GMP_FOUND)
 set(DOC_LIB ${DOC_LIB} simplex.tex)
 endif()
 prepend(DOC_LIB lib/ ${DOC_LIB})
@@ -147,8 +147,7 @@ libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)
 pldoc(lib/prologpack.tex "library(prolog_pack)"
-      OPTIONS --section
-      DEPENDS archive)
+      OPTIONS --section)
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
       DEPENDS lib/assoclib.md ../library/assoc.pl)
@@ -158,7 +157,7 @@ pldoc(lib/clpblib.tex lib/clpblib.md
 pldoc(lib/clpfdlib.tex lib/clpfdlib.md
       OPTIONS --lib=clpfd --module=clpfd
       DEPENDS lib/clpfdlib.md ../library/clp/clpfd.pl)
-if(USE_GMP)
+if(GMP_FOUND)
 pldoc(lib/simplexlib.tex lib/simplexlib.md
       OPTIONS --lib=simplex --module=simplex
       DEPENDS lib/simplexlib.md ../library/clp/simplex.pl)

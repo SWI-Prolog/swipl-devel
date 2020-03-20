@@ -60,6 +60,7 @@ include(Locations)
 include(InstallSource)
 include(QLF)
 include(PackageSelection)
+include(Dependencies)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set_install_prefix()
