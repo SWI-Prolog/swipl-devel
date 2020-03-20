@@ -290,6 +290,8 @@ redefined_ok('$pldoc'(_,_,_,_)).
 redefined_ok('$pred_option'(_,_,_,_)).
 redefined_ok('$table_mode'(_,_,_)).
 redefined_ok('$tabled'(_,_)).
+redefined_ok('$exported_op'(_,_,_)).
+redefined_ok('$autoload'(_,_,_)).
 
 global_module(user).
 global_module(system).
