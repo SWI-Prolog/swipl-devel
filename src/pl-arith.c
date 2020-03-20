@@ -601,10 +601,11 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 
     clearNumber(&left);
     clearNumber(&right);
+    AR_END();
   } else
+  { AR_CLEANUP();
     rc = FALSE;
-
-  AR_END();
+  }
 
   return rc;
 }
@@ -1474,20 +1475,20 @@ ar_minus(Number n1, Number n2, Number r)
 }
 
 
-#ifdef O_GMP
 static int
 ar_even(Number i)
 { switch(i->type)
   { case V_INTEGER:
       return i->value.i % 2 == 0;
+#ifdef O_GMP
     case V_MPZ:
       return mpz_fdiv_ui(i->value.mpz, 2) == 0;
+#endif
     default:
       assert(0);
       fail;
   }
 }
-#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1802,9 +1803,9 @@ ar_lcm(Number n1, Number n2, Number r)
       mpz_init(r->value.mpz);
       mpz_lcm(r->value.mpz, n1->value.mpz, n2->value.mpz);
       break;
+#endif
     default:
       assert(0);
-#endif
   }
 
   return TRUE;
@@ -1964,7 +1965,6 @@ get_int_exponent(Number n, unsigned long *expp)
 
   return TRUE;
 }
-#endif /*O_GMP*/
 
 /* cond_minus_pow() handles rounding mode issues calculating pow with
    negative base float have to reverse to_positive and to_negative.
@@ -1996,22 +1996,47 @@ cond_minus_pow(double base, double exp)
   return res;
 }
 
+
+static int
+ar_smallint(Number n, int *i)
+{ switch(n->type)
+  { case V_INTEGER:
+      if ( n->value.i >= -1 && n->value.i <= 1 )
+      { *i = n->value.i;
+	return TRUE;
+      }
+      return FALSE;
+    case V_MPZ:
+      if ( mpz_cmp_si(n->value.mpz, -1L) >= 0 &&
+	   mpz_cmp_si(n->value.mpz,  1L) <= 0 )
+      { *i = mpz_get_si(n->value.mpz);
+	return TRUE;
+      }
+      return FALSE;
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+#endif /*O_GMP*/
+
 static inline int
 sign_f(double f)
-{ return /*isnan(f) ? const_nan :*/		/* JW: Should be handle NaN */
-    f < 0    ? -1 :
-    f > 0    ?  1 :
-                0 ;  // sign_f(NaN) = 0
+{ return
+    f < 0 ? -1 :
+    f > 0 ?  1 :
+	     0 ;  /* sign_f(NaN) = 0 */
 }
 
 static int
 ar_pow(Number n1, Number n2, Number r)
-{
+{ int zero_div_sign;
+  int exp_sign;
 #ifdef O_GMP
   unsigned long exp;
-  int exp_sign;
   int exp_nan;
-  int zero_div_sign;
+  int n1_val;
 
   if ( n2->type == V_FLOAT )
   { exp_nan  = isnan(n2->value.f);
@@ -2027,11 +2052,8 @@ ar_pow(Number n1, Number n2, Number r)
     return TRUE;
   }
 
-  if ( intNumber(n1) )
-  { long n1_val = (n1->type == V_INTEGER) ? n1->value.i
-					  : mpz_get_si(n1->value.mpz);
-
-    if ( n1_val == 1 )				/* 1**X => 1 */
+  if ( intNumber(n1) && ar_smallint(n1, &n1_val) )
+  { if ( n1_val == 1 )				/* 1**X => 1 */
     { r->value.i = 1;
       return TRUE;
     }
@@ -2279,13 +2301,18 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
-  zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) && signbit(n1->value.f) ) ? -1 : 1;  // calculate here before promoteTo
+  zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) &&
+		    signbit(n1->value.f) ) ? -1 : 1;
 
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
 
-  if ( (n1->value.f == 0.0) && (exp_sign == -1) )
+#ifndef O_GMP
+  exp_sign = sign_f(n2->value.f);
+#endif
+
+  if ( n1->value.f == 0.0 && exp_sign == -1 )
     return check_zero_div(zero_div_sign, r, "**", 2);
 
   r->value.f = pow(n1->value.f, n2->value.f);
@@ -4186,13 +4213,13 @@ PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
   }
 
   AR_BEGIN();
-
   if ( (rc=valueExpression(A2, &arg PASS_LD)) )
   { rc = PL_unify_number(A1, &arg);
     clearNumber(&arg);
+    AR_END();
+  } else
+  { AR_CLEANUP();
   }
-
-  AR_END();
 
   return rc;
 }
