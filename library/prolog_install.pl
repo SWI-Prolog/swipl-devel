@@ -40,7 +40,6 @@
             cmake_save_man_index/0
           ]).
 :- autoload(library(apply),[maplist/3]).
-:- autoload(library(dialect),[exists_source/1]).
 :- autoload(library(lists),[append/3,member/2,subtract/3]).
 :- autoload(library(make),[make/0]).
 
