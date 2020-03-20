@@ -309,13 +309,11 @@ function(test_lib name)
   foreach(pkg ${my_PACKAGES})
     get_filename_component(src ${CMAKE_CURRENT_SOURCE_DIR}/../${pkg} ABSOLUTE)
     get_filename_component(bin ${CMAKE_CURRENT_BINARY_DIR}/../${pkg} ABSOLUTE)
-    set(plibrary "${plibrary}${SWIPL_PATH_SEP}${src}")
     set(pforeign "${pforeign}${SWIPL_PATH_SEP}${bin}")
   endforeach()
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
 	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
-			 -p "library=${plibrary}"
 			 -f none -s ${test_source}
 			 -g "${test_goal}"
 			 -t halt)
