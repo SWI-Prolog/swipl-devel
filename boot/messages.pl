@@ -938,9 +938,19 @@ prolog_message(autoload(read_index(Dir))) -->
     [ 'Loading autoload index for ~w'-[Dir] ].
 prolog_message(autoload(disabled(Loaded))) -->
     [ 'Disabled autoloading (loaded ~D files)'-[Loaded] ].
+prolog_message(autoload(already_defined(PI, From))) -->
+    [ ansi(code, '~p', [PI]) ],
+    (   { '$pi_head'(PI, Head),
+          predicate_property(Head, built_in)
+        }
+    ->  [' is a built-in predicate']
+    ;   [ ' is already imported from module ',
+          ansi(code, '~p', [From])
+        ]
+    ).
 
 swi_message(autoload(Msg)) -->
-    [ nl, '    ' ],
+    [ nl, '  ' ],
     autoload_message(Msg).
 
 autoload_message(not_exported(PI, Spec, _FullFile, _Exports)) -->

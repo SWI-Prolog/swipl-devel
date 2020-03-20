@@ -828,10 +828,15 @@ register_autoloads([PI|T], Module, File, Context) :-
         ;   Done = true
         )
     ;   '$get_predicate_attribute'(Module:Head, imported, From)
-    ->  (   '$resolved_source_path'(File, FullFile),
+    ->  (   (   '$resolved_source_path'(File, FullFile)
+            ->  true
+            ;   '$resolve_source_path'(File, FullFile, [])
+            ),
             module_property(From, file(FullFile))
         ->  Done = true
-        ;   true
+        ;   print_message(warning,
+                          autoload(already_defined(Module:PI, From))),
+            Done = true
         )
     ;   true
     ),
