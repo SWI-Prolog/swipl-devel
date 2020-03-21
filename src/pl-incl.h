@@ -1487,7 +1487,7 @@ struct definition
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
-} definition_chain;
+};
 
 #define PROC_DIRTY_GENS	10
 
