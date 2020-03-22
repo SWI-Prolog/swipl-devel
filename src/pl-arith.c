@@ -562,6 +562,25 @@ PRED_IMPL("rational", 3, rational, 0)
 
 #endif /*O_GMP*/
 
+static
+PRED_IMPL("float_parts", 4, float_parts, 0)
+{ PRED_LD
+  double d;
+
+  if ( PL_get_float_ex(A1, &d) )
+  { double m;
+    int e;
+
+    m = frexp(d, &e);
+    return ( PL_unify_float(A2, m) &&
+	     PL_unify_integer(A3, 2) &&
+	     PL_unify_integer(A4, e) );
+  }
+
+  return FALSE;
+}
+
+
 		/********************************
 		*           COMPARISON          *
 		*********************************/
@@ -4792,6 +4811,7 @@ BeginPredDefs(arith)
   PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
   PRED_DEF("bounded_number",	  3, bounded_number,	  0)
   PRED_DEF("float_class", 2, float_class, 0)
+  PRED_DEF("float_parts", 4, float_parts, 0)
 
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC)

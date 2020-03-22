@@ -7189,9 +7189,16 @@ May \textbf{not} be produced if the Prolog flag
     \termitem{normal}{}
 \arg{Float} is a normal floating point number.
 \end{description}
-\end{description}
 
-\begin{description}
+    \predicate[det]{float_parts}{4}{+Float, -Mantissa, -Base, -Exponent}
+True when \arg{Mantissa} is the normalized fraction of \arg{Float},
+\arg{Base} is the \jargon{radix} and \arg{Exponent} is the exponent.
+This uses the C function frexp().  If \arg{Float} is NaN or $\pm$Inf
+\arg{Mantissa} has the same value and \arg{Exponent} is 0 (zero).
+In the current implementation \arg{Base} is always 2.
+The following relation is always true $$Float =:= Mantissa \times
+Base^{Exponent}$$.
+
     \predicate[det]{bounded_number}{3}{?Low, ?High, +Num}
 True if \arg{Low} < \arg{Num} < \arg{High}. Raises a type error if \arg{Num}
 is not a number. This predicate can be used both to check and generate bounds across the various numeric types. Note that a number cannot be bounded by itself and \const{NaN}, \const{Inf},
