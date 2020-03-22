@@ -304,7 +304,7 @@ qsave:compat_arch(A,A).
 entries_for_name([], _, []).
 entries_for_name([H0|T0], Name, [H|T]) :-
     shlib_atom_to_term(H0, H),
-    match_filespec(Name, H0),
+    match_filespec(Name, H),
     !,
     entries_for_name(T0, Name, T).
 entries_for_name([_|T0], Name, T) :-
