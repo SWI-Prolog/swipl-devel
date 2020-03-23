@@ -5265,10 +5265,10 @@ include_spare_stack(void *ptr, size_t *request)
 
 
 static void
-reenable_spare_stack(void *ptr)
+reenable_spare_stack(void *ptr, int rc)
 { Stack s = ptr;
 
-  if ( roomStackP(s) >=	s->def_spare )
+  if ( roomStackP(s) >=	s->def_spare || (rc != TRUE) )
     trim_stack(s);
   else
     Sdprintf("Could not reenable %s-stack\n", s->name);
@@ -5304,9 +5304,9 @@ growStacks(size_t l, size_t g, size_t t)
   rc = grow_stacks(l, g, t PASS_LD);
   gBase++; gMax--; tMax--;
 
-  reenable_spare_stack(&LD->stacks.trail);
-  reenable_spare_stack(&LD->stacks.global);
-  reenable_spare_stack(&LD->stacks.local);
+  reenable_spare_stack(&LD->stacks.trail,  rc);
+  reenable_spare_stack(&LD->stacks.global, rc);
+  reenable_spare_stack(&LD->stacks.local,  rc);
 
   if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
   { TrailEntry te;
