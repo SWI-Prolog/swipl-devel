@@ -23,7 +23,7 @@ else
     SWIPL=src/swipl
   fi
 
-  ${SWIPL} -f none --no-threads ${PGO_PROGRAM}
+  ${SWIPL} -f none --no-packs --no-threads ${PGO_PROGRAM}
 
   ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ${SRC_DIR}
   ${CMAKE_COMMAND} -E echo "PGO: Assembling profile data (for Clang)"

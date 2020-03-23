@@ -191,6 +191,9 @@ Set debug level to
 .IR level .
 This option is for system maintenance and is given for reference only.
 .TP
+.BR \-\-packs [=bool]
+Disable attaching extension packs (add-ons).
+.TP
 .BI \-f " file"
 Use
 .I "file"

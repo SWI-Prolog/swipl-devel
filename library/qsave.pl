@@ -72,6 +72,8 @@ save_option(toplevel,    callable,
             "Toplevel goal").
 save_option(init_file,   atom,
             "Application init file").
+save_option(packs,       boolean,
+            "Do (not) attach packs").
 save_option(class,       oneof([runtime,development]),
             "Development state").
 save_option(op,          oneof([save,standard]),

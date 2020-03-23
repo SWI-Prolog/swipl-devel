@@ -314,7 +314,7 @@ function(test_lib name)
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
 	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
-			 -f none -s ${test_source}
+			 -f none --no-packs -s ${test_source}
 			 -g "${test_goal}"
 			 -t halt)
   # Write db with lists of tests to be used with -DINSTALL_TESTS

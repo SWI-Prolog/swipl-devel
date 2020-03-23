@@ -749,7 +749,7 @@ setup_interactive :-
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
-    attach_packs,
+    opt_attach_packs,
     use_module(library(qsave)),
     qsave:qsave_toplevel.
 
