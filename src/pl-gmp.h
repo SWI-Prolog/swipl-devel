@@ -83,12 +83,12 @@ mpq_size_stack(int sz)
 
 static inline int
 mpz_stack_size(word w)
-{ return (int)(w>>1);
+{ return (int)w>>1;
 }
 
 static inline int
 mpq_stack_size(word w)
-{ return (int)(w>>1);
+{ return (int)w>>1;
 }
 
 #else /*O_GMP*/
