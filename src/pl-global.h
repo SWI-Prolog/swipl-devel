@@ -124,8 +124,9 @@ struct PL_global_data
     char **	os_argv;
     int		appl_argc;		/* Application options */
     char **	appl_argv;
-    int		notty;			/* -tty: donot use ioctl() */
+    int		notty;			/* -tty: do not use ioctl() */
     int		optimise;		/* -O: optimised compilation */
+    int		packs;			/* --no-packs: no packs */
   } cmdline;
 
   struct

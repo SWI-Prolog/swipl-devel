@@ -701,6 +701,11 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  GD->options.xpce = b;
 	else
 	  return -1;
+      } else if ( (rc=is_bool_opt(s, "packs", &b)) )
+      { if ( rc == TRUE )
+	  GD->cmdline.packs = b;
+	else
+	  return -1;
       } else if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
       } else if ( is_longopt(s, "home") )
@@ -769,7 +774,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 			break;
 	case 'p':	optionList(&GD->options.search_paths);
 			break;
-	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
+	case 'O':	GD->cmdline.optimise = TRUE; /* see initPrologFlags() */
 			break;
 	case 'x':
 	case 'o':	optionString(GD->options.compileOut);
@@ -934,6 +939,7 @@ PL_initialise(int argc, char **argv)
 
   GD->cmdline.os_argc = argc;
   GD->cmdline.os_argv = argv;
+  GD->cmdline.packs   = TRUE;
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
@@ -1125,6 +1131,7 @@ usage(void)
     "    -p alias=path            Define file search path 'alias'\n",
     "    -O                       Optimised compilation\n",
     "    --tty[=bool]             (Dis)allow tty control\n",
+    "    --packs[=bool]           Do (not) attach add-ons\n",
     "    --signals[=bool]         Do (not) modify signal handling\n",
     "    --threads[=bool]         Do (not) allow for threads\n",
     "    --debug[=bool]           Do (not) generate debug info\n",

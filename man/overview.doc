@@ -386,6 +386,10 @@ See \cmdlineoption{--sigalert}.
 Disable threading for the multi-threaded version at runtime.  See also
 the flags \prologflag{threads} and \prologflag{gc_thread}.
 
+    \cmdlineoptionitem{--no-packs}{}
+Do \emph{not} attach extension packages (add-ons). See also
+attach_packs/0 and the Prolog flag \prologflag{packs}.
+
     \cmdlineoptionitem{--no-pce}{}
 Enable/disable the xpce GUI subsystem. The default is to make it
 available as autoload component if it is installed and the system
@@ -1799,6 +1803,10 @@ List is a list of atoms representing the command line arguments used to
 invoke SWI-Prolog.  Please note that {\bf all} arguments are included
 in the list returned.  See \prologflag{argv} to get the application
 options.
+
+    \prologflagitem{packs}{bool}{r}
+If \const{true}, extension packs (add-ons) are attached.  Can be set to
+\const{false} using the \cmdlineoption{--no-packs}.
 
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
