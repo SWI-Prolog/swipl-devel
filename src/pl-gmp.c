@@ -1458,7 +1458,7 @@ www.eclipse-clp.org/license.
  * (i.e. we effectively scale the integers down, or right-shift them).
  */
 
-#define MIN_LIMB_DIFF (1+1024/GMP_NUMB_BITS)
+#define MIN_LIMB_DIFF (2+1024/GMP_NUMB_BITS)
 #define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
 #define MAX_ULONG_DBL ((double)~0L+1.0)
 
