@@ -1379,11 +1379,11 @@ properly on Linux. Don't bother with it.
 		 *	       TCMALLOC		*
 		 *******************************/
 
-static int (*MallocExtension_GetNumericProperty)(const char *, size_t *);
-static int (*MallocExtension_SetNumericProperty)(const char *, size_t);
-static void (*MallocExtension_MarkThreadIdle)(void) = NULL;
-static void (*MallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
-static void (*MallocExtension_MarkThreadBusy)(void) = NULL;
+static int (*fMallocExtension_GetNumericProperty)(const char *, size_t *);
+static int (*fMallocExtension_SetNumericProperty)(const char *, size_t);
+static void (*fMallocExtension_MarkThreadIdle)(void) = NULL;
+static void (*fMallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
+static void (*fMallocExtension_MarkThreadBusy)(void) = NULL;
 
 static const char* tcmalloc_properties[] =
 { "generic.current_allocated_bytes",
@@ -1418,7 +1418,7 @@ malloc_property(term_t prop, control_t handle)
 	  { if ( streq(s, *pname) )
 	    { size_t val;
 
-	      if ( MallocExtension_GetNumericProperty(*pname, &val) )
+	      if ( fMallocExtension_GetNumericProperty(*pname, &val) )
 	      { term_t a = PL_new_term_ref();
 		_PL_get_arg(1, prop, a);
 		return PL_unify_uint64(a, val);
@@ -1443,7 +1443,7 @@ malloc_property(term_t prop, control_t handle)
       for(; *pname; pname++)
       { size_t val;
 
-	if ( MallocExtension_GetNumericProperty(*pname, &val) )
+	if ( fMallocExtension_GetNumericProperty(*pname, &val) )
 	{ if ( PL_unify_term(prop, PL_FUNCTOR_CHARS, *pname, 1,
 			             PL_INT64, val) )
 	  { PL_close_foreign_frame(fid);
@@ -1493,7 +1493,7 @@ set_malloc(term_t prop)
 
       for(; *pname; pname++)
       { if ( streq(s, *pname) )
-	{ if ( MallocExtension_SetNumericProperty(*pname, val) )
+	{ if ( fMallocExtension_SetNumericProperty(*pname, val) )
 	    return TRUE;
 	  else
 	    return PL_permission_error("set", "malloc_property", prop);
@@ -1512,8 +1512,8 @@ size_t
 heapUsed(void)
 { size_t val;
 
-  if (MallocExtension_GetNumericProperty &&
-      MallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
+  if (fMallocExtension_GetNumericProperty &&
+      fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
     return val;
 
   return 0;
@@ -1526,26 +1526,26 @@ initTCMalloc(void)
   int set = 0;
 
   if ( done )
-    return !!MallocExtension_GetNumericProperty;
+    return !!fMallocExtension_GetNumericProperty;
   done = TRUE;
 
-  if ( (MallocExtension_GetNumericProperty =
+  if ( (fMallocExtension_GetNumericProperty =
 		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
   { PL_register_foreign("malloc_property", 1, malloc_property,
 			PL_FA_NONDETERMINISTIC);
     set++;
   }
-  if ( (MallocExtension_SetNumericProperty =
+  if ( (fMallocExtension_SetNumericProperty =
 		PL_dlsym(NULL, "MallocExtension_SetNumericProperty")) )
   { PL_register_foreign("set_malloc", 1, set_malloc, 0);
     set++;
   }
 
-  MallocExtension_MarkThreadIdle =
+  fMallocExtension_MarkThreadIdle =
     PL_dlsym(NULL, "MallocExtension_MarkThreadIdle");
-  MallocExtension_MarkThreadTemporarilyIdle =
+  fMallocExtension_MarkThreadTemporarilyIdle =
     PL_dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
-  MallocExtension_MarkThreadBusy =
+  fMallocExtension_MarkThreadBusy =
     PL_dlsym(NULL, "MallocExtension_MarkThreadBusy");
 
   return set;
@@ -1567,22 +1567,22 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 
   if ( how == ATOM_short )
   { trimStacks(TRUE PASS_LD);
-    if ( MallocExtension_MarkThreadTemporarilyIdle &&
-	 MallocExtension_MarkThreadBusy )
-      MallocExtension_MarkThreadTemporarilyIdle();
+    if ( fMallocExtension_MarkThreadTemporarilyIdle &&
+	 fMallocExtension_MarkThreadBusy )
+      fMallocExtension_MarkThreadTemporarilyIdle();
   } else if ( how == ATOM_long )
   { LD->trim_stack_requested = TRUE;
     garbageCollect(GC_USER);
     LD->trim_stack_requested = FALSE;
-    if ( MallocExtension_MarkThreadIdle  &&
-	 MallocExtension_MarkThreadBusy )
-      MallocExtension_MarkThreadIdle();
+    if ( fMallocExtension_MarkThreadIdle  &&
+	 fMallocExtension_MarkThreadBusy )
+      fMallocExtension_MarkThreadIdle();
   }
 
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
 
-  if ( MallocExtension_MarkThreadBusy )
-    MallocExtension_MarkThreadBusy();
+  if ( fMallocExtension_MarkThreadBusy )
+    fMallocExtension_MarkThreadBusy();
 
   return rc;
 }

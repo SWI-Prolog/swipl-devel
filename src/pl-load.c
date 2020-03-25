@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -75,6 +75,7 @@ contributions.
 #ifdef HAVE_DLOPEN			/* sysvr4, elf binaries */
 
 #ifdef HAVE_DLFCN_H
+#define _GNU_SOURCE			/* get RTLD_DEFAULT */
 #include <dlfcn.h>
 #endif
 
@@ -150,7 +151,12 @@ PL_dlerror(void)
 
 void *
 PL_dlsym(void *handle, char *symbol)
-{ return dlsym(handle, symbol);
+{
+#ifdef RTLD_DEFAULT
+  if ( !handle )
+    handle = RTLD_DEFAULT;
+#endif
+  return dlsym(handle, symbol);
 }
 
 int
