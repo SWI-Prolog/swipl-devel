@@ -1379,16 +1379,11 @@ properly on Linux. Don't bother with it.
 		 *	       TCMALLOC		*
 		 *******************************/
 
-#ifdef HAVE_DLOPEN
-#ifdef HAVE_DLFCN_H
-#include <dlfcn.h>
-#endif
-
 static int (*MallocExtension_GetNumericProperty)(const char *, size_t *);
 static int (*MallocExtension_SetNumericProperty)(const char *, size_t);
-static void (*MallocExtension_MarkThreadIdle)(void);
-static void (*MallocExtension_MarkThreadTemporarilyIdle)(void);
-static void (*MallocExtension_MarkThreadBusy)(void);
+static void (*MallocExtension_MarkThreadIdle)(void) = NULL;
+static void (*MallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
+static void (*MallocExtension_MarkThreadBusy)(void) = NULL;
 
 static const char* tcmalloc_properties[] =
 { "generic.current_allocated_bytes",
@@ -1535,45 +1530,27 @@ initTCMalloc(void)
   done = TRUE;
 
   if ( (MallocExtension_GetNumericProperty =
-		dlsym(NULL, "MallocExtension_GetNumericProperty")) )
+		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
   { PL_register_foreign("malloc_property", 1, malloc_property,
 			PL_FA_NONDETERMINISTIC);
     set++;
   }
   if ( (MallocExtension_SetNumericProperty =
-		dlsym(NULL, "MallocExtension_SetNumericProperty")) )
+		PL_dlsym(NULL, "MallocExtension_SetNumericProperty")) )
   { PL_register_foreign("set_malloc", 1, set_malloc, 0);
     set++;
   }
 
   MallocExtension_MarkThreadIdle =
-    dlsym(NULL, "MallocExtension_MarkThreadIdle");
+    PL_dlsym(NULL, "MallocExtension_MarkThreadIdle");
   MallocExtension_MarkThreadTemporarilyIdle =
-    dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
+    PL_dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
   MallocExtension_MarkThreadBusy =
-    dlsym(NULL, "MallocExtension_MarkThreadBusy");
+    PL_dlsym(NULL, "MallocExtension_MarkThreadBusy");
 
   return set;
 }
 
-#else /*HAVE_DLOPEN*/
-
-int
-initTCMalloc(void)
-{ return FALSE;
-}
-
-size_t
-heapUsed(void)
-{
-#ifdef HAVE_BOEHM_GC
-  return GC_get_heap_size();
-#else
-  return 0;
-#endif
-}
-
-#endif /*HAVE_DLOPEN*/
 
 /** thread_idle(:Goal, +How)
  *
@@ -1604,7 +1581,8 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
 
-  MallocExtension_MarkThreadBusy();
+  if ( MallocExtension_MarkThreadBusy )
+    MallocExtension_MarkThreadBusy();
 
   return rc;
 }
