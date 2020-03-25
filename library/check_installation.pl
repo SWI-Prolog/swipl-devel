@@ -81,6 +81,10 @@ shared objects/DLLs can be loaded.
 %     features.
 
 % Feature tests
+component(tcmalloc,
+          _{ test:test_tcmalloc,
+             url:'tcmalloc.html'
+           }).
 component(gmp,
           _{ test:current_prolog_flag(bounded, false),
              url:'gmp.html'
@@ -311,6 +315,17 @@ error_kind(error).
                  /*******************************
                  *         SPECIAL TESTS        *
                  *******************************/
+
+%!  test_tcmalloc
+
+:- if(current_predicate(malloc_property/1)).
+test_tcmalloc :-
+    malloc_property('generic.current_allocated_bytes'(Bytes)),
+    Bytes > 1 000 000.
+:- else.
+test_tcmalloc :-
+    fail.
+:- endif.
 
 %!  archive_features
 %

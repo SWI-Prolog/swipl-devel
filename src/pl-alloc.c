@@ -1531,13 +1531,13 @@ initTCMalloc(void)
 
   if ( (fMallocExtension_GetNumericProperty =
 		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
-  { PL_register_foreign("malloc_property", 1, malloc_property,
+  { PL_register_foreign_in_module("system", "malloc_property", 1, malloc_property,
 			PL_FA_NONDETERMINISTIC);
     set++;
   }
   if ( (fMallocExtension_SetNumericProperty =
 		PL_dlsym(NULL, "MallocExtension_SetNumericProperty")) )
-  { PL_register_foreign("set_malloc", 1, set_malloc, 0);
+  { PL_register_foreign_in_module("system", "set_malloc", 1, set_malloc, 0);
     set++;
   }
 
