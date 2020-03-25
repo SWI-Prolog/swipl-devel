@@ -272,6 +272,7 @@
 #cmakedefine pid_t @pid_t@
 #cmakedefine size_t @size_t@
 #cmakedefine vfork @vfork@
+#cmakedefine HAVE_TCMALLOC_EXTENSION_C_H @HAVE_TCMALLOC_EXTENSION_C_H@
 
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW

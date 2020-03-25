@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2012, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -92,11 +93,28 @@ consoleHandlerRoutine(DWORD id)
 }
 #endif
 
+		 /*******************************
+		 *	      TCMALLOC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If  we  link  the  main   program    against   an  alternative  malloc()
+implementation we better ensure the main   program  depends on malloc(),
+otherwise the linker may still  decide   to  put  the alternative malloc
+library further down in the  link   dependencies.  We should also ensure
+this dependency is not optimized away.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void *_PL_tc_malloc_base;
+
+static void
+force_malloc_dependency(void)
+{ _PL_tc_malloc_base = malloc(1);
+}
 
 		 /*******************************
 		 *		MAIN		*
 		 *******************************/
-
 
 int
 main(int argc, char **argv)
@@ -109,6 +127,8 @@ main(int argc, char **argv)
 #if O_ANSI_COLORS
   PL_w32_wrap_ansi_console();	/* decode ANSI color sequences (ESC[...m) */
 #endif
+
+  force_malloc_dependency();
 
   if ( !PL_initialise(argc, argv) )
     PL_halt(1);

@@ -15,6 +15,9 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
+option(USE_TCMALLOC
+       "Use Google tcmalloc instead of default malloc"
+       ON)
 option(SWIPL_SHARED_LIB
        "Put kernel in a shared library"
        ON)

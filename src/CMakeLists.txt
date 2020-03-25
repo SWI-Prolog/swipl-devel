@@ -323,10 +323,13 @@ endif()
 if(HAVE_LIBRT)
   set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} rt)
 endif()
+if(LIBTCMALLOC_LIBRARIES)
+  set(SWIPL_LIBRARIES ${LIBTCMALLOC_LIBRARIES} ${SWIPL_LIBRARIES})
+endif()
 
 # build swipl
 add_executable(swipl ${SWIPL_SRC})
-target_link_libraries(swipl libswipl)
+target_link_libraries(swipl ${SWIPL_LIBRARIES} libswipl)
 target_c_stack(swipl 4000000)
 
 # build the library
