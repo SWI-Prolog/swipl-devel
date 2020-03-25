@@ -411,8 +411,8 @@ objects} \predicatesummary{locale_sort}{2}{Language dependent sort of
 atoms} \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
-\predicatesummary{make_library_index}{2}{Create selective autoload file
-INDEX.pl} \predicatesummary{map_assoc}{2}{Map association tree}
+\predicatesummary{malloc_property}{1}{Property of the allocator}
+\predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl} \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{dict_create}{3}{Create a dict from data}
 \predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
@@ -630,6 +630,7 @@ a dict} \predicatesummary{set_end_of_stream}{1}{Set physical end of an
 open file} \predicatesummary{set_flag}{2}{Set value of a flag}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_locale}{1}{Set the default local}
+\predicatesummary{set_malloc}{1}{Set memory allocator property}
 \predicatesummary{set_module}{1}{Set properties of a module}
 \predicatesummary{set_output}{1}{Set current output stream from a
 stream} \predicatesummary{set_prolog_IO}{3}{Prepare streams for
@@ -714,6 +715,7 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_get_message}{3}{Wait for message in a queue}
+\predicatesummary{thread_idle}{2}{Reduce footprint while waiting}
 \predicatesummary{thread_initialization}{1}{Run action at start of thread}
 \predicatesummary{thread_join}{1}{Wait for Prolog task-completion}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}

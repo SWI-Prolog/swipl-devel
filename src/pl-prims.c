@@ -5214,14 +5214,15 @@ the `atoms' key that is defined by both and this ambiguous.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-heapUsed(void)
-{
-#ifdef HAVE_BOEHM_GC
-  return GC_get_heap_size();
-#else
+programSpace(void)
+{ size_t allocated = heapUsed();
+
+  if ( allocated )
+    return allocated - GD->statistics.stack_space;
+
   return 0;
-#endif
 }
+
 
 static size_t
 CStackSize(PL_local_data_t *ld)
@@ -5303,7 +5304,7 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
     v[1] = roomStack(trail);
     vn = 2;
   } else if ( key == ATOM_program )
-  { v[0] = heapUsed();
+  { v[0] = programSpace();
     v[1] = 0;
     vn = 2;
   } else if ( key == ATOM_garbage_collection )
@@ -5420,7 +5421,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GC_get_gc_no();
 #endif
   else if (key == ATOM_heapused)			/* heap usage */
-    v->value.i = heapUsed();
+    v->value.i = programSpace();
 #ifdef O_ATOMGC
   else if (key == ATOM_agc)
     v->value.i = GD->atoms.gc;

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -124,6 +124,8 @@ setupProlog(void)
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
   initBuildIns();
+  DEBUG(1, Sdprintf("TCMalloc binding ...\n"));
+  initTCMalloc();
   DEBUG(1, Sdprintf("Operators ...\n"));
   initOperators();
   DEBUG(1, Sdprintf("GMP ...\n"));

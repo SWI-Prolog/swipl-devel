@@ -464,7 +464,7 @@ UsedMemory(void)
   }
 #endif
 
-  return 0;
+  return heapUsed();			/* from pl-alloc.c */
 }
 
 
@@ -476,7 +476,11 @@ FreeMemory(void)
   struct rlimit limit;
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-    return limit.rlim_cur - used;
+  { if ( limit.rlim_cur == RLIM_INFINITY )
+      return (uintptr_t)-1;
+    else
+      return limit.rlim_cur - used;
+  }
 #endif
 
   return 0L;

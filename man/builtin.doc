@@ -10061,9 +10061,10 @@ memory		& [ Total unshared data, free memory ]
 		  (Used is based on \const{ru_idrss} from getrusage().
 		   Free is based on \const{RLIMIT_DATA} from
 		   getrlimit(). Both are reported as zero if the OS
-		   lacks support.) \\
+		   lacks support. Free is -1 if getrlimit() is supported
+		   but returns infinity.) \\
 stacks		& [ global use, local use ] \\
-program		& [ heap, 0 ] \\
+program		& [ heap use, 0 ] \\
 global_stack	& [ global use, global free ] \\
 local_stack	& [ local use, local free ] \\
 trail		& [ trail use, trail free ] \\
@@ -10112,6 +10113,8 @@ reported values are relative to the previous answer.
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Memory Management}		\label{sec:memory}
+
+\subsection{Garbage collection}		\label{sec:gc}
 
 \begin{description}
     \predicate{garbage_collect}{0}{}
@@ -10225,6 +10228,129 @@ set_prolog_stack/2 for defined properties.
 
 The total space limit for all stacks is controlled using the prolog
 flag \prologflag{stack_limit}.
+
+\subsection{Heap memory (malloc)}	\label{sec:malloc}
+
+\index{tcmalloc}%
+SWI-Prolog's memory management is based on the C runtime malloc()
+function and related functions.  The characteristics of the malloc()
+implementation may affect performance and overall memory usage of the
+system. For most Prolog programs the performance impact of the allocator
+is small.\footnote{Multi-threaded applications may suffer from
+allocators that do not effectively avoid \jargon{false sharing} that
+affect CPU cache behaviour or operate using a single lock to provide
+thread safety. Such allocators should be rare in modern OSes.} The
+impact on total memory usage can be significant though, in particular
+for multi-threaded applications. This is due to two aspects of
+SWI-Prolog memory management:
+
+\begin{itemize}
+    \item The Prolog stacks are allocated using malloc().  The stacks can
+    be extremely large. SWI-Prolog assumes malloc() will use a mechanism
+    that allows returning this memory to the OS.  Most todays allocators
+    satisfy this requirement.
+
+    \item Atoms and clauses are allocated by the thread that requires
+    them, but this memory is freed by the thread running the atom or
+    clause garbage collector (see garbage_collect_atoms/0 and
+    garbage_collect_clauses/0). Normally these run in the thread
+    \const{gc}, which means that all deallocation happens in this
+    thread.  Notably the \href{http://www.malloc.de/en/}{ptmalloc}
+    implementation used by the GNU C library (glibc) seems to handle
+    this poorly.
+\end{itemize}
+
+Starting with version 8.1.27, SWI-Prolog by default links against
+\href{https://github.com/google/tcmalloc}{tcmalloc} when available. Note
+that changing the allocator can only be done by linking the main
+executable (\program{swipl}) to an alternative library.  When embedded
+(see \secref{embedded}) the main program that embeds \file{libswipl}
+must be linked with tcmalloc.  On ELF based systems (Linux), this effect
+can also be achieved using the environment variable \const{LD_PRELOAD}:
+
+\begin{code}
+% LD_PRELOAD=/path/to/libtcmalloc.so swipl ...
+\end{code}
+
+If SWI-Prolog core detects that tcmalloc is the current allocator and
+provides the following additional predicates.
+
+\begin{description}
+    \predicate[nondet]{malloc_property}{1}{?Property}
+True when \arg{Property} is a property of the current allocator.  The
+properties are defined by the allocator.  The properties of tcmalloc
+are defined in
+\file{gperftools/malloc_extension.h}:\footnote{Documentation copied from
+the header.}
+
+    \begin{description}
+	\termitem{'generic.current_allocated_bytes'}{-Int}
+Number of bytes currently allocated by application.
+	\termitem{'generic.heap_size'}{-Int}
+Number of bytes in the heap (= current_allocated_bytes + fragmentation
++ freed memory regions).
+	\termitem{'tcmalloc.max_total_thread_cache_bytes'}{-Int}
+Upper limit on total number of bytes stored across allper-thread caches.
+	\termitem{'tcmalloc.current_total_thread_cache_bytes'}{-Int}
+Number of bytes used across all thread caches.
+	\termitem{'tcmalloc.central_cache_free_bytes'}{-Int}
+Number of free bytes in the central cache that have been
+assigned to size classes. They always count towards virtual
+memory usage, and unless the underlying memory is swapped out
+by the OS, they also count towards physical memory usage.
+	\termitem{'tcmalloc.transfer_cache_free_bytes'}{-Int}
+Number of free bytes that are waiting to be transfered between
+the central cache and a thread cache. They always count
+towards virtual memory usage, and unless the underlying memory
+is swapped out by the OS, they also count towards physical
+	\termitem{'tcmalloc.thread_cache_free_bytes'}{-Int}
+Number of free bytes in thread caches. They always count
+towards virtual memory usage, and unless the underlying memory
+is swapped out by the OS, they also count towards physical
+memory usage.
+	\termitem{'tcmalloc.pageheap_free_bytes'}{-Int}
+Number of bytes in free, mapped pages in page heap.  These
+bytes can be used to fulfill allocation requests.  They
+always count towards virtual memory usage, and unless the
+underlying memory is swapped out by the OS, they also count
+towards physical memory usage.  This property is not writable.
+	\termitem{'tcmalloc.pageheap_unmapped_bytes'}{-Int}
+Number of bytes in free, unmapped pages in page heap.
+These are bytes that have been released back to the OS,
+possibly by one of the MallocExtension "Release" calls.
+They can be used to fulfill allocation requests, but
+typically incur a page fault.  They always count towards
+virtual memory usage, and depending on the OS, typically
+do not count towards physical memory usage.
+    \end{description}
+
+    \predicate[det]{set_malloc}{1}{+Property}
+Set properties described in malloc_property/1.  Currently
+the only writable property is
+\const{tcmalloc.max_total_thread_cache_bytes}. Setting an unknown
+property raises a \const{domain_error} and setting a read-only property
+raises a \const{permission_error} exception.
+
+    \predicate[semidet]{thread_idle}{2}{:Goal, +Duration}
+Indicates to the system that the calling thread will idle for some time
+while calling \arg{Goal} as once/1.  This call releases resources to the
+OS to minimise the footprint of the calling thread while it waits.
+Despite the name this predicate is always provided, also if the system
+is not configured with tcmalloc or is single threaded.
+\arg{Duration} is one of
+
+    \begin{description}
+	\termitem{short}{}
+Calls trim_stacks/0 and, if tcmalloc is used, calls
+MallocExtension_MarkThreadTemporarilyIdle() which empties the thread's
+malloc cache but preserves the cache itself.
+
+	\termitem{long}{}
+Calls garbage_collect/0 and trim_stacks/0 and, if tcmalloc is used,
+calls MallocExtension_MarkThreadIdle() which releases all
+thread-specific allocation datastructures.
+    \end{description}
+\end{description}
 
 
 \section{Windows DDE interface}          \label{sec:DDE}

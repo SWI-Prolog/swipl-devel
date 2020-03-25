@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -1375,6 +1375,241 @@ properly on Linux. Don't bother with it.
   initHBase();
 }
 
+		 /*******************************
+		 *	       TCMALLOC		*
+		 *******************************/
+
+#ifdef HAVE_DLOPEN
+#ifdef HAVE_DLFCN_H
+#include <dlfcn.h>
+#endif
+
+static int (*MallocExtension_GetNumericProperty)(const char *, size_t *);
+static int (*MallocExtension_SetNumericProperty)(const char *, size_t);
+static void (*MallocExtension_MarkThreadIdle)(void);
+static void (*MallocExtension_MarkThreadTemporarilyIdle)(void);
+static void (*MallocExtension_MarkThreadBusy)(void);
+
+static const char* tcmalloc_properties[] =
+{ "generic.current_allocated_bytes",
+  "generic.heap_size",
+  "tcmalloc.max_total_thread_cache_bytes",
+  "tcmalloc.current_total_thread_cache_bytes",
+  "tcmalloc.central_cache_free_bytes",
+  "tcmalloc.transfer_cache_free_bytes",
+  "tcmalloc.thread_cache_free_bytes",
+  "tcmalloc.pageheap_free_bytes",
+  "tcmalloc.pageheap_unmapped_bytes",
+  NULL
+};
+
+static foreign_t
+malloc_property(term_t prop, control_t handle)
+{ GET_LD
+  const char **pname;
+
+  switch( PL_foreign_control(handle) )
+  { case PL_FIRST_CALL:
+    { atom_t name;
+      size_t arity;
+
+      if ( PL_get_name_arity(prop, &name, &arity) && arity == 1 )
+      { const char *s = PL_atom_nchars(name, NULL);
+
+	if ( s )
+	{ pname = tcmalloc_properties;
+
+	  for(; *pname; pname++)
+	  { if ( streq(s, *pname) )
+	    { size_t val;
+
+	      if ( MallocExtension_GetNumericProperty(*pname, &val) )
+	      { term_t a = PL_new_term_ref();
+		_PL_get_arg(1, prop, a);
+		return PL_unify_uint64(a, val);
+	      }
+	    }
+	  }
+	}
+
+	return FALSE;
+      } else if ( PL_is_variable(prop) )
+      { pname = tcmalloc_properties;
+	goto enumerate;
+      }
+    }
+    case PL_REDO:
+    { fid_t fid;
+
+      pname = PL_foreign_context_address(handle);
+    enumerate:
+
+      fid = PL_open_foreign_frame();
+      for(; *pname; pname++)
+      { size_t val;
+
+	if ( MallocExtension_GetNumericProperty(*pname, &val) )
+	{ if ( PL_unify_term(prop, PL_FUNCTOR_CHARS, *pname, 1,
+			             PL_INT64, val) )
+	  { PL_close_foreign_frame(fid);
+	    pname++;
+	    if ( *pname )
+	      PL_retry_address(pname);
+	    else
+	      return TRUE;
+	  }
+	}
+
+	if ( PL_exception(0) )
+	  return FALSE;
+	PL_rewind_foreign_frame(fid);
+      }
+      PL_close_foreign_frame(fid);
+
+      return FALSE;
+    }
+    case PL_CUTTED:
+    { return TRUE;
+    }
+    default:
+    { assert(0);
+      return FALSE;
+    }
+  }
+}
+
+static foreign_t
+set_malloc(term_t prop)
+{ GET_LD
+  atom_t name;
+  size_t arity;
+
+  if ( PL_get_name_arity(prop, &name, &arity) && arity == 1 )
+  { const char *s = PL_atom_nchars(name, NULL);
+    term_t a = PL_new_term_ref();
+    size_t val;
+
+    if ( !PL_get_arg(1, prop, a) ||
+	 !PL_get_size_ex(a, &val) )
+      return FALSE;
+
+    if ( s )
+    { const char **pname = tcmalloc_properties;
+
+      for(; *pname; pname++)
+      { if ( streq(s, *pname) )
+	{ if ( MallocExtension_SetNumericProperty(*pname, val) )
+	    return TRUE;
+	  else
+	    return PL_permission_error("set", "malloc_property", prop);
+	}
+      }
+
+      return PL_domain_error("malloc_property", prop);
+    }
+  }
+
+  return PL_type_error("malloc_property", prop);
+}
+
+
+size_t
+heapUsed(void)
+{ size_t val;
+
+  if (MallocExtension_GetNumericProperty &&
+      MallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
+    return val;
+
+  return 0;
+}
+
+
+int
+initTCMalloc(void)
+{ static int done = FALSE;
+  int set = 0;
+
+  if ( done )
+    return !!MallocExtension_GetNumericProperty;
+  done = TRUE;
+
+  if ( (MallocExtension_GetNumericProperty =
+		dlsym(NULL, "MallocExtension_GetNumericProperty")) )
+  { PL_register_foreign("malloc_property", 1, malloc_property,
+			PL_FA_NONDETERMINISTIC);
+    set++;
+  }
+  if ( (MallocExtension_SetNumericProperty =
+		dlsym(NULL, "MallocExtension_SetNumericProperty")) )
+  { PL_register_foreign("set_malloc", 1, set_malloc, 0);
+    set++;
+  }
+
+  MallocExtension_MarkThreadIdle =
+    dlsym(NULL, "MallocExtension_MarkThreadIdle");
+  MallocExtension_MarkThreadTemporarilyIdle =
+    dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
+  MallocExtension_MarkThreadBusy =
+    dlsym(NULL, "MallocExtension_MarkThreadBusy");
+
+  return set;
+}
+
+#else /*HAVE_DLOPEN*/
+
+int
+initTCMalloc(void)
+{ return FALSE;
+}
+
+size_t
+heapUsed(void)
+{
+#ifdef HAVE_BOEHM_GC
+  return GC_get_heap_size();
+#else
+  return 0;
+#endif
+}
+
+#endif /*HAVE_DLOPEN*/
+
+/** thread_idle(:Goal, +How)
+ *
+ */
+
+static
+PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
+{ PRED_LD
+  int rc;
+  atom_t how;
+
+  if ( !PL_get_atom_ex(A2, &how) )
+    return FALSE;
+
+  if ( how == ATOM_short )
+  { trimStacks(TRUE PASS_LD);
+    if ( MallocExtension_MarkThreadTemporarilyIdle &&
+	 MallocExtension_MarkThreadBusy )
+      MallocExtension_MarkThreadTemporarilyIdle();
+  } else if ( how == ATOM_long )
+  { LD->trim_stack_requested = TRUE;
+    garbageCollect(GC_USER);
+    LD->trim_stack_requested = FALSE;
+    if ( MallocExtension_MarkThreadIdle  &&
+	 MallocExtension_MarkThreadBusy )
+      MallocExtension_MarkThreadIdle();
+  }
+
+  rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
+
+  MallocExtension_MarkThreadBusy();
+
+  return rc;
+}
+
+
 
 		 /*******************************
 		 *	      PREDICATES	*
@@ -1393,4 +1628,5 @@ BeginPredDefs(alloc)
 #ifdef HAVE_BOEHM_GC
   PRED_DEF("garbage_collect_heap", 0, garbage_collect_heap, 0)
 #endif
+  PRED_DEF("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 EndPredDefs

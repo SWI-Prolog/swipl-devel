@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, VU University Amsterdam
+    Copyright (c)  2017-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,10 +42,14 @@ system:'$gc' :-
 %
 %   Wait for signals from other threads  to perform global GC operations
 %   and do them for them.
+%
+%   When using [tcmalloc](https://github.com/google/tcmalloc)   we  call
+%   MallocExtension_MarkThreadIdle() to transfer the   collected  memory
+%   immediately to the other threads.
 
 gc_loop :-
     repeat,
-    '$gc_wait'(Action),
+    thread_idle('$gc_wait'(Action), short),
     (   Action == abort
     ->  true
     ;   process(Action)

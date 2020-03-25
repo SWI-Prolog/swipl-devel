@@ -2554,15 +2554,7 @@ are bundled with an application.
 \end{description}
 
 
-
-\section{Garbage Collection}			\label{sec:gc}
-
-SWI-Prolog provides garbage collection, last-call optimization and atom
-garbage collection.  These features are controlled using Prolog flags
-(see current_prolog_flag/2).
-
-
-\section{The SWI-Prolog syntax}				\label{sec:syntax}
+\section{The SWI-Prolog syntax}			\label{sec:syntax}
 
 SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
 on the Edinburgh Prolog syntax. A formal description can be found in the
