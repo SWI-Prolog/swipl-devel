@@ -106,6 +106,7 @@ allow for restricting the system.
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads     |
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                 |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers    |
+  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`    |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
   | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
