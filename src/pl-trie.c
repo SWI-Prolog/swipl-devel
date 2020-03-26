@@ -2341,6 +2341,19 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       } else if ( name == ATOM_reevaluated && (idg=trie->data.IDG))
       { return PL_unify_int64(arg, idg->stats.reevaluated);
 #endif
+      } else if ( (idg=trie->data.IDG) )
+      { if ( name == ATOM_idg_affected_count )
+	{ return PL_unify_int64(arg, idg->affected ? idg->affected->size : 0);
+	} else if ( name == ATOM_idg_dependent_count )
+	{ return PL_unify_int64(arg, idg->dependent ? idg->dependent->size : 0);
+	} else if ( name == ATOM_idg_size )
+	{ size_t size = sizeof(*idg);
+
+	  if ( idg->affected )  size += sizeofTable(idg->affected);
+	  if ( idg->dependent ) size += sizeofTable(idg->dependent);
+
+	  return PL_unify_int64(arg, size);
+	}
       }
     }
   }

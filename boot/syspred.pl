@@ -1216,6 +1216,9 @@ trie_property(invalidated(_)).                  % IDG stats
 trie_property(reevaluated(_)).
 trie_property(deadlock(_)).                     % Shared tabling stats
 trie_property(wait(_)).
+trie_property(idg_affected_count(_)).
+trie_property(idg_dependent_count(_)).
+trie_property(idg_size(_)).
 
 
                 /********************************

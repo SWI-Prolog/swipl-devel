@@ -3498,6 +3498,36 @@ properties visit all nodes of the trie. Defined properties are
     by trie_gen_compiled/2,3.
 	\termitem{hashed}{-Count}
     Number of nodes that use a hashed index to its children.
+	\termitem{lookup_count}{-Count}
+    Number of trie_lookup/3 calls (only when compiled with
+    \const{O_TRIE_STATS}).
+	\termitem{gen_call_count}{-Count}
+    Number of trie_gen/3 calls (only when compiled with
+    \const{O_TRIE_STATS}).
+	\termitem{wait}{-Count}
+    Number of times a thread waited on this trie for another
+    thread to complete it (shared tabling, only when compiled with
+    \const{O_TRIE_STATS}).
+	\termitem{deadlock}{-Count}
+    Number of times this trie was part of a deadlock and its completion
+    was abandonned (shared tabling, only when compiled with
+    \const{O_TRIE_STATS}).
+    \end{description}
+
+In addition, a number of additional properties are defined on
+\jargon{answer tries}.
+
+    \begin{description}
+	\termitem{invalidated}{-Count}
+    Number of times the trie was invalidated (incremental tabling).
+	\termitem{reevaluated}{-Count}
+    Number of times the trie was re-evaluated (incremental tabling).
+	\termitem{idg_affected_count}{-Count}
+    Number of answer tries affected by this one (incremental tabling).
+	\termitem{idg_dependent_count}{-Count}
+    Number of answer tries this one depends on (incremental tabling).
+	\termitem{idg_size}{-Bytes}
+    Number of bytes in the IDG node representation.
     \end{description}
 \end{description}
 
