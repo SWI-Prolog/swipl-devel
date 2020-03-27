@@ -161,6 +161,8 @@ install(FILES customize/edit customize/init.pl customize/README.md
 
 if(INSTALL_DOCUMENTATION)
   include(Documentation)
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
+
   add_custom_target(
       doc ALL
       COMMENT "Build the documentation")
@@ -189,7 +191,6 @@ if(INSTALL_DOCUMENTATION)
     add_dependencies(doc doc.pdf)
   endif()
 
-  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
   add_subdirectory(man)
   install(FILES packages/index.html
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages)
