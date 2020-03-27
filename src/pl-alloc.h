@@ -121,10 +121,16 @@ COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 COMMON(int)		equalIndirect(word r1, word r2);
 COMMON(size_t)		gsizeIndirectFromCode(Code PC);
 COMMON(word)		globalIndirectFromCode(Code *PC);
+COMMON(void *)		tmp_malloc(size_t req);
+COMMON(void *)		tmp_realloc(void *mem, size_t req);
+COMMON(void)		tmp_free(void *mem);
+COMMON(size_t)		tmp_nalloc(size_t req);
+COMMON(size_t)		tmp_nrealloc(void *mem, size_t req);
 COMMON(void *)		stack_malloc(size_t req);
 COMMON(void *)		stack_realloc(void *mem, size_t req);
 COMMON(void)		stack_free(void *mem);
 COMMON(size_t)		stack_nalloc(size_t req);
+COMMON(size_t)		stack_nrealloc(void *mem, size_t req);
 #ifndef xmalloc
 COMMON(void *)		xmalloc(size_t size);
 COMMON(void *)		xrealloc(void *mem, size_t size);

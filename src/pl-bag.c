@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,7 +52,7 @@ notably needed to reduce allocation contention   due to intensive use of
 findall/3.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define FIRST_CHUNK_SIZE (64*sizeof(void*))
+#define FIRST_CHUNK_SIZE (256*sizeof(void*))
 
 typedef struct mem_chunk
 { struct mem_chunk *prev;
@@ -61,15 +62,17 @@ typedef struct mem_chunk
 
 typedef struct mem_pool
 { mem_chunk    *chunks;
+  size_t	chunk_count;
   mem_chunk	first;
   char		first_data[FIRST_CHUNK_SIZE];
 } mem_pool;
 
 static void
 init_mem_pool(mem_pool *mp)
-{ mp->chunks = &mp->first;
-  mp->first.size = FIRST_CHUNK_SIZE;
-  mp->first.used = 0;
+{ mp->chunks      = &mp->first;
+  mp->chunk_count = 1;
+  mp->first.size  = FIRST_CHUNK_SIZE;
+  mp->first.used  = 0;
 }
 
 #define ROUNDUP(n,m) (((n) + (m - 1)) & ~(m-1))
@@ -82,11 +85,14 @@ alloc_mem_pool(mem_pool *mp, size_t bytes)
   { ptr = &((char *)(mp->chunks+1))[mp->chunks->used];
     mp->chunks->used += ROUNDUP(bytes, sizeof(void*));
   } else
-  { size_t chunksize = (bytes < 1000 ? 4000 : bytes);
-    mem_chunk *c = PL_malloc_atomic_unmanaged(chunksize+sizeof(mem_chunk));
+  { size_t chunksize = tmp_nalloc(4000*((size_t)1<<mp->chunk_count++)+sizeof(mem_chunk));
+    mem_chunk *c;
 
-    if ( c )
-    { c->size    = chunksize;
+    if ( bytes > chunksize )
+      chunksize = tmp_nalloc(bytes+sizeof(mem_chunk));
+
+    if ( (c=tmp_malloc(chunksize)) )
+    { c->size    = chunksize-sizeof(mem_chunk);
       c->used    = ROUNDUP(bytes, sizeof(void*));
       c->prev    = mp->chunks;
       mp->chunks = c;
@@ -108,9 +114,11 @@ clear_mem_pool(mem_pool *mp)
 
   for(c=mp->chunks; c != &mp->first; c=p)
   { p = c->prev;
-    PL_free(c);
+    tmp_free(c);
   }
-  mp->chunks = &mp->first;
+  mp->chunk_count = 1;
+  mp->chunks      = &mp->first;
+  mp->first.used  = 0;
 }
 
 

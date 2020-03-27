@@ -5133,7 +5133,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     if ( t )
     { void *nw;
 
-      tsize = stack_nalloc(tsize);
+      tsize = stack_nrealloc(tb, tsize);
       if ( (nw = stack_realloc(tb, tsize)) )
       { LD->shift_status.trail_shifts++;
 	tb = nw;
@@ -5152,7 +5152,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       olsize = sizeStack(local);
       assert(lb == addPointer(gb, ogsize));
 
-      gsize = stack_nalloc(lsize + gsize)-lsize;
+      gsize = stack_nrealloc(gb, lsize + gsize)-lsize;
       g = (ogsize != gsize);
 
       if ( gsize < ogsize )		/* TBD: Only copy life-part */

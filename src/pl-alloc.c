@@ -1386,11 +1386,13 @@ properly on Linux. Don't bother with it.
 		 *	    MMAP STACKS		*
 		 *******************************/
 
-#ifdef MMAP_STACK
+#ifdef  MMAP_STACK
+#define MMAP_THRESHOLD 32768
 
 typedef struct
-{ size_t size;
-  char   data[1];
+{ size_t size;				/* Size (including header) */
+  int	 mmapped;			/* Is mmapped? */
+  double data[1];			/* ensure alignment */
 } map_region;
 
 #define SA_OFFSET offsetof(map_region, data)
@@ -1412,31 +1414,66 @@ roundpgsize(size_t sz)
   return ((sz+r-1)/r)*r;
 }
 
+size_t
+tmp_nalloc(size_t req)
+{ if ( req < MMAP_THRESHOLD-SA_OFFSET )
+    return req;
+
+  return roundpgsize(req+SA_OFFSET)-SA_OFFSET;
+}
 
 size_t
-stack_nalloc(size_t req)
-{ return roundpgsize(req+SA_OFFSET)-SA_OFFSET;
+tmp_nrealloc(void *mem, size_t req)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+
+    if ( !reg->mmapped && req < MMAP_THRESHOLD-SA_OFFSET )
+      return req;
+
+    return roundpgsize(req+SA_OFFSET)-SA_OFFSET;
+  }
+
+  return tmp_nalloc(req);
 }
 
 
+size_t
+tmp_malloc_size(void *mem)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+    return reg->size-SA_OFFSET;
+  }
+
+  return 0;
+}
+
 void *
-stack_malloc(size_t req)
+tmp_malloc(size_t req)
 { map_region *reg;
+  int mmapped;
 
-  req = roundpgsize(req+SA_OFFSET);
+  req += SA_OFFSET;
+  if ( req < MMAP_THRESHOLD )
+  { reg = malloc(req);
+    mmapped = FALSE;
+  } else
+  { req = roundpgsize(req);
 
-  if ( (reg=mmap(NULL, req,
-		 (PROT_READ|PROT_WRITE),
-		 (MAP_PRIVATE|MAP_ANONYMOUS),
-		 -1, 0)) != MAP_FAILED )
-  { size_t asize = req - SA_OFFSET;
+    reg = mmap(NULL, req,
+	       (PROT_READ|PROT_WRITE),
+	       (MAP_PRIVATE|MAP_ANONYMOUS),
+	       -1, 0);
+    if ( reg == MAP_FAILED )
+      reg = NULL;
+    mmapped = TRUE;
+  }
 
-    reg->size = req;
-
-#ifdef SECURE_GC
-    memset(reg->data, 0xFB, asize);
+  if ( reg )
+  { reg->size    = req;
+    reg->mmapped = mmapped;
+#ifdef O_DEBUG
+    memset(reg->data, 0xFB, req-SA_OFFSET);
 #endif
-    ATOMIC_ADD(&GD->statistics.stack_space, asize);
 
     return reg->data;
   }
@@ -1446,73 +1483,113 @@ stack_malloc(size_t req)
 
 
 void *
-stack_realloc(void *mem, size_t req)
+tmp_realloc(void *mem, size_t req)
 { if ( mem )
   { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
-    req = roundpgsize(req+SA_OFFSET);
 
-    if ( reg->size != req )
-    { if ( reg->size > req )
-      { size_t trunk = reg->size-req;
+    req += SA_OFFSET;
+    if ( !reg->mmapped )
+    { if ( req < MMAP_THRESHOLD )
+      { map_region *nw = realloc(reg, req);
+	if ( nw )
+	  nw->size = req;
+	return nw->data;
+      } else				/* malloc --> mmap */
+      { void *nw = tmp_malloc(req-SA_OFFSET);
+	if ( nw )
+	{ size_t copy = reg->size;
 
-	munmap((char*)reg+req, trunk);
-	ATOMIC_SUB(&GD->statistics.stack_space, trunk);
-	reg->size = req;
+	  if ( copy > req )
+	    copy = req;
 
-	return reg->data;
-      } else
-      { void *ra = stack_malloc(req);
-	size_t grow = req-reg->size;
-
-	if ( ra )
-	{ memcpy(ra, mem, reg->size-SA_OFFSET);
-#ifdef SECURE_GC
-          memset(ra+reg->size-SA_OFFSET, 0xFB, grow);
-#endif
-	  stack_free(mem);
-	  ATOMIC_ADD(&GD->statistics.stack_space, grow);
+	  memcpy(nw, mem, copy-SA_OFFSET);
+	  free(reg);
 	}
-
-	return ra;
+	return nw;
       }
     } else
-    { return mem;
+    { req = roundpgsize(req);
+
+      if ( reg->size != req )
+      { if ( reg->size > req )
+	{ size_t trunk = reg->size-req;
+
+	  munmap((char*)reg+req, trunk);
+	  ATOMIC_SUB(&GD->statistics.stack_space, trunk);
+	  reg->size = req;
+
+	  return reg->data;
+	} else
+	{ void *ra = stack_malloc(req);
+	  size_t grow = req-reg->size;
+
+	  if ( ra )
+	  { memcpy(ra, mem, reg->size-SA_OFFSET);
+#ifdef O_DEBUG
+	    memset(ra+reg->size-SA_OFFSET, 0xFB, grow);
+#endif
+	    stack_free(mem);
+	    ATOMIC_ADD(&GD->statistics.stack_space, grow);
+	  }
+
+	  return ra;
+	}
+      } else
+      { return mem;
+      }
     }
   } else
-  { return stack_malloc(req);
+  { return tmp_malloc(req);
   }
 }
 
 
 void
-stack_free(void *mem)
+tmp_free(void *mem)
 { if ( mem )
   { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
-    size_t asize = reg->size - SA_OFFSET;
 
-    ATOMIC_SUB(&GD->statistics.stack_space, asize);
-    munmap(reg, reg->size);
+    if ( reg->mmapped )
+      munmap(reg, reg->size);
+    else
+      free(reg);
   }
 }
 
 #else /*MMAP_STACK*/
 
 size_t
-stack_nalloc(size_t req)
+tmp_nalloc(size_t req)
 { return req;
 }
 
+size_t
+tmp_nrealloc(void *mem, size_t req)
+{ (void)mem;
+
+  return req;
+}
+
+size_t
+tmp_malloc_size(void *mem)
+{ if ( mem )
+  { size_t *sp = mem;
+    return sp[-1];
+  }
+
+  return 0;
+}
+
 void *
-stack_malloc(size_t size)
+tmp_malloc(size_t size)
 { void *mem = malloc(size+sizeof(size_t));
 
   if ( mem )
   { size_t *sp = mem;
     *sp++ = size;
-#ifdef SECURE_GC
+#ifdef O_DEBUG
     memset(sp, 0xFB, size);
 #endif
-    ATOMIC_ADD(&GD->statistics.stack_space, size);
 
     return sp;
   }
@@ -1521,25 +1598,22 @@ stack_malloc(size_t size)
 }
 
 void *
-stack_realloc(void *old, size_t size)
+tmp_realloc(void *old, size_t size)
 { size_t *sp = old;
   size_t osize = *--sp;
   void *mem;
 
-#ifdef SECURE_GC
-  if ( (mem = stack_malloc(size)) )
+#ifdef O_DEBUG
+  if ( (mem = tmp_malloc(size)) )
   { memcpy(mem, old, (size>osize?osize:size));
-    stack_free(old);
+    tmp_free(old);
     return mem;
   }
 #else
+  (void)osize;
   if ( (mem = realloc(sp, size+sizeof(size_t))) )
   { sp = mem;
     *sp++ = size;
-    if ( size > osize )
-      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
-    else
-      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
     return sp;
   }
 #endif
@@ -1548,19 +1622,61 @@ stack_realloc(void *old, size_t size)
 }
 
 void
-stack_free(void *mem)
+tmp_free(void *mem)
 { size_t *sp = mem;
   size_t osize = *--sp;
 
-  ATOMIC_SUB(&GD->statistics.stack_space, osize);
-
-#ifdef SECURE_GC
+#ifdef O_DEBUG
   memset(sp, 0xFB, osize+sizeof(size_t));
+#else
+  (void)osize;
 #endif
   free(sp);
 }
 
 #endif /*MMAP_STACK*/
+
+void *
+stack_malloc(size_t size)
+{ void *ptr = tmp_malloc(size);
+
+  if ( ptr )
+    ATOMIC_ADD(&GD->statistics.stack_space, size);
+  return ptr;
+}
+
+void *
+stack_realloc(void *mem, size_t size)
+{ size_t osize = tmp_malloc_size(mem);
+  void *ptr = tmp_realloc(mem, size);
+
+  if ( ptr )
+  { if ( osize > size )
+      ATOMIC_ADD(&GD->statistics.stack_space, osize-size);
+    else
+      ATOMIC_SUB(&GD->statistics.stack_space, size-osize);
+  }
+
+  return ptr;
+}
+
+void
+stack_free(void *mem)
+{ size_t size = tmp_malloc_size(mem);
+
+  ATOMIC_SUB(&GD->statistics.stack_space, size);
+  tmp_free(mem);
+}
+
+size_t
+stack_nalloc(size_t req)
+{ return tmp_nalloc(req);
+}
+
+size_t
+stack_nrealloc(void *mem, size_t req)
+{ return tmp_nrealloc(mem, req);
+}
 
 
 		 /*******************************
