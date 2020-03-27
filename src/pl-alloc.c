@@ -1702,7 +1702,13 @@ heapUsed(void)
 
   if (fMallocExtension_GetNumericProperty &&
       fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
+  {
+#ifdef MMAP_STACK
+    val += GD->statistics.stack_space;
+#endif
+
     return val;
+  }
 
   return 0;
 }
