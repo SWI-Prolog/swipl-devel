@@ -606,9 +606,6 @@ COMMON(void)		freePrologLocalData(PL_local_data_t *ld);
 COMMON(int)		ensure_room_stack(Stack s, size_t n, int ex);
 COMMON(int)		trim_stack(Stack s);
 COMMON(int)		set_stack_limit(size_t limit);
-COMMON(void *)		stack_malloc(size_t size);
-COMMON(void *)		stack_realloc(void *old, size_t size);
-COMMON(void)		stack_free(void *mem);
 COMMON(const char *)	signal_name(int sig);
 
 /* pl-sys.c */

@@ -1436,6 +1436,10 @@ allocStacks(void)
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
 
+  itrail  = stack_nalloc(itrail);
+  minarg  = stack_nalloc(minarg);
+  iglobal = stack_nalloc(iglobal+ilocal)-ilocal;
+
   gBase = NULL;
   tBase = NULL;
   aBase = NULL;
@@ -1451,7 +1455,7 @@ allocStacks(void)
     return FALSE;
   }
 
-  lBase = (LocalFrame) addPointer(gBase, iglobal);
+  lBase   = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
@@ -1486,65 +1490,6 @@ freeStacks(ARG1_LD)
     aTop = NULL;
     aBase = NULL;
   }
-}
-
-
-void *
-stack_malloc(size_t size)
-{ void *mem = malloc(size+sizeof(size_t));
-
-  if ( mem )
-  { size_t *sp = mem;
-    *sp++ = size;
-#ifdef SECURE_GC
-    memset(sp, 0xFB, size);
-#endif
-    ATOMIC_ADD(&GD->statistics.stack_space, size);
-
-    return sp;
-  }
-
-  return NULL;
-}
-
-void *
-stack_realloc(void *old, size_t size)
-{ size_t *sp = old;
-  size_t osize = *--sp;
-  void *mem;
-
-#ifdef SECURE_GC
-  if ( (mem = stack_malloc(size)) )
-  { memcpy(mem, old, (size>osize?osize:size));
-    stack_free(old);
-    return mem;
-  }
-#else
-  if ( (mem = realloc(sp, size+sizeof(size_t))) )
-  { sp = mem;
-    *sp++ = size;
-    if ( size > osize )
-      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
-    else
-      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
-    return sp;
-  }
-#endif
-
-  return NULL;
-}
-
-void
-stack_free(void *mem)
-{ size_t *sp = mem;
-  size_t osize = *--sp;
-
-  ATOMIC_SUB(&GD->statistics.stack_space, osize);
-
-#ifdef SECURE_GC
-  memset(sp, 0xFB, osize+sizeof(size_t));
-#endif
-  free(sp);
 }
 
 
