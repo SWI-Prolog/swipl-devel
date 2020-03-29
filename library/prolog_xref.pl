@@ -1251,6 +1251,7 @@ xref_meta(catch_with_backtrace(A, _, B), [A, B]).
 xref_meta(thread_create(A,_,_), [A]).
 xref_meta(thread_create(A,_),   [A]).
 xref_meta(thread_signal(_,A),   [A]).
+xref_meta(thread_idle(A,_),     [A]).
 xref_meta(thread_at_exit(A),    [A]).
 xref_meta(thread_initialization(A), [A]).
 xref_meta(engine_create(_,A,_), [A]).
