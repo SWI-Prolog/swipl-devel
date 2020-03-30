@@ -5392,8 +5392,12 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = CStackSize(LD);
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
+  else if (key == ATOM_atom_space)			/* atom_space */
+    v->value.i = atom_space();
   else if (key == ATOM_functors)			/* functors */
     v->value.i = GD->statistics.functors;
+  else if (key == ATOM_functor_space)			/* functor_space */
+    v->value.i = functor_space();
   else if (key == ATOM_predicates)			/* predicates */
     v->value.i = GD->statistics.predicates;
   else if (key == ATOM_clauses)				/* clauses */

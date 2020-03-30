@@ -10030,6 +10030,7 @@ agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage collections \\
 atoms           & Total number of defined atoms \\
+atom_space      & Bytes used to represent atoms \\
 c_stack		& System (C-) stack limit.  0 if not known. \\
 cgc		& Number of clause garbage collections performed \\
 cgc_gained	& Number of clauses reclaimed \\
@@ -10039,6 +10040,7 @@ codes           & Total size of (virtual) executable code in words \\
 cputime         & (User) {\sc cpu} time since thread was started in seconds \\
 epoch		& Time stamp when thread was started \\
 functors        & Total number of defined name/arity pairs \\
+functor_space   & Bytes used to represent functors \\
 global          & Allocated size of the global stack in bytes \\
 globalused      & Number of bytes in use on the global stack \\
 globallimit     & Size to which the global stack is allowed to grow \\

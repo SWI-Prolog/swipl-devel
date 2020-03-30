@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -522,4 +523,14 @@ pl_current_functor(term_t name, term_t arity, control_t h)
 
   PL_UNLOCK(L_FUNCTOR);
   return FALSE;
+}
+
+
+size_t
+functor_space(void)
+{ size_t size = ((size_t)2<<MSB(GD->functors.highest))*sizeof(FunctorDef);
+
+  size += GD->functors.highest * sizeof(struct functorDef);
+
+  return size;
 }

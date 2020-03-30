@@ -2174,6 +2174,37 @@ PL_atom_generator_w(const pl_wchar_t *prefix,
 }
 
 
+size_t
+atom_space(void)
+{ size_t array = ((size_t)2<<MSB(GD->atoms.highest))*sizeof(struct atom);
+  size_t index;
+  int i, last=FALSE;
+  size_t table = GD->atoms.table->buckets * sizeof(Atom);
+  size_t data = 0;
+
+  for(index=1, i=0; !last; i++)
+  { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
+    Atom b = GD->atoms.array.blocks[i];
+
+    if ( upto >= high )
+    { upto = high;
+      last = TRUE;
+    }
+
+    for(; index<upto; index++)
+    { Atom a = b + index;
+
+      if ( ATOM_IS_VALID(a->references) )
+      { data += a->length;		/* TBD: malloc rounding? */
+      }
+    }
+  }
+
+  return array+table+data;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/

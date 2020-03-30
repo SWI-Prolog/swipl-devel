@@ -108,6 +108,7 @@ COMMON(int)		is_volatile_atom(atom_t a);
 #ifdef O_DEBUG_ATOMGC
 COMMON(word)		pl_track_atom(term_t which, term_t stream);
 #endif
+COMMON(size_t)		atom_space(void);
 
 /* pl-bag.c */
 COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
@@ -173,6 +174,7 @@ COMMON(void)		deleteIndexes(ClauseList cl, int isnew);
 COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
 COMMON(void)		checkClauseIndexes(Definition def);
 COMMON(void)		listIndexGenerations(Definition def, gen_t gen);
+COMMON(size_t)		sizeofClauseIndexes(Definition def);
 
 /* pl-dwim.c */
 COMMON(word)		pl_dwim_match(term_t a1, term_t a2, term_t mm);
@@ -284,6 +286,7 @@ COMMON(void)		cleanupFunctors(void);
 COMMON(int)		checkFunctors(void);
 COMMON(word)		pl_current_functor(term_t name, term_t arity,
 					   control_t h);
+COMMON(size_t)		functor_space(void);
 
 /* pl-gc.c */
 COMMON(int)		considerGarbageCollect(Stack s);
@@ -516,6 +519,7 @@ COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 COMMON(void)		ddi_add_access_gen(DirtyDefInfo ddi, gen_t access);
 COMMON(int)		ddi_contains_gen(DirtyDefInfo ddi, gen_t access);
 COMMON(int)		ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Clause cl);
+COMMON(size_t)		sizeof_predicate(Definition def);
 
 /* pl-srcfile.c */
 
