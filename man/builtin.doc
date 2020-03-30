@@ -4051,6 +4051,16 @@ is \emph{not} reported.
 The predicate (with arity~4) is declared to provide quasi quotation
 syntax with quasi_quotation_syntax/1.
 
+    \termitem{size}{Bytes}
+Memory used for this predicate. This includes the memory of the
+predicate header, the combined memory of all clauses including erased
+but not yet garbage collected clauses (see garbage_collect_clauses/0 and
+clause_property/2) and the memory used by clause indexes (see the
+\term{indexed}{Indexes} property. \emph{Excluded} are \jargon{lingering}
+data structures. These are garbage data structures that have been
+detached from the predicate but cannot yet be reclaimed because
+they may be in use by some thread.
+
     \termitem{static}{}
 The definition can \emph{not} be modified using assertz/1 and friends.
 This property is the opposite from \const{dynamic}, i.e., for each

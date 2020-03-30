@@ -900,6 +900,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
 '$predicate_property'(abstract(N), Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
+'$predicate_property'(size(Bytes), Pred) :-
+    '$get_predicate_attribute'(Pred, size, Bytes).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).

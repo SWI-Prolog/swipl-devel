@@ -2691,6 +2691,27 @@ sizeofClauseIndex(ClauseIndex ci)
 }
 
 
+size_t
+sizeofClauseIndexes(Definition def)
+{ GET_LD
+  ClauseIndex *cip;
+  size_t size = 0;
+
+  acquire_def(def);
+  if ( (cip=def->impl.clauses.clause_indexes) )
+  { for(; *cip; cip++)
+    { ClauseIndex ci = *cip;
+
+      if ( ISDEADCI(ci) )
+	continue;
+      size += sizeofClauseIndex(ci);
+    }
+  }
+
+  return size;
+}
+
+
 static int
 unify_clause_index(term_t t, ClauseIndex ci)
 { GET_LD
