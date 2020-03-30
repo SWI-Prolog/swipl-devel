@@ -61,8 +61,20 @@ test_thread_property(N) :-
 create_threads(N) :-
     forall(between(1, N, _),
            ( thread_create(tmain, Id, [detached(true)]),
-             thread_send_message(Id, hello(world)),
-             thread_send_message(Id, done))).
+             catch(( thread_send_message(Id, hello(world)),
+                     thread_send_message(Id, done)),
+                   E,
+                   print_message(warning, E)),
+             wait_drain
+           )).
+
+wait_drain :-
+    (   statistics(threads, N),
+        N < 10
+    ->  true
+    ;   sleep(0.01),
+        wait_drain
+    ).
 
 tmain :-
     forall(between(1, 100, I),
