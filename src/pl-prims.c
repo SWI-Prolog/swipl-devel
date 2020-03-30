@@ -5473,7 +5473,8 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
   else if ( key == ATOM_thread_cputime )
   { v->type = V_FLOAT;
     v->value.f = GD->statistics.thread_cputime;
-  }
+  } else if ( key == ATOM_threads_peak )
+    v->value.i = GD->thread.peak_id;
 #endif
   else if (key == ATOM_table_space_used)
   { alloc_pool *pool;

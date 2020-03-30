@@ -1377,6 +1377,8 @@ alloc_thread(void)
     i = info->pl_tid = ++GD->thread.highest_allocated;
     if ( i == GD->thread.thread_max )
       resizeThreadMax();
+    if ( i > GD->thread.peak_id )
+      GD->thread.peak_id = i;
 
     assert(GD->thread.threads[i] == NULL);
     GD->thread.threads[i] = info;

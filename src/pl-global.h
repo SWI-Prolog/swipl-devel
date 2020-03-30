@@ -387,7 +387,8 @@ struct PL_global_data
     PL_thread_info_t   *free;		/* Free threads */
     int			highest_allocated; /* Highest with info struct */
     int			thread_max;	/* Size of threads array */
-    int			highest_id;	/* Highest thread id handled out */
+    int			highest_id;	/* Highest Id of life thread  */
+    int			peak_id;	/* Highest Id of any thread  */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
     struct
     { pthread_mutex_t	mutex;

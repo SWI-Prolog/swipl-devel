@@ -10074,6 +10074,9 @@ threads		& MT-version: number of active threads \\
 threads_created & MT-version: number of created threads \\
 engines		& MT-version: number of existing engines \\
 engines_created & MT-version: number of created engines \\
+threads_peak	& MT-version: highest id handed out.  This is a fair but
+		  possibly not 100\% accurate value for the highest
+		  number of threads since the process was created. \\
 \hline
 \end{tabular}
 \end{center}
