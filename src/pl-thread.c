@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2019, University of Amsterdam,
+    Copyright (c)  1999-2020, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -447,6 +447,8 @@ static PL_thread_info_t *alloc_thread(void);
 static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
 static void	init_message_queue(message_queue *queue, size_t max_size);
+static size_t	sizeof_message_queue(message_queue *queue);
+static size_t	sizeof_local_definitions(PL_local_data_t *ld);
 static void	freeThreadSignals(PL_local_data_t *ld);
 static thread_handle *create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
@@ -2522,6 +2524,32 @@ PRED_IMPL("thread_alias", 1, thread_alias, 0)
 }
 
 
+static size_t
+sizeof_thread(PL_thread_info_t *info)
+{ size_t size = sizeof(*info);
+  struct PL_local_data *ld = info->thread_data;
+
+  if ( info->status != PL_THREAD_RUNNING )
+    return 0;
+
+  if ( ld )
+  { size += sizeof(*ld);
+    size += sizeStackP(&ld->stacks.global)   + ld->stacks.global.spare;
+    size += sizeStackP(&ld->stacks.local)    + ld->stacks.local.spare;
+    size += sizeStackP(&ld->stacks.trail)    + ld->stacks.trail.spare;
+    size += sizeStackP(&ld->stacks.argument);
+
+    size += sizeof_message_queue(&ld->thread.messages);
+    size += sizeof_local_definitions(ld);
+
+    if ( ld->tabling.node_pool )
+      size += ld->tabling.node_pool->size;
+  }
+
+  return size;
+}
+
+
 		 /*******************************
 		 *	  THREAD PROPERTY	*
 		 *******************************/
@@ -2609,6 +2637,20 @@ thread_tid_propery(PL_thread_info_t *info, term_t prop ARG_LD)
   return FALSE;
 }
 
+static int
+thread_size_propery(PL_thread_info_t *info, term_t prop ARG_LD)
+{ size_t size;
+
+  PL_LOCK(L_THREAD);
+  size = sizeof_thread(info);
+  PL_UNLOCK(L_THREAD);
+
+  if ( size )
+    return PL_unify_int64(prop, size);
+
+  return FALSE;
+}
+
 static const tprop tprop_list [] =
 { { FUNCTOR_id1,	       thread_id_propery },
   { FUNCTOR_alias1,	       thread_alias_propery },
@@ -2618,6 +2660,7 @@ static const tprop tprop_list [] =
   { FUNCTOR_engine1,	       thread_engine_propery },
   { FUNCTOR_thread1,	       thread_thread_propery },
   { FUNCTOR_system_thread_id1, thread_tid_propery },
+  { FUNCTOR_size1,	       thread_size_propery },
   { 0,			       NULL }
 };
 
@@ -4064,6 +4107,22 @@ init_message_queue(message_queue *queue, size_t max_size)
   if ( queue->max_size != 0 )
     cv_init(&queue->drain_var, NULL);
   queue->initialized = TRUE;
+}
+
+
+static size_t
+sizeof_message_queue(message_queue *queue)
+{ size_t size = 0;
+  thread_message *msgp;
+
+  simpleMutexLock(&queue->gc_mutex);
+  for( msgp = queue->head; msgp; msgp = msgp->next )
+  { size += sizeof(*msgp);
+    size += msgp->message->size;
+  }
+  simpleMutexUnlock(&queue->gc_mutex);
+
+  return size;
 }
 
 					/* Prolog predicates */
@@ -6300,6 +6359,19 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
     freeHeap(ch, sizeof(*ch));
   }
 }
+
+
+static size_t
+sizeof_local_definitions(PL_local_data_t *ld)
+{ DefinitionChain ch = ld->thread.local_definitions;
+  size_t size = 0;
+
+  for( ; ch; ch = ch->next)
+    size += sizeof_predicate(ch->definition);
+
+  return size;
+}
+
 
 
 /** '$thread_local_clause_count'(:Head, +Thread, -NumberOfClauses) is semidet.

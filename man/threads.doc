@@ -360,6 +360,12 @@ If the thread is an engine (see \chapref{engines}), \arg{Boolean} is
 If the thread is an engine that is currently attached to a thread,
 \arg{ThreadId} is the thread that executes the engine.
 
+	\termitem{size}{Bytes}
+The amount of memory associated with this thread. This includes the
+thread structure, its stacks, its default message queue, its clauses
+in its thread local dynamic predicates (see thread_local/1) and memory
+used for representing thread-local answer tries (see \secref{tabling}).
+
 	\termitem{system_thread_id}{Integer}
 Thread identifier used by the operating system for the calling thread.
 Not available on all OSes. This is the same as the Prolog flag
