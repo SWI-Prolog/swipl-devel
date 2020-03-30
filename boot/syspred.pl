@@ -1125,6 +1125,7 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(size(_)).
 module_property(program_size(_)).
 module_property(program_space(_)).
 module_property(last_modified_generation(_)).
