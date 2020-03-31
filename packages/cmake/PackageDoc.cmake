@@ -200,9 +200,10 @@ function(pkg_doc pkg)
 
     add_dependencies(doc.html ${pkg}.doc.html)
 
+    set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
     prepend(doc_files ${CMAKE_CURRENT_BINARY_DIR}/ ${pkg}.html ${vimages})
     install(FILES ${doc_files}
-	    DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages
+	    DESTINATION ${SWIPL_INSTALL_DOC}/packages
 	    COMPONENT Documentation
 	    OPTIONAL)
   endif(INSTALL_DOCUMENTATION)

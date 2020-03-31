@@ -1605,11 +1605,12 @@ to 0 if a command line editor is provided (see Prolog flag
 \prologflag{readline}) and 15 otherwise.
 
     \prologflagitem{home}{atom}{r}
-SWI-Prolog's notion of the home directory.  SWI-Prolog uses its home
-directory to find its startup file as
-\file{<home>/boot32.prc} (32-bit machines) or
-\file{<home>/boot64.prc} (64-bit machines) and to find its library as
-\file{<home>/library}.
+SWI-Prolog's notion of the home directory. SWI-Prolog uses its home
+directory to find its startup file as \file{<home>/boot.prc} and to find
+its library as \file{<home>/library}. Some installations may put
+architecture independent files in a \jargon{shared home} and also
+define \prologflag{shared_home}.  System files can be found using
+absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
 
     \prologflagitem{hwnd}{integer}{r}
 In \program{swipl-win.exe}, this refers to the MS-Windows window handle of
@@ -1947,6 +1948,13 @@ allow library(sandbox) to verify the safety of directives.
     \prologflagitem{saved_program}{bool}{r}
 If present and \const{true}, Prolog has been started from a state saved
 with qsave_program/[1,2].
+
+    \prologflagitem{shared_home}{atom}{r}
+Indicates that part of the SWI-Prolog system files are installed in
+\file{<prefix>/share/swipl} instead of in the home at the
+\file{<prefix>/lib/swipl}.  This flag indicates the location of this
+\emph{shared home} and the directory is added to the file seach path
+\const{swi}.  See file_search_path/2 and the flag \prologflag{home}.
 
     \prologflagitem{shared_object_extension}{atom}{r}
 Extension used by the operating system for shared objects. \fileext{so}

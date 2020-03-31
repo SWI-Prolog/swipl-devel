@@ -1428,6 +1428,9 @@ initPrologFlags(void)
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
+#ifdef PLSHAREDHOME
+  setPrologFlag("shared_home", FT_ATOM|FF_READONLY, PLSHAREDHOME);
+#endif
   if ( GD->paths.executable )
     setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
 #if defined(HAVE_GETPID) || defined(EMULATE_GETPID)

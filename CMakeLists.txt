@@ -27,6 +27,9 @@ option(SWIPL_VERSIONED_DIR
 option(SWIPL_INSTALL_IN_LIB
        "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
        OFF)
+option(SWIPL_INSTALL_IN_SHARE
+       "Install docs in ${CMAKE_INSTALL_PREFIX}/share/swipl"
+       OFF)
 option(SWIPL_M32
        "Build 32-bit version on 64-bit Linux using multilib and gcc -m32"
        OFF)
@@ -128,6 +131,11 @@ endif(WIN32)
 set(SWIPL_INSTALL_LIBRARY  ${SWIPL_INSTALL_PREFIX}/library)
 set(SWIPL_INSTALL_BOOT     ${SWIPL_INSTALL_PREFIX}/boot)
 set(SWIPL_INSTALL_INCLUDE  ${SWIPL_INSTALL_PREFIX}/include)
+if(SWIPL_INSTALL_IN_SHARE)
+  set(SWIPL_INSTALL_DOC	   ${CMAKE_INSTALL_PREFIX}/share/${SWIPL_INSTALL_DIR}/doc)
+else()
+  set(SWIPL_INSTALL_DOC	   ${SWIPL_INSTALL_PREFIX}/doc)
+endif()
 if(INSTALL_TESTS)
    set(INSTALL_TESTS_DIR   ${SWIPL_INSTALL_PREFIX}/test)
 endif()
@@ -182,7 +190,7 @@ if(INSTALL_DOCUMENTATION)
       man_index
       DEPENDS ${MAN_INDEX})
   add_dependencies(doc man_index)
-  install(FILES ${MAN_INDEX} DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
+  install(FILES ${MAN_INDEX} DESTINATION ${SWIPL_INSTALL_DOC})
 
   if(BUILD_PDF_DOCUMENTATION)
     add_custom_target(
@@ -193,7 +201,7 @@ if(INSTALL_DOCUMENTATION)
 
   add_subdirectory(man)
   install(FILES packages/index.html
-	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages)
+	  DESTINATION ${SWIPL_INSTALL_DOC}/packages)
 endif(INSTALL_DOCUMENTATION)
 
 # Install a prolog script to run tests on target device

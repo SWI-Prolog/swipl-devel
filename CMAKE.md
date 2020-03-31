@@ -109,6 +109,7 @@ allow for restricting the system.
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`    |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
+  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in <prefix>/share      |
   | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system          |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages             |
