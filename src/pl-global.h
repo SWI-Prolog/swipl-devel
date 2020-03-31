@@ -205,7 +205,6 @@ struct PL_global_data
   { size_t	highest;		/* Highest atom index */
     atom_array	array;
     AtomTable	table;			/* hash-table */
-    Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
     int		initialised;		/* atoms have been initialised */

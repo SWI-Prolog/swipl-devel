@@ -1506,7 +1506,6 @@ registerBuiltinAtoms(void)
   size_t index;
   int idx;
 
-  GD->atoms.builtin_array = PL_malloc(size * sizeof(struct atom));
   GD->statistics.atoms = size;
 
   for( sp = atoms, index = GD->atoms.highest; *sp; sp++, index++ )
