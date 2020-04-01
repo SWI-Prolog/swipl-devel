@@ -3230,17 +3230,23 @@ size_t
 sizeof_predicate(Definition def)
 { GET_LD
   size_t size = sizeof(*def);
-  ClauseRef c;
 
-  acquire_def(def);
-  for(c = def->impl.clauses.first_clause; c; c = c->next)
-  { Clause cl = c->value.clause;
+  size += sizeof_supervisor(def->codes);
 
-    size += sizeofClause(cl->code_size);
+  if ( false(def, P_FOREIGN) )
+  { ClauseRef c;
+
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+
+      size += sizeofClause(cl->code_size);
+      size += SIZEOF_CREF_CLAUSE;
+    }
+    release_def(def);
+
+    size += sizeofClauseIndexes(def);
   }
-  release_def(def);
-
-  size += sizeofClauseIndexes(def);
 
   return size;
 }
@@ -3342,10 +3348,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
       fail;
     return PL_unify_integer(value, num_visible_clauses(def, key));
   } else if ( key == ATOM_size )
-  { if ( def->flags & P_FOREIGN )
-      fail;
-
-    def = getProcDefinition(proc);
+  { def = getProcDefinition(proc);
     return PL_unify_integer(value, sizeof_predicate(def));
   } else if ( tbl_is_predicate_attribute(key) )
   { size_t sz_value;

@@ -88,6 +88,7 @@ COMMON(int)		createForeignSupervisor(Definition def, Func f);
 COMMON(int)		createUndefSupervisor(Definition def);
 COMMON(Code)		createSupervisor(Definition def);
 COMMON(int)		setSupervisor(Definition def);
+COMMON(size_t)		sizeof_supervisor(Code base);
 COMMON(size_t)		supervisorLength(Code base);
 COMMON(void)		initSupervisors(void);
 

@@ -442,6 +442,16 @@ supervisorLength(Code base)
   }
 }
 
+/* returns 0 for shared static supervisors
+ */
+
+size_t
+sizeof_supervisor(Code base)
+{ size_t size = (size_t)base[-1];
+
+  return size*sizeof(code);
+}
+
 
 		 /*******************************
 		 *	       INIT		*
