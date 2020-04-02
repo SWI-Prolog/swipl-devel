@@ -35,7 +35,8 @@
 #ifndef BUFFER_H_INCLUDED
 #define BUFFER_H_INCLUDED
 
-#define STATIC_BUFFER_SIZE (512)
+#define STATIC_BUFFER_SIZE	(512)
+#define BUFFER_DISCARD_ABOVE	(4096)
 
 typedef struct
 { char *	base;			/* allocated base */
@@ -109,21 +110,33 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 #define initBuffer(b)            ((b)->base = (b)->top = (b)->static_buffer, \
 				  (b)->max = (b)->base + \
 				  sizeof((b)->static_buffer))
-#define emptyBuffer(b)           ((b)->top  = (b)->base)
+#define emptyBuffer(b)		 emptyBuffer_((Buffer)(b), \
+					      sizeof((b)->static_buffer))
 #define isEmptyBuffer(b)         ((b)->top == (b)->base)
 #define popBuffer(b,type) \
 	((b)->top -= sizeof(type), *(type*)(b)->top)
 #define popBufferP(b,type) \
 	((b)->top -= sizeof(type), (type*)(b)->top)
+#define discardBuffer(b)	 discardBuffer_((Buffer)(b))
 
-#define discardBuffer(b) \
-	do \
-	{ if ( (b)->base && (b)->base != (b)->static_buffer ) \
-	  { free((b)->base); \
-	    (b)->base = (b)->static_buffer; \
-	  } \
-	} while(0)
+static inline void
+discardBuffer_(Buffer b)
+{ if ( b->base && b->base != b->static_buffer )
+  { tmp_free(b->base);
+    b->base = b->static_buffer;
+  }
+}
 
+static inline void
+emptyBuffer_(Buffer b, size_t emptysize)
+{ if ( b->max - b->base < BUFFER_DISCARD_ABOVE )
+  { b->top = b->base;
+  } else
+  { discardBuffer(b);
+    b->base = b->top = b->static_buffer,
+    b->max  = b->base + emptysize;
+  }
+}
 
 		 /*******************************
 		 *	    FUNCTIONS		*

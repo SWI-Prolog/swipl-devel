@@ -49,12 +49,14 @@ growBuffer(Buffer b, size_t minfree)
     sz *= 2;
 
   if ( b->base == b->static_buffer )
-  { if ( !(new = malloc(sz)) )
+  { sz = tmp_nalloc(sz);
+    if ( !(new = tmp_malloc(sz)) )
       return FALSE;
 
     memcpy(new, b->static_buffer, osz);
   } else
-  { if ( !(new = realloc(b->base, sz)) )
+  { sz = tmp_nrealloc(b->base, sz);
+    if ( !(new = tmp_realloc(b->base, sz)) )
       return FALSE;
   }
 
