@@ -213,7 +213,7 @@ bump_atom_references(Atom a, unsigned int ref)
     if ( ATOM_REF_COUNT(nref) == 0 )
       return TRUE;			/* reached max references */
 
-    if ( COMPARE_AND_SWAP(&a->references, ref, nref) )
+    if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
     { if ( ATOM_REF_COUNT(ref) == 0 )
 	ATOMIC_DEC(&GD->atoms.unregistered);
       return TRUE;
@@ -422,7 +422,7 @@ allocateAtomBlock(int idx)
     { newblock[i].type = ATOM_TYPE_INVALID;
       newblock[i].name = "<virgin>";
     }
-    if ( !COMPARE_AND_SWAP(&GD->atoms.array.blocks[idx],
+    if ( !COMPARE_AND_SWAP_PTR(&GD->atoms.array.blocks[idx],
 			   NULL, newblock-bs) )
       PL_free(newblock);		/* done by someone else */
   }
@@ -453,7 +453,7 @@ reserveAtom(void)
       ref = a->references;
 
       if ( ATOM_IS_FREE(ref) &&
-	   COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
+	   COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
       { assert(a->type == ATOM_TYPE_INVALID);
 	GD->atoms.no_hole_before = index+1;
         a->atom = (index<<LMASK_BITS)|TAG_ATOM;
@@ -477,8 +477,8 @@ reserveAtom(void)
     ref = a->references;
 
     if ( ATOM_IS_FREE(ref) &&
-	 COMPARE_AND_SWAP(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-    { COMPARE_AND_SWAP(&GD->atoms.highest, index, index+1);
+	 COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
+    { COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, index, index+1);
       a->atom = (index<<LMASK_BITS)|TAG_ATOM;
 
       return a;
@@ -611,7 +611,7 @@ redo:
   if ( true(type, PL_BLOB_UNIQUE) )
   { a->next = table[v];
     if ( !( !GD->atoms.rehashing &&	/* See (**) above */
-            COMPARE_AND_SWAP(&table[v], head, a) &&
+            COMPARE_AND_SWAP_PTR(&table[v], head, a) &&
 	    table == GD->atoms.table->table ) )
     { if ( false(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
@@ -828,18 +828,18 @@ invalidateAtom(Atom a, unsigned int ref)
 #define ATOM_PRE_DESTROY_REFERENCE \
 	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
-  if ( !COMPARE_AND_SWAP(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
+  if ( !COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
   { return FALSE;
   }
 
   if ( a->type->release )
   { if ( !(*a->type->release)(a->atom) )
-    { COMPARE_AND_SWAP(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
+    { COMPARE_AND_SWAP_UINT(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
       return FALSE;
     }
   } else if ( GD->atoms.gc_hook )
   { if ( !(*GD->atoms.gc_hook)(a->atom) )
-    { COMPARE_AND_SWAP(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
+    { COMPARE_AND_SWAP_UINT(&a->references, ATOM_PRE_DESTROY_REFERENCE, ref);
       return FALSE;				/* foreign hooks says `no' */
     }
   }
@@ -861,7 +861,7 @@ invalidateAtom(Atom a, unsigned int ref)
     ap = &table->table[a->hash_value & mask];
 
     if ( *ap == a )
-    { if ( !COMPARE_AND_SWAP(&table->table[a->hash_value & mask], a, a->next) )
+    { if ( !COMPARE_AND_SWAP_PTR(&table->table[a->hash_value & mask], a, a->next) )
       { goto redo;
       }
     }
@@ -1021,7 +1021,7 @@ pl_garbage_collect_atoms(void)
   if ( GD->cleaning != CLN_NORMAL )	/* Cleaning up */
     return TRUE;
 
-  if ( !COMPARE_AND_SWAP(&GD->atoms.gc_active, FALSE, TRUE) )
+  if ( !COMPARE_AND_SWAP_INT(&GD->atoms.gc_active, FALSE, TRUE) )
     return TRUE;
 
   if ( verbose )
@@ -1110,7 +1110,7 @@ register_atom(volatile Atom p)
     unsigned int nref = ref+1;
 
     if ( ATOM_REF_COUNT(nref) != 0 )
-    { if ( COMPARE_AND_SWAP(&p->references, ref, nref) )
+    { if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
       { if ( ATOM_REF_COUNT(nref) == 1 )
 	  ATOMIC_DEC(&GD->atoms.unregistered);
 	return nref;
@@ -1209,7 +1209,7 @@ unregister_atom(volatile Atom p)
 
       if ( ATOM_REF_COUNT(newref) == 0 )
 	newref |= ATOM_MARKED_REFERENCE;
-    } while( !COMPARE_AND_SWAP(&p->references, oldref, newref) );
+    } while( !COMPARE_AND_SWAP_UINT(&p->references, oldref, newref) );
     refs = ATOM_REF_COUNT(newref);
 #ifdef O_DEBUG_ATOMGC
     if ( refs == 0 && atomLogFd && tracking(p) )

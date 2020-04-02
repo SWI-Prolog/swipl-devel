@@ -7,12 +7,6 @@ check_c_source_compiles(
     "unsigned int x = 11; int main() { return __builtin_popcount(x); }"
     HAVE__BUILTIN_POPCOUNT)
 check_c_source_compiles(
-    "int main() { __sync_synchronize(); return 0;}"
-    HAVE__SYNC_SYNCHRONIZE)
-check_c_source_compiles(
-    "long long v = 1; int main() { return __sync_add_and_fetch(&v, 1); }"
-    HAVE___SYNC_ADD_AND_FETCH_8)
-check_c_source_compiles(
     "int i=0; int main() { return __builtin_expect(i, 0) ? 0 : 1; }"
     HAVE___BUILTIN_EXPECT)
 check_c_source_compiles(

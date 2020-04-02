@@ -141,7 +141,7 @@ lingerDefinition(Definition def)
   do
   { o            = m->lingering;
     c->next      = o;
-  } while( !COMPARE_AND_SWAP(&m->lingering, o, c) );
+  } while( !COMPARE_AND_SWAP_PTR(&m->lingering, o, c) );
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Linger %s\n", predicateName(def)));
   ATOMIC_SUB(&m->code_size, sizeof(*def));
@@ -1136,7 +1136,7 @@ lingerClauseRef(ClauseRef cref)
   do
   { o = GD->clauses.lingering;
     cref->d.gnext = o;
-  } while(!COMPARE_AND_SWAP(&GD->clauses.lingering, o, cref) );
+  } while(!COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, o, cref) );
 
   ATOMIC_INC(&GD->clauses.lingering_count);
 }
@@ -1149,7 +1149,7 @@ gcClauseRefs(void)
 { ClauseRef cref;
 
   if ( !(cref = GD->clauses.lingering) ||
-       !COMPARE_AND_SWAP(&GD->clauses.lingering, cref, NULL) )
+       !COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, cref, NULL) )
     return;			/* no work or someone else doing it */
   GD->clauses.lingering_count = 0;
 
@@ -1196,23 +1196,14 @@ activePredicate(const Definition *defs, const Definition def)
 static void
 setLastModifiedPredicate(Definition def, gen_t gen)
 { Module m = def->module;
+  gen_t lmm;
 
   def->last_modified = gen;
-
-#ifdef HAVE___SYNC_ADD_AND_FETCH_8
-{ gen_t lmm;
 
   do
   { lmm = m->last_modified;
   } while ( lmm < gen &&
-	    !COMPARE_AND_SWAP(&m->last_modified, lmm, gen) );
-}
-#else
-  LOCKMODULE(m);
-  if ( m->last_modified < gen )
-    m->last_modified = gen;
-  UNLOCKMODULE(m);
-#endif
+	    !COMPARE_AND_SWAP_UINT64(&m->last_modified, lmm, gen) );
 }
 
 
@@ -2394,7 +2385,7 @@ pl_garbage_collect_clauses(void)
   int rc = TRUE;
 
   if ( GD->procedures.dirty->size > 0 &&
-       COMPARE_AND_SWAP(&GD->clauses.cgc_active, FALSE, TRUE) )
+       COMPARE_AND_SWAP_INT(&GD->clauses.cgc_active, FALSE, TRUE) )
   { size_t removed = 0;
     size_t erased_pending = GD->clauses.erased_size;
     double gct, t0 = ThreadCPUTime(LD, CPU_USER);

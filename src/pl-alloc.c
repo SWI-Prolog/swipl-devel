@@ -205,7 +205,7 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
   do
   { o = *list;
     c->next = o;
-  } while( !COMPARE_AND_SWAP(list, o, c) );
+  } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
 }
 
 void
@@ -215,7 +215,7 @@ free_lingering(linger_list **list, gen_t generation)
 
   while ( c )
   { if ( c->generation < generation )
-    { while ( !COMPARE_AND_SWAP(p, c, c->next) )
+    { while ( !COMPARE_AND_SWAP_PTR(p, c, c->next) )
       { p = &(*p)->next;
       }
       (*c->unalloc)(c->object);

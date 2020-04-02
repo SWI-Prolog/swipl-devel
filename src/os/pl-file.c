@@ -175,7 +175,7 @@ getStreamContext(IOSTREAM *s)
     ctx->alias_head = ctx->alias_tail = NULL;
     ctx->filename = NULL_ATOM;
     ctx->flags = 0;
-    if ( COMPARE_AND_SWAP(&s->context, NULL, ctx) )
+    if ( COMPARE_AND_SWAP_PTR(&s->context, NULL, ctx) )
       addNewHTable(streamContext, s, ctx);
     else
       freeHeap(ctx, sizeof(*ctx));
@@ -285,7 +285,7 @@ freeStream(IOSTREAM *s)
   PL_LOCK(L_FILE);
   unaliasStream(s, NULL_ATOM);
   ctx = s->context;
-  if ( ctx && COMPARE_AND_SWAP(&s->context, ctx, NULL) )
+  if ( ctx && COMPARE_AND_SWAP_PTR(&s->context, ctx, NULL) )
   { deleteHTable(streamContext, s);
     if ( ctx->filename != NULL_ATOM )
     { PL_unregister_atom(ctx->filename);

@@ -915,7 +915,7 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       else if ( k == ATOM_shared_table_space )
       { if ( !GD->tabling.node_pool )
 	{ alloc_pool *pool = new_alloc_pool("shared_table_space", i);
-	  if ( pool && !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
+	  if ( pool && !COMPARE_AND_SWAP_PTR(&GD->tabling.node_pool, NULL, pool) )
 	    free_alloc_pool(pool);
 	} else
 	  GD->tabling.node_pool->limit = (size_t)i;

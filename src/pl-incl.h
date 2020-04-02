@@ -1026,7 +1026,7 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+#if defined(HAVE_GCC_ATOMIC_8) || SIZEOF_VOIDP == 8
 typedef uint64_t ggen_t;
 #else
 #define ATOMIC_GENERATION_HACK 1
@@ -1034,7 +1034,7 @@ typedef struct ggen_t
 { uint32_t	gen_l;
   uint32_t	gen_u;
 } ggen_t;
-#endif /*HAVE___SYNC_ADD_AND_FETCH_8*/
+#endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
 #else /*O_LOGICAL_UPDATE*/
 #define global_generation()	 (0)
 #define next_global_generation() (0)

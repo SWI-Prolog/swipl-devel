@@ -165,7 +165,7 @@ drop_trie(trie *atrie)
 #ifdef O_DEBUG
   int mytid = PL_thread_self();
   assert(mytid == atrie->tid);
-  int rc = COMPARE_AND_SWAP(&atrie->tid, mytid, 0);
+  int rc = COMPARE_AND_SWAP_INT(&atrie->tid, mytid, 0);
   assert(rc);
 #else
   atrie->tid = 0;
@@ -176,7 +176,7 @@ static inline void
 take_trie(trie *atrie, int tid)
 { assert(atrie->data.worklist != WL_DYNAMIC);
 #ifdef O_DEBUG
-  int rc = COMPARE_AND_SWAP(&atrie->tid, 0, tid);
+  int rc = COMPARE_AND_SWAP_INT(&atrie->tid, 0, tid);
   assert(rc);
 #else
   atrie->tid = tid;
@@ -2067,7 +2067,7 @@ variant_table(int shared ARG_LD)
     if ( !(pool = GD->tabling.node_pool) )
     { if ( (pool = new_alloc_pool("shared_table_space",
 				  GD->options.sharedTableSpace)) )
-      { if ( !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
+      { if ( !COMPARE_AND_SWAP_PTR(&GD->tabling.node_pool, NULL, pool) )
 	{ free_alloc_pool(pool);
 	  pool = GD->tabling.node_pool;
 	}
@@ -2095,7 +2095,7 @@ variant_table(int shared ARG_LD)
       t->release_node = release_variant_table_node;
       symb = trie_symbol(t);
 
-      if ( COMPARE_AND_SWAP(tp, NULL, t) )
+      if ( COMPARE_AND_SWAP_PTR(tp, NULL, t) )
       { if ( shared )
 	{ set(t, TRIE_ISSHARED);
 	  acquire_trie(t);			/* bit misuse */
@@ -2300,7 +2300,7 @@ retry:
 #ifdef O_PLMT
       if ( shared )
       { set(atrie, TRIE_ISSHARED);
-	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
+	if ( COMPARE_AND_SWAP_WORD(&node->value, 0, symb) )
 	{ set(node, TN_PRIMARY);
 	  ATOMIC_INC(&variants->value_count);
 	} else
@@ -5351,7 +5351,7 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
   if ( !(t=child->affected) )
   { t = newHTable(4);
     t->free_symbol = idg_free_affected;
-    if ( !COMPARE_AND_SWAP(&child->affected, NULL, t) )
+    if ( !COMPARE_AND_SWAP_PTR(&child->affected, NULL, t) )
       destroyHTable(t);
   }
   addHTable(t, parent, child);
@@ -5359,7 +5359,7 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
   if ( !(t=parent->dependent) )
   { t = newHTable(4);
     t->free_symbol = idg_free_dependent;
-    if ( !COMPARE_AND_SWAP(&parent->dependent, NULL, t) )
+    if ( !COMPARE_AND_SWAP_PTR(&parent->dependent, NULL, t) )
       destroyHTable(t);
   }
   addHTable(t, child, parent);
@@ -5383,7 +5383,7 @@ idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
     if ( true(def, P_INCREMENTAL) )
     { idg_node *n = idg_new(atrie);
 
-      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+      if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
   }
@@ -5522,7 +5522,7 @@ idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
       assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
       n = idg_new(atrie);
-      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+      if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
 
@@ -6254,7 +6254,7 @@ tbl_set_predicate_attribute(Definition def, atom_t att, size_t value)
   { p = allocHeapOrHalt(sizeof(*p));
 
     clear_table_props(p);
-    if ( !COMPARE_AND_SWAP(&def->tabling, NULL, p) )
+    if ( !COMPARE_AND_SWAP_PTR(&def->tabling, NULL, p) )
     { p = def->tabling;
       freeHeap(p, sizeof(*p));
     }
@@ -6587,7 +6587,7 @@ register_waiting(int tid, trie *atrie)
 
   if ( !(ta=GD->tabling.waiting) )
   { ta = new_trie_array();
-    if ( !COMPARE_AND_SWAP(&GD->tabling.waiting, NULL, ta) )
+    if ( !COMPARE_AND_SWAP_PTR(&GD->tabling.waiting, NULL, ta) )
     { freeHeap(ta, sizeof(*ta));
       ta = GD->tabling.waiting;
     }
@@ -6602,7 +6602,7 @@ register_waiting(int tid, trie *atrie)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(trie*));
-      if ( !COMPARE_AND_SWAP(&ta->blocks[idx], NULL, newblock-bs) )
+      if ( !COMPARE_AND_SWAP_PTR(&ta->blocks[idx], NULL, newblock-bs) )
 	PL_free(newblock);
     }
   }

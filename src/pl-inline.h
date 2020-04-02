@@ -110,18 +110,59 @@ __builtin_popcount(size_t sz)
 #define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
 #endif
 
-#ifdef HAVE__SYNC_SYNCHRONIZE
-#define MEMORY_BARRIER()		__sync_synchronize()
+#ifdef HAVE_GCC_ATOMIC
+#define MEMORY_BARRIER()	__atomic_thread_fence(__ATOMIC_SEQ_CST)
 #endif
 
 #ifdef O_PLMT
-#define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
-#define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
-#define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
-#define ATOMIC_DEC(ptr)			ATOMIC_SUB(ptr, 1) /* --(*ptr) */
-#define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
-#define ATOMIC_AND(ptr, v)		__sync_fetch_and_and(ptr, v)
-#define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
+#define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_INC(ptr)		ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
+#define ATOMIC_DEC(ptr)		ATOMIC_SUB(ptr, 1) /* --(*ptr) */
+#define ATOMIC_OR(ptr, v)	__atomic_fetch_or(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_AND(ptr, v)	__atomic_fetch_and(ptr, v, __ATOMIC_SEQ_CST)
+
+#define __COMPARE_AND_SWAP(at, from, to) \
+	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+static inline int
+COMPARE_AND_SWAP_PTR(void *at, void *from, void *to)
+{ void **ptr = at;
+
+  return __COMPARE_AND_SWAP(ptr, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_INT64(int64_t *at, int64_t from, int64_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_UINT64(uint64_t *at, uint64_t from, uint64_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_INT(int *at, int from, int to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_UINT(unsigned int *at, unsigned int from, unsigned int to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_SIZE(size_t *at, size_t from, size_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_WORD(word *at, word from, word to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
 #else
 #define ATOMIC_ADD(ptr, v)		(*ptr += v)
 #define ATOMIC_SUB(ptr, v)		(*ptr -= v)

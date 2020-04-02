@@ -1204,7 +1204,7 @@ thread_gc_loop(void *closure)
 
     do
     { h = gced_threads;
-    } while ( h && !COMPARE_AND_SWAP(&gced_threads, h, h->next_free) );
+    } while ( h && !COMPARE_AND_SWAP_PTR(&gced_threads, h, h->next_free) );
 
     if ( h )
     { if ( GD->cleaning == CLN_NORMAL )
@@ -1247,7 +1247,7 @@ gc_thread(thread_handle *ref)
   do
   { h = gced_threads;
     ref->next_free = h;
-  } while( !COMPARE_AND_SWAP(&gced_threads, h, ref) );
+  } while( !COMPARE_AND_SWAP_PTR(&gced_threads, h, ref) );
 
   start_thread_gc_thread();
 }
@@ -1360,7 +1360,7 @@ alloc_thread(void)
 
   do
   { info = GD->thread.free;
-  } while ( info && !COMPARE_AND_SWAP(&GD->thread.free, info, info->next_free) );
+  } while ( info && !COMPARE_AND_SWAP_PTR(&GD->thread.free, info, info->next_free) );
 
   if ( info )
   { int i = info->pl_tid;
@@ -1397,7 +1397,7 @@ alloc_thread(void)
   do
   { mx = GD->thread.highest_id;
   } while ( info->pl_tid > mx &&
-	    !COMPARE_AND_SWAP(&GD->thread.highest_id, mx, info->pl_tid) );
+	    !COMPARE_AND_SWAP_INT(&GD->thread.highest_id, mx, info->pl_tid) );
 
   ATOMIC_INC(&GD->statistics.threads_created);
 
@@ -1575,7 +1575,7 @@ thread_wait_signal(ARG1_LD)
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
-	{ __sync_and_and_fetch(&LD->signal.pending[i], ~mask);
+	{ __atomic_and_fetch(&LD->signal.pending[i], ~mask, __ATOMIC_SEQ_CST);
 
 	  if ( sig == SIG_THREAD_SIGNAL )
 	  { dispatch_signal(sig, TRUE);
@@ -2363,13 +2363,13 @@ free_thread_info(PL_thread_info_t *info)
     }
 
 					/* do not update if alloc_thread() did */
-    COMPARE_AND_SWAP(&GD->thread.highest_id, info->pl_tid, i);
+    COMPARE_AND_SWAP_INT(&GD->thread.highest_id, info->pl_tid, i);
   }
 
   do
   { freelist = GD->thread.free;
     info->next_free = freelist;
-  } while( !COMPARE_AND_SWAP(&GD->thread.free, freelist, info) );
+  } while( !COMPARE_AND_SWAP_PTR(&GD->thread.free, freelist, info) );
 
   if ( rec_rv ) PL_erase(rec_rv);
   if ( rec_g )  PL_erase(rec_g);
@@ -2442,7 +2442,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
 
   status = info->status;
   if ( !THREAD_STATUS_INVALID(status) &&
-       COMPARE_AND_SWAP(&info->status, status, PL_THREAD_JOINED) )
+       COMPARE_AND_SWAP_INT((int*)&info->status, (int)status, (int)PL_THREAD_JOINED) )
   { rval = unify_thread_status(retcode, info, status, FALSE);
 
     free_thread_info(info);
@@ -5472,7 +5472,7 @@ GCmain(void *closure)
 static int
 GCthread(void)
 { if ( GC_id <= 0 )
-  { if ( COMPARE_AND_SWAP(&GC_starting, FALSE, TRUE) )
+  { if ( COMPARE_AND_SWAP_INT(&GC_starting, FALSE, TRUE) )
     { pthread_attr_t attr;
       pthread_t thr;
       int rc;
@@ -6836,7 +6836,7 @@ pushPredicateAccessObj(Definition def ARG_LD)
       outOfCore();
 
     memset(newblock, 0, bs*sizeof(definition_ref));
-    if ( !COMPARE_AND_SWAP(&refs->blocks[idx], NULL, newblock-bs) )
+    if ( !COMPARE_AND_SWAP_PTR(&refs->blocks[idx], NULL, newblock-bs) )
       PL_free(newblock);
   }
 

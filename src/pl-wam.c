@@ -303,7 +303,7 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
     do
     { alerted = ld->alerted;
-    } while ( !COMPARE_AND_SWAP(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+    } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
 
     return TRUE;
   }
@@ -1396,7 +1396,7 @@ localDefinition(Definition def ARG_LD)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
-      if ( !COMPARE_AND_SWAP(&v->blocks[idx], NULL, newblock-bs) )
+      if ( !COMPARE_AND_SWAP_PTR(&v->blocks[idx], NULL, newblock-bs) )
 	PL_free(newblock);
     }
   }

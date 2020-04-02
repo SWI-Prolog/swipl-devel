@@ -51,9 +51,24 @@ check_include_file(sys/stropts.h HAVE_SYS_STROPTS_H)
 check_include_file(zlib.h HAVE_ZLIB_H)
 check_include_file(crt_externs.h HAVE_CRT_EXTERNS_H)
 
-check_library_exists(dl dlopen	      "" HAVE_LIBDL)
-check_library_exists(m  sin           "" HAVE_LIBM)
-check_library_exists(rt clock_gettime "" HAVE_LIBRT)
+check_c_source_compiles(
+    "int val = 1;
+     int main() { __atomic_add_fetch(&val, 2, __ATOMIC_SEQ_CST); }"
+    HAVE_GCC_ATOMIC)
+check_c_source_compiles(
+    "#include <stdint.h>
+     uint64_t val = 1;
+     int main() { __atomic_add_fetch(&val, 2, __ATOMIC_SEQ_CST); }"
+    HAVE_GCC_ATOMIC_8)
+if(HAVE_GCC_ATOMIC AND NOT HAVE_GCC_ATOMIC_8)
+check_library_exists(atomic __atomic_add_fetch_4 "" HAVE_LIBATOMIC)
+else()
+set(HAVE_LIBATOMIC OFF CACHE BOOL "No need to link with -latomic")
+endif()
+
+check_library_exists(dl	dlopen	      "" HAVE_LIBDL)
+check_library_exists(m	sin	      "" HAVE_LIBM)
+check_library_exists(rt	clock_gettime "" HAVE_LIBRT)
 
 if(HAVE_LIBDL)
   set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} dl)

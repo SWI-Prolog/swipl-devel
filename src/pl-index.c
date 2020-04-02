@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -2521,7 +2521,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
   if ( !clist->args )
   { arg_info *ai = allocHeapOrHalt(ac*sizeof(*ai));
     memset(ai, 0, ac*sizeof(*ai));
-    if ( !COMPARE_AND_SWAP(&clist->args, NULL, ai) )
+    if ( !COMPARE_AND_SWAP_PTR(&clist->args, NULL, ai) )
       freeHeap(ai, ac*sizeof(*ai));
   }
 

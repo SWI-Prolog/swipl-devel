@@ -162,7 +162,7 @@ redo:
   f->arity   = arity;
   f->flags   = 0;
   f->next    = table[v];
-  if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+  if ( !( COMPARE_AND_SWAP_PTR(&table[v], head, f) &&
 	  !GD->functors.rehashing &&
           table == functorDefTable->table) )
   { PL_free(f);

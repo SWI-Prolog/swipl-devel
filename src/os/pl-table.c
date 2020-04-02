@@ -119,19 +119,19 @@ static inline void *htable_value(KVS kvs, int idx)
 }
 
 static inline int htable_cas_name(KVS kvs, int idx, void *exp, void *name)
-{ return COMPARE_AND_SWAP(&kvs->entries[idx].name, exp, name);
+{ return COMPARE_AND_SWAP_PTR(&kvs->entries[idx].name, exp, name);
 }
 
 static inline int htable_cas_value(KVS kvs, int idx, void *exp, void *value)
-{ return COMPARE_AND_SWAP(&kvs->entries[idx].value, exp, value);
+{ return COMPARE_AND_SWAP_PTR(&kvs->entries[idx].value, exp, value);
 }
 
 static inline int htable_cas_new_kvs(KVS kvs, KVS new_kvs)
-{ return COMPARE_AND_SWAP(&kvs->next, NULL, new_kvs);
+{ return COMPARE_AND_SWAP_PTR(&kvs->next, NULL, new_kvs);
 }
 
 static inline int htable_cas_cleanup(Table ht, int exp, int cleanup)
-{ return COMPARE_AND_SWAP(&ht->cleanup, exp, cleanup);
+{ return COMPARE_AND_SWAP_INT(&ht->cleanup, exp, cleanup);
 }
 
 

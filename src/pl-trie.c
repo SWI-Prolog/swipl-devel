@@ -213,7 +213,7 @@ trie_discard_clause(trie *trie)
 { atom_t dbref;
 
   if ( (dbref=trie->clause) )
-  { if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) &&
+  { if ( COMPARE_AND_SWAP_WORD(&trie->clause, dbref, 0) &&
 	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause */
     { ClauseRef cref = clause_clref(dbref);	/* from two ends */
 
@@ -236,7 +236,7 @@ trie_empty(trie *trie)
   { indirect_table *it = trie->indirects;
 
     clear_node(trie, &trie->root, FALSE);	/* TBD: verify not accessed */
-    if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
+    if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
       destroy_indirect_table(it);
     trie->node_count = 1;
     trie->value_count = 0;
@@ -367,7 +367,7 @@ prune_node(trie *trie, trie_node *n)
     if ( children.any )
     { switch( children.any->type )
       { case TN_KEY:
-	  if ( COMPARE_AND_SWAP(&p->children.any, children.any, NULL) )
+	  if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
 	    PL_free(children.any);
 	  break;
 	case TN_HASHED:
@@ -446,7 +446,7 @@ prune_trie(trie *trie, trie_node *root,
       if ( children.any )
       { switch( children.any->type )
 	{ case TN_KEY:
-	    if ( COMPARE_AND_SWAP(&p->children.any, children.any, NULL) )
+	    if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
 	      PL_free(children.any);
 	    break;
 	  case TN_HASHED:
@@ -549,7 +549,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	    update_var_mask(hnode, new->key);
 	    new->parent = n;
 
-	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
+	    if ( COMPARE_AND_SWAP_PTR(&n->children.hash, children.hash, hnode) )
 	    { hnode->old_single = children.key;			/* See (*) */
 	      return new;
 	    } else
@@ -588,7 +588,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
       child->key   = key;
       child->child = new;
 
-      if ( COMPARE_AND_SWAP(&n->children.key, NULL, child) )
+      if ( COMPARE_AND_SWAP_PTR(&n->children.key, NULL, child) )
       { child->child->parent = n;
 	return child->child;
       }
@@ -621,7 +621,7 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
     } else if ( add )
     { indirect_table *newtab = new_indirect_table();
 
-      if ( !COMPARE_AND_SWAP(&trie->indirects, NULL, newtab) )
+      if ( !COMPARE_AND_SWAP_PTR(&trie->indirects, NULL, newtab) )
 	destroy_indirect_table(newtab);
     } else
     { return 0;
@@ -2867,7 +2867,7 @@ retry:
   if ( !(dbref = trie->clause) )
   { if ( trie->value_count == 0 )
     { dbref = ATOM_fail;
-      if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+      if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	goto retry;
     } else
     { trie_compile_state state;
@@ -2881,7 +2881,7 @@ retry:
       { cref = assertDefinition(def, cl, CL_END PASS_LD);
 	if ( cref )
 	{ dbref = lookup_clref(cref->value.clause);
-	  if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+	  if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	  { PL_unregister_atom(dbref);
 	    retractClauseDefinition(def, cref->value.clause);
 	    goto retry;

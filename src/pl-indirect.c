@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2020, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -194,7 +195,7 @@ intern_indirect(indirect_table *tab, word val, int create ARG_LD)
     { indirect *h = reserve_indirect(tab, val PASS_LD);
 
       h->next = buckets->buckets[ki];
-      if ( !COMPARE_AND_SWAP(&buckets->buckets[ki], head, h) ||
+      if ( !COMPARE_AND_SWAP_PTR(&buckets->buckets[ki], head, h) ||
 	   buckets != tab->table )
       { PL_free(h->data);
 	h->references = 0;
@@ -217,7 +218,7 @@ intern_indirect(indirect_table *tab, word val, int create ARG_LD)
 static int
 bump_ref(indirect *h, unsigned int refs)
 { for(;;)
-  { if ( COMPARE_AND_SWAP(&h->references, refs, refs+1) )
+  { if ( COMPARE_AND_SWAP_UINT(&h->references, refs, refs+1) )
     { return TRUE;
     } else
     { refs = h->references;
@@ -265,7 +266,7 @@ reserve_indirect(indirect_table *tab, word val ARG_LD)
       unsigned int refs = a->references;
 
       if ( INDIRECT_IS_FREE(refs) &&
-	   COMPARE_AND_SWAP(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
+	   COMPARE_AND_SWAP_UINT(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
       { tab->no_hole_before = index+1;
 	return create_indirect(a, index, val PASS_LD);
       }
@@ -288,7 +289,7 @@ reserve_indirect(indirect_table *tab, word val ARG_LD)
     refs = a->references;
 
     if ( INDIRECT_IS_FREE(refs) &&
-	 COMPARE_AND_SWAP(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
+	 COMPARE_AND_SWAP_UINT(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
     { ATOMIC_INC(&tab->highest);
       return create_indirect(a, index, val PASS_LD);
     }
