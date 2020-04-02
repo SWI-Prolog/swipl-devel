@@ -3398,15 +3398,15 @@ main(int argc, char **argv)
 \cfunction{int}{PL_initialise}{int argc, char **argv}
 Initialises the SWI-Prolog heap and stacks, restores the Prolog
 state, loads the system and personal initialisation files,
-runs the initialization/1 hooks and finally runs the
-\argoption{-g}{goal} hook.
+runs the initialization/1 hooks and finally runs the initialization
+goals registered using \argoption{-g}{goal}.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
 this argument passes the part of the command line that is used
 to locate the executable.  Prolog uses this to find the file holding
 the running executable.  The {\bf Windows} version uses this to find
 a \jargon{module} of the running executable.  If the specified module
-cannot be found, it tries the module \const{libpl.dll}, containing
+cannot be found, it tries the module \const{libswipl.dll}, containing
 the Prolog runtime kernel. In all these cases, the resulting file is
 used for two purposes:
 
@@ -3452,9 +3452,9 @@ is used.
 
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved state, or
-\verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
-to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}), pass
-the name of this DLL.
+\verb$"libswipl.dll"$ as \verb$argv[0]$. If the Prolog state is attached
+to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}),
+pass the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
 Test whether the Prolog engine is already initialised. Returns
