@@ -2918,9 +2918,13 @@ run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
 
 run_pkg_test1(Script, Goal, PkgDir) :-
 	current_prolog_flag(executable, SWIPL),
+	working_directory(CWD, CWD),
+	format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
 	process_create(SWIPL,
 		       [ '-f', 'none',
 			 '-t', 'halt',
+			 '--no-packs',
+			 '-p', POpt,
 			 '-g', Goal,
 			 Script
 		       ],
