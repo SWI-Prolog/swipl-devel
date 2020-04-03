@@ -320,6 +320,7 @@ function(test_lib name)
 			 -t halt)
   # Write db with lists of tests to be used with -DINSTALL_TESTS
   if(INSTALL_TESTS)
+    set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
     file(RELATIVE_PATH rel_test_dir
 	 ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${CMAKE_CURRENT_SOURCE_DIR})
     file(APPEND ${INSTALL_TESTS_DB}

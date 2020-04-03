@@ -479,12 +479,17 @@ foreach(test ${SWIPL_TEST_DIRS})
 	   COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
-if(INSTALL_TESTS)
-   #Copy core tests to the installation
+# Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
+function(install_tests)
+   set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
            DESTINATION ${INSTALL_TESTS_DIR})
    install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
            DESTINATION ${INSTALL_TESTS_DIR}/)
+endfunction()
+
+if(INSTALL_TESTS)
+install_tests()
 endif()
 
 # Populate parms.h, making the compilation environment known to Prolog
