@@ -57,13 +57,17 @@ thr_local_1(Threads, Asserts) :-
 	join_ok(Id).
 
 join(Times) :-
+	thread_self(Me),
+	debug(thread(local), 'Waiting thread = ~p', [Me]),
 	forall(between(1, Times, _),
 	       (   thread_get_message(done(Done)),
 		   join_ok(Done)
 	       )).
 
 join_ok(Id) :-
+	debug(thread(local), 'Joining ~p ...', [Id]),
 	thread_join(Id, Return),
+	debug(thread(local), '	... ~p', [Return]),
 	(   Return == true
 	->  true
 	;   format('~N~p returned ~p~n', [Id, Return]),
@@ -113,4 +117,5 @@ subsequent(L, X, X, L).
 
 done(Report) :-
 	thread_self(Me),
+	debug(thread(local), 'Signalling ~p that me (~p) is done', [Report, Me]),
 	thread_send_message(Report, done(Me)).
