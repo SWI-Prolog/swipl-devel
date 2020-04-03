@@ -2215,7 +2215,7 @@ ar_pow(Number n1, Number n2, Number r)
         if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
 	{ mpz_clear(r->value.mpz);
 	  r->type = V_FLOAT;
-	  r->value.f = NAN;
+	  r->value.f = const_nan;
 	  return check_float(r);
 	}
 
@@ -2265,7 +2265,7 @@ ar_pow(Number n1, Number n2, Number r)
         if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
         { mpq_clear(r->value.mpq);
           r->type = V_FLOAT;
-          r->value.f = NAN;
+          r->value.f = const_nan;
           return check_float(r);
         }
 
@@ -2295,9 +2295,9 @@ ar_pow(Number n1, Number n2, Number r)
         assert(0);
       }
       case V_FLOAT:
-      { if ( n1->value.f == 0.0 ) goto doreal;  // general case of 0.0**X
+      { if ( n1->value.f == 0.0 ) goto doreal;  /* general case of 0.0**X */
         if ( n1->value.f < 0  && !( r_den & 1 ))
-	{ r->value.f = NAN;		/* negative base, even denominator */
+	{ r->value.f = const_nan;	/* negative base, even denominator */
 	} else
         {
 	doreal_mpq:
@@ -4435,6 +4435,21 @@ registerBuiltinFunctions()
 
 static atom_t float_rounding_names[5] = {0};
 
+static double
+nan15(void)
+{ number n;
+  unsigned char *end;
+
+  if ( str_number((const unsigned char *)"1.5NaN", &end, &n, 0) == NUM_OK )
+  { assert(isnan(n.value.f));
+    return n.value.f;
+  } else
+  { assert(0);
+    return NAN;
+  }
+}
+
+
 void
 initArith(void)
 { GET_LD
@@ -4444,9 +4459,9 @@ initArith(void)
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
 #endif
 
-  const_nan     = strtod("NaN", NULL);
-  const_inf     = strtod("Inf", NULL);
-  const_neg_inf = strtod("-Inf", NULL);
+  const_nan     = nan15();
+  const_inf     = HUGE_VAL;
+  const_neg_inf = -HUGE_VAL;
 
 #ifdef O_GMP
   LD->arith.rat.max_rational_size = (size_t)-1;

@@ -2498,15 +2498,19 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 
 static cucharp
 float_tag(cucharp in, cucharp tag)
-{ while(*in == *tag)
+{ while(*in && *in == *tag)
     in++, tag++;
 
   if ( !*tag )
   { int c;
 
-    utf8_get_uchar(in, &c);
-    if ( !PlIdContW(c) )
-      return in;
+    if ( *in )
+    { utf8_get_uchar(in, &c);
+      if ( PlIdContW(c) )
+	return NULL;
+    }
+
+    return in;
   }
 
   return NULL;
@@ -2527,9 +2531,9 @@ special_float(cucharp *in, cucharp start, Number value)
 
   if ( (s=float_tag(*in, (cucharp)"Inf")) )
   { if ( *start == '-' )
-      value->value.f = strtod("-Inf", NULL);
+      value->value.f = -HUGE_VAL;
     else
-      value->value.f = strtod("Inf", NULL);
+      value->value.f = HUGE_VAL;
   } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
 	      starts_1dot(start) )
   { char *e;
