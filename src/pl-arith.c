@@ -3757,10 +3757,12 @@ ar_float_fractional_part(Number n1, Number r)
 
       r->value.f = modf(n1->value.f, &ip);
       r->type = V_FLOAT;
+      return check_float(r);
     }
+    default:
+      assert(0);
+      return FALSE;
   }
-
-  succeed;
 }
 
 
@@ -3788,7 +3790,7 @@ ar_float_integer_part(Number n1, Number r)
       (void)modf(n1->value.f, &ip);
       r->value.f = ip;
       r->type = V_FLOAT;
-      succeed;
+      return check_float(r);
     }
   }
 
