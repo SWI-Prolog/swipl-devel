@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2019, University of Amsterdam
+    Copyright (c)  2009-2020, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -39,37 +39,37 @@
 	    test_clause_gc/1
 	  ]).
 
-%%	test_clause_gc
+%!  test_clause_gc
 %
-%	This test runs a loop that builds  a list and for each iteration
-%	runs clause/2 on a term that   contains  all relevant programing
-%	constructs. The idea is to trigger   GC  and shifts at different
-%	parts of this process.
+%   This test runs a loop that builds a list and for each iteration runs
+%   clause/2 on a term that contains all relevant programing constructs.
+%   The idea is to trigger GC  and   shifts  at  different parts of this
+%   process.
 
 test_clause_gc :-
-	setup_call_cleanup(( current_prolog_flag(stack_limit, SavedLimit),
-			     set_prolog_flag(stack_limit, 2_000_000),
-			     gspace(Cells),
-			     MaxLen is max(10000, (Cells//4)//3)),
-			   test_clause_gc(MaxLen),
-			   set_prolog_flag(stack_limit, SavedLimit)).
+    setup_call_cleanup(( current_prolog_flag(stack_limit, SavedLimit),
+                         set_prolog_flag(stack_limit, 2_000_000),
+                         gspace(Cells),
+                         MaxLen is max(10000, (Cells//4)//3)),
+                       test_clause_gc(MaxLen),
+                       set_prolog_flag(stack_limit, SavedLimit)).
 
 test_clause_gc(N) :-
-	run(N, L),
-	is_list(L).			% avoid L from being GC'ed
+    catch(run(N, L), error(resource_error(stack), _), L=[]),
+    is_list(L).			% avoid L from being GC'ed
 
 run(N, L) :-
-	functor(H, cl, 8),
-	clause(H, B),
-	run(N, H, B, L).
+    functor(H, cl, 8),
+    clause(H, B),
+    run(N, H, B, L).
 
 run(N, H, B, [x|L]) :-
-	succ(N2, N), !,
-	functor(H2, cl, 8),
-	clause(H2, B2),
-	H =@= H2,
-	B =@= B2,
-	run(N2, H, B, L).
+    succ(N2, N), !,
+    functor(H2, cl, 8),
+    clause(H2, B2),
+    H =@= H2,
+    B =@= B2,
+    run(N2, H, B, L).
 run(_, _, _, []).
 
 :- dynamic cl/8.			% make sure we can use clause/2
@@ -97,7 +97,11 @@ a(_,_).
 		 *******************************/
 
 gspace(Cells) :-
-	current_prolog_flag(stack_limit, Limit),
-        statistics(globalused, Used),
-	current_prolog_flag(address_bits, Wlen),
-        Cells is (Limit-Used)//(Wlen//8).
+    garbage_collect,
+    current_prolog_flag(stack_limit, Limit),
+    statistics(globalused, GUsed),
+    statistics(localused, LUsed),
+    statistics(trailused, TUsed),
+    Used is GUsed+LUsed+TUsed,
+    current_prolog_flag(address_bits, Wlen),
+    Cells is (Limit-Used)//(Wlen//8).
