@@ -171,6 +171,13 @@ COMPARE_AND_SWAP_WORD(word *at, word from, word to)
 #define ATOMIC_OR(ptr, v)		(*ptr |= v)
 #define ATOMIC_AND(ptr, v)		(*ptr &= v)
 #define COMPARE_AND_SWAP(ptr,o,n)	(*ptr == o ? (*ptr = n), 1 : 0)
+#define COMPARE_AND_SWAP_PTR(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_INT64(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_UINT64(ptr,o,n) COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_INT(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_UINT(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_SIZE(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_WORD(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #endif
 
 #ifndef HAVE_MSB
