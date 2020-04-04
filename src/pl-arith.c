@@ -2064,7 +2064,7 @@ ar_pow(Number n1, Number n2, Number r)
   { exp_nan = FALSE;
     exp_sign = ar_sign_i(n2);
   }
-  r->type = V_INTEGER;  // for all special cases
+  r->type = V_INTEGER;				/* for all special cases */
 
   if ( exp_sign == 0 && !exp_nan )		/* test for X**0 */
   { r->value.i = 1;
@@ -2333,8 +2333,10 @@ doreal:
 
   if ( n1->value.f == 0.0 && exp_sign == -1 )
     return check_zero_div(zero_div_sign, r, "**", 2);
-
-  r->value.f = pow(n1->value.f, n2->value.f);
+  if ( n1->value.f == 1.0 )
+    r->value.f = 1.0;			/* broken on e.g., mipsel */
+  else
+    r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
   return check_float(r);
