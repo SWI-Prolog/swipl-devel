@@ -2712,7 +2712,7 @@ ar_nexttoward(Number n1, Number n2, Number r)
     { r->value.f = nexttoward(n1->value.f, n2->value.f);
       r->type = V_FLOAT;
 
-      return TRUE;
+      return check_float(r);
     }
   }
 
