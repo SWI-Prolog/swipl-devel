@@ -3965,7 +3965,9 @@ length(_, Length) :-
     user:prolog_list_goal(Goal),
     !.
 '$prolog_list_goal'(Goal) :-
-    user:listing(Goal).
+    use_module(library(listing), [listing/1]),
+    @(listing(Goal), user).
+
 
 		 /*******************************
 		 *              MISC		*

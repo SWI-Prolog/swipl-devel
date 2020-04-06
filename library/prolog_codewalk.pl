@@ -310,7 +310,8 @@ init_goal_in_scope(Goal, SourceLocation, OTerm) :-
     ;   walk_option_module_class(OTerm, Classes),
         source_file_property(File, module(MF))
     ->  module_property(MF, class(Class)),
-        memberchk(Class, Classes)
+        memberchk(Class, Classes),
+        walk_option_module(OTerm, MF)
     ;   true
     ).
 
@@ -936,6 +937,8 @@ walk_dcg_body(G, M, TermPos, OTerm) :-
 :- meta_predicate
     subterm_pos(+, +, 2, +, -),
     sublist_pos(+, +, +, +, 2, -).
+:- public
+    subterm_pos/5.                      % used in library(check).
 
 subterm_pos(_, _, _, Pos, _) :-
     var(Pos), !, fail.
