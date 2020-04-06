@@ -215,7 +215,8 @@ if(INSTALL_TESTS)
   set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
   #Move test db to installation
   install(FILES       ${INSTALL_TESTS_DB}
-	  DESTINATION ${INSTALL_TESTS_DIR}/)
+	  DESTINATION ${INSTALL_TESTS_DIR}
+	  COMPONENT   Tests)
   file(REMOVE ${INSTALL_TESTS_DB})
 endif(INSTALL_TESTS)
 
