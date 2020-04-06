@@ -134,6 +134,11 @@ function(libsdoc)
   set(PLDOC_LIB ${PLDOC_LIB} PARENT_SCOPE)
 endfunction()
 
+has_package(ssl, HAVE_SSL_PACKAGE)
+if(HAVE_SSL_PACKAGE)
+  set(doc_depends_ssl ssl)
+endif()
+
 # Specify how to generate tex files from PlDoc
 # NOTE: all files must be included from lib/library.doc and
 # NOTE: lib/libsummary.doc
@@ -147,7 +152,7 @@ libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)
 pldoc(lib/prologpack.tex "library(prolog_pack)"
-      OPTIONS --section)
+      OPTIONS --section DEPENDS ${doc_depends_ssl})
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
       DEPENDS lib/assoclib.md ../library/assoc.pl)
