@@ -79,6 +79,11 @@ function(add_symlink_command from to)
   endif()
 endfunction()
 
+# install_in_home(name ...)
+#
+# Install   the   targets   in   the     local   home.   This   replaces
+# SWIPL_INSTALL_PREFIX or SWIPL_INSTALL_SHARE_PREFIX by `home`
+
 function(install_in_home name)
   cmake_parse_arguments(my "" "RENAME;DESTINATION" "FILES" ${ARGN})
   if(my_DESTINATION AND my_FILES)
@@ -86,6 +91,14 @@ function(install_in_home name)
     string(REGEX REPLACE
 	   "^${pattern}"
 	   "${SWIPL_BUILD_HOME}" buildhome ${my_DESTINATION})
+
+    if(buildhome STREQUAL my_DESTINATION AND
+       NOT SWIPL_INSTALL_PREFIX STREQUAL SWIPL_INSTALL_SHARE_PREFIX)
+      string(REPLACE "." "\\." pattern ${SWIPL_INSTALL_SHARE_PREFIX})
+      string(REGEX REPLACE
+	     "^${pattern}"
+	     "${SWIPL_BUILD_HOME}" buildhome ${my_DESTINATION})
+    endif()
 
     set(deps)
 
