@@ -338,6 +338,13 @@ factor two. To compile for using with AddressSanitizer, do e.g.,
 
 See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
 
+You can run the tests normally using   `ctest`. Note that the `swipl:GC`
+test requires more stack than the   default when using AddressSanitizer.
+To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
+test   `jpl:prolog_in_java`   because   Java   is    not   loaded   with
+AddressSanitizer preloaded.   All other tests should pass (about 4 times
+slower than normal).
+
 
 ## Packaging
 
