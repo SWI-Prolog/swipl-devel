@@ -40,6 +40,8 @@
           list_undefined/1,             % +Options
           list_autoload/0,              % list predicates that need autoloading
           list_redefined/0,             % list redefinitions
+          list_cross_module_calls/0,	% List Module:Goal usage
+          list_cross_module_calls/1,    % +Options
           list_void_declarations/0,     % list declarations with no clauses
           list_trivial_fails/0,         % list goals that trivially fail
           list_trivial_fails/1,         % +Options
@@ -295,6 +297,74 @@ redefined_ok('$autoload'(_,_,_)).
 
 global_module(user).
 global_module(system).
+
+%!  list_cross_module_calls is det.
+%
+%   List calls from one module to   another  using Module:Goal where the
+%   callee is not defined exported, public or multifile, i.e., where the
+%   callee should be considered _private_.
+
+list_cross_module_calls :-
+    list_cross_module_calls([]).
+
+list_cross_module_calls(Options) :-
+    call_cleanup(
+        list_cross_module_calls_guarded(Options),
+        retractall(cross_module_call(_,_,_))).
+
+list_cross_module_calls_guarded(Options) :-
+    merge_options(Options,
+                  [ module_class([user])
+                  ],
+                  WalkOptions),
+    prolog_walk_code([ trace_reference(_),
+                       trace_condition(cross_module_call),
+                       on_trace(write_call)
+                     | WalkOptions
+                     ]).
+
+:- thread_local
+    cross_module_call/3.
+
+:- public
+    cross_module_call/2,
+    write_call/3.
+
+cross_module_call(Callee, Context) :-
+    \+ same_module_call(Callee, Context).
+
+same_module_call(Callee, Context) :-
+    caller_module(Context, MCaller),
+    Callee = (MCallee:_),
+    (   (   MCaller = MCallee
+        ;   predicate_property(Callee, exported)
+        ;   predicate_property(Callee, built_in)
+        ;   predicate_property(Callee, public)
+        ;   clause_property(Context.get(clause), module(MCallee))
+        ;   predicate_property(Callee, multifile)
+        )
+    ->  true
+    ).
+
+caller_module(Context, MCaller) :-
+    Caller = Context.caller,
+    (   Caller = (MCaller:_)
+    ->  true
+    ;   Caller == '<initialization>',
+        MCaller = Context.module
+    ).
+
+write_call(Callee, Caller, Position) :-
+    cross_module_call(Callee, Caller, Position),
+    !.
+write_call(Callee, Caller, Position) :-
+    (   cross_module_call(_,_,_)
+    ->  true
+    ;   print_message(warning, check(cross_module_calls))
+    ),
+    asserta(cross_module_call(Callee, Caller, Position)),
+    print_message(warning,
+                  check(cross_module_call(Callee, Caller, Position))).
 
 %!  list_void_declarations is det.
 %
@@ -809,6 +879,13 @@ prolog:message(check(autoload(Module, Pairs))) -->
 prolog:message(check(redefined(In, From, Pred))) -->
     predicate(In:Pred),
     redefined(In, From).
+prolog:message(check(cross_module_calls)) -->
+    [ 'Qualified calls to private predicates'-[] ].
+prolog:message(check(cross_module_call(Callee, _Caller, Location))) -->
+    { pi_head(PI, Callee) },
+    [ '  '-[] ],
+    '$messages':swi_location(Location),
+    [ 'Cross-module call to ~p'-[PI] ].
 prolog:message(check(trivial_failures)) -->
     [ 'The following goals fail because there are no matching clauses.' ].
 prolog:message(check(trivial_failure(Goal, Refs))) -->
