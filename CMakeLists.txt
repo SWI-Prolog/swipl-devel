@@ -162,6 +162,9 @@ if(MULTI_THREADED)
   find_package(Threads)
 endif()
 
+include(TestLargeFiles)
+OPJ_TEST_LARGE_FILES(HAVE_LARGE_FILES)
+
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Core_system")
 
 # Add the core Prolog system

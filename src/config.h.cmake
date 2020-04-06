@@ -266,6 +266,7 @@
 #cmakedefine VOID_UNSETENV @VOID_UNSETENV@
 #cmakedefine _FILE_OFFSET_BITS @_FILE_OFFSET_BITS@
 #cmakedefine _LARGE_FILES @_LARGE_FILES@
+#cmakedefine _LARGEFILE_SOURCE @_LARGEFILE_SOURCE@
 #cmakedefine _POSIX_PTHREAD_SEMANTICS @_POSIX_PTHREAD_SEMANTICS@
 #cmakedefine _THREAD_SAFE @_THREAD_SAFE@
 #cmakedefine inline @inline@
