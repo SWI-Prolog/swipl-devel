@@ -248,11 +248,11 @@ importDefinitionModule(Module m, Definition def, int flags)
     }
   } else
   { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
+    shareDefinition(def);
     proc->definition = def;
     proc->flags      = flags;
     proc->source_no  = 0;
     addNewHTable(m->procedures, (void *)functor, proc);
-    shareDefinition(def);
   }
   UNLOCKMODULE(m);
 
@@ -2597,8 +2597,8 @@ found:
 					/* done the job for us. */
   LOCKMODULE(m);
   if ( (odef=proc->definition) != def )	/* Nope, we must link the def */
-  { proc->definition = def;
-    shareDefinition(def);
+  { shareDefinition(def);
+    proc->definition = def;
 
     if ( unshareDefinition(odef) == 0 )
     {

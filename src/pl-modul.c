@@ -1513,7 +1513,10 @@ fixExportModule(Module m, Definition old, Definition new)
 	      if ( proc->definition == old )
 	      { DEBUG(1, Sdprintf("Patched def of %s\n",
 				  procedureName(proc)));
+		shareDefinition(new);
 		proc->definition = new;
+		if ( unshareDefinition(old) == 0 )
+		  lingerDefinition(old);
 	      }
 	    });
 
@@ -1637,8 +1640,8 @@ retry:
 
     nproc->flags = pflags;
     nproc->source_no = 0;
-    nproc->definition = proc->definition;
     shareDefinition(proc->definition);
+    nproc->definition = proc->definition;
 
     LOCKMODULE(destination);
     old = addHTable(destination->procedures,
