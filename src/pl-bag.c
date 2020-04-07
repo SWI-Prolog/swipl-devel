@@ -88,7 +88,7 @@ alloc_mem_pool(mem_pool *mp, size_t bytes)
   { size_t chunksize = tmp_nalloc(4000*((size_t)1<<mp->chunk_count++)+sizeof(mem_chunk));
     mem_chunk *c;
 
-    if ( bytes > chunksize )
+    if ( bytes > chunksize-sizeof(mem_chunk) )
       chunksize = tmp_nalloc(bytes+sizeof(mem_chunk));
 
     if ( (c=tmp_malloc(chunksize)) )
