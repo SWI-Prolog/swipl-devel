@@ -122,9 +122,7 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 static inline void
 discardBuffer_(Buffer b)
 { if ( b->base && b->base != b->static_buffer )
-  { tmp_free(b->base);
-    b->base = b->static_buffer;
-  }
+    tmp_free(b->base);
 }
 
 static inline void

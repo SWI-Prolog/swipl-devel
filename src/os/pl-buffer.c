@@ -90,8 +90,9 @@ findBuffer(int flags)
 
   if ( !b->base )
     initBuffer(b);
+  else
+    emptyBuffer(b);
 
-  emptyBuffer(b);
   return b;
 }
 
