@@ -1941,15 +1941,20 @@ actions_to_format([nl|T], Fmt, Args) :-
     !,
     actions_to_format(T, Fmt0, Args),
     atom_concat('~n', Fmt0, Fmt).
-actions_to_format([Skip|T], Fmt, Args) :-
-    action_skip(Skip),
+actions_to_format([ansi(_Attrs, Fmt0, Args0)|Tail], Fmt, Args) :-
     !,
-    actions_to_format(T, Fmt, Args).
+    actions_to_format(Tail, Fmt1, Args1),
+    atom_concat(Fmt0, Fmt1, Fmt),
+    append_args(Args0, Args1, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
     !,
     actions_to_format(Tail, Fmt1, Args1),
     atom_concat(Fmt0, Fmt1, Fmt),
     append_args(Args0, Args1, Args).
+actions_to_format([Skip|T], Fmt, Args) :-
+    action_skip(Skip),
+    !,
+    actions_to_format(T, Fmt, Args).
 actions_to_format([Term|Tail], Fmt, Args) :-
     atomic(Term),
     !,
@@ -1962,7 +1967,6 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 
 action_skip(at_same_line).
 action_skip(flush).
-action_skip(ansi(_Attrs, _Fmt, _Args)).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).
 
