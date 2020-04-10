@@ -23,6 +23,7 @@ endif()
 
 if(HAVE_SOCKET)
   AC_CHECK_HEADERS(sys/socket.h)
+  AC_CHECK_HEADERS(sys/un.h)
   if(HAVE_SYS_SOCKET_H)
     set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} sys/socket.h)
   endif()
