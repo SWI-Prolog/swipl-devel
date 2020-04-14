@@ -4156,6 +4156,8 @@ skipArgs(Code PC, int skip)
       case I_EXITFACT:
       case I_EXIT:
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+      case T_TRIE_GEN2:
+      case T_TRIE_GEN3:
 	return PC;
       case I_NOP:
 	continue;
@@ -4715,8 +4717,6 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
-      case T_TRIE_GEN2:
-      case T_TRIE_GEN3:
 	{ assert(argn <= arity);
 
 	  if ( argp )
@@ -4730,6 +4730,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 
 	  succeed;
 	}
+      case T_TRIE_GEN2:
+      case T_TRIE_GEN3:
+	return FALSE;
       default:
 	  sysError("Illegal instruction in clause head: %d = %d",
 		   PC[-1], decode(PC[-1]));
