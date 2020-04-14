@@ -1040,8 +1040,13 @@ variants([H|T], V, List) :-
 predicate_in_module(Module, PI) :-
     current_predicate(Module:PI),
     PI = Name/Arity,
+    \+ hidden_predicate(Name, Arity),
     functor(Head, Name, Arity),
     \+ predicate_property(Module:Head, imported_from(_)).
+
+
+hidden_predicate(Name, _) :-
+    sub_atom(Name, 0, _, _, '$wrap$').
 
 
                  /*******************************
