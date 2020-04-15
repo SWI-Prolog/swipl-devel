@@ -969,15 +969,40 @@ abolish_nonincremental_tables(_) :-
 
 %!  current_table(:Variant, -Trie) is nondet.
 %
-%   True when Trie is the answer table for Variant.
+%   True when Trie is the answer table   for  Variant. If Variant has an
+%   unbound module or goal, all  possible   answer  tries are generated,
+%   otherwise Variant is considered a fully instantiated variant and the
+%   predicate is semidet.
 
-current_table(M:Variant, Trie) :-
-    '$tbl_variant_table'(VariantTrie),
-    (   (var(Variant) ; var(M))
-    ->  trie_gen(VariantTrie, M:Variant, Trie)
-    ;   trie_lookup(VariantTrie, M:Variant, Trie)
+current_table(Variant, Trie) :-
+    ct_generate(Variant),
+    !,
+    current_table_gen(Variant, Trie).
+current_table(Variant, Trie) :-
+    current_table_lookup(Variant, Trie),
+    !.
+
+current_table_gen(Variant, Trie) :-
+    '$tbl_local_variant_table'(VariantTrie),
+    trie_gen(VariantTrie, Variant, Trie).
+current_table_gen(Variant, Trie) :-
+    '$tbl_global_variant_table'(VariantTrie),
+    trie_gen(VariantTrie, Variant, Trie),
+    \+ '$tbl_table_status'(Trie, fresh). % shared tables are not destroyed
+
+current_table_lookup(Variant, Trie) :-
+    '$tbl_local_variant_table'(VariantTrie),
+    trie_lookup(VariantTrie, Variant, Trie).
+current_table_lookup(Variant, Trie) :-
+    '$tbl_global_variant_table'(VariantTrie),
+    trie_lookup(VariantTrie, Variant, Trie),
+    \+ '$tbl_table_status'(Trie, fresh).
+
+ct_generate(M:Variant) :-
+    (   var(Variant)
+    ->  true
+    ;   var(M)
     ).
-
 
                  /*******************************
                  *      WRAPPER GENERATION      *
