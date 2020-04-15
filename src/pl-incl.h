@@ -1949,7 +1949,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
 

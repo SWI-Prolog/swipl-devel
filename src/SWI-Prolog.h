@@ -1239,7 +1239,11 @@ PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
 
-#ifdef PL_ARITY_AS_SIZE
+#ifndef PL_ARITY_AS_SIZE
+#define PL_ARITY_AS_SIZE 1
+#endif
+
+#if PL_ARITY_AS_SIZE
 #define PL_new_functor(f,a) PL_new_functor_sz(f,a)
 #define PL_functor_arity(f) PL_functor_arity_sz(f)
 #define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
@@ -1250,9 +1254,8 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
 #endif
 #else
-//Considered too alarming
-//#warning "Term arity has changed from int to size_t."
-//#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#warning "Term arity has changed from int to size_t."
+#warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
 #endif
 
 #ifdef __cplusplus

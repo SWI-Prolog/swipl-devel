@@ -398,25 +398,22 @@ As of SWI-Prolog 7.3.12, the arity of terms has changed from \ctype{int}
 to \ctype{size_t}. To deal with this transition, all affecting functions
 have two versions, where the old name exchanges the arity as \ctype{int}
 and a new function with name *_sz() exchanges the arity as
-\ctype{size_t}. If the C macro PL_ARITY_AS_SIZE is defined before
-loading \file{SWI-Prolog.h}, macros are put in place that map the old
-names to the new functions.  Without precautions, the old code is
-compatible, but the following warning is printed when compiling:
+\ctype{size_t}. Op to 8.1.28, the default was to use the old \ctype{int}
+functions. As of 8.1.29/8.2.x, the default is to use \ctype{size_t} and
+the old behaviour can be restored by defining \const{PL_ARITY_AS_SIZE}
+to \const{0} (zero). This makes old code compatible, but the following
+warning is printed when compiling:
 
 \begin{code}
 #warning "Term arity has changed from int to size_t."
-#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
 \end{code}
 
-To make the code compile silently again, include \file{SWI-Prolog.h} as
-below and change the types you use to represent arity from \ctype{int}
-to \ctype{size_t}. Please be aware that \ctype{size_t} is
-\emph{unsigned}.
+To make the code compile silently again, change the types you use to
+represent arity from \ctype{int} to \ctype{size_t}. Please be aware that
+\ctype{size_t} is \emph{unsigned}.  At some point representing arity
+as \ctype{int} will be dropped completely.
 
-\begin{code}
-#define PL_ARITY_AS_SIZE
-#include <SWI-Prolog.h>
-\end{code}
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
 

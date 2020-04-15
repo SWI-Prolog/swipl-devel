@@ -45,7 +45,6 @@
 #include <winsock2.h>
 #include <windows.h>
 #include "os/SWI-Stream.h"
-#define PL_ARITY_AS_SIZE 1
 #include "SWI-Prolog.h"
 #include <signal.h>
 
@@ -58,7 +57,6 @@
 
 #else /* non-Windows version */
 
-#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
 #endif

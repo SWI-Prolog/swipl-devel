@@ -71,7 +71,6 @@ locking is required.
 #define NEEDS_SWINSOCK
 #define PL_STREAM_IMPL
 #include "pl-stream.h"
-#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
 #include <sys/types.h>

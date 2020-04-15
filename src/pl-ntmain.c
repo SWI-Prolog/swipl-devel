@@ -48,7 +48,6 @@
 #include "config/win32.h"
 #endif
 
-#define PL_ARITY_AS_SIZE 1
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>

@@ -16,8 +16,6 @@ include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 
-# Arity is of size_t.  This should now be the case for all packages
-set(PL_ARITY_AS_SIZE 1)
 if(MULTI_THREADED)
   set(O_PLMT 1)
   set(_REENTRANT 1)			# FIXME: packages should use O_PLMT
