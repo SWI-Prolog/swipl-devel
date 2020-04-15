@@ -1239,7 +1239,9 @@ PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
 
-#ifndef PL_ARITY_AS_SIZE
+/* Define as 1 if undefined or defined as empty */
+#if !defined(PL_ARITY_AS_SIZE) || (0-PL_ARITY_AS_SIZE-1)==1
+#undef PL_ARITY_AS_SIZE
 #define PL_ARITY_AS_SIZE 1
 #endif
 
