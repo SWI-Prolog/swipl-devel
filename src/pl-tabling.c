@@ -2411,21 +2411,6 @@ indexOfWord(word w ARG_LD)
   }
 }
 
-static unsigned int
-sindexOfWord(word w ARG_LD)
-{ word k = indexOfWord(w PASS_LD);
-  unsigned int i;
-
-  if ( k )
-  { i = (unsigned int)k&0xffffff;
-    if ( !i )
-      i = 1;
-    return i;
-  }
-
-  return 0;
-}
-
 
 static sindex_key *
 suspension_keys(term_t instance ARG_LD)
@@ -4094,21 +4079,22 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 
     if ( sp->instance && an )
     { int rc;
-      Word p = valTermRef(A2);
-      Functor f;
 
-      deRef(p);
-      assert(isTerm(*p));
-      f = valueTerm(*p);
       if ( !state->keys_inited )
-      { size_t arity = arityFunctor(f->definition);
-	size_t i;
+      { Word p = valTermRef(A2);
+	Functor f;
+	size_t arity, i;
+
+	deRef(p);
+	assert(isTerm(*p));
+	f = valueTerm(*p);
+	arity = arityFunctor(f->definition);
 
 	if ( arity > SINDEX_MAX )
 	  arity = SINDEX_MAX;
 
 	for(i=0; i<arity; i++)
-	  state->keys[i].key = sindexOfWord(f->arguments[i] PASS_LD);
+	  state->keys[i].key = indexOfWord(f->arguments[i] PASS_LD);
 
 	state->keys_inited = TRUE;
       }
