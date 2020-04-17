@@ -1356,7 +1356,9 @@ static PL_thread_info_t *
 alloc_thread(void)
 { PL_thread_info_t *info;
   PL_local_data_t *ld;
-  int mx;
+
+  ld = allocHeapOrHalt(sizeof(PL_local_data_t));
+  memset(ld, 0, sizeof(PL_local_data_t));
 
   do
   { info = GD->thread.free;
@@ -1367,6 +1369,7 @@ alloc_thread(void)
     assert(info->status == PL_THREAD_UNUSED);
     memset(info, 0, sizeof(*info));
     info->pl_tid = i;
+    PL_LOCK(L_THREAD);
   } else
   { int i;
 
@@ -1382,11 +1385,7 @@ alloc_thread(void)
 
     assert(GD->thread.threads[i] == NULL);
     GD->thread.threads[i] = info;
-    PL_UNLOCK(L_THREAD);
   }
-
-  ld = allocHeapOrHalt(sizeof(PL_local_data_t));
-  memset(ld, 0, sizeof(PL_local_data_t));
 
   ld->thread.info = info;
   ld->thread.magic = PL_THREAD_MAGIC;
@@ -1394,10 +1393,9 @@ alloc_thread(void)
   info->status = PL_THREAD_RESERVED;
   info->debug = TRUE;
 
-  do
-  { mx = GD->thread.highest_id;
-  } while ( info->pl_tid > mx &&
-	    !COMPARE_AND_SWAP_INT(&GD->thread.highest_id, mx, info->pl_tid) );
+  if ( info->pl_tid > GD->thread.highest_id )
+    GD->thread.highest_id = info->pl_tid;
+  PL_UNLOCK(L_THREAD);
 
   ATOMIC_INC(&GD->statistics.threads_created);
 
@@ -2351,7 +2349,6 @@ free_thread_info(PL_thread_info_t *info)
     info->return_value = NULL;
   if ( (rec_g=info->goal) )
     info->goal = NULL;
-  PL_UNLOCK(L_THREAD);
 
   if ( info->pl_tid == GD->thread.highest_id )
   { int i;
@@ -2362,9 +2359,9 @@ free_thread_info(PL_thread_info_t *info)
 	break;
     }
 
-					/* do not update if alloc_thread() did */
-    COMPARE_AND_SWAP_INT(&GD->thread.highest_id, info->pl_tid, i);
+    GD->thread.highest_id = i;
   }
+  PL_UNLOCK(L_THREAD);
 
   do
   { freelist = GD->thread.free;
