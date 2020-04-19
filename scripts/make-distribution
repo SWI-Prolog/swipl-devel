@@ -67,6 +67,26 @@ build_macosx()
   )
 }
 
+
+# Use gcc 9 from Macport `port install gcc9`
+build_macosx_gcc()
+{ rm -rf build.macosx-gcc
+  mkdir build.macosx-gcc
+  ( cd build.macosx-gcc
+    export PATH=$HOME/deps/bin:$PATH
+    export CC=gcc-mp-9
+    MACOSX_DEPLOYMENT_TARGET=10.12 \
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
+              -DBUILD_MACOS_BUNDLE=ON \
+              -DJAVA_COMPATIBILITY=ON \
+              -G Ninja ..
+    ../scripts/pgo-compile.sh
+    ninja
+    cpack
+  )
+}
+
 build_source()
 { ./scripts/make-src-tape
 }
