@@ -2,7 +2,8 @@
 
 Snap that runs the latest version of swipl and swipl-win.
 
-The snap is strictly contained, so it has limited access to the host system via the following plugs:
+The snap is strictly contained, so it has limited access to the host
+system via the following plugs:
 
 | Plug              | Description               |
 | ----------------- | ------------------------- |
@@ -16,7 +17,8 @@ The snap is strictly contained, so it has limited access to the host system via 
 | audio-playback    | audio playback devices    |
 | audio-record      | audio record devices      |
 
-If other connections are needed they can be added from this [list](https://snapcraft.io/docs/supported-interfaces).
+If other connections are needed they can be added from this
+[list](https://snapcraft.io/docs/supported-interfaces).
 
 ## Installation
 ```sh
