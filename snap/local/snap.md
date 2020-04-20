@@ -21,20 +21,38 @@ If other connections are needed they can be added from this
 [list](https://snapcraft.io/docs/supported-interfaces).
 
 ## Installation
+
 ```sh
 snap install swi-prolog
-```
-
-The shared Qt5 content snap is used for the Qt ui, and to set the proper paths, dependencies and variables like opengl, pulseaudo, that swipl expects to find.
-
-For this reason it needs to be installed and setup as follows the first time:
-```sh
-snap install kde-frameworks-5-core18
-snap connect swi-prolog:kde-frameworks-5-plug kde-frameworks-5-core18:kde-frameworks-5-core18-slot
 ```
 
 If the snap did not add the automated aliases you can add them as follows:
 ```sh
 snap alias swi-prolog.swipl swipl
 snap alias swi-prolog.swipl-win swipl-win
+```
+
+## Font issues
+
+There is an issue with fontconfig, which is   used by the GUI tools, and
+snap. You are a victim of if running   `?-  emacs.` results in the error
+below:
+
+
+```
+?- emacs.
+[PCE fatal: @helvetica_roman_12/font: Xopen failed on @display/display
+	in:	<No exception goal>
+]
+	[13] M @helvetica_roman_12/font ->_xopen(@display/display)
+	[12] M @helvetica_roman_12/font ->_xopen(@display/display)
+...
+```
+
+This can be resolved by cleaning the   fontconfig global cache. Doing so
+has no consequences except for the   first application to use fontconfig
+starting slow.
+
+```
+sudo rm /var/cache/fontconfig/*
 ```
