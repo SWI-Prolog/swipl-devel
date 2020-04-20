@@ -135,8 +135,12 @@ function(libsdoc)
 endfunction()
 
 has_package(ssl HAVE_SSL_PACKAGE)
+has_package(archive HAVE_ARCHIVE_PACKAGE)
 if(HAVE_SSL_PACKAGE)
-  set(doc_depends_ssl ssl)
+  set(doc_depends_ssl ${doc_depends_ssl} ssl)
+endif()
+if(HAVE_ARCHIVE_PACKAGE)
+  set(doc_depends_ssl ${doc_depends_ssl} archive)
 endif()
 
 # Specify how to generate tex files from PlDoc
