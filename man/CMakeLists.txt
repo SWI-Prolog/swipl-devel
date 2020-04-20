@@ -134,7 +134,7 @@ function(libsdoc)
   set(PLDOC_LIB ${PLDOC_LIB} PARENT_SCOPE)
 endfunction()
 
-has_package(ssl, HAVE_SSL_PACKAGE)
+has_package(ssl HAVE_SSL_PACKAGE)
 if(HAVE_SSL_PACKAGE)
   set(doc_depends_ssl ssl)
 endif()
