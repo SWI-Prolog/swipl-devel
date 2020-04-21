@@ -1792,7 +1792,7 @@ tripwire_action(suspend, Error) :-
 :- table
     system:undefined/0,
     system:answer_count_restraint/0,
-    sysetm:radial_restraint/0,
+    system:radial_restraint/0,
     system:tabled_call/1.
 
 %!  undefined is undefined.
