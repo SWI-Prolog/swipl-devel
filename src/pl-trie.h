@@ -147,6 +147,11 @@ typedef struct trie
 #define TRIE_STAT_INC(t, v) ((void)0)
 #endif
 
+/* trie_lookup_abstract() return values (< 0: error) */
+#define TRIE_ABSTRACTED			  2
+#define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
+#define TRIE_LOOKUP_CYCLIC		-11
+
 COMMON(void)	initTries(void);
 COMMON(trie *)	trie_create(alloc_pool *pool);
 COMMON(void)	trie_destroy(trie *trie);

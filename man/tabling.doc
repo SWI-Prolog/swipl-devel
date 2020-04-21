@@ -867,7 +867,7 @@ the required unification instructions after the goal.
 \subsection{Restraint answer size}
 \label{sec:tabling-restraint-answer-size}
 
-Using the \term{abstract_answer}{Size} attribute, a tabled subgoal that
+Using the \term{answer_abstract}{Size} attribute, a tabled subgoal that
 produces answer substitutions (instances of the variables in the goal)
 whose size exceed \arg{Size} are trapped. In addition to the
 tripwire actions, answer abstraction defines two additional modes

@@ -630,9 +630,6 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
 }
 
 
-#define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
-#define TRIE_LOOKUP_CYCLIC		-11
-
 /* If there is an error, we prune the part that we have created.
  * We should only start the prune from a new node though.  To be sure
  * we do so we first add a new node.  As this is for exception handling
@@ -653,11 +650,19 @@ to the trie if it is not already in the true.
 `vars` is either NULL or a _buffer_ In the latter case it is filled with
 pointers to the variables found  in  `k`.   This  is  used by tabling to
 create the `ret` term.
+
+Return:
+
+  - FALSE
+    Could not find term while `add` is FALSE or exception
+  - TRUE
+    Ok (found or inserted)
+  - TRIE_ABSTRACTED
+    Ok, but abstracted
+  - TRIE_LOOKUP_CONTAINS_ATTVAR
+  - TRIE_LOOKUP_CYCLIC
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-
-
-
 
 int
 trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
@@ -716,7 +721,8 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
         break;
       case TAG_COMPOUND:
       { if ( unlikely(aleft == 0) )
-	{ goto add_var;
+	{ rc = TRIE_ABSTRACTED;
+	  goto add_var;
 	} else
 	{ Functor f = valueTerm(w);
 	  size_t arity = arityFunctor(f->definition);
@@ -762,7 +768,7 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
       discardBuffer(vars);
   }
 
-  if ( rc == TRUE )
+  if ( rc > 0 )
   { if ( node )
       *nodep = node;
     else
@@ -1410,7 +1416,7 @@ PRED_IMPL("$trie_insert_abstract", 3, trie_insert_abstract, 0)
   size_t size;
 
   return ( PL_get_size_ex(A2, &size ) &&
-	   trie_insert(A1, A3, 0, NULL, FALSE, size PASS_LD) );
+	   trie_insert(A1, A3, 0, NULL, FALSE, size PASS_LD) > 0 );
 }
 
 

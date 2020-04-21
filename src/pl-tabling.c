@@ -136,6 +136,7 @@ static int	claim_answer_table(trie *atrie, atom_t *clrefp,
 static atom_t	tripwire_answers_for_subgoal(worklist *wl ARG_LD);
 static int	generalise_answer_substitution(term_t spec, term_t gen ARG_LD);
 static int	add_answer_count_restraint(void);
+static int	add_radial_restraint(void);
 static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
@@ -3269,6 +3270,18 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
  * term (answer subsumption).
  */
 
+static inline size_t
+pred_max_table_answer_size(const Definition def ARG_LD)
+{ size_t limit;
+
+  limit = def->tabling ? def->tabling->answer_abstract : (size_t)-1;
+  if ( limit == (size_t)-1 )
+    limit = LD->tabling.restraint.max_table_answer_size;
+
+  return limit;
+}
+
+
 static
 PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 { PRED_LD
@@ -3278,6 +3291,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
   { Word kp;
     trie_node *node;
     atom_t action;
+    size_t abstract;
     int rc;
 
 #ifdef O_PLMT
@@ -3288,9 +3302,27 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     if ( true(wl->table, TRIE_ISMAP) )
       return wkl_mode_add_answer(wl, A2, A3 PASS_LD);
 
-    rc = trie_lookup(wl->table, NULL, &node, kp, TRUE, NULL PASS_LD);
-    if ( rc == TRUE )
+    abstract = pred_max_table_answer_size(wl->predicate PASS_LD);
+    rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
+			      TRUE, abstract, NULL PASS_LD);
+    if ( rc > 0 )				/* ok or abstracted */
     { idg_node *idg;
+
+      if ( rc == TRIE_ABSTRACTED )
+      { atom_t action = LD->tabling.restraint.max_table_answer_size_action;
+
+	DEBUG(MSG_TABLING_RESTRAINT,
+	      print_answer_table(wl->table, "Max answer size exceeded"));
+
+	if ( action == ATOM_bounded_rationality )
+	{ if ( !add_radial_restraint() )
+	    return FALSE;
+	} else if ( action == ATOM_fail ||
+		    !tbl_wl_tripwire(wl, action, ATOM_max_table_answer_size) )
+	{ trie_delete(wl->table, node, TRUE);
+	  return FALSE;
+	}
+      }
 
       if ( node->value )
       { if ( node->value == ATOM_trienode )
@@ -6421,6 +6453,20 @@ add_answer_count_restraint(void)
 
   if ( !pred )
     pred = PL_predicate("answer_count_restraint", 0, "system");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+}
+
+
+static int
+add_radial_restraint(void)
+{ static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("radial_restraint", 0, "system");
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));

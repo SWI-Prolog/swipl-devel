@@ -312,7 +312,7 @@ tabled_attribute(dynamic).
 tabled_attribute(tshared).
 tabled_attribute(max_answers).
 tabled_attribute(abstract_subgoal).
-tabled_attribute(abstract_answer).
+tabled_attribute(answer_abstract).
 
 
 start_tabling(Closure, Wrapper, Worker) :-
@@ -1148,9 +1148,9 @@ table_options(max_answers(Count), Opts0, Opts1) :-
 table_options(abstract_subgoal(Size), Opts0, Opts1) :-
     !,
     restraint(abstract_subgoal, Size, Opts0, Opts1).
-table_options(abstract_answer(Size), Opts0, Opts1) :-
+table_options(answer_abstract(Size), Opts0, Opts1) :-
     !,
-    restraint(abstract_answer, Size, Opts0, Opts1).
+    restraint(answer_abstract, Size, Opts0, Opts1).
 table_options(Opt, _, _) :-
     '$domain_error'(table_option, Opt).
 

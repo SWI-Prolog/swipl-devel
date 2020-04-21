@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -177,7 +178,7 @@ supported_table_option(shared).
 supported_table_option(private).
 supported_table_option(max_answers(_)).
 supported_table_option(abstract_subgoal(_)).
-supported_table_option(abstract_answer(_)).
+supported_table_option(answer_abstract(_)).
 
 mkconj(true, X, X) :- !.
 mkconj(X, true, X) :- !.
