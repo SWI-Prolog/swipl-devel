@@ -578,11 +578,12 @@ variable} \predicatesummary{put_byte}{1}{Write a byte}
 \predicatesummary{qcompile}{2}{Compile source to Quick Load File}
 \predicatesummary{qsave_program}{1}{Create runtime application}
 \predicatesummary{qsave_program}{2}{Create runtime application}
-\predicatesummary{quasi_quotation_syntax}{1}{Declare quasi quotation
-syntax} \predicatesummary{quasi_quotation_syntax_error}{1}{Raise syntax
-error} \predicatesummary{random_property}{1}{Query properties of random
-generation} \predicatesummary{rational}{1}{Type check for a rational
-number} \predicatesummary{rational}{3}{Decompose a rational}
+\predicatesummary{quasi_quotation_syntax}{1}{Declare quasi quotation syntax}
+\predicatesummary{quasi_quotation_syntax_error}{1}{Raise syntax error}
+\predicatesummary{radial_restraint}{0}{Tabbling radial restraint was violated}
+\predicatesummary{random_property}{1}{Query properties of random generation}
+\predicatesummary{rational}{1}{Type check for a rational number}
+\predicatesummary{rational}{3}{Decompose a rational}
 \predicatesummary{read}{1}{Read Prolog term}
 \predicatesummary{read}{2}{Read Prolog term from stream}
 \predicatesummary{read_clause}{3}{Read clause from stream}

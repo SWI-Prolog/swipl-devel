@@ -828,6 +828,12 @@ This predicate is a helper for tabling where \arg{Term} is the
 1 & ret(f(A), a)       & ret(f(A), a) \\
 1 & ret(f(x), x(y(Z))) & ret(f(x), x(_)) \\
 \end{tabular}\end{center}
+
+    \predicate[undefined]{radial_restraint}{0}{}
+This predicate is \jargon{undefined} in the sense of well founded
+semantics (see \secref{WFS} and undefined/0). Any answer that depends on
+this condition is undefined because either the restraint on the subgoal
+size or answer size was violated.
 \end{description}
 
 
