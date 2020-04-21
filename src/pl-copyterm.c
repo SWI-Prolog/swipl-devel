@@ -396,12 +396,14 @@ static int
 copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 { term_agendaLRD agenda;
   int rc = TRUE;
+  size_t aleft = (size_t)-1;
 
   initTermAgendaLRD(&agenda, 1, from, to);
   while( nextTermAgendaLRD(&agenda, &from, &to) )
-  {
-  again:
+  { if ( agenda.work.depth == 1 )
+      aleft = abstract;
 
+  again:
     switch(tag(*from))
     { case TAG_REFERENCE:
       { Word p2 = unRef(*from);
@@ -470,12 +472,12 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
       case TAG_COMPOUND:
       { Functor ff = valueTerm(*from);
 
-	if ( abstract == 0 )
+	if ( aleft == 0 )
 	{ setVar(*to);
 	  continue;
 	} else
-	{ if ( abstract != (size_t)-1 )
-	    abstract--;
+	{ if ( aleft != (size_t)-1 )
+	    aleft--;
 	}
 
 	if ( isRef(ff->definition) )

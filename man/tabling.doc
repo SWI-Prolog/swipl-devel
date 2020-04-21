@@ -810,17 +810,24 @@ size_abstract_term/3.
 
 \begin{description}
     \predicate[det]{size_abstract_term}{3}{+Size, +Term, -Abstract}
-The size of a term is defined as the number of compound subterms of
-Term. If the size of \arg{Term} is greater than \arg{Size},
-\arg{Abstract} is an abstract copy of \arg{Term} where the first
-\arg{Size} compound terms are preserved and subsequent compound terms
-are replaced by a variable. The copy process scans the term in the usual
-depth-first left-to-right order.
+The size of a term is defined as the number of compound subterms
+(\jargon{function symbols}) that appear in term. \arg{Abstract} is an
+abstract copy of \arg{Term} where each argument is abstracted by
+copying only the first \arg{Size} function sumbols and constants.
+Excess function symbols are replaced by fresh variables.
 
-If the size of \arg{Term} is at most \arg{Size}, \arg{Abstract} is
-equivalent to \arg{Term}.
+This predicate is a helper for tabling where \arg{Term} is the
+\functor{ret}{N} \jargon{answer skeleton} that is added to the an
+\jargon{answer table}.  Examples:
 
-TBD: Examples, but so far it is unclear the above is correct.
+\begin{center}\begin{tabular}{cll}
+\textbf{Size} & \textbf{Term} & \textbf{Abstract} \\
+\hline
+0 & ret(f(x), a)       & ret(_, a) \\
+1 & ret(f(x), a)       & ret(f(x), a) \\
+1 & ret(f(A), a)       & ret(f(A), a) \\
+1 & ret(f(x), x(y(Z))) & ret(f(x), x(_)) \\
+\end{tabular}\end{center}
 \end{description}
 
 
