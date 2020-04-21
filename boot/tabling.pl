@@ -1773,7 +1773,7 @@ tripwire(Wire, _Action, Context) :-
     prolog:tripwire(Wire, Context),
     !.
 tripwire(Wire, Action, Context) :-
-    Error = error(resource_error(tripwire(Wire, Context), _)),
+    Error = error(resource_error(tripwire(Wire, Context)), _),
     tripwire_action(Action, Error).
 
 tripwire_action(warning, Error) :-
