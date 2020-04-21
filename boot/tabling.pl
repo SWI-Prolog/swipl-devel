@@ -1767,7 +1767,7 @@ eval_subgoal_in_residual(AnswerTrie, Return) :-
 %   `bounded_rationality`.
 
 :- public tripwire/3.
-:- multifile prolog:tripwire/3.
+:- multifile prolog:tripwire/2.
 
 tripwire(Wire, _Action, Context) :-
     prolog:tripwire(Wire, Context),
