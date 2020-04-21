@@ -162,8 +162,10 @@ COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);
 COMMON(int)	unify_trie_term(trie_node *node, trie_node **parent,
 				term_t term ARG_LD);
-COMMON(int)	trie_lookup(trie *trie, trie_node *root, trie_node **nodep,
-			    Word k, int add, TmpBuffer vars ARG_LD);
+COMMON(int)	trie_lookup_abstract(trie *trie,
+				     trie_node *root, trie_node **nodep, Word k,
+				     int add, size_t abstract,
+				     TmpBuffer vars ARG_LD);
 COMMON(int)	trie_error(int rc, term_t culprit);
 COMMON(int)	trie_trie_error(int rc, trie *trie);
 COMMON(atom_t)	trie_symbol(trie *trie);
@@ -184,5 +186,12 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
+
+static inline int
+trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
+	    Word k, int add, TmpBuffer vars ARG_LD)
+{ return trie_lookup_abstract(trie, node, nodep, k, add,
+			      (size_t)-1, vars PASS_LD);
+}
 
 #endif /*_PL_TRIE_H*/

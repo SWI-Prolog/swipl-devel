@@ -655,14 +655,19 @@ pointers to the variables found  in  `k`.   This  is  used by tabling to
 create the `ret` term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+
+
+
+
 int
-trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
-	    Word k, int add, TmpBuffer vars ARG_LD)
+trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
+		     Word k, int add, size_t abstract, TmpBuffer vars ARG_LD)
 { term_agenda_P agenda;
   size_t var_number = 0;
   int rc = TRUE;
   size_t compounds = 0;
   tmp_buffer varb;
+  size_t aleft = (size_t)-1;
 
   TRIE_STAT_INC(trie, lookups);
   if ( !node )
@@ -686,11 +691,15 @@ trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
 	break;				/* finished toplevel */
     }
 
+    if ( compounds == 1 )
+      aleft = abstract;
+
     w = *p;
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
-	{ if ( var_number++ == 0 && !vars )
+	{ add_var:
+	  if ( var_number++ == 0 && !vars )
 	  { vars = &varb;
 	    initBuffer(vars);
 	  }
@@ -706,16 +715,22 @@ trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
         node = NULL;
         break;
       case TAG_COMPOUND:
-      { Functor f = valueTerm(w);
-        size_t arity = arityFunctor(f->definition);
-
-	if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
-	{ rc = TRIE_LOOKUP_CYCLIC;
-	  prune_error(trie, node PASS_LD);
-	  node = NULL;
+      { if ( unlikely(aleft == 0) )
+	{ goto add_var;
 	} else
-	{ node = follow_node(trie, node, f->definition, add PASS_LD);
-	  pushWorkAgenda_P(&agenda, arity, f->arguments);
+	{ Functor f = valueTerm(w);
+	  size_t arity = arityFunctor(f->definition);
+
+	  if ( aleft != (size_t)-1 )
+	    aleft--;
+	  if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
+	  { rc = TRIE_LOOKUP_CYCLIC;
+	    prune_error(trie, node PASS_LD);
+	    node = NULL;
+	  } else
+	  { node = follow_node(trie, node, f->definition, add PASS_LD);
+	    pushWorkAgenda_P(&agenda, arity, f->arguments);
+	  }
 	}
 	break;
       }
@@ -1281,7 +1296,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
 
 static int
 trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
-	    int update ARG_LD)
+	    int update, size_t abstract ARG_LD)
 { trie *trie;
 
   if ( get_trie(Trie, &trie) )
@@ -1303,7 +1318,8 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 
     kp	= valTermRef(Key);
 
-    if ( (rc=trie_lookup(trie, NULL, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup_abstract(trie, NULL, &node, kp,
+				  TRUE, abstract, NULL PASS_LD)) == TRUE )
     { word val = intern_value(Value PASS_LD);
 
       if ( nodep )
@@ -1362,7 +1378,7 @@ static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, FALSE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, FALSE, (size_t)-1 PASS_LD);
 }
 
 /**
@@ -1378,7 +1394,23 @@ static
 PRED_IMPL("trie_insert", 2, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, 0, NULL, FALSE PASS_LD);
+  return trie_insert(A1, A2, 0, NULL, FALSE, (size_t)-1 PASS_LD);
+}
+
+
+/**
+ * trie_insert_abstract(+Trie, +Size, +Key) is semidet.
+ *
+ * Insert size-abstracted version of Key
+ */
+
+static
+PRED_IMPL("$trie_insert_abstract", 3, trie_insert_abstract, 0)
+{ PRED_LD
+  size_t size;
+
+  return ( PL_get_size_ex(A2, &size ) &&
+	   trie_insert(A1, A3, 0, NULL, FALSE, size PASS_LD) );
 }
 
 
@@ -1395,7 +1427,7 @@ static
 PRED_IMPL("trie_update", 3, trie_update, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, TRUE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, TRUE, (size_t)-1 PASS_LD);
 }
 
 
@@ -1415,7 +1447,7 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
   trie_node *node;
 
-  return ( trie_insert(A1, A2, A3, &node, FALSE PASS_LD) &&
+  return ( trie_insert(A1, A2, A3, &node, FALSE, (size_t)-1 PASS_LD) &&
 	   PL_unify_pointer(A4, node) );
 }
 
@@ -2940,26 +2972,28 @@ set_trie_clause_general_undefined(Clause clause)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(trie)
-  PRED_DEF("is_trie",             1, is_trie,            0)
-  PRED_DEF("trie_new",            1, trie_new,           0)
-  PRED_DEF("trie_destroy",        1, trie_destroy,       0)
-  PRED_DEF("trie_insert",         2, trie_insert,        0)
-  PRED_DEF("trie_insert",         3, trie_insert,        0)
-  PRED_DEF("trie_insert",         4, trie_insert,        0)
-  PRED_DEF("trie_update",         3, trie_update,        0)
-  PRED_DEF("trie_lookup",         3, trie_lookup,        0)
-  PRED_DEF("trie_delete",         3, trie_delete,        0)
-  PRED_DEF("trie_term",		  2, trie_term,		 0)
-  PRED_DEF("trie_gen",            3, trie_gen,	      NDET)
-  PRED_DEF("trie_gen",            2, trie_gen,        NDET)
-  PRED_DEF("$trie_gen_node",      3, trie_gen_node,   NDET)
-  PRED_DEF("$trie_property",      2, trie_property,      0)
+  PRED_DEF("is_trie",		    1, is_trie,		     0)
+  PRED_DEF("trie_new",		    1, trie_new,	     0)
+  PRED_DEF("trie_destroy",	    1, trie_destroy,	     0)
+  PRED_DEF("trie_insert",	    2, trie_insert,	     0)
+  PRED_DEF("trie_insert",	    3, trie_insert,	     0)
+  PRED_DEF("trie_insert",	    4, trie_insert,	     0)
+  PRED_DEF("$trie_insert_abstract", 3, trie_insert_abstract, 0)
+
+  PRED_DEF("trie_update",	    3, trie_update,	     0)
+  PRED_DEF("trie_lookup",	    3, trie_lookup,	     0)
+  PRED_DEF("trie_delete",	    3, trie_delete,	     0)
+  PRED_DEF("trie_term",		    2, trie_term,	     0)
+  PRED_DEF("trie_gen",		    3, trie_gen,	     NDET)
+  PRED_DEF("trie_gen",		    2, trie_gen,	     NDET)
+  PRED_DEF("$trie_gen_node",	    3, trie_gen_node,	     NDET)
+  PRED_DEF("$trie_property",	    2, trie_property,	     0)
 #if O_NESTED_TRIES
-  PRED_DEF("trie_insert_insert",  3, trie_insert_insert, 0)
-  PRED_DEF("trie_lookup_gen",     3, trie_lookup_gen, NDET)
-  PRED_DEF("trie_lookup_delete",  3, trie_lookup_delete, 0)
+  PRED_DEF("trie_insert_insert",    3, trie_insert_insert,   0)
+  PRED_DEF("trie_lookup_gen",       3, trie_lookup_gen,      NDET)
+  PRED_DEF("trie_lookup_delete",    3, trie_lookup_delete,   0)
 #endif
-  PRED_DEF("$trie_compile",       2, trie_compile,       0)
+  PRED_DEF("$trie_compile",         2, trie_compile,         0)
 EndPredDefs
 
 void
