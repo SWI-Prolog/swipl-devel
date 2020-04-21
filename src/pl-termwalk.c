@@ -378,6 +378,85 @@ pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 
 #endif /*AC_TERM_WALK_LR*/
 
+#if AC_TERM_WALK_LRD
+
+		 /*************************************
+		 * OPERATIONS ON TWO TERMS WITH DEPTH *
+		 *************************************/
+
+typedef struct aNodeLRD
+{ Word		left;			/* left term */
+  Word		right;			/* right term */
+  size_t	size;
+  size_t	depth;
+} aNodeLRD;
+
+typedef struct term_agendaLRD
+{ aNodeLRD	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[256];
+} term_agendaLRD;
+
+
+static void
+initTermAgendaLRD(term_agendaLRD *a, size_t count, Word left, Word right)
+{ initSegStack(&a->stack, sizeof(aNodeLRD),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.size  = count;
+  a->work.depth = 0;
+}
+
+
+static inline void
+initTermAgendaLRD0(term_agendaLRD *a)
+{ initSegStack(&a->stack, sizeof(aNodeLRD),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.size  = 0;
+}
+
+
+static void
+clearTermAgendaLRD(term_agendaLRD *a)
+{ clearSegStack(&a->stack);
+}
+
+
+static int
+nextTermAgendaLRD(term_agendaLRD *a, Word *lp, Word *rp)
+{ if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    *lp = a->work.left++;
+    *rp = a->work.right++;
+
+    return TRUE;
+  }
+
+  if ( popSegStack(&a->stack, &a->work, aNodeLRD) )
+    goto ok;
+
+  return FALSE;
+}
+
+
+static inline int
+pushWorkAgendaLRD(term_agendaLRD *a, size_t amount, Word left, Word right)
+{ if ( a->work.size > 0 )
+  { if ( !pushSegStack(&a->stack, a->work, aNodeLRD) )
+      return FALSE;
+  }
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.size  = amount;
+  a->work.depth++;
+
+  return TRUE;
+}
+
+#endif /*AC_TERM_WALK_LRD*/
+
 #if AC_TERM_WALK_LRS
 
 		 /*******************************

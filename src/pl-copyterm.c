@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-copyterm.h"
-#define AC_TERM_WALK_LR 1
+#define AC_TERM_WALK_LRD 1
 #include "pl-termwalk.c"
 
 
@@ -393,11 +394,11 @@ exitCyclicCopy(int flags ARG_LD)
 
 static int
 copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
-{ term_agendaLR agenda;
+{ term_agendaLRD agenda;
   int rc = TRUE;
 
-  initTermAgendaLR(&agenda, 1, from, to);
-  while( nextTermAgendaLR(&agenda, &from, &to) )
+  initTermAgendaLRD(&agenda, 1, from, to);
+  while( nextTermAgendaLRD(&agenda, &from, &to) )
   {
   again:
 
@@ -500,7 +501,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  TrailCyclic(&ff->definition PASS_LD);
 	  *to = consPtr(ft, TAG_COMPOUND|STG_GLOBAL);
 
-	  if ( pushWorkAgendaLR(&agenda, arity, ff->arguments, ft->arguments) )
+	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
 	    continue;
 	  rc = MEMORY_OVERFLOW;
 	  goto out;
@@ -515,7 +516,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  ft->definition = ff->definition & ~BOTH_MASK;
 	  *to = consPtr(ft, TAG_COMPOUND|STG_GLOBAL);
 
-	  if ( pushWorkAgendaLR(&agenda, arity, ff->arguments, ft->arguments) )
+	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
 	    continue;
 	  rc = MEMORY_OVERFLOW;
 	  goto out;
@@ -528,7 +529,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
   }
 
 out:
-  clearTermAgendaLR(&agenda);
+  clearTermAgendaLRD(&agenda);
   return rc;
 }
 
