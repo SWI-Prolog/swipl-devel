@@ -89,6 +89,7 @@ parts:
       - libxt6
       - odbc-postgresql
       - tdsodbc
+      - libtcmalloc-minimal4
       - unixodbc
     build-packages:
       - libarchive-dev
@@ -115,3 +116,4 @@ parts:
       - zlib1g-dev
       - libyaml-dev
       - libglvnd-dev
+      - libgoogle-perftools-dev
