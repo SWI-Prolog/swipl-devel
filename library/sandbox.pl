@@ -1235,6 +1235,10 @@ safe_prolog_flag(max_rational_size_action, _).
 % tabling
 safe_prolog_flag(max_answers_for_subgoal,_).
 safe_prolog_flag(max_answers_for_subgoal_action,_).
+safe_prolog_flag(max_table_answer_size,_).
+safe_prolog_flag(max_table_answer_size_action,_).
+safe_prolog_flag(max_table_subgoal_size,_).
+safe_prolog_flag(max_table_subgoal_size_action,_).
 
 
 %!  prolog:sandbox_allowed_expansion(:G) is det.
