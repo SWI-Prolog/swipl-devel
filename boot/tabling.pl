@@ -311,7 +311,7 @@ tabled_attribute(incremental).
 tabled_attribute(dynamic).
 tabled_attribute(tshared).
 tabled_attribute(max_answers).
-tabled_attribute(abstract_subgoal).
+tabled_attribute(subgoal_abstract).
 tabled_attribute(answer_abstract).
 
 
@@ -1145,9 +1145,9 @@ table_options(private, Opts0, Opts1) :-
 table_options(max_answers(Count), Opts0, Opts1) :-
     !,
     restraint(max_answers, Count, Opts0, Opts1).
-table_options(abstract_subgoal(Size), Opts0, Opts1) :-
+table_options(subgoal_abstract(Size), Opts0, Opts1) :-
     !,
-    restraint(abstract_subgoal, Size, Opts0, Opts1).
+    restraint(subgoal_abstract, Size, Opts0, Opts1).
 table_options(answer_abstract(Size), Opts0, Opts1) :-
     !,
     restraint(answer_abstract, Size, Opts0, Opts1).

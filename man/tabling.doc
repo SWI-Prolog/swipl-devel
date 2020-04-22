@@ -840,7 +840,7 @@ size or answer size was violated.
 \subsection{Restraint subgoal size}
 \label{sec:tabling-restraint-subgoal}
 
-Using the \term{abstract_subgoal}{Size} attribute, a tabled subgoal that
+Using the \term{subgoal_abstract}{Size} attribute, a tabled subgoal that
 that is too large is \jargon{abstracted} by replacing compound subterms
 of the goal with variables. In a nutshell, a goal
 \term{p}{s(s(s(s(s(0)))))} is converted into the semantically equivalent

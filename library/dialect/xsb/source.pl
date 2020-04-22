@@ -177,7 +177,7 @@ supported_table_option(incremental).
 supported_table_option(shared).
 supported_table_option(private).
 supported_table_option(max_answers(_)).
-supported_table_option(abstract_subgoal(_)).
+supported_table_option(subgoal_abstract(_)).
 supported_table_option(answer_abstract(_)).
 
 mkconj(true, X, X) :- !.

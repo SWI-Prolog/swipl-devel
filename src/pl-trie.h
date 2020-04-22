@@ -133,6 +133,11 @@ typedef struct trie
   } data;
 } trie;
 
+typedef struct size_abstract
+{ int		from_depth;		/* start below depth */
+  size_t	size;			/* limit each term to size */
+} size_abstract;
+
 #define acquire_trie(t) ATOMIC_INC(&(t)->references)
 #define release_trie(t) do { if ( ATOMIC_DEC(&(t)->references) == 0 ) \
 			       trie_clean(t); \
@@ -169,7 +174,7 @@ COMMON(int)	unify_trie_term(trie_node *node, trie_node **parent,
 				term_t term ARG_LD);
 COMMON(int)	trie_lookup_abstract(trie *trie,
 				     trie_node *root, trie_node **nodep, Word k,
-				     int add, size_t abstract,
+				     int add, size_abstract *abstract,
 				     TmpBuffer vars ARG_LD);
 COMMON(int)	trie_error(int rc, term_t culprit);
 COMMON(int)	trie_trie_error(int rc, trie *trie);
@@ -196,7 +201,7 @@ static inline int
 trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
 	    Word k, int add, TmpBuffer vars ARG_LD)
 { return trie_lookup_abstract(trie, node, nodep, k, add,
-			      (size_t)-1, vars PASS_LD);
+			      NULL, vars PASS_LD);
 }
 
 #endif /*_PL_TRIE_H*/

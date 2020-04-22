@@ -666,17 +666,21 @@ Return:
 
 int
 trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
-		     Word k, int add, size_t abstract, TmpBuffer vars ARG_LD)
+		     Word k, int add, size_abstract *abstract,
+		     TmpBuffer vars ARG_LD)
 { term_agenda_P agenda;
   size_t var_number = 0;
   int rc = TRUE;
   size_t compounds = 0;
   tmp_buffer varb;
+  size_abstract sa = {.from_depth = 1, .size = (size_t)-1};
   size_t aleft = (size_t)-1;
 
   TRIE_STAT_INC(trie, lookups);
   if ( !node )
     node = &trie->root;
+  if ( abstract )
+    sa = *abstract;
 
   initTermAgenda_P(&agenda, 1, k);
   while( node )
@@ -696,8 +700,8 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
 	break;				/* finished toplevel */
     }
 
-    if ( compounds == 1 )
-      aleft = abstract;
+    if ( compounds == sa.from_depth )
+      aleft = sa.size;
 
     w = *p;
     switch( tag(w) )
@@ -1302,7 +1306,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
 
 static int
 trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
-	    int update, size_t abstract ARG_LD)
+	    int update, size_abstract *abstract ARG_LD)
 { trie *trie;
 
   if ( get_trie(Trie, &trie) )
@@ -1384,7 +1388,7 @@ static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, FALSE, (size_t)-1 PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, FALSE, NULL PASS_LD);
 }
 
 /**
@@ -1400,7 +1404,7 @@ static
 PRED_IMPL("trie_insert", 2, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, 0, NULL, FALSE, (size_t)-1 PASS_LD);
+  return trie_insert(A1, A2, 0, NULL, FALSE, NULL PASS_LD);
 }
 
 
@@ -1413,10 +1417,10 @@ PRED_IMPL("trie_insert", 2, trie_insert, 0)
 static
 PRED_IMPL("$trie_insert_abstract", 3, trie_insert_abstract, 0)
 { PRED_LD
-  size_t size;
+  size_abstract sa = {.from_depth = 1};
 
-  return ( PL_get_size_ex(A2, &size ) &&
-	   trie_insert(A1, A3, 0, NULL, FALSE, size PASS_LD) > 0 );
+  return ( PL_get_size_ex(A2, &sa.size ) &&
+	   trie_insert(A1, A3, 0, NULL, FALSE, &sa PASS_LD) > 0 );
 }
 
 
@@ -1433,7 +1437,7 @@ static
 PRED_IMPL("trie_update", 3, trie_update, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, TRUE, (size_t)-1 PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, TRUE, NULL PASS_LD);
 }
 
 
@@ -1453,7 +1457,7 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
   trie_node *node;
 
-  return ( trie_insert(A1, A2, A3, &node, FALSE, (size_t)-1 PASS_LD) &&
+  return ( trie_insert(A1, A2, A3, &node, FALSE, NULL PASS_LD) &&
 	   PL_unify_pointer(A4, node) );
 }
 

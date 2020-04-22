@@ -138,6 +138,7 @@ static int	generalise_answer_substitution(term_t spec, term_t gen ARG_LD);
 static int	add_answer_count_restraint(void);
 static int	add_radial_restraint(void);
 static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
+static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2239,6 +2240,18 @@ by pushVolatileAtom() and will  be  unified   before  anything  else  in
 #define AT_NOCLAIM		0x0010	/* Do not claim ownership */
 #define AT_SCOPE_MASK (AT_SHARED|AT_PRIVATE)
 
+static inline size_t
+pred_max_table_subgoal_size(const Definition def ARG_LD)
+{ size_t limit;
+
+  limit = def->tabling ? def->tabling->subgoal_abstract : (size_t)-1;
+  if ( limit == (size_t)-1 )
+    limit = LD->tabling.restraint.max_table_subgoal_size;
+
+  return limit;
+}
+
+
 static trie *
 get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
 		 int flags ARG_LD)
@@ -2250,6 +2263,7 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   tmp_buffer vars;
   mark m;
   int shared;
+  size_abstract sa = {.from_depth = 2, .size = (size_t)-1};
 
 #ifdef O_PLMT
   if ( (flags & AT_SCOPE_MASK) )
@@ -2266,6 +2280,7 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
       }
     }
     shared = !!true(def, P_TSHARED);
+    sa.size = pred_max_table_subgoal_size(def PASS_LD);
   }
 #else
   shared = FALSE;
@@ -2277,10 +2292,27 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
 retry:
   Mark(m);
   v = valTermRef(t);
-  rc = trie_lookup(variants, NULL, &node, v, (flags&AT_CREATE), &vars PASS_LD);
+  rc = trie_lookup_abstract(variants, NULL, &node, v, (flags&AT_CREATE),
+			    &sa, &vars PASS_LD);
 
-  if ( rc == TRUE )
-  { if ( node->value )
+  if ( rc > 0 )
+  { if ( rc == TRIE_ABSTRACTED )
+    { atom_t action = LD->tabling.restraint.max_table_subgoal_size_action;
+
+      Sdprintf("Trapped by subgoal size restraint\n");
+      if ( action == ATOM_abstract )
+      {
+      } else if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
+      { sa.size = (size_t)-1;
+	emptyBuffer(&vars);
+	goto retry;
+      } else
+      { discardBuffer(&vars);
+	return NULL;
+      }
+    }
+
+    if ( node->value )
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
@@ -3291,7 +3323,7 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
   { Word kp;
     trie_node *node;
     atom_t action;
-    size_t abstract;
+    size_abstract sa = {.from_depth = 2};
     int rc;
 
 #ifdef O_PLMT
@@ -3302,9 +3334,9 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
     if ( true(wl->table, TRIE_ISMAP) )
       return wkl_mode_add_answer(wl, A2, A3 PASS_LD);
 
-    abstract = pred_max_table_answer_size(wl->predicate PASS_LD);
+    sa.size = pred_max_table_answer_size(wl->predicate PASS_LD);
     rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
-			      TRUE, abstract, NULL PASS_LD);
+			      TRUE, &sa, NULL PASS_LD);
     if ( rc > 0 )				/* ok or abstracted */
     { idg_node *idg;
 
@@ -4201,8 +4233,8 @@ out_fail:
  */
 
 static int
-tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, term_t ret,
-		  int flags ARG_LD)
+tbl_variant_table(term_t closure, term_t variant, term_t Trie,
+		  term_t status, term_t ret, int flags ARG_LD)
 { trie *atrie;
   Definition def = NULL;
   atom_t clref = 0;
@@ -6491,6 +6523,26 @@ tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 	   PL_put_atom(av+0, wire) &&
 	   PL_put_atom(av+1, action) &&
 	   PL_put_atom(av+2, trie_symbol(wl->table)) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+}
+
+
+static int
+tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
+{ GET_LD
+  static predicate_t pred = NULL;
+  term_t av;
+
+  if ( !pred )
+    pred = PL_predicate("tripwire", 3, "$tabling");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return ( (av = PL_new_term_refs(3)) &&
+	   PL_put_atom(av+0, wire) &&
+	   PL_put_atom(av+1, action) &&
+	   unify_definition(MODULE_user, av+2, def, 0, GP_QUALIFY) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
 }
 
