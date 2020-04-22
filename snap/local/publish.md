@@ -2,6 +2,7 @@
 
 ## Building
 
+   snapcraft clean swi-prolog
    snapcraft
 
 ## Local testing
