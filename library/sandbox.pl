@@ -563,6 +563,7 @@ safe_primitive(system:'$filled_array'(_,_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(system:copy_term_nat(_,_)).
+safe_primitive(system:size_abstract_term(_,_,_)).
 safe_primitive(numbervars(_,_,_)).
 safe_primitive(system:numbervars(_,_,_,_)).
 safe_primitive(subsumes_term(_,_)).
