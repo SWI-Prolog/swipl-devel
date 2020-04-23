@@ -4137,6 +4137,7 @@ VMI(I_FEXITNDET, 0, 0, ())
       FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
+      FR->clause = NULL;
       if ( exception_term )
 	THROW_EXCEPTION;
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
