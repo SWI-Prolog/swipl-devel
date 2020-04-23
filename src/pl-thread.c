@@ -1861,6 +1861,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
     ldnew->prolog_flag.table	  = copyHTable(ldold->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
+  ldnew->tabling.restraint        = ldold->tabling.restraint;
   if ( !ldnew->thread.info->debug )
   { ldnew->_debugstatus.tracing   = FALSE;
     ldnew->_debugstatus.debugging = DBG_OFF;
