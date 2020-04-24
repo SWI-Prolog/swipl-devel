@@ -817,9 +817,7 @@ writeString(term_t t, write_options *options)
   PL_chars_t txt;
   int rc = TRUE;
 
-  PL_get_text(t, &txt, CVT_STRING);
-  if ( txt.storage != PL_CHARS_LOCAL )
-    PL_save_text(&txt, BUF_MALLOC);
+  PL_get_text(t, &txt, CVT_STRING|BUF_NORING);
 
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
