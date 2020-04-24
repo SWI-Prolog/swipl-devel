@@ -406,6 +406,13 @@ wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton) :-
 
 unify_subsumptive(X,X).
 
+%!  done_leader(+Status, +Fresh, +Skeleton, -Clause)
+%
+%   Called on completion of a table. Possibly destroys the component and
+%   generates the answers from the complete  table. The last cases deals
+%   with leaders that are merged into a higher SCC (and thus no longer a
+%   leader).
+
 :- '$hide'((done_leader/4, finished_leader/4)).
 
 done_leader(complete, _Fresh, Skeleton, Clause) :-
