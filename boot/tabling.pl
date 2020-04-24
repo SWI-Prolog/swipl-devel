@@ -55,7 +55,8 @@
 
             start_tabling/3,            % +Closure, +Wrapper, :Worker
             start_subsumptive_tabling/3,% +Closure, +Wrapper, :Worker
-            moded_start_tabling/5,      % +Closure, +Wrapper, :Worker, :Variant, ?ModeArgs
+            start_moded_tabling/5,      % +Closure, +Wrapper, :Worker,
+                                        % :Variant, ?ModeArgs
 
             '$tbl_answer'/4,            % +Trie, -Return, -ModeArgs, -Delay
 
@@ -74,7 +75,7 @@
     not_exists(0),
     tabled_call(0),
     start_tabling(+, +, 0),
-    start_tabling(+, +, 0, +, ?),
+    start_moded_tabling(+, +, 0, +, ?),
     current_table(:, -),
     abolish_table_subgoals(:),
     '$wfs_call'(0, :).
@@ -507,7 +508,7 @@ delim(Skeleton, Worker, WorkList, Delays) :-
             dependency(SrcSkeleton, Continuation, Skeleton, WorkList, AllDelays))
     ).
 
-%!  moded_start_tabling(+Closure, :Wrapper, :Implementation, +Variant, +ModeArgs)
+%!  start_moded_tabling(+Closure, :Wrapper, :Implementation, +Variant, +ModeArgs)
 %
 %   As start_tabling/2, but in addition separates the data stored in the
 %   answer trie in the Variant and ModeArgs.
@@ -516,12 +517,12 @@ delim(Skeleton, Worker, WorkList, Delays) :-
     '$set_predicate_attribute'(Head, tabled, true),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       (   ModeTest,
-                          moded_start_tabling(Closure, Head, Wrapped,
+                          start_moded_tabling(Closure, Head, Wrapped,
                                               WrapperNoModes, ModeArgs)
                       )).
 
 
-moded_start_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
+start_moded_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
     '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie, Status, Skeleton),
     (   Status == complete
     ->  moded_gen_answer(Trie, Skeleton, ModeArgs)
