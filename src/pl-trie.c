@@ -707,13 +707,18 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
-	{ add_var:
+	{ word w2;
+
+	add_var:
 	  if ( var_number++ == 0 && !vars )
 	  { vars = &varb;
 	    initBuffer(vars);
 	  }
 	  addBuffer(vars, p, Word);
-	  *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  w2 = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  if ( tag(w) == TAG_VAR )
+	    *p = w2;
+	  w = w2;
 	}
         node = follow_node(trie, node, w, add PASS_LD);
 	break;
@@ -766,7 +771,8 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
 
     for(; pp < ep; pp++)
     { Word vp = *pp;
-      setVar(*vp);
+      if ( tag(*vp) == TAG_VAR )
+	setVar(*vp);
     }
     if ( vars == &varb )
       discardBuffer(vars);

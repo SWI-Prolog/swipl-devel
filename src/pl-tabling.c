@@ -2199,7 +2199,11 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
 
     for(; pp < ep; pp++)
     { Word ap = *pp;
-      *p++ = makeRefG(ap);
+
+      if ( isVar(*ap) )
+	*p++ = makeRefG(ap);
+      else
+	*p++ = *ap;
     }
 
     if ( PL_is_variable(ret) )
