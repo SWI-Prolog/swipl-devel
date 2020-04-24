@@ -55,6 +55,7 @@
 
             start_tabling/3,            % +Closure, +Wrapper, :Worker
             start_subsumptive_tabling/3,% +Closure, +Wrapper, :Worker
+            start_abstract_tabling/3,   % +Closure, +Wrapper, :Worker
             start_moded_tabling/5,      % +Closure, +Wrapper, :Worker,
                                         % :Variant, ?ModeArgs
 
@@ -75,6 +76,7 @@
     not_exists(0),
     tabled_call(0),
     start_tabling(+, +, 0),
+    start_abstract_tabling(+, +, 0),
     start_moded_tabling(+, +, 0, +, ?),
     current_table(:, -),
     abolish_table_subgoals(:),
@@ -289,6 +291,12 @@ untable_reconsult(PI) :-
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       start_subsumptive_tabling(Closure, Head, Wrapped)).
 '$wrap_tabled'(Head, Options) :-
+    get_dict(subgoal_abstract, Options, _Abstract),
+    !,
+    set_pattributes(Head, Options),
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_abstract_tabling(Closure, Head, Wrapped)).
+'$wrap_tabled'(Head, Options) :-
     !,
     set_pattributes(Head, Options),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
@@ -318,6 +326,9 @@ tabled_attribute(answer_abstract).
 
 start_tabling(Closure, Wrapper, Worker) :-
     '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
+    start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton).
+
+start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     tdebug(deadlock, 'Got table ~p, status ~p', [Trie, Status]),
     (   Status == complete
     ->  trie_gen_compiled(Trie, Skeleton)
@@ -359,7 +370,7 @@ restart_tabling(Closure, Wrapper, Worker) :-
     start_tabling(Closure, Wrapper, Worker).
 
 
-%!  start_subsumptive_tabling(:Wrapper, :Implementation)
+%!  start_subsumptive_tabling(:Closure, :Wrapper, :Implementation)
 %
 %   (*) We should __not__ use  trie_gen_compiled/2   here  as  this will
 %   enumerate  all  answers  while  '$tbl_answer_update_dl'/2  uses  the
@@ -405,6 +416,23 @@ wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton) :-
            [GenSkeleton+Skeleton]).
 
 unify_subsumptive(X,X).
+
+%!  start_abstract_tabling(:Closure, :Wrapper, :Worker)
+%
+%   Deal with ``table p/1 as  subgoal_abstract(N)``.   This  is  a merge
+%   between  variant  and  subsumptive  tabling.  If  the  goal  is  not
+%   abstracted this is simple variant tabling. If the goal is abstracted
+%   we must solve the  more  general  goal   and  use  answers  from the
+%   abstract table.
+
+start_abstract_tabling(Closure, Wrapper, Worker) :-
+    '$tbl_abstract_table'(Closure, Wrapper, Trie, Abstract, Status, Skeleton),
+    (   Abstract == 0
+    ->  start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
+    ;   Status == complete
+    ->  '$tbl_answer_update_dl'(Trie, Skeleton)
+    ;   tbd
+    ).
 
 %!  done_leader(+Status, +Fresh, +Skeleton, -Clause)
 %
