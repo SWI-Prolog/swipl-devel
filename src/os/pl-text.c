@@ -106,6 +106,8 @@ PL_save_text(PL_chars_t *text, int flags)
 
     text->storage = PL_CHARS_RING;
   }
+
+  return TRUE;
 }
 
 
@@ -124,6 +126,8 @@ PL_from_stack_text(PL_chars_t *text, int flags)
       { memcpy(text->buf, text->text.t, bl);
 	text->text.t = text->buf;
 	text->storage = PL_CHARS_LOCAL;
+      } else if ( (flags&BUF_NORING) )
+      { return PL_save_text(text, BUF_MALLOC);
       } else
       { Buffer b = findBuffer(BUF_RING);
 
@@ -349,7 +353,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 
 	Sclose(fd);
 
-	return TRUE;
+	goto out;
       } else
       { Sclose(fd);
 	if ( r != text->buf )
@@ -362,7 +366,11 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   { goto error;
   }
 
-  succeed;
+out:
+  if ( (flags&BUF_NORING) && text->storage == PL_CHARS_RING )
+    return PL_save_text(text, BUF_MALLOC);
+
+  return TRUE;
 
 maybe_write:
   if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )

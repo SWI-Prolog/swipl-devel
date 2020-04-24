@@ -838,10 +838,11 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_EXCEPTION	    0x00001000	/* throw exception on error */
 #define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
 
-#define BUF_DISCARDABLE	    0x00000000
-#define BUF_RING	    0x00010000
-#define BUF_MALLOC	    0x00020000
-#define BUF_ALLOW_STACK	    0x00040000	/* allow pointer into (global) stack */
+#define BUF_DISCARDABLE	    0x00000000	/* Store in single thread-local buffer */
+#define BUF_RING	    0x00010000	/* Store in ring of 16 buffers */
+#define BUF_MALLOC	    0x00020000	/* Store using PL_malloc() */
+#define BUF_ALLOW_STACK	    0x00040000	/* Allow pointer into (global) stack */
+#define BUF_NORING	    0x00080000	/* Do not store in ring */
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
