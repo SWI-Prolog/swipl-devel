@@ -79,7 +79,7 @@ int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);
-void	PL_save_text(PL_chars_t *text, int flags);
+int	PL_save_text(PL_chars_t *text, int flags);
 
 COMMON(int)		PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD);
 COMMON(atom_t)		textToAtom(PL_chars_t *text);

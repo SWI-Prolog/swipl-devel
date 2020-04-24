@@ -75,15 +75,19 @@ bufsize_text(PL_chars_t *text, size_t len)
 }
 
 
-void
+int
 PL_save_text(PL_chars_t *text, int flags)
 { if ( (flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
   { size_t bl = bufsize_text(text, text->length+1);
     void *new = PL_malloc(bl);
 
-    memcpy(new, text->text.t, bl);
-    text->text.t = new;
-    text->storage = PL_CHARS_MALLOC;
+    if ( new )
+    { memcpy(new, text->text.t, bl);
+      text->text.t = new;
+      text->storage = PL_CHARS_MALLOC;
+    } else
+    { return FALSE;
+    }
   } else if ( text->storage == PL_CHARS_LOCAL )
   { Buffer b = findBuffer(BUF_RING);
     size_t bl = bufsize_text(text, text->length+1);
