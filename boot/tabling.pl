@@ -333,18 +333,16 @@ start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     (   Status == complete
     ->  trie_gen_compiled(Trie, Skeleton)
     ;   functor(Status, fresh, 2)
-    ->  catch(create_table(Trie, Status, Skeleton, Wrapper, Worker,
-                           LStatus, Clause),
+    ->  catch(create_table(Trie, Status, Skeleton, Wrapper, Worker),
               deadlock,
-              restart_tabling(Closure, Wrapper, Worker)),
-        done_leader(LStatus, Status, Skeleton, Clause)
+              restart_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
     ->  reeval(Trie, Wrapper, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton, Status))
     ).
 
-create_table(Trie, Fresh, Skeleton, Wrapper, Worker, LStatus, Clause) :-
+create_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
     tdebug(Fresh = fresh(SCC, WorkList)),
     tdebug(wl_goal(WorkList, Goal, _)),
     tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
@@ -353,7 +351,8 @@ create_table(Trie, Fresh, Skeleton, Wrapper, Worker, LStatus, Clause) :-
         run_leader(Skeleton, Worker, Fresh, LStatus, Clause),
         Catcher,
         finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
-    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]).
+    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+    done_leader(LStatus, Fresh, Skeleton, Clause).
 
 %!  restart_tabling(+Closure, +Wrapper, +Worker)
 %
@@ -369,6 +368,11 @@ restart_tabling(Closure, Wrapper, Worker) :-
     sleep(0.000001),
     start_tabling(Closure, Wrapper, Worker).
 
+restart_abstract_tabling(Closure, Wrapper, Worker) :-
+    tdebug(user_goal(Wrapper, Goal)),
+    tdebug(deadlock, 'Deadlock running ~p; retrying', [Goal]),
+    sleep(0.000001),
+    start_abstract_tabling(Closure, Wrapper, Worker).
 
 %!  start_subsumptive_tabling(:Closure, :Wrapper, :Implementation)
 %
@@ -439,9 +443,10 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
     ;   functor(Status, fresh, 2)
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
         abstract_worker(Worker, GenWrapper, GenWorker),
-        create_table(Trie, Status, GenSkeleton, GenWrapper, GenWorker,
-                     _LStatus, _Clause),
-        '$tbl_answer_update_dl'(Trie, Skeleton)
+        catch(create_abstract_table(Trie, Status, GenSkeleton, GenWrapper,
+                                    GenWorker),
+              deadlock,
+              restart_abstract_tabling(Closure, Wrapper, Worker))
     ;   Status == invalid
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
         reeval(ATrie, GenWrapper, GenSkeleton),
@@ -451,10 +456,33 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
         unify_subsumptive(Skeleton, GenSkeleton)
     ).
 
+create_abstract_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
+    tdebug(Fresh = fresh(SCC, WorkList)),
+    tdebug(wl_goal(WorkList, Goal, _)),
+    tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+    setup_call_catcher_cleanup(
+        '$idg_set_current'(OldCurrent, Trie),
+        run_leader(Skeleton, Worker, Fresh, LStatus, _Clause),
+        Catcher,
+        finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
+    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+    done_abstract_leader(LStatus, Fresh, Skeleton, Trie).
+
 abstract_worker(_:call(Term), _M:GenWrapper, call(GenTerm)) :-
     functor(Term, Closure, _),
     GenWrapper =.. [_|Args],
     GenTerm =.. [Closure|Args].
+
+:- '$hide'((done_abstract_leader/4)).
+
+done_abstract_leader(complete, _Fresh, Skeleton, Trie) :-
+    !,
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_abstract_leader(final, fresh(SCC, _Worklist), Skeleton, Trie) :-
+    !,
+    '$tbl_free_component'(SCC),
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_abstract_leader(_,_,_,_).
 
 %!  done_leader(+Status, +Fresh, +Skeleton, -Clause)
 %
