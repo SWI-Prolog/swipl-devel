@@ -271,15 +271,17 @@ call_nth(_Goal, Bad) :-
 
 %!  order_by(+Spec, :Goal)
 %
-%   Order solutions according to Spec.  Spec   is  a  list of terms,
-%   where each element is one of. The  ordering of solutions of Goal
-%   that only differ in variables that are _not_ shared with Spec is
-%   not changed.
+%   Order solutions according to Spec. Spec is   a  list of terms, where
+%   each element is one of. The ordering  of solutions of Goal that only
+%   differ in variables that are _not_ shared with Spec is not changed.
 %
 %     - asc(Term)
 %     Order solution according to ascending Term
 %     - desc(Term)
 %     Order solution according to descending Term
+%
+%   This predicate is based on findall/3 and (thus) variables in answers
+%   are _copied_.
 
 order_by(Spec, Goal) :-
     must_be(list, Spec),
