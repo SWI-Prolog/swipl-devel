@@ -269,6 +269,9 @@ comma_list(M:G, M) -->
 comma_list(tnot(M:G), M) -->
     !,
     [tnot(G)].
+comma_list(system:G, _) -->
+    !,
+    [G].
 comma_list(G, _) -->
     [G].
 
