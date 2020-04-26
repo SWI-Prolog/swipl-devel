@@ -1,0 +1,209 @@
+
+/*
+ Need to test out doubles for p3/p7
+ */
+
+:- compiler_options([spec_off]).
+
+%:- set_prolog_flag(max_table_subgoal_size_action,failure).
+:- set_prolog_flag(max_table_subgoal_size_action,abstract).
+:- set_prolog_flag(max_table_subgoal_size,2).
+%:- import start_forest_view/1 from tables.
+%?- start_forest_view(userout).
+
+%--------------------
+:- table p1/1.
+p1(X):- Y = f(X),p1(Y).
+p1(1).
+
+%--------------------
+:- table p11/1.
+p11(X):- p11(f(X)).
+p11(1).
+
+%--------------------
+:- table p12/1.
+p12(X):- Y = [X],
+	% writeln(calling(p12(Y))),
+	p12(Y).
+p12(1).
+
+%--------------------
+:- table p2/1.
+p2(1).
+p2(X):- Y = f(X),p2(Y).
+
+%--------------------
+:- table p21/1.
+p21(1).
+p21(X):- p21(f(X)).
+
+%--------------------
+:- table p22/1.
+p22(1).
+p22(X):- p22([X]).
+
+%--------------------
+:- table p3/1.
+p3(X):- %writeln(entering_clause(X)),
+	p3(f(X)).
+%	writeln(succeeded_clause(X)).
+p3(X):- %writeln(entering_fact(X)),
+	X = f(1).
+	%writeln(succeeded_fact(X)).
+%p3(X):- X = f(1).
+
+%p3(f(f(f(f(f(f(1))))))).
+%p3(f(f(f(f(f(1)))))).
+%--------------------
+:- table p31/1.
+p31(X):-
+	%writeln(calling([X])),
+	p31([X]).
+p31([1]).
+
+%--------------------
+
+:- table p4/1.
+%p4(f(f(f(f(f(f(1))))))).
+p4(f(1)).
+p4(X):-
+	%writeln(calling(p4(f(X)))),
+	p4(f(X)).
+
+%--------------------
+
+:- table p41/1.
+p41([1]).
+p41(X):-
+	%writeln(calling(p41([X]))),
+	p41([X]).
+
+%--------------------
+
+:- table p5/1.
+p5(f(g(f(1)))).
+p5(f(g(f(2)))).
+
+%--------------------
+
+:- table p6/1.
+p6(_X).
+p6(X):- p6(f(X)).
+
+%--------------------
+
+:- table p7/1.
+p7(X):- p7(f(X)).
+p7(_X).
+
+%--------------------
+
+:- table d1/2.
+d1(1,1).
+d1(X,Y):- d1(f(X),f(Y)).
+
+%--------------------
+
+:- table d11/2.
+d11(1,1).
+d11(X,Y):- d11([X],[Y]).
+
+%--------------------
+
+:- table d2/2.
+d2(X,Y):- d2(f(X),f(Y)).
+d2(1,1).
+
+%--------------------
+
+:- table p8/1.
+p8(X):- p8(f(X)).
+p8(f(f(f(1)))).
+p8(f(f(g(2)))).
+p8(f(f(f(3)))).
+p8(f(f(g(4)))).
+
+%--------------------
+
+%--------------------
+:- table n1/1.
+
+n1(X):- tnot(n1(f(X))).
+n1(1).
+
+%--------------------
+
+test:- setof(X,p1(X),Xs),
+       (Xs == [1] -> writeln('>>>>>succeeded(p1)')
+        ; writeln('>>>>>failed(p1)') ),fail.
+test:- setof(X,p11(X),Xs),
+       (Xs == [1] -> writeln('>>>>>succeeded(p11)')
+        ; writeln('>>>>>failed(p11)') ),fail.
+test:- setof(X,p2(X),Xs),
+       (Xs == [1] -> writeln('>>>>>succeeded(p2)')
+        ; writeln('>>>>>failed(p2)') ),fail.
+test:- setof(X,p21(X),Xs),
+       (Xs == [1] -> writeln('>>>>>succeeded(p21)')
+        ; writeln('>>>>>failed(p21)') ),fail.
+test:- setof(X,p3(X),Xs),
+       (Xs == [1,f(1)] -> writeln('>>>>>succeeded(p3)')
+        ; writeln('>>>>>failed(p3)') ),fail.
+test:- setof(X,p31(X),Xs),
+       (Xs == [1,[1]] -> writeln('>>>>>succeeded(p31)')
+        ; writeln('>>>>>failed(p31)') ),fail.
+test:- setof(X,p4(X),Xs),
+       (Xs == [1,f(1)] -> writeln('>>>>>succeeded(p4)')
+        ; writeln('>>>>>failed(p4)') ),fail.
+test:- setof(X,p41(X),Xs),
+       (Xs == [1,[1]] -> writeln('>>>>>succeeded(p41)')
+        ; writeln('>>>>>failed(p41)') ),fail.
+test:- test5.
+test:- test5a.
+test:- test5b.
+test:- test6.
+test:- test7.
+test:- testd1.
+test:- testd11.
+test.
+
+test5:- abolish_all_tables,
+	setof(X,p5(f(g(f(X)))),Xs),
+	(Xs == [1,2] -> writeln('>>>>>succeeded(p5)')
+         ; writeln('>>>>>failed(p5)') ),fail.
+test5a:- abolish_all_tables,
+	 (p5(_),fail ; true),
+	 setof(X,p5(f(g(f(X)))),Xs),
+	 (Xs == [1,2] -> writeln('>>>>>succeeded(p5a)')
+          ; writeln('>>>>>failed(p5a)') ),fail.
+test5b:- abolish_all_tables,
+	 (p5(_),fail ; true),
+	 findall(1,p5(f(g(f(3)))),Xs),
+	 (Xs == [] -> writeln('>>>>>succeeded(p5a)')
+          ; writeln('>>>>>failed(p5a)') ),fail.
+
+test6:- abolish_all_tables,
+	 (p6(_),fail ; true),
+	 findall(X,get_residual(p6(X),_Y),Xs),
+	 (Xs = [_,f(_),f(f(_))] -> writeln('>>>>>succeeded(p6)')
+          ; writeln('>>>>>failed(p6)') ),fail.
+
+test7:- abolish_all_tables,
+	 (p7(_),fail ; true),
+	 findall(X,get_residual(p7(X),_Y),Xs),
+	 (Xs = [_,f(_),f(f(_))] -> writeln('>>>>>succeeded(p7)')
+          ; writeln('>>>>>failed(p7)') ),fail.
+
+testd1:- abolish_all_tables,
+	 setof([X,Y],d1(X,Y),Xs),
+	 (Xs = [[1,1]] -> writeln('>>>>>succeeded(d1)')
+          ; writeln('>>>>>failed(d1)') ),fail.
+testd11:- abolish_all_tables,
+	 setof([X,Y],d11(X,Y),Xs),
+	 (Xs = [[1,1]] -> writeln('>>>>>succeeded(d11)')
+          ; writeln('>>>>>failed(d11)') ),fail.
+
+testd2:- abolish_all_tables,
+	 setof([X,Y],d2(X,Y),Xs),
+	 (Xs = [[1,1]] -> writeln('>>>>>succeeded(d2)')
+          ; writeln('>>>>>failed(d2)') ),fail.
