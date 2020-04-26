@@ -2306,7 +2306,8 @@ retry:
   { if ( rc == TRIE_ABSTRACTED )
     { atom_t action = LD->tabling.restraint.max_table_subgoal_size_action;
 
-      Sdprintf("Trapped by subgoal size restraint\n");
+      DEBUG(MSG_TABLING_RESTRAINT,
+	    Sdprintf("Trapped by subgoal size restraint\n"));
       if ( action == ATOM_abstract )
       {
       } else if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
