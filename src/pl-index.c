@@ -1058,12 +1058,6 @@ gcClauseList(ClauseList clist, DirtyDefInfo ddi, gen_t start)
     }
   }
 
-  DEBUG(CHK_SECURE,
-	{ for(cref=clist->first_clause; cref; cref=cref->next)
-	  { assert(false(cref->value.clause, CL_ERASED));
-	  }
-	});
-
   clist->erased_clauses = 0; /* see (*) */
 }
 
