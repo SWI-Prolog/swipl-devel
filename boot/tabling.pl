@@ -1101,11 +1101,13 @@ ct_generate(M:Variant) :-
     system:term_expansion/2.
 
 wrappers(Spec, M) -->
-    { tabling_defaults([ table_incremental-(incremental=true),
-                         table_shared-(tshared=true),
-                         table_subsumptive-((mode)=subsumptive)
-                       ],
-                       #{}, Defaults)
+    { tabling_defaults(
+          [ (table_incremental=true)            - (incremental=true),
+            (table_shared=true)                 - (tshared=true),
+            (table_subsumptive=true)            - ((mode)=subsumptive),
+            call(subgoal_size_restraint(Level)) - (subgoal_abstract=Level)
+          ],
+          #{}, Defaults)
     },
     wrappers(Spec, M, Defaults).
 
@@ -1188,13 +1190,24 @@ qlist([H|T], M) --> [M:H], qlist(T, M).
 
 
 tabling_defaults([], Dict, Dict).
-tabling_defaults([Flag-(Opt=Value)|T], Dict0, Dict) :-
-    (   current_prolog_flag(Flag, true)
+tabling_defaults([Condition-(Opt=Value)|T], Dict0, Dict) :-
+    (   tabling_default(Condition)
     ->  Dict1 = Dict0.put(Opt,Value)
     ;   Dict1 = Dict0
     ),
     tabling_defaults(T, Dict1, Dict).
 
+tabling_default(Flag=FValue) :-
+    !,
+    current_prolog_flag(Flag, FValue).
+tabling_default(call(Term)) :-
+    call(Term).
+
+% Called from wrappers//2.
+
+subgoal_size_restraint(Level) :-
+    current_prolog_flag(max_table_subgoal_size_action, abstract),
+    current_prolog_flag(max_table_subgoal_size, Level).
 
 %!  table_options(+Options, +OptDictIn, -OptDictOut)
 %
