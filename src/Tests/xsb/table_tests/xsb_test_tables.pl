@@ -87,5 +87,6 @@ table_test(pps).
 table_test(test_3vwfs_1).       % WFS with answer subsumption
 table_test(test_maxans_decl).   % max_answers(Count) restraint
 table_test(test_tda).		% subgoal_abstract restraint (abstract)
+table_test(test_tda_i).		% subgoal_abstract restraint (abstract)
 
 :- end_tests(xsb_test_tables).
