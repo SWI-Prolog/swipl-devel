@@ -443,6 +443,7 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
     ;   functor(Status, fresh, 2)
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
         abstract_worker(Worker, GenWrapper, GenWorker),
+        Skeleton = GenSkeleton,
         catch(create_abstract_table(Trie, Status, GenSkeleton, GenWrapper,
                                     GenWorker),
               deadlock,
