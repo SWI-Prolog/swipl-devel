@@ -1087,6 +1087,8 @@ deleteCanonicalDir(CanonicalDir d)
 	if ( d->canonical != d->name )
 	  remove_string(d->canonical);
 	PL_free(d);
+
+	return;
       }
     }
 
