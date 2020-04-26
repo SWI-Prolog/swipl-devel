@@ -179,8 +179,8 @@ test5a:- abolish_all_tables,
 test5b:- abolish_all_tables,
 	 (p5(_),fail ; true),
 	 findall(1,p5(f(g(f(3)))),Xs),
-	 (Xs == [] -> writeln('>>>>>succeeded(p5a)')
-          ; writeln('>>>>>failed(p5a)') ),fail.
+	 (Xs == [] -> writeln('>>>>>succeeded(p5b)')
+          ; writeln('>>>>>failed(p5b)') ),fail.
 
 test6:- abolish_all_tables,
 	 (p6(_),fail ; true),
