@@ -37,8 +37,6 @@
 :- autoload(library(apply),[convlist/3,partition/4]).
 :- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[instantiation_error/1]).
-:- autoload(library(lists),[append/3,flatten/2]).
-
 
 /** <module> Support XSB source .P files
 
@@ -67,7 +65,7 @@ user:term_expansion(begin_of_file, Out) :-
     file_name_extension(Path, 'P', File),
     include_options(File, Include),
     compiler_options(COptions),
-    append(Include, COptions, Extra),
+    '$append'(Include, COptions, Extra),
     xsb_directives(File, Directives),
     directive_exports(Directives, Public, Directives1),
     (   Public == []
@@ -81,7 +79,7 @@ user:term_expansion(begin_of_file, Out) :-
              (:- use_module(library(tables)))
            | Out2
            ],
-    append(Extra, More, Out2),
+    '$append'(Extra, More, Out2),
     (   nonvar(Module)
     ->  setup_call_cleanup(
             '$set_source_module'(OldM, Module),
@@ -247,3 +245,23 @@ stream_directive(In, Directive) :-
 :- op(1100,  fy, ti).
 :- op(1045, xfx, as).
 :- op(900,   fy, tnot).
+
+
+		 /*******************************
+		 *              UTIL		*
+		 *******************************/
+
+flatten(List, FlatList) :-
+    flatten(List, [], FlatList0),
+    !,
+    FlatList = FlatList0.
+
+flatten(Var, Tl, [Var|Tl]) :-
+    var(Var),
+    !.
+flatten([], Tl, Tl) :- !.
+flatten([Hd|Tl], Tail, List) :-
+    !,
+    flatten(Hd, FlatHeadTail, List),
+    flatten(Tl, Tail, FlatHeadTail).
+flatten(NonList, Tl, [NonList|Tl]).
