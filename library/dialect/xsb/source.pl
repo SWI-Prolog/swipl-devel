@@ -34,9 +34,10 @@
 */
 
 :- module(xsb_source, []).
-:- autoload(library(apply),[convlist/3,partition/4]).
-:- autoload(library(debug),[debug/3]).
-:- autoload(library(error),[instantiation_error/1]).
+:- autoload(library(apply),  [convlist/3,partition/4]).
+:- autoload(library(debug),  [debug/3]).
+:- autoload(library(error),  [instantiation_error/1]).
+:- autoload(library(occurs), [sub_term/2]).
 
 /** <module> Support XSB source .P files
 
@@ -182,16 +183,13 @@ head_directive(import(from(Preds, From)), State) -->
 head_directive(table(Preds as XSBOptions), State) -->
     !,
     { ignored_table_options(XSBOptions, Options),
-      (   Options == true
-      ->  expand_term((:- table(Preds)), Clauses)
-      ;   expand_term((:- table(Preds as Options)), Clauses)
-      ),
+      table_clauses(Preds, Options, Clauses, State),
       assertz(xsb:moved_directive(State.file, table(Preds as XSBOptions)))
     },
     seq(Clauses).
 head_directive(table(Preds), State) -->
     !,
-    { expand_term((:- table(Preds)), Clauses),
+    { table_clauses(Preds, true, Clauses, State),
       assertz(xsb:moved_directive(State.file, table(Preds)))
     },
     seq(Clauses).
@@ -226,6 +224,24 @@ supported_table_option(answer_abstract(_)).
 mkconj(true, X, X) :- !.
 mkconj(X, true, X) :- !.
 mkconj(X, Y, (X,Y)) :- !.
+
+table_clauses(Preds, Options0, Clauses, State) :-
+    add_defaults(Options0, Options, State),
+    (   Options == true
+    ->  expand_term((:- table(Preds)), Clauses)
+    ;   expand_term((:- table(Preds as Options)), Clauses)
+    ).
+
+add_defaults(Opts, Opts, _) :-
+    sub_term(subgoal_abstract(_), Opts),
+    !.
+add_defaults(Opts0, Opts, State) :-
+    #{max_table_subgoal_size_action:abstract,
+      max_table_subgoal_size:Size} :< State,
+    Size >= 0,
+    !,
+    mkconj(Opts0, subgoal_abstract(Size), Opts).
+add_defaults(Opts, Opts, _).
 
 %!  xsb_directives(+File, -Directives) is semidet.
 %
