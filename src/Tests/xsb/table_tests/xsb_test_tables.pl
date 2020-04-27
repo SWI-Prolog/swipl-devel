@@ -80,6 +80,7 @@ table_test(pred_abolish_dag).
 table_test(recursive_aboltest).
 table_test(ins).
 table_test(large_arity_tables).
+table_test(test_large_tabled_terms).
 table_test(concomp).
 table_test(lrbug).
 table_test(tabbug1).

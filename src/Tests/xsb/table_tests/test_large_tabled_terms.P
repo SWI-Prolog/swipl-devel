@@ -25,7 +25,7 @@ a(N,X):- makelist(N,X).
 
 %---------
 
-test_subgoal_abstraction(N,L):- 
+test_subgoal_abstraction(N,L):-
    abolish_all_tables,
    set_prolog_flag(max_table_subgoal_size,10),
    set_prolog_flag(max_table_subgoal_size_action,abstract),
@@ -37,10 +37,10 @@ r(N,L):- makelist(N,L).
 
 %---------
 
-test_answer_abstraction(N,L):- 
+test_answer_abstraction(N,L):-
    abolish_all_tables,
    set_prolog_flag(max_table_answer_size,10),
-   set_prolog_flag(max_table_answer_size_action,abstract),
+   set_prolog_flag(max_table_answer_size_action,bounded_rationality),
    r(N,L).
 
 %---------
@@ -48,12 +48,12 @@ test_answer_abstraction(N,L):-
 :- table b/3.
 b(N,_L,M):- makelist(N,M).
 
-test_subgoal_answer_abstraction(N,L,M):- 
+test_subgoal_answer_abstraction(N,L,M):-
    abolish_all_tables,
    set_prolog_flag(max_table_subgoal_size,10),
    set_prolog_flag(max_table_subgoal_size_action,abstract),
    set_prolog_flag(max_table_answer_size,10),
-   set_prolog_flag(max_table_answer_size_action,abstract),
+   set_prolog_flag(max_table_answer_size_action,bounded_rationality),
    makelist(N,L),
    b(N,L,M).
 
@@ -62,7 +62,7 @@ test_var_limit(N):-
     set_prolog_flag(max_table_answer_var_num,N),
     test_var_limit(N,_L2).
 
-test_var_limit(N,L2):- 
+test_var_limit(N,L2):-
    set_prolog_flag(max_table_subgoal_size,10000000),
    set_prolog_flag(max_table_answer_size,10000000),
    abolish_all_tables,
@@ -77,7 +77,9 @@ test_var_limit(N,L2):-
 
 test_large_nonground_answer:- a(50000,_X).
 :- table a_var/2.
-a_var(N,X):- makevarlist(N,X).
+a_var(N,X):-
+   makevarlist(N,X),
+   writeln(test_a_var_succeeded).
 
 %---------
 
