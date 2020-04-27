@@ -76,6 +76,7 @@ table_test(abolish_neg_cycle).
 table_test(abolish_neg_dag).
 table_test(atc_test).
 table_test(concomp).
+table_test(expand).
 table_test(ins).
 table_test(large_arity_tables).
 table_test(lrbug).
