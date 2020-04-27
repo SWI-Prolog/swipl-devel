@@ -3573,7 +3573,7 @@ ar_integer(Number n1, Number r)
 	return TRUE;
       }
 
-      if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
+      if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
       { if ( n1->value.f > 0 )
 	{ r->value.i = (int64_t)(n1->value.f + 0.5);
 	  if ( r->value.i < 0 )		/* Why can this happen? */
