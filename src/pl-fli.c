@@ -4592,6 +4592,10 @@ PL_halt(int status)
   return FALSE;
 }
 
+#ifndef SIGABRT
+#define SIGABRT 6			/* exit 134 --> aborted */
+#endif
+
 void
 PL_abort_process(void)
 { haltProlog(128+SIGABRT);
