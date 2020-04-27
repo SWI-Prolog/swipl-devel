@@ -86,6 +86,7 @@ table_test(pred_abolish_dag).
 table_test(recursive_aboltest).
 table_test(tabbug1).
 table_test(test_3vwfs_1).       % WFS with answer subsumption
+table_test(test_calldepth).
 table_test(test_cyclic_tabling).% Cyclic term handling
 table_test(test_large_tabled_terms).
 table_test(test_maxans_decl).   % max_answers(Count) restraint
