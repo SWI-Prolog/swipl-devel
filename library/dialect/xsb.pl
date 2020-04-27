@@ -47,6 +47,7 @@
             compiler_options/1,			% +Options
 
             xsb_import/2,                       % +Preds, From
+            xsb_set_prolog_flag/2,              % +Flag, +Value
 
             fail_if/1,				% :Goal
 
@@ -179,6 +180,8 @@ user:goal_expansion(In, Out) :-
 
 xsb_mapped_predicate(expand_file_name(File, Expanded),
                      xsb_expand_file_name(File, Expanded)).
+xsb_mapped_predicate(set_prolog_flag(Flag, Value),
+                     xsb_set_prolog_flag(Flag, Value)).
 xsb_mapped_predicate(abolish_module_tables(UserMod),
                      abolish_module_tables(user)) :-
     UserMod == usermod.
@@ -312,6 +315,21 @@ map_module(XSB, Module) :-
     !.
 map_module(XSB, Module) :-
     assertz(mapped__module(XSB, Module)).
+
+
+%!  xsb_set_prolog_flag(+Flag, +Value)
+%
+%   Map some XSB Prolog flags to their SWI-Prolog's equivalents.
+
+xsb_set_prolog_flag(unify_with_occurs_check, XSBVal) :-
+    !,
+    map_bool(XSBVal, Val),
+    set_prolog_flag(occurs_check, Val).
+xsb_set_prolog_flag(Flag, Value) :-
+    set_prolog_flag(Flag, Value).
+
+map_bool(on, true).
+map_bool(off, false).
 
 
 		 /*******************************
