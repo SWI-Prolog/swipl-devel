@@ -1,0 +1,8 @@
+answer_var_limit_tested
+subgoal_var_limit_two_tested
+test_answer_abstraction
+test_large_ground_answer
+test_large_ground_subgoal
+test_subgoal_abstraction
+test_subgoal_answer_abstraction
+test_var_limit_1_succeeded

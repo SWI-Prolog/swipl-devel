@@ -1,0 +1,89 @@
+
+/* Test of handling large subgoals and answers */
+
+test:- test_large_ground_subgoal,writeln(test_large_ground_subgoal),fail.
+test:- test_large_ground_answer,writeln(test_large_ground_answer),fail.
+test:- test_subgoal_abstraction(50000,_L),writeln(test_subgoal_abstraction),fail.
+test:- test_answer_abstraction(50000,_L),writeln(test_answer_abstraction),fail.
+test:- test_subgoal_answer_abstraction(50000,_L,_M),writeln(test_subgoal_answer_abstraction),fail.
+test:- catch(test_var_limit(1900,_L2),_E,writeln(subgoal_var_limit_one_caught)),fail. %new
+test:- catch(test_var_limit(100000,_L2),_E,writeln(subgoal_var_limit_two_tested)),fail.
+test:- catch(a_var(100000,_L2),_E,writeln(answer_var_limit_tested)),fail.
+test.
+
+%---------
+
+test_large_ground_subgoal:- makelist(50000,X),s(X).
+:-table s/1.
+s(_X).
+
+%---------
+
+test_large_ground_answer:- a(50000,_X).
+:- table a/2.
+a(N,X):- makelist(N,X).
+
+%---------
+
+test_subgoal_abstraction(N,L):- 
+   abolish_all_tables,
+   set_prolog_flag(max_table_subgoal_size,10),
+   set_prolog_flag(max_table_subgoal_size_action,abstract),
+   makelist(N,L),
+   s(L).
+
+:- table r/2.
+r(N,L):- makelist(N,L).
+
+%---------
+
+test_answer_abstraction(N,L):- 
+   abolish_all_tables,
+   set_prolog_flag(max_table_answer_size,10),
+   set_prolog_flag(max_table_answer_size_action,abstract),
+   r(N,L).
+
+%---------
+
+:- table b/3.
+b(N,_L,M):- makelist(N,M).
+
+test_subgoal_answer_abstraction(N,L,M):- 
+   abolish_all_tables,
+   set_prolog_flag(max_table_subgoal_size,10),
+   set_prolog_flag(max_table_subgoal_size_action,abstract),
+   set_prolog_flag(max_table_answer_size,10),
+   set_prolog_flag(max_table_answer_size_action,abstract),
+   makelist(N,L),
+   b(N,L,M).
+
+test_var_limit(N):-
+    set_prolog_flag(max_table_subgoal_var_num,N),
+    set_prolog_flag(max_table_answer_var_num,N),
+    test_var_limit(N,_L2).
+
+test_var_limit(N,L2):- 
+   set_prolog_flag(max_table_subgoal_size,10000000),
+   set_prolog_flag(max_table_answer_size,10000000),
+   abolish_all_tables,
+   makevarlist(N,L1),
+   s(L1),
+   makevarlist(N,L2),
+   s(L2),
+   L1 = L2,
+   writeln(test_var_limit_1_succeeded).
+
+%---------
+
+test_large_nonground_answer:- a(50000,_X).
+:- table a_var/2.
+a_var(N,X):- makevarlist(N,X).
+
+%---------
+
+makelist(0,[]):- !.
+makelist(N,[N|T]):- N1 is N - 1, makelist(N1,T).
+
+makevarlist(0,[]):- !.
+makevarlist(N,[_N|T]):- N1 is N - 1, makevarlist(N1,T).
+
