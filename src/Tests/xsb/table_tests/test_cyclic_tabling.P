@@ -1,8 +1,8 @@
 :- import close_open_tables/1 from machine.
 
-?- set_prolog_flag(max_table_answer_size,25).
-?- set_prolog_flag(max_table_subgoal_size,25).
-?- set_prolog_flag(max_table_subgoal_size_action,error).
+:- set_prolog_flag(max_table_answer_size,25).
+:- set_prolog_flag(max_table_subgoal_size,25).
+:- set_prolog_flag(max_table_subgoal_size_action,error).
 
 :- table p/1.
 p(X):- X = f(X).
@@ -23,6 +23,10 @@ test:- make_term(100,X),catch(s(X),error(_Type,context(_Msg,_)),writeln(caught_s
 test:- close_open_tables(non_memory_error),fail.
 test:- abolish_all_tables,fail.
 test:- test_uwoc, fail.
+test:- set_prolog_flag(unify_with_occurs_check,off),
+       set_prolog_flag(max_table_answer_size,infinite),
+       set_prolog_flag(max_table_subgoal_size,infinite),
+       fail.
 test.
 
 test_uwoc:- set_prolog_flag(unify_with_occurs_check,on),fail.

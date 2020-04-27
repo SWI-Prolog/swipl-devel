@@ -68,24 +68,25 @@ table_test(abol_test3).         % atp gc same preds
 table_test(abol_test3a).        % atp gc diff preds
 table_test(abol_test3b).        % atp gc diff preds + valid
 table_test(abol_test3c).        % atp gc diff preds + valid + multiple gcs
-table_test(atc_test).
 table_test(abolish_cascade).	% cascading abolish for subgoals with gc etc.
 table_test(abolish_cascade_pred).
 table_test(abolish_cycle).
 table_test(abolish_dag).
 table_test(abolish_neg_cycle).
 table_test(abolish_neg_dag).
+table_test(atc_test).
+table_test(concomp).
+table_test(ins).
+table_test(large_arity_tables).
+table_test(lrbug).
+table_test(pps).
 table_test(pred_abolish_cycle).
 table_test(pred_abolish_dag).
 table_test(recursive_aboltest).
-table_test(ins).
-table_test(large_arity_tables).
-table_test(test_large_tabled_terms).
-table_test(concomp).
-table_test(lrbug).
 table_test(tabbug1).
-table_test(pps).
 table_test(test_3vwfs_1).       % WFS with answer subsumption
+table_test(test_cyclic_tabling).% Cyclic term handling
+table_test(test_large_tabled_terms).
 table_test(test_maxans_decl).   % max_answers(Count) restraint
 table_test(test_tda).		% subgoal_abstract restraint (abstract)
 table_test(test_tda_i).		% subgoal_abstract restraint (abstract)
