@@ -2287,12 +2287,13 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
       }
     }
     shared = !!true(def, P_TSHARED);
-    sa.size = pred_max_table_subgoal_size(def PASS_LD);
   }
 #else
   shared = FALSE;
 #endif
 
+  if ( def )			/* otherwise we don't need it anyway */
+    sa.size = pred_max_table_subgoal_size(def PASS_LD);
   variants = variant_table(shared PASS_LD);
   initBuffer(&vars);
 
