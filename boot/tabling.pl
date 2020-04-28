@@ -789,6 +789,8 @@ completion_step(SourceWL) :-
 %!  tnot(:Goal)
 %
 %   Tabled negation.
+%
+%   (*): Only variant tabling is allowed under tnot/1.
 
 tnot(Goal0) :-
     '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
@@ -803,7 +805,9 @@ tnot(Goal0) :-
         ;   negation_suspend(Goal, Skeleton, Status)
         )
     ;   tdebug(tnot, 'tnot: ~p: fresh', [Goal]),
-        (   call(Goal),
+        (   '$wrapped_implementation'(Goal, table, Implementation), % see (*)
+            functor(Implementation, Closure, _),
+            start_tabling(Closure, Goal, Implementation),
             fail
         ;   '$tbl_existing_variant_table'(_, Goal, Trie, NewStatus, NewSkeleton),
             tdebug(tnot, 'tnot: fresh ~p now ~p', [Goal, NewStatus]),
