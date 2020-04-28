@@ -443,8 +443,7 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
     ;   functor(Status, fresh, 2)
     ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
         abstract_worker(Worker, GenWrapper, GenWorker),
-        Skeleton = GenSkeleton,
-        catch(create_abstract_table(Trie, Status, GenSkeleton, GenWrapper,
+        catch(create_abstract_table(Trie, Status, Skeleton, GenSkeleton, GenWrapper,
                                     GenWorker),
               deadlock,
               restart_abstract_tabling(Closure, Wrapper, Worker))
@@ -457,17 +456,18 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
         unify_subsumptive(Skeleton, GenSkeleton)
     ).
 
-create_abstract_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
+create_abstract_table(Trie, Fresh, Skeleton, GenSkeleton, Wrapper, Worker) :-
     tdebug(Fresh = fresh(SCC, WorkList)),
     tdebug(wl_goal(WorkList, Goal, _)),
     tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
     setup_call_catcher_cleanup(
         '$idg_set_current'(OldCurrent, Trie),
-        run_leader(Skeleton, Worker, Fresh, LStatus, _Clause),
+        run_leader(GenSkeleton, Worker, Fresh, LStatus, _Clause),
         Catcher,
         finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
     tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
-    done_abstract_leader(LStatus, Fresh, Skeleton, Trie).
+    Skeleton = GenSkeleton,
+    done_abstract_leader(LStatus, Fresh, GenSkeleton, Trie).
 
 abstract_worker(_:call(Term), _M:GenWrapper, call(GenTerm)) :-
     functor(Term, Closure, _),
