@@ -1,0 +1,68 @@
+
+:- table p/1.
+p(_X).
+
+% error -- "deep" terms
+test:- set_prolog_flag(unify_with_occurs_check,off),fail.
+test:- set_prolog_flag(max_table_subgoal_size_action,error),set_prolog_flag(max_table_subgoal_size,2),fail.
+test:- catch(p(f(f(f(1)))),_E,(writeln(error(e1)),fail)),writeln(success(e1)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- catch(p(f(f(f(1)))),_E,(writeln(error(e2)),fail)),writeln(success(e2)),fail.
+test:- abolish_table_call(p(f(f(f(1))))),fail.
+test:- abolish_all_tables,fail.
+%
+% error -- cyclic terms
+test:- X = f(X),catch(p(X),_E,(writeln(error(ce1)),fail)),writeln(success(ce1)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- X = f(X),catch(p(X),_E,(writeln(error(ce2)),fail)),writeln(success(ce2)),fail.
+test:- X = f(X),catch(abolish_table_call(p(X)),_E,(writeln(error(ce3)),fail)),fail.
+test:- abolish_all_tables,fail.
+%
+% error -- "deep" terms / tnot
+test:- catch(tnot(p(f(f(f(1))))),_E,(writeln(error(e3)),fail)),writeln(success(e3)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- catch(tnot(p(f(f(f(1))))),_E,(writeln(error(e4)),fail)),writeln(success(e4)),fail.
+test:- abolish_table_call(p(f(f(f(1))))),fail.
+test:- abolish_all_tables,fail.
+%
+% error -- cyclic terms / tnot
+test:- X = f(X),catch(tnot(p(X)),_E,(writeln(error(ce4)),fail)),writeln(success(ce4)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- X = f(X),catch(tnot(p(X)),_E,(writeln(error(ce5)),fail)),writeln(success(ce5)),fail.
+test:- X = f(X),catch(abolish_table_call(p(X)),_E,(writeln(error(ce6)),fail)),fail.
+test:- abolish_all_tables,fail.
+%
+%% abstraction -- "deep" terms
+test:- set_prolog_flag(max_table_subgoal_size_action,abstract),set_prolog_flag(max_table_subgoal_size,2),fail.
+test:- catch(p(f(f(f(1)))),_E,(writeln(error(a1)),fail)),writeln(success(a1)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- catch(p(f(f(f(1)))),_E,(writeln(error(a2)),fail)),writeln(success(a2)),fail.
+test:- abolish_table_call(p(f(f(f(1))))),fail.
+test:- abolish_all_tables,fail.
+%
+% abstraction -- cyclic terms
+test:- X = f(X),catch(p(X),_E,(writeln(error(ca1)),fail)),writeln(success(ca1)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- X = f(X),catch(p(X),_E,(writeln(error(ca2)),fail)),writeln(success(ca2)),fail.
+test:- X = f(X),catch(abolish_table_call(p(X)),_E,(writeln(error(cae3)),fail)),fail.
+test:- abolish_all_tables,fail.
+%
+% abstraction -- "deep" terms / tnot
+test:- catch(tnot(p(f(f(f(1))))),_E,(writeln(error(a3)),fail)),writeln(success(a3)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- catch(tnot(p(f(f(f(1))))),_E,(writeln(error(a4)),fail)),writeln(success(a4)),fail.
+test:- abolish_table_call(p(f(f(f(1))))),fail.
+test:- abolish_all_tables,fail.
+%%
+% abstraction -- cyclic terms / tnot
+test:- X = f(X),catch(tnot(p(X)),_E,(writeln(error(ca4)),fail)),writeln(success(ca3)),fail.
+test:- abolish_table_pred(p/1),fail.
+test:- X = f(X),catch(tnot(p(X)),_E,(writeln(error(ca4)),fail)),writeln(success(ca4)),fail.
+test:- X = f(X),catch(abolish_table_call(p(X)),_E,(writeln(error(cae4)),fail)),fail.
+test:- abolish_all_tables,fail.
+%
+test:- catch(tnot(p(_X)),_E,(writeln(error(f1)),fail)),fail.
+%%
+test:- X = f(X),catch(tnot(X),_E,(writeln(error(c1)),fail)),fail.
+%%
+test.
