@@ -105,6 +105,7 @@ ok_nested(Goal) :-
 
 '$timed_call_nested'(Goal, M:Options) :-
     memberchk(max(MaxInterval, MaxHandler), Options),
+    !,
     run_max_goal(Goal, MaxInterval, MaxHandler, M:Options).
 '$timed_call_nested'(Goal, M:Options) :-
     memberchk(repeating(RepInterval, RepHandler), Options),
