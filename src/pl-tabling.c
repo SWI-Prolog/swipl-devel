@@ -3087,9 +3087,12 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
 { if ( !wrapper )
     wrapper = PL_new_term_ref();
 
-  if ( unify_trie_term(atrie->data.variant, NULL, wrapper PASS_LD) )
-  { int flags = true(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
-    return ( get_answer_table(NULL, wrapper, skeleton,
+  if ( atrie->data.variant && wrapper &&
+       unify_trie_term(atrie->data.variant, NULL, wrapper PASS_LD) )
+  { worklist *wl = atrie->data.worklist;
+    Definition def = WL_IS_WORKLIST(wl) ? wl->predicate : NULL;
+    int flags = true(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
+    return ( get_answer_table(def, wrapper, skeleton,
 			      NULL, flags|AT_NOCLAIM PASS_LD) != NULL);
   }
 
