@@ -361,6 +361,54 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 }
 
 
+/** '$wrapped_implementation'(:Goal, +Name, -Wrapped)
+ *
+ *  Calling Wrapped calls the predicate referenced by Goal as seen
+ *  from the wrapper Name.
+ */
+
+static
+PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
+  Procedure proc;
+  atom_t wname;
+  Code codes;
+  term_t head = PL_new_term_ref();
+
+  if ( !PL_get_atom_ex(A2, &wname) ||
+       !get_procedure(A1, &proc, head, GP_RESOLVE) )
+    return FALSE;
+
+  if ( (codes = find_wrapper(proc->definition, wname)) )
+  { atom_t aref = codes[2];
+    size_t arity = proc->definition->functor->arity;
+
+    if ( arity > 0 )
+    { Word p;
+      term_t impl = PL_new_term_ref();
+
+      if ( (p=allocGlobal(1+arity)) )
+      { Word a = valTermRef(head);
+	size_t i;
+
+	deRef(a);
+	a = valueTerm(*a)->arguments;
+	p[0] = lookupFunctorDef(aref, arity);
+	for(i=0; i<arity; i++)
+	  p[i+1] = linkVal(&a[i]);
+	*valTermRef(impl) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	return PL_unify(A3, impl);
+      }
+    } else
+    { return PL_unify_atom(A3, aref);
+    }
+  }
+
+  return FALSE;
+}
+
+
 /**
  * unwrap_predicate(:Head, ?Name) is semidet.
  *
@@ -426,9 +474,12 @@ PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+#define META PL_FA_TRANSPARENT
+
 BeginPredDefs(wrap)
-  PRED_DEF("$c_wrap_predicate",  5, c_wrap_predicate,  PL_FA_TRANSPARENT)
-  PRED_DEF("unwrap_predicate",   2, uwrap_predicate,   PL_FA_TRANSPARENT)
-  PRED_DEF("$wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
-  PRED_DEF("$closure_predicate", 2, closure_predicate, 0)
+  PRED_DEF("$c_wrap_predicate",	      5, c_wrap_predicate,       META)
+  PRED_DEF("unwrap_predicate",        2, uwrap_predicate,        META)
+  PRED_DEF("$wrapped_predicate",      2, wrapped_predicate,      META)
+  PRED_DEF("$wrapped_implementation", 3, wrapped_implementation, META)
+  PRED_DEF("$closure_predicate",      2, closure_predicate,      0)
 EndPredDefs
