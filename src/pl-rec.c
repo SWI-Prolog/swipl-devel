@@ -601,7 +601,8 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 	  mark.term = f;
 	  mark.fdef = f->definition;
-	  pushSegStack(&LD->cycle.lstack, mark, cycle_mark);
+	  if ( !pushSegStack(&LD->cycle.lstack, mark, cycle_mark) )
+	    return FALSE;
 	  f->definition = (functor_t)consUInt(info->size);
 				  /* overflow test (should not be possible) */
 	  DEBUG(CHK_SECURE, assert(valUInt(f->definition) == (uintptr_t)info->size));
@@ -615,7 +616,8 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 		   Sdprintf("Added %s/%d\n",
 			    stringAtom(valueFunctor(functor)->name),
 			    arityFunctor(functor)));
-	pushWorkAgenda(agenda, arity, f->arguments);
+	if ( !pushWorkAgenda(agenda, arity, f->arguments) )
+	  return FALSE;
 	continue;
       }
       default:
@@ -686,6 +688,7 @@ compileTermToHeap__LD(term_t t,
   size_t size;
   size_t rsize = SIZERECORD(flags);
   term_agenda agenda;
+  int rc;
 
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
@@ -698,30 +701,34 @@ compileTermToHeap__LD(term_t t,
   info.lock = !(info.external || (flags&R_NOLOCK));
 
   initTermAgenda(&agenda, 1, valTermRef(t));
-  compile_term_to_heap(&agenda, &info PASS_LD);
+  rc = compile_term_to_heap(&agenda, &info PASS_LD);
   clearTermAgenda(&agenda);
   restoreVars(&info);
   unvisit(PASS_LD1);
 
-  size = rsize + sizeOfBuffer(&info.code);
-  if ( allocate )
-    record = (*allocate)(closure, size);
-  else
-    record = PL_malloc_atomic_unmanaged(size);
+  if ( rc )
+  { size = rsize + sizeOfBuffer(&info.code);
+    if ( allocate )
+      record = (*allocate)(closure, size);
+    else
+      record = PL_malloc_atomic_unmanaged(size);
 
-  if ( record )
-  {
+    if ( record )
+    {
 #ifdef REC_MAGIC
-    record->magic = REC_MAGIC;
+      record->magic = REC_MAGIC;
 #endif
-    record->gsize = (unsigned int)info.size; /* only 28-bit */
-    record->nvars = info.nvars;
-    record->size  = (int)size;
-    record->flags = flags;
-    if ( flags & R_DUPLICATE )
-    { record->references = 1;
+      record->gsize = (unsigned int)info.size; /* only 28-bit */
+      record->nvars = info.nvars;
+      record->size  = (int)size;
+      record->flags = flags;
+      if ( flags & R_DUPLICATE )
+      { record->references = 1;
+      }
+      memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
     }
-    memcpy(addPointer(record, rsize), info.code.base, sizeOfBuffer(&info.code));
+  } else
+  { record = NULL;
   }
   discardBuffer(&info.code);
 
