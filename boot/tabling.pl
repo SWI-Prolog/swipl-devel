@@ -274,16 +274,6 @@ untable_reconsult(PI) :-
    prolog_listen(untable, untable_reconsult).
 
 
-%!  start_tabling(:Wrapper, :Implementation)
-%
-%   Execute Implementation using tabling. This  predicate should not
-%   be called directly. The table/1 directive  causes a predicate to
-%   be translated into a renamed implementation   and a wrapper that
-%   involves this predicate.
-%
-%   @compat This interface may change or disappear without notice
-%           from future versions.
-
 '$wrap_tabled'(Head, Options) :-
     get_dict(mode, Options, subsumptive),
     !,
@@ -323,6 +313,19 @@ tabled_attribute(max_answers).
 tabled_attribute(subgoal_abstract).
 tabled_attribute(answer_abstract).
 
+%!  start_tabling(:Closure, :Wrapper, :Implementation)
+%
+%   Execute Implementation using tabling. This   predicate should not be
+%   called directly. The table/1 directive  causes   a  predicate  to be
+%   translated into a renamed implementation and a wrapper that involves
+%   this predicate.
+%
+%   @arg Closure is the wrapper closure   to find the predicate quickly.
+%   It is also allowed to pass nothing.   In that cases the predicate is
+%   looked up using Wrapper.  We suggest to pass `0` in this case.
+%
+%   @compat This interface may change or disappear without notice
+%           from future versions.
 
 start_tabling(Closure, Wrapper, Worker) :-
     '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
