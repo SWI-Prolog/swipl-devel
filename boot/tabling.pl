@@ -988,10 +988,13 @@ abolish_shared_tables :-
 abolish_table_subgoals(SubGoal0) :-
     '$tbl_implementation'(SubGoal0, M:SubGoal),
     !,
-    forall(( '$tbl_variant_table'(VariantTrie),
-             trie_gen(VariantTrie, M:SubGoal, Trie)
-           ),
-           '$tbl_destroy_table'(Trie)).
+    '$must_be'(acyclic, SubGoal),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, M:SubGoal, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
 abolish_table_subgoals(_).
 
 %!  abolish_module_tables(+Module) is det.

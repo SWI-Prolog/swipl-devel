@@ -3761,6 +3761,11 @@ compile_aux_clauses(Clauses) :-
     ->  true
     ;   '$type_error'(callable, X)
     ).
+'$must_be'(acyclic, X) :- !,
+    (   acyclic_term(X)
+    ->  true
+    ;   '$domain_error'(acyclic_term, X)
+    ).
 '$must_be'(oneof(Type, Domain, List), X) :- !,
     '$must_be'(Type, X),
     (   memberchk(X, List)
