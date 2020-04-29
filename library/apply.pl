@@ -178,11 +178,23 @@ partition_(Diff, _, _, _, _, _, _) :-
                  *          MAPLIST/2...        *
                  *******************************/
 
-%!  maplist(:Goal, ?List)
+%!  maplist(:Goal, ?List1).
+%!  maplist(:Goal, ?List1, ?List2).
+%!  maplist(:Goal, ?List1, ?List2, ?List3).
+%!  maplist(:Goal, ?List1, ?List2, ?List3, ?List4).
 %
-%   True if Goal can successfully  be   applied  on  all elements of
-%   List. Arguments are reordered to gain  performance as well as to
-%   make the predicate deterministic under normal circumstances.
+%   True if Goal is successfully applied on all matching elements of the
+%   list. The maplist family of predicates is defined as:
+%
+%   ```
+%   maplist(P, [X11,...,X1n], ..., [Xm1,...,Xmn]) :-
+%       P(X11, ..., Xm1),
+%       ...
+%       P(X1n, ..., Xmn).
+%   ```
+%
+%   This family of predicates is deterministic iff Goal is deterministic
+%   and List1 is a proper list, i.e., a list that ends in `[]`.
 
 maplist(Goal, List) :-
     maplist_(List, Goal).
@@ -192,10 +204,6 @@ maplist_([Elem|Tail], Goal) :-
     call(Goal, Elem),
     maplist_(Tail, Goal).
 
-%!  maplist(:Goal, ?List1, ?List2)
-%
-%   As maplist/2, operating on pairs of elements from two lists.
-
 maplist(Goal, List1, List2) :-
     maplist_(List1, List2, Goal).
 
@@ -204,10 +212,6 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], Goal) :-
     call(Goal, Elem1, Elem2),
     maplist_(Tail1, Tail2, Goal).
 
-%!  maplist(:Goal, ?List1, ?List2, ?List3)
-%
-%   As maplist/2, operating on triples of elements from three lists.
-
 maplist(Goal, List1, List2, List3) :-
     maplist_(List1, List2, List3, Goal).
 
@@ -215,12 +219,6 @@ maplist_([], [], [], _).
 maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], Goal) :-
     call(Goal, Elem1, Elem2, Elem3),
     maplist_(Tail1, Tail2, Tail3, Goal).
-
-
-%!  maplist(:Goal, ?List1, ?List2, ?List3, ?List4)
-%
-%   As maplist/2, operating on  quadruples   of  elements  from four
-%   lists.
 
 maplist(Goal, List1, List2, List3, List4) :-
     maplist_(List1, List2, List3, List4, Goal).
