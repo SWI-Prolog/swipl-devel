@@ -2309,15 +2309,18 @@ retry:
 
       DEBUG(MSG_TABLING_RESTRAINT,
 	    Sdprintf("Trapped by subgoal size restraint\n"));
-      if ( action == ATOM_abstract )
-      {
-      } else if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
-      { sa.size = (size_t)-1;
-	emptyBuffer(&vars);
-	goto retry;
-      } else
-      { discardBuffer(&vars);
-	return NULL;
+      if ( action == ATOM_abstract && !(flags&AT_ABSTRACT) )
+	action = ATOM_error;
+
+      if ( action != ATOM_abstract )
+      { if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
+	{ sa.size = (size_t)-1;
+	  emptyBuffer(&vars);
+	  goto retry;
+	} else
+	{ discardBuffer(&vars);
+	  return NULL;
+	}
       }
     }
 
