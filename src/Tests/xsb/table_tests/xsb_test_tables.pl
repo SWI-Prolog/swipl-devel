@@ -53,11 +53,22 @@ term_expansion(table_test(Test),
                )).
 
 run_table_test(Test) :-
+    reset_table_defaults,
     xsb_test(table_tests,Test,xsb_test_tables:swi_test(Test)).
 
 swi_test(M:_P) :-
     abolish_all_tables,
-    M:test.
+    M:test,
+    reset_table_defaults.
+
+reset_table_defaults :-
+    set_prolog_flag(max_table_answer_size, infinite),
+    set_prolog_flag(max_table_answer_size_action, error),
+    set_prolog_flag(max_table_subgoal_size, infinite),
+    set_prolog_flag(max_table_subgoal_size_action, error),
+    set_prolog_flag(max_answers_for_subgoal, infinite),
+    set_prolog_flag(max_answers_for_subgoal_action, error).
+
 
 :- begin_tests(xsb_test_tables, [sto(rational_trees)]).
 
@@ -90,6 +101,7 @@ table_test(test_calldepth).
 table_test(test_cyclic_tabling).% Cyclic term handling
 table_test(test_large_tabled_terms).
 table_test(test_maxans_decl).   % max_answers(Count) restraint
+table_test(test_negcycle).
 table_test(test_tda).		% subgoal_abstract restraint (abstract)
 table_test(test_tda_i).		% subgoal_abstract restraint (abstract)
 
