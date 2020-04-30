@@ -757,7 +757,6 @@ variantRecords(const Record r1, const Record r2)
 #define	REC_GROUND  0x10		/* Record is ground */
 #define	REC_VMASK   0xe0		/* Version mask */
 #define REC_VSHIFT     5		/* shift for version mask */
-#define	REC_VERSION 0x03		/* Version id */
 
 #define REC_SZMASK  (REC_32|REC_64)	/* SIZE_MASK */
 
@@ -767,7 +766,7 @@ variantRecords(const Record r1, const Record r2)
 #define REC_SZ REC_32
 #endif
 
-#define REC_HDR		(REC_SZ|(REC_VERSION<<REC_VSHIFT))
+#define REC_HDR		(REC_SZ|(PL_REC_VERSION<<REC_VSHIFT))
 #define REC_COMPAT(m)	(((m)&(REC_VMASK|REC_SZMASK)) == REC_HDR)
 
 typedef struct record_data
@@ -1851,7 +1850,7 @@ PL_recorded_external(const char *rec, term_t t)
       if ( !b.version_map )
       { Sdprintf("PL_recorded_external(): "
 		 "Incompatible version (%d, current %d)\n",
-		 save_version, REC_VERSION);
+		 save_version, PL_REC_VERSION);
 	fail;
       }
     }

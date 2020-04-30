@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2017, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -73,6 +73,20 @@ extern "C" {
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This number is incremented when the   SWI-Prolog PL_*() functions or one
+of the data types is modified such that old binary extensions cannot run
+reliably with the  current  version.  This   version  is  introduced  in
+SWI-Prolog 8.1.30. The  most  recent   violation  of  compatibility  was
+between versions 8.1.21 and 8.1.22  with   the  introduction of rational
+numbers are atomic type.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define PL_FLI_VERSION      2		/* PL_*() functions */
+#define	PL_REC_VERSION      3		/* PL_record_external(), fastrw */
+#define PL_QLF_LOADVERSION 67		/* load all versions later >= X */
+#define PL_QLF_VERSION     67		/* save version number */
 
 
 		 /*******************************
@@ -1085,6 +1099,21 @@ PL_EXPORT(char *) PL_backtrace_string(int depth, int flags);
 PL_EXPORT(int)	PL_check_data(term_t data);
 PL_EXPORT(int)	PL_check_stacks(void);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
+
+
+		 /*******************************
+		 *	      VERSIONS		*
+		 *******************************/
+
+#define PL_VERSION_SYSTEM	1	/* Prolog version */
+#define PL_VERSION_FLI		2	/* PL_* compatibility */
+#define PL_VERSION_REC		3	/* PL_record_external() compatibility */
+#define PL_VERSION_QLF		4	/* Saved QLF format version */
+#define PL_VERSION_QLF_LOAD	5	/* Min loadable QLF format version */
+#define PL_VERSION_VM		6	/* VM signature */
+#define PL_VERSION_BUILT_IN	7	/* Built-in predicate signature */
+
+PL_EXPORT(unsigned int) PL_version(int which);
 
 
 		/********************************

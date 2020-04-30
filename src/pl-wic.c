@@ -175,8 +175,6 @@ write the positive value in chunks  of   7  bits, least significant bits
 first. The last byte has its 0x80 mask set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 67			/* load all versions later >= X */
-#define VERSION     67			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF		0		/* reference to previous */
@@ -2823,7 +2821,7 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  putInt64(VERSION, fd);
+  putInt64(PL_QLF_VERSION, fd);
   putInt64(VM_SIGNATURE, fd);
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
@@ -3045,8 +3043,8 @@ qlfInfo(const char *file,
   if ( cversion )
   { int vm_signature;
 
-    if ( !PL_unify_integer(cversion, VERSION) ||
-	 !PL_unify_integer(minload, LOADVERSION) ||
+    if ( !PL_unify_integer(cversion, PL_QLF_VERSION) ||
+	 !PL_unify_integer(minload, PL_QLF_LOADVERSION) ||
 	 !PL_unify_integer(csig, (int)VM_SIGNATURE) )
       goto out;
 
@@ -3176,7 +3174,7 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  putInt64(VERSION, state->wicFd);
+  putInt64(PL_QLF_VERSION, state->wicFd);
   putInt64(VM_SIGNATURE, state->wicFd);
 
   putString(absname, STR_NOLEN, state->wicFd);
@@ -3325,9 +3323,9 @@ qlfIsCompatible(wic_state *state, const char *magic)
 
   if ( !qlfVersion(state, magic, &lversion) )
     return FALSE;
-  if ( lversion < LOADVERSION )
+  if ( lversion < PL_QLF_LOADVERSION )
     return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
-		    lversion, VERSION);
+		    lversion, PL_QLF_VERSION);
   state->saved_version = lversion;
 
   vm_signature = getInt(state->wicFd);

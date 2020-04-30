@@ -1114,10 +1114,11 @@ usage(void)
     "%s: Usage:\n",
     "    1) %s [options] prolog-file ... [-- arg ...]\n",
     "    2) %s [options] [-o executable] -c prolog-file ...\n",
-    "    3) %s --help     Display this message (also -h)\n",
-    "    4) %s --version  Display version information\n",
-    "    4) %s --arch     Display architecture\n",
-    "    6) %s --dump-runtime-variables[=format]\n"
+    "    3) %s --help         Display this message (also -h)\n",
+    "    4) %s --version      Display version information\n",
+    "    5) %s --abi_version  Display ABI version key\n",
+    "    6) %s --arch         Display architecture\n",
+    "    7) %s --dump-runtime-variables[=format]\n"
     "                        Dump link info in sh(1) format\n",
     "\n",
     "Options:\n",
@@ -1198,6 +1199,23 @@ version(void)
 }
 
 
+#ifndef PLPKGNAME
+#define PLPKGNAME "swipl"
+#endif
+
+static int
+abi_version(void)
+{ setupProlog();
+  Sprintf(PLPKGNAME "-abi-%d-%d-%08x-%08x\n",
+	  PL_FLI_VERSION,
+	  PL_QLF_LOADVERSION,
+	  GD->foreign.signature,
+	  VM_SIGNATURE);
+
+  return TRUE;
+}
+
+
 static int
 arch(void)
 { Sprintf("%s\n", PLARCH);
@@ -1217,6 +1235,8 @@ giveVersionInfo(const char *a)
     return arch();
   if ( streq(a, "--version") )
     return version();
+  if ( streq(a, "--abi_version") )
+    return abi_version();
 
   return FALSE;
 }

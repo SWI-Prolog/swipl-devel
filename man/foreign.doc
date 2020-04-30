@@ -2905,6 +2905,33 @@ will never rebind the GMP allocation functions. See
 mp_set_memory_functions() in the GMP documentation. The action returns
 \const{FALSE} if there is no GMP support or GMP is already initialised.
 \end{description}
+
+\cfunction{unsigned int}{PL_version}{int key}
+Query version information.  This function may be called before
+PL_initialise().  If the key is unknown the function returns 0.
+See \secref{abi-versions} for a more in-depth discussion on
+binary compatibility.  Defined keys are:
+
+    \begin{description}
+	\termitem{PL_VERSION_SYSTEM}{}
+SWI-Prolog version as $10,000 \times major + 100 \times minor + patch$.
+	\termitem{PL_VERSION_FLI}{}
+Incremented if the foreign interface defined in this chapter changes in
+a way that breaks backward compatibility.
+	\termitem{PL_VERSION_REC}{}
+Incremented if the binary representation of terms as used by
+PL_record_external() and fast_write/2 changes.
+	\termitem{PL_VERSION_QLF}{}
+Incremented if the QLF file format changes.
+	\termitem{PL_VERSION_QLF_LOAD}{}
+Represents the oldest loadable QLF file format version.
+	\termitem{PL_VERSION_VM}{}
+A hash that represents the VM instructions and their arguments.
+	\termitem{PL_VERSION_BUILT_IN}{}
+A hash that represents the names, arities and properties of all
+built-in predicates defined in C.  If this function is called
+before PL_initialise() it returns 0.
+    \end{description}
 \end{description}
 
 \subsection{Querying Prolog}

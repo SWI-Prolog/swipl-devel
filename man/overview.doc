@@ -351,6 +351,10 @@ Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.
     \cmdlineoptionitem{--version}{}
 When given as the only option, it summarises the version and the
 architecture identifier.  Also available as \cmdlineoption{-v}.
+
+    \cmdlineoptionitem{--abi_version}{}
+Print a key (string) that represents the binary compatibility on
+a number of aspects.  See \secref{abi-versions}.
 \end{description}
 
 
@@ -3502,3 +3506,51 @@ predicates, database keys, etc., that should be hidden from the user
 start with a dollar (\chr{\$}) sign.
 
 \input{bit64.tex}
+
+\section{Binary compatibility}			\label{sec:abi-versions}
+
+\index{compatibility,binary}%
+\index{ABI,compatibility}%
+SWI-Prolog first of all attempts to maintain \jargon{source code}
+compatibility between versions. Data and programs can often be
+represented in binary form.  This touches a number of interfaces
+with varying degrees of compatibility.  The relevant version numbers
+and signatures are made available by PL_version() and the
+\cmdlineoption{abi_version}.
+
+\begin{description}
+    \definition{Foreign extensions}
+Dynamically loadable foreign extensions have the usual dependencies on
+the architecture, ABI model of the (C) compiler, dynamic link library
+format, etc. They also depend on the backward compatibility of the PL_*
+API functions provided lib \file{libswipl}.
+
+A compatible API allows distribution of foreign extensions in binary
+form, notably for platforms on which compilation is complicated (e.g.,
+Windows). This compatibility is therefore high on the priority list, but
+must infrequently be compromised.
+
+    \definition{Binary terms}
+Terms may be represented in binary format using PL_record_external() and
+fast_write/2. As these formats are used for storing binary terms in
+databases or communicate terms between Prolog processes in binary form,
+great care is taken to maintain compatibility.
+
+    \definition{QLF files}
+QLF files (see qcompile/1) are binary representation of	Prolog file or
+module. They represent clauses as sequences of \jargon{virtual machine}
+(VM) instructions. Their compatibility relies on the QLF file format and
+the ABI of the VM.  Some care is taken to maintain compatibility.
+
+    \definition{Saved states}
+Saved states (see \cmdlineoption{-c} and qsave_program/2) is a zip file
+that contains the entire Prolog database using the same representation
+as QLF files. A saved state may contain additional resources, such as
+foreign extensions, data files, etc.  In addition to the dependency
+concerns of QLF files, built-in and core library predicates may call
+\emph{internal} foreign predicates.  The interface between the public
+built-ins and internal foreign predicates changes frequently.  Patch
+level releases in the \emph{stable branch} will as much as possible
+maintain compatibility.
+\end{description}
+

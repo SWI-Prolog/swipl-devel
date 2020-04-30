@@ -204,6 +204,21 @@ static const PL_extension foreigns[] = {
 };
 
 
+#define SIGNATURE_SEED (0x1a3be34a)
+
+static unsigned int
+predicate_signature(const Definition def)
+{ char str[256];
+
+  Ssprintf(str, "%s/%d/%d",
+	   stringAtom(def->functor->name),
+	   (int)def->functor->arity,
+	   def->flags);
+
+  return MurmurHashAligned2(str, strlen(str), SIGNATURE_SEED);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The extensions chain is used   to allow calling PL_register_extensions()
 *before* PL_initialise() to get foreign   extensions in embedded systems
@@ -324,6 +339,9 @@ registerBuiltins(const PL_extension *f)
 
       def->impl.foreign.function = f->function;
       createForeignSupervisor(def, f->function);
+
+      if ( !extensions_loaded )
+	GD->foreign.signature ^= predicate_signature(def);
     } else
     { assert(0);
     }

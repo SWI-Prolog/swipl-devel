@@ -1,5 +1,6 @@
 #define PLHOME		  "@PLHOME@"
 #cmakedefine PLSHAREDHOME "@PLSHAREDHOME@"
+#cmakedefine PLPKGNAME    "@SWIPL_PKG_NAME@"
 #define PLARCH            "@PLARCH@"
 #define C_CC              "@C_CC@"
 #define C_CXX             "@C_CXX@"

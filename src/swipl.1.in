@@ -68,6 +68,10 @@ Gives a summary of the most important options.
 .B \-\-version
 Displays version and architecture information.
 .TP
+.B \-\-abi_version
+Displays ABI version key.  This key indicates binary compatibility of
+various interfaces.
+.TP
 .B \-\-arch
 Prints the architecture identifier.
 .TP

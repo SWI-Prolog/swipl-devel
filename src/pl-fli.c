@@ -5303,6 +5303,25 @@ registerForeignLicenses(void)
 
 
 		 /*******************************
+		 *	      VERSION		*
+		 *******************************/
+
+unsigned int
+PL_version(int which)
+{ switch(which)
+  { case PL_VERSION_SYSTEM:	return PLVERSION;
+    case PL_VERSION_FLI:	return PL_FLI_VERSION;
+    case PL_VERSION_REC:	return PL_REC_VERSION;
+    case PL_VERSION_QLF:	return PL_QLF_VERSION;
+    case PL_VERSION_QLF_LOAD:	return PL_QLF_LOADVERSION;
+    case PL_VERSION_VM:		return VM_SIGNATURE;
+    case PL_VERSION_BUILT_IN:	return GD->foreign.signature;
+    default:			return 0;
+  }
+}
+
+
+		 /*******************************
 		 *	       INIT		*
 		 *******************************/
 

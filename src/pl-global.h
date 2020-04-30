@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2019, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -239,6 +239,7 @@ struct PL_global_data
     InitialiseHandle initialise_tail;
     PL_dispatch_hook_t dispatch_events; /* PL_dispatch_hook() */
 
+    unsigned int  signature;		/* Foreign predicate signature */
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
 
