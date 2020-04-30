@@ -168,13 +168,13 @@ show_html(HTML) :-
 help_html(Matches, How, HTML) :-
     phrase(html(html([ head([]),
                        body([ \match_type(How),
-                              \man_pages(Matches,
-                                         [ no_manual(fail),
-                                           links(false),
-                                           link_source(false),
-                                           navtree(false),
-                                           server(false)
-                                         ])
+                              dl(\man_pages(Matches,
+                                            [ no_manual(fail),
+                                              links(false),
+                                              link_source(false),
+                                              navtree(false),
+                                              server(false)
+                                            ]))
                             ])
                      ])),
            Tokens),
