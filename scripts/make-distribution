@@ -149,9 +149,12 @@ upload_src()
 }
 
 upload()
-{ upload_win32
-  upload_win64
-  upload_macosx
-  upload_pdf
-  upload_src
+{ if [ $(uname) = Darwin ]; then
+    upload_macosx
+  else
+    upload_win32
+    upload_win64
+    upload_pdf
+    upload_src
+  fi
 }
