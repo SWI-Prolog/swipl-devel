@@ -94,7 +94,7 @@ build_source()
 build_PPAs()
 { git branch -D ppa || true
   git checkout -b ppa
-  for distro in xenial bionic disco eoan; do
+  for distro in xenial bionic disco eoan focal; do
     ./scripts/make-ppa --distro=$distro --push
   done
   git checkout master
@@ -102,11 +102,15 @@ build_PPAs()
 }
 
 build()
-{ build_pdf
-  build_win32
-  build_win64
-  build_source
-  build_PPAs
+{ if [ $(uname) = Darwin ]; then
+    build_macosx_gcc
+  else
+    build_pdf
+    build_win32
+    build_win64
+    build_source
+    build_PPAs
+  fi
 }
 
 ################
@@ -127,7 +131,13 @@ upload_win64()
 }
 
 upload_macosx()
-{ upload_file bin build.macosx/swipl-${version}-1.x86_64.dmg
+{ if [ -f build.macosx-gcc/swipl-${version}-1.x86_64.dmg ]; then
+    echo "Uploading fast GCC version"
+    upload_file bin build.macosx-gcc/swipl-${version}-1.x86_64.dmg
+  else
+    echo "WARNING: uploading slow Clang version"
+    upload_file bin build.macosx/swipl-${version}-1.x86_64.dmg
+  fi
 }
 
 upload_pdf()
