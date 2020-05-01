@@ -779,6 +779,10 @@ PL_skip_list().
 Returns non-zero if \arg{term} is a compound term using the list
 constructor.  See also PL_is_list() and PL_skip_list().
 
+    \cfunction{int}{PL_is_dict}{term_t}
+Returns non-zero if \arg{term} is a dict.  See also PL_put_dict()
+and PL_get_dict_key().
+
     \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not a variable or compound).
 
@@ -965,12 +969,19 @@ PL_get_name_arity(), but this function fails if \arg{t} is an atom.
 If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
 module}.
+
 \cfunction{int}{PL_get_arg}{size_t index, term_t +t, term_t -a}
 If \arg{t} is compound and index is between 1 and arity (inclusive),
 assign \arg{a} with a term reference to the argument.
+
 \cfunction{int}{_PL_get_arg}{size_t index, term_t +t, term_t -a}
 Same as PL_get_arg(), but no checking is performed, neither whether \arg{t}
 is actually a term nor whether \arg{index} is a valid argument index.
+
+\cfunction{int}{PL_get_dict_key}{atom_t key, term_t +dict, term_t -value}
+If \arg{dict} is a dict, get the associated value in \arg{value}. Fails
+silently if \arg{key} does not appear in \arg{dict} and with an
+exception if \arg{dict} is not a dict.
 \end{description}
 
 
@@ -1344,6 +1355,18 @@ put_list(term_t l, int n, char **words)
 Note that \arg{l} can be redefined within a {\tt PL_cons_list} call as
 shown here because operationally its old value is consumed before its
 new value is set.
+
+\cfunction{int}{PL_put_dict}{term_t -h, atom_t tag, size_t len,
+			     const atom_t *keys, term_t values}
+Create a dict from a \arg{tag} and vector of atom-value pairs and put
+the result in \arg{h}.  The dict's key is set by \arg{tag}, which may
+be \const{0} to leave the tag unbound. The \arg{keys} vector is a vector
+of atoms of at least \arg{len} long. The \arg{values} is a term vector
+allocated using PL_new_term_refs() of at least \arg{len} long. This
+function returns \const{TRUE} on success, \const{FALSE} on a resource
+error (leaving a resource error exception in the environment),
+\const{-1} if some key or the \arg{tag} is invalid and \const{-2} if
+there are duplicate keys.
 \end{description}
 
 

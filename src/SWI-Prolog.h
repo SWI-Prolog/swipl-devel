@@ -206,6 +206,7 @@ typedef union
   } t;
 } term_value_t;
 
+
 #ifndef TRUE
 #define TRUE	(1)
 #define FALSE	(0)
@@ -499,6 +500,7 @@ PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
 PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(int)		PL_get_dict_key(atom_t key, term_t dict, term_t value);
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
@@ -519,6 +521,7 @@ PL_EXPORT(int)		PL_is_compound(term_t t);
 PL_EXPORT(int)		PL_is_callable(term_t t);
 PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
 PL_EXPORT(int)		PL_is_list(term_t t);
+PL_EXPORT(int)		PL_is_dict(term_t t);
 PL_EXPORT(int)		PL_is_pair(term_t t);
 PL_EXPORT(int)		PL_is_atomic(term_t t);
 PL_EXPORT(int)		PL_is_number(term_t t);
@@ -545,6 +548,8 @@ PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
 PL_EXPORT(int)		PL_put_list(term_t l) WUNUSED;
 PL_EXPORT(int)		PL_put_nil(term_t l);
 PL_EXPORT(int)		PL_put_term(term_t t1, term_t t2);
+PL_EXPORT(int)		PL_put_dict(term_t t, atom_t tag, size_t len,
+				    const atom_t *keys, term_t values);
 
 			/* construct a functor or list-cell */
 PL_EXPORT(int)		PL_cons_functor(term_t h, functor_t f, ...) WUNUSED;

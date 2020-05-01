@@ -141,12 +141,6 @@ get_create_dict_ex(term_t t, term_t dt ARG_LD)
 }
 
 
-static inline int
-is_key(word w)
-{ return isAtom(w) || isTaggedInt(w);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 dict_lookup_ptr() returns a pointer to the value for a given key
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -199,12 +193,12 @@ dict_ordered(Word data, int count, int ex ARG_LD)
   if ( count > 0 )
   { data++;			/* skip to key */
     deRef2(data, n1);
-    if ( !is_key(*n1) )
+    if ( !is_dict_key(*n1) )
       return -1;
 
     for(; count > 1; count--, data += 2, n1=n2)
     { deRef2(data+2, n2);
-      if ( !is_key(*n2) )
+      if ( !is_dict_key(*n2) )
 	return -1;
       if ( *n1 < *n2 )
 	continue;
@@ -591,7 +585,7 @@ get_name_ex(term_t t, Word np ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
-  if ( is_key(*p) )
+  if ( is_dict_key(*p) )
   { *np = *p;
     return TRUE;
   }
@@ -616,7 +610,7 @@ get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
     { Word np, vp;
 
       deRef2(&f->arguments[0], np);
-      if ( is_key(*np) )
+      if ( is_dict_key(*np) )
       { *name = *np;
 	deRef2(&f->arguments[1], vp);
 	*value = linkVal(vp);
@@ -1161,7 +1155,7 @@ pl_get_dict(term_t PL__t0, int PL__ac, int ex, control_t PL__ctx)
 	return FALSE;
 
       deRef(np);
-      if ( is_key(*np) )
+      if ( is_dict_key(*np) )
       { Word vp;
 
 	if ( (vp=dict_lookup_ptr(dict, *np PASS_LD)) )
@@ -1652,6 +1646,29 @@ retry:
 	  return FALSE;
         goto retry;
     }
+  }
+
+  return FALSE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Part of FLI
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+PL_get_dict_key(atom_t key, term_t dict, term_t value)
+{ GET_LD
+  word d;
+  Word vp;
+
+  if ( !is_dict_key(key) )
+    return -1;
+  if ( !get_dict_ex(dict, &d, FALSE PASS_LD) )
+    return FALSE;
+  if ( (vp=dict_lookup_ptr(d, key PASS_LD)) )
+  { *valTermRef(value) = linkVal(vp);
+    return TRUE;
   }
 
   return FALSE;

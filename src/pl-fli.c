@@ -3846,6 +3846,53 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
 
 		 /*******************************
+		 *	       DICT		*
+		 *******************************/
+
+int
+PL_put_dict(term_t t, atom_t tag,
+	    size_t len, const atom_t *keys, term_t values)
+{ GET_LD
+  Word p, p0;
+  size_t size = len*2+2;
+
+  if ( (p0=p=allocGlobal(size)) )
+  { *p++ = dict_functor(len);
+    if ( tag )
+    { if ( isAtom(tag) )
+      { *p++ = tag;
+      } else
+      { invalid:
+	gTop -= size;
+	return -1;
+      }
+    } else
+    { setVar(*p++);
+    }
+
+    for(; len-- > 0; keys++, values++)
+    { *p++ = linkVal(valTermRef(values));
+      if ( is_dict_key(*keys) )
+	*p++ = *keys;
+      else
+	goto invalid;
+    }
+
+    if ( dict_order(p0, TRUE PASS_LD) )
+    { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+      DEBUG(CHK_SECURE, checkStacks(NULL));
+      return TRUE;
+    }
+
+    gTop -= size;
+    return -2;
+  }
+
+  return FALSE;
+}
+
+
+		 /*******************************
 		 *	       TYPE		*
 		 *******************************/
 
