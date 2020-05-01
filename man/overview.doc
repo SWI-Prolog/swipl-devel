@@ -1186,6 +1186,11 @@ modifying a flag inside a thread does not affect other threads.
 
 
 \begin{description}
+    \prologflagitem{abi_version}{dict}{r}
+The flag value is a dict with keys that describe the version of
+the various Application Binary Interface (ABI) components.  See
+\secref{abi-versions} for details.
+
     \prologflagitem{access_level}{atom}{rw}
 This flag defines a normal `user' view (\const{user}, default) or a
 `system' view. In system view all system code is fully accessible as if
@@ -3515,8 +3520,9 @@ SWI-Prolog first of all attempts to maintain \jargon{source code}
 compatibility between versions. Data and programs can often be
 represented in binary form.  This touches a number of interfaces
 with varying degrees of compatibility.  The relevant version numbers
-and signatures are made available by PL_version() and the
-\cmdlineoption{abi_version}.
+and signatures are made available by PL_version(), the
+\cmdlineoption{abi_version} and the Prolog flag
+\prologflag{abi_version}.
 
 \begin{description}
     \definition{Foreign extensions}
@@ -3530,17 +3536,27 @@ form, notably for platforms on which compilation is complicated (e.g.,
 Windows). This compatibility is therefore high on the priority list, but
 must infrequently be compromised.
 
+PL_version(): \const{PL_VERSION_FLI}, \prologflag{abi_version} key:
+\const{foreign_interface}
+
     \definition{Binary terms}
 Terms may be represented in binary format using PL_record_external() and
 fast_write/2. As these formats are used for storing binary terms in
 databases or communicate terms between Prolog processes in binary form,
 great care is taken to maintain compatibility.
 
+PL_version(): \const{PL_VERSION_REC}, \prologflag{abi_version} key:
+\const{record}
+
     \definition{QLF files}
 QLF files (see qcompile/1) are binary representation of	Prolog file or
 module. They represent clauses as sequences of \jargon{virtual machine}
 (VM) instructions. Their compatibility relies on the QLF file format and
 the ABI of the VM.  Some care is taken to maintain compatibility.
+
+PL_version(): \const{PL_VERSION_QLF}, \const{PL_VERSION_QLF_LOAD} and
+\const{PL_VERSION_VM}, \prologflag{abi_version} key: \const{qlf},
+\const{qlf_min_load}, \const{vmi}
 
     \definition{Saved states}
 Saved states (see \cmdlineoption{-c} and qsave_program/2) is a zip file
@@ -3552,5 +3568,9 @@ concerns of QLF files, built-in and core library predicates may call
 built-ins and internal foreign predicates changes frequently.  Patch
 level releases in the \emph{stable branch} will as much as possible
 maintain compatibility.
+
+The relevant ABI version keys are the same as for QLF files with one
+addition: PL_version(): \const{PL_VERSION_BUILT_IN}, \prologflag{abi_version}
+key: \const{built_in}
 \end{description}
 

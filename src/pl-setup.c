@@ -141,6 +141,7 @@ setupProlog(void)
 #ifdef O_LOCALE
   initLocale();
 #endif
+  setABIVersionPrologFlag();
   GD->io_initialised = TRUE;
   GD->clauses.cgc_space_factor  = 8;
   GD->clauses.cgc_stack_factor  = 0.03;

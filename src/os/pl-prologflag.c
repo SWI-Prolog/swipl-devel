@@ -1715,6 +1715,40 @@ setVersionPrologFlag(void)
   setGITVersion();
 }
 
+static int
+abi_version_dict(term_t dict)
+{ GET_LD
+  const atom_t keys[] = { ATOM_foreign_interface,
+			  ATOM_record,
+			  ATOM_qlf,
+			  ATOM_qlf_min_load,
+			  ATOM_vmi,
+			  ATOM_built_in };
+  term_t values = PL_new_term_refs(6);
+
+  return ( PL_unify_integer(values+0, PL_version(PL_VERSION_FLI)) &&
+	   PL_unify_integer(values+1, PL_version(PL_VERSION_REC)) &&
+	   PL_unify_integer(values+2, PL_version(PL_VERSION_QLF)) &&
+	   PL_unify_integer(values+3, PL_version(PL_VERSION_QLF_LOAD)) &&
+	   PL_unify_integer(values+4, PL_version(PL_VERSION_VM)) &&
+	   PL_unify_integer(values+5, PL_version(PL_VERSION_BUILT_IN)) &&
+
+	   PL_put_dict(dict, ATOM_abi, 6, keys, values) );
+}
+
+
+void
+setABIVersionPrologFlag(void)
+{ GET_LD
+  fid_t fid = PL_open_foreign_frame();
+  term_t t = PL_new_term_ref();
+
+  if ( abi_version_dict(t) )
+    setPrologFlag("abi_version", FF_READONLY|FT_TERM, t);
+
+  PL_discard_foreign_frame(fid);
+}
+
 
 void
 cleanupPrologFlags(void)

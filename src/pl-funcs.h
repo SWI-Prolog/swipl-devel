@@ -439,6 +439,7 @@ COMMON(int)		setDoubleQuotes(atom_t a, unsigned int *flagp);
 COMMON(int)		setBackQuotes(atom_t a, unsigned int *flagp);
 COMMON(int)		setRationalSyntax(atom_t a, unsigned int *flagp);
 COMMON(void)		initPrologFlags(void);
+COMMON(void)		setABIVersionPrologFlag(void);
 COMMON(void)		cleanupPrologFlags(void);
 
 /* pl-pro.c */
