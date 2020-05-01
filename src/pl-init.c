@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2019, University of Amsterdam
+    Copyright (c)  2012-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -116,17 +116,37 @@ exec_var(const char *name)
 
 
 static const char *
-longopt(const char *opt, int argc, const char **argv)
-{ size_t optlen = strlen(opt);
+optcmp(const char *av, const char *opt)
+{ for(; *av && *opt && *av != '='; av++, opt++)
+  { if ( *av == *opt ||
+	 (*av == '-' && *opt == '_') ||
+	 (*av == '_' && *opt == '-') )
+      continue;
 
-  for(; argc > 0; argc--, argv++)
+    return NULL;
+  }
+
+  if ( !*opt )
+  { if ( *av == '=' )
+      av++;
+    return av;
+  } else
+  { return NULL;
+  }
+}
+
+
+static const char *
+longopt(const char *opt, int argc, const char **argv)
+{ for(; argc > 0; argc--, argv++)
   { const char *a = argv[0];
+    const char *v;
 
     if ( *a++ == '-' && *a++ == '-' )
     { if ( *a == EOS )		/* --: end of args */
 	return NULL;
-      if ( strncmp(a, opt, optlen) == 0 && a[optlen] == '=' )
-	return &a[optlen+1];
+      if ( (v=optcmp(a, opt)) && *v )
+	return v;
     }
   }
 
@@ -136,18 +156,22 @@ longopt(const char *opt, int argc, const char **argv)
 
 static const char *
 is_longopt(const char *optstring, const char *name)
-{ size_t len = strlen(name);
+{ const char *v;
 
-  if ( strncmp(optstring, name, len) == 0 )
-  { if ( optstring[len] == '=' )
-      return &optstring[len+1];
-    if ( optstring[len] == EOS )
-      return "";
+  if ( (v=optcmp(optstring, name)) )
+  { return *v ? v : "";
   }
 
   return NULL;
 }
 
+
+static const char *
+skip_wsep(const char *s)
+{ if ( *s == '-' || *s == '_' )
+    s++;
+  return s;
+}
 
 static int
 is_bool_opt(const char *opt, const char *name, int *val)
@@ -169,16 +193,8 @@ is_bool_opt(const char *opt, const char *name, int *val)
     }
 
     return -1;
-  } else if ( strncmp(opt, "no-", 3) == 0 &&
-	      (optval=is_longopt(opt+3,name)) )
-  { if ( *optval == EOS )
-    { *val = FALSE;
-      return TRUE;
-    }
-
-    return -1;
   } else if ( strncmp(opt, "no", 2) == 0 &&
-	      (optval=is_longopt(opt+2,name)) )
+	      (optval=is_longopt(skip_wsep(opt+2),name)) )
   { if ( *optval == EOS )
     { *val = FALSE;
       return TRUE;
@@ -1116,7 +1132,7 @@ usage(void)
     "    2) %s [options] [-o executable] -c prolog-file ...\n",
     "    3) %s --help         Display this message (also -h)\n",
     "    4) %s --version      Display version information\n",
-    "    5) %s --abi_version  Display ABI version key\n",
+    "    5) %s --abi-version  Display ABI version key\n",
     "    6) %s --arch         Display architecture\n",
     "    7) %s --dump-runtime-variables[=format]\n"
     "                        Dump link info in sh(1) format\n",
@@ -1139,22 +1155,23 @@ usage(void)
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",
     "    --home=DIR               Use DIR as SWI-Prolog home\n",
-    "    --stack_limit=size[BKMG] Specify maximum size of Prolog stacks\n",
-    "    --table_space=size[BKMG] Specify maximum size of SLG tables\n",
+    "    --stack-limit=size[BKMG] Specify maximum size of Prolog stacks\n",
+    "    --table-space=size[BKMG] Specify maximum size of SLG tables\n",
 #ifdef O_PLMT
-    "    --shared_table_space=size[BKMG] Maximum size of shared SLG tables\n",
+    "    --shared-table-space=size[BKMG] Maximum size of shared SLG tables\n",
 #endif
     "    --pce[=bool]             Make the xpce gui available\n",
     "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win_app	          Behave as Windows application\n",
+    "    --win-app	          Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
     "    -d topic,topic,...       Enable C-source DEBUG channels\n",
 #endif
     "\n",
     "Boolean options may be written as --name=bool, --name, --no-name ",
-    "or --noname\n",
+    "or --noname.\n",
+    "Both '-' or '_' are accepted as word-separator for long options.\n",
     NULL
   };
   const cline *lp = lines;
@@ -1226,16 +1243,18 @@ arch(void)
 
 static int
 giveVersionInfo(const char *a)
-{ if ( a[0] != '-' || a[1] != '-' )
+{ const char *v;
+
+  if ( *a++ != '-' || *a++ != '-' )
     return FALSE;
 
-  if ( streq(a, "--help") )
+  if ( (v=is_longopt(a, "help")) && !*v )
     return usage();
-  if ( streq(a, "--arch") )
+  if ( (v=is_longopt(a, "arch")) && !*v )
     return arch();
-  if ( streq(a, "--version") )
+  if ( (v=is_longopt(a, "version")) && !*v )
     return version();
-  if ( streq(a, "--abi_version") )
+  if ( (v=is_longopt(a, "abi_version")) && !*v )
     return abi_version();
 
   return FALSE;
