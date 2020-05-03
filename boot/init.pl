@@ -922,8 +922,12 @@ default_module(Me, Super) :-
                  *       FILE_SEARCH_PATH       *
                  *******************************/
 
-:- dynamic user:file_search_path/2.
-:- multifile user:file_search_path/2.
+:- dynamic
+    user:file_search_path/2,
+    user:library_directory/1.
+:- multifile
+    user:file_search_path/2,
+    user:library_directory/1.
 
 user:(file_search_path(library, Dir) :-
         library_directory(Dir)).
@@ -931,6 +935,9 @@ user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
 user:file_search_path(swi, Home) :-
     current_prolog_flag(shared_home, Home).
+user:file_search_path(library, app_config(lib)).
+user:file_search_path(library, swi(library)).
+user:file_search_path(library, swi(library/clp)).
 user:file_search_path(foreign, swi(ArchLib)) :-
     \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),

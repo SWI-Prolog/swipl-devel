@@ -107,7 +107,7 @@ set(SWIPL_DATA_DIRS
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
-    parms.pl autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
+    autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
 if(WIN32)
   set(SWIPL_DATA_boot ${SWIPL_DATA_boot} menu.pl)

@@ -67,7 +67,9 @@
     autoload_directories/1,
     index_checked_at/1.
 
-user:file_search_path(autoload, library(.)).
+user:file_search_path(autoload, swi(library)).
+user:file_search_path(autoload, pce(prolog/lib)).
+user:file_search_path(autoload, app_config(lib)).
 
 
 %!  '$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
