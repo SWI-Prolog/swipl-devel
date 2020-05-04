@@ -189,6 +189,7 @@ check_function_exists(sigblock HAVE_SIGBLOCK)
 endif(USE_SIGNALS)
 check_function_exists(kill HAVE_KILL)
 check_function_exists(backtrace HAVE_BACKTRACE)
+check_function_exists(alarm HAVE_ALARM)
 # Allocation
 check_function_exists(mtrace HAVE_MTRACE)
 # terminal

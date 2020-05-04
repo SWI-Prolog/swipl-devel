@@ -877,7 +877,20 @@ sigCrashHandler(int sig)
   time_t now = time(NULL);
   char tbuf[48];
 
-  signal(sig, SIG_DFL);
+  signal(sig,     SIG_DFL);
+#ifdef SIGALRM
+  signal(SIGALRM, SIG_DFL);
+#endif
+#ifdef SIGABRT
+  signal(SIGABRT, SIG_DFL);
+#endif
+#ifdef SIGSEGV
+  signal(SIGSEGV, SIG_DFL);
+#endif
+#ifdef HAVE_ALARM
+  alarm(10);				/* try to avoid deadlocks */
+#endif
+
   tid = PL_thread_self();
   ctime_r(&now, tbuf);
   tbuf[24] = '\0';
