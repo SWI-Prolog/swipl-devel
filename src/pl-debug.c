@@ -304,6 +304,18 @@ prolog_debug_from_string(const char *spec, int flag)
 }
 
 
+int
+PL_prolog_debug(const char *topic)
+{ return prolog_debug_topic(topic, TRUE);
+}
+
+
+int
+PL_prolog_nodebug(const char *topic)
+{ return prolog_debug_topic(topic, FALSE);
+}
+
+
 static int
 prolog_debug(term_t t, int flag)
 { char *topic;

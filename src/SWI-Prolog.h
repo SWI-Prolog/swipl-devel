@@ -1217,6 +1217,14 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 
 
 		 /*******************************
+		 *	      DEBUG		*
+		 *******************************/
+
+PL_EXPORT(int)		PL_prolog_debug(const char *topic);
+PL_EXPORT(int)		PL_prolog_nodebug(const char *topic);
+
+
+		 /*******************************
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 
