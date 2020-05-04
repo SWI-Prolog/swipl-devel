@@ -4043,20 +4043,11 @@ L = 'hello world!'.
 The functions in this section are primarily intended for debugging
 foreign extensions or embedded Prolog. Violating the constraints of the
 foreign interface often leads to crashes in a subsequent garbage
-collection. If this happens, the system needs to be recompiled with the
-cflags \const{-DO_DEBUG}. This is normally achieved by editing
-\file{src/Makefile} and changing the definition of \const{COFLAGS} to
-the value below. The \exam{-gdwarf-2 -g3} provides detailed debugging
-information for \program{gcc}. If you use another C compiler you may
-need other flags.
-
-\begin{code}
-COFLAGS=-DO_DEBUG -gdwarf-2 -g3
-\end{code}
-
-After recompiling the Prolog kernel all functions listed above are
-available to use from the debugger (e.g. \program{gdb}) or can be placed
-at critical location in your code or the system code.
+collection. If this happens, the system needs to be compiled for
+debugging using \exam{cmake -DCMAKE_BUILD_TYPE=Debug}, after which all
+functions and predicates listed below are available to use from the
+debugger (e.g. \program{gdb}) or can be placed at critical location in
+your code or the system code.
 
 \begin{description}
     \cfunction{void}{PL_backtrace}{int depth, int flags}
@@ -4136,6 +4127,20 @@ is actually printed and when.  We highlight one topic here:
     by invalid data on the Prolog stacks.  This debug topic may help
     locating how the invalid data was created.
     \end{description}
+
+These predicates require the system to be compiled for debugging using
+\exam{cmake -DCMAKE_BUILD_TYPE=Debug}.
+
+    \cfunction{int}{PL_prolog_debug}{const char *topic}
+    \nodescription
+    \cfunction{int}{PL_prolog_nodebug}{const char *topic}
+(De)activate debug topics. The \arg{topics} argument is a
+comma-separated string of topics to enable or disable. Matching is
+case-insensitive.  See also prolog_debug/1 and prolog_nodebug/1.
+
+These functions require the system to be compiled for debugging using
+\exam{cmake -DCMAKE_BUILD_TYPE=Debug}.
+
 \end{description}
 
 
@@ -4248,7 +4253,6 @@ using \program{bash} as login shell:
 <prolog interaction>
 % kcachegrind callgrind.out.<pid>
 \end{code}
-
 
 \subsection{Name Conflicts in C modules}
 \label{sec:foreign-name-conflicts}
