@@ -15,7 +15,7 @@ foreach(dir ${ARGN})
     add_custom_target(${target} DEPENDS home/${dir}/INDEX.pl)
 
     add_dependencies(library_index ${target})
-    install(FILES home/${dir}/INDEX.pl
+    install(FILES ${CMAKE_BINARY_DIR}/home/${dir}/INDEX.pl
 	    DESTINATION ${SWIPL_INSTALL_PREFIX}/${dir})
   endif()
 endforeach()
