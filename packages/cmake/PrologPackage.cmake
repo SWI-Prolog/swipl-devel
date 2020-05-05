@@ -15,6 +15,7 @@ set(CMAKE_MODULE_PATH
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
+include(LibIndex)
 
 if(MULTI_THREADED)
   set(O_PLMT 1)
@@ -52,7 +53,27 @@ else()
   endif()
 endif()
 
+# add_index(dir file ...)
+#
+# Create INDEX.pl for ${dir} if at least on of the files is a .pl file
+
+function(add_index dir)
+  if(dir)
+    set(has_pl OFF)
+    foreach(f ${ARGN})
+      get_filename_component(ext ${f} EXT)
+      if(ext STREQUAL .pl)
+        set(has_pl ON)
+      endif()
+    endforeach()
+    if(has_pl)
+      library_index(library/${dir})
+    endif()
+  endif()
+endfunction()
+
 # swipl_plugin(name
+#	       [NOINDEX]
 #	       [MODULE name]
 #	       [C_SOURCES file ...]
 #	       [C_LIBS lib ...]
@@ -81,6 +102,7 @@ function(swipl_plugin name)
   set(v_pl_subdir)			# current subdir
   set(v_pl_subdirs)			# list of subdirs
   set(v_pl_gensubdirs)			# list of subdirs (generated files)
+  set(v_index ON)
 
   add_custom_target(${target})
 
@@ -89,6 +111,8 @@ function(swipl_plugin name)
   foreach(arg ${ARGN})
     if(arg STREQUAL "MODULE")
       set(mode md_module)
+    elseif(arg STREQUAL "NOINDEX")
+      set(v_index OFF)
     elseif(arg STREQUAL "SHARED")
       set(mode md_module)
       set(type SHARED)
@@ -159,12 +183,15 @@ function(swipl_plugin name)
   foreach(sd ${v_pl_subdirs})
     string(REPLACE "@" "" sd "${sd}")
     string(REPLACE "/" "_" subdir_var "v_pl_subdir_${sd}")
-    if(${subdir_var})
+    if(sd AND ${subdir_var})
       string(REPLACE "/" "_" src_target "plugin_${name}_${sd}_pl_libs")
       install_src(${src_target}
 		  FILES ${${subdir_var}}
 		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
       add_dependencies(${target} ${src_target})
+      if(v_index)
+        add_index(${sd} ${${subdir_var}})
+      endif()
     endif()
   endforeach()
 

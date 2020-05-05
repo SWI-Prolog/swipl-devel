@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 include(Version)
 include(Utils)
 include(CStack)
+include(LibIndex)
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
@@ -95,14 +96,13 @@ set(POSIX_SHELL "/bin/sh" CACHE STRING "Full path to a POSIX compliant shell")
 ################
 
 set(SWIPL_DATA_INDEXED_DIRS
-    library library/clp library/dcg)
+    library library/clp library/dcg library/unicode library/lynx)
 set(SWIPL_DATA_DIRS
     boot
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
-    library/dialect/yap library/dialect/xsb
-    library/unicode library/lynx library/theme
+    library/dialect/yap library/dialect/xsb library/theme
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -184,17 +184,6 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
 
 set(SWIPL_DATA_demo likes.pl README.md)
 
-# ${PL_LIB_FILES_ALL} holds all files from the library that are indexed
-# ${PL_LIB_INDEX} holds the index file
-
-set(PL_LIB_FILES_ALL)
-foreach(d ${SWIPL_DATA_INDEXED_DIRS})
-    string(REGEX REPLACE "/" "_" filevar ${d})
-    prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})
-    set(PL_LIB_FILES_ALL ${PL_LIB_FILES_ALL} ${files})
-endforeach()
-set(PL_LIB_INDEX ${SWIPL_BUILD_LIBRARY}/INDEX.pl)
-
 ################
 # Custom targets and commands
 ################
@@ -258,15 +247,12 @@ add_custom_command(
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
-add_custom_command(
-    OUTPUT  ${PL_LIB_INDEX}
-    COMMAND ${PROG_SWIPL} -f none --no-packs --nopce -q
-            -g "\"make_library_index('${SWIPL_BUILD_HOME}/library')\"" -t halt
-    DEPENDS ${SWIPL_BOOT_FILE} prolog_home
-)
+add_custom_target(library_index)
+
+library_index(${SWIPL_DATA_INDEXED_DIRS})
 
 add_custom_target(core ALL
-    DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
+    DEPENDS ${SWIPL_BOOT_FILE} library_index
 )
 
 # Precompile some popular larger libraries to .QLF
@@ -542,8 +528,6 @@ foreach(d ${SWIPL_DATA_DIRS})
 		FILES ${files}
 		DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
 endforeach()
-install(FILES ${PL_LIB_INDEX}
-	DESTINATION ${SWIPL_INSTALL_PREFIX}/library)
 install_src(core_headers
 	    FILES
 	    ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
