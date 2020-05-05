@@ -67,6 +67,19 @@ This module computes  file  dependencies  for   _modules_  as  a  set of
 directives.
 */
 
+:- multifile user:file_search_path/2.
+
+user:file_search_path(noautoload, library(.)).
+user:file_search_path(noautoload, library(semweb)).
+user:file_search_path(noautoload, library(lynx)).
+user:file_search_path(noautoload, library(tipc)).
+user:file_search_path(noautoload, library(cql)).
+user:file_search_path(noautoload, library(http)).
+user:file_search_path(noautoload, library(dcg)).
+user:file_search_path(noautoload, library(unicode)).
+user:file_search_path(noautoload, library(clp)).
+user:file_search_path(noautoload, library(pce(prolog/lib))).
+
 
 %!  file_autoload_directives(+File, -Directives, +Options) is det.
 %
@@ -208,11 +221,14 @@ defined(File, Callable) :-
 		 *       GENERATE OUTPUT	*
 		 *******************************/
 
+missing_autoload(Src, Head, From-Head) :-
+    xref_defined(Src, Head, imported(From)),
+    !.
 missing_autoload(_Src, Head, File-Head) :-
     predicate_property(Head, autoload(File)),
     !.
-missing_autoload(Src, Head, From-Head) :-
-    xref_defined(Src, Head, imported(From)),
+missing_autoload(_Src, Head, File-Head) :-
+    noautoload(Head, File),
     !.
 missing_autoload(_Src, Head, _) :-
     pi_head(PI, Head),
@@ -344,6 +360,26 @@ make_directive(Lib, _Import, (:- autoload(Lib)), Options) :-
     option(directive(use_autoload/1), Options, use_autoload/2),
     !.
 make_directive(Lib, Import, (:- autoload(Lib, Import)), _).
+
+
+		 /*******************************
+		 *          NO AUTOLOAD		*
+		 *******************************/
+
+:- dynamic
+    library_index/3,                % Head x Module x Path
+    autoload_directories/1,         % List
+    index_checked_at/1.             % Time
+:- volatile
+    library_index/3,
+    autoload_directories/1,
+    index_checked_at/1.
+
+noautoload(Head, File) :-
+    functor(Head, Name, Arity),
+    context_module(Here),
+    '$autoload':load_library_index(Here:Name, Arity, Here:noautoload('INDEX')),
+    library_index(Head, _, File).
 
 
 		 /*******************************
