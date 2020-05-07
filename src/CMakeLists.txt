@@ -249,7 +249,7 @@ add_custom_target(library_index)
 library_index(${SWIPL_DATA_INDEXED_DIRS})
 
 add_custom_target(core ALL
-    DEPENDS ${SWIPL_BOOT_FILE} library_index
+    DEPENDS ${SWIPL_BOOT_FILE}
 )
 
 # Precompile some popular larger libraries to .QLF
