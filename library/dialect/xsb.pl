@@ -84,7 +84,7 @@
 :- use_module(library(error)).
 :- use_module(library(debug)).
 :- use_module(library(dialect/xsb/source)).
-:- use_module(library(dialect/xsb/tables)).
+:- use_module(library(tables)).
 :- use_module(library(dialect/xsb/timed_call)).
 :- use_module(library(aggregate)).
 :- use_module(library(option)).

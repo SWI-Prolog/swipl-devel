@@ -35,7 +35,7 @@
 :- module(curr_sym,
           [ subgoal_property/2                  % ?SubGoal, ?Property
           ]).
-:- use_module(tables).
+:- use_module(library(tables)).
 
 :- meta_predicate
     subgoal_property(0,?).
