@@ -1997,6 +1997,11 @@ to binary streams. Values are \const{false} (no checking), \const{true}
 (default), the system accepts byte I/O from text stream that use ISO
 Latin-1 encoding and accepts writing text to binary streams.
 
+    \termitem{string_stack_tripwire}{int}{rw}
+Maintenance for foreign language string management.  Prints a warning
+if the string stack depth hits the tripwire value. See
+\secref{foreign-strings} for details.
+
     \prologflagitem{system_thread_id}{int}{r}
 Available in multithreaded version (see \secref{threads}) where the
 operating system provides system-wide integer thread identifiers. The

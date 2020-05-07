@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015, University of Amsterdam
+    Copyright (c)  2013-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -282,7 +283,7 @@ PRED_IMPL("split_string", 4, split_string, 0)
 { PRED_LD
   PL_chars_t input, sep, pad;
   int rc = FALSE;
-  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_NORING;
+  int flags = CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION;
 
   input.storage = PL_CHARS_VIRGIN;
     sep.storage = PL_CHARS_VIRGIN;

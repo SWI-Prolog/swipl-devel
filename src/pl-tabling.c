@@ -2315,7 +2315,7 @@ retry:
       if ( action != ATOM_abstract )
       { if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
 	{ sa.size = (size_t)-1;
-	  emptyBuffer(&vars);
+	  emptyBuffer(&vars, (size_t)-1);
 	  goto retry;
 	} else
 	{ discardBuffer(&vars);
@@ -2386,7 +2386,7 @@ retry:
 	if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
 	{ if ( rc < 0 )
 	  { Undo(m);
-	    emptyBuffer(&vars);
+	    emptyBuffer(&vars, (size_t)-1);
 	    if ( makeMoreStackSpace(rc, ALLOW_GC) )
 	      goto retry;
 	  }

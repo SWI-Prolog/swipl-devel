@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2012, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,8 +36,9 @@
 #ifndef BUFFER_H_INCLUDED
 #define BUFFER_H_INCLUDED
 
-#define STATIC_BUFFER_SIZE	(512)
-#define BUFFER_DISCARD_ABOVE	(4096)
+#define STATIC_BUFFER_SIZE		(100)
+#define SMALL_STATIC_BUFFER_SIZE	(512)
+#define BUFFER_DISCARD_ABOVE	       (4096)
 
 typedef struct
 { char *	base;			/* allocated base */
@@ -49,8 +51,29 @@ typedef struct
 { char *	base;			/* allocated base */
   char *	top;			/* pointer to top */
   char *	max;			/* current location */
+  char		static_buffer[SMALL_STATIC_BUFFER_SIZE];
+} tmp_small_buffer;
+
+typedef struct
+{ char *	base;			/* allocated base */
+  char *	top;			/* pointer to top */
+  char *	max;			/* current location */
   char		static_buffer[sizeof(char *)];
 } MAY_ALIAS buffer, *Buffer;
+
+typedef struct string_buffer
+{ word		frame;			/* frame reference */
+  tmp_small_buffer buf;			/* actual buffer */
+} string_buffer, *StringBuffer;
+
+#define MAX_LG_STACKED_STRINGS 20
+
+typedef struct string_stack
+{ unsigned int   top;			/* Current # stacked strings */
+  unsigned int   allocated;		/* Max depth reached */
+  unsigned int   tripwire;		/* Warn on this number of buffers */
+  string_buffer *buffers[MAX_LG_STACKED_STRINGS];
+} string_stack;
 
 int	growBuffer(Buffer b, size_t minfree);
 
@@ -110,7 +133,7 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 #define initBuffer(b)            ((b)->base = (b)->top = (b)->static_buffer, \
 				  (b)->max = (b)->base + \
 				  sizeof((b)->static_buffer))
-#define emptyBuffer(b)		 emptyBuffer_((Buffer)(b), \
+#define emptyBuffer(b, sz)	 emptyBuffer_((Buffer)(b), sz, \
 					      sizeof((b)->static_buffer))
 #define isEmptyBuffer(b)         ((b)->top == (b)->base)
 #define popBuffer(b,type) \
@@ -126,8 +149,8 @@ discardBuffer_(Buffer b)
 }
 
 static inline void
-emptyBuffer_(Buffer b, size_t emptysize)
-{ if ( b->max - b->base < BUFFER_DISCARD_ABOVE )
+emptyBuffer_(Buffer b, size_t discardsize, size_t emptysize)
+{ if ( b->max - b->base < discardsize )
   { b->top = b->base;
   } else
   { discardBuffer(b);
@@ -141,7 +164,12 @@ emptyBuffer_(Buffer b, size_t emptysize)
 		 *******************************/
 
 COMMON(Buffer)		findBuffer(int flags);
-COMMON(int)		unfindBuffer(int flags);
+COMMON(int)		unfindBuffer(Buffer b, int flags);
 COMMON(char *)		buffer_string(const char *s, int flags);
+COMMON(void)		PL_mark_string_buffers__LD(buf_mark_t *mark ARG_LD);
+COMMON(void)		PL_release_string_buffers_from_mark__LD(buf_mark_t mark
+								ARG_LD);
+COMMON(void)		release_string_buffers_from_frame(LocalFrame fr ARG_LD);
+COMMON(void)		discardStringStack(string_stack *stack);
 
 #endif /*BUFFER_H_INCLUDED*/

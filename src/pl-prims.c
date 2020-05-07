@@ -4377,7 +4377,7 @@ PRED_IMPL("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
   else
     return FALSE;
 
-  if ( PL_get_nchars(needle,   &l1, &needleA, CVT_ALL|BUF_RING) &&
+  if ( PL_get_nchars(needle,   &l1, &needleA, CVT_ALL|BUF_STACK) &&
        PL_get_nchars(haystack, &l2, &haystackA, CVT_ALL) )
   { char *s, *q, *s2 = haystackA + offset;
     const char *eq = (const char *)&needleA[l1];
@@ -4398,7 +4398,7 @@ PRED_IMPL("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
     fail;
   }
 
-  if ( PL_get_wchars(needle,   &l1, &needleW, CVT_ALL|CVT_EXCEPTION|BUF_RING) &&
+  if ( PL_get_wchars(needle,   &l1, &needleW, CVT_ALL|CVT_EXCEPTION|BUF_STACK) &&
        PL_get_wchars(haystack, &l2, &haystackW, CVT_ALL|CVT_EXCEPTION) )
   { pl_wchar_t *s, *q, *s2 = haystackW + offset;
     pl_wchar_t *eq = &needleW[l1];

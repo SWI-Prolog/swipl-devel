@@ -278,6 +278,7 @@ updateAlerted(PL_local_data_t *ld)
 #ifdef O_DEBUGGER
   if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
 #endif
+  if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
 
   ld->alerted = mask;
 
@@ -3207,6 +3208,11 @@ next_choice:
 #ifdef O_DEBUG_BACKTRACK
   last_choice = ch->type;
 #endif
+
+  if ( (LD->alerted & ALERT_BUFFER) )
+  { LD->alerted &= ~ALERT_BUFFER;
+    release_string_buffers_from_frame(FR PASS_LD);
+  }
 
   switch(ch->type)
   { case CHP_JUMP:

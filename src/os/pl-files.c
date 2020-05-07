@@ -520,7 +520,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
       if ( rc ) rc = PL_unify_nil(options);
       if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
       if ( rc ) rc = PL_get_nchars(av+1, &len, namep,
-				   CVT_ATOMIC|BUF_RING|REP_FN);
+				   CVT_ATOMIC|BUF_STACK|REP_FN);
       if ( rc && strlen(*namep) != len )
       { n = av+1;
 	goto code0;
@@ -577,7 +577,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
       return FALSE;
   }
 
-  *namep = buffer_string(name, BUF_RING);
+  *namep = buffer_string(name, BUF_STACK);
 
   return TRUE;
 }
@@ -594,9 +594,10 @@ PL_get_file_name(term_t n, char **namep, int flags)
   { if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
 	return FALSE;
+      name = buffer_string(name, BUF_STACK);
     }
 
-    *namep = buffer_string(name, BUF_RING);
+    *namep = name;
   }
 
   return rc;
@@ -619,7 +620,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
 	return FALSE;
     }
 
-    b = findBuffer(BUF_RING);
+    b = findBuffer(BUF_STACK);
     for(s = name; *s; )
     { int chr;
 
@@ -1135,7 +1136,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
     PL_fail;
   }
 
-  if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING|REP_FN|CVT_EXCEPTION) &&
+  if ( PL_get_chars(base, &b, CVT_ALL|BUF_STACK|REP_FN|CVT_EXCEPTION) &&
        PL_get_chars(ext, &e, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char *s;
 

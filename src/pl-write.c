@@ -817,7 +817,8 @@ writeString(term_t t, write_options *options)
   PL_chars_t txt;
   int rc = TRUE;
 
-  PL_get_text(t, &txt, CVT_STRING|BUF_NORING);
+  PL_STRINGS_MARK();
+  PL_get_text(t, &txt, CVT_STRING);
 
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
@@ -849,6 +850,7 @@ writeString(term_t t, write_options *options)
 	break;
     }
   }
+  PL_STRINGS_RELEASE();
 
 out:
   PL_free_text(&txt);

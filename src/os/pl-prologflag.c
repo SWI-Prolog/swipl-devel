@@ -924,6 +924,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       else if ( k == ATOM_stack_limit )
       { if ( !set_stack_limit((size_t)i) )
 	  return FALSE;
+      } else if ( k == ATOM_string_stack_tripwire )
+      { LD->fli.string_buffers.tripwire = (unsigned int)i;
       }
       break;
     }

@@ -364,7 +364,7 @@ pl_win_open_console(term_t title, term_t input, term_t output, term_t error,
   size_t len;
 
   memset(&attr, 0, sizeof(attr));
-  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
+  if ( !PL_get_wchars(title, &len, &s, CVT_ALL|BUF_STACK|CVT_EXCEPTION) )
     return FALSE;
   attr.title = (const TCHAR*) s;
 
@@ -594,7 +594,7 @@ get_chars_arg_ex(int a, term_t t, TCHAR **v)
 { term_t arg = PL_new_term_ref();
 
   if ( PL_get_arg(a, t, arg) &&
-       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_RING|CVT_EXCEPTION) )
+       PL_get_wchars(arg, NULL, v, CVT_ALL|BUF_STACK|CVT_EXCEPTION) )
     return TRUE;
 
   return FALSE;

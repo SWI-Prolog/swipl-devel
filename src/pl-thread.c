@@ -1621,7 +1621,7 @@ threadName(int id)
     return PL_atom_chars(th->alias);
 
   sprintf(tmp, "%d", id);
-  return buffer_string(tmp, BUF_RING);
+  return buffer_string(tmp, BUF_STACK);
 }
 
 
@@ -1848,6 +1848,8 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   alloc_pool *pool = ldold->tabling.node_pool;
   if ( pool )
     ldnew->tabling.node_pool = new_alloc_pool(pool->name, pool->limit);
+  ldnew->fli.string_buffers.tripwire
+				  = ldold->fli.string_buffers.tripwire;
   ldnew->statistics.start_time    = WallTime();
   ldnew->prolog_flag.mask	  = ldold->prolog_flag.mask;
   ldnew->prolog_flag.occurs_check = ldold->prolog_flag.occurs_check;

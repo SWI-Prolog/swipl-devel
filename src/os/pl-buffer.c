@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2012, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "os/pl-cstack.h"
 
 int
 growBuffer(Buffer b, size_t minfree)
@@ -69,29 +71,163 @@ growBuffer(Buffer b, size_t minfree)
 
 
 		 /*******************************
-		 *	    BUFFER RING		*
+		 *	      STACK		*
+		 *******************************/
+
+void
+initStringStack(string_stack *stack)
+{ memset(stack, 0, sizeof(*stack));
+}
+
+
+void
+discardStringStack(string_stack *stack)
+{ unsigned int i;
+
+  for(i=stack->allocated; i>0;i--)
+  { string_buffer *sb = &stack->buffers[MSB(i)][i];
+
+    if ( sb )
+      discardBuffer(&sb->buf);
+    else
+      break;
+  }
+
+  for(i=0; stack->buffers[i]; i++)
+  { unsigned int nelem = 1<<i;
+    string_buffer *ptr = stack->buffers[i]+nelem;
+
+    free(ptr);
+  }
+}
+
+
+static string_buffer *
+allocNewStringBuffer(string_stack *stack)
+{ int k = MSB(stack->allocated+1);
+
+  if ( !stack->buffers[k] )
+  { if ( k == MAX_LG_STACKED_STRINGS )
+    { fatalError("Too many stacked strings");
+      assert(0);
+    } else
+    { unsigned int nelem = 1<<k;
+      string_buffer *buffers = malloc(nelem*sizeof(*buffers));
+      stack->buffers[k] = buffers - nelem;
+    }
+  }
+
+  stack->top = ++stack->allocated;
+
+  return &stack->buffers[k][stack->allocated];
+}
+
+
+string_buffer *
+allocStringBuffer(string_stack *stack)
+{ string_buffer *b;
+
+  if ( stack->top < stack->allocated )
+  { unsigned int i = ++stack->top;
+    b = &stack->buffers[MSB(i)][i];
+  } else
+  { b = allocNewStringBuffer(stack);
+    initBuffer(&b->buf);
+  }
+
+  if ( stack->top == stack->tripwire )
+  { Sdprintf("String stack reached tripwire at %d.  C-Stack:\n",
+	     stack->tripwire);
+    print_c_backtrace("stacked strings");
+  }
+
+  return b;
+}
+
+
+static string_buffer *
+currentBuffer(string_stack *stack)
+{ if ( stack->top )
+  { unsigned int i = stack->top;
+    return &stack->buffers[MSB(i)][i];
+  }
+
+  return NULL;
+}
+
+
+unsigned int
+popStringBuffer(string_stack *stack)
+{ assert(stack->top);
+
+  if ( __builtin_popcount(stack->top) == 1 && stack->top > 4 )
+  { unsigned int i;
+    unsigned int k = MSB(stack->allocated);
+    string_buffer *ptr = stack->buffers[k]+(1<<k);
+
+    DEBUG(MSG_STRING_BUFFER,
+	  Sdprintf("Discarding string buffers %d..%d\n",
+		   stack->top, stack->allocated));
+
+    assert(k == MSB(stack->top));
+
+    for(i=stack->allocated; i>=stack->top; i--)
+    { string_buffer *sb = &stack->buffers[k][i];
+
+      if ( sb )
+	discardBuffer(&sb->buf);
+      else
+	break;
+    }
+
+    free(ptr);
+    stack->buffers[k] = NULL;
+    stack->allocated = --stack->top;
+  } else
+  { unsigned int i = stack->top--;
+    string_buffer *b = &stack->buffers[MSB(i)][i];
+    emptyBuffer(&b->buf, BUFFER_DISCARD_ABOVE>>i);
+  }
+
+  return stack->top;
+}
+
+
+
+
+
+		 /*******************************
+		 *	  STRING BUFFER		*
 		 *******************************/
 
 #define discardable_buffer	(LD->fli._discardable_buffer)
-#define buffer_ring		(LD->fli._buffer_ring)
-#define current_buffer_id	(LD->fli._current_buffer_id)
+#define sTop			(LD->fli._string_buffer)
+
 
 Buffer
 findBuffer(int flags)
 { GET_LD
   Buffer b;
 
-  if ( flags & BUF_RING )
-  { if ( ++current_buffer_id == BUFFER_RING_SIZE )
-      current_buffer_id = 0;
-    b = &buffer_ring[current_buffer_id];
-  } else
-    b = &discardable_buffer;
+  if ( flags & BUF_STACK )
+  { string_buffer *sb = allocStringBuffer(&LD->fli.string_buffers);
 
-  if ( !b->base )
-    initBuffer(b);
-  else
-    emptyBuffer(b);
+    sb->frame = environment_frame ? consTermRef(environment_frame) : 0x0;
+
+    b = (Buffer)&sb->buf;
+    DEBUG(MSG_STRING_BUFFER,
+	  Sdprintf("Added string buffer entry %p with level %zd\n",
+		   sb, (size_t)sb->frame));
+
+    LD->alerted |= ALERT_BUFFER;
+  } else
+  { b = &discardable_buffer;
+
+    if ( !b->base )
+      initBuffer(b);
+    else
+      emptyBuffer(b, BUFFER_DISCARD_ABOVE);
+  }
 
   return b;
 }
@@ -109,12 +245,67 @@ buffer_string(const char *s, int flags)
 
 
 int
-unfindBuffer(int flags)
-{ GET_LD
-  if ( flags & BUF_RING )
-  { if ( --current_buffer_id <= 0 )
-      current_buffer_id = BUFFER_RING_SIZE-1;
+unfindBuffer(Buffer b, int flags)
+{ if ( flags & BUF_STACK )
+  { GET_LD
+    StringBuffer sb = currentBuffer(&LD->fli.string_buffers);
+
+    DEBUG(MSG_STRING_BUFFER,
+	  { StringBuffer sb = currentBuffer(&LD->fli.string_buffers);
+	    Sdprintf("Deleting top string buffer %p\n", sb);
+	  });
+
+    if ( b == (Buffer)&sb->buf )
+      popStringBuffer(&LD->fli.string_buffers);
+    else
+      Sdprintf("OOPS: unfindBuffer(): not top buffer\n");
+
+    return TRUE;
   }
 
-  fail;
+  return FALSE;
+}
+
+
+void
+PL_mark_string_buffers__LD(buf_mark_t *mark ARG_LD)
+{ *mark = LD->fli.string_buffers.top;
+}
+
+void
+PL_release_string_buffers_from_mark__LD(buf_mark_t mark ARG_LD)
+{ while(LD->fli.string_buffers.top > mark)
+    popStringBuffer(&LD->fli.string_buffers);
+}
+
+
+#undef PL_mark_string_buffers
+void
+PL_mark_string_buffers(buf_mark_t *mark)
+{ GET_LD
+
+  PL_mark_string_buffers__LD(mark PASS_LD);
+}
+
+#undef PL_release_string_buffers_from_mark
+void
+PL_release_string_buffers_from_mark(buf_mark_t mark)
+{ GET_LD
+
+  PL_release_string_buffers_from_mark__LD(mark PASS_LD);
+}
+
+
+void
+release_string_buffers_from_frame(LocalFrame fr ARG_LD)
+{ word offset = consTermRef(fr);
+
+  for(;;)
+  { StringBuffer sb = currentBuffer(&LD->fli.string_buffers);
+
+    if ( sb && sb->frame >= offset )
+      popStringBuffer(&LD->fli.string_buffers);
+    else
+      break;
+  }
 }

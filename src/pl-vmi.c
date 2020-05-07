@@ -1789,7 +1789,11 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
   if ( unlikely(LD->alerted) )
-  {
+  { if ( (LD->alerted&ALERT_BUFFER) )
+    { LD->alerted &= ~ALERT_BUFFER;
+      release_string_buffers_from_frame(FR PASS_LD);
+    }
+
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action;

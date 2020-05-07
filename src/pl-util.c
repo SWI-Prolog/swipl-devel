@@ -75,7 +75,7 @@ text_summary(PL_chars_t *txt, char q, unsigned int maxlen)
       return txt->text.t;
   }
 
-  b = findBuffer(BUF_RING);
+  b = findBuffer(BUF_STACK);
   if ( q )
   { maxlen -= 2;
     addBuffer(b, q, char);
@@ -152,7 +152,7 @@ predicateName(Definition def)
   *e++ = '/';
   Ssprintf(e, "%d", def->functor->arity);
 
-  return buffer_string(tmp, BUF_RING);
+  return buffer_string(tmp, BUF_STACK);
 }
 
 
@@ -171,7 +171,7 @@ functorName(functor_t f)
   *e++ = '/';
   Ssprintf(e, "%d", fd->arity);
 
-  return buffer_string(tmp, BUF_RING);
+  return buffer_string(tmp, BUF_STACK);
 }
 
 
@@ -215,7 +215,7 @@ keyName(word key)
       }
     }
 
-    return buffer_string(tmp, BUF_RING);
+    return buffer_string(tmp, BUF_STACK);
   }
 }
 
@@ -225,7 +225,7 @@ sourceFileName(SourceFile sf)
 { char tmp[650];
 
   strcpy(tmp, atom_summary(sf->name, 50));
-  return buffer_string(tmp, BUF_RING);
+  return buffer_string(tmp, BUF_STACK);
 }
 
 
@@ -236,7 +236,7 @@ generationName(gen_t gen)
   if ( gen == GEN_MAX )
     return "GEN_MAX";
   Ssprintf(tmp, "%lld", (int64_t)gen);
-  return buffer_string(tmp, BUF_RING);
+  return buffer_string(tmp, BUF_STACK);
 }
 
 

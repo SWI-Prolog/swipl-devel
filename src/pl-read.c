@@ -5052,7 +5052,7 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
   PL_chars_t txt;
 
   if ( PL_get_text(A1, &txt,
-		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_RING) )
+		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_STACK) )
   { int rc;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;

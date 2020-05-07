@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2019, University of Amsterdam
+    Copyright (c)  2010-20120, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -127,5 +127,8 @@
 #define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
 #define classify_exception(ex)  classify_exception__LD(ex PASS_LD)
 #define classify_exception_p(p) classify_exception_p__LD(p PASS_LD)
+#define PL_mark_string_buffers(m) PL_mark_string_buffers__LD(m PASS_LD)
+#define PL_release_string_buffers_from_mark(m) \
+				PL_release_string_buffers_from_mark__LD(m PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

@@ -187,6 +187,7 @@ typedef void *		pl_function_t;      /* pass function as void* */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
+typedef uintptr_t	buf_mark_t;	/* buffer mark handle */
 
 #ifndef NORETURN
 #define NORETURN
@@ -858,11 +859,11 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
 
 #define BUF_DISCARDABLE	    0x00000000	/* Store in single thread-local buffer */
-#define BUF_RING	    0x00010000	/* Store in ring of 16 buffers */
+#define BUF_STACK	    0x00010000	/* Store in stack of buffers */
 #define BUF_MALLOC	    0x00020000	/* Store using PL_malloc() */
 #define BUF_ALLOW_STACK	    0x00040000	/* Allow pointer into (global) stack */
-#define BUF_NORING	    0x00080000	/* Do not store in ring */
 
+#define BUF_RING	    BUF_STACK   /* legacy ring buffer */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Output   representation   for   PL_get_chars()     and    friends.   The
@@ -881,6 +882,21 @@ UNICODE file functions.
 #endif
 
 #define PL_DIFF_LIST	    0x01000000	/* PL_unify_chars() */
+
+
+                /*******************************
+                *         STRING BUFFERS       *
+                *******************************/
+
+#define PL_STRINGS_MARK() \
+	{ buf_mark_t __PL_mark; \
+	  PL_mark_string_buffers(&__PL_mark);
+#define PL_STRINGS_RELEASE() \
+	  PL_release_string_buffers_from_mark(__PL_mark); \
+	}
+
+PL_EXPORT(void)		PL_mark_string_buffers(buf_mark_t *mark);
+PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 
 
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */

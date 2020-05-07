@@ -559,8 +559,8 @@ win_shell(term_t op, term_t file, term_t how)
   UINT h;
   HINSTANCE instance;
 
-  if ( !PL_get_wchars(op,   &lo, &o, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
-       !PL_get_wchars(file, &lf, &f, CVT_ALL|CVT_EXCEPTION|BUF_RING) ||
+  if ( !PL_get_wchars(op,   &lo, &o, CVT_ALL|CVT_EXCEPTION|BUF_STACK) ||
+       !PL_get_wchars(file, &lf, &f, CVT_ALL|CVT_EXCEPTION|BUF_STACK) ||
        !get_showCmd(how, &h) )
     fail;
 

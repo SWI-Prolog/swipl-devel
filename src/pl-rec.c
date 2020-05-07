@@ -966,7 +966,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
     { return FALSE;
     }
   } else if ( PL_get_nchars(string, &len, &rec,
-			    CVT_STRING|BUF_RING|REP_ISO_LATIN_1|CVT_EXCEPTION) )
+			    CVT_STRING|BUF_STACK|REP_ISO_LATIN_1|CVT_EXCEPTION) )
   { term_t tmp;
 
     return ( (tmp = PL_new_term_ref()) &&

@@ -825,16 +825,13 @@ and stack-shifts, so generally the only save operations are to pass
 it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
-Convert the argument term \arg{t} to a 0-terminated C-string.  {\em
-flags} is a bitwise disjunction from two groups of constants.  The
-first specifies which term types should be converted and the second
-how the argument is stored.  Below is a specification of these
-constants.  \const{BUF_RING} implies, if the data is not static
-(as from an atom), that the data is copied to the next buffer from a
-ring of 16 buffers.  This is a convenient way of converting
-multiple arguments passed to a foreign predicate to C-strings.  If
-BUF_MALLOC is used, the data must be freed using PL_free() when no longer
-needed.
+Convert the argument term \arg{t} to a 0-terminated C-string.
+\arg{flags} is a bitwise disjunction from two groups of constants. The
+first specifies which term types should be converted and the second how
+the argument is stored. Below is a specification of these constants.
+\const{BUF_STACK} implies, if the data is not static (as from an atom),
+that the data is pushed on a stack. If BUF_MALLOC is used, the data must
+be freed using PL_free() when no longer needed.
 
 With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
@@ -869,7 +866,7 @@ Convert variable to print-name
 
     \termitem{CVT_WRITE}{}
 Convert any term that is not converted by any of the other flags using
-write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
+write/1. If no \const{BUF_*} is provided, \const{BUF_STACK} is implied.
 
     \termitem{CVT_WRITE_CANONICAL}{}
 As \const{CVT_WRITE}, but using write_canonical/2.
@@ -888,8 +885,9 @@ exception in addition to failure
     \termitem{BUF_DISCARDABLE}{}
 Data must copied immediately
 
-    \termitem{BUF_RING}{}
-Data is stored in a ring of buffers
+    \termitem{BUF_STACK}{}
+Data is stored on a stack.  The older \const{BUF_RING} is an alias
+for \const{BUF_STACK}.  See \secref{foreign-strings}.
 
     \termitem{BUF_MALLOC}{}
 Data is copied to a new buffer returned by \manref{PL_malloc}{3}. When
@@ -1727,7 +1725,7 @@ Wide character version of PL_chars_to_term().
     Return a quoted version of \arg{string}.  If \arg{chr} is
     \verb$'\''$, the result is a quoted atom.  If \arg{chr} is
     \verb$'"'$, the result is a string.  The result string is stored
-    in the same ring of buffers as described with the \const{BUF_RING}
+    in the same ring of buffers as described with the \const{BUF_STACK}
     argument of PL_get_chars();
 
     In the current implementation, the string is surrounded by
@@ -2377,6 +2375,46 @@ count_atoms()
      \label{fig:calling}
 \end{figure}
 
+\subsection{String buffering}
+\label{sec:foreign-strings}
+
+Many of the functions of the foreign language interface involve strings.
+Some of these strings point into static memory like those associated
+with atoms. These strings are valid as long as the atom is protected
+against atom garbage collection, which generally implies the atom must
+be locked using PL_register_atom() or be part of an accessible term.
+Other strings are more volatile. Several functions provide a BUF_* flag
+that can be set to either \const{BUF_STACK} (default) or
+\const{BUF_MALLOC}. Strings returned by a function accepting
+\const{BUF_MALLOC} \textbf{must} be freed using PL_free(). Strings
+returned using \const{BUF_STACK} are pushed on a stack that is cleared
+when a foreign predicate returns control back to Prolog. More fine
+grained control may be needed if functions that return strings are
+called outside the context of a foreign predicate or a foreign predicate
+creates many strings during its execution.  Temporary strings are scoped
+using these macros:
+
+\begin{description}
+    \cmacro{void}{PL_STRINGS_MARK}{}
+    \nodescription
+    \cmacro{void}{PL_STRINGS_RELEASE}{}
+These macros must be paired and create a C \jargon{block} (\{...\}). Any
+string created using \const{BUF_STACK} after PL_STRINGS_MARK() is
+released by the corresponding PL_STRINGS_RELEASE().  These macros
+should be used like below
+
+\begin{code}
+  ...
+  PL_STRINGS_MARK();
+  <operations involving strings>
+  PL_STRINGS_RELEASE();
+  ...
+\end{code}
+\end{description}
+
+The Prolog flag \prologflag{string_stack_tripwire} may be used to set a
+\jargon{tripwire} to help finding places where scoping strings may help
+reducing resources.
 
 \subsection{Foreign Code and Modules}
 \label{sec:foreign-modules}
@@ -2761,10 +2799,10 @@ file properties, search, naming conventions, etc., from foreign code.
 \begin{description}
     \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
 Translate a Prolog term into a file name. The name is stored in the
-static buffer ring described with th PL_get_chars() option
-\const{BUF_RING}. Conversion from the internal UNICODE encoding is done
-using standard C library functions. \arg{flags} is a bit-mask
-controlling the conversion process. Options are:
+buffer stack described with the PL_get_chars() option \const{BUF_STACK}.
+Conversion from the internal UNICODE encoding is done using standard C
+library functions. \arg{flags} is a bit-mask controlling the conversion
+process. Options are:
 
 \begin{description}
     \definition{\const{PL_FILE_ABSOLUTE}}

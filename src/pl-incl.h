@@ -476,7 +476,6 @@ them.  Descriptions:
 	skips this amount of stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BUFFER_RING_SIZE	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
@@ -802,14 +801,15 @@ typedef enum
 /* See updateAlerted()
 */
 
-#define	ALERT_SIGNAL	     0x01
-#define	ALERT_GCREQ	     0x02
-#define	ALERT_PROFILE	     0x04
-#define	ALERT_EXITREQ	     0x08
-#define	ALERT_DEPTHLIMIT     0x10
-#define	ALERT_INFERENCELIMIT 0x20
-#define	ALERT_WAKEUP	     0x40
-#define	ALERT_DEBUG	     0x80
+#define	ALERT_SIGNAL	     0x001
+#define	ALERT_GCREQ	     0x002
+#define	ALERT_PROFILE	     0x004
+#define	ALERT_EXITREQ	     0x008
+#define	ALERT_DEPTHLIMIT     0x010
+#define	ALERT_INFERENCELIMIT 0x020
+#define	ALERT_WAKEUP	     0x040
+#define	ALERT_DEBUG	     0x080
+#define	ALERT_BUFFER	     0x100
 
 
 		 /*******************************

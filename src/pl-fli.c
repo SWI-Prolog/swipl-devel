@@ -746,7 +746,7 @@ PL_atom_wchars(atom_t a, size_t *len)
 
     return (const wchar_t *)x->name;
   } else if ( true(x->type, PL_BLOB_TEXT) )
-  { Buffer b = findBuffer(BUF_RING);
+  { Buffer b = findBuffer(BUF_STACK);
     const char *s = (const char*)x->name;
     const char *e = &s[x->length];
 
@@ -1398,7 +1398,7 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
     if ( flags & BUF_MALLOC )
     { *s = PL_malloc(len+1);
       memcpy(*s, r, len+1);
-      unfindBuffer(flags);
+      unfindBuffer(b, flags);
     } else
       *s = r;
 
@@ -1492,7 +1492,7 @@ PL_get_text_as_atom(term_t t, atom_t *a, int flags)
 
 char *
 PL_quote(int chr, const char *s)
-{ Buffer b = findBuffer(BUF_RING);
+{ Buffer b = findBuffer(BUF_STACK);
 
   addBuffer(b, (char)chr, char);
   for(; *s; s++)
