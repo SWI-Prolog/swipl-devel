@@ -38,6 +38,7 @@
           [ qsave_program/1,                    % +File
             qsave_program/2                     % +File, +Options
           ]).
+:- use_module(library(zip)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -1222,7 +1223,7 @@ qsave_toplevel :-
     qsave_options(Argv, Files, Options),
     '$cmd_option_val'(compileout, Out),
     user:consult(Files),
-    user:qsave_program(Out, Options).
+    qsave_program(Out, user:Options).
 
 qsave_options([], [], []).
 qsave_options([--|_], [], []) :-
