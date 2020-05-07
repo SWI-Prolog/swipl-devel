@@ -200,6 +200,7 @@ if(INSTALL_DOCUMENTATION)
   add_custom_command(
       OUTPUT ${MAN_INDEX}
       COMMAND ${PROG_SWIPL} -f none --no-packs --home=${SWIPL_BUILD_HOME}
+			    -g "'use_module(library(prolog_install))'"
 	                    -g cmake_save_man_index -t halt
       DEPENDS swipl core doc.html)
   add_custom_target(

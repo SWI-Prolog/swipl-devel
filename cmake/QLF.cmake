@@ -19,7 +19,7 @@
 function(add_swipl_target name)
   set(options -f none --no-packs -t halt "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS" ${ARGN})
+      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
@@ -32,6 +32,10 @@ function(add_swipl_target name)
   if(my_QLF)
     set(PROG_SWIPL ${PROG_SWIPL_FOR_BOOT})
   endif()
+
+  foreach(s ${my_LIBS})
+    set(options ${options} -g "'use_module(library(${s}))'")
+  endforeach()
 
   foreach(s ${my_SCRIPT})
     set(options ${options} -s ${s})
@@ -79,6 +83,7 @@ function(add_qcompile_target target)
       qlf-${tname}
       OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
       COMMAND cmake_qcompile
+      LIBS prolog_install
       OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src} ${extra}
       COMMENT "QLF compiling ${target}.qlf"
       DEPENDS ${src} ${my_DEPENDS})
