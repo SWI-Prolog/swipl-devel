@@ -227,7 +227,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS)
+/* clang as of version 11 performs about 30% worse with this option */
+#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS) && !defined(__llvm__)
 #define VMCODE_IS_ADDRESS	1
 #endif
 
