@@ -10,6 +10,7 @@ foreach(dir ${ARGN})
     add_swipl_target(
 	${target}
 	OUTPUT  home/${dir}/INDEX.pl
+	QUIET
 	COMMAND "make_library_index('${SWIPL_BUILD_HOME}/${dir}')"
 	COMMENT "Build home/${dir}/INDEX.pl")
     add_dependencies(library_index ${target})
