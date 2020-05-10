@@ -348,6 +348,10 @@ target_include_directories(libswipl BEFORE PRIVATE
 			   ${CMAKE_CURRENT_SOURCE_DIR}
 			   ${ZLIB_INCLUDE_DIRS}
 			   ${LIBSWIPL_INCLUDES})
+target_include_directories(libswipl INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
+  $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
 target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
 
 if(BUILD_SWIPL_LD)
@@ -357,6 +361,12 @@ if(BUILD_SWIPL_LD)
 			     ${CMAKE_CURRENT_SOURCE_DIR}
 			     ${LIBSWIPL_INCLUDES})
   add_dependencies(swipl-ld vmi-metadata core-constants)
+endif()
+
+if(WIN32)
+  set(SWIPL_PROGRAM libswipl.dll)
+else()
+  set(SWIPL_PROGRAM swipl)
 endif()
 
 if(WIN32)
@@ -488,6 +498,18 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Create TAGS file for main sources")
 
+# Create cmake config files
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(SWIPLConfigVersion.cmake
+  VERSION "${SWIPL_VERSION_STRING}"
+  COMPATIBILITY SameMajorVersion)
+configure_package_config_file(
+  "${CMAKE_SOURCE_DIR}/cmake/SWIPLConfig.cmake.in"
+  SWIPLConfig.cmake
+  PATH_VARS SWIPL_INSTALL_ARCH_EXE
+  INSTALL_DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}"
+  NO_SET_AND_CHECK_MACRO
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO)
 
 ################
 # Installation
@@ -509,7 +531,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl
+install(TARGETS swipl libswipl EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
@@ -544,6 +566,16 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+
+# Install cmake config files
+install(EXPORT SWIPL_EXPORT
+  FILE SWIPLTargets.cmake
+  NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
+  DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfig.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfigVersion.cmake"
+        DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+
 if(SWIPL_INSTALL_PKGCONFIG)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.pc
 	DESTINATION ${SWIPL_INSTALL_PKGCONFIG})
