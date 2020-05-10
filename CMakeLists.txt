@@ -107,6 +107,9 @@ set(SWIPL_INSTALL_DIR ${SWIPL_INSTALL_DIR_DEF}
 set(SWIPL_TMP_DIR "/tmp" CACHE STRING
     "Directory to be used if the environment variable TMP is not set")
 
+set(SWIPL_CMAKE_NAMESPACE swipl::)
+set(SWIPL_INSTALL_CMAKE_CONFIG_DIR lib/cmake/swipl)
+
 if(BUILD_MACOS_BUNDLE)
   set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
   set(SWIPL_INSTALL_ARCH_EXE  SWI-Prolog.app/Contents/MacOS)
