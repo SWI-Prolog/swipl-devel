@@ -524,6 +524,9 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  goto out;
 	}
       }
+      case TAG_ATOM:
+	pushVolatileAtom(*from);
+        /*FALLTHROUGH*/
       default:
 	*to = *from;
         continue;
@@ -555,6 +558,9 @@ again:
     case TAG_ATTVAR:
     case TAG_COMPOUND:
       break;
+    case TAG_ATOM:
+      pushVolatileAtom(*from);
+      /*FALLTHROUGH*/
     default:
       *to = *from;
       return TRUE;
