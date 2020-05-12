@@ -35,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-wrap.h"
 #include "pl-dbref.h"
 

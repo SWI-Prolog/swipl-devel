@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-indirect.h"

@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-ctype.h"
 #include "os/pl-cstack.h"
 #include "pl-inline.h"

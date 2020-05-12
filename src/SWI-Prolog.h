@@ -429,6 +429,20 @@ PL_EXPORT(term_t)	PL_yielded(qid_t qid);
 
 
 		 /*******************************
+		 *	      ASSERT		*
+		 *******************************/
+
+#define PL_ASSERTZ		0x0000
+#define PL_ASSERTA		0x0001
+#define PL_CREATE_THREAD_LOCAL	0x0010
+#define PL_CREATE_INCREMENTAL	0x0020
+
+PL_EXPORT(int)		PL_assert(term_t term, module_t m, int flags);
+
+
+
+
+		 /*******************************
 		 *        TERM-REFERENCES	*
 		 *******************************/
 

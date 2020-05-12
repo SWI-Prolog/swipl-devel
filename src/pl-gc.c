@@ -38,6 +38,7 @@
 #define O_DEBUG 1
 #endif
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"

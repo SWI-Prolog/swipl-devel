@@ -35,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #undef LD
 #define LD LOCAL_LD
 

@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-arith.h"
 #include "pl-tabling.h"
 #include "pl-copyterm.h"

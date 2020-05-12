@@ -33,6 +33,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-dict.h"
 #include "pl-rsort.h"
 

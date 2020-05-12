@@ -114,48 +114,6 @@ COMMON(size_t)		atom_space(void);
 /* pl-bag.c */
 COMMON(void)		markAtomsFindall(PL_local_data_t *ld);
 
-/* pl-comp.c */
-COMMON(void)		initWamTable(void);
-COMMON(void)		freeVarDefs(PL_local_data_t *ld);
-COMMON(int)		get_head_and_body_clause(term_t clause,
-					 term_t head, term_t body,
-					 Module *m ARG_LD);
-COMMON(Procedure)	lookupBodyProcedure(functor_t functor, Module tm);
-COMMON(int)		compileClause(Clause *cp, Word head, Word body,
-				      Procedure proc, Module module,
-				      term_t warnings ARG_LD);
-COMMON(Clause)		assert_term(term_t term, ClauseRef where, atom_t owner,
-				    SourceLoc loc ARG_LD);
-COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
-COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
-COMMON(bool)		decompileHead(Clause clause, term_t head);
-COMMON(Code)		skipArgs(Code PC, int skip);
-COMMON(int)		argKey(Code PC, int skip, word *key);
-COMMON(int)		arg1Key(Code PC, word *key);
-COMMON(bool)		decompile(Clause clause, term_t term, term_t bindings);
-COMMON(word)		pl_nth_clause(term_t p, term_t n, term_t ref,
-				      control_t h);
-COMMON(void)		wamListClause(Clause clause);
-COMMON(Code)		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
-COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
-					 term_t thehead, int flags);
-COMMON(code)		replacedBreak(Code PC);
-COMMON(code)		replacedBreakUnlocked(Code PC);
-COMMON(int)		clearBreakPointsClause(Clause clause) WUNUSED;
-COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
-COMMON(void)		vm_list(Code code);
-COMMON(Module)		clauseBodyContext(const Clause cl);
-
-/* pl-dump.c */
-COMMON(word)		saveProgram(term_t new);
-COMMON(word)		pl_save_program(term_t new, term_t args);
-COMMON(word)		pl_save(term_t file, term_t restore);
-COMMON(word)		pl_restore(term_t file);
-COMMON(word)		parseSaveProgramOptions(term_t args,
-			int *local, int *global, int *trail, int *argument,
-			char **goal, char **toplevel, char **init_file,
-			bool *tty, bool *standalone);
-
 /* pl-index.c */
 COMMON(word)		getIndexOfTerm(term_t t);
 COMMON(ClauseRef)	firstClause(Word argv, LocalFrame fr, Definition def,

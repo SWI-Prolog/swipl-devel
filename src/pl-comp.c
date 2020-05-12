@@ -37,6 +37,7 @@
 /*#define O_DEBUG 1*/
 #define _GNU_SOURCE			/* get dladdr() */
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-arith.h"
 #include "pl-dbref.h"
 #include "pl-event.h"
@@ -5806,9 +5807,13 @@ typedef struct
 } *Cref;
 
 
-word
-pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
-{ GET_LD
+static
+PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  term_t p = A1;
+  term_t n = A2;
+  term_t ref = A3;
+
   Clause clause;
   ClauseRef cref;
   Procedure proc;
@@ -5818,15 +5823,15 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
   gen_t generation;
 #endif
 
-  if ( ForeignControl(h) == FRG_CUTTED )
-  { cr = ForeignContextPtr(h);
+  if ( CTX_CNTRL == PL_PRUNED )
+  { cr = CTX_PTR;
 
     if ( cr )
     { def = cr->clause->value.clause->predicate;
       popPredicateAccess(def);
       freeForeignState(cr, sizeof(*cr));
     }
-    succeed;
+    return TRUE;
   }
 
   if ( !PL_is_variable(ref) )
@@ -5857,10 +5862,10 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
       popPredicateAccess(def);
     }
 
-    fail;
+    return FALSE;
   }
 
-  if ( ForeignControl(h) == FRG_FIRST_CALL )
+  if ( CTX_CNTRL == PL_FIRST_CALL )
   { int i;
 
     if ( !get_procedure(p, &proc, 0, GP_FIND) ||
@@ -5903,7 +5908,7 @@ pl_nth_clause(term_t p, term_t n, term_t ref, control_t h)
     cr->index  = 1;
     setGenerationFrameVal(environment_frame, generation);
   } else
-  { cr = ForeignContextPtr(h);
+  { cr = CTX_PTR;
     def = cr->clause->value.clause->predicate;
     generation = generationFrame(environment_frame);
   }
@@ -7298,6 +7303,20 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 
 #endif /*O_DEBUGGER*/
 
+
+		 /*******************************
+		 *	      FLI		*
+		 *******************************/
+
+int
+PL_assert(term_t term, module_t m, int flags)
+{ //Clause cl;
+
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -7321,6 +7340,7 @@ BeginPredDefs(comp)
   PRED_DEF("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
   PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
   PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)
+  PRED_DEF("nth_clause",  3, nth_clause, META|NDET)
   PRED_SHARE("$clause", 4, clause, META|NDET|PL_FA_CREF)
 #ifdef O_DEBUGGER
   PRED_DEF("$fetch_vm", 4, fetch_vm, META)
