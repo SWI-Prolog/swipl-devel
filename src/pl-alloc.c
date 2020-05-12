@@ -41,8 +41,12 @@
 #define MMAP_STACK 1
 #include <sys/mman.h>
 #include <unistd.h>
-#if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
+#ifndef MAP_ANONYMOUS
+#ifdef MAP_ANON
 #define MAP_ANONYMOUS MAP_ANON
+#else
+#define MAP_ANONYMOUS 0
+#endif
 #endif
 #endif
 
