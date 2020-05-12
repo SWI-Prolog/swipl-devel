@@ -197,7 +197,7 @@ static ClauseRef
 assert_wrapper(term_t clause ARG_LD)
 { Clause cl;
 
-  if ( (cl = assert_term(clause, CL_END, NULL_ATOM, NULL PASS_LD)) )
+  if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0 PASS_LD)) )
   { Definition def = cl->predicate;
     ClauseRef cref;
 

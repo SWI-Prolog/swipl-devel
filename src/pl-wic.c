@@ -1940,7 +1940,7 @@ loadInclude(wic_state *state ARG_LD)
   loc.file = pn;
   loc.line = line;
 
-  assert_term(t, CL_END, owner, &loc PASS_LD);
+  assert_term(t, NULL, CL_END, owner, &loc, 0 PASS_LD);
 
   PL_discard_foreign_frame(fid);
   return TRUE;
@@ -2865,7 +2865,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, NULL, CL_END, file, &loc, 0 PASS_LD)) )
   { openPredicateWic(state, clause->predicate, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 

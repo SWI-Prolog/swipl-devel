@@ -3652,13 +3652,14 @@ The warnings should help explain what is going on here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
-assert_term(term_t term, ClauseRef where, atom_t owner, SourceLoc loc ARG_LD)
+assert_term(term_t term, Module module, ClauseRef where,
+	    atom_t owner, SourceLoc loc,
+	    int flags ARG_LD)
 { Clause clause;
   ClauseRef cref;
   Procedure proc;
   Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
-  Module module = source_module;
   Module mhead;
   term_t tmp      = PL_new_term_refs(4);
   term_t head     = tmp+1;
@@ -3666,6 +3667,9 @@ assert_term(term_t term, ClauseRef where, atom_t owner, SourceLoc loc ARG_LD)
   term_t warnings = (owner ? tmp+3 : 0);
   Word h, b;
   functor_t fdef;
+
+  if ( !module )
+    module = source_module;
 
   if ( !PL_strip_module_ex(term, &module, tmp) )
     return NULL;
@@ -3679,6 +3683,12 @@ assert_term(term_t term, ClauseRef where, atom_t owner, SourceLoc loc ARG_LD)
       proc = lookupProcedure(fdef, mhead);
     if ( !proc )
       return NULL;
+  }
+  if ( flags && !isDefinedProcedure(proc) )
+  { if ( (flags&PL_CREATE_INCREMENTAL) )
+      setAttrDefinition(proc->definition, P_INCREMENTAL, TRUE);
+    if ( (flags&PL_CREATE_THREAD_LOCAL) )
+      setAttrDefinition(proc->definition, P_THREAD_LOCAL, TRUE);
   }
 
 #ifdef O_PROLOG_HOOK
@@ -3828,7 +3838,7 @@ static
 PRED_IMPL("assertz", 1, assertz1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, CL_END, NULL_ATOM, NULL PASS_LD) != NULL;
+  return assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0 PASS_LD) != NULL;
 }
 
 
@@ -3836,7 +3846,7 @@ static
 PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, CL_START, NULL_ATOM, NULL PASS_LD) != NULL;
+  return assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0 PASS_LD) != NULL;
 }
 
 
@@ -3856,7 +3866,7 @@ PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 
   if ( !mustBeVar(A2 PASS_LD) )
     fail;
-  if ( !(clause = assert_term(A1, CL_END, NULL_ATOM, NULL PASS_LD)) )
+  if ( !(clause = assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0 PASS_LD)) )
     fail;
 
   return PL_unify_clref(A2, clause);
@@ -3870,7 +3880,7 @@ PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 
   if ( !mustBeVar(A2 PASS_LD) )
     fail;
-  if ( !(clause = assert_term(A1, CL_START, NULL_ATOM, NULL PASS_LD)) )
+  if ( !(clause = assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0 PASS_LD)) )
     fail;
 
   return PL_unify_clref(A2, clause);
@@ -3912,7 +3922,7 @@ record_clause(term_t term, term_t owner, term_t source, term_t ref ARG_LD)
   { return PL_type_error("source-location", source);
   }
 
-  if ( (clause = assert_term(term, CL_END, a_owner, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0 PASS_LD)) )
   { if ( ref )
       return PL_unify_clref(ref, clause);
     else
@@ -7309,11 +7319,15 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
 		 *******************************/
 
 int
-PL_assert(term_t term, module_t m, int flags)
-{ //Clause cl;
+PL_assert(term_t term, module_t module, int flags)
+{ GET_LD
+  ClauseRef where;
 
+  if ( (flags&PL_ASSERTA) )
+    where = CL_START;
+  flags &= (PL_CREATE_THREAD_LOCAL|PL_CREATE_INCREMENTAL);
 
-  return TRUE;
+  return assert_term(term, module, where, 0, NULL, flags PASS_LD) != NULL;
 }
 
 

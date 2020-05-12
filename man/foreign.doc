@@ -2789,6 +2789,95 @@ compatibility with older records.
 \end{description}
 
 
+\subsubsection{Database}
+\label{sec:foreign-db}
+
+\begin{description}
+    \cfunction{int}{PL_assert}{term_t t, module_t m, int flags}
+Provides direct access to asserta/1 and assertz/1 by asserting \arg{t}
+into the database in the module \arg{m}.  Defined flags are:
+
+    \begin{description}
+	\termitem{PL_ASSERTZ}{}
+Add the new clause as last. Calls assertz/1. This macros is defined as 0
+and thus the default.
+	\termitem{PL_ASSERTA}{}
+Add the new clause as first.  Calls asserta/1.
+	\termitem{PL_CREATE_THREAD_LOCAL}{}
+If the predicate is not defined, create it as thread-local.  See
+thread_local/1.
+	\termitem{PL_CREATE_INCREMENTAL}{}
+If the predicate is not defined, create it as \jargon{incremental} see
+table/1 and \secref{tabling-incremental}.
+    \end{description}
+
+On success this function returns \const{TRUE}. On failure \const{FALSE}
+is returned and an exception is left in the environment that describes
+the reason of failure.  See PL_exception().
+
+This predicate bypasses creating a Prolog callback environment and is
+faster than setting up a call to assertz/1. It may be used together with
+PL_chars_to_term(), but the typical use case will create a number of
+clauses for the same predicate. The fastest way to achieve this is by
+creating a term that represents the invariable structure of the desired
+clauses using variables for the variable sub terms. Now we can loop over
+the data, binding the variables, asserting the term and undoing the
+bindings. Below is an example loading words from a file that contains a
+word per line.
+
+\begin{code}
+#include <SWI-Prolog.h>
+#include <stdio.h>
+#include <string.h>
+
+#define MAXWLEN 256
+
+static foreign_t
+load_words(term_t name)
+{ char *fn;
+
+  if ( PL_get_file_name(name, &fn, PL_FILE_READ) )
+  { FILE *fd = fopen(fn, "r");
+    char word[MAXWLEN];
+    module_t m = PL_new_module(PL_new_atom("words"));
+    term_t cl = PL_new_term_ref();
+    term_t w  = PL_new_term_ref();
+    fid_t fid;
+
+    if ( !PL_unify_term(cl, PL_FUNCTOR_CHARS, "word", 1, PL_TERM, w) )
+      return FALSE;
+
+    if ( (fid = PL_open_foreign_frame()) )
+    { while(fgets(word, sizeof(word), fd))
+      { size_t len;
+
+	if ( (len=strlen(word)) )
+	{ word[len-1] = '\0';
+	  if ( !PL_unify_chars(w, PL_ATOM|REP_MB, (size_t)-1, word) ||
+	       !PL_assert(cl, m, 0) )
+	    return FALSE;
+	  PL_rewind_foreign_frame(fid);
+	}
+      }
+
+      PL_close_foreign_frame(fid);
+    }
+
+    fclose(fd);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+install_t
+install(void)
+{ PL_register_foreign("load_words", 1, load_words, 0);
+}
+\end{code}
+\end{description}
+
+
 \subsubsection{Getting file names}		\label{sec:cfilenames}
 
 The function PL_get_file_name() provides access to Prolog filenames and
