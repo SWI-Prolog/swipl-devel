@@ -16,7 +16,7 @@
         #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#if SIZEOF_VOIDP == 8 || !defined(HAVE_FOPEN64)
+#if SIZEOF_VOIDP == 8 || (defined(HAVE_FTELLO) && defined(HAVE_FSEEKO))
 #define IOAPI_NO_64
 #endif
 
