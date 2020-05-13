@@ -75,68 +75,95 @@ Prolog realizes _high-order_ programming  with   meta-calling.  The core
 predicate of this is call/1, which simply   calls its argument. This can
 be used to define higher-order predicates  such as ignore/1 or forall/2.
 The call/N construct calls a _closure_  with N-1 _additional arguments_.
-This is used to define  higher-order   predicates  such as the maplist/N
-family or foldl/N.
+This is used to define  higher-order predicates  such as the maplist/2-5
+family or foldl/4-7.
+
+The _closure_ concept used here is   somewhat different from the closure
+concept from functional programming. The latter   is  a function that is
+always evaluated in the context that  existed at function creation time.
+Here, a closure is a term of arity _0  =< L =< K_. The term's functor is
+the name of a predicate of arity _K_ and the term's _L_ arguments (where
+_L_ could be 0) correspond to _L_  leftmost arguments of said predicate,
+bound  to  parameter  values.   For    example,   a   closure  involving
+atom_concat/3  might  be  the  term  atom_concat(prefix).  In  order  of
+increasing _L_, one would have increasingly  more complete closures that
+could be passed to call/3, all giving the same result:
+
+```
+call(atom_concat,prefix,suffix,R).
+call(atom_concat(prefix),suffix,R).
+call(atom_concat(prefix,suffix),R).
+call(atom_concat(prefix,suffix,R)).
+```
 
 The problem with higher order predicates  based   on  call/N is that the
 additional arguments are always  added  to   the  end  of  the closure's
 argument list. This often requires defining trivial helper predicates to
 get the argument order right. For example, if   you want to add a common
 postfix    to    a    list    of    atoms     you    need    to    apply
-atom_concat(In,Postfix,Out),   but    maplist(x(PostFix),ListIn,ListOut)
-calls x(PostFix,In,Out). This is where  this   library  comes  in, which
-allows us to write
+atom_concat(In,Postfix,Out),                                         but
+maplist(atom_concat(Postfix),ListIn,ListOut)                       calls
+atom_concat(Postfix,In,Out). This is where library(yall) comes in, where
+the module name, _yall_, stands for _Yet Another Lambda Library_.
 
-  ==
-  ?- maplist([In,Out]>>atom_concat(In,'_p',Out), [a,b], ListOut).
-  ListOut = [a_p, b_p].
-  ==
+The library allows us to write a   lambda expression that _wraps around_
+the (possibly complex) goal to call:
 
-The `{...}` specifies which variables are   _shared_  between the lambda
-and the context. This allows us  to   write  the code below. Without the
-`{PostFix}` a free variable would be passed to atom_concat/3.
+```
+?- maplist([In,Out]>>atom_concat(In,'_p',Out), [a,b], ListOut).
+ListOut = [a_p, b_p].
+```
 
-  ==
-  add_postfix(PostFix, ListIn, ListOut) :-
-      maplist({PostFix}/[In,Out]>>atom_concat(In,PostFix,Out),
-              ListIn, ListOut).
-  ==
+A bracy list `{...}` specifies which  variables are _shared_ between the
+wrapped goal and the surrounding context. This   allows  us to write the
+code below. Without the `{Postfix}` a fresh  variable would be passed to
+atom_concat/3.
+
+```
+add_postfix(Postfix, ListIn, ListOut) :-
+    maplist({Postfix}/[In,Out]>>atom_concat(In,Postfix,Out),
+            ListIn, ListOut).
+```
 
 This introduces the second application area   of lambda expressions: the
-ability to stop binding variables in   the context. This features shines
-when combined with bagof/3 or setof/3 where you normally have to specify
-the the variables in whose binding you   are  _not_ interested using the
-`Var^Goal` construct (marking `Var` as  existential quantified). Lambdas
-allow doing the  reverse:  specify  the   variables  in  which  you  are
-interested.
+ability to confine variables to the called goal's context. This features
+shines when combined with bagof/3 or setof/3   where one normally has to
+list those variables whose bindings one is _not_ interested in using the
+`Var^Goal` construct (marking `Var`  as   existentially  quantified  and
+confining it to the called goal's context). Lambda expressions allow you
+to do the converse: specify the variables  which one _is_ interested in.
+These variables are common to the  context   of  the called goal and the
+surrounding context.
 
 Lambda expressions use the syntax below
 
-  ==
-  {...}/[...]>>Goal.
-  ==
+```
+{...}/[...]>>Goal.
+```
 
-The `{...}` optional  part is used for lambda-free  variables. The order
-of variables doesn't matter hence the `{...}` set notation.
+The `{...}` optional part is used   for  lambda-free variables (the ones
+shared between contexts). The order of   variables doesn't matter, hence
+the `{...}` set notation.
 
-The  `[...]`  optional  part  lists lambda  parameters.  Here  order  of
-variables matters hence the list notation.
+The  `[...]`  optional  part  lists lambda  parameters.  Here, order  of
+variables matters, hence the list notation.
 
 As `/` and `>>` are standard infix operators, no new operators are added
-by this  library.  An  advantage of  this syntax is  that we  can simply
-unify a lambda expression with Free/Parameters>>Lambda to access each of
-its  components. Spaces  in  the  lambda expression  are  not a  problem
-although the goal  may need to be written between  ()'s.  Goals that are
+by this library. An advantage of this syntax is that we can simply unify
+a lambda expression with `{Free}/[Parameters]>>Lambda` to access each of
+its components. Spaces in  the  lambda   expression  are  not  a problem
+although the goal may need to be   written between '()'s. Goals that are
 qualified by a module prefix also need to be wrapped inside parentheses.
 
 Combined  with  library(apply_macros),  library(yall)    allows  writing
 one-liners for many list operations that   have  the same performance as
-hand written code.
+hand-written code.
 
-The module name, _yall_, stands for Yet Another Lambda Library.
+This     module     implements     [Logtalk's     lambda     expressions
+syntax](https://logtalk.org/manuals/refman/grammar.html#lambda-expressions).
 
-This  module  implements  Logtalk's   lambda  expressions  syntax.   The
-development of this module was sponsored by Kyndi, Inc.
+
+The development of this module was sponsored by Kyndi, Inc.
 
 @tbd    Extend optimization support
 @author Paulo Moura and Jan Wielemaker
