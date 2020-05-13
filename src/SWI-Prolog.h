@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2017, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -68,11 +68,25 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 80122
+#define PLVERSION 80131
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This number is incremented when the   SWI-Prolog PL_*() functions or one
+of the data types is modified such that old binary extensions cannot run
+reliably with the  current  version.  This   version  is  introduced  in
+SWI-Prolog 8.1.30. The  most  recent   violation  of  compatibility  was
+between versions 8.1.21 and 8.1.22  with   the  introduction of rational
+numbers are atomic type.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define PL_FLI_VERSION      2		/* PL_*() functions */
+#define	PL_REC_VERSION      3		/* PL_record_external(), fastrw */
+#define PL_QLF_LOADVERSION 67		/* load all versions later >= X */
+#define PL_QLF_VERSION     67		/* save version number */
 
 
 		 /*******************************
@@ -173,6 +187,7 @@ typedef void *		pl_function_t;      /* pass function as void* */
 #else
 typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
+typedef uintptr_t	buf_mark_t;	/* buffer mark handle */
 
 #ifndef NORETURN
 #define NORETURN
@@ -191,6 +206,7 @@ typedef union
     size_t arity;
   } t;
 } term_value_t;
+
 
 #ifndef TRUE
 #define TRUE	(1)
@@ -413,6 +429,20 @@ PL_EXPORT(term_t)	PL_yielded(qid_t qid);
 
 
 		 /*******************************
+		 *	      ASSERT		*
+		 *******************************/
+
+#define PL_ASSERTZ		0x0000
+#define PL_ASSERTA		0x0001
+#define PL_CREATE_THREAD_LOCAL	0x0010
+#define PL_CREATE_INCREMENTAL	0x0020
+
+PL_EXPORT(int)		PL_assert(term_t term, module_t m, int flags);
+
+
+
+
+		 /*******************************
 		 *        TERM-REFERENCES	*
 		 *******************************/
 
@@ -485,6 +515,7 @@ PL_EXPORT(int)		PL_get_compound_name_arity(term_t t, atom_t *name,
 PL_EXPORT(int)		PL_get_module(term_t t, module_t *module) WUNUSED;
 PL_EXPORT(int)		PL_get_arg_sz(size_t index, term_t t, term_t a) WUNUSED;
 PL_EXPORT(int)		PL_get_arg(int index, term_t t, term_t a) WUNUSED;
+PL_EXPORT(int)		PL_get_dict_key(atom_t key, term_t dict, term_t value);
 PL_EXPORT(int)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(int)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(int)		PL_get_tail(term_t l, term_t t) WUNUSED;
@@ -505,6 +536,7 @@ PL_EXPORT(int)		PL_is_compound(term_t t);
 PL_EXPORT(int)		PL_is_callable(term_t t);
 PL_EXPORT(int)		PL_is_functor(term_t t, functor_t f);
 PL_EXPORT(int)		PL_is_list(term_t t);
+PL_EXPORT(int)		PL_is_dict(term_t t);
 PL_EXPORT(int)		PL_is_pair(term_t t);
 PL_EXPORT(int)		PL_is_atomic(term_t t);
 PL_EXPORT(int)		PL_is_number(term_t t);
@@ -531,6 +563,8 @@ PL_EXPORT(int)		PL_put_functor(term_t t, functor_t functor) WUNUSED;
 PL_EXPORT(int)		PL_put_list(term_t l) WUNUSED;
 PL_EXPORT(int)		PL_put_nil(term_t l);
 PL_EXPORT(int)		PL_put_term(term_t t1, term_t t2);
+PL_EXPORT(int)		PL_put_dict(term_t t, atom_t tag, size_t len,
+				    const atom_t *keys, term_t values);
 
 			/* construct a functor or list-cell */
 PL_EXPORT(int)		PL_cons_functor(term_t h, functor_t f, ...) WUNUSED;
@@ -838,11 +872,12 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_EXCEPTION	    0x00001000	/* throw exception on error */
 #define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
 
-#define BUF_DISCARDABLE	    0x00000000
-#define BUF_RING	    0x00010000
-#define BUF_MALLOC	    0x00020000
-#define BUF_ALLOW_STACK	    0x00040000	/* allow pointer into (global) stack */
+#define BUF_DISCARDABLE	    0x00000000	/* Store in single thread-local buffer */
+#define BUF_STACK	    0x00010000	/* Store in stack of buffers */
+#define BUF_MALLOC	    0x00020000	/* Store using PL_malloc() */
+#define BUF_ALLOW_STACK	    0x00040000	/* Allow pointer into (global) stack */
 
+#define BUF_RING	    BUF_STACK   /* legacy ring buffer */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Output   representation   for   PL_get_chars()     and    friends.   The
@@ -861,6 +896,21 @@ UNICODE file functions.
 #endif
 
 #define PL_DIFF_LIST	    0x01000000	/* PL_unify_chars() */
+
+
+                /*******************************
+                *         STRING BUFFERS       *
+                *******************************/
+
+#define PL_STRINGS_MARK() \
+	{ buf_mark_t __PL_mark; \
+	  PL_mark_string_buffers(&__PL_mark);
+#define PL_STRINGS_RELEASE() \
+	  PL_release_string_buffers_from_mark(__PL_mark); \
+	}
+
+PL_EXPORT(void)		PL_mark_string_buffers(buf_mark_t *mark);
+PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 
 
 #ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
@@ -1086,6 +1136,21 @@ PL_EXPORT(int)	PL_check_stacks(void);
 PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 
 
+		 /*******************************
+		 *	      VERSIONS		*
+		 *******************************/
+
+#define PL_VERSION_SYSTEM	1	/* Prolog version */
+#define PL_VERSION_FLI		2	/* PL_* compatibility */
+#define PL_VERSION_REC		3	/* PL_record_external() compatibility */
+#define PL_VERSION_QLF		4	/* Saved QLF format version */
+#define PL_VERSION_QLF_LOAD	5	/* Min loadable QLF format version */
+#define PL_VERSION_VM		6	/* VM signature */
+#define PL_VERSION_BUILT_IN	7	/* Built-in predicate signature */
+
+PL_EXPORT(unsigned int) PL_version(int which);
+
+
 		/********************************
 		*         QUERY PROLOG          *
 		*********************************/
@@ -1182,6 +1247,14 @@ PL_EXPORT(void)		PL_prof_exit(void *node);
 
 
 		 /*******************************
+		 *	      DEBUG		*
+		 *******************************/
+
+PL_EXPORT(int)		PL_prolog_debug(const char *topic);
+PL_EXPORT(int)		PL_prolog_nodebug(const char *topic);
+
+
+		 /*******************************
 		 *	 WINDOWS MESSAGES	*
 		 *******************************/
 
@@ -1239,7 +1312,13 @@ PL_EXPORT(int)	PL_step_context(struct pl_context_t *c);
 PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 				    char *buf, size_t len);
 
-#ifdef PL_ARITY_AS_SIZE
+/* Define as 1 if undefined or defined as empty */
+#if !defined(PL_ARITY_AS_SIZE) || (0-PL_ARITY_AS_SIZE-1)==1
+#undef PL_ARITY_AS_SIZE
+#define PL_ARITY_AS_SIZE 1
+#endif
+
+#if PL_ARITY_AS_SIZE
 #define PL_new_functor(f,a) PL_new_functor_sz(f,a)
 #define PL_functor_arity(f) PL_functor_arity_sz(f)
 #define PL_get_name_arity(t,n,a) PL_get_name_arity_sz(t,n,a)
@@ -1250,9 +1329,8 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
 #endif
 #else
-//Considered too alarming
-//#warning "Term arity has changed from int to size_t."
-//#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#warning "Term arity has changed from int to size_t."
+#warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
 #endif
 
 #ifdef __cplusplus

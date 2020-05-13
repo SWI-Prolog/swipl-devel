@@ -63,4 +63,9 @@ termIsDict__LD(word w ARG_LD)
   return ( fd->name == ATOM_dict && fd->arity%2 == 1 );
 }
 
+static inline int
+is_dict_key(word w)
+{ return isAtom(w) || isTaggedInt(w);
+}
+
 #endif /*PL_DICT_H_INCLUDED*/

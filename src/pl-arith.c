@@ -56,6 +56,7 @@ in this array.
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include <math.h>
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
@@ -72,6 +73,17 @@ in this array.
 #endif
 #include <fenv.h>
 
+#ifndef DBL_MAX
+#define DBL_MAX     1.7976931348623157e+308
+#endif
+#ifndef DBL_MIN
+#define DBL_MIN     2.2250738585072014e-308
+#endif
+#ifndef DBL_EPSILON
+#define DBL_EPSILON 0.00000000000000022204
+#endif
+
+
 #ifdef fpclassify
 #define HAVE_FPCLASSIFY 1
 #endif
@@ -85,17 +97,6 @@ in this array.
 #ifndef M_E
 #define M_E (2.7182818284590452354)
 #endif
-
-/* LD->arith.float_flags values */
-#define FLT_ROUND_NEAREST	0x0001
-#define FLT_ROUND_TO_POS	0x0002
-#define FLT_ROUND_TO_NEG	0x0003
-#define FLT_ROUND_TO_ZERO	0x0004
-#define FLT_ROUND_MASK		0x000f
-#define FLT_OVERFLOW		0x0010
-#define FLT_ZERO_DIV		0x0020
-#define FLT_UNDEFINED		0x0040
-#define FLT_UNDERFLOW		0x0080
 
 static double const_nan;
 static double const_inf;
@@ -130,6 +131,7 @@ static int		ar_minus(Number n1, Number n2, Number r);
 static int		mul64(int64_t x, int64_t y, int64_t *r);
 static int		notLessThanZero(const char *f, int a, Number n);
 static int		mustBePositive(const char *f, int a, Number n);
+static int		set_roundtoward(Word p, Number old ARG_LD);
 
 
 		/********************************
@@ -356,6 +358,64 @@ PRED_IMPL("plus", 3, plus, 0)
   return rc;
 }
 
+		/********************************
+		*   LOGICAL NUMBER FUNCTION     *
+		*********************************/
+
+static
+PRED_IMPL("bounded_number", 3, bounded_number, 0)
+{ PRED_LD
+  number n, lo, hi;
+  int rc;
+
+  if ( PL_get_number(A3, &n) )
+  { switch(n.type)
+    {
+#ifdef O_GMP
+      case V_MPZ:
+#endif
+      case V_INTEGER:
+      { cpNumber(&lo, &n);
+	cpNumber(&hi, &n);
+	ar_add_ui(&lo, -1);
+	ar_add_ui(&hi, 1);
+	break;
+      }
+#if O_GMP
+      case V_MPQ:
+	promoteToFloatNumber(&n);
+      /*FALLTHROUGH*/
+#endif
+      case V_FLOAT:
+      { if ( isfinite(n.value.f) )
+	{ lo.type = V_FLOAT;
+	  lo.value.f = nexttoward(n.value.f,-INFINITY);
+	  hi.type = V_FLOAT;
+	  hi.value.f = nexttoward(n.value.f, INFINITY);
+	} else
+	{ clearNumber(&n);
+	  return FALSE;
+	}
+	break;
+      }
+    }
+
+    rc = ( ((PL_get_number(A1, &lo)) ? (cmpNumbers(&lo, &n) == -1)
+	                             : PL_unify_number(A1, &lo)) &&
+	   ((PL_get_number(A2, &hi)) ? (cmpNumbers(&n, &hi) == -1)
+				     : PL_unify_number(A2, &hi))
+	 );
+
+  } else
+  { rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A1);
+  }
+  clearNumber(&n);
+  clearNumber(&lo);
+  clearNumber(&hi);
+
+  return rc;
+}
+
 		 /*******************************
 		 *	 BIGNUM FUNCTIONS	*
 		 *******************************/
@@ -502,23 +562,41 @@ PRED_IMPL("rational", 3, rational, 0)
 
 #endif /*O_GMP*/
 
+static
+PRED_IMPL("float_parts", 4, float_parts, 0)
+{ PRED_LD
+  double d;
+
+  if ( PL_get_float_ex(A1, &d) )
+  { double m;
+    int e;
+
+    m = frexp(d, &e);
+    return ( PL_unify_float(A2, m) &&
+	     PL_unify_integer(A3, 2) &&
+	     PL_unify_integer(A4, e) );
+  }
+
+  return FALSE;
+}
+
+
 		/********************************
 		*           COMPARISON          *
 		*********************************/
 
+/* implements <, =<, >, >=, =:= and =\=
+ */
+
 int
 ar_compare(Number n1, Number n2, int what)
-{ int diff = cmpNumbers(n1, n2);
-
-  if ( (n1->type == V_FLOAT && isnan(n1->value.f)) ||
-       (n2->type == V_FLOAT && isnan(n2->value.f)) )
-    return FALSE;
+{ int diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
 
   switch(what)
   { case LT: return diff == CMP_LESS;
     case GT: return diff == CMP_GREATER;
-    case LE: return diff != CMP_GREATER;
-    case GE: return diff != CMP_LESS;
+    case LE: return (diff == CMP_LESS) || (diff == CMP_EQUAL);
+    case GE: return (diff == CMP_GREATER) || (diff == CMP_EQUAL);
     case NE: return diff != CMP_EQUAL;
     case EQ: return diff == CMP_EQUAL;
     default:
@@ -542,10 +620,11 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 
     clearNumber(&left);
     clearNumber(&right);
+    AR_END();
   } else
+  { AR_CLEANUP();
     rc = FALSE;
-
-  AR_END();
+  }
 
   return rc;
 }
@@ -661,10 +740,10 @@ isCurrentArithFunction(functor_t f)
 
 
 int
-check_float(double f)
+check_float(Number n)
 { PL_error_code code = ERR_NO_ERROR;
 #ifdef HAVE_FPCLASSIFY
-  switch(fpclassify(f))
+  switch(fpclassify(n->value.f))
   { case FP_NAN:
       code = ERR_AR_UNDEF;
       break;
@@ -677,7 +756,7 @@ check_float(double f)
   }
 #else
 #ifdef HAVE_FPCLASS
-  switch(fpclass(f))
+  switch(fpclass(n->value.f))
   { case FP_SNAN:
     case FP_QNAN:
       code = ERR_AR_UNDEF;
@@ -698,7 +777,7 @@ check_float(double f)
   }
 #else
 #ifdef HAVE__FPCLASS
-  switch(_fpclass(f))
+  switch(_fpclass(n->value.f))
   { case _FPCLASS_SNAN:
     case _FPCLASS_QNAN:
       code = ERR_AR_UNDEF;
@@ -710,11 +789,11 @@ check_float(double f)
   }
 #else
 #ifdef HAVE_ISNAN
-  if ( isnan(f) )
+  if ( isnan(n->value.f) )
     code = ERR_AR_UNDEF;
 #endif
 #ifdef HAVE_ISINF
-  if ( isinf(f) )
+  if ( isinf(n->value.f) )
     code = ERR_AR_OVERFLOW;
 #endif
 #endif /*HAVE__FPCLASS*/
@@ -734,6 +813,7 @@ check_float(double f)
 	  return TRUE;
         break;
       case ERR_AR_UNDEF:
+	n->value.f = const_nan;
 	if ( LD->arith.f.flags & FLT_UNDEFINED )
 	  return TRUE;
         break;
@@ -745,6 +825,19 @@ check_float(double f)
   }
 
   return TRUE;
+}
+
+static int
+check_zero_div(int sign_n, Number r, char *func, int arity)
+{ GET_LD
+
+  if ( LD->arith.f.flags & FLT_ZERO_DIV )
+  { r->type = V_FLOAT;
+    r->value.f = copysign(const_inf,sign_n);
+    return TRUE;
+  } else
+  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);
+  }
 }
 
 
@@ -822,6 +915,7 @@ valueExpression(term_t expr, number *result ARG_LD)
   int known_acyclic = FALSE;
   int pushed = 0;
   functor_t functor;
+  int old_round_mode = fegetround();
 
   deRef(p);
   start = p;
@@ -909,9 +1003,21 @@ valueExpression(term_t expr, number *result ARG_LD)
 	    goto error;
 	  }
 	}
+	if ( term->definition == FUNCTOR_roundtoward2 )
+	{ number crnd;
+
+	  if ( !set_roundtoward(&term->arguments[1], &crnd PASS_LD) )
+	    goto error;
+	  if ( !pushSegStack(&arg_stack, crnd, number) )
+	  { PL_no_memory();
+	    goto error;
+	  }
+	  p = &term->arguments[0];
+	} else
+	{ p = &term->arguments[arity-1];
+	}
 	walk_ref = FALSE;
 	n = &n_tmp;
-	p = &term->arguments[arity-1];
 	continue;
       }
       default:
@@ -1030,6 +1136,7 @@ error:
     clearSegStack(&term_stack);
     while( popSegStack(&arg_stack, &n, number) )
       clearNumber(&n);
+    fesetround(old_round_mode);
   }
   LD->in_arithmetic--;
 
@@ -1175,7 +1282,7 @@ toIntegerNumber(Number n, int flags)
       fail;
 #endif
     case V_FLOAT:
-      if ( !check_float(n->value.f) )
+      if ( !check_float(n) )
 	return FALSE;
       if ( (flags & TOINT_CONVERT_FLOAT) )
       { if ( double_in_int64_range(n->value.f) )
@@ -1251,6 +1358,7 @@ ar_add_ui(Number n, intptr_t add)
 	succeed;
       }
     }
+    /*FALLTHROUGH*/
 #ifdef O_GMP
     case V_MPZ:
     { if ( add > 0 )
@@ -1274,7 +1382,7 @@ ar_add_ui(Number n, intptr_t add)
     case V_FLOAT:
     { n->value.f += (double)add;
 
-      return check_float(n->value.f);
+      return check_float(n);
     }
     default:
       ;
@@ -1329,7 +1437,7 @@ pl_ar_add(Number n1, Number n2, Number r)
     { r->value.f = n1->value.f + n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
     }
   }
 
@@ -1377,7 +1485,7 @@ ar_minus(Number n1, Number n2, Number r)
     { r->value.f = n1->value.f - n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
     }
   }
 
@@ -1386,20 +1494,20 @@ ar_minus(Number n1, Number n2, Number r)
 }
 
 
-#ifdef O_GMP
 static int
 ar_even(Number i)
 { switch(i->type)
   { case V_INTEGER:
       return i->value.i % 2 == 0;
+#ifdef O_GMP
     case V_MPZ:
       return mpz_fdiv_ui(i->value.mpz, 2) == 0;
+#endif
     default:
       assert(0);
       fail;
   }
 }
-#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1589,11 +1697,11 @@ ar_shift_right(Number n1, Number n2, Number r)
 
 
 static int
-ar_gcd(Number n1, Number n2, Number r)
+same_positive_ints(const char *fname, Number n1, Number n2)
 { if ( !toIntegerNumber(n1, 0) )
-    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
+    return PL_error(fname, 2, NULL, ERR_AR_TYPE, ATOM_integer, n1);
   if ( !toIntegerNumber(n2, 0) )
-    return PL_error("gcd", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
+    return PL_error(fname, 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
   if ( !same_type_numbers(n1, n2) )
     return FALSE;
@@ -1602,7 +1710,6 @@ ar_gcd(Number n1, Number n2, Number r)
   { case V_INTEGER:
     { int64_t a = n1->value.i;
       int64_t b = n2->value.i;
-      int64_t t;
 
       if ( a < 0 )
       { a = -(uint64_t)a;
@@ -1613,7 +1720,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	  promoteToMPZNumber(n2);
 	  goto case_gmp;
 #else
-	  return PL_error("gcd", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+	  return PL_error(fname, 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
 	}
       }
@@ -1622,18 +1729,59 @@ ar_gcd(Number n1, Number n2, Number r)
 	if ( b < 0 )
 	  goto promote;
       }
-      while(b != 0)
-      { t = b;
-	b = a % b;
-	a = t;
-      }
-      r->type = V_INTEGER;
-      r->value.i = a;
+
+      n1->value.i = a;
+      n2->value.i = b;
       break;
     }
 #ifdef O_GMP
     case V_MPZ:
     case_gmp:
+      /* we don't really need to make absolute here as the GMP functions
+       * ignore the sign anyway
+       */
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  return TRUE;
+}
+
+
+static int64_t
+i64_gcd(int64_t a, int64_t b)
+{ int64_t t;
+
+  if ( a == 0 )
+    return b;
+  if ( b == 0 )
+    return a;
+
+  while(b != 0)
+  { t = b;
+    b = a % b;
+    a = t;
+  }
+
+  return a;
+}
+
+
+static int
+ar_gcd(Number n1, Number n2, Number r)
+{ if ( !same_positive_ints("gcd", n1, n2) )
+    return FALSE;
+
+  switch(n1->type)
+  { case V_INTEGER:
+    { r->type = V_INTEGER;
+      r->value.i = i64_gcd(n1->value.i, n2->value.i);
+      break;
+    }
+#ifdef O_GMP
+    case V_MPZ:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
       mpz_gcd(r->value.mpz, n1->value.mpz, n2->value.mpz);
@@ -1643,7 +1791,43 @@ ar_gcd(Number n1, Number n2, Number r)
       assert(0);
   }
 
-  succeed;
+  return TRUE;
+}
+
+static int
+ar_lcm(Number n1, Number n2, Number r)
+{ if ( !same_positive_ints("lcm", n1, n2) )
+    return FALSE;
+
+  switch(n1->type)
+  { case V_INTEGER:
+    { int64_t prod;
+
+      if ( mul64(n1->value.i, n2->value.i, &prod) )
+      { r->type = V_INTEGER;
+	if ( prod != 0 )
+	  r->value.i = prod/i64_gcd(n1->value.i, n2->value.i);
+	else
+	  r->value.i = 0;
+	return TRUE;
+      }
+    }
+#ifndef O_GMP
+      return PL_error("lcm", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
+#else
+      promoteToMPZNumber(n1);
+      promoteToMPZNumber(n2);
+    case V_MPZ:
+      r->type = V_MPZ;
+      mpz_init(r->value.mpz);
+      mpz_lcm(r->value.mpz, n1->value.mpz, n2->value.mpz);
+      break;
+#endif
+    default:
+      assert(0);
+  }
+
+  return TRUE;
 }
 
 
@@ -1655,7 +1839,7 @@ ar_gcd(Number n1, Number n2, Number r)
   { if ( !promoteToFloatNumber(n1) ) return FALSE; \
     r->value.f = op(n1->value.f); \
     r->type    = V_FLOAT; \
-    return check_float(r->value.f); \
+    return check_float(r); \
   }
 
 /* Binary functions requiring integer argument */
@@ -1716,7 +1900,7 @@ ar_gcd(Number n1, Number n2, Number r)
 	 !promoteToFloatNumber(n2) ) return FALSE; \
     r->value.f = func(n1->value.f, n2->value.f); \
     r->type = V_FLOAT; \
-    return check_float(r->value.f); \
+    return check_float(r); \
   }
 
 UNAIRY_FLOAT_FUNCTION(ar_sin, sin)
@@ -1732,7 +1916,6 @@ UNAIRY_FLOAT_FUNCTION(ar_atan, atan)
 UNAIRY_FLOAT_FUNCTION(ar_exp, exp)
 UNAIRY_FLOAT_FUNCTION(ar_erf, erf)
 UNAIRY_FLOAT_FUNCTION(ar_erfc, erfc)
-UNAIRY_FLOAT_FUNCTION(ar_lgamma, lgamma)
 
 BINAIRY_FLOAT_FUNCTION(ar_atan2, atan2)
 
@@ -1769,7 +1952,7 @@ mpz_set_num(mpz_t mpz, Number n)
 }
 
 static int
-get_int_exponent(Number n, unsigned long *expp, int *sign)
+get_int_exponent(Number n, unsigned long *expp)
 { long exp;
   int64_t i;
 
@@ -1793,107 +1976,132 @@ get_int_exponent(Number n, unsigned long *expp, int *sign)
 #endif
 
   if ( exp >= 0 )
-  { *expp = (unsigned long)exp;
-    *sign = (exp > 0);
-  } else if ( -exp != exp )
-  { *expp = (unsigned long)-exp;
-    *sign = -1;
-  } else
-  { return int_too_big();
-  }
+    *expp = (unsigned long)exp;
+  else if ( -exp != exp )
+    *expp = (unsigned long)-exp;
+  else
+   return int_too_big();
 
   return TRUE;
 }
-#endif /*O_GMP*/
 
-/* minus_pow() handles rounding mode issues calculating pow with
+/* cond_minus_pow() handles rounding mode issues calculating pow with
    negative base float have to reverse to_positive and to_negative.
 */
 
 static double
-minus_pow(double base, double exp)
+cond_minus_pow(double base, double exp)
 { double res;
 
-  switch( fegetround() )
-  { case FE_UPWARD:
-      fesetround(FE_DOWNWARD);
-      res = pow(base,exp);
-      fesetround(FE_UPWARD);
-      break;
-    case FE_DOWNWARD:
-      fesetround(FE_UPWARD);
-      res = pow(base,exp);
-      fesetround(FE_DOWNWARD);
-      break;
-    default:
-      res = pow(base,exp);
+  if ( base < 0 )
+  { switch( fegetround() )
+    { case FE_UPWARD:
+	fesetround(FE_DOWNWARD);
+        res = -pow(-base,exp);
+	fesetround(FE_UPWARD);
+	break;
+      case FE_DOWNWARD:
+	fesetround(FE_UPWARD);
+        res = -pow(-base,exp);
+	fesetround(FE_DOWNWARD);
+	break;
+      default:
+	res = -pow(-base,exp);
+    }
+  } else
+  { res = pow(base,exp);
   }
 
   return res;
 }
 
+
+static int
+ar_smallint(Number n, int *i)
+{ switch(n->type)
+  { case V_INTEGER:
+      if ( n->value.i >= -1 && n->value.i <= 1 )
+      { *i = n->value.i;
+	return TRUE;
+      }
+      return FALSE;
+    case V_MPZ:
+      if ( mpz_cmp_si(n->value.mpz, -1L) >= 0 &&
+	   mpz_cmp_si(n->value.mpz,  1L) <= 0 )
+      { *i = mpz_get_si(n->value.mpz);
+	return TRUE;
+      }
+      return FALSE;
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+#endif /*O_GMP*/
+
+static inline int
+sign_f(double f)
+{ return
+    f < 0 ? -1 :
+    f > 0 ?  1 :
+	     0 ;  /* sign_f(NaN) = 0 */
+}
+
 static int
 ar_pow(Number n1, Number n2, Number r)
-{
+{ int zero_div_sign;
+  int exp_sign;
 #ifdef O_GMP
   unsigned long exp;
-  int exp_sign;
+  int exp_nan;
+  int n1_val;
+
+  if ( n2->type == V_FLOAT )
+  { exp_nan  = isnan(n2->value.f);
+    exp_sign = sign_f(n2->value.f);
+  } else
+  { exp_nan = FALSE;
+    exp_sign = ar_sign_i(n2);
+  }
+  r->type = V_INTEGER;				/* for all special cases */
+
+  if ( exp_sign == 0 && !exp_nan )		/* test for X**0 */
+  { r->value.i = 1;
+    return TRUE;
+  }
+
+  if ( intNumber(n1) && ar_smallint(n1, &n1_val) )
+  { if ( n1_val == 1 )				/* 1**X => 1 */
+    { r->value.i = 1;
+      return TRUE;
+    }
+    if ( n1_val == 0 && !exp_nan )		/* n1==0, non-zero(n2) */
+    { if ( exp_sign > 0)
+      { r->value.i = 0;				/* positive exp => 0 */
+        return TRUE;
+      } else					/* negative exp => zero_div */
+      { return check_zero_div(ar_sign_i(n1), r, "**", 2);
+      }
+    }
+    if ( n1_val == -1 && intNumber(n2) )	/* check n1 == -1 */
+    { r->value.i = ar_even(n2) ? 1 : -1;
+      return TRUE;
+    }
+  }
 
   if ( intNumber(n1) && intNumber(n2) )
-  { switch(n1->type)			/* test for 0**X and 1**X */
-    { case V_INTEGER:
-	if ( n1->value.i == 0 )
-	{ ret0:
-	  r->type = V_INTEGER;
-	  if ( ar_sign_i(n2) == 0 )	/* 0**0 --> 1 */
-	    r->value.i = 1;
-	  else
-	    r->value.i = 0;
-	  succeed;
-	}
-        if ( n1->value.i == 1 )
-	{ ret1:
-	  r->type = V_INTEGER;
-	  r->value.i = 1;
-	  succeed;
-	}
-	if ( n1->value.i == -1 )
-	{ ret_1:
-	  r->type = V_INTEGER;
-	  if ( ar_even(n2) )
-	    r->value.i = 1;
-	  else
-	    r->value.i = -1;
-	  succeed;
-	}
-        break;
-      case V_MPZ:
-	if ( mpz_cmp_si(n1->value.mpz, 0) == 0 )
-	  goto ret0;
-        if ( mpz_cmp_si(n1->value.mpz, 1) == 0 )
-	  goto ret1;
-        if ( mpz_cmp_si(n1->value.mpz, -1) == 0 )
-	  goto ret_1;
-	break;
-      default:
-	assert(0);
-    }
-
-    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+  { if ( !get_int_exponent(n2, &exp) )
       return FALSE;
+
     if ( exp_sign < 0 )
     { GET_LD
 
       if ( truePrologFlag(PLFLAG_RATIONAL) )
       { promoteToMPQNumber(n1);
-	goto int_pow_neg_int;
+        goto int_pow_neg_int;
       }
       goto doreal;
-    }
-    if ( exp_sign == 0 )
-    { r->type = V_INTEGER;
-      r->value.i = 1;
-      return TRUE;
     }
 
   { GET_LD				/* estimate the size, see above */
@@ -1942,7 +2150,7 @@ ar_pow(Number n1, Number n2, Number r)
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
 
-    if ( !get_int_exponent(n2, &exp, &exp_sign) )
+    if ( !get_int_exponent(n2, &exp) )
       return FALSE;
 
     if ( exp_sign == 0 )
@@ -1962,18 +2170,16 @@ ar_pow(Number n1, Number n2, Number r)
     nd.value.mpz[0] = mpq_denref(n1->value.mpq)[0];
     nd.value.mpz->_mp_alloc = 0;
 
-    nrp.type = ndp.type = V_INTEGER;
-
     if ( ar_pow(&nr, &nexp, &nrp) &&
-	 ar_pow(&nd, &nexp, &ndp) )
+         ar_pow(&nd, &nexp, &ndp) )
     { r->type = V_MPQ;
       mpq_init(r->value.mpq);
       if ( exp_sign > 0 )
       { mpz_set_num(mpq_numref(r->value.mpq), &nrp);
-	mpz_set_num(mpq_denref(r->value.mpq), &ndp);
+        mpz_set_num(mpq_denref(r->value.mpq), &ndp);
       } else
       { mpz_set_num(mpq_numref(r->value.mpq), &ndp);
-	mpz_set_num(mpq_denref(r->value.mpq), &nrp);
+        mpz_set_num(mpq_denref(r->value.mpq), &nrp);
       }
       mpq_canonicalize(r->value.mpq);
 
@@ -1988,115 +2194,125 @@ ar_pow(Number n1, Number n2, Number r)
   } /* end MPQ^int */
 
   if ( n2->type == V_MPQ )			/* X ^ rat */
-  { int sgn_exp = mpq_sgn(n2->value.mpq);
-    long r_den;
+  { long r_den;
 
-    if ( sgn_exp == -1 )
+    if ( exp_sign == -1 )
       mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
 
     r_den = mpz_get_ui(mpq_denref(n2->value.mpq));
 
     switch (n1->type)
     { case V_INTEGER:
-      case V_MPZ:				/* int ^ rat */
-      { r->type = V_MPZ;
+      { mpz_init_set_si(r->value.mpz,n1->value.i);
+        goto int_to_rat;
+      }
+      case V_MPZ:
+      { mpz_init_set(r->value.mpz,n1->value.mpz);
 
-	if ( n1->type == V_INTEGER )
-	  mpz_init_set_si(r->value.mpz,n1->value.i);
-	else
-	  mpz_init_set(r->value.mpz,n1->value.mpz);
-
-	/* neg ^ int/even is undefined */
-	if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
+      int_to_rat:
+	r->type = V_MPZ;			/* int ^ rat */
+						/* neg ^ int/even is undefined */
+        if ( mpz_sgn(r->value.mpz) == -1 && !(r_den & 1))
 	{ mpz_clear(r->value.mpz);
 	  r->type = V_FLOAT;
-	  r->value.f = NAN;
-	  return check_float(r->value.f);
+	  r->value.f = const_nan;
+	  return check_float(r);
 	}
 
-	if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
-	{ unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+        if ( mpz_root(r->value.mpz,r->value.mpz,r_den))
+        { unsigned long r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
 
-	  if ( r_num > LONG_MAX )
-	  { mpz_clear(r->value.mpz);
-	    goto doreal;
-	  } else
-	  { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
+          if ( r_num > LONG_MAX )	/* numerator exceeds mpz_pow_ui range */
+          { mpz_clear(r->value.mpz);
+            if ( promoteToFloatNumber(n1) )
+              goto doreal_mpq;
+            else return FALSE;
+          } else
+          { mpz_pow_ui(r->value.mpz,r->value.mpz,r_num);
 
-	    if (sgn_exp == -1)  /* create mpq=1/r->value */
-	    { mpz_t tempz;
+            if (exp_sign == -1)		/* create mpq=1/r->value */
+            { mpz_t tempz;
 
-	      mpz_init_set(tempz,r->value.mpz);
-	      mpz_clear(r->value.mpz);
-	      r->type = V_MPQ;
-	      mpq_init(r->value.mpq);
-	      mpq_set_z(r->value.mpq,tempz);
-	      mpq_inv(r->value.mpq,r->value.mpq);
-	      mpz_clear(tempz);
-	      return check_mpq(r);
-	    } else
-	    { return TRUE;
-	    }
-	  }
-	} else
-	{ mpz_clear(r->value.mpz);
-	  goto doreal;
-	}
-	break;
+              mpz_init_set(tempz,r->value.mpz);
+              mpz_clear(r->value.mpz);
+              r->type = V_MPQ;
+              mpq_init(r->value.mpq);
+              mpq_set_z(r->value.mpq,tempz);
+              mpq_inv(r->value.mpq,r->value.mpq);
+              mpz_clear(tempz);
+              return check_mpq(r);
+            } else
+            { return TRUE;
+            }
+          }
+        } else				/* root inexact */
+        { mpz_clear(r->value.mpz);
+          if ( promoteToFloatNumber(n1) )
+            goto doreal_mpq;
+          else return FALSE;
+        }
+        break;
       }
       case V_MPQ:
       { int rat_result;
-	unsigned long r_num;
+        unsigned long r_num;
 
-	r->type = V_MPQ;
-	mpq_init(r->value.mpq);
-	mpq_set(r->value.mpq, n1->value.mpq);
+        r->type = V_MPQ;
+        mpq_init(r->value.mpq);
+        mpq_set(r->value.mpq, n1->value.mpq);
 
-	/* neg ^ int / even */
-	if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
-	{ mpq_clear(r->value.mpq);
-	  r->type = V_FLOAT;
-	  r->value.f = NAN;
-	  return check_float(r->value.f);
-	}
+					/* neg ^ int / even */
+        if ( (mpq_sgn(r->value.mpq) == -1 ) && !(r_den & 1))
+        { mpq_clear(r->value.mpq);
+          r->type = V_FLOAT;
+          r->value.f = const_nan;
+          return check_float(r);
+        }
 
-	rat_result = ( mpz_root(mpq_numref(r->value.mpq),
+        rat_result = ( mpz_root(mpq_numref(r->value.mpq),
 				mpq_numref(r->value.mpq),r_den) &&
 		       mpz_root(mpq_denref(r->value.mpq),
 				mpq_denref(r->value.mpq),r_den)
 		     );
 
-	r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
-	if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
-	{ mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
-	  mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
+        r_num = mpz_get_ui(mpq_numref(n2->value.mpq));
+        if ( rat_result && (r_num < LONG_MAX) )	/* base = base^P */
+        { mpz_pow_ui(mpq_numref(r->value.mpq),mpq_numref(r->value.mpq),r_num);
+          mpz_pow_ui(mpq_denref(r->value.mpq),mpq_denref(r->value.mpq),r_num);
 
-	  /* if original exponent negative, invert */
-	  if ( sgn_exp == -1 )
-	    mpq_inv(r->value.mpq,r->value.mpq);
+          if ( exp_sign == -1 )
+            mpq_inv(r->value.mpq,r->value.mpq);
 
-	  return check_mpq(r);
-	} else
-	{ mpq_clear(r->value.mpq);
-	  goto doreal;
-	}
-	assert(0);
+          return check_mpq(r);
+        } else				/* exponent out of range for mpz_pow_ui */
+        { mpq_clear(r->value.mpq);
+
+          if ( promoteToFloatNumber(n1) )
+	    goto doreal_mpq;
+          else
+	    return FALSE;
+        }
+        assert(0);
       }
       case V_FLOAT:
-      { double d_exp = sgn_exp * mpX_round(mpq_get_d(n2->value.mpq));
+      { if ( n1->value.f == 0.0 ) goto doreal;  /* general case of 0.0**X */
+        if ( n1->value.f < 0  && !( r_den & 1 ))
+	{ r->value.f = const_nan;	/* negative base, even denominator */
+	} else
+        {
+	doreal_mpq:
+	  mpq_init(r->value.mpq);
+	  mpq_set_ui(r->value.mpq,1,mpz_get_ui(mpq_denref(n2->value.mpq)));
+	  double dexp = mpq_get_d(r->value.mpq);  /* float(1/n2.den) */
+	  mpq_clear(r->value.mpq);
+	  r->value.f = pow(cond_minus_pow(n1->value.f, dexp),
+			   mpz_get_ui(mpq_numref(n2->value.mpq)));
+	  if ( exp_sign == -1 )
+	    r->value.f = 1.0/r->value.f;
+        }
 
-	r->type = V_FLOAT;
-	if ( n1->value.f < 0 )
-	{ if ( r_den & 1 )			/* odd denominator */
-	  { int sign = mpz_divisible_2exp_p(mpq_numref(n2->value.mpq),1) ? 1 : -1;
-	    r->value.f = sign * minus_pow(-(n1->value.f),d_exp);
-	  } else
-	  { r->value.f = NAN;			/* even denominator */
-	  }
-	} else					/* base positive */
-	{ r->value.f = pow(n1->value.f,d_exp);
-	}
-	return check_float(r->value.f);
+        r->type = V_FLOAT;
+        return check_float(r);
       }
     } /* end switch (n1->type) */
     assert(0);
@@ -2104,13 +2320,26 @@ ar_pow(Number n1, Number n2, Number r)
 
 doreal:
 #endif /*O_GMP*/
+  zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) &&
+		    signbit(n1->value.f) ) ? -1 : 1;
+
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-  r->value.f = pow(n1->value.f, n2->value.f);
+
+#ifndef O_GMP
+  exp_sign = sign_f(n2->value.f);
+#endif
+
+  if ( n1->value.f == 0.0 && exp_sign == -1 )
+    return check_zero_div(zero_div_sign, r, "**", 2);
+  if ( n1->value.f == 1.0 )
+    r->value.f = 1.0;			/* broken on e.g., mipsel */
+  else
+    r->value.f = pow(n1->value.f, n2->value.f);
   r->type = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 static int
@@ -2143,6 +2372,11 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #endif
 }
 
+#if 0
+/* These tests originate from the days that float errors used
+ * to be signalling on many systems.  Nowadays this is no longer
+ * the case.  We leave the code in for just-in-case.
+ */
 #define AR_UNDEFINED_IF(func, arity, test, r)			\
 	if ( test )						\
 	{ GET_LD						\
@@ -2167,6 +2401,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 	  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);\
 	  }							\
 	}
+#else
+#define AR_UNDEFINED_IF(func, arity, test, r) (void)0
+#define AR_DIV_ZERO_IF(func, arity, n, d, r)  (void)0
+#endif
 
 static int
 ar_sqrt(Number n1, Number r)
@@ -2176,7 +2414,7 @@ ar_sqrt(Number n1, Number r)
   r->value.f = sqrt(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2188,7 +2426,7 @@ ar_asin(Number n1, Number r)
   r->value.f = asin(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2200,7 +2438,7 @@ ar_acos(Number n1, Number r)
   r->value.f = acos(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2212,7 +2450,7 @@ ar_log(Number n1, Number r)
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2224,9 +2462,19 @@ ar_log10(Number n1, Number r)
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
+
+static int
+ar_lgamma(Number n1, Number r)  // custom lgamma() to ensure positive inf
+{ if ( !promoteToFloatNumber(n1) )
+    return FALSE;
+  r->value.f = (n1->value.f <= 0.0) ? INFINITY : lgamma(n1->value.f);
+  r->type    = V_FLOAT;
+
+  return check_float(r);
+}
 
 /* IntExpr1 // IntExpr2
 
@@ -2400,7 +2648,8 @@ ar_sign_i(Number n1)
 static int
 ar_sign(Number n1, Number r)
 { if ( n1->type == V_FLOAT )
-  { r->value.f = n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0;
+  { r->value.f = isnan(n1->value.f) ? const_nan :
+       (n1->value.f < 0 ? -1.0 : n1->value.f > 0.0 ? 1.0 : 0.0);
     r->type = V_FLOAT;
   } else
   { r->value.i = ar_sign_i(n1);
@@ -2439,7 +2688,10 @@ static int
 ar_copysign(Number n1, Number n2, Number r)
 {
   if ( n1->type == V_FLOAT && n2->type == V_FLOAT )
-  { r->value.f = copysign(n1->value.f, n2->value.f);
+  { if ( isnan(n1->value.f) )
+      r->value.f = const_nan;
+    else
+      r->value.f = copysign(n1->value.f, n2->value.f);
     r->type = V_FLOAT;
   } else
   { if ( ar_signbit(n1) != ar_signbit(n2) )
@@ -2460,11 +2712,44 @@ ar_nexttoward(Number n1, Number n2, Number r)
     { r->value.f = nexttoward(n1->value.f, n2->value.f);
       r->type = V_FLOAT;
 
-      return TRUE;
+      return check_float(r);
     }
   }
 
   return FALSE;
+}
+
+static int
+set_roundtoward(Word p, Number old ARG_LD)
+{ deRef(p);
+
+  old->type = V_INTEGER;
+  old->value.i = fegetround();
+
+  if ( *p == ATOM_to_nearest )
+    fesetround(FE_TONEAREST);
+  else if ( *p == ATOM_to_positive )
+    fesetround(FE_UPWARD);
+  else if ( *p == ATOM_to_negative )
+    fesetround(FE_DOWNWARD);
+  else if ( *p == ATOM_to_zero )
+    fesetround(FE_TOWARDZERO);
+  else if ( isAtom(*p) )
+    return PL_error(NULL, 0, NULL, ERR_PTR_DOMAIN, ATOM_round, p);
+  else
+    return PL_error(NULL, 0, NULL, ERR_PTR_TYPE, ATOM_atom, p);
+
+  return TRUE;
+}
+
+static int
+ar_roundtoward(Number n1, Number n2, Number r)
+{ cpNumber(r, n1);
+
+  assert(n2->type == V_INTEGER);
+  fesetround(n2->value.i);
+
+  return TRUE;
 }
 
 
@@ -2514,9 +2799,7 @@ ar_rem(Number n1, Number n2, Number r)
 static int
 ar_rational(Number n1, Number r)
 { cpNumber(r, n1);
-  promoteToMPQNumber(r);
-
-  succeed;
+  return promoteToMPQNumber(r);
 }
 
 static int
@@ -2581,10 +2864,6 @@ results with rationalize/1:
     d = p1_q1 - n1->value.f;
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef DBL_EPSILON			/* normal for IEEE 64-bit double */
-#define DBL_EPSILON 0.00000000000000022204
-#endif
-
 static int
 ar_rationalize(Number n1, Number r)
 { switch(n1->type)
@@ -2592,41 +2871,19 @@ ar_rationalize(Number n1, Number r)
     case V_MPZ:
     case V_MPQ:
       cpNumber(r, n1);
-      promoteToMPQNumber(r);
-      return check_mpq(r);
+      return TRUE;
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
-	return FALSE;
+      switch(fpclassify(n1->value.f))
+      { case FP_NAN:
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+        case FP_INFINITE:
+	  return PL_error(NULL, 0, NULL, ERR_AR_RAT_OVERFLOW);
+      }
 
-      double e0 = n1->value.f, p0 = 0.0, q0 = 1.0;
-      double e1 =	 -1.0, p1 = 1.0, q1 = 0.0;
-      double d;
-
-      do
-      { double r = floor(e0/e1);
-	double e00 = e0, p00 = p0, q00 = q0;
-	volatile double p1_q1;		/* see (*) */
-
-	e0 = e1;
-	p0 = p1;
-	q0 = q1;
-	e1 = e00 - r*e1;
-	p1 = p00 - r*p1;
-	q1 = q00 - r*q1;
-
-	DEBUG(2, Sdprintf("e = %.20f, r = %f, p1/q1 = %f/%f\n",
-			  DBL_EPSILON, r, p1, q1));
-
-	p1_q1 = p1/q1;
-	d = p1_q1 - n1->value.f;
-      } while(fabs(d) > DBL_EPSILON);
-
+      mpq_init(r->value.mpq);
+      mpq_set_double(r->value.mpq, n1->value.f);
       r->type = V_MPQ;
-      mpz_init_set_d(mpq_numref(r->value.mpq), p1);
-      mpz_init_set_d(mpq_denref(r->value.mpq), q1);
-      mpq_canonicalize(r->value.mpq);	/* is this needed? */
       return check_mpq(r);
-    }
   }
 
   assert(0);
@@ -2690,6 +2947,18 @@ static int
 ar_divide(Number n1, Number n2, Number r)
 { GET_LD
 
+  if ( (n2->type == V_FLOAT) && isinf(n2->value.f) )  // X/inf
+  { if (n1->type == V_FLOAT)    // float --> signed 0.0 or NaN
+    { r->type = V_FLOAT;
+      r->value.f = isfinite(n1->value.f) ? 0.0*sign_f(n1->value.f)*sign_f(n2->value.f) : const_nan;
+      return check_float(r);
+    } else                      // non-float --> 0
+    { r->type = V_INTEGER;
+      r->value.i = 0;
+      succeed;
+    }
+  }
+
   if ( !truePrologFlag(PLFLAG_ISO) )
   { if ( !same_type_numbers(n1, n2) )
       return FALSE;
@@ -2697,7 +2966,7 @@ ar_divide(Number n1, Number n2, Number r)
     switch(n1->type)
     { case V_INTEGER:
 	if ( n2->value.i == LL(0) )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
         if ( n1->value.i % n2->value.i == 0 )
 	{ r->value.i = n1->value.i / n2->value.i;
 	  r->type = V_INTEGER;
@@ -2714,7 +2983,7 @@ ar_divide(Number n1, Number n2, Number r)
 #ifdef O_GMP
       case V_MPZ:
 	if ( mpz_sgn(n2->value.mpz) == 0 )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
 	if ( mpz_divisible_p(n1->value.mpz, n2->value.mpz) )
 	{ mpz_init(r->value.mpz);
 	  r->type = V_MPZ;
@@ -2726,7 +2995,7 @@ ar_divide(Number n1, Number n2, Number r)
         break;
       case V_MPQ:
 	if ( mpq_sgn(n2->value.mpq) == 0 )
-	  return PL_error("/", 2, NULL, ERR_DIV_BY_ZERO);
+	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
         mpq_init(r->value.mpq);
 	r->type = V_MPQ;
 	mpq_div(r->value.mpq, n1->value.mpq, n2->value.mpq);
@@ -2735,17 +3004,22 @@ ar_divide(Number n1, Number n2, Number r)
       case V_FLOAT:
 	break;
     }
-  }
+  } // ! PLAG_ISO
 
 					/* TBD: How to handle Q? */
   if ( !promoteToFloatNumber(n1) ||
        !promoteToFloatNumber(n2) )
     return FALSE;
-  AR_DIV_ZERO_IF("/", 2, n1->value.f, n2->value.f, r);
+
+  /* separate zero-div case from general overflow, Note: sign_f(nan)=0 */
+  if ( (n2->value.f == 0.0) && (sign_f(n1->value.f) != 0) )
+    return check_zero_div((signbit(n1->value.f)==signbit(n2->value.f)) ? 1 : -1,
+			  r, "/", 2);
+
   r->value.f = n1->value.f / n2->value.f;
   r->type = V_FLOAT;
 
-  return check_float(r->value.f);
+  return check_float(r);
 }
 
 
@@ -2857,7 +3131,7 @@ ar_mul(Number n1, Number n2, Number r)
       r->value.f = n1->value.f * n2->value.f;
       r->type = V_FLOAT;
 
-      return check_float(r->value.f);
+      return check_float(r);
   }
 
   assert(0);
@@ -2865,14 +3139,31 @@ ar_mul(Number n1, Number n2, Number r)
 }
 
 
+/* min/2 and max/2 have two special cases.  If one of the arguments is
+ * NaN we must select the other and for these functions -0.0 < 0.0,
+ * while they compare == for normal float comparison.
+ */
+
 static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff >= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ )			/* one or both nan */
+  { if ( n1->type == V_FLOAT && isnan(n1->value.f) )
+      cpNumber(r, n2);
+    else
+      cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n1->type == V_FLOAT &&		/* is n1 -0.0 */
+              n1->value.f == 0.0 &&
+              signbit(n1->value.f) )
+  { cpNumber(r, n2);
+  } else
+  { if ( diff >= 0 )
+      cpNumber(r, n1);
+    else
+      cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -2882,10 +3173,22 @@ static int
 ar_min(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
-  if ( diff <= 0 )
-    cpNumber(r, n1);
-  else
-    cpNumber(r, n2);
+  if ( diff == CMP_NOTEQ )			/* if one or both nan's */
+  { if (n1->type == V_FLOAT && isnan(n1->value.f))
+      cpNumber(r, n2);
+    else
+      cpNumber(r, n1);
+  } else if ( diff == CMP_EQUAL  &&
+              n2->type == V_FLOAT &&		/* is n2 -0.0 */
+              n2->value.f == 0.0 &&
+              signbit(n2->value.f) )
+  { cpNumber(r, n2);
+  } else
+  { if ( diff <= 0 )
+      cpNumber(r, n1);
+    else
+      cpNumber(r, n2);
+  }
 
   return TRUE;
 }
@@ -3157,7 +3460,7 @@ ar_u_minus(Number n1, Number r)
       return check_mpq(r);
 #endif
     case V_FLOAT:
-      r->value.f = -n1->value.f;
+      r->value.f = isnan(n1->value.f) ? n1->value.f : -n1->value.f;
       r->type = V_FLOAT;
       break;
   }
@@ -3242,7 +3545,7 @@ ar_integer(Number n1, Number r)
     case V_MPZ:
 #endif
       cpNumber(r, n1);
-      succeed;
+      return TRUE;
 #ifdef O_GMP
     case V_MPQ:
     { mpq_t q;
@@ -3261,13 +3564,16 @@ ar_integer(Number n1, Number r)
       mpz_set_q(r->value.mpz, q);
       mpq_clear(q);
       mpq_clear(half);
-      succeed;
+      return TRUE;
     }
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
-	return FALSE;
-      if ( n1->value.f <= PLMAXINT && n1->value.f >= PLMININT )
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
+
+      if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
       { if ( n1->value.f > 0 )
 	{ r->value.i = (int64_t)(n1->value.f + 0.5);
 	  if ( r->value.i < 0 )		/* Why can this happen? */
@@ -3279,17 +3585,17 @@ ar_integer(Number n1, Number r)
 	}
 
 	r->type = V_INTEGER;
-	succeed;
+	return TRUE;
       }
 #ifdef O_GMP
       r->type = V_MPZ;
       mpz_init_set_d(r->value.mpz, n1->value.f);
-      succeed;
+      return TRUE;
 #else
 #ifdef HAVE_RINT
       r->value.f = rint(n1->value.f);
       r->type = V_FLOAT;
-      succeed;
+      return TRUE;
 #else
       return PL_error("integer", 1, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #endif
@@ -3298,7 +3604,7 @@ ar_integer(Number n1, Number r)
   }
 
   assert(0);
-  fail;
+  return FALSE;
 }
 
 
@@ -3330,8 +3636,10 @@ ar_floor(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
-	return FALSE;
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
 #ifdef HAVE_FLOOR
       r->type = V_FLOAT;
       r->value.f = floor(n1->value.f);
@@ -3384,8 +3692,10 @@ ar_ceil(Number n1, Number r)
       succeed;
 #endif
     case V_FLOAT:
-    { if ( !check_float(n1->value.f) )
-	return FALSE;
+    { if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
 #ifdef HAVE_CEIL
       r->type = V_FLOAT;
       r->value.f = ceil(n1->value.f);
@@ -3449,10 +3759,12 @@ ar_float_fractional_part(Number n1, Number r)
 
       r->value.f = modf(n1->value.f, &ip);
       r->type = V_FLOAT;
+      return check_float(r);
     }
+    default:
+      assert(0);
+      return FALSE;
   }
-
-  succeed;
 }
 
 
@@ -3480,7 +3792,7 @@ ar_float_integer_part(Number n1, Number r)
       (void)modf(n1->value.f, &ip);
       r->value.f = ip;
       r->type = V_FLOAT;
-      succeed;
+      return check_float(r);
     }
   }
 
@@ -3501,13 +3813,17 @@ ar_truncate(Number n1, Number r)
 	return ar_ceil(n1, r);
 #endif
     case V_FLOAT:
+      if ( isnan(n1->value.f) || isinf(n1->value.f) )
+      { cpNumber(r, n1);
+	return TRUE;
+      }
       if ( n1->value.f >= 0.0 )
 	return ar_floor(n1, r);
       else
 	return ar_ceil(n1, r);
     default:
       cpNumber(r, n1);
-      succeed;
+      return TRUE;
   }
 }
 
@@ -3829,7 +4145,7 @@ ar_random_float(Number r)
 
 static int
 ar_pi(Number r)
-{ r->value.f = M_PI;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_PI,INFINITY) : M_PI;
 
   r->type = V_FLOAT;
   succeed;
@@ -3838,7 +4154,7 @@ ar_pi(Number r)
 
 static int
 ar_e(Number r)
-{ r->value.f = M_E;
+{ r->value.f = (fegetround() == FE_UPWARD) ? nexttoward(M_E,INFINITY) : M_E;
 
   r->type = V_FLOAT;
   succeed;
@@ -3920,13 +4236,13 @@ PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
   }
 
   AR_BEGIN();
-
   if ( (rc=valueExpression(A2, &arg PASS_LD)) )
   { rc = PL_unify_number(A1, &arg);
     clearNumber(&arg);
+    AR_END();
+  } else
+  { AR_CLEANUP();
   }
-
-  AR_END();
 
   return rc;
 }
@@ -4009,6 +4325,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_div2,		ar_div, F_ISO),		/* div/2 */
   ADD(FUNCTOR_gdiv2,		ar_tdiv, 0),		/* (//)/2 */
   ADD(FUNCTOR_gcd2,		ar_gcd, 0),
+  ADD(FUNCTOR_lcm2,		ar_lcm, 0),
   ADD(FUNCTOR_sign1,		ar_sign, F_ISO),
 
   ADD(FUNCTOR_and2,		ar_conjunct, F_ISO),
@@ -4032,6 +4349,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_float_integer_part1, ar_float_integer_part, F_ISO),
   ADD(FUNCTOR_copysign2,	ar_copysign, 0),
   ADD(FUNCTOR_nexttoward2,	ar_nexttoward, 0),
+  ADD(FUNCTOR_roundtoward2,	ar_roundtoward, 0),
 
   ADD(FUNCTOR_sqrt1,		ar_sqrt, F_ISO),
   ADD(FUNCTOR_sin1,		ar_sin, F_ISO),
@@ -4121,6 +4439,21 @@ registerBuiltinFunctions()
 
 static atom_t float_rounding_names[5] = {0};
 
+static double
+nan15(void)
+{ number n;
+  unsigned char *end;
+
+  if ( str_number((const unsigned char *)"1.5NaN", &end, &n, 0) == NUM_OK )
+  { assert(isnan(n.value.f));
+    return n.value.f;
+  } else
+  { assert(0);
+    return NAN;
+  }
+}
+
+
 void
 initArith(void)
 { GET_LD
@@ -4130,9 +4463,9 @@ initArith(void)
   fpsetmask(fpgetmask() & ~(FP_X_DZ|FP_X_INV|FP_X_OFL));
 #endif
 
-  const_nan     = strtod("NaN", NULL);
-  const_inf     = strtod("Inf", NULL);
-  const_neg_inf = strtod("-Inf", NULL);
+  const_nan     = nan15();
+  const_inf     = HUGE_VAL;
+  const_neg_inf = -HUGE_VAL;
 
 #ifdef O_GMP
   LD->arith.rat.max_rational_size = (size_t)-1;
@@ -4148,10 +4481,13 @@ initArith(void)
   setPrologFlag("float_undefined", FT_ATOM, "error");
   setPrologFlag("float_underflow", FT_ATOM, "ignore");
   setPrologFlag("float_rounding",  FT_ATOM, "to_nearest");
-  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_nearest;
+  float_rounding_names[FLT_ROUND_NEAREST] = ATOM_to_nearest;
   float_rounding_names[FLT_ROUND_TO_POS]  = ATOM_to_positive;
   float_rounding_names[FLT_ROUND_TO_NEG]  = ATOM_to_negative;
   float_rounding_names[FLT_ROUND_TO_ZERO] = ATOM_to_zero;
+  setPrologFlag("float_min",  FT_FLOAT|FF_READONLY, DBL_MIN);
+  setPrologFlag("float_max",  FT_FLOAT|FF_READONLY, DBL_MAX);
+  setPrologFlag("float_max_integer",  FT_FLOAT|FF_READONLY, 9007199254740992.0);
 }
 
 
@@ -4247,13 +4583,33 @@ set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
 }
 #endif
 
-
-static void
-set_rounding(int mode)
-{ static int rounding_mode[5] =
+static int rounding_mode[5] =
   {0, FE_TONEAREST, FE_UPWARD, FE_DOWNWARD, FE_TOWARDZERO};
 
-  fesetround(rounding_mode[mode]);
+int
+atom_to_rounding(atom_t a, int *m)
+{ int i;
+
+  for(i=1; i<=FLT_ROUND_TO_ZERO; i++)
+  { if ( float_rounding_names[i] == a )
+    { *m = i;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
+atom_t
+float_rounding_name(int i)
+{ return float_rounding_names[i];
+}
+
+
+void
+set_rounding(int mode)
+{ fesetround(rounding_mode[mode]);
 }
 
 
@@ -4290,13 +4646,11 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
     } else if ( key == ATOM_float_rounding )
     { int i;
 
-      for(i=1; i<=FLT_ROUND_TO_ZERO; i++)
-      { if ( float_rounding_names[i] == a )
-	{ clear(&(LD->arith.f), FLT_ROUND_MASK);
-	  LD->arith.f.flags |= i;
-	  set_rounding(i);
-	  return TRUE;
-	}
+      if ( atom_to_rounding(a, &i) )
+      { clear(&(LD->arith.f), FLT_ROUND_MASK);
+	LD->arith.f.flags |= i;
+	set_rounding(i);
+	return TRUE;
       }
       goto dom;
     } else
@@ -4394,10 +4748,10 @@ ar_func_n(int findex, int argc ARG_LD)
       rval = (*f)(argv, &result);
       break;
     case 2:
-      rval = (*f)(argv, argv+1, &result);
+      rval = (*f)(argv+1, argv, &result);
       break;
     case 3:
-      rval = (*f)(argv, argv+1, argv+2, &result);
+      rval = (*f)(argv+2, argv+1, argv, &result);
       break;
     default:
       rval = FALSE;
@@ -4474,7 +4828,9 @@ BeginPredDefs(arith)
   PRED_DEF("succ",	  2, succ,	  0)
   PRED_DEF("plus",	  3, plus,	  0)
   PRED_DEF("between",	  3, between,	  PL_FA_NONDETERMINISTIC)
+  PRED_DEF("bounded_number",	  3, bounded_number,	  0)
   PRED_DEF("float_class", 2, float_class, 0)
+  PRED_DEF("float_parts", 4, float_parts, 0)
 
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC)

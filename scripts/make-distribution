@@ -41,6 +41,7 @@ build_win64()
   mkdir build.win64
   ( cd build.win64
     cmake -DCMAKE_BUILD_TYPE=Release \
+	  -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
           -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
 	  -DJAVA_COMPATIBILITY=ON \
           -G Ninja ..
@@ -66,6 +67,26 @@ build_macosx()
   )
 }
 
+
+# Use gcc 9 from Macport `port install gcc9`
+build_macosx_gcc()
+{ rm -rf build.macosx-gcc
+  mkdir build.macosx-gcc
+  ( cd build.macosx-gcc
+    export PATH=$HOME/deps/bin:$PATH
+    export CC=gcc-mp-9
+    MACOSX_DEPLOYMENT_TARGET=10.12 \
+        cmake -DCMAKE_BUILD_TYPE=Release \
+              -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
+              -DBUILD_MACOS_BUNDLE=ON \
+              -DJAVA_COMPATIBILITY=ON \
+              -G Ninja ..
+    ../scripts/pgo-compile.sh
+    ninja
+    cpack
+  )
+}
+
 build_source()
 { ./scripts/make-src-tape
 }
@@ -73,7 +94,7 @@ build_source()
 build_PPAs()
 { git branch -D ppa || true
   git checkout -b ppa
-  for distro in xenial bionic disco eoan; do
+  for distro in xenial bionic disco eoan focal; do
     ./scripts/make-ppa --distro=$distro --push
   done
   git checkout master
@@ -81,11 +102,15 @@ build_PPAs()
 }
 
 build()
-{ build_pdf
-  build_win32
-  build_win64
-  build_source
-  build_PPAs
+{ if [ $(uname) = Darwin ]; then
+    build_macosx_gcc
+  else
+    build_pdf
+    build_win32
+    build_win64
+    build_source
+    build_PPAs
+  fi
 }
 
 ################
@@ -106,7 +131,13 @@ upload_win64()
 }
 
 upload_macosx()
-{ upload_file bin build.macosx/swipl-${version}-1.x86_64.dmg
+{ if [ -f build.macosx-gcc/swipl-${version}-1.x86_64.dmg ]; then
+    echo "Uploading fast GCC version"
+    upload_file bin build.macosx-gcc/swipl-${version}-1.x86_64.dmg
+  else
+    echo "WARNING: uploading slow Clang version"
+    upload_file bin build.macosx/swipl-${version}-1.x86_64.dmg
+  fi
 }
 
 upload_pdf()
@@ -118,9 +149,12 @@ upload_src()
 }
 
 upload()
-{ upload_win32
-  upload_win64
-  upload_macosx
-  upload_pdf
-  upload_src
+{ if [ $(uname) = Darwin ]; then
+    upload_macosx
+  else
+    upload_win32
+    upload_win64
+    upload_pdf
+    upload_src
+  fi
 }

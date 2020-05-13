@@ -38,6 +38,7 @@
 #define O_DEBUG 1
 #endif
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
@@ -1854,11 +1855,14 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 					/* dynamically sized objects */
       case H_STRING:			/* only skip the size of the */
       case H_MPZ:
+      case H_MPQ:
 	mark_argp(state PASS_LD);
 	/*FALLTHROUGH*/
       case B_STRING:			/* string + header */
       case A_MPZ:
       case B_MPZ:
+      case A_MPQ:
+      case B_MPQ:
       { word m = *PC;
 	PC += wsizeofInd(m)+1;
 	assert(codeTable[op].arguments == VM_DYNARGC);
@@ -5130,6 +5134,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     if ( t )
     { void *nw;
 
+      tsize = stack_nrealloc(tb, tsize);
       if ( (nw = stack_realloc(tb, tsize)) )
       { LD->shift_status.trail_shifts++;
 	tb = nw;
@@ -5148,6 +5153,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
       olsize = sizeStack(local);
       assert(lb == addPointer(gb, ogsize));
 
+      gsize = stack_nrealloc(gb, lsize + gsize)-lsize;
+      g = (ogsize != gsize);
+
       if ( gsize < ogsize )		/* TBD: Only copy life-part */
 	memmove(addPointer(gb, gsize), lb, olsize);
 
@@ -5159,10 +5167,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 	gb = nw;
 	lb = addPointer(gb, gsize);
-	if ( gsize > ogsize ) {
-	  size_t copy = olsize;
+	if ( gsize > ogsize )
+	{ size_t copy = olsize;
 
-	  if ( lsize < olsize ) copy = lsize;
+	  if ( lsize < olsize )
+	    copy = lsize;
 	  memmove(lb, addPointer(gb, ogsize), copy);
 	}
       } else				/* realloc failed; restore */
@@ -5262,10 +5271,10 @@ include_spare_stack(void *ptr, size_t *request)
 
 
 static void
-reenable_spare_stack(void *ptr)
+reenable_spare_stack(void *ptr, int rc)
 { Stack s = ptr;
 
-  if ( roomStackP(s) >=	s->def_spare )
+  if ( roomStackP(s) >=	s->def_spare || (rc != TRUE) )
     trim_stack(s);
   else
     Sdprintf("Could not reenable %s-stack\n", s->name);
@@ -5301,9 +5310,9 @@ growStacks(size_t l, size_t g, size_t t)
   rc = grow_stacks(l, g, t PASS_LD);
   gBase++; gMax--; tMax--;
 
-  reenable_spare_stack(&LD->stacks.trail);
-  reenable_spare_stack(&LD->stacks.global);
-  reenable_spare_stack(&LD->stacks.local);
+  reenable_spare_stack(&LD->stacks.trail,  rc);
+  reenable_spare_stack(&LD->stacks.global, rc);
+  reenable_spare_stack(&LD->stacks.local,  rc);
 
   if ( olb != lBase || olm != lMax || ogb != gBase || ogm != gMax )
   { TrailEntry te;
@@ -5472,34 +5481,11 @@ markAtomsOnStacks(PL_local_data_t *ld)
 
 #endif /*O_ATOMGC*/
 
-#ifdef O_CLAUSEGC
-void
-set_min_generation(DirtyDefInfo ddi, gen_t gen)
-{
-#ifdef O_PLMT
-#ifdef HAVE___SYNC_ADD_AND_FETCH_8
-  for(;;)
-  { gen_t old = ddi->oldest_generation;
-
-    if ( gen >= old  ||
-	 COMPARE_AND_SWAP(&ddi->oldest_generation, old, gen) )
-      return;
-  }
-#else
-  PL_LOCK(L_CGCGEN);
-  if ( gen < ddi->oldest_generation )
-    ddi->oldest_generation = gen;
-  PL_UNLOCK(L_CGCGEN);
-#endif
-#else
-  if ( gen < ddi->oldest_generation )
-    ddi->oldest_generation = gen;
-#endif
-}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Find the latest generation at which a predicate is being used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_CLAUSEGC
 
 static inline int
 is_pointer_like(void *ptr)
@@ -5539,8 +5525,7 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 	   (ddi=lookupHTable(GD->procedures.dirty, def)) )
       { gen_t gen = generationFrame(fr);
 
-	if ( gen < ddi->oldest_generation )
-	  set_min_generation(ddi, gen);
+	ddi_add_access_gen(ddi, gen);
       }
     }
   }

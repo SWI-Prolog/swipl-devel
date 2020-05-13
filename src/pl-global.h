@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2019, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -124,8 +124,9 @@ struct PL_global_data
     char **	os_argv;
     int		appl_argc;		/* Application options */
     char **	appl_argv;
-    int		notty;			/* -tty: donot use ioctl() */
+    int		notty;			/* -tty: do not use ioctl() */
     int		optimise;		/* -O: optimised compilation */
+    int		packs;			/* --no-packs: no packs */
   } cmdline;
 
   struct
@@ -204,7 +205,6 @@ struct PL_global_data
   { size_t	highest;		/* Highest atom index */
     atom_array	array;
     AtomTable	table;			/* hash-table */
-    Atom	builtin_array;		/* Builtin atoms */
     int		lookups;		/* # atom lookups */
     int		cmps;			/* # string compares for lookup */
     int		initialised;		/* atoms have been initialised */
@@ -239,6 +239,7 @@ struct PL_global_data
     InitialiseHandle initialise_tail;
     PL_dispatch_hook_t dispatch_events; /* PL_dispatch_hook() */
 
+    unsigned int  signature;		/* Foreign predicate signature */
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
 
@@ -386,6 +387,8 @@ struct PL_global_data
     PL_thread_info_t   *free;		/* Free threads */
     int			highest_allocated; /* Highest with info struct */
     int			thread_max;	/* Size of threads array */
+    int			highest_id;	/* Highest Id of life thread  */
+    int			peak_id;	/* Highest Id of any thread  */
     PL_thread_info_t  **threads;	/* Pointers to thread-info */
     struct
     { pthread_mutex_t	mutex;
@@ -657,8 +660,7 @@ struct PL_local_data
     AbortHandle _abort_tail;
 
     buffer	_discardable_buffer;	/* PL_*() character buffers */
-    buffer	_buffer_ring[BUFFER_RING_SIZE];
-    int		_current_buffer_id;
+    string_stack string_buffers;	/* PL_*() string buffers */
 
     int		SP_state;		/* For SICStus interface */
   } fli;

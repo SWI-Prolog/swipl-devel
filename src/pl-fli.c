@@ -126,7 +126,7 @@ linkVal__LD(Word p ARG_LD)
   if ( unlikely(needsRef(w)) )
     return makeRef(p);
 
-  DEBUG(CHK_SECURE, assert(w != ATOM_garbage_collected));
+  DEBUG(CHK_ATOM_GARBAGE_COLLECTED, assert(w != ATOM_garbage_collected));
 
   return w;
 }
@@ -746,7 +746,7 @@ PL_atom_wchars(atom_t a, size_t *len)
 
     return (const wchar_t *)x->name;
   } else if ( true(x->type, PL_BLOB_TEXT) )
-  { Buffer b = findBuffer(BUF_RING);
+  { Buffer b = findBuffer(BUF_STACK);
     const char *s = (const char*)x->name;
     const char *e = &s[x->length];
 
@@ -1398,7 +1398,7 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
     if ( flags & BUF_MALLOC )
     { *s = PL_malloc(len+1);
       memcpy(*s, r, len+1);
-      unfindBuffer(flags);
+      unfindBuffer(b, flags);
     } else
       *s = r;
 
@@ -1492,7 +1492,7 @@ PL_get_text_as_atom(term_t t, atom_t *a, int flags)
 
 char *
 PL_quote(int chr, const char *s)
-{ Buffer b = findBuffer(BUF_RING);
+{ Buffer b = findBuffer(BUF_STACK);
 
   addBuffer(b, (char)chr, char);
   for(; *s; s++)
@@ -3846,6 +3846,53 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
 
 		 /*******************************
+		 *	       DICT		*
+		 *******************************/
+
+int
+PL_put_dict(term_t t, atom_t tag,
+	    size_t len, const atom_t *keys, term_t values)
+{ GET_LD
+  Word p, p0;
+  size_t size = len*2+2;
+
+  if ( (p0=p=allocGlobal(size)) )
+  { *p++ = dict_functor(len);
+    if ( tag )
+    { if ( isAtom(tag) )
+      { *p++ = tag;
+      } else
+      { invalid:
+	gTop -= size;
+	return -1;
+      }
+    } else
+    { setVar(*p++);
+    }
+
+    for(; len-- > 0; keys++, values++)
+    { *p++ = linkVal(valTermRef(values));
+      if ( is_dict_key(*keys) )
+	*p++ = *keys;
+      else
+	goto invalid;
+    }
+
+    if ( dict_order(p0, TRUE PASS_LD) )
+    { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+      DEBUG(CHK_SECURE, checkStacks(NULL));
+      return TRUE;
+    }
+
+    gTop -= size;
+    return -2;
+  }
+
+  return FALSE;
+}
+
+
+		 /*******************************
 		 *	       TYPE		*
 		 *******************************/
 
@@ -4592,6 +4639,10 @@ PL_halt(int status)
   return FALSE;
 }
 
+#ifndef SIGABRT
+#define SIGABRT 6			/* exit 134 --> aborted */
+#endif
+
 void
 PL_abort_process(void)
 { haltProlog(128+SIGABRT);
@@ -5295,6 +5346,25 @@ registerForeignLicenses(void)
   }
 
   pre_registered = NULL;
+}
+
+
+		 /*******************************
+		 *	      VERSION		*
+		 *******************************/
+
+unsigned int
+PL_version(int which)
+{ switch(which)
+  { case PL_VERSION_SYSTEM:	return PLVERSION;
+    case PL_VERSION_FLI:	return PL_FLI_VERSION;
+    case PL_VERSION_REC:	return PL_REC_VERSION;
+    case PL_VERSION_QLF:	return PL_QLF_VERSION;
+    case PL_VERSION_QLF_LOAD:	return PL_QLF_LOADVERSION;
+    case PL_VERSION_VM:		return VM_SIGNATURE;
+    case PL_VERSION_BUILT_IN:	return GD->foreign.signature;
+    default:			return 0;
+  }
 }
 
 

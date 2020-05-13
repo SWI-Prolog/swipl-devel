@@ -68,6 +68,7 @@ documented at all.
 \input{settings}
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
+\input{tables}
 \input{thread}
 \input{threadpool}
 \input{ugraphs}

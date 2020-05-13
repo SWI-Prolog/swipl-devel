@@ -1959,14 +1959,14 @@ colourise_decl_options(Option, Which, TB, Pos) :-
     valid_decl_option(Option, Which),
     !,
     functor(Option, Name, _),
-    colour_item(decl_option(Name), TB, Pos),
-    (   Pos = term_position(_,_,_,_,[ArgPos])
-    ->  (   arg(1, Option, Value),
+    (   Pos = term_position(_,_,FF,FT,[ArgPos])
+    ->  colour_item(decl_option(Name), TB, FF-FT),
+        (   arg(1, Option, Value),
             nonneg_or_false(Value)
         ->  colourise_term_arg(Value, TB, ArgPos)
         ;   colour_item(type_error(decl_option_value(Which)), TB, ArgPos)
         )
-    ;   true
+    ;   colour_item(decl_option(Name), TB, Pos)
     ).
 colourise_decl_options(_, Which, TB, Pos) :-
     colour_item(type_error(decl_option(Which)), TB, Pos).

@@ -18,7 +18,7 @@ fi
 
 printf "Adding Macport dylibs to modules in $moduledir\n"
 
-changeset="$(echo $moduledir/*)"
+changeset="$(echo $moduledir/*) $app/Contents/MacOS/swipl"
 while [ ! -z "$changeset" ]; do
   newchanges=
   for f in $changeset; do

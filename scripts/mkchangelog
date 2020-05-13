@@ -10,6 +10,11 @@ modules=true
 quiet=false
 moduleoptions=
 [ -z "$level" ] && level="="
+if [ $(uname) = Darwin ]; then
+   FMT="fmt"
+else
+   FMT="fmt -ut"
+fi
 
 export level
 
@@ -167,7 +172,7 @@ BEGIN		{ doprint="false";
 		  }
 		  next;
 		}
-' ) | fmt -ut
+' ) | $FMT
 
 # Include submodules
 

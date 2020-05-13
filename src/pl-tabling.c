@@ -34,6 +34,8 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
+#include "pl-arith.h"
 #include "pl-tabling.h"
 #include "pl-copyterm.h"
 #include "pl-wrap.h"
@@ -135,7 +137,9 @@ static int	claim_answer_table(trie *atrie, atom_t *clrefp,
 static atom_t	tripwire_answers_for_subgoal(worklist *wl ARG_LD);
 static int	generalise_answer_substitution(term_t spec, term_t gen ARG_LD);
 static int	add_answer_count_restraint(void);
+static int	add_radial_restraint(void);
 static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
+static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -164,7 +168,7 @@ drop_trie(trie *atrie)
 #ifdef O_DEBUG
   int mytid = PL_thread_self();
   assert(mytid == atrie->tid);
-  int rc = COMPARE_AND_SWAP(&atrie->tid, mytid, 0);
+  int rc = COMPARE_AND_SWAP_INT(&atrie->tid, mytid, 0);
   assert(rc);
 #else
   atrie->tid = 0;
@@ -175,7 +179,7 @@ static inline void
 take_trie(trie *atrie, int tid)
 { assert(atrie->data.worklist != WL_DYNAMIC);
 #ifdef O_DEBUG
-  int rc = COMPARE_AND_SWAP(&atrie->tid, 0, tid);
+  int rc = COMPARE_AND_SWAP_INT(&atrie->tid, 0, tid);
   assert(rc);
 #else
   atrie->tid = tid;
@@ -2066,7 +2070,7 @@ variant_table(int shared ARG_LD)
     if ( !(pool = GD->tabling.node_pool) )
     { if ( (pool = new_alloc_pool("shared_table_space",
 				  GD->options.sharedTableSpace)) )
-      { if ( !COMPARE_AND_SWAP(&GD->tabling.node_pool, NULL, pool) )
+      { if ( !COMPARE_AND_SWAP_PTR(&GD->tabling.node_pool, NULL, pool) )
 	{ free_alloc_pool(pool);
 	  pool = GD->tabling.node_pool;
 	}
@@ -2094,7 +2098,7 @@ variant_table(int shared ARG_LD)
       t->release_node = release_variant_table_node;
       symb = trie_symbol(t);
 
-      if ( COMPARE_AND_SWAP(tp, NULL, t) )
+      if ( COMPARE_AND_SWAP_PTR(tp, NULL, t) )
       { if ( shared )
 	{ set(t, TRIE_ISSHARED);
 	  acquire_trie(t);			/* bit misuse */
@@ -2196,7 +2200,11 @@ unify_trie_ret(term_t ret, TmpBuffer vars ARG_LD)
 
     for(; pp < ep; pp++)
     { Word ap = *pp;
-      *p++ = makeRefG(ap);
+
+      if ( isVar(*ap) )
+	*p++ = makeRefG(ap);
+      else
+	*p++ = *ap;
     }
 
     if ( PL_is_variable(ret) )
@@ -2235,7 +2243,22 @@ by pushVolatileAtom() and will  be  unified   before  anything  else  in
 #define AT_SHARED		0x0004	/* find a shared table */
 #define AT_PRIVATE		0x0008	/* find a private table */
 #define AT_NOCLAIM		0x0010	/* Do not claim ownership */
+
+
+#define AT_ABSTRACT		0x0020	/* subgoal_abstract(N) tabling */
 #define AT_SCOPE_MASK (AT_SHARED|AT_PRIVATE)
+
+static inline size_t
+pred_max_table_subgoal_size(const Definition def ARG_LD)
+{ size_t limit;
+
+  limit = def->tabling ? def->tabling->subgoal_abstract : (size_t)-1;
+  if ( limit == (size_t)-1 )
+    limit = LD->tabling.restraint.max_table_subgoal_size;
+
+  return limit;
+}
+
 
 static trie *
 get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
@@ -2248,6 +2271,7 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   tmp_buffer vars;
   mark m;
   int shared;
+  size_abstract sa = {.from_depth = 2, .size = (size_t)-1};
 
 #ifdef O_PLMT
   if ( (flags & AT_SCOPE_MASK) )
@@ -2269,16 +2293,39 @@ get_answer_table(Definition def, term_t t, term_t ret, atom_t *clrefp,
   shared = FALSE;
 #endif
 
+  if ( def )			/* otherwise we don't need it anyway */
+    sa.size = pred_max_table_subgoal_size(def PASS_LD);
   variants = variant_table(shared PASS_LD);
   initBuffer(&vars);
 
 retry:
   Mark(m);
   v = valTermRef(t);
-  rc = trie_lookup(variants, NULL, &node, v, (flags&AT_CREATE), &vars PASS_LD);
+  rc = trie_lookup_abstract(variants, NULL, &node, v, (flags&AT_CREATE),
+			    &sa, &vars PASS_LD);
 
-  if ( rc == TRUE )
-  { if ( node->value )
+  if ( rc > 0 )
+  { if ( rc == TRIE_ABSTRACTED )
+    { atom_t action = LD->tabling.restraint.max_table_subgoal_size_action;
+
+      DEBUG(MSG_TABLING_RESTRAINT,
+	    Sdprintf("Trapped by subgoal size restraint\n"));
+      if ( action == ATOM_abstract && !(flags&AT_ABSTRACT) )
+	action = ATOM_error;
+
+      if ( action != ATOM_abstract )
+      { if ( tbl_pred_tripwire(def, action, ATOM_max_table_subgoal_size) )
+	{ sa.size = (size_t)-1;
+	  emptyBuffer(&vars, (size_t)-1);
+	  goto retry;
+	} else
+	{ discardBuffer(&vars);
+	  return NULL;
+	}
+      }
+    }
+
+    if ( node->value )
     { atrie = symbol_trie(node->value);
     } else if ( (flags&AT_CREATE) )
     { atom_t symb;
@@ -2299,7 +2346,7 @@ retry:
 #ifdef O_PLMT
       if ( shared )
       { set(atrie, TRIE_ISSHARED);
-	if ( COMPARE_AND_SWAP(&node->value, 0, symb) )
+	if ( COMPARE_AND_SWAP_WORD(&node->value, 0, symb) )
 	{ set(node, TN_PRIMARY);
 	  ATOMIC_INC(&variants->value_count);
 	} else
@@ -2340,7 +2387,7 @@ retry:
 	if ( (rc=unify_trie_ret(ret, &vars PASS_LD)) != TRUE )
 	{ if ( rc < 0 )
 	  { Undo(m);
-	    emptyBuffer(&vars);
+	    emptyBuffer(&vars, (size_t)-1);
 	    if ( makeMoreStackSpace(rc, ALLOW_GC) )
 	      goto retry;
 	  }
@@ -2408,21 +2455,6 @@ indexOfWord(word w ARG_LD)
 
     return w;
   }
-}
-
-static unsigned int
-sindexOfWord(word w ARG_LD)
-{ word k = indexOfWord(w PASS_LD);
-  unsigned int i;
-
-  if ( k )
-  { i = (unsigned int)k&0xffffff;
-    if ( !i )
-      i = 1;
-    return i;
-  }
-
-  return 0;
 }
 
 
@@ -3059,9 +3091,12 @@ unify_skeleton(trie *atrie, term_t wrapper, term_t skeleton ARG_LD)
 { if ( !wrapper )
     wrapper = PL_new_term_ref();
 
-  if ( unify_trie_term(atrie->data.variant, NULL, wrapper PASS_LD) )
-  { int flags = true(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
-    return ( get_answer_table(NULL, wrapper, skeleton,
+  if ( atrie->data.variant && wrapper &&
+       unify_trie_term(atrie->data.variant, NULL, wrapper PASS_LD) )
+  { worklist *wl = atrie->data.worklist;
+    Definition def = WL_IS_WORKLIST(wl) ? wl->predicate : NULL;
+    int flags = true(atrie, TRIE_ISSHARED) ? AT_SHARED : AT_PRIVATE;
+    return ( get_answer_table(def, wrapper, skeleton,
 			      NULL, flags|AT_NOCLAIM PASS_LD) != NULL);
   }
 
@@ -3283,6 +3318,18 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
  * term (answer subsumption).
  */
 
+static inline size_t
+pred_max_table_answer_size(const Definition def ARG_LD)
+{ size_t limit;
+
+  limit = def->tabling ? def->tabling->answer_abstract : (size_t)-1;
+  if ( limit == (size_t)-1 )
+    limit = LD->tabling.restraint.max_table_answer_size;
+
+  return limit;
+}
+
+
 static
 PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 { PRED_LD
@@ -3292,17 +3339,38 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
   { Word kp;
     trie_node *node;
     atom_t action;
+    size_abstract sa = {.from_depth = 2};
     int rc;
 
+#ifdef O_PLMT
     DEBUG(0, assert(false(wl->table, TRIE_ISSHARED) || wl->table->tid));
+#endif
 
     kp = valTermRef(A2);
     if ( true(wl->table, TRIE_ISMAP) )
       return wkl_mode_add_answer(wl, A2, A3 PASS_LD);
 
-    rc = trie_lookup(wl->table, NULL, &node, kp, TRUE, NULL PASS_LD);
-    if ( rc == TRUE )
+    sa.size = pred_max_table_answer_size(wl->predicate PASS_LD);
+    rc = trie_lookup_abstract(wl->table, NULL, &node, kp,
+			      TRUE, &sa, NULL PASS_LD);
+    if ( rc > 0 )				/* ok or abstracted */
     { idg_node *idg;
+
+      if ( rc == TRIE_ABSTRACTED )
+      { atom_t action = LD->tabling.restraint.max_table_answer_size_action;
+
+	DEBUG(MSG_TABLING_RESTRAINT,
+	      print_answer_table(wl->table, "Max answer size exceeded"));
+
+	if ( action == ATOM_bounded_rationality )
+	{ if ( !add_radial_restraint() )
+	    return FALSE;
+	} else if ( action == ATOM_fail ||
+		    !tbl_wl_tripwire(wl, action, ATOM_max_table_answer_size) )
+	{ trie_delete(wl->table, node, TRUE);
+	  return FALSE;
+	}
+      }
 
       if ( node->value )
       { if ( node->value == ATOM_trienode )
@@ -4091,21 +4159,22 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
 
     if ( sp->instance && an )
     { int rc;
-      Word p = valTermRef(A2);
-      Functor f;
 
-      deRef(p);
-      assert(isTerm(*p));
-      f = valueTerm(*p);
       if ( !state->keys_inited )
-      { size_t arity = arityFunctor(f->definition);
-	size_t i;
+      { Word p = valTermRef(A2);
+	Functor f;
+	size_t arity, i;
+
+	deRef(p);
+	assert(isTerm(*p));
+	f = valueTerm(*p);
+	arity = arityFunctor(f->definition);
 
 	if ( arity > SINDEX_MAX )
 	  arity = SINDEX_MAX;
 
 	for(i=0; i<arity; i++)
-	  state->keys[i].key = sindexOfWord(f->arguments[i] PASS_LD);
+	  state->keys[i].key = indexOfWord(f->arguments[i] PASS_LD);
 
 	state->keys_inited = TRUE;
       }
@@ -4180,8 +4249,8 @@ out_fail:
  */
 
 static int
-tbl_variant_table(term_t closure, term_t variant, term_t Trie, term_t status, term_t ret,
-		  int flags ARG_LD)
+tbl_variant_table(term_t closure, term_t variant, term_t Trie,
+		  term_t abstract, term_t status, term_t ret, int flags ARG_LD)
 { trie *atrie;
   Definition def = NULL;
   atom_t clref = 0;
@@ -4210,7 +4279,21 @@ static
 PRED_IMPL("$tbl_variant_table", 5, tbl_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, A4, A5, AT_CREATE PASS_LD);
+  return tbl_variant_table(A1, A2, A3, 0, A4, A5, AT_CREATE PASS_LD);
+}
+
+
+/** '$tbl_abstract_table'(+Closure, :Wrapper, -Trie,
+			  -Abstract, -Status, -Skeleton)
+
+Abstract is one of `0` or a generalization of Wrapper
+*/
+
+static
+PRED_IMPL("$tbl_abstract_table", 6, tbl_abstract_table, 0)
+{ PRED_LD
+
+  return tbl_variant_table(A1, A2, A3, A4, A5, A6, AT_CREATE|AT_ABSTRACT PASS_LD);
 }
 
 
@@ -4218,7 +4301,7 @@ static
 PRED_IMPL("$tbl_moded_variant_table", 5, tbl_moded_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, A4, A5, AT_CREATE|AT_MODED PASS_LD);
+  return tbl_variant_table(A1, A2, A3, 0, A4, A5, AT_CREATE|AT_MODED PASS_LD);
 }
 
 
@@ -5348,7 +5431,7 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
   if ( !(t=child->affected) )
   { t = newHTable(4);
     t->free_symbol = idg_free_affected;
-    if ( !COMPARE_AND_SWAP(&child->affected, NULL, t) )
+    if ( !COMPARE_AND_SWAP_PTR(&child->affected, NULL, t) )
       destroyHTable(t);
   }
   addHTable(t, parent, child);
@@ -5356,7 +5439,7 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
   if ( !(t=parent->dependent) )
   { t = newHTable(4);
     t->free_symbol = idg_free_dependent;
-    if ( !COMPARE_AND_SWAP(&parent->dependent, NULL, t) )
+    if ( !COMPARE_AND_SWAP_PTR(&parent->dependent, NULL, t) )
       destroyHTable(t);
   }
   addHTable(t, child, parent);
@@ -5380,7 +5463,7 @@ idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
     if ( true(def, P_INCREMENTAL) )
     { idg_node *n = idg_new(atrie);
 
-      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+      if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
   }
@@ -5519,7 +5602,7 @@ idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
       assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
       n = idg_new(atrie);
-      if ( !COMPARE_AND_SWAP(&atrie->data.IDG, NULL, n) )
+      if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
 
@@ -6251,7 +6334,7 @@ tbl_set_predicate_attribute(Definition def, atom_t att, size_t value)
   { p = allocHeapOrHalt(sizeof(*p));
 
     clear_table_props(p);
-    if ( !COMPARE_AND_SWAP(&def->tabling, NULL, p) )
+    if ( !COMPARE_AND_SWAP_PTR(&def->tabling, NULL, p) )
     { p = def->tabling;
       freeHeap(p, sizeof(*p));
     }
@@ -6441,6 +6524,20 @@ add_answer_count_restraint(void)
 
 
 static int
+add_radial_restraint(void)
+{ static predicate_t pred = NULL;
+
+  if ( !pred )
+    pred = PL_predicate("radial_restraint", 0, "system");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, 0);
+}
+
+
+static int
 tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 { GET_LD
   static predicate_t pred = NULL;
@@ -6456,6 +6553,26 @@ tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 	   PL_put_atom(av+0, wire) &&
 	   PL_put_atom(av+1, action) &&
 	   PL_put_atom(av+2, trie_symbol(wl->table)) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
+}
+
+
+static int
+tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
+{ GET_LD
+  static predicate_t pred = NULL;
+  term_t av;
+
+  if ( !pred )
+    pred = PL_predicate("tripwire", 3, "$tabling");
+
+  DEBUG(MSG_TABLING_RESTRAINT,
+	Sdprintf("Calling %s\n", procedureName(pred)));
+
+  return ( (av = PL_new_term_refs(3)) &&
+	   PL_put_atom(av+0, wire) &&
+	   PL_put_atom(av+1, action) &&
+	   unify_definition(MODULE_user, av+2, def, 0, GP_QUALIFY) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
 }
 
@@ -6584,7 +6701,7 @@ register_waiting(int tid, trie *atrie)
 
   if ( !(ta=GD->tabling.waiting) )
   { ta = new_trie_array();
-    if ( !COMPARE_AND_SWAP(&GD->tabling.waiting, NULL, ta) )
+    if ( !COMPARE_AND_SWAP_PTR(&GD->tabling.waiting, NULL, ta) )
     { freeHeap(ta, sizeof(*ta));
       ta = GD->tabling.waiting;
     }
@@ -6599,7 +6716,7 @@ register_waiting(int tid, trie *atrie)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(trie*));
-      if ( !COMPARE_AND_SWAP(&ta->blocks[idx], NULL, newblock-bs) )
+      if ( !COMPARE_AND_SWAP_PTR(&ta->blocks[idx], NULL, newblock-bs) )
 	PL_free(newblock);
     }
   }
@@ -6780,6 +6897,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
   PRED_DEF("$tbl_wkl_work",		6, tbl_wkl_work,          NDET)
   PRED_DEF("$tbl_variant_table",	5, tbl_variant_table,	     0)
+  PRED_DEF("$tbl_abstract_table",       6, tbl_abstract_table,       0)
   PRED_DEF("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   PRED_DEF("$tbl_moded_variant_table",	5, tbl_moded_variant_table,  0)
 #ifdef O_PLMT

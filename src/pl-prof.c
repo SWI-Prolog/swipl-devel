@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-prof.h"
 
 #undef LD

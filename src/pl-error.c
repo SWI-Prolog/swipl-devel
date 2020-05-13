@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2016, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -40,6 +40,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
@@ -88,6 +89,14 @@ rewrite_callable(atom_t *expected, term_t actual)
   }
 }
 
+
+static int
+evaluation_error(term_t formal, atom_t which)
+{ GET_LD
+  return PL_unify_term(formal,
+		       PL_FUNCTOR, FUNCTOR_evaluation_error1,
+			 PL_ATOM, which);
+}
 
 int
 PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
@@ -213,21 +222,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
       break;
     }
     case ERR_AR_UNDEF:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_undefined);
+    { rc = evaluation_error(formal, ATOM_undefined);
       break;
     }
     case ERR_AR_OVERFLOW:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_float_overflow);
+    { rc = evaluation_error(formal, ATOM_float_overflow);
+      break;
+    }
+    case ERR_AR_RAT_OVERFLOW:
+    { rc = evaluation_error(formal, ATOM_rational_overflow);
       break;
     }
     case ERR_AR_UNDERFLOW:
-    { rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_evaluation_error1,
-			   PL_ATOM, ATOM_float_underflow);
+    { rc = evaluation_error(formal, ATOM_float_underflow);
       break;
     }
     case ERR_AR_TRIPWIRE:
@@ -247,6 +254,7 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { atom_t domain = va_arg(args, atom_t);
       term_t arg    = va_arg(args, term_t);
 
+    case_domain_error:
       if ( PL_is_variable(arg) )
 	goto err_instantiation;
 
@@ -255,6 +263,16 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_ATOM, domain,
 			   PL_TERM, arg);
       break;
+    case ERR_PTR_DOMAIN:		/* atom_t, Word */
+      { Word ptr;
+
+	domain = va_arg(args, atom_t);
+	ptr    = va_arg(args, Word);
+	arg    = PL_new_term_ref();
+
+	*valTermRef(arg) = *ptr;
+	goto case_domain_error;
+      }
     }
     case ERR_RANGE:			/*  domain_error(range(low,high), arg) */
     { term_t low  = va_arg(args, term_t);

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Keri Harris
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -111,9 +112,9 @@ registerFunctor(FunctorDef fd)
 
   amask = (fd->arity < F_ARITY_MASK ? fd->arity : F_ARITY_MASK);
   fd->functor = MK_FUNCTOR(index, amask);
-  MemoryBarrier();			/* See (*) */
+  MEMORY_BARRIER();			/* See (*) */
   fd->flags |= VALID_F;
-  MemoryBarrier();			/* See (*) */
+  MEMORY_BARRIER();			/* See (*) */
   GD->functors.array.blocks[idx][index] = fd;
 
   DEBUG(CHK_SECURE, assert(fd->arity == arityFunctor(fd->functor)));
@@ -161,7 +162,7 @@ redo:
   f->arity   = arity;
   f->flags   = 0;
   f->next    = table[v];
-  if ( !( COMPARE_AND_SWAP(&table[v], head, f) &&
+  if ( !( COMPARE_AND_SWAP_PTR(&table[v], head, f) &&
 	  !GD->functors.rehashing &&
           table == functorDefTable->table) )
   { PL_free(f);
@@ -522,4 +523,14 @@ pl_current_functor(term_t name, term_t arity, control_t h)
 
   PL_UNLOCK(L_FUNCTOR);
   return FALSE;
+}
+
+
+size_t
+functor_space(void)
+{ size_t size = ((size_t)2<<MSB(GD->functors.highest))*sizeof(FunctorDef);
+
+  size += GD->functors.highest * sizeof(struct functorDef);
+
+  return size;
 }

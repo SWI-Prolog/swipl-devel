@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include <math.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
@@ -2497,15 +2498,19 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 
 static cucharp
 float_tag(cucharp in, cucharp tag)
-{ while(*in == *tag)
+{ while(*in && *in == *tag)
     in++, tag++;
 
   if ( !*tag )
   { int c;
 
-    utf8_get_uchar(in, &c);
-    if ( !PlIdContW(c) )
-      return in;
+    if ( *in )
+    { utf8_get_uchar(in, &c);
+      if ( PlIdContW(c) )
+	return NULL;
+    }
+
+    return in;
   }
 
   return NULL;
@@ -2526,9 +2531,9 @@ special_float(cucharp *in, cucharp start, Number value)
 
   if ( (s=float_tag(*in, (cucharp)"Inf")) )
   { if ( *start == '-' )
-      value->value.f = strtod("-Inf", NULL);
+      value->value.f = -HUGE_VAL;
     else
-      value->value.f = strtod("Inf", NULL);
+      value->value.f = HUGE_VAL;
   } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
 	      starts_1dot(start) )
   { char *e;
@@ -5047,7 +5052,7 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
   PL_chars_t txt;
 
   if ( PL_get_text(A1, &txt,
-		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_RING) )
+		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_STACK) )
   { int rc;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;

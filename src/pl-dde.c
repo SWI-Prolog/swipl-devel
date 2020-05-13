@@ -394,8 +394,8 @@ dde_initialise(void)
     { dde_warning("initialise");
     }
 
-    DEBUG(1, Sdprintf("Thread %d: created ddeInst %d\n",
-		      PL_thread_self(), ddeInst));
+    DEBUG(MSG_WIN_DDE, Sdprintf("Thread %d: created ddeInst %ld\n",
+				PL_thread_self(), (long)ddeInst));
 
   }
 
@@ -468,9 +468,12 @@ PRED_IMPL("open_dde_conversation", 3, open_dde_conversation, 0)
   }
 
   if ( !(conv_handle[i] = DdeConnect(ddeInst, Hservice, Htopic, 0)) )
-  { rc = dde_warning("connect");
+  { DEBUG(MSG_WIN_DDE,
+	  Sdprintf("DDE Connect failed: %s\n", dde_error_message(-1)));
+    rc = dde_warning("connect");
     goto out;
   }
+  DEBUG(MSG_WIN_DDE, Sdprintf("Connected (%d)\n", (int)i));
 
   rc = PL_unify_integer(handle, i);
 

@@ -65,6 +65,8 @@ COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
 COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 COMMON(void)	mpz_init_set_si64(mpz_t mpz, int64_t i);
 COMMON(double)	mpX_round(double f);
+COMMON(double)	mpq_to_double(mpq_t q);
+COMMON(void)	mpq_set_double(mpq_t q, double f);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
@@ -81,12 +83,12 @@ mpq_size_stack(int sz)
 
 static inline int
 mpz_stack_size(word w)
-{ return (int)(w>>1);
+{ return (int)w>>1;
 }
 
 static inline int
 mpq_stack_size(word w)
-{ return (int)(w>>1);
+{ return (int)w>>1;
 }
 
 #else /*O_GMP*/
@@ -111,6 +113,8 @@ mpq_stack_size(word w)
 		 *	  GMP ALLOCATION	*
 		 *******************************/
 
+#define FE_NOTSET (-1)
+
 #if O_MY_GMP_ALLOC
 typedef struct mp_mem_header
 { struct mp_mem_header *prev;
@@ -121,6 +125,7 @@ typedef struct mp_mem_header
 typedef struct ar_context
 { struct ar_context *parent;
   size_t	     allocated;
+  int		     femode;
 } ar_context;
 
 #define O_GMP_LEAK_CHECK 0
@@ -134,6 +139,7 @@ typedef struct ar_context
 #define AR_BEGIN() \
 	do \
 	{ __PL_ar_ctx.parent    = LD->gmp.context; \
+	  __PL_ar_ctx.femode    = FE_NOTSET; \
 	  LD->gmp.context	= &__PL_ar_ctx; \
 	  GMP_LEAK_CHECK(__PL_ar_ctx.allocated = LD->gmp.allocated); \
 	} while(0)
@@ -146,16 +152,31 @@ typedef struct ar_context
 			 }) \
 	} while(0)
 #define AR_CLEANUP() \
-	mp_cleanup(&__PL_ar_ctx)
+	do \
+	{ if ( __PL_ar_ctx.femode != FE_NOTSET ) \
+	    fesetround(__PL_ar_ctx.femode); \
+	  mp_cleanup(&__PL_ar_ctx); \
+	} while(0)
 
 COMMON(void)	mp_cleanup(ar_context *ctx);
 
 #else /*O_MY_GMP_ALLOC*/
 
-#define AR_CTX
-#define AR_BEGIN()	(void)0
+typedef struct ar_context
+{ int		     femode;
+} ar_context;
+
+
+#define AR_CTX		ar_context __PL_ar_ctx = {0};
+#define AR_BEGIN() \
+	do { __PL_ar_ctx.femode    = FE_NOTSET; \
+	   } while(0)
 #define AR_END()	(void)0
-#define AR_CLEANUP()	(void)0
+#define AR_CLEANUP() \
+	do \
+	{ if ( __PL_ar_ctx.femode != FE_NOTSET ) \
+	    fesetround(__PL_ar_ctx.femode); \
+	} while(0)
 
 #endif /*O_MY_GMP_ALLOC*/
 

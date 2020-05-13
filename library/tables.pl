@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -53,11 +54,21 @@
             get_residual/2,			% :CallTerm, -DelayList
 
             set_pil_on/0,
-            set_pil_off/0
+            set_pil_off/0,
+
+            op(900, fy, tnot)
           ]).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(dialect/xsb)).
+:- autoload(library(apply), [maplist/3]).
+:- autoload(library(error), [type_error/2, must_be/2, domain_error/2]).
+:- autoload(library(lists), [append/3]).
+
+/** <module> XSB interface to tables
+
+This module provides an  XSB  compatible   library  to  access tables as
+created by tabling (see table/1). The aim   of  this library is first of
+all compatibility with XSB.  This library contains some old and internal
+XSB predicates that are marked deprecated.
+*/
 
 :- meta_predicate
     abolish_table_pred(:),
@@ -75,13 +86,20 @@
 %!  't not'(:Goal)
 %
 %   Tabled negation.
+%
+%   @deprecated This is a synonym to tnot/1.
 
 't not'(Goal) :-
     tnot(Goal).
 
 %!  tfindall(+Template, :Goal, -Answers)
 %
-%   More safe findall wrt. tabling.  For now just findall/3.
+%   This predicate emerged in XSB  in  an   attempt  to  provide a safer
+%   alternative to findall/3. This doesn't really   work  in XSB and the
+%   SWI-Prolog emulation is a simple call   to findall/3. Note that Goal
+%   may not be a variant of an _incomplete_ table.
+%
+%   @deprecated Use findall/3
 
 tfindall(Template, Goal, Answers) :-
     findall(Template, Goal, Answers).
@@ -89,15 +107,19 @@ tfindall(Template, Goal, Answers) :-
 %!  set_pil_on.
 %!  set_pil_off.
 %
-%   Dummy predicates
+%   Dummy predicates for XSB compatibility.
+%
+%   @deprecated These predicates have no effect.
 
 set_pil_on.
 set_pil_off.
 
-%!  get_call(:CallTerm, -Trie, -Skeleton) is semidet.
+%!  get_call(:CallTerm, -Trie, -Return) is semidet.
 %
-%   True when Trie is an answer trie for a variant of CallTerm. See also
-%   get_calls/3.
+%   True when Trie is an answer trie   for a variant of CallTerm. Return
+%   is a term ret/N with  N  variables   that  share  with  variables in
+%   CallTerm. The Trie contains zero  or   more  instances of the Return
+%   term. See also get_calls/3.
 
 get_call(Goal0, Trie, Return) :-
     '$tbl_implementation'(Goal0, M:Goal),
@@ -126,11 +148,8 @@ extend_return(Moded, Skeleton, Return) :-
 %!  get_calls(:CallTerm, -Trie, -Return) is nondet.
 %
 %   True when Trie is an answer  trie   for  a variant that unifies with
-%   CallTerm and Skeleton is the answer skeleton.
-%
-%   @arg Skeleton is a term ret(...) with as many arguments as there are
-%   variables in the answer template. The   `ret`  functor is compatible
-%   with XSB.
+%   CallTerm and Skeleton is the  answer   skeleton.  See get_call/3 for
+%   details.
 
 get_calls(Goal0, Trie, Return) :-
     '$tbl_variant_table'(VariantTrie),
@@ -153,8 +172,7 @@ get_returns(ATrie, Return) :-
     Moded \== Reserved,
     !,
     extend_return(Moded, Skeleton, Return),
-    trie_gen(ATrie, Skeleton),
-    trie_lookup_gen(ATrie, Skeleton, Moded).
+    '$tabling':moded_gen_answer(ATrie, Skeleton, Moded).
 get_returns(ATrie, Return) :-
     trie_gen(ATrie, Return).
 
@@ -230,6 +248,14 @@ semicolon_list(G) -->
 %   representation for a delay  is  a   body  term,  more specifically a
 %   disjunction   of   conjunctions.   The     XSB   representation   is
 %   non-deterministic and uses a list to represent the conjunction.
+%
+%   The  delay  condition  is  a  disjunction  of  conjunctions  and  is
+%   represented as such in the native   SWI-Prolog interface as a nested
+%   term of ;/2 and ,/2, using `true`   if  the answer is unconditional.
+%   This   XSB   predicate   returns     the   associated   conjunctions
+%   non-deterministically as a list.
+%
+%   See also call_residual_program/2 from library(wfs).
 
 get_residual(Goal0, DelayList) :-
     '$tbl_implementation'(Goal0, Goal),
@@ -270,6 +296,9 @@ comma_list(M:G, M) -->
 comma_list(tnot(M:G), M) -->
     !,
     [tnot(G)].
+comma_list(system:G, _) -->
+    !,
+    [G].
 comma_list(G, _) -->
     [G].
 

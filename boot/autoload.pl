@@ -67,7 +67,9 @@
     autoload_directories/1,
     index_checked_at/1.
 
-user:file_search_path(autoload, library(.)).
+user:file_search_path(autoload, swi(library)).
+user:file_search_path(autoload, pce(prolog/lib)).
+user:file_search_path(autoload, app_config(lib)).
 
 
 %!  '$find_library'(+Module, +Name, +Arity, -LoadModule, -Library) is semidet.
@@ -165,7 +167,7 @@ guarded_make_library_index([Dir|Dirs]) :-
 %   index, i.e., an index that can be updated.
 
 writable_indexed_directory(Dir) :-
-    index_file_name(IndexFile, [access([read,write])]),
+    index_file_name(IndexFile, autoload('INDEX'), [access([read,write])]),
     file_directory_name(IndexFile, Dir).
 writable_indexed_directory(Dir) :-
     absolute_file_name(library('MKINDEX'),
@@ -188,60 +190,59 @@ writable_indexed_directory(Dir) :-
 %   Reload the index on the next call
 
 reload_library_index :-
-    with_mutex('$autoload', clear_library_index).
+    context_module(M),
+    reload_library_index(M).
 
-clear_library_index :-
-    retractall(library_index(_, _, _)),
-    retractall(autoload_directories(_)),
-    retractall(index_checked_at(_)).
+reload_library_index(M) :-
+    with_mutex('$autoload', clear_library_index(M)).
+
+clear_library_index(M) :-
+    retractall(M:library_index(_, _, _)),
+    retractall(M:autoload_directories(_)),
+    retractall(M:index_checked_at(_)).
 
 
 %!  load_library_index(?Name, ?Arity) is det.
+%!  load_library_index(?Name, ?Arity, :IndexSpec) is det.
 %
 %   Try to find Name/Arity  in  the   library.  If  the predicate is
 %   there, we are happy. If not, we  check whether the set of loaded
 %   libraries has changed and if so we reload the index.
 
+:- meta_predicate load_library_index(?, ?, :).
+:- public load_library_index/3.
+
 load_library_index(Name, Arity) :-
+    load_library_index(Name, Arity, autoload('INDEX')).
+
+load_library_index(Name, Arity, M:_Spec) :-
     atom(Name), integer(Arity),
     functor(Head, Name, Arity),
-    library_index(Head, _, _),
+    M:library_index(Head, _, _),
     !.
-load_library_index(_, _) :-
-    notrace(with_mutex('$autoload', load_library_index_p)).
+load_library_index(_, _, Spec) :-
+    notrace(with_mutex('$autoload', load_library_index_p(Spec))).
 
-load_library_index_p :-
-    index_checked_at(Time),
+load_library_index_p(M:_) :-
+    M:index_checked_at(Time),
     get_time(Now),
     Now-Time < 60,
     !.
-load_library_index_p :-
-    findall(Index, index_file_name(Index, [access(read)]), List0),
-    list_set(List0, List),
-    retractall(index_checked_at(_)),
+load_library_index_p(M:Spec) :-
+    findall(Index, index_file_name(Index, Spec, [access(read)]), List0),
+    '$list_to_set'(List0, List),
+    retractall(M:index_checked_at(_)),
     get_time(Now),
-    assert(index_checked_at(Now)),
-    (   autoload_directories(List)
+    assert(M:index_checked_at(Now)),
+    (   M:autoload_directories(List)
     ->  true
-    ;   retractall(library_index(_, _, _)),
-        retractall(autoload_directories(_)),
-        read_index(List),
-        assert(autoload_directories(List))
+    ;   retractall(M:library_index(_, _, _)),
+        retractall(M:autoload_directories(_)),
+        read_index(List, M),
+        assert(M:autoload_directories(List))
     ).
 
-list_set([], R) :-                      % == list_to_set/2 from library(lists)
-    closel(R).
-list_set([H|T], R) :-
-    memberchk(H, R),
-    !,
-    list_set(T, R).
-
-closel([]) :- !.
-closel([_|T]) :-
-    closel(T).
-
-
-%!  index_file_name(-IndexFile, +Options) is nondet.
+%!  index_file_name(-IndexFile, +Spec, +Options) is nondet.
 %
 %   True if IndexFile is an autoload   index file. Options is passed
 %   to  absolute_file_name/3.  This  predicate   searches  the  path
@@ -249,8 +250,8 @@ closel([_|T]) :-
 %
 %   @see file_search_path/2.
 
-index_file_name(IndexFile, Options) :-
-    absolute_file_name(autoload('INDEX'),
+index_file_name(IndexFile, FileSpec, Options) :-
+    absolute_file_name(FileSpec,
                        IndexFile,
                        [ file_type(prolog),
                          solutions(all),
@@ -258,36 +259,36 @@ index_file_name(IndexFile, Options) :-
                        | Options
                        ]).
 
-read_index([]) :- !.
-read_index([H|T]) :-
+read_index([], _) :- !.
+read_index([H|T], M) :-
     !,
-    read_index(H),
-    read_index(T).
-read_index(Index) :-
+    read_index(H, M),
+    read_index(T, M).
+read_index(Index, M) :-
     print_message(silent, autoload(read_index(Dir))),
     file_directory_name(Index, Dir),
     setup_call_cleanup(
         '$push_input_context'(autoload_index),
         setup_call_cleanup(
             open(Index, read, In),
-            read_index_from_stream(Dir, In),
+            read_index_from_stream(Dir, In, M),
             close(In)),
         '$pop_input_context').
 
-read_index_from_stream(Dir, In) :-
+read_index_from_stream(Dir, In, M) :-
     repeat,
         read(In, Term),
-        assert_index(Term, Dir),
+        assert_index(Term, Dir, M),
     !.
 
-assert_index(end_of_file, _) :- !.
-assert_index(index(Name, Arity, Module, File), Dir) :-
+assert_index(end_of_file, _, _) :- !.
+assert_index(index(Name, Arity, Module, File), Dir, M) :-
     !,
     functor(Head, Name, Arity),
     atomic_list_concat([Dir, '/', File], Path),
-    assertz(library_index(Head, Module, Path)),
+    assertz(M:library_index(Head, Module, Path)),
     fail.
-assert_index(Term, Dir) :-
+assert_index(Term, Dir, _) :-
     print_message(error, illegal_autoload_index(Dir, Term)),
     fail.
 
@@ -828,10 +829,15 @@ register_autoloads([PI|T], Module, File, Context) :-
         ;   Done = true
         )
     ;   '$get_predicate_attribute'(Module:Head, imported, From)
-    ->  (   '$resolved_source_path'(File, FullFile),
+    ->  (   (   '$resolved_source_path'(File, FullFile)
+            ->  true
+            ;   '$resolve_source_path'(File, FullFile, [])
+            ),
             module_property(From, file(FullFile))
         ->  Done = true
-        ;   true
+        ;   print_message(warning,
+                          autoload(already_defined(Module:PI, From))),
+            Done = true
         )
     ;   true
     ),

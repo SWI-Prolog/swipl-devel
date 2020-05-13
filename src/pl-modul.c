@@ -35,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -1282,7 +1283,6 @@ unify_export_list(term_t public, Module module ARG_LD)
   term_t list = PL_copy_term_ref(public);
   int rval = TRUE;
 
-  LOCKMODULE(module);
   for_table(module->public, name, value,
 	    { if ( !PL_unify_list(list, head, list) ||
 		   !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
@@ -1290,12 +1290,37 @@ unify_export_list(term_t public, Module module ARG_LD)
 		break;
 	      }
 	    })
-  UNLOCKMODULE(module);
   if ( rval )
     return PL_unify_nil(list);
 
   fail;
 }
+
+
+static size_t
+sizeof_module(Module m)
+{ GET_LD
+  size_t size = sizeof(*m);
+
+  if ( m->public)     size += sizeofTable(m->public);
+  if ( m->procedures) size += sizeofTable(m->procedures);
+  if ( m->operators)  size += sizeofTable(m->operators);
+
+  for_table(m->procedures, name, value,
+	    { Procedure proc = value;
+	      Definition def = proc->definition;
+
+	      size += sizeof(*proc);
+
+	      if ( def->module == m && false(def, P_FOREIGN) )
+	      { Definition def = getProcDefinition(proc);
+		size += sizeof_predicate(def);
+	      }
+	    });
+
+  return size;
+}
+
 
 
 static
@@ -1330,6 +1355,8 @@ PRED_IMPL("$module_property", 2, module_property, 0)
   { return unify_export_list(a, m PASS_LD);
   } else if ( pname == ATOM_class )
   { return PL_unify_atom(a, m->class);
+  } else if ( pname == ATOM_size )
+  { return PL_unify_int64(a, sizeof_module(m));
   } else if ( pname == ATOM_program_size )
   { return PL_unify_int64(a, m->code_size);
   } else if ( pname == ATOM_last_modified_generation )
@@ -1487,7 +1514,10 @@ fixExportModule(Module m, Definition old, Definition new)
 	      if ( proc->definition == old )
 	      { DEBUG(1, Sdprintf("Patched def of %s\n",
 				  procedureName(proc)));
+		shareDefinition(new);
 		proc->definition = new;
+		if ( unshareDefinition(old) == 0 )
+		  lingerDefinition(old);
 	      }
 	    });
 
@@ -1611,8 +1641,8 @@ retry:
 
     nproc->flags = pflags;
     nproc->source_no = 0;
-    nproc->definition = proc->definition;
     shareDefinition(proc->definition);
+    nproc->definition = proc->definition;
 
     LOCKMODULE(destination);
     old = addHTable(destination->procedures,

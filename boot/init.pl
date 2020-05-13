@@ -922,14 +922,24 @@ default_module(Me, Super) :-
                  *       FILE_SEARCH_PATH       *
                  *******************************/
 
-:- dynamic user:file_search_path/2.
-:- multifile user:file_search_path/2.
+:- dynamic
+    user:file_search_path/2,
+    user:library_directory/1.
+:- multifile
+    user:file_search_path/2,
+    user:library_directory/1.
 
 user:(file_search_path(library, Dir) :-
         library_directory(Dir)).
 user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
+user:file_search_path(swi, Home) :-
+    current_prolog_flag(shared_home, Home).
+user:file_search_path(library, app_config(lib)).
+user:file_search_path(library, swi(library)).
+user:file_search_path(library, swi(library/clp)).
 user:file_search_path(foreign, swi(ArchLib)) :-
+    \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
 user:file_search_path(foreign, swi(SoLib)) :-
@@ -1645,11 +1655,10 @@ compiling :-
     '$load_input'/2.
 
 '$open_source'(stream(Id, In, Opts), In,
-               restore(In, StreamState, Id, Ref, Opts), Parents, Options) :-
+               restore(In, StreamState, Id, Ref, Opts), Parents, _Options) :-
     !,
     '$context_type'(Parents, ContextType),
     '$push_input_context'(ContextType),
-    '$set_encoding'(In, Options),
     '$prepare_load_stream'(In, Id, StreamState),
     asserta('$load_input'(stream(Id), In), Ref).
 '$open_source'(Path, In, close(In, Path, Ref), Parents, Options) :-
@@ -2717,7 +2726,7 @@ load_files(Module:Files, Options) :-
 '$set_dialect'(Options) :-
     memberchk(dialect(Dialect), Options),
     !,
-    expects_dialect(Dialect).               % Autoloaded from library
+    '$expects_dialect'(Dialect).
 '$set_dialect'(_).
 
 '$load_id'(stream(Id, _, _), Id, Modified, Options) :-
@@ -2955,18 +2964,30 @@ load_files(Module:Files, Options) :-
 '$set_dialect'(Dialect, State) :-
     '$compilation_mode'(qlf, database),
     !,
-    expects_dialect(Dialect),
+    '$expects_dialect'(Dialect),
     '$compilation_mode'(_, qlf),
     nb_setarg(6, State, Dialect).
 '$set_dialect'(Dialect, _) :-
-    expects_dialect(Dialect).
+    '$expects_dialect'(Dialect).
 
 '$qset_dialect'(State) :-
     '$compilation_mode'(qlf),
     arg(6, State, Dialect), Dialect \== (-),
     !,
-    '$add_directive_wic'(expects_dialect(Dialect)).
+    '$add_directive_wic'('$expects_dialect'(Dialect)).
 '$qset_dialect'(_).
+
+'$expects_dialect'(Dialect) :-
+    Dialect == swi,
+    !,
+    set_prolog_flag(emulated_dialect, Dialect).
+'$expects_dialect'(Dialect) :-
+    current_predicate(expects_dialect/1),
+    !,
+    expects_dialect(Dialect).
+'$expects_dialect'(Dialect) :-
+    use_module(library(dialect), [expects_dialect/1]),
+    expects_dialect(Dialect).
 
 
                  /*******************************
@@ -3747,6 +3768,11 @@ compile_aux_clauses(Clauses) :-
     ->  true
     ;   '$type_error'(callable, X)
     ).
+'$must_be'(acyclic, X) :- !,
+    (   acyclic_term(X)
+    ->  true
+    ;   '$domain_error'(acyclic_term, X)
+    ).
 '$must_be'(oneof(Type, Domain, List), X) :- !,
     '$must_be'(Type, X),
     (   memberchk(X, List)
@@ -3951,7 +3977,9 @@ length(_, Length) :-
     user:prolog_list_goal(Goal),
     !.
 '$prolog_list_goal'(Goal) :-
-    user:listing(Goal).
+    use_module(library(listing), [listing/1]),
+    @(listing(Goal), user).
+
 
 		 /*******************************
 		 *              MISC		*

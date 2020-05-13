@@ -3,7 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2008, University of Amsterdam
+    Copyright (c)  2020, University of Amsterdam
+                         VU University Amsterdam
+		         CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,48 +34,30 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module('$parms', []).
+:- module(test_gc_alt_clause,
+          [ test_gc_alt_clause/0
+          ]).
+:- use_module(library(plunit)).
 
-:- multifile
-    user:library_directory/1.
-:- dynamic
-    user:library_directory/1.
+/** <module> Test mark_alt_clauses() in pl-gc.c
+*/
 
-:- dynamic
-    library_directory_cache/2.
-:- volatile
-    library_directory_cache/2.
+test_gc_alt_clause :-
+    run_tests([ gc_alt_clause
+              ]).
 
-user:library_directory(Dir) :-
-    cached_library_directory(user,
-                             absolute_file_name(app_config(lib), Dir0),
-                             Dir0),
-    Dir = Dir0.
-user:library_directory(Dir) :-
-    cached_library_directory(system,
-                             absolute_file_name(swi(library), Dir0),
-                             Dir0),
-    Dir = Dir0.
-user:library_directory(Dir) :-
-    cached_library_directory(clp,
-                             absolute_file_name(swi('library/clp'), Dir0),
-                             Dir0),
-    Dir = Dir0.
+:- begin_tests(gc_alt_clause,
+               [ condition(current_prolog_flag(bounded, false))
+               ]).
 
-cached_library_directory(CacheName, _, Dir) :-
-    library_directory_cache(CacheName, Dir),
-    !,
-    Dir \== [].
-cached_library_directory(CacheName, Goal, Dir) :-
-    catch(Goal, _, fail),
-    exists_directory(Dir),
-    !,
-    asserta(library_directory_cache(CacheName, Dir)).
-cached_library_directory(CacheName, _, _) :-
-    asserta(library_directory_cache(CacheName, [])),
-    fail.
+alt(_X) :- garbage_collect, fail.
+alt(X)  :- use(1r3),     X = 1.
+alt(X)  :- use("hello"), X = 2.
+alt(X)  :- use(42.0),    X = 3.
 
-'$default_editor'(notepad) :-
-    current_prolog_flag(windows, true),
-    !.
-'$default_editor'(vi).
+use(_).
+
+test(alt_rat, set(X == [1,2,3])) :-
+    alt(X).
+
+:- end_tests(gc_alt_clause).

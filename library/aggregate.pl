@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
+                              CWI Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,23 +62,24 @@
 
 This library provides aggregating operators  over   the  solutions  of a
 predicate. The operations are a generalisation   of the bagof/3, setof/3
-and findall/3 built-in predicates. The   defined  aggregation operations
-are counting, computing the sum, minimum,   maximum,  a bag of solutions
-and a set of solutions. We first   give  a simple example, computing the
-country with the smallest area:
+and findall/3 built-in predicates.  Aggregations   that  can be computed
+incrementally avoid findall/3 and run in   constant  memory. The defined
+aggregation  operations  are  counting,  computing   the  sum,  minimum,
+maximum, a bag of solutions and a  set   of  solutions.  We first give a
+simple example, computing the country with the smallest area:
 
-==
+```
 smallest_country(Name, Area) :-
-        aggregate(min(A, N), country(N, A), min(Area, Name)).
-==
+    aggregate(min(A, N), country(N, A), min(Area, Name)).
+```
 
 There are four aggregation predicates (aggregate/3, aggregate/4, aggregate_all/3 and aggregate/4), distinguished on two properties.
 
     $ aggregate vs. aggregate_all :
     The aggregate predicates use setof/3 (aggregate/4) or bagof/3
     (aggregate/3), dealing with existential qualified variables
-    (Var^Goal) and providing multiple solutions for the remaining free
-    variables in Goal. The aggregate_all/3 predicate uses findall/3,
+    (`Var^Goal`) and providing multiple solutions for the remaining free
+    variables in `Goal`. The aggregate_all/3 predicate uses findall/3,
     implicitly qualifying all free variables and providing exactly one
     solution, while aggregate_all/4 uses sort/2 over solutions that
     Discriminator (see below) generated using findall/3.
@@ -164,12 +166,15 @@ aggregate(Template, Discriminator, Goal0, Result) :-
 
 %!  aggregate_all(+Template, :Goal, -Result) is semidet.
 %
-%   Aggregate  bindings  in  Goal   according    to   Template.  The
-%   aggregate_all/3 version performs findall/3 on   Goal.  Note that
-%   this predicate fails if Template contains one or more of min(X),
-%   max(X),  min(X,Witness)  or  max(X,Witness)  and   Goal  has  no
-%   solutions, i.e., the minumum and  maximum   of  an  empty set is
-%   undefined.
+%   Aggregate   bindings   in   Goal   according    to   Template.   The
+%   aggregate_all/3 version performs findall/3 on   Goal. Note that this
+%   predicate fails if Template contains one  or more of min(X), max(X),
+%   min(X,Witness) or max(X,Witness) and Goal   has  no solutions, i.e.,
+%   the minimum and maximum of an empty set is undefined.
+%
+%   The Template values `count`, sum(X),   max(X),  min(X), max(X,W) and
+%   min(X,W) are processed incrementally rather than using findall/3 and
+%   run in constant memory.
 
 aggregate_all(Var, _, _) :-
     var(Var),

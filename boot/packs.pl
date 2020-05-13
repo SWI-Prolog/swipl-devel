@@ -92,6 +92,7 @@ user:file_search_path(foreign, PackLib) :-
 %   Attach packages from all package directories.
 
 attach_packs :-
+    set_prolog_flag(packs, true),
     findall(PackDir, absolute_file_name(pack(.), PackDir,
                                         [ file_type(directory),
                                           access(read),

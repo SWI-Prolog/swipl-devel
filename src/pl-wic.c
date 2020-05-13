@@ -36,6 +36,8 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
+#include "pl-arith.h"
 #include "os/pl-utf8.h"
 #include "pl-dbref.h"
 #include "pl-dict.h"
@@ -174,8 +176,6 @@ write the positive value in chunks  of   7  bits, least significant bits
 first. The last byte has its 0x80 mask set.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LOADVERSION 67			/* load all versions later >= X */
-#define VERSION     67			/* save version number */
 #define QLFMAGICNUM 0x716c7374		/* "qlst" on little-endian machine */
 
 #define XR_REF		0		/* reference to previous */
@@ -1940,7 +1940,7 @@ loadInclude(wic_state *state ARG_LD)
   loc.file = pn;
   loc.line = line;
 
-  assert_term(t, CL_END, owner, &loc PASS_LD);
+  assert_term(t, NULL, CL_END, owner, &loc, 0 PASS_LD);
 
   PL_discard_foreign_frame(fid);
   return TRUE;
@@ -2822,7 +2822,7 @@ writeWicHeader(wic_state *state)
 { IOSTREAM *fd = state->wicFd;
 
   putMagic(saveMagic, fd);
-  putInt64(VERSION, fd);
+  putInt64(PL_QLF_VERSION, fd);
   putInt64(VM_SIGNATURE, fd);
   if ( systemDefaults.home )
     putString(systemDefaults.home, STR_NOLEN, fd);
@@ -2865,7 +2865,7 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, CL_END, file, &loc PASS_LD)) )
+  if ( (clause = assert_term(term, NULL, CL_END, file, &loc, 0 PASS_LD)) )
   { openPredicateWic(state, clause->predicate, ATOM_development PASS_LD);
     saveWicClause(state, clause);
 
@@ -3044,8 +3044,8 @@ qlfInfo(const char *file,
   if ( cversion )
   { int vm_signature;
 
-    if ( !PL_unify_integer(cversion, VERSION) ||
-	 !PL_unify_integer(minload, LOADVERSION) ||
+    if ( !PL_unify_integer(cversion, PL_QLF_VERSION) ||
+	 !PL_unify_integer(minload, PL_QLF_LOADVERSION) ||
 	 !PL_unify_integer(csig, (int)VM_SIGNATURE) )
       goto out;
 
@@ -3175,7 +3175,7 @@ qlfOpen(term_t file)
   initSourceMarks(state);
 
   putMagic(qlfMagic, state->wicFd);
-  putInt64(VERSION, state->wicFd);
+  putInt64(PL_QLF_VERSION, state->wicFd);
   putInt64(VM_SIGNATURE, state->wicFd);
 
   putString(absname, STR_NOLEN, state->wicFd);
@@ -3324,9 +3324,9 @@ qlfIsCompatible(wic_state *state, const char *magic)
 
   if ( !qlfVersion(state, magic, &lversion) )
     return FALSE;
-  if ( lversion < LOADVERSION )
+  if ( lversion < PL_QLF_LOADVERSION )
     return qlfError(state, "incompatible version (file: %d, Prolog: %d)",
-		    lversion, VERSION);
+		    lversion, PL_QLF_VERSION);
   state->saved_version = lversion;
 
   vm_signature = getInt(state->wicFd);

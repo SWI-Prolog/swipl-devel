@@ -157,6 +157,10 @@ special(..).
 :- dynamic   user:file_search_path/2.
 
 user:file_search_path(library, swi(packages)).
+user:file_search_path(foreign, AppDir) :-
+    current_prolog_flag(windows, true),
+    current_prolog_flag(executable, Exe),
+    file_directory_name(Exe, AppDir).
 
 %!  add_package(+Package, +PkgSrcDir, +PkgBinDir) is det.
 %
@@ -192,7 +196,10 @@ add_package(_Pkg, PkgBinDir) :-
 %   probably cheaper to add it anyway.
 
 add_package_path(PkgBinDir) :-
-    assertz(user:file_search_path(foreign, PkgBinDir)).
+    (   current_prolog_flag(windows, true)
+    ->  true
+    ;   assertz(user:file_search_path(foreign, PkgBinDir))
+    ).
 
 :- if(\+ current_prolog_flag(emscripten, true)).
 % disabled as we do not (yet) have packages and opendir() is broken

@@ -1789,7 +1789,11 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 { LocalFrame leave;
 
   if ( unlikely(LD->alerted) )
-  {
+  { if ( (LD->alerted&ALERT_BUFFER) )
+    { LD->alerted &= ~ALERT_BUFFER;
+      release_string_buffers_from_frame(FR PASS_LD);
+    }
+
 #if O_DEBUGGER
     if ( debugstatus.debugging )
     { int action;
@@ -2876,7 +2880,7 @@ VMI(S_WRAP, 0, 0, ())
   if ( codes[0] == encode(S_VIRGIN) )
   { PL_LOCK(L_PREDICATE);
     codes = createSupervisor(DEF->impl.wrapped.predicate);
-    MemoryBarrier();
+    MEMORY_BARRIER();
     DEF->impl.wrapped.supervisor = codes;
     PL_UNLOCK(L_PREDICATE);
   }
@@ -3112,6 +3116,12 @@ variable.  Also, for compilers that do register allocation it is unwise
 to give the compiler a hint to put ARGP not into a register.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define AR_THROW_EXCEPTION		\
+	do { resetArithStack(PASS_LD1); \
+	     AR_CLEANUP();		\
+	     THROW_EXCEPTION;		\
+	   } while(0)
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_ENTER: Prepare for arithmetic operations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3275,8 +3285,7 @@ a_var_n:
       { pushArithStack(&result PASS_LD);
 	NEXT_INSTRUCTION;
       } else
-      { resetArithStack(PASS_LD1);
-	THROW_EXCEPTION;
+      { AR_THROW_EXCEPTION;
       }
     }
   }
@@ -3342,13 +3351,41 @@ common_an:
   rc = ar_func_n((int)fn, an PASS_LD);
   LOAD_REGISTERS(qid);
   if ( !rc )
-  { resetArithStack(PASS_LD1);
-    THROW_EXCEPTION;
-  }
+    AR_THROW_EXCEPTION;
 
   NEXT_INSTRUCTION;
 }
 END_SHAREDVARS
+
+VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
+{ int mode = (int)*PC++;
+  Number n = allocArithStack(PASS_LD1);
+
+  __PL_ar_ctx.femode = n->value.i = fegetround();
+  n->type = V_INTEGER;
+  set_rounding(mode);
+
+  NEXT_INSTRUCTION;
+}
+
+
+VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
+{ Word p = varFrameP(FR, (size_t)*PC++);
+  int rm;
+
+  deRef(p);
+  if ( isAtom(*p) && atom_to_rounding(*p, &rm) )
+  { Number n = allocArithStack(PASS_LD1);
+
+    __PL_ar_ctx.femode = n->value.i = fegetround();
+    n->type = V_INTEGER;
+    set_rounding(rm);
+    NEXT_INSTRUCTION;
+  } else
+  { resetArithStack(PASS_LD1);
+    THROW_EXCEPTION;
+  }
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3361,7 +3398,7 @@ VMI(A_ADD, 0, 0, ())
   number r;
 
   SAVE_REGISTERS(qid);
-  rc = pl_ar_add(argv, argv+1, &r);
+  rc = pl_ar_add(argv+1, argv, &r);
   LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
@@ -3369,8 +3406,7 @@ VMI(A_ADD, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  resetArithStack(PASS_LD1);
-  THROW_EXCEPTION;
+  AR_THROW_EXCEPTION;
 }
 
 
@@ -3384,7 +3420,7 @@ VMI(A_MUL, 0, 0, ())
   number r;
 
   SAVE_REGISTERS(qid);
-  rc = ar_mul(argv, argv+1, &r);
+  rc = ar_mul(argv+1, argv, &r);
   LOAD_REGISTERS(qid);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
@@ -3392,8 +3428,7 @@ VMI(A_MUL, 0, 0, ())
     NEXT_INSTRUCTION;
   }
 
-  resetArithStack(PASS_LD1);
-  THROW_EXCEPTION;
+  AR_THROW_EXCEPTION;
 }
 
 
@@ -4106,6 +4141,7 @@ VMI(I_FEXITNDET, 0, 0, ())
       FR->clause = NULL;
       goto exit_checking_wakeup;
     case FALSE:
+      FR->clause = NULL;
       if ( exception_term )
 	THROW_EXCEPTION;
       DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));

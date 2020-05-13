@@ -106,8 +106,10 @@ allow for restricting the system.
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads     |
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                 |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers    |
+  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`    |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
+  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in <prefix>/share      |
   | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system          |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages             |
@@ -335,6 +337,13 @@ factor two. To compile for using with AddressSanitizer, do e.g.,
     % ninja
 
 See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
+
+You can run the tests normally using   `ctest`. Note that the `swipl:GC`
+test requires more stack than the   default when using AddressSanitizer.
+To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
+test   `jpl:prolog_in_java`   because   Java   is    not   loaded   with
+AddressSanitizer preloaded.   All other tests should pass (about 4 times
+slower than normal).
 
 
 ## Packaging

@@ -51,9 +51,24 @@ check_include_file(sys/stropts.h HAVE_SYS_STROPTS_H)
 check_include_file(zlib.h HAVE_ZLIB_H)
 check_include_file(crt_externs.h HAVE_CRT_EXTERNS_H)
 
-check_library_exists(dl dlopen	      "" HAVE_LIBDL)
-check_library_exists(m  sin           "" HAVE_LIBM)
-check_library_exists(rt clock_gettime "" HAVE_LIBRT)
+check_c_source_compiles(
+    "int val = 1;
+     int main() { __atomic_add_fetch(&val, 2, __ATOMIC_SEQ_CST); }"
+    HAVE_GCC_ATOMIC)
+check_c_source_compiles(
+    "#include <stdint.h>
+     uint64_t val = 1;
+     int main() { __atomic_add_fetch(&val, 2, __ATOMIC_SEQ_CST); }"
+    HAVE_GCC_ATOMIC_8)
+if(HAVE_GCC_ATOMIC AND NOT HAVE_GCC_ATOMIC_8)
+check_library_exists(atomic __atomic_add_fetch_4 "" HAVE_LIBATOMIC)
+else()
+set(HAVE_LIBATOMIC OFF CACHE BOOL "No need to link with -latomic")
+endif()
+
+check_library_exists(dl	dlopen	      "" HAVE_LIBDL)
+check_library_exists(m	sin	      "" HAVE_LIBM)
+check_library_exists(rt	clock_gettime "" HAVE_LIBRT)
 
 if(HAVE_LIBDL)
   set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} dl)
@@ -133,6 +148,7 @@ check_function_exists(readlink HAVE_READLINK)
 check_function_exists(remove HAVE_REMOVE)
 check_function_exists(rename HAVE_RENAME)
 check_function_exists(stat HAVE_STAT)
+check_function_exists(fopen64 HAVE_FOPEN64)
 # Strings and locale
 check_function_exists(memmove HAVE_MEMMOVE)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
@@ -173,6 +189,7 @@ check_function_exists(sigblock HAVE_SIGBLOCK)
 endif(USE_SIGNALS)
 check_function_exists(kill HAVE_KILL)
 check_function_exists(backtrace HAVE_BACKTRACE)
+check_function_exists(alarm HAVE_ALARM)
 # Allocation
 check_function_exists(mtrace HAVE_MTRACE)
 # terminal

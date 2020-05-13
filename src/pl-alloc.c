@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -37,6 +37,18 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dict.h"
+#ifdef HAVE_SYS_MMAN_H
+#define MMAP_STACK 1
+#include <sys/mman.h>
+#include <unistd.h>
+#ifndef MAP_ANONYMOUS
+#ifdef MAP_ANON
+#define MAP_ANONYMOUS MAP_ANON
+#else
+#define MAP_ANONYMOUS 0
+#endif
+#endif
+#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -200,7 +212,7 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
   do
   { o = *list;
     c->next = o;
-  } while( !COMPARE_AND_SWAP(list, o, c) );
+  } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
 }
 
 void
@@ -210,7 +222,7 @@ free_lingering(linger_list **list, gen_t generation)
 
   while ( c )
   { if ( c->generation < generation )
-    { while ( !COMPARE_AND_SWAP(p, c, c->next) )
+    { while ( !COMPARE_AND_SWAP_PTR(p, c, c->next) )
       { p = &(*p)->next;
       }
       (*c->unalloc)(c->object);
@@ -716,7 +728,9 @@ pushArgumentStack__LD(Word p ARG_LD)
 { Word *newbase;
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
-  if ( newsize && (newbase = stack_realloc(aBase, newsize)) )
+  if ( newsize &&
+       (newsize = stack_nalloc(newsize)) &&
+       (newbase = stack_realloc(aBase, newsize)) )
   { intptr_t as = newbase - aBase;
 
     if ( as )
@@ -1375,6 +1389,525 @@ properly on Linux. Don't bother with it.
   initHBase();
 }
 
+		 /*******************************
+		 *	    MMAP STACKS		*
+		 *******************************/
+
+#ifdef  MMAP_STACK
+#define MMAP_THRESHOLD 32768
+
+typedef struct
+{ size_t size;				/* Size (including header) */
+  int	 mmapped;			/* Is mmapped? */
+  double data[1];			/* ensure alignment */
+} map_region;
+
+#define SA_OFFSET offsetof(map_region, data)
+
+static size_t
+pgsize(void)
+{ static size_t sz = 0;
+
+  if ( !sz )
+    sz = sysconf(_SC_PAGESIZE);
+
+  return sz;
+}
+
+static inline size_t
+roundpgsize(size_t sz)
+{ size_t r = pgsize();
+
+  return ((sz+r-1)/r)*r;
+}
+
+size_t
+tmp_nalloc(size_t req)
+{ if ( req < MMAP_THRESHOLD-SA_OFFSET )
+    return req;
+
+  return roundpgsize(req+SA_OFFSET)-SA_OFFSET;
+}
+
+size_t
+tmp_nrealloc(void *mem, size_t req)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+
+    if ( !reg->mmapped && req < MMAP_THRESHOLD-SA_OFFSET )
+      return req;
+
+    return roundpgsize(req+SA_OFFSET)-SA_OFFSET;
+  }
+
+  return tmp_nalloc(req);
+}
+
+
+size_t
+tmp_malloc_size(void *mem)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+    return reg->size-SA_OFFSET;
+  }
+
+  return 0;
+}
+
+void *
+tmp_malloc(size_t req)
+{ map_region *reg;
+  int mmapped;
+
+  req += SA_OFFSET;
+  if ( req < MMAP_THRESHOLD )
+  { reg = malloc(req);
+    mmapped = FALSE;
+  } else
+  { req = roundpgsize(req);
+
+    reg = mmap(NULL, req,
+	       (PROT_READ|PROT_WRITE),
+	       (MAP_PRIVATE|MAP_ANONYMOUS),
+	       -1, 0);
+    if ( reg == MAP_FAILED )
+      reg = NULL;
+    mmapped = TRUE;
+  }
+
+  if ( reg )
+  { reg->size    = req;
+    reg->mmapped = mmapped;
+#ifdef O_DEBUG
+    memset(reg->data, 0xFB, req-SA_OFFSET);
+#endif
+
+    return reg->data;
+  }
+
+  return NULL;
+}
+
+
+void *
+tmp_realloc(void *mem, size_t req)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+
+    req += SA_OFFSET;
+    if ( !reg->mmapped )
+    { if ( req < MMAP_THRESHOLD )
+      { map_region *nw = realloc(reg, req);
+	if ( nw )
+	{ nw->size = req;
+	  return nw->data;
+	}
+	return NULL;
+      } else				/* malloc --> mmap */
+      { void *nw = tmp_malloc(req-SA_OFFSET);
+	if ( nw )
+	{ size_t copy = reg->size;
+
+	  if ( copy > req )
+	    copy = req;
+
+	  memcpy(nw, mem, copy-SA_OFFSET);
+	  free(reg);
+	}
+	return nw;
+      }
+    } else
+    { req = roundpgsize(req);
+
+      if ( reg->size != req )
+      { if ( reg->size > req )
+	{ size_t trunk = reg->size-req;
+
+	  munmap((char*)reg+req, trunk);
+	  reg->size = req;
+
+	  return reg->data;
+	} else
+	{ void *ra = tmp_malloc(req);
+
+	  if ( ra )
+	  { memcpy(ra, mem, reg->size-SA_OFFSET);
+#ifdef O_DEBUG
+	    memset((char*)ra+reg->size-SA_OFFSET, 0xFB,
+		   req-(reg->size-SA_OFFSET));
+#endif
+	    tmp_free(mem);
+	  }
+
+	  return ra;
+	}
+      } else
+      { return mem;
+      }
+    }
+  } else
+  { return tmp_malloc(req);
+  }
+}
+
+
+void
+tmp_free(void *mem)
+{ if ( mem )
+  { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);
+
+    if ( reg->mmapped )
+      munmap(reg, reg->size);
+    else
+      free(reg);
+  }
+}
+
+#else /*MMAP_STACK*/
+
+size_t
+tmp_nalloc(size_t req)
+{ return req;
+}
+
+size_t
+tmp_nrealloc(void *mem, size_t req)
+{ (void)mem;
+
+  return req;
+}
+
+size_t
+tmp_malloc_size(void *mem)
+{ if ( mem )
+  { size_t *sp = mem;
+    return sp[-1];
+  }
+
+  return 0;
+}
+
+void *
+tmp_malloc(size_t size)
+{ void *mem = malloc(size+sizeof(size_t));
+
+  if ( mem )
+  { size_t *sp = mem;
+    *sp++ = size;
+#ifdef O_DEBUG
+    memset(sp, 0xFB, size);
+#endif
+
+    return sp;
+  }
+
+  return NULL;
+}
+
+void *
+tmp_realloc(void *old, size_t size)
+{ size_t *sp = old;
+  size_t osize = *--sp;
+  void *mem;
+
+#ifdef O_DEBUG
+  if ( (mem = tmp_malloc(size)) )
+  { memcpy(mem, old, (size>osize?osize:size));
+    tmp_free(old);
+    return mem;
+  }
+#else
+  (void)osize;
+  if ( (mem = realloc(sp, size+sizeof(size_t))) )
+  { sp = mem;
+    *sp++ = size;
+    return sp;
+  }
+#endif
+
+  return NULL;
+}
+
+void
+tmp_free(void *mem)
+{ size_t *sp = mem;
+  size_t osize = *--sp;
+
+#ifdef O_DEBUG
+  memset(sp, 0xFB, osize+sizeof(size_t));
+#else
+  (void)osize;
+#endif
+  free(sp);
+}
+
+#endif /*MMAP_STACK*/
+
+void *
+stack_malloc(size_t size)
+{ void *ptr = tmp_malloc(size);
+
+  if ( ptr )
+    ATOMIC_ADD(&GD->statistics.stack_space, tmp_malloc_size(ptr));
+
+  return ptr;
+}
+
+void *
+stack_realloc(void *mem, size_t size)
+{ size_t osize = tmp_malloc_size(mem);
+  void *ptr = tmp_realloc(mem, size);
+
+  if ( ptr )
+  { size = tmp_malloc_size(ptr);
+
+    if ( osize > size )
+      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
+    else
+      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
+  }
+
+  return ptr;
+}
+
+void
+stack_free(void *mem)
+{ size_t size = tmp_malloc_size(mem);
+
+  ATOMIC_SUB(&GD->statistics.stack_space, size);
+  tmp_free(mem);
+}
+
+size_t
+stack_nalloc(size_t req)
+{ return tmp_nalloc(req);
+}
+
+size_t
+stack_nrealloc(void *mem, size_t req)
+{ return tmp_nrealloc(mem, req);
+}
+
+
+		 /*******************************
+		 *	       TCMALLOC		*
+		 *******************************/
+
+static int (*fMallocExtension_GetNumericProperty)(const char *, size_t *);
+static int (*fMallocExtension_SetNumericProperty)(const char *, size_t);
+static void (*fMallocExtension_MarkThreadIdle)(void) = NULL;
+static void (*fMallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
+static void (*fMallocExtension_MarkThreadBusy)(void) = NULL;
+
+static const char* tcmalloc_properties[] =
+{ "generic.current_allocated_bytes",
+  "generic.heap_size",
+  "tcmalloc.max_total_thread_cache_bytes",
+  "tcmalloc.current_total_thread_cache_bytes",
+  "tcmalloc.central_cache_free_bytes",
+  "tcmalloc.transfer_cache_free_bytes",
+  "tcmalloc.thread_cache_free_bytes",
+  "tcmalloc.pageheap_free_bytes",
+  "tcmalloc.pageheap_unmapped_bytes",
+  NULL
+};
+
+static foreign_t
+malloc_property(term_t prop, control_t handle)
+{ GET_LD
+  const char **pname;
+
+  switch( PL_foreign_control(handle) )
+  { case PL_FIRST_CALL:
+    { atom_t name;
+      size_t arity;
+
+      if ( PL_get_name_arity(prop, &name, &arity) && arity == 1 )
+      { const char *s = PL_atom_nchars(name, NULL);
+
+	if ( s )
+	{ pname = tcmalloc_properties;
+
+	  for(; *pname; pname++)
+	  { if ( streq(s, *pname) )
+	    { size_t val;
+
+	      if ( fMallocExtension_GetNumericProperty(*pname, &val) )
+	      { term_t a = PL_new_term_ref();
+		_PL_get_arg(1, prop, a);
+		return PL_unify_uint64(a, val);
+	      }
+	    }
+	  }
+	}
+
+	return FALSE;
+      } else if ( PL_is_variable(prop) )
+      { pname = tcmalloc_properties;
+	goto enumerate;
+      }
+    }
+    case PL_REDO:
+    { fid_t fid;
+
+      pname = PL_foreign_context_address(handle);
+    enumerate:
+
+      fid = PL_open_foreign_frame();
+      for(; *pname; pname++)
+      { size_t val;
+
+	if ( fMallocExtension_GetNumericProperty(*pname, &val) )
+	{ if ( PL_unify_term(prop, PL_FUNCTOR_CHARS, *pname, 1,
+			             PL_INT64, val) )
+	  { PL_close_foreign_frame(fid);
+	    pname++;
+	    if ( *pname )
+	      PL_retry_address(pname);
+	    else
+	      return TRUE;
+	  }
+	}
+
+	if ( PL_exception(0) )
+	  return FALSE;
+	PL_rewind_foreign_frame(fid);
+      }
+      PL_close_foreign_frame(fid);
+
+      return FALSE;
+    }
+    case PL_CUTTED:
+    { return TRUE;
+    }
+    default:
+    { assert(0);
+      return FALSE;
+    }
+  }
+}
+
+static foreign_t
+set_malloc(term_t prop)
+{ GET_LD
+  atom_t name;
+  size_t arity;
+
+  if ( PL_get_name_arity(prop, &name, &arity) && arity == 1 )
+  { const char *s = PL_atom_nchars(name, NULL);
+    term_t a = PL_new_term_ref();
+    size_t val;
+
+    if ( !PL_get_arg(1, prop, a) ||
+	 !PL_get_size_ex(a, &val) )
+      return FALSE;
+
+    if ( s )
+    { const char **pname = tcmalloc_properties;
+
+      for(; *pname; pname++)
+      { if ( streq(s, *pname) )
+	{ if ( fMallocExtension_SetNumericProperty(*pname, val) )
+	    return TRUE;
+	  else
+	    return PL_permission_error("set", "malloc_property", prop);
+	}
+      }
+
+      return PL_domain_error("malloc_property", prop);
+    }
+  }
+
+  return PL_type_error("malloc_property", prop);
+}
+
+
+size_t
+heapUsed(void)
+{ size_t val;
+
+  if (fMallocExtension_GetNumericProperty &&
+      fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
+  {
+#ifdef MMAP_STACK
+    val += GD->statistics.stack_space;
+#endif
+
+    return val;
+  }
+
+  return 0;
+}
+
+
+int
+initTCMalloc(void)
+{ static int done = FALSE;
+  int set = 0;
+
+  if ( done )
+    return !!fMallocExtension_GetNumericProperty;
+  done = TRUE;
+
+  if ( (fMallocExtension_GetNumericProperty =
+		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
+  { PL_register_foreign_in_module("system", "malloc_property", 1, malloc_property,
+			PL_FA_NONDETERMINISTIC);
+    set++;
+  }
+  if ( (fMallocExtension_SetNumericProperty =
+		PL_dlsym(NULL, "MallocExtension_SetNumericProperty")) )
+  { PL_register_foreign_in_module("system", "set_malloc", 1, set_malloc, 0);
+    set++;
+  }
+
+  fMallocExtension_MarkThreadIdle =
+    PL_dlsym(NULL, "MallocExtension_MarkThreadIdle");
+  fMallocExtension_MarkThreadTemporarilyIdle =
+    PL_dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
+  fMallocExtension_MarkThreadBusy =
+    PL_dlsym(NULL, "MallocExtension_MarkThreadBusy");
+
+  return set;
+}
+
+
+/** thread_idle(:Goal, +How)
+ *
+ */
+
+static
+PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
+{ PRED_LD
+  int rc;
+  atom_t how;
+
+  if ( !PL_get_atom_ex(A2, &how) )
+    return FALSE;
+
+  if ( how == ATOM_short )
+  { trimStacks(TRUE PASS_LD);
+    if ( fMallocExtension_MarkThreadTemporarilyIdle &&
+	 fMallocExtension_MarkThreadBusy )
+      fMallocExtension_MarkThreadTemporarilyIdle();
+  } else if ( how == ATOM_long )
+  { LD->trim_stack_requested = TRUE;
+    garbageCollect(GC_USER);
+    LD->trim_stack_requested = FALSE;
+    if ( fMallocExtension_MarkThreadIdle  &&
+	 fMallocExtension_MarkThreadBusy )
+      fMallocExtension_MarkThreadIdle();
+  }
+
+  rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
+
+  if ( fMallocExtension_MarkThreadBusy )
+    fMallocExtension_MarkThreadBusy();
+
+  return rc;
+}
+
+
 
 		 /*******************************
 		 *	      PREDICATES	*
@@ -1393,4 +1926,5 @@ BeginPredDefs(alloc)
 #ifdef HAVE_BOEHM_GC
   PRED_DEF("garbage_collect_heap", 0, garbage_collect_heap, 0)
 #endif
+  PRED_DEF("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 EndPredDefs

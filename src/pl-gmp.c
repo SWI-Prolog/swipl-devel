@@ -37,7 +37,9 @@
 /*#define O_DEBUG 1*/
 #include <math.h>
 #include <fenv.h>
+#include <float.h>
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-inline.h"
 #undef LD
 #define LD LOCAL_LD
@@ -630,7 +632,7 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(wsize+2, TAG_INTEGER);
   *p++ = m;
-  *p++ = mpq_size_stack(num_neg ? -num_limpsize : den_limpsize);
+  *p++ = mpq_size_stack(num_neg ? -num_limpsize : num_limpsize);
   *p++ = mpq_size_stack(den_neg ? -den_limpsize : den_limpsize);
   p[num_wsize-1] = 0;
   data = load_mpz_bits(data, num_size, num_limpsize, num_neg, p);
@@ -771,6 +773,13 @@ promoteToMPQNumber(number *n)
       break;
     case V_FLOAT:
     { double v = n->value.f;
+
+      switch(fpclassify(v))
+      { case FP_NAN:
+	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
+        case FP_INFINITE:
+	  return PL_error(NULL, 0, NULL, ERR_AR_RAT_OVERFLOW);
+      }
 
       n->type = V_MPQ;
       mpq_init(n->value.mpq);
@@ -1231,19 +1240,13 @@ promoteToFloatNumber(Number n)
     case V_MPZ:
     { double val = mpX_round(mpz_get_d(n->value.mpz));
 
-      if ( !check_float(val) )
-	return FALSE;
-
       clearNumber(n);
       n->value.f = val;
       n->type = V_FLOAT;
       break;
     }
     case V_MPQ:
-    { double val = mpX_round(mpq_get_d(n->value.mpq));
-
-      if ( !check_float(val) )
-	return FALSE;
+    { double val = mpq_to_double(n->value.mpq);
 
       clearNumber(n);
       n->value.f = val;
@@ -1255,7 +1258,7 @@ promoteToFloatNumber(Number n)
       break;
   }
 
-  return TRUE;
+  return check_float(n);
 }
 
 
@@ -1304,8 +1307,8 @@ cmpNumbers() compares two numbers. First, both   numbers are promoted to
 the lowest (in V_* ordering) common type, after which they are compared.
 Note that if the common type is V_FLOAT, but not both are V_FLOAT we can
 run into troubles because big  integers  may   be  out  of range for the
-double representation. We trust mpz_get_d()   and mpq_get_d() return +/-
-float infinity and this compares  correctly   with  the  other argument,
+double representation. We trust mpz_get_d()   and mpq_to_double() return
++/- float infinity and this compares  correctly with the other argument,
 which is guaranteed to be a valid float.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1313,6 +1316,9 @@ static int
 cmpFloatNumbers(Number n1, Number n2)
 { if ( n1->type == V_FLOAT )
   { double d2;
+
+    if ( isnan(n1->value.f) )
+      return CMP_NOTEQ;
 
     switch(n2->type)
     { case V_INTEGER:
@@ -1323,7 +1329,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	d2 = mpX_round(mpz_get_d(n2->value.mpz));
 	break;
       case V_MPQ:
-	d2 = mpX_round(mpq_get_d(n2->value.mpq));
+	d2 = mpq_to_double(n2->value.mpq);
 	break;
 #endif
       default:
@@ -1338,6 +1344,9 @@ cmpFloatNumbers(Number n1, Number n2)
 
     assert(n2->type == V_FLOAT);
 
+    if ( isnan(n2->value.f) )
+      return CMP_NOTEQ;
+
     switch(n1->type)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
@@ -1347,7 +1356,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	d1 = mpX_round(mpz_get_d(n1->value.mpz));
 	break;
       case V_MPQ:
-	d1 = mpX_round(mpq_get_d(n1->value.mpq));
+	d1 = mpq_to_double(n1->value.mpq);
 	break;
 #endif
       default:
@@ -1398,7 +1407,6 @@ cmpNumbers(Number n1, Number n2)
   return CMP_EQUAL;
 }
 
-
 void
 cpNumber(Number to, Number from)
 { to->type = from->type;
@@ -1422,12 +1430,194 @@ cpNumber(Number to, Number from)
   }
 }
 
+#ifdef O_GMP
+
+		 /*******************************
+		 *	 FLOAT <-> RATIONAL	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This code is copied from ECLiPSe  7.0_53.   This  code is covered by the
+CMPL 1.1 (Cisco-style Mozilla Public License  Version 1.1), available at
+www.eclipse-clp.org/license.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/*
+ * Divide two bignums giving a double float result. The naive solution
+ *	return mpz_to_double(num) / mpz_to_double(den);
+ * suffers from floating point overflows when the numbers are huge
+ * and is inefficient because it looks at unnecessarily many digits.
+ *
+ * IEEE double precision is 53 bits mantissa and 12 bits signed exponent.
+ * So the largest integer representable with doubles is 1024 bits wide,
+ * of which the first 53 are ones, i.e. it lies between 2^1023 and 2^1024.
+ * If the dividend's MSB is more than 1024 bits higher than the divisor's,
+ * the result will always be floating point infinity (no need to divide).
+ * If we do divide, we first drop excess integer precision by keeping only
+ * DBL_PRECISION_LIMBS and ignoring the lower limbs for both operands
+ * (i.e. we effectively scale the integers down, or right-shift them).
+ */
+
+#define MIN_LIMB_DIFF (2+1024/GMP_NUMB_BITS)
+#define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
+#define MAX_ULONG_DBL ((double)~0L+1.0)
+
+static double
+mpz_fdiv(mpz_t num, mpz_t den)
+{ mp_ptr longer_d, shorter_d;
+  mp_size_t shorter_size, longer_size, ignored_limbs = 0;
+  int negative, swapped;
+  /* By declaring res volatile we make sure that the result is rounded
+   * to double precision instead of being returned with extended precision
+   * in a floating point register, which can have confusing consequences */
+  volatile double res;
+
+  shorter_size = num->_mp_size;
+  longer_size = den->_mp_size;
+  negative = 0;
+
+  if ( shorter_size < 0 )
+  { shorter_size = -shorter_size;
+    negative = !negative;
+  }
+  if ( longer_size < 0 )
+  { longer_size = -longer_size;
+    negative = !negative;
+  }
+  if ( shorter_size > longer_size )
+  { longer_size = shorter_size;
+    longer_d = num->_mp_d;
+    shorter_size = (den->_mp_size >= 0 ? den->_mp_size : -den->_mp_size);
+    shorter_d = den->_mp_d;
+    swapped = 1;			/* abs(res) > 1 */
+  } else
+  { longer_d = den->_mp_d;
+    shorter_d = num->_mp_d;
+    swapped = 0;			/* abs(res) < 1 */
+  }
+
+  if ( longer_size - shorter_size > MIN_LIMB_DIFF )
+  { res = swapped ? HUGE_VAL : 0.0;
+  } else
+  { double l,s;
+    long int le, se;
+    mpz_t li, si;
+
+    /* we ignore limbs that are not significant for the result */
+    if ( longer_size > MIN_LIMB_DIFF )	/* more can't be represented */
+    { ignored_limbs = longer_size - MIN_LIMB_DIFF;
+      longer_size -= ignored_limbs;
+      shorter_size -= ignored_limbs;
+    }
+    if ( shorter_size > DBL_PRECISION_LIMBS )	/* more exceeds the precision */
+    { ignored_limbs += shorter_size - DBL_PRECISION_LIMBS;
+      longer_size -= shorter_size - DBL_PRECISION_LIMBS;
+      shorter_size = DBL_PRECISION_LIMBS;
+    }
+    longer_d += ignored_limbs;
+    shorter_d += ignored_limbs;
+    li->_mp_alloc = li->_mp_size = longer_size; li->_mp_d = longer_d;
+    si->_mp_alloc = si->_mp_size = shorter_size; si->_mp_d = shorter_d;
+
+    l = mpz_get_d_2exp(&le, li);
+    s = mpz_get_d_2exp(&se, si);
+    if ( swapped )
+      res = (l/s) * pow(2.0, le-se);
+    else
+      res = (s/l) * pow(2.0, se-le);
+  }
+
+  return negative ? -res : res;
+}
+
+double
+mpq_to_double(mpq_t q)
+{ return mpz_fdiv(mpq_numref(q), mpq_denref(q));
+}
+
+
+/*
+ * Try to compute a "nice" rational from a float, using continued fractions.
+ * Stop when the rational converts back into the original float exactly.
+ * If the process doesn't converge (due to numeric problems), or produces
+ * a result longer than the fast bitwise conversion from the float mantissa,
+ * then fall back to the bitwise conversion.
+ */
+
+void
+mpq_set_double(mpq_t q, double f)	/* float -> nice rational */
+{ double fabs = (f < 0.0) ? -f : f;	/* get rid of the sign */
+  double x = fabs;
+  mpq_t b, c;
+  MP_INT *pna = mpq_numref(q);		/* use output q for a directly */
+  MP_INT *pda = mpq_denref(q);
+  MP_INT *pnb = mpq_numref(b);
+  MP_INT *pdb = mpq_denref(b);
+  MP_INT *pnc = mpq_numref(c);
+  MP_INT *pdc = mpq_denref(c);
+  mpz_t big_xi;
+  int half_exp;                       /* predict bitwise conversion size */
+  double fr = frexp(fabs, &half_exp);
+  int bitwise_denominator_size = DBL_MANT_DIG-(half_exp-1);
+
+  (void)fr;
+  if ( bitwise_denominator_size < 1 )
+    bitwise_denominator_size = 1;
+
+  mpz_set_ui(pna, 1L);                /* a = q = 1/0 */
+  mpz_set_ui(pda, 0L);
+  mpq_init(b);			      /* b = 0/1 */
+  mpq_init(c);			      /* auxiliary */
+  mpz_init(big_xi);                   /* auxiliary */
+
+  while ((mpz_fdiv(pna, pda)) != fabs)
+  { /* infinite x indicates failure to converge */
+    if ( !isfinite(x) )
+      goto _bitwise_conversion_;
+
+    double xi = floor(x);
+    double xf = x - xi;
+
+      /* compute a = a*xi + b for both numerator and denominator */
+    mpq_swap(q, b);
+    if ( x < (double)LONG_MAX )
+    { unsigned long int_xi = (unsigned long) xi;
+      mpz_mul_ui(pnc, pnb, int_xi);
+      mpz_mul_ui(pdc, pdb, int_xi);
+    } else
+    { mpz_set_d(big_xi, xi);
+      mpz_mul(pnc, pnb, big_xi);
+      mpz_mul(pdc, pdb, big_xi);
+    }
+    mpz_add(pna, pna, pnc);
+    mpz_add(pda, pda, pdc);
+
+    /* if it gets too long, fall back to bitwise conversion */
+    if (mpz_sizeinbase(pda, 2) > bitwise_denominator_size)
+      goto _bitwise_conversion_;
+
+    x = 1.0/xf;
+  }
+
+  if ( f < 0.0 )
+    mpq_neg(q, q);
+  mpq_canonicalize(q);                /* normally not be necessary */
+
+  goto _cleanup_;
+
+_bitwise_conversion_:
+  mpq_set_d(q, f);                    /* bitwise conversion */
+
+_cleanup_:
+  mpz_clear(big_xi);
+  mpq_clear(c);
+  mpq_clear(b);
+}
+
 
 		 /*******************************
 		 *	 PUBLIC INTERFACE	*
 		 *******************************/
-
-#ifdef O_GMP
 
 int
 PL_get_mpz(term_t t, mpz_t mpz)

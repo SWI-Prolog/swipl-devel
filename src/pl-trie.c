@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-indirect.h"
@@ -213,9 +214,9 @@ trie_discard_clause(trie *trie)
 { atom_t dbref;
 
   if ( (dbref=trie->clause) )
-  { if ( COMPARE_AND_SWAP(&trie->clause, dbref, 0) &&
-	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause from */
-    { ClauseRef cref = clause_clref(dbref);	/* two ends */
+  { if ( COMPARE_AND_SWAP_WORD(&trie->clause, dbref, 0) &&
+	 GD->cleaning == CLN_NORMAL )		/* otherwise reclaims clause */
+    { ClauseRef cref = clause_clref(dbref);	/* from two ends */
 
       if ( cref )
       { Clause cl = cref->value.clause;
@@ -236,7 +237,7 @@ trie_empty(trie *trie)
   { indirect_table *it = trie->indirects;
 
     clear_node(trie, &trie->root, FALSE);	/* TBD: verify not accessed */
-    if ( it && COMPARE_AND_SWAP(&trie->indirects, it, NULL) )
+    if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
       destroy_indirect_table(it);
     trie->node_count = 1;
     trie->value_count = 0;
@@ -367,7 +368,7 @@ prune_node(trie *trie, trie_node *n)
     if ( children.any )
     { switch( children.any->type )
       { case TN_KEY:
-	  if ( COMPARE_AND_SWAP(&p->children.any, children.any, NULL) )
+	  if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
 	    PL_free(children.any);
 	  break;
 	case TN_HASHED:
@@ -446,7 +447,7 @@ prune_trie(trie *trie, trie_node *root,
       if ( children.any )
       { switch( children.any->type )
 	{ case TN_KEY:
-	    if ( COMPARE_AND_SWAP(&p->children.any, children.any, NULL) )
+	    if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
 	      PL_free(children.any);
 	    break;
 	  case TN_HASHED:
@@ -549,7 +550,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 	    update_var_mask(hnode, new->key);
 	    new->parent = n;
 
-	    if ( COMPARE_AND_SWAP(&n->children.hash, children.hash, hnode) )
+	    if ( COMPARE_AND_SWAP_PTR(&n->children.hash, children.hash, hnode) )
 	    { hnode->old_single = children.key;			/* See (*) */
 	      return new;
 	    } else
@@ -588,7 +589,7 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
       child->key   = key;
       child->child = new;
 
-      if ( COMPARE_AND_SWAP(&n->children.key, NULL, child) )
+      if ( COMPARE_AND_SWAP_PTR(&n->children.key, NULL, child) )
       { child->child->parent = n;
 	return child->child;
       }
@@ -621,7 +622,7 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
     } else if ( add )
     { indirect_table *newtab = new_indirect_table();
 
-      if ( !COMPARE_AND_SWAP(&trie->indirects, NULL, newtab) )
+      if ( !COMPARE_AND_SWAP_PTR(&trie->indirects, NULL, newtab) )
 	destroy_indirect_table(newtab);
     } else
     { return 0;
@@ -629,9 +630,6 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
   }
 }
 
-
-#define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
-#define TRIE_LOOKUP_CYCLIC		-11
 
 /* If there is an error, we prune the part that we have created.
  * We should only start the prune from a new node though.  To be sure
@@ -653,20 +651,37 @@ to the trie if it is not already in the true.
 `vars` is either NULL or a _buffer_ In the latter case it is filled with
 pointers to the variables found  in  `k`.   This  is  used by tabling to
 create the `ret` term.
+
+Return:
+
+  - FALSE
+    Could not find term while `add` is FALSE or exception
+  - TRUE
+    Ok (found or inserted)
+  - TRIE_ABSTRACTED
+    Ok, but abstracted
+  - TRIE_LOOKUP_CONTAINS_ATTVAR
+  - TRIE_LOOKUP_CYCLIC
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
-	    Word k, int add, TmpBuffer vars ARG_LD)
+trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
+		     Word k, int add, size_abstract *abstract,
+		     TmpBuffer vars ARG_LD)
 { term_agenda_P agenda;
   size_t var_number = 0;
   int rc = TRUE;
   size_t compounds = 0;
   tmp_buffer varb;
+  size_abstract sa = {.from_depth = 1, .size = (size_t)-1};
+  size_t aleft = (size_t)-1;
 
   TRIE_STAT_INC(trie, lookups);
   if ( !node )
     node = &trie->root;
+  if ( abstract )
+    sa = *abstract;
 
   initTermAgenda_P(&agenda, 1, k);
   while( node )
@@ -686,16 +701,25 @@ trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
 	break;				/* finished toplevel */
     }
 
+    if ( compounds == sa.from_depth )
+      aleft = sa.size;
+
     w = *p;
     switch( tag(w) )
     { case TAG_VAR:
 	if ( isVar(w) )
-	{ if ( var_number++ == 0 && !vars )
+	{ word w2;
+
+	add_var:
+	  if ( var_number++ == 0 && !vars )
 	  { vars = &varb;
 	    initBuffer(vars);
 	  }
 	  addBuffer(vars, p, Word);
-	  *p = w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  w2 = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  if ( tag(w) == TAG_VAR )
+	    *p = w2;
+	  w = w2;
 	}
         node = follow_node(trie, node, w, add PASS_LD);
 	break;
@@ -706,16 +730,23 @@ trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
         node = NULL;
         break;
       case TAG_COMPOUND:
-      { Functor f = valueTerm(w);
-        size_t arity = arityFunctor(f->definition);
-
-	if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
-	{ rc = TRIE_LOOKUP_CYCLIC;
-	  prune_error(trie, node PASS_LD);
-	  node = NULL;
+      { if ( unlikely(aleft == 0) )
+	{ rc = TRIE_ABSTRACTED;
+	  goto add_var;
 	} else
-	{ node = follow_node(trie, node, f->definition, add PASS_LD);
-	  pushWorkAgenda_P(&agenda, arity, f->arguments);
+	{ Functor f = valueTerm(w);
+	  size_t arity = arityFunctor(f->definition);
+
+	  if ( aleft != (size_t)-1 )
+	    aleft--;
+	  if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
+	  { rc = TRIE_LOOKUP_CYCLIC;
+	    prune_error(trie, node PASS_LD);
+	    node = NULL;
+	  } else
+	  { node = follow_node(trie, node, f->definition, add PASS_LD);
+	    pushWorkAgenda_P(&agenda, arity, f->arguments);
+	  }
 	}
 	break;
       }
@@ -741,13 +772,14 @@ trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
 
     for(; pp < ep; pp++)
     { Word vp = *pp;
-      setVar(*vp);
+      if ( tag(*vp) == TAG_VAR )
+	setVar(*vp);
     }
     if ( vars == &varb )
       discardBuffer(vars);
   }
 
-  if ( rc == TRUE )
+  if ( rc > 0 )
   { if ( node )
       *nodep = node;
     else
@@ -1281,7 +1313,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
 
 static int
 trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
-	    int update ARG_LD)
+	    int update, size_abstract *abstract ARG_LD)
 { trie *trie;
 
   if ( get_trie(Trie, &trie) )
@@ -1303,7 +1335,8 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
 
     kp	= valTermRef(Key);
 
-    if ( (rc=trie_lookup(trie, NULL, &node, kp, TRUE, NULL PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup_abstract(trie, NULL, &node, kp,
+				  TRUE, abstract, NULL PASS_LD)) == TRUE )
     { word val = intern_value(Value PASS_LD);
 
       if ( nodep )
@@ -1362,7 +1395,7 @@ static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, FALSE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, FALSE, NULL PASS_LD);
 }
 
 /**
@@ -1378,7 +1411,23 @@ static
 PRED_IMPL("trie_insert", 2, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, 0, NULL, FALSE PASS_LD);
+  return trie_insert(A1, A2, 0, NULL, FALSE, NULL PASS_LD);
+}
+
+
+/**
+ * trie_insert_abstract(+Trie, +Size, +Key) is semidet.
+ *
+ * Insert size-abstracted version of Key
+ */
+
+static
+PRED_IMPL("$trie_insert_abstract", 3, trie_insert_abstract, 0)
+{ PRED_LD
+  size_abstract sa = {.from_depth = 1};
+
+  return ( PL_get_size_ex(A2, &sa.size ) &&
+	   trie_insert(A1, A3, 0, NULL, FALSE, &sa PASS_LD) > 0 );
 }
 
 
@@ -1395,7 +1444,7 @@ static
 PRED_IMPL("trie_update", 3, trie_update, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, TRUE PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, TRUE, NULL PASS_LD);
 }
 
 
@@ -1415,7 +1464,7 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
   trie_node *node;
 
-  return ( trie_insert(A1, A2, A3, &node, FALSE PASS_LD) &&
+  return ( trie_insert(A1, A2, A3, &node, FALSE, NULL PASS_LD) &&
 	   PL_unify_pointer(A4, node) );
 }
 
@@ -2341,6 +2390,19 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       } else if ( name == ATOM_reevaluated && (idg=trie->data.IDG))
       { return PL_unify_int64(arg, idg->stats.reevaluated);
 #endif
+      } else if ( (idg=trie->data.IDG) )
+      { if ( name == ATOM_idg_affected_count )
+	{ return PL_unify_int64(arg, idg->affected ? idg->affected->size : 0);
+	} else if ( name == ATOM_idg_dependent_count )
+	{ return PL_unify_int64(arg, idg->dependent ? idg->dependent->size : 0);
+	} else if ( name == ATOM_idg_size )
+	{ size_t size = sizeof(*idg);
+
+	  if ( idg->affected )  size += sizeofTable(idg->affected);
+	  if ( idg->dependent ) size += sizeofTable(idg->dependent);
+
+	  return PL_unify_int64(arg, size);
+	}
       }
     }
   }
@@ -2854,7 +2916,7 @@ retry:
   if ( !(dbref = trie->clause) )
   { if ( trie->value_count == 0 )
     { dbref = ATOM_fail;
-      if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+      if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	goto retry;
     } else
     { trie_compile_state state;
@@ -2868,7 +2930,7 @@ retry:
       { cref = assertDefinition(def, cl, CL_END PASS_LD);
 	if ( cref )
 	{ dbref = lookup_clref(cref->value.clause);
-	  if ( !COMPARE_AND_SWAP(&trie->clause, 0, dbref) )
+	  if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	  { PL_unregister_atom(dbref);
 	    retractClauseDefinition(def, cref->value.clause);
 	    goto retry;
@@ -2927,26 +2989,28 @@ set_trie_clause_general_undefined(Clause clause)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(trie)
-  PRED_DEF("is_trie",             1, is_trie,            0)
-  PRED_DEF("trie_new",            1, trie_new,           0)
-  PRED_DEF("trie_destroy",        1, trie_destroy,       0)
-  PRED_DEF("trie_insert",         2, trie_insert,        0)
-  PRED_DEF("trie_insert",         3, trie_insert,        0)
-  PRED_DEF("trie_insert",         4, trie_insert,        0)
-  PRED_DEF("trie_update",         3, trie_update,        0)
-  PRED_DEF("trie_lookup",         3, trie_lookup,        0)
-  PRED_DEF("trie_delete",         3, trie_delete,        0)
-  PRED_DEF("trie_term",		  2, trie_term,		 0)
-  PRED_DEF("trie_gen",            3, trie_gen,	      NDET)
-  PRED_DEF("trie_gen",            2, trie_gen,        NDET)
-  PRED_DEF("$trie_gen_node",      3, trie_gen_node,   NDET)
-  PRED_DEF("$trie_property",      2, trie_property,      0)
+  PRED_DEF("is_trie",		    1, is_trie,		     0)
+  PRED_DEF("trie_new",		    1, trie_new,	     0)
+  PRED_DEF("trie_destroy",	    1, trie_destroy,	     0)
+  PRED_DEF("trie_insert",	    2, trie_insert,	     0)
+  PRED_DEF("trie_insert",	    3, trie_insert,	     0)
+  PRED_DEF("trie_insert",	    4, trie_insert,	     0)
+  PRED_DEF("$trie_insert_abstract", 3, trie_insert_abstract, 0)
+
+  PRED_DEF("trie_update",	    3, trie_update,	     0)
+  PRED_DEF("trie_lookup",	    3, trie_lookup,	     0)
+  PRED_DEF("trie_delete",	    3, trie_delete,	     0)
+  PRED_DEF("trie_term",		    2, trie_term,	     0)
+  PRED_DEF("trie_gen",		    3, trie_gen,	     NDET)
+  PRED_DEF("trie_gen",		    2, trie_gen,	     NDET)
+  PRED_DEF("$trie_gen_node",	    3, trie_gen_node,	     NDET)
+  PRED_DEF("$trie_property",	    2, trie_property,	     0)
 #if O_NESTED_TRIES
-  PRED_DEF("trie_insert_insert",  3, trie_insert_insert, 0)
-  PRED_DEF("trie_lookup_gen",     3, trie_lookup_gen, NDET)
-  PRED_DEF("trie_lookup_delete",  3, trie_lookup_delete, 0)
+  PRED_DEF("trie_insert_insert",    3, trie_insert_insert,   0)
+  PRED_DEF("trie_lookup_gen",       3, trie_lookup_gen,      NDET)
+  PRED_DEF("trie_lookup_delete",    3, trie_lookup_delete,   0)
 #endif
-  PRED_DEF("$trie_compile",       2, trie_compile,       0)
+  PRED_DEF("$trie_compile",         2, trie_compile,         0)
 EndPredDefs
 
 void

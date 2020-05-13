@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,11 +44,15 @@
             head_name_arity/3,			% ?Goal, ?Name, ?Arity
 
             most_general_goal/2,                % :Goal, -General
+            extend_goal/3,                      % :Goal, +Extra, -GoalOut
 
             predicate_label/2,                  % +PI, -Label
-            predicate_sort_key/2                % +PI, -Key
+            predicate_sort_key/2,               % +PI, -Key
+
+            is_control_goal/1                   % @Term
           ]).
-:- autoload(library(error),[must_be/2]).
+:- autoload(library(error),[must_be/2, instantiation_error/1]).
+:- autoload(library(lists),[append/3]).
 
 
 :- multifile
@@ -177,6 +182,27 @@ most_general_goal(Compound, General) :-
     compound_name_arity(General, Name, Arity).
 
 
+%!  extend_goal(:Goal0, +Extra, -Goal) is det.
+%
+%   Extend the possibly qualified Goal0   with additional arguments from
+%   Extra.
+
+extend_goal(Goal0, _, _) :-
+    var(Goal0),
+    !,
+    instantiation_error(Goal0).
+extend_goal(M:Goal0, Extra, M:Goal) :-
+    extend_goal(Goal0, Extra, Goal).
+extend_goal(Atom, Extra, Goal) :-
+    atom(Atom),
+    !,
+    Goal =.. [Atom|Extra].
+extend_goal(Goal0, Extra, Goal) :-
+    compound_name_arguments(Goal0, Name, Args0),
+    append(Args0, Extra, Args),
+    compound_name_arguments(Goal, Name, Args).
+
+
 		 /*******************************
 		 *            LABELS		*
 		 *******************************/
@@ -234,3 +260,21 @@ predicate_sort_key(_:PI, Name) :-
     predicate_sort_key(PI, Name).
 predicate_sort_key(Name/_Arity, Name).
 predicate_sort_key(Name//_Arity, Name).
+
+%!  is_control_goal(@Goal)
+%
+%   True if Goal is a compiled  Prolog control structure. The difference
+%   between control structures and meta-predicates   is  rather unclear.
+%   The constructs below are recognised by   the  compiler and cannot be
+%   redefined.   Note   that   (if->then;else)     is    recognised   as
+%   ((if->then);else).
+
+is_control_goal(Goal) :-
+    var(Goal),
+    !, fail.
+is_control_goal((_,_)).
+is_control_goal((_;_)).
+is_control_goal((_->_)).
+is_control_goal((_|_)).
+is_control_goal((_*->_)).
+is_control_goal(\+(_)).

@@ -499,7 +499,7 @@ initialise_prolog :-
     '$set_file_search_paths',
     init_debug_flags,
     start_pldoc,
-    attach_packs,
+    opt_attach_packs,
     '$cmd_option_val'(init_file, OsFile),
     prolog_to_os_filename(File, OsFile),
     '$load_init_file'(File),
@@ -518,6 +518,12 @@ initialise_prolog :-
             run_main_init
         )
     ).
+
+opt_attach_packs :-
+    current_prolog_flag(packs, true),
+    !,
+    attach_packs.
+opt_attach_packs.
 
 set_toplevel :-
     '$cmd_option_val'(toplevel, TopLevelAtom),
@@ -743,7 +749,7 @@ setup_interactive :-
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
-    attach_packs,
+    opt_attach_packs,
     use_module(library(qsave)),
     qsave:qsave_toplevel.
 

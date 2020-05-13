@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -38,6 +38,8 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "pl-comp.h"
+#include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include "pl-trie.h"
@@ -123,6 +125,8 @@ setupProlog(void)
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
   initBuildIns();
+  DEBUG(1, Sdprintf("TCMalloc binding ...\n"));
+  initTCMalloc();
   DEBUG(1, Sdprintf("Operators ...\n"));
   initOperators();
   DEBUG(1, Sdprintf("GMP ...\n"));
@@ -138,6 +142,7 @@ setupProlog(void)
 #ifdef O_LOCALE
   initLocale();
 #endif
+  setABIVersionPrologFlag();
   GD->io_initialised = TRUE;
   GD->clauses.cgc_space_factor  = 8;
   GD->clauses.cgc_stack_factor  = 0.03;
@@ -1433,6 +1438,10 @@ allocStacks(void)
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
 
+  itrail  = stack_nalloc(itrail);
+  minarg  = stack_nalloc(minarg);
+  iglobal = stack_nalloc(iglobal+ilocal)-ilocal;
+
   gBase = NULL;
   tBase = NULL;
   aBase = NULL;
@@ -1448,7 +1457,7 @@ allocStacks(void)
     return FALSE;
   }
 
-  lBase = (LocalFrame) addPointer(gBase, iglobal);
+  lBase   = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
@@ -1483,65 +1492,6 @@ freeStacks(ARG1_LD)
     aTop = NULL;
     aBase = NULL;
   }
-}
-
-
-void *
-stack_malloc(size_t size)
-{ void *mem = malloc(size+sizeof(size_t));
-
-  if ( mem )
-  { size_t *sp = mem;
-    *sp++ = size;
-#ifdef SECURE_GC
-    memset(sp, 0xFB, size);
-#endif
-    ATOMIC_ADD(&GD->statistics.stack_space, size);
-
-    return sp;
-  }
-
-  return NULL;
-}
-
-void *
-stack_realloc(void *old, size_t size)
-{ size_t *sp = old;
-  size_t osize = *--sp;
-  void *mem;
-
-#ifdef SECURE_GC
-  if ( (mem = stack_malloc(size)) )
-  { memcpy(mem, old, (size>osize?osize:size));
-    stack_free(old);
-    return mem;
-  }
-#else
-  if ( (mem = realloc(sp, size+sizeof(size_t))) )
-  { sp = mem;
-    *sp++ = size;
-    if ( size > osize )
-      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
-    else
-      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
-    return sp;
-  }
-#endif
-
-  return NULL;
-}
-
-void
-stack_free(void *mem)
-{ size_t *sp = mem;
-  size_t osize = *--sp;
-
-  ATOMIC_SUB(&GD->statistics.stack_space, osize);
-
-#ifdef SECURE_GC
-  memset(sp, 0xFB, osize+sizeof(size_t));
-#endif
-  free(sp);
 }
 
 
@@ -1644,16 +1594,8 @@ of work to do.
 
 void
 freePrologLocalData(PL_local_data_t *ld)
-{ int i;
-
-  discardBuffer(&ld->fli._discardable_buffer);
-
-  for(i=0; i<BUFFER_RING_SIZE; i++)
-  { discardBuffer(&ld->fli._buffer_ring[i]);
-    initBuffer(&ld->fli._buffer_ring[i]);	/* Used by debug-print */
-						/* on shutdown */
-  }
-
+{ discardBuffer(&ld->fli._discardable_buffer);
+  discardStringStack(&ld->fli.string_buffers);
   freeVarDefs(ld);
 
 #ifdef O_GVAR

@@ -144,12 +144,31 @@ call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
 expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
     dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1),
     !,
-    expand_bodies(Expanded0, Pos1, Expanded, Pos).
+    expand_bodies(Expanded0, Pos1, Expanded1, Pos),
+    non_terminal_decl(Expanded1, Expanded).
 expand_term_2(Term0, Pos0, Term, Pos) :-
     nonvar(Term0),
     !,
     expand_bodies(Term0, Pos0, Term, Pos).
 expand_term_2(Term, Pos, Term, Pos).
+
+non_terminal_decl(Clause, Decl) :-
+    \+ current_prolog_flag(xref, true),
+    clause_head(Clause, Head),
+    '$current_source_module'(M),
+    (   '$get_predicate_attribute'(M:Head, non_terminal, NT)
+    ->  NT == 0
+    ;   true
+    ),
+    !,
+    '$pi_head'(PI, Head),
+    Decl = [:-(non_terminal(M:PI)), Clause].
+non_terminal_decl(Clause, Clause).
+
+clause_head(Head:-_, Head) :- !.
+clause_head(Head, Head).
+
+
 
 %!  expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
 %
@@ -396,8 +415,13 @@ prop_var(fresh(Fresh), Var) :-
     ;   Fresh = true
     ).
 prop_var(singleton(Singleton), Var) :-
-    get_attr(Var, '$var_info', Info),
-    get_dict(singleton, Info, Singleton).
+    nb_current('$term', Term),
+    term_singletons(Term, Singletons),
+    (   '$member'(V, Singletons),
+        V == Var
+    ->  Singleton = true
+    ;   Singleton = false
+    ).
 prop_var(name(Name), Var) :-
     (   nb_current('$variable_names', Bindings),
         '$member'(Name0=Var0, Bindings),

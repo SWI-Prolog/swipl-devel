@@ -35,6 +35,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-inline.h"
 #include "pl-wrap.h"
 
@@ -414,7 +415,7 @@ setSupervisor(Definition def)
   if ( false(def, P_LOCKED_SUPERVISOR) )
   { PL_LOCK(L_PREDICATE);
     codes = createSupervisor(def);
-    MemoryBarrier();
+    MEMORY_BARRIER();
     def->codes = codes;
     PL_UNLOCK(L_PREDICATE);
   }
@@ -440,6 +441,16 @@ supervisorLength(Code base)
     PC++;					/* include I_EXIT */
     return PC-base;
   }
+}
+
+/* returns 0 for shared static supervisors
+ */
+
+size_t
+sizeof_supervisor(Code base)
+{ size_t size = (size_t)base[-1];
+
+  return size*sizeof(code);
 }
 
 

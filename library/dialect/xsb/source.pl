@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,11 +34,10 @@
 */
 
 :- module(xsb_source, []).
-:- autoload(library(apply),[convlist/3,partition/4]).
-:- autoload(library(debug),[debug/3]).
-:- autoload(library(error),[instantiation_error/1]).
-:- autoload(library(lists),[append/3,flatten/2]).
-
+:- autoload(library(apply),  [convlist/3,partition/4]).
+:- autoload(library(debug),  [debug/3]).
+:- autoload(library(error),  [instantiation_error/1]).
+:- autoload(library(occurs), [sub_term/2]).
 
 /** <module> Support XSB source .P files
 
@@ -66,7 +66,7 @@ user:term_expansion(begin_of_file, Out) :-
     file_name_extension(Path, 'P', File),
     include_options(File, Include),
     compiler_options(COptions),
-    append(Include, COptions, Extra),
+    '$append'(Include, COptions, Extra),
     xsb_directives(File, Directives),
     directive_exports(Directives, Public, Directives1),
     (   Public == []
@@ -80,15 +80,14 @@ user:term_expansion(begin_of_file, Out) :-
              (:- use_module(library(tables)))
            | Out2
            ],
-    append(Extra, More, Out2),
+    '$append'(Extra, More, Out2),
     (   nonvar(Module)
     ->  setup_call_cleanup(
             '$set_source_module'(OldM, Module),
-            convlist(head_directive(File), Directives1, More0),
+            phrase(head_directives(Directives1, File), More),
             '$set_source_module'(OldM))
-    ;   convlist(head_directive(File), Directives1, More0)
+    ;   phrase(head_directives(Directives1, File), More)
     ),
-    flatten(More0, More),
     debug(xsb(header), '~p: directives: ~p', [File, More]).
 
 include_options(File, Option) :-
@@ -141,21 +140,64 @@ export_decl((A,B)) -->
 export_decl(PI) -->
     [PI].
 
-%!  head_directive(+File, +Directive, -PrefixedDirective) is semidet.
+%!  head_directives(+Directives, +File)// is det.
+%!  head_directives_s(+Directives, +State)// is det.
 
-head_directive(File, import(from(Preds, From)),
-               (:- xsb_import(Preds, From))) :-
-    assertz(xsb:moved_directive(File, import(from(Preds, From)))).
-head_directive(File, table(Preds as XSBOptions), Clauses) :-
-    ignored_table_options(XSBOptions, Options),
-    (   Options == true
-    ->  expand_term((:- table(Preds)), Clauses)
-    ;   expand_term((:- table(Preds as Options)), Clauses)
-    ),
-    assertz(xsb:moved_directive(File, table(Preds as XSBOptions))).
-head_directive(File, table(Preds), Clauses) :-
-    expand_term((:- table(Preds)), Clauses),
-    assertz(xsb:moved_directive(File, table(Preds))).
+head_directives(Directives, File) -->
+    { current_prolog_flag(max_table_subgoal_size_action, Action),
+      (   current_prolog_flag(max_table_subgoal_size, Size)
+      ->  true
+      ;   Size = -1
+      )
+    },
+    head_directives_s(Directives,
+                      #{file: File,
+                        max_table_subgoal_size_action: Action,
+                        max_table_subgoal_size:Size
+                       }).
+
+
+head_directives_s([], _) --> [].
+head_directives_s([H|T], State0) -->
+    { update_state(H, State0, State) },
+    !,
+    head_directives_s(T, State).
+head_directives_s([H|T], State) -->
+    head_directive(H, State),
+    head_directives_s(T, State).
+
+update_state(set_prolog_flag(max_table_subgoal_size_action, Action),
+             State0, State) :-
+    State = State0.put(max_table_subgoal_size_action, Action).
+update_state(set_prolog_flag(max_table_subgoal_size, Size),
+             State0, State) :-
+    State = State0.put(max_table_subgoal_size, Size).
+
+%!  head_directive(+Directive, +State)// is det.
+
+head_directive(import(from(Preds, From)), State) -->
+    !,
+    { assertz(xsb:moved_directive(State.file, import(from(Preds, From))))
+    },
+    [ (:- xsb_import(Preds, From)) ].
+head_directive(table(Preds as XSBOptions), State) -->
+    !,
+    { ignored_table_options(XSBOptions, Options),
+      table_clauses(Preds, Options, Clauses, State),
+      assertz(xsb:moved_directive(State.file, table(Preds as XSBOptions)))
+    },
+    seq(Clauses).
+head_directive(table(Preds), State) -->
+    !,
+    { table_clauses(Preds, true, Clauses, State),
+      assertz(xsb:moved_directive(State.file, table(Preds)))
+    },
+    seq(Clauses).
+head_directive(_, _) -->
+    [].
+
+seq([]) --> [].
+seq([H|T]) --> [H], seq(T).
 
 ignored_table_options((A0,B0), Conj) :-
     !,
@@ -176,12 +218,30 @@ supported_table_option(incremental).
 supported_table_option(shared).
 supported_table_option(private).
 supported_table_option(max_answers(_)).
-supported_table_option(abstract_subgoal(_)).
-supported_table_option(abstract_answer(_)).
+supported_table_option(subgoal_abstract(_)).
+supported_table_option(answer_abstract(_)).
 
 mkconj(true, X, X) :- !.
 mkconj(X, true, X) :- !.
 mkconj(X, Y, (X,Y)) :- !.
+
+table_clauses(Preds, Options0, Clauses, State) :-
+    add_defaults(Options0, Options, State),
+    (   Options == true
+    ->  expand_term((:- table(Preds)), Clauses)
+    ;   expand_term((:- table(Preds as Options)), Clauses)
+    ).
+
+add_defaults(Opts, Opts, _) :-
+    sub_term(subgoal_abstract(_), Opts),
+    !.
+add_defaults(Opts0, Opts, State) :-
+    #{max_table_subgoal_size_action:abstract,
+      max_table_subgoal_size:Size} :< State,
+    Size >= 0,
+    !,
+    mkconj(Opts0, subgoal_abstract(Size), Opts).
+add_defaults(Opts, Opts, _).
 
 %!  xsb_directives(+File, -Directives) is semidet.
 %

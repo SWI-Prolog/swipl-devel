@@ -45,7 +45,8 @@
 */
 
 test_rational :-
-    run_tests([ rational
+    run_tests([ rational,
+                rationalize
 	      ]).
 
 set_prefer_rationals(Old, New) :-
@@ -121,13 +122,15 @@ test(float_to_rat) :-
     assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
     assertion(2.0 is 8.0**1r3),
     assertion(-2.0 is -8.0**1r3),
-    assertion((R1 is 8.0**2r3,check_error(R1,4))),  % compensate for rounding errors
-    assertion((R2 is -8.0**2r3,check_error(R2,4))),
+    assertion(4.0 is 8.0**2r3),
+    assertion(4.0 is -8.0**2r3),
     assertion(0.5 is 8.0** -1r3),
     assertion(-0.5 is -8.0** -1r3),
     assertion(2**1r2 =:= sqrt(2)).
 
 test(int_to_rat) :-
+    assertion(div0err(0** -1)),  % additional test for negative integer exp.
+    assertion(div0err(0** -1r2)),
     assertion(8 is 4**3r2),
     assertion(1.5NaN is -4**3r2),  % neg. base, even Q
     assertion(2 is 8**1r3),
@@ -147,8 +150,17 @@ test(rat_to_rat) :-
     assertion(1r4 is -1r8**2r3),
     assertion(2 is 1r8** -1r3),
     assertion(-2 is -1r8** -1r3).
+    
+test(pow_special) :-
+    assertion(1 is 1r4**0),
+    assertion(1 is 1**1r2),
+    assertion(0 is 0**1r2),
+    assertion(1 is -1**2),
+    assertion(-1 is -1**3),
+    assertion(div0err(0.0** -1r2)).
 
 test(other_arith) :-
+    assertion(div0err(1r2/0)),
     assertion(1r3 is abs(1r3)),
     assertion(1r3 is abs(-1r3)),
     assertion(1 is sign(1r3)),
@@ -190,8 +202,36 @@ test(syntax_fail) :-
 
 :- end_tests(rational).
 
+:- begin_tests(rationalize,
+               [ condition(current_prolog_flag(bounded,false))
+               ]).
+
+test(trip) :-
+	R is rationalize(5.1),
+	assertion(rational(R, 51, 10)).
+
+test(roundtrip_rational) :-
+    forall(between(1,1000,_),
+           ( rfloat(F),
+             F =:= rational(F))).
+test(roundtrip_rationalize) :-
+    forall(between(1,1000,_),
+           ( rfloat(F),
+             F =:= rationalize(F))).
+
+:- end_tests(rationalize).
+
 bad_syntax(String) :-
     catch(term_string(R,String), error(syntax_error(_T), _C), true),
     var(R).		% test that exception happened
 
 check_error(N1,N2) :- abs(N1-N2) < 1e-12.
+
+rfloat(X) :-
+    random_between(-308,308,E),
+    X is random_float * 10**E.
+
+div0err(Exp) :-
+    catch(_X is Exp,Err,true),
+    nonvar(Err),
+    Err = error(evaluation_error(zero_divisor), _).

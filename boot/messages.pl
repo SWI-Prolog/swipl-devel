@@ -938,9 +938,19 @@ prolog_message(autoload(read_index(Dir))) -->
     [ 'Loading autoload index for ~w'-[Dir] ].
 prolog_message(autoload(disabled(Loaded))) -->
     [ 'Disabled autoloading (loaded ~D files)'-[Loaded] ].
+prolog_message(autoload(already_defined(PI, From))) -->
+    [ ansi(code, '~p', [PI]) ],
+    (   { '$pi_head'(PI, Head),
+          predicate_property(Head, built_in)
+        }
+    ->  [' is a built-in predicate']
+    ;   [ ' is already imported from module ',
+          ansi(code, '~p', [From])
+        ]
+    ).
 
 swi_message(autoload(Msg)) -->
-    [ nl, '    ' ],
+    [ nl, '  ' ],
     autoload_message(Msg).
 
 autoload_message(not_exported(PI, Spec, _FullFile, _Exports)) -->
@@ -1642,17 +1652,33 @@ default_theme(message(Level),         Attrs) :-
 %   system.
 
 print_message(Level, Term) :-
-    nb_current('$inprint_message', true),
+    setup_call_cleanup(
+        push_msg(Term),
+        print_message_guarded(Level, Term),
+        pop_msg),
+    !.
+print_message(Level, Term) :-
     (   Level \== silent
     ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term])
     ;   true
-    ),
-    !.
-print_message(Level, Term) :-
-    setup_call_cleanup(
-        nb_setval('$inprint_message', true),
-        print_message_guarded(Level, Term),
-        nb_delete('$inprint_message')).
+    ).
+
+push_msg(Term) :-
+    nb_current('$inprint_message', Messages),
+    !,
+    \+ ( '$member'(Msg, Messages),
+         Msg =@= Term
+       ),
+    b_setval('$inprint_message', [Term|Messages]).
+push_msg(Term) :-
+    b_setval('$inprint_message', [Term]).
+
+pop_msg :-
+    (   nb_current('$inprint_message', [_|Messages]),
+        Messages \== []
+    ->  b_setval('$inprint_message', Messages)
+    ;   nb_delete('$inprint_message')
+    ).
 
 print_message_guarded(Level, Term) :-
     (   must_print(Level, Term)
@@ -1915,15 +1941,20 @@ actions_to_format([nl|T], Fmt, Args) :-
     !,
     actions_to_format(T, Fmt0, Args),
     atom_concat('~n', Fmt0, Fmt).
-actions_to_format([Skip|T], Fmt, Args) :-
-    action_skip(Skip),
+actions_to_format([ansi(_Attrs, Fmt0, Args0)|Tail], Fmt, Args) :-
     !,
-    actions_to_format(T, Fmt, Args).
+    actions_to_format(Tail, Fmt1, Args1),
+    atom_concat(Fmt0, Fmt1, Fmt),
+    append_args(Args0, Args1, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
     !,
     actions_to_format(Tail, Fmt1, Args1),
     atom_concat(Fmt0, Fmt1, Fmt),
     append_args(Args0, Args1, Args).
+actions_to_format([Skip|T], Fmt, Args) :-
+    action_skip(Skip),
+    !,
+    actions_to_format(T, Fmt, Args).
 actions_to_format([Term|Tail], Fmt, Args) :-
     atomic(Term),
     !,
@@ -1936,7 +1967,6 @@ actions_to_format([Term|Tail], Fmt, Args) :-
 
 action_skip(at_same_line).
 action_skip(flush).
-action_skip(ansi(_Attrs, _Fmt, _Args)).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).
 

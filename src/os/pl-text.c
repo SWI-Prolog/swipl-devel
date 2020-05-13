@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-codelist.h"
@@ -74,17 +75,21 @@ bufsize_text(PL_chars_t *text, size_t len)
 }
 
 
-void
+int
 PL_save_text(PL_chars_t *text, int flags)
 { if ( (flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
   { size_t bl = bufsize_text(text, text->length+1);
     void *new = PL_malloc(bl);
 
-    memcpy(new, text->text.t, bl);
-    text->text.t = new;
-    text->storage = PL_CHARS_MALLOC;
+    if ( new )
+    { memcpy(new, text->text.t, bl);
+      text->text.t = new;
+      text->storage = PL_CHARS_MALLOC;
+    } else
+    { return FALSE;
+    }
   } else if ( text->storage == PL_CHARS_LOCAL )
-  { Buffer b = findBuffer(BUF_RING);
+  { Buffer b = findBuffer(BUF_STACK);
     size_t bl = bufsize_text(text, text->length+1);
 
     addMultipleBuffer(b, text->text.t, bl, char);
@@ -92,7 +97,7 @@ PL_save_text(PL_chars_t *text, int flags)
 
     text->storage = PL_CHARS_RING;
   } else if ( text->storage == PL_CHARS_MALLOC )
-  { Buffer b = findBuffer(BUF_RING);
+  { Buffer b = findBuffer(BUF_STACK);
     size_t bl = bufsize_text(text, text->length+1);
 
     addMultipleBuffer(b, text->text.t, bl, char);
@@ -101,6 +106,8 @@ PL_save_text(PL_chars_t *text, int flags)
 
     text->storage = PL_CHARS_RING;
   }
+
+  return TRUE;
 }
 
 
@@ -120,7 +127,7 @@ PL_from_stack_text(PL_chars_t *text, int flags)
 	text->text.t = text->buf;
 	text->storage = PL_CHARS_LOCAL;
       } else
-      { Buffer b = findBuffer(BUF_RING);
+      { Buffer b = findBuffer(BUF_STACK);
 
 	addMultipleBuffer(b, text->text.t, bl, char);
 	text->text.t = baseBuffer(b, char);
@@ -200,7 +207,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 #ifdef O_GMP
       case V_MPZ:
       { size_t sz = mpz_sizeinbase(n.value.mpz, 10) + 2;
-	Buffer b  = findBuffer(BUF_RING);
+	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
@@ -215,7 +222,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       case V_MPQ:
       { size_t sz = ( mpz_sizeinbase(mpq_numref(n.value.mpq), 10) +
 		      mpz_sizeinbase(mpq_denref(n.value.mpq), 10) + 4 );
-	Buffer b  = findBuffer(BUF_RING);
+	Buffer b  = findBuffer(BUF_STACK);
 
 	if ( !growBuffer(b, sz) )
 	  outOfCore();
@@ -248,13 +255,13 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     CVT_result result;
 
   case_list:
-    if ( (b = codes_or_chars_to_buffer(l, BUF_RING, FALSE, &result)) )
+    if ( (b = codes_or_chars_to_buffer(l, BUF_STACK, FALSE, &result)) )
     { text->length = entriesBuffer(b, char);
       addBuffer(b, EOS, char);
       text->text.t = baseBuffer(b, char);
       text->encoding = ENC_ISO_LATIN_1;
     } else if ( result.status == CVT_wide &&
-		(b = codes_or_chars_to_buffer(l, BUF_RING, TRUE, &result)) )
+		(b = codes_or_chars_to_buffer(l, BUF_STACK, TRUE, &result)) )
     { text->length = entriesBuffer(b, pl_wchar_t);
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
@@ -344,7 +351,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 
 	Sclose(fd);
 
-	return TRUE;
+	goto out;
       } else
       { Sclose(fd);
 	if ( r != text->buf )
@@ -357,7 +364,8 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
   { goto error;
   }
 
-  succeed;
+out:
+  return TRUE;
 
 maybe_write:
   if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
@@ -390,35 +398,62 @@ error:
 
 atom_t
 textToAtom(PL_chars_t *text)
-{ if ( !PL_canonicalise_text(text) )
-    return 0;
+{ GET_LD
+  atom_t a;
 
-  if ( text->encoding == ENC_ISO_LATIN_1 )
-  { return lookupAtom(text->text.t, text->length);
+  PL_STRINGS_MARK();
+  if ( PL_canonicalise_text(text) )
+  { if ( text->encoding == ENC_ISO_LATIN_1 )
+      a = lookupAtom(text->text.t, text->length);
+    else
+      a = lookupUCSAtom(text->text.w, text->length);
   } else
-  { return lookupUCSAtom(text->text.w, text->length);
+  { a = 0;
   }
+  PL_STRINGS_RELEASE();
+
+  return a;
 }
 
 
 word
 textToString(PL_chars_t *text)
-{ if ( !PL_canonicalise_text(text) )
-    return 0;
+{ GET_LD
+  atom_t a;
 
-  if ( text->encoding == ENC_ISO_LATIN_1 )
-  { return globalString(text->length, text->text.t);
+  PL_STRINGS_MARK();
+  if ( PL_canonicalise_text(text) )
+  { if ( text->encoding == ENC_ISO_LATIN_1 )
+      a = globalString(text->length, text->text.t);
+    else
+      a = globalWString(text->length, text->text.w);
   } else
-  { return globalWString(text->length, text->text.w);
+  { a = 0;
   }
+  PL_STRINGS_RELEASE();
+
+  return a;
 }
 
 
-int
-PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
-{ GET_LD
+static size_t
+globalSpaceRequirement(PL_chars_t *text)
+{ size_t len;
 
-  switch(type)
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+  { len = text->length+1;
+  } else
+  { len = (text->length+1)*sizeof(pl_wchar_t);
+  }
+
+  return 2 + (len+sizeof(word))/sizeof(word);
+}
+
+
+
+static int
+unify_text(term_t term, term_t tail, PL_chars_t *text, int type ARG_LD)
+{ switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
 
@@ -433,16 +468,20 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
     case PL_STRING:
     { word w;
 
-      if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
-	return FALSE;
-      if ( (w = textToString(text)) )
-	return _PL_unify_atomic(term, w);
-      else
-	return FALSE;
+      if ( PL_canonicalise_text(text) )
+      { if ( hasGlobalSpace(globalSpaceRequirement(text)) ||
+	     PL_from_stack_text(text, 0) )
+	{ if ( (w = textToString(text)) )
+	    return _PL_unify_atomic(term, w);
+	}
+      }
+
+      return FALSE;
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
-    { if ( !PL_from_stack_text(text, 0) )	/* TBD: only needed if no space */
+    { if ( !hasGlobalSpace(text->length*3+1) &&
+	   !PL_from_stack_text(text, 0) )
 	return FALSE;
 
       if ( text->length == 0 )
@@ -571,6 +610,18 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 
 
 int
+PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
+{ GET_LD
+  int rc;
+
+  PL_STRINGS_MARK();
+  rc = unify_text(term, tail, text, type PASS_LD);
+  PL_STRINGS_RELEASE();
+  return rc;
+}
+
+
+int
 PL_unify_text_range(term_t term, PL_chars_t *text,
 		    size_t offset, size_t len, int type)
 { if ( offset == 0 && len == text->length )
@@ -653,7 +704,7 @@ PL_promote_text(PL_chars_t *text)
       *t = EOS;
       text->encoding = ENC_WCHAR;
     } else
-    { Buffer b = findBuffer(BUF_RING);
+    { Buffer b = findBuffer(BUF_STACK);
       const unsigned char *s = (const unsigned char *)text->text.t;
       const unsigned char *e = &s[text->length];
 
@@ -712,13 +763,13 @@ PL_demote_text(PL_chars_t *text, int flags)
       *t = EOS;
       text->encoding = ENC_ISO_LATIN_1;
     } else
-    { Buffer b = findBuffer(BUF_RING);
+    { Buffer b = findBuffer(BUF_STACK);
       const pl_wchar_t *s = (const pl_wchar_t*)text->text.w;
       const pl_wchar_t *e = &s[text->length];
 
       for( ; s<e; s++)
       { if ( *s > 0xff )
-	{ unfindBuffer(BUF_RING);
+	{ unfindBuffer(b, BUF_STACK);
 	  goto reperr;
 	}
 	addBuffer(b, *s&0xff, char);
@@ -799,7 +850,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 		  (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
 
   if ( text->encoding != target )
-  { Buffer b = findBuffer(BUF_RING);
+  { Buffer b = findBuffer(BUF_STACK);
 
     switch(text->encoding)
     { case ENC_ISO_LATIN_1:
@@ -817,7 +868,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 	  memset(&mbs, 0, sizeof(mbs));
 	  for( ; s<e; s++)
 	  { if ( !wctobuffer(*s, &mbs, b) )
-	    { unfindBuffer(BUF_RING);
+	    { unfindBuffer(b, BUF_STACK);
 	      norep = *s;
 	      goto rep_error;
 	    }
@@ -845,7 +896,7 @@ PL_mb_text(PL_chars_t *text, int flags)
 	    memset(&mbs, 0, sizeof(mbs));
 	    for( ; w<e; w++)
 	    { if ( !wctobuffer(*w, &mbs, b) )
-	      { unfindBuffer(BUF_RING);
+	      { unfindBuffer(b, BUF_STACK);
 		norep = *w;
 		goto rep_error;
 	      }
@@ -1193,7 +1244,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    break;
 
 	  convert_utf8:
-	    b = findBuffer(BUF_RING);
+	    b = findBuffer(BUF_STACK);
 	    for( ; s<e; s++)
 	      utf8tobuffer(*s, b);
 	  swap_to_utf8:
@@ -1210,7 +1261,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	  { const pl_wchar_t *s = text->text.w;
 	    const pl_wchar_t *e = &s[text->length];
 
-	    b = findBuffer(BUF_RING);
+	    b = findBuffer(BUF_STACK);
 	    for( ; s<e; s++)
 	      utf8tobuffer(*s, b);
 	    goto swap_to_utf8;
@@ -1221,7 +1272,7 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    wchar_t wc;
 	    const char *s = (const char *)text->text.t;
 
-	    b = findBuffer(BUF_RING);
+	    b = findBuffer(BUF_STACK);
 	    memset(&mbs, 0, sizeof(mbs));
 	    while( n > 0 )
 	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)

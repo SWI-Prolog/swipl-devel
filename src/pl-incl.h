@@ -227,7 +227,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS)
+/* clang as of version 11 performs about 30% worse with this option */
+#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS) && !defined(__llvm__)
 #define VMCODE_IS_ADDRESS	1
 #endif
 
@@ -476,7 +477,6 @@ them.  Descriptions:
 	skips this amount of stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BUFFER_RING_SIZE	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
@@ -802,14 +802,15 @@ typedef enum
 /* See updateAlerted()
 */
 
-#define	ALERT_SIGNAL	     0x01
-#define	ALERT_GCREQ	     0x02
-#define	ALERT_PROFILE	     0x04
-#define	ALERT_EXITREQ	     0x08
-#define	ALERT_DEPTHLIMIT     0x10
-#define	ALERT_INFERENCELIMIT 0x20
-#define	ALERT_WAKEUP	     0x40
-#define	ALERT_DEBUG	     0x80
+#define	ALERT_SIGNAL	     0x001
+#define	ALERT_GCREQ	     0x002
+#define	ALERT_PROFILE	     0x004
+#define	ALERT_EXITREQ	     0x008
+#define	ALERT_DEPTHLIMIT     0x010
+#define	ALERT_INFERENCELIMIT 0x020
+#define	ALERT_WAKEUP	     0x040
+#define	ALERT_DEBUG	     0x080
+#define	ALERT_BUFFER	     0x100
 
 
 		 /*******************************
@@ -886,7 +887,7 @@ with one operation, it turns out to be faster as well.
 #define P_NEW			SPY_ME
 #define P_NO_CLAUSES		TRACE_ME
 
-/* Flags on clauses (packed in unsigned flags : 8) */
+/* Flags on clauses (unsigned int) */
 
 #define CL_ERASED		(0x0001) /* clause was erased */
 #define UNIT_CLAUSE		(0x0002) /* Clause has no body */
@@ -897,6 +898,11 @@ with one operation, it turns out to be faster as well.
 #define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
 #define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
 					 /* from predicate */
+
+/* Flags on a DDI (Dirty Definition Info struct */
+
+#define DDI_MARKING		0x0001	 /* Actively using the DDI */
+#define DDI_INTERVALS		0x0002	 /* DDI collects an interval */
 
 /* Flags on module.  Most of these flags are copied to the read context
    in pl-read.c.
@@ -1021,7 +1027,7 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+#if defined(HAVE_GCC_ATOMIC_8) || SIZEOF_VOIDP == 8
 typedef uint64_t ggen_t;
 #else
 #define ATOMIC_GENERATION_HACK 1
@@ -1029,7 +1035,7 @@ typedef struct ggen_t
 { uint32_t	gen_l;
   uint32_t	gen_u;
 } ggen_t;
-#endif /*HAVE___SYNC_ADD_AND_FETCH_8*/
+#endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
 #else /*O_LOGICAL_UPDATE*/
 #define global_generation()	 (0)
 #define next_global_generation() (0)
@@ -1482,10 +1488,15 @@ struct definition
 struct definition_chain
 { Definition		definition;	/* chain on definition */
   DefinitionChain	next;		/* next in chain */
-} definition_chain;
+};
+
+#define PROC_DIRTY_GENS	10
 
 struct dirty_def_info
-{ gen_t		oldest_generation;	/* Oldest generation seen */
+{ unsigned short count;			/* # captured generations */
+  unsigned short flags;			/* DDI_* */
+  Definition	predicate;		/* The dirty predicate */
+  gen_t		access[PROC_DIRTY_GENS];/* Accessed generations */
 };
 
 typedef struct definition_ref
@@ -1939,7 +1950,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
 

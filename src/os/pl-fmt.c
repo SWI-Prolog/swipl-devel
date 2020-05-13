@@ -39,6 +39,7 @@ source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include <ctype.h>
@@ -295,7 +296,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   int rval;
   PL_chars_t fmt;
 
-  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
+  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_STACK) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
   if ( (argc = (int)lengthList(args, FALSE)) >= 0 )

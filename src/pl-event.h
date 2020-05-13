@@ -94,7 +94,7 @@ COMMON(int)	predicate_update_event(Definition def,
 COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
 				 ARG_LD);
 
-COMMON(const event_type) PL_events[PLEV_THIS_THREAD_EXIT+2];
+GLOBAL const event_type PL_events[PLEV_THIS_THREAD_EXIT+2];
 
 static inline event_list**
 event_list_location(pl_event_type ev)

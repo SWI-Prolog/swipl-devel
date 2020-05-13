@@ -9,7 +9,7 @@ set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex gensym.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
     record.tex registry.tex ugraphs.tex wwwbrowser.tex)
-if(USE_GMP)
+if(GMP_FOUND)
 set(DOC_LIB ${DOC_LIB} simplex.tex)
 endif()
 prepend(DOC_LIB lib/ ${DOC_LIB})
@@ -28,7 +28,7 @@ set(STYFILES html.sty txt.sty)
 # FIXME: we should reduce dependencies
 add_custom_command(
     OUTPUT ${PLDOC2TEX_STATE}
-    COMMAND ${PROG_SWIPL} -f none -o ${PLDOC2TEX_STATE}
+    COMMAND ${PROG_SWIPL} -f none --no-packs -o ${PLDOC2TEX_STATE}
             --class=development --no-autoload --no-stand_alone
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
@@ -67,12 +67,12 @@ function(doc2tex)
       add_custom_command(
 	  OUTPUT ${f}
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	  COMMAND ${PROG_SWIPL} -f none ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
 	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
     else()
       add_custom_command(
 	  OUTPUT ${f}
-	  COMMAND ${PROG_SWIPL} -f none ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
+	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
 	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
     endif()
   endforeach()
@@ -116,7 +116,7 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND ${PROG_SWIPL} -f none ${PLDOC2TEX} ${options} "'${input}'"
+	COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "'${input}'"
 	DEPENDS ${depends}
 	BYPRODUCTS ${byproducts})
 endfunction()
@@ -134,6 +134,15 @@ function(libsdoc)
   set(PLDOC_LIB ${PLDOC_LIB} PARENT_SCOPE)
 endfunction()
 
+has_package(ssl HAVE_SSL_PACKAGE)
+has_package(archive HAVE_ARCHIVE_PACKAGE)
+if(HAVE_SSL_PACKAGE)
+  set(doc_depends_ssl ${doc_depends_ssl} ssl)
+endif()
+if(HAVE_ARCHIVE_PACKAGE)
+  set(doc_depends_ssl ${doc_depends_ssl} archive)
+endif()
+
 # Specify how to generate tex files from PlDoc
 # NOTE: all files must be included from lib/library.doc and
 # NOTE: lib/libsummary.doc
@@ -142,13 +151,12 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         thread_pool charsio debug csv lists main check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
-        prolog_jiti)
+        prolog_jiti tables)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)
 pldoc(lib/prologpack.tex "library(prolog_pack)"
-      OPTIONS --section
-      DEPENDS archive)
+      OPTIONS --section DEPENDS ${doc_depends_ssl})
 pldoc(lib/assoclib.tex lib/assoclib.md
       OPTIONS --lib=assoc --module=assoc
       DEPENDS lib/assoclib.md ../library/assoc.pl)
@@ -158,7 +166,7 @@ pldoc(lib/clpblib.tex lib/clpblib.md
 pldoc(lib/clpfdlib.tex lib/clpfdlib.md
       OPTIONS --lib=clpfd --module=clpfd
       DEPENDS lib/clpfdlib.md ../library/clp/clpfd.pl)
-if(USE_GMP)
+if(GMP_FOUND)
 pldoc(lib/simplexlib.tex lib/simplexlib.md
       OPTIONS --lib=simplex --module=simplex
       DEPENDS lib/simplexlib.md ../library/clp/simplex.pl)
@@ -187,12 +195,12 @@ doc2tex(${DOC_LIB})
 
 add_custom_command(
     OUTPUT  ${DOC}.doc
-    COMMAND ${PROG_SWIPL} -f none ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
+    COMMAND ${PROG_SWIPL} -f none --no-packs ${CMAKE_CURRENT_SOURCE_DIR}/select.pl PDF
                   ${CMAKE_CURRENT_SOURCE_DIR}/main.doc > ${DOC}.doc
     DEPENDS main.doc select.pl)
 add_custom_command(
     OUTPUT  ${DOC}.tex
-    COMMAND ${PROG_SWIPL} -f none ${DOC2TEX} ${DOC}.doc ${DOC}.tex
+    COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${DOC}.doc ${DOC}.tex
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS})
 
 set(BIBTEX_DATA ${CMAKE_CURRENT_BINARY_DIR}/pl.bib)
@@ -238,7 +246,7 @@ prepend(cpfiles ${CMAKE_CURRENT_BINARY_DIR}/ ${cpfiles})
 add_custom_command(
     OUTPUT manual.html
     COMMAND rm -f Manual/*.html Manual/*.gif
-    COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} --texinputs=lib:: ${DOC}
+    COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} --texinputs=lib:: ${DOC}
     COMMAND ${CMAKE_COMMAND} -E remove ${MAN_INDEX}
     COMMAND touch manual.html
     COMMENT "Generating HTML documentation for core system"
@@ -252,7 +260,7 @@ if(WIN32)
   doc2tex(windows.tex)
   add_custom_command(
       OUTPUT windows.html
-      COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} windows
+      COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
               core latex2html)
 
@@ -265,13 +273,13 @@ if(APPLE)
   add_custom_command(
       OUTPUT  macosx/macosx.tex
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
-      COMMAND ${PROG_SWIPL} -f none ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
+      COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
 	                       macosx/macosx.tex
       DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS})
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
-      COMMAND ${PROG_SWIPL} -f none ${LATEX2HTML} macosx
+      COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
               core latex2html
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
@@ -301,5 +309,5 @@ if(INSTALL_DOCUMENTATION)
   endif()
 
   install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Manual
-	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
+	  DESTINATION ${SWIPL_INSTALL_DOC})
 endif(INSTALL_DOCUMENTATION)

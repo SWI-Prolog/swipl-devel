@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2013, University of Amsterdam
+    Copyright (c)  2007-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,13 +62,14 @@ pushSegStack_(segstack *stack, void *data)
 
     return TRUE;
   } else
-  { segchunk *chunk = PL_malloc(SEGSTACK_CHUNKSIZE);
+  { size_t chunksize = tmp_nalloc((size_t)1024<<stack->chunk_count++);
+    segchunk *chunk = tmp_malloc(chunksize);
 
     if ( !chunk )
       return FALSE;			/* out of memory */
 
     chunk->allocated = TRUE;
-    chunk->size = SEGSTACK_CHUNKSIZE;
+    chunk->size = chunksize;
     chunk->next = NULL;
     chunk->previous = stack->last;
     chunk->top = CHUNK_DATA(chunk);	/* async scanning */
@@ -128,12 +130,13 @@ popSegStack_(segstack *stack, void *data)
       { stack->last = chunk->previous;
 	stack->last->next = NULL;
 	if ( chunk->allocated )
-	  PL_free(chunk);
+	  tmp_free(chunk);
 
 	chunk = stack->last;
 	stack->base = CHUNK_DATA(chunk);
 	stack->max  = addPointer(chunk, chunk->size);
 	stack->top  = chunk->top;
+	stack->chunk_count--;
 	goto again;
       }
     }
@@ -171,16 +174,17 @@ popTopOfSegStack_(segstack *stack)
     { if ( chunk->previous )
       { segchunk *del = chunk;
 
+	stack->chunk_count--;
 	stack->last = chunk->previous;
 	stack->last->next = NULL;
 	chunk = stack->last;
 	stack->top  = chunk->top;
-	MemoryBarrier();		/* Sync with scanSegStack() */
+	MEMORY_BARRIER();		/* Sync with scanSegStack() */
 	stack->base = CHUNK_DATA(chunk);
 	stack->max  = addPointer(chunk, chunk->size);
 
 	if ( del->allocated )
-	  PL_free(del);
+	  tmp_free(del);
 
 	goto again;
       }
@@ -245,22 +249,23 @@ clearSegStack_(segstack *s)
 { segchunk *c = s->first;
   segchunk *n;
 
-  if ( !c->allocated )		/* statically allocated first chunk */
+  if ( !c->allocated )			/* statically allocated first chunk */
   { n = c->next;
 
     c->next = NULL;
     s->last = c;
     s->base = s->top = c->top;
     s->max  = addPointer(c, c->size);
+    s->chunk_count = 1;
 
     for(c=n; c; c = n)
     { n = c->next;
-      PL_free(c);
+      tmp_free(c);
     }
   } else				/* all dynamic chunks */
   { for(; c; c = n)
     { n = c->next;
-      PL_free(c);
+      tmp_free(c);
     }
     memset(s, 0, sizeof(*s));
   }

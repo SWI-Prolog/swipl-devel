@@ -135,7 +135,7 @@ static char *
 skip_flags(const char *s)
 { if ( s )
   { for (; *s; s++)
-    { if ( *s == '_' || *s == '|' ||
+    { if ( *s == '_' || *s == '|' || *s == '+' ||
 	   (*s >= 'A' && *s <= 'Z') ||
 	   (*s >= '0' && *s <= '9') )
 	continue;

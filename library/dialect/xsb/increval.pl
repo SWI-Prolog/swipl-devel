@@ -188,8 +188,8 @@ incr_invalidate_call(Goal) :-
 
 incr_table_update :-
     repeat,
-    (   invalid_subgoal(_Goal, ATrie)
-    ->  '$tabling':reeval(ATrie),
+    (   invalid_subgoal(Goal, ATrie)
+    ->  '$tabling':reeval(ATrie, Goal, _Return),
         fail
     ;   !
     ).

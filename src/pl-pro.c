@@ -38,6 +38,7 @@
 #define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-event.h"
 

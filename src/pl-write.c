@@ -35,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-dict.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
@@ -339,7 +340,7 @@ unquoted_atom(atom_t a)
 
 static bool
 Putc(int c, IOSTREAM *s)
-{ return Sputcode(c, s) == EOF ? FALSE : TRUE;
+{ return Sputcode(c, s) != EOF;
 }
 
 
@@ -814,7 +815,9 @@ static int
 writeString(term_t t, write_options *options)
 { GET_LD
   PL_chars_t txt;
+  int rc = TRUE;
 
+  PL_STRINGS_MARK();
   PL_get_text(t, &txt, CVT_STRING);
 
   if ( true(options, PL_WRT_QUOTED) )
@@ -826,26 +829,33 @@ writeString(term_t t, write_options *options)
     else
       quote = '"';
 
-    TRY(Putc(quote, options->out));
+    if ( !(rc=Putc(quote, options->out)) )
+      goto out;
 
     for(i=0; i<txt.length; i++)
     { int chr = get_chr_from_text(&txt, i);
 
-      TRY(putQuoted(chr, quote, options->flags, options->out));
+      if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	goto out;
     }
 
-    return Putc(quote, options->out);
+    rc = Putc(quote, options->out);
   } else
   { unsigned int i;
 
     for(i=0; i<txt.length; i++)
     { int chr = get_chr_from_text(&txt, i);
 
-      TRY(Putc(chr, options->out));
+      if ( !(rc=Putc(chr, options->out)) )
+	break;
     }
   }
+  PL_STRINGS_RELEASE();
 
-  succeed;
+out:
+  PL_free_text(&txt);
+
+  return rc;
 }
 
 #endif /*O_STRING*/

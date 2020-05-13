@@ -351,6 +351,10 @@ Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.
     \cmdlineoptionitem{--version}{}
 When given as the only option, it summarises the version and the
 architecture identifier.  Also available as \cmdlineoption{-v}.
+
+    \cmdlineoptionitem{--abi_version}{}
+Print a key (string) that represents the binary compatibility on
+a number of aspects.  See \secref{abi-versions}.
 \end{description}
 
 
@@ -385,6 +389,10 @@ See \cmdlineoption{--sigalert}.
     \cmdlineoptionitem{--no-threads}{}
 Disable threading for the multi-threaded version at runtime.  See also
 the flags \prologflag{threads} and \prologflag{gc_thread}.
+
+    \cmdlineoptionitem{--no-packs}{}
+Do \emph{not} attach extension packages (add-ons). See also
+attach_packs/0 and the Prolog flag \prologflag{packs}.
 
     \cmdlineoptionitem{--no-pce}{}
 Enable/disable the xpce GUI subsystem. The default is to make it
@@ -1178,6 +1186,11 @@ modifying a flag inside a thread does not affect other threads.
 
 
 \begin{description}
+    \prologflagitem{abi_version}{dict}{r}
+The flag value is a dict with keys that describe the version of
+the various Application Binary Interface (ABI) components.  See
+\secref{abi-versions} for details.
+
     \prologflagitem{access_level}{atom}{rw}
 This flag defines a normal `user' view (\const{user}, default) or a
 `system' view. In system view all system code is fully accessible as if
@@ -1524,6 +1537,17 @@ search result satisfies the conditions. Default is 10 seconds, which
 typically avoids most repetitive searches for (library) files during
 compilation. Setting this value to 0 (zero) disables the cache.
 
+    \prologflagitem{float_max}{float}{r}
+The biggest representable floating point number.
+
+    \prologflagitem{float_max_integer}{float}{r}
+The highest integer that can be represented precisely as a floating
+point number.
+
+    \prologflagitem{float_min}{float}{r}
+The smalles representable floating point number above 0.0.  See also
+\funcref{nexttoward}{2}.
+
     \prologflagitem{float_overflow}{atom}{rw}
 One of \const{error} (default) or \const{infinity}.  The first is ISO
 compliant.  Using \const{infinity}, floating point overflow is mapped
@@ -1531,8 +1555,9 @@ to positive or negative \const{Inf}.  See \secref{ieee-float}.
 
     \prologflagitem{float_rounding}{atom}{rw}
 Defines how arithmetic rounds to a float.  Defined values are
-\const{nearest} (default), \const{to_positive}, \const{to_negative}
-or \const{to_zero}.
+\const{to_nearest} (default), \const{to_positive}, \const{to_negative}
+or \const{to_zero}. For most scenarios the function
+\funcref{roundtoward}{2} provides a safer and faster alternative.
 
     \prologflagitem{float_undefined}{atom}{rw}
 One of \const{error} (default) or \const{nan}. The first is ISO
@@ -1589,11 +1614,12 @@ to 0 if a command line editor is provided (see Prolog flag
 \prologflag{readline}) and 15 otherwise.
 
     \prologflagitem{home}{atom}{r}
-SWI-Prolog's notion of the home directory.  SWI-Prolog uses its home
-directory to find its startup file as
-\file{<home>/boot32.prc} (32-bit machines) or
-\file{<home>/boot64.prc} (64-bit machines) and to find its library as
-\file{<home>/library}.
+SWI-Prolog's notion of the home directory. SWI-Prolog uses its home
+directory to find its startup file as \file{<home>/boot.prc} and to find
+its library as \file{<home>/library}. Some installations may put
+architecture independent files in a \jargon{shared home} and also
+define \prologflag{shared_home}.  System files can be found using
+absolute_file_name/3 as \term{swi}{file}.  See file_search_path/2.
 
     \prologflagitem{hwnd}{integer}{r}
 In \program{swipl-win.exe}, this refers to the MS-Windows window handle of
@@ -1788,6 +1814,10 @@ invoke SWI-Prolog.  Please note that {\bf all} arguments are included
 in the list returned.  See \prologflag{argv} to get the application
 options.
 
+    \prologflagitem{packs}{bool}{r}
+If \const{true}, extension packs (add-ons) are attached.  Can be set to
+\const{false} using the \cmdlineoption{--no-packs}.
+
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
 flag is implementation-defined.
@@ -1928,6 +1958,13 @@ allow library(sandbox) to verify the safety of directives.
 If present and \const{true}, Prolog has been started from a state saved
 with qsave_program/[1,2].
 
+    \prologflagitem{shared_home}{atom}{r}
+Indicates that part of the SWI-Prolog system files are installed in
+\file{<prefix>/share/swipl} instead of in the home at the
+\file{<prefix>/lib/swipl}.  This flag indicates the location of this
+\emph{shared home} and the directory is added to the file seach path
+\const{swi}.  See file_search_path/2 and the flag \prologflag{home}.
+
     \prologflagitem{shared_object_extension}{atom}{r}
 Extension used by the operating system for shared objects. \fileext{so}
 for most Unix systems and \fileext{dll} for Windows.  Used for locating
@@ -1959,6 +1996,11 @@ to binary streams. Values are \const{false} (no checking), \const{true}
 (full checking) and \const{loose}.  Using checking mode \const{loose}
 (default), the system accepts byte I/O from text stream that use ISO
 Latin-1 encoding and accepts writing text to binary streams.
+
+    \termitem{string_stack_tripwire}{int}{rw}
+Maintenance for foreign language string management.  Prints a warning
+if the string stack depth hits the tripwire value. See
+\secref{foreign-strings} for details.
 
     \prologflagitem{system_thread_id}{int}{r}
 Available in multithreaded version (see \secref{threads}) where the
@@ -2534,15 +2576,7 @@ are bundled with an application.
 \end{description}
 
 
-
-\section{Garbage Collection}			\label{sec:gc}
-
-SWI-Prolog provides garbage collection, last-call optimization and atom
-garbage collection.  These features are controlled using Prolog flags
-(see current_prolog_flag/2).
-
-
-\section{The SWI-Prolog syntax}				\label{sec:syntax}
+\section{The SWI-Prolog syntax}			\label{sec:syntax}
 
 SWI-Prolog syntax is close to ISO-Prolog standard syntax, which is based
 on the Edinburgh Prolog syntax. A formal description can be found in the
@@ -2778,11 +2812,8 @@ arithmetic expression the only difference is that evaluation moves from
 runtime to compiletime. The utility list_rationals/0 may be used on a
 loaded program to check whether the program contains rational numbers
 inside clauses and thus may be subject to compatibility issues. If a
-term is intended this can be written as \verb$/(1,2)$, \verb$(1)/2$ or
-some variation thereof.\footnote{We do not recomment using white space
-around the \chr{/} operator.  Future versions may allow for white space
-as it would allow for a more natural notation of large rational
-numbers.}
+term is intended this can be written as \verb$/(1,2)$, \verb$(1)/2$,
+\verb$1 / 2$ or some variation thereof.
 
     \termitem{compatibility}{}
 Read and write rational numbers as e.g., \exam{1r3}. In other words,
@@ -3485,3 +3516,66 @@ predicates, database keys, etc., that should be hidden from the user
 start with a dollar (\chr{\$}) sign.
 
 \input{bit64.tex}
+
+\section{Binary compatibility}			\label{sec:abi-versions}
+
+\index{compatibility,binary}%
+\index{ABI,compatibility}%
+SWI-Prolog first of all attempts to maintain \jargon{source code}
+compatibility between versions. Data and programs can often be
+represented in binary form.  This touches a number of interfaces
+with varying degrees of compatibility.  The relevant version numbers
+and signatures are made available by PL_version(), the
+\cmdlineoption{abi_version} and the Prolog flag
+\prologflag{abi_version}.
+
+\begin{description}
+    \definition{Foreign extensions}
+Dynamically loadable foreign extensions have the usual dependencies on
+the architecture, ABI model of the (C) compiler, dynamic link library
+format, etc. They also depend on the backward compatibility of the PL_*
+API functions provided lib \file{libswipl}.
+
+A compatible API allows distribution of foreign extensions in binary
+form, notably for platforms on which compilation is complicated (e.g.,
+Windows). This compatibility is therefore high on the priority list, but
+must infrequently be compromised.
+
+PL_version(): \const{PL_VERSION_FLI}, \prologflag{abi_version} key:
+\const{foreign_interface}
+
+    \definition{Binary terms}
+Terms may be represented in binary format using PL_record_external() and
+fast_write/2. As these formats are used for storing binary terms in
+databases or communicate terms between Prolog processes in binary form,
+great care is taken to maintain compatibility.
+
+PL_version(): \const{PL_VERSION_REC}, \prologflag{abi_version} key:
+\const{record}
+
+    \definition{QLF files}
+QLF files (see qcompile/1) are binary representation of	Prolog file or
+module. They represent clauses as sequences of \jargon{virtual machine}
+(VM) instructions. Their compatibility relies on the QLF file format and
+the ABI of the VM.  Some care is taken to maintain compatibility.
+
+PL_version(): \const{PL_VERSION_QLF}, \const{PL_VERSION_QLF_LOAD} and
+\const{PL_VERSION_VM}, \prologflag{abi_version} key: \const{qlf},
+\const{qlf_min_load}, \const{vmi}
+
+    \definition{Saved states}
+Saved states (see \cmdlineoption{-c} and qsave_program/2) is a zip file
+that contains the entire Prolog database using the same representation
+as QLF files. A saved state may contain additional resources, such as
+foreign extensions, data files, etc.  In addition to the dependency
+concerns of QLF files, built-in and core library predicates may call
+\emph{internal} foreign predicates.  The interface between the public
+built-ins and internal foreign predicates changes frequently.  Patch
+level releases in the \emph{stable branch} will as much as possible
+maintain compatibility.
+
+The relevant ABI version keys are the same as for QLF files with one
+addition: PL_version(): \const{PL_VERSION_BUILT_IN}, \prologflag{abi_version}
+key: \const{built_in}
+\end{description}
+

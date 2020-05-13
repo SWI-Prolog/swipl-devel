@@ -824,16 +824,20 @@ are:
 	True if \arg{Module} exports the given predicates. Predicate
 	indicators are in canonical form (i.e., always using name/arity
 	and never the DCG form name//arity). Future versions may also
-	use the DCG form and include public operators. See also
-	predicate_property/2.
+	use the DCG form. See also predicate_property/2.  Succeeds with
+	an empty list if the module exports no predicates.
 	\termitem{exported_operators}{-ListOfOperators}
 	True if \arg{Module} exports the given operators.  Each exported
 	operator is represented as a term \term{op}{Pri,Assoc,Name}.
+	Succeeds with an empty list if the module exports no operators.
+	\termitem{size}{-Bytes}
+	Total size in bytes used to represent the module.  This includes
+	the module itself, its (hash) tables and the summed size of
+	all predicates defined in this module. See also
+	the \term{size}{Bytes} property in predicate_property/2.
 	\termitem{program_size}{-Bytes}
 	Memory (in bytes) used for storing the predicates of this
 	module. This figure includes the predicate header and clauses.
-	Future versions might give a more precise number, including
-	e.g., the clause index tables.
 	\termitem{program_space}{-Bytes}
 	If present, this number limits the \const{program_size}.  See
 	set_module/1.

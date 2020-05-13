@@ -797,6 +797,12 @@ property_predicate(iso, _:Head) :-
     goal_name_arity(Head, Name, Arity),
     current_predicate(system:Name/Arity),
     '$predicate_property'(iso, system:Head).
+property_predicate(built_in, Module:Head) :-
+    callable(Head),
+    !,
+    goal_name_arity(Head, Name, Arity),
+    current_predicate(Module:Name/Arity),
+    '$predicate_property'(built_in, Module:Head).
 property_predicate(Property, Pred) :-
     define_or_generate(Pred),
     '$predicate_property'(Property, Pred).
@@ -894,6 +900,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
 '$predicate_property'(abstract(N), Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
+'$predicate_property'(size(Bytes), Pred) :-
+    '$get_predicate_attribute'(Pred, size, Bytes).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
@@ -1108,8 +1116,7 @@ module_property(Module, Property) :-
 property_module(Property, Module) :-
     module_property(Property),
     (   Property = exported_operators(List)
-    ->  '$exported_ops'(Module, List, []),
-        List \== []
+    ->  '$exported_ops'(Module, List, [])
     ;   '$module_property'(Module, Property)
     ).
 
@@ -1118,6 +1125,7 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(size(_)).
 module_property(program_size(_)).
 module_property(program_space(_)).
 module_property(last_modified_generation(_)).
@@ -1211,6 +1219,9 @@ trie_property(invalidated(_)).                  % IDG stats
 trie_property(reevaluated(_)).
 trie_property(deadlock(_)).                     % Shared tabling stats
 trie_property(wait(_)).
+trie_property(idg_affected_count(_)).
+trie_property(idg_dependent_count(_)).
+trie_property(idg_size(_)).
 
 
                 /********************************

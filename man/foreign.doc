@@ -398,25 +398,22 @@ As of SWI-Prolog 7.3.12, the arity of terms has changed from \ctype{int}
 to \ctype{size_t}. To deal with this transition, all affecting functions
 have two versions, where the old name exchanges the arity as \ctype{int}
 and a new function with name *_sz() exchanges the arity as
-\ctype{size_t}. If the C macro PL_ARITY_AS_SIZE is defined before
-loading \file{SWI-Prolog.h}, macros are put in place that map the old
-names to the new functions.  Without precautions, the old code is
-compatible, but the following warning is printed when compiling:
+\ctype{size_t}. Op to 8.1.28, the default was to use the old \ctype{int}
+functions. As of 8.1.29/8.2.x, the default is to use \ctype{size_t} and
+the old behaviour can be restored by defining \const{PL_ARITY_AS_SIZE}
+to \const{0} (zero). This makes old code compatible, but the following
+warning is printed when compiling:
 
 \begin{code}
 #warning "Term arity has changed from int to size_t."
-#warning "Please update your code and use #define PL_ARITY_AS_SIZE 1."
+#warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
 \end{code}
 
-To make the code compile silently again, include \file{SWI-Prolog.h} as
-below and change the types you use to represent arity from \ctype{int}
-to \ctype{size_t}. Please be aware that \ctype{size_t} is
-\emph{unsigned}.
+To make the code compile silently again, change the types you use to
+represent arity from \ctype{int} to \ctype{size_t}. Please be aware that
+\ctype{size_t} is \emph{unsigned}.  At some point representing arity
+as \ctype{int} will be dropped completely.
 
-\begin{code}
-#define PL_ARITY_AS_SIZE
-#include <SWI-Prolog.h>
-\end{code}
 
 \section{The Foreign Include File}	\label{sec:foreigninclude}
 
@@ -782,6 +779,10 @@ PL_skip_list().
 Returns non-zero if \arg{term} is a compound term using the list
 constructor.  See also PL_is_list() and PL_skip_list().
 
+    \cfunction{int}{PL_is_dict}{term_t}
+Returns non-zero if \arg{term} is a dict.  See also PL_put_dict()
+and PL_get_dict_key().
+
     \cfunction{int}{PL_is_atomic}{term_t}
 Returns non-zero if \arg{term} is atomic (not a variable or compound).
 
@@ -824,16 +825,13 @@ and stack-shifts, so generally the only save operations are to pass
 it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
-Convert the argument term \arg{t} to a 0-terminated C-string.  {\em
-flags} is a bitwise disjunction from two groups of constants.  The
-first specifies which term types should be converted and the second
-how the argument is stored.  Below is a specification of these
-constants.  \const{BUF_RING} implies, if the data is not static
-(as from an atom), that the data is copied to the next buffer from a
-ring of 16 buffers.  This is a convenient way of converting
-multiple arguments passed to a foreign predicate to C-strings.  If
-BUF_MALLOC is used, the data must be freed using PL_free() when no longer
-needed.
+Convert the argument term \arg{t} to a 0-terminated C-string.
+\arg{flags} is a bitwise disjunction from two groups of constants. The
+first specifies which term types should be converted and the second how
+the argument is stored. Below is a specification of these constants.
+\const{BUF_STACK} implies, if the data is not static (as from an atom),
+that the data is pushed on a stack. If BUF_MALLOC is used, the data must
+be freed using PL_free() when no longer needed.
 
 With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
@@ -868,7 +866,7 @@ Convert variable to print-name
 
     \termitem{CVT_WRITE}{}
 Convert any term that is not converted by any of the other flags using
-write/1. If no \const{BUF_*} is provided, \const{BUF_RING} is implied.
+write/1. If no \const{BUF_*} is provided, \const{BUF_STACK} is implied.
 
     \termitem{CVT_WRITE_CANONICAL}{}
 As \const{CVT_WRITE}, but using write_canonical/2.
@@ -887,8 +885,9 @@ exception in addition to failure
     \termitem{BUF_DISCARDABLE}{}
 Data must copied immediately
 
-    \termitem{BUF_RING}{}
-Data is stored in a ring of buffers
+    \termitem{BUF_STACK}{}
+Data is stored on a stack.  The older \const{BUF_RING} is an alias
+for \const{BUF_STACK}.  See \secref{foreign-strings}.
 
     \termitem{BUF_MALLOC}{}
 Data is copied to a new buffer returned by \manref{PL_malloc}{3}. When
@@ -968,12 +967,19 @@ PL_get_name_arity(), but this function fails if \arg{t} is an atom.
 If \arg{t} is an atom, the system will look up or create the
 corresponding module and assign an opaque pointer to it over {\em
 module}.
+
 \cfunction{int}{PL_get_arg}{size_t index, term_t +t, term_t -a}
 If \arg{t} is compound and index is between 1 and arity (inclusive),
 assign \arg{a} with a term reference to the argument.
+
 \cfunction{int}{_PL_get_arg}{size_t index, term_t +t, term_t -a}
 Same as PL_get_arg(), but no checking is performed, neither whether \arg{t}
 is actually a term nor whether \arg{index} is a valid argument index.
+
+\cfunction{int}{PL_get_dict_key}{atom_t key, term_t +dict, term_t -value}
+If \arg{dict} is a dict, get the associated value in \arg{value}. Fails
+silently if \arg{key} does not appear in \arg{dict} and with an
+exception if \arg{dict} is not a dict.
 \end{description}
 
 
@@ -1347,6 +1353,18 @@ put_list(term_t l, int n, char **words)
 Note that \arg{l} can be redefined within a {\tt PL_cons_list} call as
 shown here because operationally its old value is consumed before its
 new value is set.
+
+\cfunction{int}{PL_put_dict}{term_t -h, atom_t tag, size_t len,
+			     const atom_t *keys, term_t values}
+Create a dict from a \arg{tag} and vector of atom-value pairs and put
+the result in \arg{h}.  The dict's key is set by \arg{tag}, which may
+be \const{0} to leave the tag unbound. The \arg{keys} vector is a vector
+of atoms of at least \arg{len} long. The \arg{values} is a term vector
+allocated using PL_new_term_refs() of at least \arg{len} long. This
+function returns \const{TRUE} on success, \const{FALSE} on a resource
+error (leaving a resource error exception in the environment),
+\const{-1} if some key or the \arg{tag} is invalid and \const{-2} if
+there are duplicate keys.
 \end{description}
 
 
@@ -1707,7 +1725,7 @@ Wide character version of PL_chars_to_term().
     Return a quoted version of \arg{string}.  If \arg{chr} is
     \verb$'\''$, the result is a quoted atom.  If \arg{chr} is
     \verb$'"'$, the result is a string.  The result string is stored
-    in the same ring of buffers as described with the \const{BUF_RING}
+    in the same ring of buffers as described with the \const{BUF_STACK}
     argument of PL_get_chars();
 
     In the current implementation, the string is surrounded by
@@ -2357,6 +2375,46 @@ count_atoms()
      \label{fig:calling}
 \end{figure}
 
+\subsection{String buffering}
+\label{sec:foreign-strings}
+
+Many of the functions of the foreign language interface involve strings.
+Some of these strings point into static memory like those associated
+with atoms. These strings are valid as long as the atom is protected
+against atom garbage collection, which generally implies the atom must
+be locked using PL_register_atom() or be part of an accessible term.
+Other strings are more volatile. Several functions provide a BUF_* flag
+that can be set to either \const{BUF_STACK} (default) or
+\const{BUF_MALLOC}. Strings returned by a function accepting
+\const{BUF_MALLOC} \textbf{must} be freed using PL_free(). Strings
+returned using \const{BUF_STACK} are pushed on a stack that is cleared
+when a foreign predicate returns control back to Prolog. More fine
+grained control may be needed if functions that return strings are
+called outside the context of a foreign predicate or a foreign predicate
+creates many strings during its execution.  Temporary strings are scoped
+using these macros:
+
+\begin{description}
+    \cmacro{void}{PL_STRINGS_MARK}{}
+    \nodescription
+    \cmacro{void}{PL_STRINGS_RELEASE}{}
+These macros must be paired and create a C \jargon{block} (\{...\}). Any
+string created using \const{BUF_STACK} after PL_STRINGS_MARK() is
+released by the corresponding PL_STRINGS_RELEASE().  These macros
+should be used like below
+
+\begin{code}
+  ...
+  PL_STRINGS_MARK();
+  <operations involving strings>
+  PL_STRINGS_RELEASE();
+  ...
+\end{code}
+\end{description}
+
+The Prolog flag \prologflag{string_stack_tripwire} may be used to set a
+\jargon{tripwire} to help finding places where scoping strings may help
+reducing resources.
 
 \subsection{Foreign Code and Modules}
 \label{sec:foreign-modules}
@@ -2731,6 +2789,95 @@ compatibility with older records.
 \end{description}
 
 
+\subsubsection{Database}
+\label{sec:foreign-db}
+
+\begin{description}
+    \cfunction{int}{PL_assert}{term_t t, module_t m, int flags}
+Provides direct access to asserta/1 and assertz/1 by asserting \arg{t}
+into the database in the module \arg{m}.  Defined flags are:
+
+    \begin{description}
+	\termitem{PL_ASSERTZ}{}
+Add the new clause as last. Calls assertz/1. This macros is defined as 0
+and thus the default.
+	\termitem{PL_ASSERTA}{}
+Add the new clause as first.  Calls asserta/1.
+	\termitem{PL_CREATE_THREAD_LOCAL}{}
+If the predicate is not defined, create it as thread-local.  See
+thread_local/1.
+	\termitem{PL_CREATE_INCREMENTAL}{}
+If the predicate is not defined, create it as \jargon{incremental} see
+table/1 and \secref{tabling-incremental}.
+    \end{description}
+
+On success this function returns \const{TRUE}. On failure \const{FALSE}
+is returned and an exception is left in the environment that describes
+the reason of failure.  See PL_exception().
+
+This predicate bypasses creating a Prolog callback environment and is
+faster than setting up a call to assertz/1. It may be used together with
+PL_chars_to_term(), but the typical use case will create a number of
+clauses for the same predicate. The fastest way to achieve this is by
+creating a term that represents the invariable structure of the desired
+clauses using variables for the variable sub terms. Now we can loop over
+the data, binding the variables, asserting the term and undoing the
+bindings. Below is an example loading words from a file that contains a
+word per line.
+
+\begin{code}
+#include <SWI-Prolog.h>
+#include <stdio.h>
+#include <string.h>
+
+#define MAXWLEN 256
+
+static foreign_t
+load_words(term_t name)
+{ char *fn;
+
+  if ( PL_get_file_name(name, &fn, PL_FILE_READ) )
+  { FILE *fd = fopen(fn, "r");
+    char word[MAXWLEN];
+    module_t m = PL_new_module(PL_new_atom("words"));
+    term_t cl = PL_new_term_ref();
+    term_t w  = PL_new_term_ref();
+    fid_t fid;
+
+    if ( !PL_unify_term(cl, PL_FUNCTOR_CHARS, "word", 1, PL_TERM, w) )
+      return FALSE;
+
+    if ( (fid = PL_open_foreign_frame()) )
+    { while(fgets(word, sizeof(word), fd))
+      { size_t len;
+
+	if ( (len=strlen(word)) )
+	{ word[len-1] = '\0';
+	  if ( !PL_unify_chars(w, PL_ATOM|REP_MB, (size_t)-1, word) ||
+	       !PL_assert(cl, m, 0) )
+	    return FALSE;
+	  PL_rewind_foreign_frame(fid);
+	}
+      }
+
+      PL_close_foreign_frame(fid);
+    }
+
+    fclose(fd);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+install_t
+install(void)
+{ PL_register_foreign("load_words", 1, load_words, 0);
+}
+\end{code}
+\end{description}
+
+
 \subsubsection{Getting file names}		\label{sec:cfilenames}
 
 The function PL_get_file_name() provides access to Prolog filenames and
@@ -2741,10 +2888,10 @@ file properties, search, naming conventions, etc., from foreign code.
 \begin{description}
     \cfunction{int}{PL_get_file_name}{term_t spec, char **name, int flags}
 Translate a Prolog term into a file name. The name is stored in the
-static buffer ring described with th PL_get_chars() option
-\const{BUF_RING}. Conversion from the internal UNICODE encoding is done
-using standard C library functions. \arg{flags} is a bit-mask
-controlling the conversion process. Options are:
+buffer stack described with the PL_get_chars() option \const{BUF_STACK}.
+Conversion from the internal UNICODE encoding is done using standard C
+library functions. \arg{flags} is a bit-mask controlling the conversion
+process. Options are:
 
 \begin{description}
     \definition{\const{PL_FILE_ABSOLUTE}}
@@ -2908,6 +3055,33 @@ will never rebind the GMP allocation functions. See
 mp_set_memory_functions() in the GMP documentation. The action returns
 \const{FALSE} if there is no GMP support or GMP is already initialised.
 \end{description}
+
+\cfunction{unsigned int}{PL_version}{int key}
+Query version information.  This function may be called before
+PL_initialise().  If the key is unknown the function returns 0.
+See \secref{abi-versions} for a more in-depth discussion on
+binary compatibility.  Defined keys are:
+
+    \begin{description}
+	\termitem{PL_VERSION_SYSTEM}{}
+SWI-Prolog version as $10,000 \times major + 100 \times minor + patch$.
+	\termitem{PL_VERSION_FLI}{}
+Incremented if the foreign interface defined in this chapter changes in
+a way that breaks backward compatibility.
+	\termitem{PL_VERSION_REC}{}
+Incremented if the binary representation of terms as used by
+PL_record_external() and fast_write/2 changes.
+	\termitem{PL_VERSION_QLF}{}
+Incremented if the QLF file format changes.
+	\termitem{PL_VERSION_QLF_LOAD}{}
+Represents the oldest loadable QLF file format version.
+	\termitem{PL_VERSION_VM}{}
+A hash that represents the VM instructions and their arguments.
+	\termitem{PL_VERSION_BUILT_IN}{}
+A hash that represents the names, arities and properties of all
+built-in predicates defined in C.  If this function is called
+before PL_initialise() it returns 0.
+    \end{description}
 \end{description}
 
 \subsection{Querying Prolog}
@@ -3398,15 +3572,15 @@ main(int argc, char **argv)
 \cfunction{int}{PL_initialise}{int argc, char **argv}
 Initialises the SWI-Prolog heap and stacks, restores the Prolog
 state, loads the system and personal initialisation files,
-runs the initialization/1 hooks and finally runs the
-\argoption{-g}{goal} hook.
+runs the initialization/1 hooks and finally runs the initialization
+goals registered using \argoption{-g}{goal}.
 
 Special consideration is required for \verb$argv[0]$. On {\bf Unix},
 this argument passes the part of the command line that is used
 to locate the executable.  Prolog uses this to find the file holding
 the running executable.  The {\bf Windows} version uses this to find
 a \jargon{module} of the running executable.  If the specified module
-cannot be found, it tries the module \const{libpl.dll}, containing
+cannot be found, it tries the module \const{libswipl.dll}, containing
 the Prolog runtime kernel. In all these cases, the resulting file is
 used for two purposes:
 
@@ -3452,9 +3626,9 @@ is used.
 
 A good setup in Windows is to add SWI-Prolog's \file{bin} directory
 to your \env{PATH} and either pass a module holding a saved state, or
-\verb$"libpl.dll"$ as \verb$argv[0]$.  If the Prolog state is attached
-to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}), pass
-the name of this DLL.
+\verb$"libswipl.dll"$ as \verb$argv[0]$. If the Prolog state is attached
+to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}),
+pass the name of this DLL.
 
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
 Test whether the Prolog engine is already initialised. Returns
@@ -3996,20 +4170,11 @@ L = 'hello world!'.
 The functions in this section are primarily intended for debugging
 foreign extensions or embedded Prolog. Violating the constraints of the
 foreign interface often leads to crashes in a subsequent garbage
-collection. If this happens, the system needs to be recompiled with the
-cflags \const{-DO_DEBUG}. This is normally achieved by editing
-\file{src/Makefile} and changing the definition of \const{COFLAGS} to
-the value below. The \exam{-gdwarf-2 -g3} provides detailed debugging
-information for \program{gcc}. If you use another C compiler you may
-need other flags.
-
-\begin{code}
-COFLAGS=-DO_DEBUG -gdwarf-2 -g3
-\end{code}
-
-After recompiling the Prolog kernel all functions listed above are
-available to use from the debugger (e.g. \program{gdb}) or can be placed
-at critical location in your code or the system code.
+collection. If this happens, the system needs to be compiled for
+debugging using \exam{cmake -DCMAKE_BUILD_TYPE=Debug}, after which all
+functions and predicates listed below are available to use from the
+debugger (e.g. \program{gdb}) or can be placed at critical location in
+your code or the system code.
 
 \begin{description}
     \cfunction{void}{PL_backtrace}{int depth, int flags}
@@ -4089,6 +4254,20 @@ is actually printed and when.  We highlight one topic here:
     by invalid data on the Prolog stacks.  This debug topic may help
     locating how the invalid data was created.
     \end{description}
+
+These predicates require the system to be compiled for debugging using
+\exam{cmake -DCMAKE_BUILD_TYPE=Debug}.
+
+    \cfunction{int}{PL_prolog_debug}{const char *topic}
+    \nodescription
+    \cfunction{int}{PL_prolog_nodebug}{const char *topic}
+(De)activate debug topics. The \arg{topics} argument is a
+comma-separated string of topics to enable or disable. Matching is
+case-insensitive.  See also prolog_debug/1 and prolog_nodebug/1.
+
+These functions require the system to be compiled for debugging using
+\exam{cmake -DCMAKE_BUILD_TYPE=Debug}.
+
 \end{description}
 
 
@@ -4201,7 +4380,6 @@ using \program{bash} as login shell:
 <prolog interaction>
 % kcachegrind callgrind.out.<pid>
 \end{code}
-
 
 \subsection{Name Conflicts in C modules}
 \label{sec:foreign-name-conflicts}

@@ -1,0 +1,30 @@
+
+:- import xsb_error_get_tag/2 from error_handler.
+
+%test:-
+%	test_fail,write('fail succeeded!').
+test:-
+     catch(test_error,E,
+           ( xsb_error_get_tag(E,T),
+             numbervars(T, 0, _, [singletons(true)]),
+             format('~p~n', [error(T)])
+           )).
+
+%test_fail:-
+%	abolish_all_tables,
+%	set_prolog_flag(max_table_subgoal_size,4),
+%	set_prolog_flag(max_table_subgoal_size_action,failure),
+%	p(_X).
+
+test_error:-
+	abolish_all_tables,
+	set_prolog_flag(max_table_subgoal_size,4),
+	set_prolog_flag(max_table_subgoal_size_action,error),
+	p(_X).
+
+:- table p/1.
+p(X):- p(f(X)).
+
+
+
+

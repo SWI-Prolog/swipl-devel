@@ -810,24 +810,37 @@ size_abstract_term/3.
 
 \begin{description}
     \predicate[det]{size_abstract_term}{3}{+Size, +Term, -Abstract}
-The size of a term is defined as the number of compound subterms of
-Term. If the size of \arg{Term} is greater than \arg{Size},
-\arg{Abstract} is an abstract copy of \arg{Term} where the first
-\arg{Size} compound terms are preserved and subsequent compound terms
-are replaced by a variable. The copy process scans the term in the usual
-depth-first left-to-right order.
+The size of a term is defined as the number of compound subterms
+(\jargon{function symbols}) that appear in term. \arg{Abstract} is an
+abstract copy of \arg{Term} where each argument is abstracted by
+copying only the first \arg{Size} function sumbols and constants.
+Excess function symbols are replaced by fresh variables.
 
-If the size of \arg{Term} is at most \arg{Size}, \arg{Abstract} is
-equivalent to \arg{Term}.
+This predicate is a helper for tabling where \arg{Term} is the
+\functor{ret}{N} \jargon{answer skeleton} that is added to the an
+\jargon{answer table}.  Examples:
 
-TBD: Examples, but so far it is unclear the above is correct.
+\begin{center}\begin{tabular}{cll}
+\textbf{Size} & \textbf{Term} & \textbf{Abstract} \\
+\hline
+0 & ret(f(x), a)       & ret(_, a) \\
+1 & ret(f(x), a)       & ret(f(x), a) \\
+1 & ret(f(A), a)       & ret(f(A), a) \\
+1 & ret(f(x), x(y(Z))) & ret(f(x), x(_)) \\
+\end{tabular}\end{center}
+
+    \predicate[undefined]{radial_restraint}{0}{}
+This predicate is \jargon{undefined} in the sense of well founded
+semantics (see \secref{WFS} and undefined/0). Any answer that depends on
+this condition is undefined because either the restraint on the subgoal
+size or answer size was violated.
 \end{description}
 
 
 \subsection{Restraint subgoal size}
 \label{sec:tabling-restraint-subgoal}
 
-Using the \term{abstract_subgoal}{Size} attribute, a tabled subgoal that
+Using the \term{subgoal_abstract}{Size} attribute, a tabled subgoal that
 that is too large is \jargon{abstracted} by replacing compound subterms
 of the goal with variables. In a nutshell, a goal
 \term{p}{s(s(s(s(s(0)))))} is converted into the semantically equivalent
@@ -860,7 +873,7 @@ the required unification instructions after the goal.
 \subsection{Restraint answer size}
 \label{sec:tabling-restraint-answer-size}
 
-Using the \term{abstract_answer}{Size} attribute, a tabled subgoal that
+Using the \term{answer_abstract}{Size} attribute, a tabled subgoal that
 produces answer substitutions (instances of the variables in the goal)
 whose size exceed \arg{Size} are trapped. In addition to the
 tripwire actions, answer abstraction defines two additional modes

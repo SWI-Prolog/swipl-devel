@@ -160,6 +160,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_CGC_CONSIDER),
   DEBUG_TOPIC(MSG_CGC_STACK),
   DEBUG_TOPIC(MSG_CGC_PRED_REF),
+  DEBUG_TOPIC(MSG_CGC_RETRACT),
+  DEBUG_TOPIC(MSG_CGC_GENERATION),
 
   DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_JIT_DELINDEX),
@@ -179,8 +181,12 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_ZIP),
   DEBUG_TOPIC(MSG_ZIP_STATE),
+  DEBUG_TOPIC(MSG_WIN_API),
+  DEBUG_TOPIC(MSG_WIN_DDE),
 
   DEBUG_TOPIC(MSG_MODULE_REF),
+
+  DEBUG_TOPIC(MSG_STRING_BUFFER),
 
   DEBUG_TOPIC(MSG_TABLING_WORK),
   DEBUG_TOPIC(MSG_TABLING_MODED),
@@ -207,6 +213,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),
   DEBUG_TOPIC(CHK_HIGHER_ADDRESS),
+  DEBUG_TOPIC(CHK_ATOM_GARBAGE_COLLECTED),
 						/* end-of-list */
   { 0, NULL }
 };
@@ -296,6 +303,18 @@ prolog_debug_from_string(const char *spec, int flag)
   }
 
   return TRUE;
+}
+
+
+int
+PL_prolog_debug(const char *topic)
+{ return prolog_debug_topic(topic, TRUE);
+}
+
+
+int
+PL_prolog_nodebug(const char *topic)
+{ return prolog_debug_topic(topic, FALSE);
 }
 
 

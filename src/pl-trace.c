@@ -34,6 +34,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-ctype.h"
 #include "os/pl-cstack.h"
 #include "pl-inline.h"
@@ -1001,7 +1002,7 @@ messageToString(term_t msg)
 
     PL_put_term(av+0, msg);
     rc = (PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av) &&
-	  PL_get_chars(av+1, &s, CVT_ALL|BUF_RING));
+	  PL_get_chars(av+1, &s, CVT_ALL|BUF_STACK));
     PL_discard_foreign_frame(fid);
 
     return rc ? s : (char*)NULL;

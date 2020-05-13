@@ -264,6 +264,7 @@ if(NOT SWIPL_SHARED_LIB)
 endif()
 if(NOT MULTI_THREADED)
   swipl_del_package(swipl-win "requires multi-threading")
+  swipl_del_package(tipc      "requires multi-threading")
 endif()
 
 if(INSTALL_DOCUMENTATION)

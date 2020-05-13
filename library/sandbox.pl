@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2019, VU University Amsterdam
+    Copyright (c)  2013-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -37,19 +37,18 @@
           [ safe_goal/1,                % :Goal
             safe_call/1                 % :Goal
           ]).
-:- autoload(library(apply),[maplist/2]).
-:- autoload(library(assoc),[empty_assoc/1,get_assoc/3,put_assoc/4]).
-:- autoload(library(debug),[debug/3,debugging/1]).
-:- autoload(library(error),
-	    [ must_be/2,
-	      instantiation_error/1,
-	      type_error/2,
-	      permission_error/3
-	    ]).
-:- autoload(library(lists),[append/3]).
-:- autoload(library(prolog_format),[format_types/2]).
 :- use_module(library(apply_macros),[expand_phrase/2]).
-
+:- use_module(library(apply),[maplist/2]).
+:- use_module(library(assoc),[empty_assoc/1,get_assoc/3,put_assoc/4]).
+:- use_module(library(debug),[debug/3,debugging/1]).
+:- use_module(library(error),
+              [ must_be/2,
+                instantiation_error/1,
+                type_error/2,
+                permission_error/3
+              ]).
+:- use_module(library(lists),[append/3]).
+:- use_module(library(prolog_format),[format_types/2]).
 
 :- multifile
     safe_primitive/1,               % Goal
@@ -564,6 +563,7 @@ safe_primitive(system:'$filled_array'(_,_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(system:copy_term_nat(_,_)).
+safe_primitive(system:size_abstract_term(_,_,_)).
 safe_primitive(numbervars(_,_,_)).
 safe_primitive(system:numbervars(_,_,_,_)).
 safe_primitive(subsumes_term(_,_)).
@@ -1236,6 +1236,10 @@ safe_prolog_flag(max_rational_size_action, _).
 % tabling
 safe_prolog_flag(max_answers_for_subgoal,_).
 safe_prolog_flag(max_answers_for_subgoal_action,_).
+safe_prolog_flag(max_table_answer_size,_).
+safe_prolog_flag(max_table_answer_size_action,_).
+safe_prolog_flag(max_table_subgoal_size,_).
+safe_prolog_flag(max_table_subgoal_size_action,_).
 
 
 %!  prolog:sandbox_allowed_expansion(:G) is det.

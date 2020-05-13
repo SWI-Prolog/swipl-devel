@@ -38,6 +38,7 @@
           [ qsave_program/1,                    % +File
             qsave_program/2                     % +File, +Options
           ]).
+:- use_module(library(zip)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
@@ -72,6 +73,8 @@ save_option(toplevel,    callable,
             "Toplevel goal").
 save_option(init_file,   atom,
             "Application init file").
+save_option(packs,       boolean,
+            "Do (not) attach packs").
 save_option(class,       oneof([runtime,development]),
             "Development state").
 save_option(op,          oneof([save,standard]),
@@ -1220,7 +1223,7 @@ qsave_toplevel :-
     qsave_options(Argv, Files, Options),
     '$cmd_option_val'(compileout, Out),
     user:consult(Files),
-    user:qsave_program(Out, Options).
+    qsave_program(Out, user:Options).
 
 qsave_options([], [], []).
 qsave_options([--|_], [], []) :-

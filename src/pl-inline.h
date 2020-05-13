@@ -38,6 +38,10 @@
 #undef LD
 #define LD LOCAL_LD
 
+#ifdef __WINDOWS__
+#include <windows.h>
+#undef small
+#endif
 
 		 /*******************************
 		 *	 LOCK-FREE SUPPORT	*
@@ -63,10 +67,10 @@ MSB(size_t i)
 { unsigned long index;
 #if SIZEOF_VOIDP == 8
   unsigned __int64 mask = i;
-  _BitScanReverse64(&index, mask);
+  BitScanReverse64(&index, mask);
 #else
   unsigned long mask = i;
-  _BitScanReverse(&index, mask);
+  BitScanReverse(&index, mask);
 #endif
 
   return index;
@@ -76,15 +80,11 @@ MSB(size_t i)
 static inline int
 MSB64(int64_t i)
 { unsigned long index;
-  _BitScanReverse64(&index, i);
+  BitScanReverse64(&index, i);
   return index;
 }
 
-
-#define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier() (void)0
-#endif
+#define MEMORY_BARRIER() MemoryBarrier()
 
 static inline size_t
 __builtin_popcount(size_t sz)
@@ -110,21 +110,59 @@ __builtin_popcount(size_t sz)
 #define MSB64(i) ((int)sizeof(long long)*8-1-__builtin_clzll(i))
 #endif
 
-#if !defined(HAVE_MEMORY_BARRIER) && defined(HAVE__SYNC_SYNCHRONIZE)
-#define HAVE_MEMORY_BARRIER 1
-#ifndef MemoryBarrier
-#define MemoryBarrier()			__sync_synchronize()
-#endif
+#ifdef HAVE_GCC_ATOMIC
+#define MEMORY_BARRIER()	__atomic_thread_fence(__ATOMIC_SEQ_CST)
 #endif
 
 #ifdef O_PLMT
-#define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
-#define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
-#define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
-#define ATOMIC_DEC(ptr)			ATOMIC_SUB(ptr, 1) /* --(*ptr) */
-#define ATOMIC_OR(ptr, v)		__sync_fetch_and_or(ptr, v)
-#define ATOMIC_AND(ptr, v)		__sync_fetch_and_and(ptr, v)
-#define COMPARE_AND_SWAP(ptr,o,n)	__sync_bool_compare_and_swap(ptr,o,n)
+#define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_INC(ptr)		ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
+#define ATOMIC_DEC(ptr)		ATOMIC_SUB(ptr, 1) /* --(*ptr) */
+#define ATOMIC_OR(ptr, v)	__atomic_fetch_or(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_AND(ptr, v)	__atomic_fetch_and(ptr, v, __ATOMIC_SEQ_CST)
+
+#define __COMPARE_AND_SWAP(at, from, to) \
+	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
+				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+
+static inline int
+COMPARE_AND_SWAP_PTR(void *at, void *from, void *to)
+{ void **ptr = at;
+
+  return __COMPARE_AND_SWAP(ptr, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_INT64(int64_t *at, int64_t from, int64_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_UINT64(uint64_t *at, uint64_t from, uint64_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_INT(int *at, int from, int to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_UINT(unsigned int *at, unsigned int from, unsigned int to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_SIZE(size_t *at, size_t from, size_t to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
+static inline int
+COMPARE_AND_SWAP_WORD(word *at, word from, word to)
+{ return __COMPARE_AND_SWAP(at, from, to);
+}
+
 #else
 #define ATOMIC_ADD(ptr, v)		(*ptr += v)
 #define ATOMIC_SUB(ptr, v)		(*ptr -= v)
@@ -133,6 +171,13 @@ __builtin_popcount(size_t sz)
 #define ATOMIC_OR(ptr, v)		(*ptr |= v)
 #define ATOMIC_AND(ptr, v)		(*ptr &= v)
 #define COMPARE_AND_SWAP(ptr,o,n)	(*ptr == o ? (*ptr = n), 1 : 0)
+#define COMPARE_AND_SWAP_PTR(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_INT64(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_UINT64(ptr,o,n) COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_INT(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_UINT(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_SIZE(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
+#define COMPARE_AND_SWAP_WORD(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #endif
 
 #ifndef HAVE_MSB
@@ -173,9 +218,8 @@ MSB64(int64_t i)
 #endif
 
 
-#ifndef HAVE_MEMORY_BARRIER
-#define HAVE_MEMORY_BARRIER 1
-#define MemoryBarrier() (void)0
+#ifndef MEMORY_BARRIER
+#define MEMORY_BARRIER() (void)0
 #endif
 
 		 /*******************************
@@ -329,50 +373,6 @@ lookupDefinition(functor_t f, Module m)
 { Procedure proc = lookupProcedure(f, m);
 
   return proc ? proc->definition : NULL;
-}
-
-
-static inline code
-fetchop(Code PC)
-{ code op = decode(*PC);
-
-  if ( unlikely(op == D_BREAK) )
-    op = decode(replacedBreak(PC));
-
-  return op;
-}
-
-
-static inline code			/* caller must hold the L_BREAK lock */
-fetchop_unlocked(Code PC)
-{ code op = decode(*PC);
-
-  if ( unlikely(op == D_BREAK) )
-    op = decode(replacedBreakUnlocked(PC));
-
-  return op;
-}
-
-
-static inline Code
-stepPC(Code PC)
-{ code op = fetchop(PC++);
-
-  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
-    return stepDynPC(PC, &codeTable[op]);
-  else
-    return PC + codeTable[op].arguments;
-}
-
-
-static inline Code
-stepPC_unlocked(Code PC)
-{ code op = fetchop_unlocked(PC++);
-
-  if ( unlikely(codeTable[op].arguments == VM_DYNARGC) )
-    return stepDynPC(PC, &codeTable[op]);
-  else
-    return PC + codeTable[op].arguments;
 }
 
 
@@ -560,82 +560,6 @@ ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
     return TRUE;
 
   return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
-}
-
-
-		 /*******************************
-		 *	     ARITHMETIC		*
-		 *******************************/
-
-static inline Number
-allocArithStack(ARG1_LD)
-{ if ( unlikely(LD->arith.stack.top == LD->arith.stack.max) )
-    return growArithStack(PASS_LD1);
-
-  return LD->arith.stack.top++;
-}
-
-static inline void
-pushArithStack(Number n ARG_LD)
-{ Number np = allocArithStack(PASS_LD1);
-
-  *np = *n;				/* structure copy */
-}
-
-static inline void
-resetArithStack(ARG1_LD)
-{ LD->arith.stack.top = LD->arith.stack.base;
-}
-
-static inline Number
-argvArithStack(int n ARG_LD)
-{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
-
-  return LD->arith.stack.top - n;
-}
-
-static inline void
-popArgvArithStack(int n ARG_LD)
-{ DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
-
-  for(; n>0; n--)
-  { LD->arith.stack.top--;
-    clearNumber(LD->arith.stack.top);
-  }
-}
-
-		 /*******************************
-		 *	      MPZ/MPQ		*
-		 *******************************/
-
-static inline int
-isMPQNum__LD(word w ARG_LD)
-{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
-  { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    if ( wsize == WORDS_PER_INT64 )
-      return FALSE;
-
-    return p[1]&MP_RAT_MASK;
-  }
-
-  return FALSE;
-}
-
-static inline int
-isMPZNum__LD(word w ARG_LD)
-{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
-  { Word p = addressIndirect(w);
-    size_t wsize = wsizeofInd(*p);
-
-    if ( wsize == WORDS_PER_INT64 )
-      return FALSE;
-
-    return !(p[1]&MP_RAT_MASK);
-  }
-
-  return FALSE;
 }
 
 

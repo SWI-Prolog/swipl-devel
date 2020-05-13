@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,7 @@
             trimcore/0,
 
             abolish_table_info/0,
+            close_open_tables/1,          % ?
 
             str_cat/3,
 
@@ -79,6 +81,13 @@ trimcore :-
 %   Undocumented in the XSB manual.
 
 abolish_table_info.
+
+%!  close_open_tables(?Arg)
+%
+%   Undocumented in the XSB manual. Tables are always closed on
+%   exceptions, so it is unclear what this should do?
+
+close_open_tables(_).
 
 %!  str_cat(+Atom1, +Atom2, -Atom3)
 
