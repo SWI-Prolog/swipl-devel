@@ -1006,7 +1006,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
   atom_t encoding = NULL_ATOM;
   int	 bom      = -1;
   int    release  = TRUE;
-  int flags       = SIO_INPUT|SIO_RECORDPOS;
+  int flags       = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   IOENC enc;
 
   if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,

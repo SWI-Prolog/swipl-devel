@@ -3,7 +3,7 @@
     Author:        Michael Hendricks
     E-mail:        michael@ndrix.org
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 2013,2014, Michael Hendricks
+    Copyright (C): 2013,2020, Michael Hendricks
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,10 @@
             format_spec//1,                     % -Spec
             format_types/2                      % +Format, -Types
           ]).
-:- use_module(library(dcg/basics), [eos//0, integer//1, string_without//2]).
-:- use_module(library(when), [when/2]).
+:- autoload(library(error),[is_of_type/2,existence_error/2]).
+:- autoload(library(when),[when/2]).
+:- autoload(library(dcg/basics),[eos//0,string_without//2,integer//1]).
+
 
 /** <module> Analyse format specifications
 
@@ -170,10 +172,14 @@ modifier_argument(colon) -->
 modifier_argument(no_colon) -->
     \+ ":".
 
-action(Action) -->
+action(Char) -->
     [C],
-    { is_action(C) },
-    { atom_codes(Action, [C]) }.
+    { char_code(Char, C),
+      (   is_action(C)
+      ->  true
+      ;   existence_error(format_character, Char)
+      )
+    }.
 
 %%  is_action(+Action:integer) is semidet.
 %%  is_action(-Action:integer) is multi.

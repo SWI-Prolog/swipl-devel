@@ -1,0 +1,74 @@
+%:- compiler_options([spec_off]).
+
+% Bug submitted by Javier Romero (and now fixed).
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- import incr_assert/1,incr_retractall/1,incr_assert/1,
+incr_table_update/0,incr_retract/1 from increval.
+% general declarations
+:- table legal/1 as incremental.
+:- table tnext/1, fnext/1 as incremental. 
+:- dynamic true/1 as incremental.
+:- dynamic does/1 as incremental.
+:- dynamic ffnext/1, ttnext/1 as incremental.
+?- incr_assert(true(cell(3,2,b))).
+?- incr_assert(true(cell(3,3,b))).
+tnext(cell(Vm,Vn,x)) :- does(mark(Vm,Vn)), true(cell(Vm,Vn,b)).
+tnext(cell(Vm,Vn,o)) :- does(mark(Vm,Vn)), true(cell(Vm,Vn,b)).
+fnext(cell(Vm,Vn,b)) :- does(mark(Vm,Vn)).
+legal(mark(Vx,Vy)) :- true(cell(Vx,Vy,b)).
+test :- test1, test2,fail.
+test:- writeln('-------------------------'),fail.
+test :- test1, test2,finish.
+test.
+
+test1 :- legal(X), write(first([X])), writeln(.), incr_assert(does(X)),!.
+%test2 :- tnext(X), write('assert: '), writeln(X), assert(ttnext(X)),fail.
+%test2 :- fnext(X), write('retract: '), writeln(X), assert(ffnext(X)),fail.
+test2 :- tnext(X), write('tt  assert: '), writeln(X), incr_assert(ttnext(X)),fail.
+test2 :- fnext(X), write('ff retract: '), writeln(X), incr_assert(ffnext(X)),fail.
+test2 :- ttnext(X), incr_assert(true(X)),fail.
+test2 :- ffnext(X), not ttnext(X), write('actual retract: '), writeln(X), incr_retract(true(X)),fail.
+test2 :- ttnext(X), incr_retract(ttnext(X)), fail.
+test2 :- ffnext(X), incr_retract(ffnext(X)), fail.
+test2.
+
+finish:- legal(X), write(finish([X])), writeln(.).
+
+
+end_of_file.
+
+And this is the execution:
+%%%%%%%%%%%%%%%%%%%%%%%%%
+[xsb_configuration loaded]
+[sysinitrc loaded]
+XSB Version 3.4.0 (Soy mILK) of May 1, 2013
+[x86-pc-windows; mode: optimal; engine: slg-wam; scheduling: local]
+[Patch date: 2013-05-02 17:42:32]
+| ?- [tic3].
+[tic3 loaded]
+yes
+| ?- test.
+[mark(3,3)].
+assert: cell(3,3,o)
+assert: cell(3,3,x)
+retract: cell(3,3,b)
+[mark(3,2)].
+assert: cell(3,2,o)
+assert: cell(3,2,x)
+retract: cell(3,2,b)
+retract: cell(3,3,b)
+yes
+| ?- legal(X).
+X = mark(3,2) %%% Here legal(mark(3,2)) is true
+yes
+| ?- legal(mark(3,2)). %%% Here it is not true
+no
+| ?- import incr_table_update/0 from increval. %%% And the same with this
+yes
+| ?- incr_table_update.
+yes
+| ?- legal(X).
+
+| ?- legal(mark(3,2)).
+no
+%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,11 +40,8 @@
             style_check/1,
             (spy)/1,
             (nospy)/1,
-            trace/1,
-            trace/2,
             nospyall/0,
             debugging/0,
-            rational/3,
             flag/3,
             atom_prefix/2,
             dwim_match/2,
@@ -51,12 +49,17 @@
             source_file/1,
             source_file/2,
             unload_file/1,
+            exists_source/1,                    % +Spec
+            exists_source/2,                    % +Spec, -Path
+            use_foreign_library/1,		% :FileSpec
+            use_foreign_library/2,		% :FileSpec, +Install
             prolog_load_context/2,
             stream_position_data/3,
             current_predicate/2,
             '$defined_predicate'/1,
             predicate_property/2,
             '$predicate_property'/2,
+            (dynamic)/2,                        % :Predicates, +Options
             clause_property/2,
             current_module/1,                   % ?Module
             module_property/2,                  % ?Module, ?Property
@@ -75,7 +78,6 @@
             prolog_stack_property/2,
             absolute_file_name/2,
             tmp_file_stream/3,                  % +Enc, -File, -Stream
-            require/1,
             call_with_depth_limit/3,            % :Goal, +Limit, -Result
             call_with_inference_limit/3,        % :Goal, +Limit, -Result
             numbervars/3,                       % +Term, +Start, -End
@@ -83,8 +85,16 @@
             nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
-            set_prolog_gc_thread/1		% +Status
+            set_prolog_gc_thread/1,		% +Status
+
+            '$wrap_predicate'/5                 % :Head, +Name, -Closure, -Wrapped, +Body
           ]).
+
+:- meta_predicate
+    dynamic(:, +),
+    use_foreign_library(:),
+    use_foreign_library(:, +).
+
 
                 /********************************
                 *           DEBUGGER            *
@@ -189,94 +199,9 @@ enum_style_check(Style) :-
 %   Allow user-hooks in the Prolog debugger interaction.  See the calls
 %   below for the provided hooks.  We use a single predicate with action
 %   argument to avoid an uncontrolled poliferation of hooks.
-%
-%   TBD: What hooks to provide for trace/[1,2]
 
 :- multifile
     prolog:debug_control_hook/1.    % +Action
-
-%!  trace(:Preds) is det.
-%!  trace(:Preds, +PortSpec) is det.
-%
-%   Start printing messages if control passes specified ports of
-%   the given predicates.
-
-:- meta_predicate
-    trace(:),
-    trace(:, +).
-
-trace(Preds) :-
-    trace(Preds, +all).
-
-trace(_:X, _) :-
-    var(X),
-    !,
-    throw(error(instantiation_error, _)).
-trace(_:[], _) :- !.
-trace(M:[H|T], Ps) :-
-    !,
-    trace(M:H, Ps),
-    trace(M:T, Ps).
-trace(Pred, Ports) :-
-    '$find_predicate'(Pred, Preds),
-    Preds \== [],
-    set_prolog_flag(debug, true),
-    (   '$member'(PI, Preds),
-            pi_to_head(PI, Head),
-            (   Head = _:_
-            ->  QHead0 = Head
-            ;   QHead0 = user:Head
-            ),
-            '$define_predicate'(QHead0),
-            (   predicate_property(QHead0, imported_from(M))
-            ->  QHead0 = _:Plain,
-                QHead = M:Plain
-            ;   QHead = QHead0
-            ),
-            '$trace'(Ports, QHead),
-            trace_ports(QHead, Tracing),
-            print_message(informational, trace(QHead, Tracing)),
-        fail
-    ;   true
-    ).
-
-trace_alias(all,  [trace_call, trace_redo, trace_exit, trace_fail]).
-trace_alias(call, [trace_call]).
-trace_alias(redo, [trace_redo]).
-trace_alias(exit, [trace_exit]).
-trace_alias(fail, [trace_fail]).
-
-'$trace'([], _) :- !.
-'$trace'([H|T], Head) :-
-    !,
-    '$trace'(H, Head),
-    '$trace'(T, Head).
-'$trace'(+H, Head) :-
-    trace_alias(H, A0),
-    !,
-    tag_list(A0, +, A1),
-    '$trace'(A1, Head).
-'$trace'(+H, Head) :-
-    !,
-    trace_alias(_, [H]),
-    '$set_predicate_attribute'(Head, H, true).
-'$trace'(-H, Head) :-
-    trace_alias(H, A0),
-    !,
-    tag_list(A0, -, A1),
-    '$trace'(A1, Head).
-'$trace'(-H, Head) :-
-    !,
-    trace_alias(_, [H]),
-    '$set_predicate_attribute'(Head, H, false).
-'$trace'(H, Head) :-
-    atom(H),
-    '$trace'(+H, Head).
-
-tag_list([], _, []).
-tag_list([H0|T0], F, [H1|T1]) :-
-    H1 =.. [F, H0],
-    tag_list(T0, F, T1).
 
 :- meta_predicate
     spy(:),
@@ -363,9 +288,7 @@ debugging :-
     !,
     print_message(informational, debugging(on)),
     findall(H, spy_point(H), SpyPoints),
-    print_message(informational, spying(SpyPoints)),
-    findall(trace(H,P), trace_point(H,P), TracePoints),
-    print_message(informational, tracing(TracePoints)).
+    print_message(informational, spying(SpyPoints)).
 debugging :-
     print_message(informational, debugging(off)).
 
@@ -373,19 +296,6 @@ spy_point(Module:Head) :-
     current_predicate(_, Module:Head),
     '$get_predicate_attribute'(Module:Head, spy, 1),
     \+ predicate_property(Module:Head, imported_from(_)).
-
-trace_point(Module:Head, Ports) :-
-    current_predicate(_, Module:Head),
-        '$get_predicate_attribute'(Module:Head, trace_any, 1),
-        \+ predicate_property(Module:Head, imported_from(_)),
-        trace_ports(Module:Head, Ports).
-
-trace_ports(Head, Ports) :-
-    findall(Port,
-            (trace_alias(Port, [AttName]),
-             '$get_predicate_attribute'(Head, AttName, 1)),
-            Ports).
-
 
 %!  flag(+Name, -Old, +New) is det.
 %
@@ -405,25 +315,6 @@ update_flag(Name, Old, New) :-
     ->  set_flag(Name, New)
     ;   Value is New,
         set_flag(Name, Value)
-    ).
-
-
-                 /*******************************
-                 *            RATIONAL          *
-                 *******************************/
-
-%!  rational(+Rat, -Numerator, -Denominator) is semidet.
-%
-%   True when Rat is a  rational   number  with  given Numerator and
-%   Denominator.
-
-rational(Rat, M, N) :-
-    rational(Rat),
-    (   Rat = rdiv(M, N)
-    ->  true
-    ;   integer(Rat)
-    ->  M = Rat,
-        N = 1
     ).
 
 
@@ -585,6 +476,31 @@ canonical_source_file(Spec, File) :-
     source_file(File).
 
 
+%!  exists_source(+Source) is semidet.
+%!  exists_source(+Source, -Path) is semidet.
+%
+%   True if Source (a term  valid   for  load_files/2) exists. Fails
+%   without error if this is not the case. The predicate is intended
+%   to be used with  :-  if,  as   in  the  example  below. See also
+%   source_exports/2.
+%
+%   ```
+%   :- if(exists_source(library(error))).
+%   :- use_module_library(error).
+%   :- endif.
+%   ```
+
+exists_source(Source) :-
+    exists_source(Source, _Path).
+
+exists_source(Source, Path) :-
+    absolute_file_name(Source, Path,
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail)
+                       ]).
+
+
 %!  prolog_load_context(+Key, -Value)
 %
 %   Provides context information for  term_expansion and directives.
@@ -593,10 +509,10 @@ canonical_source_file(Spec, File) :-
 
 prolog_load_context(module, Module) :-
     '$current_source_module'(Module).
-prolog_load_context(file, F) :-
-    source_location(F, _).
+prolog_load_context(file, File) :-
+    input_file(File).
 prolog_load_context(source, F) :-       % SICStus compatibility
-    source_location(F0, _),
+    input_file(F0),
     '$input_context'(Context),
     '$top_file'(Context, F0, F).
 prolog_load_context(stream, S) :-
@@ -604,7 +520,7 @@ prolog_load_context(stream, S) :-
     ->  S = S0
     ).
 prolog_load_context(directory, D) :-
-    source_location(F, _),
+    input_file(F),
     file_directory_name(F, D).
 prolog_load_context(dialect, D) :-
     current_prolog_flag(emulated_dialect, D).
@@ -618,7 +534,8 @@ prolog_load_context(term_position, TermPos) :-
     ).
 prolog_load_context(script, Bool) :-
     (   '$toplevel':loaded_init_file(script, Path),
-        source_location(Path, _)
+        input_file(File),
+        same_file(File, Path)
     ->  Bool = true
     ;   Bool = false
     ).
@@ -629,6 +546,15 @@ prolog_load_context(term, Term) :-
 prolog_load_context(reloading, true) :-
     prolog_load_context(source, F),
     '$source_file_property'(F, reloading, true).
+
+input_file(File) :-
+    (   system:'$load_input'(_, Stream)
+    ->  stream_property(Stream, file_name(File))
+    ),
+    !.
+input_file(File) :-
+    source_location(File, _).
+
 
 %!  unload_file(+File) is det.
 %
@@ -642,6 +568,42 @@ unload_file(File) :-
         retractall(system:'$resolved_source_path'(_, Path))
     ;   true
     ).
+
+		 /*******************************
+		 *      FOREIGN LIBRARIES	*
+		 *******************************/
+
+%!  use_foreign_library(+FileSpec) is det.
+%!  use_foreign_library(+FileSpec, +Entry:atom) is det.
+%
+%   Load and install a foreign   library as load_foreign_library/1,2
+%   and register the installation using   initialization/2  with the
+%   option =now=. This is similar to using:
+%
+%     ==
+%     :- initialization(load_foreign_library(foreign(mylib))).
+%     ==
+%
+%   but using the initialization/1 wrapper causes  the library to be
+%   loaded _after_ loading of  the  file   in  which  it  appears is
+%   completed,  while  use_foreign_library/1  loads    the   library
+%   _immediately_. I.e. the  difference  is   only  relevant  if the
+%   remainder of the file uses functionality of the C-library.
+
+use_foreign_library(FileSpec) :-
+    ensure_shlib,
+    initialization(shlib:load_foreign_library(FileSpec), now).
+
+use_foreign_library(FileSpec, Entry) :-
+    ensure_shlib,
+    initialization(shlib:load_foreign_library(FileSpec, Entry), now).
+
+ensure_shlib :-
+    '$get_predicate_attribute'(shlib:load_foreign_library(_), defined, 1),
+    '$get_predicate_attribute'(shlib:load_foreign_library(_,_), defined, 1),
+    !.
+ensure_shlib :-
+    use_module(library(shlib), []).
 
 
                  /*******************************
@@ -753,7 +715,7 @@ current_predicate(Name, Module:Head) :-
     '$defined_predicate'(DefModule:Head),
     !.
 current_predicate(Name, Module:Head) :-
-    current_prolog_flag(autoload, true),
+    '$autoload':autoload_in(Module, general),
     \+ current_prolog_flag(Module:unknown, fail),
     (   compound(Head)
     ->  compound_name_arity(Head, Name, Arity)
@@ -778,6 +740,9 @@ generate_current_predicate(Name, Module, Head) :-
 
 :- meta_predicate
     predicate_property(:, ?).
+
+:- multifile
+    '$predicate_property'/2.
 
 :- '$iso'(predicate_property/2).
 
@@ -807,17 +772,10 @@ property_predicate(undefined, Pred) :-
 property_predicate(visible, Pred) :-
     !,
     visible_predicate(Pred).
-property_predicate(autoload(File), _:Head) :-
+property_predicate(autoload(File), Head) :-
     !,
-    current_prolog_flag(autoload, true),
-    (   callable(Head)
-    ->  goal_name_arity(Head, Name, Arity),
-        (   '$find_library'(_, Name, Arity, _, File)
-        ->  true
-        )
-    ;   '$in_library'(Name, Arity, File),
-        functor(Head, Name, Arity)
-    ).
+    \+ current_prolog_flag(autoload, false),
+    '$autoload':autoloadable(Head, File).
 property_predicate(implementation_module(IM), M:Head) :-
     !,
     atom(M),
@@ -839,6 +797,12 @@ property_predicate(iso, _:Head) :-
     goal_name_arity(Head, Name, Arity),
     current_predicate(system:Name/Arity),
     '$predicate_property'(iso, system:Head).
+property_predicate(built_in, Module:Head) :-
+    callable(Head),
+    !,
+    goal_name_arity(Head, Name, Arity),
+    current_predicate(Module:Name/Arity),
+    '$predicate_property'(built_in, Module:Head).
 property_predicate(Property, Pred) :-
     define_or_generate(Pred),
     '$predicate_property'(Property, Pred).
@@ -927,11 +891,40 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 '$predicate_property'(defined, Pred) :-
     '$get_predicate_attribute'(Pred, defined, 1).
+'$predicate_property'(tabled, Pred) :-
+    '$get_predicate_attribute'(Pred, tabled, 1).
+'$predicate_property'(tabled(Flag), Pred) :-
+    '$get_predicate_attribute'(Pred, tabled, 1),
+    table_flag(Flag, Pred).
+'$predicate_property'(incremental, Pred) :-
+    '$get_predicate_attribute'(Pred, incremental, 1).
+'$predicate_property'(abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, abstract, N).
+'$predicate_property'(size(Bytes), Pred) :-
+    '$get_predicate_attribute'(Pred, size, Bytes).
 
 system_undefined(user:prolog_trace_interception/4).
 system_undefined(user:prolog_exception_hook/4).
 system_undefined(system:'$c_call_prolog'/0).
 system_undefined(system:window_title/2).
+
+table_flag(variant, Pred) :-
+    '$tbl_implementation'(Pred, M:Head),
+    M:'$tabled'(Head, variant).
+table_flag(subsumptive, Pred) :-
+    '$tbl_implementation'(Pred, M:Head),
+    M:'$tabled'(Head, subsumptive).
+table_flag(shared, Pred) :-
+    '$get_predicate_attribute'(Pred, tshared, 1).
+table_flag(incremental, Pred) :-
+    '$get_predicate_attribute'(Pred, incremental, 1).
+table_flag(subgoal_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, subgoal_abstract, N).
+table_flag(answer_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, subgoal_abstract, N).
+table_flag(subgoal_abstract(N), Pred) :-
+    '$get_predicate_attribute'(Pred, max_answers, N).
+
 
 %!  visible_predicate(:Head) is nondet.
 %
@@ -1013,36 +1006,67 @@ clause_property(Clause, Property) :-
 '$clause_property'(module(M), Clause) :-
     '$get_clause_attribute'(Clause, module, M).
 
-
-                 /*******************************
-                 *             REQUIRE          *
-                 *******************************/
-
-:- meta_predicate
-    require(:).
-
-%!  require(:ListOfPredIndicators) is det.
+%!  dynamic(:Predicates, +Options) is det.
 %
-%   Tag given predicates as undefined, so they will be included
-%   into a saved state through the autoloader.
+%   Define a predicate as dynamic with optionally additional properties.
+%   Defined options are:
 %
-%   @see autoload/0.
+%     - incremental(+Bool)
+%     - abstract(+Level)
+%     - multifile(+Bool)
+%     - discontiguous(+Bool)
+%     - thread(+Mode)
+%     - volatile(+Bool)
 
-require(M:List) :-
-    (   is_list(List)
-    ->  require(List, M)
-    ;   throw(error(type_error(list, List), _))
-    ).
+dynamic(M:Predicates, Options) :-
+    '$must_be'(list, Predicates),
+    options_properties(Options, Props),
+    set_pprops(Predicates, M, [dynamic|Props]).
 
-require([], _).
-require([N/A|T], M) :-
+set_pprops([], _, _).
+set_pprops([H|T], M, Props) :-
+    set_pprops1(Props, M:H),
+    strip_module(M:H, M2, P),
+    '$pi_head'(M2:P, Pred),
+    (   '$get_predicate_attribute'(Pred, incremental, 1)
+    ->  '$wrap_incremental'(Pred)
+    ;   '$unwrap_incremental'(Pred)
+    ),
+    set_pprops(T, M, Props).
+
+set_pprops1([], _).
+set_pprops1([H|T], P) :-
+    (   atom(H)
+    ->  '$set_predicate_attribute'(P, H, true)
+    ;   H =.. [Name,Value]
+    ->  '$set_predicate_attribute'(P, Name, Value)
+    ),
+    set_pprops1(T, P).
+
+options_properties(Options, Props) :-
+    G = opt_prop(_,_,_,_),
+    findall(G, G, Spec),
+    options_properties(Spec, Options, Props).
+
+options_properties([], _, []).
+options_properties([opt_prop(Name, Type, SetValue, Prop)|T],
+                   Options, [Prop|PT]) :-
+    Opt =.. [Name,V],
+    '$option'(Opt, Options),
+    '$must_be'(Type, V),
+    V = SetValue,
     !,
-    functor(Head, N, A),
-    '$require'(M:Head),
-    require(T, M).
-require([H|_T], _) :-
-    throw(error(type_error(predicate_indicator, H), _)).
+    options_properties(T, Options, PT).
+options_properties([_|T], Options, PT) :-
+    options_properties(T, Options, PT).
 
+opt_prop(incremental,   boolean,               Bool,  incremental(Bool)).
+opt_prop(abstract,      between(0,0),          0,     abstract).
+opt_prop(multifile,     boolean,               true,  multifile).
+opt_prop(discontiguous, boolean,               true,  discontiguous).
+opt_prop(volatile,      boolean,               true,  volatile).
+opt_prop(thread,        oneof(atom, [local,shared],[local,shared]),
+                                               local, thread_local).
 
                 /********************************
                 *            MODULES            *
@@ -1092,8 +1116,7 @@ module_property(Module, Property) :-
 property_module(Property, Module) :-
     module_property(Property),
     (   Property = exported_operators(List)
-    ->  '$exported_ops'(Module, List, []),
-        List \== []
+    ->  '$exported_ops'(Module, List, [])
     ;   '$module_property'(Module, Property)
     ).
 
@@ -1102,6 +1125,7 @@ module_property(file(_)).
 module_property(line_count(_)).
 module_property(exports(_)).
 module_property(exported_operators(_)).
+module_property(size(_)).
 module_property(program_size(_)).
 module_property(program_space(_)).
 module_property(last_modified_generation(_)).
@@ -1150,13 +1174,33 @@ current_trie(Trie) :-
 %   are:
 %
 %     - value_count(Count)
-%     Number of terms in the trie.
+%       Number of terms in the trie.
 %     - node_count(Count)
-%     Number of nodes in the trie.
+%       Number of nodes in the trie.
 %     - size(Bytes)
-%     Number of bytes needed to store the trie.
+%       Number of bytes needed to store the trie.
 %     - hashed(Count)
-%     Number of hashed nodes.
+%       Number of hashed nodes.
+%     - compiled_size(Bytes)
+%       Size of the compiled representation (if the trie is compiled)
+%     - lookup_count(Count)
+%       Number of data lookups on the trie
+%     - gen_call_count(Count)
+%       Number of trie_gen/2 calls on this trie
+%
+%   Incremental tabling statistics:
+%
+%     - invalidated(Count)
+%       Number of times the trie was inivalidated
+%     - reevaluated(Count)
+%       Number of times the trie was re-evaluated
+%
+%   Shared tabling statistics:
+%
+%     - deadlock(Count)
+%       Number of times the table was involved in a deadlock
+%     - wait(Count)
+%       Number of times a thread had to wait for this table
 
 trie_property(Trie, Property) :-
     current_trie(Trie),
@@ -1167,7 +1211,17 @@ trie_property(node_count(_)).
 trie_property(value_count(_)).
 trie_property(size(_)).
 trie_property(hashed(_)).
-
+trie_property(compiled_size(_)).
+                                                % below only when -DO_TRIE_STATS
+trie_property(lookup_count(_)).                 % is enabled in pl-trie.h
+trie_property(gen_call_count(_)).
+trie_property(invalidated(_)).                  % IDG stats
+trie_property(reevaluated(_)).
+trie_property(deadlock(_)).                     % Shared tabling stats
+trie_property(wait(_)).
+trie_property(idg_affected_count(_)).
+trie_property(idg_dependent_count(_)).
+trie_property(idg_size(_)).
 
 
                 /********************************
@@ -1177,22 +1231,6 @@ trie_property(hashed(_)).
 shell(Command) :-
     shell(Command, 0).
 
-%!  win_add_dll_directory(+AbsDir) is det.
-%
-%   Add AbsDir to the directories where  dependent DLLs are searched
-%   on Windows systems.
-
-:- if(current_prolog_flag(windows, true)).
-:- export(win_add_dll_directory/1).
-win_add_dll_directory(Dir) :-
-    win_add_dll_directory(Dir, _),
-    !.
-win_add_dll_directory(Dir) :-
-    prolog_to_os_filename(Dir, OSDir),
-    getenv('PATH', Path0),
-    atomic_list_concat([Path0, OSDir], ';', Path),
-    setenv('PATH', Path).
-:- endif.
 
                  /*******************************
                  *            SIGNALS           *
@@ -1296,8 +1334,11 @@ absolute_file_name(Term, Abs) :-
     !,
     '$absolute_file_name'(File, Abs).
 
-%!  tmp_file_stream(-File, -Stream, +Encoding) is det.
+%!  tmp_file_stream(-File, -Stream, +Options) is det.
 %!  tmp_file_stream(+Encoding, -File, -Stream) is det.
+%
+%   Create a temporary file and open it   atomically. The second mode is
+%   for compatibility reasons.
 
 tmp_file_stream(Enc, File, Stream) :-
     atom(Enc), var(File), var(Stream),
@@ -1307,7 +1348,8 @@ tmp_file_stream(File, Stream, Options) :-
     current_prolog_flag(encoding, DefEnc),
     '$option'(encoding(Enc), Options, DefEnc),
     '$option'(extension(Ext), Options, ''),
-    '$tmp_file_stream'(Ext, Enc, File, Stream).
+    '$tmp_file_stream'(Ext, Enc, File, Stream),
+    set_stream(Stream, file_name(File)).
 
 
                 /********************************
@@ -1428,7 +1470,7 @@ thread_join(Id) :-
     thread_join(Id, Status),
     (   Status == true
     ->  true
-    ;   throw(error(thread_error(Status), _))
+    ;   throw(error(thread_error(Id, Status), _))
     ).
 
 %!  set_prolog_gc_thread(+Status)
@@ -1450,12 +1492,14 @@ set_prolog_gc_thread(Status) :-
     var(Status),
     !,
     '$instantiation_error'(Status).
-:- if(current_prolog_flag(threads,true)).
 set_prolog_gc_thread(false) :-
     !,
     set_prolog_flag(gc_thread, false),
-    (   '$gc_stop'
-    ->  thread_join(gc)
+    (   current_prolog_flag(threads, true)
+    ->  (   '$gc_stop'
+        ->  thread_join(gc)
+        ;   true
+        )
     ;   true
     ).
 set_prolog_gc_thread(true) :-
@@ -1463,14 +1507,49 @@ set_prolog_gc_thread(true) :-
     set_prolog_flag(gc_thread, true).
 set_prolog_gc_thread(stop) :-
     !,
-    (   '$gc_stop'
-    ->  thread_join(gc)
+    (   current_prolog_flag(threads, true)
+    ->  (   '$gc_stop'
+        ->  thread_join(gc)
+        ;   true
+        )
     ;   true
     ).
-:- else.
-set_prolog_gc_thread(false) :- !.
-set_prolog_gc_thread(true) :- !.
-set_prolog_gc_thread(stop) :- !.
-:- endif.
 set_prolog_gc_thread(Status) :-
     '$domain_error'(gc_thread, Status).
+
+%!  '$wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body) is det.
+%
+%   Would be nicer to have this   from library(prolog_wrap), but we need
+%   it for tabling, so it must be a system predicate.
+
+:- meta_predicate
+    '$wrap_predicate'(:, +, -, -, +).
+
+'$wrap_predicate'(M:Head, WName, Closure, call(Wrapped), Body) :-
+    callable_name_arguments(Head, PName, Args),
+    callable_name_arity(Head, PName, Arity),
+    (   is_most_general_term(Head)
+    ->  true
+    ;   '$domain_error'(most_general_term, Head)
+    ),
+    atomic_list_concat(['$wrap$', PName], WrapName),
+    volatile(M:WrapName/Arity),
+    module_transparent(M:WrapName/Arity),
+    WHead =.. [WrapName|Args],
+    '$c_wrap_predicate'(M:Head, WName, Closure, Wrapped, M:(WHead :- Body)).
+
+callable_name_arguments(Head, PName, Args) :-
+    atom(Head),
+    !,
+    PName = Head,
+    Args = [].
+callable_name_arguments(Head, PName, Args) :-
+    compound_name_arguments(Head, PName, Args).
+
+callable_name_arity(Head, PName, Arity) :-
+    atom(Head),
+    !,
+    PName = Head,
+    Arity = 0.
+callable_name_arity(Head, PName, Arity) :-
+    compound_name_arity(Head, PName, Arity).

@@ -1,0 +1,3 @@
+cn(man,m,[],[],1,2)
+cn(woman,f,[],[],4,5)
+cn(woman,f,[sub(\(A,all(B,->(@(man,B),@(*(A),B)))),C,m)],[],4,5)

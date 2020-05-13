@@ -52,13 +52,23 @@
             git_show/4,                 % +Dir, +Hash, -Commit, +Options
             git_commit_data/3           % +Field, +Record, -Value
           ]).
-:- use_module(library(process)).
-:- use_module(library(readutil)).
-:- use_module(library(option)).
-:- use_module(library(dcg/basics)).
-:- use_module(library(record)).
-:- use_module(library(lists)).
-:- use_module(library(error)).
+:- use_module(library(record),[record/1,current_record/2, op(_,_,record)]).
+
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(error),[must_be/2,existence_error/2]).
+:- autoload(library(filesex),
+	    [directory_file_path/3,relative_file_name/3]).
+:- autoload(library(lists),[append/3,member/2,append/2]).
+:- autoload(library(option),[option/2,option/3,select_option/3]).
+:- autoload(library(process),[process_create/3,process_wait/2]).
+:- autoload(library(readutil),
+	    [ read_stream_to_codes/3,
+	      read_line_to_codes/2,
+	      read_stream_to_codes/2
+	    ]).
+:- autoload(library(dcg/basics),
+	    [string//1,whites//0,string_without//2,blanks//0]).
+
 
 :- meta_predicate
     git_process_output(+, 1, +).

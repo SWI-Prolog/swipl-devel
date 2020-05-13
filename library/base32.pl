@@ -37,6 +37,8 @@
             base32//1                   % ?PlainText
           ]).
 
+
+
 /** <module> Base32 encoding and decoding
 
 Prolog-based base32 encoding using  DCG   rules.  Encoding  according to

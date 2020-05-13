@@ -1,0 +1,655 @@
+:- import set_unify/2 from set_unify.
+:- import numbervars/1 from num_vars.
+:- import normalize_result/2 from can_mono.
+
+test :- tp, fail.
+test :- writeln('=========== Result is ================'),
+        nl, show_facts.
+
+unify_sets([],[]).
+unify_sets([A|As],[B|Bs]) :- 
+       set_unify(A,B), unify_sets(As,Bs).
+
+
+%---------------- Transformed program ----------------------
+
+pgenconfig__1(_151) :- 
+        [_134] = _153, 
+        configuration([_134]),
+        normalize_result([_153],
+                         [_151]).
+configuration__1(_287) :- 
+        [_262] = _289, 
+        verticalcut([_254]),
+        horizontalcut([_258]),
+        combination([_254],[_258],[_262]),
+        normalize_result([_289],
+                         [_287]).
+verticalcut__1(_423) :- 
+        [_390] = _425, 
+        cutv([_382]),
+        wastev([_386]),
+        horizontal([_374]),
+        vertical([_378]),
+        cut([_374],[_378],[_382],[_386],[_390]),
+        normalize_result([_425],
+                         [_423]).
+horizontalcut__1(_355) :- 
+        [_326] = _357, 
+        cuth([_314]),
+        horizontal([_318]),
+        wasteh([_322]),
+        gencut([_314],[_318],[_322],[_326]),
+        normalize_result([_357],
+                         [_355]).
+gencut__1(_174,_176,_178,_180) :- 
+        [list] = _182, [_147] = _184, [_151] = _186, [list] = _188, 
+        normalize_result([_182,_184,_186,_188],
+                          [_174,_176,_178,_180]).
+gencut__1(_480,_482,_484,_486) :- 
+        [list,_439] = _488, [_443] = _490, [_447] = _492, [list,_451] = _494, 
+        cut([_413],[_443],[_421],[_447],[_429]),
+        gencut([_439],[_443],[_447],[_451]),
+        normalize_result([_488,_490,_492,_494],
+                         [_480,_482,_484,_486]).
+cut__1(_984,_986,_988,_990,_992) :- 
+        [_912] = _994, [_908] = _996, [_880] = _998, [_839] = _1000, [list,list,list] = _1002, 
+        horizontal([_930]),
+        vertical([_934]),
+        'my is'([_872],[[[_908],[_912]],[[[[_839],[_930]],[_934]],[num]]]),
+        generatecut([_912],[_872],[_908],[_880],[_884],[_918]),
+        'my is'([_899],[[[[[_908],[_912]],[_918]],[num]],[[[_930],[_934]],[num]]]),
+        normalize_result([_994,_996,_998,_1000,_1002],
+                         [_984,_986,_988,_990,_992]).
+generatecut__1(_917,_919,_921,_923,_925,_927,_929,_931,_933) :- 
+        [_830] = _935, [_834] = _937, [_838] = _939, [_773] = _941, [_707] = _943, [list,_194] = _945, [_856] = _947, [_860] = _949, [_864] = _951, 
+        'my <'([_864],[num]),
+        'my is'([_842],[[_773],[_777]]),
+        'my is'([_846],[[_842],[_830]]),
+        'my =<'([_842],[_838]),
+        generatecutaux([_830],[_834],[_838],[_842],[_846],[list,_194],[_856],[_860],[_864]),
+        normalize_result([_935,_937,_939,_941,_943,_945,_947,_949,_951],
+                         [_917,_919,_921,_923,_925,_927,_929,_931,_933]).
+generatecutaux__1(_613,_615,_617,_619,_621,_623,_625,_627,_629) :- 
+        [_463] = _631, [_553] = _633, [_529] = _635, [_533] = _637, [_544] = _639, [list,_194] = _641, [list,list] = _643, [_544] = _645, [_572] = _647, 
+        'my is'([_562],[[_529],[_533]]),
+        'my >='([_544],[_553]),
+        nobeter([_562],[list,_194],[_572]),
+        normalize_result([_631,_633,_635,_637,_639,_641,_643,_645,_647],
+                         [_613,_615,_617,_619,_621,_623,_625,_627,_629]).
+generatecutaux__1(_706,_708,_710,_712,_714,_716,_718,_720,_722) :- 
+        [_628] = _724, [_632] = _726, [_636] = _728, [_640] = _730, [_644] = _732, [list,_194] = _734, [list,_654] = _736, [_658] = _738, [_613] = _740, 
+        'my is'([_662],[[_613],[num]]),
+        generatecut([_628],[_632],[_636],[_640],[_644],[list,_194],[_654],[_658],[_662]),
+        normalize_result([_724,_726,_728,_730,_732,_734,_736,_738,_740],
+                         [_706,_708,_710,_712,_714,_716,_718,_720,_722]).
+generatecut__1(_589,_591,_593,_595,_597,_599,_601,_603,_605) :- 
+        [_516] = _607, [_520] = _609, [_524] = _611, [_528] = _613, [_532] = _615, [list,_536] = _617, [_540] = _619, [_544] = _621, [_495] = _623, 
+        generatecut([_516],[_520],[_524],[_528],[_532],[_536],[_540],[_544],[num]),
+        normalize_result([_607,_609,_611,_613,_615,_617,_619,_621,_623],
+                         [_589,_591,_593,_595,_597,_599,_601,_603,_605]).
+generatecut__1(_484,_486,_488,_490,_492,_494) :- 
+        [_417] = _496, [_421] = _498, [_425] = _500, [_437] = _502, [_441] = _504, [_445] = _506, 
+        generatecut([_417],[_421],[_425],[num],[num],[_437],[_441],[_445],[num]),
+        normalize_result([_496,_498,_500,_502,_504,_506],
+                         [_484,_486,_488,_490,_492,_494]).
+nobeter__1(_238,_240,_242) :- 
+        [_212] = _244, [list,_216] = _246, [num] = _248, 
+        nobeter([_212],[_216]),
+        normalize_result([_244,_246,_248],
+                         [_238,_240,_242]).
+nobeter__1(_311,_313,_315) :- 
+        [_280] = _317, [list,_106] = _319, [_262] = _321, 
+        'my =\\='([_262],[num]),
+        nobeter([_280],[list,_106]),
+        normalize_result([_317,_319,_321],
+                         [_311,_313,_315]).
+nobeter__1(_151,_153,_155) :- 
+        [_127] = _157, [list] = _159, [_135] = _161, 
+        normalize_result([_157,_159,_161],
+                          [_151,_153,_155]).
+nobeter__1(_122,_124) :- 
+        [_105] = _126, [list] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+nobeter__1(_278,_280) :- 
+        [_251] = _282, [list,_255] = _284, 
+        'my <'([_251],[_242]),
+        nobeter([_251],[_255]),
+        normalize_result([_282,_284],
+                         [_278,_280]).
+combination__1(_327,_329,_331) :- 
+        [_288] = _333, [_292] = _335, [_300] = _337, 
+        emptyconfig([_296]),
+        combine([_288],[_292],[_296],[_300]),
+        normalize_result([_333,_335,_337],
+                         [_327,_329,_331]).
+combine__1(_1014,_1016,_1018,_1020) :- 
+        [list,list,list] = _1022, [_926] = _1024, [_887] = _1026, [list,list,list,list] = _1028, 
+        'my ='([_891],[list,_226]),
+        'my ='([_922],[list,_278]),
+        split([_861],[_880]),
+        member([list,list,list],[_880]),
+        combcut([_887],[_891],[_926],[_918],[_958],[_907]),
+        combcut([_918],[_922],[_926],[_930],[_962],[_938]),
+        'my is'([_949],[[[_958],[_962]],[_968]]),
+        normalize_result([_1022,_1024,_1026,_1028],
+                         [_1014,_1016,_1018,_1020]).
+combcut__1(_893,_895,_897,_899,_901,_903) :- 
+        [_790] = _905, [list,_810] = _907, [_814] = _909, [_818] = _911, [_833] = _913, [_806] = _915, 
+        find([_774],[_814],[_763]),
+        member([list,list,list],[_763]),
+        construct([_806],[_774],[_786]),
+        addliste([_786],[_790],[_802]),
+        combcutaux([_802],[_806],[_810],[_814],[_818],[_846]),
+        'my is'([_833],[[_842],[_846]]),
+        normalize_result([_905,_907,_909,_911,_913,_915],
+                         [_893,_895,_897,_899,_901,_903]).
+combcutaux__1(_230,_232,_234,_236,_238,_240) :- 
+        [_201] = _242, [_189] = _244, [list] = _246, [_197] = _248, [_201] = _250, [num] = _252, 
+        normalize_result([_242,_244,_246,_248,_250,_252],
+                          [_230,_232,_234,_236,_238,_240]).
+combcutaux__1(_893,_895,_897,_899,_901,_903) :- 
+        [_790] = _905, [_806] = _907, [list,_810] = _909, [_814] = _911, [_818] = _913, [_833] = _915, 
+        find([_774],[_814],[_763]),
+        member([list,list,list],[_763]),
+        construct([_806],[_774],[_786]),
+        addliste([_786],[_790],[_802]),
+        combcutaux([_802],[_806],[_810],[_814],[_818],[_846]),
+        'my is'([_833],[[_842],[_846]]),
+        normalize_result([_905,_907,_909,_911,_913,_915],
+                         [_893,_895,_897,_899,_901,_903]).
+emptyconfig__1(_219) :- 
+        [_198] = _221, 
+        empty([_194]),
+        genempty([_194],[_198]),
+        normalize_result([_221],
+                         [_219]).
+genempty__1(_116,_118) :- 
+        [list] = _120, [list] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+genempty__1(_225,_227) :- 
+        [list,_201] = _229, [list,_205] = _231, 
+        genempty([_201],[_205]),
+        normalize_result([_229,_231],
+                         [_225,_227]).
+split__1(_139,_141,_143) :- 
+        [list] = _145, [list] = _147, [list] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+split__1(_279,_281,_283) :- 
+        [list,_248] = _285, [list,_252] = _287, [_256] = _289, 
+        split([_248],[_252],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+split__1(_279,_281,_283) :- 
+        [list,_248] = _285, [_252] = _287, [list,_256] = _289, 
+        split([_248],[_252],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+allsplit__1(_122,_124) :- 
+        [_105] = _126, [list] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+allsplit__1(_283,_285) :- 
+        [_256] = _287, [list,_260] = _289, 
+        split([_256],[_249]),
+        allsplit([_256],[_260]),
+        normalize_result([_287,_289],
+                         [_283,_285]).
+split__1(_334,_336) :- 
+        [list,_289] = _338, [list,list,list] = _340, 
+        split([_289],[_293],[_311]),
+        intersection([list,_293],[_311]),
+        normalize_result([_338,_340],
+                         [_334,_336]).
+intersection__1(_273,_275) :- 
+        [_239] = _277, [_250] = _279, 
+        member([_246],[_239]),
+        member([_246],[_250]),
+        normalize_result([_277,_279],
+                         [_273,_275]).
+construct__1(_145,_147,_149) :- 
+        [list] = _151, [_125] = _153, [list] = _155, 
+        normalize_result([_151,_153,_155],
+                          [_145,_147,_149]).
+construct__1(_279,_281,_283) :- 
+        [list,_248] = _285, [_252] = _287, [list,_256] = _289, 
+        construct([_248],[_252],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+addelement__1(_295,_297,_299) :- 
+        [list,list,list] = _301, [list,_116] = _303, [list,_116] = _305, 
+        'my is'([_256],[[_265],[num]]),
+        normalize_result([_301,_303,_305],
+                         [_295,_297,_299]).
+addelement__1(_368,_370,_372) :- 
+        [list,list,list] = _374, [list,_116] = _376, [list,_116] = _378, 
+        'my \\=='([list,list,list],[list]),
+        'my is'([_326],[[_335],[num]]),
+        normalize_result([_374,_376,_378],
+                         [_368,_370,_372]).
+addelement__1(_433,_435,_437) :- 
+        [_396] = _439, [list,_400] = _441, [list,_404] = _443, 
+        'my \\=='([_396],[list,list,list]),
+        'my \\=='([_396],[list,list,list]),
+        addelement([_396],[_400],[_404]),
+        normalize_result([_439,_441,_443],
+                         [_433,_435,_437]).
+addliste__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+addliste__1(_364,_366,_368) :- 
+        [list,_330] = _370, [_318] = _372, [_338] = _374, 
+        addelement([_314],[_318],[_334]),
+        addliste([_330],[_334],[_338]),
+        normalize_result([_370,_372,_374],
+                         [_364,_366,_368]).
+find__1(_167,_169,_171) :- 
+        [_141] = _173, [list,_106] = _175, [_151] = _177, 
+        normalize_result([_173,_175,_177],
+                          [_167,_169,_171]).
+find__1(_332,_334,_336) :- 
+        [_298] = _338, [list,_302] = _340, [_306] = _342, 
+        'my \\=='([_298],[_289]),
+        find([_298],[_302],[_306]),
+        normalize_result([_338,_340,_342],
+                         [_332,_334,_336]).
+append__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+append__1(_279,_281,_283) :- 
+        [list,_248] = _285, [_252] = _287, [list,_256] = _289, 
+        append([_248],[_252],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+member__1(_138,_140) :- 
+        [_119] = _142, [list,_106] = _144, 
+        normalize_result([_142,_144],
+                          [_138,_140]).
+member__1(_215,_217) :- 
+        [_191] = _219, [list,_195] = _221, 
+        member([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+horizontal__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+horizontal__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+vertical__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+vertical__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+wastev__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+wastev__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+wasteh__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+wasteh__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+cutv__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+cutv__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+cuth__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+cuth__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+empty__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+empty__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+quantity__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+quantity__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+
+%---------------- Definitions of tabled preds --------------
+
+:- table quantity__1/1.
+:- table empty__1/1.
+:- table cuth__1/1.
+:- table cutv__1/1.
+:- table wasteh__1/1.
+:- table wastev__1/1.
+:- table vertical__1/1.
+:- table horizontal__1/1.
+:- table member__1/2.
+:- table append__1/3.
+:- table find__1/3.
+:- table addliste__1/3.
+:- table addelement__1/3.
+:- table construct__1/3.
+:- table intersection__1/2.
+:- table split__1/2.
+:- table allsplit__1/2.
+:- table split__1/3.
+:- table genempty__1/2.
+:- table emptyconfig__1/1.
+:- table combcutaux__1/6.
+:- table combcut__1/6.
+:- table combine__1/4.
+:- table combination__1/3.
+:- table nobeter__1/2.
+:- table nobeter__1/3.
+:- table generatecut__1/6.
+:- table generatecutaux__1/9.
+:- table generatecut__1/9.
+:- table cut__1/5.
+:- table gencut__1/4.
+:- table horizontalcut__1/1.
+:- table verticalcut__1/1.
+:- table configuration__1/1.
+:- table pgenconfig__1/1.
+
+quantity(_63) :- 
+        quantity__1(_65),
+        unify_sets([_63], [_65]).
+empty(_63) :- 
+        empty__1(_65),
+        unify_sets([_63], [_65]).
+cuth(_63) :- 
+        cuth__1(_65),
+        unify_sets([_63], [_65]).
+cutv(_63) :- 
+        cutv__1(_65),
+        unify_sets([_63], [_65]).
+wasteh(_63) :- 
+        wasteh__1(_65),
+        unify_sets([_63], [_65]).
+wastev(_63) :- 
+        wastev__1(_65),
+        unify_sets([_63], [_65]).
+vertical(_63) :- 
+        vertical__1(_65),
+        unify_sets([_63], [_65]).
+horizontal(_63) :- 
+        horizontal__1(_65),
+        unify_sets([_63], [_65]).
+member(_63,_65) :- 
+        member__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+append(_63,_65,_67) :- 
+        append__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+find(_63,_65,_67) :- 
+        find__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+addliste(_63,_65,_67) :- 
+        addliste__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+addelement(_63,_65,_67) :- 
+        addelement__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+construct(_63,_65,_67) :- 
+        construct__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+intersection(_63,_65) :- 
+        intersection__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+split(_63,_65) :- 
+        split__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+allsplit(_63,_65) :- 
+        allsplit__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+split(_63,_65,_67) :- 
+        split__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+genempty(_63,_65) :- 
+        genempty__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+emptyconfig(_63) :- 
+        emptyconfig__1(_65),
+        unify_sets([_63], [_65]).
+combcutaux(_63,_65,_67,_69,_71,_73) :- 
+        combcutaux__1(_75,_77,_79,_81,_83,_85),
+        unify_sets([_63,_65,_67,_69,_71,_73], [_75,_77,_79,_81,_83,_85]).
+combcut(_63,_65,_67,_69,_71,_73) :- 
+        combcut__1(_75,_77,_79,_81,_83,_85),
+        unify_sets([_63,_65,_67,_69,_71,_73], [_75,_77,_79,_81,_83,_85]).
+combine(_63,_65,_67,_69) :- 
+        combine__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+combination(_63,_65,_67) :- 
+        combination__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+nobeter(_63,_65) :- 
+        nobeter__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+nobeter(_63,_65,_67) :- 
+        nobeter__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+generatecut(_63,_65,_67,_69,_71,_73) :- 
+        generatecut__1(_75,_77,_79,_81,_83,_85),
+        unify_sets([_63,_65,_67,_69,_71,_73], [_75,_77,_79,_81,_83,_85]).
+generatecutaux(_63,_65,_67,_69,_71,_73,_75,_77,_79) :- 
+        generatecutaux__1(_81,_83,_85,_87,_89,_91,_93,_95,_97),
+        unify_sets([_63,_65,_67,_69,_71,_73,_75,_77,_79], [_81,_83,_85,_87,_89,_91,_93,_95,_97]).
+generatecut(_63,_65,_67,_69,_71,_73,_75,_77,_79) :- 
+        generatecut__1(_81,_83,_85,_87,_89,_91,_93,_95,_97),
+        unify_sets([_63,_65,_67,_69,_71,_73,_75,_77,_79], [_81,_83,_85,_87,_89,_91,_93,_95,_97]).
+cut(_63,_65,_67,_69,_71) :- 
+        cut__1(_73,_75,_77,_79,_81),
+        unify_sets([_63,_65,_67,_69,_71], [_73,_75,_77,_79,_81]).
+gencut(_63,_65,_67,_69) :- 
+        gencut__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+horizontalcut(_63) :- 
+        horizontalcut__1(_65),
+        unify_sets([_63], [_65]).
+verticalcut(_63) :- 
+        verticalcut__1(_65),
+        unify_sets([_63], [_65]).
+configuration(_63) :- 
+        configuration__1(_65),
+        unify_sets([_63], [_65]).
+pgenconfig(_63) :- 
+        pgenconfig__1(_65),
+        unify_sets([_63], [_65]).
+
+%---------------- Tp ---------------------------------------
+
+tp :- quantity__1(_64), fail.
+tp :- empty__1(_64), fail.
+tp :- cuth__1(_64), fail.
+tp :- cutv__1(_64), fail.
+tp :- wasteh__1(_64), fail.
+tp :- wastev__1(_64), fail.
+tp :- vertical__1(_64), fail.
+tp :- horizontal__1(_64), fail.
+tp :- member__1(_64,_66), fail.
+tp :- append__1(_64,_66,_68), fail.
+tp :- find__1(_64,_66,_68), fail.
+tp :- addliste__1(_64,_66,_68), fail.
+tp :- addelement__1(_64,_66,_68), fail.
+tp :- construct__1(_64,_66,_68), fail.
+tp :- intersection__1(_64,_66), fail.
+tp :- split__1(_64,_66), fail.
+tp :- allsplit__1(_64,_66), fail.
+tp :- split__1(_64,_66,_68), fail.
+tp :- genempty__1(_64,_66), fail.
+tp :- emptyconfig__1(_64), fail.
+tp :- combcutaux__1(_64,_66,_68,_70,_72,_74), fail.
+tp :- combcut__1(_64,_66,_68,_70,_72,_74), fail.
+tp :- combine__1(_64,_66,_68,_70), fail.
+tp :- combination__1(_64,_66,_68), fail.
+tp :- nobeter__1(_64,_66), fail.
+tp :- nobeter__1(_64,_66,_68), fail.
+tp :- generatecut__1(_64,_66,_68,_70,_72,_74), fail.
+tp :- generatecutaux__1(_64,_66,_68,_70,_72,_74,_76,_78,_80), fail.
+tp :- generatecut__1(_64,_66,_68,_70,_72,_74,_76,_78,_80), fail.
+tp :- cut__1(_64,_66,_68,_70,_72), fail.
+tp :- gencut__1(_64,_66,_68,_70), fail.
+tp :- horizontalcut__1(_64), fail.
+tp :- verticalcut__1(_64), fail.
+tp :- configuration__1(_64), fail.
+tp :- pgenconfig__1(_64), fail.
+tp.
+
+
+%---------------- Builtin Preds ----------------------------
+
+'my ='(X1,X2) :- 'my =__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my \\=='(X1,X2) :- 'my \\==__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my is'(X1,X2) :- 'my is__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >='([num],[num]).
+'my =<'([num],[num]).
+'my =:='(X1,X2) :- 'my =:=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =\\='(X1,X2) :- 'my =\\=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my <'(X1,X2) :- 'my <__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >'(X1,X2) :- 'my >__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+
+'my =__1'(X,X).
+'my \\==__1'(_,_).
+'my is__1'(num,num).
+'my <__1'(num,num).
+'my >__1'(num,num).
+'my =:=__1'(num,num).
+'my =\\=__1'(num,num).
+
+
+%---------------- Show Result ------------------------------
+
+show_facts :- quantity__1(_63),
+              numbervars([_63]),
+              write(quantity(_63)), nl, fail.
+show_facts :- empty__1(_63),
+              numbervars([_63]),
+              write(empty(_63)), nl, fail.
+show_facts :- cuth__1(_63),
+              numbervars([_63]),
+              write(cuth(_63)), nl, fail.
+show_facts :- cutv__1(_63),
+              numbervars([_63]),
+              write(cutv(_63)), nl, fail.
+show_facts :- wasteh__1(_63),
+              numbervars([_63]),
+              write(wasteh(_63)), nl, fail.
+show_facts :- wastev__1(_63),
+              numbervars([_63]),
+              write(wastev(_63)), nl, fail.
+show_facts :- vertical__1(_63),
+              numbervars([_63]),
+              write(vertical(_63)), nl, fail.
+show_facts :- horizontal__1(_63),
+              numbervars([_63]),
+              write(horizontal(_63)), nl, fail.
+show_facts :- member__1(_63,_65),
+              numbervars([_63,_65]),
+              write(member(_63,_65)), nl, fail.
+show_facts :- append__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(append(_63,_65,_67)), nl, fail.
+show_facts :- find__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(find(_63,_65,_67)), nl, fail.
+show_facts :- addliste__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(addliste(_63,_65,_67)), nl, fail.
+show_facts :- addelement__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(addelement(_63,_65,_67)), nl, fail.
+show_facts :- construct__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(construct(_63,_65,_67)), nl, fail.
+show_facts :- intersection__1(_63,_65),
+              numbervars([_63,_65]),
+              write(intersection(_63,_65)), nl, fail.
+show_facts :- split__1(_63,_65),
+              numbervars([_63,_65]),
+              write(split(_63,_65)), nl, fail.
+show_facts :- allsplit__1(_63,_65),
+              numbervars([_63,_65]),
+              write(allsplit(_63,_65)), nl, fail.
+show_facts :- split__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(split(_63,_65,_67)), nl, fail.
+show_facts :- genempty__1(_63,_65),
+              numbervars([_63,_65]),
+              write(genempty(_63,_65)), nl, fail.
+show_facts :- emptyconfig__1(_63),
+              numbervars([_63]),
+              write(emptyconfig(_63)), nl, fail.
+show_facts :- combcutaux__1(_63,_65,_67,_69,_71,_73),
+              numbervars([_63,_65,_67,_69,_71,_73]),
+              write(combcutaux(_63,_65,_67,_69,_71,_73)), nl, fail.
+show_facts :- combcut__1(_63,_65,_67,_69,_71,_73),
+              numbervars([_63,_65,_67,_69,_71,_73]),
+              write(combcut(_63,_65,_67,_69,_71,_73)), nl, fail.
+show_facts :- combine__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(combine(_63,_65,_67,_69)), nl, fail.
+show_facts :- combination__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(combination(_63,_65,_67)), nl, fail.
+show_facts :- nobeter__1(_63,_65),
+              numbervars([_63,_65]),
+              write(nobeter(_63,_65)), nl, fail.
+show_facts :- nobeter__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(nobeter(_63,_65,_67)), nl, fail.
+show_facts :- generatecut__1(_63,_65,_67,_69,_71,_73),
+              numbervars([_63,_65,_67,_69,_71,_73]),
+              write(generatecut(_63,_65,_67,_69,_71,_73)), nl, fail.
+show_facts :- generatecutaux__1(_63,_65,_67,_69,_71,_73,_75,_77,_79),
+              numbervars([_63,_65,_67,_69,_71,_73,_75,_77,_79]),
+              write(generatecutaux(_63,_65,_67,_69,_71,_73,_75,_77,_79)), nl, fail.
+show_facts :- generatecut__1(_63,_65,_67,_69,_71,_73,_75,_77,_79),
+              numbervars([_63,_65,_67,_69,_71,_73,_75,_77,_79]),
+              write(generatecut(_63,_65,_67,_69,_71,_73,_75,_77,_79)), nl, fail.
+show_facts :- cut__1(_63,_65,_67,_69,_71),
+              numbervars([_63,_65,_67,_69,_71]),
+              write(cut(_63,_65,_67,_69,_71)), nl, fail.
+show_facts :- gencut__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(gencut(_63,_65,_67,_69)), nl, fail.
+show_facts :- horizontalcut__1(_63),
+              numbervars([_63]),
+              write(horizontalcut(_63)), nl, fail.
+show_facts :- verticalcut__1(_63),
+              numbervars([_63]),
+              write(verticalcut(_63)), nl, fail.
+show_facts :- configuration__1(_63),
+              numbervars([_63]),
+              write(configuration(_63)), nl, fail.
+show_facts :- pgenconfig__1(_63),
+              numbervars([_63]),
+              write(pgenconfig(_63)), nl, fail.
+show_facts.

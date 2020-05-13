@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2019, VU University Amsterdam
+    Copyright (c)  2013-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -37,12 +37,18 @@
           [ safe_goal/1,                % :Goal
             safe_call/1                 % :Goal
           ]).
-:- use_module(library(assoc)).
-:- use_module(library(lists)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(prolog_format)).
-:- use_module(library(apply)).
+:- use_module(library(apply_macros),[expand_phrase/2]).
+:- use_module(library(apply),[maplist/2]).
+:- use_module(library(assoc),[empty_assoc/1,get_assoc/3,put_assoc/4]).
+:- use_module(library(debug),[debug/3,debugging/1]).
+:- use_module(library(error),
+              [ must_be/2,
+                instantiation_error/1,
+                type_error/2,
+                permission_error/3
+              ]).
+:- use_module(library(lists),[append/3]).
+:- use_module(library(prolog_format),[format_types/2]).
 
 :- multifile
     safe_primitive/1,               % Goal
@@ -540,7 +546,9 @@ safe_primitive(=:=(_,_)).
 safe_primitive(=\=(_,_)).
 safe_primitive(=<(_,_)).
 safe_primitive(<(_,_)).
+:- if(current_prolog_flag(bounded, false)).
 safe_primitive(system:nth_integer_root_and_remainder(_,_,_,_)).
+:- endif.
 
                                         % term-handling
 safe_primitive(arg(_,_,_)).
@@ -555,7 +563,9 @@ safe_primitive(system:'$filled_array'(_,_,_,_)).
 safe_primitive(copy_term(_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(system:copy_term_nat(_,_)).
+safe_primitive(system:size_abstract_term(_,_,_)).
 safe_primitive(numbervars(_,_,_)).
+safe_primitive(system:numbervars(_,_,_,_)).
 safe_primitive(subsumes_term(_,_)).
 safe_primitive(system:term_hash(_,_)).
 safe_primitive(system:term_hash(_,_,_,_)).
@@ -680,6 +690,7 @@ safe_primitive(system:sort(_,_,_,_)).
 safe_primitive(system:between(_,_,_)).
 safe_primitive(system:succ(_,_)).
 safe_primitive(system:plus(_,_,_)).
+safe_primitive(system:float_class(_,_)).
 safe_primitive(system:term_variables(_,_)).
 safe_primitive(system:term_variables(_,_,_)).
 safe_primitive(system:'$term_size'(_,_,_)).
@@ -729,6 +740,12 @@ stack_name(local).
 stack_name(trail).
 
 safe_primitive('$tabling':abolish_all_tables).
+safe_primitive('$tabling':'$wrap_tabled'(Module:_Head, _Mode)) :-
+    prolog_load_context(module, Module),
+    !.
+safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_)) :-
+    prolog_load_context(module, Module),
+    !.
 
 
 % use_module/1.  We only allow for .pl files that are loaded from
@@ -832,6 +849,9 @@ safe_meta(system:format(Output, Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
 safe_meta(prolog_debug:debug(_Term, Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
+safe_meta(system:set_prolog_flag(Flag, Value), []) :-
+    atom(Flag),
+    safe_prolog_flag(Flag, Value).
 safe_meta('$attvar':freeze(_Var,Goal), [Goal]).
 safe_meta(phrase(NT,Xs0,Xs), [Goal]) :- % phrase/2,3 and call_dcg/2,3
     expand_nt(NT,Xs0,Xs,Goal).
@@ -845,6 +865,8 @@ safe_meta('$tabling':abolish_table_subgoals(V), []) :-
     \+ qualified(V).
 safe_meta('$tabling':current_table(V, _), []) :-
     \+ qualified(V).
+safe_meta('$tabling':tnot(G), [G]).
+safe_meta('$tabling':not_exists(G), [G]).
 
 qualified(V) :-
     nonvar(V),
@@ -1153,7 +1175,7 @@ safe_source_directive(op(_,_,Name)) :-
 safe_source_directive(set_prolog_flag(Flag, Value)) :-
     !,
     atom(Flag), ground(Value),
-    safe_directive_flag(Flag, Value).
+    safe_prolog_flag(Flag, Value).
 safe_source_directive(style_check(_)).
 safe_source_directive(initialization(_)).   % Checked at runtime
 safe_source_directive(initialization(_,_)). % Checked at runtime
@@ -1183,19 +1205,42 @@ safe_path(A/B) :-
     safe_path(B).
 
 
-%!  safe_directive_flag(+Flag, +Value) is det.
+%!  safe_prolog_flag(+Flag, +Value) is det.
 %
-%   True if it is safe to set the flag Flag in a directive to Value.
+%   True if it is safe to set the flag Flag to Value.
 %
 %   @tbd    If we can avoid that files are loaded after changing
 %           this flag, we can allow for more flags.  The syntax
 %           flags are safe because they are registered with the
 %           module.
 
-safe_directive_flag(generate_debug_info, _).
-safe_directive_flag(var_prefix, _).
-safe_directive_flag(double_quotes, _).
-safe_directive_flag(back_quotes, _).
+% misc
+safe_prolog_flag(generate_debug_info, _).
+safe_prolog_flag(optimise, _).
+safe_prolog_flag(occurs_check, _).
+% syntax
+safe_prolog_flag(var_prefix, _).
+safe_prolog_flag(double_quotes, _).
+safe_prolog_flag(back_quotes, _).
+safe_prolog_flag(rational_syntax, _).
+% arithmetic
+safe_prolog_flag(prefer_rationals, _).
+safe_prolog_flag(float_overflow, _).
+safe_prolog_flag(float_zero_div, _).
+safe_prolog_flag(float_undefined, _).
+safe_prolog_flag(float_underflow, _).
+safe_prolog_flag(float_rounding, _).
+safe_prolog_flag(float_rounding, _).
+safe_prolog_flag(max_rational_size, _).
+safe_prolog_flag(max_rational_size_action, _).
+% tabling
+safe_prolog_flag(max_answers_for_subgoal,_).
+safe_prolog_flag(max_answers_for_subgoal_action,_).
+safe_prolog_flag(max_table_answer_size,_).
+safe_prolog_flag(max_table_answer_size_action,_).
+safe_prolog_flag(max_table_subgoal_size,_).
+safe_prolog_flag(max_table_subgoal_size_action,_).
+
 
 %!  prolog:sandbox_allowed_expansion(:G) is det.
 %
@@ -1210,13 +1255,10 @@ safe_directive_flag(back_quotes, _).
 %   and we only need to be  careful   if  the sandboxed code defines
 %   expansion rules.
 
-prolog:sandbox_allowed_expansion(Directive) :-
-    prolog_load_context(module, M),
-    debug(sandbox(expansion), 'Expand in ~p: ~p', [M, Directive]),
-    fail.
 prolog:sandbox_allowed_expansion(M:G) :-
     prolog_load_context(module, M),
     !,
+    debug(sandbox(expansion), 'Expand in ~p: ~p', [M, G]),
     safe_goal(M:G).
 prolog:sandbox_allowed_expansion(_,_).
 

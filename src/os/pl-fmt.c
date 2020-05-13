@@ -39,6 +39,7 @@ source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include <ctype.h>
@@ -295,7 +296,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   int rval;
   PL_chars_t fmt;
 
-  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_RING) )
+  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_STACK) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
   if ( (argc = (int)lengthList(args, FALSE)) >= 0 )
@@ -452,7 +453,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    int i;
 
 	    PL_predicate_info(proc, NULL, &arity, NULL);
-	    av = PL_new_term_refs(arity);
+	    av = PL_new_term_refs((int)arity);
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
@@ -861,6 +862,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
   if ( state.pending_rubber )		/* not closed ~t: flush out */
     emit_rubber(&state);
+  if ( argc != 0 )
+    FMT_ERROR("too many arguments");
 
 out:
   return rc;
@@ -1167,7 +1170,7 @@ utf8_dp(PL_locale *l, char *s, int *len)
 { if ( l->decimal_point )
   { if ( !ths_to_utf8(s, l->decimal_point, 20) )
       return FALSE;
-    *len = strlen(s);
+    *len = (int)strlen(s);
   } else
   { *s++ = '.';
     *s = EOS;
@@ -1248,7 +1251,7 @@ groupDigits(PL_locale *locale, Buffer b)
 
       if ( !ths_to_utf8(ths, locale->thousands_sep, sizeof(ths)) )
 	return FALSE;
-      thslen = strlen(ths);
+      thslen = (int)strlen(ths);
 
       if ( !growBuffer(b, thslen*groups) )
 	return PL_no_memory();

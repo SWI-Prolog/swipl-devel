@@ -19,15 +19,13 @@ classical Unix make.
 Building SWI-Prolog requires cmake version 3.5  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
-from https://cmake.org/download/ On Linux systems, installing cmake 3.12
-is as simple as:
+from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
+cmake 3.12 (please pick the latest stable version) is as simple as:
 
     wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
     sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 
-(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.12 (MacOS).
-Version 3.5 does not work with the 7.7.20   tar file, but does work with
-the current git version.
+(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.14 (MacOS).
 
 
 ## Native build
@@ -89,20 +87,13 @@ using e.g.,
 
 ## Install location
 
-To install in a particular location, use `-DCMAKE_INSTALL_PREFIX:PATH=/path/to/install`. For example, this will build SWI to be installed in `/usr/local/swipl-git` and will not include the documentation (see below for other customization options):
+To install in a particular   location, use `-DCMAKE_INSTALL_PREFIX`. For
+example, this will build SWI to be installed in `/usr/local/swipl-git`:
 
-    cmake -DCMAKE_INSTALL_PREFIX:PATH=/usr/local/swipl-git -DINSTALL_DOCUMENTATION=OFF ..
+    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/swipl-git -G Ninja ..
 
-After `sudo make install`, SWI will be located in `/usr/local/swipl-git`. Next adapt environment variables `SWI_HOME_DIR` and `LD_LIBRARY_PATH` to point to the new compiled and installed SWI system:
-
-    export SWI_HOME_DIR=/usr/local/swipl-git/lib/swipl/
-    export LD_LIBRARY_PATH=/usr/local/swipl-git/lib/swipl/lib/x86_64-linux/:$LD_LIBRARY_PATH
-
-Finally, you can run it:
-
-    /usr/local/swipl-git/bin/swipl
-
-_NOTE:_ if there is already an installed SWI (e.g., the one coming with a Linux distribution), running `swipl` will run the new installed system pointed by `SWI_HOME_DIR`.
+After    `sudo    ninja    install`,     `swipl`      will     be     in
+`/usr/local/swipl-git/bin/swipl`.
 
 
 ## Customizing SWI-Prolog
@@ -115,8 +106,10 @@ allow for restricting the system.
   | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads     |
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                 |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers    |
+  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`    |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
+  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in <prefix>/share      |
   | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
   | `-DSWIPL_PACKAGES=OFF`        | Only build the core system          |
   | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages             |
@@ -130,6 +123,29 @@ allow for restricting the system.
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
+
+## Embedding SWI-Prolog in Java, C, C++, etc.
+
+If SWI-Prolog is to be embedded in another executable it must be able to
+find its home directory and the main   application  must be able to find
+the SWI-Prolog shared library `libswipl.so`   (extension  depends on the
+platform).  The following environment variables are commonly used:
+
+    - `SWI_HOME_DIR` should point at SWI-Prolog's main directory, e.g.
+      ``${CMAKE_INSTALL_PREFIX}/lib/swipl``
+    - The shared object search path should include the directory where
+      `libswipl.{so,dll,...}` resides.  The variable depends on the
+      platform.  Some popular names:
+
+      - `LD_LIBRARY_PATH` (ELF based systems such as Linux)
+      - `DYLD_LIBRARY_PATH` (MacOS)
+      - `PATH` (Windows)
+
+If you build SWI-Prolog  you  must   __remove  these  variables from the
+environment when building__. Failure  to  do   so  may  cause  the build
+process to use parts  of  an   incompatible  installed  system.  Running
+`cmake` warns if  such  an  environment   variable  is  found,  but  the
+environment must be cleaned when running `ninja` or `make`.
 
 ## Profile Guided Optimization
 
@@ -185,6 +201,14 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 
 ### WASM (Emscripten)
 
+__Note__: due to a  bug  in   the  current  Emscripten  directory access
+functions we need the _native friend_   mechanism  to create the library
+index. The flags below   include `-DSWIPL_NATIVE_FRIEND=build`, assuming
+you built a  native  executable  in   the  directory  `build`  below the
+sources. Adjust as necessary.
+
+    [Assumes native Prolog in `build`.  See note above]
+
     mkdir build.wasm
     cd build.wasm
     source ~/emsdk/emsdk_env.sh
@@ -198,6 +222,7 @@ The cmake toolchain  config  files  (see   below)  search  for  Java  in
 	  -DBUILD_SWIPL_LD=OFF \
 	  -DSWIPL_PACKAGES=OFF \
 	  -DINSTALL_DOCUMENTATION=OFF \
+	  -DSWIPL_NATIVE_FRIEND=build \
 	  -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
@@ -260,6 +285,13 @@ directory. This aims at the following scenario:
   4. Build, test and install.  Optionally use `swipl-activate` to
      use this version as default.
 
+When  developing  on  the  core  system  one  often  does  not  want  to
+re-generate documentation and possible package dependencies. This can be
+achieved using the target `core`, which   builds `swipl`, `libswipl` and
+`boot.prc`:
+
+    ninja core
+
 
 ### Testing
 
@@ -286,6 +318,33 @@ extension).
     ?- test_arith.
     % PL-Unit: div ... done
     ...
+
+### Trapping memory issues using AddressSanitizer
+
+[AddressSanitizer](https://en.wikipedia.org/wiki/AddressSanitizer) is an
+extension to Clang and GCC to  instrument executables for finding common
+memory    management    issues.    It    traps     similar    bugs    as
+[Valgrind](http://valgrind.org/), but if a suspected   bug does not show
+up using one tool it might  be  worthwhile   to  try  the  other. A nice
+property of Valgrind is that it can   be used directly on the executable
+without recompilation. The downside is that   Valgrind makes the program
+run about 20 times slower. The slowdown   by AddressSanitizer is about a
+factor two. To compile for using with AddressSanitizer, do e.g.,
+
+    % mkdir build.sanitize
+    % cd build.sanitize
+    % cmake -DCMAKE_BUILD_TYPE=Sanitize -G Ninja ..
+    % ninja
+
+See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
+
+You can run the tests normally using   `ctest`. Note that the `swipl:GC`
+test requires more stack than the   default when using AddressSanitizer.
+To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
+test   `jpl:prolog_in_java`   because   Java   is    not   loaded   with
+AddressSanitizer preloaded.   All other tests should pass (about 4 times
+slower than normal).
+
 
 ## Packaging
 

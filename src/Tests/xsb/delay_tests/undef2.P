@@ -1,0 +1,46 @@
+/*===========================================================================
+
+  In the following A1 is the answer of s1, A21 and A22 the answers of s2(X,Y),
+  AaY is the answer of s2(a,Y), and A31 and A32 the answers of s3(Y).
+  To understand the order of some of the following remember that delay
+  elements are interned in the opposite order than they appear in the
+  interned delay lists.
+  
+	  IDE Table					IDL Table
+	-------------				      -------------
+     e0: <s1, s1, NEG>				   dl0: [e0]
+     e1: <s1, s1, A1>				   dl1: [e1]
+     e2: <s4, s4, NEG>				   dl2: [e2]
+     e3: <s3(Y), s3(Y), A31>			   dl3: [e4, e3]
+     e4: <s2(X,Y), s2(X,Y), A21>		   dl4: [e2, e1, e4]
+     e5: <s2(a,Y), s2(a,b), AaY>		   dl5: [e2, e1, e5]
+     e6: <s2(X,Y), s2(a,Y), A22>		   dl6: [e2, e1, e6]
+     e7: <s3(Y), s3(a), A32>			   dl7: [e6, e3]
+						   dl8: [e6, e7]
+
+  No simplification is possible and everything is undefined.
+  ===========================================================================*/
+
+:- table s1/0, s2/2, s3/1, s4/0.
+
+s1 :- tnot(s1).				% creates e0, dl0.
+
+s2(_,_) :- s1.				% creates e1, dl1.
+s2(a,_) :- tnot(s4).
+
+% In the following var(X) appears so that only subgoal s(VAR) gets answers
+
+s3(X) :- var(X), tnot(s4).		% creates e6
+s3(X) :- var(X), s1.
+s3(X) :- var(X), s2(X,Y), s3(Y).	% creates e3, e4, dl3, dl7 and e7, dl8
+					% (also answers A31, A32)
+s3(X) :- tnot(s4), s1, s2(X,Y), Y = b.	% creates e5, dl4, dl5 and dl6
+
+s4 :- tnot(s4).				% creates e2, dl2.
+
+%----------------------------------------------------------------------------
+
+test :- s1, fail.	% complete s1
+test :- s2(X,_), s3(X), fail.
+test.
+

@@ -1,0 +1,33 @@
+%
+% The well-founded model is two valued {p, ~q, ~r, s, ~t, ~u}
+%
+% Query:	p, tnot(q), tnot(r), s, tnot(t), tnot(u).
+%
+
+:- table p/0, q/0, r/0, s/0, t/0, u/0.
+
+p :- tnot(q).
+q :- r.
+r :- q.
+s :- p.
+t :- tnot(s).
+t :- u.
+u :- t.
+
+%--------------------------------------------------------------
+
+test :-
+	( p -> writeln('p is true') ; writeln('p is false') ),
+	( q -> writeln('q is true') ; writeln('q is false') ),
+	( r -> writeln('r is true') ; writeln('r is false') ),
+	( s -> writeln('s is true') ; writeln('s is false') ),
+	( t -> writeln('t is true') ; writeln('t is false') ),
+	( u -> writeln('u is true') ; writeln('u is false') ),
+	abolish_all_tables,
+	( p, tnot(q), tnot(r), s, tnot(t), tnot(u) ->
+		writeln('conjuctive(true)')
+	; writeln('conjuctive(false)')
+	).
+
+%---------------------------------------------------------------
+

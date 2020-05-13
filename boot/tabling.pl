@@ -3,7 +3,7 @@
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
                    Jan Wielemaker (SWI-Prolog port)
                    Fabrizio Riguzzi (mode directed tabling)
-    Copyright (c) 2016-2018, Benoit Desouter,
+    Copyright (c) 2016-2020, Benoit Desouter,
                              Jan Wielemaker,
                              Fabrizio Riguzzi
     All rights reserved.
@@ -35,21 +35,52 @@
 */
 
 :- module('$tabling',
-          [ (table)/1,                  % +PI ...
+          [ (table)/1,                  % :PI ...
+            untable/1,                  % :PI ...
+
+            (tnot)/1,                   % :Goal
+            not_exists/1,               % :Goal
+            undefined/0,
+            answer_count_restraint/0,
+            radial_restraint/0,
 
             current_table/2,            % :Variant, ?Table
             abolish_all_tables/0,
+            abolish_private_tables/0,
+            abolish_shared_tables/0,
             abolish_table_subgoals/1,   % :Subgoal
+            abolish_module_tables/1,    % +Module
+            abolish_nonincremental_tables/0,
+            abolish_nonincremental_tables/1, % +Options
 
-            start_tabling/2,            % +Wrapper, :Worker
-            start_tabling/4             % +Wrapper, :Worker, :Variant, ?ModeArgs
+            start_tabling/3,            % +Closure, +Wrapper, :Worker
+            start_subsumptive_tabling/3,% +Closure, +Wrapper, :Worker
+            start_abstract_tabling/3,   % +Closure, +Wrapper, :Worker
+            start_moded_tabling/5,      % +Closure, +Wrapper, :Worker,
+                                        % :Variant, ?ModeArgs
+
+            '$tbl_answer'/4,            % +Trie, -Return, -ModeArgs, -Delay
+
+            '$wrap_tabled'/2,		% :Head, +Mode
+            '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
+            '$wfs_call'/2,              % :Goal, -Delays
+
+            '$wrap_incremental'/1,      % :Head
+            '$unwrap_incremental'/1     % :Head
           ]).
 
 :- meta_predicate
-    start_tabling(+, 0),
-    start_tabling(+, 0, +, ?),
+    table(:),
+    untable(:),
+    tnot(0),
+    not_exists(0),
+    tabled_call(0),
+    start_tabling(+, +, 0),
+    start_abstract_tabling(+, +, 0),
+    start_moded_tabling(+, +, 0, +, ?),
     current_table(:, -),
-    abolish_table_subgoals(:).
+    abolish_table_subgoals(:),
+    '$wfs_call'(0, :).
 
 /** <module> Tabled execution (SLG WAM)
 
@@ -61,11 +92,63 @@ table space and work lists are part of the SWI-Prolog core.
 @author Benoit Desouter, Jan Wielemaker and Fabrizio Riguzzi
 */
 
-%!  table(+PredicateIndicators)
+% Enable debugging using debug(tabling(Topic)) when compiled with
+% -DO_DEBUG
+goal_expansion(tdebug(Topic, Fmt, Args), Expansion) :-
+    (   current_prolog_flag(prolog_debug, true)
+    ->  Expansion = debug(tabling(Topic), Fmt, Args)
+    ;   Expansion = true
+    ).
+goal_expansion(tdebug(Goal), Expansion) :-
+    (   current_prolog_flag(prolog_debug, true)
+    ->  Expansion = (   debugging(tabling(_))
+                    ->  (   Goal
+                        ->  true
+                        ;   print_message(error,
+                                          format('goal_failed: ~q', [Goal]))
+                        )
+                    ;   true
+                    )
+    ;   Expansion = true
+    ).
+
+:- if(current_prolog_flag(prolog_debug, true)).
+wl_goal(tnot(WorkList), ~(Goal), Skeleton) :-
+    !,
+    '$tbl_wkl_table'(WorkList, ATrie),
+    trie_goal(ATrie, Goal, Skeleton).
+wl_goal(WorkList, Goal, Skeleton) :-
+    '$tbl_wkl_table'(WorkList, ATrie),
+    trie_goal(ATrie, Goal, Skeleton).
+
+trie_goal(ATrie, Goal, Skeleton) :-
+    '$tbl_table_status'(ATrie, _Status, M:Variant, Skeleton),
+    M:'$table_mode'(Goal0, Variant, _Moded),
+    unqualify_goal(M:Goal0, user, Goal).
+
+delay_goals(List, Goal) :-
+    delay_goals(List, user, Goal).
+
+user_goal(Goal, UGoal) :-
+    unqualify_goal(Goal, user, UGoal).
+
+:- multifile
+    prolog:portray/1.
+
+user:portray(ATrie) :-
+    '$is_answer_trie'(ATrie),
+    trie_goal(ATrie, Goal, _Skeleton),
+    format('~q for ~p', [ATrie, Goal]).
+
+:- endif.
+
+%!  table(:PredicateIndicators)
 %
-%   Prepare the given PredicateIndicators for   tabling. Can only be
-%   used as a directive. The example   below  prepares the predicate
-%   edge/2 and the non-terminal statement//1 for tabled execution.
+%   Prepare the given PredicateIndicators for tabling. This predicate is
+%   normally used as a directive,  but   SWI-Prolog  also allows runtime
+%   conversion of non-tabled predicates to  tabled predicates by calling
+%   table/1. The example below prepares  the   predicate  edge/2 and the
+%   non-terminal statement//1 for tabled execution.
 %
 %     ==
 %     :- table edge/2, statement//1.
@@ -82,183 +165,781 @@ table space and work lists are part of the SWI-Prolog core.
 %   _Mode directed tabling_ is  discussed   in  the general introduction
 %   section about tabling.
 
-table(PIList) :-
-    throw(error(context_error(nodirective, table(PIList)), _)).
+table(M:PIList) :-
+    setup_call_cleanup(
+        '$set_source_module'(OldModule, M),
+        expand_term((:- table(PIList)), Clauses),
+        '$set_source_module'(OldModule)),
+    dyn_tabling_list(Clauses, M).
 
-%!  start_tabling(:Wrapper, :Implementation)
+dyn_tabling_list([], _).
+dyn_tabling_list([H|T], M) :-
+    dyn_tabling(H, M),
+    dyn_tabling_list(T, M).
+
+dyn_tabling(M:Clause, _) :-
+    !,
+    dyn_tabling(Clause, M).
+dyn_tabling((:- multifile(PI)), M) :-
+    !,
+    multifile(M:PI),
+    dynamic(M:PI).
+dyn_tabling(:- initialization(Wrap, now), M) :-
+    !,
+    M:Wrap.
+dyn_tabling('$tabled'(Head, TMode), M) :-
+    (   clause(M:'$tabled'(Head, OMode), true, Ref),
+        (   OMode \== TMode
+        ->  erase(Ref),
+            fail
+        ;   true
+        )
+    ->  true
+    ;   assertz(M:'$tabled'(Head, TMode))
+    ).
+dyn_tabling('$table_mode'(Head, Variant, Moded), M) :-
+    (   clause(M:'$table_mode'(Head, Variant0, Moded0), true, Ref)
+    ->  (   t(Head, Variant, Moded) =@= t(Head, Variant0, Moded0)
+        ->  true
+        ;   erase(Ref),
+            assertz(M:'$table_mode'(Head, Variant, Moded))
+        )
+    ;   assertz(M:'$table_mode'(Head, Variant, Moded))
+    ).
+dyn_tabling(('$table_update'(Head, S0, S1, S2) :- Body), M) :-
+    (   clause(M:'$table_update'(Head, S00, S10, S20), Body0, Ref)
+    ->  (   t(Head, S0, S1, S2, Body) =@= t(Head, S00, S10, S20, Body0)
+        ->  true
+        ;   erase(Ref),
+            assertz(M:('$table_update'(Head, S0, S1, S2) :- Body))
+        )
+    ;   assertz(M:('$table_update'(Head, S0, S1, S2) :- Body))
+    ).
+
+%!  untable(M:PIList) is det.
 %
-%   Execute Implementation using tabling. This  predicate should not
-%   be called directly. The table/1 directive  causes a predicate to
-%   be translated into a renamed implementation   and a wrapper that
-%   involves this predicate.
+%   Remove tabling for the predicates in  PIList.   This  can be used to
+%   undo the effect of table/1 at runtime.   In addition to removing the
+%   tabling instrumentation this also removes possibly associated tables
+%   using abolish_table_subgoals/1.
+%
+%   @arg PIList is a comma-list that is compatible ith table/1.
+
+untable(M:PIList) :-
+    untable(PIList, M).
+
+untable(Var, _) :-
+    var(Var),
+    !,
+    '$instantiation_error'(Var).
+untable(M:Spec, _) :-
+    !,
+    '$must_be'(atom, M),
+    untable(Spec, M).
+untable((A,B), M) :-
+    !,
+    untable(A, M),
+    untable(B, M).
+untable(Name//Arity, M) :-
+    atom(Name), integer(Arity), Arity >= 0,
+    !,
+    Arity1 is Arity+2,
+    untable(Name/Arity1, M).
+untable(Name/Arity, M) :-
+    !,
+    functor(Head, Name, Arity),
+    (   '$get_predicate_attribute'(M:Head, tabled, 1)
+    ->  abolish_table_subgoals(M:Head),
+        dynamic(M:'$tabled'/2),
+        dynamic(M:'$table_mode'/3),
+        retractall(M:'$tabled'(Head, _TMode)),
+        retractall(M:'$table_mode'(Head, _Variant, _Moded)),
+        unwrap_predicate(M:Name/Arity, table),
+        '$set_predicate_attribute'(M:Head, tabled, false)
+    ;   true
+    ).
+untable(Head, M) :-
+    callable(Head),
+    !,
+    functor(Head, Name, Arity),
+    untable(Name/Arity, M).
+untable(TableSpec, _) :-
+    '$type_error'(table_desclaration, TableSpec).
+
+untable_reconsult(PI) :-
+    print_message(informational, untable(PI)),
+    untable(PI).
+
+:- initialization
+   prolog_listen(untable, untable_reconsult).
+
+
+'$wrap_tabled'(Head, Options) :-
+    get_dict(mode, Options, subsumptive),
+    !,
+    set_pattributes(Head, Options),
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_subsumptive_tabling(Closure, Head, Wrapped)).
+'$wrap_tabled'(Head, Options) :-
+    get_dict(subgoal_abstract, Options, _Abstract),
+    !,
+    set_pattributes(Head, Options),
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_abstract_tabling(Closure, Head, Wrapped)).
+'$wrap_tabled'(Head, Options) :-
+    !,
+    set_pattributes(Head, Options),
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      start_tabling(Closure, Head, Wrapped)).
+
+%!  set_pattributes(:Head, +Options) is det.
+%
+%   Set all tabling attributes for Head. These have been collected using
+%   table_options/3 from the `:- table Head as (Attr1,...)` directive.
+
+set_pattributes(Head, Options) :-
+    '$set_predicate_attribute'(Head, tabled, true),
+    (   tabled_attribute(Attr),
+        get_dict(Attr, Options, Value),
+        '$set_predicate_attribute'(Head, Attr, Value),
+        fail
+    ;   true
+    ).
+
+tabled_attribute(incremental).
+tabled_attribute(dynamic).
+tabled_attribute(tshared).
+tabled_attribute(max_answers).
+tabled_attribute(subgoal_abstract).
+tabled_attribute(answer_abstract).
+
+%!  start_tabling(:Closure, :Wrapper, :Implementation)
+%
+%   Execute Implementation using tabling. This   predicate should not be
+%   called directly. The table/1 directive  causes   a  predicate  to be
+%   translated into a renamed implementation and a wrapper that involves
+%   this predicate.
+%
+%   @arg Closure is the wrapper closure   to find the predicate quickly.
+%   It is also allowed to pass nothing.   In that cases the predicate is
+%   looked up using Wrapper.  We suggest to pass `0` in this case.
 %
 %   @compat This interface may change or disappear without notice
 %           from future versions.
 
-start_tabling(Wrapper, Worker) :-
-    '$tbl_variant_table'(Wrapper, Trie, Status),
+start_tabling(Closure, Wrapper, Worker) :-
+    '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
+    start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton).
+
+start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
+    tdebug(deadlock, 'Got table ~p, status ~p', [Trie, Status]),
     (   Status == complete
-    ->  trie_gen(Trie, Wrapper, _)
-    ;   (   '$tbl_create_component'
-        ->  catch(run_leader(Wrapper, Worker, Trie),
-                  E, true),
-            (   var(E)
-            ->  trie_gen(Trie, Wrapper, _)
-            ;   '$tbl_table_discard_all',
-                throw(E)
-            )
-        ;   run_follower(Status, Wrapper, Worker, Trie)
-        )
+    ->  trie_gen_compiled(Trie, Skeleton)
+    ;   functor(Status, fresh, 2)
+    ->  catch(create_table(Trie, Status, Skeleton, Wrapper, Worker),
+              deadlock,
+              restart_tabling(Closure, Wrapper, Worker))
+    ;   Status == invalid
+    ->  reeval(Trie, Wrapper, Skeleton)
+    ;   % = run_follower, but never fresh and Status is a worklist
+        shift(call_info(Skeleton, Status))
     ).
 
-run_leader(Wrapper, Worker, Trie) :-
-    activate(Wrapper, Worker, Trie, _Worklist),
-    completion,
-    '$tbl_completed_component'.
+create_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
+    tdebug(Fresh = fresh(SCC, WorkList)),
+    tdebug(wl_goal(WorkList, Goal, _)),
+    tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+    setup_call_catcher_cleanup(
+        '$idg_set_current'(OldCurrent, Trie),
+        run_leader(Skeleton, Worker, Fresh, LStatus, Clause),
+        Catcher,
+        finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
+    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+    done_leader(LStatus, Fresh, Skeleton, Clause).
 
-run_follower(fresh, Wrapper, Worker, Trie) :-
+%!  restart_tabling(+Closure, +Wrapper, +Worker)
+%
+%   We were aborted due to a  deadlock.   Simply  retry. We sleep a very
+%   tiny amount to give the thread against  which we have deadlocked the
+%   opportunity to grab our table. Without, it is common that we re-grab
+%   the table within our time slice  and   before  the kernel managed to
+%   wakeup the other thread.
+
+restart_tabling(Closure, Wrapper, Worker) :-
+    tdebug(user_goal(Wrapper, Goal)),
+    tdebug(deadlock, 'Deadlock running ~p; retrying', [Goal]),
+    sleep(0.000001),
+    start_tabling(Closure, Wrapper, Worker).
+
+restart_abstract_tabling(Closure, Wrapper, Worker) :-
+    tdebug(user_goal(Wrapper, Goal)),
+    tdebug(deadlock, 'Deadlock running ~p; retrying', [Goal]),
+    sleep(0.000001),
+    start_abstract_tabling(Closure, Wrapper, Worker).
+
+%!  start_subsumptive_tabling(:Closure, :Wrapper, :Implementation)
+%
+%   (*) We should __not__ use  trie_gen_compiled/2   here  as  this will
+%   enumerate  all  answers  while  '$tbl_answer_update_dl'/2  uses  the
+%   available trie indexing to only fetch the relevant answer(s).
+%
+%   @tbd  In  the  end  '$tbl_answer_update_dl'/2  is  problematic  with
+%   incremental and shared tabling  as  we   do  not  get the consistent
+%   update view from the compiled result.
+
+start_subsumptive_tabling(Closure, Wrapper, Worker) :-
+    (   '$tbl_existing_variant_table'(Closure, Wrapper, Trie, Status, Skeleton)
+    ->  (   Status == complete
+        ->  trie_gen_compiled(Trie, Skeleton)
+        ;   Status == invalid
+        ->  reeval(Trie, Wrapper, Skeleton),
+            trie_gen_compiled(Trie, Skeleton)
+        ;   shift(call_info(Skeleton, Status))
+        )
+    ;   more_general_table(Wrapper, ATrie),
+        '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
+    ->  '$tbl_answer_update_dl'(ATrie, Skeleton) % see (*)
+    ;   more_general_table(Wrapper, ATrie),
+        '$tbl_table_status'(ATrie, Status, GenWrapper, GenSkeleton)
+    ->  (   Status == invalid
+        ->  reeval(ATrie, GenWrapper, GenSkeleton),
+            Wrapper = GenWrapper,
+            '$tbl_answer_update_dl'(ATrie, GenSkeleton)
+        ;   wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton),
+            shift(call_info(GenSkeleton, Skeleton, Status)),
+            unify_subsumptive(Skeleton, GenSkeleton)
+        )
+    ;   start_tabling(Closure, Wrapper, Worker)
+    ).
+
+%!  wrapper_skeleton(+GenWrapper, +GenSkeleton, +Wrapper, -Skeleton)
+%
+%   Skeleton is a specialized version of   GenSkeleton  for the subsumed
+%   new consumer.
+
+wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton) :-
+    copy_term(GenWrapper+GenSkeleton, Wrapper+Skeleton),
+    tdebug(call_subsumption, 'GenSkeleton+Skeleton = ~p',
+           [GenSkeleton+Skeleton]).
+
+unify_subsumptive(X,X).
+
+%!  start_abstract_tabling(:Closure, :Wrapper, :Worker)
+%
+%   Deal with ``table p/1 as  subgoal_abstract(N)``.   This  is  a merge
+%   between  variant  and  subsumptive  tabling.  If  the  goal  is  not
+%   abstracted this is simple variant tabling. If the goal is abstracted
+%   we must solve the  more  general  goal   and  use  answers  from the
+%   abstract table.
+%
+%   Wrapper is e.g., user:p(s(s(s(X))),Y)
+%   Worker  is e.g., call(<closure>(p/2)(s(s(s(X))),Y))
+
+start_abstract_tabling(Closure, Wrapper, Worker) :-
+    '$tbl_abstract_table'(Closure, Wrapper, Trie, _Abstract, Status, Skeleton),
+    tdebug(abstract, 'Wrapper=~p, Worker=~p, Skel=~p',
+           [Wrapper, Worker, Skeleton]),
+    (   is_most_general_term(Skeleton)           % TBD: Fill and test Abstract
+    ->  start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
+    ;   Status == complete
+    ->  '$tbl_answer_update_dl'(Trie, Skeleton)
+    ;   functor(Status, fresh, 2)
+    ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
+        abstract_worker(Worker, GenWrapper, GenWorker),
+        catch(create_abstract_table(Trie, Status, Skeleton, GenSkeleton, GenWrapper,
+                                    GenWorker),
+              deadlock,
+              restart_abstract_tabling(Closure, Wrapper, Worker))
+    ;   Status == invalid
+    ->  '$tbl_table_status'(Trie, _, GenWrapper, GenSkeleton),
+        reeval(ATrie, GenWrapper, GenSkeleton),
+        Wrapper = GenWrapper,
+        '$tbl_answer_update_dl'(ATrie, Skeleton)
+    ;   shift(call_info(GenSkeleton, Skeleton, Status)),
+        unify_subsumptive(Skeleton, GenSkeleton)
+    ).
+
+create_abstract_table(Trie, Fresh, Skeleton, GenSkeleton, Wrapper, Worker) :-
+    tdebug(Fresh = fresh(SCC, WorkList)),
+    tdebug(wl_goal(WorkList, Goal, _)),
+    tdebug(schedule, 'Created component ~d for ~p', [SCC, Goal]),
+    setup_call_catcher_cleanup(
+        '$idg_set_current'(OldCurrent, Trie),
+        run_leader(GenSkeleton, Worker, Fresh, LStatus, _Clause),
+        Catcher,
+        finished_leader(OldCurrent, Catcher, Fresh, Wrapper)),
+    tdebug(schedule, 'Leader ~p done, status = ~p', [Goal, LStatus]),
+    Skeleton = GenSkeleton,
+    done_abstract_leader(LStatus, Fresh, GenSkeleton, Trie).
+
+abstract_worker(_:call(Term), _M:GenWrapper, call(GenTerm)) :-
+    functor(Term, Closure, _),
+    GenWrapper =.. [_|Args],
+    GenTerm =.. [Closure|Args].
+
+:- '$hide'((done_abstract_leader/4)).
+
+done_abstract_leader(complete, _Fresh, Skeleton, Trie) :-
     !,
-    activate(Wrapper, Worker, Trie, Worklist),
-    shift(call_info(Wrapper, Worklist)).
-run_follower(Worklist, Wrapper, _Worker, _Trie) :-
-    shift(call_info(Wrapper, Worklist)).
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_abstract_leader(final, fresh(SCC, _Worklist), Skeleton, Trie) :-
+    !,
+    '$tbl_free_component'(SCC),
+    '$tbl_answer_update_dl'(Trie, Skeleton).
+done_abstract_leader(_,_,_,_).
 
-activate(Wrapper, Worker, Trie, WorkList) :-
-    '$tbl_new_worklist'(WorkList, Trie),
-    (   delim(Wrapper, Worker, WorkList),
+%!  done_leader(+Status, +Fresh, +Skeleton, -Clause)
+%
+%   Called on completion of a table. Possibly destroys the component and
+%   generates the answers from the complete  table. The last cases deals
+%   with leaders that are merged into a higher SCC (and thus no longer a
+%   leader).
+
+:- '$hide'((done_leader/4, finished_leader/4)).
+
+done_leader(complete, _Fresh, Skeleton, Clause) :-
+    !,
+    trie_gen_compiled(Clause, Skeleton).
+done_leader(final, fresh(SCC, _Worklist), Skeleton, Clause) :-
+    !,
+    '$tbl_free_component'(SCC),
+    trie_gen_compiled(Clause, Skeleton).
+done_leader(_,_,_,_).
+
+finished_leader(OldCurrent, Catcher, Fresh, Wrapper) :-
+    '$idg_set_current'(OldCurrent),
+    (   Catcher == exit
+    ->  true
+    ;   Catcher == fail
+    ->  true
+    ;   Catcher = exception(_)
+    ->  Fresh = fresh(SCC, _),
+        '$tbl_table_discard_all'(SCC)
+    ;   print_message(error, tabling(unexpected_result(Wrapper, Catcher)))
+    ).
+
+%!  run_leader(+Skeleton, +Worker, +Fresh, -Status, -Clause) is det.
+%
+%   Run the leader of  a  (new)   SCC,  storing  instantiated  copies of
+%   Wrapper into Trie. Status  is  the  status   of  the  SCC  when this
+%   predicate terminates. It is one of   `complete`, in which case local
+%   completion finished or `merged` if running   the completion finds an
+%   open (not completed) active goal that resides in a parent component.
+%   In this case, this SCC has been merged with this parent.
+%
+%   If the SCC is merged, the answers   it already gathered are added to
+%   the worklist and we shift  (suspend),   turning  our  leader into an
+%   internal node for the upper SCC.
+
+run_leader(Skeleton, Worker, fresh(SCC, Worklist), Status, Clause) :-
+    tdebug(wl_goal(Worklist, Goal, Skeleton)),
+    tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
+    activate(Skeleton, Worker, Worklist),
+    tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
+    completion(SCC, Status, Clause),
+    tdebug(schedule, '-> Completed component ~p for ~p: ~p', [SCC, Goal, Status]),
+    (   Status == merged
+    ->  tdebug(merge, 'Turning leader ~p into follower', [Goal]),
+        '$tbl_wkl_make_follower'(Worklist),
+        shift(call_info(Skeleton, Worklist))
+    ;   true                                    % completed
+    ).
+
+activate(Skeleton, Worker, WorkList) :-
+    tdebug(activate, '~p: created wl=~p', [Skeleton, WorkList]),
+    (   reset_delays,
+        delim(Skeleton, Worker, WorkList, []),
         fail
     ;   true
     ).
 
+%!  delim(+Skeleton, +Worker, +WorkList, +Delays)
+%
+%   Call WorkList and  add  all  instances   of  Skeleton  as  answer to
+%   WorkList, conditional according to Delays.
+%
+%   @arg Skeleton is the return skeleton (ret/N term)
+%   @arg Worker is either the (wrapped) tabled goal or a _continuation_
+%   @arg WorkList is the work list associated with Worker (or its
+%        continuation).
+%   @arg Delays is the current delay list.  Note that the actual delay
+%        also include the internal global delay list.
+%        '$tbl_wkl_add_answer'/4 joins the two.  For a dependency we
+%        join the two explicitly.
 
-%!  start_tabling(:Wrapper, :Implementation, +Variant, +ModeArgs)
+delim(Skeleton, Worker, WorkList, Delays) :-
+    reset(Worker, SourceCall, Continuation),
+    tdebug(wl_goal(WorkList, Goal, _)),
+    (   Continuation == 0
+    ->  tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
+        tdebug(delay_goals(AllDelays, Cond)),
+        tdebug(answer, 'New answer ~p for ~p (delays = ~p)',
+               [Skeleton, Goal, Cond]),
+        '$tbl_wkl_add_answer'(WorkList, Skeleton, Delays, Complete),
+        Complete == !,
+        !
+    ;   SourceCall = call_info(SrcSkeleton, SourceWL)
+    ->  '$tbl_add_global_delays'(Delays, AllDelays),
+        tdebug(wl_goal(SourceWL, SrcGoal, _)),
+        tdebug(wl_goal(WorkList, DstGoal, _)),
+        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcGoal, DstGoal]),
+        '$tbl_wkl_add_suspension'(
+            SourceWL,
+            dependency(SrcSkeleton, Continuation, Skeleton, WorkList, AllDelays))
+    ;   SourceCall = call_info(SrcSkeleton, InstSkeleton, SourceWL)
+    ->  '$tbl_add_global_delays'(Delays, AllDelays),
+        tdebug(wl_goal(SourceWL, SrcGoal, _)),
+        tdebug(wl_goal(WorkList, DstGoal, _)),
+        tdebug(schedule, 'Suspended ~p, for solving ~p', [SrcGoal, DstGoal]),
+        '$tbl_wkl_add_suspension'(
+            SourceWL,
+            InstSkeleton,
+            dependency(SrcSkeleton, Continuation, Skeleton, WorkList, AllDelays))
+    ).
+
+%!  start_moded_tabling(+Closure, :Wrapper, :Implementation, +Variant, +ModeArgs)
 %
 %   As start_tabling/2, but in addition separates the data stored in the
 %   answer trie in the Variant and ModeArgs.
 
-start_tabling(Wrapper, Worker, WrapperNoModes, ModeArgs) :-
-    '$tbl_variant_table'(WrapperNoModes, Trie, Status),
+'$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
+    '$set_predicate_attribute'(Head, tabled, true),
+    '$wrap_predicate'(Head, table, Closure, Wrapped,
+                      (   ModeTest,
+                          start_moded_tabling(Closure, Head, Wrapped,
+                                              WrapperNoModes, ModeArgs)
+                      )).
+
+
+start_moded_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
+    '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie, Status, Skeleton),
     (   Status == complete
-    ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
-    ;   (   Status == fresh
-        ->  '$tbl_create_subcomponent',
-            catch(run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie),
-                  E, true),
-            (   var(E)
-            ->  trie_gen(Trie, WrapperNoModes, ModeArgs)
-            ;   '$tbl_table_discard_all',
-                throw(E)
+    ->  moded_gen_answer(Trie, Skeleton, ModeArgs)
+    ;   functor(Status, fresh, 2)
+    ->  setup_call_catcher_cleanup(
+            '$idg_set_current'(OldCurrent, Trie),
+            moded_run_leader(Wrapper, Skeleton/ModeArgs,
+                             Worker, Status, LStatus),
+            Catcher,
+            finished_leader(OldCurrent, Catcher, Status, Wrapper)),
+        tdebug(schedule, 'Leader ~p done, modeargs = ~p, status = ~p',
+               [Wrapper, ModeArgs, LStatus]),
+        moded_done_leader(LStatus, Status, Skeleton, ModeArgs, Trie)
+    ;   Status == invalid
+    ->  reeval(Trie),
+        moded_gen_answer(Trie, Skeleton, ModeArgs)
+    ;   % = run_follower, but never fresh and Status is a worklist
+        shift(call_info(Skeleton/ModeArgs, Status))
+    ).
+
+:- public
+    moded_gen_answer/3.                         % XSB tables.pl
+
+moded_gen_answer(Trie, Skeleton, ModedArgs) :-
+    trie_gen(Trie, Skeleton),
+    '$tbl_answer_update_dl'(Trie, Skeleton, ModedArgs).
+
+'$tbl_answer'(ATrie, Skeleton, ModedArgs, Delay) :-
+    trie_gen(ATrie, Skeleton),
+    '$tbl_answer_c'(ATrie, Skeleton, ModedArgs, Delay).
+
+moded_done_leader(complete, _Fresh, Skeleton, ModeArgs, Trie) :-
+    !,
+    moded_gen_answer(Trie, Skeleton, ModeArgs).
+moded_done_leader(final, fresh(SCC, _WorkList), Skeleton, ModeArgs, Trie) :-
+    !,
+    '$tbl_free_component'(SCC),
+    moded_gen_answer(Trie, Skeleton, ModeArgs).
+moded_done_leader(_, _, _, _, _).
+
+moded_run_leader(Wrapper, SkeletonMA, Worker, fresh(SCC, Worklist), Status) :-
+    tdebug(wl_goal(Worklist, Goal, _)),
+    tdebug(schedule, '-> Activate component ~p for ~p', [SCC, Goal]),
+    moded_activate(SkeletonMA, Worker, Worklist),
+    tdebug(schedule, '-> Complete component ~p for ~p', [SCC, Goal]),
+    completion(SCC, Status, _Clause),           % TBD: propagate
+    tdebug(schedule, '-> Completed component ~p for ~p: ~p', [SCC, Goal, Status]),
+    (   Status == merged
+    ->  tdebug(merge, 'Turning leader ~p into follower', [Wrapper]),
+        '$tbl_wkl_make_follower'(Worklist),
+        shift(call_info(SkeletonMA, Worklist))
+    ;   true                                    % completed
+    ).
+
+moded_activate(SkeletonMA, Worker, WorkList) :-
+    (   reset_delays,
+        delim(SkeletonMA, Worker, WorkList, []),
+        fail
+    ;   true
+    ).
+
+%!  update(+Flags, +Head, +Module, +A1, +A2, -A3, -Action) is semidet.
+%
+%   Update the aggregated value  for  an   answer.  Iff  this  predicate
+%   succeeds, the aggregated value is updated to   A3. If Del is unified
+%   with `true`, A1 should be deleted.
+%
+%   @arg Flags is a bit mask telling which of A1 and A2 are uncondional
+%   @arg Head is the head of the predicate
+%   @arg Module is the module of the predicate
+%   @arg A1 is the currently aggregated value
+%   @arg A2 is the newly produced value
+%   @arg Action is one of
+%	 - `delete` to replace the old answer with the new
+%	 - `keep`   to keep the old answer and add the new
+%	 - `done`   to stop the update process
+
+:- public
+    update/7.
+
+update(0b11, Wrapper, M, A1, A2, A3, delete) :-
+    !,
+    M:'$table_update'(Wrapper, A1, A2, A3),
+    A1 \=@= A3.
+update(0b10, Wrapper, M, A1, A2, A3, Action) :-
+    !,
+    (   is_subsumed_by(Wrapper, M, A2, A1)
+    ->  Action = done
+    ;   A3 = A2,
+        Action = keep
+    ).
+update(0b01, Wrapper, M, A1, A2, A2, Action) :-
+    !,
+    (   is_subsumed_by(Wrapper, M, A1, A2)
+    ->  Action = delete
+    ;   Action = keep
+    ).
+update(0b00, _Wrapper, _M, _A1, A2, A2, keep) :-
+    !.
+
+is_subsumed_by(Wrapper, M, Instance, General) :-
+    M:'$table_update'(Wrapper, Instance, General, New),
+    New =@= General.
+
+%!  completion(+Component, -Status, -Clause) is det.
+%
+%   Wakeup suspended goals until no new answers are generated. Status is
+%   one of `merged`, `completed` or `final`.  If Status is not `merged`,
+%   Clause is a compiled  representation  for   the  answer  trie of the
+%   Component leader.
+
+completion(SCC, Status, Clause) :-
+    (   reset_delays,
+        completion_(SCC),
+        fail
+    ;   '$tbl_table_complete_all'(SCC, Status, Clause),
+        tdebug(schedule, 'SCC ~p: ~p', [scc(SCC), Status])
+    ).
+
+completion_(SCC) :-
+    repeat,
+    (   '$tbl_pop_worklist'(SCC, WorkList)
+    ->  tdebug(wl_goal(WorkList, Goal, _)),
+        tdebug(schedule, 'Complete ~p in ~p', [Goal, scc(SCC)]),
+        completion_step(WorkList)
+    ;   !
+    ).
+
+%!  '$tbl_wkl_work'(+WorkList,
+%!                  -Answer,
+%!                  -Continuation, -Wrapper, -TargetWorklist,
+%!                  -Delays) is nondet.
+%
+%   True when Continuation needs to run with Answer and possible answers
+%   need to be added to  TargetWorklist.   The  remaining  arguments are
+%   there to restore variable bindings and restore the delay list.
+%
+%   The  suspension  added  by  '$tbl_wkl_add_suspension'/2  is  a  term
+%   dependency(SrcWrapper,  Continuation,  Wrapper,  WorkList,  Delays).
+%   Note that:
+%
+%     - Answer and Goal must be unified to rebind the _input_ arguments
+%       for the continuation.
+%     - Wrapper is stored in TargetWorklist on successful completion
+%       of the Continuation.
+%     - If Answer Subsumption is in effect, the story is a bit more
+%       complex and ModeArgs provide the binding over which we do
+%       _aggregation_. Otherwise, ModeArgs is the the
+%       reserved trie node produced by '$tbl_trienode'/1.
+%
+%   @arg Answer is the answer term from the answer cluster (node in
+%   the answer trie).  For answer subsumption it is a term Ret/ModeArgs
+%   @arg Goal to Delays are extracted from the dependency/5 term in
+%   the same order.
+
+%!  completion_step(+Worklist) is fail.
+
+completion_step(SourceWL) :-
+    '$tbl_wkl_work'(SourceWL,
+                    Answer, Continuation, TargetSkeleton, TargetWL, Delays),
+    tdebug(wl_goal(SourceWL, SourceGoal, _)),
+    tdebug(wl_goal(TargetWL, TargetGoal, _Skeleton)),
+    tdebug('$tbl_add_global_delays'(Delays, AllDelays)),
+    tdebug(delay_goals(AllDelays, Cond)),
+    tdebug(schedule, 'Resuming ~p, calling ~p with ~p (delays = ~p)',
+           [TargetGoal, SourceGoal, Answer, Cond]),
+    delim(TargetSkeleton, Continuation, TargetWL, Delays),
+    fail.
+
+
+		 /*******************************
+		 *     STRATIFIED NEGATION	*
+		 *******************************/
+
+%!  tnot(:Goal)
+%
+%   Tabled negation.
+%
+%   (*): Only variant tabling is allowed under tnot/1.
+
+tnot(Goal0) :-
+    '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
+    (   '$tbl_existing_variant_table'(_, Goal, Trie, Status, Skeleton)
+    ->  (   '$tbl_answer_dl'(Trie, _, true)
+        ->  fail
+        ;   '$tbl_answer_dl'(Trie, _, _)
+        ->  tdebug(tnot, 'tnot: adding ~p to delay list', [Goal]),
+            add_delay(Trie)
+        ;   Status == complete
+        ->  true
+        ;   negation_suspend(Goal, Skeleton, Status)
+        )
+    ;   tdebug(tnot, 'tnot: ~p: fresh', [Goal]),
+        (   '$wrapped_implementation'(Goal, table, Implementation), % see (*)
+            functor(Implementation, Closure, _),
+            start_tabling(Closure, Goal, Implementation),
+            fail
+        ;   '$tbl_existing_variant_table'(_, Goal, Trie, NewStatus, NewSkeleton),
+            tdebug(tnot, 'tnot: fresh ~p now ~p', [Goal, NewStatus]),
+            (   '$tbl_answer_dl'(Trie, _, true)
+            ->  fail
+            ;   '$tbl_answer_dl'(Trie, _, _)
+            ->  add_delay(Trie)
+            ;   NewStatus == complete
+            ->  true
+            ;   negation_suspend(Goal, NewSkeleton, NewStatus)
             )
-        ;   % = run_follower, but never fresh and Status is a worklist
-            shift(call_info(Wrapper, Status))
         )
     ).
 
-get_wrapper_no_mode_args(M:Wrapper, M:WrapperNoModes, ModeArgs) :-
-    M:'$table_mode'(Wrapper, WrapperNoModes, ModeArgs).
+floundering(Goal) :-
+    format(string(Comment), 'Floundering goal in tnot/1: ~p', [Goal]),
+    throw(error(instantiation_error, context(_Stack, Comment))).
 
-run_leader(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie) :-
-    activate(Wrapper, WrapperNoModes, ModeArgs, Worker, Trie, _Worklist),
-    completion,
-    '$tbl_completed_component'.
 
-activate(Wrapper, WrapperNoModes, _ModeArgs, Worker, Trie, WorkList) :-
-    '$tbl_new_worklist'(WorkList, Trie),
-    (   delim(Wrapper, WrapperNoModes, Worker, WorkList),
-        fail
-    ;   true
-    ).
-
-%!  delim(+Wrapper, +Worker, +WorkList)
+%!  negation_suspend(+Goal, +Skeleton, +Worklist)
 %
-%   Call/resume Worker for non-mode directed tabled predicates.
-
-delim(Wrapper, Worker, WorkList) :-
-    reset(work_and_add_answer(Worker, Wrapper, WorkList),
-          SourceCall, Continuation),
-    add_answer_or_suspend(Continuation, Wrapper,
-                          WorkList, SourceCall).
-
-work_and_add_answer(Worker, Wrapper, WorkList) :-
-    call(Worker),
-    '$tbl_wkl_add_answer'(WorkList, Wrapper).
-
-
-add_answer_or_suspend(0, _Wrapper, _WorkList, _) :-
-    !.
-add_answer_or_suspend(Continuation, Wrapper, WorkList,
-                      call_info(SrcWrapper, SourceWL)) :-
-    '$tbl_wkl_add_suspension'(
-        SourceWL,
-        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
-
-%!  delim(+Wrapper, +WrapperNoModes, +Worker, +WorkList).
+%   Suspend Worklist due to negation. This marks the worklist as dealing
+%   with a negative literal and suspend.
 %
-%   Call/resume Worker for mode directed tabled predicates.
+%   The completion step will resume  negative   worklists  that  have no
+%   solutions, causing this to succeed.
 
-delim(Wrapper, WrapperNoModes, Worker, WorkList) :-
-    reset(work_and_add_moded_answer(Worker, Wrapper, WrapperNoModes, WorkList),
-          SourceCall, Continuation),
-    add_answer_or_suspend(Continuation, Wrapper, WrapperNoModes,
-                          WorkList, SourceCall).
+negation_suspend(Wrapper, Skeleton, Worklist) :-
+    tdebug(tnot, 'negation_suspend ~p (wl=~p)', [Wrapper, Worklist]),
+    '$tbl_wkl_negative'(Worklist),
+    shift(call_info(Skeleton, tnot(Worklist))),
+    tdebug(tnot, 'negation resume ~p (wl=~p)', [Wrapper, Worklist]),
+    '$tbl_wkl_is_false'(Worklist).
 
-work_and_add_moded_answer(Worker, Wrapper, WrapperNoModes, WorkList) :-
-    call(Worker),
-    get_wrapper_no_mode_args(Wrapper, _, ModeArgs),
-    '$tbl_wkl_mode_add_answer'(WorkList, WrapperNoModes,
-                               ModeArgs, Wrapper).
-
-add_answer_or_suspend(0, _Wrapper, _WrapperNoModes, _WorkList, _) :-
-    !.
-add_answer_or_suspend(Continuation, Wrapper, _WrapperNoModes, WorkList,
-                      call_info(SrcWrapper, SourceWL)) :-
-    '$tbl_wkl_add_suspension'(
-        SourceWL,
-        dependency(SrcWrapper, Continuation, Wrapper, WorkList)).
-
-
-%!  update(+Wrapper, +A1, +A2, -A3) is semidet.
+%!  not_exists(:P) is semidet.
 %
-%   Update the aggregated value for  an   answer.  Wrapper is the tabled
-%   goal, A1 is the aggregated value so far, A2 is the new answer and A3
-%   should be unified with the new   aggregated value. The new aggregate
-%   is ignored if it is the same as the old one.
+%   Tabled negation for non-ground goals. This predicate uses the tabled
+%   meta-predicate tabled_call/1. The tables  for xsb:tabled_call/1 must
+%   be cleared if `the world changes' as   well  as to avoid aggregating
+%   too many variants.
 
-:- public
-    update/4.
-
-update(M:Wrapper, A1, A2, A3) :-
-    M:'$table_update'(Wrapper, A1, A2, A3),
-    A1 \=@= A3.
-
-
-%!  completion
-%
-%   Wakeup suspended goals until no new answers are generated.
-
-completion :-
-    '$tbl_pop_worklist'(WorkList),
+not_exists(Goal) :-
+    ground(Goal),
+    '$get_predicate_attribute'(Goal, tabled, 1),
     !,
-    completion_step(WorkList),
-    completion.
-completion :-
-    '$tbl_table_complete_all'.
-
-completion_step(SourceTable) :-
-    (   '$tbl_trienode'(Reserved),
-        '$tbl_wkl_work'(SourceTable,
-                        Answer, ModeArgs,
-                        Goal, Continuation, Wrapper, TargetTable),
-        (   ModeArgs == Reserved
-        ->  Goal = Answer,
-            delim(Wrapper, Continuation, TargetTable)
-        ;   get_wrapper_no_mode_args(Goal, Answer, ModeArgs),
-            get_wrapper_no_mode_args(Wrapper, WrapperNoModes, _),
-            delim(Wrapper, WrapperNoModes, Continuation, TargetTable)
-        ),
-        fail
-    ;   true
+    tnot(Goal).
+not_exists(Goal) :-
+    (   tabled_call(Goal), fail
+    ;   tnot(tabled_call(Goal))
     ).
+
+		 /*******************************
+		 *           DELAY LISTS	*
+		 *******************************/
+
+add_delay(Delay) :-
+    '$tbl_delay_list'(DL0),
+    '$tbl_set_delay_list'([Delay|DL0]).
+
+reset_delays :-
+    '$tbl_set_delay_list'([]).
+
+%!  '$wfs_call'(:Goal, :Delays)
+%
+%   Call Goal and provide WFS delayed goals  as a conjunction in Delays.
+%   This  predicate  is  the  internal  version  of  call_delays/2  from
+%   library(wfs).
+
+'$wfs_call'(Goal, M:Delays) :-
+    '$tbl_delay_list'(DL0),
+    reset_delays,
+    call(Goal),
+    '$tbl_delay_list'(DL1),
+    (   delay_goals(DL1, M, Delays)
+    ->  true
+    ;   Delays = undefined
+    ),
+    '$append'(DL0, DL1, DL),
+    '$tbl_set_delay_list'(DL).
+
+delay_goals([], _, true) :-
+    !.
+delay_goals([AT+AN|T], M, Goal) :-
+    !,
+    (   integer(AN)
+    ->  at_delay_goal(AT, M, G0, Answer, Moded),
+        (   '$tbl_is_trienode'(Moded)
+        ->  trie_term(AN, Answer)
+        ;   true                        % TBD: Generated moded answer
+        )
+    ;   AN = Skeleton/ModeArgs
+    ->  '$tbl_table_status'(AT, _, M1:GNoModes, Skeleton),
+        M1:'$table_mode'(G0plain, GNoModes, ModeArgs),
+        G0 = M1:G0plain
+    ;   '$tbl_table_status'(AT, _, G0, AN)
+    ),
+    GN = G0,
+    (   T == []
+    ->  Goal = GN
+    ;   Goal = (GN,GT),
+        delay_goals(T, M, GT)
+    ).
+delay_goals([AT|T], M, Goal) :-
+    atrie_goal(AT, G0),
+    unqualify_goal(G0, M, G1),
+    GN = tnot(G1),
+    (   T == []
+    ->  Goal = GN
+    ;   Goal = (GN,GT),
+        delay_goals(T, M, GT)
+    ).
+
+at_delay_goal(tnot(Trie), M, tnot(Goal), Skeleton, Moded) :-
+    is_trie(Trie),
+    !,
+    at_delay_goal(Trie, M, Goal, Skeleton, Moded).
+at_delay_goal(Trie, M, Goal, Skeleton, Moded) :-
+    is_trie(Trie),
+    !,
+    '$tbl_table_status'(Trie, _Status, M2:Variant, Skeleton),
+    M2:'$table_mode'(Goal0, Variant, Moded),
+    unqualify_goal(M2:Goal0, M, Goal).
+
+atrie_goal(Trie, M:Goal) :-
+    '$tbl_table_status'(Trie, _Status, M:Variant, _Skeleton),
+    M:'$table_mode'(Goal, Variant, _Moded).
+
+unqualify_goal(M:Goal, M, Goal0) :-
+    !,
+    Goal0 = Goal.
+unqualify_goal(Goal, _, Goal).
+
 
                  /*******************************
                  *            CLEANUP           *
@@ -270,23 +951,113 @@ completion_step(SourceTable) :-
 %   recompute the result after predicates on   which  the result for
 %   some tabled predicates depend.
 %
-%   @error  permission_error(abolish, table, all) if tabling is
-%           in progress.
+%   Abolishes both local and shared   tables. Possibly incomplete tables
+%   are marked for destruction upon completion.
 
 abolish_all_tables :-
-    '$tbl_abolish_all_tables'.
+    (   '$tbl_abolish_local_tables'
+    ->  true
+    ;   true
+    ),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+
+abolish_private_tables :-
+    (   '$tbl_abolish_local_tables'
+    ->  true
+    ;   (   '$tbl_local_variant_table'(VariantTrie),
+            trie_gen(VariantTrie, _, Trie),
+            '$tbl_destroy_table'(Trie),
+            fail
+        ;   true
+        )
+    ).
+
+abolish_shared_tables :-
+    (   '$tbl_global_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
 
 %!  abolish_table_subgoals(:Subgoal) is det.
 %
 %   Abolish all tables that unify with SubGoal.
+%
+%   @tbd: SubGoal must be callable.  Should we allow for more general
+%   patterns?
 
-abolish_table_subgoals(M:SubGoal) :-
-    '$tbl_variant_table'(VariantTrie),
+abolish_table_subgoals(SubGoal0) :-
+    '$tbl_implementation'(SubGoal0, M:SubGoal),
     !,
-    current_module(M),
-    forall(trie_gen(VariantTrie, M:SubGoal, Trie),
-           '$tbl_destroy_table'(Trie)).
+    '$must_be'(acyclic, SubGoal),
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, M:SubGoal, Trie),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
 abolish_table_subgoals(_).
+
+%!  abolish_module_tables(+Module) is det.
+%
+%   Abolish all tables for predicates associated with the given module.
+
+abolish_module_tables(Module) :-
+    '$must_be'(atom, Module),
+    '$tbl_variant_table'(VariantTrie),
+    current_module(Module),
+    !,
+    forall(trie_gen(VariantTrie, Module:_, Trie),
+           '$tbl_destroy_table'(Trie)).
+abolish_module_tables(_).
+
+%!  abolish_nonincremental_tables is det.
+%
+%   Abolish all tables that are not related to incremental predicates.
+
+abolish_nonincremental_tables :-
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_table_status'(Trie, Status, Goal, _),
+        (   Status == complete
+        ->  true
+        ;   '$permission_error'(abolish, incomplete_table, Trie)
+        ),
+        \+ predicate_property(Goal, incremental),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+
+%!  abolish_nonincremental_tables(+Options)
+%
+%   Allow for skipping incomplete tables while abolishing.
+%
+%   @tbd Mark tables for destruction such   that they are abolished when
+%   completed.
+
+abolish_nonincremental_tables(Options) :-
+    (   Options = on_incomplete(Action)
+    ->  Action == skip
+    ;   '$option'(on_incomplete(skip), Options)
+    ),
+    !,
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, _, Trie),
+        '$tbl_table_status'(Trie, complete, Goal, _),
+        \+ predicate_property(Goal, incremental),
+        '$tbl_destroy_table'(Trie),
+        fail
+    ;   true
+    ).
+abolish_nonincremental_tables(_) :-
+    abolish_nonincremental_tables.
 
 
                  /*******************************
@@ -295,15 +1066,40 @@ abolish_table_subgoals(_).
 
 %!  current_table(:Variant, -Trie) is nondet.
 %
-%   True when Trie is the answer table for Variant.
+%   True when Trie is the answer table   for  Variant. If Variant has an
+%   unbound module or goal, all  possible   answer  tries are generated,
+%   otherwise Variant is considered a fully instantiated variant and the
+%   predicate is semidet.
 
-current_table(M:Variant, Trie) :-
-    '$tbl_variant_table'(VariantTrie),
-    (   (var(Variant) ; var(M))
-    ->  trie_gen(VariantTrie, M:Variant, Trie)
-    ;   trie_lookup(VariantTrie, M:Variant, Trie)
+current_table(Variant, Trie) :-
+    ct_generate(Variant),
+    !,
+    current_table_gen(Variant, Trie).
+current_table(Variant, Trie) :-
+    current_table_lookup(Variant, Trie),
+    !.
+
+current_table_gen(Variant, Trie) :-
+    '$tbl_local_variant_table'(VariantTrie),
+    trie_gen(VariantTrie, Variant, Trie).
+current_table_gen(Variant, Trie) :-
+    '$tbl_global_variant_table'(VariantTrie),
+    trie_gen(VariantTrie, Variant, Trie),
+    \+ '$tbl_table_status'(Trie, fresh). % shared tables are not destroyed
+
+current_table_lookup(Variant, Trie) :-
+    '$tbl_local_variant_table'(VariantTrie),
+    trie_lookup(VariantTrie, Variant, Trie).
+current_table_lookup(Variant, Trie) :-
+    '$tbl_global_variant_table'(VariantTrie),
+    trie_lookup(VariantTrie, Variant, Trie),
+    \+ '$tbl_table_status'(Trie, fresh).
+
+ct_generate(M:Variant) :-
+    (   var(Variant)
+    ->  true
+    ;   var(M)
     ).
-
 
                  /*******************************
                  *      WRAPPER GENERATION      *
@@ -311,87 +1107,170 @@ current_table(M:Variant, Trie) :-
 
 :- multifile
     system:term_expansion/2,
-    prolog:rename_predicate/2,
     tabled/2.
 :- dynamic
     system:term_expansion/2.
 
-wrappers(Var) -->
+wrappers(Spec, M) -->
+    { tabling_defaults(
+          [ (table_incremental=true)            - (incremental=true),
+            (table_shared=true)                 - (tshared=true),
+            (table_subsumptive=true)            - ((mode)=subsumptive),
+            call(subgoal_size_restraint(Level)) - (subgoal_abstract=Level)
+          ],
+          #{}, Defaults)
+    },
+    wrappers(Spec, M, Defaults).
+
+wrappers(Var, _, _) -->
     { var(Var),
       !,
       '$instantiation_error'(Var)
     }.
-wrappers((A,B)) -->
+wrappers(M:Spec, _, Opts) -->
     !,
-    wrappers(A),
-    wrappers(B).
-wrappers(Name//Arity) -->
+    { '$must_be'(atom, M) },
+    wrappers(Spec, M, Opts).
+wrappers(Spec as Options, M, Opts0) -->
+    !,
+    { table_options(Options, Opts0, Opts) },
+    wrappers(Spec, M, Opts).
+wrappers((A,B), M, Opts) -->
+    !,
+    wrappers(A, M, Opts),
+    wrappers(B, M, Opts).
+wrappers(Name//Arity, M, Opts) -->
     { atom(Name), integer(Arity), Arity >= 0,
       !,
       Arity1 is Arity+2
     },
-    wrappers(Name/Arity1).
-wrappers(Name/Arity) -->
-    { atom(Name), integer(Arity), Arity >= 0,
+    wrappers(Name/Arity1, M, Opts).
+wrappers(Name/Arity, Module, Opts) -->
+    { '$option'(mode(TMode), Opts, variant),
+      atom(Name), integer(Arity), Arity >= 0,
       !,
       functor(Head, Name, Arity),
-      check_undefined(Name/Arity),
-      atom_concat(Name, ' tabled', WrapName),
-      Head =.. [Name|Args],
-      WrappedHead =.. [WrapName|Args],
-      prolog_load_context(module, Module),
       '$tbl_trienode'(Reserved)
     },
-    [ '$tabled'(Head),
-      '$table_mode'(Head, Head, Reserved),
-      (   Head :-
-             start_tabling(Module:Head, WrappedHead)
-      )
+    qualify(Module,
+            [ '$tabled'(Head, TMode),
+              '$table_mode'(Head, Head, Reserved)
+            ]),
+    [ (:- initialization('$wrap_tabled'(Module:Head, Opts), now))
     ].
-wrappers(ModeDirectedSpec) -->
-    { callable(ModeDirectedSpec),
+wrappers(ModeDirectedSpec, Module, Opts) -->
+    { '$option'(mode(TMode), Opts, variant),
+      callable(ModeDirectedSpec),
       !,
       functor(ModeDirectedSpec, Name, Arity),
       functor(Head, Name, Arity),
-      check_undefined(Name/Arity),
-      atom_concat(Name, ' tabled', WrapName),
-      Head =.. [Name|Args],
-      WrappedHead =.. [WrapName|Args],
       extract_modes(ModeDirectedSpec, Head, Variant, Modes, Moded),
       updater_clauses(Modes, Head, UpdateClauses),
-      prolog_load_context(module, Module),
       mode_check(Moded, ModeTest),
       (   ModeTest == true
-      ->  WrapClause = (Head :- start_tabling(Module:Head, WrappedHead))
-      ;   WrapClause = (Head :- ModeTest,
-                            start_tabling(Module:Head, WrappedHead,
-                                          Module:Variant, Moded))
+      ->  WrapClause = '$wrap_tabled'(Module:Head, Opts),
+          TVariant = Head
+      ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
+                                            Module:Variant, Moded),
+          TVariant = Variant
       )
     },
-    [ '$tabled'(Head),
-      '$table_mode'(Head, Variant, Moded),
-      WrapClause
-    | UpdateClauses
-    ].
-wrappers(TableSpec) -->
+    qualify(Module,
+            [ '$tabled'(Head, TMode),
+              '$table_mode'(Head, TVariant, Moded)
+            ]),
+    [ (:- initialization(WrapClause, now))
+    ],
+    qualify(Module, UpdateClauses).
+wrappers(TableSpec, _M, _Opts) -->
     { '$type_error'(table_desclaration, TableSpec)
     }.
 
-%!  check_undefined(+PI)
-%
-%   Verify the predicate has no clauses when the :- table is declared.
-%
-%   @tbd: future versions may rename the existing predicate.
-
-check_undefined(Name/Arity) :-
-    functor(Head, Name, Arity),
-    prolog_load_context(module, Module),
-    current_predicate(Module:Name/Arity),
-    \+ '$get_predicate_attribute'(Module:Head, imported, _),
-    clause(Module:Head, _),
+qualify(Module, List) -->
+    { prolog_load_context(module, Module) },
     !,
-    '$permission_error'(table, procedure, Name/Arity).
-check_undefined(_).
+    clist(List).
+qualify(Module, List) -->
+    qlist(List, Module).
+
+clist([])    --> [].
+clist([H|T]) --> [H], clist(T).
+
+qlist([], _)    --> [].
+qlist([H|T], M) --> [M:H], qlist(T, M).
+
+
+tabling_defaults([], Dict, Dict).
+tabling_defaults([Condition-(Opt=Value)|T], Dict0, Dict) :-
+    (   tabling_default(Condition)
+    ->  Dict1 = Dict0.put(Opt,Value)
+    ;   Dict1 = Dict0
+    ),
+    tabling_defaults(T, Dict1, Dict).
+
+tabling_default(Flag=FValue) :-
+    !,
+    current_prolog_flag(Flag, FValue).
+tabling_default(call(Term)) :-
+    call(Term).
+
+% Called from wrappers//2.
+
+subgoal_size_restraint(Level) :-
+    current_prolog_flag(max_table_subgoal_size_action, abstract),
+    current_prolog_flag(max_table_subgoal_size, Level).
+
+%!  table_options(+Options, +OptDictIn, -OptDictOut)
+%
+%   Handler the ... as _options_ ... construct.
+
+table_options(Options, _Opts0, _Opts) :-
+    var(Options),
+    '$instantiation_error'(Options).
+table_options((A,B), Opts0, Opts) :-
+    !,
+    table_options(A, Opts0, Opts1),
+    table_options(B, Opts1, Opts).
+table_options(subsumptive, Opts0, Opts1) :-
+    !,
+    put_dict(mode, Opts0, subsumptive, Opts1).
+table_options(variant, Opts0, Opts1) :-
+    !,
+    put_dict(mode, Opts0, variant, Opts1).
+table_options(incremental, Opts0, Opts1) :-
+    !,
+    put_dict(incremental, Opts0, true, Opts1).
+table_options(opaque, Opts0, Opts1) :-
+    !,
+    put_dict(incremental, Opts0, false, Opts1).
+table_options(dynamic, Opts0, Opts1) :-
+    !,
+    put_dict(dynamic, Opts0, true, Opts1).
+table_options(shared, Opts0, Opts1) :-
+    !,
+    put_dict(tshared, Opts0, true, Opts1).
+table_options(private, Opts0, Opts1) :-
+    !,
+    put_dict(tshared, Opts0, false, Opts1).
+table_options(max_answers(Count), Opts0, Opts1) :-
+    !,
+    restraint(max_answers, Count, Opts0, Opts1).
+table_options(subgoal_abstract(Size), Opts0, Opts1) :-
+    !,
+    restraint(subgoal_abstract, Size, Opts0, Opts1).
+table_options(answer_abstract(Size), Opts0, Opts1) :-
+    !,
+    restraint(answer_abstract, Size, Opts0, Opts1).
+table_options(Opt, _, _) :-
+    '$domain_error'(table_option, Opt).
+
+restraint(Name, Value0, Opts0, Opts) :-
+    '$table_option'(Value0, Value),
+    (   Value < 0
+    ->  Opts = Opts0
+    ;   put_dict(Name, Opts0, Value, Opts)
+    ).
+
 
 %!  mode_check(+Moded, -TestCode)
 %
@@ -435,6 +1314,8 @@ instantiated_moded_arg(Vars) :-
 %   itself. If there are multiple, this is a term s(A1,A2,...)
 
 extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
+    compound(ModeSpec),
+    !,
     compound_name_arguments(ModeSpec, Name, ModeSpecArgs),
     compound_name_arguments(Head, Name, HeadArgs),
     separate_args(ModeSpecArgs, HeadArgs, VariantArgs, Modes, ModedArgs),
@@ -447,6 +1328,9 @@ extract_modes(ModeSpec, Head, Variant, Modes, ModedAnswer) :-
     ->  true
     ;   ModedAnswer =.. [s|ModedArgs]
     ).
+extract_modes(Atom, Atom, Variant, [], ModedAnswer) :-
+    atomic_list_concat([$,Atom,$,0], Variant),
+    '$tbl_trienode'(ModedAnswer).
 
 %!  separate_args(+ModeSpecArgs, +HeadArgs,
 %!		  -NoModesArgs, -Modes, -ModeArgs) is det.
@@ -506,6 +1390,12 @@ update_goal(lattice(Name/Arity), S0,S1,S2, Goal) :-
     !,
     '$must_be'(oneof(integer, lattice_arity, [3]), Arity),
     '$must_be'(atom, Name),
+    Goal =.. [Name,S0,S1,S2].
+update_goal(lattice(Head), S0,S1,S2, Goal) :-
+    compound(Head),
+    !,
+    compound_name_arity(Head, Name, Arity),
+    '$must_be'(oneof(integer, lattice_arity, [3]), Arity),
     Goal =.. [Name,S0,S1,S2].
 update_goal(lattice(Name), S0,S1,S2, Goal) :-
     !,
@@ -573,37 +1463,466 @@ sum(S0, S1, S) :- S is S0+S1.
 
 
 		 /*******************************
-		 *         RENAME WORKER	*
+		 *      INCREMENTAL TABLING	*
 		 *******************************/
 
-%!  prolog:rename_predicate(:Head0, :Head) is semidet.
+%!  '$wrap_incremental'(:Head) is det.
 %
-%   Hook into term_expansion for  post   processing  renaming of the
-%   generated predicate.
+%   Wrap an incremental dynamic predicate to be added to the IDG.
 
-prolog:rename_predicate(M:Head0, M:Head) :-
-    current_predicate(M:'$tabled'/1),
-    call(M:'$tabled'(Head0)),
-    \+ '$get_predicate_attribute'(M:'$tabled'(_), imported, _),
-    \+ current_prolog_flag(xref, true),
+'$wrap_incremental'(Head) :-
+    abstract_goal(Head, Abstract),
+    '$pi_head'(PI, Head),
+    (   Head == Abstract
+    ->  prolog_listen(PI, dyn_update)
+    ;   prolog_listen(PI, dyn_update(Abstract))
+    ).
+
+abstract_goal(M:Head, M:Abstract) :-
+    compound(Head),
+    '$get_predicate_attribute'(M:Head, abstract, 1),
     !,
-    rename_term(Head0, Head).
+    compound_name_arity(Head, Name, Arity),
+    functor(Abstract, Name, Arity).
+abstract_goal(Head, Head).
 
-rename_term(Compound0, Compound) :-
-    compound(Compound0),
+%!  dyn_update(+Action, +Context) is det.
+%
+%   Track changes to added or removed clauses. We use '$clause'/4
+%   because it works on erased clauses.
+%
+%   @tbd Add a '$clause_head'(-Head, +ClauseRef) to only decompile the
+%   head.
+
+dyn_update(_Action, ClauseRef) :-
+    (   atomic(ClauseRef)                       % avoid retractall, start(_)
+    ->  '$clause'(Head, _Body, ClauseRef, _Bindings),
+        dyn_changed_pattern(Head)
+    ;   true
+    ).
+
+dyn_update(Abstract, _, _) :-
+    dyn_changed_pattern(Abstract).
+
+dyn_changed_pattern(Term) :-
+    forall(dyn_affected(Term, ATrie),
+           '$idg_changed'(ATrie)).
+
+dyn_affected(Term, ATrie) :-
+    '$tbl_variant_table'(VTable),
+    trie_gen(VTable, Term, ATrie).
+
+%!  '$unwrap_incremental'(:Head) is det.
+%
+%   Remove dynamic predicate incremenal forwarding,   reset the possible
+%   `abstract` property and remove possible tables.
+
+'$unwrap_incremental'(Head) :-
+    '$pi_head'(PI, Head),
+    (   unwrap_predicate(PI, incremental)
+    ->  abstract_goal(Head, Abstract),
+        (   Head == Abstract
+        ->  prolog_unlisten(PI, dyn_update)
+        ;   '$set_predicate_attribute'(Head, abstract, 0),
+            prolog_unlisten(PI, dyn_update(_))
+        ),
+        (   '$tbl_variant_table'(VariantTrie)
+        ->  forall(trie_gen(VariantTrie, Head, ATrie),
+                   '$tbl_destroy_table'(ATrie))
+        ;   true
+        )
+    ;   true
+    ).
+
+%!  reeval(+ATrie, :Goal, ?Return) is nondet.
+%
+%   Called  if  the   table   ATrie    is   out-of-date   (has  non-zero
+%   _falsecount_). The answers of this predicate are the answers to Goal
+%   after re-evaluating the answer trie.
+%
+%   This finds all dependency  paths  to   dynamic  predicates  and then
+%   evaluates the nodes in a breath-first  fashion starting at the level
+%   just above the dynamic predicates  and   moving  upwards.  Bottom up
+%   evaluation is used to profit from upward propagation of not-modified
+%   events that may cause the evaluation to stop early.
+%
+%   Note that false paths either end  in   a  dynamic node or a complete
+%   node. The latter happens if we have and  IDG   "D  -> P -> Q" and we
+%   first re-evaluate P for some reason.  Now   Q  can  still be invalid
+%   after P has been re-evaluated.
+%
+%   @arg ATrie is the answer trie.  When shared tabling, we own this
+%   trie.
+%   @arg Goal is tabled goal (variant).  If we run into a deadlock we
+%   need to call this.
+%   @arg Return is the return skeleton. We must run
+%   trie_gen_compiled(ATrie, Return) to enumerate the answers
+
+reeval(ATrie, Goal, Return) :-
+    catch(try_reeval(ATrie, Goal, Return), deadlock,
+          retry_reeval(ATrie, Goal)).
+
+retry_reeval(ATrie, Goal) :-
+    '$tbl_reeval_abandon'(ATrie),
+    tdebug(deadlock, 'Deadlock re-evaluating ~p; retrying', [ATrie]),
+    sleep(0.000001),
+    call(Goal).
+
+try_reeval(ATrie, Goal, Return) :-
+    nb_current('$tbl_reeval', true),
     !,
-    compound_name_arguments(Compound0, Name, Args),
-    atom_concat(Name, ' tabled', WrapName),
-    compound_name_arguments(Compound, WrapName, Args).
-rename_term(Name, WrapName) :-
-    atom_concat(Name, ' tabled', WrapName).
+    tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
+    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    (   nonvar(Clause)
+    ->  trie_gen_compiled(Clause, Return)
+    ;   call(Goal)
+    ).
+try_reeval(ATrie, Goal, Return) :-
+    tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
+    findall(Path, false_path(ATrie, Path), Paths0),
+    sort(0, @>, Paths0, Paths),
+    split_paths(Paths, Dynamic, Complete),
+    tdebug(forall('$member'(Path, Dynamic),
+                  tdebug(reeval, '  Re-eval dynamic path: ~p', [Path]))),
+    tdebug(forall('$member'(Path, Complete),
+                  tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
+    reeval_paths(Dynamic, ATrie),
+    reeval_paths(Complete, ATrie),
+    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    (   nonvar(Clause)
+    ->  trie_gen_compiled(Clause, Return)
+    ;   call(Goal)
+    ).
+
+split_paths([], [], []).
+split_paths([[Rank-_Len|Path]|T], [Path|DT], CT) :-
+    status_rank(dynamic, Rank),
+    !,
+    split_paths(T, DT, CT).
+split_paths([[_|Path]|T], DT, [Path|CT]) :-
+    split_paths(T, DT, CT).
+
+reeval_paths([], _) :-
+    !.
+reeval_paths(BottomUp, ATrie) :-
+    is_invalid(ATrie),
+    !,
+    reeval_heads(BottomUp, ATrie, BottomUp1),
+    reeval_paths(BottomUp1, ATrie).
+reeval_paths(_, _).
+
+reeval_heads(_, ATrie, _) :-
+    \+ is_invalid(ATrie),
+    !.
+reeval_heads([], _, []).
+reeval_heads([[H]|B], ATrie, BT) :-
+    !,
+    reeval_node(H),
+    reeval_heads(B, ATrie, BT).
+reeval_heads([[]|B], ATrie, BT) :-
+    !,
+    reeval_heads(B, ATrie, BT).
+reeval_heads([[H|T]|B], ATrie, [T|BT]) :-
+    !,
+    reeval_node(H),
+    reeval_heads(B, ATrie, BT).
+
+%!  false_path(+Atrie, -Path) is nondet.
+%
+%   True when Path is a list of   invalid  tries (bottom up, ending with
+%   ATrie). The last element of the list is a term `Rank-Length` that is
+%   used for sorting the paths.
+%
+%   If we find a table along the  way   that  is being worked on by some
+%   other thread we wait for it.
+
+false_path(ATrie, BottomUp) :-
+    false_path(ATrie, Path, []),
+    '$reverse'(Path, BottomUp).
+
+false_path(ATrie, [ATrie|T], Seen) :-
+    \+ memberchk(ATrie, Seen),
+    '$idg_edge'(ATrie, dependent, Dep),
+    '$tbl_reeval_wait'(Dep, Status),
+    tdebug(reeval, '    ~p has dependent ~p (~w)', [ATrie, Dep, Status]),
+    (   Status == invalid
+    ->  false_path(Dep, T, [ATrie|Seen])
+    ;   status_rank(Status, Rank),
+        length(Seen, Len),
+        T = [Rank-Len]
+    ).
+
+status_rank(dynamic,  2) :- !.
+status_rank(complete, 1) :- !.
+status_rank(Status,   Rank) :-
+    var(Rank),
+    !,
+    format(user_error, 'Re-eval from status ~p~n', [Status]),
+    Rank = 0.
+status_rank(Rank,   Rank) :-
+    format(user_error, 'Re-eval from rank ~p~n', [Rank]).
+
+is_invalid(ATrie) :-
+    '$idg_falsecount'(ATrie, FalseCount),
+    FalseCount > 0.
+
+%!  reeval_node(+ATrie)
+%
+%   Re-evaluate the invalid answer trie ATrie.  Initially this created a
+%   nested tabling environment, but this is dropped:
+%
+%     - It is possible for the re-evaluating variant to call into outer
+%       non/not-yet incremental tables, requiring a merge with this
+%       outer SCC.  This doesn't work well with a sub-environment.
+%     - We do not need one.  If this environment is not merged into the
+%       outer one it will complete before we continue.
+
+reeval_node(ATrie) :-
+    '$tbl_reeval_prepare'(ATrie, Variant, Clause),
+    var(Clause),
+    !,
+    tdebug(reeval, 'Re-evaluating ~p', [Variant]),
+    (   '$idg_reset_current',
+        setup_call_cleanup(
+            nb_setval('$tbl_reeval', true),
+            ignore(Variant),                    % assumes local scheduling
+            nb_delete('$tbl_reeval')),
+        fail
+    ;   tdebug(reeval, 'Re-evaluated ~p', [Variant])
+    ).
+reeval_node(_).
 
 
-system:term_expansion((:- table(Preds)),
-                      [ (:- multifile('$tabled'/1)),
-                        (:- multifile('$table_mode'/3)),
-                        (:- multifile('$table_update'/4))
-                      | Clauses
-                      ]) :-
+		 /*******************************
+		 *      EXPAND DIRECTIVES	*
+		 *******************************/
+
+system:term_expansion((:- table(Preds)), Expansion) :-
     \+ current_prolog_flag(xref, true),
-    phrase(wrappers(Preds), Clauses).
+    prolog_load_context(module, M),
+    phrase(wrappers(Preds, M), Clauses),
+    multifile_decls(Clauses, Directives0),
+    sort(Directives0, Directives),
+    '$append'(Directives, Clauses, Expansion).
+
+multifile_decls([], []).
+multifile_decls([H0|T0], [H|T]) :-
+    multifile_decl(H0, H),
+    !,
+    multifile_decls(T0, T).
+multifile_decls([_|T0], T) :-
+    multifile_decls(T0, T).
+
+multifile_decl(M:(Head :- _Body), (:- multifile(M:Name/Arity))) :-
+    !,
+    functor(Head, Name, Arity).
+multifile_decl(M:Head, (:- multifile(M:Name/Arity))) :-
+    !,
+    functor(Head, Name, Arity).
+multifile_decl((Head :- _Body), (:- multifile(Name/Arity))) :-
+    !,
+    functor(Head, Name, Arity).
+multifile_decl(Head, (:- multifile(Name/Arity))) :-
+    !,
+    Head \= (:-_),
+    functor(Head, Name, Arity).
+
+
+		 /*******************************
+		 *      ANSWER COMPLETION	*
+		 *******************************/
+
+:- public answer_completion/2.
+
+%!  answer_completion(+AnswerTrie, +Return) is det.
+%
+%   Find  positive  loops  in  the  residual   program  and  remove  the
+%   corresponding answers, possibly causing   additional simplification.
+%   This is called from C  if   simplify_component()  detects  there are
+%   conditional answers after simplification.
+%
+%   Note that we are called recursively from   C.  Our caller prepared a
+%   clean new tabling environment and restores   the  old one after this
+%   predicate terminates.
+%
+%   @author This code is by David Warren as part of XSB.
+%   @see called from C, pl-tabling.c, answer_completion()
+
+answer_completion(AnswerTrie, Return) :-
+    tdebug(trie_goal(AnswerTrie, Goal, _Return)),
+    tdebug(ac(start), 'START: Answer completion for ~p', [Goal]),
+    call_cleanup(answer_completion_guarded(AnswerTrie, Return, Propagated),
+                 abolish_table_subgoals(eval_subgoal_in_residual(_,_))),
+    (   Propagated > 0
+    ->  answer_completion(AnswerTrie, Return)
+    ;   true
+    ).
+
+answer_completion_guarded(AnswerTrie, Return, Propagated) :-
+    (   eval_subgoal_in_residual(AnswerTrie, Return),
+        fail
+    ;   true
+    ),
+    delete_answers_for_failing_calls(Propagated),
+    (   Propagated == 0
+    ->  mark_succeeding_calls_as_answer_completed
+    ;   true
+    ).
+
+%!  delete_answers_for_failing_calls(-Propagated)
+%
+%   Delete answers whose condition  is  determined   to  be  `false` and
+%   return the number of additional  answers   that  changed status as a
+%   consequence of additional simplification propagation.
+
+delete_answers_for_failing_calls(Propagated) :-
+    State = state(0),
+    (   subgoal_residual_trie(ASGF, ESGF),
+        \+ trie_gen(ESGF, _ETmp),
+        tdebug(trie_goal(ASGF, Goal0, _)),
+        tdebug(trie_goal(ASGF, Goal, _0Return)),
+        '$trie_gen_node'(ASGF, _0Return, ALeaf),
+        tdebug(ac(prune), '  Removing answer ~p from ~p', [Goal, Goal0]),
+	'$tbl_force_truth_value'(ALeaf, false, Count),
+        arg(1, State, Prop0),
+        Prop is Prop0+Count-1,
+        nb_setarg(1, State, Prop),
+	fail
+    ;   arg(1, State, Propagated)
+    ).
+
+mark_succeeding_calls_as_answer_completed :-
+    (   subgoal_residual_trie(ASGF, _ESGF),
+        (   '$tbl_answer_dl'(ASGF, _0Return, _True)
+        ->  tdebug(trie_goal(ASGF, Answer, _0Return)),
+            tdebug(trie_goal(ASGF, Goal, _0Return)),
+            tdebug(ac(prune), '  Completed ~p on ~p', [Goal, Answer]),
+            '$tbl_set_answer_completed'(ASGF)
+        ),
+        fail
+    ;   true
+    ).
+
+subgoal_residual_trie(ASGF, ESGF) :-
+    '$tbl_variant_table'(VariantTrie),
+    context_module(M),
+    trie_gen(VariantTrie, M:eval_subgoal_in_residual(ASGF, _), ESGF).
+
+%!  eval_dl_in_residual(+Condition)
+%
+%   Evaluate a condition by only looking at   the  residual goals of the
+%   involved calls.
+
+eval_dl_in_residual(true) :-
+    !.
+eval_dl_in_residual((A;B)) :-
+    !,
+    (   eval_dl_in_residual(A)
+    ;   eval_dl_in_residual(B)
+    ).
+eval_dl_in_residual((A,B)) :-
+    !,
+    eval_dl_in_residual(A),
+    eval_dl_in_residual(B).
+eval_dl_in_residual(tnot(G)) :-
+    !,
+    tdebug(ac, ' ? tnot(~p)', [G]),
+    current_table(G, SGF),
+    '$tbl_table_status'(SGF, _Status, _Wrapper, Return),
+    tnot(eval_subgoal_in_residual(SGF, Return)).
+eval_dl_in_residual(G) :-
+    tdebug(ac, ' ? ~p', [G]),
+    (   current_table(G, SGF)
+    ->	true
+    ;   more_general_table(G, SGF)
+    ->	true
+    ;	writeln(user_error, 'MISSING CALL? '(G)),
+        fail
+    ),
+    '$tbl_table_status'(SGF, _Status, _Wrapper, Return),
+    eval_subgoal_in_residual(SGF, Return).
+
+more_general_table(G, Trie) :-
+    term_variables(G, Vars),
+    '$tbl_variant_table'(VariantTrie),
+    trie_gen(VariantTrie, G, Trie),
+    is_most_general_term(Vars).
+
+:- table eval_subgoal_in_residual/2.
+
+%!  eval_subgoal_in_residual(+AnswerTrie, ?Return)
+%
+%   Derive answers for the variant represented   by  AnswerTrie based on
+%   the residual goals only.
+
+eval_subgoal_in_residual(AnswerTrie, _Return) :-
+    '$tbl_is_answer_completed'(AnswerTrie),
+    !,
+    undefined.
+eval_subgoal_in_residual(AnswerTrie, Return) :-
+    '$tbl_answer'(AnswerTrie, Return, Condition),
+    tdebug(trie_goal(AnswerTrie, Goal, Return)),
+    tdebug(ac, 'Condition for ~p is ~p', [Goal, Condition]),
+    eval_dl_in_residual(Condition).
+
+
+		 /*******************************
+		 *            TRIPWIRES		*
+		 *******************************/
+
+%!  tripwire(+Wire, +Action, +Context)
+%
+%   Called from the tabling engine of some  tripwire is exceeded and the
+%   situation  is  not  handled  internally   (such  as  `abstract`  and
+%   `bounded_rationality`.
+
+:- public tripwire/3.
+:- multifile prolog:tripwire/2.
+
+tripwire(Wire, _Action, Context) :-
+    prolog:tripwire(Wire, Context),
+    !.
+tripwire(Wire, Action, Context) :-
+    Error = error(resource_error(tripwire(Wire, Context)), _),
+    tripwire_action(Action, Error).
+
+tripwire_action(warning, Error) :-
+    print_message(warning, Error).
+tripwire_action(error, Error) :-
+    throw(Error).
+tripwire_action(suspend, Error) :-
+    print_message(warning, Error),
+    break.
+
+
+		 /*******************************
+		 *   SYSTEM TABLED PREDICATES	*
+		 *******************************/
+
+:- table
+    system:undefined/0,
+    system:answer_count_restraint/0,
+    system:radial_restraint/0,
+    system:tabled_call/1.
+
+%!  undefined is undefined.
+%
+%   Expresses the value _bottom_ from the well founded semantics.
+
+system:(undefined :-
+    tnot(undefined)).
+
+%!  answer_count_restraint is undefined.
+%!  radial_restraint is undefined.
+%
+%   Similar  to  undefined/0,  providing  a   specific  _undefined_  for
+%   restraint violations.
+
+system:(answer_count_restraint :-
+    tnot(answer_count_restraint)).
+
+system:(radial_restraint :-
+    tnot(radial_restraint)).
+
+system:(tabled_call(X) :- call(X)).
+

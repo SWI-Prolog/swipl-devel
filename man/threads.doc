@@ -170,7 +170,8 @@ has an alias, the alias name is returned.
     \predicate{thread_join}{1}{+Id}
 Calls thread_join/2 and succeeds if thread \arg{Id} terminated with
 success. Otherwise the exception
-\term{error}{\term{thread_error}{Status}, _} is raised.
+\term{error}{\term{thread_error}{Id, Status}, _} is raised, where
+\arg{Status} is the status as returned by thread_join/2.
 
     \predicate{thread_join}{2}{+Id, -Status}
 Wait for the termination of the thread with the given \arg{Id}.  Then unify
@@ -200,6 +201,11 @@ system exceptions into readable messages.
 The thread is terminated on thread_exit/1 using the argument \arg{Term}.
 \end{description}
 
+    \predicate{thread_alias}{1}{+Alias}
+Set the alias name of the calling thread to \arg{Alias}.  An error is
+raised if the calling thread already has an alias or \arg{Alias} is
+in use for a thread or message queue.
+
     \predicate{thread_detach}{1}{+Id}
 Switch thread into detached state (see \term{detached}{Bool} option at
 thread_create/3) at runtime.  \arg{Id} is the identifier of the thread
@@ -223,7 +229,12 @@ The Prolog stacks and C thread are reclaimed.
 The current implementation does not guarantee proper releasing of all
 mutexes and proper cleanup in setup_call_cleanup/3, etc. Please use the
 exception mechanism (throw/1) to abort execution using non-standard
-control.
+control.\bug{The Windows port does not properly cleanup for
+\jargon{detached} threads while the cleanup for other threads is
+executed by the thread running thread_join/2 using the exitted thread as
+\jargon{engine}. This is due to a bug in the
+\href{https://sourceforge.net/p/mingw-w64/bugs/469/}{MinGW pthread
+implementation}.}
 
     \predicate{thread_initialization}{1}{:Goal}
 Run \arg{Goal} when thread is started.  This predicate is similar to
@@ -349,6 +360,12 @@ If the thread is an engine (see \chapref{engines}), \arg{Boolean} is
 If the thread is an engine that is currently attached to a thread,
 \arg{ThreadId} is the thread that executes the engine.
 
+	\termitem{size}{Bytes}
+The amount of memory associated with this thread. This includes the
+thread structure, its stacks, its default message queue, its clauses
+in its thread local dynamic predicates (see thread_local/1) and memory
+used for representing thread-local answer tries (see \secref{tabling}).
+
 	\termitem{system_thread_id}{Integer}
 Thread identifier used by the operating system for the calling thread.
 Not available on all OSes. This is the same as the Prolog flag
@@ -379,7 +396,8 @@ Print usage statistics on internal mutexes and mutexes associated with
 dynamic predicates. For each mutex two numbers are printed: the number
 of times the mutex was acquired and the number of \jargon{collisions}:
 the number of times the calling thread has to wait for the mutex.
-Generally collision count is close to zero on single-CPU hardware.
+The output is written to \const{current_output} and can thus be
+redirected using with_output_to/2.
 \end{description}
 
 
@@ -467,6 +485,25 @@ in its queue and continues execution using \arg{A}~=~\const{gnat}.
    <thread 2>
    thread_send_message(Thread_1, b(gnu)),
    thread_send_message(Thread_1, a(gnat)),
+\end{code}
+
+\arg{Term} may contain attributed variables (see \secref{clp}), in which
+case only terms for which the constraints successfully execute are
+returned. Handle constraints applies for all predicates that extract
+terms from message queues. For example, we can get the even numbers from
+a queue using this code:
+
+\begin{code}
+get_matching_messages(Queue, Pattern, [H|T]) :-
+    copy_term(Pattern, H),
+    thread_get_message(Queue, H, [timeout(0)]),
+    !,
+    get_matching_messages(Queue, Pattern, T).
+get_matching_messages(_, _, []).
+
+even_numbers(Q, List) :-
+    freeze(Even, Even mod 2 =:= 0),
+    get_matching_messages(Q, Even, List).
 \end{code}
 
 See also thread_peek_message/1.
@@ -570,6 +607,19 @@ The \term{size}{Size} property is always present and may be used to
 enumerate the created message queues.  Note that this predicate does
 \emph{not enumerate} threads, but can be used to query the properties
 of the default queue of a thread.
+
+    \predicate{message_queue_set}{2}{+Queue, +Property}
+Set a property on the queue.  Supported properties are:
+
+    \begin{description}
+        \termitem{max_size}{+Size}
+Change the number of terms that may appear in the message queue before
+the next thread_send_message/2,3 blocks on it.  If the value is higher
+then the current maximum and the queue has writers waiting, wakeup the
+writers.  The value can be lower than the current number of terms in
+the queue.  In that case writers will block until the queue is drained
+below the new maximum.
+    \end{description}
 \end{description}
 
 Explicit message queues are designed with the \jargon{worker-pool} model

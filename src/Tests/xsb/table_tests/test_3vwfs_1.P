@@ -1,0 +1,48 @@
+:- compiler_options([spec_off]).
+:- import get_call/3, get_returns_and_tvs/3 from tables.
+:- import numbervars/1 from num_vars.
+
+test:- check_answers(p(a,_),[ans(ret(4),t)]),fail.
+test:- check_answers(p(b,_),[ans(ret(2),t),ans(ret(3),u)]),fail.
+test:- check_answers(p(c,_),[ans(ret(4),t),ans(ret(5),u)]),fail.
+test:- check_answers(p(d,_),[ans(ret(4),t)]),fail.
+test:- check_answers(p(e,_),[ans(ret(3),u),ans(ret(4),u)]),fail.
+test:- check_answers(p(f,_),[ans(ret(3),u),ans(ret(4),u)]),fail.
+test:- writeln('3vwfs_test_succeeded').
+
+:- table p(_,lattice(gt(_,_,_))).
+
+p(a,3).
+p(a,4).
+
+p(b,1).
+p(b,2).
+p(b,3):- undefined.
+
+p(c,1).
+p(c,2).
+%p(c,3):- undefined.
+p(c,5):- undefined.
+p(c,4).
+
+p(d,4).
+p(d,3):- undefined.
+
+p(e,3):- undefined.
+p(e,4):- undefined.
+
+p(f,4):- undefined.
+p(f,3):- undefined.
+
+
+
+check_answers(Call,List):-
+	(Call,fail; true),
+	setof(ans(Return,TV),Call^get_cr_tv(Call,Return,TV),L),
+	(L = List -> numbervars(Call),writeln(passed(Call)) ; writeln('!!!failure'(Call,List,L))).
+
+get_cr_tv(Call,Return,TV):-
+	get_call(Call,SF,Return),get_returns_and_tvs(SF,Return,TV).
+
+gt(X,Y,Z):- X > Y -> Z = X ; Z = Y.
+

@@ -43,8 +43,8 @@
             meta_options/3,             % :IsMeta, :OptionsIn, -OptionsOut
             dict_options/2              % ?Dict, ?Options
           ]).
-:- use_module(library(lists)).
-:- use_module(library(error)).
+:- autoload(library(lists), [selectchk/3]).
+:- autoload(library(error), [must_be/2]).
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate

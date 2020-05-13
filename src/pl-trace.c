@@ -34,13 +34,13 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "os/pl-ctype.h"
 #include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
 #include <stdio.h>
 
-#define WFG_TRACE	0x01000
 #define WFG_TRACING	0x02000
 #define WFG_BACKTRACE	0x04000
 #define WFG_CHOICE	0x08000
@@ -81,16 +81,16 @@ PL_unify_frame(term_t t, LocalFrame fr)
 }
 
 
-void
+int
 PL_put_frame(term_t t, LocalFrame fr)
 { GET_LD
 
   if ( fr )
   { assert(fr >= lBase && fr < lTop);
 
-    PL_put_intptr(t, (Word)fr - (Word)lBase);
+    return PL_put_intptr(t, (Word)fr - (Word)lBase);
   } else
-    PL_put_atom(t, ATOM_none);
+    return PL_put_atom(t, ATOM_none);
 }
 
 
@@ -210,14 +210,20 @@ isDebugFrame(LocalFrame FR)
 }
 
 
-static void
-exitFromDebugger(int status)
-{
+static int
+exitFromDebugger(const char *msg, int status)
+{ GET_LD
+
 #ifdef O_PLMT
   if ( PL_thread_self() > 1 )
-    pthread_exit(NULL);
+  { Sfprintf(Sdout, "%sexit session\n", msg);
+    LD->exit_requested = EXIT_REQ_THREAD;
+    return ACTION_ABORT;
+  }
 #endif
+  Sfprintf(Sdout, "%sexit (status 4)\n", msg);
   PL_halt(status);
+  return -1;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -381,23 +387,6 @@ tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
     if ( *p == ATOM_aborted )
       return ACTION_CONTINUE;
   }
-							/* trace/[1,2] */
-  if ( true(def, TRACE_CALL|TRACE_REDO|TRACE_EXIT|TRACE_FAIL) )
-  { int doit = FALSE;
-
-    switch(port)
-    { case CALL_PORT: doit = true(def, TRACE_CALL); break;
-      case EXIT_PORT: doit = true(def, TRACE_EXIT); break;
-      case FAIL_PORT: doit = true(def, TRACE_FAIL); break;
-      case REDO_PORT: doit = true(def, TRACE_REDO); break;
-    }
-
-    if ( doit )
-    { SAVE_PTRS();
-      writeFrameGoal(Suser_error, frame, PC, port|WFG_TRACE);
-      RESTORE_PTRS();
-    }
-  }
 
   if ( !debugstatus.tracing &&
        (false(def, SPY_ME) || (port & (CUT_PORT|REDO_PORT))) )
@@ -492,15 +481,15 @@ again:
     if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     { buf[0] = EOS;
       if ( !readLine(Sdin, Sdout, buf) )
-      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
-	exitFromDebugger(4);
+      { action = exitFromDebugger("EOF: ", 4);
+	goto out;
       }
     } else
     { int c = getSingleChar(Sdin, FALSE);
 
       if ( c == EOF )
-      { Sfprintf(Sdout, "EOF: exit (status 4)\n");
-	exitFromDebugger(4);
+      { action = exitFromDebugger("EOF: ", 4);
+	goto out;
       }
       buf[0] = c;
       buf[1] = EOS;
@@ -689,8 +678,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		  clear(frame, FR_SKIPPED);
 		return ACTION_CONTINUE;
     case '\04': FeedBack("EOF: ");
-    case 'e':	FeedBack("exit (status 4)\n");
-		exitFromDebugger(4);
+    case 'e':	return exitFromDebugger("", 4);
     case 'f':	FeedBack("fail\n");
 		return ACTION_FAIL;
     case 'i':	if (port & (CALL_PORT|REDO_PORT|FAIL_PORT))
@@ -925,8 +913,6 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
 	}
       }
     }
-    if ( rc && (flags & WFG_TRACE) )
-      rc = PL_cons_functor(port, FUNCTOR_trace1, port);
 
     if ( rc )
     { IOSTREAM *old = Suser_error;
@@ -958,7 +944,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     PL_unify_stream_or_alias(tmp, out);
 
     msg[0] = true(def, P_TRANSPARENT) ? '^' : ' ';
-    msg[1] = (flags&WFG_TRACE) ? 'T' : true(def, SPY_ME) ? '*' : ' ';
+    msg[1] = true(def, SPY_ME)	      ? '*' : ' ';
     msg[2] = EOS;
 
     Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
@@ -1016,7 +1002,7 @@ messageToString(term_t msg)
 
     PL_put_term(av+0, msg);
     rc = (PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, av) &&
-	  PL_get_chars(av+1, &s, CVT_ALL|BUF_RING));
+	  PL_get_chars(av+1, &s, CVT_ALL|BUF_STACK));
     PL_discard_foreign_frame(fid);
 
     return rc ? s : (char*)NULL;
@@ -1677,6 +1663,7 @@ again:
 
   switch(c)
   { case 'a':	Sfprintf(Sdout, "abort\n");
+    action_a:
 		unblockSignal(sig);
 		abortProlog();
 		if ( !safe )
@@ -1701,8 +1688,8 @@ again:
 		break;
     case 04:
     case EOF:	Sfprintf(Sdout, "EOF: ");
-    case 'e':	Sfprintf(Sdout, "exit (status 4)\n");
-		exitFromDebugger(4);
+    case 'e':	if ( exitFromDebugger("", 4) == ACTION_ABORT )
+		  goto action_a;
 		break;
 #ifdef O_DEBUGGER
     case 'g':	Sfprintf(Sdout, "goals\n");
@@ -1759,7 +1746,7 @@ initTracer(void)
 
 #if defined(O_INTERRUPT) && defined(SIGINT)
   if ( truePrologFlag(PLFLAG_SIGNALS) )
-    PL_signal(SIGINT, interruptHandler);
+    PL_signal(SIGINT, PL_interrupt);
 #endif
 
   resetTracer();
@@ -2132,7 +2119,7 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
    return PL_unify(value, consTermRef(argFrameP(fr, argn-1)));
   }
 
-  if ( arity != 0 )
+  if ( !(arity == 0 || (arity == 1 && key == ATOM_parent_goal)) )
   { unknown_key:
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_frame_attribute, what);
   }
@@ -2230,35 +2217,61 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   { Procedure proc;
     term_t head = PL_new_term_ref();
     term_t a = PL_new_term_ref();
+    fid_t fid;
 
     if ( !get_procedure(value, &proc, head, GP_FIND) )
       fail;
 
-    while( fr )
-    { while(fr && fr->predicate != proc->definition)
-	fr = parentFrame(fr);
+    if ( (fid = PL_open_foreign_frame()) )
+    { while( fr )
+      { while(fr && fr->predicate != proc->definition)
+	  fr = parentFrame(fr);
 
-      if ( fr )
-      { term_t fref = consTermRef(fr);
-	int i, arity = fr->predicate->functor->arity;
+	if ( fr )
+	{ int i, garity = fr->predicate->functor->arity;
+	  term_t fref = consTermRef(fr);
 
-	for(i=0; i<arity; i++)
-	{ term_t fa;
+	  for(i=0; i<garity; i++)
+	  { term_t fa;
 
-	  fr = (LocalFrame)valTermRef(fref);
-	  fa = consTermRef(argFrameP(fr, i));
+	    fa = consTermRef(argFrameP(fr, i));
 
-	  _PL_get_arg(i+1, head, a);
-	  if ( !PL_unify(a, fa) )
-	    break;
+	    _PL_get_arg(i+1, head, a);
+	    if ( !PL_unify(a, fa) )
+	      break;
+	    fr = (LocalFrame)valTermRef(fref);	/* deal with possible shift */
+	  }
+	  if ( i == garity )
+	  { if ( arity == 1 )
+	    { LocalFrame parent;
+	      term_t arg = PL_new_term_ref();
+
+	      _PL_get_arg(1, what, arg);
+	      if ( (parent = parentFrame(fr)) )
+	      { if ( PL_unify_frame(arg, parent) )
+		  return TRUE;
+	      } else
+	      { if ( PL_unify_atom(arg, ATOM_none) )
+		  return TRUE;
+	      }
+	    } else
+	    { return TRUE;
+	    }
+	  }
+
+	  if ( PL_exception(0) )
+	  { return FALSE;
+	  } else
+	  { PL_rewind_foreign_frame(fid);
+
+	    fr = (LocalFrame)valTermRef(fref);	/* deal with possible shift */
+	    fr = parentFrame(fr);
+	  }
+	} else
+	{ PL_close_foreign_frame(fid);
+	  return FALSE;
 	}
-        if ( i == arity )
-	  succeed;
-	fr = (LocalFrame)valTermRef(fref);
-      } else
-	fail;
-
-      fr = parentFrame(fr);
+      }
     }
   } else if ( key == ATOM_pc )
   { if ( fr->programPointer &&
@@ -2392,280 +2405,6 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 
 }
 
-#if O_DEBUGGER
-
-		 /*******************************
-		 *	  PROLOG EVENT HOOK	*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-callEventHook() is used to call Prolog   in debugger related events that
-happen in the system. In some cases,   these  events are generated while
-the  system  holds  locks.  Such  code  should  call  delayEvents()  and
-sendDelayedEvents(). These calls must be   properly  nested. Delaying is
-currently only implemented for PLEV_BREAK and PLEV_NOBREAK.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef struct delayed_event
-{ pl_event_type		type;		/* PLEV_* */
-  union
-  { struct
-    { Clause clause;
-      int    offset;
-    } pc;
-    struct
-    { Clause clause;
-    } clause;
-  } value;
-} delayed_event;
-
-
-static int
-delayEvent(pl_event_type ev, va_list args)
-{ GET_LD
-
-  if ( LD->event.buffered )
-  { delayed_event dev;
-
-    dev.type = ev;
-
-    switch(ev)
-    { case PLEV_BREAK_EXISTS:
-      case PLEV_BREAK:
-      case PLEV_NOBREAK:
-      case PLEV_GCNOBREAK:
-	dev.value.pc.clause = va_arg(args, Clause);
-	dev.value.pc.offset = va_arg(args, int);
-	break;
-      case PLEV_ERASED_CLAUSE:
-	dev.value.clause.clause = va_arg(args, Clause);
-        break;
-      default:
-	assert(0);
-    }
-
-    addBuffer(LD->event.buffered, dev, delayed_event);
-  }
-
-  return TRUE;
-}
-
-
-int
-delayEvents(void)
-{ GET_LD
-
-  if ( !LD->event.delay_nesting++ )
-  { assert(!LD->event.buffered);
-
-    if ( (LD->event.buffered = malloc(sizeof(tmp_buffer))) )
-    { initBuffer(LD->event.buffered);
-      return TRUE;
-    }
-  }
-
-  return FALSE;
-}
-
-
-/* Returns
-     -1: an exception occurred while sending events
-      N: number of events sent
-*/
-
-int
-sendDelayedEvents(int noerror)
-{ GET_LD
-  int sent = 0;
-
-  if ( --LD->event.delay_nesting == 0 )
-  { Buffer b = LD->event.buffered;
-    delayed_event *dev = baseBuffer(b, delayed_event);
-    int count = entriesBuffer(b, delayed_event);
-
-    LD->event.buffered = NULL;
-
-    for(; count-- > 0; dev++)
-    { if ( noerror )
-      { switch(dev->type)
-	{ case PLEV_BREAK_EXISTS:
-	  case PLEV_BREAK:
-	  case PLEV_NOBREAK:
-	  case PLEV_GCNOBREAK:
-	    noerror = callEventHook(dev->type,
-				    dev->value.pc.clause, dev->value.pc.offset);
-	    sent++;
-	    break;
-	  case PLEV_ERASED_CLAUSE:
-	    noerror = callEventHook(dev->type, dev->value.clause.clause);
-	    sent++;
-	    break;
-	  default:
-	    assert(0);
-	}
-      }
-    }
-
-    discardBuffer(b);
-    free(b);
-  }
-
-  return noerror ? sent	: -1;
-}
-
-
-int
-PL_call_event_hook(pl_event_type ev, ...)
-{ if ( PROCEDURE_event_hook1->definition->impl.any.defined &&
-       GD->cleaning != CLN_DATA )
-  { va_list args;
-    int rc;
-
-    va_start(args, ev);
-    rc = PL_call_event_hook_va(ev, args);
-    va_end(args);
-
-    return rc;
-  }
-
-  return TRUE;
-}
-
-
-/* Returns FALSE iff there is an exception inside the execution of the
- * hook
- */
-
-int
-PL_call_event_hook_va(pl_event_type ev, va_list args)
-{ GET_LD
-  wakeup_state wstate;
-  int rc;
-  term_t arg;
-
-  if ( LD->event.delay_nesting )
-  { delayEvent(ev, args);
-    return TRUE;
-  }
-
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-    return FALSE;
-  arg = PL_new_term_ref();
-
-  switch(ev)
-  { case PLEV_ABORT:
-    { rc = PL_unify_atom(arg, ATOM_abort);
-      break;
-    }
-    case PLEV_ERASED_CLAUSE:
-    { Clause cl = va_arg(args, Clause);		/* object erased */
-      term_t dbref;
-
-      rc = (  (dbref = PL_new_term_ref()) &&
-	      PL_unify_clref(dbref, cl) &&
-	      PL_unify_term(arg,
-			    PL_FUNCTOR, FUNCTOR_erased1,
-			      PL_TERM, dbref)
-	   );
-      break;
-    }
-    case PLEV_ERASED_RECORD:
-    { RecordRef r = va_arg(args, RecordRef);	/* object erased */
-      term_t dbref;
-
-      rc = (  (dbref = PL_new_term_ref()) &&
-	      PL_unify_recref(dbref, r) &&
-	      PL_unify_term(arg,
-			    PL_FUNCTOR, FUNCTOR_erased1,
-			      PL_TERM, dbref)
-	   );
-      break;
-    }
-    case PLEV_DEBUGGING:
-    { int dbg = va_arg(args, int);
-
-      rc = PL_unify_term(arg,
-			 PL_FUNCTOR, FUNCTOR_debugging1,
-			   PL_ATOM, dbg ? ATOM_true : ATOM_false);
-      break;
-    }
-    case PLEV_TRACING:
-    { int trc = va_arg(args, int);
-
-      rc = PL_unify_term(arg,
-			 PL_FUNCTOR, FUNCTOR_tracing1,
-			   PL_ATOM, trc ? ATOM_true : ATOM_false);
-      break;
-    }
-    case PLEV_BREAK:
-    case PLEV_BREAK_EXISTS:
-    case PLEV_NOBREAK:
-    case PLEV_GCNOBREAK:
-    { Clause clause = va_arg(args, Clause);
-      int offset = va_arg(args, int);
-      term_t cref;
-
-      rc = ( (cref = PL_new_term_ref()) &&
-	     PL_unify_clref(cref, clause) &&
-	     PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_break3,
-			     PL_TERM, cref,
-			     PL_INT, offset,
-			     PL_ATOM, ev == PLEV_BREAK     ? ATOM_true :
-				      ev == PLEV_NOBREAK   ? ATOM_false :
-				      ev == PLEV_GCNOBREAK ? ATOM_gc :
-							     ATOM_exist)
-	   );
-      break;
-    }
-    case PLEV_FRAMEFINISHED:
-    { LocalFrame fr = va_arg(args, LocalFrame);
-      term_t ref = PL_new_term_ref();
-
-      rc = ( (ref = PL_new_term_ref()) &&
-	     (PL_put_frame(ref, fr),TRUE) &&
-	     PL_unify_term(arg,
-			   PL_FUNCTOR, FUNCTOR_frame_finished1,
-			     PL_TERM, ref)
-	   );
-      break;
-    }
-#ifdef O_PLMT
-    case PL_EV_THREADFINISHED:
-    { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
-      term_t id;
-
-      rc = ( (id = PL_new_term_ref()) &&
-	     unify_thread_id(id, info) &&
-	     PL_unify_term(arg,
-			   PL_FUNCTOR_CHARS, "thread_finished", 1,
-			     PL_TERM, id)
-	   );
-
-      break;
-    }
-#endif
-    default:
-      rc = warning("callEventHook(): unknown event: %d", ev);
-      goto out;
-  }
-
-  if ( rc )
-  { rc = PL_call_predicate(MODULE_user, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
-			   PROCEDURE_event_hook1, arg);
-    if ( !rc && PL_exception(0) )
-      set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
-    else
-      rc = TRUE;				/* only FALSE on error */
-  }
-
-out:
-  restoreWakeup(&wstate PASS_LD);
-
-  return rc;
-}
-
-#endif /*O_DEBUGGER*/
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

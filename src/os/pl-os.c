@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,11 +51,16 @@ is supposed to give the POSIX standard one.
 #define _POSIX_PTHREAD_SEMANTICS 1
 #endif
 
-#define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
+#define __MINGW_USE_VC2005_COMPAT	/* Get Windows time_t as 64-bit */
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
+#include <sys/stat.h>
 #include <windows.h>
+
+#ifndef S_ISDIR
+#define S_ISDIR(m) (((m) & _S_IFMT) == _S_IFDIR)
+#endif
 #endif
 
 #include "pl-incl.h"
@@ -122,6 +128,12 @@ static void	initEnviron(void);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
+#endif
+
+#if defined(HAVE_CRT_EXTERNS_H) && defined(HAVE__NSGETENVIRON)
+/* MacOS */
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
 #endif
 
 		/********************************
@@ -303,6 +315,18 @@ CpuTime(cputime_kind which)
 #endif /*__WINDOWS__*/
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+clock_gettime() is provided by MinGW32,  but   where  time_t is 64 bits,
+only a 32-bit value is currectly   filled, making get_time/1 return very
+large bogus values. Ideally this should have   a  runtime check. For now
+we'll  hope  that  32-bit  Windows  is   extinct  before  32-bit  time_t
+overflows.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef WIN32
+#undef HAVE_CLOCK_GETTIME
+#endif
+
 double
 WallTime(void)
 { double stime;
@@ -440,7 +464,7 @@ UsedMemory(void)
   }
 #endif
 
-  return 0;
+  return heapUsed();			/* from pl-alloc.c */
 }
 
 
@@ -452,7 +476,11 @@ FreeMemory(void)
   struct rlimit limit;
 
   if ( getrlimit(RLIMIT_DATA, &limit) == 0 )
-    return limit.rlim_cur - used;
+  { if ( limit.rlim_cur == RLIM_INFINITY )
+      return (uintptr_t)-1;
+    else
+      return limit.rlim_cur - used;
+  }
 #endif
 
   return 0L;
@@ -502,6 +530,7 @@ setRandom(unsigned int *seedp)
 #endif
 #endif
   }
+  seed += PL_thread_self();
 
 #ifdef HAVE_SRANDOM
   srandom(seed);
@@ -602,11 +631,17 @@ free_tmp_symbol(void *name, void *value)
 #define SWIPL_TMP_DIR "/tmp"
 #endif
 
+/* tmp_dir() returns the temporary file directory in REP_FN
+ * encoding.
+ */
+
 static const char *
 tmp_dir(void)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { atom_t a;
     static atom_t      tmp_aname = NULL_ATOM;
     static const char *tmp_name = NULL;
@@ -620,7 +655,7 @@ tmp_dir(void)
 
 	if ( (t=PL_new_term_ref()) &&
 	     PL_put_atom(t, a) &&
-	     PL_get_chars(t, &s, CVT_ATOM|REP_MB|BUF_MALLOC) )
+	     PL_get_chars(t, &s, CVT_ATOM|REP_FN|BUF_MALLOC) )
 	{ if ( tmp_name ) PL_free((void*)tmp_name);
 	  if ( tmp_aname ) PL_unregister_atom(tmp_aname);
 
@@ -694,12 +729,24 @@ retry:
 #ifdef __WINDOWS__
 { char *tmp;
   static int temp_counter = 0;
+  int rc;
+#ifndef __LCC__
+  wchar_t *wtmp = NULL, *wtmpdir, *wid;
+  wchar_t buf1[MAXPATHLEN], buf2[MAXPATHLEN];
+#endif
 
 #ifdef __LCC__
-  if ( (tmp = tmpnam(NULL)) )
+  rc = (tmp = tmpnam(NULL)) != NULL;
 #else
-  if ( (tmp = _tempnam(tmpdir, id)) )
+  rc = ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, MAXPATHLEN)) &&
+	 (wid     = _xos_os_filenameW(id,     buf2, MAXPATHLEN)) &&
+	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
+	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
+  if ( wtmp )
+    free(wtmp);
 #endif
+
+  if ( rc )
   { if ( !PrologPath(tmp, temp, sizeof(temp)) )
       return NULL_ATOM;
   } else
@@ -728,7 +775,7 @@ retry:
     *fdp = fd;
   }
 
-  tname = PL_new_atom(temp);		/* locked: ok! */
+  tname = PL_new_atom_mbchars(REP_FN, (size_t)-1, temp); /* locked: ok! */
 
   PL_LOCK(L_OS);
   if ( !GD->os.tmp_files )
@@ -952,62 +999,127 @@ initExpand(void)
 }
 
 #ifdef O_CANONICALISE_DIRS
+#define OS_DIR_TABLE_SIZE 32
+
+static unsigned int
+dir_key(const char *name, unsigned int size)
+{ unsigned int k = MurmurHashAligned2(name, strlen(name), MURMUR_SEED);
+
+  return k & (size-1);
+}
+
+static CanonicalDir
+lookupCanonicalDir(const char *name)
+{ if ( GD->os.dir_table.size )
+  { CanonicalDir cd;
+    unsigned int k = dir_key(name, GD->os.dir_table.size);
+
+    for(cd = GD->os.dir_table.entries[k]; cd; cd = cd->next)
+    { if ( streq(cd->name, name) )
+	return cd;
+    }
+  }
+
+  return NULL;
+}
+
+
+static CanonicalDir
+lookupCanonicalDirFromId(const statstruct *buf)
+{ if ( GD->os.dir_table.size )
+  { unsigned i;
+
+    for(i=0; i<GD->os.dir_table.size; i++)
+    { CanonicalDir dn = GD->os.dir_table.entries[i];
+
+      for( ; dn; dn = dn->next )
+      { if ( dn->inode  == buf->st_ino &&
+	     dn->device == buf->st_dev )
+	  return dn;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+
+static CanonicalDir
+createCanonicalDir(const char *name, const char *canonical, const statstruct *buf)
+{ CanonicalDir cd;
+
+  if ( !GD->os.dir_table.entries )
+  { size_t bytes = sizeof(*GD->os.dir_table.entries)*OS_DIR_TABLE_SIZE;
+
+    GD->os.dir_table.entries = PL_malloc(bytes);
+    memset(GD->os.dir_table.entries, 0, bytes);
+    GD->os.dir_table.size = OS_DIR_TABLE_SIZE;
+  }
+
+  unsigned int k = dir_key(name, GD->os.dir_table.size);
+  cd = PL_malloc(sizeof(*cd));
+  cd->name      = store_string(name);
+  cd->canonical = name == canonical ? cd->name : store_string(canonical);
+  cd->device    = buf->st_dev;
+  cd->inode     = buf->st_ino;
+
+  cd->next = GD->os.dir_table.entries[k];
+  GD->os.dir_table.entries[k] = cd;
+
+  return cd;
+}
+
 
 static void
-cleanupExpand(void)
-{ CanonicalDir dn = canonical_dirlist, next;
+deleteCanonicalDir(CanonicalDir d)
+{ unsigned int k = dir_key(d->name, GD->os.dir_table.size);
 
-  canonical_dirlist = NULL;
-  for( ; dn; dn = next )
-  { next = dn->next;
-    if ( dn->canonical && dn->canonical != dn->name )
-      remove_string(dn->canonical);
-    remove_string(dn->name);
-    PL_free(dn);
-  }
-  if ( GD->paths.CWDdir )
-  { remove_string(GD->paths.CWDdir);
-    GD->paths.CWDdir = NULL;
-    GD->paths.CWDlen = 0;
+  if ( d == GD->os.dir_table.entries[k] )
+  { GD->os.dir_table.entries[k] = d->next;
+  } else
+  { CanonicalDir cd;
+
+    for(cd=GD->os.dir_table.entries[k]; cd; cd=cd->next)
+    { if ( cd->next == d )
+      { cd->next = d->next;
+
+	remove_string(d->name);
+	if ( d->canonical != d->name )
+	  remove_string(d->canonical);
+	PL_free(d);
+
+	return;
+      }
+    }
+
+    assert(0);
   }
 }
 
 
 static void
-registerParentDirs(const char *path)
-{ const char *e = path + strlen(path);
+cleanupExpand(void)
+{ if ( GD->os.dir_table.size )
+  { unsigned i;
 
-  while(e>path)
-  { char dirname[MAXPATHLEN];
-    char tmp[MAXPATHLEN];
-    CanonicalDir d;
-    statstruct buf;
+    for(i=0; i<GD->os.dir_table.size; i++)
+    { CanonicalDir dn = GD->os.dir_table.entries[i];
+      CanonicalDir next;
 
-    for(e--; *e != '/' && e > path + 1; e-- )
-      ;
-
-    strncpy(dirname, path, e-path);
-    dirname[e-path] = EOS;
-
-    for(d = canonical_dirlist; d; d = d->next)
-    { if ( streq(d->name, dirname) )
-	return;
+      for( ; dn; dn = next )
+      { next = dn->next;
+	if ( dn->canonical && dn->canonical != dn->name )
+	  remove_string(dn->canonical);
+	remove_string(dn->name);
+	PL_free(dn);
+      }
     }
 
-    if ( statfunc(OsPath(dirname, tmp), &buf) == 0 )
-    { CanonicalDir dn   = PL_malloc(sizeof(*dn));
-
-      dn->name		= store_string(dirname);
-      dn->inode		= buf.st_ino;
-      dn->device	= buf.st_dev;
-      dn->canonical	= dn->name;
-      dn->next		= canonical_dirlist;
-      canonical_dirlist	= dn;
-
-      DEBUG(1, Sdprintf("Registered canonical dir %s\n", dirname));
-    } else
-      return;
+    GD->os.dir_table.size = 0;
+    PL_free(GD->os.dir_table.entries);
   }
+
+  PL_changed_cwd();
 }
 
 
@@ -1026,31 +1138,15 @@ verify_entry(CanonicalDir d)
 	 d->device == buf.st_dev )
       return TRUE;
 
-    DEBUG(1, Sdprintf("%s: inode/device changed\n", d->canonical));
+    DEBUG(MSG_OS_DIR, Sdprintf("%s: inode/device changed\n", d->canonical));
 
     d->inode  = buf.st_ino;
     d->device = buf.st_dev;
     return TRUE;
   } else
-  { DEBUG(1, Sdprintf("%s: no longer exists\n", d->canonical));
+  { DEBUG(MSG_OS_DIR, Sdprintf("%s: no longer exists\n", d->canonical));
 
-    if ( d == canonical_dirlist )
-    { canonical_dirlist = d->next;
-    } else
-    { CanonicalDir cd;
-
-      for(cd=canonical_dirlist; cd; cd=cd->next)
-      { if ( cd->next == d )
-	{ cd->next = d->next;
-	  break;
-	}
-      }
-    }
-
-    remove_string(d->name);
-    if ( d->canonical != d->name )
-      remove_string(d->canonical);
-    PL_free(d);
+    deleteCanonicalDir(d);
   }
 
   return FALSE;
@@ -1058,83 +1154,65 @@ verify_entry(CanonicalDir d)
 
 
 static char *
-canonicaliseDir(char *path)
-{ CanonicalDir d, next;
+canonicaliseDir_sync(char *path)
+{ CanonicalDir d;
   statstruct buf;
   char tmp[MAXPATHLEN];
 
-  DEBUG(1, Sdprintf("canonicaliseDir(%s) --> ", path));
+  DEBUG(MSG_OS_DIR, Sdprintf("canonicaliseDir(%s) --> ", path));
 
-  for(d = canonical_dirlist; d; d = next)
-  { next = d->next;
+  if ( (d=lookupCanonicalDir(path)) && verify_entry(d) )
+  { if ( d->name != d->canonical )
+      strcpy(path, d->canonical);
 
-    if ( streq(d->name, path) && verify_entry(d) )
-    { if ( d->name != d->canonical )
-	strcpy(path, d->canonical);
+    DEBUG(MSG_OS_DIR, Sdprintf("(lookup ino=%ld) %s\n", (long)d->inode, path));
+    return path;
+  }
 
-      DEBUG(1, Sdprintf("(lookup) %s\n", path));
+  if ( statfunc(OsPath(path, tmp), &buf) == 0 )
+  { char parent[MAXPATHLEN];
+    char *e = path + strlen(path);
+
+    DEBUG(MSG_OS_DIR, Sdprintf("Looking for ino=%ld\n", buf.st_ino));
+    if ( (d=lookupCanonicalDirFromId(&buf)) &&
+	 verify_entry(d) )
+    { DEBUG(MSG_OS_DIR, Sdprintf("(found by id)\n"));
+      strcpy(path, d->canonical);
+      return path;
+    }
+
+    for(e--; *e != '/' && e > path + 1; e-- )
+      ;
+    if ( e > path )
+    { strncpy(parent, path, e-path);
+      parent[e-path] = EOS;
+
+      canonicaliseDir_sync(parent);
+      strcpy(parent+strlen(parent), e);
+
+      createCanonicalDir(path, parent, &buf);
+      strcpy(path, parent);
+      DEBUG(MSG_OS_DIR, Sdprintf("(new ino=%ld) %s\n", (long)buf.st_ino, path));
+      return path;
+    } else
+    { createCanonicalDir(path, path, &buf);
       return path;
     }
   }
 
-					/* we need to use malloc() here */
-					/* because allocHeapOrHalt() only ensures */
-					/* alignment for `word', and inode_t */
-					/* is sometimes bigger! */
-
-  if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { CanonicalDir dn = PL_malloc(sizeof(*dn));
-    char dirname[MAXPATHLEN];
-    char *e = path + strlen(path);
-
-    dn->name   = store_string(path);
-    dn->inode  = buf.st_ino;
-    dn->device = buf.st_dev;
-
-    do
-    { strncpy(dirname, path, e-path);
-      dirname[e-path] = EOS;
-      if ( statfunc(OsPath(dirname, tmp), &buf) < 0 )
-	break;
-
-      DEBUG(2, Sdprintf("Checking %s (dev=%d,ino=%d)\n",
-			dirname, buf.st_dev, buf.st_ino));
-
-      for(d = canonical_dirlist; d; d = next)
-      { next = d->next;
-
-	if ( d->inode == buf.st_ino && d->device == buf.st_dev &&
-	     verify_entry(d) )
-	{ DEBUG(2, Sdprintf("Hit with %s (dev=%d,ino=%d)\n",
-			    d->canonical, d->device, d->inode));
-
-	  strcpy(dirname, d->canonical);
-	  strcat(dirname, e);
-	  strcpy(path, dirname);
-	  dn->canonical = store_string(path);
-	  dn->next = canonical_dirlist;
-	  canonical_dirlist = dn;
-	  DEBUG(1, Sdprintf("(replace) %s\n", path));
-	  registerParentDirs(path);
-	  return path;
-	}
-      }
-
-      for(e--; *e != '/' && e > path + 1; e-- )
-	;
-    } while( e > path );
-
-    dn->canonical = dn->name;
-    dn->next = canonical_dirlist;
-    canonical_dirlist = dn;
-
-    DEBUG(1, Sdprintf("(new, existing) %s\n", path));
-    registerParentDirs(path);
-    return path;
-  }
-
-  DEBUG(1, Sdprintf("(nonexisting) %s\n", path));
+  DEBUG(MSG_OS_DIR, Sdprintf("(nonexisting) %s\n", path));
   return path;
+}
+
+static char *
+canonicaliseDir(char *path)
+{ char *s;
+
+  PL_LOCK(L_OSDIR);
+  s = canonicaliseDir_sync(path);
+  PL_UNLOCK(L_OSDIR);
+
+  return s;
 }
 
 #else
@@ -1572,6 +1650,7 @@ AbsoluteFile(const char *spec, char *path)
   char tmp[MAXPATHLEN];
   char buf[MAXPATHLEN];
   char *file = PrologPath(spec, buf, sizeof(buf));
+  size_t cwdlen;
 
   if ( !file )
     return (char *) NULL;
@@ -1601,14 +1680,14 @@ AbsoluteFile(const char *spec, char *path)
 
   if ( !PL_cwd(path, MAXPATHLEN) )
     return NULL;
+  cwdlen = strlen(path);
 
-  if ( (GD->paths.CWDlen + strlen(file) + 1) >= MAXPATHLEN )
+  if ( (cwdlen + strlen(file) + 1) >= MAXPATHLEN )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
 
-  strcpy(path, GD->paths.CWDdir);
-  strcpy(&path[GD->paths.CWDlen], file);
+  strcpy(&path[cwdlen], file);
 
   return canonicalisePath(path);
 }
@@ -1775,6 +1854,18 @@ DirName(const char *f, char *dir)
     on `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int
+is_cwd(const char *dir)
+{ int rc;
+
+  PL_LOCK(L_OS);
+  rc = (GD->paths.CWDdir && streq(dir, GD->paths.CWDdir));
+  PL_UNLOCK(L_OS);
+
+  return rc;
+}
+
+
 bool
 ChDir(const char *path)
 { char ospath[MAXPATHLEN];
@@ -1782,12 +1873,13 @@ ChDir(const char *path)
 
   OsPath(path, ospath);
 
-  if ( path[0] == EOS || streq(path, ".") ||
-       (GD->paths.CWDdir && streq(path, GD->paths.CWDdir)) )
+  if ( path[0] == EOS || streq(path, ".") || is_cwd(path) )
     return TRUE;
 
   if ( !AbsoluteFile(path, tmp) )
     return FALSE;
+  if ( is_cwd(tmp) )
+    return TRUE;
 
   if ( chdir(ospath) == 0 )
   { size_t len;
@@ -1797,7 +1889,7 @@ ChDir(const char *path)
     { tmp[len++] = '/';
       tmp[len] = EOS;
     }
-    PL_LOCK(L_OS);					/* Lock with PL_changed_cwd() */
+    PL_LOCK(L_OS);				/* Lock with PL_changed_cwd() */
     GD->paths.CWDlen = len;			/* and PL_cwd() */
     if ( GD->paths.CWDdir )
       remove_string(GD->paths.CWDdir);
@@ -1938,6 +2030,20 @@ PopTty(IOSTREAM *s, ttybuf *buf)
     Restore the tty state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+int
+Sttymode(IOSTREAM *s)
+{ return true(s, SIO_RAW) ? TTY_RAW : TTY_COOKED;
+}
+
+static void
+Sset_ttymode(IOSTREAM *s, int mode)
+{ if ( mode == TTY_RAW )
+    set(s, SIO_RAW);
+  else
+    clear(s, SIO_RAW);
+}
+
+
 static void
 ResetStdin(void)
 { Sinput->limitp = Sinput->bufp = Sinput->buffer;
@@ -1952,10 +2058,13 @@ Sread_terminal(void *handle, char *buf, size_t size)
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
-  if ( Soutput && true(Soutput, SIO_ISATTY) )
-  { if ( LD->prompt.next && ttymode != TTY_RAW )
+  if ( Soutput )
+  { if ( LD->prompt.next &&
+	 Sinput &&
+	 false(Sinput, SIO_RAW) &&
+	 true(Sinput, SIO_ISATTY) )
       PL_write_prompt(TRUE);
-    else
+    else if ( true(Soutput, SIO_ISATTY) )
       Sflush(Suser_output);
   }
 
@@ -2038,7 +2147,8 @@ SetTtyState(int fd, struct termios *tio)
 #endif
 #endif
 
-  ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
+  if ( fd == ttyfileno && ttytab.state )
+    ttymodified = memcmp(&TTY_STATE(&ttytab), tio, sizeof(*tio));
 
   return TRUE;
 }
@@ -2050,11 +2160,10 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   struct termios tio;
   int fd;
 
-  buf->mode  = ttymode;
+  buf->mode  = Sttymode(s);
   buf->state = NULL;
-  ttymode    = mode;
 
-  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+  if ( false(s, SIO_ISATTY) )
   { DEBUG(MSG_TTY, Sdprintf("stdin is not a terminal\n"));
     succeed;				/* not a terminal */
   }
@@ -2062,6 +2171,11 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   { DEBUG(MSG_TTY, Sdprintf("tty_control is false\n"));
     succeed;
   }
+
+  Sset_ttymode(s, mode);
+
+  if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
+    succeed;
 
   buf->state = allocHeapOrHalt(sizeof(tty_state));
 
@@ -2084,9 +2198,6 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 					/* Could this do any harm? */
 	tio.c_cc[VTIME] = 0, tio.c_cc[VMIN] = 1;
 	break;
-    case TTY_OUTPUT:
-	tio.c_oflag |= (OPOST|ONLCR);
-        break;
     case TTY_SAVE:
         succeed;
     default:
@@ -2105,8 +2216,9 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ ttymode = buf->mode;
-  int rc = TRUE;
+{ int rc = TRUE;
+
+  Sset_ttymode(s, buf->mode);
 
   if ( buf->state )
   { GET_LD
@@ -2138,15 +2250,15 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 { struct sgttyb tio;
   int fd;
 
-  buf->mode = ttymode;
+  buf->mode = Sttymode(s);
   buf->state = NULL;
-  ttymode = mode;
 
   if ( (fd = Sfileno(s)) < 0 || !isatty(fd) )
     succeed;				/* not a terminal */
   if ( !truePrologFlag(PLFLAG_TTY_CONTROL) )
     succeed;
 
+  Sset_ttymode(s, mode);
   buf->state = allocHeapOrHalt(sizeof((*buf->state));
   memset(buf->state, 0, sizeof(*buf->state));
 
@@ -2158,9 +2270,6 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
   { case TTY_RAW:
       tio.sg_flags |= CBREAK;
       tio.sg_flags &= ~ECHO;
-      break;
-    case TTY_OUTPUT:
-      tio.sg_flags |= (CRMOD);
       break;
     case TTY_SAVE:
       succeed;
@@ -2178,8 +2287,7 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
-{ ttymode = buf->mode;
-
+{ Sset_ttymode(s, buf->mode);
   if ( buf->state )
   { int fd = Sfileno(s);
 
@@ -2201,8 +2309,8 @@ PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 
 bool
 PushTty(IOSTREAM *s, ttybuf *buf, int mode)
-{ buf->mode = ttymode;
-  ttymode = mode;
+{ buf->mode = Sttymode(s);
+  Sset_ttymode(s, mode);
 
   succeed;
 }
@@ -2211,8 +2319,9 @@ PushTty(IOSTREAM *s, ttybuf *buf, int mode)
 bool
 PopTty(IOSTREAM *s, ttybuf *buf, int do_free)
 { GET_LD
-  ttymode = buf->mode;
-  if ( ttymode != TTY_RAW )
+
+  Sset_ttymode(s, buf->mode);
+  if ( buf->mode != TTY_RAW )
     LD->prompt.next = TRUE;
 
   succeed;
@@ -2518,7 +2627,9 @@ const char *
 prog_shell(void)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { atom_t a;
 
     if ( PL_current_prolog_flag(ATOM_posix_shell, PL_ATOM, &a) )
@@ -2551,6 +2662,16 @@ System(char *cmd)
   { char tmp[MAXPATHLEN];
     char *argv[4];
     extern char **environ;
+    int in  = Sfileno(Suser_input);
+    int out = Sfileno(Suser_output);
+    int err = Sfileno(Suser_error);
+
+    if ( in >=0 && out >= 0 && err >= 0 )
+    { if ( dup2(in,  0) < 0 ||
+	   dup2(out, 1) < 0 ||
+	   dup2(err, 2) < 0 )
+	Sdprintf("shell/1: dup of file descriptors failed\n");
+    }
 
     argv[0] = BaseName(shell, tmp);
     argv[1] = "-c";

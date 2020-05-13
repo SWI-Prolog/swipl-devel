@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, VU University Amsterdam
+    Copyright (c)  2011-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -34,16 +34,17 @@
 */
 
 :- module(prolog_autoload,
-          [ autoload/0,
-            autoload/1                          % +Options
+          [ autoload_all/0,
+            autoload_all/1                      % +Options
           ]).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(aggregate)).
-:- use_module(library(prolog_codewalk)).
-:- use_module(library(check), [ list_undefined/0 ]).
+:- use_module(library(check), []).      % uses :- public predicates
 
-:- predicate_options(autoload/1, 1,
+:- autoload(library(aggregate),[aggregate_all/3]).
+:- autoload(library(error),[must_be/2,existence_error/2]).
+:- autoload(library(option),[option/2,option/3]).
+:- autoload(library(prolog_codewalk),[prolog_walk_code/1]).
+
+:- predicate_options(autoload_all/1, 1,
                      [ verbose(boolean),
                        undefined(oneof([ignore,error]))
                      ]).
@@ -62,23 +63,25 @@ Of course, there is also a price. One   is  that it becomes less obvious
 from where some predicate is loaded and  thus whether you have the right
 definition.  The  second  issue  is  that  it  is  harder  to  create  a
 stand-alone executable because this executable,   without  access to the
-development system, can no longer rely  on autoloading. Finally, program
-analysis becomes harder because the program may be incomplete.
+development system, can no longer rely on autoloading.
 
-This  library  provides  autoload/0  and   autoload/1  to  autoload  all
-predicates that are referenced by the program. Now, this is not possible
-in Prolog because the language allows   for constructing arbitrary goals
-and runtime and calling them (e.g., read(X), call(X)).
+This library provides autoload_all/0 and  autoload_all/1 to autoload all
+predicates that are referenced by the program.   Now, this is in general
+not possible in Prolog because  the   language  allows  for constructing
+arbitrary goals and runtime and calling them (e.g., read(X), call(X)).
 
 The implementation relies on code analysis of  the bodies of all clauses
 and all initialization goals.
+
+As of SWI-Prolog 8.1.22 the system provides autoload/1,2 directives that
+mitigate the possible ambiguity.
 */
 
 :- thread_local
     autoloaded_count/1.
 
-%!  autoload is det.
-%!  autoload(+Options) is det.
+%!  autoload_all is det.
+%!  autoload_all(+Options) is det.
 %
 %   Force all necessary autoloading to be done _now_.  Options:
 %
@@ -89,10 +92,10 @@ and all initialization goals.
 %       definitely undefined predicate.  One of `ignore` or
 %       `error`.  Default is `ignore`.
 
-autoload :-
-    autoload([]).
+autoload_all :-
+    autoload_all([]).
 
-autoload(Options) :-
+autoload_all(Options) :-
     must_be(list, Options),
     statistics(cputime, T0),
     aggregate_all(count, source_file(_), OldFileCount),

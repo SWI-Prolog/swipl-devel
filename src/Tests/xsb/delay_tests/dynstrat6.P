@@ -1,0 +1,30 @@
+%------------------------------------------------------------------------
+%  Dynamically stratified program in which p is FALSE no matter what!
+%  (even though it might require answer completion for its second clause).
+%------------------------------------------------------------------------
+
+% :- auto_table.
+:- table p/0, q/0, r/0.
+
+p :- tnot(q).
+p :- tnot(q), p.
+p :- tnot(p), tnot(q).
+p :- tnot(q), tnot(p).
+
+q :- tnot(r).
+
+r :- tnot(p), fail.
+
+%------------------------------------------------------------------------
+
+test :- p, fail.
+test :- ( p ->  ( tnot(p) -> writeln('p is undefined')
+                ; writeln('p is true') )
+        ; writeln('p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('q is undefined')
+                ; writeln('q is true (OK)') )
+        ; writeln('q is false') ),
+        ( r ->  ( tnot(r) -> writeln('r is undefined')
+                ; writeln('r is true') )
+        ; writeln('r is false (OK)') ).
+

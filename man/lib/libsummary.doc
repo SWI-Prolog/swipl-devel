@@ -93,8 +93,11 @@
 \libsummary{help}
 \input{summaries.d/help.tex}
 
+\libsummary{intercept}
+\libsummary{summaries.d/intercept.tex}
+
 \libsummary{iostream}
-\libsummary{summaries.d/iostream/tex}
+\libsummary{summaries.d/iostream.tex}
 
 \libsummary{lists}
 \input{summaries.d/lists.tex}
@@ -119,6 +122,9 @@
 
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
+
+\libsummary{prologjiti}
+\input{summaries.d/prologjiti.tex}
 
 \libsummary{prologpack}
 \input{summaries.d/prologpack.tex}
@@ -149,15 +155,7 @@
 \input{summaries.d/random.tex}
 
 \libsummary{readutil}
-
-\begin{summarylist}{ll}
-\predicatesummary{read_line_to_codes}{2}{Read line from a stream}
-\predicatesummary{read_line_to_codes}{3}{Read line from a stream}
-\predicatesummary{read_stream_to_codes}{2}{Read contents of stream}
-\predicatesummary{read_stream_to_codes}{3}{Read contents of stream}
-\predicatesummary{read_file_to_codes}{3}{Read contents of file}
-\predicatesummary{read_file_to_terms}{3}{Read contents of file to Prolog terms}
-\end{summarylist}
+\input{summaries.d/readutil.tex}
 
 \libsummary{record}
 
@@ -182,6 +180,7 @@ This library is only available on Windows systems.
 
 \libsummary{settings}
 
+\IfFileExists{summaries.d/simplexlib.tex}{
 \libsummary{simplex}
 
 \begin{summarylist}{ll}
@@ -196,7 +195,7 @@ This library is only available on Windows systems.
 \predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
 \predicatesummary{transportation}{4}{Solve transportation problem}
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
-\end{summarylist}
+\end{summarylist}}{}
 
 \libsummary{ugraphs}
 
@@ -231,6 +230,9 @@ This library is only available on Windows systems.
 
 \libsummary{solution_sequences}
 \input{summaries.d/solutionsequences.tex}
+
+\libsummary{thread}
+\input{summaries.d/thread.tex}
 
 \libsummary{thread_pool}
 \input{summaries.d/threadpool.tex}

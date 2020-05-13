@@ -49,10 +49,23 @@
             tdebug/1,                   % +ThreadId
             tnodebug/0,
             tnodebug/1,                 % +ThreadId
-            tprofile/1                  % +ThreadId
+            tprofile/1,                 % +ThreadId
+            tbacktrace/1,               % +ThreadId,
+            tbacktrace/2                % +ThreadId, +Options
           ]).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(backcomp),[thread_at_exit/1]).
+:- autoload(library(edinburgh),[nodebug/0]).
+:- autoload(library(gui_tracer),[gdebug/0]).
+:- autoload(library(lists),[max_list/2]).
+:- autoload(library(option),[merge_options/3,option/3]).
+:- autoload(library(pce),[send/2]).
+:- autoload(library(prolog_stack),
+	    [print_prolog_backtrace/2,get_prolog_backtrace/3]).
+:- autoload(library(statistics),[thread_statistics/2,show_profile/1]).
+:- autoload(library(thread),[call_in_thread/2]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
@@ -253,7 +266,6 @@ open_console(Title, In, Out, Err) :-
 
 :- if((current_prolog_flag(readline, editline),
        exists_source(library(editline)))).
-:- use_module(library(editline)).
 enable_line_editing(_In, _Out, _Err) :-
     current_prolog_flag(readline, editline),
     !,
@@ -329,6 +341,58 @@ debug_target(Thread) :-
     thread_property(Thread, status(running)),
     thread_property(Thread, debug(true)).
 
+%!  tbacktrace(+Thread) is det.
+%!  tbacktrace(+Thread, +Options) is det.
+%
+%   Print a backtrace for  Thread  to   the  stream  `user_error` of the
+%   calling thread. This is achieved  by   inserting  an  interrupt into
+%   Thread using call_in_thread/2. Options:
+%
+%     - depth(+MaxFrames)
+%       Number of stack frames to show.  Default is the current Prolog
+%       flag `backtrace_depth` or 20.
+%
+%   Other options are passed to get_prolog_backtrace/3.
+%
+%   @bug call_in_thread/2 may not process the event.
+
+tbacktrace(Thread) :-
+    tbacktrace(Thread, []).
+
+tbacktrace(Thread, Options) :-
+    merge_options(Options, [clause_references(false)], Options1),
+    (   current_prolog_flag(backtrace_depth, Default)
+    ->  true
+    ;   Default = 20
+    ),
+    option(depth(Depth), Options1, Default),
+    call_in_thread(Thread, thread_get_prolog_backtrace(Depth, Stack, Options1)),
+    print_prolog_backtrace(user_error, Stack).
+
+%!  thread_get_prolog_backtrace(+Depth, -Stack, +Options)
+%
+%   As get_prolog_backtrace/3, but starts above   the C callback, hiding
+%   the overhead inside call_in_thread/2.
+
+thread_get_prolog_backtrace(Depth, Stack, Options) :-
+    prolog_current_frame(Frame),
+    signal_frame(Frame, SigFrame),
+    get_prolog_backtrace(Depth, Stack, [frame(SigFrame)|Options]).
+
+signal_frame(Frame, SigFrame) :-
+    prolog_frame_attribute(Frame, clause, _),
+    !,
+    (   prolog_frame_attribute(Frame, parent, Parent)
+    ->  signal_frame(Parent, SigFrame)
+    ;   SigFrame = Frame
+    ).
+signal_frame(Frame, SigFrame) :-
+    (   prolog_frame_attribute(Frame, parent, Parent)
+    ->  SigFrame = Parent
+    ;   SigFrame = Frame
+    ).
+
+
 
                  /*******************************
                  *       REMOTE PROFILING       *
@@ -347,7 +411,7 @@ tprofile(Thread) :-
     format('Running profiler in thread ~w (press RET to show results) ...',
            [Thread]),
     flush_output,
-    get0(_),
+    get_code(_),
     thread_signal(Thread,
                   (   profiler(_, false),
                       show_profile([])

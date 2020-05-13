@@ -1,0 +1,105 @@
+:- import set_unify/2 from set_unify.
+:- import numbervars/1 from num_vars.
+:- import normalize_result/2 from can_mono.
+
+test :- tp, fail.
+test :- writeln('=========== Result is ================'),
+        nl, show_facts.
+
+unify_sets([],[]).
+unify_sets([A|As],[B|Bs]) :- 
+       set_unify(A,B), unify_sets(As,Bs).
+
+
+%---------------- Transformed program ----------------------
+
+qsort__1(_119,_121) :- 
+        [list] = _123, [list] = _125, 
+        normalize_result([_123,_125],
+                          [_119,_121]).
+qsort__1(_398,_400) :- 
+        [list|_341] = _402, _102 = _404, 
+        partition(_341,_140,_350,_357),
+        qsort(_350,_370),
+        qsort(_357,_367),
+        append(_370,[list|_367],_102),
+        normalize_result([_402,_404],
+                         [_398,_400]).
+partition__1(_158,_160,_162,_164) :- 
+        [list] = _166, _88 = _168, [list] = _170, [list] = _172, 
+        normalize_result([_166,_168,_170,_172],
+                          [_158,_160,_162,_164]).
+partition__1(_316,_318,_320,_322) :- 
+        [list|_289] = _324, _276 = _326, [list|_252] = _328, _146 = _330, 
+        'my =<'(_278,_276),
+        partition(_289,_276,_252,_146),
+        normalize_result([_324,_326,_328,_330],
+                         [_316,_318,_320,_322]).
+partition__1(_316,_318,_320,_322) :- 
+        [list|_289] = _324, _276 = _326, _116 = _328, [list|_254] = _330, 
+        'my >'(_278,_276),
+        partition(_289,_276,_116,_254),
+        normalize_result([_324,_326,_328,_330],
+                         [_316,_318,_320,_322]).
+append__1(_129,_131,_133) :- 
+        [list] = _135, _88 = _137, _88 = _139, 
+        normalize_result([_135,_137,_139],
+                          [_129,_131,_133]).
+append__1(_239,_241,_243) :- 
+        [list|_218] = _245, _102 = _247, [list|_200] = _249, 
+        append(_218,_102,_200),
+        normalize_result([_245,_247,_249],
+                         [_239,_241,_243]).
+
+%---------------- Definitions of tabled preds --------------
+
+:- table append__1/3.
+:- table partition__1/4.
+:- table qsort__1/2.
+
+append(_63,_65,_67) :- 
+        append__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+partition(_63,_65,_67,_69) :- 
+        partition__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+qsort(_63,_65) :- 
+        qsort__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+
+%---------------- Tp ---------------------------------------
+
+tp :- append__1(_64,_66,_68), fail.
+tp :- partition__1(_64,_66,_68,_70), fail.
+tp :- qsort__1(_64,_66), fail.
+tp.
+
+
+%---------------- Builtin Preds ----------------------------
+
+'my ='(X1,X2) :- 'my =_1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my \\=='(X1,X2) :- 'my \\==__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my is'([num],[num]).
+'my <'([num],[num]).
+'my >'([num],[num]).
+'my >='([num],[num]).
+'my =<'([num],[num]).
+'my =:='([num],[num]).
+'my =\\='([num],[num]).
+
+'my =_1'(X,X).
+'my \\==__1'(_,_).
+
+
+%---------------- Show Result ------------------------------
+
+show_facts :- append__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(append(_63,_65,_67)), nl, fail.
+show_facts :- partition__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(partition(_63,_65,_67,_69)), nl, fail.
+show_facts :- qsort__1(_63,_65),
+              numbervars([_63,_65]),
+              write(qsort(_63,_65)), nl, fail.
+show_facts.

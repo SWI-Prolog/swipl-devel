@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,7 +38,9 @@
 #define O_DEBUG 1			/* include checkData() */
 #endif
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "os/pl-cstack.h"
+#include "pl-event.h"
 
 
 		/********************************
@@ -74,6 +77,8 @@ resetProlog(int clear_stacks)
   depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
 #endif
 
+  LD->autoload.nesting = NULL;
+  LD->autoload.loop = NULL;
   updateAlerted(LD);
 
   return TRUE;
@@ -145,7 +150,18 @@ query_loop(atom_t goal, int loop)
     if ( fid ) PL_discard_foreign_frame(fid);
     if ( !except )
       break;
+#ifdef O_PLMT
+    if (LD->exit_requested)
+      loop = 0;
+#endif
   } while(loop);
+
+#ifdef O_PLMT
+  DEBUG(MSG_CLEANUP_THREAD,
+	if ( LD->exit_requested )
+	Sdprintf("Thread %d: leaving REPL loop due to exit_requested\n",
+		 PL_thread_self()));
+#endif
 
   return rc;
 }
@@ -690,6 +706,8 @@ last_arg:
 #ifdef O_GMP
     if ( isMPZNum(*p) )
       return 0x62f8da3c;		/* TBD: make key from MPZ */
+    if ( isMPQNum(*p) )
+      return 0xed7ef4ea;		/* TBD: make key from MPQ */
 #endif
     printk(context, "Illegal indirect datatype");
     return key;

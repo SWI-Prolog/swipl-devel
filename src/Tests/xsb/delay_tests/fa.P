@@ -1,0 +1,20 @@
+:- import length/2 from basics.
+:- import get_residual/2 from tables.
+
+test :- p(1,_),fail.	% complete p(1,X) table.
+test :- findall(X, (get_residual(p(1,_),DL),und_delay(DL,X)), L),
+        length(L,N), writeln(N).
+
+und_delay([X,und], X).
+und_delay([und,X], X).
+
+a(X,Y) :- X >= 0, X < 10001, Y is (X+1) mod 10001.
+
+b(X,Y) :- a(X,Y),und.
+
+:- table p/2.
+p(X,Y) :- b(X,Y).
+p(X,Y) :- p(X,Z),b(Z,Y).
+
+:- table und/0.
+und :- tnot(und).

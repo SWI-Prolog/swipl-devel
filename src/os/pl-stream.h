@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2017-2020, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,15 +40,15 @@
 #include "SWI-Stream.h"
 
 #ifdef O_PLMT
-#define ATOMIC_ADD(ptr, v)		__sync_add_and_fetch(ptr, v)
-#define ATOMIC_SUB(ptr, v)		__sync_sub_and_fetch(ptr, v)
-#define ATOMIC_INC(ptr)			ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
-#define ATOMIC_DEC(ptr)			ATOMIC_SUB(ptr, 1) /* --(*ptr) */
+#define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
+#define ATOMIC_INC(ptr)		ATOMIC_ADD(ptr, 1) /* ++(*ptr) */
+#define ATOMIC_DEC(ptr)		ATOMIC_SUB(ptr, 1) /* --(*ptr) */
 #else
-#define ATOMIC_ADD(ptr, v)		(*ptr += v)
-#define ATOMIC_SUB(ptr, v)		(*ptr -= v)
-#define ATOMIC_INC(ptr)			(++(*ptr))
-#define ATOMIC_DEC(ptr)			(--(*ptr))
+#define ATOMIC_ADD(ptr, v)	(*ptr += v)
+#define ATOMIC_SUB(ptr, v)	(*ptr -= v)
+#define ATOMIC_INC(ptr)		(++(*ptr))
+#define ATOMIC_DEC(ptr)		(--(*ptr))
 #endif
 
 

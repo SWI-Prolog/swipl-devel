@@ -1,0 +1,1088 @@
+:- import set_unify/2 from set_unify.
+:- import numbervars/1 from num_vars.
+:- import normalize_result/2 from can_mono.
+
+test :- tp, fail.
+test :- writeln('=========== Result is ================'), nl, show_facts.
+
+unify_sets([],[]).
+unify_sets([A|As],[B|Bs]) :- 
+       set_unify(A,B), unify_sets(As,Bs).
+
+
+%---------------- Transformed program ----------------------
+
+solve_equation__1(_482,_484,_486) :- 
+        [other] = _488, [_449] = _490, [_453] = _492, 
+        factorize([[_406],[_410]],[_449],[[_434],[list]]),
+        remove_duplicates([_434],[_445]),
+        solve_factors([_445],[_449],[_453]),
+        normalize_result([_488,_490,_492],
+                         [_482,_484,_486]).
+solve_equation__1(_523,_525,_527) :- 
+        [_471] = _529, [_449] = _531, [_491] = _533, 
+        single_occurrence([_449],[_471]),
+        position([_449],[_471],[list,_483]),
+        maneuver_sides([_467],[_471],[_487]),
+        isolate([_483],[_487],[_491]),
+        normalize_result([_529,_531,_533],
+                         [_523,_525,_527]).
+solve_equation__1(_516,_518,_520) :- 
+        [other] = _522, [_480] = _524, [_484] = _526, 
+        is_polynomial([_454],[_480]),
+        is_polynomial([_458],[_480]),
+        polynomial_normal_form([[_454],[_458]],[_480],[_476]),
+        solve_polynomial_equation([_476],[_480],[_484]),
+        normalize_result([_522,_524,_526],
+                         [_516,_518,_520]).
+solve_equation__1(_631,_633,_635) :- 
+        [_546] = _637, [_592] = _639, [_596] = _641, 
+        offenders([_546],[_592],[_554]),
+        multiple([_554]),
+        homogenize([_546],[_592],[_554],[_572],[_576]),
+        solve_equation([_572],[_576],[_588]),
+        solve_equation([_588],[_592],[_596]),
+        normalize_result([_637,_639,_641],
+                         [_631,_633,_635]).
+factorize__1(_492,_494,_496) :- 
+        [[_430],[_452]] = _498, [_456] = _500, [[_438],[_464]] = _502, 
+        factorize([_430],[_456],[[_438],[_460]]),
+        factorize([_452],[_456],[[_460],[_464]]),
+        normalize_result([_498,_500,_502],
+                         [_492,_494,_496]).
+factorize__1(_278,_280,_282) :- 
+        [_256] = _284, [_252] = _286, [[list,_235],[_235]] = _288, 
+        subterm([_252],[_256]),
+        normalize_result([_284,_286,_288],
+                         [_278,_280,_282]).
+factorize__1(_191,_193,_195) :- 
+        [_161] = _197, [_165] = _199, [[_173],[_173]] = _201, 
+        normalize_result([_197,_199,_201],
+                          [_191,_193,_195]).
+solve_factors__1(_265,_267,_269) :- 
+        [list,_84] = _271, [_238] = _273, [_242] = _275, 
+        solve_equation([other],[_238],[_242]),
+        normalize_result([_271,_273,_275],
+                         [_265,_267,_269]).
+solve_factors__1(_269,_271,_273) :- 
+        [list,_238] = _275, [_242] = _277, [_246] = _279, 
+        solve_factors([_238],[_242],[_246]),
+        normalize_result([_275,_277,_279],
+                         [_269,_271,_273]).
+single_occurrence__1(_226,_228) :- 
+        [_197] = _230, [_201] = _232, 
+        occurrence([_197],[_201],[num]),
+        normalize_result([_230,_232],
+                         [_226,_228]).
+maneuver_sides__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+maneuver_sides__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolate__1(_364,_366,_368) :- 
+        [list,_330] = _370, [_318] = _372, [_338] = _374, 
+        isolax([_314],[_318],[_334]),
+        isolate([_330],[_334],[_338]),
+        normalize_result([_370,_372,_374],
+                         [_364,_366,_368]).
+isolate__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_209,_211,_213) :- 
+        [num] = _215, [other] = _217, [other] = _219, 
+        'my =\\='([_176],[num]),
+        normalize_result([_215,_217,_219],
+                         [_209,_211,_213]).
+isolax__1(_209,_211,_213) :- 
+        [num] = _215, [other] = _217, [other] = _219, 
+        'my =\\='([_176],[num]),
+        normalize_result([_215,_217,_219],
+                         [_209,_211,_213]).
+isolax__1(_209,_211,_213) :- 
+        [num] = _215, [other] = _217, [other] = _219, 
+        'my =\\='([_176],[num]),
+        normalize_result([_215,_217,_219],
+                         [_209,_211,_213]).
+isolax__1(_209,_211,_213) :- 
+        [num] = _215, [other] = _217, [other] = _219, 
+        'my =\\='([_176],[num]),
+        normalize_result([_215,_217,_219],
+                         [_209,_211,_213]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+isolax__1(_139,_141,_143) :- 
+        [num] = _145, [other] = _147, [other] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+is_polynomial__1(_126,_128) :- 
+        [_113] = _130, [_113] = _132, 
+        normalize_result([_130,_132],
+                          [_126,_128]).
+is_polynomial__1(_180,_182) :- 
+        [_161] = _184, [_147] = _186, 
+        constant([_161]),
+        normalize_result([_184,_186],
+                         [_180,_182]).
+is_polynomial__1(_307,_309) :- 
+        [[_269],[_280]] = _311, [_284] = _313, 
+        is_polynomial([_269],[_284]),
+        is_polynomial([_280],[_284]),
+        normalize_result([_311,_313],
+                         [_307,_309]).
+is_polynomial__1(_307,_309) :- 
+        [[_269],[_280]] = _311, [_284] = _313, 
+        is_polynomial([_269],[_284]),
+        is_polynomial([_280],[_284]),
+        normalize_result([_311,_313],
+                         [_307,_309]).
+is_polynomial__1(_307,_309) :- 
+        [[_269],[_280]] = _311, [_284] = _313, 
+        is_polynomial([_269],[_284]),
+        is_polynomial([_280],[_284]),
+        normalize_result([_311,_313],
+                         [_307,_309]).
+is_polynomial__1(_282,_284) :- 
+        [[_249],[_260]] = _286, [_253] = _288, 
+        is_polynomial([_249],[_253]),
+        constant([_260]),
+        normalize_result([_286,_288],
+                         [_282,_284]).
+is_polynomial__1(_282,_284) :- 
+        [[_255],[_249]] = _286, [_259] = _288, 
+        natural_number([_249]),
+        is_polynomial([_255],[_259]),
+        normalize_result([_286,_288],
+                         [_282,_284]).
+natural_number__1(_167) :- 
+        [_138] = _169, 
+        'my >'([_138],[num]),
+        normalize_result([_169],
+                         [_167]).
+polynomial_normal_form__1(_327,_329,_331) :- 
+        [_282] = _333, [_286] = _335, [_302] = _337, 
+        polynomial_form([_282],[_286],[_298]),
+        remove_zero_terms([_298],[_302]),
+        normalize_result([_333,_335,_337],
+                         [_327,_329,_331]).
+polynomial_form__1(_159,_161,_163) :- 
+        [_137] = _165, [_137] = _167, [list,list] = _169, 
+        normalize_result([_165,_167,_169],
+                          [_159,_161,_163]).
+polynomial_form__1(_195,_197,_199) :- 
+        [[_173],[_167]] = _201, [_173] = _203, [list,list] = _205, 
+        normalize_result([_201,_203,_205],
+                          [_195,_197,_199]).
+polynomial_form__1(_481,_483,_485) :- 
+        [[_412],[_428]] = _487, [_432] = _489, [_452] = _491, 
+        polynomial_form([_412],[_432],[_444]),
+        polynomial_form([_428],[_432],[_448]),
+        add_polynomials([_444],[_448],[_452]),
+        normalize_result([_487,_489,_491],
+                         [_481,_483,_485]).
+polynomial_form__1(_481,_483,_485) :- 
+        [[_412],[_428]] = _487, [_432] = _489, [_452] = _491, 
+        polynomial_form([_412],[_432],[_444]),
+        polynomial_form([_428],[_432],[_448]),
+        subtract_polynomials([_444],[_448],[_452]),
+        normalize_result([_487,_489,_491],
+                         [_481,_483,_485]).
+polynomial_form__1(_481,_483,_485) :- 
+        [[_412],[_428]] = _487, [_432] = _489, [_452] = _491, 
+        polynomial_form([_412],[_432],[_444]),
+        polynomial_form([_428],[_432],[_448]),
+        multiply_polynomials([_444],[_448],[_452]),
+        normalize_result([_487,_489,_491],
+                         [_481,_483,_485]).
+polynomial_form__1(_388,_390,_392) :- 
+        [[_338],[_358]] = _394, [_342] = _396, [_362] = _398, 
+        polynomial_form([_338],[_342],[_354]),
+        binomial([_354],[_358],[_362]),
+        normalize_result([_394,_396,_398],
+                         [_388,_390,_392]).
+polynomial_form__1(_238,_240,_242) :- 
+        [_216] = _244, [_212] = _246, [list,list] = _248, 
+        free_of([_212],[_216]),
+        normalize_result([_244,_246,_248],
+                         [_238,_240,_242]).
+remove_zero_terms__1(_215,_217) :- 
+        [list,_191] = _219, [_195] = _221, 
+        remove_zero_terms([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+remove_zero_terms__1(_284,_286) :- 
+        [list,_257] = _288, [list,_261] = _290, 
+        'my =\\='([_239],[num]),
+        remove_zero_terms([_257],[_261]),
+        normalize_result([_288,_290],
+                         [_284,_286]).
+remove_zero_terms__1(_116,_118) :- 
+        [list] = _120, [list] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+add_polynomials__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+add_polynomials__1(_149,_151,_153) :- 
+        [_133] = _155, [list] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+add_polynomials__1(_364,_366,_368) :- 
+        [list,_328] = _370, [list,_114] = _372, [list,_338] = _374, 
+        'my >'([_310],[_319]),
+        add_polynomials([_328],[list,_114],[_338]),
+        normalize_result([_370,_372,_374],
+                         [_364,_366,_368]).
+add_polynomials__1(_455,_457,_459) :- 
+        [list,_418] = _461, [list,_422] = _463, [list,_426] = _465, 
+        'my =:='([_376],[_385]),
+        'my is'([_394],[[_403],[_407]]),
+        add_polynomials([_418],[_422],[_426]),
+        normalize_result([_461,_463,_465],
+                         [_455,_457,_459]).
+add_polynomials__1(_364,_366,_368) :- 
+        [list,_84] = _370, [list,_334] = _372, [list,_338] = _374, 
+        'my <'([_310],[_319]),
+        add_polynomials([list,_84],[_334],[_338]),
+        normalize_result([_370,_372,_374],
+                         [_364,_366,_368]).
+subtract_polynomials__1(_348,_350,_352) :- 
+        [_314] = _354, [_298] = _356, [_322] = _358, 
+        multiply_single([_298],[other],[_318]),
+        add_polynomials([_314],[_318],[_322]),
+        normalize_result([_354,_356,_358],
+                         [_348,_350,_352]).
+multiply_single__1(_471,_473,_475) :- 
+        [list,_434] = _477, [other] = _479, [list,_442] = _481, 
+        'my is'([_386],[[_395],[_399]]),
+        'my is'([_410],[[_419],[_423]]),
+        multiply_single([_434],[other],[_442]),
+        normalize_result([_477,_479,_481],
+                         [_471,_473,_475]).
+multiply_single__1(_145,_147,_149) :- 
+        [list] = _151, [_125] = _153, [list] = _155, 
+        normalize_result([_151,_153,_155],
+                          [_145,_147,_149]).
+multiply_polynomials__1(_451,_453,_455) :- 
+        [list,_398] = _457, [_402] = _459, [_422] = _461, 
+        multiply_single([_402],[other],[_414]),
+        multiply_polynomials([_398],[_402],[_418]),
+        add_polynomials([_414],[_418],[_422]),
+        normalize_result([_457,_459,_461],
+                         [_451,_453,_455]).
+multiply_polynomials__1(_145,_147,_149) :- 
+        [list] = _151, [_125] = _153, [list] = _155, 
+        normalize_result([_151,_153,_155],
+                          [_145,_147,_149]).
+binomial__1(_149,_151,_153) :- 
+        [_133] = _155, [num] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+solve_polynomial_equation__1(_285,_287,_289) :- 
+        [_252] = _291, [_227] = _293, [other] = _295, 
+        linear([_252]),
+        pad([_252],[list,list,list]),
+        normalize_result([_291,_293,_295],
+                         [_285,_287,_289]).
+solve_polynomial_equation__1(_591,_593,_595) :- 
+        [_498] = _597, [_536] = _599, [_556] = _601, 
+        quadratic([_498]),
+        pad([_498],[list,list,list,list]),
+        discriminant([_540],[_544],[_548],[_552]),
+        root([_536],[_540],[_544],[_548],[_552],[_556]),
+        normalize_result([_597,_599,_601],
+                         [_591,_593,_595]).
+discriminant__1(_390,_392,_394,_396) :- 
+        [_354] = _398, [_344] = _400, [_360] = _402, [_331] = _404, 
+        'my is'([_331],[[[_344],[_344]],[[[num],[_354]],[_360]]]),
+        normalize_result([_398,_400,_402,_404],
+                         [_390,_392,_394,_396]).
+root__1(_232,_234,_236,_238,_240,_242) :- 
+        [_187] = _244, [_191] = _246, [_195] = _248, [_199] = _250, [num] = _252, [other] = _254, 
+        normalize_result([_244,_246,_248,_250,_252,_254],
+                          [_232,_234,_236,_238,_240,_242]).
+root__1(_306,_308,_310,_312,_314,_316) :- 
+        [_229] = _318, [_233] = _320, [_237] = _322, [_241] = _324, [_267] = _326, [other] = _328, 
+        'my >'([_267],[num]),
+        normalize_result([_318,_320,_322,_324,_326,_328],
+                         [_306,_308,_310,_312,_314,_316]).
+root__1(_306,_308,_310,_312,_314,_316) :- 
+        [_229] = _318, [_233] = _320, [_237] = _322, [_241] = _324, [_267] = _326, [other] = _328, 
+        'my >'([_267],[num]),
+        normalize_result([_318,_320,_322,_324,_326,_328],
+                         [_306,_308,_310,_312,_314,_316]).
+pad__1(_225,_227) :- 
+        [list,_201] = _229, [list,_205] = _231, 
+        pad([_201],[_205]),
+        normalize_result([_229,_231],
+                         [_225,_227]).
+pad__1(_215,_217) :- 
+        [_191] = _219, [list,_195] = _221, 
+        pad([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+pad__1(_116,_118) :- 
+        [list] = _120, [list] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+linear__1(_109) :- 
+        [list,_84] = _111, 
+        normalize_result([_111],
+                          [_109]).
+quadratic__1(_109) :- 
+        [list,_84] = _111, 
+        normalize_result([_111],
+                          [_109]).
+offenders__1(_333,_335,_337) :- 
+        [_263] = _339, [_292] = _341, [_308] = _343, 
+        parse([list,list],[_292],[_304]),
+        remove_duplicates([_304],[_308]),
+        normalize_result([_339,_341,_343],
+                         [_333,_335,_337]).
+homogenize__1(_553,_555,_557,_559,_561) :- 
+        [_512] = _563, [_470] = _565, [_491] = _567, [_520] = _569, [_499] = _571, 
+        reduced_term([_470],[_491],[_495],[_499]),
+        rewrite([_491],[_495],[_499],[_516]),
+        substitute([_512],[_516],[_520]),
+        normalize_result([_563,_565,_567,_569,_571],
+                         [_553,_555,_557,_559,_561]).
+reduced_term__1(_404,_406,_408,_410) :- 
+        [_371] = _412, [_367] = _414, [_363] = _416, [_375] = _418, 
+        classify([_367],[_371],[_363]),
+        candidate([_363],[_367],[_371],[_375]),
+        normalize_result([_412,_414,_416,_418],
+                         [_404,_406,_408,_410]).
+classify__1(_228,_230,_232) :- 
+        [_202] = _234, [_206] = _236, [atom] = _238, 
+        exponential_offenders([_202],[_206]),
+        normalize_result([_234,_236,_238],
+                         [_228,_230,_232]).
+exponential_offenders__1(_351,_353) :- 
+        [list,_321] = _355, [_325] = _357, 
+        free_of([_325],[_303]),
+        subterm([_325],[_314]),
+        exponential_offenders([_321],[_325]),
+        normalize_result([_355,_357],
+                         [_351,_353]).
+exponential_offenders__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+candidate__1(_357,_359,_361,_363) :- 
+        [atom] = _365, [_326] = _367, [_330] = _369, [[_319],[_330]] = _371, 
+        base([_326],[_319]),
+        polynomial_exponents([_326],[_330]),
+        normalize_result([_365,_367,_369,_371],
+                         [_357,_359,_361,_363]).
+base__1(_215,_217) :- 
+        [list,_191] = _219, [_195] = _221, 
+        base([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+base__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+polynomial_exponents__1(_283,_285) :- 
+        [list,_256] = _287, [_260] = _289, 
+        is_polynomial([_245],[_260]),
+        polynomial_exponents([_256],[_260]),
+        normalize_result([_287,_289],
+                         [_283,_285]).
+polynomial_exponents__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+substitute__1(_422,_424,_426) :- 
+        [[_372],[_388]] = _428, [_392] = _430, [[_380],[_396]] = _432, 
+        substitute([_372],[_392],[_380]),
+        substitute([_388],[_392],[_396]),
+        normalize_result([_428,_430,_432],
+                         [_422,_424,_426]).
+substitute__1(_422,_424,_426) :- 
+        [[_372],[_388]] = _428, [_392] = _430, [[_380],[_396]] = _432, 
+        substitute([_372],[_392],[_380]),
+        substitute([_388],[_392],[_396]),
+        normalize_result([_428,_430,_432],
+                         [_422,_424,_426]).
+substitute__1(_422,_424,_426) :- 
+        [[_372],[_388]] = _428, [_392] = _430, [[_380],[_396]] = _432, 
+        substitute([_372],[_392],[_380]),
+        substitute([_388],[_392],[_396]),
+        normalize_result([_428,_430,_432],
+                         [_422,_424,_426]).
+substitute__1(_346,_348,_350) :- 
+        [other] = _352, [_316] = _354, [other] = _356, 
+        substitute([_296],[_316],[_304]),
+        substitute([_312],[_316],[_320]),
+        normalize_result([_352,_354,_356],
+                         [_346,_348,_350]).
+substitute__1(_370,_372,_374) :- 
+        [[_336],[_330]] = _376, [_340] = _378, [[_344],[_330]] = _380, 
+        integer([_330]),
+        substitute([_336],[_340],[_344]),
+        normalize_result([_376,_378,_380],
+                         [_370,_372,_374]).
+substitute__1(_230,_232,_234) :- 
+        [_181] = _236, [_208] = _238, [_189] = _240, 
+        member([other],[_208]),
+        normalize_result([_236,_238,_240],
+                         [_230,_232,_234]).
+substitute__1(_155,_157,_159) :- 
+        [_139] = _161, [_135] = _163, [_139] = _165, 
+        normalize_result([_161,_163,_165],
+                          [_155,_157,_159]).
+rewrite__1(_453,_455,_457,_459) :- 
+        [list,_412] = _461, [_416] = _463, [_420] = _465, [list,_424] = _467, 
+        homog_axiom([_416],[_395],[_420],[_403]),
+        rewrite([_412],[_416],[_420],[_424]),
+        normalize_result([_461,_463,_465,_467],
+                         [_453,_455,_457,_459]).
+rewrite__1(_174,_176,_178,_180) :- 
+        [list] = _182, [_147] = _184, [_151] = _186, [list] = _188, 
+        normalize_result([_182,_184,_186,_188],
+                          [_174,_176,_178,_180]).
+homog_axiom__1(_350,_352,_354,_356) :- 
+        [atom] = _358, [[_319],[[_329],[_323]]] = _360, [[_319],[_323]] = _362, [[[_319],[_323]],[_329]] = _364, 
+        normalize_result([_358,_360,_362,_364],
+                          [_350,_352,_354,_356]).
+homog_axiom__1(_310,_312,_314,_316) :- 
+        [atom] = _318, [[_283],[_287]] = _320, [[_283],[_287]] = _322, [[num],[[_283],[_287]]] = _324, 
+        normalize_result([_318,_320,_322,_324],
+                          [_310,_312,_314,_316]).
+homog_axiom__1(_384,_386,_388,_390) :- 
+        [atom] = _392, [[_357],[[_361],[_351]]] = _394, [[_357],[_361]] = _396, [[[_357],[_351]],[[_357],[_361]]] = _398, 
+        normalize_result([_392,_394,_396,_398],
+                          [_384,_386,_388,_390]).
+subterm__1(_126,_128) :- 
+        [_113] = _130, [_113] = _132, 
+        normalize_result([_130,_132],
+                          [_126,_128]).
+subterm__1(_366,_368) :- 
+        [_335] = _370, [_339] = _372, 
+        compound([_339]),
+        functor([_339],[_319],[_331]),
+        subterm([_331],[_335],[_339]),
+        normalize_result([_370,_372],
+                         [_366,_368]).
+constant__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+constant__1(_93) :- 
+        [num] = _95, 
+        normalize_result([_95],
+                          [_93]).
+member__1(_138,_140) :- 
+        [_119] = _142, [list,_106] = _144, 
+        normalize_result([_142,_144],
+                          [_138,_140]).
+member__1(_215,_217) :- 
+        [_191] = _219, [list,_195] = _221, 
+        member([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+subterm__1(_230,_232,_234) :- 
+        [num] = _236, [_204] = _238, [_189] = _240, 
+        subterm([_204],[_208]),
+        normalize_result([_236,_238,_240],
+                         [_230,_232,_234]).
+subterm__1(_409,_411,_413) :- 
+        [_357] = _415, [_376] = _417, [_380] = _419, 
+        'my >'([_357],[num]),
+        'my is'([_372],[[_357],[num]]),
+        subterm([_372],[_376],[_380]),
+        normalize_result([_415,_417,_419],
+                         [_409,_411,_413]).
+position__1(_149,_151,_153) :- 
+        [_129] = _155, [_129] = _157, [list] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+position__1(_420,_422,_424) :- 
+        [_382] = _426, [_386] = _428, [_390] = _430, 
+        compound([_386]),
+        functor([_386],[_366],[_378]),
+        position([_378],[_382],[_386],[_390]),
+        normalize_result([_426,_428,_430],
+                         [_420,_422,_424]).
+position__1(_294,_296,_298,_300) :- 
+        [num] = _302, [_261] = _304, [_239] = _306, [list,_269] = _308, 
+        position([_261],[_265],[_269]),
+        normalize_result([_302,_304,_306,_308],
+                         [_294,_296,_298,_300]).
+position__1(_463,_465,_467,_469) :- 
+        [_404] = _471, [_423] = _473, [_427] = _475, [_431] = _477, 
+        'my >'([_404],[num]),
+        'my is'([_419],[[_404],[num]]),
+        position([_419],[_423],[_427],[_431]),
+        normalize_result([_471,_473,_475,_477],
+                         [_463,_465,_467,_469]).
+parse__1(_289,_291,_293) :- 
+        [list,_84] = _295, [_262] = _297, [_266] = _299, 
+        parse([list,list,_84],[_262],[_266]),
+        normalize_result([_295,_297,_299],
+                         [_289,_291,_293]).
+parse__1(_289,_291,_293) :- 
+        [list,_84] = _295, [_262] = _297, [_266] = _299, 
+        parse([list,list,_84],[_262],[_266]),
+        normalize_result([_295,_297,_299],
+                         [_289,_291,_293]).
+parse__1(_289,_291,_293) :- 
+        [list,_84] = _295, [_262] = _297, [_266] = _299, 
+        parse([list,list,_84],[_262],[_266]),
+        normalize_result([_295,_297,_299],
+                         [_289,_291,_293]).
+parse__1(_289,_291,_293) :- 
+        [list,_84] = _295, [_262] = _297, [_266] = _299, 
+        parse([list,list,_84],[_262],[_266]),
+        normalize_result([_295,_297,_299],
+                         [_289,_291,_293]).
+parse__1(_322,_324,_326) :- 
+        [list,_84] = _328, [_292] = _330, [_296] = _332, 
+        integer([_280]),
+        parse([list,_84],[_292],[_296]),
+        normalize_result([_328,_330,_332],
+                         [_322,_324,_326]).
+parse__1(_269,_271,_273) :- 
+        [list,_238] = _275, [_242] = _277, [_246] = _279, 
+        parse([_238],[_242],[_246]),
+        normalize_result([_275,_277,_279],
+                         [_269,_271,_273]).
+parse__1(_279,_281,_283) :- 
+        [list,_248] = _285, [_252] = _287, [list,_256] = _289, 
+        parse([_248],[_252],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+parse__1(_145,_147,_149) :- 
+        [list] = _151, [_125] = _153, [list] = _155, 
+        normalize_result([_151,_153,_155],
+                          [_145,_147,_149]).
+free_of__1(_289,_291) :- 
+        [_239] = _293, [_243] = _295, 
+        occurrence([_239],[_243],[_255]),
+        'my ='([_255],[num]),
+        normalize_result([_293,_295],
+                         [_289,_291]).
+single_occurrence__1(_128,_130) :- 
+        [_111] = _132, [_115] = _134, 
+        normalize_result([_132,_134],
+                          [_128,_130]).
+occurrence__1(_149,_151,_153) :- 
+        [_129] = _155, [_129] = _157, [num] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+occurrence__1(_441,_443,_445) :- 
+        [_398] = _447, [_402] = _449, [_410] = _451, 
+        compound([_402]),
+        functor([_402],[_382],[_394]),
+        occurrence([_394],[_398],[_402],[num],[_410]),
+        normalize_result([_447,_449,_451],
+                         [_441,_443,_445]).
+occurrence__1(_151,_153,_155) :- 
+        [_127] = _157, [_131] = _159, [num] = _161, 
+        normalize_result([_157,_159,_161],
+                          [_151,_153,_155]).
+occurrence__1(_709,_711,_713,_715,_717) :- 
+        [_637] = _719, [_656] = _721, [_660] = _723, [_617] = _725, [_668] = _727, 
+        'my >'([_637],[num]),
+        occurrence([_656],[_592],[_613]),
+        'my is'([_664],[[_613],[_617]]),
+        'my is'([_652],[[_637],[num]]),
+        occurrence([_652],[_656],[_660],[_664],[_668]),
+        normalize_result([_719,_721,_723,_725,_727],
+                         [_709,_711,_713,_715,_717]).
+occurrence__1(_207,_209,_211,_213,_215) :- 
+        [num] = _217, [_173] = _219, [_177] = _221, [_185] = _223, [_185] = _225, 
+        normalize_result([_217,_219,_221,_223,_225],
+                          [_207,_209,_211,_213,_215]).
+multiple__1(_119) :- 
+        [list,list,_92] = _121, 
+        normalize_result([_121],
+                          [_119]).
+remove_duplicates__1(_116,_118) :- 
+        [list] = _120, [list] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+remove_duplicates__1(_225,_227) :- 
+        [list,_201] = _229, [list,_205] = _231, 
+        remove_duplicates([_201],[_205]),
+        normalize_result([_229,_231],
+                         [_225,_227]).
+remove_duplicates__1(_283,_285) :- 
+        [list,_256] = _287, [_260] = _289, 
+        member([_245],[_256]),
+        remove_duplicates([_256],[_260]),
+        normalize_result([_287,_289],
+                         [_283,_285]).
+test_press__1(_325,_327) :- 
+        [_277] = _329, [_301] = _331, 
+        equation([_277],[_293],[_297]),
+        solve_equation([_293],[_297],[_301]),
+        normalize_result([_329,_331],
+                         [_325,_327]).
+equation__1(_139,_141,_143) :- 
+        [num] = _145, [atom] = _147, [atom] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+equation__1(_139,_141,_143) :- 
+        [num] = _145, [atom] = _147, [atom] = _149, 
+        normalize_result([_145,_147,_149],
+                          [_139,_141,_143]).
+
+%---------------- Definitions of tabled preds --------------
+
+:- table equation__1/3.
+:- table test_press__1/2.
+:- table remove_duplicates__1/2.
+:- table multiple__1/1.
+:- table occurrence__1/5.
+:- table occurrence__1/3.
+:- table free_of__1/2.
+:- table parse__1/3.
+:- table position__1/4.
+:- table position__1/3.
+:- table subterm__1/3.
+:- table member__1/2.
+:- table constant__1/1.
+:- table subterm__1/2.
+:- table homog_axiom__1/4.
+:- table rewrite__1/4.
+:- table substitute__1/3.
+:- table polynomial_exponents__1/2.
+:- table base__1/2.
+:- table candidate__1/4.
+:- table exponential_offenders__1/2.
+:- table classify__1/3.
+:- table reduced_term__1/4.
+:- table homogenize__1/5.
+:- table offenders__1/3.
+:- table quadratic__1/1.
+:- table linear__1/1.
+:- table pad__1/2.
+:- table root__1/6.
+:- table discriminant__1/4.
+:- table solve_polynomial_equation__1/3.
+:- table binomial__1/3.
+:- table multiply_polynomials__1/3.
+:- table multiply_single__1/3.
+:- table subtract_polynomials__1/3.
+:- table add_polynomials__1/3.
+:- table remove_zero_terms__1/2.
+:- table polynomial_form__1/3.
+:- table polynomial_normal_form__1/3.
+:- table natural_number__1/1.
+:- table is_polynomial__1/2.
+:- table isolax__1/3.
+:- table isolate__1/3.
+:- table maneuver_sides__1/3.
+:- table single_occurrence__1/2.
+:- table solve_factors__1/3.
+:- table factorize__1/3.
+:- table solve_equation__1/3.
+
+equation(_63,_65,_67) :- 
+        equation__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+test_press(_63,_65) :- 
+        test_press__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+remove_duplicates(_63,_65) :- 
+        remove_duplicates__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+multiple(_63) :- 
+        multiple__1(_65),
+        unify_sets([_63], [_65]).
+occurrence(_63,_65,_67,_69,_71) :- 
+        occurrence__1(_73,_75,_77,_79,_81),
+        unify_sets([_63,_65,_67,_69,_71], [_73,_75,_77,_79,_81]).
+occurrence(_63,_65,_67) :- 
+        occurrence__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+free_of(_63,_65) :- 
+        free_of__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+parse(_63,_65,_67) :- 
+        parse__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+position(_63,_65,_67,_69) :- 
+        position__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+position(_63,_65,_67) :- 
+        position__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+subterm(_63,_65,_67) :- 
+        subterm__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+member(_63,_65) :- 
+        member__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+constant(_63) :- 
+        constant__1(_65),
+        unify_sets([_63], [_65]).
+subterm(_63,_65) :- 
+        subterm__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+homog_axiom(_63,_65,_67,_69) :- 
+        homog_axiom__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+rewrite(_63,_65,_67,_69) :- 
+        rewrite__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+substitute(_63,_65,_67) :- 
+        substitute__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+polynomial_exponents(_63,_65) :- 
+        polynomial_exponents__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+base(_63,_65) :- 
+        base__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+candidate(_63,_65,_67,_69) :- 
+        candidate__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+exponential_offenders(_63,_65) :- 
+        exponential_offenders__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+classify(_63,_65,_67) :- 
+        classify__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+reduced_term(_63,_65,_67,_69) :- 
+        reduced_term__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+homogenize(_63,_65,_67,_69,_71) :- 
+        homogenize__1(_73,_75,_77,_79,_81),
+        unify_sets([_63,_65,_67,_69,_71], [_73,_75,_77,_79,_81]).
+offenders(_63,_65,_67) :- 
+        offenders__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+quadratic(_63) :- 
+        quadratic__1(_65),
+        unify_sets([_63], [_65]).
+linear(_63) :- 
+        linear__1(_65),
+        unify_sets([_63], [_65]).
+pad(_63,_65) :- 
+        pad__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+root(_63,_65,_67,_69,_71,_73) :- 
+        root__1(_75,_77,_79,_81,_83,_85),
+        unify_sets([_63,_65,_67,_69,_71,_73], [_75,_77,_79,_81,_83,_85]).
+discriminant(_63,_65,_67,_69) :- 
+        discriminant__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+solve_polynomial_equation(_63,_65,_67) :- 
+        solve_polynomial_equation__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+binomial(_63,_65,_67) :- 
+        binomial__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+multiply_polynomials(_63,_65,_67) :- 
+        multiply_polynomials__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+multiply_single(_63,_65,_67) :- 
+        multiply_single__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+subtract_polynomials(_63,_65,_67) :- 
+        subtract_polynomials__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+add_polynomials(_63,_65,_67) :- 
+        add_polynomials__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+remove_zero_terms(_63,_65) :- 
+        remove_zero_terms__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+polynomial_form(_63,_65,_67) :- 
+        polynomial_form__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+polynomial_normal_form(_63,_65,_67) :- 
+        polynomial_normal_form__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+natural_number(_63) :- 
+        natural_number__1(_65),
+        unify_sets([_63], [_65]).
+is_polynomial(_63,_65) :- 
+        is_polynomial__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+isolax(_63,_65,_67) :- 
+        isolax__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+isolate(_63,_65,_67) :- 
+        isolate__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+maneuver_sides(_63,_65,_67) :- 
+        maneuver_sides__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+single_occurrence(_63,_65) :- 
+        single_occurrence__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+solve_factors(_63,_65,_67) :- 
+        solve_factors__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+factorize(_63,_65,_67) :- 
+        factorize__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+solve_equation(_63,_65,_67) :- 
+        solve_equation__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+
+%---------------- Tp ---------------------------------------
+
+tp :- equation__1(_64,_66,_68), fail.
+tp :- test_press__1(_64,_66), fail.
+tp :- remove_duplicates__1(_64,_66), fail.
+tp :- multiple__1(_64), fail.
+tp :- occurrence__1(_64,_66,_68,_70,_72), fail.
+tp :- occurrence__1(_64,_66,_68), fail.
+tp :- free_of__1(_64,_66), fail.
+tp :- parse__1(_64,_66,_68), fail.
+tp :- position__1(_64,_66,_68,_70), fail.
+tp :- position__1(_64,_66,_68), fail.
+tp :- subterm__1(_64,_66,_68), fail.
+tp :- member__1(_64,_66), fail.
+tp :- constant__1(_64), fail.
+tp :- subterm__1(_64,_66), fail.
+tp :- homog_axiom__1(_64,_66,_68,_70), fail.
+tp :- rewrite__1(_64,_66,_68,_70), fail.
+tp :- substitute__1(_64,_66,_68), fail.
+tp :- polynomial_exponents__1(_64,_66), fail.
+tp :- base__1(_64,_66), fail.
+tp :- candidate__1(_64,_66,_68,_70), fail.
+tp :- exponential_offenders__1(_64,_66), fail.
+tp :- classify__1(_64,_66,_68), fail.
+tp :- reduced_term__1(_64,_66,_68,_70), fail.
+tp :- homogenize__1(_64,_66,_68,_70,_72), fail.
+tp :- offenders__1(_64,_66,_68), fail.
+tp :- quadratic__1(_64), fail.
+tp :- linear__1(_64), fail.
+tp :- pad__1(_64,_66), fail.
+tp :- root__1(_64,_66,_68,_70,_72,_74), fail.
+tp :- discriminant__1(_64,_66,_68,_70), fail.
+tp :- solve_polynomial_equation__1(_64,_66,_68), fail.
+tp :- binomial__1(_64,_66,_68), fail.
+tp :- multiply_polynomials__1(_64,_66,_68), fail.
+tp :- multiply_single__1(_64,_66,_68), fail.
+tp :- subtract_polynomials__1(_64,_66,_68), fail.
+tp :- add_polynomials__1(_64,_66,_68), fail.
+tp :- remove_zero_terms__1(_64,_66), fail.
+tp :- polynomial_form__1(_64,_66,_68), fail.
+tp :- polynomial_normal_form__1(_64,_66,_68), fail.
+tp :- natural_number__1(_64), fail.
+tp :- is_polynomial__1(_64,_66), fail.
+tp :- isolax__1(_64,_66,_68), fail.
+tp :- isolate__1(_64,_66,_68), fail.
+tp :- maneuver_sides__1(_64,_66,_68), fail.
+tp :- single_occurrence__1(_64,_66), fail.
+tp :- solve_factors__1(_64,_66,_68), fail.
+tp :- factorize__1(_64,_66,_68), fail.
+tp :- solve_equation__1(_64,_66,_68), fail.
+tp.
+
+
+%---------------- Builtin Preds ----------------------------
+
+'my ='(X1,X2) :- 'my =__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my \\=='(X1,X2) :- 'my \\==__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my is'(X1,X2) :- 'my is__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =:='(X1,X2) :- 'my =:=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =\\='(X1,X2) :- 'my =\\=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my <'(X1,X2) :- 'my <__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >'(X1,X2) :- 'my >__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >='(X1,X2) :- 'my >=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =<'(X1,X2) :- 'my =<__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+
+'my =__1'(X,X).
+'my \\==__1'(_,_).
+'my is__1'(num,num).
+'my <__1'(num,num).
+'my >__1'(num,num).
+'my >=__1'(num,num).
+'my =<__1'(num,num).
+'my =:=__1'(num,num).
+'my =\\=__1'(num,num).
+
+
+%---------------- Show Result ------------------------------
+
+show_facts :- equation__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(equation(_63,_65,_67)), nl, fail.
+show_facts :- test_press__1(_63,_65),
+              numbervars([_63,_65]),
+              write(test_press(_63,_65)), nl, fail.
+show_facts :- remove_duplicates__1(_63,_65),
+              numbervars([_63,_65]),
+              write(remove_duplicates(_63,_65)), nl, fail.
+show_facts :- multiple__1(_63),
+              numbervars([_63]),
+              write(multiple(_63)), nl, fail.
+show_facts :- occurrence__1(_63,_65,_67,_69,_71),
+              numbervars([_63,_65,_67,_69,_71]),
+              write(occurrence(_63,_65,_67,_69,_71)), nl, fail.
+show_facts :- occurrence__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(occurrence(_63,_65,_67)), nl, fail.
+show_facts :- free_of__1(_63,_65),
+              numbervars([_63,_65]),
+              write(free_of(_63,_65)), nl, fail.
+show_facts :- parse__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(parse(_63,_65,_67)), nl, fail.
+show_facts :- position__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(position(_63,_65,_67,_69)), nl, fail.
+show_facts :- position__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(position(_63,_65,_67)), nl, fail.
+show_facts :- subterm__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(subterm(_63,_65,_67)), nl, fail.
+show_facts :- member__1(_63,_65),
+              numbervars([_63,_65]),
+              write(member(_63,_65)), nl, fail.
+show_facts :- constant__1(_63),
+              numbervars([_63]),
+              write(constant(_63)), nl, fail.
+show_facts :- subterm__1(_63,_65),
+              numbervars([_63,_65]),
+              write(subterm(_63,_65)), nl, fail.
+show_facts :- homog_axiom__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(homog_axiom(_63,_65,_67,_69)), nl, fail.
+show_facts :- rewrite__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(rewrite(_63,_65,_67,_69)), nl, fail.
+show_facts :- substitute__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(substitute(_63,_65,_67)), nl, fail.
+show_facts :- polynomial_exponents__1(_63,_65),
+              numbervars([_63,_65]),
+              write(polynomial_exponents(_63,_65)), nl, fail.
+show_facts :- base__1(_63,_65),
+              numbervars([_63,_65]),
+              write(base(_63,_65)), nl, fail.
+show_facts :- candidate__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(candidate(_63,_65,_67,_69)), nl, fail.
+show_facts :- exponential_offenders__1(_63,_65),
+              numbervars([_63,_65]),
+              write(exponential_offenders(_63,_65)), nl, fail.
+show_facts :- classify__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(classify(_63,_65,_67)), nl, fail.
+show_facts :- reduced_term__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(reduced_term(_63,_65,_67,_69)), nl, fail.
+show_facts :- homogenize__1(_63,_65,_67,_69,_71),
+              numbervars([_63,_65,_67,_69,_71]),
+              write(homogenize(_63,_65,_67,_69,_71)), nl, fail.
+show_facts :- offenders__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(offenders(_63,_65,_67)), nl, fail.
+show_facts :- quadratic__1(_63),
+              numbervars([_63]),
+              write(quadratic(_63)), nl, fail.
+show_facts :- linear__1(_63),
+              numbervars([_63]),
+              write(linear(_63)), nl, fail.
+show_facts :- pad__1(_63,_65),
+              numbervars([_63,_65]),
+              write(pad(_63,_65)), nl, fail.
+show_facts :- root__1(_63,_65,_67,_69,_71,_73),
+              numbervars([_63,_65,_67,_69,_71,_73]),
+              write(root(_63,_65,_67,_69,_71,_73)), nl, fail.
+show_facts :- discriminant__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(discriminant(_63,_65,_67,_69)), nl, fail.
+show_facts :- solve_polynomial_equation__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(solve_polynomial_equation(_63,_65,_67)), nl, fail.
+show_facts :- binomial__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(binomial(_63,_65,_67)), nl, fail.
+show_facts :- multiply_polynomials__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(multiply_polynomials(_63,_65,_67)), nl, fail.
+show_facts :- multiply_single__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(multiply_single(_63,_65,_67)), nl, fail.
+show_facts :- subtract_polynomials__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(subtract_polynomials(_63,_65,_67)), nl, fail.
+show_facts :- add_polynomials__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(add_polynomials(_63,_65,_67)), nl, fail.
+show_facts :- remove_zero_terms__1(_63,_65),
+              numbervars([_63,_65]),
+              write(remove_zero_terms(_63,_65)), nl, fail.
+show_facts :- polynomial_form__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(polynomial_form(_63,_65,_67)), nl, fail.
+show_facts :- polynomial_normal_form__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(polynomial_normal_form(_63,_65,_67)), nl, fail.
+show_facts :- natural_number__1(_63),
+              numbervars([_63]),
+              write(natural_number(_63)), nl, fail.
+show_facts :- is_polynomial__1(_63,_65),
+              numbervars([_63,_65]),
+              write(is_polynomial(_63,_65)), nl, fail.
+show_facts :- isolax__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(isolax(_63,_65,_67)), nl, fail.
+show_facts :- isolate__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(isolate(_63,_65,_67)), nl, fail.
+show_facts :- maneuver_sides__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(maneuver_sides(_63,_65,_67)), nl, fail.
+show_facts :- single_occurrence__1(_63,_65),
+              numbervars([_63,_65]),
+              write(single_occurrence(_63,_65)), nl, fail.
+show_facts :- solve_factors__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(solve_factors(_63,_65,_67)), nl, fail.
+show_facts :- factorize__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(factorize(_63,_65,_67)), nl, fail.
+show_facts :- solve_equation__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(solve_equation(_63,_65,_67)), nl, fail.
+show_facts.

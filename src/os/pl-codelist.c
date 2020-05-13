@@ -36,7 +36,8 @@
 #include "../pl-codelist.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_code *status)
+codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
+			 CVT_code *status)
 
 If l represents a list of codes   or characters, return a buffer holding
 the characters. If wide == TRUE  the   buffer  contains  objects of type
@@ -44,7 +45,8 @@ pl_wchar_t. Otherwise it contains traditional characters.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Buffer
-codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *result)
+codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
+			 CVT_result *result)
 { GET_LD
   Buffer b;
   word list = valHandle(l);
@@ -114,7 +116,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
     if ( c < 0 || c > 0x10ffff || (!wide && c > 0xff) )
     { result->culprit = *arg;
 
-      unfindBuffer(flags);
+      unfindBuffer(b, flags);
       if ( canBind(*arg) )
 	result->status = CVT_partial;
       else if ( c < 0 || c > 0x10ffff )
@@ -137,7 +139,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
     deRef(tail);
     list = *tail;
     if ( list == slow )		/* cyclic */
-    { unfindBuffer(flags);
+    { unfindBuffer(b, flags);
       result->status = CVT_nolist;
       return NULL;
     }
@@ -148,7 +150,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide, CVT_result *res
     }
   }
   if ( !isNil(list) )
-  { unfindBuffer(flags);
+  { unfindBuffer(b, flags);
     if ( canBind(list) )
       result->status = CVT_partial;
     else

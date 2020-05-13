@@ -1,0 +1,34 @@
+:- import incr_retract/1,incr_retractall/1,incr_assert/1 from increval.
+:- import member/2 from basics.
+
+test:- ot_1(X),incr_retract(d_1(1)),t_1(Y),writeln(one(t_1(X),t_1(Y))),fail.
+test:- abolish_all_tables,fail.
+test:- incr_assert(d_1(1)),t_1(X),incr_retract(d_1(1)),get_residual(t_1(Y),Z),writeln(two(X,Y,Z)),fail.
+test:- abolish_all_tables,fail.
+test:- incr_assert(d_1(1)),t_1(X),incr_retract(d_1(1)),t_2(_),t_1(_),get_residual(t_1(Y),Z),writeln(three(X,Y,Z)),fail.
+test:- abolish_all_tables,fail.
+test:- incr_assert(d_1(1)),incr_assert(d_1(3)),ot_1(X),incr_retract(d_1(1)),incr_retract(d_1(3)),t_2(_),
+       t_1(_), get_residual(t_1(Y),Z),writeln(four(X,Y,Z)),fail.
+test:- abolish_all_tables,fail.
+test:- incr_assert(d_1(1)),incr_assert(d_1(3)),ot_1(X),incr_retract(d_1(1)),incr_retract(d_1(3)),t_1(Y),writeln(five(X,Y)),fail.
+test:- abolish_all_tables,fail.
+test:- incr_assert(d_1(1)),incr_assert(d_1(3)),t_1(X),incr_retractall(d_1(1)),incr_retractall(d_1(3)),t_1(Y),writeln(six(X,Y)),fail.
+test.
+
+%ot_1(X) :- order_by([asc(X)], t_1(X)).
+ot_1(X) :- findall(X, t_1(X), Xs), sort(Xs, OXs), member(X, OXs).
+
+:- table t_1/1, t_2/1 as incremental.
+
+t_1(X):- t_2(X).
+
+t_2(X):- d_1(X),undef.
+
+:- dynamic d_1/1 as incremental.
+d_1(1).
+d_1(2).
+
+:- table undef/0 as incremental.
+
+undef:- tnot(undef).
+

@@ -15,9 +15,8 @@ set(CMAKE_MODULE_PATH
 include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
+include(LibIndex)
 
-# Arity is of size_t.  This should now be the case for all packages
-set(PL_ARITY_AS_SIZE 1)
 if(MULTI_THREADED)
   set(O_PLMT 1)
   set(_REENTRANT 1)			# FIXME: packages should use O_PLMT
@@ -54,7 +53,27 @@ else()
   endif()
 endif()
 
+# add_index(dir file ...)
+#
+# Create INDEX.pl for ${dir} if at least on of the files is a .pl file
+
+function(add_index dir)
+  if(dir)
+    set(has_pl OFF)
+    foreach(f ${ARGN})
+      get_filename_component(ext ${f} EXT)
+      if(ext STREQUAL .pl)
+        set(has_pl ON)
+      endif()
+    endforeach()
+    if(has_pl)
+      library_index(library/${dir})
+    endif()
+  endif()
+endfunction()
+
 # swipl_plugin(name
+#	       [NOINDEX]
 #	       [MODULE name]
 #	       [C_SOURCES file ...]
 #	       [C_LIBS lib ...]
@@ -83,6 +102,7 @@ function(swipl_plugin name)
   set(v_pl_subdir)			# current subdir
   set(v_pl_subdirs)			# list of subdirs
   set(v_pl_gensubdirs)			# list of subdirs (generated files)
+  set(v_index ON)
 
   add_custom_target(${target})
 
@@ -91,6 +111,8 @@ function(swipl_plugin name)
   foreach(arg ${ARGN})
     if(arg STREQUAL "MODULE")
       set(mode md_module)
+    elseif(arg STREQUAL "NOINDEX")
+      set(v_index OFF)
     elseif(arg STREQUAL "SHARED")
       set(mode md_module)
       set(type SHARED)
@@ -167,6 +189,9 @@ function(swipl_plugin name)
 		  FILES ${${subdir_var}}
 		  DESTINATION ${SWIPL_INSTALL_LIBRARY}/${sd})
       add_dependencies(${target} ${src_target})
+      if(v_index AND sd)
+        add_index(${sd} ${${subdir_var}})
+      endif()
     endif()
   endforeach()
 
@@ -256,7 +281,8 @@ function(swipl_examples)
     endif()
   endforeach()
 
-  set(extdest ${SWIPL_INSTALL_PREFIX}/doc/packages/examples/${SWIPL_PKG})
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
+  set(extdest ${SWIPL_INSTALL_DOC}/packages/examples/${SWIPL_PKG})
   if(subdir)
     set(extdest ${extdest}/${subdir})
     set(subdir_ ${subdir}_)
@@ -309,18 +335,17 @@ function(test_lib name)
   foreach(pkg ${my_PACKAGES})
     get_filename_component(src ${CMAKE_CURRENT_SOURCE_DIR}/../${pkg} ABSOLUTE)
     get_filename_component(bin ${CMAKE_CURRENT_BINARY_DIR}/../${pkg} ABSOLUTE)
-    set(plibrary "${plibrary}${SWIPL_PATH_SEP}${src}")
     set(pforeign "${pforeign}${SWIPL_PATH_SEP}${bin}")
   endforeach()
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
 	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
-			 -p "library=${plibrary}"
-			 -f none -s ${test_source}
+			 -f none --no-packs -s ${test_source}
 			 -g "${test_goal}"
 			 -t halt)
   # Write db with lists of tests to be used with -DINSTALL_TESTS
   if(INSTALL_TESTS)
+    set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
     file(RELATIVE_PATH rel_test_dir
 	 ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${CMAKE_CURRENT_SOURCE_DIR})
     file(APPEND ${INSTALL_TESTS_DB}

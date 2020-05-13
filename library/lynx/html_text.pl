@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, CWI, Amsterdam
+    Copyright (c)  2018-2020, CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,18 +37,24 @@
           [ html_text/1,                        % +FileName
             html_text/2                         % +FileName, Options
           ]).
-:- use_module(library(sgml)).
-:- use_module(library(lists)).
-:- use_module(library(debug)).
-:- use_module(library(apply)).
-:- use_module(library(option)).
-:- use_module(library(aggregate)).
-
-:- use_module(library(lynx/format)).
-:- use_module(library(lynx/html_style)).
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(apply),[foldl/4,maplist/3,maplist/2]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),
+	    [ append/3, list_to_set/2, reverse/2, delete/3, sum_list/2,
+	      nth1/3, max_list/2
+	    ]).
+:- autoload(library(option),[select_option/4,merge_options/3,option/3]).
+:- autoload(library(sgml),[xml_is_dom/1,load_html/3]).
+:- autoload(library(lynx/format),[format_paragraph/2,trim_line/2]).
+:- autoload(library(lynx/html_style),
+	    [ element_css/3, css_block_options/5, css_inline_options/3,
+	      attrs_classes/2, style_css_attrs/2
+	    ]).
 
 %!  html_text(+Input) is det.
-%!  html_text(+Input, Options) is det.
+%!  html_text(+Input, +Options) is det.
 %
 %   Render HTML from Input to `current_output`.  Input is either an HTML
 %   DOM or a valid input for load_html/3. Options defined are:
@@ -268,7 +274,7 @@ list_par_properties([ol|_More], N, [bullet(N)]).
 block_words(Content, RC, Words, State) :-
     phrase(bwords(Content, RC, State), Words0),
     join_whitespace(Words0, Words1),
-    text_format:trim_spaces(Words1, Words).
+    trim_line(Words1, Words).
 
 bwords([], [], _) -->
     !.

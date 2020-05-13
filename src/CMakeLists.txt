@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 include(Version)
 include(Utils)
 include(CStack)
+include(LibIndex)
 
 include(CheckIncludeFile)
 include(CheckLibraryExists)
@@ -15,15 +16,7 @@ include(CheckTypeSize)
 include(AlignOf)
 include(CheckStructHasMember)
 include(CheckCCompilerFlag)
-
-find_package(ZLIB REQUIRED)
-if(USE_GMP)
-  find_package(GMP)
-endif()
-if(UNIX AND NOT EMSCRIPTEN)
-  find_package(Curses)
-endif()
-
+include(Dependencies)
 include(Config)
 include(GCCBuiltins)
 include(TestSignalType)
@@ -39,12 +32,6 @@ endif()
 get_filename_component(SWIPL_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(SWIPL_LIBRARY_ROOT ${SWIPL_ROOT}/library)
 set(SWIPL_BOOT_ROOT ${SWIPL_ROOT}/boot)
-
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot64.prc")
-else()
-  set(SWIPL_BOOT_FILE "${CMAKE_BINARY_DIR}/home/boot32.prc")
-endif()
 
 # Tools (swipl-ld)
 string(REPLACE "." "" SO_EXT ${CMAKE_SHARED_MODULE_SUFFIX})
@@ -83,7 +70,8 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-version.c pl-codetable.c pl-supervisor.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
-    pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c)
+    pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
+    pl-allocpool.c pl-wrap.c pl-event.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}
@@ -105,19 +93,18 @@ set(POSIX_SHELL "/bin/sh" CACHE STRING "Full path to a POSIX compliant shell")
 ################
 
 set(SWIPL_DATA_INDEXED_DIRS
-    library library/clp library/dcg)
+    library library/clp library/dcg library/unicode library/lynx)
 set(SWIPL_DATA_DIRS
     boot
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
-    library/dialect/yap
-    library/unicode library/lynx
+    library/dialect/yap library/dialect/xsb library/theme
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
-    parms.pl autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
+    autoload.pl qlf.pl topvars.pl messages.pl load.pl dicts.pl gc.pl
     engines.pl iri.pl tabling.pl)
 if(WIN32)
   set(SWIPL_DATA_boot ${SWIPL_DATA_boot} menu.pl)
@@ -146,13 +133,15 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     prolog_pack.pl git.pl prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl prolog_install.pl check_installation.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
-    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl)
+    lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
+    prolog_wrap.pl prolog_trace.pl prolog_code.pl intercept.pl
+    prolog_deps.pl tables.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
 if(WIN32)
   set(SWIPL_DATA_library ${SWIPL_DATA_library}
-      dde.pl win_menu.pl)
+      dde.pl win_menu.pl progman.pl)
 else()
   has_package(swipl-win HAVE_SWIPL_WIN)
   if(HAVE_SWIPL_WIN)
@@ -163,15 +152,20 @@ endif()
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
 
+set(SWIPL_DATA_library_theme auto.pl dark.pl)
+
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
-    simplex.pl clpfd.pl clpb.pl)
+    clpfd.pl clpb.pl)
+if(GMP_FOUND)
+  set(SWIPL_DATA_library_clp ${SWIPL_DATA_library_clp} simplex.pl)
+endif()
 
 set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 
 set(SWIPL_DATA_library_unicode blocks.pl unicode_data.pl)
 
 set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
-    sicstus.pl yap.pl)
+    sicstus.pl yap.pl xsb.pl)
 
 set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
@@ -180,19 +174,12 @@ set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
     README.TXT sockets.pl swipl-lfr.pl system.pl terms.pl timeout.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
+set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
+    storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
+    increval.pl curr_sym.pl error_handler.pl lists.pl timed_call.pl
+    standard.pl gpp.pl thread.pl gensym.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
-
-# ${PL_LIB_FILES_ALL} holds all files from the library that are indexed
-# ${PL_LIB_INDEX} holds the index file
-
-set(PL_LIB_FILES_ALL)
-foreach(d ${SWIPL_DATA_INDEXED_DIRS})
-    string(REGEX REPLACE "/" "_" filevar ${d})
-    prepend(files ${SWIPL_ROOT}/${d} ${SWIPL_DATA_${filevar}})
-    set(PL_LIB_FILES_ALL ${PL_LIB_FILES_ALL} ${files})
-endforeach()
-set(PL_LIB_INDEX ${SWIPL_BUILD_LIBRARY}/INDEX.pl)
 
 ################
 # Custom targets and commands
@@ -257,15 +244,12 @@ add_custom_command(
     DEPENDS swipl ${SWIPL_BOOT_FILES}
 )
 
-add_custom_command(
-    OUTPUT  ${PL_LIB_INDEX}
-    COMMAND ${PROG_SWIPL} -f none --nopce -q
-            -g "\"make_library_index('${SWIPL_BUILD_HOME}/library')\"" -t halt
-    DEPENDS ${SWIPL_BOOT_FILE} prolog_home
-)
+add_custom_target(library_index)
 
-add_custom_target(prolog_products ALL
-    DEPENDS ${SWIPL_BOOT_FILE} ${PL_LIB_INDEX}
+library_index(${SWIPL_DATA_INDEXED_DIRS})
+
+add_custom_target(core ALL
+    DEPENDS ${SWIPL_BOOT_FILE}
 )
 
 # Precompile some popular larger libraries to .QLF
@@ -294,6 +278,7 @@ config_data_files()
 
 # Set swipl.home above binaries to a relative path to the root
 file(WRITE "${CMAKE_BINARY_DIR}/swipl.home" "home\n")
+file(WRITE "${CMAKE_BINARY_DIR}/src/swipl.home" "../home\n")
 file(WRITE "${CMAKE_BINARY_DIR}/packages/swipl.home" "../home\n")
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl.rc)
 symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
@@ -322,10 +307,16 @@ endif()
 if(HAVE_LIBRT)
   set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} rt)
 endif()
+if(HAVE_LIBATOMIC)
+  set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} atomic)
+endif()
+if(LIBTCMALLOC_LIBRARIES)
+  set(SWIPL_LIBRARIES ${LIBTCMALLOC_LIBRARIES} ${SWIPL_LIBRARIES})
+endif()
 
 # build swipl
 add_executable(swipl ${SWIPL_SRC})
-target_link_libraries(swipl libswipl)
+target_link_libraries(swipl ${SWIPL_LIBRARIES} libswipl)
 target_c_stack(swipl 4000000)
 
 # build the library
@@ -335,17 +326,32 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
+if(MSVC AND NOT SWIPL_SHARED_LIB)
+  # MSVC does not automatically prepend 'lib' to the library name
+  # Furthermore it would generate swipl.lib in the same directory as swipl.exe, causing a
+  # linking failure:
+  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'; error code 5"
+  set(LIBSWIPL_NAME libswipl)
+else()
+  set(LIBSWIPL_NAME swipl)
+endif()
+
 add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
 add_dependencies(libswipl git-version vmi-metadata core-constants)
 set_target_properties(libswipl PROPERTIES
-		      OUTPUT_NAME swipl
+		      OUTPUT_NAME ${LIBSWIPL_NAME}
 		      VERSION ${SWIPL_VERSION_STRING}
-		      SOVERSION ${SWIPL_VERSION_MAJOR})
+		      SOVERSION ${SWIPL_VERSION_MAJOR}
+		      GNUtoMS ON)
 target_include_directories(libswipl BEFORE PRIVATE
 			   ${CMAKE_CURRENT_BINARY_DIR}
 			   ${CMAKE_CURRENT_SOURCE_DIR}
 			   ${ZLIB_INCLUDE_DIRS}
 			   ${LIBSWIPL_INCLUDES})
+target_include_directories(libswipl INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
+  $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
 target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
 
 if(BUILD_SWIPL_LD)
@@ -355,6 +361,12 @@ if(BUILD_SWIPL_LD)
 			     ${CMAKE_CURRENT_SOURCE_DIR}
 			     ${LIBSWIPL_INCLUDES})
   add_dependencies(swipl-ld vmi-metadata core-constants)
+endif()
+
+if(WIN32)
+  set(SWIPL_PROGRAM libswipl.dll)
+else()
+  set(SWIPL_PROGRAM swipl)
 endif()
 
 if(WIN32)
@@ -378,19 +390,20 @@ set(PROFILE_GUIDED_OPTIMIZATION OFF
 
 set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
 
-check_c_compiler_flag(-fprofile-dir=${PGO_DIR} HAVE_FPROFILE_DIR)
-check_c_compiler_flag(-Wno-maybe-uninitialized HAVE_WNO_MAYBE_UNINITIALIZED)
-
-set(PGO_CFLAGS_EXTRA)
-if(HAVE_FPROFILE_DIR)
-  list(APPEND PGO_CFLAGS_EXTRA "-fprofile-dir=${PGO_DIR}")
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+  set(PGO_GENERATE_FLAGS -fprofile-generate=${PGO_DIR})
+  set(PGO_USE_FLAGS      -fprofile-use=${PGO_DIR}/swipl.profdata)
+  get_filename_component(CMAKE_C_COMPILER_DIR ${CMAKE_C_COMPILER} DIRECTORY)
+  find_program(LLVM_PROFDATA llvm-profdata
+	       HINTS ${CMAKE_C_COMPILER_DIR})
+  add_custom_target(pgo_data
+		    ${LLVM_PROFDATA} merge -output=${PGO_DIR}/swipl.profdata ${PGO_DIR}/*.profraw)
+else()
+  set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
+  set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
+  set(PGO_USE_FLAGS      -fprofile-use ${PGO_CFLAGS_EXTRA})
+  add_custom_target(pgo_data)
 endif()
-if(HAVE_WNO_MAYBE_UNINITIALIZED)
-  list(APPEND PGO_CFLAGS_EXTRA -Wno-maybe-uninitialized)
-endif()
-
-set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
-set(PGO_USE_FLAGS      -fprofile-use      ${PGO_CFLAGS_EXTRA})
 
 set(PGO_TARGETS swipl libswipl)
 
@@ -423,7 +436,7 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=GENERATE -G Ninja ..
     COMMAND ninja -t clean libswipl
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling instrumented version"
-    COMMAND ninja prolog_products
+    COMMAND ninja core
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Running program"
     COMMAND ${CMAKE_COMMAND} -E remove_directory ${PGO_DIR}
     # cannot use the target `swipl` as that causes a build before we run
@@ -431,7 +444,7 @@ add_custom_target(
     COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ..
     COMMAND ninja -t clean libswipl
     COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling optimized version"
-    COMMAND ninja prolog_products
+    COMMAND ninja core
 
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_property(TARGET pgo PROPERTY
@@ -442,32 +455,61 @@ endif(0)
 # Testing
 
 add_custom_target(check
-    COMMAND ${PROG_SWIPL} -q -g test -t halt ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
+    COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
-set(SWIPL_TEST_DIRS unprotected core attvar library charset eclipse clp
-    GC save)
+set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
+    charset eclipse clp GC save
+    xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
+    xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
+    xsb/sub_tests)
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
 endif()
 
 add_test(NAME swipl:basic
-	 COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
+	 COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
   add_test(NAME swipl:${test}
-	   COMMAND ${PROG_SWIPL} -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
+	   COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
-if(INSTALL_TESTS)
-   #Copy core tests to the installation
+# Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
+function(install_tests)
+   set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
    install(DIRECTORY   ${CMAKE_CURRENT_SOURCE_DIR}/Tests
            DESTINATION ${INSTALL_TESTS_DIR})
    install(FILES       ${CMAKE_CURRENT_SOURCE_DIR}/test.pl
            DESTINATION ${INSTALL_TESTS_DIR}/)
+endfunction()
+
+if(INSTALL_TESTS)
+install_tests()
 endif()
 
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)
+
+# Provide ninja etags
+file(GLOB_RECURSE etags_sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*.[ch]")
+add_custom_target(
+    etags
+    etags ${etags_sources}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Create TAGS file for main sources")
+
+# Create cmake config files
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(SWIPLConfigVersion.cmake
+  VERSION "${SWIPL_VERSION_STRING}"
+  COMPATIBILITY SameMajorVersion)
+configure_package_config_file(
+  "${CMAKE_SOURCE_DIR}/cmake/SWIPLConfig.cmake.in"
+  SWIPLConfig.cmake
+  PATH_VARS SWIPL_INSTALL_ARCH_EXE
+  INSTALL_DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}"
+  NO_SET_AND_CHECK_MACRO
+  NO_CHECK_REQUIRED_COMPONENTS_MACRO)
 
 ################
 # Installation
@@ -489,7 +531,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl
+install(TARGETS swipl libswipl EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
@@ -505,8 +547,6 @@ foreach(d ${SWIPL_DATA_DIRS})
 		FILES ${files}
 		DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
 endforeach()
-install(FILES ${PL_LIB_INDEX}
-	DESTINATION ${SWIPL_INSTALL_PREFIX}/library)
 install_src(core_headers
 	    FILES
 	    ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
@@ -526,6 +566,16 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dot.txt
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+
+# Install cmake config files
+install(EXPORT SWIPL_EXPORT
+  FILE SWIPLTargets.cmake
+  NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
+  DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfig.cmake"
+              "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfigVersion.cmake"
+        DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+
 if(SWIPL_INSTALL_PKGCONFIG)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.pc
 	DESTINATION ${SWIPL_INSTALL_PKGCONFIG})

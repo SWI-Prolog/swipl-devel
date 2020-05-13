@@ -40,8 +40,14 @@
             lambda_calls/3,                     % +Lambda, +Args, -Goal
             is_lambda/1                         % @Term
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(error),
+	    [ instantiation_error/1,
+	      must_be/2,
+	      domain_error/2,
+	      type_error/2
+	    ]).
+:- autoload(library(lists),[append/3]).
+
 
 :- meta_predicate
     '>>'(?, 0),

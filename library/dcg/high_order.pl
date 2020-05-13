@@ -88,7 +88,12 @@ sequence_([], _) -->
 %
 %   Match or generate a sequence of Element  where each pair of elements
 %   is separated by Sep. When _parsing_,   a  matched Sep _commits_. The
-%   final element is _not_ committed. See also sequence//5.
+%   final element is _not_ committed.  More   formally,  it  matches the
+%   following sequence:
+%
+%       Element?, (Sep,Element)*
+%
+%   See also sequence//5.
 
 sequence(OnElem, OnSep, List) -->
     sequence_(List, OnElem, OnSep).
@@ -99,7 +104,7 @@ sequence(OnElem, OnSep, List) -->
 %   where each pair of elements is separated   by Sep. More formally, it
 %   matches the following sequence:
 %
-%       Start (Element,Sep)*, End
+%       Start, Element?, (Sep,Element)*, End
 %
 %   The example below matches a Prolog list of integers:
 %
@@ -115,17 +120,39 @@ sequence(Start, OnElem, OnSep, End, List) -->
     sequence_(List, OnElem, OnSep),
     End, !.
 
-sequence_([H|T], P, Sep) -->
-    call(P, H),
-    (   {T == []}
+sequence_(List, OnElem, OnSep) -->
+    {var(List)},
+    !,
+    (   call(OnElem, H)
+    *-> (   OnSep
+        ->  !,
+            {List = [H|T]},
+            sequence_as(T, OnElem, OnSep)
+        ;   {List=[H]}
+        )
+    ;   {List=[]}
+    ).
+sequence_([H|T], OnElem, OnSep) -->
+    call(OnElem, H),
+    (   {T==[]}
     ->  []
-    ;   Sep
-    ->  !, sequence_(T, P, Sep)
-    ;   {T = []}
+    ;   OnSep,
+        sequence_(T, OnElem, OnSep)
     ).
 sequence_([], _, _) -->
     [].
 
+%!  sequence_as(?List, :OnElem, :OnSep)//
+%
+%   Matches: Elem, (Sep,Elem)*
+
+sequence_as([H|T], OnElem, OnSep) -->
+    call(OnElem, H),
+    (   OnSep
+    ->  !,
+        sequence_as(T, OnElem, OnSep)
+    ;   {T=[]}
+    ).
 
 %!  optional(:Match, :Default)// is det.
 %
@@ -156,7 +183,7 @@ optional(_, Default) -->
 %   solution and Sep _between_ each pair of solutions.  For example:
 %
 %       ?- phrase(foreach(between(1,5,X), number(X), ", "), L).
-%       L = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10".
+%       L = "1, 2, 3, 4, 5".
 
 foreach(Generator, Rule) -->
     foreach(Generator, Rule, []).

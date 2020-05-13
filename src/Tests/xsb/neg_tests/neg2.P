@@ -1,0 +1,60 @@
+test :- a, fail.
+test :- a(0), fail.
+test :- test_prop, test_datalog.
+
+test_prop :-
+	( a -> writeln('a is true') ; writeln('a is false') ),
+	( b -> writeln('b is true') ; writeln('b is false') ),
+	( c -> writeln('c is true') ; writeln('c is false') ),
+	( d -> writeln('d is true') ; writeln('d is false') ),
+	( e -> writeln('e is true') ; writeln('e is false') ),
+	( f -> writeln('f is true') ; writeln('f is false') ),
+	( g -> writeln('g is true') ; writeln('g is false') ).
+
+test_datalog :-
+	( a(0) -> writeln('a(0) is true') ; writeln('a(0) is false') ),
+	( b(0) -> writeln('b(0) is true') ; writeln('b(0) is false') ),
+	( c(0) -> writeln('c(0) is true') ; writeln('c(0) is false') ),
+	( d(0) -> writeln('d(0) is true') ; writeln('d(0) is false') ),
+	( e(0) -> writeln('e(0) is true') ; writeln('e(0) is false') ),
+	( f(0) -> writeln('f(0) is true') ; writeln('f(0) is false') ),
+	( g(0) -> writeln('g(0) is true') ; writeln('g(0) is false') ).
+
+%---------------------------------------------
+:- table a/0, b/0, c/0, e/0, d/0, g/0, f/0.
+
+a :- b,c.
+
+b :- e.
+b :- d.
+
+e :- b,f.
+
+d.
+
+c :- tnot(e).
+c :- g.
+
+g.
+
+f :- fail.
+
+%---------------------------------------------
+:- table a/1, b/1, c/1, e/1, d/1, g/1, f/1.
+
+a(X) :- b(X), c(X).
+
+b(X) :- e(X).
+b(X) :- d(X).
+
+e(X) :- b(X), f(X).
+
+d(X) :- X = 0.
+
+c(X) :- tnot(e(X)).
+c(X) :- g(X).
+
+g(X) :- X = 0.
+
+f(_) :- fail.
+

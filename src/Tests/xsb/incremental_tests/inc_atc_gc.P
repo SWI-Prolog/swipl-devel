@@ -1,0 +1,10 @@
+:- table p/1 as incremental.
+
+p(1).
+p(2).
+p(3).
+
+test:- p(X),abolish_table_call(p(_)),writeln(p1(X)),fail.
+test:- writeln('--------------'),fail.
+test:- get_residual(p(X),_),writeln(p2(X)),fail.
+test.

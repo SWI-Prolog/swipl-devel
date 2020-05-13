@@ -3,7 +3,7 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -79,6 +79,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_QLF_SECTION),
   DEBUG_TOPIC(MSG_QLF_BOOT),
   DEBUG_TOPIC(MSG_QLF_BOOT_READ),
+  DEBUG_TOPIC(MSG_QLF_LABEL),
   DEBUG_TOPIC(MSG_PROC_COUNT),
   DEBUG_TOPIC(MSG_CUT),
 
@@ -100,6 +101,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_MUTEX_GC),
   DEBUG_TOPIC(MSG_REC_ATTVAR),
   DEBUG_TOPIC(MSG_TTY),
+  DEBUG_TOPIC(MSG_OS_DIR),
 						/* Parser */
   DEBUG_TOPIC(MSG_READ_TOKEN),
 
@@ -158,6 +160,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_CGC_CONSIDER),
   DEBUG_TOPIC(MSG_CGC_STACK),
   DEBUG_TOPIC(MSG_CGC_PRED_REF),
+  DEBUG_TOPIC(MSG_CGC_RETRACT),
+  DEBUG_TOPIC(MSG_CGC_GENERATION),
 
   DEBUG_TOPIC(MSG_JIT),
   DEBUG_TOPIC(MSG_JIT_DELINDEX),
@@ -170,20 +174,48 @@ const debug_topic debug_topics[] =
 
   DEBUG_TOPIC(MSG_TRIE_PUT_TERM),
   DEBUG_TOPIC(MSG_TRIE_GC),
+  DEBUG_TOPIC(MSG_TRIE_GEN),
+  DEBUG_TOPIC(MSG_TRIE_VM),
+
+  DEBUG_TOPIC(MSG_THREAD_LOCAL),
 
   DEBUG_TOPIC(MSG_THREAD_LOCAL),
 
   DEBUG_TOPIC(MSG_ZIP),
   DEBUG_TOPIC(MSG_ZIP_STATE),
+  DEBUG_TOPIC(MSG_WIN_API),
+  DEBUG_TOPIC(MSG_WIN_DDE),
 
   DEBUG_TOPIC(MSG_MODULE_REF),
 
+  DEBUG_TOPIC(MSG_STRING_BUFFER),
+
   DEBUG_TOPIC(MSG_TABLING_WORK),
   DEBUG_TOPIC(MSG_TABLING_MODED),
+  DEBUG_TOPIC(MSG_TABLING_NEG),
+  DEBUG_TOPIC(MSG_TABLING_SIMPLIFY),
+  DEBUG_TOPIC(MSG_TABLING_DELAY),
+  DEBUG_TOPIC(MSG_TABLING_DELAY_VAR),
+  DEBUG_TOPIC(MSG_TABLING_AC),
+  DEBUG_TOPIC(MSG_TABLING_MERGE),
+  DEBUG_TOPIC(MSG_TABLING_VTRIE_DEPENDENCIES),
+  DEBUG_TOPIC(MSG_TABLING_IDG),
+  DEBUG_TOPIC(MSG_TABLING_IDG_CHANGED),
+  DEBUG_TOPIC(MSG_TABLING_IDG_REEVAL),
+  DEBUG_TOPIC(MSG_TABLING_EXCEPTION),
+  DEBUG_TOPIC(MSG_TABLING_SHARED),
+  DEBUG_TOPIC(MSG_TABLING_ABOLISH),
+  DEBUG_TOPIC(MSG_TABLING_CALL_SUBSUMPTION),
+  DEBUG_TOPIC(MSG_TABLING_RESTRAINT),
+
+  DEBUG_TOPIC(TABLING_NO_EARLY_COMPLETION),
+  DEBUG_TOPIC(TABLING_NO_SIMPLIFY),
+  DEBUG_TOPIC(TABLING_NO_AC),
 
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),
   DEBUG_TOPIC(CHK_HIGHER_ADDRESS),
+  DEBUG_TOPIC(CHK_ATOM_GARBAGE_COLLECTED),
 						/* end-of-list */
   { 0, NULL }
 };
@@ -273,6 +305,18 @@ prolog_debug_from_string(const char *spec, int flag)
   }
 
   return TRUE;
+}
+
+
+int
+PL_prolog_debug(const char *topic)
+{ return prolog_debug_topic(topic, TRUE);
+}
+
+
+int
+PL_prolog_nodebug(const char *topic)
+{ return prolog_debug_topic(topic, FALSE);
 }
 
 

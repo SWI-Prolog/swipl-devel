@@ -170,9 +170,9 @@ in a separate window and use the below described make/0 command to
 reload modified files. In addition to this option Prolog can be used to
 locate predicates, modules and loaded files by specifying the editor of
 choice for use with the edit/1 command described below. This is achieved
-by editing the personalisation file \file{~/.swiplrc}. A commented
-template is in the directory \file{dotfiles} of the SWI-Prolog
-installation directory.
+by editing the personalisation file \file{~/config/swi-prolog/init.pl}.
+A commented template is in the directory \file{customize} of the
+SWI-Prolog installation directory.
 
 Finally, you may wish to use the built-in editor called \emph{PceEmacs}.
 This editor provides colourisation support based on real-time parsing

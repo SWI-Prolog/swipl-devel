@@ -179,8 +179,8 @@ pl_dwim_match(term_t a1, term_t a2, term_t mm)
   char *s1, *s2;
   atom_t type;
 
-  if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_RING) &&
-       PL_get_chars(a2, &s2, CVT_ALL|BUF_RING) &&
+  if ( PL_get_chars(a1, &s1, CVT_ALL|BUF_STACK) &&
+       PL_get_chars(a2, &s2, CVT_ALL|BUF_STACK) &&
        (type = dwimMatch(s1, s2)) &&
        PL_unify_atom(mm, type) )
     succeed;

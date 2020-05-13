@@ -82,6 +82,8 @@ static const atom_t reserved_symbols[] =
 void
 initReservedSymbols(void)
 { PL_register_blob_type(&reserved_symbol);
+  reserved_symbol.rank = 0;		/* sort between normal blob and text */
+  GD->atoms.nontext_rank++;
   atomValue(ATOM_dict)->type     = &reserved_symbol;
   atomValue(ATOM_trienode)->type = &reserved_symbol;
 

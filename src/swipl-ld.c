@@ -74,15 +74,18 @@
 #include <process.h>
 #include <io.h>
 
-#if (_MSC_VER < 1400)
-#define off_t intptr_t
-#endif
-
 #ifdef _MSC_VER
 #define HOST_TOOLCHAIN_MSC
 
 #define popen _popen
 #define pclose _pclose
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+
+#if SIZEOF_VOIDP == 4
+typedef long ssize_t;
+#else
+typedef long long ssize_t;
+#endif
 
 #define O_WRONLY _O_WRONLY
 #define O_RDONLY _O_RDONLY
@@ -989,7 +992,7 @@ setLibDir(const char *libdir)
   appendArgList(&libdirs, libdir);
 
 #ifndef __WINDOWS__
-  char tmp[MAXPATHLEN];
+  char tmp[MAXPATHLEN+16];
 #ifdef __APPLE__
   snprintf(tmp, sizeof(tmp), "-Wl,-rpath,%s", libdir);
 #else

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-comp.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -84,7 +86,7 @@ _lookupModule(atom_t name ARG_LD)
 #endif
   set(m, M_CHARESCAPE);
   if ( !GD->options.traditional )
-    set(m, DBLQ_STRING|BQ_CODES);
+    set(m, DBLQ_STRING|BQ_CODES|O_RATIONAL_SYNTAX);
 
   if ( name == ATOM_user || name == ATOM_system )
     m->procedures = newHTable(PROCEDUREHASHSIZE);
@@ -242,7 +244,9 @@ static void
 unallocModule(Module m)
 { GET_LD
 
+#ifdef O_PLMT
   if ( LD )
+#endif
   { if ( LD->modules.source == m ) LD->modules.source = MODULE_user;
     if ( LD->modules.typein == m ) LD->modules.typein = MODULE_user;
   }
@@ -562,11 +566,17 @@ set_module(Module m, term_t prop ARG_LD)
       { m->class = class;
 	return TRUE;
       } else if ( class == ATOM_temporary )
-      { if ( m->procedures && m->procedures->size != 0 )
-	  return PL_error(NULL, 0,
-			  "module is not empty",
+      { Table procs;
+
+	if ( m->class == ATOM_user &&
+	     !((procs=m->procedures) && procs->size != 0) )
+	{ m->class = class;
+	} else
+	{ return PL_error(NULL, 0,
+			  m->class != ATOM_user ? "Not a user module" :
+						  "module is not empty",
 			  ERR_PERMISSION, ATOM_module_property, ATOM_class, arg);
-	m->class = class;
+	}
 	return TRUE;
       } else
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_module_class, arg);
@@ -1273,7 +1283,6 @@ unify_export_list(term_t public, Module module ARG_LD)
   term_t list = PL_copy_term_ref(public);
   int rval = TRUE;
 
-  LOCKMODULE(module);
   for_table(module->public, name, value,
 	    { if ( !PL_unify_list(list, head, list) ||
 		   !unify_functor(head, (functor_t)name, GP_NAMEARITY) )
@@ -1281,12 +1290,37 @@ unify_export_list(term_t public, Module module ARG_LD)
 		break;
 	      }
 	    })
-  UNLOCKMODULE(module);
   if ( rval )
     return PL_unify_nil(list);
 
   fail;
 }
+
+
+static size_t
+sizeof_module(Module m)
+{ GET_LD
+  size_t size = sizeof(*m);
+
+  if ( m->public)     size += sizeofTable(m->public);
+  if ( m->procedures) size += sizeofTable(m->procedures);
+  if ( m->operators)  size += sizeofTable(m->operators);
+
+  for_table(m->procedures, name, value,
+	    { Procedure proc = value;
+	      Definition def = proc->definition;
+
+	      size += sizeof(*proc);
+
+	      if ( def->module == m && false(def, P_FOREIGN) )
+	      { Definition def = getProcDefinition(proc);
+		size += sizeof_predicate(def);
+	      }
+	    });
+
+  return size;
+}
+
 
 
 static
@@ -1321,6 +1355,8 @@ PRED_IMPL("$module_property", 2, module_property, 0)
   { return unify_export_list(a, m PASS_LD);
   } else if ( pname == ATOM_class )
   { return PL_unify_atom(a, m->class);
+  } else if ( pname == ATOM_size )
+  { return PL_unify_int64(a, sizeof_module(m));
   } else if ( pname == ATOM_program_size )
   { return PL_unify_int64(a, m->code_size);
   } else if ( pname == ATOM_last_modified_generation )
@@ -1478,7 +1514,10 @@ fixExportModule(Module m, Definition old, Definition new)
 	      if ( proc->definition == old )
 	      { DEBUG(1, Sdprintf("Patched def of %s\n",
 				  procedureName(proc)));
+		shareDefinition(new);
 		proc->definition = new;
+		if ( unshareDefinition(old) == 0 )
+		  lingerDefinition(old);
 	      }
 	    });
 
@@ -1547,7 +1586,7 @@ retry:
       } else
       { lingerDefinition(odef);
       }
-      set(old, pflags);
+      set(old, pflags|PROC_IMPORTED);
 
       succeed;
     }
@@ -1602,8 +1641,8 @@ retry:
 
     nproc->flags = pflags;
     nproc->source_no = 0;
-    nproc->definition = proc->definition;
     shareDefinition(proc->definition);
+    nproc->definition = proc->definition;
 
     LOCKMODULE(destination);
     old = addHTable(destination->procedures,

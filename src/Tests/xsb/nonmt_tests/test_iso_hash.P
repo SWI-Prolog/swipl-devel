@@ -1,0 +1,128 @@
+/*
+Test of ISO incremental updating when traversal of hash structures is needed.
+*/
+
+:- compiler_options([spec_off,xpp_on]).
+%#include "table_inspection_defs.h"
+:- import incr_assert/1 from increval.
+:- import variant/2 from subsumes.
+:- import numbervars/1 from num_vars.
+:- dynamic answer/1.
+
+test:- test_hash1,fail.
+test:- test_hash2,fail.
+test:- test_hash3,fail.
+test.
+
+:- table th1/1 as incremental.
+th1(X) :- dh1(X).
+:- dynamic dh1/1 as incremental.
+dh1(1). dh1(2). dh1(3). dh1(4). dh1(5). dh1(6). dh1(7). dh1(8). dh1(9).
+:- table th2/3 as incremental.
+th2(X,Y,Z) :- dh2(X,Y,Z).
+:- dynamic dh2/3 as incremental.
+dh2(f(2),1,f(2)). dh2(f(2),2,f(2)). dh2(f(2),3,f(2)). dh2(f(2),4,f(2)). dh2(f(2),5,f(2)). dh2(f(2),6,f(2)). dh2(f(2),7,f(2)). dh2(f(2),8,f(2)).
+dh2(f(2),9,f(2)).
+:- table th3/3 as incremental.
+th3(X,Y,Z) :- dh3(X,Y,Z).
+:- dynamic dh3/3 as incremental.
+dh3(f(2),1,f(2)). dh3(f(2),2,f(2)). dh3(f(2),3,f(2)). dh3(f(2),4,f(2)). dh3(f(2),5,f(2)). dh3(f(2),6,f(2)). dh3(f(2),7,f(2)). dh3(f(2),8,f(2)).
+
+test_hash1:-
+       retractall(answer(_)),
+       th1(X),register(first(t1(X))),
+       (dh1(10) -> true ; incr_assert(dh1(10))),
+       th1(Y),register(second(t1(Y))),
+       fail.
+test_hash1:- validate(test_hash1(_)).
+test_hash1([first(t1(1)),first(t1(2)),first(t1(3)),first(t1(4)),first(t1(5)),first(t1(6)),first(t1(7)),first(t1(8)),first(t1(9)),second(t1(1)),second(t1(2)),second(t1(3)),second(t1(4)),second(t1(5)),second(t1(6)),second(t1(7)),second(t1(8)),second(t1(9)),second(t1(10))]).
+
+test_hash2:-
+       retractall(answer(_)),
+       th2(X,Y,Z),register(first(th2(X,Y,Z))),
+       (dh2(_,10,_) -> true ; incr_assert(dh2(f(2),10,f(2)))),
+       th2(X1,Y1,Z1),register(second(th2(X1,Y1,Z1))),
+       fail.
+test_hash2:- validate(test_hash2(_)).
+test_hash2([first(th2(f(2),1,f(2))),first(th2(f(2),2,f(2))),first(th2(f(2),3,f(2))),first(th2(f(2),4,f(2))),first(th2(f(2),5,f(2))),first(th2(f(2),6,f(2))),first(th2(f(2),7,f(2))),first(th2(f(2),8,f(2))),first(th2(f(2),9,f(2))),second(th2(f(2),1,f(2))),second(th2(f(2),2,f(2))),second(th2(f(2),3,f(2))),second(th2(f(2),4,f(2))),second(th2(f(2),5,f(2))),second(th2(f(2),6,f(2))),second(th2(f(2),7,f(2))),second(th2(f(2),8,f(2))),second(th2(f(2),9,f(2))),second(th2(f(2),10,f(2)))]).
+
+test_hash3:-
+       retractall(answer(_)),
+       th3(X,Y,Z),register(first(th3(X,Y,Z))),
+       (dh3(_,9,_) -> true ; incr_assert(dh3(f(2),9,f(2)))),
+%       writeln(asserted),
+       th3(X1,Y1,Z1),register(second(th3(X1,Y1,Z1))),
+       fail.
+test_hash3:- validate(test_hash3(_)).
+test_hash3([first(th3(f(2),1,f(2))),first(th3(f(2),2,f(2))),first(th3(f(2),3,f(2))),first(th3(f(2),4,f(2))),first(th3(f(2),5,f(2))),first(th3(f(2),6,f(2))),first(th3(f(2),7,f(2))),first(th3(f(2),8,f(2))),second(th3(f(2),1,f(2))),second(th3(f(2),2,f(2))),second(th3(f(2),3,f(2))),second(th3(f(2),4,f(2))),second(th3(f(2),5,f(2))),second(th3(f(2),6,f(2))),second(th3(f(2),7,f(2))),second(th3(f(2),8,f(2))),second(th3(f(2),9,f(2)))]).
+
+
+register(Term):-
+%        writeln(Term),
+	assert(answer(Term)).
+
+
+validate(Term):-
+	call(Term),arg(1,Term,Correct),functor(Term,F,_),
+	setof(X,answer(X),Answers),
+	numbervars(Answers),numbervars(Correct),
+	(validate_1(Answers,Correct) ->
+	    writeln('!!!succeeded'(F))
+	 ;  writeln('!!!failed'(F,Answers,Correct)) ).
+
+validate_1([],[]):- !.
+validate_1([H|T],[H1|T1]):-
+	variant(H,H1),!,%writeln(variant(H,H1)),
+	validate_1(T,T1).
+validate_1([H|_T],[H1|_T1]):- writeln(nomatch(H,H1)),!,fail.
+validate_1(A,B):- writeln(nomatch(A,B)),fail.
+
+
+end_of_file.
+
+:- table t/4 as incremental.
+t(1,X,a,Y):- d1(X),d2(Y).
+t(2,X,b,X):- d1(X).
+
+:- import new_trie/1 , trie_intern/4, trie_interned/4, trie_interned/2,  trie_unintern_nr/2, trie_intern/2,
+	  trie_unintern/2, delete_trie/1, bulk_trie_intern/2,trie_retractall/2  from intern.
+
+t2:-
+     new_trie(Trie),
+     assert(t2trie(Trie)),
+     trie_intern(p(1,2,3),Trie),
+     fail.
+t2:- t2trie(Trie),
+     trie_interned(T,Trie),
+     writeln(T),
+     fail.
+
+:- import  table_inspection_function/5 from machine.
+:- import  table_inspection_function/7 from machine.
+
+test(_A,_B,_C,_D,_,_):- t(1,X,a,Y), fail.
+test(A,B,C,D,E,F):- A = t(1,X,a,Y), table_inspection_function(TEMP_FUNCTION,A,B,C,D,E,F),writeln((A,B,C,D,E,F)),fail.
+test(_A,_B,_C,_D,_E,_F).
+
+tf2(X,Y):- t1(X), table_inspection_function(TEMP_FUNCTION_2,t1(_),Y,_,_,_,_).
+tf2(_,_).
+
+two_sols(1).
+two_sols(2).
+
+create_big_heap_structure(0,0):- !.
+create_big_heap_structure(N,f(X)):-
+	N1 is N - 1,
+	create_big_heap_structure(N1,X).
+
+
+test_heap:-
+       retractall(answer(_)),
+       th1(X),register(first(t1(X))),
+       two_sols(_M),
+       (dh1(3) -> create_big_heap_structure(100,_H) ; incr_assert(dh1(3))),
+       th1(Y),register(second(t1(Y))),
+       fail.
+test_heap:- validate(test1(_)).
+test_heap([first(t1(1)),first(t1(2)),second(t1(1)),second(t1(2)),second(t1(3))]).
+

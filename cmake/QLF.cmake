@@ -17,9 +17,9 @@
 #   - ${SWIPL_COMMAND_DEPENDS} is added to the dependencies
 
 function(add_swipl_target name)
-  set(options -f none -t halt "--home=${SWIPL_BUILD_HOME}")
+  set(options -f none --no-packs -t halt "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS" ${ARGN})
+      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
@@ -33,6 +33,10 @@ function(add_swipl_target name)
     set(PROG_SWIPL ${PROG_SWIPL_FOR_BOOT})
   endif()
 
+  foreach(s ${my_LIBS})
+    set(options ${options} -g "'use_module(library(${s}))'")
+  endforeach()
+
   foreach(s ${my_SCRIPT})
     set(options ${options} -s ${s})
   endforeach()
@@ -41,7 +45,7 @@ function(add_swipl_target name)
       OUTPUT ${my_OUTPUT}
       COMMAND ${PROG_SWIPL} ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
-      DEPENDS prolog_products prolog_home
+      DEPENDS core prolog_home
               ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}")
   add_custom_target(
       ${name} ALL
@@ -79,6 +83,7 @@ function(add_qcompile_target target)
       qlf-${tname}
       OUTPUT ${SWIPL_QLF_BASE}/${target}.qlf
       COMMAND cmake_qcompile
+      LIBS prolog_install
       OPTIONS --compile ${SWIPL_QLF_BASE}/${target} --qlfdeps ${src} ${extra}
       COMMENT "QLF compiling ${target}.qlf"
       DEPENDS ${src} ${my_DEPENDS})
@@ -102,7 +107,7 @@ function(run_installed_swipl command)
   set(plibrary ${CMAKE_CURRENT_SOURCE_DIR})
   set(rc -F none)
 
-  set(options -f none -t halt --home=${SWIPL_INSTALL_PREFIX})
+  set(options -f none --no-packs -t halt --home=${SWIPL_INSTALL_PREFIX})
   cmake_parse_arguments(my "QUIET" "COMMENT;RC" "SCRIPT;PACKAGES" ${ARGN})
 
   if(my_QUIET)
@@ -131,7 +136,7 @@ function(run_installed_swipl command)
   set(SWIPL ${CMAKE_BINARY_DIR}/src/swipl${CMAKE_EXECUTABLE_SUFFIX})
 
   install(CODE "EXECUTE_PROCESS(COMMAND
-                   ${SWIPL} ${options} ${rc} -f none
+                   ${SWIPL} ${options} ${rc} -f none --no-packs
                    -p \"foreign=${pforeign}\" -p \"library=${plibrary}\"
 		   -g \"${command}\")")
 endfunction()

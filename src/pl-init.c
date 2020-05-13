@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2017, University of Amsterdam
+    Copyright (c)  2012-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 /* #define O_DEBUG 1 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-zip.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"
@@ -114,17 +116,37 @@ exec_var(const char *name)
 
 
 static const char *
-longopt(const char *opt, int argc, const char **argv)
-{ size_t optlen = strlen(opt);
+optcmp(const char *av, const char *opt)
+{ for(; *av && *opt && *av != '='; av++, opt++)
+  { if ( *av == *opt ||
+	 (*av == '-' && *opt == '_') ||
+	 (*av == '_' && *opt == '-') )
+      continue;
 
-  for(; argc > 0; argc--, argv++)
+    return NULL;
+  }
+
+  if ( !*opt )
+  { if ( *av == '=' )
+      av++;
+    return av;
+  } else
+  { return NULL;
+  }
+}
+
+
+static const char *
+longopt(const char *opt, int argc, const char **argv)
+{ for(; argc > 0; argc--, argv++)
   { const char *a = argv[0];
+    const char *v;
 
     if ( *a++ == '-' && *a++ == '-' )
     { if ( *a == EOS )		/* --: end of args */
 	return NULL;
-      if ( strncmp(a, opt, optlen) == 0 && a[optlen] == '=' )
-	return &a[optlen+1];
+      if ( (v=optcmp(a, opt)) && *v )
+	return v;
     }
   }
 
@@ -134,18 +156,22 @@ longopt(const char *opt, int argc, const char **argv)
 
 static const char *
 is_longopt(const char *optstring, const char *name)
-{ size_t len = strlen(name);
+{ const char *v;
 
-  if ( strncmp(optstring, name, len) == 0 )
-  { if ( optstring[len] == '=' )
-      return &optstring[len+1];
-    if ( optstring[len] == EOS )
-      return "";
+  if ( (v=optcmp(optstring, name)) )
+  { return *v ? v : "";
   }
 
   return NULL;
 }
 
+
+static const char *
+skip_wsep(const char *s)
+{ if ( *s == '-' || *s == '_' )
+    s++;
+  return s;
+}
 
 static int
 is_bool_opt(const char *opt, const char *name, int *val)
@@ -167,16 +193,8 @@ is_bool_opt(const char *opt, const char *name, int *val)
     }
 
     return -1;
-  } else if ( strncmp(opt, "no-", 3) == 0 &&
-	      (optval=is_longopt(opt+3,name)) )
-  { if ( *optval == EOS )
-    { *val = FALSE;
-      return TRUE;
-    }
-
-    return -1;
   } else if ( strncmp(opt, "no", 2) == 0 &&
-	      (optval=is_longopt(opt+2,name)) )
+	      (optval=is_longopt(skip_wsep(opt+2),name)) )
   { if ( *optval == EOS )
     { *val = FALSE;
       return TRUE;
@@ -330,6 +348,27 @@ defaultSystemInitFile(const char *a0)
 }
 
 
+static int
+is_hash_bang_file(const char *s)
+{ char fb[MAXPATHLEN];
+  char *fn;
+  IOSTREAM *fd;
+  int rc = FALSE;
+
+  if ( (fn = PrologPath(s, fb, sizeof(fb))) &&
+       (fd = Sopen_file(fb, "r")) )
+  { if ( Sgetc(fd) == '#' &&
+	 Sgetc(fd) == '!' )
+      rc = TRUE;
+
+    Sclose(fd);
+  }
+
+  return rc;
+}
+
+
+
 #define MEMAREA_INVALID_SIZE (uintptr_t)(~0L)
 
 static size_t
@@ -337,7 +376,7 @@ memarea_limit(const char *s)
 { number n;
   unsigned char *q;
 
-  if ( str_number((unsigned char *)s, &q, &n, FALSE) == NUM_OK &&
+  if ( str_number((unsigned char *)s, &q, &n, 0) == NUM_OK &&
        intNumber(&n) )
   { switch((int)*q)
     { case 0:
@@ -481,12 +520,15 @@ static void
 initDefaults(void)
 { GET_LD
 
-  systemDefaults.arch	     = PLARCH;
-  systemDefaults.stack_limit = DEFSTACKLIMIT;
-  systemDefaults.table_space = DEFTABLE;
-  systemDefaults.goal	     = NULL;
-  systemDefaults.toplevel    = "default";
-  systemDefaults.notty       = NOTTYCONTROL;
+  systemDefaults.arch		    = PLARCH;
+  systemDefaults.stack_limit	    = DEFSTACKLIMIT;
+  systemDefaults.table_space	    = DEFTABLE;
+#ifdef O_PLMT
+  systemDefaults.shared_table_space = DEFTABLE;
+#endif
+  systemDefaults.goal		    = NULL;
+  systemDefaults.toplevel	    = "default";
+  systemDefaults.notty		    = NOTTYCONTROL;
 
 #ifdef __WINDOWS__
   getDefaultsFromRegistry();
@@ -559,17 +601,19 @@ do_value:
 
 static void
 initDefaultOptions(void)
-{ GD->options.compileOut    = store_string("a.out");
-  GD->options.stackLimit    = systemDefaults.stack_limit;
-  GD->options.tableSpace    = systemDefaults.table_space;
-  GD->options.topLevel      = store_string(systemDefaults.toplevel);
-  GD->options.initFile      = store_string(systemDefaults.startup);
-  GD->options.scriptFiles   = NULL;
-  GD->options.saveclass	    = store_string("none");
+{ GD->options.compileOut       = store_string("a.out");
+  GD->options.stackLimit       = systemDefaults.stack_limit;
+  GD->options.tableSpace       = systemDefaults.table_space;
+#ifdef O_PLMT
+  GD->options.sharedTableSpace = systemDefaults.shared_table_space;
+#endif
+  GD->options.topLevel	       = store_string(systemDefaults.toplevel);
+  GD->options.initFile	       = store_string(systemDefaults.startup);
+  GD->options.scriptFiles      = NULL;
+  GD->options.saveclass	       = store_string("none");
 
   if ( systemDefaults.goal )
     opt_append(&GD->options.goals, systemDefaults.goal);
-
 
   if ( !GD->bootsession && GD->resources.DB )
   { IOSTREAM *op = SopenZIP(GD->resources.DB, "$prolog/options.txt", RC_RDONLY);
@@ -615,10 +659,13 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
   int argcleft = 0;
 
   DEBUG(MSG_INITIALISE,
-	{ Sdprintf("parseCommandLineOptions");
-	  for(int i=0; i<argc0; i++)
+	{ int i;
+	  Sdprintf("parseCommandLineOptions");
+	  for(i=0; i<argc0; i++)
 	    Sdprintf("%s ", argv0[i]);
 	});
+
+  GD->options.xpce = -1;
 
   for(argc=argc0,argv=argv0; argc > 0 && argv[0][0] == '-'; argc--, argv++ )
   { const char *s = &argv[0][1];
@@ -665,6 +712,16 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	    clearPrologFlagMask(PLFLAG_TTY_CONTROL);
 	} else
 	  return -1;
+      } else if ( (rc=is_bool_opt(s, "pce", &b)) )
+      { if ( rc == TRUE )
+	  GD->options.xpce = b;
+	else
+	  return -1;
+      } else if ( (rc=is_bool_opt(s, "packs", &b)) )
+      { if ( rc == TRUE )
+	  GD->cmdline.packs = b;
+	else
+	  return -1;
       } else if ( (optval=is_longopt(s, "pldoc")) )
       { GD->options.pldoc_server = store_string(optval);
       } else if ( is_longopt(s, "home") )
@@ -699,6 +756,15 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	  return -1;
 
 	GD->options.tableSpace = size;
+#ifdef O_PLMT
+      } else if ( (optval=is_longopt(s, "shared_table_space")) )
+      { size_t size = memarea_limit(optval);
+
+	if ( size == MEMAREA_INVALID_SIZE )
+	  return -1;
+
+	GD->options.sharedTableSpace = size;
+#endif
       } else if ( (optval=is_longopt(s, "dump-runtime-variables")) )
       { GD->options.config = store_string(optval);
       } else if ( !compile )
@@ -724,7 +790,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 			break;
 	case 'p':	optionList(&GD->options.search_paths);
 			break;
-	case 'O':	GD->cmdline.optimise = TRUE; /* see initFeatures() */
+	case 'O':	GD->cmdline.optimise = TRUE; /* see initPrologFlags() */
 			break;
 	case 'x':
 	case 'o':	optionString(GD->options.compileOut);
@@ -787,20 +853,12 @@ replace_extension(char *path, const char *ext)
 Find the resource database.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef BOOTFILE		/* normally delivered through config.h */
-#if SIZEOF_VOIDP == 4
-#define BOOTFILE "boot32.prc"
-#else
-#if SIZEOF_VOIDP == 8
-#define BOOTFILE "boot64.prc"
-#else
-#define BOOTFILE "boot.prc"
-#endif
-#endif
+#ifndef SWIPL_BOOT_BASE		/* normally delivered through config.h */
+#define SWIPL_BOOT_BASE "boot.prc"
 #endif
 
 static zipper *
-openResourceDB(int argc, char **argv)
+openResourceDB(int argc, char **argv, int is_hash_bang)
 { zipper *rc;
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
@@ -809,31 +867,33 @@ openResourceDB(int argc, char **argv)
   char *exe, *exedir;
   int n;
 
-  for(n=0; n<argc-1; n++)
-  { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
-    { if ( argv[n][1] == '-' )
-	break;				/* trapped -- */
-      if ( GD->bootsession )
-      { if ( argv[n][1] == 'o' )
-	{ xfile = argv[n+1];
-	  break;
-	}
-      } else
-      { if ( argv[n][1] == 'x' )
-	{ xfile = argv[n+1];
-	  break;
+  if ( !is_hash_bang )
+  { for(n=0; n<argc-1; n++)
+    { if ( argv[n][0] == '-' && argv[n][2] == EOS ) /* -? */
+      { if ( argv[n][1] == '-' )
+	  break;				/* trapped -- */
+	if ( GD->bootsession )
+	{ if ( argv[n][1] == 'o' )
+	  { xfile = argv[n+1];
+	    break;
+	  }
+	} else
+	{ if ( argv[n][1] == 'x' )
+	  { xfile = argv[n+1];
+	    break;
+	  }
 	}
       }
     }
-  }
 
-  if ( xfile )
-  { errno = 0;
-    if ( !(rc = zip_open_archive(xfile, flags)) )
-      fatalError("Could not open resource database \"%s\": %s",
-		 xfile, errno ? OsError() : "not a ZIP file");
+    if ( xfile )
+    { errno = 0;
+      if ( !(rc = zip_open_archive(xfile, flags)) )
+	fatalError("Could not open resource database \"%s\": %s",
+		   xfile, errno ? OsError() : "not a ZIP file");
 
-    return rc;
+      return rc;
+    }
   }
 
   strcpy(tmp, GD->paths.executable);
@@ -850,10 +910,10 @@ openResourceDB(int argc, char **argv)
   }
 
   if ( systemDefaults.home )
-  { if ( strlen(systemDefaults.home)+1+strlen(BOOTFILE) < MAXPATHLEN )
+  { if ( strlen(systemDefaults.home)+1+strlen(SWIPL_BOOT_BASE) < MAXPATHLEN )
     { strcpy(tmp, systemDefaults.home);
       strcat(tmp, "/");
-      strcat(tmp, BOOTFILE);
+      strcat(tmp, SWIPL_BOOT_BASE);
 
       return zip_open_archive(tmp, flags);
     } else
@@ -883,6 +943,7 @@ int
 PL_initialise(int argc, char **argv)
 { int n;
   bool compile = FALSE;
+  int is_hash_bang = FALSE;
   const char *rcpath = "<none>";
 
   if ( GD->initialised )
@@ -894,6 +955,7 @@ PL_initialise(int argc, char **argv)
 
   GD->cmdline.os_argc = argc;
   GD->cmdline.os_argv = argv;
+  GD->cmdline.packs   = TRUE;
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
@@ -925,23 +987,27 @@ PL_initialise(int argc, char **argv)
     if ( argc == 1 && giveVersionInfo(argv[0]) ) /* --help, --version, etc */
       exit(0);
 
-    for(n=0; n<argc; n++)		/* need to check this first */
-    { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
-	break;
-      if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
-      { GD->bootsession = TRUE;
-	break;
-      }
-      if ( streq(argv[n], "-c" ) )	/* -c: compilation */
-      { compile = TRUE;
-	break;
+    if ( argc > 1 && argv[0][0] != '-' && is_hash_bang_file(argv[0]) )
+    { is_hash_bang = TRUE;
+    } else
+    { for(n=0; n<argc; n++)		/* need to check this first */
+      { if ( streq(argv[n], "--" ) )	/* --: terminates argument list */
+	  break;
+	if ( streq(argv[n], "-b" ) )	/* -b: boot compilation */
+	{ GD->bootsession = TRUE;
+	  break;
+	}
+	if ( streq(argv[n], "-c" ) )	/* -c: compilation */
+	{ compile = TRUE;
+	  break;
+	}
       }
     }
 
     DEBUG(MSG_INITIALISE, if (GD->bootsession) Sdprintf("Boot session\n"););
 
     if ( !GD->resources.DB )
-    { if ( !(GD->resources.DB = openResourceDB(argc, argv)) )
+    { if ( !(GD->resources.DB = openResourceDB(argc, argv, is_hash_bang)) )
       { fatalError("Could not find system resources");
       }
       rcpath = zipper_file(GD->resources.DB);
@@ -956,6 +1022,9 @@ PL_initialise(int argc, char **argv)
     }
     argc = done;
     argv = argvleft;
+  } else
+  { argc--;				/* saved state: only drop program */
+    argv++;
   }
 
   GD->cmdline.appl_argc = argc;
@@ -1061,10 +1130,11 @@ usage(void)
     "%s: Usage:\n",
     "    1) %s [options] prolog-file ... [-- arg ...]\n",
     "    2) %s [options] [-o executable] -c prolog-file ...\n",
-    "    3) %s --help     Display this message (also -h)\n",
-    "    4) %s --version  Display version information\n",
-    "    4) %s --arch     Display architecture\n",
-    "    6) %s --dump-runtime-variables[=format]\n"
+    "    3) %s --help         Display this message (also -h)\n",
+    "    4) %s --version      Display version information\n",
+    "    5) %s --abi-version  Display ABI version key\n",
+    "    6) %s --arch         Display architecture\n",
+    "    7) %s --dump-runtime-variables[=format]\n"
     "                        Dump link info in sh(1) format\n",
     "\n",
     "Options:\n",
@@ -1078,24 +1148,30 @@ usage(void)
     "    -p alias=path            Define file search path 'alias'\n",
     "    -O                       Optimised compilation\n",
     "    --tty[=bool]             (Dis)allow tty control\n",
+    "    --packs[=bool]           Do (not) attach add-ons\n",
     "    --signals[=bool]         Do (not) modify signal handling\n",
     "    --threads[=bool]         Do (not) allow for threads\n",
     "    --debug[=bool]           Do (not) generate debug info\n",
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",
     "    --home=DIR               Use DIR as SWI-Prolog home\n",
-    "    --stack_limit=size[BKMG] Specify maximum size of Prolog stacks\n",
-    "    --table_space=size[BKMG] Specify maximum size of SLG tables\n",
+    "    --stack-limit=size[BKMG] Specify maximum size of Prolog stacks\n",
+    "    --table-space=size[BKMG] Specify maximum size of SLG tables\n",
+#ifdef O_PLMT
+    "    --shared-table-space=size[BKMG] Maximum size of shared SLG tables\n",
+#endif
+    "    --pce[=bool]             Make the xpce gui available\n",
     "    --pldoc[=port]           Start PlDoc server [at port]\n",
 #ifdef __WINDOWS__
-    "    --win_app	          Behave as Windows application\n",
+    "    --win-app	          Behave as Windows application\n",
 #endif
 #ifdef O_DEBUG
-    "    -d topic,topic,...       Enable maintenance debugging\n",
+    "    -d topic,topic,...       Enable C-source DEBUG channels\n",
 #endif
     "\n",
     "Boolean options may be written as --name=bool, --name, --no-name ",
-    "or --noname\n",
+    "or --noname.\n",
+    "Both '-' or '_' are accepted as word-separator for long options.\n",
     NULL
   };
   const cline *lp = lines;
@@ -1110,6 +1186,15 @@ usage(void)
 
   return TRUE;
 }
+
+
+static
+PRED_IMPL("$usage", 0, usage, 0)
+{ usage();
+
+  return TRUE;
+}
+
 
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
@@ -1131,6 +1216,23 @@ version(void)
 }
 
 
+#ifndef PLPKGNAME
+#define PLPKGNAME "swipl"
+#endif
+
+static int
+abi_version(void)
+{ setupProlog();
+  Sprintf(PLPKGNAME "-abi-%d-%d-%08x-%08x\n",
+	  PL_FLI_VERSION,
+	  PL_QLF_LOADVERSION,
+	  GD->foreign.signature,
+	  VM_SIGNATURE);
+
+  return TRUE;
+}
+
+
 static int
 arch(void)
 { Sprintf("%s\n", PLARCH);
@@ -1141,15 +1243,19 @@ arch(void)
 
 static int
 giveVersionInfo(const char *a)
-{ if ( a[0] != '-' || a[1] != '-' )
+{ const char *v;
+
+  if ( *a++ != '-' || *a++ != '-' )
     return FALSE;
 
-  if ( streq(a, "--help") )
+  if ( (v=is_longopt(a, "help")) && !*v )
     return usage();
-  if ( streq(a, "--arch") )
+  if ( (v=is_longopt(a, "arch")) && !*v )
     return arch();
-  if ( streq(a, "--version") )
+  if ( (v=is_longopt(a, "version")) && !*v )
     return version();
+  if ( (v=is_longopt(a, "abi_version")) && !*v )
+    return abi_version();
 
   return FALSE;
 }
@@ -1182,12 +1288,12 @@ register_halt(OnHalt *where, halt_function f, void *arg)
 
 void
 PL_on_halt(halt_function f, void *arg)
-{ return register_halt(&GD->os.on_halt_list, f, arg);
+{ register_halt(&GD->os.on_halt_list, f, arg);
 }
 
 void
 PL_exit_hook(halt_function f, void *arg)
-{ return register_halt(&GD->os.exit_hooks, f, arg);
+{ register_halt(&GD->os.exit_hooks, f, arg);
 }
 
 
@@ -1422,11 +1528,8 @@ vsysError(const char *fm, va_list args)
   time_t now;
   char tbuf[48];
 
-  switch ( active++ )
-  { case 1:
-      PL_halt(3);
-    case 2:
-      abort();
+  if ( active++ )
+  { abort();
   }
 
   now = time(NULL);
@@ -1451,7 +1554,7 @@ vsysError(const char *fm, va_list args)
   if ( gc_status.active )
   { Sfprintf(Serror,
 	    "\n[While in %ld-th garbage collection]\n",
-	    gc_status.collections);
+	    LD->gc.stats.totals.collections);
     unblockSignals(&LD->gc.saved_sigmask);
   }
 
@@ -1462,7 +1565,7 @@ vsysError(const char *fm, va_list args)
 #endif /*O_DEBUGGER*/
 
   if ( GD->bootsession )
-    PL_halt(1);
+    PL_abort_process();
 
 action:
 #ifdef HAVE_GETPID
@@ -1475,9 +1578,9 @@ action:
 
   switch(getSingleChar(Sinput, FALSE))
   { case EOF:
-      Sfprintf(Serror, "EOF: exit (status 3)\n");
+      Sfprintf(Serror, "EOF: exit (status 134)\n");
     case 'e':
-      PL_halt(3);
+      PL_abort_process();
       break;
     default:
       Sfprintf(Serror,
@@ -1496,11 +1599,8 @@ vfatalError(const char *fm, va_list args)
   time_t now;
   char tbuf[48];
 
-  switch ( active++ )
-  { case 1:
-      exit(2);
-    case 2:
-      abort();
+  if ( active++ )
+  { abort();
   }
 
   now = time(NULL);
@@ -1521,8 +1621,8 @@ vfatalError(const char *fm, va_list args)
   Sfprintf(Serror, "]\n");
 #endif
 
-  PL_halt(2);
-  exit(2);				/* in case PL_halt() does not */
+  PL_abort_process();
+  assert(0); /* not reached */
 }
 
 
@@ -1604,3 +1704,14 @@ vwarning(const char *fm, va_list args)
 
   return FALSE;
 }
+
+
+
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(init)
+  PRED_DEF("$usage", 0, usage, 0)
+EndPredDefs

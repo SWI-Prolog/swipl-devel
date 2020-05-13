@@ -1,0 +1,329 @@
+:- import set_unify/2 from set_unify.
+:- import numbervars/1 from num_vars.
+:- import normalize_result/2 from can_mono.
+
+test :- tp, fail.
+test :- writeln('=========== Result is ================'), nl, show_facts.
+
+unify_sets([],[]).
+unify_sets([A|As],[B|Bs]) :- 
+       set_unify(A,B), unify_sets(As,Bs).
+
+
+%---------------- Transformed program ----------------------
+
+transform__1(_290,_292,_294) :- 
+        [_252] = _296, [_256] = _298, [_266] = _300, 
+        transform([_252],[_256],[list,list],[_266]),
+        normalize_result([_296,_298,_300],
+                         [_290,_292,_294]).
+transform__1(_178,_180,_182,_184) :- 
+        [_151] = _186, [_151] = _188, [_155] = _190, [list] = _192, 
+        normalize_result([_186,_188,_190,_192],
+                          [_178,_180,_182,_184]).
+transform__1(_585,_587,_589,_591) :- 
+        [_513] = _593, [_540] = _595, [_529] = _597, [list,_550] = _599, 
+        chooseaction([_509],[_513],[_540]),
+        update([_509],[_513],[_536]),
+        notmember([_536],[_529]),
+        transform([_536],[_540],[list,_529],[_550]),
+        normalize_result([_593,_595,_597,_599],
+                         [_585,_587,_589,_591]).
+chooseaction__1(_300,_302,_304) :- 
+        [_271] = _306, [_275] = _308, [_264] = _310, 
+        suggest([_271],[_264]),
+        legalaction([_271],[_275]),
+        normalize_result([_306,_308,_310],
+                         [_300,_302,_304]).
+chooseaction__1(_234,_236,_238) :- 
+        [_208] = _240, [_212] = _242, [_193] = _244, 
+        legalaction([_208],[_212]),
+        normalize_result([_240,_242,_244],
+                         [_234,_236,_238]).
+suggest__1(_238,_240) :- 
+        [other] = _242, [_209] = _244, 
+        member([other],[_209]),
+        place([_216]),
+        normalize_result([_242,_244],
+                         [_238,_240]).
+suggest__1(_238,_240) :- 
+        [other] = _242, [_209] = _244, 
+        member([other],[_209]),
+        block([_216]),
+        normalize_result([_242,_244],
+                         [_238,_240]).
+legalaction__1(_403,_405) :- 
+        [other] = _407, [_374] = _409, 
+        on([_353],[_341],[_374]),
+        clear([_353],[_374]),
+        place([_370]),
+        clear([_370],[_374]),
+        normalize_result([_407,_409],
+                         [_403,_405]).
+legalaction__1(_464,_466) :- 
+        [other] = _468, [_432] = _470, 
+        on([_410],[_381],[_432]),
+        clear([_410],[_432]),
+        block([_428]),
+        'my \\=='([_410],[_428]),
+        clear([_428],[_432]),
+        normalize_result([_468,_470],
+                         [_464,_466]).
+clear__1(_244,_246) :- 
+        [_193] = _248, [_221] = _250, 
+        block([_211]),
+        notmember([other],[_221]),
+        normalize_result([_248,_250],
+                         [_244,_246]).
+on__1(_230,_232,_234) :- 
+        [_181] = _236, [_185] = _238, [_208] = _240, 
+        member([other],[_208]),
+        normalize_result([_236,_238,_240],
+                         [_230,_232,_234]).
+update__1(_270,_272,_274) :- 
+        [other] = _276, [_242] = _278, [_246] = _280, 
+        substitute([other],[other],[_242],[_246]),
+        normalize_result([_276,_278,_280],
+                         [_270,_272,_274]).
+update__1(_270,_272,_274) :- 
+        [other] = _276, [_242] = _278, [_246] = _280, 
+        substitute([other],[other],[_242],[_246]),
+        normalize_result([_276,_278,_280],
+                         [_270,_272,_274]).
+member__1(_138,_140) :- 
+        [_119] = _142, [list,_106] = _144, 
+        normalize_result([_142,_144],
+                          [_138,_140]).
+member__1(_215,_217) :- 
+        [_191] = _219, [list,_195] = _221, 
+        member([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+notmember__1(_122,_124) :- 
+        [_105] = _126, [list] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+notmember__1(_278,_280) :- 
+        [_251] = _282, [list,_255] = _284, 
+        'my \\=='([_251],[_242]),
+        notmember([_251],[_255]),
+        normalize_result([_282,_284],
+                         [_278,_280]).
+substitute__1(_174,_176,_178,_180) :- 
+        [_143] = _182, [_147] = _184, [list] = _186, [list] = _188, 
+        normalize_result([_182,_184,_186,_188],
+                          [_174,_176,_178,_180]).
+substitute__1(_333,_335,_337,_339) :- 
+        [_295] = _341, [_299] = _343, [list,_303] = _345, [list,_307] = _347, 
+        substitute([_295],[_299],[_303],[_307]),
+        normalize_result([_341,_343,_345,_347],
+                         [_333,_335,_337,_339]).
+substitute__1(_396,_398,_400,_402) :- 
+        [_355] = _404, [_359] = _406, [list,_363] = _408, [list,_367] = _410, 
+        'my \\=='([_355],[_346]),
+        substitute([_355],[_359],[_363],[_367]),
+        normalize_result([_404,_406,_408,_410],
+                         [_396,_398,_400,_402]).
+testplan__1(_366,_368) :- 
+        [_320] = _370, [_339] = _372, 
+        initialstate([_320],[_331]),
+        finalstate([_320],[_335]),
+        transform([_331],[_335],[_339]),
+        normalize_result([_370,_372],
+                         [_366,_368]).
+initialstate__1(_146,_148) :- 
+        [atom] = _150, [list,list,list,list] = _152, 
+        normalize_result([_150,_152],
+                          [_146,_148]).
+finalstate__1(_146,_148) :- 
+        [atom] = _150, [list,list,list,list] = _152, 
+        normalize_result([_150,_152],
+                          [_146,_148]).
+block__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+block__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+block__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+place__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+place__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+place__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+
+%---------------- Definitions of tabled preds --------------
+
+:- table place__1/1.
+:- table block__1/1.
+:- table finalstate__1/2.
+:- table initialstate__1/2.
+:- table testplan__1/2.
+:- table substitute__1/4.
+:- table notmember__1/2.
+:- table member__1/2.
+:- table update__1/3.
+:- table on__1/3.
+:- table clear__1/2.
+:- table legalaction__1/2.
+:- table suggest__1/2.
+:- table chooseaction__1/3.
+:- table transform__1/4.
+:- table transform__1/3.
+
+place(_63) :- 
+        place__1(_65),
+        unify_sets([_63], [_65]).
+block(_63) :- 
+        block__1(_65),
+        unify_sets([_63], [_65]).
+finalstate(_63,_65) :- 
+        finalstate__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+initialstate(_63,_65) :- 
+        initialstate__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+testplan(_63,_65) :- 
+        testplan__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+substitute(_63,_65,_67,_69) :- 
+        substitute__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+notmember(_63,_65) :- 
+        notmember__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+member(_63,_65) :- 
+        member__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+update(_63,_65,_67) :- 
+        update__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+on(_63,_65,_67) :- 
+        on__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+clear(_63,_65) :- 
+        clear__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+legalaction(_63,_65) :- 
+        legalaction__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+suggest(_63,_65) :- 
+        suggest__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+chooseaction(_63,_65,_67) :- 
+        chooseaction__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+transform(_63,_65,_67,_69) :- 
+        transform__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+transform(_63,_65,_67) :- 
+        transform__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+
+%---------------- Tp ---------------------------------------
+
+tp :- place__1(_64), fail.
+tp :- block__1(_64), fail.
+tp :- finalstate__1(_64,_66), fail.
+tp :- initialstate__1(_64,_66), fail.
+tp :- testplan__1(_64,_66), fail.
+tp :- substitute__1(_64,_66,_68,_70), fail.
+tp :- notmember__1(_64,_66), fail.
+tp :- member__1(_64,_66), fail.
+tp :- update__1(_64,_66,_68), fail.
+tp :- on__1(_64,_66,_68), fail.
+tp :- clear__1(_64,_66), fail.
+tp :- legalaction__1(_64,_66), fail.
+tp :- suggest__1(_64,_66), fail.
+tp :- chooseaction__1(_64,_66,_68), fail.
+tp :- transform__1(_64,_66,_68,_70), fail.
+tp :- transform__1(_64,_66,_68), fail.
+tp.
+
+
+%---------------- Builtin Preds ----------------------------
+
+'my ='(X1,X2) :- 'my =__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my \\=='(X1,X2) :- 'my \\==__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my is'(X1,X2) :- 'my is__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =:='(X1,X2) :- 'my =:=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =\\='(X1,X2) :- 'my =\\=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my <'(X1,X2) :- 'my <__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >'(X1,X2) :- 'my >__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >='(X1,X2) :- 'my >=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =<'(X1,X2) :- 'my =<__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+
+'my =__1'(X,X).
+'my \\==__1'(_,_).
+'my is__1'(num,num).
+'my <__1'(num,num).
+'my >__1'(num,num).
+'my >=__1'(num,num).
+'my =<__1'(num,num).
+'my =:=__1'(num,num).
+'my =\\=__1'(num,num).
+
+
+%---------------- Show Result ------------------------------
+
+show_facts :- place__1(_63),
+              numbervars([_63]),
+              write(place(_63)), nl, fail.
+show_facts :- block__1(_63),
+              numbervars([_63]),
+              write(block(_63)), nl, fail.
+show_facts :- finalstate__1(_63,_65),
+              numbervars([_63,_65]),
+              write(finalstate(_63,_65)), nl, fail.
+show_facts :- initialstate__1(_63,_65),
+              numbervars([_63,_65]),
+              write(initialstate(_63,_65)), nl, fail.
+show_facts :- testplan__1(_63,_65),
+              numbervars([_63,_65]),
+              write(testplan(_63,_65)), nl, fail.
+show_facts :- substitute__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(substitute(_63,_65,_67,_69)), nl, fail.
+show_facts :- notmember__1(_63,_65),
+              numbervars([_63,_65]),
+              write(notmember(_63,_65)), nl, fail.
+show_facts :- member__1(_63,_65),
+              numbervars([_63,_65]),
+              write(member(_63,_65)), nl, fail.
+show_facts :- update__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(update(_63,_65,_67)), nl, fail.
+show_facts :- on__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(on(_63,_65,_67)), nl, fail.
+show_facts :- clear__1(_63,_65),
+              numbervars([_63,_65]),
+              write(clear(_63,_65)), nl, fail.
+show_facts :- legalaction__1(_63,_65),
+              numbervars([_63,_65]),
+              write(legalaction(_63,_65)), nl, fail.
+show_facts :- suggest__1(_63,_65),
+              numbervars([_63,_65]),
+              write(suggest(_63,_65)), nl, fail.
+show_facts :- chooseaction__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(chooseaction(_63,_65,_67)), nl, fail.
+show_facts :- transform__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(transform(_63,_65,_67,_69)), nl, fail.
+show_facts :- transform__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(transform(_63,_65,_67)), nl, fail.
+show_facts.

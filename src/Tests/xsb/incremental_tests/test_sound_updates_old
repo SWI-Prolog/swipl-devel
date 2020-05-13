@@ -1,0 +1,3 @@
+test_1_affected([t_inc_1(A),t_inc_3(B),t_inc_4(C),t_inc_5(D)])
+test_2_affected([t_inc_2(A)])
+test_abol_affected([])

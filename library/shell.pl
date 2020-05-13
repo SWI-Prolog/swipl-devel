@@ -48,9 +48,12 @@
             mv/2,                               % +File1, +File2
             rm/1                                % +File1
           ]).
-:- use_module(library(lists), [nth1/3]).
-:- use_module(library(error)).
-:- use_module(library(apply)).
+:- autoload(library(apply),[maplist/3,maplist/2]).
+:- autoload(library(error),
+	    [existence_error/2,instantiation_error/1,must_be/2]).
+:- autoload(library(lists),[nth1/3]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module>  Elementary shell commands

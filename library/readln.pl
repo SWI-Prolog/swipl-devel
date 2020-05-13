@@ -37,7 +37,8 @@
             readln/2,                   % -Line, +EOL
             readln/5                    % See above
           ]).
-:- use_module(library(lists)).
+:- autoload(library(lists),[append/3,member/2]).
+
 
 /** <module> Read line as list of tokens
 

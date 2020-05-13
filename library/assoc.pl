@@ -53,7 +53,8 @@
             del_min_assoc/4,            % +Assoc0, ?Key, ?Value, ?Assoc
             del_max_assoc/4             % +Assoc0, ?Key, ?Value, ?Assoc
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2,domain_error/2]).
+
 
 /** <module> Binary associations
 

@@ -43,6 +43,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+#endif
+
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
 #endif
@@ -131,7 +135,7 @@ static char *
 skip_flags(const char *s)
 { if ( s )
   { for (; *s; s++)
-    { if ( *s == '_' || *s == '|' ||
+    { if ( *s == '_' || *s == '|' || *s == '+' ||
 	   (*s >= 'A' && *s <= 'Z') ||
 	   (*s >= '0' && *s <= '9') )
 	continue;

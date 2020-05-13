@@ -35,7 +35,8 @@
 :- module(prolog_console_input,
           [
           ]).
-:- use_module(library(lists)).
+:- autoload(library(lists),[reverse/2]).
+
 
 :- multifile
     prolog:complete_input/4.

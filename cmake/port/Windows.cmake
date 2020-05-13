@@ -1,9 +1,13 @@
 if(WIN32)
 
 add_compile_options(-D__WINDOWS__)
+add_compile_options(-D_WIN32_WINNT=0x0600)
 if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_options(-DWIN64)
   set(WIN64 1)
+  set(WIN_PROGRAM_FILES "Program Files")
+else()
+  set(WIN_PROGRAM_FILES "Program Files (x86)")
 endif()
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ws2_32)
@@ -31,15 +35,21 @@ function(find_file_from_pattern var dir pattern)
   elseif(len EQUAL 0)
     message(FATAL_ERROR "Cannot file ${dir}/${pattern}")
   else()
-    message(FATAL_ERROR "${dir}/${pattern} is ambigous: ${files}")
+    message(FATAL_ERROR "${dir}/${pattern} is ambiguous: ${files}")
   endif()
 endfunction()
 
-set(WIN32_DLL_PATTERNS
-    "libwinpthread*.dll"
-    "libgcc_s*.dll"
-    "zlib*.dll"
-    "libgmp*.dll")
+set(WIN32_DLL_PATTERNS zlib*.dll)
+
+if(USE_GMP)
+  list(APPEND WIN32_DLL_PATTERNS "libgmp*.dll")
+endif()
+if(MULTI_THREADED)
+  list(APPEND WIN32_DLL_PATTERNS "*pthread*.dll")
+endif()
+if(MINGW)
+  list(APPEND WIN32_DLL_PATTERNS "libgcc_s*.dll")
+endif()
 
 function(find_windows_dlls var)
    set(dlls)

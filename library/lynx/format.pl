@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, CWI Amsterdam
+    Copyright (c)  2018-2020, CWI Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,11 +33,14 @@
 */
 
 :- module(text_format,
-          [ format_paragraph/2          % +Text, +Options
+          [ format_paragraph/2,         % +Text, +Options
+            trim_line/2               % +LineIn, -Line
           ]).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2,type_error/2]).
+:- autoload(library(lists),[append/3,member/2,selectchk/3]).
+:- autoload(library(option),[select_option/3,option/2,option/3]).
 
 /** <module> Print formatted text to a terminal
 
@@ -106,10 +109,11 @@ take_words([H|T0], X, W, [H|T], BR, Rest) :-
     take_words(T0, X1, W, T, BR, Rest).
 take_words(Rest, _, _, [], false, Rest).
 
-:- public
-    trim_spaces/2.
+%!  trim_line(Line0, Line) is det.
+%
+%   Remove leading and trailing white space (b(_,_)) tokens from a line.
 
-trim_spaces(Line0, Line) :-
+trim_line(Line0, Line) :-
     skip_spaces(Line0, Line1),
     skip_trailing_spaces(Line1, Line).
 
@@ -147,8 +151,8 @@ format_line(Line, Width, LineNo, Options) :-
 format_line_(Line, Width, LineNo, Options) :-
     float_right(Line, Line1, Right),
     !,
-    trim_spaces(Line1, Line2),                  % TBD: Alignment with floats
-    trim_spaces(Right, Right2),
+    trim_line(Line1, Line2),                  % TBD: Alignment with floats
+    trim_line(Right, Right2),
     space_dim(Line2, _, WL),
     space_dim(Right2, _, WR),
     append(Line2, [b(0,Space)|Right2], Line3),

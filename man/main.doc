@@ -58,58 +58,32 @@
 #endif
 
 \newcommand{\vmajor}{8}
-\newcommand{\vminor}{0}
-\newcommand{\vpatch}{3}
-\newcommand{\vtag}{}
-\newcommand{\vmonth}{June}
-\newcommand{\vyear}{2019}
+\newcommand{\vminor}{2}
+\newcommand{\vpatch}{0}
+\newcommand{\vtag}{alpha}
+\newcommand{\vmonth}{May}
+\newcommand{\vyear}{2020}
 
 #ifdef BOOK
 \newcommand{\versionshort}{\vmajor}
 \newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
 #else
 \newcommand{\versionshort}{\vmajor.\vminor}
-\newcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}
+\newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
 \ifthenelse{\equal{}{\vtag}}{%
-  \renewcommand{\versionlong}{\vmajor.\vminor-\vpatch, \vmonth~\vyear}}{%
+  \renewcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}}{%
   \renewcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}}
 #endif
 \renewcommand{\arabicday}{\versionshort}
 
 \title{SWI-Prolog \versionshort{} Reference Manual}
-\author{\href{mailto:J.Wielemaker@vu.nl}{Jan Wielemaker}	\\
-	Department of Computer Science				\\
-	VU University Amsterdam					\\
-	De Boelelaan 1081a, 1081 HV~~Amsterdam \vspace{5pt}	\\
-	Human-Computer Studies (HCS, formerly SWI)		\\
-	    Kruislaan 419, 1098 VA~~Amsterdam			\\
-		    The Netherlands}
+\author{SWI-Prolog development team}
 
 \begin{htmlonly}
 \maketitle
 
 \begin{abstract}
-SWI-Prolog is a comprehensive and portable implementation of the Prolog
-programming language. SWI-Prolog aims to be a robust and scalable
-implementation supporting a wide range of applications. In particular,
-it ships with a wide range of interface libraries, providing interfaces
-to other languages, databases, graphics and networking. It provides
-extensive support for managing HTML/SGML/XML and RDF documents.  The
-system is particularly suited for server applications due to robust
-support for multithreading and HTTP server libraries.
-
-SWI-Prolog is designed in the `Edinburgh tradition'. In addition to the
-ISO Prolog standard it is largely compatible to Quintus, SICStus and YAP
-Prolog.  SWI-Prolog provides a compatibility framework developed in
-cooperation with YAP and instantiated for YAP, SICStus and IF/Prolog.
-
-SWI-Prolog aims at providing a good development environment, including
-extensive editor support, graphical source-level debugger, autoloading
-and `make' facility and much more. SWI-Prolog editor and the PDT plugin
-for Eclipse provide alternative environments.
-
-This document gives an overview of the features, system limits and
-built-in predicates.
+\input{abstract.tex}
 \end{abstract}
 
 \subsection*{About this document}
@@ -119,12 +93,12 @@ source is included in the source distribution of SWI-Prolog. The manual
 is converted into HTML using a converter distributed with the SWI-Prolog
 sources. From the same source we generate the PDF version. Sources,
 binaries and documentation can be downloaded from the
-\href{http://www.swi-prolog.org/Download.html}{SWI-Prolog download
+\href{https://www.swi-prolog.org/Download.html}{SWI-Prolog download
 page}.
 
 
 The SWI-Prolog project {\bf home page} is
-\href{http://www.swi-prolog.org}{http://www.swi-prolog.org}
+\href{https://www.swi-prolog.org}{https://www.swi-prolog.org}
 
 \includegraphics[width=4cm]{figs/by-sa}\\[0mm]
 This work is licensed under the Creative Commons Attribution-ShareAlike
@@ -139,75 +113,25 @@ California, 94041, USA.
 
 \begin{titlepage}
 
-\newlength{\uvawidth}
-\settowidth{\uvawidth}{\LARGE VU University Amsterdam}
-
-\newcommand{\uvaaddress}{%
-\parbox[b]{\uvawidth}{%
-    \begin{center}
-	\LARGE
-	      University of Amsterdam			\\[3mm]
-	\small
-	   Kruislaan 419, 1098 VA~~Amsterdam		\\%
-		    The Netherlands			\\%
-    \end{center}}}
-\newcommand{\vuaddress}{%
-\parbox[b]{\uvawidth}{%
-    \begin{center}
-	\LARGE
-	      VU University Amsterdam			\\[3mm]
-	\small
-	   De Boelelaan 1081a, 1081 HV~~Amsterdam	\\%
-		    The Netherlands			\\%
-    \end{center}}}
-
 \mbox{~}
 \begin{center}
-\vspace{-3cm}
-\raisebox{5cm}{
-\parbox{\textwidth}{%
-    \makebox[\textwidth]{%
-        \raisebox{0mm}{\vuaddress}
-	\hfill%
-	\raisebox{0mm}{\uvaaddress}}
-}}
+\mbox{~}
 \vfil\vfil\vfil
 #ifdef ONLINE
 	{\Huge SWI-Prolog \versionshort}	      \\[0mm]
 #else
-	\includegraphics[width=\uvawidth]{figs/swipl} \\[0mm]
+	\includegraphics[width=5cm]{figs/swipl} \\[0mm]
 #endif
 	{\LARGE Reference Manual}		      \\[0mm]
         {\it Updated for version \versionlong}	      \\[10mm]
-	{\large \it Jan Wielemaker}		      \\[0mm]
-	{\large \email{J.Wielemaker@vu.nl}}           \\[0mm]
-	{\large	http://www.swi-prolog.org}
+	{\large \it SWI-Prolog developers}	      \\[0mm]
+	{\large	\href{https://www.swi-prolog.org}{https://www.swi-prolog.org}}
 \end{center}
 
 \vfil
 
 \begin{quote}
-SWI-Prolog is a comprehensive and portable implementation of the Prolog
-programming language. SWI-Prolog aims to be a robust and scalable
-implementation supporting a wide range of applications. In particular,
-it ships with a wide range of interface libraries, providing interfaces
-to other languages, databases, graphics and networking. It provides
-extensive support for managing HTML/SGML/XML and RDF documents.  The
-system is particularly suited for server applications due to robust
-support for multithreading and HTTP server libraries.
-
-SWI-Prolog is designed in the `Edinburgh tradition'. In addition to the
-ISO Prolog standard it is largely compatible to Quintus, SICStus and YAP
-Prolog.  SWI-Prolog provides a compatibility framework developed in
-cooperation with YAP and instantiated for YAP, SICStus and IF/Prolog.
-
-SWI-Prolog aims at providing a good development environment, including
-extensive editor support, graphical source-level debugger, autoloading
-and `make' facility and much more. SWI-Prolog editor and the PDT plugin
-for Eclipse provide alternative environments.
-
-This document gives an overview of the features, system limits and
-built-in predicates.
+\input{abstract.tex}
 \end{quote}
 \vfil
 \vfil

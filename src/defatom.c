@@ -42,6 +42,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+#endif
+
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
 #endif

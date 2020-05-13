@@ -50,10 +50,16 @@ suggest predicates from a keyword.
 \predicatesummary{abolish}{1}{Remove predicate definition from the database}
 \predicatesummary{abolish}{2}{Remove predicate definition from the database}
 \predicatesummary{abolish_all_tables}{0}{Abolish computed tables}
+\predicatesummary{abolish_module_tables}{1}{Abolish all tables in a module}
+\predicatesummary{abolish_nonincremental_tables}{0}{Abolish non-auttomatic tables}
+\predicatesummary{abolish_nonincremental_tables}{1}{Abolish non-auttomatic tables}
+\predicatesummary{abolish_private_tables}{0}{Abolish tables of this thread}
+\predicatesummary{abolish_shared_tables}{0}{Abolish tables shared between threads}
 \predicatesummary{abolish_table_subgoals}{1}{Abolish tables for a goal}
 \predicatesummary{abort}{0}{Abort execution, return to top level}
 \predicatesummary{absolute_file_name}{2}{Get absolute path name}
 \predicatesummary{absolute_file_name}{3}{Get absolute path name with options}
+\predicatesummary{answer_count_restraint}{0}{Undefined answer due to \const{max_answers}}
 \predicatesummary{access_file}{2}{Check access permissions of a file}
 \predicatesummary{acyclic_term}{1}{Test term for cycles}
 \predicatesummary{add_import_module}{3}{Add module to the auto-import list}
@@ -97,7 +103,9 @@ suggest predicates from a keyword.
 \predicatesummary{atomic_list_concat}{3}{Append a list of atomics with separator}
 \predicatesummary{atomics_to_string}{2}{Concatenate list of inputs to a string}
 \predicatesummary{atomics_to_string}{3}{Concatenate list of inputs to a string}
-\predicatesummary{autoload}{0}{Autoload all predicates now}
+\predicatesummary{autoload}{1}{Declare a file for autoloading}
+\predicatesummary{autoload}{2}{Declare a file for autoloading specific predicates}
+\predicatesummary{autoload_all}{0}{Autoload all predicates now}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
 \predicatesummary{b_set_dict}{3}{Destructive assignment on a dict}
@@ -105,6 +113,7 @@ suggest predicates from a keyword.
 \predicatesummary{bagof}{3}{Find all solutions to a goal}
 \predicatesummary{between}{3}{Integer range checking/generating}
 \predicatesummary{blob}{2}{Type check for a blob}
+\predicatesummary{bounded_number}{3}{Number between bounds}
 \predicatesummary{break}{0}{Start interactive top level}
 \predicatesummary{break_hook}{6}{\hook{prolog} Debugger hook}
 \predicatesummary{byte_count}{2}{Byte-position in a stream}
@@ -113,16 +122,20 @@ suggest predicates from a keyword.
 \predicatesummary{call_cleanup}{3}{Guard a goal with a cleaup-handler}
 \predicatesummary{call_cleanup}{2}{Guard a goal with a cleaup-handler}
 \predicatesummary{call_dcg}{3}{As phrase/3 without type checking}
-\predicatesummary{call_residue_vars}{2}{Find residual attributed variables}
-\predicatesummary{call_shared_object_function}{2}{UNIX:  Call C-function in shared (.so) file}
-\predicatesummary{call_with_depth_limit}{3}{Prove goal with bounded depth}
-\predicatesummary{call_with_inference_limit}{3}{Prove goal in limited inferences}
-\predicatesummary{callable}{1}{Test for atom or compound term}
-\predicatesummary{cancel_halt}{1}{Cancel halt/0 from an at_halt/1 hook}
-\predicatesummary{catch}{3}{Call goal, watching for exceptions}
-\predicatesummary{char_code}{2}{Convert between character and character code}
-\predicatesummary{char_conversion}{2}{Provide mapping of input characters}
-\predicatesummary{char_type}{2}{Classify characters}
+\predicatesummary{call_delays}{2}{Get the condition associated with an
+answer} \predicatesummary{call_residue_vars}{2}{Find residual attributed
+variables} \predicatesummary{call_residual_program}{2}{Get residual
+program associated with an answer}
+\predicatesummary{call_shared_object_function}{2}{UNIX: Call C-function
+in shared (.so) file} \predicatesummary{call_with_depth_limit}{3}{Prove
+goal with bounded depth}
+\predicatesummary{call_with_inference_limit}{3}{Prove goal in limited
+inferences} \predicatesummary{callable}{1}{Test for atom or compound
+term} \predicatesummary{cancel_halt}{1}{Cancel halt/0 from an at_halt/1
+hook} \predicatesummary{catch}{3}{Call goal, watching for exceptions}
+\predicatesummary{char_code}{2}{Convert between character and character
+code} \predicatesummary{char_conversion}{2}{Provide mapping of input
+characters} \predicatesummary{char_type}{2}{Classify characters}
 \predicatesummary{character_count}{2}{Get character index on a stream}
 \predicatesummary{chdir}{1}{Compatibility: change working directory}
 \predicatesummary{chr_constraint}{1}{CHR Constraint declaration}
@@ -138,140 +151,153 @@ suggest predicates from a keyword.
 \predicatesummary{close}{1}{Close stream}
 \predicatesummary{close}{2}{Close stream (forced)}
 \predicatesummary{close_dde_conversation}{1}{Win32: Close DDE channel}
-\predicatesummary{close_shared_object}{1}{UNIX:  Close shared library (.so file)}
-\predicatesummary{collation_key}{2}{Sort key for locale dependent ordering}
-\predicatesummary{comment_hook}{3}{\hook{prolog} handle comments in sources}
-\predicatesummary{compare}{3}{Compare, using a predicate to determine the order}
-\predicatesummary{compile_aux_clauses}{1}{Compile predicates for goal_expansion/2}
-\predicatesummary{compile_predicates}{1}{Compile dynamic code to static}
-\predicatesummary{compiling}{0}{Is this a compilation run?}
-\predicatesummary{compound}{1}{Test for compound term}
-\predicatesummary{compound_name_arity}{3}{Name and arity of a compound term}
-\predicatesummary{compound_name_arguments}{3}{Name and arguments of a compound term}
-\predicatesummary{code_type}{2}{Classify a character-code}
-\predicatesummary{consult}{1}{Read (compile) a Prolog source file}
-\predicatesummary{context_module}{1}{Get context module of current goal}
-\predicatesummary{convert_time}{8}{Break time stamp into fields}
-\predicatesummary{convert_time}{2}{Convert time stamp to string}
-\predicatesummary{copy_stream_data}{2}{Copy all data from stream to stream}
-\predicatesummary{copy_stream_data}{3}{Copy n bytes from stream to stream}
-\predicatesummary{copy_predicate_clauses}{2}{Copy clauses between predicates}
-\predicatesummary{copy_term}{2}{Make a copy of a term}
-\predicatesummary{copy_term}{3}{Copy a term and obtain attribute-goals}
-\predicatesummary{copy_term_nat}{2}{Make a copy of a term without attributes}
-\predicatesummary{create_prolog_flag}{3}{Create a new Prolog flag}
-\predicatesummary{current_arithmetic_function}{1}{Examine evaluable functions}
-\predicatesummary{current_atom}{1}{Examine existing atoms}
+\predicatesummary{close_shared_object}{1}{UNIX: Close shared library
+(.so file)} \predicatesummary{collation_key}{2}{Sort key for locale
+dependent ordering} \predicatesummary{comment_hook}{3}{\hook{prolog}
+handle comments in sources} \predicatesummary{compare}{3}{Compare, using
+a predicate to determine the order}
+\predicatesummary{compile_aux_clauses}{1}{Compile predicates for
+goal_expansion/2} \predicatesummary{compile_predicates}{1}{Compile
+dynamic code to static} \predicatesummary{compiling}{0}{Is this a
+compilation run?} \predicatesummary{compound}{1}{Test for compound term}
+\predicatesummary{compound_name_arity}{3}{Name and arity of a compound
+term} \predicatesummary{compound_name_arguments}{3}{Name and arguments
+of a compound term} \predicatesummary{code_type}{2}{Classify a
+character-code} \predicatesummary{consult}{1}{Read (compile) a Prolog
+source file} \predicatesummary{context_module}{1}{Get context module of
+current goal} \predicatesummary{convert_time}{8}{Break time stamp into
+fields} \predicatesummary{convert_time}{2}{Convert time stamp to string}
+\predicatesummary{copy_stream_data}{2}{Copy all data from stream to
+stream} \predicatesummary{copy_stream_data}{3}{Copy n bytes from stream
+to stream} \predicatesummary{copy_predicate_clauses}{2}{Copy clauses
+between predicates} \predicatesummary{copy_term}{2}{Make a copy of a
+term} \predicatesummary{copy_term}{3}{Copy a term and obtain
+attribute-goals} \predicatesummary{copy_term_nat}{2}{Make a copy of a
+term without attributes} \predicatesummary{create_prolog_flag}{3}{Create
+a new Prolog flag}
+\predicatesummary{current_arithmetic_function}{1}{Examine evaluable
+functions} \predicatesummary{current_atom}{1}{Examine existing atoms}
 \predicatesummary{current_blob}{2}{Examine typed blobs}
-\predicatesummary{current_char_conversion}{2}{Query input character mapping}
-\predicatesummary{current_engine}{1}{Enumerate known engines}
+\predicatesummary{current_char_conversion}{2}{Query input character
+mapping} \predicatesummary{current_engine}{1}{Enumerate known engines}
 \predicatesummary{current_flag}{1}{Examine existing flags}
-\predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine loaded shared libraries (.so files)}
-\predicatesummary{current_format_predicate}{2}{Enumerate user-defined format codes}
-\predicatesummary{current_functor}{2}{Examine existing name/arity pairs}
-\predicatesummary{current_input}{1}{Get current input stream}
-\predicatesummary{current_key}{1}{Examine existing database keys}
-\predicatesummary{current_locale}{1}{Get the current locale}
+\predicatesummary{current_foreign_library}{2}{\pllib{shlib} Examine
+loaded shared libraries (.so files)}
+\predicatesummary{current_format_predicate}{2}{Enumerate user-defined
+format codes} \predicatesummary{current_functor}{2}{Examine existing
+name/arity pairs} \predicatesummary{current_input}{1}{Get current input
+stream} \predicatesummary{current_key}{1}{Examine existing database
+keys} \predicatesummary{current_locale}{1}{Get the current locale}
 \predicatesummary{current_module}{1}{Examine existing modules}
 \predicatesummary{current_op}{3}{Examine current operator declarations}
 \predicatesummary{current_output}{1}{Get the current output stream}
-\predicatesummary{current_predicate}{1}{Examine existing predicates (ISO)}
-\predicatesummary{current_predicate}{2}{Examine existing predicates}
-\predicatesummary{current_signal}{3}{Current software signal mapping}
-\predicatesummary{current_stream}{3}{Examine open streams}
+\predicatesummary{current_predicate}{1}{Examine existing predicates
+(ISO)} \predicatesummary{current_predicate}{2}{Examine existing
+predicates} \predicatesummary{current_signal}{3}{Current software signal
+mapping} \predicatesummary{current_stream}{3}{Examine open streams}
 \predicatesummary{current_table}{2}{Find answer table for a variant}
 \predicatesummary{current_trie}{1}{Enumerate known tries}
 \predicatesummary{cyclic_term}{1}{Test term for cycles}
 \predicatesummary{day_of_the_week}{2}{Determine ordinal-day from date}
-\predicatesummary{date_time_stamp}{2}{Convert date structure to time-stamp}
-\predicatesummary{date_time_value}{3}{Extract info from a date structure}
-\predicatesummary{dcg_translate_rule}{2}{Source translation of DCG rules}
-\predicatesummary{dcg_translate_rule}{4}{Source translation of DCG rules}
-\predicatesummary{dde_current_connection}{2}{Win32: Examine open DDE connections}
-\predicatesummary{dde_current_service}{2}{Win32: Examine DDE services provided}
-\predicatesummary{dde_execute}{2}{Win32: Execute command on DDE server}
+\predicatesummary{date_time_stamp}{2}{Convert date structure to
+time-stamp} \predicatesummary{date_time_value}{3}{Extract info from a
+date structure} \predicatesummary{dcg_translate_rule}{2}{Source
+translation of DCG rules}
+\predicatesummary{dcg_translate_rule}{4}{Source translation of DCG
+rules} \predicatesummary{dde_current_connection}{2}{Win32: Examine open
+DDE connections} \predicatesummary{dde_current_service}{2}{Win32:
+Examine DDE services provided} \predicatesummary{dde_execute}{2}{Win32:
+Execute command on DDE server}
 \predicatesummary{dde_register_service}{2}{Win32: Become a DDE server}
 \predicatesummary{dde_request}{3}{Win32: Make a DDE request}
 \predicatesummary{dde_poke}{3}{Win32: POKE operation on DDE server}
-\predicatesummary{dde_unregister_service}{1}{Win32: Terminate a DDE service}
-\predicatesummary{debug}{0}{Test for debugging mode}
+\predicatesummary{dde_unregister_service}{1}{Win32: Terminate a DDE
+service} \predicatesummary{debug}{0}{Test for debugging mode}
 \predicatesummary{debug}{1}{Select topic for debugging}
 \predicatesummary{debug}{3}{Print debugging message on topic}
-\predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1, etc.}
-\predicatesummary{debugging}{0}{Show debugger status}
+\predicatesummary{debug_control_hook}{1}{\hook{prolog} Extend spy/1,
+etc.} \predicatesummary{debugging}{0}{Show debugger status}
 \predicatesummary{debugging}{1}{Test where we are debugging topic}
 \predicatesummary{default_module}{2}{Query module inheritance}
 \predicatesummary{del_attr}{2}{Delete attribute from variable}
 \predicatesummary{del_attrs}{1}{Delete all attributes from variable}
 \predicatesummary{del_dict}{4}{Delete Key-Value pair from a dict}
-\predicatesummary{delete_directory}{1}{Remove a folder from the file system}
-\predicatesummary{delete_file}{1}{Remove a file from the file system}
-\predicatesummary{delete_import_module}{2}{Remove module from import list}
-\predicatesummary{deterministic}{1}{Test deterministicy of current clause}
-\predicatesummary{dif}{2}{Constrain two terms to be different}
-\predicatesummary{directory_files}{2}{Get entries of a directory/folder}
-\oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed definition of a predicate}
-\predicatesummary{divmod}{4}{Compute quotient and remainder of two integers}
+\predicatesummary{delays_residual_program}{2}{Get the residual program
+for an answer} \predicatesummary{delete_directory}{1}{Remove a folder
+from the file system} \predicatesummary{delete_file}{1}{Remove a file
+from the file system} \predicatesummary{delete_import_module}{2}{Remove
+module from import list} \predicatesummary{deterministic}{1}{Test
+deterministicy of current clause} \predicatesummary{dif}{2}{Constrain
+two terms to be different} \predicatesummary{directory_files}{2}{Get
+entries of a directory/folder}
+\oppredsummary{discontiguous}{1}{fx}{1150}{Indicate distributed
+definition of a predicate} \predicatesummary{divmod}{4}{Compute quotient
+and remainder of two integers}
 \predicatesummary{downcase_atom}{2}{Convert atom to lower-case}
 \predicatesummary{duplicate_term}{2}{Create a copy of a term}
 \predicatesummary{dwim_match}{2}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_match}{3}{Atoms match in ``Do What I Mean'' sense}
 \predicatesummary{dwim_predicate}{2}{Find predicate in ``Do What I Mean'' sense}
 \oppredsummary{dynamic}{1}{fx}{1150}{Indicate predicate definition may change}
+\predicatesummary{dynamic}{2}{Indicate predicate definition may change}
 \predicatesummary{edit}{0}{Edit current script- or associated file}
 \predicatesummary{edit}{1}{Edit a file, predicate, module (extensible)}
 \predicatesummary{elif}{1}{Part of conditional compilation (directive)}
 \predicatesummary{else}{0}{Part of conditional compilation (directive)}
 \predicatesummary{empty_assoc}{1}{Create/test empty association tree}
-\predicatesummary{empty_nb_set}{1}{Test/create an empty non-backtrackable set}
-\predicatesummary{encoding}{1}{Define encoding inside a source file}
-\predicatesummary{endif}{0}{End of conditional compilation (directive)}
-\predicatesummary{engine_create}{3}{Create an interactor}
-\predicatesummary{engine_create}{4}{Create an interactor}
+\predicatesummary{empty_nb_set}{1}{Test/create an empty
+non-backtrackable set} \predicatesummary{encoding}{1}{Define encoding
+inside a source file} \predicatesummary{endif}{0}{End of conditional
+compilation (directive)} \predicatesummary{engine_create}{3}{Create an
+interactor} \predicatesummary{engine_create}{4}{Create an interactor}
 \predicatesummary{engine_destroy}{1}{Destroy an interactor}
 \predicatesummary{engine_fetch}{1}{Get term from caller}
 \predicatesummary{engine_next}{2}{Ask interactor for next term}
 \predicatesummary{engine_next_reified}{2}{Ask interactor for next term}
 \predicatesummary{engine_post}{2}{Send term to an interactor}
-\predicatesummary{engine_post}{3}{Send term to an interactor and wait for reply}
-\predicatesummary{engine_self}{1}{Get handle to running interactor}
-\predicatesummary{engine_yield}{1}{Make term available to caller}
-\predicatesummary{ensure_loaded}{1}{Consult a file if that has not yet been done}
-\predicatesummary{erase}{1}{Erase a database record or clause}
-\predicatesummary{exception}{3}{\hook{user} Handle runtime exceptions}
-\predicatesummary{exists_directory}{1}{Check existence of directory}
-\predicatesummary{exists_file}{1}{Check existence of file}
+\predicatesummary{engine_post}{3}{Send term to an interactor and wait
+for reply} \predicatesummary{engine_self}{1}{Get handle to running
+interactor} \predicatesummary{engine_yield}{1}{Make term available to
+caller} \predicatesummary{ensure_loaded}{1}{Consult a file if that has
+not yet been done} \predicatesummary{erase}{1}{Erase a database record
+or clause} \predicatesummary{exception}{3}{\hook{user} Handle runtime
+exceptions} \predicatesummary{exists_directory}{1}{Check existence of
+directory} \predicatesummary{exists_file}{1}{Check existence of file}
 \predicatesummary{exists_source}{1}{Check existence of a Prolog source}
+\predicatesummary{exists_source}{2}{Check existence of a Prolog source}
 \predicatesummary{expand_answer}{2}{Expand answer of query}
 \predicatesummary{expand_file_name}{2}{Wildcard expansion of file names}
-\predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file paths}
-\predicatesummary{expand_goal}{2}{Compiler: expand goal in clause-body}
-\predicatesummary{expand_goal}{4}{Compiler: expand goal in clause-body}
-\predicatesummary{expand_query}{4}{Expanded entered query}
-\predicatesummary{expand_term}{2}{Compiler: expand read term into clause(s)}
-\predicatesummary{expand_term}{4}{Compiler: expand read term into clause(s)}
-\predicatesummary{expects_dialect}{1}{For which Prolog dialect is this code written?}
+\predicatesummary{expand_file_search_path}{2}{Wildcard expansion of file
+paths} \predicatesummary{expand_goal}{2}{Compiler: expand goal in
+clause-body} \predicatesummary{expand_goal}{4}{Compiler: expand goal in
+clause-body} \predicatesummary{expand_query}{4}{Expanded entered query}
+\predicatesummary{expand_term}{2}{Compiler: expand read term into
+clause(s)} \predicatesummary{expand_term}{4}{Compiler: expand read term
+into clause(s)} \predicatesummary{expects_dialect}{1}{For which Prolog
+dialect is this code written?}
 \predicatesummary{explain}{1}{\pllib{explain} Explain argument}
-\predicatesummary{explain}{2}{\pllib{explain} 2nd argument is explanation of first}
-\predicatesummary{export}{1}{Export a predicate from a module}
-\predicatesummary{fail}{0}{Always false}
+\predicatesummary{explain}{2}{\pllib{explain} 2nd argument is
+explanation of first} \predicatesummary{export}{1}{Export a predicate
+from a module} \predicatesummary{fail}{0}{Always false}
 \predicatesummary{false}{0}{Always false}
 \predicatesummary{fast_term_serialized}{2}{Fast term (de-)serialization}
 \predicatesummary{fast_read}{2}{Read binary term serialization}
 \predicatesummary{fast_write}{2}{Write binary term serialization}
-\predicatesummary{current_prolog_flag}{2}{Get system configuration parameters}
-\predicatesummary{file_base_name}{2}{Get file part of path}
+\predicatesummary{current_prolog_flag}{2}{Get system configuration
+parameters} \predicatesummary{file_base_name}{2}{Get file part of path}
 \predicatesummary{file_directory_name}{2}{Get directory part of path}
-\predicatesummary{file_name_extension}{3}{Add, remove or test file extensions}
-\predicatesummary{file_search_path}{2}{Define path-aliases for locating files}
-\predicatesummary{find_chr_constraint}{1}{Returns a constraint from the store}
-\predicatesummary{findall}{3}{Find all solutions to a goal}
-\predicatesummary{findall}{4}{Difference list version of findall/3}
-\predicatesummary{findnsols}{4}{Find first \arg{N} solutions}
-\predicatesummary{findnsols}{5}{Difference list version of findnsols/4}
-\predicatesummary{fill_buffer}{1}{Fill the input buffer of a stream}
-\predicatesummary{flag}{3}{Simple global variable system}
+\predicatesummary{file_name_extension}{3}{Add, remove or test file
+extensions} \predicatesummary{file_search_path}{2}{Define path-aliases
+for locating files} \predicatesummary{find_chr_constraint}{1}{Returns a
+constraint from the store} \predicatesummary{findall}{3}{Find all
+solutions to a goal} \predicatesummary{findall}{4}{Difference list
+version of findall/3} \predicatesummary{findnsols}{4}{Find first \arg{N}
+solutions} \predicatesummary{findnsols}{5}{Difference list version of
+findnsols/4} \predicatesummary{fill_buffer}{1}{Fill the input buffer of
+a stream} \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{float}{1}{Type check for a floating point number}
+\predicatesummary{float_class}{2}{Classify (special) floats}
+\predicatesummary{float_parts}{4}{Get mantissa and exponent of a float}
 \predicatesummary{flush_output}{0}{Output pending characters on current stream}
 \predicatesummary{flush_output}{1}{Output pending characters on specified stream}
 \predicatesummary{forall}{2}{Prove goal for all solutions of another goal}
@@ -287,17 +313,17 @@ suggest predicates from a keyword.
 \predicatesummary{text_to_string}{2}{Convert arbitrary text to a string}
 \predicatesummary{freeze}{2}{Delay execution until variable is bound}
 \predicatesummary{frozen}{2}{Query delayed goals on var}
-\predicatesummary{functor}{3}{Get name and arity of a term or construct a term }
-\predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
-\predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
-\predicatesummary{garbage_collect_clauses}{0}{Invoke clause garbage collector}
-\predicatesummary{gen_assoc}{3}{Enumerate members of association tree}
-\predicatesummary{gen_nb_set}{2}{Generate members of non-backtrackable set}
-\predicatesummary{gensym}{2}{Generate unique atoms from a base}
-\predicatesummary{get}{1}{Read first non-blank character}
-\predicatesummary{get}{2}{Read first non-blank character from a stream}
-\predicatesummary{get_assoc}{3}{Fetch key from association tree}
-\predicatesummary{get_assoc}{5}{Fetch key from association tree}
+\predicatesummary{functor}{3}{Get name and arity of a term or construct
+a term } \predicatesummary{garbage_collect}{0}{Invoke the garbage
+collector} \predicatesummary{garbage_collect_atoms}{0}{Invoke the atom
+garbage collector} \predicatesummary{garbage_collect_clauses}{0}{Invoke
+clause garbage collector} \predicatesummary{gen_assoc}{3}{Enumerate
+members of association tree} \predicatesummary{gen_nb_set}{2}{Generate
+members of non-backtrackable set} \predicatesummary{gensym}{2}{Generate
+unique atoms from a base} \predicatesummary{get}{1}{Read first non-blank
+character} \predicatesummary{get}{2}{Read first non-blank character from
+a stream} \predicatesummary{get_assoc}{3}{Fetch key from association
+tree} \predicatesummary{get_assoc}{5}{Fetch key from association tree}
 \predicatesummary{get_attr}{3}{Fetch named attribute from a variable}
 \predicatesummary{get_attrs}{2}{Fetch all attributes of a variable}
 \predicatesummary{get_byte}{1}{Read next byte (ISO)}
@@ -306,13 +332,13 @@ suggest predicates from a keyword.
 \predicatesummary{get_char}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_code}{1}{Read next character (ISO)}
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
-\predicatesummary{get_dict}{3}{Get the value associated to a key from a dict}
-\predicatesummary{get_dict_ex}{3}{Get the value associated to a key from a dict}
-\predicatesummary{get_dict}{5}{Replace existing value in a dict}
-\predicatesummary{get_flag}{2}{Get value of a flag}
-\predicatesummary{get_single_char}{1}{Read next character from the terminal}
-\predicatesummary{get_string_code}{3}{Get character code at index in string}
-\predicatesummary{get_time}{1}{Get current time}
+\predicatesummary{get_dict}{3}{Get the value associated to a key from a
+dict} \predicatesummary{get_dict_ex}{3}{Get the value associated to a
+key from a dict} \predicatesummary{get_dict}{5}{Replace existing value
+in a dict} \predicatesummary{get_flag}{2}{Get value of a flag}
+\predicatesummary{get_single_char}{1}{Read next character from the
+terminal} \predicatesummary{get_string_code}{3}{Get character code at
+index in string} \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{get0}{1}{Read next character}
 \predicatesummary{get0}{2}{Read next character from a stream}
 \predicatesummary{getenv}{2}{Get shell environment variable}
@@ -322,18 +348,18 @@ suggest predicates from a keyword.
 \predicatesummary{gdebug}{0}{Debug using graphical tracer}
 \predicatesummary{gspy}{1}{Spy using graphical tracer}
 \predicatesummary{gtrace}{0}{Trace using graphical tracer}
-\predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
-\predicatesummary{gxref}{0}{Cross-reference loaded program}
+\predicatesummary{guitracer}{0}{Install hooks for the graphical
+debugger} \predicatesummary{gxref}{0}{Cross-reference loaded program}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
 \predicatesummary{term_hash}{2}{Hash-value of ground term}
 \predicatesummary{term_hash}{4}{Hash-value of term with depth limit}
 \predicatesummary{help}{0}{Give help on help}
-\predicatesummary{help}{1}{Give help on predicates and show parts of manual}
-\predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the help-system}
-\predicatesummary{if}{1}{Start conditional compilation (directive)}
-\predicatesummary{ignore}{1}{Call the argument, but always succeed}
-\predicatesummary{import}{1}{Import a predicate from a module}
+\predicatesummary{help}{1}{Give help on predicates and show parts of
+manual} \predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the
+help-system} \predicatesummary{if}{1}{Start conditional compilation
+(directive)} \predicatesummary{ignore}{1}{Call the argument, but always
+succeed} \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
 \predicatesummary{in_pce_thread}{1}{Run goal in XPCE thread}
 \predicatesummary{in_pce_thread_sync}{1}{Run goal in XPCE thread}
@@ -343,72 +369,79 @@ suggest predicates from a keyword.
 \predicatesummary{initialize}{0}{Run program initialization}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
-\predicatesummary{interactor}{0}{Start new thread with console and top level}
-\oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
-\predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
-\predicatesummary{is_assoc}{1}{Verify association list}
-\predicatesummary{is_engine}{1}{Type check for an engine handle}
-\predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{interactor}{0}{Start new thread with console and top
+level} \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
+\predicatesummary{is_absolute_file_name}{1}{True if arg defines an
+absolute path} \predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
+\predicatesummary{is_engine}{1}{Type check for an engine handle}
+\predicatesummary{is_list}{1}{Type check for a list}
+\predicatesummary{is_most_general_term}{1}{Type check for general term}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{is_trie}{1}{Type check for a trie handle}
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
-\predicatesummary{join_threads}{0}{Join all terminated threads interactively}
-\predicatesummary{keysort}{2}{Sort, using a key}
+\predicatesummary{join_threads}{0}{Join all terminated threads
+interactively} \predicatesummary{keysort}{2}{Sort, using a key}
 \predicatesummary{known_licenses}{0}{Print known licenses}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
 \predicatesummary{length}{2}{Length of a list}
-\predicatesummary{library_directory}{1}{\hook{user} Directories holding Prolog libraries}
-\predicatesummary{license}{0}{Evaluate licenses of loaded modules}
-\predicatesummary{license}{1}{Define license for current file}
-\predicatesummary{license}{2}{Define license for named module}
+\predicatesummary{library_directory}{1}{\hook{user} Directories holding
+Prolog libraries} \predicatesummary{license}{0}{Evaluate licenses of
+loaded modules} \predicatesummary{license}{1}{Define license for current
+file} \predicatesummary{license}{2}{Define license for named module}
 \predicatesummary{line_count}{2}{Line number on stream}
-\predicatesummary{line_position}{2}{Character position in line on stream}
-\predicatesummary{list_debug_topics}{0}{List registered topics for debugging}
-\predicatesummary{list_to_assoc}{2}{Create association tree from list}
-\predicatesummary{list_to_set}{2}{Remove duplicates from a list}
-\predicatesummary{list_strings}{0}{Help porting to version 7}
+\predicatesummary{line_position}{2}{Character position in line on
+stream} \predicatesummary{list_debug_topics}{0}{List registered topics
+for debugging} \predicatesummary{list_to_assoc}{2}{Create association
+tree from list} \predicatesummary{list_to_set}{2}{Remove duplicates from
+a list} \predicatesummary{list_strings}{0}{Help porting to version 7}
 \predicatesummary{listing}{0}{List program in current module}
 \predicatesummary{listing}{1}{List predicate}
 \predicatesummary{load_files}{1}{Load source files}
 \predicatesummary{load_files}{2}{Load source files with options}
-\predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared library (.so file)}
-\predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared library (.so file)}
-\predicatesummary{locale_create}{3}{Create a new locale object}
-\predicatesummary{locale_destroy}{1}{Destroy a locale object}
-\predicatesummary{locale_property}{2}{Query properties of locale objects}
-\predicatesummary{locale_sort}{2}{Language dependent sort of atoms}
-\predicatesummary{make}{0}{Reconsult all changed source files}
+\predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared
+library (.so file)}
+\predicatesummary{load_foreign_library}{2}{\pllib{shlib} Load shared
+library (.so file)} \predicatesummary{locale_create}{3}{Create a new
+locale object} \predicatesummary{locale_destroy}{1}{Destroy a locale
+object} \predicatesummary{locale_property}{2}{Query properties of locale
+objects} \predicatesummary{locale_sort}{2}{Language dependent sort of
+atoms} \predicatesummary{make}{0}{Reconsult all changed source files}
 \predicatesummary{make_directory}{1}{Create a folder on the file system}
 \predicatesummary{make_library_index}{1}{Create autoload file INDEX.pl}
-\predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl}
-\predicatesummary{map_assoc}{2}{Map association tree}
+\predicatesummary{malloc_property}{1}{Property of the allocator}
+\predicatesummary{make_library_index}{2}{Create selective autoload file INDEX.pl} \predicatesummary{map_assoc}{2}{Map association tree}
 \predicatesummary{map_assoc}{3}{Map association tree}
 \predicatesummary{dict_create}{3}{Create a dict from data}
 \predicatesummary{dict_pairs}{3}{Convert between dict and list of pairs}
 \predicatesummary{max_assoc}{3}{Highest key in association tree}
 \predicatesummary{memberchk}{2}{Deterministic member/2}
 \predicatesummary{message_hook}{3}{Intercept print_message/2}
-\predicatesummary{message_line_element}{2}{\hook{prolog} Intercept print_message_lines/3}
-\predicatesummary{message_property}{2}{\hook{user} Define display of a message}
-\predicatesummary{message_queue_create}{1}{Create queue for thread communication}
-\predicatesummary{message_queue_create}{2}{Create queue for thread communication}
-\predicatesummary{message_queue_destroy}{1}{Destroy queue for thread communication}
-\predicatesummary{message_queue_property}{2}{Query message queue properties}
-\predicatesummary{message_to_string}{2}{Translate message-term to string}
-\predicatesummary{meta_predicate}{1}{Declare access to other predicates}
-\predicatesummary{min_assoc}{3}{Lowest key in association tree}
-\predicatesummary{module}{1}{Query/set current type-in module}
+\predicatesummary{message_line_element}{2}{\hook{prolog} Intercept
+print_message_lines/3}
+\predicatesummary{message_property}{2}{\hook{user} Define display of a
+message} \predicatesummary{message_queue_create}{1}{Create queue for
+thread communication} \predicatesummary{message_queue_create}{2}{Create
+queue for thread communication}
+\predicatesummary{message_queue_destroy}{1}{Destroy queue for thread
+communication} \predicatesummary{message_queue_property}{2}{Query
+message queue properties} \predicatesummary{message_queue_set}{2}{Set a
+message queue property}
+\predicatesummary{message_to_string}{2}{Translate message-term to
+string} \predicatesummary{meta_predicate}{1}{Declare access to other
+predicates} \predicatesummary{min_assoc}{3}{Lowest key in association
+tree} \predicatesummary{module}{1}{Query/set current type-in module}
 \predicatesummary{module}{2}{Declare a module}
 \predicatesummary{module}{3}{Declare a module with language options}
 \predicatesummary{module_property}{2}{Find properties of a module}
-\oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based meta-predicate}
-\predicatesummary{msort}{2}{Sort, do not remove duplicates}
-\oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed definition of predicate}
-\predicatesummary{mutex_create}{1}{Create a thread-synchronisation device}
-\predicatesummary{mutex_create}{2}{Create a thread-synchronisation device}
+\oppredsummary{module_transparent}{1}{fx}{1150}{Indicate module based
+meta-predicate} \predicatesummary{msort}{2}{Sort, do not remove
+duplicates} \oppredsummary{multifile}{1}{fx}{1150}{Indicate distributed
+definition of predicate} \predicatesummary{mutex_create}{1}{Create a
+thread-synchronisation device} \predicatesummary{mutex_create}{2}{Create
+a thread-synchronisation device}
 \predicatesummary{mutex_destroy}{1}{Destroy a mutex}
 \predicatesummary{mutex_lock}{1}{Become owner of a mutex}
 \predicatesummary{mutex_property}{2}{Query mutex properties}
@@ -441,6 +474,7 @@ suggest predicates from a keyword.
 \predicatesummary{nospy}{1}{Remove spy point}
 \predicatesummary{nospyall}{0}{Remove all spy points}
 \oppredsummary{not}{1}{fy}{900}{Negation by failure (argument not provable). Same as \predref{\+}{1}}
+\predicatesummary{not_exists}{1}{Tabled negation for non-ground or non-tabled goals}
 \predicatesummary{notrace}{0}{Stop tracing}
 \predicatesummary{notrace}{1}{Do not debug argument goal}
 \predicatesummary{nth_clause}{3}{N-th clause of a predicate}
@@ -461,6 +495,7 @@ suggest predicates from a keyword.
 \predicatesummary{open_resource}{3}{Open a program resource as a stream}
 \predicatesummary{open_shared_object}{2}{UNIX: Open shared library (.so file)}
 \predicatesummary{open_shared_object}{3}{UNIX: Open shared library (.so file)}
+\predicatesummary{open_source_hook}{3}{\hook{prolog} Open a source file}
 \predicatesummary{open_string}{2}{Open a string as a stream}
 \predicatesummary{ord_list_to_assoc}{2}{Convert ordered list to assoc}
 \predicatesummary{parse_time}{2}{Parse text to a time-stamp}
@@ -476,26 +511,27 @@ suggest predicates from a keyword.
 \predicatesummary{peek_string}{3}{Read a string without removing}
 \predicatesummary{phrase}{2}{Activate grammar-rule set}
 \predicatesummary{phrase}{3}{Activate grammar-rule set (returning rest)}
-\predicatesummary{phrase_from_quasi_quotation}{2}{Parse quasi quotation with DCG}
-\predicatesummary{please}{3}{Query/change environment parameters}
-\predicatesummary{plus}{3}{Logical integer addition}
+\predicatesummary{phrase_from_quasi_quotation}{2}{Parse quasi quotation
+with DCG} \predicatesummary{please}{3}{Query/change environment
+parameters} \predicatesummary{plus}{3}{Logical integer addition}
 \predicatesummary{portray}{1}{\hook{user} Modify behaviour of print/1}
 \predicatesummary{portray_clause}{1}{Pretty print a clause}
 \predicatesummary{portray_clause}{2}{Pretty print a clause to a stream}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
-\predicatesummary{predsort}{3}{Sort, using a predicate to determine the order}
-\predicatesummary{print}{1}{Print a term}
+\predicatesummary{predsort}{3}{Sort, using a predicate to determine the
+order} \predicatesummary{print}{1}{Print a term}
 \predicatesummary{print}{2}{Print a term on a stream}
 \predicatesummary{print_message}{2}{Print message from (exception) term}
 \predicatesummary{print_message_lines}{3}{Print message to stream}
 \predicatesummary{profile}{1}{Obtain execution statistics}
 \predicatesummary{profile}{2}{Obtain execution statistics}
-\predicatesummary{profile_count}{3}{Obtain profile results on a predicate}
-\predicatesummary{profiler}{2}{Obtain/change status of the profiler}
-\predicatesummary{prolog}{0}{Run interactive top level}
+\predicatesummary{profile_count}{3}{Obtain profile results on a
+predicate} \predicatesummary{profiler}{2}{Obtain/change status of the
+profiler} \predicatesummary{prolog}{0}{Run interactive top level}
 \predicatesummary{prolog_alert_signal}{2}{Query/set unblock signal}
-\predicatesummary{prolog_choice_attribute}{3}{Examine the choice point stack}
-\predicatesummary{prolog_current_choice}{1}{Reference to most recent choice point}
+\predicatesummary{prolog_choice_attribute}{3}{Examine the choice point
+stack} \predicatesummary{prolog_current_choice}{1}{Reference to most
+recent choice point}
 \predicatesummary{prolog_current_frame}{1}{Reference to goal's environment stack}
 \predicatesummary{prolog_cut_to}{1}{Realise global cuts}
 \predicatesummary{prolog_edit:locate}{2}{Locate targets for edit/1}
@@ -508,6 +544,8 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_frame_attribute}{3}{Obtain information on a goal environment}
 \predicatesummary{prolog_ide}{1}{Program access to the development environment}
 \predicatesummary{prolog_list_goal}{1}{\hook{user} Intercept tracer 'L' command}
+\predicatesummary{prolog_listen}{2}{Listen to Prolog events}
+\predicatesummary{prolog_listen}{3}{Listen to Prolog events}
 \predicatesummary{prolog_load_context}{2}{Context information for directives}
 \predicatesummary{prolog_load_file}{2}{\hook{user} Program load_files/2}
 \predicatesummary{prolog_skip_level}{2}{Indicate deepest recursion to trace}
@@ -515,6 +553,7 @@ suggest predicates from a keyword.
 \predicatesummary{prolog_stack_property}{2}{Query properties of the stacks}
 \predicatesummary{prolog_to_os_filename}{2}{Convert between Prolog and OS filenames}
 \predicatesummary{prolog_trace_interception}{4}{\pllib{user} Intercept the Prolog tracer}
+\predicatesummary{prolog_unlisten}{2}{Stop listening to Prolog events}
 \predicatesummary{project_attributes}{2}{Project constraints to query variables}
 \predicatesummary{prompt1}{1}{Change prompt for 1 line}
 \predicatesummary{prompt}{2}{Change the prompt used by read/1}
@@ -526,8 +565,8 @@ suggest predicates from a keyword.
 \predicatesummary{put}{2}{Write a character on a stream}
 \predicatesummary{put_assoc}{4}{Add Key-Value to association tree}
 \predicatesummary{put_attr}{3}{Put attribute on a variable}
-\predicatesummary{put_attrs}{2}{Set/replace all attributes on a variable}
-\predicatesummary{put_byte}{1}{Write a byte}
+\predicatesummary{put_attrs}{2}{Set/replace all attributes on a
+variable} \predicatesummary{put_byte}{1}{Write a byte}
 \predicatesummary{put_byte}{2}{Write a byte on a stream}
 \predicatesummary{put_char}{1}{Write a character}
 \predicatesummary{put_char}{2}{Write a character on a stream}
@@ -541,6 +580,7 @@ suggest predicates from a keyword.
 \predicatesummary{qsave_program}{2}{Create runtime application}
 \predicatesummary{quasi_quotation_syntax}{1}{Declare quasi quotation syntax}
 \predicatesummary{quasi_quotation_syntax_error}{1}{Raise syntax error}
+\predicatesummary{radial_restraint}{0}{Tabbling radial restraint was violated}
 \predicatesummary{random_property}{1}{Query properties of random generation}
 \predicatesummary{rational}{1}{Type check for a rational number}
 \predicatesummary{rational}{3}{Decompose a rational}
@@ -549,66 +589,69 @@ suggest predicates from a keyword.
 \predicatesummary{read_clause}{3}{Read clause from stream}
 \predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
-\predicatesummary{read_pending_codes}{3}{Fetch buffered input from a stream}
-\predicatesummary{read_pending_chars}{3}{Fetch buffered input from a stream}
-\predicatesummary{read_string}{3}{Read a number of characters into a string}
-\predicatesummary{read_string}{5}{Read string upto a delimiter}
-\predicatesummary{read_term}{2}{Read term with options}
-\predicatesummary{read_term}{3}{Read term with options from stream}
-\predicatesummary{read_term_from_atom}{3}{Read term with options from atom}
-\predicatesummary{recorda}{2}{Record term in the database (first)}
-\predicatesummary{recorda}{3}{Record term in the database (first)}
-\predicatesummary{recorded}{2}{Obtain term from the database}
+\predicatesummary{read_pending_codes}{3}{Fetch buffered input from a
+stream} \predicatesummary{read_pending_chars}{3}{Fetch buffered input
+from a stream} \predicatesummary{read_string}{3}{Read a number of
+characters into a string} \predicatesummary{read_string}{5}{Read string
+upto a delimiter} \predicatesummary{read_term}{2}{Read term with
+options} \predicatesummary{read_term}{3}{Read term with options from
+stream} \predicatesummary{read_term_from_atom}{3}{Read term with options
+from atom} \predicatesummary{recorda}{2}{Record term in the database
+(first)} \predicatesummary{recorda}{3}{Record term in the database
+(first)} \predicatesummary{recorded}{2}{Obtain term from the database}
 \predicatesummary{recorded}{3}{Obtain term from the database}
 \predicatesummary{recordz}{2}{Record term in the database (last)}
 \predicatesummary{recordz}{3}{Record term in the database (last)}
-\predicatesummary{redefine_system_predicate}{1}{Abolish system definition}
-\predicatesummary{reexport}{1}{Load files and re-export the imported predicates}
-\predicatesummary{reexport}{2}{Load predicates from a file and re-export it}
-\predicatesummary{reload_foreign_libraries}{0}{Reload DLLs/shared objects}
-\predicatesummary{reload_library_index}{0}{Force reloading the autoload index}
-\predicatesummary{rename_file}{2}{Change name of file}
+\predicatesummary{redefine_system_predicate}{1}{Abolish system
+definition} \predicatesummary{reexport}{1}{Load files and re-export the
+imported predicates} \predicatesummary{reexport}{2}{Load predicates from
+a file and re-export it}
+\predicatesummary{reload_foreign_libraries}{0}{Reload DLLs/shared
+objects} \predicatesummary{reload_library_index}{0}{Force reloading the
+autoload index} \predicatesummary{rename_file}{2}{Change name of file}
 \predicatesummary{repeat}{0}{Succeed, leaving infinite backtrack points}
 \predicatesummary{require}{1}{This file requires these predicates}
 \predicatesummary{reset}{3}{Wrapper for delimited continuations}
 \predicatesummary{reset_gensym}{1}{Reset a gensym key}
 \predicatesummary{reset_gensym}{0}{Reset all gensym keys}
-\predicatesummary{reset_profiler}{0}{Clear statistics obtained by the profiler}
-\predicatesummary{resource}{2}{Declare a program resource}
+\predicatesummary{reset_profiler}{0}{Clear statistics obtained by the
+profiler} \predicatesummary{resource}{2}{Declare a program resource}
 \predicatesummary{resource}{3}{Declare a program resource}
 \predicatesummary{retract}{1}{Remove clause from the database}
-\predicatesummary{retractall}{1}{Remove unifying clauses from the database}
-\predicatesummary{same_file}{2}{Succeeds if arguments refer to same file}
-\predicatesummary{same_term}{2}{Test terms to be at the same address}
-\predicatesummary{see}{1}{Change the current input stream}
+\predicatesummary{retractall}{1}{Remove unifying clauses from the
+database} \predicatesummary{same_file}{2}{Succeeds if arguments refer to
+same file} \predicatesummary{same_term}{2}{Test terms to be at the same
+address} \predicatesummary{see}{1}{Change the current input stream}
 \predicatesummary{seeing}{1}{Query the current input stream}
 \predicatesummary{seek}{4}{Modify the current position in a stream}
 \predicatesummary{seen}{0}{Close the current input stream}
-\predicatesummary{select_dict}{2}{Select matching attributes from a dict}
-\predicatesummary{select_dict}{3}{Select matching attributes from a dict}
-\predicatesummary{set_end_of_stream}{1}{Set physical end of an open file}
-\predicatesummary{set_flag}{2}{Set value of a flag}
+\predicatesummary{select_dict}{2}{Select matching attributes from a
+dict} \predicatesummary{select_dict}{3}{Select matching attributes from
+a dict} \predicatesummary{set_end_of_stream}{1}{Set physical end of an
+open file} \predicatesummary{set_flag}{2}{Set value of a flag}
 \predicatesummary{set_input}{1}{Set current input stream from a stream}
 \predicatesummary{set_locale}{1}{Set the default local}
+\predicatesummary{set_malloc}{1}{Set memory allocator property}
 \predicatesummary{set_module}{1}{Set properties of a module}
-\predicatesummary{set_output}{1}{Set current output stream from a stream}
-\predicatesummary{set_prolog_IO}{3}{Prepare streams for interactive session}
-\predicatesummary{set_prolog_flag}{2}{Define a system feature}
-\predicatesummary{set_prolog_gc_thread}{1}{Control the gc thread}
-\predicatesummary{set_prolog_stack}{2}{Modify stack characteristics}
-\predicatesummary{set_random}{1}{Control random number generation}
-\predicatesummary{set_stream}{2}{Set stream attribute}
+\predicatesummary{set_output}{1}{Set current output stream from a
+stream} \predicatesummary{set_prolog_IO}{3}{Prepare streams for
+interactive session} \predicatesummary{set_prolog_flag}{2}{Define a
+system feature} \predicatesummary{set_prolog_gc_thread}{1}{Control the
+gc thread} \predicatesummary{set_prolog_stack}{2}{Modify stack
+characteristics} \predicatesummary{set_random}{1}{Control random number
+generation} \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
 \predicatesummary{setup_call_cleanup}{3}{Undo side-effects safely}
-\predicatesummary{setup_call_catcher_cleanup}{4}{Undo side-effects safely}
-\predicatesummary{setarg}{3}{Destructive assignment on term}
+\predicatesummary{setup_call_catcher_cleanup}{4}{Undo side-effects
+safely} \predicatesummary{setarg}{3}{Destructive assignment on term}
 \predicatesummary{setenv}{2}{Set shell environment variable}
-\predicatesummary{setlocale}{3}{Set/query C-library regional information}
-\predicatesummary{setof}{3}{Find all unique solutions to a goal}
-\predicatesummary{shell}{1}{Execute OS command}
+\predicatesummary{setlocale}{3}{Set/query C-library regional
+information} \predicatesummary{setof}{3}{Find all unique solutions to a
+goal} \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
 \predicatesummary{shift}{1}{Shift control to the closest reset/3}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
+\predicatesummary{size_abstract_term}{3}{Abstract a term (tabling support)}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
 \predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
 \predicatesummary{skip}{1}{Skip to character in current input}
@@ -632,17 +675,18 @@ suggest predicates from a keyword.
 \predicatesummary{string}{1}{Type check for string}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
-\predicatesummary{string_chars}{2}{Conversion between string and list of characters}
-\predicatesummary{string_codes}{2}{Conversion between string and list of character codes}
-\predicatesummary{string_code}{3}{Get or find a character code in a string}
+\predicatesummary{string_chars}{2}{Conversion between string and list of
+characters} \predicatesummary{string_codes}{2}{Conversion between string
+and list of character codes} \predicatesummary{string_code}{3}{Get or
+find a character code in a string}
 \predicatesummary{string_lower}{2}{Case conversion to lower case}
 \predicatesummary{string_upper}{2}{Case conversion to upper case}
-\predicatesummary{string_predicate}{1}{\hook{check} Predicate contains strings}
-\predicatesummary{strip_module}{3}{Extract context module and term}
-\predicatesummary{style_check}{1}{Change level of warnings}
+\predicatesummary{string_predicate}{1}{\hook{check} Predicate contains
+strings} \predicatesummary{strip_module}{3}{Extract context module and
+term} \predicatesummary{style_check}{1}{Change level of warnings}
 \predicatesummary{sub_atom}{5}{Take a substring from an atom}
-\predicatesummary{sub_atom_icasechk}{3}{Case insensitive substring match}
-\predicatesummary{sub_string}{5}{Take a substring from a string}
+\predicatesummary{sub_atom_icasechk}{3}{Case insensitive substring
+match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{subsumes_term}{2}{One-sided unification test}
 \predicatesummary{succ}{2}{Logical integer successor relation}
 \predicatesummary{swritef}{2}{Formatted write on a string}
@@ -650,6 +694,7 @@ suggest predicates from a keyword.
 \predicatesummary{tab}{1}{Output number of spaces}
 \predicatesummary{tab}{2}{Output number of spaces on a stream}
 \predicatesummary{table}{1}{Declare predicate to be tabled}
+\predicatesummary{tabled_call}{1}{Helper for not_exists/1}
 \predicatesummary{tdebug}{0}{Switch all threads into debug mode}
 \predicatesummary{tdebug}{1}{Switch a thread into debug mode}
 \predicatesummary{tell}{1}{Change current output stream}
@@ -662,6 +707,7 @@ suggest predicates from a keyword.
 \predicatesummary{term_subsumer}{3}{Most specific generalization of two terms}
 \predicatesummary{term_to_atom}{2}{Convert between term and atom}
 \predicatesummary{thread_affinity}{3}{Query and control the \jargon{affinity} mask}
+\predicatesummary{thread_alias}{1}{Set the alias name of a thread}
 \predicatesummary{thread_at_exit}{1}{Register goal to be called at exit}
 \predicatesummary{thread_create}{2}{Create a new Prolog task}
 \predicatesummary{thread_create}{3}{Create a new Prolog task}
@@ -670,6 +716,7 @@ suggest predicates from a keyword.
 \predicatesummary{thread_get_message}{1}{Wait for message}
 \predicatesummary{thread_get_message}{2}{Wait for message in a queue}
 \predicatesummary{thread_get_message}{3}{Wait for message in a queue}
+\predicatesummary{thread_idle}{2}{Reduce footprint while waiting}
 \predicatesummary{thread_initialization}{1}{Run action at start of thread}
 \predicatesummary{thread_join}{1}{Wait for Prolog task-completion}
 \predicatesummary{thread_join}{2}{Wait for Prolog task-completion}
@@ -692,6 +739,7 @@ suggest predicates from a keyword.
 \predicatesummary{tmp_file_stream}{3}{Create a temporary file and open it}
 \predicatesummary{tnodebug}{0}{Switch off debug mode in all threads}
 \predicatesummary{tnodebug}{1}{Switch off debug mode in a thread}
+\predicatesummary{tnot}{1}{Tabled negation}
 \predicatesummary{told}{0}{Close current output}
 \predicatesummary{tprofile}{1}{Profile a thread for some period}
 \predicatesummary{trace}{0}{Start the tracer}
@@ -701,6 +749,9 @@ suggest predicates from a keyword.
 \predicatesummary{trie_delete}{3}{Remove term from trie}
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}
+\predicatesummary{trie_gen_compiled}{2}{Get all terms from a trie}
+\predicatesummary{trie_gen_compiled}{3}{Get all terms from a trie}
+\predicatesummary{trie_insert}{2}{Insert term into a trie}
 \predicatesummary{trie_insert}{3}{Insert term into a trie}
 \predicatesummary{trie_insert}{4}{Insert term into a trie}
 \predicatesummary{trie_lookup}{3}{Lookup a term in a trie}
@@ -709,56 +760,63 @@ suggest predicates from a keyword.
 \predicatesummary{trie_update}{3}{Update associated value in trie}
 \predicatesummary{trie_term}{2}{Get term from a trie by handle}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
-\predicatesummary{true}{0}{Succeed}
-\predicatesummary{tspy}{1}{Set spy point and enable debugging in all threads}
-\predicatesummary{tspy}{2}{Set spy point and enable debugging in a thread}
-\predicatesummary{tty_get_capability}{3}{Get terminal parameter}
+\predicatesummary{tripwire}{2}{\hook{prolog} Handle a tabling tripwire event}
+\predicatesummary{true}{0}{Succeed} \predicatesummary{tspy}{1}{Set spy
+point and enable debugging in all threads}
+\predicatesummary{tspy}{2}{Set spy point and enable debugging in a
+thread} \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{tty_goto}{2}{Goto position on screen}
 \predicatesummary{tty_put}{2}{Write control string to terminal}
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
-\predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
-\predicatesummary{unifiable}{3}{Determining binding required for unification}
-\predicatesummary{unix}{1}{OS interaction}
+\predicatesummary{undefined}{0}{Well Founded Semantics: true nor false}
+\predicatesummary{unify_with_occurs_check}{2}{Logically sound
+unification} \predicatesummary{unifiable}{3}{Determining binding
+required for unification} \predicatesummary{unix}{1}{OS interaction}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_file}{1}{Unload a source file}
-\predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
-\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
-\predicatesummary{unsetenv}{1}{Delete shell environment variable}
-\predicatesummary{upcase_atom}{2}{Convert atom to upper-case}
-\predicatesummary{use_foreign_library}{1}{Load DLL/shared object (directive)}
-\predicatesummary{use_foreign_library}{2}{Load DLL/shared object (directive)}
-\predicatesummary{use_module}{1}{Import a module}
-\predicatesummary{use_module}{2}{Import predicates from a module}
-\predicatesummary{valid_string_goal}{1}{\hook{check} Goal handles strings}
-\predicatesummary{var}{1}{Type check for unbound variable}
-\predicatesummary{var_number}{2}{Check that var is numbered by numbervars}
-\predicatesummary{var_property}{2}{Variable properties during macro expansion}
-\predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
-\predicatesummary{variant_hash}{2}{Term-hash for term-variants}
-\predicatesummary{version}{0}{Print system banner message}
-\predicatesummary{version}{1}{Add messages to the system banner}
-\predicatesummary{visible}{1}{Ports that are visible in the tracer}
-\oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}
-\predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
-\predicatesummary{when}{2}{Execute goal when condition becomes true}
-\predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
-\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search path}
-\predicatesummary{win_add_dll_directory}{2}{Add directory to DLL search path}
-\predicatesummary{win_remove_dll_directory}{1}{Remove directory from DLL search path}
-\predicatesummary{win_exec}{2}{Win32: spawn Windows task}
-\predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
-\predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
+\predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared
+library (.so file)}
+\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared
+library (.so file)} \predicatesummary{unsetenv}{1}{Delete shell
+environment variable} \predicatesummary{untable}{1}{Remove tabling
+instrumentation} \predicatesummary{upcase_atom}{2}{Convert atom to
+upper-case} \predicatesummary{use_foreign_library}{1}{Load DLL/shared
+object (directive)} \predicatesummary{use_foreign_library}{2}{Load
+DLL/shared object (directive)} \predicatesummary{use_module}{1}{Import a
+module} \predicatesummary{use_module}{2}{Import predicates from a
+module} \predicatesummary{valid_string_goal}{1}{\hook{check} Goal
+handles strings} \predicatesummary{var}{1}{Type check for unbound
+variable} \predicatesummary{var_number}{2}{Check that var is numbered by
+numbervars} \predicatesummary{var_property}{2}{Variable properties
+during macro expansion} \predicatesummary{variant_sha1}{2}{Term-hash for
+term-variants} \predicatesummary{variant_hash}{2}{Term-hash for
+term-variants} \predicatesummary{version}{0}{Print system banner
+message} \predicatesummary{version}{1}{Add messages to the system
+banner} \predicatesummary{visible}{1}{Ports that are visible in the
+tracer} \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not
+saved} \predicatesummary{wait_for_input}{3}{Wait for input with optional
+timeout} \predicatesummary{when}{2}{Execute goal when condition becomes
+true} \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
+\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search
+path} \predicatesummary{win_add_dll_directory}{2}{Add directory to DLL
+search path} \predicatesummary{win_remove_dll_directory}{1}{Remove
+directory from DLL search path} \predicatesummary{win_exec}{2}{Win32:
+spawn Windows task} \predicatesummary{win_has_menu}{0}{Win32: true if
+console menu is available} \predicatesummary{win_folder}{2}{Win32: get
+special folder by CSIDL}
 \predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
 \predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}
 \predicatesummary{win_shell}{3}{Win32: open document through Shell}
 \predicatesummary{win_registry_get_value}{3}{Win32: get registry value}
+\predicatesummary{win_window_color}{2}{Win32: change colors of console window}
 \predicatesummary{win_window_pos}{1}{Win32: change size and position of window}
 \predicatesummary{window_title}{2}{Win32: change title of window}
 \predicatesummary{with_mutex}{2}{Run goal while holding mutex}
 \predicatesummary{with_output_to}{2}{Write to strings and more}
 \predicatesummary{with_quasi_quotation_input}{3}{Parse quasi quotation from stream}
+\predicatesummary{with_tty_raw}{1}{Run goal with terminal in raw mode}
 \predicatesummary{working_directory}{2}{Query/change CWD}
 \predicatesummary{write}{1}{Write term}
 \predicatesummary{write}{2}{Write term to stream}
@@ -811,6 +869,7 @@ suggest predicates from a keyword.
 \functionsummary{cosh}{1}{Hyperbolic cosine}
 \functionsummary{copysign}{2}{Apply sign of N2 to N1}
 \functionsummary{cputime}{0}{Get CPU time}
+\functionsummary{denominator}{1}{Denominator of a rational number (N/D)}
 \functionsummary{div}{2}{Integer division}
 \functionsummary{e}{0}{Mathematical constant}
 \functionsummary{erf}{1}{Gauss error function}
@@ -829,12 +888,15 @@ suggest predicates from a keyword.
 \functionsummary{lgamma}{1}{Log of gamma function}
 \functionsummary{log}{1}{Natural logarithm}
 \functionsummary{log10}{1}{10 base logarithm}
+\functionsummary{lcm}{2}{Least Common Multiple}
 \functionsummary{lsb}{1}{Least significant bit}
 \functionsummary{max}{2}{Maximum of two numbers}
 \functionsummary{min}{2}{Minimum of two numbers}
 \functionsummary{msb}{1}{Most significant bit}
 \opfuncsummary{mod}{2}{xfx}{300}{Remainder of division}
 \functionsummary{nan}{0}{Not a Number (NaN)}
+\functionsummary{nexttoward}{2}{Next float in some direction}
+\functionsummary{numerator}{1}{Numerator of a rational number (N/D)}
 \functionsummary{powm}{3}{Integer exponent and modulo}
 \functionsummary{random}{1}{Generate random number}
 \functionsummary{random_float}{0}{Generate random number}
@@ -843,6 +905,7 @@ suggest predicates from a keyword.
 \functionsummary{rdiv}{2}{Ration number division}
 \functionsummary{rem}{2}{Remainder of division}
 \functionsummary{round}{1}{Round to nearest integer}
+\functionsummary{roundtoward}{2}{Float arithmetic with specified rounding}
 \functionsummary{truncate}{1}{Truncate float to integer}
 \functionsummary{pi}{0}{Mathematical constant}
 \functionsummary{popcount}{1}{Count 1s in a bitvector}

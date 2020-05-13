@@ -1,0 +1,49 @@
+:- import set_pil_on/0,set_pil_off/0,
+	tfindall/3,abolish_table_pred/1  from tables.
+:- import numbervars/3 from num_vars.
+
+:- table c/2.
+:- table d/2.
+:- table e/2.
+
+member(X,[X|_]).
+member(X,[_|List]):-member(X,List).
+
+testcombo:-   c(W,E),T = c(W,E),numbervars(T,0,_),writeq(T),nl,fail
+	   ;  d(W,E),T = d(W,E),numbervars(T,0,_),writeq(T),nl,fail
+	   ; true.
+
+tc1:-d(W,E),T = d(W,E),numbervars(T,0,_T1),writeq(T),nl,fail.
+tc1.
+
+tc2:-e(W,E),T = e(W,E),numbervars(T,0,_T1),writeq(T),nl,fail.
+
+c(X,Y):-p(X,Y).
+c(X,Y):-p(X,Z),
+	tfindall(Yprime,c(Z,Yprime),Ylist),member(Y,Ylist).
+
+d(X,Y):-p(X,Y).
+d(X,Y):-p(X,Z),
+	d(Z,_),tfindall(Yprime,d(Z,Yprime),Ylist),
+	member(Y,Ylist).
+d(X,Y):-p(X,Z),
+	tfindall(Yprime,d(Z,Yprime),Ylist),member(Y,Ylist).
+
+e(X,Y):-p(X,Y).
+e(X,Y):-p(X,Z),
+	e(Z,_),tfindall(Yprime,e(Z,Yprime),Ylist),
+	member(Y,Ylist).
+%e(X,Y):-p(X,Z),
+%	tfindall(Yprime,e(Z,Yprime),Ylist),member(Y,Ylist).
+
+p(1,2).
+p(1,7).
+p(2,3).
+p(3,4).
+p(4,5).
+p(4,15).
+p(7,8).
+p(7,18).
+p(8,9).
+p(8,10).
+

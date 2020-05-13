@@ -49,13 +49,18 @@
             csv_write_file/3,           % +File, +Data, +Options
             csv_write_stream/3          % +Stream, +Data, +Options
           ]).
-:- use_module(library(record)).
-:- use_module(library(error)).
-:- use_module(library(pure_input)).
-:- use_module(library(debug)).
-:- use_module(library(option)).
-:- use_module(library(apply)).
-:- use_module(library(dcg/basics)).
+:- use_module(library(record),[(record)/1, op(_,_,record)]).
+
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2,domain_error/2]).
+:- autoload(library(lists),[append/3]).
+:- autoload(library(option),[option/2,select_option/4]).
+:- autoload(library(pure_input),
+	    [phrase_from_file/3,phrase_from_stream/2]).
+:- autoload(library(readutil),[read_line_to_codes/2]).
+:- autoload(library(dcg/basics),[string//1,eos//0]).
+
 
 /** <module> Process CSV (Comma-Separated Values) data
 

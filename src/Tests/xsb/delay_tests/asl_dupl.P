@@ -1,0 +1,26 @@
+%-----------------------------------------------------------------------
+%  Programs that tests insertion of duplicate delay lists.  It is
+%  dynamically stratified and its model should be WFM = {q, ~r}.
+%-----------------------------------------------------------------------
+
+% :- auto_table.
+:- table q/0, r/0.
+
+q :- tnot(r).
+q :- tnot(r).
+q :- tnot(r).
+q :- tnot(r).
+q :- tnot(r).
+q :- tnot(r).
+
+r :- tnot(q), fail.
+
+%-----------------------------------------------------------------------
+
+test :- q, fail.
+test :- ( q ->  ( tnot(q) -> writeln('q is undefined')
+		; writeln('q is true (OK)') )
+	; writeln('q is false') ),
+        ( r ->	( tnot(r) -> writeln('r is undefined')
+		; writeln('r is true') )
+	; writeln('r is false (OK)') ).

@@ -66,18 +66,25 @@ qcompile_([H|T], M, Options) :-
 qcompile_(FileName, Module, Options) :-
     absolute_file_name(FileName,
                        [ file_type(prolog),
-                         access(read)
+                         access(read),
+                         file_errors(fail),
+                         solutions(all)
                        ], Absolute),
     file_name_extension(ABase, PlExt, Absolute),
-    (   user:prolog_file_type(PlExt, qlf)
-    ->  throw(error(permission_error(compile, qlf, FileName),
-                    context(qcompile/1, 'Conflicting extension')))
-    ;   true
-    ),
+    \+ user:prolog_file_type(PlExt, qlf),
+    !,
     once(user:prolog_file_type(QlfExt, qlf)),
     file_name_extension(ABase, QlfExt, Qlf),
     load_files(Module:Absolute, ['$qlf'(Qlf)|Options]).
-
+qcompile_(FileName, _Module, _Options) :-
+    absolute_file_name(FileName,
+                       [ file_type(prolog),
+                         access(read)
+                       ], Absolute),
+    file_name_extension(_ABase, PlExt, Absolute),
+    user:prolog_file_type(PlExt, qlf),
+    throw(error(permission_error(compile, qlf, Absolute),
+                context(qcompile/1, 'No Prolog source file'))).
 
 %!  '$qload_file'(+File, +Module, -Action, -LoadedModule, +Options)
 %

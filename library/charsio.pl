@@ -50,7 +50,8 @@
             with_output_to_chars/3,     % :Goal, -Codes, ?Tail
             with_output_to_chars/4      % :Goal, -Stream, -Codes, ?Tail
           ]).
-:- use_module(library(error)).
+:- autoload(library(error),[must_be/2]).
+
 
 :- meta_predicate
     with_output_to_chars(0, -),

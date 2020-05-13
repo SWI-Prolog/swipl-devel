@@ -1,0 +1,30 @@
+:- dynamic rule/2.
+
+:- table interp_g/1.
+
+interp([]).
+interp([G|Gs]) :- interp_g(G),interp(Gs).
+interp_g(tnot(G)) :- tnot(interp_g(G)).
+interp_g(G) :- rule(G,B),interp(B).
+
+%-------------------------------------------------------------------------------
+
+test :- new_program, query(Goal), interp_g(Goal), fail.
+test :- writeln('Program interp1 finished execution...').
+
+%-------------------------------------------------------------------------------
+
+new_program :- cleanup, assert(query(p)),
+	assert(rule(p, [tnot(q),p])),
+	assert(rule(q, [tnot(q),p])),
+	assert(rule(q, [tnot(p)])).
+new_program :- cleanup, assert(query(q)),
+	assert(rule(p, [tnot(q), p])),
+	assert(rule(q, [tnot(p), q])),
+	assert(rule(p, [tnot(p)])).
+new_program :- cleanup, assert(query(p)),
+	assert(rule(p, [tnot(q), p])),
+	assert(rule(q, [tnot(p), q])),
+	assert(rule(q, [tnot(p)])).
+
+cleanup :- retractall(query(_)), retractall(rule(_,_)), abolish_all_tables.

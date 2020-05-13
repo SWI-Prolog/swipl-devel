@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2014, University of Amsterdam,
+    Copyright (c)  1985-2020, University of Amsterdam,
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -180,11 +181,27 @@ bagof(Templ, Goal0, List) :-
     (   Vars == v
     ->  findall(Templ, Goal, List),
         List \== []
-    ;   findall(Vars-Templ, Goal, Answers),
-        bind_bagof_keys(Answers,_),
+    ;   alloc_bind_key_list(Vars, VDict),
+        findall(Vars-Templ, Goal, Answers),
+        bind_bagof_keys(Answers, VDict),
         keysort(Answers, Sorted),
         pick(Sorted, Vars, List)
     ).
+
+%!  alloc_bind_key_list(+Vars, -VDict) is det.
+%
+%   Pre-allocate the variable dictionary used   by bind_bagof_keys/2. By
+%   pre-allocating this list all variables  bound become references from
+%   the `Vars` of  each  answer  to  this   dictionary.  If  we  do  not
+%   preallocate we create a huge reference chain from VDict through each
+%   of the answers, causing serious slowdown in the subsequent keysort.
+%
+%   The slowdown was discovered by Jan Burse.
+
+alloc_bind_key_list(Vars, VDict) :-
+    functor(Vars, _, Count),
+    length(List, Count),
+    '$append'(List, _, VDict).
 
 %!  bind_bagof_keys(+VarsTemplPairs, -SharedVars)
 %
@@ -243,13 +260,14 @@ setof(Templ, Goal0, List) :-
     ->  findall(Templ, Goal, Answers),
         Answers \== [],
         sort(Answers, List)
-    ;   findall(Vars-Templ, Goal, Answers),
+    ;   alloc_bind_key_list(Vars, VDict),
+        findall(Vars-Templ, Goal, Answers),
         (   ground(Answers)
-        ->  sort(Answers,Sorted),
-            pick(Sorted,Vars,List)
-        ;   bind_bagof_keys(Answers,_VDict),
+        ->  sort(Answers, Sorted),
+            pick(Sorted, Vars, List)
+        ;   bind_bagof_keys(Answers, VDict),
             sort(Answers, Sorted),
             pick(Sorted, Vars, Listu),
-            sort(Listu,List) % Listu ordering may be nixed by Vars
+            sort(Listu, List) % Listu ordering may be nixed by Vars
         )
     ).

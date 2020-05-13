@@ -43,8 +43,10 @@
             base64url/2,                % ?PlainText, ?Encoded
             base64url//1                % ?PlainText
           ]).
-:- use_module(library(error)).
-:- use_module(library(option)).
+:- autoload(library(error),
+	    [instantiation_error/1,must_be/2,syntax_error/1]).
+:- autoload(library(option),[option/3]).
+
 
 /** <module> Base64 encoding and decoding
 

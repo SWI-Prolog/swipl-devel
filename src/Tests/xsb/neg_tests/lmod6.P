@@ -1,0 +1,25 @@
+test :- a, fail.
+test :-
+	( a -> writeln('a is true') ; writeln('a is false') ),
+	( b -> writeln('b is true') ; writeln('b is false') ),
+	( c -> writeln('c is true') ; writeln('c is false') ),
+	( d -> writeln('d is true') ; writeln('d is false') ),
+	( e -> writeln('e is true') ; writeln('e is false') ).
+
+%--------------------------------------------------------------
+
+:- table a/0, b/0, c/0, d/0, e/0.
+
+a :- b, d.
+
+b :- c.
+b.
+
+c :- b, c.
+
+d :- tnot(e).
+d :- c.
+d :- tnot(c).
+
+e :- c.
+

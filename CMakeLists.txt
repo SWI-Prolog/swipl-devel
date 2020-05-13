@@ -1,9 +1,10 @@
+set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
+
 cmake_minimum_required(VERSION 3.5)
 project(SWI-Prolog)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-set(CMAKE_POLICY_DEFAULT_CMP0075 NEW)
-set(CMAKE_POLICY_DEFAULT_CMP0074 NEW)
 
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
@@ -14,6 +15,9 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
+option(USE_TCMALLOC
+       "Use Google tcmalloc instead of default malloc"
+       ON)
 option(SWIPL_SHARED_LIB
        "Put kernel in a shared library"
        ON)
@@ -22,6 +26,9 @@ option(SWIPL_VERSIONED_DIR
        OFF)
 option(SWIPL_INSTALL_IN_LIB
        "Install library in ${CMAKE_INSTALL_PREFIX}/lib"
+       OFF)
+option(SWIPL_INSTALL_IN_SHARE
+       "Install docs in ${CMAKE_INSTALL_PREFIX}/share/swipl"
        OFF)
 option(SWIPL_M32
        "Build 32-bit version on 64-bit Linux using multilib and gcc -m32"
@@ -60,6 +67,7 @@ include(Locations)
 include(InstallSource)
 include(QLF)
 include(PackageSelection)
+include(Dependencies)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set_install_prefix()
@@ -99,6 +107,9 @@ set(SWIPL_INSTALL_DIR ${SWIPL_INSTALL_DIR_DEF}
 set(SWIPL_TMP_DIR "/tmp" CACHE STRING
     "Directory to be used if the environment variable TMP is not set")
 
+set(SWIPL_CMAKE_NAMESPACE swipl::)
+set(SWIPL_INSTALL_CMAKE_CONFIG_DIR lib/cmake/swipl)
+
 if(BUILD_MACOS_BUNDLE)
   set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
   set(SWIPL_INSTALL_ARCH_EXE  SWI-Prolog.app/Contents/MacOS)
@@ -108,6 +119,9 @@ if(BUILD_MACOS_BUNDLE)
   set(SWIPL_INSTALL_RESOURCES SWI-Prolog.app/Contents/Resources)
 else()
   set(SWIPL_INSTALL_PREFIX   lib/${SWIPL_INSTALL_DIR})
+  if(SWIPL_INSTALL_IN_SHARE)
+    set(SWIPL_INSTALL_SHARE_PREFIX share/${SWIPL_INSTALL_DIR})
+  endif()
   set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin/${SWIPL_ARCH})
   set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
   set(SWIPL_INSTALL_MANPAGES share/man/man1
@@ -120,11 +134,26 @@ set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
 
 endif(WIN32)
 
+if(NOT SWIPL_INSTALL_SHARE_PREFIX)
+  set(SWIPL_INSTALL_SHARE_PREFIX "${SWIPL_INSTALL_PREFIX}")
+endif()
+
+set(SWIPL_BOOT_BASE        "boot.prc")
+set(SWIPL_BOOT_FILE        "${CMAKE_BINARY_DIR}/home/${SWIPL_BOOT_BASE}")
 set(SWIPL_INSTALL_LIBRARY  ${SWIPL_INSTALL_PREFIX}/library)
 set(SWIPL_INSTALL_BOOT     ${SWIPL_INSTALL_PREFIX}/boot)
 set(SWIPL_INSTALL_INCLUDE  ${SWIPL_INSTALL_PREFIX}/include)
+set(SWIPL_INSTALL_DOC	   ${SWIPL_INSTALL_SHARE_PREFIX}/doc)
 if(INSTALL_TESTS)
    set(INSTALL_TESTS_DIR   ${SWIPL_INSTALL_PREFIX}/test)
+endif()
+
+if(NOT SWIPL_PKG_NAME)
+  if(SWIPL_INSTALL_DIR STREQUAL "swi-prolog")
+    set(SWIPL_PKG_NAME ${SWIPL_INSTALL_DIR})
+  else()
+    set(SWIPL_PKG_NAME "swipl")
+  endif()
 endif()
 
 if(MSVC)
@@ -146,14 +175,21 @@ if(MULTI_THREADED)
   find_package(Threads)
 endif()
 
+include(TestLargeFiles)
+OPJ_TEST_LARGE_FILES(HAVE_LARGE_FILES)
+
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Core_system")
 
 # Add the core Prolog system
 add_subdirectory(src)
 install(FILES LICENSE README.md DESTINATION ${SWIPL_INSTALL_PREFIX})
+install(FILES customize/edit customize/init.pl customize/README.md
+	DESTINATION ${SWIPL_INSTALL_PREFIX}/customize)
 
 if(INSTALL_DOCUMENTATION)
   include(Documentation)
+  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
+
   add_custom_target(
       doc ALL
       COMMENT "Build the documentation")
@@ -166,14 +202,15 @@ if(INSTALL_DOCUMENTATION)
 
   add_custom_command(
       OUTPUT ${MAN_INDEX}
-      COMMAND ${PROG_SWIPL} -f none --home=${SWIPL_BUILD_HOME}
+      COMMAND ${PROG_SWIPL} -f none --no-packs --home=${SWIPL_BUILD_HOME}
+			    -g "'use_module(library(prolog_install))'"
 	                    -g cmake_save_man_index -t halt
-      DEPENDS swipl prolog_products doc.html)
+      DEPENDS swipl core doc.html)
   add_custom_target(
       man_index
       DEPENDS ${MAN_INDEX})
   add_dependencies(doc man_index)
-  install(FILES ${MAN_INDEX} DESTINATION ${SWIPL_INSTALL_PREFIX}/doc)
+  install(FILES ${MAN_INDEX} DESTINATION ${SWIPL_INSTALL_DOC})
 
   if(BUILD_PDF_DOCUMENTATION)
     add_custom_target(
@@ -182,10 +219,9 @@ if(INSTALL_DOCUMENTATION)
     add_dependencies(doc doc.pdf)
   endif()
 
-  set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Documentation)
   add_subdirectory(man)
   install(FILES packages/index.html
-	  DESTINATION ${SWIPL_INSTALL_PREFIX}/doc/packages)
+	  DESTINATION ${SWIPL_INSTALL_DOC}/packages)
 endif(INSTALL_DOCUMENTATION)
 
 # Install a prolog script to run tests on target device
@@ -196,7 +232,8 @@ if(INSTALL_TESTS)
   set(INSTALL_TESTS_DB ${CMAKE_BINARY_DIR}/cmake_pkg_tests.db)
   #Move test db to installation
   install(FILES       ${INSTALL_TESTS_DB}
-	  DESTINATION ${INSTALL_TESTS_DIR}/)
+	  DESTINATION ${INSTALL_TESTS_DIR}
+	  COMPONENT   Tests)
   file(REMOVE ${INSTALL_TESTS_DB})
 endif(INSTALL_TESTS)
 

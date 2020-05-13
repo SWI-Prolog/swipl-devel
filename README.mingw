@@ -9,20 +9,67 @@
 # Bagnara (initial port of the Prolog   kernel), Abramo Bagnara and Keri
 # Harris.
 #
+# The current releases are  configured  and   build  using  CMake.  As a
+# result, this README only applies for   building the PREREQUISITES. See
+# CMAKE.md and/or scripts/make-distribution for configuring and building
+# SWI-Prolog.
+#
 # USAGE
 #
 # The remainder of the  file  is   an  executable  specification  of the
-# installation process. To use it, copy this   file to a directory above
-# the location where you want to   build all components. I.e., typically
-# the directory above this one and source it into the bash shell:
+# installation process. The setup is designed to create ~/mingw32 and/or
+# ~/mingw64 for building and installing   the prerequisites. We describe
+# the setup for Win64. Simply replace  64   with  32 to build for 32-bit
+# Windows. First, install the requires tools from the Linux packages:
 #
-#   % . README.mingw win32|win64
+#    % sudo apt-get install wine wine-binfmt mingw-w64
+#    % sudo apt-get install cmake ninja-build nsis
 #
-# Next, execute the functions for the parts of the process you want. The
-# function build_all does everything.
+# Next, create and prepare the prerequisite location (the script changes
+# your prompt to `W64`
 #
-# This script has been tested for   cross-compilation  on a Linux system
-# with the mingw cross-compiler and wine installed.
+#    % cd ~
+#    % mkdir -p mingw64/src
+#    % cd mingw64/src
+#    % source <path/to/swipl-devel/README.mingw win64
+#    W64 download_prerequisites
+#
+# Unfortunately some of the download locations  tend to be unreliable or
+# require some registration or acceptance  of   license.  So,  check for
+# empty .tar.gz files and try  to  get   the  archive  by  hand from the
+# internet. Than re-run ``download_<package>`` to extract the archive.
+#
+# Once all is there, get the MinGW   runtime  libs in `bin`. The details
+# may depend on exact versions of MinGW, so please check.
+#
+#    % mkdir -p ~/mingw64/bin
+#    % cd ~/mingw64/bin
+#    % cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll .
+#    % cp /usr/lib/gcc/x86_64-w64-mingw32/9.2-win32/libgcc_s_seh-1.dll .
+#
+# Now, build the prerequisites:
+#
+#    W64 build_prerequisites
+#
+# If this worked successfully, build SWI-Prolog.   Below  is the default
+# command, see CMAKE.md for various options:
+#
+#    % cd /path/to/swipl-devel
+#    % mkdir build.win64
+#    % cd build.win64
+#    % cmake -DCMAKE_BUILD_TYPE=Release \
+#         -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
+#         -DJAVA_COMPATIBILITY=ON \
+#         -G Ninja ..
+#    % ninja
+#
+# If this succeeds you should be   able  to run `./src/swipl-win.exe` or
+# `./src/swipl.exe`
+#
+# To build an installer for installation on other systems, run
+#
+#    % cpack
+#
 #
 # PREREQUISITES
 #
@@ -36,24 +83,6 @@
 #	  /C/Program Files (x86)/... (default on 64-bit Windows)
 #	- jdk-<version>-windows-x64.exe into
 #	  /C/Program Files/... (default on 64-bit Windows)
-#   - NSIS installer generator for generating the installer.
-#       - nsis-<version>-setup.exe into /C/Program Files (x86)/...
-#   - MSVC tools (lib.exe) for creating MSVC compatible .lib files
-#       - Install Microsoft Visual C++ Express on your Windows partition
-#       - Copy "c:/Program Files (x86)/Microsoft Visual Studio 9" into
-#	  your ".wine/drive_c/Program Files (x86)"
-#	- Use "wine regedit" to add ...\VC\bin and ...\Common7\IDE to
-#	  your wine PATH.
-#	- Run "wine lib.exe" to see whether it works
-#	(See
-#	http://issaris.blogspot.nl/2008/04/creating-dlls-using-visual-c-8-on.html)
-#
-# UBUNTU PACKAGES
-#
-# Tested on Ubuntu 17.10 on AMD64.
-#
-#   - apt-get install wine-stable wine-binfmt
-#   - apt-get install mingw-w64
 
 TARGETHOST="$1"
 MAKE="make -j 4"
@@ -74,18 +103,18 @@ export BUILDARCH=$TARGETHOST
 # Versions of prerequisite packages. Used to  download the right release
 # file.
 
-GMP_VERSION=6.1.1
+GMP_VERSION=6.1.2
 PTHREADS_VERSION=2-9-1-release
 LIBDWARF_VERSION=20120410
-SSL_VERSION=1.1.0k
+SSL_VERSION=1.1.1d
 JPEG_VERSION=9b
 ZLIB_VERSION=1.2.11
-ARCHIVE_VERSION=3.2.1
+ARCHIVE_VERSION=3.4.0
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
-PCRE_VERSION=8.40
-FFI_VERSION=3.2.1
-YAML_VERSION=0.1.7
+PCRE_VERSION=8.43
+FFI_VERSION=3.3
+YAML_VERSION=0.2.2
 PLDIR=pl-devel
 
 # installation prefix.  This path should not have spaces in one of the
@@ -401,7 +430,7 @@ build_libarchive()
     export lt_cv_deplibs_check_method='pass_all'
     export ac_cv_func__localtime64_s='no'
     export ac_cv_func__ctime64_s='no'
-    ./configure --host=$CROSS --prefix=$install --with-pic \
+    ./configure --host=$CROSS --prefix=$install --with-pic --with-zlib \
     --without-iconv --without-openssl --without-nettle --without-xml2 \
     --without-expat --without-libregex --without-bz2lib \
     --without-lzmadec --without-lzma --without-lzo2
@@ -540,137 +569,4 @@ build_prerequisites()
   build_libpcre
   build_libffi
   build_libyaml
-}
-
-###########################
-# Download and unpack a SWI-Prolog source distribution.
-
-enter_topdir()
-{ if [ ! -r build.templ ]; then
-    if [ -r $PLDIR/build.templ ]; then
-      cd $PLDIR
-    else
-      echo "ERROR: Cannot find SWI-Prolog sources"
-      return 1
-    fi
-  fi
-}
-
-
-download_swipl()
-{ if [ ! -d $PLDIR -a ! -r build.templ ]; then
-    git clone git://www.swi-prolog.org/home/pl/git/$PLDIR.git
-  fi
-
-  ( enter_topdir
-    git pull
-    ./prepare --yes
-  )
-}
-
-build_swipl_core()
-{ export CIFLAGS="-I$install/include"
-  export LDFLAGS="-L$install/lib"
-  ( enter_topdir
-    wineserver || true
-    ./configure --host=$CROSS --prefix=$install \
-        --disable-readline --disable-libdirversion \
-        --enable-shared --disable-static
-    $MAKE 2>&1 | tee make.out
-    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
-    make install 2>&1 | tee make-install.out
-    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
-  )
-}
-
-dist_dlls="libarchive-*.dll libgmp-*.dll libjpeg-*.dll "
-dist_dlls+="*pthread*.dll zlib*.dll libdb-*.dll "
-if [ "$BITS" = 64 ]; then
-  dist_dlls+="libcrypto-1_1-x64.dll libssl-1_1-x64.dll "
-else
-  dist_dlls+="libcrypto-1_1.dll libssl-1_1.dll "
-fi
-dist_dlls+="libpcre-*.dll "
-dist_dlls+="libyaml-*.dll "
-dist_dlls+="`(cd $install/bin && find . -name 'libgcc*.dll')` "
-if [ -r "$install/bin/libdwarf.dll" ]; then
-  dist_dlls+=" libdwarf.dll"
-fi
-
-# this assumes that the required GCC dlls are copied into $install
-
-copy_dlls()
-{ (cd $install/bin && cp $dist_dlls $install/swipl/bin)
-  if [ -r $install/lib/libpthreadGC2.dll.a ]; then
-    cp $install/lib/libpthreadGC2.dll.a $install/swipl/lib
-  fi
-}
-
-
-# Usage: build_swipl_packages [pkg ...]
-
-build_swipl_packages()
-{ ( enter_topdir
-    cd packages
-    export CPPFLAGS=-I$install/include
-    export PKGLDFLAGS=-I$install/lib
-    [ -z "$1" ] || export PKG="$1"
-    ./configure --host=$CROSS --prefix=$install
-    $MAKE 2>&1 | tee -a ../make.out
-    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
-    make install 2>&1 | tee -a ../make-install.out
-    if [ "${PIPESTATUS[0]}" != 0 ]; then exit 1; fi
-    make html-install || exit 1
-  )
-}
-
-check_build()
-{ ( enter_topdir
-    [ -f make.out ] && scripts/check_build_log.sh make.out
-  )
-}
-
-build_swipl()
-{ build_swipl_core
-  copy_dlls
-  build_swipl_packages
-  check_build
-}
-
-clean_swipl()
-{ ( enter_topdir
-    make distclean
-  )
-}
-
-uninstall_swipl()
-{ rm -rf $install/swipl
-}
-
-
-build_installer()
-{ ( enter_topdir
-    cd ${BUILDARCH-src}
-    make installer
-  )
-}
-
-###########################
-# Do the whole lot
-
-build_all()
-{ make_mingw_dirs
-  build_prerequisites
-  build_swipl
-}
-
-######################
-# Create a new release
-
-build_release()
-{ clean_swipl
-  uninstall_swipl
-  download_swipl
-  build_swipl
-  build_installer
 }

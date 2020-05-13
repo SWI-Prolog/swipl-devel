@@ -1,0 +1,305 @@
+/*
+Test of basic ISO updating with multiple visitors (multiple old subgoals).
+*/
+
+:- compiler_options([spec_off,xpp_on]).
+%#include "table_inspection_defs.h"
+:- import incr_assert/1 from increval.
+:- import variant/2 from subsumes.
+:- import numbervars/1 from num_vars.
+%:- ensure_loaded(xsbbrat).
+:- dynamic answer/1.
+
+test:- test_2_bt.
+
+test_2_bt:- test101,fail.
+test_2_bt:- test102,fail.
+test_2_bt:- test103,fail.
+test_2_bt:- test104,fail.
+test_2_bt:- test105,fail.
+test_2_bt:- test106,fail.
+test_2_bt:- test107,fail.
+test_2_bt:- test108,fail.
+test_2_bt:- test109,fail.
+test_2_bt:- test110,fail.
+test_2_bt:- test111,fail.
+test_2_bt.
+
+/*
+test1:   Open call / numcon answer / as len 1 / 1 ans in continuation
+test2:   Open call / f(numcon) answer / as len 1 / 1 ans in continuation
+test3:   Open call / numcon answer / as len 2 / 1 ans in continuation
+test4:   Open call / numcon answer / as len 2 / 2 ans in continuation
+test5:   Open call / f(g(numcon) answer / as len 1 / 1 ans in continuation
+test6:   Open call / unified numcon answer / as len 1 / 1 ans in continuation
+test7:   Open call / numcon var answer / as len 2 / 1 ans in continuation
+test8:   (X,X) call / mixed answers / as len 1 / 2 ans in continuation
+test9:   (X,Y) call / mixed answers (X=Y)  / as len 2 / 2 ans in continuation
+test10:  (X) call / 2-level trie / as len 1 / 2 ans in continuation
+*/
+
+
+test101:-
+       retractall(answer(_)),
+       t1o(X),register(first(t1(X))),
+       t1o(X1),register(second(t1(X,X1))),
+       (d1(3) -> true ; incr_assert(d1(3))),
+       t1o(Y),register(third(t1(Y))),
+       fail.
+test101:- validate(test101(_)).
+test101([first(t1(1)),first(t1(2)),second(t1(1,1)),second(t1(1,2)),second(t1(1,3)),second(t1(2,1)),second(t1(2,2)),third(t1(1)),third(t1(2)),third(t1(3))]).
+
+test102:-
+       retractall(answer(_)),
+       t2o(X),register(first(t2(X))),
+       t2o(X1),register(second(t2(X,X1))),
+       (d2(3) -> true ; incr_assert(d2(3))),
+       t2o(Y),register(third(t2(Y))),
+       fail.
+test102:- validate(test102(_)).
+test102([first(t2(f(1))),first(t2(f(2))),second(t2(f(1),f(1))),second(t2(f(1),f(2))),second(t2(f(1),f(3))),second(t2(f(2),f(1))),second(t2(f(2),f(2))),third(t2(f(1))),third(t2(f(2))),third(t2(f(3)))]).
+
+test103:-
+       retractall(answer(_)),
+       t3o(X,Y),register(first(t3(X,Y))),
+       t3o(X2,Y2),register(first(t3(X,Y,X2,Y2))),
+       (d3(3) -> true ; incr_assert(d3(3))),
+       t3o(X1,Y1),register(second(t3(X1,Y1))),
+       fail.
+test103:- validate(test103(_)).
+test103([first(t3(1,11)),first(t3(2,12)),first(t3(1,11,1,11)),first(t3(1,11,2,12)),first(t3(2,12,1,11)),first(t3(2,12,2,12)),first(t3(2,12,3,13)),second(t3(1,11)),second(t3(2,12)),second(t3(3,13))]).
+
+test104:- retractall(answer(_)),
+       t4o(X,Y),register(first(t4(X,Y))),
+       t4o(X2,Y2),register(second(t4(X,Y,X2,Y2))),
+       (d4(4) -> true ; incr_assert(d4(4))),
+       t4o(X1,Y1),register(third(t4(X1,Y1))),
+       fail.
+test104:- validate(test104(_)).
+test104([first(t4(1,11)),first(t4(2,12)),first(t4(3,13)),second(t4(1,11,1,11)),second(t4(1,11,2,12)),second(t4(1,11,3,13)),second(t4(2,12,1,11)),second(t4(2,12,2,12)),second(t4(2,12,3,13)),second(t4(2,12,4,14)),second(t4(3,13,1,11)),second(t4(3,13,2,12)),second(t4(3,13,3,13)),second(t4(3,13,4,14)),third(t4(1,11)),third(t4(2,12)),third(t4(3,13)),third(t4(4,14))]).
+
+test105:- retractall(answer(_)),
+        t5o(X),register(first(t5(X))),
+        t5o(X2),register(second(t5(X,X2))),
+        (d5(3) -> true ; incr_assert(d5(3))),
+        t5o(Y),register(third(t5(Y))),
+        fail.
+test105:- validate(test105(_)).
+test105([first(t5(f(g(1)))),first(t5(f(g(2)))),second(t5(f(g(1)),f(g(1)))),second(t5(f(g(1)),f(g(2)))),second(t5(f(g(2)),f(g(1)))),second(t5(f(g(2)),f(g(2)))),second(t5(f(g(2)),f(g(3)))),third(t5(f(g(1)))),third(t5(f(g(2)))),third(t5(f(g(3))))]).
+
+test106:- retractall(answer(_)),
+       t6o(X,Y),register(first(t6(X,Y))),
+       t6o(X1,Y1),register(second(t6(X,Y,X1,Y1))),
+       (d6(3) -> true ; incr_assert(d6(3))),
+       t6o(X2,Y2),register(third(t6(X2,Y2))),
+       fail.
+test106:- validate(test106(_)).
+test106([first(t6(1,1)),first(t6(2,2)),second(t6(1,1,1,1)),second(t6(1,1,2,2)),second(t6(2,2,1,1)),second(t6(2,2,2,2)),second(t6(2,2,3,3)),third(t6(1,1)),third(t6(2,2)),third(t6(3,3))]).
+
+test107:- retractall(answer(_)),
+       t7o(X,Y),register(first(t7(X,Y))),
+       t7o(X1,Y1),register(second(t7(X,Y,X1,Y1))),
+       (d7(3) -> true ; incr_assert(d7(3))),
+       t7o(X2,Y2),register(third(t7(X2,Y2))),
+       fail.
+test107:- validate(test107(_)).
+test107([first(t7(1,_333)),first(t7(2,_400)),
+	 second(t7(1,_340,1,_342)),second(t7(1,_370,2,_372)),
+	 second(t7(2,_407,3,_409)),second(t7(2,_437,1,_439)),second(t7(2,_467,2,_469)),
+	 third(t7(1,_356)),third(t7(1,_386)),third(t7(1,_423)),
+	 third(t7(1,_453)),third(t7(1,_483)),third(t7(2,_363)),
+	 third(t7(2,_393)),third(t7(2,_430)),third(t7(2,_460)),
+	 third(t7(2,_490)),third(t7(3,_349)),third(t7(3,_379)),
+	 third(t7(3,_416)),third(t7(3,_446)),third(t7(3,_476))]).
+
+test108:- retractall(answer(_)),
+       t8o(X,X),register(first(t8(X,X))),
+       t8o(X1,X1),register(second(t8(X,X,X1,X1))),
+       (d8(3) -> true ; incr_assert(d8(3))),
+       t8o(X2,X2),register(third(t8(X2,X2))),
+       fail.
+test108:- validate(test108(_)).
+test108([first(t8(1,1)),first(t8(2,2)),second(t8(1,1,1,1)),second(t8(1,1,2,2)),second(t8(2,2,1,1)),second(t8(2,2,2,2)),second(t8(2,2,3,3)),third(t8(1,1)),third(t8(2,2)),third(t8(3,3))]).
+
+test109:- retractall(answer(_)),
+       t9o(X,Y),register(first(t9(X,Y))),
+       t9o(X2,Y2),register(second(t9(X,Y,X2,Y2))),
+       (d9(3) -> true ; incr_assert(d9(3))),
+       t9o(X1,Y1),register(third(t9(X1,Y1))),
+       fail.
+test109:- validate(test109(_)).
+test109([first(t9(1,1)),first(t9(f(2),f(2))),first(t9([h(_694,_694)],[h(_694,_694)])),
+         second(t9(1,1,1,1)),second(t9(1,1,f(2),f(2))),second(t9(1,1,[h(_580,_580)],[h(_580,_580)])),
+         second(t9(f(2),f(2),1,1)),second(t9(f(2),f(2),3,3)),second(t9(f(2),f(2),f(2),f(2))),second(t9(f(2),f(2),[h(_1155,_1155)],[h(_1155,_1155)])),
+	 second(t9([h(_713,_713)],[h(_713,_713)],3,3)),second(t9([h(_774,_774)],[h(_774,_774)],1,1)),
+	 second(t9([h(_835,_835)],[h(_835,_835)],f(2),f(2))),second(t9([h(_900,_900)],[h(_900,_900)],[h(_910,_910)],[h(_910,_910)])),
+         third(t9(1,1)),third(t9(3,3)),third(t9(f(2),f(2))),
+	 third(t9([h(_561,_561)],[h(_561,_561)])),third(t9([h(_622,_622)],[h(_622,_622)])),
+	 third(t9([h(_677,_677)],[h(_677,_677)])),third(t9([h(_755,_755)],[h(_755,_755)])),
+	 third(t9([h(_816,_816)],[h(_816,_816)])),third(t9([h(_881,_881)],[h(_881,_881)])),
+	 third(t9([h(_952,_952)],[h(_952,_952)])),third(t9([h(_1018,_1018)],[h(_1018,_1018)])),
+	 third(t9([h(_1073,_1073)],[h(_1073,_1073)])),third(t9([h(_1132,_1132)],[h(_1132,_1132)])),
+	 third(t9([h(_1197,_1197)],[h(_1197,_1197)]))]).
+
+test110:- retractall(answer(_)),
+       t10o(X),register(first(t10(X))),
+       t10o(X2),register(second(t10(X,X2))),
+       (d10(g(2)) -> true ; incr_assert(d10(g(2)))),
+       t10o(X1),register(third(t10(X1))),
+       fail.
+test110:- validate(test110(_)).
+test110([first(t10(f(1))),first(t10(f(2))),first(t10(g(1))),
+	  second(t10(f(1),f(1))),second(t10(f(1),f(2))),second(t10(f(1),g(1))),
+	  second(t10(f(2),f(1))),second(t10(f(2),f(2))),second(t10(f(2),g(1))),second(t10(f(2),g(2))),
+	  second(t10(g(1),f(1))),second(t10(g(1),f(2))),second(t10(g(1),g(1))),second(t10(g(1),g(2))),
+	  third(t10(f(1))),third(t10(f(2))),third(t10(g(1))),third(t10(g(2)))]).
+
+test111:- retractall(answer(_)),
+       t11o(X,f([1]),Y),register(first(t11(X,Y))),
+       t11o(X1,f([1]),Y1),register(second(t11(X,Y,X1,Y1))),
+       (d11(g(2),_,g(2)) -> true ; incr_assert(d11(g(2),_,g(2)))),
+       t11o(X2,f([1]),Y2),register(third(t11(X2,Y2))),
+       fail.
+test111:- validate(test111(_)).
+test111([first(t11(f(1),f(1))),first(t11(f(2),f(2))),first(t11(g(1),g(1))),
+	second(t11(f(1),f(1),f(1),f(1))),second(t11(f(1),f(1),f(2),f(2))),second(t11(f(1),f(1),g(1),g(1))),
+	second(t11(f(2),f(2),f(1),f(1))),second(t11(f(2),f(2),f(2),f(2))),second(t11(f(2),f(2),g(1),g(1))),second(t11(f(2),f(2),g(2),g(2))),
+	second(t11(g(1),g(1),f(1),f(1))),second(t11(g(1),g(1),f(2),f(2))),second(t11(g(1),g(1),g(1),g(1))),second(t11(g(1),g(1),g(2),g(2))),
+	third(t11(f(1),f(1))),third(t11(f(2),f(2))),third(t11(g(1),g(1))),third(t11(g(2),g(2)))]).
+
+:- table t1/1 as incremental.
+t1(X) :- d1(X).
+t1o(X) :- order_by([desc(X)], t1(X)).
+:- table t2/1 as incremental.
+t2(f(X)) :- d2(X).
+t2o(X) :- order_by([desc(X)], t2(X)).
+:- table t3/2 as incremental.
+t3(X,Y) :- d3(X),Y is X + 10.
+t3o(X,Y) :- order_by([asc(X)], t3(X,Y)).
+:- table t4/2 as incremental.
+t4(X,Y) :- d4(X),Y is X + 10.
+t4o(X,Y) :- order_by([asc(X)], t4(X,Y)).
+:- table t5/1 as incremental.
+t5(f(g(X))) :- d5(X).
+t5o(X) :- order_by([asc(X)], t5(X)).
+:- table t6/2 as incremental.
+t6(X,X) :- d6(X).
+t6o(X,Y) :- order_by([asc(X)], t6(X,Y)).
+:- table t7/2 as incremental.
+t7(X,_Y) :- d7(X).
+t7o(X,Y) :- order_as(X, [3,1,2], t7(X,Y)).
+:- table t8/2 as incremental.
+t8(X,_Y) :- d8(X).
+t8o(X,Y) :- order_by([asc(X)], t8(X,Y)).
+:- table t9/2 as incremental.
+t9(X,Y) :- d9(X),X = Y.
+t9o(X,Y) :- order_as(X, [3,1,f(_),[_|_]], t9(X,Y)).
+:- table t10/1 as incremental.
+t10(X) :- d10(X).
+t10o(X) :- order_by([asc(X)], t10(X)).
+:- table t11/3 as incremental.
+t11(X,Y,Z) :- d11(X,Y,Z).
+t11o(X,Y,Z) :- order_by([asc(X)], t11(X,Y,Z)).
+
+:- meta_predicate
+       order_as(?, +, 0).
+
+order_as(Var, List, Goal) :-
+       findall(Goal, Goal, Goals),
+       member(Var, List),
+       member(Goal, Goals).
+
+:- dynamic d1/1 as incremental.
+d1(1). d1(2).
+:- dynamic d2/1 as incremental.
+d2(1). d2(2).
+:- dynamic d3/1 as incremental.
+d3(2). d3(1).
+:- dynamic d4/1 as incremental.
+d4(3). d4(2). d4(1).
+:- dynamic d5/1 as incremental.
+d5(2). d5(1).
+:- dynamic d6/1 as incremental.
+d6(2). d6(1).
+:- dynamic d7/1 as incremental.
+d7(2). d7(1).
+:- dynamic d8/1 as incremental.
+d8(2). d8(1).
+:- dynamic d9/1 as incremental.
+d9([h(X,X)]). d9(f(2)). d9(1).
+:- dynamic d10/1 as incremental.
+d10(g(1)). d10(f(2)). d10(f(1)).
+:- dynamic d11/3 as incremental.
+d11(g(1),_,g(1)). d11(f(2),_,f(2)). d11(f(1),_,f(1)).
+
+
+register(Term):-
+%        writeln(Term).
+	assert(answer(Term)).
+
+validate(Term):-
+	call(Term),arg(1,Term,Correct0),functor(Term,F,_),
+	setof(X,answer(X),Answers0),
+	maplist(numbervars, Answers0),maplist(numbervars, Correct0),
+        sort(Answers0, Answers),
+        sort(Correct0, Correct),
+	(validate_1(Answers,Correct) ->
+	    writeln('!!!succeeded'(F))
+	 ;  writeln('!!!failed'(F,Answers,Correct)) ).
+
+validate_1([],[]):- !.
+validate_1([H|T],[H1|T1]):-
+	variant(H,H1),!,%writeln(variant(H,H1)),
+	validate_1(T,T1).
+validate_1([H|_T],[H1|_T1]):- writeln(nomatch(H,H1)),!,fail.
+validate_1(A,B):- writeln(nomatch(A,B)),fail.
+
+
+end_of_file.
+
+:- table t/4 as incremental.
+t(1,X,a,Y):- d1(X),d2(Y).
+t(2,X,b,X):- d1(X).
+
+:- import new_trie/1 , trie_intern/4, trie_interned/4, trie_interned/2,  trie_unintern_nr/2, trie_intern/2,
+	  trie_unintern/2, delete_trie/1, bulk_trie_intern/2,trie_retractall/2  from intern.
+
+t2:-
+     new_trie(Trie),
+     assert(t2trie(Trie)),
+     trie_intern(p(1,2,3),Trie),
+     fail.
+t2:- t2trie(Trie),
+     trie_interned(T,Trie),
+     writeln(T),
+     fail.
+
+:- import  table_inspection_function/5 from machine.
+:- import  table_inspection_function/7 from machine.
+
+test(_A,_B,_C,_D,_,_):- t(1,X,a,Y), fail.
+test(A,B,C,D,E,F):- A = t(1,X,a,Y), table_inspection_function(TEMP_FUNCTION,A,B,C,D,E,F),writeln((A,B,C,D,E,F)),fail.
+test(_A,_B,_C,_D,_E,_F).
+
+tf2(X,Y):- t1(X), table_inspection_function(TEMP_FUNCTION_2,t1(_),Y,_,_,_,_).
+tf2(_,_).
+
+two_sols(1).
+two_sols(2).
+
+create_big_eap_structure(0,0):- !.
+create_big_eap_structure(N,f(X)):-
+	N1 is N - 1,
+	create_big_eap_structure(N1,X).
+
+
+test_eap:-
+       retractall(answer(_)),
+       th1(X),register(first(t1(X))),
+       two_sols(_M),
+       (dh1(3) -> create_big_eap_structure(100,_H) ; incr_assert(dh1(3))),
+       th1(Y),register(second(t1(Y))),
+       fail.
+test_eap:- validate(test1(_)).
+test_eap([first(t1(1)),first(t1(2)),second(t1(1)),second(t1(2)),second(t1(3))]).
+

@@ -37,23 +37,25 @@
             help/1,                     % +Object
             apropos/1                   % +Search
           ]).
-:- use_module(library(pldoc)).
-:- use_module(library(pldoc/doc_man)).
-:- use_module(library(pldoc/man_index)).
-:- use_module(library(pldoc/doc_words)).
-:- use_module(library(http/html_write)).
-:- use_module(library(sgml)).
-:- use_module(library(isub)).
-:- use_module(library(pairs)).
-:- use_module(library(solution_sequences)).
-:- use_module(library(error)).
-:- use_module(library(porter_stem)).
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(process)).
+:- use_module(library(pldoc), []).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(isub),[isub/4]).
+:- autoload(library(lists),[append/3,sum_list/2]).
+:- autoload(library(pairs),[pairs_values/2]).
+:- autoload(library(porter_stem),[tokenize_atom/2]).
+:- autoload(library(process),[process_create/3]).
+:- autoload(library(sgml),[load_html/3]).
+:- autoload(library(solution_sequences),[distinct/1]).
+:- autoload(library(http/html_write),[html/3,print_html/1]).
+:- autoload(library(lynx/html_text),[html_text/2]).
+:- autoload(pldoc(doc_man),[man_page/4]).
+:- autoload(pldoc(doc_words),[doc_related_word/3]).
+:- autoload(pldoc(man_index),
+	    [man_object_property/2,doc_object_identifier/2]).
 
-:- use_module(library(lynx/html_text)).
-:- use_module(library(lynx/pldoc_style)).
+
+:- use_module(library(lynx/pldoc_style), []).
 
 /** <module> Text based manual
 
@@ -166,12 +168,13 @@ show_html(HTML) :-
 help_html(Matches, How, HTML) :-
     phrase(html(html([ head([]),
                        body([ \match_type(How),
-                              \man_pages(Matches,
-                                         [ no_manual(fail),
-                                           links(false),
-                                           link_source(false),
-                                           navtree(false)
-                                         ])
+                              dl(\man_pages(Matches,
+                                            [ no_manual(fail),
+                                              links(false),
+                                              link_source(false),
+                                              navtree(false),
+                                              server(false)
+                                            ]))
                             ])
                      ])),
            Tokens),

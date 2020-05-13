@@ -1,4 +1,6 @@
 :- use_module(library(dcg/basics)).
+:- use_module(library(debug)).
+:- use_module(library(readutil)).
 
 :- initialization
 	(   catch(main, E,

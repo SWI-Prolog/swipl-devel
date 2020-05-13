@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -119,8 +120,7 @@ extern uintptr_t	FreeMemory(void);
 
 #define TTY_COOKED	 1		/* Initial mode: echo */
 #define TTY_RAW		 2		/* Non-blocking, non-echo */
-#define TTY_OUTPUT	 3		/* enable post-processing */
-#define TTY_SAVE	 4		/* just save status */
+#define TTY_SAVE	 3		/* just save status */
 
 typedef struct
 { void *state;				/* Saved state */
@@ -128,14 +128,15 @@ typedef struct
 } ttybuf;
 
 extern ttybuf	ttytab;			/* saved tty status */
-extern int	ttymode;		/* Current tty mode */
 extern int	ttymodified;		/* Did we modify the tty */
+extern int	ttyfileno;		/* Main TTY file number */
 
 #define IsaTty(fd)	isatty(fd)
 
 extern bool PushTty(IOSTREAM *s, ttybuf *buf, int mode);
 extern bool PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
 extern void ResetTty(void);
+extern int  Sttymode(IOSTREAM *s);
 
 
 		/********************************

@@ -1,0 +1,6 @@
+Evaluating p37 : a(A,B)
+a(2,3) is: true (OK)
+a(3,2) is: true (OK)
+a(3,3) is: true (OK)
+e(3,3) is: true (OK)
+p(3,3) is: false (OK)

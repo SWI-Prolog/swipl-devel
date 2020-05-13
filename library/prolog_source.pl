@@ -47,12 +47,14 @@
             path_segments_atom/2,       % ?Segments, ?Atom
             directory_source_files/3    % +Dir, -Files, +Options
           ]).
-:- use_module(operators).
-:- use_module(lists).
-:- use_module(debug).
-:- use_module(option).
-:- use_module(error).
-:- use_module(apply).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(debug),[debug/3,assertion/1]).
+:- autoload(library(error),[domain_error/2]).
+:- autoload(library(lists),[member/2,last/2,select/3,append/3]).
+:- autoload(library(operators),
+	    [push_op/3,push_operators/1,pop_operators/0]).
+:- autoload(library(option),[select_option/4,option/3,option/2]).
+
 
 /** <module> Examine Prolog source-files
 
@@ -262,6 +264,7 @@ update_state(_, _).
 
 update_directive(module(Module, Public), _) :-
     atom(Module),
+    is_list(Public),
     !,
     '$set_source_module'(Module),
     maplist(import_syntax(_,Module, _), Public).
@@ -764,7 +767,8 @@ search_path('.', Here, 999, DirLen) :-
     atom_length(Here, DirLen).
 search_path(Alias, Dir, AliasLen, DirLen) :-
     user:file_search_path(Alias, _),
-    Alias \== autoload,
+    Alias \== autoload,             % TBD: Multifile predicate?
+    Alias \== noautoload,
     Spec =.. [Alias,'.'],
     atom_length(Alias, AliasLen0),
     AliasLen is 1000 - AliasLen0,   % must do reverse sort

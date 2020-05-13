@@ -1,0 +1,25 @@
+%------------------------------------------------------------------------
+% Program that used to give wrong results.
+%
+% Model T = {}, F = {q}, U = {p,r}.
+%------------------------------------------------------------------------
+
+:- table p/0, q/0, r/0.
+
+p :- q, tnot(p).
+r :- tnot(p).
+p :- tnot(r).
+q :- fail.
+
+%------------------------------------------------------------------------
+
+test :- p, fail.
+test :- ( p ->	( tnot(p) -> writeln('p is undefined (OK)')
+		; writeln('p is true') )
+	; writeln('p is false') ),
+        ( q ->  ( tnot(q) -> writeln('q is undefined')
+		; writeln('q is true') )
+	; writeln('q is false (OK)') ),
+	( r ->  ( tnot(r) -> writeln('r  is undefined (OK)')
+		; writeln('r is true') )
+	; writeln('r  is false') ).

@@ -37,9 +37,13 @@
 :- module(win_menu,
           [ init_win_menus/0
           ]).
-:- use_module(library(lists)).
-:- use_module(library(apply)).
-:- use_module(library(error)).
+:- autoload(library(apply),[maplist/4]).
+:- autoload(library(edit),[edit/1]).
+:- autoload(library(lists),[select/3,append/3]).
+:- autoload(library(pce),[get/8]).
+:- autoload(library(www_browser),[expand_url_path/2,www_open_url/1]).
+
+
 :- set_prolog_flag(generate_debug_info, false).
 :- op(200, fy, @).
 :- op(990, xfx, :=).
@@ -224,10 +228,6 @@ www_open(Id) :-
     print_message(informational, opening_url(URL)),
     call(www_open_url(URL)),        % avoid autoloading
     print_message(informational, opened_url(URL)).
-
-html_open(Spec) :-
-    absolute_file_name(Spec, [access(read)], Path),
-    call(win_shell(open, Path)).
 
 :- if(current_predicate(win_message_box/2)).
 

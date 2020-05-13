@@ -1,0 +1,23 @@
+test :- a, fail.
+test :-
+	( a -> writeln('a is true') ; writeln('a is false') ),
+	( b -> writeln('b is true') ; writeln('b is false') ),
+	( c -> writeln('c is true') ; writeln('c is false') ),
+	( d -> writeln('d is true') ; writeln('d is false') ).
+
+%-----------------------------------------------------------------------------
+%%
+%% Non left-to-right modularly-stratified program (but it is working fine...)
+%%
+
+:- table a/0, b/0, c/0, d/0.
+
+a :- tnot(c), tnot(b).
+
+b :- tnot(d).
+b.
+
+c :- tnot(d).
+
+d :- tnot(b).
+

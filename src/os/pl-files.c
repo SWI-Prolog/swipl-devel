@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,7 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef __MINGW32__
+#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
 #endif
@@ -519,7 +520,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
       if ( rc ) rc = PL_unify_nil(options);
       if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
       if ( rc ) rc = PL_get_nchars(av+1, &len, namep,
-				   CVT_ATOMIC|BUF_RING|REP_FN);
+				   CVT_ATOMIC|BUF_STACK|REP_FN);
       if ( rc && strlen(*namep) != len )
       { n = av+1;
 	goto code0;
@@ -576,7 +577,7 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
       return FALSE;
   }
 
-  *namep = buffer_string(name, BUF_RING);
+  *namep = buffer_string(name, BUF_STACK);
 
   return TRUE;
 }
@@ -593,9 +594,10 @@ PL_get_file_name(term_t n, char **namep, int flags)
   { if ( (flags & PL_FILE_OSPATH) )
     { if ( !(name = OsPath(name, ospath)) )
 	return FALSE;
+      name = buffer_string(name, BUF_STACK);
     }
 
-    *namep = buffer_string(name, BUF_RING);
+    *namep = name;
   }
 
   return rc;
@@ -618,7 +620,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
 	return FALSE;
     }
 
-    b = findBuffer(BUF_RING);
+    b = findBuffer(BUF_STACK);
     for(s = name; *s; )
     { int chr;
 
@@ -1134,7 +1136,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
     PL_fail;
   }
 
-  if ( PL_get_chars(base, &b, CVT_ALL|BUF_RING|REP_FN|CVT_EXCEPTION) &&
+  if ( PL_get_chars(base, &b, CVT_ALL|BUF_STACK|REP_FN|CVT_EXCEPTION) &&
        PL_get_chars(ext, &e, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { char *s;
 
@@ -1196,13 +1198,47 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
 
 static
-PRED_IMPL("mark_executable", 1, mark_executable, 0)
+PRED_IMPL("$mark_executable", 1, mark_executable, 0)
 { char *name;
 
   if ( !PL_get_file_name(A1, &name, 0) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_source_sink, A1);
 
   return MarkExecutable(name);
+}
+
+/**
+ * '$my_file'(+Path) is semidet.
+ *
+ * True if Path exists and is owned by the same user as the current
+ * process.  If the OS or filesystem doesn't support ownership the
+ * result is true if Path exists.
+ */
+
+static
+PRED_IMPL("$my_file", 1, my_file, 0)
+{ char *n;
+
+  if ( !PL_get_file_name(A1, &n, 0) ||
+       file_name_is_iri(n) )
+    return FALSE;
+
+#ifdef HAVE_GETUID
+{
+  statstruct buf;
+  char tmp[MAXPATHLEN];
+
+  if ( statfunc(OsPath(n, tmp), &buf) < 0 )
+  { perror("tmp");
+    return FALSE;
+  }
+
+  if ( buf.st_uid != getuid() )
+    return FALSE;
+}
+#endif
+
+  return TRUE;
 }
 
 
@@ -1233,4 +1269,5 @@ BeginPredDefs(files)
   PRED_DEF("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
   PRED_DEF("$mark_executable", 1, mark_executable, 0)
   PRED_DEF("$absolute_file_name", 2, absolute_file_name, 0)
+  PRED_DEF("$my_file", 1, my_file, 0)
 EndPredDefs

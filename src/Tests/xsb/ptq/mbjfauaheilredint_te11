@@ -1,0 +1,7 @@
+te1(\(A,@(*(A),^(j))),sub,m,[],[],2,3)
+te1(\(A,@(*(A),^(j))),sub,m,[sub(\(B,@(*(B),^(m))),C,f)],[],2,3)
+te1(\(A,@(*(A),^(m))),sub,f,[],[],0,1)
+te1(\(A,exists(B,/\(@(unicorn,B),@(*(A),B)))),obj,n,[],[],4,6)
+te1(\(A,exists(B,/\(@(unicorn,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(j))),D,m)],[],4,6)
+te1(\(A,exists(B,/\(@(unicorn,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(m))),D,f),sub(\(E,@(*(E),^(j))),F,m)],[],4,6)
+te1(\(A,exists(B,/\(@(unicorn,B),@(*(A),B)))),obj,n,[sub(\(C,@(*(C),^(m))),D,f)],[],4,6)

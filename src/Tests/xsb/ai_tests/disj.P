@@ -1,0 +1,592 @@
+:- import set_unify/2 from set_unify.
+:- import numbervars/1 from num_vars.
+:- import normalize_result/2 from can_mono.
+
+test :- tp, fail.
+test :- writeln('=========== Result is ================'), nl, show_facts.
+
+unify_sets([],[]).
+unify_sets([A|As],[B|Bs]) :- 
+       set_unify(A,B), unify_sets(As,Bs).
+
+
+%---------------- Transformed program ----------------------
+
+zero200__1(_102) :- 
+        [_89] = _104, 
+        normalize_result([_104],
+                          [_102]).
+top__1(_205) :- 
+        [_178] = _207, 
+        setup([_178],[_182],[_186]),
+        normalize_result([_207],
+                         [_205]).
+makevars__1(_116,_118) :- 
+        [list] = _120, [list] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+makevars__1(_380,_382) :- 
+        [list,_350] = _384, [list,_354] = _386, 
+        duration([_323],[_327]),
+        memberEl([_334],[num],[num]),
+        makevars([_350],[_354]),
+        normalize_result([_384,_386],
+                         [_380,_382]).
+memberEl__1(_155,_157,_159) :- 
+        [_135] = _161, [_135] = _163, [_139] = _165, 
+        normalize_result([_161,_163,_165],
+                          [_155,_157,_159]).
+memberEl__1(_413,_415,_417) :- 
+        [_376] = _419, [_361] = _421, [_384] = _423, 
+        'my =<'([_361],[_384]),
+        'my is'([_380],[[_361],[num]]),
+        memberEl([_376],[_380],[_384]),
+        normalize_result([_419,_421,_423],
+                         [_413,_415,_417]).
+setup__1(_1219,_1221,_1223) :- 
+        [_1146] = _1225, [_965] = _1227, [_1130] = _1229, 
+        jobs([_990]),
+        makevars([_990],[_1146]),
+        resources([_1109]),
+        prec([_1013]),
+        makeprec([_1013],[_1146]),
+        maxnf([_1030]),
+        makemaxnf([_1030],[_1146]),
+        maxef([_1047]),
+        makemaxef([_1047],[_1146]),
+        minaf([_1064]),
+        makeminaf([_1064],[_1146]),
+        minsf([_1081]),
+        makeminsf([_1081],[_1146]),
+        minnf([_1098]),
+        makeminnf([_1098],[_1146]),
+        makedisj([_1109],[_1146],[list],[_1130]),
+        disjunct([_1130]),
+        el([list,list,list,list],[_1146]),
+        normalize_result([_1225,_1227,_1229],
+                         [_1219,_1221,_1223]).
+makeprec__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makeprec__1(_496,_498) :- 
+        [list,_463] = _500, [_467] = _502, 
+        el([list,list,list,list],[_467]),
+        el([list,list,list,list],[_467]),
+        gteqc([_447],[_451],[_455]),
+        makeprec([_463],[_467]),
+        normalize_result([_500,_502],
+                         [_496,_498]).
+gteqc__1(_263,_265,_267) :- 
+        [_224] = _269, [_233] = _271, [_237] = _273, 
+        'my >='([_224],[[_233],[_237]]),
+        normalize_result([_269,_271,_273],
+                         [_263,_265,_267]).
+makemaxnf__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makemaxnf__1(_595,_597) :- 
+        [list,_559] = _599, [_563] = _601, 
+        el([list,list,list,list],[_563]),
+        el([list,list,list,list],[_563]),
+        'my is'([_551],[[_528],[_532]]),
+        smeqc([_543],[_547],[_551]),
+        makemaxnf([_559],[_563]),
+        normalize_result([_599,_601],
+                         [_595,_597]).
+makemaxef__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makemaxef__1(_631,_633) :- 
+        [list,_595] = _635, [_599] = _637, 
+        el([list,list,list,list],[_599]),
+        el([list,list,list,list],[_599]),
+        'my is'([_587],[[[_558],[_562]],[_568]]),
+        smeqc([_579],[_583],[_587]),
+        makemaxef([_595],[_599]),
+        normalize_result([_635,_637],
+                         [_631,_633]).
+smeqc__1(_263,_265,_267) :- 
+        [_224] = _269, [_233] = _271, [_237] = _273, 
+        'my =<'([_224],[[_233],[_237]]),
+        normalize_result([_269,_271,_273],
+                         [_263,_265,_267]).
+makeminaf__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makeminaf__1(_496,_498) :- 
+        [list,_463] = _500, [_467] = _502, 
+        el([list,list,list,list],[_467]),
+        el([list,list,list,list],[_467]),
+        gteqc([_447],[_451],[_455]),
+        makeminaf([_463],[_467]),
+        normalize_result([_500,_502],
+                         [_496,_498]).
+makeminsf__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makeminsf__1(_595,_597) :- 
+        [list,_559] = _599, [_563] = _601, 
+        el([list,list,list,list],[_563]),
+        el([list,list,list,list],[_563]),
+        'my is'([_551],[[_528],[_532]]),
+        smeqc([_543],[_547],[_551]),
+        makeminsf([_559],[_563]),
+        normalize_result([_599,_601],
+                         [_595,_597]).
+makeminnf__1(_122,_124) :- 
+        [list] = _126, [_109] = _128, 
+        normalize_result([_126,_128],
+                          [_122,_124]).
+makeminnf__1(_593,_595) :- 
+        [list,_557] = _597, [_561] = _599, 
+        el([list,list,list,list],[_561]),
+        el([list,list,list,list],[_561]),
+        'my is'([_549],[[_526],[_545]]),
+        gteqc([_541],[_545],[_549]),
+        makeminnf([_557],[_561]),
+        normalize_result([_597,_599],
+                         [_593,_595]).
+makedisj__1(_178,_180,_182,_184) :- 
+        [list] = _186, [_151] = _188, [_159] = _190, [_159] = _192, 
+        normalize_result([_186,_188,_190,_192],
+                          [_178,_180,_182,_184]).
+makedisj__1(_511,_513,_515,_517) :- 
+        [list,_467] = _519, [_471] = _521, [_455] = _523, [_479] = _525, 
+        ellist([_435],[_471],[_451]),
+        makedisj1([_451],[_455],[_475]),
+        makedisj([_467],[_471],[_475],[_479]),
+        normalize_result([_519,_521,_523,_525],
+                         [_511,_513,_515,_517]).
+makedisj1__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+makedisj1__1(_389,_391,_393) :- 
+        [list,_355] = _395, [_342] = _397, [_363] = _399, 
+        makedisj2([_334],[_355],[_342],[_359]),
+        makedisj1([_355],[_359],[_363]),
+        normalize_result([_395,_397,_399],
+                         [_389,_391,_393]).
+makedisj2__1(_178,_180,_182,_184) :- 
+        [_147] = _186, [list] = _188, [_159] = _190, [_159] = _192, 
+        normalize_result([_186,_188,_190,_192],
+                          [_178,_180,_182,_184]).
+makedisj2__1(_363,_365,_367,_369) :- 
+        [list,list,list] = _371, [list,_327] = _373, [_299] = _375, [_337] = _377, 
+        makedisj2([list,list,list],[_327],[list,_299],[_337]),
+        normalize_result([_371,_373,_375,_377],
+                         [_363,_365,_367,_369]).
+ellist__1(_145,_147,_149) :- 
+        [list] = _151, [_125] = _153, [list] = _155, 
+        normalize_result([_151,_153,_155],
+                          [_145,_147,_149]).
+ellist__1(_371,_373,_375) :- 
+        [list,_337] = _377, [_341] = _379, [list,_345] = _381, 
+        el([list,list,list,list],[_341]),
+        ellist([_337],[_341],[_345]),
+        normalize_result([_377,_379,_381],
+                         [_371,_373,_375]).
+disjunct__1(_93) :- 
+        [list] = _95, 
+        normalize_result([_95],
+                          [_93]).
+disjunct__1(_285) :- 
+        [list,_265] = _287, 
+        disj([_244],[_248],[_252],[_256]),
+        disjunct([_265]),
+        normalize_result([_287],
+                         [_285]).
+disj__1(_288,_290,_292,_294) :- 
+        [_259] = _296, [_263] = _298, [_255] = _300, [_239] = _302, 
+        gteqc([_255],[_259],[_263]),
+        normalize_result([_296,_298,_300,_302],
+                         [_288,_290,_292,_294]).
+disj__1(_288,_290,_292,_294) :- 
+        [_255] = _296, [_231] = _298, [_259] = _300, [_263] = _302, 
+        gteqc([_255],[_259],[_263]),
+        normalize_result([_296,_298,_300,_302],
+                         [_288,_290,_292,_294]).
+rev__1(_149,_151,_153) :- 
+        [list] = _155, [_133] = _157, [_133] = _159, 
+        normalize_result([_155,_157,_159],
+                          [_149,_151,_153]).
+rev__1(_279,_281,_283) :- 
+        [list,_246] = _285, [_227] = _287, [_256] = _289, 
+        rev([_246],[list,_227],[_256]),
+        normalize_result([_285,_287,_289],
+                         [_279,_281,_283]).
+el__1(_138,_140) :- 
+        [_119] = _142, [list,_106] = _144, 
+        normalize_result([_142,_144],
+                          [_138,_140]).
+el__1(_215,_217) :- 
+        [_191] = _219, [list,_195] = _221, 
+        el([_191],[_195]),
+        normalize_result([_219,_221],
+                         [_215,_217]).
+p__1(_200,_202) :- 
+        [_178] = _204, [_155] = _206, 
+        'my =:='([_178],[_178]),
+        normalize_result([_204,_206],
+                         [_200,_202]).
+jobs__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+jobs__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+duration__1(_116,_118) :- 
+        [atom] = _120, [atom] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+duration__1(_116,_118) :- 
+        [atom] = _120, [atom] = _122, 
+        normalize_result([_120,_122],
+                          [_116,_118]).
+maxnf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+maxnf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minsf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minsf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+maxef__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+maxef__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minnf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minnf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minaf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+minaf__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+resources__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+resources__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+prec__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+prec__1(_93) :- 
+        [atom] = _95, 
+        normalize_result([_95],
+                          [_93]).
+
+%---------------- Definitions of tabled preds --------------
+
+:- table prec__1/1.
+:- table resources__1/1.
+:- table minaf__1/1.
+:- table minnf__1/1.
+:- table maxef__1/1.
+:- table minsf__1/1.
+:- table maxnf__1/1.
+:- table duration__1/2.
+:- table jobs__1/1.
+:- table p__1/2.
+:- table el__1/2.
+:- table rev__1/3.
+:- table disj__1/4.
+:- table disjunct__1/1.
+:- table ellist__1/3.
+:- table makedisj2__1/4.
+:- table makedisj1__1/3.
+:- table makedisj__1/4.
+:- table makeminnf__1/2.
+:- table makeminsf__1/2.
+:- table makeminaf__1/2.
+:- table smeqc__1/3.
+:- table makemaxef__1/2.
+:- table makemaxnf__1/2.
+:- table gteqc__1/3.
+:- table makeprec__1/2.
+:- table setup__1/3.
+:- table memberEl__1/3.
+:- table makevars__1/2.
+:- table top__1/1.
+:- table zero200__1/1.
+
+prec(_63) :- 
+        prec__1(_65),
+        unify_sets([_63], [_65]).
+resources(_63) :- 
+        resources__1(_65),
+        unify_sets([_63], [_65]).
+minaf(_63) :- 
+        minaf__1(_65),
+        unify_sets([_63], [_65]).
+minnf(_63) :- 
+        minnf__1(_65),
+        unify_sets([_63], [_65]).
+maxef(_63) :- 
+        maxef__1(_65),
+        unify_sets([_63], [_65]).
+minsf(_63) :- 
+        minsf__1(_65),
+        unify_sets([_63], [_65]).
+maxnf(_63) :- 
+        maxnf__1(_65),
+        unify_sets([_63], [_65]).
+duration(_63,_65) :- 
+        duration__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+jobs(_63) :- 
+        jobs__1(_65),
+        unify_sets([_63], [_65]).
+p(_63,_65) :- 
+        p__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+el(_63,_65) :- 
+        el__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+rev(_63,_65,_67) :- 
+        rev__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+disj(_63,_65,_67,_69) :- 
+        disj__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+disjunct(_63) :- 
+        disjunct__1(_65),
+        unify_sets([_63], [_65]).
+ellist(_63,_65,_67) :- 
+        ellist__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+makedisj2(_63,_65,_67,_69) :- 
+        makedisj2__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+makedisj1(_63,_65,_67) :- 
+        makedisj1__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+makedisj(_63,_65,_67,_69) :- 
+        makedisj__1(_71,_73,_75,_77),
+        unify_sets([_63,_65,_67,_69], [_71,_73,_75,_77]).
+makeminnf(_63,_65) :- 
+        makeminnf__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+makeminsf(_63,_65) :- 
+        makeminsf__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+makeminaf(_63,_65) :- 
+        makeminaf__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+smeqc(_63,_65,_67) :- 
+        smeqc__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+makemaxef(_63,_65) :- 
+        makemaxef__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+makemaxnf(_63,_65) :- 
+        makemaxnf__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+gteqc(_63,_65,_67) :- 
+        gteqc__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+makeprec(_63,_65) :- 
+        makeprec__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+setup(_63,_65,_67) :- 
+        setup__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+memberEl(_63,_65,_67) :- 
+        memberEl__1(_69,_71,_73),
+        unify_sets([_63,_65,_67], [_69,_71,_73]).
+makevars(_63,_65) :- 
+        makevars__1(_67,_69),
+        unify_sets([_63,_65], [_67,_69]).
+top(_63) :- 
+        top__1(_65),
+        unify_sets([_63], [_65]).
+zero200(_63) :- 
+        zero200__1(_65),
+        unify_sets([_63], [_65]).
+
+%---------------- Tp ---------------------------------------
+
+tp :- prec__1(_64), fail.
+tp :- resources__1(_64), fail.
+tp :- minaf__1(_64), fail.
+tp :- minnf__1(_64), fail.
+tp :- maxef__1(_64), fail.
+tp :- minsf__1(_64), fail.
+tp :- maxnf__1(_64), fail.
+tp :- duration__1(_64,_66), fail.
+tp :- jobs__1(_64), fail.
+tp :- p__1(_64,_66), fail.
+tp :- el__1(_64,_66), fail.
+tp :- rev__1(_64,_66,_68), fail.
+tp :- disj__1(_64,_66,_68,_70), fail.
+tp :- disjunct__1(_64), fail.
+tp :- ellist__1(_64,_66,_68), fail.
+tp :- makedisj2__1(_64,_66,_68,_70), fail.
+tp :- makedisj1__1(_64,_66,_68), fail.
+tp :- makedisj__1(_64,_66,_68,_70), fail.
+tp :- makeminnf__1(_64,_66), fail.
+tp :- makeminsf__1(_64,_66), fail.
+tp :- makeminaf__1(_64,_66), fail.
+tp :- smeqc__1(_64,_66,_68), fail.
+tp :- makemaxef__1(_64,_66), fail.
+tp :- makemaxnf__1(_64,_66), fail.
+tp :- gteqc__1(_64,_66,_68), fail.
+tp :- makeprec__1(_64,_66), fail.
+tp :- setup__1(_64,_66,_68), fail.
+tp :- memberEl__1(_64,_66,_68), fail.
+tp :- makevars__1(_64,_66), fail.
+tp :- top__1(_64), fail.
+tp :- zero200__1(_64), fail.
+tp.
+
+
+%---------------- Builtin Preds ----------------------------
+
+'my ='(X1,X2) :- 'my =__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my \\=='(X1,X2) :- 'my \\==__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my is'(X1,X2) :- 'my is__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =:='(X1,X2) :- 'my =:=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =\\='(X1,X2) :- 'my =\\=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my <'(X1,X2) :- 'my <__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >'(X1,X2) :- 'my >__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my >='(X1,X2) :- 'my >=__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+'my =<'(X1,X2) :- 'my =<__1'(Y1,Y2), unify_sets([X1,X2],[Y1,Y2]).
+
+'my =__1'(X,X).
+'my \\==__1'(_,_).
+'my is__1'(num,num).
+'my <__1'(num,num).
+'my >__1'(num,num).
+'my >=__1'(num,num).
+'my =<__1'(num,num).
+'my =:=__1'(num,num).
+'my =\\=__1'(num,num).
+
+
+%---------------- Show Result ------------------------------
+
+show_facts :- prec__1(_63),
+              numbervars([_63]),
+              write(prec(_63)), nl, fail.
+show_facts :- resources__1(_63),
+              numbervars([_63]),
+              write(resources(_63)), nl, fail.
+show_facts :- minaf__1(_63),
+              numbervars([_63]),
+              write(minaf(_63)), nl, fail.
+show_facts :- minnf__1(_63),
+              numbervars([_63]),
+              write(minnf(_63)), nl, fail.
+show_facts :- maxef__1(_63),
+              numbervars([_63]),
+              write(maxef(_63)), nl, fail.
+show_facts :- minsf__1(_63),
+              numbervars([_63]),
+              write(minsf(_63)), nl, fail.
+show_facts :- maxnf__1(_63),
+              numbervars([_63]),
+              write(maxnf(_63)), nl, fail.
+show_facts :- duration__1(_63,_65),
+              numbervars([_63,_65]),
+              write(duration(_63,_65)), nl, fail.
+show_facts :- jobs__1(_63),
+              numbervars([_63]),
+              write(jobs(_63)), nl, fail.
+show_facts :- p__1(_63,_65),
+              numbervars([_63,_65]),
+              write(p(_63,_65)), nl, fail.
+show_facts :- el__1(_63,_65),
+              numbervars([_63,_65]),
+              write(el(_63,_65)), nl, fail.
+show_facts :- rev__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(rev(_63,_65,_67)), nl, fail.
+show_facts :- disj__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(disj(_63,_65,_67,_69)), nl, fail.
+show_facts :- disjunct__1(_63),
+              numbervars([_63]),
+              write(disjunct(_63)), nl, fail.
+show_facts :- ellist__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(ellist(_63,_65,_67)), nl, fail.
+show_facts :- makedisj2__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(makedisj2(_63,_65,_67,_69)), nl, fail.
+show_facts :- makedisj1__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(makedisj1(_63,_65,_67)), nl, fail.
+show_facts :- makedisj__1(_63,_65,_67,_69),
+              numbervars([_63,_65,_67,_69]),
+              write(makedisj(_63,_65,_67,_69)), nl, fail.
+show_facts :- makeminnf__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makeminnf(_63,_65)), nl, fail.
+show_facts :- makeminsf__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makeminsf(_63,_65)), nl, fail.
+show_facts :- makeminaf__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makeminaf(_63,_65)), nl, fail.
+show_facts :- smeqc__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(smeqc(_63,_65,_67)), nl, fail.
+show_facts :- makemaxef__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makemaxef(_63,_65)), nl, fail.
+show_facts :- makemaxnf__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makemaxnf(_63,_65)), nl, fail.
+show_facts :- gteqc__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(gteqc(_63,_65,_67)), nl, fail.
+show_facts :- makeprec__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makeprec(_63,_65)), nl, fail.
+show_facts :- setup__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(setup(_63,_65,_67)), nl, fail.
+show_facts :- memberEl__1(_63,_65,_67),
+              numbervars([_63,_65,_67]),
+              write(memberEl(_63,_65,_67)), nl, fail.
+show_facts :- makevars__1(_63,_65),
+              numbervars([_63,_65]),
+              write(makevars(_63,_65)), nl, fail.
+show_facts :- top__1(_63),
+              numbervars([_63]),
+              write(top(_63)), nl, fail.
+show_facts :- zero200__1(_63),
+              numbervars([_63]),
+              write(zero200(_63)), nl, fail.
+show_facts.

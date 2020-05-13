@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2019, University of Amsterdam
+    Copyright (c)  2010-20120, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -60,7 +60,7 @@
 #define popTermRef()		popTermRef__LD(PASS_LD1)
 #define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
 #define lookupHTable(ht, n)	lookupHTable__LD(ht, n PASS_LD)
-#define pushPredicateAccess(def) pushPredicateAccess__LD(def PASS_LD)
+#define pushPredicateAccess(def) (pushPredicateAccessObj(def PASS_LD)->generation)
 #define popPredicateAccess(def) popPredicateAccess__LD(def PASS_LD)
 #define popNPredicateAccess(cnt) popNPredicateAccess__LD(cnt PASS_LD)
 #define nextClause(chp, argv, fr, def) nextClause__LD(chp, argv, fr, def PASS_LD)
@@ -70,6 +70,9 @@
 #define isCurrentProcedure(f,m) isCurrentProcedure__LD(f, m PASS_LD)
 #define resolveProcedure(f,m)	resolveProcedure__LD(f, m PASS_LD)
 #define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))
+#define ensureGlobalSpace(n,f)  likely(ensureStackSpace__LD(n,0,f PASS_LD))
+#define ensureTrailSpace(n)     likely(ensureStackSpace__LD(0,n,ALLOW_GC PASS_LD))
+#define ensureStackSpace(g,t)   likely(ensureStackSpace__LD(g,t,ALLOW_GC PASS_LD))
 
 #define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
 #define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)
@@ -124,5 +127,8 @@
 #define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
 #define classify_exception(ex)  classify_exception__LD(ex PASS_LD)
 #define classify_exception_p(p) classify_exception_p__LD(p PASS_LD)
+#define PL_mark_string_buffers(m) PL_mark_string_buffers__LD(m PASS_LD)
+#define PL_release_string_buffers_from_mark(m) \
+				PL_release_string_buffers_from_mark__LD(m PASS_LD)
 
 #endif /*PL_LDPASS_H_INCLUDED*/

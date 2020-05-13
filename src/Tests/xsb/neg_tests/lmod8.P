@@ -1,0 +1,33 @@
+test :- a, fail.
+test :-
+	( a -> writeln('a is true') ; writeln('a is false') ),
+	( b -> writeln('b is true') ; writeln('b is false') ),
+	( c -> writeln('c is true') ; writeln('c is false') ),
+	( d -> writeln('d is true') ; writeln('d is false') ),
+	( e -> writeln('e is true') ; writeln('e is false') ),
+	( f -> writeln('f is true') ; writeln('f is false') ).
+
+%--------------------------------------------------------------
+
+%
+% Example that shows that choosing to complete the SCC containing the
+% leader is not safe...  Instead the SCC that contains "e" should be
+% completed first.
+%
+
+:- table a/0, b/0, c/0, d/0, e/0, f/0.
+
+a :- b, d.
+
+b :- c.
+b.
+b :- tnot(e).
+
+c :- b.
+
+d :- e, f.
+
+e.
+
+f :- tnot(c).
+

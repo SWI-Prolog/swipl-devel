@@ -1,0 +1,27 @@
+%----------------------------------------------------------------------
+% Tests abolishing suspensions and early completion.  The idea is that
+% negation suspensions should not be abolished and early completion 
+% cannot be performed when only unconditional answers are derived.
+%
+% In this program all answers are conditional; furthermore, no
+% simplification is applicable and thus the residual program is
+% identical to those without the writelns.  Nice example for
+% displaying conditional answers...
+%----------------------------------------------------------------------
+
+:- table t/0, a/0, b/0.
+
+test :- t, fail.
+test.
+
+t :- a,	tnot(t),	% create generators for a and b.
+     writeln('t: gets a conditional answer from its first clause').
+t :- b, tnot(a), tnot(t),
+     writeln('t: gets a conditional answer from its second clause').
+t :- tnot(a), tnot(t),
+     writeln('t: gets a conditional answer from its third clause').
+
+a :- tnot(b), writeln('a: One b'), tnot(b), writeln('a: Two b''s').
+
+b :- tnot(b).
+

@@ -507,15 +507,14 @@ a wakeup was saved and 3 if both where saved.
 
 int
 saveWakeup(wakeup_state *state, int forceframe ARG_LD)
-{ Word h;
-
-  state->flags = 0;
+{ state->flags = 0;
   state->outofstack = LD->outofstack;
 
-  if ( *(h=valTermRef(LD->attvar.head)) ||
+  if ( *valTermRef(LD->attvar.head) ||
        exception_term ||
        forceframe )
   { term_t s;
+    Word h;
 
     if ( !(state->fid = PL_open_foreign_frame()) )
       return FALSE;			/* no space! */
@@ -527,7 +526,7 @@ saveWakeup(wakeup_state *state, int forceframe ARG_LD)
       exception_term = 0;
     }
 
-    if ( *h )
+    if ( *(h=valTermRef(LD->attvar.head)) )
     { state->flags |= WAKEUP_STATE_WAKEUP;
       s = PL_new_term_refs(2);
 

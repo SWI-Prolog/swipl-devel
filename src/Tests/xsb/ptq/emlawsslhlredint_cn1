@@ -1,0 +1,4 @@
+cn(\(A,/\(@(woman,A),@(@('love*',*(B)),*(A)))),f,[sub(\(C,all(D,->(@(man,D),@(*(C),D)))),B,m)],[],4,9)
+cn(man,m,[],[],1,2)
+cn(woman,f,[],[],4,5)
+cn(woman,f,[sub(\(A,all(B,->(@(man,B),@(*(A),B)))),C,m)],[],4,5)

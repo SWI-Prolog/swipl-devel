@@ -1,0 +1,187 @@
+/* corrected in common system by 3/10/97: XSB Version 1.6.2 (97/2/3) */
+/* bug: query
+	interp(t(0,6),1,[]),writeln(yes),fail.
+
+produces:
+| ?- interp(t(0,6),1,[]),writeln(yes),fail.
+d(word(_165,$,6),[])
+c(s(0,_165),[word(_165,$,6)])
+d(b(_185,_182),[word(_182,$,6)])
+c(a(0,_200),[word(_200,b,_202)])
+d(a(_217,_213),[word(_213,b,_202)])
+c(word(0,a,_228),[word(_228,a,_230)])
+d(a(_245,_241),[word(_241,b,_202)])
+c(word(1,a,_245),[word(_245,a,_254)])
+d(a(_267,_263),[word(_263,b,_202)])
+c(word(2,a,_267),[word(_267,a,_276)])
+d(a(_289,_285),[word(_285,b,_202)])
+c(word(3,a,_289),[word(_289,a,_298)])
+d(a(_311,_307),[word(_307,b,_202)])
+c(word(4,a,_311),[word(_311,a,_320)])
+d(word(_341,b,_338),[word(_338,$,6)])
+c(b(4,_341),[word(_341,b,_338)])
+d(word(_363,b,_360),[word(_360,b,_338)])
+c(b(4,_363),[word(_363,b,_360)])
+yes
+d(word(_397,b,_394),[word(_394,$,6)])
+c(b(3,_397),[word(_397,b,_394)])
+d(word(_419,b,_416),[word(_416,b,_394)])
+c(b(3,_419),[word(_419,b,_416)])
+d(word(_453,b,_450),[word(_450,$,6)])
+c(b(2,_453),[word(_453,b,_450)])
+d(word(_475,b,_472),[word(_472,b,_450)])
+c(b(2,_475),[word(_475,b,_472)])
+c(word(0,a,_497),[word(_497,a,_499)])
+c(word(4,a,_311),[word(_311,a,_307)])
+c(word(3,a,_289),[word(_289,a,_285)])
+d(a(_536,_532),[word(_241,b,_202)]) <<<<<<<<<<<<<<< error
+	last var of first term should always be first var of second term.
+c(word(4,a,_536),[word(_536,a,_545)])
+c(word(4,a,_536),[word(_536,a,_532)])
+c(word(2,a,_267),[word(_267,a,_263)])
+d(a(_562,_558),[word(_241,b,_202)])
+c(word(3,a,_562),[word(_562,a,_571)])
+c(word(3,a,_562),[word(_562,a,_558)])
+d(word(_597,b,_594),[word(_594,$,6)])
+c(b(_596,_597),[word(_597,b,_594)])
+d(word(_619,b,_616),[word(_616,b,_594)])
+c(b(_618,_619),[word(_619,b,_616)])
+c(word(1,a,_245),[word(_245,a,_241)])
+d(word(_658,b,_655),[word(_655,$,6)])
+c(b(1,_658),[word(_658,b,_655)])
+d(word(_680,b,_677),[word(_677,b,_655)])
+c(b(1,_680),[word(_680,b,_677)])
+c(a(0,_197),[word(_197,b,_198)])
+
+no
+| ?-
+
+It works if the commented first clause of abdK/4 is uncommented, which
+changes the sceduling strategy but shouldn't change the semantics.
+
+*/
+
+
+/* A metainterpreter that does lookahead.  Before it calls a
+subroutine to compute, it abduces K EDB atoms starting as though the
+about-to-be-called predicate succeeded and it then passes those K
+atoms to the called subroutine.  Just before the called subroutine
+returns, it checks to see that those abduced facts are true, failing
+if not, and returning successfully if they are.  */
+
+:- import append/3,length/2 from basics.
+:- op(1050,xfx,(<-)).
+
+test :- writeln('start testing'),interp(t(0,6),1,[]),
+	writeln('testing successful'),fail.
+
+at :- abolish_all_tables.
+
+% interp(Goal,K,Follow)
+interp(true,_,_) :- !.
+interp((G1,G2),K,Follow) :- !,
+%	writeln(d(G2,Follow)),
+	chk([G2|Follow]),
+	abdK(G2,K,Follow,FollowG1),
+%	writeln(c(G1,FollowG1)),
+	chk([G1|FollowG1]),
+	interpG(G1,K,FollowG1),
+	interp(G2,K,Follow).
+interp(G,K,Follow) :-
+	interpG(G,K,Follow).
+
+
+chk([_]) :- !.
+chk([G1,G2|W]) :-
+	functor(G1,_,Ar),
+	arg(Ar,G1,A1),
+	arg(1,G2,A2),
+	A1 == A2,
+	chk([G2|W]).
+
+
+:- table interpG/3.
+interpG(G,K,Follow) :-
+%	writeln(called_interpG(G,K,Follow)),
+	(G <- B),
+	interp(B,K,Follow),
+%	is_true(Follow),
+%	writeln(ret_interpG(G,K,Follow)).
+	true.
+
+pos_true(A) :- \+ \+ is_true(A).
+is_true([]).
+is_true([G|Gs]) :- (G<-true),is_true(Gs).
+
+%abdK(G,K,_,_) :- abd(G,K,_),fail.
+abdK(G,K,Follow,ABD) :-
+%	writeln(called_abdK(G,K,Follow,ABD)),
+	abd(G,K,ABD1),
+	length(ABD1,K1),
+	(K =:= K1
+	 ->	ABD = ABD1
+	 ;	append(ABD1,Follow,ABD2),
+		writeln(appABD(ABD1,Follow)),
+		fk(ABD2,K,ABD)
+	),
+%	writeln(ret_abdK(G,K,Follow,ABD)).
+	true.
+
+fk([],_,R) :- !,R=[].
+fk(_,0,R) :- !,R=[].
+fk([A|As],K,[A|Bs]) :- K1 is K-1,fk(As,K1,Bs).
+
+% abd(Goal,K,Abduced)
+:- table abd/3.
+abd(_G,K,ABD) :- K=:=0,!,ABD = [].
+abd(true,_,ABD) :- !,ABD = [].
+abd((G1,G2),K,ABD) :- !,
+	abd(G1,K,ABD1),
+	length(ABD1,K1),
+	(K1 =:= K
+	 ->	ABD = ABD1
+	 ;	K2 is K-K1,
+		append(ABD1,ABD2,ABD),
+		abd(G2,K2,ABD2)
+	).
+abd(G,_,ABD) :- abducible(G),!,ABD=[G].
+abd(G,K,ABD) :-
+	(G <- B),
+	abd(B,K,ABD).
+
+abducible(word(_,_,_)).
+
+t(S0,S) <- s(S0,S1),word(S1,'$',S).
+s(S0,S) <- a(S0,S1),b(S1,S).
+a(S0,S) <- word(S0,a,S1),a(S1,S).
+a(S0,S) <- word(S0,a,S).
+b(S0,S) <- b(S0,S1),word(S1,b,S).
+b(S0,S) <- word(S0,b,S).
+
+/**/
+word(0,a,1) <- true.
+word(1,a,2) <- true.
+word(2,a,3) <- true.
+word(3,a,4) <- true.
+word(4,b,5) <- true.
+word(5,'$',6) <- true.
+/**
+word(0,a,1) <- true.
+word(1,a,2) <- true.
+word(2,a,3) <- true.
+word(3,a,4) <- true.
+word(4,a,5) <- true.
+word(5,a,6) <- true.
+word(6,a,7) <- true.
+word(7,a,8) <- true.
+word(8,a,9) <- true.
+word(9,a,10) <- true.
+word(10,a,11) <- true.
+word(11,a,12) <- true.
+word(12,b,13) <- true.
+word(13,b,14) <- true.
+word(14,'$',15) <- true.
+*/
+
+
+

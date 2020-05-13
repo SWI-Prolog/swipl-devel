@@ -43,7 +43,6 @@
 %	Similar to thread_agc_findall.pl, but without using findall.
 
 thread_agc :-
-	protocol(x),
 	thread_agc(4, 10000).
 
 thread_agc(Threads, Count) :-

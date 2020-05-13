@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2018, VU University Amsterdam
+    Copyright (c)  2010-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -34,10 +34,15 @@
 */
 
 :- module(ansi_term,
-          [ ansi_format/3               % +Attr, +Format, +Args
+          [ ansi_format/3,              % +Attr, +Format, +Args
+            ansi_get_color/2            % +Which, -rgb(R,G,B)
           ]).
-:- use_module(library(apply)).
-:- use_module(library(error)).
+:- autoload(library(error),[domain_error/2,must_be/2]).
+:- autoload(library(lists),[append/2,append/3]).
+:- if(exists_source(library(time))).
+:- autoload(library(time),[call_with_time_limit/2]).
+:- endif.
+
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -53,10 +58,28 @@ the following:
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
 
-:- create_prolog_flag(color_term, true,
-                      [ type(boolean),
-                        keep(true)
-                      ]).
+:- multifile
+    prolog:console_color/2,                     % +Term, -AnsiAttrs
+    supports_get_color/0.
+
+
+color_term_flag_default(true) :-
+    stream_property(user_input, tty(true)),
+    stream_property(user_error, tty(true)),
+    stream_property(user_output, tty(true)),
+    \+ getenv('TERM', dumb),
+    !.
+color_term_flag_default(false).
+
+init_color_term_flag :-
+    color_term_flag_default(Default),
+    create_prolog_flag(color_term, Default,
+                       [ type(boolean),
+                         keep(true)
+                       ]).
+
+:- init_color_term_flag.
+
 
 :- meta_predicate
     keep_line_pos(+, 0).
@@ -64,7 +87,7 @@ the following:
 :- multifile
     user:message_property/2.
 
-%!  ansi_format(+Attributes, +Format, +Args) is det.
+%!  ansi_format(+ClassOrAttributes, +Format, +Args) is det.
 %
 %   Format text with ANSI  attributes.   This  predicate  behaves as
 %   format/2 using Format and Args, but if the =current_output= is a
@@ -75,14 +98,23 @@ the following:
 %     ?- ansi_format([bold,fg(cyan)], 'Hello ~w', [world]).
 %     ==
 %
-%   Attributes is either a single attribute   or a list thereof. The
-%   attribute names are derived from the ANSI specification. See the
-%   source for sgr_code/2 for details. Some commonly used attributes
-%   are:
+%   Attributes is either a single attribute, a   list  thereof or a term
+%   that is mapped to concrete  attributes   based  on the current theme
+%   (see prolog:console_color/2). The attribute names   are derived from
+%   the ANSI specification. See the source   for sgr_code/2 for details.
+%   Some commonly used attributes are:
 %
 %     - bold
 %     - underline
 %     - fg(Color), bg(Color), hfg(Color), hbg(Color)
+%       For fg(Color) and bg(Color), the colour name can be '#RGB' or
+%       '#RRGGBB'
+%     - fg8(Spec), bg8(Spec)
+%       8-bit color specification.  Spec is a colour name, h(Color)
+%       or an integer 0..255.
+%     - fg(R,G,B), bg(R,G,B)
+%       24-bit (direct color) specification.  The components are
+%       integers in the range 0..255.
 %
 %   Defined color constants are below.  =default=   can  be  used to
 %   access the default color of the terminal.
@@ -98,26 +130,42 @@ the following:
 ansi_format(Attr, Format, Args) :-
     ansi_format(current_output, Attr, Format, Args).
 
-ansi_format(Stream, Attr, Format, Args) :-
+ansi_format(Stream, Class, Format, Args) :-
     stream_property(Stream, tty(true)),
     current_prolog_flag(color_term, true),
     !,
-    (   is_list(Attr)
-    ->  maplist(sgr_code_ex, Attr, Codes),
-        atomic_list_concat(Codes, ;, Code)
-    ;   sgr_code_ex(Attr, Code)
-    ),
+    class_attrs(Class, Attr),
+    phrase(sgr_codes_ex(Attr), Codes),
+    atomic_list_concat(Codes, ;, Code),
     format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
     format(Stream, Fmt, [Code|Args]),
     flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
     format(Stream, Format, Args).
 
-sgr_code_ex(Attr, Code) :-
-    sgr_code(Attr, Code),
+sgr_codes_ex(X) -->
+    { var(X),
+      !,
+      instantiation_error(X)
+    }.
+sgr_codes_ex([]) -->
     !.
-sgr_code_ex(Attr, _) :-
-    domain_error(sgr_code, Attr).
+sgr_codes_ex([H|T]) -->
+    !,
+    sgr_codes_ex(H),
+    sgr_codes_ex(T).
+sgr_codes_ex(Attr) -->
+    (   { sgr_code(Attr, Code) }
+    ->  (   { is_list(Code) }
+        ->  list(Code)
+        ;   [Code]
+        )
+    ;   { domain_error(sgr_code, Attr) }
+    ).
+
+list([]) --> [].
+list([H|T]) --> [H], list(T).
+
 
 %!  sgr_code(+Name, -Code)
 %
@@ -175,12 +223,18 @@ sgr_code(fraktur, 20).
 sgr_code(underline(double), 21).
 sgr_code(intensity(normal), 22).
 sgr_code(fg(Name), C) :-
-    ansi_color(Name, N),
-    C is N+30.
+    (   ansi_color(Name, N)
+    ->  C is N+30
+    ;   rgb(Name, R, G, B)
+    ->  sgr_code(fg(R,G,B), C)
+    ).
 sgr_code(bg(Name), C) :-
     !,
-    ansi_color(Name, N),
-    C is N+40.
+    (   ansi_color(Name, N)
+    ->  C is N+40
+    ;   rgb(Name, R, G, B)
+    ->  sgr_code(bg(R,G,B), C)
+    ).
 sgr_code(framed, 51).
 sgr_code(encircled, 52).
 sgr_code(overlined, 53).
@@ -200,6 +254,18 @@ sgr_code(hbg(Name), C) :-
     !,
     ansi_color(Name, N),
     C is N+100.
+sgr_code(fg8(Name), [38,5,N]) :-
+    ansi_color8(Name, N).
+sgr_code(bg8(Name), [48,5,N]) :-
+    ansi_color8(Name, N).
+sgr_code(fg(R,G,B), [38,2,R,G,B]) :-
+    between(0, 255, R),
+    between(0, 255, G),
+    between(0, 255, B).
+sgr_code(bg(R,G,B), [48,2,R,G,B]) :-
+    between(0, 255, R),
+    between(0, 255, G),
+    between(0, 255, B).
 
 off_code(italic_and_franktur, 23).
 off_code(underline, 24).
@@ -210,6 +276,16 @@ off_code(crossed_out, 29).
 off_code(framed, 54).
 off_code(overlined, 55).
 
+ansi_color8(h(Name), N) :-
+    !,
+    ansi_color(Name, N0),
+    N is N0+8.
+ansi_color8(Name, N) :-
+    atom(Name),
+    !,
+    ansi_color(Name, N).
+ansi_color8(N, N) :-
+    between(0, 255, N).
 
 ansi_color(black,   0).
 ansi_color(red,     1).
@@ -221,6 +297,36 @@ ansi_color(cyan,    6).
 ansi_color(white,   7).
 ansi_color(default, 9).
 
+rgb(Name, R, G, B) :-
+    atom_codes(Name, [0'#,R1,R2,G1,G2,B1,B2]),
+    hex_color(R1,R2,R),
+    hex_color(G1,G2,G),
+    hex_color(B1,B2,B).
+rgb(Name, R, G, B) :-
+    atom_codes(Name, [0'#,R1,G1,B1]),
+    hex_color(R1,R),
+    hex_color(G1,G),
+    hex_color(B1,B).
+
+hex_color(D1,D2,V) :-
+    code_type(D1, xdigit(V1)),
+    code_type(D2, xdigit(V2)),
+    V is 16*V1+V2.
+
+hex_color(D1,V) :-
+    code_type(D1, xdigit(V1)),
+    V is 16*V1+V1.
+
+%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%
+%   Hook that allows  for  mapping  abstract   terms  to  concrete  ANSI
+%   attributes. This hook  is  used  by   _theme_  files  to  adjust the
+%   rendering based on  user  preferences   and  context.  Defaults  are
+%   defined in the file `boot/messages.pl`.
+%
+%   @see library(theme/dark) for an example  implementation and the Term
+%   values used by the system messages.
+
 
                  /*******************************
                  *             HOOK             *
@@ -231,9 +337,11 @@ ansi_color(default, 9).
 %   Hook implementation that deals with  ansi(+Attr, +Fmt, +Args) in
 %   message specifications.
 
-prolog:message_line_element(S, ansi(Attr, Fmt, Args)) :-
+prolog:message_line_element(S, ansi(Class, Fmt, Args)) :-
+    class_attrs(Class, Attr),
     ansi_format(S, Attr, Fmt, Args).
-prolog:message_line_element(S, ansi(Attr, Fmt, Args, Ctx)) :-
+prolog:message_line_element(S, ansi(Class, Fmt, Args, Ctx)) :-
+    class_attrs(Class, Attr),
     ansi_format(S, Attr, Fmt, Args),
     (   nonvar(Ctx),
         Ctx = ansi(_, RI-RA)
@@ -246,7 +354,7 @@ prolog:message_line_element(S, begin(Level, Ctx)) :-
     current_prolog_flag(color_term, true),
     !,
     (   is_list(Attr)
-    ->  maplist(sgr_code, Attr, Codes),
+    ->  sgr_codes(Attr, Codes),
         atomic_list_concat(Codes, ;, Code)
     ;   sgr_code(Attr, Code)
     ),
@@ -257,19 +365,150 @@ prolog:message_line_element(S, end(Ctx)) :-
     Ctx = ansi(Reset, _),
     keep_line_pos(S, write(S, Reset)).
 
+sgr_codes([], []).
+sgr_codes([H0|T0], [H|T]) :-
+    sgr_code(H0, H),
+    sgr_codes(T0, T).
+
 level_attrs(Level,         Attrs) :-
-    user:message_property(Level, color(Attrs)).
-level_attrs(informational, fg(green)).
-level_attrs(information,   fg(green)).
-level_attrs(debug(_),      fg(blue)).
-level_attrs(warning,       fg(red)).
-level_attrs(error,         [fg(red),bold]).
+    user:message_property(Level, color(Attrs)),
+    !.
+level_attrs(Level,         Attrs) :-
+    class_attrs(message(Level), Attrs).
+
+class_attrs(Class, Attrs) :-
+    user:message_property(Class, color(Attrs)),
+    !.
+class_attrs(Class, Attrs) :-
+    prolog:console_color(Class, Attrs),
+    !.
+class_attrs(Class, Attrs) :-
+    '$messages':default_theme(Class, Attrs),
+    !.
+class_attrs(Attrs, Attrs).
+
+%!  keep_line_pos(+Stream, :Goal)
+%
+%   Run goal without changing the position   information on Stream. This
+%   is used to avoid that the exchange   of  ANSI sequences modifies the
+%   notion of, notably, the `line_pos` notion.
 
 keep_line_pos(S, G) :-
     stream_property(S, position(Pos)),
     !,
-    stream_position_data(line_position, Pos, LPos),
-    G,
-    set_stream(S, line_position(LPos)).
+    setup_call_cleanup(
+        stream_position_data(line_position, Pos, LPos),
+        G,
+        set_stream(S, line_position(LPos))).
 keep_line_pos(_, G) :-
-    G.
+    call(G).
+
+%!  ansi_get_color(+Which, -RGB) is semidet.
+%
+%   Obtain the RGB color for an ANSI  color parameter. Which is either a
+%   color alias or  an  integer  ANSI   color  id.  Defined  aliases are
+%   `foreground` and `background`. This predicate sends a request to the
+%   console (`user_output`) and reads the reply. This assumes an `xterm`
+%   compatible terminal.
+%
+%   @arg RGB is a term rgb(Red,Green,Blue).  The color components are
+%   integers in the range 0..65535.
+
+
+:- if(current_predicate(call_with_time_limit/2)).
+ansi_get_color(Which0, RGB) :-
+    stream_property(user_input, tty(true)),
+    stream_property(user_output, tty(true)),
+    stream_property(user_error, tty(true)),
+    supports_get_color,
+    (   color_alias(Which0, Which)
+    ->  true
+    ;   must_be(between(0,15),Which0)
+    ->  Which = Which0
+    ),
+    catch(keep_line_pos(user_output,
+                        ansi_get_color_(Which, RGB)),
+          time_limit_exceeded,
+          no_xterm).
+
+supports_get_color :-
+    getenv('TERM', Term),
+    sub_atom(Term, 0, _, _, xterm),
+    \+ getenv('TERM_PROGRAM', 'Apple_Terminal').
+
+color_alias(foreground, 10).
+color_alias(background, 11).
+
+ansi_get_color_(Which, rgb(R,G,B)) :-
+    format(codes(Id), '~w', [Which]),
+    hex4(RH),
+    hex4(GH),
+    hex4(BH),
+    append([`\e]`, Id, `;rgb:`, RH, `/`, GH, `/`, BH, `\a`], Pattern),
+    call_with_time_limit(0.05,
+                         with_tty_raw(exchange_pattern(Which, Pattern))),
+    !,
+    hex_val(RH, R),
+    hex_val(GH, G),
+    hex_val(BH, B).
+
+no_xterm :-
+    print_message(warning, ansi(no_xterm_get_colour)),
+    fail.
+
+hex4([_,_,_,_]).
+
+hex_val([D1,D2,D3,D4], V) :-
+    code_type(D1, xdigit(V1)),
+    code_type(D2, xdigit(V2)),
+    code_type(D3, xdigit(V3)),
+    code_type(D4, xdigit(V4)),
+    V is (V1<<12)+(V2<<8)+(V3<<4)+V4.
+
+exchange_pattern(Which, Pattern) :-
+    format(user_output, '\e]~w;?\a', [Which]),
+    flush_output(user_output),
+    read_pattern(user_input, Pattern, []).
+
+read_pattern(From, Pattern, NotMatched0) :-
+    copy_term(Pattern, TryPattern),
+    append(Skip, Rest, NotMatched0),
+    append(Rest, RestPattern, TryPattern),
+    !,
+    echo(Skip),
+    try_read_pattern(From, RestPattern, NotMatched, Done),
+    (   Done == true
+    ->  Pattern = TryPattern
+    ;   read_pattern(From, Pattern, NotMatched)
+    ).
+
+%!  try_read_pattern(+From, +Pattern, -NotMatched)
+
+try_read_pattern(_, [], [], true) :-
+    !.
+try_read_pattern(From, [H|T], [C|RT], Done) :-
+    get_code(C),
+    (   C = H
+    ->  try_read_pattern(From, T, RT, Done)
+    ;   RT = [],
+        Done = false
+    ).
+
+echo([]).
+echo([H|T]) :-
+    put_code(user_output, H),
+    echo(T).
+
+:- else.
+ansi_get_color(_Which0, _RGB) :-
+    fail.
+:- endif.
+
+
+
+:- multifile prolog:message//1.
+
+prolog:message(ansi(no_xterm_get_colour)) -->
+    [ 'Terminal claims to be xterm compatible,'-[], nl,
+      'but does not report colour info'-[]
+    ].

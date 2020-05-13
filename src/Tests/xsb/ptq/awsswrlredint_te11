@@ -1,0 +1,2 @@
+te1(\(A,exists(B,/\(/\(@(woman,B),@('walk*',*(B))),@(*(A),B)))),sub,f,[],[],0,5)
+te1(\(A,exists(B,/\(@(woman,B),@(*(A),B)))),sub,f,[],[],0,2)

@@ -8,9 +8,11 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
+A abi			"abi"
 A abort			"abort"
 A aborted		"$aborted"
 A abs			"abs"
+A abstract		"abstract"
 A access		"access"
 A access_level		"access_level"
 A acos			"acos"
@@ -19,6 +21,7 @@ A active		"active"
 A acyclic_term		"acyclic_term"
 A add_import		"add_import"
 A address		"address"
+A affected		"affected"
 A affinity		"affinity"
 A agc			"agc"
 A agc_gained		"agc_gained"
@@ -31,6 +34,9 @@ A alnum			"alnum"
 A alpha			"alpha"
 A alternative		"alternative"
 A and			"/\\"
+A android		"android"
+A android_api		"android_api"
+A answer_abstract	"answer_abstract"
 A anonvar		"_"
 A append		"append"
 A ar_equals		"=:="
@@ -43,6 +49,7 @@ A asin			"asin"
 A asinh			"asinh"
 A assert		"assert"
 A asserta		"asserta"
+A assertz		"assertz"
 A at			"at"
 A at_equals		"=@="
 A at_exit		"at_exit"
@@ -56,6 +63,7 @@ A atan2			"atan2"
 A atanh			"atanh"
 A atom			"atom"
 A atom_garbage_collection	"atom_garbage_collection"
+A atom_space		"atom_space"
 A atomic		"atomic"
 A atoms			"atoms"
 A att			"att"
@@ -77,6 +85,7 @@ A bof			"bof"
 A bom			"bom"
 A bool			"bool"
 A boolean		"boolean"
+A bounded_rationality	"bounded_rationality"
 A brace_term_position	"brace_term_position"
 A brace_terms		"brace_terms"
 A break			"break"
@@ -84,6 +93,7 @@ A break_level		"break_level"
 A btree			"btree"
 A buffer		"buffer"
 A buffer_size		"buffer_size"
+A built_in		"built_in"
 A built_in_procedure	"built_in_procedure"
 A busy			"busy"
 A byte			"byte"
@@ -134,7 +144,10 @@ A colon_eq		":="
 A comma			","
 A comment		"comment"
 A comments		"comments"
+A compatibility		"compatibility"
+A compiled_size		"compiled_size"
 A complete		"complete"
+A complete_soundly	"complete_soundly"
 A compound		"compound"
 A context		"context"
 A context_module	"context_module"
@@ -174,7 +187,8 @@ A dcont			"$cont$"
 A dcut			"$cut"
 A dde_error		"dde_error"
 A dde_handle		"dde_handle"
-A deadline			"deadline"
+A deadline		"deadline"
+A deadlock		"deadlock"
 A debug			"debug"
 A debug_on_error	"debug_on_error"
 A debug_topic		"debug_topic"
@@ -188,6 +202,8 @@ A default		"default"
 A defined		"defined"
 A deflated		"deflated"
 A delete		"delete"
+A denominator		"denominator"
+A dependent		"dependent"
 A depth			"depth"
 A depth_limit_exceeded	"depth_limit_exceeded"
 A destroy		"destroy"
@@ -211,6 +227,7 @@ A dmessage_queue	"$message_queue"
 A dmeta_call		"$meta_call"
 A dmutex		"$mutex"
 A domain_error		"domain_error"
+A done			"done"
 A dos			"dos"
 A dot			"."
 A dotlists		"dotlists"
@@ -272,6 +289,7 @@ A existence_error	"existence_error"
 A exit			"exit"
 A exited		"exited"
 A exp			"exp"
+A explicit		"explicit"
 A export		"export"
 A exported		"exported"
 A exports		"exports"
@@ -290,6 +308,7 @@ A file_name		"file_name"
 A file_name_case_handling "file_name_case_handling"
 A file_name_variables	"file_name_variables"
 A file_no		"file_no"
+A final			"final"
 A first			"first"
 A flag			"flag"
 A flag_value		"flag_value"
@@ -298,10 +317,14 @@ A float_format		"float_format"
 A float_fractional_part	"float_fractional_part"
 A float_integer_part	"float_integer_part"
 A float_overflow	"float_overflow"
+A float_rounding	"float_rounding"
+A float_undefined	"float_undefined"
 A float_underflow	"float_underflow"
+A float_zero_div	"float_zero_div"
 A floor			"floor"
 A force			"force"
 A foreign		"foreign"
+A foreign_interface	"foreign_interface"
 A foreign_function	"$foreign_function"
 A foreign_return_value	"foreign_return_value"
 A fork			"fork"
@@ -313,9 +336,11 @@ A free_of_attvar	"free_of_attvar"
 A freeze		"freeze"
 A fresh			"fresh"
 A from_state		"from_state"
+A roundtoward		"roundtoward"
 A full			"full"
 A fullstop		"fullstop"
 A functor_name		"functor_name"
+A functor_space		"functor_space"
 A functors		"functors"
 A fx			"fx"
 A fy			"fy"
@@ -324,6 +349,7 @@ A garbage_collect_clauses "garbage_collect_clauses"
 A garbage_collected	"<garbage_collected>"
 A garbage_collection	"garbage_collection"
 A gc			"gc"
+A gc_stats		"gc_stats"
 A gcd			"gcd"
 A gctime		"gctime"
 A gdiv			"//"
@@ -352,6 +378,9 @@ A hidden		"hidden"
 A hide_childs		"hide_childs"
 A history_depth		"history_depth"
 A id			"id"
+A idg_affected_count	"idg_affected_count"
+A idg_dependent_count	"idg_dependent_count"
+A idg_size		"idg_size"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
@@ -360,6 +389,7 @@ A import_type		"import_type"
 A imported		"imported"
 A imported_procedure	"imported_procedure"
 A cont_inactive		"<inactive>"
+A incremental		"incremental"
 A index			"index"
 A indexed		"indexed"
 A indexes_created	"indexes_created"
@@ -368,6 +398,7 @@ A inf			"inf"
 A inference_limit_exceeded "inference_limit_exceeded"
 A inferences		"inferences"
 A infinite		"infinite"
+A infinity		"infinity"
 A informational		"informational"
 A inherit_from		"inherit_from"
 A init_file		"init_file"
@@ -382,6 +413,7 @@ A int_overflow		"int_overflow"
 A integer		"integer"
 A integer_expression	"integer_expression"
 A interrupt		"interrupt"
+A invalid		"invalid"
 A io_error		"io_error"
 A io_mode		"io_mode"
 A ioctl			"ioctl"
@@ -397,7 +429,9 @@ A key			"key"
 A key_value_position	"key_value_position"
 A larger		">"
 A larger_equal		">="
+A last			"last"
 A last_modified_generation "last_modified_generation"
+A lcm			"lcm"
 A level			"level"
 A lgamma		"lgamma"
 A li			"li"
@@ -429,6 +463,7 @@ A main			"main"
 A mark			"mark"
 A matches		"matches"
 A max			"max"
+A max_answers		"max_answers"
 A max_arity		"max_arity"
 A max_dde_handles	"max_dde_handles"
 A max_depth		"max_depth"
@@ -436,10 +471,19 @@ A max_files		"max_files"
 A max_frame_size	"max_frame_size"
 A max_length		"max_length"
 A max_path_length	"max_path_length"
+A max_rational_size	"max_rational_size"
+A max_rational_size_action "max_rational_size_action"
 A max_size		"max_size"
 A max_symbolic_links	"max_symbolic_links"
+A max_answers_for_subgoal "max_answers_for_subgoal"
+A max_answers_for_subgoal_action "max_answers_for_subgoal_action"
+A max_table_answer_size "max_table_answer_size"
+A max_table_answer_size_action "max_table_answer_size_action"
+A max_table_subgoal_size "max_table_subgoal_size"
+A max_table_subgoal_size_action "max_table_subgoal_size_action"
 A max_variable_length	"max_variable_length"
 A memory		"memory"
+A merged		"merged"
 A message		"message"
 A message_lines		"message_lines"
 A message_queue		"message_queue"
@@ -471,16 +515,20 @@ A nan			"nan"
 A newline		"newline"
 A next			"next"
 A next_argument		"next_argument"
+A nexttoward		"nexttoward"
 A nil			"[]"
 A nl			"nl"
 A nlink			"nlink"
+A no_lists		"no_lists"
 A no_memory		"no_memory"
 A node_count		"node_count"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
+A non_tabled_procedure	"non_tabled_procedure"
 A non_terminal		"non_terminal"
 A non_terminating	"non_terminating"
 A none			"none"
+A nonground		"nonground"
 A nonvar		"nonvar"
 A noprofile		"noprofile"
 A normal		"normal"
@@ -497,6 +545,7 @@ A number_of_clauses	"number_of_clauses"
 A number_of_rules	"number_of_rules"
 A numbervar_option	"numbervar_option"
 A numbervars		"numbervars"
+A numerator		"numerator"
 A obfuscate		"obfuscate"
 A occurs_check		"occurs_check"
 A octet		        "octet"
@@ -564,6 +613,7 @@ A prolog_flag_access	"prolog_flag_access"
 A prolog_flag_option	"prolog_flag_option"
 A prolog_flag_type	"prolog_flag_type"
 A prolog_identifier_continue "prolog_identifier_continue"
+A prolog_listen_option  "prolog_listen_option"
 A prolog_symbol		"prolog_symbol"
 A prolog_var_start	"prolog_var_start"
 A prompt		"|: "
@@ -573,6 +623,8 @@ A protocol		"protocol"
 A prove			":-"
 A public		"public"
 A punct			"punct"
+A qlf			"qlf"
+A qlf_min_load		"qlf_min_load"
 A quasi_quotation	"quasi_quotation"
 A quasi_quotation_position  "quasi_quotation_position"
 A quasi_quotation_syntax	"quasi_quotation_syntax"
@@ -590,6 +642,8 @@ A random_float		"random_float"
 A random_option		"random_option"
 A range			"range"
 A rational		"rational"
+A rational_overflow	"rational_overflow"
+A rational_syntax	"rational_syntax"
 A rationalize		"rationalize"
 A rdiv			"rdiv"
 A read			"read"
@@ -621,6 +675,9 @@ A reset			"reset"
 A resource		"resource"
 A resource_error	"resource_error"
 A resource_handle	"resource_handle"
+A ret			"ret"
+A retract		"retract"
+A retractall		"retractall"
 A retry			"retry"
 A round			"round"
 A rshift		">>"
@@ -640,8 +697,10 @@ A setup_call_catcher_cleanup "setup_call_catcher_cleanup"
 A shared		"shared"
 A shared_object		"shared_object"
 A shared_object_handle	"shared_object_handle"
+A shared_table_space	"shared_table_space"
 A shell			"shell"
 A shift_time		"shift_time"
+A short			"short"
 A sign			"sign"
 A signal		"signal"
 A signal_handler	"signal_handler"
@@ -691,9 +750,13 @@ A stream_type_check	"stream_type_check"
 A strict_equal		"=="
 A string		"string"
 A string_position	"string_position"
+A string_stack_tripwire "string_stack_tripwire"
 A strong		"strong"
+A subgoal_abstract	"subgoal_abstract"
+A subnormal		"subnormal"
 A subterm_positions	"subterm_positions"
 A suffix		"suffix"
+A suspend		"suspend"
 A suspended		"suspended"
 A symbol_char		"symbol_char"
 A syntax_error		"syntax_error"
@@ -706,12 +769,16 @@ A system_time		"system_time"
 A table			"table"
 A table_space		"table_space"
 A table_space_used	"table_space_used"
+A tabled		"tabled"
+A table_state		"table_state"
 A tag			"tag"
 A tan			"tan"
 A tanh			"tanh"
 A temporary		"temporary"
 A temporary_file	"temporary_file"
 A temporary_files	"temporary_files"
+A dtabled		"$tabled"
+A targp			"$targp"
 A term			"term"
 A term_expansion	"term_expansion"
 A term_position		"term_position"
@@ -720,9 +787,11 @@ A terminal_capability	"terminal_capability"
 A test			"test"
 A text			"text"
 A text_stream		"text_stream"
+A this_thread_exit	"this_thread_exit"
 A thousands_sep		"thousands_sep"
 A thread		"thread"
 A thread_cputime	"thread_cputime"
+A thread_exit		"thread_exit"
 A thread_get_message_option "thread_get_message_option"
 A thread_initialization "thread_initialization"
 A thread_local		"thread_local"
@@ -731,7 +800,9 @@ A thread_option		"thread_option"
 A thread_property	"thread_property"
 A threads		"threads"
 A threads_created	"threads_created"
+A threads_peak		"threads_peak"
 A trienode		"trienode"
+A tripwire		"tripwire"
 A throw			"throw"
 A tilde			"~"
 A time			"time"
@@ -741,8 +812,13 @@ A timeout		"timeout"
 A timeout_error		"timeout_error"
 A timezone		"timezone"
 A tmp_dir		"tmp_dir"
+A tnot			"tnot"
 A to_lower		"to_lower"
+A to_nearest	"to_nearest"
+A to_negative	"to_negative"
+A to_positive	"to_positive"
 A to_upper		"to_upper"
+A to_zero		"to_zero"
 A top			"top"
 A top_level		"top_level"
 A toplevel		"toplevel"
@@ -763,6 +839,7 @@ A transposed_char	"transposed_char"
 A transposed_word	"transposed_word"
 A true			"true"
 A truncate		"truncate"
+A tshared		"tshared"
 A tty			"tty"
 A tty_control		"tty_control"
 A type			"type"
@@ -782,6 +859,7 @@ A unlimited		"unlimited"
 A unload		"unload"
 A unlock		"unlock"
 A unlocked		"unlocked"
+A untable		"untable"
 A up			"up"
 A update		"update"
 A upper			"upper"
@@ -789,6 +867,7 @@ A user			"user"
 A user_error		"user_error"
 A user_flags		"user_flags"
 A user_input		"user_input"
+A user_or_explicit	"user_or_explicit"
 A user_output		"user_output"
 A utc			"UTC"
 A utf8			"utf8"
@@ -824,6 +903,7 @@ A xor			"xor"
 A xpceref		"@"
 A yf			"yf"
 A yfx			"yfx"
+A zero			"zero"
 A zero_divisor		"zero_divisor"
 A zip_options		"zip_options"
 
@@ -835,6 +915,7 @@ F alias			1
 F and			2
 F ar_equals		2
 F ar_not_equal		2
+F targp			3
 F asin			1
 F asinh			1
 F assert		1
@@ -917,6 +998,7 @@ F dquasi_quotation	3
 F drecover_and_rethrow	2
 F dshift		1
 F dstream		1
+F dtabled		2
 F dthread_init		0
 F dthrow		1
 F dtime			2
@@ -925,6 +1007,7 @@ F dvard			1
 F dwakeup		1
 F e			0
 F encoding		1
+F end			1
 F end_of_stream		1
 F engine		1
 F eof_action		1
@@ -958,7 +1041,10 @@ F floor			1
 F foreign_function	1
 F frame			3
 F frame_finished	1
+F fresh			2
 F gcd			2
+F gc_stats		8
+F gc			6
 F goal_expansion	2
 F ground		1
 F grouping		1
@@ -978,6 +1064,7 @@ F isovar		1
 F key_value_position	7
 F larger		2
 F larger_equal		2
+F lcm			2
 F lgamma		1
 F line_count		1
 F list_position		4
@@ -1001,12 +1088,14 @@ F msb			1
 F multi			1
 F nan			0
 F newline		1
+F nexttoward		2
 F nlink			1
 F nonvar		1
 F not_implemented	2
 F not_provable		1
 F not_strict_equal	2
 F number		1
+F numerator		1
 F occurs_check		2
 F offset		1
 F open			2
@@ -1049,6 +1138,7 @@ F reset			3
 F resource_error	1
 F retry			1
 F round			1
+F roundtoward		2
 F rshift		2
 F semicolon		2
 F setup_call_catcher_cleanup 4
@@ -1068,9 +1158,11 @@ F softcut		2
 F spy			1
 F sqrt			1
 F star			2
+F start			1
 F status		1
 F stream		1
 F stream		4
+F denominator		1
 F dstream_position	4
 F strict_equal		2
 F string		1
@@ -1079,6 +1171,7 @@ F string_position	2
 F syntax_error		1
 F syntax_error		3
 F system_thread_id	1
+F table_state		3
 F tag			1
 F tan			1
 F tanh			1
@@ -1087,10 +1180,12 @@ F term_position		5
 F thousands_sep		1
 F timeout		1
 F timeout_error		2
+F tnot			1
 F trace			1
 F traceinterc		3
 F tracing		1
 F thread		1
+F tripwire		2
 F true			0
 F truncate		1
 F tty			1

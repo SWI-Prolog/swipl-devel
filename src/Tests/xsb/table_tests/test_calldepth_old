@@ -1,0 +1,1 @@
+error(resource_error(tripwire(max_table_subgoal_size,xsb_test_calldepth:p(_))))

@@ -1,0 +1,65 @@
+:- import set_pil_on/0,set_pil_off/0,
+	  tfindall/3,
+	  abolish_table_pred/1  from tables.
+:- import numbervars/3 from numbervars.
+
+son:- set_pil_on.
+sof:- set_pil_off.
+
+:- table(p/1).
+:- table(r/1).
+:- table(q/1).
+
+r(X) :- p(X).
+p(X) :- q(X).
+
+q(a).
+q(b).
+q(c).
+
+
+testcombo:-
+	a(_W,_E),fail
+	 ; abolish_table_pred(r/1),abolish_table_pred(q/1),
+	   abolish_table_pred(p/1),b(_,_),fail
+	 ; abolish_table_pred(r/1),abolish_table_pred(q/1),
+	   abolish_table_pred(p/1),c(_,_),fail
+	 ; abolish_table_pred(r/1),abolish_table_pred(q/1),
+	   abolish_table_pred(p/1),d(_,_),fail
+	 ; abolish_table_pred(r/1),abolish_table_pred(q/1),
+	   abolish_table_pred(p/1),e(_,_),fail
+	 ; abolish_table_pred(r/1),abolish_table_pred(q/1),
+	   abolish_table_pred(p/1),f(_,_),fail
+	 ; true.
+
+/*
+testcombo:-
+	a(W,E),fail
+	 ; abolish_table_pred(r/1),
+	   abolish_table_pred(p/1),b(X,F),fail
+	 ; abolish_table_pred(r/1),
+	   abolish_table_pred(p/1),c(X,F),fail
+	 ; abolish_table_pred(r/1),
+	   abolish_table_pred(p/1),d(X,F),fail
+	 ; abolish_table_pred(r/1),
+	   abolish_table_pred(p/1),e(X,F),fail
+	 ; abolish_table_pred(r/1),
+	   abolish_table_pred(p/1),f(X,F),fail
+	 ; true.
+*/
+a(X,F):-p(X),tfindall(X,p(X),F),write(terma(X,F)),nl.
+b(X,F):-p(X),tfindall(X,r(X),F),write(termb(X,F)),nl.
+c(X,F):-r(X),tfindall(X,r(X),F),write(termc(X,F)),nl.
+d(X,F):-r(X),tfindall(X,p(X),F),write(termd(X,F)),nl.
+e(X,F):-r(X),tfindall(X,q(X),F),write(terme(X,F)),nl.
+f(X,F):-q(X),tfindall(X,q(X),F),write(termf(X,F)),nl.
+
+alta(X,F):-son,p(X),tfindall(X,p(X),F),write(term(X,F)),sof.
+alta1(X,F):-son,p(X),tfindall(Y,p(Y),F),write(term(X,F)),fail ; sof.
+altb(X,F):-son,p(X),tfindall(X,r(X),F),write(term(X,F)),fail ; sof.
+altb1(X,F):-son,p(X),tfindall(Y,r(Y),F),write(term(X,F)),sof.
+altb2(X,F):-son,p(X),mtfindall(Y,r(Y),F),write(term(X,F)),sof.
+altc(X,F):-son,r(X),tfindall(X,r(X),F),write(term(X,F)),sof.
+
+mtfindall(_,B,_) :- call(B),fail.
+mtfindall(A,B,C) :- tfindall(A,B,C).

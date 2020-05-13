@@ -34,8 +34,6 @@
 */
 
 :- module(prolog_build_home, []).
-:- use_module(library(lists)).
-:- use_module(library(pure_input)).
 
 /** <module> Setup SWI-Prolog to run from the build directory
 
@@ -99,7 +97,7 @@ cmake_source_directory(SrcDir) :-
 cmake_source_directory(SrcDir) :-
     cmake_binary_directory(BinDir),
     atomic_list_concat([BinDir, 'CMakeCache.txt'], /, CacheFile),
-    phrase_from_file(source_dir(SrcDir), CacheFile).
+    cmake_var(CacheFile, 'SWI-Prolog_SOURCE_DIR:STATIC', SrcDir).
 
 is_swi_prolog_cmake_file(File) :-
     setup_call_cleanup(
@@ -112,23 +110,30 @@ is_swi_prolog_stream(In) :-
     read_string(In, "\n", "\t ", Sep, Line),
     (   Sep == -1
     ->  !, fail
-    ;   sub_string(Line, _, _, _, "project(SWI-Prolog)")
+    ;   sub_string(Line, _, _, _, 'project(SWI-Prolog)')
     ),
     !.
 
-source_dir(SrcDir) -->
-    string(_),
-    `SWI-Prolog_SOURCE_DIR:STATIC=`,
-    string(Codes), `\n`,
-    !,
-    skip_remaining,
-    { atom_codes(SrcDir, Codes) }.
+cmake_var(File, Name, Value) :-
+    setup_call_cleanup(
+        open(File, read, In),
+        cmake_var_in_stream(In, Name, Value),
+        close(In)).
 
-string([]) --> [].
-string([H|T]) --> [H], string(T).
-
-skip_remaining(_,_).
-
+cmake_var_in_stream(Stream, Name, Value) :-
+    string_length(Name, NameLen),
+    repeat,
+      read_string(Stream, '\n', '\r', Sep, String0),
+      (   Sep \== -1
+      ->  String = String0
+      ;   String0 == ""
+      ->  !, fail
+      ;   String = String0
+      ),
+      sub_string(String, 0, _, _, Name),
+      sub_string(String, NameLen, 1, After, "="),
+      sub_atom(String, _, After,  0, Value),
+      !.
 
 %!  swipl_package(-Pkg, -PkgBinDir) is nondet.
 %
@@ -139,7 +144,7 @@ swipl_package(Pkg, PkgBinDir) :-
     atomic_list_concat([CMakeBinDir, packages], /, PkgRoot),
     exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
-    member(Pkg, Candidates),
+    '$member'(Pkg, Candidates),
     \+ special(Pkg),
     atomic_list_concat([PkgRoot, Pkg], /, PkgBinDir),
     atomic_list_concat([PkgBinDir, 'CMakeFiles'], /, CMakeDir),
@@ -152,6 +157,10 @@ special(..).
 :- dynamic   user:file_search_path/2.
 
 user:file_search_path(library, swi(packages)).
+user:file_search_path(foreign, AppDir) :-
+    current_prolog_flag(windows, true),
+    current_prolog_flag(executable, Exe),
+    file_directory_name(Exe, AppDir).
 
 %!  add_package(+Package, +PkgSrcDir, +PkgBinDir) is det.
 %
@@ -187,7 +196,10 @@ add_package(_Pkg, PkgBinDir) :-
 %   probably cheaper to add it anyway.
 
 add_package_path(PkgBinDir) :-
-    assertz(user:file_search_path(foreign, PkgBinDir)).
+    (   current_prolog_flag(windows, true)
+    ->  true
+    ;   assertz(user:file_search_path(foreign, PkgBinDir))
+    ).
 
 :- if(\+ current_prolog_flag(emscripten, true)).
 % disabled as we do not (yet) have packages and opendir() is broken

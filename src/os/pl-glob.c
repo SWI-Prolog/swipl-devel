@@ -33,6 +33,10 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifdef __WINDOWS__
+#include <mbstring.h>
+#endif
+
 #include "pl-incl.h"
 #include "pl-ctype.h"
 

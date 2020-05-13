@@ -1,0 +1,5 @@
+Evaluating p13 : win(A)
+win(a) is: undefined (OK)
+win(b) is: undefined (OK)
+win(c) is: true (OK)
+win(d) is: false (OK)

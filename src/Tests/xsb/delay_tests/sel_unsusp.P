@@ -1,0 +1,26 @@
+%----------------------------------------------------------------------
+%  Requires only negative simplification.
+%----------------------------------------------------------------------
+
+:- table a/0, b/0, c/0.
+
+a :- tnot(b).
+
+b :- tnot(b), fail.
+b :- tnot(c).
+
+c :- tnot(b), fail.
+
+%----------------------------------------------------------------------
+
+test :- a, fail.
+test :-
+	( a ->	( tnot(a) -> writeln('a is undefined')
+		; writeln('a is true') )
+	; writeln('a is false (OK)') ),
+	( b ->	( tnot(b) -> writeln('b is undefined')
+		; writeln('b is true (OK)') )
+	; writeln('b is false') ),
+	( c ->	( tnot(c) -> writeln('c is undefined')
+		; writeln('c is true') )
+	; writeln('c is false (OK)') ).

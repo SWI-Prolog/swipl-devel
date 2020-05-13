@@ -108,7 +108,11 @@ test(2, [R =@= (alleq(Ys1) :- spec(Ys2,[],Ys1,[]), alleq(Ys2))]) :-
 
 :- end_tests(rule_expansions).
 
-:- begin_tests(dcg_rule_expansions).
+% set xref to avoid getting the non_terminal/1 directive
+:- begin_tests(dcg_rule_expansions,
+	       [ setup(set_prolog_flag(xref, true)),
+		 cleanup(set_prolog_flag(xref,false))
+	       ]).
 
 test(1, [R =@= (a(X0,X) :- b(X0,X1), c(X1,X))]) :-
 	expand_term((a --> b, c), R).

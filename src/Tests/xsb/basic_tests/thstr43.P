@@ -1,0 +1,19 @@
+:- table a/2.
+
+tw :- ((a(a,D) ; a(b,D) ; a(c,D)),write(D),nl ; a(Q,W),write(a(Q,W)),nl), fail.
+tw.
+
+a(a,X) :- p(1,X).
+a(a,X) :- p(2,X).
+a(a,X) :- p(3,X).
+
+a(b,X) :- p(2,X).
+a(b,X) :- p(3,X).
+a(c,X) :- p(3,X).
+
+p(1,10).
+p(1,11).
+p(2,12).
+p(2,13).
+p(3,14).
+p(3,15).

@@ -1,0 +1,33 @@
+%------------------------------------------------------------------------
+% Program that is dynamically stratified but not dynamically stratified
+% from left-to-right.  It causes a seg fault.
+%
+% Both negative and positive simplification is needed (Model = {~p,q}).
+%------------------------------------------------------------------------
+
+%:- auto_table.
+:- table p/0, q/0.
+
+p :- tnot(q), p.
+
+q :- tnot(q), p.
+q :- tnot(p).
+
+%------------------------------------------------------------------------
+
+test :- p, fail.
+test :- ( p ->	( tnot(p) -> writeln('p. p is undefined')
+		; writeln('p. p is true') )
+	; writeln('p. p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('p. q is undefined')
+		; writeln('p. q is true (OK)') )
+	; writeln('p. q is false') ),
+	abolish_all_tables, fail.
+test :- q, fail.
+test :- ( p ->	( tnot(p) -> writeln('q. p is undefined')
+		; writeln('q. p is true') )
+	; writeln('q. p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('q. q is undefined')
+		; writeln('q. q is true (OK)') )
+	; writeln('q. q is false') ).
+

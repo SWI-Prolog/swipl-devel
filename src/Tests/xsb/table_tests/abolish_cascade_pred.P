@@ -1,0 +1,66 @@
+:- import abolish_table_pred/1, get_residual/2 from tables.
+
+init:- p1(_,_,_),p1(a,_,_),s.
+
+test:- p1(_,_,_),p1(a,b,_),s,abolish_table_pred(undef),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+test:- p1(_,_,_),p1(_,_,_),abolish_table_pred(undef),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+test:- p1(_,_,_),s,abolish_table_pred(undef),abolish_table_pred(p1(_,_,_)),fail.
+test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+%test:- p1(_,_,_),p1(_,_,_),s,abolish_table_pred(undef,[abolish_tables_singly]),fail.
+%test:- get_residual(p1(A,B,C),D),writeln(get_residual(p1(A,B,C),D)),fail.
+%test:- get_residual(s,F),writeln(get_residual(s,F)),fail.
+test:- p2(_,_,_),abolish_table_pred(r2(_,_,_)),abolish_table_pred(r3(_,_,_)),fail.
+test:- get_residual(p2(A,B,C),F),writeln(get_residual(p2(A,B,C),F)),fail.
+test:- get_residual(r2(A,B,C),F),writeln(get_residual(r2(A,B,C),F)),fail.
+test:- get_residual(r3(A,B,C),F),writeln(get_residual(r3(A,B,C),F)),fail.
+test:- writeln('cascading abolish test completed').
+
+:- table p1/3, r1/3, undef/0.
+p1(X,Y,Z):- r1(X,Y,Z).
+
+r1(a,b,c):- undef.
+r1(a,b,d):- undef.
+r1(a,c,c):- undef.
+r1(a,c,d):- undef.
+r1(b,c,d):- undef.
+r1(b,c,e):- undef.
+r1(c,c,e):- undef.
+r1(d,c,e):- undef.
+r1(3,c,e):- undef.
+r1(f,c,e):- undef.
+r1(g,c,e):- undef.
+r1(h,c,e):- undef.
+r1(i,c,e):- undef.
+
+undef :- tnot(undef).
+
+:- table s/0,t/0.
+s:- tnot(t).
+
+t:- tnot(undef).
+
+:- table p2/3,  r2/3,  r3/3.
+p2(X,Y,Z):- r2(X,Y,Z).
+p2(X,Y,Z):- r3(X,Y,Z).
+
+r2(a,b,c):- undef.
+r2(a,b,d):- undef.
+r2(a,c,c):- undef.
+r2(a,c,d):- undef.
+r2(b,c,d):- undef.
+r2(b,c,e):- undef.
+r2(c,c,e):- undef.
+
+r3(d,c,e):- undef.
+r3(3,c,e):- undef.
+r3(f,c,e):- undef.
+r3(g,c,e):- undef.
+r3(h,c,e):- undef.
+r3(i,c,e):- undef.
+
+ta3:- p2(_,_,_),abolish_table_call(r2(_,_,_)),abolish_table_call(r3(_,_,_)).

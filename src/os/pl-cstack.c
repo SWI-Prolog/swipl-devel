@@ -33,10 +33,6 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef _WIN64
-#define _WIN32_WINNT 0x0501            /* get RtlCaptureContext() */
-#endif
-
 #define _GNU_SOURCE
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
@@ -881,7 +877,20 @@ sigCrashHandler(int sig)
   time_t now = time(NULL);
   char tbuf[48];
 
-  signal(sig, SIG_DFL);
+  signal(sig,     SIG_DFL);
+#ifdef SIGALRM
+  signal(SIGALRM, SIG_DFL);
+#endif
+#ifdef SIGABRT
+  signal(SIGABRT, SIG_DFL);
+#endif
+#ifdef SIGSEGV
+  signal(SIGSEGV, SIG_DFL);
+#endif
+#ifdef HAVE_ALARM
+  alarm(10);				/* try to avoid deadlocks */
+#endif
+
   tid = PL_thread_self();
   ctime_r(&now, tbuf);
   tbuf[24] = '\0';
@@ -893,6 +902,8 @@ sigCrashHandler(int sig)
 	   "received fatal signal %d (%s)\n",
 	   PL_thread_self(), name, tbuf, sig, signal_name(sig));
   print_c_backtrace("crash");
+  Sdprintf("Prolog stack:\n");
+  PL_backtrace(25, PL_BT_SAFE);
   Sdprintf("Running on_halt hooks with status %d\n", 128+sig);
   run_on_halt(&GD->os.exit_hooks, 128+sig);
 

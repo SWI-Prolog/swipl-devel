@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2018, University of Amsterdam
+    Copyright (c)  1995-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,9 +38,11 @@
           [ qsave_program/1,                    % +File
             qsave_program/2                     % +File, +Options
           ]).
+:- use_module(library(zip)).
 :- use_module(library(lists)).
 :- use_module(library(option)).
 :- use_module(library(error)).
+:- use_module(library(apply)).
 
 /** <module> Save current program as a state or executable
 
@@ -54,7 +57,13 @@ also used by the commandline sequence below.
 :- meta_predicate
     qsave_program(+, :).
 
-:- public save_option/3.                        % used by '$compile_wic'/0
+:- multifile error:has_type/2.
+error:has_type(qsave_foreign_option, Term) :-
+    is_of_type(oneof([save, no_save]), Term),
+    !.
+error:has_type(qsave_foreign_option, arch(Archs)) :-
+    is_of_type(list(atom), Archs),
+    !.
 
 save_option(stack_limit, integer,
             "Stack limit (bytes)").
@@ -64,6 +73,8 @@ save_option(toplevel,    callable,
             "Toplevel goal").
 save_option(init_file,   atom,
             "Application init file").
+save_option(packs,       boolean,
+            "Do (not) attach packs").
 save_option(class,       oneof([runtime,development]),
             "Development state").
 save_option(op,          oneof([save,standard]),
@@ -74,9 +85,11 @@ save_option(map,         atom,
             "File to report content of the state").
 save_option(stand_alone, boolean,
             "Add emulator at start").
+save_option(traditional, boolean,
+            "Use traditional mode").
 save_option(emulator,    ground,
             "Emulator to use").
-save_option(foreign,     oneof([save,no_save]),
+save_option(foreign,     qsave_foreign_option,
             "Include foreign code in state").
 save_option(obfuscate,   boolean,
             "Obfuscate identifiers").
@@ -121,17 +134,32 @@ qsave_program(FileBase, Options0) :-
     default_init_file(SaveClass, DefInit),
     prepare_entry_points(Options),
     save_autoload(Options),
-    open_map(Options),
-    prepare_state(Options),
-    create_prolog_flag(saved_program, true, []),
-    create_prolog_flag(saved_program_class, SaveClass, []),
-    (   exists_file(File)
-    ->  delete_file(File)
-    ;   true
-    ),
-    open(File, write, StateOut, [type(binary)]),
+    setup_call_cleanup(
+        open_map(Options),
+        ( prepare_state(Options),
+          create_prolog_flag(saved_program, true, []),
+          create_prolog_flag(saved_program_class, SaveClass, []),
+          delete_if_exists(File),    % truncate will crash Prolog's
+                                     % running on this state
+          setup_call_catcher_cleanup(
+              open(File, write, StateOut, [type(binary)]),
+              write_state(StateOut, SaveClass, InitFile, Options),
+              Reason,
+              finalize_state(Reason, StateOut, File))
+        ),
+        close_map),
+    cleanup,
+    !.
+
+write_state(StateOut, SaveClass, InitFile, Options) :-
     make_header(StateOut, SaveClass, Options),
-    zip_open_stream(StateOut, RC, []),
+    setup_call_cleanup(
+        zip_open_stream(StateOut, RC, []),
+        write_zip_state(RC, SaveClass, InitFile, Options),
+        zip_close(RC, [comment('SWI-Prolog saved state')])),
+    flush_output(StateOut).
+
+write_zip_state(RC, SaveClass, InitFile, Options) :-
     save_options(RC, SaveClass,
                  [ init_file(InitFile)
                  | Options
@@ -139,11 +167,19 @@ qsave_program(FileBase, Options0) :-
     save_resources(RC, SaveClass),
     lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
-    save_foreign_libraries(RC, Options),
-    zip_close(RC, [comment("SWI-Prolog saved state")]),
-    '$mark_executable'(File),
-    close_map,
-    cleanup.
+    save_foreign_libraries(RC, Options).
+
+finalize_state(exit, StateOut, File) :-
+    close(StateOut),
+    '$mark_executable'(File).
+finalize_state(!, StateOut, File) :-
+    print_message(warning, qsave(nondet)),
+    finalize_state(exit, StateOut, File).
+finalize_state(_, StateOut, File) :-
+    close(StateOut, [force(true)]),
+    catch(delete_file(File),
+          Error,
+          print_message(error, Error)).
 
 cleanup :-
     retractall(saved_resource_file(_)).
@@ -163,6 +199,11 @@ default_init_file(runtime, none) :- !.
 default_init_file(_,       InitFile) :-
     '$cmd_option_val'(init_file, InitFile).
 
+delete_if_exists(File) :-
+    (   exists_file(File)
+    ->  delete_file(File)
+    ;   true
+    ).
 
                  /*******************************
                  *           HEADER             *
@@ -211,15 +252,15 @@ make_header(_, _, _).
 
 min_stack(stack_limit, 100_000).
 
-convert_option(Stack, Val, NewVal, "~w") :-     % stack-sizes are in K-bytes
+convert_option(Stack, Val, NewVal, '~w') :-     % stack-sizes are in K-bytes
     min_stack(Stack, Min),
     !,
     (   Val == 0
     ->  NewVal = Val
     ;   NewVal is max(Min, Val)
     ).
-convert_option(toplevel, Callable, Callable, "~q") :- !.
-convert_option(_, Value, Value, "~w").
+convert_option(toplevel, Callable, Callable, '~q') :- !.
+convert_option(_, Value, Value, '~w').
 
 doption(Name) :- min_stack(Name, _).
 doption(init_file).
@@ -245,9 +286,9 @@ save_options(RC, SaveClass, Options) :-
             (   option(OptTerm, Options)
             ->  convert_option(OptionName, OptionVal2, OptionVal, FmtVal)
             ;   OptionVal = OptionVal1,
-                FmtVal = "~w"
+                FmtVal = '~w'
             ),
-            atomics_to_string(["~w=", FmtVal, "~n"], Fmt),
+            atomics_to_string(['~w=', FmtVal, '~n'], Fmt),
             format(Fd, Fmt, [OptionName, OptionVal]),
         fail
     ;   true
@@ -584,7 +625,7 @@ run_initialize(Goal, Ctx) :-
 save_autoload(Options) :-
     option(autoload(true),  Options, true),
     !,
-    autoload(Options).
+    autoload_all(Options).
 save_autoload(_).
 
 
@@ -620,7 +661,9 @@ save_predicate(P, SaveClass) :-
     P = (M:H),
     functor(H, F, A),
     feedback('~nsaving ~w/~d ', [F, A]),
-    (   H = resource(_,_,_),
+    (   (   H = resource(_,_)
+        ;   H = resource(_,_,_)
+        ),
         SaveClass \== development
     ->  save_attribute(P, (dynamic)),
         (   M == user
@@ -678,7 +721,7 @@ save_attribute(P, Attribute) :-
         ->  true
         ;   predicate_property(P, volatile)
         )
-    ;   Attribute == 'dynamic'      % no need if predicate is thread_local
+    ;   Attribute == (dynamic)      % no need if predicate is thread_local
     ->  \+ predicate_property(P, thread_local)
     ;   true
     ),
@@ -877,42 +920,109 @@ qualify_head(T, user:T).
 save_foreign_libraries(RC, Options) :-
     option(foreign(save), Options),
     !,
-    feedback('~nFOREIGN LIBRARIES~n', []),
-    forall(current_foreign_library(FileSpec, _Predicates),
-           ( find_foreign_library(FileSpec, File, Time),
-             term_to_atom(FileSpec, Name),
-             zipper_append_file(RC, Name, File, [time(Time)])
+    current_prolog_flag(arch, HostArch),
+    feedback('~nHOST(~w) FOREIGN LIBRARIES~n', [HostArch]),
+    save_foreign_libraries1(HostArch, RC, Options).
+save_foreign_libraries(RC, Options) :-
+    option(foreign(arch(Archs)), Options),
+    !,
+    forall(member(Arch, Archs),
+           ( feedback('~n~w FOREIGN LIBRARIES~n', [Arch]),
+             save_foreign_libraries1(Arch, RC, Options)
            )).
 save_foreign_libraries(_, _).
 
-%!  find_foreign_library(+FileSpec, -File, -Time) is det.
+save_foreign_libraries1(Arch, RC, _Options) :-
+    forall(current_foreign_library(FileSpec, _Predicates),
+           ( find_foreign_library(Arch, FileSpec, EntryName, File, Time),
+             term_to_atom(EntryName, Name),
+             zipper_append_file(RC, Name, File, [time(Time)])
+           )).
+
+%!  find_foreign_library(+Architecture, +FileSpec, -EntryName, -File, -Time)
+%!								is det.
 %
-%   Find the shared object specified by   FileSpec.  If posible, the
-%   shared object is stripped to reduce   its size. This is achieved
-%   by calling strip -o <tmp> <shared-object>. Note that the file is
-%   a Prolog tmp file and will be deleted on halt.
+%   Find  the  shared  object  specified  by   FileSpec  for  the  named
+%   Architecture. EntryName will be the  name   of  the  file within the
+%   saved state archive. If posible, the   shared  object is stripped to
+%   reduce its size. This  is  achieved   by  calling  =|strip  -o <tmp>
+%   <shared-object>|=. Note that (if stripped) the  file is a Prolog tmp
+%   file and will be deleted on halt.
 %
 %   @bug    Should perform OS search on failure
 
-find_foreign_library(FileSpec, SharedObject, Time) :-
+find_foreign_library(Arch, FileSpec, shlib(Arch,Name), SharedObject, Time) :-
+    FileSpec = foreign(Name),
+    (   catch(arch_find_shlib(Arch, FileSpec, File),
+              E,
+              print_message(error, E)),
+        exists_file(File)
+    ->  true
+    ;   throw(error(existence_error(architecture_shlib(Arch), FileSpec),_))
+    ),
+    time_file(File, Time),
+    strip_file(File, SharedObject).
+
+%!  strip_file(+File, -Stripped) is det.
+%
+%   Try to strip File. Unify Stripped with   File if stripping fails for
+%   some reason.
+
+strip_file(File, Stripped) :-
+    absolute_file_name(path(strip), Strip,
+                       [ access(execute),
+                         file_errors(fail)
+                       ]),
+    tmp_file(shared, Stripped),
+    (   catch(do_strip_file(Strip, File, Stripped), E,
+              (print_message(warning, E), fail))
+    ->  true
+    ;   print_message(warning, qsave(strip_failed(File))),
+        fail
+    ),
+    !.
+strip_file(File, File).
+
+do_strip_file(Strip, File, Stripped) :-
+    format(atom(Cmd), '"~w" -o "~w" "~w"',
+           [Strip, Stripped, File]),
+    shell(Cmd),
+    exists_file(Stripped).
+
+%!  qsave:arch_shlib(+Architecture, +FileSpec, -File) is det.
+%
+%   This is a user defined hook called by qsave_program/2. It is used to
+%   find a shared library  for  the   specified  Architecture,  named by
+%   FileSpec. FileSpec is of  the   form  foreign(Name), a specification
+%   usable by absolute_file_name/2. The predicate should unify File with
+%   the absolute path for the  shared   library  that corresponds to the
+%   specified Architecture.
+%
+%   If  this  predicate  fails  to  find    a  file  for  the  specified
+%   architecture an `existence_error` is thrown.
+
+:- multifile arch_shlib/3.
+
+arch_find_shlib(Arch, FileSpec, File) :-
+    arch_shlib(Arch, FileSpec, File),
+    !.
+arch_find_shlib(Arch, FileSpec, File) :-
+    current_prolog_flag(arch, Arch),
     absolute_file_name(FileSpec,
                        [ file_type(executable),
                          access(read),
                          file_errors(fail)
                        ], File),
-    !,
-    time_file(File, Time),
-    (   absolute_file_name(path(strip), Strip,
-                           [ access(execute),
-                             file_errors(fail)
-                           ]),
-        tmp_file(shared, Stripped),
-        format(atom(Cmd), '"~w" -o "~w" "~w"',
-               [ Strip, Stripped, File ]),
-        shell(Cmd)
-    ->  SharedObject = Stripped
-    ;   SharedObject = File
-    ).
+    !.
+arch_find_shlib(Arch, foreign(Base), File) :-
+    current_prolog_flag(arch, Arch),
+    current_prolog_flag(windows, true),
+    current_prolog_flag(executable, WinExe),
+    prolog_to_os_filename(Exe, WinExe),
+    file_directory_name(Exe, BinDir),
+    file_name_extension(Base, dll, DllFile),
+    atomic_list_concat([BinDir, /, DllFile], File),
+    exists_file(File).
 
 
                  /*******************************
@@ -1097,6 +1207,98 @@ ignored(File, Options) :-
     !.
 
 
+                /********************************
+                *     SAVED STATE GENERATION    *
+                *********************************/
+
+%!  qsave_toplevel
+%
+%   Called to handle `-c file` compilaton.
+
+:- public
+    qsave_toplevel/0.
+
+qsave_toplevel :-
+    current_prolog_flag(os_argv, Argv),
+    qsave_options(Argv, Files, Options),
+    '$cmd_option_val'(compileout, Out),
+    user:consult(Files),
+    qsave_program(Out, user:Options).
+
+qsave_options([], [], []).
+qsave_options([--|_], [], []) :-
+    !.
+qsave_options(['-c'|T0], Files, Options) :-
+    !,
+    argv_files(T0, T1, Files, FilesT),
+    qsave_options(T1, FilesT, Options).
+qsave_options([O|T0], Files, [Option|T]) :-
+    string_concat(--, Opt, O),
+    split_string(Opt, =, '', [NameS|Rest]),
+    atom_string(Name, NameS),
+    qsave_option(Name, OptName, Rest, Value),
+    !,
+    Option =.. [OptName, Value],
+    qsave_options(T0, Files, T).
+qsave_options([_|T0], Files, T) :-
+    qsave_options(T0, Files, T).
+
+argv_files([], [], Files, Files).
+argv_files([H|T], [H|T], Files, Files) :-
+    sub_atom(H, 0, _, _, -),
+    !.
+argv_files([H|T0], T, [H|Files0], Files) :-
+    argv_files(T0, T, Files0, Files).
+
+%!  qsave_option(+Name, +ValueStrings, -Value) is semidet.
+
+qsave_option(Name, Name, [], true) :-
+    save_option(Name, boolean, _),
+    !.
+qsave_option(NoName, Name, [], false) :-
+    atom_concat('no-', Name, NoName),
+    save_option(Name, boolean, _),
+    !.
+qsave_option(Name, Name, ValueStrings, Value) :-
+    save_option(Name, Type, _),
+    !,
+    atomics_to_string(ValueStrings, "=", ValueString),
+    convert_option_value(Type, ValueString, Value).
+qsave_option(Name, Name, _Chars, _Value) :-
+    existence_error(save_option, Name).
+
+convert_option_value(integer, String, Value) :-
+    (   number_string(Value, String)
+    ->  true
+    ;   sub_string(String, 0, _, 1, SubString),
+        sub_string(String, _, 1, 0, Suffix0),
+        downcase_atom(Suffix0, Suffix),
+        number_string(Number, SubString),
+        suffix_multiplier(Suffix, Multiplier)
+    ->  Value is Number * Multiplier
+    ;   domain_error(integer, String)
+    ).
+convert_option_value(callable, String, Value) :-
+    term_string(Value, String).
+convert_option_value(atom, String, Value) :-
+    atom_string(Value, String).
+convert_option_value(boolean, String, Value) :-
+    atom_string(Value, String).
+convert_option_value(oneof(_), String, Value) :-
+    atom_string(Value, String).
+convert_option_value(ground, String, Value) :-
+    atom_string(Value, String).
+convert_option_value(qsave_foreign_option, "save", save).
+convert_option_value(qsave_foreign_option, StrArchList, arch(ArchList)) :-
+    split_string(StrArchList, ",", ", \t", StrArchList1),
+    maplist(atom_string, ArchList, StrArchList1).
+
+suffix_multiplier(b, 1).
+suffix_multiplier(k, 1024).
+suffix_multiplier(m, 1024 * 1024).
+suffix_multiplier(g, 1024 * 1024 * 1024).
+
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
@@ -1106,3 +1308,5 @@ ignored(File, Options) :-
 prolog:message(no_resource(Name, File)) -->
     [ 'Could not find resource ~w on ~w or system resources'-
       [Name, File] ].
+prolog:message(qsave(nondet)) -->
+    [ 'qsave_program/2 succeeded with a choice point'-[] ].

@@ -38,8 +38,9 @@
             quasi_quotation_syntax_error/1,     % +Error
             quasi_quotation_syntax/1            % :Syntax
           ]).
-:- use_module(library(error)).
-:- use_module(library(pure_input)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(pure_input),[stream_to_lazy_list/2]).
+
 
 /** <module> Define Quasi Quotation syntax
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2018, University of Amsterdam
+    Copyright (c)  1996-2019, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -670,20 +670,15 @@ gmp(rational-2) :-
 	rational(A, 1, 2).
 gmp(rational-3) :-
 	dec(6 rdiv 5, X),
-	X == 1 rdiv 5.
+	rational(X, 1, 5).
 gmp(rational-4) :-
 	X is 5 rdiv 3,
-	X == (5 rdiv 3).
-gmp(rational-5) :-
-	5 rdiv 3 is 5 rdiv 3.
-gmp(rational-6) :-
-	5 rdiv X is 5 rdiv 3,
-	X == 3.
+	rational(X, 5, 3).
 gmp(rationalize-1) :-
 	A is rationalize(0.0), A == 0,
-	B is rationalize(0.1), B == 1 rdiv 10,
+	B is rationalize(0.1), rational(B, 1, 10),
 	C is rationalize(10.0), C == 10,
-	D is rationalize(-0.1), D == -1 rdiv 10.
+	D is rationalize(-0.1), rational(D, -1, 10).
 gmp(rationalize-2) :-
 	pi =:= float(rationalize(pi)).
 gmp(number-1) :-
@@ -721,7 +716,7 @@ gmp(comp-1) :-
 	retractall(gmp_clause(_,_)).
 gmp(comp-2) :-
 	X is ((1 rdiv 2)*2) rdiv 3,
-	X == 1 rdiv 3.
+	rational(X, 1, 3).
 gmp(rec-1) :-
 	forall(recorded(gmp_fac, _, R), erase(R)),
 	forall(between(1, 50, X),
@@ -2640,10 +2635,17 @@ run_test_script(Script) :-
 	file_name_extension(Pred, _, Base),
 	load_files(Script, [silent(true), if(changed)]),
 	(   current_prolog_flag(verbose, normal)
-	->  format(user_error, '(~w)', [Base]), flush_output
+	->  get_time(T0),
+	    format(user_error, '(~w)', [Base]), flush_output
 	;   true
 	),
-	call_test(Pred, script).
+	call_test(Pred, script),
+	(   current_prolog_flag(verbose, normal)
+	->  get_time(T1),
+	    T is T1-T0,
+	    format(user_error, '[~3fsec]', [T]), flush_output
+	;   true
+	).
 
 run_test_scripts(Directory) :-
 	(   script_dir(ScriptDir),
@@ -2781,6 +2783,7 @@ wide_character_types :-
 testdir('Tests/unprotected').
 testdir('Tests/core').
 testdir('Tests/attvar').
+testdir('Tests/debug').
 testdir('Tests/library').
 testdir('Tests/charset').
 testdir('Tests/eclipse').
@@ -2891,8 +2894,6 @@ load_cmake_test_db :-
 	load_files(swi('test/cmake_pkg_tests.db')).
 
 find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
-	script_dir(ScriptDir),
-	working_directory(_, ScriptDir),
 	load_cmake_test_db,
 	cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)).
 
@@ -2906,18 +2907,24 @@ is_pkg(Pkg) :-
 %	directory is set to the location of the package.
 
 run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+	script_dir(ScriptDir),
+	atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
 	format(user_error, '~NTesting package ~w:~w ~`.t~40|',[Pkg,TestName]),
 	get_time(Start),
-	run_pkg_test1(PkgScript, Goal, PkgDir),
+	run_pkg_test1(PkgScript, Goal, TestDir),
 	get_time(End),
 	Time is End - Start,
 	format(user_error, ' Passed ~2f sec.~n', [Time]).
 
 run_pkg_test1(Script, Goal, PkgDir) :-
 	current_prolog_flag(executable, SWIPL),
+	working_directory(CWD, CWD),
+	format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
 	process_create(SWIPL,
 		       [ '-f', 'none',
 			 '-t', 'halt',
+			 '--no-packs',
+			 '-p', POpt,
 			 '-g', Goal,
 			 Script
 		       ],

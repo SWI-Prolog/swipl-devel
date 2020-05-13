@@ -79,27 +79,29 @@
 #define MSG_QLF_SECTION		 35
 #define MSG_QLF_BOOT		 36
 #define MSG_QLF_BOOT_READ	 37
-#define MSG_PROC_COUNT		 38
-#define MSG_CUT			 39
+#define MSG_QLF_LABEL		 38
+#define MSG_PROC_COUNT		 39
+#define MSG_CUT			 40
 
-#define MSG_QUEUE		 40
-#define MSG_QUEUE_WAIT		 41
-#define MSG_SIGNAL		 42
-#define MSG_COMP_VARS		 43
-#define MSG_DICT		 44
-#define MSG_PROF_CALLTREE	 45
-#define MSG_PROF_TICKS		 46
-#define MSG_INFERENCE_LIMIT	 47
-#define MSG_NSOLS		 48
-#define MSG_SRCFILE		 49
-#define MSG_DESTROY_MODULE	 50
-#define MSG_CREATE_MODULE	 51
-#define MSG_QUEUE_GC		 52
-#define MSG_ACYCLIC		 53
-#define MSG_OPERATOR		 54
-#define MSG_MUTEX_GC		 55
-#define MSG_REC_ATTVAR		 56
-#define MSG_TTY			 57
+#define MSG_QUEUE		 41
+#define MSG_QUEUE_WAIT		 42
+#define MSG_SIGNAL		 43
+#define MSG_COMP_VARS		 44
+#define MSG_DICT		 45
+#define MSG_PROF_CALLTREE	 46
+#define MSG_PROF_TICKS		 47
+#define MSG_INFERENCE_LIMIT	 48
+#define MSG_NSOLS		 40
+#define MSG_SRCFILE		 50
+#define MSG_DESTROY_MODULE	 51
+#define MSG_CREATE_MODULE	 52
+#define MSG_QUEUE_GC		 53
+#define MSG_ACYCLIC		 54
+#define MSG_OPERATOR		 55
+#define MSG_MUTEX_GC		 56
+#define MSG_REC_ATTVAR		 57
+#define MSG_TTY			 58
+#define MSG_OS_DIR		 59
 
 #define MSG_READ_TOKEN		 60
 
@@ -158,6 +160,8 @@
 #define MSG_CGC_CONSIDER	 175
 #define MSG_CGC_STACK		 176
 #define MSG_CGC_PRED_REF	 177
+#define MSG_CGC_RETRACT		 178
+#define MSG_CGC_GENERATION	 179
 
 #define MSG_JIT			 180
 #define MSG_JIT_DELINDEX	 181
@@ -170,20 +174,48 @@
 
 #define MSG_TRIE_PUT_TERM	 200
 #define MSG_TRIE_GC		 201
+#define MSG_TRIE_GEN		 202
+#define MSG_TRIE_VM		 203
+
+#define MSG_THREAD_LOCAL	 240
 
 #define MSG_THREAD_LOCAL	 240
 
 #define MSG_ZIP			 250
 #define MSG_ZIP_STATE		 251
+#define MSG_WIN_API		 252
+#define MSG_WIN_DDE		 253
 
 #define MSG_MODULE_REF		 260
 
+#define MSG_STRING_BUFFER	 270
+
 #define MSG_TABLING_WORK	 300
 #define MSG_TABLING_MODED	 301
+#define MSG_TABLING_NEG		 302
+#define MSG_TABLING_SIMPLIFY	 303
+#define MSG_TABLING_DELAY	 304
+#define MSG_TABLING_DELAY_VAR	 305
+#define MSG_TABLING_AC		 306
+#define MSG_TABLING_MERGE	 307
+#define MSG_TABLING_VTRIE_DEPENDENCIES 308
+#define MSG_TABLING_IDG		 309
+#define MSG_TABLING_IDG_CHANGED	 310
+#define MSG_TABLING_IDG_REEVAL	 311
+#define MSG_TABLING_EXCEPTION	 312
+#define MSG_TABLING_SHARED	 313
+#define MSG_TABLING_ABOLISH	 314
+#define MSG_TABLING_CALL_SUBSUMPTION 315
+#define MSG_TABLING_RESTRAINT	 316
+
+#define TABLING_NO_EARLY_COMPLETION 320
+#define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
+#define TABLING_NO_AC		 322
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
 #define CHK_HIGHER_ADDRESS      1002
+#define CHK_ATOM_GARBAGE_COLLECTED 1003
 
 typedef struct debug_topic
 { unsigned	code;

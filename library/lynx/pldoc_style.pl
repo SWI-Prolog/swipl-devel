@@ -34,12 +34,18 @@
 
 :- module(pldoc_style,
           []).
+:- autoload(library(option),[merge_options/3]).
 
 :- multifile
+    theme/3,
     html_text:style/3.
 
 html_text:style(Element, Condition, CSS) :-
-    style(Element, Condition, CSS).
+    style(Element, Condition, CSS0),
+    (   theme(Element, Condition, CSS1)
+    ->  merge_options(CSS1, CSS0, CSS)
+    ;   CSS = CSS0
+    ).
 
 style(div, class(synopsis),
       [text_align(right), margin_bottom(2), margin_top(2)]).

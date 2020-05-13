@@ -1,0 +1,30 @@
+:- import numbervars/3 from num_vars.
+
+:- table a/2.
+
+/* ?- a(Q,W), a(W,W), a(f(F),f(F)) , a([F],[F]) */
+
+a(X,Y) :- p(X,Y).
+a(X,Y) :- a(X,Z),p(Z,Y).
+
+testcombo :- 
+	(tw(_Q,_W),fail ; tw(A,A),fail ; tw(f(F),f(F)),fail ; tw([F],[F]),fail).
+
+tw(Q,W) :- a(Q,W),T = a(Q,W),numbervars(T,0,_T1),writeq(T),nl.
+
+p(f(1),f(2)).
+p(f(2),f(3)).
+p(f(3),f(1)).
+
+p([1],[2]).
+p([2],[3]).
+p([3],[1]).
+
+p(f([1]),f([2])).
+p(f([2]),f([3])).
+p(f([3]),f([1])).
+
+p([f(1)],[f(2)]).
+p([f(2)],[f(3)]).
+p([f(3)],[f(1)]).
+

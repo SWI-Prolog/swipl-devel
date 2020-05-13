@@ -7,16 +7,6 @@ set(GMP_ROOT ${MINGW_ROOT})
 set(LibUUID_ROOT ${MINGW_ROOT})
 set(OPENSSL_ROOT_DIR ${MINGW_ROOT})
 
-if(WIN64)
-
-set(WIN_PROGRAM_FILES "Program Files")
-
-else(WIN64)
-
-set(WIN_PROGRAM_FILES "Program Files (x86)")
-
-endif(WIN64)
-
 if(NOT DEFINED JAVA_HOME)
   file(GLOB JAVA_HOME "$ENV{HOME}/.wine/drive_c/${WIN_PROGRAM_FILES}/Java/jdk*")
   set(JAVA_HOME ${JAVA_HOME} CACHE PATH "Location of the JDK" FORCE)

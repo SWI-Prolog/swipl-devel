@@ -49,7 +49,7 @@ end
 define man
   dont-repeat
   set environment SWI_HOME_DIR=/home/janw/lib/swipl
-  run -f none -O -g "qcompile('pce_manual')" -t halt -- -nopce
+  run -f none --no-packs -O -g "qcompile('pce_manual')" -t halt -- -nopce
 end
 
 define safe-bt

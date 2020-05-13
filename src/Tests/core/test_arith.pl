@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2013, University of Amsterdam
+    Copyright (C): 1985-2020, University of Amsterdam
 			      VU University Amsterdam
+			      CWI, Amsterdam
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -23,6 +24,7 @@
 
 :- module(test_arith, [test_arith/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Test Prolog core arithmetic functions
 
@@ -41,7 +43,6 @@ test_arith :-
 		    ar_builtin,
 		    eval,
 		    hyperbolic,
-		    rationalize,
                     minint,
                     minint_promotion,
                     maxint,
@@ -141,12 +142,26 @@ test(big, [condition(current_prolog_flag(bounded, false)), R =:= 10^50-3]) :-
 :- begin_tests(pow).
 
 :- if(current_prolog_flag(bounded, false)).
-test(rat, X == 32 rdiv 243) :-
-	X is (2 rdiv 3)^(5).
+:- if(current_prolog_flag(prefer_rationals, true)).
+test(rat, X =:= 32/243) :-
+	X is (2/3)^5,
+	assertion(atomic(X)).
+test(rat, X =:= 1) :-
+	X is (2/3)^0,
+	assertion(atomic(X)).
+test(rat, X =:= 243/32) :-
+	X is (2/3)^(-5),
+	assertion(atomic(X)).
+:- else.
+test(rat) :-
+	X is (2 rdiv 3)^(5),
+	assertion(rational(X, 32, 243)).
 test(rat, X == 1) :-
 	X is (2 rdiv 3)^(0).
-test(rat, X == 243 rdiv 32) :-
-	X is (2 rdiv 3)^(-5).
+test(rat) :-
+	X is (2 rdiv 3)^(-5),
+	assertion(rational(X, 243, 32)).
+:- endif.
 :- endif.
 
 :- end_tests(pow).
@@ -221,7 +236,7 @@ test(ref, R==6) :-			% Bug#12
 
 :- begin_tests(hyperbolic).
 
-round(X, R) :- R is round(X*1000)/1000.
+round(X, R) :- R is round(X*1000)/1000.0.
 
 test(sinh, V =:= 1.175) :- X is sinh(1.0), round(X,V).
 test(cosh, V =:= 1.543) :- X is cosh(1.0), round(X,V).
@@ -231,17 +246,6 @@ test(acosh, V =:= 1.0) :- X is acosh(cosh(1.0)), round(X,V).
 test(atanh, V =:= 1.0) :- X is atanh(tanh(1.0)), round(X,V).
 
 :- end_tests(hyperbolic).
-
-:- begin_tests(rationalize).
-
-:- if(current_prolog_flag(bounded,false)).
-
-test(trip, R = 51 rdiv 10) :-
-	R is rationalize(5.1).
-
-:- endif.
-
-:- end_tests(rationalize).
 
 :- begin_tests(minint).
 
@@ -401,7 +405,7 @@ test(div, error(evaluation_error(float_overflow))) :-
 	A is 1<<10000 / 10.0,
 	writeln(A).
 test(div, error(evaluation_error(float_overflow))) :-
-	A is 1<<10000000 / ((1<<10000)+19),
+	A is float(1<<10000000) / float((1<<10000)+19),
 	writeln(A).
 
 :- endif.

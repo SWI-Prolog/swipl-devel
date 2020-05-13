@@ -52,12 +52,8 @@
 #include <signal.h>
 #include <stddef.h>
 #ifdef _MSC_VER
-#if (_MSC_VER < 1300)
-typedef long intptr_t;
-typedef unsigned long uintptr_t;
-#endif
-#else
 #include <stdint.h>
+#pragma warning(disable : 4996)	/* deprecate open() etc */
 #endif
 
 #define RLC_APPTIMER_ID	100		/* >=100: application timer */

@@ -41,11 +41,19 @@
             current_thread_pool/1,      % ?Pool
             thread_pool_property/2      % ?Pool, ?Property
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
-:- use_module(library(rbtrees)).
-:- use_module(library(debug)).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2,type_error/2]).
+:- autoload(library(lists),[member/2,delete/3]).
+:- autoload(library(option),
+	    [meta_options/3,select_option/4,merge_options/3,option/3]).
+:- autoload(library(rbtrees),
+	    [ rb_new/1,
+	      rb_insert_new/4,
+	      rb_delete/3,
+	      rb_keys/2,
+	      rb_lookup/3,
+	      rb_update/4
+	    ]).
 
 
 /** <module> Resource bounded thread management

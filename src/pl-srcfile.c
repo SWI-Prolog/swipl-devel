@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2018, VU University Amsterdam
+    Copyright (c)  2014-2020, VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -35,7 +35,10 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-dbref.h"
+#include "pl-event.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
@@ -768,7 +771,7 @@ startReconsultFile(SourceFile sf)
   DEBUG(MSG_RECONSULT, Sdprintf("Reconsult %s ...\n", sourceFileName(sf)));
 
   if ( (r = allocHeap(sizeof(*sf->reload))) )
-  { ListCell cell, next;
+  { ListCell cell;
 
     memset(r, 0, sizeof(*r));
     r->procedures        = newHTable(16);
@@ -778,12 +781,11 @@ startReconsultFile(SourceFile sf)
 
     LD->gen_reload = r->reload_gen;
 
-    for(cell = sf->procedures; cell; cell = next)
+    for(cell = sf->procedures; cell; cell = cell->next)
     { Procedure proc = cell->value;
       Definition def = proc->definition;
       ClauseRef c;
 
-      next = cell->next;
       if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )
       { acquire_def(def);
 	for(c = def->impl.clauses.first_clause; c; c = c->next)
@@ -800,6 +802,9 @@ startReconsultFile(SourceFile sf)
 	  cl->generation.erased = r->reload_gen;
 	}
 	release_def(def);
+      }
+      if ( true(def, P_AUTOLOAD) )
+      { clear(def, P_AUTOLOAD);			/* should be be more selective? */
       }
     }
 
@@ -880,34 +885,6 @@ reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
   }
 
   return FALSE;
-}
-
-
-static int
-reloadIsDefined(SourceFile sf, Procedure proc ARG_LD)
-{ p_reload *reload;
-
-  if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
-  { return ( true(reload, PROC_DEFINED) ||
-	     reload->number_of_clauses > 0 );
-  }
-
-  return FALSE;
-}
-
-
-int
-isDefinedProcedureSource(Procedure proc)
-{ GET_LD
-
-  if ( ReadingSource )
-  { SourceFile sf = lookupSourceFile(source_file_name, FALSE);
-
-    if ( sf && sf == indexToSourceFile(proc->source_no) && sf->reload )
-      return reloadIsDefined(sf, proc PASS_LD);
-  }
-
-  return isDefinedProcedure(proc);
 }
 
 
@@ -1268,6 +1245,21 @@ delete_old_predicate(SourceFile sf, Procedure proc)
 { Definition def = proc->definition;
   size_t deleted;
 
+  if ( def->functor->functor == FUNCTOR_dtabled2 )
+  { GET_LD
+    ClauseRef c;
+
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+
+      if ( false(cl, CL_ERASED) &&
+	   GLOBALLY_VISIBLE_CLAUSE(cl, global_generation()) )
+	untable_from_clause(cl);
+    }
+    release_def(def);
+  }
+
   deleted = removeClausesPredicate(
 		def,
 		true(def, P_MULTIFILE) ? sf->index : 0,
@@ -1327,6 +1319,9 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
     if ( true(r->predicate, P_MULTIFILE|P_DYNAMIC) && c->owner_no != sf->index )
       continue;
 
+    if ( def->functor->functor == FUNCTOR_dtabled2 )
+      untable_from_clause(c);
+
     c->generation.erased = rl->reload_gen;
     set(r, P_MODIFIED);
     DEBUG(MSG_RECONSULT_CLAUSE,
@@ -1338,6 +1333,34 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
 }
 
 
+static size_t
+end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
+{ size_t dropped_access = 0;
+
+  DEBUG(MSG_RECONSULT_CLAUSE,
+	Sdprintf("Fixup %s\n", predicateName(proc->definition)));
+
+  if ( false(r, P_NEW|P_NO_CLAUSES) )
+  { Definition def = proc->definition;
+
+    delete_pending_clauses(sf, def, r PASS_LD);
+    fix_attributes(sf, def, r PASS_LD);
+    reconsultFinalizePredicate(sf->reload, def, r PASS_LD);
+  } else
+  { dropped_access++;
+    if ( true(r, P_NO_CLAUSES) )
+    { Definition def = proc->definition;
+      fix_attributes(sf, def, r PASS_LD);
+    }
+  }
+  if ( r->args )
+    freeHeap(r->args, 0);
+  freeHeap(r, sizeof(*r));
+
+  return dropped_access;
+}
+
+
 static int
 endReconsult(SourceFile sf)
 { GET_LD
@@ -1346,28 +1369,14 @@ endReconsult(SourceFile sf)
   if ( (reload=sf->reload) )
   { size_t accessed_preds = reload->procedures->size;
 
+    delayEvents();
     delete_old_predicates(sf);
 
     for_table(reload->procedures, n, v,
 	      { Procedure proc = n;
 		p_reload *r = v;
 
-		if ( false(r, P_NEW|P_NO_CLAUSES) )
-		{ Definition def = proc->definition;
-
-		  delete_pending_clauses(sf, def, r PASS_LD);
-		  fix_attributes(sf, def, r PASS_LD);
-		  reconsultFinalizePredicate(reload, def, r PASS_LD);
-		} else
-		{ accessed_preds--;
-		  if ( true(r, P_NO_CLAUSES) )
-		  { Definition def = proc->definition;
-		    fix_attributes(sf, def, r PASS_LD);
-		  }
-		}
-		if ( r->args )
-		  freeHeap(r->args, 0);
-		freeHeap(r, sizeof(*r));
+		accessed_preds -= end_reconsult_proc(sf, proc, r PASS_LD);
 	      });
 
     popNPredicateAccess(accessed_preds);
@@ -1394,6 +1403,8 @@ endReconsult(SourceFile sf)
     LD->gen_reload = GEN_INVALID;
 
     pl_garbage_collect_clauses();
+    if ( sendDelayedEvents(TRUE) < 0 )
+      return FALSE;
   }
 
   return TRUE;

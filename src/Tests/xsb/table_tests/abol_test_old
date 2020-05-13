@@ -1,0 +1,6 @@
+1.0 path(1,4)
+1.0 path(1,A)
+1.0 path(A,4)
+1.0 path(A,B)
+2.0 path(1,4)
+2.0 path(1,A)

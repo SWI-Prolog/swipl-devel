@@ -1,0 +1,28 @@
+%------------------------------------------------------------------------
+% Program that causes a seg fault.
+%
+% No simplification is possible (Model T = {r}, F = {p,q}, U = {}).
+%------------------------------------------------------------------------
+
+% :- auto_table.
+:- table p/0, q/0, r/0.
+
+p :- tnot(q),tnot(r),p.
+
+q :- tnot(q),tnot(r),p.
+
+r :- tnot(p),tnot(q),r.
+r :- tnot(q).
+
+%------------------------------------------------------------------------
+
+test :- q, fail.
+test :- ( p ->	( tnot(p) -> writeln('p is undefined')
+		; writeln('p is true') )
+	; writeln('p is false (OK)') ),
+        ( q ->  ( tnot(q) -> writeln('q is undefined')
+		; writeln('q is true') )
+	; writeln('q is false (OK)') ),
+        ( r ->  ( tnot(r) -> writeln('r is undefined')
+		; writeln('r is true (OK)') )
+	; writeln('r is false') ).

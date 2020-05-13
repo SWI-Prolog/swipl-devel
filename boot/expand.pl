@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2016, University of Amsterdam
+    Copyright (c)  2009-2019, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -143,12 +144,31 @@ call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-
 expand_term_2((Head --> Body), Pos0, Expanded, Pos) :-
     dcg_translate_rule((Head --> Body), Pos0, Expanded0, Pos1),
     !,
-    expand_bodies(Expanded0, Pos1, Expanded, Pos).
+    expand_bodies(Expanded0, Pos1, Expanded1, Pos),
+    non_terminal_decl(Expanded1, Expanded).
 expand_term_2(Term0, Pos0, Term, Pos) :-
     nonvar(Term0),
     !,
     expand_bodies(Term0, Pos0, Term, Pos).
 expand_term_2(Term, Pos, Term, Pos).
+
+non_terminal_decl(Clause, Decl) :-
+    \+ current_prolog_flag(xref, true),
+    clause_head(Clause, Head),
+    '$current_source_module'(M),
+    (   '$get_predicate_attribute'(M:Head, non_terminal, NT)
+    ->  NT == 0
+    ;   true
+    ),
+    !,
+    '$pi_head'(PI, Head),
+    Decl = [:-(non_terminal(M:PI)), Clause].
+non_terminal_decl(Clause, Clause).
+
+clause_head(Head:-_, Head) :- !.
+clause_head(Head, Head).
+
+
 
 %!  expand_bodies(+Term, +Pos0, -Out, -Pos) is det.
 %
@@ -484,14 +504,15 @@ expand_goal(A, P, A, P).
 
 expand_goal(G0, P0, G, P, MList, Term) :-
     '$current_source_module'(M),
-    expand_goal(G0, P0, G, P, M, MList, Term).
+    expand_goal(G0, P0, G, P, M, MList, Term, []).
 
 %!  expand_goal(+GoalIn, ?PosIn, -GoalOut, -PosOut,
-%!              +Module, -ModuleList, +Term) is det.
+%!              +Module, -ModuleList, +Term, +Done) is det.
 %
-%   @param Module is the current module to consider
-%   @param ModuleList are the other expansion modules
-%   @param Term is the overall term that is being translated
+%   @arg Module is the current module to consider
+%   @arg ModuleList are the other expansion modules
+%   @arg Term is the overall term that is being translated
+%   @arg Done is a list of terms that have already been expanded
 
 % (*)   This is needed because call_goal_expansion may introduce extra
 %       context variables.  Consider the code below, where the variable
@@ -505,79 +526,90 @@ expand_goal(G0, P0, G, P, MList, Term) :-
 %               catch_and_print(true).
 %         ==
 
-expand_goal(G, P, G, P, _, _, _) :-
+expand_goal(G, P, G, P, _, _, _, _) :-
     var(G),
     !.
-expand_goal(M:G, P, M:G, P, _M, _MList, _Term) :-
+expand_goal(M:G, P, M:G, P, _M, _MList, _Term, _) :-
     var(M), var(G),
     !.
-expand_goal(M:G, P0, M:EG, P, _M, _MList, Term) :-
+expand_goal(M:G, P0, M:EG, P, _M, _MList, Term, Done) :-
     atom(M),
     !,
     f2_pos(P0, PA, PB0, P, PA, PB),
     '$def_modules'(M:[goal_expansion/4,goal_expansion/2], MList),
     setup_call_cleanup(
         '$set_source_module'(Old, M),
-        '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term),
+        '$expand':expand_goal(G, PB0, EG, PB, M, MList, Term, Done),
         '$set_source_module'(Old)).
-expand_goal(G0, P0, G, P, M, MList, Term) :-
-    call_goal_expansion(MList, G0, P0, G1, P1),
-    !,
-    expand_goal(G1, P1, G, P, M, MList, Term/G1).           % (*)
-expand_goal((A,B), P0, Conj, P, M, MList, Term) :-
+expand_goal(G0, P0, G, P, M, MList, Term, Done) :-
+    (   already_expanded(G0, Done, Done1)
+    ->  expand_control(G0, P0, G, P, M, MList, Term, Done1)
+    ;   call_goal_expansion(MList, G0, P0, G1, P1)
+    ->  expand_goal(G1, P1, G, P, M, MList, Term/G1, [G0|Done])      % (*)
+    ;   expand_control(G0, P0, G, P, M, MList, Term, Done)
+    ).
+
+expand_control((A,B), P0, Conj, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
-    expand_goal(A, PA0, EA, PA, M, MList, Term),
-    expand_goal(B, PB0, EB, PB, M, MList, Term),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
+    expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA,EB), P1, Conj, P).
-expand_goal((A;B), P0, Or, P, M, MList, Term) :-
+expand_control((A;B), P0, Or, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA1, PB),
     term_variables(A, AVars),
     term_variables(B, BVars),
     var_intersection(AVars, BVars, SharedVars),
     save_variable_info(SharedVars, SavedState),
-    expand_goal(A, PA0, EA, PA, M, MList, Term),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     save_variable_info(SharedVars, SavedState2),
     restore_variable_info(SavedState),
-    expand_goal(B, PB0, EB, PB, M, MList, Term),
+    expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     merge_variable_info(SavedState2),
     fixup_or_lhs(A, EA, PA, EA1, PA1),
     simplify((EA1;EB), P1, Or, P).
-expand_goal((A->B), P0, Goal, P, M, MList, Term) :-
+expand_control((A->B), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
-    expand_goal(A, PA0, EA, PA, M, MList, Term),
-    expand_goal(B, PB0, EB, PB, M, MList, Term),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
+    expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA->EB), P1, Goal, P).
-expand_goal((A*->B), P0, Goal, P, M, MList, Term) :-
+expand_control((A*->B), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB0, P1, PA, PB),
-    expand_goal(A, PA0, EA, PA, M, MList, Term),
-    expand_goal(B, PB0, EB, PB, M, MList, Term),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
+    expand_goal(B, PB0, EB, PB, M, MList, Term, Done),
     simplify((EA*->EB), P1, Goal, P).
-expand_goal((\+A), P0, Goal, P, M, MList, Term) :-
+expand_control((\+A), P0, Goal, P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P1, PA),
     term_variables(A, AVars),
     save_variable_info(AVars, SavedState),
-    expand_goal(A, PA0, EA, PA, M, MList, Term),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done),
     restore_variable_info(SavedState),
     simplify(\+(EA), P1, Goal, P).
-expand_goal(call(A), P0, call(EA), P, M, MList, Term) :-
+expand_control(call(A), P0, call(EA), P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P, PA),
-    expand_goal(A, PA0, EA, PA, M, MList, Term).
-expand_goal(G0, P0, G, P, M, MList, Term) :-
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
+expand_control(G0, P0, G, P, M, MList, Term, Done) :-
     is_meta_call(G0, M, Head),
     !,
     term_variables(G0, Vars),
     mark_vars_non_fresh(Vars),
-    expand_meta(Head, G0, P0, G, P, M, MList, Term).
-expand_goal(G0, P0, G, P, M, MList, Term) :-
+    expand_meta(Head, G0, P0, G, P, M, MList, Term, Done).
+expand_control(G0, P0, G, P, M, MList, Term, _Done) :-
     term_variables(G0, Vars),
     mark_vars_non_fresh(Vars),
     expand_functions(G0, P0, G, P, M, MList, Term).
+
+%!  already_expanded(+Goal, +Done, -RestDone) is semidet.
+
+already_expanded(Goal, Done, Done1) :-
+    '$select'(G, Done, Done1),
+    G == Goal,
+    !.
 
 %!  fixup_or_lhs(+OldLeft, -ExpandedLeft, +ExpPos, -Fixed, -FixedPos) is det.
 %
@@ -620,9 +652,9 @@ is_meta_call(G0, M, Head) :-
     has_meta_arg(Head).
 
 
-%!  expand_meta(+MetaSpec, +G0, ?P0, -G, -P, +M, +Mlist, +Term)
+%!  expand_meta(+MetaSpec, +G0, ?P0, -G, -P, +M, +Mlist, +Term, +Done)
 
-expand_meta(Spec, G0, P0, G, P, M, MList, Term) :-
+expand_meta(Spec, G0, P0, G, P, M, MList, Term, Done) :-
     functor(Spec, _, Arity),
     functor(G0, Name, Arity),
     functor(G1, Name, Arity),
@@ -630,21 +662,21 @@ expand_meta(Spec, G0, P0, G, P, M, MList, Term) :-
     expand_meta(1, Arity, Spec,
                 G0, ArgPos0, Eval,
                 G1,  ArgPos,
-                M, MList, Term),
+                M, MList, Term, Done),
     conj(Eval, G1, G).
 
-expand_meta(I, Arity, Spec, G0, ArgPos0, Eval, G, [P|PT], M, MList, Term) :-
+expand_meta(I, Arity, Spec, G0, ArgPos0, Eval, G, [P|PT], M, MList, Term, Done) :-
     I =< Arity,
     !,
     arg_pos(ArgPos0, P0, PT0),
     arg(I, Spec, Meta),
     arg(I, G0, A0),
     arg(I, G, A),
-    expand_meta_arg(Meta, A0, P0, EvalA, A, P, M, MList, Term),
+    expand_meta_arg(Meta, A0, P0, EvalA, A, P, M, MList, Term, Done),
     I2 is I + 1,
-    expand_meta(I2, Arity, Spec, G0, PT0, EvalB, G, PT, M, MList, Term),
+    expand_meta(I2, Arity, Spec, G0, PT0, EvalB, G, PT, M, MList, Term, Done),
     conj(EvalA, EvalB, Eval).
-expand_meta(_, _, _, _, _, true, _, [], _, _, _).
+expand_meta(_, _, _, _, _, true, _, [], _, _, _, _).
 
 arg_pos(List, _, _) :- var(List), !.    % no position info
 arg_pos([H|T], H, T) :- !.              % argument list
@@ -688,7 +720,7 @@ extended_pos(Pos, N, Pos) :-
     '$print_message'(warning, extended_pos(Pos, N)).
 
 %!  expand_meta_arg(+MetaSpec, +Arg0, +ArgPos0, -Eval,
-%!                  -Arg, -ArgPos, +ModuleList, +Term) is det.
+%!                  -Arg, -ArgPos, +ModuleList, +Term, +Done) is det.
 %
 %   Goal expansion for a meta-argument.
 %
@@ -696,26 +728,26 @@ extended_pos(Pos, N, Pos) :-
 %           functions on such positions.  This requires proper
 %           position management for function expansion.
 
-expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term) :-
+expand_meta_arg(0, A0, PA0, true, A, PA, M, MList, Term, Done) :-
     !,
-    expand_goal(A0, PA0, A1, PA, M, MList, Term),
+    expand_goal(A0, PA0, A1, PA, M, MList, Term, Done),
     compile_meta_call(A1, A, M, Term).
-expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term) :-
+expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term, Done) :-
     integer(N), callable(A0),
     replace_functions(A0, true, _, M),
     !,
     length(Ex, N),
     mark_vars_non_fresh(Ex),
     extend_arg_pos(A0, P0, Ex, A1, PA1),
-    expand_goal(A1, PA1, A2, PA2, M, MList, Term),
+    expand_goal(A1, PA1, A2, PA2, M, MList, Term, Done),
     compile_meta_call(A2, A3, M, Term),
     term_variables(A0, VL),
     remove_arg_pos(A3, PA2, M, VL, Ex, A, P).
-expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term) :-
+expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term, Done) :-
     replace_functions(A0, true, _, M),
     !,
-    expand_setof_goal(A0, PA0, A, PA, M, MList, Term).
-expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term) :-
+    expand_setof_goal(A0, PA0, A, PA, M, MList, Term, Done).
+expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term, _Done) :-
     replace_functions(A0, Eval, A, M), % TBD: pass positions
     (   Eval == true
     ->  true
@@ -828,25 +860,25 @@ meta_arg(:).
 meta_arg(//).
 meta_arg(I) :- integer(I).
 
-expand_setof_goal(Var, Pos, Var, Pos, _, _, _) :-
+expand_setof_goal(Var, Pos, Var, Pos, _, _, _, _) :-
     var(Var),
     !.
-expand_setof_goal(V^G, P0, V^EG, P, M, MList, Term) :-
+expand_setof_goal(V^G, P0, V^EG, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB, P, PA, PB),
-    expand_setof_goal(G, PA0, EG, PA, M, MList, Term).
-expand_setof_goal(M0:G, P0, M0:EG, P, M, MList, Term) :-
+    expand_setof_goal(G, PA0, EG, PA, M, MList, Term, Done).
+expand_setof_goal(M0:G, P0, M0:EG, P, M, MList, Term, Done) :-
     !,
     f2_pos(P0, PA0, PB, P, PA, PB),
-    expand_setof_goal(G, PA0, EG, PA, M, MList, Term).
-expand_setof_goal(G, P0, EG, P, M, MList, Term) :-
+    expand_setof_goal(G, PA0, EG, PA, M, MList, Term, Done).
+expand_setof_goal(G, P0, EG, P, M, MList, Term, Done) :-
     !,
-    expand_goal(G, P0, EG0, P, M, MList, Term),
+    expand_goal(G, P0, EG0, P, M, MList, Term, Done),
     compile_meta_call(EG0, EG, M, Term).            % TBD: Pos?
 
 
 %!  call_goal_expansion(+ExpandModules,
-%!                      +Goal0, ?Pos0, -Goal, -Pos) is semidet.
+%!                      +Goal0, ?Pos0, -Goal, -Pos, +Done) is semidet.
 %
 %   Succeeds  if  the   context   has    a   module   that   defines
 %   goal_expansion/2 this rule succeeds and  Goal   is  not equal to
@@ -892,8 +924,9 @@ call_goal_expansion(MList, G0, P0, G, P) :-
 
 allowed_expansion(QGoal) :-
     strip_module(QGoal, M, Goal),
+    E = error(Formal,_),
     catch(prolog:sandbox_allowed_expansion(M:Goal), E, true),
-    (   var(E)
+    (   var(Formal)
     ->  fail
     ;   !,
         print_message(error, E),
@@ -1311,7 +1344,7 @@ compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
     intersection_eq(InVars, AllVars, HeadVars),
     variant_sha1(CallIn+HeadVars, Hash),
     atom_concat('__aux_meta_call_', Hash, AuxName),
-    expand_goal(CallIn, _Pos0, Body, _Pos, M, [], (CallOut:-CallIn)),
+    expand_goal(CallIn, _Pos0, Body, _Pos, M, [], (CallOut:-CallIn), []),
     length(HeadVars, Arity),
     (   Arity > 256                 % avoid 1024 arity limit
     ->  HeadArgs = [v(HeadVars)]

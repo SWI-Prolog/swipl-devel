@@ -1,0 +1,60 @@
+:- import numbervars/1 from num_vars.
+:- import abolish_table_call/1, get_residual/2 from tables.
+
+test:- restart,fail.
+test:- show_model(1),fail.
+test:- abolish_table_call(p21(a,b)),fail.
+test:- show_model(2),fail.
+
+
+:- table undef/2.
+undef(A,B):- tnot(undef(A,B)).
+
+restart:- p01(a,b),fail.
+restart:- p02(a,b),fail.
+restart:- p01(c,d),fail.
+restart:- p02(c,d),fail.
+restart.
+
+show_model(_):- writeln('------------------------'),fail.
+show_model(N):- get_residual(p01(A,B),R),numbervars((p01(A,B),R)),write(N),write(' : '),write(p01(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p02(A,B),R),numbervars((p02(A,B),R)),write(N),write(' : '),write(p02(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p11(A,B),R),numbervars((p11(A,B),R)),write(N),write(' : '),write(p11(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p12(A,B),R),numbervars((p12(A,B),R)),write(N),write(' : '),write(p12(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p21(A,B),R),numbervars((p31(A,B),R)),write(N),write(' : '),write(p21(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p22(A,B),R),numbervars((p32(A,B),R)),write(N),write(' : '),write(p22(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p31(A,B),R),numbervars((p31(A,B),R)),write(N),write(' : '),write(p31(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p32(A,B),R),numbervars((p32(A,B),R)),write(N),write(' : '),write(p32(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u1(A,B),R),numbervars((u1(A,B),R)),write(N),write(' : '),write(u1(A,B)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u2(A,B),R),numbervars((u2(A,B),R)),write(N),write(' : '),write(u2(A,B)),write(':-'),writeln(R),fail.
+show_model(_).
+
+%-------------
+
+:- table p01/2,p02/2,p11/2,p12/2,p21/2,p22/2,p31/2,p32/2,u1/2,u2/2.
+
+p01(A,B):- tnot p11(A,B).
+p01(A,B):- tnot p12(A,B).
+p02(A,B):- tnot p11(A,B).
+p02(A,B):- tnot p12(A,B).
+
+p11(A,B):- tnot p21(A,B).
+p11(A,B):- tnot p22(A,B).
+p12(A,B):- tnot p21(A,B).
+p12(A,B):- tnot p22(A,B).
+
+p21(A,B):- tnot p31(A,B).
+p21(A,B):- tnot p32(A,B).
+p22(A,B):- tnot p31(A,B).
+p22(A,B):- tnot p32(A,B).
+
+p31(A,B):- tnot u1(A,B).
+p31(A,B):- tnot u2(A,B).
+p32(A,B):- tnot u1(A,B).
+p32(A,B):- tnot u2(A,B).
+
+u1(A,B):- undef(A,B).
+u2(A,B):- undef(A,B).
+
+
+

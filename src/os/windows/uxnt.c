@@ -40,6 +40,10 @@
 #include "uxnt.h"			/* my prototypes */
 #include "utf8.c"
 
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+#endif
+
 #include <windows.h>
 #include <tchar.h>
 #include <wchar.h>
@@ -1026,7 +1030,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
 { TCHAR nm[PATH_MAX];
   TCHAR val[PATH_MAX];
   TCHAR *valp = val;
-  DWORD size;
+  size_t size;
 
   if ( !utf8towcs(nm, name, PATH_MAX) )
     return -1;
@@ -1038,7 +1042,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
     if ( size >= PATH_MAX )
     { if ( (valp = malloc((size+1)*sizeof(TCHAR))) == NULL )
 	return -1;
-      size = GetEnvironmentVariable(nm, valp, size+1);
+      size = GetEnvironmentVariable(nm, valp, (DWORD)(size+1));
     }
 
     size = wcslen(valp);		/* return sometimes holds 0-bytes */

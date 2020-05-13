@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -40,18 +40,31 @@
           list_undefined/1,             % +Options
           list_autoload/0,              % list predicates that need autoloading
           list_redefined/0,             % list redefinitions
+          list_cross_module_calls/0,	% List Module:Goal usage
+          list_cross_module_calls/1,    % +Options
           list_void_declarations/0,     % list declarations with no clauses
           list_trivial_fails/0,         % list goals that trivially fail
           list_trivial_fails/1,         % +Options
+          list_format_errors/0,         % list calls to format with wrong args
+          list_format_errors/1,		% +Options
           list_strings/0,               % list string objects in clauses
-          list_strings/1                % +Options
+          list_strings/1,               % +Options
+          list_rationals/0,		% list rational objects in clauses
+          list_rationals/1              % +Options
         ]).
-:- use_module(library(lists)).
-:- use_module(library(pairs)).
-:- use_module(library(option)).
-:- use_module(library(apply)).
-:- use_module(library(prolog_codewalk)).
-:- use_module(library(occurs)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(lists),[member/2,append/3]).
+:- autoload(library(occurs),[sub_term/2]).
+:- autoload(library(option),[merge_options/3,option/3]).
+:- autoload(library(pairs),
+	    [group_pairs_by_key/2,map_list_to_pairs/3,pairs_values/2]).
+:- autoload(library(prolog_clause),
+	    [clause_info/4,predicate_name/2,clause_name/2]).
+:- autoload(library(prolog_code),[pi_head/2]).
+:- autoload(library(prolog_codewalk),
+	    [prolog_walk_code/1,prolog_program_clause/2]).
+:- autoload(library(prolog_format),[format_types/2]).
+
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -77,7 +90,7 @@ predicates in `user' modules.
 */
 
 :- predicate_options(list_undefined/1, 1,
-                     [ module_class(list(oneof([user,library])))
+                     [ module_class(list(oneof([user,library,system])))
                      ]).
 
 %!  check is det.
@@ -155,6 +168,8 @@ found_undef(To, _Caller, From) :-
     ->  true
     ;   compiled(PI)
     ->  true
+    ;   not_always_present(PI)
+    ->  true
     ;   assertz(undef(PI,From))
     ).
 
@@ -165,6 +180,17 @@ compiled(system:'$reset'/0).
 compiled(system:'$call_continuation'/1).
 compiled(system:'$shift'/1).
 compiled('$engines':'$yield'/0).
+
+%!  not_always_present(+PI) is semidet.
+%
+%   True when some predicate is known to be part of the state but is not
+%   available in this version.
+
+not_always_present(_:win_folder/2) :-
+    \+ current_prolog_flag(windows, true).
+not_always_present(_:win_add_dll_directory/2) :-
+    \+ current_prolog_flag(windows, true).
+
 
 goal_pi(M:Head, M:Name/Arity) :-
     functor(Head, Name, Arity).
@@ -264,9 +290,81 @@ list_redefined_.
 redefined_ok('$mode'(_,_)).
 redefined_ok('$pldoc'(_,_,_,_)).
 redefined_ok('$pred_option'(_,_,_,_)).
+redefined_ok('$table_mode'(_,_,_)).
+redefined_ok('$tabled'(_,_)).
+redefined_ok('$exported_op'(_,_,_)).
+redefined_ok('$autoload'(_,_,_)).
 
 global_module(user).
 global_module(system).
+
+%!  list_cross_module_calls is det.
+%
+%   List calls from one module to   another  using Module:Goal where the
+%   callee is not defined exported, public or multifile, i.e., where the
+%   callee should be considered _private_.
+
+list_cross_module_calls :-
+    list_cross_module_calls([]).
+
+list_cross_module_calls(Options) :-
+    call_cleanup(
+        list_cross_module_calls_guarded(Options),
+        retractall(cross_module_call(_,_,_))).
+
+list_cross_module_calls_guarded(Options) :-
+    merge_options(Options,
+                  [ module_class([user])
+                  ],
+                  WalkOptions),
+    prolog_walk_code([ trace_reference(_),
+                       trace_condition(cross_module_call),
+                       on_trace(write_call)
+                     | WalkOptions
+                     ]).
+
+:- thread_local
+    cross_module_call/3.
+
+:- public
+    cross_module_call/2,
+    write_call/3.
+
+cross_module_call(Callee, Context) :-
+    \+ same_module_call(Callee, Context).
+
+same_module_call(Callee, Context) :-
+    caller_module(Context, MCaller),
+    Callee = (MCallee:_),
+    (   (   MCaller = MCallee
+        ;   predicate_property(Callee, exported)
+        ;   predicate_property(Callee, built_in)
+        ;   predicate_property(Callee, public)
+        ;   clause_property(Context.get(clause), module(MCallee))
+        ;   predicate_property(Callee, multifile)
+        )
+    ->  true
+    ).
+
+caller_module(Context, MCaller) :-
+    Caller = Context.caller,
+    (   Caller = (MCaller:_)
+    ->  true
+    ;   Caller == '<initialization>',
+        MCaller = Context.module
+    ).
+
+write_call(Callee, Caller, Position) :-
+    cross_module_call(Callee, Caller, Position),
+    !.
+write_call(Callee, Caller, Position) :-
+    (   cross_module_call(_,_,_)
+    ->  true
+    ;   print_message(warning, check(cross_module_calls))
+    ),
+    asserta(cross_module_call(Callee, Caller, Position)),
+    print_message(warning,
+                  check(cross_module_call(Callee, Caller, Position))).
 
 %!  list_void_declarations is det.
 %
@@ -450,6 +548,106 @@ list_strings(Options) :-
 make_clause(Head, true, Head) :- !.
 make_clause(Head, Body, (Head:-Body)).
 
+%!  list_rationals is det.
+%!  list_rationals(+Options) is det.
+%
+%   List rational numbers that appear in clauses. This predicate is used
+%   to  find  portability  issues   for    changing   the   Prolog  flag
+%   `rational_syntax`  to  `natural`,  creating  rational  numbers  from
+%   <integer>/<nonneg>. Options:
+%
+%      - module_class(+Classes)
+%        Determines the modules classes processed.  By default only
+%        user code is processed.  See prolog_program_clause/2.
+%      - arithmetic(+Bool)
+%        If `true` (default `false`) also warn on rationals appearing
+%        in arithmetic expressions.
+%
+%   @see Prolog flag `rational_syntax` and `prefer_rationals`.
+
+list_rationals :-
+    list_rationals([module_class([user])]).
+
+list_rationals(Options) :-
+    (   option(arithmetic(DoArith), Options, false),
+        prolog_program_clause(ClauseRef, Options),
+        clause(Head, Body, ClauseRef),
+        make_clause(Head, Body, Clause),
+        findall(T,
+                (   sub_term(T, Head),
+                    rational(T),
+                    \+ integer(T)
+                ;   Head = M:_,
+                    goal_in_body(Goal, M, Body),
+                    nonvar(Goal),
+                    (   DoArith == false,
+                        valid_rational_goal(Goal)
+                    ->  fail
+                    ;   sub_term(T, Goal),
+                        rational(T),
+                        \+ integer(T)
+                    )
+                ), Ts0),
+        sort(Ts0, Ts),
+        member(T, Ts),
+        message_context(ClauseRef, T, Clause, Context),
+        print_message(warning,
+                      check(rational_in_clause(T, Context))),
+        fail
+    ;   true
+    ).
+
+
+valid_rational_goal(_ is _).
+valid_rational_goal(_ =:= _).
+valid_rational_goal(_ < _).
+valid_rational_goal(_ > _).
+valid_rational_goal(_ =< _).
+valid_rational_goal(_ >= _).
+
+
+%!  list_format_errors is det.
+%!  list_format_errors(+Options) is det.
+%
+%   List argument errors for format/2,3.
+
+list_format_errors :-
+    list_format_errors([module_class([user])]).
+
+list_format_errors(Options) :-
+    (   prolog_program_clause(ClauseRef, Options),
+        clause(Head, Body, ClauseRef),
+        make_clause(Head, Body, Clause),
+        Head = M:_,
+        goal_in_body(Goal, M, Body),
+        format_warning(Goal, Msg),
+        message_context(ClauseRef, Goal, Clause, Context),
+        print_message(warning, check(Msg, Goal, Context)),
+        fail
+    ;   true
+    ).
+
+format_warning(system:format(Format, Args), Msg) :-
+    ground(Format),
+    (   is_list(Args)
+    ->  length(Args, ArgC)
+    ;   nonvar(Args)
+    ->  ArgC = 1
+    ),
+    E = error(Formal,_),
+    catch(format_types(Format, Types), E, true),
+    (   var(Formal)
+    ->  length(Types, TypeC),
+        TypeC =\= ArgC,
+        Msg = format_argc(TypeC, ArgC)
+    ;   Msg = format_template(Formal)
+    ).
+format_warning(system:format(_Stream, Format, Args), Msg) :-
+    format_warning(system:format(Format, Args), Msg).
+format_warning(prolog_debug:debug(_Channel, Format, Args), Msg) :-
+    format_warning(system:format(Format, Args), Msg).
+
+
 %!  goal_in_body(-G, +M, +Body) is nondet.
 %
 %   True when G is a goal called from Body.
@@ -535,9 +733,16 @@ extend_list(G0, L, G) :-
     G =.. All.
 
 
-message_context(ClauseRef, String, Clause, file_term_position(File, StringPos)) :-
-    clause_info(ClauseRef, File, TermPos, _Vars),
-    prolog_codewalk:subterm_pos(String, Clause, ==, TermPos, StringPos),
+%!  message_context(+ClauseRef, +Term, +Clause, -Pos) is det.
+%
+%   Find an as accurate as possible location for Term in Clause.
+
+message_context(ClauseRef, Term, Clause, file_term_position(File, TermPos)) :-
+    clause_info(ClauseRef, File, Layout, _Vars),
+    (   Term = _:Goal,
+        prolog_codewalk:subterm_pos(Goal, Clause, ==, Layout, TermPos)
+    ;   prolog_codewalk:subterm_pos(Term, Clause, ==, Layout, TermPos)
+    ),
     !.
 message_context(ClauseRef, _String, _Clause, file(File, Line, -1, _)) :-
     clause_property(ClauseRef, file(File)),
@@ -630,6 +835,7 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
 
 checker(list_undefined,         'undefined predicates').
 checker(list_trivial_fails,     'trivial failures').
+checker(list_format_errors,     'format/2,3 and debug/3 templates').
 checker(list_redefined,         'redefined system and global predicates').
 checker(list_void_declarations, 'predicates with declarations but without clauses').
 checker(list_autoload,          'predicates that need autoloading').
@@ -673,6 +879,13 @@ prolog:message(check(autoload(Module, Pairs))) -->
 prolog:message(check(redefined(In, From, Pred))) -->
     predicate(In:Pred),
     redefined(In, From).
+prolog:message(check(cross_module_calls)) -->
+    [ 'Qualified calls to private predicates'-[] ].
+prolog:message(check(cross_module_call(Callee, _Caller, Location))) -->
+    { pi_head(PI, Callee) },
+    [ '  '-[] ],
+    '$messages':swi_location(Location),
+    [ 'Cross-module call to ~p'-[PI] ].
 prolog:message(check(trivial_failures)) -->
     [ 'The following goals fail because there are no matching clauses.' ].
 prolog:message(check(trivial_failure(Goal, Refs))) -->
@@ -684,8 +897,18 @@ prolog:message(check(trivial_failure(Goal, Refs))) -->
     [ ', which is called from'-[], nl ],
     referenced_by(SortedRefs).
 prolog:message(check(string_in_clause(String, Context))) -->
-    prolog:message_location(Context),
+    '$messages':swi_location(Context),
     [ 'String ~q'-[String] ].
+prolog:message(check(rational_in_clause(String, Context))) -->
+    '$messages':swi_location(Context),
+    [ 'Rational ~q'-[String] ].
+prolog:message(check(Msg, Goal, Context)) -->
+    '$messages':swi_location(Context),
+    { pi_head(PI, Goal) },
+    [ nl, '    '-[] ],
+    predicate(PI),
+    [ ': '-[] ],
+    check_message(Msg).
 prolog:message(check(void_declaration(P, Decl))) -->
     predicate(P),
     [ ' is declared as ~p, but has no clauses'-[Decl] ].
@@ -823,3 +1046,9 @@ remove_leading_slash(Path, Local) :-
     atom_concat(/, Local, Path),
     !.
 remove_leading_slash(Path, Path).
+
+check_message(format_argc(Expected, InList)) -->
+    [ 'Template requires ~w arguments, got ~w'-[Expected, InList] ].
+check_message(format_template(Formal)) -->
+    { message_to_string(error(Formal, _), Msg) },
+    [ 'Invalid template: ~s'-[Msg] ].

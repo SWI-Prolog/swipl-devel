@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2017, University of Amsterdam
+    Copyright (c)  2008-2019, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -35,11 +35,13 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-inline.h"
+#include "pl-wrap.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
-static Code
+Code
 allocCodes(size_t n)
 { Code codes = allocHeapOrHalt(sizeof(code)*(n+1));
 
@@ -75,19 +77,29 @@ free_codes_ptr(void *ptr)
 
 
 void
+freeSupervisor(Definition def, Code codes, int do_linger)
+{ size_t size = (size_t)codes[-1];
+
+  if ( size > 0 )		/* 0: built-in, see initSupervisors() */
+  { if ( do_linger )
+      linger(&def->lingering, free_codes_ptr, codes);
+    else
+      freeHeap(&codes[-1], (size+1)*sizeof(code));
+  }
+}
+
+
+void
 freeCodesDefinition(Definition def, int do_linger)
 { Code codes;
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
   { if ( (codes = def->codes) )
-    { size_t size = (size_t)codes[-1];
-
-      def->codes = SUPERVISOR(virgin);
-      if ( size > 0 )		/* 0: built-in, see initSupervisors() */
-      { if ( do_linger )
-	  linger(&def->lingering, free_codes_ptr, codes);
-	else
-	  freeHeap(&codes[-1], (size+1)*sizeof(code));
+    { if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+      { resetWrappedSupervisor(def);
+      } else
+      { def->codes = SUPERVISOR(virgin);
+	freeSupervisor(def, codes, do_linger);
       }
     } else
       def->codes = SUPERVISOR(virgin);
@@ -270,13 +282,22 @@ listSupervisor(Definition def)
 
 
 static Code
-multifileSupervisor(Definition def)
-{ if ( true(def, (P_DYNAMIC|P_MULTIFILE)) )
-  { if ( true(def, P_DYNAMIC) )
-      return SUPERVISOR(dynamic);
+dynamicSupervisor(Definition def)
+{ if ( true(def, P_DYNAMIC) )
+  { if ( true(def, P_INCREMENTAL) )
+      return SUPERVISOR(incr_dynamic);
     else
-      return SUPERVISOR(multifile);
+      return SUPERVISOR(dynamic);
   }
+
+  return NULL;
+}
+
+
+static Code
+multifileSupervisor(Definition def)
+{ if ( true(def, P_MULTIFILE) )
+    return SUPERVISOR(multifile);
 
   return NULL;
 }
@@ -364,30 +385,42 @@ createUndefSupervisor(Definition def)
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-createSupervisor()  is  synchronised  with  unloadFile()  (reconsult/1).
-Seems this is not yet enough to   stop all racer conditions between this
-code.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-int
+Code
 createSupervisor(Definition def)
 { Code codes;
   int has_codes;
 
-  PL_LOCK(L_PREDICATE);
   has_codes = ((codes = undefSupervisor(def)) ||
+	       (codes = dynamicSupervisor(def)) ||
 	       (codes = multifileSupervisor(def)) ||
 	       (codes = singleClauseSupervisor(def)) ||
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
   codes = chainMetaPredicateSupervisor(def, codes);
-  MemoryBarrier();
-  def->codes = codes;
-  PL_UNLOCK(L_PREDICATE);
 
-  succeed;
+  return codes;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+setSupervisor() is synchronised with   unloadFile() (reconsult/1). Seems
+this is not yet enough to stop all racer conditions between this code.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+setSupervisor(Definition def)
+{ Code codes;
+
+  if ( false(def, P_LOCKED_SUPERVISOR) )
+  { PL_LOCK(L_PREDICATE);
+    codes = createSupervisor(def);
+    MEMORY_BARRIER();
+    def->codes = codes;
+    PL_UNLOCK(L_PREDICATE);
+  }
+
+  return TRUE;
 }
 
 
@@ -408,6 +441,16 @@ supervisorLength(Code base)
     PC++;					/* include I_EXIT */
     return PC-base;
   }
+}
+
+/* returns 0 for shared static supervisors
+ */
+
+size_t
+sizeof_supervisor(Code base)
+{ size_t size = (size_t)base[-1];
+
+  return size*sizeof(code);
 }
 
 
@@ -438,7 +481,10 @@ initSupervisors(void)
   MAKE_SV1(virgin,	 S_VIRGIN);
   MAKE_SV1(undef,	 S_UNDEF);
   MAKE_SV1(dynamic,      S_DYNAMIC);
+  MAKE_SV1(incr_dynamic, S_INCR_DYNAMIC);
   MAKE_SV1(thread_local, S_THREAD_LOCAL);
   MAKE_SV1(multifile,    S_MULTIFILE);
   MAKE_SV1(staticp,      S_STATIC);
+  MAKE_SV1(wrapper,      S_WRAP);
+  MAKE_SV1(trie_gen,     S_TRIE_GEN);
 }

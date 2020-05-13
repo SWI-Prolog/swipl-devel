@@ -1,0 +1,9 @@
+:- [exec].
+:- [kalah_ox].
+%:- import start_forest_view/1 from tables.
+%?- start_forest_view(userout).
+
+% Don't abstract -- no finite model.
+?- set_prolog_flag(max_table_subgoal_size,200000).
+?- set_prolog_flag(max_table_subgoal_size_action,error).
+test :- exec,fail.

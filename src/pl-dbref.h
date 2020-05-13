@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2013, University of Amsterdam
+    Copyright (c)  2010-2019, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,7 +39,7 @@ typedef enum db_ref_type
 } db_ref_type;
 
 COMMON(atom_t) lookup_clref(Clause clause);
-COMMON(Clause) clause_clref(atom_t aref);
+COMMON(ClauseRef) clause_clref(atom_t aref);
 COMMON(int)   PL_put_clref(term_t t, Clause clause);
 COMMON(int)   PL_unify_clref(term_t t, Clause clause);
 COMMON(int)   PL_unify_recref(term_t t, RecordRef rec);

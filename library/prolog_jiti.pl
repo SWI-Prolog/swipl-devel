@@ -37,8 +37,9 @@
           [ jiti_list/0,
             jiti_list/1                         % +Spec
           ]).
-:- use_module(library(apply)).
-:- use_module(library(dcg/basics)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(dcg/basics),[number/3]).
+
 
 :- meta_predicate
     jiti_list(:).

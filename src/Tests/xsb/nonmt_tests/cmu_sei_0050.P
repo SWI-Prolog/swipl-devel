@@ -1,0 +1,27 @@
+test:- solve.
+
+:-dynamic factNOTConstructor/1as incremental.
+:-import incr_assert/1from increval.
+iso_dif(_X,((2))).
+initialNOTConstructor(Method):-thisPtrUsage(I,F,T,_),thisPtrUsage(I,F,T,Method),iso_dif(1,2).
+:-table reasonNOTConstructor/1as incremental.
+reasonNOTConstructor(e):-factNOTConstructor(_M).
+reasonNOTConstructor(Method):-initialNOTConstructor(Method).
+reasonVirtualFunctionCall(n,_,r,t,e,t):-(l).
+concludeNOTConstructor:-reasonNOTConstructor(Method),not(factNOTConstructor(Method)),try_assert(factNOTConstructor(Method)).
+concludeVirtualFunctionCall:-reasonVirtualFunctionCall(n,c,r,t,e,'').
+if_(If_0,Then_0,Else_0):-assert(no_if_answer(d)),(If_0,Then_0;retract(no_if_answer(d))->Else_0).
+commit([H|T]):-if_(H,(debug),commit(T)).
+try_assert(X):-try_assert_real(X).
+try_assert_real(X):-incr_assert(X).
+reasonForward:-commit([concludeVirtualFunctionCall,concludeNOTConstructor]).
+reasonForwardAsManyTimesAsPossible:-if_(reasonForward,(reasonForwardAsManyTimesAsPossible),(writeln(done))).
+thisPtrUsage(x,0,0,4).
+thisPtrUsage(x,0,3,40).
+thisPtrUsage(7,0,3,x).
+thisPtrUsage(x,0,5,3).
+thisPtrUsage(3,0,5,0).
+thisPtrUsage(x,0,5,d).
+thisPtrUsage(0,0,0,7).
+thisPtrUsage(0,0,0,1).
+solve:-reasonForwardAsManyTimesAsPossible.

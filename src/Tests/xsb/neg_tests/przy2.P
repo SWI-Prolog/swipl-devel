@@ -1,0 +1,26 @@
+%
+% From Przymusinska and Przymusinski (weakly stratified paper).
+% Example of a program that has a well-founded (and unique stable)
+% model M = {s}, but does not have a weakly perfect model.
+%
+% This is the same as pzry1.P byt the literals in the first clause
+% have been reordered so that it is left-to-right WHATEVER stratified.
+%
+
+:- table p/0, q/0, r/0, s/0.
+
+p :- q, tnot(s), tnot(r).
+q :- r, tnot(p).
+r :- p, tnot(q).
+s :- tnot(p), tnot(q), tnot(r).
+
+%--------------------------------------------------------------
+
+test :-
+	( p -> writeln('p is true') ; writeln('p is false') ),
+	( q -> writeln('q is true') ; writeln('q is false') ),
+	( r -> writeln('r is true') ; writeln('r is false') ),
+	( s -> writeln('s is true') ; writeln('s is false') ).
+				 
+%---------------------------------------------------------------
+

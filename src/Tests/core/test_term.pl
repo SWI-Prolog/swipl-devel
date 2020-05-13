@@ -49,7 +49,8 @@ test_term :-
 	run_tests([ numbervars,
 		    variant,
 		    compound,
-		    zero_arity_compound
+		    zero_arity_compound,
+		    term_singletons
 		  ]).
 
 :- begin_tests(numbervars).
@@ -217,3 +218,20 @@ test(clause, A == a(a(),1)) :-
 	clause(t5(A), true).
 
 :- end_tests(zero_arity_compound).
+
+:- begin_tests(term_singletons).
+
+test(out, S == [Y]) :-
+	term_singletons(X+X+Y,S).
+test(out, S == Y) :-
+	term_singletons(X+X+Y,[S]).
+test(out, fail) :-
+	term_singletons(X+X+_Y,[_,_]).
+test(out, fail) :-
+	term_singletons(X+X+_Y,[]).
+test(out) :-
+	term_singletons(X+X,[]).
+test(out) :-
+	term_singletons(zus,[]).
+
+:- end_tests(term_singletons).

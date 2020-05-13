@@ -1,0 +1,4 @@
+Evaluating p40 : a(A)
+a(s) is: true (OK)
+a(t) is: true (OK)
+b(s) is: undefined (OK)

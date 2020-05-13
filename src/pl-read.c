@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include <math.h>
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
@@ -2496,15 +2498,19 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 
 static cucharp
 float_tag(cucharp in, cucharp tag)
-{ while(*in == *tag)
+{ while(*in && *in == *tag)
     in++, tag++;
 
   if ( !*tag )
   { int c;
 
-    utf8_get_uchar(in, &c);
-    if ( !PlIdContW(c) )
-      return in;
+    if ( *in )
+    { utf8_get_uchar(in, &c);
+      if ( PlIdContW(c) )
+	return NULL;
+    }
+
+    return in;
   }
 
   return NULL;
@@ -2525,9 +2531,9 @@ special_float(cucharp *in, cucharp start, Number value)
 
   if ( (s=float_tag(*in, (cucharp)"Inf")) )
   { if ( *start == '-' )
-      value->value.f = strtod("-Inf", NULL);
+      value->value.f = -HUGE_VAL;
     else
-      value->value.f = strtod("Inf", NULL);
+      value->value.f = HUGE_VAL;
   } else if ( (s=float_tag(*in, (cucharp)"NaN")) &&
 	      starts_1dot(start) )
   { char *e;
@@ -2550,7 +2556,7 @@ special_float(cucharp *in, cucharp start, Number value)
 
 
 strnumstat
-str_number(cucharp in, ucharp *end, Number value, int escape)
+str_number(cucharp in, ucharp *end, Number value, int flags)
 { int negative = FALSE;
   cucharp start = in;
   strnumstat rc;
@@ -2569,7 +2575,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
     { case '\'':			/* 0'<char> */
       { int chr;
 
-	if ( escape && in[2] == '\\' )	/* 0'\n, etc */
+	if ( (flags&M_CHARESCAPE) && in[2] == '\\' )	/* 0'\n, etc */
 	{ chr = escape_char(in+3, end, '\'', NULL);
 	  if ( chr < 0 )
 	    return NUM_ERROR;
@@ -2610,6 +2616,35 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
   if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
+
+#ifdef O_GMP
+  if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
+	 *in == 'r') &&
+       isDigit(in[1]) )
+  { number num, den;
+
+    in++;
+    if ( (rc=scan_decimal(&in, FALSE, &den, &grouped)) != NUM_OK )
+    { clearNumber(value);
+      return rc;			/* too large? */
+    }
+    if ( den.type == V_INTEGER && den.value.i == 0 )
+    { clearNumber(value);		/* n/0 */
+      return NUM_ERROR;
+    }
+
+    cpNumber(&num, value);
+    promoteToMPZNumber(&num);
+    promoteToMPZNumber(&den);
+    clearNumber(value);
+    ar_rdiv_mpz(&num, &den, value);
+    clearNumber(&num);
+    clearNumber(&den);
+    *end = (ucharp)in;
+    return NUM_OK;
+  }
+#endif
+
   if ( grouped )
   { *end = (ucharp)in;
     return NUM_OK;
@@ -2629,6 +2664,7 @@ str_number(cucharp in, ucharp *end, Number value, int escape)
 
     return NUM_OK;
   }
+
 					/* floating point numbers */
   if ( *in == '.' && isDigit(in[1]) )
   { clearNumber(value);
@@ -2824,7 +2860,7 @@ get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
 		  strnumstat rc;
 
 		  if ( (rc=str_number(&rdhere[-1], &rdhere, &value,
-				      true(_PL_rd, M_CHARESCAPE))) == NUM_OK )
+				      _PL_rd->flags)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
 		    break;
@@ -4901,7 +4937,9 @@ retry:
     return FALSE;
 
   if ( mname )
-  { rd.module = lookupModule(mname);
+  { rd.module = isCurrentModule(mname);
+    if ( !rd.module )
+      rd.module = MODULE_user;
     rd.flags  = rd.module->flags;
   }
 
@@ -5014,7 +5052,7 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
   PL_chars_t txt;
 
   if ( PL_get_text(A1, &txt,
-		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_RING) )
+		   CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|BUF_STACK) )
   { int rc;
     IOSTREAM *stream;
     source_location oldsrc = LD->read_source;
@@ -5148,7 +5186,8 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     { ns = (char*)s;
     }
 
-    isnum = ( str_number((cucharp)ns, &e, &n, FALSE) == NUM_OK &&
+					/* TBD: rational support */
+    isnum = ( str_number((cucharp)ns, &e, &n, 0) == NUM_OK &&
 	      e == (unsigned char *)ns+len );
     if ( ns != s && ns != buf )
       free(ns);

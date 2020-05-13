@@ -36,8 +36,6 @@
 #ifndef PL_SEGSTACK_H_INCLUDED
 #define PL_SEGSTACK_H_INCLUDED
 
-#define SEGSTACK_CHUNKSIZE (1*1024)
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The segchunk struct has its data attached   to  its back. The data field
 itself is typed double to ensure that   the  data is properly aligned to
@@ -60,6 +58,7 @@ typedef struct segchunk
 typedef struct
 { size_t   unit_size;
 					/* below clean using memset() */
+  int	   chunk_count;
   segchunk *first;
   segchunk *last;
   char	   *base;
@@ -170,12 +169,14 @@ initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
     assert(len > sizeof(*chunk));
     assert(unit_size%sizeof(void*) == 0);
 #endif
-    chunk->size = len;
-    stack->base = stack->top = chunk->top = CHUNK_DATA(chunk);
-    stack->last = stack->first = chunk;
-    stack->max  = addPointer(chunk, len);
-    memset(&chunk->allocated, 0,
-	   offsetof(segchunk,data)-offsetof(segchunk,allocated));
+    chunk->size        = len;
+    stack->base        = stack->top = chunk->top = CHUNK_DATA(chunk);
+    stack->last        = stack->first = chunk;
+    stack->max         = addPointer(chunk, len);
+    stack->chunk_count = 1;
+    chunk->allocated   = 0;
+    chunk->next        = NULL;
+    chunk->previous    = NULL;
   } else
   { memset(&stack->first, 0, sizeof(*stack)-offsetof(segstack,first));
   }

@@ -1,0 +1,32 @@
+:- import numbervars/1 from num_vars.
+:- import abolish_table_call/1, get_residual/2 from tables.
+:- compiler_options([spec_off]).
+
+test:- restart,fail.
+test:- show_model(1),fail.
+test:- abolish_table_call(p(5,10,a)),fail.
+test:- show_model(2),fail.
+
+restart:- p(10,10,a),fail.
+restart:- p(10,10,b),fail.
+restart.
+
+show_model(_):- writeln('------------------------'),fail.
+show_model(N):- get_residual(p(A,B,a),R),numbervars((p(A,B,a),R)),write(N),write(' : '),write(p(A,B,a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(undefined,R),numbervars((R)),write(N),write(' : '),write(undefined),write(':-'),writeln(R),fail.
+show_model(_):- writeln(---),fail.
+show_model(N):- get_residual(p(A,B,b),R),numbervars((p(A,B,b),R)),write(N),write(' : '),write(p(A,B,b)),write(':-'),writeln(R),fail.
+show_model(_).
+
+%-------------
+
+:- table p/3.
+p(0,Lim,X):- p(Lim,Lim,X).
+p(0,_,_X):- undefined.
+p(N,Lim,X):- N > 0,N1 is N - 1,p(N1,Lim,X).
+
+% SWI: avoid module qualification
+:- table undefined/0.
+
+undefined :- tnot(undefined).
+

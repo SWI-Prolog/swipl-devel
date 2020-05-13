@@ -1,0 +1,26 @@
+%------------------------------------------------------------------------
+% Program for which everything is undefined.
+%------------------------------------------------------------------------
+
+:- table p/0, q/0, r/0.
+
+p :- tnot(q).
+p :- tnot(r).
+
+q :- tnot(p).
+
+r :- tnot(p).
+
+%------------------------------------------------------------------------
+
+test :- p, fail.
+test :-
+        ( p ->
+	    ( tnot(p) -> writeln('p is undefined (OK)') ; writeln('p is true') )
+	; writeln('p is false') ),
+        ( q ->
+	    ( tnot(q) -> writeln('q is undefined (OK)') ; writeln('q is true') )
+	; writeln('q is false') ),
+        ( r ->
+	    ( tnot(r) -> writeln('r is undefined (OK)') ; writeln('r is true') )
+	; writeln('r is false') ).

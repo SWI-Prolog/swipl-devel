@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -114,8 +115,6 @@ static const PL_extension foreigns[] = {
 
   FRG("abolish",		1, pl_abolish1,		     META|ISO),
   FRG("abolish",		2, pl_abolish,		     META),
-  FRG("nth_clause",		3, pl_nth_clause,       NDET|META|CREF),
-  FRG("retractall",		1, pl_retractall,	 META|ISO),
 #ifdef O_MAINTENANCE
   FRG("$list_generations",	1, pl_list_generations,	     META),
   FRG("$check_procedure",	1, pl_check_procedure,	     META),
@@ -123,10 +122,7 @@ static const PL_extension foreigns[] = {
 
   FRG("$c_current_predicate",	2, pl_current_predicate,  NDET|META),
   FRG("current_predicate",	1, pl_current_predicate1, NDET|META|ISO),
-  FRG("$set_predicate_attribute", 3, pl_set_predicate_attribute,META),
-  FRG("$get_predicate_attribute", 3, pl_get_predicate_attribute,META),
   FRG("$require",		1, pl_require,		     META),
-  FRG("$default_predicate",	2, pl_default_predicate,     META),
 
   FRG("repeat",			0, pl_repeat,		 NDET|ISO),
   FRG("fail",			0, pl_fail,		      ISO),
@@ -195,7 +191,6 @@ static const PL_extension foreigns[] = {
   FRG("thread_create",		3, pl_thread_create,	 META|ISO),
   FRG("thread_exit",		1, pl_thread_exit,		0),
   FRG("thread_signal",		2, pl_thread_signal,	 META|ISO),
-  FRG("thread_at_exit",		1, pl_thread_at_exit,	     META),
   FRG("open_xterm",		5, pl_open_xterm,		0),
 #endif
 
@@ -206,6 +201,21 @@ static const PL_extension foreigns[] = {
   /* DO NOT ADD ENTRIES BELOW THIS ONE */
   FRG((char *)NULL,		0, (Func)NULL,			0)
 };
+
+
+#define SIGNATURE_SEED (0x1a3be34a)
+
+static unsigned int
+predicate_signature(const Definition def)
+{ char str[256];
+
+  Ssprintf(str, "%s/%d/%d",
+	   stringAtom(def->functor->name),
+	   (int)def->functor->arity,
+	   def->flags);
+
+  return MurmurHashAligned2(str, strlen(str), SIGNATURE_SEED);
+}
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -328,6 +338,9 @@ registerBuiltins(const PL_extension *f)
 
       def->impl.foreign.function = f->function;
       createForeignSupervisor(def, f->function);
+
+      if ( !extensions_loaded )
+	GD->foreign.signature ^= predicate_signature(def);
     } else
     { assert(0);
     }
@@ -347,6 +360,7 @@ DECL_PLIST(bag);
 DECL_PLIST(comp);
 DECL_PLIST(flag);
 DECL_PLIST(index);
+DECL_PLIST(init);
 DECL_PLIST(list);
 DECL_PLIST(module);
 DECL_PLIST(prims);
@@ -390,6 +404,8 @@ DECL_PLIST(tabling);
 DECL_PLIST(mutex);
 DECL_PLIST(zip);
 DECL_PLIST(cbtrace);
+DECL_PLIST(wrap);
+DECL_PLIST(event);
 
 void
 initBuildIns(void)
@@ -406,6 +422,7 @@ initBuildIns(void)
   REG_PLIST(comp);
   REG_PLIST(flag);
   REG_PLIST(index);
+  REG_PLIST(init);
   REG_PLIST(list);
   REG_PLIST(module);
   REG_PLIST(prims);
@@ -457,6 +474,8 @@ initBuildIns(void)
   REG_PLIST(mutex);
   REG_PLIST(zip);
   REG_PLIST(cbtrace);
+  REG_PLIST(wrap);
+  REG_PLIST(event);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \
@@ -482,12 +501,10 @@ initBuildIns(void)
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif
-#if O_DEBUGGER
-  PROCEDURE_event_hook1 =
-	PL_predicate("prolog_event_hook", 1, "user");
-#endif
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
+  PROCEDURE_tune_gc3 =
+	PL_predicate("tune_gc", 3, "prolog");
 					/* allow debugging in call/1 */
   clear(PROCEDURE_dcall1->definition, HIDE_CHILDS|TRACE_ME);
   set(PROCEDURE_dcall1->definition, P_DYNAMIC|P_LOCKED);
@@ -511,13 +528,18 @@ initBuildIns(void)
   PL_meta_predicate(PL_predicate("with_output_to",   2, "system"), "+0");
 #ifdef O_PLMT
   PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
-  PL_meta_predicate(PL_predicate("thread_at_exit",   1, "system"), "0");
   PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
 #endif
+  PL_meta_predicate(PL_predicate("thread_idle",      2, "system"), "0+");
   PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");
   PL_meta_predicate(PL_predicate("compile_predicates", 1, "system"), ":");
   PL_meta_predicate(PL_predicate("op",		     3, "system"), "++:");
   PL_meta_predicate(PL_predicate("current_op",	     3, "system"), "++:");
+  PL_meta_predicate(PL_predicate("unwrap_predicate", 2, "system"), ":?");
+  PL_meta_predicate(PL_predicate("prolog_listen",    2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("prolog_listen",    3, "system"), "+:+");
+  PL_meta_predicate(PL_predicate("prolog_unlisten",  2, "system"), "+:");
+  PL_meta_predicate(PL_predicate("with_tty_raw",     1, "system"), "0");
 
   for( ecell = ext_head; ecell; ecell = ecell->next )
     bindExtensions(ecell->module, ecell->extensions);

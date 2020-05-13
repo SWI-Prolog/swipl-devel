@@ -44,10 +44,11 @@
             dicts_slice/3,              % +Keys, +DictsIn, -DictsOut
             dicts_to_compounds/4        % ?Dicts, +Keys, :OnEmpty, ?Compounds
           ]).
-:- use_module(library(apply)).
-:- use_module(library(pairs)).
-:- use_module(library(lists)).
-:- use_module(library(ordsets)).
+:- autoload(library(apply),[maplist/2,maplist/3]).
+:- autoload(library(lists),[append/2,append/3]).
+:- autoload(library(ordsets),[ord_subtract/3]).
+:- autoload(library(pairs),[pairs_keys/2,pairs_keys_values/3]).
+
 
 :- meta_predicate
     dicts_to_same_keys(+,3,-),

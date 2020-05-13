@@ -1,0 +1,47 @@
+
+/* Tests DTF creation and garbage collection of two tables for
+different predicates, when one of the predicates has a valid table.*/
+
+:- import abolish_table_pred/1 from tables.
+
+:- table tpred/1.
+tpred(X):- p(X).
+
+:- table upred/1.
+upred(X):- p(X).
+
+p(f(1)).
+p(f(2)).
+p(f(3)).
+p(g(1)).
+p(g(2)).
+p(g(3)).
+
+%------------------
+:- dynamic tr/1.
+:- index(tr/1,trie).
+
+test:- assert(tr(a)),assert(tr(b)),assert(tr(c)),fail.
+
+test:- tpred(_X),fail.
+test:-  tpred(X),tr(Y),
+	abolish_table_pred(tpred/1),
+	writeln((X,Y)),fail.
+
+test:- upred(_X),fail.
+test:-  upred(_X),tr(_Y),
+	abolish_table_pred(upred/1),
+	fail.
+%test:- writeln('-------'),fail.
+
+test:- upred(_X),abolish_table_pred(upred/1),gc_tables(_N),
+	writeln(remaining1(1)),fail.
+test:- writeln(remaining1(0)),fail.
+test:- gc_tables(_N),writeln(remaining2(0)),fail.
+test.
+
+end_of_file.
+
+test:- upred(X),writeln(X),abolish_table_pred(upred/1),
+	gc_tables(N),
+	fail.

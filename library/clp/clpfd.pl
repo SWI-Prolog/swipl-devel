@@ -198,7 +198,7 @@ possible.
 Almost all Prolog programs also reason about integers. Therefore, it
 is highly advisable that you make CLP(FD) constraints available in all
 your programs. One way to do this is to put the following directive in
-your =|~/.swiplrc|= initialisation file:
+your =|<config>/init.pl|= initialisation file:
 
 ==
 :- use_module(library(clpfd)).
@@ -301,12 +301,12 @@ supported.
 
 ## Declarative integer arithmetic		{#clpfd-integer-arith}
 
-The [_arithmetic constraints_](<#clpfd-arith-constraints>) #=/2, #>/2
-etc. are meant to be used _instead_ of the primitives `(is)/2`,
-`(=:=)/2`, `(>)/2` etc. over integers. Almost all Prolog programs also
-reason about integers. Therefore, it is recommended that you put the
-following directive in your =|~/.swiplrc|= initialisation file to make
-CLP(FD) constraints available in all your programs:
+The [_arithmetic constraints_](<#clpfd-arith-constraints>)   #=/2,  #>/2
+etc. are meant  to  be  used   _instead_  of  the  primitives  `(is)/2`,
+`(=:=)/2`, `(>)/2` etc. over integers. Almost   all Prolog programs also
+reason about integers. Therefore, it  is   recommended  that you put the
+following directive in your =|<config>/init.pl|=  initialisation file to
+make CLP(FD) constraints available in all your programs:
 
 ==
 :- use_module(library(clpfd)).

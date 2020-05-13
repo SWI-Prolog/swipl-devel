@@ -53,9 +53,13 @@
             lazy_list_iterator/4                % +Iterator, -Next, :GetNext,
                                                 % :TestEnd
           ]).
-:- use_module(library(option)).
-:- use_module(library(lists)).
-:- use_module(library(error)).
+:- autoload(library(error),
+	    [type_error/2,instantiation_error/1,must_be/2]).
+:- autoload(library(lists),[append/3]).
+:- autoload(library(option),[select_option/4,option/3]).
+:- autoload(library(readutil),
+	    [read_line_to_string/2,read_line_to_codes/2]).
+
 
 :- meta_predicate
     lazy_list(2, -),

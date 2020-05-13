@@ -135,8 +135,10 @@ test(aggregate_age, set(Name-Sum == [sara-25,john-25,bob-41])) :-
 	aggregate(sum(X), age(Name, X), Sum).
 test(aggregate_age_disc, Sum == 91) :-
 	aggregate(sum(X), Name, age(Name, X), Sum).
-test(max_density, Country == max(15993.5, 'Monaco')) :-
-	aggregate(max(Pop/Area, Country), country(Country, Area, Pop), Country).
+test(max_density, Country == 'Monaco') :-
+	aggregate(max(Pop/Area, Country), country(Country, Area, Pop),
+		  max(Density, Country)),
+	assertion(Density =:= 31987/2).
 test(density_range, Result == r(max(DMon, 'Monaco'),
 				min(DSva, 'Svalbard (Norway)'))) :-
 	DMon is 31987/2,

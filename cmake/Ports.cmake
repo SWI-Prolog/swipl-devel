@@ -44,9 +44,10 @@ endif()
 #                   the library index or documentation
 #
 #   - ${PROG_SWIPL_FOR_BOOT} is a native or friend Prolog executable that can
-#                            be used for compiling bootNN.prc and .qlf files.
-#                            At the moment it must have the same pointer size
-#                            as the target.
+#                            be used for compiling boot.prc and .qlf files.
+#                            These used to be platform specific.  Now,
+#			     ${PROG_SWIPL} should do. We keep a separate
+#			     variable for the time being.
 #
 # Note: The helper tools mkvmi and  defatoms   (see  src  directory) are built
 # using ${CMAKE_HOST_CC} when cross-compiling, and do not need SWIPL_NATIVE_FRIEND.
@@ -60,17 +61,6 @@ if(CMAKE_CROSSCOMPILING)
   set(SWIPL_NATIVE_FRIEND "" CACHE STRING
       "CMake binary directory holding a compatible native system")
 
-  function(swipl_address_bits exe var)
-    execute_process(COMMAND ${exe} --dump-runtime-variables
-		    OUTPUT_VARIABLE tmp)
-
-    if(tmp AND tmp MATCHES "PLBITS=\"([^\n]*)\"")
-      set(${var} ${CMAKE_MATCH_1} PARENT_SCOPE)
-    else()
-      set(${var} 0 PARENT_SCOPE)
-    endif()
-  endfunction()
-
   if(SWIPL_NATIVE_FRIEND)
     if(IS_ABSOLUTE ${SWIPL_NATIVE_FRIEND})
       set(SWIPL_NATIVE_FRIEND_DIR ${SWIPL_NATIVE_FRIEND})
@@ -81,17 +71,7 @@ if(CMAKE_CROSSCOMPILING)
     set(PROG_SWIPL
 	${SWIPL_NATIVE_FRIEND_DIR}/src/swipl${CMAKE_HOST_EXECUTABLE_SUFFIX}
 	CACHE STRING "SWI-Prolog executable to perform build tasks")
-
-    swipl_address_bits(${PROG_SWIPL} SWIPL_NATIVE_BITS)
-    math(EXPR sizeof_void_bits "${CMAKE_SIZEOF_VOID_P} * 8")
-
-    if(sizeof_void_bits EQUAL SWIPL_NATIVE_BITS)
-      message("-- Using ${PROG_SWIPL} for compiling boot state")
-      set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
-    else()
-      message("-- Cannot use ${PROG_SWIPL} for compiling boot state")
-      set(PROG_SWIPL_FOR_BOOT $<TARGET_FILE:swipl>)
-    endif()
+    set(PROG_SWIPL_FOR_BOOT ${PROG_SWIPL})
   else()
     set(PROG_SWIPL_TARGET_FILE $<TARGET_FILE:swipl>
 	CACHE STRING "SWI-Prolog executable to perform build tasks")

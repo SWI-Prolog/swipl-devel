@@ -1,0 +1,4 @@
+test1 : p1(1) <- []
+test1 : p1(A) <- [undef]
+test2 : p2(1) <- []
+test2 : p2(A) <- []

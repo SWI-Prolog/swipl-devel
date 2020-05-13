@@ -1,0 +1,102 @@
+:- import numbervars/1 from num_vars.
+:- import abolish_table_pred/1, get_residual/2 from tables.
+
+test:- restart,fail.
+test:- show_model(1),fail.
+test:- abolish_table_pred(p21_a_b),fail.
+test:- show_model(2),fail.
+
+
+:- table undef_a_b/0, undef_c_d/0.
+undef_a_b:- tnot(undef_a_b).
+undef_c_d:- tnot(undef_c_d).
+
+restart:- p01_a_b,fail.
+restart:- p02_a_b,fail.
+restart:- p01_c_d,fail.
+restart:- p02_c_d,fail.
+restart.
+
+show_model(_):- writeln('------------------------'),fail.
+show_model(N):- get_residual(p01_a_b,R),write(N),write(' : '),write(p01_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p01_c_d,R),write(N),write(' : '),write(p01_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p02_a_b,R),write(N),write(' : '),write(p02_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p02_c_d,R),write(N),write(' : '),write(p02_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p11_a_b,R),write(N),write(' : '),write(p11_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p11_c_d,R),write(N),write(' : '),write(p11_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p12_a_b,R),write(N),write(' : '),write(p12_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p12_c_d,R),write(N),write(' : '),write(p12_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p21_a_b,R),write(N),write(' : '),write(p21_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p21_c_d,R),write(N),write(' : '),write(p21_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p22_a_b,R),write(N),write(' : '),write(p22_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p22_c_d,R),write(N),write(' : '),write(p22_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p31_a_b,R),write(N),write(' : '),write(p31_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p31_c_d,R),write(N),write(' : '),write(p31_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p32_a_b,R),write(N),write(' : '),write(p32_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p32_c_d,R),write(N),write(' : '),write(p32_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u1_a_b,R),write(N),write(' : '),write(u1_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u1_c_d,R),write(N),write(' : '),write(u1_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u2_a_b,R),write(N),write(' : '),write(u2_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(u2_c_d,R),write(N),write(' : '),write(u2_c_d),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(undef_a_b,R),write(N),write(' : '),write(undef_a_b),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(undef_c_d,R),write(N),write(' : '),write(undef_c_d),write(':-'),writeln(R),fail.
+show_model(_).
+
+%-------------
+
+:- table p01_a_b/0,p01_c_d/0,p02_a_b/0,p02_c_d/0.
+:- table p11_a_b/0,p11_c_d/0,p12_a_b/0,p12_c_d/0.
+:- table p21_a_b/0,p21_c_d/0,p22_a_b/0,p22_c_d/0.
+:- table p31_a_b/0,p31_c_d/0,p32_a_b/0,p32_c_d/0.
+:- table u1_a_b/0,u1_c_d/0,u2_a_b/0,u2_c_d/0.
+
+p01_a_b:- p11_a_b.
+p01_a_b:- p12_a_b.
+p02_a_b:- p11_a_b.
+p02_a_b:- p12_a_b.
+
+p11_a_b:- p21_a_b.
+p12_a_b:- p22_a_b.
+p11_a_b:- p21_a_b.
+p12_a_b:- p22_a_b.
+
+p21_a_b:- p31_a_b.
+p22_a_b:- p32_a_b.
+p21_a_b:- p31_a_b.
+p22_a_b:- p32_a_b.
+
+p31_a_b:- u1_a_b.
+p31_a_b:- u2_a_b.
+p32_a_b:- u1_a_b.
+p32_a_b:- u2_a_b.
+
+u1_a_b:- undef_a_b.
+u2_a_b:- undef_a_b.
+
+%-------
+
+p01_c_d:- p11_c_d.
+p01_c_d:- p12_c_d.
+p02_c_d:- p11_c_d.
+p02_c_d:- p12_c_d.
+
+p11_c_d:- p21_c_d.
+p12_c_d:- p22_c_d.
+p11_c_d:- p21_c_d.
+p12_c_d:- p22_c_d.
+
+p21_c_d:- p31_c_d.
+p22_c_d:- p32_c_d.
+p21_c_d:- p31_c_d.
+p22_c_d:- p32_c_d.
+
+p31_c_d:- u1_c_d.
+p31_c_d:- u2_c_d.
+p32_c_d:- u1_c_d.
+p32_c_d:- u2_c_d.
+
+u1_c_d:- undef_c_d.
+u2_c_d:- undef_c_d.
+
+
+

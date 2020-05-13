@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=SWI-Prolog
+GenericName=SWI-Prolog Qt interface
+Comment=ISO/Edinburgh-style Prolog implementation
+Type=Application
+Terminal=false
+Icon=${SNAP}/meta/gui/swipl.png
+Exec=swi-prolog.swipl-win %U
+Categories=Programming;

@@ -80,10 +80,19 @@
 /* setenv comes from uxnt.c */
 #define HAVE_SETENV 1
 
-
-#ifdef __MINGW32__
-#include "config.h"
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#pragma warning(disable : 4996)	/* deprecate open() etc */
+/* Ignoring for now.  Should be cleaned. */
+#pragma warning(disable : 4244)	/* possible loss of data (int conversion) */
+#pragma warning(disable : 4267)	/* possible loss of data (int conversion) */
+#pragma warning(disable : 4018)	/* signed/unsigned comparison */
+#define HAVE_LOCALECONV 1
+#define HAVE_MBSTRING_H 1
+#define HAVE_LIBLOADERAPI_H 1
 #endif
+
+#include "config.h"
 
 /* FIXME: this is overriding what is in config.h. */
 /* Define to make use of standard (UNIX98) pthread recursive mutexes */
@@ -101,13 +110,17 @@ typedef int mode_t;
 #define HAVE_SHLOBJ_H 1
 
 /* Define to 1 if you have the <dbghelp.h> header file. */
+#ifndef _MSC_VER
 #define HAVE_DBGHELP_H 1
+#endif
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #define HAVE_MALLOC_H 1
 
 #define inline __inline
 
+#include <stdio.h>			/* stdio.h prevents redefining */
+#undef snprintf
 #define snprintf ms_snprintf		/* defined in pl-nt.c */
 
 #ifdef O_GMP
@@ -123,9 +136,6 @@ typedef int mode_t;
 
 /* Define as the return type of signal handlers (int or void).  */
 #define RETSIGTYPE void
-
-/* Define if SIGPROF and setitimer() are available */
-#define O_PROFILE 1
 
 /* "Define if Prolog kernel is in shared object" */
 #define O_SHARED_KERNEL 1
@@ -179,7 +189,7 @@ typedef int mode_t;
 #define HAVE_STRICMP 1
 
 /* Define if you have the mbscasecoll() function. */
-#define mbscasecoll mbsicoll
+#define mbscasecoll _mbsicoll
 #define HAVE_MBSCASECOLL 1
 
 /* Define if you have the strlwr() function */

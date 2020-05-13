@@ -36,11 +36,16 @@
 :- module(prolog_hotfix,
           [ load_hotfixes/1             % +Directory
           ]).
-:- use_module(library(lists)).
-:- use_module(library(option)).
-:- use_module(library(readutil)).
-:- use_module(library(apply)).
-:- use_module(library(prolog_source)).
+:- autoload(library(apply),[maplist/2]).
+:- autoload(library(lists),[member/2,nth1/3]).
+:- autoload(library(option),[merge_options/3,option/2]).
+:- autoload(library(prolog_source),
+	    [ prolog_open_source/2,
+	      prolog_read_source_term/4,
+	      prolog_close_source/1
+	    ]).
+:- autoload(library(readutil),[read_line_to_codes/2]).
+
 
 /** <module> Load hotfixes into executables
 

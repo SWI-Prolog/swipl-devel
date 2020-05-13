@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam,
+    Copyright (c)  1985-2020, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -47,7 +47,6 @@
 #include "config/win32.h"
 #define PLHOME       "c:/Program Files (x86)/swipl"
 #endif
-#define DEFSTARTUP   "swipl.ini"
 #else /*__WINDOWS__*/
 #include <config.h>
 #endif
@@ -145,6 +144,10 @@ handy for it someone wants to add a data type to the system.
       Use GNU gmp library for infinite precision arthmetic
   O_MITIGATE_SPECTRE
       Reduce spectre security risc.  Currently reduces timer resolution.
+  O_PREFER_RATIONALS
+      Default for the `prefer_rationals` flag.
+  O_RATIONAL_SYNTAX
+      Default support for rational syntax (RAT_NATURAL or RAT_COMPAT)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -172,6 +175,12 @@ handy for it someone wants to add a data type to the system.
 #define O_GVAR			1
 #define O_CYCLIC		1
 #define O_MITIGATE_SPECTRE	1
+#ifndef O_PREFER_RATIONALS
+#define O_PREFER_RATIONALS	FALSE
+#endif
+#ifndef O_RATIONAL_SYNTAX
+#define O_RATIONAL_SYNTAX	RAT_COMPAT
+#endif
 
 #if defined(O_PLMT)
 #if defined(O_SIGPROF_PROFILE) || defined(__WINDOWS__)
@@ -218,7 +227,8 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #endif
 #endif
 
-#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS)
+/* clang as of version 11 performs about 30% worse with this option */
+#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS) && !defined(__llvm__)
 #define VMCODE_IS_ADDRESS	1
 #endif
 
@@ -467,7 +477,6 @@ them.  Descriptions:
 	skips this amount of stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define BUFFER_RING_SIZE	16	/* foreign buffer ring (pl-fli.c) */
 #define LINESIZ			1024	/* size of a data line */
 #define MAXARITY		1024	/* arity of predicate */
 #define MINFOREIGNSIZE		32	/* Minimum term_t in foreign frame */
@@ -743,8 +752,10 @@ typedef struct
 
 #ifdef O_GMP
 #define intNumber(n)	((n)->type <=  V_MPZ)
+#define ratNumber(n)	((n)->type <=  V_MPQ)
 #else
 #define intNumber(n)	((n)->type <  V_FLOAT)
+#define ratNumber(n)	((n)->type <  V_FLOAT)
 #endif
 #define floatNumber(n)	((n)->type >= V_FLOAT)
 
@@ -791,14 +802,15 @@ typedef enum
 /* See updateAlerted()
 */
 
-#define	ALERT_SIGNAL	     0x01
-#define	ALERT_GCREQ	     0x02
-#define	ALERT_PROFILE	     0x04
-#define	ALERT_EXITREQ	     0x08
-#define	ALERT_DEPTHLIMIT     0x10
-#define	ALERT_INFERENCELIMIT 0x20
-#define	ALERT_WAKEUP	     0x40
-#define	ALERT_DEBUG	     0x80
+#define	ALERT_SIGNAL	     0x001
+#define	ALERT_GCREQ	     0x002
+#define	ALERT_PROFILE	     0x004
+#define	ALERT_EXITREQ	     0x008
+#define	ALERT_DEPTHLIMIT     0x010
+#define	ALERT_INFERENCELIMIT 0x020
+#define	ALERT_WAKEUP	     0x040
+#define	ALERT_DEBUG	     0x080
+#define	ALERT_BUFFER	     0x100
 
 
 		 /*******************************
@@ -836,6 +848,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
+#define P_TABLED		(0x00000001) /* tabled predicate */
 #define P_CLAUSABLE		(0x00000002) /* Clause/2 always works */
 #define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
@@ -861,19 +874,20 @@ with one operation, it turns out to be faster as well.
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
-#define TRACE_CALL		(0x04000000) /* Trace calls */
-#define TRACE_REDO		(0x08000000) /* Trace redo */
-#define TRACE_EXIT		(0x10000000) /* Trace edit */
-#define TRACE_FAIL		(0x20000000) /* Trace fail */
+#define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
+#define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
+#define P_TSHARED		(0x10000000) /* Using a shared table */
+#define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
-#define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|P_DISCONTIGUOUS)
+#define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
+				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
 #define P_MODIFIED		P_DIRTYREG
 #define P_NEW			SPY_ME
 #define P_NO_CLAUSES		TRACE_ME
 
-/* Flags on clauses (packed in unsigned flags : 8) */
+/* Flags on clauses (unsigned int) */
 
 #define CL_ERASED		(0x0001) /* clause was erased */
 #define UNIT_CLAUSE		(0x0002) /* Clause has no body */
@@ -885,26 +899,34 @@ with one operation, it turns out to be faster as well.
 #define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
 					 /* from predicate */
 
+/* Flags on a DDI (Dirty Definition Info struct */
+
+#define DDI_MARKING		0x0001	 /* Actively using the DDI */
+#define DDI_INTERVALS		0x0002	 /* DDI collects an interval */
+
 /* Flags on module.  Most of these flags are copied to the read context
    in pl-read.c.
 */
 
-#define M_SYSTEM		(0x0001) /* system module */
-#define M_CHARESCAPE		(0x0002) /* module */
-#define DBLQ_CHARS		(0x0004) /* "ab" --> ['a', 'b'] */
-#define DBLQ_ATOM		(0x0008) /* "ab" --> 'ab' */
-#define DBLQ_STRING		(0x0010) /* "ab" --> "ab" */
+#define M_SYSTEM		(0x00000001) /* system module */
+#define M_CHARESCAPE		(0x00000002) /* module */
+#define DBLQ_CHARS		(0x00000004) /* "ab" --> ['a', 'b'] */
+#define DBLQ_ATOM		(0x00000008) /* "ab" --> 'ab' */
+#define DBLQ_STRING		(0x00000010) /* "ab" --> "ab" */
 #define DBLQ_MASK		(DBLQ_CHARS|DBLQ_ATOM|DBLQ_STRING)
-#define BQ_STRING		(0x0020) /* `ab` --> "ab" */
-#define BQ_CODES		(0x0040) /* `ab` --> [97,98] */
-#define BQ_CHARS		(0x0080) /* `ab` --> [a,b] */
+#define BQ_STRING		(0x00000020) /* `ab` --> "ab" */
+#define BQ_CODES		(0x00000040) /* `ab` --> [97,98] */
+#define BQ_CHARS		(0x00000080) /* `ab` --> [a,b] */
 #define BQ_MASK			(BQ_STRING|BQ_CODES|BQ_CHARS)
-#define UNKNOWN_FAIL		(0x0100) /* module */
-#define UNKNOWN_WARNING		(0x0200) /* module */
-#define UNKNOWN_ERROR		(0x0400) /* module */
+#define RAT_COMPAT		(0)
+#define RAT_NATURAL		(0x00000100) /* 1/3 */
+#define RAT_MASK		(RAT_NATURAL)
+#define UNKNOWN_FAIL		(0x00001000) /* module */
+#define UNKNOWN_WARNING		(0x00002000) /* module */
+#define UNKNOWN_ERROR		(0x00004000) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
-#define M_VARPREFIX		(0x0800)
-#define M_DESTROYED		(0x1000)
+#define M_VARPREFIX		(0x00008000) /* _var, Atom */
+#define M_DESTROYED		(0x00010000)
 
 /* Flags on functors */
 
@@ -1005,7 +1027,7 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-#ifdef HAVE___SYNC_ADD_AND_FETCH_8
+#if defined(HAVE_GCC_ATOMIC_8) || SIZEOF_VOIDP == 8
 typedef uint64_t ggen_t;
 #else
 #define ATOMIC_GENERATION_HACK 1
@@ -1013,7 +1035,7 @@ typedef struct ggen_t
 { uint32_t	gen_l;
   uint32_t	gen_u;
 } ggen_t;
-#endif /*HAVE___SYNC_ADD_AND_FETCH_8*/
+#endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
 #else /*O_LOGICAL_UPDATE*/
 #define global_generation()	 (0)
 #define next_global_generation() (0)
@@ -1273,6 +1295,12 @@ typedef struct impl_foreign
   Func		function;		/* Function pointer */
 } impl_foreign, *ImplForeign;
 
+typedef struct impl_wrapped
+{ arg_info     *args;			/* Meta and indexing info */
+  Definition	predicate;		/* Wrapped predicate */
+  Code		supervisor;		/* Supervisor to use */
+} impl_wrapped, *ImplWrapped;
+
 typedef struct clause_list
 { arg_info     *args;			/* Meta and indexing info */
   ClauseRef	first_clause;		/* clause list of procedure */
@@ -1307,6 +1335,42 @@ typedef struct cgc_stats
   int64_t	erased_skipped;		/* # skipped clauses that are erased  */
 } cgc_stats;
 
+#define GC_STAT_WINDOW_SIZE 3
+#define GC_GLOBAL_OVERFLOW	0x000000000001
+#define GC_GLOBAL_REQUEST	0x000000000100
+#define GC_TRAIL_OVERFLOW	0x000000010000
+#define GC_TRAIL_REQUEST	0x000001000000
+#define GC_EXCEPTION		0x000100000000
+#define GC_USER			0x010000000000
+
+typedef uint64_t gc_reason_t;
+
+typedef struct gc_stat
+{ size_t	global_before;
+  size_t	global_after;
+  size_t	trail_before;
+  size_t	trail_after;
+  size_t	local;
+  double	gc_time;		/* time spent on last GC */
+  double	prolog_time;		/* Real work CPU before this GC */
+  gc_reason_t	reason;			/* why GC was run */
+} gc_stat;
+
+typedef struct gc_stats
+{ gc_stat	last[GC_STAT_WINDOW_SIZE];
+  gc_stat	aggr[GC_STAT_WINDOW_SIZE];
+  int		last_index;
+  int		aggr_index;
+  double	thread_cpu;		/* Last thread CPU time */
+  gc_reason_t	request;		/* Requesting stack */
+  struct
+  { int64_t	collections;
+    int64_t	global_gained;		/* global stack bytes collected */
+    int64_t	trail_gained;		/* trail stack bytes collected */
+    double	time;			/* time spent in collections */
+  } totals;
+} gc_stats;
+
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
@@ -1317,15 +1381,17 @@ typedef struct cgc_stats
 #define CA1_INT64	5	/* int64 value */
 #define CA1_FLOAT	6	/* next WORDS_PER_DOUBLE are double */
 #define CA1_STRING	7	/* inlined string */
-#define CA1_MODULE	8	/* a module */
-#define CA1_VAR		9	/* a variable(-offset) */
-#define CA1_FVAR       10	/* a variable(-offset), used as `firstvar' */
-#define CA1_CHP	       11	/* ChoicePoint (also variable(-offset)) */
-#define CA1_MPZ	       12	/* GNU mpz number */
-#define CA1_FOREIGN    13	/* Foreign function pointer */
-#define CA1_CLAUSEREF  14	/* Clause reference */
-#define CA1_JUMP       15	/* Instructions to skip */
-#define CA1_AFUNC      16	/* Number of arithmetic function */
+#define CA1_MPZ	        8	/* GNU mpz number */
+#define CA1_MPQ	        9	/* GNU mpq number */
+#define CA1_MODULE     10	/* a module */
+#define CA1_VAR	       11	/* a variable(-offset) */
+#define CA1_FVAR       12	/* a variable(-offset), used as `firstvar' */
+#define CA1_CHP	       13	/* ChoicePoint (also variable(-offset)) */
+#define CA1_FOREIGN    14	/* Foreign function pointer */
+#define CA1_CLAUSEREF  15	/* Clause reference */
+#define CA1_JUMP       16	/* Instructions to skip */
+#define CA1_AFUNC      17	/* Number of arithmetic function */
+#define CA1_TRIE_NODE  18	/* Tabling: answer trie node with delays */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 
@@ -1382,6 +1448,7 @@ struct clause_index
   unsigned int	 dirty;			/* # chains that are dirty */
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned	 incomplete : 1;	/* Index is incomplete */
+  unsigned	 invalid : 1;		/* Index is invalid */
   iarg_t	 args[MAX_MULTI_INDEX];	/* Indexed arguments */
   iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
@@ -1403,12 +1470,15 @@ struct definition
   { impl_any	any;			/* has some value */
     clause_list	clauses;		/* (Indexed) list of clauses */
     impl_foreign foreign;		/* Foreign implementation */
+    impl_wrapped wrapped;		/* Wrapped predicate */
     LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
   } impl;
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
+  struct event_list  *events;		/* Forward update events */
+  struct table_props *tabling;		/* Extended properties for tabling */
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */
@@ -1420,8 +1490,13 @@ struct definition_chain
   DefinitionChain	next;		/* next in chain */
 };
 
+#define PROC_DIRTY_GENS	10
+
 struct dirty_def_info
-{ gen_t		oldest_generation;	/* Oldest generation seen */
+{ unsigned short count;			/* # captured generations */
+  unsigned short flags;			/* DDI_* */
+  Definition	predicate;		/* The dirty predicate */
+  gen_t		access[PROC_DIRTY_GENS];/* Accessed generations */
 };
 
 typedef struct definition_ref
@@ -1437,6 +1512,7 @@ typedef struct definition_refs
 
 #define	PROC_WEAK	 (0x0001)	/* implicit import */
 #define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
+#define PROC_IMPORTED	 (0x0004)	/* Procedure is imported */
 
 struct procedure
 { Definition	 definition;		/* definition of procedure */
@@ -1874,7 +1950,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#define PL_ARITY_AS_SIZE
 #include "SWI-Prolog.h"
 
 
@@ -1921,26 +1996,7 @@ typedef struct
 #endif
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
-
-
-		 /*******************************
-		 *	      EVENTS		*
-		 *******************************/
-
-typedef enum pl_event_type
-{ PLEV_ABORT,				/* Execution aborted */
-  PLEV_ERASED_CLAUSE,			/* clause was erased */
-  PLEV_ERASED_RECORD,			/* record was erased */
-  PLEV_DEBUGGING,			/* changed debugging mode */
-  PLEV_TRACING,				/* changed tracing mode */
-  PLEV_SPY,				/* changed spypoint */
-  PLEV_BREAK,				/* a break-point was set */
-  PLEV_BREAK_EXISTS,			/* existing breakpoint */
-  PLEV_NOBREAK,				/* a break-point was cleared */
-  PLEV_GCNOBREAK,			/* cleared due to clause GC */
-  PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
-  PL_EV_THREADFINISHED			/* A thread has finished */
-} pl_event_type;
+#define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+5)
 
 
 		 /*******************************
@@ -2080,8 +2136,10 @@ size N on the global stack AND  can   use  bindConst()  to bind it to an
 #define BIND_GLOBAL_SPACE (7)
 #define BIND_TRAIL_SPACE (6)
 #define hasGlobalSpace(n) \
-	(likely(gTop+(n)+BIND_GLOBAL_SPACE <= gMax) && \
-	 likely(tTop+BIND_TRAIL_SPACE <= tMax))
+	hasStackSpace(n,0)
+#define hasStackSpace(g, t) \
+	(likely(gTop+(g)+BIND_GLOBAL_SPACE <= gMax) && \
+	 likely(tTop+(t)+BIND_TRAIL_SPACE <= tMax))
 #define overflowCode(n) \
 	( (gTop+(n)+BIND_GLOBAL_SPACE > gMax) ? GLOBAL_OVERFLOW \
 					      : TRAIL_OVERFLOW )
@@ -2164,7 +2222,7 @@ typedef struct redir_context
 		*       READ WARNINGS           *
 		*********************************/
 
-#define ReadingSource (source_line_no > 0 && \
+#define ReadingSource (source_line_no >= 0 && \
 		       source_file_name != NULL_ATOM)
 
 
@@ -2189,12 +2247,6 @@ typedef struct redir_context
 typedef struct
 { int		blocked;		/* GC is blocked now */
   bool		active;			/* Currently running? */
-  long		collections;		/* # garbage collections */
-  int64_t	global_gained;		/* global stack bytes collected */
-  int64_t	trail_gained;		/* trail stack bytes collected */
-  int64_t	global_left;		/* global stack bytes left after GC */
-  int64_t	trail_left;		/* trail stack bytes left after GC */
-  double	time;			/* time spent in collections */
 } pl_gc_status_t;
 
 
@@ -2225,7 +2277,6 @@ typedef struct
 #define PROCEDURE_reset3		(GD->procedures.reset3)
 #define PROCEDURE_true0			(GD->procedures.true0)
 #define PROCEDURE_fail0			(GD->procedures.fail0)
-#define PROCEDURE_event_hook1		(GD->procedures.event_hook1)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
 #define PROCEDURE_dcall1		(GD->procedures.dcall1)
 #define PROCEDURE_setup_call_catcher_cleanup4 \
@@ -2235,6 +2286,7 @@ typedef struct
 #define PROCEDURE_exception_hook4	(GD->procedures.exception_hook4)
 #define PROCEDURE_dc_call_prolog	(GD->procedures.dc_call_prolog0)
 #define PROCEDURE_dinit_goal		(GD->procedures.dinit_goal3)
+#define PROCEDURE_tune_gc3		(GD->procedures.tune_gc3)
 
 extern const code_info codeTable[]; /* Instruction info (read-only) */
 
@@ -2323,13 +2375,13 @@ typedef struct debuginfo
 #define PLFLAG_CHARESCAPE	    0x00000001 /* handle \ in atoms */
 #define PLFLAG_GC		    0x00000002 /* do GC */
 #define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
-#define PLFLAG_TTY_CONTROL	    0x00000008 /* allow for tty control */
-//				    0x00000010 /* not used */
+#define PLFLAG_GCTHREAD		    0x00000008 /* Do atom/clause GC in a thread */
+#define PLFLAG_TTY_CONTROL	    0x00000010 /* allow for tty control */
 #define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
 #define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
 #define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
 #define PLFLAG_FILE_CASE_PRESERVING 0x00000100 /* case preserving file names */
-#define PLFLAG_DOS_FILE_NAMES       0x00000200 /* dos (8+3) file names */
+#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x00000200
 #define ALLOW_VARNAME_FUNCTOR	    0x00000400 /* Read Foo(x) as 'Foo'(x) */
 #define PLFLAG_ISO		    0x00000800 /* Strict ISO compliance */
 #define PLFLAG_OPTIMISE		    0x00001000 /* -O: optimised compilation */
@@ -2337,7 +2389,7 @@ typedef struct debuginfo
 #define PLFLAG_AUTOLOAD		    0x00004000 /* do autoloading */
 #define PLFLAG_CHARCONVERSION	    0x00008000 /* do character-conversion */
 #define PLFLAG_LASTCALL		    0x00010000 /* Last call optimization enabled? */
-//				    0x00020000 /* not used */
+#define PLFLAG_PORTABLE_VMI	    0x00020000 /* Generate portable VMI code */
 #define PLFLAG_SIGNALS		    0x00040000 /* Handle signals */
 #define PLFLAG_DEBUGINFO	    0x00080000 /* generate debug info */
 #define PLFLAG_FILEERRORS	    0x00100000 /* Edinburgh file errors */
@@ -2346,9 +2398,10 @@ typedef struct debuginfo
 #define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
 #define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
 #define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
-#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x04000000
-#define PLFLAG_GCTHREAD		    0x08000000 /* Do atom/clause GC in a thread */
-#define PLFLAG_MITIGATE_SPECTRE	    0x10000000 /* Mitigate spectre attacks */
+#define PLFLAG_MITIGATE_SPECTRE	    0x04000000 /* Mitigate spectre attacks */
+#define PLFLAG_TABLE_INCREMENTAL    0x08000000 /* By default incremental tabling */
+#define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
+#define PLFLAG_RATIONAL		    0x20000000 /* Natural rational numbers */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

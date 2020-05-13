@@ -1,0 +1,479 @@
+/**
+My example from below, with Annie's suggestion for single scc.
+[[p1,p1],[p1,not r1],[q1,s1,q1],[s1,not p1],[r1,not q1],[q1,p2],
+[p2,p2],[p2,not r2],[q2,s2,q2],[s2,not p2],[r2,not q2],[q2,p3],[p2,q1],
+[p3,p3],[p3,not r3],[q3,s3,q3],[s3,not p3],[r3,not q3],[q3,p4],[p3,q2],
+[p4,p4],[p4,not r4],[q4,s4,q4],[s4,not p4],[r4,not q4],[q4,p5],[p4,q3],
+[p5,p5],[p5,not r5],[q5,s5,q5],[s5,not p5],[r5,not q5],[q5,p6],[p5,q4],
+[p6,p6],[p6,not r6],[q6,s6,q6],[s6,not p6],[r6,not q6],[p6,q5]]
+******/
+:- compiler_options([spec_off]).
+:- import xwam_state/2 from machine.
+:- import get_returns_and_dls/3, get_call/3, get_calls/3,
+	  abolish_table_pred/1 from tables.
+:- import member/2 from basics.
+:- import numbervars/1 from num_vars.
+:- import excess_vars/4 from setof.
+
+test :- abolish_all_tables, fail.
+test :- writeln(d('Var')),test(d(_P)), fail.
+test :- abolish_all_tables,writeln(test_d1),test_d1, fail.
+test :- abolish_all_tables,writeln(test_d2),test_d2, fail.
+test :- writeln(d('Var')),test(d(_P)), fail.
+test :- writeln(e('Var')),test(e(_P)), fail.
+test :- writeln(top),test_noresid(top), fail.
+test :- writeln(tnot e(s1)),test_noresid(tnot e(s1)), fail.
+test :- writeln(tnot e(p1)),test_noresid(tnot e(p1)), fail.
+test :- writeln(f('Var')),test(f(_P)), fail.
+test :- writeln(g('Var')),test(g(_P)), fail.
+test :- writeln(p1('Var0','Var1')),test(p1(_,_)), fail.
+test :- writeln(p2),test(p2), fail.
+test :- writeln(p3),test(p3), fail.
+test :- writeln(p4),test(p4), fail.
+test :- writeln(p5('Var')),test(p5(_)), fail.
+test :- writeln(p6('Var')),test(p6(_)), fail.
+test :- writeln(p7('Var')),test(p7(_)), fail.
+test.
+
+%%test :- nl(userout),writeln(h('Var1','Var2',10)),test(h(_P,_I,10)),fail.
+
+test_noresid(Goal) :-
+	ground(Goal),
+	!,
+	write(Goal),
+	write(' - '),
+	(call(Goal)
+	 ->	xwam_state(2,DelayReg),
+		(DelayReg =:= 0
+		 ->	writeln(true)
+		 ;	writeln(undefined)
+		)
+	 ;      writeln(failed)
+	).
+test_noresid(Goal) :-
+	(call(Goal),
+	 (numbervars(Goal),
+	  write(Goal),
+	  fail
+	  ;
+	  true
+	 ),
+	 write(' - '),
+	 xwam_state(2,DelayReg),
+	 (DelayReg =:= 0
+	  ->	 writeln(true)
+	  ;	 writeln(undefined)
+	 ),
+	 fail
+	 ;
+	 true
+	).
+
+test(Goal) :-
+	ground(Goal),
+	!,
+	(call(Goal),fail;true),
+	print_residual_pgm(Goal).
+test(Goal) :-
+	(call(Goal),
+	 (numbervars(Goal),
+	  write(Goal),
+	  fail
+	  ;
+	  true
+	 ),
+	 write(' - '),
+	 xwam_state(2,DelayReg),
+	 (DelayReg =:= 0
+	  ->	 writeln(true)
+	  ;	 writeln(undefined)
+	 ),
+	 fail
+	 ;
+	 true
+	),
+	print_residual_pgm(Goal).
+
+:- import nl/1, writeq/2 from standard.
+:- import write/2 from standard.
+:- import append/3 from basics.
+
+print_residual_pgm(Goal) :-
+	get_calls(Goal,SGF,Tmp),
+	call_cleanup(print_residual_pgm(Goal,SGF,Tmp),
+		     abolish_table_pred(print_residual_pgm(_,_,_))).
+print_residual_pgm(_Goal).
+
+:- table print_residual_pgm/3 as variant, opaque.
+print_residual_pgm(Goal,SGF,Tmp) :-
+	canonical_returns_and_dls(SGF,Tmp,DelayLists),
+	(numbervars((Goal,DelayLists)),
+	 writeln((Goal :- DelayLists)),
+	 fail
+	 ;
+	 member(DL,DelayLists),
+	 member(Goal0,DL),
+	 (Goal0 = tnot(SGoal)
+	  ->	 true
+	  ;	 SGoal = Goal0
+	 ),
+	 (get_call(SGoal,SSGF,STmp)
+	  ->	 true
+	  ;	 excess_vars(SGoal,[],[],Vars), % must be more general
+		 get_calls(SGoal,SSGF,STmp),
+		 is_most_general_term(Vars)
+	  ->	 true
+	  ;	 fail
+	 ),
+	 print_residual_pgm(SGoal,SSGF,STmp),
+	 fail
+	).
+
+canonical_returns_and_dls(SGF,Tmp,DelayLists) :-
+	get_returns_and_dls(SGF,Tmp,DL0),
+	sort_lists(DL0, DL1),
+	sort_variants(DL1, DelayLists).
+
+sort_lists([], []).
+sort_lists([H0|T0], [H|T]) :-
+	sort_variants(H0, H),
+	sort_lists(T0, T).
+
+sort_variants(L1, L2) :-
+	key_variants(L1, Keyed),
+	keysort(Keyed, Sorted),
+	unkey(Sorted, L2).
+
+key_variants([], []).
+key_variants([H|T0], [K-H|T]) :-
+	copy_term(H, K),
+	numbervars(K),
+	key_variants(T0, T).
+
+unkey([], []).
+unkey([K-H|T0], [H|T]) :-
+	skip_same_key(T0, K, T1),
+	unkey(T1, T).
+
+skip_same_key([K-_|T0], K, T) :- !,
+	skip_same_key(T0, K, T).
+skip_same_key(T, _, T).
+
+:- table b/1.
+b(p) :- b(q).
+b(q) :- b(r).
+b(r) :- b(s).
+b(s) :- tnot b(s).
+
+% simplest that requires AC.
+:- table c/1.
+c(p) :- c(p).
+c(p) :- tnot c(r).
+c(q) :- c(s),c(q).
+c(s) :- tnot c(p).
+c(r) :- tnot c(q).
+
+% should fail (test AC from tabletry)
+test_d1 :- tnot d(p1), d(p2).
+
+% should succeed (test AC in slg_not)
+test_d2 :- tnot d(p1), tnot d(p2).
+
+:- table d/1.
+d(p1) :- d(t1),d(r2).
+d(p1) :- tnot d(r1).
+d(t1) :- d(p1),tnot d(p2).
+d(q1) :- d(s1),d(u1).
+d(u1) :- d(q1).
+d(s1) :- tnot d(p1),tnot d(t1).
+d(r1) :- tnot d(q1).
+
+d(p2) :- d(t2),d(r1).
+d(p2) :- tnot d(r2).
+d(t2) :- d(p2). %%%%%,tnot d(p1).
+d(q2) :- d(s2),d(u2).
+d(u2) :- d(q2).
+d(s2) :- tnot d(p2).
+d(r2) :- tnot d(q2).
+
+
+:- table e/1.
+%e(p0) :- tnot e(p1).
+
+top :- tnot e(q3).
+
+e(p1) :- e(p1).
+e(p1) :- tnot e(r1).
+e(q1) :- e(s1),e(q1).
+e(s1) :- tnot e(p1).
+e(r1) :- tnot e(q1).
+e(q1) :- e(p2).
+
+e(p2) :- e(p2).
+e(p2) :- tnot e(r2).
+e(q2) :- e(s2),e(q2).
+e(s2) :- tnot e(p2).
+e(r2) :- tnot e(q2).
+e(q2) :- e(p3).
+e(p2) :- e(q1).
+
+e(p3) :- e(p3).
+e(p3) :- tnot e(r3).
+e(q3) :- e(s3),e(q3).
+e(s3) :- tnot e(p3).
+e(r3) :- tnot e(q3).
+e(q3) :- e(p4).
+e(p3) :- e(q2).
+
+e(p4) :- e(p4).
+e(p4) :- tnot e(r4).
+e(q4) :- e(s4),e(q4).
+e(s4) :- tnot e(p4).
+e(r4) :- tnot e(q4).
+e(q4) :- e(p5).
+e(p4) :- e(q3).
+
+e(p5) :- e(p5).
+e(p5) :- tnot e(r5).
+e(q5) :- e(s5),e(q5).
+e(s5) :- tnot e(p5).
+e(r5) :- tnot e(q5).
+e(q5) :- e(p6).
+e(p5) :- e(q4).
+
+e(p6) :- e(p6).
+e(p6) :- tnot e(r6).
+e(q6) :- e(s6),e(q6).
+e(s6) :- tnot e(p6).
+e(r6) :- tnot e(q6).
+e(p6) :- e(q5).
+
+%e(r8) :- e(r7).
+%e(r7) :- tnot e(s7).
+%e(s7) :- tnot e(r7).
+
+
+
+%:- table f/1 as subsumptive.
+:- table f/1.
+%f(p0) :- tnot f(p1).
+
+top :- tnot f(q3).
+
+f(p1) :- f(t1).
+f(t1) :- f(p1).
+f(p1) :- tnot f(r1).
+f(q1) :- f(s1),f(u1).
+f(u1) :- f(q1).
+f(s1) :- tnot f(p1).
+f(r1) :- tnot f(q1).
+f(q1) :- f(p2).
+
+f(p2) :- f(t2).
+f(t2) :- f(p2).
+f(p2) :- tnot f(r2).
+f(q2) :- f(s2),f(u2).
+f(u2) :- f(q2).
+f(s2) :- tnot f(p2).
+f(r2) :- tnot f(q2).
+f(q2) :- f(p3).
+f(p2) :- f(q1).
+
+f(p3) :- f(t3).
+f(t3) :- f(p3).
+f(p3) :- tnot f(r3).
+f(q3) :- f(s3),f(u3).
+f(u3) :- f(q3).
+f(s3) :- tnot f(p3).
+f(r3) :- tnot f(q3).
+f(q3) :- f(p4).
+f(p3) :- f(q2).
+
+f(p4) :- f(t4).
+f(t4) :- f(p4).
+f(p4) :- tnot f(r4).
+f(q4) :- f(s4),f(u4).
+f(u4) :- f(q4).
+f(s4) :- tnot f(p4).
+f(r4) :- tnot f(q4).
+f(q4) :- f(p5).
+f(p4) :- f(q3).
+
+f(p5) :- f(t5).
+f(t5) :- f(p5).
+f(p5) :- tnot f(r5).
+f(q5) :- f(s5),f(u5).
+f(u5) :- f(q5).
+f(s5) :- tnot f(p5).
+f(r5) :- tnot f(q5).
+f(q5) :- f(p6).
+f(p5) :- f(q4).
+
+f(p6) :- f(t6).
+f(t6) :- f(p6).
+f(p6) :- tnot f(r6).
+f(q6) :- f(s6),f(u6).
+f(u6) :- f(q6).
+f(s6) :- tnot f(p6).
+f(r6) :- tnot f(q6).
+f(p6) :- f(q5).
+
+
+%%%%%%%%%%%%%%%%%%%%
+:- table g/1.
+
+g(p6) :- g(t6).
+g(t6) :- g(p6).
+g(p6) :- tnot g(r6).
+g(q6) :- g(s6),g(u6).
+g(u6) :- g(q6).
+g(s6) :- tnot g(p6).
+g(r6) :- tnot g(q6).
+g(p6) :- g(q5).
+
+g(p6) :- tnot g(p7).
+g(p7) :- tnot g(p8).
+g(p8) :- und.
+
+%%%%%%%%%%%%%%%%%%%%%
+:- import for/3 from basics.
+
+bench_h(K) :-
+	cputime(T0),
+	(h(_,_,K), fail ; true),
+	cputime(T1),
+	Time is T1-T0,
+	SRTime is 10000000*Time/ (K*K),
+	writeln(userout,['K'=K,cputime=Time,rootTime=SRTime]).
+
+:- table h/3.
+h(p,I,K) :- bd(I,K),h(t,I,K).
+h(t,I,K) :- bd(I,K),h(p,I,K).
+h(p,I,K) :- bd(I,K),tnot h(r,I,K).
+h(q,I,K) :- bd(I,K),h(s,I,K),h(u,I,K).
+h(u,I,K) :- bd(I,K),h(q,I,K).
+h(s,I,K) :- bd(I,K),tnot h(p,I,K).
+h(r,I,K) :- bd(I,K),tnot h(q,I,K).
+h(q,I,K) :- bd(I,K),I < K, I1 is I+1, h(p,I1,K).
+h(p,I,K) :- bd(I,K),I > 1,I1 is I-1, h(q,I1,K).
+
+%h(p,K,K) :- und.
+
+bd(I,K) :-
+	(var(I)
+	 ->	for(I,1,K)
+	 ;	true
+	).
+
+:- table j/4.
+j(A,B,C,D) :- A=1,k(A,B,C,D).
+k(_,_,_,_) :- und.
+k(_,_,_,_) :- und.
+
+/* generate unusual variable patterns in dls */
+
+:- table dl1/3.
+dl1(a,X,Y) :- ud1(f(X),Z),ud2(Y,U),ud1(Z,g(U)),ud1(U,h(_V)),ud3(a,Z,X),X=b, Y = c.
+
+:- table ud1/2, ud2/2, ud3/3.
+ud1(_,_) :- und.
+ud2(X,X) :- und.
+ud3(_,_,_) :- und.
+
+:- table dlt/2, eee/2.
+%dlt(X,Y) :- eee(X,Y).
+dlt(X,X).
+dlt(X,Y) :- dlt(X,Z),eee(Z,Y).
+
+eee(a,b) :- und.
+eee(b,a) :- und.
+
+/*******************************************/
+
+:- table p1/2, p13a/3.
+p1(X,_Y) :- p13a(a,X,Z), Z=c.
+p1(X,_Y) :- p13a(f(b),X,Z), Z=f(c).
+p1(X,_Y) :- p13a(f(W),X,Z), Z=f(W).
+
+p13a(_,b,_) :- und.
+
+:- table p2/0, p23a/3.
+p2 :- p23a(f(Z),W,U),p23a(f(Z),V,U),V=W.
+p2 :- p23a(A,W,U),p23a(A,V,U),V=W,A=f(_Z).
+p2 :- p23a(V,W,U),p23a(V,V,U),V=W.
+p2 :- p23a(a,f(X),b),p23a(a,Z,b),Z=f(X).
+
+p23a(_,f(_),_) :- und.
+
+:- table p3/0, p31a/1, p31b/1.
+
+p3 :- p31a(X),p31b(X).
+p3 :- p31b(X),p31a(X).
+p3 :- p31a(X),p31b(X),X=f(a).
+p3 :- p31b(X),p31a(X),X=f(a).
+p3 :- p31a(X),p31b(Y),X=Y.
+p3 :- p31b(X),p31a(Y),X=Y.
+p3 :- p31a(X),p31b(Y),X=Y,X=f(a).
+p3 :- p31b(X),p31a(Y),X=Y,X=f(a).
+p3 :- p31a(f(X)),p31b(f(X)).
+p3 :- p31b(f(X)),p31a(f(X)).
+p3 :- p31a(f(X)),p31b(f(X)),X=a.
+p3 :- p31b(f(X)),p31a(f(X)),X=a.
+p3 :- p31a(f(X)),p31b(Y),Y=f(X).
+p3 :- p31b(f(X)),p31a(Y),Y=f(X).
+p3 :- p31a(f(X)),p31b(Y),Y=f(X),X=a.
+p3 :- p31b(f(X)),p31a(Y),Y=f(X),X=a.
+p3 :- p31a(f(X)),p31b(Y),Y=f(X).
+p3 :- p31b(f(X)),p31a(Y),Y=f(X).
+
+p31a(f(_)) :- und.
+p31b(_) :- und.
+
+:- table p4/0, p41a/1, p41b/1.
+
+p4 :- p41a(X),p41b(X).
+p4 :- p41b(X),p41a(X).
+p4 :- p41a(X),p41b(X),X=f(a).
+p4 :- p41b(X),p41a(X),X=f(a).
+p4 :- p41a(X),p41b(Y),X=Y.
+p4 :- p41b(X),p41a(Y),X=Y.
+p4 :- p41a(X),p41b(Y),X=Y,X=f(a).
+p4 :- p41b(X),p41a(Y),X=Y,X=f(a).
+p4 :- p41a(f(X)),p41b(f(X)).
+p4 :- p41b(f(X)),p41a(f(X)).
+p4 :- p41a(f(X)),p41b(f(X)),X=a.
+p4 :- p41b(f(X)),p41a(f(X)),X=a.
+p4 :- p41a(f(X)),p41b(Y),Y=f(X).
+p4 :- p41b(f(X)),p41a(Y),Y=f(X).
+p4 :- p41a(f(X)),p41b(Y),Y=f(X),X=a.
+p4 :- p41b(f(X)),p41a(Y),Y=f(X),X=a.
+
+p41a(f(_)) :- und.
+p41b(f(_)) :- und.
+
+
+:- table p5/1, p51a/1, p51b/1.
+p5(B) :- p51a(X),X=f(_,B),p51b(Z),Z=f(B).
+p5(B) :- p51a(X),X=f(B,_),p51b(Z),Z=f(B).
+
+p51a(_X) :- und.
+p51b(_X) :- und.
+
+
+:- table p6/1,p6a/1,p6b/1.
+p6(W) :- p6a(X),p6b(Y),X=f(Z),Y=f(W,Z).
+
+p6a(f(_)) :- und.
+p6b(f(_,_)) :- und.
+
+
+:- table p7/1,p7a/1,p7b/1.
+p7(W) :- p7a(X),X=f(Z),p7b(Y),Y=g(W,Z).
+p7(W) :- p7a(X),X=f(Z),p7b(Y),Y=g(Z,W).
+
+p7a(f(_)) :- und.
+p7b(g(_,_)) :- und.
+
+:- table und/0.
+
+und :- tnot(und).

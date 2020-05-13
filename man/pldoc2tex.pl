@@ -49,6 +49,7 @@
 :- initialization(clean_pldoc, prepare_state).
 
 pltotex(File, Options) :-
+    set_prolog_flag(pldoc_to_tex, true),
     markdown_file(File),
     !,
     preload(Options),
@@ -58,6 +59,7 @@ pltotex(File, Options) :-
     summaries(Out, LatexOptions, LatexOptions0),
     doc_latex(MarkDown, Out, LatexOptions).
 pltotex(Lib, Options) :-
+    set_prolog_flag(pldoc_to_tex, true),
     (   file_name_extension(_, pl, Lib)
     ->  Spec = Lib
     ;   atom_to_term(Lib, Spec, _)

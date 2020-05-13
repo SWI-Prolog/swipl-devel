@@ -1,7 +1,11 @@
 \chapter{Compatibility with other Prolog dialects}
 \label{sec:dialect}
 
-\index{YAP,prolog}\index{portable,prolog code}%
+\index{YAP,prolog}%
+\index{XSB,prolog}%
+\index{SICStus,prolog}%
+\index{IF,prolog}%
+\index{portable,prolog code}%
 This chapter explains issues for writing portable Prolog programs. It
 was started after discussion with Vitor Santos Costa, the leading
 developer of YAP Prolog\footnote{\url{http://yap.sourceforge.net/}} YAP
@@ -73,11 +77,6 @@ Currently, this file has this functionality:
     dialect.
 \end{itemize}
 
-    \predicate{exists_source}{1}{+Spec}
-Is true if \arg{Spec} exists as a Prolog source.  \arg{Spec} uses the
-same conventions as load_files/2.  Fails without error if \arg{Spec}
-cannot be found.
-
     \predicate{source_exports}{2}{+Spec, +Export}
 Is true if source \arg{Spec} exports \arg{Export}, a predicate
 indicator.  Fails without error otherwise.
@@ -100,7 +99,7 @@ are some considerations.
     code was written for dialect $X$, the defined semantics are
     those of dialect $X$. Emulating all extreme cases and full
     error handling compatibility may be tedious and result in a
-    much slower implementation that needed.  Take for example
+    much slower implementation than needed.  Take for example
     call_cleanup/2.  The SICStus definition is fundamentally
     different from the SWI definition, but 99\% of the applications
     just want to make calls like below to guarantee \arg{StreamIn}
@@ -204,4 +203,106 @@ goal_expansion(compare(Order, Term1, Term2),
 :- endif.
 \end{code}
 
-%%
+\section{Notes on specific dialects}
+\label{sec:dialect-notes}
+
+The level of maturity of the various dialect emulation implementations
+varies enormously. All of them have been developed to realise
+portability for one or more, often large, programs.  This section
+provides some notes on emulating a particular dialect.
+
+
+\subsection{Notes on specific dialects}
+\label{sec:dialect-xsb}
+
+\href{http://xsb.sourceforge.net/}{XSB} Prolog compatibility emerged
+from a project to integrate XSB's advanced tabling support in SWI-Prolog
+(see \secref{tabling}). This project has been made possible by
+\href{https://kyndi.com/}{Kyndi}.\footnote{This project was initiated by
+Benjamin Grosof and carried out in cooperation with Theresa Swift, David
+S. Warren and Fabrizio Riguzzi.} The XSB dialect implementation has been
+created to share as much as possible of the XSB test suite as well as
+some larger programs to evaluate both tabling implementations. The
+dialect emulation was extended to support
+\href{https://github.com/cmu-sei/pharos}{Pharos}.\footnote{Pharos was
+used to evaluate \jargon{incremental tabling}
+(\secref{tabling-incremental}), a protect with Edward Schwatz and Cory
+Cohen from CMU}.
+
+Emulating XSB is relatively complicated due to the large distance from
+the Quintus decendant Prolog systems. Notably XSB's name based module
+system is hard to map on SWI-Prolog's predicate based module system. As
+a result, only non-modular projects or projects with basic usage of
+modules are supported. For the development of new projects that require
+modules more advanced module support we suggest using
+\href{https://logtalk.org/}{Logtalk}.
+
+\subsubsection{Loading XSB source files}
+\label{sec:xsb-source}
+
+SWI-Prolog's emulation of XSB depends on the XSB preferred file name
+extension \fileext{P}. This extension is used by
+\pllib{dialect/xsb/source} to initiate a two phase loading process based
+on term_expansion/2 of the virtual term \const{begin_of_file}.
+
+\begin{enumerate}
+    \item In the first phase the file is read with XSB compatible
+    operator declarations and all directives (:- Term) are extracted.
+    The directives are used to determine that the file defines a
+    module (iff the file contains an export/1 directive) and construct
+    a SWI-Prolog compatible module declaration.  As XSB has a two phase
+    compiler where SWI has a single phase compiler, this is also used to
+    move some directives to the start of the file.
+
+    \item The second phase loads the file as normal.
+\end{enumerate}
+
+To load a project in both XSB and SWI-Prolog it is adviced to make sure
+all source files use the \fileext{P} file name extension.  Next, write a
+SWI-Prolog loader in a \fileext{pl} file that contains e.g.,
+
+\begin{code}
+:- use_module(library(dialect/xsb/source)).
+
+:- [main_file].
+\end{code}
+
+It is also possible to put the able use_module/1 directive in your
+personal initialization file (see \secref{initfile}), after which
+XSB files can be loaded as normal SWI-Prolog files using
+
+\begin{code}
+% swipl file.P
+\end{code}
+
+\index{gpp,XSB proprocessor}%
+XSB code may depend on the \program{gpp} preprocessor.  We do not
+provide \program{gpp}.  It is however possible to send XSB source
+files through \program{gpp} by loading \pllib{library/dialect/xsb/gpp}.
+This require \program{gpp} to be accessible through the environment
+variable \env{PATH} or the file_search_path/2 alias \const{path}.
+We refer to the \const{gpp} library for details.
+
+
+\subsection{The XSB import directive}
+\label{sec:xsb-import}
+
+The XSB import directive takes the form as below.
+
+\begin{code}
+:- import p/1, q/2, ... from <lib>.
+\end{code}
+
+This import directive is resolved as follows:
+
+\begin{itemize}
+    \item If the referenced library is found as a local file,
+it is loaded and the requested predicates are imported.
+    \item Otherwise, the referenced libary is searched for in
+the \file{dialect/xsb} directory of the SWI-Prolog library.
+If found, the predicates are imported from this library.
+    \item The referenced predicates are searched for in SWI-Prolog
+built-in predicates and the SWI-Prolog library.  If found, they are
+made available if necessary.
+\end{itemize}
+

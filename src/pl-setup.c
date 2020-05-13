@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,8 @@
 
 #define GLOBAL SO_LOCAL			/* allocate global variables here */
 #include "pl-incl.h"
+#include "pl-comp.h"
+#include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-dbref.h"
 #include "pl-trie.h"
@@ -98,7 +101,6 @@ setupProlog(void)
   GD->combined_stack.overflow_id = STACK_OVERFLOW;
 
   initPrologLocalData(PASS_LD1);
-  LD->tabling.node_pool.limit = GD->options.tableSpace;
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -117,10 +119,14 @@ setupProlog(void)
   initRecords();
   DEBUG(1, Sdprintf("Tries ...\n"));
   initTries();
+  DEBUG(1, Sdprintf("Tabling ...\n"));
+  initTabling();
   DEBUG(1, Sdprintf("Flags ...\n"));
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
   initBuildIns();
+  DEBUG(1, Sdprintf("TCMalloc binding ...\n"));
+  initTCMalloc();
   DEBUG(1, Sdprintf("Operators ...\n"));
   initOperators();
   DEBUG(1, Sdprintf("GMP ...\n"));
@@ -136,6 +142,7 @@ setupProlog(void)
 #ifdef O_LOCALE
   initLocale();
 #endif
+  setABIVersionPrologFlag();
   GD->io_initialised = TRUE;
   GD->clauses.cgc_space_factor  = 8;
   GD->clauses.cgc_stack_factor  = 0.03;
@@ -181,7 +188,7 @@ SWI-Prolog catches a number of signals:
     calls and allow handling of Prolog signals from them.
   - SIGTERM, SIGABRT and SIGQUIT are caught to cleanup before killing
     the process again using the same signal.
-  - SIGSEGV, SIGILL, SIGBUS, SIGFPE and SIGSYS are caught by
+  - SIGSEGV, SIGILL, SIGBUS and SIGSYS are caught by
     os/pl-cstack.c to print a backtrace and exit.
   - SIGHUP is caught and causes the process to exit with status 2 after
     cleanup.
@@ -471,7 +478,7 @@ dispatch_signal(int sig, int sync)
 
   if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
-	       sig, signal_name(sig), gc_status.collections);
+	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync)) &&
@@ -528,7 +535,7 @@ dispatch_signal(int sig, int sync)
 
     PL_error(predname, arity, NULL, ERR_SIGNALLED, sig, signal_name(sig));
   } else if ( sh->handler )
-  {
+  { int ex_pending = (exception_term && !sync);
 #ifdef O_LIMIT_DEPTH
     uintptr_t olimit = depth_limit;
     depth_limit = DEPTH_NO_LIMIT;
@@ -542,7 +549,7 @@ dispatch_signal(int sig, int sync)
 	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
 		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
 
-    if ( exception_term && !sync )	/* handler: PL_raise_exception() */
+    if ( !ex_pending && exception_term && !sync )	/* handler: PL_raise_exception() */
       fatalError("Async exception handler for signal %s (%d) raised "
 		 "an exception", signal_name(sig), sig);
   }
@@ -648,7 +655,7 @@ static void
 hupHandler(int sig)
 { (void)sig;
 
-  PL_halt(2);
+  PL_halt(128+sig);
 }
 #endif
 
@@ -663,12 +670,28 @@ static void
 terminate_handler(int sig)
 { signal(sig, SIG_DFL);
 
-  run_on_halt(&GD->os.exit_hooks, 3);
+  run_on_halt(&GD->os.exit_hooks, 128+sig);
 
 #if defined(HAVE_KILL) && defined(HAVE_GETPID)
   kill(getpid(), sig);
 #else
-  exit(3);
+  switch( sig )
+  {
+#ifdef SIGTERM
+    case SIGTERM:
+      exit(128+SIGTERM);
+#endif
+#ifdef SIGQUIT
+    case SIGQUIT:
+      exit(128+SIGQUIT);
+#endif
+#ifdef SIGABRT
+    case SIGABRT:
+      abort();
+#endif
+    default:
+      assert(0); /* not reached */
+  }
 #endif
 }
 
@@ -702,9 +725,15 @@ static void
 gc_handler(int sig)
 { (void)sig;
 
-  garbageCollect();
+  garbageCollect(0);
 }
 
+static void
+gc_tune_handler(int sig)
+{ (void)sig;
+
+  call_tune_gc_hook();
+}
 
 static void
 cgc_handler(int sig)
@@ -784,6 +813,7 @@ initSignals(void)
   /* be enabled always */
 
   PL_signal(SIG_GC|PL_SIGSYNC,	          gc_handler);
+  PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
 #ifdef SIG_THREAD_SIGNAL
@@ -1055,7 +1085,7 @@ handleSignals(ARG1_LD)
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
-	{ __sync_and_and_fetch(&LD->signal.pending[i], ~mask);
+	{ ATOMIC_AND(&LD->signal.pending[i], ~mask);
 
 	  done++;
 	  dispatch_signal(sig, TRUE);
@@ -1195,13 +1225,23 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else if ( sh->predicate )			/* call predicate */
   { Definition def = sh->predicate->definition;
 
-    if ( !PL_unify_atom(mold, def->module->name) ||
-	 !PL_unify_atom(old, def->functor->name) )
-      return FALSE;
+    if ( PL_unify_atom(mold, def->module->name) )
+    { if ( !PL_unify_atom(old, def->functor->name) )
+	return FALSE;
+    } else
+    { if ( !PL_unify_term(old, PL_FUNCTOR, FUNCTOR_colon2,
+			         PL_ATOM, def->module->name,
+			         PL_ATOM, def->functor->name) )
+	return FALSE;
+    }
   } else if ( sh->handler )
-  { TRY(PL_unify_term(old,
-		      PL_FUNCTOR, FUNCTOR_foreign_function1,
-		      PL_POINTER, sh->handler));
+  { if ( sh->handler == PL_interrupt )
+    { TRY(PL_unify_atom(old, ATOM_debug));
+    } else
+    { TRY(PL_unify_term(old,
+			PL_FUNCTOR, FUNCTOR_foreign_function1,
+			PL_POINTER, sh->handler));
+    }
   }
 
   if ( PL_compare(old, new) == 0 &&
@@ -1216,6 +1256,13 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
       set(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
+    } else if ( a == ATOM_debug )
+    { sh = prepareSignal(sign);
+
+      clear(sh, PLSIG_THROW|PLSIG_SYNC);
+      sh->handler = (handler_t)PL_interrupt;
+      sh->predicate = NULL;
+
     } else
     { Module m;
       predicate_t pred;
@@ -1340,6 +1387,8 @@ emptyStacks(void)
     LD->attvar.gc_attvars   = PL_new_term_ref();
     DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
+    LD->tabling.delay_list  = init_delay_list();
+    LD->tabling.idg_current = PL_new_term_ref();
 #ifdef O_GVAR
     destroyGlobalVars();
 #endif
@@ -1389,6 +1438,10 @@ allocStacks(void)
   size_t iglobal = nextStackSizeAbove(minglobal-1);
   size_t ilocal  = nextStackSizeAbove(minlocal-1);
 
+  itrail  = stack_nalloc(itrail);
+  minarg  = stack_nalloc(minarg);
+  iglobal = stack_nalloc(iglobal+ilocal)-ilocal;
+
   gBase = NULL;
   tBase = NULL;
   aBase = NULL;
@@ -1404,7 +1457,7 @@ allocStacks(void)
     return FALSE;
   }
 
-  lBase = (LocalFrame) addPointer(gBase, iglobal);
+  lBase   = (LocalFrame) addPointer(gBase, iglobal);
 
   init_stack((Stack)&LD->stacks.global,
 	     "global",   iglobal, 512*SIZEOF_VOIDP, TRUE);
@@ -1439,65 +1492,6 @@ freeStacks(ARG1_LD)
     aTop = NULL;
     aBase = NULL;
   }
-}
-
-
-void *
-stack_malloc(size_t size)
-{ void *mem = malloc(size+sizeof(size_t));
-
-  if ( mem )
-  { size_t *sp = mem;
-    *sp++ = size;
-#ifdef SECURE_GC
-    memset(sp, 0xFB, size);
-#endif
-    ATOMIC_ADD(&GD->statistics.stack_space, size);
-
-    return sp;
-  }
-
-  return NULL;
-}
-
-void *
-stack_realloc(void *old, size_t size)
-{ size_t *sp = old;
-  size_t osize = *--sp;
-  void *mem;
-
-#ifdef SECURE_GC
-  if ( (mem = stack_malloc(size)) )
-  { memcpy(mem, old, (size>osize?osize:size));
-    stack_free(old);
-    return mem;
-  }
-#else
-  if ( (mem = realloc(sp, size+sizeof(size_t))) )
-  { sp = mem;
-    *sp++ = size;
-    if ( size > osize )
-      ATOMIC_ADD(&GD->statistics.stack_space, size-osize);
-    else
-      ATOMIC_SUB(&GD->statistics.stack_space, osize-size);
-    return sp;
-  }
-#endif
-
-  return NULL;
-}
-
-void
-stack_free(void *mem)
-{ size_t *sp = mem;
-  size_t osize = *--sp;
-
-  ATOMIC_SUB(&GD->statistics.stack_space, osize);
-
-#ifdef SECURE_GC
-  memset(sp, 0xFB, osize+sizeof(size_t));
-#endif
-  free(sp);
 }
 
 
@@ -1600,16 +1594,8 @@ of work to do.
 
 void
 freePrologLocalData(PL_local_data_t *ld)
-{ int i;
-
-  discardBuffer(&ld->fli._discardable_buffer);
-
-  for(i=0; i<BUFFER_RING_SIZE; i++)
-  { discardBuffer(&ld->fli._buffer_ring[i]);
-    initBuffer(&ld->fli._buffer_ring[i]);	/* Used by debug-print */
-						/* on shutdown */
-  }
-
+{ discardBuffer(&ld->fli._discardable_buffer);
+  discardStringStack(&ld->fli.string_buffers);
   freeVarDefs(ld);
 
 #ifdef O_GVAR
@@ -1640,6 +1626,8 @@ freePrologLocalData(PL_local_data_t *ld)
 
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
+  if ( ld->tabling.node_pool )
+    free_alloc_pool(ld->tabling.node_pool);
 
   clearThreadTablingData(ld);
 }
@@ -1658,7 +1646,7 @@ set_stack_limit(size_t limit)
        limit < sizeStack(local) +
                sizeStack(global) +
                sizeStack(trail) )
-  { garbageCollect();
+  { garbageCollect(GC_USER);
     trimStacks(TRUE PASS_LD);
 
     if ( limit < sizeStack(local) +

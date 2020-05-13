@@ -1,0 +1,2 @@
+after_first_deletion(undefined1(a,b),[tnot undefined(b)])
+after_second_deletion(undefined1(a,b),[])

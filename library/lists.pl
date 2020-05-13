@@ -73,8 +73,9 @@
           subset/2,                     % +SubSet, +Set
           subtract/3                    % +Set, +Delete, -Remaining
         ]).
-:- use_module(library(error)).
-:- use_module(library(pairs)).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(pairs),[pairs_keys/2]).
+
 
 :- set_prolog_flag(generate_debug_info, false).
 

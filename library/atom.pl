@@ -39,7 +39,9 @@
             identifier_parts/2,                 % +Identifier, -Parts
             join_identifier_parts/3             % +Style, +Parts, -Identifier
           ]).
-:- use_module(library(apply)).
+:- autoload(library(apply),[maplist/2,maplist/3]).
+:- autoload(library(ctypes),[is_upper/1]).
+
 
 /** <module> Operations on atoms
 

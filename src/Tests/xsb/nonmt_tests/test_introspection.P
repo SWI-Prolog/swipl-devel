@@ -1,0 +1,70 @@
+
+:- import numbervars/1 from num_vars.
+:- import incr_assert/1 from increval.
+%:- import incr_assert/1,incr_invalid_subgoals/1,incr_is_invalid/1 from increval.
+%:- import incr_directly_depends/2 from increval.
+:- import subgoal_property/2 from curr_sym.
+
+:- table t_1a/1, t_1b/1, t_2a/1, t_2b/1, t_2c/1, t_3/1 as incremental.
+:- dynamic d_1/1 as incremental.
+
+t_1a(X):- t_2a(X).
+t_1a(X):- t_2b(X).
+t_1a(X):- t_2c(X).
+
+t_1b(X):- t_2a(X).
+t_1b(X):- t_2b(X).
+t_1b(X):- t_2c(X).
+
+t_2a(X):- t_3(X).
+t_2b(X):- t_3(X).
+t_2c(X):- t_3(X).
+
+t_3(X):- d_1(X).
+
+d_1(1).
+
+test:- t_1a(_),fail.
+test:- t_1b(_),fail.
+test:- incr_invalid_subgoals(A),writenln(incr_invalid_subgoals_1(A)),fail.
+test:- incr_assert(d_1(2)),fail.
+test:- incr_invalid_subgoals(A),writenln(incr_invalid_subgoals_2(A)),fail.
+test:- t_1a(_),fail.
+test:- incr_invalid_subgoals(A),writenln(incr_invalid_subgoals_3(A)),fail.
+test:- incr_is_invalid(d_1(_)),writenln(incr_is_invalid(d_1(_))),fail.
+test:- incr_is_invalid(t_1a(_)),writenln(incr_is_invalid(t_1a(_))),fail.
+test:- incr_is_invalid(t_1b(_)),writenln(incr_is_invalid(t_1b(_))),fail.
+test:- incr_is_invalid(t_4(_)),writenln(incr_is_invalid(t_4(_))),fail.
+test:- incr_assert(d_1(3)),fail.
+test:- abolish_table_call(t_2a(_)),fail.
+test:- incr_is_invalid(t_2a(_)),writenln(incr_is_invalid(t_2a(_))),fail.
+test.
+
+writenln(Term):- numbervars(Term),writeln(Term).
+
+incr_is_invalid(TermSpec):- subgoal_property(TermSpec,[incremental,invalid]).
+
+incr_invalid_subgoals(List):-
+    findall(Term,subgoal_property(Term,[incremental,invalid]),List1),
+    sort(List1,List).
+
+end_of_file.
+
+test:- abolish_all_tables,fail.
+test:- t_1a(_),fail.
+test:- t_1b(_),fail.
+test:- increval:get_affected_calls(F),writeln(get_affected_calls_1(F)),fail.
+test:- incr_assert(d_1(2)),fail.
+test:- increval:get_affected_calls(F),writeln(get_affected_calls_2(F)),fail.
+test:- abolish_table_call(t_2b(_)),fail.
+test:- increval:get_affected_calls(F),writeln(get_affected_calls_3(F)),fail.
+test.
+
+%test:- writeln('-----------------'),print_results('after eager update '),fail.
+print_results(Atom):- get_residual(t_1a(X),_),write(Atom),writeln(t_1a(X)),fail.
+print_results(Atom):- get_residual(t_1b(X),_),write(Atom),writeln(t_1b(X)),fail.
+print_results(Atom):- get_residual(t_2a(X),_),write(Atom),writeln(t_2a(X)),fail.
+print_results(Atom):- get_residual(t_2b(X),_),write(Atom),writeln(t_2b(X)),fail.
+print_results(Atom):- get_residual(t_2c(X),_),write(Atom),writeln(t_2c(X)),fail.
+print_results(Atom):- get_residual(t_3(X),_),write(Atom),writeln(t_3(X)),fail.
+print_results(_).

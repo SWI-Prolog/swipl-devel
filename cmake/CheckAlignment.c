@@ -26,7 +26,7 @@ int prevent_optimization(unsigned char*p, int size) {
    int i;
 
    //Prevent optimizer from eliminating the constants in main()
-   unsigned char dummy[size];
+   unsigned char dummy[24];			/* var is not allowed */
    d = dummy;
    for (i = 0; i < size; ++i) {
      *d++ = *p++;

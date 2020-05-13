@@ -37,7 +37,8 @@ test_bips :-
 		    coroutining,
 		    arg,
 		    eq,
-		    length
+		    length,
+		    is_most_general_term
 		  ]).
 
 has_occurs_check_flag :-
@@ -74,8 +75,10 @@ test(iso_8_4_2_3_b,[error(domain_error(order, a))]) :-
 
 null_file('/dev/null') :-
 	exists_file('/dev/null'), !.
-null_file(nul) :-
-	current_prolog_flag(windows, true).
+null_file(NullFile) :-
+	source_location(_:null_file(_), ThisFile),
+	file_directory_name(ThisFile, ThisDir),
+	atom_concat(ThisDir, '/data/empty', NullFile).
 
 test(iso_8_11_8, [ condition(null_file(Null)),
 		   setup(open(Null, read, S)),
@@ -227,3 +230,32 @@ test(swi, [ error(domain_error(not_less_than_zero, -300000000000000000)),
 
 
 :- end_tests(length).
+
+:- begin_tests(is_most_general_term).
+
+test(not_callable, fail) :-
+	is_most_general_term(1).
+test(atom, true) :-
+	is_most_general_term(a).
+test(instantiated, fail) :-
+	is_most_general_term(a(1)).
+test(compound, true) :-
+	is_most_general_term(a(_)).
+test(compound, true) :-
+	is_most_general_term(a(_,_)).
+test(shared, fail) :-
+	is_most_general_term(a(X,X)).
+test(compound, fail) :-
+	is_most_general_term(a(_,_,a)).
+test(nil, true) :-
+	is_most_general_term([]).
+test(list, true) :-
+	is_most_general_term([_]).
+test(partial_list, fail) :-
+	is_most_general_term([_|_]).
+test(list, fail) :-
+	is_most_general_term([_,a]).
+test(shared, fail) :-
+	is_most_general_term([_, Y, Y]).
+
+:- end_tests(is_most_general_term).

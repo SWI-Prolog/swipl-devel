@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2016, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,7 @@
 */
 
 #include "pl-incl.h"
+#include "pl-arith.h"
 #include "pl-dict.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
@@ -338,7 +340,7 @@ unquoted_atom(atom_t a)
 
 static bool
 Putc(int c, IOSTREAM *s)
-{ return Sputcode(c, s) == EOF ? FALSE : TRUE;
+{ return Sputcode(c, s) != EOF;
 }
 
 
@@ -813,7 +815,9 @@ static int
 writeString(term_t t, write_options *options)
 { GET_LD
   PL_chars_t txt;
+  int rc = TRUE;
 
+  PL_STRINGS_MARK();
   PL_get_text(t, &txt, CVT_STRING);
 
   if ( true(options, PL_WRT_QUOTED) )
@@ -825,26 +829,33 @@ writeString(term_t t, write_options *options)
     else
       quote = '"';
 
-    TRY(Putc(quote, options->out));
+    if ( !(rc=Putc(quote, options->out)) )
+      goto out;
 
     for(i=0; i<txt.length; i++)
     { int chr = get_chr_from_text(&txt, i);
 
-      TRY(putQuoted(chr, quote, options->flags, options->out));
+      if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	goto out;
     }
 
-    return Putc(quote, options->out);
+    rc = Putc(quote, options->out);
   } else
   { unsigned int i;
 
     for(i=0; i<txt.length; i++)
     { int chr = get_chr_from_text(&txt, i);
 
-      TRY(Putc(chr, options->out));
+      if ( !(rc=Putc(chr, options->out)) )
+	break;
     }
   }
+  PL_STRINGS_RELEASE();
 
-  succeed;
+out:
+  PL_free_text(&txt);
+
+  return rc;
 }
 
 #endif /*O_STRING*/
@@ -1084,10 +1095,43 @@ format_float(double f, char *buf)
   return buf;
 }
 
+#ifdef O_GMP
+static int
+writeMPZ(mpz_t mpz, write_options *options ARG_LD)
+{ char tmp[1024];
+  char *buf;
+  size_t sz = mpz_sizeinbase(mpz, 10) + 2;
+  int rc;
+
+  if ( sz <= sizeof(tmp) )
+    buf = tmp;
+  else
+    buf = PL_malloc(sz);
+
+  /* mpz_get_str() can perform large intermediate allocations */
+  EXCEPTION_GUARDED({ LD->gmp.persistent++;
+		      mpz_get_str(buf, 10, mpz);
+		      LD->gmp.persistent--;
+		    },
+		    { LD->gmp.persistent--;
+		      rc = PL_rethrow();
+		    })
+  rc = PutToken(buf, options->out);
+  if ( buf != tmp )
+    PL_free(buf);
+
+  return rc;
+}
+#endif
 
 static int
 WriteNumber(Number n, write_options *options)
-{ switch(n->type)
+{
+#ifdef O_GMP
+  GET_LD
+#endif
+
+  switch(n->type)
   { case V_INTEGER:
     { char buf[32];
 
@@ -1096,30 +1140,17 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-    { GET_LD
-      char tmp[1024];
-      char *buf;
-      size_t sz = mpz_sizeinbase(n->value.mpz, 10) + 2;
-      bool rc;
+      return writeMPZ(n->value.mpz, options PASS_LD);
+    case V_MPQ:
+    { mpz_t num, den;			/* num/den */
+      char sep = true(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
 
-      if ( sz <= sizeof(tmp) )
-	buf = tmp;
-      else
-	buf = PL_malloc(sz);
-
-      /* mpz_get_str() can perform large intermediate allocations :-( */
-      EXCEPTION_GUARDED({ LD->gmp.persistent++;
-			  mpz_get_str(buf, 10, n->value.mpz);
-			  LD->gmp.persistent--;
-			},
-			{ LD->gmp.persistent--;
-			  rc = PL_rethrow();
-			})
-      rc = PutToken(buf, options->out);
-      if ( buf != tmp )
-	PL_free(buf);
-
-      return rc;
+      num[0] = *mpq_numref(n->value.mpq);
+      den[0] = *mpq_denref(n->value.mpq);
+      return ( writeMPZ(num, options PASS_LD) &&
+	       Sputcode(sep, options->out) != EOF &&
+	       (options->out->lastc = EOF) &&
+	       writeMPZ(den, options PASS_LD) );
     }
 #endif
     case V_FLOAT:
@@ -1346,7 +1377,7 @@ writeList(term_t list, write_options *options)
   term_t head = PL_new_term_ref();
   term_t l    = PL_copy_term_ref(list);
 
-  if ( false(options, PL_WRT_DOTLISTS) )
+  if ( false(options, PL_WRT_DOTLISTS|PL_WRT_NO_LISTS) )
   { TRY(Putc('[', options->out));
     for(;;)
     { PL_get_list(l, head, l);
@@ -1371,8 +1402,15 @@ writeList(term_t list, write_options *options)
 
     for(;;)
     { PL_get_list(l, head, l);
-      if ( !PutToken(".", options->out) ||
-	   !Putc('(', options->out) ||
+      if ( true(options, PL_WRT_DOTLISTS) )
+      { if ( !PutToken(".", options->out) )
+	  return FALSE;
+      } else
+      { if ( !writeAtom(ATOM_dot, options) )
+	  return FALSE;
+      }
+
+      if ( !Putc('(', options->out) ||
 	   !writeArgTerm(head, 999, options, TRUE) ||
 	   !PutComma(options) )
 	return FALSE;
@@ -1819,6 +1857,7 @@ static const opt_spec write_term_options[] =
   { ATOM_variable_names,    OPT_TERM },
   { ATOM_nl,		    OPT_BOOL },
   { ATOM_fullstop,	    OPT_BOOL },
+  { ATOM_no_lists,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
 
@@ -1842,6 +1881,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool cycles     = TRUE;
   bool nl         = FALSE;
   bool fullstop   = FALSE;
+  bool no_lists   = FALSE;
   term_t varnames = 0;
   int local_varnames;
   IOSTREAM *s = NULL;
@@ -1856,7 +1896,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
-		     &blobs, &cycles, &varnames, &nl, &fullstop) )
+		     &blobs, &cycles, &varnames, &nl, &fullstop,
+		     &no_lists) )
     fail;
 
   if ( attr == ATOM_nil )
@@ -1901,6 +1942,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
+  if ( true(options.module, RAT_NATURAL) )
+    options.flags |= PL_WRT_RAT_NATURAL;
   if ( gportray )
   { options.portray_goal = gportray;
     if ( !put_write_options(opts, &options) ||
@@ -1919,6 +1962,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )    options.flags |= PL_WRT_PORTRAY;
   if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
+  if ( no_lists )   options.flags |= PL_WRT_NO_LISTS;
   if ( bq )
   { unsigned int flags = 0;
 

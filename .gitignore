@@ -146,6 +146,7 @@ doc-version
 .doc-action
 pl-doc-*.tar.gz
 *.manifest
+!src/swipl.manifest
 config.dat
 call_vcvars.cmd
 src/reqs64.cab
@@ -154,3 +155,16 @@ src/reqs32.cab
 ReleaseNotes
 build-ppa-tmp
 scripts/upload
+
+# snapcraft
+parts/
+prime/
+stage/
+*.snap
+
+# Snapcraft global state tracking data(automatically generated)
+# https://forum.snapcraft.io/t/location-to-save-global-state/768
+/snap/.snapcraft/
+
+# Source archive packed by `snapcraft cleanbuild` before pushing to the LXD container
+/*_source.tar.bz2

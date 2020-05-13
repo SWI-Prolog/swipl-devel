@@ -40,9 +40,10 @@
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
-:- use_module(library(prolog_clause)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[existence_error/2]).
+:- autoload(library(lists),[nth1/3]).
+:- autoload(library(prolog_clause),[clause_info/4,clause_name/2]).
 
 
 /** <module> Manage Prolog break-points
@@ -58,11 +59,6 @@ to intercept these message terms:
 Note that the hook must fail  after   creating  its side-effects to give
 other hooks the opportunity to react.
 */
-
-:- dynamic
-    user:prolog_event_hook/1.
-:- multifile
-    user:prolog_event_hook/1.
 
 %!  set_breakpoint(+File, +Line, +Char, -Id) is det.
 %!  set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
@@ -215,19 +211,15 @@ stream_line(In, Index, Line0, Line) :-
                  *            FEEDBACK          *
                  *******************************/
 
-%!  user:prolog_event_hook(+Break)
-%
-%   Handle callEventHook() from '$break_at'/3. This  hook is called with
-%   signal handling disabled, i.e., as an _atomic_ action.
+:- initialization
+    prolog_unlisten(break, onbreak),
+    prolog_listen(break, onbreak).
 
-user:prolog_event_hook(break(ClauseRef, PC, Set)) :-
-    break(Set, ClauseRef, PC).
-
-break(exist, ClauseRef, PC) :-
+onbreak(exist, ClauseRef, PC) :-
     known_breakpoint(ClauseRef, PC, _Location, Id),
     !,
     break_message(breakpoint(exist, Id)).
-break(true, ClauseRef, PC) :-
+onbreak(true, ClauseRef, PC) :-
     !,
     debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
     with_mutex('$break', next_break_id(Id)),
@@ -243,11 +235,11 @@ break(true, ClauseRef, PC) :-
     ),
     asserta(known_breakpoint(ClauseRef, PC, Location, Id)),
     break_message(breakpoint(set, Id)).
-break(false, ClauseRef, PC) :-
+onbreak(false, ClauseRef, PC) :-
     debug(break, 'Remove breakpoint from ~p, PC ~d', [ClauseRef, PC]),
     clause(known_breakpoint(ClauseRef, PC, _Location, Id), true, Ref),
     call_cleanup(break_message(breakpoint(delete, Id)), erase(Ref)).
-break(gc, ClauseRef, PC) :-
+onbreak(gc, ClauseRef, PC) :-
     debug(break, 'Remove breakpoint from ~p, PC ~d (due to CGC)',
           [ClauseRef, PC]),
     retractall(known_breakpoint(ClauseRef, PC, _Location, _Id)).

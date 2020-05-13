@@ -1,0 +1,65 @@
+:- import numbervars/1 from num_vars.
+:- import abolish_table_pred/1, get_residual/2 from tables.
+:- compiler_options([spec_off]).
+
+test:- restart,fail.
+test:- show_model(1),fail.
+test:- abolish_table_pred(p5(a)),fail.
+test:- show_model(2),fail.
+test.
+
+restart:- p10(a),fail.
+restart:- p10(b),fail.
+restart.
+
+show_model(_):- writeln('------------------------'),fail.
+show_model(N):- get_residual(p0(a),R),numbervars(R),write(N),write(' : '),write(p0(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p1(a),R),numbervars(R),write(N),write(' : '),write(p1(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p2(a),R),numbervars(R),write(N),write(' : '),write(p2(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p3(a),R),numbervars(R),write(N),write(' : '),write(p3(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p4(a),R),numbervars(R),write(N),write(' : '),write(p4(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p5(a),R),numbervars(R),write(N),write(' : '),write(p5(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p6(a),R),numbervars(R),write(N),write(' : '),write(p6(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p7(a),R),numbervars(R),write(N),write(' : '),write(p7(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p8(a),R),numbervars(R),write(N),write(' : '),write(p8(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p9(a),R),numbervars(R),write(N),write(' : '),write(p9(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p10(a),R),numbervars(R),write(N),write(' : '),write(p10(a)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(undefined,R),numbervars((R)),write(N),write(' : '),write(undefined),write(':-'),writeln(R),fail.
+show_model(_):- writeln(---),fail.
+show_model(N):- get_residual(p0(b),R),numbervars(R),write(N),write(' : '),write(p0(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p1(b),R),numbervars(R),write(N),write(' : '),write(p1(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p2(b),R),numbervars(R),write(N),write(' : '),write(p2(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p3(b),R),numbervars(R),write(N),write(' : '),write(p3(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p4(b),R),numbervars(R),write(N),write(' : '),write(p4(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p5(b),R),numbervars(R),write(N),write(' : '),write(p5(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p6(b),R),numbervars(R),write(N),write(' : '),write(p6(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p7(b),R),numbervars(R),write(N),write(' : '),write(p7(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p8(b),R),numbervars(R),write(N),write(' : '),write(p8(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p9(b),R),numbervars(R),write(N),write(' : '),write(p9(b)),write(':-'),writeln(R),fail.
+show_model(N):- get_residual(p10(b),R),numbervars(R),write(N),write(' : '),write(p10(b)),write(':-'),writeln(R),fail.
+show_model(_).
+
+%-------------
+
+:- table p0/1,p1/1,p2/1,p3/1,p4/1,p5/1,p6/1,p7/1,p8/1,p9/1,p10/1.
+
+p0(X):- p10(X).
+p0(_X):- undefined.
+
+p10(X):- p9(X).
+p9(X):- p8(X).
+p8(X):- p7(X).
+p7(X):- p6(X).
+p6(X):- p5(X).
+p5(X):- p4(X).
+p4(X):- p3(X).
+p3(X):- p2(X).
+p2(X):- p1(X).
+p1(X):- p0(X).
+
+:- if(current_prolog_flag(version_data, swi(_,_,_,_))).
+% SWI: avoid module qualification
+:- table undefined/0.
+
+undefined :- tnot(undefined).
+:- endif.

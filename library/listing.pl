@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2018, University of Amsterdam
+    Copyright (c)  2001-2019, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -42,14 +42,17 @@
           portray_clause/2,             % +Stream, +Clause
           portray_clause/3              % +Stream, +Clause, +Options
         ]).
-:- use_module(library(lists)).
-:- use_module(library(settings)).
-:- use_module(library(option)).
-:- use_module(library(error)).
-:- use_module(library(debug)).
-:- use_module(library(ansi_term)).
-:- use_module(library(prolog_clause)).
-:- set_prolog_flag(generate_debug_info, false).
+:- use_module(library(settings),[setting/4,setting/2]).
+
+:- autoload(library(ansi_term),[ansi_format/3]).
+:- autoload(library(apply),[foldl/4]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[instantiation_error/1,must_be/2]).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(option),[option/2,option/3,meta_options/3]).
+:- autoload(library(prolog_clause),[clause_info/5]).
+
+%:- set_prolog_flag(generate_debug_info, false).
 
 :- module_transparent
     listing/0.
@@ -58,7 +61,10 @@
     listing(:, +),
     portray_clause(+,+,:).
 
-:- predicate_options(portray_clause/3, 3, [pass_to(system:write_term/3, 3)]).
+:- predicate_options(portray_clause/3, 3,
+                     [ indent(nonneg),
+                       pass_to(system:write_term/3, 3)
+                     ]).
 
 :- multifile
     prolog:locate_clauses/2.        % +Spec, -ClauseRefList
@@ -289,6 +295,24 @@ decl(volatile,     volatile).
 decl(multifile,    multifile).
 decl(public,       public).
 
+%!  declaration(:Head, +Module, -Decl) is nondet.
+%
+%   True when the directive Decl (without  :-/1)   needs  to  be used to
+%   restore the state of the predicate Head.
+%
+%   @tbd Answer subsumption, dynamic/2 to   deal  with `incremental` and
+%   abstract(Depth)
+
+declaration(Pred, Source, Decl) :-
+    predicate_property(Pred, tabled),
+    Pred = M:Head,
+    (   M:'$table_mode'(Head, Head, _)
+    ->  decl_term(Pred, Source, Funct),
+        table_options(Pred, Funct, TableDecl),
+        Decl = table(TableDecl)
+    ;   comment('% tabled using answer subsumption~n', []),
+        fail                                    % TBD
+    ).
 declaration(Pred, Source, Decl) :-
     decl(Prop, Declname),
     predicate_property(Pred, Prop),
@@ -328,6 +352,13 @@ implies_transparent(:).
 implies_transparent(//).
 implies_transparent(^).
 
+table_options(Pred, Decl0, as(Decl0, Options)) :-
+    findall(Flag, predicate_property(Pred, tabled(Flag)), [F0|Flags]),
+    !,
+    foldl(table_option, Flags, F0, Options).
+table_options(_, Decl, Decl).
+
+table_option(Flag, X, (Flag,X)).
 
 list_declarations(Pred, Source) :-
     findall(Decl, declaration(Pred, Source, Decl), Decls),
@@ -400,7 +431,7 @@ unify_head(_, _, _).
 bind_vars([]) :-
     !.
 bind_vars([Name = Var|T]) :-
-    Var = '$VAR'(Name),
+    ignore(Var = '$VAR'(Name)),
     bind_vars(T).
 
 %!  name_other_vars(+Term, +Bindings) is det.
@@ -597,16 +628,22 @@ is_meta(portray_goal).
 do_portray_clause(Out, Var, Options) :-
     var(Var),
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     pprint(Out, Var, 1200, Options).
 do_portray_clause(Out, (Head :- true), Options) :-
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     pprint(Out, Head, 1200, Options),
     full_stop(Out).
 do_portray_clause(Out, Term, Options) :-
     clause_term(Term, Head, Neck, Body),
     !,
-    inc_indent(0, 1, Indent),
+    option(indent(LeftMargin), Options, 0),
+    inc_indent(LeftMargin, 1, Indent),
     infix_op(Neck, RightPri, LeftPri),
+    indent(Out, LeftMargin),
     pprint(Out, Head, LeftPri, Options),
     format(Out, ' ~w', [Neck]),
     (   nonvar(Body),
@@ -621,29 +658,35 @@ do_portray_clause(Out, Term, Options) :-
         portray_body(LocalBody, BodyIndent, noindent, 1200, Out, Options),
         nlindent(Out, Indent),
         write(Out, ')')
-    ;   setting(listing:body_indentation, BodyIndent),
+    ;   setting(listing:body_indentation, BodyIndent0),
+        BodyIndent is LeftMargin+BodyIndent0,
         portray_body(Body, BodyIndent, indent, RightPri, Out, Options)
     ),
     full_stop(Out).
-do_portray_clause(Out, (:-use_module(File, Imports)), Options) :-
-    length(Imports, Len),
-    Len > 3,
+do_portray_clause(Out, (:-Directive), Options) :-
+    wrapped_list_directive(Directive),
     !,
-    format(Out, ':- use_module(~q,', [File]),
-    portray_list(Imports, 14, Out, Options),
-    write(Out, ').\n').
-do_portray_clause(Out, (:-module(Module, Exports)), Options) :-
-    !,
-    format(Out, ':- module(~q,', [Module]),
-    portray_list(Exports, 10, Out, Options),
+    Directive =.. [Name, Arg, List],
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
+    format(Out, ':- ~q(', [Name]),
+    line_position(Out, Indent),
+    format(Out, '~q,', [Arg]),
+    nlindent(Out, Indent),
+    portray_list(List, Indent, Out, Options),
     write(Out, ').\n').
 do_portray_clause(Out, (:-Directive), Options) :-
     !,
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
     write(Out, ':- '),
-    portray_body(Directive, 3, noindent, 1199, Out, Options),
+    DIndent is LeftMargin+3,
+    portray_body(Directive, DIndent, noindent, 1199, Out, Options),
     full_stop(Out).
 do_portray_clause(Out, Fact, Options) :-
-    portray_body(Fact, 0, noindent, 1200, Out, Options),
+    option(indent(LeftMargin), Options, 0),
+    indent(Out, LeftMargin),
+    portray_body(Fact, LeftMargin, noindent, 1200, Out, Options),
     full_stop(Out).
 
 clause_term((Head:-Body), Head, :-, Body).
@@ -653,6 +696,9 @@ full_stop(Out) :-
     '$put_token'(Out, '.'),
     nl(Out).
 
+wrapped_list_directive(module(_,_)).
+%wrapped_list_directive(use_module(_,_)).
+%wrapped_list_directive(autoload(_,_)).
 
 %!  portray_body(+Term, +Indent, +DoIndent, +Priority, +Out, +Options)
 %
@@ -910,7 +956,6 @@ portray_list([], _, Out, _) :-
     !,
     write(Out, []).
 portray_list(List, Indent, Out, Options) :-
-    nlindent(Out, Indent),
     write(Out, '[ '),
     EIndent is Indent + 2,
     portray_list_elements(List, EIndent, Out, Options),
@@ -1057,6 +1102,9 @@ listing_write_options(Pri,
 
 nlindent(Out, N) :-
     nl(Out),
+    indent(Out, N).
+
+indent(Out, N) :-
     setting(listing:tab_distance, D),
     (   D =:= 0
     ->  tab(Out, N)

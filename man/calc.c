@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <SWI-Prolog.h>
 
 #define MAXLINE 1024

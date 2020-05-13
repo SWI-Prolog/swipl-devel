@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2013, University of Amsterdam
+    Copyright (c)  1985-2019, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
 #include "pl-prof.h"
 
 #undef LD
@@ -76,12 +78,11 @@ typedef struct call_node
 } call_node;
 
 static void	freeProfileData(void);
-static void	collectSiblingsTime(void);
+static void	collectSiblingsTime(ARG1_LD);
 
 int
 activateProfiler(prof_status active ARG_LD)
-{
-  int i;
+{ int i;
   PL_local_data_t *profiling;
 
   PL_LOCK(L_THREAD);
@@ -374,8 +375,8 @@ Prolog query API:
 $prof_sibling_of(?Child, ?Parent)
 	Generate hierachy.  If Parent is '-', generate the roots
 
-$prof_node(+Node, -Pred, -Calls, -Redos, -Exits, -TickFraction)
-
+$prof_node(+Node, -Pred, -Calls, -Redos, -Exits,
+	   -Recursive, -Ticks, -SiblingTicks)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -456,7 +457,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
 
 static int
 identify_def(term_t t, void *handle)
-{ return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY);
+{ return unify_definition(MODULE_user, t, handle, 0, GP_QUALIFY|GP_NAMEARITY);
 }
 
 
@@ -473,22 +474,22 @@ unify_node_id(term_t t, call_node *n)
 
 
 static
-PRED_IMPL("$prof_node", 7, prof_node, 0)
+PRED_IMPL("$prof_node", 8, prof_node, 0)
 { PRED_LD
   call_node *n = NULL;
 
   if ( !get_node(A1, &n PASS_LD) )
-    fail;
+    return FALSE;
 
-  if ( unify_node_id(A2, n) &&
-       PL_unify_integer(A3, n->calls) &&
-       PL_unify_integer(A4, n->redos) &&
-       PL_unify_integer(A5, n->exits) &&
-       PL_unify_integer(A6, n->recur) &&
-       PL_unify_integer(A7, n->ticks) )
-    succeed;
+  collectSiblingsTime(PASS_LD1);
 
-  fail;
+  return ( unify_node_id(A2, n) &&
+	   PL_unify_integer(A3, n->calls) &&
+	   PL_unify_integer(A4, n->redos) &&
+	   PL_unify_integer(A5, n->exits) &&
+	   PL_unify_integer(A6, n->recur) &&
+	   PL_unify_integer(A7, n->ticks) &&
+	   PL_unify_integer(A8, n->sibling_ticks) );
 }
 
 
@@ -497,10 +498,12 @@ PRED_IMPL("$prof_node", 7, prof_node, 0)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-prof_procedure_data(+Head,
+prof_procedure_data(+PredicateIndicator,
 		    -TimeSelf, -TimeSiblings, -Parents, -Siblings)
-    Where Parents  = list_of(reference(Head, Calls, Redos))
-      And Siblings = list_of(reference(Head, Calls, Redos))
+    Where Parents  = list_of(Relative)
+      And Siblings = list_of(Relative)
+      and Relative = node(Pred, CycleID, Ticks, SiblingTicks,
+			  Calls, Redos, Exits)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct prof_ref
@@ -512,6 +515,7 @@ typedef struct prof_ref
   uintptr_t sibling_ticks;
   uintptr_t calls;			/* calls to/from this predicate */
   uintptr_t redos;			/* redos to/from this predicate */
+  uintptr_t exits;			/* exits to/from this predicate */
 } prof_ref;
 
 
@@ -521,6 +525,7 @@ typedef struct
   uintptr_t sibling_ticks;
   uintptr_t calls;
   uintptr_t redos;
+  uintptr_t exits;
   uintptr_t recur;
   prof_ref *callers;
   prof_ref *callees;
@@ -551,11 +556,13 @@ add_parent_ref(node_sum *sum,
 
   sum->calls += self->calls;
   sum->redos += self->redos;
+  sum->exits += self->exits;
 
   for(r=sum->callers; r; r=r->next)
   { if ( r->handle == handle && r->cycle == cycle )
     { r->calls += self->calls;
       r->redos += self->redos;
+      r->exits += self->exits;
       r->ticks += self->ticks;
       r->sibling_ticks += self->sibling_ticks;
 
@@ -566,6 +573,7 @@ add_parent_ref(node_sum *sum,
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = self->calls;
   r->redos = self->redos;
+  r->exits = self->exits;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
   r->handle = handle;
@@ -606,6 +614,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   { if ( r->handle == sibling->handle && r->cycle == cycle )
     { r->calls += sibling->calls;
       r->redos += sibling->redos;
+      r->exits += sibling->exits;
       r->ticks += sibling->ticks;
       r->sibling_ticks += sibling->sibling_ticks;
 
@@ -616,6 +625,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = sibling->calls;
   r->redos = sibling->redos;
+  r->exits = sibling->exits;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
   r->handle = sibling->handle;
@@ -667,10 +677,10 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
-  static functor_t FUNCTOR_node6;
+  static functor_t FUNCTOR_node7;
 
-  if ( !FUNCTOR_node6 )
-    FUNCTOR_node6 = PL_new_functor(PL_new_atom("node"), 6);
+  if ( !FUNCTOR_node7 )
+    FUNCTOR_node7 = PL_new_functor(PL_new_atom("node"), 7);
 
   for( ; r; r=r->next)
   { int rc;
@@ -687,13 +697,14 @@ unify_relatives(term_t list, prof_ref *r ARG_LD)
       rc=(*r->type->unify)(tmp, r->handle);
 
     if ( !rc ||
-	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node6,
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node7,
 			PL_TERM, tmp,
 			PL_INT,  r->cycle,
 			PL_LONG, r->ticks,
 			PL_LONG, r->sibling_ticks,
 			PL_LONG, r->calls,
-			PL_LONG, r->redos) )
+			PL_LONG, r->redos,
+		        PL_LONG, r->exits) )
       fail;
   }
 
@@ -705,7 +716,7 @@ static int
 get_def(term_t t, void **handle)
 { Procedure proc;
 
-  if ( get_procedure(t, &proc, 0, GP_FIND) )
+  if ( get_procedure(t, &proc, 0, GP_FIND|GP_NAMEARITY) )
   { *handle = proc->definition;
     succeed;
   }
@@ -735,16 +746,15 @@ get_handle(term_t t, void **handle)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-$prof_procedure_data(+Procedure,
+$prof_procedure_data(+PredicateIndicator,
 		     -Ticks, -TicksSiblings,
-		     -Calls, -Redos,
+		     -Calls, -Redos, -Exits,
 		     -Callers, -Callees)
-
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static
-PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
   void *handle;
   node_sum sum;
@@ -755,7 +765,7 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
   if ( !get_handle(A1, &handle) )
     fail;
 
-  collectSiblingsTime();
+  collectSiblingsTime(PASS_LD1);
   memset(&sum, 0, sizeof(sum));
   for(n=LD->profile.roots; n; n=n->next)
     count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
@@ -767,8 +777,9 @@ PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_integer(A3, sum.sibling_ticks) &&
 	 PL_unify_integer(A4, sum.calls) &&
 	 PL_unify_integer(A5, sum.redos) &&
-	 unify_relatives(A6, sum.callers PASS_LD) &&
-	 unify_relatives(A7, sum.callees PASS_LD)
+	 PL_unify_integer(A6, sum.exits) &&
+	 unify_relatives(A7, sum.callers PASS_LD) &&
+	 unify_relatives(A8, sum.callees PASS_LD)
        );
 
   free_relatives(sum.callers);
@@ -805,10 +816,69 @@ PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 		 *	       RESET		*
 		 *******************************/
 
+static QueryFrame
+prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
+{ if ( fr == NULL )
+    return NULL;
+
+  for(;;)
+  { if ( true(fr, FR_MARKED) )
+      return NULL;
+    set(fr, FR_MARKED);
+    ld->gc._local_frames++;
+
+    fr->prof_node = NULL;
+
+    if ( fr->parent )
+      fr = fr->parent;
+    else				/* Prolog --> C --> Prolog calls */
+      return queryOfFrame(fr);
+  }
+}
+
+
+static void
+prof_clear_choicepoints(PL_local_data_t *ld, Choice ch)
+{ for( ; ch; ch = ch->parent )
+  { ld->gc._choice_count++;
+    prof_clear_environments(ld, ch->frame);
+  }
+}
+
+
+static void
+prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+{ QueryFrame qf;
+
+  while(fr)
+  { qf = prof_clear_environments(ld, fr);
+    assert(qf->magic == QID_MAGIC);
+    prof_clear_choicepoints(ld, ch);
+    if ( qf->parent )
+    { QueryFrame pqf = qf->parent;
+
+      if ( !(fr = pqf->registers.fr) )
+	fr = qf->saved_environment;
+      ch = qf->saved_bfr;
+    } else
+      break;
+  }
+}
+
+
 bool
 resetProfiler(void)
 { GET_LD
   stopProfiler();
+
+  assert(LD->gc._local_frames == 0);
+  assert(LD->gc._choice_count == 0);
+
+  prof_clear_stacks(LD, environment_frame, LD->choicepoints);
+  unmark_stacks(LD, environment_frame, LD->choicepoints, FR_MARKED);
+
+  assert(LD->gc._local_frames == 0);
+  assert(LD->gc._choice_count == 0);
 
   freeProfileData();
   LD->profile.samples          = 0;
@@ -851,16 +921,16 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This function is responsible for collection the profiling statistics  at
-run time.  It is called by the UNIX interval timer on each clock tick of
-the  machine  (every  20  milli seconds).  If profiling is plain we just
-increment the profiling tick of the procedure on top of the stack.   For
-cumulative  profiling  we  have  to  scan the entire local stack.  As we
-don't want to increment each invokation of recursive  functions  on  the
-stack  we  maintain a flag on each function.  This flag is set the first
-time the function is found on the stack.  If is is found set the profile
-counter will not be incremented.  We do a second pass over the frames to
-clear the flags again.
+This function is responsible for collection  the profiling statistics at
+run time. It is called from a  dedicated profiler thread that by default
+triggers this function every 5ms.  First, this calls thread_prof_ticks()
+to determine the number of  ms  the   relevant  clock  (CPU or wall) has
+progressed and then calls this function with `count` set to the relevant
+clock increment, i.e., count is a number in the range 0..5.
+
+This function just ticks the leaf node   in  the dynamic call graph. The
+function collectSiblingsTime() propagates these   upward when collecting
+statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -886,8 +956,37 @@ profile(intptr_t count, PL_local_data_t *__PL_ld)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 profCall(Definition handle)
-    Make a call from the current node to handle.
+
+A call was made from the  current  node   to  handle.  This  builds up a
+dynamic call tree. THe tree is constructed as follows:
+
+  - If there is no current node
+    - If the root-set contains a node for `handle`, use it
+    - Else create a new root node.
+  - If the current node has the same handle, increment `node->recur`
+  - If somewhere in the parent chain we find the same parent-child
+    transition, we tick this node and return it.  For example, given
+    p->q->r->p, a call to q returns the q parent node and increments
+    it recursion count.
+    JW: This seems wrong
+	- It breaks the propagation of self-ticks in the tree.
+	- I think the second `p` also creates a second cycle.
+  - If the current node has a sibling with `handle`, return it.
+  - Else, add a new sibling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_DEBUG
+static char *
+node_name(call_node *n)
+{ static char buf[100];
+
+  if ( n->type == &prof_default_type )
+    return predicateName(n->handle);
+
+  Ssprintf(buf, "%p", n->handle);
+  return buf;
+}
+#endif
 
 static call_node *
 prof_call(void *handle, PL_prof_type_t *type ARG_LD)
@@ -901,7 +1000,7 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       { node->calls++;
 	LD->profile.current = node;
 	DEBUG(MSG_PROF_CALLTREE,
-	      Sdprintf("existing root %p\n", LD->profile.current));
+	      Sdprintf("Call: existing root %s\n", node_name(node)));
 
 	LD->profile.accounting = FALSE;
 	return node;
@@ -920,7 +1019,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
     LD->profile.roots = node;
     LD->profile.current = node;
     LD->profile.accounting = FALSE;
-    DEBUG(MSG_PROF_CALLTREE, Sdprintf("new root %p\n", node));
+    DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Call: new root %s\n", node_name(node)));
 
     return node;
   }
@@ -928,10 +1028,11 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 					/* straight recursion */
   if ( node->handle == handle )
   { node->recur++;
-    DEBUG(MSG_PROF_CALLTREE, Sdprintf("direct recursion\n"));
+    DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Call: direct recursion on %s\n", node_name(node)));
     LD->profile.accounting = FALSE;
     return node;
-  } else				/* from same parent */
+  } else				/* from some parent */
   { void *parent = node->handle;
 
     for(node=node->parent; node; node = node->parent)
@@ -941,19 +1042,20 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
       { node->recur++;
 
 	LD->profile.current = node;
-	DEBUG(MSG_PROF_CALLTREE, Sdprintf("indirect recursion\n"));
+	DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("Call: indirect recursion on %s\n", node_name(node)));
 	LD->profile.accounting = FALSE;
 	return node;
       }
     }
   }
 
-
   for(node=LD->profile.current->siblings; node; node=node->next)
   { if ( node->handle == handle )
     { LD->profile.current = node;
       node->calls++;
-      DEBUG(MSG_PROF_CALLTREE, Sdprintf("existing child\n"));
+      DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Call: existing child %s\n", node_name(node)));
       LD->profile.accounting = FALSE;
       return node;
     }
@@ -970,7 +1072,8 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
   node->next = LD->profile.current->siblings;
   LD->profile.current->siblings = node;
   LD->profile.current = node;
-  DEBUG(MSG_PROF_CALLTREE, Sdprintf("new child\n"));
+  DEBUG(MSG_PROF_CALLTREE,
+	Sdprintf("Call: new child %s\n", node_name(node)));
   LD->profile.accounting = FALSE;
 
   return node;
@@ -1005,7 +1108,9 @@ profResumeParent(struct call_node *node ARG_LD)
 
   LD->profile.accounting = TRUE;
   for(n=LD->profile.current; n && n != node; n=n->parent)
-  { n->exits++;
+  { DEBUG(MSG_PROF_CALLTREE,
+	  Sdprintf("Exit: %s\n", node_name(n)));
+    n->exits++;
   }
   LD->profile.accounting = FALSE;
 
@@ -1028,7 +1133,23 @@ profRedo(struct call_node *node ARG_LD)
     return;
 
   if ( node )
-  { node->redos++;
+  { if ( LD->profile.current )
+    { struct call_node *n;
+
+      DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Redo: on %s; current is %s\n",
+		     node_name(node), node_name(LD->profile.current) ));
+
+      for(n=node; n && n != LD->profile.current; n = n->parent)
+      { DEBUG(MSG_PROF_CALLTREE,
+	      Sdprintf("Redo: %s\n", node_name(n)));
+	n->redos++;
+      }
+    } else
+    { DEBUG(MSG_PROF_CALLTREE,
+	    Sdprintf("Redo: %s\n", node_name(node)));
+      node->redos++;
+    }
   }
   LD->profile.current = node;
 }
@@ -1101,10 +1222,8 @@ collectSiblingsNode(call_node *n)
 
 
 static void
-collectSiblingsTime(void)
-{ GET_LD
-
-  if ( !LD->profile.sum_ok )
+collectSiblingsTime(ARG1_LD)
+{ if ( !LD->profile.sum_ok )
   { call_node *n;
 
     for(n=LD->profile.roots; n; n=n->next)
@@ -1172,8 +1291,8 @@ PRED_IMPL("reset_profiler", 0, reset_profiler, 0)
 }
 
 static
-PRED_IMPL("$prof_node", 7, prof_node, 0)
-{ return notImplemented("profile_node", 7);
+PRED_IMPL("$prof_node", 8, prof_node, 0)
+{ return notImplemented("profile_node", 8);
 }
 
 static
@@ -1187,8 +1306,8 @@ PRED_IMPL("$profile", 2, profile, PL_FA_TRANSPARENT)
 }
 
 static
-PRED_IMPL("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
-{ return notImplemented("$prof_procedure_data", 7);
+PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
+{ return notImplemented("$prof_procedure_data", 8);
 }
 
 static
@@ -1240,9 +1359,9 @@ BeginPredDefs(profile)
   PRED_DEF("$profile", 2, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
-  PRED_DEF("$prof_node", 7, prof_node, 0)
+  PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$prof_procedure_data", 7, prof_procedure_data, PL_FA_TRANSPARENT)
+  PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   PRED_DEF("$prof_statistics", 5, prof_statistics, 0)
 #ifdef O_PROF_PENTIUM
   PRED_DEF("show_pentium_profile", 0, show_pentium_profile, 0)

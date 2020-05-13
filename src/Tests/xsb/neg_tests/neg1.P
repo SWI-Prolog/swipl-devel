@@ -1,0 +1,12 @@
+:- table p/0, q/0, p/1, q/1.
+
+test :-
+	( p -> writeln('p is true') ; writeln('p is false') ),
+	( p(0) -> writeln('p(0) is true') ; writeln('p(0) is false') ),
+	( p(1) -> writeln('p(1) is true') ; writeln('p(1) is false') ).
+
+p :- tnot(q).
+q.
+
+p(X) :- tnot(q(X)).
+q(1).

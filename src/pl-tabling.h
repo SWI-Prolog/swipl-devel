@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016, VU University Amsterdam
+    Copyright (c)  2016-2020, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,7 +42,9 @@ typedef enum
   CLUSTER_SUSPENSIONS
 } cluster_type;
 
+#define DELAY_MAGIC	0x67e9124d
 #define WORKLIST_MAGIC	0x67e9124e
+#define COMPONENT_MAGIC	0x67e9124f
 
 
 		 /*******************************
@@ -52,10 +55,34 @@ typedef struct worklist_set
 { buffer members;
 } worklist_set;
 
+typedef struct component_set
+{ buffer members;
+} component_set;
+
+typedef enum
+{ SCC_ACTIVE=0,
+  SCC_MERGED,
+  SCC_COMPLETED
+} scc_status;
+
+typedef enum
+{ SCC_NEG_NONE=0,				/* no negative nodes */
+  SCC_NEG_DELAY,
+  SCC_NEG_SIMPLIFY
+} scc_neg_status;
+
 typedef struct tbl_component
-{ struct tbl_component *parent;
-  struct worklist_set *worklist;		/* Worklist of current query */
-  struct worklist_set *created_worklists;	/* Worklists created */
+{ int			magic;			/* COMPONENT_MAGIC */
+  scc_status	        status;			/* SCC_* */
+  scc_neg_status	neg_status;		/* SCC_NEG_* */
+  size_t		simplifications;        /* # simplifications */
+  struct tbl_component *parent;
+  component_set        *children;		/* Child components */
+  component_set        *merged;			/* Child components */
+  worklist_set         *worklist;		/* Worklist of current query */
+  worklist_set         *created_worklists;	/* Worklists created */
+  worklist_set	       *delay_worklists;	/* Worklists in need for delays */
+  trie		       *leader;			/* Leading variant */
 } tbl_component;
 
 
@@ -74,15 +101,135 @@ typedef struct worklist
 { cluster      *head;			/* answer and dependency clusters */
   cluster      *tail;
   cluster      *riac;			/* rightmost inner answer cluster */
+  cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
+  unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
+  unsigned	negative : 1;		/* this is a suspended negation */
+  unsigned	neg_delayed : 1;	/* Negative node was delayed */
+  unsigned	has_answers : 1;	/* At least one unconditional answer */
+  unsigned	answer_completed : 1;	/* Is answer completed */
+  unsigned	depend_abolish : 1;	/* Scheduled for depending abolish */
+  size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */
-  trie	       *table;			/* table I belong to */
+  trie	       *table;			/* My answer table */
+  Definition	predicate;		/* Predicate we are associated with */
+
+  buffer	delays;			/* Delayed answers */
+  buffer	pos_undefined;		/* Positive undefined */
 } worklist;
 
 
-COMMON(void) clearThreadTablingData(PL_local_data_t *ld);
+		 /*******************************
+		 *	    DELAY LISTS		*
+		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A `delay_list` represents a conjunction of conditions. Each condition is
+either a negative literal <~L> or  a   positive  literal  with an answer
+<L,A>.
+
+Delay lists are associated with an answer. An   answer can have a set of
+delay lists (`delay_list_set`) and are combined in a `delay_info` struct
+that provides information  about  the  variant   for  which  this  is  a
+condition.
+
+A `worklist` points at  the  delay  list   elements  for  which  it is a
+condition. After resolving a worklist (answer  for positive literals) we
+should go over the places where  its   associated  variant  is used as a
+condition and
+
+  - Delete the condition from the delay list if the condition is
+    satified. If all conditions are satified propagate using the
+    resolved answer.
+  - Delete the answer from the answer trie and propage that.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct delay_usage
+{ buffer	     answers;		/* trie_node * to conditional answers */
+} delay_usage;
+
+typedef struct delay
+{ trie	            *variant;		/* Answer trie */
+  trie_node         *answer;		/* Answer in there (NULL for negative) */
+} delay;
+
+typedef struct delay_set
+{ unsigned	     offset;		/* offset in delays */
+  unsigned	     size;		/* size of the conjunction */
+  unsigned	     active;		/* active members of conjunction */
+} delay_set;
+
+typedef struct delay_info
+{ trie_node      *variant;		/* Variant trie node */
+  unsigned	  has_share_records;	/* We have variable sharing records */
+  buffer          delay_sets;		/* The disjunctive conditions */
+  buffer	  delays;		/* Store for the delays */
+} delay_info;
+
+
+		 /*******************************
+		 *	       IDG		*
+		 *******************************/
+
+typedef struct idg_node
+{ Table		affected;		/* parent nodes */
+  Table		dependent;		/* childs */
+  trie	       *atrie;			/* answer trie */
+  size_t	answer_count;		/* #answers in previous complete state */
+  unsigned	new_answer : 1;		/* Update generated a new answer */
+  unsigned	reevaluating : 1;	/* currently re-evaluating */
+  unsigned	aborted : 1;		/* re-evaluation was aborted */
+  int		falsecount;		/* Invalidate count */
+#ifdef O_TRIE_STATS
+  struct
+  { uint64_t	invalidated;		/* # times it was invalidated */
+    uint64_t	reevaluated;		/* # times it was re-evaluated */
+  } stats;
+#endif
+} idg_node;
+
+
+typedef struct trie_array
+{ trie **blocks[MAX_BLOCKS];
+  trie *preallocated[7];
+} trie_array;
+
+
+		 /*******************************
+		 *     PREDICATE PROPERTIES	*
+		 *******************************/
+
+typedef struct table_props
+{ size_t abstract;			/* IDG abstraction */
+  size_t subgoal_abstract;		/* Subgoal abstraction */
+  size_t answer_abstract;		/* Answer abstraction */
+  size_t max_answers;			/* Answer count limit */
+} table_props;
+
+
+		 /*******************************
+		 *	     PROTOTYPES		*
+		 *******************************/
+
+COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
+COMMON(term_t)	init_delay_list(void);
+COMMON(void)	tbl_push_delay(atom_t atrie, Word wrapper,
+			       trie_node *answer ARG_LD);
+COMMON(int)	answer_is_conditional(trie_node *answer);
+COMMON(void)	untable_from_clause(Clause cl);
+COMMON(void)	initTabling(void);
+COMMON(int)	idg_add_dyncall(Definition def, trie *ctrie,
+				term_t variant ARG_LD);
+COMMON(int)	tbl_is_predicate_attribute(atom_t key);
+COMMON(void)	tbl_reset_tabling_attributes(Definition def);
+COMMON(int)	tbl_get_predicate_attribute(Definition def,
+					    atom_t att, size_t *value);
+COMMON(int)	tbl_set_predicate_attribute(Definition def,
+					    atom_t att, size_t value);
+COMMON(int)	tbl_is_restraint_flag(atom_t key);
+COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
+COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
 #endif /*_PL_TABLING_H*/

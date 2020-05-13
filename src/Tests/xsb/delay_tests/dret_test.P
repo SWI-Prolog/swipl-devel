@@ -1,0 +1,41 @@
+:- compiler_options([xpp_on]).
+
+#include "table_inspection_defs.h"
+
+:- import get_call/3, get_returns/3, delete_return/3 from tables.
+
+:- table undefined/2,undefined/1,undefined1/2.
+
+undefined(X,Y):- undefined(X),undefined(Y).
+
+undefined1(X,Y):- tnot(undefined(X)),tnot(undefined(Y)).
+
+undefined(X):- tnot(undefined(X)).
+
+delete_undefined(X):-
+	get_call(undefined(X),Subg_ptr,Temp),
+	get_returns(Subg_ptr,Temp,Leaf),
+	delete_return(Subg_ptr,Leaf,USER_DELETE).
+
+test:- 
+	check_neg_fails,
+	check_pos_unsupported.
+
+check_neg_fails:-	
+	(undefined1(a,b),fail ; true),
+	delete_undefined(a),
+	get_residual(undefined1(a,b),G),
+	writeln(after_first_deletion(undefined1(a,b),G)),
+	delete_undefined(b),
+	get_residual(undefined1(a,b),H),
+	writeln(after_second_deletion(undefined1(a,b),H)).
+
+check_pos_unsupported:-	
+	(undefined(a,b),fail ; true),
+	delete_undefined(a),
+	get_residual(undefined1(a,b),G),
+	write(after_first_deletion(undefined(a,b),G)),
+	delete_undefined(b),
+	get_residual(undefined1(a,b),H),
+	write(after_first_deletion(undefined(a,b),H)).
+

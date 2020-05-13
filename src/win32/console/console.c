@@ -99,8 +99,8 @@ static void initHeapDebug(void);
 #define UNICODE_NOCHAR 0xFFFF
 #endif
 
-#if (_MSC_VER < 1400) && !defined(__MINGW32__)
-typedef DWORD DWORD_PTR;
+#ifdef _MSC_VER
+#pragma warning(disable : 4996)	/* deprecate open() etc */
 #endif
 
 #include <stdlib.h>
@@ -360,8 +360,8 @@ rlc_window_class(HICON icon)
   if ( !winclassname[0] )
   { if ( !GetEnvironmentVariable(_T("PLTERM_CLASS"),
 				 winclassname, sizeof(winclassname)) )
-      snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
-		_T("PlTerm-%d"), instance);
+      _snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+		 _T("PlTerm-%d"), (int)(intptr_t)instance);
 
     wndClass.lpszClassName	= winclassname;
     wndClass.style		= CS_HREDRAW|CS_VREDRAW|CS_DBLCLKS;
@@ -572,8 +572,8 @@ rlc_kill_window_class()
   HINSTANCE instance = _rlc_hinstance;
 
   if ( !winclassname[0] )
-  { snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
-	      _T("Console-hidden-win%d"), instance);
+  { _snwprintf(winclassname, sizeof(winclassname)/sizeof(TCHAR),
+	       _T("Console-hidden-win%d"), (int)(intptr_t)instance);
 
     wndClass.style		= 0;
     wndClass.lpfnWndProc	= (LPVOID) rlc_kill_wnd_proc;

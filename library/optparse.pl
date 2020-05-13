@@ -39,10 +39,13 @@
        opt_help/2       %+OptsSpec, -Help
     ]).
 
-:- use_module(library(apply)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
-:- use_module(library(error)).
+:- autoload(library(apply),[maplist/3]).
+:- autoload(library(debug),[assertion/1]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[member/2,max_list/2,reverse/2,append/3]).
+:- autoload(library(option),[merge_options/3,option/3]).
+
+
 :- set_prolog_flag(double_quotes, codes).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EXPORTS
 

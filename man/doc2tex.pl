@@ -3,8 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, VU University Amsterdam
-			 CWI, Amsterdam
+    Copyright (c)  2018-2020, VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,8 @@
 :- use_module(library(apply)).
 :- use_module(library(lists)).
 :- use_module(library(main)).
+:- use_module(library(uri)).
+:- autoload(library(gui_tracer), [gtrace/0]).
 
 /** <module> .doc to .tex translator
 

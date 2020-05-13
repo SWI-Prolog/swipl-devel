@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2015, VU University Amsterdam
+    Copyright (c)  2005-2020, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,9 +41,9 @@
             size_nb_set/2,              % +Set, -Size
             nb_set_to_list/2            % +Set, -List
           ]).
-:- use_module(library(lists)).
-:- use_module(library(terms)).
-:- use_module(library(apply_macros), []).
+:- autoload(library(lists),[member/2,append/2]).
+:- autoload(library(terms),[term_factorized/3]).
+
 
 /** <module> Non-backtrackable sets
 
@@ -134,10 +135,12 @@ rehash(Set) :-
     '$filled_array'(Buckets, Name, Arity, []),
     nb_setarg(1, Set, Buckets),
     nb_setarg(2, Set, 0),
-    forall(( arg(_, Buckets0, Chain),
-             member(Key, Chain)
-           ),
-           add_nb_set(Key, Set, _)).
+    (  arg(_, Buckets0, Chain),
+       member(Key, Chain),
+       add_nb_set(Key, Set, _),
+       fail
+    ;  true
+    ).
 
 %!  nb_set_to_list(+Set, -List)
 %

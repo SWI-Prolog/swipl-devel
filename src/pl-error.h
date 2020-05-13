@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2017, University of Amsterdam
+    Copyright (c)  1997-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -62,11 +63,14 @@ typedef enum
 				/* Only used on SWI-Prolog itself */
   ERR_EXISTENCE3,		/* atom_t type, term_t obj, term_t in */
   ERR_AR_OVERFLOW,		/* void */
+  ERR_AR_RAT_OVERFLOW,		/* void */
   ERR_AR_TYPE,			/* atom_t expected, Number value */
   ERR_AR_DOMAIN,		/* atom_t domain, Number value */
   ERR_AR_UNDEF,			/* void */
   ERR_AR_UNDERFLOW,		/* void */
+  ERR_AR_TRIPWIRE,		/* atom_t tripwire, Number value */
   ERR_PTR_TYPE,			/* atom_t expected, Word value */
+  ERR_PTR_DOMAIN,		/* atom_t expected, Word value */
   ERR_BUSY,			/* mutexes */
   ERR_CHARS_TYPE,		/* char *, term */
   ERR_CLOSED_STREAM,		/* IOSTREAM * */

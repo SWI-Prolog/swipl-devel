@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, VU University Amsterdam
+    Copyright (c)  2011-2019, VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,10 @@
 :- module(prolog_history,
           [ prolog_history/1
           ]).
-:- use_module(library(base32)).
+:- autoload(library(base32),[base32/2]).
+:- autoload(library(lists),[member/2]).
+:- autoload(library(readutil),[read_line_to_codes/2]).
+
 
 :- multifile
     prolog:history/2.
@@ -46,7 +50,7 @@ This module implements  persistency  of   the  commandline  history over
 Prolog sessions on Prolog  installations  that   are  based  on  the GNU
 readline library (default for the development version on Unix systems).
 
-The history is stored  in   the  directory =|~/.swipl-dir-history|=. For
+The history is stored  in   the  directory ``<config>/dir-history``. For
 each directory for which it keeps the  history, there is file whose name
 is the base32 encoding of the directory path.
 
@@ -62,7 +66,7 @@ terminal and the system supports history.
 %   are stored.
 
 history_directory(Dir) :-
-    absolute_file_name(app_preferences('.swipl-dir-history'),
+    absolute_file_name(user_app_config('dir-history'),
                        Dir,
                        [ access(write),
                          file_type(directory),
@@ -70,16 +74,18 @@ history_directory(Dir) :-
                        ]),
     !.
 history_directory(Dir) :-
-    absolute_file_name(app_preferences('.'),
-                       Home,
+    absolute_file_name(user_app_config('.'),
+                       ConfigDir,
                        [ access(write),
                          file_type(directory),
                          file_errors(fail)
                        ]),
-    atom_concat(Home, '/.swipl-dir-history', Dir),
+    atom_concat(ConfigDir, '/dir-history', Dir),
     (   exists_directory(Dir)
-    ->  fail
-    ;   make_directory(Dir)
+    ->  '$my_file'(Dir)
+    ;   file_directory_name(Dir, Parent),
+        '$my_file'(Parent),
+        make_directory(Dir)
     ).
 
 %!  dir_history_file(+Dir, -File) is det.
@@ -148,8 +154,6 @@ prolog_history(_) :-
 		 *******************************/
 
 :- if(current_predicate('$rl_history'/1)).
-:- use_module(library(readutil)).
-
 prolog:history(_, load(File)) :-
     access_file(File, read),
     !,

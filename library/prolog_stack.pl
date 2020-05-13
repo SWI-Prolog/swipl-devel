@@ -35,17 +35,19 @@
 
 :- module(prolog_stack,
           [ get_prolog_backtrace/2,     % +MaxDepth, -Stack
-            get_prolog_backtrace/3,     % +Frame, +MaxDepth, -Stack
+            get_prolog_backtrace/3,     % +MaxDepth, -Stack, +Options
             prolog_stack_frame_property/2, % +Frame, ?Property
             print_prolog_backtrace/2,   % +Stream, +Stack
             print_prolog_backtrace/3,   % +Stream, +Stack, +Options
             backtrace/1                 % +MaxDepth
           ]).
-:- use_module(library(prolog_clause)).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(lists)).
-:- use_module(library(option)).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),[must_be/2]).
+:- autoload(library(lists),[nth1/3,append/3]).
+:- autoload(library(option),[option/2,option/3,merge_options/3]).
+:- autoload(library(prolog_clause),
+	    [clause_name/2,predicate_name/2,clause_info/4]).
+
 
 :- dynamic stack_guard/1.
 :- multifile stack_guard/1.
@@ -72,8 +74,8 @@ following functionality:
     * The shorthand backtrace/1 fetches and prints a backtrace.
 
 This library may be enabled by default to improve interactive debugging,
-for example by adding the lines below   to  your ~/swiplrc (swipl.ini in
-Windows) to decorate uncaught exceptions:
+for example by adding the lines   below  to your ``<config>/init.pl`` to
+decorate uncaught exceptions:
 
   ==
   :- use_module(library(prolog_stack)).
@@ -104,10 +106,14 @@ Windows) to decorate uncaught exceptions:
 %     * goal_depth(+Depth)
 %     If Depth > 0, include a shallow copy of the goal arguments
 %     into the stack.  Default is set by the Prolog flag
-%     =backtrace_goal_depth=, set to =2= initially, showing the
+%     `backtrace_goal_depth`, set to `2` initially, showing the
 %     goal and toplevel of any argument.
 %     * guard(+Guard)
 %     Do not show stack frames above Guard.  See stack_guard/1.
+%     * clause_references(+Bool)
+%     Report locations as `Clause+PC` or as a location term that
+%     does not use clause references, allowing the exception to
+%     be printed safely in a different context.
 %
 %   @param Frame is the frame to start from. See prolog_current_frame/1.
 %   @param MaxDepth defines the maximum number of frames returned.
@@ -144,12 +150,19 @@ get_prolog_backtrace_lc(MaxDepth, Stack, Options) :-
     ;   current_prolog_flag(backtrace_goal_depth, GoalDepth)
     ),
     option(guard(Guard), Options, none),
+    (   def_no_clause_refs(Guard)
+    ->  DefClauseRefs = false
+    ;   DefClauseRefs = true
+    ),
+    option(clause_references(ClauseRefs), Options, DefClauseRefs),
     must_be(nonneg, GoalDepth),
-    backtrace(MaxDepth, Fr, PC, GoalDepth, Guard, Stack).
+    backtrace(MaxDepth, Fr, PC, GoalDepth, Guard, ClauseRefs, Stack, Options).
 
-backtrace(0, _, _, _, _, []) :- !.
-backtrace(MaxDepth, Fr, PC, GoalDepth, Guard,
-          [frame(Level, Where, Goal)|Stack]) :-
+def_no_clause_refs(system:catch_with_backtrace/3).
+
+backtrace(0, _, _, _, _, _, [], _) :- !.
+backtrace(MaxDepth, Fr, PC, GoalDepth, Guard, ClauseRefs,
+          [frame(Level, Where, Goal)|Stack], Options) :-
     prolog_frame_attribute(Fr, level, Level),
     (   PC == foreign
     ->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
@@ -158,7 +171,7 @@ backtrace(MaxDepth, Fr, PC, GoalDepth, Guard,
     ->  prolog_frame_attribute(Fr, predicate_indicator, Pred),
         Where = call(Pred)
     ;   prolog_frame_attribute(Fr, clause, Clause)
-    ->  Where = clause(Clause, PC)
+    ->  clause_where(ClauseRefs, Clause, PC, Where, Options)
     ;   Where = meta_call
     ),
     (   Where == meta_call
@@ -172,23 +185,50 @@ backtrace(MaxDepth, Fr, PC, GoalDepth, Guard,
     (   prolog_frame_attribute(Fr, parent, Parent),
         prolog_frame_attribute(Parent, predicate_indicator, PI),
         PI == Guard                             % last frame
-    ->  backtrace(1, Parent, PC2, GoalDepth, Guard, Stack)
+    ->  backtrace(1, Parent, PC2, GoalDepth, Guard, ClauseRefs, Stack, Options)
     ;   prolog_frame_attribute(Fr, parent, Parent),
         more_stack(Parent)
     ->  D2 is MaxDepth - 1,
-        backtrace(D2, Parent, PC2, GoalDepth, Guard, Stack)
+        backtrace(D2, Parent, PC2, GoalDepth, Guard, ClauseRefs, Stack, Options)
     ;   Stack = []
     ).
 
 more_stack(Parent) :-
     prolog_frame_attribute(Parent, predicate_indicator, PI),
-    \+ (   PI = '$toplevel':G,
+    \+ (   PI = ('$toplevel':G),
            G \== (toplevel_call/1)
        ),
     !.
 more_stack(_) :-
     current_prolog_flag(break_level, Break),
     Break >= 1.
+
+%!  clause_where(+UseClauseRef, +Clause, +PC, -Where, +Options) is det.
+%
+%   Get a description of the frame source   location from Clause and the
+%   PC inside clause. If UseClauseRef is  `true`,   this  is  the a term
+%   clause(Clause,PC),  providing  all  abvailable  information  to  the
+%   caller at low time overhead. If  however   the  exception need to be
+%   printed in an environment where the   clause  references may differ,
+%   for example because the program is not   loaded,  it is printed in a
+%   different thread and contains references to dynamic predicates, etc,
+%   it is better to use the information inside the clause here.
+
+clause_where(true, Clause, PC, clause(Clause, PC), _).
+clause_where(false, Clause, PC, pred_line(PredName, File:Line), Options) :-
+    option(subgoal_positions(true), Options, true),
+    subgoal_position(Clause, PC, File, CharA, _CharZ),
+    File \= @(_),                 % XPCE Object reference
+    lineno(File, CharA, Line),
+    clause_predicate_name(Clause, PredName),
+    !.
+clause_where(false, Clause, _PC, pred_line(PredName, File:Line), _Options) :-
+    clause_property(Clause, file(File)),
+    clause_property(Clause, line_count(Line)),
+    clause_predicate_name(Clause, PredName),
+    !.
+clause_where(false, Clause, _PC, clause_name(ClauseName), _Options) :-
+    clause_name(Clause, ClauseName).
 
 %!  copy_goal(+TermDepth, +Frame, -Goal) is det.
 %
@@ -360,40 +400,36 @@ where_no_goal(foreign(PI), _) -->
     [ '~w <foreign>'-[PI] ].
 where_no_goal(call(PI), _) -->
     [ '~w'-[PI] ].
-where_no_goal(clause(Clause, PC), Options) -->
-    { option(subgoal_positions(true), Options, true),
-      subgoal_position(Clause, PC, File, CharA, _CharZ),
-      File \= @(_),                 % XPCE Object reference
-      lineno(File, CharA, Line),
-      clause_predicate_name(Clause, PredName)
-    },
+where_no_goal(pred_line(PredName, File:Line), _) -->
     !,
     [ '~w at ~w:~d'-[PredName, File, Line] ].
-where_no_goal(clause(Clause, _PC), _) -->
-    { clause_property(Clause, file(File)),
-      clause_property(Clause, line_count(Line)),
-      clause_predicate_name(Clause, PredName)
-    },
+where_no_goal(clause_name(ClauseName), _) -->
     !,
-    [ '~w at ~w:~d'-[PredName, File, Line] ].
-where_no_goal(clause(Clause, _PC), _) -->
-    { clause_name(Clause, ClauseName)
-    },
     [ '~w <no source>'-[ClauseName] ].
+where_no_goal(clause(Clause, PC), Options) -->
+    { nonvar(Clause),
+      !,
+      clause_where(false, Clause, PC, Where, Options)
+    },
+    where_no_goal(Where, Options).
 where_no_goal(meta_call, _) -->
     [ '<meta call>' ].
 
 where_goal(foreign(_), _) -->
     [ ' <foreign>'-[] ],
     !.
-where_goal(clause(Clause, PC), Options) -->
-    { option(subgoal_positions(true), Options, true),
-      subgoal_position(Clause, PC, File, CharA, _CharZ),
-      File \= @(_),                 % XPCE Object reference
-      lineno(File, CharA, Line)
-    },
+where_goal(pred_line(_PredName, File:Line), _) -->
     !,
     [ ' at ~w:~d'-[File, Line] ].
+where_goal(clause_name(ClauseName), _) -->
+    !,
+    [ '~w <no source>'-[ClauseName] ].
+where_goal(clause(Clause, PC), Options) -->
+    { nonvar(Clause),
+      !,
+      clause_where(false, Clause, PC, Where, Options)
+    },
+    where_goal(Where, Options).
 where_goal(clause(Clause, _PC), _) -->
     { clause_property(Clause, file(File)),
       clause_property(Clause, line_count(Line))
@@ -472,11 +508,13 @@ find_subgoal([], Pos, Pos).
 
 %!  lineno(+File, +Char, -Line)
 %
-%   Translate a character location to a line-number.
+%   Translate a character location to  a   line-number.  Note  that this
+%   calls prolog_clause:try_open_source/2, but this is  always loaded as
+%   we would not have clause info without.
 
 lineno(File, Char, Line) :-
     setup_call_cleanup(
-        ( open(File, read, Fd),
+        ( prolog_clause:try_open_source(File, Fd),
           set_stream(Fd, newline(detect))
         ),
         lineno_(Fd, Char, Line),

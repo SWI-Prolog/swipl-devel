@@ -94,15 +94,24 @@ in_temporary_module(Module, Setup, Goal) :-
 prepare_temporary_module(Module) :-
     var(Module),
     !,
-    (   repeat,
-        I is random(1<<63),
-        atom_concat('tmp-', I, Module),
+    (   thread_id(Tid),
+        repeat,
+        I is random(1<<62),
+        atomic_list_concat([tmp, Tid, I], -, Module),
         catch(set_module(Module:class(temporary)),
               error(permission_error(_,_,_),_), fail)
     ->  true
     ).
 prepare_temporary_module(Module) :-
     set_module(Module:class(temporary)).
+
+:- if(current_prolog_flag(threads, true)).
+thread_id(Id) :-
+    thread_self(Self),
+    thread_property(Self, id(Id)).
+:- else.
+thread_id(main).
+:- endif.
 
 destroy_module(Module) :-
     retractall(system:'$load_context_module'(_File, Module, _Options)),

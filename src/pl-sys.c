@@ -95,7 +95,7 @@ word
 pl_setenv(term_t var, term_t value)
 { char *n, *v;
 
-  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|BUF_RING|CVT_EXCEPTION) &&
+  if ( PL_get_chars(var, &n, CVT_ALL|REP_FN|BUF_STACK|CVT_EXCEPTION) &&
        PL_get_chars(value, &v, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return Setenv(n, v);
 

@@ -148,18 +148,52 @@ from the runtime environment or location where it was built. See also
 File to use for the emulator.  Default is the running Prolog image.
 
 	\termitem{foreign}{+Action}
-If \const{save}, include shared objects (DLLs) into the saved state. See
-current_foreign_library/2. If the program \program{strip} is available,
-this is first used to reduce the size of the shared object. If a state
-is started, use_foreign_library/1 first tries to locate the foreign
-resource in the resource database. When found it copies the content of
-the resource to a temporary file and loads it. If possible (Unix), the
-temporary object is deleted immediately after opening.\footnote{This
-option is experimental and currently disabled by default. It will become
-the default if it proves robust.}\footnote{Creating a temporary file is
-the most portable way to load a shared object from a zip file but
-requires write access to the file system.  Future versions may provide
-shortcuts for specific platforms that bypass the file system.}
+If \const{save}, include shared objects (DLLs) for the current
+architecture into the saved state. See current_foreign_library/2,
+and current_prolog_flag(arch, Arch). If the program \program{strip}
+is available, this is first used to reduce the size of the shared
+object. If a state is started, use_foreign_library/1 first tries
+to locate the foreign resource in the resource database. When
+found it copies the content of the resource to a temporary file
+and loads it. If possible (Unix), the temporary object is deleted
+immediately after opening.\footnote{This option is experimental and
+currently disabled by default. It will become the default if it proves
+robust.}\footnote{Creating a temporary file is the most portable way
+to load a shared object from a zip file but requires write access to
+the file system. Future versions may provide shortcuts for specific
+platforms that bypass the file system.}
+
+If \arg{Action} is of the form \term{arch}{ListOfArches} then the
+shared objects for the specified architectures are stored in
+the saved state. On the command line, the list of architectures
+can be passed as \const{--foreign=<CommaSepArchesList>}. In
+order to obtain the shared object file for the specified
+architectures, qsave_program/2 calls a user defined hook:
+\term{qsave:arch_shlib}{+Arch, +FileSpec, -SoPath}. This hook
+needs to unify \const{SoPath} with the absolute path to the
+shared object for the specified architecture. \const{FileSpec} is
+of the form \const{foreign(Name)}.
+
+At runtime, SWI-Prolog will try to load the shared library which
+is compatible with the current architecture, obtained by calling
+\term{current_prolog_flag}{arch, Arch}. An architecture is
+compatible if one of the two following conditions is true (tried
+in order):
+
+\begin{enumerate}
+    \item{There is a shared object in the saved state file which
+          matches the current architecture name (from
+          current_prolog_flag/2) exactly.}
+    \item{The user definable \term{qsave:compat_arch}{Arch1, Arch2}
+          hook succeeds.}
+\end{enumerate}
+
+This last one is useful when one wants to produce one shared object file
+that works for multiple architectures, usually compiling for the lowest
+common denominator of a certain CPU type. For example, it is common to compile
+for armv7 if even if the code will be running on newer arm CPUs. It
+is also useful to provide highly-optimized shared objects for
+particular architectures.
 
 	\termitem{undefined}{+Value}
 Defines what happens if an undefined predicate is found during the
@@ -178,7 +212,7 @@ notably regarding auto loading.
     \predicate{qsave_program}{1}{+File}
 Equivalent to \exam{qsave_program(File, [])}.
 
-    \predicate{autoload}{0}{}
+    \predicate{autoload_all}{0}{}
 Check the current Prolog program for predicates that are referred to,
 are undefined and have a definition in the Prolog library.  Load the
 appropriate libraries.

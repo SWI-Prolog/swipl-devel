@@ -1,0 +1,6 @@
+iv(\(A,@(@('seek*',^(\(B,@(*(B),C)))),*(A))),s,[],[sub(\(D,exists(E,/\(@(unicorn,E),@(*(D),E)))),C,n)],1,4)
+iv(\(A,@(@('seek*',^(\(B,@(*(B),C)))),*(A))),s,[sub(\(D,@(*(D),^(j))),E,m)],[sub(\(F,exists(G,/\(@(unicorn,G),@(*(F),G)))),C,n)],1,4)
+iv(\(A,@(@('seek*',^(\(B,exists(C,/\(@(unicorn,C),@(*(B),C)))))),*(A))),s,[],[],1,4)
+iv(\(A,@(@('seek*',^(\(B,exists(C,/\(@(unicorn,C),@(*(B),C)))))),*(A))),s,[sub(\(D,@(*(D),^(j))),E,m)],[],1,4)
+iv(\(A,exists(B,/\(@(unicorn,B),@(@('seek*',^(\(C,@(*(C),B)))),*(A))))),s,[],[],1,4)
+iv(\(A,exists(B,/\(@(unicorn,B),@(@('seek*',^(\(C,@(*(C),B)))),*(A))))),s,[sub(\(D,@(*(D),^(j))),E,m)],[],1,4)

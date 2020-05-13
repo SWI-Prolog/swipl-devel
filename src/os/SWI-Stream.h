@@ -258,7 +258,7 @@ typedef struct io_stream
 #define SIO_NOMUTEX	SmakeFlag(25)	/* Do not allow multi-thread access */
 #define SIO_ADVLOCK	SmakeFlag(26)	/* File locked with advisory lock */
 #define SIO_WARN	SmakeFlag(27)	/* Pending warning */
-#define SIO_CLEARERR	0	        /* Obsolete */
+#define SIO_RAW		SmakeFlag(28)	/* TTY Stream is in raw mode */
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */

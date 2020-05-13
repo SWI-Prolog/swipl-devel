@@ -45,8 +45,9 @@
 
             assertion/1                 % :Goal
           ]).
-:- use_module(library(error)).
-:- use_module(library(lists)).
+:- autoload(library(lists),[append/3,delete/3,selectchk/3,member/2]).
+:- autoload(library(prolog_stack),[backtrace/1]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
@@ -250,11 +251,20 @@ debug(_, _, _).
 :- multifile
     prolog:debug_print_hook/3.
 
-print_debug(Topic, _To, Format, Args) :-
+print_debug(_Topic, _To, _Format, _Args) :-
+    nb_current(prolog_debug_printing, true),
+    !.
+print_debug(Topic, To, Format, Args) :-
+    setup_call_cleanup(
+        nb_setval(prolog_debug_printing, true),
+        print_debug_guarded(Topic, To, Format, Args),
+        nb_delete(prolog_debug_printing)).
+
+print_debug_guarded(Topic, _To, Format, Args) :-
     prolog:debug_print_hook(Topic, Format, Args),
     !.
-print_debug(_, [], _, _) :- !.
-print_debug(Topic, To, Format, Args) :-
+print_debug_guarded(_, [], _, _) :- !.
+print_debug_guarded(Topic, To, Format, Args) :-
     phrase('$messages':translate_message(debug(Format, Args)), Lines),
     (   member(T, To),
         debug_output(T, Stream),

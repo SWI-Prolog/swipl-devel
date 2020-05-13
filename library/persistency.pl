@@ -45,10 +45,16 @@
 
             op(1150, fx, (persistent))
           ]).
-:- use_module(library(debug)).
-:- use_module(library(error)).
-:- use_module(library(option)).
-:- use_module(library(aggregate)).
+:- autoload(library(aggregate),[aggregate_all/3]).
+:- autoload(library(debug),[debug/3]).
+:- autoload(library(error),
+	    [ instantiation_error/1,
+	      must_be/2,
+	      permission_error/3,
+	      existence_error/2
+	    ]).
+:- autoload(library(option),[option/3]).
+
 
 :- predicate_options(db_attach/2, 2,
                      [ sync(oneof([close,flush,none]))
@@ -611,10 +617,10 @@ db_sync(Module, gc) :-
     !,
     db_sync(Module, gc(50)).
 db_sync(Module, gc(When)) :-
-    db_dirty(Module, Dirty),
     (   When == always
     ->  true
-    ;   db_size(Module, Total),
+    ;   db_dirty(Module, Dirty),
+        db_size(Module, Total),
         (   Total > 0
         ->  Perc is (100*Dirty)/Total,
             Perc > When

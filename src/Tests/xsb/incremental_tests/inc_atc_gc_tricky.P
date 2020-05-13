@@ -1,0 +1,163 @@
+:- compiler_options([spec_off]).
+
+
+:- table p/2 as incremental.
+%:- dynamic p/2.
+p(a,b).
+p(a,c).
+p(b,c).
+
+%%test:- assert(p(a,b)), assert(p(a,c)),assert(p(b,c)),fail.
+test:- test1.
+test:- test2.
+test:- test3.
+test:- test4.
+%test:- test5.		% JW: Why error?
+%test:- test6.
+%%test:- test7.
+test:- test8.
+test:- test9.
+test:- test10.
+%%test:- test11.
+test.
+
+goal_expansion(gc_tables(N), (garbage_collect_atoms, N = 0)).
+goal_expansion(gc_tables1(N), (garbage_collect_atoms, N = 1)).
+
+/* abolish and gc variant call */
+test1:- p(a,X), abolish_table_call(p(a,X)),writeln(a1(X)),fail.
+test1:- gc_tables(N),writeln(N),fail.
+test1:- get_residual(p(a,X),_),writeln(a1_2(X)),fail.
+test1:- writeln('---------------'),fail.
+
+/* abolish and gc unifying call */
+test2:- p(a,X), abolish_table_call(p(a,b)),writeln(a2(X)),fail.
+test2:- gc_tables(N),writeln(N),fail.
+test2:- get_residual(p(a,X),_),writeln(a2_2(X)),fail.
+test2:- writeln('---------------'),fail.
+
+/* make sure p(b,X) does not get abolished. */
+test3:- p(b,X), abolish_table_call(p(a,b)),writeln(a3(X)),fail.
+test3:- gc_tables(N),writeln(N),fail.
+test3:- get_residual(p(b,X),_),writeln(a3_2(X)),fail.
+test3:- writeln('---------------'),fail.
+
+/* make sure p(b,X) does not get abolished. */
+test4:- p(b,X), p(a,_),abolish_table_call(p(a,b)),writeln(a4(X)),fail.
+test4:- gc_tables(N),writeln(N),fail.
+test4:- get_residual(p(b,X),_),writeln(a4_2(X)),fail.
+test4:- get_residual(p(a,X),_),writeln(a4_3(X)),fail.
+test4:- writeln('---------------'),fail.
+
+/* Redundant abolish atc-v + atc-u */
+test5:- p(a,X),abolish_table_call(p(a,b)),
+	catch(abolish_table_pred(p/2),_E,writeln(caught_atp_error)),writeln(a5(X)),fail.
+test5:- gc_tables(N),writeln(N),fail.
+test5:- get_residual(p(b,X),_),writeln(a5_3(b,X)),fail.
+test5:- get_residual(p(a,X),_),writeln(a5_3(X)),fail.
+test5:- writeln('---------------'),fail.
+
+/* Redundant abolish atc-v + atc-v */
+test8:- p(a,X),abolish_table_call(p(a,b)),abolish_table_call(p(a,b)),
+	       writeln(a8(X)),fail.
+test8:- gc_tables(N),writeln(N),fail.
+test8:- get_residual(p(a,X),_),writeln(a8_3(X)),fail.
+test8:- writeln('---------------'),fail.
+
+/* check on safety of gc -- old subgoal */
+test9:- p(a,X),abolish_table_call(p(a,b)),
+	       writeln(a9(X)),fail.
+test9:- p(a,_X),gc_tables(N),writeln(N),fail.
+test9:- gc_tables(N),writeln(N),fail.
+test9:- get_residual(p(a,X),_),writeln(a9_3(X)),fail.
+test9:- writeln('---------------'),fail.
+
+/* check on safety of gc -- same subgoal */
+test10:- p(a,X),abolish_table_call(p(a,b)),gc_tables1(N),
+	       writeln(a10(X,N)),fail.
+test10:- get_residual(p(a,X),_),writeln(a10_2(X)),fail.
+test10:- gc_tables(N),writeln(N),fail.
+test10:- get_residual(p(a,X),_),writeln(a10_3(X)),fail.
+test10:- writeln('---------------'),fail.
+
+end_of_file.
+
+
+Proper output:
+
+| ?- test.
+Delaying abolish of call in use for: p/2
+a1(c)
+a1(b)
+Garbage Collecting Subgoal: p/2
+0
+---------------
+Delaying abolish of call in use for: p/2
+a2(c)
+a2(b)
+Garbage Collecting Subgoal: p/2
+0
+---------------
+a3(c)
+0
+a3_2(c)
+---------------
+Delaying abolish of call in use for: p/2
+a4(c)
+a4(c)
+Garbage Collecting Subgoal: p/2
+0
+a4_2(c)
+---------------
+Delaying abolish of call in use for: p/2
+a5(c)
+a5(b)
+Garbage Collecting Subgoal: p/2
+0
+a5_3(b,c)
+---------------
+Delaying abolish of call in use for: p/2
+Delaying abolish of table in use: p/2
+Predicate over-riding subgoal for p/2
+a6(c)
+a6(b)
+Garbage Collecting Predicate: p/2
+0
+---------------
+Delaying abolish of table in use: p/2
+a7(c)
+a7(b)
+Garbage Collecting Predicate: p/2
+0
+---------------
+Delaying abolish of call in use for: p/2
+a8(c)
+a8(b)
+Garbage Collecting Subgoal: p/2
+0
+---------------
+Delaying abolish of call in use for: p/2
+a9(c)
+a9(b)
+Garbage Collecting Subgoal: p/2
+0
+0
+0
+a9_3(c)
+a9_3(b)
+---------------
+Delaying abolish of call in use for: p/2
+Skipping: p/2
+a10(c,1)
+Garbage Collecting Subgoal: p/2
+a10(b,0)
+0
+---------------
+Delaying abolish of table in use: p/2
+Skipping: p/2
+a11(c,1)
+a11(b,1)
+Garbage Collecting Predicate: p/2
+0
+---------------
+

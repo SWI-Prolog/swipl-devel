@@ -2,8 +2,14 @@
 #define TAI_H
 
 #ifdef _MSC_VER
+#pragma warning(disable : 4996)		/* C4996: deprecate open() etc */
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
+#ifdef _WIN64
+typedef long long ssize_t;
+#else
+typedef long ssize_t;
+#endif
 #else
 #include <inttypes.h>			/* more portable than stdint.h */
 #endif

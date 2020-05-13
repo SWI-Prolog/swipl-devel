@@ -1,0 +1,45 @@
+%--------------------------------------------------------------------------
+%  This example tests the behaviour of the emulator when both a
+%  conditional and an unconditional answer are derived for certain
+%  subgoals.  The subgoals of interest are:
+%	p(a,b) gets a conditional and then an unconditional answer;
+%	this answer is returned to t(a,b) and should be simplified.
+%  It requires no simplification after completion.  All simplification
+%  should be early performed.  
+%
+%  --> All answers of t/2, p/2, and q/2 should be unconditional.
+%--------------------------------------------------------------------------
+
+:- table t/2, p/2, q/2, td/1.
+
+t(X,Y) :- p(X,Y).
+t(X,Y) :- q(X,Y).
+
+p(a,X) :- td(X).
+p(a,b).
+p(a,c).
+
+q(b,c).
+q(b,b).
+q(b,X) :- td(X).
+
+td(X) :- sk_not(td(X)), X = b.
+
+%--------------------------------------------------------------------------
+
+test :- t(a,b), fail.
+test :- t(a,b), write('1: Call t(a,b) '),
+	( tnot(t(a,b)) -> writeln('is undefined') ; writeln('is true (OK)') ),
+	fail.
+test :-	abolish_all_tables, fail.
+test :- t(b,b), fail.
+test :- t(b,b), write('2: Call t(b,b) '),
+	( tnot(t(b,b)) -> writeln('is undefined') ; writeln('is true (OK)') ),
+	fail.
+test :-	abolish_all_tables, fail.
+test :- t(X,Y), write('3. Call t(X,Y) succeeds: '), writeln(t(X,Y)), fail.
+/*--- Now retrieve answers from completed tables only ---*/
+test :- p(X,Y), write('4. Call p(X,Y) succeeds: '), writeln(p(X,Y)), fail.
+test :- q(X,Y), write('5. Call q(X,Y) succeeds: '), writeln(q(X,Y)), fail.
+test :- t(X,Y), write('6. Call t(X,Y) succeeds: '), writeln(t(X,Y)), fail.
+test.

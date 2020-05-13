@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,9 +36,15 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-comp.h"
+#include "pl-arith.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
+#include "pl-wrap.h"
 #include "pl-prof.h"
+#include "pl-event.h"
+#include "pl-tabling.h"
+#include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
 #endif
@@ -272,6 +279,7 @@ updateAlerted(PL_local_data_t *ld)
 #ifdef O_DEBUGGER
   if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
 #endif
+  if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
 
   ld->alerted = mask;
 
@@ -293,11 +301,11 @@ raiseSignal(PL_local_data_t *ld, int sig)
     int mask = (1 << ((sig-1)%32));
     int alerted;
 
-    __sync_or_and_fetch(&ld->signal.pending[off], mask);
+    ATOMIC_OR(&ld->signal.pending[off], mask);
 
     do
     { alerted = ld->alerted;
-    } while ( !COMPARE_AND_SWAP(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
+    } while ( !COMPARE_AND_SWAP_INT(&ld->alerted, alerted, alerted|ALERT_SIGNAL) );
 
     return TRUE;
   }
@@ -608,6 +616,83 @@ unify_finished(term_t catcher, enum finished reason)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_term() calls a term from C. The  sound   and  simple way is to call
+call/1 with the term as argument, but in   most cases we can avoid that.
+As frameFinished() is rather time critical this seems worthwhile.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+static int
+call1(Module mdef, term_t goal ARG_LD)
+{ static predicate_t PRED_call1 = NULL;
+  qid_t qid;
+  int rc;
+
+  if ( !PRED_call1 )
+    PRED_call1 = PL_predicate("call", 1, "system");
+
+  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
+  rc = PL_next_solution(qid);
+  PL_cut_query(qid);
+
+  return rc;
+}
+
+
+static int
+call_term(Module mdef, term_t goal ARG_LD)
+{ Word p = valTermRef(goal);
+  Module module = mdef;
+
+  deRef(p);
+  if ( (p=stripModule(p, &module, 0 PASS_LD)) )
+  { functor_t functor;
+    term_t av;
+    Procedure proc;
+    qid_t qid;
+    int rval;
+
+    if ( isAtom(*p) )
+    { if ( isTextAtom(*p) )
+      { functor = lookupFunctorDef(*p, 0);
+	av = 0;
+      } else
+	return call1(mdef, goal PASS_LD);
+    } else if ( isTerm(*p) )
+    { Functor f = valueTerm(*p);
+      FunctorDef fd = valueFunctor(f->definition);
+
+      if ( isTextAtom(fd->name) &&
+	   false(fd, CONTROL_F) &&
+	   !(fd->name == ATOM_call && fd->arity > 8) )
+      { size_t arity = fd->arity;
+	Word args = f->arguments;
+	Word ap;
+	size_t i;
+
+	av = PL_new_term_refs(arity);
+	ap = valTermRef(av);
+
+	for(i=0; i<arity; i++, ap++)
+	  *ap = linkVal(&args[i]);
+	functor = f->definition;
+      } else
+	return call1(mdef, goal PASS_LD);
+    } else
+    { return PL_type_error("callable", goal);
+    }
+
+    proc = resolveProcedure(functor, module);
+    qid = PL_open_query(module, PL_Q_PASS_EXCEPTION, proc, av);
+    rval = PL_next_solution(qid);
+    PL_cut_query(qid);
+
+    return rval;
+  } else
+    return FALSE;				/* exception in env */
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
 call_cleanup/3.  Both may call-back the Prolog engine.
@@ -640,16 +725,12 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
       if ( saveWakeup(&wstate, FALSE PASS_LD) )
       { static predicate_t PRED_call1 = NULL;
 	int rval;
-	qid_t qid;
 
 	if ( !PRED_call1 )
 	  PRED_call1 = PL_predicate("call", 1, "system");
 
 	startCritical;
-	qid = PL_open_query(contextModule(fr), PL_Q_PASS_EXCEPTION,
-			    PRED_call1, clean);
-	rval = PL_next_solution(qid);
-	PL_cut_query(qid);
+        rval = call_term(contextModule(fr), clean PASS_LD);
 	if ( !endCritical )
 	  rval = FALSE;
 	if ( !rval && exception_term )
@@ -1317,7 +1398,7 @@ localDefinition(Definition def ARG_LD)
 	outOfCore();
 
       memset(newblock, 0, bs*sizeof(Definition));
-      if ( !COMPARE_AND_SWAP(&v->blocks[idx], NULL, newblock-bs) )
+      if ( !COMPARE_AND_SWAP_PTR(&v->blocks[idx], NULL, newblock-bs) )
 	PL_free(newblock);
     }
   }
@@ -1621,7 +1702,7 @@ exceptionUnwindGC(void)
   LD->stacks.trail.gced_size = 0;
   LD->trim_stack_requested = TRUE;
   if ( considerGarbageCollect(NULL) )
-  { garbageCollect();
+  { garbageCollect(GC_EXCEPTION);
     enableSpareStacks();
   }
 }
@@ -1707,7 +1788,7 @@ argument goal. Exceptions from the  recover   goal  should be passed (to
 avoid a loop and allow for re-throwing).   With  thanks from Gertjan van
 Noord.
 
-findCatchExit() can do GC/shift!  The  return   value  is  a local-frame
+findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -3128,6 +3209,11 @@ next_choice:
 #ifdef O_DEBUG_BACKTRACK
   last_choice = ch->type;
 #endif
+
+  if ( (LD->alerted & ALERT_BUFFER) )
+  { LD->alerted &= ~ALERT_BUFFER;
+    release_string_buffers_from_frame(FR PASS_LD);
+  }
 
   switch(ch->type)
   { case CHP_JUMP:

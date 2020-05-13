@@ -1,0 +1,13 @@
+
+:- include('tcyl-24-24-2').
+
+:- table a/2.
+
+tw(X) :- a(X,Y), writeln(a(X,Y)), fail.
+tw(_).
+
+ts(X) :- statistics, a(X,_Y), fail.
+ts(_) :- statistics.
+
+a(X,Y) :- cyl(X,Y).
+a(X,Y) :- a(X,Z), cyl(Z,Y).

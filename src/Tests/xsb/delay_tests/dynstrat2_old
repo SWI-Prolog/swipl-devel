@@ -1,0 +1,8 @@
+p. p is false (OK)
+p. q is false (OK)
+p. r is false (OK)
+p. s is true (OK)
+s. p is false (OK)
+s. q is false (OK)
+s. r is false (OK)
+s. s is true (OK)

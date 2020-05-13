@@ -1,0 +1,66 @@
+
+:- import incr_directly_depends/2,incr_trans_depends/2 from increval.
+:- import numbervars/1 from num_vars.
+
+test:- t_inc_5(_X),fail.
+test:- incr_directly_depends(t_inc_5(X),Y),
+       numbervars(incr_directly_depends(t_inc_5(X),Y)), writeln(incr_directly_depends(t_inc_5(X),Y)),fail.
+test:- incr_directly_depends(Y,t_inc_5(X)),
+       numbervars(incr_directly_depends(Y,t_inc_5(X))),writeln(incr_directly_depends(Y,t_inc_5(X))),fail.
+test:- incr_directly_depends(t_inc_1(X),Y),
+       numbervars(incr_directly_depends(t_inc_1(X),Y)),writeln(incr_directly_depends(t_inc_1(X),Y)),fail.
+test:- incr_directly_depends(Y,t_inc_1(X)),
+       numbervars(incr_directly_depends(Y,t_inc_1(X))),writeln(incr_directly_depends(Y,t_inc_1(X))),fail.
+test:- incr_trans_depends(t_inc_5(X),Y),
+       numbervars(incr_trans_depends(Y,t_inc_5(X))),writeln(incr_trans_depends(t_inc_5(X),Y)),fail.
+test:- incr_trans_depends(Y,t_inc_5(X)),
+       numbervars(incr_trans_depends(Y,t_inc_5(X))),writeln(incr_trans_depends(Y,t_inc_5(X))),fail.
+test:- incr_trans_depends(t_inc_1(X),Y),
+       numbervars(incr_trans_depends(Y,t_inc_5(X))),writeln(incr_trans_depends(t_inc_1(X),Y)),fail.
+test:- incr_trans_depends(Y,t_inc_1(X)),
+       numbervars(incr_trans_depends(Y,t_inc_5(X))),writeln(incr_trans_depends(Y,t_inc_1(X))),fail.
+test.
+
+:- dynamic p/1 as incremental.
+p(1). p(2).
+
+:- dynamic q/1 as incremental.
+q(1). q(2). q(3).
+
+:- table t_inc_2/1,t_inc_3/1,t_inc_4/1,t_inc_5/1 as incremental.
+:- table t_inc_1/1 as incremental.
+
+t_inc_1(X):- p(X).
+t_inc_2(X):- q(X). 
+t_inc_3(X):- t_inc_1(X). 
+t_inc_4(X):- t_inc_3(X). 
+t_inc_5(X):- writeln(resolving_t_inc_5),t_inc_4(X),t_inc_2(X).
+t_inc_6(X):- t_inc_4(X),t_inc_2(_Y).
+
+inc_7(X):- t_inc_1(X),t_inc_1(X).
+
+end_of_file.
+
+:- table cyc/2 as incremental.
+cyc(X,Y):- cyc(X,Z),writeln(cyc(X,Z)),p(Z,Y).
+cyc(X,Y):- p(X,Y),
+	   Y1 is Y + 1,
+	   incr_assert_inval(p(X,Y1)).
+
+ok(X):- t_inc_1(X). 
+
+bad_2:- t_inc_4(_X),fail.
+bad_2:- writeln(first_clause_done),inc_7(X),writeln(t_inc_5(X)),fail.
+
+bad_3:- t_inc_4(_X),fail.
+bad_3:- writeln(first_clause_done),t_inc_5(X),writeln(t_inc_5(X)),fail.
+
+test_recompute:- t_inc_5(X),writeln(one(X)),fail.
+test_recompute:- incr_assert_inval(p(3)),fail.
+test_recompute:- t_inc_5(X),writeln(two(X)),fail.
+
+%retractall_p:-
+%	writeln(here),
+%	p(X),incr_retract_immed(p(X)),fail.
+%retractall_p.
+

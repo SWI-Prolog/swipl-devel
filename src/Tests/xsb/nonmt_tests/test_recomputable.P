@@ -1,0 +1,24 @@
+:- import incr_invalidate_calls/1 from increval.
+
+test:- add,show(1),
+        add,show(2),
+        refresh(1),
+	show(3),
+        refresh(2),
+        show(4).
+
+:- table p/2, r/2, s/2, q/1 as incremental.
+:- dynamic qqq/1.
+
+refresh(N) :- incr_invalidate_calls(q(_)),writeln(refreshed(N)).
+
+r(X,Z) :- p(X,Y), s(Y,Z).
+s(1,Z) :- q(_), qqq(Z).
+
+q(_).
+p(2,1).
+
+add :- X = abc102, assert(qqq(X)).
+
+show(N) :- r(X,Z), writeln(showing(N,r(X,Z))), fail.
+show(_).

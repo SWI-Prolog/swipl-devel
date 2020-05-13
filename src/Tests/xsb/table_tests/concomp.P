@@ -1,0 +1,51 @@
+/* Compute connected components. This one does NOT use tabling but
+CHEATS and uses assert. */
+
+test :- t, d1, d2.
+
+t :- leader(_,_),fail.
+t.
+
+:- import get_calls/3, get_returns/2 from tables.
+d1 :- get_calls(leader(_,_),C,S), get_returns(C,S), tab(2), writeln(S), fail.
+d1 :- writeln('-------d1 finished - d2 begins--------').
+
+d2 :- leader(N,M),writeln([N,M]),fail.
+d2.
+
+:- dynamic visited/1.
+:- index(visited/1,1,1001).
+:- import ensure_dync_loaded/1 from consult.
+:- ensure_dync_loaded('more_edgesP').
+:- ensure_dync_loaded('nodesP').
+
+:- table leader/2.
+leader(N,M) :-
+	retractall(visited(_)),
+	node(N),
+	(N == sts1
+	 ->	true
+	 ;	\+ visited(N)
+	),
+	reachable(N,M),assert(visited(M)).
+
+
+:- table reachable/2.
+reachable(L,L).
+reachable(L,T) :- reachable(L,T1),(edge(T1,T);edge(T,T1)).
+
+
+% make a bad edge graph.
+makebad :- retractall(edge(_,_)),retractall(node(_)),
+	bad(900).
+
+bad(N) :-
+	(N =:= 0
+	 ->	true
+	 ;	assert(node(N)),
+		N1 is N-1,
+		assert(edge(N1,N)),
+		bad(N1)
+	).
+
+

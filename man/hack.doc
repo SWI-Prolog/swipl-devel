@@ -475,6 +475,106 @@ with the action \const{retry}.
 \end{description}
 
 
+\section{Prolog events}				\label{sec:prolog-event}
+
+Version 8.1.9 introduces a uniform mechanism to listen to events that
+happen in the Prolog engine. It replaces and generalises
+\nopredref{prolog_event_hook}{1}, a hook that was introduced to support
+the graphical debugger. The current implementation deals with debug,
+thread and dynamic database events. We expect this mechanism to deal
+with more hooks in the future.
+
+\begin{description}
+    \predicate{prolog_listen}{2}{+Channel, :Closure}
+\nodescription
+    \predicate{prolog_listen}{3}{+Channel, :Closure, +Options}
+Call \arg{Closure} if an event that matches \arg{Channel} happens inside
+Prolog. Possible choice points are pruned as by once/1. Possible failure
+is ignored, but exceptions are propagated into the environment. Multiple
+closures can be associated with the same channel.  Execution of the list
+of closures may be terminated by an exception. Options:
+
+    \begin{description}
+    \termitem{as}{Location}
+\arg{Location} is one of \const{first} (default) or \const{last} and
+determines whether the new handler is exected as first or last.
+    \end{description}
+
+Defined channels are described below. The \arg{Channel} argument is the
+name of the term listed below. The arguments are added as additional
+arguments to the given \arg{Closure}.
+
+    \begin{description}
+    \termitem{abort}{}
+Called by abort/0.
+
+    \termitem{erase}{DbRef}
+Called on an erased recorded database reference or clause. Note that a
+retracted clauses is not immediately removed. Clauses are reclaimed by
+garbage_collect_clauses/0, which is normally executed automatially in
+the \const{gc} thread. This specific channel is used by clause_info/5 to
+reclaim source layout of reclaimed clauses.  User applications should
+typically use the \arg{PredicateIndicator} channel.
+
+    \termitem{break}{Action, ClauseRef, PCOffset}
+Traps events related to Prolog break points. See library
+\pllib{prolog_breakpoints}
+
+    \termitem{frame_finished}{FrameRef}
+Indicates that a stack frame that has been examined using
+prolog_current_frame/1, prolog_frame_attribute/3 and friends has
+been deleted.  Used by the source level debugger to avoid that
+the stack view references non-existing frames.
+
+    \termitem{thread_exit}{Thread}
+Globally registered channel that is called by any thread just
+before the thread is terminated.
+
+    \termitem{this_thread_exit}{}
+Thread local version of the \const{thread_exit} channel that
+is also used by the \term{at_exit}{Closure} option of
+thread_create/3.
+
+    \termitem{PredicateIndicator}{Action, ClauseRef}
+Track changes to a (dynamic) predicate.  For example:
+
+\begin{code}
+:- dynamic p/1.
+:- prolog_listen(p/1, updated(p/1)).
+
+updated(Pred, Action, Context) :-
+    format('Updated ~p: ~p ~p~n', [Pred, Action, Context]).
+\end{code}
+
+\begin{code}
+?- assert(p(a)).
+Updated p/1: assertz <clause>(0x55db261709d0)
+?- retractall(p(_)).
+Updated p/1: retractall start(user:p(_12294))
+Updated p/1: retract <clause>(0x55db261719c0)
+Updated p/1: retractall end(user:p(_12294))
+\end{code}
+
+	\begin{description}
+	\termitem{asserta}{}
+	\termitem{assertz}{}
+    A new clauses has been added as first (last) for the given
+    predicate.
+	\termitem{retract}{}
+    A clause was retracted from the given predicate using either
+    retract/1, erase/1 or retractall/1.
+	\termitem{retractall}{}
+    The begining and end of retractall/1 is indicated with
+    the \arg{Action} \const{retractall}.  The context argument
+    is \term{start}{Head} or \term{end}{Head}.
+	\end{description}
+    \end{description}
+
+    \predicate{prolog_unlisten}{2}{+Channel, :Closure}
+Remove matching closures registered with prolog_listen/3.
+\end{description}
+
+
 \section{Hooks for integrating libraries}	\label{sec:intlibs}
 
 Some libraries realise an entirely new programming paradigm on top of
@@ -547,11 +647,20 @@ action has been taken care of. This hook is only called if \arg{Options}
 does not contain the \term{stream}{Input} option. The hook must be
 defined in the module \const{user}.
 
-This can be used to load from unusual places. For example, library
-\pllib{http/http_load} loads Prolog directly from an HTTP server. It can
-also be used to load source in unusual forms, such as loading compressed
-files without decompressing them first. There is currently no example of
-that.
+This can be used to load from unusual places as well as dealing with
+Prolog code that is not represented as a Prolog source text (for example
+some binary representation). For example, library \pllib{http/http_load}
+loads Prolog directly from an HTTP server. See also
+prolog:open_source_hook/3, which merely allows for changing how a
+physical file is opened.
+
+    \predicate{prolog:open_source_hook}{3}{+Path, -Stream, +Options}
+This hooks is called by the compiler to overrule the default open/3 call
+\term{open}{Path, read, Stream}. \arg{Options} provide the options as
+provided to load_files/2. If the hook succeeds compilation continues by
+loading from the returned (input) stream. This hook is particularly
+suited to support running the code to a preprocessor. See also
+prolog_load_file/2.
 
     \predicate{prolog:comment_hook}{3}{+Comments, +Pos, +Term}
 This hook allows for processing comments encountered by the compiler. If

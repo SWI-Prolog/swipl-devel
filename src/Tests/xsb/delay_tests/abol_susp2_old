@@ -1,0 +1,7 @@
+a: after 1st b
+a: after 2nd b
+b: gets a conditional answer
+t: a's answer returned
+t: gets a conditional answer from its first clause
+t: gets a conditional answer from its second clause
+t: gets a conditional answer from its third clause

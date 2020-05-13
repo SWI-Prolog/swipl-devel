@@ -65,8 +65,6 @@
             write_ln/1,                 % +Term
             proper_list/1,              % @Term
             free_variables/2,           % +Term, -Variables
-            subsumes_chk/2,             % @Generic, @Specific
-            subsumes/2,                 % @Generic, @Specific
             hash_term/2,                % +Term, -Hash
             checklist/2,                % :Goal, +List
             sublist/3,                  % :Goal, +List, -Sublist
@@ -85,15 +83,17 @@
             setup_and_call_cleanup/4,   % :Setup, :Goal, ?Catcher, :Cleanup
             merge/3,                    % +List1, +List2, -Union
             merge_set/3,                % +Set1, +Set2, -Union
-            index/1,                    % :Head
+            (index)/1,                  % :Head
             hash/1,                     % :PI
             set_base_module/1,          % :Base
             eval_license/0,
-            trie_insert_new/3		% +Trie, +Term, -Node
+            trie_insert_new/3,		% +Trie, +Term, -Node
+            thread_at_exit/1            % :Goal
           ]).
-:- use_module(apply,  [maplist/2]).
-:- use_module(system, [lock_predicate/1, unlock_predicate/1]).
-:- use_module(lists,  [sum_list/2]).
+:- autoload(library(apply),[maplist/3,maplist/2]).
+:- autoload(library(lists),[sum_list/2]).
+:- autoload(library(system),[lock_predicate/1,unlock_predicate/1]).
+
 
 :- meta_predicate
     at_initialization(0),
@@ -103,7 +103,8 @@
     sublist(1, +, ?),
     index(:),
     hash(:),
-    set_base_module(:).
+    set_base_module(:),
+    thread_at_exit(0).
 
 /** <module> Backward compatibility
 
@@ -343,30 +344,6 @@ proper_list(List) :-
 
 free_variables(Term, Variables) :-
     term_variables(Term, Variables).
-
-%!  subsumes_chk(@Generic, @Specific)
-%
-%   True if Generic can be made equivalent to Specific without
-%   changing Specific.
-%
-%   @deprecated Replace by subsumes_term/2.
-
-subsumes_chk(Generic, Specific) :-
-    subsumes_term(Generic, Specific).
-
-%!  subsumes(+Generic, @Specific)
-%
-%   True  if  Generic  is  unified   to  Specific  without  changing
-%   Specific.
-%
-%   @deprecated It turns out that calls to this predicate almost
-%   always should have used subsumes_term/2.  Also the name is
-%   misleading.  In case this is really needed, one is adviced to
-%   follow subsumes_term/2 with an explicit unification.
-
-subsumes(Generic, Specific) :-
-    subsumes_term(Generic, Specific),
-    Generic = Specific.
 
 %!  hash_term(+Term, -Hash) is det.
 %
@@ -662,3 +639,11 @@ eval_license :-
 
 trie_insert_new(Trie, Term, Handle) :-
     trie_insert(Trie, Term, [], Handle).
+
+%!  thread_at_exit(:Goal) is det.
+%
+%   Register Goal to be called when the calling thread exits.
+%   @deprecated use prolog_listen(this_thread_exit, Goal)
+
+thread_at_exit(Goal) :-
+    prolog_listen(this_thread_exit, Goal).

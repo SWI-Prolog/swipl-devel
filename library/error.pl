@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2006-2018, University of Amsterdam
+    Copyright (c)  2006-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -206,7 +206,7 @@ resource_error(Culprit) :-
 %   types.
 %
 %   | acyclic | Acyclic term (tree); see acyclic_term/1 |
-%   | any | |
+%   | any | any term |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
 %   | boolean | One of =true= or =false= |
@@ -335,6 +335,10 @@ is_of_type(Type, _) :-
 %   True if Term satisfies Type.
 
 :- '$clausable'(has_type/2).            % always allow clause/2
+:- public                               % May be called through current_type/3
+    is_list_or_partial_list/1,
+    current_encoding/1,
+    element_types/2.
 
 has_type(any, _).
 has_type(atom, X)         :- atom(X).

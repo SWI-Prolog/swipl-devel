@@ -1,0 +1,7 @@
+Evaluating p84 : m
+a is: true (OK)
+b is: false (OK)
+c is: true (OK)
+d is: false (OK)
+m is: false (OK)
+r(a) is: false (OK)

@@ -114,8 +114,8 @@ non-proportional fonts.
 
     \definition{Settings/User init file ...}
 Edits the user personalisation file.  If no such file exists, it first
-installs a default file as \file{swipl.ini} that contains commonly used
-settings in comments.
+installs a default file as \file{init.pl} that contains commonly
+used settings in comments.
 
     \definition{Settings/Stack sizes ...}
 Allows for defining the maximum size to which the various Prolog stacks are

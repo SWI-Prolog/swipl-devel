@@ -300,7 +300,7 @@ queue can be used to access engines.
     \predicate[det]{engine_create}{4}{+Template, :Goal, -Engine, +Options}
 Create a new engine and unify \arg{Engine} with a handle to it.
 \arg{Template} and \arg{Goal} form a pair similar to findall/3: the
-instantiation of \arg{Template} becomes available though engine_next/2
+instantiation of \arg{Template} becomes available through engine_next/2
 after \arg{Goal} succeeds.  \arg{Options} is a list of the following
 options.  See thread_create/3 for details.
     \begin{description}

@@ -60,7 +60,7 @@ typedef struct term_agenda
 } term_agenda;
 
 
-static void
+static inline void
 initTermAgenda(term_agenda *a, size_t size, Word p)
 { initSegStack(&a->stack, sizeof(aNode),
 	       sizeof(a->first_chunk), a->first_chunk);
@@ -69,7 +69,7 @@ initTermAgenda(term_agenda *a, size_t size, Word p)
 }
 
 
-static void
+static inline void
 clearTermAgenda(term_agenda *a)
 { clearSegStack(&a->stack);
 }
@@ -219,6 +219,89 @@ ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
 #endif /*AC_TERM_WALK*/
 
 
+		 /*******************************
+		 *	 POP ON ONE TERM	*
+		 *******************************/
+
+#if AC_TERM_WALK_POP
+
+#define AC_TERM_POP(n)		((Word)(((n)<<1)|0x1))
+#define IS_AC_TERM_POP(p)	(((uintptr_t)(p)&0x1) ? (uintptr_t)(p)>>1 : 0)
+
+typedef struct aNode_P
+{ Word		location;
+  size_t	size;
+  size_t	depth;
+} aNode_P;
+
+typedef struct term_agenda_P
+{ aNode_P	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[sizeof(segchunk)+sizeof(aNode_P)*64];
+} term_agenda_P;
+
+
+static void
+initTermAgenda_P(term_agenda_P *a, size_t size, Word p)
+{ initSegStack(&a->stack, sizeof(aNode_P),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.location = p;
+  a->work.size     = size;
+  a->work.depth    = 0;
+}
+
+
+static void
+clearTermAgenda_P(term_agenda_P *a)
+{ clearSegStack(&a->stack);
+}
+
+#define nextTermAgenda_P(a) \
+	nextTermAgenda_P__LD(a PASS_LD)
+
+static inline Word
+nextTermAgenda_P__LD(term_agenda_P *a ARG_LD)
+{ Word p;
+
+  while ( a->work.size == 0 )
+  { size_t popn;
+    if ( (popn=a->work.depth) > 0 )
+    { a->work.depth = 0;
+      return AC_TERM_POP(popn);
+    }
+    if ( !popSegStack(&a->stack, &a->work, aNode_P) )
+      return NULL;
+  }
+
+  a->work.size--;
+  p = a->work.location++;
+  deRef(p);
+
+  return p;
+}
+
+
+		 /*******************************
+		 *	  PUSH VARIATIONS	*
+		 *******************************/
+
+static inline int
+pushWorkAgenda_P(term_agenda_P *a, size_t amount, Word start)
+{ if ( a->work.size > 0 )
+  { if ( !pushSegStack(&a->stack, a->work, aNode_P) )
+      return FALSE;
+    a->work.depth = 1;
+  } else
+    a->work.depth++;
+
+  a->work.location = start;
+  a->work.size     = amount;
+
+  return TRUE;
+}
+
+#endif /*!AC_TERM_WALK_POP*/
+
 #if AC_TERM_WALK_LR
 
 		 /*******************************
@@ -294,6 +377,85 @@ pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 }
 
 #endif /*AC_TERM_WALK_LR*/
+
+#if AC_TERM_WALK_LRD
+
+		 /*************************************
+		 * OPERATIONS ON TWO TERMS WITH DEPTH *
+		 *************************************/
+
+typedef struct aNodeLRD
+{ Word		left;			/* left term */
+  Word		right;			/* right term */
+  size_t	size;
+  size_t	depth;
+} aNodeLRD;
+
+typedef struct term_agendaLRD
+{ aNodeLRD	work;			/* current work */
+  segstack	stack;
+  char		first_chunk[256];
+} term_agendaLRD;
+
+
+static void
+initTermAgendaLRD(term_agendaLRD *a, size_t count, Word left, Word right)
+{ initSegStack(&a->stack, sizeof(aNodeLRD),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.size  = count;
+  a->work.depth = 0;
+}
+
+
+static inline void
+initTermAgendaLRD0(term_agendaLRD *a)
+{ initSegStack(&a->stack, sizeof(aNodeLRD),
+	       sizeof(a->first_chunk), a->first_chunk);
+  a->work.size  = 0;
+}
+
+
+static void
+clearTermAgendaLRD(term_agendaLRD *a)
+{ clearSegStack(&a->stack);
+}
+
+
+static int
+nextTermAgendaLRD(term_agendaLRD *a, Word *lp, Word *rp)
+{ if ( a->work.size > 0 )
+  { ok:
+    a->work.size--;
+    *lp = a->work.left++;
+    *rp = a->work.right++;
+
+    return TRUE;
+  }
+
+  if ( popSegStack(&a->stack, &a->work, aNodeLRD) )
+    goto ok;
+
+  return FALSE;
+}
+
+
+static inline int
+pushWorkAgendaLRD(term_agendaLRD *a, size_t amount, Word left, Word right)
+{ if ( a->work.size > 0 )
+  { if ( !pushSegStack(&a->stack, a->work, aNodeLRD) )
+      return FALSE;
+  }
+  a->work.left  = left;
+  a->work.right = right;
+  a->work.size  = amount;
+  a->work.depth++;
+
+  return TRUE;
+}
+
+#endif /*AC_TERM_WALK_LRD*/
 
 #if AC_TERM_WALK_LRS
 

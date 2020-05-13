@@ -1,0 +1,7 @@
+Evaluating p50 : q(A)
+p(a) is: true (OK)
+p(b) is: false (OK)
+q(a) is: false (OK)
+q(b) is: true (OK)
+r(a) is: true (OK)
+r(b) is: false (OK)

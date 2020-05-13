@@ -1,0 +1,4 @@
+incr_invalid_subgoals_1([])
+incr_invalid_subgoals_2([t_1a(A),t_1b(B),t_2a(C),t_2b(D),t_2c(E),t_3(F)])
+incr_invalid_subgoals_3([t_1b(A)])
+incr_is_invalid(t_1b(A))
