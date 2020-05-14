@@ -107,6 +107,7 @@ check_type_size("long" SIZEOF_LONG)
 check_type_size("void *" SIZEOF_VOIDP)
 check_type_size("long long" SIZEOF_LONG_LONG)
 check_type_size("wchar_t" SIZEOF_WCHAR_T)
+check_type_size("off_t" SIZEOF_OFF_T)
 if(USE_GMP)
   check_type_size("mp_bitcnt_t" SIZEOF_MP_BITCNT_T)
 

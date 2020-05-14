@@ -22,7 +22,7 @@
   #define FTELLO_FUNC(stream) _ftelli64(stream)
   #define FSEEKO_FUNC(stream, offset, origin) _fseeki64(stream, offset, origin)
 #else
-  #if defined(HAVE_FOPEN64)
+  #if (SIZEOF_OFF_T != 8) && defined(HAVE_FOPEN64)
     #define FOPEN_FUNC(filename, mode) fopen64(filename, mode)
     #define FTELLO_FUNC(stream) ftello64(stream)
     #define FSEEKO_FUNC(stream, offset, origin) fseeko64(stream, offset, origin)
