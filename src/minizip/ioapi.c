@@ -22,10 +22,7 @@
   #define FTELLO_FUNC(stream) _ftelli64(stream)
   #define FSEEKO_FUNC(stream, offset, origin) _fseeki64(stream, offset, origin)
 #else
-/* SIZEOF_OFF_T = "" if off_t is not defined. We want this branch if
-   off_t is defined, regardless of the size
-*/
-  #if defined(SIZEOF_OFF_T) && (0-SIZEOF_OFF_T-1)!=1
+  #if defined(HAVE_SIZEOF_OFF_T)
     #define FOPEN_FUNC(filename, mode) fopen(filename, mode)
     #define FTELLO_FUNC(stream) ftello(stream)
     #define FSEEKO_FUNC(stream, offset, origin) fseeko(stream, offset, origin)
