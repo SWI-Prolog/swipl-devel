@@ -1,4 +1,5 @@
 check_include_file(inttypes.h HAVE_INTTYPES_H)
+check_include_file(stdint.h HAVE_STDINT_H)
 check_include_file(stdlib.h HAVE_STDLIB_H)
 check_include_file(strings.h HAVE_STRINGS_H)
 check_include_file(wchar.h HAVE_WCHAR_H)
@@ -148,7 +149,6 @@ check_function_exists(readlink HAVE_READLINK)
 check_function_exists(remove HAVE_REMOVE)
 check_function_exists(rename HAVE_RENAME)
 check_function_exists(stat HAVE_STAT)
-check_function_exists(fopen64 HAVE_FOPEN64)
 # Strings and locale
 check_function_exists(memmove HAVE_MEMMOVE)
 check_function_exists(strcasecmp HAVE_STRCASECMP)
