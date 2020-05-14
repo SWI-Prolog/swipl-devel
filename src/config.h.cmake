@@ -252,6 +252,7 @@
 #cmakedefine SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
 #cmakedefine SIZEOF_VOIDP @SIZEOF_VOIDP@
 #cmakedefine SIZEOF_WCHAR_T @SIZEOF_WCHAR_T@
+#cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
 #cmakedefine SO_EXT "@SO_EXT@"
 #cmakedefine SO_LD @SO_LD@
 #cmakedefine SO_LDFLAGS @SO_LDFLAGS@
@@ -269,6 +270,7 @@
 #cmakedefine _FILE_OFFSET_BITS @_FILE_OFFSET_BITS@
 #cmakedefine _LARGE_FILES @_LARGE_FILES@
 #cmakedefine _LARGEFILE_SOURCE @_LARGEFILE_SOURCE@
+#cmakedefine HAVE__FSEEKI64 @HAVE__FSEEKI64@
 #cmakedefine _POSIX_PTHREAD_SEMANTICS @_POSIX_PTHREAD_SEMANTICS@
 #cmakedefine _THREAD_SAFE @_THREAD_SAFE@
 #cmakedefine inline @inline@
