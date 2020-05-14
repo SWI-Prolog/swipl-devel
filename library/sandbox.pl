@@ -1146,6 +1146,7 @@ safe_pattr(multifile(_)).
 safe_pattr(public(_)).
 safe_pattr(meta_predicate(_)).
 safe_pattr(table(_)).
+safe_pattr(non_terminal(_)).
 
 safe_pattr(Var, _) :-
     var(Var),
