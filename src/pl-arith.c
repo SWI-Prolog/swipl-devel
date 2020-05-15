@@ -4454,6 +4454,12 @@ nan15(void)
 }
 
 
+double
+PL_nan(void)
+{ return const_nan;
+}
+
+
 void
 initArith(void)
 { GET_LD

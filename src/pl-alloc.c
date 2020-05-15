@@ -37,6 +37,7 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dict.h"
+#include <math.h>
 #ifdef HAVE_SYS_MMAN_H
 #define MMAP_STACK 1
 #include <sys/mman.h>
@@ -1036,6 +1037,9 @@ put_double(Word at, double d, int flags ARG_LD)
   gTop += 2+WORDS_PER_DOUBLE;
 
   *at = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+
+  if ( isnan(d) )
+    d = PL_nan();			/* SWI-Prolog canonical 1.5NaN */
 
   *p++ = m;
   memcpy(p, &d, sizeof(d));

@@ -76,6 +76,7 @@ COMMON(int)		set_arith_flag(term_t val, atom_t k ARG_LD);
 COMMON(void)		set_rounding(int mode);
 COMMON(int)		atom_to_rounding(atom_t a, int *m);
 COMMON(atom_t)		float_rounding_name(int m);
+COMMON(double)		PL_nan(void);
 
 
 		 /*******************************
