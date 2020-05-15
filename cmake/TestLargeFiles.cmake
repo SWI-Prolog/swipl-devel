@@ -30,7 +30,7 @@ macro(OPJ_TEST_LARGE_FILES VARIABLE)
                     "${PROJECT_SOURCE_DIR}/cmake/TestFileOffsetBits.c")
         if(FILE64_OK)
           message(STATUS "Checking for 64-bit off_t - present")
-       	endif()
+	endif()
 
         if(NOT FILE64_OK)
             # Test with _FILE_OFFSET_BITS=64
@@ -53,7 +53,7 @@ macro(OPJ_TEST_LARGE_FILES VARIABLE)
                 set(_LARGE_FILES 1)
             endif()
         endif()
-	
+
         if(NOT FILE64_OK)
             # Test with _LARGEFILE_SOURCE
             try_compile(FILE64_OK "${PROJECT_BINARY_DIR}"
@@ -72,7 +72,7 @@ macro(OPJ_TEST_LARGE_FILES VARIABLE)
                         "${PROJECT_SOURCE_DIR}/cmake/TestWindowsFSeek.c")
             if(FILE64_OK)
                 message(STATUS "Checking for 64-bit off_t - present with _fseeki64")
-                set(HAVE__FSEEKI64 1)
+                set(HAVE__FSEEKI64 1 CACHE INTERNAL "Platform has _fseeki64()")
             endif()
         endif()
 
@@ -94,7 +94,7 @@ macro(OPJ_TEST_LARGE_FILES VARIABLE)
 	    try_compile(FSEEKO_COMPILE_OK
 	                "${PROJECT_BINARY_DIR}"
                     "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/TestLargeFiles.c")
-	
+
 	    if(FSEEKO_COMPILE_OK)
             message(STATUS "Checking for fseeko/ftello - present")
         endif()
