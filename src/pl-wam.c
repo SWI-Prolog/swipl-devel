@@ -2834,7 +2834,7 @@ pl-comp.c
 #ifndef ASM_NOP
 #define ASM_NOP asm("nop")
 #endif
-#define SEPERATE_VMI ASM_NOP
+#define SEPERATE_VMI { static volatile int nop = 0; (void)nop; }
 
 #else /* VMCODE_IS_ADDRESS */
 

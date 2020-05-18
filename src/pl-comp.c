@@ -145,12 +145,20 @@ initWamTable(void)
   }
   dewam_table_offset = mincoded;
 
-  assert(wam_table[C_NOT] != wam_table[C_IFTHENELSE]);
   dewam_table = (unsigned char *)PL_malloc_atomic(((maxcoded-dewam_table_offset) + 1) *
 						  sizeof(char));
 
   for(n = 0; n < I_HIGHEST; n++)
-    dewam_table[wam_table[n]-dewam_table_offset] = (unsigned char) n;
+  { int index = wam_table[n]-dewam_table_offset;
+    dewam_table[index] = (unsigned char) 0;
+  }
+  for(n = 0; n < I_HIGHEST; n++)
+  { int index = wam_table[n]-dewam_table_offset;
+    if ( dewam_table[index] )
+      fatalError("WAM Table mismatch: wam_table[%d] == wam_table[%d]\n",
+		 dewam_table[index], n);
+    dewam_table[index] = (unsigned char) n;
+  }
 
   checkCodeTable();
   initSupervisors();
