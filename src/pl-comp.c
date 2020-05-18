@@ -154,7 +154,7 @@ initWamTable(void)
   }
   for(n = 0; n < I_HIGHEST; n++)
   { int index = wam_table[n]-dewam_table_offset;
-    if ( dewam_table[index] )
+    if ( dewam_table[index] )		/* See SEPERATE_VMI */
       fatalError("WAM Table mismatch: wam_table[%d] == wam_table[%d]\n",
 		 dewam_table[index], n);
     dewam_table[index] = (unsigned char) n;

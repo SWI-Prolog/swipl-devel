@@ -2751,12 +2751,6 @@ PL_yielded(qid_t qid)
 	  qf->registers.fr = NULL; \
 	}
 
-#ifndef ASM_NOP
-int _PL_nop_counter;
-
-#define ASM_NOP _PL_nop_counter++
-#endif
-
 typedef enum
 { uread = 0,				/* Unification in read-mode */
   uwrite				/* Unification in write mode */
@@ -2831,9 +2825,12 @@ pl-comp.c
 				     DbgPrintInstruction(FR, PC); \
 				     goto *(void *)((intptr_t)(*PC++)); \
 				   } while(0)
-#ifndef ASM_NOP
-#define ASM_NOP asm("nop")
-#endif
+
+/* This macro must ensure that two identical VMI instructions do not get
+ * merged onto the same address by the compiler, causing decompilation
+ * which translates the addresses back into the VMI number to fail.
+ * initWamTable() verfies this does not happen.
+ */
 #define SEPERATE_VMI { static volatile int nop = 0; (void)nop; }
 
 #else /* VMCODE_IS_ADDRESS */
