@@ -57,7 +57,6 @@
 :- autoload(library(error),[must_be/2,existence_error/2,type_error/2]).
 :- autoload(library(option),[option/3]).
 
-
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Setting management
@@ -542,9 +541,10 @@ store_setting(Term, _) :-
 %   Save modified settings to File.
 
 save_settings :-
-    local_file(File),
-    !,
-    save_settings(File).
+    (   local_file(File)
+    ->  save_settings(File)
+    ;   throw(error(context_error(settings, no_default_file), _))
+    ).
 
 save_settings(File) :-
     absolute_file_name(File, Path,
@@ -658,7 +658,8 @@ list_setting(Module:Name, TS1, TS2) :-
     ->  Modified = (*)
     ;   Modified = ''
     ),
-    format('~w~t~*| ~q~w~t~*| ~w~n', [Module:Name, TS1, Value, Modified, TS2, Comment]).
+    format('~w~t~*| ~q~w~t~*| ~w~n',
+           [Module:Name, TS1, Value, Modified, TS2, Comment]).
 
 
                  /*******************************
@@ -713,3 +714,14 @@ convert_setting_text(Type, Atom, Term) :-
     sandbox:safe_meta_predicate/1.
 
 sandbox:safe_meta_predicate(settings:setting/2).
+
+
+		 /*******************************
+		 *           MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:error_message//1.
+
+prolog:error_message(context_error(settings, no_default_file)) -->
+    [ 'save_settings/0: no default file' ].
