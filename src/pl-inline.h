@@ -39,13 +39,15 @@
 #define LD LOCAL_LD
 
 #ifdef __WINDOWS__
-#include <windows.h>
-#undef small
-#include <intrin.h>
-#if SIZEOF_VOIDP == 8
-  #pragma intrinsic(_BitScanReverse64)
-#endif
-#pragma intrinsic(_BitScanReverse)
+  #include <windows.h>
+  #undef small
+  #include <intrin.h>
+  #ifdef _MSC_VER
+    #if SIZEOF_VOIDP == 8
+      #pragma intrinsic(_BitScanReverse64)
+    #endif
+    #pragma intrinsic(_BitScanReverse)
+  #endif
 #endif
 
 		 /*******************************
