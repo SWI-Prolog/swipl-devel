@@ -848,8 +848,13 @@ check_mpq(Number r)
   size_t sz;
 
   if ( (sz=LD->arith.rat.max_rational_size) != (size_t)-1 )
-  { if ( ( mpq_numref(r->value.mpq)->_mp_size +
-	   mpq_denref(r->value.mpq)->_mp_size ) * sizeof(mp_limb_t) > sz )
+  { int szn = mpq_numref(r->value.mpq)->_mp_size;
+    int szd = mpq_denref(r->value.mpq)->_mp_size;
+
+    if ( szn < 0 ) szn = -szn;
+    if ( szd < 0 ) szd = -szd;
+
+    if ( ( szn + szd ) * sizeof(mp_limb_t) > sz )
     { atom_t action = LD->arith.rat.max_rational_size_action;
 
       if ( action == ATOM_float )
