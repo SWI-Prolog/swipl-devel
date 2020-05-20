@@ -216,9 +216,9 @@ concat_atom(L, Atom) :-
     atomic_list_concat(L, Atom).
 
 
-%!  concat_atom(+List, +Seperator, -Atom) is det.
+%!  concat_atom(+List, +Separator, -Atom) is det.
 %
-%   Concatenate a list of atomic values to an atom, inserting Seperator
+%   Concatenate a list of atomic values to an atom, inserting Separator
 %   between each consecutive elements.
 %
 %   @deprecated Use atomic_list_concat/3 as proposed by the prolog

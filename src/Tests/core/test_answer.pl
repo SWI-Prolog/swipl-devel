@@ -70,7 +70,7 @@ test_answer :-
 
 %%	toplevel_answer(+GoalAtom, -Answer:string) is det.
 %
-%	Run GoalAtom in a seperate thread and   catch the output that is
+%	Run GoalAtom in a separate thread and   catch the output that is
 %	produces by Prolog.
 
 toplevel_answer(GoalAtom, Answer) :-

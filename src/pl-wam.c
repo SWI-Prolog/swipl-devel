@@ -2831,7 +2831,7 @@ pl-comp.c
  * which translates the addresses back into the VMI number to fail.
  * initWamTable() verfies this does not happen.
  */
-#define SEPERATE_VMI { static volatile int nop = 0; (void)nop; }
+#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
 
 #else /* VMCODE_IS_ADDRESS */
 
@@ -2854,7 +2854,7 @@ code thiscode;
 				  END_PROF(); \
                                   goto next_instruction; \
 				}
-#define SEPERATE_VMI		(void)0
+#define SEPARATE_VMI		(void)0
 
 #endif /* VMCODE_IS_ADDRESS */
 
