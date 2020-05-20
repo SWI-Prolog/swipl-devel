@@ -511,6 +511,8 @@ test(ieee_min) :-                                       % C11 - F.10.9.3
 
 test(ieee_rmode) :-
     assertion(test_rounding(-1.0/(3))),
+    assertion(test_rounding(float(1r3))),
+    assertion(test_rounding(float(-1r3))),
     assertion(test_rounding(sqrt(2))),
     assertion(test_rounding(exp(log(2)))),
     assertion(test_rounding(-2.0** 1r3)),
@@ -520,6 +522,8 @@ test(ieee_rmode) :-
 
 test(ieee_rndto) :-
     assertion(test_roundto(-1.0/(3))),
+    assertion(test_roundto(float(1r3))),
+    assertion(test_roundto(float(-1r3))),
     assertion(test_roundto(sqrt(2))),
     assertion(test_roundto(exp(log(2)))),
     assertion(test_roundto(2**0.5)),
