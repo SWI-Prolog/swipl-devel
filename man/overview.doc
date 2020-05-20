@@ -1580,10 +1580,10 @@ explicit request.  May be changed.
 
     \prologflagitem{gc_thread}{bool}{r}
 If \const{true} (default if threading is enabled), atom and
-clause garbage collection are executed in a seperate thread with the
+clause garbage collection are executed in a separate thread with the
 \jargon{alias} \const{gc}. Otherwise the thread that detected sufficient
 garbage executes the garbage collector. As running these global
-collectors may take relatively long, using a seperate thread improves
+collectors may take relatively long, using a separate thread improves
 real time behaviour. The \const{gc} thread can be controlled using
 set_prolog_gc_thread/1.
 

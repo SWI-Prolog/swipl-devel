@@ -22,7 +22,7 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 		 *	       IDE		*
 		 *******************************/
 
-%	By default, xpce (the  graphics  library)   runs  in  a seperate
+%	By default, xpce (the  graphics  library)   runs  in  a separate
 %	thread. This allows editing and inspecting your program while it
 %	is running. All components of the Prolog development environment
 %	are aware of this. If you use   your own xpce based applications

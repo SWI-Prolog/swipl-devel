@@ -2164,7 +2164,7 @@ compar_keys(const void *p1, const void *p2)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Only the final call gets a clause_count > 0. Here we do the remainder of
-the assessment. We could consider  for   a  seperate  function to merely
+the assessment. We could consider  for   a  separate  function to merely
 reduce the set.
 
 (*) Currently we cannot  combine  variables   with  functor  indexes  as

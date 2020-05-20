@@ -675,7 +675,7 @@ prolog_message(error(loop_error(Spec), file_search(Used))) -->
     ],
     used_search(Used).
 prolog_message(minus_in_identifier) -->
-    [ 'The "-" character should not be used to seperate words in an', nl,
+    [ 'The "-" character should not be used to separate words in an', nl,
       'identifier.  Check the SWI-Prolog FAQ for details.'
     ].
 prolog_message(qlf(removed_after_error(File))) -->

@@ -38,7 +38,7 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This header provides definition that allow us compiling the C files that
 define built-in predicates, disclosing as little   as  possible from the
-SWI-Prolog kernel. The aim of this seperate   module is to allow reusing
+SWI-Prolog kernel. The aim of this separate   module is to allow reusing
 these files in other Prolog systems with  minimal effort by providing an
 implementation of this macro layer  that   satisfies  the  target Prolog
 system.

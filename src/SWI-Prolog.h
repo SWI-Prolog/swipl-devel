@@ -105,7 +105,7 @@ special declaration) or exported from the executable or DLL.
 Both using native Microsoft MSVC as well   as recent Cygwin (tested 1.1)
 compilers support __declspec(...) for exporting symbols.
 
-As SWI-Prolog.h can be included seperately or together with this file we
+As SWI-Prolog.h can be included separately or together with this file we
 duplicated this stuff.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
