@@ -1502,6 +1502,7 @@ mpz_fdiv(mpz_t num, mpz_t den)
   { double l,s;
     long int le, se;
     mpz_t li, si;
+    int r_mode;
 
     /* we ignore limbs that are not significant for the result */
     if ( longer_size > MIN_LIMB_DIFF )	/* more can't be represented */
@@ -1521,10 +1522,25 @@ mpz_fdiv(mpz_t num, mpz_t den)
 
     l = mpz_get_d_2exp(&le, li);
     s = mpz_get_d_2exp(&se, si);
+
+    /* if result negative, some rounding modes must be swapped;
+       avoid if unnecessary */
+    if ( negative )
+    { r_mode = fegetround();
+
+      switch (r_mode)
+      { case FE_UPWARD:   fesetround(FE_DOWNWARD); break;
+	case FE_DOWNWARD: fesetround(FE_UPWARD);
+      }
+    }
+
     if ( swapped )
       res = (l/s) * pow(2.0, le-se);
     else
       res = (s/l) * pow(2.0, se-le);
+
+    if ( negative )
+      fesetround(r_mode);
   }
 
   return negative ? -res : res;
