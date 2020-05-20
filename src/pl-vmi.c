@@ -2770,6 +2770,7 @@ code.
 VMI(S_DYNAMIC, 0, 0, ())
 { enterDefinition(DEF);
 
+  SEPERATE_VMI;
   VMI_GOTO(S_STATIC);
 }
 
