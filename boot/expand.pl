@@ -415,8 +415,13 @@ prop_var(fresh(Fresh), Var) :-
     ;   Fresh = true
     ).
 prop_var(singleton(Singleton), Var) :-
-    get_attr(Var, '$var_info', Info),
-    get_dict(singleton, Info, Singleton).
+    nb_current('$term', Term),
+    term_singletons(Term, Singletons),
+    (   '$member'(V, Singletons),
+        V == Var
+    ->  Singleton = true
+    ;   Singleton = false
+    ).
 prop_var(name(Name), Var) :-
     (   nb_current('$variable_names', Bindings),
         '$member'(Name0=Var0, Bindings),

@@ -123,7 +123,8 @@ argv_options([H0|T0], R, [H|T]) :-
             Value = true
         )
     ),
-    H =.. [Name,Value],
+    canonical_name(Name, PlName),
+    H =.. [PlName,Value],
     argv_options(T0, R, T).
 argv_options([H|T0], [H|R], T) :-
     argv_options(T0, R, T).
@@ -134,6 +135,10 @@ convert_option(_, String, Number) :-
     !.
 convert_option(_, String, Atom) :-
     atom_string(Atom, String).
+
+canonical_name(Name, PlName) :-
+    split_string(Name, "-_", "", Parts),
+    atomic_list_concat(Parts, '_', PlName).
 
 :- multifile
     prolog:called_by/2.

@@ -1087,16 +1087,24 @@ accessed using expand_term/2.
 True when \arg{Property} is a property of \arg{Var}. These properties
 are available during goal- and term-expansion. Defined properties are
 below. Future versions are likely to provide more properties, such as
-whether the variable is a singleton or whether the variable is
-referenced in the remainder of the term.  See also goal_expansion/2.
+whether the variable is referenced in the remainder of the term. See
+also goal_expansion/2.
 
     \begin{description}
     \termitem{fresh}{Bool}
-Bool has the value \arg{true} if the variable is guaranteed to be
-unbound at entry of the goal, otherwise its value is \arg{false}.
-This implies that the variable first appears in this goal or a
-previous appearance was in a negation (\predref{\+}{1}) or a
-different branch of a disjunction.
+\arg{Bool} has the value \const{true} if the variable is guaranteed
+to be unbound at entry of the goal, otherwise its value is \arg{false}.
+This implies that the variable first appears in this goal or a previous
+appearance was in a negation (\predref{\+}{1}) or a different branch of
+a disjunction.
+
+    \termitem{singleton}{Bool}
+\arg{Bool} has the value \const{true} if the variable is a
+\emph{syntactic} singleton in the term it appears in. Note that this
+tests that the variable appears exactly once in the term being expanded
+without making any claim on the syntax of the variable. Variables that
+appear only once in multiple branches are \emph{not} singletons
+according to this property. Future implementations may improve on that.
 
     \termitem{name}{Name}
 True when variable appears with the given name in the source.

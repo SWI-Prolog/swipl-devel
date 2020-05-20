@@ -34,7 +34,7 @@ function(add_swipl_target name)
   endif()
 
   foreach(s ${my_LIBS})
-    set(options ${options} -g "'use_module(library(${s}))'")
+    set(options ${options} -g "\"use_module(library(${s}))\"")
   endforeach()
 
   foreach(s ${my_SCRIPT})

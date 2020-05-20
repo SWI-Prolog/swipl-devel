@@ -108,12 +108,12 @@ parsort(_List, _Spec, Dupl, _Sorted) :-
     var(Dupl),
     !,
     uninstantiation_error(Dupl).
-parsort(List, asc,  0, Sorted) :- !, sort(0, @<,  List, Sorted).
-parsort(List, asc,  _, Sorted) :- !, sort(0, @=<, List, Sorted).
-parsort(List, [],   0, Sorted) :- !, sort(0, @<,  List, Sorted).
-parsort(List, [],   _, Sorted) :- !, sort(0, @=<, List, Sorted).
-parsort(List, desc, 0, Sorted) :- !, sort(0, @>,  List, Sorted).
-parsort(List, desc, _, Sorted) :- !, sort(0, @>=, List, Sorted).
+parsort(List, asc,  0, Sorted) :- !, sort(0, @=<, List, Sorted).
+parsort(List, asc,  _, Sorted) :- !, sort(0, @<,  List, Sorted).
+parsort(List, [],   0, Sorted) :- !, sort(0, @=<, List, Sorted).
+parsort(List, [],   _, Sorted) :- !, sort(0, @<,  List, Sorted).
+parsort(List, desc, 0, Sorted) :- !, sort(0, @>=, List, Sorted).
+parsort(List, desc, _, Sorted) :- !, sort(0, @>,  List, Sorted).
 parsort(List, SortSpec, Dupl, Sorted) :-
     must_be(list, SortSpec),
     reverse(SortSpec, Rev),
@@ -124,10 +124,10 @@ parsort_([H|T], Dupl, List0, List) :-
     parsort_1(H, Dupl, List0, List1),
     parsort_(T, Dupl, List1, List).
 
-parsort_1(asc(I),  0, List, Sorted) :- !, sort(I, @<,  List, Sorted).
-parsort_1(asc(I),  _, List, Sorted) :- !, sort(I, @=<, List, Sorted).
-parsort_1(desc(I), 0, List, Sorted) :- !, sort(I, @>,  List, Sorted).
-parsort_1(desc(I), _, List, Sorted) :- !, sort(I, @>=, List, Sorted).
+parsort_1(asc(I),  0, List, Sorted) :- !, sort(I, @=<, List, Sorted).
+parsort_1(asc(I),  _, List, Sorted) :- !, sort(I, @<,  List, Sorted).
+parsort_1(desc(I), 0, List, Sorted) :- !, sort(I, @>=, List, Sorted).
+parsort_1(desc(I), _, List, Sorted) :- !, sort(I, @>,  List, Sorted).
 parsort_1(Spec,  _, _, _) :-
     domain_error(parsort_spec, Spec).
 

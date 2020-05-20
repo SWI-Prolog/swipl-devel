@@ -226,7 +226,6 @@
 #cmakedefine LINUX_PROCFS @LINUX_PROCFS@
 #cmakedefine NEED_DECL_ERRNO @NEED_DECL_ERRNO@
 #cmakedefine NON_ALIGNED_ACCESS @NON_ALIGNED_ACCESS@
-#cmakedefine NO_ASM_NOP @NO_ASM_NOP@
 #cmakedefine NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H @NO_SYS_IOCTL_H_WITH_SYS_TERMIOS_H@
 #cmakedefine O_LABEL_ADDRESSES @O_LABEL_ADDRESSES@
 #cmakedefine O_PLMT @O_PLMT@
@@ -252,6 +251,8 @@
 #cmakedefine SIZEOF_LONG_LONG @SIZEOF_LONG_LONG@
 #cmakedefine SIZEOF_VOIDP @SIZEOF_VOIDP@
 #cmakedefine SIZEOF_WCHAR_T @SIZEOF_WCHAR_T@
+#cmakedefine HAVE_SIZEOF_OFF_T @HAVE_SIZEOF_OFF_T@
+#cmakedefine SIZEOF_OFF_T @SIZEOF_OFF_T@
 #cmakedefine SO_EXT "@SO_EXT@"
 #cmakedefine SO_LD @SO_LD@
 #cmakedefine SO_LDFLAGS @SO_LDFLAGS@
@@ -269,6 +270,7 @@
 #cmakedefine _FILE_OFFSET_BITS @_FILE_OFFSET_BITS@
 #cmakedefine _LARGE_FILES @_LARGE_FILES@
 #cmakedefine _LARGEFILE_SOURCE @_LARGEFILE_SOURCE@
+#cmakedefine HAVE__FSEEKI64 @HAVE__FSEEKI64@
 #cmakedefine _POSIX_PTHREAD_SEMANTICS @_POSIX_PTHREAD_SEMANTICS@
 #cmakedefine _THREAD_SAFE @_THREAD_SAFE@
 #cmakedefine inline @inline@

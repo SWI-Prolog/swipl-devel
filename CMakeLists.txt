@@ -82,57 +82,57 @@ set(CMAKE_INSTALL_MESSAGE NEVER)
 
 if(WIN32)
 
-set(SWIPL_INSTALL_DIR "."
-    CACHE STRING "Directory below <prefix> for installation")
-set(SWIPL_INSTALL_PREFIX   ${SWIPL_INSTALL_DIR})
-set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin)
-set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/bin)
-set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/bin)
-# Place all .exe and .dll in one directory
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
-set(SWIPL_TMP_DIR "c:/tmp" CACHE STRING
-    "Directory to be used if the environment variable TEMP is not set")
+  set(SWIPL_INSTALL_DIR "."
+      CACHE STRING "Directory below <prefix> for installation")
+  set(SWIPL_INSTALL_PREFIX   ${SWIPL_INSTALL_DIR})
+  set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin)
+  set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/bin)
+  set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/bin)
+  # Place all .exe and .dll in one directory
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/src)
+  set(SWIPL_TMP_DIR "c:/tmp" CACHE STRING
+      "Directory to be used if the environment variable TEMP is not set")
 
 else(WIN32)
 
-if(SWIPL_VERSIONED_DIR)
-  set(SWIPL_INSTALL_DIR_DEF  swipl-${SWIPL_VERSION_STRING})
-else()
-  set(SWIPL_INSTALL_DIR_DEF  swipl)
-endif()
+  if(SWIPL_VERSIONED_DIR)
+    set(SWIPL_INSTALL_DIR_DEF  swipl-${SWIPL_VERSION_STRING})
+  else()
+    set(SWIPL_INSTALL_DIR_DEF  swipl)
+  endif()
 
-set(SWIPL_INSTALL_DIR ${SWIPL_INSTALL_DIR_DEF}
-    CACHE STRING "Directory below <prefix> for installation")
-set(SWIPL_TMP_DIR "/tmp" CACHE STRING
-    "Directory to be used if the environment variable TMP is not set")
+  set(SWIPL_INSTALL_DIR ${SWIPL_INSTALL_DIR_DEF}
+      CACHE STRING "Directory below <prefix> for installation")
+  set(SWIPL_TMP_DIR "/tmp" CACHE STRING
+      "Directory to be used if the environment variable TMP is not set")
+
+  if(BUILD_MACOS_BUNDLE)
+    set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
+    set(SWIPL_INSTALL_ARCH_EXE  SWI-Prolog.app/Contents/MacOS)
+    set(SWIPL_INSTALL_ARCH_LIB  SWI-Prolog.app/Contents/Frameworks)
+    set(SWIPL_INSTALL_MANPAGES  SWI-Prolog.app/Contents/man)
+    set(SWIPL_INSTALL_PKGCONFIG SWI-Prolog.app/Contents/pkgconfig)
+    set(SWIPL_INSTALL_RESOURCES SWI-Prolog.app/Contents/Resources)
+  else()
+    set(SWIPL_INSTALL_PREFIX   lib/${SWIPL_INSTALL_DIR})
+    if(SWIPL_INSTALL_IN_SHARE)
+      set(SWIPL_INSTALL_SHARE_PREFIX share/${SWIPL_INSTALL_DIR})
+    endif()
+    set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin/${SWIPL_ARCH})
+    set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
+    set(SWIPL_INSTALL_MANPAGES share/man/man1
+        CACHE STRING "Directory for man pages")
+    set(SWIPL_INSTALL_PKGCONFIG share/pkgconfig
+        CACHE STRING "Directory for pkg-config pages")
+  endif()
+
+  set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
+
+endif(WIN32)
 
 set(SWIPL_CMAKE_NAMESPACE swipl::)
 set(SWIPL_INSTALL_CMAKE_CONFIG_DIR lib/cmake/swipl)
-
-if(BUILD_MACOS_BUNDLE)
-  set(SWIPL_INSTALL_PREFIX    SWI-Prolog.app/Contents/swipl)
-  set(SWIPL_INSTALL_ARCH_EXE  SWI-Prolog.app/Contents/MacOS)
-  set(SWIPL_INSTALL_ARCH_LIB  SWI-Prolog.app/Contents/Frameworks)
-  set(SWIPL_INSTALL_MANPAGES  SWI-Prolog.app/Contents/man)
-  set(SWIPL_INSTALL_PKGCONFIG SWI-Prolog.app/Contents/pkgconfig)
-  set(SWIPL_INSTALL_RESOURCES SWI-Prolog.app/Contents/Resources)
-else()
-  set(SWIPL_INSTALL_PREFIX   lib/${SWIPL_INSTALL_DIR})
-  if(SWIPL_INSTALL_IN_SHARE)
-    set(SWIPL_INSTALL_SHARE_PREFIX share/${SWIPL_INSTALL_DIR})
-  endif()
-  set(SWIPL_INSTALL_ARCH_EXE ${SWIPL_INSTALL_PREFIX}/bin/${SWIPL_ARCH})
-  set(SWIPL_INSTALL_ARCH_LIB ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
-  set(SWIPL_INSTALL_MANPAGES share/man/man1
-      CACHE STRING "Directory for man pages")
-  set(SWIPL_INSTALL_PKGCONFIG share/pkgconfig
-      CACHE STRING "Directory for pkg-config pages")
-endif()
-
-set(SWIPL_INSTALL_MODULES  ${SWIPL_INSTALL_PREFIX}/lib/${SWIPL_ARCH})
-
-endif(WIN32)
 
 if(NOT SWIPL_INSTALL_SHARE_PREFIX)
   set(SWIPL_INSTALL_SHARE_PREFIX "${SWIPL_INSTALL_PREFIX}")
@@ -203,7 +203,7 @@ if(INSTALL_DOCUMENTATION)
   add_custom_command(
       OUTPUT ${MAN_INDEX}
       COMMAND ${PROG_SWIPL} -f none --no-packs --home=${SWIPL_BUILD_HOME}
-			    -g "'use_module(library(prolog_install))'"
+			    -g "\"use_module(library(prolog_install))\""
 	                    -g cmake_save_man_index -t halt
       DEPENDS swipl core doc.html)
   add_custom_target(

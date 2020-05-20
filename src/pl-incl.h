@@ -406,10 +406,6 @@ A common basis for C keywords.
 #define unlikely(x)	(x)
 #endif
 
-#if defined(__STRICT_ANSI__) || defined(NO_ASM_NOP)
-#define ASM_NOP { static int nop; nop++; }
-#endif
-
 #ifdef DMALLOC
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 
