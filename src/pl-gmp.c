@@ -1483,7 +1483,7 @@ mpz_fdiv(mpz_t num, mpz_t den)
   if ( longer_size < 0 )
   { longer_size = -longer_size;
     negative = !negative;
-  }
+  }  
   if ( shorter_size > longer_size )
   { longer_size = shorter_size;
     longer_d = num->_mp_d;
@@ -1521,10 +1521,21 @@ mpz_fdiv(mpz_t num, mpz_t den)
 
     l = mpz_get_d_2exp(&le, li);
     s = mpz_get_d_2exp(&se, si);
+    
+	/* if result negative, some rounding modes must be swapped; avoid if unnecessary */
+	int r_mode = fegetround();
+	if (negative) switch (r_mode) {
+    	case FE_UPWARD  : fesetround(FE_DOWNWARD); break;
+    	case FE_DOWNWARD: fesetround(FE_UPWARD);
+  	}
+
     if ( swapped )
       res = (l/s) * pow(2.0, le-se);
     else
       res = (s/l) * pow(2.0, se-le);
+
+	if ((negative) && (r_mode==FE_UPWARD || r_mode==FE_DOWNWARD)) 
+		fesetround(r_mode);  // restores rounding mode
   }
 
   return negative ? -res : res;
