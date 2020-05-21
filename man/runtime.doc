@@ -448,7 +448,7 @@ Before the system had the ability to open resources as files, resources
 were opened using the predicates open_resource/2 or open_resource/3.
 These predicates provide somewhat better dynamic control over resources
 depending on whether the code is running from files or from a saved
-state.  The main disadvantage is that having a seperate open call
+state.  The main disadvantage is that having a separate open call
 requires rewriting code to make it work with resources rather than
 files.
 

@@ -487,12 +487,12 @@ TBD:	Deal with multiple identical instructions
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(H_STRING);
 }
 
 VMI(H_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(H_STRING);
 }
 
@@ -897,12 +897,12 @@ H_STRING.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(B_STRING);
 }
 
 VMI(B_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(B_STRING);
 }
 
@@ -1088,7 +1088,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
  */
 
 VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(B_UNIFY_FV);
 }
 
@@ -2108,7 +2108,7 @@ relative address simplifies the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_SOFTIFTHEN, 0, 1, (CA1_CHP))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(C_IFTHEN);
 }
 
@@ -2126,7 +2126,7 @@ look-ahead.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_NOT, 0, 2, (CA1_CHP,CA1_JUMP))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(C_IFTHENELSE);
 }
 
@@ -2276,7 +2276,7 @@ VMI(C_SCUT, 0, 0, ())
 }
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(C_CUT);
 }
 
@@ -2770,7 +2770,7 @@ code.
 VMI(S_DYNAMIC, 0, 0, ())
 { enterDefinition(DEF);
 
-  SEPERATE_VMI;
+  SEPARATE_VMI;
   VMI_GOTO(S_STATIC);
 }
 
@@ -5691,7 +5691,7 @@ VMI(T_TRY_MPZ, 0, VM_DYNARGC, (CA1_JUMP,CA1_MPZ))
 { TRIE_TRY;
 }
 VMI(T_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPERATE_VMI;
+{ SEPARATE_VMI;
   VMI_GOTO(T_STRING);
 }
 

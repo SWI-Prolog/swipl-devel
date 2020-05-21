@@ -3112,7 +3112,7 @@ get_scc(term_t t, tbl_component **cp)
   { tbl_component *c = ptr;
 
     if ( c->magic != COMPONENT_MAGIC )
-      return PL_existence_error("table component", t);
+      return PL_existence_error("table component", t),FALSE;
 
     *cp = c;
 

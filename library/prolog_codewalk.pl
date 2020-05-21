@@ -55,7 +55,7 @@
 
 This module walks over  the  loaded   program,  searching  for  callable
 predicates. It started as part of  library(prolog_autoload) and has been
-turned into a seperate module to  facilitate operations that require the
+turned into a separate module to  facilitate operations that require the
 same reachability analysis, such as finding   references to a predicate,
 finding unreachable code, etc.
 

@@ -52,7 +52,7 @@ intensive tasks. In such cases it  can   be  used  to generate tables in
 Prolog or even to create a dedicated C datastructure.
 
 The file UnicodeData.txt itself is not part   of the library and must be
-obtained and installed seperately. This is because of its size (close to
+obtained and installed separately. This is because of its size (close to
 1MB). Increasing the footprint of the environment with 1MB is too much.
 
 The UCD file must be  named  UnicodeData.txt   and  placed  in  the same
