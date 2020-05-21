@@ -845,6 +845,7 @@ no_save_flag(tty_control).
 no_save_flag(readline).
 no_save_flag(associated_file).
 no_save_flag(cpu_count).
+no_save_flag(tmp_dir).
 no_save_flag(hwnd).                     % should be read-only, but comes
                                         % from user-code
 
