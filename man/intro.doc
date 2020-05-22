@@ -24,7 +24,7 @@ large is backed up by scalability, compiler speed, program structuring
 (modules), support for multithreading to accommodate servers, Unicode
 and interfaces to a large number of document formats, protocols and
 programming languages. Prototyping is facilitated by good development
-tools, both for command line usage as for usage with graphical
+tools, both for command line usage and for usage with graphical
 development tools. Demand loading of predicates from the library and a
 `make' facility avoids the \emph{requirement} for using declarations and
 reduces typing.
@@ -44,7 +44,7 @@ compile to native code, XSB is better for deductive databases because it
 provides a mature implementation of \jargon{tabling} including support
 for incremental updates and \jargon{Well Founded
 Semantics}\footnote{Sponsored by Kyndi and with help from the XSB
-developmers Theresa Swift and David S. Warren, SWI-Prolog now supports
+developers Theresa Swift and David S. Warren, SWI-Prolog now supports
 many of the XSB features.}, and ECLiPSe is better at constraint
 handling.
 
@@ -59,7 +59,7 @@ Together with YAP we developed a portability framework (see
 YAP, IF/Prolog and Ciao. SWI-Prolog version~7 introduces various
 extensions to the Prolog language (see \secref{extensions}). The
 \jargon{string} data type and its supporting set of built-in predicates
-is compatibility with ECLiPSe.
+is compatible with ECLiPSe.
 
 \section{Status and releases}			\label{sec:status}
 
@@ -118,12 +118,12 @@ appreciated by users:
 \begin{itemlist}
     \item [Comprehensive support of Prolog extensions]
 Many modern Prolog implementations extend the standard SLD resolution
-mechanism with which Prolog started and thst is described in the ISO
+mechanism with which Prolog started and that is described in the ISO
 standard. SWI-Prolog offers most popular extensions.
 
 \jargon{Attributed variables} provide \jargon{Constraint Logic
 Programming} and delayed execution based on instantiation
-(\jargon{coroutining}). \jargon{Tabling} or \jargon{SGL resoluton}
+(\jargon{coroutining}). \jargon{Tabling} or \jargon{SGL resolution}
 provides characteristics normally associated with \jargon{bottom up
 evaluation}: better termination, better predictable performance by
 avoiding recomputation and Well Founded Semantics for negation.
@@ -197,7 +197,7 @@ invited to cite one of the
 publications\footnote{\url{https://www.swi-prolog.org/Publications.html}}
 on SWI-Prolog. Users can help by identifying and/or fixing problems with
 the code or its
-documentation.\footnote{\url{https://www.swi-prolog.org/howto/SubmitPatch.html}}.
+documentation\footnote{\url{https://www.swi-prolog.org/howto/SubmitPatch.html}}.
 Users can contribute new features or, more lightweight, contribute
 packs\footnote{\url{https://www.swi-prolog.org/pack/list}}. Commercial
 users may consider contacting the
@@ -248,7 +248,7 @@ by Paul Tarau. Tabling was implemented by Benoit Desouter based on
 delimited continuations. Tabling has been extended with \jargon{answer
 subsumption} by Fabrizio Riguzzi. The implementation of \jargon{well
 founded semantics} and \jargon{incremental tabling} follows XSB and
-has been spnosored by Kyndi and mode possible by technical support from
+has been sponsored by Kyndi and mode possible by technical support from
 notably Theresa Swift and David S. Warren.
 
 
@@ -323,5 +323,5 @@ established after discussion with the founding father of engines, Paul
 Tarau and Paulo Moura. Kyndi also sponsored JIT indexing on multiple
 arguments as well as \jargon{deep indexing}. Kyndi currently supports
 the implementation of XSB compatible tabling, including well founded
-semantics and incrementatl tabling.  Theresa Swift, David S. Warren
-and Fabrizio Riguzzi proved input to realise advanced tabling.
+semantics and incremental tabling.  Theresa Swift, David S. Warren
+and Fabrizio Riguzzi provided input to realise advanced tabling.
