@@ -32,7 +32,7 @@ add_custom_command(
             --class=development --no-autoload --no-stand_alone
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
-    DEPENDS pldoc2tex.pl swipl core
+    DEPENDS pldoc2tex.pl swipl core prolog_home
             pldoc clib sgml http nlp)
 
 add_custom_target(
