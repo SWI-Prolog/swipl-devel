@@ -587,15 +587,29 @@ close_sources :-
 %!  portray_clause(+Out:stream, +Clause) is det.
 %!  portray_clause(+Out:stream, +Clause, +Options) is det.
 %
-%   Portray `Clause' on the current  output   stream.  Layout of the
-%   clause is to our best standards.   As  the actual variable names
-%   are not available we use A, B, ... Deals with ';', '|', '->' and
-%   calls via meta-call predicates as determined using the predicate
-%   property   meta_predicate.   If   Clause   contains   attributed
-%   variables, these are treated as normal variables.
+%   Portray `Clause' on the current output  stream. Layout of the clause
+%   is to our best standards. Deals   with  control structures and calls
+%   via meta-call predicates as determined  using the predicate property
+%   meta_predicate. If Clause contains attributed   variables, these are
+%   treated as normal variables.
 %
-%   If  Options  is  provided,   the    option-list   is  passed  to
-%   write_term/3 that does the final writing of arguments.
+%   Variable names are by default generated using numbervars/4 using the
+%   option singletons(true). This names the variables  `A`, `B`, ... and
+%   the singletons `_`. Variables can  be   named  explicitly by binding
+%   them to a term `'$VAR'(Name)`, where `Name`   is  an atom denoting a
+%   valid  variable  name  (see   the    option   numbervars(true)  from
+%   write_term/2) as well  as  by   using  the  variable_names(Bindings)
+%   option from write_term/2.
+%
+%   Options processed in addition to write_term/2 options:
+%
+%     - variable_names(+Bindings)
+%       See above and write_term/2.
+%     - indent(+Columns)
+%       Left margin used for the clause.  Default `0`.
+%     - module(+Module)
+%       Module used to determine whether a goal resolves to a meta
+%       predicate.  Default `user`.
 
 %       The prolog_list_goal/1 hook is  a  dubious   as  it  may lead to
 %       confusion if the heads relates to other   bodies.  For now it is
@@ -616,12 +630,34 @@ portray_clause(Stream, Term) :-
 portray_clause(Stream, Term, M:Options) :-
     must_be(list, Options),
     meta_options(is_meta, M:Options, QOptions),
-    \+ \+ ( copy_term_nat(Term, Copy),
-            numbervars(Copy, 0, _,
-                       [ singletons(true)
-                       ]),
-            do_portray_clause(Stream, Copy, QOptions)
-          ).
+    \+ \+ name_vars_and_portray_clause(Stream, Term, QOptions).
+
+name_vars_and_portray_clause(Stream, Term, Options) :-
+    term_attvars(Term, []),
+    !,
+    clause_vars(Term, Options),
+    do_portray_clause(Stream, Term, Options).
+name_vars_and_portray_clause(Stream, Term, Options) :-
+    option(variable_names(Bindings), Options),
+    !,
+    copy_term_nat(Term+Bindings, Copy+BCopy),
+    bind_vars(BCopy),
+    name_other_vars(Copy, BCopy),
+    do_portray_clause(Stream, Copy, Options).
+name_vars_and_portray_clause(Stream, Term, Options) :-
+    copy_term_nat(Term, Copy),
+    clause_vars(Copy, Options),
+    do_portray_clause(Stream, Copy, Options).
+
+clause_vars(Clause, Options) :-
+    option(variable_names(Bindings), Options),
+    !,
+    bind_vars(Bindings),
+    name_other_vars(Clause, Bindings).
+clause_vars(Clause, _) :-
+    numbervars(Clause, 0, _,
+               [ singletons(true)
+               ]).
 
 is_meta(portray_goal).
 

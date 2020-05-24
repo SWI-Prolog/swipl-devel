@@ -1556,39 +1556,6 @@ prolog_edit:load :-
 \end{code}
 \end{description}
 
-\section{List the program, predicates or clauses}	\label{sec:listing}
-
-\begin{description}
-    \predicate{listing}{1}{:Pred}
-List predicates specified by \arg{Pred}.  \arg{Pred} may be a predicate
-name (atom), which lists all predicates with this name, regardless of
-their arity.  It can also be a predicate indicator (<name>/<arity> or
-<name>//<arity>), possibly qualified with a module.  For example:
-\exam{?- listing(lists:member/2).}.
-
-A listing is produced by enumerating the clauses of the predicate using
-clause/2 and printing each clause using portray_clause/1.  This implies
-that the variable names are generated (\arg{A}, \arg{B}, \ldots) and
-the layout is defined by rules in portray_clause/1.
-
-    \predicate{listing}{0}{}
-List all predicates from the calling module using listing/1.  For example,
-\exam{?- listing.} lists clauses in the default \const{user} module
-and \exam{?- lists:listing.} lists the clauses in the module
-\const{lists}.
-
-    \predicate{portray_clause}{1}{+Clause}
-Pretty print a clause. A clause should be specified as a term
-`\exam{<Head> :- <Body>}'. Facts are represented as `\exam{<Head> :-
-true}' or simply \exam{<Head>}.  Variables in the clause are written
-as $A$, $B$, \ldots.  Singleton variables are written as \verb$_$.
-See also portray_clause/2.
-
-    \predicate{portray_clause}{2}{+Stream, +Clause}
-Pretty print a clause to \arg{Stream}. See portray_clause/1 for details.
-\end{description}
-
-
 \section{Verify Type of a Term}			\label{sec:typetest}
 
 Type tests are semi-deterministic predicates that succeed if the

@@ -45,6 +45,7 @@ documented at all.
 \input{gensym}
 \input{intercept}
 \input{iostream}
+\input{listing}
 \input{lists}
 \input{main}
 \input{nbset}
