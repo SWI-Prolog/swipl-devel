@@ -813,25 +813,25 @@ valid_string_goal(codesio:format_to_codes(Format,_,_,_)) :- string(Format).
                  *        EXTENSION HOOKS       *
                  *******************************/
 
-%!  checker(:Goal, +Message:text)
+%!  checker(:Goal, +Message:text) is nondet.
 %
-%   Register code validation routines. Each   clause  defines a Goal
-%   which performs a consistency check  executed by check/0. Message
-%   is a short description of the   check. For example, assuming the
-%   `my_checks` module defines a predicate list_format_mistakes/0:
+%   Register code validation routines. Each clause  defines a Goal which
+%   performs a consistency check executed by check/0. Message is a short
+%   description of the check.  For   example,  assuming  the `my_checks`
+%   module defines a predicate list_format_mistakes/0:
 %
-%      ==
+%      ```
 %      :- multifile check:checker/2.
 %      check:checker(my_checks:list_format_mistakes,
 %                    "errors with format/2 arguments").
-%      ==
+%      ```
 %
-%   The predicate is dynamic, so you can disable checks with retract/1.
+%   The predicate is dynamic, so you  can disable checks with retract/1.
 %   For example, to stop reporting redefined predicates:
 %
-%      ==
+%      ```
 %      retract(check:checker(list_redefined,_)).
-%      ==
+%      ```
 
 checker(list_undefined,         'undefined predicates').
 checker(list_trivial_fails,     'trivial failures').
