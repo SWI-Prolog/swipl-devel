@@ -35,7 +35,6 @@
 */
 
 #ifdef __WINDOWS__
-#define _WIN32_WINNT 0x0600		/* Vista */
 #include "windows/uxnt.h"
 #ifdef WIN64
 #include "config/win64.h"
