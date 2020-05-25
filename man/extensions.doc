@@ -1030,7 +1030,7 @@ True when \arg{Key}-\arg{Value} is in \arg{DictIn} and \arg{DictOut}
 contains all associations of \arg{DictIn} except for \arg{Key}.
 
     \infixop[semidet]{:<}{+Select}{+From}
-True when \arg{Select} is a `sub dict' of \arg{From}: the tages
+True when \arg{Select} is a `sub dict' of \arg{From}: the tags
 must unify and all keys in \arg{Select} must appear with unifying
 values in \arg{From}.  \arg{From} may contain keys that are not in
 \arg{Select}.  This operation is frequently used to \emph{match}
