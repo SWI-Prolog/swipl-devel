@@ -109,11 +109,47 @@ expand_term(Term, Pos0, [], Pos) :-
     atomic_pos(Pos0, Pos).
 expand_term(Term, Pos0, Expanded, Pos) :-
     b_setval('$term', Term),
+    prepare_directive(Term),
     '$def_modules'([term_expansion/4,term_expansion/2], MList),
     call_term_expansion(MList, Term, Pos0, Term1, Pos1),
     expand_terms(expand_term_2, Term1, Pos1, Term2, Pos),
     rename(Term2, Expanded),
     b_setval('$term', []).
+
+%!  prepare_directive(+Directive) is det.
+%
+%   Try to autoload goals associated with a   directive such that we can
+%   allow for term expansion of autoloaded directives such as setting/4.
+%   Trying to do so shall raise no errors  nor fail as the directive may
+%   be further expanded.
+
+prepare_directive((:- Directive)) :-
+    '$current_source_module'(M),
+    prepare_directive(Directive, M),
+    !.
+prepare_directive(_).
+
+prepare_directive(Goal, _) :-
+    \+ callable(Goal),
+    !.
+prepare_directive((A,B), Module) :-
+    !,
+    prepare_directive(A, Module),
+    prepare_directive(B, Module).
+prepare_directive(module(_,_), _) :- !.
+prepare_directive(Goal, Module) :-
+    '$get_predicate_attribute'(Module:Goal, defined, 1),
+    !.
+prepare_directive(Goal, Module) :-
+    \+ current_prolog_flag(autoload, false),
+    (   compound(Goal)
+    ->  compound_name_arity(Goal, Name, Arity)
+    ;   Name = Goal, Arity = 0
+    ),
+    '$autoload'(Module:Name/Arity),
+    !.
+prepare_directive(_, _).
+
 
 call_term_expansion([], Term, Pos, Term, Pos).
 call_term_expansion([M-Preds|T], Term0, Pos0, Term, Pos) :-

@@ -32,7 +32,7 @@ add_custom_command(
             --class=development --no-autoload --no-stand_alone
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
-    DEPENDS pldoc2tex.pl swipl core
+    DEPENDS pldoc2tex.pl swipl core prolog_home
             pldoc clib sgml http nlp)
 
 add_custom_target(
@@ -151,7 +151,7 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         thread_pool charsio debug csv lists main check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
-        prolog_jiti tables)
+        prolog_jiti tables listing)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)

@@ -397,8 +397,6 @@ stream} \predicatesummary{list_debug_topics}{0}{List registered topics
 for debugging} \predicatesummary{list_to_assoc}{2}{Create association
 tree from list} \predicatesummary{list_to_set}{2}{Remove duplicates from
 a list} \predicatesummary{list_strings}{0}{Help porting to version 7}
-\predicatesummary{listing}{0}{List program in current module}
-\predicatesummary{listing}{1}{List predicate}
 \predicatesummary{load_files}{1}{Load source files}
 \predicatesummary{load_files}{2}{Load source files with options}
 \predicatesummary{load_foreign_library}{1}{\pllib{shlib} Load shared
@@ -515,8 +513,6 @@ a thread-synchronisation device}
 with DCG} \predicatesummary{please}{3}{Query/change environment
 parameters} \predicatesummary{plus}{3}{Logical integer addition}
 \predicatesummary{portray}{1}{\hook{user} Modify behaviour of print/1}
-\predicatesummary{portray_clause}{1}{Pretty print a clause}
-\predicatesummary{portray_clause}{2}{Pretty print a clause to a stream}
 \predicatesummary{predicate_property}{2}{Query predicate attributes}
 \predicatesummary{predsort}{3}{Sort, using a predicate to determine the
 order} \predicatesummary{print}{1}{Print a term}

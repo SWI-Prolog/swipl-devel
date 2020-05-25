@@ -99,6 +99,9 @@
 \libsummary{iostream}
 \libsummary{summaries.d/iostream.tex}
 
+\libsummary{listing}
+\input{summaries.d/listing.tex}
+
 \libsummary{lists}
 \input{summaries.d/lists.tex}
 
