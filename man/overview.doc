@@ -326,7 +326,7 @@ Bootstrap compilation.  See \secref{maintoptions}.
     \cmdlineoptionitem{--arch}{}
 When given as the only option, it prints the architecture identifier
 (see Prolog flag \prologflag{arch}) and exits. See also
-\cmdlineoption{-dump-runtime-variables}.
+\cmdlineoption{--dump-runtime-variables}.
 
     \cmdlineoptionitem{--dump-runtime-variables}{[=format]}
 When given as the only option, it prints a sequence of variable settings
@@ -517,14 +517,14 @@ Limit the combined size of the Prolog stacks to the indicated size.
 The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
 \textit{Mbytes} or \textit{Gbytes}.
 
-    \cmdlineoptionitem*{-table_space}{size[bkmg]}
+    \cmdlineoptionitem*{--table_space}{size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
 use. It is a memnonic for \textbf{M}emoizing.} answers for
 \jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
 512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}
-    \cmdlineoptionitem*{-shared_table_space}{size[bkmg]}
+    \cmdlineoptionitem*{--shared_table_space}{size[bkmg]}
 Limit for the table space for \jargon{shared} tables. See
 \secref{tabling-shared}.
 \end{description}
@@ -1593,7 +1593,7 @@ set_prolog_gc_thread/1.
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
 trace/0, spy/1, etc. Can be set to \const{false} using the
-\cmdlineoption{-nodebug}.   This flag is scoped within a source file.
+\cmdlineoption{--nodebug}.   This flag is scoped within a source file.
 Many of the libraries have
 \verb$:- set_prolog_flag(generate_debug_info, false)$ to hide their
 details from a normal trace.%
@@ -1979,7 +1979,7 @@ Space reserved for storing shared answer tables. See
     \prologflagitem{signals}{bool}{r}
 Determine whether Prolog is handling signals (software interrupts). This
 flag is \const{false} if the hosting OS does not support signal handling
-or the command line option \cmdlineoption{-nosignals} is active.  See
+or the command line option \cmdlineoption{--nosignals} is active.  See
 \secref{sigembedded} for details.
 
     \prologflagitem{stack_limit}{int}{rw}
@@ -3521,7 +3521,7 @@ compatibility between versions. Data and programs can often be
 represented in binary form.  This touches a number of interfaces
 with varying degrees of compatibility.  The relevant version numbers
 and signatures are made available by PL_version(), the
-\cmdlineoption{abi_version} and the Prolog flag
+\cmdlineoption{--abi_version} and the Prolog flag
 \prologflag{abi_version}.
 
 \begin{description}
