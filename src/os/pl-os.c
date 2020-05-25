@@ -1262,6 +1262,8 @@ canonicaliseFileName(char *path)
 
     for(s = in+3; *s && (isAlpha(*s) || *s == '-' || *s == '.'); s++)
       ;
+    if ( *s == '$' )			/* Allow //wfs$/ */
+      s++;
     if ( *s == '/' )
     { in = out = s+1;
       start = in-1;
