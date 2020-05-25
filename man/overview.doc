@@ -350,7 +350,7 @@ When given as the only option, it summarises the most important options.
 When given as the only option, it summarises the version and the
 architecture identifier.
 
-    \cmdlineoptionitem{--abi_version}{}
+    \cmdlineoptionitem{--abi-version}{}
 Print a key (string) that represents the binary compatibility on
 a number of aspects.  See \secref{abi-versions}.
 \end{description}
@@ -365,7 +365,7 @@ as \exam{--no-name} below as the default is `true'.
 
 \begin{description}
     \cmdlineoptionitem{--home=DIR}{}
-Use DIR as home directory.  See \secref{findhome} for details.
+Use \arg{DIR} as home directory.  See \secref{findhome} for details.
 
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
@@ -420,7 +420,7 @@ default, manipulating the terminal is enabled unless the system detects
 it is not connected to a terminal or it is running as a GNU-Emacs
 inferior process.  See also \prologflag{tty_control}.
 
-    \cmdlineoptionitem{--win_app}{}
+    \cmdlineoptionitem{--win-app}{}
 This option is available only in \program{swipl-win.exe} and is used for the
 start-menu item. If causes \program{plwin} to start in the folder
 \verb$...\My Documents\Prolog$ or local equivalent thereof (see
@@ -512,19 +512,19 @@ $ swipl --stack_limit=32g
 \end{code}
 
 \begin{description}
-    \cmdlineoptionitem*{--stack_limit}{size[bkmg]}
-Limit the combined size of the Prolog stacks to the indicated size.
+    \cmdlineoptionitem*{--stack-limit}{=size[bkmg]}
+Limit the combined size of the Prolog stacks to the indicated \arg{size}.
 The suffix specifies the value as \textit{bytes}, \textit{Kbytes},
 \textit{Mbytes} or \textit{Gbytes}.
 
-    \cmdlineoptionitem*{--table_space}{size[bkmg]}
+    \cmdlineoptionitem*{--table-space}{=size[bkmg]}
 Limit for the \arg{table space}. This is where tries holding
 memoized\footnote{The letter M is used because the T was already in
 use. It is a memnonic for \textbf{M}emoizing.} answers for
 \jargon{tabling} are stored. The default is 1Gb on 64~bit machines and
 512Mb on 32~bit machines. See the Prolog flag
 \prologflag{table_space}
-    \cmdlineoptionitem*{--shared_table_space}{size[bkmg]}
+    \cmdlineoptionitem*{--shared-table-space}{=size[bkmg]}
 Limit for the table space for \jargon{shared} tables. See
 \secref{tabling-shared}.
 \end{description}
@@ -1593,7 +1593,7 @@ set_prolog_gc_thread/1.
     \prologflagitem{generate_debug_info}{bool}{rw}
 If \const{true} (default) generate code that can be debugged using
 trace/0, spy/1, etc. Can be set to \const{false} using the
-\cmdlineoption{--nodebug}.   This flag is scoped within a source file.
+\cmdlineoption{--no-debug}.   This flag is scoped within a source file.
 Many of the libraries have
 \verb$:- set_prolog_flag(generate_debug_info, false)$ to hide their
 details from a normal trace.%
@@ -1979,7 +1979,7 @@ Space reserved for storing shared answer tables. See
     \prologflagitem{signals}{bool}{r}
 Determine whether Prolog is handling signals (software interrupts). This
 flag is \const{false} if the hosting OS does not support signal handling
-or the command line option \cmdlineoption{--nosignals} is active.  See
+or the command line option \cmdlineoption{--no-signals} is active.  See
 \secref{sigembedded} for details.
 
     \prologflagitem{stack_limit}{int}{rw}
@@ -2027,7 +2027,7 @@ Set the default choice between \jargon{variant} tabling and
 True when threads are supported.  If the system is compiled without
 thread support the value is \const{false} and read-only.  Otherwise
 the value is \const{true} unless the system was started with the
-\cmdlineoption{--nothreads}.  Threading may be disabled only if no
+\cmdlineoption{--no-threads}.  Threading may be disabled only if no
 threads are running.  See also the \prologflag{gc_thread} flag.
 
     \prologflagitem{timezone}{integer}{r}
@@ -3395,7 +3395,7 @@ virtually unlimited on 64-bit machines.
 
 As of version 7.7.14, the stacks are restricted by the writeable flag
 \prologflag{stack_limit} or the command line option
-\cmdlineoption{--stack_limit}. This flag limits the combined size of the
+\cmdlineoption{--stack-limit}. This flag limits the combined size of the
 three stacks per thread. The default limit is currently 512~Mbytes on
 32-bit machines, which imposes no additional limit considering the
 128~Mbytes hard limit on 32-bit and 1~Gbytes on 64-bit machines.
@@ -3521,7 +3521,7 @@ compatibility between versions. Data and programs can often be
 represented in binary form.  This touches a number of interfaces
 with varying degrees of compatibility.  The relevant version numbers
 and signatures are made available by PL_version(), the
-\cmdlineoption{--abi_version} and the Prolog flag
+\cmdlineoption{--abi-version} and the Prolog flag
 \prologflag{abi_version}.
 
 \begin{description}

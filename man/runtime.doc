@@ -109,7 +109,7 @@ options:
     \begin{description}
 	\termitem{stack_limit}{+Bytes}
 Sets default stack limit for the new process. See the command line
-option \cmdlineoption{--stack_limit} and the Prolog flag
+option \cmdlineoption{--stack-limit} and the Prolog flag
 \prologflag{stack_limit}.
 	\termitem{goal}{:Callable}
 Initialization goal for the new executable (see \cmdlineoption{-g}).
