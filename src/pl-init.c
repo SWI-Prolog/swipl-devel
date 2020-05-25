@@ -1130,7 +1130,7 @@ usage(void)
     "%s: Usage:\n",
     "    1) %s [options] prolog-file ... [-- arg ...]\n",
     "    2) %s [options] [-o executable] -c prolog-file ...\n",
-    "    3) %s --help         Display this message (also -h)\n",
+    "    3) %s --help         Display this message\n",
     "    4) %s --version      Display version information\n",
     "    5) %s --abi-version  Display ABI version key\n",
     "    6) %s --arch         Display architecture\n",

@@ -326,8 +326,7 @@ Bootstrap compilation.  See \secref{maintoptions}.
     \cmdlineoptionitem{--arch}{}
 When given as the only option, it prints the architecture identifier
 (see Prolog flag \prologflag{arch}) and exits. See also
-\cmdlineoption{-dump-runtime-variables}. Also available as
-\cmdlineoption{-arch}.
+\cmdlineoption{-dump-runtime-variables}.
 
     \cmdlineoptionitem{--dump-runtime-variables}{[=format]}
 When given as the only option, it prints a sequence of variable settings
@@ -346,11 +345,10 @@ compatible format.
 
     \cmdlineoptionitem{--help}{}
 When given as the only option, it summarises the most important options.
-Also available as \cmdlineoption{-h} and \cmdlineoption{-help}.
 
     \cmdlineoptionitem{--version}{}
 When given as the only option, it summarises the version and the
-architecture identifier.  Also available as \cmdlineoption{-v}.
+architecture identifier.
 
     \cmdlineoptionitem{--abi_version}{}
 Print a key (string) that represents the binary compatibility on
