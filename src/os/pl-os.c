@@ -1441,7 +1441,7 @@ canonicalisePath(char *path)
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
   { if ( !utf8_path_lwr(path, MAXPATHLEN) )
-    { if ( errno = ENAMETOOLONG )
+    { if ( errno == ENAMETOOLONG )
 	return PL_representation_error("max_path_length"),NULL;
       else
 	return PL_resource_error("memory"),NULL;
