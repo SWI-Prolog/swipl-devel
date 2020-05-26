@@ -3828,7 +3828,7 @@ signals:
     after cleanup.
 \end{description}
 
-The \cmdlineoption{--nosignals} option can be used to inhibit all signal
+The \cmdlineoption{--no-signals} option can be used to inhibit all signal
 processing except for \const{SIGUSR2}. The handling of \const{SIGUSR2}
 is vital for dealing with blocking system call in threads. The used
 signal may be changed using the \cmdlineoption{--sigalert=NUM} option or

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -125,6 +125,7 @@ static double initial_time;
 static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
+static char    *utf8_path_lwr(char *s, size_t len);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -904,10 +905,19 @@ OsPath(const char *p, char *buf)
 #if O_XOS
 char *
 PrologPath(const char *p, char *buf, size_t len)
-{ GET_LD
-  int flags = (truePrologFlag(PLFLAG_FILE_CASE) ? 0 : XOS_DOWNCASE);
+{ if ( _xos_canonical_filename(p, buf, len, 0) == buf )
+  { GET_LD
 
-  return _xos_canonical_filename(p, buf, len, flags);
+    if ( truePrologFlag(PLFLAG_FILE_CASE) )
+    { if ( !utf8_path_lwr(buf, len) )
+	return NULL;
+      Sdprintf("Now %s\n", buf);
+    }
+
+    return buf;
+  }
+
+  return NULL;
 }
 
 char *
@@ -1226,6 +1236,45 @@ cleanupExpand(void)
 
 #endif /*O_CANONICALISE_DIRS*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Skip //NetBIOSName/, returning a pointer to the   final / in the pattern
+if NetBIOSName is a valid NetBIOS  name.   A  valid  NetBIOS name is any
+sequence of 16 8-bit characters that doesn't start with a '*'.  When used
+as a file name there are additional name limitations:
+
+https://support.microsoft.com/en-us/help/909264/naming-conventions-in-active-directory-for-computers-domains-sites-and
+
+Note that NetBIOS names are case sensitive!
+
+We disallow '.' in NetBIOS  names  as   well.  These  are not allowed in
+recent Windows anyway. By disallowing '.'  we can distinguish host names
+and thus disambiguate case insensitive host   names  from case sensitive
+NetBIOS names.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef O_NETBIOS
+static int
+isNetBIOSChar(int c)
+{ return (c && !(c == '\\' || c == '/' || c == '*' || c == '?' ||
+		 c == '<'  || c == '>' || c == '|' || c == '.'));
+}
+
+static char *
+skipNetBIOSName(const char *s)
+{ if ( s[0] == '/' && s[1] == '/' && isNetBIOSChar(s[2]) )
+  { int i;
+
+    for(i=3; i<2+16 && isNetBIOSChar(s[i]); i++)
+      ;
+    if ( i > 2+16 )
+      return NULL;
+    if ( s[i] == '/' )
+      return (char*)&s[i];
+  }
+
+  return NULL;
+}
+#endif
 
 char *
 canonicaliseFileName(char *path)
@@ -1256,15 +1305,22 @@ canonicaliseFileName(char *path)
     out = start = in;
   }
 
-#ifdef O_HASSHARES			/* //host/ */
-  if ( in[0] == '/' && in[1] == '/' && isAlpha(in[2]) )
-  { char *s;
+#if defined(O_NETBIOS) || defined(O_HASSHARES)
+  if ( in[0] == '/' && in[1] == '/' )
+  { char *s = NULL;
 
-    for(s = in+3; *s && (isAlpha(*s) || *s == '-' || *s == '.'); s++)
-      ;
-    if ( *s == '$' )			/* Allow //wfs$/ */
-      s++;
-    if ( *s == '/' )
+#ifdef O_NETBIOS
+    s = skipNetBIOSName(in);
+#endif
+
+#ifdef O_HASSHARES			/* //host/ */
+    if ( s == NULL && isAlpha(in[2]) )
+    { for(s = in+3; *s && (isAlpha(*s) || *s == '-' || *s == '.'); s++)
+	;
+    }
+#endif
+
+    if ( s && *s == '/' )
     { in = out = s+1;
       start = in-1;
     }
@@ -1330,40 +1386,50 @@ out:
 
 
 static char *
-utf8_strlwr(char *s)
-{ char tmp[MAXPATHLEN];
-  char *o, *i;
+utf8_path_lwr(char *s, size_t len)
+{ char buf[MAXPATHLEN];
+  char *tmp = buf;
+  char *o=s, *i;
+
+  if ( len > sizeof(buf) )
+  { if ( !(tmp = malloc(len)) )
+      return NULL;
+  }
 
   strcpy(tmp, s);
-  for(i=tmp, o=s; *i; )
+#ifdef O_NETBIOS
+  i = skipNetBIOSName(tmp);
+  if ( i )
+  { memcpy(o, tmp, i-tmp);
+    o += i-tmp;
+  } else
+  { i = tmp;
+  }
+#else
+  i = tmp;
+#endif
+
+  while( *i )
   { int c;
 
     i = utf8_get_char(i, &c);
     c = towlower((wint_t)c);
     if ( o >= s + MAXPATHLEN-6 )
-    { if ( c < 0x80 )
-      { if ( o >= s + MAXPATHLEN-1 )
-          return NULL;
-      } else if ( c < 0x800 )
-      { if ( o >= s + MAXPATHLEN-2 )
-          return NULL;
-      } else if ( c < 0x10000 )
-      { if ( o >= s + MAXPATHLEN-3 )
-          return NULL;
-      } else if ( c < 0x200000 )
-      { if ( o >= s + MAXPATHLEN-4 )
-          return NULL;
-      } else if ( c < 0x4000000 )
-      { if ( o >= s + MAXPATHLEN-5 )
-          return NULL;
-      } else if ( (unsigned)c < 0x80000000 )
-      { if ( o >= s + MAXPATHLEN-6 )
-          return NULL;
+    { char ls[10];
+      char *e = utf8_put_char(ls,c);
+      if ( o+(e-ls) >= s + MAXPATHLEN )
+      { errno = ENAMETOOLONG;
+	s = NULL;
+	goto out;
       }
     }
     o = utf8_put_char(o, c);
   }
   *o = EOS;
+
+out:
+  if ( tmp && tmp != buf )
+    free(tmp);
 
   return s;
 }
@@ -1374,9 +1440,11 @@ canonicalisePath(char *path)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
-  { if ( !utf8_strlwr(path) )
-    { PL_representation_error("max_path_length");
-      return NULL;
+  { if ( !utf8_path_lwr(path, MAXPATHLEN) )
+    { if ( errno == ENAMETOOLONG )
+	return PL_representation_error("max_path_length"),NULL;
+      else
+	return PL_resource_error("memory"),NULL;
     }
   }
 

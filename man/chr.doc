@@ -218,7 +218,7 @@ This option enables or disables the possibility to debug the CHR code.
 Possible values are \texttt{on} (default) and \texttt{off}. See
 \secref{debugging} for more details on debugging.  The default is
 derived from the Prolog flag \prologflag{generate_debug_info}, which
-is \const{true} by default.  See \cmdlineoption{-nodebug}.
+is \const{true} by default.  See \cmdlineoption{--no-debug}.
 If debugging is enabled, optimization must be disabled.
 \end{description}
 \end{description}
@@ -475,7 +475,7 @@ is currently available. To use the CHR debugging facilities for a CHR
 file it must be compiled for debugging. Generating debug info is
 controlled by the CHR option \prologflag{debug}, whose default is derived
 from the SWI-Prolog flag \prologflag{generate_debug_info}.  Therefore debug
-info is provided unless the \cmdlineoption{-nodebug} is used.
+info is provided unless the \cmdlineoption{--no-debug} is used.
 
 
 \subsection{Ports}				\label{sec:chrports}
@@ -771,7 +771,8 @@ share one or more variables.
 
     \item [Mode and type declarations]
 Provide mode and type declarations to get more efficient program execution.
-Make sure to disable debug (-nodebug) and enable optimization (-O).
+Make sure to disable debug (\cmdlineoption{--no-debug}) and enable
+optimization (\cmdlineoption{-O}).
 
     \item [Compile once, run many times]
 Does consulting your CHR program take a long time in SWI-Prolog? Probably

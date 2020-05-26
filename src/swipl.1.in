@@ -68,7 +68,7 @@ Gives a summary of the most important options.
 .B \-\-version
 Displays version and architecture information.
 .TP
-.B \-\-abi_version
+.B \-\-abi\-version
 Displays ABI version key.  This key indicates binary compatibility of
 various interfaces.
 .TP
@@ -155,7 +155,7 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
-.BI \-\-stack_limit= size [bkmg]
+.BI \-\-stack\-limit= size [bkmg]
 Sets the combined stack limit to
 .IR size " bytes."
 The suffix is case insensitive and defines the unit as
@@ -164,12 +164,12 @@ The suffix is case insensitive and defines the unit as
 .IR m " (Mbytes) or "
 .IR g " (Gbytes)."
 .TP
-.BI \-\-table_space= size [bkmg]
+.BI \-\-table\-space= size [bkmg]
 Sets the space limit for tables use for SLG resolution
 (tabling) to
 .IR size " bytes."
 The suffixes are the same as for the
-.B --stack_limit
+.B --stack-limit
 option.
 .TP
 .BI \-O
