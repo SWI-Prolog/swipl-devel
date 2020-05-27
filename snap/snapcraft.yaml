@@ -49,7 +49,7 @@ confinement: strict
 
 parts:
   swi-prolog:
-    source: https://github.com/SWI-Prolog/swipl-devel.git
+    source: https://github.com/SWI-Prolog/swipl.git
     source-type: git
     plugin: cmake
     override-pull: |
