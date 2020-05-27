@@ -51,6 +51,7 @@ parts:
   swi-prolog:
     source: https://github.com/SWI-Prolog/swipl-devel.git
     source-type: git
+    source-depth: 1
     plugin: cmake
     override-pull: |
       snapcraftctl pull
