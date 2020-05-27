@@ -9,6 +9,12 @@
 #
 # This script requires GNU-tar!
 
+if [ -x /opt/local/bin/gnutar ]; then
+  tar=/opt/local/bin/gnutar
+else
+  tar=tar
+fi
+
 COREMODULES="bench packages/chr packages/clpqr packages/inclpr packages/jpl"
 COREMODULES+=" packages/xpce packages/odbc packages/protobufs packages/windows"
 COREMODULES+=" packages/sgml packages/clib packages/http packages/plunit"
@@ -110,7 +116,7 @@ for sm in `git submodule status $SUBMODULES | awk '{printf "%s:%s\n", $1, $2}'`;
     path=`echo $sm | awk -F: '{print $2}'`
     [ $quiet = true ] || echo -n "adding module $path at $sha1 ... "
     git --git-dir $path/.git archive --format=tar --prefix=$prefix/$path/ $sha1 > tmp.tar
-    tar -Af ../$out tmp.tar
+    $tar -Af ../$out tmp.tar
     rm tmp.tar
     [ $quiet = true ] || echo ok
 done
