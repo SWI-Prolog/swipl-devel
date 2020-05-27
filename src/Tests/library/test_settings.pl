@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2011, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -71,6 +72,7 @@ test(save_default, [ [X,Terms] == [hello_world,[]],
 		     setup(tmp_file(settings, DB)),
 		     cleanup((reset, delete_file(DB)))
 		   ]) :-
+	setup_call_cleanup(open(DB, write, Out), true, close(Out)),
 	set_setting_default(test, hello_world),
 	save_settings(DB),
 	assertion(exists_file(DB)),
