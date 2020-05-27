@@ -71,7 +71,7 @@ extern "C" {
 #define PLVERSION 80200
 #endif
 #ifndef PLVERSION_TAG
-#define PLVERSION_TAG "alpha"
+#define PLVERSION_TAG ""
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

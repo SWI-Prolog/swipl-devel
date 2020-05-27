@@ -60,7 +60,7 @@
 \newcommand{\vmajor}{8}
 \newcommand{\vminor}{2}
 \newcommand{\vpatch}{0}
-\newcommand{\vtag}{alpha}
+\newcommand{\vtag}{}
 \newcommand{\vmonth}{May}
 \newcommand{\vyear}{2020}
 
