@@ -1,0 +1,66 @@
+#!/bin/bash
+
+branch=master
+
+done=false
+while [ $done = false ]; do
+  case "$1" in
+    --branch=*)	branch=$(echo $1 | sed 's/^[^=]*=//')
+       shift
+       ;;
+    *) done=true
+       ;;
+  esac
+done
+
+
+
+if [ -x /opt/local/bin/gsed ]; then
+  sed=/opt/local/bin/gsed
+else
+  sed=sed
+fi
+
+portgit=$HOME/src/macports-ports/
+port=lang/swi-prolog-devel
+portfile=$port/Portfile
+version=$(cat VERSION)
+file=../swipl-$version.tar.gz
+
+if [ ! -r $file ]; then
+  echo "ERROR: Could not find distfile $file"
+  exit 1
+fi
+
+size=$(wc -c < $file | xargs)
+sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
+rmd160=$(openssl rmd160 < $file | cut -d ' ' -f 2)
+
+cp $file /opt/local/var/macports/distfiles/swi-prolog
+
+echo "version: $version"
+echo "size:    $size"
+echo "sha256:  $sha256"
+echo "rmd160:  $rmd160"
+
+cbranch=$(git -C $portgit rev-parse --abbrev-ref HEAD)
+if [ $cbranch = $branch ]; then
+  echo "Keeping branch $branch"
+else
+  git -C $portgit checkout $branch
+  if [ $branch = master ]; then
+    echo "Pulling $branch"
+    git -C $portgit pull
+  fi
+  git -C $portgit branch -D $version 2>&1 > /dev/null || true
+  git -C $portgit checkout -b $version
+fi
+
+$sed -i \
+     -e "s/^\(version\s*\)[0-9].*/\1$version/" \
+     -e "s/^\(\s*rmd160\s*\)[0-9a-f].*/\1$rmd160 \\\\/" \
+     -e "s/^\(\s*sha256\s*\)[0-9a-f].*/\1$sha256 \\\\/" \
+     -e "s/^\(\s*size\s*\)[0-9a-f].*/\1$size/" \
+     $portgit/$portfile
+
+git -C $portgit commit $portfile -m "Updated to version $version"
