@@ -74,7 +74,7 @@ build_macosx_gcc()
   mkdir build.macosx-gcc
   ( cd build.macosx-gcc
     export PATH=$HOME/deps/bin:$PATH
-    export CC=gcc-mp-9
+    export CC=gcc-mp-10
     MACOSX_DEPLOYMENT_TARGET=10.12 \
         cmake -DCMAKE_BUILD_TYPE=Release \
               -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
