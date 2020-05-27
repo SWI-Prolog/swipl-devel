@@ -7,7 +7,7 @@ fi
 
 version=`cat VERSION`
 pdf_build_dir=build.pdf
-PUBLIC="ec:/home/swipl/web/download/devel"
+PUBLIC="ec:/home/swipl/web/download/stable"
 
 build_pdf()
 { rm -rf build.pdf
