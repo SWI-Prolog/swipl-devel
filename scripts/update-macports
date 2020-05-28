@@ -1,6 +1,7 @@
 #!/bin/bash
 
 port=swi-prolog-devel
+portprefix=/opt/local
 branch=master
 
 done=false
@@ -16,8 +17,8 @@ done
 
 
 
-if [ -x /opt/local/bin/gsed ]; then
-  sed=/opt/local/bin/gsed
+if [ -x $portprefix/bin/gsed ]; then
+  sed=$portprefix/bin/gsed
 else
   sed=sed
 fi
@@ -37,7 +38,9 @@ size=$(wc -c < $file | xargs)
 sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
 rmd160=$(openssl rmd160 < $file | cut -d ' ' -f 2)
 
-cp $file /opt/local/var/macports/distfiles/swi-prolog
+if [ -d $portprefix/var/macports/distfiles ]; then
+  cp $file $portprefix/var/macports/distfiles/swi-prolog || exit 1
+fi
 
 echo "version: $version"
 echo "size:    $size"
