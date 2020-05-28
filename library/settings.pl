@@ -535,10 +535,14 @@ store_setting(setting(Module:Name, Value), Options) :-
 store_setting(Term, _) :-
     type_error(setting, Term).
 
-%!  save_settings is det.
-%!  save_settings(+File) is det.
+%!  save_settings is semidet.
+%!  save_settings(+File) is semidet.
 %
-%   Save modified settings to File.
+%   Save modified settings to File. Fails  silently if the settings file
+%   cannot be written.
+%
+%   @error context_error(settings, no_default_file)  for save_settings/0
+%   if no default location is known.
 
 save_settings :-
     (   local_file(File)
