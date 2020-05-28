@@ -428,6 +428,17 @@ if(PROFILE_GUIDED_OPTIMIZATION)
   endif()
 endif()
 
+if(GCOV)
+  set(GCOV_FLAGS --coverage -fkeep-inline-functions -fkeep-static-functions)
+
+  message("-- GCOV: setup for data collection")
+  foreach(t ${PGO_TARGETS})
+    target_compile_options(${t} PRIVATE ${GCOV_FLAGS})
+    string(REPLACE ";" " " gen_flags "${GCOV_FLAGS}")
+    set_target_properties(${t} PROPERTIES LINK_FLAGS "${gen_flags}")
+  endforeach()
+endif()
+
 if(0)
 # Does not work.  Please use scripts/pgo-compile.sh
 add_custom_target(
