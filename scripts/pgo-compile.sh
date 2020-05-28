@@ -13,6 +13,7 @@ else
   ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=GENERATE -G Ninja ${SRC_DIR}
   ninja -t clean libswipl
   ${CMAKE_COMMAND} -E echo "PGO: Compiling instrumented version"
+  ninja prolog_home
   ninja core
   ${CMAKE_COMMAND} -E echo "PGO: Running program"
   ${CMAKE_COMMAND} -E remove_directory ${PGO_DIR}
