@@ -525,7 +525,7 @@ predicates and predicates available for autoloading is unambiguous
 (i.e., has no duplicates) the specification is unambiguous. It provides
 four advantages over autoload/2: (1) the user does not have to remember
 the exact library, (2) the directive can be supported in other Prolog
-systems\footnote{SICStus provides it}, providing compatibiity despite
+systems\footnote{SICStus provides it}, providing compatibility despite
 differences in library and built-in predicate organization, (3) it is
 robust against changes to the SWI-Prolog libraries and (4) it is less
 typing.
@@ -828,7 +828,7 @@ indicating that halting the system has been cancelled.
 If this predicate is called from a hook registered with at_halt/1,
 halting Prolog is cancelled and an informational message is printed
 that includes \arg{Reason}.  This is used by the development tools
-to cancel halting the system if the editor has unsafed data and the
+to cancel halting the system if the editor has unsaved data and the
 user decides to cancel.
 
     \directive[ISO]{initialization}{1}{:Goal}
@@ -2589,7 +2589,7 @@ a prompt.
 Information that is requested by the user.  An example is statistics/0.
 
     \termitem{informational}{}
-Typically messages of events are progres that are considered useful
+Typically messages of events and progress that are considered useful
 to a developer.  Such messages can be suppressed by setting the
 Prolog flag \prologflag{verbose} to \const{silent}.
 
@@ -3209,7 +3209,7 @@ update view}. This implies that retract/1 succeeds for all clauses that
 match \arg{Term} when the predicate was \emph{called}. The example below
 illustrates that the first call to retract/1 succeeds on \const{bee} on
 backtracking despite the fact that \const{bee} is already
-retracted.\footnote{Example by Jan Burse}.
+retracted.\footnote{Example by Jan Burse}
 
 \begin{code}
 :- dynamic insect/1.
@@ -3487,7 +3487,7 @@ properties visit all nodes of the trie. Defined properties are
     \const{O_TRIE_STATS}).
 	\termitem{deadlock}{-Count}
     Number of times this trie was part of a deadlock and its completion
-    was abandonned (shared tabling, only when compiled with
+    was abandoned (shared tabling, only when compiled with
     \const{O_TRIE_STATS}).
     \end{description}
 
@@ -3543,7 +3543,7 @@ The indexing capabilities of SWI-Prolog are described in
 \secref{jitindex}. Summarizing, SWI-Prolog creates indexes for any
 applicable argument, pairs of arguments and indexes on the arguments of
 compound terms when applicable. Extended JIT indexing is not widely
-supported amoung Prolog implementations. Programs that aim at
+supported among Prolog implementations. Programs that aim at
 portability should consider using term_hash/2 and term_hash/4 to design
 their database such that indexing on constant or functor (name/arity
 reference) on the first argument is sufficient. In some cases, using the
@@ -3595,7 +3595,7 @@ not its arguments; $\arg{Depth} = 2$ also indexes the immediate
 arguments, etc.
 
 \arg{HashKey} is in the range $[0 \ldots \arg{Range}-1]$.  \arg{Range}
-must be in the range $[1 \ldots 2147483647]$
+must be in the range $[1 \ldots 2147483647]$.
 
     \predicate[det]{variant_sha1}{2}{+Term, -SHA1}
 Compute a SHA1-hash from \arg{Term}. The hash is represented as a
@@ -3665,7 +3665,7 @@ graph.  See \secref{tabling-incremental}.
     \termitem{opaque}{}
 Opposite of \const{incremental}. For XSB compatibility.\footnote{In XSB,
 \const{opaque} is distinct from the default in the sense that dynamic
-switching beween \const{opaque} and \const{incremental} is allowed.}
+switching between \const{opaque} and \const{incremental} is allowed.}
     \termitem{abstract}{Level}
 Used together with \const{incremental} to reduce the dependency graph.
 See \secref{tabling-incremental}.
@@ -3883,7 +3883,7 @@ generate_built_in(Name/Arity) :-
 
 The predicate predicate_property/2 is covered by part-II of the ISO
 standard (modules). Although we are not aware of any Prolog system that
-implements part-II of he ISO standard, predicate_property/2 is available
+implements part-II of the ISO standard, predicate_property/2 is available
 in most systems. There is little consensus on the implemented properties
 though. SWI-Prolog's \jargon{auto loading} feature further complicate
 this predicate.
@@ -3930,8 +3930,8 @@ True if the predicate is defined in the C language.
     \termitem{implementation_module}{-Module}
 True when \arg{Module} is the module in which \arg{Head} is or will be
 defined. Resolving this property goes through the same search mechanism
-as when the an undefined predicate is encountered, but does not perform
-any loading.  It searches (1) the module inheritence hierarchy (see
+as when an undefined predicate is encountered, but does not perform
+any loading.  It searches (1) the module inheritance hierarchy (see
 default_module/2) and (2) the autoload index if the \prologflag{unknown}
 flag is not set to \const{fail} in the target module.
 
@@ -4052,7 +4052,7 @@ tabled.
 True of the predicate is \jargon{tabled} and \arg{Flag} applies.  Any
 tabled predicate has one of the mutually exclusive flags \const{variant}
 or \const{subsumptive}. In addition, tabled predicates may have one or
-more the the following flags
+more of the following flags
 
     \begin{description}
 	\termitem{shared}{} The table is shared between threads.
@@ -4288,7 +4288,7 @@ be the stream identifier.%
 SWI-Prolog also allows \arg{SrcDest} to be a term \term{pipe}{Command}.
 In this form, \arg{Command} is started as a child process and if
 \arg{Mode} is \const{write}, output written to \arg{Stream} is sent to
-the standard input of \arg{Command}. Viso versa, if \arg{Mode} is
+the standard input of \arg{Command}. Vice versa, if \arg{Mode} is
 \const{read}, data written by \arg{Command} to the standard output may
 be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
 popen() which hands it to the Unix shell. On Windows, \arg{Command} is
@@ -5090,7 +5090,7 @@ input.}
 Wait for input on one of the streams in \arg{ListOfStreams} and return a
 list of streams on which input is available in \arg{ReadyList}. Each
 element of \arg{ListOfStreams} is either a stream or an integer.
-Integers are consider waitable OS handles. This can be used to wait
+Integers are consider waitable OS handles. This can be used to
 (also) wait for handles that are not associated with Prolog streams such
 as UDP sockets. See tcp_sockopt/2.
 
@@ -5471,7 +5471,7 @@ list functor.
 
     \termitem{fullstop}{Bool}
 If \const{true} (default \const{false}), add a fullstop token to the
-output.  The dot is preceeded by a space if needed and followed by
+output.  The dot is preceded by a space if needed and followed by
 a space (default) or newline if the \term{nl}{true} option is also
 given.\footnote{Compatible with
 \href{http://eclipseclp.org/doc/bips/kernel/ioterm/write_term-3.html}{ECLiPSe}}
@@ -5675,7 +5675,7 @@ print(Term) :-
 \end{code}
 
 The print/1 predicate is used primarily through the \verb$~p$ escape
-sequence of format/2, which is commonly used in the recipies used by
+sequence of format/2, which is commonly used in the recipes used by
 print_message/2 to emit messages.
 
 The classical definition of this predicate is equivalent to the ISO
@@ -5709,7 +5709,7 @@ to read input from a file or the user. Quite likely this is not what you
 need in this case. This predicate is for reading a \textbf{Prolog term}
 which may span multiple lines and must end in a \emph{full stop} (dot
 character followed by a layout character). The predicates for reading
-and writing Prololg terms are particularly useful for storing Prolog
+and writing Prolog terms are particularly useful for storing Prolog
 data in a file or transferring them over a network communication channel
 (socket) to another Prolog process. The libraries provide a wealth of
 predicates to read data in other formats. See e.g., \pllib{readutil},
@@ -5786,7 +5786,7 @@ term read.
 If \const{true} (default \const{false}), re-instantiate templates as
 produced by the corresponding write_term/2 option. Note that the default
 is \const{false} to avoid misinterpretation of \term{@}{Template,
-Substutions}, while the default of write_term/2 is \const{true} because
+Substitutions}, while the default of write_term/2 is \const{true} because
 emitting cyclic terms without using the template construct produces an
 infinitely large term (read: it will generate an error after producing
 a huge amount of output).
@@ -5829,7 +5829,7 @@ provides backward compatibility and is used to read terms from source
 files. Not all singleton variables are reported as a warning.  See
 \secref{singleton} for the rules that apply for warning about a
 singleton variable.\footnote{As of version 7.7.17, \emph{all} variables
-starting with an underscore except for the the truely anonymous variable
+starting with an underscore except for the truly anonymous variable
 are returned in \arg{Vars}. Older versions only reported those that
 would have been reported if \const{warning} is used.}
 
@@ -6039,7 +6039,7 @@ ERROR: Domain error: `compound_non_zero_arity' expected, found `a()'
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}
 Rationalized version of functor/3 that only works for compound terms
 and can examine and create compound terms with zero arguments (e.g,
-\exam{name()}.  See also compound_name_arguments/3.
+\exam{name()}).  See also compound_name_arguments/3.
 
     \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arguments}
 Rationalized version of \predref{=..}{2} that can compose and decompose
@@ -6124,10 +6124,10 @@ L = [X, Y, Z].
 True when \arg{Var} is a variable in \arg{Term}.  Fails if \arg{Term}
 is \jargon{ground} (see ground/1).  This predicate is intended for
 coroutining to trigger a wakeup if \arg{Term} becomes ground, e.g.,
-using when/2.  The current implemention always returns the first
+using when/2.  The current implementation always returns the first
 variable in depth-first left-right search.  Ideally it should return
 a random member of the set of variables (see term_variables/2) to
-realise logarithmetic complexity for the ground trigger.  Compatible
+realise logarithmic complexity for the ground trigger.  Compatible
 with ECLiPSe and hProlog.
 
     \predicate{term_variables}{3}{+Term, -List, ?Tail}
@@ -6320,7 +6320,7 @@ numbers. Following the ISO standard, it allows for \emph{leading} white
 space (including newlines) and does not allow for \emph{trailing} white
 space.\footnote{ISO also allows for Prolog comments in leading white
 space. We--and most other implementations--believe this is incorrect. We
-also beleive it would have been better not to allow for white space, or
+also believe it would have been better not to allow for white space, or
 to allow for both leading and trailing white space. Prolog syntax-based
 conversion can also be achieved using format/3 and read_from_chars/2.}
 A \except{syntax_error} exception is raised if \arg{CharList} does not
