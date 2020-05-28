@@ -1,6 +1,6 @@
 #!/bin/bash
 
-port=swi-prolog-devel
+port=swi-prolog
 branch=master
 
 done=false
