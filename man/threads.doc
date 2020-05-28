@@ -38,7 +38,7 @@ MS-Windows. On Windows it uses the
 \href{http://sources.redhat.com/pthreads-win32/}{pthread-win32} emulation
 of POSIX threads mixed with the Windows native API for smoother and
 faster operation. The SWI-Prolog thread implementation has been
-discussed in the ISO WG17 working group and is largely addopted by YAP
+discussed in the ISO WG17 working group and is largely adopted by YAP
 and XSB Prolog.\footnote{The latest version of the ISO draft can be
 found at \url{http://logtalk.org/plstd/threads.pdf}.  It appears to
 have dropped from the ISO WG17 agenda.}

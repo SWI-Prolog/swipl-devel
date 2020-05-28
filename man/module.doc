@@ -208,7 +208,7 @@ The advantage of autoloading is that it requires less typing while it
 reduces the startup time and reduces the memory footprint of an
 application. It also allows moving old predicates or emulation thereof
 the the module \pllib{backcomp} without affecting existing code. This
-procedure keeps the libaries and system clean. We make sure that there
+procedure keeps the libraries and system clean. We make sure that there
 are not two modules that provide the same predicate as autoload
 predicate.
 
