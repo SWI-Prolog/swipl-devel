@@ -628,7 +628,7 @@ spy/1.  In addition, PceEmacs prolog mode provides the command
 \menu{Prolog/Break at}{Control-c b} to insert a break-point at a
 specific location in the source code.
 
-The graphical tracer is particulary useful for debugging threads.  The
+The graphical tracer is particularly useful for debugging threads.  The
 tracer must be loaded from the \const{main} thread before it can be
 used from a background thread.
 
