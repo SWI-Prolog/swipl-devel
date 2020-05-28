@@ -508,7 +508,7 @@ Any thread can call \term{set_prolog_flag}{stack_limit, Limit} (see
 inherited by threads created from this thread.
 
 \begin{code}
-$ swipl --stack_limit=32g
+$ swipl --stack-limit=32g
 \end{code}
 
 \begin{description}

@@ -189,9 +189,9 @@ it to \file{libpl.a} from the runtime directory and the libraries
 required by both the extensions and the SWI-Prolog kernel. This may be
 done by hand, or by using the \program{swipl-ld} utility described in
 \secref{plld}. If the linking is performed by hand, the command line
-option \const{-dump-runtime-variables} (see \secref{cmdline}) can be
-used to obtain the required paths, libraries and linking options to link
-the new executable.
+option \cmdlineoption{--dump-runtime-variables} (see \secref{cmdline})
+can be used to obtain the required paths, libraries and linking options
+to link the new executable.
 
 \section{Interface Data Types}		\label{sec:foreigntypes}
 
