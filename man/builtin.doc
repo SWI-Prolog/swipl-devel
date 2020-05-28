@@ -6478,7 +6478,7 @@ locale dependent sorting of atoms.
 The predicate format_time/3 can be used to format time and date
 representations, where some of the specifiers are locale dependent.
     \item
-The predicate format/2 provides locale-specific formating of numbers.
+The predicate format/2 provides locale-specific formatting of numbers.
 This functionality is based on a more fine-grained localization model
 that is the subject of this section.
 \end{itemize}
@@ -6747,7 +6747,7 @@ defined. Operators can be exported from modules using a term
 \term{op}{Precedence, Type, Name} in the export list as specified by
 module/2. Many modern Prolog systems have module specific operators.
 Unfortunately, there is no established interface for exporting and
-importing operators. SWI-Prolog's convention has been addopted by YAP.
+importing operators. SWI-Prolog's convention has been adopted by YAP.
 
 The module table of the module \const{user} acts as default table for
 all modules and can be modified explicitly from inside a module to
@@ -7127,7 +7127,7 @@ A = 17/6
 \label{sec:rational-or-float}
 
 SWI-Prolog uses rational number arithmetic if the Prolog flag
-\prologflag{prefer_rationals} is \const strue and if this is defined for
+\prologflag{prefer_rationals} is \const{true} and if this is defined for
 a function on the given operants. This results in perfectly precise
 answers. Unfortunately rational numbers can get really large and, if a
 precise answer is not needed, a big waste of memory and CPU time. In
@@ -7142,8 +7142,8 @@ truncating functions such as \funcref{round}{1}, \funcref{rational}{1}
 or \funcref{float_integer_part}{1}.
 
 Float arithmetic is typically forced by using a floating point constant
-as initial value or operant. Alternatively, the \funcref{float} function
-forces conversion of the argument.
+as initial value or operant. Alternatively, the \funcref{float}{1}
+function forces conversion of the argument.
 
 \subsubsection{IEEE 754 floating point arithmetic}
 \label{sec:ieee-float}
@@ -7183,7 +7183,7 @@ are below.
 
 \begin{description}
     \termitem{nan}{}
-\arg{Float} is ``Not a number''. See \funcref{nan}{1}. May be produced
+\arg{Float} is ``Not a number''. See \funcref{nan}{0}. May be produced
 if the Prolog flag \prologflag{float_undefined} is set to \const{nan}.
 Although IEEE 754 allows NaN to carry a \jargon{payload} and have a
 sign, SWI-Prolog has only a single NaN values.  Note that two NaN
@@ -7192,7 +7192,7 @@ sign, SWI-Prolog has only a single NaN values.  Note that two NaN
 (\predref{=:=}{2}, etc.).
 
     \termitem{infinite}{}
-\arg{Float} is positive or negative infinity.  See \funcref{inf}{1}.
+\arg{Float} is positive or negative infinity.  See \funcref{inf}{0}.
 May be produced if the Prolog flag \prologflag{float_overflow} or
 the flag \prologflag{float_zero_div} is set to \const{infinity}.
     \termitem{zero}{}
@@ -7212,8 +7212,8 @@ True when \arg{Mantissa} is the normalized fraction of \arg{Float},
 This uses the C function frexp().  If \arg{Float} is NaN or $\pm$Inf
 \arg{Mantissa} has the same value and \arg{Exponent} is 0 (zero).
 In the current implementation \arg{Base} is always 2.
-The following relation is always true $$Float =:= Mantissa \times
-Base^{Exponent}$$.
+The following relation is always true: $$Float =:= Mantissa \times
+Base^{Exponent}$$
 
     \predicate[det]{bounded_number}{3}{?Low, ?High, +Num}
 True if \arg{Low} < \arg{Num} < \arg{High}. Raises a type error if \arg{Num}
@@ -7371,7 +7371,7 @@ Evaluate \arg{Expr} and return the absolute value of it.
 Evaluate to -1 if $\arg{Expr} < 0$, 1 if $\arg{Expr} > 0$ and 0 if
 $\arg{Expr} = 0$.  If \arg{Expr} evaluates to a float, the return value
 is a float (e.g., -1.0, 0.0 or 1.0). In particular, note that sign(-0.0)
-evaluates to 0.0.  See also \funcref{copysign}{2}
+evaluates to 0.0.  See also \funcref{copysign}{2}.
 
     \function[ISO]{copysign}{2}{+Expr1, +Expr2}
 Evaluate to \arg{X}, where the absolute value of \arg{X} equals the
@@ -7398,7 +7398,7 @@ true.
     \function{roundtoward}{2}{+Expr1, +RoundMode}
 Evaluate \arg{Expr1} using the floating point rounding mode
 \arg{RoundMode}. This provides a local alternative to the Prolog flag
-\prologflag{float_rounding}. This function can be nested. The suppored
+\prologflag{float_rounding}. This function can be nested. The supported
 values for \arg{RoundMode} are the same as the flag values:
 \const{to_nearest}, \const{to_positive}, \const{to_negative} or
 \const{to_zero}.
@@ -7540,7 +7540,7 @@ X =:= numerator(X)/denominator(X).
 
     \function{denominator}{1}{+RationalExpr}
 If \arg{RationalExpr} evaluates to a rational number or integer,
-evaluate to the botom/right value. Evaluates to 1 (one) if
+evaluate to the bottom/right value. Evaluates to 1 (one) if
 \arg{RationalExpr} evaluates to an integer. See also
 \funcref{numerator}{1}. The following is true for any rational \arg{X}.
 
@@ -7561,7 +7561,7 @@ negative, \arg{Expr} if \arg{Expr} is integer.
     \function[ISO]{truncate}{1}{+Expr}
 Truncate \arg{Expr} to an integer.  If $\arg{Expr} \geq 0$ this is the
 same as \term{floor}{Expr}.  For $\arg{Expr} < 0$ this is the same as
-\term{ceil}{Expr}.  That is, truncate/1 rounds towards zero.
+\term{ceil}{Expr}.  That is, \funcref{truncate}{1} rounds towards zero.
 
     \function[ISO]{floor}{1}{+Expr}
 Evaluate \arg{Expr} and return the largest integer smaller or equal
@@ -7597,7 +7597,7 @@ Bitwise negation.  The returned value is the one's complement of
 \arg{IntExpr}.
 
     \function[ISO]{sqrt}{1}{+Expr}
-$\arg{Result} = \sqrt{\arg{Expr}}$
+$\arg{Result} = \sqrt{\arg{Expr}}$.
     \function[ISO]{sin}{1}{+Expr}
 $\arg{Result} = \sin{\arg{Expr}}$. \arg{Expr} is the angle in radians.
     \function[ISO]{cos}{1}{+Expr}
@@ -7707,7 +7707,7 @@ key-exchange we do not support these.}
     \function{lgamma}{1}{+Expr}
 Return the natural logarithm of the absolute value of the Gamma
 function.\footnote{Some interfaces also provide the sign of the Gamma
-function. We canot do that in an arithmetic function. Future versions
+function. We cannot do that in an arithmetic function. Future versions
 may provide a \emph{predicate} \nopredref{lgamma}{3} that returns both
 the value and the sign.}
 
@@ -7931,7 +7931,7 @@ The sort/2 predicate can sort a cyclic list, returning a non-cyclic
 version with the same elements.
 
 Note that \arg{List} may contain non-ground terms. If \arg{Sorted} is
-unbound at call-time, for each consequtive pair of elements in
+unbound at call-time, for each consecutive pair of elements in
 \arg{Sorted}, the relation \verb$E1 @< E2$ will hold. However, unifying
 a variable in \arg{Sorted} may cause this relation to become invalid,
 \emph{even} unifying a variable in \arg{Sorted} with another (older)
@@ -7961,7 +7961,7 @@ dict does not contain the requested key.
 Deeper nested elements of structures can be selected by using a list
 of keys for the \arg{Key} argument.
 
-The \arg{Order} argument is described in the table below\footnote{For
+The \arg{Order} argument is described in the table below:\footnote{For
 compatibility with ECLiPSe, the values \const{<}, \const{=<}, \const{>}
 and \const{>=} are allowed as synonyms.}
 
@@ -8673,7 +8673,7 @@ Determine the size of the terminal.  Platforms:
     \item[Unix]
 If the system provides \jargon{ioctl} calls for this, these are
 used and tty_size/2 properly reflects the actual size after a user
-resize of the window.   The \jargon{ioctl} is issued on teh file
+resize of the window.   The \jargon{ioctl} is issued on the file
 descriptor associated with the \const{user_input} stream. As a fallback,
 the system uses tty_get_capability/3 using \const{li} and \const{co}
 capabilities. In this case the reported size reflects the size at the
@@ -8692,7 +8692,7 @@ multithreaded version the console that is associated with the
 
 The predicates in this section provide basic access to the operating
 system that has been part of the Prolog legacy tradition. Note that more
-advanced access to low-level OS features is provided by several libaries
+advanced access to low-level OS features is provided by several libraries
 from the \const{clib} package, notably library \pllib{process},
 \pllib{socket}, \pllib{unix} and \pllib{filesex}.
 
@@ -8713,7 +8713,7 @@ not wait for the new task to terminate. See also win_exec/2 and
 win_shell/2. Please note that the CreateProcess() API does {\bf not}
 imply the Windows command interpreter (\program{cmd.exe} and therefore
 commands that are built in the command interpreter can only be activated
-using the command interpreter. For example, a file can be compied using
+using the command interpreter. For example, a file can be copied using
 the command below.
 
 \begin{code}
@@ -8840,7 +8840,7 @@ ShellExecute(). The \arg{Show} argument determines the initial state of
 the opened window (if any). See win_exec/2 for defined values.
 
     \predicate{win_shell}{2}{+Operation, +File}
-Same as \term{win_shell}{Operation, File, normal}
+Same as \term{win_shell}{Operation, File, normal}.
 
     \predicate{win_registry_get_value}{3}{+Key, +Name, -Value}
 Windows only. Fetches the value of a Windows registry key. \arg{Key} is
@@ -8899,7 +8899,7 @@ directory from the search path. Error conditions:
     \item This predicate \emph{fails} if Windows does not yet support the
           underlying primitives.  These are available in recently
 	  patched Windows~7 systems and later.
-    \item This predicate throws an acception if the provided path is
+    \item This predicate throws an exception if the provided path is
           invalid or the underlying Windows API returns an error.
     \end{itemize}
 
@@ -9163,7 +9163,7 @@ Modifier to select locale-specific output.  Not implemented.
     \fmtchar{p}
 Either `AM' or `PM' according to the given time value, or the
 corresponding strings for the current locale. Noon is treated as `pm'
-and midnight as `am'.\footnote{Despite the above clain, some locales
+and midnight as `am'.\footnote{Despite the above claim, some locales
 yield \const{am} or \const{pm} in lower case.}
     \fmtchar{P}
 Like \%p but in lowercase: `am' or `pm' or a corresponding string
@@ -9380,7 +9380,7 @@ If \arg{Mode} is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write access to the
 directory of the specified location.
 
-The bahaviour is backed up by the POSIX access() API. The Windows
+The behaviour is backed up by the POSIX access() API. The Windows
 replacement (_waccess()) returns incorrect results because it does not
 consider ACLs (Access Control Lists). The Prolog flag
 \prologflag{win_file_access_check} may be used to control the level of
@@ -9526,7 +9526,7 @@ call expand_file_name/2 followed by member/2 on \arg{Spec} before
 proceeding.  This is a SWI-Prolog extension intended to minimise
 porting effort after SWI-Prolog stopped expanding environment
 variables and the \chr{~} by default.  This option should be
-considered deprecated.  In particular the use of \jargon{wildchart}
+considered deprecated.  In particular the use of \jargon{wildcard}
 patterns such as \exam{*} should be avoided.
 \end{description}
 
@@ -10093,7 +10093,7 @@ garbage_collection & [ number of GC, bytes gained, time spent, bytes left ]
 		  The last column is a SWI-Prolog extension.  It contains the
 		  sum of the memory left after each collection, which can be
 		  divided by the count to find the average working set size
-		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatiblity. \\
+		  after GC.  Use \exam{[Count, Gained, Time|_]} for compatibility. \\
 stack_shifts    & [ global shifts, local shifts, time spent ] \\
 atoms		& [ number, memory use, 0 ] \\
 atom_garbage_collection &
@@ -10311,7 +10311,7 @@ Number of bytes currently allocated by application.
 Number of bytes in the heap (= current_allocated_bytes + fragmentation
 + freed memory regions).
 	\termitem{'tcmalloc.max_total_thread_cache_bytes'}{-Int}
-Upper limit on total number of bytes stored across allper-thread caches.
+Upper limit on total number of bytes stored across all thread caches.
 	\termitem{'tcmalloc.current_total_thread_cache_bytes'}{-Int}
 Number of bytes used across all thread caches.
 	\termitem{'tcmalloc.central_cache_free_bytes'}{-Int}
@@ -10320,7 +10320,7 @@ assigned to size classes. They always count towards virtual
 memory usage, and unless the underlying memory is swapped out
 by the OS, they also count towards physical memory usage.
 	\termitem{'tcmalloc.transfer_cache_free_bytes'}{-Int}
-Number of free bytes that are waiting to be transfered between
+Number of free bytes that are waiting to be transferred between
 the central cache and a thread cache. They always count
 towards virtual memory usage, and unless the underlying memory
 is swapped out by the OS, they also count towards physical
@@ -10369,7 +10369,7 @@ malloc cache but preserves the cache itself.
 	\termitem{long}{}
 Calls garbage_collect/0 and trim_stacks/0 and, if tcmalloc is used,
 calls MallocExtension_MarkThreadIdle() which releases all
-thread-specific allocation datastructures.
+thread-specific allocation data structures.
     \end{description}
 \end{description}
 

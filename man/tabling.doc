@@ -63,7 +63,7 @@ and thus becomes prohibitively slow rather quickly, e.g., the execution
 time for $N=30$ is already 0.4 seconds. Using tabling, \term{fib}{N,F}
 for each value of $N$ is computed only once and the algorithm becomes
 linear. Tabling effectively inverts the execution order for this case:
-it suspends the final addition (F is F1+F2) until the two preceeding
+it suspends the final addition (F is F1+F2) until the two preceding
 Fibonacci numbers have been added to the answer tables. Thus, we can
 reduce the complexity from the show-stopping $2^N$ to linear by adding a
 tabling directive and otherwise not changing the algorithm. The code
@@ -679,9 +679,9 @@ continue. If it is owned by another thread we \emph{wait} for the table
 \emph{unless there is a cycle of threads waiting for each others table}.
 The latter situation would cause a deadlock and therefore we raise a
 \const{deadlock} exception. This exception causes the current SCC to be
-abandonned and gives other threads the opportunity to claim ownership of
+abandoned and gives other threads the opportunity to claim ownership of
 the tables that were owned by this thread. The thread that raised the
-exception and abandonned the SCC simply restarts the leader goal of the
+exception and abandoned the SCC simply restarts the leader goal of the
 SCC. As other threads now have claimed more variants of the SCC it will,
 in most cases, wait for these threads instead of creating a new
 deadlock.
@@ -704,7 +704,7 @@ shared table has no effect on the semantics of the tabled predicates.}
 An attempt to abolish an incomplete table results in the table to be
 marked for destruction on completion. The thread that is completing the
 table continues to do so and continues execution with the computed table
-answers. Any other thread blocks, waiting for the the table to complete.
+answers. Any other thread blocks, waiting for the table to complete.
 Once completed, the table is destroyed and the waiting threads see a
 \jargon{fresh} table\footnote{Future versions may avoid waiting by
 converting the abolished shared table to a private table.}.

@@ -375,7 +375,7 @@ main ways to represent text: using strings, atoms or code lists. This
 section explains what to choose for what purpose. Both strings and atoms
 are \jargon{atomic} objects: you can only look inside them using
 dedicated predicates. Lists of character codes are compound
-datastructures.
+data structures.
 
 \begin{description}
     \item [Lists of character codes]
@@ -1221,7 +1221,7 @@ have a more natural syntax.
 
     \item [Library \pllib{pairs}]
 This library is commonly used to process large name-value associations.
-In many cases this concerns short-lived datastructures that result from
+In many cases this concerns short-lived data structures that result from
 findall/3, maplist/3 and similar list processing predicates. Dicts may
 play a role if frequent random key lookups are needed on the resulting
 association. For example, the skeleton `create a pairs list', `use

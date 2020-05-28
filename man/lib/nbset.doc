@@ -3,7 +3,7 @@
 The library \pllib{nb_set} defines \jargon{non-backtrackable sets},
 implemented as binary trees. The sets are represented as compound terms
 and manipulated using nb_setarg/3. Non-backtrackable manipulation of
-datastructures is not supported by a large number of Prolog
+data structures is not supported by a large number of Prolog
 implementations, but it has several advantages over using the
 database. It produces less garbage, is thread-safe, reentrant and deals
 with exceptions without leaking data.
