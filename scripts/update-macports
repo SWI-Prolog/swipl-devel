@@ -1,5 +1,6 @@
 #!/bin/bash
 
+port=swi-prolog-devel
 branch=master
 
 done=false
@@ -22,7 +23,7 @@ else
 fi
 
 portgit=$HOME/src/macports-ports/
-port=lang/swi-prolog-devel
+port=lang/$port
 portfile=$port/Portfile
 version=$(cat VERSION)
 file=../swipl-$version.tar.gz
@@ -63,4 +64,4 @@ $sed -i \
      -e "s/^\(\s*size\s*\)[0-9a-f].*/\1$size/" \
      $portgit/$portfile
 
-git -C $portgit commit $portfile -m "Updated to version $version"
+git -C $portgit commit $portfile -m "$port: Updated to version $version"
