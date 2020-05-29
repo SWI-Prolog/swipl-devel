@@ -10,7 +10,6 @@
 
 /* trying to abstract too much can abstract out the input numbers */
 %:- set_prolog_flag(max_table_subgoal_depth,20).
-:- set_prolog_flag(max_table_subgoal_size,20).
 
 :- table(interp1/1).
 %:- table(ssh/2).
@@ -18,12 +17,14 @@
 %:- (interp1(p(A,S,D)),fail ; interp1(p(Q,W,E)),p,fail).
 
 test:-
-	interp1(p(A,S,D)),T=p(A,S,D),numbervars(T,0,_),writeq(T),nl,fail 
+	set_prolog_flag(max_table_subgoal_size,20),
+	interp1(p(A,S,D)),T=p(A,S,D),numbervars(T,0,_),writeq(T),nl,fail
 	; nl,interp1(p(Q,W,E)),T=p(Q,W,E),numbervars(T,0,_),writeq(T),nl,fail.
-test:- 
+test:-
 	nl,interp1(split(4,[6,3,7,2,1,9],L1,L2)),
 	write(L1),nl,write(L2),nl,fail.
-test.
+test:-
+	set_prolog_flag(max_table_subgoal_size,infinite).
 
 interp1(G) :- interp0(G).
 
