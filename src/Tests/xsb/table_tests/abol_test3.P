@@ -19,17 +19,33 @@ p(g(3)).
 :- dynamic tr/1.
 :- index(tr/1,trie).
 
-test:- assert(tr(a)),assert(tr(b)),assert(tr(c)),fail.
+test :-
+    abolish_all_tables,
+    gc_tables(N0),
+    test2,
+    gc_tables(N1),
+    N is N1-N0,
+    writeln(remaining(N)).
 
-test:- tpred(_X),fail.
-test:-  tpred(X),tr(Y),
-	abolish_table_pred(tpred/1),
-	writeln((X,Y)),fail.
-
-test:- tpred(_X),fail.
-test:-  tpred(_X),tr(_Y),
-	abolish_table_pred(tpred/1),
-	fail.
-
-test:- get_residual(tpred(X),_),writeln(first(X)),fail.
-test:- gc_tables(N),writeln(remaining(N)).
+test2 :-
+    assert(tr(a)),
+    assert(tr(b)),
+    assert(tr(c)),
+    fail.
+test2 :-
+    tpred(_X),fail.
+test2 :-
+    tpred(X),tr(Y),
+    abolish_table_pred(tpred/1),
+    writeln((X,Y)),fail.
+test2 :-
+    tpred(_X),fail.
+test2 :-
+    tpred(_X),tr(_Y),
+    abolish_table_pred(tpred/1),
+    fail.
+test2 :-
+    get_residual(tpred(X),_),
+    writeln(first(X)),
+    fail.
+test2.

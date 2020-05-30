@@ -34,9 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define __assert_fail __sys_assert_fail
-
-#include <assert.h>
+#define NO_ASSERT_H
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #if TIME_WITH_SYS_TIME
@@ -50,7 +48,6 @@
 # endif
 #endif
 
-#undef __assert_fail
 void __assert_fail(const char *assertion,
 		   const char *file,
 		   unsigned int line,
@@ -64,10 +61,10 @@ void __assert_fail(const char *assertion,
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This function is called from  GNU  <assert.h>,   so  we  can print which
 thread  caused  the  problem.  We  redefine    this  to  get  additional
-information. This is done  in  a  separate   file,  so  we  can redefine
-__assert_fail to __sys_assert_fail and  avoid  a   type  error  on small
-variations the type of __assert_fail, such as `_Noreturn` as it is found
-in musl libc (https://www.musl-libc.org/) used by Alpine Linux.
+information. This is done in a separate  file, so we can avoid including
+the system assert.h and so avoid a   type  error on small variations the
+type of __assert_fail, such as `_Noreturn` as   it is found in musl libc
+(https://www.musl-libc.org/) used by Alpine Linux.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if !defined(HAVE_CTIME_R) && !defined(ctime_r)

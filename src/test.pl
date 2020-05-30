@@ -2792,6 +2792,18 @@ testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
 testdir('Tests/save').
+testdir('Tests/tabling').
+testdir('Tests/xsb/basic_tests').
+testdir('Tests/xsb/ai_tests').
+testdir('Tests/xsb/ptq').
+testdir('Tests/xsb/neg_tests').
+testdir('Tests/xsb/delay_tests').
+testdir('Tests/xsb/wfs_tests').
+testdir('Tests/xsb/table_tests').
+testdir('Tests/xsb/incremental_tests').
+testdir('Tests/xsb/nonmt_tests').
+testdir('Tests/xsb/sub_tests').
+
 
 :- dynamic
 	failed/1,

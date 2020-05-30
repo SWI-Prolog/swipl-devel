@@ -42,6 +42,10 @@
 :- use_module(library(terms)).
 :- use_module(library(dialect/hprolog)).
 :- use_module(library(lists)).
+:- use_module(library(aggregate)).
+:- use_module(library(apply)).
+:- use_module(library(debug)).
+:- use_module(library(error)).
 
 :- module_transparent
 	test_expected_variants_present/0,
@@ -70,7 +74,7 @@ test_expected_variants_present(M) :-
 	assert_equal(NumExpected,NumActual,'test_expected_variants_present').
 
 num_tables(Count) :-
-	'$tbl_variant_table'(Trie),
+	'$tbl_local_variant_table'(Trie),
 	aggregate_all(count, trie_gen(Trie,_,_), Count).
 
 mqualify(M,T,M:T).

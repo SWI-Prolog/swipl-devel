@@ -3111,19 +3111,28 @@ load_files(Module:Files, Options) :-
 
 %!  '$module_class'(+File, -Class, -Super) is det.
 %
-%   Determine the initial module from which   I  inherit. All system
-%   and library modules inherit from =system=, while all normal user
-%   modules inherit from =user=.
+%   Determine  the  file  class  and  initial  module  from  which  File
+%   inherits. All boot and library modules  as   well  as  the -F script
+%   files inherit from `system`, while all   normal user modules inherit
+%   from `user`.
 
 '$module_class'(File, Class, system) :-
     current_prolog_flag(home, Home),
     sub_atom(File, 0, Len, _, Home),
-    !,
     (   sub_atom(File, Len, _, _, '/boot/')
     ->  Class = system
-    ;   Class = library
-    ).
+    ;   '$lib_prefix'(Prefix),
+        sub_atom(File, Len, _, _, Prefix)
+    ->  Class = library
+    ;   file_directory_name(File, Home),
+        file_name_extension(_, rc, File)
+    ->  Class = library
+    ),
+    !.
 '$module_class'(_, user, user).
+
+'$lib_prefix'('/library').
+'$lib_prefix'('/xpce/prolog/lib/').
 
 '$check_export'(Module) :-
     '$undefined_export'(Module, UndefList),

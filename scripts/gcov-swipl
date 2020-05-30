@@ -1,0 +1,73 @@
+#!/bin/bash
+#
+# Get coverage information from running swipl
+#
+# This  script  must  be  executed  from    the  build  directory  after
+# configuring SWI-Prolog using -DGCOV=ON. Our convention  is to create a
+# file `configure` in the build directory like this:
+#
+#     CC=gcc-10 CXX=g++-10 cmake -DGCOV=ON -G Ninja ..
+#
+# The `CC=gcc-10` is used by this script to find the matching version of
+# the gcov tool.  The script taks these steps:
+#
+#   - Remove all .gcov and .gcda files
+#   - Run src/swipl $*
+#   - Fix up the names of the .gcda files as cmake calls the output
+#     files base.c.o, creating base.c.gcda while gcov looks for
+#     base.gcda.
+#   - Find all annotated sources by collecting the source file names
+#     that belong to the generated .gcda files
+#   - Run gcov
+#
+# Particularly useful are the following, the  first testing coverage for
+# PGO optimization and the second for  the   test  suite.  Note that the
+# second only covers the core tests, not the package tests.
+#
+#     ../script/gcov-swipl ../bench/run.pl
+#     ../script/gcov-swipl -q ../src/test.pl
+
+gcov=gcov
+if [ -f configure ]; then
+  ccv=$(sed 's/.*CC=gcc-\([0-9][0-9]*\).*/\1/' < configure)
+  case "$ccv" in
+    [0-9]*) gcov=gcov-$ccv
+	    ;;
+  esac
+fi
+
+if [ ! -x src/swipl ]; then
+  echo "Cannot find src/swipl.  Please run this script in the build dir"
+  exit 1
+fi
+
+echo "Cleaning old output ..."
+find . \( -name '*.c.gcda' -o -name '*.gcov' \) -exec rm {} +
+
+echo "Runing src/swipl $* ..."
+src/swipl $*
+
+echo "Fixing up coverage file names ..."
+for f in $(find . -name '*.c.gcno' -o -name '*.c.gcda'); do
+  noc=$(echo $f | sed 's/\.c\././')
+  mv $f $noc
+done
+
+src=
+for f in $(find . -name '*.gcda'); do
+  src+=" $(echo $f | sed 's/\.gcda/.c/')"
+done
+
+echo "Creating coverage files using $gcov ..."
+$gcov $src > GCOV-Summaries
+
+cat << EOF
+Summary:
+
+Covered:     $(cat *.gcov | grep -c '^ *[0-9][0-9]*:')
+Not covered: $(cat *.gcov | grep -c '^ *#####:')
+No code:     $(cat *.gcov | grep -c '^ *-:')
+Total:       $(cat *.gcov | wc -l)
+EOF
+
+echo "All done"

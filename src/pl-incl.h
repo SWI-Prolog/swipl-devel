@@ -292,7 +292,11 @@ typedef _sigset_t sigset_t;
 #ifdef ASSERT_H_REQUIRES_STDIO_H
 #include <stdio.h>
 #endif /*ASSERT_H_REQUIRES_STDIO_H*/
+#ifdef NO_ASSERT_H		/* see pl-assert.c */
+#define assert(c) (void)0
+#else
 #include <assert.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
