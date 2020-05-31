@@ -85,6 +85,26 @@ backSkipUTF8(const char *start, const char *s, int *chr)
 		 *	    PREDICATES		*
 		 *******************************/
 
+static int
+unify_text(term_t t, PL_chars_t *txt, int type ARG_LD)
+{ if ( PL_unify_text(t, 0, txt, type) )
+  { return TRUE;
+  } else if ( !PL_exception(0) )
+  { PL_chars_t tt;
+
+    if ( PL_get_text(t, &tt, CVT_ALL) )
+    { int rc = ( txt->encoding == tt.encoding &&
+		 txt->length == tt.length &&
+		 PL_cmp_text(txt, 0, &tt, 0, tt.length) == CMP_EQUAL );
+      PL_free_text(&tt);
+      return rc;
+    }
+  }
+
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("atom_string", 2, atom_string, 0)
 { PRED_LD
@@ -94,9 +114,9 @@ PRED_IMPL("atom_string", 2, atom_string, 0)
   int rc;
 
   if ( PL_get_text(str, &t, CVT_ALL) )
-    rc = PL_unify_text(a, 0, &t, PL_ATOM);
+    rc = unify_text(a, &t, PL_ATOM PASS_LD);
   else if ( PL_get_text(a, &t, CVT_ALL) )
-    rc = PL_unify_text(str, 0, &t, PL_STRING);
+    rc = unify_text(str, &t, PL_STRING PASS_LD);
   else if ( !PL_is_variable(str) )
     return PL_type_error("string", str);
   else if ( !PL_is_variable(a) )
@@ -117,7 +137,7 @@ string_x(term_t str, term_t list, int out_type ARG_LD)
 
   switch ( PL_get_text(str, &t, CVT_ALL|CVT_EXCEPTION|CVT_VARNOFAIL) )
   { case TRUE:
-      rc = PL_unify_text(list, 0, &t, out_type);
+      rc = unify_text(list, &t, out_type PASS_LD);
       PL_free_text(&t);
       return rc;
     case FALSE:
@@ -126,7 +146,7 @@ string_x(term_t str, term_t list, int out_type ARG_LD)
   }
 
   if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-  { rc = PL_unify_text(str, 0, &t, PL_STRING);
+  { rc = unify_text(str, &t, PL_STRING PASS_LD);
     PL_free_text(&t);
     return rc;
   }
@@ -158,7 +178,7 @@ PRED_IMPL("text_to_string", 2, text_to_string, 0)
     return PL_unify(A1, A2);
 
   if ( PL_get_text(A1, &t, CVT_ATOM|CVT_LIST|CVT_EXCEPTION) )
-  { int rc = PL_unify_text(A2, 0, &t, PL_STRING);
+  { int rc = unify_text(A2, &t, PL_STRING PASS_LD);
     PL_free_text(&t);
     return rc;
   }
