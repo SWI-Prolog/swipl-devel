@@ -2313,11 +2313,11 @@ described in \cite{DBLP:journals/tplp/SchrijversDDW13}. The mechanism
 allows for proper \jargon{coroutines}, two or more routines whose
 execution is interleaved, while they exchange data. Note that coroutines
 in this sense differ from coroutines realised using attributed variables
-as described in~\chapref{clp}.
+as described in \chapref{clp}.
 
-The suspension mechanism provided by delimited continuations is suitable
-for the implementation of \jargon{tabling}
-\cite{DBLP:journals/tplp/DesouterDS15}, see library \pllib{tabling}.
+The suspension mechanism provided by delimited continuations is use to
+implement of \jargon{tabling} \cite{DBLP:journals/tplp/DesouterDS15},
+see \secref{tabling}.
 
 \begin{description}
     \predicate{reset}{3}{:Goal, ?Ball, -Continuation}
