@@ -8771,40 +8771,6 @@ operations before starting threads or thoroughly study threading aspects
 of locale support in your environment before using in multithreaded
 environments. Locale settings are used by format_time/3, collation_key/2
 and locale_sort/2.
-
-    \predicate{unix}{1}{+Command}
-This predicate comes from the Quintus compatibility library and provides
-a partial implementation thereof.  It provides access to some operating
-system features and unlike the name suggests, is not operating system
-specific.  Defined \arg{Command}'s are below.
-
-\begin{description}
-    \termitem{system}{+Command}
-Equivalent to calling shell/1.  Use for compatibility only.
-
-    \termitem{shell}{+Command}
-Equivalent to calling shell/1.  Use for compatibility only.
-
-    \termitem{shell}{}
-Equivalent to calling shell/0.  Use for compatibility only.
-
-    \termitem{cd}{}
-Equivalent to calling working_directory/2 to the expansion (see
-expand_file_name/2) of \chr{~}.  For compatibility only.
-
-    \termitem{cd}{+Directory}
-Equivalent to calling working_directory/2. Use for compatibility
-only.
-
-    \termitem{argv}{-Argv}
-Unify \arg{Argv} with the list of command line arguments provided to
-this Prolog run. Please note that Prolog system arguments and
-application arguments are separated by \const{--}.  Integer arguments
-are passed as Prolog integers, float arguments and Prolog floating
-point numbers and all other arguments as Prolog atoms.  New applications
-should use the Prolog flag \prologflag{argv}.  See also the Prolog flag
-\prologflag{argv}.
-\end{description}
 \end{description}
 
 \subsection{Windows-specific Operating System Interaction}

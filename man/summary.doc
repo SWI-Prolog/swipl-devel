@@ -766,13 +766,11 @@ thread} \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{undefined}{0}{Well Founded Semantics: true nor false}
-\predicatesummary{unify_with_occurs_check}{2}{Logically sound
-unification} \predicatesummary{unifiable}{3}{Determining binding
-required for unification} \predicatesummary{unix}{1}{OS interaction}
+\predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
+\predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_file}{1}{Unload a source file}
-\predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared
-library (.so file)}
+\predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
 \predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared
 library (.so file)} \predicatesummary{unsetenv}{1}{Delete shell
 environment variable} \predicatesummary{untable}{1}{Remove tabling

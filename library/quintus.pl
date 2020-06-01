@@ -107,7 +107,25 @@ Of course, this library is incomplete ...
                 *********************************/
 
 %!  unix(+Action)
-%   interface to  Unix.
+%
+%   This predicate provides a  partial   emulation  of the corresponding
+%   Quintus predicate. It  provides  access   to  some  operating system
+%   features and unlike the  name  suggests,   is  not  operating system
+%   specific. Defined actions are below.
+%
+%     - system(+Command)
+%       Equivalent to shell(Command)
+%     - shell(+Command)
+%       Equivalent to shell(Command)
+%     - access(File, 0)
+%       Equivalent to access_file(File, read)
+%     - cd(Dir)
+%       Equivalent to working_directory(_, Dir)
+%     - args(List)
+%       Equivalent to current_prolog_flag(os_argv, List).
+%     - argv(List)
+%       Equivalent to args(List), but arguments that are syntactically
+%       valid numbers are passed as a number.
 
 unix(system(Command)) :-
     shell(Command).
