@@ -6568,13 +6568,20 @@ in terms of code_type/2.
 
 \begin{description}
     \predicate{char_type}{2}{?Char, ?Type}
-Tests or generates alternative \arg{Type}s or \arg{Char}s. The
-character types are inspired by the standard C \file{<ctype.h>}
-primitives.  Note that the mode (-,+) is only efficient if the
-\arg{Type} has a parameter, e.g., \term{char_type}{C, digit(8)}.
-With an atomic \arg{Type} the whole unicode range (0..0x1ffff)
-is generated and tested against the C character classification
-function.
+Tests or generates alternative \arg{Type}s or \arg{Char}s. The character
+types are inspired by the standard C \file{<ctype.h>} primitives. The
+types are sensititve to the active \jargon{locale}, see setlocale/3.
+Most of the \arg{Type}s are mapped to the Unicode classification
+functions from \file{<wctype.h>}, e.g., \const{alnum} uses iswalnum().
+The types \const{prolog_var_start}, \const{prolog_atom_start},
+\const{prolog_identifier_continue} and \const{prolog_symbol} are based
+on the locale-independent built-in classification routines that are
+also used by read/1 and friends.
+
+Note that the mode (-,+) is only efficient if the \arg{Type} has a
+parameter, e.g., \term{char_type}{C, digit(8)}. If \arg{Type} is a
+atomic, the whole unicode range (0..0x1ffff) is generated and tested
+against the character classification function.
 
 \begin{description}
     \termitem{alnum}{}
