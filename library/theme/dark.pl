@@ -217,7 +217,7 @@ style(dict_function(_),          [colour(pale_green)]).
 style(dict_return_op,            [colour(cyan)]).
 
 style(hook,                      [colour(cyan), underline(true)]).
-style(dcg_right_hand_ctx,        [background('#d4ffe3')]).
+style(dcg_right_hand_ctx,        [background('#609080')]).
 
 style(error,                     [background(orange)]).
 style(type_error(_),             [background(orange)]).
