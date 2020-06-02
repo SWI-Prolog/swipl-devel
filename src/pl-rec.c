@@ -2374,7 +2374,7 @@ PRED_IMPL("erase", 1, erase, 0)
       return PL_error("erase", 1, NULL, ERR_PERMISSION,
 		      ATOM_clause, ATOM_erase, ref);
 
-    return retractClauseDefinition(def, clause);
+    return retractClauseDefinition(def, clause, TRUE);
   } else
   { RecordRef r = ptr;
     int rc;

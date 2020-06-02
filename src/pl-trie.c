@@ -221,7 +221,7 @@ trie_discard_clause(trie *trie)
       if ( cref )
       { Clause cl = cref->value.clause;
 	set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
-	retractClauseDefinition(cl->predicate, cl);
+	retractClauseDefinition(cl->predicate, cl, FALSE);
       }
       PL_unregister_atom(dbref);
     }
@@ -2932,7 +2932,7 @@ retry:
 	{ dbref = lookup_clref(cref->value.clause);
 	  if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	  { PL_unregister_atom(dbref);
-	    retractClauseDefinition(def, cref->value.clause);
+	    retractClauseDefinition(def, cref->value.clause, FALSE);
 	    goto retry;
 	  }
 	}

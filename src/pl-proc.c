@@ -1228,6 +1228,11 @@ procedure, it deletes the supervisor. This is  probably a bit rough, but
 deals with -for example- clauses for   term_expansion/2. After the first
 definition this will be  called  and   an  S_TRUSTME  supervisor will be
 installed, causing further clauses to have no effect.
+
+This function returns NULL on failure. One  of the failure cases is that
+the event notification vetoed the assert. In   this  case the clause has
+become part of the predicate. The caller should not call freeClause() if
+this function failed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
@@ -1235,14 +1240,11 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 { word key;
   ClauseRef cref;
 
-  if ( def->events &&
-       !predicate_update_event(def,
-			       where == CL_START ? ATOM_asserta : ATOM_assertz,
-			       clause PASS_LD) )
-    return NULL;
-
   argKey(clause->codes, 0, &key);
-  cref = newClauseRef(clause, key);
+  if ( !(cref=newClauseRef(clause, key)) )
+  { freeClause(clause);
+    return NULL;
+  }
 
   LOCKDEF(def);
   acquire_def(def);
@@ -1287,6 +1289,14 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   release_def(def);
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
+
+  if ( def->events &&
+       !predicate_update_event(def,
+			       where == CL_START ? ATOM_asserta : ATOM_assertz,
+			       clause PASS_LD) )
+  { retractClauseDefinition(def, clause, FALSE);
+    return NULL;
+  }
 
   return cref;
 }
@@ -1423,11 +1433,11 @@ represent tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-retractClauseDefinition(Definition def, Clause clause)
+retractClauseDefinition(Definition def, Clause clause, int notify)
 { GET_LD
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
 
-  if ( def->events &&
+  if ( def->events && notify &&
        !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
     return FALSE;
 
@@ -2896,7 +2906,7 @@ PRED_IMPL("retract", 1, retract,
 
     while( cref )
     { if ( decompile(cref->value.clause, cl, 0) )
-      { if ( retractClauseDefinition(ctx->def, cref->value.clause) ||
+      { if ( retractClauseDefinition(ctx->def, cref->value.clause, TRUE) ||
 	     CTX_CNTRL != FRG_FIRST_CALL )
 	{ if ( !ctx->chp.cref )		/* deterministic last one */
 	  { free_retract_context(ctx PASS_LD);
@@ -3020,7 +3030,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
     acquire_def(def);
     for(cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( visibleClauseCNT(cref->value.clause, gen) )
-      { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
+      { if ( !(rc=retractClauseDefinition(def, cref->value.clause, TRUE)) )
 	{ if ( PL_exception(0) )
 	    break;
 	}
@@ -3039,7 +3049,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 
     while( cref )
     { if ( decompileHead(cref->value.clause, thehead) )
-      { if ( !(rc=retractClauseDefinition(def, cref->value.clause)) )
+      { if ( !(rc=retractClauseDefinition(def, cref->value.clause, TRUE)) )
 	{ if ( PL_exception(0) )
 	    break;
 	}

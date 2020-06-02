@@ -445,7 +445,8 @@ COMMON(ClauseRef)	assertDefinition(Definition def, Clause clause,
 COMMON(ClauseRef)	assertProcedure(Procedure proc, Clause clause,
 					ClauseRef where ARG_LD);
 COMMON(bool)		abolishProcedure(Procedure proc, Module module);
-COMMON(bool)		retractClauseDefinition(Definition def, Clause clause);
+COMMON(bool)		retractClauseDefinition(Definition def, Clause clause,
+						int notify);
 COMMON(void)		unallocClause(Clause c);
 COMMON(void)		freeClause(Clause c);
 COMMON(void)		lingerClauseRef(ClauseRef c);

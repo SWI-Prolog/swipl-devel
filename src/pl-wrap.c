@@ -287,7 +287,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
     { Clause cl = ((ClauseRef)codes[1])->value.clause;
 
       codes[1] = (code)cref;
-      retractClauseDefinition(cl->predicate, cl);
+      retractClauseDefinition(cl->predicate, cl, FALSE);
 
       return TRUE;
     }
@@ -440,7 +440,7 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
 	continue;
       }
 
-      retractClauseDefinition(cl->predicate, cl);
+      retractClauseDefinition(cl->predicate, cl, FALSE);
       *cp = cls->def.impl.wrapped.supervisor;
 
       freeSupervisor(def, codes, TRUE);
