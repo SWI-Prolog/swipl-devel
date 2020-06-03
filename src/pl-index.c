@@ -555,9 +555,11 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 			      &def->impl.clauses,
 			      &ctx
 			      PASS_LD);
+#define CHK_STATIC_RELOADING() (LD->gen_reload && false(def, P_DYNAMIC))
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
-					 generationFrame(fr))));
+					 generationFrame(fr)) ||
+			   CHK_STATIC_RELOADING()));
   release_def(def);
 
   return cref;
