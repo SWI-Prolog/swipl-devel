@@ -536,6 +536,7 @@ simple:
   return cref;
 }
 
+int acquired = 0;
 
 ClauseRef
 firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
@@ -2692,15 +2693,16 @@ sizeofClauseIndexes(Definition def)
   ClauseIndex *cip;
   size_t size = 0;
 
-  acquire_def(def);
   if ( (cip=def->impl.clauses.clause_indexes) )
-  { for(; *cip; cip++)
+  { acquire_def(def);
+    for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
       if ( ISDEADCI(ci) )
 	continue;
       size += sizeofClauseIndex(ci);
     }
+    release_def(def);
   }
 
   return size;
