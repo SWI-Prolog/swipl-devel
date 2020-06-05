@@ -2298,7 +2298,9 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
       for(fr2 = me->frame;
 	  fr2 > delto;
 	  fr2 = fr2->parent)
-      { assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
+      { assert(onStack(local, me));
+	assert(onStack(local, fr2));
+	assert(fr2->clause || true(fr2->predicate, P_FOREIGN));
 
 	if ( true(fr2, FR_WATCHED) )
 	{ char *lSave = (char*)lBase;
@@ -2308,17 +2310,16 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	    Undo(me->mark);
 	    DiscardMark(me->mark);
 	  }
-	  BFR = me->parent;
+	  BFR = me;
 	  frameFinished(fr2, reason PASS_LD);
+	  BFR = BFR->parent;
 	  if ( lSave != (char*)lBase )	/* shifted */
 	  { intptr_t offset = (char*)lBase - lSave;
 
 	    me  = addPointer(me, offset);
-	    me->parent = BFR;		/* not updated because BFR=me->parent */
 	    fr  = addPointer(fr, offset);
 	    fr2 = addPointer(fr2, offset);
 	    delto = addPointer(delto, offset);
-	    fr2->parent = addPointer(fr2->parent, offset);
 	  }
 #if 0					/* What to do if we have multiple */
 	  if ( exception_term )		/* handlers and multiple exceptions? */
