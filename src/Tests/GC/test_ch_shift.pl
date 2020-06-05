@@ -36,12 +36,16 @@
 	  [ test_ch_shift/0
 	  ]).
 
-%%	test_ch_shift
+test_ch_shift :-
+	test1,
+	test2.
+
+%%	test1
 %
 %	Tests expansion of the local stack due to a clause with many
 %	choicepoints.
 
-test_ch_shift :-
+test1 :-
 	trim_stacks,
 	make_or(10000, OR),
 	asserta((t :- OR), Ref),
@@ -54,3 +58,29 @@ make_or(N, (G;a)) :-
 	make_or(N2, G).
 
 a.
+
+
+%%	test2
+%
+%	Tests local stack shifting when there are pending choicepoint frames.
+
+test2 :-
+	test2_1, !.
+
+test2_1 :-
+	test2_2, true.
+
+test2_2 :-
+	setup_call_cleanup(true, cp, lshift).
+
+cp.
+cp.
+
+lshift :-
+	statistics(local_shifts, S0),
+	lshift(S0), !, garbage_collect.
+
+lshift(S0) :-
+	statistics(local_shifts, S0),
+	lshift(S0).
+lshift(_).
