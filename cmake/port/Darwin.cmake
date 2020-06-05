@@ -45,6 +45,10 @@ elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
       "${MACOSX_DEPENDENCIES_FROM}/lib")
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
       "${MACOSX_DEPENDENCIES_FROM}/include")
+  set(CMAKE_IGNORE_PATH
+      /opt/local/lib
+      /opt/local/include
+      /opt/local/bin)
 else()
   message(FATAL_ERROR "Invalid MACOSX_DEPENDENCIES_FROM: ${MACOSX_DEPENDENCIES_FROM}")
 endif()
