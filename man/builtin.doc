@@ -2072,8 +2072,24 @@ while for normal calls this search is done at compile time.
 
 \begin{description}
     \predicate[ISO]{call}{1}{:Goal}
-Invoke \arg{Goal} as a goal. Note that clauses may have variables as
-subclauses, which is identical to call/1.
+Call \arg{Goal}. This predicate is normally used for goals that are not
+known at compile time. For example, the Prolog toplevel essentially
+performs \exam{read(Goal), call(Goal)}. Also a \jargon{meta} predicates
+such as ignore/1 are defined using call:
+
+\begin{code}
+ignore(Goal) :- call(Goal), !.
+ignore(_).
+\end{code}
+
+Note that a plain variable as a body term acts as call/1 and the above
+is equivalent to the code below.  SWI-Prolog produces the same code for
+these two progams and listing/1 prints the program above.
+
+\begin{code}
+ignore(Goal) :- Goal, !.
+ignore(_).
+\end{code}
 
     \predicate[ISO]{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
