@@ -2091,6 +2091,9 @@ ignore(Goal) :- Goal, !.
 ignore(_).
 \end{code}
 
+Note that call/1 restricts the scope of the cut (\predref{!}{0}). A cut
+inside \arg{Goal} only affects choice points created by \arg{Goal}.
+
     \predicate[ISO]{call}{2}{:Goal, +ExtraArg1, \ldots}		% 2..
 Append \arg{ExtraArg1, ExtraArg2, \ldots} to the argument list of
 \arg{Goal} and call the result. For example, \exam{call(plus(1), 2, X)}
