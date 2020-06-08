@@ -3353,11 +3353,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   { def = getProcDefinition(proc);
     return PL_unify_integer(value, sizeof_predicate(def));
   } else if ( tbl_is_predicate_attribute(key) )
-  { size_t sz_value;
-
-    if ( tbl_get_predicate_attribute(def, key, &sz_value) == TRUE )
-      return PL_unify_int64(value, sz_value);
-    return FALSE;
+  { return tbl_get_predicate_attribute(def, key, value);
   } else if ( (att = attribute_mask(key)) )
   { return PL_unify_integer(value, (def->flags & att) ? 1 : 0);
   } else
@@ -3511,16 +3507,8 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
   if ( !PL_get_atom_ex(what, &key) )
     return FALSE;
   if ( tbl_is_predicate_attribute(key) )
-  { size_t v;
-    atom_t inf;
-
-    if ( PL_get_atom(value, &inf) && inf == ATOM_infinite )
-      v	= (size_t)-1;
-    else if ( !PL_get_size_ex(value, &v) )
-      return FALSE;
-
-    if ( get_procedure(pred, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
-      return tbl_set_predicate_attribute(proc->definition, key, v) == TRUE;
+  { if ( get_procedure(pred, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+      return tbl_set_predicate_attribute(proc->definition, key, value);
 
     return FALSE;
   }

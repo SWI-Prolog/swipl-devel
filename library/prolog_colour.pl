@@ -1974,7 +1974,9 @@ colourise_decl_options(_, Which, TB, Pos) :-
 valid_decl_option(subsumptive,         table).
 valid_decl_option(variant,             table).
 valid_decl_option(incremental,         table).
+valid_decl_option(monotonic,           table).
 valid_decl_option(opaque,              table).
+valid_decl_option(monotonic,           dynamic).
 valid_decl_option(incremental,         dynamic).
 valid_decl_option(abstract(_),         dynamic).
 valid_decl_option(shared,              table).

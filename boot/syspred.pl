@@ -918,6 +918,8 @@ table_flag(shared, Pred) :-
     '$get_predicate_attribute'(Pred, tshared, 1).
 table_flag(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
+table_flag(monotonic, Pred) :-
+    '$get_predicate_attribute'(Pred, monotonic, 1).
 table_flag(subgoal_abstract(N), Pred) :-
     '$get_predicate_attribute'(Pred, subgoal_abstract, N).
 table_flag(answer_abstract(N), Pred) :-
@@ -1028,10 +1030,7 @@ set_pprops([H|T], M, Props) :-
     set_pprops1(Props, M:H),
     strip_module(M:H, M2, P),
     '$pi_head'(M2:P, Pred),
-    (   '$get_predicate_attribute'(Pred, incremental, 1)
-    ->  '$wrap_incremental'(Pred)
-    ;   '$unwrap_incremental'(Pred)
-    ),
+    '$set_table_wrappers'(Pred),
     set_pprops(T, M, Props).
 
 set_pprops1([], _).

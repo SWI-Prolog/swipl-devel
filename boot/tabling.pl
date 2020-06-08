@@ -1240,6 +1240,9 @@ table_options(variant, Opts0, Opts1) :-
 table_options(incremental, Opts0, Opts1) :-
     !,
     put_dict(incremental, Opts0, true, Opts1).
+table_options(monotonic, Opts0, Opts1) :-
+    !,
+    put_dict(monotonic, Opts0, true, Opts1).
 table_options(opaque, Opts0, Opts1) :-
     !,
     put_dict(incremental, Opts0, false, Opts1).

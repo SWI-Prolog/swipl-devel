@@ -6277,14 +6277,16 @@ tbl_is_predicate_attribute(atom_t key)
 { return ( key == ATOM_abstract ||
 	   key == ATOM_subgoal_abstract ||
 	   key == ATOM_answer_abstract ||
-	   key == ATOM_max_answers
+	   key == ATOM_max_answers ||
+	   key == ATOM_monotonic
 	 );
 }
 
 
 static void
 clear_table_props(table_props *p)
-{ p->abstract         = (size_t)-1;
+{ p->flags            = 0;
+  p->abstract         = (size_t)-1;
   p->subgoal_abstract = (size_t)-1;
   p->answer_abstract  = (size_t)-1;
   p->max_answers      = (size_t)-1;
@@ -6301,26 +6303,30 @@ tbl_reset_tabling_attributes(Definition def)
 
 
 int
-tbl_get_predicate_attribute(Definition def, atom_t att, size_t *value)
+tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
 { table_props *p;
 
   if ( (p=def->tabling) )
-  { size_t v0;
+  { GET_LD
 
-    if ( att == ATOM_abstract )
-      v0 = p->abstract;
-    else if ( att == ATOM_subgoal_abstract )
-      v0 = p->subgoal_abstract;
-    else if ( att == ATOM_answer_abstract )
-      v0 = p->answer_abstract;
-    else if ( att == ATOM_max_answers )
-      v0 = p->max_answers;
-    else
-      return -1;
+    if ( att == ATOM_monotonic )
+    { return PL_unify_integer(value, !!true(p, TP_MONOTONIC));
+    } else
+    { size_t v0;
 
-    if ( v0 != (size_t)-1 )
-    { *value = v0;
-      return TRUE;
+      if ( att == ATOM_abstract )
+	v0 = p->abstract;
+      else if ( att == ATOM_subgoal_abstract )
+	v0 = p->subgoal_abstract;
+      else if ( att == ATOM_answer_abstract )
+	v0 = p->answer_abstract;
+      else if ( att == ATOM_max_answers )
+	v0 = p->max_answers;
+      else
+	return -1;
+
+      if ( v0 != (size_t)-1 )
+	return PL_unify_int64(value, v0);
     }
   }
 
@@ -6328,9 +6334,42 @@ tbl_get_predicate_attribute(Definition def, atom_t att, size_t *value)
 }
 
 
+static int
+get_size_or_inf(term_t t, size_t *vp ARG_LD)
+{ size_t v;
+  atom_t inf;
+
+  if ( PL_get_atom(t, &inf) && inf == ATOM_infinite )
+    v	= (size_t)-1;
+  else if ( !PL_get_size_ex(t, &v) )
+    return FALSE;
+
+  *vp = v;
+  return TRUE;
+}
+
+
+static int
+set_bool_attr(table_props *props, unsigned int flag, term_t value)
+{ int v;
+
+  if ( PL_get_bool_ex(value, &v) )
+  { if ( v )
+      set(props, flag);
+    else
+      clear(props, flag);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 int
-tbl_set_predicate_attribute(Definition def, atom_t att, size_t value)
-{ table_props *p;
+tbl_set_predicate_attribute(Definition def, atom_t att, term_t value)
+{ GET_LD
+  table_props *p;
 
   if ( !(p=def->tabling) )
   { p = allocHeapOrHalt(sizeof(*p));
@@ -6342,16 +6381,25 @@ tbl_set_predicate_attribute(Definition def, atom_t att, size_t value)
     }
   }
 
-  if ( att == ATOM_abstract )
-    p->abstract = value;
-  else if ( att == ATOM_subgoal_abstract )
-    p->subgoal_abstract = value;
-  else if ( att == ATOM_answer_abstract )
-    p->answer_abstract = value;
-  else if ( att == ATOM_max_answers )
-    p->max_answers = value;
-  else
-    return -1;
+  if ( att == ATOM_monotonic )
+  { return set_bool_attr(p, TP_MONOTONIC, value);
+  } else
+  { size_t v;
+
+    if ( !get_size_or_inf(value, &v PASS_LD) )
+      return FALSE;
+
+    if ( att == ATOM_abstract )
+      p->abstract = v;
+    else if ( att == ATOM_subgoal_abstract )
+      p->subgoal_abstract = v;
+    else if ( att == ATOM_answer_abstract )
+      p->answer_abstract = v;
+    else if ( att == ATOM_max_answers )
+      p->max_answers = v;
+    else
+      return FALSE;
+  }
 
   return TRUE;
 }
