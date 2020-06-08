@@ -49,17 +49,6 @@ is available on-line as well as in
 format from the WWW home page at
 .B http://www.swi-prolog.org
 
-.SH LICENSE INFORMATION
-SWI-Prolog is distributed under the
-.IR "Simplified BSD" " or " "BSD-2"
-License.  A particular configuration may contain components that are
-subject to other license conditions.  Use
-.B license/0
-to find components with less permissive license conditions.
-See the SWI-Prolog home page at
-.B http://www.swi-prolog.org
-for details.
-
 .SH OPTIONS
 .TP
 .B \-\-help
@@ -455,13 +444,17 @@ employer be liable for any claim, damages or other liability, whether in
 an action of contract, tort or otherwise, arising from, out of or in
 connection with the software or the use or other dealings in the
 software.
-.SH COPYING
-SWI-Prolog is distributed under the LGPL (GNU Lesser General Public License).
-The license terms are in the file
-.I COPYING
-or on the GNU website at
-.I http://www.gnu.org.
+.SH LICENSE INFORMATION
+SWI-Prolog is distributed under the
+.IR "Simplified BSD" " or " "BSD-2"
+License.  A particular configuration may contain components that are
+subject to other license conditions.  Use
+.B license/0
+to find components with less permissive license conditions.
+See the SWI-Prolog license page at
+.B http://www.swi-prolog.org/license.html
+for details.
 .SH COPYRIGHT
-Copyright (c) 1986\-2015 University of Amsterdam, VU University Amsterdam
+Copyright (c) 1986\-2020 University of Amsterdam, VU University Amsterdam
 .SH AUTHOR
 Jan Wielemaker
