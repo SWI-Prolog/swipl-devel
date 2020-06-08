@@ -2133,9 +2133,11 @@ reset_answer_table(trie *atrie, int cleanup)
 
   if ( (n=atrie->data.IDG) )
   { if ( true(atrie, TRIE_ISSHARED) )
-      idg_reset(n);
-    else
+    { idg_reset(n);
+    } else
+    { atrie->data.IDG = NULL;
       idg_destroy(n);
+    }
   }
 
   trie_empty(atrie);
