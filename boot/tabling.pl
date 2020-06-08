@@ -52,6 +52,7 @@
             abolish_module_tables/1,    % +Module
             abolish_nonincremental_tables/0,
             abolish_nonincremental_tables/1, % +Options
+            abolish_monotonic_tables/0,
 
             start_tabling/3,            % +Closure, +Wrapper, :Worker
             start_subsumptive_tabling/3,% +Closure, +Wrapper, :Worker
@@ -65,8 +66,8 @@
             '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
             '$wfs_call'/2,              % :Goal, -Delays
 
-            '$wrap_incremental'/1,      % :Head
-            '$unwrap_incremental'/1     % :Head
+            '$set_table_wrappers'/1,    % :Head
+            '$start_monotonic'/2        % :Head, :Wrapped
           ]).
 
 :- meta_predicate
@@ -139,6 +140,14 @@ user:portray(ATrie) :-
     '$is_answer_trie'(ATrie),
     trie_goal(ATrie, Goal, _Skeleton),
     format('~q for ~p', [ATrie, Goal]).
+user:portray(Cont) :-
+    compound(Cont),
+    Cont =.. ['$cont$', Clause, PC | Args],
+    clause_property(Clause, file(File)),
+    file_base_name(File, Base),
+    clause_property(Clause, line_count(Line)),
+    clause_property(Clause, predicate(PI)),
+    format('~q at ~w:~d @PC=~w, ~p', [PI, Base, Line, PC, Args]).
 
 :- endif.
 
@@ -312,6 +321,7 @@ tabled_attribute(tshared).
 tabled_attribute(max_answers).
 tabled_attribute(subgoal_abstract).
 tabled_attribute(answer_abstract).
+tabled_attribute(monotonic).
 
 %!  start_tabling(:Closure, :Wrapper, :Implementation)
 %
@@ -328,8 +338,15 @@ tabled_attribute(answer_abstract).
 %           from future versions.
 
 start_tabling(Closure, Wrapper, Worker) :-
-    '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton),
-    start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton).
+    '$tbl_variant_table'(Closure, Wrapper, Trie, Status, Skeleton, IsMono),
+    (   IsMono == true
+    ->  shift(dependency(Skeleton, Trie, Mono)),
+        (   Mono == true
+        ->  tdebug(monotonic, 'Monotonic new answer: ~p', [Skeleton])
+        ;   start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
+        )
+    ;   start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton)
+    ).
 
 start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     tdebug(deadlock, 'Got table ~p, status ~p', [Trie, Status]),
@@ -595,6 +612,9 @@ delim(Skeleton, Worker, WorkList, Delays) :-
             SourceWL,
             InstSkeleton,
             dependency(SrcSkeleton, Continuation, Skeleton, WorkList, AllDelays))
+    ;   '$tbl_wkl_table'(WorkList, ATrie),
+        mon_assert_dep(SourceCall, Continuation, Skeleton, ATrie)
+    ->  delim(Skeleton, Continuation, WorkList, Delays)
     ).
 
 %!  start_moded_tabling(+Closure, :Wrapper, :Implementation, +Variant, +ModeArgs)
@@ -947,12 +967,13 @@ unqualify_goal(Goal, _, Goal).
 
 %!  abolish_all_tables
 %
-%   Remove all tables. This is normally used to free up the space or
-%   recompute the result after predicates on   which  the result for
-%   some tabled predicates depend.
+%   Remove all tables. This is normally  used   to  free up the space or
+%   recompute the result after predicates on   which the result for some
+%   tabled predicates depend.
 %
 %   Abolishes both local and shared   tables. Possibly incomplete tables
-%   are marked for destruction upon completion.
+%   are marked for destruction upon   completion.  The dependency graphs
+%   for incremental and monotonic tabling are reclaimed as well.
 
 abolish_all_tables :-
     (   '$tbl_abolish_local_tables'
@@ -1466,14 +1487,202 @@ sum(S0, S1, S) :- S is S0+S1.
 
 
 		 /*******************************
+		 *      DYNAMIC PREDICATES	*
+		 *******************************/
+
+%!  '$set_table_wrappers'(:Head)
+%
+%   Clear/add wrappers and notifications to trap dynamic predicates.
+%   This is required both for incremental and monotonic tabling.
+
+'$set_table_wrappers'(Pred) :-
+    (   '$get_predicate_attribute'(Pred, incremental, 1)
+    ->  wrap_incremental(Pred)
+    ;   unwrap_incremental(Pred)
+    ),
+    (   '$get_predicate_attribute'(Pred, monotonic, 1)
+    ->  wrap_monotonic(Pred)
+    ;   unwrap_monotonic(Pred)
+    ).
+
+		 /*******************************
+		 *       MONOTONIC TABLING	*
+		 *******************************/
+
+%!  mon_assert_dep(+Dependency, +Continuation, +Skel, +ATrie) is det.
+%
+%   Create a dependency for monotonic tabling.   Skel  and ATrie are the
+%   target trie for solutions of Continuation.
+
+mon_assert_dep(dependency(Dynamic), Cont, Skel, ATrie) :-
+    '$idg_add_mono_dyn_dep'(Dynamic,
+                            dependency(Dynamic, Cont, Skel),
+                            ATrie).
+mon_assert_dep(dependency(SrcSkel, SrcTrie, IsMono), Cont, Skel, ATrie) :-
+    '$idg_add_monotonic_dep'(SrcTrie,
+                             dependency(SrcSkel, IsMono, Cont, Skel),
+                             ATrie).
+
+%!  monotonic_affects(+SrcTrie, +SrcReturn, -IsMono,
+%!                    -Continuation, -Return, -Atrie)
+%
+%   Dependency between two monotonic tables. If   SrcReturn  is added to
+%   SrcTrie we must add all answers for Return of Continuation to Atrie.
+%   IsMono shares with Continuation and is   used  in start_tabling/3 to
+%   distinguish normal tabled call from propagation.
+
+monotonic_affects(SrcTrie, SrcSkel, IsMono, Cont, Skel, ATrie) :-
+    '$idg_mono_affects'(SrcTrie, ATrie,
+                        dependency(SrcSkel, IsMono, Cont, Skel)).
+
+%!  monotonic_dyn_affects(:Head, -Continuation, -Return, -ATrie)
+%
+%   Dynamic predicate that maintains  the   dependency  from a monotonic
+
+monotonic_dyn_affects(Head, Cont, Skel, ATrie) :-
+    dyn_affected(Head, DTrie),
+    '$idg_mono_affects'(DTrie, ATrie,
+                        dependency(Head, Cont, Skel)).
+
+%!  wrap_monotonic(:Head)
+%
+%   Prepare the dynamic predicate Head for monotonic tabling. This traps
+%   calls to build the dependency graph and updates to propagate answers
+%   from new clauses through the dependency graph.
+
+wrap_monotonic(Head) :-
+    '$wrap_predicate'(Head, monotonic, _Closure, Wrapped,
+                      '$start_monotonic'(Head, Wrapped)),
+    '$pi_head'(PI, Head),
+    prolog_listen(PI, monotonic_update).
+
+%!  unwrap_monotonic(+Head)
+%
+%   Remove the monotonic wrappers and dependencies.
+
+unwrap_monotonic(Head) :-
+    '$pi_head'(PI, Head),
+    (   unwrap_predicate(PI, monotonic)
+    ->  prolog_unlisten(PI, monotonic_update)
+    ;   true
+    ).
+
+'$start_monotonic'(Head, Wrapped) :-
+    (   '$tbl_collect_mono_dep'
+    ->  shift(dependency(Head)),
+        tdebug(monotonic, 'Cont in $start_dynamic/2 with ~p', [Head]),
+        Wrapped,
+        tdebug(monotonic, '  --> ~p', [Head])
+    ;   Wrapped
+    ).
+
+monotonic_update(Action, ClauseRef) :-
+    (   atomic(ClauseRef)                       % avoid retractall, start(_)
+    ->  '$clause'(Head, _Body, ClauseRef, _Bindings),
+        mon_propagate(Action, Head)
+    ;   true
+    ).
+
+%!  mon_propagate(+Action, +Head)
+%
+%   Handle changes to a dynamic predicate as part of monotonic
+%   updates.
+
+mon_propagate(Action, Head) :-
+    assert_action(Action),
+    !,
+    setup_call_cleanup(
+        '$tbl_propagate_start'(Old),
+        propagate_assert(Head),
+        '$tbl_propagate_end'(Old)).
+mon_propagate(retract, Head) :-
+    mon_abolish_dependents(Head).
+
+assert_action(asserta).
+assert_action(assertz).
+
+%!  propagate_assert(+Head) is det.
+%
+%   Propagate assertion of a dynamic clause with head Head.
+
+propagate_assert(Head) :-
+    tdebug(monotonic, 'Asserted ~p', [Head]),
+    (   monotonic_dyn_affects(Head, Cont, Skel, ATrie),
+        tdebug(monotonic, 'Propagating dyn ~p to ~p', [Head, ATrie]),
+        pdelim(Cont, Skel, ATrie),
+        fail
+    ;   true
+    ).
+
+%!  propagate_answer(+SrcTrie, +SrcSkel) is det.
+%
+%   Propagate the new answer SrcSkel to the answer table SrcTrie.
+
+propagate_answer(SrcTrie, SrcSkel) :-
+    (   monotonic_affects(SrcTrie, SrcSkel, true, Cont, Skel, ATrie),
+        tdebug(monotonic, 'Propagating tab ~p to ~p', [SrcTrie, ATrie]),
+        pdelim(Cont, Skel, ATrie),
+        fail
+    ;   true
+    ).
+
+%!  pdelim(+Worker, +Skel, +ATrie)
+%
+%   Call Worker (a continuation) and add   each  binding it provides for
+%   Skel  to  ATrie.  If  a  new  answer    is  added  to  ATrie,  using
+%   propagate_answer/2 to propagate this further. Note   that we may hit
+%   new dependencies and thus we need to run this using reset/3.
+%
+%   @tbd Not sure whether we need full   tabling  here. Need to think of
+%   test cases.
+
+pdelim(Worker, Skel, ATrie) :-
+    reset(Worker, Dep, Cont),
+    (   Cont == 0
+    ->  '$tbl_monotonic_add_answer'(ATrie, Skel),
+        propagate_answer(ATrie, Skel)
+    ;   mon_assert_dep(Dep, Cont, Skel, ATrie),
+        pdelim(Cont, Skel, ATrie)
+    ).
+
+%!  mon_abolish_dependents(+HeadOrTrie)
+%
+%   Abolish all dependency relations from HeadOrTrie and their tables.
+
+mon_abolish_dependents(Node) :-
+    (   (   is_trie(Node)
+        ->  monotonic_affects(Node, _Ret0, _IsMono, _ContinuationT, _RetT, ATrie)
+        ;   monotonic_dyn_affects(Node, _ContinuationD, _RetD, ATrie)
+        ),
+        '$tbl_destroy_table'(ATrie),
+        mon_abolish_dependents(ATrie),
+        fail
+    ;   true
+    ).
+
+%!  abolish_monotonic_tables
+%
+%   Abolish all monotonic tables and the monotonic dependency relations.
+
+abolish_monotonic_tables :-
+    (   '$tbl_variant_table'(VariantTrie),
+        trie_gen(VariantTrie, Goal, ATrie),
+        '$get_predicate_attribute'(Goal, monotonic, 1),
+        '$tbl_destroy_table'(ATrie),
+        fail
+    ;   true
+    ).
+
+		 /*******************************
 		 *      INCREMENTAL TABLING	*
 		 *******************************/
 
-%!  '$wrap_incremental'(:Head) is det.
+%!  wrap_incremental(:Head) is det.
 %
 %   Wrap an incremental dynamic predicate to be added to the IDG.
 
-'$wrap_incremental'(Head) :-
+wrap_incremental(Head) :-
+    tdebug(monotonic, 'Wrapping ~p', [Head]),
     abstract_goal(Head, Abstract),
     '$pi_head'(PI, Head),
     (   Head == Abstract
@@ -1515,25 +1724,22 @@ dyn_affected(Term, ATrie) :-
     '$tbl_variant_table'(VTable),
     trie_gen(VTable, Term, ATrie).
 
-%!  '$unwrap_incremental'(:Head) is det.
+%!  unwrap_incremental(:Head) is det.
 %
 %   Remove dynamic predicate incremenal forwarding,   reset the possible
 %   `abstract` property and remove possible tables.
 
-'$unwrap_incremental'(Head) :-
+unwrap_incremental(Head) :-
     '$pi_head'(PI, Head),
-    (   unwrap_predicate(PI, incremental)
-    ->  abstract_goal(Head, Abstract),
-        (   Head == Abstract
-        ->  prolog_unlisten(PI, dyn_update)
-        ;   '$set_predicate_attribute'(Head, abstract, 0),
-            prolog_unlisten(PI, dyn_update(_))
-        ),
-        (   '$tbl_variant_table'(VariantTrie)
-        ->  forall(trie_gen(VariantTrie, Head, ATrie),
-                   '$tbl_destroy_table'(ATrie))
-        ;   true
-        )
+    abstract_goal(Head, Abstract),
+    (   Head == Abstract
+    ->  prolog_unlisten(PI, dyn_update)
+    ;   '$set_predicate_attribute'(Head, abstract, 0),
+        prolog_unlisten(PI, dyn_update(_))
+    ),
+    (   '$tbl_variant_table'(VariantTrie)
+    ->  forall(trie_gen(VariantTrie, Head, ATrie),
+               '$tbl_destroy_table'(ATrie))
     ;   true
     ).
 

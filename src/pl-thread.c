@@ -1864,6 +1864,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
     PL_UNLOCK(L_PLFLAG);
   }
   ldnew->tabling.restraint        = ldold->tabling.restraint;
+  ldnew->tabling.in_assert_propagation = FALSE;
   if ( !ldnew->thread.info->debug )
   { ldnew->_debugstatus.tracing   = FALSE;
     ldnew->_debugstatus.debugging = DBG_OFF;

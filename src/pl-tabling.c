@@ -140,6 +140,8 @@ static int	add_answer_count_restraint(void);
 static int	add_radial_restraint(void);
 static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
+static idg_mdep *new_mdep(term_t t ARG_LD);
+static void	free_mdep(idg_mdep *mdep);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -3224,7 +3226,8 @@ delayed_destroy_table(trie *atrie)
 
 /** '$tbl_destroy_table'(+Trie)
  *
- * Destroy a single trie table.
+ * Destroy a single trie table.  Succeeds silently if the answer trie
+ * has already been destroyed.
  */
 
 static
@@ -3272,7 +3275,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
       }
     }
 
-    return PL_type_error("table", A1);
+    return TRUE;
   }
 
   return FALSE;
@@ -4252,7 +4255,8 @@ out_fail:
 
 static int
 tbl_variant_table(term_t closure, term_t variant, term_t Trie,
-		  term_t abstract, term_t status, term_t ret, int flags ARG_LD)
+		  term_t abstract, term_t status, term_t ret,
+		  term_t is_monotonic, int flags ARG_LD)
 { trie *atrie;
   Definition def = NULL;
   atom_t clref = 0;
@@ -4263,6 +4267,15 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie,
   { if ( !idg_init_variant(atrie, def, variant PASS_LD)  ||
 	 !idg_add_edge(atrie, NULL PASS_LD) )
       return FALSE;
+
+    if ( is_monotonic &&
+	 def->tabling && true(def->tabling, TP_MONOTONIC) &&
+	 ( LD->tabling.has_scheduling_component ||
+	   LD->tabling.in_assert_propagation) )
+    { assert(true(environment_frame, FR_INRESET));
+      if ( !PL_unify_bool(is_monotonic, TRUE) )
+	return FALSE;
+    }
 
     if ( clref )
     { TRIE_STAT_INC(atrie, gen_call);
@@ -4278,10 +4291,11 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie,
 }
 
 static
-PRED_IMPL("$tbl_variant_table", 5, tbl_variant_table, 0)
+PRED_IMPL("$tbl_variant_table", 6, tbl_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, 0, A4, A5, AT_CREATE PASS_LD);
+  return tbl_variant_table(A1, A2, A3, 0, A4, A5, A6,
+			   AT_CREATE PASS_LD);
 }
 
 
@@ -4295,7 +4309,8 @@ static
 PRED_IMPL("$tbl_abstract_table", 6, tbl_abstract_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, A4, A5, A6, AT_CREATE|AT_ABSTRACT PASS_LD);
+  return tbl_variant_table(A1, A2, A3, A4, A5, A6, 0,
+			   AT_CREATE|AT_ABSTRACT PASS_LD);
 }
 
 
@@ -4303,7 +4318,8 @@ static
 PRED_IMPL("$tbl_moded_variant_table", 5, tbl_moded_variant_table, 0)
 { PRED_LD
 
-  return tbl_variant_table(A1, A2, A3, 0, A4, A5, AT_CREATE|AT_MODED PASS_LD);
+  return tbl_variant_table(A1, A2, A3, 0, A4, A5, 0,
+			   AT_CREATE|AT_MODED PASS_LD);
 }
 
 
@@ -4729,8 +4745,6 @@ PRED_IMPL("$tbl_scc", 1, tbl_scc, 0)
 
   return FALSE;
 }
-
-
 
 static int
 unify_wl_set(term_t l, worklist_set *wls)
@@ -5308,6 +5322,7 @@ idg_new(trie *atrie)
 { idg_node *n = PL_malloc(sizeof(*n));
 
   memset(n, 0, sizeof(*n));
+  n->magic = IDG_NODE_MAGIC;
   n->atrie = atrie;
 
   return n;
@@ -5361,6 +5376,13 @@ idg_free_affected(void *n, void *v)
 { idg_node *child  = v;
   idg_node *parent = n;
 
+  while ( child->magic != IDG_NODE_MAGIC )
+  { idg_mdep *mdep = (idg_mdep*)child;
+
+    child = mdep->next.child;
+    free_mdep(mdep);
+  }
+
   assert(parent->dependent);
   if ( !deleteHTable(parent->dependent, child) )
     Sdprintf("OOPS: idg_free_affected() failed to delete backlink\n");
@@ -5378,7 +5400,7 @@ idg_free_dependent(void *n, void *v)
 
 
 /**
- * Throw error(idg_dependency_error(Parent, Child), _)
+ * Throw error(dependency_error(shared(Parent), private(Child)), _)
  */
 
 static int
@@ -5390,9 +5412,9 @@ idg_dependency_error(idg_node *parent, idg_node *child ARG_LD)
 	   unify_trie_term(child->atrie->data.variant,  NULL, av+1 PASS_LD) &&
 	   PL_unify_term(av+2,
 			 PL_FUNCTOR, FUNCTOR_error2,
-		           PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
-			     PL_TERM, av+0,
-		             PL_TERM, av+1,
+		           PL_FUNCTOR_CHARS, "dependency_error", 2,
+			     PL_FUNCTOR_CHARS, "shared", 1, PL_TERM, av+0,
+			     PL_FUNCTOR_CHARS, "private", 1,PL_TERM, av+1,
 		           PL_VARIABLE) &&
 	   PL_raise_exception(av+2));
 }
@@ -5407,13 +5429,28 @@ idg_dependency_error_dyncall(idg_node *parent, term_t call ARG_LD)
 	   PL_unify_term(av+1,
 			 PL_FUNCTOR, FUNCTOR_error2,
 		           PL_FUNCTOR_CHARS, "idg_dependency_error", 2,
-			     PL_TERM, av+0,
-		             PL_TERM, call,
+			     PL_FUNCTOR_CHARS, "shared", PL_TERM, av+0,
+		             PL_FUNCTOR_CHARS, "private", PL_TERM, call,
 		           PL_VARIABLE) &&
 	   PL_raise_exception(av+1));
 }
 
 
+static int
+idg_dependency_error_mono(trie *src_trie, trie *dst_trie ARG_LD)
+{ term_t av;
+
+  return ( (av=PL_new_term_refs(3)) &&
+	   unify_trie_term(dst_trie->data.variant, NULL, av+0 PASS_LD) &&
+	   unify_trie_term(src_trie->data.variant,  NULL, av+1 PASS_LD) &&
+	   PL_unify_term(av+2,
+			 PL_FUNCTOR, FUNCTOR_error2,
+		           PL_FUNCTOR_CHARS, "dependency_error", 2,
+			     PL_TERM, av+0,
+			     PL_FUNCTOR_CHARS, "monotonic", 1,PL_TERM, av+1,
+		           PL_VARIABLE) &&
+	   PL_raise_exception(av+2));
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Create a bi-directional link between parent and   child node. We use the
@@ -5423,12 +5460,20 @@ pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-idg_add_child(idg_node *parent, idg_node *child ARG_LD)
+idg_add_child(idg_node *parent, idg_node *child, term_t dep ARG_LD)
 { volatile Table t;
+  idg_mdep *mdep;
 
   if ( true(parent->atrie, TRIE_ISSHARED) &&
        false(child->atrie, TRIE_ISSHARED) )
     return idg_dependency_error(parent, child PASS_LD);
+
+  if ( dep )
+  { if ( !(mdep=new_mdep(dep PASS_LD)) )
+      return FALSE;
+  } else
+  { mdep = NULL;
+  }
 
   if ( !(t=child->affected) )
   { t = newHTable(4);
@@ -5436,7 +5481,12 @@ idg_add_child(idg_node *parent, idg_node *child ARG_LD)
     if ( !COMPARE_AND_SWAP_PTR(&child->affected, NULL, t) )
       destroyHTable(t);
   }
-  addHTable(t, parent, child);
+  if ( mdep )
+  { mdep->next.any = addHTable(t, parent, child);
+    updateHTable(t, parent, mdep);
+  } else
+  { addHTable(t, parent, child);
+  }
 
   if ( !(t=parent->dependent) )
   { t = newHTable(4);
@@ -5462,8 +5512,12 @@ idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
 	return FALSE;
     }
 
-    if ( true(def, P_INCREMENTAL) )
+    if ( true(def, P_INCREMENTAL) ||
+	 (def->tabling && true(def->tabling, TP_MONOTONIC)) )
     { idg_node *n = idg_new(atrie);
+
+      if ( def->tabling && true(def->tabling, TP_MONOTONIC) )
+	n->monotonic = TRUE;
 
       if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
@@ -5502,6 +5556,7 @@ idg_current(ARG1_LD)
 }
 
 
+
 /** Add an edge from the current node to the new child represented
  * by `atrie`.  If `ctrie` is given it is used.  Otherwise idg_current()
  * is used.
@@ -5529,7 +5584,7 @@ idg_add_edge(trie *atrie, trie *ctrie ARG_LD)
 	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	    });
 
-      return idg_add_child(ctrie->data.IDG, atrie->data.IDG PASS_LD);
+      return idg_add_child(ctrie->data.IDG, atrie->data.IDG, 0 PASS_LD);
     }
   }
 
@@ -5573,8 +5628,8 @@ PRED_IMPL("$idg_set_current", 2, idg_set_current, 0)
  * tabled predicate when it is called.
  */
 
-int
-idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
+static trie *
+trie_for_dynamic_predicate(Definition def, trie *ctrie, term_t variant ARG_LD)
 { trie *atrie;
   int flags = (AT_CREATE|AT_NOCLAIM);
 
@@ -5588,10 +5643,11 @@ idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
 
       if ( get_procedure(variant, &proc, 0, GP_RESOLVE) &&
 	   true(proc->definition, P_THREAD_LOCAL) )
-      { return idg_dependency_error_dyncall(ctrie->data.IDG, variant PASS_LD);
+      { return idg_dependency_error_dyncall(ctrie->data.IDG,
+					    variant PASS_LD),NULL;
       }
     } else if ( true(def, P_THREAD_LOCAL) )
-    { return idg_dependency_error_dyncall(ctrie->data.IDG, variant PASS_LD);
+    { return idg_dependency_error_dyncall(ctrie->data.IDG, variant PASS_LD),NULL;
     }
   } else
   { flags |= AT_PRIVATE;
@@ -5608,9 +5664,21 @@ idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
 	idg_destroy(n);
     }
 
-    idg_add_edge(atrie, ctrie PASS_LD);
     atrie->data.IDG->falsecount = 0;	/* see (*) above */
 
+    return atrie;
+  }
+
+  return NULL;
+}
+
+
+int
+idg_add_dyncall(Definition def, trie *ctrie, term_t variant ARG_LD)
+{ trie *atrie;
+
+  if ( (atrie=trie_for_dynamic_predicate(def, ctrie, variant PASS_LD)) )
+  { idg_add_edge(atrie, ctrie PASS_LD);
     return TRUE;
   }
 
@@ -5696,7 +5764,9 @@ typedef struct idg_edge_state
   atom_t	dir;
   int		fixed_dir;
   int		allocated;
+  int		monotonic;
   atom_t	deptrie_symbol;
+  idg_mdep     *dependencies;
 } idg_edge_state;
 
 
@@ -5705,8 +5775,21 @@ advance_idg_edge_state(idg_edge_state *state)
 { void *k, *v;
 
 retry:
+  if ( state->monotonic &&
+       state->dependencies &&
+       state->dependencies->next.any &&
+       state->dependencies->next.dep->magic == IDG_MDEP_MAGIC )
+  { state->dependencies = state->dependencies->next.dep;
+    return TRUE;
+  }
+
   if ( advanceTableEnum(state->tenum, &k, &v) )
   { idg_node *n = k;
+    idg_mdep *mdep = v;
+
+    state->dependencies = NULL;
+    if ( mdep->magic == IDG_MDEP_MAGIC )
+      state->dependencies = mdep;
 
     state->deptrie_symbol = trie_symbol(n->atrie);
     return TRUE;
@@ -5748,8 +5831,8 @@ save_idg_edge_state(idg_edge_state *state)
 }
 
 
-static
-PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
+static foreign_t
+idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, control_t PL__ctx)
 { PRED_LD
   idg_edge_state sbuf;
   idg_edge_state *state;
@@ -5761,42 +5844,47 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
       state = &sbuf;
       memset(state, 0, sizeof(*state));
 
-      if ( !get_trie(A1, &state->atrie) )
+      if ( !get_trie(from, &state->atrie) )
 	return FALSE;
       if ( !state->atrie->data.IDG )
 	return FALSE;
 
-      if ( PL_is_variable(A2) )
+      if ( !dir )
+      { state->fixed_dir = TRUE;
+	state->monotonic = TRUE;
+	state->dir = ATOM_affected;
+	state->table = state->atrie->data.IDG->affected;
+      } else if ( PL_is_variable(dir) )
       { if ( (state->table = state->atrie->data.IDG->affected) )
 	{ state->dir = ATOM_affected;
 	} else if ( (state->table = state->atrie->data.IDG->dependent) )
 	{ state->dir = ATOM_dependent;
-	  if ( !PL_unify_atom(A2, ATOM_dependent) )
+	  if ( !PL_unify_atom(dir, ATOM_dependent) )
 	    return FALSE;
 	  state->fixed_dir = TRUE;
 	} else
 	  return FALSE;
-      } else if ( PL_get_atom_ex(A2, &state->dir) )
+      } else if ( PL_get_atom_ex(dir, &state->dir) )
       { state->fixed_dir = TRUE;
 	if ( state->dir == ATOM_affected )
 	  state->table = state->atrie->data.IDG->affected;
 	else if ( state->dir == ATOM_dependent )
 	  state->table = state->atrie->data.IDG->dependent;
 	else
-	  return PL_domain_error("idg_edge_dir", A2);
+	  return PL_domain_error("idg_edge_dir", dir);
       }
 
       if ( !state->table )
 	return FALSE;
 
-      if ( PL_is_variable(A3) )
+      if ( PL_is_variable(To) )
       { state->tenum = newTableEnum(state->table);
 	if ( advance_idg_edge_state(state) )
 	  break;
 	free_idg_edge_state(state);
 	return FALSE;
-      } else if ( get_trie(A3, &to) )
-      { return lookupHTable(state->table, to) != NULL;
+      } else if ( get_trie(To, &to) )
+      { return lookupHTable(state->table, to->data.IDG) != NULL;
       }
     }
     case FRG_REDO:
@@ -5813,9 +5901,21 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 
   Mark(fli_context->mark);
   do
-  { if ( PL_unify_atom(A3, state->deptrie_symbol) )
+  { if ( dep )
+    { if ( state->dependencies )
+      { term_t t = PL_new_term_ref();
+
+	if ( !put_fastheap(state->dependencies->dependency, t PASS_LD) ||
+	     !PL_unify(t, dep) )
+	  return FALSE;
+      } else
+      { continue;
+      }
+    }
+
+    if ( PL_unify_atom(To, state->deptrie_symbol) )
     { if ( state->fixed_dir ||
-	   PL_unify_atom(A2, state->dir) )
+	   PL_unify_atom(dir, state->dir) )
       { if ( advance_idg_edge_state(state) )
 	  ForeignRedoPtr(save_idg_edge_state(state));
 	free_idg_edge_state(state);
@@ -5833,6 +5933,17 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 
   free_idg_edge_state(state);
   return FALSE;
+}
+
+
+static
+PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
+{ return idg_edge_gen(A1, A2, A3, 0, PL__ctx);
+}
+
+static
+PRED_IMPL("$idg_mono_affects", 3, idg_mono_affects, PL_FA_NONDETERMINISTIC)
+{ return idg_edge_gen(A1, 0, A2, A3, PL__ctx);
 }
 
 
@@ -5864,6 +5975,9 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 
     while( advanceTableEnum(state->en, &k, &v) )
     { idg_node *n = k;
+
+      if ( n->magic != IDG_NODE_MAGIC )
+	continue;				/* monotonic dependency */
 
       DEBUG(MSG_TABLING_IDG_CHANGED,
 	    print_answer_table(
@@ -5985,7 +6099,7 @@ PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 
 static
 PRED_IMPL("$idg_falsecount", 2, idg_falsecount, 0)
-{ GET_LD
+{ PRED_LD
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
@@ -6015,6 +6129,152 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
   }
 
   return FALSE;
+}
+
+
+		 /*******************************
+		 *     MONOTONIC TABLING	*
+		 *******************************/
+
+static idg_mdep *
+new_mdep(term_t dep ARG_LD)
+{ fastheap_term *r;
+
+  if ( (r=term_to_fastheap(dep PASS_LD)) )
+  { idg_mdep *mdep = malloc(sizeof(*mdep));
+
+    if ( mdep )
+    { mdep->magic      = IDG_MDEP_MAGIC;
+      mdep->dependency = r;
+      mdep->next.any   = NULL;
+
+      return mdep;
+    }
+
+    free_fastheap(r);
+    PL_resource_error("memory");
+  }
+
+  return FALSE;
+}
+
+static void
+free_mdep(idg_mdep *mdep)
+{ assert(mdep->magic == IDG_MDEP_MAGIC);
+  free_fastheap(mdep->dependency);
+  free(mdep);
+}
+
+static int
+idg_add_monotonic_edge(trie *src_trie, trie *dst_trie, term_t dep ARG_LD)
+{ if ( src_trie->data.IDG &&
+       dst_trie->data.IDG )
+    return idg_add_child(dst_trie->data.IDG,
+			 src_trie->data.IDG,
+			 dep PASS_LD);
+
+  return idg_dependency_error_mono(src_trie, dst_trie PASS_LD);
+}
+
+/** '$idg_add_monotonic_dep'(+SrcTrie, +Dep, +TargetTrie)
+ */
+
+static
+PRED_IMPL("$idg_add_monotonic_dep", 3, idg_add_monotonic_dep, 0)
+{ PRED_LD
+  trie *src_trie, *dst_trie;
+
+  return ( get_trie(A1, &src_trie) &&
+	   get_trie(A3, &dst_trie) &&
+	   idg_add_monotonic_edge(src_trie, dst_trie, A2 PASS_LD) );
+}
+
+
+/** '$idg_add_mono_dyn_dep'(:Head, +Dependency, +TargetTrie)
+ */
+
+static
+PRED_IMPL("$idg_add_mono_dyn_dep", 3, idg_add_mono_dyn_dep, 0)
+{ PRED_LD
+  trie *ctrie;
+  Procedure proc;
+
+  if ( get_procedure(A1, &proc, 0, GP_FIND) &&
+       get_trie(A3, &ctrie) )
+  { trie *atrie;
+
+    if ( (atrie=trie_for_dynamic_predicate(proc->definition,
+					   ctrie, A1 PASS_LD)) )
+    { return idg_add_monotonic_edge(atrie, ctrie, A2 PASS_LD);
+    }
+  }
+
+  return FALSE;
+}
+
+
+/** '$tbl_monotonic_add_answer'(+Trie, +Answer) is semidet.
+ *
+ * Add an answer from  monotonic  propagation.   If  Trie  belongs to an
+ * _incremental_ table, flag the table  as   invalid  and FAIL. Else add
+ * Answer to the table and succeed if this   answer is new. I.e. if this
+ * predicate succeeds we should continue with monotonic propagation.
+ *
+ * @tbd  Implement the tripwires. Share code with
+ *       '$tbl_wkl_add_answer'/4.
+ */
+
+static
+PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
+{ PRED_LD
+
+  trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { if ( atrie->data.IDG && !atrie->data.IDG->monotonic )
+    { idg_changed(atrie);
+      return FALSE;
+    } else
+    { trie_node *node;
+      Word kp = valTermRef(A2);
+      int rc = trie_lookup_abstract(atrie, NULL, &node, kp,
+				    TRUE, NULL, NULL PASS_LD);
+
+      if ( rc > 0 )
+      { if ( node->value )
+	  return FALSE;
+	set_trie_value_word(atrie, node, ATOM_trienode);
+
+	return TRUE;
+      } else
+      { return trie_error(rc, A1);
+      }
+    }
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$tbl_propagate_start", 1, tbl_propagate_start, 0)
+{ PRED_LD
+
+  return PL_unify_integer(A1, LD->tabling.in_assert_propagation++);
+}
+
+static
+PRED_IMPL("$tbl_propagate_end", 1, tbl_propagate_end, 0)
+{ PRED_LD
+
+  return PL_get_integer_ex(A1, &LD->tabling.in_assert_propagation);
+}
+
+static
+PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
+{ PRED_LD
+
+  return ( LD->tabling.has_scheduling_component ||
+	   LD->tabling.in_assert_propagation );
 }
 
 
@@ -6920,6 +7180,8 @@ initTabling(void)
   LD->tabling.restraint.max_answers_for_subgoal_action = ATOM_error;
   LD->tabling.restraint.max_answers_for_subgoal	       = (size_t)-1;
 
+  LD->tabling.in_assert_propagation = FALSE;
+
   setPrologFlag("max_table_subgoal_size_action",  FT_ATOM,    "error");
   setPrologFlag("max_table_answer_size_action",	  FT_ATOM,    "error");
   setPrologFlag("max_answers_for_subgoal_action", FT_ATOM,    "error");
@@ -6946,7 +7208,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_wkl_is_false",		1, tbl_wkl_is_false,	     0)
   PRED_DEF("$tbl_wkl_answer_trie",	2, tbl_wkl_answer_trie,      0)
   PRED_DEF("$tbl_wkl_work",		6, tbl_wkl_work,          NDET)
-  PRED_DEF("$tbl_variant_table",	5, tbl_variant_table,	     0)
+  PRED_DEF("$tbl_variant_table",	6, tbl_variant_table,	     0)
   PRED_DEF("$tbl_abstract_table",       6, tbl_abstract_table,       0)
   PRED_DEF("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   PRED_DEF("$tbl_moded_variant_table",	5, tbl_moded_variant_table,  0)
@@ -7000,4 +7262,12 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_reeval_prepare",       3, tbl_reeval_prepare,	     0)
   PRED_DEF("$tbl_reeval_abandon",       1, tbl_reeval_abandon,       0)
   PRED_DEF("$tbl_reeval_wait",          2, tbl_reeval_wait,          0)
+
+  PRED_DEF("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
+  PRED_DEF("$idg_add_monotonic_dep",    3, idg_add_monotonic_dep,    0)
+  PRED_DEF("$idg_add_mono_dyn_dep",     3, idg_add_mono_dyn_dep,     0)
+  PRED_DEF("$idg_mono_affects",         3, idg_mono_affects,      NDET)
+  PRED_DEF("$tbl_propagate_start",      1, tbl_propagate_start,      0)
+  PRED_DEF("$tbl_propagate_end",        1, tbl_propagate_end,        0)
+  PRED_DEF("$tbl_collect_mono_dep",     0, tbl_collect_mono_dep,     0)
 EndPredDefs

@@ -651,6 +651,75 @@ This is the same policy as implemented in XSB
 \cite{DBLP:journals/tplp/Swift14}. Future versions may implement a more
 fine grained approach.
 
+
+\section{Monotonic tabling}
+\label{sec:tabling-monotonic}
+
+\jargon{Incremental tabling} (\secref{tabling-incremental}) maintains
+the consistency of tables that depend directly or indirectly on
+(incremental) dynamic predicates. This is done by \jargon{invalidating}
+dependent tables on an assert or retract and lazily \jargon{re-evaluate}
+invalid tables when their content is needed. Incremental tabling
+preserves all normal tabling properties, including well founded
+semantics. The downside is that re-evaluation recomputes the table from
+scratch. This section deals with \jargon{monotonic tabling}, a mechanism
+that propagates the consequences of assert/1 and friends without
+recomputing the dependent tables from scratch. Unlike incremental
+tabling though, monotonic tabling can only deal with monotonic programs,
+in particular it does \emph{not} deal with negation.
+
+The example below defines the transitive closure of a bi-directional
+graph using monotonic tabling. This program builds tables for the
+\nopredref{connected}{2} and maintains these tables when new facts are
+added for \nopredref{link}{2}.
+
+\begin{code}
+:- table connected/2 as monotonic.
+:- dynamic link/2 as monotonic.
+
+connected(X, Y) :-
+    connected(Y, X).
+connected(X, Z) :-
+    connected(X, Y),
+    connected(Y, Z).
+connected(X, Y) :-
+    link(X, Y).
+\end{code}
+
+\begin{description}
+    \predicate{abolish_monotonic_tables}{0}{}
+Abolish all monotonic tables and their dependencies.
+\end{description}
+
+The list below describes properties of monotonic tabling and relation to
+other tabling primitives:
+
+\begin{itemize}
+   \item When using retract/1 on a dynamic monotonic predicate, all
+dependent tables and dependency links are destroyed.  Subsequent calling
+of one of the dependent goals rebuilds the tables and dependencies from
+scratch.
+
+   \item abolish_all_tables/0 destroys all monotonic dependency relations.
+
+   \item Dynamic predicates can be declared as both \const{monotonic} and
+\const{incremental} and it allowed to have both incremental and monotonic
+tabled predicates that depend on such dynamic predicates.
+
+   \item A tabled predicate that depends on a monotonic tabled predicate
+must be tabled monotonic or incremental. If the dependent predicate is
+incremental a new answer invalidates the incremental table.
+\end{itemize}
+
+\paragraph{Status}
+
+Monotonic tabling is experimental and incomplete. Notably support for
+\jargon{answer subsumption} and \jargon{call subsumption} is probably
+possible and may greatly improve the application domain and resource
+usage. Monotonic tabling should work woth both shared and private
+tables.  Concurrency issues have not yet been tested though.
+
+
 \section{Shared tabling}
 \label{sec:tabling-shared}
 

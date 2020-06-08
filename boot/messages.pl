@@ -233,6 +233,16 @@ unknown_proc_msg(Proc) -->
     ;   []
     ).
 
+dependency_error(shared(Shared), private(Private)) -->
+    [ 'Shared table for ~p may not depend on private ~p'-[Shared, Private] ].
+dependency_error(Dep, monotonic(On)) -->
+    { '$pi_head'(PI, Dep),
+      '$pi_head'(MPI, On)
+    },
+    [ 'Dependent ~p on monotonic predicate ~p is not monotonic or incremental'-
+      [PI, MPI]
+    ].
+
 faq(Page) -->
     [nl, '  See FAQ at https://www.swi-prolog.org/FAQ/', Page, '.txt' ].
 
@@ -348,8 +358,8 @@ swi_message(thread_error(TID, false)) -->
 swi_message(thread_error(TID, exception(Error))) -->
     [ 'Thread ~p died abnormally:'-[TID], nl ],
     translate_message(Error).
-swi_message(idg_dependency_error(Shared, Private)) -->
-    [ 'Shared table for ~p may not depend on private ~p'-[Shared, Private] ].
+swi_message(dependency_error(Tabled, DependsOn)) -->
+    dependency_error(Tabled, DependsOn).
 swi_message(shell(execute, Cmd)) -->
     [ 'Could not execute `~w'''-[Cmd] ].
 swi_message(shell(signal(Sig), Cmd)) -->
