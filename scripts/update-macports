@@ -24,8 +24,7 @@ else
 fi
 
 portgit=$HOME/src/macports-ports/
-port=lang/$port
-portfile=$port/Portfile
+portfile=lang/$port/Portfile
 version=$(cat VERSION)
 file=../swipl-$version.tar.gz
 
@@ -48,7 +47,7 @@ echo "sha256:  $sha256"
 echo "rmd160:  $rmd160"
 
 cbranch=$(git -C $portgit rev-parse --abbrev-ref HEAD)
-if [ $cbranch = $branch ]; then
+if [ ! $branch = master -a $cbranch = $branch ]; then
   echo "Keeping branch $branch"
 else
   git -C $portgit checkout $branch
