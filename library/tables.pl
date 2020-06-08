@@ -307,10 +307,14 @@ comma_list(G, _) -->
 %
 %   True if AnswerTerm appears in the tables for the _variant_ CallTerm.
 
-get_returns_for_call(M:CallTerm, AnswerTerm) :-
-    current_table(M:CallTerm, Trie),
-    '$tbl_table_status'(Trie, _Status, AnswerTerm, Skeleton),
-    trie_gen(Trie, Skeleton, _).
+get_returns_for_call(CallTerm, M:AnswerTerm) :-
+    current_table(CallTerm, Trie),
+    '$tbl_table_status'(Trie, _Status, Q:AnswerTerm0, Skeleton),
+    (   Q == M
+    ->  AnswerTerm = AnswerTerm0
+    ;   AnswerTerm = Q:AnswerTerm0
+    ),
+    '$tbl_answer_update_dl'(Trie, Skeleton).
 
 
 		 /*******************************
