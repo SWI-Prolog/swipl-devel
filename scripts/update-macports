@@ -61,7 +61,7 @@ fi
 
 $sed -i \
      -e "s/^\(version\s*\)[0-9].*/\1$version/" \
-     -e "s/^\(\s*rmd160\s*\)[0-9a-f].*/\1$rmd160 \\\\/" \
+     -e "s/^\(checksums\s*rmd160\s*\)[0-9a-f].*/\1$rmd160 \\\\/" \
      -e "s/^\(\s*sha256\s*\)[0-9a-f].*/\1$sha256 \\\\/" \
      -e "s/^\(\s*size\s*\)[0-9a-f].*/\1$size/" \
      $portgit/$portfile
