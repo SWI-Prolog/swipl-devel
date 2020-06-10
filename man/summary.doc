@@ -757,10 +757,10 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{trie_term}{2}{Get term from a trie by handle}
 \predicatesummary{trim_stacks}{0}{Release unused memory resources}
 \predicatesummary{tripwire}{2}{\hook{prolog} Handle a tabling tripwire event}
-\predicatesummary{true}{0}{Succeed} \predicatesummary{tspy}{1}{Set spy
-point and enable debugging in all threads}
-\predicatesummary{tspy}{2}{Set spy point and enable debugging in a
-thread} \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
+\predicatesummary{true}{0}{Succeed}
+\predicatesummary{tspy}{1}{Set spy point and enable debugging in all threads}
+\predicatesummary{tspy}{2}{Set spy point and enable debugging in a thread}
+\predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{tty_goto}{2}{Goto position on screen}
 \predicatesummary{tty_put}{2}{Write control string to terminal}
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
@@ -771,34 +771,34 @@ thread} \predicatesummary{tty_get_capability}{3}{Get terminal parameter}
 \predicatesummary{unknown}{2}{Trap undefined predicates}
 \predicatesummary{unload_file}{1}{Unload a source file}
 \predicatesummary{unload_foreign_library}{1}{\pllib{shlib} Detach shared library (.so file)}
-\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared
-library (.so file)} \predicatesummary{unsetenv}{1}{Delete shell
-environment variable} \predicatesummary{untable}{1}{Remove tabling
-instrumentation} \predicatesummary{upcase_atom}{2}{Convert atom to
-upper-case} \predicatesummary{use_foreign_library}{1}{Load DLL/shared
-object (directive)} \predicatesummary{use_foreign_library}{2}{Load
-DLL/shared object (directive)} \predicatesummary{use_module}{1}{Import a
-module} \predicatesummary{use_module}{2}{Import predicates from a
-module} \predicatesummary{valid_string_goal}{1}{\hook{check} Goal
-handles strings} \predicatesummary{var}{1}{Type check for unbound
-variable} \predicatesummary{var_number}{2}{Check that var is numbered by
-numbervars} \predicatesummary{var_property}{2}{Variable properties
-during macro expansion} \predicatesummary{variant_sha1}{2}{Term-hash for
-term-variants} \predicatesummary{variant_hash}{2}{Term-hash for
-term-variants} \predicatesummary{version}{0}{Print system banner
-message} \predicatesummary{version}{1}{Add messages to the system
-banner} \predicatesummary{visible}{1}{Ports that are visible in the
-tracer} \oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not
-saved} \predicatesummary{wait_for_input}{3}{Wait for input with optional
-timeout} \predicatesummary{when}{2}{Execute goal when condition becomes
-true} \predicatesummary{wildcard_match}{2}{Csh(1) style wildcard match}
-\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search
-path} \predicatesummary{win_add_dll_directory}{2}{Add directory to DLL
-search path} \predicatesummary{win_remove_dll_directory}{1}{Remove
-directory from DLL search path} \predicatesummary{win_exec}{2}{Win32:
-spawn Windows task} \predicatesummary{win_has_menu}{0}{Win32: true if
-console menu is available} \predicatesummary{win_folder}{2}{Win32: get
-special folder by CSIDL}
+\predicatesummary{unload_foreign_library}{2}{\pllib{shlib} Detach shared library (.so file)}
+\predicatesummary{unsetenv}{1}{Delete shell environment variable}
+\predicatesummary{untable}{1}{Remove tabling instrumentation}
+\predicatesummary{upcase_atom}{2}{Convert atom to upper-case}
+\predicatesummary{use_foreign_library}{1}{Load DLL/shared object (directive)}
+\predicatesummary{use_foreign_library}{2}{Load DLL/shared object (directive)}
+\predicatesummary{use_module}{1}{Import a module}
+\predicatesummary{use_module}{2}{Import predicates from a module}
+\predicatesummary{valid_string_goal}{1}{\hook{check} Goal handles strings}
+\predicatesummary{var}{1}{Type check for unbound variable}
+\predicatesummary{var_number}{2}{Check that var is numbered by numbervars}
+\predicatesummary{var_property}{2}{Variable properties during macro expansion}
+\predicatesummary{variant_sha1}{2}{Term-hash for term-variants}
+\predicatesummary{variant_hash}{2}{Term-hash for term-variants}
+\predicatesummary{version}{0}{Print system banner message}
+\predicatesummary{version}{1}{Add messages to the system banner}
+\predicatesummary{visible}{1}{Ports that are visible in the tracer}
+\oppredsummary{volatile}{1}{fx}{1150}{Predicates that are not saved}
+\predicatesummary{wait_for_input}{3}{Wait for input with optional timeout}
+\predicatesummary{when}{2}{Execute goal when condition becomes true}
+\predicatesummary{wildcard_match}{2}{POSIX style glob pattern matching}
+\predicatesummary{wildcard_match}{3}{POSIX style glob pattern matching}
+\predicatesummary{win_add_dll_directory}{1}{Add directory to DLL search path}
+\predicatesummary{win_add_dll_directory}{2}{Add directory to DLL search path}
+\predicatesummary{win_remove_dll_directory}{1}{Remove directory from DLL search path}
+\predicatesummary{win_exec}{2}{Win32: spawn Windows task}
+\predicatesummary{win_has_menu}{0}{Win32: true if console menu is available}
+\predicatesummary{win_folder}{2}{Win32: get special folder by CSIDL}
 \predicatesummary{win_insert_menu}{2}{swipl-win.exe: add menu}
 \predicatesummary{win_insert_menu_item}{4}{swipl-win.exe: add item to menu}
 \predicatesummary{win_shell}{2}{Win32: open document through Shell}

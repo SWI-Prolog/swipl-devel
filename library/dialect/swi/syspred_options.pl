@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, VU University Amsterdam
+    Copyright (c)  2011-2020, VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
 
@@ -201,6 +201,9 @@
 :- predicate_options(system:term_string/3, 3,
 		     [ pass_to(system:write_term/3, 3),
 		       pass_to(system:read_term/3, 3)
+		     ]).
+:- predicate_options(system:wildcard_match/3, 3,
+		     [ case_sensitive(boolean)
 		     ]).
 :- predicate_options('$syspreds':(dynamic)/2, 2,
 		     [ incremental(boolean),

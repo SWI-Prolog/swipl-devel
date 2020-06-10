@@ -10525,6 +10525,8 @@ return values are (in the same order as above): \const{equal},
 \const{mismatched_char}, \const{inserted_char}, \const{transposed_char},
 \const{separated} and \const{transposed_word}.
     \predicate{wildcard_match}{2}{+Pattern, +String}
+\nodescription
+    \predicate{wildcard_match}{3}{+Pattern, +String, +Options}
 True if \arg{String} matches the wildcard pattern \arg{Pattern}.
 \arg{Pattern} is very similar to the Unix \const{csh} pattern matcher. The
 patterns are given below:
@@ -10545,6 +10547,13 @@ Example:
 ?- wildcard_match('[a-z]*.{pro,pl}[%~]', 'a_hello.pl%').
 true.
 \end{code}
+
+The wildcard_match/3 version processes the following option:
+
+\begin{description}
+    \termitem{case_sensitive}{+Boolean}
+When \const{false} (default \const{true}), match case insensitively.
+\end{description}
 
     \predicate{sleep}{1}{+Time}
 Suspend execution \arg{Time} seconds. \arg{Time} is either a floating

@@ -1195,7 +1195,7 @@ ignored(File, Options) :-
          ->  member(Pattern, Patterns)
          ;   Pattern = Patterns
          ),
-         wildcard_match(Pattern, File)
+         glob_match(Pattern, File)
        ),
     !.
 ignored(File, Options) :-
@@ -1204,8 +1204,15 @@ ignored(File, Options) :-
     ->  member(Pattern, Patterns)
     ;   Pattern = Patterns
     ),
-    wildcard_match(Pattern, File),
+    glob_match(Pattern, File),
     !.
+
+glob_match(Pattern, File) :-
+    current_prolog_flag(file_name_case_handling, case_sensitive),
+    !,
+    wildcard_match(Pattern, File).
+glob_match(Pattern, File) :-
+    wildcard_match(Pattern, File, [case_sensitive(false)]).
 
 
                 /********************************
