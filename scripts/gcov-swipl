@@ -24,8 +24,8 @@
 # PGO optimization and the second for  the   test  suite.  Note that the
 # second only covers the core tests, not the package tests.
 #
-#     ../script/gcov-swipl ../bench/run.pl
-#     ../script/gcov-swipl -q ../src/test.pl
+#     ../scripts/gcov-swipl ../bench/run.pl
+#     ../scripts/gcov-swipl -q ../src/test.pl
 
 gcov=gcov
 if [ -f configure ]; then
