@@ -52,20 +52,36 @@ test_glob :-
 test(glob, true) :- wildcard_match('', '').
 test(glob, fail) :- wildcard_match('', 'a').
 test(glob, fail) :- wildcard_match('a', '').
+test(glob, true) :- wildcard_match('a?', 'aX').
 test(glob, true) :- wildcard_match('a[xyz]', 'ax').
 test(glob, true) :- wildcard_match('a[xy\\]]', 'a]').
+test(glob, true) :- wildcard_match('a\\', 'a\\').
+test(glob, true) :- wildcard_match('a\\a', 'aa').
+test(glob, true) :- wildcard_match('a\\[a', 'a[a').
 test(glob, true) :- wildcard_match('a[x-z]b', 'ayb').
 test(glob, true) :- wildcard_match('a[x-]b', 'axb').
 test(glob, true) :- wildcard_match('a[-x]b', 'axb').
 test(glob, true) :- wildcard_match('a{[-x],c}b', 'acb').
 test(glob, true) :- wildcard_match('a{[-x],c,}b', 'ab').
+test(glob, true) :- wildcard_match('a{[x-z],c,}b', 'ayb').
 test(glob, true) :- wildcard_match([65], 'A').
+test(glob, true) :- wildcard_match('a[\u0400-\u0450]b', 'a\u0425b').
 
 % error cases
 test(glob, error(type_error(character_code,0x110000))) :-
     wildcard_match([0x110000], 'A').
 test(glob, error(syntax_error(_))) :-
     wildcard_match('se{xx', 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se{xx\\', 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se{xx\u0440', 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se{xx[z', 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se[xy', 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se[xy\\', 'A').
 
 :- end_tests(glob_match).
 

@@ -204,7 +204,9 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	  utf8_get_char(p, &cn);
 
 	  switch( c )
-	  { case '\\':
+	  { case EOS:
+	      return PL_syntax_error("Unmatched '['", NULL),NULL;
+	    case '\\':
 	    { int c2;
 
 	      p = utf8_get_char(p, &c2);
