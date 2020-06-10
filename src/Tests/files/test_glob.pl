@@ -53,6 +53,7 @@ test(glob, true) :- wildcard_match('', '').
 test(glob, fail) :- wildcard_match('', 'a').
 test(glob, fail) :- wildcard_match('a', '').
 test(glob, true) :- wildcard_match('a[xyz]', 'ax').
+test(glob, true) :- wildcard_match('a[xy\\]]', 'a]').
 test(glob, true) :- wildcard_match('a[x-z]b', 'ayb').
 test(glob, true) :- wildcard_match('a[x-]b', 'axb').
 test(glob, true) :- wildcard_match('a[-x]b', 'axb').
