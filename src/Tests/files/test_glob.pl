@@ -63,6 +63,8 @@ test(glob, true) :- wildcard_match([65], 'A').
 % error cases
 test(glob, error(type_error(character_code,0x110000))) :-
     wildcard_match([0x110000], 'A').
+test(glob, error(syntax_error(_))) :-
+    wildcard_match('se{xx', 'A').
 
 :- end_tests(glob_match).
 

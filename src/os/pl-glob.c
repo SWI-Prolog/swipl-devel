@@ -208,9 +208,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 
 	      p = utf8_get_char(p, &c2);
 	      if ( c2 == EOS )
-	      { warning("Unmatched '['");
-		return (char *)NULL;
-	      }
+		return PL_syntax_error("Unmatched '['", NULL),NULL;
 	      Output(c2);
 	      continue;
 	    }
@@ -260,8 +258,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	  { p++;
 	    break;
 	  } else
-	  { warning("Unmatched '{'");
-	    return (char *) NULL;
+	  { return PL_syntax_error("Unmatched '{'", NULL),NULL;
 	  }
 	}
 
@@ -274,9 +271,9 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
       case ANYOF:
       case ANYRANGE:
       case EXIT:
-	PL_error(NULL, 0, "Reserved character",
-		 ERR_REPRESENTATION, ATOM_pattern);
-	return NULL;
+	assert(0);
+	return PL_error(NULL, 0, "Reserved character",
+			ERR_REPRESENTATION, ATOM_pattern),NULL;
       case '}':
       case ',':
 	if ( curl == CURL )
