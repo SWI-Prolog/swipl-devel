@@ -348,7 +348,7 @@ The predicate read_string/5 called repeatedly on an input until
 \arg{Sep} is -1 (end of file) is equivalent to reading the entire file
 into a string and calling split_string/4, provided that \arg{SepChars}
 and \arg{PadChars} are not \emph{partially
-overlapping}.\footnote{Behaviour that is fully compatible would requite
+overlapping}.\footnote{Behaviour that is fully compatible would require
 unlimited look-ahead.}  Below are some examples:
 
 \begin{code}
@@ -392,8 +392,8 @@ something), system identifiers (e.g., \verb$'Boeing 747'$), but also
 individual words in a natural language processing system. They are also
 used where other languages would use \jargon{enumerated types}, such as
 the names of days in the week. Unlike enumerated types, Prolog atoms do
-not form not a fixed set and the same atom can represent different
-things in different contexts.
+not form a fixed set and the same atom can represent different things
+in different contexts.
 
     \item [Strings]
 typically represents text that is processed as a unit most of the time,
@@ -526,7 +526,7 @@ also comes at a price:
     \item Lists are expensive structures, taking 2 cells per character
           (3 for SWI-Prolog in its current form).  This stresses memory
 	  consumption on the stacks while pushing them on the stack and
-	  dealing with them during garbage collection is unnecessarilly
+	  dealing with them during garbage collection is unnecessarily
 	  expensive.
 \end{itemize}
 
@@ -564,7 +564,7 @@ cell-by-cell the Prolog stack and then traverses this list
 cell-by-cell to see whether one of the cells unifies with \arg{C}. If
 the test is successful, the string will eventually be subject to garbage
 collection.  The best code for this is to write a predicate as below,
-which pushes noting on the stack and performs an indexed lookup to see
+which pushes nothing on the stack and performs an indexed lookup to see
 whether the character code is in `my_class'.
 
 \begin{code}
@@ -600,7 +600,7 @@ We offer the predicate list_strings/0 to help porting your program.
 \subsection{Operators and quoted atoms}
 \label{sec:ext-syntax-op}
 
-As of SWI-Prolog version~7, quoted atoms loose their operator property.
+As of SWI-Prolog version~7, quoted atoms lose their operator property.
 This means that expressions such as \verb$A = 'dynamic'/1$ are valid
 syntax, regardless of the operator definitions. From questions on the
 mailinglist this is what people expect.\footnote{We believe that most
@@ -610,7 +610,7 @@ not while the operator is used. We are afraid that allowing for this
 easily creates ambiguous syntax. Also, many development environments are
 based on tokenization. Having dynamic tokenization due to operator
 declarations would make it hard to support Prolog in such editors.} To
-accomodate for real quoted operators, a quoted atom that \emph{needs}
+accommodate for real quoted operators, a quoted atom that \emph{needs}
 quotes can still act as an operator.\footnote{Suggested by Joachim
 Schimpf.} A good use-case for this is a unit
 library\footnote{\url{https://groups.google.com/d/msg/comp.lang.prolog/ozqdzI-gi_g/2G16GYLIS0IJ}},
@@ -674,7 +674,7 @@ Pi = 3.141592653589793.
 Pi = 3.141592653589793.
 \end{code}
 
-Note that the \emph{cannonical} representation of predicate heads and
+Note that the \emph{canonical} representation of predicate heads and
 functions without arguments is an atom. Thus, \term{clause}{go(), Body}
 returns the clauses for \nopredref{go}{0}, but \term{clause}{-Head,
 -Body, +Ref} unifies \arg{Head} with an atom if the clause specified by
@@ -1063,7 +1063,7 @@ Y = 1,
 R = _G1705{z:2}.
 \end{code}
 
-See also select_dict/2 to ignore \arg{Rest} and \predref{>:<}{2} for
+See also \predref{:<}{2} to ignore \arg{Rest} and \predref{>:<}{2} for
 a symmetric partial unification of two dicts.
 
     \infixop{>:<}{+Dict1}{+Dict2}
@@ -1157,7 +1157,7 @@ always referred to in this order. An application processing information
 about persons should probably use dicts because the information that is
 related to a person is not so fixed. Typically we see first and last
 name. But there may also be title, middle name, gender, date of birth,
-etc. The number of arguments becomes unmanagable when using a compound
+etc. The number of arguments becomes unmanageable when using a compound
 term, while adding or removing an argument leads to many changes in the
 program.
 
@@ -1283,7 +1283,7 @@ costly, both in terms of memory and time.
 
 Future versions may share keys in a separate structure or use a binary
 trees to allow for cheaper updates. One of the issues is that the
-representation must either be kept cannonical or unification must be
+representation must either be kept canonical or unification must be
 extended to compensate for alternate representations.
 
 
@@ -1382,7 +1382,7 @@ values from these structures.
 \section{Remaining issues}
 \label{sec:ext-issues}
 
-The changes and extensions described in this chapter resolve a many
+The changes and extensions described in this chapter resolve many
 limitations of the Prolog language we have encountered. Still, there are
 remaining issues for which we seek solutions in the future.
 
