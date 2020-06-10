@@ -376,30 +376,56 @@ match_pattern(matchcode *p, char *s, int flags)
 }
 
 
-/** wildcard_match(+Pattern, +Name) is semidet.
+/** wildcard_match(+Pattern, +Name [, +Options]) is semidet.
 */
 
-static
-PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
-{ PRED_LD
-  char *p, *s;
+static const opt_spec wildcard_options[] =
+{ { ATOM_case_sensitive,    OPT_BOOL },
+  { NULL_ATOM,		    0 }
+};
+
+
+static int
+wildcard_match(term_t pattern, term_t string, term_t options ARG_LD)
+{ char *p, *s;
   int rc = FALSE;
+  int mflags = 0;
+  int case_sensitive = TRUE;
+
+  if ( options &&
+       !scan_options(options, 0, ATOM_wildcard_option,
+		     wildcard_options, &case_sensitive) )
+    return FALSE;
+  if ( !case_sensitive )
+    mflags |= M_IGNCASE;
 
   PL_STRINGS_MARK();
-  if ( PL_get_chars(A1, &p, CVT_ALL|REP_UTF8|CVT_EXCEPTION) &&
-       PL_get_chars(A2, &s, CVT_ALL|REP_UTF8|CVT_EXCEPTION) )
+  if ( PL_get_chars(pattern, &p, CVT_ALL|REP_UTF8|CVT_EXCEPTION) &&
+       PL_get_chars(string,  &s, CVT_ALL|REP_UTF8|CVT_EXCEPTION) )
   { compiled_pattern buf;
 
-    if ( compilePattern(p, &buf, 0) )
-    { rc = matchPattern(s, &buf, 0);
+    if ( (rc=compilePattern(p, &buf, mflags)) )
+    { rc = matchPattern(s, &buf, mflags);
       discardPattern(&buf);
-    } else
-    { rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_pattern, A1);
     }
   }
   PL_STRINGS_RELEASE();
 
   return rc;
+}
+
+static
+PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
+{ PRED_LD
+
+  return wildcard_match(A1, A2, 0 PASS_LD);
+}
+
+static
+PRED_IMPL("wildcard_match", 3, wildcard_match, 0)
+{ PRED_LD
+
+  return wildcard_match(A1, A2, A3 PASS_LD);
 }
 
 
@@ -802,5 +828,6 @@ PRED_IMPL("directory_files", 2, directory_files, 0)
 BeginPredDefs(glob)
   PRED_DEF("expand_file_name", 2, expand_file_name, 0)
   PRED_DEF("wildcard_match",   2, wildcard_match,   0)
+  PRED_DEF("wildcard_match",   3, wildcard_match,   0)
   PRED_DEF("directory_files",  2, directory_files,  0)
 EndPredDefs

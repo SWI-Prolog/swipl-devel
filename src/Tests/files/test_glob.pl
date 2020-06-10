@@ -66,6 +66,11 @@ test(glob, true) :- wildcard_match('a{[-x],c,}b', 'ab').
 test(glob, true) :- wildcard_match('a{[x-z],c,}b', 'ayb').
 test(glob, true) :- wildcard_match([65], 'A').
 test(glob, true) :- wildcard_match('a[\u0400-\u0450]b', 'a\u0425b').
+test(glob, true) :- wildcard_match(a, 'A', [case_sensitive(false)]).
+test(glob, fail) :- wildcard_match(a, 'A', [case_sensitive(true)]).
+test(glob, true) :- wildcard_match('A', a, [case_sensitive(false)]).
+test(glob, fail) :- wildcard_match('A', a, [case_sensitive(true)]).
+test(glob, fail) :- wildcard_match(a, 'A').
 
 % error cases
 test(glob, error(type_error(character_code,0x110000))) :-
