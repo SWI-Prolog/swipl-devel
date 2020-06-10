@@ -2,7 +2,7 @@
 
 As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
 configuration files that cover the  entire   project.  Builds  have been
-tested on Ubuntu 16.04,  18.04,  18.10,   Fedore  28,  MacOSX  and cross
+tested on Ubuntu 16.04,  18.04,  18.10,   Fedora  28,  MacOSX  and cross
 compilation for Win32 as well  as  Win64   using  Ubuntu  18.04  as host
 system.
 
@@ -10,7 +10,7 @@ The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
 generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
 faster, avoids warning  from  being   cluttered  and  better facilitates
 debugging dependency issues. It can be   selected  using `cmake -G Ninja
-...`, after which the usual `make` _target_   can be replaced by `ninja`
+..`,  after which the usual `make` _target_   can be replaced by `ninja`
 _target_. The examples below all  use  Ninja.   Drop  `-G  Ninja` to use
 classical Unix make.
 
@@ -101,24 +101,24 @@ After    `sudo    ninja    install`,     `swipl`      will     be     in
 By default the system configures all   features. Several cmake _options_
 allow for restricting the system.
 
-  | Option			  | Description                         |
-  | ----------------------------- | ----------------------------------- |
-  | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads     |
-  | `-DUSE_SIGNALS=OFF`           | Drop signal support                 |
-  | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers    |
-  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`    |
-  | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib   |
-  | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in <prefix>/lib |
-  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in <prefix>/share      |
-  | `-DSWIPL_M32=ON`		  | Make 32-bit version on 64-bit Linux |
-  | `-DSWIPL_PACKAGES=OFF`        | Only build the core system          |
-  | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages             |
-  | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages          |
-  | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface             |
-  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                |
-  | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests   |
-  | `-DINSTALL_TESTS=ON`          | Add tests to installed system       |
-  | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs       |
+  | Option                        | Description                           |
+  | ----------------------------- | ------------------------------------- |
+  | `-DMULTI_THREADED=OFF`        | Drop support for Prolog threads       |
+  | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
+  | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers      |
+  | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
+  | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
+  | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
+  | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
+  | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
+  | `-DSWIPL_PACKAGES=OFF`        | Only build the core system            |
+  | `-DSWIPL_PACKAGES_BASIC=OFF`  | Drop all basic packages               |
+  | `-DSWIPL_PACKAGES_ODBC=OFF`   | Drop ODBC and CQL packages            |
+  | `-DSWIPL_PACKAGES_JAVA=OFF`   | Drop JPL Java interface               |
+  | `-DSWIPL_PACKAGES_X=OFF`      | Drop graphics (xpce)                  |
+  | `-DBUILD_TESTING=OFF`         | Do not setup for ctest unit tests     |
+  | `-DINSTALL_TESTS=ON`          | Add tests to installed system         |
+  | `-DINSTALL_DOCUMENTATION=OFF` | Drop generating the HTML docs         |
 
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
@@ -149,7 +149,7 @@ environment must be cleaned when running `ninja` or `make`.
 
 ## Profile Guided Optimization
 
-When using Ninja and GCC, the system  may be build using _Profile Guided
+When using Ninja and GCC, the system  may be built using _Profile Guided
 Optimization_ (PGO). This  first  builds   the  system  instrumented  to
 collect profile information, then runs  a   benchmark  suite and finally
 recompiles it using the benchmark suite  output to help (notably) branch
@@ -341,7 +341,7 @@ See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
 You can run the tests normally using   `ctest`. Note that the `swipl:GC`
 test requires more stack than the   default when using AddressSanitizer.
 To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
-test   `jpl:prolog_in_java`   because   Java   is    not   loaded   with
+test  `jpl:prolog_in_java`  will  fail  because  Java is not loaded with
 AddressSanitizer preloaded.   All other tests should pass (about 4 times
 slower than normal).
 
@@ -352,8 +352,8 @@ slower than normal).
 
 The windows installer is created from the cross-compiled version using a
 Linux native port of the NSIS  installer generator. Ensure `makensis` is
-installed (`apt-get install nsis`) and run the  commands below to in the
-build directory create the installer:
+installed  (`apt-get install nsis`)  and  run the commands below  in the
+build directory to create the installer:
 
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake -G Ninja ..
     ninja
@@ -368,13 +368,13 @@ And, for the 32-bit version:
 
 ### Debian based Linux systems (.deb or .rpm)
 
-The following commands create   swipl-<version>-<nr>.<cpu>.deb/rpm  file
-with SWI-Prolog to be installed in /usr. The process creates a monolitic
-installer for a particular configuration of   SWI-Prolog.  This is *not*
-what is typically used to  create   packages  for  distributions. Distro
-package maintainers are referred to _Modular  packages for Linux_ below.
-The prodedure here is intended  to   create  custom  Debian packages for
-in-house deployment.
+The following commands create  `swipl-<version>-<nr>.<cpu>.deb/rpm` file
+with  SWI-Prolog  to  be  installed  in  /usr.  The  process  creates  a
+monolithic installer for a particular configuration of SWI-Prolog.  This
+is  *not*  what is typically used to create packages for  distributions.
+Distro package maintainers are referred to  _Modular packages for Linux_
+below.  The procedure here is intended to create  custom Debian packages
+for in-house deployment.
 
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -G Ninja ..
     ninja
@@ -394,8 +394,8 @@ SWI-Prolog as `swi-prolog-nox`. This  allows installing `swi-prolog-nox`
 on headless servers without installing X11.
 
 Modular installation can be based on cmake _COMPONENTS_. The files for a
-particular component can be installed using, for  example (not this is a
-one-line command):
+particular component can be installed using, for  example  (note this is
+a one-line command):
 
     DESTDIR=$(pwd)/<component> \
         cmake -DCMAKE_INSTALL_COMPONENT=<component> \
