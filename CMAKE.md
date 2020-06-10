@@ -33,13 +33,14 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
 ### Getting the source
 
 The   source   may   be    downloaded    as     a    tar    ball    from
-http://www.swi-prolog.org or downloaded using git. The git sequence is:
+http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
     git clone https://github.com/SWI-Prolog/swipl-devel.git
     cd swipl-devel
     git submodule update --init
 
-If not all modules are needed, one can clone/update particular ones as follows:
+If not all modules are needed,  one can  clone/update particular ones as
+follows:
 
     git submodule update --init packages/jpl packages/clib packages/sgml
 
@@ -79,7 +80,7 @@ If this fails, one of these measures may be appropriate:
 
 ## Build types
 
-The default build type is `RelWithDebInfo`.  Alternatives may be selected
+The default build type is `RelWithDebInfo`. Alternatives may be selected
 using e.g.,
 
     cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja ..
@@ -88,7 +89,7 @@ using e.g.,
 ## Install location
 
 To install in a particular   location, use `-DCMAKE_INSTALL_PREFIX`. For
-example, this will build SWI to be installed in `/usr/local/swipl-git`:
+example, this will build SWI to be installed in  `/usr/local/swipl-git`:
 
     cmake -DCMAKE_INSTALL_PREFIX=/usr/local/swipl-git -G Ninja ..
 
@@ -131,15 +132,15 @@ find its home directory and the main   application  must be able to find
 the SWI-Prolog shared library `libswipl.so`   (extension  depends on the
 platform).  The following environment variables are commonly used:
 
-    - `SWI_HOME_DIR` should point at SWI-Prolog's main directory, e.g.
-      ``${CMAKE_INSTALL_PREFIX}/lib/swipl``
-    - The shared object search path should include the directory where
-      `libswipl.{so,dll,...}` resides.  The variable depends on the
-      platform.  Some popular names:
+- `SWI_HOME_DIR` should point at SWI-Prolog's main directory, e.g.
+  ``${CMAKE_INSTALL_PREFIX}/lib/swipl``
+- The shared object search path should include the directory where
+  `libswipl.{so,dll,...}` resides.  The variable depends on the
+  platform.  Some popular names:
 
-      - `LD_LIBRARY_PATH` (ELF based systems such as Linux)
-      - `DYLD_LIBRARY_PATH` (MacOS)
-      - `PATH` (Windows)
+  - `LD_LIBRARY_PATH` (ELF based systems such as Linux)
+  - `DYLD_LIBRARY_PATH` (MacOS)
+  - `PATH` (Windows)
 
 If you build SWI-Prolog  you  must   __remove  these  variables from the
 environment when building__. Failure  to  do   so  may  cause  the build
@@ -214,16 +215,16 @@ sources. Adjust as necessary.
     source ~/emsdk/emsdk_env.sh
     cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
           -DCMAKE_BUILD_TYPE=Release \
-	  -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
-	  -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
-	  -DMULTI_THREADED=OFF \
-	  -DUSE_SIGNALS=OFF \
-	  -DUSE_GMP=OFF \
-	  -DBUILD_SWIPL_LD=OFF \
-	  -DSWIPL_PACKAGES=OFF \
-	  -DINSTALL_DOCUMENTATION=OFF \
-	  -DSWIPL_NATIVE_FRIEND=build \
-	  -G Ninja ..
+          -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
+          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
+          -DMULTI_THREADED=OFF \
+          -DUSE_SIGNALS=OFF \
+          -DUSE_GMP=OFF \
+          -DBUILD_SWIPL_LD=OFF \
+          -DSWIPL_PACKAGES=OFF \
+          -DINSTALL_DOCUMENTATION=OFF \
+          -DSWIPL_NATIVE_FRIEND=build \
+          -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
 
@@ -232,7 +233,7 @@ testing and creating  32-bit  .qlf  files   or  saved  states.  A fairly
 complete system is created using the configuration command below.
 
     cmake -DSWIPL_M32=ON \
-	  -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_QT=OFF \
+          -DSWIPL_PACKAGES_JAVA=OFF -DSWIPL_PACKAGES_QT=OFF \
           -G Ninja ..
 
 ### Cross-building for targets without an emulator
@@ -279,11 +280,11 @@ directory. This aims at the following scenario:
 
   1. Set e.g. `export SWIPL_INSTALL_PREFIX=$HOME/cmake/@builddir@`
   2. Use multiple build directories  for   debug,  different  targets or
-     different configurations.  Typically these are called `build.<config>`,
-     for example `build.single-threaded`.
+     different configurations.  Typically these are called
+     `build.<config>`, for example `build.single-threaded`.
   3. Configure without specifying a `CMAKE_INSTALL_PREFIX`
-  4. Build, test and install.  Optionally use `swipl-activate` to
-     use this version as default.
+  4. Build, test and install.  Optionally use `swipl-activate` to use
+     this version as default.
 
 When  developing  on  the  core  system  one  often  does  not  want  to
 re-generate documentation and possible package dependencies. This can be
@@ -399,27 +400,27 @@ a one-line command):
 
     DESTDIR=$(pwd)/<component> \
         cmake -DCMAKE_INSTALL_COMPONENT=<component> \
-	      -P cmake_install.cmake
+              -P cmake_install.cmake
 
 The defined components are:
 
   | Component            | Description                          |
   | -------------------- | ------------------------------------ |
-  | Core_system		 | Compiler and core libraries          |
-  | Core_packages	 | Packages with few dependencies       |
-  | Archive_interface	 | Libarchive binding                   |
-  | Commandline_editors	 | Readline and libedit interfaces      |
-  | ODBC_interface	 | ODBC binding                         |
+  | Core_system          | Compiler and core libraries          |
+  | Core_packages        | Packages with few dependencies       |
+  | Archive_interface    | Libarchive binding                   |
+  | Commandline_editors  | Readline and libedit interfaces      |
+  | ODBC_interface       | ODBC binding                         |
   | BerkeleyDB_interface | BDB interface                        |
-  | Perl_regex		 | PCRE library binding                 |
-  | YAML_support	 | Libyaml binding                      |
-  | Java_interface	 | Java interface (JPL)                 |
+  | Perl_regex           | PCRE library binding                 |
+  | YAML_support         | Libyaml binding                      |
+  | Java_interface       | Java interface (JPL)                 |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
   | TIPC_networking      | Linux TIPC network support           |
-  | Qt_console		 | Qt windowed interface                |
-  | Graphics_subsystem	 | The xpce graphics system (needs X11) |
-  | Documentation	 | System HTML documentation            |
-  | Examples		 | Example files		        |
+  | Qt_console           | Qt windowed interface                |
+  | Graphics_subsystem   | The xpce graphics system (needs X11) |
+  | Documentation        | System HTML documentation            |
+  | Examples             | Example files                        |
 
 See the `debian` subdirectory for the complete   set  of rules we use to
 generate the Ubuntu PPA releases.
@@ -437,8 +438,3 @@ generate the Ubuntu PPA releases.
   have environment variables set to facilitate e.g., embedding in Java.
   The variable names and possibly conflicting values depend on the OS.
   See [issue](https://github.com/SWI-Prolog/swipl-devel/issues/435)
-
-
-
-
-
