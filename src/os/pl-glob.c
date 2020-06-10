@@ -173,6 +173,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 
     switch(c)
     { case EOS:
+	p--;
 	break;
       case '\\':
       { int c2;
