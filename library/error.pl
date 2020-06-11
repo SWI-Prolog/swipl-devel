@@ -34,16 +34,16 @@
 */
 
 :- module(error,
-          [ type_error/2,               % +Type, +Term
-            domain_error/2,             % +Domain, +Term
-            existence_error/2,          % +Type, +Term
-            existence_error/3,          % +Type, +Term, +Set
-            permission_error/3,         % +Action, +Type, +Term
-            instantiation_error/1,      % +Term
-            uninstantiation_error/1,    % +Term
-            representation_error/1,     % +Reason
-            syntax_error/1,             % +Culprit
-            resource_error/1,           % +Culprit
+          [ instantiation_error/1,      % +FormalSubTerm
+            uninstantiation_error/1,    % +Culprit
+            type_error/2,               % +ValidType, +Culprit
+            domain_error/2,             % +ValidDomain, +Culprit
+            existence_error/2,          % +ObjectType, +Culprit
+            existence_error/3,          % +ObjectType, +Culprit, +Set
+            permission_error/3,         % +Operation, +PermissionType, +Culprit
+            representation_error/1,     % +Flag
+            resource_error/1,           % +Resource
+            syntax_error/1,             % +ImplDepAtom
 
             must_be/2,                  % +Type, +Term
             is_of_type/2,               % +Type, +Term
@@ -74,68 +74,71 @@ most common ISO error terms.
                  *           ISO ERRORS         *
                  *******************************/
 
-%!  type_error(+Type, +Term).
+%!  type_error(+ValidType, +Culprit).
 %
-%   Tell the user that Term is not  of the expected Type. This error
-%   is closely related to domain_error/2 because the notion of types
-%   is  not  really  set  in  stone  in  Prolog.  We  introduce  the
+%   Tell the user that Culprit is not   of  the expected ValidType. This
+%   error is closely related to  domain_error/2   because  the notion of
+%   types is not really  set  in  stone   in  Prolog.  We  introduce the
 %   difference using a simple example.
 %
-%   Suppose an argument must  be  a   non-negative  integer.  If the
-%   actual argument is not an integer, this is a _type_error_. If it
-%   is a negative integer, it is a _domain_error_.
+%   Suppose an argument must be a   non-negative  integer. If the actual
+%   argument is not an integer,  this  is   a  _type_error_.  If it is a
+%   negative integer, it is a _domain_error_.
 %
-%   Typical borderline cases are  predicates   accepting  a compound
-%   term, e.g., point(X,Y). One could argue that the basic type is a
-%   compound-term and any other compound  term   is  a domain error.
-%   Most Prolog programmers consider each  compound   as  a type and
-%   would consider a compound that is not point(_,_) a _type_error_.
+%   Typical borderline cases are predicates   accepting a compound term,
+%   e.g.,  point(X,Y).  One  could  argue  that  the  basic  type  is  a
+%   compound-term and any other compound term   is  a domain error. Most
+%   Prolog programmers consider each  compound  as   a  type  and  would
+%   consider a compound that is not point(_,_) a _type_error_.
 
-type_error(Type, Term) :-
-    throw(error(type_error(Type, Term), _)).
+type_error(ValidType, Culprit) :-
+    throw(error(type_error(ValidType, Culprit), _)).
 
-%!  domain_error(+Type, +Term).
+%!  domain_error(+ValidDomain, +Culprit).
 %
-%   The argument is of the proper  type,   but  has  a value that is
-%   outside the supported  values.  See   type_error/2  for  a  more
-%   elaborate  discussion  of  the  distinction  between  type-  and
-%   domain-errors.
+%   The argument is of the proper type, but  has a value that is outside
+%   the  supported  values.  See  type_error/2   for  a  more  elaborate
+%   discussion of the distinction between type- and domain-errors.
 
-domain_error(Type, Term) :-
-    throw(error(domain_error(Type, Term), _)).
+domain_error(ValidDomain, Culprit) :-
+    throw(error(domain_error(ValidDomain, Culprit), _)).
 
-%!  existence_error(+Type, +Term).
+%!  existence_error(+ObjectType, +Culprit).
 %
-%   Term is of the correct type and  correct domain, but there is no
-%   existing (external) resource that is represented by it.
+%   Culprit is of the correct type and   correct domain, but there is no
+%   existing (external) resource of type  ObjectType that is represented
+%   by it.
 
-existence_error(Type, Term) :-
-    throw(error(existence_error(Type, Term), _)).
+existence_error(ObjectType, Culprit) :-
+    throw(error(existence_error(ObjectType, Culprit), _)).
 
-%!  existence_error(+Type, +Term, +Set).
+%!  existence_error(+ObjectType, +Culprit, +Set).
 %
-%   Term is of the correct type  and   correct  domain,  but there is no
-%   existing (external) resource that  is  represented   by  it  in  the
-%   provided set.
+%   Culprit is of the correct type and   correct domain, but there is no
+%   existing (external) resource of type  ObjectType that is represented
+%   by it in the provided  set.  The   thrown  exception  term carries a
+%   formal  term  structured  as   follows:  existence_error(ObjectType,
+%   Culprit, Set)
 %
-%   @compat This error is not in ISO.
+%   @compat This error is outside the ISO Standard.
 
-existence_error(Type, Term, Set) :-
-    throw(error(existence_error(Type, Term, Set), _)).
+existence_error(ObjectType, Culprit, Set) :-
+    throw(error(existence_error(ObjectType, Culprit, Set), _)).
 
-%!  permission_error(+Action, +Type, +Term).
+%!  permission_error(+Operation, +PermissionType, +Culprit).
 %
-%   It is not allowed to perform Action   on the object Term that is
-%   of the given Type.
+%   It is not allowed to perform   Operation on (whatever is represented
+%   by) Culprit that is of the given   PermissionType  (in fact, the ISO
+%   Standard is confusing and vague about these terms' meaning).
 
-permission_error(Action, Type, Term) :-
-    throw(error(permission_error(Action, Type, Term), _)).
+permission_error(Operation, PermissionType, Culprit) :-
+    throw(error(permission_error(Operation, PermissionType, Culprit), _)).
 
-%!  instantiation_error(+Term).
+%!  instantiation_error(+FormalSubTerm).
 %
-%   An argument is under-instantiated. I.e. it  is not acceptable as
-%   it is, but if some variables are  bound to appropriate values it
-%   would be acceptable.
+%   An argument is under-instantiated. I.e. it   is not acceptable as it
+%   is, but if some variables are bound   to appropriate values it would
+%   be acceptable.
 %
 %   @param  Term is the term that needs (further) instantiation.
 %           Unfortunately, the ISO error does not allow for passing
@@ -143,34 +146,36 @@ permission_error(Action, Type, Term) :-
 %           predicate for documentation purposes and to allow for
 %           future enhancement.
 
-instantiation_error(_Term) :-
+instantiation_error(_FormalSubTerm) :-
     throw(error(instantiation_error, _)).
 
-%!  uninstantiation_error(+Term)
+%!  uninstantiation_error(+Culprit)
 %
-%   An argument is over-instantiated. This error  is used for output
-%   arguments whose value cannot be known  upfront. For example, the
-%   goal open(File, read, input) cannot   succeed because the system
-%   will allocate a new unique stream   handle that will never unify
-%   with `input`.
+%   An argument is over-instantiated. This  error   is  used  for output
+%   arguments whose value cannot be known upfront. For example, the goal
+%   open(File, read, input)  cannot  succeed   because  the  system will
+%   allocate a new unique  stream  handle   that  will  never unify with
+%   `input`.
 
-uninstantiation_error(Term) :-
-    throw(error(uninstantiation_error(Term), _)).
+uninstantiation_error(Culprit) :-
+    throw(error(uninstantiation_error(Culprit), _)).
 
-%!  representation_error(+Reason).
+%!  representation_error(+Flag).
 %
-%   A  representation  error  indicates   a    limitation   of   the
-%   implementation. SWI-Prolog has  no  such   limits  that  are not
-%   covered by other errors, but  an   example  of  a representation
-%   error in another Prolog implementation could   be  an attempt to
-%   create a term with an arity higher than supported by the system.
+%   A representation error indicates a limitation of the implementation.
+%   SWI-Prolog has no such limits that are  not covered by other errors,
+%   but  an  example  of  a  representation   error  in  another  Prolog
+%   implementation could be an attempt to create   a  term with an arity
+%   higher than supported by the system.
 
-representation_error(Reason) :-
-    throw(error(representation_error(Reason), _)).
+representation_error(Flag) :-
+    throw(error(representation_error(Flag), _)).
 
 %!  syntax_error(+Culprit)
 %
-%   A text has invalid syntax.  The error is described by Culprit.
+%   A text has invalid  syntax.  The   error  is  described  by Culprit.
+%   According   to   the   ISO   Standard,    Culprit   should   be   an
+%   implementation-dependent atom.
 %
 %   @tbd    Deal with proper description of the location of the
 %           error.  For short texts, we allow for Type(Text), meaning
@@ -180,12 +185,14 @@ representation_error(Reason) :-
 syntax_error(Culprit) :-
     throw(error(syntax_error(Culprit), _)).
 
-%!  resource_error(+Culprit)
+%!  resource_error(+Resource)
 %
-%   A goal cannot be completed due to lack of resources.
+%   A goal cannot be completed due to   lack  of resources. According to
+%   the ISO Standard, Resource  should   be  an implementation-dependent
+%   atom.
 
-resource_error(Culprit) :-
-    throw(error(resource_error(Culprit), _)).
+resource_error(Resource) :-
+    throw(error(resource_error(Resource), _)).
 
 
                  /*******************************
