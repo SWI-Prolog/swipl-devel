@@ -135,7 +135,7 @@ existence_error(ObjectType, Culprit, Set) :-
 %   these terms' meaning).
 
 permission_error(Operation, PermissionType, Culprit) :-
-    throw(error(permission_error(Operation, PermissionType, Culprit, _))).
+    throw(error(permission_error(Operation, PermissionType, Culprit), _)).
 
 %!  instantiation_error(+FormalSubTerm).
 %
