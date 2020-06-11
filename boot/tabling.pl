@@ -1648,17 +1648,73 @@ pdelim(Worker, Skel, ATrie) :-
 %!  mon_abolish_dependents(+HeadOrTrie)
 %
 %   Abolish all dependency relations from HeadOrTrie and their tables.
+%
+%   @tbd Move to C
 
 mon_abolish_dependents(Node) :-
-    (   (   is_trie(Node)
-        ->  monotonic_affects(Node, _Ret0, _IsMono, _ContinuationT, _RetT, ATrie)
-        ;   monotonic_dyn_affects(Node, _ContinuationD, _RetD, ATrie)
-        ),
-        '$tbl_destroy_table'(ATrie),
-        mon_abolish_dependents(ATrie),
-        fail
-    ;   true
-    ).
+    dependent_tables([Node], [], Tables),
+    forall('$member'(ATrie, Tables),
+           '$tbl_destroy_table'(ATrie)).
+
+dependent_tables([], Tables, Tables) :-
+    !.
+dependent_tables([Node|T], Tables0, Tables) :-
+    (   is_trie(Node)
+    ->  findall(ATrie,
+                monotonic_affects(Node, _Ret0, _IsMono, _ContinuationT, _RetT, ATrie),
+                Tries)
+    ;   findall(ATrie,
+                monotonic_dyn_affects(Node, _ContinuationD, _RetD, ATrie),
+                Tries)
+    ),
+    sort(Tries, STries),
+    ord_subtract(STries, Tables0, New),
+    ord_union(T, New, Agenda),
+    ord_union(New, Tables0, Tables1),
+    dependent_tables(Agenda, Tables1, Tables).
+
+
+%!  ord_subtract(+InOSet, +NotInOSet, -Diff)
+%   ordered set difference
+
+ord_subtract([], _Not, []).
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    ord_subtract(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
+
+%!  ord_union(+OSet1, +OSet2, -Union).
+
+ord_union([], Union, Union).
+ord_union([H1|T1], L2, Union) :-
+    union2(L2, H1, T1, Union).
+
+union2([], H1, T1, [H1|T1]).
+union2([H2|T2], H1, T1, Union) :-
+    compare(Order, H1, H2),
+    union3(Order, H1, T1, H2, T2, Union).
+
+union3(<, H1, T1,  H2, T2, [H1|Union]) :-
+    union2(T1, H2, T2, Union).
+union3(=, H1, T1, _H2, T2, [H1|Union]) :-
+    ord_union(T1, T2, Union).
+union3(>, H1, T1,  H2, T2, [H2|Union]) :-
+    union2(T2, H1, T1, Union).
 
 %!  abolish_monotonic_tables
 %
