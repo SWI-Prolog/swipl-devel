@@ -2536,21 +2536,418 @@ prolog_exception_hook/4 can be used to add more debugging facilities to
 exceptions. An example is the library \pllib{http/http_error},
 generating a full stack trace on errors in the HTTP server library.
 
+\subsection{The exception term}         \label{sec:exceptterm}
 
-\subsection{The exception term}		\label{sec:exceptterm}
 
-Built-in predicates generate exceptions using a term
-\term{error}{Formal, Context}.  The first argument is the `formal'
-description of the error, specifying the class and generic defined
-context information.  When applicable, the ISO error term definition
-is used.  The second part describes some additional context to help
-the programmer while debugging.  In its most generic form this is
-a term of the form \term{context}{Name/Arity, Message}, where
-\arg{Name}/\arg{Arity} describes the built-in predicate that raised
-the error, and \arg{Message} provides an additional description of
-the error.  Any part of this structure may be a variable if no
-information was present.
+\subsubsection{General form of the ISO Standard exception term}
+\label{sec:generalformofexceptionterm}
 
+
+Predicate throw/1 takes a single argument, the \jargon{exception term}:
+
+
+\begin{code}
+throw(+Exception)
+\end{code}
+
+
+The ISO Standard stipulates that the exception term \term{Exception}{} be of
+the form \term{error}{Formal, Context}.
+
+
+\begin{itemlist}
+\item [The \arg{Formal} term] is the `formal' description of the error,
+specifying the error class and error context information.
+It may be an atom or variously a compound term of arity 1,2 or 3.
+The ISO Standard lists the admissible \arg{Formal} terms in chapter
+7.12.2 pp. 62-63 ("Error classification"). See below for details.
+
+
+\item [The \arg{Context} term] if set (i.e. if not a fresh variable),
+gives additional context information to help the programmer in debugging
+or to allow error-handling routines to decide what to do next. The structure of
+\arg{Context} is left unspecified by the ISO Standard.
+\end{itemlist}
+
+
+\subsubsection{Throws from user predicates}
+\label{sec:throwsfromuserpreds}
+
+
+User predicates are free to choose the structure of their exception
+terms (i.e. they can define their own conventions) but \emph{should}
+adhere to the ISO Standard if possible, in particular for libraries.
+
+
+\subsubsection{Throws from built-in predicates}
+\label{sec:throwsfrombuiltins}
+
+
+Built-in predicates throw exception terms as specified by the ISO Standard
+unless the exception does not fit any of the ISO Standard error
+term definitions. (e.g. for assertion/1 which throws a non-ISO excpetion term)
+
+
+The \arg{Context} is generally of the form
+\term{context}{Name/Arity, Message}, where \arg{Name}/\arg{Arity} is the
+predicate indicator of the built-in predicate that raises the error, and
+\arg{Message} provides an additional description of the error.
+
+
+Any part of this structure may be a fresh variable if no appropriate
+information exists.
+
+
+We thus have the following term hierarchy:
+
+
+\begin{code}
+thrower(FormalFunctor,FormalArgs,PredInd,Msg) :-
+    compound_name_arguments(Formal,FormalFunctor,FormalArgs),  % Formal = FormalFunctor(FormalArgs...)
+    compound_name_arguments(Context,context,[PredInd,Msg]),    % Context = context(PredInd,Msg)
+    compound_name_arguments(Exception,error,[Formal,Context]), % Exception = error(Formal,Context)
+    throw(Exception).
+\end{code}
+
+
+ISO Standard exceptions are generally thrown via the predicates exported from
+\pllib{error}. Those predicates look exactly like the ISO Standard error terms.
+
+
+In order of the listing in the ISO standard:
+
+
+\subsubsection{Instantiation Error}
+\label{sec:instantiationerror}
+
+
+An argument or one of its components is uninstantiated, but an
+instantiated argument or component is required instead.
+
+
+\begin{code}
+Formal=instantiation_error
+\end{code}
+
+
+According to the ISO Standard, \arg{Formal} shall be an atom. As the ISO
+Standard does not allow for parameters in the \arg{Formal}, one cannot
+communicate to the caller which argument is the one that failed.
+One \emph{has} to use the \arg{Context} term instead to carry that information.
+
+
+Corresponding \pllib{error} predicate: instantiation_error/1.
+
+
+instantiation_error/1 takes an argument for a subterm of \arg{Formal}.
+However, the subterm is just meant to be used in the context of a future
+extension of the ISO Standard: ``Unfortunately, the ISO error
+does not allow for passing this term along with the error, but we pass it to
+this predicate for documentation purposes and to allow for future
+enhancement.''
+
+
+\begin{code}
+instantiation_error(+FormalSubTerm)
+\end{code}
+
+
+
+
+\subsubsection{Uninstantiation Error}
+\label{sec:uninstantiationerror}
+
+
+An argument or one of its components is instantiated, and an
+uninstantiated argument or argument component is required.
+
+
+This exception term is defined in Corrigendum 2 of the ISO Standard.
+
+
+\begin{code}
+Formal=uninstantiation_error(Culprit)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{Culprit}] is the argument or one of its components which caused the error.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: uninstantiation_error/1.
+
+
+\begin{code}
+uninstantiation_error(+Culprit)
+\end{code}
+
+
+
+
+\subsubsection{Type Error}
+\label{sec:typeerror}
+
+
+An argument or one of its components is instantiated but incorrect.
+
+
+\begin{code}
+Formal=type_error(ValidType,Culprit)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{ValidType}] is an atom chosen from \term{[atom, atomic, byte,
+callable, charactder, compound, evaluable, in_byte, in_character, integer,
+list, number, predicate_indicator, variable]}{}.
+\item [\arg{Culprit}] is the argument or one of its components which caused
+the error.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: type_error/2.
+
+
+\begin{code}
+type_error(+ValidType, +Culprit)
+\end{code}
+
+
+
+
+\subsubsection{Domain Error}
+\label{sec:domainerror}
+
+
+An argument's type is correct but the value is outside the domain for
+which the procedure is defined.
+
+
+This exception lacks the possibility to properly express being outside
+the allowed subdomain if that subdomain is spanned by several arguments
+instead of just one.
+
+
+\begin{code}
+Formal=domain_error(ValidDomain,Culprit)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{ValidDomain}] is an atom chosen from \term{[character_code_list,
+close_option, flag_value, io_mode, non_empty_list, not_less_than_zero,
+operator_priority, operator_specifier, prolog_flag, read_option, source_sink,
+stream, stream_option, stream_or_alias, stream_position, stream_property,
+write_option]}{}.
+\item [\arg{Culprit}] is the argument or one of its components which caused
+the error.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: domain_error/2.
+
+
+\begin{code}
+domain_error(+ValidDomain, +Culprit)
+\end{code}
+
+
+
+
+\subsubsection{Existence Error}
+\label{sec:existenceerror}
+
+
+An object on which an operation is to be performed does not exist.
+
+
+\begin{code}
+Formal=existence_error(ObjectType,Culprit)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{ObjectType}] is an atom chosen from
+\term{[procedure, source_sink, stream]}{}.
+\item [\arg{Culprit}] is the argument or one of its components which caused
+the error.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: existence_error/2 and
+existence_error/3 (a non-ISO-conformant extension).
+
+
+\begin{code}
+existence_error(+ObjectType, +Culprit)
+existence_error(+ObjectType, +Culprit, +Set)  % a non ISO-conformant exception
+\end{code}
+
+
+
+
+\subsubsection{Permission Error}
+\label{sec:permissionerror}
+
+
+The runtime system (or the thread) is lacking permission to perform a specific operation.
+
+
+\begin{code}
+Formal=permission_error(Operation,PermissionType,Culprit)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{Operation}] is an atom chosen from \term{[access, create,
+input, modify, open, output, reposition]}{}.
+\item [\arg{PermissionType}] is an atom chosen from \term{[binary_stream,
+flag, operator, past_end_of_stream, private_procedure, static_procedure,
+source_sink, stream, text_stream]}{}.
+\item [\arg{Culprit}] is the argument or one of its components which caused
+the error.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: permission_error/3.
+
+
+\begin{code}
+permission_error(+Operation, +PermissionType, +Culprit)
+\end{code}
+
+
+
+
+\subsubsection{Representation Error}
+\label{sec:representationerror}
+
+
+An implementation-defined limit has been exceeded.
+
+
+\begin{code}
+Formal=representation_error(Flag)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{Flag}] is an atom chosen from \term{[character, character_code,
+in_character_code, max_arity, max_integer, min_integer]}{}.
+\end{itemlist}
+
+
+
+
+\subsubsection{Evaluation Error}
+\label{sec:evaluationerror}
+
+
+The operands of an functor are such that the evaluation resulted
+in an exceptional value or event.
+
+
+(This does not seem to cover all of the IEEE 754 exceptional cases?)
+
+
+\begin{code}
+Formal=evaluation_error(Error)
+\end{code}
+
+
+\begin{itemlist}
+\item [\arg{Error}] is an atom chosen from \term{[float_overflow,
+int_overflow, undefined, underflow, zero_divisor]}{}.
+\end{itemlist}
+
+
+There is no corresponding call from \pllib{error}.
+
+
+
+
+\subsubsection{Resource Error}
+\label{sec:resourceerror}
+
+
+The runtime system has insufficient resources to complete execution. A resource error
+may happen for example when a calculation on unbounded integers has a value which
+is too large.
+
+
+\begin{code}
+Formal=resource_error(Resource)
+\end{code}
+
+
+\begin{itemlist}
+\item[\arg{Resource}] denotes an implementation-dependent atom.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: resource_error/1.
+
+
+\begin{code}
+resource_error(+Resource)
+\end{code}
+
+
+
+
+\subsubsection{Syntax Error}
+\label{sec:syntaxerror}
+
+
+A sequence of characters which are read as a term do not conform to an
+acceptable syntax.
+
+
+\begin{code}
+Formal=syntax_error(ImplDepAtom)
+\end{code}
+
+
+
+
+\begin{itemlist}
+\item[\arg{ImplDepAtom}] denotes an implementation-dependent atom.
+\end{itemlist}
+
+
+Corresponding \pllib{error} predicate: syntax_error/1.
+
+
+\begin{code}
+syntax_error(+ImplDepAtom)
+\end{code}
+
+
+
+
+\subsubsection{System error}
+\label{sec:systemerror}
+
+
+Can happen at any point of computation. The conditions for a System Error
+and the actions taken by a Prolog runtime after occurrence are
+implementation-dependent. A System Error may happen for example (a) in
+interactions with the operating system (for example, a disc crash or
+interrupt), or (b) when a goal `throw(T)` has been executed and there is
+no active goal catch/3.
+
+
+The \arg{Formal} is parameterless.
+
+
+\begin{code}
+Formal=system_error
+\end{code}
+
+
+There is no corresponding \pllib{error} predicate. "System Error" should not be
+thrown from user code.
 
 \subsection{Printing messages}			\label{sec:printmsg}
 
