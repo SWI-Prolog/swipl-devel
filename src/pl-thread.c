@@ -3649,17 +3649,21 @@ queue_message(message_queue *queue, thread_message *msgp,
 
   if ( queue->waiting )
   { if ( queue->waiting > queue->waiting_var && queue->waiting > 1 )
-    { DEBUG(MSG_THREAD,
-	    Sdprintf("%d of %d non-var waiters; broadcasting\n",
+    { DEBUG(MSG_QUEUE,
+	    Sdprintf("%d: %d of %d non-var waiters on %p; broadcasting\n",
+		     PL_thread_self(),
 		     queue->waiting - queue->waiting_var,
-		     queue->waiting));
+		     queue->waiting,
+		     queue));
       cv_broadcast(&queue->cond_var);
     } else
-    { DEBUG(MSG_THREAD, Sdprintf("%d var waiters; signalling\n", queue->waiting));
+    { DEBUG(MSG_QUEUE, Sdprintf("%d: %d waiters on %p; signalling\n",
+				PL_thread_self(), queue->waiting, queue));
       cv_signal(&queue->cond_var);
     }
   } else
-  { DEBUG(MSG_THREAD, Sdprintf("No waiters\n"));
+  { DEBUG(MSG_QUEUE, Sdprintf("%d: no waiters on %p\n",
+			      PL_thread_self(), queue));
   }
 
   return TRUE;
@@ -3888,6 +3892,12 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 
   QSTAT(getmsg);
 
+  DEBUG(MSG_QUEUE,
+	{ Sdprintf("%d: get_message(%p) key 0x%lx for ",
+		   PL_thread_self(), queue, key);
+	  PL_write_term(Serror, msg, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	});
+
   for(;;)
   { thread_message *msgp = queue->head;
     thread_message *prev = NULL;
@@ -3896,9 +3906,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       return MSG_WAIT_DESTROYED;
 
     DEBUG(MSG_QUEUE,
-	  if ( queue->size > 0 )
-	    Sdprintf("%d: scanning queue (size=%ld)\n",
-		     PL_thread_self(), queue->size));
+	  Sdprintf("%d: queue size=%ld\n",
+		   PL_thread_self(), (long)queue->size));
 
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { int rc;
@@ -3923,10 +3932,12 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
       { PL_discard_foreign_frame(fid);
         return raiseStackOverflow(GLOBAL_OVERFLOW);
       }
+      DEBUG(MSG_QUEUE,
+	    { Sdprintf("%d: found term ", PL_thread_self());
+	      PL_write_term(Serror, tmp, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	    });
+
       rc = PL_unify(msg, tmp);
-      DEBUG(MSG_QUEUE, { pl_writeln(tmp);
-			 pl_writeln(msg);
-		       });
 
       if ( rc )
       { term_t ex = PL_new_term_ref();
