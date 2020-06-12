@@ -3754,7 +3754,8 @@ carry_timespec_nanos(struct timespec *time)
 #ifdef __WINDOWS__
 
 int
-cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
+cv_timedwait(message_queue *queue,
+	     CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
 	     struct timespec *deadline)
 { GET_LD
   struct timespec tmp_timeout;
@@ -3775,7 +3776,7 @@ cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
       if ( timespec_sign(&d) > 0 )
 	api_timeout = (d.tv_nsec + 1000000 - 1) / 1000000;
       else
-	return ETIMEDOUT;
+	return CV_TIMEDOUT;
 
       last = TRUE;
     }
@@ -3783,11 +3784,11 @@ cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
     rc = SleepConditionVariableCS(cond, mutex, api_timeout);
 
     if ( is_signalled(LD) )
-      return EINTR;
-    if ( !rc && last )
-      return ETIMEDOUT;
+      return CV_INTR;
+    if ( !rc )
+      return last ? CV_TIMEDOUT : CV_MAYBE;
     if ( rc )
-      return 0;
+      return CV_READY;
   }
 }
 
@@ -3797,10 +3798,10 @@ cv_timedwait(CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
 */
 
 int
-cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
+cv_timedwait(message_queue *queue,
+	     pthread_cond_t *cond, pthread_mutex_t *mutex,
 	     struct timespec *deadline)
 { GET_LD
-
   struct timespec tmp_timeout;
   struct timespec *api_timeout = &tmp_timeout;
   int rc;
@@ -3814,20 +3815,26 @@ cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
       api_timeout = deadline;
 
     rc = pthread_cond_timedwait(cond, mutex, api_timeout);
+    DEBUG(MSG_QUEUE_WAIT,
+	  Sdprintf("%d: wait on %p returned %d; size = %ld (%s)\n",
+		   PL_thread_self(), queue, rc,
+		   queue ? (long)queue->size : 0,
+		   api_timeout == deadline ? "final" : "0.25sec"));
 
     switch( rc )
     { case ETIMEDOUT:
 	if ( is_signalled(LD) )
-	  return EINTR;
+	  return CV_INTR;
 	if ( api_timeout == deadline )
-	  return ETIMEDOUT;
-	continue;
+	  return CV_TIMEDOUT;
+	return CV_MAYBE;
       case 0:
 	if ( is_signalled(LD) )
-	  return EINTR;
-      /*FALLTHROUGH*/
+	  return CV_INTR;
+        return CV_READY;
       default:
-	return rc;
+	assert(0);
+	return CV_READY;
     }
   }
 }
@@ -3837,7 +3844,8 @@ cv_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex,
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait,
 		   struct timespec *deadline)
-{ return cv_timedwait((wait == QUEUE_WAIT_READ ? &queue->cond_var
+{ return cv_timedwait(queue,
+		      (wait == QUEUE_WAIT_READ ? &queue->cond_var
 					       : &queue->drain_var),
 		      &queue->mutex,
 		      deadline);
@@ -3899,7 +3907,8 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	});
 
   for(;;)
-  { thread_message *msgp = queue->head;
+  { int rc;
+    thread_message *msgp = queue->head;
     thread_message *prev = NULL;
 
     if ( queue->destroyed )
@@ -3910,8 +3919,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 		   PL_thread_self(), (long)queue->size));
 
     for( ; msgp; prev = msgp, msgp = msgp->next )
-    { int rc;
-      term_t tmp;
+    { term_t tmp;
 
       if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
@@ -3984,9 +3992,10 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    switch ( dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline) )
-    { case EINTR:
-      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: EINTR\n", PL_thread_self()));
+    rc = dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline);
+    switch ( rc )
+    { case CV_INTR:
+      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: CV_INTR\n", PL_thread_self()));
 
 	if ( !LD )			/* needed for clean exit */
 	{ Sdprintf("Forced exit from get_message()\n");
@@ -4001,17 +4010,19 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
 	}
 	break;
       }
-      case ETIMEDOUT:
-      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: ETIMEDOUT\n", PL_thread_self()));
+      case CV_TIMEDOUT:
+      { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: CV_TIMEDOUT\n", PL_thread_self()));
 
 	queue->waiting--;
 	queue->waiting_var -= isvar;
 	PL_discard_foreign_frame(fid);
 	return MSG_WAIT_TIMEOUT;
       }
-      case 0:
+      case CV_READY:
+      case CV_MAYBE:
 	DEBUG(MSG_QUEUE_WAIT,
-	      Sdprintf("%d: wakeup on queue\n", PL_thread_self()));
+	      Sdprintf("%d: wakeup (%d) on queue\n",
+		       PL_thread_self(), rc));
 	break;
       default:
 	assert(0);
