@@ -7116,7 +7116,7 @@ wait_for_table_to_complete(trie *atrie)
 	print_answer_table(atrie, "waiting for %d to complete", atrie->tid));
 
   do
-  { if ( cv_wait(&GD->tabling.cvar, &GD->tabling.mutex.mutex) == EINTR )
+  { if ( cv_wait(&GD->tabling.cvar, &GD->tabling.mutex.mutex) == CV_INTR )
     { if ( PL_handle_signals() < 0 )
       { DEBUG(MSG_TABLING_SHARED,
 	      print_answer_table(atrie, "Ready (interrupted"));

@@ -406,7 +406,13 @@ COMMON(int)	cv_timedwait(CONDITION_VARIABLE *cv,
 
 #else
 
-COMMON(int)	cv_timedwait(pthread_cond_t *cv,
+#define CV_READY	0		/* was signalled */
+#define CV_MAYBE	1		/* might be signalled */
+#define CV_TIMEDOUT	2		/* timed out */
+#define CV_INTR		3		/* interrupted */
+
+COMMON(int)	cv_timedwait(message_queue *queue,
+			     pthread_cond_t *cv,
 			     pthread_mutex_t *external_mutex,
 			     struct timespec *deadline);
 
@@ -417,7 +423,7 @@ COMMON(int)	cv_timedwait(pthread_cond_t *cv,
 
 #endif /* __WINDOWS__ */
 
-#define cv_wait(cv, m)		cv_timedwait(cv, m, NULL)
+#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL)
 
 
 #else /*O_PLMT, end of threading-stuff */
