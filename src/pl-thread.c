@@ -4079,8 +4079,7 @@ destroy_message_queue(message_queue *queue)
   for( msgp = queue->head; msgp; msgp = next )
   { next = msgp->next;
 
-    freeRecord(msgp->message);
-    freeHeap(msgp, sizeof(*msgp));
+    free_thread_message(msgp);
   }
 
   simpleMutexDelete(&queue->gc_mutex);
@@ -4278,11 +4277,12 @@ thread_send_message__LD(term_t queue, term_t msgterm,
   thread_message *msg;
   int rc;
 
-  if ( !get_message_queue__LD(queue, &q PASS_LD) )
-    return FALSE;
   if ( !(msg = create_thread_message(msgterm PASS_LD)) )
-  { release_message_queue(q);
     return PL_no_memory();
+
+  if ( !get_message_queue__LD(queue, &q PASS_LD) )
+  { free_thread_message(msg);
+    return FALSE;
   }
 
   rc = wait_queue_message(queue, q, msg, deadline PASS_LD);
