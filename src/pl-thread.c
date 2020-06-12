@@ -3609,7 +3609,7 @@ queue_message(message_queue *queue, thread_message *msgp,
 
     while ( queue->size >= queue->max_size )
     { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline) )
-      { case EINTR:
+      { case CV_INTR:
 	{ if ( !LD )			/* needed for clean exit */
 	  { Sdprintf("Forced exit from queue_message()\n");
 	    exit(1);
@@ -3621,10 +3621,11 @@ queue_message(message_queue *queue, thread_message *msgp,
 	  }
 	  break;
 	}
-	case ETIMEDOUT:
+	case CV_TIMEDOUT:
 	  queue->wait_for_drain--;
 	  return MSG_WAIT_TIMEOUT;
-	case 0:
+	case CV_READY:
+	case CV_MAYBE:
 	  break;
 	default:
 	  assert(0); // should never happen
