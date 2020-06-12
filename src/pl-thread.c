@@ -4735,17 +4735,29 @@ message_queue_size_property(message_queue *q, term_t prop ARG_LD)
 
 static int		/* message_queue_property(Queue, max_size(Size)) */
 message_queue_max_size_property(message_queue *q, term_t prop ARG_LD)
-{ if ( q->max_size > 0 )
-    return PL_unify_integer(prop, q->max_size);
+{ size_t ms;
+
+  if ( (ms=q->max_size) > 0 )
+    return PL_unify_integer(prop, ms);
 
   fail;
 }
 
+static int		/* message_queue_property(Queue, waiting(Count)) */
+message_queue_waiting_property(message_queue *q, term_t prop ARG_LD)
+{ int waiting;
+
+  if ( (waiting=q->waiting) > 0 )
+    return PL_unify_integer(prop, waiting);
+
+  fail;
+}
 
 static const tprop qprop_list [] =
 { { FUNCTOR_alias1,	    message_queue_alias_property },
   { FUNCTOR_size1,	    message_queue_size_property },
   { FUNCTOR_max_size1,	    message_queue_max_size_property },
+  { FUNCTOR_waiting1,	    message_queue_waiting_property },
   { 0,			    NULL }
 };
 

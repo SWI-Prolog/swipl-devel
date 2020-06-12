@@ -883,6 +883,7 @@ A very_deep		"very_deep"
 A vmi			"vmi"
 A volatile		"volatile"
 A wait			"wait"
+A waiting		"waiting"
 A wakeup		"wakeup"
 A walltime		"walltime"
 A warning		"warning"
@@ -1197,6 +1198,7 @@ F undefinterc		4
 F unify_determined	2
 F uninstantiation_error	1
 F var			1
+F waiting		1
 F wakeup		3
 F warning		3
 F write_errors		1

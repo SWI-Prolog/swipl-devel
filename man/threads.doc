@@ -601,6 +601,9 @@ limit (default).
 Queue currently contains \arg{Size} terms. Note that due to concurrent
 access the returned value may be outdated before it is returned. It can
 be used for debugging purposes as well as work distribution purposes.
+	\termitem{waiting}{-Count}
+Number of threads waiting for this queue.  This property is not present
+if no threads waits for this queue.
     \end{description}
 
 The \term{size}{Size} property is always present and may be used to
