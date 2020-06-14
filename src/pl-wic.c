@@ -817,6 +817,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 	  }
 	  sf->count++;
 	  xr = (word)sf;
+	  /* do not release sf; part of state */
 	  break;
 	}
 	case '-':
@@ -1296,7 +1297,11 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  SourceFile sf = (void *) loadXR(state);
 	  unsigned int ono = (of ? of->index : 0);
 	  unsigned int sno = (sf ? sf->index : 0);
-
+	  if ( sf )
+	  { acquireSourceFile(sf);
+	    if ( of != sf )
+	      acquireSourceFile(of);
+	  }
 	  clause->owner_no = ono;
 	  clause->source_no = sno;
 	  if ( of && of != csf )

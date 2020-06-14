@@ -274,9 +274,6 @@ countingMutexUnlock(counting_mutex *cm)
 #define LOCKMODULE(module)	countingMutexLock((module)->mutex)
 #define UNLOCKMODULE(module)	countingMutexUnlock((module)->mutex)
 
-#define LOCKSRCFILE(sf)		countingMutexLock((sf)->mutex)
-#define UNLOCKSRCFILE(sf)	countingMutexUnlock((sf)->mutex)
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 				Thread-local data
 
@@ -450,8 +447,6 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 #define UNLOCKDYNDEF(def)
 #define LOCKMODULE(module)
 #define UNLOCKMODULE(module)
-#define LOCKSRCFILE(sf)
-#define UNLOCKSRCFILE(sf)
 
 #define acquire_ldata(ld)	(ld)
 #define release_ldata(ld)	(void)0

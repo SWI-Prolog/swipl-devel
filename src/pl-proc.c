@@ -213,6 +213,8 @@ unallocProcedure(Procedure proc)
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     destroyDefinition(def);
   }
+  if ( proc->source_no )
+    releaseSourceFileNo(proc->source_no);
   freeHeap(proc, sizeof(*proc));
   if ( m )
     ATOMIC_SUB(&m->code_size, sizeof(*proc));
@@ -1482,6 +1484,11 @@ void
 unallocClause(Clause c)
 { ATOMIC_SUB(&GD->statistics.codes, c->code_size);
   ATOMIC_DEC(&GD->statistics.clauses);
+  if ( c->source_no )			/* set by assert_term() */
+  { if ( c->owner_no != c->source_no )
+      releaseSourceFileNo(c->owner_no);
+    releaseSourceFileNo(c->source_no);
+  }
 
 #ifdef ALLOC_DEBUG
 #define ALLOC_FREE_MAGIC 0xFB
@@ -1828,7 +1835,9 @@ meta_declaration(term_t spec)
 
   if ( ReadingSource )
   { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
-    return setMetapredicateSource(sf, proc, args PASS_LD);
+    int rc = setMetapredicateSource(sf, proc, args PASS_LD);
+    releaseSourceFile(sf);
+    return rc;
   } else
   { setMetapredicateMask(proc->definition, args);
     return TRUE;
@@ -3528,7 +3537,9 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
 
   if ( ReadingSource && MODULE_parse == def->module )
   { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
-    return setAttrProcedureSource(sf, proc, att, val PASS_LD);
+    int rc = setAttrProcedureSource(sf, proc, att, val PASS_LD);
+    releaseSourceFile(sf);
+    return rc;
   } else
   { return setAttrDefinition(def, att, val);
   }
