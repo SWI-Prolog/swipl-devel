@@ -2687,14 +2687,6 @@ load_files(Module:Files, Options) :-
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
     '$set_source_module'(OldModule, Module),
     '$load_id'(Absolute, Id, Modified, Options),
-    (   '$derived_source'(Absolute, DerivedFrom, _)
-    ->  '$modified_id'(DerivedFrom, DerivedModified, Options),
-        setup_call_cleanup(
-            '$start_consult'(DerivedFrom, DerivedModified),
-            true,                       % must we do something to avoid GC?
-            '$end_consult'(DerivedFrom))
-    ;   true
-    ),
     '$compile_type'(What),
     '$save_lex_state'(LexState, Options),
     '$set_dialect'(Options),
