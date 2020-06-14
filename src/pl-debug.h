@@ -93,17 +93,18 @@
 #define MSG_INFERENCE_LIMIT	 48
 #define MSG_NSOLS		 40
 #define MSG_SRCFILE		 50
-#define MSG_DESTROY_MODULE	 51
-#define MSG_CREATE_MODULE	 52
-#define MSG_QUEUE_GC		 53
-#define MSG_ACYCLIC		 54
-#define MSG_OPERATOR		 55
-#define MSG_MUTEX_GC		 56
-#define MSG_REC_ATTVAR		 57
-#define MSG_TTY			 58
-#define MSG_OS_DIR		 59
+#define MSG_SRCFILE_REF		 51
+#define MSG_DESTROY_MODULE	 52
+#define MSG_CREATE_MODULE	 53
+#define MSG_QUEUE_GC		 54
+#define MSG_ACYCLIC		 55
+#define MSG_OPERATOR		 56
+#define MSG_MUTEX_GC		 57
+#define MSG_REC_ATTVAR		 58
+#define MSG_TTY			 59
+#define MSG_OS_DIR		 60
 
-#define MSG_READ_TOKEN		 60
+#define MSG_READ_TOKEN		 65
 
 #define MSG_CONTINUE		 70
 

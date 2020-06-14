@@ -487,6 +487,7 @@ COMMON(int)		startConsult(SourceFile f);
 COMMON(int)		endConsult(SourceFile f);
 COMMON(size_t)		highSourceFileIndex(void);
 COMMON(SourceFile)	lookupSourceFile(atom_t name, int create);
+COMMON(int)		releaseSourceFileNo(int index);
 COMMON(SourceFile)	indexToSourceFile(int index);
 COMMON(void)		cleanupSourceFiles(void);
 COMMON(void)		unlinkSourceFileModule(SourceFile sf, Module m);
@@ -502,6 +503,18 @@ COMMON(int)		setMetapredicateSource(SourceFile sf, Procedure proc,
 COMMON(int)		exportProcedureSource(SourceFile sf, Module module,
 					      Procedure proc);
 COMMON(void)		registerReloadModule(SourceFile sf, Module module);
+
+#ifdef O_DEBUG
+COMMON(void)		acquireSourceFile_d(SourceFile f,
+					    const char *file, unsigned int line);
+COMMON(int)		releaseSourceFile_d(SourceFile f,
+					    const char *file, unsigned int line);
+#define acquireSourceFile(f) acquireSourceFile_d(f, __FILE__, __LINE__)
+#define releaseSourceFile(f) releaseSourceFile_d(f, __FILE__, __LINE__)
+#else
+COMMON(void)		acquireSourceFile(SourceFile sf);
+COMMON(int)		releaseSourceFile(SourceFile f);
+#endif
 
 /* pl-read.c */
 COMMON(void)		resetRead(void);

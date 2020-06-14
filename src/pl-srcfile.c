@@ -49,6 +49,22 @@ unsigned int, which is registered with clauses and procedures.
 #undef LD
 #define LD LOCAL_LD
 
+static inline void
+LOCKSRCFILE(SourceFile sf)
+{ acquireSourceFile(sf);
+#ifdef O_PLMT
+  countingMutexLock((sf)->mutex);
+#endif
+}
+
+static inline void
+UNLOCKSRCFILE(SourceFile sf)
+{
+#ifdef O_PLMT
+  countingMutexUnlock((sf)->mutex);
+#endif
+  releaseSourceFile(sf);
+}
 
 static void
 putSourceFileArray(size_t where, SourceFile sf)
@@ -176,6 +192,7 @@ cleanupSourceFileArray(void)
 { int i;
   SourceFile *ap0;
 
+  GD->files.highest = 0;
   for(i=0; (ap0=GD->files.array.blocks[i]); i++)
   { size_t bs = (size_t)1<<i;
 
@@ -200,21 +217,29 @@ cleanupSourceFiles(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This updates the dynamic predicates that  maintain the source admin. The
+callback is rather dubious as it is   completely unclear what we must do
+with exceptions in various conditions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static bool
-clearSourceAdmin(SourceFile sf)
+clearSourceAdmin(atom_t sf_name)
 { GET_LD
   int rc = FALSE;
+  fid_t fid;
+  static predicate_t pred = NULL;
 
-  if ( sf->magic == SF_MAGIC )
-  { fid_t fid = PL_open_foreign_frame();
-    term_t name = PL_new_term_ref();
-    static predicate_t pred = NULL;
+  if ( !pred )
+    pred = PL_predicate("$clear_source_admin", 1, "system");
 
-    if ( !pred )
-      pred = PL_predicate("$clear_source_admin", 1, "system");
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t name = PL_new_term_ref();
 
-    PL_put_atom(name, sf->name);
-    rc = PL_call_predicate(MODULE_system, PL_Q_NORMAL, pred, name);
+    PL_put_atom(name, sf_name);
+    startCritical;			/* block signals */
+    rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, name);
+    endCritical;
 
     PL_discard_foreign_frame(fid);
   }
@@ -223,30 +248,25 @@ clearSourceAdmin(SourceFile sf)
 }
 
 
-int
+static atom_t
 destroySourceFile(SourceFile sf)
-{ DEBUG(MSG_SRCFILE,
-	Sdprintf("Destroying source file %s\n", PL_atom_chars(sf->name)));
-
-  clearSourceAdmin(sf);
-
-  PL_LOCK(L_SRCFILE);
-  if ( sf->magic == SF_MAGIC )
+{ if ( sf->magic == SF_MAGIC )
   { SourceFile f;
+    atom_t name;
 
     sf->magic = SF_MAGIC_DESTROYING;
     f = deleteHTable(GD->files.table, (void*)sf->name);
     assert(f);
-    PL_unregister_atom(sf->name);
+    name = sf->name;
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
       GD->files.no_hole_before = sf->index;
+    unallocSourceFile(sf);
+
+    return name;
   }
-  PL_UNLOCK(L_SRCFILE);
 
-  unallocSourceFile(sf);
-
-  return TRUE;
+  return 0;
 }
 
 
@@ -290,11 +310,78 @@ lookupSourceFile(atom_t name, int create)
 
   PL_LOCK(L_SRCFILE);
   sf = lookupSourceFile_unlocked(name, create);
+  if ( sf )
+    acquireSourceFile(sf);
   PL_UNLOCK(L_SRCFILE);
 
   return sf;
 }
 
+
+void
+#ifdef O_DEBUG
+acquireSourceFile_d(SourceFile sf, const char *file, unsigned int line)
+#else
+acquireSourceFile(SourceFile sf)
+#endif
+{ ATOMIC_INC(&sf->references);
+  DEBUG(MSG_SRCFILE_REF,
+	{ Sdprintf("%d: acquireSourceFile(%s) at %s:%d --> %d\n",
+		   PL_thread_self(), PL_atom_chars(sf->name), file, line, sf->references);
+	});
+}
+
+
+int
+#ifdef O_DEBUG
+releaseSourceFile_d(SourceFile sf, const char *file, unsigned int line)
+#else
+releaseSourceFile(SourceFile sf)
+#endif
+{ DEBUG(MSG_SRCFILE_REF,
+	Sdprintf("%d: releaseSourceFile(%s) at %s:%d --> %d\n",
+		 PL_thread_self(),
+		 PL_atom_chars(sf->name),
+		 file, line,
+		 sf->references-1));
+
+  assert(sf->references > 0);
+  if ( ATOMIC_DEC(&sf->references) == 0 )
+  { atom_t name = 0;
+
+    PL_LOCK(L_SRCFILE);
+    if ( sf->references == 0 &&
+	 !sf->system &&
+	 !sf->current_procedure &&
+	 !sf->procedures &&
+	 !sf->modules )
+    { DEBUG(MSG_DESTROY_MODULE,
+	    Sdprintf("Destroying empty source file %s\n",
+		     PL_atom_chars(sf->name)));
+      name = destroySourceFile(sf);
+    }
+    PL_UNLOCK(L_SRCFILE);
+
+    if ( name )
+    { int rc = clearSourceAdmin(name);
+      PL_unregister_atom(name);
+
+      return rc;
+    }
+  }
+
+  return TRUE;
+}
+
+int
+releaseSourceFileNo(int index)
+{ SourceFile sf;
+
+  if ( (sf = indexToSourceFile(index)) )
+    return releaseSourceFile(sf);
+
+  return TRUE;
+}
 
 int
 hasProcedureSourceFile(SourceFile sf, Procedure proc)
@@ -328,8 +415,9 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
     sf->procedures = cell;
     set(proc->definition, FILE_ASSIGNED);
     if ( !proc->source_no )
+    { acquireSourceFile(sf);
       proc->source_no = sf->index;
-    else
+    } else
       set(proc, PROC_MULTISOURCE);
   }
   UNLOCKSRCFILE(sf);
@@ -456,13 +544,6 @@ unlinkSourceFileModule(SourceFile sf, Module m)
   }
 
   UNLOCKSRCFILE(sf);
-
-  if ( !sf->procedures && !sf->modules )
-  { DEBUG(MSG_DESTROY_MODULE,
-	  Sdprintf("Destroying empty source file %s\n",
-		   PL_atom_chars(sf->name)));
-    destroySourceFile(sf);
-  }
 }
 
 
@@ -578,26 +659,32 @@ static
 PRED_IMPL("$source_file_property", 3, source_file_property, 0)
 { PRED_LD
   atom_t filename, property;
-  SourceFile sf;
 
-  if ( !PL_get_atom_ex(A1, &filename) ||
-       !PL_get_atom_ex(A2, &property) )
-    return FALSE;
+  if ( PL_get_atom_ex(A1, &filename) &&
+       PL_get_atom_ex(A2, &property) )
+  { SourceFile sf = lookupSourceFile(filename, FALSE);
+    int rc;
 
-  sf = lookupSourceFile(filename, FALSE);
+    if ( property == ATOM_load_count )
+      rc = PL_unify_integer(A3, sf ? sf->count : 0);
+    else if ( property == ATOM_reloading )
+      rc = PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
+    else if ( property == ATOM_number_of_clauses )
+      rc = PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
+    else if ( property == ATOM_resource )
+      rc = PL_unify_bool(A3, sf ? sf->resource : FALSE);
+    else if ( property == ATOM_from_state )
+      rc = PL_unify_bool(A3, sf ? sf->from_state : FALSE);
+    else
+      rc = PL_domain_error("source_file_property", A2);
 
-  if ( property == ATOM_load_count )
-    return PL_unify_integer(A3, sf ? sf->count : 0);
-  if ( property == ATOM_reloading )
-    return PL_unify_bool(A3, sf ? sf->reload != NULL : 0);
-  if ( property == ATOM_number_of_clauses )
-    return PL_unify_integer(A3, sf ? sf->number_of_clauses : 0);
-  if ( property == ATOM_resource )
-    return PL_unify_bool(A3, sf ? sf->resource : FALSE);
-  if ( property == ATOM_from_state )
-    return PL_unify_bool(A3, sf ? sf->from_state : FALSE);
+    if ( sf )
+      releaseSourceFile(sf);
 
-  return PL_domain_error("source_file_property", A2);
+    return rc;
+  }
+
+  return FALSE;
 }
 
 static
@@ -611,16 +698,21 @@ PRED_IMPL("$set_source_file", 3, set_source_file, 0)
     return FALSE;
 
   if ( (sf = lookupSourceFile(filename, FALSE)) )
-  { if ( property == ATOM_resource )
+  { int rc;
+
+    if ( property == ATOM_resource )
     { int v;
 
       if ( PL_get_bool_ex(A3, &v) )
       { sf->resource = v;
-	return TRUE;
-      }
-      return FALSE;
+	rc = TRUE;
+      } else
+	rc = FALSE;
     } else
-      return PL_domain_error("source_file_property", A2);
+      rc = PL_domain_error("source_file_property", A2);
+
+    releaseSourceFile(sf);
+    return rc;
   } else
     return PL_existence_error("source_file", A1);
 
@@ -722,28 +814,32 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 
   if ( (sf = lookupSourceFile(name, FALSE)) )
   { ListCell mc, mcn;
+    int rc;
 
     if ( sf->system )
-      return PL_error(NULL, 0, NULL, ERR_PERMISSION,
-		      ATOM_unload, ATOM_file, A1);
+    { rc = PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		    ATOM_unload, ATOM_file, A1);
+    } else
+    { if ( unloadFile(sf) )
+      { for(mc=sf->modules; mc; mc=mcn)
+	{ Module m = mc->value;
 
-    if ( !unloadFile(sf) )
-      return FALSE;
-
-    for(mc=sf->modules; mc; mc=mcn)
-    { Module m = mc->value;
-
-      mcn = mc->next;
-      LOCKMODULE(m);
-      m->file = NULL;
-      m->line_no = 0;
-      delModuleSourceFile(sf, m);
-      clearHTable(m->public);
-      setSuperModule(m, MODULE_user);
-      UNLOCKMODULE(m);
+	  mcn = mc->next;
+	  LOCKMODULE(m);
+	  m->file = NULL;
+	  m->line_no = 0;
+	  delModuleSourceFile(sf, m);
+	  clearHTable(m->public);
+	  setSuperModule(m, MODULE_user);
+	  UNLOCKMODULE(m);
+	}
+	rc = TRUE;
+      } else
+	rc = FALSE;
     }
 
-    destroySourceFile(sf);
+    releaseSourceFile(sf);
+    return rc;
   }
 
   return TRUE;
@@ -1471,13 +1567,16 @@ There are two options.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-startConsult(SourceFile f)
-{ if ( f->count++ > 0 )			/* This is a re-consult */
-  { if ( !startReconsultFile(f) )
+startConsult(SourceFile sf)
+{ acquireSourceFile(sf);
+  if ( sf->count++ > 0 )		/* This is a re-consult */
+  { if ( !startReconsultFile(sf) )
+    { releaseSourceFile(sf);
       return FALSE;
+    }
   }
 
-  f->current_procedure = NULL;
+  sf->current_procedure = NULL;
   return TRUE;
 }
 
@@ -1496,10 +1595,11 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 
   if ( PL_get_atom_ex(file, &name) &&
        PL_get_float_ex(modified, &time) )
-  { SourceFile f = lookupSourceFile(name, TRUE);
+  { SourceFile sf = lookupSourceFile(name, TRUE);
 
-    f->mtime = time;
-    startConsult(f);
+    sf->mtime = time;
+    startConsult(sf);
+    releaseSourceFile(sf);
 
     return TRUE;
   }
@@ -1509,9 +1609,14 @@ PRED_IMPL("$start_consult", 2, start_consult, 0)
 
 
 int
-endConsult(SourceFile f)
-{ f->current_procedure = NULL;
-  return endReconsult(f);
+endConsult(SourceFile sf)
+{ int rc;
+
+  sf->current_procedure = NULL;
+  rc = endReconsult(sf);
+  releaseSourceFile(sf);
+
+  return rc;
 }
 
 
@@ -1519,18 +1624,18 @@ static
 PRED_IMPL("$end_consult", 1, end_consult, 0)
 { PRED_LD
   atom_t name;
+  int rc = FALSE;
 
   if ( PL_get_atom_ex(A1, &name) )
   { SourceFile sf;
 
     if ( (sf=lookupSourceFile(name, FALSE)) )
-    { return endConsult(sf);
+    { rc = endConsult(sf);
+      releaseSourceFile(sf);
     }
-
-    return TRUE;
   }
 
-  return FALSE;
+  return rc;
 }
 
 
@@ -1548,11 +1653,12 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 { PRED_LD
   atom_t owner_name;
   atom_t file_name;
-  SourceFile of, sf;		/* owner file, source file */
+  SourceFile of=NULL, sf=NULL;		/* owner file, source file */
   unsigned int source_no;
   int ln;
   ListCell cell;
   Clause c = NULL;
+  int rc = FALSE;
 
   term_t owner = A1;
   term_t file = A2;
@@ -1561,15 +1667,15 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 
   if ( !PL_get_atom_ex(owner, &owner_name) ||
        !PL_get_atom_ex(file, &file_name) ||
-       !(of = lookupSourceFile(owner_name, FALSE)) ||
-       !PL_get_integer_ex(line, &ln) )
+       !PL_get_integer_ex(line, &ln) ||
+       !(of = lookupSourceFile(owner_name, FALSE)) )
     return FALSE;
 
   if ( file_name == owner_name ) {
     source_no = of->index;
   } else {
     if ( !(sf=lookupSourceFile(file_name, FALSE)) )
-      return FALSE;
+      goto out;
     source_no = sf->index;
   }
 
@@ -1598,9 +1704,13 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   UNLOCKSRCFILE(of);
 
   if ( c )
-    return PL_unify_clref(clause, c);
+    rc = PL_unify_clref(clause, c);
 
-  fail;
+out:
+  if ( of ) releaseSourceFile(of);
+  if ( sf ) releaseSourceFile(sf);
+
+  return rc;
 }
 
 /** '$flush_predicate'(+Predicate, +File) is det.
@@ -1615,18 +1725,20 @@ flush_predicate(term_t pred ARG_LD)
   Procedure proc;
   Module m = LD->modules.source;
   functor_t fdef;
+  int rc = FALSE;
 
   if ( ReadingSource )
     sf = lookupSourceFile(source_file_name, TRUE);
   else
     return TRUE;			/* not reading source; nothing to flush */
 
-  if ( !get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
-    return FALSE;
-  if ( (proc=isCurrentProcedure(fdef,m)) )
-    return flush_procedure(sf, proc);
+  if ( get_functor(pred, &fdef, &m, 0, GF_PROCEDURE) )
+  { if ( (proc=isCurrentProcedure(fdef,m)) )
+      rc = flush_procedure(sf, proc);
+  }
+  releaseSourceFile(sf);
 
-  return TRUE;
+  return rc;
 }
 
 
@@ -1651,6 +1763,7 @@ PRED_IMPL("$flushed_predicate", 1, flushed_predicate, 0)
   Module m = LD->modules.source;
   functor_t fdef;
   Procedure proc;
+  int rc;
 
   if ( !PL_strip_module(A1, &m, head) )
     return FALSE;
@@ -1665,7 +1778,10 @@ PRED_IMPL("$flushed_predicate", 1, flushed_predicate, 0)
     return isDefinedProcedure(proc);
 
   flush_procedure(sf, proc);
-  return isDefinedProcedure(proc);
+  rc = isDefinedProcedure(proc);
+  releaseSourceFile(sf);
+
+  return rc;
 }
 
 

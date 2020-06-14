@@ -1434,7 +1434,6 @@ emergency:
     cleanupLocalDefinitions(LD);
 #endif
     freePrologLocalData(LD);
-    cleanupSourceFiles();
     cleanupModules();
     cleanupPrologFlags();
     cleanupFlags();
@@ -1446,6 +1445,7 @@ emergency:
     cleanupInitialiseHooks();
     cleanupExtensions();
     cleanupOs();
+    cleanupSourceFiles();
     Scleanup();
 #ifdef O_PLMT
     cleanupThreads();

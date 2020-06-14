@@ -291,6 +291,7 @@ static void
 unlinkSourceFilesModule(Module m)
 { size_t i, high = highSourceFileIndex();
   struct bit_vector *vec = new_bitvector(high+1);
+  SourceFile sf;
 
   for_table(m->procedures, name, value,
 	    markSourceFilesProcedure(value, vec));
@@ -305,6 +306,11 @@ unlinkSourceFilesModule(Module m)
   }
 
   free_bitvector(vec);
+
+  if ( (sf = m->file) )
+  { m->file = NULL;
+    releaseSourceFile(sf);
+  }
 }
 
 
@@ -890,10 +896,10 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 	return FALSE;			/* given, but non-existing file */
 
       if ( sf )
-      { if ( sf->modules )
-	{ int rc = FALSE;
+      { int rc = FALSE;
 
-	  PL_LOCK(L_PREDICATE);
+	if ( sf->modules )
+	{ PL_LOCK(L_PREDICATE);
 	  if ( sf->modules->next )
 	  { term_t tail = PL_copy_term_ref(module);
 	    term_t head = PL_new_term_ref();
@@ -914,16 +920,16 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 
 	out:
 	  PL_UNLOCK(L_PREDICATE);
-	  return rc;
 	}
-	return FALSE;			/* source-file has no modules */
+	releaseSourceFile(sf);
+
+	return rc;			/* source-file has no modules */
       }
 
       e = newTableEnum(GD->tables.modules);
       break;
     case FRG_REDO:
       e = CTX_PTR;
-      get_existing_source_file(file, &sf PASS_LD);
       break;
     case FRG_CUTTED:
       e = CTX_PTR;
@@ -1401,7 +1407,9 @@ export_pi1(term_t pi, Module module ARG_LD)
 
   if ( ReadingSource )
   { SourceFile sf = lookupSourceFile(source_file_name, TRUE);
-    return exportProcedureSource(sf, module, proc);
+    int rc = exportProcedureSource(sf, module, proc);
+    releaseSourceFile(sf);
+    return rc;
   } else
   { return exportProcedure(module, proc);
   }
