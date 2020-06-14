@@ -1677,16 +1677,14 @@ compiling :-
 '$open_source'(Path, In, _Options) :-
     open(Path, read, In).
 
-'$close_source'(close(In, Id, Ref), Message) :-
+'$close_source'(close(In, _Id, Ref), Message) :-
     erase(Ref),
-    '$end_consult'(Id),
     call_cleanup(
         close(In),
         '$pop_input_context'),
     '$close_message'(Message).
-'$close_source'(restore(In, StreamState, Id, Ref, Opts), Message) :-
+'$close_source'(restore(In, StreamState, _Id, Ref, Opts), Message) :-
     erase(Ref),
-    '$end_consult'(Id),
     call_cleanup(
         '$restore_load_stream'(In, StreamState, Opts),
         '$pop_input_context'),
@@ -2687,19 +2685,24 @@ load_files(Module:Files, Options) :-
 '$consult_file_2'(Absolute, Module, What, LM, Options) :-
     '$set_source_module'(OldModule, Module),
     '$load_id'(Absolute, Id, Modified, Options),
-    '$start_consult'(Id, Modified),
     (   '$derived_source'(Absolute, DerivedFrom, _)
     ->  '$modified_id'(DerivedFrom, DerivedModified, Options),
-        '$start_consult'(DerivedFrom, DerivedModified)
+        setup_call_cleanup(
+            '$start_consult'(DerivedFrom, DerivedModified),
+            true,                       % must we do something to avoid GC?
+            '$end_consult'(DerivedFrom))
     ;   true
     ),
     '$compile_type'(What),
     '$save_lex_state'(LexState, Options),
     '$set_dialect'(Options),
-    call_cleanup('$load_file'(Absolute, Id, LM, Options),
-                 '$end_consult'(LexState, OldModule)).
+    setup_call_cleanup(
+        '$start_consult'(Id, Modified),
+        '$load_file'(Absolute, Id, LM, Options),
+        '$end_consult'(Id, LexState, OldModule)).
 
-'$end_consult'(LexState, OldModule) :-
+'$end_consult'(Id, LexState, OldModule) :-
+    '$end_consult'(Id),
     '$restore_lex_state'(LexState),
     '$set_source_module'(OldModule).
 
