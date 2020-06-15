@@ -332,6 +332,15 @@ acquireSourceFile(SourceFile sf)
 }
 
 
+static void
+acquireSourceFileNo(int index)
+{ SourceFile sf;
+
+  if ( (sf = indexToSourceFile(index)) )
+    return acquireSourceFile(sf);
+}
+
+
 int
 #ifdef O_DEBUG
 releaseSourceFile_d(SourceFile sf, const char *file, unsigned int line)
@@ -387,14 +396,17 @@ int
 hasProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
+  if ( proc->source_no == sf->index )
+    return TRUE;
+
   if ( true(proc->definition, FILE_ASSIGNED) )
   { for(cell=sf->procedures; cell; cell = cell->next)
     { if ( cell->value == proc )
-	succeed;
+	return TRUE;
     }
   }
 
-  fail;
+  return FALSE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -405,22 +417,23 @@ source files.
 
 void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
-{ LOCKSRCFILE(sf);
-  if ( !hasProcedureSourceFile(sf, proc) )
-  { ListCell cell;
+{ if ( sf->index != proc->source_no )
+  { LOCKSRCFILE(sf);
+    if ( !hasProcedureSourceFile(sf, proc) )
+    { ListCell cell;
 
-    cell = allocHeapOrHalt(sizeof(struct list_cell));
-    cell->value = proc;
-    cell->next = sf->procedures;
-    sf->procedures = cell;
-    set(proc->definition, FILE_ASSIGNED);
-    if ( !proc->source_no )
-    { acquireSourceFile(sf);
-      proc->source_no = sf->index;
-    } else
-      set(proc, PROC_MULTISOURCE);
+      cell = allocHeapOrHalt(sizeof(struct list_cell));
+      cell->value = proc;
+      cell->next = sf->procedures;
+      sf->procedures = cell;
+      set(proc->definition, FILE_ASSIGNED);
+      if ( COMPARE_AND_SWAP_UINT(&proc->source_no, 0, sf->index) )
+	acquireSourceFile(sf);
+      else
+	set(proc, PROC_MULTISOURCE);
+    }
+    UNLOCKSRCFILE(sf);
   }
-  UNLOCKSRCFILE(sf);
 }
 
 
@@ -940,9 +953,18 @@ advance_clause(p_reload *r ARG_LD)
 
 static void
 copy_clause_source(Clause dest, Clause src)
-{ dest->source_no = src->source_no;
-  dest->owner_no  = src->owner_no;
-  dest->line_no   = src->line_no;
+{ dest->line_no   = src->line_no;
+  if ( dest->source_no != src->source_no ||
+       dest->owner_no  != src->owner_no )
+  { acquireSourceFileNo(src->owner_no);
+    if ( src->source_no != src->owner_no )
+      acquireSourceFileNo(src->source_no);
+    releaseSourceFileNo(dest->owner_no);
+    if ( dest->source_no != dest->owner_no )
+      releaseSourceFileNo(dest->source_no);
+    dest->source_no = src->source_no;
+    dest->owner_no  = src->owner_no;
+  }
 }
 
 
