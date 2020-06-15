@@ -2233,16 +2233,13 @@ load_files(Module:Files, Options) :-
     memberchk(stream(_), Options),
     !,
     '$assert_load_context_module'(File, Module, Options),
-    '$qdo_load_file'(File, File, Module, Action, Options),
-    '$run_initialization'(File, Action, Options).
+    '$qdo_load_file'(File, File, Module, Options).
 '$load_file'(File, Module, Options) :-
-    '$resolved_source_path'(File, FullFile, Options),
-    !,
-    '$already_loaded'(File, FullFile, Module, Options).
-'$load_file'(File, Module, Options) :-
-    '$resolve_source_path'(File, FullFile, Options),
-    '$mt_load_file'(File, FullFile, Module, Options),
-    '$register_resource_file'(FullFile).
+    (   '$resolved_source_path'(File, FullFile, Options)
+    ->  true
+    ;   '$resolve_source_path'(File, FullFile, Options)
+    ),
+    '$mt_load_file'(File, FullFile, Module, Options).
 
 %!  '$resolved_source_path'(+File, -FullFile, +Options) is semidet.
 %
@@ -2355,8 +2352,7 @@ load_files(Module:Files, Options) :-
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    '$qdo_load_file'(File, FullFile, Module, Action, Options),
-    '$run_initialization'(FullFile, Action, Options).
+    '$qdo_load_file'(File, FullFile, Module, Options).
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
     '$loading_file'(FullFile, Queue, LoadThread),
@@ -2380,8 +2376,7 @@ load_files(Module:Files, Options) :-
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
     '$assert_load_context_module'(FullFile, Module, Options),
-    '$qdo_load_file'(File, FullFile, Module, Action, Options),
-    '$run_initialization'(FullFile, Action, Options).
+    '$qdo_load_file'(File, FullFile, Module, Options).
 
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.
@@ -2396,7 +2391,12 @@ load_files(Module:Files, Options) :-
 %
 %   Switch to qcompile mode if requested by the option '$qlf'(+Out)
 
-'$qdo_load_file'(File, FullFile, Module, Action, Options) :-
+'$qdo_load_file'(File, FullFile, Module, Options) :-
+    '$qdo_load_file2'(File, FullFile, Module, Action, Options),
+    '$register_resource_file'(FullFile),
+    '$run_initialization'(FullFile, Action, Options).
+
+'$qdo_load_file2'(File, FullFile, Module, Action, Options) :-
     memberchk('$qlf'(QlfOut), Options),
     '$stage_file'(QlfOut, StageQlf),
     !,
@@ -2405,7 +2405,7 @@ load_files(Module:Files, Options) :-
         '$do_load_file'(File, FullFile, Module, Action, Options),
         Catcher,
         '$qend'(State, Catcher, StageQlf, QlfOut)).
-'$qdo_load_file'(File, FullFile, Module, Action, Options) :-
+'$qdo_load_file2'(File, FullFile, Module, Action, Options) :-
     '$do_load_file'(File, FullFile, Module, Action, Options).
 
 '$qstart'(Qlf, Module, state(OldMode, OldModule)) :-
