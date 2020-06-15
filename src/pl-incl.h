@@ -1515,9 +1515,9 @@ typedef struct definition_refs
 #define PROC_IMPORTED	 (0x0004)	/* Procedure is imported */
 
 struct procedure
-{ Definition	 definition;		/* definition of procedure */
-  unsigned short flags;			/* PROC_WEAK */
-  unsigned short source_no;		/* Source I'm assigned to */
+{ Definition	definition;		/* definition of procedure */
+  unsigned int  flags;			/* PROC_WEAK */
+  unsigned int	source_no;		/* Source I'm assigned to */
 };
 
 struct localFrame
