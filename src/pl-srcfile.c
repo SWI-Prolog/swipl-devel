@@ -399,9 +399,6 @@ int
 hasProcedureSourceFile(SourceFile sf, Procedure proc)
 { ListCell cell;
 
-  if ( proc->source_no == sf->index )
-    return TRUE;
-
   if ( true(proc->definition, FILE_ASSIGNED) )
   { for(cell=sf->procedures; cell; cell = cell->next)
     { if ( cell->value == proc )
@@ -420,7 +417,7 @@ source files.
 
 void
 addProcedureSourceFile(SourceFile sf, Procedure proc)
-{ if ( sf->index != proc->source_no )
+{ if ( !(sf->index == proc->source_no && !sf->reload) )
   { LOCKSRCFILE(sf);
     if ( !hasProcedureSourceFile(sf, proc) )
     { ListCell cell;
