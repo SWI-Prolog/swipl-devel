@@ -2858,7 +2858,8 @@ load_files(Module:Files, Options) :-
         ;   '$compile_term'(Term, Layout, Id)
         ),
         arg(4, State, true)
-    ;   '$end_load_file'(State)
+    ;   '$fixup_reconsult'(Id),
+        '$end_load_file'(State)
     ),
     !,
     arg(2, State, Module).
