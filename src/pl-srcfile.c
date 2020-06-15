@@ -1646,6 +1646,26 @@ endConsult(SourceFile sf)
 
 
 static
+PRED_IMPL("$fixup_reconsult", 1, fixup_reconsult, 0)
+{ PRED_LD
+  atom_t name;
+  int rc = FALSE;
+
+  if ( PL_get_atom_ex(A1, &name) )
+  { SourceFile sf;
+
+    if ( (sf=lookupSourceFile(name, FALSE)) )
+    { rc = endReconsult(sf);
+      releaseSourceFile(sf);
+      sf->current_procedure = NULL;
+    }
+  }
+
+  return rc;
+}
+
+
+static
 PRED_IMPL("$end_consult", 1, end_consult, 0)
 { PRED_LD
   atom_t name;
@@ -1826,6 +1846,7 @@ BeginPredDefs(srcfile)
   PRED_DEF("$unload_file",		1, unload_file,		     0)
   PRED_DEF("$start_consult",		2, start_consult,	     0)
   PRED_DEF("$end_consult",		1, end_consult,		     0)
+  PRED_DEF("$fixup_reconsult",		1, fixup_reconsult,          0)
   PRED_DEF("$set_source_files",	        1, set_source_files,	     0)
   PRED_DEF("$flush_predicate",		1, flush_predicate,          0)
   PRED_DEF("$flushed_predicate",	1, flushed_predicate,	     0)
