@@ -354,7 +354,10 @@ releaseSourceFile(SourceFile sf)
 		 file, line,
 		 sf->references-1));
 
-  assert(sf->references > 0);
+  if ( sf->references <= 0 )
+  { Sdprintf("Oops: %d references for sourc file %s\n", PL_atom_chars(sf->name));
+    sf->references = 0x4000000;
+  }
   if ( ATOMIC_DEC(&sf->references) == 0 )
   { atom_t name = 0;
 
