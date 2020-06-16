@@ -436,7 +436,6 @@ COMMON(int)		get_procedure(term_t descr, Procedure *proc,
 COMMON(int)		checkModifySystemProc(functor_t f);
 COMMON(int)		overruleImportedProcedure(Procedure proc, Module target);
 COMMON(word)		pl_current_predicate(term_t name, term_t functor, control_t h);
-COMMON(foreign_t)	pl_current_predicate1(term_t spec, control_t ctx);
 COMMON(void)		clear_meta_declaration(Definition def);
 COMMON(void)		setMetapredicateMask(Definition def, arg_info *args);
 COMMON(int)		isTransparentMetamask(Definition def, arg_info *args);
