@@ -811,9 +811,10 @@ visibleProcedure(functor_t f, Module m ARG_LD)
 }
 
 
-foreign_t
-pl_current_predicate1(term_t spec, control_t ctx)
-{ GET_LD
+static
+PRED_IMPL("current_predicate", 1, current_predicate,
+	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+{ PRED_LD
   cur_enum e0;
   cur_enum *e;
   int rval = FALSE;
@@ -821,8 +822,9 @@ pl_current_predicate1(term_t spec, control_t ctx)
   term_t nt = 0;			/* name-term */
   term_t at = 0;			/* arity-term */
   unsigned int aextra = 0;
+  term_t spec = A1;
 
-  if ( ForeignControl(ctx) != FRG_CUTTED )
+  if ( CTX_CNTRL != FRG_CUTTED )
   { term_t pi = PL_copy_term_ref(spec);
 
     nt = PL_new_term_ref();
@@ -853,7 +855,7 @@ pl_current_predicate1(term_t spec, control_t ctx)
       goto typeerror;
   }
 
-  switch( ForeignControl(ctx) )
+  switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { e = &e0;
       memset(e, 0, sizeof(*e));
@@ -915,10 +917,10 @@ pl_current_predicate1(term_t spec, control_t ctx)
       break;
     }
     case FRG_REDO:
-      e = ForeignContextPtr(ctx);
+      e = CTX_PTR;
       break;
     case FRG_CUTTED:
-    { e = ForeignContextPtr(ctx);
+    { e = CTX_PTR;
       rval = TRUE;
       goto clean;
     }
@@ -3919,6 +3921,8 @@ BeginPredDefs(proc)
   PRED_DEF("meta_predicate", 1, meta_predicate, PL_FA_TRANSPARENT)
   PRED_DEF("$get_clause_attribute", 3, get_clause_attribute, 0)
   PRED_DEF("retract", 1, retract,
+	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
+  PRED_DEF("current_predicate", 1, current_predicate,
 	   PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT)
   PRED_DEF("$cgc_params", 6, cgc_params, 0)
