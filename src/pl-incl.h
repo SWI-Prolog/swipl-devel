@@ -1817,6 +1817,19 @@ struct module
   gen_t		last_modified;	/* Generation I was last modified */
 };
 
+#define MENUM_TEMP	0x1	/* Also enumerate temporary modules */
+
+typedef struct module_enum
+{ TableEnum	tenum;
+  Module        current;
+  int		flags;
+} module_enum, *ModuleEnum;
+
+
+		 /*******************************
+		 *	      TRAIL		*
+		 *******************************/
+
 struct trail_entry
 { Word		address;	/* address of the variable */
 };

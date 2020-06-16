@@ -157,6 +157,8 @@ temporary modules.
 
     - current_op/3 to facilitate using the Pengine operators for
       rendering results.
+    - current_predicate/1, which no longer enumerates through
+      temporary modules.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Module
@@ -185,6 +187,61 @@ releaseModule(Module m)
     }
     PL_UNLOCK(L_MODULE);
   }
+}
+
+
+ModuleEnum
+newModuleEnum(int flags)
+{ ModuleEnum en = malloc(sizeof(*en));
+
+  if ( en )
+  { if ( (en->tenum = newTableEnum(GD->tables.modules)) )
+    { en->current = NULL;
+      en->flags = flags;
+    } else
+    { free(en);
+      en = NULL;
+    }
+  }
+
+  return en;
+}
+
+Module
+advanceModuleEnum(ModuleEnum en)
+{ void *v;
+  Module m = NULL;
+
+  PL_LOCK(L_MODULE);
+  for(;;)
+  { if ( advanceTableEnum(en->tenum, NULL, &v) )
+      m = v;
+    else
+      m = NULL;
+
+    if ( m && m->class == ATOM_temporary )
+    { if ( (en->flags&MENUM_TEMP) )
+      { m->references++;
+	if ( en->current )
+	  releaseModule(en->current);
+	en->current = m;
+      } else
+	continue;
+    }
+
+    break;
+  }
+  PL_UNLOCK(L_MODULE);
+
+  return m;
+}
+
+void
+freeModuleEnum(ModuleEnum en)
+{ freeTableEnum(en->tenum);
+  if ( en->current )
+    releaseModule(en->current);
+  free(en);
 }
 
 
@@ -870,7 +927,7 @@ is associated to multiple modules.
 static
 PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  TableEnum e;
+  ModuleEnum e;
   Module m;
   atom_t name;
   SourceFile sf = NULL;
@@ -926,14 +983,15 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 	return rc;			/* source-file has no modules */
       }
 
-      e = newTableEnum(GD->tables.modules);
+      if ( !(e = newModuleEnum(0)) )
+	return PL_no_memory();
       break;
     case FRG_REDO:
       e = CTX_PTR;
       break;
     case FRG_CUTTED:
       e = CTX_PTR;
-      freeTableEnum(e);
+      freeModuleEnum(e);
       succeed;
     default:
       assert(0);
@@ -942,7 +1000,7 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 
 					/* mode (-,-) */
 
-  while( advanceTableEnum(e, NULL, (void**)&m) )
+  while( (m=advanceModuleEnum(e)) )
   { atom_t f = ( !m->file ? ATOM_nil : m->file->name);
 
     if ( m->class == ATOM_system && m->name != ATOM_system &&
@@ -956,7 +1014,7 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
     break;				/* must be an error */
   }
 
-  freeTableEnum(e);
+  freeModuleEnum(e);
   return FALSE;
 }
 

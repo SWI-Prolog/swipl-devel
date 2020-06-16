@@ -313,7 +313,9 @@ COMMON(word)		pl_import(term_t pred);
 #ifdef O_PROLOG_HOOK
 COMMON(word)		pl_set_prolog_hook(term_t module, term_t old, term_t new);
 #endif
-
+COMMON(ModuleEnum)	newModuleEnum(int flags);
+COMMON(Module)		advanceModuleEnum(ModuleEnum en);
+COMMON(void)		freeModuleEnum(ModuleEnum en);
 
 /* pl-op.c */
 COMMON(int)		currentOperator(Module m, atom_t name, int kind,

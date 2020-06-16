@@ -767,10 +767,11 @@ typedef struct
 { functor_t	functor;		/* Functor we are looking for */
   atom_t	name;			/* Name of target pred */
   int		arity;			/* arity of target pred */
+  int		macq;			/* Module is acquired */
   Module	module;			/* Module to search in */
   Module	super;			/* Walking along super-chain */
   TableEnum	epred;			/* Predicate enumerator */
-  TableEnum	emod;			/* Module enumerator */
+  ModuleEnum	emod;			/* Module enumerator */
 } cur_enum;
 
 
@@ -883,19 +884,17 @@ PRED_IMPL("current_predicate", 1, current_predicate,
       { atom_t mname;
 
 	if ( PL_is_variable(mt) )
-	{ Module m;
-	  e->emod = newTableEnum(GD->tables.modules);
+	{ if ( !(e->emod = newModuleEnum(0)) )
+	    return PL_no_memory();
 
-	  if ( advanceTableEnum(e->emod, NULL, (void**)&m) )
-	    e->module = m;
-	  else
-	    fail;			/* no modules!? */
+	  if ( !(e->module=advanceModuleEnum(e->emod)) )
+	    return FALSE;
 	} else if ( PL_get_atom_ex(mt, &mname) )
-	{ e->module = isCurrentModule(mname);
-	  if ( !e->module )
-	    fail;
+	{ if ( !(e->module = acquireModule(mname)) )
+	    return FALSE;
+	  e->macq = TRUE;
 	} else
-	{ fail;
+	{ return FALSE;
 	}
       } else
       { if ( environment_frame )
@@ -933,12 +932,10 @@ PRED_IMPL("current_predicate", 1, current_predicate,
   for(;;)
   { if ( e->functor )			/* _M:foo/2 */
     { if ( visibleProcedure(e->functor, e->module PASS_LD) )
-      { Module m;
-	PL_unify_atom(mt, e->module->name);
+      { PL_unify_atom(mt, e->module->name);
 
-	if ( advanceTableEnum(e->emod, NULL, (void**)&m) )
-	{ e->module = m;
-	  ForeignRedoPtr(e);
+	if ( (e->module=advanceModuleEnum(e->emod)) )
+	{ ForeignRedoPtr(e);
 	} else
 	{ rval = TRUE;
 	  goto clean;
@@ -968,7 +965,7 @@ PRED_IMPL("current_predicate", 1, current_predicate,
 
     if ( e->emod )			/* enumerate all modules */
     { Module m;
-      while( advanceTableEnum(e->emod, NULL, (void**)&m) )
+      while( (m=advanceModuleEnum(e->emod)) )
       {
 					/* skip hidden modules */
 	if ( SYSTEM_MODE ||
@@ -997,7 +994,9 @@ clean:
   { if ( e->epred )
       freeTableEnum(e->epred);
     if ( e->emod )
-      freeTableEnum(e->emod);
+      freeModuleEnum(e->emod);
+    if ( e->module && e->macq )
+      releaseModule(e->module);
     freeForeignState(e, sizeof(*e));
   }
 
