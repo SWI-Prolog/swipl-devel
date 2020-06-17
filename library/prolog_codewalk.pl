@@ -1122,7 +1122,7 @@ initialization_clause(ClauseRef, OTerm) :-
 
 prolog:message(trace_call_to(PI, Context)) -->
     [ 'Call to ~q at '-[PI] ],
-    prolog:message_location(Context).
+    '$messages':swi_location(Context).
 
 prolog:message_location(clause_term_position(ClauseRef, TermPos)) -->
     { clause_property(ClauseRef, file(File)) },
