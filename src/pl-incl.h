@@ -876,7 +876,7 @@ with one operation, it turns out to be faster as well.
 #define TRACE_ME		(0x02000000) /* Can be debugged */
 #define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
 #define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
-#define P_TSHARED		(0x10000000) /* Using a shared table */
+#define P_WAITED_FOR		(0x10000000) /* Someone is waiting for this predicate */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
@@ -927,6 +927,7 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 #define M_VARPREFIX		(0x00008000) /* _var, Atom */
 #define M_DESTROYED		(0x00010000)
+#define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
 
 /* Flags on functors */
 

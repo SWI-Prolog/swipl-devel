@@ -222,6 +222,7 @@ typedef struct trie_array
 		 *******************************/
 
 #define TP_MONOTONIC	(0x0001)	/* Monotonic tabling */
+#define TP_SHARED	(0x0002)	/* Shared tabling */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */
