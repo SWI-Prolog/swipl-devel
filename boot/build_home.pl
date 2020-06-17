@@ -179,7 +179,7 @@ add_package(chr, PkgBinDir) :-
     assertz(user:file_search_path(library, PkgBinDir)).
 add_package(jpl, PkgBinDir) :-
     add_package_path(PkgBinDir),
-    atomic_list_concat([PkgBinDir, 'src/java'], /, JarDir),
+    atomic_list_concat([PkgBinDir, 'src/main/java'], /, JarDir),
     assertz(user:file_search_path(jar, JarDir)).
 add_package(http, PkgBinDir) :-
     add_package_path(PkgBinDir),
