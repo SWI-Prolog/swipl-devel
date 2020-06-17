@@ -548,15 +548,17 @@ addHTable(Table ht, void *name, void *value)
 }
 
 
-void
+void *
 addNewHTable(Table ht, void *name, void *value)
 { void *new = addHTable(ht, name, value);
-  if ( new != value )
+  if ( new == value )
+  { return value;
+  } else
   { Sdprintf("WARNING: Race condition detected.  Please report at:\n"
 	     "WARNING:   https://github.com/SWI-Prolog/swipl-devel/issues\n");
     save_backtrace("addNewHTable");
     print_backtrace_named("addNewHTable");
-    updateHTable(ht, name, value);
+    return updateHTable(ht, name, value);
   }
 }
 
@@ -745,3 +747,82 @@ sizeofTable(Table ht)				/* memory usage in bytes */
 	   sizeof(struct kvs) +
 	   ht->kvs->len * sizeof(struct symbol) );
 }
+
+
+		 /*******************************
+		 *	    PUBLIC API		*
+		 *******************************/
+
+#define NEED_LD  GET_LD if ( !LD ) return FALSE;
+
+hash_table_t
+PL_new_hash_table(int size, void (*free_symbol)(void *n, void *v))
+{ NEED_LD
+  hash_table_t ht = newHTable(size);
+
+  if ( ht )
+    ht->free_symbol = free_symbol;
+
+  return ht;
+}
+
+int
+PL_free_hash_table(hash_table_t table)
+{ NEED_LD
+
+  destroyHTable(table);
+  return TRUE;
+}
+
+void *
+PL_lookup_hash_table(hash_table_t table, void *key)
+{ NEED_LD
+
+  return lookupHTable(table, key);
+}
+
+void *
+PL_add_hash_table(hash_table_t table, void *key, void *value, int flags)
+{ NEED_LD
+
+  if ( !(flags&(PL_HT_NEW|PL_HT_UPDATE)) )
+    return addHTable(table, key, value);
+  else if ( flags&PL_HT_NEW )
+    return addNewHTable(table, key, value);
+  else
+    return updateHTable(table, key, value);
+}
+
+void *
+PL_del_hash_table(hash_table_t table, void *key)
+{ NEED_LD
+
+  return deleteHTable(table, key);
+}
+
+int
+PL_clear_hash_table(hash_table_t table)
+{ NEED_LD
+
+  clearHTable(table);
+  return TRUE;
+}
+
+hash_table_enum_t
+PL_new_hash_table_enum(hash_table_t table)
+{ NEED_LD
+
+  return newTableEnum(table);
+}
+
+void
+PL_free_hash_table_enum(hash_table_enum_t e)
+{ freeTableEnum(e);
+}
+
+int
+PL_advance_hash_table_enum(hash_table_enum_t e, void **key, void **value)
+{ return advanceTableEnum(e, key, value);
+}
+
+

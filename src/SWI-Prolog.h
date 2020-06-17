@@ -1231,6 +1231,35 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 
 
 		 /*******************************
+		 *	    HASH TABLES		*
+		 *******************************/
+
+#ifdef TABLE_H_INCLUDED
+typedef Table		hash_table_t;
+typedef TableEnum	hash_table_enum_t;
+#else
+typedef struct pl_hash_table	  *hash_table_t;
+typedef struct pl_hash_table_enum *hash_table_enum_t;
+#endif
+
+#define PL_HT_NEW	0x0001
+#define PL_HT_UPDATE	0x0002
+
+PL_EXPORT(hash_table_t)	PL_new_hash_table(int size,
+					  void (*free_symbol)(void *n, void *v));
+PL_EXPORT(int)		PL_free_hash_table(hash_table_t table);
+PL_EXPORT(void*)	PL_lookup_hash_table(hash_table_t table, void *key);
+PL_EXPORT(void*)	PL_add_hash_table(hash_table_t table,
+					  void *key, void *value, int flags);
+PL_EXPORT(void*)	PL_del_hash_table(hash_table_t table, void *key);
+PL_EXPORT(int)		PL_clear_hash_table(hash_table_t table);
+PL_EXPORT(hash_table_enum_t) PL_new_hash_table_enum(hash_table_t table);
+PL_EXPORT(void)		PL_free_hash_table_enum(hash_table_enum_t e);
+PL_EXPORT(int)		PL_advance_hash_table_enum(hash_table_enum_t e,
+						   void **key, void **value);
+
+
+		 /*******************************
 		 *	     PROFILER		*
 		 *******************************/
 
