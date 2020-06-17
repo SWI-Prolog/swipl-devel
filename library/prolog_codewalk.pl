@@ -1138,6 +1138,9 @@ prolog:message_location(clause(ClauseRef)) -->
     [ '~w: '-[Name] ].
 prolog:message_location(file_term_position(Path, TermPos)) -->
     message_location_file_term_position(Path, TermPos).
+prolog:message_location(file(Path, Line, _, _)) -->
+    !,
+    [ '~w:~d: '-[File, Line] ].
 prolog:message(codewalk(reiterate(New, Iteration, CPU))) -->
     [ 'Found new meta-predicates in iteration ~w (~3f sec)'-
       [Iteration, CPU], nl ],
