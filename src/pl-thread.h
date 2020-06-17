@@ -390,9 +390,15 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 		 *     CONDITION VARIABLES	*
 		 *******************************/
 
+#define CV_READY	0		/* was signalled */
+#define CV_MAYBE	1		/* might be signalled */
+#define CV_TIMEDOUT	2		/* timed out */
+#define CV_INTR		3		/* interrupted */
+
 #ifdef __WINDOWS__
 
-COMMON(int)	cv_timedwait(CONDITION_VARIABLE *cv,
+COMMON(int)	cv_timedwait(message_queue *queue,
+			     CONDITION_VARIABLE *cv,
 			     CRITICAL_SECTION *external_mutex,
 			     struct timespec *deadline);
 
@@ -402,11 +408,6 @@ COMMON(int)	cv_timedwait(CONDITION_VARIABLE *cv,
 #define cv_destroy(cv)		(void)cv
 
 #else
-
-#define CV_READY	0		/* was signalled */
-#define CV_MAYBE	1		/* might be signalled */
-#define CV_TIMEDOUT	2		/* timed out */
-#define CV_INTR		3		/* interrupted */
 
 COMMON(int)	cv_timedwait(message_queue *queue,
 			     pthread_cond_t *cv,
