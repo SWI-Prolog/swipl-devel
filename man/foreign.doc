@@ -4303,44 +4303,6 @@ Release memory.  The \arg{mem} argument must be obtained from a
 previous PL_malloc() or PL_realloc() call.
 \end{description}
 
-\subsubsection{Boehm-GC support}
-\label{sec:boehm-gc}
-
-\begin{quote}
-This section is obsolete.  Although the Boehm-GC interfaces
-still exist, it turns out that the scalability is not good enough for
-SWI-Prolog. It is unlikely that SWI-Prolog will ever switch to
-Boehm-GC.
-\end{quote}
-
-\index{Boehm GC}%
-To accommodate future use of the Boehm garbage
-collector\footnote{\url{http://www.hpl.hp.com/personal/Hans_Boehm/gc/}}
-for heap memory allocation, the interface provides the functions
-described below. Foreign extensions that wish to use the Boehm-GC
-facilities can use these wrappers. Please note that if SWI-Prolog is
-not compiled to use Boehm-GC (default), the user is responsible for
-calling PL_free() to reclaim memory.
-
-\begin{description}
-    \cfunction{void*}{PL_malloc_atomic}{size_t bytes}
-    \nodescription
-    \cfunction{void*}{PL_malloc_uncollectable}{size_t bytes}
-    \nodescription
-    \cfunction{void*}{PL_malloc_atomic_uncollectable}{size_t bytes}
-If Boehm-GC is not used, these are all the same as PL_malloc().  With
-Boehm-GC, these map to the corresponding Boehm-GC functions.
-\jargon{Atomic} means that the content should not be scanned for
-pointers, and \jargon{uncollectable} means that the object should never
-be garbage collected.
-    \cfunction{void*}{PL_malloc_stubborn}{size_t bytes}
-    \nodescription
-    \cfunction{void}{PL_end_stubborn_change}{void *memory}
-These functions allow creating objects, promising GC that the content
-will not change after PL_end_stubborn_change().
-\end{description}
-
-
 \subsection{Compatibility between Prolog versions}
 \label{sec:foreign-compat}
 
