@@ -400,6 +400,16 @@ struct PL_global_data
     { pthread_mutex_t	mutex;
       pthread_cond_t	cond;
     } index;
+    struct
+    { simpleMutex	mutex;
+#ifdef __WINDOWS__
+      CONDITION_VARIABLE cond;
+#else
+      pthread_cond_t	cond;
+#endif
+      thread_dcell     *w_head;		/* waiting thread head */
+      thread_dcell     *w_tail;		/* waiting thread tail */
+    } wait;
   } thread;
 #endif /*O_PLMT*/
 
@@ -708,6 +718,7 @@ struct PL_local_data
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
+    thread_wait_for *waiting_for;	/* thread_wait/2 info */
   } thread;
 #endif
 

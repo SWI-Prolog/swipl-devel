@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2019, University of Amsterdam
+    Copyright (c)  1999-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -36,6 +36,7 @@
 
 #ifndef PL_THREAD_H_DEFINED
 #define PL_THREAD_H_DEFINED
+#include "os/pl-buffer.h"
 
 #ifdef O_PLMT
 #include <pthread.h>
@@ -334,6 +335,52 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 
 
 		 /*******************************
+		 *	    WAIT SUPPORT	*
+		 *******************************/
+
+typedef struct thread_dcell
+{ PL_local_data_t     *ld;		/* The thread */
+  struct thread_dcell *next;		/* next in chain */
+  struct thread_dcell *prev;		/* previous in chain */
+} thread_dcell;
+
+typedef enum twf_type
+{ TWF_DB,
+  TWF_MODULE,
+  TWF_PREDICATE
+} twf_type;
+
+typedef struct thread_wait_channel
+{ twf_type	type;			/* TWF_* */
+  int		signalled;		/* Is signalled */
+  int		flags;			/* TWF_ASSERT/RETRACT */
+  gen_t		generation;		/* Overall generation */
+  union
+  { void       *any;
+    Module      module;			/* Module */
+    Definition  predicate;		/* Predicate */
+  } obj;
+} thread_wait_channel;
+
+typedef struct thread_wait_for
+{ buffer	channels;
+  int		signalled;
+  thread_dcell *registered;
+} thread_wait_for;
+
+#define wakeupThreads(itype, ptr, flags) \
+	do \
+	{ if ( GD->thread.wait.w_head ) \
+	  { thread_wait_channel wch = { .type = itype, \
+				        .obj.any = ptr, \
+					.flags = flags \
+				      }; \
+	    signal_waiting_threads(&wch); \
+	  } \
+	} while(0)
+
+
+		 /*******************************
 		 *	       WINDOWS		*
 		 *******************************/
 
@@ -371,6 +418,9 @@ COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 COMMON(void)		get_current_timespec(struct timespec *time);
 COMMON(void)	        carry_timespec_nanos(struct timespec *time);
+COMMON(int)		signal_waiting_threads(thread_wait_channel *wch);
+
+
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
@@ -400,7 +450,8 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 COMMON(int)	cv_timedwait(message_queue *queue,
 			     CONDITION_VARIABLE *cv,
 			     CRITICAL_SECTION *external_mutex,
-			     struct timespec *deadline);
+			     struct timespec *deadline,
+			     const struct timespec *retry_every);
 
 #define cv_broadcast(cv)	WakeAllConditionVariable(cv)
 #define cv_signal(cv)		WakeConditionVariable(cv)
@@ -412,7 +463,8 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 COMMON(int)	cv_timedwait(message_queue *queue,
 			     pthread_cond_t *cv,
 			     pthread_mutex_t *external_mutex,
-			     struct timespec *deadline);
+			     struct timespec *deadline,
+			     const struct timespec *retry_every);
 
 #define cv_broadcast(cv)	pthread_cond_broadcast(cv)
 #define cv_signal(cv)		pthread_cond_signal(cv)
@@ -421,7 +473,7 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 
 #endif /* __WINDOWS__ */
 
-#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL)
+#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL, NULL)
 
 
 #else /*O_PLMT, end of threading-stuff */
@@ -459,6 +511,9 @@ COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 /*******************************
 		 *	       COMMON		*
 		 *******************************/
+
+#define TWF_ASSERT	0x0001		/* Predicate actions */
+#define TWF_RETRACT	0x0002
 
 typedef struct
 { functor_t functor;			/* functor of property */

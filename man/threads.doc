@@ -662,6 +662,112 @@ post_job(Id, Goal) :-
 \end{code}
 
 
+\subsection{Waiting for events}
+\label{sec:thread-wait}
+
+\index{blackboard}%
+While message queues realizes communicating \jargon{agents} sharing the
+same program and optionally dynamic data, the predicate
+thread_wait_on_goal/2 facilitates agents that communicate based on a
+\jargon{shared blackboard}. An important difference is were message
+queues require the sender and receiver to know about the queue used to
+communicate and every message can wakeup at most one thread, teh
+blackboard model allows any number (including zero) of threads to
+\jargon{listen} to changes on the blackboard.
+
+\index{condition variable}%
+Waiting is implemented using a POSIX \jargon{condition variable} and
+matching \jargon{mutex}.  On a matching database change the condition
+variable is signalled using a \jargon{broadcast}, waking up all threads
+waiting in thread_wait_on_goal/2.
+
+The blackboard architecture is a good match for an intelligent agent
+system that has to react on a changing world. Input threads gather
+sensor data from the world and update a shared world view in a set of
+dynamic predicates in one or more modules. Agent threads listen to this
+data or a subset thereof and trigger actions. This is notably a good
+match with \jargon{tabling}, in particular incremental tabling (see
+\secref{tabling-incremental}) and \jargon{Well Founded Semantics} (see
+\secref{WFS}).\footnote{Future versions may provide additional triggers,
+for example to learn about invalidated tables. Please share your
+experience.}
+
+
+\begin{description}
+    \predicate{thread_wait_on_goal}{2}{:Goal, +Options}
+Block execution of the calling thread until \arg{Goal} becomes true.
+\arg{Goal} should normally not have side effects.  The application must
+be prepared to handle spurious calls to \arg{Goal}, i.e., more calls
+than asked for based on the \arg{Options} list.  A possible exception
+in \arg{Goal} is propagated and thus terminates thread_wait_on_goal/2.
+
+The \arg{Options} list specifies when \arg{Goal} is re-evaluated and
+optionally when the call terminates due to a timeout. It is adviced to
+use either the \term{wait_preds}{+Preds} or \term{module}{+Module} to
+limit wakeups. Without, a concurrent computation that uses the database
+for intermediate results causes a continuous flow of wakeups.
+
+    \begin{description}
+	\termitem{deadline}{+AbsTime}
+	\nodescription
+
+	\termitem{timeout}{+Time}
+	Timeout and deadling handling.  See thread_get_message/3 for
+	details.  This predicate fails when it terminates due to one
+	of these options.
+
+        \termitem{retry_every}{+Time}
+	Retry goal every \arg{Time} seconds regardless of whether an
+	event happened.  The default is 1 second.  This ensures that
+	signals (see thread_signal/1) and time limits are respected
+	with an optional delay.\footnote{Some operating systems process
+	such signals immediately, while others only check for such
+	events synchronously.}
+
+	\termitem{db}{+Boolean}
+	Wakeup on arbitrary changes to the Prolog database.  This
+	is the default if neither \term{wait_preds}{+Preds} nor
+	\term{module}{+Module} is provided.
+
+	\termitem{wait_preds}{+List}
+	Only call \arg{Goal} if at least one of the predicates in
+	\arg{List} has been modified.  Each element of \arg{List}
+	is a \jargon{predicate indicator} (\textit{Name/Arity} or
+	\textit{Name//Arity}, optionally qualified with a module).
+	If the element is \term{+}{PI}\footnote{Note that \exam{+p/1}
+	is read as /(+(p),1).}, \arg{Goal} is only triggered if a clause
+	was added (assert/1). If the element is \term{-}{PI}, \arg{Goal}
+	is only triggered if a clause was retracted (retract/1 or
+	erase/1). Default is to wakeup on both assert and retract.
+
+	\termitem{modified}{-List}
+	The \arg{List} variable normally also appears in \arg{Goal}
+	and is unified with a list of predicates from
+	the \const{wait_preds} option that have been modified.
+	\arg{List} must be unbound at entry.
+
+	\termitem{module}{+Module}
+	Wakeup on a change to any predicate defined in \arg{Module}.
+	At most one module can be specified.
+    \end{description}
+
+Scalable applications should make sure the \arg{Options} specify a tight
+condition to avoid frequent calls to \arg{Goal} and \arg{Goal} is fast.
+The execution of \arg{Goal} is synchronized between all threads calling
+this predicate and changed to the Prolog database (assert/1, retract/1).
+
+\textit{Compatibility} This predicate is modelled after the
+\href{http://staff.itee.uq.edu.au/pjr/HomePages/QuPrologHome.html}{Qu-Prolog}
+predicate with the same name. It is largely compatible. Our current
+implementation does not support predicate time stamps.\footnote{See
+predicate_property/2, property \const{generation}.} We added a
+\const{module} option. The timeout specification follows that of the
+other thread waiting predicates and may be combined with the
+\const{retry_every} option. The default retry-time is also 1 second
+rather than \textit{infinite}.
+\end{description}
+
+
 \subsection{Signalling threads}
 \label{sec:thread-signal}
 

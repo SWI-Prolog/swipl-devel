@@ -1198,7 +1198,7 @@ activePredicate(const Definition *defs, const Definition def)
 }
 
 static void
-setLastModifiedPredicate(Definition def, gen_t gen)
+setLastModifiedPredicate(Definition def, gen_t gen, int flags)
 { Module m = def->module;
   gen_t lmm;
 
@@ -1208,6 +1208,11 @@ setLastModifiedPredicate(Definition def, gen_t gen)
   { lmm = m->last_modified;
   } while ( lmm < gen &&
 	    !COMPARE_AND_SWAP_UINT64(&m->last_modified, lmm, gen) );
+
+#ifdef O_PLMT
+  if ( true(def, P_DYNAMIC) )
+    wakeupThreads(TWF_PREDICATE, def, flags);
+#endif
 }
 
 
@@ -1282,7 +1287,7 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 #ifdef O_LOGICAL_UPDATE
   clause->generation.created = next_global_generation();
   clause->generation.erased  = GEN_MAX;	/* infinite */
-  setLastModifiedPredicate(def, clause->generation.created);
+  setLastModifiedPredicate(def, clause->generation.created, TWF_ASSERT);
 #endif
 
   if ( false(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) ) /* see (*) above */
@@ -1459,7 +1464,7 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
     def->impl.clauses.number_of_rules--;
 #ifdef O_LOGICAL_UPDATE
   clause->generation.erased = next_global_generation();
-  setLastModifiedPredicate(def, clause->generation.erased);
+  setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
@@ -1718,7 +1723,11 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
 		   (long)update, (int64_t)global_generation()));
 
     if ( added || deleted )
-      setLastModifiedPredicate(def, update);
+    { int flags = 0;
+      if ( added ) flags |= TWF_ASSERT;
+      if ( deleted ) flags |= TWF_RETRACT;
+      setLastModifiedPredicate(def, update, flags);
+    }
 
     if ( deleted )
     { ATOMIC_SUB(&def->module->code_size, memory);

@@ -2792,6 +2792,8 @@ testdir('Tests/clp').
 testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
+testdir('Tests/thread_wait') :-
+	current_prolog_flag(threads, true).
 testdir('Tests/save').
 testdir('Tests/tabling').
 testdir('Tests/xsb/basic_tests').

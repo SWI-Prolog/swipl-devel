@@ -3,7 +3,7 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -210,6 +210,8 @@
 #define TABLING_NO_EARLY_COMPLETION 320
 #define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
 #define TABLING_NO_AC		 322
+
+#define MSG_THREAD_WAIT		 350
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001

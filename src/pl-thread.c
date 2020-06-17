@@ -56,6 +56,7 @@
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
 #include "pl-event.h"
+#include "pl-comp.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -456,6 +457,7 @@ static thread_handle *symbol_thread_handle(atom_t a);
 static void	destroy_interactor(thread_handle *th, int gc);
 static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
+static void	free_thread_wait(PL_local_data_t *ld);
 
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked__LD(term_t t, message_queue **queue ARG_LD);
@@ -653,6 +655,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   #endif
 
     destroy_event_list(&ld->event.hook.onthreadexit);
+    free_thread_wait(ld);
     cleanupLocalDefinitions(ld);
 
     DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
@@ -879,6 +882,8 @@ initPrologThreads(void)
     GD->statistics.threads_created = 1;
     pthread_mutex_init(&GD->thread.index.mutex, NULL);
     pthread_cond_init(&GD->thread.index.cond, NULL);
+    simpleMutexInit(&GD->thread.wait.mutex);
+    cv_init(&GD->thread.wait.cond, NULL);
     initMutexes();
     link_mutexes();
     threads_ready = TRUE;
@@ -1870,6 +1875,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
     ldnew->_debugstatus.debugging = DBG_OFF;
     set(&ldnew->prolog_flag.mask, PLFLAG_LASTCALL);
   }
+  ldnew->thread.waiting_for = NULL;
   init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
 }
@@ -3691,6 +3697,15 @@ queue_message(message_queue *queue, thread_message *msgp,
 #endif
 
 static void
+timespec_set_dbl(struct timespec *spec, double stamp)
+{ double ip, fp;
+
+  fp = modf(stamp, &ip);
+  spec->tv_sec = (time_t)ip;
+  spec->tv_nsec = (long)(fp*1000000000.0);
+}
+
+static void
 timespec_diff(struct timespec *diff,
 	      const struct timespec *a, const struct timespec *b)
 { diff->tv_sec  = a->tv_sec - b->tv_sec;
@@ -3699,6 +3714,14 @@ timespec_diff(struct timespec *diff,
   { --diff->tv_sec;
     diff->tv_nsec += 1000000000;
   }
+}
+
+
+static void
+timespec_add(struct timespec *spec, const struct timespec *add)
+{ spec->tv_sec  += add->tv_sec;
+  spec->tv_nsec += add->tv_nsec;
+  carry_timespec_nanos(spec);
 }
 
 
@@ -3755,20 +3778,32 @@ carry_timespec_nanos(struct timespec *time)
 
 #ifdef __WINDOWS__
 
+static DWORD
+timespec_msecs(const struct timespec *spec)
+{ return spec->tv_sec*1000 + (spec->tv_nsec + 1000000 - 1) / 1000000;
+}
+
 int
 cv_timedwait(message_queue *queue,
 	     CONDITION_VARIABLE *cond, CRITICAL_SECTION *mutex,
-	     struct timespec *deadline)
+	     struct timespec *deadline, const struct timespec *retry_every)
 { GET_LD
   struct timespec tmp_timeout;
-  DWORD api_timeout = 250;
+  DWORD api_timeout;
   int last = FALSE;
   int rc;
+  struct timespec retry;
+
+  if ( !retry_every )
+  { retry_every   = &retry;
+    retry.tv_sec  = 0;
+    retry.tv_nsec = 250000000;
+  }
+  api_timeout = timespec_msecs(retry_every);
 
   for(;;)
   { get_current_timespec(&tmp_timeout);
-    tmp_timeout.tv_nsec += 250000000;
-    carry_timespec_nanos(&tmp_timeout);
+    timespec_add(&tmp_timeout, retry_every);
 
     if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
     { struct timespec d;
@@ -3776,7 +3811,7 @@ cv_timedwait(message_queue *queue,
       get_current_timespec(&tmp_timeout);
       timespec_diff(&d, deadline, &tmp_timeout);
       if ( timespec_sign(&d) > 0 )
-	api_timeout = (d.tv_nsec + 1000000 - 1) / 1000000;
+	api_timeout = timespec_msecs(&d);
       else
 	return CV_TIMEDOUT;
 
@@ -3802,16 +3837,22 @@ cv_timedwait(message_queue *queue,
 int
 cv_timedwait(message_queue *queue,
 	     pthread_cond_t *cond, pthread_mutex_t *mutex,
-	     struct timespec *deadline)
+	     struct timespec *deadline, const struct timespec *retry_every)
 { GET_LD
   struct timespec tmp_timeout;
   struct timespec *api_timeout = &tmp_timeout;
   int rc;
+  struct timespec retry;
+
+  if ( !retry_every )
+  { retry_every = &retry;
+    retry.tv_sec = 0;
+    retry.tv_nsec = 250000000;
+  }
 
   for(;;)
   { get_current_timespec(&tmp_timeout);
-    tmp_timeout.tv_nsec += 250000000;
-    carry_timespec_nanos(&tmp_timeout);
+    timespec_add(&tmp_timeout, retry_every);
 
     if ( deadline && timespec_cmp(&tmp_timeout, deadline) >= 0 )
       api_timeout = deadline;
@@ -3850,7 +3891,7 @@ dispatch_cond_wait(message_queue *queue, queue_wait_type wait,
 		      (wait == QUEUE_WAIT_READ ? &queue->cond_var
 					       : &queue->drain_var),
 		      &queue->mutex,
-		      deadline);
+		      deadline, NULL);
 }
 
 #ifdef O_QUEUE_STATS
@@ -4152,7 +4193,7 @@ sizeof_message_queue(message_queue *queue)
 
 					/* Prolog predicates */
 
-static const opt_spec thread_get_message_options[] =
+static const opt_spec timeout_options[] =
 { { ATOM_timeout,	OPT_DOUBLE },
   { ATOM_deadline,	OPT_DOUBLE },
   { NULL_ATOM,		0 }
@@ -4191,18 +4232,14 @@ process_deadline_options(term_t options,
   double dlo = DBL_MAX;
 
   if ( !scan_options(options, 0,
-		     ATOM_thread_get_message_option, thread_get_message_options,
+		     ATOM_timeout_option, timeout_options,
 		     &tmo, &dlo) )
     return FALSE;
 
   get_current_timespec(&now);
 
   if ( dlo != DBL_MAX )
-  { double ip, fp;
-
-    fp = modf(dlo, &ip);
-    deadline.tv_sec = (time_t)ip;
-    deadline.tv_nsec = (long)(fp*1000000000.0);
+  { timespec_set_dbl(&deadline, dlo);
     dlop = &deadline;
 
     if ( timespec_cmp(&deadline,&now) < 0 ) // if deadline in the past...
@@ -5043,6 +5080,342 @@ PRED_IMPL("thread_peek_message", 2, thread_peek_message_2, 0)
   release_message_queue(q);
   return rc;
 }
+
+		 /*******************************
+		 *	       WAIT		*
+		 *******************************/
+
+static void
+free_thread_wait(PL_local_data_t *ld)
+{ thread_wait_for *twf;
+
+  if ( (twf=ld->thread.waiting_for) )
+  { ld->thread.waiting_for = NULL;
+    discardBuffer(&twf->channels);
+    free(twf);
+  }
+}
+
+thread_dcell *
+register_waiting(PL_local_data_t *ld)
+{ thread_dcell *c;
+
+  if ( !(c=ld->thread.waiting_for->registered) )
+  { c = malloc(sizeof(*c));
+
+    if ( c )
+    { thread_dcell *t;
+
+      c->ld = ld;
+      if ( (t=GD->thread.wait.w_tail) )
+      { c->prev = t;
+	c->next = NULL;
+	t->next = c;
+	GD->thread.wait.w_tail = c;
+      } else
+      { GD->thread.wait.w_tail =
+	GD->thread.wait.w_head = c;
+	c->next = c->prev = NULL;
+      }
+      ld->thread.waiting_for->registered = c;
+    }
+  }
+
+  return c;
+}
+
+void
+unregister_waiting(PL_local_data_t *ld)
+{ thread_dcell *c = ld->thread.waiting_for->registered;
+
+  if ( c )
+  { ld->thread.waiting_for->registered = NULL;
+
+    if ( c->next )
+      c->next->prev = c->prev;
+    else
+      GD->thread.wait.w_tail = c->prev;
+
+    if ( c->prev )
+      c->prev->next = c->next;
+    else
+      GD->thread.wait.w_head = c->next;
+
+    free(c);
+  }
+}
+
+static int
+add_wch(thread_wait_channel *wch  ARG_LD)
+{ wch->signalled = FALSE;
+  addBuffer(&LD->thread.waiting_for->channels, *wch, thread_wait_channel);
+
+  return TRUE;
+}
+
+static int
+add_wait_for_db(ARG1_LD)
+{ thread_wait_channel wch = {0};
+
+  wch.type = TWF_DB;
+  wch.obj.any = NULL;
+  wch.generation = global_generation();
+  return add_wch(&wch PASS_LD);
+}
+
+static int
+add_wait_for_module(atom_t mname ARG_LD)
+{ thread_wait_channel wch = {0};
+
+  wch.type = TWF_MODULE;
+  wch.obj.module = lookupModule(mname);
+  wch.generation = wch.obj.module->last_modified;
+  set(wch.obj.module, M_WAITED_FOR);
+
+  return add_wch(&wch PASS_LD);
+}
+
+static int
+thread_wait_preds(term_t preds ARG_LD)
+{ term_t tail = PL_copy_term_ref(preds);
+  term_t head = PL_new_term_ref();
+
+  while(PL_get_list_ex(tail, head, tail))
+  { Procedure proc;
+    thread_wait_channel wch = {.flags = TWF_ASSERT|TWF_RETRACT};
+
+    if ( PL_is_functor(head, FUNCTOR_minus1) )
+    { wch.flags &= ~TWF_ASSERT;
+      _PL_get_arg(1, head, head);
+    } else if ( PL_is_functor(head, FUNCTOR_plus1) )
+    { wch.flags &= ~TWF_RETRACT;
+      _PL_get_arg(1, head, head);
+    }
+
+    if ( get_procedure(head, &proc, 0, GP_NAMEARITY|GP_RESOLVE) )
+    { wch.type = TWF_PREDICATE;
+      wch.obj.predicate = getProcDefinition(proc);
+      wch.generation = wch.obj.predicate->last_modified;
+      if ( true(wch.obj.predicate, P_THREAD_LOCAL) )
+	return PL_permission_error("thread_wait", "thread_local", head);
+      set(wch.obj.predicate, P_WAITED_FOR);
+      add_wch(&wch PASS_LD);
+    } else
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
+static int
+unify_modified(term_t t ARG_LD)
+{ thread_wait_for *twf;
+
+  if ( (twf=LD->thread.waiting_for) )
+  { thread_wait_channel *ch = baseBuffer(&twf->channels, thread_wait_channel);
+    size_t i, count = entriesBuffer(&twf->channels, thread_wait_channel);
+    term_t head = PL_new_term_ref();
+    term_t tail = PL_copy_term_ref(t);
+    Module m = contextModule(environment_frame);
+
+    for(i=0; i<count; i++, ch++)
+    { if ( ch->type == TWF_PREDICATE &&
+	   ch->generation != ch->obj.predicate->last_modified )
+      { if ( !PL_unify_list_ex(tail, head, tail) ||
+	     !unify_definition(m, head, ch->obj.predicate, 0,
+			       GP_HIDESYSTEM|GP_NAMEARITY) )
+	  return FALSE;
+      }
+    }
+    return PL_unify_nil(tail);
+  }
+
+  return PL_unify_nil(t);
+}
+
+
+/** thread_wait_on_goal(:Goal, +Options) is semidet.
+ */
+
+static const opt_spec thread_wait_options[] =
+{ { ATOM_db,		OPT_BOOL   },
+  { ATOM_module,	OPT_ATOM   },
+  { ATOM_wait_preds,	OPT_TERM   },
+  { ATOM_modified,      OPT_TERM   },
+  { ATOM_retry_every,	OPT_DOUBLE },
+  { NULL_ATOM,		0 }
+};
+
+static int wait_filter_satisfied(ARG1_LD);
+
+static
+PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
+{ PRED_LD
+  int rc = FALSE;
+  struct timespec deadline;
+  struct timespec *dlop=NULL;
+  int db = -1;				/* wait on db changes */
+  atom_t module = 0;
+  double retry_every = 1.0;
+  term_t wait_preds = 0, modified = 0;
+  struct timespec retry;
+  int ign_filter = FALSE;
+
+  if ( !process_deadline_options(A2, &deadline, &dlop) ||
+       !scan_options(A2, 0, ATOM_thread_wait_options, thread_wait_options,
+		     &db, &module, &wait_preds, &modified, &retry_every) )
+    return FALSE;
+
+  if ( modified )
+  { if ( !PL_is_variable(modified) )
+      return PL_uninstantiation_error(modified);
+    Mark(fli_context->mark);
+  }
+
+  if ( !LD->thread.waiting_for )
+  { if ( !(LD->thread.waiting_for = malloc(sizeof(*LD->thread.waiting_for))) )
+      return PL_no_memory();
+    memset(LD->thread.waiting_for, 0, sizeof(*LD->thread.waiting_for));
+    initBuffer(&LD->thread.waiting_for->channels);
+  }
+  LD->thread.waiting_for->signalled = FALSE;
+
+  if ( LD->thread.waiting_for->registered )
+    return PL_error("thread_wait_on_goal", 2, "recursive call",
+		    ERR_PERMISSION,
+		    ATOM_thread, ATOM_wait, A1);
+
+  if ( module && !add_wait_for_module(module PASS_LD) )
+    goto out;
+  if ( wait_preds && !thread_wait_preds(wait_preds PASS_LD) )
+    goto out;
+  if ( db == TRUE || isEmptyBuffer(&LD->thread.waiting_for->channels) )
+    add_wait_for_db(PASS_LD1);
+
+  timespec_set_dbl(&retry, retry_every);
+
+  simpleMutexLock(&GD->thread.wait.mutex);
+  for(;;)
+  { if ( (ign_filter || wait_filter_satisfied(PASS_LD1)) &&
+	 ( (rc = ((!modified || unify_modified(modified PASS_LD)) &&
+		  callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL))) ||
+	   PL_exception(0) ) )
+      break;
+
+    if ( modified )
+      Undo(fli_context->mark);
+
+    register_waiting(LD);
+    ign_filter = FALSE;
+    switch ( cv_timedwait(NULL, &GD->thread.wait.cond,
+			  &GD->thread.wait.mutex, dlop, &retry) )
+    { case CV_INTR:
+	if ( PL_handle_signals() >= 0 )
+	  continue;
+        goto error;
+      case CV_TIMEDOUT:
+	break;
+      case CV_MAYBE:
+	ign_filter = TRUE;
+      case CV_READY:
+	continue;
+      default:
+	assert(0);
+    }
+  }
+error:
+  simpleMutexUnlock(&GD->thread.wait.mutex);
+
+out:
+  unregister_waiting(LD);
+  emptyBuffer(&LD->thread.waiting_for->channels, 1024);
+  return rc;
+}
+
+
+static int
+wait_filter_satisfied(ARG1_LD)
+{ thread_wait_for *twf = LD->thread.waiting_for;
+  int signalled = twf->signalled;
+
+  twf->signalled = FALSE;
+
+  return signalled;
+}
+
+
+static int
+signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
+{ thread_wait_for *twf;
+  int done = 0;
+
+  DEBUG(MSG_THREAD_WAIT, Sdprintf("Checking wakeup for %d\n",
+				  ld->thread.info->pl_tid));
+
+  if ( (twf=ld->thread.waiting_for) && !twf->signalled )
+  { if ( wch->type == TWF_PREDICATE )
+    { thread_wait_channel *ch = baseBuffer(&twf->channels, thread_wait_channel);
+      size_t i, count = entriesBuffer(&twf->channels, thread_wait_channel);
+      Definition def = wch->obj.predicate;
+
+      for(i=0; i<count; i++, ch++)
+      { switch( ch->type )
+	{ case TWF_DB:
+	    DEBUG(MSG_THREAD_WAIT, Sdprintf("  db modified\n"));
+	    ch->signalled = TRUE;
+	    done++;
+	    break;
+	  case TWF_MODULE:
+	    if ( ch->obj.module == def->module )
+	    { DEBUG(MSG_THREAD_WAIT, Sdprintf("  module modified\n"));
+	      ch->signalled = TRUE;
+	      done++;
+	    }
+	    break;
+	  case TWF_PREDICATE:
+	    if ( ch->obj.predicate == def && (ch->flags&wch->flags) )
+	    { DEBUG(MSG_THREAD_WAIT, Sdprintf("  predicate %s modified\n",
+					     predicateName(def)));
+	      ch->signalled = TRUE;
+	      done++;
+	    }
+	    break;
+	  default:
+	    assert(0);
+	}
+      }
+    } else
+    { assert(0);			/* not yet used */
+    }
+
+    if ( done )
+      twf->signalled = TRUE;
+  }
+
+  return done;
+}
+
+
+int
+signal_waiting_threads(thread_wait_channel *wch)
+{ GET_LD
+  thread_dcell *c;
+  int done = 0;
+  int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
+
+  if ( lock )
+    simpleMutexLock(&GD->thread.wait.mutex);
+  for(c=GD->thread.wait.w_head; c; c = c->next)
+    done += signal_waiting_thread(c->ld, wch);
+  if ( done )
+    cv_broadcast(&GD->thread.wait.cond);
+  if ( lock )
+    simpleMutexUnlock(&GD->thread.wait.mutex);
+
+  return done;
+}
+
 
 
 		 /*******************************
@@ -7008,6 +7381,7 @@ markAccessedPredicates(PL_local_data_t *ld)
 		 *******************************/
 
 #define NDET PL_FA_NONDETERMINISTIC
+#define META PL_FA_TRANSPARENT
 
 BeginPredDefs(thread)
 #ifdef O_PLMT
@@ -7035,6 +7409,8 @@ BeginPredDefs(thread)
   PRED_DEF("thread_peek_message",    1,	thread_peek_message_1, PL_FA_ISO)
   PRED_DEF("thread_peek_message",    2,	thread_peek_message_2, PL_FA_ISO)
   PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
+
+  PRED_DEF("thread_wait_on_goal",    2, thread_wait_on_goal,   META)
   PRED_DEF("thread_setconcurrency",  2,	thread_setconcurrency, 0)
 
   PRED_DEF("$engine_create",	     3,	engine_create,	       0)
