@@ -59,7 +59,7 @@
 
 \newcommand{\vmajor}{8}
 \newcommand{\vminor}{3}
-\newcommand{\vpatch}{1}
+\newcommand{\vpatch}{2}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{June}
 \newcommand{\vyear}{2020}
