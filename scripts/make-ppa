@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="xenial bionic disco eoan focal"
+distros="xenial bionic eoan focal"
 build=true
 buildbin=false
 push=false
