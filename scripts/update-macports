@@ -55,7 +55,7 @@ else
     echo "Pulling $branch"
     git -C $portgit pull
   fi
-  git -C $portgit branch -D $version 2>&1 > /dev/null || true
+  git -C $portgit branch -D $version >/dev/null 2>&1  || true
   git -C $portgit checkout -b $version
 fi
 
