@@ -1283,14 +1283,14 @@ It has the following values:
 \begin{description}
     \termitem{false}{}
 Predicates are never auto-loaded. If predicates have been imported
-before using autoload/1,2, load the referenced files immediately using
-use_module/1,2. Note that most of the development utilities such as
+before using autoload/[1,2], load the referenced files immediately using
+use_module/[1,2]. Note that most of the development utilities such as
 listing/1 have to be explicitly imported before they can be used at the
 toplevel.
 
     \termitem{explicit}{}
 Do not autoload from \jargon{autoload libraries}, but do use lazy
-loading for predicates imported using autoload/1,2.
+loading for predicates imported using autoload/[1,2].
 
     \termitem{user}{}
 As \const{false}, but to autoload library predicates into the global
@@ -1299,7 +1299,7 @@ implicitly available to the toplevel, but not to modules.
 
     \termitem{user_or_explicit}{}
 Combines \const{explicit} with \const{user}, providing lazy loading
-of predicates imported using autoload/1,2 and implicit access to the
+of predicates imported using autoload/[1,2] and implicit access to the
 whole library for the toplevel.
 
     \termitem{true}{}
@@ -2417,7 +2417,7 @@ this mechanism loads the file silently. The current_prolog_flag/2
 key \prologflag{verbose_autoload} is provided to get verbose loading. The
 Prolog flag \prologflag{autoload} can be used to enable/disable the
 autoload system.  A more controlled form of autoloading as well as
-lazy loading application modules is provided by autoload/1,2.
+lazy loading application modules is provided by autoload/[1,2].
 
 Autoloading only handles (library) source files that use the module
 mechanism described in \chapref{modules}.  The files are loaded
