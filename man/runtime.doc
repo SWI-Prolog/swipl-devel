@@ -245,7 +245,7 @@ the meta-call.  That is, the following fragment is processed correctly:
 But, the calls to \nopredref{prove_simple}{1} and
 \nopredref{prove_complex}{1} in the example below are \emph{not}
 discovered by the analysis and therefore the modules that define these
-predicates must be loaded explicitly using use_module/1,2.
+predicates must be loaded explicitly using use_module/[1,2].
 
 \begin{code}
 	...,

@@ -4325,7 +4325,7 @@ As of SWI-Prolog 8.3.2 the foreign API provides access to the internal
 thread-safe and lock-free hash tables that associate pointers or objects
 that fit in a pointer such as atoms (\ctype{atom_t}). An argument
 against providing these functions is that they have little to do with
-Prolog. The argument is favor is that it is hard to implement efficient
+Prolog. The argument in favor is that it is hard to implement efficient
 lock-free tables without low-level access to the underlying Prolog
 threads and exporting this interface has a low cost.
 
@@ -4339,7 +4339,7 @@ ignored or return the failure code where applicable.
 Create a new table for \arg{size} key-value pairs. The table is resized
 when needed. If you know the table will hold 10,000 key-value pairs,
 providing a suitable initial size avoids resizing.  The \arg{free_symbol}
-function is called whethever a key-value pair is removed from the table.
+function is called whenever a key-value pair is removed from the table.
 This can be \const{NULL}.
 
     \cfunction{int}{PL_free_hash_table}{hash_table_t table}

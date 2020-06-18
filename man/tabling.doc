@@ -716,7 +716,7 @@ incremental a new answer invalidates the incremental table.
 Monotonic tabling is experimental and incomplete. Notably support for
 \jargon{answer subsumption} and \jargon{call subsumption} is probably
 possible and may greatly improve the application domain and resource
-usage. Monotonic tabling should work woth both shared and private
+usage. Monotonic tabling should work with both shared and private
 tables.  Concurrency issues have not yet been tested though.
 
 
