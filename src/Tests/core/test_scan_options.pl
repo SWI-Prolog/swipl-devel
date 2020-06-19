@@ -61,11 +61,11 @@ test(no_option, End == 2) :-
 	numbervars(x(_,X,X), 0, End, [unlikely(true)]).
 test(bad_value_type, error(type_error(bool, 42))) :-
 	numbervars(x(_,X,X), 0, _, [singletons(42)]).
-test(bad_type, error(domain_error(numbervar_option, unlikely))) :-
+test(bad_type, error(type_error(option, unlikely))) :-
 	numbervars(x(_,X,X), 0, _, [unlikely]).
-test(bad_type, error(domain_error(numbervar_option, f(a,b)))) :-
+test(bad_type, error(type_error(option, f(a,b)))) :-
 	numbervars(x(_,X,X), 0, _, [f(a,b)]).
-test(bad_type, error(domain_error(numbervar_option, 1.3))) :-
+test(bad_type, error(type_error(option, 1.3))) :-
 	numbervars(x(_,X,X), 0, _, [1.3]).
 test(instantiation, error(instantiation_error)) :-
 	numbervars(x(_,X,X), 0, _, [_]).

@@ -260,7 +260,7 @@ scan_options(term_t options, int flags, atom_t optype,
     { return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     } else
     { itemerror:
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, optype, head);
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_option, head);
     }
 
     for( n=0, s = specs; s->name; n++, s++ )
