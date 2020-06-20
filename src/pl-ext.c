@@ -528,6 +528,7 @@ initBuildIns(void)
 #ifdef O_PLMT
   PL_meta_predicate(PL_predicate("thread_create",    3, "system"), "0?+");
   PL_meta_predicate(PL_predicate("thread_signal",    2, "system"), "+0");
+  PL_meta_predicate(PL_predicate("thread_wait_on_goal", 2, "system"), "0:");
 #endif
   PL_meta_predicate(PL_predicate("thread_idle",      2, "system"), "0+");
   PL_meta_predicate(PL_predicate("prolog_frame_attribute", 3, "system"), "++:");

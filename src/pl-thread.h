@@ -368,14 +368,27 @@ typedef struct thread_wait_for
   thread_dcell *registered;
 } thread_wait_for;
 
-#define wakeupThreads(itype, ptr, flags) \
+typedef struct thread_wait_area
+{ simpleMutex	mutex;
+#ifdef __WINDOWS__
+  CONDITION_VARIABLE cond;
+#else
+  pthread_cond_t     cond;
+#endif
+  thread_dcell *w_head;			/* waiting thread head */
+  thread_dcell *w_tail;			/* waiting thread tail */
+} thread_wait_area;
+
+
+
+#define wakeupThreads(def, flags) \
 	do \
-	{ if ( GD->thread.wait.w_head ) \
-	  { thread_wait_channel wch = { .type = itype, \
-				        .obj.any = ptr, \
+	{ if ( def->module->wait && def->module->wait->w_head ) \
+	  { thread_wait_channel wch = { .type = TWF_PREDICATE, \
+				        .obj.any = def, \
 					.flags = flags \
 				      }; \
-	    signal_waiting_threads(&wch); \
+	    signal_waiting_threads(def->module, &wch); \
 	  } \
 	} while(0)
 
@@ -418,8 +431,8 @@ COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
 COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
 COMMON(void)		get_current_timespec(struct timespec *time);
 COMMON(void)	        carry_timespec_nanos(struct timespec *time);
-COMMON(int)		signal_waiting_threads(thread_wait_channel *wch);
-
+COMMON(int)		signal_waiting_threads(Module m, thread_wait_channel *wch);
+COMMON(void)		free_wait_area(thread_wait_area *wa);
 
 
 		 /*******************************

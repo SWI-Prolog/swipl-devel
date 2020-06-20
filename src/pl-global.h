@@ -400,16 +400,6 @@ struct PL_global_data
     { pthread_mutex_t	mutex;
       pthread_cond_t	cond;
     } index;
-    struct
-    { simpleMutex	mutex;
-#ifdef __WINDOWS__
-      CONDITION_VARIABLE cond;
-#else
-      pthread_cond_t	cond;
-#endif
-      thread_dcell     *w_head;		/* waiting thread head */
-      thread_dcell     *w_tail;		/* waiting thread tail */
-    } wait;
   } thread;
 #endif /*O_PLMT*/
 

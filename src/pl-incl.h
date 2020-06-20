@@ -1807,6 +1807,7 @@ struct module
   size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard module modifications */
+  struct thread_wait_area *wait;/* Manage waiting threads */
 #endif
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */

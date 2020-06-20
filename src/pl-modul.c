@@ -181,6 +181,8 @@ releaseModule(Module m)
     if ( --m->references == 0 &&
 	 true(m, M_DESTROYED) )
     { unlinkSourceFilesModule(m);
+      if ( m->wait )
+	free_wait_area(m->wait);
       GD->statistics.modules--;
       PL_unregister_atom(m->name);
       unallocModule(m);

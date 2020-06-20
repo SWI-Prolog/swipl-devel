@@ -882,8 +882,6 @@ initPrologThreads(void)
     GD->statistics.threads_created = 1;
     pthread_mutex_init(&GD->thread.index.mutex, NULL);
     pthread_cond_init(&GD->thread.index.cond, NULL);
-    simpleMutexInit(&GD->thread.wait.mutex);
-    cv_init(&GD->thread.wait.cond, NULL);
     initMutexes();
     link_mutexes();
     threads_ready = TRUE;
@@ -5085,6 +5083,26 @@ PRED_IMPL("thread_peek_message", 2, thread_peek_message_2, 0)
 		 *	       WAIT		*
 		 *******************************/
 
+static thread_wait_area*
+new_wait_area(void)
+{ thread_wait_area *wa = malloc(sizeof(*wa));
+
+  if ( wa )
+  { memset(wa, 0, sizeof(*wa));
+    simpleMutexInit(&wa->mutex);
+    cv_init(&wa->cond, NULL);
+  }
+
+  return wa;
+}
+
+void
+free_wait_area(thread_wait_area *wa)
+{ simpleMutexDelete(&wa->mutex);
+  cv_destroy(&wa->cond);
+  free(wa);
+}
+
 static void
 free_thread_wait(PL_local_data_t *ld)
 { thread_wait_for *twf;
@@ -5097,7 +5115,7 @@ free_thread_wait(PL_local_data_t *ld)
 }
 
 thread_dcell *
-register_waiting(PL_local_data_t *ld)
+register_waiting(Module m, PL_local_data_t *ld)
 { thread_dcell *c;
 
   if ( !(c=ld->thread.waiting_for->registered) )
@@ -5107,14 +5125,14 @@ register_waiting(PL_local_data_t *ld)
     { thread_dcell *t;
 
       c->ld = ld;
-      if ( (t=GD->thread.wait.w_tail) )
+      if ( (t=m->wait->w_tail) )
       { c->prev = t;
 	c->next = NULL;
 	t->next = c;
-	GD->thread.wait.w_tail = c;
+	m->wait->w_tail = c;
       } else
-      { GD->thread.wait.w_tail =
-	GD->thread.wait.w_head = c;
+      { m->wait->w_tail =
+	m->wait->w_head = c;
 	c->next = c->prev = NULL;
       }
       ld->thread.waiting_for->registered = c;
@@ -5125,7 +5143,7 @@ register_waiting(PL_local_data_t *ld)
 }
 
 void
-unregister_waiting(PL_local_data_t *ld)
+unregister_waiting(Module m, PL_local_data_t *ld)
 { thread_dcell *c = ld->thread.waiting_for->registered;
 
   if ( c )
@@ -5134,12 +5152,12 @@ unregister_waiting(PL_local_data_t *ld)
     if ( c->next )
       c->next->prev = c->prev;
     else
-      GD->thread.wait.w_tail = c->prev;
+      m->wait->w_tail = c->prev;
 
     if ( c->prev )
       c->prev->next = c->next;
     else
-      GD->thread.wait.w_head = c->next;
+      m->wait->w_head = c->next;
 
     free(c);
   }
@@ -5154,35 +5172,27 @@ add_wch(thread_wait_channel *wch  ARG_LD)
 }
 
 static int
-add_wait_for_db(ARG1_LD)
-{ thread_wait_channel wch = {0};
-
-  wch.type = TWF_DB;
-  wch.obj.any = NULL;
-  wch.generation = global_generation();
-  return add_wch(&wch PASS_LD);
-}
-
-static int
-add_wait_for_module(atom_t mname ARG_LD)
+add_wait_for_module(Module m ARG_LD)
 { thread_wait_channel wch = {0};
 
   wch.type = TWF_MODULE;
-  wch.obj.module = lookupModule(mname);
-  wch.generation = wch.obj.module->last_modified;
-  set(wch.obj.module, M_WAITED_FOR);
+  wch.obj.module = m;
+  wch.generation = m->last_modified;
+  set(m, M_WAITED_FOR);
 
   return add_wch(&wch PASS_LD);
 }
 
 static int
-thread_wait_preds(term_t preds ARG_LD)
+thread_wait_preds(Module m, term_t preds ARG_LD)
 { term_t tail = PL_copy_term_ref(preds);
   term_t head = PL_new_term_ref();
 
   while(PL_get_list_ex(tail, head, tail))
   { Procedure proc;
     thread_wait_channel wch = {.flags = TWF_ASSERT|TWF_RETRACT};
+    functor_t fdef;
+    Module m2 = m;
 
     if ( PL_is_functor(head, FUNCTOR_minus1) )
     { wch.flags &= ~TWF_ASSERT;
@@ -5192,14 +5202,20 @@ thread_wait_preds(term_t preds ARG_LD)
       _PL_get_arg(1, head, head);
     }
 
-    if ( get_procedure(head, &proc, 0, GP_NAMEARITY|GP_RESOLVE) )
-    { wch.type = TWF_PREDICATE;
-      wch.obj.predicate = getProcDefinition(proc);
-      wch.generation = wch.obj.predicate->last_modified;
-      if ( true(wch.obj.predicate, P_THREAD_LOCAL) )
-	return PL_permission_error("thread_wait", "thread_local", head);
-      set(wch.obj.predicate, P_WAITED_FOR);
-      add_wch(&wch PASS_LD);
+    if ( get_functor(head, &fdef, &m2, 0, GP_NAMEARITY) )
+    { if ( m != m2 )
+	return PL_permission_error("thread_wait", "external_procedure", head);
+
+      if ( (proc=lookupBodyProcedure(fdef, m)) )
+      { wch.type = TWF_PREDICATE;
+	wch.obj.predicate = getProcDefinition(proc);
+	wch.generation = wch.obj.predicate->last_modified;
+	if ( true(wch.obj.predicate, P_THREAD_LOCAL) )
+	  return PL_permission_error("thread_wait", "thread_local", head);
+	set(wch.obj.predicate, P_WAITED_FOR);
+	add_wch(&wch PASS_LD);
+      } else
+	return FALSE;
     } else
       return FALSE;
   }
@@ -5240,7 +5256,6 @@ unify_modified(term_t t ARG_LD)
 
 static const opt_spec thread_wait_options[] =
 { { ATOM_db,		OPT_BOOL   },
-  { ATOM_module,	OPT_ATOM   },
   { ATOM_wait_preds,	OPT_TERM   },
   { ATOM_modified,      OPT_TERM   },
   { ATOM_retry_every,	OPT_DOUBLE },
@@ -5256,15 +5271,17 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
   struct timespec deadline;
   struct timespec *dlop=NULL;
   int db = -1;				/* wait on db changes */
-  atom_t module = 0;
+  Module module = NULL;
   double retry_every = 1.0;
   term_t wait_preds = 0, modified = 0;
   struct timespec retry;
   int ign_filter = FALSE;
+  term_t options = PL_new_term_ref();
 
-  if ( !process_deadline_options(A2, &deadline, &dlop) ||
-       !scan_options(A2, 0, ATOM_thread_wait_options, thread_wait_options,
-		     &db, &module, &wait_preds, &modified, &retry_every) )
+  if ( !PL_strip_module(A2, &module, options) ||
+       !process_deadline_options(options, &deadline, &dlop) ||
+       !scan_options(options, 0, ATOM_thread_wait_options, thread_wait_options,
+		     &db, &wait_preds, &modified, &retry_every) )
     return FALSE;
 
   if ( modified )
@@ -5286,16 +5303,21 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
 		    ERR_PERMISSION,
 		    ATOM_thread, ATOM_wait, A1);
 
-  if ( module && !add_wait_for_module(module PASS_LD) )
-    goto out;
-  if ( wait_preds && !thread_wait_preds(wait_preds PASS_LD) )
+  if ( !module->wait )
+  { thread_wait_area *wa = new_wait_area();
+
+    if ( !COMPARE_AND_SWAP_PTR(&module->wait, NULL, wa) )
+      free_wait_area(wa);
+  }
+
+  if ( wait_preds && !thread_wait_preds(module, wait_preds PASS_LD) )
     goto out;
   if ( db == TRUE || isEmptyBuffer(&LD->thread.waiting_for->channels) )
-    add_wait_for_db(PASS_LD1);
+    add_wait_for_module(module, PASS_LD1);
 
   timespec_set_dbl(&retry, retry_every);
 
-  simpleMutexLock(&GD->thread.wait.mutex);
+  simpleMutexLock(&module->wait->mutex);
   for(;;)
   { if ( (ign_filter || wait_filter_satisfied(PASS_LD1)) &&
 	 ( (rc = ((!modified || unify_modified(modified PASS_LD)) &&
@@ -5306,10 +5328,10 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
     if ( modified )
       Undo(fli_context->mark);
 
-    register_waiting(LD);
+    register_waiting(module, LD);
     ign_filter = FALSE;
-    switch ( cv_timedwait(NULL, &GD->thread.wait.cond,
-			  &GD->thread.wait.mutex, dlop, &retry) )
+    switch ( cv_timedwait(NULL, &module->wait->cond,
+			  &module->wait->mutex, dlop, &retry) )
     { case CV_INTR:
 	if ( PL_handle_signals() >= 0 )
 	  continue;
@@ -5325,10 +5347,10 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
     }
   }
 error:
-  simpleMutexUnlock(&GD->thread.wait.mutex);
+  simpleMutexUnlock(&module->wait->mutex);
 
 out:
-  unregister_waiting(LD);
+  unregister_waiting(module, LD);
   emptyBuffer(&LD->thread.waiting_for->channels, 1024);
   return rc;
 }
@@ -5398,20 +5420,21 @@ signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
 
 
 int
-signal_waiting_threads(thread_wait_channel *wch)
+signal_waiting_threads(Module m, thread_wait_channel *wch)
 { GET_LD
   thread_dcell *c;
   int done = 0;
   int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
 
+					/* TBD: check waiting on same module? */
   if ( lock )
-    simpleMutexLock(&GD->thread.wait.mutex);
-  for(c=GD->thread.wait.w_head; c; c = c->next)
+    simpleMutexLock(&m->wait->mutex);
+  for(c=m->wait->w_head; c; c = c->next)
     done += signal_waiting_thread(c->ld, wch);
   if ( done )
-    cv_broadcast(&GD->thread.wait.cond);
+    cv_broadcast(&m->wait->cond);
   if ( lock )
-    simpleMutexUnlock(&GD->thread.wait.mutex);
+    simpleMutexUnlock(&m->wait->mutex);
 
   return done;
 }

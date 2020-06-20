@@ -1211,7 +1211,7 @@ setLastModifiedPredicate(Definition def, gen_t gen, int flags)
 
 #ifdef O_PLMT
   if ( true(def, P_DYNAMIC) )
-    wakeupThreads(TWF_PREDICATE, def, flags);
+    wakeupThreads(def, flags);
 #endif
 }
 

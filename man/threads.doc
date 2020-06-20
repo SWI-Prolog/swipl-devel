@@ -694,18 +694,18 @@ experience.}
 
 
 \begin{description}
-    \predicate{thread_wait_on_goal}{2}{:Goal, +Options}
+    \predicate{thread_wait_on_goal}{2}{:Goal, :Options}
 Block execution of the calling thread until \arg{Goal} becomes true.
 \arg{Goal} should normally not have side effects.  The application must
 be prepared to handle spurious calls to \arg{Goal}, i.e., more calls
 than asked for based on the \arg{Options} list.  A possible exception
 in \arg{Goal} is propagated and thus terminates thread_wait_on_goal/2.
 
+The wait is associated with a module. This module is derived from the
+\arg{Options} argument.
+
 The \arg{Options} list specifies when \arg{Goal} is re-evaluated and
-optionally when the call terminates due to a timeout. It is adviced to
-use either the \term{wait_preds}{+Preds} or \term{module}{+Module} to
-limit wakeups. Without, a concurrent computation that uses the database
-for intermediate results causes a continuous flow of wakeups.
+optionally when the call terminates due to a timeout.
 
     \begin{description}
 	\termitem{deadline}{+AbsTime}
@@ -725,15 +725,16 @@ for intermediate results causes a continuous flow of wakeups.
 	events synchronously.}
 
 	\termitem{db}{+Boolean}
-	Wakeup on arbitrary changes to the Prolog database.  This
-	is the default if neither \term{wait_preds}{+Preds} nor
-	\term{module}{+Module} is provided.
+	Wakeup on arbitrary changes to any dynamic predicate that
+	is defined in the associated module.  This is the default
+	if \term{wait_preds}{+Preds} is not provided.
 
 	\termitem{wait_preds}{+List}
 	Only call \arg{Goal} if at least one of the predicates in
 	\arg{List} has been modified.  Each element of \arg{List}
 	is a \jargon{predicate indicator} (\textit{Name/Arity} or
-	\textit{Name//Arity}, optionally qualified with a module).
+	\textit{Name//Arity} that is resolved to a predicate in
+	the module this wait is associated with.
 	If the element is \term{+}{PI}\footnote{Note that \exam{+p/1}
 	is read as /(+(p),1).}, \arg{Goal} is only triggered if a clause
 	was added (assert/1). If the element is \term{-}{PI}, \arg{Goal}
@@ -745,26 +746,21 @@ for intermediate results causes a continuous flow of wakeups.
 	and is unified with a list of predicates from
 	the \const{wait_preds} option that have been modified.
 	\arg{List} must be unbound at entry.
-
-	\termitem{module}{+Module}
-	Wakeup on a change to any predicate defined in \arg{Module}.
-	At most one module can be specified.
     \end{description}
 
-Scalable applications should make sure the \arg{Options} specify a tight
-condition to avoid frequent calls to \arg{Goal} and \arg{Goal} is fast.
 The execution of \arg{Goal} is synchronized between all threads calling
-this predicate and changed to the Prolog database (assert/1, retract/1).
+this predicate on the same module and changes to dynamic predicates in
+this module using assert/1, retract/1 or associated predicates.
 
 \textit{Compatibility} This predicate is modelled after the
 \href{http://staff.itee.uq.edu.au/pjr/HomePages/QuPrologHome.html}{Qu-Prolog}
 predicate with the same name. It is largely compatible. Our current
 implementation does not support predicate time stamps.\footnote{See
-predicate_property/2, property \const{generation}.} We added a
-\const{module} option. The timeout specification follows that of the
-other thread waiting predicates and may be combined with the
-\const{retry_every} option. The default retry-time is also 1 second
-rather than \textit{infinite}.
+predicate_property/2, property \const{generation}.} We made this
+predicate act on a specific module rather than the entire database. The
+timeout specification follows that of the other thread waiting
+predicates and may be combined with the \const{retry_every} option. The
+default retry-time is also 1 second rather than \textit{infinite}.
 \end{description}
 
 
