@@ -554,16 +554,16 @@ save_settings(File) :-
     absolute_file_name(File, Path,
                        [ access(write)
                        ]),
-    !,
-    open(Path, write, Out,
-         [ encoding(utf8),
-           bom(true)
-         ]),
-    write_setting_header(Out),
-    forall(current_setting(Name, Module, _, _, _, _),
-           save_setting(Out, Module:Name)),
-    close(Out).
-
+    setup_call_cleanup(
+        open(Path, write, Out,
+             [ encoding(utf8),
+               bom(true)
+             ]),
+        ( write_setting_header(Out),
+          forall(current_setting(Name, Module, _, _, _, _),
+                 save_setting(Out, Module:Name))
+        ),
+        close(Out)).
 
 write_setting_header(Out) :-
     get_time(Now),
