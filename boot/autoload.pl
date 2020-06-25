@@ -727,6 +727,9 @@ suppress(Context, Error) :-
 %   as loading the files may require autoloading.
 
 set_autoload(FlagValue) :-
+    current_prolog_flag(autoload, FlagValue),
+    !.
+set_autoload(FlagValue) :-
     \+ autoload_in(FlagValue, explicit, any),
     !,
     setup_call_cleanup(
