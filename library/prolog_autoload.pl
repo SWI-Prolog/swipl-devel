@@ -83,7 +83,12 @@ mitigate the possible ambiguity.
 %!  autoload_all is det.
 %!  autoload_all(+Options) is det.
 %
-%   Force all necessary autoloading to be done _now_.  Options:
+%   Force all necessary autoloading to  be   done  _now_.  This sets the
+%   Prolog flag `autoload` to `false`,   resolving  explicit autoloading
+%   and then finds all undefined   references to autoloadable predicates
+%   and load the library files that define these predicates.
+%
+%   Options:
 %
 %       * verbose(+Boolean)
 %       If `true` (default `false`), report on the files loaded.
@@ -96,6 +101,7 @@ autoload_all :-
     autoload_all([]).
 
 autoload_all(Options) :-
+    set_prolog_flag(autoload, false),
     must_be(list, Options),
     statistics(cputime, T0),
     aggregate_all(count, source_file(_), OldFileCount),
