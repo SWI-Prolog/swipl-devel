@@ -137,7 +137,7 @@ with_zipper(Zipper, Goal) :-
         Goal,
         zip_unlock(Zipper)).
 
-%!  zip_members(+Zipper, -Members:list(atom)) is det.
+%!  zipper_members(+Zipper, -Members:list(atom)) is det.
 %
 %   True when Members is the list of file names in the Zipper.
 
@@ -191,3 +191,18 @@ zip_attr("", _, Attrs, Attrs) :- !.
 zip_attr('', _, Attrs, Attrs) :- !.
 zip_attr(Value, Name, Attrs0, Attrs) :-
     put_dict(Name, Attrs0, Value, Attrs).
+
+%!  zipper_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options) is det.
+%
+%   Create a new file in a zip archive.  Options provided are:
+%
+%     - extra(+Text)
+%       Additional meta-data
+%     - comment(+Text)
+%       Comment for the entry.
+%     - time(+Stamp)
+%       Last modified time claimed for the entry.
+%     - method(+Method)
+%       One of `deflated` (default) or `store` (store uncompressed)
+%     - level(+Compression)
+%       Compression level (0..9, default 6).
