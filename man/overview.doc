@@ -2007,11 +2007,11 @@ calling thread. See also thread_self/1.
 
     \prologflagitem{table_incremental}{bool}{rw}
 Set the default for whether to use incremental tabling or not.
-Initially set the \const{false}.  See table/1.
+Initially set to \const{false}.  See table/1.
 
     \prologflagitem{table_shared}{bool}{rw}
 Set the default for whether to use shared tabling or not.
-Initially set the \const{false}.  See table/1.
+Initially set to \const{false}.  See table/1.
 
     \prologflagitem{table_space}{integer}{rw}
 Space reserved for storing answer tables for \jargon{tabled predicates}
@@ -2021,7 +2021,8 @@ nodes in the answer tries.} When exceeded a
 
     \prologflagitem{table_subsumptive}{bool}{rw}
 Set the default choice between \jargon{variant} tabling and
-\jargon{subsumptive} tabling.  Initially set the \const{false}.  See table/1.
+\jargon{subsumptive} tabling.  Initially set to \const{false}.  See
+table/1.
 
     \prologflagitem{threads}{bool}{rw}
 True when threads are supported.  If the system is compiled without
@@ -2052,10 +2053,10 @@ used and the toplevel is \const{default}, the toplevel is set to
 \const{halt} (see halt/0).
 
     \prologflagitem{toplevel_list_wfs_residual_program}{bool}{rw}
-If \const{true} (default) and the answer is \jargon{unknown} according
+If \const{true} (default) and the answer is \jargon{undefined} according
 to the Well Founded Semantics (see \secref{WFS}), list the
 \jargon{residual program} before the answer. Otherwise the answer
-terminated with \textbf{unknown}. See also unknown/0.
+terminated with \textbf{undefined}. See also undefined/0.
 
     \prologflagitem{toplevel_mode}{atom}{rw}
 If \const{backtracking} (default), the toplevel backtracks after
