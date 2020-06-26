@@ -2084,6 +2084,10 @@ load_files(Module:Files, Options) :-
 '$noload'(true, _, _) :-
     !,
     fail.
+'$noload'(_, FullFile, _Options) :-
+    '$time_source_file'(FullFile, Time, system),
+    Time > 0.0,
+    !.
 '$noload'(not_loaded, FullFile, _) :-
     source_file(FullFile),
     !.
