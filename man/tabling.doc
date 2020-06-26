@@ -731,9 +731,6 @@ resolve these issues.
     the table.
     \item Only the answers of shared tables can be reclaimed, not the
     answer table itself.
-    \item There is no separete size limit for the shared tables.  The
-    limit is the same as for a single thread (see
-    \prologflag{table_space}).
 \end{itemize}
 
 SWI-Prolog's \jargon{continuation based} tabling offers the opportunity
