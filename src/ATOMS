@@ -908,6 +908,7 @@ A yfx			"yfx"
 A zero			"zero"
 A zero_divisor		"zero_divisor"
 A zip_options		"zip_options"
+A zip64			"zip64"
 
 F abs			1
 F access		1

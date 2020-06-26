@@ -206,3 +206,6 @@ zip_attr(Value, Name, Attrs0, Attrs) :-
 %       One of `deflated` (default) or `store` (store uncompressed)
 %     - level(+Compression)
 %       Compression level (0..9, default 6).
+%     - zip64(+Boolean)
+%       When `true` (default `false`), allow the entry to grow above
+%       4Gb.
