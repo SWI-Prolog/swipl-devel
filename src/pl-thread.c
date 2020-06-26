@@ -5114,6 +5114,35 @@ free_thread_wait(PL_local_data_t *ld)
   }
 }
 
+static int
+ensure_wait_area_module(Module module)
+{ if ( !module->wait )
+  { thread_wait_area *wa = new_wait_area();
+
+    if ( wa )
+    { if ( !COMPARE_AND_SWAP_PTR(&module->wait, NULL, wa) )
+	free_wait_area(wa);
+    } else
+    { return PL_no_memory();
+    }
+  }
+
+  return TRUE;
+}
+
+static int
+ensure_waiting_for(ARG1_LD)
+{ if ( !LD->thread.waiting_for )
+  { if ( !(LD->thread.waiting_for = malloc(sizeof(*LD->thread.waiting_for))) )
+      return PL_no_memory();
+    memset(LD->thread.waiting_for, 0, sizeof(*LD->thread.waiting_for));
+    initBuffer(&LD->thread.waiting_for->channels);
+  }
+
+  return TRUE;
+}
+
+
 thread_dcell *
 register_waiting(Module m, PL_local_data_t *ld)
 { thread_dcell *c;
@@ -5259,13 +5288,14 @@ static const opt_spec thread_wait_options[] =
   { ATOM_wait_preds,	OPT_TERM   },
   { ATOM_modified,      OPT_TERM   },
   { ATOM_retry_every,	OPT_DOUBLE },
+  { ATOM_module,        OPT_ATOM },
   { NULL_ATOM,		0 }
 };
 
 static int wait_filter_satisfied(ARG1_LD);
 
 static
-PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
+PRED_IMPL("thread_wait", 2, thread_wait, 0)
 { PRED_LD
   int rc = FALSE;
   struct timespec deadline;
@@ -5277,12 +5307,16 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
   struct timespec retry;
   int ign_filter = FALSE;
   term_t options = PL_new_term_ref();
+  atom_t mname = NULL_ATOM;
 
   if ( !PL_strip_module(A2, &module, options) ||
        !process_deadline_options(options, &deadline, &dlop) ||
        !scan_options(options, 0, ATOM_thread_wait_options, thread_wait_options,
-		     &db, &wait_preds, &modified, &retry_every) )
+		     &db, &wait_preds, &modified, &retry_every, &mname) )
     return FALSE;
+
+  if ( mname )
+    module = lookupModule(mname);
 
   if ( modified )
   { if ( !PL_is_variable(modified) )
@@ -5290,25 +5324,14 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
     Mark(fli_context->mark);
   }
 
-  if ( !LD->thread.waiting_for )
-  { if ( !(LD->thread.waiting_for = malloc(sizeof(*LD->thread.waiting_for))) )
-      return PL_no_memory();
-    memset(LD->thread.waiting_for, 0, sizeof(*LD->thread.waiting_for));
-    initBuffer(&LD->thread.waiting_for->channels);
-  }
-  LD->thread.waiting_for->signalled = FALSE;
+  if ( !ensure_waiting_for(PASS_LD1) ||
+       !ensure_wait_area_module(module) )
+    return FALSE;
 
   if ( LD->thread.waiting_for->registered )
-    return PL_error("thread_wait_on_goal", 2, "recursive call",
+    return PL_error("thread_wait", 2, "recursive call",
 		    ERR_PERMISSION,
 		    ATOM_thread, ATOM_wait, A1);
-
-  if ( !module->wait )
-  { thread_wait_area *wa = new_wait_area();
-
-    if ( !COMPARE_AND_SWAP_PTR(&module->wait, NULL, wa) )
-      free_wait_area(wa);
-  }
 
   if ( wait_preds && !thread_wait_preds(module, wait_preds PASS_LD) )
     goto out;
@@ -5317,6 +5340,7 @@ PRED_IMPL("thread_wait_on_goal", 2, thread_wait_on_goal, 0)
 
   timespec_set_dbl(&retry, retry_every);
 
+  LD->thread.waiting_for->signalled = FALSE;
   simpleMutexLock(&module->wait->mutex);
   for(;;)
   { if ( (ign_filter || wait_filter_satisfied(PASS_LD1)) &&
@@ -5419,6 +5443,27 @@ signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
 }
 
 
+typedef struct module_cell
+{ Module module;
+  struct module_cell *prev;
+} module_cell;
+
+
+static int
+updating(Module m ARG_LD)
+{ if ( LD->thread.waiting_for )
+  { module_cell *mc;
+
+    for(mc=LD->thread.waiting_for->updating; mc; mc = mc->prev)
+    { if ( mc->module == m )
+	return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+
 int
 signal_waiting_threads(Module m, thread_wait_channel *wch)
 { GET_LD
@@ -5426,6 +5471,8 @@ signal_waiting_threads(Module m, thread_wait_channel *wch)
   int done = 0;
   int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
 
+  if ( updating(m PASS_LD) )
+    return 0;
 					/* TBD: check waiting on same module? */
   if ( lock )
     simpleMutexLock(&m->wait->mutex);
@@ -5439,6 +5486,64 @@ signal_waiting_threads(Module m, thread_wait_channel *wch)
   return done;
 }
 
+
+static const opt_spec thread_update_options[] =
+{ { ATOM_notify,  OPT_ATOM },
+  { ATOM_module,  OPT_ATOM },
+  { NULL_ATOM,	  0 }
+};
+
+static
+PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
+{ PRED_LD
+  int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
+  int rc;
+  atom_t notify = ATOM_broadcast;
+  atom_t mname = NULL_ATOM;
+  Module module = NULL;
+  term_t options = PL_new_term_ref();
+  module_cell mc;
+
+  if ( !PL_strip_module(A2, &module, options) ||
+       !scan_options(options, 0, ATOM_thread_update_options,
+		     thread_update_options,
+		     &notify, &mname) )
+    return FALSE;
+  if ( notify != ATOM_broadcast && notify != ATOM_signal )
+  { term_t ex = PL_new_term_ref();
+    PL_put_atom(ex, notify);
+    return PL_domain_error("notify_option", ex);
+  }
+  if ( mname )
+    module = lookupModule(mname);
+
+  if ( !ensure_waiting_for(PASS_LD1) ||
+       !ensure_wait_area_module(module) )
+    return FALSE;
+
+  if ( lock )
+    simpleMutexLock(&module->wait->mutex);
+
+  mc.module = module;
+  mc.prev = LD->thread.waiting_for->updating;
+  LD->thread.waiting_for->updating = &mc;
+  rc=callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
+  LD->thread.waiting_for->updating = mc.prev;
+
+  if ( !rc )
+    goto out;
+
+  if ( notify == ATOM_broadcast )
+    cv_broadcast(&module->wait->cond);
+  else
+    cv_signal(&module->wait->cond);
+
+out:
+  if ( lock )
+    simpleMutexUnlock(&module->wait->mutex);
+
+  return rc;
+}
 
 
 		 /*******************************
@@ -7433,7 +7538,8 @@ BeginPredDefs(thread)
   PRED_DEF("thread_peek_message",    2,	thread_peek_message_2, PL_FA_ISO)
   PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
 
-  PRED_DEF("thread_wait_on_goal",    2, thread_wait_on_goal,   META)
+  PRED_DEF("thread_wait",	     2, thread_wait,           META)
+  PRED_DEF("thread_update",	     2, thread_update,         META)
   PRED_DEF("thread_setconcurrency",  2,	thread_setconcurrency, 0)
 
   PRED_DEF("$engine_create",	     3,	engine_create,	       0)

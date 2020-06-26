@@ -75,29 +75,32 @@ cleanup :-
 test(signal, exception(time_limit_exceeded)) :-
     call_with_time_limit(
         0.05,
-        thread_wait_on_goal(fail,
-                            [ retry_every(0.01),
-                              db(false)
-                            ])).
+        thread_wait(fail,
+                    [ retry_every(0.01),
+                      db(false)
+                    ])).
 test(wakeall, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
-    +thread_wait_on_goal(p, []).
+    +thread_wait(p, []).
 test(wakep, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
-    +thread_wait_on_goal(p, [wait_preds([p/0])]).
+    +thread_wait(p, [wait_preds([p/0])]).
 test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
     do_later(0.05, assert(p)),
-    0.2+thread_wait_on_goal(p, [retry_every(0.3),wait_preds([-(p/0)])]).
+    0.2+thread_wait(p, [retry_every(0.3),wait_preds([-(p/0)])]).
 test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
     assert(p),
     do_later(0.05, retract(p)),
-    0.2+thread_wait_on_goal(p, [retry_every(0.3),wait_preds([+(p/0)])]).
+    0.2+thread_wait(p, [retry_every(0.3),wait_preds([+(p/0)])]).
 test(modified, [cleanup(cleanup)]) :-
     do_later(0.05, assert(p)),
-    +thread_wait_on_goal(p(M), [modified(M), wait_preds([p/0])]).
+    +thread_wait(p(M), [modified(M), wait_preds([p/0])]).
 test(module, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
     context_module(M),
-    +thread_wait_on_goal(p, [module(M)]).
+    +thread_wait(p, [module(M)]).
+test(update, Ready == true) :-
+    do_later(0.05, thread_update(true, [])),
+    +thread_wait(Ready = true, []).
 
 :- end_tests(thread_wait).

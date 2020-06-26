@@ -362,13 +362,14 @@ typedef struct thread_wait_channel
   } obj;
 } thread_wait_channel;
 
-typedef struct thread_wait_for
-{ buffer	channels;
-  int		signalled;
-  thread_dcell *registered;
+typedef struct thread_wait_for		/* thread data for wait/update */
+{ buffer	channels;		/* channels we listen on */
+  int		signalled;		/* are we signalled? */
+  thread_dcell *registered;		/* cell in thread_wait_area */
+  struct module_cell *updating;		/* thread_update/2 modules */
 } thread_wait_for;
 
-typedef struct thread_wait_area
+typedef struct thread_wait_area		/* module data for wait/update */
 { simpleMutex	mutex;
 #ifdef __WINDOWS__
   CONDITION_VARIABLE cond;

@@ -728,7 +728,8 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{thread_setconcurrency}{2}{Number of active threads}
 \predicatesummary{thread_signal}{2}{Execute goal in another thread}
 \predicatesummary{thread_statistics}{3}{Get statistics of another thread}
-\predicatesummary{thread_wait_on_goal}{2}{Wait for a goal to become true}
+\predicatesummary{thread_update}{2}{Update a module and signal waiters}
+\predicatesummary{thread_wait}{2}{Wait for a goal to become true}
 \predicatesummary{threads}{0}{List running threads}
 \predicatesummary{throw}{1}{Raise an exception (see catch/3)}
 \predicatesummary{time}{1}{Determine time needed to execute goal}
