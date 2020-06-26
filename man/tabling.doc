@@ -233,7 +233,7 @@ connection(X, Y, P) :-
     append(P0, [Y], P).
 \end{code}
 
-The mode declation scheme is equivalent to XSB with partial
+The mode declaration scheme is equivalent to XSB with partial
 compatibility support for YAP and B-Prolog. The \term{lattice}{PI} mode
 is the most general mode.  The YAP \const{all} (B-Prolog \const{@}) mode
 is not yet supported. The list below describes the supported modes and
@@ -257,7 +257,7 @@ are inputs. The last argument must be unified with a term that
 represents the new aggregated answer.
 
     \termitem{po}{PI}
-\jargon{Partial Ordening}. The new answer is added iff
+\jargon{Partial Ordering}. The new answer is added iff
 \term{call}{PI, +Old, +Answer} succeeds. For example, \verb$po('<'/2)$
 accumulates the largest result. In SWI-Prolog the arity (2) may be
 omitted, resulting in \verb$po(<)$.
@@ -453,7 +453,7 @@ answer for some tabled predicate, record this answer as a
     \item
 If a conditional answer is added to a table, it is propagated to its
 \jargon{followers}, say $f$, adding the pair \{$f$,answer\} to the
-delay list. If this leads to an answer, the answer is conditonal
+delay list. If this leads to an answer, the answer is conditional
 on this pair.
     \item
 After the continuations of all unresolved tnot/1 calls have
@@ -505,9 +505,9 @@ disjunction of conjunctions where each literal is either a tabled
 goal or tnot/1 of a tabled goal.   The remaining model has at least a
 cycle through a negative literal (tnot/1) and has no single
 solution in the \jargon{stable model semantics}, i.e., it either
-expresses a contradition (as undefined/0, i.e., there is no stable model)
-or a multiple stable models as in the program below, where both \{p\}
-and \{q\} are stable models.
+expresses a contradiction (as undefined/0, i.e., there is no stable
+model) or a multiple stable models as in the program below, where both
+\{p\} and \{q\} are stable models.
 
 \begin{code}
 :- table p/0, q/0.
@@ -645,7 +645,7 @@ Note that invalidating and re-evaluation is done at the level of tables.
 Notably asserting a clause invalidates all affected tables and may lead
 to re-evaluating of all these tables. Incremental tabling automates
 manual abolishing of invalid tables in a changing world and avoids
-unnecesary re-evaluation if indirectly affected tables prove unaffected
+unnecessary re-evaluation if indirectly affected tables prove unaffected
 because the answer set of dependent tables is unaffected by the change.
 This is the same policy as implemented in XSB
 \cite{DBLP:journals/tplp/Swift14}. Future versions may implement a more
@@ -733,7 +733,7 @@ shared using, e.g.,
 :- table (p/1, q/2) as shared.
 \end{code}
 
-A thread may find a a table for a particular variant of a shared tabled
+A thread may find a table for a particular variant of a shared tabled
 predicate in any of the following states:
 
 \begin{description}
@@ -781,7 +781,7 @@ converting the abolished shared table to a private table.}.
 The current implementation never reclaims shared tables.  Instead, they
 remain part of the global variant table and only the answers of the
 shared table are reclaimed. Future versions may garbage collect such
-tables.  See also abolish_shared_tables/0
+tables.  See also abolish_shared_tables/0.
 
 
 \subsection{Status and future of shared tabling}
@@ -828,7 +828,7 @@ be notified of suspicious events (debugging) or dynamically adjust the
 (tabling) strategy of the program. Second, they may continue the
 computation that results in a partial answer (\jargon{bounded
 rationality}). Unlike just not exploring part of the space though, we
-use the third thruth value of well founded semantics to keep track of
+use the third truth value of well founded semantics to keep track of
 answers that have not been affected by the restraints and those that
 have been affected.
 
@@ -879,11 +879,11 @@ size_abstract_term/3.
 The size of a term is defined as the number of compound subterms
 (\jargon{function symbols}) that appear in term. \arg{Abstract} is an
 abstract copy of \arg{Term} where each argument is abstracted by
-copying only the first \arg{Size} function sumbols and constants.
+copying only the first \arg{Size} function symbols and constants.
 Excess function symbols are replaced by fresh variables.
 
 This predicate is a helper for tabling where \arg{Term} is the
-\functor{ret}{N} \jargon{answer skeleton} that is added to the an
+\functor{ret}{N} \jargon{answer skeleton} that is added to the
 \jargon{answer table}.  Examples:
 
 \begin{center}\begin{tabular}{cll}
@@ -952,7 +952,7 @@ Ignore the too large answer.  Note that this is semantically incorrect.
     \termitem{bounded_rationality}{}
 In this mode, the large answer is \jargon{abstracted} in the same way as
 subgoals are abstracted (see \secref{tabling-restraint-subgoal}). This
-is semantically incorrect, but our third thruth value \jargon{undefined}
+is semantically incorrect, but our third truth value \jargon{undefined}
 is used to remedy this problem. In other words, the abstracted value is
 added to the table as \jargon{undefined} and all conclusions that depend
 on usage of this abstracted value are thus undefined unless they can
@@ -1018,7 +1018,7 @@ Prepare the predicates specified by \arg{Specification} for tabled
 execution.  \arg{Specification} is a \jargon{comma-list}, each member
 specifying tabled execution for a specific predicate.  The individual
 specification is either a \jargon{predicate indicator} (name/arity or
-name//arity) or head specifing tabling with \jargon{answer subsumption}.
+name//arity) or head specifying tabling with \jargon{answer subsumption}.
 
 Although table/1 is normally used as a directive, SWI-Prolog allows
 calling it as a runtime predicate to prepare an existing predicate for
@@ -1108,7 +1108,7 @@ tabled_call(Goal) :- call(Goal).
     \predicate{current_table}{2}{:Variant, -Trie}
 True when \arg{Trie} is the answer table for \arg{Variant}.
 
-    \predicate{untable}{:Specification}
+    \predicate{untable}{1}{:Specification}
 Remove the tabling instrumentation for the specified predicates.
 \arg{Specification} is compatible with table/1, although tabling with
 \jargon{answer subsumption} may be removed using a name/arity
@@ -1116,7 +1116,7 @@ specification.
 
     \predicate{abolish_all_tables}{0}{}
 Remove all tables, both \jargon{private} and \jargon{shared} (see
-\secref{tabling-shared}. Since the introduction of \jargon{incremental
+\secref{tabling-shared}). Since the introduction of \jargon{incremental
 tabling} (see \secref{tabling-incremental}) abolishing tables is rarely
 required to maintain consistency of the tables with a changed
 environment. Tables may be abolished regardless of the current state of
@@ -1224,7 +1224,7 @@ particular,
     \item Tables must be shared between threads, both to
           reduce space and avoid recomputation.
     \item Tables must be invalidated and reclaimed automatically.
-    \item Notably XSB supports incremental tabeling and well-founded
+    \item Notably XSB supports incremental tabling and well-founded
           semantics under negation.
 \end{shortlist}
 
