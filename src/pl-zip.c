@@ -825,6 +825,7 @@ static const opt_spec zip_new_file_options[] =
   { ATOM_time,		    OPT_DOUBLE },
   { ATOM_method,	    OPT_ATOM   },
   { ATOM_level,		    OPT_INT    },
+  { ATOM_zip64,		    OPT_BOOL   },
   { NULL_ATOM,		    0          }
 };
 
@@ -842,9 +843,10 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int level = 6;
   atom_t method = ATOM_deflated;
   int imethod;
+  int zip64 = FALSE;
 
   if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
-		     &extra, &comment, &ftime, &method, &level) )
+		     &extra, &comment, &ftime, &method, &level, &zip64) )
     return FALSE;
 
   if ( extra )
@@ -891,7 +893,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
 				 0,		/* crc */
 				 VERSIONMADEBY,	/* versionMadeBy */
 				 0,		/* flagBase */
-				 FALSE);	/* zip64 */
+				 zip64);	/* zip64 */
 
     if ( rc == 0 )
     { IOSTREAM *s = Snew(z, SIO_OUTPUT, &Szipfunctions);
