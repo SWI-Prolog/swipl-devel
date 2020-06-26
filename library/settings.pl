@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2016, University of Amsterdam
+    Copyright (c)  2007-2020, University of Amsterdam
                               VU University Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -90,7 +91,8 @@ access, loading and saving of settings.
 :- dynamic
     st_value/3,                     % Name, Module, Value
     st_default/3,                   % Name, Module, Value
-    local_file/1.                   % Path
+    local_file/1,                   % Path
+    st_modified/0.
 
 :- multifile
     current_setting/6.              % Name, Module, Type, Default, Comment, Source
@@ -371,7 +373,10 @@ numeric_type(between(L,_), Type) :-
 %   setting. If the effective value  of   the  setting is changed it
 %   broadcasts the event below.
 %
-%           settings(changed(Module:Name, Old, New))
+%	settings(changed(Module:Name, Old, New))
+%
+%   Note that modified settings are   __not__  automatically persistent.
+%   The application should call save_settings/0 to persist the changes.
 %
 %   @error  existence_error(setting, Name)
 %   @error  type_error(Type, Value)
@@ -399,10 +404,18 @@ set_setting(QName, Value) :-
     ).
 
 retract_setting(Module:Name) :-
+    set_settings_modified,
     retractall(st_value(Name, Module, _)).
 
 assert_setting(Module:Name, Value) :-
+    set_settings_modified,
     assert(st_value(Name, Module, Value)).
+
+set_settings_modified :-
+    st_modified, !.
+set_settings_modified :-
+    assertz(st_modified).
+
 
 %!  restore_setting(:Name) is det.
 %
@@ -466,14 +479,18 @@ check_type(Type, Term) :-
 %!  load_settings(File) is det.
 %!  load_settings(File, +Options) is det.
 %
-%   Load local settings from File. Succeeds  if File does not exist,
-%   setting the default save-file to File.  Options are:
+%   Load local settings from File.  Succeeds   if  File  does not exist,
+%   setting the default save-file to File. Options are:
 %
 %     * undefined(+Action)
 %     Define how to handle settings that are not defined.  When
-%     =error=, an error is printed and the setting is ignored.
-%     when =load=, the setting is loaded anyway, waiting for a
+%     `error`, an error is printed and the setting is ignored.
+%     when `load`, the setting is loaded anyway, waiting for a
 %     definition.
+%
+%   If possibly changed settings need to  be persistent, the application
+%   must call save_settings/0 as part of   its shutdown. In simple cases
+%   calling at_halt(save_settings) is sufficient.
 
 load_settings(File) :-
     load_settings(File, []).
@@ -539,16 +556,20 @@ store_setting(Term, _) :-
 %!  save_settings(+File) is semidet.
 %
 %   Save modified settings to File. Fails  silently if the settings file
-%   cannot be written.
+%   cannot be written. The save_settings/0  only   attempts  to save the
+%   settings file if some setting was modified using set_setting/2.
 %
 %   @error context_error(settings, no_default_file)  for save_settings/0
 %   if no default location is known.
 
 save_settings :-
+    st_modified,
+    !,
     (   local_file(File)
     ->  save_settings(File)
     ;   throw(error(context_error(settings, no_default_file), _))
     ).
+save_settings.
 
 save_settings(File) :-
     absolute_file_name(File, Path,
