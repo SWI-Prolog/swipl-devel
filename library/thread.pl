@@ -39,6 +39,8 @@
             concurrent_maplist/2,       % :Goal, +List
             concurrent_maplist/3,       % :Goal, ?List1, ?List2
             concurrent_maplist/4,       % :Goal, ?List1, ?List2, ?List3
+            concurrent_forall/2,        % :Generate, :Test
+            concurrent_forall/3,        % :Generate, :Test, +Options
             first_solution/3,           % -Var, :Goals, +Options
 
             call_in_thread/2            % +Thread, :Goal
@@ -48,7 +50,9 @@
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),[subtract/3,same_length/2]).
 :- autoload(library(option),[option/3]).
-
+:- autoload(library(ordsets), [ord_intersection/3]).
+:- autoload(library(debug), [debug/3, assertion/1]).
+:- autoload(library(option), [option/3]).
 
 %:- debug(concurrent).
 
@@ -57,6 +61,8 @@
     concurrent_maplist(1, +),
     concurrent_maplist(2, ?, ?),
     concurrent_maplist(3, ?, ?, ?),
+    concurrent_forall(0, 0),
+    concurrent_forall(0, 0, +),
     first_solution(-, :, +),
     call_in_thread(+, 0).
 
@@ -103,7 +109,7 @@ following consequences:
 @author Jan Wielemaker
 */
 
-%!  concurrent(+N, :Goals, Options) is semidet.
+%!  concurrent(+N, :Goals, +Options) is semidet.
 %
 %   Run Goals in parallel using N   threads.  This call blocks until
 %   all work has been done.  The   Goals  must  be independent. They
@@ -135,14 +141,14 @@ following consequences:
 %     * If one or more of the goals may fail or produce an error,
 %     using a higher number of threads may find this earlier.
 %
-%   @param N Number of worker-threads to create. Using 1, no threads
-%          are created.  If N is larger than the number of Goals we
-%          create exactly as many threads as there are Goals.
-%   @param Goals List of callable terms.
-%   @param Options Passed to thread_create/3 for creating the
-%          workers.  Only options changing the stack-sizes can
-%          be used. In particular, do not pass the detached or alias
-%          options.
+%   @arg N Number of worker-threads to create. Using 1, no threads
+%        are created.  If N is larger than the number of Goals we
+%        create exactly as many threads as there are Goals.
+%   @arg Goals List of callable terms.
+%   @arg Options Passed to thread_create/3 for creating the
+%        workers.  Only options changing the stack-sizes can
+%        be used. In particular, do not pass the detached or alias
+%        options.
 %   @see In many cases, concurrent_maplist/2 and friends
 %        is easier to program and is tractable to program
 %        analysis.
@@ -281,6 +287,113 @@ join_all([]).
 join_all([Id|T]) :-
     thread_join(Id, _),
     join_all(T).
+
+
+		 /*******************************
+		 *             FORALL		*
+		 *******************************/
+
+%!  concurrent_forall(:Generate, :Test) is semidet.
+%!  concurrent_forall(:Generate, :Test, +Options) is semidet.
+%
+%   True when Test is true for all   solutions of Generate. This has the
+%   same semantics as forall/2,  but  the   Test  goals  are executed in
+%   multiple threads. Notable a  failing  Test   or  a  Test throwing an
+%   exception signals the calling  thread  which   in  turn  aborts  all
+%   workers and fails or re-throws the generated error. Options:
+%
+%     - threads(+Count)
+%       Number of threads to use.  The default is determined by the
+%       Prolog flag `cpu_count`.
+
+:- dynamic
+    fa_aborted/1.
+
+concurrent_forall(Generate, Test) :-
+    concurrent_forall(Generate, Test, []).
+
+concurrent_forall(Generate, Test, Options) :-
+    (   option(threads(Jobs), Options)
+    ->  true
+    ;   current_prolog_flag(cpu_count, Jobs)
+    ),
+    Jobs > 1,
+    !,
+    term_variables(Generate, GVars),
+    term_variables(Test, TVars),
+    sort(GVars, GVarsS),
+    sort(TVars, TVarsS),
+    ord_intersection(GVarsS, TVarsS, Shared),
+    Templ =.. [v|Shared],
+    MaxSize is Jobs*4,
+    message_queue_create(Q, [max_size(MaxSize)]),
+    length(Workers, Jobs),
+    thread_self(Me),
+    maplist(thread_create(fa_worker(Q, Me, Templ, Test)), Workers),
+    catch(( forall(Generate,
+                   thread_send_message(Q, job(Templ))),
+            forall(between(1, Jobs, _),
+                   thread_send_message(Q, done)),
+            maplist(thread_join, Workers),
+            message_queue_destroy(Q)
+          ),
+          Error,
+          fa_cleanup(Error, Workers, Q)).
+concurrent_forall(Generate, Test, _) :-
+    forall(Generate, Test).
+
+fa_cleanup(Error, Workers, Q) :-
+    maplist(safe_abort, Workers),
+    debug(concurrent(fail), 'Joining workers', []),
+    maplist(safe_join, Workers),
+    debug(concurrent(fail), 'Destroying queue', []),
+    retractall(fa_aborted(Q)),
+    message_queue_destroy(Q),
+    (   Error = fa_worker_failed(Test, Why)
+    ->  debug(concurrent(fail), 'Test ~p failed: ~p', [Test, Why]),
+        (   Why == false
+        ->  fail
+        ;   Why = error(E)
+        ->  throw(E)
+        ;   assertion(fail)
+        )
+    ;   throw(Error)
+    ).
+
+safe_abort(Thread) :-
+    catch(thread_signal(Thread, abort), error(_,_), true).
+safe_join(Thread) :-
+    E = error(_,_),
+    catch(thread_join(Thread, _Status), E, true).
+
+fa_worker(Queue, Main, Templ, Test) :-
+    repeat,
+    thread_get_message(Queue, Msg),
+    (   Msg == done
+    ->  !
+    ;   Msg = job(Templ),
+        debug(concurrent, 'Running test ~p', [Test]),
+        (   catch_with_backtrace(Test, E, true)
+        ->  (   var(E)
+            ->  fail
+            ;   fa_stop(Queue, Main, fa_worker_failed(Test, error(E)))
+            )
+        ;   !,
+            fa_stop(Queue, Main, fa_worker_failed(Test, false))
+        )
+    ).
+
+fa_stop(Queue, Main, Why) :-
+    with_mutex('$concurrent_forall',
+               fa_stop_sync(Queue, Main, Why)).
+
+fa_stop_sync(Queue, _Main, _Why) :-
+    fa_aborted(Queue),
+    !.
+fa_stop_sync(Queue, Main, Why) :-
+    asserta(fa_aborted(Queue)),
+    debug(concurrent(fail), 'Stop due to ~p. Signalling ~q', [Why, Main]),
+    thread_signal(Main, throw(Why)).
 
 
                  /*******************************
