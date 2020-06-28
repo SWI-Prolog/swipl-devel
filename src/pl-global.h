@@ -709,6 +709,7 @@ struct PL_local_data
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
     thread_wait_for *waiting_for;	/* thread_wait/2 info */
+    alert_channel alert;		/* How to alert the thread */
   } thread;
 #endif
 

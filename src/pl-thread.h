@@ -180,6 +180,16 @@ typedef struct pl_mutex
   unsigned auto_destroy	: 1;		/* asked to destroy */
 } pl_mutex;
 
+#define ALERT_QUEUE_RD	1
+#define ALERT_QUEUE_WR	2
+
+typedef struct alert_channel
+{ int	type;				/* Type of channel */
+  union
+  { message_queue *queue;
+  } obj;
+} alert_channel;
+
 #define PL_THREAD_MAGIC 0x2737234f
 
 extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
@@ -212,9 +222,10 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_CGCGEN       25
 #define L_EVHOOK       26
 #define L_OSDIR	       27
+#define L_ALERT	       28
 #ifdef __WINDOWS__
-#define L_DDE	       28
-#define L_CSTACK       29
+#define L_DDE	       29
+#define L_CSTACK       30
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
