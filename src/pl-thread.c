@@ -314,7 +314,8 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_INIT_ATOMS"),
   COUNT_MUTEX_INITIALIZER("L_CGCGEN"),
   COUNT_MUTEX_INITIALIZER("L_EVHOOK"),
-  COUNT_MUTEX_INITIALIZER("L_OSDIR")
+  COUNT_MUTEX_INITIALIZER("L_OSDIR"),
+  COUNT_MUTEX_INITIALIZER("L_ALERT")
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -1486,7 +1487,27 @@ thread no longer exists and -1 if alerting is disabled.
 
 static int
 alertThread(PL_thread_info_t *info)
-{
+{ PL_local_data_t *ld = info->thread_data;
+
+  if ( ld->thread.alert.type )
+  { int done = FALSE;
+
+    PL_LOCK(L_ALERT);
+    switch(ld->thread.alert.type)
+    { case ALERT_QUEUE_RD:
+        cv_broadcast(&ld->thread.alert.obj.queue->cond_var);
+	done = TRUE;
+	break;
+      case ALERT_QUEUE_WR:
+        cv_broadcast(&ld->thread.alert.obj.queue->drain_var);
+	done = TRUE;
+	break;
+    }
+    PL_UNLOCK(L_ALERT);
+    if ( done )
+      return TRUE;
+  }
+
 #ifdef __WINDOWS__
   if ( info->w32id )
   { PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
@@ -3541,7 +3562,7 @@ typedef enum
 
 static int dispatch_cond_wait(message_queue *queue,
 			      queue_wait_type wait,
-			      struct timespec *deadline);
+			      struct timespec *deadline ARG_LD);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This code deals with telling other threads something.  The interface:
@@ -3608,7 +3629,7 @@ queue_message(message_queue *queue, thread_message *msgp,
   { queue->wait_for_drain++;
 
     while ( queue->size >= queue->max_size )
-    { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline) )
+    { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline PASS_LD) )
       { case CV_INTR:
 	{ if ( !LD )			/* needed for clean exit */
 	  { Sdprintf("Forced exit from queue_message()\n");
@@ -3845,12 +3866,25 @@ cv_timedwait(message_queue *queue,
 
 static int
 dispatch_cond_wait(message_queue *queue, queue_wait_type wait,
-		   struct timespec *deadline)
-{ return cv_timedwait(queue,
-		      (wait == QUEUE_WAIT_READ ? &queue->cond_var
-					       : &queue->drain_var),
-		      &queue->mutex,
-		      deadline);
+		   struct timespec *deadline ARG_LD)
+{ int rc;
+
+  LD->thread.alert.obj.queue = queue;
+  LD->thread.alert.type	     = wait == QUEUE_WAIT_READ ? ALERT_QUEUE_RD
+						       : ALERT_QUEUE_WR;
+
+  rc = cv_timedwait(queue,
+		    (wait == QUEUE_WAIT_READ ? &queue->cond_var
+					     : &queue->drain_var),
+		    &queue->mutex,
+		    deadline);
+
+  PL_LOCK(L_ALERT);
+  LD->thread.alert.type = 0;
+  LD->thread.alert.obj.queue = NULL;
+  PL_UNLOCK(L_ALERT);
+
+  return rc;
 }
 
 #ifdef O_QUEUE_STATS
@@ -3994,7 +4028,7 @@ get_message(message_queue *queue, term_t msg, struct timespec *deadline ARG_LD)
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
-    rc = dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline);
+    rc = dispatch_cond_wait(queue, QUEUE_WAIT_READ, deadline PASS_LD);
     switch ( rc )
     { case CV_INTR:
       { DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: CV_INTR\n", PL_thread_self()));

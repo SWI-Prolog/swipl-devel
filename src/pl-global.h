@@ -707,6 +707,7 @@ struct PL_local_data
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
+    alert_channel alert;		/* How to alert the thread */
   } thread;
 #endif
 
