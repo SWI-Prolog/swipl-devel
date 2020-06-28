@@ -46,13 +46,11 @@
             call_in_thread/2            % +Thread, :Goal
           ]).
 :- autoload(library(apply),[maplist/2,maplist/3,maplist/4,maplist/5]).
-:- autoload(library(debug),[debug/3]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(lists),[subtract/3,same_length/2]).
 :- autoload(library(option),[option/3]).
 :- autoload(library(ordsets), [ord_intersection/3]).
 :- autoload(library(debug), [debug/3, assertion/1]).
-:- autoload(library(option), [option/3]).
 
 %:- debug(concurrent).
 
