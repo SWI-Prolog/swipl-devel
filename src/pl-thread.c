@@ -3829,7 +3829,8 @@ cv_timedwait(message_queue *queue,
 	if ( api_timeout == deadline )
 	  return CV_TIMEDOUT;
 	return CV_MAYBE;
-      case 0:
+      case EINTR:			/* can not happen in POSIX, but can in */
+      case 0:				/* legacy systems */
 	if ( is_signalled(LD) )
 	  return CV_INTR;
         return CV_READY;
