@@ -228,8 +228,9 @@ copy_term(Term, Copy, Gs) :-
     (   Vs == []
     ->  Gs = [],
         copy_term(Term, Copy)
-    ;   findall(Term-Gs,
-                ( phrase(attvars_residuals(Vs), Gs),
+    ;   sort(Vs, Vs2),
+        findall(Term-Gs,
+                ( phrase(attvars_residuals(Vs2), Gs),
                   delete_attributes(Term)
                 ),
                 [Copy-Gs])
