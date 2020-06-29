@@ -3764,10 +3764,7 @@ takes care of reconsult, redefinition, etc.
     clause->owner_no  = of->index;
 
     if ( !overruleImportedProcedure(proc, mhead) )
-    { error:
-      freeClause(clause);
-      return NULL;
-    }
+      goto error;
     def = getProcDefinition(proc);	/* may be changed */
 
     if ( proc != of->current_procedure )
