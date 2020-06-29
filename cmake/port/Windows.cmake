@@ -42,7 +42,7 @@ endfunction()
 set(WIN32_DLL_PATTERNS zlib*.dll)
 
 if(USE_GMP)
-  list(APPEND WIN32_DLL_PATTERNS "libgmp*.dll")
+  list(APPEND WIN32_DLL_PATTERNS "libgmp-*.dll")
 endif()
 if(MULTI_THREADED)
   list(APPEND WIN32_DLL_PATTERNS "*pthread*.dll")
