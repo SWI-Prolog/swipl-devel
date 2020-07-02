@@ -18,37 +18,53 @@ build_pdf()
   )
 }
 
-# Disabled profile guide optimization for Windows as it is broken
-# in recent Ubuntu releases.  Linking the instrumented binary fails
-# due to a missing symbols in libgcov.a
+
+# Build the Windows version using the Docker from
+# https://github.com/SWI-Prolog/docker-swipl-build-mingw.git
+#
+# Comment to build locally. See README.win32   for the setup. Be warned,
+# this is complicated! Disabled profile   guide optimization for Windows
+# as it is broken in recent   Ubuntu  releases. Linking the instrumented
+# binary fails due to a missing  symbols   in  libgcov.a.  The Docker is
+# based on Fedora.
+
+MINGW_DOCKER_DIR=$HOME/docker/docker-swipl-build-mingw
 
 build_win32()
-{ rm -rf build.win32
-  mkdir build.win32
-  ( cd build.win32
-    cmake -DCMAKE_BUILD_TYPE=Release \
-          -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
-	  -DJAVA_COMPATIBILITY=ON \
-          -G Ninja ..
-#   ../scripts/pgo-compile.sh
-    ninja
-    cpack
-  )
+{ if [ ! -z "$MINGW_DOCKER_DIR" ]; then
+    make -C $MINGW_DOCKER_DIR --win32
+  else
+    rm -rf build.win32
+    mkdir build.win32
+    ( cd build.win32
+      cmake -DCMAKE_BUILD_TYPE=Release \
+	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake \
+	    -DJAVA_COMPATIBILITY=ON \
+	    -G Ninja ..
+#     ../scripts/pgo-compile.sh
+      ninja
+      cpack
+    )
+  fi
 }
 
 build_win64()
-{ rm -rf build.win64
-  mkdir build.win64
-  ( cd build.win64
-    cmake -DCMAKE_BUILD_TYPE=Release \
-	  -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
-          -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
-	  -DJAVA_COMPATIBILITY=ON \
-          -G Ninja ..
-#   ../scripts/pgo-compile.sh
-    ninja
-    cpack
-  )
+{ if [ ! -z "$MINGW_DOCKER_DIR" ]; then
+    make -C $MINGW_DOCKER_DIR --win64
+  else
+  rm -rf build.win64
+    mkdir build.win64
+    ( cd build.win64
+      cmake -DCMAKE_BUILD_TYPE=Release \
+	    -DJAVA_HOME="$HOME/.wine/drive_c/Program Files/Java/jdk-13.0.2" \
+	    -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake \
+	    -DJAVA_COMPATIBILITY=ON \
+	    -G Ninja ..
+#     ../scripts/pgo-compile.sh
+      ninja
+      cpack
+    )
+  fi
 }
 
 build_macosx()

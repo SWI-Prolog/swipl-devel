@@ -14,7 +14,18 @@
 # CMAKE.md and/or scripts/make-distribution for configuring and building
 # SWI-Prolog.
 #
+# USE DOCKER INSTEAD
+#
+# These instructions are only required if  you   want  to  build in your
+# local (Linux) environment. We have created   a  Docker image for doing
+# the build which is a lot easier to manage. See:
+#
+#   https://github.com/SWI-Prolog/docker-swipl-build-mingw.git
+#
 # USAGE
+#
+# You have been warned! Make sure  to  have   a  lot  of time and coffee
+# before proceeding.
 #
 # The remainder of the  file  is   an  executable  specification  of the
 # installation process. The setup is designed to create ~/mingw32 and/or
