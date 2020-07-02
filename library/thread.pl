@@ -41,6 +41,8 @@
             concurrent_maplist/4,       % :Goal, ?List1, ?List2, ?List3
             concurrent_forall/2,        % :Generate, :Test
             concurrent_forall/3,        % :Generate, :Test, +Options
+            concurrent_and/2,           % :Generator,:Test
+            concurrent_and/3,           % :Generator,:Test,+Options
             first_solution/3,           % -Var, :Goals, +Options
 
             call_in_thread/2            % +Thread, :Goal
@@ -61,6 +63,8 @@
     concurrent_maplist(3, ?, ?, ?),
     concurrent_forall(0, 0),
     concurrent_forall(0, 0, +),
+    concurrent_and(0, 0),
+    concurrent_and(0, 0, +),
     first_solution(-, :, +),
     call_in_thread(+, 0).
 
@@ -303,6 +307,12 @@ join_all([Id|T]) :-
 %     - threads(+Count)
 %       Number of threads to use.  The default is determined by the
 %       Prolog flag `cpu_count`.
+%
+%   @tbd Ideally we would grow the   set of workers dynamically, similar
+%   to dynamic scheduling of  HTTP  worker   threads.  This  would avoid
+%   creating threads that are never used if Generate is too slow or does
+%   not provide enough answers and  would   further  raise the number of
+%   threads if Test is I/O bound rather than CPU bound.
 
 :- dynamic
     fa_aborted/1.
@@ -311,10 +321,7 @@ concurrent_forall(Generate, Test) :-
     concurrent_forall(Generate, Test, []).
 
 concurrent_forall(Generate, Test, Options) :-
-    (   option(threads(Jobs), Options)
-    ->  true
-    ;   current_prolog_flag(cpu_count, Jobs)
-    ),
+    jobs(Jobs, Options),
     Jobs > 1,
     !,
     term_variables(Generate, GVars),
@@ -358,12 +365,6 @@ fa_cleanup(Error, Workers, Q) :-
     ;   throw(Error)
     ).
 
-safe_abort(Thread) :-
-    catch(thread_signal(Thread, abort), error(_,_), true).
-safe_join(Thread) :-
-    E = error(_,_),
-    catch(thread_join(Thread, _Status), E, true).
-
 fa_worker(Queue, Main, Templ, Test) :-
     repeat,
     thread_get_message(Queue, Msg),
@@ -392,6 +393,144 @@ fa_stop_sync(Queue, Main, Why) :-
     asserta(fa_aborted(Queue)),
     debug(concurrent(fail), 'Stop due to ~p. Signalling ~q', [Why, Main]),
     thread_signal(Main, throw(Why)).
+
+jobs(Jobs, Options) :-
+    (   option(threads(Jobs), Options)
+    ->  true
+    ;   current_prolog_flag(cpu_count, Jobs)
+    ->  true
+    ;   Jobs = 1
+    ).
+
+safe_abort(Thread) :-
+    catch(thread_signal(Thread, abort), error(_,_), true).
+safe_join(Thread) :-
+    E = error(_,_),
+    catch(thread_join(Thread, _Status), E, true).
+
+
+		 /*******************************
+		 *              AND		*
+		 *******************************/
+
+%!  concurrent_and(:Generator, :Test).
+%!  concurrent_and(:Generator, :Test, +Options).
+%
+%   Concurrent version of `(Generator,Test)`. This   predicate creates a
+%   thread providing solutions for Generator that   are handed to a pool
+%   of threads that run Test for   the different instantiations provided
+%   by Generator concurrently. The predicate  is logically equivalent to
+%   a simple conjunction except for two  aspects: (1) terms are _copied_
+%   from Generator to the test  Test   threads  while answers are copied
+%   back to the calling thread and (2)   answers  may be produced out of
+%   order.
+%
+%   If   the   evaluation   of   some    Test   raises   an   exception,
+%   concurrent_and/2,3 is terminated with this  exception. If the caller
+%   commits  after  a  given  answer  or    raises  an  exception  while
+%   concurrent_and/2,3  is  active  with  pending   choice  points,  all
+%   involved resources are reclaimed.
+%
+%   Options:
+%
+%     - threads(+Count)
+%       Create a worker pool holding Count threads.  The default is
+%       the Prolog flag `cpu_count`.
+%
+%   This    predicate    was    proposed     by      Jan     Burse    as
+%   balance((Generator,Test)).
+
+concurrent_and(Gen, Test) :-
+    concurrent_and(Gen, Test, []).
+
+concurrent_and(Gen, Test, Options) :-
+    jobs(Jobs, Options),
+    MaxSize is Jobs*4,
+    message_queue_create(JobQueue, [max_size(MaxSize)]),
+    message_queue_create(AnswerQueue),
+    ca_template(Gen, Test, Templ),
+    term_variables(Gen+Test, AllVars),
+    ReplyTempl =.. [v|AllVars],
+    length(Workers, Jobs),
+    Alive is 1<<Jobs-1,
+    maplist(thread_create(ca_worker(JobQueue, AnswerQueue,
+                                    Templ, Test, ReplyTempl)),
+            Workers),
+    thread_create(ca_generator(Gen, Templ, JobQueue, AnswerQueue),
+                  GenThread),
+    State = state(Alive),
+    call_cleanup(
+        ca_gather(State, AnswerQueue, ReplyTempl, Workers),
+        ca_cleanup(GenThread, Workers, JobQueue, AnswerQueue)).
+
+ca_gather(State, AnswerQueue, ReplyTempl, Workers) :-
+    repeat,
+       thread_get_message(AnswerQueue, Msg),
+       (   Msg = true(ReplyTempl)
+       ->  true
+       ;   Msg = done(Worker)
+       ->  nth0(Done, Workers, Worker),
+           arg(1, State, Alive0),
+           Alive1 is Alive0 /\ \(1<<Done),
+           debug(concurrent(and), 'Alive = ~2r', [Alive1]),
+           (   Alive1 =:= 0
+           ->  !,
+               fail
+           ;   nb_setarg(1, State, Alive1),
+               fail
+           )
+       ;   Msg = error(E)
+       ->  throw(E)
+       ).
+
+ca_template(Gen, Test, Templ) :-
+    term_variables(Gen,  GVars),
+    term_variables(Test, TVars),
+    sort(GVars, GVarsS),
+    sort(TVars, TVarsS),
+    ord_intersection(GVarsS, TVarsS, Shared),
+    ord_union(GVarsS, Shared, TemplVars),
+    Templ =.. [v|TemplVars].
+
+ca_worker(JobQueue, AnswerQueue, Templ, Test, ReplyTempl) :-
+    thread_self(Me),
+    EG = error(existence_error(message_queue, _), _),
+    repeat,
+    catch(thread_get_message(JobQueue, Req), EG, Req=all_done),
+    (   Req = job(Templ)
+    ->  (   catch(Test, E, true),
+            (   var(E)
+            ->  thread_send_message(AnswerQueue, true(ReplyTempl))
+            ;   thread_send_message(AnswerQueue, error(E))
+            ),
+            fail
+        )
+    ;   Req == done
+    ->  !,
+        message_queue_destroy(JobQueue),
+        thread_send_message(AnswerQueue, done(Me))
+    ;   assertion(Req == all_done)
+    ->  !,
+        thread_send_message(AnswerQueue, done(Me))
+    ).
+
+ca_generator(Gen, Templ, JobQueue, AnswerQueue) :-
+    (   catch(Gen, E, true),
+        (   var(E)
+        ->  thread_send_message(JobQueue, job(Templ))
+        ;   thread_send_message(AnswerQueue, error(E))
+        ),
+        fail
+    ;   thread_send_message(JobQueue, done)
+    ).
+
+ca_cleanup(GenThread, Workers, JobQueue, AnswerQueue) :-
+    safe_abort(GenThread),
+    safe_join(GenThread),
+    maplist(safe_abort, Workers),
+    maplist(safe_join, Workers),
+    message_queue_destroy(AnswerQueue),
+    catch(message_queue_destroy(JobQueue), error(_,_), true).
 
 
                  /*******************************
