@@ -28,11 +28,11 @@ build_pdf()
 # binary fails due to a missing  symbols   in  libgcov.a.  The Docker is
 # based on Fedora.
 
-MINGW_DOCKER_DIR=$HOME/docker/docker-swipl-build-mingw
+MINGW_DOCKER_DIR=$HOME/src/docker/docker-swipl-build-mingw
 
 build_win32()
 { if [ ! -z "$MINGW_DOCKER_DIR" ]; then
-    make -C $MINGW_DOCKER_DIR --win32
+    make -C $MINGW_DOCKER_DIR win32
   else
     rm -rf build.win32
     mkdir build.win32
@@ -50,7 +50,7 @@ build_win32()
 
 build_win64()
 { if [ ! -z "$MINGW_DOCKER_DIR" ]; then
-    make -C $MINGW_DOCKER_DIR --win64
+    make -C $MINGW_DOCKER_DIR win64
   else
   rm -rf build.win64
     mkdir build.win64
