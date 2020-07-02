@@ -50,6 +50,9 @@
   #endif
 #endif
 
+#include "pl-transaction.h"
+
+
 		 /*******************************
 		 *	 LOCK-FREE SUPPORT	*
 		 *******************************/
@@ -465,13 +468,22 @@ register_attvar(Word gp ARG_LD)
 
 static inline int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ return ( ( cl->generation.created <= gen &&
-	     cl->generation.erased   > gen &&
-	     cl->generation.erased  != LD->gen_reload
-	   ) ||
-	   ( cl->generation.created == LD->gen_reload
-	   )
-	 );
+{ if ( cl->generation.erased  == LD->gen_reload )
+    return FALSE;
+					/* reloading */
+  if ( cl->generation.created == LD->gen_reload )
+    return TRUE;
+
+					/* Normal case */
+  if ( cl->generation.created <= gen &&
+       cl->generation.erased   > gen )
+    return TRUE;
+
+  if ( gen >= LD->transaction.gen_base &&
+       true(cl->predicate, P_DYNAMIC) )
+    return transaction_visible_clause(cl, gen PASS_LD);
+
+  return FALSE;
 }
 
 static inline int
@@ -482,52 +494,44 @@ visibleClauseCNT__LD(Clause cl, gen_t gen ARG_LD)
   return FALSE;
 }
 
-#ifdef ATOMIC_GENERATION_HACK
-/* Work around lacking 64-bit atomic operations.  These are designed to
-   be safe if we assume that read and increment complete before other
-   threads incremented 4G generations.
-*/
-
-static inline gen_t
-global_generation(void)
-{ gen_t g;
-  gen_t last;
-
-  do
-  { last = GD->_last_generation;
-    g = (gen_t)GD->_generation.gen_u<<32 | GD->_generation.gen_l;
-  } while ( unlikely(g < last) );
-
-  if ( unlikely(last != g) )
-    GD->_last_generation = g;
-
-  return g;
-}
-
-static inline gen_t
-next_global_generation(void)
-{ uint32_t u = GD->_generation.gen_u;
-  uint32_t l;
-
-  if ( unlikely((l=ATOMIC_INC(&GD->_generation.gen_l)) == 0) )
-    u = ATOMIC_INC(&GD->_generation.gen_u);
-
-  return (gen_t)u<<32|l;
-}
-
-#else /*ATOMIC_GENERATION_HACK*/
-
 static inline gen_t
 global_generation(void)
 { return GD->_generation;
 }
 
 static inline gen_t
-next_global_generation(void)
-{ return ATOMIC_INC(&GD->_generation);
+current_generation(Definition def ARG_LD)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  { return LD->transaction.generation;
+  } else
+  { return GD->_generation;
+  }
 }
 
-#endif /*ATOMIC_GENERATION_HACK*/
+static inline gen_t
+next_generation(Definition def ARG_LD)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  { if ( LD->transaction.generation < LD->transaction.gen_max )
+      return ++LD->transaction.generation;
+    return 0;
+  } else
+  { gen_t gen;
+
+    PL_LOCK(L_GENERATION);
+    gen = ++GD->_generation;
+    PL_UNLOCK(L_GENERATION);
+
+    return gen;
+  }
+}
+
+static inline gen_t
+max_generation(ARG1_LD)
+{ if ( unlikely(!!LD->transaction.generation) )
+    return LD->transaction.gen_max;
+  else
+    return GEN_MAX;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We must ensure that cleanDefinition() does   not remove clauses that are
@@ -542,15 +546,17 @@ generation is updated and thus no harm is done.
 
 static inline void
 setGenerationFrame__LD(LocalFrame fr ARG_LD)
-{
-#ifdef O_LOGICAL_UPDATE
-  gen_t gen;
+{ if ( unlikely(LD->transaction.generation &&
+		true(fr->predicate, P_DYNAMIC)) )
+  { setGenerationFrameVal(fr, LD->transaction.generation);
+  } else
+  { gen_t gen;
 
-  do
-  { gen = global_generation();
-    setGenerationFrameVal(fr, gen);
-  } while(gen != global_generation());
-#endif
+    do
+    { gen = global_generation();
+      setGenerationFrameVal(fr, gen);
+    } while(gen != global_generation());
+  }
 }
 
 static inline int

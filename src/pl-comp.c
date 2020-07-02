@@ -1605,7 +1605,7 @@ int
 compileClause(Clause *cp, Word head, Word body,
 	      Procedure proc, Module module, term_t warnings ARG_LD)
 { compileInfo ci;			/* data base for the compiler */
-  struct clause clause;
+  struct clause clause = {0};
   Clause cl;
   Definition def = getProcDefinition(proc);
   int rc;
@@ -1615,7 +1615,6 @@ compileClause(Clause *cp, Word head, Word body,
     ci.subclausearg = 0;
     ci.arity        = (int)def->functor->arity;
     ci.argvars      = 0;
-    clause.flags    = 0;
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
@@ -1629,10 +1628,6 @@ compileClause(Clause *cp, Word head, Word body,
   }
 
   clause.predicate  = def;
-  clause.code_size  = 0;
-  clause.source_no  = clause.line_no = 0;
-  clause.owner_no   = 0;
-  clause.references = 0;
 
   ci.clause = &clause;
   ci.module = module;

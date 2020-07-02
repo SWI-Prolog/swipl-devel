@@ -654,6 +654,7 @@ goal} \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{skip}{1}{Skip to character in current input}
 \predicatesummary{skip}{2}{Skip to character on stream}
 \predicatesummary{sleep}{1}{Suspend execution for specified time}
+\predicatesummary{snapshot}{1}{Run goal in isolation}
 \predicatesummary{sort}{2}{Sort elements in a list}
 \predicatesummary{sort}{4}{Sort elements in a list}
 \predicatesummary{source_exports}{2}{Check whether source exports a predicate}
@@ -745,6 +746,7 @@ match} \predicatesummary{sub_string}{5}{Take a substring from a string}
 \predicatesummary{trace}{1}{Set trace point on predicate}
 \predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
+\predicatesummary{transaction}{1}{Run goal in a transaction}
 \predicatesummary{trie_delete}{3}{Remove term from trie}
 \predicatesummary{trie_destroy}{1}{Destroy a trie}
 \predicatesummary{trie_gen}{3}{Get all terms from a trie}

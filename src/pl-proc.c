@@ -40,6 +40,7 @@
 #include "pl-dbref.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-transaction.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General  handling  of  procedures:  creation;  adding/removing  clauses;
@@ -1284,11 +1285,8 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
     def->impl.clauses.number_of_rules++;
   if ( true(def, P_DIRTYREG) )
     ATOMIC_INC(&GD->clauses.dirty);
-#ifdef O_LOGICAL_UPDATE
-  clause->generation.created = next_global_generation();
-  clause->generation.erased  = GEN_MAX;	/* infinite */
-  setLastModifiedPredicate(def, clause->generation.created, TWF_ASSERT);
-#endif
+  clause->generation.created = next_generation(def PASS_LD);
+  clause->generation.erased  = max_generation(PASS_LD1);
 
   if ( false(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) ) /* see (*) above */
     freeCodesDefinition(def, TRUE);
@@ -1298,13 +1296,24 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
-  if ( def->events &&
-       !predicate_update_event(def,
-			       where == CL_START ? ATOM_asserta : ATOM_assertz,
-			       clause PASS_LD) )
-  { retractClauseDefinition(def, clause, FALSE);
+  if ( clause->generation.created == 0 )
+  { PL_representation_error("transaction_generations");
+  error:
+    retractClauseDefinition(def, clause, FALSE);
     return NULL;
   }
+
+  if ( ( def->events &&
+	 !predicate_update_event(def,
+				 where == CL_START ? ATOM_asserta : ATOM_assertz,
+				 clause PASS_LD) ) )
+    goto error;
+
+  setLastModifiedPredicate(def, clause->generation.created, TWF_ASSERT);
+
+  if ( LD->transaction.generation &&
+       clause->generation.created >= LD->transaction.gen_base )
+    transaction_assert_clause(clause PASS_LD);
 
   return cref;
 }
@@ -1415,7 +1424,7 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   release_def(def);
 
   if ( global_generation() < update )
-    next_global_generation();
+    next_generation(NULL PASS_LD);
 
   if ( deleted )
   { ATOMIC_SUB(&def->module->code_size, memory);
@@ -1441,13 +1450,14 @@ represent tries.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-retractClauseDefinition(Definition def, Clause clause, int notify)
-{ GET_LD
+retract_clause(Clause clause, gen_t generation ARG_LD)
+{ Definition def = clause->predicate;
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
 
-  if ( def->events && notify &&
-       !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
-    return FALSE;
+  if ( !generation )
+  { if ( !(generation = next_generation(def PASS_LD)) )
+      return PL_representation_error("transaction_generations");
+  }
 
   LOCKDEF(def);
   if ( true(clause, CL_ERASED) )
@@ -1462,10 +1472,7 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
   def->impl.clauses.erased_clauses++;
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules--;
-#ifdef O_LOGICAL_UPDATE
-  clause->generation.erased = next_global_generation();
-  setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
-#endif
+  clause->generation.erased = generation;
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
@@ -1481,8 +1488,25 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
     ATOMIC_DEC(&GD->clauses.dirty);
 
   registerDirtyDefinition(def PASS_LD);
+  setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 
   return TRUE;
+}
+
+
+int
+retractClauseDefinition(Definition def, Clause clause, int notify)
+{ GET_LD
+
+  if ( def->events && notify &&
+       !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
+    return FALSE;
+
+  if ( LD->transaction.generation &&
+       clause->generation.created < LD->transaction.gen_base )
+    return transaction_retract_clause(clause PASS_LD);
+
+  return retract_clause(clause, 0 PASS_LD);
 }
 
 
@@ -1714,7 +1738,7 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
     release_def(def);
 
     if ( global_generation() < update )	/* see (*) */
-      next_global_generation();
+      next_generation(NULL PASS_LD);
 
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("%s: added %ld, deleted %ld clauses "

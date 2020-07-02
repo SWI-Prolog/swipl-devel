@@ -316,7 +316,8 @@ counting_mutex _PL_mutexes[] =
   COUNT_MUTEX_INITIALIZER("L_CGCGEN"),
   COUNT_MUTEX_INITIALIZER("L_EVHOOK"),
   COUNT_MUTEX_INITIALIZER("L_OSDIR"),
-  COUNT_MUTEX_INITIALIZER("L_ALERT")
+  COUNT_MUTEX_INITIALIZER("L_ALERT"),
+  COUNT_MUTEX_INITIALIZER("L_GENERATION")
 #ifdef __WINDOWS__
 , COUNT_MUTEX_INITIALIZER("L_DDE")
 , COUNT_MUTEX_INITIALIZER("L_CSTACK")
@@ -5580,7 +5581,6 @@ out:
   return rc;
 }
 
-
 		 /*******************************
 		 *	 MUTEX PRIMITIVES	*
 		 *******************************/
@@ -7415,11 +7415,11 @@ pushPredicateAccessObj(Definition def ARG_LD)
   enterDefinition(def);			/* probably not needed in the end */
   dref = &refs->blocks[idx][top];
   dref->predicate  = def;
-  dref->generation = global_generation();
+  dref->generation = current_generation(def PASS_LD);
   refs->top = top;
   do
-  { dref->generation = global_generation();
-  } while ( dref->generation != global_generation() );
+  { dref->generation = current_generation(def PASS_LD);
+  } while ( dref->generation != current_generation(def PASS_LD) );
 
   return dref;
 }

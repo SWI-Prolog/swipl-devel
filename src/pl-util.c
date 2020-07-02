@@ -235,7 +235,18 @@ generationName(gen_t gen)
 
   if ( gen == GEN_MAX )
     return "GEN_MAX";
-  Ssprintf(tmp, "%lld", (int64_t)gen);
+  if ( gen == GEN_INFINITE )
+    return "GEN_INFINITE";
+
+  if ( gen > GEN_TRANSACTION_BASE )
+  { int tid    = (gen-GEN_TRANSACTION_BASE)/GEN_TRANSACTION_SIZE;
+    int64_t g2 = (gen-GEN_TRANSACTION_BASE)%GEN_TRANSACTION_SIZE;
+
+    Ssprintf(tmp, "%d@%lld", tid, (int64_t)g2);
+  } else
+  { Ssprintf(tmp, "%lld", (int64_t)gen);
+  }
+
   return buffer_string(tmp, BUF_STACK);
 }
 

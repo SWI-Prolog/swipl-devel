@@ -713,6 +713,15 @@ struct PL_local_data
   } thread;
 #endif
 
+  struct
+  { gen_t	gen_start;		/* Global start generation */
+    gen_t	gen_base;		/* Local  start generation */
+    gen_t	gen_max;		/* Transaction max gen */
+    gen_t	generation;		/* Local current generation */
+    Table	clauses;		/* Affected clauses */
+    struct tr_stack *stack;		/* Nested transaction stack */
+  } transaction;
+
 #ifdef O_LOCALE
   struct
   { PL_locale *current;			/* Current locale */

@@ -4928,7 +4928,7 @@ undefined predicate for call/N.
       NFR->prof_node      = FR->prof_node;
 #endif
 #ifdef O_LOGICAL_UPDATE
-      cl->generation.erased = ~(gen_t)0;
+      cl->generation.erased = GEN_INFINITE;
       cl->generation.created = global_generation();
       setGenerationFrame(NFR);
 #endif

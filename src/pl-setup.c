@@ -75,7 +75,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
 #ifdef O_LOGICAL_UPDATE
-  next_global_generation();
+  next_generation(NULL PASS_LD);
 #endif
 
   LD->critical = 0;
@@ -171,6 +171,7 @@ initPrologLocalData(ARG1_LD)
 
 #ifdef O_PLMT
   simpleMutexInit(&LD->thread.scan_lock);
+  LD->transaction.gen_base = GEN_INFINITE;
 #endif
 
   updateAlerted(LD);

@@ -5512,6 +5512,14 @@ markPredicatesInEnvironments(PL_local_data_t *ld)
 { GET_LD
   Word lbase, lend, current;
 
+  if ( ld->transaction.gen_start )
+  { for_table(GD->procedures.dirty, n, v,
+	      { DirtyDefInfo ddi = v;
+
+		ddi_add_access_gen(ddi, ld->transaction.gen_start);
+	      });
+  }
+
   lbase = (Word)ld->stacks.local.base;
   lend  = (Word)ld->stacks.local.top;		/* see (*) */
   for(current = lbase; current < lend; current++ )

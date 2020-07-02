@@ -988,6 +988,10 @@ Macros for environment frames (local stack frames)
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 
+
+		 /*******************************
+		 *	 LOGICAL UPDATE		*
+		 *******************************/
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Generations must be 64-bit to  avoid   overflow  in realistic scenarios.
 This makes them the only 64-bit value in struct localFrame. Stack frames
@@ -1003,11 +1007,13 @@ We enable this  if the alignment  of an int64_t type  is not the same as
 the alignment of pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_LOGICAL_UPDATE
 typedef uint64_t gen_t;
 
-#define GEN_MAX (~(gen_t)0)
+#define GEN_INFINITE (~(gen_t)0)
 #define GEN_NEW_DIRTY (gen_t)0
+#define GEN_TRANSACTION_BASE 0x8000000000000000
+#define GEN_TRANSACTION_SIZE 0x0000000100000000
+#define GEN_MAX (GEN_TRANSACTION_BASE-1)
 
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 typedef struct lgen_t
@@ -1037,10 +1043,6 @@ typedef struct ggen_t
   uint32_t	gen_u;
 } ggen_t;
 #endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
-#else /*O_LOGICAL_UPDATE*/
-#define global_generation()	 (0)
-#define next_global_generation() (0)
-#endif /*O_LOGICAL_UPDATE*/
 
 #define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
 
@@ -1069,6 +1071,10 @@ introduce a garbage collector (TBD).
 #define enterDefinition(def) (void)0
 #define leaveDefinition(def) (void)0
 
+
+		 /*******************************
+		 *	 INHIBIT SIGNALS	*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
@@ -1260,6 +1266,7 @@ struct clause
   unsigned int		source_no;	/* Index of source-file */
   unsigned int		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
+  unsigned int		tr_erased_no;	/* # transactions that erased me */
   code			code_size;	/* size of ->codes */
   code			codes[1];	/* VM codes of clause */
 };

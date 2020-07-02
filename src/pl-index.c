@@ -337,10 +337,8 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 
 static void
 setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
-{ while ( cref && !GLOBALLY_VISIBLE_CLAUSE(cref->value.clause, generation) )
-  { cref = cref->next;
-    LD->clauses.erased_skipped++;
-  }
+{ while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
+    cref = cref->next;
 
   chp->cref = cref;
 }

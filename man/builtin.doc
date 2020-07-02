@@ -3359,6 +3359,109 @@ Equivalent to asserta/1, assertz/1, assert/1, but in addition unifies
 used to access this clause with clause/3 and erase/1.
 \end{description}
 
+\subsubsection{Transactions}
+\label{sec:transactions}
+
+\index{transaction}%
+\index{isolation}%
+Traditionally, Prolog database updates add or remove individual clauses.
+The \jargon{Logical Update View} ensures that a goal that is started on
+a dynamic predicate does not see modifications due to assert/1 or
+retract/1 during its life time. See \secref{update}. In a multi-threaded
+context this assumption still holds for individual predicates:
+concurrent modifications to a dynamic predicate are invisible.
+
+\jargon{Transactions} allow running a goal in \jargon{isolation}.
+Database changes from other threads are invisible while changes inside
+the transaction are invisible to other threads and become
+\jargon{atomically} visible to other threads if the transaction is
+\jargon{committed}.  Transactions have several benefits.
+
+\begin{itemize}
+    \item If a database update requires multiple assert/1
+    and/or retract/1 operations, a transaction ensure either all
+    are executed or the database remains unchanged.  Notably
+    unexpected exceptions or failures cannot leave the database
+    in an inconsistent state.
+
+    \item Other threads do not see the intermediate inconsistent
+    states when performing a database update as above.  Notably,
+    this avoids the need for locking for a database update that
+    updates a clause by retracting it and asserting a new one.
+    For example, when using the code below to update
+    \nopredref{temperature}{1}, consumers of this fact do not
+    need synchronization because \nopredref{temperature}{1}
+    is always present and always has exactly one clause.
+
+\begin{code}
+update_temperature(Temp) :-
+    transaction(( retractall(temperature(_)),
+		  asserta(temperature(Temp)))).
+\end{code}
+
+    \item Transactions allow for ``what if'' reasoning over the
+    dynamic database.  This is particularly useful when combined
+    with the deductive database facilities provided by tabling
+    (see \secref{tabling}).
+\end{itemize}
+
+SWI-Prolog transactions only affect the \emph{dynamic} database. Static
+predicates are globally visible and shared at all times. In particular,
+transactions do not affect loading source files and thus, source files
+loaded inside a transaction (e.g., due to \jargon{autoloading}) are
+immediately globally visible. This may pose problems if loading source
+files provide clauses for dynamic predicates.
+
+\begin{description}
+    \predicate{transaction}{1}{:Goal}
+Run \arg{Goal} as once/1 in a transaction. This implies that access to
+dynamic predicates sees the dynamic predicates at the moment the
+transaction is started, together with the modifications issued by
+\arg{Goal}. Thus, \arg{Goal} does not see changes to dynamic predicates
+from other threads and other threads do not see modifications by
+\arg{Goal} (\jargon{isolation}). If \arg{Goal} succeeds, all
+modifications become \jargon{atomically} visible to the other threads.
+If \arg{Goal} fails or raises an exception all local modifications are
+discarded and transaction/1 fails or passes the exception.
+
+Currently the number of database changes inside a transaction (or
+snapshot, see snapshot/1) is limited to $\pow{2}{32}-1$. If this limit
+is exceeded a \verb$representation_error(transaction_generations)$
+exception is raised.
+
+Transactions may be nested. The above mentioned limitation for the
+number of database changes applies to the combined number in nested
+transactions. A discarded nested transaction or snapshot resets the
+database counter for the outer transaction.
+
+    \predicate{snapshot}{1}{:Goal}
+Similar to transaction/1, but \emph{always} discards the local
+modifications. In other words, snapshot/1 allows a thread to examine a
+frozen state of the dynamic predicates and/or make isolated
+modifications without affecting other threads and without making
+permanent changes to the database.
+\end{description}
+
+\paragraph{Issues} The current implementation does \textbf{not} guard
+against multiple transactions performing conflicting database updates.
+For example, running the above \nopredref{update_temperature}{1}
+concurrently may result in a situation where we have multiple clauses
+for \nopredref{temperature}{1}. If two transactions run this at the same
+time, both will remove the existing clause and both will add a new
+clause. Currently the only way to gurantee consistency is by wrapping
+transactions that may perform conflicting updates using with_mutex/2.
+Future versions may provide database \jargon{constraints} to prevent a
+transaction from creating an inconsistent state.
+
+\paragraph{Status} SWI-Prolog transaction management is highly
+experimental. Interaction with other parts of the system such as the
+library \pllib{persistency}, incremental tabling
+(\secref{tabling-incremental}), etc.\ still have to be settled. Future
+versions may also support non-determinism through transactions and
+snapshots.  This is merely a first step to explore isolated changes to
+the dynamic predicate database.
+
+
 \subsection{The recorded database}
 \label{sec:recdb}
 
