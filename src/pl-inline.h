@@ -465,7 +465,13 @@ register_attvar(Word gp ARG_LD)
 
 static inline int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ return VISIBLE_CLAUSE(cl, gen);
+{ return ( ( cl->generation.created <= gen &&
+	     cl->generation.erased   > gen &&
+	     cl->generation.erased  != LD->gen_reload
+	   ) ||
+	   ( cl->generation.created == LD->gen_reload
+	   )
+	 );
 }
 
 static inline int

@@ -1227,24 +1227,10 @@ typedef struct functor_table
 
 #define FUNCTOR_IS_VALID(flags)		((flags) & VALID_F)
 
-
-#ifdef O_LOGICAL_UPDATE
-#define VISIBLE_CLAUSE(cl, gen) \
-	( ( (cl)->generation.created <= (gen) && \
-	    (cl)->generation.erased   > (gen) && \
-	    (cl)->generation.erased  != LD->gen_reload \
-	  ) || \
-	  ( (cl)->generation.created == LD->gen_reload \
-	  ) \
-	)
 #define GLOBALLY_VISIBLE_CLAUSE(cl, gen) \
 	( (cl)->generation.created <= (gen) && \
 	  (cl)->generation.erased   > (gen) \
 	)
-#else
-#define VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
-#define GLOBALLY_VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
-#endif
 
 #define visibleClause(cl, gen) visibleClause__LD(cl, gen PASS_LD)
 #define visibleClauseCNT(cl, gen) visibleClauseCNT__LD(cl, gen PASS_LD)
