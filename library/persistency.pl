@@ -436,11 +436,16 @@ db_attached(Module:File) :-
     db_retractall/1,
     db_retract/1.
 
-db_assert(Module:Term) :-
+db_assert(Term)     :- with_mutex('$persistency', db_assert_sync(Term)).
+db_asserta(Term)    :- with_mutex('$persistency', db_asserta_sync(Term)).
+db_retract(Term)    :- with_mutex('$persistency', db_retract_sync(Term)).
+db_retractall(Term) :- with_mutex('$persistency', db_retractall_sync(Term)).
+
+db_assert_sync(Module:Term) :-
     assert(Module:Term),
     persistent(Module, assert(Term)).
 
-db_asserta(Module:Term) :-
+db_asserta_sync(Module:Term) :-
     asserta(Module:Term),
     persistent(Module, asserta(Term)).
 
@@ -521,7 +526,7 @@ write_action(Stream, Action) :-
 %   Term is unbound, persistent/1 from the   calling  module is used as
 %   generator.
 
-db_retractall(Module:Term) :-
+db_retractall_sync(Module:Term) :-
     (   var(Term)
     ->  forall(persistent(Module, Term, _Types),
                db_retractall(Module:Term))
@@ -545,7 +550,7 @@ db_retractall(Module:Term) :-
 %
 %   Retract terms from the database one-by-one.
 
-db_retract(Module:Term) :-
+db_retract_sync(Module:Term) :-
     (   var(Term)
     ->  instantiation_error(Term)
     ;   retract(Module:Term),
