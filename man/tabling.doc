@@ -1084,7 +1084,7 @@ The tnot/1 predicate implements \jargon{tabled negation}. This predicate
 realises \jargon{Well Founded Semantics}. See \secref{WFS} for details.
 
     \predicate{not_exists}{1}{:Goal}
-Handles tabled negation for non-ground (\jargon{floundaring}) \arg{Goal}
+Handles tabled negation for non-ground (\jargon{floundering}) \arg{Goal}
 as well as non tabled goals. If \arg{Goal} is ground and tabled
 not_exists/1 calls tnot/1. Otherwise it used \term{tabled_call}{Goal} to
 create a table and subsequently uses tnot/1 on the created table.
