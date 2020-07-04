@@ -140,11 +140,11 @@ permission_error(Operation, PermissionType, Culprit) :-
 %   is, but if some variables are bound   to appropriate values it would
 %   be acceptable.
 %
-%   @param  Term is the term that needs (further) instantiation.
-%           Unfortunately, the ISO error does not allow for passing
-%           this term along with the error, but we pass it to this
-%           predicate for documentation purposes and to allow for
-%           future enhancement.
+%   @param  FormalSubTerm is the term that needs (further)
+%           instantiation. Unfortunately, the ISO error does not allow
+%           for passing this term along with the error, but we pass it
+%           to this predicate for documentation purposes and to allow
+%           for future enhancement.
 
 instantiation_error(_FormalSubTerm) :-
     throw(error(instantiation_error, _)).
