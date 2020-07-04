@@ -2564,7 +2564,7 @@ Standard, so SWI-Prolog creates it own convention (see below).
 Thus, constructing an error term and throwing it generally takes this form:
 
 \begin{code}
-Exception = error(Formal, Context), 
+Exception = error(Formal, Context),
 Context   = ... some local convention ...,
 Formal    = type_error(ValidType, Culprit), % for "type error" for example
 ValidType = integer,                        % valid atoms are listed in the ISO Standard
@@ -2584,13 +2584,13 @@ Notably, exceptions of the shape \term{error}{Formal,Context} are
 recognised by the development tools and therefore expressing unexpected
 situations using these exceptions improves the debugging experience.
 
-In SWI-Prolog, the second argument of the exception term, i.e. the 
-\arg{Context} argument, is generally of the form 
+In SWI-Prolog, the second argument of the exception term, i.e. the
+\arg{Context} argument, is generally of the form
 \term{context}{Location, Message}, where:
 
 \begin{itemlist}
 \item [\arg{Location}] describes the execution context in which the
-exception occurred. While the \arg{Location} argument may be specified 
+exception occurred. While the \arg{Location} argument may be specified
 as a predicate indicator (\arg{Name}/\arg{Arity}), it is typically filled
 by the \pllib{prolog_stack} library. This library recognises uncaught
 errors or errors caught by catch_with_backtrace/3 and fills the
