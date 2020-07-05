@@ -447,7 +447,7 @@ concurrent_and(Gen, Test, Options) :-
     jobs(Jobs, Options),
     MaxSize is Jobs*4,
     message_queue_create(JobQueue, [max_size(MaxSize)]),
-    message_queue_create(AnswerQueue),
+    message_queue_create(AnswerQueue, [max_size(MaxSize)]),
     ca_template(Gen, Test, Templ),
     term_variables(Gen+Test, AllVars),
     ReplyTempl =.. [v|AllVars],
