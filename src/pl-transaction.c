@@ -84,26 +84,44 @@ typedef struct tr_stack
   Table		   clauses;		/* Parent changed clauses */
 } tr_stack;
 
+static void
+tr_free_clause_symbol(void *k, void *v)
+{ Clause cl = k;
+  (void)v;
+
+  release_clause(cl);
+}
+
+static Table
+tr_clause_table(ARG1_LD)
+{ Table t;
+
+  if ( !(t=LD->transaction.clauses) )
+  { t = newHTable(16);
+    t->free_symbol = tr_free_clause_symbol;
+    LD->transaction.clauses = t;
+  }
+
+  return t;
+}
+
 int
 transaction_retract_clause(Clause clause ARG_LD)
 { uintptr_t lgen = ( next_generation(clause->predicate PASS_LD) -
 		     LD->transaction.gen_base
 		   );
 
-  if ( !LD->transaction.clauses )
-    LD->transaction.clauses = newHTable(16);
-
+  acquire_clause(clause);
   ATOMIC_INC(&clause->tr_erased_no);
-  addHTable(LD->transaction.clauses, clause, (void*)lgen);
+  addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
 
   return TRUE;
 }
 
 int
 transaction_assert_clause(Clause clause ARG_LD)
-{ if ( !LD->transaction.clauses )
-    LD->transaction.clauses = newHTable(16);
-  addHTable(LD->transaction.clauses, clause, (void*)GEN_ASSERTED);
+{ acquire_clause(clause);
+  addHTable(tr_clause_table(PASS_LD1), clause, (void*)GEN_ASSERTED);
 
   return TRUE;
 }
@@ -198,7 +216,10 @@ transaction_discard(ARG1_LD)
 static void
 merge_tables(Table into, Table from)
 { for_table(from, n, v,
-	    { addHTable(into, n, v);
+	    { Clause cl = n;
+
+	      acquire_clause(cl);
+	      addHTable(into, n, v);
 	    });
 }
 
