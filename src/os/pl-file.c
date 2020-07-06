@@ -440,10 +440,11 @@ tryGetStream(IOSTREAM *s)
   return NULL;
 }
 
-static inline void
+static int
 releaseStream(IOSTREAM *s)
 { if ( s->magic == SIO_MAGIC )
-    Sunlock(s);
+    return Sunlock(s) == 0;
+  return TRUE;
 }
 
 int
@@ -453,7 +454,8 @@ PL_release_stream(IOSTREAM *s)
 
 int
 PL_release_stream_noerror(IOSTREAM *s)
-{ releaseStream(s);
+{ if ( !releaseStream(s) )
+    PL_clear_exception();
 
   return TRUE;
 }
@@ -886,7 +888,8 @@ ok:
     return TRUE;
   }
 
-  releaseStream(s);
+  if ( !releaseStream(s) )
+    return FALSE;
   if ( t == 0 )
   { if ( (t = PL_new_term_ref()) )
       PL_put_atom(t, ATOM_current_output);
@@ -947,7 +950,8 @@ ok:
     return TRUE;
   }
 
-  releaseStream(s);
+  if ( !releaseStream(s) )
+    return FALSE;
   if ( t == 0 )
   { if ( (t = PL_new_term_ref()) )
       PL_put_atom(t, ATOM_current_input);
@@ -1026,9 +1030,9 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   }
 
   if ( in )
-    releaseStream(in);
+    rc = releaseStream(in) && rc;
   if ( out )
-    releaseStream(out);
+    rc = releaseStream(out) && rc;
 
   return rc;
 }
@@ -1148,12 +1152,10 @@ int
 streamStatus(IOSTREAM *s)
 { if ( (s->flags & (SIO_FERR|SIO_WARN)) )
   { int ret = reportStreamError(s);
-    releaseStream(s);
-    return ret;
+    return releaseStream(s) && ret;
   }
 
-  releaseStream(s);
-  return TRUE;
+  return releaseStream(s);
 }
 
 
@@ -1210,22 +1212,19 @@ static int
 closeStream(IOSTREAM *s)
 { if ( s == Sinput )
   { Sclearerr(s);
-    releaseStream(s);
+    return releaseStream(s);
   } else if ( s == Soutput || s == Serror )
   { if ( Sflush(s) < 0 )
       return streamStatus(s);
-    releaseStream(s);
+    return releaseStream(s);
   } else
   { if ( !Sferror(s) && Sflush(s) < 0 )
     { int rc = reportStreamError(s);
       Sclose(s);
       return rc;
     }
-    if ( Sclose(s) < 0 )		/* will unlock as well */
-      return FALSE;
+    return (Sclose(s) == 0);		/* will unlock as well */
   }
-
-  return TRUE;
 }
 
 
@@ -1277,7 +1276,8 @@ protocol(const char *str, size_t n)
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);
-    releaseStream(s);			/* we don not check errors */
+    if ( !releaseStream(s) )		/* we don not check errors */
+      PL_clear_exception();
   }
 }
 
