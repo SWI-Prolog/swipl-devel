@@ -1386,6 +1386,8 @@ source-file or any sourcefile. Note   that thread-local predicates don't
 have clauses from files, so we don't   need to bother. Returns number of
 clauses that has been deleted.
 
+This is called only for (re)consult. What to do with dynamic predicates?
+
 MT: Caller must hold L_PREDICATE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1395,11 +1397,13 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   ClauseRef c;
   size_t deleted = 0;
   size_t memory = 0;
-  gen_t update = global_generation()+1;
+  gen_t update;
 
   if ( true(def, P_THREAD_LOCAL) )
     return 0;
 
+  PL_LOCK(L_GENERATION);
+  update = global_generation()+1;
   acquire_def(def);
   for(c = def->impl.clauses.first_clause; c; c = c->next)
   { Clause cl = c->value.clause;
@@ -1422,9 +1426,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
     }
   }
   release_def(def);
-
-  if ( global_generation() < update )
-    next_generation(NULL PASS_LD);
+  GD->_generation = update;
+  PL_UNLOCK(L_GENERATION);
 
   if ( deleted )
   { ATOMIC_SUB(&def->module->code_size, memory);
