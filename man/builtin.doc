@@ -3375,7 +3375,8 @@ concurrent modifications to a dynamic predicate are invisible.
 Database changes from other threads are invisible while changes inside
 the transaction are invisible to other threads and become
 \jargon{atomically} visible to other threads if the transaction is
-\jargon{committed}.  Transactions have several benefits.
+\jargon{committed}. Transactions have several benefits
+\cite{DBLP:journals/corr/abs-1301-7669}
 
 \begin{itemize}
     \item If a database update requires multiple assert/1
