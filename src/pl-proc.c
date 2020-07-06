@@ -1699,25 +1699,21 @@ mustCleanDefinition(const Definition def)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Finalize a reloaded predicate. This (nearly)   atomically  makes the new
-definition visible.
-
-(*) Updating the generation to one in the future and incrementing at the
-end makes the transaction truely atomic.   In the current implementation
-though, another thread may increment the  generation as well, making our
-changes not entirely atomic. The lock-free retry mechanism won't work to
-fix this. Only a true lock for modifying the generation can fix this.
+Finalize a reloaded predicate. This atomically  makes the new definition
+visible.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
 { if ( true(r, P_MODIFIED) )
   { ClauseRef cref;
-    gen_t update   = global_generation()+1;	/* see (*) */
+    gen_t update;
     size_t deleted = 0;
     size_t added   = 0;
     size_t memory  = 0;
 
+    PL_LOCK(L_GENERATION);
+    update = global_generation()+1;
     acquire_def(def);
     for(cref = def->impl.clauses.first_clause; cref; cref=cref->next)
     { Clause cl = cref->value.clause;
@@ -1740,9 +1736,8 @@ reconsultFinalizePredicate(sf_reload *rl, Definition def, p_reload *r ARG_LD)
       }
     }
     release_def(def);
-
-    if ( global_generation() < update )	/* see (*) */
-      next_generation(NULL PASS_LD);
+    GD->_generation = update;
+    PL_UNLOCK(L_GENERATION);
 
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("%s: added %ld, deleted %ld clauses "
