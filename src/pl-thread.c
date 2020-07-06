@@ -6659,7 +6659,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 		 *******************************/
 
 void
-forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
+forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *, void* ctx),
+			      void *ctx)
 { GET_LD
   int me = PL_thread_self();
   int i;
@@ -6674,7 +6675,7 @@ forThreadLocalDataUnsuspended(void (*func)(PL_local_data_t *), unsigned flags)
 
 	if ( (ld = acquire_ldata(info)) )
 	{ simpleMutexLock(&ld->thread.scan_lock);
-	  (*func)(ld);
+	  (*func)(ld, ctx);
 	  simpleMutexUnlock(&ld->thread.scan_lock);
 	}
       }

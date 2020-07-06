@@ -1617,7 +1617,8 @@ clause GC and clause GC calls cannot run in parallel.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
+cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, Buffer tr_starts,
+		int *rcp)
 { size_t removed = 0;
 
   DEBUG(CHK_SECURE,
@@ -1638,7 +1639,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
 	cref=cref->next)
     { Clause cl = cref->value.clause;
 
-      if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, cl) )
+      if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, tr_starts, cl) )
       { if ( !announceErasedClause(cl) )
 	  *rcp = FALSE;
 
@@ -1665,7 +1666,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start, int *rcp)
     }
     if ( removed )
     { LOCKDEF(def);
-      cleanClauseIndexes(def, &def->impl.clauses, ddi, start);
+      cleanClauseIndexes(def, &def->impl.clauses, ddi, start, tr_starts);
       UNLOCKDEF(def);
     }
     gen_t active = ddi_oldest_generation(ddi);
@@ -2259,11 +2260,24 @@ ddi_add_access_gen(DirtyDefInfo ddi, gen_t access)
 }
 
 int
-ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Clause cl)
+ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Buffer tr_starts, Clause cl)
 { assert(true(ddi, DDI_MARKING));
 
   if ( cl->generation.erased >= start )
-    return FALSE;
+  { if ( cl->generation.erased >= GEN_TRANSACTION_BASE &&
+	 tr_starts && !isEmptyBuffer(tr_starts) )
+    { gen_t *g0  = baseBuffer(tr_starts, gen_t);
+      gen_t *top = topBuffer(tr_starts, gen_t);
+
+      for(; g0<top; g0++)
+      { if ( cl->generation.erased >= *g0 &&
+	     cl->generation.erased < GEN_TRMAX(*g0) )
+	  return FALSE;
+      }
+    } else
+    { return FALSE;
+    }
+  }
 
   if ( false(ddi, DDI_INTERVALS) )
   { int i;
@@ -2445,6 +2459,7 @@ pl_garbage_collect_clauses(void)
     double gct, t0 = ThreadCPUTime(LD, CPU_USER);
     gen_t start_gen = global_generation();
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
+    tmp_buffer tr_starts;
 
     if ( verbose )
     { if ( (rc=printMessage(ATOM_informational,
@@ -2472,9 +2487,11 @@ pl_garbage_collect_clauses(void)
 		ddi_reset(ddi);			  /* see (*) */
 	      });
 
-    markPredicatesInEnvironments(LD);
+    initBuffer(&tr_starts);
+    markPredicatesInEnvironments(LD, (Buffer)&tr_starts);
 #ifdef O_PLMT
-    forThreadLocalDataUnsuspended(markPredicatesInEnvironments, 0);
+    forThreadLocalDataUnsuspended(markPredicatesInEnvironments,
+				  (Buffer)&tr_starts);
 #endif
 
     DEBUG(MSG_CGC, Sdprintf("(marking done)\n"));
@@ -2485,7 +2502,9 @@ pl_garbage_collect_clauses(void)
 
 		if ( false(def, P_FOREIGN) &&
 		     def->impl.clauses.erased_clauses > 0 )
-		{ size_t del = cleanDefinition(def, ddi, start_gen, &rc);
+		{ size_t del = cleanDefinition(def, ddi,
+					       start_gen, (Buffer)&tr_starts,
+					       &rc);
 
 		  removed += del;
 		  DEBUG(MSG_CGC_PRED,
@@ -2500,6 +2519,7 @@ pl_garbage_collect_clauses(void)
 		maybeUnregisterDirtyDefinition(def);
 	      });
 
+    discardBuffer(&tr_starts);
     gcClauseRefs();
     GD->clauses.cgc_count++;
     GD->clauses.cgc_reclaimed	+= removed;

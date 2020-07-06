@@ -124,7 +124,8 @@ COMMON(int)		addClauseToIndexes(Definition def, Clause cl,
 					   ClauseRef where);
 COMMON(void)		delClauseFromIndex(Definition def, Clause cl);
 COMMON(void)		cleanClauseIndexes(Definition def, ClauseList cl,
-					   DirtyDefInfo ddi, gen_t start);
+					   DirtyDefInfo ddi,
+					   gen_t start, Buffer tr_starts);
 COMMON(void)		clearTriedIndexes(Definition def);
 COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
@@ -266,8 +267,9 @@ COMMON(void)		clearUninitialisedVarsFrame(LocalFrame, Code);
 COMMON(void)		clearLocalVariablesFrame(LocalFrame fr);
 COMMON(void)		setLTopInBody(void);
 COMMON(word)		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
-COMMON(void)		markAtomsOnStacks(PL_local_data_t *ld);
-COMMON(void)		markPredicatesInEnvironments(PL_local_data_t *ld);
+COMMON(void)		markAtomsOnStacks(PL_local_data_t *ld, void *ctx);
+COMMON(void)		markPredicatesInEnvironments(PL_local_data_t *ld,
+						     void *ctx);
 COMMON(QueryFrame)	queryOfFrame(LocalFrame fr);
 COMMON(void)		mark_active_environment(struct bit_vector *active,
 						LocalFrame fr, Code PC);
@@ -481,7 +483,9 @@ COMMON(int)		setAttrDefinition(Definition def, unsigned attr, int val);
 COMMON(int)		PL_meta_predicate(predicate_t def, const char*);
 COMMON(void)		ddi_add_access_gen(DirtyDefInfo ddi, gen_t access);
 COMMON(int)		ddi_contains_gen(DirtyDefInfo ddi, gen_t access);
-COMMON(int)		ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Clause cl);
+COMMON(int)		ddi_is_garbage(DirtyDefInfo ddi,
+				       gen_t start, Buffer tr_starts,
+				       Clause cl);
 COMMON(size_t)		sizeof_predicate(Definition def);
 
 /* pl-srcfile.c */

@@ -453,8 +453,8 @@ COMMON(void)		free_wait_area(thread_wait_area *wa);
 		 *******************************/
 
 COMMON(void)	forThreadLocalDataUnsuspended(
-		    void (*func)(struct PL_local_data *),
-		    unsigned flags);
+		    void (*func)(struct PL_local_data *, void *ctx),
+		    void *ctx);
 COMMON(void)	resumeThreads(void);
 COMMON(void)	markAtomsMessageQueues(void);
 COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
