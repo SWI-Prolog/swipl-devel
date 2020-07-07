@@ -106,15 +106,29 @@ tr_clause_table(ARG1_LD)
   return t;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This distinguishes two cases. If we retract a globally visible clause we
+may need to commit and we  need  to   know  the  generation  at which we
+retracted the clause.
+
+If we added the clause ourselves, we no   longer  have to commit it. Its
+visibility is guaranteed by the created and erased generations, so there
+is no need to keep it in our tables.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 transaction_retract_clause(Clause clause ARG_LD)
-{ uintptr_t lgen = ( next_generation(clause->predicate PASS_LD) -
-		     LD->transaction.gen_base
-		   );
+{ if ( clause->generation.created < LD->transaction.gen_base )
+  { uintptr_t lgen = ( next_generation(clause->predicate PASS_LD) -
+		       LD->transaction.gen_base
+		     );
 
-  acquire_clause(clause);
-  ATOMIC_INC(&clause->tr_erased_no);
-  addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+    acquire_clause(clause);
+    ATOMIC_INC(&clause->tr_erased_no);
+    addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+  } else if ( LD->transaction.clauses )
+  { deleteHTable(LD->transaction.clauses, clause);
+  }
 
   return TRUE;
 }
