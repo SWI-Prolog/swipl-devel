@@ -73,6 +73,12 @@ test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p(1), tr([+p(2)]), ?p(1),?p(2)])]).
 test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p(1), tr([+p(2),discard]), ?p(1),\+p(2)])]).
+test(nested, [cleanup(cleanup)]) :-
+    test_transaction([tr([tr([])])]).
+test(nested, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p,tr([])]), ?p]).
+test(nested, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p,tr([-p]),\+p])]).
 
 :- end_tests(transaction).
 
