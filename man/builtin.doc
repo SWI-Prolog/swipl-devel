@@ -3441,6 +3441,14 @@ modifications. In other words, snapshot/1 allows a thread to examine a
 frozen state of the dynamic predicates and/or make isolated
 modifications without affecting other threads and without making
 permanent changes to the database.
+
+    \predicate[nondet]{current_transaction}{1}{-Goal}
+True when called inside a transaction running \arg{Goal}. This predicate
+generates candidates from the current (nested) transaction outward.
+\arg{Goal} is a plain goal if the calling context module is the same
+as matching transaction/1 or snapshot/1 and a qualified callable term
+otherwise.  Note that this only enumerates transactions in the current
+thread.
 \end{description}
 
 \paragraph{Issues} The current implementation does \textbf{not} guard

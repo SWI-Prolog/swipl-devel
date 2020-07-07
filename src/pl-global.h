@@ -719,6 +719,7 @@ struct PL_local_data
     gen_t	gen_max;		/* Transaction max gen */
     gen_t	generation;		/* Local current generation */
     Table	clauses;		/* Affected clauses */
+    term_t	id;			/* Default the goal */
     struct tr_stack *stack;		/* Nested transaction stack */
   } transaction;
 

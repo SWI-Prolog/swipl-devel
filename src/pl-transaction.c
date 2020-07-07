@@ -82,6 +82,7 @@ typedef struct tr_stack
 { struct tr_stack *parent;		/* parent transaction */
   gen_t            generation;		/* Parent generation */
   Table		   clauses;		/* Parent changed clauses */
+  term_t	   id;			/* Parent goal */
 } tr_stack;
 
 static void
@@ -238,7 +239,8 @@ transaction(term_t goal, int flags ARG_LD)
   if ( LD->transaction.generation )
   { tr_stack parent = { .generation = LD->transaction.generation,
 			.clauses    = LD->transaction.clauses,
-			.parent     = LD->transaction.stack
+			.parent     = LD->transaction.stack,
+			.id         = LD->transaction.id
 		      };
 
     LD->transaction.clauses = NULL;
@@ -258,6 +260,7 @@ transaction(term_t goal, int flags ARG_LD)
     }
     LD->transaction.clauses = parent.clauses;
     LD->transaction.stack   = parent.parent;
+    LD->transaction.id      = parent.id;
   } else
   { int tid = PL_thread_self();
 
@@ -265,7 +268,9 @@ transaction(term_t goal, int flags ARG_LD)
     LD->transaction.gen_base   = GEN_TRANSACTION_BASE + tid*GEN_TRANSACTION_SIZE;
     LD->transaction.gen_max    = LD->transaction.gen_base+GEN_TRANSACTION_SIZE-1;
     LD->transaction.generation = LD->transaction.gen_base;
+    LD->transaction.id         = goal;
     rc=callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
+    LD->transaction.id         = 0;
     LD->transaction.generation = 0;
     LD->transaction.gen_max    = 0;
     LD->transaction.gen_base   = GEN_INFINITE;
@@ -294,10 +299,66 @@ PRED_IMPL("snapshot", 1, snapshot, PL_FA_TRANSPARENT)
   return transaction(A1, TR_SNAPSHOT PASS_LD);
 }
 
+static
+PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  tr_stack *stack;
+  term_t id0, id;
+  Module m0 = contextModule(environment_frame);
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+    { if ( !LD->transaction.id )
+	return FALSE;
+      id0 = LD->transaction.id;
+      stack = LD->transaction.stack;
+      break;
+    }
+    case FRG_REDO:
+    { stack = CTX_PTR;
+      id0 = stack->id;
+      break;
+    }
+    default:
+      return TRUE;
+  }
+
+  id = PL_new_term_ref();
+  Mark(fli_context->mark);
+  for(;;)
+  { Module m = NULL;
+    int rc;
+
+    if ( !PL_strip_module(id0, &m, id) )
+      return FALSE;
+    if ( m == m0 )
+      rc = PL_unify(A1, id);
+    else
+      rc = PL_unify(A1, id0);
+
+    if ( rc )
+    { if ( stack )
+	ForeignRedoPtr(stack);
+      else
+	return TRUE;
+    }
+    Undo(fli_context->mark);
+
+    if ( stack )
+    { id0 = stack->id;
+      stack = stack->parent;
+    } else
+      return FALSE;
+  }
+}
+
+
 #define META PL_FA_TRANSPARENT
+#define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(transaction)
-  PRED_DEF("transaction",         1, transaction,        META)
-  PRED_DEF("snapshot",            1, snapshot,           META)
+  PRED_DEF("$transaction",        1, transaction,         META)
+  PRED_DEF("$snapshot",           1, snapshot,            META)
+  PRED_DEF("current_transaction", 1, current_transaction, NDET|META)
 EndPredDefs
 
