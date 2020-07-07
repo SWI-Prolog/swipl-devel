@@ -126,11 +126,18 @@ transaction_retract_clause(Clause clause ARG_LD)
     acquire_clause(clause);
     ATOMIC_INC(&clause->tr_erased_no);
     addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+
+    return TRUE;
   } else if ( LD->transaction.clauses )
   { deleteHTable(LD->transaction.clauses, clause);
   }
+  DEBUG(MSG_TRANSACTION,
+	Sdprintf("Deleting locally asserted clause for %s %s..%s\n",
+		 predicateName(clause->predicate),
+		 generationName(clause->generation.created),
+		 generationName(clause->generation.erased)));
 
-  return TRUE;
+  return FALSE;
 }
 
 int

@@ -1505,8 +1505,9 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
        !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
     return FALSE;
 
-  if ( LD->transaction.generation )
-    return transaction_retract_clause(clause PASS_LD);
+  if ( LD->transaction.generation &&
+       transaction_retract_clause(clause PASS_LD) )
+    return TRUE;
 
   return retract_clause(clause, 0 PASS_LD);
 }

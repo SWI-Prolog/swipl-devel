@@ -69,6 +69,8 @@ test(assert, [cleanup(cleanup)]) :-
     test_transaction([tr([+p]), ?p]).
 test(retract, [cleanup(cleanup)]) :-
     test_transaction([+p, tr([-p]), \+p]).
+test(assert_retract, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p,-p]), \+p]).
 test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p(1), tr([+p(2)]), ?p(1),?p(2)])]).
 test(nested, [cleanup(cleanup)]) :-
@@ -78,6 +80,8 @@ test(nested, [cleanup(cleanup)]) :-
 test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([])]), ?p]).
 test(nested, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p,tr([-p,\+p])])]).
+test(nested, [cleanup(cleanup), blocked(fails)]) :-
     test_transaction([tr([+p,tr([-p]),\+p])]).
 
 :- end_tests(transaction).
