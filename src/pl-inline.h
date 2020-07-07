@@ -468,10 +468,9 @@ register_attvar(Word gp ARG_LD)
 
 static inline int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ if ( cl->generation.erased  == LD->gen_reload )
+{ if ( unlikely(cl->generation.erased == LD->gen_reload) )
     return FALSE;
-					/* reloading */
-  if ( cl->generation.created == LD->gen_reload )
+  if ( unlikely(cl->generation.created == LD->gen_reload) )
     return TRUE;
 
 					/* Normal case */
@@ -479,7 +478,7 @@ visibleClause__LD(Clause cl, gen_t gen ARG_LD)
        cl->generation.erased   > gen )
     return TRUE;
 
-  if ( gen >= LD->transaction.gen_base &&
+  if ( unlikely(gen >= LD->transaction.gen_base) &&
        true(cl->predicate, P_DYNAMIC) )
     return transaction_visible_clause(cl, gen PASS_LD);
 
