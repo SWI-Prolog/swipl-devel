@@ -242,10 +242,16 @@ transaction(term_t goal, int flags ARG_LD)
 		      };
 
     LD->transaction.clauses = NULL;
+    LD->transaction.id      = goal;
+    LD->transaction.stack   = &parent;
     rc=callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && (flags&TR_TRANSACTION) && LD->transaction.clauses )
-    { merge_tables(parent.clauses, LD->transaction.clauses);
-      destroyHTable(LD->transaction.clauses);
+    { if ( parent.clauses )
+      { merge_tables(parent.clauses, LD->transaction.clauses);
+	destroyHTable(LD->transaction.clauses);
+      } else
+      { parent.clauses = LD->transaction.clauses;
+      }
     } else
     { transaction_discard(PASS_LD1);
       LD->transaction.generation = parent.generation;
