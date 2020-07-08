@@ -717,6 +717,7 @@ struct PL_local_data
   { gen_t	gen_start;		/* Global start generation */
     gen_t	gen_base;		/* Local  start generation */
     gen_t	gen_max;		/* Transaction max gen */
+    gen_t	gen_nest;		/* Start of nested generation */
     gen_t	generation;		/* Local current generation */
     Table	clauses;		/* Affected clauses */
     term_t	id;			/* Default the goal */

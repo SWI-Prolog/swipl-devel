@@ -76,10 +76,12 @@ A clause is visible iff
 
 
 /* Avoid conflict with HTABLE_TOMBSTONE and HTABLE_SENTINEL */
-#define GEN_ASSERTED ((uintptr_t)(void*)-3)
+#define GEN_ASSERTED		((uintptr_t)(void*)-3)
+#define GEN_NESTED_RETRACT	((uintptr_t)(void*)-4)
 
 typedef struct tr_stack
 { struct tr_stack *parent;		/* parent transaction */
+  gen_t		   gen_nest;		/* Saved nesting generation */
   gen_t            generation;		/* Parent generation */
   Table		   clauses;		/* Parent changed clauses */
   term_t	   id;			/* Parent goal */
@@ -126,6 +128,15 @@ transaction_retract_clause(Clause clause ARG_LD)
     acquire_clause(clause);
     ATOMIC_INC(&clause->tr_erased_no);
     addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+
+    return TRUE;
+  } else if ( clause->generation.created <= LD->transaction.gen_nest )
+  { gen_t egen = next_generation(clause->predicate PASS_LD);
+    if ( !egen )
+      return PL_representation_error("transaction_generations"),-1;
+    clause->generation.erased = egen;
+    acquire_clause(clause);
+    addHTable(tr_clause_table(PASS_LD1), clause, (void*)GEN_NESTED_RETRACT);
 
     return TRUE;
   } else if ( LD->transaction.clauses )
@@ -179,14 +190,9 @@ transaction_commit(ARG1_LD)
 
     for_table(LD->transaction.clauses, n, v,
 	      { Clause cl = n;
+		uintptr_t lgen = (uintptr_t)v;
 
-		if ( v != (void*)GEN_ASSERTED ) /* we erased the clause */
-		{ DEBUG(MSG_COMMIT,
-			Sdprintf("Commit erased clause for %s\n",
-				 predicateName(cl->predicate)));
-		  ATOMIC_DEC(&cl->tr_erased_no);
-		  retract_clause(cl, gen_commit PASS_LD);
-		} else
+		if ( lgen == GEN_ASSERTED )
 		{ if ( false(cl, CL_ERASED) )
 		  { cl->generation.created = gen_commit;
 		    DEBUG(MSG_COMMIT,
@@ -199,6 +205,14 @@ transaction_commit(ARG1_LD)
 		    cl->generation.created = 0;
 		    cl->generation.erased  = 0;
 		  }
+		} else if ( lgen == GEN_NESTED_RETRACT )
+		{ retract_clause(cl, gen_commit PASS_LD);
+		} else
+		{ DEBUG(MSG_COMMIT,
+			Sdprintf("Commit erased clause for %s\n",
+				 predicateName(cl->predicate)));
+		  ATOMIC_DEC(&cl->tr_erased_no);
+		  retract_clause(cl, gen_commit PASS_LD);
 		}
 	      });
     GD->_generation = gen_commit;
@@ -216,16 +230,19 @@ transaction_discard(ARG1_LD)
 { if ( LD->transaction.clauses )
   { for_table(LD->transaction.clauses, n, v,
 	      { Clause cl = n;
+		uintptr_t lgen = (uintptr_t)v;
 
-		if ( v != (void*)GEN_ASSERTED )
-		{ ATOMIC_DEC(&cl->tr_erased_no);
-		} else
+		if ( lgen == GEN_ASSERTED )
 		{ if ( false(cl, CL_ERASED) )
 		  { retract_clause(cl, GD->_generation-1 PASS_LD);
 		  } else
 		  { cl->generation.created = 0;
 		    cl->generation.erased  = 0;
 		  }
+		} else if ( lgen == GEN_NESTED_RETRACT )
+		{ cl->generation.erased = max_generation(PASS_LD1);
+		} else
+		{ ATOMIC_DEC(&cl->tr_erased_no);
 		}
 	      });
     destroyHTable(LD->transaction.clauses);
@@ -259,14 +276,16 @@ transaction(term_t goal, int flags ARG_LD)
 
   if ( LD->transaction.generation )
   { tr_stack parent = { .generation = LD->transaction.generation,
+			.gen_nest   = LD->transaction.gen_nest,
 			.clauses    = LD->transaction.clauses,
 			.parent     = LD->transaction.stack,
 			.id         = LD->transaction.id
 		      };
 
-    LD->transaction.clauses = NULL;
-    LD->transaction.id      = goal;
-    LD->transaction.stack   = &parent;
+    LD->transaction.clauses  = NULL;
+    LD->transaction.id       = goal;
+    LD->transaction.stack    = &parent;
+    LD->transaction.gen_nest = LD->transaction.generation;
     rc=callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && (flags&TR_TRANSACTION) && LD->transaction.clauses )
     { if ( parent.clauses )
@@ -279,9 +298,10 @@ transaction(term_t goal, int flags ARG_LD)
     { transaction_discard(PASS_LD1);
       LD->transaction.generation = parent.generation;
     }
-    LD->transaction.clauses = parent.clauses;
-    LD->transaction.stack   = parent.parent;
-    LD->transaction.id      = parent.id;
+    LD->transaction.gen_nest = parent.gen_nest;
+    LD->transaction.clauses  = parent.clauses;
+    LD->transaction.stack    = parent.parent;
+    LD->transaction.id       = parent.id;
   } else
   { int tid = PL_thread_self();
 
