@@ -196,6 +196,7 @@ transaction_commit(ARG1_LD)
 		if ( lgen == GEN_ASSERTED )
 		{ if ( false(cl, CL_ERASED) )
 		  { cl->generation.created = gen_commit;
+		    cl->generation.erased  = GEN_MAX;
 		    DEBUG(MSG_COMMIT,
 			Sdprintf("Commit added clause for %s\n",
 				 predicateName(cl->predicate)));
