@@ -3453,6 +3453,23 @@ generates candidates from the current (nested) transaction outward.
 as matching transaction/1 or snapshot/1 and a qualified callable term
 otherwise.  Note that this only enumerates transactions in the current
 thread.
+
+    \predicate{transaction_updates}{1}{-Updates}
+Unify \arg{Updates} with a list of database updates that would be
+effectuated if the transaction is going to be committed at this stage.
+\arg{Updates} is a list of terms defined below. The elements are sorted
+on the change generation, i.e., the order in which the operations were
+performed.
+
+    \begin{description}
+	\termitem{assert}{+ClauseRef}
+	The given clause will be asserted.  The current implementation
+	does not distinguish asserta/1 and assertz/1.  Future versions
+	may distinguish these.
+	\termitem{erased}{+ClauseRef}
+	The given clause will be removed.  This may be due to erased/1,
+	retract/1 or retractall/1.
+    \end{description}
 \end{description}
 
 \paragraph{Issues} The current implementation does \textbf{not} guard

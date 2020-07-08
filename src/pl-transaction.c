@@ -36,6 +36,7 @@
 
 #include "pl-incl.h"
 #include "pl-transaction.h"
+#include "pl-dbref.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements _transactions_, notably _isolating_ transactions.
@@ -262,6 +263,62 @@ merge_tables(Table into, Table from)
 	    });
 }
 
+		 /*******************************
+		 *	      UPDATES		*
+		 *******************************/
+
+typedef struct tr_update
+{ Clause    clause;
+  functor_t update;
+} tr_update;
+
+static gen_t
+update_gen(const tr_update *u)
+{ return u->update == FUNCTOR_erased1 ?
+		u->clause->generation.erased :
+		u->clause->generation.created;
+}
+
+static int
+cmp_updates(const void *ptr1, const void *ptr2)
+{ const tr_update *u1 = ptr1;
+  const tr_update *u2 = ptr2;
+  gen_t g1 = update_gen(u1);
+  gen_t g2 = update_gen(u2);
+
+  return g1 < g2 ? -1 : g1 > g2 ? 1 : 0;
+}
+
+
+static int
+transaction_updates(Buffer b ARG_LD)
+{ if ( LD->transaction.clauses )
+  { for_table(LD->transaction.clauses, n, v,
+	      { Clause cl = n;
+		uintptr_t lgen = (uintptr_t)v;
+
+		if ( lgen == GEN_ASSERTED )
+		{ if ( false(cl, CL_ERASED) )
+		  { tr_update u;
+		    u.clause = cl;
+		    u.update = FUNCTOR_assert1;
+		    addBuffer(b, u, tr_update);
+		  }
+		} else
+		{ tr_update u;
+		  u.clause = cl;
+		  u.update = FUNCTOR_erased1;
+		  addBuffer(b, u, tr_update);
+		}
+	      });
+    qsort(baseBuffer(b, void),
+	  entriesBuffer(b, tr_update), sizeof(tr_update),
+	  cmp_updates);
+  }
+
+  return TRUE;
+}
+
 
 		 /*******************************
 		 *	PROLOG CONNECTION	*
@@ -393,6 +450,49 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
   }
 }
 
+static int
+add_update(Clause cl, functor_t action,
+	   term_t tail, term_t head, term_t tmp ARG_LD)
+{ return ( PL_put_clref(tmp, cl) &&
+	   PL_cons_functor(tmp, action, tmp) &&
+	   PL_unify_list(tail, head, tail) &&
+	   PL_unify(head, tmp)
+	 );
+}
+
+static
+PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
+{ PRED_LD
+
+  if ( !LD->transaction.generation )
+    return FALSE;			/* error? */
+
+  if ( LD->transaction.clauses )
+  { tmp_buffer buf;
+    tr_update *u, *e;
+    term_t tail = PL_copy_term_ref(A1);
+    term_t head = PL_new_term_ref();
+    term_t tmp  = PL_new_term_ref();
+    int rc = TRUE;
+
+    initBuffer(&buf);
+    transaction_updates((Buffer)&buf PASS_LD);
+    u = baseBuffer(&buf, tr_update);
+    e = topBuffer(&buf, tr_update);
+
+    for(; u<e; u++)
+    { if ( !add_update(u->clause, u->update, tail, head, tmp PASS_LD) )
+      { rc = FALSE;
+	break;
+      }
+    }
+    discardBuffer(&buf);
+
+    return rc && PL_unify_nil(tail);
+  } else
+  { return PL_unify_nil(A1);
+  }
+}
 
 #define META PL_FA_TRANSPARENT
 #define NDET PL_FA_NONDETERMINISTIC
@@ -401,5 +501,6 @@ BeginPredDefs(transaction)
   PRED_DEF("$transaction",        1, transaction,         META)
   PRED_DEF("$snapshot",           1, snapshot,            META)
   PRED_DEF("current_transaction", 1, current_transaction, NDET|META)
+  PRED_DEF("transaction_updates", 1, transaction_updates, 0)
 EndPredDefs
 

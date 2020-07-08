@@ -86,6 +86,14 @@ test(nested, [cleanup(cleanup)]) :-
 test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([-p,discard]),?p])]).
 
+test(update, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p, u([+p])])]).
+test(update, [cleanup(cleanup)]) :-
+    test_transaction([tr([+p, +p(1), u([+p,+p(1)])])]).
+test(update, [cleanup(cleanup)]) :-
+    test_transaction([+p, tr([-p, u([-p])])]).
+
+
 :- end_tests(transaction).
 
 :- begin_tests(thread_transaction,
@@ -181,6 +189,8 @@ test(isolate_retract2b, [cleanup(cleanup)]) :-
 %       start(Name), in(Name, Actions), and end(Name).
 %     - discard
 %       Discard the current transaction and create a new one.
+%     - u(List)
+%       Verify the pending updates in a transaction.
 
 test_transaction(M:List) :-
     must_be(list, List),
@@ -261,11 +271,36 @@ action(tr(Actions), State, State) :-
     ensure_list(Actions, List),
     M = State.module,
     in_transaction(M, List).
+action(u(List), State, State) :-
+    transaction_updates(Clauses),
+    M = State.module,
+    maplist(update_action(M), Clauses, Terms),
+    assertion(maplist(=@=, List, Terms)).
 
 ensure_list(List, List) :-
     is_list(List),
     !.
 ensure_list(Elem, [Elem]).
+
+update_action(M, assert(CRef), +Term) :-
+    clause_term(CRef, M, Term).
+update_action(M, erased(CRef), -Term) :-
+    clause_term(CRef, M, Term).
+
+clause_term(CRef, M, Term) :-
+    clause(Head0, Body, CRef),
+    (   Head0 = M:Head
+    ->  true
+    ;   Head = Head0
+    ),
+    (   Body == true
+    ->  Term = Head
+    ;   Term = (Head :- Body)
+    ).
+
+%!  in_transaction(+Module, +Actions)
+%
+%   Run Actions in a transaction.
 
 in_transaction(Module, Actions) :-
     catch(transaction(tr_actions(Module, Actions)),
