@@ -72,6 +72,12 @@
 :- predicate_options(concurrent/3, 3,
                      [ pass_to(system:thread_create/3, 3)
                      ]).
+:- predicate_options(concurrent_forall/3, 3,
+                     [ threads(nonneg)
+                     ]).
+:- predicate_options(concurrent_and/3, 3,
+                     [ threads(nonneg)
+                     ]).
 :- predicate_options(first_solution/3, 3,
                      [ on_fail(oneof([stop,continue])),
                        on_error(oneof([stop,continue])),
