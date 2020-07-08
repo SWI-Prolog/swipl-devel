@@ -329,7 +329,7 @@ transaction_updates(Buffer b ARG_LD)
 #define TR_SNAPSHOT		0x0002
 
 static int
-transaction(term_t goal, int flags ARG_LD)
+transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 { int rc;
 
   if ( LD->transaction.generation )
@@ -344,13 +344,17 @@ transaction(term_t goal, int flags ARG_LD)
     LD->transaction.id       = goal;
     LD->transaction.stack    = &parent;
     LD->transaction.gen_nest = LD->transaction.generation;
-    rc=callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
-    if ( rc && (flags&TR_TRANSACTION) && LD->transaction.clauses )
-    { if ( parent.clauses )
-      { merge_tables(parent.clauses, LD->transaction.clauses);
-	destroyHTable(LD->transaction.clauses);
-      } else
-      { parent.clauses = LD->transaction.clauses;
+    rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
+    if ( rc && constraint )
+      rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
+    if ( rc && (flags&TR_TRANSACTION) )
+    { if ( LD->transaction.clauses )
+      { if ( parent.clauses )
+	{ merge_tables(parent.clauses, LD->transaction.clauses);
+	  destroyHTable(LD->transaction.clauses);
+	} else
+	{ parent.clauses = LD->transaction.clauses;
+	}
       }
     } else
     { transaction_discard(PASS_LD1);
@@ -362,40 +366,68 @@ transaction(term_t goal, int flags ARG_LD)
     LD->transaction.id       = parent.id;
   } else
   { int tid = PL_thread_self();
+#ifdef O_PLMT
+    pl_mutex *mutex = NULL;
+    if ( lock && !get_mutex(lock, &mutex, TRUE) )
+      return FALSE;
+#define TR_LOCK() PL_mutex_lock(mutex)
+#define TR_UNLOCK() PL_mutex_unlock(mutex)
+#else
+#define TR_LOCK() (void)0
+#define TR_UNLOCK() (void)0
+#endif
 
     LD->transaction.gen_start  = global_generation();
     LD->transaction.gen_base   = GEN_TRANSACTION_BASE + tid*GEN_TRANSACTION_SIZE;
     LD->transaction.gen_max    = LD->transaction.gen_base+GEN_TRANSACTION_SIZE-1;
     LD->transaction.generation = LD->transaction.gen_base;
     LD->transaction.id         = goal;
-    rc=callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
+    rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
+    if ( rc && (flags&TR_TRANSACTION) )
+    { if ( constraint )
+      { TR_LOCK();
+	LD->transaction.gen_start = global_generation();
+	rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
+      }
+      if ( rc )
+      { rc = transaction_commit(PASS_LD1);
+	if ( constraint ) TR_UNLOCK();
+      } else
+      { if ( constraint ) TR_UNLOCK();
+	transaction_discard(PASS_LD1);
+      }
+    } else
+    { transaction_discard(PASS_LD1);
+    }
     LD->transaction.id         = 0;
     LD->transaction.generation = 0;
     LD->transaction.gen_max    = 0;
     LD->transaction.gen_base   = GEN_INFINITE;
     LD->transaction.gen_start  = 0;
-
-    if ( rc && (flags&TR_TRANSACTION) )
-      rc = transaction_commit(PASS_LD1);
-    else
-      transaction_discard(PASS_LD1);
   }
 
   return rc;
 }
 
 static
-PRED_IMPL("transaction", 1, transaction, PL_FA_TRANSPARENT)
+PRED_IMPL("$transaction", 1, transaction, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return transaction(A1, TR_TRANSACTION PASS_LD);
+  return transaction(A1, 0, 0, TR_TRANSACTION PASS_LD);
 }
 
 static
-PRED_IMPL("snapshot", 1, snapshot, PL_FA_TRANSPARENT)
+PRED_IMPL("$transaction", 3, transaction, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return transaction(A1, TR_SNAPSHOT PASS_LD);
+  return transaction(A1, A2, A3, TR_TRANSACTION PASS_LD);
+}
+
+static
+PRED_IMPL("$snapshot", 1, snapshot, PL_FA_TRANSPARENT)
+{ PRED_LD
+
+  return transaction(A1, 0, 0, TR_SNAPSHOT PASS_LD);
 }
 
 static
@@ -500,6 +532,7 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
 
 BeginPredDefs(transaction)
   PRED_DEF("$transaction",        1, transaction,         META)
+  PRED_DEF("$transaction",        3, transaction,         META)
   PRED_DEF("$snapshot",           1, snapshot,            META)
   PRED_DEF("current_transaction", 1, current_transaction, NDET|META)
   PRED_DEF("transaction_updates", 1, transaction_updates, 0)

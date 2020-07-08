@@ -286,7 +286,7 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
 }
 
 
-static int
+int
 get_mutex(term_t t, pl_mutex **mutex, int create)
 { GET_LD
   atom_t name;

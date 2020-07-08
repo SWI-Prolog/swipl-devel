@@ -3436,8 +3436,35 @@ exception is raised.
 
 Transactions may be nested. The above mentioned limitation for the
 number of database changes applies to the combined number in nested
-transactions. A discarded nested transaction or snapshot resets the
-database counter for the outer transaction.
+transactions.
+
+If \arg{Goal} succeeds, the transaction is \emph{committed}. This
+implies that (1) any clause that is asserted in the transaction and not
+retracted in the same transaction is made \emph{globally visible} and
+(2) and clause the existed before the transaction and is retracted in
+the transaction becomes \emph{globally invisible}. Multiple transactions
+may retract the same clause and be committed, i.e., committing a retract
+that was already performed is a no-op.  All modifications become
+\jargon{atomically} visible to other threads.  The transaction/3
+variation allows for verifying \jargon{constraints} just before the
+commit takes place.
+
+    \predicate{transaction}{3}{:Goal, :Constraint, +Mutex}
+Similar to transaction/1, but allows verifying \arg{Constraint} during
+the commit phase.  This predicate follows the steps below.  Any failure
+or exception during this process discards the transaction and releases
+\arg{Mutex} when applicable. \arg{Constraint} may modify the database.
+Such modifications follow the semantics that apply for \arg{Goal}.
+
+\begin{itemize}
+    \item Call \term{once}{Goal}
+    \item Lock \arg{Mutex}
+    \item Change the visibility to the \emph{current} global state
+          combined with the changes made by \arg{Goal}
+    \item Call \term{once}{Constraint}
+    \item Commit the changes
+    \item Unlock \arg{Mutex}.
+\end{itemize}
 
     \predicate{snapshot}{1}{:Goal}
 Similar to transaction/1, but \emph{always} discards the local

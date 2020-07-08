@@ -86,6 +86,7 @@
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
             transaction/1,                      % :Goal
+            transaction/3,                      % :Goal, :Constraint, +Mutex
             snapshot/1,                         % :Goal
             set_prolog_gc_thread/1,		% +Status
 
@@ -97,6 +98,7 @@
     use_foreign_library(:),
     use_foreign_library(:, +),
     transaction(0),
+    transaction(0,0,+),
     snapshot(0).
 
 
@@ -1527,6 +1529,8 @@ set_prolog_gc_thread(Status) :-
 
 transaction(Goal) :-
     '$transaction'(Goal).
+transaction(Goal, Constraint, Mutex) :-
+    '$transaction'(Goal, Constraint, Mutex).
 snapshot(Goal) :-
     '$snapshot'(Goal).
 

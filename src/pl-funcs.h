@@ -715,7 +715,6 @@ COMMON(access_level_t)	setAccessLevel(access_level_t new_level);
 
 
 /* pl-thread.c */
-COMMON(foreign_t)	pl_with_mutex(term_t mutex, term_t goal);
 COMMON(foreign_t)	pl_thread_self(term_t self);
 #ifdef O_PLMT
 COMMON(int)		unify_thread_id(term_t id, PL_thread_info_t *info);
@@ -725,7 +724,8 @@ COMMON(int)		enableThreads(int enable);
 
 /* pl-mutex.c */
 COMMON(void)		initMutexes(void);
-
+COMMON(foreign_t)	pl_with_mutex(term_t mutex, term_t goal);
+COMMON(int)		get_mutex(term_t t, pl_mutex **mutex, int create);
 
 /* pl-gmp.c */
 COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
