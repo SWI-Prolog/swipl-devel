@@ -1256,6 +1256,9 @@ xref_meta(thread_at_exit(A),    [A]).
 xref_meta(thread_initialization(A), [A]).
 xref_meta(engine_create(_,A,_), [A]).
 xref_meta(engine_create(_,A,_,_), [A]).
+xref_meta(transaction(A),       [A]).
+xref_meta(transaction(A,B,_),   [A,B]).
+xref_meta(snapshot(A),          [A]).
 xref_meta(predsort(A,_,_),      [A+3]).
 xref_meta(call_cleanup(A, B),   [A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
