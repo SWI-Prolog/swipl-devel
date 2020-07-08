@@ -4251,14 +4251,14 @@ Do not show ports of this predicate in the debugger.
 
     \termitem{number_of_clauses}{ClauseCount}
 Unify \arg{ClauseCount} to the number of clauses associated with the
-predicate.  Fails for foreign predicates.
+predicate.  Fails for foreign predicates.  This property respects the
+\jargon{logical update view} and counts visible clauses at the moment
+the predicate was started.
 
     \termitem{number_of_rules}{RuleCount}
-Unify \arg{RuleCount} to the number of clauses associated with the
-predicate. A \jargon{rule} is defined as a clauses that has a body that
-is not just \const{true} (i.e., a \jargon{fact}). Fails for foreign
-predicates. This property is used to avoid analysing predicates with
-only facts in \pllib{prolog_codewalk}.
+Similar to \termitem{number_of_clauses}{ClauseCount}, but only counts
+\jargon{rules}. A \jargon{rule} is defined as a clauses that has a body
+that is not just \const{true} (i.e., a \jargon{fact}).
 
     \termitem{last_modified_generation}{Generation}
 Database generation at which the predicate was modified for the last

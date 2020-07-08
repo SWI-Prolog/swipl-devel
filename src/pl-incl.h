@@ -1009,8 +1009,9 @@ the alignment of pointers.
 
 typedef uint64_t gen_t;
 
-#define GEN_INFINITE (~(gen_t)0)
-#define GEN_NEW_DIRTY (gen_t)0
+#define GEN_INVALID   ((gen_t)0)
+#define GEN_INFINITE  (~(gen_t)0)
+#define GEN_NEW_DIRTY ((gen_t)0)
 #define GEN_TRANSACTION_BASE 0x8000000000000000
 #define GEN_TRANSACTION_SIZE 0x0000000100000000
 #define GEN_MAX (GEN_TRANSACTION_BASE-1)
@@ -1241,8 +1242,6 @@ typedef struct functor_table
 
 #define visibleClause(cl, gen) visibleClause__LD(cl, gen PASS_LD)
 #define visibleClauseCNT(cl, gen) visibleClauseCNT__LD(cl, gen PASS_LD)
-
-#define GEN_INVALID 0
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on

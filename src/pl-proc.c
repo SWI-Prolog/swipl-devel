@@ -3269,27 +3269,31 @@ attribute_mask(atom_t key)
 static size_t
 num_visible_clauses(Definition def, atom_t key)
 { GET_LD
+  size_t count;
 
-  if ( LD->gen_reload != GEN_INVALID )
+  if ( key == ATOM_number_of_clauses )
+    count = def->impl.clauses.number_of_clauses;
+  else
+    count = def->impl.clauses.number_of_rules;
+
+  if ( count > 0 &&
+       (LD->gen_reload != GEN_INVALID || true(def, P_DYNAMIC)) )
   { ClauseRef c;
-    size_t num_clauses = 0;
+    gen_t generation = generationFrame(environment_frame);
 
+    count = 0;
     acquire_def(def);
     for(c = def->impl.clauses.first_clause; c; c = c->next)
     { Clause cl = c->value.clause;
       if ( key == ATOM_number_of_rules && true(cl, UNIT_CLAUSE) )
         continue;
-      if ( visibleClause(cl, generationFrame(environment_frame)) )
-        num_clauses++;
+      if ( visibleClause(cl, generation) )
+        count++;
     }
     release_def(def);
-    return num_clauses;
   }
 
-  if ( key == ATOM_number_of_clauses )
-    return def->impl.clauses.number_of_clauses;
-  else
-    return def->impl.clauses.number_of_rules;
+  return count;
 }
 
 
