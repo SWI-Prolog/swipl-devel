@@ -225,8 +225,8 @@ transaction_commit(ARG1_LD)
 		  { DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded in-transaction clause for %s\n",
 				   predicateName(cl->predicate)));
-		    cl->generation.created = 0;
 		    cl->generation.erased  = 0;
+		    cl->generation.created = 0;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ retract_clause(cl, gen_commit PASS_LD);
@@ -257,10 +257,10 @@ transaction_discard(ARG1_LD)
 
 		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
-		  { retract_clause(cl, GD->_generation-1 PASS_LD);
+		  { retract_clause(cl, cl->generation.created PASS_LD);
 		  } else
-		  { cl->generation.created = 0;
-		    cl->generation.erased  = 0;
+		  { cl->generation.erased  = 0;
+		    cl->generation.created = 0;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ cl->generation.erased = max_generation(PASS_LD1);
