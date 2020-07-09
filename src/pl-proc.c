@@ -1248,13 +1248,15 @@ ClauseRef
 assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 { word key;
   ClauseRef cref;
-  gen_t gen = next_generation(def PASS_LD);
 
   argKey(clause->codes, 0, &key);
   if ( !(cref=newClauseRef(clause, key)) )
   { freeClause(clause);
     return NULL;
   }
+
+  clause->generation.created = next_generation(def PASS_LD);
+  clause->generation.erased  = max_generation(PASS_LD1);
 
   LOCKDEF(def);
   acquire_def(def);
@@ -1286,8 +1288,6 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
     def->impl.clauses.number_of_rules++;
   if ( true(def, P_DIRTYREG) )
     ATOMIC_INC(&GD->clauses.dirty);
-  clause->generation.created = gen;
-  clause->generation.erased  = max_generation(PASS_LD1);
 
   if ( false(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) ) /* see (*) above */
     freeCodesDefinition(def, TRUE);
