@@ -71,26 +71,28 @@ test(retract, [cleanup(cleanup)]) :-
     test_transaction([+p, tr([-p]), \+p]).
 test(assert_retract, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,-p]), \+p]).
-test(nested, [cleanup(cleanup)]) :-
+test(nested1, [cleanup(cleanup)]) :-
     test_transaction([tr([+p(1), tr([+p(2)]), ?p(1),?p(2)])]).
-test(nested, [cleanup(cleanup)]) :-
+test(nested2, [cleanup(cleanup)]) :-
     test_transaction([tr([+p(1), tr([+p(2),discard]), ?p(1),\+p(2)])]).
-test(nested, [cleanup(cleanup)]) :-
+test(nested3, [cleanup(cleanup)]) :-
     test_transaction([tr([tr([])])]).
-test(nested, [cleanup(cleanup)]) :-
+test(nested4, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([])]), ?p]).
-test(nested, [cleanup(cleanup)]) :-
-    test_transaction([tr([+p,tr([-p,\+p])])]).
-test(nested, [cleanup(cleanup)]) :-
-    test_transaction([tr([+p,tr([-p]),\+p])]).
-test(nested, [cleanup(cleanup)]) :-
+test(nested5, [cleanup(cleanup)]) :-
+    test_transaction([tr([a+p,tr([-p,\+p])])]).
+test(nested6, [cleanup(cleanup)]) :-
+    test_transaction([tr([a+p,tr([-p]),\+p])]).
+test(nested7, [cleanup(cleanup)]) :-
+    test_transaction([tr([z+p,tr([-p]),\+p])]).
+test(nested8, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([-p,discard]),?p])]).
 
-test(update, [cleanup(cleanup)]) :-
+test(update1, [cleanup(cleanup)]) :-
     test_transaction([tr([+p, u([z+p])])]).
-test(update, [cleanup(cleanup)]) :-
+test(update2, [cleanup(cleanup)]) :-
     test_transaction([tr([+p, +p(1), u([z+p,z+p(1)])])]).
-test(update, [cleanup(cleanup)]) :-
+test(update3, [cleanup(cleanup)]) :-
     test_transaction([+p, tr([-p, u([-p])])]).
 
 
