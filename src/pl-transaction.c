@@ -387,7 +387,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 
     LD->transaction.gen_start  = global_generation();
     LD->transaction.gen_base   = GEN_TRANSACTION_BASE + tid*GEN_TRANSACTION_SIZE;
-    LD->transaction.gen_max    = LD->transaction.gen_base+GEN_TRANSACTION_SIZE-1;
+    LD->transaction.gen_max    = LD->transaction.gen_base+GEN_TRANSACTION_SIZE-6;
     LD->transaction.generation = LD->transaction.gen_base;
     LD->transaction.id         = goal;
     rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
