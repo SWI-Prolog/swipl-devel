@@ -294,7 +294,7 @@ update_action(M, erased(CRef), -Term) :-
     clause_term(CRef, M, Term).
 
 clause_term(CRef, M, Term) :-
-    clause(Head0, Body, CRef),
+    '$clause'(Head0, Body, CRef, _Bindings),
     (   Head0 = M:Head
     ->  true
     ;   Head = Head0
