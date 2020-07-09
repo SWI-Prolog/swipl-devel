@@ -3267,9 +3267,8 @@ attribute_mask(atom_t key)
 
 
 static size_t
-num_visible_clauses(Definition def, atom_t key)
-{ GET_LD
-  size_t count;
+num_visible_clauses(Definition def, atom_t key, gen_t gen ARG_LD)
+{ size_t count;
 
   if ( key == ATOM_number_of_clauses )
     count = def->impl.clauses.number_of_clauses;
@@ -3279,7 +3278,9 @@ num_visible_clauses(Definition def, atom_t key)
   if ( count > 0 &&
        (LD->gen_reload != GEN_INVALID || true(def, P_DYNAMIC)) )
   { ClauseRef c;
-    gen_t generation = generationFrame(environment_frame);
+
+    if ( !gen )
+      gen = current_generation(def PASS_LD);
 
     count = 0;
     acquire_def(def);
@@ -3287,7 +3288,7 @@ num_visible_clauses(Definition def, atom_t key)
     { Clause cl = c->value.clause;
       if ( key == ATOM_number_of_rules && true(cl, UNIT_CLAUSE) )
         continue;
-      if ( visibleClause(cl, generation) )
+      if ( visibleClause(cl, gen) )
         count++;
     }
     release_def(def);
@@ -3401,7 +3402,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
       fail;
 
     def = getProcDefinition(proc);
-    num_clauses = num_visible_clauses(def, key);
+    num_clauses = num_visible_clauses(def, key, 0 PASS_LD);
     if ( num_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
     return PL_unify_int64(value, num_clauses);
@@ -3417,7 +3418,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
     def = getProcDefinition(proc);
     if ( def->impl.clauses.number_of_clauses == 0 && false(def, P_DYNAMIC) )
       fail;
-    return PL_unify_integer(value, num_visible_clauses(def, key));
+    return PL_unify_integer(value, num_visible_clauses(def, key, 0 PASS_LD));
   } else if ( key == ATOM_size )
   { def = getProcDefinition(proc);
     return PL_unify_integer(value, sizeof_predicate(def));
