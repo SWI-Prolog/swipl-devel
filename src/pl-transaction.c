@@ -59,9 +59,9 @@ Transactions take this a step further:
 Clause updates are handles as follows inside a transaction:
 
   - The clause is added to the LD->transaction.clauses table, where
-    the value is GEN_ASSERTED or the local offset of the deleted
-    generation (gen-LD->transaction.gen_base).
-  - If the clause was retracted, clause.tr_erased_no is incremented.
+    the value is GEN_ASSERTA or GEN_ASSERTZ or the local offset of the
+    deleted generation (gen-LD->transaction.gen_base). - If the clause
+    was retracted, clause.tr_erased_no is incremented.
 
 A clause is visible iff
 
@@ -77,8 +77,11 @@ A clause is visible iff
 
 
 /* Avoid conflict with HTABLE_TOMBSTONE and HTABLE_SENTINEL */
-#define GEN_ASSERTED		((uintptr_t)(void*)-3)
-#define GEN_NESTED_RETRACT	((uintptr_t)(void*)-4)
+#define GEN_ASSERTA		((uintptr_t)(void*)-3)
+#define GEN_ASSERTZ		((uintptr_t)(void*)-4)
+#define GEN_NESTED_RETRACT	((uintptr_t)(void*)-5)
+
+#define IS_ASSERT_GEN(g) ((g)==GEN_ASSERTA||(g)==GEN_ASSERTZ)
 
 typedef struct tr_stack
 { struct tr_stack *parent;		/* parent transaction */
@@ -153,9 +156,11 @@ transaction_retract_clause(Clause clause ARG_LD)
 }
 
 int
-transaction_assert_clause(Clause clause ARG_LD)
-{ acquire_clause(clause);
-  addHTable(tr_clause_table(PASS_LD1), clause, (void*)GEN_ASSERTED);
+transaction_assert_clause(Clause clause, ClauseRef where ARG_LD)
+{ uintptr_t lgen = (where == CL_START ? GEN_ASSERTA : GEN_ASSERTZ);
+
+  acquire_clause(clause);
+  addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
 
   return TRUE;
 }
@@ -169,7 +174,7 @@ transaction_visible_clause(Clause cl, gen_t gen ARG_LD)
 
     if ( cl->tr_erased_no && LD->transaction.clauses &&
 	 (lgen = (intptr_t)lookupHTable(LD->transaction.clauses, cl)) &&
-	 lgen != GEN_ASSERTED )
+	 !IS_ASSERT_GEN(lgen) )
     { if ( lgen+LD->transaction.gen_base <= gen )
 	return FALSE;
     }
@@ -193,7 +198,7 @@ transaction_commit(ARG1_LD)
 	      { Clause cl = n;
 		uintptr_t lgen = (uintptr_t)v;
 
-		if ( lgen == GEN_ASSERTED )
+		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
 		  { cl->generation.created = gen_commit;
 		    cl->generation.erased  = GEN_MAX;
@@ -234,7 +239,7 @@ transaction_discard(ARG1_LD)
 	      { Clause cl = n;
 		uintptr_t lgen = (uintptr_t)v;
 
-		if ( lgen == GEN_ASSERTED )
+		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
 		  { retract_clause(cl, GD->_generation-1 PASS_LD);
 		  } else
@@ -298,11 +303,14 @@ transaction_updates(Buffer b ARG_LD)
 	      { Clause cl = n;
 		uintptr_t lgen = (uintptr_t)v;
 
-		if ( lgen == GEN_ASSERTED )
+		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
 		  { tr_update u;
 		    u.clause = cl;
-		    u.update = FUNCTOR_assert1;
+		    if ( lgen == GEN_ASSERTA )
+		      u.update = FUNCTOR_asserta1;
+		    else
+		      u.update = FUNCTOR_assertz1;
 		    addBuffer(b, u, tr_update);
 		  }
 		} else

@@ -3504,10 +3504,12 @@ on the change generation, i.e., the order in which the operations were
 performed.
 
     \begin{description}
-	\termitem{assert}{+ClauseRef}
-	The given clause will be asserted.  The current implementation
-	does not distinguish asserta/1 and assertz/1.  Future versions
-	may distinguish these.
+	\termitem{asserta}{+ClauseRef}
+	\nodescription
+	\termitem{assertz}{+ClauseRef}
+	The given clause will be asserted at the start or end.  Note
+	that due to competing transactions the clause may no longer
+	be the first/last clause of the predicate.
 	\termitem{erased}{+ClauseRef}
 	The given clause will be removed.  This may be due to erased/1,
 	retract/1 or retractall/1.

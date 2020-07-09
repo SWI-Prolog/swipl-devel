@@ -1313,7 +1313,7 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 
   if ( LD->transaction.generation &&
        clause->generation.created >= LD->transaction.gen_base )
-    transaction_assert_clause(clause PASS_LD);
+    transaction_assert_clause(clause, where PASS_LD);
 
   return cref;
 }

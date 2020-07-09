@@ -934,6 +934,7 @@ F asin			1
 F asinh			1
 F assert		1
 F asserta		1
+F assertz		1
 F atan			1
 F atan			2
 F atanh			1

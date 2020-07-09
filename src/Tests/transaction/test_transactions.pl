@@ -87,9 +87,9 @@ test(nested, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([-p,discard]),?p])]).
 
 test(update, [cleanup(cleanup)]) :-
-    test_transaction([tr([+p, u([+p])])]).
+    test_transaction([tr([+p, u([z+p])])]).
 test(update, [cleanup(cleanup)]) :-
-    test_transaction([tr([+p, +p(1), u([+p,+p(1)])])]).
+    test_transaction([tr([+p, +p(1), u([z+p,z+p(1)])])]).
 test(update, [cleanup(cleanup)]) :-
     test_transaction([+p, tr([-p, u([-p])])]).
 
@@ -214,7 +214,11 @@ test([H|T], Step, State0, State) :-
     ).
 
 action(+(Term), State0, State) :-
+    action(assertz(Term), State0, State).
+action(a+(Term), State0, State) :- !,
     action(asserta(Term), State0, State).
+action(z+(Term), State0, State) :- !,
+    action(assertz(Term), State0, State).
 action(-(Term), State0, State) :-
     action(retract(Term), State0, State).
 action(?(Term), State0, State) :-
@@ -282,7 +286,9 @@ ensure_list(List, List) :-
     !.
 ensure_list(Elem, [Elem]).
 
-update_action(M, assert(CRef), +Term) :-
+update_action(M, asserta(CRef), a+Term) :-
+    clause_term(CRef, M, Term).
+update_action(M, assertz(CRef), z+Term) :-
     clause_term(CRef, M, Term).
 update_action(M, erased(CRef), -Term) :-
     clause_term(CRef, M, Term).

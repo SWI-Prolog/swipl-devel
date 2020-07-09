@@ -39,7 +39,7 @@
 #define _PL_TRANSACTION_H
 
 COMMON(int)	transaction_retract_clause(Clause clause ARG_LD);
-COMMON(int)	transaction_assert_clause(Clause clause ARG_LD);
+COMMON(int)	transaction_assert_clause(Clause clause, ClauseRef where ARG_LD);
 COMMON(int)	transaction_visible_clause(Clause cl, gen_t gen ARG_LD);
 
 #endif /*_PL_TRANSACTION_H*/
