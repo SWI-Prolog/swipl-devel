@@ -34,7 +34,7 @@
 
 :- module(test_transaction_constraints,
           [ test_transaction_constraints/0,
-            test_transaction_constraints/3
+            test_transaction_constraints/4
           ]).
 
 /** <module> Test transactions with constraints.
@@ -52,17 +52,19 @@ consistency.
 :- use_module(library(thread)).
 :- use_module(library(debug)).
 
-% :- debug(veto).
+:- debug(veto(verify)).
 
 :- meta_predicate
     concurrent_with(0,0).
 
 test_transaction_constraints :-
-    test_transaction_constraints(1000, 2, 0).
+    test_transaction_constraints(1000, 2, 0, snapshot).
 
-test_transaction_constraints(N, M, Delay) :-
+test_transaction_constraints(N, M, Delay, Snapshot) :-
+    retractall(temperature(_)),
+    asserta(temperature(0)),
     flag(illegal_state, _, 0),
-    concurrent_with(no_duplicate_temp_loop,
+    concurrent_with(no_duplicate_temp_loop(Snapshot),
                     test(N, M, Delay)),
     get_flag(illegal_state, Count),
     (   Count == 0
@@ -75,8 +77,6 @@ test_transaction_constraints(N, M, Delay) :-
     temperature/1.
 
 test(N, M, Delay) :-
-    retractall(temperature(_)),
-    asserta(temperature(0)),
     set_flag(conflict, 0),
     concurrent_forall(
         between(1, N, _),
@@ -98,7 +98,7 @@ test(N, M, Delay) :-
 set_temp(Degrees) :-
     repeat,
     transaction(update_temp(Degrees),
-                no_duplicate_temp('Vetoed'),
+                no_duplicate_temp(constraint),
                 temp),
     !.
 
@@ -117,14 +117,17 @@ update_temp(Temp) :-
 %
 %   Ensure there is only one clause.  This is our constraint.
 
-no_duplicate_temp(_) :-
-    predicate_property(temperature(_), number_of_clauses(1)),
-    !.
+%no_duplicate_temp(_) :-
+%    predicate_property(temperature(_), number_of_clauses(1)),
+%    !.
 no_duplicate_temp(Why) :-
     findall(Temp, temperature(Temp), List),
-    debug(veto, '~w: ~p', [Why, List]),
-    flag(conflict, N, N+1),
-    fail.
+    (   List = [_]
+    ->  true
+    ;   debug(veto(Why), '~w: ~p', [Why, List]),
+        flag(conflict, N, N+1),
+        fail
+    ).
 
 set_random_temp(Delay) :-
     A is random_float*Delay,
@@ -140,12 +143,18 @@ concurrent_with(G1, G2) :-
             thread_join(Id, _)
         )).
 
-no_duplicate_temp_loop :-
-    (   snapshot(no_duplicate_temp('Verify'))
+no_duplicate_temp_loop(snapshot) :-
+    (   snapshot(no_duplicate_temp(verify))
     ->  true
     ;   flag(illegal_state, C, C+1)
     ),
-    no_duplicate_temp_loop.
+    no_duplicate_temp_loop(snapshot).
+no_duplicate_temp_loop(call) :-
+    (   no_duplicate_temp(verify)
+    ->  true
+    ;   flag(illegal_state, C, C+1)
+    ),
+    no_duplicate_temp_loop(call).
 
 :- else.
 
