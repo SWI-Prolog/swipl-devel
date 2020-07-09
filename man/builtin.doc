@@ -3375,11 +3375,13 @@ retract/1 during its life time. See \secref{update}. In a multi-threaded
 context this assumption still holds for individual predicates:
 concurrent modifications to a dynamic predicate are invisible.
 
-\jargon{Transactions} allow running a goal in \jargon{isolation}.
-Database changes from other threads are invisible while changes inside
-the transaction are invisible to other threads and become
-\jargon{atomically} visible to other threads if the transaction is
-\jargon{committed}. Transactions have several benefits
+\jargon{Transactions} allow running a goal in \jargon{isolation}. The
+goals running inside the transaction `see' the database as it was when
+the transaction was started together with database changes done by the
+transaction goal. Other threads see no changes until the transaction is
+\jargon{committed}. The commit, also if it involved multiple clauses
+spread over multiple predicates, becomes \jargon{atomically} visible to
+other threads. Transactions have several benefits
 \cite{DBLP:journals/corr/abs-1301-7669}
 
 \begin{itemize}
@@ -3390,19 +3392,32 @@ the transaction are invisible to other threads and become
     in an inconsistent state.
 
     \item Other threads do not see the intermediate inconsistent
-    states when performing a database update as above.  Notably,
-    this avoids the need for locking for a database update that
-    updates a clause by retracting it and asserting a new one.
-    For example, when using the code below to update
-    \nopredref{temperature}{1}, consumers of this fact do not
-    need synchronization because \nopredref{temperature}{1}
-    is always present and always has exactly one clause.
+    states when a database update that consists of multiple assert
+    and/or retract is performed in a transaction. This notably avoids
+    the need to use locks (see with_mutex/2) in threads that read the
+    data. A reading thread may still need to use snapshot/1 if a goal
+    depends on multiple calls to dynamic predicates.  Unlike locks,
+    transaction and snapshot based synchronization allows both readers
+    and writers to make progress
+    simultaneously.\footnote{\jargon{Read-write} locks also provide
+    readers and writers to make progress simultaneously, but readers
+    see all intermediate states rather than a consistent state.}
+
+    Transactions on their own \textbf{do not guarantee consistency}.
+    For example, when running the code below to update the temperature
+    concurrently from multiple threads it is possible for the global
+    state to have multiple \nopredref{temperature}{1} clauses.
 
 \begin{code}
 update_temperature(Temp) :-
     transaction(( retractall(temperature(_)),
 		  asserta(temperature(Temp)))).
 \end{code}
+
+    Global \jargon{consistency} can be achieved by wrapping the above
+    transaction using with_mutex/2 or by using transaction/3 with a
+    \jargon{constraint} that demands a single clause for
+    \nopredref{temperature}{1}
 
     \item Transactions allow for ``what if'' reasoning over the
     dynamic database.  This is particularly useful when combined
@@ -3420,7 +3435,7 @@ files provide clauses for dynamic predicates.
 \begin{description}
     \predicate{transaction}{1}{:Goal}
 Run \arg{Goal} as once/1 in a transaction. This implies that access to
-dynamic predicates sees the dynamic predicates at the moment the
+dynamic predicates `sees' the dynamic predicates at the moment the
 transaction is started, together with the modifications issued by
 \arg{Goal}. Thus, \arg{Goal} does not see changes to dynamic predicates
 from other threads and other threads do not see modifications by
@@ -3499,25 +3514,18 @@ performed.
     \end{description}
 \end{description}
 
-\paragraph{Issues} The current implementation does \textbf{not} guard
-against multiple transactions performing conflicting database updates.
-For example, running the above \nopredref{update_temperature}{1}
-concurrently may result in a situation where we have multiple clauses
-for \nopredref{temperature}{1}. If two transactions run this at the same
-time, both will remove the existing clause and both will add a new
-clause. Currently the only way to gurantee consistency is by wrapping
-transactions that may perform conflicting updates using with_mutex/2.
-Future versions may provide database \jargon{constraints} to prevent a
-transaction from creating an inconsistent state.
-
 \paragraph{Status} SWI-Prolog transaction management is highly
 experimental. Interaction with other parts of the system such as the
 library \pllib{persistency}, incremental tabling
 (\secref{tabling-incremental}), etc.\ still have to be settled. Future
 versions may also support non-determinism through transactions and
 snapshots.  This is merely a first step to explore isolated changes to
-the dynamic predicate database.
+the dynamic predicate database.  If you use these facilities
 
+\begin{itemize}
+    \item Be aware that the API and exact semantics may still change.
+    \item Discuss successes and problems at our \href{https://swi-prolog.discourse.group/}{Discourse forum}.
+\end{itemize}
 
 \subsection{The recorded database}
 \label{sec:recdb}
