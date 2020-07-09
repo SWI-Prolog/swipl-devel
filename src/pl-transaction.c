@@ -535,6 +535,46 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
   }
 }
 
+#ifdef O_DEBUG
+static
+PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
+{ PRED_LD
+  Procedure proc;
+
+  if ( get_procedure(A1, &proc, 0, GP_NAMEARITY) )
+  { Definition def = getProcDefinition(proc);
+    size_t count = 0;
+    gen_t gen = current_generation(def PASS_LD);
+    ClauseRef c;
+
+    Sdprintf("Clauses for %s at %s\n",
+	     predicateName(def), generationName(gen));
+
+    count = 0;
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+
+      Sdprintf("  %s %p %s..%s%s\n",
+	       visibleClause(cl, gen) ? "V" : "i",
+	       cl,
+	       generationName(cl->generation.created),
+	       generationName(cl->generation.erased),
+	       true(cl, CL_ERASED) ? " (erased)" : "");
+
+      if ( visibleClause(cl, gen) )
+        count++;
+    }
+    release_def(def);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+#endif
+
+
 #define META PL_FA_TRANSPARENT
 #define NDET PL_FA_NONDETERMINISTIC
 
@@ -544,5 +584,8 @@ BeginPredDefs(transaction)
   PRED_DEF("$snapshot",           1, snapshot,            META)
   PRED_DEF("current_transaction", 1, current_transaction, NDET|META)
   PRED_DEF("transaction_updates", 1, transaction_updates, 0)
+#ifdef O_DEBUG
+  PRED_DEF("pred_generations",    1, pred_generations,    META)
+#endif
 EndPredDefs
 

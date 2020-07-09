@@ -2944,8 +2944,9 @@ PRED_IMPL("retract", 1, retract,
       setGenerationFrameVal(environment_frame, dref->generation);
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp PASS_LD);
       DEBUG(MSG_CGC_RETRACT,
-	    Sdprintf("Started retract from %s at gen = %lld\n",
-		     predicateName(def), generationFrame(environment_frame)));
+	    Sdprintf("Started retract from %s at gen = %s\n",
+		     predicateName(def),
+		     generationName(generationFrame(environment_frame))));
       if ( !cref )
       { popPredicateAccess(def);
 	leaveDefinition(def);
