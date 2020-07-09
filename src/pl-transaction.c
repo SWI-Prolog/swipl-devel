@@ -113,13 +113,27 @@ tr_clause_table(ARG1_LD)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This distinguishes two cases. If we retract a globally visible clause we
-may need to commit and we  need  to   know  the  generation  at which we
-retracted the clause.
+This distinguishes three cases.
 
-If we added the clause ourselves, we no   longer  have to commit it. Its
-visibility is guaranteed by the created and erased generations, so there
-is no need to keep it in our tables.
+  - If we retract a globally visible clause we may need to commit and we
+    need to know the generation at which we retracted the clause.
+
+  - If the clause was added in an outer transaction we can update
+    the generation and put it into our table such that we can undo
+    the generation update (discard) or retract the clause (commit)
+
+  - If we added the clause ourselves, we no longer have to commit it.
+    Its visibility is guaranteed by the created and erased generations,
+    so there is no need to keep it in our tables.
+
+    (*) This is not true.  Commit/discard need to move the generations
+    out of the transaction or later transactions will see this clause.
+    We cannot do that now as the clause may be visible from a choice
+    point in the transaction.  What to do?  I see two options:
+
+    - Make clause CG set a flag and trigger us, so we can check the
+      table and removed GCed clauses from it.
+    - Scan here to see whether the clause is involved in a choicepoint.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
@@ -143,8 +157,10 @@ transaction_retract_clause(Clause clause ARG_LD)
     addHTable(tr_clause_table(PASS_LD1), clause, (void*)GEN_NESTED_RETRACT);
 
     return TRUE;
+#if 0					/* see (*) */
   } else if ( LD->transaction.clauses )
   { deleteHTable(LD->transaction.clauses, clause);
+#endif
   }
   DEBUG(MSG_TRANSACTION,
 	Sdprintf("Deleting locally asserted clause for %s %s..%s\n",
