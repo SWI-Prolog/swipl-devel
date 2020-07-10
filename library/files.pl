@@ -83,7 +83,7 @@ chdir(Dir) :-
 
 %!  file_iri_hook(+Action, +IRI, -Result) is semidet.
 %
-%   Hooks IRI-style file system access using   the "file" schema. Useful
+%   Hooks IRI-style file system access using   the "file" scheme. Useful
 %   when dragging files in macOS, for   example,  where Finder drops the
 %   file reference using a file://some-file atom. Maps file-scheme hooks
 %   directly to their corresponding built-in file-oriented predicates.
