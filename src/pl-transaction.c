@@ -263,7 +263,7 @@ transaction_discard(ARG1_LD)
 		    cl->generation.created = 0;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
-		{ cl->generation.erased = max_generation(PASS_LD1);
+		{ cl->generation.erased = LD->transaction.gen_max;
 		} else
 		{ ATOMIC_DEC(&cl->tr_erased_no);
 		}

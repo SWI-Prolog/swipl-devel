@@ -1256,7 +1256,7 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   }
 
   clause->generation.created = next_generation(def PASS_LD);
-  clause->generation.erased  = max_generation(PASS_LD1);
+  clause->generation.erased  = max_generation(def PASS_LD);
 
   LOCKDEF(def);
   acquire_def(def);

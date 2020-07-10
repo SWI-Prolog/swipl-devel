@@ -525,8 +525,8 @@ next_generation(Definition def ARG_LD)
 }
 
 static inline gen_t
-max_generation(ARG1_LD)
-{ if ( unlikely(!!LD->transaction.generation) )
+max_generation(Definition def ARG_LD)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
     return LD->transaction.gen_max;
   else
     return GEN_MAX;
