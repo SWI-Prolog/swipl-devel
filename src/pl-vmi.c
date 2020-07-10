@@ -5294,9 +5294,11 @@ TBD:
 #define TrieVarP(n)   argFrameP(FR, (TRIE_VAR_OFFSET-1+(n)))
 #define TRIE_TRY \
 	do \
-	{ intptr_t skip = *PC++;				\
-          Choice ch = newChoice(CHP_JUMP, FR PASS_LD);		\
-          ch->value.PC = PC+skip;				\
+	{ intptr_t skip = *PC++;			     \
+          Choice ch;					     \
+	  ENSURE_LOCAL_SPACE(sizeof(*ch), THROW_EXCEPTION);  \
+	  ch = newChoice(CHP_JUMP, FR PASS_LD);		     \
+	  ch->value.PC = PC+skip;			     \
 	} while(0)
 #define TrieNextArg() \
 	do \
