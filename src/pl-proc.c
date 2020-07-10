@@ -1255,8 +1255,8 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
     return NULL;
   }
 
-  clause->generation.created = next_generation(def PASS_LD);
-  clause->generation.erased  = max_generation(def PASS_LD);
+  clause->generation.created = 1;
+  clause->generation.erased  = 1;
 
   LOCKDEF(def);
   acquire_def(def);
@@ -1297,18 +1297,29 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
-  if ( clause->generation.created == 0 )
-  { PL_representation_error("transaction_generations");
-  error:
-    retractClauseDefinition(def, clause, FALSE);
-    return NULL;
+  if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  { if ( LD->transaction.generation < LD->transaction.gen_max )
+    { clause->generation.created = ++LD->transaction.generation;
+      clause->generation.erased  = max_generation(def PASS_LD);
+    } else
+    { PL_representation_error("transaction_generations");
+      goto error;
+    }
+  } else
+  { PL_LOCK(L_GENERATION);
+    clause->generation.created = ++GD->_generation;
+    clause->generation.erased  = max_generation(def PASS_LD);
+    PL_UNLOCK(L_GENERATION);
   }
 
   if ( ( def->events &&
 	 !predicate_update_event(def,
 				 where == CL_START ? ATOM_asserta : ATOM_assertz,
 				 clause PASS_LD) ) )
-    goto error;
+  { error:
+    retractClauseDefinition(def, clause, FALSE);
+    return NULL;
+  }
 
   setLastModifiedPredicate(def, clause->generation.created, TWF_ASSERT);
 
@@ -1458,9 +1469,24 @@ retract_clause(Clause clause, gen_t generation ARG_LD)
 { Definition def = clause->predicate;
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
 
-  if ( !generation )
-  { if ( !(generation = next_generation(def PASS_LD)) )
-      return PL_representation_error("transaction_generations");
+  if ( generation )
+  { if ( clause->generation.erased > generation )
+      clause->generation.erased = generation;
+  } else if ( unlikely(!!LD->transaction.generation) &&
+	      def && true(def, P_DYNAMIC) )
+  { if ( LD->transaction.generation < LD->transaction.gen_max )
+    { if ( LD->transaction.generation < LD->transaction.gen_max )
+      { if ( clause->generation.erased >= LD->transaction.generation )
+	  clause->generation.erased = ++LD->transaction.generation;
+      }
+    } else
+    { return PL_representation_error("transaction_generations");
+    }
+  } else
+  { PL_LOCK(L_GENERATION);
+    if ( clause->generation.erased >= GD->_generation )
+      clause->generation.erased = ++GD->_generation;
+    PL_UNLOCK(L_GENERATION);
   }
 
   LOCKDEF(def);
@@ -1476,7 +1502,6 @@ retract_clause(Clause clause, gen_t generation ARG_LD)
   def->impl.clauses.erased_clauses++;
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules--;
-  clause->generation.erased = generation;
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
