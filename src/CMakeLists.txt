@@ -99,7 +99,7 @@ set(SWIPL_DATA_DIRS
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme
+    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -153,6 +153,8 @@ set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
 
 set(SWIPL_DATA_library_theme auto.pl dark.pl)
+
+set(SWIPL_DATA_library_iri_scheme file.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     clpfd.pl clpb.pl)
