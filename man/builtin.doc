@@ -3464,6 +3464,14 @@ that was already performed is a no-op.  All modifications become
 variation allows for verifying \jargon{constraints} just before the
 commit takes place.
 
+\paragraph{Clause ordering} Inside a transaction clauses can be added
+using asserta/1 and assertz/1. If only a single transaction is active at
+any point in time transactions preserve the usual ordering of clauses.
+However, if multiple transactions manipulate the same predicate(s)
+concurrently (typically using transaction/3), the final order of the
+clauses is the order in which the transactions asserted the clauses and
+\textbf{not} the order in which the transactions are committed.
+
     \predicate{transaction}{3}{:Goal, :Constraint, +Mutex}
 Similar to transaction/1, but allows verifying \arg{Constraint} during
 the commit phase.  This predicate follows the steps below.  Any failure
@@ -3481,12 +3489,37 @@ Such modifications follow the semantics that apply for \arg{Goal}.
     \item Unlock \arg{Mutex}.
 \end{itemize}
 
+This predicate is intended to execute multiple transactions with a time
+consuming \arg{Goal} in part concurrently. For example, it can be used
+for a \jargon{Compare And Swap} (CAS) like design. We illustrate this
+using a simple counter in the code below. Note that the transaction
+fails if some other thread concurrently updated the counter. This is why
+we need the repeat/0 and a final \predref{!}{0}. The CAS-style update
+is in general useful if \arg{Goal} is expensive and conflicts are rare.
+
+\begin{code}
+:- dynamic counter/1.
+
+increment_counter(Delta) :-
+    repeat,
+      transaction(( counter(Value),
+		    Value2 is Value+Delta,
+		  ),
+		  ( retract(counter(Value)),
+		    asserta(counter(Value2))
+		  ),
+		  counter_lock),
+    !.
+\end{code}
+
     \predicate{snapshot}{1}{:Goal}
 Similar to transaction/1, but \emph{always} discards the local
 modifications. In other words, snapshot/1 allows a thread to examine a
 frozen state of the dynamic predicates and/or make isolated
 modifications without affecting other threads and without making
-permanent changes to the database.
+permanent changes to the database.  Where transactions allow the global
+state to be updated atomically from one consistent state to the next, a
+snapshot allows reasoning about a consistent state.
 
     \predicate[nondet]{current_transaction}{1}{-Goal}
 True when called inside a transaction running \arg{Goal}. This predicate
