@@ -58,6 +58,7 @@ consistency.
     concurrent_with(0,0).
 
 test_transaction_constraints :-
+    test_transaction_constraints(1000, 2, 0, call),
     test_transaction_constraints(1000, 2, 0, snapshot).
 
 test_transaction_constraints(N, M, Delay, Snapshot) :-
@@ -117,11 +118,8 @@ update_temp(Temp) :-
 %
 %   Ensure there is only one clause.  This is our constraint.
 
-%no_duplicate_temp(_) :-
-%    predicate_property(temperature(_), number_of_clauses(1)),
-%    !.
 no_duplicate_temp(Why) :-
-    findall(Temp, temperature(Temp), List),
+    findall(Temp-CRef, clause(temperature(Temp),_,CRef), List),
     (   List = [_]
     ->  true
     ;   debug(veto(Why), '~w: ~p', [Why, List]),

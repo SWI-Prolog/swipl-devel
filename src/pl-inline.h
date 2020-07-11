@@ -97,6 +97,8 @@ MSB64(int64_t i)
 #endif
 
 #define MEMORY_BARRIER() MemoryBarrier()
+#define MEMORY_RELEASE() MemoryBarrier()
+#define MEMORY_BARRIER() MemoryBarrier()
 
 static inline size_t
 __builtin_popcount(size_t sz)
@@ -123,6 +125,8 @@ __builtin_popcount(size_t sz)
 #endif
 
 #ifdef HAVE_GCC_ATOMIC
+#define MEMORY_ACQUIRE()	__atomic_thread_fence(__ATOMIC_ACQUIRE)
+#define MEMORY_RELEASE()	__atomic_thread_fence(__ATOMIC_RELEASE)
 #define MEMORY_BARRIER()	__atomic_thread_fence(__ATOMIC_SEQ_CST)
 #endif
 
@@ -232,6 +236,8 @@ MSB64(int64_t i)
 
 #ifndef MEMORY_BARRIER
 #define MEMORY_BARRIER() (void)0
+#define MEMORY_ACQUIRE() (void)0
+#define MEMORY_RELEASE() (void)0
 #endif
 
 		 /*******************************
@@ -468,14 +474,18 @@ register_attvar(Word gp ARG_LD)
 
 static inline int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ if ( unlikely(cl->generation.erased == LD->gen_reload) )
+{ gen_t c, e;
+
+  c = cl->generation.created;
+  MEMORY_ACQUIRE();
+  e = cl->generation.erased;
+
+  if ( unlikely(e == LD->gen_reload) )
     return FALSE;
-  if ( unlikely(cl->generation.created == LD->gen_reload) )
+  if ( unlikely(c == LD->gen_reload) )
     return TRUE;
 
-					/* Normal case */
-  if ( cl->generation.created <= gen &&
-       cl->generation.erased   > gen )
+  if ( c <= gen && e > gen )
     return TRUE;
 
   if ( unlikely(gen >= LD->transaction.gen_base) &&

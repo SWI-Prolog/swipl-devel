@@ -216,28 +216,31 @@ transaction_commit(ARG1_LD)
 
 		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
-		  { cl->generation.created = gen_commit;
-		    cl->generation.erased  = GEN_MAX;
+		  { cl->generation.erased  = GEN_MAX;
+		    MEMORY_RELEASE();
+		    cl->generation.created = gen_commit;
 		    DEBUG(MSG_COMMIT,
-			Sdprintf("Commit added clause for %s\n",
-				 predicateName(cl->predicate)));
+			Sdprintf("Commit added clause %p for %s\n",
+				 cl, predicateName(cl->predicate)));
 		  } else
 		  { DEBUG(MSG_COMMIT,
-			  Sdprintf("Discarded in-transaction clause for %s\n",
-				   predicateName(cl->predicate)));
-		    cl->generation.erased  = 0;
-		    cl->generation.created = 0;
+			  Sdprintf("Discarded in-transaction clause %p for %s\n",
+				   cl, predicateName(cl->predicate)));
+		    cl->generation.erased  = 2;
+		    MEMORY_RELEASE();
+		    cl->generation.created = 2;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ retract_clause(cl, gen_commit PASS_LD);
 		} else
 		{ DEBUG(MSG_COMMIT,
-			Sdprintf("Commit erased clause for %s\n",
-				 predicateName(cl->predicate)));
+			Sdprintf("Commit erased clause %p for %s\n",
+				 cl, predicateName(cl->predicate)));
 		  ATOMIC_DEC(&cl->tr_erased_no);
 		  retract_clause(cl, gen_commit PASS_LD);
 		}
 	      });
+    MEMORY_RELEASE();
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
 
@@ -257,10 +260,21 @@ transaction_discard(ARG1_LD)
 
 		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
-		  { retract_clause(cl, cl->generation.created PASS_LD);
+		  { cl->generation.erased  = 3;
+		    MEMORY_RELEASE();
+		    cl->generation.created = 3;
+		    retract_clause(cl, cl->generation.created PASS_LD);
+		    DEBUG(MSG_COMMIT,
+			  Sdprintf("Discarded asserted clause %p for %s\n",
+				   cl, predicateName(cl->predicate)));
 		  } else
-		  { cl->generation.erased  = 0;
-		    cl->generation.created = 0;
+		  { cl->generation.erased  = 4;
+		    MEMORY_RELEASE();
+		    cl->generation.created = 4;
+		    DEBUG(MSG_COMMIT,
+			  Sdprintf("Discarded asserted&retracted "
+				   "clause %p for %s\n",
+				   cl, predicateName(cl->predicate)));
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ cl->generation.erased = LD->transaction.gen_max;
@@ -563,8 +577,9 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
     gen_t gen = current_generation(def PASS_LD);
     ClauseRef c;
 
-    Sdprintf("Clauses for %s at %s\n",
-	     predicateName(def), generationName(gen));
+    Sdprintf("Clauses for %s at %s (gen_start = %s)\n",
+	     predicateName(def), generationName(gen),
+	     generationName(LD->transaction.gen_start));
 
     count = 0;
     acquire_def(def);
