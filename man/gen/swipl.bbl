@@ -152,4 +152,9 @@ Markus Triska.
 \newblock In {\em {FLOPS}}, volume 9613 of {\em LNCS}, pages 45--61, 2016.
 \newblock https://www.metalevel.at/swiclpb.pdf.
 
+\bibitem[Wielemaker, 2013]{DBLP:journals/corr/abs-1301-7669}
+Jan Wielemaker.
+\newblock Extending the logical update view with transaction support.
+\newblock {\em CoRR}, abs/1301.7669, 2013.
+
 \end{thebibliography}
