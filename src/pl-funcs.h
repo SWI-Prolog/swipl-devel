@@ -725,7 +725,9 @@ COMMON(int)		enableThreads(int enable);
 /* pl-mutex.c */
 COMMON(void)		initMutexes(void);
 COMMON(foreign_t)	pl_with_mutex(term_t mutex, term_t goal);
+#ifdef O_PLMT
 COMMON(int)		get_mutex(term_t t, pl_mutex **mutex, int create);
+#endif
 
 /* pl-gmp.c */
 COMMON(int)	PL_unify_number__LD(term_t t, Number n ARG_LD);
