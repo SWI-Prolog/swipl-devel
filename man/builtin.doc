@@ -2130,8 +2130,8 @@ once(Goal) :-
 \end{code}
 
 once/1 can in many cases be replaced with \predref{->}{2}. The only
-difference is how the cut behaves (see !/0). The following two clauses
-below are identical. Be careful about the interaction with
+difference is how the cut behaves (see \predref{!}{0}). The following
+two clauses below are identical. Be careful about the interaction with
 \predref{;}{2}. The \pllib{apply_macros} library defines an inline
 expansion of once/1, mapping it to \verb$(Goal->true;fail)$. Using the
 full if-then-else constructs prevents its semantics from being changed
@@ -3543,8 +3543,8 @@ performed.
 	The given clause will be asserted at the start or end.  Note
 	that due to competing transactions the clause may no longer
 	be the first/last clause of the predicate.
-	\termitem{erased}{+ClauseRef}
-	The given clause will be removed.  This may be due to erased/1,
+	\termitem{erase}{+ClauseRef}
+	The given clause will be removed.  This may be due to erase/1,
 	retract/1 or retractall/1.
     \end{description}
 \end{description}
@@ -6272,7 +6272,7 @@ unified with \arg{Term}.  Raises \errorterm{instantiation_error}{} if \arg{Term}
 is unbound and \arg{Name}/\arg{Arity} is insufficiently instantiated.
 
 SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
-\secref{extensions}. Such terms must be processed using
+\secref{extensions}). Such terms must be processed using
 compound_name_arity/3. The predicate functor/3 and \predref{=..}{2}
 raise a \const{domain_error} when faced with these terms. Without this
 precaution, the inconsistency demonstrated below could happen
@@ -6316,7 +6316,7 @@ Term = baz(foo(1))
 \end{code}
 
 SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
-\secref{extensions}. Such terms must be processed using
+\secref{extensions}). Such terms must be processed using
 compound_name_arguments/3. This predicate raises a domain error as shown
 below. See also functor/3.
 
