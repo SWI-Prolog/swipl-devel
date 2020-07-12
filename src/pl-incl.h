@@ -1036,15 +1036,6 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-#if defined(HAVE_GCC_ATOMIC_8) || SIZEOF_VOIDP == 8
-typedef uint64_t ggen_t;
-#else
-#define ATOMIC_GENERATION_HACK 1
-typedef struct ggen_t
-{ uint32_t	gen_l;
-  uint32_t	gen_u;
-} ggen_t;
-#endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
 
 #define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
 

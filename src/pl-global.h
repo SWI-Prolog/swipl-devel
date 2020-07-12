@@ -112,12 +112,8 @@ struct PL_global_data
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
-#ifdef O_LOGICAL_UPDATE
-  volatile ggen_t _generation;		/* generation of the database */
-#ifdef ATOMIC_GENERATION_HACK
-  volatile gen_t _last_generation;	/* see pl-inline.h, global_generation() */
-#endif
-#endif
+
+  volatile gen_t _generation;		/* generation of the database */
 
   struct
   { int		os_argc;		/* main(int argc, char **argv) */
