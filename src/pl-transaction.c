@@ -36,6 +36,7 @@
 
 #include "pl-incl.h"
 #include "pl-transaction.h"
+#include "pl-event.h"
 #include "pl-dbref.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -253,10 +254,14 @@ transaction_commit(ARG1_LD)
 
 static int
 transaction_discard(ARG1_LD)
-{ if ( LD->transaction.clauses )
+{ int rc = TRUE;
+
+  if ( LD->transaction.clauses )
   { for_table(LD->transaction.clauses, n, v,
 	      { Clause cl = n;
+		Definition def = cl->predicate;
 		uintptr_t lgen = (uintptr_t)v;
+		atom_t action = 0;
 
 		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
@@ -267,6 +272,7 @@ transaction_discard(ARG1_LD)
 		    DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded asserted clause %p for %s\n",
 				   cl, predicateName(cl->predicate)));
+		    action = (lgen==GEN_ASSERTA ? ATOM_asserta : ATOM_assertz);
 		  } else
 		  { cl->generation.erased  = 4;
 		    MEMORY_RELEASE();
@@ -278,15 +284,23 @@ transaction_discard(ARG1_LD)
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ cl->generation.erased = LD->transaction.gen_max;
+		  action = ATOM_retract;
 		} else
 		{ ATOMIC_DEC(&cl->tr_erased_no);
+		  action = ATOM_retract;
+		}
+
+		if ( def && def->events && action )
+		{ if ( !predicate_update_event(def, action, cl,
+					       P_EVENT_ROLLBACK PASS_LD) )
+		    rc = FALSE;
 		}
 	      });
     destroyHTable(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
   }
 
-  return TRUE;
+  return rc;
 }
 
 static void
@@ -395,7 +409,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	}
       }
     } else
-    { transaction_discard(PASS_LD1);
+    { rc = transaction_discard(PASS_LD1) && rc;
       LD->transaction.generation = parent.generation;
     }
     LD->transaction.gen_nest = parent.gen_nest;
@@ -435,7 +449,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	transaction_discard(PASS_LD1);
       }
     } else
-    { transaction_discard(PASS_LD1);
+    { rc = transaction_discard(PASS_LD1) && rc;
     }
     LD->transaction.id         = 0;
     LD->transaction.generation = 0;

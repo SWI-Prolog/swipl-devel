@@ -567,6 +567,11 @@ Updated p/1: retractall end(user:p(_12294))
     The begining and end of retractall/1 is indicated with
     the \arg{Action} \const{retractall}.  The context argument
     is \term{start}{Head} or \term{end}{Head}.
+        \termitem{rollback}{Action}
+    Issued when rolling back (discarding) a transaction.  \arg{Action}
+    is the local action being reverted and is one of \const{asserta},
+    \const{assertz} or \const{retract}.  Context is the involved
+    clause.  See transaction/1 and snapshot/1.
 	\end{description}
     \end{description}
 

@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2020, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,6 +80,8 @@ typedef struct event_type
   event_list  **location;
 } event_type;
 
+#define P_EVENT_ROLLBACK	0x0001
+
 COMMON(int)	delayEvents(void);
 COMMON(int)	sendDelayedEvents(int noerror);
 COMMON(int)	PL_call_event_hook(pl_event_type ev, ...);
@@ -89,8 +91,8 @@ COMMON(int)	register_event_hook(event_list **list, int last,
 COMMON(int)	register_event_function(event_list **list, int last,
 					int (*func)(), void *closure, int argc);
 COMMON(void)	destroy_event_list(event_list **listp);
-COMMON(int)	predicate_update_event(Definition def,
-				       atom_t action, Clause cl ARG_LD);
+COMMON(int)	predicate_update_event(Definition def, atom_t action, Clause cl,
+				       unsigned flags ARG_LD);
 COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
 				 ARG_LD);
 

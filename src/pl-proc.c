@@ -1315,7 +1315,7 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
   if ( ( def->events &&
 	 !predicate_update_event(def,
 				 where == CL_START ? ATOM_asserta : ATOM_assertz,
-				 clause PASS_LD) ) )
+				 clause, 0 PASS_LD) ) )
   { error:
     retractClauseDefinition(def, clause, FALSE);
     return NULL;
@@ -1528,7 +1528,7 @@ retractClauseDefinition(Definition def, Clause clause, int notify)
 { GET_LD
 
   if ( def->events && notify &&
-       !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
+       !predicate_update_event(def, ATOM_retract, clause, 0 PASS_LD) )
     return FALSE;
 
   if ( LD->transaction.generation )
