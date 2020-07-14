@@ -25,6 +25,8 @@
 :- module(test_dcg, [test_dcg/0]).
 :- use_module(library(plunit)).
 :- use_module(library(apply_macros)).
+:- set_test_options([load(always),sto(true)]).
+:- set_prolog_flag(optimise, true).
 
 test_dcg :-
 	run_tests([ expand_goal,
@@ -35,7 +37,15 @@ test_dcg :-
 		    context
 		  ]).
 
-:- begin_tests(expand_goal).
+optimise(Old, New) :-
+	current_prolog_flag(optimise, Old),
+	set_prolog_flag(optimise, New).
+
+
+:- begin_tests(expand_goal,
+	       [ setup(optimise(Old, true)),
+		 cleanup(optimise(_, Old))
+	       ]).
 
 test(1, [G == a(L,[])]) :-
 	expand_goal(phrase(a,L), G).
@@ -99,7 +109,10 @@ test(uwn4,[sto(finite_trees),fail]) :-
 
 :- end_tests(phrase).
 
-:- begin_tests(rule_expansions).
+:- begin_tests(rule_expansions,
+	       [ setup(optimise(Old, true)),
+		 cleanup(optimise(_, Old))
+	       ]).
 
 test(1, [R == (a :- b([1],[]))]) :-
 	expand_term((a :- phrase(b,[1])),R).
