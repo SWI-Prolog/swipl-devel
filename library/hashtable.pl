@@ -46,7 +46,8 @@
 
             ht_get/3,                   % +HT, +Key, -Value
             ht_gen/3,                   % +HT, ?Key, ?Value
-            ht_pairs/2                  % ?HT, ?Pairs
+            ht_pairs/2,                 % ?HT, ?Pairs
+            ht_keys/2                   % +HT, -Keys
           ]).
 :- autoload(library(error), [must_be/2]).
 
@@ -272,6 +273,10 @@ get_(Buckets, I, Size, Key, Value) :-
         get_(Buckets, I2, Size, Key, Value)
     ).
 
+ht_k(Buckets, I, K) :-
+    IK is I*2+1,
+    arg(IK, Buckets, K).
+
 ht_kv(Buckets, I, K, V) :-
     IK is I*2+1,
     IV is IK+1,
@@ -335,3 +340,25 @@ ht_fill([], _).
 ht_fill([K-V|T], HT) :-
     ht_put(HT, K, V),
     ht_fill(T, HT).
+
+%!  ht_keys(+HT, -Keys) is det.
+%
+%   True when Keys is an ordered set of all keys in HT.
+
+ht_keys(HT, Keys) :-
+    HT = ht(_Load, Size, Buckets),
+    keys_(0, Size, Buckets, Keys0),
+    sort(Keys0, Keys).
+
+keys_(I, Size, Buckets, Keys) :-
+    (   I < Size
+    ->  ht_k(Buckets, I, K),
+        (   nonvar(K)
+        ->  Keys = [K|T],
+            I2 is I+1,
+            keys_(I2, Size, Buckets, T)
+        ;   I2 is I+1,
+            keys_(I2, Size, Buckets, Keys)
+        )
+    ;   Keys = []
+    ).
