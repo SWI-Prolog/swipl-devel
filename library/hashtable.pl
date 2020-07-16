@@ -90,11 +90,11 @@ ht_is_hashtable(HT) :-
     compound_name_arity(Buckets, [], Arity),
     Arity =:= Size*2+1.
 
-%!  ht_size(+HT, -Size) is det.
+%!  ht_size(+HT, -Count) is det.
 %
 %   True when Size is the number of key-value pairs in HT.
 
-ht_size(ht(_Load, Size, _Buckets), Size).
+ht_size(ht(Count, _Size, _Buckets), Count).
 
 %!  ht_put(!HT, +Key, +Value) is det.
 %

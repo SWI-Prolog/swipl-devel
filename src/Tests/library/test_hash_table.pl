@@ -56,9 +56,13 @@ test(rdel) :-
     rfill(1000, 100, 0.7, HT, Assoc),
     assertion(ht_is_hashtable(HT)),
     assertion(same(HT, Assoc)).
-test(empty) :-
+test(empty, Size == 0) :-
     ht_new(HT),
-    \+ ht_del(HT, 1, _).
+    \+ ht_del(HT, 1, _),
+    ht_size(HT, Size).
+test(size, Size = 3) :-
+    ht_pairs(HT, [1-a,2-b,3-c]),
+    ht_size(HT, Size).
 test(put5, List == [b,a]) :-
     ht_new(HT),
     ht_put(HT, 1, [a|O0], [], O0),
