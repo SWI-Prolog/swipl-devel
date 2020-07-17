@@ -110,8 +110,8 @@ Enable/disable debugging the new thread. If \const{false} (default
 started. The thread debugging predicates such as tspy/1 and tdebug/0 do
 not signal threads with the debug property set to
 \const{false}.\footnote{Currently, the flag is only used as a hint for
-the the various debugging primitives, i.e., the system does not
-really enforce that the target thread stays in \jargon{nodebug} mode.}
+the various debugging primitives, i.e., the system does not really
+enforce that the target thread stays in \jargon{nodebug} mode.}
 
     \termitem{detached}{Bool}
 If \const{false} (default), the thread can be waited for using
@@ -139,7 +139,7 @@ inherited:
         \item The \jargon{typein} module (see module/1)
         \item The standard streams (\const{user_input}, etc.)
         \item The default encoding (see \prologflag{encoding})
-        \item The default locale (see setlocale/1)
+        \item The default locale (see set_locale/1)
         \item All prolog flags
 	\item The stack limit (see Prolog flag \prologflag{stack_limit}).
     \end{itemize}
@@ -231,7 +231,7 @@ mutexes and proper cleanup in setup_call_cleanup/3, etc. Please use the
 exception mechanism (throw/1) to abort execution using non-standard
 control.\bug{The Windows port does not properly cleanup for
 \jargon{detached} threads while the cleanup for other threads is
-executed by the thread running thread_join/2 using the exitted thread as
+executed by the thread running thread_join/2 using the exited thread as
 \jargon{engine}. This is due to a bug in the
 \href{https://sourceforge.net/p/mingw-w64/bugs/469/}{MinGW pthread
 implementation}.}
@@ -354,7 +354,7 @@ exception (see throw/1 and catch/3).
 
 	\termitem{engine}{Boolean}
 If the thread is an engine (see \chapref{engines}), \arg{Boolean} is
-\const{true}.  Othwerwise the property is not present.
+\const{true}.  Otherwise the property is not present.
 
 	\termitem{thread}{ThreadId}
 If the thread is an engine that is currently attached to a thread,
@@ -461,7 +461,7 @@ in seconds.  This is a relative-time version of the \const{deadline}
 option.  If both options are provided, the earlier time is effective.
 
 If \arg{Time} is 0 or 0.0, thread_send_message/3 examines the queue and
-sends the message if space is availabel, but
+sends the message if space is available, but
 does not suspend if no space is available, failing immediately instead.
 
 If \arg{Time} $< 0$, thread_send_message/3 fails immediately without
@@ -530,7 +530,7 @@ Create a message queue from \arg{Options}.  Defined options are:
 Create a message queue that is identified by the atom \arg{Alias}.
 Message queues created this way must be explicitly destroyed by the
 user. If the alias option is omitted, an \emph{Anonymous} queue is
-created that is indentified by a \jargon{blob} (see \secref{blob}) and
+created that is identified by a \jargon{blob} (see \secref{blob}) and
 subject to garbage collection.\footnote{Garbage collecting anonymous
 message queues is not part of the ISO proposal and most likely not
 a widely implemented feature.}
@@ -617,7 +617,7 @@ Set a property on the queue.  Supported properties are:
     \begin{description}
         \termitem{max_size}{+Size}
 Change the number of terms that may appear in the message queue before
-the next thread_send_message/2,3 blocks on it.  If the value is higher
+the next thread_send_message/[2,3] blocks on it.  If the value is higher
 then the current maximum and the queue has writers waiting, wakeup the
 writers.  The value can be lower than the current number of terms in
 the queue.  In that case writers will block until the queue is drained
@@ -681,8 +681,8 @@ be updated using the standard Prolog database update predicates
 Waiting is implemented using a POSIX \jargon{condition variable} and
 matching \jargon{mutex}. On a matching database change the condition
 variable is signalled using a \jargon{broadcast}, waking up all threads
-waiting in thread/2. Multiple database updates can be grouped and cause
-a single wakeup using thread_update/2. This predicate also allows
+waiting in thread_wait/2. Multiple database updates can be grouped and
+cause a single wakeup using thread_update/2. This predicate also allows
 signalling the module condition variable without updating the database
 and controlling whether all or a single thread is activated.
 
@@ -717,14 +717,14 @@ optionally when the call terminates due to a timeout.
 	\nodescription
 
 	\termitem{timeout}{+Time}
-	Timeout and deadling handling.  See thread_get_message/3 for
+	Timeout and deadline handling.  See thread_get_message/3 for
 	details.  This predicate fails when it terminates due to one
 	of these options.
 
         \termitem{retry_every}{+Time}
 	Retry goal every \arg{Time} seconds regardless of whether an
 	event happened.  The default is 1 second.  This ensures that
-	signals (see thread_signal/1) and time limits are respected
+	signals (see thread_signal/2) and time limits are respected
 	with an optional delay.\footnote{Some operating systems process
 	such signals immediately, while others only check for such
 	events synchronously.}
@@ -769,7 +769,7 @@ between updating and waiting threads.  \arg{Options}:
     \begin{description}
 	\termitem{module}{+Module}
 	Determines the module to operate on.  Default is the context
-	module assosciated with the \arg{Options} argument.
+	module associated with the \arg{Options} argument.
 	\termitem{notify}{+Atom}
 	Determines whether all waiting threads are activated
 	(\const{broadcast}, default) or a single thread
@@ -897,7 +897,7 @@ with_mutex/2. It also illustrates the problem of mutexes. The predicate
 with_mutex/2 behaves as once/1 with respect to the guarded goal. This
 means that our predicate \nopredref{address}{2} is no longer a nice
 logical non-deterministic relation.  This could be solved by explicit
-locking and unlocking a mutex using setup_call_cleanup/2, but at the
+locking and unlocking a mutex using setup_call_cleanup/3, but at the
 risk of deadlocking the program if the choice point is left open by
 accident.
 
@@ -913,7 +913,7 @@ address(Id, Address) :-
 		   address_db(Id, Address)).
 \end{code}
 
-Message queues (see message_queue_create/3) often provide simpler
+Message queues (see message_queue_create/2) often provide simpler
 and more robust ways for threads to communicate.  Still, mutexes
 can be a sensible solution and are therefore provided.
 
@@ -936,7 +936,7 @@ is preferred over the equivalent \term{mutex_create}{name}.
 Destroy a mutex. If the mutex is not locked, it is destroyed and further
 access yields an \except{existence_error} exception. As of version
 7.1.19, this behaviour is reliable.  If the mutex is locked, the mutex
-is sheduled for \emph{delayed destruction}: it will be destroyed when
+is scheduled for \emph{delayed destruction}: it will be destroyed when
 it becomes unlocked.
 
     \predicate{with_mutex}{2}{+MutexId, :Goal}
@@ -1326,7 +1326,7 @@ bindings inside \arg{Goal} are visible to the caller, but it should be
 noted that the values are being \emph{copied}. If \arg{Goal} throws an
 exception, this exception is re-thrown by in_pce_thread/1. If the
 calling thread is the `pce thread', in_pce_thread_sync/1 executes a
-direct meta-call. See also pce_thread/1.
+direct meta-call. See also in_pce_thread/1.
 
 Note that in_pce_thread_sync/1 is expensive because it requires copying
 and thread communication.  For example, \exam{in_pce_thread_sync{true}}
