@@ -190,7 +190,9 @@ list_debug_topics :-
            ['Debug Topic', 'Activated', 'To']),
     format(user_error, '~`-t~45|~n', []),
     (   debugging(Topic, Value, To),
-        format(user_error, '~w~t ~w~35| ~w~n', [Topic, Value, To]),
+        numbervars(Topic, 0, _, [singletons(true)]),
+        format(user_error, '~W~t ~w~35| ~w~n',
+               [Topic, [quoted(true), numbervars(true)], Value, To]),
         fail
     ;   true
     ).
