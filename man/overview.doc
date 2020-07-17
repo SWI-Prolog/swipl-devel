@@ -2,7 +2,7 @@
 
 \section{Getting started quickly}	\label{sec:quickstart}
 
-\subsection{Starting SWI-Prolog}	\label{sec:startpl}
+\subsection{Starting SWI-Prolog}	\label{sec:starting}
 
 \subsubsection{Starting SWI-Prolog on Unix} \label{sec:startunix}
 
@@ -41,6 +41,39 @@ Welcome to SWI-Prolog ...
 
 1 ?-
 \end{code}
+
+\begin{quote}
+Both the above assume \file{likes.pl} is in your \jargon{working
+directory}. If you use the command line version \program{swipl} the
+working directory is the same as the shell from which you started
+SWI-Prolog. If you started the GUI version (\program{swipl-win}) this
+depends largely on the OS. You can use pwd/0 and cd/0 to find and change
+the working directory.  The utility ls/0 lists the contents of the working
+directory.
+
+\begin{code}
+?- pwd.
+% /home/janw/src/swipl-devel/linux/
+true.
+?- cd('~/tmp').
+true.
+
+?- pwd.
+% /home/janw/tmp/
+true.
+\end{code}
+
+The file \file{likes.pl} is also installed in a subdirectory \file{demo}
+insides SWI-Prolog's installation directory and may be loaded regardless
+of the working directory using the command below. See
+absolute_file_name/3 and file_search_path/2 for details on how
+SWI-Prolog specifies file locations.
+
+\begin{code}
+?- [swi(demo/likes)].
+true.
+\end{code}
+\end{quote}
 
 After this point, Unix and Windows users unite, so if you are using
 Unix please continue at \secref{consultuser}.
