@@ -150,7 +150,7 @@ ht_put(HT, Key, Value, IfNew, Old, IsNew) :-
     (   Load >= Size//2
     ->  ht_resize(HT),
         ht_put(HT, Key, Value, IfNew, Old, IsNew)
-    ;   term_hash(Key, I0),
+    ;   variant_hash(Key, I0),
         I is I0 mod Size,
         put_(Buckets, I, Size, Key, Old, IfNew, Value, IsNew),
         (   IsNew == true
@@ -189,7 +189,7 @@ copy_members(I, OSize, OBuckets, NSize, NBuckets) :-
     !,
     ht_kv(OBuckets, I, K, V),
     (   nonvar(K)
-    ->  term_hash(K, I0),
+    ->  variant_hash(K, I0),
         NI is I0 mod NSize,
         copy_(NBuckets, NI, NSize, K, V)
     ;   true
@@ -217,7 +217,7 @@ ht_del(HT, Key, Value) :-
     must_be(nonvar, Key),
     HT = ht(Load, Size, Buckets),
     Load > 0,
-    term_hash(Key, I0),
+    variant_hash(Key, I0),
     I is I0 mod Size,
     del_(Buckets, I, Size, Key, Value),
     Load2 is Load - 1,
@@ -240,7 +240,7 @@ del_shift(Buckets, I0, J, Size) :-
     ht_kv(Buckets, I, K, V),
     (   var(K)
     ->  true
-    ;   term_hash(K, Hash),
+    ;   variant_hash(K, Hash),
         R is Hash mod Size,
         (   (   I >= R, R > J
             ;   R > J, J > I
@@ -260,7 +260,7 @@ del_shift(Buckets, I0, J, Size) :-
 
 ht_get(ht(_, Size, Buckets), Key, Value) :-
     must_be(nonvar, Key),
-    term_hash(Key, I0),
+    variant_hash(Key, I0),
     I is I0 mod Size,
     get_(Buckets, I, Size, Key, Value).
 
