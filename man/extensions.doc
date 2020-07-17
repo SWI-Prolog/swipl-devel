@@ -835,10 +835,12 @@ such terms are rare and term manipulation provides an escape route.}
     \predicate{.}{3}{+Dict, +Function, -Result}
 This predicate is called to evaluate \functor{.}{2} terms found in the
 arguments of a goal. This predicate evaluates the field extraction
-described above, which is mapped to get_dict_ex/3. If \arg{Function} is a
-compound term, it checks for the predefined functions on dicts described
-in \secref{ext-dicts-predefined} or executes a user defined function as
-described in \secref{ext-dict-user-functions}.
+described above, raising an exception if \arg{Function} is an
+atom (\jargon{key}) and \arg{Dict} does not contain the requested key.
+If \arg{Function} is a compound term, it checks for the predefined
+functions on dicts described in \secref{ext-dicts-predefined} or
+executes a user defined function as described in
+\secref{ext-dict-user-functions}.
 \end{description}
 
 
@@ -892,11 +894,9 @@ Dicts currently define the following reserved functions:
 
 \begin{description}
     \dictfunction{get}{1}{?Key}
-Same as \arg{Dict}.\arg{Key}, but maps to get_dict/3 instead of
-get_dict_ex/3.  This implies that the function evaluation fails
-silently if \arg{Key} does not appear in \arg{Dict}.  See also
-\predref{:<}{2}, which can be used to test for existence and
-unify multiple key values from a dict.  For example:
+Same as \arg{Dict}.\arg{Key}, but fails silently if the dict does not
+contain \arg{Key}. See also \predref{:<}{2}, which can be used to test
+for existence and unify multiple key values from a dict. For example:
 
 \begin{code}
 ?- write(t{a:x}.get(a)).
@@ -959,11 +959,6 @@ notation \exam{Dict.Key}.  See \secref{ext-dict-functions}.
 Fails silently if Key does not appear in Dict.  This is different from
 the behavior of the functional `.`-notation, which throws an existence
 error in that case.
-
-    \predicate{get_dict_ex}{3}{?Key, +Dict, -Value}
-As get_dict/3, but throws an existence exception if \arg{Key} cannot be
-found in dict.  This is used when evaluating \arg{Dict}.\arg{Key} as a
-function.
 
     \predicate[semidet]{get_dict}{5}{+Key, +Dict, -Value, -NewDict, +NewValue}
 Create a new dict after updating the value for \arg{Key}.  Fails if
