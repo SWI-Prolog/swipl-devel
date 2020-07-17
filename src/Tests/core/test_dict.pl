@@ -363,6 +363,8 @@ test(forall, true) :-
 	forall(dict(M), M.b mod 2 =:= 0).
 test(findall, As = [1,3]) :-
 	findall(A, (dict(M), A = M.a), As).
+test(bagof, As = [1,3]) :-		% test ^ annotation
+	bagof(A, M^(dict(M), A = M.a), As).
 
 test(head, X == 1) :-
 	x_dict1(_{x:1}, X).

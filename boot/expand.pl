@@ -371,6 +371,32 @@ isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
 isect3(>, H1, T1,  _H2, T2, Int) :-
     isect2(T2, H1, T1, Int).
 
+%!  ord_subtract(+Set, +Subtract, -Diff)
+
+ord_subtract([], _Not, []).
+ord_subtract(S1, S2, Diff) :-
+    S1 == S2,
+    !,
+    Diff = [].
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    oset_diff(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
 
 %!  merge_variable_info(+Saved)
 %
@@ -785,7 +811,6 @@ expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term, Done) :-
     term_variables(A0, VL),
     remove_arg_pos(A3, PA2, M, VL, Ex, A, P).
 expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term, Done) :-
-    replace_functions(A0, true, _, M),
     !,
     expand_setof_goal(A0, PA0, A, PA, M, MList, Term, Done).
 expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term, _Done) :-
@@ -915,8 +940,24 @@ expand_setof_goal(M0:G, P0, M0:EG, P, M, MList, Term, Done) :-
 expand_setof_goal(G, P0, EG, P, M, MList, Term, Done) :-
     !,
     expand_goal(G, P0, EG0, P, M, MList, Term, Done),
-    compile_meta_call(EG0, EG, M, Term).            % TBD: Pos?
+    compile_meta_call(EG0, EG1, M, Term),
+    (   extend_existential(G, EG1, V)
+    ->  EG = V^EG1
+    ;   EG = EG1
+    ).
 
+%!  extend_existential(+G0, +G1, -V) is semidet.
+%
+%   Extend  the  variable  template  to    compensate  for  intermediate
+%   variables introduced during goal expansion   (notably for functional
+%   notation).
+
+extend_existential(G0, G1, V) :-
+    term_variables(G0, GV0), sort(GV0, SV0),
+    term_variables(G1, GV1), sort(GV1, SV1),
+    ord_subtract(SV1, SV0, New),
+    New \== [],
+    V =.. [v|New].
 
 %!  call_goal_expansion(+ExpandModules,
 %!                      +Goal0, ?Pos0, -Goal, -Pos, +Done) is semidet.
