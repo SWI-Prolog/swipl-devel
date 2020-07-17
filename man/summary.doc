@@ -313,17 +313,17 @@ a stream} \predicatesummary{flag}{3}{Simple global variable system}
 \predicatesummary{text_to_string}{2}{Convert arbitrary text to a string}
 \predicatesummary{freeze}{2}{Delay execution until variable is bound}
 \predicatesummary{frozen}{2}{Query delayed goals on var}
-\predicatesummary{functor}{3}{Get name and arity of a term or construct
-a term } \predicatesummary{garbage_collect}{0}{Invoke the garbage
-collector} \predicatesummary{garbage_collect_atoms}{0}{Invoke the atom
-garbage collector} \predicatesummary{garbage_collect_clauses}{0}{Invoke
-clause garbage collector} \predicatesummary{gen_assoc}{3}{Enumerate
-members of association tree} \predicatesummary{gen_nb_set}{2}{Generate
-members of non-backtrackable set} \predicatesummary{gensym}{2}{Generate
-unique atoms from a base} \predicatesummary{get}{1}{Read first non-blank
-character} \predicatesummary{get}{2}{Read first non-blank character from
-a stream} \predicatesummary{get_assoc}{3}{Fetch key from association
-tree} \predicatesummary{get_assoc}{5}{Fetch key from association tree}
+\predicatesummary{functor}{3}{Get name and arity of a term or construct a term}
+\predicatesummary{garbage_collect}{0}{Invoke the garbage collector}
+\predicatesummary{garbage_collect_atoms}{0}{Invoke the atom garbage collector}
+\predicatesummary{garbage_collect_clauses}{0}{Invoke clause garbage collector}
+\predicatesummary{gen_assoc}{3}{Enumerate members of association tree}
+\predicatesummary{gen_nb_set}{2}{Generate members of non-backtrackable set}
+\predicatesummary{gensym}{2}{Generate unique atoms from a base}
+\predicatesummary{get}{1}{Read first non-blank character}
+\predicatesummary{get}{2}{Read first non-blank character from a stream}
+\predicatesummary{get_assoc}{3}{Fetch key from association tree}
+\predicatesummary{get_assoc}{5}{Fetch key from association tree}
 \predicatesummary{get_attr}{3}{Fetch named attribute from a variable}
 \predicatesummary{get_attrs}{2}{Fetch all attributes of a variable}
 \predicatesummary{get_byte}{1}{Read next byte (ISO)}
@@ -332,13 +332,12 @@ tree} \predicatesummary{get_assoc}{5}{Fetch key from association tree}
 \predicatesummary{get_char}{2}{Read next character from a stream (ISO)}
 \predicatesummary{get_code}{1}{Read next character (ISO)}
 \predicatesummary{get_code}{2}{Read next character from a stream (ISO)}
-\predicatesummary{get_dict}{3}{Get the value associated to a key from a
-dict} \predicatesummary{get_dict_ex}{3}{Get the value associated to a
-key from a dict} \predicatesummary{get_dict}{5}{Replace existing value
-in a dict} \predicatesummary{get_flag}{2}{Get value of a flag}
-\predicatesummary{get_single_char}{1}{Read next character from the
-terminal} \predicatesummary{get_string_code}{3}{Get character code at
-index in string} \predicatesummary{get_time}{1}{Get current time}
+\predicatesummary{get_dict}{3}{Get the value associated to a key from a dict}
+\predicatesummary{get_dict}{5}{Replace existing value in a dict}
+\predicatesummary{get_flag}{2}{Get value of a flag}
+\predicatesummary{get_single_char}{1}{Read next character from the terminal}
+\predicatesummary{get_string_code}{3}{Get character code at index in string}
+\predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{get0}{1}{Read next character}
 \predicatesummary{get0}{2}{Read next character from a stream}
 \predicatesummary{getenv}{2}{Get shell environment variable}
@@ -348,18 +347,18 @@ index in string} \predicatesummary{get_time}{1}{Get current time}
 \predicatesummary{gdebug}{0}{Debug using graphical tracer}
 \predicatesummary{gspy}{1}{Spy using graphical tracer}
 \predicatesummary{gtrace}{0}{Trace using graphical tracer}
-\predicatesummary{guitracer}{0}{Install hooks for the graphical
-debugger} \predicatesummary{gxref}{0}{Cross-reference loaded program}
+\predicatesummary{guitracer}{0}{Install hooks for the graphical debugger}
+\predicatesummary{gxref}{0}{Cross-reference loaded program}
 \predicatesummary{halt}{0}{Exit from Prolog}
 \predicatesummary{halt}{1}{Exit from Prolog with status}
 \predicatesummary{term_hash}{2}{Hash-value of ground term}
 \predicatesummary{term_hash}{4}{Hash-value of term with depth limit}
 \predicatesummary{help}{0}{Give help on help}
-\predicatesummary{help}{1}{Give help on predicates and show parts of
-manual} \predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the
-help-system} \predicatesummary{if}{1}{Start conditional compilation
-(directive)} \predicatesummary{ignore}{1}{Call the argument, but always
-succeed} \predicatesummary{import}{1}{Import a predicate from a module}
+\predicatesummary{help}{1}{Give help on predicates and show parts of manual}
+\predicatesummary{help_hook}{1}{\hook{prolog} User-hook in the help-system}
+\predicatesummary{if}{1}{Start conditional compilation (directive)}
+\predicatesummary{ignore}{1}{Call the argument, but always succeed}
+\predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{import_module}{2}{Query import modules}
 \predicatesummary{in_pce_thread}{1}{Run goal in XPCE thread}
 \predicatesummary{in_pce_thread_sync}{1}{Run goal in XPCE thread}
@@ -369,10 +368,10 @@ succeed} \predicatesummary{import}{1}{Import a predicate from a module}
 \predicatesummary{initialize}{0}{Run program initialization}
 \predicatesummary{instance}{2}{Fetch clause or record from reference}
 \predicatesummary{integer}{1}{Type check for integer}
-\predicatesummary{interactor}{0}{Start new thread with console and top
-level} \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
-\predicatesummary{is_absolute_file_name}{1}{True if arg defines an
-absolute path} \predicatesummary{is_assoc}{1}{Verify association list}
+\predicatesummary{interactor}{0}{Start new thread with console and top level}
+\oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
+\predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
+\predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_engine}{1}{Type check for an engine handle}
@@ -381,8 +380,8 @@ absolute path} \predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{is_trie}{1}{Type check for a trie handle}
 \predicatesummary{is_thread}{1}{Type check for an thread handle}
-\predicatesummary{join_threads}{0}{Join all terminated threads
-interactively} \predicatesummary{keysort}{2}{Sort, using a key}
+\predicatesummary{join_threads}{0}{Join all terminated threads interactively}
+\predicatesummary{keysort}{2}{Sort, using a key}
 \predicatesummary{known_licenses}{0}{Print known licenses}
 \predicatesummary{last}{2}{Last element of a list}
 \predicatesummary{leash}{1}{Change ports visited by the tracer}
