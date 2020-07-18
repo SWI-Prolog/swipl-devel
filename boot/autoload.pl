@@ -838,7 +838,8 @@ register_autoloads([PI|T], Module, File, Context) :-
             fail
         ;   Done = true
         )
-    ;   '$get_predicate_attribute'(Module:Head, imported, From)
+    ;   '$c_current_predicate'(_, Module:Head), % no auto-import
+        '$get_predicate_attribute'(Module:Head, imported, From)
     ->  (   (   '$resolved_source_path'(File, FullFile)
             ->  true
             ;   '$resolve_source_path'(File, FullFile, [])

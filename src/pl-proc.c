@@ -2678,8 +2678,12 @@ autoImport(functor_t f, Module m)
   Definition def, odef;
   ListCell c;
 					/* Defined: no problem */
-  if ( (proc = isCurrentProcedure(f, m)) && isDefinedProcedure(proc) )
-    return proc->definition;
+  if ( (proc = isCurrentProcedure(f, m)) )
+  { if ( isDefinedProcedure(proc) )
+      return proc->definition;
+    if ( true(proc->definition, P_AUTOLOAD) )
+      return NULL;
+  }
 
   for(c=m->supers; c; c=c->next)
   { Module s = c->value;
