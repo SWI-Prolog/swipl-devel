@@ -561,9 +561,15 @@ autoload_in(explicit_or_user, general,  user).
 %!  do_autoload(+File, :PI, +LoadModule) is det.
 %
 %   Load File, importing PI into the qualified  module. File is known to
-%   define LoadModule.
+%   define LoadModule. There are three cases:
 %
-%   @tbd: Why do we need LoadModule?
+%     - The target is the autoload module itself.  Uncommon.
+%     - We already loaded this module. Note that
+%       '$get_predicate_attribute'/3 alone is not enough as it will
+%       consider auto-import from `user`. '$c_current_predicate'/2
+%       verifies the predicate really exists, but doesn't validate
+%       that it is defined.
+%     - We must load the module and import the target predicate.
 
 do_autoload(Library, Module:Name/Arity, LoadModule) :-
     functor(Head, Name, Arity),
@@ -572,7 +578,8 @@ do_autoload(Library, Module:Name/Arity, LoadModule) :-
     '$compilation_mode'(OldComp, database),
     (   Module == LoadModule
     ->  ensure_loaded(Module:Library)
-    ;   (   '$get_predicate_attribute'(LoadModule:Head, defined, 1),
+    ;   (   '$c_current_predicate'(_, LoadModule:Head),
+            '$get_predicate_attribute'(LoadModule:Head, defined, 1),
             \+ '$loading'(Library)
         ->  Module:import(LoadModule:Name/Arity)
         ;   use_module(Module:Library, [Name/Arity])
