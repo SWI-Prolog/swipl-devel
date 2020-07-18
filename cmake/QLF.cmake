@@ -19,7 +19,7 @@
 function(add_swipl_target name)
   set(options -f none --no-packs -t halt "--home=${SWIPL_BUILD_HOME}")
   cmake_parse_arguments(
-      my "QUIET;QLF" "COMMENT;OUTPUT;COMMAND" "SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
+      my "QUIET;QLF" "COMMENT;COMMAND" "OUTPUT;SCRIPT;DEPENDS;OPTIONS;LIBS" ${ARGN})
 
   if(my_QUIET)
     set(options ${options} -q)
@@ -51,7 +51,8 @@ function(add_swipl_target name)
       ${name} ALL
       DEPENDS ${my_OUTPUT})
 
-  string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${my_OUTPUT}")
+  list(GET my_OUTPUT 0 primary)
+  string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${primary}")
   get_filename_component(rel ${rel} DIRECTORY)
   install(FILES ${my_OUTPUT}
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
