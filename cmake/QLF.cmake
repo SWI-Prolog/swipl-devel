@@ -54,7 +54,7 @@ function(add_swipl_target name)
   list(GET my_OUTPUT 0 primary)
   string(REPLACE "${SWIPL_BUILD_HOME}" "" rel "${primary}")
   get_filename_component(rel ${rel} DIRECTORY)
-  install(FILES ${my_OUTPUT}
+  install(FILES ${primary}
 	  DESTINATION ${SWIPL_INSTALL_PREFIX}/${rel})
 endfunction()
 
