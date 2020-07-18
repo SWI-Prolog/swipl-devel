@@ -394,7 +394,7 @@ diff12([H1|T1], H2, T2, Diff) :-
 diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
     diff12(T1, H2, T2, Diff).
 diff3(=, _H1, T1, _H2, T2, Diff) :-
-    oset_diff(T1, T2, Diff).
+    ord_subtract(T1, T2, Diff).
 diff3(>,  H1, T1, _H2, T2, Diff) :-
     diff21(T2, H1, T1, Diff).
 
