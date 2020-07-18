@@ -2785,6 +2785,7 @@ testdir('Tests/core').
 testdir('Tests/attvar').
 testdir('Tests/debug').
 testdir('Tests/library').
+testdir('Tests/compile').
 testdir('Tests/charset').
 testdir('Tests/eclipse').
 testdir('Tests/files').

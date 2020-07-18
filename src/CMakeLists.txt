@@ -471,7 +471,7 @@ add_custom_target(check
     COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
 set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
-    charset eclipse clp GC save files transaction
+    compile charset eclipse clp GC save files transaction
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
     xsb/sub_tests)
