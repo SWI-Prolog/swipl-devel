@@ -352,7 +352,7 @@ make_library_index2(Dir, Patterns) :-
     plfile_in_dir(Dir, 'INDEX', _Index, AbsIndex),
     ensure_slash(Dir, DirS),
     pattern_files(Patterns, DirS, Files),
-    (   library_index_out_of_date(AbsIndex, Files)
+    (   library_index_out_of_date(Dir, AbsIndex, Files)
     ->  do_make_library_index(AbsIndex, DirS, Files),
         flag('$modified_index', _, true)
     ;   true
@@ -380,12 +380,12 @@ pattern_files([H|T], DirS, Files) :-
     '$append'(Files0, Rest, Files),
     pattern_files(T, DirS, Rest).
 
-library_index_out_of_date(Index, _Files) :-
+library_index_out_of_date(_Dir, Index, _Files) :-
     \+ exists_file(Index),
     !.
-library_index_out_of_date(Index, Files) :-
+library_index_out_of_date(Dir, Index, Files) :-
     time_file(Index, IndexTime),
-    (   time_file('.', DotTime),
+    (   time_file(Dir, DotTime),
         DotTime > IndexTime
     ;   '$member'(File, Files),
         time_file(File, FileTime),
