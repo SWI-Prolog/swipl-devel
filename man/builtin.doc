@@ -3,66 +3,179 @@
 \section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
 We have tried to keep the predicate descriptions clear and concise.
-First, the predicate name is printed in bold face, followed by the
-arguments in italics.  Arguments are preceded by a mode indicator.
-There is no complete agreement on mode indicators in the Prolog
+First, the predicate name is printed in \textbf{bold face}, followed by the
+arguments%
+\footnote{A note on vocabulary: The word \jargon{parameter} is
+commonly understood to describe an element of a function's declaration
+i.e. a \textit{formal parameter}, whereas the word \jargon{argument}
+is commonly understood to describe the value, structure or element passed
+at a parameter's positon at call time i.e. an \textit{actual parameter}.
+However, this manual uses \jargon{argument} in both cases. This is 
+standard usage in the Prolog community. Indeed, the ISO standard has an
+entry for \jargon{argument} as ``a \jargon{term} which is associated with 
+a \jargon{predication} or \jargon{compound term}'' but none for 
+\jargon{parameter}.} %
+in \textit{italics}. Arguments are preceded by a \jargon{mode indicator}.\\
+
+\subsection{The argument mode indicator}        \label{sec:argmode}
+\index{argument mode indicator}%
+
+An \jargon{argument mode indicator} gives information about the intended 
+direction in which information carried by a predicate argument is supposed
+to flow.
+
+Mode indicators (and types) are not a formal part of the Prolog language 
+but help in explaining intended semantics to the programmer and, if they
+appear as part of structured comments in source code, allow performing
+compile-time and run-time verifications and may make automatic test code
+generation possible.
+
+There is no complete agreement on argument mode indicators in the Prolog
 community.  We use the following definitions:%
-	\footnote{These definitions are taken from PlDoc.  The current
-		  manual has only one mode declaration per predicate and
-		  therefore predicates with mode (+,-) and (-,+) are
-		  described as (?,?).  The \chr{@}-mode is often replaced
-		  by \chr{+}.}
+	\footnote{These definitions are taken from the \jargon{PlDoc} markup
+                  language description. \jargon{PldDoc} markup is used
+                  for source code markup (as well as for the commenting tool).
+                  The current manual has only one
+                  mode declaration per predicate and therefore predicates
+                  with mode \const{(+,-)} and \const{(-,+)} are described
+                  as \const{(?,?)}.  The \const{@}-mode is often replaced
+		  by \const{+}.}
 
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
-++&	Argument must be ground, i.e., the argument may not contain a
-	variable anywhere. \\
-+ &	Argument must be fully instantiated to a term that satisfies the
-	type.  This is not necessarily \jargon{ground}, e.g., the term
-	\exam{[_]} is a \jargon{list}, although its only member is
-	unbound. \\
-- &	Argument is an \emph{output} argument.  Unless specified
-	otherwise, output arguments need not to be unbound. For
-	example, the goal \exam{findall(X, Goal, [T])} is good style and
-	equivalent to \exam{findall(X, Goal, Xs), Xs = [T]}\footnote{The
-	ISO standard dictates that \exam{findall(X, Goal, 1)} raises a
-	\const{type_error} exception, breaking this semantic relation.
-	SWI-Prolog does not follow the standard here.}  Note that the
-	\jargon{determinism} specification, e.g., ``det'' only applies
-	if this argument is unbound. \\
---&	Argument must be unbound.  Typically used by predicates that
-	create `something' and return a handle to the created object,
-	such as open/3 which creates a \jargon{stream}. \\
-? &	Argument must be bound to a \emph{partial term} of the indicated
-	type.  Note that a variable is a partial term for any type.
-	Think of the argument as either \jargon{input} or \jargon{output} or
-	\emph{both} input and output.  For example, in
-	\exam{stream_property(S, reposition(Bool))}, the \const{reposition}
-	part of the term is input and the uninstantiated \arg{Bool} is output. \\
-: &	Argument is a meta-argument.  Implies \chr{+}. See \chapref{modules}
-	for more information on module handling. \\
-@ &	Argument is not further instantiated. Typically used for type tests.\\
+++&	At call time, the argument must be \jargon{ground}, i.e., the
+        argument must not contain any variables that are still unbound. \\
++ &	At call time, the argument must be instantiated to a term satisfying
+        some (informal) type specification. The argument need not necessarily
+	be ground.
+        For example, the term \exam{[_]} is a list, although its only
+	member is the anonymous variable, which is always unbound (and thus 
+        nonground). \\
+- &	Argument is an \emph{output} argument. It may or may not be bound at 
+        call-time. If the argument is bound at call time, the goal behaves
+	as if the argument were unbound, and then unified with that term after 
+	the goal succeeds. This is what is called being \jargon{steadfast}: 
+        instantiation of output arguments at call-time does not change the
+        semantics of the predicate, although optimizations may be performed.
+        For example, the goal \exam{findall(X, Goal, [T])} is good style and 
+        equivalent to \exam{findall(X, Goal, Xs), Xs = [T]}%
+        \footnote{The ISO standard dictates that \exam{findall(X, Goal, 1)}
+        raise a \const{type_error} exception, breaking steadfastness. SWI-Prolog
+        does not follow the standard here.} %
+	Note that any \jargon{determinism} specification, e.g., \const{det}, only 
+	applies	if the argument is unbound. For the case where the argument is
+        bound or involved in constraints, \const{det} effectively becomes 
+        \const{semidet}, and \const{multi} effectively becomes
+        \const{nondet}. \\
+--&	At call time, the argument must be unbound. This is typically used by
+        predicates that	create `something' and return a handle to the created
+        object,	such as open/3, which creates a \jargon{stream}. \\
+? &	At call time, the argument must be bound to a \emph{partial term} 
+        (a term which may or may not be ground) satisfying some (informal) type
+        specification. Note that an unbound variable \emph{is} a partial
+        term. Think of the argument as either providing input or accepting
+        output or being used for both input and output.
+        For example, in	\exam{stream_property(S, reposition(Bool))}, the
+        \const{reposition} part of the term provides input and the 
+        unbound-at-call-time \arg{Bool} variable accepts output. \\
+: &	Argument is a \jargon{meta-argument}, for example a term that can be
+        called as goal. The predicate is thus a \jargon{meta-predicate}. This 
+        flag implies \const{+}. \\
+@ &	Argument will not be further instantiated than it is at call-time.
+        Typically used for type tests. \\
 ! &	Argument contains a mutable structure that may be modified using
 	setarg/3 or nb_setarg/3. \\
 \hline
 \end{tabular}
 \end{center}
 
+\textbf{See also}
+
+\begin{itemize}
+   \item \secref{metacall} for examples of meta-predicates, and \secref{metapred} 
+         for mode flags to label meta-predicate arguments in module export
+         declarations. \\
+   \item ``Type, mode and determinism declaration headers'' in the \jargon{PlDoc}
+         part of the manual. \\
+\end{itemize}
+
+
+\subsection{The predicate indicator}            \label{sec:predicate_indic}
 \index{predicate indicator}%
+
 Referring to a predicate in running text is done using a
 \jargon{predicate indicator}. The canonical and most generic form of a
-predicate indicator is a term <module>:<name>/<arity>. If the module is
-irrelevant (built-in predicate) or can be inferred from the context it
-is often omitted. Compliant to the ISO standard draft on DCG (see
-\secref{DCG}), SWI-Prolog also allows for [<module>]:<name>//<arity> to
-refer to a grammar rule. For all non-negative arity, <name>//<arity> is
-the same as <name>/<arity>+2, regardless of whether or not the
-referenced predicate is defined or can be used as a grammar rule.
-The //-notation can be used in all places that traditionally allow
+predicate indicator is a term \exam{[<module>:]<name>/<arity>}. The module is
+generally omitted if it is irrelevant (case of a built-in predicate) or if it 
+can be inferred from context.
+
+\subsection{The non-terminal indicator}         \label{sec:nonterminal_indic}
+\index{non-terminal indicator}%
+
+Compliant to the ISO standard draft (but well-established practice) on Definite
+Clause Grammars (see \secref{DCG}), SWI-Prolog also allows for the
+\jargon{non-terminal indicator} to refer to a \jargon{DCG grammar rule}. 
+The non-terminal indicator is written as \exam{[<module>]:<name>//<arity>}.
+
+For any arity larger or equal to 0, \exam{<name>//<arity>} is understood
+to be equivalent to \exam{<name>/<arity>+2}, regardless of whether or not the
+referenced predicate is defined or can be used as a grammar rule.%
+\footnote{This, however, makes a specific assumption about the implementation
+of DCG rules, namely that DCG rules are preprocessed into standard Prolog
+rules taking two additional arguments, the input list and the output list,
+in accumulator style. This \emph{need} not be true in all implementations.} %
+The \const{//}-notation can be used in all places that traditionally allow
 for a predicate indicator, e.g., the module declaration, spy/1,
 and dynamic/1.
 
+\subsection{Predicate behaviour and determinism} \label{sec:determinism}
+\index{predicate behaviour and determinism}%
+
+To describe the general behaviour of a predicate, the following vocabulary
+is employed. In source code, structured comments contain the corresponding
+keywords:
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+\hline
+\const{det} &  	  A \jargon{deterministic} predicate always succeeds exactly
+                  once. Performing a \jargon{redo} means moving leftwards to the 
+                  predicate preceding or else hitting the clause head. 
+                  If the predicate is \jargon{well-behaved},
+                  it tells the Prolog Processor that there indeed are no 
+                  alternative solutions after the first one (``it leaves no 
+                  choicepoints''). Programmatically, this is implemented by a
+                  cut found at the very end of the predicate's clause.
+                  On the Prolog Toplevel, a
+                  deterministic, well-behaved predicate will always only 
+                  say \const{true}. and not accept a \const{;} for more solutions.
+                  Generally, predicates of this kind perform side-effects, I/O
+                  and control. Example: true/0.\\
+\const{semidet} & A \jargon{semi-deterministic} predicate succeeds at most
+                  once. In case of success, behaviour and well-behaved behaviour
+                  are as described for the case of a deterministic predicate.
+                  On the Prolog Toplevel, a well-behaved semi-deterministic 
+                  predicate will either say \const{true} or \const{false}
+                  and not accept a \const{;} for more solutions. Example:
+                  memberchk/2.\\
+\const{nondet}  & A \jargon{non-deterministic} predicate may fail or 
+                  succeed and provide an arbitrary number of additional solutions
+                  on \jargon{redo}. 
+                  This is the most general situation. The predicate may
+                  additionally provide \jargon{determinism on the last solution}, i.e.
+                  leave no choicepoints after the last success. Whether that
+                  is possible depends. Consider a call to the nondeterministic
+                  predicate member/2. 
+                  For the goal \exam{member(foo,[foo,2,3,foo])}, the predicate will
+                  provide determinism on the last solution. For the goal
+                  \exam{member(foo,[foo,2,3,4])} it will not: there is no
+                  way that the predicate can know there is no further \const{foo}
+                  in the list after the first \const{foo} without performing exhaustive
+                  search, which is only performed on \jargon{redo}.
+\hline
+\end{tabular}
+\end{center}
 
 \section{Character representation}		\label{sec:chars}
 
@@ -2623,7 +2736,7 @@ from \pllib{error}. Termwise, these predicates look exactly like the
 \end{itemlist}
 
 
-\subsection{Printing messages}			\label{sec:printmsg}
+\section{Printing messages}			\label{sec:printmsg}
 
 The predicate print_message/2 is used to print a message term in a
 human-readable format. The other predicates from this section allow the user
@@ -2699,7 +2812,7 @@ The predicate print_message/2 first translates the \arg{Term} into a
 list of `message lines' (see print_message_lines/3 for details). Next,
 it calls the hook message_hook/3 to allow the user to intercept the
 message. If message_hook/3 fails it prints the message unless \arg{Kind}
-is silent.
+is \const{silent}.
 
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
@@ -2833,7 +2946,7 @@ using the hook prolog:message//1.  If not defined, it is simply printed.
 \end{description}
 
 
-\subsubsection{Printing from libraries}		\label{sec:libprintmsg}
+\subsection{Printing from libraries}		\label{sec:libprintmsg}
 
 Libraries should \emph{not} use format/3 or other output predicates
 directly. Libraries that print informational output directly to the
@@ -5894,7 +6007,7 @@ current output.
 
     \predicate[semidet]{write_length}{3}{+Term, -Length, +Options}
 True when \arg{Length} is the number of characters emitted for
-\arg{write_term}{Term, Options}.  In addition to valid options for
+\term{write_term}{Term, Options}.  In addition to valid options for
 write_term/2, it processes the option:
 
     \begin{description}
