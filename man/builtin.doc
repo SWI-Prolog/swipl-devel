@@ -1678,10 +1678,12 @@ error condition and do not instantiate their argument. See also library
 
 \begin{description}
     \predicate[ISO]{var}{1}{@Term}
-True if \arg{Term} currently is a free variable.
+True if \arg{Term} currently is an uninstantiated (fresh,unbound) 
+variable.
 
     \predicate[ISO]{nonvar}{1}{@Term}
-True if \arg{Term} currently is not a free variable.
+True if \arg{Term} currently is not an uninstantiated (fresh,unbound) 
+variable. The complement of var/1.
 
     \predicate[ISO]{integer}{1}{@Term}
 True if \arg{Term} is bound to an integer.
@@ -1740,7 +1742,7 @@ True if \arg{Term} is bound to a compound term.  See also functor/3
 
     \predicate[ISO]{callable}{1}{@Term}
 True if \arg{Term} is bound to an atom or a compound term. This was
-intended as a type-test for arguments to call/1 and call/2.. Note that
+intended as a type-test for arguments to call/1, call/2 etc. Note that
 callable only tests the \jargon{surface term}. Terms such as (22,true)
 are considered callable, but cause call/1 to raise a type error.
 Module-qualification of meta-argument (see meta_predicate/1) using
@@ -1763,12 +1765,32 @@ ERROR:    [6] p(user:22)
 \end{code}
 
     \predicate[ISO]{ground}{1}{@Term}
-True if \arg{Term} holds no free variables. See also nonground/2
-and term_variables/2.
+True if \arg{Term} is a term with no ``hole'' at any of its leaves.
+In case subterms of \arg{Term} are named with variables, none of these variables
+are uninstantiated (fresh, unbound) and for all of them, ground/1 would succeed.
+
+See also nonground/2 (used for coroutining) and term_variables/2.
+
+Notice that \jargon{the anonymous variable} stays un-ground as every new occurrence
+is really a new variable:
+
+\begin{code}
+?- _=foo,ground(_).
+false.
+\end{code}
+
+whereas a \jargon{don't care variable} can become ground:
+
+\begin{code}
+?- _X=foo,ground(_X).
+_X = foo.
+\end{code}
+
 
     \predicate{cyclic_term}{1}{@Term}
-True if \arg{Term} contains cycles, i.e.\ is an infinite term.
-See also acyclic_term/1 and \secref{cyclic}.%
+True if \arg{Term} contains cycles, i.e.\ is an infinite term 
+aka. a \jargon{rational tree}. See also acyclic_term/1 and
+\secref{cyclic}.%
 	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
 		  compatible with SICStus Prolog.  Some Prolog systems
 		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
@@ -2669,7 +2691,7 @@ relevant \jargon{error context} information.
 It may be a compound term of arity 1,2 or 3 - or simply an atom if
 there is no relevant error context information.
 
-\item [\arg{Context}] gives additional context information beyond
+\item [\arg{Context}] additional context information beyond
 the one in \arg{Formal}. If may be unset, i.e. a fresh variable, or
 set to something that hopefully will help the programmer in debugging.
 The structure of \arg{Context} is left unspecified by the ISO
@@ -2677,8 +2699,9 @@ Standard, so SWI-Prolog creates it own convention (see below).
 \end{itemlist}
 
 Thus, constructing an error term and throwing it might take
-this form (although you would not use the explicit naming given here
-for illustration purposes, but write the term to throw directly):
+this form (although you would not use the illustrative explicit
+naming given here; instead composing the exception term directly in
+a one-liner):
 
 \begin{code}
 Exception = error(Formal, Context),
@@ -2689,6 +2712,23 @@ Culprit   = ... some value ...,
 throw(Exception)
 \end{code}
 
+Note that the ISO standard formal term tries to express \emph{what should be the case}
+or \emph{what is the expected correct state}, and not \emph{what is the problem}.
+
+For example:
+
+\begin{itemlist}
+\item If a variable is found to be uninstantiated but should be instantiated, you get a
+formal term equal to \const{instantiation_error}: The problem is not that there is an
+unwanted instantiation, but that the correct state is the one with an instantiated variable.
+\item In case a variable is found to be instantiated but should be uninstantiated (because
+it will be used for output), you get a formal term equal to \const{uninstantiation_error(Culprit)}:
+The problem is not that there is lack of instantiation, but that the correct state is the one
+which \const{Culprit} (or one of its subterms) is more uninstantiated than is the case.
+\item If you try to disassemble an empty list with compound_name_arguments/3, you get a formal
+\const{type_error(compound,[])}. The problem is not that \const{[]} is (erroneously) a 
+compound term, but that a compound term is expected and \const{[]} doesn't belong to that class.
+\end{itemlist}
 
 \subsubsection{Throwing exceptions from applications and libraries}
 \label{sec:throwsfromuserpreds}
@@ -6448,7 +6488,7 @@ Rationalized version of \predref{=..}{2} that can compose and decompose
 compound terms with zero arguments. See also compound_name_arity/3.
 
     \predicate{numbervars}{3}{+Term, +Start, -End}
-Unify the free variables in \arg{Term} with a term \term{\$VAR}{N},
+Unify the unbound variables in \arg{Term} with a term \term{\$VAR}{N},
 where \arg{N} is the number of the variable. Counting starts at
 \arg{Start}. \arg{End} is unified with the number that should be given
 to the next variable.\bug{Only \jargon{tagged integers} are supported
@@ -8493,10 +8533,12 @@ the same as sort/2.  See also keysort/2.
     \predicate[ISO]{findall}{3}{+Template, :Goal, -Bag}
 Create a list of the instantiations \arg{Template} gets successively on
 backtracking over \arg{Goal} and unify the result with \arg{Bag}.
-Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
-equivalent to bagof/3 with all free variables bound with the existential
-operator (\op{^}), except that bagof/3 fails when \arg{Goal} has no
-solutions.
+Succeeds with an empty list if \arg{Goal} has no solutions.\\
+
+findall/3 is equivalent to bagof/3 with all \jargon{free} variables 
+appearing in \arg{Goal} scoped to the \arg{Goal} with an existential
+(caret) operator (\op{^}), except that bagof/3 fails when \arg{Goal} 
+has no solutions.
 
     \predicate{findall}{4}{+Template, :Goal, -Bag, +Tail}
 As findall/3, but returns the result as the difference list
@@ -8543,7 +8585,7 @@ L = [1, 2, 3, 4].
 
     \predicate[ISO]{bagof}{3}{+Template, :Goal, -Bag}
 Unify \arg{Bag} with the alternatives of \arg{Template}. If \arg{Goal}
-has free variables besides the one sharing with \arg{Template}, bagof/3
+has \jargon{free} variables besides the one sharing with \arg{Template}, bagof/3
 will backtrack over the alternatives of these free variables, unifying
 \arg{Bag} with the corresponding alternatives of \arg{Template}. The
 construct \exam{+\arg{Var}{^}\arg{Goal}} tells bagof/3 not to bind
@@ -10192,7 +10234,7 @@ expansion mechanism described in \secref{topvars}.
     \predicate{expand_query}{4}{+Query, -Expanded, +Bindings, -ExpandedBindings}
 Hook in module \const{user}, normally not defined.  \arg{Query} and
 \arg{Bindings} represents the query read from the user and the names
-of the free variables as obtained using read_term/3.  If this predicate
+of the fresh variables as obtained using read_term/3.  If this predicate
 succeeds, it should bind \arg{Expanded} and \arg{ExpandedBindings} to
 the query and bindings to be executed by the top level.  This predicate
 is used by the top level (prolog/0).  See also expand_answer/2 and
