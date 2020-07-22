@@ -6275,16 +6275,8 @@ SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
 \secref{extensions}). Such terms must be processed using
 compound_name_arity/3. The predicate functor/3 and \predref{=..}{2}
 raise a \const{domain_error} when faced with these terms. Without this
-precaution, the inconsistency demonstrated below could happen
-silently.\footnote{Raising a domain error was suggested by Jeff
-Schultz.}
-
-\begin{code}
-?- functor(a(), N, A).
-N = a, A = 0.
-?- functor(T, a, 0).
-T = a.
-\end{code}
+precaution a \jargon{round trip} of a term with arity 0 over functor/3
+would create an atom.
 
     \predicate[ISO]{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
