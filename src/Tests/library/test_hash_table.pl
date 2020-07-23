@@ -56,6 +56,9 @@ test(rdel) :-
     rfill(1000, 100, 0.7, HT, Assoc),
     assertion(ht_is_hashtable(HT)),
     assertion(same(HT, Assoc)).
+test(empty) :-
+    ht_new(HT),
+    assertion(\+ ht_get(HT, 1, _)).
 test(empty, Size == 0) :-
     ht_new(HT),
     \+ ht_del(HT, 1, _),

@@ -258,7 +258,8 @@ del_shift(Buckets, I0, J, Size) :-
 %
 %   True when Key is in HT and associated with Value.
 
-ht_get(ht(_, Size, Buckets), Key, Value) :-
+ht_get(ht(Load, Size, Buckets), Key, Value) :-
+    Load > 0,
     must_be(nonvar, Key),
     variant_hash(Key, I0),
     I is I0 mod Size,
