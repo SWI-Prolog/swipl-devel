@@ -6479,9 +6479,11 @@ ERROR: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}
-Rationalized version of functor/3 that only works for compound terms
-and can examine and create compound terms with zero arguments (e.g,
-\exam{name()}).  See also compound_name_arguments/3.
+Rationalized version of functor/3 that only works for compound terms.
+A \const{type_error} is thrown if, at call time, \arg{Compound} is
+instantiated to something that is not a compound term. The predicate
+can examine and create compound terms with zero arguments 
+(e.g, \exam{name()}). See also compound_name_arguments/3.
 
     \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arguments}
 Rationalized version of \predref{=..}{2} that can compose and decompose
