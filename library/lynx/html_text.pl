@@ -246,7 +246,8 @@ format_list_element(element(LE, Attrs, Content), Type, Nth, State) :-
     block_words(Content, Blocks, Words, State1),
     emit_block(Words, ListParProps, State1),
     (   Blocks \== []
-    ->  update_state_par_properties(ListParProps, State1, State2),
+    ->  ask_nl(2),                              % empty line before next par
+        update_state_par_properties(ListParProps, State1, State2),
         format_dom(Blocks, State2)
     ;   true
     ).
