@@ -2944,6 +2944,51 @@ PRED_IMPL("var_number", 2, var_number, 0)
   return FALSE;
 }
 
+		 /*******************************
+		 *	      TEMPLATE		*
+		 *******************************/
+
+/** '$unbind_template'(+Template) is det.
+ *
+ * Assuming Template is a  term  v(A1,  A2,   ...)  where  A1,  ...  are
+ * initially references into another  term   for  example  created using
+ * term_variables/2 followed by =../2.  This   predicate  is designed to
+ * unify the template with concrete values   and subsequently unbind the
+ * template such that we can unify it with  a new set of concrete values
+ * without copying the entire term.
+ *
+ * @see used by foreach/2.
+ */
+
+static
+PRED_IMPL("$unbind_template", 1, unbind_template, 0)
+{ PRED_LD
+  Word p = valTermRef(A1);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { Functor f = valueTerm(*p);
+    size_t i, arity = arityFunctor(f->definition);
+
+    for(i=0; i<arity; i++)
+    { word w = f->arguments[i];
+
+      if ( isRef(w) )
+      { Word tp = unRef(w);
+
+	setVar(*tp);
+      } else
+      { return PL_type_error("template", A1);
+      }
+    }
+  } else if ( !isAtom(*p) )
+  { return PL_type_error("template", A1);
+  }
+
+  return TRUE;
+}
+
+
 
 		 /*******************************
 		 *	   TERM-VARIABLES	*
@@ -5805,6 +5850,7 @@ BeginPredDefs(prims)
   PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
   PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
   PRED_DEF("$filled_array", 4, filled_array, 0)
+  PRED_DEF("$unbind_template", 1, unbind_template, 0)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)

@@ -545,47 +545,61 @@ state1(_,   X, X, _).
 
 %!  foreach(:Generator, :Goal)
 %
-%   True if conjunction of results is   true. Unlike forall/2, which
-%   runs a failure-driven loop that proves Goal for each solution of
-%   Generator, foreach/2 creates a conjunction.   Each member of the
-%   conjunction is a copy of  Goal,   where  the variables it shares
-%   with Generator are filled with the values from the corresponding
-%   solution.
+%   True when the conjunction  of  _instances_   of  Goal  created  from
+%   solutions for Generator is true. Except for term copying, this could
+%   be implemented as below.
 %
-%   The implementation executes forall/2 if   Goal  does not contain
-%   any variables that are not shared with Generator.
+%   ```
+%   foreach(Generator, Goal) :-
+%       findall(Goal, Generator, Goals),
+%       maplist(call, Goals).
+%   ```
 %
-%   Here is an example:
+%   The actual implementation uses findall/3 on  a template created from
+%   the variables _shared_ between Generator  and Goal. Subsequently, it
+%   uses every instance of this template  to instantiate Goal, call Goal
+%   and undo _only_ the instantiation of   the  template and _not_ other
+%   instantiations created by running Goal.  Here is an example:
 %
-%   ==
+%   ```
 %   ?- foreach(between(1,4,X), dif(X,Y)), Y = 5.
 %   Y = 5.
 %   ?- foreach(between(1,4,X), dif(X,Y)), Y = 3.
 %   false.
-%   ==
+%   ```
 %
-%   @bug    Goal is copied repeatedly, which may cause problems if
-%           attributed variables are involved.
+%   The  predicate  foreach/2  is   mostly    used   if   Goal  performs
+%   backtrackable destructive assignment on  terms. Attributed variables
+%   (underlying constraints) are  an  example.   Another  example  of  a
+%   backtrackable data structure is in   library(hashtable).  If we care
+%   only about the side effects  (I/O,   dynamic  database, etc.) or the
+%   thruth value of Goal, forall/2 is  a faster and simpler alternative.
+%   If Goal instantiates its arguments it  is   will  often  fail as the
+%   argument cannot be instantiated to multiple   values. It is possible
+%   to incrementally _grow_ an argument:
+%
+%   ```
+%   ?- foreach(between(1,4,X), member(X, L)).
+%   L = [1,2,3,4|_].
+%   ```
+%
+%   Note that SWI-Prolog up to  version   8.3.4  created  copies of Goal
+%   using copy_term/2 for each iteration.
 
 foreach(Generator, Goal) :-
     term_variables(Generator, GenVars0), sort(GenVars0, GenVars),
     term_variables(Goal, GoalVars0), sort(GoalVars0, GoalVars),
-    ord_subtract(GoalVars, GenVars, SharedGoalVars),
-    (   SharedGoalVars == []
-    ->  \+ (Generator, \+Goal)      % = forall(Generator, Goal)
-    ;   ord_intersection(GenVars, GoalVars, SharedVars),
-        Templ =.. [v|SharedVars],
-        SharedTempl =.. [v|SharedGoalVars],
-        findall(Templ, Generator, List),
-        prove_list(List, Templ, SharedTempl, Goal)
-    ).
+    ord_intersection(GenVars, GoalVars, SharedVars),
+    Templ =.. [v|SharedVars],
+    findall(Templ, Generator, List),
+    prove_list(List, Templ, Goal).
 
-prove_list([], _, _, _).
-prove_list([H|T], Templ, SharedTempl, Goal) :-
-    copy_term(Templ+SharedTempl+Goal,
-              H+SharedTempl+Copy),
-    Copy,
-    prove_list(T, Templ, SharedTempl, Goal).
+prove_list([], _, _).
+prove_list([H|T], Templ, Goal) :-
+    Templ = H,
+    call(Goal),
+    '$unbind_template'(Templ),
+    prove_list(T, Templ, Goal).
 
 
 %!  free_variables(:Generator, +Template, +VarList0, -VarList) is det.
