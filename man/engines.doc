@@ -52,7 +52,7 @@ for engines.
 
 Engines can be used to reason about solutions produced by a goal through
 backtracking. In this scenario we create an engine with the goal we wish
-to backtrack over and we enumerate all its solution using engine_next/1.
+to backtrack over and we enumerate all its solution using engine_next/2.
 This usage scenario competes with the all solution predicates
 (findall/3, bagof/3, etc.) and the predicates from library
 \pllib{aggregate}. Below we implement findall/3 using engines.
@@ -85,7 +85,7 @@ backtracking, return ordered solutions and we wish to merge the two
 answer streams into a single ordered stream of answers. The solution in
 classical Prolog is below. It collects both answer sets, merges them
 using ordered set merging and extract the answers. The code is clean and
-short, but it doesn't produce any answers before both generaters are
+short, but it doesn't produce any answers before both generators are
 fully enumerated and it uses memory that is proportional to the combined
 set of answers.
 
@@ -100,7 +100,7 @@ merge_answers(T1,G1, T2,G2, A) :-
 \end{code}
 
 We can achieve the same using engines. We create two engines to generate
-the solutions to both our generators. Now, we cas ask both for an
+the solutions to both our generators. Now, we can ask both for an
 answer, put the smallest in the answer set and ask the engine that
 created the smallest for its next answer, etc. This way we can create an
 ordered list of answers as above, but now without creating intermediate
@@ -198,7 +198,7 @@ typical update loop for maintaining state inside an engine: fetch a
 command, update the state, yield with the reply and call the updater
 recursively. The update step is guarded against failure. For robustness
 one may also guard it against exceptions using catch/3. Note that
-\nopredref{heap_get}{2} passes the \arg{Priority} and \arg{Key} it wishes
+\nopredref{heap_get}{3} passes the \arg{Priority} and \arg{Key} it wishes
 to delete from the heap such that if the unification fails, the heap
 remains unchanged.
 
@@ -271,18 +271,18 @@ pages}.\footnote{\url{http://www.ijettcs.org/Volume3Issue2/IJETTCS-2014-04-23-11
 \label{sec:engine-resources}
 
 A Prolog engine consists of a virtual machine state that includes the
-Prolog stacks. An `empty' engine requires aout 20~KBytes of memory. This
-grows when the engine requires additional stack space. Anonymous engines
-are subject to atom garbage collection (see garbage_collect_atoms/0).
-Engines may be reclaimed immediately using engine_destroy/1. Calling
-engine_destroy/1 destroys the virtual machine state, while the handle
-itself is left to atom garbage collection. The virtual machine is
-reclaimed as soon as an engine produced its last result, failed or
-raised an exception. This implies that it is only advantageous to call
-engine_destroy/1 explicitly if you are not interested in further
-answers.
+Prolog stacks. An `empty' engine requires about 20~KBytes of memory.
+This grows when the engine requires additional stack space. Anonymous
+engines are subject to atom garbage collection (see
+garbage_collect_atoms/0). Engines may be reclaimed immediately using
+engine_destroy/1. Calling engine_destroy/1 destroys the virtual machine
+state, while the handle itself is left to atom garbage collection. The
+virtual machine is reclaimed as soon as an engine produced its last
+result, failed or raised an exception. This implies that it is only
+advantageous to call engine_destroy/1 explicitly if you are not
+interested in further answers.
 
-Engines that are expected to be left in inactive state for a prelonged
+Engines that are expected to be left in inactive state for a prolonged
 time can be minimized by calling garbage_collect/0 and trim_stacks/0
 (in that order) before calling engine_yield/1 or succeeding.
 
