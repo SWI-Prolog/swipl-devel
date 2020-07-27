@@ -376,8 +376,18 @@ write_declarations([H|T], Module) :-
 
 list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
-    forall(clause(Pred, Body, Ref),
-           list_clause(Module:Head, Body, Ref, Source, Options)).
+    generalise_term(Head, GenHead),
+    forall(( clause(Module:GenHead, Body, Ref),
+             \+ GenHead \= Head
+           ),
+           list_clause(Module:GenHead, Body, Ref, Source, Options)).
+
+generalise_term(Head, Gen) :-
+    compound(Head),
+    !,
+    compound_name_arity(Head, Name, Arity),
+    compound_name_arity(Gen,  Name, Arity).
+generalise_term(Head, Head).
 
 list_clause(_Head, _Body, Ref, _Source, Options) :-
     option(source(true), Options),
