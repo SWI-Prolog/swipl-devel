@@ -3476,14 +3476,14 @@ bad_encoding(const char *msg, atom_t name)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-fn_to_atom() translates a 8-bit  filename  into   a  unicode  atom.  The
+file_name_to_atom() translates a 8-bit filename into a unicode atom. The
 encoding is generic `multibyte' on Unix systems   and  fixed to UTF-8 on
 Windows, where the uxnt layer  translates   the  UTF-8  sequences to the
 Windows *W() functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static atom_t
-fn_to_atom(const char *fn)
+atom_t
+file_name_to_atom(const char *fn)
 { PL_chars_t text;
   atom_t a;
 
@@ -3874,7 +3874,7 @@ openStream(term_t file, term_t mode, term_t options)
 		 ATOM_open, ATOM_source_sink, file);
       return NULL;
     }
-    setFileNameStream_unlocked(s, fn_to_atom(path));
+    setFileNameStream_unlocked(s, file_name_to_atom(path));
   } else
   { return NULL;
   }

@@ -1676,7 +1676,7 @@ qlfFixSourcePath(wic_state *state, const char *raw)
   }
 
   if ( (canonical=canonicalisePath(buf)) )
-  { atom_t translated = PL_new_atom(canonical);
+  { atom_t translated = file_name_to_atom(canonical);
 
     if ( strcmp(raw, canonical) )
     { path_translated *tr = PL_malloc(sizeof(*tr));
