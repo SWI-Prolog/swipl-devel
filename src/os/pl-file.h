@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2020, University of Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -100,5 +100,6 @@ COMMON(int)		stream_encoding_options(atom_t type, atom_t encoding,
 						int *bom, IOENC *enc);
 COMMON(int)		file_name_is_iri(const char *path);
 COMMON(int)		iri_hook(const char *url, iri_op op, ...);
+COMMON(atom_t)		file_name_to_atom(const char *fn);
 
 #endif /*PL_FILE_H_INCLUDED*/
