@@ -239,7 +239,7 @@ following notation for arguments of type \ctype{term_t}:
 will refer to an invalid term if the term is allocated on the global
 stack and backtracking takes us back to a point before the term was
 written.\footnote{This could have been avoided by \jargon{trailing} term
-references when data is written to them. This seriously hurds
+references when data is written to them. This seriously hurts
 performance in some scenarios though. If this is desired, use
 PL_put_variable() followed by one of the PL_unify_*() functions.}
 Compounds, large integers, floats and strings are all allocated on the
@@ -584,13 +584,13 @@ version~7.
 
     \begin{description}
 	\cmacro{atom_t}{ATOM_nil}
-Atomic constant that represents the empty list.  It is adviced to
+Atomic constant that represents the empty list.  It is advised to
 use PL_get_nil(), PL_put_nil() or PL_unify_nil() where applicable.
 
 	\cmacro{atom_t}{ATOM_dot}
 Atomic constant that represents the name of the list constructor.
 The list constructor itself is created using
-\exam{PL_new_functor(ATOM_dot,2)}.   It is adviced to use
+\exam{PL_new_functor(ATOM_dot,2)}.   It is advised to use
 PL_get_list(), PL_put_list() or PL_unify_list() where applicable.
     \end{description}
 
@@ -1707,7 +1707,7 @@ call_chars(const char *goal)
 \end{code}
 
 PL_chars_to_term() is defined using PL_put_term_from_chars() which can
-deal with not nul-terminated strings as well as strings using different
+deal with not null-terminated strings as well as strings using different
 encodings:
 
 \begin{code}
@@ -2521,7 +2521,7 @@ prologFunction(ArithFunction f, term_t av, Number r)
       rval = PL_error(name, arity-1, NULL, ERR_FAILED, f->proc);
     }
 
-    PL_cut_query(qid);			/* donot destroy data */
+    PL_cut_query(qid);			/* do not destroy data */
     PL_close_foreign_frame(fid);	/* same */
   }
 
@@ -2622,7 +2622,7 @@ handle for a predicate with arity~1. If no action is provided the signal
 handling for this signal is restored to the default before
 PL_initialise() was called.
 
-Finally, 0 (zero) may be passsed for \arg{sig}.  In that case the system
+Finally, 0 (zero) may be passed for \arg{sig}.  In that case the system
 allocates a free signal in the \textit{Prolog range} (32\ldots{}64).
 Such signal handler are activated using PL_thread_raise().
 
@@ -2961,7 +2961,7 @@ flag as an \const{atom_t} (see current_prolog_flag/2).
 \arg{type} specifies the kind of value to be retrieved, it is one
 of the values below.  \arg{value} is a pointer to a location where
 to store the value. The user is responsible for making sure this memory
-location is of the appropiate size/type (see the returned types below
+location is of the appropriate size/type (see the returned types below
 to determine the size/type).
 The function returns \const{TRUE} on success
 and \const{FALSE} on failure.
@@ -3743,7 +3743,7 @@ cancel termination if \arg{status} is 0.
 In theory, this function allows deleting and restarting the Prolog
 system in the same process. In practice, SWI-Prolog's cleanup process is
 far from complete, and trying to revive the system using PL_initialise()
-will leak memory in the best case. It can also crash the appliction.
+will leak memory in the best case. It can also crash the application.
 
 In this state, there is little practical use for this function. If you
 want to use Prolog temporarily, consider running it in a separate process.
@@ -4185,7 +4185,7 @@ following constants:
     \begin{description}
     \termitem{PL_BT_SAFE}{}
     (0x1) Do not try to print \jargon{goals}.  Instead, just print the
-    predicate name and arity.  This reduces the likelyhood to crash if
+    predicate name and arity.  This reduces the likelihood to crash if
     PL_backtrace() is called in a damaged environment.
     \termitem{PL_BT_USER}{}
     (0x2) Only show `user' frames.  Default is to also show frames

@@ -257,7 +257,7 @@ on term_expansion/2 of the virtual term \const{begin_of_file}.
     \item The second phase loads the file as normal.
 \end{enumerate}
 
-To load a project in both XSB and SWI-Prolog it is adviced to make sure
+To load a project in both XSB and SWI-Prolog it is advised to make sure
 all source files use the \fileext{P} file name extension.  Next, write a
 SWI-Prolog loader in a \fileext{pl} file that contains e.g.,
 
