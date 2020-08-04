@@ -1610,7 +1610,11 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  if ( arity == 1 )
 	  { TRY(writeAtom(functor, options));
 	  } else
-	  { _PL_get_arg(1, t, arg);
+	  { if ( functor == ATOM_curl &&
+		 (PL_is_atom(arg) || PL_is_variable(arg)) )
+	      TRY(Putc(' ', out));
+	    _PL_get_arg(1, t, arg);
+
 	    TRY(writeTerm(arg, 1200, options));
 	  }
 	  if (op_pri > prec)
