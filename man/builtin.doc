@@ -3,66 +3,133 @@
 \section{Notation of Predicate Descriptions}	\label{sec:preddesc}
 
 We have tried to keep the predicate descriptions clear and concise.
-First, the predicate name is printed in bold face, followed by the
-arguments in italics.  Arguments are preceded by a mode indicator.
-There is no complete agreement on mode indicators in the Prolog
+First, the predicate name is printed in \textbf{bold face}, followed by
+the arguments in \textit{italics}. Arguments are preceded by a
+\jargon{mode indicator}.
+
+\subsection{The argument mode indicator}        \label{sec:argmode}
+
+\index{argument mode indicator}%
+An \jargon{argument mode indicator} gives information about the intended
+direction in which information carried by a predicate argument is supposed
+to flow. Mode indicators (and types) are not a formal part of the Prolog
+language but help in explaining intended semantics to the programmer.
+There is no complete agreement on argument mode indicators in the Prolog
 community.  We use the following definitions:%
-	\footnote{These definitions are taken from PlDoc.  The current
-		  manual has only one mode declaration per predicate and
-		  therefore predicates with mode (+,-) and (-,+) are
-		  described as (?,?).  The \chr{@}-mode is often replaced
-		  by \chr{+}.}
+\footnote{These definitions are taken from the \jargon{PlDoc} markup
+	  language description. \jargon{PldDoc} markup is used
+	  for source code markup (as well as for the commenting tool).
+	  The current manual has only one
+	  mode declaration per predicate and therefore predicates
+	  with mode (\chr{+},\chr{-}) and (\chr{-},\chr{+}) are
+	  described as (\chr{?},\chr{?}). The \chr{@}-mode is often
+	  replaced by \\chr{+}.}
 
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
-++&	Argument must be ground, i.e., the argument may not contain a
-	variable anywhere. \\
-+ &	Argument must be fully instantiated to a term that satisfies the
-	type.  This is not necessarily \jargon{ground}, e.g., the term
-	\exam{[_]} is a \jargon{list}, although its only member is
-	unbound. \\
-- &	Argument is an \emph{output} argument.  Unless specified
-	otherwise, output arguments need not to be unbound. For
-	example, the goal \exam{findall(X, Goal, [T])} is good style and
-	equivalent to \exam{findall(X, Goal, Xs), Xs = [T]}\footnote{The
-	ISO standard dictates that \exam{findall(X, Goal, 1)} raises a
-	\const{type_error} exception, breaking this semantic relation.
-	SWI-Prolog does not follow the standard here.}  Note that the
-	\jargon{determinism} specification, e.g., ``det'' only applies
-	if this argument is unbound. \\
---&	Argument must be unbound.  Typically used by predicates that
-	create `something' and return a handle to the created object,
-	such as open/3 which creates a \jargon{stream}. \\
-? &	Argument must be bound to a \emph{partial term} of the indicated
-	type.  Note that a variable is a partial term for any type.
-	Think of the argument as either \jargon{input} or \jargon{output} or
-	\emph{both} input and output.  For example, in
-	\exam{stream_property(S, reposition(Bool))}, the \const{reposition}
-	part of the term is input and the uninstantiated \arg{Bool} is output. \\
-: &	Argument is a meta-argument.  Implies \chr{+}. See \chapref{modules}
-	for more information on module handling. \\
-@ &	Argument is not further instantiated. Typically used for type tests.\\
+++&	At call time, the argument must be \jargon{ground}, i.e., the
+        argument may not contain any variables that are still unbound. \\
++ &	At call time, the argument must be instantiated to a term satisfying
+        some (informal) type specification. The argument need not necessarily
+	be ground.
+        For example, the term \exam{[_]} is a list, although its only
+	member is the anonymous variable, which is always unbound (and thus
+        nonground). \\
+- &	Argument is an \emph{output} argument. It may or may not be bound at
+        call-time. If the argument is bound at call time, the goal behaves
+	as if the argument were unbound, and then unified with that term after
+	the goal succeeds. This is what is called being \jargon{steadfast}:
+        instantiation of output arguments at call-time does not change the
+        semantics of the predicate, although optimizations may be performed.
+        For example, the goal \exam{findall(X, Goal, [T])} is good style and
+        equivalent to \exam{findall(X, Goal, Xs), Xs = [T]}%
+        \footnote{The ISO standard dictates that \exam{findall(X, Goal, 1)}
+        raise a \const{type_error} exception, breaking steadfastness. SWI-Prolog
+        does not follow the standard here.} %
+	Note that any \jargon{determinism} specification, e.g., \const{det}, only
+	applies	if the argument is unbound. For the case where the argument is
+        bound or involved in constraints, \const{det} effectively becomes
+        \const{semidet}, and \const{multi} effectively becomes
+        \const{nondet}. \\
+--&	At call time, the argument must be unbound. This is typically used by
+        predicates that	create `something' and return a handle to the created
+        object,	such as open/3, which creates a \jargon{stream}. \\
+? &	At call time, the argument must be bound to a \emph{partial term}
+        (a term which may or may not be ground) satisfying some (informal) type
+        specification. Note that an unbound variable \emph{is} a partial
+        term. Think of the argument as either providing input or accepting
+        output or being used for both input and output.
+        For example, in	\exam{stream_property(S, reposition(Bool))}, the
+        \const{reposition} part of the term provides input and the
+        unbound-at-call-time \arg{Bool} variable accepts output. \\
+: &	Argument is a \jargon{meta-argument}, for example a term that can be
+        called as goal. The predicate is thus a \jargon{meta-predicate}. This
+        flag implies \chr{+}. \\
+@ &	Argument will not be further instantiated than it is at call-time.
+        Typically used for type tests. \\
 ! &	Argument contains a mutable structure that may be modified using
 	setarg/3 or nb_setarg/3. \\
 \hline
 \end{tabular}
 \end{center}
 
+See also \secref{metacall} for examples of meta-predicates, and
+\secref{metapred} for mode flags to label meta-predicate arguments in
+module export declarations.
+
+\subsection{Redicate indicators}            \label{sec:predicate_indic}
+
 \index{predicate indicator}%
 Referring to a predicate in running text is done using a
 \jargon{predicate indicator}. The canonical and most generic form of a
-predicate indicator is a term <module>:<name>/<arity>. If the module is
-irrelevant (built-in predicate) or can be inferred from the context it
-is often omitted. Compliant to the ISO standard draft on DCG (see
-\secref{DCG}), SWI-Prolog also allows for [<module>]:<name>//<arity> to
-refer to a grammar rule. For all non-negative arity, <name>//<arity> is
-the same as <name>/<arity>+2, regardless of whether or not the
-referenced predicate is defined or can be used as a grammar rule.
-The //-notation can be used in all places that traditionally allow
-for a predicate indicator, e.g., the module declaration, spy/1,
-and dynamic/1.
+predicate indicator is a term \exam{[<module>:]<name>/<arity>}. The module is
+generally omitted if it is irrelevant (case of a built-in predicate) or if it
+can be inferred from context.
 
+\subsubsection{Non-terminal indicatora}		\label{sec:nonterminal_indic}
+
+\index{non-terminal indicator}%
+Compliant to the ISO standard draft on Definite Clause Grammars (see
+\secref{DCG}), SWI-Prolog also allows for the \jargon{non-terminal
+indicator} to refer to a \jargon{DCG grammar rule}. The non-terminal
+indicator is written as \exam{[<module>]:<name>//<arity>}.
+
+A non-terminal indicator \exam{<name>//<arity>} is understood to be
+equivalent to \exam{<name>/<arity>+2}, regardless of whether or not the
+referenced predicate is defined or can be used as a grammar rule.%
+\footnote{This, however, makes a specific assumption about the
+implementation of DCG rules, namely that DCG rules are preprocessed into
+standard Prolog rules taking two additional arguments, the input list
+and the output list, in accumulator style. This \emph{need} not be true
+in all implementations.}
+The \const{//}-notation can be used in all
+places that traditionally allow for a predicate indicator, e.g., the
+module declaration, spy/1, and dynamic/1.
+
+\subsection{Predicate behaviour and determinism} \label{sec:determinism}
+
+\index{predicate behaviour and determinism}%
+To describe the general behaviour of a predicate, the following vocabulary
+is employed. In source code, structured comments contain the corresponding
+keywords:
+
+\begin{center}
+\begin{tabular}{lp{0.7\linewidth}}
+\hline
+\const{det} &	  A \jargon{deterministic} predicate always succeeds exactly
+                  once and does not leave a choicepoint. \\
+\const{semidet} & A \jargon{semi-deterministic} predicate succeeds at most
+                  once.  If it succeeds it does not leave a choicepoint. \\
+\const{nondet}  & A \jargon{non-deterministic} predicate is the most general
+		  case and no claims are made on the number of solutions (which
+                  may be zero, i.e., the predicate may \jargon{fail}) and whether
+		  or not the predicate leaves an choicepoint on the last
+		  solution. \\
+\const{nondet}  & As \const{nondet}, but succeeds at least once. \\
+\hline
+\end{tabular}
+\end{center}
 
 \section{Character representation}		\label{sec:chars}
 
@@ -1627,7 +1694,7 @@ True if \arg{Term} is bound to a compound term.  See also functor/3
 
     \predicate[ISO]{callable}{1}{@Term}
 True if \arg{Term} is bound to an atom or a compound term. This was
-intended as a type-test for arguments to call/1 and call/2.. Note that
+intended as a type-test for arguments to call/1, call/2 etc. Note that
 callable only tests the \jargon{surface term}. Terms such as (22,true)
 are considered callable, but cause call/1 to raise a type error.
 Module-qualification of meta-argument (see meta_predicate/1) using
@@ -2556,7 +2623,7 @@ relevant \jargon{error context} information.
 It may be a compound term of arity 1,2 or 3 - or simply an atom if
 there is no relevant error context information.
 
-\item [\arg{Context}] gives additional context information beyond
+\item [\arg{Context}] additional context information beyond
 the one in \arg{Formal}. If may be unset, i.e. a fresh variable, or
 set to something that hopefully will help the programmer in debugging.
 The structure of \arg{Context} is left unspecified by the ISO
@@ -2564,8 +2631,9 @@ Standard, so SWI-Prolog creates it own convention (see below).
 \end{itemlist}
 
 Thus, constructing an error term and throwing it might take
-this form (although you would not use the explicit naming given here
-for illustration purposes, but write the term to throw directly):
+this form (although you would not use the illustrative explicit
+naming given here; instead composing the exception term directly in
+a one-liner):
 
 \begin{code}
 Exception = error(Formal, Context),
@@ -2576,6 +2644,28 @@ Culprit   = ... some value ...,
 throw(Exception)
 \end{code}
 
+Note that the ISO standard formal term expresses \emph{what should be
+the case} or \emph{what is the expected correct state}, and not
+\emph{what is the problem}.  For example:
+
+\begin{itemlist}
+    \item If a variable is found to be uninstantiated but should be instantiated,
+the error term is \const{instantiation_error}: The problem is not that there is an
+unwanted instantiation, but that the correct state is the one with an
+instantiated variable.
+
+    \item In case a variable is found to be instantiated but should be uninstantiated
+(because it will be used for output), the error term is
+\term{uninstantiation_error}{Culprit}: The problem is not that there is
+lack of instantiation, but that the correct state is the one which
+\arg{Culprit} (or one of its subterms) is more uninstantiated than
+is the case.
+
+    \item If you try to disassemble an empty list with compound_name_arguments/3,
+the error term is \term{type_error}{compound,[]}. The problem is not
+that \const{[]} is (erroneously) a compound term, but that a compound
+term is expected and \const{[]} does not belong to that class.
+\end{itemlist}
 
 \subsubsection{Throwing exceptions from applications and libraries}
 \label{sec:throwsfromuserpreds}
@@ -2588,7 +2678,7 @@ Notably, exceptions of the shape \term{error}{Formal,Context} are
 recognised by the development tools and therefore expressing unexpected
 situations using these exceptions improves the debugging experience.
 
-In SWI-Prolog, the second argument of the exception term, i.e. the
+In SWI-Prolog, the second argument of the exception term, i.e., the
 \arg{Context} argument, is generally of the form
 \term{context}{Location, Message}, where:
 
@@ -2623,7 +2713,7 @@ from \pllib{error}. Termwise, these predicates look exactly like the
 \end{itemlist}
 
 
-\subsection{Printing messages}			\label{sec:printmsg}
+\section{Printing messages}			\label{sec:printmsg}
 
 The predicate print_message/2 is used to print a message term in a
 human-readable format. The other predicates from this section allow the user
@@ -2699,7 +2789,7 @@ The predicate print_message/2 first translates the \arg{Term} into a
 list of `message lines' (see print_message_lines/3 for details). Next,
 it calls the hook message_hook/3 to allow the user to intercept the
 message. If message_hook/3 fails it prints the message unless \arg{Kind}
-is silent.
+is \const{silent}.
 
 The print_message/2 predicate and its rules are in the file
 \file{<plhome>/boot/messages.pl}, which may be inspected for more
@@ -2833,7 +2923,7 @@ using the hook prolog:message//1.  If not defined, it is simply printed.
 \end{description}
 
 
-\subsubsection{Printing from libraries}		\label{sec:libprintmsg}
+\subsection{Printing from libraries}		\label{sec:libprintmsg}
 
 Libraries should \emph{not} use format/3 or other output predicates
 directly. Libraries that print informational output directly to the
@@ -5695,7 +5785,7 @@ current output.
 
     \predicate[semidet]{write_length}{3}{+Term, -Length, +Options}
 True when \arg{Length} is the number of characters emitted for
-\arg{write_term}{Term, Options}.  In addition to valid options for
+\term{write_term}{Term, Options}.  In addition to valid options for
 write_term/2, it processes the option:
 
     \begin{description}
@@ -8173,10 +8263,12 @@ the same as sort/2.  See also keysort/2.
     \predicate[ISO]{findall}{3}{+Template, :Goal, -Bag}
 Create a list of the instantiations \arg{Template} gets successively on
 backtracking over \arg{Goal} and unify the result with \arg{Bag}.
-Succeeds with an empty list if \arg{Goal} has no solutions. findall/3 is
-equivalent to bagof/3 with all free variables bound with the existential
-operator (\op{^}), except that bagof/3 fails when \arg{Goal} has no
-solutions.
+Succeeds with an empty list if \arg{Goal} has no solutions.\\
+
+findall/3 is equivalent to bagof/3 with all \jargon{free} variables
+appearing in \arg{Goal} scoped to the \arg{Goal} with an existential
+(caret) operator (\op{^}), except that bagof/3 fails when \arg{Goal}
+has no solutions.
 
     \predicate{findall}{4}{+Template, :Goal, -Bag, +Tail}
 As findall/3, but returns the result as the difference list
