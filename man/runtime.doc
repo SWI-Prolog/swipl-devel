@@ -23,7 +23,7 @@ chapter, together with the installed development system and disable
 qsave_program/2. This allows creating the application as a single file,
 while avoiding the need to ensure that the state is self-contained. For
 large programs this technique typically reduces startup time by an order
-of magnitude. This mechanism is particuarly suitable for in-house and
+of magnitude. This mechanism is particularly suitable for in-house and
 cloud deployment. It provides some protection against inspecting the
 source. See \secref{protect-code} for details.
 

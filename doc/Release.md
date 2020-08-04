@@ -127,7 +127,7 @@ MacOS dependencies for new releases, in particular for OpenSSL.
 
 There is typically not that much  need   to  verify the whole thing also
 builds under Macports if  you  already   built  and  tested  the current
-version on the Mac. Still, if there are problems procceed as follows:
+version on the Mac. Still, if there are problems proceed as follows:
 
   - First time preparation
     - Setup a local repository according to

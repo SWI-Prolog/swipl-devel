@@ -1,5 +1,5 @@
 This directory contains a simple demo to   get you started. You can also
-use this directory to develop your own  programs but this is not adviced
+use this directory to develop your own  programs but this is not advised
 for serious usage. For normal usage, choose a location on the filesystem
 that suits you best.
 
