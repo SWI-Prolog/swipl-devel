@@ -44,6 +44,7 @@ Tests that are hard to classify
 
 test_write :-
 	run_tests([ portray,
+		    write_op,
 		    write_canonical,
 		    write_variable_names,
 		    write_float
@@ -69,6 +70,17 @@ portray_stream(S, _) :-
 	format('~w', [T]).
 
 :- end_tests(portray).
+
+:- begin_tests(write_op).
+
+:- op(200, yf, {}).
+
+test(nodict, X == 'f {x}') :-
+	context_module(M),
+	with_output_to(atom(X),
+		       write_term(f {x}, [module(M)])).
+
+:- end_tests(write_op).
 
 :- begin_tests(write_canonical).
 
