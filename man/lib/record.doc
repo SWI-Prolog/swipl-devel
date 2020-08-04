@@ -12,7 +12,7 @@ text-books, where access and modification predicates are defined for
 the record type. Such predicates are subject to normal import/export as
 well as analysis by cross-referencers. Given the simple nature of the
 access predicates, an optimizing compiler can easily inline them for
-optimal preformance.
+optimal performance.
 
 A record is defined using the directive record/1.  We introduce the
 library with a short example:
