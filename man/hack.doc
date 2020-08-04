@@ -497,7 +497,7 @@ of closures may be terminated by an exception. Options:
     \begin{description}
     \termitem{as}{Location}
 \arg{Location} is one of \const{first} (default) or \const{last} and
-determines whether the new handler is exected as first or last.
+determines whether the new handler is expected as first or last.
     \end{description}
 
 Defined channels are described below. The \arg{Channel} argument is the

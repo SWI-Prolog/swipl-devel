@@ -120,7 +120,7 @@ person(john).
 \end{code}
 
     \glossitem{fail}
-A \g{goal} is said to haved failed if it could not be \g{proven}.
+A \g{goal} is said to have failed if it could not be \g{proven}.
 
     \glossitem{float}
 Computer's crippled representation of a real number.  Represented as
