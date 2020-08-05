@@ -5605,7 +5605,7 @@ copy_stream_data(+StreamIn, +StreamOut, [Len])
 static int
 copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
 { IOSTREAM *i, *o;
-  int c;
+  int c, rc;
   int count = 0;
 
   if ( !getInputStream(in, S_DONTCARE, &i) )
@@ -5640,14 +5640,14 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
 	return FALSE;
       }
       if ( Sputcode(c, o) < 0 )
-      { releaseStream(i);
-	return streamStatus(o);
-      }
+	break;
     }
   }
 
-  releaseStream(o);
-  return streamStatus(i);
+  rc = streamStatus(o);
+  rc = streamStatus(i) && rc;
+
+  return rc;
 }
 
 static
