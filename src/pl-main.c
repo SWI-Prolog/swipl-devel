@@ -54,6 +54,9 @@
 #ifndef O_ANSI_COLORS
 #define O_ANSI_COLORS 1
 #endif
+#ifndef HAVE_WMAIN
+#define HAVE_WMAIN 1
+#endif
 
 #else /* non-Windows version */
 
@@ -115,7 +118,12 @@ force_malloc_dependency(void)
 		 *******************************/
 
 int
+#if HAVE_WMAIN
+#define PL_initialise PL_winitialise
+wmain(int argc, wchar_t **argv)
+#else
 main(int argc, char **argv)
+#endif
 {
 #if O_CTRLC
   main_thread_id = GetCurrentThreadId();

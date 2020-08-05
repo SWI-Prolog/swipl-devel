@@ -3630,6 +3630,10 @@ to your \env{PATH} and either pass a module holding a saved state, or
 to a DLL (see the \cmdlineoption{-dll} option of \program{swipl-ld}),
 pass the name of this DLL.
 
+    \cfunction{int}{PL_winitialise}{int argc, wchar_t **argv}
+Wide character version of PL_initialise(). Can be used in Windows
+combined with the wmain() entry point.
+
     \cfunction{int}{PL_is_initialised}{int *argc, char ***argv}
 Test whether the Prolog engine is already initialised. Returns
 \const{FALSE} if Prolog is not initialised and \const{TRUE} otherwise.
