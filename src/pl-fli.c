@@ -4375,7 +4375,9 @@ PL_clear_exception(void)
 
 void
 PL_clear_foreign_exception(LocalFrame fr)
-{ term_t ex = PL_exception(0);
+{ GET_LD
+  term_t ex = PL_exception(0);
+  fid_t fid;
 
 #ifdef O_PLMT
 { int tid = PL_thread_self();
@@ -4395,7 +4397,11 @@ PL_clear_foreign_exception(LocalFrame fr)
   Sdprintf("Foreign predicate %s did not clear exception: ",
 	   predicateName(fr->predicate));
 #endif
-  PL_write_term(Serror, ex, 1200, PL_WRT_NEWLINE);
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { PL_write_term(Serror, ex, 1200, PL_WRT_NEWLINE);
+    PL_close_foreign_frame(fid);
+  }
 
   PL_clear_exception();
 }
