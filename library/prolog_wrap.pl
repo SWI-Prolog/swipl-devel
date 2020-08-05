@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2020, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -128,7 +128,8 @@ body_closure_args(I, Arity, Body0, Closure, Body) :-
 body_closure_args(_, _, _, _, _).
 
 
-%!  '$syspreds':'$predicate_property'(?Property, +Value) is nondet.
+%   Not for public docs!
+%   '$syspreds':'$predicate_property'(?Property, +Value) is nondet.
 %
 %   Extend predicate_property/2 to provide the `wrapped` property
 
