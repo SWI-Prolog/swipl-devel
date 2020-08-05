@@ -301,12 +301,12 @@ join_all([Id|T]) :-
 		 *             FORALL		*
 		 *******************************/
 
-%!  concurrent_forall(:Generate, :Test) is semidet.
-%!  concurrent_forall(:Generate, :Test, +Options) is semidet.
+%!  concurrent_forall(:Generate, :Action) is semidet.
+%!  concurrent_forall(:Generate, :Action, +Options) is semidet.
 %
-%   True when Test is true for all   solutions of Generate. This has the
-%   same semantics as forall/2,  but  the   Test  goals  are executed in
-%   multiple threads. Notable a  failing  Test   or  a  Test throwing an
+%   True when Action is true for all solutions of Generate. This has the
+%   same semantics as forall/2, but  the   Action  goals are executed in
+%   multiple threads. Notable a failing Action   or a Action throwing an
 %   exception signals the calling  thread  which   in  turn  aborts  all
 %   workers and fails or re-throws the generated error. Options:
 %
@@ -318,7 +318,7 @@ join_all([Id|T]) :-
 %   to dynamic scheduling of  HTTP  worker   threads.  This  would avoid
 %   creating threads that are never used if Generate is too slow or does
 %   not provide enough answers and  would   further  raise the number of
-%   threads if Test is I/O bound rather than CPU bound.
+%   threads if Action is I/O bound rather than CPU bound.
 
 :- dynamic
     fa_aborted/1.
