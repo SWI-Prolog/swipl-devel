@@ -320,6 +320,10 @@ endif()
 add_executable(swipl ${SWIPL_SRC})
 target_link_libraries(swipl ${SWIPL_LIBRARIES} libswipl)
 target_c_stack(swipl 4000000)
+if(MINGW_ROOT)
+  message("Adding -municode")
+  target_link_options(swipl PRIVATE -municode)
+endif()
 
 # build the library
 if(SWIPL_SHARED_LIB)
