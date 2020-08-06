@@ -3132,7 +3132,7 @@ load_files(Module:Files, Options) :-
 '$module_class'(_, user, user).
 
 '$lib_prefix'('/library').
-'$lib_prefix'('/xpce/prolog/lib/').
+'$lib_prefix'('/xpce/prolog/').
 
 '$check_export'(Module) :-
     '$undefined_export'(Module, UndefList),
