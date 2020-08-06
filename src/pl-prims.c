@@ -5639,7 +5639,7 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 	  { char **sp = d->address;
 
 	    if ( *sp )
-	      return PL_unify_atom_chars(val, *sp);
+	      return PL_unify_chars(val, PL_ATOM|REP_FN, (size_t)-1, *sp);
 	    return FALSE;
 	  }
 	  case CMDOPT_LIST:
@@ -5650,7 +5650,7 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 
 	    for( l=*list; l; l = l->next)
 	    { if ( !PL_unify_list(tail, head, tail) ||
-		   !PL_unify_atom_chars(head, l->opt_val) )
+		   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, l->opt_val) )
 		return FALSE;
 	    }
 
@@ -5672,8 +5672,8 @@ PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
   term_t key = A1;
   term_t val = A2;
 
-  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION) &&
-       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION) )
+  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION|REP_FN) &&
+       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION|REP_FN) )
   { return set_pl_option(k, v);
   }
 
