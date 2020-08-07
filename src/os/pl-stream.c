@@ -2973,11 +2973,54 @@ IOFUNCTIONS Sfilefunctions =
 };
 
 
+		 /*******************************
+		 *	    TTY STREAMS		*
+		 *******************************/
+
+static ssize_t
+Sread_tty(void *handle, char *buf, size_t size)
+{ ssize_t bytes = Sread_file(handle, buf, size);
+
+  if ( bytes < 0 && errno == EBADF )
+  { errno = 0;
+    return 0;
+  }
+
+  return bytes;
+}
+
+
+static ssize_t
+Swrite_tty(void *handle, char *buf, size_t size)
+{ ssize_t bytes = Swrite_file(handle, buf, size);
+
+  if ( bytes == -1 && errno == EBADF )
+  { errno = 0;
+    return size;
+  }
+
+  return bytes;
+}
+
+
+static int
+Sclose_tty(void *handle)
+{ int rc = Sclose_file(handle);
+
+  if ( rc == -1 && errno == EBADF )
+  { errno = 0;
+    return 0;
+  }
+
+  return rc;
+}
+
+
 IOFUNCTIONS Sttyfunctions =
-{ Sread_file,
-  Swrite_file,
-  NULL,
-  Sclose_file,
+{ Sread_tty,
+  Swrite_tty,
+  Sseek_file,
+  Sclose_tty,
   Scontrol_file,
 #ifdef O_LARGEFILES
   Sseek_file64
