@@ -4067,7 +4067,7 @@ PRED_IMPL("compile_predicates",  1, compile_predicates, PL_FA_TRANSPARENT)
   { Procedure proc;
 
     if ( !PL_cons_functor(desc, FUNCTOR_colon2, modm, head) ||
-	 !get_procedure(head, &proc, 0,
+	 !get_procedure(desc, &proc, 0,
 			GP_NAMEARITY|GP_FINDHERE|GP_EXISTENCE_ERROR) )
       return FALSE;
 
