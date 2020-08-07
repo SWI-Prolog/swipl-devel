@@ -622,6 +622,7 @@ suggest predicates from a keyword.
 \predicatesummary{set_random}{1}{Control random number generation}
 \predicatesummary{set_stream}{2}{Set stream attribute}
 \predicatesummary{set_stream_position}{2}{Seek stream to position}
+\predicatesummary{set_system_IO}{3}{Rebind stdin/stderr/stdout}
 \predicatesummary{setup_call_cleanup}{3}{Undo side-effects safely}
 \predicatesummary{setup_call_catcher_cleanup}{4}{Undo side-effects safely}
 \predicatesummary{setarg}{3}{Destructive assignment on term}

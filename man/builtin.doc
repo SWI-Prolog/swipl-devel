@@ -5156,6 +5156,30 @@ linked to \const{user_error}. Otherwise \arg{Error} is used for
 See also prolog/0 and set_stream/2.  The \emph{clib} package
 provides the library \pllib{prolog_server}, creating a TCP/IP
 server for creating an interactive session to Prolog.
+
+    \predicate{set_system_IO}{3}{+In, +Out, +Error}
+Bind the given streams to the operating system I/O streams 0-2 using
+POSIX dup2() API. \arg{In} becomes \const{stdin}. \arg{Out} becomes
+\const{stdout}. If \arg{Error} equals \arg{Out} an unbuffered stream is
+associated to the same destination and linked to \const{stderr}.
+Otherwise \arg{Error} is used for \const{stderr}. Output buffering for
+\arg{Out} is set to line and buffering on \arg{Error} is disabled. The
+operating system I/O streams are shared across all threads. The three
+streams must be related to a \jargon{file descriptor} or a
+\const{domain_error} \const{file_stream} is raised.  See also
+stream_property/2, property \term{file_no}{Fd}.
+
+Where set_prolog_IO/3 rebinds the Prolog streams \const{user_input},
+\const{user_output} and \const{user_error} for a specific thread
+providing a private interactive session, set_system_IO/3 rebinds the
+shared console I/O and also captures Prolog kernel events (e.g.,
+low-level debug messages, unexpected events) as well as messages from
+foreign libraries that are directly written to \const{stdout} or
+\const{stderr}.
+
+This predicate is intended to capture all output in situations where
+standard I/O is normally lost, such as when Prolog is running as a
+service on Windows.
 \end{description}
 
 \subsection{Edinburgh-style I/O}	\label{sec:edinburghIO}
