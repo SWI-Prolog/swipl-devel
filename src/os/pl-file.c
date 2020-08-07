@@ -5509,6 +5509,35 @@ wrapIO(IOSTREAM *s,
 }
 
 
+static int
+getIOStreams(term_t tin, term_t tout, term_t terror,
+	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
+{
+  if ( !PL_get_stream(tin, in, SIO_INPUT) )
+    return FALSE;
+
+  if ( !PL_get_stream(tout, out, SIO_OUTPUT) )
+    return FALSE;
+
+  if ( PL_compare(tout, terror) == 0 )	/* == */
+  { *error = getStream(Snew((*out)->handle, (*out)->flags, (*out)->functions));
+    if ( !*error )
+      return FALSE;
+  } else
+  { if ( !PL_get_stream(terror, error, SIO_OUTPUT) )
+      return FALSE;
+  }
+
+  (*out)->flags &= ~SIO_ABUF;		/* output: line buffered */
+  (*out)->flags |= SIO_LBUF;
+
+  (*error)->flags &= ~SIO_ABUF;		/* disable buffering */
+  (*error)->flags |= SIO_NBUF;
+
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 { PRED_LD
@@ -5517,33 +5546,12 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   int wrapin = FALSE;
   int i;
 
-  if ( !term_stream_handle(A1, &in,
-			   SH_ERRORS|SH_ALIAS|SH_UNLOCKED|SH_INPUT PASS_LD) )
+  if ( !getIOStreams(A1, A2, A3, &in, &out, &error) )
     goto out;
 
   wrapin = (LD->IO.streams[0] != in);
-  if ( wrapin )
-  { if ( !(in = getStream(in)) )	/* lock it */
-      goto out;
-  }
-
-  if ( !term_stream_handle(A2, &out, SH_ERRORS|SH_ALIAS|SH_OUTPUT PASS_LD) )
-    goto out;
-
-  if ( PL_compare(A2, A3) == 0 )	/* == */
-  { error = getStream(Snew(out->handle, out->flags, out->functions));
-    if ( !error )
-      goto out;
-    error->flags &= ~SIO_ABUF;		/* disable buffering */
-    error->flags |= SIO_NBUF;
-  } else
-  { if ( !PL_get_stream(A3, &error, SIO_OUTPUT) )
-      goto out;
-  }
 
   PL_LOCK(L_FILE);
-  out->flags &= ~SIO_ABUF;		/* output: line buffered */
-  out->flags |= SIO_LBUF;
 
   LD->IO.streams[1] = out;		/* user_output */
   LD->IO.streams[2] = error;		/* user_error */
@@ -5565,7 +5573,53 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
   rval = TRUE;
 
 out:
-  if ( wrapin && in )
+  if ( in )
+    releaseStream(in);
+  if ( out )
+    releaseStream(out);
+  if ( error && error != out )
+    releaseStream(error);
+
+  return rval;
+}
+
+
+static int
+sys_io_stream(IOSTREAM *s, IOSTREAM *ref, term_t t)
+{ int fd = Sfileno(s);
+
+  if ( s != ref && fd < 0 )
+    return PL_domain_error("file_stream", t),-1;
+
+  return fd;
+}
+
+static
+PRED_IMPL("set_system_IO", 3, set_system_IO, 0)
+{ IOSTREAM *in = NULL, *out = NULL, *error = NULL;
+  int fd_in, fd_out, fd_error;
+  int rval = FALSE;
+
+  if ( !getIOStreams(A1, A2, A3, &in, &out, &error) )
+    goto out;
+
+  if ( (fd_in    = sys_io_stream(in,    Sinput, A1)) < 0 ||
+       (fd_out   = sys_io_stream(out,   Soutput, A2)) < 0 ||
+       (fd_error = sys_io_stream(error, Serror,  A3)) < 0 )
+    goto out;
+
+  PL_LOCK(L_FILE);
+  if ( in != Sinput )
+    dup2(fd_in, 0);			/* stdin */
+  if ( out != Soutput )
+    dup2(fd_out, 1);			/* stdout */
+  if ( error != Serror )
+    dup2(fd_error, 2);			/* stderr */
+  PL_UNLOCK(L_FILE);
+  rval = TRUE;
+
+out:
+  if ( in )
     releaseStream(in);
   if ( out )
     releaseStream(out);
@@ -5739,6 +5793,7 @@ BeginPredDefs(file)
   PRED_DEF("set_stream", 2, set_stream, 0)
   PRED_DEF("with_output_to", 2, with_output_to, PL_FA_TRANSPARENT)
   PRED_DEF("set_prolog_IO", 3, set_prolog_IO, 0)
+  PRED_DEF("set_system_IO", 3, set_system_IO, 0)
   PRED_DEF("protocol", 1, protocol, 0)
   PRED_DEF("protocola", 1, protocola, 0)
   PRED_DEF("noprotocol", 0, noprotocol, 0)
