@@ -753,7 +753,11 @@ sizeofTable(Table ht)				/* memory usage in bytes */
 		 *	    PUBLIC API		*
 		 *******************************/
 
+#ifdef O_PLMT
 #define NEED_LD  GET_LD if ( !LD ) return FALSE;
+#else
+#define NEED_LD (void)0;
+#endif
 
 hash_table_t
 PL_new_hash_table(int size, void (*free_symbol)(void *n, void *v))
