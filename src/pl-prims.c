@@ -2198,7 +2198,7 @@ Get argument position from t.  Returns:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
+get_arg_integer_ex(term_t t, size_t *n ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -2234,8 +2234,8 @@ get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  unsigned arity;
-  unsigned argn;
+  size_t arity;
+  size_t argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -2243,7 +2243,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { intptr_t idx;
+    { size_t idx;
       int rc;
       Word p = valTermRef(term);
 
@@ -2254,7 +2254,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
       if ( (rc=get_arg_integer_ex(n, &idx PASS_LD)) == TRUE )
-      { if ( idx <= (intptr_t)arity )
+      { if ( idx <= arity )
 	{ Word ap = argTermP(*p, idx-1);
 
 	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
