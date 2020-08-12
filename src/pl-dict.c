@@ -208,7 +208,7 @@ dict_ordered(Word data, int count, int ex ARG_LD)
       if ( *n1 == *n2 )
       { if ( ex )
 	{ term_t t = PL_new_term_ref();
-	  *valTermRef(t) = linkVal(n1);
+	  *valTermRef(t) = linkValI(n1);
 	  PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, t);
 	}
 	return -2;
@@ -311,15 +311,15 @@ assign_in_dict(Word dp, Word val ARG_LD)
   if ( !canBind(*val) )
   { *dp = *val;
   } else if ( isAttVar(*val) )
-  { *dp = makeRef(val);
+  { *dp = makeRefG(val);
   } else
   { if ( dp < val )
     { if ( unlikely(tTop+1 >= tMax) )
 	return TRAIL_OVERFLOW;
       setVar(*dp);
-      Trail(val, makeRef(dp));
+      Trail(val, makeRefG(dp));
     } else
-    { *dp = makeRef(val);
+    { *dp = makeRefG(val);
     }
   }
 
@@ -366,7 +366,7 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
       in += 2;
       nv += 2;
     } else if ( *i_name < *n_name )
-    { *out++ = linkVal(in);
+    { *out++ = linkValI(in);
       *out++ = *i_name;
       in += 2;
     } else
@@ -386,7 +386,7 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
     while(in < in_end)
     { Word i_name;
       deRef2(in+1, i_name);
-      *out++ = linkVal(in);
+      *out++ = linkValI(in);
       *out++ = *i_name;
       in += 2;
     }
@@ -404,7 +404,7 @@ put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
   }
 
   gTop = out;
-  new[1] = linkVal(&data->arguments[0]);
+  new[1] = linkValI(&data->arguments[0]);
   new[0] = dict_functor((out-(new+1))/2);
 
   *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
@@ -434,14 +434,14 @@ del_dict(word dict, word key, word *new_dict ARG_LD)
 
     deRef2(in+1, i_name);
     if ( *i_name != key )
-    { *out++ = linkVal(in);
+    { *out++ = linkValI(in);
       *out++ = *i_name;
     }
     in += 2;
   }
 
   gTop = out;
-  new[1] = linkVal(&data->arguments[0]); /* tag */
+  new[1] = linkValI(&data->arguments[0]); /* tag */
   new[0] = dict_functor((out-(new+1))/2); /* arity */
 
   *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
@@ -566,7 +566,7 @@ select_dict(word del, word from, word *new_dict ARG_LD)
       { din += 2;
 	fin += 2;
       } else
-      { *out++ = linkVal(fin);
+      { *out++ = linkValI(fin);
 	*out++ = *f;
 	fin += 2;
 	left--;
@@ -614,7 +614,7 @@ get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
       if ( is_dict_key(*np) )
       { *name = *np;
 	deRef2(&f->arguments[1], vp);
-	*value = linkVal(vp);
+	*value = linkValI(vp);
 
 	return TRUE;
       } else
@@ -630,7 +630,7 @@ get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
 
       *name = nameFunctor(f->definition);
       deRef2(&f->arguments[0], vp);
-      *value = linkVal(vp);
+      *value = linkValI(vp);
       return TRUE;
     }
   }
@@ -688,7 +688,11 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 
     if ( len < 0 )
       return FALSE;			/* not a proper list */
-  retry:
+
+    if ( unlikely(tTop+1 >= tMax) )
+    { if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
+	return FALSE;
+    }
     if ( !(m = allocGlobal(len*2+2)) )
       return FALSE;			/* global overflow */
     ap = m;
@@ -696,17 +700,17 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     if ( tag )
     { Word cp = valTermRef(tag);
 
-      *ap = linkVal(cp);		/* TBD: maybe move to another function */
-      if ( tagex(*ap) == (TAG_REFERENCE|STG_LOCAL) )
-      { if ( unlikely(tTop+1 >= tMax) )
-	{ if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
-	    return FALSE;
-	  gTop = m;
-	  goto retry;
+      deRef(cp);
+      if ( needsRef(*cp) )
+      { if ( isVar(*cp) )
+	{ setVar(*ap);
+	  Trail(cp, makeRefG(ap));
+	} else
+	{ assert(onStack(global, cp));
+	  *ap = makeRefG(cp);
 	}
-	deRef(cp)
-	setVar(*ap);
-	Trail(cp, makeRef(ap));
+      } else
+      { *ap = *cp;
       }
     } else
     { setVar(*ap);
@@ -834,8 +838,8 @@ PL_for_dict(term_t dict,
 
     deRef(p);
     Functor f = valueTerm(*p);
-    *valTermRef(av+0) = linkVal(&f->arguments[in+1]);
-    *valTermRef(av+1) = linkVal(&f->arguments[in]);
+    *valTermRef(av+0) = linkValI(&f->arguments[in+1]);
+    *valTermRef(av+1) = linkValI(&f->arguments[in]);
 
     if ( (rc=(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
       break;
@@ -1668,7 +1672,7 @@ PL_get_dict_key(atom_t key, term_t dict, term_t value)
   if ( !get_dict_ex(dict, &d, FALSE PASS_LD) )
     return FALSE;
   if ( (vp=dict_lookup_ptr(d, key PASS_LD)) )
-  { *valTermRef(value) = linkVal(vp);
+  { *valTermRef(value) = linkValI(vp);
     return TRUE;
   }
 

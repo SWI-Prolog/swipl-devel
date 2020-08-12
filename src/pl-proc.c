@@ -632,7 +632,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 
     if ( !(p=stripModuleName(valTermRef(descr), &mname PASS_LD)) )
       return FALSE;
-    *valTermRef(head) = linkVal(p);
+    *valTermRef(head) = linkValNoG(p);
 
     if ( !(m = get_module(mname, how PASS_LD)) )
       return FALSE;

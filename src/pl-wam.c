@@ -674,7 +674,7 @@ call_term(Module mdef, term_t goal ARG_LD)
 	ap = valTermRef(av);
 
 	for(i=0; i<arity; i++, ap++)
-	  *ap = linkVal(&args[i]);
+	  *ap = linkValG(&args[i]);
 	functor = f->definition;
       } else
 	return call1(mdef, goal PASS_LD);
@@ -815,6 +815,10 @@ typedef enum
 Unify a pointer into a new  global  term   (g)  with  a  pointer into an
 environment as obtained from some instruction VAR argument. This assumes
 we have allocated enough trail stack.
+
+See (*) with callBreakHook() for why we  need protect_var(). As the term
+reference is only used for  GC,  we   can  use  a  local stack reference
+(makeRefLok()).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -822,7 +826,7 @@ protect_var(Word v ARG_LD)
 { term_t t = PL_new_term_ref_noshift();
 
   if ( t )
-    *valTermRef(t) = makeRefL(v);
+    *valTermRef(t) = makeRefLok(v);
   else
     assert(0);		/* cannot happen due to MINFOREIGNSIZE */
 }
@@ -840,7 +844,7 @@ unify_gl(Word g, Word l, int has_firstvar ARG_LD)
     assert(tTop+1 < tMax);
     LTrail(l);
   } else if ( needsRef(*l) )
-  { *g = makeRef(l);
+  { *g = makeRefG(l);
   } else
   { *g = *l;
   }
@@ -1146,7 +1150,7 @@ callBreakHook() calls prolog:break_hook/6 as
 initialise these to bind to the  goal.   However,  if GC comes along, it
 will reset these variables.  Therefore,  we   fake  GC  that  we already
 executed this instruction. The price is   that  V (normal var) arguments
-are not marked as used, and GC migh   thus  clean them. We fix that with
+are not marked as used, and GC might   thus clean them. We fix that with
 protect_var(), which creates a  term-reference   to  the local variable,
 such that it is marked from the foreign environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -1529,7 +1533,7 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
       LTrail(p);
       *p = makeRefG(&p2[2]);
     } else
-    { p2[2] = (needsRef(*p) ? makeRef(p) : *p);
+    { p2[2] = (needsRef(*p) ? makeRefG(p) : *p);
     }
     *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
   } else
@@ -2090,23 +2094,6 @@ copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
   ARGS = argFrameP(from, 0);
   ARGE = ARGS+argc;
   ARGD = argFrameP(to, 0);
-  for( ; ARGS < ARGE; ARGS++, ARGD++) /* dereference the block */
-  { word k = *ARGS;
-
-    if ( isRefL(k) )
-    { Word p = unRefL(k);
-
-      if ( p > (Word)to )
-      { if ( isVar(*p) )
-	{ *p = makeRefL(ARGD);
-	  setVar(*ARGS);
-	} else
-	  *ARGS = *p;
-      }
-    }
-  }
-  ARGS = argFrameP(from, 0);
-  ARGD = argFrameP(to, 0);
   while( ARGS < ARGE )			/* now copy them */
     *ARGD++ = *ARGS++;
 }
@@ -2419,7 +2406,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   QueryFrame qf;
   LocalFrame fr, top;
   Definition def;
-  size_t arity;
+  size_t i, arity;
   Word ap;
   size_t lneeded;
   static int top_initialized = FALSE;
@@ -2453,6 +2440,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
 					/* resolve can call-back */
   def = getProcDefinedDefinition(proc->definition PASS_LD);
+  arity = def->functor->arity;
 
 #ifdef JMPBUF_ALIGNMENT
   lneeded = JMPBUF_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
@@ -2462,6 +2450,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   if ( !ensureLocalSpace(lneeded) )
     return (qid_t)0;
+  for(i=0; i<arity; i++)
+  { if ( !globalizeTermRef(args+i) )
+      return (qid_t)0;
+  }
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
@@ -2495,7 +2487,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
-  arity		     = def->functor->arity;
 
   DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
@@ -2524,7 +2515,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     Word p = valTermRef(args);
 
     for( n = arity; n-- > 0; p++ )
-      *ap++ = linkVal(p);
+      *ap++ = linkValI(p);
   }
 					/* lTop above the arguments */
   lTop = (LocalFrame)ap;

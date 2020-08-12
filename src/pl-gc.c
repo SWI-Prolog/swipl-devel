@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -157,6 +157,17 @@ recordMark__LD(Word p ARG_LD)
 #define markLocal(p) (local_marked++)
 #define processLocal(p) (local_marked--)
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Whereas in the rest of the system reference pointers always point at the
+global stack, GC needs to reverse pointers   and  thus be able to create
+reference pointers to the local stack as it used to be.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef makeRef
+#undef unRef
+#define makeRef(p)	((void*)p >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
+#define unRef(w)	((Word)valPtr(w))
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( is_marked(p) ) \

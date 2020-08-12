@@ -582,10 +582,12 @@ static int
 get_op_module(term_t a3, term_t name, Module *m ARG_LD)
 { atom_t mname = 0;
   Word p;
+  word w;
 
-  if ( !(p=stripModuleName(valTermRef(a3), &mname PASS_LD)) )
+  if ( !(p=stripModuleName(valTermRef(a3), &mname PASS_LD)) ||
+       !(w=linkValG(p)) )
     return FALSE;
-  *valTermRef(name) = linkVal(p);
+  *valTermRef(name) = w;
 
   if ( *m && (*m)->name == mname )
     return TRUE;

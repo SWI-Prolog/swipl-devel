@@ -110,8 +110,24 @@ as we could also have returned the last reference.
 
 Second, we can opt  for  inlining  or   not.  Especially  in  the latter
 variation, which is a bit longer, a function might actually be faster.
+
+The general version here is no longer used  as we typically need to deal
+with linking to a local stack variable  in a dedicated way. Therefore we
+have:
+
+  - linkValI()
+    Is an inlined version where the caller must guarantee we should
+    not make a reference to a local variable.
+  - linkValG()
+    May allocate a global stack variable and GC/SHIFT.  Caller must
+    guarantee this poses no problems.
+  - linkValNoG()
+    May be used if in the case the argument is a local stack variable
+    we can simply pass it as an unlinked variable.  Typically the case
+    if a variable is an error anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if 0
 word
 linkVal__LD(Word p ARG_LD)
 { word w = *p;
@@ -124,9 +140,96 @@ linkVal__LD(Word p ARG_LD)
   }
 
   if ( unlikely(needsRef(w)) )
-    return makeRef(p);
+  { if ( unlikely(p > (Word)lBase) )
+    { Word v = gTop++;
+
+#ifdef O_DEBUG
+      Sdprintf("linkVal() needs to globalize\n");
+      trap_gdb();
+#endif
+      assert(gTop < gMax);		/* TBD: ensure in caller */
+      setVar(*v);
+      w = makeRefG(v);
+      Trail(p, w);
+      return w;
+    }
+    return makeRefG(p);
+  }
 
   DEBUG(CHK_ATOM_GARBAGE_COLLECTED, assert(w != ATOM_garbage_collected));
+
+  return w;
+}
+#endif
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+If `p` ultimately is a  variable  on   the  local  stack  this creates a
+variable on the global stack and links  both variables to this location.
+Note that this may cause global and   trail stack overflows and thus may
+cause a stack shift, garbage collection or fail (returning 0).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+linkValG__LD(Word p ARG_LD)
+{ word w;
+
+retry:
+  w = *p;
+  while( isRef(w) )
+  { p = unRef(w);
+    if ( needsRef(*p) )
+      return w;
+    w = *p;
+  }
+
+  if ( unlikely(needsRef(w)) )
+  { if ( unlikely(p > (Word)lBase) )
+    { Word v;
+
+      if ( !hasGlobalSpace(1) )
+      { int rc; PushPtr(p);
+	rc = makeMoreStackSpace(GLOBAL_OVERFLOW, ALLOW_GC);
+	PopPtr(p);
+	if ( !rc )
+	  return 0;
+	goto retry;
+      }
+
+      v = gTop++;
+      setVar(*v);
+      w = makeRefG(v);
+      Trail(p, w);
+      return w;
+    }
+    return makeRefG(p);
+  }
+
+  DEBUG(CHK_ATOM_GARBAGE_COLLECTED, assert(w != ATOM_garbage_collected));
+
+  return w;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+This version always succeeds, but returns   a non-linked variable if the
+argument is a plain variable on the local   stack.  This is fine for use
+cases where a variable is an error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+word
+linkValNoG__LD(Word p ARG_LD)
+{ word w = *p;
+
+  while(isRef(w))
+  { p = unRef(w);
+    w = *p;
+  }
+
+  if ( needsRef(w) )
+  { if ( p < (Word)lBase )
+      w = makeRefG(p);
+  }
 
   return w;
 }
@@ -145,6 +248,10 @@ PushPtr()/PopPtr() (see pl-incl.h).  Push and pop *must* match.
 Note that this protects creating a term-ref  if there is no environment.
 However, the function called still must   either not use term-references
 or must create an environment.
+
+Note  that  if  `p`  ultimately  is  a   variable  on  the  local  stack
+linkValNoG() will return a non-linked variable. This should be ok as for
+all use cases passing a variable is an error.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 term_t
@@ -153,7 +260,7 @@ pushWordAsTermRef__LD(Word p ARG_LD)
   term_t t = LD->tmp.h[i];
 
   assert(i<TMP_PTR_SIZE);
-  setHandle(t, linkVal(p));
+  setHandle(t, linkValNoG(p));
 
   return t;
 }
@@ -307,6 +414,30 @@ PL_new_nil_ref(void)
 }
 
 
+int
+globalize_term_ref__LD(term_t t ARG_LD)
+{ Word p;
+
+retry:
+  p = valTermRef(t);
+  if ( unlikely(isVar(*p)) )
+  { Word v;
+
+    if ( !hasGlobalSpace(1) )
+    { if ( !ensureGlobalSpace(1, ALLOW_GC) )
+	return FALSE;
+      goto retry;
+    }
+    v = gTop++;
+    setVar(*v);
+    Trail(p, makeRefG(v));
+  }
+
+  return TRUE;
+}
+
+
+
 #define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
 #define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
 
@@ -326,14 +457,14 @@ PL_copy_term_ref__LD(term_t from ARG_LD)
   term_t r;
   FliFrame fr;
 
-  if ( !ensureLocalSpace(sizeof(word)) )
+  if ( !ensureLocalSpace(sizeof(word)) ||
+       !globalizeTermRef(from) )
     return 0;
 
   t  = (Word)lTop;
   r  = consTermRef(t);
   p2 = valHandleP(from);
-
-  *t = linkVal(p2);
+  *t = linkValI(p2);
   lTop = (LocalFrame)(t+1);
   fr = fli_context;
   fr->size++;
@@ -1071,6 +1202,10 @@ PL_same_compound(term_t t1, term_t t2)
 		 *	       CONS-*		*
 		 *******************************/
 
+/* `to` is a pointer into a (new) compound
+   `p` may be anything.
+*/
+
 static inline void
 bindConsVal(Word to, Word p ARG_LD)
 { deRef(p);
@@ -1080,7 +1215,7 @@ bindConsVal(Word to, Word p ARG_LD)
     { setVar(*to);
       *p = makeRefG(to);
     } else
-      *to = makeRef(p);
+      *to = makeRefG(p);
   } else
     *to = *p;
 }
@@ -1932,7 +2067,7 @@ _PL_get_arg_sz(size_t index, term_t t, term_t a)
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
 
-  setHandle(a, linkVal(p));
+  setHandle(a, linkValI(p));
   return TRUE;
 }
 int
@@ -1952,7 +2087,7 @@ _PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD)
   Functor f = (Functor)valPtr(w);
   Word p = &f->arguments[index-1];
 
-  setHandle(a, linkVal(p));
+  setHandle(a, linkValI(p));
   return TRUE;
 }
 
@@ -1969,7 +2104,7 @@ PL_get_arg_sz(size_t index, term_t t, term_t a)
     if ( --index < arity )
     { Word p = &f->arguments[index];
 
-      setHandle(a, linkVal(p));
+      setHandle(a, linkValI(p));
       succeed;
     }
   }
@@ -2003,8 +2138,8 @@ PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD)
   if ( isList(w) )
   { Word a = argTermP(w, 0);
 
-    setHandle(h, linkVal(a++));
-    setHandle(t, linkVal(a));
+    setHandle(h, linkValI(a++));	/* safe: `a` is on global stack */
+    setHandle(t, linkValI(a));
 
     succeed;
   }
@@ -2029,7 +2164,7 @@ PL_get_head(term_t l, term_t h)
 
   if ( isList(w) )
   { Word a = argTermP(w, 0);
-    setHandle(h, linkVal(a));
+    setHandle(h, linkValI(a));	/* safe: `a` is on global stack */
     succeed;
   }
 
@@ -2044,7 +2179,7 @@ PL_get_tail(term_t l, term_t t)
 
   if ( isList(w) )
   { Word a = argTermP(w, 1);
-    setHandle(t, linkVal(a));
+    setHandle(t, linkValI(a));	/* safe: `a` is on global stack */
     succeed;
   }
   fail;
@@ -2733,10 +2868,13 @@ PL_put_nil(term_t l)
 
 int
 PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
-{ Word p2 = valHandleP(t2);
+{ if ( globalizeTermRef(t2) )
+  { Word p2 = valHandleP(t2);
+    setHandle(t1, linkValI(p2));
+    return TRUE;
+  }
 
-  setHandle(t1, linkVal(p2));
-  return TRUE;
+  return FALSE;
 }
 
 
@@ -2744,10 +2882,8 @@ PL_put_term__LD(term_t t1, term_t t2 ARG_LD)
 int
 PL_put_term(term_t t1, term_t t2)
 { GET_LD
-  Word p2 = valHandleP(t2);
 
-  setHandle(t1, linkVal(p2));
-  return TRUE;
+  return PL_put_term__LD(t1, t2 PASS_LD);
 }
 #define PL_put_term(t1, t2) PL_put_term__LD(t1, t2 PASS_LD)
 
@@ -3341,8 +3477,8 @@ PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD)
   } else if ( isList(*p) )
   { Word a = argTermP(*p, 0);
 
-    setHandle(h, linkVal(a++));
-    setHandle(t, linkVal(a));
+    setHandle(h, linkValI(a++));	/* safe: `a` is on global stack */
+    setHandle(t, linkValI(a));
   } else
     fail;
 
@@ -3855,6 +3991,12 @@ PL_put_dict(term_t t, atom_t tag,
 { GET_LD
   Word p, p0;
   size_t size = len*2+2;
+  size_t i;
+
+  for(i=0; i<len; i++)
+  { if ( !globalizeTermRef(values+i) )
+      return FALSE;
+  }
 
   if ( (p0=p=allocGlobal(size)) )
   { *p++ = dict_functor(len);
@@ -3871,7 +4013,7 @@ PL_put_dict(term_t t, atom_t tag,
     }
 
     for(; len-- > 0; keys++, values++)
-    { *p++ = linkVal(valTermRef(values));
+    { *p++ = linkValI(valTermRef(values));
       if ( is_dict_key(*keys) )
 	*p++ = *keys;
       else
@@ -3990,13 +4132,19 @@ PL_strip_module__LD(term_t raw, module_t *m, term_t plain, int flags ARG_LD)
   if ( hasFunctor(*p, FUNCTOR_colon2) )
   { if ( !(p = stripModule(p, m, flags PASS_LD)) )
       return FALSE;
-    setHandle(plain, linkVal(p));
+    setHandle(plain, linkValI(p));
   } else
   { if ( *m == NULL )
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
     if ( raw != plain )
-      setHandle(plain, linkVal(p));
+    { word w = linkValG(p);
+
+      if ( w )
+	setHandle(plain, w);
+      else
+	return FALSE;
+    }
   }
 
   return TRUE;
@@ -4017,8 +4165,10 @@ error if it encounters a term <m>:<t>, where <m> is not an atom.
 
 int
 PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
-{ Word p = valTermRef(raw);
+{ Word p;
 
+  globalizeTermRef(raw);
+  p = valTermRef(raw);
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
   { if ( !(p = stripModule(p, m, 0 PASS_LD)) )
@@ -4026,15 +4176,20 @@ PL_strip_module_ex__LD(term_t raw, module_t *m, term_t plain ARG_LD)
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);
       deRef(a1);
-      setHandle(plain, needsRef(*a1) ? makeRef(a1) : *a1);
+      setHandle(plain, needsRef(*a1) ? makeRefG(a1) : *a1);
       return PL_type_error("module", plain);
     }
-    setHandle(plain, linkVal(p));
+    setHandle(plain, linkValI(p));
   } else
-  { if ( *m == NULL )
+  { word w;
+
+    if ( *m == NULL )
       *m = environment_frame ? contextModule(environment_frame)
 			     : MODULE_user;
-    setHandle(plain, needsRef(*p) ? makeRef(p) : *p);
+    if ( (w=linkValG(p)) )
+      setHandle(plain, w);
+    else
+      return FALSE;
   }
 
   return TRUE;

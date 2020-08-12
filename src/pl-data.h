@@ -168,7 +168,8 @@ be kept consistent.
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
-#define valPtr2(w, s)	((Word)(((w) >> 5) + base_addresses[s]))
+#define valPtrB(w, b)	((Word)(((w) >> 5) + (b)))
+#define valPtr2(w, s)	valPtrB(w, LD->bases[s])
 #define valPtr(w)	valPtr2(w, storage(w))
 #define valInt(w)	((intptr_t)(w) >> LMASK_BITS)
 #define valUInt(w)	((uintptr_t)(w) >> LMASK_BITS)
@@ -225,19 +226,20 @@ and while loading .wic files.  It comes at no price.
 		 *******************************/
 
 #define isRef(w)	(tag(w) == TAG_REFERENCE)
-#define isRefL(w)	(tagex(w) == (TAG_REFERENCE|STG_LOCAL))
-#define unRef(w)	((Word)valPtr(w))
-#define unRefL(w)	((Word)valPtr2(w, STG_LOCAL))
+#define unRef(w)	((Word)valPtr2(w, STG_GLOBAL))
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef(d); }
-#define makeRefL(p)	consPtr(p, TAG_REFERENCE|STG_LOCAL)
 #define makeRefG(p)	consPtr(p, TAG_REFERENCE|STG_GLOBAL)
-#define makeRef(p)	((void*)(p) >= (void*)lBase ? makeRefL(p) : makeRefG(p))
 #ifdef O_ATTVAR
 #define needsRef(w)	(tag(w) <= TAG_ATTVAR)
 #else
 #define needsRef(w)	isVar(w)
 #endif
+
+/* We use local references during GC and shift */
+#define makeRefLok(p)	consPtr(p, TAG_REFERENCE|STG_LOCAL)
+#define makeRefLG(p)	((void*)(p) >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
+#define unRefLG(w)	((Word)valPtr(w))
 
 
 		 /*******************************

@@ -1150,7 +1150,7 @@ retry:
 		{ if ( !tshare )
 		  { tshare = allocGlobalNoShift(3);
 		    assert(tshare);
-		    tshare[1] = linkVal(valTermRef(skel));
+		    tshare[1] = linkValI(valTermRef(skel));
 		    tshare[2] = *p;
 		    nshare = 1;
 		  } else
@@ -1330,7 +1330,7 @@ tbl_push_delay(atom_t atrie, Word wrapper, trie_node *answer ARG_LD)
     } else if ( is_ground_trie_node(answer) )
     { p[5] = consInt(pointerToInt(answer));
     } else
-    { p[5] = linkVal(wrapper);
+    { p[5] = linkValI(wrapper);
     }
 
     push_delay_list(p PASS_LD);
@@ -1376,11 +1376,11 @@ PRED_IMPL("$tbl_add_global_delays", 2, tbl_add_global_delays, 0)
 
     for(;;)
     { *p++ = FUNCTOR_dot2;
-      *p++ = linkVal(HeadList(dlp));
+      *p++ = linkValI(HeadList(dlp));
       dlp = TailList(dlp);
       deRef(dlp);
       if ( isNil(*dlp) )
-      { *p = linkVal(valTermRef(A1));
+      { *p = linkValI(valTermRef(A1));
 	return _PL_unify_atomic(A2, l);
       }
       *p   = consPtr(&p[1], TAG_COMPOUND|STG_GLOBAL);
@@ -3673,8 +3673,8 @@ wkl_mode_add_answer(worklist *wl, term_t answer, term_t delays ARG_LD)
   deRef(kp);
   if ( hasFunctor(*kp, FUNCTOR_divide2) )
   { kp = argTermP(*kp, 0);
-    *valTermRef(skel)  = linkVal(kp);
-    *valTermRef(margs) = linkVal(kp+1);
+    *valTermRef(skel)  = linkValI(kp);
+    *valTermRef(margs) = linkValI(kp+1);
   } else
   { return PL_domain_error("moded_answer", answer);
   }
@@ -3889,7 +3889,7 @@ unify_arg_term(term_t a, Word v ARG_LD)
 
   deRef(p);
   DEBUG(CHK_SECURE, assert(isVar(*p)));
-  Trail(p, linkVal(v));
+  Trail(p, linkValI(v));
 }
 
 static int
@@ -3935,7 +3935,7 @@ unify_dependency(term_t a0, term_t dependency,
       if ( is_ground_trie_node(answer) )
       { p[5] = consInt(pointerToInt(answer));
       } else
-      { p[5] = linkVal(valTermRef(a0+0));
+      { p[5] = linkValI(valTermRef(a0+0));
       }
 
       push_delay_list(p PASS_LD);

@@ -154,6 +154,8 @@ COMMON(word)		pl_current_flag(term_t k, control_t h);
 
 /* pl-fli.c */
 COMMON(word)		linkVal__LD(Word p ARG_LD);
+COMMON(word)		linkValG__LD(Word p ARG_LD);
+COMMON(word)		linkValNoG__LD(Word p ARG_LD);
 COMMON(void)		bArgVar(Word ap, Word vp ARG_LD);
 COMMON(int)		_PL_put_number__LD(term_t t, Number n ARG_LD);
 COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
@@ -198,7 +200,7 @@ COMMON(int)		PL_get_int64__LD(term_t t, int64_t *i ARG_LD);
 COMMON(int)		PL_get_size_ex__LD(term_t t, size_t *i ARG_LD);
 COMMON(int)		PL_get_number__LD(term_t t, Number n ARG_LD);
 COMMON(int)		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
-COMMON(int)		PL_put_term__LD(term_t t1, term_t t2 ARG_LD);
+COMMON(int)		PL_put_term__LD(term_t t1, term_t t2 ARG_LD)/* WUNUSED*/;
 COMMON(int)		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
 COMMON(int)		PL_get_name_arity_sz__LD(term_t t, atom_t *name,
 						 size_t *arity ARG_LD);

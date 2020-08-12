@@ -1377,6 +1377,7 @@ typedef struct gc_stats
 #define CA1_JUMP       16	/* Instructions to skip */
 #define CA1_AFUNC      17	/* Number of arithmetic function */
 #define CA1_TRIE_NODE  18	/* Tabling: answer trie node with delays */
+#define CA1_END	       19	/* Highest+1 */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
 
@@ -1930,10 +1931,10 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define TMP_PTR_SIZE	(4)
 #define PushPtr(p)	do { int i = LD->tmp.top++; \
 			     assert(i<TMP_PTR_SIZE); \
-			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
+			     *valTermRef(LD->tmp.h[i]) = makeRefLG(p); \
 			   } while(0)
 #define PopPtr(p)	do { int i = --LD->tmp.top; \
-			     p = unRef(*valTermRef(LD->tmp.h[i])); \
+			     p = unRefLG(*valTermRef(LD->tmp.h[i])); \
 			     setVar(*valTermRef(LD->tmp.h[i])); \
 			   } while(0)
 #define PushVal(w)	do { int i = LD->tmp.top++; \

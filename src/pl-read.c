@@ -3137,7 +3137,8 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
     { var->variable = PL_new_term_ref_noshift();
       assert(var->variable);
       setVar(*argp);
-      *valTermRef(var->variable) = makeRef(argp);
+      DEBUG(0, assert(argp < (Word)lBase));
+      *valTermRef(var->variable) = makeRefG(argp);
     } else				/* reference to existing var */
     { *argp = *valTermRef(var->variable);
     }
@@ -3964,7 +3965,8 @@ term is to be written.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   term = alloc_term(_PL_rd PASS_LD);
-  PL_put_term(tail, term);
+  if ( !PL_put_term(tail, term) )
+    return FALSE;
 
   for(;;)
   { int rc;
@@ -3993,7 +3995,7 @@ term is to be written.
     tmp = term_av(-1, _PL_rd);
     readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
     truncate_term_stack(tmp, _PL_rd);
-    setHandle(tail, makeRef(argp));
+    setHandle(tail, makeRefG(argp));
 
     token = get_token(FALSE, _PL_rd);
 
@@ -4561,12 +4563,18 @@ read_term(term_t term, ReadData rd ARG_LD)
   result = term_av(-1, rd);
   p = valTermRef(result[0]);
   if ( varInfo(*p, rd) )		/* reading a single variable */
-  { if ( (rc2=ensureSpaceForTermRefs(1 PASS_LD)) != TRUE )
+  { Word v = allocGlobal(1);
+
+    if ( !v )
+      goto out;
+    setVar(*v);
+    if ( (rc2=ensureSpaceForTermRefs(1 PASS_LD)) != TRUE )
     { rc = raiseStackOverflow(rc2);
       goto out;
     }
     p = valTermRef(result[0]);		/* may be shifted */
-    readValHandle(result[0], p, rd PASS_LD);
+    readValHandle(result[0], v, rd PASS_LD);
+    *p = makeRefG(v);
   }
 
   if ( !(token = get_token(FALSE, rd)) )

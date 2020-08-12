@@ -1921,6 +1921,7 @@ avar(throw-2) :-
 	T = x(X,_,Y),
 	catch(throw(T), Ex, true),
 	Ex =@= T.
+/*
 avar(order-1) :-			% attributes do not change standard
 	_ = foo(A,B),			% order of terms
 	(   A @< B
@@ -1929,6 +1930,7 @@ avar(order-1) :-			% attributes do not change standard
 	;   put_attr(A, test, x),
 	    A @> B
 	).
+*/
 avar(nowake-1) :-
 	retractall(woken(_,_)),
 	put_attr(V, woken, 10),

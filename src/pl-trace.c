@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2015, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -787,31 +788,11 @@ helpTrace(void)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Write goal of stack frame.  First a term representing the  goal  of  the
-frame  is  constructed.  Trail and global stack are marked and undone to
-avoid garbage on the global stack.
-
-Trick, trick, O big trick ... In order to print the  goal  we  create  a
-term  for  it  (otherwise  we  would  have to write a special version of
-write/1, etc.  for stack frames).  A small problem arises: if the  frame
-holds a variable we will make a reference to the new term, thus printing
-the wrong variable: variables sharing in a clause does not seem to share
-any  longer  in  the  tracer  (Anjo  Anjewierden discovered this ackward
-feature of the tracer).  The solution is simple: we make  the  reference
-pointer  the other way around.  Normally references should never go from
-the global to the local stack as the local stack frame  might  cease  to
-exists  before  the  global frame.  In this case this does not matter as
-the local stack frame definitely survives the tracer (measuring does not
-always mean influencing in computer science :-).
-
-Unfortunately the garbage collector doesn't like   this. It violates the
-assumptions  in  offset_cell()  where  a    local  stack  reference  has
-TAG_REFERENCE and storage STG_LOCAL. It   also violates assumptions made
-in mark_variable(). Hence we can only play   this trick if GC is blocked
-and the data is destroyed using PL_discard_foreign_frame().
-
-For the above reason, the code  below uses low-level manipulation rather
-than normal unification, etc.
+Write goal of stack frame. First  a   term  representing the goal of the
+frame is constructed. Note that the  new   goal  term is the most recent
+term on the global stack and shared  variables always live on the global
+stack, so their identity is unaffected.   Variables  pushed by B_VOID do
+change identity as they become a reference pointer into the goal term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -819,13 +800,21 @@ put_frame_goal(term_t goal, LocalFrame frame)
 { GET_LD
   Definition def = frame->predicate;
   int argc = def->functor->arity;
-  Word argv = argFrameP(frame, 0);
+  term_t fref = consTermRef((Word)frame);
 
   if ( !PL_unify_functor(goal, def->functor->functor) )
     return FALSE;
+  if ( tTop+argc > tMax )
+  { int rc;
 
+    if ( (rc=ensureTrailSpace(argc)) != TRUE )
+      return raiseStackOverflow(rc);
+  }
+
+  frame = (LocalFrame)valTermRef(fref);
   if ( argc > 0 )
-  { Word argp = valTermRef(goal);
+  { Word argv = argFrameP(frame, 0);
+    Word argp = valTermRef(goal);
     int i;
 
     deRef(argp);
@@ -835,7 +824,16 @@ put_frame_goal(term_t goal, LocalFrame frame)
     { Word a;
 
       deRef2(argv+i, a);
-      *argp++ = (needsRef(*a) ? makeRef(a) : *a);
+      if ( needsRef(*a) )
+      { if ( a > argp )
+	{ setVar(argp[i]);
+	  Trail(a, makeRefG(&argp[i]));
+	} else
+	{ Trail(&argp[i], makeRefG(a));
+	}
+      } else
+      { argp[i] = *a;
+      }
     }
   }
 
@@ -926,6 +924,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     }
   } else
   { debug_type debugSave = debugstatus.debugging;
+    term_t fref    = consTermRef((Word)frame);
     term_t goal    = PL_new_term_ref();
     term_t options = PL_new_term_ref();
     term_t tmp     = PL_new_term_ref();
@@ -933,6 +932,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     const char *pp = portPrompt(flags&PORT_MASK);
     struct foreign_context ctx;
 
+    frame = (LocalFrame)valTermRef(fref);
     put_frame_goal(goal, frame);
     debugstatus.debugging = DBG_OFF;
     PL_put_atom(tmp, ATOM_debugger_write_options);
@@ -947,6 +947,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     msg[1] = true(def, SPY_ME)	      ? '*' : ' ';
     msg[2] = EOS;
 
+    frame = (LocalFrame)valTermRef(fref);
     Sfprintf(out, "%s%s(%d) ", msg, pp, levelFrame(frame));
     if ( debugstatus.showContext )
       Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
@@ -1037,6 +1038,7 @@ exceptionDetails()
 static int
 listGoal(LocalFrame frame)
 { GET_LD
+  term_t fref = consTermRef((Word)frame);
   fid_t cid;
 
   if ( (cid=PL_open_foreign_frame()) )
@@ -1046,8 +1048,10 @@ listGoal(LocalFrame frame)
     int rc;
 
     Scurout = Sdout;
-    put_frame_goal(goal, frame);
-    rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal);
+    frame = (LocalFrame)valTermRef(fref);
+    rc = ( put_frame_goal(goal, frame) &&
+	   PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, goal)
+	 );
     Scurout = old;
 
     PL_discard_foreign_frame(cid);
@@ -2162,54 +2166,8 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
     { return FALSE;
     }
   } else if (key == ATOM_goal)
-  { int arity, n;
-    term_t arg = PL_new_term_ref();
-    Definition def = fr->predicate;
-
-    if ( def->module != m )
-    { if ( !PL_put_functor(result, FUNCTOR_colon2) )
-	return FALSE;
-      _PL_get_arg(1, result, arg);
-      if ( !PL_unify_atom(arg, def->module->name) )
-	return FALSE;
-      _PL_get_arg(2, result, arg);
-    } else
-      PL_put_term(arg, result);
-
-    if ((arity = def->functor->arity) == 0)
-    { PL_unify_atom(arg, def->functor->name);
-    } else			/* see put_frame_goal(); must be merged */
-    { Word argv;
-      Word argp;
-
-      if ( !PL_unify_functor(arg, def->functor->functor) )
-	return FALSE;
-      if ( tTop+arity > tMax )
-      { int rc;
-
-	if ( (rc=ensureTrailSpace(arity)) != TRUE )
-	  return raiseStackOverflow(rc);
-      }
-
-      PL_get_frame(frame, &fr);		/* can be shifted */
-      argv = argFrameP(fr, 0);
-      argp = valTermRef(arg);
-      deRef(argp);
-      argp = argTermP(*argp, 0);
-
-      for(n=0; n < arity; n++, argp++)
-      { Word a;
-
-	deRef2(argv+n, a);
-	if ( isVar(*a) && onStack(local, a) )
-	{ LTrail(a);
-	  *a = makeRef(argp);
-	} else
-	{ GTrail(argp);
-	  *argp = (needsRef(*a) ? makeRef(a) : *a);
-	}
-      }
-    }
+  { if ( !put_frame_goal(result, fr) )
+      return FALSE;
   } else if ( key == ATOM_predicate_indicator )
   { if ( !unify_definition(m, result, fr->predicate, 0, GP_NAMEARITY) )
       return FALSE;

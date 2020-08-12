@@ -465,7 +465,7 @@ push_compiler_warnings(CompileInfo ci ARG_LD)
       { int i;
 
 	for(i=0; i<cw->argc; i++)
-	  *valTermRef(cw->av+i) = linkVal(cw->argv[i]);
+	  *valTermRef(cw->av+i) = linkValI(cw->argv[i]);
       } else
       { free_compiler_warnings(ci);
 	return LOCAL_OVERFLOW;
@@ -2182,7 +2182,8 @@ link_local_var(Word v, int iv, CompileInfo ci ARG_LD)
 
   if ( k >= (Word) lMax )
     return LOCAL_OVERFLOW;
-  *k = makeRef(vd->address);
+  DEBUG(0, assert(vd->address < (Word)lBase));
+  *k = makeRefG(vd->address);
 
   return TRUE;
 }
@@ -2380,7 +2381,7 @@ isvar:
       return LOCAL_OVERFLOW;
 
     if ( isAttVar(*arg) )		/* attributed variable: must make */
-      *k = makeRef(arg);		/* a reference to avoid binding a */
+      *k = makeRefG(arg);		/* a reference to avoid binding a */
     else				/* copy! */
       *k = *arg;
     if ( ci->argvar < 3 )
@@ -4512,9 +4513,9 @@ unifyVar(Word var, term_t vars, size_t i ARG_LD)
   deRef(var);
   if ( isVar(*v) && isVar(*var) )
   { if ( v < var )
-    { Trail(var, makeRef(v));
+    { Trail(var, makeRefG(v));
     } else
-    { Trail(v, makeRef(var));
+    { Trail(v, makeRefG(var));
     }
   } else if ( isVar(*var) )		/* retract called with bounded var */
   { Trail(var, *v);
@@ -6328,6 +6329,97 @@ unify_vmi(term_t t, Code bp)
   return bp;
 }
 
+static const code_info *lookup_vmi(atom_t name);
+
+/** '$vmi_property'(+VMI, ?Property)
+ *
+ *  True when Property holds for the VMI instruction. Defined properties
+ *  are:
+ *
+ *    - break(-Boolean)
+ *      True if this is a _breakable_ instruction
+ *    - argv(-List)
+ *      List is a list of arguments processed by the VMI
+ */
+
+const char *ca1_name[] = {
+  NULL,
+  "proc",				/* 1 */
+  "func",				/* 2 */
+  "data",				/* 3 */
+  "integer",				/* 4 */
+  "int64",				/* 5 */
+  "float",				/* 6 */
+  "string",				/* 7 */
+  "mpz",				/* 8 */
+  "mpq",				/* 9 */
+  "module",				/* 10 */
+  "var",				/* 11 */
+  "fvar",				/* 12 */
+  "chp",				/* 13 */
+  "foreign",				/* 14 */
+  "clauseref",				/* 15 */
+  "jump",				/* 16 */
+  "afunc",				/* 17 */
+  "trie_node"				/* 18 */
+};
+static atom_t ca1_info[CA1_END];
+
+static void
+fill_ca1_info(void)
+{ if ( !ca1_info[CA1_END-1] )
+  { int i;
+
+    for(i=1; i < CA1_END; i++)
+    { ca1_info[i] = PL_new_atom(ca1_name[i]);
+    }
+  }
+}
+
+static
+PRED_IMPL("$vmi_property", 2, vmi_property, 0)
+{ GET_LD
+  atom_t vname;
+
+  if ( PL_get_atom_ex(A1, &vname) )
+  { const code_info *ci = lookup_vmi(vname);
+
+    if ( ci )
+    { atom_t prop;
+      size_t arity;
+
+      if ( PL_get_name_arity(A2, &prop, &arity) && arity == 1 )
+      { term_t arg = PL_new_term_ref();
+
+	_PL_get_arg(1, A2, arg);
+	if ( prop == ATOM_break )
+	{ return PL_unify_bool_ex(arg, (ci->flags&VIF_BREAK));
+	} else if ( prop == ATOM_argv )
+	{ const char *ats = ci->argtype;
+	  term_t tail = PL_copy_term_ref(arg);
+	  term_t head = PL_new_term_ref();
+	  int an;
+
+	  fill_ca1_info();
+	  for(an=0; ats[an]; an++)
+	  { if ( !PL_unify_list(tail, head, tail) ||
+		 !PL_unify_atom(head, ca1_info[(unsigned)ats[an]]) )
+	      return FALSE;
+	  }
+	  return PL_unify_nil(tail);
+	} else
+	  return PL_domain_error("vmi_property", A2);
+      }
+
+      return PL_type_error("vmi_property", A2);
+    }
+
+    return PL_existence_error("vmi", A1);
+  }
+
+  return FALSE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $fetch_vm(+ClauseOrProc, +PC, -NextPC, -Instruction) is det.
@@ -6413,7 +6505,9 @@ lookup_vmi(atom_t name)
 
       ctable = newHTable(32);
       for(i=0; i<I_HIGHEST; i++)
-       addNewHTable(ctable, (void*)PL_new_atom(codeTable[i].name), (void*)&codeTable[i]);
+	addNewHTable(ctable,
+		     (void*)PL_new_atom(codeTable[i].name),
+		     (void*)&codeTable[i]);
     }
     PL_UNLOCK(L_MISC);
   }
@@ -7417,12 +7511,13 @@ BeginPredDefs(comp)
   PRED_DEF("nth_clause",  3, nth_clause, META|NDET)
   PRED_SHARE("$clause", 4, clause, META|NDET|PL_FA_CREF)
 #ifdef O_DEBUGGER
-  PRED_DEF("$fetch_vm", 4, fetch_vm, META)
-  PRED_DEF("$vm_assert", 3, vm_assert, META)
-  PRED_DEF("$break_pc", 3, break_pc, NDET)
+  PRED_DEF("$vmi_property",	    2, vmi_property,	     0)
+  PRED_DEF("$fetch_vm",		    4, fetch_vm,	     META)
+  PRED_DEF("$vm_assert",	    3, vm_assert,	     META)
+  PRED_DEF("$break_pc",		    3, break_pc,	     NDET)
   PRED_DEF("$clause_term_position", 3, clause_term_position, 0)
-  PRED_DEF("$break_at", 3, break_at, 0)
-  PRED_DEF("$current_break", 2, current_break, NDET)
-  PRED_DEF("$xr_member", 2, xr_member, NDET)
+  PRED_DEF("$break_at",		    3, break_at,	     0)
+  PRED_DEF("$current_break",	    2, current_break,	     NDET)
+  PRED_DEF("$xr_member",	    2, xr_member,	     NDET)
 #endif /*O_DEBUGGER*/
 EndPredDefs

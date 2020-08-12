@@ -680,7 +680,7 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 
   if ( !(p=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
     return FALSE;
-  *valTermRef(prop) = linkVal(p);
+  *valTermRef(prop) = linkValNoG(p);
 
   PL_LOCK(L_MODULE);
   m = mname ? _lookupModule(mname PASS_LD) : MODULE_parse;
@@ -1193,7 +1193,7 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
 
   if ( !(mp=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
     return FALSE;
-  *valTermRef(ttail) = linkVal(mp);
+  *valTermRef(ttail) = linkValNoG(mp);
 
   if ( mname )
   { Module m2;

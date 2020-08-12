@@ -168,6 +168,18 @@ code into functions.
 	  onchange;					\
 	}
 
+#define globaliseVar(p)               \
+	do { Word __v = gTop++;       \
+	     setVar(*__v);            \
+	     Trail(p, makeRefG(__v)); \
+	   } while(0)
+
+#define globaliseFirstVar(p)          \
+	do { Word __v = gTop++;       \
+	     setVar(*__v);            \
+	     *p = makeRefG(__v);      \
+	   } while(0)
+
 
 		 /*******************************
 		 *	    DEBUGGING		*
@@ -606,8 +618,9 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
 H_FIRSTVAR: A variable  in  the  head,   which  is  not  anonymous,  but
 encountered for the first time. So we know  that the variable is still a
 variable. Copy or make a reference.  Trailing   is  not needed as we are
-writing in this frame. As ARGP is pointing   in the argument list, it is
-on the local stack.
+writing in this frame.  ARGP is walking the argument list, but is always
+in some compound term as H_FIRSTVAR is not generated for plain variables
+in the head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
@@ -615,7 +628,7 @@ VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
   { setVar(*ARGP);
     varFrame(FR, *PC++) = makeRefG(ARGP);
   } else
-  { varFrame(FR, *PC++) = (needsRef(*ARGP) ? makeRef(ARGP) : *ARGP);
+  { varFrame(FR, *PC++) = (needsRef(*ARGP) ? makeRefG(ARGP) : *ARGP);
   }
   ARGP++;
   NEXT_INSTRUCTION;
@@ -755,9 +768,9 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 
     if ( isList(*p) )
     { p = argTermP(*p, 0);
-      varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
+      varFrame(FR, *PC++) = (needsRef(*p) ? makeRefG(p) : *p);
       p++;
-      varFrame(FR, *PC++) = (needsRef(*p) ? makeRef(p) : *p);
+      varFrame(FR, *PC++) = (needsRef(*p) ? makeRefG(p) : *p);
     } else if ( canBind(*p) )
     { word c;
       Word ap;
@@ -969,28 +982,39 @@ variable, so we either copy the value   or make a reference. Trailing is
 not needed as we are writing above the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+BEGIN_SHAREDVARS
+int voffset;
 VMI(B_VAR0, 0, 0, ())
-{ *ARGP++ = linkVal(varFrameP(FR, VAROFFSET(0)));
-  NEXT_INSTRUCTION;
+{ voffset = VAROFFSET(0);
+  goto bvar_cont;
 }
 
 VMI(B_VAR1, 0, 0, ())
-{ *ARGP++ = linkVal(varFrameP(FR, VAROFFSET(1)));
-  NEXT_INSTRUCTION;
+{ voffset = VAROFFSET(1);
+  goto bvar_cont;
 }
 
 VMI(B_VAR2, 0, 0, ())
-{ *ARGP++ = linkVal(varFrameP(FR, VAROFFSET(2)));
-  NEXT_INSTRUCTION;
+{ voffset = VAROFFSET(2);
+  goto bvar_cont;
 }
 
 VMI(B_VAR, 0, 1, (CA1_VAR))
-{ int n = (int)*PC++;
+{ Word p;
+  voffset = (int)*PC++;
 
-  *ARGP++ = linkVal(varFrameP(FR, n));
+bvar_cont:
+  p = varFrameP(FR, voffset);
+  if ( isVar(*p) )
+  { ENSURE_GLOBAL_SPACE(1, p = varFrameP(FR, voffset));
+    globaliseVar(p);
+    *ARGP++ = *p;
+  } else
+  { *ARGP++ = linkValI(p);
+  }
   NEXT_INSTRUCTION;
 }
-
+END_SHAREDVARS
 
 #ifdef O_COMPILE_IS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1029,8 +1053,13 @@ unify_var_cont:
   if ( (slow_unify=LD->slow_unify) )
   { Word k = ARGP;
 
+    if ( isVar(*k) )
+    { ENSURE_GLOBAL_SPACE(1, k = ARGP);
+      globaliseVar(k);
+    }
+
     ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(k);
+    *ARGP++ = *k;
     setVar(*ARGP);
     umode = uwrite;			/* must write for GC to work */
     NEXT_INSTRUCTION;
@@ -1061,20 +1090,26 @@ Unify two variables.  F stands for a first-var; V for any other var
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ ENSURE_GLOBAL_SPACE(2, (void)0);
+  Word v1 = varFrameP(FR, (int)*PC++);
   Word v2 = varFrameP(FR, (int)*PC++);
+  Word v  = gTop++;
+
+  setVar(*v);
+  *v1 = makeRefG(v);
 
   if ( LD->slow_unify )
-  { setVar(*v1);
-    setVar(*v2);
-    ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
-    *ARGP++ = linkVal(v2);
-    goto debug_equals2;
-  }
+  { v = gTop++;
+    setVar(*v);
+    *v2 = makeRefG(v);
 
-  setVar(*v1);
-  *v2 = makeRefL(v1);
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = *v1;
+    *ARGP++ = *v2;
+    goto debug_equals2;
+  } else
+  { *v2 = *v1;
+  }
 
   NEXT_INSTRUCTION;
 }
@@ -1094,18 +1129,22 @@ VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 
 
 VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
-{ Word f = varFrameP(FR, (int)*PC++);
+{ ENSURE_GLOBAL_SPACE(2, (void)0);
+  Word f = varFrameP(FR, (int)*PC++);
   Word v = varFrameP(FR, (int)*PC++);
 
+  if ( isVar(*v) )
+    globaliseVar(v);
+
   if ( LD->slow_unify )
-  { setVar(*f);
+  { globaliseVar(f);
     ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(f);
-    *ARGP++ = linkVal(v);
+    *ARGP++ = *f;
+    *ARGP++ = *v;
     goto debug_equals2;
   }
 
-  *f = linkVal(v);
+  *f = linkValI(v);
 
   NEXT_INSTRUCTION;
 }
@@ -1117,9 +1156,19 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   Word v2 = varFrameP(FR, (int)*PC++);
 
   if ( LD->slow_unify )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
-    *ARGP++ = linkVal(v2);
+  { if ( isVar(*v1) || isVar(*v2) )
+    { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, PC[-2]);
+			       v2 = varFrameP(FR, PC[-1]);
+			     });
+      if ( isVar(*v1) )
+	globaliseVar(v1);
+      if ( isVar(*v2) )
+	globaliseVar(v2);
+    }
+
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = *v1;
+    *ARGP++ = *v2;
   debug_equals2:
     NFR = lTop;
     DEF = GD->procedures.equals2->definition;
@@ -1147,18 +1196,19 @@ need for wakeup.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
-{ Word v1 = varFrameP(FR, (int)*PC++);
+{ Word f = varFrameP(FR, (int)*PC++);
   word c = (word)*PC++;
 
   if ( LD->slow_unify )
-  { setVar(*v1);
+  { ENSURE_GLOBAL_SPACE(1, f = varFrameP(FR, PC[-1]));
+    globaliseFirstVar(f);
     ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
+    *ARGP++ = *f;
     *ARGP++ = c;
     goto debug_equals2;
   }
 
-  *v1 = c;
+  *f = c;
   NEXT_INSTRUCTION;
 }
 
@@ -1172,8 +1222,12 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
   word c = (word)*PC++;
 
   if ( LD->slow_unify )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(k);
+  { if ( isVar(*k) )
+    { ENSURE_GLOBAL_SPACE(1, k = varFrameP(FR, (int)PC[-2]));
+      globaliseVar(k);
+    }
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = *k;
     *ARGP++ = c;
     goto debug_equals2;
   }
@@ -1205,9 +1259,16 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
-    *ARGP++ = linkVal(v2);
+  { if ( isVar(*v1) || isVar(*v2) )
+    { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
+			       v2 = varFrameP(FR, (int)PC[-1]);
+			     });
+      if ( isVar(*v1) ) globaliseVar(v1);
+      if ( isVar(*v2) ) globaliseVar(v2);
+    }
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = *v1;
+    *ARGP++ = *v2;
   debug_eq_vv:
     NFR = lTop;
     DEF = GD->procedures.strict_equal2->definition;
@@ -1235,8 +1296,13 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
+  { if ( isVar(*v1) )
+    { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
+      globaliseVar(v1);
+    }
+
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = *v1;
     *ARGP++ = c;
     goto debug_eq_vv;
   }
@@ -1261,9 +1327,19 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
-    *ARGP++ = linkVal(v2);
+  { if ( isVar(*v1) || isVar(*v2) )
+    { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
+			       v2 = varFrameP(FR, (int)PC[-1]);
+			     });
+      if ( isVar(*v1) )
+	globaliseVar(v1);
+      if ( isVar(*v2) )
+	globaliseVar(v2);
+    }
+
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkValI(v1);
+    *ARGP++ = linkValI(v2);
   debug_neq_vv:
     NFR = lTop;
     DEF = GD->procedures.not_strict_equal2->definition;
@@ -1291,8 +1367,13 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
-  { ARGP = argFrameP(lTop, 0);
-    *ARGP++ = linkVal(v1);
+  { if ( isVar(*v1) )
+    { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
+      globaliseVar(v1);
+    }
+
+    ARGP = argFrameP(lTop, 0);
+    *ARGP++ = linkValI(v1);
     *ARGP++ = c;
     goto debug_neq_vv;
   }
@@ -1332,9 +1413,15 @@ trailing needed as we are writing in this and the next frame.
 
 VMI(B_FIRSTVAR, 0, 1, (CA1_FVAR))
 { Word k = varFrameP(FR, *PC++);
+  Word v;
+  word w;
 
-  setVar(*k);
-  *ARGP++ = makeRefL(k);
+  ENSURE_GLOBAL_SPACE(1, k = varFrameP(FR, PC[-1]));
+  v = gTop++;
+  setVar(*v);
+  w = makeRefG(v);
+  *k = w;
+  *ARGP++ = w;
   NEXT_INSTRUCTION;
 }
 
@@ -1965,7 +2052,13 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
 
   QF->foreign_frame = PL_open_foreign_frame();
   QF->yield.term = PL_new_term_ref();
-  *valTermRef(QF->yield.term) = linkVal(argFrameP(FR, 0));
+  p = argFrameP(FR, 0);
+  if ( isVar(*p) )
+  { ENSURE_GLOBAL_SPACE(1, p = argFrameP(FR, 0));
+    QF = QueryFromQid(qid);
+    globaliseVar(p);
+  }
+  *valTermRef(QF->yield.term) = linkValI(p);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
   assert(LD->exception.throw_environment == &throw_env);
@@ -2500,11 +2593,16 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
   { fpred = FUNCTOR_var1;
   debug_pred1:
 
+    if ( isVar(*p) )
+    { ENSURE_GLOBAL_SPACE(1, p = varFrameP(FR, (int)PC[-1]));
+      globaliseVar(p);
+    }
+
     NFR = lTop;
     setNextFrameFlags(NFR, FR);
     DEF  = lookupDefinition(fpred, MODULE_system);
     ARGP = argFrameP(NFR, 0);
-    *ARGP++ = linkVal(p);
+    *ARGP++ = *p;
 
     goto normal_call;
   }
@@ -2852,7 +2950,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
 	    LTrail(fa);
 	    *fa = makeRefG(&ap[i]);
 	  } else
-	  { ap[i] = needsRef(*fa) ? makeRef(fa) : *fa;
+	  { ap[i] = needsRef(*fa) ? makeRefG(fa) : *fa;
 	  }
 	}
       }
@@ -3450,7 +3548,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   if ( debugstatus.debugging )
   { Word expr;
 
-    ENSURE_GLOBAL_SPACE(3,
+    ENSURE_GLOBAL_SPACE(4,
 			{ np = varFrameP(FR, PC[-2]);
 			  rp = varFrameP(FR, PC[-3]);
 			});
@@ -3461,8 +3559,8 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     expr[2] = consInt(add);
 
     ARGP = argFrameP(lTop, 0);
-    setVar(*rp);
-    *ARGP++ = linkVal(rp);
+    globaliseFirstVar(rp);
+    *ARGP++ = *rp;
     *ARGP++ = consPtr(expr, TAG_COMPOUND|STG_GLOBAL);
     NFR = lTop;
     DEF = GD->procedures.is2->definition;
@@ -4215,13 +4313,21 @@ We set FR_WATCHED to get a cleanup call if the frame fails or is cutted.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLCLEANUP, 0, 0, ())
-{ if ( !mustBeCallable(consTermRef(argFrameP(FR, 3)) PASS_LD) )
+{ Word p;
+
+  if ( !mustBeCallable(consTermRef(argFrameP(FR, 3)) PASS_LD) )
     THROW_EXCEPTION;
 
   newChoice(CHP_CATCH, FR PASS_LD);
   set(FR, FR_CLEANUP);
+
+  p = argFrameP(FR, 1);
+  if ( isVar(*p) )
+  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    THROW_EXCEPTION;
+  }
 				/* = B_VAR1 */
-  *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 1));
+  *argFrameP(lTop, 0) = linkValI(p);
 
   VMI_GOTO(I_USERCALL0);
 }
@@ -4279,14 +4385,20 @@ which is translated to:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CATCH, 0, 0, ())
-{ if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
+{ Word p = argFrameP(FR, 0);
+
+  if ( BFR->frame == FR && BFR == (Choice)argFrameP(FR, 3) )
   { assert(BFR->type == CHP_DEBUG);
     BFR->type = CHP_CATCH;
   } else
     newChoice(CHP_CATCH, FR PASS_LD);
 
+  if ( isVar(*p) )
+  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    THROW_EXCEPTION;
+  }
 				  /* = B_VAR0 */
-  *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+  *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_USERCALL0);
 }
 
@@ -5006,7 +5118,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
 	{ Word a1 = unRef(a[i]);
 
 	  if ( a1 >= a && a1 < a+arity )
-	    a[i+shift] = makeRef(a1+shift);
+	    a[i+shift] = makeRefG(a1+shift);
 	  else
 	    a[i+shift] = a[i];
 	} else
@@ -5018,7 +5130,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
 	{ Word a1 = unRef(a[i]);
 
 	  if ( a1 >= a && a1 < a+arity )
-	    a[i+shift] = makeRef(a1+shift);
+	    a[i+shift] = makeRefG(a1+shift);
 	  else
 	    a[i+shift] = a[i];
 	} else
@@ -5044,9 +5156,9 @@ frame.
     }
 
     ARGP = argFrameP(NFR, 0);
-
+					/* args is pointer into term: ok */
     for(; arity-- > 0; ARGP++, args++)
-      *ARGP = linkVal(args);
+      *ARGP = linkValI(args);
   }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5109,9 +5221,15 @@ Where '$reset' maps to
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_RESET, 0, 0, ())
-{ set(FR, FR_INRESET);
+{ Word p = argFrameP(FR, 0);
+
+  if ( isVar(*p) )
+  { PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    THROW_EXCEPTION;
+  }
+  set(FR, FR_INRESET);
 			  /* = B_VAR0 */
-  *argFrameP(lTop, 0) = linkVal(argFrameP(FR, 0));
+  *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_USERCALL0);
 }
 
@@ -5143,7 +5261,7 @@ VMI(I_CALLCONT, 0, 1, (CA1_VAR))
 
   deRef(cp);
   if ( hasFunctor(*cp, FUNCTOR_call1) )
-  { *ARGP++ = linkVal(argTermP(*cp, 0));
+  { *ARGP++ = linkValI(argTermP(*cp, 0));
     VMI_GOTO(I_USERCALL0);
   } else
   { term_t cont = pushWordAsTermRef(cp);
@@ -5549,7 +5667,7 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
 
   if ( isVar(*vp) )
   { DEBUG(MSG_TRIE_VM, Sdprintf("First var %zd\n", offset));
-    Trail(vp, linkVal(TrieCurrentP));
+    Trail(vp, linkValI(TrieCurrentP));
   } else
   { int rc;
 

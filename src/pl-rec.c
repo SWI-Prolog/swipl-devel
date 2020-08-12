@@ -1343,10 +1343,10 @@ copy_record(Word p, CopyInfo b ARG_LD)
 
 	if ( b->vars[n] )
 	{ if ( p > b->vars[n] )		/* ensure the reference is in the */
-	    *p = makeRef(b->vars[n]);	/* right direction! */
-	  else
+	  { *p = makeRefG(b->vars[n]);	/* right direction! */
+	  } else
 	  { *p = *b->vars[n];		/* wrong way.  make sure b->vars[n] */
-	    *b->vars[n] = makeRef(p);	/* stays at the real variable */
+	    *b->vars[n] = makeRefG(p);	/* stays at the real variable */
 	    b->vars[n] = p;		/* NOTE: also links attvars! */
 	  }
 	} else

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2015, University of Amsterdam
+    Copyright (c)  2004-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -129,10 +129,10 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     { Word p2 = allocGlobal(1);
 
       setVar(*p2);
-      w = *p = makeRef(p2);
+      w = *p = makeRefG(p2);
       LTrail(p);
     } else
-    { w = makeRef(p);
+    { w = makeRefG(p);
     }
   }
 

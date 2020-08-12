@@ -237,7 +237,7 @@ retry:
 
       *to++ = PL_new_functor(closure, arity);
       for(; arity > 0; arity--)
-	*to++ = linkVal(f++);
+	*to++ = linkValI(f++);
 
       return _PL_unify_atomic(wrapped, w);
     } else
@@ -397,7 +397,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
 	a = valueTerm(*a)->arguments;
 	p[0] = lookupFunctorDef(aref, arity);
 	for(i=0; i<arity; i++)
-	  p[i+1] = linkVal(&a[i]);
+	  p[i+1] = linkValI(&a[i]);
 	*valTermRef(impl) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	return PL_unify(A3, impl);
       }

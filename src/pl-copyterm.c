@@ -409,7 +409,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
       { Word p2 = unRef(*from);
 
 	if ( *p2 == VAR_MARK )		/* reference to a copied variable */
-	{ *to = makeRef(p2);
+	{ *to = makeRefG(p2);
 	} else
 	{ from = p2;			/* normal reference */
 	  goto again;
@@ -420,10 +420,10 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
       case TAG_VAR:
       { if ( shared(*from) )
 	{ *to = VAR_MARK;
-	  *from = makeRef(to);
+	  *from = makeRefG(to);
 	  TrailCyclic(from PASS_LD);
 	} else if ( (flags&COPY_ABSTRACT) )
-	{ *to = makeRef(from);
+	{ *to = makeRefG(from);
 	} else
 	{ setVar(*to);
 	}
@@ -457,7 +457,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  { Word p = valPAttVar(*from & ~BOTH_MASK);
 
 	    if ( *p == VAR_MARK )
-	    { *to = makeRef(p);
+	    { *to = makeRefG(p);
 	    } else
 	    { *to = VAR_MARK;
 	      *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR)|BOTH_MASK;
@@ -604,7 +604,7 @@ copy_term_refs(term_t from, term_t to, size_t abstract, int flags ARG_LD)
       return FALSE;			/* stack */
     }
     setVar(*dest);
-    *valTermRef(to) = makeRef(dest);
+    *valTermRef(to) = makeRefG(dest);
     src = valTermRef(from);
 
     rc = do_copy_term(src, dest, abstract, flags PASS_LD);

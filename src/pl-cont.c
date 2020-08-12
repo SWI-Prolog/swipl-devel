@@ -179,7 +179,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 	LTrail(vp);
 	*vp = makeRefG(p);
       } else
-      { *p = linkVal(vp);
+      { *p = linkValI(vp);
       }
     } else
     { *p = ATOM_cont_inactive;
@@ -440,7 +440,7 @@ retry:
     ap = argFrameP(fr, 0);
 
     for(i=0; i<cl->prolog_vars; i++, ep++, ap++)
-    { *ap = linkVal(ep);
+    { *ap = linkValI(ep);
     }
 
     for(; i<cl->variables; i++, ep++, ap++)

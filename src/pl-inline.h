@@ -432,10 +432,10 @@ bindConst__LD(Word p, word c ARG_LD)
 
 
 static inline word
-consPtr__LD(void *p, word ts ARG_LD)
+consPtr__LD(void *p, uintptr_t base, word ts ARG_LD)
 { uintptr_t v = (uintptr_t) p;
 
-  v -= LD->bases[ts&STG_MASK];
+  v -= base;
   DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
   return (v<<5)|ts;
 }
@@ -451,6 +451,35 @@ valFloat__LD(word w ARG_LD)
   return d;
 }
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+linkValI(p)  is  an  inlined  version  of  linkVal()  that  assumes  the
+dereferenced value of `p` lives on  the   global  stack. It has no error
+checking (unless compiled for debugging) and fetches the base address of
+the global stack only once.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline word
+linkValI__LD(Word p ARG_LD)
+{ word w = *p;
+  uintptr_t gb = LD->bases[STG_GLOBAL];
+
+  while(isRef(w))
+  { //p = unRef(w);
+    p = (Word)valPtrB(w,gb);
+    w = *p;
+  }
+
+  DEBUG(CHK_ATOM_GARBAGE_COLLECTED, assert(w != ATOM_garbage_collected));
+
+  if ( !needsRef(w) )
+  { return w;
+  } else
+  { // return makeRefG(p);
+    DEBUG(0, assert(p<(Word)lBase));
+    return consPtrB(p, gb, TAG_REFERENCE|STG_GLOBAL);
+  }
+}
 
 static inline int
 is_signalled(ARG1_LD)
