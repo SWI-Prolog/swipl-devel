@@ -98,7 +98,7 @@ t :-
 
 While unifying the first argument of y/2, the left-walker crosses to the
 right after the first cycle  and  creates   references  in  A, which are
-processed by the right-walker when entering the second argumet of y/2.
+processed by the right-walker when entering the second argument of y/2.
 
 Initial measurements show a performance degradation for deep unification
 of approx. 30%. On the other hand,  if subterms appear multiple times in
@@ -231,7 +231,7 @@ Returns one of:
 
   - FALSE:		terms cannot unify.  Note that this routine does not
 			rollback changes it made!
-  - TRUE:		Unification has completed sucessfully
+  - TRUE:		Unification has completed successfully
   - GLOBAL_OVERFLOW:	Unification cannot be completed due to lack
 			of global-space.
   - TRAIL_OVERFLOW:	Unification cannot be completed due to lack
@@ -965,7 +965,7 @@ backtrack as a shared term that we know to be acyclic has been reached.
 Two strategies are used  to avoid repeated  pop+push cycles  of the same
 term chain:
 
-1. aggresively cache new term chains for all args of the tail term.
+1. aggressively cache new term chains for all args of the tail term.
 2. only cache the current term chain  if we know at least one arg of the
    tail term is itself a term.
 

@@ -54,11 +54,11 @@ results in output like this:
 Unless you know the Unicode tables by   heart, this is pretty unpleasant
 for debugging. Loading this library  makes   the  toplevel  and debugger
 print strings with at least 3 characters  as "text ...". Of course, this
-is an ambigious operation because nobody can know whether [65,66] should
+is an ambiguous operation because nobody can know whether [65,66] should
 be written as "AB" or a list: to  Prolog they are the same. Therefore it
 is imported that the user  is  aware   of  the  fact that this heuristic
 conversion  is  enabled.  This  is  why  this  library  must  be  loaded
-explicitely to enable this conversion.
+explicitly to enable this conversion.
 
 @tbd    Allow setting the character-codes we try to convert
 */

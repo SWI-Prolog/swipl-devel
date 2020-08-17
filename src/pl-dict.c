@@ -856,7 +856,7 @@ PL_for_dict(term_t dict,
 
 This predicate is called from pl-wic.c after   reloading a clause from a
 .qlf file or state if pl-wic.c  detected   a  dict  inside the clause. It
-identifies the code ranges that constitude the  k-v pairs in the dict and
+identifies the code ranges that constitute the  k-v pairs in the dict and
 re-orders them according to the new atom-handle ordering.
 
 There    is    a    complicating     factor    with    B_FIRSTVAR/B_VAR,

@@ -347,7 +347,7 @@ meta_option(O, _, _, O).
 %   it is created in canonical form,  i.e., using Option(Value) with
 %   the Options sorted in the standard order of terms. Note that the
 %   conversion is not always possible   due to different constraints
-%   and convertion may thus lead to (type) errors.
+%   and conversion may thus lead to (type) errors.
 %
 %     - Dict keys can be integers. This is not allowed in canonical
 %       option lists.
