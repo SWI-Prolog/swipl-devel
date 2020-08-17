@@ -48,7 +48,7 @@ This module implements common operations on  Key-Value lists, also known
 as  _Pairs_.  Pairs  have  great  practical  value,  especially  due  to
 keysort/2 and the library assoc.pl.
 
-This library is based  on  disussion   in  the  SWI-Prolog  mailinglist,
+This library is based  on  discussion  in  the  SWI-Prolog  mailinglist,
 including specifications from Quintus and a  library proposal by Richard
 O'Keefe.
 

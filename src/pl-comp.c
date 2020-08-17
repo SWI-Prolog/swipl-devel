@@ -272,7 +272,7 @@ allocated at all.
 
 Second  unification  code  for  the  head  is  produced.   Finally   the
 subclauses  are  translated.   Most  vital  from  the  point  of view of
-performance is to distinguis between the first time an  entry  from  the
+performance is to distinguish between the first time an  entry  from the
 variable  array  is addressed and the following times: the first time we
 KNOW the field should be a variable and copying the value  or  making  a
 reference  is  the  appropriate action.  This both saves us the variable
@@ -299,7 +299,7 @@ typedef struct _varDef
   word		saved;			/* saved value */
   Word		address;		/* address of the variable */
   atom_t	name;			/* name (if available) */
-  int		times;			/* occurences */
+  int		times;			/* occurrences */
   int		offset;			/* offset in environment frame */
   int		flags;			/* VD_* */
 } vardef;
@@ -666,7 +666,7 @@ Analyse the variables of a clause.  `term' is the term to  be  analysed,
 which  is  either  a  fact  or  a  clause (:-/2) term.  First of all the
 functor and arity of the predicate are determined.   The  first  `arity'
 elements  of  the variable definition array are then cleared.  This part
-is used for sharing variables that occurr on their own in the head  with
+is used for sharing variables that occur  on their own in the head  with
 the  argument  part  of the environment frame instead of putting them in
 the variable part.
 
@@ -1854,7 +1854,7 @@ A ; B, A -> B, A -> B ; C, \+ A
     different  paths.   Each of these paths may result in another set of
     variables  already  instantiated.   This  gives  troubles  with  the
     FIRSTVAR  type  of instructions.  to avoid such trouble the compiler
-    generates  SETVAR  instructions  to  balance  both   brances.    See
+    generates  SETVAR  instructions  to  balance  both  branches.    See
     balanceVars();
 
     If you add anything to this, please ensure registerControlFunctors()
@@ -1877,7 +1877,7 @@ A ; B, A -> B, A -> B ; C, \+ A
     them. Using this simple-minded causes the variables inside B to be
     considered initialised at the end of the ;/2 while they are not.
     For this reason, setVars() does not count variables inside \+/1
-    when encounted as a control-structure.
+    when encountered as a control-structure.
 
     After 5.2.7: Still more tricky than anticipated.  Consider the clause
 

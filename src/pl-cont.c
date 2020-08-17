@@ -326,7 +326,7 @@ Performs the following steps:
 	'$cont'(Clause, PC, EnvArg1, ...)
 
      Here, Clause is the clause, PC is the program counter inside
-     the clause, EnvArg1 is an array holding the frame argumnets
+     the clause, EnvArg1 is an array holding the frame arguments
      in the same order as the frame layout.  The atom '<inactive>'
      is used for frame slots that are not accessed by the remainder
      of the continuation.
