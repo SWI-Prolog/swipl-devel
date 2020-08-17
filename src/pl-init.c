@@ -46,6 +46,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-zip.h"
 #include "pl-prof.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include <errno.h>
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -936,6 +937,53 @@ PL_is_initialised(int *argc, char ***argv)
   }
 
   return FALSE;
+}
+
+
+int
+PL_winitialise(int argc, wchar_t **wargv)
+{ char **argv;
+  tmp_buffer b;
+  int i;
+  size_t sz;
+  char *abuf, *op;
+
+  if ( !(argv = malloc((argc+1)*sizeof(*argv))) )
+    return FALSE;
+
+  initBuffer(&b);
+  for(i=0; i<argc; i++)
+  { wchar_t *w;
+
+    for(w = wargv[i]; *w; w++)
+    { if ( *w < 0x7f )
+      { char c = *w;
+	addBuffer(&b, c, char);
+      } else
+      { char wb[6];
+	char *e;
+
+	e = utf8_put_char(wb, *w);
+	addMultipleBuffer(&b, wb, e-wb, char);
+      }
+    }
+    addBuffer(&b, 0, char);
+  }
+
+  sz = entriesBuffer(&b, char);
+  if ( !(abuf = malloc(sz)) )
+    return FALSE;
+  memcpy(abuf, baseBuffer(&b, char), sz);
+  discardBuffer(&b);
+  op = abuf;
+
+  for(i=0; i<argc; i++)
+  { argv[i] = op;
+    op += strlen(op)+1;
+  }
+  argv[i] = NULL;
+
+  return PL_initialise(argc, argv);
 }
 
 

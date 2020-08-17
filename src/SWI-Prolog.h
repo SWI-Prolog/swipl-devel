@@ -995,6 +995,7 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 		 *******************************/
 
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
+PL_EXPORT(int)		PL_winitialise(int argc, wchar_t **argv);
 PL_EXPORT(int)		PL_is_initialised(int *argc, char ***argv);
 PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
 					       size_t size);

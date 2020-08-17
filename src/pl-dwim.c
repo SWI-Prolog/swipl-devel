@@ -190,7 +190,7 @@ pl_dwim_match(term_t a1, term_t a2, term_t mm)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $dwim_predicate(+Term, -Dwim) successively returns all predicates of the
-specified module or context module  that  match  in  a  DWIM  sence  the
+specified module or context module  that  match  in  a  DWIM  sense  the
 predicate head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 

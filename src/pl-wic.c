@@ -808,8 +808,14 @@ loadXRc(wic_state *state, int c ARG_LD)
 	case 's':
 	{ atom_t name   = loadXR(state);
 	  double time   = getFloat(fd);
-	  const char *s = stringAtom(name);
-	  SourceFile sf = lookupSourceFile(qlfFixSourcePath(state, s), TRUE);
+	  PL_chars_t text;
+	  SourceFile sf;
+
+	  PL_STRINGS_MARK();
+	  get_atom_text(name, &text);
+	  PL_mb_text(&text, REP_UTF8);
+	  sf = lookupSourceFile(qlfFixSourcePath(state, text.text.t), TRUE);
+	  PL_STRINGS_RELEASE();
 
 	  if ( sf->mtime == 0.0 )
 	  { sf->mtime   = time;
@@ -1681,7 +1687,7 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     if ( strcmp(raw, canonical) )
     { path_translated *tr = PL_malloc(sizeof(*tr));
 
-      tr->from = PL_new_atom(raw);
+      tr->from = file_name_to_atom(raw);
       tr->to   = translated;
       tr->next = state->load_state->translated;
       state->load_state->translated = tr;
@@ -3405,14 +3411,20 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
 
 static bool
 qlfSaveSource(wic_state *state, SourceFile f)
-{ IOSTREAM *fd = state->wicFd;
-  Atom a = atomValue(f->name);
+{ GET_LD
+  IOSTREAM *fd = state->wicFd;
+  PL_chars_t text;
+
+  PL_STRINGS_MARK();
+  get_atom_text(f->name, &text);
+  PL_mb_text(&text, REP_UTF8);
 
   sourceMark(state);
   Sputc('F', fd);
-  putString(a->name, a->length, fd);
+  putString(text.text.t, text.length, fd);
   putFloat(f->mtime, fd);
   Sputc(f->system ? 's' : 'u', fd);
+  PL_STRINGS_RELEASE();
 
   state->currentSource = f;
 

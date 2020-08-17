@@ -98,7 +98,7 @@ t :-
 
 While unifying the first argument of y/2, the left-walker crosses to the
 right after the first cycle  and  creates   references  in  A, which are
-processed by the right-walker when entering the second argumet of y/2.
+processed by the right-walker when entering the second argument of y/2.
 
 Initial measurements show a performance degradation for deep unification
 of approx. 30%. On the other hand,  if subterms appear multiple times in
@@ -231,7 +231,7 @@ Returns one of:
 
   - FALSE:		terms cannot unify.  Note that this routine does not
 			rollback changes it made!
-  - TRUE:		Unification has completed sucessfully
+  - TRUE:		Unification has completed successfully
   - GLOBAL_OVERFLOW:	Unification cannot be completed due to lack
 			of global-space.
   - TRAIL_OVERFLOW:	Unification cannot be completed due to lack
@@ -965,7 +965,7 @@ backtrack as a shared term that we know to be acyclic has been reached.
 Two strategies are used  to avoid repeated  pop+push cycles  of the same
 term chain:
 
-1. aggresively cache new term chains for all args of the tail term.
+1. aggressively cache new term chains for all args of the tail term.
 2. only cache the current term chain  if we know at least one arg of the
    tail term is itself a term.
 
@@ -2198,7 +2198,7 @@ Get argument position from t.  Returns:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
+get_arg_integer_ex(term_t t, size_t *n ARG_LD)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -2234,8 +2234,8 @@ get_arg_integer_ex(term_t t, intptr_t *n ARG_LD)
 static
 PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 { PRED_LD
-  unsigned arity;
-  unsigned argn;
+  size_t arity;
+  size_t argn;
 
   term_t n    = A1;
   term_t term = A2;
@@ -2243,7 +2243,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { intptr_t idx;
+    { size_t idx;
       int rc;
       Word p = valTermRef(term);
 
@@ -2254,7 +2254,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
       if ( (rc=get_arg_integer_ex(n, &idx PASS_LD)) == TRUE )
-      { if ( idx <= (intptr_t)arity )
+      { if ( idx <= arity )
 	{ Word ap = argTermP(*p, idx-1);
 
 	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
@@ -5684,7 +5684,7 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 	  { char **sp = d->address;
 
 	    if ( *sp )
-	      return PL_unify_atom_chars(val, *sp);
+	      return PL_unify_chars(val, PL_ATOM|REP_FN, (size_t)-1, *sp);
 	    return FALSE;
 	  }
 	  case CMDOPT_LIST:
@@ -5695,7 +5695,7 @@ PRED_IMPL("$cmd_option_val", 2, cmd_option_val, 0)
 
 	    for( l=*list; l; l = l->next)
 	    { if ( !PL_unify_list(tail, head, tail) ||
-		   !PL_unify_atom_chars(head, l->opt_val) )
+		   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, l->opt_val) )
 		return FALSE;
 	    }
 
@@ -5717,8 +5717,8 @@ PRED_IMPL("$cmd_option_set", 2, cmd_option_set, 0)
   term_t key = A1;
   term_t val = A2;
 
-  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION) &&
-       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION) )
+  if ( PL_get_chars(key, &k, CVT_ALL|CVT_EXCEPTION|REP_FN) &&
+       PL_get_chars(val, &v, CVT_ALL|CVT_EXCEPTION|REP_FN) )
   { return set_pl_option(k, v);
   }
 
