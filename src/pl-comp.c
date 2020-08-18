@@ -6250,7 +6250,7 @@ unify_vmi(term_t t, Code bp)
 	{ Procedure proc = (Procedure)*bp++;
 
 	  rc = unify_definition(MODULE_user, av+an, proc->definition, 0,
-				GP_HIDESYSTEM|GP_NAMEARITY);
+				GP_QUALIFY|GP_NAMEARITY);
 	  break;
 	}
 	case CA1_CLAUSEREF:
