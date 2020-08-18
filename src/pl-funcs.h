@@ -518,8 +518,10 @@ COMMON(int)		releaseSourceFile_d(SourceFile f,
 					    const char *file, unsigned int line);
 #define acquireSourceFile(f) acquireSourceFile_d(f, __FILE__, __LINE__)
 #define releaseSourceFile(f) releaseSourceFile_d(f, __FILE__, __LINE__)
+COMMON(void)		acquireSourceFileNo(int index);
 #else
 COMMON(void)		acquireSourceFile(SourceFile sf);
+COMMON(void)		acquireSourceFileNo(int index);
 COMMON(int)		releaseSourceFile(SourceFile f);
 #endif
 

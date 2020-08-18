@@ -6386,16 +6386,19 @@ PRED_IMPL("$fetch_vm", 4, fetch_vm, PL_FA_TRANSPARENT)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-'$vm_assert'(+PI, :VM, -Ref) is det.
+'$vm_assert'(+PIorClause, :VM, -Ref) is det.
 
-Create a clause from VM and  assert  it   to  the  predicate  PI. Ref is
+Create a clause from VM and assert it  to the predicate PI. If the first
+argument is a clause  reference,  _replace_   the  given  clause. Ref is
 unified with a reference to the new clause.
 
 TBD The current implementation is very incomplete. Using direct jumps is
 very unattractive and we should abstract away from some details, such as
-the different integer sizes (inline, int, int64, mpz).  Other issues:
+the different integer sizes (inline,  int,   int64,  mpz). Also variable
+balancing (C_VAR) is missing.  Possibly  we   should  add  these using a
+wrapper library in Prolog.
 
-	- Automatic variable balancing
+@bug Replacement is not (yet) atomic.
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static const code_info *
@@ -6457,11 +6460,12 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 		fail;
 	      i = VAROFFSET(vn);
 	      Output_a(ci, i);
+	      vn++;			/* var 1 requires 2 vars */
 	      if ( (ats[an] == CA1_VAR || ats[an] == CA1_FVAR) &&
-		   ci->clause->prolog_vars < i )
-		ci->clause->prolog_vars = (unsigned int)i;
-	      if ( ci->clause->variables < i )
-		ci->clause->variables = (unsigned int)i;
+		   ci->clause->prolog_vars < vn )
+		ci->clause->prolog_vars = (unsigned int)vn;
+	      if ( ci->clause->variables < vn )
+		ci->clause->variables = (unsigned int)vn;
 	      break;
 	    }
 	    case CA1_INTEGER:
@@ -6471,6 +6475,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      if ( !PL_get_intptr_ex(a, &val) )
 		fail;
 	      Output_a(ci, val);
+	      break;
 	    }
 	    case CA1_FLOAT:
 	    { double d;
@@ -6479,6 +6484,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      if ( !PL_get_float_ex(a, &d) )
 		fail;
 	      Output_an(ci, p, WORDS_PER_DOUBLE);
+	      break;
 	    }
 	    case CA1_INT64:
 	    { int64_t val;
@@ -6487,6 +6493,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      if ( !PL_get_int64_ex(a, &val) )
 		fail;
 	      Output_an(ci, p, WORDS_PER_INT64);
+	      break;
 	    }
 	    case CA1_MPZ:
 	    case CA1_MPQ:
@@ -6523,15 +6530,16 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	      if ( !isConst(val) )
 		return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, a);
+	      if ( isAtom(val) )
+		PL_register_atom(val);
 
 	      Output_a(ci, val);
 	      break;
 	    }
 	    case CA1_FUNC:
 	    { functor_t f;
-	      Module m = NULL;
 
-	      if ( !get_functor(a, &f, &m, 0, 0) )
+	      if ( !get_functor(a, &f, NULL, 0, GP_NOT_QUALIFIED|GF_NAMEARITY) )
 		fail;
 
 	      Output_a(ci, f);
@@ -6546,6 +6554,16 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      Output_a(ci, (intptr_t)lookupModule(name));
 	      break;
 	    }
+	    case CA1_AFUNC:
+	    { functor_t f;
+	      int findex;
+
+	      if ( !get_functor(a, &f, NULL, 0, GP_NOT_QUALIFIED|GF_NAMEARITY) )
+		fail;
+	      findex = indexArithFunction(f);
+	      Output_a(ci, (code)findex);
+	      break;
+	    }
 	    case CA1_PROC:
 	    { Procedure proc;
 
@@ -6555,16 +6573,19 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      }
 	      fail;
 	    }
+	    default:
+	      assert(0);
 	  }
-	}
-      }
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
+	} /* for(an=0; ats[an]; an++) */
+      } /* if ( arity == 0 ) */
+    } else
+    { return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_vmi, t);
     }
-
-    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_vmi, t);
+  } else
+  { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_vmi, t);
+  return TRUE;
 }
 
 
@@ -6588,49 +6609,87 @@ vm_compile(term_t t, CompileInfo ci)
 static
 PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
 { GET_LD
-  Procedure proc;
+  Clause orig = NULL;
+  ClauseRef where = CL_END;
+  Definition def;
   compileInfo ci;
-  struct clause clause;
+  struct clause clause = {0};
   Clause cl;
   ClauseRef cref;
-  Module module = NULL;
-  size_t size;
+  Module m = NULL;
+  size_t size, clsize;
 
-  if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) ||
-       !PL_strip_module(A2, &module, A2) )
+  if ( PL_get_clref(A1, &orig) == TRUE )
+  { ClauseRef cr;
+
+    def = orig->predicate;
+    acquire_def(def);
+    for(cr = def->impl.clauses.first_clause; cr; cr = cr->next)
+    { if ( cr->value.clause == orig )
+      { where = cr;
+	break;
+      }
+    }
+    release_def(def);
+  } else
+  { Procedure proc;
+
+    if ( !get_procedure(A1, &proc, 0, GP_DEFINE|GP_NAMEARITY) )
+      return FALSE;
+    def = getProcDefinition(proc);
+  }
+  if ( !PL_strip_module(A2, &m, A2) )	/* body module */
     return FALSE;
 
   ci.islocal      = FALSE;
   ci.subclausearg = 0;
-  ci.arity        = (int)proc->definition->functor->arity;
+  ci.arity        = (int)def->functor->arity;
   ci.argvars      = 0;
 
-  clause.flags       = 0;
-  clause.predicate   = proc->definition;
-  clause.code_size   = 0;
-  clause.source_no   = clause.line_no = 0;
+  clause.predicate   = def;
   clause.variables   = ci.arity;
   clause.prolog_vars = ci.arity;
   ci.clause	     = &clause;
-  ci.module	     = module;
+  ci.module	     = m;
   initBuffer(&ci.codes);
+  initMerge(&ci);
 
   if ( !vm_compile(A2, &ci) )
   { discardBuffer(&ci.codes);
     fail;
   }
 
+  m = def->module;
   clause.code_size = entriesBuffer(&ci.codes, code);
-  size  = sizeofClause(clause.code_size);
+  size   = sizeofClause(clause.code_size);
+  clsize = size + SIZEOF_CREF_CLAUSE;
+  if ( m->code_limit && clsize + m->code_size > m->code_limit )
+  { int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_program_space);
+    discardBuffer(&ci.codes);
+    return rc;
+  }
   cl = PL_malloc_atomic(size);
+  ATOMIC_ADD(&m->code_size, clsize);
   memcpy(cl, &clause, sizeofClause(0));
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
+  ATOMIC_ADD(&GD->statistics.codes, cl->code_size);
+  ATOMIC_INC(&GD->statistics.clauses);
+  if ( orig )
+  { cl->line_no   = orig->line_no;
+    cl->source_no = orig->source_no;
+    cl->owner_no  = orig->owner_no;
+    acquireSourceFileNo(cl->source_no);
+    if ( cl->source_no != cl->owner_no )
+      acquireSourceFileNo(cl->owner_no);
+  }
 
-					/* TBD: see assert_term() */
-  if ( !(cref=assertProcedure(proc, cl, CL_END PASS_LD)) )
+					/* TBD: make atomic */
+  if ( !(cref=assertDefinition(def, cl, where PASS_LD)) )
     return FALSE;
+  if ( where != CL_END )
+    retractClauseDefinition(def, where->value.clause, TRUE);
 
   return PL_unify_clref(A3, cref->value.clause);
 }

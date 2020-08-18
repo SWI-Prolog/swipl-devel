@@ -332,7 +332,7 @@ acquireSourceFile(SourceFile sf)
 }
 
 
-static void
+void
 acquireSourceFileNo(int index)
 { SourceFile sf;
 
