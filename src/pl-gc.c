@@ -1322,6 +1322,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  return;
 
 	case C_JMP:			/* jumps */
+	case L_NOLCO:
 	  PC += (int)PC[1]+2;
 	  c = fetchop(PC);
 	  goto again;
@@ -1898,6 +1899,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_JMP:			/* unconditional jump */
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
+      case L_NOLCO:
 	PC += (int)PC[0]+1;
         op = decode(*PC++);
         goto again;

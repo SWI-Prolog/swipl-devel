@@ -65,7 +65,7 @@ COMMON(code)		replacedBreak(Code PC);
 COMMON(code)		replacedBreakUnlocked(Code PC);
 COMMON(int)		clearBreakPointsClause(Clause clause) WUNUSED;
 COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
-COMMON(void)		vm_list(Code code);
+COMMON(void)		vm_list(Code code, Code end);
 COMMON(Module)		clauseBodyContext(const Clause cl);
 
 static inline code

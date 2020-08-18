@@ -813,19 +813,19 @@ frame and therefore can just fill the argument. Trailing is not needed as
 this is above the stack anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_ATOM, 0, 1, (CA1_DATA))
+VMI(B_ATOM, VIF_LCO, 1, (CA1_DATA))
 { word c = (word)*PC++;
   pushVolatileAtom(c);
   *ARGP++ = c;
   NEXT_INSTRUCTION;
 }
 
-VMI(B_SMALLINT, 0, 1, (CA1_DATA))
+VMI(B_SMALLINT, VIF_LCO, 1, (CA1_DATA))
 { *ARGP++ = (word)*PC++;
   NEXT_INSTRUCTION;
 }
 
-VMI(B_NIL, 0, 0, ())
+VMI(B_NIL, VIF_LCO, 0, ())
 { *ARGP++ = ATOM_nil;
   NEXT_INSTRUCTION;
 }
@@ -984,22 +984,22 @@ not needed as we are writing above the stack.
 
 BEGIN_SHAREDVARS
 int voffset;
-VMI(B_VAR0, 0, 0, ())
+VMI(B_VAR0, VIF_LCO, 0, ())
 { voffset = VAROFFSET(0);
   goto bvar_cont;
 }
 
-VMI(B_VAR1, 0, 0, ())
+VMI(B_VAR1, VIF_LCO, 0, ())
 { voffset = VAROFFSET(1);
   goto bvar_cont;
 }
 
-VMI(B_VAR2, 0, 0, ())
+VMI(B_VAR2, VIF_LCO, 0, ())
 { voffset = VAROFFSET(2);
   goto bvar_cont;
 }
 
-VMI(B_VAR, 0, 1, (CA1_VAR))
+VMI(B_VAR, VIF_LCO, 1, (CA1_VAR))
 { Word p;
   voffset = (int)*PC++;
 
@@ -1431,7 +1431,7 @@ B_VOID: A singleton variable in  the  body.   Ensure  the  argument is a
 variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(B_VOID, 0, 0, ())
+VMI(B_VOID, VIF_LCO, 0, ())
 { setVar(*ARGP++);
   NEXT_INSTRUCTION;
 }
@@ -2077,6 +2077,154 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   }
 }
 
+		 /*******************************
+		 *	      LCO CALLS		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Last call optimization instructions. Such a block is defined as follows:
+
+    L_NOLCO Ln
+    L_VAR t,f
+    ...
+    I_TCALL (or I_LCALL proc)
+Ln: <normal sequence>
+    I_DEPART proc
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(L_NOLCO, 0, 1, (CA1_JUMP))
+{ size_t jmp = *PC++;
+
+  if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
+    NEXT_INSTRUCTION;
+
+  PC += jmp;
+  NEXT_INSTRUCTION;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+L_VAR(to,from)  moves  a  variable  in  the  current  frame.  Note  that
+variables either have a value, are 0 (B_VOID)  or are a reference to the
+global stack. We want to dereference to keep the reference chains short,
+but we must not create a reference to   the B_VOID 0-variable. This is a
+simplified version of linkVal().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  Word v2 = varFrameP(FR, (int)*PC++);
+  word w = *v2;
+
+  while(isRef(w))
+  { v2 = unRef(w);
+    if ( needsRef(*v2) )
+      break;
+    w = *v2;
+  }
+
+  *v1 = w;
+  NEXT_INSTRUCTION;
+}
+
+VMI(L_VOID, 0, 1, (CA1_FVAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+
+  setVar(*v1);
+  NEXT_INSTRUCTION;
+}
+
+VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  word  c = (word)*PC++;
+  pushVolatileAtom(c);
+  *v1 = c;
+  NEXT_INSTRUCTION;
+}
+
+VMI(L_NIL, 0, 1, (CA1_FVAR))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+
+  *v1 = ATOM_nil;
+  NEXT_INSTRUCTION;
+}
+
+VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_DATA))
+{ Word v1 = varFrameP(FR, (int)*PC++);
+  word  c = (word)*PC++;
+  *v1 = c;
+  NEXT_INSTRUCTION;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Actual tail call. The arguments for the   new predicate have been set by
+now. The number of arguments may be  both   more  and  less than for the
+running frame. As we may need to perform   callbacks  this is a bit of a
+problem.
+
+  - If we perform the callbacks giving the current GC context we go
+    wrong if the new predicate has more arguments than the current
+    clause has `prolog_vars`.
+  - If we first change the context to the new predicate we can perform
+    the callbacks, but we still need to fix the calling context.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_LCALL, 0, 1, (CA1_PROC))
+{ Procedure proc = (Procedure)*PC++;
+  Module ctx0 = contextModule(FR);
+
+  leaveDefinition(DEF);
+  FR->clause = NULL;
+  DEF = proc->definition;
+  setFramePredicate(FR, DEF);
+  lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+
+  if ( true(FR, FR_WATCHED) )
+  { SAVE_REGISTERS(qid);
+    frameFinished(FR, FINISH_EXIT PASS_LD);
+    LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
+  }
+
+  if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
+  { SAVE_REGISTERS(qid);
+    DEF = getProcDefinedDefinition(DEF PASS_LD);
+    LOAD_REGISTERS(qid);
+  }
+
+  if ( true(DEF, P_TRANSPARENT) )
+  { FR->context = ctx0;
+    FR->level++;
+    clear(FR, FR_CLEAR_NEXT);
+    set(FR, FR_CONTEXT);
+  } else
+  { setNextFrameFlags(FR, FR);
+  }
+  if ( true(DEF, HIDE_CHILDS) )
+    set(FR, FR_HIDE_CHILDS);
+
+  setFramePredicate(FR, DEF);
+  goto depart_continue;
+}
+
+VMI(I_TCALL, 0, 0, ())
+{ if ( true(FR, FR_WATCHED) )
+  { SAVE_REGISTERS(qid);
+    frameFinished(FR, FINISH_EXIT PASS_LD);
+    LOAD_REGISTERS(qid);
+    if ( exception_term )
+      THROW_EXCEPTION;
+  }
+
+  setNextFrameFlags(FR, FR);
+  FR->clause = NULL;
+  if ( true(DEF, HIDE_CHILDS) )
+    set(FR, FR_HIDE_CHILDS);
+
+  goto depart_continue;
+}
 
 		 /*******************************
 		 *	      CONTROL		*

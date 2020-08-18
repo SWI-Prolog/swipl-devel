@@ -974,6 +974,7 @@ Macros for environment frames (local stack frames)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
+#define VARNUM(i)		((int)((i) - (ARGOFFSET / (int) sizeof(word))))
 
 #define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
 #define levelFrame(fr)		((fr)->level)
@@ -1380,6 +1381,7 @@ typedef struct gc_stats
 #define CA1_END	       19	/* Highest+1 */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
+#define VIF_LCO        0x02	/* We have LCO support for this */
 
 typedef enum
 { VMI_REPLACE,
