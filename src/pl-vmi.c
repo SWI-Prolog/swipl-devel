@@ -3687,7 +3687,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     } else if ( isFloat(*k) && floatNumber(n) )
     { Word ak = valIndirectP(*k);
 
-      return memcmp((char*)&n->value.f, ak, sizeof(n->value.f)) == 0;
+      rc = memcmp((char*)&n->value.f, ak, sizeof(n->value.f)) == 0;
     } else
     { rc = FALSE;
     }
