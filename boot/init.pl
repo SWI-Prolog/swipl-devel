@@ -2319,8 +2319,12 @@ load_files(Module:Files, Options) :-
     ),
     '$import_from_loaded_module'(LoadModule, Module, Options).
 '$already_loaded'(_, _, user, _) :- !.
-'$already_loaded'(File, _, Module, Options) :-
-    '$load_file'(File, Module, [if(true)|Options]).
+'$already_loaded'(File, FullFile, Module, Options) :-
+    (   '$load_context_module'(FullFile, Module, CtxOptions),
+        '$load_ctx_options'(Options, CtxOptions)
+    ->  true
+    ;   '$load_file'(File, Module, [if(true)|Options])
+    ).
 
 %!  '$mt_load_file'(+File, +FullFile, +Module, +Options) is det.
 %
@@ -2803,13 +2807,17 @@ load_files(Module:Files, Options) :-
 %   Select the load options that  determine   the  load semantics to
 %   perform a proper reload. Delete the others.
 
-'$load_ctx_options'([], []).
-'$load_ctx_options'([H|T0], [H|T]) :-
+'$load_ctx_options'(Options, CtxOptions) :-
+    '$load_ctx_options2'(Options, CtxOptions0),
+    sort(CtxOptions0, CtxOptions).
+
+'$load_ctx_options2'([], []).
+'$load_ctx_options2'([H|T0], [H|T]) :-
     '$load_ctx_option'(H),
     !,
-    '$load_ctx_options'(T0, T).
-'$load_ctx_options'([_|T0], T) :-
-    '$load_ctx_options'(T0, T).
+    '$load_ctx_options2'(T0, T).
+'$load_ctx_options2'([_|T0], T) :-
+    '$load_ctx_options2'(T0, T).
 
 '$load_ctx_option'(derived_from(_)).
 '$load_ctx_option'(dialect(_)).
