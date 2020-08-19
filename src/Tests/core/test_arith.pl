@@ -458,5 +458,10 @@ test(cmp, fail) :-
 
 test(string) :-
 	0'a =:= "a".
+test(float_rval) :-
+	6.5 is max(6.5,3).
+:- set_prolog_flag(optimise, true).
+test(float_rval) :-
+	6.5 is max(6.5,3).
 
 :- end_tests(arith_misc).
