@@ -49,7 +49,8 @@
             predicate_label/2,                  % +PI, -Label
             predicate_sort_key/2,               % +PI, -Key
 
-            is_control_goal/1                   % @Term
+            is_control_goal/1,                  % @Term
+            is_predicate_indicator/1            % @Term
           ]).
 :- autoload(library(error),[must_be/2, instantiation_error/1]).
 :- autoload(library(lists),[append/3]).
@@ -140,6 +141,25 @@ mkdisj(A,B,Conj) :-
 
 is_true(Goal) :- Goal == true.
 is_false(Goal) :- (Goal == false -> true ; Goal == fail).
+
+%!  is_predicate_indicator(@Term) is semidet.
+%
+%   True when Term is a predicate indicator
+
+is_predicate_indicator(Var) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+is_predicate_indicator(PI) :-
+    strip_module(PI, M, PI1),
+    atom(M),
+    (   PI1 = (Name/Arity)
+    ->  true
+    ;   PI1 = (Name//Arity)
+    ),
+    atom(Name),
+    integer(Arity),
+    Arity >= 0.
 
 %!  pi_head(?PredicateIndicator, ?Goal) is det.
 %
