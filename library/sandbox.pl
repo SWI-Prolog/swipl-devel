@@ -462,6 +462,7 @@ verify_safe_declaration(Goal) :-
     ).
 
 ok_meta(system:assert(_)).
+ok_meta(system:load_files(_,_)).
 ok_meta(system:use_module(_,_)).
 ok_meta(system:use_module(_)).
 
@@ -753,6 +754,9 @@ safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_)) :-
 
 safe_primitive(system:use_module(Spec, _Import)) :-
     safe_primitive(system:use_module(Spec)).
+safe_primitive(system:load_files(Spec, Options)) :-
+    safe_primitive(system:use_module(Spec)),
+    maplist(safe_load_file_option, Options).
 safe_primitive(system:use_module(Spec)) :-
     ground(Spec),
     (   atom(Spec)
@@ -783,6 +787,12 @@ segments_to_path(X) -->
     [X].
 
 save_extension(pl).
+
+safe_load_file_option(if(changed)).
+safe_load_file_option(if(not_loaded)).
+safe_load_file_option(must_be_module(_)).
+safe_load_file_option(optimise(_)).
+safe_load_file_option(silent(_)).
 
 %!  safe_assert(+Term) is semidet.
 %
@@ -1183,6 +1193,7 @@ safe_source_directive(initialization(_,_)). % Checked at runtime
 
 directive_loads_file(use_module(library(X)), X).
 directive_loads_file(use_module(library(X), _Imports), X).
+directive_loads_file(load_files(library(X), _Options), X).
 directive_loads_file(ensure_loaded(library(X)), X).
 directive_loads_file(include(X), X).
 
