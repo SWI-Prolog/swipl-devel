@@ -186,7 +186,8 @@ system:goal_expansion(M:Goal, SicstusM:Goal) :-
 
 % SICStus use_module/1 does not require the target to be a module.
 
-system:goal_expansion(use_module(File), load_files(File, [if(changed)])).
+system:goal_expansion(use_module(File), load_files(File, [if(changed)])) :-
+	prolog_load_context(dialect, sicstus).
 
 %%	use_module(+Module, -File, +Imports) is det.
 %%	use_module(-Module, +File, +Imports) is det.
