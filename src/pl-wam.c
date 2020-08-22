@@ -285,6 +285,8 @@ updateAlerted(PL_local_data_t *ld)
 
   if ( (mask&ALERT_DEBUG) || ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
     ld->slow_unify = TRUE;		/* see VMI B_UNIFY_VAR */
+  else
+    ld->slow_unify = FALSE;
 }
 
 
