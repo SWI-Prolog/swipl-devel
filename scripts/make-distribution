@@ -110,7 +110,7 @@ build_source()
 build_PPAs()
 { git branch -D ppa || true
   git checkout -b ppa
-  for distro in xenial bionic eoan focal; do
+  for distro in xenial bionic focal; do
     ./scripts/make-ppa --distro=$distro --push
   done
   git checkout master
