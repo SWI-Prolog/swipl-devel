@@ -229,10 +229,10 @@ retry:
   if ( isTerm(*from) )
   { Functor fd = valueTerm(*from);
     size_t arity = arityFunctor(fd->definition);
-    Word to = allocGlobalNoShift(arity+1);
 
-    if ( to )
-    { word w  = consPtr(to, TAG_COMPOUND|STG_GLOBAL);
+    if ( hasGlobalSpace(arity+1) )		/* ensure space for unify */
+    { Word to = allocGlobalNoShift(arity+1);
+      word w  = consPtr(to, TAG_COMPOUND|STG_GLOBAL);
       Word f  = fd->arguments;
 
       *to++ = PL_new_functor(closure, arity);
