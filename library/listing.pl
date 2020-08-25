@@ -784,6 +784,14 @@ portray_body(Term, Indent, _, Pri, Out, Options) :-
     portray_body(Term, ArgIndent, noindent, 1200, Out, Options),
     nlindent(Out, Indent),
     write(Out, ')').
+portray_body(((AB),C), Indent, _, _Pri, Out, Options) :-
+    nonvar(AB),
+    AB = (A,B),
+    !,
+    infix_op(',', LeftPri, RightPri),
+    portray_body(A, Indent, noindent, LeftPri, Out, Options),
+    write(Out, ','),
+    portray_body((B,C), Indent, indent, RightPri, Out, Options).
 portray_body((A,B), Indent, _, _Pri, Out, Options) :-
     !,
     infix_op(',', LeftPri, RightPri),
