@@ -472,6 +472,7 @@ free_expand_info(GlobInfo info)
 }
 
 
+#ifndef __WINDOWS__
 static void
 mb_add_path(const char *path, GlobInfo info ARG_LD)
 { int idx = (int)entriesBuffer(&info->strings, char);
@@ -494,6 +495,7 @@ mb_add_path(const char *path, GlobInfo info ARG_LD)
   PL_free_text(&txt);
   PL_STRINGS_RELEASE();
 }
+#endif
 
 static void
 utf8_add_path(const char *path, GlobInfo info)
@@ -698,7 +700,11 @@ expand(const char *pattern, GlobInfo info)
 	    if ( plen+strlen(e->d_name)+1 < sizeof(newp) )
 	    { strcpy(newp, path);
 	      strcpy(&newp[plen], e->d_name);
+#ifdef __WINDOWS__			/* readdir() emulation emits UTF-8 */
+	      utf8_add_path(newp, info);
+#else
 	      mb_add_path(newp, info PASS_LD);
+#endif
 	    }
 	  }
 	}
