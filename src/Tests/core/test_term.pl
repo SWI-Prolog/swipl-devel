@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -62,6 +62,17 @@ test(single_s, End == 0) :-
 test(single_offset, End == 1001) :-
 	numbervars(f(A,_B,A), 1000, End, [singletons(true)]),
 	assertion(arg(1, A, 1000)).
+test(single_lr, End == 3) :-		% consistent LR numbering
+	numbervars(t(A,B,A,C,C,B), 0, End, [singletons(true)]),
+	assertion(arg(1, A, 0)),
+	assertion(arg(1, B, 1)),
+	assertion(arg(1, C, 2)).
+test(single_lr, End == 3) :-		% consistent LR numbering
+	numbervars(t(A,B,S,A,C,C,B), 0, End, [singletons(true)]),
+	assertion(arg(1, S, '_')),
+	assertion(arg(1, A, 0)),
+	assertion(arg(1, B, 1)),
+	assertion(arg(1, C, 2)).
 test(neg, End == -6) :-
 	numbervars(f(X), -7, End),
 	assertion(X == '$VAR'(-7)).

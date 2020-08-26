@@ -2783,14 +2783,24 @@ do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
 	{ if ( options->singletons )
 	  { Word p = &f->arguments[0];
 
-	    if ( *p == ATOM_anonvar )
-	    { intptr_t v = n+options->offset;
-	      *p = consInt(v);
-	      if ( valInt(*p) != v )
-	      { n = REPRESENTATION_ERROR;
-		goto out;
+	    if ( options->singletons == 1 )
+	    { if ( *p == ATOM_anonvar )
+	      { intptr_t v = n+options->offset;
+		word w = consInt(v);
+		if ( valInt(w) != v )
+		{ n = REPRESENTATION_ERROR;
+		  goto out;
+		}
+		*p = ATOM_var;
+		n++;
 	      }
-	      n++;
+	    } else
+	    { if ( *p == ATOM_var )
+	      { intptr_t v = n+options->offset;
+
+		*p = consInt(v);
+		n++;
+	      }
 	    }
 	  }
 	} else
@@ -2842,7 +2852,6 @@ numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
   }
 
   options->offset = n;
-  n = 0;
 
   for(;;)
   { mark m;
@@ -2850,10 +2859,19 @@ numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
 
     Mark(m);
     initvisited(PASS_LD1);
-    rc = do_number_vars(valTermRef(t), options, n, &m PASS_LD);
+    rc = do_number_vars(valTermRef(t), options, 0, &m PASS_LD);
     unvisit(PASS_LD1);
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
+      if ( options->singletons )
+      { intptr_t rc2;
+
+	options->singletons = 2;
+	initvisited(PASS_LD1);
+	rc2 = do_number_vars(valTermRef(t), options, 0, &m PASS_LD);
+	unvisit(PASS_LD1);
+	assert(rc == rc2);
+      }
       return rc + options->offset;
     } else
     { switch( rc )
