@@ -115,22 +115,27 @@ freeze(Var, Goal) :-
 freeze(_, Goal) :-
     Goal.
 
-%!  frozen(@Var, -Goals)
+%!  frozen(@Term, -Goal)
 %
 %   Unify Goals with the goals frozen on Var or true if no
 %   goals are grozen on Var.
 
-frozen(Var, Goals) :-
-    get_attr(Var, freeze, Goals0),
-    !,
-    make_conjunction(Goals0, Goals).
-frozen(_, true).
+frozen(Term, Goal) :-
+    term_attvars(Term, AttVars),
+    (   AttVars == []
+    ->  Goal = true
+    ;   copy_term(AttVars, Plain, GoalList),
+        make_conjunction(GoalList, Goal),
+        AttVars = Plain
+    ).
 
-make_conjunction('$and'(A0, B0), (A, B)) :-
-    !,
-    make_conjunction(A0, A),
-    make_conjunction(B0, B).
-make_conjunction(G, G).
+make_conjunction([], true).
+make_conjunction([H|T], Goal) :-
+    (   T == []
+    ->  Goal = H
+    ;   Goal = (H,G),
+        make_conjunction(T, G)
+    ).
 
 
                  /*******************************

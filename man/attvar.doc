@@ -461,17 +461,21 @@ with the module \const{dif}.  It is an autoloaded predicate that is
 defined in the library \pllib{dif}.
 
     \predicate{freeze}{2}{+Var, :Goal}
-Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
+Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e., is
 not a variable or attributed variable).	 If \arg{Var} is bound on entry
 freeze/2 is equivalent to call/1.  The freeze/2 predicate is realised
 using an attributed variable associated with the module \const{freeze}.
-Use \exam{frozen(Var, Goal)} to find out whether
-and which goals are delayed on \arg{Var}.
+See also frozen/2.
 
-    \predicate{frozen}{2}{@{Var}, -Goal}
+    \predicate[det]{frozen}{2}{@{Term}, -Goal}
 Unify \arg{Goal} with the goal or conjunction of goals delayed on
-\arg{Var}.  If no goals are frozen on \arg{Var}, \arg{Goal} is unified
-to \const{true}.
+some attributed variable in \arg{Term}. If \arg{Term} is free of
+attributed variables, \arg{Goal} is unified to \const{true}. Note that
+frozen/2 reports all delayed goals, not only those delayed due to
+freeze/2. The goals are extracted using copy_term/3.\footnote{Versions
+prior to 8.3.7 only report goals delayed using freeze/2 on a plain
+variable. The new behaviour is compatible with SICStus.}  See also
+term_attvars/2 and call_residue_vars/2.
 
     \predicate{when}{2}{@{Condition}, :Goal}
 Execute \arg{Goal} when \arg{Condition} becomes true.  \arg{Condition}
