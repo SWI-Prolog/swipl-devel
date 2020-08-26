@@ -162,6 +162,9 @@ unify_term(X1, X2) :-
 unify_term(X, Y) :-
     float(X), float(Y),
     !.
+unify_term(X, '$BLOB'(_)) :-
+    blob(X, _),
+    \+ atom(X).
 unify_term(X, Y) :-
     string(X),
     is_list(Y),

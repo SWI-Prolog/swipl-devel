@@ -1071,7 +1071,18 @@ pprint(Out, Term, Pri, Options) :-
     pprint_wrapped(Out, Term, Pri, Options).
 pprint(Out, Term, Pri, Options) :-
     listing_write_options(Pri, WrtOptions, Options),
-    write_term(Out, Term, WrtOptions).
+    write_term(Out, Term,
+               [ blobs(portray),
+                 portray_goal(portray_blob)
+               | WrtOptions
+               ]).
+
+portray_blob(Blob, _Options) :-
+    blob(Blob, _),
+    \+ atom(Blob),
+    !,
+    format(string(S), '~q', [Blob]),
+    format('~q', ['$BLOB'(S)]).
 
 nowrap_term('$VAR'(_)) :- !.
 nowrap_term(_{}) :- !.                  % empty dict
