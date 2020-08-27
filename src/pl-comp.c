@@ -1125,6 +1125,7 @@ forwards bool	compileArithArgument(Word, compileInfo * ARG_LD);
 forwards int	compileBodyUnify(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyEQ(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNEQ(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyArg3(Word arg, compileInfo *ci ARG_LD);
 #endif
 forwards int	compileBodyVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
@@ -2657,6 +2658,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
       } else if ( functor == FUNCTOR_dshift1 )
       { if ( (rc=compileBodyShift(arg, ci PASS_LD)) != FALSE )
 	  return rc;
+      } else if ( functor == FUNCTOR_arg3 )
+      { if ( (rc=compileBodyArg3(arg, ci PASS_LD)) != FALSE )
+	  return rc;
       }
     }
 #endif
@@ -3497,6 +3501,55 @@ compileBodyNEQ(Word arg, compileInfo *ci ARG_LD)
 
   return FALSE;
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Compile
+
+  - arg(Int, Var, FirstVar)
+  - arg(Var, Var, FirstVar)
+
+TBD: we can also handle the error cases here (illegal first or
+second argument)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+compileBodyArg3(Word arg, compileInfo *ci ARG_LD)
+{ Word av;
+  Word a3;
+  int v3;
+
+  av = argTermP(*arg, 0);
+
+  deRef2(&av[2], a3);
+  if ( (v3=isIndexedVarTerm(*a3 PASS_LD)) >= 0 &&
+       isFirstVar(ci->used_var, v3) )
+  { Word a2;
+    int v2;
+
+    deRef2(&av[1], a2);
+    if ( (v2=isIndexedVarTerm(*a2 PASS_LD)) >= 0 &&
+	 !isFirstVar(ci->used_var, v2) )
+    { Word a1;
+      int v1;
+
+      deRef2(&av[0], a1);
+      if ( isTaggedInt(*a1) )
+      { isFirstVarSet(ci->used_var, v3);
+	Output_3(ci, B_ARG_CF, *a1, VAROFFSET(v2), VAROFFSET(v3));
+	return TRUE;
+      }
+      if ( (v1=isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
+	   !isFirstVar(ci->used_var, v1) )
+      { isFirstVarSet(ci->used_var, v3);
+	Output_3(ci, B_ARG_VF, VAROFFSET(v1), VAROFFSET(v2), VAROFFSET(v3));
+	return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
+
 
 #endif /*O_COMPILE_IS*/
 
@@ -5187,6 +5240,17 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    *ARGP++ = makeVarRef((int)*PC++);
 			  b_neq_vv_cont:
 			    BUILD_TERM(FUNCTOR_not_strict_equal2);
+			    pushed++;
+			    continue;
+      case B_ARG_VF:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    goto arg_vf_cont;
+      case B_ARG_CF:
+			    *ARGP++ = (word)*PC++;
+			    arg_vf_cont:
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    BUILD_TERM(FUNCTOR_arg3);
 			    pushed++;
 			    continue;
       case H_VOID:

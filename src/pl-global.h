@@ -310,6 +310,7 @@ struct PL_global_data
     Procedure	is2;			/* is/2 */
     Procedure	strict_equal2;		/* ==/2 */
     Procedure	not_strict_equal2;	/* \==/2 */
+    Procedure   arg3;			/* arg/3 */
     Procedure	exception_hook4;
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */

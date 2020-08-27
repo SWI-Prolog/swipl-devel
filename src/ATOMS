@@ -41,6 +41,7 @@ A anonvar		"_"
 A append		"append"
 A ar_equals		"=:="
 A ar_not_equal		"=\\="
+A arg			"arg"
 A argument		"argument"
 A argv			"argv"
 A arity			"arity"
@@ -932,6 +933,7 @@ F and			2
 F ar_equals		2
 F ar_not_equal		2
 F targp			3
+F arg			3
 F asin			1
 F asinh			1
 F assert		1

@@ -1137,7 +1137,7 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
     globaliseVar(v);
 
   if ( LD->slow_unify )
-  { globaliseVar(f);
+  { globaliseFirstVar(f);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = *f;
     *ARGP++ = *v;
@@ -1386,6 +1386,72 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   FASTCOND_FAILED;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+arg/3 special cases
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+BEGIN_SHAREDVARS
+Word aidx;				/* arg(aidx,aterm,aarg) */
+Word aterm;
+Word aarg;
+intptr_t ai;
+
+VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_DATA,CA1_VAR,CA1_FVAR))
+{ ENSURE_GLOBAL_SPACE(2, (void)0);
+
+  aidx  = (Word)PC;
+  ai    = valInt((word)*PC++);
+  aterm = varFrameP(FR, (int)*PC++);
+  aarg  = varFrameP(FR, (int)*PC++);
+
+arg3_fast:
+  if ( isVar(*aterm) )
+  { globaliseVar(aterm);
+  } else
+  { deRef(aterm);
+    if ( isTerm(*aterm) && likely(!debugstatus.debugging) )
+    { size_t arity = arityTerm(*aterm);
+      if ( ai > 0 && ai <= arity )
+      { *aarg = linkValI(argTermP(*aterm, ai-1));
+	NEXT_INSTRUCTION;
+      }
+    }
+  }
+
+  globaliseFirstVar(aarg);
+
+arg3_slow:
+  ARGP = argFrameP(lTop, 0);
+  *ARGP++ = *aidx;
+  *ARGP++ = *aterm;
+  *ARGP++ = *aarg;
+
+  NFR = lTop;
+  DEF = GD->procedures.arg3->definition;
+  setNextFrameFlags(NFR, FR);
+  goto normal_call;
+}
+
+VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
+{ ENSURE_GLOBAL_SPACE(3, (void)0);
+
+  aidx  = varFrameP(FR, (int)*PC++);
+  aterm = varFrameP(FR, (int)*PC++);
+  aarg  = varFrameP(FR, (int)*PC++);
+
+  if ( isVar(*aidx) )  globaliseVar(aidx);
+  if ( isVar(*aterm) ) globaliseVar(aterm);
+
+  deRef(aidx);
+  if ( isTaggedInt(*aidx) )
+  { ai = valInt(*aidx);
+    goto arg3_fast;
+  }
+
+  goto arg3_slow;
+}
+END_SHAREDVARS
 
 #endif /*O_COMPILE_IS*/
 
