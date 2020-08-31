@@ -199,6 +199,32 @@ VMI(D_BREAK, 0, 0, ())
   break_action a;
   int pop;				/* arithmetic stack to pop */
 
+  if (LD->fast_condition != NULL)
+  { /* Upgrade fast choicepoint to real one in case the D_BREAK involves
+       replacing the current instruction with something that fails but
+       is not itself a fast condition
+    */
+    Choice ch;
+
+    if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+        THROW_EXCEPTION;
+      }
+    }
+
+    ch = newChoice(CHP_JUMP, FR PASS_LD);
+    ch->value.PC = LD->fast_condition;
+    ARGP = argFrameP(lTop, 0);
+    LD->fast_condition = NULL;
+  }
+
+
   switch(c)
   { case I_ENTER:
       ARGP = argFrameP(lTop, 0);	/* enter body mode */
@@ -2464,7 +2490,12 @@ VMI(C_FASTCUT, 0, 1, (CA1_CHP))
   if ( unlikely(debugstatus.debugging) )
     VMI_GOTO(C_CUT);
 #endif
-
+  if (LD->fast_condition == NULL)
+  { /* See D_BREAK. We upgrade fast choicepoints to real one if there is an
+       intervening break opcode before the choicepoint is cut
+    */
+    VMI_GOTO(C_CUT);
+  }
   PC++;
   LD->fast_condition = NULL;
   NEXT_INSTRUCTION;
