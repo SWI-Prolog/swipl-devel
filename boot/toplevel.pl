@@ -596,15 +596,16 @@ run_init_goal(Goal, Ctx) :-
 
 init_debug_flags :-
     once(print_predicate(_, [print], PrintOptions)),
-    create_prolog_flag(answer_write_options, PrintOptions, []),
-    create_prolog_flag(prompt_alternatives_on, determinism, []),
-    create_prolog_flag(toplevel_extra_white_line, true, []),
-    create_prolog_flag(toplevel_print_factorized, false, []),
+    Keep = [keep(true)],
+    create_prolog_flag(answer_write_options, PrintOptions, Keep),
+    create_prolog_flag(prompt_alternatives_on, determinism, Keep),
+    create_prolog_flag(toplevel_extra_white_line, true, Keep),
+    create_prolog_flag(toplevel_print_factorized, false, Keep),
     create_prolog_flag(print_write_options,
                        [ portray(true), quoted(true), numbervars(true) ],
-                       []),
-    create_prolog_flag(toplevel_residue_vars, false, []),
-    create_prolog_flag(toplevel_list_wfs_residual_program, true, []),
+                       Keep),
+    create_prolog_flag(toplevel_residue_vars, false, Keep),
+    create_prolog_flag(toplevel_list_wfs_residual_program, true, Keep),
     '$set_debugger_write_options'(print).
 
 %!  setup_backtrace
