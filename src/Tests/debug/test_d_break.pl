@@ -105,6 +105,8 @@ t_break(i_departatm(_,_,_)) :- @(test:c1(foo),foo).
 t_break(i_callatm(_,_,_)) :- @(test:c1(foo),foo), c1.
 t_break(i_departatmv(_,_,_)) :- Ctx = foo, @(test:c1(Ctx),Ctx).
 t_break(i_callatmv(_,_,_))   :- Ctx = foo, @(test:c1(Ctx),Ctx), c1.
+t_break(c_fastcut) :- A = a, (A == a -> true ; true).
+t_break(c_fastcond) :- A = a, (A == b -> true ; true).
 :- retract(old_optimise(Old)),
    set_prolog_flag(optimise, Old).
 

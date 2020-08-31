@@ -199,6 +199,32 @@ VMI(D_BREAK, 0, 0, ())
   break_action a;
   int pop;				/* arithmetic stack to pop */
 
+  if (LD->fast_condition != NULL)
+  { /* Upgrade fast choicepoint to real one in case the D_BREAK involves
+       replacing the current instruction with something that fails but
+       is not itself a fast condition
+    */
+    Choice ch;
+
+    if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
+      LOAD_REGISTERS(qid);
+      if ( rc != TRUE )
+      { raiseStackOverflow(rc);
+        THROW_EXCEPTION;
+      }
+    }
+
+    ch = newChoice(CHP_JUMP, FR PASS_LD);
+    ch->value.PC = LD->fast_condition;
+    ARGP = argFrameP(lTop, 0);
+    LD->fast_condition = NULL;
+  }
+
+
   switch(c)
   { case I_ENTER:
       ARGP = argFrameP(lTop, 0);	/* enter body mode */
@@ -2458,12 +2484,15 @@ VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
   NEXT_INSTRUCTION;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Commit the fast cut. This is normally   a  no-op, unless C_FASTCOND or a
+D_BREAK  turned  this  into  a  normal    choice  point.  In  that  case
+LD->fast_condition is NULL.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 VMI(C_FASTCUT, 0, 1, (CA1_CHP))
-{
-#ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+{ if ( LD->fast_condition == NULL )
     VMI_GOTO(C_CUT);
-#endif
 
   PC++;
   LD->fast_condition = NULL;
