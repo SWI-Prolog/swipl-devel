@@ -6146,13 +6146,13 @@ should type to show the saved events. \arg{Help} is the command to get
 an overview of the capabilities. \arg{Special} is a list of commands
 that are not saved in the history. \arg{Prompt} is the first prompt
 given. Continuation prompts for more lines are determined by prompt/2. A
-\const{\%w} in the prompt is substituted by the event number. See
+\verb$~!$ in the prompt is substituted by the event number. See
 \secref{history} for available substitutions.
 
 SWI-Prolog calls read_history/6 as follows:
 
 \begin{code}
-read_history(h, '!h', [trace], '%w ?- ', Goal, Bindings)
+read_history(h, '!h', [trace], '~! ?- ', Goal, Bindings)
 \end{code}
 
     \predicate{prompt}{2}{-Old, +New}
