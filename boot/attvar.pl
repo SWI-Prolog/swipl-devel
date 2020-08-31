@@ -125,6 +125,7 @@ frozen(Term, Goal) :-
     (   AttVars == []
     ->  Goal = true
     ;   copy_term(AttVars, Plain, GoalList),
+        sort(GoalList, GoalList),
         make_conjunction(GoalList, Goal),
         AttVars = Plain
     ).
