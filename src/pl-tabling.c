@@ -1316,22 +1316,47 @@ push_delay_list(Word p ARG_LD)
  * term atrie+answer, else it is a term atrie+wrapper.
  */
 
+static word
+delay_to_data(trie_node *answer, Word wrapper ARG_LD)
+{ if ( unlikely(answer == NULL) )
+  { return consInt(0);
+  } else if ( is_ground_trie_node(answer) )
+  {
+#if SIZEOF_VOIDP == 8
+    intptr_t rc = consInt(pointerToInt(answer));
+    DEBUG(0, assert(intToPointer(valInt(rc)) == answer));
+    return rc;
+#else
+    word rc;
+    intptr_t i = pointerToInt(answer);
+
+    rc = consInt(i);
+    if ( i == valInt(rc) )
+    { return rc;
+    } else
+    { int rcp = put_int64(&rc, i, 0 PASS_LD);
+      return rcp == TRUE ? rc : 0;
+    }
+#endif
+  } else
+  { return linkValI(wrapper);
+  }
+}
+
+
 void
 tbl_push_delay(atom_t atrie, Word wrapper, trie_node *answer ARG_LD)
 { Word p;
+  word p5 = delay_to_data(answer, wrapper PASS_LD);
+
+  assert(p5);
 
   if ( (p = allocGlobalNoShift(6)) )
   { p[0] = FUNCTOR_dot2;
     p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
     p[3] = FUNCTOR_plus2;
     p[4] = atrie;
-    if ( unlikely(answer == NULL) )
-    { p[5] = consInt(0);
-    } else if ( is_ground_trie_node(answer) )
-    { p[5] = consInt(pointerToInt(answer));
-    } else
-    { p[5] = linkValI(wrapper);
-    }
+    p[5] = p5;
 
     push_delay_list(p PASS_LD);
   } else
@@ -3895,7 +3920,7 @@ unify_arg_term(term_t a, Word v ARG_LD)
 static int
 unify_dependency(term_t a0, term_t dependency,
 		 worklist *wl, trie_node *answer ARG_LD)
-{ if ( likely(ensureStackSpace__LD(6, 5, ALLOW_GC PASS_LD)) )
+{ if ( likely(ensureStackSpace__LD(10, 5, ALLOW_GC PASS_LD)) )
   { term_t srcskel = PL_new_term_ref();
     Word dp = valTermRef(dependency);
     Functor f;
@@ -3925,18 +3950,15 @@ unify_dependency(term_t a0, term_t dependency,
 
       push_delay_list(p PASS_LD);
     } else if ( unlikely(answer_is_conditional(answer)) )
-    { Word p = allocGlobalNoShift(6);
+    { word p5 = delay_to_data(answer, valTermRef(a0+0) PASS_LD);
+      Word p = allocGlobalNoShift(6);
       assert(p);
 
       p[0] = FUNCTOR_dot2;
       p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
       p[3] = FUNCTOR_plus2;
       p[4] = wl->table->symbol;
-      if ( is_ground_trie_node(answer) )
-      { p[5] = consInt(pointerToInt(answer));
-      } else
-      { p[5] = linkValI(valTermRef(a0+0));
-      }
+      p[5] = p5;
 
       push_delay_list(p PASS_LD);
     }
@@ -5186,7 +5208,7 @@ answer_update_delay_list(term_t wrapper, trie_node *answer, void *vctx ARG_LD)
   if ( answer_is_conditional(answer) )
   { Word p;
 
-    if ( !ensureStackSpace(6, 2) )
+    if ( !ensureStackSpace(10, 2) )
       return FALSE;
     p = valTermRef(ctx->atrie);
     deRef(p);
