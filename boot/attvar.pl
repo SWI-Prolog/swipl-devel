@@ -124,10 +124,10 @@ frozen(Term, Goal) :-
     term_attvars(Term, AttVars),
     (   AttVars == []
     ->  Goal = true
-    ;   copy_term(AttVars, Plain, GoalList0),
+    ;   sort(AttVars, AttVars2),
+        phrase(attvars_residuals(AttVars2), GoalList0),
         sort(GoalList0, GoalList),
-        make_conjunction(GoalList, Goal),
-        AttVars = Plain
+        make_conjunction(GoalList, Goal)
     ).
 
 make_conjunction([], true).
