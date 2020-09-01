@@ -1338,17 +1338,6 @@ heap_gc_warn_proc(char *msg, GC_word arg)
 }
 #endif
 
-static void
-initHBase(void)
-{ void *p = GC_MALLOC(sizeof(void*));
-  uintptr_t base = (uintptr_t)p;
-
-  GC_FREE(p);				/* Keep leak-detection happy */
-  base &= ~0xfffff;			/* round down 1m */
-  GD->heap_base = base;			/* for pointer <-> int conversion */
-}
-
-
 void
 initAlloc(void)
 { static int done = FALSE;
@@ -1389,8 +1378,6 @@ properly on Linux. Don't bother with it.
 #if O_MALLOC_DEBUG
   malloc_debug(O_MALLOC_DEBUG);
 #endif
-
-  initHBase();
 }
 
 		 /*******************************

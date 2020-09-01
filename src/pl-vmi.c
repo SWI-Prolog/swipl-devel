@@ -5449,7 +5449,7 @@ VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
 { trie_node *answer = (trie_node*)*PC++;
   atom_t atrie;
 
-  ENSURE_STACK_SPACE(12, 12, (void)0);
+  ENSURE_STACK_SPACE(16, 12, (void)0);
   UnwindTrieArgP();
 
   if ( answer )

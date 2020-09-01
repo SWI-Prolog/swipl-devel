@@ -603,26 +603,34 @@ normally 0). longToPointer() does the inverse operation.
 
 static inline uintptr_t
 pointerToInt(void *ptr)
-{ uintptr_t p   = (uintptr_t) ptr;
+{
+#if SIZEOF_VOIDP == 8
+  return (uintptr_t) ptr;
+#else
+  uintptr_t p   = (uintptr_t) ptr;
   uintptr_t low = p & 0x3L;
 
-  p -= GD->heap_base;
   p >>= 2;
   p |= low<<(sizeof(uintptr_t)*8-2);
 
   return p;
+#endif
 }
 
 
 static inline void *
 intToPointer(uintptr_t p)
-{ uintptr_t low = p >> (sizeof(uintptr_t)*8-2);
+{
+#if SIZEOF_VOIDP == 8
+  return (void*) p;
+#else
+  uintptr_t low = p >> (sizeof(uintptr_t)*8-2);
 
   p <<= 2;
   p |= low;
-  p += GD->heap_base;
 
   return (void *) p;
+#endif
 }
 
 #endif /*PL_INLINE_H_INCLUDED*/

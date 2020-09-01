@@ -89,8 +89,7 @@ typedef struct
 		 *******************************/
 
 struct PL_global_data
-{ uintptr_t	heap_base;		/* heap-base rounded downwards */
-  pl_defaults_t	defaults;		/* system default settings */
+{ pl_defaults_t	defaults;		/* system default settings */
   pl_options_t	options;		/* command-line options */
   State		stateList;		/* list of loaded states */
   int		initialised;		/* Heap is initialised */
