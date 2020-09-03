@@ -35,7 +35,6 @@
 
 :- module(lists,
         [ member/2,                     % ?X, ?List
-          memberchk/2,                  % ?X, ?List
           append/2,                     % +ListOfLists, -List
           append/3,                     % ?A, ?B, ?AB
           prefix/2,                     % ?Part, ?Whole
