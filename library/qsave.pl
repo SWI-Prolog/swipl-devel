@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2019, University of Amsterdam
+    Copyright (c)  1995-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
     All rights reserved.
@@ -139,7 +139,7 @@ qsave_program(FileBase, Options0) :-
         ( prepare_state(Options),
           create_prolog_flag(saved_program, true, []),
           create_prolog_flag(saved_program_class, SaveClass, []),
-          delete_if_exists(File),    % truncate will crash Prolog's
+          delete_if_exists(File),    % truncate will crash a Prolog
                                      % running on this state
           setup_call_catcher_cleanup(
               open(File, write, StateOut, [type(binary)]),
@@ -523,7 +523,7 @@ save_program(RC, SaveClass, Options) :-
           save_flags,
           save_prompt,
           save_imports,
-          save_prolog_flags,
+          save_prolog_flags(Options),
           save_operators(Options),
           save_format_predicates
         ),
@@ -627,7 +627,10 @@ run_initialize(Goal, Ctx) :-
 save_autoload(Options) :-
     option(autoload(true),  Options, true),
     !,
-    autoload_all(Options).
+    setup_call_cleanup(
+        current_prolog_flag(autoload, Old),
+        autoload_all(Options),
+        set_prolog_flag(autoload, Old)).
 save_autoload(_).
 
 
@@ -831,14 +834,15 @@ restore_import(To, From, PI) :-
                  *         PROLOG FLAGS         *
                  *******************************/
 
-save_prolog_flags :-
+save_prolog_flags(Options) :-
     feedback('~nPROLOG FLAGS~n~n', []),
-    '$current_prolog_flag'(Flag, Value, _Scope, write, Type),
+    '$current_prolog_flag'(Flag, Value0, _Scope, write, Type),
     \+ no_save_flag(Flag),
+    map_flag(Flag, Value0, Value, Options),
     feedback('~t~8|~w: ~w (type ~q)~n', [Flag, Value, Type]),
     '$add_directive_wic'(qsave:restore_prolog_flag(Flag, Value, Type)),
     fail.
-save_prolog_flags.
+save_prolog_flags(_).
 
 no_save_flag(argv).
 no_save_flag(os_argv).
@@ -851,6 +855,12 @@ no_save_flag(tmp_dir).
 no_save_flag(file_name_case_handling).
 no_save_flag(hwnd).                     % should be read-only, but comes
                                         % from user-code
+map_flag(autoload, true, false, Options) :-
+    option(class(runtime), Options, runtime),
+    option(autoload(true), Options, true),
+    !.
+map_flag(_, Value, Value, _).
+
 
 %!  restore_prolog_flag(+Name, +Value, +Type)
 %

@@ -131,7 +131,10 @@ disconnect the code loaded into the state from the original source.  If
 reading resources from their source (if present). See also
 open_resource/3.
 	\termitem{autoload}{+Boolean}
-If \const{true} (default), run autoload/0 first.
+If \const{true} (default), run autoload/0 first.  If the class is
+\const{runtime} and \const{autoload} is \const{true}, the state is
+supposed to be self contained and autoloading is disabled in the
+restored state.
 	\termitem{map}{+File}
 Dump a human-readable trace of what has been saved in \arg{File}.
 	\termitem{op}{+Action}
