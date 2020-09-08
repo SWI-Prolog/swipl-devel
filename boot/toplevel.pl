@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -857,9 +857,14 @@ read_query(Prompt, Goal, Bindings) :-
     current_prolog_flag(history, N),
     integer(N), N > 0,
     !,
-    read_history(h, '!h',
-                 [trace, end_of_file],
-                 Prompt, Goal, Bindings).
+    read_term_with_history(
+        Goal,
+        [ show(h),
+          help('!h'),
+          no_save([trace, end_of_file]),
+          prompt(Prompt),
+          variable_names(Bindings)
+        ]).
 read_query(Prompt, Goal, Bindings) :-
     remove_history_prompt(Prompt, Prompt1),
     repeat,                                 % over syntax errors

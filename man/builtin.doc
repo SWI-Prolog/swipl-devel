@@ -6337,21 +6337,47 @@ either an atom or a string object (see \secref{strings}).  It is not
 required for \arg{Atom} to end with a full-stop.  This predicate
 supersedes atom_to_term/3.
 
-    \predicate{read_history}{6}{+Show, +Help, +Special, +Prompt, -Term, -Bindings}
-Similar to read_term/2 using the option \const{variable_names}, but
-allows for history substitutions. read_history/6 is used by the top level
-to read the user's actions. \arg{Show} is the command the user
-should type to show the saved events. \arg{Help} is the command to get
-an overview of the capabilities. \arg{Special} is a list of commands
-that are not saved in the history. \arg{Prompt} is the first prompt
-given. Continuation prompts for more lines are determined by prompt/2. A
-\verb$~!$ in the prompt is substituted by the event number. See
-\secref{history} for available substitutions.
+    \predicate{read_term_with_history}{2}{-Term, +Options}
+Read a term while providing history substitutions.
+read_term_with_history/2 is used by the top level to read the user's
+actions. In addition to the options recognised by read_term/2, the
+following options are recognised:
 
-SWI-Prolog calls read_history/6 as follows:
+    \begin{description}
+    \termitem{prompt}{+Prompt}
+Define the promot to use.  The default is \verb$~! ?-$.  A sequence
+\verb$~!$ is replaced by the current history event number.
+    \termitem{show}{+Command}
+Using \arg{Command} lists the saved hisgtory events.  Default is
+\const{!history}.
+    \termitem{help}{+Command}
+Using \arg{Command} shows help on the history system.  Default is
+\const{!help}.
+    \termitem{no_save}{+Commands}
+Do not save the command into the history if it appears in the list
+\arg{Commands}.
+    \termitem{module}{+Module}
+Defines the module from which to extract module-specific syntax
+such as operators and handling of the various quotes.  Default
+is the \jargon{typein} module which is set using module/1 and
+is initially set to \const{user}.
+    \termitem{input}{+Stream}
+Stream from which to read \arg{Term}.  Default is \const{user_input}.
+    \end{description}
+
+Most applications will use the read_term/2 option \const{variable_names}
+to get access to the names of the variables in \arg{Term}. SWI-Prolog
+calls read_history/6 as follows:
 
 \begin{code}
-read_history(h, '!h', [trace], '~! ?- ', Goal, Bindings)
+    read_term_with_history(
+        Goal,
+        [ show(h),
+          help('!h'),
+          no_save([trace, end_of_file]),
+          prompt('~! ?-'),
+          variable_names(Bindings)
+        ]).
 \end{code}
 
     \predicate{prompt}{2}{-Old, +New}

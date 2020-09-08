@@ -88,7 +88,9 @@
             set_base_module/1,          % :Base
             eval_license/0,
             trie_insert_new/3,		% +Trie, +Term, -Node
-            thread_at_exit/1            % :Goal
+            thread_at_exit/1,           % :Goal
+            read_history/6              % +Show, +Help, +Special, +Prompt,
+                                        % -Term, -Bindings
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(lists),[sum_list/2]).
@@ -647,3 +649,17 @@ trie_insert_new(Trie, Term, Handle) :-
 
 thread_at_exit(Goal) :-
     prolog_listen(this_thread_exit, Goal).
+
+%!  read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
+%
+%   @deprecated use read_term_with_history/2.
+
+read_history(Show, Help, Special, Prompt, Term, Bindings) :-
+    read_term_with_history(
+        Term,
+        [ show(Show),
+          help(Help),
+          no_save(Special),
+          prompt(Prompt),
+          variable_names(Bindings)
+        ]).

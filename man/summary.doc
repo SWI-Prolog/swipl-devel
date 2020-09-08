@@ -569,7 +569,6 @@ suggest predicates from a keyword.
 \predicatesummary{read}{1}{Read Prolog term}
 \predicatesummary{read}{2}{Read Prolog term from stream}
 \predicatesummary{read_clause}{3}{Read clause from stream}
-\predicatesummary{read_history}{6}{Read using history substitution}
 \predicatesummary{read_link}{3}{Read a symbolic link}
 \predicatesummary{read_pending_codes}{3}{Fetch buffered input from a stream}
 \predicatesummary{read_pending_chars}{3}{Fetch buffered input from a stream}
@@ -578,6 +577,7 @@ suggest predicates from a keyword.
 \predicatesummary{read_term}{2}{Read term with options}
 \predicatesummary{read_term}{3}{Read term with options from stream}
 \predicatesummary{read_term_from_atom}{3}{Read term with options from atom}
+\predicatesummary{read_term_with_history}{2}{Read term with command line history}
 \predicatesummary{recorda}{2}{Record term in the database (first)}
 \predicatesummary{recorda}{3}{Record term in the database (first)}
 \predicatesummary{recorded}{2}{Obtain term from the database}
