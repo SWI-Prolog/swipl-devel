@@ -86,7 +86,8 @@ read_history_(Raw, Term, Options) :-
         i(Bindings)                     % ignore
     ),
     catch(read_term_from_atom(Expanded, Term0,
-                              [ module(Module)
+                              [ module(Module),
+                                variable_names(Bindings0)
                               | Options1
                               ]),
           E,
