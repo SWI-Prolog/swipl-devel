@@ -5439,10 +5439,6 @@ mcall_cont:
     NFR = (LocalFrame)valTermRef(nref);
 
     FR = FR->parent;
-#ifdef O_PLMT
-  } else if ( true(DEF, P_THREAD_LOCAL) )
-  { DEF = getProcDefinition__LD(DEF PASS_LD);
-#endif
   }
 
   if ( true(DEF, P_TRANSPARENT) )
