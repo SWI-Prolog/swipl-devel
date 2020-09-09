@@ -76,6 +76,9 @@ implementation if the shared object cannot be found.
                        pass_to(system:absolute_file_name/3, 3),
                        pass_to(system:open/4, 4)
                      ]).
+:- predicate_options(read_stream_to_terms/4, 4,
+                     [ pass_to(read_term/3, 3)
+                     ]).
 
 :- volatile
     read_line_to_codes/2,
