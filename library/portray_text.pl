@@ -41,13 +41,16 @@
           ]).
 :- autoload(library(error),[must_be/2]).
 
+:- multifile
+    is_text_code/1.                     % +Integer
+
 /** <module> Portray text
 
 A Prolog string is a list of character-codes: (small) integers, which
 results in output like this:
 
     ==
-    ?- writeln("hello").
+    ?- writeln(`hello`).
     [104, 101, 108, 108, 111]
     ==
 
@@ -108,33 +111,36 @@ set_portray_text(ellipsis, N) :-
 
 user:portray(Codes) :-
     do_portray_text(true),
-    '$skip_list'(Length, Codes, Tail),
+    '$skip_list'(Length, Codes, _Tail),
     portray_text_option(min_length, MinLen),
     Length >= MinLen,
-    all_ascii(Codes),
+    all_codes(Codes),
     portray_text_option(ellipsis, IfLonger),
-    put_char('"'),
+    quote(C),
+    put_code(C),
     (   Length > IfLonger
     ->  First is IfLonger - 5,
         Skip is Length - 5,
         skip_first(Skip, Codes, Rest),
-        put_n_codes(First, Codes),
+        put_n_codes(First, Codes, C),
         format('...', [])
     ;   Rest = Codes
     ),
-    (   var_or_numbered(Tail)
-    ->  put_var_codes(Rest)
-    ;   format('~s', [Rest])
-    ),
-    put_char('"').
+    put_var_codes(Rest, C),
+    put_code(C).
 
-put_n_codes(N, [H|T]) :-
+quote(0'`) :-
+    current_prolog_flag(back_quotes, codes),
+    !.
+quote(0'").
+
+put_n_codes(N, [H|T], C) :-
     N > 0,
     !,
-    emit_code(H),
+    emit_code(H, C),
     N2 is N - 1,
-    put_n_codes(N2, T).
-put_n_codes(_, _).
+    put_n_codes(N2, T, C).
+put_n_codes(_, _, _).
 
 skip_first(N, [_|T0], T) :-
     succ(N2, N),
@@ -142,44 +148,59 @@ skip_first(N, [_|T0], T) :-
     skip_first(N2, T0, T).
 skip_first(_, L, L).
 
-put_var_codes(Var) :-
+put_var_codes(Var, _) :-
     var_or_numbered(Var),
     !,
     format('|~p', [Var]).
-put_var_codes([]).
-put_var_codes([H|T]) :-
-    emit_code(H),
-    put_var_codes(T).
+put_var_codes([], _).
+put_var_codes([H|T], C) :-
+    emit_code(H, C),
+    put_var_codes(T, C).
 
-emit_code(0'\b) :- !, format('\\b').
-emit_code(0'\r) :- !, format('\\r').
-emit_code(0'\n) :- !, format('\\n').
-emit_code(0'\t) :- !, format('\\t').
-emit_code(C) :- put_code(C).
+emit_code(Q, Q)    :- !, format('\\~c', [Q]).
+emit_code(0'\b, _) :- !, format('\\b').
+emit_code(0'\r, _) :- !, format('\\r').
+emit_code(0'\n, _) :- !, format('\\n').
+emit_code(0'\t, _) :- !, format('\\t').
+emit_code(C, _) :- put_code(C).
 
-all_ascii(Var) :-
+all_codes(Var) :-
     var_or_numbered(Var),
     !.
-all_ascii([]).
-all_ascii([H|T]) :-
-    isascii(H),
-    all_ascii(T).
+all_codes([]).
+all_codes([H|T]) :-
+    is_code(H),
+    all_codes(T).
 
-isascii(Term) :-
+is_code(Term) :-
     integer(Term),
-    ascii_code(Term),
+    Term >= 0,
+    text_code(Term),
     !.
 
-ascii_code(9).
-ascii_code(10).
-ascii_code(13).                         % ok ...
-ascii_code(C) :-
+text_code(Code) :-
+    is_text_code(Code),
+    !.
+text_code(9).
+text_code(10).
+text_code(13).                         % ok ...
+text_code(C) :-
     between(32, 126, C).
 
 var_or_numbered(Var) :-
     var(Var),
     !.
 var_or_numbered('$VAR'(_)).
+
+%!  is_text_code(+Code:nonneg) is semidet.
+%
+%   Multifile hook that can be used to extend the set of character codes
+%   that is recognised as likely  text.   Default  are non-control ASCII
+%   characters (9,10,13,32-126)
+%
+%   @tbd we might be able  to  use   the  current  locale to include the
+%   appropriate code page.
+
 
 %!  '$portray_text_enabled'(-Val)
 %
