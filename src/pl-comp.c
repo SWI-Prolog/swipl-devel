@@ -654,7 +654,7 @@ get_head_and_body_clause(term_t clause,
   }
 
   DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
-	   Sdprintf("%s:", stringAtom((*m)->name));
+	   Sdprintf("%s:", *m ? stringAtom((*m)->name) : "(nil)");
 	   pl_write(head); Sdprintf(" :- "); pl_write(body); Sdprintf("\n"));
 
   return TRUE;
