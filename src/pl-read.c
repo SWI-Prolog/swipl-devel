@@ -3168,7 +3168,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 
   if ( !hasGlobalSpace(arity+1) &&
        (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
-    return rc;
+    return raiseStackOverflow(rc);
   if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
     return rc;
 
@@ -3322,7 +3322,7 @@ pop_out_op(ReadData _PL_rd)
 
 #define PopOut() \
 	pop_out_op(_PL_rd); \
-        out_n--;
+        cstate.out_n--;
 
 static intptr_t
 get_int_arg(term_t t, int n ARG_LD)
@@ -3435,15 +3435,14 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
 { term_t tmp;
   out_entry *e;
   int arity = (op->kind == OP_INFIX ? 2 : 1);
-  int rc;
 
   if ( !(tmp = PL_new_term_ref()) )
     return FALSE;
 
   e = out_op(-arity, _PL_rd);
   if ( !op->isblock )
-  { if ( (rc = build_term(op->op.atom, arity, _PL_rd PASS_LD)) != TRUE )
-      return rc;
+  { if ( !build_term(op->op.atom, arity, _PL_rd PASS_LD) )
+      return FALSE;
   } else
   { term_t term = alloc_term(_PL_rd PASS_LD);
     term_t *av = term_av(-(arity+1), _PL_rd);
@@ -3454,17 +3453,17 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     av[0] = term;
     PL_put_term(term, op->op.block);
 
-    if ( (rc = build_term(op_name(op PASS_LD), arity+1, _PL_rd PASS_LD)) != TRUE )
-      return rc;
+    if ( !build_term(op_name(op PASS_LD), arity+1, _PL_rd PASS_LD) )
+      return FALSE;
   }
 
-  e->pri  = op->op_pri;
+  e->pri = op->op_pri;
   if ( op->tpos && !(e->tpos = opPos(op, e PASS_LD)) )
     return FALSE;
 
   _PL_rd->op.out_queue.top = (char*)(e+1);
 
-  return rc;
+  return TRUE;
 }
 
 
@@ -3484,6 +3483,13 @@ simple_term() which reads everything, except for operators.
 
 static int simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
 
+typedef struct cterm_state
+{ ReadData	rd;			/* Read global data */
+  int		out_n;			/* entries in out queue */
+  int		side_n;			/* entries in side queue */
+  int		side_p;			/* top (index) of side queue */
+  int		rmo;			/* Operands more than operators */
+} cterm_state;
 
 static bool
 isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
@@ -3513,37 +3519,44 @@ isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
 	stringAtom(op_name(e PASS_LD))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
-	side_n++, side_p++;
-#define PopOp() \
-	pop_side_op(_PL_rd); \
-	side_n--, side_p--;
+	cstate.side_n++, cstate.side_p++;
+#define PopOp(cstate) \
+	pop_side_op((cstate)->rd); \
+	(cstate)->side_n--, (cstate)->side_p--;
 #define SideOp(i) \
 	side_op(i, _PL_rd)
 
-#define Modify(cpri) \
-	if ( side_n > 0 && rmo == 0 && cpri > SideOp(side_p)->right_pri ) \
-	{ op_entry *op = SideOp(side_p); \
-	  if ( op->kind == OP_PREFIX && !op->isblock ) \
-	  { term_t tmp; \
-	    DEBUG(9, Sdprintf("Prefix %s to atom\n", \
-			      stringOp(op))); \
-	    rmo++; \
-	    if ( !(tmp = alloc_term(_PL_rd PASS_LD)) ) return FALSE; \
-	    PL_put_atom(tmp, op->op.atom); \
-	    queue_out_op(0, op->tpos, _PL_rd); \
-	    out_n++; \
-	    PopOp(); \
-	  } else if ( op->kind == OP_INFIX && out_n > 0 && \
-		      isOp(op, OP_POSTFIX, _PL_rd PASS_LD) ) \
-	  { int rc; \
-	    DEBUG(9, Sdprintf("Infix %s to postfix\n", \
-			      stringOp(op))); \
-	    rmo++; \
-	    rc = build_op_term(op, _PL_rd PASS_LD); \
-	    if ( rc != TRUE ) return rc; \
-	    PopOp(); \
-	  } \
-	}
+static int
+modify_op(cterm_state *cstate, int cpri ARG_LD)
+{ ReadData _PL_rd = cstate->rd;
+
+  if ( cstate->side_n > 0 && cstate->rmo == 0 &&
+       cpri > SideOp(cstate->side_p)->right_pri )
+  { op_entry *op = SideOp(cstate->side_p);
+    if ( op->kind == OP_PREFIX && !op->isblock )
+    { term_t tmp;
+
+      DEBUG(MSG_READ_OP, Sdprintf("Prefix %s to atom", stringOp(op)));
+      cstate->rmo++;
+      if ( !(tmp = alloc_term(_PL_rd PASS_LD)) )
+	return FALSE;
+      PL_put_atom(tmp, op->op.atom);
+      queue_out_op(0, op->tpos, _PL_rd);
+      cstate->out_n++;
+      PopOp(cstate);
+    } else if ( op->kind == OP_INFIX && cstate->out_n > 0 &&
+		isOp(op, OP_POSTFIX, _PL_rd PASS_LD) )
+    { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfixn",
+				  stringOp(op)));
+      cstate->rmo++;
+      if ( !build_op_term(op, _PL_rd PASS_LD) )
+	return FALSE;
+      PopOp(cstate);
+    }
+  }
+
+  return TRUE;
+}
 
 
 static int
@@ -3619,7 +3632,8 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
     return -1;
   }
 
-  DEBUG(9, if ( rc )
+  DEBUG(MSG_READ_OP,
+	if ( rc )
 	{ GET_LD
 	  Sdprintf("Reducing %s/%d\n", stringOp(op), arity);
 	});
@@ -3628,17 +3642,39 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
 }
 
 
-#define Reduce(cpri) \
-	while( out_n > 0 && side_n > 0 && (cpri) >= SideOp(side_p)->op_pri ) \
-	{ int rc; \
-	  rc = can_reduce(SideOp(side_p), cpri, out_n, _PL_rd); \
-	  if ( rc == FALSE ) break; \
-	  if ( rc < 0 ) return FALSE; \
-	  rc = build_op_term(SideOp(side_p), _PL_rd PASS_LD); \
-	  if ( rc != TRUE ) return rc; \
-	  if ( SideOp(side_p)->kind == OP_INFIX ) out_n--; \
-	  PopOp(); \
-	}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Combine operators from the side queue and out queue as long as there are
+sufficient operators and operands and the   priority  of the operator is
+lower or equal to the context.
+
+Returns: TRUE:   Ok
+         FALSE:  Error
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+reduce_op(cterm_state *cstate, int cpri ARG_LD)
+{ ReadData _PL_rd = cstate->rd;
+
+  while( cstate->out_n > 0 && cstate->side_n > 0 &&
+	 cpri >= SideOp(cstate->side_p)->op_pri )
+  { int rc;
+
+    rc = can_reduce(SideOp(cstate->side_p), cpri, cstate->out_n, cstate->rd);
+    if ( rc > 0 )
+    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd PASS_LD) )
+	return FALSE;
+      if ( SideOp(cstate->side_p)->kind == OP_INFIX )
+	cstate->out_n--;
+      PopOp(cstate);
+    } else if ( rc == FALSE )
+    { break;
+    } else
+    { return FALSE;
+    }
+  }
+
+  return TRUE;
+}
 
 
 static int
@@ -3734,15 +3770,46 @@ unify_string_position(term_t positions, Token token ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+complex_term() handles operator resolution. This is based on an old book
+on compiler design of which I've forgotten the name. The idea is to have
+two queues, the _side_ queue and the _out_ queue. The number of elements
+pushed there is in `side_n` and  `out_n`.   As  the  side queue may hold
+stuff from outer parse steps  we  have   `side_p`  pointing  at its top.
+`side_p` is `side_n` - 1 -  |elems-at-start| and `SideOp(side_p)` is the
+top-most operator pushed at the side queue.
+
+Now the core idea is that we  push   operators  that we encounter to the
+_side_ queue and have  operands  on  the   _out_  queue.  At  times,  we
+_reduce_, which means we combine the top operator on the side queue with
+the top element(s) on the out queue as   long as the side queue operator
+has lower priority than the  reduce   context.  The  resulting terms are
+pushed on the out stack.
+
+Prolog  cannot  have  two  consequetive  operands.  This  constraint  it
+maintained in `rmo`, (Ope)rands-more-then-operators.  This cannot become
+more than 1 and thus, if we get into a situation where this threatens to
+become two, we try to interpret the next   token as an operator, even if
+it is a T_FUNCTOR token  (e.g.,  `name(`).   See  the  first argument of
+get_token().
+
+`rmo` can also not become below zero,  so   if  this threatens we try to
+consider  the  last  operator  on  the  side   queue  as  an  atom.  See
+modify_op().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 complex_term(const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd ARG_LD)
-{ op_entry  in_op;
-  int out_n = 0, side_n = 0;
-  int rmo = 0;				/* Rands more than operators */
-  int side_p = side_p0(_PL_rd);
+{ op_entry in_op;
   term_t pin;
   Token token;
+  cterm_state cstate =
+  { .rd = _PL_rd,
+    .out_n = 0,
+    .side_n = 0, .side_p = side_p0(_PL_rd),
+    .rmo = 0
+  };
 
   if ( _PL_rd->strictness == 0 )
     maxpri = OP_MAXPRIORITY+1;
@@ -3758,10 +3825,10 @@ complex_term(const char *stop, short maxpri, term_t positions,
     else
       pin = 0;
 
-    if ( !(token = get_token(rmo == 1, _PL_rd)) )
+    if ( !(token = get_token(cstate.rmo == 1, _PL_rd)) )
       return FALSE;
 
-    if ( out_n != 0 || side_n != 0 )	/* Check for end of term */
+    if ( cstate.out_n != 0 || cstate.side_n != 0 ) /* Check for end of term */
     { switch(token->type)
       { case T_FULLSTOP:
 	  if ( stop == NULL )
@@ -3780,17 +3847,18 @@ complex_term(const char *stop, short maxpri, term_t positions,
       }
     }
 
-    if ( (rc=is_name_token(token, rmo == 1, _PL_rd)) == TRUE )
+    if ( (rc=is_name_token(token, cstate.rmo == 1, _PL_rd)) == TRUE )
     { in_op.isblock     = FALSE;
       in_op.isterm      = FALSE;
       in_op.op.atom     = name_token(token, &in_op, _PL_rd);
       in_op.tpos        = pin;
       in_op.token_start = last_token_start;
 
-      DEBUG(9, Sdprintf("name %s, rmo = %d\n", stringOp(&in_op), rmo));
+      DEBUG(MSG_READ_OP, Sdprintf("name %s, rmo = %d\n",
+				  stringOp(&in_op), cstate.rmo));
 
-      if ( rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd PASS_LD) )
-      { DEBUG(9, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
+      if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd PASS_LD) )
+      { DEBUG(MSG_READ_OP, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
 	Unlock(in_op.op.atom);		/* ok; part of an operator */
@@ -3813,28 +3881,32 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	continue;
       }
       if ( isOp(&in_op, OP_INFIX, _PL_rd PASS_LD) )
-      { DEBUG(9, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
+      { DEBUG(MSG_READ_OP, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
-	Modify(in_op.left_pri);
-	if ( rmo == 1 )
-	{ Reduce(in_op.left_pri);
-	  rmo--;
+	if ( !modify_op(&cstate, in_op.left_pri PASS_LD) )
+	  return FALSE;
+	if ( cstate.rmo == 1 )
+	{ if ( !reduce_op(&cstate, in_op.left_pri PASS_LD) )
+	    return FALSE;
+	  cstate.rmo--;
 	  goto push_op;
 	}
       }
       if ( isOp(&in_op, OP_POSTFIX, _PL_rd PASS_LD) )
-      { DEBUG(9, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
+      { DEBUG(MSG_READ_OP, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
-	Modify(in_op.left_pri);
-	if ( rmo == 1 )
-	{ Reduce(in_op.left_pri);
+	if ( !modify_op(&cstate, in_op.left_pri PASS_LD) )
+	  return FALSE;
+	if ( cstate.rmo == 1 )
+	{ if ( !reduce_op(&cstate, in_op.left_pri PASS_LD) )
+	    return FALSE;
 	  goto push_op;
 	}
       }
     } else if ( rc < 0 )
       return FALSE;
 
-    if ( rmo == 1 )
+    if ( cstate.rmo == 1 )
       syntaxError("operator_expected", _PL_rd);
 
 					/* Read `simple' term */
@@ -3842,19 +3914,21 @@ complex_term(const char *stop, short maxpri, term_t positions,
     if ( rc != TRUE )
       return rc;
 
-    if ( rmo != 0 )
+    if ( cstate.rmo != 0 )
       syntaxError("operator_expected", _PL_rd);
-    rmo++;
+    cstate.rmo++;
     queue_out_op(0, pin, _PL_rd);
-    out_n++;
+    cstate.out_n++;
   }
 
 exit:
   unget_token();			/* the full-stop or punctuation */
-  Modify(maxpri);
-  Reduce(maxpri);
+  if ( !modify_op(&cstate, maxpri PASS_LD) )
+    return FALSE;
+  if ( !reduce_op(&cstate, maxpri PASS_LD) )
+    return FALSE;
 
-  if ( out_n == 1 && side_n == 0 )	/* simple term */
+  if ( cstate.out_n == 1 && cstate.side_n == 0 ) /* simple term */
   { out_entry *e = out_op(-1, _PL_rd);
     int rc;
 
@@ -3865,8 +3939,8 @@ exit:
     return TRUE;
   }
 
-  if ( out_n == 0 && side_n == 1 )	/* single operator */
-  { op_entry *op = SideOp(side_p);
+  if ( cstate.out_n == 0 && cstate.side_n == 1 ) /* single operator */
+  { op_entry *op = SideOp(cstate.side_p);
     term_t term = alloc_term(_PL_rd PASS_LD);
     int rc;
 
@@ -3878,12 +3952,12 @@ exit:
     if ( positions && (rc=PL_unify(positions, op->tpos)) != TRUE )
       return rc;
 
-    PopOp();
+    PopOp(&cstate);
 
     return TRUE;
   }
 
-  if ( side_n == 1 && !SideOp(0)->isblock &&
+  if ( cstate.side_n == 1 && !SideOp(0)->isblock &&
        ( SideOp(0)->op.atom == ATOM_comma ||
 	 SideOp(0)->op.atom == ATOM_semicolon
        ))
@@ -3894,7 +3968,7 @@ exit:
     if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
-		         PL_ATOM, SideOp(side_p)->op.atom,
+		         PL_ATOM, SideOp(cstate.side_p)->op.atom,
 		         PL_ATOM, name_token(token, NULL, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
@@ -4163,12 +4237,10 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   }
 
   rc = build_term(functor, arity, _PL_rd PASS_LD);
-  if ( rc != TRUE )
-    return rc;
   if ( unlock )
     PL_unregister_atom(functor);
 
-  succeed;
+  return rc;
 }
 
 

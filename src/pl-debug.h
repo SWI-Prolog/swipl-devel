@@ -216,6 +216,8 @@
 #define MSG_TRANSACTION		 360
 #define MSG_COMMIT		 361
 
+#define MSG_READ_OP		 360
+
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
 #define CHK_HIGHER_ADDRESS      1002
