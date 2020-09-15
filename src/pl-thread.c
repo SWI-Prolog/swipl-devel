@@ -1659,7 +1659,7 @@ system_thread_id(PL_thread_info_t *info)
     else
       return -1;
   }
-#ifdef __linux__
+#ifdef PID_IDENTIFIES_THREAD
   return info->pid;
 #else
 #ifdef __WINDOWS__
@@ -1675,16 +1675,14 @@ set_system_thread_id(PL_thread_info_t *info)
 {
   info->tid = pthread_self();
   info->has_tid = TRUE;
-#ifdef HAVE_GETTID_SYSCALL
+#if defined(HAVE_GETTID_SYSCALL)
   info->pid = syscall(__NR_gettid);
-#else
-#ifdef HAVE_GETTID_MACRO
+#elif defined(HAVE_GETTID_MACRO)
   info->pid = gettid();
-#else
-#ifdef __WINDOWS__
+#elif defined(__CYGWIN__)
+  info->pid = getpid();
+#elif defined(__WINDOWS__)
   info->w32id = GetCurrentThreadId();
-#endif
-#endif
 #endif
 }
 
@@ -2867,7 +2865,7 @@ PRED_IMPL("thread_setconcurrency", 2, thread_setconcurrency, 0)
 #endif
 }
 
-#ifdef HAVE_SCHED_SETAFFINITY
+#if defined(HAVE_SCHED_SETAFFINITY) && defined(PID_IDENTIFIES_THREAD)
 #define HAVE_PRED_THREAD_AFFINITY 1
 static
 PRED_IMPL("thread_affinity", 3, thread_affinity, 0)
