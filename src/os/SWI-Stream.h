@@ -85,7 +85,7 @@ stuff.
 #ifndef _PL_EXPORT_DONE
 #define _PL_EXPORT_DONE
 
-#if (defined(__WINDOWS__) || defined(__CYGWIN__)) && !defined(__LCC__)
+#if defined(_MSC_VER) || defined(__MINGW32__)
 #define HAVE_DECLSPEC
 #endif
 
