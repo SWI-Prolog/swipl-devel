@@ -3157,12 +3157,13 @@ compileArithArgument(Word arg, compileInfo *ci ARG_LD)
     if ( fdef == FUNCTOR_roundtoward2 )
     { Word m;
       int mode;
+      int vindex;
 
       deRef2(a+1, m);
       if ( isAtom(*m) && atom_to_rounding(*m, &mode) )
       { Output_1(ci, A_ROUNDTOWARDS_A, mode);
-      } else if ( (rc=arithVarOffset(m, ci, &index PASS_LD)) == TRUE )
-      { Output_1(ci, A_ROUNDTOWARDS_V, VAROFFSET(index));
+      } else if ( (rc=arithVarOffset(m, ci, &vindex PASS_LD)) == TRUE )
+      { Output_1(ci, A_ROUNDTOWARDS_V, VAROFFSET(vindex));
       } else if ( rc < 0 )
       { return FALSE;
       } else if ( isAtom(*m) )
