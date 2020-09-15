@@ -48,6 +48,10 @@
 #define SIG_ALERT  SIGUSR2
 #endif
 
+#if defined(__linux__) || defined(__CYGWIN__)
+#define PID_IDENTIFIES_THREAD 1
+#endif
+
 #define GCREQUEST_AGC   0x01		/* GD->thread.gc.requests */
 #define GCREQUEST_CGC   0x02
 #define GCREQUEST_ABORT 0x04
@@ -92,7 +96,7 @@ typedef struct _PL_thread_info_t
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
-#ifdef __linux__
+#ifdef PID_IDENTIFIES_THREAD
   pid_t		    pid;		/* for identifying */
 #endif
 #ifdef __WINDOWS__
