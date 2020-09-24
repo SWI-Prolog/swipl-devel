@@ -62,6 +62,7 @@
 
                                         % Lists of numbers
           sum_list/2,                   % +List, -Sum
+          prod_list/2,                  % +List, -Prod
           max_list/2,                   % +List, -Max
           min_list/2,                   % +List, -Min
           numlist/3,                    % +Low, +High, -List
@@ -551,6 +552,21 @@ sum_list([], Sum, Sum).
 sum_list([X|Xs], Sum0, Sum) :-
     Sum1 is Sum0 + X,
     sum_list(Xs, Sum1, Sum).
+
+%!  prod_list(+List, -Sum) is det.
+%
+%   Prod is the result of multiplying all numbers in List.
+
+prod_list(Xs, Prod) :-
+    prod_list(Xs, 1, Prod).
+
+prod_list([], Prod, Prod).
+prod_list([X|Xs], Prod0, Prod) :-
+    (   X =\= 0 ->
+    	Prod1 is Prod0 * X;
+    	prod_list([],0,Prod)
+    ),
+    prod_list(Xs, Prod1, Prod).
 
 %!  max_list(+List:list(number), -Max:number) is semidet.
 %
