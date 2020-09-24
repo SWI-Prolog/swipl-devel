@@ -166,13 +166,17 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$set_pattr'(A, M, pred, Attr) :-
     !,
     Attr =.. [Name,Val],
-    '$set_predicate_attribute'(M:A, Name, Val).
+    '$set_pi_attr'(M:A, Name, Val).
 '$set_pattr'(A, M, directive, Attr) :-
     !,
     Attr =.. [Name,Val],
-    catch('$set_predicate_attribute'(M:A, Name, Val),
+    catch('$set_pi_attr'(M:A, Name, Val),
           error(E, _),
           print_message(error, error(E, context((Name)/1,_)))).
+
+'$set_pi_attr'(PI, Name, Val) :-
+    '$pi_head'(PI, Head),
+    '$set_predicate_attribute'(Head, Name, Val).
 
 '$attr_options'(Var, _, _) :-
     var(Var),
@@ -263,6 +267,50 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     '$set_pattr'(Spec, M, directive, noprofile(true)).
 '$pattr_directive'(public(Spec), M) :-
     '$set_pattr'(Spec, M, directive, public(true)).
+
+%!  '$pi_head'(?PI, ?Head)
+
+'$pi_head'(PI, Head) :-
+    var(PI),
+    var(Head),
+    '$instantiation_error'([PI,Head]).
+'$pi_head'(M:PI, M:Head) :-
+    !,
+    '$pi_head'(PI, Head).
+'$pi_head'(Name/Arity, Head) :-
+    !,
+    '$head_name_arity'(Head, Name, Arity).
+'$pi_head'(Name//DCGArity, Head) :-
+    !,
+    (   nonvar(DCGArity)
+    ->  Arity is DCGArity+2,
+        '$head_name_arity'(Head, Name, Arity)
+    ;   '$head_name_arity'(Head, Name, Arity),
+        DCGArity is Arity - 2
+    ).
+'$pi_head'(PI, _) :-
+    '$type_error'(predicate_indicator, PI).
+
+%!  '$head_name_arity'(+Goal, -Name, -Arity).
+%!  '$head_name_arity'(-Goal, +Name, +Arity).
+
+'$head_name_arity'(Goal, Name, Arity) :-
+    (   atom(Goal)
+    ->  Name = Goal, Arity = 0
+    ;   compound(Goal)
+    ->  compound_name_arity(Goal, Name, Arity)
+    ;   var(Goal)
+    ->  (   Arity == 0
+        ->  (   atom(Name)
+            ->  Goal = Name
+            ;   blob(Name, closure)
+            ->  Goal = Name
+            ;   '$type_error'(atom, Name)
+            )
+        ;   compound_name_arity(Goal, Name, Arity)
+        )
+    ;   '$type_error'(callable, Goal)
+    ).
 
 :- '$iso'(((dynamic)/1, (multifile)/1, (discontiguous)/1)).
 
@@ -3996,50 +4044,6 @@ length(_, Length) :-
 '$prolog_list_goal'(Goal) :-
     use_module(library(listing), [listing/1]),
     @(listing(Goal), user).
-
-
-		 /*******************************
-		 *              MISC		*
-		 *******************************/
-
-'$pi_head'(PI, Head) :-
-    var(PI),
-    var(Head),
-    '$instantiation_error'([PI,Head]).
-'$pi_head'(M:PI, M:Head) :-
-    !,
-    '$pi_head'(PI, Head).
-'$pi_head'(Name/Arity, Head) :-
-    !,
-    '$head_name_arity'(Head, Name, Arity).
-'$pi_head'(Name//DCGArity, Head) :-
-    !,
-    (   nonvar(DCGArity)
-    ->  Arity is DCGArity+2,
-        '$head_name_arity'(Head, Name, Arity)
-    ;   '$head_name_arity'(Head, Name, Arity),
-        DCGArity is Arity - 2
-    ).
-'$pi_head'(PI, _) :-
-    '$type_error'(predicate_indicator, PI).
-
-'$head_name_arity'(Goal, Name, Arity) :-
-    (   atom(Goal)
-    ->  Name = Goal, Arity = 0
-    ;   compound(Goal)
-    ->  compound_name_arity(Goal, Name, Arity)
-    ;   var(Goal)
-    ->  (   Arity == 0
-        ->  (   atom(Name)
-            ->  Goal = Name
-            ;   blob(Name, closure)
-            ->  Goal = Name
-            ;   '$type_error'(atom, Name)
-            )
-        ;   compound_name_arity(Goal, Name, Arity)
-        )
-    ;   '$type_error'(callable, Goal)
-    ).
 
 
                  /*******************************
