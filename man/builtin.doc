@@ -78,7 +78,7 @@ See also \secref{metacall} for examples of meta-predicates, and
 \secref{metapred} for mode flags to label meta-predicate arguments in
 module export declarations.
 
-\subsection{Redicate indicators}            \label{sec:predicate_indic}
+\subsection{Predicate indicators}            \label{sec:predicate-indic}
 
 \index{predicate indicator}%
 Referring to a predicate in running text is done using a
@@ -87,7 +87,7 @@ predicate indicator is a term \exam{[<module>:]<name>/<arity>}. The module is
 generally omitted if it is irrelevant (case of a built-in predicate) or if it
 can be inferred from context.
 
-\subsubsection{Non-terminal indicatora}		\label{sec:nonterminal_indic}
+\subsubsection{Non-terminal indicators}		\label{sec:nonterminal-indic}
 
 \index{non-terminal indicator}%
 Compliant to the ISO standard draft on Definite Clause Grammars (see
