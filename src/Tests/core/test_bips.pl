@@ -1,6 +1,4 @@
-/*  $Id$
-
-    Part of SWI-Prolog
+/*  Part of SWI-Prolog
 
     Author:        Ulrich Neumerkel
     WWW:           http://www.swi-prolog.org
@@ -34,7 +32,6 @@ This module is a test-frame for testing built-in predicates.
 test_bips :-
 	run_tests([ bips,
 		    bips_occurs_check_error,
-		    coroutining,
 		    arg,
 		    eq,
 		    length,
@@ -123,38 +120,6 @@ test(sort,[condition(error_unification),error(occurs_check(_,_))]) :-
 	sort([X,+X],[Y,Y]).
 
 :- end_tests(bips_occurs_check_error).
-
-:- begin_tests(coroutining).
-
-test(when1, [error(instantiation_error)]) :-
-	when(_,1=1).
-test(when2,[error(instantiation_error)]) :-
-	when((_,_),1=2).
-test(when3,[error(instantiation_error)]) :-
-	when((nonvar(_),_),1=2).
-test(when4_inf,[sto(rational_trees), error(type_error(_,_))]) :-
-	C=(C,C),
-	when(C,1=2).
-test(when5_r,[true(X==2)]) :-
-	when(ground(g),X=2).
-test(when6,[error(domain_error(_,_))]) :-
-	when(true, 1=2).
-test(when7,[true((R,S)==(est,sunt))]) :-
-	when((nonvar(X);nonvar(Y)),R = est),
-	when((nonvar(Y),nonvar(X)),S = sunt),
-	(X,Y)=(a,a).
-test(when8,[fail]) :-
-	when(ground(g),fail).
-test(when8,X==a) :-
-	v(A),
-	when(((nonvar(A), (nonvar(B) ; nonvar( C)))
-	     ;(nonvar(B), nonvar(C))), X = a),
-	B=2, C=3.
-
-v(_).
-
-:- end_tests(coroutining).
-
 
 :- begin_tests(arg).
 

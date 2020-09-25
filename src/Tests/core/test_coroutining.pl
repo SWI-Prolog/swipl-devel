@@ -31,6 +31,9 @@
     LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
+
+Note that the when/2 tests are written by Ulrich Neumerkel and subject
+to the GPL-2 license.
 */
 
 
@@ -58,5 +61,35 @@ test(frozen, G == (freeze(X, M:writeln(x)), freeze(Y, M:write(X-Z)))) :-
     freeze(Y, write(X-Z)),
     freeze(Y, write(X-Z)),
     frozen(Y, G).
+
+% when/2 tests by Ulrich Neumerkel.  These tests are only available
+% under the GPL-2 license.
+
+test(when1, [error(instantiation_error)]) :-
+	when(_,1=1).
+test(when2,[error(instantiation_error)]) :-
+	when((_,_),1=2).
+test(when3,[error(instantiation_error)]) :-
+	when((nonvar(_),_),1=2).
+test(when4_inf,[sto(rational_trees), error(type_error(_,_))]) :-
+	C=(C,C),
+	when(C,1=2).
+test(when5_r,[true(X==2)]) :-
+	when(ground(g),X=2).
+test(when6,[error(domain_error(_,_))]) :-
+	when(true, 1=2).
+test(when7,[true((R,S)==(est,sunt))]) :-
+	when((nonvar(X);nonvar(Y)),R = est),
+	when((nonvar(Y),nonvar(X)),S = sunt),
+	(X,Y)=(a,a).
+test(when8,[fail]) :-
+	when(ground(g),fail).
+test(when8,X==a) :-
+	v(A),
+	when(((nonvar(A), (nonvar(B) ; nonvar( C)))
+	     ;(nonvar(B), nonvar(C))), X = a),
+	B=2, C=3.
+
+v(_).
 
 :- end_tests(coroutining).
