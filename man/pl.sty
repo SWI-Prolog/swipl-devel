@@ -210,6 +210,7 @@
 \makeatother
 
 %	\termitem{functor}{Args}
+%	\curltermitem{Args}
 %	\infixtermitem{functor}{Left}{Right}
 %	\prefixtermitem{functor}{Right}
 %	\postfixtermitem{functor}{Left}
@@ -221,6 +222,8 @@
 	\ifthenelse{\equal{}{#2}}{%
 	    \definition{#1}}{%
 	    \definition{#1({\it #2})}}\ignorespaces}
+\newcommand{\curltermitem}[1]{%
+	    \definition{\{{\it #1}\}}\ignorespaces}
 \newcommand{\infixtermitem}[3]{%
 	    \definition{{\it #2} #1 {\it #3}}\ignorespaces}
 \newcommand{\prefixtermitem}[2]{%
