@@ -713,7 +713,7 @@ dicts.
 \const{PL_ATOM}      & A Prolog atom \\
 \const{PL_NIL}       & The constant \verb$[]$ \\
 \const{PL_BLOB}	     & A blob (see \secref{blobaccess}) \\
-\const{PL_STRING}    & A string (see \secref{strings}) \\
+\const{PL_STRING}    & A string (see \secref{string}) \\
 \const{PL_INTEGER}   & A integer \\
 \const{PL_RATIONAL}  & A rational number \\
 \const{PL_FLOAT}     & A floating point number \\
@@ -3365,7 +3365,7 @@ represented as a Prolog list of integers.
 
     \item[Opaque packed data on the stacks]
 It is possible to represent the raw binary representation of the foreign
-object as a Prolog string (see \secref{strings}). Strings may be created
+object as a Prolog string (see \secref{string}). Strings may be created
 from foreign data using PL_put_string_nchars() and retrieved using
 PL_get_string_chars(). It is good practice to wrap the string in a
 compound term with arity 1, so Prolog can identify the type. The hook

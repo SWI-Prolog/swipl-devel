@@ -1345,7 +1345,7 @@ is \const{codes}. If \cmdlineoption{--traditional} is given, the default
 is \const{symbol_char}, which allows using \verb$`$ in operators
 composed of symbols.\footnote{Older versions had a boolean flag
 \const{backquoted_strings}, which toggled between \const{string} and
-\const{symbol_char}}  See also \secref{strings}.
+\const{symbol_char}}  See also \secref{string}.
 
     \prologflagitem{backtrace}{bool}{rw}
 If \const{true} (default), print a backtrace on an uncaught exception.
@@ -1508,7 +1508,7 @@ is_dialect(swi) :-
 This flag determines how double quoted strings are read by Prolog and is
 ---like \prologflag{character_escapes} and \prologflag{back_quotes}---
 maintained for each module. The default is \const{string}, which
-produces a string as described in \secref{strings}. If
+produces a string as described in \secref{string}. If
 \cmdlineoption{--traditional} is given, the default is \const{codes},
 which produces a list of character codes, integers that represent a
 Unicode code-point. The value \const{chars} produces a list of
@@ -3292,7 +3292,7 @@ character classification (uppercase, lowercase, digit, etc.) and
 operations such as case conversion are unambiguously defined.
 
 For this reason SWI-Prolog has two representations for atoms and string
-objects (see \secref{strings}). If the text fits in ISO Latin-1, it is
+objects (see \secref{string}). If the text fits in ISO Latin-1, it is
 represented as an array of 8-bit characters.  Otherwise the text is
 represented as an array of 32-bit numbers.  This representational issue
 is completely transparent to the Prolog user.  Users of the foreign

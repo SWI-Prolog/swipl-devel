@@ -95,7 +95,7 @@ and "".
 
 % ================================================================
 \section{The string type and its double quoted syntax}
-\label{sec:strings}
+\label{sec:string}
 
 As of SWI-Prolog version~7, text enclosed in double quotes (e.g.,
 \verb$"Hello world"$) is read as objects of the type \jargon{string}. A
@@ -417,7 +417,7 @@ huge code base with which we were not familiar in about half a day.
     \predicate{list_strings}{0}{}
 This predicate may be used to assess compatibility issues due to
 the representation of double quoted text as string objects. See
-\secref{strings} and \secref{ext-dquotes-motivation}.  To
+\secref{string} and \secref{ext-dquotes-motivation}.  To
 use it, load your program into Prolog and run list_strings/0.  The
 predicate lists source locations of string objects encountered in
 the program that are not considered safe.  Such string need to be

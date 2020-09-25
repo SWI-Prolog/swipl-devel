@@ -67,6 +67,7 @@ documented at all.
 \input{record}
 \input{registry}
 \input{settings}
+\input{strings}
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
 \input{tables}

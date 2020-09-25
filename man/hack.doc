@@ -677,7 +677,7 @@ following arguments.
 \begin{itemize}
     \item \arg{Comments} is the non-empty list of comments.  Each
 	  comment is a pair \arg{Position}-\arg{String}, where
-	  \arg{String} is a string object (see \secref{strings})
+	  \arg{String} is a string object (see \secref{string})
 	  that contains the comment \emph{including} delimiters.
 	  Consecutive line comments are returned as a single
 	  comment.

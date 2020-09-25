@@ -1666,7 +1666,7 @@ True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
 
     \predicate{string}{1}{@Term}
 True if \arg{Term} is bound to a string. Note that string here refers to
-the built-in atomic type string as described in \secref{strings}.
+the built-in atomic type string as described in \secref{string}.
 Starting with version~7, the syntax for a string object is text between
 double quotes, such as \verb|"hello"|.\footnote{In traditional Prolog
 systems, double quoted text is often mapped to a list of
@@ -2909,7 +2909,7 @@ This hook is called to add context to the message prefix.
 atomic value that is added to the message prefix.
 
     \predicate{message_to_string}{2}{+Term, -String}
-Translates a message term into a string object (see \secref{strings}).
+Translates a message term into a string object (see \secref{string}).
 
     \predicate{version}{0}{}
 Write the SWI-Prolog banner message as well as additional messages
@@ -3208,7 +3208,7 @@ performance reasons.}  The predicate call_dcg/3 is provided to use
 grammar rules with terms that are not lists.
 
 Note that the syntax for lists of codes changed in SWI-Prolog version~7
-(see \secref{strings}). If a DCG body is translated, both \verb$"text"$
+(see \secref{string}). If a DCG body is translated, both \verb$"text"$
 and \verb$`text`$ is a valid code-list literal in version~7. A version~7
 string (\verb$"text"$) is \textbf{not} acceptable for the second and
 third arguments of phrase/3. This is typically not a problem for
@@ -5421,7 +5421,7 @@ Create an atom from the emitted characters. Please note the remark
 above.
 
     \termitem{string}{-String}
-Create a string object as defined in \secref{strings}.
+Create a string object as defined in \secref{string}.
 
     \termitem{codes}{-Codes}
 Create a list of character codes from the emitted characters, similar to
@@ -6169,7 +6169,7 @@ always reported using exception-handling (see catch/3). Options:
 \begin{description}
     \termitem{backquoted_string}{Bool}
 If \const{true}, read \verb$`$\ldots\verb$`$ to a string object (see
-\secref{strings}).  The default depends on the Prolog flag
+\secref{string}).  The default depends on the Prolog flag
 \prologflag{back_quotes}.
 
     \termitem{character_escapes}{Bool}
@@ -6333,7 +6333,7 @@ Read term with options from \arg{Stream}.  See read_term/2.
 
     \predicate{read_term_from_atom}{3}{+Atom, -Term, +Options}
 Use read_term/3 to read the next term from \arg{Atom}.  \arg{Atom} is
-either an atom or a string object (see \secref{strings}).  It is not
+either an atom or a string object (see \secref{string}).  It is not
 required for \arg{Atom} to end with a full-stop.  This predicate
 supersedes atom_to_term/3.
 
@@ -7190,7 +7190,7 @@ is simply unified with \arg{Atom}.
 
     \predicate{locale_sort}{2}{+List, -Sorted}
 Sort a list of atoms using the current locale.  \arg{List} is a list
-of atoms or string objects (see \secref{strings}).  \arg{Sorted} is
+of atoms or string objects (see \secref{string}).  \arg{Sorted} is
 unified with a list containing all atoms of \arg{List}, sorted to
 the rules of the current locale.  See also collation_key/2 and
 setlocale/3.
@@ -7887,7 +7887,7 @@ A list of one element evaluates to the element. This implies \exam{"a"}
 evaluates to the character code of the letter `a' (97) using the
 traditional mapping of double quoted string to a list of character
 codes. Arithmetic evaluation also translates a string object (see
-\secref{strings}) of one character length into the character code for
+\secref{string}) of one character length into the character code for
 that character. This implies that expression \exam{"a"} also works of
 the Prolog flag \prologflag{double_quotes} is set to \const{string}. The
 recommended way to specify the character code of the letter `a' is
@@ -8869,7 +8869,7 @@ digit groups.
 Same as {\bf r}, but uses uppercase letters for digits above 9.
     \fmtchar{s}
 Output text from a list of character codes or a string (see string/1 and
-\secref{strings}) from the next argument.\footnote{The \textbf{s}
+\secref{string}) from the next argument.\footnote{The \textbf{s}
 modifier also accepts an atom for compatibility.  This is deprecated
 due to the ambiguity of \texttt{[]}.}
     \fmtchar{@}
