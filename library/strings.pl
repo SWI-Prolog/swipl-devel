@@ -33,8 +33,11 @@
 */
 
 :- module(strings,
-          [ dedent_string/3,            % +In,-Out,+Options
+          [ dedent_lines/3,             % +In,-Out,+Options
+            indent_lines/3,             % +Prefix,+In,-Out
+            indent_lines/4,             % :Pred,+Prefix,+In,-Out
             interpolate_string/4,       % +In,-Out,+Map,+Options
+            split_lines/2,              % +In,-Lines
             string/4                    % Quasi quotation support
           ]).
 :- autoload(library(apply), [include/3, foldl/4, maplist/3, maplist/2]).
@@ -47,7 +50,8 @@
             [string/3, prolog_var_name/3, string_without/4, eos//0]).
 
 :- meta_predicate
-    interpolate_string(:, -, +, +).
+    interpolate_string(:, -, +, +),
+    indent_lines(1, +, +, -).
 
 :- quasi_quotation_syntax(string).
 
@@ -87,7 +91,8 @@ provides primitive to wrap long strings.
 @see The core system provides many additional string processing
 predicates.
 @tbd There are probably many other high level string predicates that
-belong in this library.
+belong in this library. For example, predicates similar to the
+functions in https://docs.python.org/3/library/textwrap.html
 */
 
 %!  string(+Content, +Args, +Binding, -DOM)
@@ -95,7 +100,7 @@ belong in this library.
 %   Implements  the  quasi  quotation  syntax  `string`.  If  the  first
 %   character of the content is a  newline   (i.e.,  there  is a newline
 %   _immediately_   after   the   ``||``   token)    this   first   uses
-%   dedent_string/3 to the remove common  white   space  prefix from the
+%   dedent_lines/3 to the remove common  white   space  prefix from the
 %   lines. This is called with  the   option  chars("\s\t|"), i.e., also
 %   removing ``|`` characters and tab(8).
 %
@@ -115,7 +120,7 @@ string(Content, Args, Binding, DOM) :-
     with_quasi_quotation_input(Content, Stream,
                                read_string(Stream, _, String)),
     (   string_concat("\n", String1, String)
-    ->  dedent_string(String1, String2, [tab(8), chars("\s\t|")])
+    ->  dedent_lines(String1, String2, [tab(8), chars("\s\t|")])
     ;   String2 = String
     ),
     (   prolog_load_context(module, Module)
@@ -221,10 +226,23 @@ exec_interpolate1(_Map, goal(Goal), Out) :-
     format(string(Out), '~@', [Goal]).
 exec_interpolate1(_, String, String).
 
-
-%!  dedent_string(+In, -Out, +Options)
+%!  split_lines(+In, -Lines)
 %
-%   Remove shared indentation all lines in a string.  Options:
+%   Split a string into lines. The end-of-line characters are removed.
+
+/* @tbd allow split_lines(-In, +Lines) */
+
+split_lines(In, Lines) :-
+    % TODO: properly handle empty lines (all whitespace)
+    split_string(In, "\n", "", Lines).
+
+%!  dedent_lines(+In, -Out, +Options)
+%
+%   Remove shared indentation for all lines in a string. Lines are separated
+%   by "\n" -- conversion to and from  external forms  (such as "\r\n")  are
+%   typically done by the I/O predicates.
+%
+%   Options:
 %
 %     - tab(N)
 %       Assume tabs at columns of with N.  When omitted, tabs are
@@ -234,12 +252,12 @@ exec_interpolate1(_, String, String).
 %       additional characters such as `*` or `|`.  Default is
 %       `" \t"`.
 
-dedent_string(In, Out, Options) :-
+dedent_lines(In, Out, Options) :-
     option(tab(Tab), Options, 0),
     option(chars(Chars), Options, "\s\t"),
     string_codes(Sep, Chars),
     How = s(Tab,Sep),
-    split_string(In, "\n", "", Lines),
+    split_lines(In, Lines),
     foldl(common_indent(How), Lines, _, Indent0),
     prepare_delete(Indent0, Indent),
     maplist(dedent_line(Tab, Indent), Lines, Dedented),
@@ -260,14 +278,11 @@ common_indent(s(Tab,Sep), Line, Indent0, Indent) :-
     line_indent_width(Line, Indent1, Tab, Sep),
     join_indent_width(Indent0, Indent1, Indent).
 
-%!  line_indent(+Line, -Indent, +How)
+%!  line_indent(+Line, -Indent, +Sep)
 
 line_indent(Line, Indent, Sep) :-
-    (   Line == ""
-    ->  true
-    ;   string_codes(Line, Codes),
-        code_indent(Codes, Indent, Sep)
-    ).
+    string_codes(Line, Codes),
+    code_indent(Codes, Indent, Sep).
 
 code_indent([H|T0], [H|T], Sep) :-
     string_code(_, Sep, H),
@@ -292,7 +307,7 @@ shared_prefix([H|T0], [H|T1], [H|T]) :-
 shared_prefix(_, _, []).
 
 line_indent_width(Line, Indent, Tab, Sep) :-
-    (   Line == ""
+    (   Line == ""  % DO NOT SUBMIT - redundant: code_indent_width([], 0, Indent, ...) doesn't instantiate Indent
     ->  true
     ;   string_codes(Line, Codes),
         code_indent_width(Codes, 0, Indent, Tab, Sep)
@@ -355,3 +370,35 @@ update_pos(0'\t, Here0, Here, Tab) :-
     Here is ((Here0+Tab)//Tab)*Tab.
 update_pos(_, Here0, Here, _) :-
     Here is Here0 + 1.
+
+%!  indent_lines(+Prefix, +In, -Out)
+%
+%   Add Prefix to the beginning of lines in In.  Lines are separated by "\n"
+%   -- conversion to and from external forms (such as "\r\n") are typically
+%   done by the I/O predicates.   Lines that consist entirely of whitespace
+%   are left as-is.
+
+indent_lines(Prefix, In, Out) :-
+    indent_lines(ignore_whitespace_line, Prefix, In, Out).
+
+%!  indent_lines(+Prefix, +In, -Out)
+%
+%   Add Prefix to the beginning of lines in In. Lines are separated by "\n".
+%   Indenting is only done for lines where Pred succeeds.
+
+indent_lines(Pred, Prefix, In, Out) :-
+    split_lines(In, Lines),
+    maplist(concat_to_string(Pred, Prefix), Lines, IndentedLines),
+    atomics_to_string(IndentedLines, "\n", Out).
+
+ignore_whitespace_line(Str) :-
+    \+ split_string(Str, "", " \t", [""]).
+
+:- meta_predicate concat_to_string(:, +, +, -).
+
+concat_to_string(Pred, Prefix, Line, Out) :-
+    (   call(Pred, Line)
+    ->  atomics_to_string([Prefix, Line], Out)
+    ;   Out = Line
+    ).
+
