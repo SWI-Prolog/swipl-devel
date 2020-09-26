@@ -34,7 +34,11 @@
 
 :- module(strings,
           [ dedent_string/3,            % +In,-Out,+Options
+            indent_string/3,            % +Prefix,+In,-Out
+            indent_string/4,            % :Pred,+Prefix,+In,-Out
             interpolate_string/4,       % +In,-Out,+Map,+Options
+            split_lines/2,              % +In,-Lines
+            split_lines_with_ends/2,    % +In,-Lines
             string/4                    % Quasi quotation support
           ]).
 :- autoload(library(apply), [include/3, foldl/4, maplist/3, maplist/2]).
@@ -47,7 +51,8 @@
             [string/3, prolog_var_name/3, string_without/4, eos//0]).
 
 :- meta_predicate
-    interpolate_string(:, -, +, +).
+    interpolate_string(:, -, +, +),
+    indent_string(1, +, +, -).
 
 :- quasi_quotation_syntax(string).
 
@@ -87,7 +92,8 @@ provides primitive to wrap long strings.
 @see The core system provides many additional string processing
 predicates.
 @tbd There are probably many other high level string predicates that
-belong in this library.
+belong in this library. For example, predicates similar to the
+functions in https://docs.python.org/3/library/textwrap.html
 */
 
 %!  string(+Content, +Args, +Binding, -DOM)
@@ -222,9 +228,35 @@ exec_interpolate1(_Map, goal(Goal), Out) :-
 exec_interpolate1(_, String, String).
 
 
+%!  split_lines(+In, -Lines)
+%
+%   Split a string into lines. The end-of-line characters are removed.
+
+/* @tbd allow split_lines(-In, +Lines) */
+
+split_lines(In, Lines) :-
+    % TODO: properly handle empty lines (all whitespace)
+    split_string(In, "\n", "", Lines).
+
+
+%!  split_lines_with_ends(+In, -Lines)
+%
+%   Split a string into lines. The end-of-line characters are kept.
+
+/* @tbd allow split_lines_with_ends(-In, +Lines) */
+/* @tbd is this predicate needed? - see indent_lines, which uses it */
+
+split_lines_with_ends(_In, _Lines) :-
+    throw(error(not_implemented, context(_, split_lines_with_ends/2))).
+
+
 %!  dedent_string(+In, -Out, +Options)
 %
-%   Remove shared indentation all lines in a string.  Options:
+%   Remove shared indentation for all lines in a string. Lines are separated
+%   by "\n" -- conversion to and from  external forms  (such as "\r\n")  are
+%   typically done by the I/O predicates.
+%
+%   Options:
 %
 %     - tab(N)
 %       Assume tabs at columns of with N.  When omitted, tabs are
@@ -239,7 +271,7 @@ dedent_string(In, Out, Options) :-
     option(chars(Chars), Options, "\s\t"),
     string_codes(Sep, Chars),
     How = s(Tab,Sep),
-    split_string(In, "\n", "", Lines),
+    split_lines(In, Lines),
     foldl(common_indent(How), Lines, _, Indent0),
     prepare_delete(Indent0, Indent),
     maplist(dedent_line(Tab, Indent), Lines, Dedented),
@@ -322,6 +354,8 @@ join_indent_width(Indent0, Indent1, Indent) :-
 %   an integer, deleting the  first  Indent   characters  or  a  string,
 %   deleting the string literally.
 
+/*  @tbd Handle DOS-style line breaks ("\r\n") */
+
 dedent_line(_Tab, Indent, String, Dedented) :-
     string(Indent),
     !,
@@ -355,3 +389,41 @@ update_pos(0'\t, Here0, Here, Tab) :-
     Here is ((Here0+Tab)//Tab)*Tab.
 update_pos(_, Here0, Here, _) :-
     Here is Here0 + 1.
+
+%!  indent_string(+Prefix, +In, -Out)
+%
+%   Add Prefix to the beginning of lines in In. Lines are separated by "\n".
+%   Lines that consist entirely of whitespace are left as-is.
+
+/*  @tbd Allow specifying a predicate for determining which lines are
+    processed. (See Python's textwrap.indent_string) */
+
+/*  @tbd Handle DOS-style line breaks ("\r\n") */
+
+indent_string(Prefix, In, Out) :-
+    indent_string(ignore_whitespace_line, Prefix, In, Out).
+
+indent_string(Pred, Prefix, In, Out) :-
+    split_lines(In, Lines),
+    maplist(concat_to_string(Pred, Prefix), Lines, IndentedLines),
+    atomics_to_string(IndentedLines, "\n", Out).
+
+ignore_whitespace_line(In) :-
+    string_codes(In, Codes),
+    \+ phrase(all_whitespace, Codes).
+
+all_whitespace --> "\s", !, all_whitespace.
+all_whitespace --> "\t", !, all_whitespace.
+% TODO: other whitespace, such as "\v"?
+all_whitespace --> "\n", !, all_whitespace.
+all_whitespace --> [_], !, { fail }.
+all_whitespace --> [].
+
+:- meta_predicate concat_to_string(:, +, +, -).
+
+concat_to_string(Pred, Prefix, Line, Out) :-
+    (   call(Pred, Line)
+    ->  atomics_to_string([Prefix, Line], Out)
+    ;   Out = Line
+    ).
+
