@@ -71,62 +71,74 @@ test(dedent, A == "hello\n  world") :-
 
 % Tests adapted from https://github.com/python/cpython/blob/master/Lib/test/string_tests.py
 
-splitlines_check(Result, Str) :-
-    split_lines(Str, Lines),
-    assertion(Lines == Result).
-
 % These tests were made by changed "\r\n" to "\n" and other "\r"s to "\n".
 % Tests with keepends=True were removed.
-% TODO: uncomment the cases where Python and swipl semantics differ
-test(splitlines) :- splitlines_check(["abc", "def", "", "ghi"], "abc\ndef\n\nghi").
-test(splitlines) :- splitlines_check(["abc", "def", "", "ghi"], "abc\ndef\n\nghi").
-test(splitlines) :- splitlines_check(["abc", "def", "ghi"], "abc\ndef\nghi").
-% test(splitlines) :- splitlines_check(["abc", "def", "ghi"], "abc\ndef\nghi\n").
-% test(splitlines) :- splitlines_check(["abc", "def", "ghi", ""], "abc\ndef\nghi\n\r").
-% test(splitlines) :- splitlines_check(["", "abc", "def", "ghi", ""], "\nabc\ndef\nghi\n\r").
+test(splitlines, Lines == ["abc", "def", "", "ghi"]) :- string_lines("abc\ndef\n\nghi", Lines).
+test(splitlines, Lines == ["abc", "def", "", "ghi"]) :- string_lines("abc\ndef\n\nghi", Lines).
+test(splitlines, Lines == ["abc", "def", "ghi"]) :- string_lines("abc\ndef\nghi", Lines).
+test(splitlines, Lines == ["abc", "def", "ghi"]) :- string_lines("abc\ndef\nghi\n", Lines).
+% Removed "\r" tests
+
+% The tests for string_lines/2 cover the three cases of String and Line
+% being instantiated (both String and Line uninstantiated is an error).
+test(string_lines) :- string_lines("ab",     ["ab"]).
+test(string_lines) :- string_lines("ab\n",   ["ab"]).
+test(string_lines) :- string_lines("ab\n",   ["ab", ""]).
+test(string_lines) :- string_lines("ab\n\n", ["ab", ""]).
+test(string_lines) :- string_lines("ab\n\n", ["ab", "", ""]).
+test(string_lines) :- string_lines("\nab",   ["", "ab"]).
+test(string_lines) :- string_lines("\nab\n", ["", "ab"]).
+test(string_lines) :- string_lines("\nab\n", ["", "ab", ""]).
+test(string_lines, Lines == ["ab"])     :- string_lines("ab",     Lines).
+test(string_lines, Lines == ["ab"])     :- string_lines("ab\n",   Lines).
+test(string_lines, Lines == ["ab", ""]) :- string_lines("ab\n\n", Lines).
+test(string_lines, Lines == ["", "ab"]) :- string_lines("\nab",   Lines).
+test(string_lines, Lines == ["", "ab"]) :- string_lines("\nab\n", Lines).
+test(string_lines, String == "ab")     :- string_lines(String, ["ab"]).
+test(string_lines, String == "ab\n")   :- string_lines(String, ["ab", ""]).
+test(string_lines, String == "ab\n\n") :- string_lines(String, ["ab", "", ""]).
+test(string_lines, String == "\nab")   :- string_lines(String, ["", "ab"]).
+test(string_lines, String == "\nab\n") :- string_lines(String, ["", "ab", ""]).
+test(string_lines, String == "\nab\n3\n") :- string_lines(String, ['', "ab", 3, '']).
 
 
 % Tests adapted from https://github.com/python/cpython/blob/master/Lib/test/test_textwrap.py
 
-dedent_lines_no_options(In, Out) :-
+dedent_lines_default(In, Out) :-
     dedent_lines(In, Out, []).
-
-dedent_lines_expect(In, Expect) :-
-    dedent_lines(In, Out, []),
-    assertion(Out == Expect).
 
 % Test dedent_lines
 
-assert_unchanged(Text) :- % assert that dedent() has no effect on 'text'
-    dedent_lines_expect(Text, Text).
+test(dedent_nomargin, Text == Dedent) :- % No lines indented.
+    Text = "Hello there.\nHow are you?\nOh good, I'm glad.",
+    dedent_lines_default(Text, Dedent).
 
-test(dedent_nomargin) :-
-    % No lines indented.
-    assert_unchanged("Hello there.\nHow are you?\nOh good, I'm glad."),
+test(dedent_nomargin, Text == Dedent) :- % Similar, with a blank line.
+    Text = "Hello there.\n\nBoo!",
+    dedent_lines_default(Text, Dedent).
 
-    % Similar, with a blank line.
-    assert_unchanged("Hello there.\n\nBoo!"),
+test(dedent_nomargin, Text == Dedent) :- % Some lines indented, but overall margin is still zero.
+    Text = "Hello there.\n  This is indented.",
+    dedent_lines_default(Text, Dedent).
 
-    % Some lines indented, but overall margin is still zero.
-    assert_unchanged("Hello there.\n  This is indented."),
+test(dedent_nomargin, Text == Dedent) :- % Again, add a blank line.
+    Text = "Hello there.\n\n  Boo!\n",
+    dedent_lines_default(Text, Dedent).
 
-    % Again, add a blank line.
-    assert_unchanged("Hello there.\n\n  Boo!\n").
-
-test(dedent_even) :-            % All lines indented by two spaces.
+test(dedent_even, Dedent == Expect) :- % All lines indented by two spaces.
     Text = "  Hello there.\n  How are ya?\n  Oh good.",
     Expect = "Hello there.\nHow are ya?\nOh good.",
-    dedent_lines_expect(Text, Expect).
-test(dedent_even) :-            % Same, with blank lines.
+    dedent_lines_default(Text, Dedent).
+test(dedent_even, Dedent == Expect) :- % Same, with blank lines.
     Text = "  Hello there.\n\n  How are ya?\n  Oh good.\n",
     Expect = "Hello there.\n\nHow are ya?\nOh good.\n",
-    dedent_lines_expect(Text, Expect).
-test(dedent_even) :- % Now indent one of the blank lines.
+    dedent_lines_default(Text, Dedent).
+test(dedent_even, Dedent == Expect) :- % Now indent one of the blank lines.
     Text = "  Hello there.\n  \n  How are ya?\n  Oh good.\n",
     Expect = "Hello there.\n\nHow are ya?\nOh good.\n",
-    dedent_lines_expect(Text, Expect).
+    dedent_lines_default(Text, Dedent).
 
-test(dedent_uneven) :- % Lines indented unevenly.
+test(dedent_uneven, Dedent == Expect) :- % Lines indented unevenly.
         Text = "
         def foo():
             while 1:
@@ -137,68 +149,76 @@ def foo():
     while 1:
         return foo
 ",
-        dedent_lines_expect(Text, Expect).
-test(dedent_uneven) :-         % Uneven indentation with a blank line.
+        dedent_lines_default(Text, Dedent).
+test(dedent_uneven, Dedent == Expect) :- % Uneven indentation with a blank line.
     Text = "  Foo\n    Bar\n\n   Baz\n",
     Expect = "Foo\n  Bar\n\n Baz\n",
-    dedent_lines_expect(Text, Expect).
-test(dedent_uneven) :- % Uneven indentation with a whitespace-only line.
+    dedent_lines_default(Text, Dedent).
+test(dedent_uneven, [fixme(doesnt_match_python), true(Dedent == Expect)]) :- % Uneven indentation with a whitespace-only line.
     Text = "  Foo\n    Bar\n \n   Baz\n",
-    % Expect = "Foo\n  Bar\n\n Baz\n",  % TODO: this is what Python does
     Expect = "Foo\n  Bar\n \n Baz\n",
-    dedent_lines_expect(Text, Expect).
+    dedent_lines_default(Text, Dedent).
+test(dedent_uneven, [fixme(match_python), true(Dedent == Expect)]) :- % Uneven indentation with a whitespace-only line.
+    Text = "  Foo\n    Bar\n \n   Baz\n",
+    Expect = "Foo\n  Bar\n\n Baz\n",
+    dedent_lines_default(Text, Dedent).
 
-test(dedent_declining) :- % Uneven indentation with declining indent level.
+test(dedent_declining, Dedent == Expect) :- % Uneven indentation with declining indent level.
     Text = "     Foo\n    Bar\n",  % 5 spaces, then 4
     Expect = " Foo\nBar\n",
-    dedent_lines_expect(Text, Expect).
-test(dedent_declining) :-   %  Declining indent level with blank line.
+    dedent_lines_default(Text, Dedent).
+test(dedent_declining, Dedent == Expect) :-   %  Declining indent level with blank line.
     Text = "     Foo\n\n    Bar\n",  % 5 spaces, blank, then 4
     Expect = " Foo\n\nBar\n",
-    dedent_lines_expect(Text, Expect).
-test(dedent_declining) :- %  Declining indent level with whitespace only line.
+    dedent_lines_default(Text, Dedent).
+test(dedent_declining, Dedent == Expect) :- %  Declining indent level with whitespace only line.
     Text = "     Foo\n    \n    Bar\n", % 5 spaces, then 4, then 4
     Expect = " Foo\n\nBar\n",
-    dedent_lines_expect(Text, Expect).
+    dedent_lines_default(Text, Dedent).
 
 % dedent() should not mangle internal tabs
-test(dedent_preserve_internal_tabs) :-
+test(dedent_preserve_internal_tabs, [Dedent,Dedent2] == [Expect,Expect]) :-
     Text = "  hello\tthere\n  how are\tyou?",
     Expect = "hello\tthere\nhow are\tyou?",
-    dedent_lines_expect(Text, Expect),
+    dedent_lines_default(Text, Dedent),
     % make sure that it preserves tabs when it's not making any
     % changes at all
-    dedent_lines_expect(Expect, Expect).
+    dedent_lines_default(Expect, Dedent2).
 
 % dedent() should not mangle tabs in the margin (i.e.
 % tabs and spaces both count as margin, but are *not*
 % considered equivalent)
-test(dedent_preserve_margin_tabs) :-
-    assert_unchanged("  hello there\n\thow are you?"),
+test(dedent_preserve_margin_tabs, Text == Dedent) :-
+    Text = "  hello there\n\thow are you?",
+    dedent_lines_default(Text, Dedent).
 
+test(dedent_preserve_margin_tabs, Text == Dedent) :-
     % same effect even if we have 8 spaces
-    assert_unchanged("        hello there\n\thow are you?").
+    Text = "        hello there\n\thow are you?",
+    dedent_lines_default(Text, Dedent).
 
-test(dedent_preserve_margin_tabs) :-
+test(dedent_preserve_margin_tabs, [Dedent1, Dedent2, Dedent3, Dedent4, Dedent5] == [Expect1, Expect2, Expect3, Expect4, Expect5]) :-
     % dedent() only removes whitespace that can be uniformly removed!
     Text1 = "\thello there\n\thow are you?",
-    Expect = "hello there\nhow are you?",
-    dedent_lines_expect(Text1, Expect),
+    Expect1 = "hello there\nhow are you?",
+    dedent_lines_default(Text1, Dedent1),
 
     Text2 = "  \thello there\n  \thow are you?",
-    dedent_lines_expect(Text2, Expect),
+    Expect2 = Expect1,
+    dedent_lines_default(Text2, Dedent2),
 
     Text3 = "  \t  hello there\n  \t  how are you?",
-    dedent_lines_expect(Text3, Expect),
+    Expect3 = Expect1,
+    dedent_lines_default(Text3, Dedent3),
 
     Text4 = "  \thello there\n  \t  how are you?",
     Expect4 = "hello there\n  how are you?",
-    dedent_lines_expect(Text4, Expect4),
+    dedent_lines_default(Text4, Dedent4),
 
     % test margin is smaller than smallest indent
     Text5 = "  \thello there\n   \thow are you?\n \tI'm fine, thanks",
     Expect5 = " \thello there\n  \thow are you?\n\tI'm fine, thanks",
-    dedent_lines_expect(Text5, Expect5).
+    dedent_lines_default(Text5, Dedent5).
 
 % Test indent_lines
 % The examples used for tests. If any of these change, the expected
@@ -230,25 +250,21 @@ cases([
 true_(_).                       % Pred for indent - always succeeds
 fail_(_) :- fail.               % Pred for indent - always fails.
 
-test(indent_nomargin_default) :- % indent should do nothing if 'prefix' is empty.
+test(indent_nomargin_default, Cases == Outs) :- % indent should do nothing if 'prefix' is empty.
     cases(Cases),
-    maplist(indent_lines(""), Cases, Outs),
-    assertion(Cases == Outs).
+    maplist(indent_lines(""), Cases, Outs).
 % Skip test(indent_nomargin_explicit_default) - not applicable
-test(indent_nomargin_all_lines) :- % The same as indent_nomargin, but
-                                   % using the optional predicate argument
+test(indent_nomargin_all_lines, Cases == Outs) :- % The same as indent_nomargin, but
+                                                % using the optional predicate argument
     cases(Cases),
-    maplist(indent_lines(true_, ""), Cases, Outs),
-    assertion(Cases == Outs).
-test(indent_no_lines) :-        % Explicitly skip indenting any lines
+    maplist(indent_lines(true_, ""), Cases, Outs).
+test(indent_no_lines, Cases == Outs) :- % Explicitly skip indenting any lines
     cases(Cases),
-    maplist(indent_lines(fail_, "    "), Cases, Outs),
-    assertion(Cases == Outs).
-test(roundtrip_spaces) :- % A whitespace prefix should roundtrip with dedent.
+    maplist(indent_lines(fail_, "    "), Cases, Outs).
+test(roundtrip_spaces, Cases == Cases2) :- % A whitespace prefix should roundtrip with dedent.
     cases(Cases),
     maplist(indent_lines("    "), Cases, IndentedCases),
-    maplist(dedent_lines_no_options, IndentedCases, Cases2),
-    Cases = Cases2.
+    maplist(dedent_lines_default, IndentedCases, Cases2).
 % TODO: roundtrip_tabs when supported by dedent
 /*
       def test_roundtrip_tabs(self):
@@ -263,7 +279,7 @@ test(roundtrip_spaces) :- % A whitespace prefix should roundtrip with dedent.
         for text in self.ROUNDTRIP_CASES:
             self.assertEqual(dedent(indent(text, ' \t  \t ')), text)
   */
-test(indent_default) :- % Test default indenting of lines that are not whitespace only
+test(indent_default, Results == Expected) :- % Test default indenting of lines that are not whitespace only
     cases(Cases),
     Prefix = "  ",
     Expected = [
@@ -285,10 +301,9 @@ test(indent_default) :- % Test default indenting of lines that are not whitespac
                 % "   \n  ",
                 % "  "
                ],
-    maplist(indent_lines(Prefix), Cases, Results),
-    assertion(Results == Expected).
+    maplist(indent_lines(Prefix), Cases, Results).
 % Skip test(indent_explicit_default) - not applicable
-test(indent_all_lines) :- % Add 'prefix' to all lines, including whitespace-only ones.
+test(indent_all_lines, Results == Expected) :- % Add 'prefix' to all lines, including whitespace-only ones.
     cases(Cases),
     Prefix = "  ",
     Expected = [
@@ -297,19 +312,11 @@ test(indent_all_lines) :- % Add 'prefix' to all lines, including whitespace-only
                 % Include a blank line
                 "  Hi.\n  This is a test.\n  \n  Testing.",
                 % Include leading and trailing blank lines
-
-                % TODO: This result is *different* from what Python
-                %       textwrap.indent does -- Python's code uses
-                %       splitlines(True) which preserves the
-                %       end-of-line character; our implementation
-                %       does a split on "\n"s.
-
-                "  \n  Hi.\n  This is a test.\n  Testing.\n  ",
+                "  \n  Hi.\n  This is a test.\n  Testing.\n",
                 % Pathological case
-                "  \n  Hi.\n  \n  This is a test.\n  \n  \n  Testing.\n  \n  \n  "
+                "  \n  Hi.\n  \n  This is a test.\n  \n  \n  Testing.\n  \n  \n"
                 ],
-    maplist(indent_lines(true_, Prefix), Cases, Results),
-    assertion(Results == Expected).
+    maplist(indent_lines(true_, Prefix), Cases, Results).
 % TODO: indent_empty_lines test case:
 /*
       def test_indent_empty_lines(self):

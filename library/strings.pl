@@ -37,7 +37,7 @@
             indent_lines/3,             % +Prefix,+In,-Out
             indent_lines/4,             % :Pred,+Prefix,+In,-Out
             interpolate_string/4,       % +In,-Out,+Map,+Options
-            split_lines/2,              % +In,-Lines
+            string_lines/2,             % ?In,?Lines
             string/4                    % Quasi quotation support
           ]).
 :- autoload(library(apply), [include/3, foldl/4, maplist/3, maplist/2]).
@@ -226,21 +226,35 @@ exec_interpolate1(_Map, goal(Goal), Out) :-
     format(string(Out), '~@', [Goal]).
 exec_interpolate1(_, String, String).
 
-%!  split_lines(+In, -Lines)
+%!  string_lines(?String, ?Lines)
 %
-%   Split a string into lines. The end-of-line characters are removed.
+%   True when String is the same as Lines concatenated with "\n"s.  If
+%   Lines is instantiated and ends with "\n", the last "\n" is
+%   ignored.
+%
+%   If String is instantiated, the resulting Lines does not end with
+%   "\n" -- if you want it to end with "\n", you can use
+%   string_concat/3 to append "\n".
+%
+%   If you wish to preserve all "\n"s when splitting String, you
+%   could use split_string(String, "\n", "", Lines).
 
-/* @tbd allow split_lines(-In, +Lines) */
-
-split_lines(In, Lines) :-
-    % TODO: properly handle empty lines (all whitespace)
-    split_string(In, "\n", "", Lines).
+string_lines(String, Lines) :-
+    (   var(String)
+    ->  atomics_to_string(Lines, "\n", String)
+    ;   split_string(String, "\n", "", Lines0),
+        (   append(Lines, [""], Lines0)
+        ->  true
+        ;   Lines = Lines0
+        )
+    ).
 
 %!  dedent_lines(+In, -Out, +Options)
 %
 %   Remove shared indentation for all lines in a string. Lines are separated
 %   by "\n" -- conversion to and from  external forms  (such as "\r\n")  are
 %   typically done by the I/O predicates.
+%   A final "\n" is preserved.
 %
 %   Options:
 %
@@ -257,7 +271,8 @@ dedent_lines(In, Out, Options) :-
     option(chars(Chars), Options, "\s\t"),
     string_codes(Sep, Chars),
     How = s(Tab,Sep),
-    split_lines(In, Lines),
+    % Use split_string/4 rather than string_lines/2, to preserve final "\n".
+    split_string(In, "\n", "", Lines),
     foldl(common_indent(How), Lines, _, Indent0),
     prepare_delete(Indent0, Indent),
     maplist(dedent_line(Tab, Indent), Lines, Dedented),
@@ -307,7 +322,8 @@ shared_prefix([H|T0], [H|T1], [H|T]) :-
 shared_prefix(_, _, []).
 
 line_indent_width(Line, Indent, Tab, Sep) :-
-    (   Line == ""  % DO NOT SUBMIT - redundant: code_indent_width([], 0, Indent, ...) doesn't instantiate Indent
+    % TODO: redundant: code_indent_width([], 0, Indent, ...) doesn't instantiate Indent
+    (   Line == ""
     ->  true
     ;   string_codes(Line, Codes),
         code_indent_width(Codes, 0, Indent, Tab, Sep)
@@ -383,13 +399,23 @@ indent_lines(Prefix, In, Out) :-
 
 %!  indent_lines(+Prefix, +In, -Out)
 %
-%   Add Prefix to the beginning of lines in In. Lines are separated by "\n".
+%   Add Prefix to the beginning of lines in In. Lines are separated by
+%   "\n" -- conversion to and from external forms (such as "\r\n") are
+%   typically done by the I/O predicates.
 %   Indenting is only done for lines where Pred succeeds.
+%   A final "\n" is preserved.
 
 indent_lines(Pred, Prefix, In, Out) :-
-    split_lines(In, Lines),
-    maplist(concat_to_string(Pred, Prefix), Lines, IndentedLines),
-    atomics_to_string(IndentedLines, "\n", Out).
+    % Use split_string/4 rather than string_lines/2, to preserve final "\n".
+    split_string(In, "\n", "", Lines0),
+    (   append(Lines, [""], Lines0)
+    ->  maplist(concat_to_string(Pred, Prefix), Lines, IndentedLines0),
+        append(IndentedLines0, [""], IndentedLines),
+        atomics_to_string(IndentedLines, "\n", Out)
+    ;   Lines = Lines0,
+        maplist(concat_to_string(Pred, Prefix), Lines, IndentedLines),
+        atomics_to_string(IndentedLines, "\n", Out)
+    ).
 
 ignore_whitespace_line(Str) :-
     \+ split_string(Str, "", " \t", [""]).
