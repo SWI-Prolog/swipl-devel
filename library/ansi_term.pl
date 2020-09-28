@@ -444,7 +444,7 @@ ansi_get_color_(Which, rgb(R,G,B)) :-
     hex4(RH),
     hex4(GH),
     hex4(BH),
-    append([`\e]`, Id, `;rgb:`, RH, `/`, GH, `/`, BH, `\a`], Pattern),
+    phrase(("\e]", Id, ";rgb:", RH, "/", GH, "/", BH, "\a"), Pattern),
     call_with_time_limit(0.05,
                          with_tty_raw(exchange_pattern(Which, Pattern))),
     !,
