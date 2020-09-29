@@ -1,6 +1,6 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker and Peter Ludeman
+    Author:        Jan Wielemaker and Peter Ludemann
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2020, SWI-Prolog Solutions b.v.
@@ -223,7 +223,7 @@ test(dedent_preserve_margin_tabs, [Dedent1, Dedent2, Dedent3, Dedent4, Dedent5] 
 % different convention (I/O handles conversion of all line-ends to
 % "\n" internally).
 
-cases([
+roundtrip_cases([
        % Basic test case
        "Hi.\nThis is a test.\nTesting.",
        % Include a blank line
@@ -232,16 +232,25 @@ cases([
        "\nHi.\nThis is a test.\nTesting.\n",
        % Windows line ending ("\r\n") test cases have been removed.
        % Pathological case
-       "\nHi.\n\nThis is a test.\n\n\nTesting.\n\n\n"
-       % TODO: Additional sanity tests
-       % " "
-       % "\n",
-       % "\n ",
-       % "\n\n",
-       % "\n \n",
-       % " \n",
-       % ""
+       "\nHi.\n\nThis is a test.\n\n\nTesting.\n\n\n",
+       % Additional sanity tests
+       "\n",
+       "\n\n",
+       "",
+       "T1\n"
       ]).
+
+cases(Cases) :-
+    roundtrip_cases(RoundtripCases),
+    append(RoundtripCases, [
+       " ",
+       "  ",
+       "  \n",
+       "T2",
+       "\n ",
+       "\n \n",
+       " \n"
+       ], Cases).
 
 true_(_).                       % Pred for indent - always succeeds
 fail_(_) :- fail.               % Pred for indent - always fails.
@@ -251,30 +260,24 @@ test(indent_nomargin_default, Cases == Outs) :- % indent should do nothing if 'p
     maplist(indent_lines(""), Cases, Outs).
 % Skip test(indent_nomargin_explicit_default) - not applicable
 test(indent_nomargin_all_lines, Cases == Outs) :- % The same as indent_nomargin, but
-                                                % using the optional predicate argument
+                                                  % using the optional predicate argument
     cases(Cases),
     maplist(indent_lines(true_, ""), Cases, Outs).
 test(indent_no_lines, Cases == Outs) :- % Explicitly skip indenting any lines
     cases(Cases),
     maplist(indent_lines(fail_, "    "), Cases, Outs).
 test(roundtrip_spaces, Cases == Cases2) :- % A whitespace prefix should roundtrip with dedent.
-    cases(Cases),
+    roundtrip_cases(Cases),
     maplist(indent_lines("    "), Cases, IndentedCases),
     maplist(dedent_lines_default, IndentedCases, Cases2).
-% TODO: roundtrip_tabs when supported by dedent
-/*
-      def test_roundtrip_tabs(self):
-        # A whitespace prefix should roundtrip with dedent
-        for text in self.ROUNDTRIP_CASES:
-            self.assertEqual(dedent(indent(text, '\t\t')), text)
-  */
-% TODO: roundtrip_mixed when supported by dedent
-/*
-      def test_roundtrip_mixed(self):
-        # A whitespace prefix should roundtrip with dedent
-        for text in self.ROUNDTRIP_CASES:
-            self.assertEqual(dedent(indent(text, ' \t  \t ')), text)
-  */
+test(roundtrip_tabs, Cases == Cases2) :- % A whitespace prefix should roundtrip with dedent
+    roundtrip_cases(Cases),
+    maplist(indent_lines("\t\t"), Cases, IndentedCases),
+    maplist(dedent_lines_default, IndentedCases, Cases2).
+test(roundtrip_mixed, Cases == Cases2) :- % A whitespace prefix should roundtrip with dedent
+    roundtrip_cases(Cases),
+    maplist(indent_lines(" \t  \t "), Cases, IndentedCases),
+    maplist(dedent_lines_default, IndentedCases, Cases2).
 test(indent_default, Results == Expected) :- % Test default indenting of lines that are not whitespace only
     cases(Cases),
     Prefix = "  ",
@@ -287,15 +290,19 @@ test(indent_default, Results == Expected) :- % Test default indenting of lines t
                 "\n  Hi.\n  This is a test.\n  Testing.\n",
                 % Windows line ending ("\r\n") test cases have been removed.
                 % Pathological case
-                "\n  Hi.\n\n  This is a test.\n\n\n  Testing.\n\n\n"
-                % TODO: Additional sanity tests
-                % "  ",
-                % "\n  ",
-                % "\n  ",
-                % "\n  \n  ",
-                % "\n  \n  ",
-                % "   \n  ",
-                % "  "
+                "\n  Hi.\n\n  This is a test.\n\n\n  Testing.\n\n\n",
+                % Additional sanity tests
+                "\n",
+                "\n\n",
+                "",
+                "  T1\n",
+                " ",
+                "  ",
+                "  \n",
+                "  T2",
+                "\n ",
+                "\n \n",
+                " \n"
                ],
     maplist(indent_lines(Prefix), Cases, Results).
 % Skip test(indent_explicit_default) - not applicable
@@ -310,39 +317,50 @@ test(indent_all_lines, Results == Expected) :- % Add 'prefix' to all lines, incl
                 % Include leading and trailing blank lines
                 "  \n  Hi.\n  This is a test.\n  Testing.\n",
                 % Pathological case
-                "  \n  Hi.\n  \n  This is a test.\n  \n  \n  Testing.\n  \n  \n"
+                "  \n  Hi.\n  \n  This is a test.\n  \n  \n  Testing.\n  \n  \n",
+                % Additional sanity tests
+                "  \n",
+                "  \n  \n",
+                "",
+                "  T1\n",
+                "   ",
+                "    ",
+                "    \n",
+                "  T2",
+                "  \n   ",
+                "  \n   \n",
+                "   \n"
                 ],
     maplist(indent_lines(true_, Prefix), Cases, Results).
-% TODO: indent_empty_lines test case:
-/*
-      def test_indent_empty_lines(self):
-        # Add 'prefix' solely to whitespace-only lines.
-        prefix = '  '
-        expected = (
-          # Basic test case
-          "Hi.\nThis is a test.\nTesting.",
-          # Include a blank line
-          "Hi.\nThis is a test.\n  \nTesting.",
-          # Include leading and trailing blank lines
-          "  \nHi.\nThis is a test.\nTesting.\n",
-          # Use Windows line endings
-          "Hi.\r\nThis is a test.\r\nTesting.\r\n",
-          # Pathological case
-          "  \nHi.\r\nThis is a test.\n  \r\nTesting.\r\n  \n",
-         " ",
-       # Additional sanity tests
-       "\n",
-       "\n ",
-       "\n\n",
-       "\n \n",
-       " \n",
-       ""
+test(indent_empty_lines, Results == Expected) :- % Add 'prefix' solely to whitespace-only lines.
+    cases(Cases),
+    Prefix = "  ",
+    Expected = [
+                % Basic test case
+                "Hi.\nThis is a test.\nTesting.",
+                % Include a blank line
+                "Hi.\nThis is a test.\n  \nTesting.",
+                % Include leading and trailing blank lines
+                "  \nHi.\nThis is a test.\nTesting.\n",
+                % Pathological case
+                "  \nHi.\n  \nThis is a test.\n  \n  \nTesting.\n  \n  \n",
+                % Additional sanity tests
+                "  \n",
+                "  \n  \n",
+                "",
+                "T1\n",
+                "   ",
+                "    ",
+                "    \n",
+                "T2",
+                "  \n   ",
+                "  \n   \n",
+                "   \n"
+               ],
+    maplist(indent_lines(whitespace_only_, Prefix), Cases, Results).
 
-        )
-        predicate = lambda line: not line.strip()
-        for text, expect in zip(self.CASES, expected):
-            self.assertEqual(indent(text, prefix, predicate), expect)
-  */
+whitespace_only_(Str) :-
+  split_string(Str, "", " \t", [""]).
 
 
 :- end_tests(strings).
