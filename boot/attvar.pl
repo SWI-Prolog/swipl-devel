@@ -169,11 +169,11 @@ portray_attrs(att(Name, Value, Rest), Var) :-
 
 portray_attr(freeze, Goal, Var) :-
     !,
-    format('freeze(~w, ~W)', [ Var, Goal,
-                               [ portray(true),
-                                 quoted(true),
-                                 attributes(ignore)
-                               ]
+    Options = [ portray(true),
+                quoted(true),
+                attributes(ignore)
+              ],
+    format('freeze(~W, ~W)', [ Var, Options, Goal, Options
                              ]).
 portray_attr(Name, Value, Var) :-
     G = Name:attr_portray_hook(Value, Var),
