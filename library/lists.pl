@@ -556,6 +556,8 @@ sum_list([X|Xs], Sum0, Sum) :-
 %!  prod_list(+List, -Prod) is det.
 %
 %   Prod is the result of multiplying all numbers in List.
+%   If List = [], Prod is 1 since it is the neutral 
+%   element of multiplication
 
 prod_list(Xs, Prod) :-
     prod_list(Xs, 1, Prod).
