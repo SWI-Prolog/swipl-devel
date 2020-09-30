@@ -1392,17 +1392,15 @@ localDefinition(Definition def ARG_LD)
   LocalDefinitions v = def->impl.local;
 
   if ( !v->blocks[idx] )
-  { if ( !v->blocks[idx] )
-    { size_t bs = (size_t)1<<idx;
-      Definition *newblock;
+  { size_t bs = (size_t)1<<idx;
+    Definition *newblock;
 
-      if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(Definition))) )
-	outOfCore();
+    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(Definition))) )
+      outOfCore();
 
-      memset(newblock, 0, bs*sizeof(Definition));
-      if ( !COMPARE_AND_SWAP_PTR(&v->blocks[idx], NULL, newblock-bs) )
-	PL_free(newblock);
-    }
+    memset(newblock, 0, bs*sizeof(Definition));
+    if ( !COMPARE_AND_SWAP_PTR(&v->blocks[idx], NULL, newblock-bs) )
+      PL_free(newblock);
   }
 
   if ( !v->blocks[idx][tid] )
