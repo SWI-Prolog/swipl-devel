@@ -3515,10 +3515,11 @@ setThreadLocalDefinition(Definition def, bool val)
     { UNLOCKDEF(def);
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
     }
-    set(def, P_DYNAMIC|P_VOLATILE|P_THREAD_LOCAL);
 
-    def->codes = SUPERVISOR(thread_local);
     def->impl.local = new_ldef_vector();
+    MEMORY_RELEASE();
+    set(def, P_DYNAMIC|P_VOLATILE|P_THREAD_LOCAL);
+    def->codes = SUPERVISOR(thread_local);
 
     UNLOCKDEF(def);
     return TRUE;
