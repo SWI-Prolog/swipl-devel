@@ -1428,7 +1428,8 @@ getProcDefinition__LD(Definition def ARG_LD)
 {
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
-  { return localDefinition(def PASS_LD);
+  { MEMORY_ACQUIRE();
+    return localDefinition(def PASS_LD);
   }
 #endif
 
