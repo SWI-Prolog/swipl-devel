@@ -380,7 +380,7 @@ checkModifySystemProc(functor_t fd)
 int
 overruleImportedProcedure(Procedure proc, Module target)
 { GET_LD
-  Definition def = getProcDefinition(proc);
+  Definition def = proc->definition;	/* we do *not* want a thread-local version */
 
   if ( true(def, P_AUTOLOAD) )
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
