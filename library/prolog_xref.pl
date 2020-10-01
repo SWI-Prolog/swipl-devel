@@ -2228,7 +2228,8 @@ open_include_file(Path, In, [Ref]) :-
     stream_property(Parent, encoding(Enc)),
     '$push_input_context'(xref_include),
     catch((   prolog:xref_open_source(Path, In)
-          ->  set_stream(In, encoding(Enc))
+          ->  catch(set_stream(In, encoding(Enc)),
+                    error(_,_), true)       % deal with non-file input
           ;   include_encoding(Enc, Options),
               open(Path, read, In, Options)
           ), E,
