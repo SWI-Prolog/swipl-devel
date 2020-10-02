@@ -23,7 +23,7 @@ COREMODULES+=" packages/zlib packages/tipc packages/table packages/ltx2htm"
 COREMODULES+=" packages/nlp packages/cpp packages/PDT packages/utf8proc"
 COREMODULES+=" packages/archive packages/swipl-win packages/pengines"
 COREMODULES+=" packages/cql packages/bdb packages/readline packages/libedit"
-COREMODULES+=" packages/pcre packages/yaml packages/paxos"
+COREMODULES+=" packages/pcre packages/yaml packages/paxos packages/redis"
 
 if [ -r modules ]; then
   SUBMODULES="`cat modules`"

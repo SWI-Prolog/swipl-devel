@@ -48,6 +48,7 @@ set(SWIPL_PACKAGE_LIST_BASIC
     ltx2htm
     nlp
     paxos
+    redis
     PDT
     pengines
     pldoc
