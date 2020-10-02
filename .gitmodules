@@ -109,3 +109,6 @@
 [submodule "packages/paxos"]
 	path = packages/paxos
 	url = ../packages-paxos.git
+[submodule "packages/redis"]
+	path = packages/redis
+	url = ../packages-redis.git
