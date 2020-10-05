@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2017, VU University Amsterdam
+    Copyright (c)  2013-2020, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -597,7 +598,7 @@ get_name_ex(term_t t, Word np ARG_LD)
 
 
 static int
-get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
+get_name_value(Word p, Word name, Word value, mark *m, int flags ARG_LD)
 { const char *type;
 
   deRef(p);
@@ -618,7 +619,7 @@ get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
 
 	return TRUE;
       } else
-      { gTop = mark;
+      { Undo(*m);
 	PL_type_error("dict-key", pushWordAsTermRef(np));
 	popTermRef();
 
@@ -640,7 +641,7 @@ get_name_value(Word p, Word name, Word value, Word mark, int flags ARG_LD)
   else
     type = "key-value";
 
-  gTop = mark;
+  Undo(*m);
   PL_type_error(type, pushWordAsTermRef(p));
   popTermRef();
 
@@ -684,7 +685,8 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 
   if ( PL_is_list(data) )
   { intptr_t len = lengthList(data, TRUE);
-    Word m, ap, tail;
+    Word ap, dp, tail;
+    mark m;
 
     if ( len < 0 )
       return FALSE;			/* not a proper list */
@@ -693,9 +695,10 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     { if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
        return FALSE;
     }
-    if ( !(m = allocGlobal(len*2+2)) )
+    if ( !(ap = allocGlobal(len*2+2)) )
       return FALSE;			/* global overflow */
-    ap = m;
+    Mark(m);
+    dp = ap;
     *ap++ = dict_functor(len);
     if ( tag )
     { Word cp = valTermRef(tag);
@@ -716,18 +719,16 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     while( isList(*tail) )
     { Word head = HeadList(tail);
 
-      if ( !get_name_value(head, ap+1, ap, m, flags PASS_LD) )
-      {
+      if ( !get_name_value(head, ap+1, ap, &m, flags PASS_LD) )
 	return FALSE;
-      }
       ap += 2;
       tail = TailList(tail);
       deRef(tail);
     }
 
-    if ( dict_order(m, TRUE PASS_LD) )
+    if ( dict_order(dp, TRUE PASS_LD) )
     { gTop = ap;
-      *valTermRef(dict) = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(dict) = consPtr(dp, TAG_COMPOUND|STG_GLOBAL);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return TRUE;
     } else
