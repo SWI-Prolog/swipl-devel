@@ -237,7 +237,7 @@ pl_format_predicate(term_t chr, term_t descr)
   if ( !format_predicates )
     format_predicates = newHTable(8);
 
-  addHTable(format_predicates, (void *)(intptr_t)c, proc);
+  updateHTable(format_predicates, (void *)(intptr_t)c, proc);
 
   succeed;
 }
