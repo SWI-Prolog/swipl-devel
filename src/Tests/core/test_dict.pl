@@ -142,6 +142,8 @@ test('dict_pairs/3') :-
 test('dict_pairs/3') :-
 	dict_pairs(D, a, [k1-v1, k2-v2]),
 	D == a{k1:v1, k2:v2}.
+test('dict_pairs/3', error(type_error('dict-key', "k1"))) :-
+	dict_pairs(_, a, ["k1"-v1, "k2"-v2]).
 test('get_dict/3') :-
 	get_dict(k1, a{k1:v1}, V),
 	V == v1.
