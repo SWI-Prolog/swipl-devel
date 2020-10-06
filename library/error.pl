@@ -285,14 +285,16 @@ is_not(cyclic, X) :-
 is_not(acyclic, X) :-
     domain_error(acyclic_term, X).
 is_not(Type, X) :-
+    current_type(Type, _Var, _Body),
+    !,
     (   var(X)
     ->  instantiation_error(X)
     ;   ground_type(Type), \+ ground(X)
     ->  instantiation_error(X)
-    ;   current_type(Type, _Var, _Body)
-    ->  type_error(Type, X)
-    ;   existence_error(type, Type)
+    ;   type_error(Type, X)
     ).
+is_not(Type, _) :-
+    existence_error(type, Type).
 
 ground_type(ground).
 ground_type(oneof(_)).
