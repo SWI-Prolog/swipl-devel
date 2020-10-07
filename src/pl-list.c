@@ -451,12 +451,12 @@ prolog_list_to_sort_list(term_t t,		/* input list */
       return SORT_ERR;
     }
     l = valTermRef(t);			/* may be shifted */
-    deRef(l);
   }
 
   p = (list)gTop;
   *lp = p;
 
+  deRef(l);
   while(len-- > 0)
   { p->item.term = HeadList(l);
     deRef(p->item.term);
