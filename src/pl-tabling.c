@@ -6266,8 +6266,8 @@ reset_evaluate_node(trie_node *n, void *ctx)
   }
 
   if ( true(n, TN_IDG_ADDED) )
-  { trie_delete(atrie, n, TRUE);
-  } else
+  { trie_delete(atrie, n, FALSE);	/* we are enumerating this node */
+  } else				/* and cannot delete it (now) */
   { set(n, TN_IDG_DELETED);
     if ( true(n, TN_IDG_SAVED_UNCONDITIONAL) )
       set(n, TN_IDG_UNCONDITIONAL);
