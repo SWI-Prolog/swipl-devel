@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH @PL@ 1 "Apr 10, 2015" "SWI-Prolog 7"
+.TH @PL@ 1 "Oct 10, 2020" "SWI-Prolog 8"
 .SH NAME
 @PL@ \- SWI-Prolog @PLVERSION@
 .SH SYNOPSIS
@@ -52,19 +52,19 @@ format from the WWW home page at
 .SH OPTIONS
 .TP
 .B \-\-help
-Gives a summary of the most important options.
+Give a summary of the most important options.
 .TP
 .B \-\-version
-Displays version and architecture information.
+Display version and architecture information.
 .TP
 .B \-\-abi\-version
-Displays ABI version key.  This key indicates binary compatibility of
+Display ABI version key.  This key indicates binary compatibility of
 various interfaces.
 .TP
 .B \-\-arch
-Prints the architecture identifier.
+Print the architecture identifier.
 .TP
-.B \-\-dump\-runtime\-variables[=format]
+.BR \-\-dump\-runtime\-variables [=format]
 Dump information that is generally useful for installation scripts in
 a form defined by
 .IR format .
@@ -73,7 +73,7 @@ Defines formats are
 This option is used by
 .B swipl-ld (1)
 to fetch necessary information about Prolog.  It is normally invoked as
-.I eval `@PL@ -dump-runtime-variables`,
+.I eval `@PL@ --dump-runtime-variables`,
 which assigns the following shell variables:
 .RS
 .TP
@@ -150,7 +150,7 @@ Use
 as home directory.
 .TP
 .BI \-\-stack\-limit= size [bkmg]
-Sets the combined stack limit to
+Set the combined stack limit to
 .IR size " bytes."
 The suffix is case insensitive and defines the unit as
 .IR b " (bytes),"
@@ -159,8 +159,7 @@ The suffix is case insensitive and defines the unit as
 .IR g " (Gbytes)."
 .TP
 .BI \-\-table\-space= size [bkmg]
-Sets the space limit for tables use for SLG resolution
-(tabling) to
+Set the table space limit for SLG resolution (tabling) to
 .IR size " bytes."
 The suffixes are the same as for the
 .B --stack-limit
@@ -187,7 +186,7 @@ by the normal Prolog compiler into an intermediate code file. This
 option is for system maintenance and is given for reference only.
 .TP
 .BI \-c " file ..."
-Compiles
+Compile
 .I "file ..."
 into an intermediate code file.
 .TP
@@ -325,7 +324,7 @@ using the
 or
 .B \-c
 option, or created using
-.B qsave_program/[1,2].
+.BR qsave_program/[1,2] .
 .TP
 .BR \-\-tty [=bool]
 Switches tty control (using
@@ -367,7 +366,7 @@ Disable SWI-Prolog version 7 extensions that are incompatible with earlier
 versions.
 .TP
 .B \-\-
-Stops scanning for more arguments.
+Stop scanning for more arguments.
 .SH ENVIRONMENT VARIABLES
 .TP
 .I SWI_HOME_DIR
