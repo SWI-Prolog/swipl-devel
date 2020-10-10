@@ -166,7 +166,7 @@ packages and documentation.
     ninja
 
 To stop using PGO builds in the current build directory run the commands
-below. The `pgo-compile.sh  -off`  restores   the  normal  build  flags,
+below. The `pgo-compile.sh --off`  restores   the  normal  build  flags,
 deletes the PGO data and cleans the core system files.
 
     ../scripts/pgo-compile.sh --off
