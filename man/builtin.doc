@@ -6345,10 +6345,10 @@ following options are recognised:
 
     \begin{description}
     \termitem{prompt}{+Prompt}
-Define the promot to use.  The default is \verb$~! ?-$.  A sequence
+Define the prompt to use.  The default is \verb$~! ?-$.  A sequence
 \verb$~!$ is replaced by the current history event number.
     \termitem{show}{+Command}
-Using \arg{Command} lists the saved hisgtory events.  Default is
+Using \arg{Command} lists the saved history events.  Default is
 \const{!history}.
     \termitem{help}{+Command}
 Using \arg{Command} shows help on the history system.  Default is
@@ -6367,7 +6367,7 @@ Stream from which to read \arg{Term}.  Default is \const{user_input}.
 
 Most applications will use the read_term/2 option \const{variable_names}
 to get access to the names of the variables in \arg{Term}. SWI-Prolog
-calls read_history/6 as follows:
+calls read_term_with_history/2 as follows:
 
 \begin{code}
     read_term_with_history(
