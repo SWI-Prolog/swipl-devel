@@ -144,6 +144,11 @@ if Prolog was compiled for multi-threading and
 otherwise.
 .RE
 .TP
+.BI \-\-home= DIR
+Use
+.I DIR
+as home directory.
+.TP
 .BI \-\-stack\-limit= size [bkmg]
 Sets the combined stack limit to
 .IR size " bytes."
@@ -156,6 +161,13 @@ The suffix is case insensitive and defines the unit as
 .BI \-\-table\-space= size [bkmg]
 Sets the space limit for tables use for SLG resolution
 (tabling) to
+.IR size " bytes."
+The suffixes are the same as for the
+.B --stack-limit
+option.
+.TP
+.BI \-\-shared\-table\-space= size [bkmg]
+Set the table space limit for shared tabling to
 .IR size " bytes."
 The suffixes are the same as for the
 .B --stack-limit
@@ -186,6 +198,18 @@ This option is for system maintenance and is given for reference only.
 .TP
 .BR \-\-packs [=bool]
 Disable attaching extension packs (add-ons).
+.TP
+.BR \-\-pce [=bool]
+Disable the XPCE GUI subsystem.
+.TP
+.BR \-\-pldoc [=port]
+Start the PlDoc documentation system on a free network port and launch the user's browser on
+.IR http://localhost:port .
+If
+.I port
+is specified, the server is started at the given
+.I port
+but the browser is not launched.
 .TP
 .BI \-f " file"
 Use
@@ -232,6 +256,12 @@ in which they appear on the argument list.
 Operate silently.  This option suppresses all
 .I informational
 messages.
+.TP
+.BR \-\-debug [=bool]
+Disable generating code that can be debugged using
+.IR trace/0 ,
+.IR spy/1 ,
+etc.
 .TP
 .BI \-g " goal"
 .I Goal
@@ -306,6 +336,15 @@ used from an editor such as GNU Emacs. If switched off,
 .B get_single_char/1
 and the tracer will wait for a carriage return.
 .TP
+.B \-\-win\-app
+This option is available only in
+.IR swipl-win.exe .
+The Start menu shortcut uses this option to change the working directory to
+.IR ...\eDocuments\eProlog .
+The
+.I Prolog
+subdirectory will be created if it does not exist.
+.TP
 .BR \-\-signals [=bool]
 Disable handling of signals.  Often used if SWI-Prolog is embedded in
 another application on Unix systems.
@@ -322,6 +361,10 @@ of thread signals until the blocking system call completes.
 Disable creating threads in the multi-threaded version.  This notably
 prevents running global garbage collection on a separate thread and
 may be used for situations where multiple threads are not desirable.
+.TP
+.B \-\-traditional
+Disable SWI-Prolog version 7 extensions that are incompatible with earlier
+versions.
 .TP
 .B \-\-
 Stops scanning for more arguments.
