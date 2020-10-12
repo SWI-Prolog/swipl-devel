@@ -1271,6 +1271,8 @@ xref_meta(assertion(G),         [G]).   % library(debug)
 xref_meta(freeze(_, G),         [G]).
 xref_meta(when(C, A),           [C, A]).
 xref_meta(time(G),              [G]).   % development system
+xref_meta(call_time(G, _),      [G]).   % development system
+xref_meta(call_time(G, _, _),   [G]).   % development system
 xref_meta(profile(G),           [G]).
 xref_meta(at_halt(G),           [G]).
 xref_meta(call_with_time_limit(_, G), [G]).

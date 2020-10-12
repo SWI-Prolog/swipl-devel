@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2019, University of Amsterdam
+    Copyright (c)  1999-2020, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,8 @@
             statistics/1,               % -Stats
             thread_statistics/2,        % ?Thread, -Stats
             time/1,                     % :Goal
+            call_time/2,                % :Goal, -Time
+            call_time/3,                % :Goal, -Time, -Result
             profile/1,                  % :Goal
             profile/2,                  % :Goal, +Options
             show_profile/1,             % +Options
@@ -52,11 +55,12 @@
 :- autoload(library(prolog_code),
 	    [predicate_sort_key/2,predicate_label/2]).
 
-
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
     time(0),
+    call_time(0, -, -),
+    call_time(0, -),
     profile(0),
     profile(0, +),
     profile_procedure_data(:, -).
@@ -289,12 +293,13 @@ thread_stats(Thread, Stacks,
 %   @bug Inference statistics are often a few off.
 %   @see statistics/2 for obtaining statistics in your program and
 %        understanding the reported values.
+%   @see call_time/2, call_time/3 to obtain the timing in a dict.
 
 time(Goal) :-
     time_state(State0),
     (   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
                      Det = true),
-        time_true(State0),
+        time_true_report(State0),
         (   Det == true
         ->  !
         ;   true
@@ -303,32 +308,75 @@ time(Goal) :-
         fail
     ).
 
-report(t(OldWall, OldTime, OldInferences), Sub) :-
-    time_state(t(NewWall, NewTime, NewInferences)),
-    UsedTime is NewTime - OldTime,
-    UsedInf  is NewInferences - OldInferences - Sub,
-    Wall     is NewWall - OldWall,
-    (   UsedTime =:= 0
-    ->  Lips = 'Infinite'
-    ;   Lips is integer(UsedInf / UsedTime)
-    ),
-    print_message(information, time(UsedInf, UsedTime, Wall, Lips)).
+%!  call_time(:Goal, -Time:dict).
+%!  call_time(:Goal, -Time:dict, -Result).
+%
+%   Call Goal as  call/1,  unifying  Time   with  a  dict  that provides
+%   information on the  resource  usage.   Currently  Time  contains the
+%   keys below.  Future versions may provide additional keys.
+%
+%     - wall:Seconds
+%     - cpu:Seconds
+%     - inferences:Count
+%
+%   @arg Result is one of `true` or  `false` depending on whether or not
+%   the goal succeeded.
 
-time_state(t(Wall, Time, Inferences)) :-
+call_time(Goal, Time) :-
+    call_time(Goal, Time, true).
+call_time(Goal, Time, Result) :-
+    time_state(State0),
+    (   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
+                     Det = true),
+        Result = true,
+        time_true_used(State0, Time),
+        (   Det == true
+        ->  !
+        ;   true
+        )
+    ;   time_used(State0, 11, Time),
+        Result = false
+    ).
+
+report(State0, Sub) :-
+    time_used(State0, Sub, time{wall:Wall, cpu:Time, inferences:Inferences}),
+    (   Time =:= 0
+    ->  Lips = 'Infinite'
+    ;   Lips is integer(Inferences/Time)
+    ),
+    print_message(information, time(Inferences, Time, Wall, Lips)).
+
+time_used(time{wall:OldWall, cpu:OldTime, inferences:OldInferences}, Sub,
+          time{wall:Wall, cpu:Time, inferences:Inferences}) :-
+    time_state(time{wall:NewWall, cpu:NewTime, inferences:NewInferences}),
+    Time       is NewTime - OldTime,
+    Inferences is NewInferences - OldInferences - Sub,
+    Wall       is NewWall - OldWall.
+
+time_state(time{wall:Wall, cpu:Time, inferences:Inferences}) :-
     get_time(Wall),
     statistics(cputime, Time),
     statistics(inferences, Inferences).
 
-time_true(State0) :-
-    report(State0, 12).             % leave choice-point
+time_true_report(State) :-             % leave choice-point
+    report(State, 12).
+time_true_report(State) :-
+    time_true(State).
+
+time_true_used(State, Time) :-         % leave choice-point
+    time_used(State, 12, Time).
+time_true_used(State, _) :-
+    time_true(State).
+
+
 time_true(State) :-
     get_time(Wall),
     statistics(cputime, Time),
     statistics(inferences, Inferences0),
-    plus(Inferences0, -3, Inferences),
-    nb_setarg(1, State, Wall),
-    nb_setarg(2, State, Time),
-    nb_setarg(3, State, Inferences),
+    Inferences is Inferences0 - 5,
+    nb_set_dict(wall, State, Wall),
+    nb_set_dict(cpu, State, Time),
+    nb_set_dict(inferences, State, Inferences),
     fail.
 
 
