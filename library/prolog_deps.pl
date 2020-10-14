@@ -225,8 +225,16 @@ missing_autoload(Src, Head, From-Head) :-
     xref_defined(Src, Head, imported(From)),
     !.
 missing_autoload(_Src, Head, File-Head) :-
-    predicate_property(Head, autoload(File)),
-    !.
+    predicate_property(Head, autoload(File0)),
+    !,
+    (   absolute_file_name(File0, File,
+                           [ access(read),
+                             file_type(prolog),
+                             file_errors(fail)
+                           ])
+    ->  true
+    ;   File = File0
+    ).
 missing_autoload(_Src, Head, File-Head) :-
     noautoload(Head, File),
     !.
@@ -268,11 +276,11 @@ update_directive(Dir0, Deps0, Deps, Dir) :-
     select(DepFile-Heads, Deps0, Deps),
     same_dep_file(DepFile, File),
     !,
-    (   Dir0 =.. [Pred,File,Imports]
+    (   Dir0 =.. [Pred,File0,Imports]
     ->  maplist(pi_head, PIs, Heads),
         subtract(PIs, Imports, New),
         append(Imports, New, NewImports),
-        Dir =.. [Pred,File,NewImports]
+        Dir =.. [Pred,File0,NewImports]
     ;   Dir = Dir0
     ).
 
