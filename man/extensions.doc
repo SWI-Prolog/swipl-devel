@@ -721,33 +721,42 @@ Below is an example that illustrates the representation of a typical
 {}({;(=([]([10],a),5),;(update()))},func(arg))
 \end{code}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Dicts: structures with named arguments}
 \label{sec:bidicts}
 
-SWI-Prolog version~7 introduces the \jargon{dict} as an abstract object
-with a concrete modern syntax. It also adds a functional notation \const{dict.key} 
-for accessing dict entries and for calling ``functions associated to
-a dict`` \const{dict.func(x)} which resolve to user-defined predicates.
+SWI-Prolog version~7 introduces the \jargon{dict}, a mapping of
+keys to values, as an abstract object with a concrete modern syntax.
+It adds functional notation 
+\const{dict.key} for accessing dict entries and
+\const{dict.func(x)} for calling ``functions associated to a dict'' 
+which resolve to user-defined predicates.
 
-The syntax for defining a dict (a \jargon{dict literal}) is as follows:
+The syntax for defining a dict (the \jargon{dict literal}) is as follows:
 
 \begin{quote}
 Tag\{Key1:Value1, Key2:Value2, ...\}
 \end{quote}
 
+Where:
+
 \begin{itemize}
-\item The dict's \arg{tag} is generally either an unbound variable (then
+\item The dict's \jargon{tag} is generally either an unbound variable (then
 we have an \jargon{anonymous dict}) or an atom, but arbitrary terms are 
-allowed. Similar to compound terms, there is \textbf{no} space between the
-dict's \jargon{tag} and the subsequent opening brace. 
-\item The dict's \jargon{keys} are either atoms or ``small'' integers.
-\footnote{Integers up to \prologflag{max_tagged_integer} to be precise, 
-which can be quite large. The query 
+allowed. Similar to compound terms, there is \emph{no} space between the
+dict's \jargon{tag} and the subsequent opening brace. A tag that is an atom
+\emph{associates the dict to a module}, i.e. if SWI-Prolog encounters a
+function call on the dict, it will look for a corresponding predicate
+in the module named like the tag.
+%
+\item The dict's \jargon{keys} are either atoms or ``small''%
+\footnote{Integers up to \prologflag{max_tagged_integer}, 
+which can be quite large. For example, the query 
 \const{?- current_prolog_flag(max_tagged_integer,X).} yields 
-\const{X = 72057594037927935.} on my machine}% 
+\const{X = 72057594037927935.} on the local machine}
+integers. 
 A dict may \emph{not} hold duplicate keys.
+%
 \item The dict's \jargon{values} are arbitrary Prolog terms which are parsed
 using the same rules as used for arguments in compound terms.
 \end{itemize}
@@ -761,42 +770,33 @@ of terms (see \secref{standardorder}).
 
 Here are some examples:
 
-\begin{code}
-% An anonymous dict with two entries:
+An anonymous dict with two entries:
 
+\begin{code}
 ?- X0 = _{x:1, y:2}.
 X0 = _28190{x:1, y:2}.
+\end{code}
 
-% A dict with an unusual, complex tag and two entries:
+A dict with an unusual, complex tag and two entries:
 
+\begin{code}
 ?- X1 = A{x:1, y:2}, A=foo(bar,baz).
 X1 = foo(bar, baz){x:1, y:2},
 A = foo(bar, baz).
+\end{code}
 
-% A standard dict representing a point in some 2-D space:
+A dict representing a point in some 2-dimensional space. The variously written
+dict literals yield dicts that unify and are ``the same'' according to \predref{==}{2}.
 
-?- D1 = point{x:1, y:2}.
-D1 = point{x:1, y:2}.
-
-% The same as D1, but the dict literal's entries are ordered differently:
-
-?- D2 = point{y:2, x:1}.
-D2 = point{x:1, y:2}.
-
-% D1 and D2 would unify:
-
+\begin{code}
 ?- point{x:1, y:2} = point{y:2, x:1}.
 true.
-
-% They are also the "same value":
 
 ?- point{x:1, y:2} == point{y:2, x:1}.
 true.
 \end{code}
 
-Dicts are unified following the standard symmetric Prolog unification
-rules. 
-
+Dicts are unified following the standard symmetric Prolog unification rules. 
 For unification to succeed:
 
 \begin{itemize}
@@ -805,16 +805,11 @@ For unification to succeed:
 \item the corresponding values must unify. 
 \end{itemize}
 
-\textbf{Note} In future versions, the notion of unification between
-dicts could be modified such that two dicts unify if their tags and the
-values associated with \emph{common} keys unify, turning both dicts into
-a new dict that has the union of the keys of the two original dicts.
-
 Some examples to illustrate unification behaviour:
 
-\begin{code}
-% Tags unify and values unify for each key:
+Case of tags that unify unify and values that unify for each key:
 
+\begin{code}
 ?- point{x:1, y:2} = Tag{y:2, x:X}.
 Tag = point,
 X = 1.
@@ -826,55 +821,80 @@ Tag = point.
 Tag = point,
 X = 1,
 Y = 2.
+\end{code}
 
-% Tags don't unify, so this fails:
+Case of tags that don't unify:
 
+\begin{code}
 ?- point{x:1} = vector{x:1}.
 false.
+\end{code}
 
-% Values differ, so this fails:
+Case of values that don't unify:
 
+\begin{code}
 ?- point{x:1} = Tag{x:2}.
 false.
+\end{code}
 
-% Key sets differ, so this fails:
+Case of key sets that differ:
 
+\begin{code}
 ?- point{x:1,y:2} = Tag{x:X}.
 false.
 \end{code}
+
+\textbf{Note} In future versions, the notion of unification between
+dicts could be modified such that two dicts unify if their tags and the
+values associated with \emph{common} keys unify, turning both dicts into
+a new dict that holds the union of the keys of the two original dicts.
 
 \subsection{Growing and shrinking dicts}
 \label{sec:ext-dict-growing-and-shrinking}
 
 Unless you decide to use the destructive assignment predicates of
 \secref{ext-dict-assignment}, you cannot change a dict's set of keys.
-(You can still refine/bind any variables appearing in the dict's tag and values to
-arbitrary terms of course). To add or drop a key you have to generate a new dict
-from an existing one, in functional style. Predicates that ``modify dicts'' will
-thus take an input dict at a \const{+DictIn} position, generate a new dict and
-``output'' that dict at a \const{-DictOut} position.
+-- a dict does not behave like an \jargon{open list} to which
+you can add elements. Of course, you can still refine/bind any variable
+appearing in the dict's tag and values to arbitrary terms.
 
-In particular, to grow a dict, you can use the corresponding \nopredref{.put}{1}
-predefined dict \jargon{function} (not to be confused with the unrelated put/1 predicate).
-See \secref{ext-dict-functions} below for more on functions.
+To add or remove a key you have to generate a new dict from an existing
+one, in functional style. Predicates that ``modify dicts'' take an input
+dict at a \const{+DictIn} position, generate a new dict and unify that
+dict at a \const{-DictOut} position (using the common mode
+indicator notation of \secref{argmode}).
+
+To grow a dict:%
+\footnote{We will anticipate \secref{ext-dict-functions} below, 
+which has more on dict functions, and provisionally introduce them 
+here.}
+
+you can use the corresponding predefined dict \emph{function}
+\nopredref{put}{1}
+- \const{.put(+Map)}:
 
 \begin{code}
-% Use .put/1 function to create a new dict with an additional entry:
-
 ?- Pt = point{x:1, y:2}, NewPt = Pt.put(_{z:3}).
 Pt = point{x:1, y:2},
 NewPt = point{x:1, y:2, z:3}.
+
+?- Pt = point{x:1, y:2}, NewPt = Pt.put([z-3,i-4,j-5,k-6]).
+Pt = point{x:1, y:2},
+NewPt = point{i:4, j:5, k:6, x:1, y:2, z:3}.
 \end{code}
 
-Alternatively, you can call the predicate put_dict/3, \const{put_dict(+New, +DictIn, -DictOut)}:
+you can call the \emph{predicate} put_dict/3,
+- \const{put_dict(+New, +DictIn, -DictOut)}:
 
 \begin{code}
-?- Pt = point{x:1, y:2}, put_dict(_{z:3},Pt,NewPt).
+?- Pt = point{x:1, y:2}, put_dict([z-3,i-4,j-5,k-6],Pt,NewPt).
 Pt = point{x:1, y:2},
-NewPt = point{x:1, y:2, z:3}.
+NewPt = point{i:4, j:5, k:6, x:1, y:2, z:3}.
 \end{code}
 
-Alternatively, you can call the predicate put_dict/4, \const{put_dict(+Key, +DictIn, +Value, -DictOut)}:
+or you can call the \emph{predicate} put_dict/4
+- \const{put_dict(+Key, +DictIn, +Value, -DictOut)} -
+to modify a single entry only:
 
 \begin{code}
 ?- Pt = point{x:1, y:2}, put_dict(z,Pt,3,NewPt).
@@ -882,8 +902,10 @@ Pt = point{x:1, y:2},
 NewPt = point{x:1, y:2, z:3}.
 \end{code}
 
-Note that \emph{shrinking} a dict can only be done with the predicate 
-del_dict/4, \const{del_dict(+Key, +DictIn, ?Value, -DictOut)}, there is no function for that:
+On the other hand, \emph{shrinking} a dict can only be done
+with the \emph{predicate} del_dict/4,
+- \const{del_dict(+Key, +DictIn, ?Value, -DictOut)} - ;
+there is no corresponding function:
 
 \begin{code}
 ?- Pt = point{x:1, y:2}, del_dict(x,Pt,OldVal,NewPt).
@@ -899,34 +921,78 @@ The infix operator \jargon{dot}, \term{op}{100, yfx, .}, is used both to
 select dict entries (access their value), and to call functions associated 
 to dicts.
 
+\subsubsection{General approach}
+\label{sec:ext-dict-functions-general approach}
+
 If the \functor{.}{2} appears in a goal, (possibly nested inside some
 term) the compiler translates it into a call to predicate \predref{.}{3}, 
 \const{.(+Dict, +Function, -Result)}, defined in the \const{system} module. 
 
-\begin{itemize}
-\item If argument \arg{Function} denotes an \emph{atom} \const{k}, 
-the semantics are those of a selector: the value associated to key \const{k}
-of \arg{Dict} is unified with \arg{Result}. \arg{Result} is
-used at the position where the \functor{.}{2} appeared. The entry must exist.
-If it is missing, an exception is thrown.
-
-\item If argument \arg{Function} denotes a \emph{compound term}, the predicate corresponding to
-that compound term, extended with rightmost arguments \arg{Dict} and \arg{Result},
-is called. On success, \arg{Result} is used at the position where the
-\functor{.}{2} appeared. See \secref{ext-dict-user-functions} and 
-\secref{ext-dicts-predefined} for more on this.
-\end{itemize}
-
 \begin{description}
     \predicate{.}{3}{+Dict, +Function, -Result}
 This predicate is called to evaluate \functor{.}{2} terms found in the
-arguments of a goal. This predicate evaluates the field extraction
-described above, raising an exception if \arg{Function} is an
-atom (\jargon{key}) and \arg{Dict} does not contain the requested key.
-If \arg{Function} is a compound term, it checks for the predefined
-functions on dicts described in \secref{ext-dicts-predefined} or
-executes a user defined function as described in
-\secref{ext-dict-user-functions}.
+arguments of a goal.
+
+\textbf{If argument \arg{Function} denotes an \textbf{atom} \const{k}}
+then the semantics are those of a selector: the value associated to key \const{k}
+of \arg{Dict} is unified with \arg{Result}, which is then 
+used at the position where the \functor{.}{2} appeared.
+
+The entry must exist. If it is missing, an exception with error term
+\const{existence_error(key, KeyName, Dict)} is raised.%
+\footnote{This exception outside of the ISO standard, as the term \const{existence_error}
+is of arity 3 instead of the mandated 2}
+
+See \secref{ext-dict-functions-value-selection} for more.
+
+\textbf{If argument \arg{Function} denotes a \textbf{compound term}}
+then the predicate corresponding to that compound term, extended with rightmost 
+arguments \arg{Dict} and \arg{Result}, is called. 
+
+If the predicate call succeeds, \arg{Result} is used at the position where the
+\functor{.}{2} appeared, in the sense that \arg{Result} is unified with a fresh 
+variable at that position. If the predicate call fails, the code ultimately behaves
+as if that unification failed (but see below). 
+
+The predicate must exist. If it is missing, an ISO standard exception with error term
+\const{existence_error(procedure, DictTag:PredicateIndicator)} is raised.
+
+See \secref{ext-dict-user-functions} and \secref{ext-dicts-predefined} for more on this.
+
+\textbf{Note}: Whether both sides of an ``unification of terms obtained from function calls'' 
+will actually be called depends.
+
+Consider this function on 2-dimensional points:
+
+\begin{code}
+len2d(Pt,L) :- 
+   L is sqrt(Pt.x**2 + Pt.y**2),
+   (L<2 -> R=true ; R=false),
+   format("Now testing ~q<2 on ~q: ~q\n",[L,Pt,R]),
+   L<2.
+\end{code}
+
+Then:
+
+\begin{code}
+?- L = point{x:5,y:1}.len2d().
+Now testing 5.0990195135927845<2 on point{x:5,y:1}: false
+false.
+
+?- L = point{x:1,y:1}.len2d().
+Now testing 1.4142135623730951<2 on point{x:1,y:1}: true
+L = 1.4142135623730951.
+
+?- point{x:1,y:1}.len2d() = point{x:5,y:1}.len2d().
+Now testing 1.4142135623730951<2 on point{x:1,y:1}: true
+Now testing 5.0990195135927845<2 on point{x:5,y:1}: false
+false.
+
+?- point{x:5,y:1}.len2d() = point{x:1,y:1}.len2d().
+Now testing 5.0990195135927845<2 on point{x:5,y:1}: false
+false.
+\end{code}
+
 \end{description}
 
 \subsubsection{Value selection using ./2}
@@ -934,39 +1000,45 @@ executes a user defined function as described in
 
 Examples:
 
-\begin{code}
-% Select the value of key 'x' directly on the dict literal:
+Select the value of key \const{x} directly on the dict literal:
 
+\begin{code}
 ?- X = point{x:1,y:2}.x.
 X = 1.
+\end{code}
 
-% Select the value of key 'y' on a variable bound to the dict: 
+Select the value of key \const{y} on a variable bound to the dict: 
 
+\begin{code}
 ?- Pt = point{x:1,y:2}, write(Pt.y).
 2
 Pt = point{x:1,y:2}.
+\end{code}
 
-% The entry must exist:
+The entry must exist:
 
+\begin{code}
 ?-  Z = point{x:1,y:2}.z.
 ERROR: key `z' does not exist in point{x:1,y:2}
+\end{code}
 
-% The selector can be a variable itself, here given by Coord, and
-% it backtracks over the set of keys:
+The selector can be a variable itself, here given by \const{Coord}.
+It backtracks over the key set. Backtracking over the key set
+allows one to grab values that unify with a template term in a compact way:
 
+\begin{code}
 ?- bagof([Coord-Val],(point{x:1,y:2}.Coord = Val),Bag).
 Bag = [[x-1], [y-2]].
 
-% Backtracking over the key set allows one to grab values that
-% unify with a template quite easily:
-
-?- p(Arg,1) = pairs{a:p(2,2),b:p(4,1)}.Key.
-Arg = 4,
-Key = b.
+?- p(Arg,1) = pairs{a:p(foo,2),b:p(bar,1),c:p(baz,1)}.Key.
+Arg = bar,
+Key = b ;
+Arg = baz,
+Key = c.
 \end{code}
 
-You can inspect the compiler's translation of \functor{.}{2} to predicate calls
-using listing/1:
+You can inspect the compiler's translation of \functor{.}{2} to standard predicate 
+calls using listing/1:
 
 \begin{code}
 f :-
@@ -984,41 +1056,54 @@ f :-
 \subsubsection{User-defined functions on dicts}
 \label{sec:ext-dict-user-functions}
 
-Function calls are mapped to are normal Prolog predicate call. The dict
-infrastructure provides a more convenient syntax for representing the head of
-such predicates without worrying about the argument calling conventions. 
+Function calls are mapped to normal Prolog predicate calls which can be
+coded as usual. However, the dict infrastructure provides a convenient 
+syntax for representing the head of such predicates without worrying
+about the argument calling conventions. 
 
 The tag of a dict \emph{associates the dict to a module}, i.e. if the tag
 is an atom and there is a module which has the same atom as name, then 
-SWI Prolog looks for a predicate to perform the function call in that module.
+SWI-Prolog looks for a predicate to service function calls in the module
+named after the tag.
 
 The following goal will then be called:
 
 \begin{quote}
-<module>:<name>(Arg1, ..., +Dict, -Value)
+Tag:FunctionName(Arg1, ..., +Dict, -Value)
 \end{quote}
 
-You can code the predicate as usual by following the above calling convention:
+As this approach suggests, defining functions with multiple
+clauses is allowed. One can thus provide overloading and non-determinism as
+usual.
+
+Example:
+
+\nopredref{len2d}{2} is a predicate which takes a dict 
+representing a point in a 2-dimensional space and computes its euclidean 
+distance from the origin. Here, the clause head does not demand 
+specific structure from a dict argument (maybe it should):
 
 \begin{code}
-% len2d/2 is a predicate which takes a dict representing a point
-% and computes its distance from the origin. Here, the clause head
-% arguments does not demand specific structure from Dict (maybe they should):
-
 len2d(Pt,L) :- L is sqrt(Pt.x**2 + Pt.y**2).
+\end{code}
 
-% Call as a predicate:
+Call as a predicate:
 
+\begin{code}
 ?- len2d(point{x:3,y:4},L).
 L = 5.0.
+\end{code}
 
-% Call as 0-ary function associated to a dict:
+Call as 0-ary function associated to a dict:
 
+\begin{code}
 ?- L = point{x:3,y:4}.len2d().
 L = 5.0.
+\end{code}
 
-% Pack it into a predicate and examine the code:
+Pack the 0-ary function call into a predicate and examine the predicate's code:
 
+\begin{code}
 f_len2d(P,L) :- (L = P.len2d()).
 
 ?- listing(f_len2d/2).
@@ -1033,30 +1118,33 @@ the predicate arguments.\footnote{Note that one might be tempted to use
 result in a predicate length/2. That name cannot be used. This might change in 
 future versions.}
 
-As the underlying standard Prolog code suggests, it is allowed to define
-functions with multiple clauses. On can thus provide overloading and non-determinism.
+The same \nopredref{len2d}{2} as above, but now \const{Pt} and \const{L} are declared
+differently. The arity is 0:
 
 \begin{code}
-% The same len2d as previously, but now Pt and L are declared differently.
-% The arity is now 0:
-
 Pt.len2d() := L :- 
    L is sqrt(Pt.x**2 + Pt.y**2).
+\end{code}
 
-% Add another function to scale the point by a factor F, returning
-% a new dict:
+Add another function to scale the point by a factor \const{F}, returning
+a new dict:
 
+\begin{code}
 Pt.scale2d(F) := point{x:X, y:Y} :-
-        X is Pt.x*F,
-        Y is Pt.y*F.
+   X is Pt.x*F,
+   Y is Pt.y*F.
+\end{code}
 
-% After these definitions, we can evaluate the following functions:
+After these definitions, we can call the following functions:
 
+\begin{code}
 ?- X = point{x:1, y:2}.scale2d(2).
 X = point{x:2, y:4}.
+\end{code}
 
-% Chaining is allowed:
+Chaining is allowed:
 
+\begin{code}
 ?- X = point{x:1, y:2}.scale2d(2).len2d().
 X = 4.47213595499958.
 \end{code}
@@ -1077,10 +1165,12 @@ dict. For example:
 ?- write(point{x:3,y:4}.get(x)).
 3
 true.
+\end{code}
 
-% Select nonexistent key. Note that it is not the write/2 which fails
-% but the selection, which is actually done prior to write/2
+Select a nonexistent key. Note that it is not the write/2 which fails
+but the selection, which is actually done prior to calling write/2:
 
+\begin{code}
 ?- write(point{x:3,y:4}.get(z)).
 false.
 \end{code}
@@ -1099,40 +1189,47 @@ the '.' functor here, because the \functor{.}{2} would \emph{evaluate}.},
 replacing the value associated with \arg{Key} in a sub-dict of the dict
 on which the function operates. See the put_dict/4 predicate. 
 
-\begin{code}
-% Grow by a new entry
+Grow by a new entry:
 
+\begin{code}
 ?- D1 = point{}.put(x, 1).
 D1 = point{x:1}.
+\end{code}
 
-% Modify an existing entry
+Modify an existing entry:
 
+\begin{code}
 ?- D2 = point{x:1}.put(x, 400).
 D2 = point{x:400}.
+\end{code}
 
-% Grow by a new entry which has a (sub)dict as value
+Grow by a new entry which has a (sub)dict as value:
 
+\begin{code}
 ?- D3 = point{x:1}.put(y/realpart, 2).
 D3 = point{x:1, y:_20294{realpart:2}}.
+\end{code}
 
-% Modify subdict entry of an existing entry
+Modify subdict entry of an existing entry:
 
+\begin{code}
 ?- D4 = point{x:_{realpart:2}}.put(x/realpart, 400).
 D4 = point{x:_22716{realpart:400}}.
 \end{code}
 \end{description}
 
-\subsubsection{Functions calls in a clause head}
+\subsubsection{Dict functions calls in a clause head}
 \label{sec:ext-dict-functions-clause-head}
 
-Parameters of a call to a predicate with clauses that have \functor{.}{2}
-terms or subterms in their head are are unified not with the term found 
+Parameters of calls to predicate with clauses that have \functor{.}{2}
+terms or subterms in their head are unified not with the term found 
 in the clause head as usual (which is a purely syntactic operation) but
-with the result of an \emph{arbitrary function evaluation}.
+with the result of an \emph{arbitrary function evaluation} (which may
+even perform I/O operations).
 
 This is made possible by replacing the \functor{.}{2} call in the clause head
-with a fresh variable which is unified with result of the call to
-\predref{.}{3} made at the start of the (modified) clause body.
+with a fresh variable, which is unified with the result of the call to
+\predref{.}{3} made at the beginning of the (modified) clause body.
 
 An example with a \emph{selector} directly in the clause head:
 
@@ -1147,7 +1244,7 @@ extract_x(A, B) :-
     '.'(A, x, B).
 \end{code}
 
-The 2D-length example from earlier, suitably modified:
+The 2-dimensional euclidean length example from above, suitably modified:
 
 \begin{code}
 compact_len2d(P,P.len2d()).
@@ -1170,21 +1267,27 @@ add_postal_code(Dict, Dict.put(postal_code, Code)) :-
                          Dict.street,
                          Dict.house_number,
                          Code).
+\end{code}
 
-% Suppose
+Suppose the following fact has been asserted:
 
+\begin{code}
 find_postal_code("Jamestown","Ash Tree Lane","44","23081").
+\end{code}
 
-% Then
+Then:
 
+\begin{code}
 ?- add_postal_code(
       house{city:"Jamestown",street:"Ash Tree Lane",house_number:"44"},
       DictOut).
 DictOut = house{city:"Jamestown", house_number:"44", postal_code:"23081", street:"Ash Tree Lane"}.
+\end{code}
 
-% You can also unify the result of the in-head \const{Dict.put/2} call with
-% an existing dict:
+Alternatively, you can also unify the result of the inside-the-head 
+\nopredref{.put}{2} call with an existing dict:
 
+\begin{code}
 ?- add_postal_code(
       house{city:"Jamestown",street:"Ash Tree Lane",house_number:"44"},
       house{city:C,street:S,house_number:N,postal_code:X}).
@@ -1192,11 +1295,11 @@ C = "Jamestown",
 S = "Ash Tree Lane",
 N = "44",
 X = "23081".
-/end{code}
+\end{code}
 
-Let's look at the code:
+Let's take a look at the generated code:
 
-/begin{code}
+\begin{code}
 ?- listing(add_postal_code/2).
 add_postal_code(A, B) :-
     '.'(A, put(postal_code, C), B),
@@ -1206,49 +1309,56 @@ add_postal_code(A, B) :-
     find_postal_code(D, E, F, C).
 \end{code}
 
-\subsubsection{Expression with ./2 are evaluated eagerly}
+\subsubsection{Expression containing ./2 are evaluated eagerly as dict function calls}
 \label{sec:ext-dict-functions-eager-evaluation}
 
 Evaluation of \functor{.}{2} is eager. You can think of it as follows: 
 if \functor{.}{2} appears in a term that is about to be unified, SWI-Prolog
 tries to perform the corresponding call at once.
-
+%
 This implies that such terms cannot be created by writing them explicitly in
 your source code. Such terms can still be created with functor/3, \predref{=..}{2},
-compound_name_arity/3 and compound_name_arguments/3.%
+compound_name_arity/3 and compound_name_arguments/3.
+%
 \footnote{Traditional code is unlikely to use
 \functor{.}{2} terms because they were practically reserved for usage in
 lists. We do not provide a quoting mechanism as found in functional
 languages because it would only be needed to quote \functor{.}{2} terms.
 Such terms are rare and term manipulation provides an escape route.}
 
-\begin{code}
-% The term is not written "as is"; the dot operator leads to a function
-% call first:
+For example:
 
+The term inside the parentheses of write_canonical/1 is not 
+written ``as is''; the \jargon{dot} operator triggers a function call first:
+
+\begin{code}
 ?- write_canonical(_{x:12,y:13}.y :- a).
 :-(13,a)
 true.
+\end{code}
 
-% If there is an unbound variable at dict position, you get an error:
+If there is an unbound variable at dict position, an exception is raised:
 
+\begin{code}
 ?- write_canonical(X.y :- a).
 ERROR: Arguments are not sufficiently instantiated
+\end{code}
 
-% This does not happen for other operators:
+This does not happen for other operators:
 
+\begin{code}
 ?- write_canonical(X/y :- a).
 :-(/(_,y),a)
 true.
+\end{code}
 
-% You have to evade term expansion:
+You have to work around term expansion to obtain terms that use the dot operator:
 
+\begin{code}
 ?- compound_name_arguments(C,'.',[X,y]),write_canonical(C :- a).
 :-('.'(_,y),a)
 C = X.y.
 \end{code}
-
-
 
 
 \subsection{Predicates for managing dicts}
