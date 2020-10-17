@@ -58,7 +58,7 @@ broadcast(+Templ). All registered  `listeners'  will   have  their  goal
 called. Success or failure of this is ignored. The listener can not bind
 arguments.
 
-This library is particulary  useful  for   disconnecting  modules  in an
+This library is particularly  useful  for  disconnecting  modules  in an
 application. Modules can broadcast events  such as changes, anticipating
 other modules need to react on   such  changes. For example, settings.pl
 broadcasts changes to settings, allowing dependent   modules to react on
@@ -92,7 +92,7 @@ listen(Templ, Module:Goal) :-
 %!  unlisten(+Listener, +Templ, :Goal) is det.
 %
 %   Destroy a channel. All arguments may  be variables, removing the
-%   all matching listening channals.
+%   all matching listening channels.
 
 unlisten(Listener0) :-
     canonical_listener(Listener0, Listener),
