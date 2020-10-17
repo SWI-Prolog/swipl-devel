@@ -573,7 +573,7 @@ state1(_,   X, X, _).
 %   (underlying constraints) are  an  example.   Another  example  of  a
 %   backtrackable data structure is in   library(hashtable).  If we care
 %   only about the side effects  (I/O,   dynamic  database, etc.) or the
-%   thruth value of Goal, forall/2 is  a faster and simpler alternative.
+%   truth value of Goal,  forall/2 is  a faster and simpler alternative.
 %   If Goal instantiates its arguments it  is   will  often  fail as the
 %   argument cannot be instantiated to multiple   values. It is possible
 %   to incrementally _grow_ an argument:

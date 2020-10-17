@@ -119,7 +119,7 @@ goals and the prolog/0 toplevel otherwise.
 	\termitem{toplevel}{:Callable}
 Top-level goal for the new executable (see \cmdlineoption{-t}).  Similar
 to initialization/2 using \const{main}, the default toplevel is to enter
-the Prolog interactie shell unless a goal has been specified using
+the Prolog interactive shell unless a goal has been specified using
 \term{goal}{Callable}.
 	\termitem{init_file}{+Atom}
 Default initialization file for the new executable. See
@@ -260,7 +260,7 @@ predicates must be loaded explicitly using use_module/[1,2].
 \end{code}
 
 It is good practice to use gxref/0 to make sure that the program has
-sufficient declarations such that the analaysis tools can verify that
+sufficient declarations such that the analysis tools can verify that
 all required predicates can be resolved and that all code is called.
 See meta_predicate/1, dynamic/1, public/1 and prolog:called_by/2.
 
