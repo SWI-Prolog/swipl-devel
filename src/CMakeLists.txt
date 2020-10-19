@@ -556,6 +556,11 @@ install(TARGETS swipl libswipl EXPORT SWIPL_EXPORT
 install(FILES ${SWIPL_BOOT_FILE}
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 )
+if(WIN32)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libswipl.dll.a
+	DESTINATION ${LIBSWIPL_DIR}
+	RENAME libswipl.lib)
+endif()
 
 foreach(d ${SWIPL_DATA_DIRS})
     string(REGEX REPLACE "/" "_" filevar ${d})
