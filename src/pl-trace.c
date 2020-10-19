@@ -1801,6 +1801,17 @@ tracemode(int doit, int *old)
 }
 
 
+static int
+have_space_for_debugging(void)
+{ GET_LD
+
+  return ( usedStack(local) +
+	   usedStack(global) +
+	   usedStack(trail) +
+	   100000*sizeof(void*) < LD->stacks.limit );
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Enable the tracer if we have a safe amount of available space. This is
 used to start tracing uncaught overflow exceptions.
@@ -1808,13 +1819,9 @@ used to start tracing uncaught overflow exceptions.
 
 int
 trace_if_space(void)
-{ GET_LD
-  int trace;
+{ int trace;
 
-  if ( usedStack(local) +
-       usedStack(global) +
-       usedStack(trail) +
-       100000*sizeof(void*) < LD->stacks.limit )
+  if ( have_space_for_debugging() )
   { trace = TRUE;
     tracemode(trace, NULL);
 
@@ -1862,7 +1869,8 @@ debugmode(debug_type doit, debug_type *old)
 
   if ( debugstatus.debugging != doit )
   { if ( doit )
-    { if ( !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
+    { if ( have_space_for_debugging() &&
+	   !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
 				 8*1024*SIZEOF_VOIDP,
 				 8*1024*SIZEOF_VOIDP
 				 PASS_LD) )
