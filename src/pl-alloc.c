@@ -477,7 +477,10 @@ push_goal(LocalFrame fr)
 	    *ad++ = ATOM_nil;
 	  } else
 	  { *ad++ = consInt(len);
-	    *ad++ = *tail;
+	    if ( isTerm(*tail) )
+	      *ad++ = ATOM_compound;
+	    else
+	      *ad++ = *tail;
 	  }
 	} else
 	{ FunctorDef f = valueFunctor(functorTerm(*a));
