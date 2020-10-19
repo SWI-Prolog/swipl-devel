@@ -424,8 +424,10 @@ retry:
   { Word v;
 
     if ( !hasGlobalSpace(1) )
-    { if ( !ensureGlobalSpace(1, ALLOW_GC) )
-	return FALSE;
+    { int rc;
+
+      if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != TRUE )
+	return raiseStackOverflow(rc);
       goto retry;
     }
     v = gTop++;
