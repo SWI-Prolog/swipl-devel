@@ -601,7 +601,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  } else			/* r,R */
 		  { if ( arg == DEFAULT )
 		      FMT_ERROR("r,R requires radix specifier");
-		    if ( arg < 1 || arg > 36 )
+		    if ( arg < 2 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
 
 		      PL_put_integer(r, arg);
