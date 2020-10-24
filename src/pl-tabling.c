@@ -1337,7 +1337,7 @@ delay_to_data(trie_node *answer, Word wrapper ARG_LD)
     }
 #endif
   } else
-  { return linkValI(wrapper);
+  { return linkVal(wrapper);
   }
 }
 
@@ -3955,15 +3955,7 @@ unify_dependency(term_t a0, term_t dependency,
       p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
       p[3] = FUNCTOR_plus2;
       p[4] = wl->table->symbol;
-<<<<<<< HEAD
-      if ( is_ground_trie_node(answer) )
-      { p[5] = consInt(pointerToInt(answer));
-      } else
-      { p[5] = linkVal(valTermRef(a0+0));
-      }
-=======
       p[5] = p5;
->>>>>>> 76e4c32a2... FIXED: Possible crash in tabling, notably occurring on MacOS due to wrong
 
       push_delay_list(p PASS_LD);
     }
