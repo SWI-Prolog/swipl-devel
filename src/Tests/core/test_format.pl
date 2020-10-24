@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2015, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,5 +61,11 @@ test(atom, A == 'a\n') :-
 	format(atom(A), 'a\n', []).
 test(atom, A == '--++') :-
 	format(atom(A), '~`-t~`+t~4+', []).
+test(radix, A == "101") :-
+	format(string(A), '~2r', [5]).
+test(radix, error(domain_error(radix, 1))) :-
+	format(string(_), '~1r', [5]).
+test(radix, error(domain_error(radix, 37))) :-
+	format(string(_), '~37r', [5]).
 
 :- end_tests(format).
