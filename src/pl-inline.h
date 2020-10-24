@@ -94,6 +94,8 @@ MSB64(int64_t i)
 #endif
 
 #define MEMORY_BARRIER() MemoryBarrier()
+#define MEMORY_RELEASE() MemoryBarrier()
+#define MEMORY_BARRIER() MemoryBarrier()
 
 static inline size_t
 __builtin_popcount(size_t sz)
@@ -120,6 +122,8 @@ __builtin_popcount(size_t sz)
 #endif
 
 #ifdef HAVE_GCC_ATOMIC
+#define MEMORY_ACQUIRE()	__atomic_thread_fence(__ATOMIC_ACQUIRE)
+#define MEMORY_RELEASE()	__atomic_thread_fence(__ATOMIC_RELEASE)
 #define MEMORY_BARRIER()	__atomic_thread_fence(__ATOMIC_SEQ_CST)
 #endif
 
@@ -229,6 +233,8 @@ MSB64(int64_t i)
 
 #ifndef MEMORY_BARRIER
 #define MEMORY_BARRIER() (void)0
+#define MEMORY_ACQUIRE() (void)0
+#define MEMORY_RELEASE() (void)0
 #endif
 
 		 /*******************************
