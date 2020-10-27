@@ -419,7 +419,8 @@ prune_trie(trie *trie, trie_node *root,
 	  void *k, *v;
 
 	  if ( advanceTableEnum(e, &k, &v) )
-	  { pushSegStack(&stack, ps, prune_state);
+	  { if ( !pushSegStack(&stack, ps, prune_state) )
+	      outOfCore();
 	    ps.e = e;
 	    ps.n = n;
 
@@ -1877,7 +1878,8 @@ get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
       }
       dts.term = dstate->term+1;
       dts.size = dstate->size-1;
-      pushSegStack(&dstate->stack, dts, desc_tstate);
+      if ( !pushSegStack(&dstate->stack, dts, desc_tstate) )
+	outOfCore();
       DEBUG(MSG_TRIE_GEN,
 	    Sdprintf("Pushed %p, size %zd\n", dts.term, dts.size));
     }

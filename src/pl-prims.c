@@ -126,7 +126,8 @@ visitedWord(Word p ARG_LD)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
-  pushSegStack(&LD->cycle.vstack, p, Word);
+  if ( !pushSegStack(&LD->cycle.vstack, p, Word) )
+    outOfCore();
   fail;
 }
 
@@ -179,7 +180,8 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
   Word p2 = (Word)&f2->definition;
 
   *p1 = makeRefG(p2);
-  pushSegStack(&LD->cycle.lstack, p1, Word);
+  if ( !pushSegStack(&LD->cycle.lstack, p1, Word) )
+    outOfCore();
 }
 
 
@@ -587,7 +589,8 @@ var_occurs_in(Word v, Word t ARG_LD)
       { compound = TRUE;
 	initSegStack(&visited, sizeof(Functor), sizeof(tmp), tmp);
 	f->definition |= FIRST_MASK;
-	pushSegStack(&visited, f, Functor);
+	if ( !pushSegStack(&visited, f, Functor) )
+	  outOfCore();
 	initTermAgenda(&agenda, arity, f->arguments);
       } else if ( !(f->definition & FIRST_MASK) )
       { f->definition |= FIRST_MASK;
@@ -1053,7 +1056,8 @@ ph_acyclic_mark(Word p ARG_LD)
 
         if ( isTerm(*p) )
         { if ( !new_workspace )
-          { pushSegStack(&agenda.stack, agenda.work, termChain);
+          { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
+	      outOfCore();
             agenda.work.head = head;
             agenda.work.tail = tail;
             agenda.work.p = iter->arguments + arity-1;
@@ -1061,7 +1065,8 @@ ph_acyclic_mark(Word p ARG_LD)
             head = tail = valueTerm(*p);
             new_workspace = TRUE;
           } else
-          { pushSegStack(&agenda.stack, agenda.work, termChain);
+          { if ( !pushSegStack(&agenda.stack, agenda.work, termChain) )
+	      outOfCore();
             agenda.work.head = agenda.work.tail = valueTerm(*p);
             agenda.work.p = NULL;
           }

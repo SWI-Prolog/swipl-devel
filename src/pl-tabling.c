@@ -240,7 +240,9 @@ push_component_set(segstack *stack, component_set *cs)
   typedef struct tbl_component *Component;
 
   for(; bp < tp; bp++)
-    pushSegStack(stack, *bp, Component);
+  { if ( !pushSegStack(stack, *bp, Component) )
+      outOfCore();
+  }
 
   discardBuffer(&cs->members);
   PL_free(cs);
@@ -262,7 +264,8 @@ free_component(tbl_component *c, int flags)
   }
 
   initSegStack(&stack, sizeof(Component), sizeof(buf), buf);
-  pushSegStack(&stack, c, Component);
+  if ( !pushSegStack(&stack, c, Component) )
+    outOfCore();
 
   while( popSegStack(&stack, &c, Component) )
   { if ( !(flags&FC_CHILD) && c->parent )
@@ -6016,7 +6019,9 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 	if ( ATOMIC_INC(&n->falsecount) == 1 )
 	{ TRIE_STAT_INC(n, invalidated);
 	  if ( n->affected )
-	    pushSegStack(&state->stack, n, IDGNode);
+	  { if ( !pushSegStack(&state->stack, n, IDGNode) )
+	      outOfCore();
+	  }
 	}
       } else
       { if ( ATOMIC_DEC(&n->falsecount) == 0 )
@@ -6031,7 +6036,9 @@ idg_changed_loop(idg_propagate_state *state, int changed)
 	  }
 #endif
 	  if ( n->affected )
-	    pushSegStack(&state->stack, n, IDGNode);
+	  { if ( !pushSegStack(&state->stack, n, IDGNode) )
+	      outOfCore();
+	  }
 	}
       }
     }
