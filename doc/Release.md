@@ -25,17 +25,10 @@ MacOS dependencies for new releases, in particular for OpenSSL.
 
 #### Preparing building Windows releases
 
-  - Install wine, MinGW cross-compilers and the NSIS packager.  These
-    are currently the following packages
-    - mingw-w64
-    - gcc-mingw-w64-i686
-    - mingw-w64-x86-64-dev
-    - wine
-    - wine-binfmt
-    - nsis
-  - Install OpenJDK into the Wine environment
-  - Install the prerequisites for Win32 in ~/mingw32 and for Win64 in
-    ~/mingw64.  See README.mingw in the toplevel.
+  - Clone https://github.com/SWI-Prolog/docker-swipl-build-mingw
+  - Build the docker image using
+
+        make image
 
 ### Mac
 
