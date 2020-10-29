@@ -6568,7 +6568,8 @@ tbl_is_predicate_attribute(atom_t key)
 	   key == ATOM_answer_abstract ||
 	   key == ATOM_max_answers ||
 	   key == ATOM_monotonic ||
-	   key == ATOM_tshared
+	   key == ATOM_tshared ||
+	   key == ATOM_opaque
 	 );
 }
 
@@ -6603,6 +6604,8 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
     { return PL_unify_integer(value, !!true(p, TP_MONOTONIC));
     } else if ( att == ATOM_tshared )
     { return PL_unify_integer(value, !!true(p, TP_SHARED));
+    } else if ( att == ATOM_opaque )
+    { return PL_unify_integer(value, !!true(p, TP_OPAQUE));
     } else
     { size_t v0;
 
@@ -6677,6 +6680,8 @@ tbl_set_predicate_attribute(Definition def, atom_t att, term_t value)
   { return set_bool_attr(p, TP_MONOTONIC, value);
   } else if ( att == ATOM_tshared )
   { return set_bool_attr(p, TP_SHARED, value);
+  } else if ( att == ATOM_opaque )
+  { return set_bool_attr(p, TP_OPAQUE, value);
   } else
   { size_t v;
 

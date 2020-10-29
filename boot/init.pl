@@ -193,6 +193,12 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     ;   '$domain_error'(predicate_option, Opt)
     ).
 
+'$join_attrs'([], Attrs, Attrs) :-
+    !.
+'$join_attrs'([H|T], Attrs0, Attrs) :-
+    !,
+    '$join_attrs'(H, Attrs0, Attrs1),
+    '$join_attrs'(T, Attrs1, Attrs).
 '$join_attrs'(Attr, Attrs, Attrs) :-
     memberchk(Attr, Attrs),
     !.
@@ -205,9 +211,9 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$join_attrs'(Attr, Attrs0, Attrs) :-
     '$append'(Attrs0, [Attr], Attrs).
 
-'$attr_option'(incremental, incremental(true)).
+'$attr_option'(incremental, [incremental(true),opaque(false)]).
 '$attr_option'(monotonic, monotonic(true)).
-'$attr_option'(opaque, incremental(false)).
+'$attr_option'(opaque, [incremental(false),opaque(true)]).
 '$attr_option'(abstract(Level0), abstract(Level)) :-
     '$table_option'(Level0, Level).
 '$attr_option'(subgoal_abstract(Level0), subgoal_abstract(Level)) :-

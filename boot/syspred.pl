@@ -904,6 +904,8 @@ define_or_generate(Pred) :-
     table_flag(Flag, Pred).
 '$predicate_property'(incremental, Pred) :-
     '$get_predicate_attribute'(Pred, incremental, 1).
+'$predicate_property'(opaque, Pred) :-
+    '$get_predicate_attribute'(Pred, opaque, 1).
 '$predicate_property'(abstract(N), Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
 '$predicate_property'(size(Bytes), Pred) :-

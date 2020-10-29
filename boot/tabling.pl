@@ -322,6 +322,7 @@ tabled_attribute(max_answers).
 tabled_attribute(subgoal_abstract).
 tabled_attribute(answer_abstract).
 tabled_attribute(monotonic).
+tabled_attribute(opaque).
 
 %!  start_tabling(:Closure, :Wrapper, :Implementation)
 %
@@ -1260,13 +1261,13 @@ table_options(variant, Opts0, Opts1) :-
     put_dict(mode, Opts0, variant, Opts1).
 table_options(incremental, Opts0, Opts1) :-
     !,
-    put_dict(incremental, Opts0, true, Opts1).
+    put_dict(#{incremental:true,opaque:false}, Opts0, Opts1).
 table_options(monotonic, Opts0, Opts1) :-
     !,
     put_dict(monotonic, Opts0, true, Opts1).
 table_options(opaque, Opts0, Opts1) :-
     !,
-    put_dict(incremental, Opts0, false, Opts1).
+    put_dict(#{incremental:false,opaque:true}, Opts0, Opts1).
 table_options(dynamic, Opts0, Opts1) :-
     !,
     put_dict(dynamic, Opts0, true, Opts1).
@@ -1496,7 +1497,8 @@ sum(S0, S1, S) :- S is S0+S1.
 %   This is required both for incremental and monotonic tabling.
 
 '$set_table_wrappers'(Pred) :-
-    (   '$get_predicate_attribute'(Pred, incremental, 1)
+    (   '$get_predicate_attribute'(Pred, incremental, 1),
+        \+ '$get_predicate_attribute'(Pred, opaque, 1)
     ->  wrap_incremental(Pred)
     ;   unwrap_incremental(Pred)
     ),

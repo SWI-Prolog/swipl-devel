@@ -1979,6 +1979,7 @@ valid_decl_option(opaque,              table).
 valid_decl_option(monotonic,           dynamic).
 valid_decl_option(incremental,         dynamic).
 valid_decl_option(abstract(_),         dynamic).
+valid_decl_option(opaque,              dynamic).
 valid_decl_option(shared,              table).
 valid_decl_option(private,             table).
 valid_decl_option(subgoal_abstract(_), table).
