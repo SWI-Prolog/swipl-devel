@@ -6196,11 +6196,20 @@ free_mdep(idg_mdep *mdep)
 
 static int
 idg_add_monotonic_edge(trie *src_trie, trie *dst_trie, term_t dep ARG_LD)
-{ if ( src_trie->data.IDG &&
+{ worklist *wl;
+  Definition def;
+
+  if ( src_trie->data.IDG &&
        dst_trie->data.IDG )
     return idg_add_child(dst_trie->data.IDG,
 			 src_trie->data.IDG,
 			 dep PASS_LD);
+
+  if ( (wl=dst_trie->data.worklist) &&
+       (def=wl->predicate) &&
+       def->tabling &&
+       true(def->tabling, TP_OPAQUE) )
+    return TRUE;
 
   return idg_dependency_error_mono(src_trie, dst_trie PASS_LD);
 }

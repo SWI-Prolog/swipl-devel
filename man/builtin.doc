@@ -4397,6 +4397,13 @@ that is not just \const{true} (i.e., a \jargon{fact}).
 Database generation at which the predicate was modified for the last
 time.  Intended to quickly assesses the validity of caches.
 
+    \termitem{opaque}{}
+This property applies to dynamic and tabled predicates.  For dynamic
+predicates it (temporary) stops propagating updates to dependent
+incrementally or monotonic tabled predicates.  For tabled predicates
+it is not an error for an opaque predicate to depend on incremental
+or monotonic dynamic or tabled predicates.
+
     \termitem{public}{}
 Predicate is declared public using public/1.  Note that without further
 definition, public predicates are considered undefined and this property
