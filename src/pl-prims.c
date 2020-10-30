@@ -4364,20 +4364,33 @@ atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
   initBuffer(&b);
   while( PL_get_list(l, head, l) )
   { PL_chars_t txt;
+    int ok = 1;
 
-    if ( !PL_get_text(head, &txt, CVT_ATOMIC) )
+    PL_STRINGS_MARK();
+    if ( PL_get_text(head, &txt, CVT_ATOMIC) )
+    { if ( ntxt > 0 && sep )
+	append_text_to_buffer((Buffer)&b, &st, &enc);
+
+      append_text_to_buffer((Buffer)&b, &txt, &enc);
+      PL_free_text(&txt);
+    } else
     { if ( PL_is_variable(head) && sep && ret_type == PL_ATOM ) /* see (*) */
-	goto split;
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
+	ok = -1;
+      else
+	ok = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_text, head);
     }
+    PL_STRINGS_RELEASE();
 
-    if ( ntxt > 0 && sep )
-      append_text_to_buffer((Buffer)&b, &st, &enc);
+    if ( ok == 1 && ++ntxt == 100 &&
+	 lengthList(l, TRUE) < 0 )
+      ok = 0;
 
-    append_text_to_buffer((Buffer)&b, &txt, &enc);
-    PL_free_text(&txt);
-    if ( ++ntxt == 100 )
-    { if ( lengthList(l, TRUE) < 0 )
+    if ( ok != 1 )
+    { discardBuffer(&b);
+
+      if ( ok == -1 )
+	goto split;
+      if ( ok == 0 )
 	return FALSE;
     }
   }
@@ -4402,6 +4415,8 @@ atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
     discardBuffer(&b);
 
     return rc;
+  } else if ( !PL_is_variable(l) )
+  { return PL_type_error("list", l);
   }
 
 split:
