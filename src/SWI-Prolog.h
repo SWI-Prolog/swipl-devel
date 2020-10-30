@@ -864,8 +864,8 @@ PL_EXPORT(int)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_NUMBER	    (CVT_RATIONAL|CVT_FLOAT)
 #define CVT_ATOMIC	    (CVT_NUMBER|CVT_ATOM|CVT_STRING)
 #define CVT_WRITE	    0x00000080
-#define CVT_WRITE_CANONICAL 0x00000080
-#define CVT_WRITEQ	    0x000000C0
+#define CVT_WRITE_CANONICAL 0x00000100
+#define CVT_WRITEQ	    0x00000200
 #define CVT_ALL		    (CVT_ATOMIC|CVT_LIST)
 #define CVT_MASK	    0x00000fff
 
