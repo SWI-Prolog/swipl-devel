@@ -3066,7 +3066,9 @@ unify_complete_or_invalid(term_t t, trie *atrie,
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) )
-  { if ( n->falsecount > 0 )
+  { if ( n->monotonic )
+      return PL_unify_atom(t, ATOM_complete);
+    if ( n->falsecount > 0 )
       return PL_unify_atom(t, ATOM_invalid);
     if ( n->reevaluating )
       return unify_fresh(t, atrie, def, create PASS_LD);
@@ -6204,22 +6206,33 @@ free_mdep(idg_mdep *mdep)
   free(mdep);
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) See (*) with '$idg_add_dyncall'(+Variant):  we   need  to  clean the
+falsecount on a call.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 idg_add_monotonic_edge(trie *src_trie, trie *dst_trie, term_t dep ARG_LD)
 { worklist *wl;
   Definition def;
+  idg_node *sn, *dn;
 
-  if ( src_trie->data.IDG &&
-       dst_trie->data.IDG )
-    return idg_add_child(dst_trie->data.IDG,
-			 src_trie->data.IDG,
-			 dep PASS_LD);
+  if ( (sn=src_trie->data.IDG) &&
+       (dn=dst_trie->data.IDG) )
+  { if ( sn->monotonic )
+      sn->falsecount = 0;			/* (*) */
+
+    if ( dn->monotonic )
+      return idg_add_child(dn, sn, dep PASS_LD);
+    else
+      return TRUE;				/* monotonic --> incremental */
+  }
 
   if ( (wl=dst_trie->data.worklist) &&
        (def=wl->predicate) &&
        def->tabling &&
        true(def->tabling, TP_OPAQUE) )
-    return TRUE;
+    return TRUE;				/* monotonic --> opaque */
 
   return idg_dependency_error_mono(src_trie, dst_trie PASS_LD);
 }
@@ -6263,10 +6276,8 @@ PRED_IMPL("$idg_add_mono_dyn_dep", 3, idg_add_mono_dyn_dep, 0)
 
 /** '$tbl_monotonic_add_answer'(+Trie, +Answer) is semidet.
  *
- * Add an answer from  monotonic  propagation.   If  Trie  belongs to an
- * _incremental_ table, flag the table  as   invalid  and FAIL. Else add
- * Answer to the table and succeed if this   answer is new. I.e. if this
- * predicate succeeds we should continue with monotonic propagation.
+ * Add an answer from  monotonic  propagation.   If we add a new value,
+ * perform dynamic invalidation as if this was a dynamic predicate.
  *
  * @tbd  Implement the tripwires. Share code with
  *       '$tbl_wkl_add_answer'/4.
@@ -6275,12 +6286,12 @@ PRED_IMPL("$idg_add_mono_dyn_dep", 3, idg_add_mono_dyn_dep, 0)
 static
 PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 { PRED_LD
-
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
   { if ( atrie->data.IDG && !atrie->data.IDG->monotonic )
-    { idg_changed(atrie);
+    { Sdprintf("Monotonic propagation to non-monotonic table??\n");
+      idg_changed(atrie);
       return FALSE;
     } else
     { trie_node *node;
@@ -6292,6 +6303,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
       { if ( node->value )
 	  return FALSE;
 	set_trie_value_word(atrie, node, ATOM_trienode);
+	idg_changed(atrie);
 
 	return TRUE;
       } else
@@ -6342,10 +6354,13 @@ static
 PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
 { GET_LD
   trie *atrie;
+  idg_node *n;
 
   if ( get_trie(A1, &atrie) )
   { if ( atrie->data.worklist == WL_DYNAMIC )
     { return PL_unify_atom(A2, ATOM_dynamic);
+    } else if ( (n=atrie->data.IDG) && n->monotonic )
+    { return PL_unify_atom(A2, ATOM_monotonic);
     } else
     { int rc;
 #ifdef O_PLMT

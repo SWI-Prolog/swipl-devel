@@ -160,7 +160,7 @@ test(dep_error,
 
 % Incremental tables can depend on monotonic tables
 
-:- dynamic dx/1 as monotonic.
+:- dynamic dx/1 as (incremental,monotonic).
 :- table px/1 as monotonic.
 :- table qx/1 as incremental.
 

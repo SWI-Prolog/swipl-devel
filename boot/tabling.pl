@@ -1651,7 +1651,8 @@ pdelim(Worker, Skel, ATrie) :-
 %
 %   Abolish all dependency relations from HeadOrTrie and their tables.
 %
-%   @tbd Move to C
+%   @tbd We could also consider marking them   as invalid and let normal
+%   incremental tabling deal with this situation?
 
 mon_abolish_dependents(Node) :-
     dependent_tables([Node], [], Tables),
@@ -1919,9 +1920,10 @@ false_path(ATrie, [ATrie|T], Seen) :-
         T = [Rank-Len]
     ).
 
-status_rank(dynamic,  2) :- !.
-status_rank(complete, 1) :- !.
-status_rank(Status,   Rank) :-
+status_rank(dynamic,   2) :- !.
+status_rank(monotonic, 2) :- !.
+status_rank(complete,  1) :- !.
+status_rank(Status,    Rank) :-
     var(Rank),
     !,
     format(user_error, 'Re-eval from status ~p~n', [Status]),
