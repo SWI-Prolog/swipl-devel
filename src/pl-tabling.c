@@ -1142,8 +1142,18 @@ retry:
 	      }
 	      deRef2(&f->arguments[1], p);
 	      if ( isInteger(*p) )
-	      { assert(isTaggedInt(*p));
+	      {
+#if SIZEOF_VOIDP == 8
+		assert(isTaggedInt(*p));
 		an = intToPointer(valInt(*p));
+#else
+		if ( isTaggedInt(*p) )
+		{ an = intToPointer(valInt(*p));
+		} else
+		{ assert(isBignum(*p));
+		  an = intToPointer(valBignum(*p));
+		}
+#endif
 		assert(is_ground_trie_node(an));
 	      } else
 	      { int rc;
