@@ -2402,6 +2402,120 @@ routines whose execution is interleaved, while they exchange data. Note
 that coroutines in this sense differ from coroutines realised using
 attributed variables as described in \chapref{clp}.
 
+Note that shift/1 captures the \jargon{forward continuation}. It notably
+does not capture choicepoints. Choicepoints created before the
+continuation is captures remain open, while choicepoints created when
+the continuation is executed live their normal life. Unfortunately the
+consequences for \jargon{committing} a choicepoint is complicated. In
+general a cut (\predref{!}{0}) in the continuation does not have the
+expected result. Negation (\predref{\+}{1}) and if-then(-else)
+(\predref{->}{2}) behave as expected, \emph{provided the continuation is
+called immediately}. This works because for \predref{\+}{1} and
+\predref{->}{2} the continuation contains a reference to the choicepoint
+that must be cancelled and this reference is restored when possible. If,
+as with tabling, the continuation is saved and called later, the commit
+has no effect. We illustrate the three scenarios using with the programs
+below.
+
+\begin{code}
+t1 :-
+    reset(gbad, ball, Cont),
+    (   Cont == 0
+    ->  true
+    ;   writeln(resuming),
+        call(Cont)
+    ).
+
+gbad :-
+    n, !, fail.
+gbad.
+
+n :-
+    shift(ball),
+    writeln(n).
+\end{code}
+
+Here, the \predref{!}{0} has \textbf{no effect}:
+
+\begin{code}
+?- t1.
+resuming
+n
+true.
+\end{code}
+
+The second example uses \predref{\+}{1}, which is essentially
+\exam{(G->fail;true)}.
+
+\begin{code}
+t2 :-
+    reset(gok, ball, Cont),
+    (   Cont == 0
+    ->  true
+    ;   writeln(resuming),
+        call(Cont)
+    ).
+
+gok :-
+    \+ n.
+\end{code}
+
+In this scenario the normal semantics of \predref{\+}{1} is preserved:
+
+\begin{code}
+?- t1.
+resuming
+n
+false.
+\end{code}
+
+In the last example we illustrate what happens if we assert the
+continuation to be executed later. We write the negation using
+if-then-else to make it easier to explain the behaviour.
+
+\begin{code}
+:- dynamic cont/1.
+
+t3 :-
+    retractall(cont(_)),
+    reset(gassert, ball, Cont),
+    (   Cont == 0
+    ->  true
+    ;   asserta(cont(Cont))
+    ).
+
+c3 :-
+    cont(Cont),
+    writeln(resuming),
+    call(Cont).
+
+gassert :-
+    (   n
+    ->  fail
+    ;   true
+    ).
+\end{code}
+
+Now, \nopredref{t3}{0} succeeds \emph{twice}. This is because
+\nopredref{n}{0} shifts, so the commit to the fail/0 branch is not
+executed and the true/0 branch is evaluated normally. Calling the
+continuation later using \nopredref{c3}{0} fails because the choicepoint
+that realised the if-then-else does not exist in the continuation and
+thus the effective continuation is the remainder of \nopredref{n}{0} and
+fail/0 in \nopredref{gassert}{0}.
+
+\begin{code}
+?- t3.
+true ;
+true.
+
+?- c3.
+resuming
+n
+false.
+\end{code}
+
+
 The suspension mechanism provided by delimited continuations is used to
 implement \jargon{tabling} \cite{DBLP:journals/tplp/DesouterDS15},
 (\href{https://www.cambridge.org/core/journals/theory-and-practice-of-logic-programming/article/div-classtitletabling-as-a-library-with-delimited-controldiv/227B7C0227FD715CF159B6AF894DE96E}{available
