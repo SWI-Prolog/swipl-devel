@@ -85,6 +85,15 @@ typedef struct tbl_component
   trie		       *leader;			/* Leading variant */
 } tbl_component;
 
+typedef struct tbl_status
+{ tbl_component *scc;
+  int		 hsc;
+  int		 iac;
+} tbl_status;
+
+void save_tabling_status(tbl_status *stat);
+void restore_tabling_status(tbl_status *stat);
+
 
 		 /*******************************
 		 *	   TABLE WORKLIST	*
