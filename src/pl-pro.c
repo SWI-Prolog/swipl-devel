@@ -41,6 +41,7 @@
 #include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-event.h"
+#include "pl-tabling.h"
 
 
 		/********************************
@@ -179,15 +180,17 @@ pl_break1(atom_t goal)
   int rc = TRUE;
   int old_level = LD->break_level;
 
-  IOSTREAM *inSave  = Scurin;
-  IOSTREAM *outSave = Scurout;
-  intptr_t skipSave = debugstatus.skiplevel;
-  int  suspSave     = debugstatus.suspendTrace;
+  IOSTREAM *inSave       = Scurin;
+  IOSTREAM *outSave      = Scurout;
+  intptr_t skipSave      = debugstatus.skiplevel;
+  int  suspSave          = debugstatus.suspendTrace;
   int  traceSave;
   debug_type debugSave;
+  tbl_status tblstat;
 
   tracemode(FALSE, &traceSave);
   debugmode(DBG_OFF, &debugSave);
+  save_tabling_status(&tblstat);
 
   Scurin  = Sinput;
   Scurout = Soutput;
@@ -210,6 +213,7 @@ pl_break1(atom_t goal)
   }
   LD->break_level = old_level;
 
+  restore_tabling_status(&tblstat);
   debugstatus.suspendTrace = suspSave;
   debugstatus.skiplevel    = skipSave;
   tracemode(traceSave, NULL);

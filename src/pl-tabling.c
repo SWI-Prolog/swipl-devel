@@ -2092,6 +2092,34 @@ print_answer_table(trie *atrie, const char *msg, ...)
 
 #endif
 
+		 /*******************************
+		 *	      SUSPEND		*
+		 *******************************/
+
+void
+save_tabling_status(tbl_status *state)
+{ GET_LD
+
+  state->scc = LD->tabling.component;
+  state->hsc = LD->tabling.has_scheduling_component;
+  state->iac = LD->tabling.in_answer_completion;
+
+  LD->tabling.component                = NULL;
+  LD->tabling.has_scheduling_component = FALSE;
+  LD->tabling.in_answer_completion     = FALSE;
+}
+
+
+void
+restore_tabling_status(tbl_status *state)
+{ GET_LD
+
+  LD->tabling.component                = state->scc;
+  LD->tabling.has_scheduling_component = state->hsc;
+  LD->tabling.in_answer_completion     = state->iac;
+}
+
+
 
 		 /*******************************
 		 *     THREAD VARIANT TABLE	*
