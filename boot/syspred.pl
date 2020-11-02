@@ -661,15 +661,14 @@ call_with_depth_limit(G, Limit, Result) :-
 
 %!  call_with_inference_limit(:Goal, +InferenceLimit, -Result)
 %
-%   Equivalent to call(Goal), but poses  a   limit  on the number of
-%   inferences. If this limit is  reached,   Result  is unified with
-%   =inference_limit_exceeded=, otherwise Result  is   unified  with
-%   =|!|=  if  Goal  succeeded  without  a  choicepoint  and  =true=
-%   otherwise.
+%   Equivalent to call(Goal),  but  poses  a   limit  on  the  number of
+%   inferences. If this  limit  is  reached,   Result  is  unified  with
+%   `inference_limit_exceeded`, otherwise Result is unified  with `!` if
+%   Goal succeeded without a choicepoint and `true` otherwise.
 %
-%   Note that we perform calls in   system  to avoid auto-importing,
-%   which makes raiseInferenceLimitException()  fail   to  recognise
-%   that the exception happens in the overhead.
+%   Note that we perform calls in  system to avoid auto-importing, which
+%   makes raiseInferenceLimitException() fail  to   recognise  that  the
+%   exception happens in the overhead.
 
 :- meta_predicate
     call_with_inference_limit(0, +, -).
@@ -678,8 +677,11 @@ call_with_inference_limit(G, Limit, Result) :-
     '$inference_limit'(Limit, OLimit),
     (   catch(G, Except,
               system:'$inference_limit_except'(OLimit, Except, Result0)),
-        system:'$inference_limit_true'(Limit, OLimit, Result0),
-        ( Result0 == ! -> ! ; true ),
+        (   Result0 == inference_limit_exceeded
+        ->  !
+        ;   system:'$inference_limit_true'(Limit, OLimit, Result0),
+            ( Result0 == ! -> ! ; true )
+        ),
         Result = Result0
     ;   system:'$inference_limit_false'(OLimit)
     ).
