@@ -2128,8 +2128,13 @@ goal_classification(TB, Goal, _, How) :-
     xref_defined(SourceId, Goal, How),
     How \= public(_),
     !.
-goal_classification(_TB, Goal, _, Class) :-
-    call_goal_classification(Goal, Class),
+goal_classification(TB, Goal, _, Class) :-
+    (   colour_state_source_id(TB, SourceId),
+        xref_module(SourceId, Module)
+    ->  true
+    ;   Module = user
+    ),
+    call_goal_classification(Goal, Module, Class),
     !.
 goal_classification(TB, Goal, _, How) :-
     colour_state_module(TB, Module),
@@ -2140,27 +2145,45 @@ goal_classification(TB, Goal, _, How) :-
     How = imported(From).
 goal_classification(_TB, _Goal, _, undefined).
 
-%!  goal_classification(+Goal, -Class)
+%!  goal_classification(+Goal, +Module, -Class)
 %
 %   Multifile hookable classification for non-local goals.
 
-call_goal_classification(Goal, Class) :-
-    catch(goal_classification(Goal, Class), _,
+call_goal_classification(Goal, Module, Class) :-
+    catch(global_goal_classification(Goal, Module, Class), _,
           Class = type_error(callable)).
 
-goal_classification(Goal, built_in) :-
+global_goal_classification(Goal, _, built_in) :-
     built_in_predicate(Goal),
     !.
-goal_classification(Goal, autoload(From)) :-    % SWI-Prolog
+global_goal_classification(Goal, _, autoload(From)) :-  % SWI-Prolog
     predicate_property(Goal, autoload(From)).
-goal_classification(Goal, global) :-            % SWI-Prolog
+global_goal_classification(Goal, Module, Class) :-      % SWI-Prolog
     strip_module(Goal, _, PGoal),
     current_predicate(_, user:PGoal),
-    !.
-goal_classification(Goal, Class) :-
+    !,
+    (   Module == user
+    ->  Class = global(GClass, Location),
+        global_location(user:Goal, Location),
+        global_class(user:Goal, GClass)
+    ;   Class = global
+    ).
+global_goal_classification(Goal, _, Class) :-
     compound(Goal),
     compound_name_arity(Goal, Name, Arity),
     vararg_goal_classification(Name, Arity, Class).
+
+global_location(Goal, File:Line) :-
+    predicate_property(Goal, file(File)),
+    predicate_property(Goal, line_count(Line)),
+    !.
+global_location(_, -).
+
+global_class(Goal, dynamic)   :- predicate_property(Goal, dynamic), !.
+global_class(Goal, multifile) :- predicate_property(Goal, multifile), !.
+global_class(Goal, tabled)    :- predicate_property(Goal, tabled), !.
+global_class(_,    static).
+
 
 %!  vararg_goal_classification(+Name, +Arity, -Class) is semidet.
 %
@@ -2399,6 +2422,8 @@ def_style(goal(built_in,_),        [colour(blue)]).
 def_style(goal(imported(_),_),     [colour(blue)]).
 def_style(goal(autoload(_),_),     [colour(navy_blue)]).
 def_style(goal(global,_),          [colour(navy_blue)]).
+def_style(goal(global(dynamic,_),_), [colour(magenta)]).
+def_style(goal(global(_,_),_),     [colour(navy_blue)]).
 def_style(goal(undefined,_),       [colour(red)]).
 def_style(goal(thread_local(_),_), [colour(magenta), underline(true)]).
 def_style(goal(dynamic(_),_),      [colour(magenta)]).
@@ -2971,6 +2996,12 @@ goal_class(undefined) -->
     [ ' (undefined)' ].
 goal_class(global) -->
     [ ' (Auto-imported from module user)' ].
+goal_class(global(Class, File:Line)) -->
+    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+goal_class(global(Class, source_location(File,Line))) -->
+    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+goal_class(global(Class, -)) -->
+    [ ' (~w in user module)'-[Class] ].
 goal_class(imported(From)) -->
     [ ' (imported from ~q)'-[From] ].
 goal_class(extern(_, private)) -->
