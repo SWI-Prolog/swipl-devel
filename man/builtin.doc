@@ -10424,14 +10424,14 @@ successful completion. See once/1.  Later implementations may have the
 same semantics as call/1.
 
     \predicate{debug}{0}{}
-Start debugger. In debug mode, Prolog stops at spy and trace points,
+Start debugger. In debug mode, Prolog stops at spy and break points,
 disables last-call optimisation and aggressive destruction of
 choice points to make debugging information accessible.  Implemented
 by the Prolog flag \prologflag{debug}.
 
 Note that the \const{min_free} parameter of all stacks is enlarged to
 8~K cells if debugging is switched off in order to avoid excessive GC. GC
-complicates tracing because it renames the \textit{_G<NNN>} variables
+complicates tracing because it renames the \textit{_<NNN>} variables
 and replaces unreachable variables with the atom
 \verb$<garbage_collected>$. Calling nodebug/0 does \emph{not} reset the
 initial free-margin because several parts of the top level and debugger

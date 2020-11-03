@@ -1472,7 +1472,7 @@ described in \secref{DDE}.
 
     \prologflagitem{debug}{bool}{rw}
 Switch debugging mode on/off.  If debug mode is activated the system
-traps encountered spy points (see spy/1) and trace points (see trace/1).
+traps encountered spy points (see spy/1) and break points.
 In addition, last-call optimisation is disabled and the system is
 more conservative in destroying choice points to simplify debugging.
 
