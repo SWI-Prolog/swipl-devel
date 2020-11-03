@@ -1287,6 +1287,12 @@ typedef struct impl_wrapped
   Code		supervisor;		/* Supervisor to use */
 } impl_wrapped, *ImplWrapped;
 
+typedef struct impl_local
+{ arg_info     *args;			/* Meta and indexing info */
+  LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
+} impl_local, *ImplLocal;
+
+
 typedef struct clause_list
 { arg_info     *args;			/* Meta and indexing info */
   ClauseRef	first_clause;		/* clause list of procedure */
@@ -1459,7 +1465,7 @@ struct definition
     clause_list	clauses;		/* (Indexed) list of clauses */
     impl_foreign foreign;		/* Foreign implementation */
     impl_wrapped wrapped;		/* Wrapped predicate */
-    LocalDefinitions local;		/* P_THREAD_LOCAL predicates */
+    impl_local   local;			/* P_THREAD_LOCAL predicates */
   } impl;
   unsigned int  flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
