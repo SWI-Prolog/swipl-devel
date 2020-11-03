@@ -3423,7 +3423,7 @@ setThreadLocalDefinition(Definition def, bool val)
       return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PREDICATE, def);
     }
 
-    def->impl.local = new_ldef_vector();
+    def->impl.local.local = new_ldef_vector();
     MEMORY_RELEASE();
     set(def, P_DYNAMIC|P_VOLATILE|P_THREAD_LOCAL);
     def->codes = SUPERVISOR(thread_local);

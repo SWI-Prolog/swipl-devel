@@ -1389,7 +1389,7 @@ static Definition
 localDefinition(Definition def ARG_LD)
 { unsigned int tid = LD->thread.info->pl_tid;
   size_t idx = MSB(tid);
-  LocalDefinitions v = def->impl.local;
+  LocalDefinitions v = def->impl.local.local;
 
   if ( !v->blocks[idx] )
   { size_t bs = (size_t)1<<idx;
@@ -1412,7 +1412,7 @@ localDefinition(Definition def ARG_LD)
 void
 destroyLocalDefinition(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
-  LocalDefinitions v = def->impl.local;
+  LocalDefinitions v = def->impl.local.local;
   Definition local;
 
   local = v->blocks[idx][tid];
@@ -1438,7 +1438,7 @@ getProcDefinition__LD(Definition def ARG_LD)
 Definition
 getProcDefinitionForThread(Definition def, unsigned int tid)
 { size_t idx = MSB(tid);
-  LocalDefinitions v = def->impl.local;
+  LocalDefinitions v = def->impl.local.local;
 
   if ( !v->blocks[idx] )
     return NULL;

@@ -6330,7 +6330,7 @@ we need to scan the entire localization array.
 void
 destroyLocalDefinitions(Definition def)
 { GET_LD
-  LocalDefinitions ldefs = def->impl.local;
+  LocalDefinitions ldefs = def->impl.local.local;
   int b;
 
   for(b=0; b<MAX_BLOCKS; b++)
@@ -6437,7 +6437,13 @@ sizeof_local_definitions(PL_local_data_t *ld)
   size_t size = 0;
 
   for( ; ch; ch = ch->next)
-    size += sizeof_predicate(ch->definition);
+  { Definition def = ch->definition;
+    Definition local;
+
+    assert(true(def, P_THREAD_LOCAL));
+    if ( (local = getProcDefinitionForThread(def, ld->thread.info->pl_tid)) )
+      size += sizeof_predicate(local);
+  }
 
   return size;
 }
