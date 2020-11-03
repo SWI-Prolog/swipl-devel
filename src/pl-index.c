@@ -1451,6 +1451,25 @@ deleteIndexes(ClauseList clist, int isnew)
 }
 
 
+void
+deleteIndexesDefinition(Definition def)
+{ ClauseList clist = &def->impl.clauses;
+  ClauseIndex *cip0;
+
+  if ( (cip0=clist->clause_indexes) )
+  { ClauseIndex *cip;
+
+    for(cip = cip0; *cip; cip++)
+    { ClauseIndex ci = *cip;
+
+      if ( ISDEADCI(ci) )
+	continue;
+
+      deleteIndexP(def, clist, cip);
+    }
+  }
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Add a clause to an index.  If   the  clause cannot be indexed (typically
