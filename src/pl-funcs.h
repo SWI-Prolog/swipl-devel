@@ -131,6 +131,7 @@ COMMON(void)		unallocClauseIndexTable(ClauseIndex ci);
 COMMON(void)		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 COMMON(bool)		unify_index_pattern(Procedure proc, term_t value);
 COMMON(void)		deleteIndexes(ClauseList cl, int isnew);
+COMMON(void)		deleteIndexesDefinition(Definition def);
 COMMON(int)		checkClauseIndexSizes(Definition def, int nindexable);
 COMMON(void)		checkClauseIndexes(Definition def);
 COMMON(void)		listIndexGenerations(Definition def, gen_t gen);

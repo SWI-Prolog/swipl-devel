@@ -172,12 +172,22 @@ destroyDefinition(Definition def)
 { ATOMIC_DEC(&GD->statistics.predicates);
   ATOMIC_SUB(&def->module->code_size, sizeof(*def));
 
+  DEBUG(MSG_CGC_PRED,
+	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
+
   freeCodesDefinition(def, FALSE);
 
   if ( false(def, P_FOREIGN|P_THREAD_LOCAL) )	/* normal Prolog predicate */
-  { deleteIndexes(&def->impl.clauses, TRUE);
+  { GET_LD
+
+    deleteIndexesDefinition(def);
     removeClausesPredicate(def, 0, FALSE);
-    freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
+    registerDirtyDefinition(def PASS_LD);
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
+    def->module = NULL;
+    set(def, P_ERASED);
+
+    return;
   } else					/* foreign and thread-local */
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
 				   predicateName(def)));
@@ -188,20 +198,10 @@ destroyDefinition(Definition def)
   }
 
   if ( def->tabling )
-  { freeHeap(def->tabling, sizeof(*def->tabling));
-    def->tabling = NULL;
-  }
+    freeHeap(def->tabling, sizeof(*def->tabling));
 
-  DEBUG(MSG_CGC_PRED,
-	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
-  if ( true(def, P_DIRTYREG) )
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
-    def->module = NULL;
-    set(def, P_ERASED);
-  } else
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
-    freeHeap(def, sizeof(*def));
-  }
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
+  freeHeap(def, sizeof(*def));
 }
 
 
@@ -2463,7 +2463,19 @@ maybeUnregisterDirtyDefinition(Definition def)
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
     assert(def->module == NULL);
     if ( def->impl.clauses.first_clause == NULL )
-    { unregisterDirtyDefinition(def);
+    { if ( def->lingering )
+      { static int done = FALSE;
+	if ( !done )
+	{ Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
+		   predicateName(def));
+	  done = TRUE;
+	}
+      }
+      unregisterDirtyDefinition(def);
+      deleteIndexes(&def->impl.clauses, TRUE);
+      freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
+      if ( def->tabling )
+	freeHeap(def->tabling, sizeof(*def->tabling));
       freeHeap(def, sizeof(*def));
     }
   }
