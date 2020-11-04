@@ -266,7 +266,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
       addBuffer(b, EOS, pl_wchar_t);
       text->text.w = baseBuffer(b, pl_wchar_t);
       text->encoding = ENC_WCHAR;
-    } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
+    } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL|CVT_WRITEQ)) )
     { goto case_write;
     } else
     { if ( (flags & CVT_VARNOFAIL) && result.status == CVT_partial )
@@ -308,7 +308,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     text->encoding = ENC_ISO_LATIN_1;
     text->storage  = PL_CHARS_LOCAL;
     text->canonical = TRUE;
-  } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
+  } else if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL|CVT_WRITEQ)) )
   { IOENC encodings[3];
     IOENC *enc;
     char *r;
@@ -368,7 +368,7 @@ out:
   return TRUE;
 
 maybe_write:
-  if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL)) )
+  if ( (flags & (CVT_WRITE|CVT_WRITE_CANONICAL|CVT_WRITEQ)) )
     goto case_write;
 
 error:
