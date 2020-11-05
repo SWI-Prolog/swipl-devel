@@ -38,6 +38,7 @@
 #include "pl-transaction.h"
 #include "pl-event.h"
 #include "pl-dbref.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements _transactions_, notably _isolating_ transactions.
@@ -85,11 +86,12 @@ A clause is visible iff
 #define IS_ASSERT_GEN(g) ((g)==GEN_ASSERTA||(g)==GEN_ASSERTZ)
 
 typedef struct tr_stack
-{ struct tr_stack *parent;		/* parent transaction */
-  gen_t		   gen_nest;		/* Saved nesting generation */
-  gen_t            generation;		/* Parent generation */
-  Table		   clauses;		/* Parent changed clauses */
-  term_t	   id;			/* Parent goal */
+{ struct tr_stack  *parent;		/* parent transaction */
+  gen_t		    gen_nest;		/* Saved nesting generation */
+  gen_t             generation;		/* Parent generation */
+  Table		    clauses;		/* Parent changed clauses */
+  struct tbl_trail *table_trail;	/* Parent changes to tables */
+  term_t	    id;			/* Parent goal */
 } tr_stack;
 
 static void
@@ -385,11 +387,12 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 { int rc;
 
   if ( LD->transaction.generation )
-  { tr_stack parent = { .generation = LD->transaction.generation,
-			.gen_nest   = LD->transaction.gen_nest,
-			.clauses    = LD->transaction.clauses,
-			.parent     = LD->transaction.stack,
-			.id         = LD->transaction.id
+  { tr_stack parent = { .generation  = LD->transaction.generation,
+			.gen_nest    = LD->transaction.gen_nest,
+			.clauses     = LD->transaction.clauses,
+			.table_trail = LD->transaction.table_trail,
+			.parent      = LD->transaction.stack,
+			.id          = LD->transaction.id
 		      };
 
     LD->transaction.clauses  = NULL;
@@ -407,15 +410,22 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	} else
 	{ parent.clauses = LD->transaction.clauses;
 	}
+	if ( parent.table_trail )
+	{ merge_tabling_trail(parent.table_trail, LD->transaction.table_trail);
+	} else
+	{ parent.table_trail = LD->transaction.table_trail;
+	}
       }
     } else
     { rc = transaction_discard(PASS_LD1) && rc;
+      rc = transaction_rollback_tables(PASS_LD1) && rc;
       LD->transaction.generation = parent.generation;
     }
-    LD->transaction.gen_nest = parent.gen_nest;
-    LD->transaction.clauses  = parent.clauses;
-    LD->transaction.stack    = parent.parent;
-    LD->transaction.id       = parent.id;
+    LD->transaction.gen_nest    = parent.gen_nest;
+    LD->transaction.clauses     = parent.clauses;
+    LD->transaction.table_trail = parent.table_trail;
+    LD->transaction.stack       = parent.parent;
+    LD->transaction.id          = parent.id;
   } else
   { int tid = PL_thread_self();
 #ifdef O_PLMT
@@ -442,14 +452,17 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
       }
       if ( rc )
-      { rc = transaction_commit(PASS_LD1);
+      { rc = ( transaction_commit_tables(PASS_LD1) &&
+	       transaction_commit(PASS_LD1) );
 	if ( constraint ) TR_UNLOCK();
       } else
       { if ( constraint ) TR_UNLOCK();
 	transaction_discard(PASS_LD1);
+	transaction_rollback_tables(PASS_LD1);
       }
     } else
     { rc = transaction_discard(PASS_LD1) && rc;
+      rc = transaction_rollback_tables(PASS_LD1) && rc;
     }
     LD->transaction.id         = 0;
     LD->transaction.generation = 0;

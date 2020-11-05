@@ -100,6 +100,7 @@ typedef struct trie_node
 #define TRIE_ISSHARED	0x0004		/* This is a shared answer trie */
 #define TRIE_COMPLETE	0x0008		/* Answer trie is complete */
 #define TRIE_ABOLISH_ON_COMPLETE 0x0010	/* Abolish the table when completed */
+#define TRIE_ISTRACKED  0x0020		/* Trie changes are tracked */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */

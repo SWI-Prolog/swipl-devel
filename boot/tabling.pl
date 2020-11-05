@@ -1598,6 +1598,15 @@ mon_propagate(Action, Head) :-
         propagate_assert(Head),
         '$tbl_propagate_end'(Old)).
 mon_propagate(retract, Head) :-
+    !,
+    mon_abolish_dependents(Head).
+mon_propagate(rollback(Action), Head) :-
+    mon_propagate_rollback(Action, Head).
+
+mon_propagate_rollback(Action, _Head) :-
+    assert_action(Action),
+    !.
+mon_propagate_rollback(retract, Head) :-
     mon_abolish_dependents(Head).
 
 assert_action(asserta).

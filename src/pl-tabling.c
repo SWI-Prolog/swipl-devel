@@ -142,6 +142,8 @@ static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 static idg_mdep *new_mdep(term_t t ARG_LD);
 static void	free_mdep(idg_mdep *mdep);
+static void	tt_abolish_table(trie *atrie);
+static void	tt_add_table(trie *atrie ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2208,6 +2210,9 @@ reset_answer_table(trie *atrie, int cleanup)
     }
   }
 
+  if ( true(atrie, TRIE_ISTRACKED) )
+    tt_abolish_table(atrie);
+
   trie_empty(atrie);
 }
 
@@ -2412,6 +2417,7 @@ retry:
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
       symb = trie_symbol(atrie);
+      tt_add_table(atrie PASS_LD);
 
 #ifdef O_PLMT
       if ( shared )
@@ -3291,6 +3297,50 @@ delayed_destroy_table(trie *atrie)
   return FALSE;
 }
 
+static int
+abolish_table(trie *atrie)
+{ if ( atrie->data.worklist == WL_DYNAMIC )
+    return TRUE;		/* quickly ignore dynamic pseudo tables */
+
+  if ( atrie->data.variant)
+  { trie *vtrie = get_trie_from_node(atrie->data.variant);
+
+    if ( is_variant_trie(vtrie) )
+    {
+#ifdef O_PLMT
+      int mytid = PL_thread_self();
+
+      if ( true(atrie, TRIE_ISSHARED) )
+      { LOCK_SHARED_TABLE(atrie);
+	if ( !atrie->tid )			/* no owner */
+	{ take_trie(atrie, mytid);
+	  assert(!table_is_incomplete(atrie));
+	  reset_answer_table(atrie, FALSE);
+	  drop_trie(atrie);
+	} else if ( atrie->tid == mytid )	/* I am the owner */
+	{ if ( !delayed_destroy_table(atrie) )
+	  { reset_answer_table(atrie, FALSE);
+	    drop_trie(atrie);
+	    cv_broadcast(&GD->tabling.cvar);
+	  }
+	} else
+	{ set(atrie, TRIE_ABOLISH_ON_COMPLETE);
+	  DEBUG(MSG_TABLING_ABOLISH,
+		print_answer_table(atrie, "Scheduling for delayed abolish"));
+	}
+	UNLOCK_SHARED_TABLE(atrie);
+      } else
+#endif
+      { if ( !delayed_destroy_table(atrie) )
+	  trie_delete(vtrie, atrie->data.variant, TRUE);
+      }
+
+      return TRUE;
+    }
+  }
+
+  return TRUE;
+}
 
 /** '$tbl_destroy_table'(+Trie)
  *
@@ -3303,48 +3353,7 @@ PRED_IMPL("$tbl_destroy_table", 1, tbl_destroy_table, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { if ( atrie->data.worklist == WL_DYNAMIC )
-      return TRUE;		/* quickly ignore dynamic pseudo tables */
-
-    if ( atrie->data.variant)
-    { trie *vtrie = get_trie_from_node(atrie->data.variant);
-
-      if ( is_variant_trie(vtrie) )
-      {
-#ifdef O_PLMT
-        int mytid = PL_thread_self();
-
-	if ( true(atrie, TRIE_ISSHARED) )
-	{ LOCK_SHARED_TABLE(atrie);
-	  if ( !atrie->tid )			/* no owner */
-	  { take_trie(atrie, mytid);
-	    assert(!table_is_incomplete(atrie));
-	    reset_answer_table(atrie, FALSE);
-	    drop_trie(atrie);
-	  } else if ( atrie->tid == mytid )	/* I am the owner */
-	  { if ( !delayed_destroy_table(atrie) )
-	    { reset_answer_table(atrie, FALSE);
-	      drop_trie(atrie);
-	      cv_broadcast(&GD->tabling.cvar);
-	    }
-	  } else
-	  { set(atrie, TRIE_ABOLISH_ON_COMPLETE);
-	    DEBUG(MSG_TABLING_ABOLISH,
-		  print_answer_table(atrie, "Scheduling for delayed abolish"));
-	  }
-	  UNLOCK_SHARED_TABLE(atrie);
-	} else
-#endif
-	{ if ( !delayed_destroy_table(atrie) )
-	    trie_delete(vtrie, atrie->data.variant, TRUE);
-	}
-
-	return TRUE;
-      }
-    }
-
-    return TRUE;
-  }
+    return abolish_table(atrie);
 
   return FALSE;
 }
@@ -5380,6 +5389,182 @@ PRED_IMPL("$is_answer_trie", 1, is_answer_trie, 0)
 }
 
 		 /*******************************
+		 *     TRANSACTION SUPPORT	*
+		 *******************************/
+
+static void *
+tt_alloc(size_t bytes ARG_LD)
+{ tbl_trail *tt;
+  size_t *szp;
+  char *buf;
+
+  if ( !(tt=LD->transaction.table_trail) )
+  { tt = allocHeapOrHalt(sizeof(*tt));
+    memset(tt, 0, sizeof(*tt));
+    initBuffer(&tt->actions);
+    LD->transaction.table_trail = tt;
+  }
+
+  buf  = allocFromBuffer(&tt->actions, bytes+sizeof(*szp));
+  szp  = (size_t*)&buf[bytes];
+  *szp = bytes;
+
+  return buf;
+}
+
+
+static void
+tt_add_table(trie *atrie ARG_LD)
+{ if ( LD->transaction.generation )
+  { tbl_trail_table *e = tt_alloc(sizeof(*e) PASS_LD);
+    e->type   = TT_TABLE;
+    e->symbol = trie_symbol(atrie);
+    PL_register_atom(e->symbol);
+  }
+}
+
+static void
+tt_add_answer(trie *atrie, trie_node *node ARG_LD)
+{ if ( LD->transaction.generation )
+  { tbl_trail_answer *a = tt_alloc(sizeof(*a) PASS_LD);
+    a->type   = TT_ANSWER;
+    a->atrie  = atrie;
+    a->answer = node;
+
+    if ( false(atrie, TRIE_ISTRACKED) )
+      set(atrie, TRIE_ISTRACKED);
+  }
+}
+
+
+static void
+tt_abolish_table(trie *atrie)
+{ GET_LD
+  tbl_trail *tt;
+
+  if ( (tt=LD->transaction.table_trail) )
+  { size_t *base = baseBuffer(&tt->actions, size_t);
+    size_t *top  = topBuffer(&tt->actions, size_t);
+
+    while(top>base)
+    { tbl_trail_any *tsz;
+      size_t bytes = *--top;
+
+      top = addPointer(top, -bytes);
+      tsz = (tbl_trail_any*)top;
+
+      switch(tsz->type)
+      { case TT_ANSWER:
+	{ tbl_trail_answer *ta = (tbl_trail_answer*)tsz;
+
+	  if ( ta->atrie == atrie )
+	  { ta->atrie = NULL;
+	    ta->answer = NULL;
+	    break;
+	  }
+	}
+        default:
+	  assert(0);
+      }
+    }
+  }
+}
+
+
+int
+transaction_commit_tables(ARG1_LD)
+{ tbl_trail *tt;
+
+  if ( (tt=LD->transaction.table_trail) )
+  { size_t *base = baseBuffer(&tt->actions, size_t);
+    size_t *top  = topBuffer(&tt->actions, size_t);
+
+    LD->transaction.table_trail = NULL;
+
+    while(top>base)
+    { tbl_trail_any *tsz;
+      size_t bytes = *--top;
+
+      top = addPointer(top, -bytes);
+      tsz = (tbl_trail_any*)top;
+
+      switch(tsz->type)
+      { case TT_TABLE:
+	{ tbl_trail_table *e = (tbl_trail_table*)tsz;
+	  PL_unregister_atom(e->symbol);
+	  break;
+	}
+	case TT_ANSWER:
+	  break;
+        default:
+	  assert(0);
+      }
+    }
+
+    discardBuffer(&tt->actions);
+    freeHeap(tt, sizeof(*tt));
+  }
+
+  return TRUE;
+}
+
+
+int
+transaction_rollback_tables(ARG1_LD)
+{ tbl_trail *tt;
+
+  if ( (tt=LD->transaction.table_trail) )
+  { size_t *base = baseBuffer(&tt->actions, size_t);
+    size_t *top  = topBuffer(&tt->actions, size_t);
+
+    LD->transaction.table_trail = NULL;
+
+    while(top>base)
+    { tbl_trail_any *tsz;
+      size_t bytes = *--top;
+
+      top = addPointer(top, -bytes);
+      tsz = (tbl_trail_any*)top;
+
+      switch(tsz->type)
+      { case TT_TABLE:
+	{ tbl_trail_table *e = (tbl_trail_table*)tsz;
+
+	  abolish_table(symbol_trie(e->symbol));
+	  PL_unregister_atom(e->symbol);
+	  break;
+	}
+        case TT_ANSWER:
+	{ tbl_trail_answer *ta = (tbl_trail_answer*)tsz;
+
+	  if ( ta->atrie )
+	    trie_delete(ta->atrie, ta->answer, TRUE);
+	  break;
+	}
+        default:
+	  assert(0);
+      }
+    }
+
+    discardBuffer(&tt->actions);
+    freeHeap(tt, sizeof(*tt));
+  }
+
+  return TRUE;
+}
+
+void
+merge_tabling_trail(tbl_trail *into, tbl_trail *from)
+{ size_t bytes = sizeOfBuffer(&from->actions);
+  void *to = allocFromBuffer(&into->actions, bytes);
+
+  memcpy(to, baseBuffer(&from->actions, char), bytes);
+  discardBuffer(&from->actions);
+  freeHeap(from, sizeof(*from));
+}
+
+
+		 /*******************************
 		 *	 IDG CONSTRUCTION	*
 		 *******************************/
 
@@ -6331,6 +6516,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
       if ( rc > 0 )
       { if ( node->value )
 	  return FALSE;
+	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 	idg_changed(atrie);
 

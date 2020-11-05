@@ -710,14 +710,15 @@ struct PL_local_data
 #endif
 
   struct
-  { gen_t	gen_start;		/* Global start generation */
-    gen_t	gen_base;		/* Local  start generation */
-    gen_t	gen_max;		/* Transaction max gen */
-    gen_t	gen_nest;		/* Start of nested generation */
-    gen_t	generation;		/* Local current generation */
-    Table	clauses;		/* Affected clauses */
-    term_t	id;			/* Default the goal */
-    struct tr_stack *stack;		/* Nested transaction stack */
+  { gen_t	      gen_start;	/* Global start generation */
+    gen_t	      gen_base;		/* Local  start generation */
+    gen_t	      gen_max;		/* Transaction max gen */
+    gen_t	      gen_nest;		/* Start of nested generation */
+    gen_t	      generation;	/* Local current generation */
+    Table	      clauses;		/* Affected clauses */
+    struct tbl_trail *table_trail;	/* Affected tables */
+    term_t	      id;		/* Default the goal */
+    struct tr_stack  *stack;		/* Nested transaction stack */
   } transaction;
 
 #ifdef O_LOCALE

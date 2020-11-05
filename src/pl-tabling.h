@@ -227,6 +227,39 @@ typedef struct trie_array
 
 
 		 /*******************************
+		 *    TRANSACTION RECORDING	*
+		 *******************************/
+
+typedef struct tbl_trail
+{ buffer	actions;
+} tbl_trail;
+
+typedef enum tbl_trail_type
+{ TT_TABLE,
+  TT_ANSWER
+} tbl_trail_type;
+
+typedef struct tbl_trail_any
+{ tbl_trail_type	type;		/* TT_* */
+} tbl_trail_any;
+
+typedef struct tbl_trail_table
+{ tbl_trail_type	type;		/* TT_TABLE */
+  atom_t		symbol;
+} tbl_trail_table;
+
+typedef struct tbl_trail_answer
+{ tbl_trail_type	type;		/* TT_ANSWER */
+  trie                 *atrie;
+  trie_node	       *answer;
+} tbl_trail_answer;
+
+COMMON(int)	transaction_commit_tables(ARG1_LD);
+COMMON(int)	transaction_rollback_tables(ARG1_LD);
+COMMON(void)	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
+
+
+		 /*******************************
 		 *     PREDICATE PROPERTIES	*
 		 *******************************/
 
