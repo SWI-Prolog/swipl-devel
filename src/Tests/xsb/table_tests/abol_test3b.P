@@ -27,7 +27,12 @@ test :-
     test2,
     gc_tables(N1),
     N is N1-N0,
-    writeln(remaining(N)),
+    (   N == 0
+    ->  true
+    ;   format(user_error,
+               'Test abol_test3b left %d tables.  Can happen.~n', [N])
+    ),
+    writeln(remaining(0)),
     get_residual(upred(X),_),writeln(first(X)).
 
 test2 :-
