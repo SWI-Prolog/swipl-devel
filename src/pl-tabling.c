@@ -4609,6 +4609,7 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 
       if ( true(atrie, TRIE_ABOLISH_ON_COMPLETE) )
       { atrie->data.worklist = NULL;
+	wl->table = NULL;
 	destroy_answer_trie(atrie);
 	free_worklist(wl);
       } else if ( !wl->undefined && isEmptyBuffer(&wl->delays) ) /* see (*) */
