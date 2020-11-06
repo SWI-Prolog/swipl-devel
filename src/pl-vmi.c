@@ -1445,9 +1445,8 @@ arg3_fast:
     }
   }
 
-  globaliseFirstVar(aarg);
-
 arg3_slow:
+  globaliseFirstVar(aarg);
   ARGP = argFrameP(lTop, 0);
   *ARGP++ = *aidx;
   *ARGP++ = *aterm;
@@ -1460,21 +1459,24 @@ arg3_slow:
 }
 
 VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
-{ ENSURE_GLOBAL_SPACE(3, (void)0);
+{ Word aidx0;
 
-  aidx  = varFrameP(FR, (int)*PC++);
+  ENSURE_GLOBAL_SPACE(3, (void)0);
+
+  aidx0 = varFrameP(FR, (int)*PC++);
   aterm = varFrameP(FR, (int)*PC++);
   aarg  = varFrameP(FR, (int)*PC++);
 
-  if ( isVar(*aidx) )  globaliseVar(aidx);
+  if ( isVar(*aidx0) ) globaliseVar(aidx0);
   if ( isVar(*aterm) ) globaliseVar(aterm);
 
-  deRef(aidx);
+  deRef2(aidx0, aidx);
   if ( isTaggedInt(*aidx) )
   { ai = valInt(*aidx);
     goto arg3_fast;
   }
 
+  aidx = aidx0;
   goto arg3_slow;
 }
 END_SHAREDVARS

@@ -142,6 +142,16 @@ test(bigneg, error(domain_error(not_less_than_zero, _))) :-
 	arg(-1000000000000000000, s(_), _).
 :- endif.
 
+test(arg_vf, L == [1]) :-		% By Edison Mera
+    subterm_location(=(a), f(a), L).
+
+subterm_location(Comparator, Term, []) :-
+    call(Comparator, Term), !.
+subterm_location(Comparator, Term, [N|L]) :-
+    compound(Term),
+    arg(N, Term, SubTerm),
+    subterm_location(Comparator, SubTerm, L).
+
 :- end_tests(arg).
 
 :- begin_tests(eq).
