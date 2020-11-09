@@ -315,9 +315,14 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     int wflags;
 
   case_write:
-    encodings[0] = ENC_ISO_LATIN_1;
-    encodings[1] = ENC_WCHAR;
-    encodings[2] = ENC_UNKNOWN;
+    if ( (flags&REP_UTF8) )
+    { encodings[0] = ENC_UTF8;
+      encodings[1] = ENC_UNKNOWN;
+    } else
+    { encodings[0] = ENC_ISO_LATIN_1;
+      encodings[1] = ENC_WCHAR;
+      encodings[2] = ENC_UNKNOWN;
+    }
 
     if ( (flags&CVT_WRITEQ) )
       wflags = PL_WRT_QUOTED|PL_WRT_NUMBERVARS;
@@ -341,12 +346,12 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 	text->storage = (r == text->buf ? PL_CHARS_LOCAL : PL_CHARS_MALLOC);
 	text->canonical = TRUE;
 
-	if ( *enc == ENC_ISO_LATIN_1 )
-	{ text->length = size-1;
-	  text->text.t = r;
-	} else
+	if ( *enc == ENC_WCHAR )
 	{ text->length = (size/sizeof(pl_wchar_t))-1;
 	  text->text.w = (pl_wchar_t *)r;
+	} else
+	{ text->length = size-1;
+	  text->text.t = r;
 	}
 
 	Sclose(fd);
