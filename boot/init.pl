@@ -1062,11 +1062,11 @@ user:file_search_path(user_profile, app_preferences('.')).
                                   ],
                                   Dir).
 % common config
-'$xdg_directory'(common_data, Dir) :-
+'$xdg_directory'(common_config, Dir) :-
     current_prolog_flag(windows, true),
     catch(win_folder(common_appdata, Dir), _, fail),
     !.
-'$xdg_directory'(common_data, Dir) :-
+'$xdg_directory'(common_config, Dir) :-
     '$existing_dir_from_env_path'('XDG_CONFIG_DIRS', ['/etc/xdg'], Dir).
 
 '$existing_dir_from_env_path'(Env, Defaults, Dir) :-
