@@ -5203,7 +5203,11 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
   init_read_data(&rd, stream PASS_LD);
   PL_put_variable(t);
   if ( !(rval = read_term(t, &rd PASS_LD)) && rd.has_exception )
-    PL_put_term(t, rd.exception);
+  { if ( (flags&CVT_EXCEPTION) )
+      rval = PL_raise_exception(rd.exception);
+    else
+      PL_put_term(t, rd.exception);
+  }
   free_read_data(&rd);
   Sclose(stream);
   LD->read_source = oldsrc;

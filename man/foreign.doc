@@ -1889,6 +1889,12 @@ encoding and is currently one of \const{REP_UTF8} (string is UTF8
 encoded), \const{REP_MB} (string is encoded in the current locale)
 or 0 (string is encoded in ISO latin 1).  The string may, but is
 not required, to be closed by a full stop (.).
+
+If parsing produces an exception the behaviour depends on the
+\const{CVT_EXCEPTION} flag. If present, the exception is propagated into
+the environment.  Otherwise the exceptuion is placed in \arg{t} and
+the return value is \const{FALSE}.\footnote{The \const{CVT_EXCEPTION}
+was added in version 8.3.12}.
 \end{description}
 
 
