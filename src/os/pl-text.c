@@ -354,6 +354,9 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
 	goto out;
       } else
       { Sclose(fd);
+	if ( *enc == ENC_ISO_LATIN_1 && enc[1] != ENC_UNKNOWN )
+	  PL_clear_exception();
+
 	if ( r != text->buf )
 	  Sfree(r);
       }
