@@ -647,7 +647,7 @@ start_moded_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
                [Wrapper, ModeArgs, LStatus]),
         moded_done_leader(LStatus, Status, Skeleton, ModeArgs, Trie)
     ;   Status == invalid
-    ->  reeval(Trie),
+    ->  reeval(Trie, Wrapper, Skeleton),
         moded_gen_answer(Trie, Skeleton, ModeArgs)
     ;   % = run_follower, but never fresh and Status is a worklist
         shift(call_info(Skeleton/ModeArgs, Status))
