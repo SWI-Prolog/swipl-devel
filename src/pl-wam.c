@@ -3288,7 +3288,7 @@ next_choice:
 	  { int action;
 
 	    SAVE_REGISTERS(qid);
-	    clearLocalVariablesFrame(fr);
+	    clearLocalVariablesFrame(FR);
 	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
 	    LOAD_REGISTERS(qid);
 	    ch = BFR;			/* can be shifted */
