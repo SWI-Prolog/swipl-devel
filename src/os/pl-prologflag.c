@@ -799,10 +799,10 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	  clear(m, M_VARPREFIX);
       } else if ( k == ATOM_debug )
       { if ( val )
-	{ debugmode(DBG_ALL, NULL);
+	{ rval = debugmode(DBG_ALL, NULL);
 	} else
-	{ tracemode(FALSE, NULL);
-	  debugmode(DBG_OFF, NULL);
+	{ rval = ( tracemode(FALSE, NULL) &&
+		   debugmode(DBG_OFF, NULL) );
 	}
       } else if ( k == ATOM_debugger_show_context )
       { debugstatus.showContext = val;
