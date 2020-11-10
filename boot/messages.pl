@@ -1390,12 +1390,12 @@ prolog_message(nospy(Head)) -->
     { goal_to_predicate_indicator(Head, Pred)
     },
     [ 'Spy point removed from ~p'-[Pred] ].
-prolog_message(trace_mode(Bool)) -->
-    [ 'Trace mode switched to ~w'-[Bool] ].
-prolog_message(debug_mode(Bool)) -->
-    [ 'Debug mode switched to ~w'-[Bool] ].
-prolog_message(debugging(Bool)) -->
-    [ 'Debug mode is ~w'-[Bool] ].
+prolog_message(trace_mode(OnOff)) -->
+    [ 'Trace mode switched to ~w'-[OnOff] ].
+prolog_message(debug_mode(OnOff)) -->
+    [ 'Debug mode switched to ~w'-[OnOff] ].
+prolog_message(debugging(OnOff)) -->
+    [ 'Debug mode is ~w'-[OnOff] ].
 prolog_message(spying([])) -->
     !,
     [ 'No spy points' ].
