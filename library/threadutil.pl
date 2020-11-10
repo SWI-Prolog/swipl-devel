@@ -246,7 +246,7 @@ regkey(_, 'Anonymous').
 
 xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
 xterm_args(['-xrm', '*backarrowKey: false']).
-xterm_args(['-fa', 'monospace;pixelsize=11;regular']).
+xterm_args(['-fa', 'Ubuntu Mono', '-fs', 12]).
 xterm_args(['-fg', '#000000']).
 xterm_args(['-bg', '#ffffdd']).
 xterm_args(['-sb', '-sl', 1000, '-rightbar']).
