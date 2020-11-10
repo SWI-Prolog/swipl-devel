@@ -57,7 +57,7 @@
 :- autoload(library(backcomp),[thread_at_exit/1]).
 :- autoload(library(edinburgh),[nodebug/0]).
 :- autoload(library(gui_tracer),[gdebug/0]).
-:- autoload(library(lists),[max_list/2]).
+:- autoload(library(lists),[max_list/2,append/2]).
 :- autoload(library(option),[merge_options/3,option/3]).
 :- autoload(library(pce),[send/2]).
 :- autoload(library(prolog_stack),
