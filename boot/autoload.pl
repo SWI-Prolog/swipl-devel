@@ -512,6 +512,18 @@ system:term_expansion((:- autoload_path(Alias)),
     '$autoload2'(PI).
 
 '$autoload2'(PI) :-
+    setup_call_cleanup(
+        leave_sandbox(Old),
+        '$autoload3'(PI),
+        restore_sandbox(Old)).
+
+leave_sandbox(Sandboxed) :-
+    current_prolog_flag(sandboxed_load, Sandboxed),
+    set_prolog_flag(sandboxed_load, false).
+restore_sandbox(Sandboxed) :-
+    set_prolog_flag(sandboxed_load, Sandboxed).
+
+'$autoload3'(PI) :-
     autoload_from(PI, LoadModule, FullFile),
     do_autoload(FullFile, PI, LoadModule).
 
