@@ -2975,7 +2975,7 @@ load_files(Module:Files, Options) :-
         fail                        % Still consider next term as first
     ).
 '$first_term'(Term, Layout, Id, State, Options) :-
-    '$start_non_module'(Id, State, Options),
+    '$start_non_module'(Id, Term, State, Options),
     '$compile_term'(Term, Layout, Id).
 
 '$compile_term'(Term, Layout, Id) :-
@@ -2999,11 +2999,11 @@ load_files(Module:Files, Options) :-
     catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
           '$print_message'(error, E)).
 
-'$start_non_module'(Id, _State, Options) :-
+'$start_non_module'(_Id, Term, _State, Options) :-
     '$option'(must_be_module(true), Options, false),
     !,
-    throw(error(domain_error(module_file, Id), _)).
-'$start_non_module'(Id, State, _Options) :-
+    '$domain_error'(module_header, Term).
+'$start_non_module'(Id, _Term, State, _Options) :-
     '$current_source_module'(Module),
     '$ifcompiling'('$qlf_start_file'(Id)),
     '$qset_dialect'(State),

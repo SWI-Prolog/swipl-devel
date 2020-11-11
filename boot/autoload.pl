@@ -704,7 +704,7 @@ library_info_from_file(FullFile, Module, Exports) :-
     ;   nonvar(Term),
         skip_header(Term)
     ->  fail
-    ;   throw(error(domain_error(module_file, FullFile), _))
+    ;   '$domain_error'(module_header, Term)
     ).
 
 skip_header(begin_of_file).
