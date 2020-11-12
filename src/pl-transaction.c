@@ -293,7 +293,8 @@ transaction_discard(ARG1_LD)
 		  action = ATOM_retract;
 		}
 
-		if ( def && def->events && action )
+		if ( def && def->events && action &&
+		     !(LD->transaction.flags&TR_BULK) )
 		{ if ( !predicate_update_event(def, action, cl,
 					       P_EVENT_ROLLBACK PASS_LD) )
 		    rc = FALSE;
@@ -376,6 +377,24 @@ transaction_updates(Buffer b ARG_LD)
 }
 
 
+static int
+announce_updates(Buffer updates ARG_LD)
+{ tr_update *u, *e;
+
+  u = baseBuffer(updates, tr_update);
+  e = topBuffer(updates, tr_update);
+
+  for(; u<e; u++)
+  { Definition def = u->clause->predicate;
+
+    if ( !predicate_update_event(def, nameFunctor(u->update), u->clause, 0 PASS_LD) )
+      return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *	PROLOG CONNECTION	*
 		 *******************************/
@@ -383,6 +402,9 @@ transaction_updates(Buffer b ARG_LD)
 static int
 transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 { int rc;
+  buffer updates;
+
+  initBuffer(&updates);
 
   if ( LD->transaction.generation )
   { tr_stack parent = { .generation  = LD->transaction.generation,
@@ -405,7 +427,12 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
     if ( rc && (flags&TR_TRANSACTION) )
     { if ( LD->transaction.clauses )
       { if ( parent.clauses )
-	{ merge_tables(parent.clauses, LD->transaction.clauses);
+	{ if ( (flags&TR_BULK) )
+	  { transaction_updates(&updates PASS_LD);
+	    if ( !announce_updates(&updates PASS_LD) )
+	      goto nested_discard;
+	  }
+	  merge_tables(parent.clauses, LD->transaction.clauses);
 	  destroyHTable(LD->transaction.clauses);
 	} else
 	{ parent.clauses = LD->transaction.clauses;
@@ -417,7 +444,8 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	}
       }
     } else
-    { rc = transaction_discard(PASS_LD1) && rc;
+    { nested_discard:
+      rc = transaction_discard(PASS_LD1) && rc;
       rc = transaction_rollback_tables(PASS_LD1) && rc;
       LD->transaction.generation = parent.generation;
     }
@@ -452,6 +480,10 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	LD->transaction.gen_start = global_generation();
 	rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
       }
+      if ( rc && (flags&TR_BULK) )
+      { transaction_updates(&updates PASS_LD);
+	rc = announce_updates(&updates PASS_LD);
+      }
       if ( rc )
       { rc = ( transaction_commit_tables(PASS_LD1) &&
 	       transaction_commit(PASS_LD1) );
@@ -471,6 +503,9 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
     LD->transaction.gen_base   = GEN_INFINITE;
     LD->transaction.gen_start  = 0;
   }
+
+  if ( (flags&TR_BULK) )
+    discardBuffer(&updates);
 
   return rc;
 }

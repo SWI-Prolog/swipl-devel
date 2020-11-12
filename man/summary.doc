@@ -731,6 +731,7 @@ suggest predicates from a keyword.
 \predicatesummary{trace}{2}{Set/Clear trace point on ports}
 \predicatesummary{tracing}{0}{Query status of the tracer}
 \predicatesummary{transaction}{1}{Run goal in a transaction}
+\predicatesummary{transaction}{2}{Run goal in a transaction}
 \predicatesummary{transaction}{3}{Run goal in a transaction}
 \predicatesummary{transaction_updates}{1}{Updates to be committed in a transaction}
 \predicatesummary{trie_delete}{3}{Remove term from trie}

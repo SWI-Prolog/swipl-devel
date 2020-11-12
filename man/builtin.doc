@@ -3638,6 +3638,8 @@ files provide clauses for dynamic predicates.
 
 \begin{description}
     \predicate{transaction}{1}{:Goal}
+    \nodescription
+    \predicate{transaction}{2}{:Goal, +Options}
 Run \arg{Goal} as once/1 in a transaction. This implies that access to
 dynamic predicates `sees' the dynamic predicates at the moment the
 transaction is started, together with the modifications issued by
@@ -3675,6 +3677,18 @@ However, if multiple transactions manipulate the same predicate(s)
 concurrently (typically using transaction/3), the final order of the
 clauses is the order in which the transactions asserted the clauses and
 \textbf{not} the order in which the transactions are committed.
+
+The transaction/1 variant is equivalent to \term{transaction}{Goal,[]}.
+Th transaction/2 variant processed the following options:
+
+    \begin{description}
+    \termitem{bulk}{+Boolean}
+When \const{true}, accumulate events from changes to dynamic predicates
+(see prolog_listen/2) and trigger these events as part of the commit
+phase. This implies that if the transaction is not committed the events
+are never triggered. Failure to trigger the events causes the
+transaction to be discarded.  Experimental.
+    \end{description}
 
     \predicate{transaction}{3}{:Goal, :Constraint, +Mutex}
 Similar to transaction/1, but allows verifying \arg{Constraint} during
