@@ -92,6 +92,7 @@ typedef struct tr_stack
   Table		    clauses;		/* Parent changed clauses */
   struct tbl_trail *table_trail;	/* Parent changes to tables */
   term_t	    id;			/* Parent goal */
+  unsigned int	    flags;		/* TR_* flags */
 } tr_stack;
 
 static void
@@ -379,9 +380,6 @@ transaction_updates(Buffer b ARG_LD)
 		 *	PROLOG CONNECTION	*
 		 *******************************/
 
-#define TR_TRANSACTION		0x0001
-#define TR_SNAPSHOT		0x0002
-
 static int
 transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 { int rc;
@@ -392,13 +390,15 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 			.clauses     = LD->transaction.clauses,
 			.table_trail = LD->transaction.table_trail,
 			.parent      = LD->transaction.stack,
-			.id          = LD->transaction.id
+			.id          = LD->transaction.id,
+			.flags       = LD->transaction.flags
 		      };
 
     LD->transaction.clauses  = NULL;
     LD->transaction.id       = goal;
     LD->transaction.stack    = &parent;
     LD->transaction.gen_nest = LD->transaction.generation;
+    LD->transaction.flags    = flags;
     rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && constraint )
       rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
@@ -426,6 +426,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
     LD->transaction.table_trail = parent.table_trail;
     LD->transaction.stack       = parent.parent;
     LD->transaction.id          = parent.id;
+    LD->transaction.flags	= parent.flags;
   } else
   { int tid = PL_thread_self();
 #ifdef O_PLMT
@@ -474,9 +475,23 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
   return rc;
 }
 
+static const opt_spec transaction_options[] =
+{ { ATOM_bulk,		 OPT_BOOL },
+  { NULL_ATOM,		 0 }
+};
+
 static
-PRED_IMPL("$transaction", 1, transaction, PL_FA_TRANSPARENT)
+PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
 { PRED_LD
+  int flags = TR_TRANSACTION;
+  int bulk = FALSE;
+
+  if ( !scan_options(A2, 0,
+		     ATOM_transaction_option, transaction_options,
+		     &bulk) )
+    return FALSE;
+  if ( bulk )
+    flags |= TR_BULK;
 
   return transaction(A1, 0, 0, TR_TRANSACTION PASS_LD);
 }
@@ -637,7 +652,7 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
 #define NDET PL_FA_NONDETERMINISTIC
 
 BeginPredDefs(transaction)
-  PRED_DEF("$transaction",        1, transaction,         META)
+  PRED_DEF("$transaction",        2, transaction,         META)
   PRED_DEF("$transaction",        3, transaction,         META)
   PRED_DEF("$snapshot",           1, snapshot,            META)
   PRED_DEF("current_transaction", 1, current_transaction, NDET|META)

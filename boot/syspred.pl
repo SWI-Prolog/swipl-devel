@@ -86,6 +86,7 @@
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
             transaction/1,                      % :Goal
+            transaction/2,                      % :Goal, +Options
             transaction/3,                      % :Goal, :Constraint, +Mutex
             snapshot/1,                         % :Goal
             set_prolog_gc_thread/1,		% +Status
@@ -1529,12 +1530,16 @@ set_prolog_gc_thread(Status) :-
     '$domain_error'(gc_thread, Status).
 
 %!  transaction(:Goal).
+%!  transaction(:Goal, +Options).
+%!  transaction(:Goal, :Constraint, +Mutex).
 %!  snapshot(:Goal).
 %
 %   Wrappers to guarantee clean Module:Goal terms.
 
 transaction(Goal) :-
-    '$transaction'(Goal).
+    '$transaction'(Goal, []).
+transaction(Goal, Options) :-
+    '$transaction'(Goal, Options).
 transaction(Goal, Constraint, Mutex) :-
     '$transaction'(Goal, Constraint, Mutex).
 snapshot(Goal) :-

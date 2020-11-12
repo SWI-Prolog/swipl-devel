@@ -719,6 +719,7 @@ struct PL_local_data
     struct tbl_trail *table_trail;	/* Affected tables */
     term_t	      id;		/* Default the goal */
     struct tr_stack  *stack;		/* Nested transaction stack */
+    unsigned int      flags;		/*  */
   } transaction;
 
 #ifdef O_LOCALE

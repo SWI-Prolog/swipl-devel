@@ -38,6 +38,10 @@
 #ifndef _PL_TRANSACTION_H
 #define _PL_TRANSACTION_H
 
+#define TR_TRANSACTION		0x0001
+#define TR_SNAPSHOT		0x0002
+#define TR_BULK			0x0004
+
 COMMON(int)	transaction_retract_clause(Clause clause ARG_LD);
 COMMON(int)	transaction_assert_clause(Clause clause, ClauseRef where ARG_LD);
 COMMON(int)	transaction_visible_clause(Clause cl, gen_t gen ARG_LD);
