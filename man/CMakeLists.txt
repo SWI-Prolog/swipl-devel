@@ -163,6 +163,8 @@ pldoc(lib/assoclib.tex lib/assoclib.md
 pldoc(lib/clpblib.tex lib/clpblib.md
       OPTIONS --lib=clpb --module=clpb
       DEPENDS lib/clpblib.md ../library/clp/clpb.pl)
+pldoc(textdebugger.tex textdebugger.md
+      DEPENDS textdebugger.md)
 pldoc(lib/clpfdlib.tex lib/clpfdlib.md
       OPTIONS --lib=clpfd --module=clpfd
       DEPENDS lib/clpfdlib.md ../library/clp/clpfd.pl)
