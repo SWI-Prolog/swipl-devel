@@ -1,11 +1,22 @@
-Imperative languages like C++, Python or Javascript execute mostly linear code with some branching and subroutine calls. Their debuggers support stepping through the code and pausing on each line, or running the program until it hits a breakpoint and pauses.  When paused, the user can inspect the current program state or give the debugger commands.
+Imperative languages like C++, Python or Javascript execute mostly
+linear code with some branching and subroutine calls. Their debuggers
+support stepping through the code and pausing on each line, or running
+the program until it hits a breakpoint and pauses. When paused, the user
+can inspect the current program state or give the debugger commands.
 
-Prolog has a logical execution model that involves attempting to prove logical predicates and  needs a different debugging approach. SWI-Prolog uses the traditional Prolog "Byrd Box Model" or "4 Port Model"  debugging approach described by [Byrd, 1980](https://www.swi-prolog.org/pldoc/man?section=bibliography#Byrd%3A80),  [Clocksin & Melish, 1987](https://eu.swi-prolog.org/pldoc/man?section=bibliography#Clocksin%3A87) with a couple of extensions to implement its command line debugger. There are two other debuggers available that build on this infrastructure: a [graphical debugger](https://www.swi-prolog.org/gtrace.html) and remote debugging in the web interface provided by [SWISH](https://swish.swi-prolog.org/).
+Prolog has a logical execution model that involves attempting to prove
+logical predicates and needs a different debugging approach. SWI-Prolog
+uses the traditional Prolog "Byrd Box Model" or "4 Port Model" debugging
+approach described by [@byrd:80;@Clocksin:87] with a couple of extensions
+to implement its command line debugger. There are two other debuggers
+available that build on this infrastructure: a [graphical
+debugger](https://www.swi-prolog.org/gtrace.html) and remote debugging
+in the web interface provided by [SWISH](https://swish.swi-prolog.org/).
 
 Reference information to all predicates available for manipulating the debugger is in [the debugger section](#debugger).
 
 ## The Byrd Box Model And Ports {#byrd-box-model}
-Standard Prolog debugging tools are built around the so-called "Byrd Box Model" or "4 Port Model" which models each predicate in a Prolog program as a state machine ("box") that transitions through  states ("ports") as a program is evaluated. The developer can ask the engine to pause for program inspection when it reaches specific ports or predicates. 
+Standard Prolog debugging tools are built around the so-called "Byrd Box Model" or "4 Port Model" which models each predicate in a Prolog program as a state machine ("box") that transitions through  states ("ports") as a program is evaluated. The developer can ask the engine to pause for program inspection when it reaches specific ports or predicates.
 
 As we go through this overview, remember that a "port" is just another word for a "state" in the  state machine that each predicate transitions through during evaluation.  The state machine is called a "box" because it is drawn like this:
 ~~~
@@ -20,16 +31,16 @@ As we go through this overview, remember that a "port" is just another word for 
 ~~~
 
 The standard ports are: `call`, `redo`, `exit` and `fail`. SWI-Prolog extends this with two more: `unify` and `exception`. Each trace happens at a particular phase of predicate resolution.  Recall that when resolving or "proving" a predicate, the Prolog engine:
-1. Collects all rules that *might* match by having a head with the same name and number of arguments   
+1. Collects all rules that *might* match by having a head with the same name and number of arguments
    - `call` is traced, once, if *any* rules might match.
    - `redo` is also traced when the engine backtracks to find the next matching rule.
 2. Finds the next matching rule whose head can be unified with the predicate
    - `unify` is traced with the results of unification if one is found.
    - `fail` is traced if no rule heads can be unified.
-3. Applies variable assignments from unification to clauses in the rule body and continues at #1 with the updated clauses 
+3. Applies variable assignments from unification to clauses in the rule body and continues at #1 with the updated clauses
 6. After *all* of the body clauses of the matched rule have either succeeded, failed, or thrown an exception:
-   - `exit` is traced if all of them succeeded (meaning this rule is true). 
-   - `fail` is traced if any of them failed (meaning this rule is false). 
+   - `exit` is traced if all of them succeeded (meaning this rule is true).
+   - `fail` is traced if any of them failed (meaning this rule is false).
    - `exception` is traced if any of them threw an exception.
 
 This means there can be *a lot* of traces between the initial `call` and the end of tracing for a particular predicate.
@@ -57,7 +68,7 @@ true.
 [trace]  ?- noun(X, rock), adjective(X, color, red).
    Call: (11) noun(_9774, rock) ? creep
 ~~~
-The trace/0 predicate turned on trace mode, which is now indicated at every prompt by `[trace] ?-`.  The initial query provided by the user was `noun(X, rock), adjective(X, color, red)` which is asking to find a "red rock". Finally: the first port triggered was a `Call` to the first predicate in the initial query, indicating the engine is about to look for the first rule that matches `noun(_9774, rock)`. 
+The trace/0 predicate turned on trace mode, which is now indicated at every prompt by `[trace] ?-`.  The initial query provided by the user was `noun(X, rock), adjective(X, color, red)` which is asking to find a "red rock". Finally: the first port triggered was a `Call` to the first predicate in the initial query, indicating the engine is about to look for the first rule that matches `noun(_9774, rock)`.
 
 Pressing `spacebar`, `c`, or `enter` caused the tracer to print `creep` followed by the next trace. There are many additional commands available that are described later in the overview.
 ~~~
@@ -125,7 +136,7 @@ Tracing will continue for every query you pose until you enter `notrace.` to tur
 ## Trace Mode Options: leash/1 and visible/1 {#trace-options}
 When you enable trace mode with trace/0, the tracer will, by default, pause and wait for a command at every port it hits on every predicate.  The leash/1 predicate can be used to modify the ports to pause at. This is a global setting, so changes will remain until they are changed again or SWI-Prolog is restarted.  Disabling the tracer via notrace/0 doesn't affect which ports are leashed.
 
-The leash/1 argument must start with `+` to add, or `-` to remove, followed by the name of a port such as `call`, `exit`, etc.  There are special terms like `all` which can be used instead of manually adding or removing every port. 
+The leash/1 argument must start with `+` to add, or `-` to remove, followed by the name of a port such as `call`, `exit`, etc.  There are special terms like `all` which can be used instead of manually adding or removing every port.
 
 To stop only at the fail port, use leash/1 like this:
 ~~~
@@ -157,7 +168,7 @@ X = rock1 ;
    Fail: (11) adjective(rock2, color, red) ? creep
 false.
 ~~~
-Now, only the lines that start with "Fail:" have "creep" after them because that was the only time the tracer paused for a command.  To never pause and just see all the traces, use `leash(-all)` and don't turn any ports back on.  
+Now, only the lines that start with "Fail:" have "creep" after them because that was the only time the tracer paused for a command.  To never pause and just see all the traces, use `leash(-all)` and don't turn any ports back on.
 
 The default ports are still printed out because  a different setting, visible/1, controls which ports are printed.  visible/1 takes the same form of argument as leash/1.  To only stop and show the `fail` port, use leash/1 and visible/1 like this:
 ~~~
@@ -245,7 +256,7 @@ X = rock1 ;
  T Exit: is_a(rock2, rock)
 false.
 ~~~
-Notice that *trace mode* did not have to be turned on using trace/0 *and* that this only traced out the ports hit while executing `is_a/2` *and* that the program was not ever paused.  
+Notice that *trace mode* did not have to be turned on using trace/0 *and* that this only traced out the ports hit while executing `is_a/2` *and* that the program was not ever paused.
 
 In fact, if trace mode is turned on while using a trace point, things get very confusing because the trace point infrastructure itself will be traced!
 ~~~
@@ -400,9 +411,9 @@ X = rock1 .
 [trace]  ?- notrace.
 true.
 
-[debug]  ?- 
+[debug]  ?-
 ~~~
-The call to set_breakpoint/4 had to specify the source file ("Example.pl"), the line number (8), and the character within that line (24) to precisely specify what clause should turn on trace mode (this is much easier using the graphical debugger because it shows source code). 
+The call to set_breakpoint/4 had to specify the source file ("Example.pl"), the line number (8), and the character within that line (24) to precisely specify what clause should turn on trace mode (this is much easier using the graphical debugger because it shows source code).
 
 The breakpoint won't get triggered if the system isn't in debug mode but, unlike setting a spy point, set_breakpoint/4 does *not* do this automatically.  So, it was turned on manually using debug/0.
 
@@ -414,7 +425,7 @@ In summary, there are really two distinct "tracing" features: trace *mode* and t
 ### Trace Mode {#trace-summary-trace-mode}
 Trace mode is the main Prolog command line debugger that allows for tracing the transitions through the resolution states of predicates represented by ports in the "Byrd Box Model" and optionally pausing for a command when certain ports are hit.
 
-It can be turned on manually via trace/0, or (when put into debug mode using debug/0) when a specific predicate is encountered via spy/1 or spy/2, or when a specific call to a predicate is encountered via set_breakpoint/4 or set_breakpoint/5. 
+It can be turned on manually via trace/0, or (when put into debug mode using debug/0) when a specific predicate is encountered via spy/1 or spy/2, or when a specific call to a predicate is encountered via set_breakpoint/4 or set_breakpoint/5.
 
 When in trace mode, visible/1 controls which ports are written to the console, and leash/1 controls which ports cause execution to pause to allow program inspection.
 
@@ -425,7 +436,7 @@ Trace mode is turned off via notrace/0 and debug mode is turned off via nodebug/
 ### Trace Points {#trace-summary-trace-points}
 Trace *points* are a separate feature from trace *mode* that allow writing specified ports to the console when a predicate is being evaluated.  It does not ever pause program execution and does not need to be in trace or debug mode to work.
 
-They are turned on via trace/1 and trace/2.  
+They are turned on via trace/1 and trace/2.
 
 They don't pay attention to visible/1 (because the ports shown are set in trace/2) or leash/1 (because they don't pause execution).
 
