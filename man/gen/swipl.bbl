@@ -16,7 +16,7 @@ David~R. Butenhof.
 \newblock {\em Programming with {POSIX} threads}.
 \newblock Ad{\-d}i{\-s}on-Wes{\-l}ey, Reading, MA, USA, 1997.
 
-\bibitem[Byrd, 1980]{Byrd:80}
+\bibitem[Byrd, 1980]{byrd:80}
 L.~Byrd.
 \newblock Understanding the control flow of {Prolog} programs.
 \newblock {\em Logic Programming Workshop}, 1980.
