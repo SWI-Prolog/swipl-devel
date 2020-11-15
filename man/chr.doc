@@ -18,7 +18,7 @@ Contributions (Fr\"uhwirth, T. and Meister, M., eds.), pp. 1--5, 2004.
 On the K.U.Leuven CHR website (\url{http://dtai.cs.kuleuven.be/CHR/})
 you can find more related papers, references and example programs.
 
-\section{Introduction}			\label{sec:chrintro}
+\section{Introduction to CHR}			\label{sec:chr-intro}
 %=====================
 
 Constraint Handling Rules (CHR) is a committed-choice rule-based language
@@ -37,18 +37,20 @@ implementation. For a more thorough review of CHR we refer the reader to
 \cite{Freuhwirth:2009}. More background on CHR can be found at
 \cite{chrSite}.
 
-In \secref{SyntaxAndSemantics} we present the syntax of CHR in Prolog and
-explain informally its operational semantics. Next, \secref{practical}
-deals with practical issues of writing and compiling Prolog programs
-containing CHR. \Secref{debugging} explains the (currently primitive) CHR
-debugging facilities. \Secref{predicates} provides a few useful predicates
-to inspect the constraint store, and \secref{examples} illustrates CHR with
-two example programs. \Secref{sicstus-chr} describes some compatibility issues with
-older versions of this system and SICStus' CHR system. Finally, \secref{guidelines} concludes with a few
-practical guidelines for using CHR.
+In \secref{chr-syntaxandsemantics} we present the syntax of CHR in
+Prolog and explain informally its operational semantics. Next,
+\secref{practical} deals with practical issues of writing and compiling
+Prolog programs containing CHR. \Secref{chr-debugging} explains the
+(currently primitive) CHR debugging facilities. \Secref{chr-debug-preds}
+provides a few useful predicates to inspect the constraint store, and
+\secref{chr-examples} illustrates CHR with two example programs.
+\Secref{chr-compatibility} describes some compatibility issues with
+older versions of this system and SICStus' CHR system. Finally,
+\secref{chr-guidelines} concludes with a few practical guidelines for
+using CHR.
 
 
-\section{Syntax and Semantics}		\label{sec:SyntaxAndSemantics}
+\section{CHR Syntax and Semantics}		\label{sec:chr-syntaxandsemantics}
 %=============================
 
 \subsection{Syntax of CHR rules}
@@ -101,7 +103,7 @@ in the head of the rule with a non-variable or with another variable in the
 head of the rule. It may, however, bind variables that do not appear in the
 head of the rule, e.g. an auxiliary variable introduced in the guard.
 
-\subsection{Semantics}
+\subsection{Semantics of CHR}
 \label{sec:chr-semantics}
 %--------------------
 
@@ -216,7 +218,7 @@ If optimization is enabled, debugging must be disabled.
 	\termitem{debug}{}
 This option enables or disables the possibility to debug the CHR code.
 Possible values are \texttt{on} (default) and \texttt{off}. See
-\secref{debugging} for more details on debugging.  The default is
+\secref{chr-debugging} for more details on debugging.  The default is
 derived from the Prolog flag \prologflag{generate_debug_info}, which
 is \const{true} by default.  See \cmdlineoption{--no-debug}.
 If debugging is enabled, optimization must be disabled.
@@ -230,14 +232,14 @@ If debugging is enabled, optimization must be disabled.
 %===========================
 
 
-\subsection{Embedding in Prolog Programs}
+\subsection{Embedding CHR in Prolog Programs}
 \label{sec:chr-embedding}
 
 The CHR constraints defined in a \fileext{pl} file are
 associated with a module. The default module is \const{user}. One should
 never load different \fileext{pl} files with the same CHR module name.
 
-\subsection{Constraint declaration}
+\subsection{CHR Constraint declaration}
 \label{sec:chr-declarations}
 
 \begin{description}
@@ -438,7 +440,7 @@ Note that it is enabled only in debug mode, as it incurs some (minor)
 runtime overhead.
 \end{enumerate}
 
-\subsection{Compilation}
+\subsection{CHR Compilation}
 \label{sec:chr-compilation}
 %--------------------
 
@@ -467,7 +469,7 @@ Using this style, CHR rules can be defined in ordinary Prolog .pl files and
 the operator definitions required by CHR do not leak into modules where they
 might cause conflicts.
 
-\section{Debugging}			\label{sec:debugging}
+\section{Debugging CHR programs}		\label{sec:chr-debugging}
 %=================
 
 The CHR debugging facilities are currently rather limited. Only tracing
@@ -478,7 +480,7 @@ from the SWI-Prolog flag \prologflag{generate_debug_info}.  Therefore debug
 info is provided unless the \cmdlineoption{--no-debug} is used.
 
 
-\subsection{Ports}				\label{sec:chrports}
+\subsection{CHR debug ports}			\label{sec:chr-ports}
 %===============
 
 For CHR constraints the four standard ports are defined:
@@ -518,7 +520,7 @@ store.
 	just after committing to the rule.
 \end{description}
 
-\subsection{Tracing}
+\subsection{Tracing CHR programs}
 \label{sec:chr-tracing}
 %=================
 
@@ -565,7 +567,7 @@ Insert failure in execution.
 Print the above available debug options.
 \end{description}
 
-\subsection{CHR Debugging Predicates}		\label{sec:predicates}
+\subsection{CHR Debugging Predicates}		\label{sec:chr-debug-preds}
 %====================================
 
 The \pllib{chr} module contains several predicates that allow
@@ -585,7 +587,7 @@ notrace/0.
     \predicate{chr_leash}{1}{+Spec}
 Define the set of CHR ports on which the CHR tracer asks for user
 intervention (i.e.\ stops). \arg{Spec} is either a list of ports as
-defined in \secref{chrports} or a predefined `alias'. Defined aliases
+defined in \secref{chr-ports} or a predefined `alias'. Defined aliases
 are: \const{full} to stop at all ports, \const{none} or \const{off} to
 never stop, and \const{default} to stop at the \const{call},
 \const{exit}, \const{fail}, \const{wake} and \const{apply} ports.
@@ -605,7 +607,7 @@ in the store can be enumerated.
 \end{description}
 
 
-\section{Examples}			\label{sec:examples}
+\section{CHR Examples}			\label{sec:chr-examples}
 %================
 
 Here are two example constraint solvers written in CHR.
@@ -670,7 +672,7 @@ A = 3.
 
 \end{itemize}
 
-\section{Backwards Compatibility}		\label{sec:sicstus-chr}
+\section{CHR compatibility}		\label{sec:chr-compatibility}
 %==================
 
 \subsection{The Old SICStus CHR implemenation}
@@ -745,7 +747,7 @@ Be sure to put this code after all other rules in your program! With \nopredref{
 (or another predicate name of your choosing) the labeling is initiated, rather than ECLiPSe's
 \nopredref{chr_labeling}{0}.
 
-\section{Programming Tips and Tricks}			\label{sec:guidelines}
+\section{CHR Programming Tips and Tricks}		\label{sec:chr-guidelines}
 %==================
 
 In this section we cover several guidelines on how to use CHR to write
@@ -790,7 +792,7 @@ if possible. If you must use it, try to use it with an instantiated top-level
 constraint symbol.
 \end{itemlist}
 
-\section{Compiler Errors and Warnings}			\label{sec:errors}
+\section{CHR Compiler Errors and Warnings}		\label{sec:chr-errors}
 %==================
 
 In this section we summarize the most important error and warning messages
