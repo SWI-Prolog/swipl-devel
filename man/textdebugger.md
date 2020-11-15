@@ -283,7 +283,7 @@ false.
 You can do way more than just press `spacebar` when the tracer is paused
 at a port. All actions are single-character commands which are executed
 *without* waiting for a return (unless the command line option
-`--no-tty` is active). Pressing `?` or `h` when paused will print out a
+``--no-tty`` is active). Pressing `?` or `h` when paused will print out a
 list of these commands as well.
 
 ### Control Flow Commands {#trace-control-flow-commands}
@@ -608,9 +608,9 @@ represented by ports in the "Byrd Box Model" and optionally pausing for
 a command when certain ports are hit.
 
 It can be turned on manually via trace/0, or (when put into debug mode
-using debug/0) when a specific predicate is encountered via spy/1 or
-spy/2, or when a specific call to a predicate is encountered via
-set_breakpoint/4 or set_breakpoint/5.
+using debug/0) when a specific predicate is encountered via spy/1, or
+when a specific call to a predicate is encountered via set_breakpoint/4
+or set_breakpoint/5.
 
 When in trace mode, visible/1 controls which ports are written to the
 console, and leash/1 controls which ports cause execution to pause to
