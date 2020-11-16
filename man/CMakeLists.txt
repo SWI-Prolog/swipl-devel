@@ -112,7 +112,7 @@ function(pldoc tex input)
 
     set(haspl)
     foreach(dep ${depends})
-      get_filename_component(ext ${dep} LAST_EXT)
+      get_filename_component(ext ${dep} EXT)
       if(ext STREQUAL ".pl")
 	set(haspl true)
       endif()
