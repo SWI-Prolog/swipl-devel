@@ -78,7 +78,7 @@ daemon it can also be done by getting a prompt via the
 > tspy/1 allow debugging of arbitrary threads.
 
 Each goal is printed using the Prolog predicate write_term/2. The style
-is defined by the Prolog flag [`debugger_write_options`](#flags) and can
+is defined by the Prolog flag `debugger_write_options` and can
 be modified using this flag or using the [`w`, `p` and `d` commands of
 the tracer](#trace-formatting-commands).
 
@@ -331,8 +331,8 @@ Examples:
 
 |**Context** |C|Toggle 'Show Context'. If `on`, the context module of the goal is displayed between square brackets (see [modules section](#modules)). Default is `off`.|
 |**Display**  |d|Set the `max_depth(Depth)` option of [debugger_write_options](#flags), limiting the depth to which terms are printed. See also the  `w`  and  `p`  options.|
-|**Print**  |p|Set the Prolog flag [debugger_write_options](#flags) to `[quoted(true), portray(true), max_depth(10), priority(699)]`. This is the default.|
-|**Write**  |w|Set the Prolog flag [debugger_write_options](#flags) to `[quoted(true), attributes(write), priority(699)]`, bypassing portray/1, etc.|
+|**Print**  |p|Set the Prolog flag `debugger_write_options` to `[quoted(true), portray(true), max_depth(10), priority(699)]`. This is the default.|
+|**Write**  |w|Set the Prolog flag `debugger_write_options` to `[quoted(true), attributes(write), priority(699)]`, bypassing portray/1, etc.|
 
 
 ## Trace Mode vs. Trace Point {#trace-mode-vs-point}
