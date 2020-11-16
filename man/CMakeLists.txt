@@ -89,7 +89,6 @@ set(PLDOC_LIB)
 function(pldoc tex input)
     set(options
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
-	--summaries
         --out=${tex})
     set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
@@ -101,9 +100,6 @@ function(pldoc tex input)
       set(depends "../library/${base}.pl")
     endif()
 
-    get_filename_component(base ${tex} NAME_WE)
-    set(byproducts lib/summaries.d/${base}.tex)
-
     foreach(arg ${ARGN})
       if(arg MATCHES "^--")
         set(options ${options} ${arg})
@@ -113,6 +109,20 @@ function(pldoc tex input)
         set(depends ${depends} ${arg})
       endif()
     endforeach()
+
+    set(haspl)
+    foreach(dep ${depends})
+      get_filename_component(ext ${dep} LAST_EXT)
+      if(ext STREQUAL ".pl")
+	set(haspl true)
+      endif()
+    endforeach()
+
+    if(haspl)
+      set(options ${options} --summaries)
+      get_filename_component(base ${tex} NAME_WE)
+      set(byproducts lib/summaries.d/${base}.tex)
+    endif()
 
     add_custom_command(
 	OUTPUT  ${tex}
