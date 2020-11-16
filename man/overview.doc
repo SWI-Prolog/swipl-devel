@@ -2644,7 +2644,7 @@ citizen atomic data type if SWI-Prolog is compiled with the GMP library.
 This can be tested using the \prologflag{bounded} Prolog flag. An atomic
 type also requires a syntax. Unfortunately there are few options for
 adding rational numbers without breaking the ISO
-standard.\footnote{ECLiSPe uses \arg{numerator}_\arg{denominator}. This
+standard.\footnote{ECLiPSe uses \arg{numerator}_\arg{denominator}. This
 syntax conflicts with SWI-Prolog digit groups (see
 \secref{digitgroupsyntax}) and does not have a recognised link to
 rational numbers. The notation \exam{1/3r} and \exam{1/3R} have also
@@ -2652,8 +2652,8 @@ been proposed. The \exam{1/3r} is compatible to Ruby, but is hard to
 parse due to the required look-ahead and not very natural. See also
 \url{https://en.wikipedia.org/wiki/Rational_data_type}.}
 
-ECLiSPe and SWI-Prolog have agreed to define the canonical syntax for
-rational numbers to be e.g., \exam{1r3}. In addition, ECLiSPe accepts
+ECLiPSe and SWI-Prolog have agreed to define the canonical syntax for
+rational numbers to be e.g., \exam{1r3}. In addition, ECLiPSe accepts
 \exam{1_3} and SWI-Prolog can be asked to accept \exam{1/3} using the
 module sensitive Prolog flag \prologflag{rational_syntax}, which has the
 values below. Note that write_canonical/1 always uses the compatible
