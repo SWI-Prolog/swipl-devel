@@ -436,7 +436,7 @@ retry:
     }
 
     lcref = (ClauseRef)top;
-    *lcref = *cref;
+    memcpy(lcref, cref, SIZEOF_CREF_CLAUSE);
     fr   = addPointer(top, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
