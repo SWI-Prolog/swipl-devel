@@ -1900,7 +1900,7 @@ values are \const{natural} (e.g., \exam{1/3}) or \const{compatibility}
 This flag is module sensitive.
 
 The default for this flag is currently \const{compatibility}, which
-reads and writes rational numbers as e.g., \exam{1R3}.\footnote{There is
+reads and writes rational numbers as e.g., \exam{1r3}.\footnote{There is
 still some discussion on the separating character. See
 \secref{syntax-rational-numbers}.} We will consider \const{natural} as a
 default in the future. Users are strongly encouraged to set this flag to
