@@ -153,7 +153,7 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 % As of version 8.1.22 SWI-Prolog  provides   native  support for proper
 % atomic rational nubers. This is controlled by the two flags below. The
-% default  is  conservative,  supporting  rationals  as  `1R3`  and  use
+% default  is  conservative,  supporting  rationals  as  `1r3`  and  use
 % floating point numbers for integer   divisions  and exponentation with
 % negative exponent (e.g., `2^(-2)`).
 %
