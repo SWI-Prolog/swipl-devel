@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2017, VU University Amsterdam
+    Copyright (c)  2016-2020, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -405,7 +406,7 @@ retry:
   { Functor f = valueTerm(*cont);
     Word ep = f->arguments;
     Word ap;
-    ClauseRef cref;
+    ClauseRef cref, lcref;
     Clause cl;
     intptr_t pcoffset;
     size_t lneeded, lroom;
@@ -434,7 +435,9 @@ retry:
       goto retry;
     }
 
-    fr   = top;
+    lcref = (ClauseRef)top;
+    *lcref = *cref;
+    fr   = addPointer(top, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
     ap = argFrameP(fr, 0);
@@ -460,11 +463,12 @@ retry:
       }
     }
 
+    assert(ap == (Word)top);
     lTop = top;
 
     fr->programPointer = pcret;
     fr->parent         = pfr;
-    fr->clause         = cref;
+    fr->clause         = lcref;
     setFramePredicate(fr, cl->predicate);
     fr->context	       = fr->predicate->module;
     setNextFrameFlags(fr, pfr);

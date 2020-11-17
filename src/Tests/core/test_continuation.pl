@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2017, University of Amsterdam
-                         VU University Amsterdam
+    Copyright (c)  2017-2020, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,9 +37,9 @@
 :- module(test_continuation,
 	  [ test_continuation/0
 	  ]).
-user:file_search_path(library, '../packages/plunit').
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
+:- use_module(library(prolog_stack)).
 
 test_continuation :-
 	run_tests([ continuation
@@ -177,6 +178,37 @@ shift_in_cond(R) :-
 	;   true
 	).
 
+%!	test_cref is det.
+%
+%	The clause reference cannot be the  one   from  the  blob in the
+%	continuation as this may be garbage   collected.  The test calls
+%	garbage_collect/0   to   GC   the     continuation    and   then
+%	garbage_collect_atoms/0 to force GC of the clause references. It
+%	then uses get_prolog_backtrace/2 as  the   stack  trace requires
+%	valid clause references.
+%
+%	Tests issue#706
+
+test_cref :-
+   reset(p(5), _, Cont),
+   call(Cont),
+   !.
+
+p(0) :-
+   !,
+   shift(hello),
+   garbage_collect,
+   garbage_collect_atoms,
+   get_prolog_backtrace(10, _),
+   no_lco.
+p(N) :-
+   N1 is N - 1,
+   p(N1),
+   no_lco.
+
+no_lco.
+
+
 :- begin_tests(continuation).
 
 test(basic, [Ball,After] == [a,after]) :-
@@ -199,5 +231,7 @@ test(ifthen, R == 'Hello world') :-
 	reset_in_cond(R).
 test(mcall2, Ball == a) :-
 	reset(call(shift, a), Ball, _Continuation).
+test(test_cref) :-
+	test_cref.
 
 :- end_tests(continuation).
