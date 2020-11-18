@@ -391,6 +391,29 @@ shift(term_t ball ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Create a new stack frame to restart a continuation.
+
+(*) The continuation holds a clause reference   (blob)  to the clause to
+restart. This protects this clause from   being garbage collected. After
+we restarted the continuation though, it may become subject to the stack
+garbage collector and subsequently the blob  becomes subject to the atom
+garbage collector, both destroying the clause   reference and the clause
+if it was retracted.
+
+We prevent this by pushing the blob onto the environment stack, where it
+will be found by the atom  garbage   collector.  This  protects both the
+reference and the clause itself as long   as the continuation depends on
+it. Note that the atom is simply pushed  onto the stack where it resides
+between stack frames. This is fine as  atom-gc performs a linear scan of
+the environment stack. Also note that as we push this, it is above lTop.
+This is fine as in  this  stage  the   blob  is  still  protected by the
+continuation.
+
+A pushVolatileAtom() is not needed as this   protection only needs to be
+effective after the next GC call and GC won't run concurrently with AGC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 Code
 push_continuation(term_t continuation, LocalFrame pfr, Code pcret ARG_LD)
 { LocalFrame top, fr;
@@ -406,13 +429,14 @@ retry:
   { Functor f = valueTerm(*cont);
     Word ep = f->arguments;
     Word ap;
-    ClauseRef cref, lcref;
+    ClauseRef cref;
     Clause cl;
     intptr_t pcoffset;
     size_t lneeded, lroom;
     int i;
+    word blob = *ep++;
 
-    if ( !(cref = clause_clref(*ep++)) ||
+    if ( !(cref = clause_clref(blob)) ||
 	 arityFunctor(f->definition) != cref->value.clause->variables + 2 )
     { PL_type_error("continuation", continuation);
       return NULL;
@@ -421,7 +445,7 @@ retry:
     cl = cref->value.clause;
     pcoffset = valInt(*ep++);
 
-    lneeded = SIZEOF_CREF_CLAUSE +
+    lneeded = sizeof(word) +
 	      (size_t)argFrameP((LocalFrame)NULL, cl->variables);
     lroom   = roomStack(local);
     if ( unlikely(lroom < lneeded) )	/* resize the stack */
@@ -435,9 +459,8 @@ retry:
       goto retry;
     }
 
-    lcref = (ClauseRef)top;
-    memcpy(lcref, cref, SIZEOF_CREF_CLAUSE);
-    fr   = addPointer(top, SIZEOF_CREF_CLAUSE);
+    *(Word)top = blob;			/* see (*) */
+    fr   = addPointer(top, sizeof(word));
     top  = addPointer(top, lneeded);
 
     ap = argFrameP(fr, 0);
@@ -468,7 +491,7 @@ retry:
 
     fr->programPointer = pcret;
     fr->parent         = pfr;
-    fr->clause         = lcref;
+    fr->clause         = cref;
     setFramePredicate(fr, cl->predicate);
     fr->context	       = fr->predicate->module;
     setNextFrameFlags(fr, pfr);
