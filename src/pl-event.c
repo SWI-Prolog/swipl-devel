@@ -627,22 +627,23 @@ int
 predicate_update_event(Definition def, atom_t action, Clause cl,
 		       unsigned flags ARG_LD)
 { wakeup_state wstate;
-  term_t av;
-  int rc = TRUE;
+  int rc;
 
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-    return FALSE;
-  av = PL_new_term_refs(3);			/* closure, action, clause */
-  if ( !PL_put_atom(av+1, action) ||
-       !PL_put_clref(av+2, cl) )
-    return FALSE;
-  if ( (flags&P_EVENT_ROLLBACK)	&&
-       !PL_cons_functor(av+1, FUNCTOR_rollback1, av+1) )
-    return FALSE;
+  if ( (rc=saveWakeup(&wstate, TRUE PASS_LD)) )
+  { term_t av;
 
-  rc = call_event_list(def->events, 2, av PASS_LD);
+    rc = ( (av=PL_new_term_refs(3)) && /* closure, action, clause */
+	   PL_put_atom(av+1, action) &&
+	   PL_put_clref(av+2, cl) );
 
-  restoreWakeup(&wstate PASS_LD);
+    if ( rc && (flags&P_EVENT_ROLLBACK) )
+      rc = PL_cons_functor(av+1, FUNCTOR_rollback1, av+1);
+
+    if ( rc )
+      rc = call_event_list(def->events, 2, av PASS_LD);
+
+    restoreWakeup(&wstate PASS_LD);
+  }
 
   return rc;
 }
