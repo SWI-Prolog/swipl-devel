@@ -176,7 +176,7 @@ get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
 	  return TRUE;
 	}
       }
-    } else if ( get_procedure(type, &proc, 0, GP_FIND|GP_NAMEARITY) )
+    } else if ( get_procedure(type, &proc, 0, GP_RESOLVE|GP_NAMEARITY) )
     { *listpp = &proc->definition->events;
       *argc   = 2;				/* action, cref */
 
