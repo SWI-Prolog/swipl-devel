@@ -93,6 +93,8 @@ COMMON(int)	register_event_function(event_list **list, int last,
 COMMON(void)	destroy_event_list(event_list **listp);
 COMMON(int)	predicate_update_event(Definition def, atom_t action, Clause cl,
 				       unsigned flags ARG_LD);
+COMMON(int)	table_answer_event(Definition def, atom_t action,
+				   term_t answer ARG_LD);
 COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
 				 ARG_LD);
 

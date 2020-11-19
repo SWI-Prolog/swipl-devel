@@ -101,6 +101,7 @@ typedef struct trie_node
 #define TRIE_COMPLETE	0x0008		/* Answer trie is complete */
 #define TRIE_ABOLISH_ON_COMPLETE 0x0010	/* Abolish the table when completed */
 #define TRIE_ISTRACKED  0x0020		/* Trie changes are tracked */
+#define TRIE_EVENTS	0x0040		/* Track changes using prolog_listen/2 */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */

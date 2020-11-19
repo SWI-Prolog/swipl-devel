@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2020, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,7 @@
 #include "pl-event.h"
 #include "pl-dbref.h"
 #include "pl-copyterm.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Event interface
@@ -647,6 +649,33 @@ predicate_update_event(Definition def, atom_t action, Clause cl,
 
   return rc;
 }
+
+int
+table_answer_event(Definition def, atom_t action, term_t answer ARG_LD)
+{ wakeup_state wstate;
+  int rc;
+
+  if ( (rc=saveWakeup(&wstate, TRUE PASS_LD)) )
+  { term_t av;
+
+    rc = ( (av=PL_new_term_refs(3)) && /* closure, action, answer */
+	   PL_put_atom(av+1, action) &&
+	   PL_put_term(av+2, answer) );
+
+    if ( rc )
+    { tbl_status tblstat;
+
+      save_tabling_status(&tblstat);
+      rc = call_event_list(def->events, 2, av PASS_LD);
+      restore_tabling_status(&tblstat);
+    }
+
+    restoreWakeup(&wstate PASS_LD);
+  }
+
+  return rc;
+}
+
 
 int
 retractall_event(Definition def, term_t head, functor_t start ARG_LD)

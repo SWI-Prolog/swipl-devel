@@ -711,6 +711,58 @@ must be tabled monotonic or incremental. If the dependent predicate is
 incremental a new answer invalidates the incremental table.
 \end{itemize}
 
+\subsection{Tracking new answers to monotonic tables}
+\label{sec:tabling-tracking}
+
+The prolog_listen/2 interface allows for tracking new facts that are
+added to monotonic tables. For example, we can print new possible
+connections from the above program using this code:
+
+\begin{code}
+:- prolog_listen(connected/2, connection_change).
+
+connection_change(new_answer, _:connected(From, To)) :-
+    format('~p and ~p are now connected~n', [From, To]).
+\end{code}
+
+Currently, \jargon{failure} of the hook are ignored. If the hook throws
+an exception this is propagated. The hook is executed outside the
+current tabling context.\footnote{The final behavior may be different
+in both aspects.}
+
+After loading the connected/2 program and the above declarations we can
+observe the interaction below. Note that query~1 establishes the
+dependencies and fills the tables using normal tabling. In the current
+implementation, possibly discovered connections do not trigger the
+hook.\footnote{This is likely to change in the future.}. Adding a single
+\nopredref{link}{2} fact links both locations to itself and to each
+other in both directions.  Adding a second fact extends the network.
+
+\begin{code}
+1 ?- connected(_,_).
+false.
+
+2 ?- assert(link('Amsterdam', 'Haarlem')).
+'Amsterdam' and 'Haarlem' are now connected
+'Amsterdam' and 'Amsterdam' are now connected
+'Haarlem' and 'Amsterdam' are now connected
+'Haarlem' and 'Haarlem' are now connected
+true.
+
+3 ?- assert(link('Leiden', 'Haarlem')).
+'Leiden' and 'Haarlem' are now connected
+'Haarlem' and 'Leiden' are now connected
+'Amsterdam' and 'Leiden' are now connected
+'Leiden' and 'Amsterdam' are now connected
+'Haarlem' and 'Leiden' are now connected
+'Leiden' and 'Haarlem' are now connected
+'Leiden' and 'Amsterdam' are now connected
+'Leiden' and 'Leiden' are now connected
+'Amsterdam' and 'Leiden' are now connected
+true.
+\end{code}
+
+
 \paragraph{Status}
 
 Monotonic tabling is experimental and incomplete. Notably support for

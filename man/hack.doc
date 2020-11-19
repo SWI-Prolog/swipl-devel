@@ -535,8 +535,13 @@ Thread local version of the \const{thread_exit} channel that
 is also used by the \term{at_exit}{Closure} option of
 thread_create/3.
 
-    \termitem{PredicateIndicator}{Action, ClauseRef}
-Track changes to a (dynamic) predicate.  For example:
+    \termitem{PredicateIndicator}{Action, Context}
+Track changes to a predicate. This notably allows tracking modifications
+to dynamic predicates.  The channel also allows tracking changes to
+\jargon{monotonic} tables (\secref{tabling-monotonic}).  Both monotonic
+and incremental tabling use this to track changes to \const{incremental}
+and \const{monotonic} dynamic predicates. Below is an example
+illustrating events from changing a dynamic predicate.
 
 \begin{code}
 :- dynamic p/1.
@@ -559,10 +564,14 @@ Updated p/1: retractall end(user:p(_12294))
 	\termitem{asserta}{}
 	\termitem{assertz}{}
     A new clauses has been added as first (last) for the given
-    predicate.
+    predicate.  \arg{Context} is a clause reference.  The hook is
+    called after the clause has been added.  If the hook fails the
+    clause is removed.
 	\termitem{retract}{}
     A clause was retracted from the given predicate using either
-    retract/1, erase/1 or retractall/1.
+    retract/1, erase/1 or retractall/1.  \arg{Context} is a clause reference.
+    The hook is called before the clause is removed.  If the hook
+    fails, the clause is not removed.
 	\termitem{retractall}{}
     The begining and end of retractall/1 is indicated with
     the \arg{Action} \const{retractall}.  The context argument
@@ -573,6 +582,11 @@ Updated p/1: retractall end(user:p(_12294))
     \const{assertz} or \const{retract}.  Context is the involved
     clause.  See transaction/1 and snapshot/1.
 	\end{description}
+	\termitem{new_answer}{}
+    A new answer was added to a tabled predicate. The context
+    is the answer term.  Currently implemented for \jargon{monotonic}
+    tabling only.  Future versions may also implement this for normal
+    tabling.  See \secref{tabling-tracking}.
     \end{description}
 
     \predicate{prolog_unlisten}{2}{+Channel, :Closure}

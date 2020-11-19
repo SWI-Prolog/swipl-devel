@@ -144,6 +144,7 @@ static idg_mdep *new_mdep(term_t t ARG_LD);
 static void	free_mdep(idg_mdep *mdep);
 static void	tt_abolish_table(trie *atrie);
 static void	tt_add_table(trie *atrie ARG_LD);
+static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -2414,6 +2415,8 @@ retry:
       if ( !(atrie = trie_create(pool)) )
 	return NULL;
       set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
+      if ( def && def->events )
+	set(atrie, TRIE_EVENTS);
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
       symb = trie_symbol(atrie);
@@ -6519,6 +6522,10 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 	idg_changed(atrie);
+	if ( true(atrie, TRIE_EVENTS) &&
+	     !atrie_answer_event(atrie, node PASS_LD) &&
+	     PL_exception(0) )
+	  return FALSE;
 
 	return TRUE;
       } else
@@ -6803,6 +6810,27 @@ reset_reevaluation(trie *atrie)
   n->falsecount = 1;
   set(atrie, TRIE_COMPLETE);
   COMPLETE_WORKLIST(atrie, n->reevaluating = FALSE);
+}
+
+
+		 /*******************************
+		 *	      EVENTS		*
+		 *******************************/
+
+static int
+atrie_answer_event(trie *atrie, trie_node *answer ARG_LD)
+{ term_t wrapper, skel;
+  Procedure proc;
+
+  if ( (wrapper=PL_new_term_ref()) &&
+       (skel=PL_new_term_ref()) &&
+       unify_skeleton(atrie, wrapper, skel PASS_LD) &&
+       unify_trie_term(answer, NULL, skel PASS_LD) &&
+       get_procedure(wrapper, &proc, 0, GP_RESOLVE) )
+  { return table_answer_event(proc->definition, ATOM_new_answer, wrapper PASS_LD);
+  }
+
+  return FALSE;
 }
 
 
