@@ -7198,7 +7198,8 @@ and modules.
 	    \op{meta_predicate},
 	    \op{module_transparent}, \op{multifile}, \op{public},
 	    \op{thread_local}, \op{thread_initialization}, \op{volatile} \\
-1100 & xfy & \op{;}, \op{|} \\
+1105 & xfy & \op{|} \\
+1100 & xfy & \op{;} \\
 1050 & xfy & \op{->}, \op{*->} \\
 1000 & xfy & \op{,} \\
 990 & xfx & \op{:=} \\
