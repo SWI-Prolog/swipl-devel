@@ -61,6 +61,16 @@ test_transaction_constraints :-
     test_transaction_constraints(1000, 2, 0, call),
     test_transaction_constraints(1000, 2, 0, snapshot).
 
+%!  test_transaction_constraints(+N, +M, +Delay, +Snapshot)
+%
+%   Update a single fact (temperature/1) N   times, concurrently using M
+%   threads.  An  additional  thread  checks  that  there  is  only  one
+%   temperature/1 fact visible at any point in  time. It can do this two
+%   ways: simple check (`call`) or doing   the check inside a _snapshot_
+%   (`snapshot`).
+%
+%   @arg Delay sets a random delay 0..Delay between each update
+
 test_transaction_constraints(N, M, Delay, Snapshot) :-
     retractall(temperature(_)),
     asserta(temperature(0)),
