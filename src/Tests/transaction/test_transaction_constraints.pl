@@ -52,6 +52,8 @@ consistency.
 :- use_module(library(thread)).
 :- use_module(library(debug)).
 
+%:- debug(veto).
+%:- debug(veto(constraint)).
 :- debug(veto(verify)).
 
 :- meta_predicate
@@ -90,8 +92,8 @@ test_transaction_constraints(N, M, Delay, Snapshot) :-
 test(N, M, Delay) :-
     set_flag(conflict, 0),
     concurrent_forall(
-        between(1, N, _),
-        set_random_temp(Delay),
+        between(1, N, I),
+        set_temp(I, Delay),
         [ threads(M)
         ]),
     get_flag(conflict, C),
@@ -133,15 +135,29 @@ no_duplicate_temp(Why) :-
     (   List = [_]
     ->  true
     ;   debug(veto(Why), '~w: ~p', [Why, List]),
+        (   Why == verify
+        ->  mutex_statistics
+        ;   true
+        ),
         flag(conflict, N, N+1),
         fail
     ).
 
-set_random_temp(Delay) :-
+set_temp(random, Delay) :-              % original test; not used now.
+    !,
     A is random_float*Delay,
     sleep(A),
     random_between(-40, 40, Temp),
     set_temp(Temp).
+set_temp(Temp, Delay) :-                % setting to concrete values make
+    A is random_float*Delay,            % failures easier to interpret.
+    sleep(A),
+    tid(Id),
+    set_temp(Id-Temp).
+
+tid(Id) :-
+    thread_self(Me),
+    thread_property(Me, id(Id)).
 
 concurrent_with(G1, G2) :-
     setup_call_cleanup(
