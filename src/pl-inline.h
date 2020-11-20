@@ -96,7 +96,7 @@ MSB64(int64_t i)
 }
 #endif
 
-#define MEMORY_BARRIER() MemoryBarrier()
+#define MEMORY_ACQUIRE() MemoryBarrier()
 #define MEMORY_RELEASE() MemoryBarrier()
 #define MEMORY_BARRIER() MemoryBarrier()
 
