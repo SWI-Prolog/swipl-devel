@@ -1247,8 +1247,8 @@ struct clause
 { Definition		predicate;	/* Predicate I belong to */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { gen_t created;			/* Generation that created me */
-    gen_t erased;			/* Generation I was erased */
+  { volatile gen_t created;		/* Generation that created me */
+    volatile gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
