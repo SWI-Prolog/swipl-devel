@@ -132,12 +132,13 @@ adjective(X, color, Value) :- color(X, Value).
 ...
 ~~~
 
-Next, the first clause of `noun/2` gets a `call` trace since the engine
-is trying to find the next rule that matches `is_a(_9774, rock)`. Since
-there *is* a fact that can unify: `is_a(rock1, rock)`, the trace shows
-`exit` (i.e. succeeded) along with that value. Since that was the final
-predicate in the body of `noun/2`, `noun/2` also gets an `exit` trace
-that shows the unified value of its head: `noun(rock1, rock)`.
+Next, the first clause of ``noun/2`` gets a `call` trace since the
+engine is trying to find the next rule that matches `is_a(_9774, rock)`.
+Since there *is* a fact that can unify: `is_a(rock1, rock)`, the trace
+shows `exit` (i.e. succeeded) along with that value. Since that was the
+final predicate in the body of ``noun/2``, ``noun/2`` also gets an
+`exit` trace that shows the unified value of its head:
+`noun(rock1, rock)`.
 
 ~~~
 is_a(rock1, rock).
@@ -160,7 +161,7 @@ adjective(X, color, Value) :- color(X, Value).
 ~~~
 
 Prolog then moved to the next predicate in the initial query:
-`adjective/3` and solved it in a similar way. Since that was the last
+``adjective/3`` and solved it in a similar way. Since that was the last
 predicate in the query, an answer was returned. Pressing `;` requested
 the next answer and began Prolog backtracking.
 
@@ -186,7 +187,7 @@ adjective(X, color, Value) :- color(X, Value).
 false.
 ~~~
 
-The only choice point to `redo` (i.e. backtrack over) was the `is_a/2`
+The only choice point to `redo` (i.e. backtrack over) was the ``is_a/2``
 clause of ``noun/2`` since there was one potential match left to attempt
 to unify: `is_a(rock2, rock)`. This succeeds with an `exit` trace since
 it does unify with the `redo` predicate and causes `noun(rock2, rock)`
@@ -364,7 +365,7 @@ false.
 ~~~
 
 Notice that *trace mode* did not have to be turned on using trace/0
-*and* that this only traced out the ports hit while executing `is_a/2`
+*and* that this only traced out the ports hit while executing ``is_a/2``
 *and* that the program was not ever paused.
 
 In fact, if trace mode is turned on while using a trace point, things
@@ -410,8 +411,8 @@ mode at a particular point deep in the program. This is what a *spy
 point* is for. It specifies a predicate that should turn on trace mode.
 
 A spy point is enabled like this: `spy(mypredicate/2)`. After that
-command, the first time `mypredicate/2` is encountered, trace mode will
-turn on and work just like it does normally. This includes paying
+command, the first time ``mypredicate/2`` is encountered, trace mode
+will turn on and work just like it does normally. This includes paying
 attention to the global leash/1 and visible/1 settings. The spy point
 can be removed using nospy/1 or nospyall/0.
 
@@ -546,7 +547,7 @@ test_noun1(X, Type) :- noun(X, Type).
 test_noun2(X, Type) :- noun(X, Type).
 ~~~
 
-To enable tracing just when `noun/2` is called from `test_noun2/2`,
+To enable tracing just when ``noun/2`` is called from ``test_noun2/2``,
 `set_breakpoint/4` can be used like this:
 
 ~~~
