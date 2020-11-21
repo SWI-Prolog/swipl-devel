@@ -1,4 +1,4 @@
-Imperative languages like C++, Python or Javascript execute mostly
+Imperative languages like C++, Python or JavaScript execute mostly
 linear code with some branching and subroutine calls. Their debuggers
 support stepping through the code and pausing on each line, or running
 the program until it hits a breakpoint and pauses. When paused, the user

@@ -112,7 +112,7 @@
 
 This library defines predicates that used to exist in older version of
 SWI-Prolog, but are considered obsolete as there functionality is neatly
-covered by new features. Most often, these constructs are superceeded by
+covered by new features. Most often, these constructs are superseded by
 ISO-standard compliant predicates.
 
 Please also note the existence of   quintus.pl and edinburgh.pl for more
@@ -367,7 +367,7 @@ checklist(Goal, List) :-
 
 %!  sublist(:Goal, +List1, ?List2)
 %
-%   Succeeds if List2 unifies with a list holding those terms for wich
+%   Succeeds if List2 unifies with a list holding those terms for which
 %   call(Goal, Elem) succeeds.
 %
 %   @deprecated Use include/3 from library(apply)
@@ -621,7 +621,7 @@ hash(PI) :-
 
 %!  set_base_module(:Base) is det.
 %
-%   Set the default module from whic we inherit.
+%   Set the default module from which we inherit.
 %
 %   @deprecated Equivalent to set_module(base(Base)).
 
