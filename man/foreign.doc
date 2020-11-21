@@ -1892,7 +1892,7 @@ not required, to be closed by a full stop (.).
 
 If parsing produces an exception the behaviour depends on the
 \const{CVT_EXCEPTION} flag. If present, the exception is propagated into
-the environment.  Otherwise the exceptuion is placed in \arg{t} and
+the environment.  Otherwise the exception is placed in \arg{t} and
 the return value is \const{FALSE}.\footnote{The \const{CVT_EXCEPTION}
 was added in version 8.3.12}.
 \end{description}

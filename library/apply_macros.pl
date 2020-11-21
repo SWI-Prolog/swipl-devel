@@ -47,7 +47,7 @@ This module defines goal_expansion/2 rules to   deal with commonly used,
 but fundamentally slow meta-predicates. Notable   maplist/2... defines a
 useful set of predicates, but its  execution is considerable slower than
 a traditional Prolog loop. Using this  library calls to maplist/2... are
-translated into an call  to  a   generated  auxilary  predicate  that is
+translated into an call  to  a  generated  auxiliary  predicate  that is
 compiled using compile_aux_clauses/1. Currently this module supports:
 
         * maplist/2..

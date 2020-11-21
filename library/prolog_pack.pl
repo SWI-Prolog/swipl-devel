@@ -68,7 +68,7 @@
 The library(prolog_pack) provides the SWI-Prolog   package manager. This
 library lets you inspect installed   packages,  install packages, remove
 packages, etc. It is complemented by   the  built-in attach_packs/0 that
-makes installed packages available as libaries.
+makes installed packages available as libraries.
 
 @see    Installed packages can be inspected using =|?- doc_browser.|=
 @tbd    Version logic
