@@ -2946,12 +2946,17 @@ PRED_IMPL("retract", 1, retract,
     atom_t b;
     fid_t fid;
     definition_ref *dref = NULL;
+    int rc;
 
     if ( !PL_strip_module_ex(term, &m, cl) ||
-	 !get_head_and_body_clause(cl, head, body, NULL PASS_LD) )
+	 !get_head_and_body_clause(cl, head, body, &m PASS_LD) )
       return FALSE;
     if ( PL_get_atom(body, &b) && b == ATOM_true )
-      PL_put_term(cl, head);
+      rc = PL_put_term(cl, head);
+    else
+      rc = PL_cons_functor(cl, FUNCTOR_prove2, head, body);
+    if ( !rc )
+      return FALSE;
 
     argv = valTermRef(head);
     deRef(argv);

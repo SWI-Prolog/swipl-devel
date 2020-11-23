@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2017, University of Amsterdam
+    Copyright (c)  2009-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -91,6 +91,10 @@ test(theorist) :-
 test(theorist, [cleanup(retractall(foo(_)))]) :-
 	assert((foo(A) :- bar(A))),
 	\+ retract(foo(1) :- bar(2)).
+test(qhead, [X-A == 1-a, cleanup(retractall(foo(_)))]) :-
+	assert((foo(1) :- bar(a))),
+	context_module(M),
+	retract((M:foo(X) :- bar(A))).
 test(update_view, L == [ant,bee]) :-
 	retractall(insect(_)),
 	retractall(icopy(_)),
