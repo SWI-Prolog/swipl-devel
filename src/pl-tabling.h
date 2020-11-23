@@ -86,9 +86,10 @@ typedef struct tbl_component
 } tbl_component;
 
 typedef struct tbl_status
-{ tbl_component *scc;
-  int		 hsc;
-  int		 iac;
+{ tbl_component *scc;				/* The SCC we are working on */
+  int		 hsc;				/* We have an active SCC */
+  int		 iac;				/* We are in answer completion */
+  int		 iap;				/* We are in assert propagation */
 } tbl_status;
 
 void save_tabling_status(tbl_status *stat);

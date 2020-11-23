@@ -2106,10 +2106,12 @@ save_tabling_status(tbl_status *state)
   state->scc = LD->tabling.component;
   state->hsc = LD->tabling.has_scheduling_component;
   state->iac = LD->tabling.in_answer_completion;
+  state->iap = LD->tabling.in_assert_propagation;
 
   LD->tabling.component                = NULL;
   LD->tabling.has_scheduling_component = FALSE;
   LD->tabling.in_answer_completion     = FALSE;
+  LD->tabling.in_assert_propagation    = FALSE;
 }
 
 
@@ -2120,6 +2122,7 @@ restore_tabling_status(tbl_status *state)
   LD->tabling.component                = state->scc;
   LD->tabling.has_scheduling_component = state->hsc;
   LD->tabling.in_answer_completion     = state->iac;
+  LD->tabling.in_assert_propagation    = state->iap;
 }
 
 
