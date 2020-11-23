@@ -154,13 +154,40 @@ you need to run this on the Linux   machine as you have uploaded the tar
 archive from this machine. The one on  the   Mac  isn't the same as time
 stamps vary.  Now
 
-  - Go to ~/src/macports-ports
+  - cd ~/src/macports-ports
   - Verify that lang/swi-prolog/devel/Portfile looks good
   - Push the branch (assuming 8.3.1 is the version):
 
 	git push fork 8.3.1:8.3.1
 
   - Open the link of the PR and complete it.
+
+## Updating the official Docker image
+
+### Preparation
+
+  - Fork https://github.com/SWI-Prolog/docker-swipl
+  - Fork https://github.com/docker-library/official-images
+
+### Update docker-swipl
+
+  - cp -r <latest version> <new version>
+  - Edit <newversion>/stretch/Dockerfile, e.g.
+    - SWIPL_VER=8.2.3; \
+    - SWIPL_CHECKSUM=9403972f9d87f1f4971fbd4a5644b4976b1b18fc174be84506c6b713bd1f9c93; \
+  - Test using
+    - `docker pull debian:stretch-slim`
+    - `docker build . 2>&1 | tee build.log
+  - On success, add the Dockerfile and create a PR
+
+### Update official-images
+
+  - Edit `library/swipl`, update
+    - GitCommit
+    - Tags
+    - Directory
+  - Commit with comment "Updated swipl (devel/stable) to <version>"
+  - Create a PR.
 
 ## Creating the Announce post
 
