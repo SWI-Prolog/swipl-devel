@@ -2418,8 +2418,7 @@ retry:
       if ( !(atrie = trie_create(pool)) )
 	return NULL;
       set(atrie, (flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET);
-      if ( def && def->events )
-	set(atrie, TRIE_EVENTS);
+      atrie->data.predicate = def;
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
       symb = trie_symbol(atrie);
@@ -6520,12 +6519,15 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 				    TRUE, NULL, NULL PASS_LD);
 
       if ( rc > 0 )
-      { if ( node->value )
+      { Definition def;
+
+	if ( node->value )
 	  return FALSE;
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 	idg_changed(atrie);
-	if ( true(atrie, TRIE_EVENTS) &&
+	if ( (def=atrie->data.predicate) &&
+	     def->events &&
 	     !atrie_answer_event(atrie, node PASS_LD) &&
 	     PL_exception(0) )
 	  return FALSE;
@@ -6823,14 +6825,13 @@ reset_reevaluation(trie *atrie)
 static int
 atrie_answer_event(trie *atrie, trie_node *answer ARG_LD)
 { term_t wrapper, skel;
-  Procedure proc;
 
   if ( (wrapper=PL_new_term_ref()) &&
        (skel=PL_new_term_ref()) &&
        unify_skeleton(atrie, wrapper, skel PASS_LD) &&
-       unify_trie_term(answer, NULL, skel PASS_LD) &&
-       get_procedure(wrapper, &proc, 0, GP_RESOLVE) )
-  { return table_answer_event(proc->definition, ATOM_new_answer, wrapper PASS_LD);
+       unify_trie_term(answer, NULL, skel PASS_LD) )
+  { return table_answer_event(atrie->data.predicate,
+			      ATOM_new_answer, wrapper PASS_LD);
   }
 
   return FALSE;
