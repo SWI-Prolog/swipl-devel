@@ -53,7 +53,8 @@ typedef enum pl_event_type
 } pl_event_type;
 
 typedef struct event_callback
-{ Module		 module;	/* context module */
+{ atom_t		name;		/* Name of the callback */
+  Module		 module;	/* context module */
   Procedure		 procedure;	/* procedure to use */
   int		       (*function)();	/* C-function */
   union
@@ -86,9 +87,9 @@ COMMON(int)	delayEvents(void);
 COMMON(int)	sendDelayedEvents(int noerror);
 COMMON(int)	PL_call_event_hook(pl_event_type ev, ...);
 COMMON(int)	PL_call_event_hook_va(pl_event_type ev, va_list args);
-COMMON(int)	register_event_hook(event_list **list, int last,
+COMMON(int)	register_event_hook(event_list **list, atom_t name, int last,
 				    term_t closure, int argc);
-COMMON(int)	register_event_function(event_list **list, int last,
+COMMON(int)	register_event_function(event_list **list, atom_t name, int last,
 					int (*func)(), void *closure, int argc);
 COMMON(void)	destroy_event_list(event_list **listp);
 COMMON(int)	predicate_update_event(Definition def, atom_t action, Clause cl,

@@ -110,23 +110,47 @@ get_callback(term_t closure, Module *m, term_t cb ARG_LD)
 
 
 static int
-add_event_hook(event_list *list, int last, term_t closure, int argc)
+add_event_hook(event_list *list, atom_t name, int last, term_t closure, int argc)
 { GET_LD
   Module m = NULL;
   event_callback *cb;
-  atom_t name;
+  atom_t pname;
   term_t t = PL_new_term_ref();
 
   if ( !get_callback(closure, &m, t PASS_LD) )
     return FALSE;
 
+  if ( name )
+  { event_callback *ev;
+
+    LOCK_LIST(list);
+
+    for(ev = list->head; ev; ev = ev->next)
+    { if ( ev->name == name && !ev->function )
+      { struct fastheap_term *r = ev->closure.term;
+
+	ev->closure.term = term_to_fastheap(closure PASS_LD);
+	if ( r )
+	  free_fastheap(r);
+
+	return TRUE;
+      }
+    }
+
+    UNLOCK_LIST(list);
+  }
+
   cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
+  if ( name )
+  { cb->name = name;
+    PL_register_atom(name);
+  }
   cb->argc = argc;
   cb->module = m;
 
-  if ( PL_get_atom(t, &name) )
-  { cb->procedure = resolveProcedure(PL_new_functor(name, argc), m);
+  if ( PL_get_atom(t, &pname) )
+  { cb->procedure = resolveProcedure(PL_new_functor(pname, argc), m);
   } else
   { cb->procedure    = PL_predicate("call", argc+1, "system");
     cb->closure.term = term_to_fastheap(closure PASS_LD);
@@ -154,8 +178,8 @@ get_event_list(event_list **list)
 }
 
 int
-register_event_hook(event_list **list, int last, term_t closure, int argc)
-{ return add_event_hook(get_event_list(list), last, closure, argc);
+register_event_hook(event_list **list, atom_t name, int last, term_t closure, int argc)
+{ return add_event_hook(get_event_list(list), name, last, closure, argc);
 }
 
 
@@ -193,6 +217,7 @@ get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
 
 static const opt_spec prolog_listen_options[] =
 { { ATOM_as,		 OPT_ATOM },
+  { ATOM_name,		 OPT_ATOM },
   { NULL_ATOM,		 0 }
 };
 
@@ -201,10 +226,11 @@ prolog_listen(term_t type, term_t closure, term_t options ARG_LD)
 { event_list **listp;
   size_t argc;
   atom_t as = ATOM_first;
+  atom_t name = 0;
 
   if ( options && !scan_options(options, 0, /*OPT_ALL,*/
 				ATOM_prolog_listen_option, prolog_listen_options,
-				&as) )
+				&as, &name) )
     return FALSE;
 
   if ( !(as == ATOM_first || as == ATOM_last) )
@@ -213,7 +239,7 @@ prolog_listen(term_t type, term_t closure, term_t options ARG_LD)
   }
 
   if ( get_event_listp(type, &listp, &argc PASS_LD) )
-    return register_event_hook(listp, as == ATOM_last, closure, argc);
+    return register_event_hook(listp, name, as == ATOM_last, closure, argc);
 
   return FALSE;
 }
@@ -298,7 +324,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 
 
 int
-register_event_function(event_list **list, int last, int (*func)(),
+register_event_function(event_list **list, atom_t name, int last, int (*func)(),
 			void *closure, int argc)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
@@ -314,6 +340,8 @@ static void
 free_event_callback(event_callback *cb)
 { if ( !cb->function && cb->closure.term )
     free_fastheap(cb->closure.term);
+  if ( cb->name )
+    PL_unregister_atom(cb->name);
 
   PL_free(cb);
 }

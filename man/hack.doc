@@ -495,9 +495,14 @@ closures can be associated with the same channel.  Execution of the list
 of closures may be terminated by an exception. Options:
 
     \begin{description}
-    \termitem{as}{Location}
+    \termitem{as}{+Location}
 \arg{Location} is one of \const{first} (default) or \const{last} and
 determines whether the new handler is expected as first or last.
+    \termitem{name}{+Atom}
+Give the handler a name.  A new registration using the same name
+replaces the existing handler rather than adding a new handler. Names
+are local to the \arg{Channel}, i.e., different channels can use the
+same name.
     \end{description}
 
 Defined channels are described below. The \arg{Channel} argument is the

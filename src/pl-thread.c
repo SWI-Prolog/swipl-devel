@@ -2075,7 +2075,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   info->module = PL_context();
   copy_local_data(ldnew, ldold, queue_max_size);
   if ( at_exit )
-    register_event_hook(&ldnew->event.hook.onthreadexit, FALSE, at_exit, 0);
+    register_event_hook(&ldnew->event.hook.onthreadexit, 0, FALSE, at_exit, 0);
 
   pthread_attr_init(&attr);
   if ( info->detached )
@@ -2936,7 +2936,7 @@ PL_thread_at_exit(void (*function)(void *), void *closure, int global)
 			     : &LD->event.hook.onthreadexit;
   int (*func)() = (void *)function;
 
-  return register_event_function(list, FALSE, func, closure, 0);
+  return register_event_function(list, 0, FALSE, func, closure, 0);
 }
 
 		 /*******************************
