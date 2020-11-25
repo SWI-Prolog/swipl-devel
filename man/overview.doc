@@ -1391,29 +1391,28 @@ print_message/2.
     \end{itemize}
 
     \prologflagitem{compile_meta_arguments}{atom}{rw}
-Experimental flag that controls compilation of arguments passed to
-meta-calls marked `0' or `\chr{^}' (see meta_predicate/1). Supported
-values are:
+This flag controls compilation of arguments passed to meta-calls marked
+`0' or `\chr{^}' (see meta_predicate/1). Supported values are:
 
 \begin{description}
     \termitem{false}{}
-(default).  Meta-arguments are passed verbatim.
+(default). Meta-arguments are passed verbatim. If the argument is a
+control structure ((A,B), (A;B), (A->B;C), etc.) it is compile to an
+temporary clause allocated on the environment stack when the
+meta-predicate is called.
+
     \termitem{control}{}
-Compile meta-arguments that contain control structures ((A,B), (A;B),
-(A->B;C), etc.).  If not compiled at compile time, such arguments are
-compiled to a temporary clause before execution.  Using this option
-enhances performance of processing complex meta-goals that are known
-at compile time.
-    \termitem{true}{}
-Also compile references to normal user predicates. This harms
-performance (a little), but enhances the power of poor-mens consistency
-check used by make/0 and implemented by list_undefined/0.
+Compile meta-arguments that contain control structures to an auxiliary
+predicate.  This generally improves performance as well as the debugging
+experience.
+
     \termitem{always}{}
-Always create an intermediate clause, even for system predicates. This
-prepares for replacing the normal head of the generated predicate with
-a special reference (similar to database references as used by, e.g.,
-assert/2) that provides direct access to the executable code, thus
-avoiding runtime lookup of predicates for meta-calling.
+Always create an intermediate clause, even for system
+predicates.\footnote{This may be used in the future for
+replacing the normal head of the generated predicate with a special
+reference (similar to database references as used by, e.g., assert/2)
+that provides direct access to the executable code, thus avoiding
+runtime lookup of predicates for meta-calling.}
 \end{description}
 
     \prologflagitem{compiled_at}{atom}{r}
