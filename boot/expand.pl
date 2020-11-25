@@ -1421,10 +1421,12 @@ is_aux_meta(Term) :-
     sub_atom(Name, 0, _, _, '__aux_meta_call_').
 
 compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
-    term_variables(Term, AllVars),
+    replace_subterm(CallIn, true, Term, Term2),
+    term_variables(Term2, AllVars),
     term_variables(CallIn, InVars),
     intersection_eq(InVars, AllVars, HeadVars),
-    variant_sha1(CallIn+HeadVars, Hash),
+    copy_term_nat(CallIn+HeadVars, NAT),
+    variant_sha1(NAT, Hash),
     atom_concat('__aux_meta_call_', Hash, AuxName),
     expand_goal(CallIn, _Pos0, Body, _Pos, M, [], (CallOut:-CallIn), []),
     length(HeadVars, Arity),
@@ -1433,6 +1435,34 @@ compile_meta(CallIn, CallOut, M, Term, (CallOut :- Body)) :-
     ;   HeadArgs = HeadVars
     ),
     CallOut =.. [AuxName|HeadArgs].
+
+%!  replace_subterm(From, To, TermIn, TermOut)
+%
+%   Replace instances (==/2) of From inside TermIn by To.
+
+replace_subterm(From, To, TermIn, TermOut) :-
+    From == TermIn,
+    !,
+    TermOut = To.
+replace_subterm(From, To, TermIn, TermOut) :-
+    compound(TermIn),
+    compound_name_arity(TermIn, Name, Arity),
+    Arity > 0,
+    !,
+    compound_name_arity(TermOut, Name, Arity),
+    replace_subterm_compound(1, Arity, From, To, TermIn, TermOut).
+replace_subterm(_, _, Term, Term).
+
+replace_subterm_compound(I, Arity, From, To, TermIn, TermOut) :-
+    I =< Arity,
+    !,
+    arg(I, TermIn, A1),
+    arg(I, TermOut, A2),
+    replace_subterm(From, To, A1, A2),
+    I2 is I+1,
+    replace_subterm_compound(I2, Arity, From, To, TermIn, TermOut).
+replace_subterm_compound(_I, _Arity, _From, _To, _TermIn, _TermOut).
+
 
 %!  intersection_eq(+Small, +Big, -Shared) is det.
 %
