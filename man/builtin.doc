@@ -2394,9 +2394,9 @@ The same warning as for call_cleanup/2 applies.
 \section{Delimited continuations}	     \label{sec:delcont}
 
 The predicates reset/3 and shift/1 implement \jargon{delimited
-continuations} for Prolog. Delimited continuation for Prolog is
+continuations} for Prolog. Delimited continuations for Prolog are
 described in \cite{DBLP:journals/tplp/SchrijversDDW13}
-(\href{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}{preprint
+(\href{https://www.swi-prolog.org/download/publications/iclp2013.pdf}{preprint
 PDF}). The mechanism allows for proper \jargon{coroutines}, two or more
 routines whose execution is interleaved, while they exchange data. Note
 that coroutines in this sense differ from coroutines realised using
@@ -2404,7 +2404,7 @@ attributed variables as described in \chapref{clp}.
 
 Note that shift/1 captures the \jargon{forward continuation}. It notably
 does not capture choicepoints. Choicepoints created before the
-continuation is captures remain open, while choicepoints created when
+continuation is captured remain open, while choicepoints created when
 the continuation is executed live their normal life. Unfortunately the
 consequences for \jargon{committing} a choicepoint is complicated. In
 general a cut (\predref{!}{0}) in the continuation does not have the
@@ -3679,7 +3679,7 @@ clauses is the order in which the transactions asserted the clauses and
 \textbf{not} the order in which the transactions are committed.
 
 The transaction/1 variant is equivalent to \term{transaction}{Goal,[]}.
-Th transaction/2 variant processed the following options:
+The transaction/2 variant processed the following options:
 
     \begin{description}
     \termitem{bulk}{+Boolean}
@@ -8470,8 +8470,8 @@ primitives are built-in and described here.
 
 \begin{description}
     \predicate{is_list}{1}{+Term}
-True if \arg{Term} is bound to the empty list (\exam{[]}) or a term with
-functor `\const{'[|]'}'\footnote{The traditional list functor is the dot
+True if \arg{Term} is bound to the empty list (\const{[]}) or a compound
+term with name `\const{[|]}'\footnote{The traditional list functor name is the dot
 (\const{'.'}). This is still the case of the command line option
 \cmdlineoption{--traditional} is given. See also \secref{ext-lists}.}
 and arity~2 and the second argument is a list.%
@@ -8484,7 +8484,7 @@ and arity~2 and the second argument is a list.%
 		  quick-and-dirty is_list/1 is a good choice. Richard
 		  O'Keefe pointed at this issue.}
 This predicate acts as if defined by the definition below on
-\jargon{acyclic} terms. The implementation \emph{fails} safely if
+\jargon{acyclic} terms. The implementation safely \emph{fails} if
 \arg{Term} represents a cyclic list.
 
 \begin{code}
@@ -8641,8 +8641,10 @@ sort_atoms_by_length(Atoms, ByLength) :-
 Sorts similar to sort/2, but determines the order of two terms by
 calling \mbox{\arg{Pred}(-\arg{Delta}, +\arg{E1}, +\arg{E2})}.  This
 call must unify \arg{Delta} with one of \const{<}, \const{>} or
-\const{=}.  If the built-in predicate compare/3 is used, the result is
-the same as sort/2.  See also keysort/2.
+\const{=}. Duplicates are removed (i.e. equivalence classes of
+elements as defined by \arg{Pred} are collapsed to a single element in
+\arg{Sorted}) If the built-in predicate compare/3 is used, the result is
+the same as sort/2. See also keysort/2.
 \end{description}
 
 
