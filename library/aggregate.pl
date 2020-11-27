@@ -50,6 +50,7 @@
 :- autoload(library(ordsets),[ord_subtract/3,ord_intersection/3]).
 :- autoload(library(pairs),[pairs_values/2]).
 
+:- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
     foreach(0,0),
