@@ -976,7 +976,7 @@ stat_node(trie_node *n, void *ctx)
 
   stats->nodes++;
   stats->bytes += sizeof(*n);
-  if ( n->value )
+  if ( n->value && true(n, TN_PRIMARY) )
     stats->values++;
 
   if ( children.any )
@@ -1283,7 +1283,10 @@ them after the references drop to 0.
 void
 trie_delete(trie *trie, trie_node *node, int prune)
 { if ( node->value )
-  { clear(node, (TN_PRIMARY|TN_SECONDARY));
+  { if ( true(node, TN_PRIMARY) )
+      ATOMIC_DEC(&trie->value_count);
+
+    clear(node, (TN_PRIMARY|TN_SECONDARY));
     if ( prune && trie->references == 0 )
     { prune_node(trie, node);
     } else
@@ -1297,7 +1300,6 @@ trie_delete(trie *trie, trie_node *node, int prune)
 	release_value(v);
       }
     }
-    ATOMIC_DEC(&trie->value_count);
     trie_discard_clause(trie);
   }
 }
@@ -2355,10 +2357,10 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 	stat_trie(trie, &stats);
 	if ( stats.nodes != trie->node_count )
 	  Sdprintf("OOPS: trie_property/2: counted %zd nodes, admin says %zd\n",
-		   stats.nodes, trie->node_count);
+		   (size_t)stats.nodes, (size_t)trie->node_count);
 	if ( stats.values != trie->value_count )
 	  Sdprintf("OOPS: trie_property/2: counted %zd values, admin says %zd\n",
-		   stats.values, trie->value_count);
+		   (size_t)stats.values, (size_t)trie->value_count);
 	// assert(stats.nodes  == trie->node_count);
 	// assert(stats.values == trie->value_count);
 	return PL_unify_int64(arg, stats.bytes);
