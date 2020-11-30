@@ -792,7 +792,7 @@ if possible. If you must use it, try to use it with an instantiated top-level
 constraint symbol.
 \end{itemlist}
 
-\section{CHR Compiler Errors and Warnings}		\label{sec:chr-errors}
+\section{CHR Compiler Errors and Warnings}		\label{sec:chr-warnings-and-errors}
 %==================
 
 In this section we summarize the most important error and warning messages
