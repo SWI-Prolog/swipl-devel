@@ -513,6 +513,7 @@ safe_primitive(atomic(_)).
 safe_primitive(compound(_)).
 safe_primitive(callable(_)).
 safe_primitive(ground(_)).
+safe_primitive(system:nonground(_,_)).
 safe_primitive(system:cyclic_term(_)).
 safe_primitive(acyclic_term(_)).
 safe_primitive(system:is_stream(_)).
