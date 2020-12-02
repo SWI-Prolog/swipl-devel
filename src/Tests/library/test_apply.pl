@@ -167,5 +167,16 @@ test("foldr on open list", Bag = [[[], 0], [[0], 1], [[1, 0], 2], [[2, 1, 0], 3]
       limit(4,foldr([E,FR,TL]>>(succ(FR,TL),FR=E), L, 0, Final)), 
       Bag).
 
+test("foldr(reverse(list)) equals foldl(list)") :- 
+   compute_nominally_equal_results([],X0,X0),
+   compute_nominally_equal_results([a],X1,X1),
+   compute_nominally_equal_results([a,b],X2,X2),
+   compute_nominally_equal_results([a,b,c],X3,X3).
+
+compute_nominally_equal_results(Datum,Vfoldl,Vfoldr) :-
+   foldl([E,FL,TR]>>atom_concat(FL,E,TR),Datum,start,Vfoldl),
+   reverse(Datum,DatumR),
+   foldr([E,FR,TL]>>atom_concat(FR,E,TL),DatumR,start,Vfoldr).
+
 :- end_tests(foldr).
 

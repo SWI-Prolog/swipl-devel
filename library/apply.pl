@@ -444,6 +444,7 @@ scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
 %        G(X_11,      ..., X_m1,     V<n-1>,  V).
 %     ==
 %
+%   
 %   As expected with fold-right, the implementation is not
 %   subject to tail-call optimization and using `foldr` is 
 %   expensive in stack usage. `foldr` can handle _open lists_, 
@@ -455,6 +456,13 @@ scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
 %     ==
 %     ?- foldr(atom_concat,[a,b,c,d],start,V).
 %     V = abcdstart.
+%     ==
+%
+%   In particular, this succeeds:
+%
+%     ==
+%     foldl(G,List,V0,V),   
+%     reverse(List,ListR),foldr(G,ListR,V0,V).
 %     ==
 %
 %   With library(yall), argument order can be rearranged inline:
