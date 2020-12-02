@@ -48,6 +48,11 @@
             foldl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
             foldl/7,                    % :Pred, +List1, +List2, +List3, +List4,
                                         % ?V0, ?V
+            foldr/4,                    % :Pred, +List, ?V0, ?V
+            foldr/5,                    % :Pred, +List1, +List2, ?V0, ?V
+            foldr/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
+            foldr/7,                    % :Pred, +List1, +List2, +List3, +List4,
+                                        % ?V0, ?V
             scanl/4,                    % :Pred, +List, ?V0, ?Vs
             scanl/5,                    % :Pred, +List1, +List2, ?V0, ?Vs
             scanl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?Vs
@@ -64,6 +69,7 @@ members of a list.
 @see    apply_macros.pl provides compile-time expansion for part of this
         library.
 @see    http://www.cs.otago.ac.nz/staffpriv/ok/pllib.htm
+@see    Unit test code in src/Tests/library/test_apply.pl
 @tbd    Add include/4, include/5, exclude/4, exclude/5
 */
 
@@ -81,6 +87,10 @@ members of a list.
     foldl(4, +, +, +, -),
     foldl(5, +, +, +, +, -),
     foldl(6, +, +, +, +, +, -),
+    foldr(3, +, +, -),
+    foldr(4, +, +, +, -),
+    foldr(5, +, +, +, +, -),
+    foldr(6, +, +, +, +, +, -),
     scanl(3, +, +, -),
     scanl(4, +, +, +, -),
     scanl(5, +, +, +, +, -),
@@ -175,7 +185,7 @@ partition_(Diff, _, _, _, _, _, _) :-
 
 
                  /*******************************
-                 *          MAPLIST/2...        *
+                 *          MAPLIST             *
                  *******************************/
 
 %!  maplist(:Goal, ?List1).
@@ -186,12 +196,16 @@ partition_(Diff, _, _, _, _, _, _) :-
 %   True if Goal is successfully applied on all matching elements of the
 %   list. The maplist family of predicates is defined as:
 %
-%   ```
-%   maplist(P, [X11,...,X1n], ..., [Xm1,...,Xmn]) :-
-%       P(X11, ..., Xm1),
-%       ...
-%       P(X1n, ..., Xmn).
-%   ```
+%     ==
+%     maplist(G, [X_11, ..., X_1n], 
+%                [X_21, ..., X_2n],
+%                ...,
+%                [X_m1, ..., X_mn]) :-
+%        G(X_11, ..., X_m1),
+%        G(X_12, ..., X_m2),
+%        ...
+%        G(X_1n, ..., X_mn).
+%     ==
 %
 %   This family of predicates is deterministic iff Goal is deterministic
 %   and List1 is a proper list, i.e., a list that ends in `[]`.
@@ -236,7 +250,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 %
 %   ```
 %   ?- convlist([X,Y]>>(integer(X), Y is X^2),
-%               [3, 5, 4.4, 2], L).
+%               [3, 5, foo, 2], L).
 %   L = [9, 25, 4].
 %   ```
 %
@@ -264,15 +278,45 @@ convlist_([H0|T0], ListOut, Goal) :-
 %!  foldl(:Goal, +List1, +List2, +List3, +V0, -V).
 %!  foldl(:Goal, +List1, +List2, +List3, +List4, +V0, -V).
 %
-%   Fold a list, using arguments of the   list as left argument. The
-%   foldl family of predicates is defined by:
+%   Fold an ensemble of _m_ (0 <= _m_ <= 4) lists of length _n_
+%   head-to-tail ("fold-left"), using columns of _m_ list elements 
+%   as arguments for Goal. The `foldl` family of predicates is
+%   defined as follows, with `V0` an initial value and `V` the
+%   final value of the folding operation:
 %
 %     ==
-%     foldl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, Vn) :-
-%           P(X11, ..., Xm1, V0, V1),
-%           ...
-%           P(X1n, ..., Xmn, V', Vn).
+%     foldl(G, [X_11, ..., X_1n], 
+%              [X_21, ..., X_2n],
+%              ...,
+%              [X_m1, ..., X_mn], V0, V) :-
+%        G(X_11, ..., X_m1, V0, V1),
+%        G(X_12, ..., X_m2, V1, V2),
+%        ...
+%        G(X_1n, ..., X_mn, V<n-1>, V).
 %     ==
+%
+%   As expected with fold-left, the implementation performs a
+%   tail-recursive call. `foldl` can handle _open lists_, instantiating
+%   them to longer and longer lists on backtracking.
+%
+%   Note that the list element is the first argument to Goal.
+%   For example, using atom_concat/3:
+%
+%     ==
+%     ?- foldl(atom_concat,[a,b,c,d],start,V).
+%     V = dcbastart.
+%     ==
+%
+%   With library(yall), argument order can be rearranged inline:
+%
+%     ==
+%     ?- foldl(
+%         [E,FromLeft,ToRight]>>atom_concat(FromLeft,E,ToRight),
+%         [a,b,c,d],"start",V).
+%     V = startabcd.
+%     ==
+%
+%   @see  library(yall), atom_concat/3
 
 foldl(Goal, List, V0, V) :-
     foldl_(List, Goal, V0, V).
@@ -319,16 +363,25 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %!  scanl(:Goal, +List1, +List2, +List3, +V0, -Values).
 %!  scanl(:Goal, +List1, +List2, +List3, +List4, +V0, -Values).
 %
-%   Left scan of  list.  The  scanl   family  of  higher  order list
-%   operations is defined by:
+%   Scan an ensemble of _m_ (0 <= _m_ <= 4) lists of length _n_
+%   head-to-tail ("scan-left"), using columns of _m_ list elements 
+%   as arguments for Goal. The `scanl` family of predicates is
+%   defined as follows, with `V0` an initial value and `V` the
+%   final value of the scanning operation:
 %
 %     ==
-%     scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0,
-%           [V0,V1,...,Vn]) :-
-%           P(X11, ..., Xm1, V0, V1),
-%           ...
-%           P(X1n, ..., Xmn, V', Vn).
+%     scanl(G, [X_11, ..., X_1n], 
+%              [X_21, ..., X_2n],
+%              ...,
+%              [X_m1, ..., X_mn], V0, [V0, V1, ..., Vn] ) :-
+%        G(X_11, ..., X_m1, V0, V1),
+%        G(X_12, ..., X_m2, V1, V2),
+%        ...
+%        G(X_1n, ..., X_mn, V<n-1>, Vn).
 %     ==
+%
+%  `scanl` behaves like a `foldl` that collects the sequence of 
+%  values taken on by the `Vx` accumulator into a list.
 
 scanl(Goal, List, V0, [V0|Values]) :-
     scanl_(List, Goal, V0, Values).
@@ -364,6 +417,99 @@ scanl_([], [], [], [], _, _, []).
 scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
     call(Goal, H1, H2, H3, H4, V, VH),
     scanl_(T1, T2, T3, T4, Goal, VH, VT).
+
+                 /*******************************
+                 *            FOLDR             *
+                 *******************************/
+
+%!  foldr(:Goal, +List, +V0, -V).
+%!  foldr(:Goal, +List1, +List2, +V0, -V).
+%!  foldr(:Goal, +List1, +List2, +List3, +V0, -V).
+%!  foldr(:Goal, +List1, +List2, +List3, +List4, +V0, -V).
+%
+%   Fold an ensemble of _m_ (0 <= _m_ <= 4) lists of length _n_
+%   tail-to-head ("fold-right"), using columns of _m_ list elements 
+%   as arguments for Goal. The `foldr` family of predicates is
+%   defined as follows, with `V0` an initial value and `V` the
+%   final value of the folding operation:
+%
+%     ==
+%     foldr(G, [X_11, ..., X_1n], 
+%              [X_21, ..., X_2n],
+%              ...,
+%              [X_m1, ..., X_mn], V0, V) :-
+%        G(X_1n,      ..., X_mn,     V0,      V1),
+%        G(X_1<n-1>,  ..., X_m<n-1>, V1,      V2),
+%        ...
+%        G(X_11,      ..., X_m1,     V<n-1>,  V).
+%     ==
+%
+%   As expected with fold-right, the implementation is not
+%   subject to tail-call optimization and using `foldr` is 
+%   expensive in stack usage. `foldr` can handle _open lists_, 
+%   instantiating them to longer and longer lists on backtracking.
+%
+%   Note that the list element is the first argument to Goal.
+%   For example:
+%
+%     ==
+%     ?- foldr(atom_concat,[a,b,c,d],start,V).
+%     V = abcdstart.
+%     ==
+%
+%   With library(yall), argument order can be rearranged inline:
+%
+%     ==
+%     ?- foldr(
+%         [E,FromRight,ToLeft]>>atom_concat(FromRight,E,ToLeft),
+%         [a,b,c,d],"start",V).
+%     V = startdcba.
+%     ==
+%
+%   @see  library(yall), atom_concat/3
+
+% Approach: choose the ordering of the arguments to Goal
+% to have identical "in" and "out" parameter positions as for foldl
+% foldl: Goal(Element, FromLeft,ToRight)
+% foldr: Goal(Element, FromRight,ToLeft)
+
+foldr(Goal, List, V0, V) :-
+    foldr_(List, Goal, V0, V).
+
+foldr_([], _, V0, V0).
+foldr_([H|T], Goal, V0, V) :-
+    foldr_(T, Goal, V0, V2),    
+    call(Goal, H, V2, V).
+
+% ---
+
+foldr(Goal, List1, List2, V0, V) :-
+    foldr_(List1, List2, Goal, V0, V).
+
+foldr_([], [], _, V0, V0).
+foldr_([H1|T1], [H2|T2], Goal, V0, V) :-
+    foldr_(T1, T2, Goal, V0, V2),
+    call(Goal, H1, H2, V2, V).
+
+% ---
+
+foldr(Goal, List1, List2, List3, V0, V) :-
+    foldr_(List1, List2, List3, Goal, V0, V).
+
+foldr_([], [], [], _, V0, V0).
+foldr_([H1|T1], [H2|T2], [H3|T3], Goal, V0, V) :-
+    foldr_(T1, T2, T3, Goal, V0, V2),
+    call(Goal, H1, H2, H3, V2, V).
+
+% ---
+
+foldr(Goal, List1, List2, List3, List4, V0, V) :-
+    foldr_(List1, List2, List3, List4, Goal, V0, V).
+
+foldr_([], [], [], [], _, V0, V0).
+foldr_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
+    foldr_(T1, T2, T3, T4, Goal, V0, V2),
+    call(Goal, H1, H2, H3, H4, V2, V).
 
 
                  /*******************************
