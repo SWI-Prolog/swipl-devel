@@ -1426,6 +1426,6 @@ Many people have explored routes to avoid the need for recursion in
 Prolog for simple iterations over data. ECLiPSe have proposed
 \jargon{logical loops} \cite{logicalloops:2002}, while B-Prolog
 introduced \jargon{declarative loops} and \jargon{list
-comprehension}\footnote{\url{http://www.probp.com/download/loops.pdf}}.
+comprehension} \cite{declarativeloops:2010}.
 The above mentioned lambda expressions, combined with maplist/2 can
 achieve similar results.
