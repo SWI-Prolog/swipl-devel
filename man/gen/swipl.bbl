@@ -59,7 +59,7 @@ Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
 
 \bibitem[Grosof \& Swift, 2013]{DBLP:conf/aaai/GrosofS13}
 Benjamin~Nathan Grosof and Terrance Swift.
-\newblock Radial restraint: {A} semantically clean approach to bounded
+\newblock {Radial Restraint}: {A} semantically clean approach to bounded
   rationality for logic programs.
 \newblock In Marie desJardins and Michael~L. Littman, editors, {\em Proceedings
   of the Twenty-Seventh {AAAI} Conference on Artificial Intelligence, July
@@ -156,5 +156,10 @@ Markus Triska.
 Jan Wielemaker.
 \newblock Extending the logical update view with transaction support.
 \newblock {\em CoRR}, abs/1301.7669, 2013.
+
+\bibitem[Zhou, 2010]{declarativeloops:2010}
+Neng-Fa Zhou.
+\newblock Declarative loops and list comprehensions for {Prolog}.
+\newblock http://www.sci.brooklyn.cuny.edu/~zhou/papers/loops.pdf, Jan 2010.
 
 \end{thebibliography}
