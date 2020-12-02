@@ -64,6 +64,7 @@ members of a list.
 @see    apply_macros.pl provides compile-time expansion for part of this
         library.
 @see    http://www.cs.otago.ac.nz/staffpriv/ok/pllib.htm
+@see    Unit test code in src/Tests/library/test_apply.pl
 @tbd    Add include/4, include/5, exclude/4, exclude/5
 */
 
@@ -175,7 +176,7 @@ partition_(Diff, _, _, _, _, _, _) :-
 
 
                  /*******************************
-                 *          MAPLIST/2...        *
+                 *            MAPLIST           *
                  *******************************/
 
 %!  maplist(:Goal, ?List1).
@@ -186,12 +187,16 @@ partition_(Diff, _, _, _, _, _, _) :-
 %   True if Goal is successfully applied on all matching elements of the
 %   list. The maplist family of predicates is defined as:
 %
-%   ```
-%   maplist(P, [X11,...,X1n], ..., [Xm1,...,Xmn]) :-
-%       P(X11, ..., Xm1),
-%       ...
-%       P(X1n, ..., Xmn).
-%   ```
+%     ```
+%     maplist(G, [X_11, ..., X_1n],
+%                [X_21, ..., X_2n],
+%                ...,
+%                [X_m1, ..., X_mn]) :-
+%        G(X_11, ..., X_m1),
+%        G(X_12, ..., X_m2),
+%        ...
+%        G(X_1n, ..., X_mn).
+%     ```
 %
 %   This family of predicates is deterministic iff Goal is deterministic
 %   and List1 is a proper list, i.e., a list that ends in `[]`.
@@ -236,7 +241,7 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 %
 %   ```
 %   ?- convlist([X,Y]>>(integer(X), Y is X^2),
-%               [3, 5, 4.4, 2], L).
+%               [3, 5, foo, 2], L).
 %   L = [9, 25, 4].
 %   ```
 %
@@ -264,15 +269,28 @@ convlist_([H0|T0], ListOut, Goal) :-
 %!  foldl(:Goal, +List1, +List2, +List3, +V0, -V).
 %!  foldl(:Goal, +List1, +List2, +List3, +List4, +V0, -V).
 %
-%   Fold a list, using arguments of the   list as left argument. The
-%   foldl family of predicates is defined by:
+%   Fold an ensemble of _m_  (0  <=  _m_   <=  4)  lists  of  length _n_
+%   head-to-tail ("fold-left"), using columns of   _m_  list elements as
+%   arguments for Goal. The `foldl` family   of predicates is defined as
+%   follows, with `V0` an initial value and   `V` the final value of the
+%   folding operation:
 %
-%     ==
-%     foldl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0, Vn) :-
-%           P(X11, ..., Xm1, V0, V1),
-%           ...
-%           P(X1n, ..., Xmn, V', Vn).
-%     ==
+%     ```
+%     foldl(G, [X_11, ..., X_1n],
+%              [X_21, ..., X_2n],
+%              ...,
+%              [X_m1, ..., X_mn], V0, V) :-
+%        G(X_11, ..., X_m1, V0, V1),
+%        G(X_12, ..., X_m2, V1, V2),
+%        ...
+%        G(X_1n, ..., X_mn, V<n-1>, V).
+%     ```
+%
+%   No implementation for a corresponding `foldr`   is  given. A `foldr`
+%   implementation would consist in first calling   reverse/2 on each of
+%   the _m_ input lists, then applying  the appropriate `foldl`. This is
+%   actually  more  efficient  than  using   a  properly  programmed-out
+%   recursive algorithm that cannot be   tail-call optimized.
 
 foldl(Goal, List, V0, V) :-
     foldl_(List, Goal, V0, V).
@@ -319,16 +337,25 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %!  scanl(:Goal, +List1, +List2, +List3, +V0, -Values).
 %!  scanl(:Goal, +List1, +List2, +List3, +List4, +V0, -Values).
 %
-%   Left scan of  list.  The  scanl   family  of  higher  order list
-%   operations is defined by:
+%   Scan an ensemble of _m_  (0  <=  _m_   <=  4)  lists  of  length _n_
+%   head-to-tail ("scan-left"), using columns of   _m_  list elements as
+%   arguments for Goal. The `scanl` family   of predicates is defined as
+%   follows, with `V0` an initial value and   `V` the final value of the
+%   scanning operation:
 %
-%     ==
-%     scanl(P, [X11,...,X1n], ..., [Xm1,...,Xmn], V0,
-%           [V0,V1,...,Vn]) :-
-%           P(X11, ..., Xm1, V0, V1),
-%           ...
-%           P(X1n, ..., Xmn, V', Vn).
-%     ==
+%     ```
+%     scanl(G, [X_11, ..., X_1n],
+%              [X_21, ..., X_2n],
+%              ...,
+%              [X_m1, ..., X_mn], V0, [V0, V1, ..., Vn] ) :-
+%        G(X_11, ..., X_m1, V0, V1),
+%        G(X_12, ..., X_m2, V1, V2),
+%        ...
+%        G(X_1n, ..., X_mn, V<n-1>, Vn).
+%     ```
+%
+%  `scanl` behaves like a `foldl` that collects the sequence of
+%  values taken on by the `Vx` accumulator into a list.
 
 scanl(Goal, List, V0, [V0|Values]) :-
     scanl_(List, Goal, V0, Values).
