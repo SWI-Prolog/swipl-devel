@@ -893,16 +893,21 @@ X = 4.47213595499958.
 Dicts currently define the following reserved functions:
 
 \begin{description}
-    \dictfunction{get}{1}{?Key}
-Same as \arg{Dict}.\arg{Key}, but fails silently if the dict does not
-contain \arg{Key}. See also \predref{:<}{2}, which can be used to test
-for existence and unify multiple key values from a dict. For example:
+    \dictfunction{get}{1}{?KeyPath}
+Return the value associates with \arg{KeyPath}. \arg{KeyPath} is either
+a single key or a term \exam{Key1/Key2/...}. Each key is either an atom,
+small integer or a variable. While \exam{Dict.Key} throws an existence
+error, this function \emph{fails} silently if a key does not exist in
+the target dict. See also \predref{:<}{2}, which can be used to test for
+existence and unify multiple key values from a dict. For example:
 
 \begin{code}
 ?- write(t{a:x}.get(a)).
 x
 ?- write(t{a:x}.get(b)).
 false.
+?- write(t{a:t{b:x}}.get(a/b)).
+x
 \end{code}
 
     \dictfunction{put}{1}{+New}
