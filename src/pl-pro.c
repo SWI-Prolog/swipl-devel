@@ -120,6 +120,9 @@ query_loop(atom_t goal, int loop)
   int rc;
   int clear_stacks = (LD->query == NULL);
 
+  if ( loop )
+    enable_debug_on_interrupt(TRUE);
+
   do
   { fid_t fid;
     qid_t qid = 0;

@@ -262,6 +262,10 @@ Disable generating code that can be debugged using
 .IR spy/1 ,
 etc.
 .TP
+.BR \-\-debug\-on\-interrupt [=bool]
+Immediately start handling SIGINT (Control-C) to start the debugger.
+By default this is enabled when the interactive toplevel is entered.
+.TP
 .BI \-g " goal"
 .I Goal
 is executed just before entering the top level. This option may appear

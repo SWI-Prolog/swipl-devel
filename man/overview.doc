@@ -397,6 +397,13 @@ Note that \jargon{boolean options} may be written as \exam{--name}
 as \exam{--no-name} below as the default is `true'.
 
 \begin{description}
+    \cmdlineoptionitem{--debug-on-interrupt}{}
+Enable debugging on an interrupt signal (Control-C, \const{SIGINT})
+immediately.  Normally debugging on interrupt is enable when entering
+the interactive toplevel.  This flag can be used to start the debugger
+on an interrupt while executing goals from \cmdlineoption{-g} or
+initialisation/1,2.  See also \prologflagitem{debug_on_interrupt}.
+
     \cmdlineoptionitem{--home=DIR}{}
 Use \arg{DIR} as home directory.  See \secref{findhome} for details.
 
@@ -1324,6 +1331,13 @@ If \const{true}, start the tracer after an error is detected.
 Otherwise just continue execution. The goal that raised the error will
 normally fail. See also the Prolog flag \prologflag{report_error}.
 Default is \const{true}.
+
+    \prologflagitem{debug_on_interrupt}{bool}{rw}
+If \const{true}, start the debugger on Control-C.\footnote{More
+precisely when receiving \const{SIGINT}}.  The initial value is
+\const{false} and the value is set to \const{true} when entering
+the interactive top level.  See \cmdlineoption{--debug-on-interrupt}
+to start handling interrupts immediately.
 
     \prologflagitem{debugger_show_context}{bool}{rw}
 If \const{true}, show the context module while printing a stack-frame in

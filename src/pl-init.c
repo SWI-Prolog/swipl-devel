@@ -685,6 +685,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	    GD->options.silent = TRUE;
 	} else
 	  return -1;
+      } else if ( (rc=is_bool_opt(s, "debug_on_interrupt", &b)) )
+      { if ( rc == TRUE )
+	{ if ( b )
+	    setPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
+	} else
+	  return -1;
       } else if ( (rc=is_bool_opt(s, "debug", &b)) )
       { if ( rc == TRUE )
 	{ if ( !b )
@@ -1200,6 +1206,7 @@ usage(void)
     "    --signals[=bool]         Do (not) modify signal handling\n",
     "    --threads[=bool]         Do (not) allow for threads\n",
     "    --debug[=bool]           Do (not) generate debug info\n",
+    "    --debug-on-interrupt[=bool] Trap the debugger on interrupt\n",
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",
     "    --home=DIR               Use DIR as SWI-Prolog home\n",

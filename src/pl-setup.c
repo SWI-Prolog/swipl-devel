@@ -696,17 +696,22 @@ terminate_handler(int sig)
 #endif
 }
 
+void
+terminate_on_signal(int signo)
+{ PL_signal(signo, terminate_handler);
+}
+
 static void
 initTerminationSignals(void)
 {
 #ifdef SIGTERM
-  PL_signal(SIGTERM, terminate_handler);
+  terminate_on_signal(SIGTERM);
 #endif
 #ifdef SIGABRT
-  PL_signal(SIGABRT, terminate_handler);
+  terminate_on_signal(SIGABRT);
 #endif
 #ifdef SIGQUIT
-  PL_signal(SIGQUIT, terminate_handler);
+  terminate_on_signal(SIGQUIT);
 #endif
 }
 #endif /*HAVE_SIGNAL*/

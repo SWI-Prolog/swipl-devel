@@ -827,6 +827,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	    PushTty(Sinput, &ttytab, TTY_SAVE);
 	  }
 	}
+      } else if ( k == ATOM_debug_on_interrupt )
+      {	rval = enable_debug_on_interrupt(val);
       } else if ( k == ATOM_protect_static_code )
       { if ( val != (f->value.a == ATOM_true) && val == FALSE )
 	{ term_t ex;
@@ -1553,6 +1555,9 @@ initPrologFlags(void)
   setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
+  setPrologFlag("debug_on_interrupt", FT_BOOL,
+		truePrologFlag(PLFLAG_DEBUG_ON_INTERRUPT),
+		PLFLAG_DEBUG_ON_INTERRUPT);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
   setPrologFlag("verbose_load", FT_ATOM, "silent");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);

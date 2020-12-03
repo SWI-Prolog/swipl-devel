@@ -1747,14 +1747,37 @@ initTracer(void)
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
-
-#if defined(O_INTERRUPT) && defined(SIGINT)
-  if ( truePrologFlag(PLFLAG_SIGNALS) )
-    PL_signal(SIGINT, PL_interrupt);
-#endif
-
   resetTracer();
+
+  if ( truePrologFlag(PLFLAG_DEBUG_ON_INTERRUPT) )
+    enable_debug_on_interrupt(TRUE);
 }
+
+int
+enable_debug_on_interrupt(int enable)
+{ GET_LD
+
+#ifdef SIGINT
+  if ( enable )
+  { if ( truePrologFlag(PLFLAG_SIGNALS) )
+    { PL_signal(SIGINT, PL_interrupt);
+      setPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
+    } else
+    { return FALSE;
+    }
+  } else
+  { terminate_on_signal(SIGINT);
+    clearPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
+  }
+  return TRUE;
+#else
+  return FALSE;
+#endif
+}
+
+
+
+
 
 		/********************************
 		*       PROLOG PREDICATES       *

@@ -583,6 +583,7 @@ COMMON(void)		blockSignal(int sig);
 COMMON(void)		resetSignals(void);
 COMMON(void)		cleanupSignals(void);
 COMMON(int)		handleSignals(ARG1_LD);
+COMMON(void)		terminate_on_signal(int signo);
 
 COMMON(int)		initPrologStacks(size_t limit);
 COMMON(void)		initPrologLocalData(ARG1_LD);
@@ -611,6 +612,7 @@ COMMON(int)		isDebugFrame(LocalFrame FR);
 COMMON(int)		tracePort(LocalFrame frame, Choice bfr,
 				  int port, Code PC ARG_LD);
 COMMON(void)		initTracer(void);
+COMMON(int)		enable_debug_on_interrupt(int enable);
 COMMON(void)		resetTracer(void);
 COMMON(int)		tracemode(int new, int *old);
 COMMON(int)		debugmode(debug_type new, debug_type *old);
