@@ -838,7 +838,7 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	}
       }
 					/* set the flag value */
-      if ( f->index > 0 )
+      if ( f->index > 0 && rval )
       { unsigned int mask = (unsigned int)1 << (f->index-1);
 
 	if ( val )
