@@ -56,6 +56,9 @@
 :- use_module(library(assoc)).
 :- use_module(library(pio)).
 
+:- autoload(library(apply), [foldl/4, maplist/2, maplist/3]).
+:- autoload(library(lists), [flatten/2, member/2, nth0/3, reverse/2, select/3]).
+
 /** <module> Solve linear programming problems
 
 ## Introduction			{#simplex-intro}
