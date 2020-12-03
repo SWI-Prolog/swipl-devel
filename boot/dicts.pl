@@ -60,6 +60,7 @@
 is_dict_func(Key) :- atomic(Key), !.
 is_dict_func(Var) :- var(Var), !.
 is_dict_func(get(_)).
+is_dict_func(get(_,_)).
 is_dict_func(put(_)).
 is_dict_func(put(_,_)).
 
@@ -76,6 +77,17 @@ eval_dict_function(get(Key), _, Dict, Value) :-
     ;   var(Key)
     ->  get_dict(Key, Dict, Value)
     ;   get_dict_path(Key, Dict, Value)
+    ).
+eval_dict_function(get(Key, Default), _, Dict, Value) :-
+    !,
+    (   (   atomic(Key)
+        ->  get_dict(Key, Dict, Value0)
+        ;   var(Key)
+        ->  get_dict(Key, Dict, Value0)
+        ;   get_dict_path(Key, Dict, Value0)
+        )
+    *-> Value = Value0
+    ;   Value = Default
     ).
 eval_dict_function(put(Key, Value), _, Dict, NewDict) :-
     !,

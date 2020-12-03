@@ -914,6 +914,12 @@ x
 Evaluates to a new dict where the key-values in \arg{New} replace
 or extend the key-values in the original dict.  See put_dict/3.
 
+    \dictfunction{get}{2}{?KeyPath, +Default}
+Same as \nopredref{get}{1}, but if no match is found the function
+evaluates to \arg{Default}.  If \arg{KeyPath} contains variables
+possible choice points are respected and the function only evaluates
+to \arg{Default} if the pattern has no matches.
+
     \dictfunction{put}{2}{+KeyPath, +Value}
 Evaluates to a new dict where the \arg{KeyPath}-\arg{Value} replaces or
 extends the key-values in the original dict. \arg{KeyPath} is either a
