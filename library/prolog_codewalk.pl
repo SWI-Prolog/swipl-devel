@@ -571,7 +571,7 @@ walk_called(Closure, _, _, _) :-
     '$get_predicate_attribute'(Module:Head, defined, 1).
 walk_called(ClosureCall, _, _, _) :-
     compound(ClosureCall),
-    functor(ClosureCall, Closure, _),
+    compound_name_arity(ClosureCall, Closure, _),
     blob(Closure, closure),
     !,
     '$closure_predicate'(Closure, Module:Name/Arity),
