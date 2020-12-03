@@ -215,7 +215,7 @@ exitFromDebugger(const char *msg, int status)
 { GET_LD
 
 #ifdef O_PLMT
-  if ( PL_thread_self() > 1 )
+  if ( PL_thread_self() > 1 && !LD->exit_requested )
   { Sfprintf(Sdout, "%sexit session\n", msg);
     LD->exit_requested = EXIT_REQ_THREAD;
     return ACTION_ABORT;
