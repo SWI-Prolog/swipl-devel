@@ -1226,7 +1226,7 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
   word c = (word)*PC++;
 
   if ( LD->slow_unify )
-  { ENSURE_GLOBAL_SPACE(1, f = varFrameP(FR, PC[-1]));
+  { ENSURE_GLOBAL_SPACE(1, f = varFrameP(FR, PC[-2]));
     globaliseFirstVar(f);
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = *f;
