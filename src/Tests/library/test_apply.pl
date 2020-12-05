@@ -43,7 +43,6 @@
 
 test_apply :-
         run_tests([ foldl
-                   ,foldr 
                   ]).
 
 
@@ -52,6 +51,7 @@ test_apply :-
 test("foldl empty, starter is atom", true(V == foo)) :-
    foldl(false, [], foo, V).
 
+% an unbound variable as starter is actually not supported according to the mode flags
 test("foldl empty, starter is unbound", true(VA == VB)) :-
    foldl(false, [], VA, VB).
 
@@ -81,6 +81,7 @@ test("foldl construction to verify order of arguments, 4 lists", true(V == 'star
       [q,w,e,r],
       start, V).
 
+% an unbound variable as list is actually not supported according to the mode flags
 test("foldl construction, unifying unbound variables", true([L,V] == [[k,k,k,k,k,k],k])) :-
    length(L,6),
    foldl([X,X,X]>>true, L, K, V),
@@ -98,8 +99,9 @@ test("foldl breakoff with failure", fail) :-
 
 test("foldl breakoff with exception", error(type_error(_,_))) :-
    foldl([E,_,_]>>call(E), [true,type_error(_,_)], _, _).
-   
-test("foldl on open list", Bag = [[[], 0], [[0], 1], [[0, 1], 2], [[0, 1, 2], 3]]) :-
+
+% an unbound variable as list is actually not supported according to the mode flags
+test("foldl on list that is initially an unbound variable", Bag = [[[], 0], [[0], 1], [[0, 1], 2], [[0, 1, 2], 3]]) :-
    findall(
       [L,Final],
       limit(4,foldl([E,FL,TR]>>(succ(FL,TR),FL=E), L, 0, Final)), 
@@ -107,76 +109,4 @@ test("foldl on open list", Bag = [[[], 0], [[0], 1], [[0, 1], 2], [[0, 1, 2], 3]
 
 :- end_tests(foldl).
 
-
-
-:- begin_tests(foldr).
-
-test("foldr empty, starter is atom", true(V == foo)) :-
-   foldr(false, [], foo, V).
-
-test("foldr empty, starter is unbound", true(VA == VB)) :-
-   foldr(false, [], VA, VB).
-
-test("foldr construction to verify order of arguments, 1 list", true(V == startdcba)) :-
-   foldr([E,FR,TL]>>atom_concat(FR,E,TL), 
-      [a,b,c,d], 
-      start, V).
-
-test("foldr construction to verify order of arguments, 2 lists", true(V == 'start(d4)(c3)(b2)(a1)')) :-
-   foldr([E1,E2,FR,TL]>>atomic_list_concat([FR,'(',E1,E2,')'],TL),
-      [a,b,c,d],
-      [1,2,3,4],
-      start, V).
-
-test("foldr construction to verify order of arguments, 3 lists", true(V = 'start(d4k)(c3z)(b2y)(a1x)')) :-
-   foldr([E1,E2,E3,FR,TL]>>atomic_list_concat([FR,'(',E1,E2,E3,')'],TL),
-      [a,b,c,d],
-      [1,2,3,4],
-      [x,y,z,k],
-      start, V).
-
-test("foldr construction to verify order of arguments, 4 lists", true(V == 'start(d4kr)(c3ze)(b2yw)(a1xq)')) :-
-   foldr([E1,E2,E3,E4,FR,TL]>>atomic_list_concat([FR,'(',E1,E2,E3,E4,')'],TL),
-      [a,b,c,d],
-      [1,2,3,4],
-      [x,y,z,k],
-      [q,w,e,r],
-      start, V).
-
-test("foldr construction, unifying unbound variables", true([L,V] == [[k,k,k,k,k,k],k])) :-
-   length(L,6),
-   foldr([X,X,X]>>true, L, K, V),
-   K = k.
-   
-test("foldr building sequence of monotonically increasing ints", true([L,Final] == [[5, 4, 3, 2, 1, 0],6])) :-
-   length(L,6),
-   foldr([E,FR,TL]>>(succ(FR,TL),FR=E), L, 0, Final).
-
-test("foldr building sequence of monotonically increasing ints, just verify") :-
-   foldr([E,FR,TL]>>(succ(FR,TL),FR=E), [5,4,3,2,1,0], 0, 6).
-   
-test("foldr breakoff with failure", fail) :-
-   foldr([E,_,_]>>call(E), [type_error(_,_),false,true], _, _).
-
-test("foldr breakoff with exception", error(type_error(_,_))) :-
-   foldr([E,_,_]>>call(E), [type_error(_,_),true], _, _).
-   
-test("foldr on open list", Bag = [[[], 0], [[0], 1], [[1, 0], 2], [[2, 1, 0], 3]]) :-
-   findall(
-      [L,Final],
-      limit(4,foldr([E,FR,TL]>>(succ(FR,TL),FR=E), L, 0, Final)), 
-      Bag).
-
-test("foldr(reverse(list)) equals foldl(list)") :- 
-   compute_nominally_equal_results([],X0,X0),
-   compute_nominally_equal_results([a],X1,X1),
-   compute_nominally_equal_results([a,b],X2,X2),
-   compute_nominally_equal_results([a,b,c],X3,X3).
-
-compute_nominally_equal_results(Datum,Vfoldl,Vfoldr) :-
-   foldl([E,FL,TR]>>atom_concat(FL,E,TR),Datum,start,Vfoldl),
-   reverse(Datum,DatumR),
-   foldr([E,FR,TL]>>atom_concat(FR,E,TL),DatumR,start,Vfoldr).
-
-:- end_tests(foldr).
 

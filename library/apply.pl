@@ -48,11 +48,6 @@
             foldl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
             foldl/7,                    % :Pred, +List1, +List2, +List3, +List4,
                                         % ?V0, ?V
-            foldr/4,                    % :Pred, +List, ?V0, ?V
-            foldr/5,                    % :Pred, +List1, +List2, ?V0, ?V
-            foldr/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
-            foldr/7,                    % :Pred, +List1, +List2, +List3, +List4,
-                                        % ?V0, ?V
             scanl/4,                    % :Pred, +List, ?V0, ?Vs
             scanl/5,                    % :Pred, +List1, +List2, ?V0, ?Vs
             scanl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?Vs
@@ -87,10 +82,6 @@ members of a list.
     foldl(4, +, +, +, -),
     foldl(5, +, +, +, +, -),
     foldl(6, +, +, +, +, +, -),
-    foldr(3, +, +, -),
-    foldr(4, +, +, +, -),
-    foldr(5, +, +, +, +, -),
-    foldr(6, +, +, +, +, +, -),
     scanl(3, +, +, -),
     scanl(4, +, +, +, -),
     scanl(5, +, +, +, +, -),
@@ -284,7 +275,7 @@ convlist_([H0|T0], ListOut, Goal) :-
 %   defined as follows, with `V0` an initial value and `V` the
 %   final value of the folding operation:
 %
-%     ==
+%     ```
 %     foldl(G, [X_11, ..., X_1n], 
 %              [X_21, ..., X_2n],
 %              ...,
@@ -293,30 +284,44 @@ convlist_([H0|T0], ListOut, Goal) :-
 %        G(X_12, ..., X_m2, V1, V2),
 %        ...
 %        G(X_1n, ..., X_mn, V<n-1>, V).
-%     ==
+%     ```
 %
-%   As expected with fold-left, the implementation performs a
-%   tail-recursive call. `foldl` can handle _open lists_, instantiating
-%   them to longer and longer lists on backtracking.
+%   The _m_ list elements are the first arguments to Goal.
+%   Using library(yall), argument order can be rearranged inline:
 %
-%   Note that the list element is the first argument to Goal.
-%   For example, using atom_concat/3:
-%
-%     ==
+%     ```
 %     ?- foldl(atom_concat,[a,b,c,d],start,V).
 %     V = dcbastart.
-%     ==
 %
-%   With library(yall), argument order can be rearranged inline:
+%     % E: Element, FL: FromLeft, TR: ToRight
 %
-%     ==
 %     ?- foldl(
-%         [E,FromLeft,ToRight]>>atom_concat(FromLeft,E,ToRight),
+%         [E,FL,TR]>>atom_concat(FL,E,TR),
 %         [a,b,c,d],"start",V).
 %     V = startabcd.
-%     ==
+%     ```
 %
-%   @see  library(yall), atom_concat/3
+%   `foldl`, when applied to multiple lists, does *not* check first
+%   whether the lengths of the lists are all equal. It will fail at 
+%   the earliest end-of-list encountered in case list lengths differ.
+%   The caller has to take precautions accordingly if this is 
+%   considered costly.
+%
+%   `foldl` can also handle open lists like `[a,b,c|_]`, and even an
+%   unbound variable as `List` argument, in spite of the mode flag
+%   for the list argument saying otherwise. In that case `foldl` will
+%   generate (and process through Goal) longer and longer lists of
+%   fresh variables on backtracking.
+%
+%   No implementation for a corresponding `foldr` is given.
+%   A `foldr` implementation would consist in first calling reverse/2 
+%   on each of the _m_ input lists, then applying the appropriate
+%   `foldl`. This is actually more efficient than using a properly 
+%   programmed-out recursive algorithm that cannot be tail-call optimized. 
+%   (Be aware, however, that this approach is fragile if open lists 
+%   are involved: a failing `foldl` will create an infinite failure-driven
+%   loop with any preceding reverse/2 working on an open list!)
+%
 
 foldl(Goal, List, V0, V) :-
     foldl_(List, Goal, V0, V).
@@ -369,7 +374,7 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %   defined as follows, with `V0` an initial value and `V` the
 %   final value of the scanning operation:
 %
-%     ==
+%     ```
 %     scanl(G, [X_11, ..., X_1n], 
 %              [X_21, ..., X_2n],
 %              ...,
@@ -378,7 +383,7 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %        G(X_12, ..., X_m2, V1, V2),
 %        ...
 %        G(X_1n, ..., X_mn, V<n-1>, Vn).
-%     ==
+%     ```
 %
 %  `scanl` behaves like a `foldl` that collects the sequence of 
 %  values taken on by the `Vx` accumulator into a list.
@@ -422,6 +427,8 @@ scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
                  *            FOLDR             *
                  *******************************/
 
+% This predicate is commented out because it is not considered useful
+
 %!  foldr(:Goal, +List, +V0, -V).
 %!  foldr(:Goal, +List1, +List2, +V0, -V).
 %!  foldr(:Goal, +List1, +List2, +List3, +V0, -V).
@@ -433,7 +440,7 @@ scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
 %   defined as follows, with `V0` an initial value and `V` the
 %   final value of the folding operation:
 %
-%     ==
+%     ```
 %     foldr(G, [X_11, ..., X_1n], 
 %              [X_21, ..., X_2n],
 %              ...,
@@ -442,82 +449,78 @@ scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
 %        G(X_1<n-1>,  ..., X_m<n-1>, V1,      V2),
 %        ...
 %        G(X_11,      ..., X_m1,     V<n-1>,  V).
-%     ==
+%     ```
 %
-%   
-%   As expected with fold-right, the implementation is not
-%   subject to tail-call optimization and using `foldr` is 
-%   expensive in stack usage. `foldr` can handle _open lists_, 
-%   instantiating them to longer and longer lists on backtracking.
+%   `foldr` can handle _open lists_, instantiating them to
+%   longer and longer lists on backtracking.
+%
+%   In particular, this succeeds:
+%
+%     ```
+%     foldl(G,List,V0,V),   
+%     reverse(List,ListR),
+%     foldr(G,ListR,V0,V).
+%     ```
 %
 %   Note that the list element is the first argument to Goal.
 %   For example:
 %
-%     ==
+%     ```
 %     ?- foldr(atom_concat,[a,b,c,d],start,V).
 %     V = abcdstart.
-%     ==
+%     ```
 %
-%   In particular, this succeeds:
+%   Using library(yall), argument order can be rearranged inline:
 %
-%     ==
-%     foldl(G,List,V0,V),   
-%     reverse(List,ListR),foldr(G,ListR,V0,V).
-%     ==
-%
-%   With library(yall), argument order can be rearranged inline:
-%
-%     ==
+%     ```
 %     ?- foldr(
 %         [E,FromRight,ToLeft]>>atom_concat(FromRight,E,ToLeft),
 %         [a,b,c,d],"start",V).
 %     V = startdcba.
-%     ==
+%     ```
+
+% % Approach: choose the ordering of the arguments to Goal
+% % to have identical "in" and "out" parameter positions as for foldl
+% % foldl: Goal(Element, FromLeft,ToRight)
+% % foldr: Goal(Element, FromRight,ToLeft)
 %
-%   @see  library(yall), atom_concat/3
-
-% Approach: choose the ordering of the arguments to Goal
-% to have identical "in" and "out" parameter positions as for foldl
-% foldl: Goal(Element, FromLeft,ToRight)
-% foldr: Goal(Element, FromRight,ToLeft)
-
-foldr(Goal, List, V0, V) :-
-    foldr_(List, Goal, V0, V).
-
-foldr_([], _, V0, V0).
-foldr_([H|T], Goal, V0, V) :-
-    foldr_(T, Goal, V0, V2),    
-    call(Goal, H, V2, V).
-
-% ---
-
-foldr(Goal, List1, List2, V0, V) :-
-    foldr_(List1, List2, Goal, V0, V).
-
-foldr_([], [], _, V0, V0).
-foldr_([H1|T1], [H2|T2], Goal, V0, V) :-
-    foldr_(T1, T2, Goal, V0, V2),
-    call(Goal, H1, H2, V2, V).
-
-% ---
-
-foldr(Goal, List1, List2, List3, V0, V) :-
-    foldr_(List1, List2, List3, Goal, V0, V).
-
-foldr_([], [], [], _, V0, V0).
-foldr_([H1|T1], [H2|T2], [H3|T3], Goal, V0, V) :-
-    foldr_(T1, T2, T3, Goal, V0, V2),
-    call(Goal, H1, H2, H3, V2, V).
-
-% ---
-
-foldr(Goal, List1, List2, List3, List4, V0, V) :-
-    foldr_(List1, List2, List3, List4, Goal, V0, V).
-
-foldr_([], [], [], [], _, V0, V0).
-foldr_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
-    foldr_(T1, T2, T3, T4, Goal, V0, V2),
-    call(Goal, H1, H2, H3, H4, V2, V).
+% foldr(Goal, List, V0, V) :-
+%     foldr_(List, Goal, V0, V).
+%
+% foldr_([], _, V0, V0).
+% foldr_([H|T], Goal, V0, V) :-
+%     foldr_(T, Goal, V0, V2),    
+%     call(Goal, H, V2, V).
+%
+% % ---
+%
+% foldr(Goal, List1, List2, V0, V) :-
+%    foldr_(List1, List2, Goal, V0, V).
+%
+% foldr_([], [], _, V0, V0).
+% foldr_([H1|T1], [H2|T2], Goal, V0, V) :-
+%     foldr_(T1, T2, Goal, V0, V2),
+%     call(Goal, H1, H2, V2, V).
+%
+% % ---
+%
+% foldr(Goal, List1, List2, List3, V0, V) :-
+%     foldr_(List1, List2, List3, Goal, V0, V).
+%
+% foldr_([], [], [], _, V0, V0).
+% foldr_([H1|T1], [H2|T2], [H3|T3], Goal, V0, V) :-
+%     foldr_(T1, T2, T3, Goal, V0, V2),
+%     call(Goal, H1, H2, H3, V2, V).
+%
+% % ---
+%
+% foldr(Goal, List1, List2, List3, List4, V0, V) :-
+%     foldr_(List1, List2, List3, List4, Goal, V0, V).
+%
+% foldr_([], [], [], [], _, V0, V0).
+% foldr_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
+%    foldr_(T1, T2, T3, T4, Goal, V0, V2),
+%     call(Goal, H1, H2, H3, H4, V2, V).
 
 
                  /*******************************
