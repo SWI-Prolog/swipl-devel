@@ -7,5 +7,5 @@ at least 4 %%%%, typically 16:
   %%%%%%%%%%%%%%%%
   ```
 
-The source code for version  _N_  is   the  Nth  section, preceeded by a
+The source code for version  _N_  is   the  Nth  section,  preceded by a
 module header.

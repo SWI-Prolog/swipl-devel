@@ -481,7 +481,7 @@ colourise_query(QueryString, TB) :-
 %   Colourise    the    next     term      on     Stream.     Unlike
 %   prolog_colourise_stream/3, this predicate assumes  it is reading
 %   a single term rather than the   entire stream. This implies that
-%   it cannot adjust syntax according to directives that preceed it.
+%   it cannot adjust syntax according to directives that precede it.
 %
 %   Options:
 %

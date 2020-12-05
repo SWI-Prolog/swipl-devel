@@ -251,7 +251,7 @@ expand_body(_, Head, Pos, Head, Pos).
 %
 %   Loop over two constructs that  can   be  added by term-expansion
 %   rules in order to run the   next phase: calling term_expansion/2
-%   can  return  a  list  and  terms    may   be  preceeded  with  a
+%   can  return  a  list  and  terms    may   be  preceded  with   a
 %   source-location.
 
 expand_terms(_, X, P, X, P) :-

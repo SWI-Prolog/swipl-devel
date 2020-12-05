@@ -462,7 +462,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 addMPZToBuffer(Buffer b, mpz_t mpz)
 	Add mpz in a machine independent representation to the given buffer.
-	The data is stored in limps of 1 byte, preceeded by the byte-count
+	The data is stored in limps of 1 byte, preceded by the byte-count
 	as 4-byte big-endian number;
 
 addMPQToBuffer(Buffer b, mpq_t mpq)

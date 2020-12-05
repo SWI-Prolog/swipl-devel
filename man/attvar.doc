@@ -177,10 +177,11 @@ Before explaining the code we give some example queries:
 \end{quote}
 
 The predicate \nopredref{domain}{2} fetches (first clause) or assigns
-(second clause) the variable a \emph{domain}, a set of values the variable can be
-unified with. In the second clause, domain/2 first associates the domain with a
-fresh variable (Y) and then unifies X to this variable to deal with the
-possibility that X already has a domain. The predicate attr_unify_hook/2 (see below)
+(second clause) the variable a \emph{domain}, a set of values the
+variable can be unified with. In the second clause,
+\nopredref{domain}{2} first associates the domain with a fresh variable
+(Y) and then unifies X to this variable to deal with the possibility
+that X already has a domain. The predicate attr_unify_hook/2 (see below)
 is a hook called after a variable with a domain is assigned a value. In
 the simple case where the variable is bound to a concrete value, we
 simply check whether this value is in the domain. Otherwise we take the

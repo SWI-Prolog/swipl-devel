@@ -93,7 +93,7 @@ head(H, Head) :-
 %   The  declaration  :-   coinductive    name/arity,   ...  defines
 %   predicates as _coinductive_. The predicate definition is wrapped
 %   such that goals unify with their  ancestors. This directive must
-%   preceed all clauses of the predicate.
+%   precede all clauses of the predicate.
 
 coinductive(Spec) :-
     throw(error(context_error(nodirective, coinductive(Spec)), _)).
