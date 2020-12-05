@@ -254,7 +254,7 @@ alpha_to_lower(L) -->
 %%	digit(?Char)// is det.
 %%	integer(?Integer)// is det.
 %
-%	Number processing. The predicate  digits//1   matches  a posibly
+%	Number processing. The predicate  digits//1   matches a possibly
 %	empty set of digits,  digit//1  processes   a  single  digit and
 %	integer processes an  optional  sign   followed  by  a non-empty
 %	sequence of digits into an integer.
@@ -347,7 +347,7 @@ exp --> "E".
 %
 %	Generate or extract an integer from   a  sequence of hexadecimal
 %	digits. Hexadecimal characters include both  uppercase (A-F) and
-%	lowercase (a-f) letters. The value may   be  preceeded by a sign
+%	lowercase (a-f) letters. The value may   be  preceded by  a sign
 %	(+/-)
 
 xinteger(Val, Head, Tail) :-
