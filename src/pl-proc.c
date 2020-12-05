@@ -2943,8 +2943,6 @@ PRED_IMPL("retract", 1, retract,
 	  ForeignRedoPtr(ctx);
 	} else
 	{ setGenerationFrame(environment_frame);
-	  assert(dref);
-	  dref->generation = generationFrame(environment_frame);
 	  DEBUG(MSG_CGC_RETRACT,
 		Sdprintf("Retract: first clause deleted; set gen to %lld\n",
 			 generationFrame(environment_frame)));
