@@ -47,6 +47,8 @@ freeze/2 for simple cases).
 @tbd	This emulation is barely tested.
 */
 
+:- op(1150, fx, user:(block)).
+
 :- multifile
 	user:term_expansion/2,
 	block_declaration/2.		% Head, Module
