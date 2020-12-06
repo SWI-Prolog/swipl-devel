@@ -119,8 +119,8 @@ push_sicstus_library :-
 
 %	declare all operators globally
 
-system:goal_expansion(op(Pri,Ass,Name),
-		      op(Pri,Ass,user:Name)) :-
+user:goal_expansion(op(Pri,Ass,Name),
+		    op(Pri,Ass,user:Name)) :-
 	\+ qualified(Name),
 	prolog_load_context(dialect, sicstus).
 
@@ -453,7 +453,7 @@ sicstus_flag(Name, Value) :-
 % could also consider adding # internally, but not turning it into an
 % operator.
 
-:- op(500, yfx, #).
+:- op(500, yfx, user:(#)).
 
 :- arithmetic_function(user:(#)/2).
 :- arithmetic_function(user:(\)/2).
