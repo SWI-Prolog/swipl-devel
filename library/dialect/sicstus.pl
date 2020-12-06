@@ -127,6 +127,14 @@ user:goal_expansion(op(Pri,Ass,Name),
 qualified(Var) :- var(Var), !, fail.
 qualified(_:_).
 
+% Import all operators from a module, even when using an explicit list
+% of imports. This simulates the SICStus behavior, where operators are
+% not module-sensitive and don't need to be listed in import lists.
+
+user:goal_expansion(use_module(Module,Imports),
+		    use_module(Module,[op(_,_,_)|Imports])) :-
+	% Prevent infinite recursion.
+	\+ memberchk(op(_,_,_),Imports).
 
 %%	setup_dialect
 %
