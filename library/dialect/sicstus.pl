@@ -58,7 +58,11 @@
 	    prolog_flag/3,		% +Flag, -Old, +New
 	    prolog_flag/2,		% +Flag, -Value
 
-	    op(1150, fx, (block))
+	    op(1150, fx, (block)),
+	    op(1150, fx, (mode)),
+	    op(1100, xfy, (do)),
+	    op(900, fy, (spy)),
+	    op(900, fy, (nospy))
 	  ]).
 
 :- use_module(sicstus/block).
@@ -82,6 +86,14 @@ effect until the end of the file and in each file loaded from this file.
 @tbd	The dialect-compatibility packages are developed in a
 	`demand-driven' fashion.  Please contribute to this package.
 */
+
+% SICStus built-in operators that SWI doesn't declare by default.
+% Note: Although the do operator is declared here, do loops currently
+% aren't emulated by library(dialect/sicstus).
+:- op(1150, fx, user:(mode)).
+:- op(1100, xfy, user:(do)).
+:- op(900, fy, user:(spy)).
+:- op(900, fy, user:(nospy)).
 
 :- multifile
 	system:goal_expansion/2.
