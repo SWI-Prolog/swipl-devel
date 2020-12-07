@@ -4320,6 +4320,8 @@ atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
     return rc;
   }
 
+  discardBuffer(&b);
+
 split:
   if ( !sep || st.length == 0 )
   { if ( !sep )
@@ -4327,7 +4329,7 @@ split:
 
     return PL_domain_error("non_empty_atom", sep);
   }
-  discardBuffer(&b);
+
   return split_atom(list, &st, atom PASS_LD);
 }
 
