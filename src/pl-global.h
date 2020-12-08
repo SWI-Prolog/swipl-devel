@@ -609,6 +609,7 @@ struct PL_local_data
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */
     int in_assert_propagation;		/* Running propagate_assert/1 */
+    int flags;				/* Global flags (TF_*) */
     term_t delay_list;			/* Global delay list */
     term_t idg_current;			/* Current node in IDG (trie symbol) */
     struct

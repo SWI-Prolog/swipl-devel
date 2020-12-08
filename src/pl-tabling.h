@@ -46,6 +46,8 @@ typedef enum
 #define WORKLIST_MAGIC	0x67e9124e
 #define COMPONENT_MAGIC	0x67e9124f
 
+#define TF_MONOTONIC_LAZY	0x0001
+
 
 		 /*******************************
 		 *     GLOBAL ENTRY POINTS	*
@@ -188,7 +190,7 @@ typedef struct delay_info
 #define IDG_MDEP_MAGIC 0x745af3b0
 
 typedef struct idg_node
-{ int           magic;			/* IDG_MDEP_MAGIC */
+{ int           magic;			/* IDG_NODE_MAGIC */
   trie	       *atrie;			/* answer trie */
   Table		affected;		/* parent IDG nodes */
   Table		dependent;		/* child IDG nodes */
@@ -197,6 +199,8 @@ typedef struct idg_node
   unsigned	reevaluating : 1;	/* currently re-evaluating */
   unsigned	aborted : 1;		/* re-evaluation was aborted */
   unsigned	monotonic : 1;		/* Associated predicate is monotonic */
+  unsigned	lazy : 1;		/* Lazy monotonic node */
+  unsigned	force_reeval : 1;	/* Forced reevaluation for monotonic */
   int		falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS
   struct
@@ -208,17 +212,19 @@ typedef struct idg_node
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Linked list of dependencies.
+Linked list of dependencies for monotonic tabling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct idg_mdep
 { int            magic;			/* IDG_MDEP_MAGIC */
+  unsigned	 lazy : 1;		/* Dependency is lazy */
   fastheap_term *dependency;		/* dependency structure */
   union
   { idg_node    *child;			/* Final child node */
-    struct idg_mdep *dep;
+    struct idg_mdep *dep;		/* Other dependency */
     void *any;
   } next;
+  Buffer	 queue;			/* Unprocessed answers */
 } idg_mdep;
 
 typedef struct trie_array
@@ -267,6 +273,7 @@ COMMON(void)	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 #define TP_MONOTONIC	(0x0001)	/* Monotonic tabling */
 #define TP_SHARED	(0x0002)	/* Shared tabling */
 #define TP_OPAQUE	(0x0004)	/* Declared opaque */
+#define TP_LAZY		(0x0008)	/* Lazy (monotonic) */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */
@@ -274,6 +281,7 @@ typedef struct table_props
   size_t	subgoal_abstract;	/* Subgoal abstraction */
   size_t	answer_abstract;	/* Answer abstraction */
   size_t	max_answers;		/* Answer count limit */
+  Buffer	lazy_queue;		/* Queued clauses for monotonic tabling */
 } table_props;
 
 
@@ -299,4 +307,5 @@ COMMON(int)	tbl_set_predicate_attribute(Definition def,
 COMMON(int)	tbl_is_restraint_flag(atom_t key);
 COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
 COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
+COMMON(int)	setMonotonicMode(atom_t a);
 #endif /*_PL_TABLING_H*/

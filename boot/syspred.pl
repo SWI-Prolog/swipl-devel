@@ -911,6 +911,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, monotonic, 1).
 '$predicate_property'(opaque, Pred) :-
     '$get_predicate_attribute'(Pred, opaque, 1).
+'$predicate_property'(lazy, Pred) :-
+    '$get_predicate_attribute'(Pred, lazy, 1).
 '$predicate_property'(abstract(N), Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
 '$predicate_property'(size(Bytes), Pred) :-

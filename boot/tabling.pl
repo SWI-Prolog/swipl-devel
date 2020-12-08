@@ -137,7 +137,7 @@ user_goal(Goal, UGoal) :-
     prolog:portray/1.
 
 user:portray(ATrie) :-
-    '$is_answer_trie'(ATrie),
+    '$is_answer_trie'(ATrie, _),
     trie_goal(ATrie, Goal, _Skeleton),
     format('~q for ~p', [ATrie, Goal]).
 user:portray(Cont) :-
@@ -312,6 +312,9 @@ set_pattributes(Head, Options) :-
         get_dict(Attr, Options, Value),
         '$set_predicate_attribute'(Head, Attr, Value),
         fail
+    ;   current_prolog_flag(table_monotonic, lazy),
+        '$set_predicate_attribute'(Head, lazy, true),
+        fail
     ;   true
     ).
 
@@ -323,6 +326,7 @@ tabled_attribute(subgoal_abstract).
 tabled_attribute(answer_abstract).
 tabled_attribute(monotonic).
 tabled_attribute(opaque).
+tabled_attribute(lazy).
 
 %!  start_tabling(:Closure, :Wrapper, :Implementation)
 %
@@ -1268,6 +1272,9 @@ table_options(monotonic, Opts0, Opts1) :-
 table_options(opaque, Opts0, Opts1) :-
     !,
     put_dict(#{incremental:false,opaque:true}, Opts0, Opts1).
+table_options(lazy, Opts0, Opts1) :-
+    !,
+    put_dict(lazy, Opts0, true, Opts1).
 table_options(dynamic, Opts0, Opts1) :-
     !,
     put_dict(dynamic, Opts0, true, Opts1).
@@ -1534,8 +1541,8 @@ mon_assert_dep(dependency(SrcSkel, SrcTrie, IsMono), Cont, Skel, ATrie) :-
 %   distinguish normal tabled call from propagation.
 
 monotonic_affects(SrcTrie, SrcSkel, IsMono, Cont, Skel, ATrie) :-
-    '$idg_mono_affects'(SrcTrie, ATrie,
-                        dependency(SrcSkel, IsMono, Cont, Skel)).
+    '$idg_mono_affects_eager'(SrcTrie, ATrie,
+                              dependency(SrcSkel, IsMono, Cont, Skel)).
 
 %!  monotonic_dyn_affects(:Head, -Continuation, -Return, -ATrie)
 %
@@ -1543,8 +1550,8 @@ monotonic_affects(SrcTrie, SrcSkel, IsMono, Cont, Skel, ATrie) :-
 
 monotonic_dyn_affects(Head, Cont, Skel, ATrie) :-
     dyn_affected(Head, DTrie),
-    '$idg_mono_affects'(DTrie, ATrie,
-                        dependency(Head, Cont, Skel)).
+    '$idg_mono_affects_eager'(DTrie, ATrie,
+                              dependency(Head, Cont, Skel)).
 
 %!  wrap_monotonic(:Head)
 %
@@ -1569,6 +1576,12 @@ unwrap_monotonic(Head) :-
     ;   true
     ).
 
+%!  '$start_monotonic'(+Head, +Wrapped)
+%
+%   This is called the monotonic wrapper   around a dynamic predicate to
+%   collect the dependencies  between  the   dynamic  predicate  and the
+%   monotonic tabled predicates.
+
 '$start_monotonic'(Head, Wrapped) :-
     (   '$tbl_collect_mono_dep'
     ->  shift(dependency(Head)),
@@ -1578,36 +1591,43 @@ unwrap_monotonic(Head) :-
     ;   Wrapped
     ).
 
+%!  monotonic_update(+Action, +ClauseRef)
+%
+%   Trap changes to the monotonic dynamic predicate and forward them.
+
+:- public monotonic_update/2.
 monotonic_update(Action, ClauseRef) :-
     (   atomic(ClauseRef)                       % avoid retractall, start(_)
     ->  '$clause'(Head, _Body, ClauseRef, _Bindings),
-        mon_propagate(Action, Head)
+        mon_propagate(Action, Head, ClauseRef)
     ;   true
     ).
 
-%!  mon_propagate(+Action, +Head)
+%!  mon_propagate(+Action, +Head, +ClauseRef)
 %
 %   Handle changes to a dynamic predicate as part of monotonic
 %   updates.
 
-mon_propagate(Action, Head) :-
+mon_propagate(Action, Head, ClauseRef) :-
     assert_action(Action),
     !,
     setup_call_cleanup(
         '$tbl_propagate_start'(Old),
         propagate_assert(Head),
-        '$tbl_propagate_end'(Old)).
-mon_propagate(retract, Head) :-
+        '$tbl_propagate_end'(Old)),
+    forall(dyn_affected(Head, ATrie),
+           '$mono_idg_changed'(ATrie, ClauseRef)).
+mon_propagate(retract, Head, _) :-
     !,
-    mon_abolish_dependents(Head).
-mon_propagate(rollback(Action), Head) :-
+    mon_invalidate_dependents(Head).
+mon_propagate(rollback(Action), Head, _) :-
     mon_propagate_rollback(Action, Head).
 
 mon_propagate_rollback(Action, _Head) :-
     assert_action(Action),
     !.
 mon_propagate_rollback(retract, Head) :-
-    mon_abolish_dependents(Head).
+    mon_invalidate_dependents(Head).
 
 assert_action(asserta).
 assert_action(assertz).
@@ -1656,81 +1676,22 @@ pdelim(Worker, Skel, ATrie) :-
         pdelim(Cont, Skel, ATrie)
     ).
 
-%!  mon_abolish_dependents(+HeadOrTrie)
+%!  mon_invalidate_dependents(+Head)
 %
-%   Abolish all dependency relations from HeadOrTrie and their tables.
-%
-%   @tbd We could also consider marking them   as invalid and let normal
-%   incremental tabling deal with this situation?
+%   A non-monotonic operation was done on Head. Invalidate all dependent
+%   tables, preparing for normal incremental   reevaluation  on the next
+%   cycle.
 
-mon_abolish_dependents(Node) :-
-    dependent_tables([Node], [], Tables),
-    forall('$member'(ATrie, Tables),
-           '$tbl_destroy_table'(ATrie)).
-
-dependent_tables([], Tables, Tables) :-
-    !.
-dependent_tables([Node|T], Tables0, Tables) :-
-    (   is_trie(Node)
-    ->  findall(ATrie,
-                monotonic_affects(Node, _Ret0, _IsMono, _ContinuationT, _RetT, ATrie),
-                Tries)
-    ;   findall(ATrie,
-                monotonic_dyn_affects(Node, _ContinuationD, _RetD, ATrie),
-                Tries)
-    ),
-    sort(Tries, STries),
-    ord_subtract(STries, Tables0, New),
-    ord_union(T, New, Agenda),
-    ord_union(New, Tables0, Tables1),
-    dependent_tables(Agenda, Tables1, Tables).
-
-
-%!  ord_subtract(+InOSet, +NotInOSet, -Diff)
-%   ordered set difference
-
-ord_subtract([], _Not, []).
-ord_subtract([H1|T1], L2, Diff) :-
-    diff21(L2, H1, T1, Diff).
-
-diff21([], H1, T1, [H1|T1]).
-diff21([H2|T2], H1, T1, Diff) :-
-    compare(Order, H1, H2),
-    diff3(Order, H1, T1, H2, T2, Diff).
-
-diff12([], _H2, _T2, []).
-diff12([H1|T1], H2, T2, Diff) :-
-    compare(Order, H1, H2),
-    diff3(Order, H1, T1, H2, T2, Diff).
-
-diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
-    diff12(T1, H2, T2, Diff).
-diff3(=, _H1, T1, _H2, T2, Diff) :-
-    ord_subtract(T1, T2, Diff).
-diff3(>,  H1, T1, _H2, T2, Diff) :-
-    diff21(T2, H1, T1, Diff).
-
-%!  ord_union(+OSet1, +OSet2, -Union).
-
-ord_union([], Union, Union).
-ord_union([H1|T1], L2, Union) :-
-    union2(L2, H1, T1, Union).
-
-union2([], H1, T1, [H1|T1]).
-union2([H2|T2], H1, T1, Union) :-
-    compare(Order, H1, H2),
-    union3(Order, H1, T1, H2, T2, Union).
-
-union3(<, H1, T1,  H2, T2, [H1|Union]) :-
-    union2(T1, H2, T2, Union).
-union3(=, H1, T1, _H2, T2, [H1|Union]) :-
-    ord_union(T1, T2, Union).
-union3(>, H1, T1,  H2, T2, [H2|Union]) :-
-    union2(T2, H1, T1, Union).
+mon_invalidate_dependents(Head) :-
+    tdebug(monotonic, 'Invalidate dependents for ~p', [Head]),
+    forall(dyn_affected(Head, ATrie),
+           '$idg_mono_invalidate'(ATrie)).
 
 %!  abolish_monotonic_tables
 %
 %   Abolish all monotonic tables and the monotonic dependency relations.
+%
+%   @tbd: just prepare for incremental reevaluation?
 
 abolish_monotonic_tables :-
     (   '$tbl_variant_table'(VariantTrie),
@@ -1773,6 +1734,8 @@ abstract_goal(Head, Head).
 %
 %   @tbd Add a '$clause_head'(-Head, +ClauseRef) to only decompile the
 %   head.
+
+:- public dyn_update/2, dyn_update/3.
 
 dyn_update(_Action, ClauseRef) :-
     (   atomic(ClauseRef)                       % avoid retractall, start(_)
@@ -1849,7 +1812,7 @@ try_reeval(ATrie, Goal, Return) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
-    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    '$tbl_reeval_prepare_top'(ATrie, Clause),
     (   nonvar(Clause)
     ->  trie_gen_compiled(Clause, Return)
     ;   call(Goal)
@@ -1865,17 +1828,13 @@ try_reeval(ATrie, Goal, Return) :-
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie),
-    '$tbl_reeval_prepare'(ATrie, _Variant, Clause),
+    '$tbl_reeval_prepare_top'(ATrie, Clause),
     (   nonvar(Clause)
     ->  trie_gen_compiled(Clause, Return)
     ;   call(Goal)
     ).
 
 split_paths([], [], []).
-split_paths([[Rank-_Len|Path]|T], [Path|DT], CT) :-
-    status_rank(dynamic, Rank),
-    !,
-    split_paths(T, DT, CT).
 split_paths([[_|Path]|T], DT, [Path|CT]) :-
     split_paths(T, DT, CT).
 
@@ -1907,8 +1866,8 @@ reeval_heads([[H|T]|B], ATrie, [T|BT]) :-
 %!  false_path(+Atrie, -Path) is nondet.
 %
 %   True when Path is a list of   invalid  tries (bottom up, ending with
-%   ATrie). The last element of the list is a term `Rank-Length` that is
-%   used for sorting the paths.
+%   ATrie).   The   last   element   of    the     list    is   a   term
+%   `s(Rank,Length,ATrie)` that is used for sorting the paths.
 %
 %   If we find a table along the  way   that  is being worked on by some
 %   other thread we wait for it.
@@ -1926,7 +1885,7 @@ false_path(ATrie, [ATrie|T], Seen) :-
     ->  false_path(Dep, T, [ATrie|Seen])
     ;   status_rank(Status, Rank),
         length(Seen, Len),
-        T = [Rank-Len]
+        T = [s(Rank,Len,Dep)]
     ).
 
 status_rank(dynamic,   2) :- !.
@@ -1956,8 +1915,7 @@ is_invalid(ATrie) :-
 %       outer one it will complete before we continue.
 
 reeval_node(ATrie) :-
-    '$tbl_reeval_prepare'(ATrie, Variant, Clause),
-    var(Clause),
+    '$tbl_reeval_prepare'(ATrie, Variant),
     !,
     tdebug(reeval, 'Re-evaluating ~p', [Variant]),
     (   '$idg_reset_current',
@@ -1968,8 +1926,34 @@ reeval_node(ATrie) :-
         fail
     ;   tdebug(reeval, 'Re-evaluated ~p', [Variant])
     ).
+reeval_node(ATrie) :-
+    '$mono_reeval_prepare'(ATrie, Size),
+    !,
+    tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
+    (   '$idg_mono_affects_lazy'(ATrie, SrcTrie, Dep, Answers),
+        (   Dep = dependency(Head, Cont, Skel)
+        ->  (   '$member'(ClauseRef, Answers),
+                '$clause'(Head, _Body, ClauseRef, _Bindings),
+                tdebug(monotonic, 'Propagating ~p from ~p to ~p',
+                       [Head, SrcTrie, ATrie]),
+                pdelim(Cont, Skel, ATrie),
+                fail
+            ;   '$idg_mono_empty_queue'(SrcTrie, ATrie)
+            )
+        ;   Dep = dependency(SrcSkel, true, Cont, Skel)
+        ->  (   '$member'(Node, Answers),
+                trie_term(Node, SrcSkel),
+                tdebug(monotonic, 'Propagating ~p from ~p to ~p',
+                       [Skel, SrcTrie, ATrie]),
+                pdelim(Cont, Skel, ATrie),
+                fail
+            ;   '$idg_mono_empty_queue'(SrcTrie, ATrie)
+            )
+        ),
+        fail
+    ;   '$mono_reeval_done'(ATrie, Size)
+    ).
 reeval_node(_).
-
 
 		 /*******************************
 		 *      EXPAND DIRECTIVES	*

@@ -1603,7 +1603,7 @@ tripwire_message(Wire, Context) -->
     tripwire_context(Wire, Context).
 
 tripwire_context(_, ATrie) -->
-    { '$is_answer_trie'(ATrie),
+    { '$is_answer_trie'(ATrie, _),
       !,
       '$tabling':atrie_goal(ATrie, QGoal),
       user_predicate_indicator(QGoal, Goal)

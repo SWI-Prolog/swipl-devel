@@ -518,7 +518,7 @@ gc_tables(Remaining) :-
 
 remaining_table(Trie) :-
     current_blob(Trie, trie),
-    '$is_answer_trie'(Trie),
+    '$is_answer_trie'(Trie, _Type),
     '$atom_references'(Trie, 0).
 
 %!  cputime(-Seconds) is det.

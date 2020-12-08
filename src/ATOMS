@@ -260,6 +260,7 @@ A dwakeup		"$wakeup"
 A dyield		"$yield"
 A dynamic		"dynamic"
 A e			"e"
+A eager			"eager"
 A encoding		"encoding"
 A end			"end"
 A end_of_file		"end_of_file"
@@ -438,6 +439,7 @@ A larger		">"
 A larger_equal		">="
 A last			"last"
 A last_modified_generation "last_modified_generation"
+A lazy			"lazy"
 A lcm			"lcm"
 A level			"level"
 A lgamma		"lgamma"
@@ -782,6 +784,7 @@ A system_init_file	"system_init_file"
 A system_thread_id	"system_thread_id"
 A system_time		"system_time"
 A table			"table"
+A table_monotonic	"table_monotonic"
 A table_space		"table_space"
 A table_space_used	"table_space_used"
 A tabled		"tabled"
@@ -1110,6 +1113,7 @@ F minus			2
 F mod			2
 F mode			1
 F module		1
+F monotonic		1
 F msb			1
 F multi			1
 F nan			0

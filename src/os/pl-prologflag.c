@@ -880,6 +880,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       { rval = setFileNameCaseHandling(a);
       } else if ( k == ATOM_autoload )
       { rval = setAutoload(a);
+      } else if ( k == ATOM_table_monotonic )
+      { rval = setMonotonicMode(a);
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);

@@ -696,9 +696,8 @@ other tabling primitives:
 
 \begin{itemize}
    \item When using retract/1 on a dynamic monotonic predicate, all
-dependent tables and dependency links are destroyed.  Subsequent calling
-of one of the dependent goals rebuilds the tables and dependencies from
-scratch.
+dependent tables and dependency links are invalidated and marked for
+normal \jargon{incremental} update.
 
    \item abolish_all_tables/0 destroys all monotonic dependency relations.
 
@@ -710,6 +709,39 @@ tabled predicates that depend on such dynamic predicates.
 must be tabled monotonic or incremental. If the dependent predicate is
 incremental a new answer invalidates the incremental table.
 \end{itemize}
+
+\subsection{Eager and lazy monotonic tabling}
+\label{sec:tabling-monotonic-lazy}
+
+There are two types of monotonic tabling. The default is \emph{eager},
+which implies that an asserted clause is immediately propagated through
+the dependency network.  Possibly resulting new answers can be tracked
+as described in \secref{tabling-tracking}. The alternative is
+\emph{lazy}.  A predicate is marked for lazy using the \const{lazy}
+option as shown below, or by setting the \prologflag{table_monotonic}
+flag to \const{lazy}.
+
+\begin{code}
+:- table p/1 as (monotonic,lazy).
+\end{code}
+
+If a predicate is tabled as monotonic and lazy and an answer is added to
+one of the monotonic dynamic predicates, all dependent monotonic or
+incremental tables are invalidated and the answer is queued together
+with the dependency. A subsequent call to one of the invalidated tabled
+predicates re-evaluates the tables. For a monotonic table this implies
+pushing the queued answers through the dependencies. Removing a clause
+from one of a monotonic dynamic predicates invalidates all dependent
+tables and marks all these tables for \emph{forced reevaluation}, which
+implies they are reevaluated using the same algorithm as used for
+\jargon{incremental} tabling.
+
+Lazy monotonic tables may depend on eager monotonic tables. There is no
+point in making an eager monotonic table depend on a lazy monotonic
+table as one would have to reevaluate the lazy table to make the eager
+table consistent. Therefore, a dependency of an eager table on a lazy
+table is silently converted into a lazy dependency.
+
 
 \subsection{Tracking new answers to monotonic tables}
 \label{sec:tabling-tracking}
