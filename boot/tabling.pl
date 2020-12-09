@@ -264,7 +264,11 @@ untable(Name/Arity, M) :-
         retractall(M:'$tabled'(Head, _TMode)),
         retractall(M:'$table_mode'(Head, _Variant, _Moded)),
         unwrap_predicate(M:Name/Arity, table),
-        '$set_predicate_attribute'(M:Head, tabled, false)
+        '$set_predicate_attribute'(M:Head, tabled, false),
+        '$set_predicate_attribute'(M:Head, opaque, false),
+        '$set_predicate_attribute'(M:Head, incremental, false),
+        '$set_predicate_attribute'(M:Head, monotonic, false),
+        '$set_predicate_attribute'(M:Head, lazy, false)
     ;   true
     ).
 untable(Head, M) :-
