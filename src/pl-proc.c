@@ -126,7 +126,7 @@ lookupProcedure(functor_t f, Module m)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 lingerDefinition() deals with (undefined) definitions  that are replaced
 due to importing. These definitions can be   in  use with other threads.
-This needs be be improved, possibly using a technique similar to the RDF
+This needs to be improved, possibly using a technique similar to the RDF
 database. For now, we merely collect them in  a single place, so we know
 what is going on. In addition, we can collect lingering definitions when
 destroying a module, resulting in leak-free temporary modules.
