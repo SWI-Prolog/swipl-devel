@@ -1299,8 +1299,11 @@ Put the list terminator constant in \arg{l}. Always returns
 using the option \cmdlineoption{--traditional}, this is the same as
 \exam{PL_put_atom_chars("[]")}. See \secref{ext-lists}.
 
-    \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
-Make \arg{t1} point to the same term as \arg{t2}.
+    \cfunction{int}{PL_put_term}{term_t -t1, term_t +t2}
+Make \arg{t1} point to the same term as \arg{t2}. Under the unusual
+condition that \arg{t2} is a fresh term reference this function requires
+a global stack cell and may thus return \arg{FALSE} and leave a resource
+exception in the environment.
 
     \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
 Create a term whose arguments are filled from a variable argument list
