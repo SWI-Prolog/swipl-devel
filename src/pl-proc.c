@@ -1429,6 +1429,7 @@ int
 retractClauseDefinition(Definition def, Clause clause)
 { GET_LD
   size_t size = sizeofClause(clause->code_size) + SIZEOF_CREF_CLAUSE;
+  gen_t egen;
 
   if ( def->events &&
        !predicate_update_event(def, ATOM_retract, clause PASS_LD) )
@@ -1448,7 +1449,10 @@ retractClauseDefinition(Definition def, Clause clause)
   if ( false(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules--;
 #ifdef O_LOGICAL_UPDATE
-  clause->generation.erased = next_global_generation();
+  do
+  { egen = global_generation()+1;
+    clause->generation.erased = egen;
+  } while (egen < next_global_generation());
   setLastModifiedPredicate(def, clause->generation.erased);
 #endif
   DEBUG(CHK_SECURE, checkDefinition(def));
