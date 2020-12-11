@@ -2,8 +2,8 @@
 \label{sec:extensions}
 
 This chapter describes extensions to the Prolog language introduced with
-SWI-Prolog version~7. The changes bring more modern syntactical
-conventions to Prolog such as key-value maps, called \jargon{dicts} as
+SWI-Prolog version~7 in 2014. The changes bring more modern syntactical
+conventions to Prolog such as key-value maps, called \jargon{dicts}, as
 primary citizens and a restricted form of \jargon{functional notation}.
 They also extend Prolog basic types with strings, providing a natural
 notation to textual material as opposed to identifiers (atoms) and
@@ -14,10 +14,12 @@ the integration of domain specific languages (DSLs) and facilitate a
 more natural Prolog representation for popular exchange languages such
 as XML and JSON.
 
-While many programs run unmodified in SWI-Prolog version~7, especially
-those that pass double quoted strings to general purpose list processing
-predicates require modifications. We provide a tool (list_strings/0)
-that we used to port a huge code base in half a day.
+While many programs run unmodified in SWI-Prolog version~7, some require
+modifications, especially those that pass double quoted strings to general
+purpose list processing predicates. See \secref{ext-dquotes-port} 
+and \secref{ext-dquotes-port-predicates} for information and tools on 
+porting. We provide a tool (list_strings/0) that we used to port a huge 
+code base in half a day.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -25,28 +27,55 @@ that we used to port a huge code base in half a day.
 \label{sec:ext-lists}
 
 As of version~7, SWI-Prolog lists can be distinguished unambiguously at
-runtime from \functor{.}{2} terms and the atom \const{'[]'}. The
-constant \verb$[]$ is special constant that is not an atom.  It has
+runtime from \functor{.}{2} terms and the atom \const{'[]'}. 
+
+\begin{code}[fontsize=\small]
+   Traditional list               SWI-Prolog 7 list
+
+       '.'                              '[|]'
+      /   \                             /   \
+     1    '.'                          1   '[|]'
+         /   \                             /   \
+        2    '.'                          2   '[|]'
+            /   \                             /   \ 
+           3   '[]'                          3     []
+                  
+           terminated with                   terminated with
+           the atom '[]',                    a special constant
+           indistinguishable from text       which is printed as []
+\end{code}
+
+% Note on markup:
+%
+% After some reflection:
+%
+% - For the traditional atom [], we use: 
+%   Verbatim with quotes inside: \verb$'[]'$ (to make it visibly "quoted")
+%
+% - For the SWI-Prolog 7 symbol [], we use:
+%   \Snil{} without quotes
+%   rather than constant without quotes: \const{[]}
+%
+% For [|] there is \Scons{} but it should be quoted, being an atom 
+
+The constant \const{[]} is special constant that is not an atom.  It has
 the following properties:
 
 \begin{code}
-?- atom([]).
-false.
-?- atomic([]).
-true.
-?- [] == '[]'.
-false.
-?- [] == [].
-true.
+atom([]).        fails
+atomic([]).      succeeds
+[] == '[]'.      fails
+[] == [].        succeeds
 \end{code}
 
-The `cons' operator for creating list cells has changed from the pretty
-atom \verb$'.'$ to the ugly atom \verb$'[|]'$, so we can use the
-\verb$'.'$ for other purposes.  See \secref{ext-dict-functions}.
+The `cons' operator for creating \jargon{list cells} has changed from the pretty
+atom `\verb$.$' to the ugly atom `\Scons{}', so we can use the
+`\verb$.$' for other purposes, notably functional notation on \jargon{dicts}.
+See \secref{ext-dict-functions}.
 
 This modification has minimal impact on typical Prolog code. It does
 affect foreign code (see \secref{foreign}) that uses the normal atom and
-compound term interface for manipulation lists. In most cases this can
+compound term interface for manipulating lists. In most cases this can
 be avoided by using the dedicated list functions. For convenience, the
 macros \const{ATOM_nil} and \const{ATOM_dot} are provided by
 \file{SWI-Prolog.h}.
@@ -58,12 +87,12 @@ read_term/2 to read \verb$.(a,[])$ as \verb$[a]$ and write_term/2 to
 write \verb$[a]$ as \verb$.(a,[])$.
 
 
-\subsection{Motivating '\Scons{}' and \Snil{} for lists}
+\subsection{Motivating `\Scons{}' and \Snil{} for lists}
 \label{sec:ext-list-motivation}
 
 Representing lists the conventional way using \functor{.}{2} as
-cons-cell and '[]' as list terminator both (independently) poses
-conflicts, while these conflicts are easily avoided.
+list cell and the atom \verb$'[]'$ as list terminator both 
+(independently) pose conflicts, while these conflicts are easily avoided.
 
 \begin{itemize}
     \item Using \functor{.}{2} prevents using this commonly used symbol
@@ -72,25 +101,26 @@ Freeing \functor{.}{2} provides us with a unique term that we can use
 for functional notation on dicts as described in
 \secref{ext-dict-functions}.
 
-    \item Using \verb$'[]'$ as list terminator prevents dynamic distinction
-between atoms and lists. As a result, we cannot use type polymorphism
+    \item Using the atom \verb$'[]'$ as list terminator prevents dynamic
+distinction between atoms and lists. As a result, we cannot use type polymorphism
 that involve both atoms and lists. For example, we cannot use
 \jargon{multi lists} (arbitrary deeply nested lists) of atoms. Multi
 lists of atoms are in some situations a good representation of a flat
 list that is assembled from sub sequences. The alternative, using
-difference lists or DCGs is often less natural and sometimes demands for
+difference lists or DCGs, is often less natural and sometimes requires
 `opening' proper lists (i.e., copying the list while replacing the
-terminating empty list with a variable) that have to be added to the
+terminating atom \verb$'[]'$ with a variable) that have to be added to the
 sequence.  The ambiguity of atom and list is particularly painful when
 mapping external data representations that do not suffer from this
 ambiguity.
 
-At the same time, avoiding \verb$'[]'$ as a list terminator makes
+At the same time, avoiding atom \verb$'[]'$ as a list terminator makes
 the various text representations unambiguous, which allows us to write
-predicates that require a textual argument to accept both atoms,
-strings, and lists of character codes or one-character atoms.
-Traditionally, the empty list can be interpreted both as the string "[]"
-and "".
+predicates that require a textual argument to accept any of atoms,
+strings, lists of character codes or characters.
+Traditionally, the empty list, as an atom, is afflicted with an ambiguous
+interpretation as it can stand for any of the strings \verb$"[]"$ and
+\verb$""$.
 \end{itemize}
 
 % ================================================================
@@ -98,14 +128,10 @@ and "".
 \label{sec:string}
 
 As of SWI-Prolog version~7, text enclosed in double quotes (e.g.,
-\verb$"Hello world"$) is read as objects of the type \jargon{string}. A
-string is a compact representation of a character sequence that lives on
-the global (term) stack. Strings represent sequences of Unicode
-characters including the character code 0 (zero). The length strings is
-limited by the available space on the global (term) stack (see
-set_prolog_stack/2). Strings are distinct from lists, which makes it
-possible to detect them at runtime and print them using the string
-syntax, as illustrated below:
+\verb$"Hello world"$) is read as objects of the type \jargon{string}.
+Strings are distinct from lists, which makes it
+possible to recognize them at runtime and print them using the string
+syntax:
 
 \begin{code}
 ?- write("Hello world!").
@@ -115,13 +141,24 @@ Hello world!
 "Hello world!"
 \end{code}
 
-\jargon{Back quoted} text (as in \verb$`text`$) is mapped to a list of
-character codes in version~7. The settings for the flags that control
-how double and back quoted text is read is summarised in
-\tabref{quote-mapping}. Programs that aim for compatibility should
-realise that the ISO standard defines back quoted text, but does not
-define the \prologflag{back_quotes} Prolog flag and does not define the
-term that is produced by back quoted text.
+A string is a compact representation of a character sequence that lives on
+the global (term) stack. Strings are represented by sequences of Unicode
+character codes including the character code 0 (zero). The length of strings is
+limited by the available space on the global (term) stack (see
+set_prolog_stack/2). \Secref{ext-dquotes-motivation} motivates the 
+introduction of strings and mapping double quoted text to this type.
+
+Whereas in version~7, double-quoted text is mapped to strings, 
+\jargon{back-quoted} text (as in \verb$`text`$) is mapped to a list of 
+\jargon{character codes}, i.e. integers that are Unicode code points. In a 
+traditional setting, back-quoted would be mapped to a list of
+\jargon{characters} (also known as \jargon{chars}), which are atoms of length 1.
+
+The settings for the flags that control how double- and back-quoted text
+is read is summarised in \tabref{quote-mapping}. Programs that aim for
+compatibility should realise that the ISO standard defines back-quoted 
+text, but does not define the \prologflag{back_quotes} Prolog flag and does
+not define the term that is produced by back-quoted text.
 
 \begin{table}
 \begin{center}
@@ -140,22 +177,78 @@ Version~7 default & string & codes \\
 \end{table}
 
 
-\Secref{ext-dquotes-motivation} motivates the introduction of strings
-and mapping double quoted text to this type.
+\subsection{Representing text: strings, atoms and code lists}
+\label{sec:text-representation}
+
+With the introduction of strings as a Prolog data type, there are three
+main ways to represent text: using strings, using atoms and using lists
+of character codes. As a fourth way, one may also use lists of chars.
+This section explains what to choose for what purpose. Both strings and atoms
+are \jargon{atomic} objects: you can only look inside them using
+dedicated predicates, while lists of character codes or chars are compound
+data structures forming an extended structure that must follow a 
+convention.
+
+\begin{description}
+    \item [Lists of character codes]
+is what you need if you want to \emph{parse} text using Prolog grammar
+rules (DCGs, see phrase/3). Most of the text reading predicates (e.g.,
+read_line_to_codes/2) return a list of character codes because most
+applications need to parse these lines before the data can be processed.
+As said above, the \jargon{back-quoted text} notation (\verb$`hello`$) can
+be used to easily specify a list of character codes. The \verb$0'c$ 
+notation can be used to specify a single character code.
+
+    \item [Atoms]
+are \emph{identifiers}. They are typically used in cases where identity
+comparison is the main operation and that are typically not composed
+nor taken apart. Examples are RDF resources (URIs that identify
+something), system identifiers (e.g., \verb$'Boeing 747'$), but also
+individual words in a natural language processing system. They are also
+used where other languages would use \jargon{enumerated types}, such as
+the names of days in the week. Unlike enumerated types, Prolog atoms do
+not form a fixed set and the same atom can represent different things
+in different contexts.
+
+    \item [Strings]
+typically represents text that is processed as a unit most of the time,
+but which is not an identifier for something.  Format specifications for
+format/3 is a good example. Another example is a descriptive text
+provided in an application.  Strings may be composed and decomposed
+using e.g., string_concat/3 and sub_string/5 or converted for parsing
+using string_codes/2 or created from codes generated by a generative
+grammar rule, also using string_codes/2.
+\end{description}
+
 
 \subsection{Predicates that operate on strings}
 \label{sec:string-predicates}
 
-Strings may be manipulated by a set of predicates that is similar to the
-manipulation of atoms. In addition to the list below, string/1 performs
+Strings are manipulated using a set of predicates that mirrors the 
+set of predicates used for manipulating atoms.
+In addition to the list below, string/1 performs
 the type check for this type and is described in \secref{typetest}.
 
 SWI-Prolog's string primitives are being synchronized with
 \href{http://eclipseclp.org/wiki/Prolog/Strings}{ECLiPSe}. We expect the
 set of predicates documented in this section to be stable, although it
 might be expanded. In general, SWI-Prolog's text manipulation predicates
-accept any form of text as input argument and produce the type indicated
-by the predicate name as output. This policy simplifies migration and
+accept any form of text as input argument - they accept \jargon{anytext}
+input. \jargon{anytext} comprises:
+
+\begin{itemize}
+\item atoms
+\item strings
+\item lists of \jargon{character codes}
+\item list of \jargon{characters}
+\item number types: integers, floating point numbers and non-integer 
+      rationals. Under the hood, these must first be formatted into a text 
+      representation according to some inner convention before they can be 
+      used.
+\end{itemize}
+
+The predicates produce the type indicated by the predicate name as output.
+This policy simplifies migration and
 writing programs that can run unmodified or with minor modifications on
 systems that do not support strings. Code should avoid relying on this
 feature as much as possible for clarity as well as to facilitate a more
@@ -164,8 +257,21 @@ strict mode and/or type checking in future releases.
 \begin{description}
     \predicate{atom_string}{2}{?Atom, ?String}
 Bi-directional conversion between an atom and a string. At
-least one of the two arguments must be instantiated. \arg{Atom} can also
-be an integer or floating point number.
+least one of the two arguments must be instantiated. An initially
+uninstantiated variable on the ``string side'' is always instantiated
+to a string. An initially uninstantiated variable on the ``atom side''
+is always instantiated to an atom. If both arguments are instantiated,
+their list-of-character representations must match, but the types are
+not enforced. The following all succeed:
+
+\begin{code}
+atom_string("x",'x').
+atom_string('x',"x").
+atom_string(3.1415,3.1415).
+atom_string('3r2',3r2).
+atom_string(3r2,'3r2').
+atom_string(6r4,3r2).
+\end{code}
 
     \predicate{number_string}{2}{?Number, ?String}
 Bi-directional conversion between a number and a string. At least one of
@@ -180,13 +286,19 @@ ISO compatible either.}
 	      error exception.
 	\item Leading white space and Prolog comments are \emph{not}
 	      allowed.
-	\item Numbers may start with '+' or '-'.
+	\item Numbers may start with \const{+} or \const{-}.
 	\item It is \emph{not} allowed to have white space between
-	      a leading '+' or '-' and the number.
+	      a leading \const{+} or \const{-} and the number.
 	\item Floating point numbers in exponential notation do not
 	      require a dot before exponent, i.e., \verb$"1e10"$ is
 	      a valid number.
     \end{itemize}
+
+Unlike other predicates of this family, if instantiated, \arg{String} 
+cannot be an atom.
+
+The corresponding `atom-handling' predicate is atom_number/2,
+with reversed argument order.
 
     \predicate{term_string}{2}{?Term, ?String}
 Bi-directional conversion between a term and a string. If \arg{String}
@@ -200,29 +312,32 @@ or write_term/2.  For example:
 
 \begin{code}
 ?- term_string(Term, 'a(A)', [variable_names(VNames)]).
-Term = a(_G1466),
-VNames = ['A'=_G1466].
+Term = a(_9674),
+VNames = ['A'=_9674].
 \end{code}
 
     \predicate{string_chars}{2}{?String, ?Chars}
-Bi-directional conversion between a string and a list of characters
-(one-character atoms). At least one of the two arguments must be
-instantiated.
+Bi-directional conversion between a string and a list of characters.
+At least one of the two arguments must be instantiated.
+
+See also: atom_chars/2.
 
     \predicate{string_codes}{2}{?String, ?Codes}
 Bi-directional conversion between a string and a list of character
-codes. At least one of the two arguments must be instantiated.
+codes. At least one of the two arguments must be instantiated. 
 
     \predicate[det]{text_to_string}{2}{+Text, -String}
-Converts \arg{Text} to a string.  \arg{Text} is an atom, string
-or list of characters (codes or chars).	 When running in
+Converts \arg{Text} to a string.  \arg{Text} is \jargon{anytext}
+excluding the number types. When running in
 \cmdlineoption{--traditional} mode, \verb$'[]'$ is ambiguous and
 interpreted as an empty string.
 
     \predicate{string_length}{2}{+String, -Length}
 Unify \arg{Length} with the number of characters in \arg{String}. This
 predicate is functionally equivalent to atom_length/2 and also accepts
-atoms, integers and floats as its first argument.
+\jargon{anytext} as its first argument. Number types must first be
+formatted into strings before the length of their string representation
+can be determined.
 
     \predicate{string_code}{3}{?Index, +String, ?Code}
 True when \arg{Code} represents the character at the 1-based \arg{Index}
@@ -260,17 +375,30 @@ for each substring that appear in \arg{PadChars} are removed from the
 substring. The input arguments can be either atoms, strings or char/code
 lists. Compatible with ECLiPSe. Below are some examples:
 
+A simple split wherever there is a `.':
+
 \begin{code}
-% a simple split
 ?- split_string("a.b.c.d", ".", "", L).
 L = ["a", "b", "c", "d"].
-% Consider sequences of separators as a single one
+\end{code}
+
+Consider sequences of separators as a single one:
+
+\begin{code}
 ?- split_string("/home//jan///nice/path", "/", "/", L).
 L = ["home", "jan", "nice", "path"].
-% split and remove white space
+\end{code}
+
+Split and remove white space:
+
+\begin{code}
 ?- split_string("SWI-Prolog, 7.0", ",", " ", L).
 L = ["SWI-Prolog", "7.0"].
-% only remove leading and trailing white space
+\end{code}
+
+Only remove leading and trailing white space (\jargon{trim} the string):
+
+\begin{code}
 ?- split_string("  SWI-Prolog  ", "", "\s\t\n", L).
 L = ["SWI-Prolog"].
 \end{code}
@@ -300,8 +428,8 @@ name_value(String, Name, Value) :-
 \end{code}
 
     \predicate{atomics_to_string}{2}{+List, -String}
-\arg{List} is a list of strings, atoms, integers or floating point
-numbers. Succeeds if \arg{String} can be unified with the concatenated
+\arg{List} is a list of strings, atoms, or number types. Succeeds 
+if \arg{String} can be unified with the concatenated
 elements of \arg{List}. Equivalent to \term{atomics_to_string}{List,
 '', String}.
 
@@ -311,7 +439,6 @@ Creates a string just like atomics_to_string/2, but inserts
 
 \begin{code}
 ?- atomics_to_string([gnu, "gnat", 1], ', ', A).
-
 A = "gnu, gnat, 1"
 \end{code}
 
@@ -339,8 +466,8 @@ split_string/4.  The predicate performs the following steps:
     \item Discard trailing characters that match \arg{PadChars} from
           the collected input
     \item Unify \arg{String} with a string created from the input and
-          \arg{Sep} with the separator character read.  If input was
-	  terminated by the end of the input, \arg{Sep} is unified
+          \arg{Sep} with the code of the separator character read.  If
+          input was terminated by the end of the input, \arg{Sep} is unified
 	  with -1.
     \end{enumerate}
 
@@ -351,13 +478,22 @@ and \arg{PadChars} are not \emph{partially
 overlapping}.\footnote{Behaviour that is fully compatible would require
 unlimited look-ahead.}  Below are some examples:
 
+Read a line:
+
 \begin{code}
-% Read a line
-read_string(Input, "\n", "\r", End, String)
-% Read a line, stripping leading and trailing white space
-read_string(Input, "\n", "\r\t ", End, String)
-% Read upto , or ), unifying End with 0', or 0')
-read_string(Input, ",)", "\t ", End, String)
+read_string(Input, "\n", "\r", Sep, String)
+\end{code}
+
+Read a line, stripping leading and trailing white space:
+
+\begin{code}
+read_string(Input, "\n", "\r\t ", Sep, String)
+\end{code}
+
+Read up to `\verb$,$' or `\verb$)$', unifying \arg{Sep} with \verb$0',$ i.e. Unicode 44, or \verb$0')$, i.e. Unicode 41:
+
+\begin{code}
+read_string(Input, ",)", "\t ", Sep, String)
 \end{code}
 
     \predicate{open_string}{2}{+String, -Stream}
@@ -366,48 +502,125 @@ True when \arg{Stream} is an input stream that accesses the content of
 string, atom, list of codes or list of characters.
 \end{description}
 
+\subsection{Why has the representation of double quoted text changed?}
+\label{sec:ext-dquotes-motivation}
 
-\subsection{Representing text: strings, atoms and code lists}
-\label{sec:text-representation}
+Prolog defines two forms of quoted text. Traditionally, single quoted
+text is mapped to atoms while double quoted text is mapped to a list of
+\jargon{character codes} (integers) or characters (atoms of length 1).
+Representing text using atoms is often considered inadequate for several
+reasons:
 
-With the introduction of strings as a Prolog data type, there are three
-main ways to represent text: using strings, atoms or code lists. This
-section explains what to choose for what purpose. Both strings and atoms
-are \jargon{atomic} objects: you can only look inside them using
-dedicated predicates. Lists of character codes are compound
-data structures.
+\begin{itemize}
+    \item It hides the conceptual difference between text and
+          program symbols.  Where content of text often matters because
+	  it is used in I/O, program symbols are merely identifiers
+	  that match with the same symbol elsewhere. Program symbols
+	  can often be consistently replaced, for example to obfuscate
+	  or compact a program.
 
-\begin{description}
-    \item [Lists of character codes]
-is what you need if you want to \emph{parse} text using Prolog grammar
-rules (DCGs, see phrase/3). Most of the text reading predicates (e.g.,
-read_line_to_codes/2) return a list of character codes because most
-applications need to parse these lines before the data can be processed.
+    \item Atoms are globally unique identifiers.  They are stored
+          in a shared table.  Volatile strings represented as atoms
+	  come at a significant price due to the required cooperation
+	  between threads for creating atoms. Reclaiming
+	  temporary atoms using \jargon{Atom garbage collection} is a
+	  costly process that requires significant synchronisation.
 
-    \item [Atoms]
-are \emph{identifiers}. They are typically used in cases where identity
-comparison is the main operation and that are typically not composed
-nor taken apart. Examples are RDF resources (URIs that identify
-something), system identifiers (e.g., \verb$'Boeing 747'$), but also
-individual words in a natural language processing system. They are also
-used where other languages would use \jargon{enumerated types}, such as
-the names of days in the week. Unlike enumerated types, Prolog atoms do
-not form a fixed set and the same atom can represent different things
-in different contexts.
+    \item Many Prolog systems (not SWI-Prolog) put severe restrictions
+          on the length of atoms or the maximum number of atoms.
+\end{itemize}
 
-    \item [Strings]
-typically represents text that is processed as a unit most of the time,
-but which is not an identifier for something.  Format specifications for
-format/3 is a good example. Another example is a descriptive text
-provided in an application.  Strings may be composed and decomposed
-using e.g., string_concat/3 and sub_string/5 or converted for parsing
-using string_codes/2 or created from codes generated by a generative
-grammar rule, also using string_codes/2.
-\end{description}
+Representing text as lists, be it of character codes or characters,
+also comes at a price:
 
+\begin{itemize}
+    \item It is not possible to distinguish (at runtime) a list of
+          integers or atoms from a string.  Sometimes this information
+	  can be derived from (implicit) typing.  In other cases the
+	  list must be embedded in a compound term to distinguish
+	  the two types.  For example, \verb$s("hello world")$ could
+	  be used to indicate that we are dealing with a string.
+
+	  Lacking runtime information, debuggers and the toplevel can
+	  only use heuristics to decide whether to print a list of
+	  integers as such or as a string (see portray_text/1).
+
+	  While experienced Prolog programmers have learned to cope
+	  with this, we still consider this an unfortunate situation.
+
+    \item Lists are expensive structures, taking 2 cells per character
+          (3 for SWI-Prolog in its current form).  This stresses memory
+	  consumption on the stacks while pushing them on the stack and
+	  dealing with them during garbage collection is unnecessarily
+	  expensive.
+\end{itemize}
 
 \subsection{Adapting code for double quoted strings}
 \label{sec:ext-dquotes-port}
+
+We observe that in many programs, most strings are only handled as a
+single unit during their lifetime. Examining real code tells us that
+double quoted strings typically appear in one of the following roles:
+
+\begin{description}
+    \item [ A DCG literal ]  Although represented as a list of codes
+is the correct representation for handling in DCGs, the DCG translator
+can recognise the literal and convert it to the proper representation.
+Such code need not be modified.
+
+    \item [ A format string ]  This is a typical example of text that
+is conceptually not a program identifier.  Format is designed to deal
+with alternative representations of the format string.  Such code
+need not be modified.
+
+    \item [ Getting a character code ] The construct \verb$[X] = "a"$
+is a commonly used template for getting the character code of the
+letter 'a'.  ISO Prolog defines the syntax \verb$0'a$ for this purpose.
+Code using this must be modified.  The modified code will run on any
+ISO compliant Prolog Processor.
+
+    \item [ As argument to list predicates to operate on strings ]
+Here, we might see code similar to \verb$append("name:", Rest, Codes)$. Such
+code needs to be modified.  In this particular example, the
+following is a good portable alternative: \verb$phrase("name:", Codes, Rest)$
+
+    \item [ Checks for a character to be in a set ]
+Such tests are often performed with code such as this:
+\verb.memberchk(C, "~!@#$").. This is a rather inefficient check in a
+traditional Prolog system because it pushes a list of character codes
+cell-by-cell onto the Prolog stack and then traverses this list
+cell-by-cell to see whether one of the cells unifies with \arg{C}. If
+the test is successful, the string will eventually be subject to garbage
+collection.  The best code for this is to write a predicate as below,
+which pushes nothing on the stack and performs an indexed lookup to see
+whether the character code is in `my_class'.
+
+\begin{code}
+my_class(0'~).
+my_class(0'!).
+...
+\end{code}
+
+An alternative to reach the same effect is to use term expansion to
+create the clauses:
+
+\begin{code}
+term_expansion(my_class(_), Clauses) :-
+	findall(my_class(C),
+		string_code(_, "~!@#$", C),
+		Clauses).
+
+my_class(_).
+\end{code}
+
+Finally, the predicate string_code/3 can be exploited directly as a
+replacement for the memberchk/2 on a list of codes. Although the string
+is still pushed onto the stack, it is more compact and only a single
+entity.
+\end{description}
+
+\subsection{Predicates to support adapting code for double quoted strings}
+\label{sec:ext-dquotes-port-predicates}
 
 The predicates in this section can help adapting your program to the
 new convention for handling double quoted strings. We have adapted a
@@ -477,124 +690,8 @@ check:valid_string_goal(system:format(_,S,_)) :- string(S).
 \end{description}
 
 
-\subsection{Why has the representation of double quoted text changed?}
-\label{sec:ext-dquotes-motivation}
-
-Prolog defines two forms of quoted text. Traditionally, single quoted
-text is mapped to atoms while double quoted text is mapped to a list of
-\jargon{character codes} (integers) or characters represented as
-1-character atoms. Representing text using atoms is often considered
-inadequate for several reasons:
-
-\begin{itemize}
-    \item It hides the conceptual difference between text and
-          program symbols.  Where content of text often matters because
-	  it is used in I/O, program symbols are merely identifiers
-	  that match with the same symbol elsewhere. Program symbols
-	  can often be consistently replaced, for example to obfuscate
-	  or compact a program.
-
-    \item Atoms are globally unique identifiers.  They are stored
-          in a shared table.  Volatile strings represented as atoms
-	  come at a significant price due to the required cooperation
-	  between threads for creating atoms. Reclaiming
-	  temporary atoms using \jargon{Atom garbage collection} is a
-	  costly process that requires significant synchronisation.
-
-    \item Many Prolog systems (not SWI-Prolog) put severe restrictions
-          on the length of atoms or the maximum number of atoms.
-\end{itemize}
-
-Representing text as a list of character codes or 1-character atoms
-also comes at a price:
-
-\begin{itemize}
-    \item It is not possible to distinguish (at runtime) a list of
-          integers or atoms from a string.  Sometimes this information
-	  can be derived from (implicit) typing.  In other cases the
-	  list must be embedded in a compound term to distinguish
-	  the two types.  For example, \verb$s("hello world")$ could
-	  be used to indicate that we are dealing with a string.
-
-	  Lacking runtime information, debuggers and the toplevel can
-	  only use heuristics to decide whether to print a list of
-	  integers as such or as a string (see portray_text/1).
-
-	  While experienced Prolog programmers have learned to cope
-	  with this, we still consider this an unfortunate situation.
-
-    \item Lists are expensive structures, taking 2 cells per character
-          (3 for SWI-Prolog in its current form).  This stresses memory
-	  consumption on the stacks while pushing them on the stack and
-	  dealing with them during garbage collection is unnecessarily
-	  expensive.
-\end{itemize}
-
-We observe that in many programs, most strings are only handled as a
-single unit during their lifetime. Examining real code tells us that
-double quoted strings typically appear in one of the following roles:
-
-\begin{description}
-    \item [ A DCG literal ]  Although represented as a list of codes
-is the correct representation for handling in DCGs, the DCG translator
-can recognise the literal and convert it to the proper representation.
-Such code need not be modified.
-
-    \item [ A format string ]  This is a typical example of text that
-is conceptually not a program identifier.  Format is designed to deal
-with alternative representations of the format string.  Such code
-need not be modified.
-
-    \item [ Getting a character code ] The construct \verb$[X] = "a"$
-is a commonly used template for getting the character code of the
-letter 'a'.  ISO Prolog defines the syntax \verb$0'a$ for this purpose.
-Code using this must be modified.  The modified code will run on any
-ISO compliant processor.
-
-    \item [ As argument to list predicates to operate on strings ]
-Here, we see code such as \verb$append("name:", Rest, Codes)$.  Such
-code needs to be modified.  In this particular example, the
-following is a good portable alternative: \verb$phrase("name:", Codes, Rest)$
-
-    \item [ Checks for a character to be in a set ]
-Such tests are often performed with code such as this:
-\verb.memberchk(C, "~!@#$").. This is a rather inefficient check in a
-traditional Prolog system because it pushes a list of character codes
-cell-by-cell the Prolog stack and then traverses this list
-cell-by-cell to see whether one of the cells unifies with \arg{C}. If
-the test is successful, the string will eventually be subject to garbage
-collection.  The best code for this is to write a predicate as below,
-which pushes nothing on the stack and performs an indexed lookup to see
-whether the character code is in `my_class'.
-
-\begin{code}
-my_class(0'~).
-my_class(0'!).
-...
-\end{code}
-
-An alternative to reach the same effect is to use term expansion to
-create the clauses:
-
-\begin{code}
-term_expansion(my_class(_), Clauses) :-
-	findall(my_class(C),
-		string_code(_, "~!@#$", C),
-		Clauses).
-
-my_class(_).
-\end{code}
-
-Finally, the predicate string_code/3 can be exploited directly as a
-replacement for the memberchk/2 on a list of codes. Although the string
-is still pushed onto the stack, it is more compact and only a single
-entity.
-\end{description}
-
-We offer the predicate list_strings/0 to help porting your program.
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Syntax changes}
+\section{Syntax changes since SWI-Prolog~7}
 \label{sec:ext-syntax}
 
 \subsection{Operators and quoted atoms}
