@@ -1486,7 +1486,11 @@ retract_clause(Clause clause, gen_t generation ARG_LD)
   } else
   { PL_LOCK(L_GENERATION);
     if ( clause->generation.erased >= GD->_generation )
-      clause->generation.erased = ++GD->_generation;
+    { gen_t egen = GD->_generation+1;
+      clause->generation.erased = egen;
+      MEMORY_RELEASE();
+      GD->_generation = egen;
+    }
     PL_UNLOCK(L_GENERATION);
   }
 

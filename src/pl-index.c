@@ -547,6 +547,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   ctx.depth       = 0;
   ctx.position[0] = END_INDEX_POS;
 
+  MEMORY_ACQUIRE();			/* sync with retract_clause() */
   acquire_def(def);
   cref = first_clause_guarded(argv,
 			      def->functor->arity,
@@ -572,6 +573,7 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
   (void)argv;				/* we want to use these later */
   (void)def;				/* to create secondary indexes */
 
+  MEMORY_ACQUIRE();
   acquire_def(def);
   if ( !chp->key )			/* not indexed */
   { for(cref=chp->cref; cref; cref = cref->next)
