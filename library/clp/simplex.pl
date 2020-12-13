@@ -344,7 +344,7 @@ clpr_dual_constraints(Names, Coeffs, O*_, Constraint) :-
 clpr_dual_linsum(Coeff, Name, Coeff*Name).
 
 clpr_constraint_coefficient(c(_, Left, _, _), Coeff) :-
-        maplist(coeff_, Left, Coeff).
+        maplist(all_coeffs, Left, Coeff).
 
 all_coeffs(Coeff*_, Coeff).
 
