@@ -42,6 +42,7 @@
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(lists),[append/3,member/2,subtract/3]).
 :- autoload(library(make),[make/0]).
+:- autoload(library(pldoc/man_index), [save_man_index/0]).
 
 
 /** <module> Installation support predicates
@@ -149,7 +150,6 @@ cmake_qcompile(File, Deps) :-
 %   Create swi('doc/manindex.db') during the build process.
 
 cmake_save_man_index :-
-    use_module(library(pldoc/man_index)),
     save_man_index.
 
 
