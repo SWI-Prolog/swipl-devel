@@ -1039,7 +1039,7 @@ word_to_answer(word w ARG_LD)
    { return intToPointer(valInt(w));
    } else
    { assert(isBignum(w));
-     return intToPointer(valBignum(*p));
+     return intToPointer(valBignum(w));
    }
 #endif
 }
