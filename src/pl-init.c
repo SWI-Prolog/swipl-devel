@@ -403,12 +403,13 @@ memarea_limit(const char *s)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 When detected to run under a  GNU-Emacs   shell  or using M-x run-prolog
-from GNU-Emacs, don't pretend we can manipulate the TTY settings.
+from GNU-Emacs, don't pretend we  can   manipulate  the TTY settings. On
+Windows, do pretend we have a tty, so the prompt is displayed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-setupGNUEmacsInferiorMode()
-{ char envbuf[4];
+setupGNUEmacsInferiorMode(void)
+{ char envbuf[80];
   char *s;
   int val;
 
@@ -419,6 +420,11 @@ setupGNUEmacsInferiorMode()
 
     clearPrologFlagMask(PLFLAG_TTY_CONTROL);
     val = TRUE;
+#ifdef __WINDOWS__
+    Sinput->flags  |= SIO_ISATTY;
+    Soutput->flags |= SIO_ISATTY;
+    Serror->flags  |= SIO_ISATTY;
+#endif
   } else
   { val = FALSE;
   }
