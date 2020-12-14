@@ -12,9 +12,12 @@
 ## Publishing
 
    snapcraft login		   (Ubuntu one credentials)
-   snapcraft push swi-prolog_<version>.snap
+   snapcraft upload swi-prolog_<version>.snap
    snapcraft list-revisions swi-prolog
-   snapcraft release swi-prolog 1 beta,edge
+
+   snapcraft release swi-prolog 1 edge
+OR
+   snapcraft release swi-prolog 1 stable,candidate,beta
 
 Channels is a list of `stable`, `candidate`, `beta` or `edge`
 
