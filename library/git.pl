@@ -309,7 +309,9 @@ is_git_directory(Directory) :-
           directory(Directory)
         ]),
     Status == exit(0),
-    string_codes(".\n", Codes).
+    string_codes(GitDir0, Codes),
+    split_string(GitDir0, "", " \n", [GitDir]),
+    same_file(GitDir, Directory).
 
 %!  git_describe(-Version, +Options) is semidet.
 %
