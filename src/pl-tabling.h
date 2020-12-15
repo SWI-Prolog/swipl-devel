@@ -123,6 +123,7 @@ typedef struct worklist
   unsigned	has_answers : 1;	/* At least one unconditional answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
   unsigned	depend_abolish : 1;	/* Scheduled for depending abolish */
+  unsigned	needs_answer_gc : 1;	/* Contains garbage answers */
   size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */

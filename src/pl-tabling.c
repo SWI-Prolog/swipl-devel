@@ -2690,6 +2690,8 @@ prune_answer_cluster(cluster *c)
   { trie_node *n = base->node;
     if ( n->value )
       *out++ = *base;
+    else
+      prune_node(NULL, n);
   }
 
   c->members.top = (char*)out;
@@ -2924,6 +2926,18 @@ worklist_negative(worklist *wl)
 }
 
 
+/*
+ * Remove deleted answers from a worklist.  Deleted answers
+ * are normally caused by answer subsumption where the answer
+ * is a secondary node in the trie.  As old secondary nodes
+ * are replaced by new ones, the worklist may contain deleted
+ * nodes.  This removes these nodes from the answer clusters.
+ * as well as from the answer tries.  It is called after adding
+ * a new subsuming answer has created enough garbage or, when
+ * the worklist is executing, as soon as the worklist execution
+ * is complete.
+ */
+
 static size_t
 prune_answers_worklist(worklist *wl)
 { cluster *c;
@@ -2933,6 +2947,9 @@ prune_answers_worklist(worklist *wl)
   { if ( c->type == CLUSTER_ANSWERS )
       gained += prune_answer_cluster(c);
   }
+
+  DEBUG(MSG_TABLING_MODED,
+	Sdprintf("Pruned %zd answers\n", gained));
 
   return gained;
 }
@@ -3737,11 +3754,10 @@ update_subsuming_answers(worklist *wl, trie_node *root, term_t skel,
     return FALSE;
 
   if ( ctx.garbage > 10 )
-  { size_t gained = prune_answers_worklist(wl);
-    DEBUG(MSG_TABLING_MODED,
-	  Sdprintf("Pruned %zd answers\n", gained));
-    (void)gained;
-    prune_trie(wl->table, root, NULL, NULL);
+  { if ( wl->executing )
+      wl->needs_answer_gc = 1;
+    else
+      prune_answers_worklist(wl);
   }
 
   return TRUE;
@@ -4139,9 +4155,14 @@ advance_wkl_state(wkl_step_state *state)
 
 static void
 free_wkl_state(wkl_step_state *state)
-{ state->list->executing = FALSE;
+{ worklist *wl = state->list;
+
+  wl->executing = FALSE;
   freeForeignState(state, sizeof(*state));
+  if ( wl->needs_answer_gc )
+    prune_answers_worklist(wl);
 }
+
 
 /**
  * '$tbl_wkl_work'(+WorkList,

@@ -378,6 +378,8 @@ prune_node(trie *trie, trie_node *n)
       }
     }
 
+    if ( !trie )
+      trie = get_trie_from_node(n);
     destroy_node(trie, n);
   }
 }
