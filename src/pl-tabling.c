@@ -4137,6 +4137,12 @@ advance_wkl_state(wkl_step_state *state)
 }
 
 
+static void
+free_wkl_state(wkl_step_state *state)
+{ state->list->executing = FALSE;
+  freeForeignState(state, sizeof(*state));
+}
+
 /**
  * '$tbl_wkl_work'(+WorkList,
  *		   -Answer,
@@ -4190,8 +4196,7 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
       break;
     case FRG_CUTTED:
       state = CTX_PTR;
-      state->list->executing = FALSE;
-      freeForeignState(state, sizeof(*state));
+      free_wkl_state(state);
       return TRUE;
     default:
       assert(0);
@@ -4318,8 +4323,7 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
     if ( advance_wkl_state(state) )
     { ForeignRedoPtr(state);
     } else
-    { state->list->executing = FALSE;
-      freeForeignState(state, sizeof(*state));
+    { free_wkl_state(state);
       return TRUE;
     }
   next:
@@ -4327,8 +4331,7 @@ PRED_IMPL("$tbl_wkl_work", 6, tbl_wkl_work, PL_FA_NONDETERMINISTIC)
   } while ( advance_wkl_state(state) );
 
 out_fail:
-  state->list->executing = FALSE;
-  freeForeignState(state, sizeof(*state));
+  free_wkl_state(state);
   return FALSE;
 }
 
