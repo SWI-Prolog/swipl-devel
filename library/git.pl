@@ -311,7 +311,12 @@ is_git_directory(Directory) :-
     Status == exit(0),
     string_codes(GitDir0, Codes),
     split_string(GitDir0, "", " \n", [GitDir]),
-    same_file(GitDir, Directory).
+    sub_string(GitDir, B, _, A, "/.git/modules/"),
+    !,
+    sub_string(GitDir, 0, B, _, Main),
+    sub_string(GitDir, _, A, 0, Below),
+    directory_file_path(Main, Below, Dir),
+    same_file(Dir, Directory).
 
 %!  git_describe(-Version, +Options) is semidet.
 %
