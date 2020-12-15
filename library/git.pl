@@ -52,7 +52,7 @@
             git_show/4,                 % +Dir, +Hash, -Commit, +Options
             git_commit_data/3           % +Field, +Record, -Value
           ]).
-:- use_module(library(record),[record/1,current_record/2, op(_,_,record)]).
+:- use_module(library(record),[(record)/1,current_record/2, op(_,_,record)]).
 
 :- autoload(library(apply),[maplist/3]).
 :- autoload(library(error),[must_be/2,existence_error/2]).
