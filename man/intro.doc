@@ -15,7 +15,7 @@ textbook such as \cite{Bratko:86}, \cite{Sterling:86} or
 
 Most implementations of the Prolog language are designed to serve a
 limited set of use cases. SWI-Prolog is no exception to this rule.
-SWI-Prolog positions itself primarily as a Prolog environment for
+SWI-Prolog positions itself primarily as a Prolog environment for 
 `programming in the large' and use cases where it plays a central role
 in an application, i.e., where it acts as `glue' between components. At
 the same time, SWI-Prolog aims at providing a productive rapid
@@ -25,7 +25,7 @@ large is backed up by scalability, compiler speed, program structuring
 and interfaces to a large number of document formats, protocols and
 programming languages. Prototyping is facilitated by good development
 tools, both for command line usage and for usage with graphical
-development tools. Demand loading of predicates from the library and a
+development tools. Demand loading of predicates from the library and a 
 `make' facility avoids the \emph{requirement} for using declarations and
 reduces typing.
 
@@ -36,16 +36,16 @@ easy-to-use environment.
 Note that these positions do not imply that the system cannot be used
 with other scenarios. SWI-Prolog is used as an embedded language where
 it serves as a small rule subsystem in a large application. It is also
-used as a deductive database. In some cases this is the right choice
+used as a deductive database. In some cases, this is the right choice
 because SWI-Prolog has features that are required in the application,
-such as threading or Unicode support. In general though, for example,
+such as threading or Unicode support. In general though, for example:
 GNU-Prolog is more suited for embedding because it is small and can
-compile to native code, XSB is better for deductive databases because it
+compile to native code; XSB is better for deductive databases because it
 provides a mature implementation of \jargon{tabling} including support
 for incremental updates and \jargon{Well Founded
 Semantics}\footnote{Sponsored by Kyndi and with help from the XSB
 developers Theresa Swift and David S. Warren, SWI-Prolog now supports
-many of the XSB features.}, and ECLiPSe is better at constraint
+many of the XSB features.}; and ECLiPSe is better at constraint
 handling.
 
 The syntax and set of built-in predicates is based on the ISO standard
@@ -54,7 +54,7 @@ The syntax and set of built-in predicates is based on the ISO standard
 The infrastructure for constraint programming is based on hProlog
 \cite{Demoen:CW350}. Some libraries are copied from the
 YAP\footnote{\url{http://www.dcc.fc.up.pt/\~{}vsc/Yap/}} system.
-Together with YAP we developed a portability framework (see
+Together with YAP, we developed a portability framework (see
 \secref{dialect}). This framework has been filled for SICStus Prolog,
 YAP, IF/Prolog and Ciao. SWI-Prolog version~7 introduces various
 extensions to the Prolog language (see \secref{extensions}). The
@@ -75,7 +75,7 @@ from student assignments to commercial applications that count more
 than one million lines of Prolog code.
 
 SWI-Prolog has two development tracks. \emph{Stable} releases have an
-even \emph{minor} version number (e.g., 6.2.1) and are released as a
+even \emph{minor}  version number (e.g., 6.2.1) and are released as a
 branch from the development version when the development
 version is considered stable and there is sufficient new functionality
 to justify a stable release. Stable releases often get a few patch
@@ -103,7 +103,7 @@ and debug SWI-Prolog using free tools on all major platforms.
 Users requiring more support should ensure access to knowledgeable developers.
 
     \item [Performance is your first concern]
-Various free and commercial systems have better performance. But,
+Various free and commercial systems have better performance. But, 
 `standard' Prolog benchmarks disregard many factors that are often
 critical to the performance of large applications. SWI-Prolog is not
 good at fast calling of simple predicates, but it is fast with dynamic
@@ -211,10 +211,10 @@ the developers or other commercial users.
 
 SWI-Prolog started back in 1986 with the requirement for a Prolog that
 could handle recursive interaction with the C-language: Prolog calling C
-and C calling Prolog recursively. In those days Prolog systems were not
+and C calling Prolog recursively. In those days, Prolog systems were not
 very aware of their environment and we needed such a system to support
 interactive applications. Since then, SWI-Prolog's development has been
-guided by requests from the user community, especially focussing on (in
+guided by requests from the user community, especially focusing on (in
 arbitrary order) interaction with the environment, scalability, (I/O)
 performance, standard compliance, teaching and the program development
 environment.
