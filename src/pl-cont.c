@@ -65,13 +65,23 @@ Where the compiler translates '$reset' into
     active non-Prolog slots.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static term_t
-findReset(LocalFrame fr, term_t ball ARG_LD)
+#define FRESET_NO_FRAME -1
+#define FRESET_FINDALL  -2
+
+static int
+findReset(LocalFrame fr, term_t ball, term_t *rframe ARG_LD)
 { Definition reset3  = PROCEDURE_reset3->definition;
 
   for(; fr; fr = fr->parent)
   { int rc;
     term_t tref;
+    static Procedure proc_fl = NULL;
+
+    if ( !proc_fl )
+      proc_fl = PL_predicate("findall_loop", 4, "$bags");
+
+    if ( fr->predicate == proc_fl->definition )
+      return FRESET_FINDALL;
 
     if ( fr->predicate != reset3 )
       continue;
@@ -81,11 +91,12 @@ findReset(LocalFrame fr, term_t ball ARG_LD)
     fr = (LocalFrame)valTermRef(tref);
 
     if ( rc )
-    { return consTermRef(fr);
+    { *rframe = consTermRef(fr);
+      return TRUE;
     }
   }
 
-  return 0;
+  return FRESET_NO_FRAME;
 }
 
 
@@ -341,8 +352,9 @@ Performs the following steps:
 Code
 shift(term_t ball ARG_LD)
 { term_t reset;
+  int rc;
 
-  if ( (reset=findReset(environment_frame, ball PASS_LD)) )
+  if ( (rc=findReset(environment_frame, ball, &reset PASS_LD)) == TRUE )
   { term_t cont = PL_new_term_ref();
     LocalFrame resetfr;
     LocalFrame fr;
@@ -386,8 +398,14 @@ shift(term_t ball ARG_LD)
     return resetfr->programPointer;
   }
 
-  PL_existence_error("reset/3", ball);
-  return NULL;
+  { static const char *msg[] =
+    { "No matching reset/3 call",
+      "Cannot catch continuation through findall/3"
+    };
+
+    return PL_error("shift", 1, msg[-1-rc],
+		    ERR_EXISTENCE, ATOM_reset, ball),NULL;
+  }
 }
 
 
