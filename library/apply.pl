@@ -61,6 +61,14 @@
 This module defines meta-predicates  that  apply   a  predicate  on  all
 members of a list.
 
+All predicates support partial application in the  Goal  argument.  This
+means that these calls are identical:
+
+```
+?- maplist(=, [foo, foo], [X, Y]).
+?- maplist(=(foo), [X, Y]).
+```
+
 @see    apply_macros.pl provides compile-time expansion for part of this
         library.
 @see    http://www.cs.otago.ac.nz/staffpriv/ok/pllib.htm
@@ -192,10 +200,10 @@ partition_(Diff, _, _, _, _, _, _) :-
 %                [X_21, ..., X_2n],
 %                ...,
 %                [X_m1, ..., X_mn]) :-
-%        G(X_11, ..., X_m1),
-%        G(X_12, ..., X_m2),
+%        call(G, X_11, ..., X_m1),
+%        call(G, X_12, ..., X_m2),
 %        ...
-%        G(X_1n, ..., X_mn).
+%        call(G, X_1n, ..., X_mn).
 %     ```
 %
 %   This family of predicates is deterministic iff Goal is deterministic
@@ -280,10 +288,10 @@ convlist_([H0|T0], ListOut, Goal) :-
 %              [X_21, ..., X_2n],
 %              ...,
 %              [X_m1, ..., X_mn], V0, V) :-
-%        G(X_11, ..., X_m1, V0, V1),
-%        G(X_12, ..., X_m2, V1, V2),
+%        call(G, X_11, ..., X_m1, V0, V1),
+%        call(G, X_12, ..., X_m2, V1, V2),
 %        ...
-%        G(X_1n, ..., X_mn, V<n-1>, V).
+%        call(G, X_1n, ..., X_mn, V<n-1>, V).
 %     ```
 %
 %   No implementation for a corresponding `foldr`   is  given. A `foldr`
@@ -348,10 +356,10 @@ foldl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V0, V) :-
 %              [X_21, ..., X_2n],
 %              ...,
 %              [X_m1, ..., X_mn], V0, [V0, V1, ..., Vn] ) :-
-%        G(X_11, ..., X_m1, V0, V1),
-%        G(X_12, ..., X_m2, V1, V2),
+%        call(G, X_11, ..., X_m1, V0, V1),
+%        call(G, X_12, ..., X_m2, V1, V2),
 %        ...
-%        G(X_1n, ..., X_mn, V<n-1>, Vn).
+%        call(G, X_1n, ..., X_mn, V<n-1>, Vn).
 %     ```
 %
 %  `scanl` behaves like a `foldl` that collects the sequence of
