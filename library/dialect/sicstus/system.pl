@@ -81,10 +81,17 @@ sicstus:rename_module(system, sicstus_system).
 
 %%	environ(?Name, ?Value) is nondet.
 %
-%	True if Value an atom associated   with the environment variable
-%	Name.
+%	True if Value is an atom associated with the environment variable
+%	or system property Name.
 %
-%	@tbd	Mode -Name is not supported
+%	@tbd	Mode -Name is not supported.
+%
+%		Because SWI-Prolog doesn't have an obvious equivalent to
+%		SICStus system properties, this predicate currently
+%		behaves as if no system properties are defined,
+%		i. e. only environment variables are returned.
+%
+%	@compat sicstus
 
 environ(Name, Value) :-
 	getenv(Name, Value).
