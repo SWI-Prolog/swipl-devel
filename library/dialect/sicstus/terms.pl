@@ -44,9 +44,9 @@ sicstus:rename_module(terms, sicstus_terms).
 %%	term_variables_bag(+Term, -Variables) is det.
 %
 %	Variables is a list  of  variables   that  appear  in  Term. The
-%	variables are ordered according to depth-first lef-right walking
+%	variables are ordered according to depth-first left-right walking
 %	of the term. Variables contains no  duplicates. This is the same
-%	as SWI-Prolog's term_variables.
+%	as SWI-Prolog's term_variables/2.
 
 term_variables_bag(Term, Variables) :-
 	term_variables(Term, Variables).
