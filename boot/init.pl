@@ -801,7 +801,7 @@ initialization(Goal, When) :-
 '$clear_source_admin'(File) :-
     retractall('$init_goal'(_, _, File:_)),
     retractall('$load_context_module'(File, _, _)),
-    retractall('$resolved_source_path'(_, File)).
+    retractall('$resolved_source_path_db'(_, _, File)).
 
 
                  /*******************************
@@ -1376,7 +1376,8 @@ user:prolog_file_type(dylib,    executable) :-
 '$chk_alias_file'(Spec, Exts, Cond, true, CWD, FullFile) :-
     !,
     findall(Exp, expand_file_search_path(Spec, Exp), Expansions),
-    Cache = cache(Exts, Cond, CWD, Expansions),
+    current_prolog_flag(emulated_dialect, Dialect),
+    Cache = cache(Exts, Cond, CWD, Expansions, Dialect),
     variant_sha1(Spec+Cache, SHA1),
     get_time(Now),
     current_prolog_flag(file_search_cache_time, TimeOut),
@@ -2280,7 +2281,7 @@ load_files(Module:Files, Options) :-
 %       * The file is already loaded.
 
 :- dynamic
-    '$resolved_source_path'/2.                  % ?Spec, ?Path
+    '$resolved_source_path_db'/3.                % ?Spec, ?Dialect, ?Path
 
 '$load_file'(File, Module, Options) :-
     \+ memberchk(stream(_), Options),
@@ -2303,7 +2304,8 @@ load_files(Module:Files, Options) :-
 %   True when File has already been resolved to an absolute path.
 
 '$resolved_source_path'(File, FullFile, Options) :-
-    '$resolved_source_path'(File, FullFile),
+    current_prolog_flag(emulated_dialect, Dialect),
+    '$resolved_source_path_db'(File, Dialect, FullFile),
     (   '$source_file_property'(FullFile, from_state, true)
     ;   '$source_file_property'(FullFile, resource, true)
     ;   '$option'(if(If), Options, true),
@@ -2325,13 +2327,14 @@ load_files(Module:Files, Options) :-
 
 
 '$register_resolved_source_path'(File, FullFile) :-
-    '$resolved_source_path'(File, FullFile),
-    !.
-'$register_resolved_source_path'(File, FullFile) :-
-    compound(File),
-    !,
-    asserta('$resolved_source_path'(File, FullFile)).
-'$register_resolved_source_path'(_, _).
+    (   compound(File)
+    ->  current_prolog_flag(emulated_dialect, Dialect),
+        (   '$resolved_source_path_db'(File, Dialect, FullFile)
+        ->  true
+        ;   asserta('$resolved_source_path_db'(File, Dialect, FullFile))
+        )
+    ;   true
+    ).
 
 %!  '$translated_source'(+Old, +New) is det.
 %
@@ -2339,8 +2342,8 @@ load_files(Module:Files, Options) :-
 
 :- public '$translated_source'/2.
 '$translated_source'(Old, New) :-
-    forall(retract('$resolved_source_path'(File, Old)),
-           assertz('$resolved_source_path'(File, New))).
+    forall(retract('$resolved_source_path_db'(File, Dialect, Old)),
+           assertz('$resolved_source_path_db'(File, Dialect, New))).
 
 %!  '$register_resource_file'(+FullFile) is det.
 %
