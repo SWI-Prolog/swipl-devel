@@ -66,6 +66,20 @@
 
 sicstus:rename_module(lists, sicstus_lists).
 
+/** <module> SICStus 3-compatible library(lists).
+
+@tbd	This library is incomplete.
+	As of SICStus 3.12.11, the following predicates are missing:
+
+	* no_doubles/1
+	* non_member/2
+	* remove_duplicates/2
+	* same_length/3
+	* suffix/2
+
+@see	https://sicstus.sics.se/sicstus/docs/3.12.11/html/sicstus/Lists.html
+*/
+
 %%	substitute(+OldElem, +List, +NewElem, -NewList) is det.
 %
 %	NewList is as List with all value that are identical (==) to OldElem
