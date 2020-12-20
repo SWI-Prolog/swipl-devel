@@ -60,7 +60,6 @@
 
 	    op(1150, fx, (block)),
 	    op(1150, fx, (mode)),
-	    op(1100, xfy, (do)),
 	    op(900, fy, (spy)),
 	    op(900, fy, (nospy))
 	  ]).
@@ -73,25 +72,25 @@
 :- use_module(library(arithmetic)).
 
 
-/** <module> SICStus compatibility library
+/** <module> SICStus 3 compatibility library
 
 This library is intended to be activated   using  the directive below in
-files that are designed for use with  SICStus Prolog. The changes are in
+files that are designed for use with SICStus Prolog 3. The changes are in
 effect until the end of the file and in each file loaded from this file.
 
     ==
     :- expects_dialect(sicstus).
     ==
 
+This library only provides compatibility with version 3 of SICStus Prolog.
+For SICStus Prolog 4 compatibility, use library(dialect/sicstus4) instead.
+
 @tbd	The dialect-compatibility packages are developed in a
 	`demand-driven' fashion.  Please contribute to this package.
 */
 
 % SICStus built-in operators that SWI doesn't declare by default.
-% Note: Although the do operator is declared here, do loops currently
-% aren't emulated by library(dialect/sicstus).
 :- op(1150, fx, user:(mode)).
-:- op(1100, xfy, user:(do)).
 :- op(900, fy, user:(spy)).
 :- op(900, fy, user:(nospy)).
 
@@ -134,7 +133,7 @@ push_sicstus_library :-
 user:goal_expansion(op(Pri,Ass,Name),
 		    op(Pri,Ass,user:Name)) :-
 	\+ qualified(Name),
-	prolog_load_context(dialect, sicstus).
+	(prolog_load_context(dialect, sicstus) ; prolog_load_context(dialect, sicstus4)).
 
 qualified(Var) :- var(Var), !, fail.
 qualified(_:_).
@@ -164,7 +163,7 @@ setup_dialect.
 
 system:goal_expansion(if(If,Then,Else),
 		      (If *-> Then ; Else)) :-
-	prolog_load_context(dialect, sicstus),
+	(prolog_load_context(dialect, sicstus) ; prolog_load_context(dialect, sicstus4)),
 	\+ (sub_term(X, [If,Then,Else]), X == !).
 
 %%	if(:If, :Then, :Else)
@@ -260,7 +259,7 @@ system:term_expansion(
 	   [ (:- module(Name, Exports))
 	   | Declarations
 	   ]) :-
-	prolog_load_context(dialect, sicstus),
+	(prolog_load_context(dialect, sicstus) ; prolog_load_context(dialect, sicstus4)),
 	phrase(sicstus_module_decls(Options), Declarations).
 
 sicstus_module_decls([]) --> [].
@@ -476,11 +475,8 @@ sicstus_flag(Name, Value) :-
 :- op(500, yfx, user:(#)).
 
 :- arithmetic_function(user:(#)/2).
-:- arithmetic_function(user:(\)/2).
 
-user:(#(X,Y,R)) :-				% SICStus 3
-	R is xor(X,Y).
-user:(\(X,Y,R)) :-				% SICStus 4
+user:(#(X,Y,R)) :-
 	R is xor(X,Y).
 
 
