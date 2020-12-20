@@ -3072,6 +3072,7 @@ load_files(Module:Files, Options) :-
     source_location(_File, Line),
     '$option'(redefine_module(Action), Options, false),
     '$module_class'(File, Class, Super),
+    '$reset_dialect'(File, Class),
     '$redefine_module'(Module, File, Action),
     '$declare_module'(Module, Class, Super, File, Line, false),
     '$export_list'(Public, Module, Ops),
@@ -3079,6 +3080,17 @@ load_files(Module:Files, Options) :-
     '$export_ops'(Ops, Module, File),
     '$qset_dialect'(State),
     nb_setarg(3, State, end_module).
+
+%!  '$reset_dialect'(+File, +Class) is det.
+%
+%   Load .pl files from the SWI-Prolog distribution _always_ in
+%   `swi` dialect.
+
+'$reset_dialect'(File, library) :-
+    file_name_extension(_, pl, File),
+    !,
+    set_prolog_flag(emulated_dialect, swi).
+'$reset_dialect'(_, _).
 
 
 %!  '$module3'(+Spec) is det.
