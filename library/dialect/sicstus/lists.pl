@@ -34,8 +34,15 @@
 
 :- module(sicstus_lists,
 	  [ substitute/4,		% +Elem, +List, +NewElem, -List
-	    nth/3,
-	    sublist/2			% ?Sub, +List
+	    nth/3,			% ?N, ?List, ?Element
+	    nth/4,			% ?N, ?List, ?Element, ?Rest
+	    sublist/2,			% ?Sub, +List
+
+	    % The following predicates are built-in on SWI.
+	    % We re-export them here to avoid warnings
+	    % when SICStus code explicitly imports them from library(lists).
+	    is_list/1,			% +Term
+	    memberchk/2			% +Element, +List
 	  ]).
 :- reexport('../../lists').
 
@@ -69,6 +76,17 @@ substitute_([O|T0], Old, New, [V|T]) :-
 
 nth(Index, List, Element) :-
 	nth1(Index, List, Element).
+
+
+%%	nth(?Index, ?List, ?Element, ?Rest) is nondet.
+%
+%	True if Element is the N-th element in List and Rest is the
+%	remainder (as if by select/3) of List. Counting starts at 1.
+%
+%	@deprecated use nth1/4.
+
+nth(Index, List, Element, Rest) :-
+	nth1(Index, List, Element, Rest).
 
 
 %%	sublist(?Sub, +List)
