@@ -44,7 +44,23 @@
 	    is_list/1,			% +Term
 	    memberchk/2			% +Element, +List
 	  ]).
-:- reexport('../../lists').
+:- reexport('../../lists',
+	    [ append/3,
+	      delete/3,
+	      last/2,
+	      max_list/2,
+	      member/2,
+	      min_list/2,
+	      nextto/3,
+	      nth0/3,
+	      nth0/4,
+	      permutation/2,
+	      prefix/2,
+	      reverse/2,
+	      same_length/2,
+	      select/3,
+	      sum_list/2
+	    ]).
 
 :- multifile sicstus:rename_module/2.
 
