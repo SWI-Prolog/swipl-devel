@@ -75,15 +75,17 @@
 /** <module> SICStus 3 compatibility library
 
 This library is intended to be activated   using  the directive below in
-files that are designed for use with SICStus Prolog 3. The changes are in
-effect until the end of the file and in each file loaded from this file.
+files that are designed for use with   SICStus Prolog 3. The changes are
+in effect until the end of the file   and  in each file loaded from this
+file.
 
     ==
     :- expects_dialect(sicstus).
     ==
 
-This library only provides compatibility with version 3 of SICStus Prolog.
-For SICStus Prolog 4 compatibility, use library(dialect/sicstus4) instead.
+This library only provides  compatibility  with   version  3  of SICStus
+Prolog.     For     SICStus     Prolog      4     compatibility,     use
+library(dialect/sicstus4) instead.
 
 @tbd	The dialect-compatibility packages are developed in a
 	`demand-driven' fashion.  Please contribute to this package.
@@ -124,6 +126,13 @@ push_sicstus_library :-
 :- push_sicstus_library.
 
 
+in_sicstus_dialect :-
+	(   prolog_load_context(dialect, sicstus)
+	->  true
+	;   prolog_load_context(dialect, sicstus4)
+	).
+
+
 		 /*******************************
 		 *	      OPERATORS		*
 		 *******************************/
@@ -133,7 +142,7 @@ push_sicstus_library :-
 user:goal_expansion(op(Pri,Ass,Name),
 		    op(Pri,Ass,user:Name)) :-
 	\+ qualified(Name),
-	(prolog_load_context(dialect, sicstus) ; prolog_load_context(dialect, sicstus4)).
+	in_sicstus_dialect.
 
 qualified(Var) :- var(Var), !, fail.
 qualified(_:_).
@@ -163,7 +172,7 @@ setup_dialect.
 
 system:goal_expansion(if(If,Then,Else),
 		      (If *-> Then ; Else)) :-
-	(prolog_load_context(dialect, sicstus) ; prolog_load_context(dialect, sicstus4)),
+	in_sicstus_dialect,
 	\+ (sub_term(X, [If,Then,Else]), X == !).
 
 %%	if(:If, :Then, :Else)
