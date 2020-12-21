@@ -821,7 +821,7 @@ read-only memory, so `temporary manipulation' can cause an error.
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage collection
-and stack-shifts, so generally the only save operations are to pass
+and stack-shifts, so generally the only safe operations are to pass
 it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
@@ -1895,7 +1895,7 @@ not required, to be closed by a full stop (.).
 
 If parsing produces an exception the behaviour depends on the
 \const{CVT_EXCEPTION} flag. If present, the exception is propagated into
-the environment.  Otherwise the exception is placed in \arg{t} and
+the environment.  Otherwise, the exception is placed in \arg{t} and
 the return value is \const{FALSE}.\footnote{The \const{CVT_EXCEPTION}
 was added in version 8.3.12}.
 \end{description}
