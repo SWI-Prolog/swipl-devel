@@ -641,7 +641,21 @@ delim(Skeleton, Worker, WorkList, Delays) :-
 
 
 start_moded_tabling(Closure, Wrapper, Worker, WrapperNoModes, ModeArgs) :-
-    '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie, Status, Skeleton),
+    '$tbl_moded_variant_table'(Closure, WrapperNoModes, Trie,
+                               Status, Skeleton, IsMono),
+    (   IsMono == true
+    ->  shift(dependency(Skeleton/ModeArgs, Trie, Mono)),
+        (   Mono == true
+        ->  tdebug(monotonic, 'Monotonic new answer: ~p', [Skeleton])
+        ;   start_moded_tabling_2(Closure, Wrapper, Worker, ModeArgs,
+                                  Trie, Status, Skeleton)
+        )
+    ;   start_moded_tabling_2(Closure, Wrapper, Worker, ModeArgs,
+                              Trie, Status, Skeleton)
+    ).
+
+start_moded_tabling_2(_Closure, Wrapper, Worker, ModeArgs,
+                      Trie, Status, Skeleton) :-
     (   Status == complete
     ->  moded_gen_answer(Trie, Skeleton, ModeArgs)
     ;   functor(Status, fresh, 2)
@@ -1820,11 +1834,7 @@ try_reeval(ATrie, Goal, Return) :-
     nb_current('$tbl_reeval', true),
     !,
     tdebug(reeval, 'Nested re-evaluation for ~p', [ATrie]),
-    '$tbl_reeval_prepare_top'(ATrie, Clause),
-    (   nonvar(Clause)
-    ->  trie_gen_compiled(Clause, Return)
-    ;   call(Goal)
-    ).
+    do_reeval(ATrie, Goal, Return).
 try_reeval(ATrie, Goal, Return) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
@@ -1836,11 +1846,20 @@ try_reeval(ATrie, Goal, Return) :-
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
     reeval_paths(Dynamic, ATrie),
     reeval_paths(Complete, ATrie),
+    do_reeval(ATrie, Goal, Return).
+
+do_reeval(ATrie, Goal, Return) :-
     '$tbl_reeval_prepare_top'(ATrie, Clause),
-    (   nonvar(Clause)
+    (   Clause == 0                          % complete and answer subsumption
+    ->  '$tbl_table_status'(ATrie, _Status, M:Variant, Return),
+        M:'$table_mode'(Goal0, Variant, ModeArgs),
+        Goal = M:Goal0,
+        moded_gen_answer(ATrie, Return, ModeArgs)
+    ;   nonvar(Clause)                       % complete
     ->  trie_gen_compiled(Clause, Return)
-    ;   call(Goal)
+    ;   call(Goal)                           % actually re-evaluate
     ).
+
 
 split_paths([], [], []).
 split_paths([[_|Path]|T], DT, [Path|CT]) :-
@@ -1923,16 +1942,18 @@ is_invalid(ATrie) :-
 %       outer one it will complete before we continue.
 
 reeval_node(ATrie) :-
-    '$tbl_reeval_prepare'(ATrie, Variant),
+    '$tbl_reeval_prepare'(ATrie, M:Variant),
     !,
-    tdebug(reeval, 'Re-evaluating ~p', [Variant]),
+    M:'$table_mode'(Goal0, Variant, _Moded),
+    Goal = M:Goal0,
+    tdebug(reeval, 'Re-evaluating ~p', [Goal]),
     (   '$idg_reset_current',
         setup_call_cleanup(
             nb_setval('$tbl_reeval', true),
-            ignore(Variant),                    % assumes local scheduling
+            ignore(Goal),                    % assumes local scheduling
             nb_delete('$tbl_reeval')),
         fail
-    ;   tdebug(reeval, 'Re-evaluated ~p', [Variant])
+    ;   tdebug(reeval, 'Re-evaluated ~p', [Goal])
     ).
 reeval_node(ATrie) :-
     '$mono_reeval_prepare'(ATrie, Size),
