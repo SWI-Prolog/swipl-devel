@@ -63,7 +63,7 @@
             '$tbl_answer'/4,            % +Trie, -Return, -ModeArgs, -Delay
 
             '$wrap_tabled'/2,		% :Head, +Mode
-            '$moded_wrap_tabled'/4,	% :Head, +ModeTest, +Variant, +Moded
+            '$moded_wrap_tabled'/5,	% :Head, +Opts, +ModeTest, +Varnt, +Moded
             '$wfs_call'/2,              % :Goal, -Delays
 
             '$set_table_wrappers'/1,    % :Head
@@ -631,8 +631,8 @@ delim(Skeleton, Worker, WorkList, Delays) :-
 %   As start_tabling/2, but in addition separates the data stored in the
 %   answer trie in the Variant and ModeArgs.
 
-'$moded_wrap_tabled'(Head, ModeTest, WrapperNoModes, ModeArgs) :-
-    '$set_predicate_attribute'(Head, tabled, true),
+'$moded_wrap_tabled'(Head, Options, ModeTest, WrapperNoModes, ModeArgs) :-
+    set_pattributes(Head, Options),
     '$wrap_predicate'(Head, table, Closure, Wrapped,
                       (   ModeTest,
                           start_moded_tabling(Closure, Head, Wrapped,
@@ -1200,7 +1200,7 @@ wrappers(ModeDirectedSpec, Module, Opts) -->
       (   ModeTest == true
       ->  WrapClause = '$wrap_tabled'(Module:Head, Opts),
           TVariant = Head
-      ;   WrapClause = '$moded_wrap_tabled'(Module:Head, ModeTest,
+      ;   WrapClause = '$moded_wrap_tabled'(Module:Head, Opts, ModeTest,
                                             Module:Variant, Moded),
           TVariant = Variant
       )
