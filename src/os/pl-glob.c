@@ -536,7 +536,9 @@ un_escape(char *to, const char *from, const char *end)
 
 static int
 utf8_exists_file(const char *name ARG_LD)
-{ PL_chars_t txt;
+{
+#ifndef __WINDOWS__
+  PL_chars_t txt;
   int rc;
 
   PL_STRINGS_MARK();
@@ -546,17 +548,22 @@ utf8_exists_file(const char *name ARG_LD)
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
   rc = ( PL_canonicalise_text(&txt) &&
-	 PL_mb_text(&txt, REP_MB) &&
+	 PL_mb_text(&txt, REP_FN) &&
 	 AccessFile(txt.text.t, ACCESS_EXIST) );
   PL_free_text(&txt);
   PL_STRINGS_RELEASE();
 
   return rc;
+#else
+  return AccessFile(name, ACCESS_EXIST);
+#endif
 }
 
 static DIR*
 utf8_opendir(const char *name ARG_LD)
-{ PL_chars_t txt;
+{
+#ifndef __WINDOWS__
+  PL_chars_t txt;
   DIR *rc;
 
   PL_STRINGS_MARK();
@@ -566,7 +573,7 @@ utf8_opendir(const char *name ARG_LD)
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
   if ( PL_canonicalise_text(&txt) &&
-       PL_mb_text(&txt, REP_MB) )
+       PL_mb_text(&txt, REP_FN) )
     rc = opendir(txt.text.t);
   else
     rc = NULL;
@@ -574,6 +581,9 @@ utf8_opendir(const char *name ARG_LD)
   PL_STRINGS_RELEASE();
 
   return rc;
+#else
+  return opendir(name);
+#endif
 }
 
 static int
