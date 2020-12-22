@@ -124,7 +124,7 @@ set_pil_off.
 get_call(Goal0, Trie, Return) :-
     '$tbl_implementation'(Goal0, M:Goal),
     M:'$table_mode'(Goal, Table, Moded),
-    current_table(M:Table, Trie),
+    current_table(M:Goal, Trie),
     '$tbl_table_status'(Trie, _Status, M:Table, Skeleton),
     extend_return(Moded, Skeleton, Return).
 

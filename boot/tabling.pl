@@ -1109,20 +1109,24 @@ current_table(Variant, Trie) :-
     current_table_lookup(Variant, Trie),
     !.
 
-current_table_gen(Variant, Trie) :-
+current_table_gen(M:Variant, Trie) :-
     '$tbl_local_variant_table'(VariantTrie),
-    trie_gen(VariantTrie, Variant, Trie).
-current_table_gen(Variant, Trie) :-
+    trie_gen(VariantTrie, M:NonModed, Trie),
+    M:'$table_mode'(Variant, NonModed, _Moded).
+current_table_gen(M:Variant, Trie) :-
     '$tbl_global_variant_table'(VariantTrie),
-    trie_gen(VariantTrie, Variant, Trie),
-    \+ '$tbl_table_status'(Trie, fresh). % shared tables are not destroyed
+    trie_gen(VariantTrie, NonModed, Trie),
+    \+ '$tbl_table_status'(Trie, fresh), % shared tables are not destroyed
+    M:'$table_mode'(Variant, NonModed, _Moded).
 
-current_table_lookup(Variant, Trie) :-
+current_table_lookup(M:Variant, Trie) :-
+    M:'$table_mode'(Variant, NonModed, _Moded),
     '$tbl_local_variant_table'(VariantTrie),
-    trie_lookup(VariantTrie, Variant, Trie).
-current_table_lookup(Variant, Trie) :-
+    trie_lookup(VariantTrie, M:NonModed, Trie).
+current_table_lookup(M:Variant, Trie) :-
+    M:'$table_mode'(Variant, NonModed, _Moded),
     '$tbl_global_variant_table'(VariantTrie),
-    trie_lookup(VariantTrie, Variant, Trie),
+    trie_lookup(VariantTrie, NonModed, Trie),
     \+ '$tbl_table_status'(Trie, fresh).
 
 ct_generate(M:Variant) :-
