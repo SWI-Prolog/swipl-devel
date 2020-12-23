@@ -1072,6 +1072,7 @@ user:file_search_path(user_profile, app_preferences('.')).
     ;   Dirs = Defaults
     ),
     '$member'(Dir, Dirs),
+    Dir \== '',
     exists_directory(Dir).
 
 '$path_sep'(Char) :-
