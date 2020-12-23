@@ -80,9 +80,10 @@ typedef union trie_children
 #define TN_IDG_ADDED			0x0010	/* IDG recovery */
 #define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
 #define TN_IDG_SAVED_UNCONDITIONAL	0x0040	/* IDG recovery */
+#define TN_IDG_AS_LAST			0x0080	/* IDG: answer subsumption node */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
-	 TN_IDG_UNCONDITIONAL|TN_IDG_SAVED_UNCONDITIONAL)
+	 TN_IDG_UNCONDITIONAL|TN_IDG_SAVED_UNCONDITIONAL|TN_IDG_AS_LAST)
 
 typedef struct trie_node
 { word			value;
@@ -170,6 +171,7 @@ COMMON(void)	prune_trie(trie *trie, trie_node *root,
 			   void (*free)(trie_node *node, void *ctx), void *ctx);
 COMMON(trie *)	get_trie_from_node(trie_node *node);
 COMMON(int)	is_ground_trie_node(trie_node *node);
+COMMON(int)	is_leaf_trie_node(trie_node *n);
 COMMON(int)	get_trie(term_t t, trie **tp);
 COMMON(int)	get_trie_noex(term_t t, trie **tp);
 COMMON(int)	unify_trie_term(trie_node *node, trie_node **parent,

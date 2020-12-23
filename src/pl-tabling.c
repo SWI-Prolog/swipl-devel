@@ -6878,6 +6878,33 @@ PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
 	   LD->tabling.in_assert_propagation );
 }
 
+/** '$mono_reeval_prepare'(+ATrie, -Size) is semidet.
+ *
+ *  Prepare  ATrie  for   lazy   monotonic    updates.   Together   with
+ *  '$mono_reeval_done'/2, this should monitor whether   or not the trie
+ *  has been modified. Without answer subsumption,  this is easy: as the
+ *  trie is monotonic no answers  are  deleted   and  thus  the  trie is
+ *  unchanged iff the `value_count` of the trie is unchanged.
+ *
+ *  With  answer  subsumption  this  is  harder  as  each  primary  node
+ *  (`value_count`) has one secondary node (the _ModeArgs_) if no delays
+ *  are involved. With delays  there  can   be  more,  but  as monotonic
+ *  evaluation does not involve negation this is irrelevant to us.
+ *
+ *  We do however need to remember the final node.  We do so by marking
+ *  this node using the flag TN_IDG_AS_LAST.
+ */
+
+static void *
+mono_reeval_prep_node(trie_node *n, void *ctx)
+{ if ( n->value && true(n, TN_SECONDARY) )
+    set(n, TN_IDG_AS_LAST);
+  else
+    clear(n, TN_IDG_AS_LAST);
+
+  return NULL;
+}
+
 static
 PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
 { PRED_LD
@@ -6886,12 +6913,39 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
+    if ( true(atrie, TRIE_ISMAP) )
+      map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
+
     if ( idg->monotonic && idg->lazy )
       return PL_unify_integer(A2, atrie->value_count);
   }
 
   return FALSE;
 }
+
+
+static void *
+mono_reeval_done_node(trie_node *n, void *ctx)
+{ int *gc = ctx;
+
+  if ( n->value && true(n, TN_SECONDARY) )
+  { if ( true(n, TN_IDG_AS_LAST) )
+    { clear(n, TN_IDG_AS_LAST);
+      return NULL;				/* same aggregated value */
+    }
+    return n;					/* new aggregated value */
+  }
+  if ( true(n, TN_IDG_AS_LAST) )
+  { clear(n, TN_IDG_AS_LAST);			/* deleted aggregated value */
+    return n;
+  }
+
+  if ( is_leaf_trie_node(n) && !n->value )
+    (*gc)++;
+
+  return NULL;
+}
+
 
 static
 PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
@@ -6905,9 +6959,21 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 
     if ( (idg=atrie->data.IDG) )
     { if ( atrie->value_count == vc )
-      { DEBUG(MSG_TABLING_MONOTONIC,
-	      print_answer_table(atrie, "no change"));
-	idg_propagate_change(idg, 0);
+      { int clean = TRUE;
+
+	DEBUG(MSG_TABLING_MONOTONIC,
+	      print_answer_table(atrie, "%d answers (same)", vc));
+
+	if ( true(atrie, TRIE_ISMAP) )
+	{ int gc = 0;
+
+	  clean = !map_trie_node(&atrie->root, mono_reeval_done_node, &gc);
+	  if ( gc )
+	    prune_trie(atrie, &atrie->root, NULL, NULL);
+	}
+
+	if ( clean )
+	  idg_propagate_change(idg, 0);
       } else
       { DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(atrie, "%d new answers",

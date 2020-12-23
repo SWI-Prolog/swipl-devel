@@ -47,7 +47,8 @@
 
 test_incr_answer_subsumption :-
     run_tests([ incr_answer_subsumption_1,
-                mono_answer_subsumption_1
+                mono_answer_subsumption_1,
+                mono_answer_subsumption_lazy_1
               ]).
 
 :- meta_predicate
@@ -162,6 +163,47 @@ test(reeval, [cleanup(cleanup([d/1]))]) :-
     expect_valid(p(_)).
 
 :- end_tests(mono_answer_subsumption_1).
+
+:- begin_tests(mono_answer_subsumption_lazy_1).
+
+:- dynamic d/1 as monotonic.
+:- table p(max) as (monotonic,lazy).
+:- table p2/1 as incremental.
+
+p(X) :- d(X).
+p2(X) :- p(X).
+
+test(update, [cleanup(cleanup([d/1]))]) :-
+    init(p2(_)),
+    assertz(d(1)),
+    expect_invalid(p(_)),
+    expect_invalid(p2(_)),
+    expect(X, p(X), [1]),
+    expect_invalid(p2(_)),
+    expect(X, p2(X), [1]),
+    assertz(d(2)),
+    expect_invalid(p(_)),
+    expect_invalid(p2(_)),
+    expect(X, p2(X), [2]),
+    expect_valid(p2(_)).
+
+test(update, [cleanup(cleanup([d/1]))]) :-
+    init(p2(_)),
+    assertz(d(1)),
+    expect_invalid(p(_)),
+    expect_invalid(p2(_)),
+    expect(X, p(X), [1]),
+    expect_invalid(p2(_)),
+    expect(X, p2(X), [1]),
+    assertz(d(2)),
+    expect_invalid(p(_)),
+    expect_invalid(p2(_)),
+    expect(X, p(X), [2]),
+    expect_invalid(p2(_)),
+    expect(X, p2(X), [2]),
+    expect_valid(p2(_)).
+
+:- end_tests(mono_answer_subsumption_lazy_1).
 
 
 		 /*******************************

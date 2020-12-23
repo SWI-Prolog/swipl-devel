@@ -273,6 +273,25 @@ get_child(trie_node *n, word key ARG_LD)
 }
 
 
+int
+is_leaf_trie_node(trie_node *n)
+{ trie_children children = n->children;
+
+  if ( children.any )
+  { switch( children.any->type )
+    { case TN_KEY:
+	return FALSE;
+      case TN_HASHED:
+	return children.hash->table->size == 0;
+      default:
+	assert(0);
+    }
+  }
+
+  return TRUE;
+}
+
+
 static trie_node *
 new_trie_node(trie *trie, word key)
 { trie_node *n;
