@@ -4913,30 +4913,59 @@ query.
 /* $depth_limit(+Limit, -OldLimit, -DepthReached)
 */
 
+static int
+unify_depth_LD(term_t t, size_t depth ARG_LD)
+{ if ( depth == DEPTH_NO_LIMIT )
+    return PL_unify_atom(t, ATOM_inf);
+  else
+    return PL_unify_uint64(t, depth);
+}
+
+static int
+get_depth_LD(term_t t, size_t *depth ARG_LD)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) && a == ATOM_inf )
+  { *depth = DEPTH_NO_LIMIT;
+    return TRUE;
+  }
+
+  return PL_get_size_ex(t, depth);
+}
+
+#define unify_depth(t, d) unify_depth_LD(t, d PASS_LD)
+#define get_depth(t, d)   get_depth_LD(t, d PASS_LD)
+
 static
 PRED_IMPL("$depth_limit", 3, pl_depth_limit, 0)
 { GET_LD
-  long levels;
-  long clevel = levelFrame(environment_frame) - 1;
+  size_t levels;
+  size_t clevel = levelFrame(environment_frame) - 1;
 
-  if ( PL_get_long_ex(A1, &levels) )
-  { if ( PL_unify_integer(A2, depth_limit) &&
-	 PL_unify_integer(A3, depth_reached) )
-    { depth_limit   = clevel + levels + 1; /* 1 for the catch/3 */
-      depth_reached = clevel;
+  if ( PL_get_size_ex(A1, &levels) )
+  { if ( unify_depth(A2, LD->depth_info.limit) &&
+	 unify_depth(A3, LD->depth_info.reached) )
+    { size_t newlimit = clevel + levels + 1; /* 1 for the catch/3 */
+
+      if ( newlimit < clevel )
+	return PL_representation_error("depth_limit");
+
+      LD->depth_info.limit   = newlimit;
+      LD->depth_info.reached = clevel;
 
       updateAlerted(LD);
-      succeed;
+      return TRUE;
     }
   }
 
-  fail;
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
-{ term_t limit = A1;
+{ PRED_LD
+  term_t limit = A1;
   term_t olimit = A2;
   term_t oreached = A3;
   term_t res = A4;
@@ -4944,23 +4973,22 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-    { GET_LD
-      long l, ol, or;
+    { size_t l, ol, or;
 
-      if ( PL_get_long_ex(limit, &l) &&
-	   PL_get_long_ex(olimit, &ol) &&
-	   PL_get_long_ex(oreached, &or) )
+      if ( get_depth(limit, &l) &&
+	   get_depth(olimit, &ol) &&
+	   get_depth(oreached, &or) )
       { intptr_t clevel = levelFrame(environment_frame) - 1;
-	intptr_t used = depth_reached - clevel - 1;
+	intptr_t used = LD->depth_info.reached - clevel - 1;
 
-	depth_limit   = ol;
-	depth_reached = or;
+	LD->depth_info.limit   = ol;
+	LD->depth_info.reached = or;
 	updateAlerted(LD);
 
 	if ( used < 1 )
 	  used = 1;
 	if ( !PL_unify_integer(res, used) )
-	  fail;
+	  return FALSE;
 
 	return unify_det(cut PASS_LD);
       }
@@ -4968,55 +4996,55 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
       break;
     }
     case FRG_REDO:
-    { GET_LD
-      long levels;
-      long clevel = levelFrame(environment_frame) - 1;
+    { size_t levels;
+      size_t clevel = levelFrame(environment_frame) - 1;
 
-      PL_get_long_ex(limit, &levels);
-      depth_limit   = clevel + levels + 1; /* 1 for catch/3 */
-      depth_reached = clevel;
+      if ( !get_depth(limit, &levels) )
+	return FALSE;
+      LD->depth_info.limit   = clevel + levels + 1; /* 1 for catch/3 */
+      LD->depth_info.reached = clevel;
       updateAlerted(LD);
 
-      fail;				/* backtrack to goal */
+      return FALSE;				    /* backtrack to goal */
     }
     case FRG_CUTTED:
-      succeed;
+      return TRUE;
   }
 
-  fail;
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("$depth_limit_false", 3, depth_limit_false, 0)
 { PRED_LD
-  long ol, or;
+  size_t ol, or;
 
-  if ( PL_get_long_ex(A1, &ol) &&
-       PL_get_long_ex(A2, &or) )
-  { int exceeded = (depth_reached > depth_limit);
+  if ( get_depth(A1, &ol) &&
+       get_depth(A2, &or) )
+  { int exceeded = (LD->depth_info.reached > LD->depth_info.limit);
 
-    depth_limit   = ol;
-    depth_reached = or;
+    LD->depth_info.limit   = ol;
+    LD->depth_info.reached = or;
     updateAlerted(LD);
 
     if ( exceeded )
       return PL_unify_atom(A3, ATOM_depth_limit_exceeded);
   }
 
-  fail;
+  return FALSE;
 }
 
 
 static
 PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 { PRED_LD
-  long ol, or;
+  size_t ol, or;
 
-  if ( PL_get_long_ex(A1, &ol) &&
-       PL_get_long_ex(A2, &or) )
-  { depth_limit   = ol;
-    depth_reached = or;
+  if ( get_depth(A1, &ol) &&
+       get_depth(A2, &or) )
+  { LD->depth_info.limit   = ol;
+    LD->depth_info.reached = or;
     updateAlerted(LD);
 
     return PL_raise_exception(A3);

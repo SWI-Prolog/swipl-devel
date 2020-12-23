@@ -75,7 +75,7 @@ resetProlog(int clear_stacks)
   }
 
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = (uintptr_t)DEPTH_NO_LIMIT;
+  LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
 
   LD->autoload.nesting = NULL;

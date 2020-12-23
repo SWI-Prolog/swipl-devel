@@ -1624,11 +1624,11 @@ retry_continue:
     Profile(FR->prof_node = profCall(DEF PASS_LD));
 
 #ifdef O_LIMIT_DEPTH
-    { unsigned int depth = levelFrame(FR);
+    { size_t depth = levelFrame(FR);
 
-      if ( depth > depth_reached )
-	depth_reached = depth;
-      if ( depth > depth_limit )
+      if ( depth > LD->depth_info.reached )
+	LD->depth_info.reached = depth;
+      if ( depth > LD->depth_info.limit )
       { DEBUG(2, Sdprintf("depth-limit\n"));
 
 	if ( debugstatus.debugging )

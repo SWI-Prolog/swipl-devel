@@ -2539,9 +2539,9 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     qf->flags_saved = (LD->prolog_flag.mask.flags & NDEBUG_SAVE_FLAGS);
     setPrologFlagMask(PLFLAG_LASTCALL);
 #ifdef O_LIMIT_DEPTH
-    qf->saved_depth_limit   = depth_limit;
-    qf->saved_depth_reached = depth_reached;
-    depth_limit = DEPTH_NO_LIMIT;
+    qf->saved_depth_limit   = LD->depth_info.limit;
+    qf->saved_depth_reached = LD->depth_info.reached;
+    LD->depth_info.limit    = DEPTH_NO_LIMIT;
 #endif
   }
   fr->predicate      = def;
@@ -2618,8 +2618,8 @@ restore_after_query(QueryFrame qf)
     LD->prolog_flag.mask.flags &= (~NDEBUG_SAVE_FLAGS);
     LD->prolog_flag.mask.flags |= qf->flags_saved;
 #ifdef O_LIMIT_DEPTH
-    depth_limit   = qf->saved_depth_limit;
-    depth_reached = qf->saved_depth_reached;
+    LD->depth_info.limit   = qf->saved_depth_limit;
+    LD->depth_info.reached = qf->saved_depth_reached;
 #endif /*O_LIMIT_DEPTH*/
   }
   updateAlerted(LD);

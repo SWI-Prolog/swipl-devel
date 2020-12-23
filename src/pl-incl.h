@@ -1646,8 +1646,8 @@ struct queryFrame
   } registers;
   LocalFrame	next_environment;	/* See D_BREAK and get_vmi_state() */
 #ifdef O_LIMIT_DEPTH
-  uintptr_t saved_depth_limit;		/* saved values of these */
-  uintptr_t saved_depth_reached;
+  size_t	saved_depth_limit;	/* saved values of these */
+  size_t	saved_depth_reached;
 #endif
 #if O_CATCHTHROW
   term_t	exception;		/* Exception term */
@@ -2445,7 +2445,7 @@ typedef enum
 #define SYSTEM_MODE	    (LD->prolog_flag.access_level == ACCESS_LEVEL_SYSTEM)
 
 #ifdef O_LIMIT_DEPTH
-#define DEPTH_NO_LIMIT	(~(uintptr_t)0x0) /* Highest value */
+#define DEPTH_NO_LIMIT ((size_t)-1) /* Highest value */
 #endif
 
 #ifdef O_INFERENCE_LIMIT

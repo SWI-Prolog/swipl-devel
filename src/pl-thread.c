@@ -3035,12 +3035,12 @@ executeThreadSignals(int sig)
     if ( rval )
     {
 #ifdef O_LIMIT_DEPTH
-      uintptr_t olimit = depth_limit;
-      depth_limit = DEPTH_NO_LIMIT;
+      size_t olimit = LD->depth_info.limit;
+      LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
       rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
 #ifdef O_LIMIT_DEPTH
-      depth_limit = olimit;
+      LD->depth_info.limit = olimit;
 #endif
     } else
     { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
