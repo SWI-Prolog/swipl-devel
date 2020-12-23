@@ -1224,12 +1224,11 @@ PRED_IMPL("$my_file", 1, my_file, 0)
     return FALSE;
 
 #ifdef HAVE_GETUID
-{
-  statstruct buf;
+{ statstruct buf;
   char tmp[MAXPATHLEN];
 
   if ( statfunc(OsPath(n, tmp), &buf) < 0 )
-  { perror("tmp");
+  { perror(tmp);
     return FALSE;
   }
 
