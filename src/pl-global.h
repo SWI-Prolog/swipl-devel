@@ -678,8 +678,8 @@ struct PL_local_data
 
 #ifdef O_LIMIT_DEPTH
   struct
-  { uintptr_t limit;
-    uintptr_t reached;
+  { size_t limit;
+    size_t reached;
   } depth_info;
 #endif
 
@@ -802,8 +802,6 @@ GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #define exception_printed	(LD->exception.printed)
 #define gc_status		(LD->gc.status)
 #define debugstatus		(LD->_debugstatus)
-#define depth_limit		(LD->depth_info.limit)
-#define depth_reached		(LD->depth_info.reached)
 #define base_addresses		(LD->bases)
 #define Suser_input		(LD->IO.streams[0])
 #define Suser_output		(LD->IO.streams[1])

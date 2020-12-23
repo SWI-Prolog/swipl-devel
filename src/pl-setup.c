@@ -160,7 +160,7 @@ void
 initPrologLocalData(ARG1_LD)
 {
 #ifdef O_LIMIT_DEPTH
-  depth_limit   = DEPTH_NO_LIMIT;
+  LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
 #ifdef O_INFERENCE_LIMIT
   LD->inference_limit.limit = INFERENCE_NO_LIMIT;
@@ -508,8 +508,8 @@ dispatch_signal(int sig, int sync)
   { term_t sigterm = PL_new_term_ref();
     qid_t qid;
 #ifdef O_LIMIT_DEPTH
-    uintptr_t olimit = depth_limit;
-    depth_limit = DEPTH_NO_LIMIT;
+    size_t olimit = LD->depth_info.limit;
+    LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
 
     PL_put_atom_chars(sigterm, signal_name(sig));
@@ -520,7 +520,7 @@ dispatch_signal(int sig, int sync)
     if ( PL_next_solution(qid) ) {};		/* cannot ignore return */
     PL_cut_query(qid);
 #ifdef O_LIMIT_DEPTH
-    depth_limit = olimit;
+    LD->depth_info.limit = olimit;
 #endif
   } else if ( true(sh, PLSIG_THROW) )
   { char *predname;
@@ -538,12 +538,12 @@ dispatch_signal(int sig, int sync)
   } else if ( sh->handler )
   { int ex_pending = (exception_term && !sync);
 #ifdef O_LIMIT_DEPTH
-    uintptr_t olimit = depth_limit;
-    depth_limit = DEPTH_NO_LIMIT;
+    uintptr_t olimit = LD->depth_info.limit;
+    LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
     (*sh->handler)(sig);
 #ifdef O_LIMIT_DEPTH
-    depth_limit = olimit;
+    LD->depth_info.limit = olimit;
 #endif
 
     DEBUG(MSG_SIGNAL,

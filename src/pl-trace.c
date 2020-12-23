@@ -952,7 +952,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
     if ( debugstatus.showContext )
       Sfprintf(out, "[%s] ", stringAtom(contextModule(frame)->name));
 #ifdef O_LIMIT_DEPTH
-    if ( levelFrame(frame) > depth_limit )
+    if ( levelFrame(frame) > LD->depth_info.limit )
       Sfprintf(out, "[depth-limit exceeded] ");
 #endif
 
