@@ -92,6 +92,7 @@ test('sequence//3 det element',
                      t(`a`, [a], []),
                      t(`x`, [], `x`),
                      t(`ax`, [a], `x`),
+                     t(`a,a,`, [a,a], `,`),
                      t(`a,a,a`, [a,a,a], ``),
                      t(`a,a,ax`, [a,a,a], `x`)
                     ])),
@@ -101,22 +102,14 @@ test('sequence//3 det element',
     L == Result,
     R == Rest.
 
-test('sequence//3 det element trailing sep', fail) :-
-    phrase(sequence(a, sep, L), `a,`, R),
-    L == [a],
-    R == `,`.
-
-test('sequence//3 det element trailing sep consumed silently', fail) :-
-    phrase(sequence(a, sep, L), `a,`, R),
-    L == [a],
-    R == [].
+test('sequence//3 chaining') :-
+    phrase((sequence(a, sep, [a,a]), sep, sequence(b, sep, [b1,b1])), `a,a,b,b`, []).
 
 test('sequence//3 separator only', fail) :-
     phrase(sequence(a, sep, _L), `,`).
 
 test('sequence//3 nondet element', all(L-R == [
-    [b1,b1]-[],
-    [b1,b2]-[]
+    [b1,b1]-[]
   ])) :-
     phrase(sequence(b, sep, L), `b,b`, R).
 

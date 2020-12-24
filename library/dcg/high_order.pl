@@ -95,8 +95,15 @@ sequence_([], _) -->
 %
 %   See also sequence//5.
 
-sequence(OnElem, OnSep, List) -->
-    sequence_(List, OnElem, OnSep).
+sequence(OnElem, OnSep, L) --> sequence_1(OnElem, OnSep, L), !.
+sequence(_, _, []) --> [].
+
+sequence_1(OnElem, OnSep, [H|T]) -->
+    call(OnElem, H), !,
+    (
+        (OnSep, sequence_1(OnElem, OnSep, T))
+        ;{T=[]}
+    ).
 
 %!  sequence(:Start, :Element, :Sep, :End, ?List)// is semidet.
 %
@@ -117,42 +124,8 @@ sequence(OnElem, OnSep, List) -->
 
 sequence(Start, OnElem, OnSep, End, List) -->
     Start,
-    sequence_(List, OnElem, OnSep),
+    sequence(OnElem, OnSep, List),
     End, !.
-
-sequence_(List, OnElem, OnSep) -->
-    {var(List)},
-    !,
-    (   call(OnElem, H)
-    *-> (   OnSep
-        ->  !,
-            {List = [H|T]},
-            sequence_as(T, OnElem, OnSep)
-        ;   {List=[H]}
-        )
-    ;   {List=[]}
-    ).
-sequence_([H|T], OnElem, OnSep) -->
-    call(OnElem, H),
-    (   {T==[]}
-    ->  []
-    ;   OnSep,
-        sequence_(T, OnElem, OnSep)
-    ).
-sequence_([], _, _) -->
-    [].
-
-%!  sequence_as(?List, :OnElem, :OnSep)//
-%
-%   Matches: Elem, (Sep,Elem)*
-
-sequence_as([H|T], OnElem, OnSep) -->
-    call(OnElem, H),
-    (   OnSep
-    ->  !,
-        sequence_as(T, OnElem, OnSep)
-    ;   {T=[]}
-    ).
 
 %!  optional(:Match, :Default)// is det.
 %
