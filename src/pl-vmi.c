@@ -1589,6 +1589,7 @@ retry_continue:
   if ( unlikely(LD->alerted) )
   {					/* play safe */
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
+    PC = DEF->codes;
 
 					/* we need the autoloader and get back */
     if ( DEF->codes[0] == encode(S_VIRGIN) &&
