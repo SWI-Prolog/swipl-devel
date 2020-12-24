@@ -114,10 +114,11 @@ test('sequence//3 det element trailing sep consumed silently', fail) :-
 test('sequence//3 separator only', fail) :-
     phrase(sequence(a, sep, _L), `,`).
 
-test('sequence//3 nondet element', nondet) :-
-    phrase(sequence(string, sep, L), `b,b`, R),
-    L == [`b`, `b`],
-    R == [].
+test('sequence//3 nondet element', all(L-R == [
+    [b1,b1]-[],
+    [b1,b2]-[]
+  ])) :-
+    phrase(sequence(b, sep, L), `b,b`, R).
 
 test('sequence//5 det element',
      [forall(member(t(Codes, Result, Rest),
@@ -138,9 +139,9 @@ test('sequence//5 det element trailing sep', fail) :-
 test('sequence//5 sep only', fail) :-
     phrase(sequence(start, a, sep, end, _L), `(,)`, _R).
 
-test('sequence//5 nondet element') :-
-    phrase(sequence(start, string, sep, end, L), `(b,b)`, R),
-    L == [`b`, `b`],
-    R == [].
+test('sequence//5 nondet element', all(L-R == [
+    [b1,b1]-[]
+  ])) :-
+phrase(sequence(start, b, sep, end, L), `(b,b)`, R).
 
 :- end_tests(sequence).
