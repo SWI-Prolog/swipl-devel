@@ -2493,9 +2493,10 @@ message(server_reply(exception(E))) -->
     [ 'Server reported the following error:'-[], nl ],
     '$messages':translate_message(E).
 message(cannot_create_dir(Alias)) -->
-    { setof(PackDir,
-            absolute_file_name(Alias, PackDir, [solutions(all)]),
-            PackDirs)
+    { findall(PackDir,
+              absolute_file_name(Alias, PackDir, [solutions(all)]),
+              PackDirs0),
+      sort(PackDirs0, PackDirs)
     },
     [ 'Cannot find a place to create a package directory.'-[],
       'Considered:'-[]
