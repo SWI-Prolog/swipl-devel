@@ -1102,17 +1102,17 @@ user:file_search_path(user_profile, app_preferences('.')).
     ).
 
 
-%!  expand_file_search_path(+Spec, -Expanded, +Cond) is nondet.
+%!  '$expand_file_search_path'(+Spec, -Expanded, +Cond) is nondet.
 
-expand_file_search_path(Spec, Expanded, Cond) :-
-    Access = Cond.get(access),
+'$expand_file_search_path'(Spec, Expanded, Cond) :-
+    '$option'(access(Access), Cond),
     memberchk(Access, [write,append]),
     !,
     setup_call_cleanup(
         nb_setval('$create_search_directories', true),
         expand_file_search_path(Spec, Expanded),
         nb_delete('$create_search_directories')).
-expand_file_search_path(Spec, Expanded, _Cond) :-
+'$expand_file_search_path'(Spec, Expanded, _Cond) :-
     expand_file_search_path(Spec, Expanded).
 
 %!  expand_file_search_path(+Spec, -Expanded) is nondet.
@@ -1390,7 +1390,7 @@ user:prolog_file_type(dylib,    executable) :-
 
 '$chk_alias_file'(Spec, Exts, Cond, true, CWD, FullFile) :-
     !,
-    findall(Exp, expand_file_search_path(Spec, Exp, Cond), Expansions),
+    findall(Exp, '$expand_file_search_path'(Spec, Exp, Cond), Expansions),
     current_prolog_flag(emulated_dialect, Dialect),
     Cache = cache(Exts, Cond, CWD, Expansions, Dialect),
     variant_sha1(Spec+Cache, SHA1),
@@ -1411,7 +1411,7 @@ user:prolog_file_type(dylib,    executable) :-
         )
     ).
 '$chk_alias_file'(Spec, Exts, Cond, false, _CWD, FullFile) :-
-    expand_file_search_path(Spec, Expanded),
+    '$expand_file_search_path'(Spec, Expanded, Cond),
     '$extend_file'(Expanded, Exts, LibFile),
     '$file_conditions'(Cond, LibFile),
     '$absolute_file_name'(LibFile, FullFile).
