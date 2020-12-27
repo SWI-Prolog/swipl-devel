@@ -103,7 +103,7 @@ means that these calls are identical:
 %   those elements Xi of List1 for which call(Goal, Xi) succeeds.
 %
 %   @see exclude/3, partition/4, convlist/3.
-%   @comat Older versions of SWI-Prolog  had   sublist/3  with  the same
+%   @compat Older versions of SWI-Prolog had sublist/3 with the same
 %   arguments and semantics.
 
 include(Goal, List, Included) :-
