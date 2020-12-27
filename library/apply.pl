@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2015, University of Amsterdam
+    Copyright (c)  2007-2020, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -98,11 +99,12 @@ means that these calls are identical:
 
 %!  include(:Goal, +List1, ?List2) is det.
 %
-%   Filter elements for which Goal succeeds.  True if List2 contains
+%   Filter elements for which Goal  succeeds.   True  if  List2 contains
 %   those elements Xi of List1 for which call(Goal, Xi) succeeds.
 %
-%   @see    Older versions of SWI-Prolog had sublist/3 with the same
-%           arguments and semantics.
+%   @see exclude/3, partition/4, convlist/3.
+%   @comat Older versions of SWI-Prolog  had   sublist/3  with  the same
+%   arguments and semantics.
 
 include(Goal, List, Included) :-
     include_(List, Goal, Included).
@@ -118,8 +120,10 @@ include_([X1|Xs1], P, Included) :-
 
 %!  exclude(:Goal, +List1, ?List2) is det.
 %
-%   Filter elements for which Goal fails.  True if List2 contains
-%   those elements Xi of List1 for which call(Goal, Xi) fails.
+%   Filter elements for which Goal fails.   True if List2 contains those
+%   elements Xi of List1 for which call(Goal, Xi) fails.
+%
+%   @see include/3, partition/4
 
 exclude(Goal, List, Included) :-
     exclude_(List, Goal, Included).
@@ -138,6 +142,8 @@ exclude_([X1|Xs1], P, Included) :-
 %   Filter elements of List according  to   Pred.  True  if Included
 %   contains all elements  for  which   call(Pred,  X)  succeeds and
 %   Excluded contains the remaining elements.
+%
+%   @see include/3, exclude/3, partition/5.
 
 partition(Pred, List, Included, Excluded) :-
     partition_(List, Pred, Included, Excluded).
@@ -158,6 +164,8 @@ partition_([H|T], Pred, Incl, Excl) :-
 %   of List, its destination is determined by call(Pred, Xi, Place),
 %   where Place must be unified to  one   of  =|<|=, =|=|= or =|>|=.
 %   Pred must be deterministic.
+%
+%   @see partition/4
 
 partition(Pred, List, Less, Equal, Greater) :-
     partition_(List, Pred, Less, Equal, Greater).
