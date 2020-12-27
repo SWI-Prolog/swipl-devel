@@ -74,6 +74,7 @@ include(InstallSource)
 include(QLF)
 include(PackageSelection)
 include(Dependencies)
+include(DocDepends)
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set_install_prefix()
