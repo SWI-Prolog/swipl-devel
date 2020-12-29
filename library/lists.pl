@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2016, University of Amsterdam
+    Copyright (c)  2002-2020, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -55,6 +56,7 @@
           reverse/2,                    % +List, -Reversed
           permutation/2,                % ?List, ?Permutation
           flatten/2,                    % +Nested, -Flat
+          clumped/2,                    % +Items,-Pairs
 
                                         % Ordered operations
           max_member/2,                 % -Max, +List
@@ -492,6 +494,39 @@ flatten([Hd|Tl], Tail, List) :-
     flatten(Hd, FlatHeadTail, List),
     flatten(Tl, Tail, FlatHeadTail).
 flatten(NonList, Tl, [NonList|Tl]).
+
+
+		 /*******************************
+		 *            CLUMPS		*
+		 *******************************/
+
+%!  clumped(+Items, -Pairs)
+%
+%   True when Pairs is a set  of   Item-Count  pairs  where Count is the
+%   number of times Item occurs  in   Items.  Items are considered equal
+%   based on ==/2. The elements of Pairs   are  ordered according to the
+%   standard order of terms. Items need  not   be  sorted on input. Note
+%   that,  given  a  list  of  words,  this  predicates  realises  _word
+%   frequency counting_.
+%
+%   @see sort/4 may be used to sort the clumps by count
+%   @compat SICStus
+
+clumped(Items, Counts) :-
+    msort(Items, Sorted),
+    clump(Sorted, Counts).
+
+clump([], []).
+clump([H|T0], [H-C|T]) :-
+    ccount(T0, H, T1, 1, C),
+    clump(T1, T).
+
+ccount([H|T0], E, T, C0, C) :-
+    E == H,
+    !,
+    C1 is C0+1,
+    ccount(T0, E, T, C1, C).
+ccount(List, _, List, C, C).
 
 
                  /*******************************
