@@ -586,12 +586,12 @@ Updated p/1: retractall end(user:p(_12294))
     is the local action being reverted and is one of \const{asserta},
     \const{assertz} or \const{retract}.  Context is the involved
     clause.  See transaction/1 and snapshot/1.
-	\end{description}
 	\termitem{new_answer}{}
     A new answer was added to a tabled predicate. The context
     is the answer term.  Currently implemented for \jargon{monotonic}
     tabling only.  Future versions may also implement this for normal
     tabling.  See \secref{tabling-tracking}.
+	\end{description}
     \end{description}
 
     \predicate{prolog_unlisten}{2}{+Channel, :Closure}
