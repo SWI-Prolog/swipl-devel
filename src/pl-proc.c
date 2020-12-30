@@ -2381,14 +2381,11 @@ maybeUnregisterDirtyDefinition(Definition def)
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
     assert(def->module == NULL);
     if ( def->impl.clauses.first_clause == NULL )
-    { if ( def->lingering )
-      { static int done = FALSE;
-	if ( !done )
-	{ Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
-		   predicateName(def));
-	  done = TRUE;
-	}
-      }
+    { DEBUG(0,
+	    if ( def->lingering )
+	    { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
+		       predicateName(def));
+	    });
       unregisterDirtyDefinition(def);
       deleteIndexes(&def->impl.clauses, TRUE);
       freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
