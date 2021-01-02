@@ -71,6 +71,7 @@ documented at all.
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
 \input{tables}
+\input{terms}
 \input{thread}
 \input{threadpool}
 \input{ugraphs}
