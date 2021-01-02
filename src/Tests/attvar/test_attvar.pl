@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2020, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,19 +45,20 @@ unification is wrong you won't get as far as running this test :-)
 */
 
 test_attvar :-
-	run_tests([ attvar,
-		    freeze
-		  ]).
+    run_tests([ attvar,
+		freeze,
+		attvar_with_occurs_check
+	      ]).
 
 :- begin_tests(attvar).
 
 test(s_list, L==Codes) :-		% Verify wakeup on S_LIST
-	string_codes("hello", Codes),
-	freeze(X, X=Codes),
-	append(X, [], L).
+    string_codes("hello", Codes),
+    freeze(X, X=Codes),
+    append(X, [], L).
 test(true_ndet, error(existence_error(procedure,_))) :-
-	freeze(X, wake(X)),
-	between(-2, 2, X).
+    freeze(X, wake(X)),
+    between(-2, 2, X).
 
 wake(2) :-
 	i_am_undefined.
@@ -66,10 +68,21 @@ wake(2) :-
 :- begin_tests(freeze).
 
 test(freeze_and, true) :-
-	freeze(X, true),
-	freeze(Y, true),
-	X=Y,
-	freeze(X, true),
-	X=a.
+    freeze(X, true),
+    freeze(Y, true),
+    X=Y,
+    freeze(X, true),
+    X=a.
 
 :- end_tests(freeze).
+
+:- begin_tests(attvar_with_occurs_check).
+
+test(occurs_check, fail) :-
+    freeze(A, writeln(A)),
+    freeze(B, writeln(B)),
+    Q=[[[A],[B]],x],
+    P=[A|B],
+    unify_with_occurs_check(P, Q).
+
+:- end_tests(attvar_with_occurs_check).
