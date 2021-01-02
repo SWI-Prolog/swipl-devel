@@ -651,6 +651,7 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
   }
 
   Mark(m);
+  LD->mark_bar = NO_MARK_BAR;		/* see also unify_all_trail_ptrs() */
   rc = do_unify(t1, t2 PASS_LD);
   DiscardMark(m);
 
