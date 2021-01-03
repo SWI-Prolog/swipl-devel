@@ -904,9 +904,12 @@ default_module(Me, Super) :-
 
 '$loading'(Library) :-
     current_prolog_flag(threads, true),
-    '$loading_file'(FullFile, _Queue, _LoadThread),
-    file_name_extension(Library, _, FullFile),
-    !.
+    (   '$loading_file'(Library, _Queue, _LoadThread)
+    ->  true
+    ;   '$loading_file'(FullFile, _Queue, _LoadThread),
+        file_name_extension(Library, _, FullFile)
+    ->  true
+    ).
 
 %        handle debugger 'w', 'p' and <N> depth options.
 
