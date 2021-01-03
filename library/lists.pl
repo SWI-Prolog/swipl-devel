@@ -502,19 +502,18 @@ flatten(NonList, Tl, [NonList|Tl]).
 
 %!  clumped(+Items, -Pairs)
 %
-%   True when Pairs is a set  of   Item-Count  pairs  where Count is the
-%   number of times Item occurs  in   Items.  Items are considered equal
-%   based on ==/2. The elements of Pairs   are  ordered according to the
-%   standard order of terms. Items need  not   be  sorted on input. Note
-%   that,  given  a  list  of  words,  this  predicates  realises  _word
-%   frequency counting_.
+%   Pairs is a list  of  `Item-Count`   pairs  that  represents the _run
+%   length encoding_ of Items.  For example:
 %
-%   @see sort/4 may be used to sort the clumps by count
+%   ```
+%   ?- clumped([a,a,b,a,a,a,a,c,c,c], R).
+%   R = [a-2, b-1, a-4, c-3].
+%   ```
+%
 %   @compat SICStus
 
 clumped(Items, Counts) :-
-    msort(Items, Sorted),
-    clump(Sorted, Counts).
+    clump(Items, Counts).
 
 clump([], []).
 clump([H|T0], [H-C|T]) :-
