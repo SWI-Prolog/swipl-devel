@@ -483,7 +483,8 @@ dispatch_signal(int sig, int sync)
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync)) &&
-       !is_fatal_signal(sig) )
+       !is_fatal_signal(sig) &&
+       sig != SIGINT )
   { PL_raise(sig);			/* wait for better times! */
     return;
   }
