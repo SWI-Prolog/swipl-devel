@@ -33,10 +33,7 @@
 :- module(sicstus4_terms,
 	  [ term_variables_set/2,	% @Term, -Variables
 	    subsumeschk/2,		% +Generic, @Specific
-	    term_order/3,		% @X, @Y, -R
-	    same_functor/2,		% ?T1, ?T2
-	    same_functor/3,		% ?T1, ?T2, ?N
-	    same_functor/4		% ?T1, ?T2, ?F, ?N
+	    term_order/3		% @X, @Y, -R
 	  ]).
 :- reexport('../sicstus/terms').
 
@@ -89,23 +86,3 @@ subsumeschk(Generic, Specific) :- subsumes_chk(Generic, Specific).
 %	@deprecated Use the standard compare/3 instead.
 
 term_order(X, Y, R) :- compare(R, X, Y).
-
-%%	same_functor(?T1, ?T2) is semidet.
-%%	same_functor(?T1, ?T2, ?N) is semidet.
-%%	same_functor(?T1, ?T2, ?F, ?N) is semidet.
-%
-%	True if T1 and T2 have the same functor F and arity N.
-%	Any unbound arguments will be computed from the bound arguments if possible.
-%	At least one of T1, T2, or both F and N must be bound,
-%	otherwise an error is thrown.
-
-same_functor(T1, T2) :- same_functor(T1, T2, _, _).
-same_functor(T1, T2, N) :- same_functor(T1, T2, _, N).
-same_functor(T1, T2, F, N) :-
-	nonvar(T1),
-	!,
-	functor(T1, F, N),
-	functor(T2, F, N).
-same_functor(T1, T2, F, N) :-
-	functor(T2, F, N),
-	functor(T1, F, N).
