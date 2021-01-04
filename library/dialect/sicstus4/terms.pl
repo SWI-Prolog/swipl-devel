@@ -36,6 +36,15 @@
 	    term_order/3		% @X, @Y, -R
 	  ]).
 :- reexport('../sicstus/terms').
+:- reexport('../../occurs',
+	    [ contains_term/2,
+	      free_of_term/2,
+	      occurrences_of_term/3,
+	      contains_var/2,
+	      free_of_var/2,
+	      occurrences_of_var/3,
+	      sub_term/2
+	    ]).
 
 :- multifile sicstus4:rename_module/2.
 
@@ -47,13 +56,6 @@ sicstus4:rename_module(terms, sicstus4_terms).
 	As of SICStus 4.6.0, the following predicates are missing:
 
 	* term_hash/3
-	* contains_term/2
-	* free_of_term/2
-	* occurrences_of_term/2
-	* contains_var/2
-	* free_of_var/2
-	* occurrences_of_var/2
-	* sub_term/2
 	* depth_bound/2
 	* length_bound/2
 	* size_bound/2
