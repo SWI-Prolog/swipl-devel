@@ -2322,6 +2322,7 @@ rlc_make_buffer(int w, int h)
   b->imodeswitch    = FALSE;
   b->lhead	    = NULL;
   b->ltail	    = NULL;
+  InitializeCriticalSection(&b->lock);
 
   memset(b->lines, 0, sizeof(text_line) * h);
   for(i=0; i<h; i++)
@@ -3426,12 +3427,14 @@ rlc_write(rlc_console c, TCHAR *buf, size_t count)
   if ( !b )
     return -1;
 
+  EnterCriticalSection(&b->lock);
   for(s=buf, e=&buf[count]; s<e; s++)
   { if ( *s == '\n' )
       b->promptlen = 0;
     else if ( b->promptlen < MAXPROMPT-1 )
       b->promptbuf[b->promptlen++] = *s;
   }
+  LeaveCriticalSection(&b->lock);
 
   if ( b->window )
   { if ( SendMessageTimeout(b->window,
@@ -3468,6 +3471,7 @@ free_rlc_data(RlcData b)
   }
   if ( b->read_buffer.line )
     free(b->read_buffer.line);
+  DeleteCriticalSection(&b->lock);
 
   free(b);
 }
