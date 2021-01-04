@@ -31,7 +31,8 @@
 */
 
 :- module(sicstus4,
-	  [ op(1100, xfy, (do))
+	  [ nonmember/2,		% ?Element, ?List
+	    op(1100, xfy, (do))
 	  ]).
 :- reexport(sicstus,
 	    [ (block)/1,
@@ -122,6 +123,14 @@ system:goal_expansion(M:Goal, SicstusM:Goal) :-
 	atom(M),
 	rename_module(M, SicstusM),
 	prolog_load_context(dialect, sicstus4).
+
+
+%%	nonmember(?Element, ?List) is semidet.
+%
+%	True if Element doesn't unify with any element in List.
+%	No variables are bound.
+
+nonmember(Element, List) :- \+ memberchk(Element, List).
 
 % Provide (\)/2 as arithmetic function.  Ideally, we should be able to
 % bind multiple names to built-in functions.  This is rather slow.  We
