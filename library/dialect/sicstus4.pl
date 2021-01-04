@@ -41,6 +41,7 @@
 	      bb_get/2,
 	      bb_delete/2,
 	      bb_update/3,
+	      is_mutable/1 as mutable,
 	      create_mutable/2,
 	      get_mutable/2,
 	      update_mutable/2,

@@ -44,6 +44,7 @@
 	    bb_delete/2,		% :Key, -Value
 	    bb_update/3,		% :Key, -Old, +New
 
+	    is_mutable/1,		% @Term
 	    create_mutable/2,		% ?Value, -Mutable
 	    get_mutable/2,		% ?Value, +Mutable
 	    update_mutable/2,		% ?Value, !Mutable
@@ -345,6 +346,16 @@ bb_update(Key, Old, New) :-
 		 /*******************************
 		 *	     MUTABLES		*
 		 *******************************/
+
+%%	is_mutable(@Term) is det.
+%
+%	True if Term is bound to a mutable term.
+%
+%	@compat sicstus
+
+is_mutable(Term) :-
+	nonvar(Term),
+	functor(Term, '$mutable', 2).
 
 %%	create_mutable(?Value, -Mutable) is det.
 %
