@@ -1123,14 +1123,14 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	  if ( rlc_kill(b) )
 	    return 0;
 	  break;
-      }
+	default:
+	  if ( (name = lookupMenuId(item)) )
+	  { if ( _rlc_menu_hook )
+	    { (*_rlc_menu_hook)(b, name);
+	    }
 
-      if ( (name = lookupMenuId(item)) )
-      { if ( _rlc_menu_hook )
-	{ (*_rlc_menu_hook)(b, name);
-	}
-
-	return 0;
+	    return 0;
+	  }
       }
 
       break;
