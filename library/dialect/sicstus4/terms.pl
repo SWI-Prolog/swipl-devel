@@ -60,7 +60,6 @@ sicstus4:rename_module(terms, sicstus4_terms).
 	* length_bound/2
 	* size_bound/2
 	* term_depth/2
-	* term_size/2
 
 @see	https://sicstus.sics.se/sicstus/docs/4.6.0/html/sicstus.html/lib_002dterms.html
 */
