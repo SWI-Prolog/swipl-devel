@@ -60,9 +60,11 @@
 	      same_length/2,
 	      select/4,
 	      selectchk/4,
+	      sum_list/2 as sumlist,
 	      prefix/2,
 	      max_member/2,
-	      min_member/2
+	      min_member/2,
+	      clumped/2
 	    ]).
 :- reexport('../../apply',
 	    [ maplist/2,
@@ -70,8 +72,10 @@
 	      maplist/4,
 	      convlist/3,
 	      exclude/3,
-	      include/3
+	      include/3,
+	      partition/5
 	    ]).
+:- reexport('../../clp/clpfd', [transpose/2]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 
 :- multifile sicstus4:rename_module/2.
@@ -93,8 +97,6 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* rev/2
 	* same_length/3
 	* shorter_list/2
-	* sumlist/2
-	* transpose/2
 	* append_length/[3,4]
 	* prefix_length/3
 	* proper_prefix_length/3
@@ -117,7 +119,6 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* somechk/[2,3,4]
 	* exclude/[4,5]
 	* include/[4,5]
-	* partition/5
 	* group/[3,4,5]
 	* ordered/[1,2]
 	* max_member/3
@@ -128,7 +129,6 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* decreasing_prefix/[3,4]
 	* clumps/2
 	* keyclumps/2
-	* clumped/2
 	* keyclumped/2
 
 @see	https://sicstus.sics.se/sicstus/docs/4.6.0/html/sicstus.html/lib_002dlists.html
