@@ -1428,8 +1428,14 @@ rlc_wnd_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 static int
 rlc_get_message(MSG *msg, HWND hwnd, UINT low, UINT high)
 { int rc;
+
 again:
-  if ( (rc=GetMessage(msg, hwnd, low, high)) )
+  if ( (rc=PeekMessage(msg, hwnd, low, WM_RLC_INPUT, PM_REMOVE)) )
+  { if ( _rlc_message_hook &&
+	 (*_rlc_message_hook)(msg->hwnd, msg->message,
+			      msg->wParam, msg->lParam) )
+      goto again;
+  } else if ( (rc=GetMessage(msg, hwnd, low, high)) )
   { if ( _rlc_message_hook &&
 	 (*_rlc_message_hook)(msg->hwnd, msg->message,
 			      msg->wParam, msg->lParam) )
