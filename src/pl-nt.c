@@ -222,6 +222,8 @@ Pause(double t)
 	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
 	{ TranslateMessage(&msg);
 	  DispatchMessage(&msg);
+	  if ( PL_exception(0) )
+	    return FALSE;
 	}
 
 	if ( PL_handle_signals() < 0 )
