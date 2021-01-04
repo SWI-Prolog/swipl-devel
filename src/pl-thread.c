@@ -1467,7 +1467,10 @@ PL_w32thread_raise(DWORD id, int sig)
     { PL_local_data_t *ld = info->thread_data;
 
       PL_UNLOCK(L_THREAD);
-      raiseSignal(ld, sig);
+      if ( pendingSignal(ld, sig) )
+	ld->signal.forced = sig;
+      else
+	raiseSignal(ld, sig);
       PostThreadMessage(id, WM_SIGNALLED, 0, 0L);
       DEBUG(MSG_THREAD, Sdprintf("Signalled %d to thread %d\n", sig, i));
       return TRUE;

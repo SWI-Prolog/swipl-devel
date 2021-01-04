@@ -1061,21 +1061,50 @@ int
 PL_handle_signals(void)
 { GET_LD
 
-  if ( !HAS_LD || LD->critical || !is_signalled(PASS_LD1) )
+  if ( !is_signalled(PASS_LD1) )
     return 0;
-  if ( exception_term )
-    return -1;
-
-  return handleSignals(PASS_LD1);
+  else
+    return handleSignals(PASS_LD1);
 }
 
+#ifndef __unix__
+static int
+handleSigInt(ARG1_LD)
+{ int intmask = 1<<(SIGINT-1);
+
+  if ( LD->signal.forced == SIGINT && LD->signal.pending[0] & intmask )
+  { ATOMIC_AND(&LD->signal.pending[0], ~intmask);
+
+    LD->signal.forced = 0;
+    dispatch_signal(SIGINT, TRUE);
+
+    if ( exception_term )
+      return -1;
+    updateAlerted(LD);
+
+    return 1;
+  }
+
+  return 0;
+}
+#endif
 
 int
 handleSignals(ARG1_LD)
 { int done = 0;
   int i;
 
-  if ( !HAS_LD || LD->critical )
+  if ( !is_signalled(PASS_LD1) )
+    return 0;
+  if ( !HAS_LD )
+    return 0;
+  if ( exception_term )
+    return -1;
+#ifndef __unix__				/* on Unix we ask to signal twice */
+  if ( (done=handleSigInt(PASS_LD1)) )
+    return done;
+#endif
+  if ( LD->critical )
     return 0;
 
   for(i=0; i<2; i++)

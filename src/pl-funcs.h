@@ -71,6 +71,7 @@ COMMON(fid_t)		PL_open_signal_foreign_frame(int sync);
 COMMON(int)		foreignWakeup(term_t ex ARG_LD);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
+COMMON(int)		pendingSignal(PL_local_data_t *ld, int sig);
 COMMON(Module)		contextModule(LocalFrame fr);
 COMMON(void)		setContextModule(LocalFrame fr, Module context);
 COMMON(int)		existingChoice(Choice ch ARG_LD);
