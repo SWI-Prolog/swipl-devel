@@ -4865,14 +4865,7 @@ PL_raise(int sig)
 
 int
 PL_pending__LD(int sig ARG_LD)
-{ if ( sig > 0 && sig <= MAXSIGNAL && HAS_LD )
-  { int off  = (sig-1)/32;
-    int mask = 1 << ((sig-1)%32);
-
-    return (LD->signal.pending[off] & mask) ? TRUE : FALSE;
-  }
-
-  return -1;
+{ return pendingSignal(LD, sig);
 }
 
 

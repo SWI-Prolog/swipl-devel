@@ -1640,9 +1640,11 @@ interruptHandler(int sig)
       return;
     }
   } else
-#endif					/* no async signals; always safe */
   { safe = TRUE;
   }
+#else
+  safe = !LD->critical;
+#endif					/* no async signals; always safe */
 
   Sreset();
 again:

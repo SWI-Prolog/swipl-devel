@@ -449,6 +449,9 @@ struct PL_local_data
   { int		pending[2];		/* PL_raise() pending signals */
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
+#ifndef __unix__
+    int		forced;			/* Forced signal */
+#endif
   } signal;
 
   struct

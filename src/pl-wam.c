@@ -316,6 +316,19 @@ raiseSignal(PL_local_data_t *ld, int sig)
 }
 
 
+int
+pendingSignal(PL_local_data_t *ld, int sig)
+{ if ( sig > 0 && sig <= MAXSIGNAL && ld )
+  { int off  = (sig-1)/32;
+    int mask = 1 << ((sig-1)%32);
+
+    return (ld->signal.pending[off] & mask) ? TRUE : FALSE;
+  }
+
+  return -1;
+}
+
+
 		 /*******************************
 		 *	   STACK-LAYOUT		*
 		 *******************************/
