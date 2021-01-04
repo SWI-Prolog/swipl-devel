@@ -1464,10 +1464,11 @@ PL_w32thread_raise(DWORD id, int sig)
   { PL_thread_info_t *info = GD->thread.threads[i];
 
     if ( info && info->w32id == id && info->thread_data )
-    { raiseSignal(info->thread_data, sig);
-      if ( info->w32id )
-	PostThreadMessage(info->w32id, WM_SIGNALLED, 0, 0L);
+    { PL_local_data_t *ld = info->thread_data;
+
       PL_UNLOCK(L_THREAD);
+      raiseSignal(ld, sig);
+      PostThreadMessage(id, WM_SIGNALLED, 0, 0L);
       DEBUG(MSG_THREAD, Sdprintf("Signalled %d to thread %d\n", sig, i));
       return TRUE;
     }
