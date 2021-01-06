@@ -49,6 +49,7 @@
             incr_invalidate_calls/1,		% :Goal
             incr_table_update/0
           ]).
+:- use_module(library(tables)).
 
 /** <module> XSB incremental dynamic predicate modification
 
@@ -159,7 +160,7 @@ invalid_subgoal(Goal, ATrie) :-
 %   True when Subgoal's table is marked as invalid.
 
 incr_is_invalid(Subgoal) :-
-    current_table(Subgoal, Table),
+    get_calls(Subgoal, Table, _Return),
     '$idg_falsecount'(Table, Count),
     Count > 0.
 
