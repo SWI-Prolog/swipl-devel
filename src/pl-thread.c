@@ -5397,9 +5397,11 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
     { case CV_INTR:
 	if ( PL_handle_signals() >= 0 )
 	  continue;
-        goto error;
+        rc = FALSE;
+        goto out_for_loop;
       case CV_TIMEDOUT:
-	break;
+	rc = FALSE;
+        goto out_for_loop;
       case CV_MAYBE:
 	ign_filter = TRUE;
       case CV_READY:
@@ -5408,7 +5410,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
 	assert(0);
     }
   }
-error:
+out_for_loop:
   simpleMutexUnlock(&module->wait->mutex);
 
 out:
