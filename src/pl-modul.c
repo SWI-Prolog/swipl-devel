@@ -583,7 +583,7 @@ clearSupersModule(Module m)
 int
 setSuperModule(Module m, Module s)
 { if ( s == m )
-    cannotSetSuperModule(m, s);
+    return cannotSetSuperModule(m, s);
 
   if ( m->supers && !m->supers->next )
   { if ( (Module)m->supers->value != s )
@@ -1284,7 +1284,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
     clearHTable(module->public);
   }
   if ( super )
-    setSuperModule(module, _lookupModule(super PASS_LD));
+    rc = setSuperModule(module, _lookupModule(super PASS_LD));
 
   PL_UNLOCK(L_MODULE);
 
@@ -1292,11 +1292,12 @@ declareModule(atom_t name, atom_t class, atom_t super,
   { if ( !PL_unify_nil(rtail) )
       return FALSE;
 
-    rc = printMessage(ATOM_warning,
-		      PL_FUNCTOR_CHARS, "declare_module", 2,
-		        PL_ATOM, name,
-		        PL_FUNCTOR_CHARS, "abolish", 1,
-		          PL_TERM, rdef);
+    if ( rc )
+      rc = printMessage(ATOM_warning,
+			PL_FUNCTOR_CHARS, "declare_module", 2,
+			  PL_ATOM, name,
+			  PL_FUNCTOR_CHARS, "abolish", 1,
+			    PL_TERM, rdef);
   }
 
   return rc;
