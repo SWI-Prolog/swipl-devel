@@ -146,18 +146,6 @@ test(closure2, PairsMS == PairsAS) :-
     sort(PairsM, PairsMS),
     sort(PairsA, PairsAS).
 
-% Test dependency error
-
-:- dynamic de/1 as monotonic.
-:- table pe/1.
-
-pe(X) :- de(Y), X is 7*Y.
-
-test(dep_error,
-     error(dependency_error(plunit_monotonic_tabling:pe(_),
-                            monotonic(plunit_monotonic_tabling:de(_))))) :-
-    pe(_).
-
 % Incremental tables can depend on monotonic tables
 
 :- dynamic dx/1 as (incremental,monotonic).

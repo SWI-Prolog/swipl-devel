@@ -6870,12 +6870,30 @@ PRED_IMPL("$tbl_propagate_end", 1, tbl_propagate_end, 0)
   return PL_get_integer_ex(A1, &LD->tabling.in_assert_propagation);
 }
 
+/** '$tbl_collect_mono_dep' is semidet.
+ *
+ * True when we are either in monotonic propagation or the inner
+ * tabled predicate is monotonic.  In this case the dynamic predicate
+ * call must shift/1 to establish the dependency.
+ */
+
 static
 PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
 { PRED_LD
+  trie *dep;
 
-  return ( LD->tabling.has_scheduling_component ||
-	   LD->tabling.in_assert_propagation );
+  if ( LD->tabling.in_assert_propagation )
+    return TRUE;
+
+  if ( LD->tabling.has_scheduling_component &&
+       (dep=idg_current(PASS_LD1)) )
+  { Definition def = dep->data.predicate;
+
+    if ( def->tabling && true(def->tabling, TP_MONOTONIC) )
+      return TRUE;
+  }
+
+  return FALSE;
 }
 
 /** '$mono_reeval_prepare'(+ATrie, -Size) is semidet.
