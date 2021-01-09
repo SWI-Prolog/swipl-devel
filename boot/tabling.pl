@@ -1662,6 +1662,7 @@ propagate_assert(Head) :-
     tdebug(monotonic, 'Asserted ~p', [Head]),
     (   monotonic_dyn_affects(Head, Cont, Skel, ATrie),
         tdebug(monotonic, 'Propagating dyn ~p to ~p', [Head, ATrie]),
+        '$idg_set_current'(_, ATrie),
         pdelim(Cont, Skel, ATrie),
         fail
     ;   true

@@ -6378,7 +6378,6 @@ typedef struct idg_propagate_state
 } idg_propagate_state;
 
 #define IDG_CHANGED_NODE	0x0001
-#define IDG_INVALIDATE		0x0002
 
 static void
 idg_changed_loop(idg_propagate_state *state, int flags)
@@ -6404,8 +6403,8 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       { if ( table_is_incomplete(n->atrie) )
 	  state->incomplete = n->atrie;		/* return? */
 
-	if ( (flags&IDG_INVALIDATE) )		/* retract on monotonic dependency */
-	{ mdep_empty_queue(v);
+	if ( n->monotonic )			/* retract on monotonic dependency */
+	{ mdep_empty_queue(v);			/* ot incremental affecting monotonic */
 	  n->force_reeval = TRUE;
 	}
 
@@ -7045,7 +7044,7 @@ PRED_IMPL("$idg_mono_invalidate", 1, idg_mono_invalidate, 0)
 { trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-    return idg_changed(atrie, IDG_CHANGED_NODE|IDG_INVALIDATE);
+    return idg_changed(atrie, IDG_CHANGED_NODE);
 
   return FALSE;
 }

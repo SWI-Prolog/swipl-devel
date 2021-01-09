@@ -165,4 +165,22 @@ test(incr_mono, true) :-
     forall(qx(_), true),
     assertion(get_returns_for_call(qx(_), qx(6))).
 
+% Monotonic table can have both monotonic and incremental dependents
+
+:- table pmi/1 as monotonic.
+:- dynamic dm/1 as monotonic.
+:- dynamic di/1 as incremental.
+
+pmi(X) :-
+    dm(X),
+    \+ di(X).
+
+test(incr_mono, L == [1]) :-
+    forall(pmi(_), true),
+    asserta(dm(1)),
+    asserta(dm(2)),
+    asserta(di(2)),
+    assertion(incr_is_invalid(pmi(_))),
+    findall(X, pmi(X), L).
+
 :- end_tests(monotonic_tabling).
