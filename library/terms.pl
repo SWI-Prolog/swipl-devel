@@ -47,14 +47,14 @@
             acyclic_term/1,             % @Term
             term_subsumer/3,            % +Special1, +Special2, -General
             term_factorized/3,          % +Term, -Skeleton, -Subsitution
-            mapterm/3,                  % :Goal, ?Term1, ?Term2
+            mapargs/3,                  % :Goal, ?Term1, ?Term2
             same_functor/2,             % ?Term1, ?Term2
             same_functor/3,             % ?Term1, ?Term2, -Arity
             same_functor/4              % ?Term1, ?Term2, ?Name, ?Arity
           ]).
 
 :- meta_predicate
-    mapterm(2,?,?).
+    mapargs(2,?,?).
 
 :- autoload(library(rbtrees),
 	    [ rb_empty/1,
@@ -305,24 +305,24 @@ mk_subst([Val0-Var|T0], [Var=Val|T], Subst) :-
     mk_subst(T0, T, Subst).
 
 
-%!  mapterm(:Goal, ?Term1, ?Term2)
+%!  mapargs(:Goal, ?Term1, ?Term2)
 %
 %   Term1 and Term2 have the  same   functor  (name/arity)  and for each
 %   matching pair of arguments call(Goal, A1, A2) is true.
 
-mapterm(Goal, Term1, Term2) :-
+mapargs(Goal, Term1, Term2) :-
     same_functor(Term1, Term2, Arity),
-    mapargs(1, Arity, Goal, Term1, Term2).
+    mapargs_(1, Arity, Goal, Term1, Term2).
 
-mapargs(I, Arity, Goal, Term1, Term2) :-
+mapargs_(I, Arity, Goal, Term1, Term2) :-
     I =< Arity,
     !,
     arg(I, Term1, A1),
     arg(I, Term2, A2),
     call(Goal, A1, A2),
     I2 is I+1,
-    mapargs(I2, Arity, Goal, Term1, Term2).
-mapargs(_, _, _, _, _).
+    mapargs_(I2, Arity, Goal, Term1, Term2).
+mapargs_(_, _, _, _, _).
 
 
 %!  same_functor(?Term1, ?Term2) is semidet.
