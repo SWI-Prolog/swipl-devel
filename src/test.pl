@@ -43,7 +43,12 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 
-:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
+:- set_test_options([ load(always),
+		      silent(true),
+		      sto(true),
+		      cleanup(true),
+		      concurrent(true)
+		    ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
