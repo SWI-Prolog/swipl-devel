@@ -1129,7 +1129,7 @@ current_table_gen(M:Variant, Trie) :-
     M:'$table_mode'(Variant, NonModed, _Moded).
 current_table_gen(M:Variant, Trie) :-
     '$tbl_global_variant_table'(VariantTrie),
-    trie_gen(VariantTrie, NonModed, Trie),
+    trie_gen(VariantTrie, M:NonModed, Trie),
     \+ '$tbl_table_status'(Trie, fresh), % shared tables are not destroyed
     M:'$table_mode'(Variant, NonModed, _Moded).
 
