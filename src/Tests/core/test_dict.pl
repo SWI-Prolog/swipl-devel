@@ -112,6 +112,9 @@ test('dict_create/3') :-
 test(create, true) :-
 	forall(between(1, 100, S),
 	       test_create(S)).
+test(convert, error(type_error('dict-key',a(x)))) :-
+	A = [a(x):1, b:2].a,
+	writeln(A).
 
 :- end_tests(dict_create).
 
