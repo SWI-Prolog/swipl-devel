@@ -1793,7 +1793,7 @@ clear_frame_var(walk_state *state, code var, Code PC)
 		   var-VAROFFSET(0), (PC-state->c0)-1));
 #ifdef O_DEBUG
     if ( DEBUGGING(CHK_SECURE) )
-    { Word vp = varFrameP(fr, PC[0]);
+    { Word vp = varFrameP(fr, var);
 
       if ( !isVar(*vp & ~MARK_MASK) )
       { Sdprintf("ERROR: [%ld] %s: Wrong clear of var %d, PC=%d\n",
