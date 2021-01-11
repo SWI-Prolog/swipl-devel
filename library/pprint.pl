@@ -386,7 +386,7 @@ pp(Term, Ctx, Options) :-               % compound
         option(right_margin(RM), Options),
         Indent + Width < RM         % fits on a line, simply write
     ->  pprint(Term, Ctx, Options)
-    ;   Term =.. [Name|Args],
+    ;   compound_name_arguments(Term, Name, Args),
         format(atom(Buf2), '~q(', [Name]),
         write(Out, Buf2),
         atom_length(Buf2, FunctorIndent),
@@ -439,6 +439,7 @@ pp_list_elements([H|T], Ctx0, Options) :-
     ).
 
 
+pp_compound_args([], _, _).
 pp_compound_args([H|T], Ctx, Options) :-
     pp(H, Ctx, Options),
     (   T == []
