@@ -687,6 +687,7 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
   { intptr_t len = lengthList(data, TRUE);
     Word ap, dp, tail;
     mark m;
+    int rc;
 
     if ( len < 0 )
       return FALSE;			/* not a proper list */
@@ -695,8 +696,9 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     { if ( !makeMoreStackSpace(TRAIL_OVERFLOW, ALLOW_GC|ALLOW_SHIFT) )
        return FALSE;
     }
-    if ( !(ap = allocGlobal(len*2+2)) )
-      return FALSE;			/* global overflow */
+    if ( (rc=ensureGlobalSpace(len*2+2, ALLOW_GC)) != TRUE )
+      return raiseStackOverflow(rc);
+    ap = gTop;
     Mark(m);
     dp = ap;
     *ap++ = dict_functor(len);
