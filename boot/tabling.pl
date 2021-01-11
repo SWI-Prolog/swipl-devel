@@ -142,7 +142,7 @@ user:portray(ATrie) :-
     format('~q for ~p', [ATrie, Goal]).
 user:portray(Cont) :-
     compound(Cont),
-    Cont =.. ['$cont$', Clause, PC | Args],
+    compound_name_arguments(Cont, '$cont$', [Clause, PC | Args]),
     clause_property(Clause, file(File)),
     file_base_name(File, Base),
     clause_property(Clause, line_count(Line)),
