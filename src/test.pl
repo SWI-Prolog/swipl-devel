@@ -2681,6 +2681,7 @@ run_scripts([H|T]) :-
 	run_scripts(T).
 
 script_failed(File, fail) :-
+	!,
 	format(user_error, '~NScript ~w failed~n', [File]),
 	assert(failed(script(File))).
 script_failed(File, Except) :-
