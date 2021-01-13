@@ -8508,27 +8508,47 @@ error.\footnote{\textit{Eventually} here means it will scan as many
 elements as the longest list that may exist given the current stack
 usage before raising the exception.}
 
-    \predicate[ISO]{length}{2}{?List, ?Int}
-True if \arg{Int} represents the number of elements in \arg{List}.
+    \predicate[ISO,nondet]{length}{2}{?List, ?Length}
+True if \arg{Length} represents the number of elements in \arg{List}.
 This predicate is a true relation and can be used to find the length of
-a list or produce a list (holding variables) of length \arg{Int}.  The
+a list or produce a list (holding variables) of length \arg{Length}. The
 predicate is non-deterministic, producing lists of increasing length if
-\arg{List} is a \jargon{partial list} and \arg{Int} is unbound. It
-raises errors if
+\arg{List} is a \jargon{partial list} and \arg{Length} is a variable.
 
-    \begin{itemize}
-    \item \arg{Int} is bound to a non-integer.
-    \item \arg{Int} is a negative integer.
-    \item \arg{List} is neither a list nor a partial list.  This
-	  error condition includes cyclic lists.\footnote{ISO
-	  demands failure here. We think an error is more appropriate.}
-    \end{itemize}
+\begin{code}
+?- length(List,4).
+List = [_27940,_27946,_27952,_27958].
 
-This predicate fails if the tail of \arg{List} is equivalent to
-\arg{Int} (e.g., \exam{length(L,L)}).\footnote{This is logically
-correct. An exception would be more appropriate, but to our best
-knowledge, current practice in Prolog does not describe a suitable
-candidate exception term.}
+?- length(List,Length).
+List = [], Length = 0 ;
+List = [_24698], Length = 1 ;
+List = [_24698,_25826], Length = 2
+...
+\end{code}
+
+It raises errors if \arg{Length} is bound to a non-integer or a negative
+integer or if \arg{List} is neither a list nor a partial list. This
+error condition includes cyclic lists:%
+\footnote{ISO demands failure here. We think an error is more appropriate.}
+
+\begin{code}
+?- A=[1,2,3|A], length(A,L).
+ERROR: Type error: `list' expected ...
+\end{code}
+
+Covering an edge case, the predicate fails if the tail of \arg{List} is
+equivalent to \arg{Length}:%
+\footnote{This is logically correct. An exception would be more appropriate,
+but to our best knowledge, current practice in Prolog does not describe
+a suitable candidate exception term.}
+
+\begin{code}
+?- List=[1,2,3|Length],length(List,Length).
+false.
+
+?- length(Length,Length).
+false.
+\end{code}
 
     \predicate[ISO]{sort}{2}{+List, -Sorted}
 True if \arg{Sorted} can be unified with a list holding the
