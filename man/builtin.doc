@@ -1737,21 +1737,50 @@ recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
 Although unification is mostly done implicitly while matching the
 head of a predicate, it is also provided by the predicate =/2.
 
+% UNIFICATION
 \begin{description}
     \infixop[ISO]{=}{?Term1}{?Term2}
-Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
-For behaviour on cyclic terms see the Prolog flag
-\prologflag{occurs_check}. It acts as if defined by the following fact:
+Try to unify \arg{Term1} with \arg{Term2}. If the attempt at unification 
+succeeds, \arg{Term1} and \arg{Term2} have been \jargon{instantiated} 
+in a ``most general'' way so that they are \jargon{structurally equal} 
+(see \predref{==}{2}). All necessary variable bindings of unbound variables 
+appearing in either term will have been performed. Unification may fail,
+leading to standard backtracking behaviour as for any predicate. 
+Unification fails if:
+
+\begin{itemize}
+\item the terms involved in unification are ``sufficiently different'', or \\
+\item the global \jargon{occur check} (also known as \jargon{occurs check}) flag
+      is set and unification would generate a cyclic structure (see
+      \prologflag{occurs_check} and unify_with_occurs_check/2), or \\
+\item there is a dif/2 constraint active on unbound variables appearing anywhere
+      in \arg{Term1} or \arg{Term2} (meaning ``these variables must never become structurally
+      equal going forward in the proof from the dif/2 call'') and unification
+      would bind those variables to terms such that the variables would become 
+      structurally equal or \\
+\item there are freeze/2 or when/2 goals active on unbound variables appearing
+      anywhere in \arg{Term1} or \arg{Term2} and unification triggers those goals
+      (which are then run synchronously) and a least one goal fails, or \\
+\item there are unbound variables with ``attributes'' (see section~\secref{attvar})
+      appearing anywhere in \arg{Term1} or \arg{Term2} and unification triggers
+      those goals (which are then run synchronously) and at least
+      one goal fails. The goals ``veto the unification''; for example they may 
+      enforce a constraint whereby a given unbound variable may only take on 
+      integer values but unification would bind the variable to a float.
+\end{itemize}
+
+Unification acts as if defined by the following fact:
 
 \begin{code}
 =(Term, Term).
 \end{code}
 
+% NAF UNIFICATION
     \infixop[ISO]{\=}{@Term1}{@Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.
 
-This predicate is logically sound if its arguments are sufficiently
-instantiated. In other cases, such as \exam{?- X \Sne\ Y.},
+This predicate is logically sound \emph{if its arguments are sufficiently
+instantiated}. In other cases, such as \exam{?- X \Sne\ Y.},
 the predicate fails although there are solutions. This is due to the
 incomplete nature of~\predref{\+}{1}.
 
