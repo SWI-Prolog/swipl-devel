@@ -29,7 +29,7 @@ code base in half a day.
 As of version~7, SWI-Prolog lists can be distinguished unambiguously at
 runtime from \functor{.}{2} terms and the atom \const{'[]'}.
 
-\begin{code}[fontsize=\small]
+\begin{code}
    Traditional list               SWI-Prolog 7 list
 
        '.'                              '[|]'
