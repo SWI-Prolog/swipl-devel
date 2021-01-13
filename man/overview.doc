@@ -3295,11 +3295,11 @@ limits are advised to do so using the Prolog flag
 
 \begin{table}
 \begin{center}
-\begin{tabular}{|c|l|p{5cm}|}
+\begin{tabular}{|l|p{5cm}|}
 \hline
-Option & Area name & Description \\
+Area name & Description \\
 \hline
-\cmdlineoption{-L} & \bf local stack & The local stack is used to store
+\bf local stack & The local stack is used to store
                        the execution environments of procedure
                        invocations. The space for an environment is
                        reclaimed when it fails, exits without leaving
@@ -3307,13 +3307,13 @@ Option & Area name & Description \\
                        the !/0 predicate or no choice points have
                        been created since the invocation and the last
                        subclause is started (last call optimisation). \\
-\cmdlineoption{-G} & \bf global stack & The global stack is used
+ \bf global stack & The global stack is used
                        to store terms created during Prolog's
                        execution. Terms on this stack will be reclaimed
                        by backtracking to a point before the term
                        was created or by garbage collection (provided the
                        term is no longer referenced). \\
-\cmdlineoption{-T} & \bf trail stack & The trail stack is used to store
+\bf trail stack & The trail stack is used to store
                        assignments during execution.  Entries on this
                        stack remain alive until backtracking before the
                        point of creation or the garbage collector
