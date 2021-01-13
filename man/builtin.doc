@@ -7063,21 +7063,36 @@ True if \arg{Atom} starts with the characters from \arg{Prefix}.
 Its behaviour is equivalent to
 \exam{?- sub_atom(\arg{Atom}, 0, _, _, \arg{Prefix})}.  Deprecated.
 
-    \predicate[ISO]{sub_atom}{5}{+Atom, ?Before, ?Len, ?After, ?Sub}
+% SUB_ATOM ----------------------
+    \predicate[ISO]{sub_atom}{5}{+Atom, ?Before, ?Length, ?After, ?SubAtom}
 ISO predicate for breaking atoms.  It maintains the following relation:
-\arg{Sub} is a sub-atom of \arg{Atom} that starts at \arg{Before}, has
-\arg{Len} characters, and \arg{Atom} contains \arg{After} characters
-after the match.
+\arg{SubAtom} is a sub-atom of \arg{Atom} that starts at (0-based index)
+\arg{Before}, has \arg{Length} characters, and \arg{Atom} contains \arg{After}
+characters after the match. The implementation minimises non-determinism and 
+creation of atoms. This is a flexible predicate that can do search, prefix- and
+suffix-matching, etc.
+
+Pick out a sub-atom of length 3 starting a 0-based index 2:
 
 \begin{code}
-?- sub_atom(abc, 1, 1, A, S).
-
-A = 1, S = b
+?- sub_atom(aaxyzbbb, 2, 3, After, SubAtom).
+After = 3,
+SubAtom = xyz.
 \end{code}
 
-The implementation minimises non-determinism and creation of atoms.
-This is a flexible predicate that can do search, prefix- and
-suffix-matching, etc.
+On backtracking, matches are delivered in order left-to-right (i.e. 
+\arg{Before} increases monotonically):
+
+\begin{code}
+?- sub_atom('xATGATGAxATGAxATGAx', Before, Length, After, 'ATGA').
+Before = 1, Length = 4, After = 14 ;
+Before = Length, Length = 4, After = 11 ;
+Before = 9, Length = 4, After = 6 ;
+Before = 14, Length = 4, After = 1 ;
+false.
+\end{code}
+
+See also sub_string/5, the corresponding predicate for SWI-Prolog strings.
 
     \predicate[semidet]{sub_atom_icasechk}{3}{+Haystack, ?Start, +Needle}
 True when \arg{Needle} is a sub atom of \arg{Haystack} starting at

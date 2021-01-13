@@ -409,12 +409,8 @@ as a single (often white space). The behaviour with partially
 overlapping sets of padding and separators should be considered
 undefined.  See also read_string/5.
 
+% SUB_STRING ---------------------
     \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
-\arg{SubString} is a substring of \arg{String}. There are \arg{Before}
-characters in \arg{String} before \arg{SubString}, \arg{SubString}
-contains \arg{Length} character and is followed by \arg{After}
-characters in \arg{String}. If not enough information is provided to
-compute the start of the match, \arg{String} is scanned left-to-right.
 This predicate is functionally equivalent to sub_atom/5, but operates on
 strings. The following example splits a string of the form
 <name>=<value> into the name part (an atom) and the value (a string).
