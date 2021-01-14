@@ -2170,16 +2170,15 @@ $X=a$ and $X=b$, while \verb$optional(member(X,[]))$ succeeds without
 binding $X$.
 
 \prefixop[ISO]{\+}{:Goal}
-True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
-provable} and the backslash (\chr{\}) is normally used to
-indicate negation in Prolog).
-
-Many Prolog implementations (including SWI-Prolog) provide not/1. The
-not/1 alternative (classified as meta-call predicate rather than a
-control predicate) is deprecated due
-to it being read as strong negation (``it is known/provable that not'')
-rather than the intended meaning of weak (or default) negation
-(``it is not known/provable that'').
+True if \arg{Goal} cannot be proven, i.e. if the attempt to prove
+\arg{Goal} fails in finite time. Mnemonic: \chr{+} refers to {\em
+provable} and the backslash (\chr{\}) is normally used to indicate 
+negation in Prolog). Many Prolog implementations (including SWI-Prolog,
+see \secref{metacall}) provide the equivalent predicate not/1. The
+not/1 alternative is deprecated due to it being read as 
+\jargon{strong negation} (``it is known/provable that not'')
+rather than the intended meaning of \jargon{weak negation} (also known
+as \jargon{default negation}) (``it is not known/not provable that'').
 
 \end{description}
 
