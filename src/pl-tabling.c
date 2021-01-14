@@ -135,6 +135,7 @@ static int	idg_set_current_wl(term_t wlref ARG_LD);
 static int	claim_answer_table(trie *atrie, atom_t *clrefp,
 				   int flags ARG_LD);
 #endif
+static atom_t	table_status_reeval_wait(trie *atrie ARG_LD);
 static atom_t	tripwire_answers_for_subgoal(worklist *wl ARG_LD);
 static int	generalise_answer_substitution(term_t spec, term_t gen ARG_LD);
 static int	add_answer_count_restraint(void);
@@ -3126,21 +3127,32 @@ unify_fresh(term_t t, trie *atrie, Definition def, int create ARG_LD)
 }
 
 
-static int
-unify_complete_or_invalid(term_t t, trie *atrie,
-			  Definition def, int create ARG_LD)
+static atom_t
+complete_or_invalid_status(trie *atrie)
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) )
   { if ( n->monotonic && !n->lazy && !n->force_reeval )
-      return PL_unify_atom(t, ATOM_complete);
+      return ATOM_complete;
     if ( n->falsecount > 0 )
-      return PL_unify_atom(t, ATOM_invalid);
+      return ATOM_invalid;
     if ( n->reevaluating )
-      return unify_fresh(t, atrie, def, create PASS_LD);
+      return ATOM_fresh;
   }
 
-  return PL_unify_atom(t, ATOM_complete);
+  return ATOM_complete;
+}
+
+
+static int
+unify_complete_or_invalid(term_t t, trie *atrie,
+			  Definition def, int create ARG_LD)
+{ atom_t status = complete_or_invalid_status(atrie);
+
+  if ( status == ATOM_fresh && create )
+    return unify_fresh(t, atrie, def, create PASS_LD);
+  else
+    return PL_unify_atom(t, status);
 }
 
 
@@ -3185,6 +3197,23 @@ unify_table_status(term_t t, trie *trie, Definition def, int create ARG_LD)
 
     assert(!wl || wl == WL_GROUND);
     return unify_fresh(t, trie, def, create PASS_LD);
+  }
+}
+
+
+static atom_t
+table_status(trie *trie)
+{ if ( true(trie, TRIE_COMPLETE) )
+  { return complete_or_invalid_status(trie);
+  } else
+  { worklist *wl = trie->data.worklist;
+
+    if ( WL_IS_WORKLIST(wl) )
+      return ATOM_incomplete;
+    else if ( wl == WL_DYNAMIC )
+      return ATOM_dynamic;
+    else
+      return ATOM_fresh;
   }
 }
 
@@ -6129,6 +6158,7 @@ typedef struct idg_edge_state
   int		monotonic;
   int		lazy;
   int		force_reeval;
+  int		dyn_or_complete;
   atom_t	deptrie_symbol;
   idg_mdep     *dependencies;
 } idg_edge_state;
@@ -6206,7 +6236,7 @@ save_idg_edge_state(idg_edge_state *state)
 
 static foreign_t
 idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
-	     control_t PL__ctx)
+	     term_t status, control_t PL__ctx)
 { PRED_LD
   idg_edge_state sbuf;
   idg_edge_state *state;
@@ -6225,17 +6255,23 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
 
       if ( !dir )
       { state->fixed_dir = TRUE;
-	state->monotonic = TRUE;
-	if ( answers )
-	{ if ( !state->atrie->data.IDG->lazy )
-	    return FALSE;
-	  state->lazy    = TRUE;
+	if ( status )			/* '$idg_false_edge'/3 */
+	{ state->lazy    = FALSE;
 	  state->dir     = ATOM_dependent;
 	  state->table   = state->atrie->data.IDG->dependent;
 	} else
-	{ state->lazy    = FALSE;
-	  state->dir     = ATOM_affected;
-	  state->table   = state->atrie->data.IDG->affected;
+	{ state->monotonic = TRUE;
+	  if ( answers )
+	  { if ( !state->atrie->data.IDG->lazy )
+	      return FALSE;
+	    state->lazy    = TRUE;
+	    state->dir     = ATOM_dependent;
+	    state->table   = state->atrie->data.IDG->dependent;
+	  } else
+	  { state->lazy    = FALSE;
+	    state->dir     = ATOM_affected;
+	    state->table   = state->atrie->data.IDG->affected;
+	  }
 	}
       } else if ( PL_is_variable(dir) )
       { if ( (state->table = state->atrie->data.IDG->affected) )
@@ -6284,7 +6320,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
 
   Mark(fli_context->mark);
   do
-  { if ( dep )
+  { if ( dep )				/* monotonic dependency */
     { idg_mdep *mdep;
 
       if ( (mdep=state->dependencies) &&
@@ -6306,6 +6342,25 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
       }
     }
 
+    if ( status )			/* '$idg_false_edge'/3 */
+    { trie *dtrie = symbol_trie(state->deptrie_symbol);
+      atom_t astat;
+
+      if ( (astat=table_status_reeval_wait(dtrie PASS_LD)) )
+      { if ( astat == ATOM_dynamic || astat == ATOM_complete )
+	{ if ( state->dyn_or_complete )
+	    continue;
+	  else
+	    state->dyn_or_complete = TRUE;
+	}
+
+	if ( !PL_unify_atom(status, astat) )
+	  goto out_fail;
+      } else
+      { goto out_fail;			/* Deadlock */
+      }
+    }
+
     if ( PL_unify_atom(To, state->deptrie_symbol) )
     { if ( state->fixed_dir ||
 	   PL_unify_atom(dir, state->dir) )
@@ -6317,13 +6372,12 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
     }
 
     if ( PL_exception(0) )
-    { free_idg_edge_state(state);
-      return FALSE;
-    }
+      goto out_fail;
 
     Undo(fli_context->mark);
   } while(advance_idg_edge_state(state));
 
+out_fail:
   free_idg_edge_state(state);
   return FALSE;
 }
@@ -6336,7 +6390,19 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
 
 static
 PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, A2, A3, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, A2, A3, 0, 0, 0, PL__ctx);
+}
+
+/** '$idg_false_edge'(+ATrie, -DTrie, -Status)
+ *
+ *  Similar to '$idg_edge'(ATrie, dependent, DTrie), but only generates
+ *  one solution for dynamic and complete edges. Also produces the
+ *  status for DTrie as '$tbl_reeval_wait'/2.
+ */
+
+static
+PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
+{ return idg_edge_gen(A1, 0, A2, 0, 0, A3, PL__ctx);
 }
 
 /** '$idg_mono_affects_eager'(+SrcTrie, -DstTrie, -Dependency)
@@ -6345,7 +6411,7 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 static
 PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, PL__ctx);
 }
 
 /** '$idg_mono_affects_lazy'(+DstTrie, -SrcTrie, -Dependency, -Answers)
@@ -6357,7 +6423,7 @@ PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 static
 PRED_IMPL("$idg_mono_affects_lazy", 4, idg_mono_affects_lazy,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, A4, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, A4, 0, PL__ctx);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7144,39 +7210,54 @@ PRED_IMPL("$mono_idg_changed", 2, mono_idg_changed, 0)
  * @error `deadlock` if claiming the table would cause a deadlock.
  */
 
-static
-PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
-{ GET_LD
-  trie *atrie;
-  idg_node *n;
+static atom_t
+table_status_reeval_wait(trie *atrie ARG_LD)
+{ idg_node *n;
 
-  if ( get_trie(A1, &atrie) && (n=atrie->data.IDG) )
+  if ( (n=atrie->data.IDG) )
   { if ( atrie->data.worklist == WL_DYNAMIC )
-    { return PL_unify_atom(A2, ATOM_dynamic);
+    { return ATOM_dynamic;
     } else if ( n->falsecount > 0 && n->lazy )
-    { return PL_unify_atom(A2, ATOM_invalid);
+    { return ATOM_invalid;
     } else if (	n->monotonic )
-    { return PL_unify_atom(A2, ATOM_monotonic);
+    { return ATOM_monotonic;
     } else
-    { int rc;
+    {
 #ifdef O_PLMT
       int tid = PL_thread_self();
 
       if ( atrie->tid == tid )			/* remain owner */
-      { rc = unify_table_status(A2, atrie, NULL, FALSE PASS_LD);
+      { return table_status(atrie);
       } else
-      { if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
+      { atom_t status;
+
+	if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
 	  return FALSE;				/* deadlock */
-	rc = unify_table_status(A2, atrie, NULL, FALSE PASS_LD);
+
+	status = table_status(atrie);
 	COMPLETE_WORKLIST(atrie, (void)0);
+	return status;
       }
 #else
-      rc = unify_table_status(A2, atrie, NULL, FALSE PASS_LD);
+      return table_status(atrie);
 #endif
-
-      return rc;
     }
   }
+
+  return 0;
+}
+
+
+
+static
+PRED_IMPL("$tbl_reeval_wait", 2, tbl_reeval_wait, 0)
+{ GET_LD
+  trie *atrie;
+  atom_t status;
+
+  if ( get_trie(A1, &atrie) &&
+       (status=table_status_reeval_wait(atrie PASS_LD)) )
+    return PL_unify_atom(A2, status);
 
   return FALSE;
 }
@@ -8248,6 +8329,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
+  PRED_DEF("$idg_false_edge",           3, idg_false_edge,	  NDET)
 
   PRED_DEF("$tbl_reeval_prepare_top",	2, tbl_reeval_prepare_top,   0)
   PRED_DEF("$tbl_reeval_prepare",       2, tbl_reeval_prepare,	     0)
