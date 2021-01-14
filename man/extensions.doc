@@ -411,15 +411,17 @@ undefined.  See also read_string/5.
 
     \predicate{sub_string}{5}{+String, ?Before, ?Length, ?After, ?SubString}
 This predicate is functionally equivalent to sub_atom/5, but operates on
-strings. The following example splits a string of the form
+strings. Note that this implies the string \emph{input} arguments can be
+either strings or atoms.  If \arg{SubString} is unbound (output) it is
+unified with a string. The following example splits a string of the form
 <name>=<value> into the name part (an atom) and the value (a string).
 
 \begin{code}
 name_value(String, Name, Value) :-
-	sub_string(String, Before, _, After, "="), !,
-	sub_string(String, 0, Before, _, NameString),
-	atom_string(Name, NameString),
-	sub_string(String, _, After, 0, Value).
+    sub_string(String, Before, _, After, "="),
+    !,
+    sub_atom(String, 0, Before, _, Name),
+    sub_string(String, _, After, 0, Value).
 \end{code}
 
     \predicate{atomics_to_string}{2}{+List, -String}
