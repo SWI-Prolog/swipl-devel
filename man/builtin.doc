@@ -5103,13 +5103,16 @@ output handles are not connected to valid streams. In these cases write
 errors may be ignored on \const{user_error}.
 \end{description}
 
-    \predicate{current_stream}{3}{?Object, ?Mode, ?Stream}
+    \predicate[deprecated]{current_stream}{3}{?Object, ?Mode, ?Stream}
 The predicate current_stream/3 is used to access the status of a
 stream as well as to generate all open streams.  \arg{Object} is the
 name of the file opened if the stream refers to an open file, an
 integer file descriptor if the stream encapsulates an operating system
 stream, or the atom \const{[]} if the stream refers to some other object.
 \arg{Mode} is one of \const{read} or \const{write}.
+
+This predicate is deprecated. New code should use the ISO predicate
+stream_property/2.
 
     \predicate{is_stream}{1}{+Term}
 True if \arg{Term} is a stream name or valid stream handle.  This
