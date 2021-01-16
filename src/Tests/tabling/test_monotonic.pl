@@ -62,7 +62,9 @@ cleanup :-
     retractall(db(_)),
     retractall(dx(_)),
     retractall(lm(_,_)),
-    retractall(la(_,_)).
+    retractall(la(_,_)),
+    retractall(nd1(_)),
+    retractall(nd2(_)).
 
 % Very basic test
 
@@ -182,5 +184,31 @@ test(incr_mono, L == [1]) :-
     asserta(di(2)),
     assertion(incr_is_invalid(pmi(_))),
     findall(X, pmi(X), L).
+
+% Test nested reevaluation of a monotonic table that was invalidated
+% due to a retract
+
+:- dynamic (nd1/1, nd2/1) as (incremental,monotonic).
+:- table (np/1,ni/1) as (incremental).
+:- table (nm/1) as monotonic.
+
+np(X) :-
+    (   ni(X)
+    ;   nm(X)
+    ).
+
+ni(X) :- nd1(X).
+nm(X) :- nd2(X).
+
+test(nested_reeval_mono, true) :-
+    assert(nd1(1)),
+    assert(nd2(2)),
+    setof(X, np(X), Xs1),
+    assertion(Xs1 == [1,2]),
+    assert(nd1(3)),
+    retract(nd2(2)),
+    assert(nd2(3)),
+    setof(X, np(X), Xs2),
+    assertion(Xs2 == [1,3]).
 
 :- end_tests(monotonic_tabling).

@@ -7342,7 +7342,7 @@ PRED_IMPL("$tbl_reeval_prepare_top", 2, tbl_reeval_prepare_top, 0)
     }
 #endif
 
-    if ( idg->falsecount == 0 )			/* someone else re-evaluated it */
+    if ( idg->falsecount == 0 && !idg->force_reeval) /* someone else re-evaluated it */
     { if ( true(atrie, TRIE_ISMAP) )
 	return PL_unify_integer(A2, 0);
       else
