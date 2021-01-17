@@ -6996,11 +6996,12 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
-    if ( true(atrie, TRIE_ISMAP) )
-      map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
+    if ( idg->falsecount && idg->monotonic && idg->lazy )
+    { if ( true(atrie, TRIE_ISMAP) )
+	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
-    if ( idg->monotonic && idg->lazy )
       return PL_unify_integer(A2, atrie->value_count);
+    }
   }
 
   return FALSE;
