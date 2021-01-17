@@ -44,7 +44,8 @@
 :- use_module(library(dialect/xsb/increval)).
 
 test_monotonic :-
-    run_tests([ monotonic_tabling
+    run_tests([ monotonic_tabling,
+                monotonic_tabling_2
               ]).
 
 :- begin_tests(monotonic_tabling).
@@ -212,3 +213,42 @@ test(nested_reeval_mono, true) :-
     assertion(Xs2 == [1,3]).
 
 :- end_tests(monotonic_tabling).
+
+% Monotonic table that is invalidated due to retract and is
+% re-evaluated twice.
+
+:- begin_tests(monotonic_tabling_2).
+
+:- dynamic (d1/1, d2/1, d3/1) as (incremental,monotonic).
+:- table (p/1,i/1) as (incremental).
+:- table (m/1,n/1) as (monotonic,lazy).
+
+p(X) :-
+    (   i(X)
+    ;   m(X)
+    ).
+
+i(X) :- d3(X).
+m(X) :- n(X).
+m(X) :- d2(X).
+
+n(X) :- d1(X).
+
+clean :-
+    retractall(d1(_)),
+    retractall(d2(_)),
+    retractall(d3(_)),
+    abolish_all_tables.
+
+test(twice_invalid, [Xs == [1,2,3], cleanup(clean)]) :-
+    assert(d1(1)),
+    assert(d2(2)),
+    forall(p(_), true),
+    retract(d1(1)),
+    assert(d1(1)),
+    retract(d2(2)),
+    assert(d2(2)),
+    assert(d3(3)),
+    setof(X, p(X), Xs).
+
+:- end_tests(monotonic_tabling_2).
