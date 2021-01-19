@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2020, VU University Amsterdam
+    Copyright (c)  2017-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -150,6 +151,7 @@ static void	tt_abolish_table(trie *atrie);
 static void	tt_add_table(trie *atrie ARG_LD);
 static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 static table_props *get_predicate_table_props(Definition def);
+static int	inner_is_monotonic(ARG1_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -4448,8 +4450,8 @@ tbl_variant_table(term_t closure, term_t variant, term_t Trie,
 
     if ( is_monotonic &&
 	 def->tabling && true(def->tabling, TP_MONOTONIC) &&
-	 ( LD->tabling.has_scheduling_component ||
-	   LD->tabling.in_assert_propagation) )
+	 ( LD->tabling.in_assert_propagation ||
+	   inner_is_monotonic(PASS_LD1) ) )
     { assert(true(environment_frame, FR_INRESET));
       if ( !PL_unify_bool(is_monotonic, TRUE) )
 	return FALSE;
@@ -6942,13 +6944,9 @@ PRED_IMPL("$tbl_propagate_end", 1, tbl_propagate_end, 0)
  * call must shift/1 to establish the dependency.
  */
 
-static
-PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
-{ PRED_LD
-  trie *dep;
-
-  if ( LD->tabling.in_assert_propagation )
-    return TRUE;
+static int
+inner_is_monotonic(ARG1_LD)
+{ trie *dep;
 
   if ( LD->tabling.has_scheduling_component &&
        (dep=idg_current(PASS_LD1)) )
@@ -6959,6 +6957,17 @@ PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
   }
 
   return FALSE;
+}
+
+
+static
+PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
+{ PRED_LD
+
+  if ( LD->tabling.in_assert_propagation )
+    return TRUE;
+
+  return inner_is_monotonic(PASS_LD1);
 }
 
 /** '$mono_reeval_prepare'(+ATrie, -Size) is semidet.
