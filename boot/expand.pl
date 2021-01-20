@@ -1151,6 +1151,9 @@ conj(X, PX, Y, PY, (X,Y), P) :-
 %   True if function expansion needs to be applied for the given
 %   term.
 
+:- multifile
+    function/2.
+
 function(.(_,_), _) :- \+ functor([_|_], ., _).
 
 
