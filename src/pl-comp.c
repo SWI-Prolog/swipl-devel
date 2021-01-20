@@ -2618,7 +2618,7 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   { functor = functorTerm(*arg);
     fdef = valueFunctor(functor);
 
-    if ( !isTextAtom(fdef->name) )
+    if ( !isTextAtom(fdef->name) && fdef->name != ATOM_nil )
       return NOT_CALLABLE;
 
     if ( true(fdef, ARITH_F) && !ci->islocal )
