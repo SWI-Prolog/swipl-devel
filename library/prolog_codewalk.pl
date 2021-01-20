@@ -1046,6 +1046,7 @@ predicate_in_module(Module, PI) :-
 
 
 hidden_predicate(Name, _) :-
+    atom(Name),                         % []/N is not hidden
     sub_atom(Name, 0, _, _, '$wrap$').
 
 

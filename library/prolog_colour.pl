@@ -1787,7 +1787,7 @@ var_or_nonneg(X) :- var(X), !.
 var_or_nonneg(X) :- integer(X), X >= 0, !.
 
 pi_to_term(Name/Arity, Term) :-
-    atom(Name), integer(Arity), Arity >= 0,
+    (atom(Name)->true;Name==[]), integer(Arity), Arity >= 0,
     !,
     functor(Term, Name, Arity).
 pi_to_term(Name//Arity0, Term) :-

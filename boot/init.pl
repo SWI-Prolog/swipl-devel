@@ -303,6 +303,8 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     ->  (   Arity == 0
         ->  (   atom(Name)
             ->  Goal = Name
+            ;   Name == []
+            ->  Goal = Name
             ;   blob(Name, closure)
             ->  Goal = Name
             ;   '$type_error'(atom, Name)
