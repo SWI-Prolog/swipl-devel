@@ -6330,6 +6330,10 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
 	   !state->force_reeval )
       { term_t t;
 
+	if ( answers &&			/* no answers on this dependency */
+	     !(mdep->queue && !isEmptyBuffer(mdep->queue)) )
+	  continue;
+
 	if ( !(t = PL_new_term_ref()) ||
 	     !put_fastheap(mdep->dependency, t PASS_LD) ||
 	     !PL_unify(t, dep) )
@@ -6697,36 +6701,32 @@ static int
 mdep_unify_answers(term_t t, idg_mdep *mdep)
 { GET_LD
 
-  if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
-  { word *base = baseBuffer(mdep->queue, word);
-    word *top  = topBuffer(mdep->queue, word);
-    term_t tail = PL_copy_term_ref(t);
-    term_t head = PL_new_term_ref();
+  word *base = baseBuffer(mdep->queue, word);
+  word *top  = topBuffer(mdep->queue, word);
+  term_t tail = PL_copy_term_ref(t);
+  term_t head = PL_new_term_ref();
 
-    for(; base < top; base++)
-    { if ( isAtom(*base) )
-      { ClauseRef cref = clause_clref(*base);
+  for(; base < top; base++)
+  { if ( isAtom(*base) )
+    { ClauseRef cref = clause_clref(*base);
 
-	if ( !true(cref->value.clause, CL_ERASED) )
-	{ if ( !PL_unify_list(tail, head, tail) ||
-	       !PL_unify_atom(head, *base) )
-	    return FALSE;
-	}
-      } else
-      { trie_node *an = (trie_node *)*base;
+      if ( !true(cref->value.clause, CL_ERASED) )
+      { if ( !PL_unify_list(tail, head, tail) ||
+	     !PL_unify_atom(head, *base) )
+	  return FALSE;
+      }
+    } else
+    { trie_node *an = (trie_node *)*base;
 
-	if ( an->value )
-	{ if ( !PL_unify_list(tail, head, tail) ||
-	       !PL_unify_pointer(head, an) )
-	    return FALSE;
-	}
+      if ( an->value )
+      { if ( !PL_unify_list(tail, head, tail) ||
+	     !PL_unify_pointer(head, an) )
+	  return FALSE;
       }
     }
-
-    return PL_unify_nil(tail);
   }
 
-  return FALSE;
+  return PL_unify_nil(tail);
 }
 
 static void
