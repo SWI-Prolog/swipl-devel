@@ -1971,7 +1971,7 @@ reeval_node(ATrie) :-
             )
         ;   Dep = dependency(SrcSkel, true, Cont, Skel)
         ->  (   '$member'(Node, Answers),
-                trie_term(Node, SrcSkel),
+                '$tbl_node_answer'(Node, SrcSkel),
                 tdebug(monotonic, 'Propagating ~p from ~p to ~p',
                        [Skel, SrcTrie, ATrie]),
                 pdelim(Cont, Skel, ATrie),

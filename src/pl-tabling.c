@@ -152,6 +152,7 @@ static void	tt_add_table(trie *atrie ARG_LD);
 static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 static table_props *get_predicate_table_props(Definition def);
 static int	inner_is_monotonic(ARG1_LD);
+static int	mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -6432,6 +6433,24 @@ PRED_IMPL("$idg_mono_affects_lazy", 4, idg_mono_affects_lazy,
 { return idg_edge_gen(A1, 0, A2, A3, A4, 0, PL__ctx);
 }
 
+
+/** '$tbl_node_answer'(+NodeRef, -Answer) is det.
+ *
+ *  Get the answer associated with a node.  If the answer is moded,
+ *  return as Primary/Moded
+*/
+
+static
+PRED_IMPL("$tbl_node_answer", 2, tbl_node_answer, 0)
+{ PRED_LD
+  void *ptr;
+
+  return ( PL_get_pointer_ex(A1, &ptr) &&
+	   tbl_unify_answer(ptr, A2 PASS_LD)
+	 );
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) If not-changed propagation re-validates  the   table  someone may be
 waiting for it and we must release   ownership  for the table and signal
@@ -6450,6 +6469,7 @@ typedef struct idg_propagate_state
 } idg_propagate_state;
 
 #define IDG_CHANGED_NODE	0x0001
+#define IDG_CHANGED_MONO	0x0002
 
 static void
 idg_changed_loop(idg_propagate_state *state, int flags)
@@ -6475,9 +6495,9 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       { if ( table_is_incomplete(n->atrie) )
 	  state->incomplete = n->atrie;		/* return? */
 
-	if ( n->monotonic )			/* retract on monotonic dependency */
-	{ mdep_empty_queue(v);			/* ot incremental affecting monotonic */
-	  n->force_reeval = TRUE;
+	if ( n->monotonic && !(flags&IDG_CHANGED_MONO) )
+	{ mdep_empty_queue(v);			/* retract on monotonic dependency */
+	  n->force_reeval = TRUE;		/* or incremental affecting monotonic */
 	}
 
 	if ( ATOMIC_INC(&n->falsecount) == 1 )
@@ -7039,7 +7059,6 @@ mono_reeval_done_node(trie_node *n, void *ctx)
   return NULL;
 }
 
-
 static
 PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 { PRED_LD
@@ -7049,10 +7068,11 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
   if ( get_trie(A1, &atrie) &&
        PL_get_integer(A2, &vc) )
   { idg_node *idg;
+    int rc = TRUE;
 
     if ( (idg=atrie->data.IDG) )
     { if ( atrie->value_count == vc )
-      { int clean = TRUE;
+      { trie_node *n = NULL;
 
 	DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(atrie, "%d answers (same)", vc));
@@ -7060,13 +7080,15 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 	if ( true(atrie, TRIE_ISMAP) )
 	{ int gc = 0;
 
-	  clean = !map_trie_node(&atrie->root, mono_reeval_done_node, &gc);
+	  n = map_trie_node(&atrie->root, mono_reeval_done_node, &gc);
 	  if ( gc )
 	    prune_trie(atrie, &atrie->root, NULL, NULL);
+	  if ( n )
+	    rc = mono_queue_answer(atrie, 0, pointerToInt(n) PASS_LD);
 	}
 
-	if ( clean )
-	  idg_propagate_change(idg, 0);
+	if ( !n && rc )
+	  rc = !idg_propagate_change(idg, 0);
       } else
       { DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(atrie, "%d new answers",
@@ -7076,7 +7098,7 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
       idg->falsecount = 0;
     }
 
-    return TRUE;
+    return rc;
   }
 
   return FALSE;
@@ -7148,9 +7170,9 @@ get_mono_answer(term_t t, word *ap ARG_LD)
   { Word p = valTermRef(t);
 
     deRef(p);
-    if ( isAtom(*p) )
+    if ( isAtom(*p) )			/* clause reference */
     { *ap = *p;
-    } else if ( isInteger(*p) )
+    } else if ( isInteger(*p) )		/* trie node */
     { *ap = (word) word_to_answer(*p PASS_LD);
     } else
       return PL_type_error("tbl_answer", t);
@@ -7160,49 +7182,54 @@ get_mono_answer(term_t t, word *ap ARG_LD)
 }
 
 
+static int
+mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD)
+{ idg_node *sn = atrie->data.IDG;
+  Table aff;
+
+				      /* TBD: merge with mono_idg_changed() */
+  if ( sn && (aff=sn->affected) )
+  { void *k, *v;
+    TableEnum en;
+
+    en = newTableEnum(aff);
+    while( advanceTableEnum(en, &k, &v) )
+    { idg_node *dn = k;
+      idg_mdep *mdep = v;
+      int nonempty = 0;
+
+      if ( dn->force_reeval )		/* Already marked as invalid */
+	continue;
+
+      while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
+      { if ( mdep->lazy )
+	{ nonempty += mdep_queue_answer(mdep, get_mono_answer(ans, &an PASS_LD));
+	  DEBUG(MSG_TABLING_MONOTONIC,
+		print_answer_table(dn->atrie,
+				   "queued answer (nonempty=%d)", nonempty));
+	}
+	mdep = mdep->next.dep;
+      }
+      if ( dn && !nonempty )
+      { if ( dn->lazy &&
+	     !idg_changed(dn->atrie, IDG_CHANGED_NODE|IDG_CHANGED_MONO) )
+	  return FALSE;
+      }
+    }
+    freeTableEnum(en);
+  }
+
+  return TRUE;
+}
+
+
 static
 PRED_IMPL("$mono_idg_changed", 2, mono_idg_changed, 0)
 { PRED_LD
   trie *atrie;
 
   if ( get_trie(A1, &atrie) )
-  { idg_node *sn = atrie->data.IDG;
-    Table aff;
-
-					/* TBD: merge with mono_idg_changed() */
-    if ( sn && (aff=sn->affected) )
-    { void *k, *v;
-      word an = 0;
-      TableEnum en;
-
-      en = newTableEnum(aff);
-      while( advanceTableEnum(en, &k, &v) )
-      { idg_node *dn = k;
-	idg_mdep *mdep = v;
-	int nonempty = 0;
-
-	if ( dn->force_reeval )		/* Already marked as invalid */
-	  continue;
-
-	while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
-	{ if ( mdep->lazy )
-	  { nonempty += mdep_queue_answer(mdep, get_mono_answer(A2, &an PASS_LD));
-	    DEBUG(MSG_TABLING_MONOTONIC,
-		  print_answer_table(dn->atrie,
-				     "queued answer (nonempty=%d)", nonempty));
-	  }
-	  mdep = mdep->next.dep;
-	}
-	if ( dn && !nonempty )
-	{ if ( dn->lazy && !idg_changed(dn->atrie, IDG_CHANGED_NODE) )
-	    return FALSE;
-	}
-      }
-      freeTableEnum(en);
-    }
-
-    return TRUE;
-  }
+    return mono_queue_answer(atrie, A2, 0 PASS_LD);
 
   return FALSE;
 }
@@ -8359,4 +8386,5 @@ BeginPredDefs(tabling)
   PRED_DEF("$mono_reeval_done",	        2, mono_reeval_done,	     0)
   PRED_DEF("$idg_mono_empty_queue",     2, idg_mono_empty_queue,     0)
   PRED_DEF("$idg_mono_invalidate",      1, idg_mono_invalidate,	     0)
+  PRED_DEF("$tbl_node_answer",          2, tbl_node_answer,	     0)
 EndPredDefs

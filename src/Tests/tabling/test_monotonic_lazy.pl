@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, SWI-Prolog Solutions b.v.
+    Copyright (c)  2020-2021, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,9 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_2,
                 tabling_monotonic_lazy_3,
                 tabling_monotonic_lazy_4,
-                tabling_monotonic_lazy_5
+                tabling_monotonic_lazy_5,
+                tabling_monotonic_lazy_6,
+                tabling_monotonic_lazy_7
               ]).
 
 :- meta_predicate
@@ -203,7 +205,68 @@ test(lazy_on_eager_retract) :-
 
 :- end_tests(tabling_monotonic_lazy_5).
 
+:- begin_tests(tabling_monotonic_lazy_6).
 
+% Deal with depending answer subsumptive tabling
+
+:- dynamic (d1/1,d2/1) as monotonic.
+:- table (p(min),r(min),q(min)) as (monotonic,lazy).
+:- dynamic reeval/0.
+
+r(X) :- d1(X).
+q(X) :- d2(X).
+p(X) :- assert(reeval), r(X) ; q(X).
+
+test(lazy_reeval) :-
+    cleanup([d1/1, d2/1]),
+    expect(X, p(X), []),
+    retractall(reeval),
+    assert(d1(1)),
+    expect(X, p(X), [1]),
+    assertion(\+ reeval),
+    assert(d1(0)),
+    expect(X, p(X), [0]),
+    assertion(\+ reeval),
+    assert(d2(-1)),
+    expect(X, p(X), [-1]),
+    assertion(\+ reeval),
+    assert(d2(2)),
+    expect(X, p(X), [-1]),
+    assertion(\+ reeval).
+
+:- end_tests(tabling_monotonic_lazy_6).
+
+:- begin_tests(tabling_monotonic_lazy_7).
+
+% Deal with depending answer subsumptive tabling (non-lazy)
+
+:- dynamic (d1/1,d2/1) as monotonic.
+:- table (p(min),r(min),q(min)) as (monotonic).
+:- dynamic reeval/0.
+
+r(X) :- d1(X).
+q(X) :- d2(X).
+p(X) :- assert(reeval), r(X) ; q(X).
+
+test(lazy_reeval) :-
+    cleanup([d1/1, d2/1]),
+    expect(X, p(X), []),
+    retractall(reeval),
+    assert(d1(1)),
+    expect(X, p(X), [1]),
+    assertion(\+ reeval),
+    assert(d1(0)),
+    expect(X, p(X), [0]),
+    assertion(\+ reeval),
+    assert(d2(-1)),
+    expect(X, p(X), [-1]),
+    assertion(\+ reeval),
+    assert(d2(2)),
+    expect(X, p(X), [-1]),
+    assertion(\+ reeval).
+
+
+:- end_tests(tabling_monotonic_lazy_7).
 
 
 		 /*******************************
