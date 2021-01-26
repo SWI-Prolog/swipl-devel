@@ -9530,6 +9530,18 @@ can be added using win_add_dll_directory/2.
 
     \predicate{win_remove_dll_directory}{1}{-Cookie}
 Remove a DLL search directory installed using win_add_dll_directory/2.
+
+    \predicate{win_process_modules}{1}{-FileNames}
+This predicate is a wrapper around EnumProcessModules(). \arg{FileNames}
+is unified with a list of absolute paths for all \jargon{modules} of the
+Windows process. Modules are the main executable file and all DLLs
+loaded into the process, \emph{except} \jargon{data DLLs}.  The
+returned file names are in canonical Prolog representation.  This
+predicate may be used to debug loading a DLL from an unexpected location
+and as a helper for packaging all dependencies when creating a
+distribution.  According to the Windows documentation this API may
+return incorrect results if DLLs are loaded or unloaded while
+EnumProcessModules() is in progress. See also qsave_program/2.
 \end{description}
 
 
