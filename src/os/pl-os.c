@@ -705,6 +705,7 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
 { char temp[MAXPATHLEN];
   const char *tmpdir = NULL;
   atom_t tname;
+  static int temp_counter = 0;
 
   tmpdir = tmp_dir();
 
@@ -712,14 +713,15 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
     return NULL_ATOM;
 
 retry:
+{ int tmpid = ATOMIC_INC(&temp_counter);
+
 #ifdef __unix__
-{ static int MTOK_temp_counter = 0;
-  const char *sep  = id[0]  ? "_" : "";
+{ const char *sep  = id[0]  ? "_" : "";
   const char *esep = ext[0] ? "." : "";
 
   if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d_%d%s%s",
 		 tmpdir, id, sep, (int) getpid(),
-		 MTOK_temp_counter++,
+		 tmpid,
 		 esep, ext) < 0 )
   { errno = ENAMETOOLONG;
     return NULL_ATOM;
@@ -729,7 +731,6 @@ retry:
 
 #ifdef __WINDOWS__
 { char *tmp;
-  static int temp_counter = 0;
   int rc;
 #ifndef __LCC__
   wchar_t *wtmp = NULL, *wtmpdir, *wid;
@@ -755,13 +756,14 @@ retry:
     const char *esep = ext[0] ? "." : "";
 
     if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d%s%s",
-		   tmpdir, id, sep, temp_counter++, esep, ext) < 0 )
+		   tmpdir, id, sep, tmpid, esep, ext) < 0 )
     { errno = ENAMETOOLONG;
       return NULL_ATOM;
     }
   }
 }
 #endif
+}
 
   if ( fdp )
   { int fd;
