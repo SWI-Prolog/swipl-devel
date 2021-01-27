@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2020, University of Amsterdam
+    Copyright (c)  1996-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -4022,7 +4023,7 @@ PL_put_dict(term_t t, atom_t tag,
 	goto invalid;
     }
 
-    if ( dict_order(p0, TRUE PASS_LD) )
+    if ( dict_order(p0, NULL PASS_LD) == TRUE )
     { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return TRUE;

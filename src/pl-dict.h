@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2018, VU University Amsterdam
+    Copyright (c)  2013-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,7 +49,7 @@ COMMON(int)	PL_for_dict(term_t dict,
 			   int flags);
 
 COMMON(functor_t) dict_functor(int pairs);
-COMMON(int)	  dict_order(Word dict, int ex ARG_LD);
+COMMON(int)	  dict_order(Word dict, Word dupl ARG_LD);
 COMMON(int)	  dict_order_term_refs(term_t *av, int *indexes, int cnt ARG_LD);
 COMMON(Word)	  dict_lookup_ptr(word dict, word name ARG_LD);
 COMMON(int)	  resortDictsInClause(Clause clause);

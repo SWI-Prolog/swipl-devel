@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2020, VU University Amsterdam
+    Copyright (c)  2013-2021, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -188,7 +188,7 @@ dict_lookup_ptr(word dict, word name ARG_LD)
 */
 
 static int
-dict_ordered(Word data, int count, int ex ARG_LD)
+dict_ordered(Word data, int count, Word dupl ARG_LD)
 { int ordered = TRUE;
   Word n1, n2;
 
@@ -207,7 +207,9 @@ dict_ordered(Word data, int count, int ex ARG_LD)
       if ( *n1 > *n2 )
 	ordered = FALSE;
       if ( *n1 == *n2 )
-      { if ( ex )
+      { if ( dupl )
+	{ *dupl = *n1;
+	} else
 	{ term_t t = PL_new_term_ref();
 	  *valTermRef(t) = linkValI(n1);
 	  PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, t);
@@ -240,7 +242,7 @@ compare_dict_entry(const void *a, const void *b, void *arg)
 
 
 int
-dict_order(Word dict, int ex ARG_LD)
+dict_order(Word dict, Word dupl ARG_LD)
 { Functor data = (Functor)dict;
   int arity = arityFunctor(data->definition);
 
@@ -249,7 +251,7 @@ dict_order(Word dict, int ex ARG_LD)
   sort_r(data->arguments+1, arity/2, sizeof(word)*2,
 	 compare_dict_entry, LD);
 
-  return dict_ordered(data->arguments+1, arity/2, ex PASS_LD) == TRUE;
+  return dict_ordered(data->arguments+1, arity/2, dupl PASS_LD);
 }
 
 
@@ -663,10 +665,11 @@ PL_is_dict(term_t t)
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
+    word dupl;
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 &&
-	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE )
+	 dict_ordered(f->arguments+1, fd->arity/2, &dupl PASS_LD) == TRUE )
       return TRUE;
   }
 
@@ -677,6 +680,7 @@ PL_is_dict(term_t t)
 static int
 PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
 { GET_LD
+  word dupl;
 
   if ( PL_is_dict(data) )
   { PL_put_term(dict, data);
@@ -734,13 +738,19 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
       deRef(tail);
     }
 
-    if ( dict_order(dp, TRUE PASS_LD) )
+    if ( (rc=dict_order(dp, &dupl PASS_LD)) == TRUE )
     { gTop = ap;
       *valTermRef(dict) = consPtr(dp, TAG_COMPOUND|STG_GLOBAL);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return TRUE;
     } else
-    { return FALSE;
+    { term_t ex;
+
+      assert(rc == -2);
+      Undo(m);
+      return ( (ex = PL_new_term_ref()) &&
+	       _PL_unify_atomic(ex, dupl) &&
+	       PL_error(NULL, 0, NULL, ERR_DUPLICATE_KEY, ex) );
     }
   }					/* TBD: {name:value, ...} */
 
@@ -1063,11 +1073,12 @@ right_arg:
   { Functor t = valueTerm(*p);
     FunctorDef fd = valueFunctor(t->definition);
     Word ea;
+    word dupl;
 
     if ( fd->name == ATOM_dict && fd->arity%2 == 1 &&
-	 dict_ordered(&t->arguments[1], fd->arity/2, FALSE PASS_LD) == FALSE )
+	 dict_ordered(&t->arguments[1], fd->arity/2, &dupl PASS_LD) == FALSE )
     { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
-      dict_order((Word)t, FALSE PASS_LD);
+      dict_order((Word)t, &dupl PASS_LD);
     }
 
     ea = &t->arguments[fd->arity-1];
@@ -1110,10 +1121,11 @@ PRED_IMPL("is_dict", 1, is_dict, 0)
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
+    //word dupl;
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 /*&&
-	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE*/ )
+	 dict_ordered(f->arguments+1, fd->arity/2, &dupl PASS_LD) == TRUE*/ )
       return TRUE;
   }
 
@@ -1130,10 +1142,11 @@ PRED_IMPL("is_dict", 2, is_dict, 0)
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
     FunctorDef fd = valueFunctor(f->definition);
+    //word dupl;
 
     if ( fd->name == ATOM_dict &&
 	 fd->arity%2 == 1 /*&&
-	 dict_ordered(f->arguments+1, fd->arity/2, FALSE PASS_LD) == TRUE*/ )
+	 dict_ordered(f->arguments+1, fd->arity/2,  &dupl PASS_LD) == TRUE*/ )
       return unify_ptrs(&f->arguments[0], valTermRef(A2),
 			ALLOW_GC|ALLOW_SHIFT PASS_LD);
   }
