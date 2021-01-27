@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, SWI-Prolog Solutions b.v.
+    Copyright (c)  2020-2021, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,22 @@
 
 :- module(sicstus4_lists,
 	  [ keys_and_values/3,		% ?Pairs, ?Keys, ?Values
+	    rev/2,			% +List, ?Reversed
+	    shorter_list/2,		% ?Short, ?Long
+	    append_length/4,		% ?Prefix, ?Suffix, ?List, ?Length
+	    append_length/3,		% ?Suffix, ?List, ?Length
+	    prefix_length/3,		% ?List, ?Prefix, ?Length
+	    proper_prefix_length/3,	% ?List, ?Prefix, ?Length
+	    suffix_length/3,		% ?List, ?Suffix, ?Length
+	    proper_suffix_length/3,	% ?List, ?Suffix, ?Length
+	    cons/3,			% ?Head, ?Tail, ?List
+	    last/3,			% ?Fore, ?Last, ?List
+	    head/2,			% ?List, ?Head
+	    tail/2,			% ?List, ?Tail
+	    prefix/2,			% ?List, ?Prefix
+	    proper_prefix/2,		% ?List, ?Prefix
+	    suffix/2,			% ?List, ?Suffix
+	    proper_suffix/2,		% ?List, ?Suffix
 	    subseq0/2,			% +Sequence, ?SubSequence
 	    subseq1/2,			% +Sequence, ?SubSequence
 	    scanlist/4,			% :Pred, ?Xs, ?V1, ?V
@@ -49,6 +65,10 @@
 	      append/2,
 	      delete/3,
 	      last/2,
+	      % SWI lists:list_to_set/2 actually behaves
+	      % like SICStus lists:remove_dups/2
+	      % and not like SICStus sets:list_to_set/2.
+	      list_to_set/2 as remove_dups,
 	      nextto/3,
 	      nth1/3,
 	      nth1/4,
@@ -61,7 +81,6 @@
 	      select/4,
 	      selectchk/4,
 	      sum_list/2 as sumlist,
-	      prefix/2,
 	      max_member/2,
 	      min_member/2,
 	      clumped/2
@@ -76,6 +95,7 @@
 	      partition/5
 	    ]).
 :- reexport('../../clp/clpfd', [transpose/2]).
+:- reexport('../sicstus/lists', [same_length/3]).
 :- use_module(library(pairs), [pairs_keys_values/3]).
 
 :- multifile sicstus4:rename_module/2.
@@ -93,24 +113,8 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* one_longer/2
 	* perm/2
 	* perm2/4
-	* remove_dups/2
-	* rev/2
-	* same_length/3
-	* shorter_list/2
-	* append_length/[3,4]
-	* prefix_length/3
-	* proper_prefix_length/3
-	* suffix_length/3
-	* proper_suffix_length/3
 	* rotate_list/[2,3]
 	* sublist/[3,4,5]
-	* cons/3
-	* last/3
-	* head/2
-	* tail/2
-	* proper_prefix/2
-	* suffix/2
-	* proper_suffix/2
 	* segment/2
 	* proper_segment/2
 	* cumlist/[4,5,6]
@@ -136,6 +140,92 @@ sicstus4:rename_module(lists, sicstus4_lists).
 
 keys_and_values(Pairs, Keys, Values) :-
 	pairs_keys_values(Pairs, Keys, Values).
+
+
+%%	rev(+List, ?Reversed) is semidet.
+%
+%	Same as reverse/2, but List must be a proper list.
+
+rev(List, Reversed) :- rev_(List, [], Reversed).
+rev_([], Reversed, Reversed).
+rev_([Head|Tail], RevTail, Reversed) :-
+	rev_(Tail, [Head|RevTail], Reversed).
+
+
+%%	shorter_list(?Short, ?Long) is nondet.
+%
+%	True if Short is a shorter list than Long. The lists' contents
+%	are insignificant, only the lengths matter. Mode -Short, +Long
+%	can be used to enumerate list skeletons shorter than Long.
+
+shorter_list([], [_|_]).
+shorter_list([_|ShortTail], [_|LongTail]) :-
+	shorter_list(ShortTail, LongTail).
+
+
+% TODO The *_length predicates can probably be implemented more efficiently.
+
+append_length(Prefix, Suffix, List, Length) :-
+	append(Prefix, Suffix, List),
+	length(Prefix, Length).
+
+append_length(Suffix, List, Length) :-
+	append_length(_, Suffix, List, Length).
+
+prefix_length(List, Prefix, Length) :-
+	prefix(List, Prefix),
+	length(Prefix, Length).
+
+proper_prefix_length(List, Prefix, Length) :-
+	proper_prefix(List, Prefix),
+	length(Prefix, Length).
+
+suffix_length(List, Suffix, Length) :-
+	suffix(List, Suffix),
+	length(Suffix, Length).
+
+proper_suffix_length(List, Suffix, Length) :-
+	proper_suffix(List, Suffix),
+	length(Suffix, Length).
+
+
+cons(Head, Tail, [Head|Tail]).
+last(Fore, Last, List) :- append(Fore, [Last], List).
+head([Head|_], Head).
+tail([_|Tail], Tail).
+
+
+%%	prefix(?List, ?Prefix) is nondet.
+%
+%	True if Prefix is a prefix of List. Not the same as prefix/2
+%	in SICStus 3 or SWI - the arguments are reversed!
+
+prefix(List, Prefix) :-
+	append(Prefix, _, List).
+
+%%	proper_prefix(?List, ?Prefix) is nondet.
+%
+%	True if Prefix is a prefix of List, but is not List itself.
+
+proper_prefix(List, Prefix) :-
+	prefix(List, Prefix),
+	Prefix \== List.
+
+%%	suffix(?List, ?Prefix) is nondet.
+%
+%	True if Suffix is a suffix of List. Not the same as suffix/2
+%	in SICStus 3 - the arguments are reversed!
+
+suffix(List, List).
+suffix([_|Tail], Suffix) :-
+	suffix(Tail, Suffix).
+
+%%	proper_suffix(?List, ?Prefix) is nondet.
+%
+%	True if Suffix is a suffix of List, but is not List itself.
+
+proper_suffix([_|Tail], Suffix) :-
+	suffix(Tail, Suffix).
 
 
 %%	scanlist(:Pred, ?Xs, ?V1, ?V) is nondet.
