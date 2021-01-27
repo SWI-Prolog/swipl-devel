@@ -36,7 +36,9 @@
 	  [ substitute/4,		% +Elem, +List, +NewElem, -List
 	    nth/3,			% ?N, ?List, ?Element
 	    nth/4,			% ?N, ?List, ?Element, ?Rest
+	    same_length/3,		% ?List1, ?List2, ?Length
 	    sublist/2,			% ?Sub, +List
+	    suffix/2,			% ?Suffix, ?List
 
 	    % The following predicates are built-in on SWI.
 	    % We re-export them here to avoid warnings
@@ -74,16 +76,14 @@ sicstus:rename_module(lists, sicstus_lists).
 	* no_doubles/1
 	* non_member/2
 	* remove_duplicates/2
-	* same_length/3
-	* suffix/2
 
 @see	https://sicstus.sics.se/sicstus/docs/3.12.11/html/sicstus/Lists.html
 */
 
 %%	substitute(+OldElem, +List, +NewElem, -NewList) is det.
 %
-%	NewList is as List with all value that are identical (==) to OldElem
-%	replaced by NewList.
+%	NewList is List with all values that are identical (==) to OldElem
+%	replaced by NewElem.
 
 substitute(Old, List, New, NewList) :-
 	substitute_(List, Old, New, NewList).
@@ -119,6 +119,19 @@ nth(Index, List, Element, Rest) :-
 	nth1(Index, List, Element, Rest).
 
 
+%%	same_length(?List1, ?List2, ?Length) is nondet.
+%
+%	True if List1 and List2 both have length Length.
+
+same_length(List1, List2, Length) :-
+	(   var(List1)
+	->  length(List2, Length),
+	    length(List1, Length)
+	;   length(List1, Length),
+	    length(List2, Length)
+	).
+
+
 %%	sublist(?Sub, +List)
 %
 %	True when all members of Sub  are   members  of List in the same
@@ -142,3 +155,13 @@ sublist__([H|T], X, [X|Sub]) :-
 	sublist__(T, H, Sub).
 sublist__([H|T], _, Sub) :-
 	sublist__(T, H, Sub).
+
+
+%%	suffix(?Suffix, ?List) is nondet.
+%
+%	True if Suffix is a suffix of List. Not the same as suffix/2
+%	in SICStus 4 - the arguments are reversed!
+
+suffix(List, List).
+suffix(Suffix, [_|Tail]) :-
+	suffix(Suffix, Tail).
