@@ -174,7 +174,7 @@ set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
 set(SWIPL_DATA_library_dialect_hprolog format.pl)
 set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl ordsets.pl
     README.TXT sockets.pl swipl-lfr.pl system.pl terms.pl timeout.pl)
-set(SWIPL_DATA_library_dialect_sicstus4 lists.pl ordsets.pl system.pl
+set(SWIPL_DATA_library_dialect_sicstus4 lists.pl ordsets.pl sets.pl system.pl
     terms.pl timeout.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
