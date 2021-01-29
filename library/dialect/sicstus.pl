@@ -59,6 +59,8 @@
 	    prolog_flag/3,		% +Flag, -Old, +New
 	    prolog_flag/2,		% +Flag, -Value
 
+	    statistics/2,		% ?Key, ?Value
+
 	    op(1150, fx, (block)),
 	    op(1150, fx, (mode)),
 	    op(900, fy, (spy)),
@@ -481,6 +483,31 @@ sicstus_flag(system_type, Type) :- !,
 	).
 sicstus_flag(Name, Value) :-
 	current_prolog_flag(Name, Value).
+
+
+% As of SICStus 3.2.11, the following statistics/2 keys are still missing:
+% * choice
+
+statistics(heap, Stats) :- !, system:statistics(program, Stats).
+statistics(garbage_collection, [Count, Freed, Time]) :- !,
+	% Remove fourth list element (SWI extension).
+	system:statistics(garbage_collection, [Count, Freed, Time|_]).
+statistics(atoms, [H|T]) :- !,
+	% SWI natively provides two different values under the atoms key:
+	% the number of atoms as a single integer,
+	% and a Quintus/SICStus-compatible list of atom usage statistics.
+	% Which value is returned when calling statistics(atoms, X)
+	% depends on the value of X before the call:
+	% if X is unbound, the single integer is returned,
+	% but if X is already bound to a (usually non-ground) list,
+	% the list of statistics is returned instead.
+
+	% Here we just force the list to be returned in all cases
+	% if SICStus emulation is active, by forcing the second argument
+	% to be bound to a list.
+	system:statistics(atoms, [H|T]).
+
+statistics(Keyword, Value) :- system:statistics(Keyword, Value).
 
 
 		 /*******************************

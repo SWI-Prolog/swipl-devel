@@ -1,7 +1,7 @@
 /*  Part of SWI-Prolog
 
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, SWI-Prolog Solutions b.v.
+    Copyright (c)  2020-2021, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@
 
 :- module(sicstus4,
 	  [ nonmember/2,		% ?Element, ?List
+	    statistics/2,		% ?Key, ?Value
 	    op(1100, xfy, (do))
 	  ]).
 :- reexport(sicstus,
@@ -131,6 +132,46 @@ system:goal_expansion(M:Goal, SicstusM:Goal) :-
 %	No variables are bound.
 
 nonmember(Element, List) :- \+ memberchk(Element, List).
+
+% As of SICStus 4.6.0, the following statistics/2 keys are still missing:
+% Introduced in SICStus 4.0:
+% * defragmentation
+% Introduced in SICStus 4.1:
+% * choice_used, choice_free
+% * defrag_count, defrag_time
+% * dpgc_count, dpgc_time
+% * memory_culprit
+% * memory_buckets
+% Introduced in SICStus 4.3:
+% * jit_count, jit_time
+
+statistics(total_runtime, Stats) :- !, system:statistics(runtime, Stats).
+% The following keys were introduced with SICStus Prolog 4.1.
+statistics(memory_used, BytesUsed) :- !, system:statistics(memory, [BytesUsed, _]).
+statistics(memory_free, BytesFree) :- !, system:statistics(memory, [_, BytesFree]).
+statistics(global_stack_used, BytesUsed) :- !, system:statistics(global_stack, [BytesUsed, _]).
+statistics(global_stack_free, BytesFree) :- !, system:statistics(global_stack, [_, BytesFree]).
+statistics(local_stack_used, BytesUsed) :- !, system:statistics(local_stack, [BytesUsed, _]).
+statistics(local_stack_free, BytesFree) :- !, system:statistics(local_stack, [_, BytesFree]).
+statistics(trail_used, BytesUsed) :- !, system:statistics(trail, [BytesUsed, _]).
+statistics(trail_free, BytesFree) :- !, system:statistics(trail, [_, BytesFree]).
+statistics(atoms_used, BytesUsed) :- !, system:statistics(atom_space, BytesUsed).
+statistics(atoms_nbused, CountUsed) :- !, system:statistics(atoms, CountUsed).
+statistics(atoms_nbfree, CountFree) :- !, CountFree = 0.
+statistics(ss_global, Count) :- !, system:statistics(stack_shifts, [Count, _, _]).
+statistics(ss_local, Count) :- !, system:statistics(stack_shifts, [_, Count, _]).
+statistics(ss_time, Time) :- !, system:statistics(stack_shifts, [_, _, Time]).
+statistics(gc_count, Count) :- !, system:statistics(garbage_collection, [Count, _, _|_]).
+statistics(gc_freed, BytesFreed) :- !, system:statistics(garbage_collection, [_, BytesFreed, _|_]).
+statistics(gc_time, Time) :- !, system:statistics(garbage_collection, [_, _, Time|_]).
+statistics(agc_count, Count) :- !, system:statistics(atom_garbage_collection, [Count, _, _]).
+statistics(agc_freed, BytesFreed) :- !, system:statistics(atom_garbage_collection, [_, BytesFreed, _]).
+statistics(agc_time, Time) :- !, system:statistics(atom_garbage_collection, [_, _, Time]).
+statistics(dcgc_count, Count) :- !, system:statistics(clause_garbage_collection, [Count, _, _]).
+statistics(dcgc_time, Time) :- !, system:statistics(clause_garbage_collection, [_, _, Time]).
+
+:- use_module(sicstus, [statistics/2 as sicstus3_statistics]).
+statistics(Keyword, Value) :- sicstus3_statistics(Keyword, Value).
 
 % Provide (\)/2 as arithmetic function.  Ideally, we should be able to
 % bind multiple names to built-in functions.  This is rather slow.  We
