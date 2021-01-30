@@ -1585,6 +1585,12 @@ are \const{bounded_rationality}, \const{error} (default) or
     \prologflagitem{max_arity}{unbounded}{r}
 ISO Prolog flag describing there is no maximum arity to compound terms.
 
+    \prologflagitem{max_char_code}{integer}{r}
+Highest (Unicode) code point that is supported.  SWI-Prolog supports
+all Unicode code points from 0 (zero) upto and including the value of
+this flag. Currently \const{0xffff} on Windows (UCS-2) and
+\const{0x10ffff} on most other platforms.
+
     \prologflagitem{max_integer}{integer}{r}
 Maximum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.

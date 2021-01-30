@@ -8039,16 +8039,23 @@ the two values after converting to float, but returns the integer 3.
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See
 \funcref{max}{2} for a description of type handling.
 
-    \function{.}{2}{+Int, []}
-A list of one element evaluates to the element. This implies \exam{"a"}
-evaluates to the character code of the letter `a' (97) using the
-traditional mapping of double quoted string to a list of character
-codes. Arithmetic evaluation also translates a string object (see
-\secref{string}) of one character length into the character code for
-that character. This implies that expression \exam{"a"} also works of
-the Prolog flag \prologflag{double_quotes} is set to \const{string}. The
-recommended way to specify the character code of the letter `a' is
-\exam{0'a}.
+    \function[deprecated]{.}{2}{+Char, []}
+A list of one element evaluates to the character code of this
+element.\footnote{The function is documented as \functor{.}{2}. Using
+SWI-Prolog v7 and later the actual functor is \functor{[|]}{2}.} This
+implies \exam{"a"} evaluates to the character code of the letter `a'
+(97) using the traditional mapping of double quoted string to a list of
+character codes. \arg{Char} is either a valid code point (non-negative
+integer up to the Prolog flag \prologflag{max_char_code}) or a
+one-character atom. Arithmetic evaluation also translates a string
+object (see \secref{string}) of one character length into the character
+code for that character. This implies that expression \exam{"a"} works
+if the Prolog flag \prologflag{double_quotes} is set to one of
+\const{codes}, \const{chars} or \const{string}.
+
+Getting access to character codes this way originates from DEC10 Prolog.
+ISO has the \exam{0'a} syntax and the predicate char_code/2.  Future
+versions may drop support for \exam{X is "a"}.
 
     \function{random}{1}{+IntExpr}
 Evaluate to a random integer \arg{i} for which $0 \leq i <
