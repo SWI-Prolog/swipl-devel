@@ -209,12 +209,13 @@ most_general_goal(Compound, General) :-
 %!  extend_goal(:Goal0, +Extra, -Goal) is det.
 %
 %   Extend the possibly qualified Goal0   with additional arguments from
-%   Extra.
+%   Extra. If Goal0 is insufficiantly instantiated (i.e., a variable), a
+%   term call(Goal0, ...) is returned.
 
-extend_goal(Goal0, _, _) :-
+extend_goal(Goal0, Extra, Goal) :-
     var(Goal0),
     !,
-    instantiation_error(Goal0).
+    Goal =.. [call,Goal0|Extra].
 extend_goal(M:Goal0, Extra, M:Goal) :-
     extend_goal(Goal0, Extra, Goal).
 extend_goal(Atom, Extra, Goal) :-
@@ -307,6 +308,10 @@ is_control_goal(\+(_)).
 %
 %   True when BodyTerm calls Goal.  This   predicate  looks into control
 %   structures as well as meta predicates based on predicate_property/2.
+%
+%   When a variable is  called,  this   is  normally  returned  in Goal.
+%   Currently if a variable is called   with additional arguments, e.g.,
+%   call(Var, a1), this call is reported as call(Var, a1).
 
 body_term_calls(M:Body, Calls) :-
     body_term_calls(Body, M, M, Calls).
@@ -344,8 +349,12 @@ body_term_calls(\+ A, M, C, Calls) :-
     !,
     body_term_calls(A, M, C, Calls).
 body_term_calls(Goal, M, C, Calls) :-
-
     predicate_property(M:Goal, meta_predicate(Spec)),
+    \+ ( functor(Goal, call, _),
+         arg(1, Goal, A1),
+         strip_module(A1, _, P1),
+         var(P1)
+       ),
     !,
     arg(I, Spec, SArg),
     arg(I, Goal, GArg),
