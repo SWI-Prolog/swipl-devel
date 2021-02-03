@@ -6503,7 +6503,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       DEBUG(MSG_TABLING_IDG_CHANGED,
 	    print_answer_table(
 		n->atrie,
-		"IDG: propagate falsecount (re-eval=%d, falsecount=%d)",
+		"  IDG: propagate falsecount (re-eval=%d, falsecount=%d)",
 		n->reevaluating, n->falsecount));
 
       if ( n->reevaluating )
@@ -6525,7 +6525,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 	      outOfCore();
 	  }
 	}
-      } else				       /* Decrement falsecount */
+      } else if ( !table_is_incomplete(n->atrie) ) /* Decrement falsecount */
       { int fc = ATOMIC_DEC(&n->falsecount);
 
 	assert(fc >= 0);
@@ -6562,6 +6562,9 @@ static trie *
 idg_propagate_change(idg_node *n, int flags)
 { if ( n->affected )
   { idg_propagate_state state;
+
+    DEBUG(MSG_TABLING_IDG_CHANGED,
+	  print_answer_table(n->atrie, "IDG propagate change (flags=0x%x)", flags));
 
     state.modified = 0;
     state.incomplete = NULL;
