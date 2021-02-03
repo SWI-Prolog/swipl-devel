@@ -4677,14 +4677,32 @@ involved. Not sure it is worth while.
 static void
 wls_reeval_complete(worklist **wls, size_t ntables)
 { size_t i;
+  size_t reevaluated = 0;
 
   for(i=0; i<ntables; i++)
   { worklist *wl = wls[i];
     trie *atrie = wl->table;
     idg_node *n;
 
-    if ( (n=atrie->data.IDG) && n->reevaluating )
-      reeval_complete(atrie);
+    if ( (n=atrie->data.IDG) )
+    { if ( n->reevaluating )
+      { reeval_complete(atrie);
+	reevaluated++;
+      }
+    }
+  }
+
+  if ( reevaluated )
+  { for(i=0; i<ntables; i++)
+    { worklist *wl = wls[i];
+      trie *atrie = wl->table;
+      idg_node *n;
+
+      if ( (n=atrie->data.IDG) )
+      { n->reevaluating = FALSE;
+	assert(n->falsecount == 0);
+      }
+    }
   }
 }
 
@@ -6508,7 +6526,10 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 	  }
 	}
       } else				       /* Decrement falsecount */
-      { if ( ATOMIC_DEC(&n->falsecount) == 0 )
+      { int fc = ATOMIC_DEC(&n->falsecount);
+
+	assert(fc >= 0);
+	if ( fc == 0 )
 	{
 #ifdef O_PLMT
 	  if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
@@ -7499,9 +7520,7 @@ reeval_complete(trie *atrie)
     TRIE_STAT_INC(n, reevaluated);
 
     n->force_reeval = FALSE;
-    n->reevaluating = FALSE;
     n->aborted      = FALSE;
-    n->falsecount   = 0;
   }
 }
 

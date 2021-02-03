@@ -4,6 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2019, VU University Amsterdam
+		   2021, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,7 +43,9 @@
 */
 
 test_reeval :-
-    run_tests(tabling_reeval).
+    run_tests([ tabling_reeval,
+                tabling_reeval_merged
+              ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
                                  cleanup(abolish_all_tables)
@@ -105,3 +108,35 @@ answers(Templ, Goal, Expected) :-
     sort(Got0, Got),
     sort(Expected, Expected1),
     assertion(Got =@= Expected1).
+
+:- begin_tests(tabling_reeval_merged).
+
+:- dynamic d/2 as incremental.
+:- table p/2 as incremental.
+
+p(X,Y) :-
+    d(X,Y), Y > 10.
+p(X,Z) :-
+    d(X,Y), p(Y,Z).
+
+:- meta_predicate eval(0).
+
+% Tables being re-evaluated end up  in  a   merged  SCC.  Now we must be
+% careful  to  first  propagate  the  no-changes   and  then  clear  the
+% reevaluation state of the nodes.
+
+:- meta_predicate eval(0).
+
+test(only) :-
+    assert(d(1,2)),
+    assert(d(3,4)),
+    eval(p(1,_)),
+    eval(p(3,_)),
+    assert(d(3,1)),
+    assert(d(1,3)),
+    eval(p(1,_)).                       % caused assertion on falsecount >= 0
+
+eval(G) :-
+    forall(G, true).
+
+:- end_tests(tabling_reeval_merged).
