@@ -7347,7 +7347,7 @@ prepare_reeval(trie *atrie)
 { idg_node *idg = atrie->data.IDG;
 
   DEBUG(MSG_TABLING_IDG_REEVAL,
-	print_answer_table(atrie, "Preparing re-evaluation of"));
+	print_answer_table(atrie, "Preparing reeval of"));
 
   idg->answer_count = atrie->value_count;
   idg->new_answer = FALSE;
@@ -7480,26 +7480,28 @@ reeval_complete(trie *atrie)
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) && n->reevaluating )
-  { map_trie_node(&atrie->root, reeval_complete_node, atrie);
+  { int same_answers;
+    map_trie_node(&atrie->root, reeval_complete_node, atrie);
+
+    same_answers = ( n->new_answer == FALSE &&
+		     n->answer_count == atrie->value_count );
 
     DEBUG(MSG_TABLING_IDG_REEVAL,
-	  print_answer_table(atrie, "Re-evaluation of"));
+	  print_answer_table(atrie,
+			     "Completed reeval of (modified: %s (new: %s, Danswers = %zd))",
+			     same_answers ? "FALSE" : "TRUE",
+			     n->new_answer ? "TRUE" : "FALSE",
+			     (size_t)(atrie->value_count - n->answer_count)));
 
-    if ( n->new_answer == FALSE &&
-	 n->answer_count == atrie->value_count )
-    { DEBUG(MSG_TABLING_IDG_REEVAL, Sdprintf(": same answers\n"));
+    if ( same_answers )
       idg_propagate_change(n, 0);
-    } else
-    { DEBUG(MSG_TABLING_IDG_REEVAL,
-	    Sdprintf(": modified (new=%d, count %zd -> %zd)\n",
-		     n->new_answer, n->answer_count, atrie->value_count));
-    }
 
     TRIE_STAT_INC(n, reevaluated);
 
     n->force_reeval = FALSE;
     n->reevaluating = FALSE;
     n->aborted      = FALSE;
+    n->falsecount   = 0;
   }
 }
 
