@@ -34,10 +34,10 @@
 
 :- module(arithmetic,
           [ arithmetic_function/1,              % +Name/Arity
-            arithmetic_expression_value/2       % :Expression, -Value
+            arithmetic_expression_value/2,      % Expression, -Value
+            cut_eval/0                          % cut arithmetic_expression_value choices
           ]).
 :- autoload(library(error),[type_error/2]).
-:- autoload(library(lists),[append/3]).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -51,9 +51,6 @@ between Prolog predicates  used  as   functions  and  built-in evaluable
 terms.
 */
 
-:- meta_predicate
-    arithmetic_function(:),
-    arithmetic_expression_value(:, -).
 :- multifile
     evaluable/2.                            % Term, Module
 
@@ -69,44 +66,53 @@ terms.
 arithmetic_function(Term) :-
     throw(error(context_error(nodirective, arithmetic_function(Term)), _)).
 
-arith_decl_clauses(NameArity,
-                   [(:- public(PI)),
-                    arithmetic:evaluable(Term, Q)
-                   ]) :-
-    prolog_load_context(module, M),
-    strip_module(M:NameArity, Q, Spec),
-    (   Q == M
-    ->  PI = Name/ImplArity
-    ;   PI = Q:Name/ImplArity
-    ),
-    (   Spec = Name/Arity
-    ->  functor(Term, Name, Arity),
-        ImplArity is Arity+1
-    ;   type_error(predicate_indicator, Term)
-    ).
+arith_decl_clauses(NameArity, Clauses) :-
+    pred_indicator(NameArity,Name,Arity)
+     -> 
+        compound_name_arity(Term, Name, Arity),  %  for possible 0 arity
+        ImplArity is Arity+1,
+        functor(Pred, Name, ImplArity),
+        prolog_load_context(module, M),
+        defining_context(M:Pred,Q),
+        PI = Q:Name/ImplArity,
+        (evaluable(Term, Q)                      % make idempotent
+         -> Clauses=[]
+         ;  Clauses=[(:- public(PI)),arithmetic:evaluable(Term, Q)]
+        )
+     ;  type_error(predicate_indicator, NameArity).
+
+pred_indicator(_:NameArity, Name, Arity) :- % for compatibility - throw away any specified module
+    pred_indicator(NameArity, Name, Arity).
+pred_indicator(Name/Arity, Name, Arity). 
+  
+defining_context(Pred,M) :- 
+	predicate_property(Pred,implementation_module(M)), !.  % local to M  
+defining_context(Pred,C) :- 
+	predicate_property(Pred,imported_from(C)), !.          % imported from C          
+defining_context(_,user).                                  % not found, sorted out at evaluation? 
 
 %!  eval_clause(+Term, -Clause) is det.
 %
 %   Clause is a clause  for   evaluating  the  arithmetic expression
 %   Term.
 
-eval_clause(roundtoward(_,Round), (eval(Gen,M,Result) :- Body)) :-
+eval_clause(roundtoward(_,Round), (eval(Gen,Result) :- Body)) :-
     !,
     Gen = roundtoward(Arg,Round),
-    eval_args([Arg], [PlainArg], M, Goals,
+    eval_args([Arg], [PlainArg], Goals,
               [Result is roundtoward(PlainArg,Round)]),
     list_conj(Goals, Body).
-eval_clause(Term, (eval(Gen, M, Result) :- Body)) :-
+eval_clause(Term, (eval(Gen, Result) :- Body)) :-
     functor(Term, Name, Arity),
     functor(Gen, Name, Arity),
     Gen =.. [_|Args],
-    eval_args(Args, PlainArgs, M, Goals, [Result is NewTerm]),
+    eval_args(Args, PlainArgs, Goals, [Result is NewTerm]),
     NewTerm =.. [Name|PlainArgs],
     list_conj(Goals, Body).
 
-eval_args([], [], _, Goals, Goals).
-eval_args([E0|T0], [A0|T], M, [eval(E0, M, A0)|GT], RT) :-
-    eval_args(T0, T, M, GT, RT).
+eval_args([], [], Goals, Goals).
+eval_args([E0|T0], [A0|T], [eval(E0, A0)|GT], RT) :-
+    eval_args(T0, T, GT, RT).
 
 list_conj([One], One) :- !.
 list_conj([H|T0], (H,T)) :-
@@ -116,7 +122,7 @@ eval_clause(Clause) :-
     current_arithmetic_function(Term),
     eval_clause(Term, Clause).
 
-term_expansion(eval('$builtin', _, _), Clauses) :-
+term_expansion(eval('$builtin', _), Clauses) :-
     findall(Clause, eval_clause(Clause), Clauses).
 
 
@@ -125,27 +131,63 @@ term_expansion(eval('$builtin', _, _), Clauses) :-
 %   True  when  Result  unifies  with    the  arithmetic  result  of
 %   evaluating Expression.
 
-arithmetic_expression_value(M:Expression, Result) :-
-    eval(Expression, M, Result).
+arithmetic_expression_value(Expression, Result) :-
+    eval(Expression, Result).
 
-eval(Number, _, Result) :-
+eval(Var, _) :-            % var check to prevent infinite eval loop
+    var(Var),
+    !, fail.
+eval(Number, Number) :-    % first numbers
     number(Number),
-    !,
-    Result = Number.
-eval(Term, M, Result) :-
-    evaluable(Term, M2),
-    visible(M, M2),
-    !,
-    call(M2:Term, Result).
-eval('$builtin', _, _).
+    !.
+eval(Term, Result) :-      % then user defined functions
+    callable_function(Term,Function,Module),
+    call(Module:Function, Result),  % possibly multiple choices
+    !.                              % late cut allows overloading
+eval(Literal, Literal) :-  % then other literals - evaluate to themselves
+    (atom(Literal)
+     -> \+ current_arithmetic_function(Literal)  % not builtin (family of pi and e)
+     ;  atomic(Literal)    % others - strings, [], ..
+    ),
+    !.
+eval('$builtin', _).       % then builtin arithmetic (expanded above)
 
+% used by eval/2
+callable_function(Atom, Function, Module) :-
+    atom(Atom),
+    compound_name_arity(Function,Atom,0),
+    evaluable(Function, Module).
+callable_function(Function,Function,Module) :-
+    compound(Function),
+    evaluable(Function, Module).
 
-visible(M, M) :- !.
-visible(M, Super) :-
-    import_module(M, Parent),
-    visible(Parent, Super).
+% used by do_expand_function/3	
+callable_function_arguments(Atom, Atom, []) :-
+    atom(Atom),
+    compound_name_arguments(Function,Atom,[]),
+    evaluable(Function, _).
+callable_function_arguments(Function, Name, Args) :-
+    evaluable(Function, _),
+    Function=..[Name|Args].
 
+%
+% cut_eval/0 - used by user defined functions to cut eval/2 choices
+% necessary to force failure in such predicates (see test suite)
+%
+cut_eval :-
+	ancestor_cut(arithmetic:eval(_,_)).
 
+ancestor_cut(Goal) :-  % see "Hackers corner"
+    prolog_current_choice(C),
+    ancestor_cut(Goal, C).
+ancestor_cut(Goal, C) :-
+    prolog_choice_attribute(C,parent,C1),
+    prolog_choice_attribute(C,frame,F),
+    (prolog_frame_attribute(F,goal,G), G=Goal
+     -> prolog_cut_to(C1)
+     ;  ancestor_cut(Goal, C1)
+    ).
+			
                  /*******************************
                  *         COMPILE-TIME         *
                  *******************************/
@@ -182,30 +224,34 @@ expand_function(Expression, NativeExpression, Goal) :-
     do_expand_function(Expression, NativeExpression, Goal0),
     tidy(Goal0, Goal).
 
-do_expand_function(X, X, true) :-
+do_expand_function(X, X, true) :-              % #1 anything evaluable
     evaluable(X),
     !.
-do_expand_function(roundtoward(Expr0, Round),
+do_expand_function(roundtoward(Expr0, Round),  % #2 roundtoward special case
                    roundtoward(Expr, Round),
                    ArgCode) :-
     !,
     do_expand_function(Expr0, Expr, ArgCode).
-do_expand_function(Function, Result, ArgCode) :-
+do_expand_function(Function,                   % #3 user defined (before built in for overloading)
+                   Result,
+                   (ArgCode, arithmetic_expression_value(Pred,Result))) :-
+	callable_function_arguments(Function,Name,Args),
+    !,
+    expand_predicate_arguments(Args, PredArgs, ArgCode),
+    Pred =.. [Name|PredArgs].
+do_expand_function(Function,                   % #4  builtin (before atomic for family of pi)
+                   Result,
+                   ArgCode) :-
+	callable(Function),  % guard before
     current_arithmetic_function(Function),
     !,
     Function =.. [Name|Args],
     expand_function_arguments(Args, ArgResults, ArgCode),
     Result =.. [Name|ArgResults].
-do_expand_function(Function, Result, (ArgCode, Pred)) :-
-    prolog_load_context(module, M),
-    evaluable(Function, M2),
-    visible(M, M2),
-    !,
-    Function =.. [Name|Args],
-    expand_predicate_arguments(Args, ArgResults, ArgCode),
-    append(ArgResults, [Result], PredArgs),
-    Pred =.. [Name|PredArgs].
-do_expand_function(Function, _, _) :-
+do_expand_function(X, Result, Result=X) :-     % #5 other literals, move out of expression
+    atomic(X),
+    !.
+do_expand_function(Function, _, _) :-          % #6 WTF?
     type_error(evaluable, Function).
 
 
@@ -220,38 +266,47 @@ expand_predicate_arguments([H0|T0], [H|T], (A,B)) :-
     (   callable(H1),
         current_arithmetic_function(H1)
     ->  A = (A0, H is H1)
-    ;   A = A0,
+     ;  (A0 = (X=R) -> X=R, A=true ; A = A0),  % optimization for atomics
         H = H1
     ),
     expand_predicate_arguments(T0, T, B).
 
 %!  evaluable(F) is semidet.
 %
-%   True if F and all its subterms are evaluable terms or variables.
-
+%   True if F and all its subterms are variables or evaluable terms by builtin functions.
+%
 evaluable(F) :-
     var(F),
     !.
 evaluable(F) :-
     number(F),
     !.
-evaluable([_Code]) :- !.
-evaluable(Func) :-                              % Funtional notation.
+evaluable([Code]) :- 
+    % assumes possibility of future environment flag to disable
+	(current_prolog_flag(disable_codeTBD,true) -> fail ; eval_code(Code)),
+	!.
+evaluable(Func) :-                   % Functional notation.
     functor(Func, ., 2),
     !.
-evaluable(F) :-
+evaluable(F) :-                      % unfortunate case - should be a literal
     string(F),
     !,
     string_length(F, 1).
-evaluable(roundtoward(F,_Round)) :-
+evaluable(roundtoward(F,_Round)) :-  % special case to ignore atom(_Round)
     !,
     evaluable(F).
 evaluable(F) :-
     current_arithmetic_function(F),
+    \+ evaluable(F,_),               % ** not overridden **
     (   compound(F)
     ->  forall(arg(_,F,A), evaluable(A))
     ;   true
     ).
+
+% as defined by builtin
+eval_code(Code) :- var(Code).
+eval_code(Code) :- integer(Code), Code>=0.
+eval_code(Code) :- atom(Code), atom_length(Code,1).
 
 %!  tidy(+GoalIn, -GoalOut)
 %
