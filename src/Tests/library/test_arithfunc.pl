@@ -58,6 +58,7 @@ test_arithfunc :-
 :- arithmetic_function(fail/0).
 :- arithmetic_function(except/0).
 :- arithmetic_function(fac/1).
+:- arithmetic_function(atom_length/1).
 
 ten(10).
 twice(X, R) :-
@@ -67,7 +68,9 @@ mean(X1, X2, R) :-
 
 euler(2.718281828459045).
 
-fail(_) :- fail.
+fail(_) :-  
+    cut_eval,  % requires ancestor cut or evaluates to atom(fail).
+    fail.
 
 except(_) :-
 	throw(error(foobar)).
@@ -87,7 +90,7 @@ test(func, A == 10) :-
 	A is mean(0, 20).
 test(euler, EE =:= 6*e*7*1) :-
         EE is 6*euler*7*1.
-test(fail, fail) :-
+test(fail, fail) :- 
 	_A is fail.
 test(except, throws(error(foobar))) :-
 	_ is except.
@@ -97,6 +100,47 @@ test(fac, A =:= 3628800) :-
 %	flag(f, Old, 100),
 %	flag(f, V, mean(V, 0)),
 %	flag(f, NV, Old).
+
+% user defined functions aren't dynamic
+test(func, throws(error(type_error(evaluable, ten/0), _))) :-
+	E = ten, _A is E.
+
+%
+% atomics evaluate to themselves
+%
+test(func, X==[]) :-
+    X is [].
+
+test(func, X=="abcd") :-
+    X is "abcd".
+
+test(func, X==abcd) :-
+    X is abcd.
+
+%
+% imported function
+%
+test(importedfunction) :-
+    3 is atom_length(abc).
+    
+%
+% arithmetic_expression_value/2
+%    
+test(arith_eval, A == 10) :-
+    arithmetic_expression_value(10,A).
+
+test(arith_eval, A == 20) :-
+    arithmetic_expression_value(twice(5)+10,A).
+	
+test(arith_eval, A == "ten") :-
+    arithmetic_expression_value("ten",A).
+
+test(arith_eval, A =:= pi) :-
+    arithmetic_expression_value(pi,A).
+
+test(arith_eval, fail) :-
+    arithmetic_expression_value(_,_).
+
 
 :- if(current_prolog_flag(bounded, false)). % GMP implies rational
 
@@ -111,6 +155,25 @@ test(idiv, Qi == 3) :-
 	Qi is idiv(3 rdiv 2,2 rdiv 5).
 
 :- endif.
+
+% overload test
+
+:- arithmetic_function((/\)/2).
+
+/\(S1,S2,R) :- string(S1), string(S2), !,   % string case
+    string_concat(S1,S2,R).
+/\(S1,S2,R) :-                              % default case (can't be optimized)
+	Exp = S1 /\ S2, R is Exp.               % to avoid math_goal_expansion
+   
+test(func_overload, X==160) :-
+	X is 0xAA /\ 0xF0.
+
+test(func_overload, X=="0xAA0xF0") :-
+	X is "0xAA" /\ "0xF0".
+
+% Note: '/\' left overloaded after test.
+% One way of removing it is by unloading this file. Something like:
+% ?- module_property(plunit_arithmetic_function,file(F)), unload_file(F).
 
 :- end_tests(arithmetic_function).
 
