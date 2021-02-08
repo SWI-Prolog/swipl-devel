@@ -110,26 +110,66 @@ module declaration, spy/1, and dynamic/1.
 \subsection{Predicate behaviour and determinism} \label{sec:determinism}
 
 \index{predicate behaviour and determinism}%
-To describe the general behaviour of a predicate, the following vocabulary
-is employed. In source code, structured comments contain the corresponding
-keywords:
+\index{well-behavedness}%
+\index{leaving no choicepoint}%
+The keywords in table~\ref{table:determinism-indicators} may appear in the manual's
+predicate descriptions and in \jargon{pldoc} structured comments in source code.
+They describe the general behaviour of a predicate.
 
-\begin{center}
+\begin{table}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
-\const{det} &	  A \jargon{deterministic} predicate always succeeds exactly
-                  once and does not leave a choicepoint. \\
-\const{semidet} & A \jargon{semi-deterministic} predicate succeeds at most
-                  once.  If it succeeds it does not leave a choicepoint. \\
-\const{nondet}  & A \jargon{non-deterministic} predicate is the most general
-		  case and no claims are made on the number of solutions (which
-                  may be zero, i.e., the predicate may \jargon{fail}) and whether
-		  or not the predicate leaves an choicepoint on the last
-		  solution. \\
-\const{nondet}  & As \const{nondet}, but succeeds at least once. \\
+\const{det}       & A \jargon{deterministic} predicate always succeeds exactly
+                    once and does not leave a choicepoint. \\
+\const{semidet}   & A \jargon{semi-deterministic} predicate succeeds at most
+                    once.  If it succeeds, it does not leave a choicepoint. \\
+\const{nondet}    & A \jargon{non-deterministic} predicate is the most general
+                    case and no claims are made on the number of solutions (which
+                    may be zero, i.e., the predicate may \jargon{fail}) and whether
+                    or not the predicate leaves a choicepoint on its last
+                    solution. \\
+\const{multi}     & As \const{nondet}, but succeeds at least once. \\
+\const{failure}   & Always fails. \\
+\const{undefined} & \jargon{Well-founded semantics} ``third value''. See
+                    undefined/0. \\
 \hline
 \end{tabular}
-\end{center}
+   \caption{Determinism indicators}
+   \label{table:determinism-indicators}
+\end{table}
+
+``Leaving no choicepoint'' means that the Prolog Processor is aware of the fact
+that redo-ing the predicate will not yield any additional solutions. Codewise,
+that information is provided by traversing a \jargon{cut}. Implementation-wise
+this means the predicate activation (the predicate call's stack frame) can be
+dropped once the last (or the only) solution has been found.
+
+\index{well-behavedness}%
+A predicate that ``leaves no choicepoint'' after it provided the last
+solution is called \jargon{well-behaved}.
+
+\subsubsection{Example regarding determinism} \label{sec:determinism-example}
+
+Consider member/2 which is ``non-deterministic'' but
+``deterministic if the solution is the last element of the list''.
+
+member/2 may not know immediately whether there are more solutions after
+the first one, and so a choicepoint remains, even if it eventually turns
+out to yield nothing:
+
+\begin{code}
+?- member(1,[2,1,3]).
+true ;     % there may be more solutions
+false.     % actually not
+\end{code}
+
+If a solution is the last element in the list, there is enough information to
+``leave no choicepoint'':
+
+\begin{code}
+?- member(1,[2,3,1]).
+true.
+\end{code}
 
 \section{Character representation}		\label{sec:chars}
 
@@ -1627,55 +1667,62 @@ prolog_edit:load :-
 
 Type tests are semi-deterministic predicates that succeed if the
 argument satisfies the requested type. Type-test predicates have no
-error condition and do not instantiate their argument. See also library
-\pllib{error}.
+error condition and do not instantiate their argument. They
+do not have a first-order ``logical'' interpretation. Instead, they
+express meta functionality to check the state of computation at
+call time. These predicates are mainly used in \jargon{clause guards} 
+and \jargon{assertions}. See also library \pllib{error}, must_be/2 
+and assertion/1.
 
 \begin{description}
     \predicate[ISO]{var}{1}{@Term}
-True if \arg{Term} currently is a free variable.
+Succeeds iff \arg{Term} is an unbound variable at call time. The compiler
+warns if \arg{Term} is (syntactically) not a variable. 
 
     \predicate[ISO]{nonvar}{1}{@Term}
-True if \arg{Term} currently is not a free variable.
+Succeeds iff \arg{Term} is not an unbound variable at call time.
+This is the logical complement of var/1: \exam{var(X)} succeeds iff
+\exam{nonvar(X)} fails.
 
     \predicate[ISO]{integer}{1}{@Term}
-True if \arg{Term} is bound to an integer.
+Succeeds iff \arg{Term} denotes an integer.
 
     \predicate[ISO]{float}{1}{@Term}
-True if \arg{Term} is bound to a floating point number.
+Succeeds iff \arg{Term} denotes a floating point number.
 
     \predicate{rational}{1}{@Term}
-True if \arg{Term} is bound to a rational number.  Rational numbers
+Succeeds iff \arg{Term} denotes to a rational number.  Rational numbers
 include integers.
 
     \predicate{rational}{3}{@Term, -Numerator, -Denominator}
-True if \arg{Term} is a rational number with given \arg{Numerator} and
+Succeeds iff \arg{Term} denotes a rational number with given \arg{Numerator} and
 \arg{Denominator}.  The \arg{Numerator} and \arg{Denominator} are in
 canonical form, which means \arg{Denominator} is a positive integer and
-there are no common divisors between \arg{Numerator} and \arg{Denominator}.
+\arg{Numerator} and \arg{Denominator} are coprime.
 
     \predicate[ISO]{number}{1}{@Term}
-True if \arg{Term} is bound to a rational number (including integers) or
+Succeeds iff \arg{Term} denotes a rational number (which includes integers) or
 a floating point number.
 
     \predicate[ISO]{atom}{1}{@Term}
-True if \arg{Term} is bound to an atom.
+Succeeds iff \arg{Term} denotes a Prolog \jargon{atom}.
 
     \predicate{blob}{2}{@Term, ?Type}
-True if \arg{Term} is a \jargon{blob} of type \arg{Type}. See
+Succeeds iff \arg{Term} denotes a \jargon{blob} of type \arg{Type}. See
 \secref{blob}.
 
     \predicate{string}{1}{@Term}
-True if \arg{Term} is bound to a string. Note that string here refers to
-the built-in atomic type string as described in \secref{string}.
-Starting with version~7, the syntax for a string object is text between
-double quotes, such as \verb|"hello"|.\footnote{In traditional Prolog
-systems, double quoted text is often mapped to a list of
-\jargon{character codes}.} See also the Prolog flag
+Succeeds iff \arg{Term} denotes an SWI-Prolog string, i.e.\ the 
+built-in atomic type \jargon{string} as described in \secref{string}.
+Starting with version~7, the syntax for a string object is text
+between double quotes, such as \verb|"hello"| whereas in traditional
+Prolog systems, double quoted text is often mapped to a list of
+\jargon{character codes}. See also the Prolog flag
 \prologflag{double_quotes}.
 
     \predicate[ISO]{atomic}{1}{@Term}
-True if \arg{Term} is bound (i.e., not a variable) and is not
-compound.  Thus, atomic acts as if defined by:
+Succeeds iff \arg{Term} is bound (i.e. not a variable) and denotes something
+that is not a \jargon{compound term}. Thus, atomic/1 acts as if defined by:
 
 \begin{code}
 atomic(Term) :-
@@ -1685,25 +1732,28 @@ atomic(Term) :-
 
 SWI-Prolog defines the following atomic datatypes: atom (atom/1),
 string (string/1), integer (integer/1), floating point number
-(float/1) and blob (blob/2).  In addition, the symbol \verb$[]$
+(float/1) and blob (blob/2).  In addition, the symbol {[]}
 (empty list) is atomic, but not an atom.  See \secref{ext-lists}.
 
     \predicate[ISO]{compound}{1}{@Term}
-True if \arg{Term} is bound to a compound term.  See also functor/3
-=../2, compound_name_arity/3 and compound_name_arguments/3.
+Succeeds iff \arg{Term} denotes a compound term. See also
+compound_name_arity/3, compound_name_arguments/3, functor/3 and
+\predref{=..}{2}.
 
     \predicate[ISO]{callable}{1}{@Term}
-True if \arg{Term} is bound to an atom or a compound term. This was
+Succeeds iff \arg{Term} denotes an atom or a compound term. This was
 intended as a type-test for arguments to call/1, call/2 etc. Note that
-callable only tests the \jargon{surface term}. Terms such as (22,true)
+callable only tests the \jargon{surface term}. Terms such as \exam{(22,true)}
 are considered callable, but cause call/1 to raise a type error.
 Module-qualification of meta-argument (see meta_predicate/1) using
 \functor{:}{2} causes callable to succeed on any
-meta-argument.\footnote{We think that callable/1 should be deprecated
+meta-argument.%
+\footnote{We think that callable/1 should be deprecated
 and there should be two new predicates, one performing a test for
 callable that is minimally module aware and possibly consistent with
 type-checking in call/1 and a second predicate that tests for atom or
-compound.} Consider the program and query below:
+compound.}%
+Consider the program and query below:
 
 \begin{code}
 :- meta_predicate p(0).
@@ -1717,19 +1767,21 @@ ERROR:    [6] p(user:22)
 \end{code}
 
     \predicate[ISO]{ground}{1}{@Term}
-True if \arg{Term} holds no free variables. See also nonground/2
+Succeeds iff \arg{Term} holds no unbound variables. See also nonground/2
 and term_variables/2.
 
     \predicate{cyclic_term}{1}{@Term}
-True if \arg{Term} contains cycles, i.e.\ is an infinite term.
-See also acyclic_term/1 and \secref{cyclic}.%
-	\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
-		  compatible with SICStus Prolog.  Some Prolog systems
-		  supporting cyclic terms use \nopredref{is_cyclic}{1}.}
+Succeeds iff \arg{Term} denotes a term containing cycles, i.e. \arg{Term}
+is an infinite term (also known as a \jargon{rational tree}). See also
+acyclic_term/1 and \secref{cyclic}.%
+\footnote{The predicates cyclic_term/1 and acyclic_term/1 are
+compatible with SICStus Prolog.  Some Prolog systems
+supporting cyclic terms use \nopredref{is_cyclic}{1}.}
 
     \predicate[ISO]{acyclic_term}{1}{@Term}
-True if \arg{Term} does not contain cycles,  i.e.\ can be processed
-recursively in finite time.  See also cyclic_term/1 and \secref{cyclic}.
+Succeeds iff \arg{Term} does not contain cycles, i.e.\ can be processed
+recursively in finite time. This case includes \arg{Term} being an unbound
+variable.  See also cyclic_term/1 and \secref{cyclic}.
 \end{description}
 
 \section{Comparison and Unification of Terms}	\label{sec:compare}
@@ -2118,13 +2170,15 @@ $X=a$ and $X=b$, while \verb$optional(member(X,[]))$ succeeds without
 binding $X$.
 
 \prefixop[ISO]{\+}{:Goal}
-True if `Goal' cannot be proven (mnemonic: \chr{+} refers to {\em
-provable} and the backslash (\chr{\}) is normally used to
-indicate negation in Prolog).
-
-Many Prolog implementations (including SWI-Prolog) provide not/1. The
-not/1 alternative is deprecated due to its strong link to logical
-negation.
+True if \arg{Goal} cannot be proven, i.e. if the attempt to prove
+\arg{Goal} fails in finite time. Mnemonic: \chr{+} refers to {\em
+provable} and the backslash (\chr{\}) is normally used to indicate 
+negation in Prolog). Many Prolog implementations (including SWI-Prolog,
+see \secref{metacall}) provide the equivalent predicate not/1. The
+not/1 alternative is deprecated due to it being read as 
+\jargon{strong negation} (``it is known/provable that not'')
+rather than the intended meaning of \jargon{weak negation} (also known
+as \jargon{default negation}) (``it is not known/not provable that'').
 
 \end{description}
 
