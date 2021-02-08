@@ -6530,7 +6530,8 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 
 	assert(fc >= 0);
 	if ( fc == 0 )
-	{
+	{ n->force_reeval = FALSE;
+
 #ifdef O_PLMT
 	  if ( true(n->atrie, TRIE_ISSHARED) && n->atrie->tid )
 	  { if ( n->atrie->tid == PL_thread_self() ) /* See (*) */
