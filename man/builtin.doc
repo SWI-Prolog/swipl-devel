@@ -7642,7 +7642,7 @@ True if expression \arg{Expr1} evaluates to a number non-equal to
 True if expression \arg{Expr1} evaluates to a number equal to \arg{
 Expr2}.
 
-\infixop[ISO]{is}{-Number}{+Expr}
+\infixop[ISO]{is}{?Number}{+Expr}
 True when \arg{Number} is the value to which \arg{Expr} evaluates.
 Typically, is/2 should be used with unbound left operand. If equality is
 to be tested, \predref{=:=}{2} should be used. For example:
