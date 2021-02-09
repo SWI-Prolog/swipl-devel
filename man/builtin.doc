@@ -117,16 +117,18 @@ keywords:
 \begin{center}
 \begin{tabular}{lp{0.7\linewidth}}
 \hline
-\const{det} &	  A \jargon{deterministic} predicate always succeeds exactly
-                  once and does not leave a choicepoint. \\
-\const{semidet} & A \jargon{semi-deterministic} predicate succeeds at most
-                  once.  If it succeeds it does not leave a choicepoint. \\
-\const{nondet}  & A \jargon{non-deterministic} predicate is the most general
-		  case and no claims are made on the number of solutions (which
-                  may be zero, i.e., the predicate may \jargon{fail}) and whether
-		  or not the predicate leaves an choicepoint on the last
-		  solution. \\
-\const{nondet}  & As \const{nondet}, but succeeds at least once. \\
+\const{det}       & A \jargon{deterministic} predicate always succeeds exactly
+                    once and does not leave a choicepoint. \\
+\const{semidet}   & A \jargon{semi-deterministic} predicate succeeds at most
+                    once.  If it succeeds it does not leave a choicepoint. \\
+\const{nondet}    & A \jargon{non-deterministic} predicate is the most general
+		    case and no claims are made on the number of solutions (which
+                    may be zero, i.e., the predicate may \jargon{fail}) and
+		    whether or not the predicate leaves an choicepoint on
+		    the last solution. \\
+\const{multi}     & As \const{nondet}, but succeeds at least once. \\
+\const{undefined} & Well founded semantics third value.
+		    See undefined/0. \\
 \hline
 \end{tabular}
 \end{center}
