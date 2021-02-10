@@ -1,6 +1,9 @@
 \section{Single Sided Unification rules}
 \label{sec:ssu}
 
+\index{single sided unification}%
+\index{SSU}%
+\index{term subsumption}%
 For the execution of a normal Prolog clause, the goal term is unified
 with the head of the clause. This allows us to write facts such as below
 and use this relation in all four possible \jargon{modes}.  This is the basis
@@ -11,10 +14,10 @@ parent('Bob', 'Susan').
 \end{code}
 
 In practice though, Prolog is both a logic programming language and a
-language for expression computations in a near \jargon{procedural} style. The
-first is used to solve (notably) combinatorial problems while the latter
-is used for I/O, data transformation and the many non-logical operations
-that are involved in many applications.
+language for expressing computations in a near \jargon{procedural}
+style. The first is used to solve (notably) combinatorial problems while
+the latter is used for I/O, data transformation and the many non-logical
+operations that are involved in many applications.
 
 Many Prolog programmers experience writing procedural style Prolog as
 fighting non-determinism and dealing with hard to debug silent failures
@@ -38,8 +41,8 @@ only one meaningful mode: (+,-). A general (logical) implementation
 would allow for a partial list or a list holding one or more variables,
 With a proper list that holds a single variable we can still make a
 sound logical implementation. In all other cases the number of solutions
-is infinite and \jargon{uncountable}, making the predicate useless as a
-\jargon{generator} of solutions.
+is infinite and even \jargon{uncountable} for a partial list, making the
+predicate useless as a \jargon{generator} of solutions.
 
 
 \begin{code}
@@ -171,16 +174,22 @@ SWI-Prolog as of version 8.3.19 support \funcref{=>}{2} as an alternative to
 normal Prolog clauses. The construct comes with the following
 properties.
 
- - A predicate either uses \funcref{:-}{2} for all its clauses or \funcref{=>}{2}.
-   Mixing is \textbf{not} allowed and raises a permission error for a
-   clause that does not use the same \jargon{neck} as the first clause.
- - Unlike Picat, it is an error if no clause matches.
+\begin{itemize}
+\item
+   A predicate either uses \funcref{:-}{2} for all its clauses or
+   \funcref{=>}{2}. Mixing is \textbf{not} allowed and raises a
+   permission error for a clause that does not use the same
+   \jargon{neck} as the first clause.
+\item
+   Unlike Picat, it is an error if no clause matches.
+\end{itemize}
 
-For example, we can rewrite sum_list/2 as below. The first clause can be
-written using \funcref{:-}{2} or \funcref{=>}{2}. As the head is the most general head
-and there is only one clause these are fully equivalent. The
-\nopredref{sum_list}{3} helper needs a small modification: we need to delay the
-unification against \arg{Sum} to the body.  The last clause is equivalent.
+Given \funcref{=>}{2} rules, we can rewrite sum_list/2 as below. The
+first clause can be written using \funcref{:-}{2} or \funcref{=>}{2}. As
+the head is the most general head and there is only one clause these are
+fully equivalent. The \nopredref{sum_list}{3} helper needs a small
+modification: we need to delay the unification against \arg{Sum} to the
+body. The last clause is equivalent.
 
 
 \begin{code}
@@ -199,7 +208,7 @@ and neither does e.g., \exam{sum_list(a,S)}. Both raise an error.
 Currently the error is defined as below.
 
 \begin{code}
-    existence_error(matching_rule, Head)
+existence_error(matching_rule, Head)
 \end{code}
 
 Should silent failure be desired if no rule matches, this is easily
@@ -218,7 +227,8 @@ The \funcref{=>}{2} construct is handled by the low-level compiler if no
 the construct below. The Picat \funcref{?=>}{2} \jargon{neck} operator is like
 \funcref{=>}{2}, but does not \jargon{commit} to this rule. We are not
 yet sure whether or not SWI-Prolog will remain supporting
-\funcref{?=>}{2}.
+\funcref{?=>}{2}.\footnote{\funcref{?=>}{2} is currently implemented but
+not defined as an operator.}
 
 \begin{code}
 Head ?=> Guard, !, Body.
