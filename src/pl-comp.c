@@ -634,9 +634,27 @@ get_variable_names(CompileInfo ci ARG_LD)
 }
 
 
+static int
+is_neck(term_t t, int *flags ARG_LD)
+{ Word p = valTermRef(t);
+
+  deRef(p);
+  if ( isTerm(*p) )
+  { functor_t f = functorTerm(*p);
+
+    if ( f == FUNCTOR_prove2 )      { return TRUE; }
+    if ( f == FUNCTOR_ssu_commit2 ) { *flags = SSU_COMMIT_CLAUSE; return TRUE; }
+    if ( f == FUNCTOR_ssu_choice2 ) { *flags = SSU_CHOICE_CLAUSE; return TRUE; }
+  }
+
+  return FALSE;
+}
+
+
 int
 get_head_and_body_clause(term_t clause,
-			 term_t head, term_t body, Module *m ARG_LD)
+			 term_t head, term_t body, Module *m,
+			 int *flags ARG_LD)
 { Module m0;
 
   if ( !m )
@@ -644,7 +662,7 @@ get_head_and_body_clause(term_t clause,
     m = &m0;
   }
 
-  if ( PL_is_functor(clause, FUNCTOR_prove2) )
+  if ( is_neck(clause, flags PASS_LD) )
   { _PL_get_arg(1, clause, head);
     _PL_get_arg(2, clause, body);
     if ( !PL_strip_module_ex(head, m, head) )
@@ -652,6 +670,7 @@ get_head_and_body_clause(term_t clause,
   } else
   { PL_put_term(head, clause);		/* facts */
     PL_put_atom(body, ATOM_true);
+    *flags = UNIT_CLAUSE;
   }
 
   DEBUG(9, pl_write(clause); Sdprintf(" --->\n\t");
@@ -1494,13 +1513,17 @@ static void
 initVMIMerge(void)
 { mergeStep(H_VOID_N, H_VOID);
 
-  mergeSeq(H_VOID,   H_VOID,     H_VOID_N,   1, (code)2);
-  mergeSeq(H_VOID,   I_ENTER,    I_ENTER,    0);
-  mergeSeq(H_VOID_N, I_ENTER,    I_ENTER,    0);
-  mergeSeq(H_VOID,   I_EXITFACT, I_EXITFACT, 0);
-  mergeSeq(H_VOID_N, I_EXITFACT, I_EXITFACT, 0);
-  mergeSeq(H_VOID,   H_POP,      H_POP,      0);
-  mergeSeq(H_VOID_N, H_POP,      H_POP,      0);
+  mergeSeq(H_VOID,   H_VOID,	   H_VOID_N,	 1, (code)2);
+  mergeSeq(H_VOID,   I_ENTER,	   I_ENTER,	 0);
+  mergeSeq(H_VOID_N, I_ENTER,	   I_ENTER,	 0);
+  mergeSeq(H_VOID,   I_EXITFACT,   I_EXITFACT,	 0);
+  mergeSeq(H_VOID_N, I_EXITFACT,   I_EXITFACT,	 0);
+  mergeSeq(H_VOID,   I_SSU_COMMIT, I_SSU_COMMIT, 0);
+  mergeSeq(H_VOID_N, I_SSU_COMMIT, I_SSU_COMMIT, 0);
+  mergeSeq(H_VOID,   I_SSU_CHOICE, I_SSU_CHOICE, 0);
+  mergeSeq(H_VOID_N, I_SSU_CHOICE, I_SSU_CHOICE, 0);
+  mergeSeq(H_VOID,   H_POP,	   H_POP,	 0);
+  mergeSeq(H_VOID_N, H_POP,	   H_POP,	 0);
 }
 
 
@@ -1567,7 +1590,7 @@ Output_0(CompileInfo ci, vmi c)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Clause	compileClause(Word head, Word body, Procedure proc, Module module)
+compileClause()
 
 This is the entry-point of the compiler. The `head' and `body' arguments
 are dereferenced pointers to terms. `proc' is the procedure to which the
@@ -1605,7 +1628,8 @@ play around with variable tables.
 
 int
 compileClause(Clause *cp, Word head, Word body,
-	      Procedure proc, Module module, term_t warnings ARG_LD)
+	      Procedure proc, Module module, term_t warnings,
+	      int flags ARG_LD)
 { compileInfo ci;			/* data base for the compiler */
   struct clause clause = {0};
   Clause cl;
@@ -1618,6 +1642,7 @@ compileClause(Clause *cp, Word head, Word body,
     ci.arity        = (int)def->functor->arity;
     ci.procedure    = proc;
     ci.argvars      = 0;
+    clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
@@ -1673,6 +1698,9 @@ First compile  the  head  of  the  term.   The  arguments  are  compiled
 left-to-right.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  if ( flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+    Output_0(&ci, I_CHP);
+
   if ( head )
   { int n;
     Word arg;
@@ -1695,13 +1723,26 @@ Not that this is also the case for predicates that have previous clauses
 that have an I_CONTEXT because we need to reset the context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( body && *body != ATOM_true )
+  if ( (body && *body != ATOM_true) ||
+       (flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) )
   { size_t bi;
 
     if ( head )
     { Definition def = proc->definition;
 
-      Output_0(&ci, I_ENTER);
+      switch(flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE))
+      { case 0:
+	  Output_0(&ci, I_ENTER);
+	  break;
+	case SSU_COMMIT_CLAUSE:
+	  Output_0(&ci, I_SSU_COMMIT);
+	  break;
+	case SSU_CHOICE_CLAUSE:
+	  Output_0(&ci, I_SSU_CHOICE);
+	  break;
+        default:
+	  assert(0);
+      }
 					/* ok; all live in the same module */
       if ( false(def, P_MFCONTEXT) &&
 	   ci.module != def->module &&
@@ -3846,6 +3887,7 @@ assert_term(term_t term, Module module, ClauseRef where,
   term_t warnings = (owner ? tmp+3 : 0);
   Word h, b;
   functor_t fdef;
+  int hflags = 0;
 
   if ( !module )
     module = source_module;
@@ -3853,7 +3895,7 @@ assert_term(term_t term, Module module, ClauseRef where,
   if ( !PL_strip_module_ex(term, &module, tmp) )
     return NULL;
   mhead = module;
-  if ( !get_head_and_body_clause(tmp, head, body, &mhead PASS_LD) )
+  if ( !get_head_and_body_clause(tmp, head, body, &mhead, &hflags PASS_LD) )
     return NULL;
   if ( !get_head_functor(head, &fdef, 0 PASS_LD) )
     return NULL;			/* not callable, arity too high */
@@ -3905,7 +3947,8 @@ assert_term(term_t term, Module module, ClauseRef where,
   b = valTermRef(body);
   deRef(h);
   deRef(b);
-  if ( compileClause(&clause, h, b, proc, module, warnings PASS_LD) != TRUE )
+  if ( compileClause(&clause, h, b, proc, module,
+		     warnings, hflags PASS_LD) != TRUE )
     return NULL;
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
@@ -4345,8 +4388,11 @@ skipArgs(Code PC, int skip)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
       case T_TRIE_GEN2:
       case T_TRIE_GEN3:
+      case I_SSU_CHOICE:
+      case I_SSU_COMMIT:
 	return PC;
       case I_NOP:
+      case I_CHP:
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
@@ -4447,9 +4493,12 @@ argKey(Code PC, int skip, word *key)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
       case T_TRIE_GEN2:
       case T_TRIE_GEN3:
+      case I_SSU_COMMIT:
+      case I_SSU_CHOICE:
 	*key = 0;
 	fail;
       case I_NOP:
+      case I_CHP:
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
@@ -4511,9 +4560,12 @@ arg1Key(Code PC, word *key)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+      case I_SSU_CHOICE:
+      case I_SSU_COMMIT:
 	*key = 0;
 	fail;
       case I_NOP:
+      case I_CHP:
 	continue;
 #ifdef O_DEBUGGER
       case D_BREAK:
@@ -4761,6 +4813,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 #endif
     switch(c)
     { case I_NOP:
+      case I_CHP:
 	continue;
 #if O_DEBUGGER
       case D_BREAK:
@@ -4904,6 +4957,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_EXITFACT:
       case I_EXIT:			/* fact */
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
+      case I_SSU_COMMIT:
+      case I_SSU_CHOICE:
 	{ assert(argn <= arity);
 
 	  if ( argp )
@@ -4932,6 +4987,17 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 #define makeVarRef(i)	((i)<<LMASK_BITS|TAG_REFERENCE)
 #define isVarRef(w)	((tag(w) == TAG_REFERENCE && \
 			  storage(w) == STG_INLINE) ? valInt(w) : -1)
+
+static functor_t
+clause_functor(const Clause cl)
+{ switch(cl->flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE))
+  { case 0:			return FUNCTOR_prove2;
+    case SSU_COMMIT_CLAUSE:	return FUNCTOR_ssu_commit2;
+    case SSU_CHOICE_CLAUSE:	return FUNCTOR_ssu_choice2;
+    default:			assert(0); return 0;
+  }
+}
+
 
 bool
 decompile(Clause clause, term_t term, term_t bindings)
@@ -4974,7 +5040,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   } else
   { term_t a = PL_new_term_ref();
 
-    TRY(PL_unify_functor(term, FUNCTOR_prove2));
+    TRY(PL_unify_functor(term, clause_functor(clause)));
     _PL_get_arg(1, term, a);
     TRY(decompile_head(clause, a, di PASS_LD));
     _PL_get_arg(2, term, a);
@@ -5102,7 +5168,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    goto again;
 #endif
         case A_ENTER:
-        case I_NOP:	    continue;
+        case I_NOP:
+	case I_CHP:
+			    continue;
 	case H_ATOM:
 	case B_ATOM:
 	case H_SMALLINT:
@@ -5853,9 +5921,13 @@ protected_predicate(Definition def ARG_LD)
     '$clause'(H, B, Ref, Bindings).
 */
 
+#define IS_CLAUSE 0x1
+#define IS_RULE   0x2
 
-static
-PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+
+static foreign_t
+clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
+       int PL__ac, control_t PL__ctx)
 { PRED_LD
   Procedure proc;
   Definition def;
@@ -5870,10 +5942,8 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
   fid_t fid;
   int rc = FALSE;
 
-  term_t head     = A1;
-  term_t body     = A2;
-  term_t ref      = (CTX_ARITY >= 3 ? A3 : 0);
-  term_t bindings = (CTX_ARITY >= 4 ? A4 : 0);
+  if ( CTX_ARITY < 3 ) ref = 0;
+  if ( CTX_ARITY < 4 ) bindings = 0;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
@@ -5884,6 +5954,7 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 
 	if ( (rc=PL_get_clref(ref, &clause)) )
 	{ term_t tmp;
+	  int hflags = 0;
 
 	  if ( rc < 0 && CTX_ARITY < 4 )
 	    return FALSE;			/* erased clause */
@@ -5900,7 +5971,9 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
 	    if ( !unify_definition(contextModule(LD->environment), head, def, tmp, 0) )
 	      fail;
 	  }
-	  if ( !get_head_and_body_clause(term, h, b, NULL PASS_LD) )
+	  if ( !get_head_and_body_clause(term, h, b, NULL, &hflags PASS_LD) )
+	    return FALSE;
+	  if ( (clause->flags & CLAUSE_TYPE_MASK) != hflags )
 	    return FALSE;
 	  if ( unify_head(tmp, h PASS_LD) && PL_unify(body, b) )
 	    succeed;
@@ -5958,12 +6031,25 @@ PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
     goto out;
 
   while(cref)
-  { if ( decompile(cref->value.clause, term, bindings) )
-    { if ( !get_head_and_body_clause(term, h, b, NULL PASS_LD) )
-	break;
-      if ( unify_head(head, h PASS_LD) &&
-	   PL_unify(b, body) &&
-	   (!ref || PL_unify_clref(ref, cref->value.clause)) )
+  { Clause clause = cref->value.clause;
+
+    if ( decompile(clause, term, bindings) )
+    { int hflags = 0;
+      int rc2;
+
+      if ( (flags&IS_CLAUSE) )
+      { if ( !get_head_and_body_clause(term, h, b, NULL, &hflags PASS_LD) )
+	  break;
+	rc2 = ( unify_head(head, h PASS_LD) &&
+		PL_unify(b, body) );
+      } else
+      { rc2 = PL_unify(term, body);
+      }
+
+      if ( rc2 && ref )
+	rc2 = PL_unify_clref(ref, clause);
+
+      if ( rc2 )
       { if ( !chp->cref )
 	{ rc = TRUE;
 	  goto out;
@@ -5999,6 +6085,17 @@ out:
     freeForeignState(chp, sizeof(*chp));
   popPredicateAccess(def);
   return rc;
+}
+
+
+static
+PRED_IMPL("clause", va, clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ return clause(A1, A2, A3, A4, IS_CLAUSE, PL__ac, PL__ctx);
+}
+
+static
+PRED_IMPL("rule", va, rule, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC)
+{ return clause(A1, A2, A3, A4, IS_RULE, PL__ac, PL__ctx);
 }
 
 
@@ -7131,6 +7228,8 @@ PRED_IMPL("$clause_term_position", 3, clause_term_position, 0)
 
     switch(op)
     { case I_ENTER:
+      case I_SSU_CHOICE:
+      case I_SSU_COMMIT:
 	if ( loc == nextpc )
 	{ add_node(tail, 1 PASS_LD);
 
@@ -7695,8 +7794,10 @@ BeginPredDefs(comp)
   PRED_DEF("$predefine_foreign",  1, predefine_foreign, PL_FA_TRANSPARENT)
   PRED_SHARE("clause",  2, clause, META|NDET|PL_FA_CREF|PL_FA_ISO)
   PRED_SHARE("clause",  3, clause, META|NDET|PL_FA_CREF)
-  PRED_DEF("nth_clause",  3, nth_clause, META|NDET)
   PRED_SHARE("$clause", 4, clause, META|NDET|PL_FA_CREF)
+  PRED_SHARE("$rule",   2, rule,   META|NDET|PL_FA_CREF)
+  PRED_SHARE("$rule",   3, rule,   META|NDET|PL_FA_CREF)
+  PRED_DEF("nth_clause",  3, nth_clause, META|NDET)
 #ifdef O_DEBUGGER
   PRED_DEF("$vmi_property",	    2, vmi_property,	     0)
   PRED_DEF("$fetch_vm",		    4, fetch_vm,	     META)

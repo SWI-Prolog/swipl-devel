@@ -1217,6 +1217,28 @@ setLastModifiedPredicate(Definition def, gen_t gen, int flags)
 }
 
 
+static int
+add_ssu_clause(Definition def, Clause clause)
+{ if ( true(clause, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+  { if ( false(def, P_SSU_DET) )
+    { if ( def->impl.clauses.number_of_clauses == 0 )
+	set(def, P_SSU_DET);
+      else
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION_SSU_DEF, def);
+    }
+  } else
+  { if ( true(def, P_SSU_DET) )
+    { if ( def->impl.clauses.number_of_clauses == 0 )
+	clear(def, P_SSU_DET);
+      else
+	return PL_error(NULL, 0, NULL, ERR_PERMISSION_SSU_DEF, def);
+    }
+  }
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *	      ASSERT		*
 		 *******************************/
@@ -1249,10 +1271,15 @@ assertDefinition(Definition def, Clause clause, ClauseRef where ARG_LD)
 { word key;
   ClauseRef cref;
 
+  if ( !add_ssu_clause(def, clause) )
+  { freeClause(clause);
+    return NULL;
+  }
+
   argKey(clause->codes, 0, &key);
   if ( !(cref=newClauseRef(clause, key)) )
   { freeClause(clause);
-    return NULL;
+    return PL_no_memory(),NULL;
   }
 
   clause->generation.created = max_generation(def PASS_LD);
@@ -2948,9 +2975,10 @@ PRED_IMPL("retract", 1, retract,
     fid_t fid;
     definition_ref *dref = NULL;
     int rc;
+    int flags = 0;
 
     if ( !PL_strip_module_ex(term, &m, cl) ||
-	 !get_head_and_body_clause(cl, head, body, &m PASS_LD) )
+	 !get_head_and_body_clause(cl, head, body, &m, &flags PASS_LD) )
       return FALSE;
     if ( PL_get_atom(body, &b) && b == ATOM_true )
       rc = PL_put_term(cl, head);
@@ -3022,8 +3050,11 @@ PRED_IMPL("retract", 1, retract,
     }
 
     while( cref )
-    { if ( decompile(cref->value.clause, cl, 0) )
-      { if ( retractClauseDefinition(ctx->def, cref->value.clause, TRUE) ||
+    { Clause clause = cref->value.clause;
+
+      if ( (clause->flags & CLAUSE_TYPE_MASK) == flags &&
+	   decompile(clause, cl, 0) )
+      { if ( retractClauseDefinition(ctx->def, clause, TRUE) ||
 	     CTX_CNTRL != FRG_FIRST_CALL )
 	{ if ( !ctx->chp.cref )		/* deterministic last one */
 	  { free_retract_context(ctx PASS_LD);
@@ -3277,7 +3308,6 @@ static const patt_mask patt_masks[] =
   { ATOM_locked,	   P_LOCKED },
   { ATOM_system,	   P_LOCKED },		/* compatibility */
   { ATOM_spy,		   SPY_ME },
-  { ATOM_tabled,	   P_TABLED },
   { ATOM_incremental,	   P_INCREMENTAL },
   { ATOM_trace,		   TRACE_ME },
   { ATOM_hide_childs,	   HIDE_CHILDS },
@@ -3292,6 +3322,7 @@ static const patt_mask patt_masks[] =
   { ATOM_quasi_quotation_syntax, P_QUASI_QUOTATION_SYNTAX },
   { ATOM_clausable,	   P_CLAUSABLE },
   { ATOM_autoload,	   P_AUTOLOAD },
+  { ATOM_ssu,		   P_SSU_DET },
   { (atom_t)0,		   0 }
 };
 

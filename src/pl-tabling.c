@@ -5449,6 +5449,14 @@ PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
  */
 
 static int
+is_tabled(Definition def)
+{ table_props *props;
+
+  return (props=def->tabling) && true(props, TP_TABLED);
+}
+
+
+static int
 tbl_implementation(term_t g0, term_t g, int must_be_tabled ARG_LD)
 { Module m = NULL;
   term_t t = PL_new_term_ref();
@@ -5467,7 +5475,7 @@ tbl_implementation(term_t g0, term_t g, int must_be_tabled ARG_LD)
     trapUndefined(getProcDefinition(proc) PASS_LD);
   def = getProcDefinition(proc);
 
-  if ( must_be_tabled && false(def, P_TABLED) )
+  if ( must_be_tabled && !is_tabled(def) )
   { return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_tnot, ATOM_non_tabled_procedure, proc);
   }
@@ -7649,7 +7657,8 @@ tbl_is_predicate_attribute(atom_t key)
 	   key == ATOM_monotonic ||
 	   key == ATOM_tshared ||
 	   key == ATOM_opaque ||
-	   key == ATOM_lazy
+	   key == ATOM_lazy ||
+	   key == ATOM_tabled
 	 );
 }
 
@@ -7689,6 +7698,8 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
     { return PL_unify_integer(value, !!true(p, TP_OPAQUE));
     } else if ( att == ATOM_lazy )
     { return PL_unify_integer(value, !!true(p, TP_LAZY));
+    } else if ( att == ATOM_tabled )
+    { return PL_unify_integer(value, !!true(p, TP_TABLED));
     } else
     { size_t v0;
 
@@ -7775,6 +7786,8 @@ tbl_set_predicate_attribute(Definition def, atom_t att, term_t value)
   { return set_bool_attr(p, TP_OPAQUE, value);
   } else if ( att == ATOM_lazy )
   { return set_bool_attr(p, TP_LAZY, value);
+  } else if ( att == ATOM_tabled )
+  { return set_bool_attr(p, TP_TABLED, value);
   } else
   { size_t v;
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -671,6 +672,8 @@ static const opdef operators[] = {
   OP(ATOM_colon,		 OP_XFY, 600),	/* : */
   OP(ATOM_prove,		 OP_FX,	 1200),	/* :- */
   OP(ATOM_prove,		 OP_XFX, 1200),
+  OP(ATOM_ssu_commit,		 OP_XFX, 1200), /* => */
+//OP(ATOM_ssu_choice,		 OP_XFX, 1200), /* ?=> */
   OP(ATOM_semicolon,		 OP_XFY, 1100),	/* ; */
   OP(ATOM_bar,			 OP_XFY, 1105),	/* | */
   OP(ATOM_smaller,		 OP_XFX, 700),	/* < */

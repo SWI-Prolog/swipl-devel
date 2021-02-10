@@ -472,6 +472,7 @@ A lshift		"<<"
 A main			"main"
 A mark			"mark"
 A matches		"matches"
+A matching_rule		"matching_rule"
 A max			"max"
 A max_answers		"max_answers"
 A max_arity		"max_arity"
@@ -740,6 +741,9 @@ A spacing		"spacing"
 A spare			"spare"
 A spy			"spy"
 A sqrt			"sqrt"
+A ssu			"ssu"
+A ssu_commit		"=>"
+A ssu_choice		"?=>"
 A stack			"stack"
 A stack_limit		"stack_limit"
 A stack_overflow	"stack_overflow"
@@ -1189,6 +1193,8 @@ F smaller_equal		2
 F softcut		2
 F spy			1
 F sqrt			1
+F ssu_commit		2
+F ssu_choice		2
 F star			2
 F start			1
 F status		1

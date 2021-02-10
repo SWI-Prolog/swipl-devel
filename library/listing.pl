@@ -217,8 +217,8 @@ list_clauserefs([H|T], Context, Options) :-
     list_clauserefs(H, Context, Options),
     list_clauserefs(T, Context, Options).
 list_clauserefs(Ref, Context, Options) :-
-    @(clause(Head, Body, Ref), Context),
-    list_clause(Head, Body, Ref, Context, Options).
+    @(rule(_, Rule, Ref), Context),
+    list_clause(Rule, Ref, Context, Options).
 
 %!  list_predicates(:Preds:list(pi), :Spec, +Options) is det.
 
@@ -376,20 +376,19 @@ write_declarations([H|T], Module) :-
 
 list_clauses(Pred, Source, Options) :-
     strip_module(Pred, Module, Head),
-    generalise_term(Head, GenHead),
-    forall(( clause(Module:GenHead, Body, Ref),
-             \+ GenHead \= Head
+    most_general_goal(Head, GenHead),
+    forall(( rule(Module:GenHead, Rule, Ref),
+             \+ \+ rule_head(Rule, Head)
            ),
-           list_clause(Module:GenHead, Body, Ref, Source, Options)).
+           list_clause(Module:Rule, Ref, Source, Options)).
 
-generalise_term(Head, Gen) :-
-    compound(Head),
-    !,
-    compound_name_arity(Head, Name, Arity),
-    compound_name_arity(Gen,  Name, Arity).
-generalise_term(Head, Head).
+rule_head((Head0 :- _Body), Head) :- !, Head = Head0.
+rule_head((Head0,_Cond => _Body), Head) :- !, Head = Head0.
+rule_head((Head0 => _Body), Head) :- !, Head = Head0.
+rule_head(?=>(Head0, _Body), Head) :- !, Head = Head0.
+rule_head(Head, Head).
 
-list_clause(_Head, _Body, Ref, _Source, Options) :-
+list_clause(_Rule, Ref, _Source, Options) :-
     option(source(true), Options),
     (   clause_property(Ref, file(File)),
         clause_property(Ref, line_count(Line)),
@@ -408,10 +407,20 @@ list_clause(_Head, _Body, Ref, _Source, Options) :-
         comment('% From database (decompiled)~n', []),
         fail                                    % try next clause
     ).
-list_clause(Module:Head, Body, Ref, Source, Options) :-
+list_clause(Module:(Head:-Body), Ref, Source, Options) :-
+    !,
+    list_clause(Module:Head, Body, :-, Ref, Source, Options).
+list_clause(Module:(Head=>Body), Ref, Source, Options) :-
+    list_clause(Module:Head, Body, =>, Ref, Source, Options).
+list_clause(Module:Head, Ref, Source, Options) :-
+    !,
+    list_clause(Module:Head, true, :-, Ref, Source, Options).
+
+list_clause(Module:Head, Body, Neck, Ref, Source, Options) :-
     restore_variable_names(Module, Head, Body, Ref, Options),
     write_module(Module, Source, Head),
-    portray_clause((Head:-Body)).
+    Rule =.. [Neck,Head,Body],
+    portray_clause(Rule).
 
 %!  restore_variable_names(+Module, +Head, +Body, +Ref, +Options) is det.
 %
@@ -736,6 +745,8 @@ do_portray_clause(Out, Fact, Options) :-
     full_stop(Out).
 
 clause_term((Head:-Body), Head, :-, Body).
+clause_term((Head=>Body), Head, =>, Body).
+clause_term(?=>(Head,Body), Head, ?=>, Body).
 clause_term((Head-->Body), Head, -->, Body).
 
 full_stop(Out) :-

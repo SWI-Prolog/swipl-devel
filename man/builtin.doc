@@ -1967,6 +1967,9 @@ meeting in Edinburgh (2010). The \texttt{chk} postfix was
 considered to refer to determinism as in e.g., memberchk/2.}
 This predicate respects constraints.
 
+See \secref{ssu} for defining clauses whose head is unified using
+\jargon{single sided unification}.
+
     \predicate{term_subsumer}{3}{+Special1, +Special2, -General}
 \arg{General} is the most specific term that is a generalisation of
 \arg{Special1} and \arg{Special2}. The implementation can handle cyclic
@@ -4556,6 +4559,10 @@ clause_property/2) and the memory used by clause indexes (see the
 data structures. These are garbage data structures that have been
 detached from the predicate but cannot yet be reclaimed because
 they may be in use by some thread.
+
+    \termitem{ssu}{}
+The predicate has been defined using \jargon{single sided unification}
+rules.  See \secref{ssu}.
 
     \termitem{static}{}
 The definition can \emph{not} be modified using assertz/1 and friends.

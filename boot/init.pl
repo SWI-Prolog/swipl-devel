@@ -3641,6 +3641,11 @@ load_files(Module:Files, Options) :-
     !,
     print_message(error, cannot_redefine_comma),
     fail.
+'$store_clause'((Pre => Body), _Layout, File, SrcLoc) :-
+    nonvar(Pre),
+    Pre = (Head,Cond),
+    !,
+    '$store_clause'(?=>(Head,(Cond,!,Body)), _Layout, File, SrcLoc).
 '$store_clause'(Clause, _Layout, File, SrcLoc) :-
     '$valid_clause'(Clause),
     !,

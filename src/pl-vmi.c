@@ -1598,9 +1598,58 @@ VMI(B_POP, 0, 0, ())
 
 
 		 /*******************************
-		 *	       ENTER		*
+		 *   SINGLE SIDED UNIFICATION	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Translation of Picat like rule matching.  Handles
+
+  - Head ?=> Body
+    Head is matched against the goal without further unifying Goal.
+    On match, non-deterministically select this clause.
+  - Head => Body
+    Head is matched against the goal without further unifying Goal.
+    On match, deterministically select this clause.
+
+The clause must start with I_CHP, so there   is surely a choice point at
+the start of the predicate and we can   check  the trail stack to verify
+the match was made without unification.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_CHP, 0, 0, ())
+{ if ( BFR->frame != FR )
+    newChoice(CHP_DEBUG, FR PASS_LD);
+  NEXT_INSTRUCTION;
+}
+
+VMI(I_SSU_CHOICE, 0, 0, ())
+{ if ( tTop > BFR->mark.trailtop )
+    CLAUSE_FAILED;
+
+  VMI_GOTO(I_ENTER);
+}
+
+VMI(I_SSU_COMMIT, 0, 0, ())
+{ if ( tTop > BFR->mark.trailtop )
+    CLAUSE_FAILED;
+
+  clear(FR, FR_SSU_DET);
+
+  { SAVE_REGISTERS(qid);
+    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
+    LOAD_REGISTERS(qid);
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+    ARGP = argFrameP(lTop, 0);
+    if ( exception_term )
+      THROW_EXCEPTION;
+  }
+
+  VMI_GOTO(I_ENTER);
+}
+
+		 /*******************************
+		 *	       ENTER		*
+		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_ENTER: Enter the body of the clause.   This instruction is left out if
@@ -2380,7 +2429,8 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     }
   } else
 #endif
-  { SAVE_REGISTERS(qid);
+  { clear(FR, FR_SSU_DET);
+    SAVE_REGISTERS(qid);
     discardChoicesAfter(FR, FINISH_CUT PASS_LD);
     LOAD_REGISTERS(qid);
     lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
@@ -3428,6 +3478,11 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
   NEXT_INSTRUCTION;
 }
 
+
+VMI(S_SSU_DET, 0, 0, ())
+{ set(FR, FR_SSU_DET);
+  NEXT_INSTRUCTION;
+}
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -5259,7 +5314,7 @@ undefined predicate for call/N.
 
       lTop = NFR;
       setNextFrameFlags(NFR, FR);
-      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0 PASS_LD);
+      rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0, 0 PASS_LD);
       if ( rc == FALSE )
 	THROW_EXCEPTION;
       if ( rc == LOCAL_OVERFLOW )

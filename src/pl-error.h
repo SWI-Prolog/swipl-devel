@@ -91,7 +91,8 @@ typedef enum
   ERR_SIGNALLED,		/* int sig, char *name */
   ERR_SYNTAX,			/* what */
   ERR_UNDEFINED_PROC,		/* Definition def */
-  ERR_DUPLICATE_KEY		/* term_t */
+  ERR_DUPLICATE_KEY,		/* term_t */
+  ERR_PERMISSION_SSU_DEF	/* Definition def */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))

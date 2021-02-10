@@ -156,6 +156,8 @@ iso_message(existence_error(procedure, Proc)) -->
     unknown_proc_msg(Proc).
 iso_message(existence_error(answer_variable, Var)) -->
     [ '$~w was not bound by a previous query'-[Var] ].
+iso_message(existence_error(matching_rule, Goal)) -->
+    [ 'No rule matches ~p'-[Goal] ].
 iso_message(existence_error(Type, Object)) -->
     [ '~w `~p'' does not exist'-[Type, Object] ].
 iso_message(existence_error(Type, Object, In)) --> % not ISO

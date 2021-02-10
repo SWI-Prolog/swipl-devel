@@ -848,7 +848,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
-#define P_TABLED		(0x00000001) /* tabled predicate */
+#define P_SSU_DET		(0x00000001) /* Single Sided Unification: det */
 #define P_CLAUSABLE		(0x00000002) /* Clause/2 always works */
 #define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
@@ -898,6 +898,10 @@ with one operation, it turns out to be faster as well.
 #define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
 #define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
 					 /* from predicate */
+#define SSU_COMMIT_CLAUSE	(0x0100) /* Head => Body */
+#define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
+
+#define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 
 /* Flags on a DDI (Dirty Definition Info struct */
 
@@ -961,6 +965,7 @@ Macros for environment frames (local stack frames)
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4 */
 #define FR_INRESET		(0x0200) /* Continuations: inside reset/3 */
+#define FR_SSU_DET		(0x0400) /* Demands det on => rules */
 #define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
 
 #define FR_MAGIC_MASK		(0xfffff000)
@@ -1040,7 +1045,8 @@ typedef uint64_t lgen_t;
 
 #define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
 
-#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
+#define FR_CLEAR_NEXT	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
+			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
 #define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT)
 
 #define setNextFrameFlags(next, fr) \

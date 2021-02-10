@@ -505,6 +505,27 @@ PL_discard_foreign_frame(fid_t id)
   lTop = (LocalFrame) fr;
 }
 
+
+static int
+ssu_failed(LocalFrame fr ARG_LD)
+{ fid_t fid;
+  int rc = FALSE;
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t goal;
+
+    rc = ( (goal=PL_new_term_ref()) &&
+	   put_frame_goal(goal, fr) &&
+	   PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_matching_rule, goal)
+	 );
+
+    PL_close_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+
 		/********************************
 		*         FOREIGN CALLS         *
 		*********************************/
@@ -3157,7 +3178,8 @@ next_choice:
     if ( debugstatus.debugging && isDebugFrame(FR) )
     { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
 
-      DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
+      DEBUG(MSG_BACKTRACK,
+	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
 
       if ( sch )
       { int rc;
@@ -3191,10 +3213,16 @@ next_choice:
 #endif
 
     leaveFrame(FR);
-    if ( true(FR, FR_WATCHED) )
+    if ( true(FR, FR_WATCHED|FR_SSU_DET) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       FR->clause = NULL;
+      if ( true(FR, FR_SSU_DET) )
+      { SAVE_REGISTERS(qid);
+	ssu_failed(FR PASS_LD);
+	LOAD_REGISTERS(qid);
+	THROW_EXCEPTION;
+      }
       SAVE_REGISTERS(qid);
       frameFinished(FR, FINISH_FAIL PASS_LD);
       LOAD_REGISTERS(qid);

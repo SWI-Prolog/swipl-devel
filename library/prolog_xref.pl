@@ -877,6 +877,14 @@ process((Head :- Body), Src) :-
     !,
     assert_defined(Src, Head),
     process_body(Body, Head, Src).
+process((Head => Body), Src) :-
+    !,
+    assert_defined(Src, Head),
+    process_body(Body, Head, Src).
+process(?=>(Head, Body), Src) :-
+    !,
+    assert_defined(Src, Head),
+    process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :-
     !,
     process(Clause, Src).

@@ -2111,6 +2111,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  assert(state->adepth == 0 || state->adepth == NO_ADEPTH);
 	  break;
 	case I_ENTER:
+	case I_SSU_COMMIT:
+	case I_SSU_CHOICE:
 	  assert(state->adepth==0);
 	  break;
 #endif /*MARK_ALT_CLAUSES*/
@@ -3530,6 +3532,8 @@ setStartOfVMI(vm_state *state)
 	  assert(state->adepth == 0);
 	  break;
 	case I_ENTER:
+	case I_SSU_COMMIT:
+	case I_SSU_CHOICE:
 	  state->in_body = TRUE;
 	  assert(state->adepth==0);
       }

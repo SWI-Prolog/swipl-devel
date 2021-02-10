@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2018, University of Amsterdam
+    Copyright (c)  2005-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -303,6 +304,10 @@ find_varname(Var, [_|T], Name) :-
 %           more complex source-translations,  falling   back  to  a
 %           heuristic method locating as much as possible.
 
+unify_clause(Read, _, _, _, _) :-
+    var(Read),
+    !,
+    fail.
 unify_clause(Read, Decompiled, _, TermPos, TermPos) :-
     Read =@= Decompiled,
     !,
@@ -353,6 +358,27 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     !,
     TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
     match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
+unify_clause((Head,Cond => Body), Compiled1, Module,
+             term_position(F,T,FF,FT,
+                           [ term_position(_,_,_,_,[HP,CP]),
+                             BP
+                           ]),
+             TermPos) :-
+    !,
+    TermPos1 = term_position(F,T,FF,FT,
+                             [ HP,
+                               term_position(_,_,_,_,
+                                             [ CP,
+                                               term_position(_,_,_,_,
+                                                             [ FF-FT,
+                                                               BP
+                                                             ])
+                                             ])
+                             ]),
+    unify_clause((Head :- Cond, !, Body), Compiled1, Module, TermPos1, TermPos).
+unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
+    !,
+    unify_clause(Head :- Body, Compiled1, Module, TermPos0, TermPos).
                                         % general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),

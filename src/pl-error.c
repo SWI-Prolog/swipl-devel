@@ -359,6 +359,20 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_TERM, pi));
       break;
     }
+    case ERR_PERMISSION_SSU_DEF:
+    { Definition def = va_arg(args, Definition);
+
+      term_t pi = PL_new_term_ref();
+
+      rc = ( unify_definition(MODULE_user, pi, def, 0,
+			      GP_NAMEARITY|GP_HIDESYSTEM) &&
+	     PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_permission_error3,
+			     PL_ATOM, ATOM_assert,
+			     PL_ATOM, ATOM_procedure,
+			     PL_TERM, pi));
+      break;
+    }
     case ERR_PERMISSION_VMI:
     { const char *vmi = va_arg(args, const char *);
       rc = PL_unify_term(formal,

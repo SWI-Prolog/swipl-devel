@@ -271,10 +271,11 @@ COMMON(void)	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 		 *     PREDICATE PROPERTIES	*
 		 *******************************/
 
-#define TP_MONOTONIC	(0x0001)	/* Monotonic tabling */
-#define TP_SHARED	(0x0002)	/* Shared tabling */
-#define TP_OPAQUE	(0x0004)	/* Declared opaque */
-#define TP_LAZY		(0x0008)	/* Lazy (monotonic) */
+#define TP_TABLED	(0x0001)	/* Predicate is tabled */
+#define TP_MONOTONIC	(0x0002)	/* Monotonic tabling */
+#define TP_SHARED	(0x0004)	/* Shared tabling */
+#define TP_OPAQUE	(0x0008)	/* Declared opaque */
+#define TP_LAZY		(0x0010)	/* Lazy (monotonic) */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */

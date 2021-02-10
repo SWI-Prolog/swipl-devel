@@ -41,11 +41,11 @@ COMMON(void)		initWamTable(void);
 COMMON(void)		freeVarDefs(PL_local_data_t *ld);
 COMMON(int)		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
-					 Module *m ARG_LD);
+					 Module *m, int *flags ARG_LD);
 COMMON(Procedure)	lookupBodyProcedure(functor_t functor, Module tm);
 COMMON(int)		compileClause(Clause *cp, Word head, Word body,
 				      Procedure proc, Module module,
-				      term_t warnings ARG_LD);
+				      term_t warnings, int flags ARG_LD);
 COMMON(Clause)		assert_term(term_t term, Module m, ClauseRef where,
 				    atom_t owner, SourceLoc loc, int flags ARG_LD);
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));

@@ -394,12 +394,13 @@ diff3(>,  H1, T1, _H2, T2, Diff) :-
 %
 %   @author Copied from YAP, probably originally by Richard O'Keefe.
 
-ord_union([], []).
-ord_union([Set|Sets], Union) :-
+ord_union([], Union) =>
+    Union = [].
+ord_union([Set|Sets], Union) =>
     length([Set|Sets], NumberOfSets),
     ord_union_all(NumberOfSets, [Set|Sets], Union, []).
 
-ord_union_all(N, Sets0, Union, Sets) :-
+ord_union_all(N, Sets0, Union, Sets) =>
     (   N =:= 1
     ->  Sets0 = [Union|Sets]
     ;   N =:= 2
@@ -413,25 +414,30 @@ ord_union_all(N, Sets0, Union, Sets) :-
     ).
 
 
-%!  ord_union(+Set1, +Set2, ?Union) is det.
+%!  ord_union(+Set1, +Set2, -Union) is det.
 %
 %   Union is the union of Set1 and Set2
 
-ord_union([], Union, Union).
-ord_union([H1|T1], L2, Union) :-
+ord_union([], Set2, Union) =>
+    Union = Set2.
+ord_union([H1|T1], L2, Union) =>
     union2(L2, H1, T1, Union).
 
-union2([], H1, T1, [H1|T1]).
-union2([H2|T2], H1, T1, Union) :-
+union2([], H1, T1, Union) =>
+    Union = [H1|T1].
+union2([H2|T2], H1, T1, Union) =>
     compare(Order, H1, H2),
     union3(Order, H1, T1, H2, T2, Union).
 
-union3(<, H1, T1,  H2, T2, [H1|Union]) :-
-    union2(T1, H2, T2, Union).
-union3(=, H1, T1, _H2, T2, [H1|Union]) :-
-    ord_union(T1, T2, Union).
-union3(>, H1, T1,  H2, T2, [H2|Union]) :-
-    union2(T2, H1, T1, Union).
+union3(<, H1, T1,  H2, T2, Union) =>
+    Union = [H1|Union0],
+    union2(T1, H2, T2, Union0).
+union3(=, H1, T1, _H2, T2, Union) =>
+    Union = [H1|Union0],
+    ord_union(T1, T2, Union0).
+union3(>, H1, T1,  H2, T2, Union) =>
+    Union = [H2|Union0],
+    union2(T2, H1, T1, Union0).
 
 %!  ord_union(+Set1, +Set2, -Union, -New) is det.
 %

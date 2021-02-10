@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,6 +81,8 @@
             tmp_file_stream/3,                  % +Enc, -File, -Stream
             call_with_depth_limit/3,            % :Goal, +Limit, -Result
             call_with_inference_limit/3,        % :Goal, +Limit, -Result
+            rule/2,                             % :Head, -Rule
+            rule/3,                             % :Head, -Rule, ?Ref
             numbervars/3,                       % +Term, +Start, -End
             term_string/3,                      % ?Term, ?String, +Options
             nb_setval/2,                        % +Var, +Value
@@ -100,7 +103,9 @@
     use_foreign_library(:, +),
     transaction(0),
     transaction(0,0,+),
-    snapshot(0).
+    snapshot(0),
+    rule(:, -),
+    rule(:, -, ?).
 
 
                 /********************************
@@ -475,11 +480,11 @@ canonical_source_file(Spec, File) :-
     File = Spec.
 canonical_source_file(Spec, File) :-
     absolute_file_name(Spec,
-                           [ file_type(prolog),
-                             access(read),
-                             file_errors(fail)
-                           ],
-                           File),
+                       [ file_type(prolog),
+                         access(read),
+                         file_errors(fail)
+                       ],
+                       File),
     source_file(File).
 
 
@@ -894,6 +899,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, indexed, Indices).
 '$predicate_property'(noprofile, Pred) :-
     '$get_predicate_attribute'(Pred, noprofile, 1).
+'$predicate_property'(ssu, Pred) :-
+    '$get_predicate_attribute'(Pred, ssu, 1).
 '$predicate_property'(iso, Pred) :-
     '$get_predicate_attribute'(Pred, iso, 1).
 '$predicate_property'(quasi_quotation_syntax, Pred) :-
@@ -1408,6 +1415,41 @@ stack_property(spare).
 stack_property(min_free).
 stack_property(low).
 stack_property(factor).
+
+
+		 /*******************************
+		 *            CLAUSE		*
+		 *******************************/
+
+%!  rule(:Head, -Rule) is nondet.
+%!  rule(:Head, -Rule, Ref) is nondet.
+%
+%   Similar to clause/2,3. but deals with clauses   that do not use `:-`
+%   as _neck_.
+
+rule(Head, Rule) :-
+    '$rule'(Head, Rule0),
+    conditional_rule(Rule0, Rule1),
+    Rule = Rule1.
+rule(Head, Rule, Ref) :-
+    '$rule'(Head, Rule0, Ref),
+    conditional_rule(Rule0, Rule1),
+    Rule = Rule1.
+
+conditional_rule(?=>(Head, Body0), (Head,Cond=>Body)) :-
+    split_on_cut(Body0, Cond, Body),
+    !.
+conditional_rule(Rule, Rule).
+
+split_on_cut(Var, _, _) :-
+    var(Var),
+    !,
+    fail.
+split_on_cut((Cond,!,Body), Cond, Body) :-
+    !.
+split_on_cut((A,B), (A,Cond), Body) :-
+    split_on_cut(B, Cond, Body).
+
 
 
                  /*******************************

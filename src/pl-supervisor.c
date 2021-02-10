@@ -331,28 +331,37 @@ copyCodes(Code dest, Code src, size_t count)
 
 
 static Code
-chainMetaPredicateSupervisor(Definition def, Code post)
-{ if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+chainPredicateSupervisor(Definition def, Code post)
+{ if ( (true(def, P_META) && true(def, P_TRANSPARENT)) ||
+       true(def, P_SSU_DET) )
   { tmp_buffer buf;
-    unsigned int i;
-    int count = 0;
     Code codes;
 
     initBuffer(&buf);
-    for(i=0; i < def->functor->arity; i++)
-    { int ma = def->impl.any.args[i].meta;
 
-      if ( MA_NEEDS_TRANSPARENT(ma) )
-      { addBuffer(&buf, encode(S_MQUAL), code);
-	addBuffer(&buf, VAROFFSET(i), code);
-	count++;
+    if ( true(def, P_SSU_DET) )
+      addBuffer(&buf, encode(S_SSU_DET), code);
+
+    if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+    { unsigned int i;
+      int loffset = -1;
+
+      for(i=0; i < def->functor->arity; i++)
+      { int ma = def->impl.any.args[i].meta;
+
+	if ( MA_NEEDS_TRANSPARENT(ma) )
+	{ loffset = entriesBuffer(&buf, code);
+	  addBuffer(&buf, encode(S_MQUAL), code);
+	  addBuffer(&buf, VAROFFSET(i), code);
+	}
       }
+
+      if ( loffset >= 0 )
+	baseBuffer(&buf, code)[loffset] = encode(S_LMQUAL);
     }
 
-    if ( count > 0 )
-    { baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
-
-      copySuperVisorCode((Buffer)&buf, post);
+    if ( !isEmptyBuffer(&buf) )
+    { copySuperVisorCode((Buffer)&buf, post);
       freeCodes(post);
       codes = allocCodes(entriesBuffer(&buf, code));
       copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
@@ -397,7 +406,7 @@ createSupervisor(Definition def)
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
-  codes = chainMetaPredicateSupervisor(def, codes);
+  codes = chainPredicateSupervisor(def, codes);
 
   return codes;
 }
