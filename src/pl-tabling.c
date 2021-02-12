@@ -6831,7 +6831,7 @@ idg_add_monotonic_edge(trie *src_trie, trie *dst_trie, term_t dep ARG_LD)
 
   if ( (sn=src_trie->data.IDG) &&
        (dn=dst_trie->data.IDG) )
-  { if ( sn->monotonic )
+  { if ( sn->monotonic && !sn->lazy )
       sn->falsecount = 0;			/* (*) */
 
     if ( def->tabling && true(def->tabling, TP_MONOTONIC) )
