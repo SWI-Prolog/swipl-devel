@@ -52,7 +52,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_4,
                 tabling_monotonic_lazy_5,
                 tabling_monotonic_lazy_6,
-                tabling_monotonic_lazy_7
+                tabling_monotonic_lazy_7,
+                tabling_monotonic_lazy_8
               ]).
 
 :- meta_predicate
@@ -62,6 +63,8 @@ test_monotonic_lazy :-
     expect(?, 0, +),
     expect_valid(0),
     expect_invalid(0),
+    expect_forced(0),
+    incr_is_forced(0),
     expect_queued_answers(:, +).
 
 % ================================================================
@@ -269,6 +272,35 @@ test(lazy_reeval) :-
 :- end_tests(tabling_monotonic_lazy_7).
 
 
+:- begin_tests(tabling_monotonic_lazy_8).
+
+% Verify that a switch to incremental due to a retract propagates.
+% Note that eventually this may change.
+
+:- dynamic dm/1 as monotonic.
+:- dynamic xm/1 as monotonic.
+:- table aml/1 as (monotonic,lazy).
+:- table bml/1 as (monotonic,lazy).
+
+bml(X) :- aml(X) ; xm(X).
+aml(X) :- dm(X).
+
+test(indirect_lazy_retract) :-
+    assert(dm(1)),
+    assert(dm(2)),
+    expect(X, bml(X), [1,2]),
+    assert(xm(3)),
+    assert(dm(4)),
+    retract(dm(1)),
+    expect_invalid(aml(_)),
+    expect_invalid(bml(_)),
+    expect_forced(aml(_)),
+    expect_forced(bml(_)),
+    expect(X, bml(X), [2,3,4]).
+
+:- end_tests(tabling_monotonic_lazy_8).
+
+
 		 /*******************************
 		 *         TEST HELPERS		*
 		 *******************************/
@@ -295,6 +327,13 @@ expect_valid(Goal) :-
 
 expect_invalid(Goal) :-
     assertion(incr_is_invalid(Goal)).
+
+expect_forced(Goal) :-
+    assertion(incr_is_forced(Goal)).
+
+incr_is_forced(Goal) :-
+    get_call(Goal, ATrie, _Templ),
+    '$idg_forced'(ATrie).
 
 queued_answers(To, From, Count) :-
     get_calls(To, DstTrie, _Ret),
