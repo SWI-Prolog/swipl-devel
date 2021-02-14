@@ -6740,6 +6740,20 @@ new_mdep(term_t dep ARG_LD)
   return FALSE;
 }
 
+static
+PRED_IMPL("$idg_forced", 1, idg_forced, 0)
+{ trie *atrie;
+
+  if ( get_trie(A1, &atrie) )
+  { idg_node *n;
+
+    if ( (n=atrie->data.IDG) )
+      return !!n->force_reeval;
+  }
+
+  return FALSE;
+}
+
 static void
 free_mdep(idg_mdep *mdep)
 { assert(mdep->magic == IDG_MDEP_MAGIC);
@@ -8425,6 +8439,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
+  PRED_DEF("$idg_forced",               1, idg_forced,               0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)
   PRED_DEF("$idg_false_edge",           3, idg_false_edge,	  NDET)
 
