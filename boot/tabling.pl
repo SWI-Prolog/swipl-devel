@@ -140,7 +140,10 @@ user:portray(ATrie) :-
     '$is_answer_trie'(ATrie, _),
     trie_goal(ATrie, Goal, _Skeleton),
     (   '$idg_falsecount'(ATrie, FalseCount)
-    ->  format('~q [fc=~d] for ~p', [ATrie, FalseCount, Goal])
+    ->  (   '$idg_forced'(ATrie)
+        ->  format('~q [fc=~d/F] for ~p', [ATrie, FalseCount, Goal])
+        ;   format('~q [fc=~d] for ~p', [ATrie, FalseCount, Goal])
+        )
     ;   format('~q for ~p', [ATrie, Goal])
     ).
 user:portray(Cont) :-
