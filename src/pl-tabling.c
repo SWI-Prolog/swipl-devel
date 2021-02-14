@@ -6921,7 +6921,7 @@ PRED_IMPL("$idg_add_mono_dyn_dep", 3, idg_add_mono_dyn_dep, 0)
 
 
 static int
-mono_idg_changed(trie *atrie, trie_node *node)
+mono_idg_changed(trie *atrie, word answer)
 { idg_node *sn = atrie->data.IDG;
   Table aff;
 
@@ -6935,17 +6935,24 @@ mono_idg_changed(trie *atrie, trie_node *node)
       idg_mdep *mdep = v;
       int nonempty = 0;
 
+      if ( dn->force_reeval )		/* Already marked as invalid */
+	continue;
+
       while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
       { if ( mdep->lazy )
-	{ nonempty += mdep_queue_answer(mdep, (word)node);
+	{ nonempty += mdep_queue_answer(mdep, answer);
 	  DEBUG(MSG_TABLING_MONOTONIC,
 		print_answer_table(dn->atrie,
 				   "queued answer (nonempty=%d)", nonempty));
 	}
 	mdep = mdep->next.dep;
       }
-      if ( dn && !nonempty && (!dn->monotonic || dn->lazy) )
-      { if ( !idg_changed(dn->atrie, IDG_CHANGED_NODE) )
+      if ( !nonempty && (!dn->monotonic || dn->lazy) )
+      { int flags = IDG_CHANGED_NODE;
+
+	if ( dn->lazy )
+	  flags |= IDG_CHANGED_MONO;
+	if ( !idg_changed(dn->atrie, flags) )
 	  return FALSE;
       }
     }
@@ -6979,7 +6986,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
     { trie_node *node = wkl_mode_add_answer(NULL, atrie, A2, 0 PASS_LD);
 
       if ( node )
-      { mono_idg_changed(atrie, node);
+      { mono_idg_changed(atrie, (word)node);
 	return TRUE;
       }
     } else					/* normal tabling */
@@ -6995,7 +7002,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 	  return FALSE;
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
-	mono_idg_changed(atrie, node);
+	mono_idg_changed(atrie, (word)node);
 	if ( (def=atrie->data.predicate) &&
 	     def->events &&
 	     !atrie_answer_event(atrie, node PASS_LD) &&
@@ -7253,42 +7260,9 @@ get_mono_answer(term_t t, word *ap ARG_LD)
 
 static int
 mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD)
-{ idg_node *sn = atrie->data.IDG;
-  Table aff;
+{ get_mono_answer(ans, &an PASS_LD);
 
-				      /* TBD: merge with mono_idg_changed() */
-  if ( sn && (aff=sn->affected) )
-  { void *k, *v;
-    TableEnum en;
-
-    en = newTableEnum(aff);
-    while( advanceTableEnum(en, &k, &v) )
-    { idg_node *dn = k;
-      idg_mdep *mdep = v;
-      int nonempty = 0;
-
-      if ( dn->force_reeval )		/* Already marked as invalid */
-	continue;
-
-      while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
-      { if ( mdep->lazy )
-	{ nonempty += mdep_queue_answer(mdep, get_mono_answer(ans, &an PASS_LD));
-	  DEBUG(MSG_TABLING_MONOTONIC,
-		print_answer_table(dn->atrie,
-				   "queued answer (nonempty=%d)", nonempty));
-	}
-	mdep = mdep->next.dep;
-      }
-      if ( dn && !nonempty )
-      { if ( dn->lazy &&
-	     !idg_changed(dn->atrie, IDG_CHANGED_NODE|IDG_CHANGED_MONO) )
-	  return FALSE;
-      }
-    }
-    freeTableEnum(en);
-  }
-
-  return TRUE;
+  return mono_idg_changed(atrie, an);
 }
 
 
