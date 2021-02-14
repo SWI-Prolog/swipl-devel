@@ -153,6 +153,7 @@ static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 static table_props *get_predicate_table_props(Definition def);
 static int	inner_is_monotonic(ARG1_LD);
 static int	mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD);
+static trie    *idg_propagate_change(idg_node *n, int flags);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
@@ -6484,6 +6485,12 @@ possible waiters.
 
 It is probably possible we re-validate a   table that is claimed by some
 other thread. What should we do in this case?
+
+(**) If we  have  a  normal   incremental  change  (retract  or modified
+dependent table) we have to give  up   on  lazy monotonic evaluation for
+affected nodes. This means we clean  the monotonic dependency queues and
+set `force_reeval` to  make  reeval_node/1   do  the  normal incremental
+reevaluation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct idg_propagate_state
@@ -6494,8 +6501,9 @@ typedef struct idg_propagate_state
   idg_node  *buf[100];
 } idg_propagate_state;
 
-#define IDG_CHANGED_NODE	0x0001
-#define IDG_CHANGED_MONO	0x0002
+#define IDG_CHANGED_NODE	0x0001		/* Normal node change */
+#define IDG_CHANGED_MONO	0x0002		/* Monotonic node change */
+#define IDG_PROPAGATE_FORCE	0x0004		/* See (**) */
 
 static void
 idg_changed_loop(idg_propagate_state *state, int flags)
@@ -6517,13 +6525,27 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       if ( n->reevaluating )
 	continue;
 
+      if ( (flags&IDG_PROPAGATE_FORCE) )	/* See (**) */
+      { DEBUG(MSG_TABLING_MONOTONIC,
+	      print_answer_table(
+		  n->atrie,
+		  "  Monotonic to incremental evaluation"));
+
+	if ( n->monotonic && !n->force_reeval )
+	{ mdep_empty_queue(v);
+	  n->force_reeval = TRUE;
+	}
+	continue;
+      }
+
       if ( (flags&IDG_CHANGED_NODE) )		/* Increment falsecount */
       { if ( table_is_incomplete(n->atrie) )
 	  state->incomplete = n->atrie;		/* return? */
 
-	if ( n->monotonic && !(flags&IDG_CHANGED_MONO) )
-	{ mdep_empty_queue(v);			/* retract on monotonic dependency */
-	  n->force_reeval = TRUE;		/* or incremental affecting monotonic */
+	if ( n->monotonic && !n->force_reeval && !(flags&IDG_CHANGED_MONO) )
+	{ mdep_empty_queue(v);
+	  n->force_reeval = TRUE;
+	  idg_propagate_change(n, IDG_PROPAGATE_FORCE);
 	}
 
 	if ( ATOMIC_INC(&n->falsecount) == 1 )
