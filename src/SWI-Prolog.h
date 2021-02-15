@@ -118,8 +118,8 @@ duplicated this stuff.
 
 #ifdef HAVE_DECLSPEC
 # ifdef PL_KERNEL
-#define PL_EXPORT(type)		__declspec(dllexport) type
-#define PL_EXPORT_DATA(type)	__declspec(dllexport) type
+#define PL_EXPORT(type)		__declspec(dllexport) extern type
+#define PL_EXPORT_DATA(type)	__declspec(dllexport) extern type
 #define install_t		void
 # else
 #  ifdef __BORLANDC__
