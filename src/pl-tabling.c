@@ -7170,6 +7170,8 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 	      print_answer_table(atrie, "%d new answers",
 				 atrie->value_count - vc));
       }
+
+      idg->falsecount = 0;
     }
 
     return rc;
@@ -7193,8 +7195,6 @@ PRED_IMPL("$idg_mono_empty_queue", 2, idg_mono_empty_queue, 0)
     { idg_mdep *mdep = lookupHTable(sn->affected, dn);
 
       mdep_empty_queue(mdep);
-      assert(dn->falsecount > 0);
-      dn->falsecount--;
     }
 
     return TRUE;
