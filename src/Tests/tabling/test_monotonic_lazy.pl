@@ -286,6 +286,7 @@ bml(X) :- aml(X) ; xm(X).
 aml(X) :- dm(X).
 
 test(indirect_lazy_retract) :-
+    cleanup([dm/1, xm/1]),
     assert(dm(1)),
     assert(dm(2)),
     expect(X, bml(X), [1,2]),
