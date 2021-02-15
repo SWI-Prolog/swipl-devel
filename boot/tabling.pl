@@ -1845,14 +1845,11 @@ try_reeval(ATrie, Goal, Return) :-
 try_reeval(ATrie, Goal, Return) :-
     tdebug(reeval, 'Planning reeval for ~p', [ATrie]),
     findall(Path, false_path(ATrie, Path), Paths0),
-    sort(0, @>, Paths0, Paths),
-    split_paths(Paths, Dynamic, Complete),
-    tdebug(forall('$member'(Path, Dynamic),
-                  tdebug(reeval, '  Re-eval dynamic path: ~p', [Path]))),
-    tdebug(forall('$member'(Path, Complete),
+    sort(0, @>, Paths0, Paths1),
+    clean_paths(Paths1, Paths),
+    tdebug(forall('$member'(Path, Paths),
                   tdebug(reeval, '  Re-eval complete path: ~p', [Path]))),
-    reeval_paths(Dynamic, ATrie),
-    reeval_paths(Complete, ATrie),
+    reeval_paths(Paths, ATrie),
     do_reeval(ATrie, Goal, Return).
 
 do_reeval(ATrie, Goal, Return) :-
@@ -1868,9 +1865,29 @@ do_reeval(ATrie, Goal, Return) :-
     ).
 
 
-split_paths([], [], []).
-split_paths([[_|Path]|T], DT, [Path|CT]) :-
-    split_paths(T, DT, CT).
+%!  clean_paths(+PathsIn, -Paths)
+%
+%   Clean the reevaluation paths. Get rid of   the head term for ranking
+%   and remove duplicate paths.
+
+clean_paths([], []).
+clean_paths([[_|Path]|T0], [Path|T]) :-
+    clean_paths(T0, Path, T).
+
+clean_paths([], _, []).
+clean_paths([[_|Path]|T0], CPath, T) :-
+    Path =@= CPath,
+    !,
+    clean_paths(T0, CPath, T).
+clean_paths([[_|Path]|T0], CPath, [Path|T]) :-
+    clean_paths(T0, CPath, T).
+
+%!  reeval_paths(+Paths, +Atrie)
+%
+%   Make Atrie valid again by re-evaluating nodes   in Paths. We stop as
+%   soon as Atrie  is  valid  again.  Note   that  we  may  not  need to
+%   reevaluate all paths because evaluating the   head  of some path may
+%   include other nodes in an SCC, making them valid as well.
 
 reeval_paths([], _) :-
     !.
