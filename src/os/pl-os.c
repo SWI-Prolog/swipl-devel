@@ -1355,17 +1355,24 @@ canonicaliseFileName(char *path)
 	    goto out;
 	  }
 	  if ( in[2] == '.' && (in[3] == '/' || in[3] == EOS) )
-	  { if ( !isEmptyBuffer(&saveb) )		/* delete /foo/../ */
-	    { out = popBuffer(&saveb, char*);
+	  { if ( out[-1] == '.' && out[-2] == '.' &&
+		 (out-2 == start || out[-3] == '/') )
+	    { strncpy(out, in, 3);
 	      in += 3;
-	      if ( in[0] == EOS && out > start+1 )
-	      { out[-1] = EOS;		/* delete trailing / */
-		goto out;
+	      out += 3;
+	    } else
+	    { if ( !isEmptyBuffer(&saveb) )		/* delete /foo/../ */
+	      { out = popBuffer(&saveb, char*);
+		in += 3;
+		if ( in[0] == EOS && out > start+1 )
+		{ out[-1] = EOS;		/* delete trailing / */
+		  goto out;
+		}
+		goto again;
+	      } else if (	start[0] == '/' && out == start+1 )
+	      { in += 3;
+		goto again;
 	      }
-	      goto again;
-	    } else if (	start[0] == '/' && out == start+1 )
-	    { in += 3;
-	      goto again;
 	    }
 	  }
 	}
