@@ -181,11 +181,11 @@ selectchk(Elem, List, Rest) :-
 
 %!  select(?X, ?XList, ?Y, ?YList) is nondet.
 %
-%   Select from two lists at the  same   positon.  True  if XList is
-%   unifiable with YList apart a single element at the same position
-%   that is unified with X in XList and   with Y in YList. A typical
-%   use for this predicate is to _replace_   an element, as shown in
-%   the example below. All possible   substitutions are performed on
+%   Select from two lists  at  the  same   position.  True  if  XList is
+%   unifiable with YList apart a  single   element  at the same position
+%   that is unified with X in XList and   with Y in YList. A typical use
+%   for this predicate is to  _replace_  an   element,  as  shown in the
+%   example  below.  All  possible  substitutions    are   performed  on
 %   backtracking.
 %
 %     ==
