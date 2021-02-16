@@ -49,6 +49,7 @@ if(MULTI_THREADED)
 endif()
 if(MINGW)
   list(APPEND WIN32_DLL_PATTERNS "libgcc_s*.dll")
+  list(APPEND WIN32_DLL_PATTERNS "libssp*.dll")
 endif()
 
 function(find_windows_dlls var)
