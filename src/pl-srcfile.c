@@ -1043,7 +1043,13 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
     } else if ( isRedefinedProcedure(proc, global_generation()) )
-    { reload->generation = pushPredicateAccess(def);
+    { definition_ref *dref = pushPredicateAccessObj(def PASS_LD);
+
+      if ( !dref )
+      { freeHeap(reload, sizeof(*reload));
+	return NULL;
+      }
+      reload->generation = dref->generation;
       acquire_def(def);
       reload->current_clause = find_clause(def->impl.clauses.first_clause,
 					   reload->generation);

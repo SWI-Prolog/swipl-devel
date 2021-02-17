@@ -5948,6 +5948,7 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { Clause clause;
+      definition_ref *dref;
 
       if ( ref && !PL_is_variable(ref) )
       { int rc;
@@ -5989,9 +5990,11 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
 
       if ( protected_predicate(def PASS_LD) )
 	return FALSE;
+      if ( !(dref=pushPredicateAccessObj(def PASS_LD)) )
+	return FALSE;
 
       chp = NULL;
-      setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
+      setGenerationFrameVal(environment_frame, dref->generation);
       break;
     }
     case FRG_REDO:
@@ -6135,12 +6138,15 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
   if ( !PL_is_variable(ref) )
   { if ( PL_get_clref(ref, &clause) == TRUE )
     { int i;
+      definition_ref *dref;
 
       if ( true(clause, GOAL_CLAUSE) )
-	fail;				/* I do not belong to a predicate */
+	return FALSE;			/* I do not belong to a predicate */
 
       def = clause->predicate;
-      generation = pushPredicateAccess(def);
+      if ( !(dref = pushPredicateAccessObj(def PASS_LD)) )
+	return FALSE;
+      generation = dref->generation;
       acquire_def(def);
       for( cref = def->impl.clauses.first_clause, i=1; cref; cref = cref->next)
       { if ( cref->value.clause == clause )
@@ -6165,13 +6171,16 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
 
   if ( CTX_CNTRL == PL_FIRST_CALL )
   { int i;
+    definition_ref *dref;
 
     if ( !get_procedure(p, &proc, 0, GP_FIND) ||
          true(proc->definition, P_FOREIGN) )
-      fail;
+      return FALSE;
 
     def = getProcDefinition(proc);
-    generation = pushPredicateAccess(def);
+    if ( !(dref = pushPredicateAccessObj(def PASS_LD)) )
+      return FALSE;
+    generation = dref->generation;
     acquire_def(def);
     cref = def->impl.clauses.first_clause;
     while ( cref && !visibleClauseCNT(cref->value.clause, generation) )

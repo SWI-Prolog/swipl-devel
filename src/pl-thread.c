@@ -7411,12 +7411,15 @@ pushPredicateAccessObj(Definition def ARG_LD)
   DEBUG(MSG_CGC_PRED_REF,
 	Sdprintf("pushPredicateAccess(%s)\n", predicateName(def)));
 
+  if ( top >= ((size_t)1<<MAX_BLOCKS) - (LD->exception.processing ? 0 : 1000) )
+    return PL_representation_error("predicate references"),NULL;
+
   if ( !refs->blocks[idx] )
   { size_t bs = (size_t)1<<idx;
     definition_ref *newblock;
 
     if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(definition_ref))) )
-      outOfCore();
+      return PL_no_memory(),NULL;
 
     memset(newblock, 0, bs*sizeof(definition_ref));
     if ( !COMPARE_AND_SWAP_PTR(&refs->blocks[idx], NULL, newblock-bs) )

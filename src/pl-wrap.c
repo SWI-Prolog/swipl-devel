@@ -199,9 +199,13 @@ assert_wrapper(term_t clause ARG_LD)
 
   if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0 PASS_LD)) )
   { Definition def = cl->predicate;
+    definition_ref *dref = pushPredicateAccessObj(def PASS_LD);
     ClauseRef cref;
 
-    (void)pushPredicateAccess(def);
+    if ( !dref )
+    { retractClauseDefinition(def, cl, FALSE);
+      return NULL;
+    }
     acquire_def(def);
     for( cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( cref->value.clause == cl )

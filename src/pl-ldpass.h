@@ -65,7 +65,6 @@
 #define popTermRef()		popTermRef__LD(PASS_LD1)
 #define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
 #define lookupHTable(ht, n)	lookupHTable__LD(ht, n PASS_LD)
-#define pushPredicateAccess(def) (pushPredicateAccessObj(def PASS_LD)->generation)
 #define popPredicateAccess(def) popPredicateAccess__LD(def PASS_LD)
 #define popNPredicateAccess(cnt) popNPredicateAccess__LD(cnt PASS_LD)
 #define nextClause(chp, argv, fr, def) nextClause__LD(chp, argv, fr, def PASS_LD)

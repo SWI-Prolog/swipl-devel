@@ -3127,6 +3127,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   term_t thehead = PL_new_term_ref();
   Procedure proc;
   Definition def;
+  definition_ref *dref;
   ClauseRef cref;
   Word argv;
   int allvars = TRUE;
@@ -3162,8 +3163,10 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
     argv = NULL;
   }
 
+  if ( !(dref=pushPredicateAccessObj(def PASS_LD)) )
+    return FALSE;
+  setGenerationFrameVal(environment_frame, dref->generation);
   enterDefinition(def);
-  setGenerationFrameVal(environment_frame, pushPredicateAccess(def));
   fid = PL_open_foreign_frame();
 
   DEBUG(CHK_SECURE,
