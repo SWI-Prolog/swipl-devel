@@ -7113,6 +7113,52 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The answer subsumption trie may have   answers queued for affected nodes
+that have already been deleted.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+prune_deleted_mdeps(idg_node *idg)
+{ if ( idg->affected )
+  { TableEnum en = newTableEnum(idg->affected);
+    void *k, *v;
+
+    while(advanceTableEnum(en, &k, &v))
+    { idg_node *dn = k;
+      idg_mdep *mdep = v;
+
+      if ( dn->force_reeval )		/* Invalidated; no queue */
+	continue;
+
+      while( mdep && mdep->magic == IDG_MDEP_MAGIC )
+      { if ( mdep->queue )
+	{ word *base = baseBuffer(mdep->queue, word);
+	  word *top  = topBuffer(mdep->queue, word);
+	  word *out  = base;
+
+	  for(; base < top; base++)
+	  { if ( isAtom(*base) )
+	    { *out++ = *base;
+	    } else
+	    { trie_node *an = (trie_node *)*base;
+
+	      if ( an->value )
+		*out++ = *base;
+	    }
+	  }
+	  mdep->queue->top = (void*)out;
+	}
+
+	mdep = mdep->next.dep;
+      }
+    }
+
+    freeTableEnum(en);
+  }
+}
+
+
 static void *
 mono_reeval_done_node(trie_node *n, void *ctx)
 { int *gc = ctx;
@@ -7155,12 +7201,16 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 
 	if ( true(atrie, TRIE_ISMAP) )
 	{ int gc = 0;
+	  int queue;
 
 	  n = map_trie_node(&atrie->root, mono_reeval_done_node, &gc);
+	  queue = n && n->value != 0;
 	  if ( gc )
+	  { prune_deleted_mdeps(idg);
 	    prune_trie(atrie, &atrie->root, NULL, NULL);
-	  if ( n )
-	    rc = mono_queue_answer(atrie, 0, pointerToInt(n) PASS_LD);
+	  }
+	  if ( queue )
+	    rc = mono_idg_changed(atrie, (word)n);
 	}
 
 	if ( !n && rc )
