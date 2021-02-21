@@ -418,11 +418,6 @@ end_of_record --> eos.                  % unterminated last record
 %     Line is unified with the 1-based line-number from which Row is
 %     read.  Note that Line is not the physical line, but rather the
 %     _logical_ record number.
-%
-%   @tbd    Input is read line by line.  If a record separator is
-%           embedded in a quoted field, parsing the record fails and
-%           another line is added to the input.  This does not nicely
-%           deal with other reasons why parsing the row may fail.
 
 csv_read_file_row(File, Row, Options) :-
     default_separator(File, Options, Options1),
