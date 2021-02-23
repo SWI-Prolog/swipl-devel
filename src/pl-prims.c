@@ -5737,6 +5737,7 @@ static const optdef optdefs[] =
   { "class",		CMDOPT_STRING,  &GD->options.saveclass },
   { "search_paths",	CMDOPT_LIST,	&GD->options.search_paths },
   { "pldoc_server",	CMDOPT_STRING,	&GD->options.pldoc_server },
+  { "nosignals",	CMDOPT_BOOL,	&GD->options.nosignals },
 #ifdef __WINDOWS__
   { "win_app",		CMDOPT_BOOL,	&GD->options.win_app },
 #endif
@@ -5826,7 +5827,17 @@ set_pl_option(const char *name, const char *value)
   for( ; d->name; d++ )
   { if ( streq(name, d->name) )
     { switch(d->type)
-      { case CMDOPT_SIZE_T:
+      { case CMDOPT_BOOL:
+	{ bool *val =  d->address;
+	  if ( streq(value, "true") )
+	    *val = TRUE;
+	  else if ( streq(value, "false") )
+	    *val = FALSE;
+	  else
+	    assert(0);
+	  return TRUE;
+	}
+        case CMDOPT_SIZE_T:
 	{ size_t *val = d->address;
 	  number n;
 	  unsigned char *q;

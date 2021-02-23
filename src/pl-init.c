@@ -708,6 +708,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	{ if ( !b )
 	  { clearPrologFlagMask(PLFLAG_SIGNALS);
 	    clearPrologFlagMask(PLFLAG_GCTHREAD);
+	    GD->options.nosignals = TRUE;
 	  }
 	} else
 	  return -1;
@@ -1102,6 +1103,11 @@ PL_initialise(int argc, char **argv)
   initialiseForeign(GD->cmdline.os_argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.os_argv);
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
+  if ( GD->options.nosignals )
+  { GET_LD
+    clearPrologFlagMask(PLFLAG_SIGNALS);
+    clearPrologFlagMask(PLFLAG_GCTHREAD);
+  }
 
   if ( GD->bootsession )
   { IOSTREAM *s = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_WRONLY);

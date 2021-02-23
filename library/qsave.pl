@@ -267,6 +267,7 @@ doption(init_file).
 doption(system_init_file).
 doption(class).
 doption(home).
+doption(nosignals).
 
 %!  save_options(+ArchiveHandle, +SaveClass, +Options)
 %
