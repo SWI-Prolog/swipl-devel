@@ -1595,6 +1595,11 @@ this flag. Currently \const{0xffff} on Windows (UCS-2) and
 Maximum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.
 
+    \prologflagitem{max_procedure_arity}{integer}{r}
+Maximum arity for a predicate.  An attempt to define or call such a
+predicate results in a \exam{representation_error(max_procedure_arity)}
+exception.  Currently set to 1024.
+
     \prologflagitem{max_rational_size}{integer}{rw}
 Limit the size in bytes for rational numbers. This \jargon{tripwire} can
 be used to identify cases where setting the Prolog flag

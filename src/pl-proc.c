@@ -487,7 +487,7 @@ get_arity(term_t t, int extra, int maxarity, int *arity)
     Ssprintf(buf, "limit is %d, request = %d", maxarity, a);
 
     return PL_error(NULL, 0, buf,
-		    ERR_REPRESENTATION, ATOM_max_arity);
+		    ERR_REPRESENTATION, ATOM_max_procedure_arity);
   }
 
   *arity = a;
@@ -567,7 +567,7 @@ get_head_functor(term_t head, functor_t *fdef, int how ARG_LD)
       Ssprintf(buf, "limit is %d, request = %d", MAXARITY, fd->arity);
 
       return PL_error(NULL, 0, buf,
-		      ERR_REPRESENTATION, ATOM_max_arity);
+		      ERR_REPRESENTATION, ATOM_max_procedure_arity);
     }
   }
 

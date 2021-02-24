@@ -1105,6 +1105,7 @@ calculation at runtime.
 #define A_NOARGVAR	0x10		/* do not compile using ci->argvar */
 
 #define NOT_CALLABLE -10		/* return value for not-callable */
+#define MAX_ARITY_OVERFLOW -11		/* return value for max_procedure_arity overflow */
 
 #define BLOCK(s) do { s; } while (0)
 
@@ -1757,11 +1758,21 @@ that have an I_CONTEXT because we need to reset the context.
 
     bi = PC(&ci);
     if ( (rc=compileBody(body, I_DEPART, &ci PASS_LD)) != TRUE )
-    { if ( rc == NOT_CALLABLE )
+    { if ( rc <= NOT_CALLABLE )
       {	resetVars(PASS_LD1);
-	rc = PL_error(NULL, 0, NULL, ERR_TYPE,
-		      ATOM_callable, pushWordAsTermRef(body));
-	popTermRef();
+	switch(rc)
+	{ case NOT_CALLABLE:
+	    rc = PL_error(NULL, 0, NULL, ERR_TYPE,
+			  ATOM_callable, pushWordAsTermRef(body));
+	    popTermRef();
+	    break;
+	  case MAX_ARITY_OVERFLOW:
+	    rc = PL_error(NULL, 0, NULL,
+			  ERR_REPRESENTATION, ATOM_max_procedure_arity);
+	    break;
+	  default:
+	    assert(0);
+	}
       }
 
       goto exit_fail;
@@ -2658,6 +2669,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
   if ( isTerm(*arg) )
   { functor = functorTerm(*arg);
     fdef = valueFunctor(functor);
+
+    if ( fdef->arity > MAXARITY )
+      return MAX_ARITY_OVERFLOW;
 
     if ( !isTextAtom(fdef->name) && fdef->name != ATOM_nil )
       return NOT_CALLABLE;

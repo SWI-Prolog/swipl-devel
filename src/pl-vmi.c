@@ -5402,6 +5402,8 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
     if ( !isCallableAtom(fdef->name) )
       goto call_type_error;
     arity   = (int)fdef->arity;
+    if ( arity + callargs > MAXARITY )
+      goto max_arity_overflow;
     functor = lookupFunctorDef(fdef->name, arity + callargs);
     args    = argTermP(goal, 0);
   } else
@@ -5449,9 +5451,10 @@ frame.
   { if ( arity > MAXARITY )
     { fid_t fid;
 
+    max_arity_overflow:
       lTop = (LocalFrame)argFrameP(NFR, 1);
       fid = PL_open_foreign_frame();
-      PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_arity);
+      PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_procedure_arity);
       PL_close_foreign_frame(fid);
       THROW_EXCEPTION;
     }

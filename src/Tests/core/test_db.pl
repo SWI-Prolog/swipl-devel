@@ -71,6 +71,20 @@ test(cyclic_body, [ sto(rational_trees),
 		  ]) :-
 	X = f(X),
 	assert((f(a) :- X)).
+test(max_procedure_arity, [ sto(rational_trees),
+			    error(representation_error(max_procedure_arity))
+		  ]) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max*2,
+	functor(F, f, Arity),
+	assert(F).
+test(max_procedure_arity, [ sto(rational_trees),
+			    error(representation_error(max_procedure_arity))
+		  ]) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max*2,
+	functor(F, f, Arity),
+	assert((p :- F)).
 
 test(cut_cond, Body = (! -> fail)) :-
 	assert(f :- (! -> fail)),

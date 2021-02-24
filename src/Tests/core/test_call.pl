@@ -112,6 +112,16 @@ test(qe8, true) :-
 test(ae8, true) :-
 	Goal = call(exists, a, b, c, d, e, f, g, h),
 	Goal.
+test(max_procedure_arity, error(representation_error(max_procedure_arity))) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max*2,
+	functor(F, f, Arity),
+	call(F, 1, 2, 3).
+test(max_procedure_arity, error(representation_error(max_procedure_arity))) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max-2,
+	functor(F, f, Arity),
+	call(F, 1, 2, 3).
 
 call8:exists(a, b, c, d, e, f, g, h).
 exists(a, b, c, d, e, f, g, h).
