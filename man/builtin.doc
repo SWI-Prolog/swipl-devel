@@ -3766,7 +3766,7 @@ performed.
 	The given clause will be asserted at the start or end.  Note
 	that due to competing transactions the clause may no longer
 	be the first/last clause of the predicate.
-	\termitem{erase}{+ClauseRef}
+	\termitem{erased}{+ClauseRef}
 	The given clause will be removed.  This may be due to erase/1,
 	retract/1 or retractall/1.
     \end{description}
