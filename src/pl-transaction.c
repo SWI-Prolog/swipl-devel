@@ -345,6 +345,13 @@ cmp_updates(const void *ptr1, const void *ptr2)
 
 
 static int
+is_trie_clause(const Clause cl)
+{ return ( cl->predicate == GD->procedures.trie_gen_compiled3->definition ||
+	   cl->predicate == GD->procedures.trie_gen_compiled2->definition );
+}
+
+
+static int
 transaction_updates(Buffer b ARG_LD)
 { if ( LD->transaction.clauses )
   { for_table(LD->transaction.clauses, n, v,
@@ -361,7 +368,7 @@ transaction_updates(Buffer b ARG_LD)
 		      u.update = FUNCTOR_assertz1;
 		    addBuffer(b, u, tr_update);
 		  }
-		} else
+		} else if ( !is_trie_clause(cl) )
 		{ tr_update u;
 		  u.clause = cl;
 		  u.update = FUNCTOR_erased1;
