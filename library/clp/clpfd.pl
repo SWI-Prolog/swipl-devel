@@ -1095,6 +1095,17 @@ cis_sign(sup, n(1)).
 cis_sign(inf, n(-1)).
 cis_sign(n(N), n(S)) :- S is sign(N).
 
+cis_slash(sup, Y, Z)  :- ( Y cis_geq n(0) -> Z = sup ; Z = inf ).
+cis_slash(inf, Y, Z)  :- ( Y cis_geq n(0) -> Z = inf ; Z = sup ).
+cis_slash(n(X), Y, Z) :- cis_slash_(Y, X, Z).
+
+cis_slash_(sup, _, n(0)).
+cis_slash_(inf, _, n(0)).
+cis_slash_(n(Y), X, Z) :-
+        (   Y =:= 0 -> (  X >= 0 -> Z = sup ; Z = inf )
+        ;   Z0 is X // Y, Z = n(Z0)
+        ).
+
 cis_div(sup, Y, Z)  :- ( Y cis_geq n(0) -> Z = sup ; Z = inf ).
 cis_div(inf, Y, Z)  :- ( Y cis_geq n(0) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
@@ -1103,16 +1114,8 @@ cis_div_(sup, _, n(0)).
 cis_div_(inf, _, n(0)).
 cis_div_(n(Y), X, Z) :-
         (   Y =:= 0 -> (  X >= 0 -> Z = sup ; Z = inf )
-        ;   Z0 is X // Y, Z = n(Z0)
+        ;   Z0 is X div Y, Z = n(Z0)
         ).
-
-cis_slash(sup, _, sup).
-cis_slash(inf, _, inf).
-cis_slash(n(N), B, S) :- cis_slash_(B, N, S).
-
-cis_slash_(sup, _, n(0)).
-cis_slash_(inf, _, n(0)).
-cis_slash_(n(B), A, n(S)) :- S is A // B.
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1466,28 +1469,36 @@ domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
    from interval.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_expand_more(D0, M, D) :-
+domain_expand_more(D0, M, Op, D) :-
         %format("expanding ~w by ~w\n", [D0,M]),
-        (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
-        ;   D1 = D0, M1 = M
-        ),
-        domain_expand_more_(D1, M1, D).
+        %(   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
+        %;   D1 = D0, M1 = M
+        %),
+        %domain_expand_more_(D1, M1, Op, D).
+        domain_expand_more_(D0, M, Op, D).
         %format("yield: ~w\n", [D]).
 
-domain_expand_more_(empty, _, empty).
-domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
-        (   From0 cis_leq n(0) ->
-            From cis (From0-n(1))*n(M) + n(1)
-        ;   From cis From0*n(M)
+domain_expand_more_(empty, _, _, empty).
+domain_expand_more_(from_to(From0, To0), M, Op, D) :-
+        M1 is abs(M),
+        (   Op = // ->
+            (   From0 cis_leq n(0) -> From1 cis (From0-n(1))*n(M1) + n(1)
+            ;   From1 cis From0*n(M1)
+            ),
+            (   To0 cis_lt n(0) -> To1 cis To0*n(M1)
+            ;   To1 cis (To0+n(1))*n(M1) - n(1)
+            )
+        ;   Op = div ->
+            From1 cis From0*n(M1),
+            To1 cis (To0+n(1))*n(M1)-sign(M)
         ),
-        (   To0 cis_lt n(0) ->
-            To cis To0*n(M)
-        ;   To cis (To0+n(1))*n(M) - n(1)
+        (   M < 0 -> domain_negate(from_to(From1,To1), D)
+        ;   D = from_to(From1,To1)
         ).
-domain_expand_more_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
+domain_expand_more_(split(S0, Left0, Right0), M, Op, split(S, Left, Right)) :-
         S is M*S0,
-        domain_expand_more_(Left0, M, Left),
-        domain_expand_more_(Right0, M, Right).
+        domain_expand_more_(Left0, M, Op, Left),
+        domain_expand_more_(Right0, M, Op, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
@@ -1522,20 +1533,25 @@ domain_contract_(split(_,Left0,Right0), M, D) :-
    {21,23} contracted by 4 is 5. It contracts "less".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contract_less(D0, M, D) :-
+domain_contract_less(D0, M, Op, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        domain_contract_less_(D1, M1, D).
+        domain_contract_less_(D1, M1, Op, D).
 
-domain_contract_less_(empty, _, empty).
-domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis From0 // n(M), To cis To0 // n(M).
-domain_contract_less_(split(_,Left0,Right0), M, D) :-
+domain_contract_less_(empty, _, _, empty).
+domain_contract_less_(from_to(From0, To0), M, Op, from_to(From,To)) :-
+        (   Op = div -> From cis From0 div n(M),
+            To cis To0 div n(M)
+        ;   Op = // -> From cis From0 // n(M),
+            To cis To0 // n(M)
+        ).
+
+domain_contract_less_(split(_,Left0,Right0), M, Op, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
-        domain_contract_less_(Left0, M, Left),
-        domain_contract_less_(Right0, M, Right),
+        domain_contract_less_(Left0, M, Op, Left),
+        domain_contract_less_(Right0, M, Op, Right),
         domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2474,7 +2490,7 @@ parse_clpfd(E, R,
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
 %             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
-             m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
+             m(A div B)        => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              % bitwise operations
@@ -4579,7 +4595,102 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % X div Y = Z
-run_propagator(pdiv(X,Y,Z), MState) :- kill(MState), Z #= (X-(X mod Y)) // Y.
+run_propagator(pdiv(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X div Y
+            ;   fd_get(Y, YD, YL, YU, YPs),
+                (   nonvar(Z) ->
+                    (   Z =:= 0 ->
+                        (   X =:= 0 -> NI = split(0, from_to(inf,n(-1)),
+                                                  from_to(n(1),sup))
+                        ;   NY_ is X+sign(X),
+                            (   X > 0 -> NI = from_to(n(NY_), sup)
+                            ;   NI = from_to(inf, n(NY_))
+                            )
+                        ),
+                        domains_intersection(YD, NI, NYD),
+                        fd_put(Y, NYD, YPs)
+                    ;   (   sign(X) =:= 1 ->
+                            NYL cis max(div(n(X)*n(Z), n(Z)*(n(Z)+n(1))) + n(1), YL),
+                            NYU cis min(div(n(X), n(Z)), YU)
+                        ;   NYL cis max(-(div(-n(X), n(Z))), YL),
+                            NYU cis min(-(div(-n(X)*n(Z), (n(Z)*(n(Z)+n(1))))) - n(1), YU)
+                        ),
+                        update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
+                    )
+                ;   fd_get(Z, ZD, ZL, ZU, ZPs),
+                    (   X >= 0, ( YL cis_gt n(0) ; YU cis_lt n(0) )->
+                        NZL cis max(div(n(X), YU), ZL),
+                        NZU cis min(div(n(X), YL), ZU)
+                    ;   X < 0, ( YL cis_gt n(0) ; YU cis_lt n(0) ) ->
+                        NZL cis max(div(n(X), YL), ZL),
+                        NZU cis min(div(n(X), YU), ZU)
+                    ;   % TODO: more stringent bounds, cover Y
+                        NZL cis max(-abs(n(X)), ZL),
+                        NZU cis min(abs(n(X)), ZU)
+                    ),
+                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU),
+                    (   X >= 0, NZL cis_gt n(0), fd_get(Y, YD1, YPs1) ->
+                        NYL cis div(n(X), (NZU + n(1))) + n(1),
+                        NYU cis div(n(X), NZL),
+                        domains_intersection(YD1, from_to(NYL, NYU), NYD1),
+                        fd_put(Y, NYD1, YPs1)
+                    ;   % TODO: more cases
+                        true
+                    )
+                )
+            )
+        ;   nonvar(Y) ->
+            Y =\= 0,
+            (   Y =:= 1 -> kill(MState), X = Z
+            ;   Y =:= -1 -> kill(MState), Z #= -X
+            ;   fd_get(X, XD, XL, XU, XPs),
+                (   nonvar(Z) ->
+                    kill(MState),
+                    (   Y > 0 ->
+                        NXL cis max(n(Z)*n(Y), XL),
+                        NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                    ;   NXL cis max((n(Z)+n(1))*n(Y)+n(1), XL),
+                        NXU cis min(n(Z)*n(Y), XU)
+                    ),
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
+                ;   fd_get(Z, ZD, ZPs),
+                    domain_contract_less(XD, Y, div, Contracted),
+                    domains_intersection(ZD, Contracted, NZD),
+                    fd_put(Z, NZD, ZPs),
+                    (   fd_get(X, XD2, XPs2) ->
+                        domain_expand_more(NZD, Y, div, Expanded),
+                        domains_intersection(XD2, Expanded, NXD2),
+                        fd_put(X, NXD2, XPs2)
+                    ;   true
+                    )
+                )
+            )
+        ;   nonvar(Z) ->
+            fd_get(X, XD, XL, XU, XPs),
+            fd_get(Y, _, YL, YU, _),
+            (   YL cis_geq n(0), XL cis_geq n(0) ->
+                NXL cis max(YL*n(Z), XL),
+                NXU cis min(YU*(n(Z)+n(1))-n(1), XU)
+            ;   %TODO: cover more cases
+                NXL = XL, NXU = XU
+            ),
+            update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
+        ;   (   X == Y -> kill(MState), Z = 1
+            ;   fd_get(X, _, XL, XU, _),
+                fd_get(Y, _, YL, _, _),
+                fd_get(Z, ZD, ZPs),
+                NZU cis max(abs(XL), XU),
+                NZL cis -NZU,
+                domains_intersection(ZD, from_to(NZL,NZU), NZD0),
+                (   XL cis_geq n(0), YL cis_geq n(0) ->
+                    domain_remove_smaller_than(NZD0, 0, NZD1)
+                ;   % TODO: cover more cases
+                    NZD1 = NZD0
+                ),
+                fd_put(Z, NZD1, ZPs)
+            )
+        ).
 
 % X rdiv Y = Z
 run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
@@ -4622,7 +4733,8 @@ run_propagator(ptzdiv(X,Y,Z), MState) :-
                         NYU cis n(X) // NZL,
                         domains_intersection(YD1, from_to(NYL, NYU), NYD1),
                         fd_put(Y, NYD1, YPs1)
-                    ;   true
+                    ;   % TODO: more cases
+                        true
                     )
                 )
             )
@@ -4644,11 +4756,11 @@ run_propagator(ptzdiv(X,Y,Z), MState) :-
                     ),
                     update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
                 ;   fd_get(Z, ZD, ZPs),
-                    domain_contract_less(XD, Y, Contracted),
+                    domain_contract_less(XD, Y, //, Contracted),
                     domains_intersection(ZD, Contracted, NZD),
                     fd_put(Z, NZD, ZPs),
                     (   fd_get(X, XD2, XPs2) ->
-                        domain_expand_more(NZD, Y, Expanded),
+                        domain_expand_more(NZD, Y, //, Expanded),
                         domains_intersection(XD2, Expanded, NXD2),
                         fd_put(X, NXD2, XPs2)
                     ;   true
@@ -5428,34 +5540,34 @@ min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
 
 min_factor(L1, U1, L2, U2, Min) :-
         (   L1 cis_geq n(0), L2 cis_gt n(0), finite(U2) ->
-            Min cis div(L1+U2-n(1),U2)
-        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis div(U1,U2)
+            Min cis (L1+U2-n(1))//U2
+        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis U1//U2
         ;   L1 cis_gt n(0), L2 cis_geq n(0) -> Min = n(1)
         ;   L1 cis_gt n(0) -> Min cis -U1
         ;   U1 cis_lt n(0), U2 cis_leq n(0) ->
-            (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
+            (   finite(L2) -> Min cis (U1+L2+n(1))//L2
             ;   Min = n(1)
             )
-        ;   U1 cis_lt n(0), L2 cis_geq n(0) -> Min cis div(L1,L2)
+        ;   U1 cis_lt n(0), L2 cis_geq n(0) -> Min cis L1//L2
         ;   U1 cis_lt n(0) -> Min = L1
         ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Min = inf
-        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ;   Min cis min(min(L1//L2,L1//U2),min(U1//L2,U1//U2))
         ).
 max_factor(L1, U1, L2, U2, Max) :-
-        (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis div(U1,L2)
+        (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis U1//L2
         ;   L1 cis_gt n(0), U2 cis_leq n(0) ->
-            (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
+            (   finite(L2) -> Max cis (L1-L2-n(1))//L2
             ;   Max = n(-1)
             )
         ;   L1 cis_gt n(0) -> Max = U1
-        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis div(L1,U2)
+        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis L1//U2
         ;   U1 cis_lt n(0), L2 cis_geq n(0) ->
-            (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
+            (   finite(U2) -> Max cis (U1-U2+n(1))//U2
             ;   Max = n(-1)
             )
         ;   U1 cis_lt n(0) -> Max cis -L1
         ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Max = sup
-        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
+        ;   Max cis max(max(L1//L2,L1//U2),max(U1//L2,U1//U2))
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
