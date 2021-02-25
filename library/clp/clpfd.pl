@@ -2498,8 +2498,8 @@ parse_clpfd(E, R,
              m(msb(A))         => [p(pfunction(msb, A, R))],
              m(lsb(A))         => [p(pfunction(lsb, A, R))],
              m(popcount(A))    => [p(pfunction(popcount, A, R))],
-             m(A<<B)           => [p(pfunction(<<, A, B, R))],
-             m(A>>B)           => [p(pfunction(>>, A, B, R))],
+             m(A<<B)           => [p(pshift(A, B, R, 1))],
+             m(A>>B)           => [p(pshift(A, B, R, -1))],
              m(A/\B)           => [p(pfunction(/\, A, B, R))],
              m(A\/B)           => [p(pfunction(\/, A, B, R))],
              m(A xor B)        => [p(pfunction(xor, A, B, R))],
@@ -3391,8 +3391,8 @@ parse_reified(E, R, D,
                m(msb(A))     => [function(D,msb,A,R)],
                m(lsb(A))     => [function(D,lsb,A,R)],
                m(popcount(A)) => [function(D,popcount,A,R)],
-               m(A<<B)       => [function(D,<<,A,B,R)],
-               m(A>>B)       => [function(D,>>,A,B,R)],
+               m(A<<B)       => [d(D), p(pshift(A,B,R,1)), a(A,B,R)],
+               m(A>>B)       => [d(D), p(pshift(A,B,R,-1)), a(A,B,R)],
                m(A/\B)       => [function(D,/\,A,B,R)],
                m(A\/B)       => [function(D,\/,A,B,R)],
                m(A xor B)    => [function(D,xor,A,B,R)],
@@ -5194,6 +5194,31 @@ run_propagator(pexp(X,Y,Z), MState) :-
             domain_remove_smaller_than(ZD, NZL, ZD1),
             fd_put(Z, ZD1, ZPs)
         ;   true
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Z = X << (Y*S)
+
+run_propagator(pshift(X,Y,Z,S), MState) :-
+        (   Y == 0 -> kill(MState), Z = X
+        ;   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Z is X << (Y*S)
+            ;   nonvar(Z) ->
+                kill(MState),
+                (   X =:= 0 -> Z =:= 0
+                ;   abs(Z) > abs(X) -> Z #= X * 2^(Y*S)
+                ;   X div (2^(-Y*S)) #= Z
+                )
+            ;   % TODO: handle these cases
+                true
+            )
+        ;   nonvar(Y) ->
+            kill(MState),
+            (   Y*S > 0 -> Z #= X * 2^(Y*S)
+            ;   X div (2^(-Y*S)) #= Z
+            )
+        ;   % TODO: handle these cases
+            true
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7347,6 +7372,8 @@ attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
 attribute_goal_(ptzdiv(X,Y,Z))         --> [?(X) // ?(Y) #= ?(Z)].
 attribute_goal_(pdiv(X,Y,Z))           --> [?(X) div ?(Y) #= ?(Z)].
 attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
+attribute_goal_(pshift(X,Y,Z,1))       --> [?(X) << ?(Y) #= ?(Z)].
+attribute_goal_(pshift(X,Y,Z,-1))      --> [?(X) >> ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
 attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].
