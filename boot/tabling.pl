@@ -124,7 +124,10 @@ wl_goal(WorkList, Goal, Skeleton) :-
 
 trie_goal(ATrie, Goal, Skeleton) :-
     '$tbl_table_status'(ATrie, _Status, M:Variant, Skeleton),
-    M:'$table_mode'(Goal0, Variant, _Moded),
+    (   M:'$table_mode'(Goal0, Variant, _Moded)
+    ->  true
+    ;   Goal0 = Variant                 % dynamic IDG nodes
+    ),
     unqualify_goal(M:Goal0, user, Goal).
 
 delay_goals(List, Goal) :-
@@ -2001,6 +2004,8 @@ reeval_node(ATrie) :-
                 fail
             ;   '$idg_mono_empty_queue'(SrcTrie, ATrie)
             )
+        ;   tdebug(monotonic, 'Skipped queued ~p, answers ~p',
+                   [Dep, Answers])
         ),
         fail
     ;   '$mono_reeval_done'(ATrie, Size)
