@@ -146,6 +146,7 @@ static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 static idg_mdep *new_mdep(term_t t ARG_LD);
 static void	free_mdep(idg_mdep *mdep);
 static void	mdep_empty_queue(idg_mdep *mdep);
+static void	mdep_empty_queues(idg_mdep *mdep);
 static int	mdep_unify_answers(term_t t, idg_mdep *mdep);
 static void	tt_abolish_table(trie *atrie);
 static void	tt_add_table(trie *atrie ARG_LD);
@@ -6265,7 +6266,7 @@ save_idg_edge_state(idg_edge_state *state)
 
 
 static foreign_t
-idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
+idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref, term_t answers,
 	     term_t status, control_t PL__ctx)
 { PRED_LD
   idg_edge_state sbuf;
@@ -6368,7 +6369,8 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t answers,
 	  return FALSE;
 
 	if ( answers )
-	{ if ( !mdep_unify_answers(answers, mdep) )
+	{ if ( !mdep_unify_answers(answers, mdep) ||
+	       !PL_unify_pointer(depref, mdep) )
 	    return FALSE;
 	}
       } else
@@ -6424,7 +6426,7 @@ out_fail:
 
 static
 PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, A2, A3, 0, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, A2, A3, 0, 0, 0, 0, PL__ctx);
 }
 
 /** '$idg_false_edge'(+ATrie, -DTrie, -Status)
@@ -6436,7 +6438,7 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 
 static
 PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, 0, 0, A3, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, 0, 0, 0, A3, PL__ctx);
 }
 
 /** '$idg_mono_affects_eager'(+SrcTrie, -DstTrie, -Dependency)
@@ -6445,7 +6447,7 @@ PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
 static
 PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, PL__ctx);
 }
 
 /** '$idg_mono_affects_lazy'(+DstTrie, -SrcTrie, -Dependency, -Answers)
@@ -6455,9 +6457,9 @@ PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
  */
 
 static
-PRED_IMPL("$idg_mono_affects_lazy", 4, idg_mono_affects_lazy,
+PRED_IMPL("$idg_mono_affects_lazy", 5, idg_mono_affects_lazy,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, A4, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, A4, A5, 0, PL__ctx);
 }
 
 
@@ -6532,7 +6534,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 		  "  Monotonic to incremental evaluation"));
 
 	if ( n->monotonic && !n->force_reeval )
-	{ mdep_empty_queue(v);
+	{ mdep_empty_queues(v);
 	  n->force_reeval = TRUE;
 	}
 	continue;
@@ -6543,7 +6545,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 	  state->incomplete = n->atrie;		/* return? */
 
 	if ( n->monotonic && !n->force_reeval && !(flags&IDG_CHANGED_MONO) )
-	{ mdep_empty_queue(v);
+	{ mdep_empty_queues(v);
 	  n->force_reeval = TRUE;
 	  idg_propagate_change(n, IDG_PROPAGATE_FORCE);
 	}
@@ -6818,20 +6820,26 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
   return PL_unify_nil(tail);
 }
 
+
 static void
 mdep_empty_queue(idg_mdep *mdep)
-{ while(mdep && mdep->magic == IDG_MDEP_MAGIC)
-  { if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
-    { word *base = baseBuffer(mdep->queue, word);
-      word *top  = topBuffer(mdep->queue, word);
+{ if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
+  { word *base = baseBuffer(mdep->queue, word);
+    word *top  = topBuffer(mdep->queue, word);
 
-      for(; base < top; base++)
-      { if ( isAtom(*base) )
-	  PL_unregister_atom(*base);
-      }
-
-      emptyBuffer(mdep->queue, 512);
+    for(; base < top; base++)
+    { if ( isAtom(*base) )
+	PL_unregister_atom(*base);
     }
+
+    emptyBuffer(mdep->queue, 512);
+  }
+}
+
+static void
+mdep_empty_queues(idg_mdep *mdep)
+{ while(mdep && mdep->magic == IDG_MDEP_MAGIC)
+  { mdep_empty_queue(mdep);
 
     mdep = mdep->next.dep;
   }
@@ -7231,21 +7239,12 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 }
 
 static
-PRED_IMPL("$idg_mono_empty_queue", 2, idg_mono_empty_queue, 0)
-{ PRED_LD
-  trie *src_trie, *dst_trie;
+PRED_IMPL("$idg_mono_empty_queue", 1, idg_mono_empty_queue, 0)
+{ idg_mdep *mdep;
 
-  if ( get_trie(A1, &src_trie) &&
-       get_trie(A2, &dst_trie) )
-  { idg_node *sn, *dn;
-
-    if ( (sn=src_trie->data.IDG) &&
-	 sn->affected &&
-	 (dn=dst_trie->data.IDG) )
-    { idg_mdep *mdep = lookupHTable(sn->affected, dn);
-
-      mdep_empty_queue(mdep);
-    }
+  if ( PL_get_pointer_ex(A1, (void**)&mdep ) &&
+       mdep->magic == IDG_MDEP_MAGIC )
+  { mdep_empty_queue(mdep);
 
     return TRUE;
   }
@@ -8476,14 +8475,14 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_add_monotonic_dep",    3, idg_add_monotonic_dep,    0)
   PRED_DEF("$idg_add_mono_dyn_dep",     3, idg_add_mono_dyn_dep,     0)
   PRED_DEF("$idg_mono_affects_eager",   3, idg_mono_affects_eager,NDET)
-  PRED_DEF("$idg_mono_affects_lazy",    4, idg_mono_affects_lazy, NDET)
+  PRED_DEF("$idg_mono_affects_lazy",    5, idg_mono_affects_lazy, NDET)
   PRED_DEF("$tbl_propagate_start",      1, tbl_propagate_start,      0)
   PRED_DEF("$tbl_propagate_end",        1, tbl_propagate_end,        0)
   PRED_DEF("$tbl_collect_mono_dep",     0, tbl_collect_mono_dep,     0)
   PRED_DEF("$mono_idg_changed",         2, mono_idg_changed,	     0)
   PRED_DEF("$mono_reeval_prepare",      2, mono_reeval_prepare,	     0)
   PRED_DEF("$mono_reeval_done",	        2, mono_reeval_done,	     0)
-  PRED_DEF("$idg_mono_empty_queue",     2, idg_mono_empty_queue,     0)
+  PRED_DEF("$idg_mono_empty_queue",     1, idg_mono_empty_queue,     0)
   PRED_DEF("$idg_mono_invalidate",      1, idg_mono_invalidate,	     0)
   PRED_DEF("$tbl_node_answer",          2, tbl_node_answer,	     0)
 EndPredDefs

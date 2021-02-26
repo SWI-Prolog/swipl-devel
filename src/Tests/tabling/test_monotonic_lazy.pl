@@ -338,7 +338,7 @@ incr_is_forced(Goal) :-
 
 queued_answers(To, From, Count) :-
     get_calls(To, DstTrie, _Ret),
-    '$idg_mono_affects_lazy'(DstTrie, SrcTrie, _Dep, Answers),
+    '$idg_mono_affects_lazy'(DstTrie, SrcTrie, _Dep, _DepRef, Answers),
     '$tbl_table_status'(SrcTrie, _Status, From0, _Skeleton),
     unqualify(To, From0, From),
     length(Answers, Count).
