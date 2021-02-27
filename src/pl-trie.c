@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1864,6 +1865,13 @@ clear_trie_state(trie_gen_state *state)
     freeForeignState(state, sizeof(*state));
 }
 
+foreign_t
+clear_trie_gen_state(void *ctx)
+{ trie_gen_state *state = ctx;
+
+  clear_trie_state(state);
+  return TRUE;
+}
 
 static void
 clear_descent_state(descent_state *dstate)

@@ -5299,6 +5299,9 @@ PRED_IMPL("$tbl_answer_c", 4, tbl_answer_c, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie *trie;
 
+  if ( CTX_CNTRL == FRG_CUTTED )
+    return clear_trie_gen_state(CTX_PTR);
+
   if ( get_trie(A1, &trie) )
   { Word kp;
     trie_node *root;
@@ -5348,6 +5351,9 @@ static
 PRED_IMPL("$tbl_answer_dl", 4, tbl_answer_dl, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie *trie;
+
+  if ( CTX_CNTRL == FRG_CUTTED )
+    return clear_trie_gen_state(CTX_PTR);
 
   if ( get_trie(A1, &trie) )
   { Word kp;
@@ -5419,6 +5425,9 @@ PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
 	  PL_FA_NONDETERMINISTIC)
 { PRED_LD
   trie *trie;
+
+  if ( CTX_CNTRL == FRG_CUTTED )
+    return clear_trie_gen_state(CTX_PTR);
 
   if ( get_trie(A1, &trie) )
   { Word kp;

@@ -193,6 +193,7 @@ COMMON(foreign_t) trie_gen_raw(
 		      term_t Data,
 		      int (*unify_data)(term_t, trie_node*, void* ARG_LD),
 		      void *ctx, control_t PL__ctx);
+COMMON(foreign_t) clear_trie_gen_state(void *ctx);
 COMMON(foreign_t) trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 			   term_t Data,
 			   int (*unify_data)(term_t, trie_node*, void* ARG_LD),
