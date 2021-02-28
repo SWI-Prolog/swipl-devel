@@ -47,6 +47,14 @@
     prolog:deprecated//1,	    % Deprecated features
     prolog:message_location//1,     % (File) location of error messages
     prolog:message_line_element/2.  % Extend printing
+:- '$hide'((
+    prolog:message//1,
+    prolog:error_message//1,
+    prolog:message_context//1,
+    prolog:deprecated//1,
+    prolog:message_location//1,
+    prolog:message_line_element/2)).
+
 :- discontiguous
     prolog_message/3.
 
@@ -1679,6 +1687,7 @@ default_theme(message(Level),         Attrs) :-
     prolog:message_prefix_hook/2.
 :- thread_local
     user:thread_message_hook/3.
+:- '$hide'((push_msg/1,pop_msg/0)).
 
 %!  print_message(+Kind, +Term)
 %
@@ -1711,7 +1720,8 @@ pop_msg :-
     (   nb_current('$inprint_message', [_|Messages]),
         Messages \== []
     ->  b_setval('$inprint_message', Messages)
-    ;   nb_delete('$inprint_message')
+    ;   nb_delete('$inprint_message'),              % delete history
+        b_setval('$inprint_message', [])
     ).
 
 print_message_guarded(Level, Term) :-
@@ -1776,7 +1786,7 @@ print_system_message(_, Kind, Lines) :-
     user:message_property/2.
 
 msg_property(Kind, Property) :-
-    user:message_property(Kind, Property),
+    notrace(user:message_property(Kind, Property)),
     !.
 msg_property(Kind, prefix(Prefix)) :-
     msg_prefix(Kind, Prefix),

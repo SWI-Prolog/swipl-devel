@@ -871,6 +871,7 @@ default_module(Me, Super) :-
 
 :- dynamic   user:exception/3.
 :- multifile user:exception/3.
+:- '$hide'(user:exception/3).
 
 %!  '$undefined_procedure'(+Module, +Name, +Arity, -Action) is det.
 %

@@ -146,6 +146,8 @@
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
 
+:- set_prolog_flag(generate_debug_info, false).
+
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
 :- op(700, xfx, cis_gt).
