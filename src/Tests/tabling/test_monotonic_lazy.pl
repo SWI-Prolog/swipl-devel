@@ -53,7 +53,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_5,
                 tabling_monotonic_lazy_6,
                 tabling_monotonic_lazy_7,
-                tabling_monotonic_lazy_8
+                tabling_monotonic_lazy_8,
+                tabling_monotonic_lazy_9
               ]).
 
 :- meta_predicate
@@ -301,6 +302,24 @@ test(indirect_lazy_retract) :-
 
 :- end_tests(tabling_monotonic_lazy_8).
 
+:- begin_tests(tabling_monotonic_lazy_9).
+
+:- dynamic d/1 as monotonic.
+:- table p/1 as (monotonic,lazy).
+
+p(c) :-
+    d(a),
+    d(b).
+
+test(capture_new_dependencies) :-
+    cleanup([d/1]),
+    expect(X, p(X), []),
+    assert(d(a)),
+    expect(X, p(X), []),                % evaluation must create dependency on d(b).
+    assert(d(b)),
+    expect(X, p(X), [c]).
+
+:- end_tests(tabling_monotonic_lazy_9).
 
 		 /*******************************
 		 *         TEST HELPERS		*

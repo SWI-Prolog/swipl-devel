@@ -1644,10 +1644,10 @@ mon_propagate(Action, Head, ClauseRef) :-
     !,
     setup_call_cleanup(
         '$tbl_propagate_start'(Old),
-        propagate_assert(Head),
+        propagate_assert(Head),                 % eager monotonic dependencies
         '$tbl_propagate_end'(Old)),
     forall(dyn_affected(Head, ATrie),
-           '$mono_idg_changed'(ATrie, ClauseRef)).
+           '$mono_idg_changed'(ATrie, ClauseRef)). % lazy monotonic dependencies
 mon_propagate(retract, Head, _) :-
     !,
     mon_invalidate_dependents(Head).
@@ -1984,6 +1984,13 @@ reeval_node(ATrie) :-
 reeval_node(ATrie) :-
     '$mono_reeval_prepare'(ATrie, Size),
     !,
+    setup_call_cleanup(
+        '$tbl_propagate_start'(Old),
+        reeval_monotonic_node(ATrie, Size),
+        '$tbl_propagate_end'(Old)).
+reeval_node(_).
+
+reeval_monotonic_node(ATrie, Size) :-
     tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
     (   '$idg_mono_affects_lazy'(ATrie, _0SrcTrie, Dep, DepRef, Answers),
         (   Dep = dependency(Head, Cont, Skel)
@@ -2010,7 +2017,7 @@ reeval_node(ATrie) :-
         fail
     ;   '$mono_reeval_done'(ATrie, Size)
     ).
-reeval_node(_).
+
 
 		 /*******************************
 		 *      EXPAND DIRECTIVES	*
