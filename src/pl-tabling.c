@@ -5630,6 +5630,8 @@ tt_abolish_table(trie *atrie)
 	    break;
 	  }
 	}
+        case TT_TABLE:
+	  break;
         default:
 	  assert(0);
       }
