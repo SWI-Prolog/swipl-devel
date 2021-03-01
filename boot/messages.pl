@@ -1477,6 +1477,7 @@ prolog_message(frame(Frame, choice, PC)) -->
 prolog_message(frame(_, cut_call, _)) --> !, [].
 prolog_message(frame(Goal, trace(Port))) -->
     !,
+    thread_context,
     [ ' T ' ],
     port(Port),
     goal(Goal).
