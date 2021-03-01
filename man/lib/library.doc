@@ -57,6 +57,7 @@ documented at all.
 \input{pairs}
 \input{persistency}
 \input{pio}
+\input{portraytext}
 \input{predicateoptions}
 \input{prologjiti}
 \input{prologpack}

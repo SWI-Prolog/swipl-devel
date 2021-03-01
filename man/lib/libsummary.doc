@@ -123,6 +123,9 @@
 \libsummary{persistency}
 \input{summaries.d/persistency.tex}
 
+\libsummary{portraytext}
+\input{summaries.d/portraytext.tex}
+
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
 
