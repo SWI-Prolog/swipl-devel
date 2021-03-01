@@ -46,24 +46,62 @@
 
 /** <module> Portray text
 
-A Prolog string is a list of character-codes: (small) integers, which
-results in output like this:
+SWI-Prolog has the special string data type. However, in Prolog, text
+may be represented more traditionally as a list of character-codes, i.e.
+(small) integers (in SWI-Prolog specifically, those are Unicode code points).
+This results in output like the following (here using the backquote notation
+which maps text to a list of codes):
 
-    ==
-    ?- writeln(`hello`).
-    [104, 101, 108, 108, 111]
-    ==
+```
+?- writeln(`hello`).
+[104, 101, 108, 108, 111]
+
+?- atom_codes("hello",X).
+X = [104,101,108,108,111].
+```
 
 Unless you know the Unicode tables by   heart, this is pretty unpleasant
-for debugging. Loading this library  makes   the  toplevel  and debugger
-print strings with at least 3 characters  as "text ...". Of course, this
-is an ambiguous operation because nobody can know whether [65,66] should
-be written as "AB" or a list: to  Prolog they are the same. Therefore it
-is imported that the user  is  aware   of  the  fact that this heuristic
-conversion  is  enabled.  This  is  why  this  library  must  be  loaded
-explicitly to enable this conversion.
+for debugging. Loading =|library(portray_text)|=  makes the toplevel and debugger
+consider certain lists of integers as text and print them as text. This
+is called ``portraying''. Of course, interpretation is imperfect
+as there is no way to tell in general whether [65,66] should written as
+=|`AB`|= or as =|[65,66]|=. Therefore it is important that the user be aware
+of the fact that this conversion is enabled. This is why this
+library must be loaded explicitly.
 
-@tbd    Allow setting the character-codes we try to convert
+To be able to copy the printed representation and paste it back,
+printed text is enclosed in _back quotes_ if current_prolog_flag/2 for the flag
+=|back_quotes|= is =|codes|= (the default), and enclosed in _double quotes_
+otherwise. Certain control characters are printed out in backslash-escaped
+form.
+
+The default heuristic only considers list of codes as text if the codes are all
+from the set of 7-bit ASCII without most of the control characters. A code
+is classified as text by text_code/1, which in turn calls portray_text:is_text_code/1.
+Define portray_text:is_text_code/1 to succeed on additional codes for more
+flexibility (by default, that predicate succeeds nowhere). For example:
+
+```
+?- maplist([C,R]>>(portray_text:text_code(C)->R=y;R=n),`Générateur`,Results).
+Results = [y,n,y,n,y,y,y,y,y,y].
+```
+
+Now make is_text_code/1 accept anything:
+
+```
+?- [user].
+|: portray_text:is_text_code(_).
+|: ^D% user://3 compiled 0.00 sec, 1 clauses
+true.
+```
+
+Then:
+
+```
+?- maplist([C,R]>>(portray_text:text_code(C)->R=y;R=n),`Générateur`,Results).
+Results = [y,y,y,y,y,y,y,y,y,y].
+```
+
 */
 
 :- dynamic
@@ -75,30 +113,59 @@ do_portray_text(true).
 portray_text_option(min_length, 3).
 portray_text_option(ellipsis,  30).
 
-%!  portray_text(+Boolean) is det.
+%!  portray_text(+OnOff:boolean) is det.
 %
-%   If =true=, write lists of character   codes as "..." to simplify
-%   debugging.
+%   Switch portraying on or off. If =true=, consider lists of integers as list
+%   of Unicode code points and print them as corresponding text inside
+%   quotes: =|`text`|= or =|"text"|=. Quoting depends on the value of
+%   current_prolog_flag/2 =|back_quotes|=.
+%   This predicate can also be used to read the current portraying behaviour.
+%   If OnOff is a term pull(X), then X is unified with the currently set
+%   OnOff boolean.
 
+portray_text(P) :-
+    nonvar(P),
+    P=pull(X),
+    !,
+    do_portray_text(X).
 portray_text(OnOff) :-
     must_be(boolean, OnOff),
     retractall(do_portray_text(_)),
     assert(do_portray_text(OnOff)).
 
-%!  set_portray_text(+Name, +Value) is det.
+%!  set_portray_text(+Name, ?Value) is det.
 %
-%   Set options for writing lists as strings.  Options are
+%   Set options for portraying.  Options are:
 %
-%       * min_length
-%       Only consider lists that are at least this long
-%       * ellipsis
-%       Write strings that are longer as "start...end"
+%       * =min_length= Only consider for conversion lists of integers that
+%         have a length of at least Value. Default is 3.
+%       * =ellipsis= When converting a list that is longer than Value,
+%         elide the output at the start using ellipsis, leaving only Value
+%         number of non-elided characters: =|`...end`|=
+%
+%   This predicate can also be used to read the settings. If
+%   Value is a term pull(X), then X is unified with the current Value
+%   for the given Name.
+%
+%   @see '$portray_text_enabled'/1
 
+set_portray_text(min_length, P) :-
+    nonvar(P),
+    P=pull(X),
+    !,
+    portray_text_option(min_length, X).
 set_portray_text(min_length, N) :-
+    nonvar(N),
     must_be(nonneg, N),
     retractall(portray_text_option(min_length, _)),
     assert(portray_text_option(min_length, N)).
+set_portray_text(ellipsis, P) :-
+    nonvar(P),
+    P=pull(X),
+    !,
+    portray_text_option(ellipsis, X).
 set_portray_text(ellipsis, N) :-
+    nonvar(N),
     must_be(nonneg, N),
     retractall(portray_text_option(ellipsis, _)),
     assert(portray_text_option(ellipsis, N)).
@@ -178,13 +245,19 @@ is_code(Term) :-
     text_code(Term),
     !.
 
+% Idea: Maybe accept anything and hex-escape anything non-printable?
+%       In particular, I could imaging 0 and ESC appearing in text of interest.
+%       Currently we really accept only 7-bit ASCII so even latin-1 text
+%       precludes recognition.
+% Bug?: emit_code/2 can emit backspace but backspace (8) is not accepted below
+
 text_code(Code) :-
     is_text_code(Code),
     !.
-text_code(9).
-text_code(10).
-text_code(13).                         % ok ...
-text_code(C) :-
+text_code(9).      % horizontal tab, \t
+text_code(10).     % newline \n
+text_code(13).     % carriage return \r
+text_code(C) :-    % space to tilde (127 is DEL)
     between(32, 126, C).
 
 var_or_numbered(Var) :-
@@ -195,11 +268,12 @@ var_or_numbered('$VAR'(_)).
 %!  is_text_code(+Code:nonneg) is semidet.
 %
 %   Multifile hook that can be used to extend the set of character codes
-%   that is recognised as likely  text.   Default  are non-control ASCII
-%   characters (9,10,13,32-126)
+%   that is recognised as likely text. By default, is_text_code/1 fails
+%   everywhere and internally, only non-control ASCII characters (32-126)
+%   and the the control codes (9,10,13) are accepted.
 %
 %   @tbd we might be able  to  use   the  current  locale to include the
-%   appropriate code page.
+%   appropriate code page. (Does that really make sense?)
 
 
 %!  '$portray_text_enabled'(-Val)
@@ -209,3 +283,5 @@ var_or_numbered('$VAR'(_)).
 
 '$portray_text_enabled'(Val) :-
     do_portray_text(Val).
+
+
