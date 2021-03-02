@@ -54,7 +54,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_6,
                 tabling_monotonic_lazy_7,
                 tabling_monotonic_lazy_8,
-                tabling_monotonic_lazy_9
+                tabling_monotonic_lazy_9,
+                tabling_monotonic_lazy_10
               ]).
 
 :- meta_predicate
@@ -320,6 +321,33 @@ test(capture_new_dependencies) :-
     expect(X, p(X), [c]).
 
 :- end_tests(tabling_monotonic_lazy_9).
+
+:- begin_tests(tabling_monotonic_lazy_10).
+
+% We can only  only  update  a  lazy   monotonic  table  after  all  its
+% dependencies are updated. As we currently work bottom-up breath-first,
+% this does not always has to be the   case.  Therefore we keep nodes we
+% cannot yet reevaluate in the falsepaths.
+%
+% TBD: Eventually we may opt for a better planning of the reevaluation.
+
+:- dynamic (d1/1,d2/1,d3/1) as monotonic.
+:- table (p/1,a/1,b/1,c/1) as (monotonic,lazy).
+
+p(X) :- ( a(X) ; b(X); d3(X) ).
+b(X) :- c(X).
+c(X) :- d1(X).
+a(X) :- d2(X).
+
+t :-
+    cleanup([d1/1,d2/1,d3/1]),
+    expect(X, p(X), []),
+    assert(d1(1)),
+    assert(d2(2)),
+    assert(d3(3)),
+    expect(X, p(X), [1,2,3]).
+
+:- end_tests(tabling_monotonic_lazy_10).
 
 		 /*******************************
 		 *         TEST HELPERS		*

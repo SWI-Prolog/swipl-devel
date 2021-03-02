@@ -7112,6 +7112,31 @@ mono_reeval_prep_node(trie_node *n, void *ctx)
   return NULL;
 }
 
+/* TBD: Should we instead maintain this incrementally,
+   similar to falsecount?
+*/
+
+static int
+has_invalid_dependencies(idg_node *idg)
+{ if ( idg->dependent && idg->dependent->size > 0 )
+  { TableEnum en = newTableEnum(idg->dependent);
+    void *k, *v;
+
+    while(advanceTableEnum(en, &k, &v))
+    { idg_node *dep = k;
+
+      if ( dep->falsecount > 0 )
+      { freeTableEnum(en);
+	return TRUE;
+      }
+    }
+    freeTableEnum(en);
+  }
+
+  return FALSE;
+}
+
+
 static
 PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
 { PRED_LD
@@ -7120,7 +7145,8 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
-    if ( idg->falsecount && idg->monotonic && idg->lazy )
+    if ( idg && idg->falsecount && idg->monotonic && idg->lazy &&
+	 !has_invalid_dependencies(idg) )
     { if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 

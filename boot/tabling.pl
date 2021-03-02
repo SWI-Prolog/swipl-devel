@@ -1901,21 +1901,21 @@ reeval_paths(BottomUp, ATrie) :-
     reeval_paths(BottomUp1, ATrie).
 reeval_paths(_, _).
 
-reeval_heads(_, ATrie, _) :-
+reeval_heads(_, ATrie, _) :-                 % target is valid again
     \+ is_invalid(ATrie),
     !.
 reeval_heads([], _, []).
-reeval_heads([[H]|B], ATrie, BT) :-
-    !,
+reeval_heads([[H]|B], ATrie, BT) :-          % Last one of a falsepath
     reeval_node(H),
-    reeval_heads(B, ATrie, BT).
-reeval_heads([[]|B], ATrie, BT) :-
     !,
     reeval_heads(B, ATrie, BT).
 reeval_heads([[H|T]|B], ATrie, [T|BT]) :-
-    !,
     reeval_node(H),
+    !,
     reeval_heads(B, ATrie, BT).
+reeval_heads([FP|B], ATrie, [FP|BT]) :-
+    reeval_heads(B, ATrie, BT).
+
 
 %!  false_path(+Atrie, -Path) is nondet.
 %
@@ -1956,7 +1956,7 @@ is_invalid(ATrie) :-
     '$idg_falsecount'(ATrie, FalseCount),
     FalseCount > 0.
 
-%!  reeval_node(+ATrie)
+%!  reeval_node(+ATrie) is semidet.
 %
 %   Re-evaluate the invalid answer trie ATrie.  Initially this created a
 %   nested tabling environment, but this is dropped:
@@ -1966,6 +1966,9 @@ is_invalid(ATrie) :-
 %       outer SCC.  This doesn't work well with a sub-environment.
 %     - We do not need one.  If this environment is not merged into the
 %       outer one it will complete before we continue.
+%
+%   Fails if the node is not ready for   evaluation. This is the case if
+%   it is valid or it is a lazy table that has invalid dependencies.
 
 reeval_node(ATrie) :-
     '$tbl_reeval_prepare'(ATrie, M:Variant),
@@ -1988,7 +1991,6 @@ reeval_node(ATrie) :-
         '$tbl_propagate_start'(Old),
         reeval_monotonic_node(ATrie, Size),
         '$tbl_propagate_end'(Old)).
-reeval_node(_).
 
 reeval_monotonic_node(ATrie, Size) :-
     tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
