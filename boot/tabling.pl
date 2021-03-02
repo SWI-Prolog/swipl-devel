@@ -1871,19 +1871,19 @@ do_reeval(ATrie, Goal, Return) :-
 %!  clean_paths(+PathsIn, -Paths)
 %
 %   Clean the reevaluation paths. Get rid of   the head term for ranking
-%   and remove duplicate paths.
+%   and remove duplicate paths. Note that  a   Path  is a list of tries,
+%   ground terms.
 
 clean_paths([], []).
 clean_paths([[_|Path]|T0], [Path|T]) :-
     clean_paths(T0, Path, T).
 
 clean_paths([], _, []).
-clean_paths([[_|Path]|T0], CPath, T) :-
-    Path =@= CPath,
+clean_paths([[_|CPath]|T0], CPath, T) :-
     !,
     clean_paths(T0, CPath, T).
-clean_paths([[_|Path]|T0], CPath, [Path|T]) :-
-    clean_paths(T0, CPath, T).
+clean_paths([[_|Path]|T0], _, [Path|T]) :-
+    clean_paths(T0, Path, T).
 
 %!  reeval_paths(+Paths, +Atrie)
 %
