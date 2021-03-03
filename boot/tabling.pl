@@ -1991,6 +1991,8 @@ reeval_node(ATrie) :-
         '$tbl_propagate_start'(Old),
         reeval_monotonic_node(ATrie, Size),
         '$tbl_propagate_end'(Old)).
+reeval_node(ATrie) :-
+    \+ is_invalid(ATrie).
 
 reeval_monotonic_node(ATrie, Size) :-
     tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
