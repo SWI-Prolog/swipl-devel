@@ -1898,10 +1898,11 @@ reeval_paths(BottomUp, ATrie) :-
     is_invalid(ATrie),
     !,
     reeval_heads(BottomUp, ATrie, BottomUp1),
-    reeval_paths(BottomUp1, ATrie).
+    '$list_to_set'(BottomUp1, BottomUp2),
+    reeval_paths(BottomUp2, ATrie).
 reeval_paths(_, _).
 
-reeval_heads(_, ATrie, _) :-                 % target is valid again
+reeval_heads(_, ATrie, []) :-                % target is valid again
     \+ is_invalid(ATrie),
     !.
 reeval_heads([], _, []).
