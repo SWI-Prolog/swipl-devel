@@ -148,6 +148,7 @@ static void	free_mdep(idg_mdep *mdep);
 static void	mdep_empty_queue(idg_mdep *mdep);
 static void	mdep_empty_queues(idg_mdep *mdep);
 static int	mdep_unify_answers(term_t t, idg_mdep *mdep);
+static void	prune_deleted_mdeps(idg_node *idg);
 static void	tt_abolish_table(trie *atrie);
 static void	tt_add_table(trie *atrie ARG_LD);
 static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
@@ -5678,6 +5679,25 @@ transaction_commit_tables(ARG1_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Rollback a new monotonic anwser. If the   table is eager this is simple:
+just remove the answer. If it is lazy, the answer may be propagated into
+the queues of affected tables, so we need to prune these.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+tt_rollback_answer(trie *atrie, trie_node *answer)
+{ idg_node *idg;
+
+  if ( (idg=atrie->data.IDG) && idg->lazy )
+  { answer->value = 0;
+    prune_deleted_mdeps(idg);
+  }
+
+  trie_delete(atrie, answer, TRUE);
+}
+
+
 int
 transaction_rollback_tables(ARG1_LD)
 { tbl_trail *tt;
@@ -5707,7 +5727,7 @@ transaction_rollback_tables(ARG1_LD)
 	{ tbl_trail_answer *ta = (tbl_trail_answer*)tsz;
 
 	  if ( ta->atrie )
-	    trie_delete(ta->atrie, ta->answer, TRUE);
+	    tt_rollback_answer(ta->atrie, ta->answer);
 	  break;
 	}
         default:
@@ -7173,7 +7193,7 @@ prune_deleted_mdeps(idg_node *idg)
     { idg_node *dn = k;
       idg_mdep *mdep = v;
 
-      if ( dn->force_reeval )		/* Invalidated; no queue */
+      if ( !dn->lazy || dn->force_reeval )	/* Invalidated; no queue */
 	continue;
 
       while( mdep && mdep->magic == IDG_MDEP_MAGIC )
