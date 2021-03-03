@@ -7311,8 +7311,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 				 atrie->value_count - vc));
       }
 
-      if ( !invalid_deps )
-	idg->falsecount = 0;
+      idg->falsecount = invalid_deps;
     }
 
     return rc;
