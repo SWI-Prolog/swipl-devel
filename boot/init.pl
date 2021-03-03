@@ -1509,20 +1509,36 @@ user:prolog_file_type(dylib,    executable) :-
 %!  '$list_to_set'(+List, -Set) is det.
 %
 %   Turn list into a set, keeping   the  left-most copy of duplicate
-%   elements.  Note  that  library(lists)  provides  an  O(N*log(N))
-%   version, but sets of file name extensions should be short enough
-%   for this not to matter.
+%   elements.  Copied from library(lists).
 
 '$list_to_set'(List, Set) :-
-    '$list_to_set'(List, [], Set).
+    '$number_list'(List, 1, Numbered),
+    sort(1, @=<, Numbered, ONum),
+    '$remove_dup_keys'(ONum, NumSet),
+    sort(2, @=<, NumSet, ONumSet),
+    '$pairs_keys'(ONumSet, Set).
 
-'$list_to_set'([], _, []).
-'$list_to_set'([H|T], Seen, R) :-
-    memberchk(H, Seen),
+'$number_list'([], _, []).
+'$number_list'([H|T0], N, [H-N|T]) :-
+    N1 is N+1,
+    '$number_list'(T0, N1, T).
+
+'$remove_dup_keys'([], []).
+'$remove_dup_keys'([H|T0], [H|T]) :-
+    H = V-_,
+    '$remove_same_key'(T0, V, T1),
+    '$remove_dup_keys'(T1, T).
+
+'$remove_same_key'([V1-_|T0], V, T) :-
+    V1 == V,
     !,
-    '$list_to_set'(T, R).
-'$list_to_set'([H|T], Seen, [H|R]) :-
-    '$list_to_set'(T, [H|Seen], R).
+    '$remove_same_key'(T0, V, T).
+'$remove_same_key'(L, _, L).
+
+'$pairs_keys'([], []).
+'$pairs_keys'([K-_|T0], [K|T]) :-
+    '$pairs_keys'(T0, T).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
