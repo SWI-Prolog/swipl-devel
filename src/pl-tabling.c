@@ -7132,13 +7132,14 @@ mono_reeval_prep_node(trie_node *n, void *ctx)
   return NULL;
 }
 
-/* TBD: Should we instead maintain this incrementally,
-   similar to falsecount?
-*/
 
 static int
-has_invalid_dependencies(idg_node *idg)
-{ if ( idg->dependent && idg->dependent->size > 0 )
+invalid_dependencies(term_t deps, idg_node *idg, size_t *count ARG_LD)
+{ term_t head = 0;
+  term_t tail = 0;
+  size_t cnt = 0;
+
+  if ( idg->dependent && idg->dependent->size > 0 )
   { TableEnum en = newTableEnum(idg->dependent);
     void *k, *v;
 
@@ -7146,14 +7147,26 @@ has_invalid_dependencies(idg_node *idg)
     { idg_node *dep = k;
 
       if ( dep->falsecount > 0 )
-      { freeTableEnum(en);
-	return TRUE;
+      { if ( head == 0 )
+	{ tail = PL_copy_term_ref(deps);
+	  head = PL_new_term_ref();
+	}
+
+	if ( !PL_unify_list(tail, head, tail) ||
+	     !PL_unify_atom(head, trie_symbol(dep->atrie)) )
+	{ freeTableEnum(en);
+	  return FALSE;
+	}
+
+	cnt++;
       }
     }
     freeTableEnum(en);
   }
 
-  return FALSE;
+  *count = cnt;
+
+  return PL_unify_nil(tail ? tail : deps);
 }
 
 
@@ -7165,8 +7178,7 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *idg = atrie->data.IDG;
 
-    if ( idg && idg->falsecount && idg->monotonic && idg->lazy &&
-	 !has_invalid_dependencies(idg) )
+    if ( idg && idg->falsecount && idg->monotonic && idg->lazy )
     { if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
@@ -7246,8 +7258,16 @@ mono_reeval_done_node(trie_node *n, void *ctx)
   return NULL;
 }
 
+/** '$mono_reeval_done'(+ATrie, +SizeAtStart, -InvalidDependencies)
+ *
+ * We are done processing queues answers  towards ATrie. This only means
+ * we are done if there are no  more invalid dependencies. We return the
+ * invalid dependencies of this node   such that reeval_monotonic_node/2
+ * can restart the work on the dependencies if these exist.
+ */
+
 static
-PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
+PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 { PRED_LD
   trie *atrie;
   int vc;
@@ -7258,7 +7278,12 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
     int rc = TRUE;
 
     if ( (idg=atrie->data.IDG) )
-    { if ( atrie->value_count == vc )
+    { size_t invalid_deps;
+
+      if ( !invalid_dependencies(A3, idg, &invalid_deps PASS_LD) )
+	return FALSE;
+
+      if ( atrie->value_count == vc )
       { trie_node *n = NULL;
 
 	DEBUG(MSG_TABLING_MONOTONIC,
@@ -7269,7 +7294,7 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 	  int queue;
 
 	  n = map_trie_node(&atrie->root, mono_reeval_done_node, &gc);
-	  queue = n && n->value != 0;
+	  queue = (n && n->value != 0);
 	  if ( gc )
 	  { prune_deleted_mdeps(idg);
 	    prune_trie(atrie, &atrie->root, NULL, NULL);
@@ -7278,7 +7303,7 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 	    rc = mono_idg_changed(atrie, (word)n);
 	}
 
-	if ( !n && rc )
+	if ( !n && rc && !invalid_deps )
 	  rc = !idg_propagate_change(idg, 0);
       } else
       { DEBUG(MSG_TABLING_MONOTONIC,
@@ -7286,7 +7311,8 @@ PRED_IMPL("$mono_reeval_done", 2, mono_reeval_done, 0)
 				 atrie->value_count - vc));
       }
 
-      idg->falsecount = 0;
+      if ( !invalid_deps )
+	idg->falsecount = 0;
     }
 
     return rc;
@@ -8538,7 +8564,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_collect_mono_dep",     0, tbl_collect_mono_dep,     0)
   PRED_DEF("$mono_idg_changed",         2, mono_idg_changed,	     0)
   PRED_DEF("$mono_reeval_prepare",      2, mono_reeval_prepare,	     0)
-  PRED_DEF("$mono_reeval_done",	        2, mono_reeval_done,	     0)
+  PRED_DEF("$mono_reeval_done",	        3, mono_reeval_done,	     0)
   PRED_DEF("$idg_mono_empty_queue",     1, idg_mono_empty_queue,     0)
   PRED_DEF("$idg_mono_invalidate",      1, idg_mono_invalidate,	     0)
   PRED_DEF("$tbl_node_answer",          2, tbl_node_answer,	     0)

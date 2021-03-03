@@ -1898,6 +1898,7 @@ reeval_paths(BottomUp, ATrie) :-
     is_invalid(ATrie),
     !,
     reeval_heads(BottomUp, ATrie, BottomUp1),
+    tdebug(assertion(BottomUp \== BottomUp1)),
     '$list_to_set'(BottomUp1, BottomUp2),
     reeval_paths(BottomUp2, ATrie).
 reeval_paths(_, _).
@@ -2020,8 +2021,18 @@ reeval_monotonic_node(ATrie, Size) :-
                    [Dep, Answers])
         ),
         fail
-    ;   '$mono_reeval_done'(ATrie, Size)
+    ;   '$mono_reeval_done'(ATrie, Size, Deps),
+        (   Deps == []
+        ->  true
+        ;   reeval_nodes(Deps),
+            reeval_node(ATrie)
+        )
     ).
+
+reeval_nodes([]).
+reeval_nodes([H|T]) :-
+    reeval_node(H),
+    reeval_nodes(T).
 
 
 		 /*******************************
