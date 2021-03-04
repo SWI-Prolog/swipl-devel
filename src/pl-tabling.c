@@ -145,7 +145,7 @@ static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 static idg_mdep *new_mdep(term_t t ARG_LD);
 static void	free_mdep(idg_mdep *mdep);
-static void	mdep_empty_queue(idg_mdep *mdep);
+static void	mdep_empty_queue(idg_mdep *mdep, size_t del);
 static void	mdep_empty_queues(idg_mdep *mdep);
 static int	mdep_unify_answers(term_t t, idg_mdep *mdep);
 static void	prune_deleted_mdeps(idg_node *idg);
@@ -2074,7 +2074,7 @@ print_answer(const char *msg, trie_node *answer)
   term_t t = PL_new_term_ref();
 
   unify_trie_term(at->data.variant, NULL, t PASS_LD);
-  Sdprintf("%s: variant ", msg);
+  Sdprintf("[Thread %d] %s: variant ", PL_thread_self(), msg);
   PL_write_term(Serror, t, 999, 0);
   PL_put_variable(t);
   unify_trie_term(answer, NULL, t PASS_LD);
@@ -6853,24 +6853,38 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
 
 
 static void
-mdep_empty_queue(idg_mdep *mdep)
+mdep_empty_queue(idg_mdep *mdep, size_t del)
 { if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
   { word *base = baseBuffer(mdep->queue, word);
-    word *top  = topBuffer(mdep->queue, word);
+    word *top;
+    size_t left;
+
+    if ( del != (size_t)-1 )
+      top = base+del;
+    else
+      top = topBuffer(mdep->queue, word);
 
     for(; base < top; base++)
     { if ( isAtom(*base) )
 	PL_unregister_atom(*base);
     }
 
-    emptyBuffer(mdep->queue, 512);
+    left = topBuffer(mdep->queue, word) - top;
+
+    if ( left == 0 )
+    { emptyBuffer(mdep->queue, 512);
+    } else
+    { memmove(baseBuffer(mdep->queue, word), top,
+	      left*sizeof(*base));
+      seekBuffer(mdep->queue, left, word);
+    }
   }
 }
 
 static void
 mdep_empty_queues(idg_mdep *mdep)
 { while(mdep && mdep->magic == IDG_MDEP_MAGIC)
-  { mdep_empty_queue(mdep);
+  { mdep_empty_queue(mdep, (size_t)-1);
 
     mdep = mdep->next.dep;
   }
@@ -6980,6 +6994,7 @@ mono_idg_changed(trie *atrie, word answer)
       while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
       { if ( mdep->lazy )
 	{ nonempty += mdep_queue_answer(mdep, answer);
+	  dn->lazy_queued = TRUE;
 	  DEBUG(MSG_TABLING_MONOTONIC,
 		print_answer_table(dn->atrie,
 				   "queued answer (nonempty=%d)", nonempty));
@@ -7041,6 +7056,7 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 	  return FALSE;
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
+
 	mono_idg_changed(atrie, (word)node);
 	if ( (def=atrie->data.predicate) &&
 	     def->events &&
@@ -7166,7 +7182,14 @@ invalid_dependencies(term_t deps, idg_node *idg, size_t *count ARG_LD)
 
   *count = cnt;
 
-  return PL_unify_nil(tail ? tail : deps);
+  if ( cnt == 0 )
+  { if ( idg->lazy_queued )
+      return PL_unify_atom(deps, ATOM_false);
+    else
+      return PL_unify_nil(deps);
+  } else
+  { return PL_unify_nil(tail);
+  }
 }
 
 
@@ -7179,7 +7202,8 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   { idg_node *idg = atrie->data.IDG;
 
     if ( idg && idg->falsecount && idg->monotonic && idg->lazy )
-    { if ( true(atrie, TRIE_ISMAP) )
+    { idg->lazy_queued = FALSE;			/* trap that new answers are queued */
+      if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
       return PL_unify_integer(A2, atrie->value_count);
@@ -7311,7 +7335,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 				 atrie->value_count - vc));
       }
 
-      idg->falsecount = invalid_deps;
+      idg->falsecount = invalid_deps + idg->lazy_queued;
     }
 
     return rc;
@@ -7321,12 +7345,15 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 }
 
 static
-PRED_IMPL("$idg_mono_empty_queue", 1, idg_mono_empty_queue, 0)
-{ idg_mdep *mdep;
+PRED_IMPL("$idg_mono_empty_queue", 2, idg_mono_empty_queue, 0)
+{ PRED_LD
+  idg_mdep *mdep;
+  size_t del;
 
   if ( PL_get_pointer_ex(A1, (void**)&mdep ) &&
-       mdep->magic == IDG_MDEP_MAGIC )
-  { mdep_empty_queue(mdep);
+       mdep->magic == IDG_MDEP_MAGIC &&
+       PL_get_size_ex(A2, &del) )
+  { mdep_empty_queue(mdep, del);
 
     return TRUE;
   }
@@ -8564,7 +8591,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$mono_idg_changed",         2, mono_idg_changed,	     0)
   PRED_DEF("$mono_reeval_prepare",      2, mono_reeval_prepare,	     0)
   PRED_DEF("$mono_reeval_done",	        3, mono_reeval_done,	     0)
-  PRED_DEF("$idg_mono_empty_queue",     1, idg_mono_empty_queue,     0)
+  PRED_DEF("$idg_mono_empty_queue",     2, idg_mono_empty_queue,     0)
   PRED_DEF("$idg_mono_invalidate",      1, idg_mono_invalidate,	     0)
   PRED_DEF("$tbl_node_answer",          2, tbl_node_answer,	     0)
 EndPredDefs

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -201,6 +202,7 @@ typedef struct idg_node
   unsigned	aborted : 1;		/* re-evaluation was aborted */
   unsigned	monotonic : 1;		/* Associated predicate is monotonic */
   unsigned	lazy : 1;		/* Lazy monotonic node */
+  unsigned	lazy_queued : 1;	/* There are answers queued */
   unsigned	force_reeval : 1;	/* Forced reevaluation for monotonic */
   int		falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS

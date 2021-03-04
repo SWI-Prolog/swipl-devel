@@ -1999,6 +1999,7 @@ reeval_node(ATrie) :-
 reeval_monotonic_node(ATrie, Size) :-
     tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
     (   '$idg_mono_affects_lazy'(ATrie, _0SrcTrie, Dep, DepRef, Answers),
+        length(Answers, Count),
         (   Dep = dependency(Head, Cont, Skel)
         ->  (   '$member'(ClauseRef, Answers),
                 '$clause'(Head, _Body, ClauseRef, _Bindings),
@@ -2006,7 +2007,7 @@ reeval_monotonic_node(ATrie, Size) :-
                        [Head, _0SrcTrie, ATrie]),
                 pdelim(Cont, Skel, ATrie),
                 fail
-            ;   '$idg_mono_empty_queue'(DepRef)
+            ;   '$idg_mono_empty_queue'(DepRef, Count)
             )
         ;   Dep = dependency(SrcSkel, true, Cont, Skel)
         ->  (   '$member'(Node, Answers),
@@ -2015,16 +2016,18 @@ reeval_monotonic_node(ATrie, Size) :-
                        [Skel, _0SrcTrie, ATrie]),
                 pdelim(Cont, Skel, ATrie),
                 fail
-            ;   '$idg_mono_empty_queue'(DepRef)
+            ;   '$idg_mono_empty_queue'(DepRef, Count)
             )
         ;   tdebug(monotonic, 'Skipped queued ~p, answers ~p',
                    [Dep, Answers])
         ),
         fail
     ;   '$mono_reeval_done'(ATrie, Size, Deps),
-        (   Deps == []
+        (   Deps == []                % all done
         ->  true
-        ;   reeval_nodes(Deps),
+        ;   Deps == false             % re-evaluation queued new answers
+        ->  reeval_node(ATrie)
+        ;   reeval_nodes(Deps),       % not all dependents are valid
             reeval_node(ATrie)
         )
     ).
