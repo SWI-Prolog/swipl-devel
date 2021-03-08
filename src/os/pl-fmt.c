@@ -165,7 +165,7 @@ oututf8(format_state *state, const char *s, size_t len)
   while(s<e)
   { int chr;
 
-    s = utf8_get_char(s, &chr);
+    PL_utf8_code_point(&s, e, &chr);
     if ( !outchr(state, chr) )
       return FALSE;
   }
@@ -915,7 +915,7 @@ emit_rubber(format_state *state)
     }
 
     if ( s < e )
-    { s = utf8_get_char(s, &chr);
+    { PL_utf8_code_point(&s, e, &chr);
       if ( Sputcode(chr, state->out) < 0 )
 	return FALSE;
     } else

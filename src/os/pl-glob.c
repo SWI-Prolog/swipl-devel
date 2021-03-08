@@ -122,9 +122,9 @@ typedef struct
 { tmp_buffer	pattern;
 } compiled_pattern;
 
-static char *compile_pattern(compiled_pattern *pattern, char *s,
-			     int curl, int flags);
-static int match_pattern(matchcode *pattern, char *s, int flags);
+static const char *compile_pattern(compiled_pattern *pattern, const char *s,
+				   int curl, int flags);
+static int match_pattern(matchcode *pattern, const char *s, int flags);
 
 #define Output(c)  addBuffer(&Out->pattern, c, matchcode)
 #define Here()	   entriesBuffer(&Out->pattern, matchcode)
@@ -153,23 +153,23 @@ compilePattern(char *p, compiled_pattern *cbuf, int flags)
 }
 
 static int
-utf8_peek(char *p, int n)
+utf8_peek(const char *p, int n)
 { int c;
 
   while(n-- > 0)
     p = utf8_skip_char(p);
 
-  utf8_get_char(p, &c);
+  PL_utf8_code_point(&p, NULL, &c);
 
   return c;
 }
 
-static char *
-compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
+static const char *
+compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 { int c;
 
   for(;;)
-  { p = utf8_get_char(p, &c);
+  { PL_utf8_code_point(&p, NULL, &c);
 
     switch(c)
     { case EOS:
@@ -178,7 +178,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
       case '\\':
       { int c2;
 
-	p = utf8_get_char(p, &c2);
+	PL_utf8_code_point(&p, NULL, &c2);
 	Output(c2 == EOS ? c : c2);
 	if ( c2 == EOS )
 	  break;
@@ -198,10 +198,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	Output(0);
 
 	for(;;)
-	{ int cn;
-
-	  p = utf8_get_char(p, &c);
-	  utf8_get_char(p, &cn);
+	{ PL_utf8_code_point(&p, NULL, &c);
 
 	  switch( c )
 	  { case EOS:
@@ -209,7 +206,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	    case '\\':
 	    { int c2;
 
-	      p = utf8_get_char(p, &c2);
+	      PL_utf8_code_point(&p, NULL, &c2);
 	      if ( c2 == EOS )
 		return PL_syntax_error("Unmatched '['", NULL),NULL;
 	      Output(c2);
@@ -303,7 +300,7 @@ matchPattern(char *s, compiled_pattern *cbuf, int flags)
 }
 
 static bool
-match_pattern(matchcode *p, char *s, int flags)
+match_pattern(matchcode *p, const char *s, int flags)
 { matchcode c;
 
   for(;;)
@@ -320,7 +317,7 @@ match_pattern(matchcode *p, char *s, int flags)
 	int sz = *p++;
 	matchcode *anyend = &p[sz];
 
-	s = utf8_get_char(s, &c2);
+	PL_utf8_code_point(&s, NULL, &c2);
 	if ( (flags&M_IGNCASE) )
 	  c2 = makeLowerW(c2);
 
@@ -346,7 +343,7 @@ match_pattern(matchcode *p, char *s, int flags)
 	do
 	{ if ( match_pattern(p, s, flags) )
 	    return TRUE;
-	  s = utf8_get_char(s, &c2);
+	  PL_utf8_code_point(&s, NULL, &c2);
 	} while(c2);
 
 	return FALSE;
@@ -362,7 +359,7 @@ match_pattern(matchcode *p, char *s, int flags)
       default:						/* character */
       { int c2;
 
-	s = utf8_get_char(s, &c2);
+	PL_utf8_code_point(&s, NULL, &c2);
 	if ( (flags&M_IGNCASE) )
 	  c2 = makeLowerW(c2);
 

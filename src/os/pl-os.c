@@ -1398,7 +1398,8 @@ static char *
 utf8_path_lwr(char *s, size_t len)
 { char buf[MAXPATHLEN];
   char *tmp = buf;
-  char *o=s, *i;
+  char *o=s;
+  const char *i;
 
   if ( len > sizeof(buf) )
   { if ( !(tmp = malloc(len)) )
@@ -1421,7 +1422,7 @@ utf8_path_lwr(char *s, size_t len)
   while( *i )
   { int c;
 
-    i = utf8_get_char(i, &c);
+    PL_utf8_code_point(&i, NULL, &c);
     c = towlower((wint_t)c);
     if ( o >= s + MAXPATHLEN-6 )
     { char ls[10];

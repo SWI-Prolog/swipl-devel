@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2074,27 +2075,31 @@ Svprintf(const char *fm, va_list args)
 { return Svfprintf(Soutput, fm, args);
 }
 
-
-#define NEXTCHR(s, c)				\
-	switch (enc)				\
-	{ case ENC_ANSI:			\
-	  case ENC_ISO_LATIN_1:			\
-	    c = *(s)++; c &= 0xff;		\
-	    break;				\
-	  case ENC_UTF8:			\
-	    (s) = utf8_get_char((s), &(c));	\
-	    break;				\
-	  case ENC_WCHAR:			\
-	  { wchar_t *_w = (wchar_t*)(s);	\
-	    c = *_w++;				\
-	    (s) = (char*)_w;			\
-	    break;				\
-	  }					\
-	  default:				\
-	    c = 0;				\
-	    assert(0);				\
-	    break;				\
-	}
+static int
+next_chr(const char **s, IOENC enc)
+{ switch(enc)
+  { case ENC_ANSI:
+    case ENC_ISO_LATIN_1:
+    { unsigned char c = (unsigned char)**s;
+      ++(*s);
+      return c;
+    }
+    case ENC_UTF8:
+    { int c;
+      PL_utf8_code_point(s, NULL, &(c));
+      return c;
+    }
+    case ENC_WCHAR:
+    { const wchar_t *w = (const wchar_t*)*s;
+      wint_t c = *w++;
+      *s = (const char*)w;
+      return c;
+    }
+    default:
+      assert(0);
+      return -1;
+  }
+}
 
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
@@ -2343,8 +2348,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  if ( align == A_LEFT )
 	  { int w = 0;
 	    while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	      w++;
 	    }
@@ -2384,8 +2388,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      }
 	    }
 	    while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	    }
 	  }
@@ -2395,8 +2398,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      OUTCHR(s, *fs++);
 	  } else
 	  { while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	    }
 	  }

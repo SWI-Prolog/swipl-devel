@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -624,7 +625,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
     for(s = name; *s; )
     { int chr;
 
-      s = utf8_get_char(s, &chr);
+      PL_utf8_code_point(&s, NULL, &chr);
       addBuffer(b, (wchar_t)chr, wchar_t);
     }
     addBuffer(b, (wchar_t)0, wchar_t);

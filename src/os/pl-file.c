@@ -2804,7 +2804,7 @@ read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
 	for(us=buf,i=0; i<count; i++)
 	{ int c;
 
-	  us = utf8_get_char(us, &c);
+	  PL_utf8_code_point(&us, es, &c);
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
 	  if ( s->position )

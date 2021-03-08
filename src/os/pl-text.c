@@ -548,14 +548,14 @@ unify_text(term_t term, term_t tail, PL_chars_t *text, int type ARG_LD)
               while (s < e) {
                 int chr;
 
-                s = utf8_get_char(s, &chr);
+		PL_utf8_code_point(&s, e, &chr);
                 p = EXTEND_SEQ_CODES(p, chr);
               }
             } else {
               while (s < e) {
                 int chr;
 
-                s = utf8_get_char(s, &chr);
+		PL_utf8_code_point(&s, e, &chr);
                 p = EXTEND_SEQ_CHARS(p, chr);
               }
             }
@@ -1073,7 +1073,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  size_t len = s - text->text.t;
 
 	  while(s<e)
-	  { s = utf8_get_char(s, &chr);
+	  { PL_utf8_code_point(&s, e, &chr);
 	    if ( chr > 0xff )		/* requires wide characters */
 	      wide = TRUE;
 	    len++;
@@ -1086,7 +1086,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  { pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
 
 	    for(t=to; s<e; )
-	    { s = utf8_get_char(s, &chr);
+	    { PL_utf8_code_point(&s, e, &chr);
 	      *t++ = chr;
 	    }
 	    *t = EOS;
@@ -1100,7 +1100,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  { char *t, *to = PL_malloc(len+1);
 
 	    for(t=to; s<e;)
-	    { s = utf8_get_char(s, &chr);
+	    { PL_utf8_code_point(&s, e, &chr);
 	      *t++ = chr;
 	    }
 	    *t = EOS;

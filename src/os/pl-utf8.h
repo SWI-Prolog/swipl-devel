@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -65,6 +66,7 @@
 		      : _PL__utf8_put_char(out, (chr)))
 
 extern char *_PL__utf8_get_char(const char *in, int *chr);
+extern int   _PL__utf8_code_point(const char **i, const char *e, int *cp);
 extern char *_PL__utf8_put_char(char *out, int chr);
 extern char *_PL__utf8_skip_char(const char *out);
 
@@ -85,6 +87,18 @@ extern unicode_type_t _PL__utf8_type(const char *in0, size_t len);
 		 /*******************************
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
+
+static inline int
+PL_utf8_code_point(const char **i, const char *e, int *cp)
+{ unsigned char c = (unsigned char)**i;
+
+  if ( c < 0x80 )
+  { ++(*i);
+    *cp = c;
+    return 1;
+  } else
+    return _PL__utf8_code_point(i, e, cp);
+}
 
 static inline char *
 utf8_skip_char(const char *in)
