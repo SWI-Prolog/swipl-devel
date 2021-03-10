@@ -5228,7 +5228,7 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
 	{ term_t g = pushWordAsTermRef(a);
 	  LocalFrame ot = lTop;
 	  lTop += 100;
-	  pl_writeln(g);
+	  PL_write_term(Serror, g, 1200, PL_WRT_NEWLINE);
 	  popTermRef();
 	  lTop = ot;
 	});
