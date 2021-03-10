@@ -218,8 +218,10 @@ expand_bodies(Terms, Pos0, Out, Pos) :-
     expand_terms(expand_body(MList), Terms, Pos0, Out, Pos),
     remove_attributes(Out, '$var_info').
 
-expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :-
+expand_body(MList, Clause, Pos0, ExpandedClause, Pos) :-
+    clause_head_body(Clause, Head0, Neck, Body),
     !,
+    clause_head_body(ExpandedClause, Head, Neck, ExpandedBody),
     term_variables(Head0, HVars),
     mark_vars_non_fresh(HVars),
     f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
@@ -236,6 +238,10 @@ expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
     !,
     f1_pos(Pos0, BPos0, Pos, BPos),
     expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+
+clause_head_body((Head :- Body), Head, :-, Body).
+clause_head_body((Head => Body), Head, =>, Body).
+clause_head_body(?=>(Head, Body), Head, ?=>, Body).
 
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
     compound(Head0),
