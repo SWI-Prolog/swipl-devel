@@ -55,7 +55,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_7,
                 tabling_monotonic_lazy_8,
                 tabling_monotonic_lazy_9,
-                tabling_monotonic_lazy_10
+                tabling_monotonic_lazy_10,
+                tabling_monotonic_lazy_11
               ]).
 
 :- meta_predicate
@@ -339,7 +340,7 @@ b(X) :- c(X).
 c(X) :- d1(X).
 a(X) :- d2(X).
 
-t :-
+test(false_deps) :-
     cleanup([d1/1,d2/1,d3/1]),
     expect(X, p(X), []),
     assert(d1(1)),
@@ -348,6 +349,27 @@ t :-
     expect(X, p(X), [1,2,3]).
 
 :- end_tests(tabling_monotonic_lazy_10).
+
+:- begin_tests(tabling_monotonic_lazy_11).
+
+:- dynamic d/1 as monotonic.
+:- table p/1 as (monotonic, lazy).
+
+p(X) :- d(X).
+
+test(rollback) :-
+    cleanup([d/1]),
+    expect(X, p(X), []),
+    \+ transaction(
+           ( assert(d(a)),
+             expect(X, p(X), [a]),
+             fail
+           )),
+    expect(X, p(X), []).
+
+:- end_tests(tabling_monotonic_lazy_11).
+
+
 
 		 /*******************************
 		 *         TEST HELPERS		*

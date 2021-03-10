@@ -5690,8 +5690,11 @@ tt_rollback_answer(trie *atrie, trie_node *answer)
 { idg_node *idg;
 
   if ( (idg=atrie->data.IDG) && idg->lazy )
-  { answer->value = 0;
+  { word v = answer->value;
+
+    answer->value = 0;
     prune_deleted_mdeps(idg);
+    answer->value = v;
   }
 
   trie_delete(atrie, answer, TRUE);
