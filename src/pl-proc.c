@@ -3066,9 +3066,9 @@ PRED_IMPL("retract", 1, retract,
 	    ctx = alloc_retract_context(ctx);
 
 	  DEBUG(0,
-		assert(GLOBALLY_VISIBLE_CLAUSE(
+		assert(visibleClause(
 			   ctx->chp.cref->value.clause,
-			   global_generation())));
+			   generationFrame(environment_frame))));
 	  protectCRef(ctx->chp.cref);
 
 	  PL_close_foreign_frame(fid);
