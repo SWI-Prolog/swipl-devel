@@ -1296,8 +1296,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	initBuffer(&buf);
 	init_rlabels(&lstate);
 	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
-	clause->references = 0;
-	clause->line_no    = getUInt(fd);
+	clause->references   = 0;
+	clause->tr_erased_no = 0;
+	clause->line_no	     = getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
