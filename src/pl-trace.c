@@ -2103,6 +2103,52 @@ PRED_IMPL("prolog_current_choice", 1, prolog_current_choice, 0)
 }
 
 
+static QueryFrame
+clear_frame_vars(LocalFrame target)
+{ GET_LD
+  LocalFrame fr = environment_frame;
+  Choice ch = LD->choicepoints;
+  Code PC = NULL;
+
+  for(;;)
+  { while(fr && fr >= target)
+    { if ( fr == target )
+      { DEBUG(2, Sdprintf("Cleaned frame for %s from PC=%zd\n",
+			  predicateName(fr->predicate),
+			  fr->clause && PC ? PC-fr->clause->value.clause->codes
+					   : -1));
+	clearUninitialisedVarsFrame(fr, PC);
+	return NULL;
+      }
+
+      PC = fr->programPointer;
+      if ( fr->parent )
+      { fr = fr->parent;
+      } else
+      { QueryFrame qf =  queryOfFrame(fr);
+
+	if ( qf->parent )
+	{ fr = qf->saved_environment;
+	  PC = NULL;
+	  ch = qf->saved_bfr;
+	}
+      }
+    }
+
+    if ( ch )
+    { ch = ch->parent;
+      if ( ch->parent )
+      { fr = ch->frame;
+	PC = ch->type == CHP_JUMP ? ch->value.PC : NULL;
+	continue;
+      }
+    }
+    DEBUG(0, Sdprintf("FAILED to find frame (%p for %s) to clear!?\n",
+		      target, predicateName(target->predicate)));
+  }
+}
+
+
 static int
 prolog_frame_attribute(term_t frame, term_t what, term_t value)
 { GET_LD
@@ -2177,13 +2223,11 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
   } else if (key == ATOM_parent)
   { LocalFrame parent;
 
-    if ( fr->parent )
-      clearUninitialisedVarsFrame(fr->parent, fr->programPointer);
-
     if ( (parent = parentFrame(fr)) )
+    { clear_frame_vars(parent);
       PL_put_frame(result, parent);
-    else
-      fail;
+    } else
+      return FALSE;
   } else if (key == ATOM_top)
   { PL_put_atom(result, fr->parent ? ATOM_false : ATOM_true);
   } else if (key == ATOM_context_module)
