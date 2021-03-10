@@ -589,7 +589,7 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
 
   DEBUG(CHK_SECURE,
 	assert(!cref || !chp->cref ||
-	       chp->cref->value.clause->generation.erased > generation));
+	       visibleClause(chp->cref->value.clause, generation)));
 
   return cref;
 }
