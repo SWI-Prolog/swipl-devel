@@ -2513,6 +2513,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 #endif
   if ( environment_frame )
   { setNextFrameFlags(top, environment_frame);
+    clear(top, FR_INRESET);		/* shift/1 can't pass callbacks */
   } else
   { top->flags	     = FR_MAGIC;
     top->level	     = 0;
