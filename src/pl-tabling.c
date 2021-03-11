@@ -3815,7 +3815,12 @@ update_subsuming_answers(worklist *wl, trie *atrie, trie_node *root, term_t skel
       else
 	prune_answers_worklist(wl);
     } else				/* monotonic tabling */
-    { prune_trie(atrie, root, NULL, NULL);
+    { idg_node *idg;
+
+      if ( (idg=atrie->data.IDG) && idg->lazy )
+	prune_deleted_mdeps(idg);
+
+      prune_trie(atrie, root, NULL, NULL);
     }
   }
 
