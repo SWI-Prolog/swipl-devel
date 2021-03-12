@@ -202,6 +202,11 @@ first. The last byte has its 0x80 mask set.
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
 
+#define CLAUSE_UNIT_CLAUSE 0x01
+#define CLAUSE_SSU_COMMIT  0x02
+#define CLAUSE_SSU_CHOICE  0x04
+
+
 static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
 
@@ -1253,6 +1258,22 @@ resolve_rlabel(vm_rlabel_state *state, unsigned int id, Code base, Clause clause
 }
 
 
+static void
+loadClauseFlags(wic_state *state, Clause cl, int skip)
+{ unsigned int flags = getUInt(state->wicFd);
+
+  if ( !skip )
+  { unsigned int lflags = 0;
+
+    if ( (flags&CLAUSE_UNIT_CLAUSE) ) lflags |= UNIT_CLAUSE;
+    if ( (flags&CLAUSE_SSU_COMMIT) )  lflags |= SSU_COMMIT_CLAUSE;
+    if ( (flags&CLAUSE_SSU_CHOICE) )  lflags |= SSU_CHOICE_CLAUSE;
+
+    cl->flags = lflags;
+  }
+}
+
+
 static bool
 loadPredicate(wic_state *state, int skip ARG_LD)
 { IOSTREAM *fd = state->wicFd;
@@ -1317,11 +1338,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  }
 	}
 
-	clearFlags(clause);
 	clause->prolog_vars = (unsigned short) getUInt(fd);
 	clause->variables   = (unsigned short) getUInt(fd);
-	if ( getUInt(fd) == 0 )		/* 0: fact */
-	  set(clause, UNIT_CLAUSE);
+	loadClauseFlags(state, clause, skip);
 	clause->predicate = def;
 
 #define addCode(c) addBuffer(&buf, (c), code)
@@ -2528,6 +2547,17 @@ put_mpz_bits(IOSTREAM *fd, mpz_t mpz, size_t size)
 #endif
 
 
+static unsigned int
+clauseFlags(const Clause clause)
+{ unsigned int flags = 0;
+
+  if ( true(clause, UNIT_CLAUSE) )       flags |= CLAUSE_UNIT_CLAUSE;
+  if ( true(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
+  if ( true(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
+
+  return flags;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 saveWicClause()  saves  a  clause  to  the  .qlf  file.   For  predicate
 references of I_CALL and I_DEPART, we  cannot store the predicate itself
@@ -2559,7 +2589,7 @@ saveWicClause(wic_state *state, Clause clause)
 		   PASS_LD);
   putUInt(clause->prolog_vars, fd);
   putUInt(clause->variables, fd);
-  putUInt(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
+  putUInt(clauseFlags(clause), fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
