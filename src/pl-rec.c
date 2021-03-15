@@ -2306,6 +2306,52 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Rewrite `p ?=> g1, g2, !, body` to `p, g1, g2 => body`.
+
+TBD: Also use this to move rule/2,3 to C?
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+fixup_ssu(term_t in, term_t out ARG_LD)
+{ term_t head  = PL_new_term_ref();
+  term_t body  = PL_new_term_ref();
+  term_t guard = PL_new_term_ref();
+
+  _PL_get_arg(1, in, head);
+  _PL_get_arg(2, in, body);
+
+  while ( PL_is_functor(body, FUNCTOR_comma2) )
+  { term_t g = PL_new_term_ref();
+    atom_t a;
+
+    if ( !g )
+      return FALSE;
+
+    _PL_get_arg(1, body, g);
+    _PL_get_arg(2, body, body);
+
+    if ( PL_get_atom(g, &a) && a == ATOM_cut )
+    { if ( !PL_put_term(guard, --g) )
+	return FALSE;
+      while(--g > guard)
+      { if ( !PL_cons_functor(guard, FUNCTOR_comma2, g, guard) ||
+	     !PL_cons_functor(head, FUNCTOR_comma2, head, guard) )
+	  return FALSE;
+      }
+
+      return PL_unify_term(out,
+			   PL_FUNCTOR, FUNCTOR_ssu_commit2,
+			     PL_TERM, head,
+			     PL_TERM, body);
+    }
+  }
+
+  return PL_unify(in, out);
+}
+
+
+
 /** instance(+Ref, -Term)
 */
 
@@ -2338,6 +2384,11 @@ PRED_IMPL("instance", 2, instance, 0)
 			     PL_FUNCTOR, FUNCTOR_prove2,
 			       PL_TERM, head,
 			       PL_ATOM, ATOM_true) );
+    } else if ( true(clause, SSU_CHOICE_CLAUSE) )
+    { term_t tmp = PL_new_term_ref();
+
+      return ( decompile(clause, tmp, 0) &&
+	       fixup_ssu(tmp, term PASS_LD) );
     } else
     { return decompile(clause, term, 0);
     }
