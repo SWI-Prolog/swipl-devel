@@ -219,12 +219,20 @@ expand_bodies(Terms, Pos0, Out, Pos) :-
     remove_attributes(Out, '$var_info').
 
 expand_body(MList, Clause0, Pos0, Clause, Pos) :-
-    clause_head_body(Clause0, Head0, Neck, Body0),
+    clause_head_body(Clause0, Left0, Neck, Body0),
     !,
-    clause_head_body(Clause, Head, Neck, Body),
-    term_variables(Head0, HVars),
-    mark_vars_non_fresh(HVars),
-    f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
+    clause_head_body(Clause, Left, Neck, Body),
+    f2_pos(Pos0, LPos0, BPos0, Pos, LPos, BPos),
+    (   head_guard(Left0, Neck, Head0, Guard0)
+    ->  f2_pos(LPos0, HPos, GPos0, LPos, HPos, GPos),
+        mark_head_variables(Head0),
+        expand_goal(Guard0, GPos0, Guard, GPos, MList, Clause0),
+        Left = (Head,Guard)
+    ;   LPos = LPos0,
+        Head0 = Left0,
+        Left = Head,
+        mark_head_variables(Head0)
+    ),
     expand_goal(Body0, BPos0, Body1, BPos, MList, Clause0),
     expand_head_functions(Head0, Head, Body1, Body).
 expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
@@ -235,6 +243,18 @@ expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
 clause_head_body((Head :- Body), Head, :-, Body).
 clause_head_body((Head => Body), Head, =>, Body).
 clause_head_body(?=>(Head, Body), Head, ?=>, Body).
+
+head_guard(Left, Neck, Head, Guard) :-
+    nonvar(Left),
+    Left = (Head,Guard),
+    (   Neck == (=>)
+    ->  true
+    ;   Neck == (?=>)
+    ).
+
+mark_head_variables(Head) :-
+    term_variables(Head, HVars),
+    mark_vars_non_fresh(HVars).
 
 expand_head_functions(Head0, Head, Body0, Body) :-
     compound(Head0),
