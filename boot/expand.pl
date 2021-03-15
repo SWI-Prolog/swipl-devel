@@ -218,15 +218,15 @@ expand_bodies(Terms, Pos0, Out, Pos) :-
     expand_terms(expand_body(MList), Terms, Pos0, Out, Pos),
     remove_attributes(Out, '$var_info').
 
-expand_body(MList, Clause, Pos0, ExpandedClause, Pos) :-
-    clause_head_body(Clause, Head0, Neck, Body),
+expand_body(MList, Clause0, Pos0, Clause, Pos) :-
+    clause_head_body(Clause0, Head0, Neck, Body0),
     !,
-    clause_head_body(ExpandedClause, Head, Neck, ExpandedBody),
+    clause_head_body(Clause, Head, Neck, Body),
     term_variables(Head0, HVars),
     mark_vars_non_fresh(HVars),
     f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
-    expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
-    expand_head_functions(Head0, Head, ExpandedBody0, ExpandedBody).
+    expand_goal(Body0, BPos0, Body1, BPos, MList, Clause0),
+    expand_head_functions(Head0, Head, Body1, Body).
 expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
     !,
     f1_pos(Pos0, BPos0, Pos, BPos),
