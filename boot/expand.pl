@@ -226,14 +226,7 @@ expand_body(MList, Clause, Pos0, ExpandedClause, Pos) :-
     mark_vars_non_fresh(HVars),
     f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
     expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
-    (   compound(Head0),
-        '$current_source_module'(M),
-        replace_functions(Head0, Eval, Head, M),
-        Eval \== true
-    ->  ExpandedBody = (Eval,ExpandedBody0)
-    ;   Head = Head0,
-        ExpandedBody = ExpandedBody0
-    ).
+    expand_head_functions(Head0, Head, ExpandedBody0, ExpandedBody).
 expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
     !,
     f1_pos(Pos0, BPos0, Pos, BPos),
@@ -242,6 +235,15 @@ expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
 clause_head_body((Head :- Body), Head, :-, Body).
 clause_head_body((Head => Body), Head, =>, Body).
 clause_head_body(?=>(Head, Body), Head, ?=>, Body).
+
+expand_head_functions(Head0, Head, Body0, Body) :-
+    compound(Head0),
+    '$current_source_module'(M),
+    replace_functions(Head0, Eval, Head, M),
+    Eval \== true,
+    !,
+    Body = (Eval,Body0).
+expand_head_functions(Head, Head, Body, Body).
 
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
     compound(Head0),
