@@ -3662,7 +3662,10 @@ load_files(Module:Files, Options) :-
     nonvar(Pre),
     Pre = (Head,Cond),
     !,
-    '$store_clause'(?=>(Head,(Cond,!,Body)), _Layout, File, SrcLoc).
+    (   '$is_true'(Cond), current_prolog_flag(optimise, true)
+    ->  '$store_clause'((Head=>Body), _Layout, File, SrcLoc)
+    ;   '$store_clause'(?=>(Head,(Cond,!,Body)), _Layout, File, SrcLoc)
+    ).
 '$store_clause'(Clause, _Layout, File, SrcLoc) :-
     '$valid_clause'(Clause),
     !,
@@ -3671,6 +3674,10 @@ load_files(Module:Files, Options) :-
     ;   '$record_clause'(Clause, File, SrcLoc, Ref),
         '$qlf_assert_clause'(Ref, development)
     ).
+
+'$is_true'(true)  => true.
+'$is_true'((A,B)) => '$is_true'(A), '$is_true'(B).
+'$is_true'(_)     => fail.
 
 '$valid_clause'(_) :-
     current_prolog_flag(sandboxed_load, false),
