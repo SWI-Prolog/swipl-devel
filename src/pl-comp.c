@@ -1724,8 +1724,7 @@ Not that this is also the case for predicates that have previous clauses
 that have an I_CONTEXT because we need to reset the context.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  if ( (body && *body != ATOM_true) ||
-       (flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) )
+  if ( body && *body != ATOM_true )
   { size_t bi;
 
     if ( head )
@@ -1781,6 +1780,9 @@ that have an I_CONTEXT because we need to reset the context.
     if ( OpCode(&ci, bi) == encode(I_CUT) )
     { set(&clause, COMMIT_CLAUSE);
     }
+  } else if ( (flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) )
+  { Output_0(&ci, (flags&SSU_COMMIT_CLAUSE) ? I_SSU_COMMIT : I_SSU_CHOICE);
+    Output_0(&ci, I_EXIT);
   } else
   { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */
     Output_0(&ci, I_EXITFACT);
@@ -5072,6 +5074,8 @@ decompile(Clause clause, term_t term, term_t bindings)
     _PL_get_arg(2, body, body);
   }
 
+  if ( fetchop(PC) == I_EXIT )
+    return PL_unify_atom(body, ATOM_true);
 
   for(;;)
   { fid_t fid;
