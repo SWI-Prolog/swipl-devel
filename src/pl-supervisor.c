@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2019, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,7 @@
 #include "pl-comp.h"
 #include "pl-inline.h"
 #include "pl-wrap.h"
+#include "pl-tabling.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
@@ -284,7 +286,7 @@ listSupervisor(Definition def)
 static Code
 dynamicSupervisor(Definition def)
 { if ( true(def, P_DYNAMIC) )
-  { if ( true(def, P_INCREMENTAL) )
+  { if ( def->tabling && true(def->tabling, TP_INCREMENTAL) )
       return SUPERVISOR(incr_dynamic);
     else
       return SUPERVISOR(dynamic);

@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -42,6 +43,7 @@
 #include "pl-dbref.h"
 #include "pl-event.h"
 #include "pl-inline.h"
+#include "pl-tabling.h"
 #include <limits.h>
 #ifdef HAVE_DLADDR
 #include <dlfcn.h>
@@ -3923,7 +3925,7 @@ assert_term(term_t term, Module module, ClauseRef where,
   }
   if ( flags && !isDefinedProcedure(proc) )
   { if ( (flags&PL_CREATE_INCREMENTAL) )
-      setAttrDefinition(proc->definition, P_INCREMENTAL, TRUE);
+      tbl_set_incremental_predicate(proc->definition, TRUE);
     if ( (flags&PL_CREATE_THREAD_LOCAL) )
       setAttrDefinition(proc->definition, P_THREAD_LOCAL, TRUE);
   }

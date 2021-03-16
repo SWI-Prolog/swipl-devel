@@ -5973,8 +5973,7 @@ idg_init_variant(trie *atrie, Definition def, term_t variant ARG_LD)
 	return FALSE;
     }
 
-    if ( true(def, P_INCREMENTAL) ||
-	 (def->tabling && true(def->tabling, TP_MONOTONIC)) )
+    if ( (def->tabling && true(def->tabling, TP_MONOTONIC|TP_INCREMENTAL)) )
     { idg_node *n = idg_new(atrie);
 
       if ( def->tabling )
@@ -7831,6 +7830,7 @@ tbl_is_predicate_attribute(atom_t key)
 	   key == ATOM_answer_abstract ||
 	   key == ATOM_max_answers ||
 	   key == ATOM_monotonic ||
+	   key == ATOM_incremental ||
 	   key == ATOM_tshared ||
 	   key == ATOM_opaque ||
 	   key == ATOM_lazy ||
@@ -7868,6 +7868,8 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
 
     if ( att == ATOM_monotonic )
     { return PL_unify_integer(value, !!true(p, TP_MONOTONIC));
+    } else if ( att == ATOM_incremental )
+    { return PL_unify_integer(value, !!true(p, TP_INCREMENTAL));
     } else if ( att == ATOM_tshared )
     { return PL_unify_integer(value, !!true(p, TP_SHARED));
     } else if ( att == ATOM_opaque )
@@ -7914,17 +7916,41 @@ get_size_or_inf(term_t t, size_t *vp ARG_LD)
 }
 
 
+void
+tbl_set_incremental_predicate(Definition def, int val)
+{ table_props *p = get_predicate_table_props(def);
+  int now = !!true(p, TP_INCREMENTAL);
+
+  if ( !!val != now )
+  { if ( val )
+      set(p, TP_INCREMENTAL);
+    else
+      clear(p, TP_INCREMENTAL);
+
+    freeCodesDefinition(def, TRUE);
+  }
+}
+
+
 static int
-set_bool_attr(table_props *props, unsigned int flag, term_t value)
+set_bool_attr(Definition def, unsigned int flag, term_t value)
 { int v;
 
   if ( PL_get_bool_ex(value, &v) )
-  { if ( v )
-      set(props, flag);
-    else
-      clear(props, flag);
+  { if ( flag == TP_INCREMENTAL )
+    { tbl_set_incremental_predicate(def, v);
 
-    return TRUE;
+      return TRUE;
+    } else
+    { table_props *props = get_predicate_table_props(def);
+
+      if ( v )
+	set(props, flag);
+      else
+	clear(props, flag);
+
+      return TRUE;
+    }
   }
 
   return FALSE;
@@ -7952,20 +7978,22 @@ get_predicate_table_props(Definition def)
 int
 tbl_set_predicate_attribute(Definition def, atom_t att, term_t value)
 { GET_LD
-  table_props *p = get_predicate_table_props(def);
 
   if ( att == ATOM_monotonic )
-  { return set_bool_attr(p, TP_MONOTONIC, value);
+  { return set_bool_attr(def, TP_MONOTONIC, value);
+  } else if ( att == ATOM_incremental )
+  { return set_bool_attr(def, TP_INCREMENTAL, value);
   } else if ( att == ATOM_tshared )
-  { return set_bool_attr(p, TP_SHARED, value);
+  { return set_bool_attr(def, TP_SHARED, value);
   } else if ( att == ATOM_opaque )
-  { return set_bool_attr(p, TP_OPAQUE, value);
+  { return set_bool_attr(def, TP_OPAQUE, value);
   } else if ( att == ATOM_lazy )
-  { return set_bool_attr(p, TP_LAZY, value);
+  { return set_bool_attr(def, TP_LAZY, value);
   } else if ( att == ATOM_tabled )
-  { return set_bool_attr(p, TP_TABLED, value);
+  { return set_bool_attr(def, TP_TABLED, value);
   } else
-  { size_t v;
+  { table_props *p = get_predicate_table_props(def);
+    size_t v;
 
     if ( !get_size_or_inf(value, &v PASS_LD) )
       return FALSE;

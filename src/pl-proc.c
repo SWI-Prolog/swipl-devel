@@ -3311,7 +3311,6 @@ static const patt_mask patt_masks[] =
   { ATOM_locked,	   P_LOCKED },
   { ATOM_system,	   P_LOCKED },		/* compatibility */
   { ATOM_spy,		   SPY_ME },
-  { ATOM_incremental,	   P_INCREMENTAL },
   { ATOM_trace,		   TRACE_ME },
   { ATOM_hide_childs,	   HIDE_CHILDS },
   { ATOM_transparent,	   P_TRANSPARENT },
@@ -3625,8 +3624,6 @@ setAttrDefinition(Definition def, unsigned attr, int val)
     } else
     { set(def, attr);
     }
-    if ( attr == P_INCREMENTAL )
-      freeCodesDefinition(def, TRUE);
 
     rc = TRUE;
   }

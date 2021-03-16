@@ -278,6 +278,7 @@ COMMON(void)	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 #define TP_SHARED	(0x0004)	/* Shared tabling */
 #define TP_OPAQUE	(0x0008)	/* Declared opaque */
 #define TP_LAZY		(0x0010)	/* Lazy (monotonic) */
+#define TP_INCREMENTAL	(0x0020)	/* Incremental tabling */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */
@@ -312,4 +313,5 @@ COMMON(int)	tbl_is_restraint_flag(atom_t key);
 COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
 COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
 COMMON(int)	setMonotonicMode(atom_t a);
+COMMON(void)	tbl_set_incremental_predicate(Definition def, int val);
 #endif /*_PL_TABLING_H*/

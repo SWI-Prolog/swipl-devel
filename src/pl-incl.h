@@ -874,7 +874,7 @@ with one operation, it turns out to be faster as well.
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
-#define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
+//#define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
 #define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
 #define P_WAITED_FOR		(0x10000000) /* Someone is waiting for this predicate */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
