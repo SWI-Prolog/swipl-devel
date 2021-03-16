@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2020, University of Amsterdam
+    Copyright (c)  1997-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -448,8 +449,22 @@ swi_message(initialization_error(failed, Goal, File:Line)) -->
 swi_message(initialization_error(Error, Goal, File:Line)) -->
     [ '~w:~w: ~p '-[File, Line, Goal] ],
     translate_message(Error).
+swi_message(determinism_error(PI, det, Found)) -->
+    (   { '$pi_head'(user:PI, Head),
+          predicate_property(Head, det)
+        }
+    ->  [ 'Deterministic procedure ~p'-[PI] ]
+    ;   [ 'Procedure ~p called from a deterministic procedure'-[PI] ]
+    ),
+    det_error(Found).
 swi_message(qlf_format_error(File, Message)) -->
     [ '~w: Invalid QLF file: ~w'-[File, Message] ].
+
+det_error(nondet) -->
+    [ ' succeeded with a choicepoint'- [] ].
+det_error(fail) -->
+    [ ' failed'- [] ].
+
 
 cond_location(File:Line) -->
     { file_base_name(File, Base) },

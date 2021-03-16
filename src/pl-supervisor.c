@@ -335,7 +335,7 @@ copyCodes(Code dest, Code src, size_t count)
 static Code
 chainPredicateSupervisor(Definition def, Code post)
 { if ( (true(def, P_META) && true(def, P_TRANSPARENT)) ||
-       true(def, P_SSU_DET) )
+       true(def, P_SSU_DET|P_DET) )
   { tmp_buffer buf;
     Code codes;
 
@@ -343,6 +343,8 @@ chainPredicateSupervisor(Definition def, Code post)
 
     if ( true(def, P_SSU_DET) )
       addBuffer(&buf, encode(S_SSU_DET), code);
+    if ( true(def, P_DET) )
+      addBuffer(&buf, encode(S_DET), code);
 
     if ( true(def, P_META) && true(def, P_TRANSPARENT) )
     { unsigned int i;

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2020, University of Amsterdam
+    Copyright (c)  1997-2021, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -92,7 +93,8 @@ typedef enum
   ERR_SYNTAX,			/* what */
   ERR_UNDEFINED_PROC,		/* Definition def */
   ERR_DUPLICATE_KEY,		/* term_t */
-  ERR_PERMISSION_SSU_DEF	/* Definition def */
+  ERR_PERMISSION_SSU_DEF,	/* Definition def */
+  ERR_DETERMINISM		/* Definition def, atom_t expect, atom_t found */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))

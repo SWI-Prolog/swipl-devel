@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -507,9 +508,62 @@ PL_discard_foreign_frame(fid_t id)
 
 
 static int
-ssu_failed(LocalFrame fr ARG_LD)
+determinism_error(LocalFrame fr, atom_t found ARG_LD)
 { fid_t fid;
   int rc = FALSE;
+  atom_t a = ATOM_error;
+
+  PL_current_prolog_flag(ATOM_determinism_error, PL_ATOM, &a);
+  if ( a == ATOM_silent )
+    return TRUE;
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { Definition def = fr->predicate;
+
+    if ( false(def, P_DET) )
+    { LocalFrame fr2;
+
+      for(fr2=fr->parent; fr2; fr2=fr2->parent)
+      { Definition def2 = fr2->predicate;
+	if ( true(def2, P_DET) )
+	{ def = def2;
+	  break;
+	}
+      }
+    }
+
+    if ( a == ATOM_warning )
+    { term_t pi = PL_new_term_ref();
+
+      rc = ( (pi=PL_new_term_ref()) &&
+	     unify_definition(MODULE_user, pi, def, 0,
+			      GP_NAMEARITY|GP_HIDESYSTEM) &&
+	     printMessage(ATOM_warning,
+			  PL_FUNCTOR, FUNCTOR_error2,
+			    PL_FUNCTOR, FUNCTOR_determinism_error3,
+			      PL_TERM, pi,
+			      PL_ATOM, ATOM_det,
+			      PL_ATOM, found,
+			    PL_VARIABLE) );
+    } else
+    { rc = PL_error(NULL, 0, NULL, ERR_DETERMINISM,
+		    def, ATOM_det, found);
+    }
+
+    PL_close_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+
+static int
+ssu_or_det_failed(LocalFrame fr ARG_LD)
+{ fid_t fid;
+  int rc = FALSE;
+
+  if ( (fr->flags&(FR_SSU_DET|FR_DET)) == FR_DET )
+    return determinism_error(fr, ATOM_fail PASS_LD);
 
   if ( (fid = PL_open_foreign_frame()) )
   { term_t goal;
@@ -3214,15 +3268,16 @@ next_choice:
 #endif
 
     leaveFrame(FR);
-    if ( true(FR, FR_WATCHED|FR_SSU_DET) )
+    if ( true(FR, FR_WATCHED|FR_SSU_DET|FR_DET) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       FR->clause = NULL;
-      if ( true(FR, FR_SSU_DET) )
+      if ( true(FR, FR_SSU_DET|FR_DET) )
       { SAVE_REGISTERS(qid);
-	ssu_failed(FR PASS_LD);
+	ssu_or_det_failed(FR PASS_LD);
 	LOAD_REGISTERS(qid);
-	THROW_EXCEPTION;
+	if ( exception_term )
+	  THROW_EXCEPTION;
       }
       SAVE_REGISTERS(qid);
       frameFinished(FR, FINISH_FAIL PASS_LD);

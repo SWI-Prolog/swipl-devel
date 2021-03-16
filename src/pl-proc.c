@@ -3325,6 +3325,7 @@ static const patt_mask patt_masks[] =
   { ATOM_clausable,	   P_CLAUSABLE },
   { ATOM_autoload,	   P_AUTOLOAD },
   { ATOM_ssu,		   P_SSU_DET },
+  { ATOM_det,		   P_DET },
   { (atom_t)0,		   0 }
 };
 

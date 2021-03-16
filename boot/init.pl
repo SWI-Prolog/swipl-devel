@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -122,6 +123,7 @@ thread_local(Spec)       :- '$set_pattr'(Spec, pred, thread_local(true)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, noprofile(true)).
 public(Spec)             :- '$set_pattr'(Spec, pred, public(true)).
 non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
+det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, iso(true)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, clausable(true)).
 '$hide'(Spec)            :- '$set_pattr'(Spec, pred, trace(false)).
@@ -272,6 +274,8 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     '$set_pattr'(Spec, M, directive, noprofile(true)).
 '$pattr_directive'(public(Spec), M) :-
     '$set_pattr'(Spec, M, directive, public(true)).
+'$pattr_directive'(det(Spec), M) :-
+    '$set_pattr'(Spec, M, directive, det(true)).
 
 %!  '$pi_head'(?PI, ?Head)
 

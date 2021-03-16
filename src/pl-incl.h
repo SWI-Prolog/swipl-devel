@@ -874,7 +874,7 @@ with one operation, it turns out to be faster as well.
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
-//#define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
+#define P_DET			(0x04000000) /* Predicate is deterministic */
 #define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
 #define P_WAITED_FOR		(0x10000000) /* Someone is waiting for this predicate */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
@@ -966,6 +966,7 @@ Macros for environment frames (local stack frames)
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4 */
 #define FR_INRESET		(0x0200) /* Continuations: inside reset/3 */
 #define FR_SSU_DET		(0x0400) /* Demands det on => rules */
+#define FR_DET			(0x0800) /* Declared det */
 #define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
 
 #define FR_MAGIC_MASK		(0xfffff000)
@@ -1045,8 +1046,9 @@ typedef uint64_t lgen_t;
 
 #define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
 
-#define FR_CLEAR_NEXT	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
+#define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
 			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
+#define FR_CLEAR_NEXT	(FR_LCO_CLEAR|FR_DET)
 #define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT)
 
 #define setNextFrameFlags(next, fr) \
@@ -1054,6 +1056,15 @@ typedef uint64_t lgen_t;
 	{ (next)->level = (fr)->level+1; \
 	  (next)->flags = ((fr)->flags) & ~FR_CLEAR_FLAGS; \
 	} while(0)
+
+#define lcoSetNextFrameFlags2(next, fr) \
+	do \
+	{ (next)->level = (fr)->level+1; \
+	  (next)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_CONTEXT); \
+	} while(0)
+
+#define lcoSetNextFrameFlags(fr) \
+	lcoSetNextFrameFlags2(fr,fr)
 
 #define setFramePredicate(fr, def) \
 	do \

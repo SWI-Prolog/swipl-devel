@@ -1907,16 +1907,13 @@ call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
-{ if ( (void *)BFR <= (void *)FR && truePrologFlag(PLFLAG_LASTCALL) )
-  { Procedure proc = (Procedure) *PC++;
+{ Procedure proc = (Procedure) *PC++;
 
-    if ( !proc->definition->impl.any.defined &&	/* see (*) */
-	 false(proc->definition, PROC_DEFINED) )
-    { PC--;
-      VMI_GOTO(I_CALL);
-    }
-
-    if ( true(FR, FR_WATCHED) )
+  if ( (void *)BFR <= (void *)FR &&
+       truePrologFlag(PLFLAG_LASTCALL) &&
+       ( proc->definition->impl.any.defined ||
+	 true(proc->definition, PROC_DEFINED)) )
+  { if ( true(FR, FR_WATCHED) )
     { LD->query->next_environment = lTop;
       lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
       SAVE_REGISTERS(qid);
@@ -1937,7 +1934,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
       clear(FR, FR_CLEAR_NEXT);
       set(FR, FR_CONTEXT);
     } else
-    { setNextFrameFlags(FR, FR);
+    { lcoSetNextFrameFlags(FR);
     }
     if ( true(DEF, HIDE_CHILDS) )
       set(FR, FR_HIDE_CHILDS);
@@ -1950,7 +1947,10 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
     goto depart_continue;
   }
 
-  VMI_GOTO(I_CALL);
+  NFR = lTop;
+  lcoSetNextFrameFlags2(NFR, FR);
+  DEF = proc->definition;
+  goto normal_call;
 }
 
 
@@ -2059,6 +2059,13 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   } else
   { leave = NULL;
     clear(FR, FR_INBOX);
+    if ( true(FR, FR_DET) )
+    { SAVE_REGISTERS(qid);
+      determinism_error(FR, ATOM_nondet PASS_LD);
+      LOAD_REGISTERS(qid);
+      if ( exception_term )
+	THROW_EXCEPTION;
+    }
   }
 
   PC = FR->programPointer;
@@ -2344,7 +2351,7 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
     clear(FR, FR_CLEAR_NEXT);
     set(FR, FR_CONTEXT);
   } else
-  { setNextFrameFlags(FR, FR);
+  { lcoSetNextFrameFlags(FR);
   }
   if ( true(DEF, HIDE_CHILDS) )
     set(FR, FR_HIDE_CHILDS);
@@ -2362,7 +2369,7 @@ VMI(I_TCALL, 0, 0, ())
       THROW_EXCEPTION;
   }
 
-  setNextFrameFlags(FR, FR);
+  lcoSetNextFrameFlags(FR);
   FR->clause = NULL;
   if ( true(DEF, HIDE_CHILDS) )
     set(FR, FR_HIDE_CHILDS);
@@ -2381,7 +2388,8 @@ provide proper debugger output.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CUT, VIF_BREAK, 0, ())
-{
+{ clear(FR, FR_SSU_DET);
+
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { int rc;
@@ -2429,8 +2437,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     }
   } else
 #endif
-  { clear(FR, FR_SSU_DET);
-    SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(qid);
     discardChoicesAfter(FR, FINISH_CUT PASS_LD);
     LOAD_REGISTERS(qid);
     lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
@@ -3481,6 +3488,11 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
 
 VMI(S_SSU_DET, 0, 0, ())
 { set(FR, FR_SSU_DET);
+  NEXT_INSTRUCTION;
+}
+
+VMI(S_DET, 0, 0, ())
+{ set(FR, FR_DET);
   NEXT_INSTRUCTION;
 }
 

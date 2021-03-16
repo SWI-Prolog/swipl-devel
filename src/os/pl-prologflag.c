@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1576,6 +1577,7 @@ initPrologFlags(void)
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, TRUE, PLFLAG_FILEERRORS);
+  setPrologFlag("determinism_error", FT_ATOM, "error");
 #ifdef O_DEBUG
   setPrologFlag("prolog_debug", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

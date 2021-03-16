@@ -221,6 +221,7 @@ suggest predicates from a keyword.
 \predicatesummary{delete_directory}{1}{Remove a folder from the file system}
 \predicatesummary{delete_file}{1}{Remove a file from the file system}
 \predicatesummary{delete_import_module}{2}{Remove module from import list}
+\predicatesummary{det}{1}{Declare predicates as deterministic}
 \predicatesummary{deterministic}{1}{Test deterministicy of current clause}
 \predicatesummary{dif}{2}{Constrain two terms to be different}
 \predicatesummary{directory_files}{2}{Get entries of a directory/folder}

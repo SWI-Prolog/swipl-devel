@@ -10631,6 +10631,59 @@ not quoted. See also \secref{processorcharset}.
 \end{description}
 \end{description}
 
+\section{Debugging and declaring determinism}
+\label{sec:determinism}
+
+A common issue with Prolog programs of a \jargon{procedural} nature is
+to guarantee deterministic behaviour and debug possible problems with
+determinism. SWI-Prolog provides several mechanisms to make writing,
+debugging and maintaining deterministic code easier. One of them is
+\jargon{Single Sided Unification} using \funcref{=>}{2} rules as
+described in \secref{ssu}. This section deals with annotating your
+program.
+
+\begin{description}
+    \predicate{det}{1}{+PredicateIndicators}
+Declare a number of predicates as \const{det}, \emph{deterministic}. As
+a result, both failure and success with a choicepoint is considered an
+error.  The behaviour if the declaration is violated is controlled with
+the Prolog flag \prologflag{determinism_error}.  The default is to raise
+an exception (\const{error}).  Consider the following program:
+
+\begin{code}
+:- det(p/1).
+
+p(1).
+p(2).
+\end{code}
+
+Now, a call \exam{?- p(1).} behaves normally.  However:
+
+\begin{code}
+?- p(X).
+ERROR: Deterministic procedure p/1 succeeded with a choicepoint
+ERROR: In:
+ERROR:   [10] p(1)
+
+?- p(a).
+ERROR: Deterministic procedure p/1 failed
+ERROR: In:
+ERROR:   [10] p(a)
+\end{code}
+\end{description}
+
+A deterministic predicate may call normal predicates. No error is
+triggered as long as the deterministic predicate either ignores a
+possible failure, e.g., using \predref{\+}{1} and prunes possible choice
+points created by called predicates. If the last predicate is a normal
+predicate the requirement to succeed deterministically is transferred to
+the new goal. As last-call optimization causes the information which
+predicate initially claimed to be deterministic to be lost, the error is
+associated with the called predicate. Debug mode (see debug/0 or the
+Prolog flag \prologflag{debug}) may be used to avoid last call
+optimization and find the call stack that causes the issue.
+
+
 \section{Obtaining Runtime Statistics}	\label{sec:statistics}
 
 \begin{description}

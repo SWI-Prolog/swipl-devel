@@ -1350,6 +1350,11 @@ by the debugger.  Modified by the `w', `p' and `<N> d' commands of the
 debugger.  Default is \texttt{[quoted(true), portray(true),
 max_depth(10), attributes(portray)]}.
 
+    \prologflagitem{determinism_error}{atom}{rw}
+This flag defines the behaviour when the predicate determinism is not
+according to its declaration. See det/1. Possible values are
+\const{error} (default), \const{warning} and \const{silent}.
+
     \prologflagitem{dialect}{atom}{r}
 Fixed to \const{swi}.  The code below is a reliable and portable way to
 detect SWI-Prolog.

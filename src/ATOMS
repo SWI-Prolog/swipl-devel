@@ -213,9 +213,11 @@ A dependent		"dependent"
 A depth			"depth"
 A depth_limit_exceeded	"depth_limit_exceeded"
 A destroy		"destroy"
+A det			"det"
 A detached		"detached"
 A detect		"detect"
 A development		"development"
+A determinism_error	"determinism_error"
 A dexit			"$exit"
 A dforeign_registered    "$foreign_registered"
 A dgarbage_collect	"$garbage_collect"
@@ -543,6 +545,7 @@ A non_empty_list	"non_empty_list"
 A non_tabled_procedure	"non_tabled_procedure"
 A non_terminal		"non_terminal"
 A non_terminating	"non_terminating"
+A nondet		"nondet"
 A none			"none"
 A nonground		"nonground"
 A nonvar		"nonvar"
@@ -1012,6 +1015,7 @@ F debugging		1
 F decimal_point		1
 F deep			1
 F detached		1
+F determinism_error	3
 F dexit			2
 F dforeign_registered   2
 F dgarbage_collect	1

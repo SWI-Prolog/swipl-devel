@@ -2981,7 +2981,6 @@ lco(CompileInfo ci, size_t pc0)
     FIX_BUFFER_SHIFT();
   }
 
-  e[-2] = encode(I_CALL);
   Procedure depart_proc = (Procedure)e[-1];
 
   if ( ci->procedure ==	depart_proc )
