@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -489,16 +489,20 @@ retry:
 
     for(; i<cl->variables; i++, ep++, ap++)
     { if ( isTaggedInt(*ep) )
-      { intptr_t i = valInt(*ep);
+      { intptr_t ichp = valInt(*ep);
 	Choice ch, chp;
 
-	ch = (Choice)valTermRef(i);
+	ch = (Choice)valTermRef(ichp);
 	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
 	  ;
 	if ( ch == chp )
-	  *ap = i;
-	else
-	  *ap = consTermRef(LD->choicepoints);
+	{ *ap = ichp;
+
+	  DEBUG(MSG_CONTINUE,
+		Sdprintf("Restored choicepoint for slot %d\n", ichp));
+	} else
+	{ *ap = consTermRef(LD->choicepoints);
+	}
       } else
       { *ap = consTermRef(LD->choicepoints);
       }
