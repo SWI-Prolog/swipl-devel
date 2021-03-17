@@ -8,6 +8,7 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
+A dollar		"$"
 A abi			"abi"
 A abort			"abort"
 A aborted		"$aborted"
@@ -375,6 +376,8 @@ A grammar		"-->"
 A graph			"graph"
 A ground		"ground"
 A grouping		"grouping"
+A guard			"guard"
+A guard_in_caller	"guard_in_caller"
 A gvar			"gvar"
 A halt			"halt"
 A has_alternatives	"has_alternatives"
@@ -1015,7 +1018,7 @@ F debugging		1
 F decimal_point		1
 F deep			1
 F detached		1
-F determinism_error	3
+F determinism_error	4
 F dexit			2
 F dforeign_registered   2
 F dgarbage_collect	1

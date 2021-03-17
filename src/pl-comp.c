@@ -2754,6 +2754,9 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
     } else if ( *arg == ATOM_dyield )		/* $yield */
     { Output_0(ci, I_YIELD);
       succeed;
+    } else if ( *arg == ATOM_dollar )		/* $ */
+    { Output_0(ci, I_DET);
+      succeed;
     } else
     { functor = lookupFunctorDef(*arg, 0);
       fdef = NULL;				/* NULL --> no arguments */
@@ -5526,6 +5529,9 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
       case I_YIELD:	    *ARGP++ = ATOM_dyield;
+			    pushed++;
+			    continue;
+      case I_DET:	    *ARGP++ = ATOM_dollar;
 			    pushed++;
 			    continue;
       case I_CALLCLEANUP:   *ARGP++ = ATOM_dcall_cleanup;

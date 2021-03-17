@@ -83,17 +83,17 @@ test(cdet) :-
     cdet.
 test(cdet2) :-
     cdet2.
-test(nondet_1, error(determinism_error(_:p1/1,det,nondet))) :-
+test(nondet_1, error(determinism_error(_:p1/1,det,nondet,property))) :-
     p1(2).
-test(nondet_2, error(determinism_error(_:np2/1,det,nondet))) :-
+test(nondet_2, error(determinism_error(_:np2/1,det,nondet,property))) :-
     np(_).
-test(nondet_3, error(determinism_error(_:np/1,det,nondet))) :-
+test(nondet_3, error(determinism_error(_:np/1,det,nondet,property))) :-
     with_debug(np(_)).
-test(fail_1, error(determinism_error(_:p1/1,det,fail))) :-
+test(fail_1, error(determinism_error(_:p1/1,det,fail,property))) :-
     p1(3).
-test(fail_2, error(determinism_error(_:np2/1,det,fail))) :-
+test(fail_2, error(determinism_error(_:np2/1,det,fail,property))) :-
     np(3).
-test(fail_3, error(determinism_error(_:np/1,det,fail))) :-
+test(fail_3, error(determinism_error(_:np/1,det,fail,property))) :-
     with_debug(np(3)).
 
 :- end_tests(det_decl).

@@ -967,11 +967,13 @@ Macros for environment frames (local stack frames)
 #define FR_INRESET		(0x0200) /* Continuations: inside reset/3 */
 #define FR_SSU_DET		(0x0400) /* Demands det on => rules */
 #define FR_DET			(0x0800) /* Declared det */
+#define FR_DETGUARD		(0x1000) /* Frame is guarded for determinism */
+#define FR_DETGUARD_SET		(0x2000) /* Flag was set on this frame */
 #define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
 
-#define FR_MAGIC_MASK		(0xfffff000)
-#define FR_MAGIC_MASK2		(0xffff0000)
-#define FR_MAGIC		(0x549d5000)
+#define FR_MAGIC_MASK		(0xffff0000)
+#define FR_MAGIC_MASK2		(0xfff00000)
+#define FR_MAGIC		(0xc9d50000)
 
 #define isFrame(fr)		(((fr)->flags&FR_MAGIC_MASK) == FR_MAGIC)
 #define wasFrame(fr)		(((fr)->flags&FR_MAGIC_MASK2) == \
@@ -1048,8 +1050,9 @@ typedef uint64_t lgen_t;
 
 #define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
 			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
-#define FR_CLEAR_NEXT	(FR_LCO_CLEAR|FR_DET)
-#define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT)
+#define FR_CLEAR_NEXT	(FR_LCO_CLEAR|FR_DET|FR_DETGUARD)
+#define FR_CLEAR_ALWAYS (FR_CONTEXT|FR_DETGUARD_SET)
+#define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CLEAR_ALWAYS)
 
 #define setNextFrameFlags(next, fr) \
 	do \
@@ -1060,7 +1063,7 @@ typedef uint64_t lgen_t;
 #define lcoSetNextFrameFlags2(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
-	  (next)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_CONTEXT); \
+	  (next)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_CLEAR_ALWAYS); \
 	} while(0)
 
 #define lcoSetNextFrameFlags(fr) \

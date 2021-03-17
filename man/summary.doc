@@ -18,6 +18,7 @@ suggest predicates from a keyword.
 \begin{summarylist}{ll}
 \predicatesummary{@}{2}{Call using calling context}
 \predicatesummary{!}{0}{Cut (discard choicepoints)}
+\predicatesummary{$}{0}{Discard choicepoints and demand deterministic success}
 \oppredsummary{,}{2}{xfy}{1000}{Conjunction of goals}
 \oppredsummary{->}{2}{xfy}{1050}{If-then-else}
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}

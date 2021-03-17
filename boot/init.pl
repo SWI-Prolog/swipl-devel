@@ -548,6 +548,12 @@ catch(_Goal, _Catcher, _Recover) :-
 prolog_cut_to(_Choice) :-
     '$cut'.                         % Maps to I_CUTCHP
 
+%!  $ is det.
+%
+%   Declare that from now on this predicate succeeds deterministically.
+
+'$' :- '$'.
+
 %!  reset(:Goal, ?Ball, -Continue)
 %
 %   Delimited continuation support.

@@ -398,15 +398,17 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
     { Definition def  = va_arg(args, Definition);
       atom_t expected = va_arg(args, atom_t);
       atom_t found    = va_arg(args, atom_t);
+      atom_t decl     = va_arg(args, atom_t);
       term_t pi       = PL_new_term_ref();
 
       rc = ( unify_definition(MODULE_user, pi, def, 0,
 			      GP_NAMEARITY|GP_HIDESYSTEM) &&
 	     PL_unify_term(formal,
-			   PL_FUNCTOR, FUNCTOR_determinism_error3,
+			   PL_FUNCTOR, FUNCTOR_determinism_error4,
 			     PL_TERM, pi,
 			     PL_ATOM, expected,
-			     PL_ATOM, found));
+			     PL_ATOM, found,
+			     PL_ATOM, decl));
       break;
     }
     case ERR_IMPORT_PROC:

@@ -10642,8 +10642,16 @@ debugging and maintaining deterministic code easier. One of them is
 described in \secref{ssu}. This section deals with annotating your
 program.
 
+\begin{quote}
+\textbf{WARNING:} The primitives in this section are experimental.
+The naming and exact semantics may change.  If you are interested
+in this, please follow and contribute to discussion on the Discourse
+forum.
+\end{quote}
+
+
 \begin{description}
-    \predicate{det}{1}{+PredicateIndicators}
+    \predicate[experimental,directive]{det}{1}{+PredicateIndicators}
 Declare a number of predicates as \const{det}, \emph{deterministic}. As
 a result, both failure and success with a choicepoint is considered an
 error.  The behaviour if the declaration is violated is controlled with
@@ -10670,6 +10678,12 @@ ERROR: Deterministic procedure p/1 failed
 ERROR: In:
 ERROR:   [10] p(a)
 \end{code}
+
+    \predicate[experimental]{$}{0}{}
+The \predref{$}{0} constructs acts similar to the \predref{!}{0},
+but in addition declares that the remainder of the clause body shall
+succeed deterministically.  It exploits the same underlying mechanism
+as the det/1 declaration.
 \end{description}
 
 A deterministic predicate may call normal predicates. No error is

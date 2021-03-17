@@ -2059,7 +2059,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   } else
   { leave = NULL;
     clear(FR, FR_INBOX);
-    if ( true(FR, FR_DET) )
+    if ( true(FR, FR_DET|FR_DETGUARD) )
     { SAVE_REGISTERS(qid);
       determinism_error(FR, ATOM_nondet PASS_LD);
       LOAD_REGISTERS(qid);
@@ -2380,6 +2380,17 @@ VMI(I_TCALL, 0, 0, ())
 		 /*******************************
 		 *	      CONTROL		*
 		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+I_DET sets the determinism guard for  this predicate, implying that this
+predicate shall succeed deterministically.  It is bound to '$'.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(I_DET, 0, 0, ())
+{ set(FR, FR_DETGUARD|FR_DETGUARD_SET);
+
+  VMI_GOTO(I_CUT);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CUT: !. Task is to detroy  all   choicepoints  newer  then the current

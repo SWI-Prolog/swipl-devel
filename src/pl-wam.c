@@ -519,15 +519,34 @@ determinism_error(LocalFrame fr, atom_t found ARG_LD)
 
   if ( (fid=PL_open_foreign_frame()) )
   { Definition def = fr->predicate;
+    atom_t decl;
 
-    if ( false(def, P_DET) )
-    { LocalFrame fr2;
+    if ( true(fr, FR_DETGUARD) )
+    { if ( true(fr, FR_DETGUARD_SET) )
+      { decl = ATOM_guard;
+      } else
+      { LocalFrame fr2;
 
-      for(fr2=fr->parent; fr2; fr2=fr2->parent)
-      { Definition def2 = fr2->predicate;
-	if ( true(def2, P_DET) )
-	{ def = def2;
-	  break;
+	decl = ATOM_guard_in_caller;
+	for(fr2=fr->parent; fr2; fr2=fr2->parent)
+	{ if ( true(fr2, FR_DETGUARD_SET) )
+	  { def = fr2->predicate;
+	    break;
+	  }
+	}
+      }
+    } else
+    { decl = ATOM_property;
+
+      if ( false(def, P_DET) )
+      { LocalFrame fr2;
+
+	for(fr2=fr->parent; fr2; fr2=fr2->parent)
+	{ Definition def2 = fr2->predicate;
+	  if ( true(def2, P_DET) )
+	  { def = def2;
+	    break;
+	  }
 	}
       }
     }
@@ -540,14 +559,15 @@ determinism_error(LocalFrame fr, atom_t found ARG_LD)
 			      GP_NAMEARITY|GP_HIDESYSTEM) &&
 	     printMessage(ATOM_warning,
 			  PL_FUNCTOR, FUNCTOR_error2,
-			    PL_FUNCTOR, FUNCTOR_determinism_error3,
+			    PL_FUNCTOR, FUNCTOR_determinism_error4,
 			      PL_TERM, pi,
 			      PL_ATOM, ATOM_det,
 			      PL_ATOM, found,
+			      PL_ATOM, decl,
 			    PL_VARIABLE) );
     } else
     { rc = PL_error(NULL, 0, NULL, ERR_DETERMINISM,
-		    def, ATOM_det, found);
+		    def, ATOM_det, found, decl);
     }
 
     PL_close_foreign_frame(fid);
@@ -562,7 +582,7 @@ ssu_or_det_failed(LocalFrame fr ARG_LD)
 { fid_t fid;
   int rc = FALSE;
 
-  if ( (fr->flags&(FR_SSU_DET|FR_DET)) == FR_DET )
+  if ( false(fr, FR_SSU_DET) )
     return determinism_error(fr, ATOM_fail PASS_LD);
 
   if ( (fid = PL_open_foreign_frame()) )
@@ -3268,11 +3288,11 @@ next_choice:
 #endif
 
     leaveFrame(FR);
-    if ( true(FR, FR_WATCHED|FR_SSU_DET|FR_DET) )
+    if ( true(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
     { environment_frame = FR;
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       FR->clause = NULL;
-      if ( true(FR, FR_SSU_DET|FR_DET) )
+      if ( true(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
       { SAVE_REGISTERS(qid);
 	ssu_or_det_failed(FR PASS_LD);
 	LOAD_REGISTERS(qid);
