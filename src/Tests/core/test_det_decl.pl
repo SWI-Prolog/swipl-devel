@@ -42,7 +42,8 @@
 */
 
 test_det_decl :-
-    run_tests([ det_decl
+    run_tests([ det_decl,
+                det_guard
               ]).
 
 :- meta_predicate
@@ -97,6 +98,32 @@ test(fail_3, error(determinism_error(_:np/1,det,fail,property))) :-
     with_debug(np(3)).
 
 :- end_tests(det_decl).
+
+:- begin_tests(det_guard).
+
+nd(X) :- nd2(X).
+nd2(X) :- nd3(X).
+
+nd3(1).
+nd3(2).
+nd3(2).
+
+d(X) :- $, nd(X).
+
+test(det) :-
+    d(1).
+test(ndet, error(determinism_error(_:nd3/1,det,nondet,guard_in_caller))) :-
+    d(2).
+test(ndet, error(determinism_error(_:d/1,det,nondet,guard_in_caller))) :-
+    with_debug(d(2)).
+test(fail, error(determinism_error(_:nd3/1,det,fail,guard_in_caller))) :-
+    d(3).
+test(fail, error(determinism_error(_:d/1,det,fail,guard_in_caller))) :-
+    with_debug(d(3)).
+
+:- end_tests(det_guard).
+
+
 
 with_debug(Goal) :-
     current_prolog_flag(debug, Old),
