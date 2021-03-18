@@ -1221,7 +1221,7 @@ forwards int	compileBodyNonVar1(Word arg, compileInfo *ci ARG_LD);
 forwards int	compileBodyTypeTest(functor_t functor, Word arg,
 				    compileInfo *ci ARG_LD);
 forwards int	compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD);
-forwards int	compileBodyShift(Word arg, compileInfo *ci ARG_LD);
+forwards int	compileBodyShift(Word arg, compileInfo *ci, int for_copy ARG_LD);
 
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
@@ -2803,7 +2803,10 @@ A non-void variable. Create a I_USERCALL0 instruction for it.
       { if ( (rc=compileBodyCallContinuation(arg, ci PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_dshift1 )
-      { if ( (rc=compileBodyShift(arg, ci PASS_LD)) != FALSE )
+      { if ( (rc=compileBodyShift(arg, ci, FALSE PASS_LD)) != FALSE )
+	  return rc;
+      } else if ( functor == FUNCTOR_dshift_for_copy1 )
+      { if ( (rc=compileBodyShift(arg, ci, TRUE PASS_LD)) != FALSE )
 	  return rc;
       } else if ( functor == FUNCTOR_arg3 )
       { if ( (rc=compileBodyArg3(arg, ci PASS_LD)) != FALSE )
@@ -3891,7 +3894,7 @@ compileBodyCallContinuation(Word arg, compileInfo *ci ARG_LD)
 }
 
 static int
-compileBodyShift(Word arg, compileInfo *ci ARG_LD)
+compileBodyShift(Word arg, compileInfo *ci, int for_copy ARG_LD)
 { Word a1;
   int i1;
 
@@ -3900,7 +3903,7 @@ compileBodyShift(Word arg, compileInfo *ci ARG_LD)
 
   if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
        !isFirstVar(ci->used_var, i1) )
-  { Output_1(ci, I_SHIFT, VAROFFSET(i1));
+  { Output_1(ci, for_copy ? I_SHIFT : I_SHIFTCP, VAROFFSET(i1));
     return TRUE;
   }
 
@@ -5766,6 +5769,8 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
       case I_CALLCONT:	    f = FUNCTOR_dcall_continuation1;
 						   goto common_type_test;
       case I_SHIFT:	    f = FUNCTOR_dshift1;
+						   goto common_type_test;
+      case I_SHIFTCP:	    f = FUNCTOR_dshift_for_copy1;
 						   goto common_type_test;
     }
       case C_LCUTIFTHEN:

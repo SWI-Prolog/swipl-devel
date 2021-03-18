@@ -250,6 +250,7 @@ A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
 A dreset		"$reset"
 A dshift		"$shift"
+A dshift_for_copy	"$shift_for_copy"
 A dstream		"$stream"
 A dstream_position	"$stream_position"
 A dthread_init		"$thread_init"
@@ -1038,6 +1039,7 @@ F dprof_node		1
 F dquasi_quotation	3
 F drecover_and_rethrow	2
 F dshift		1
+F dshift_for_copy	1
 F dstream		1
 F dtabled		2
 F dthread_init		0

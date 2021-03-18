@@ -5612,15 +5612,23 @@ shift(Ball) :-
     '$shift'(Ball).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+BEGIN_SHAREDVARS
+int shift_for_copy;
+
 VMI(I_SHIFT, 0, 1, (CA1_VAR))
-{ Word ballp  = varFrameP(FR, (int)*PC++);
-  term_t ball = pushWordAsTermRef(ballp);
+{ shift_for_copy = FALSE;
+  Word ballp;
+  term_t ball;
   Code pc;
   fid_t fid;
 
+shift_common:
+  ballp = varFrameP(FR, (int)*PC++);
+  ball  = pushWordAsTermRef(ballp);
+
   SAVE_REGISTERS(qid);
   fid = PL_open_foreign_frame();
-  pc = shift(ball PASS_LD);
+  pc = shift(ball, shift_for_copy PASS_LD);
   PL_close_foreign_frame(fid);
   LOAD_REGISTERS(qid);
 
@@ -5636,6 +5644,12 @@ VMI(I_SHIFT, 0, 1, (CA1_VAR))
   { THROW_EXCEPTION;
   }
 }
+
+VMI(I_SHIFTCP, 0, 1, (CA1_VAR))
+{ shift_for_copy = TRUE;
+  goto shift_common;
+}
+END_SHAREDVARS
 
 END_SHAREDVARS
 

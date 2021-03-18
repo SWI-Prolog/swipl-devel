@@ -561,12 +561,18 @@ prolog_cut_to(_Choice) :-
 reset(_Goal, _Ball, _Cont) :-
     '$reset'.
 
-%!  shift(+Ball)
+%!  shift(+Ball).
+%!  shift_for_copy(+Ball).
 %
-%   Shift control back to the enclosing reset/3
+%   Shift control back to the  enclosing   reset/3.  The  second version
+%   assumes the continuation will be saved to   be reused in a different
+%   context.
 
 shift(Ball) :-
     '$shift'(Ball).
+
+shift_for_copy(Ball) :-
+    '$shift_for_copy'(Ball).
 
 %!  call_continuation(+Continuation:list)
 %

@@ -109,6 +109,7 @@
 #define MSG_READ_TOKEN		 65
 
 #define MSG_CONTINUE		 70
+#define MSG_SHIFT_CHOICE	 71
 
 #define MSG_CLEANUP_THREAD	 80
 #define MSG_INITIALISE		 81

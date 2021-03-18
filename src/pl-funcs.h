@@ -754,7 +754,7 @@ COMMON(void)	cpNumber(Number to, Number from);
 /* pl-cont.c */
 COMMON(Code)	push_continuation(term_t cont, LocalFrame pfr, Code pcret
 				  ARG_LD);
-COMMON(Code)	shift(term_t ball ARG_LD);
+COMMON(Code)	shift(term_t ball, int for_copy ARG_LD);
 
 /* pl-variant.c */
 COMMON(int)	is_variant_ptr(Word p1, Word p2 ARG_LD);

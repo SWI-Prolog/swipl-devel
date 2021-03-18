@@ -111,7 +111,9 @@ because the environment structure we create is newer.
 (*) This loop stores all  non-prolog   variables.  These are pointers to
 choice points for if-then-else and related control structures. These are
 stored as offsets  to  the  local  stack   base.  We  put  them  in  the
-environment as integers.
+environment as integers. This works if   the continuation is immediately
+called. I the continuation is saved   (assert/1,  etc.) as, for example,
+for tabling, this does not work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FAST_FUNCTORS 256
@@ -134,7 +136,7 @@ env_functor(int slots)
 
 
 static int
-put_environment(term_t env, LocalFrame fr, Code pc)
+put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
 { GET_LD
   term_t fr_ref   = consTermRef(fr);
   const Clause cl = fr->clause->value.clause;
@@ -201,11 +203,17 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   if ( rc )
   { for(i=cl->prolog_vars; i<cl->variables; i++)
     { if ( true_bit(active, i) )
-      { DEBUG(MSG_CONTINUE,
-	      Sdprintf("%s: add choice-point reference from slot %d\n",
+      { DEBUG(MSG_SHIFT_CHOICE,
+	      Sdprintf("Shift: clause %d of %s: active "
+		       "choice-point in slot %d\n",
+		       clauseNo(cl, 0),
 		       predicateName(fr->predicate), i));
 
-	*p++ = consInt(argFrame(fr, i));
+	if ( for_copy )
+	{ *p++ = 0;
+	} else
+	{ *p++ = consInt(argFrame(fr, i));
+	}
       } else
 	*p++ = 0;
     }
@@ -268,7 +276,8 @@ is_last_call(Code PC)
 
 
 static int
-put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
+put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
+		 int for_copy)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
@@ -311,7 +320,7 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 	  depth = 0;
 	else
 	  return FALSE;
-      } else if ( !put_environment(contv+depth, fr, pc) )
+      } else if ( !put_environment(contv+depth, fr, pc, for_copy) )
 	return FALSE;
 
       resetfr = (LocalFrame)valTermRef(reset_ref);
@@ -350,7 +359,7 @@ Performs the following steps:
 */
 
 Code
-shift(term_t ball ARG_LD)
+shift(term_t ball, int for_copy ARG_LD)
 { term_t reset;
   int rc;
 
@@ -364,7 +373,8 @@ shift(term_t ball ARG_LD)
     resetfr = (LocalFrame)valTermRef(reset);
     if ( !put_continuation(cont, resetfr,
 			   environment_frame->parent,
-			   environment_frame->programPointer) )
+			   environment_frame->programPointer,
+			   for_copy) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
       return FALSE;			/* resource error */
     }
