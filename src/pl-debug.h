@@ -3,8 +3,9 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -103,6 +104,7 @@
 #define MSG_REC_ATTVAR		 58
 #define MSG_TTY			 59
 #define MSG_OS_DIR		 60
+#define MSG_COMP_ARG_UNIFY	 61
 
 #define MSG_READ_TOKEN		 65
 

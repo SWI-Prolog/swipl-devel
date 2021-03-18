@@ -3133,6 +3133,61 @@ Implement a better judgements for selecting between deep and plain
 indexes.
 \end{itemize}
 
+\subsection{Indexing for body code}
+\label{sec:indexbody}
+
+The current SWI-Prolog versions only consider the head for generating
+clause indexing. This would make it impossible to examine a head
+argument and pass the argument in the body without copying the argument.
+Consider the two clauses below. Both have equal semantics under Prolog.
+The first version would loose clause indexing while the second creates a
+copy of the \funcref{f}{1} argument. Neither is desirable.
+
+\begin{code}
+p(X) :- X = f(I), integer(I), q(X).
+p(f(I)) :- integer(I), q(f(X)).
+\end{code}
+
+As of SWI-Prolog 8.3.21, unifications against head arguments that happen
+before anything else in the body are compiled special. Effectively, the
+term unified too is moved into the head (providing indexing) and places
+where this term is used simply use the corresponding argument. The
+explicit unification is removed. Decompilation (clause/2) reverses this
+process, but may not produce exactly the same term.  The re-inserted
+unfications are ordered according to the argument position and the
+variable is always on the left hand of the \predref{=}{2}.  Thus,
+
+\begin{code}
+p(X,Y) :- f(_) = Y, X = g(_), q(X,Y).
+\end{code}
+
+Is decompiled into the following equivalent clause.
+
+\begin{code}
+p(X,Y) :- X = g(_), Y = f(_), q(X,Y).
+\end{code}
+
+Additional notes:
+
+\begin{itemize}
+    \item This transformation is only performed on \emph{static} code.
+    \item The unifications must \emph{immediately} follow the head in
+    a \jargon{conjunction}.
+    \item As sole exception, calls to true/0 are skipped.  This allows
+    goal_expansion/2 to convert goals to \const{true} while preserving
+    this optimization.
+    \item If the head argument is not used the body unification is
+    still moved into the head.  The decompiler does not inverse the
+    process in that case.  Thus, \exam{p(X) :- X = a.} is fully
+    equivalent to \exam{p(a).}
+    \item Currently this optimziation is enabled regardless of the
+    Prolog flag \prologflag{optimise}.  As this optimization harms
+    source-level debugging, this may not be desirable.  On the other
+    hand we do not want determinism to depend on optimization while
+    this optimization affects determinism.
+\end{itemize}
+
+
 \subsection{Indexing and portability}
 \label{sec:indexport}
 

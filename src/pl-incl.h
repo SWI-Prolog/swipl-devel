@@ -900,6 +900,7 @@ with one operation, it turns out to be faster as well.
 					 /* from predicate */
 #define SSU_COMMIT_CLAUSE	(0x0100) /* Head => Body */
 #define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
+#define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
 
 #define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 

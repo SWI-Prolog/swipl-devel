@@ -293,13 +293,15 @@ with  a  structure  that  mimics  a term, but isn't one.
 
 #define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
 #define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_RESERVED)
-#define varInfo(w)	(LD->comp.vardefs[(w)>>LMASK_BITS])
+#define varIndex(w)	((w)>>LMASK_BITS)
+#define varInfo(w)	(LD->comp.vardefs[varIndex(w)])
 
 
 typedef struct _varDef
 { word		functor;		/* mimic a functor (FUNCTOR_dvard1) */
   word		saved;			/* saved value */
   Word		address;		/* address of the variable */
+  Word		arg_value;		/* Value unified against */
   atom_t	name;			/* name (if available) */
   int		times;			/* occurrences */
   int		offset;			/* offset in environment frame */
@@ -310,6 +312,7 @@ typedef struct _varDef
 #define VD_SINGLETON        0x02
 #define VD_MAYBE_UNBALANCED 0x04
 #define VD_UNBALANCED	    0x08
+#define VD_ARGUMENT	    0x10	/* Unified against an argument */
 
 typedef struct
 { int	isize;
@@ -363,6 +366,7 @@ typedef struct
   int		argvars;		/* islocal argument pseudo vars */
   int		argvar;			/* islocal current pseudo var */
   int		singletons;		/* Marked singletons in disjunctions */
+  int		head_unify;		/* In unifications against arguments */
   cutInfo	cut;			/* how to compile ! */
   merge_state	mstate;			/* Instruction merging state */
   VarTable	used_var;		/* boolean array of used variables */
@@ -683,6 +687,53 @@ get_head_and_body_clause(term_t clause,
 }
 
 
+static VarDef
+is_argument_var(Word p, CompileInfo ci ARG_LD)
+{ deRef(p);
+
+  if ( isVarInfo(*p) )
+  { int index = varIndex(*p);
+
+    if ( index < ci->arity )
+      return varInfo(*p);
+  }
+
+  return NULL;
+}
+
+static int
+annotate_unify(Word p1, Word p2, CompileInfo ci ARG_LD)
+{ VarDef vd;
+
+  if ( (vd=is_argument_var(p1, ci PASS_LD)) )
+  { deRef(p2);
+
+    if ( false(vd, VD_ARGUMENT) && !isVarInfo(*p2) && !isVar(*p2) )
+    { set(vd, VD_ARGUMENT);
+      vd->arg_value = p2;
+
+      DEBUG(MSG_COMP_ARG_UNIFY,
+	    { Word p;
+	      deRef2(p1, p);
+
+	      Sdprintf("Annotated unification against arg %d\n",
+		       varIndex(*p)+1);
+	    });
+
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static int
+annotate_unification(Functor f, CompileInfo ci ARG_LD)
+{ return ( annotate_unify(&f->arguments[0], &f->arguments[1], ci PASS_LD) ||
+	   annotate_unify(&f->arguments[1], &f->arguments[0], ci PASS_LD) );
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Analyse the variables of a clause.  `term' is the term to  be  analysed,
 which  is  either  a  fact  or  a  clause (:-/2) term.  First of all the
@@ -838,6 +889,8 @@ right_recursion:
     { Buffer obv;
       ssize_t start_vars, at_branch_vars, at_end_vars;
 
+      ci->head_unify = FALSE;
+
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
 	ci->branch_vars = (Buffer)&ci->branch_varbuf;
@@ -940,6 +993,8 @@ right_recursion:
     { Buffer obv;
       ssize_t start_vars, at_end_vars;
 
+      ci->head_unify = FALSE;
+
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
 	ci->branch_vars = (Buffer)&ci->branch_varbuf;
@@ -979,6 +1034,15 @@ right_recursion:
       return nvars;
     }
 
+    /* Find leading unifications against head arguments */
+
+    if ( control && ci->head_unify )
+    { if ( f->definition == FUNCTOR_equals2 )
+	annotate_unification(f, ci PASS_LD);
+      else if ( f->definition != FUNCTOR_comma2 )
+	ci->head_unify = FALSE;
+    }
+
     /* The default term processing case */
 
     if ( fd->arity > 0 )
@@ -999,6 +1063,9 @@ right_recursion:
       goto right_recursion;
     }
   }
+
+  if ( control && *head != ATOM_true )	  /* e.g. atomic goals */
+    ci->head_unify = FALSE;
 
   if ( ci->subclausearg && (isString(*head) || isAttVar(*head)) )
   { DEBUG(MSG_COMP_ARGVAR,
@@ -1199,6 +1266,18 @@ isFirstVar(VarTable vt, int n)
 
   return (*p & m) == 0;
 }
+
+
+static Word
+argUnifiedTo(word w ARG_LD)
+{ VarDef v = varInfo(w);
+
+  if ( true(v, VD_ARGUMENT) )
+    return v->arg_value;
+
+  return NULL;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1645,6 +1724,8 @@ compileClause(Clause *cp, Word head, Word body,
     ci.arity        = (int)def->functor->arity;
     ci.procedure    = proc;
     ci.argvars      = 0;
+    ci.head_unify   = ( !(flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) &&
+			false(def, P_DYNAMIC) );
     clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
@@ -1655,6 +1736,7 @@ compileClause(Clause *cp, Word head, Word body,
     ci.argvar       = 1;
     ci.arity        = 0;
     ci.procedure    = NULL;		/* no LCO */
+    ci.head_unify   = FALSE;
     clause.flags    = GOAL_CLAUSE;
     *g		    = *body;
   }
@@ -2389,7 +2471,9 @@ isvar:
       { if ( where & A_ARG )
 	{ Output_0(ci, B_ARGVAR);
 	} else
-	{ if ( index < 3 )
+	{ if ( argUnifiedTo(*arg PASS_LD) )
+	    set(ci->clause, CL_HEAD_TERMS);
+	  if ( index < 3 )
 	  { Output_0(ci, B_VAR0 + index);
 	    return TRUE;
 	  }
@@ -2397,7 +2481,11 @@ isvar:
 	}
       } else				/* head */
       { if ( !(where & A_ARG) && first )
-	{ Output_0(ci, H_VOID);
+	{ Word p;
+
+	  if ( (p=argUnifiedTo(*arg PASS_LD)) )
+	    return compileArgument(p, where, ci PASS_LD);
+	  Output_0(ci, H_VOID);
 	  return TRUE;
 	}
 	Output_0(ci, H_VAR);
@@ -3327,6 +3415,20 @@ right_recursion:
 
 
 static int
+isUnifiedArg(Word a1, Word a2 ARG_LD)
+{ if ( isVarInfo(*a1) )
+  { VarDef vd = varInfo(*a1);
+
+    if ( true(vd, VD_ARGUMENT) &&
+	 vd->arg_value == a2 )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static int
 compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
 { Word a1, a2;
   int i1, i2;
@@ -3372,6 +3474,12 @@ compileBodyUnify(Word arg, compileInfo *ci ARG_LD)
 
     return TRUE;
   }
+
+  /* check for unifications moved to the head */
+  if ( i1 >= 0 && isUnifiedArg(a1, a2 PASS_LD) )
+    return TRUE;
+  if ( i2 >= 0 && isUnifiedArg(a2, a1 PASS_LD) )
+    return TRUE;
 
   if ( i1 >= 0 )			/* Var = Term */
   { int first;
@@ -4649,17 +4757,70 @@ Then we create a term, back up and fill the arguments.
 #define XR(c)	((word)(c))
 
 typedef struct
-{ Code	 pc;				/* pc for decompilation */
-  Word   argp;				/* argument pointer */
-  int	 nvars;				/* size of var block */
-  term_t variables;			/* variable table (PL_new_term_refs() array) */
-  term_t bindings;			/* [Offset = Var, ...] */
+{ Code	 pc;			/* pc for decompilation */
+  Word   argp;			/* argument pointer */
+  int	 arity;			/* Arity of the predicate */
+  int	 nvars;			/* size of var block */
+  bit_vector *bvar_access;	/* Accessed as b_var<0..arity-1> */
+  term_t bvar_args;		/* Arity size vector for moved unifications */
+  term_t variables;		/* variable table (PL_new_term_refs() array) */
+  term_t bindings;		/* [Offset = Var, ...] */
 } decompileInfo;
 
 static int decompile_head(Clause, term_t, decompileInfo * ARG_LD);
 static int decompileBody(decompileInfo *, code, Code ARG_LD);
 static int build_term(functor_t f, decompileInfo *di, int dir ARG_LD);
 static int put_functor(Word p, functor_t f ARG_LD);
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Mark all variables in the head  that   are  accessed  using B_VAR<N>. If
+these variables are not marked as H_VOID in the head code they are refer
+to body unifications that have been moved to the head.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+mark_bvar_access(Clause cl, decompileInfo *di ARG_LD)
+{ Code pc, ep;
+  int max = -1;
+
+  pc = cl->codes;
+  ep = pc + cl->code_size;
+
+  for( ; pc < ep; pc = stepPC(pc) )
+  { code c = fetchop(pc);
+    int index;
+
+    switch(c)
+    { case B_VAR0:
+	index = 0;
+        break;
+      case B_VAR1:
+	index = 1;
+        break;
+      case B_VAR2:
+	index = 1;
+        break;
+      case B_VAR:
+	index = VARNUM(pc[1]);
+        break;
+      default:
+	continue;
+    }
+
+    if ( index < di->arity )
+    { set_bit(di->bvar_access, index);
+      if ( index > max )
+	max = index;
+    }
+  }
+
+  assert(max >= 0);
+  if ( !(di->bvar_args = PL_new_term_refs(max+1)) )
+    return FALSE;
+
+  return TRUE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 decompileHead()  is  public  as  it  is   needed  to  update  the  index
@@ -4683,8 +4844,10 @@ decompileHead(Clause clause, term_t head)
   decompileInfo di;
   int rc;
 
-  di.nvars    = VAROFFSET(1) + clause->prolog_vars;
-  di.bindings = 0;
+  di.nvars       = VAROFFSET(1) + clause->prolog_vars;
+  di.arity       = (int)clause->predicate->functor->arity;
+  di.bindings    = 0;
+  di.bvar_access = NULL;
   if ( clause->prolog_vars )
   { if ( !(di.variables = PL_new_term_refs(clause->prolog_vars)) )
       return FALSE;
@@ -4728,6 +4891,22 @@ next_arg_ref(term_t argp ARG_LD)
 
     ap[0] = makeRefG(p+1);
   }
+}
+
+
+static term_t
+set_bvar_argp(term_t bv ARG_LD)
+{ term_t argp;
+
+  if ( (argp=PL_new_term_refs(2)) )
+  { Word bvp = valTermRef(bv);
+    Word ap = valTermRef(argp);
+
+    ap[0] = makeRefG(bvp);
+    ap[1] = ap[0];
+  }
+
+  return argp;
 }
 
 
@@ -4785,10 +4964,10 @@ unifyVarGC(Word var, term_t vars, size_t i ARG_LD)
 
 static bool
 decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
-{ int arity;
-  term_t argp = 0;
+{ term_t argp = 0;
   int argn = 0;
   int pushed = 0;
+  int write_bvar = FALSE;
   Definition def = clause->predicate;
 
   if ( di->bindings )
@@ -4812,8 +4991,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
     return PL_unify_atom(head, ATOM_dcall);
 
   DEBUG(5, Sdprintf("Decompiling head of %s\n", predicateName(def)));
-  arity = (int)def->functor->arity;
-  if ( arity > 0 )
+  if ( di->arity > 0 )
   { if ( !PL_unify_functor(head, def->functor->functor) ||
 	 !(argp = PL_new_term_refs(2)) )
       return FALSE;
@@ -4823,7 +5001,22 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       return FALSE;
   }
 
-#define NEXTARG { next_arg_ref(argp PASS_LD); if ( !pushed ) argn++; }
+#define INCARG() \
+	do \
+	{ argn++;			\
+	  if ( write_bvar )		\
+	  { PL_reset_term_refs(argp);	\
+	    argp -= 2;			\
+	    write_bvar = FALSE;		\
+	  }				\
+	} while(0)
+
+#define NEXTARG \
+	do \
+	{ if ( !pushed )		\
+	    INCARG();			\
+	  next_arg_ref(argp PASS_LD);	\
+	} while(0)
 
   for(;;)
   { code c = decode(*PC++);
@@ -4831,6 +5024,33 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 #if O_DEBUGGER
   again:
 #endif
+
+    if ( !pushed && di->bvar_access &&
+	 true_bit(di->bvar_access, argn) )
+    { if ( c == D_BREAK )
+	c = decode(replacedBreak(PC-1));
+
+      if ( c != H_VOID && c != H_VOID_N )
+      { term_t t2;
+
+	DEBUG(MSG_COMP_ARG_UNIFY,
+	      Sdprintf("Found moved var for arg %d\n", argn+1));
+
+					/* is H_VOID */
+	TRY(unifyVarGC(valTermRef(argp), di->variables,
+		       VAROFFSET(argn) PASS_LD) );
+
+					/* Move output to di->bvar_args */
+	if ( (t2=set_bvar_argp(di->bvar_args+argn PASS_LD)) )
+	{ assert(t2 == argp+2);
+	  argp = t2;
+	  write_bvar = TRUE;
+	}
+      } else
+      { clear_bit(di->bvar_access, argn);
+      }
+    }
+
     switch(c)
     { case I_NOP:
       case I_CHP:
@@ -4842,24 +5062,21 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 #endif
       case H_NIL:
 	TRY(PL_unify_nil(argp));
-        NEXTARG;
-        continue;
+	break;
       case H_STRING:
       case H_MPZ:
       case H_MPQ:
         { word copy = globalIndirectFromCode(&PC);
 	  if ( !copy || !_PL_unify_atomic(argp, copy) )
 	    return FALSE;
-	  NEXTARG;
-	  continue;
+	  break;
 	}
       case H_INTEGER:
         { intptr_t *p = (intptr_t*)PC;
 	  intptr_t v = *p++;
 	  PC = (Code)p;
 	  TRY(PL_unify_int64(argp, v));
-	  NEXTARG;
-	  continue;
+	  break;
 	}
       case H_INT64:
         { Word p = allocGlobal(2+WORDS_PER_INT64);
@@ -4871,8 +5088,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	    cpInt64Data(p, PC);
 	    *p   = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
 	    TRY(_PL_unify_atomic(argp, w));
-	    NEXTARG;
-	    continue;
+	    break;
 	  } else
 	    return FALSE;
 	}
@@ -4886,28 +5102,24 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	    cpDoubleData(p, PC);
 	    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	    TRY(_PL_unify_atomic(argp, w));
-	    NEXTARG;
-	    continue;
+	    break;
 	  } else
 	    return FALSE;
 	}
       case H_ATOM:
       case H_SMALLINT:
 	  TRY(_PL_unify_atomic(argp, XR(*PC++)));
-          NEXTARG;
-	  continue;
+          break;
       case H_FIRSTVAR:
       case H_VAR:
 	  TRY(unifyVarGC(valTermRef(argp), di->variables,
 			 *PC++ PASS_LD) );
-          NEXTARG;
-	  continue;
+	  break;
       case H_VOID:
 	{ if ( !pushed )		/* FIRSTVAR in the head */
 	    TRY(unifyVarGC(valTermRef(argp), di->variables,
 			   VAROFFSET(argn) PASS_LD) );
-	  NEXTARG;
-	  continue;
+	  break;
 	}
       case H_VOID_N:
         { int n = (int)*PC++;
@@ -4931,7 +5143,6 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	       !PL_unify_compound(argp, fdef) )
 	    return FALSE;
           get_arg_ref(argp, t2 PASS_LD);
-          next_arg_ref(argp PASS_LD);
 	  assert(t2 == argp+2);
 	  argp = t2;
 	  pushed++;
@@ -4957,9 +5168,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	  PL_reset_term_refs(argp);
           argp -= 2;
 	  pushed--;
-	  if ( !pushed )
-	    argn++;
-	  continue;
+	  break;
       case H_LIST_FF:
       { Word p;
 
@@ -4969,8 +5178,7 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	p = argTermP(*p, 0);
         TRY(unifyVarGC(p+0, di->variables, *PC++ PASS_LD) );
         TRY(unifyVarGC(p+1, di->variables, *PC++ PASS_LD) );
-	NEXTARG;
-	continue;
+	break;
       }
       case I_EXITCATCH:
       case I_EXITRESET:
@@ -4979,10 +5187,10 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
       case I_SSU_COMMIT:
       case I_SSU_CHOICE:
-	{ assert(argn <= arity);
+	{ assert(argn <= di->arity);
 
 	  if ( argp )
-	  { for(; argn < arity; argn++)
+	  { for(; argn < di->arity; argn++)
 	    { TRY(unifyVarGC(valTermRef(argp), di->variables,
 			     VAROFFSET(argn) PASS_LD));
 	      next_arg_ref(argp PASS_LD);
@@ -5000,6 +5208,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 		   PC[-1], decode(PC[-1]));
 	  fail;
     }
+
+    NEXTARG;
+
 #undef NEXTARG
   }
 }
@@ -5018,6 +5229,43 @@ clause_functor(const Clause cl)
   }
 }
 
+static int
+moved_unifications(term_t body, decompileInfo *di ARG_LD)
+{ int i;
+  term_t tmp;
+  term_t eq, a;
+
+  if ( !(tmp=PL_new_term_refs(2)) )
+    return FALSE;
+  eq = tmp;
+  a  = tmp+1;
+
+  for(i=0; i<di->arity; i++)
+  { if ( true_bit(di->bvar_access, i) )
+    { if ( PL_unify_functor(body, FUNCTOR_comma2) )
+      { _PL_get_arg(1, body, eq);
+	if ( PL_unify_functor(eq, FUNCTOR_equals2) )
+	{ _PL_get_arg(1, eq, a);
+	  if ( !PL_unify(a, di->variables+i) )
+	    return FALSE;
+	  _PL_get_arg(2, eq, a);
+	  if ( !PL_unify(a, di->bvar_args+i) )
+	    return FALSE;
+
+	  _PL_get_arg(2, body, body);
+	  continue;
+	}
+      }
+
+      return FALSE;
+    }
+  }
+
+  PL_reset_term_refs(tmp);
+
+  return TRUE;
+}
+
 
 bool
 decompile(Clause clause, term_t term, term_t bindings)
@@ -5026,18 +5274,15 @@ decompile(Clause clause, term_t term, term_t bindings)
   decompileInfo *di = &dinfo;
   term_t body, vbody;
 
-  di->nvars    = VAROFFSET(1) + clause->prolog_vars;
-  di->bindings = bindings;
+  di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
+  di->arity       = (int)clause->predicate->functor->arity;
+  di->bindings    = bindings;
+  di->bvar_access = NULL;
   if ( clause->prolog_vars )
   { if ( !(di->variables = PL_new_term_refs(clause->prolog_vars)) )
       return FALSE;
   } else
     di->variables = 0;
-
-#ifdef O_RUNTIME
-  if ( false(getProcDefinition(clause->procedure), P_DYNAMIC|P_THREAD_LOCAL) )
-    fail;
-#endif
 
   if ( true(clause, UNIT_CLAUSE) )	/* fact */
   { if ( decompile_head(clause, term, di PASS_LD) )
@@ -5060,6 +5305,13 @@ decompile(Clause clause, term_t term, term_t bindings)
   } else
   { term_t a = PL_new_term_ref();
 
+    if ( true(clause, CL_HEAD_TERMS) )
+    { di->bvar_access = alloca(sizeof_bitvector(di->arity));
+      init_bitvector(di->bvar_access, di->arity);
+      if ( !mark_bvar_access(clause, di PASS_LD) )
+	return FALSE;
+    }
+
     TRY(PL_unify_functor(term, clause_functor(clause)));
     _PL_get_arg(1, term, a);
     TRY(decompile_head(clause, a, di PASS_LD));
@@ -5077,6 +5329,10 @@ decompile(Clause clause, term_t term, term_t bindings)
     TRY(PL_unify_atom(a, context->name));
     _PL_get_arg(2, body, body);
   }
+
+  if ( di->bvar_access &&
+       !moved_unifications(body, di PASS_LD) )
+    return FALSE;
 
   if ( fetchop(PC) == I_EXIT )
     return PL_unify_atom(body, ATOM_true);
