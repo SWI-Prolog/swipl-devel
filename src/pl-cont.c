@@ -203,14 +203,14 @@ put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
   if ( rc )
   { for(i=cl->prolog_vars; i<cl->variables; i++)
     { if ( true_bit(active, i) )
-      { DEBUG(MSG_SHIFT_CHOICE,
-	      Sdprintf("Shift: clause %d of %s: active "
-		       "choice-point in slot %d\n",
-		       clauseNo(cl, 0),
-		       predicateName(fr->predicate), i));
+      { if ( for_copy )
+	{ DEBUG(MSG_SHIFT_CHOICE,
+		Sdprintf("Shift: clause %d of %s: active "
+			 "choice-point in slot %d\n",
+			 clauseNo(cl, 0),
+			 predicateName(fr->predicate), i));
 
-	if ( for_copy )
-	{ *p++ = 0;
+	  *p++ = 0;
 	} else
 	{ *p++ = consInt(argFrame(fr, i));
 	}
