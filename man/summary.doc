@@ -634,6 +634,7 @@ suggest predicates from a keyword.
 \predicatesummary{shell}{1}{Execute OS command}
 \predicatesummary{shell}{2}{Execute OS command}
 \predicatesummary{shift}{1}{Shift control to the closest reset/3}
+\predicatesummary{shift_for_copy}{1}{Shift control to the closest reset/3}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
 \predicatesummary{size_abstract_term}{3}{Abstract a term (tabling support)}
 \predicatesummary{size_file}{2}{Get size of a file in characters}

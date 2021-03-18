@@ -2547,6 +2547,13 @@ Abandon the execution of the current goal, returning control to just
 except that (1) nothing is `undone' and (2) the 3th argument of
 reset/3 is unified with the \jargon{continuation}, which allows the
 code calling reset/3 to \jargon{resume} the current goal.
+
+    \predicate[experimental]{shift_for_copy}{1}{+Ball}
+Similar to shift/1.  This version is intended for situations where
+it is assumed the continuation is copied and saved to be executed
+one or multiple times in a different context.  This notably prevents
+restoring choice points saved for \predref{\+}{1},
+\textit{If{->}Then{;}Else}, etc.
 \end{description}
 
 

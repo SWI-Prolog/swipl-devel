@@ -3,9 +3,10 @@
     Author:        Benoit Desouter <Benoit.Desouter@UGent.be>
                    Jan Wielemaker (SWI-Prolog port)
                    Fabrizio Riguzzi (mode directed tabling)
-    Copyright (c) 2016-2020, Benoit Desouter,
+    Copyright (c) 2016-2021, Benoit Desouter,
                              Jan Wielemaker,
                              Fabrizio Riguzzi
+                             SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -377,7 +378,7 @@ start_tabling_2(Closure, Wrapper, Worker, Trie, Status, Skeleton) :-
     ;   Status == invalid
     ->  reeval(Trie, Wrapper, Skeleton)
     ;   % = run_follower, but never fresh and Status is a worklist
-        shift(call_info(Skeleton, Status))
+        shift_for_copy(call_info(Skeleton, Status))
     ).
 
 create_table(Trie, Fresh, Skeleton, Wrapper, Worker) :-
@@ -429,7 +430,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
         ;   Status == invalid
         ->  reeval(Trie, Wrapper, Skeleton),
             trie_gen_compiled(Trie, Skeleton)
-        ;   shift(call_info(Skeleton, Status))
+        ;   shift_for_copy(call_info(Skeleton, Status))
         )
     ;   more_general_table(Wrapper, ATrie),
         '$tbl_table_status'(ATrie, complete, Wrapper, Skeleton)
@@ -441,7 +442,7 @@ start_subsumptive_tabling(Closure, Wrapper, Worker) :-
             Wrapper = GenWrapper,
             '$tbl_answer_update_dl'(ATrie, GenSkeleton)
         ;   wrapper_skeleton(GenWrapper, GenSkeleton, Wrapper, Skeleton),
-            shift(call_info(GenSkeleton, Skeleton, Status)),
+            shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
             unify_subsumptive(Skeleton, GenSkeleton)
         )
     ;   start_tabling(Closure, Wrapper, Worker)
@@ -490,7 +491,7 @@ start_abstract_tabling(Closure, Wrapper, Worker) :-
         reeval(ATrie, GenWrapper, GenSkeleton),
         Wrapper = GenWrapper,
         '$tbl_answer_update_dl'(ATrie, Skeleton)
-    ;   shift(call_info(GenSkeleton, Skeleton, Status)),
+    ;   shift_for_copy(call_info(GenSkeleton, Skeleton, Status)),
         unify_subsumptive(Skeleton, GenSkeleton)
     ).
 
@@ -576,7 +577,7 @@ run_leader(Skeleton, Worker, fresh(SCC, Worklist), Status, Clause) :-
     (   Status == merged
     ->  tdebug(merge, 'Turning leader ~p into follower', [Goal]),
         '$tbl_wkl_make_follower'(Worklist),
-        shift(call_info(Skeleton, Worklist))
+        shift_for_copy(call_info(Skeleton, Worklist))
     ;   true                                    % completed
     ).
 
@@ -681,7 +682,7 @@ start_moded_tabling_2(_Closure, Wrapper, Worker, ModeArgs,
     ->  reeval(Trie, Wrapper, Skeleton),
         moded_gen_answer(Trie, Skeleton, ModeArgs)
     ;   % = run_follower, but never fresh and Status is a worklist
-        shift(call_info(Skeleton/ModeArgs, Status))
+        shift_for_copy(call_info(Skeleton/ModeArgs, Status))
     ).
 
 :- public
@@ -714,7 +715,7 @@ moded_run_leader(Wrapper, SkeletonMA, Worker, fresh(SCC, Worklist), Status) :-
     (   Status == merged
     ->  tdebug(merge, 'Turning leader ~p into follower', [Wrapper]),
         '$tbl_wkl_make_follower'(Worklist),
-        shift(call_info(SkeletonMA, Worklist))
+        shift_for_copy(call_info(SkeletonMA, Worklist))
     ;   true                                    % completed
     ).
 
@@ -890,7 +891,7 @@ floundering(Goal) :-
 negation_suspend(Wrapper, Skeleton, Worklist) :-
     tdebug(tnot, 'negation_suspend ~p (wl=~p)', [Wrapper, Worklist]),
     '$tbl_wkl_negative'(Worklist),
-    shift(call_info(Skeleton, tnot(Worklist))),
+    shift_for_copy(call_info(Skeleton, tnot(Worklist))),
     tdebug(tnot, 'negation resume ~p (wl=~p)', [Wrapper, Worklist]),
     '$tbl_wkl_is_false'(Worklist).
 
