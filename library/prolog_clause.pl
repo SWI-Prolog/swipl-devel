@@ -495,9 +495,11 @@ ubody(B, C, _, P, P) :-
 ubody(X0, X, M, parentheses_term_position(_, _, P0), P) :-
     !,
     ubody(X0, X, M, P0, P).
-ubody(X, call(X), _,                    % X = call(X)
+ubody(X, Y, _,                    % X = call(X)
       Pos,
       term_position(From, To, From, To, [Pos])) :-
+    nonvar(Y),
+    Y = call(X),
     !,
     arg(1, Pos, From),
     arg(2, Pos, To).
