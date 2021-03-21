@@ -137,8 +137,13 @@ ansi_format(Stream, Class, Format, Args) :-
     class_attrs(Class, Attr),
     phrase(sgr_codes_ex(Attr), Codes),
     atomic_list_concat(Codes, ;, Code),
-    format(string(Fmt), '\e[~~wm~w\e[0m', [Format]),
-    format(Stream, Fmt, [Code|Args]),
+    with_output_to(
+        Stream,
+        (   keep_line_pos(current_output, format('\e[~wm', [Code])),
+            format(Format, Args),
+            keep_line_pos(current_output, format('\e[0m'))
+        )
+    ),
     flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
     format(Stream, Format, Args).
