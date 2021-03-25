@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1762,7 +1763,7 @@ See decompileBody for details on handling the branch instructions.
 static inline void
 mark_frame_var(walk_state *state, code v ARG_LD)
 { if ( state->active )
-  { int i = (int)v - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(v);
 
     DEBUG(MSG_CONTINUE, Sdprintf("Access %d (%scleared)\n",
 				 i, true_bit(state->clear, i) ? "" : "not "));
@@ -1782,7 +1783,7 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 static inline void
 clear_frame_var(walk_state *state, code var, Code PC)
 { if ( state->clear )
-  { int i = (int)var - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(var);
 
     DEBUG(MSG_CONTINUE, Sdprintf("Clear %d\n", i));
     set_bit(state->clear, i);
@@ -1814,7 +1815,8 @@ clear_frame_var(walk_state *state, code var, Code PC)
 static inline void
 clear_choice_mark(walk_state *state, code slot)
 { if ( (state->flags & GCM_CHOICE) )
-  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(slot);
+    DEBUG(MSG_CONTINUE, Sdprintf("Clear choice %d\n", i));
     set_bit(state->clear, i);
   }
 }
@@ -1823,8 +1825,13 @@ clear_choice_mark(walk_state *state, code slot)
 static inline void
 mark_choice_mark(walk_state *state, code slot)
 { if ( (state->flags & GCM_CHOICE) )
-  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
-    set_bit(state->active, i);
+  { int i = VARNUM(slot);
+
+    DEBUG(MSG_CONTINUE,
+	  Sdprintf("Found choice %d (%s)\n", i,
+		   true_bit(state->clear, i) ? "cleared" : "active"));
+    if ( !true_bit(state->clear, i) )
+      set_bit(state->active, i);
   }
 }
 
