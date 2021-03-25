@@ -877,10 +877,16 @@ process((Head :- Body), Src) :-
     !,
     assert_defined(Src, Head),
     process_body(Body, Head, Src).
-process((Head => Body), Src) :-
+process((Left => Body), Src) :-
     !,
-    assert_defined(Src, Head),
-    process_body(Body, Head, Src).
+    (   nonvar(Left),
+        Left = (Head, Guard)
+    ->  assert_defined(Src, Head),
+        process_body(Guard, Head, Src),
+        process_body(Body, Head, Src)
+    ;   assert_defined(Src, Left),
+        process_body(Body, Left, Src)
+    ).
 process(?=>(Head, Body), Src) :-
     !,
     assert_defined(Src, Head),
