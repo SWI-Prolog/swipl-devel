@@ -461,6 +461,10 @@ swi_message(determinism_error(PI, det, fail, guard)) -->
     [ 'Procedure ~p failed after $-guard'-[PI] ].
 swi_message(determinism_error(PI, det, fail, guard_in_caller)) -->
     [ 'Procedure ~p failed after $-guard in caller'-[PI] ].
+swi_message(determinism_error(Goal, det, fail, goal)) -->
+    [ 'Goal ~p failed'-[Goal] ].
+swi_message(determinism_error(Goal, det, nondet, goal)) -->
+    [ 'Goal ~p succeeded with a choice point'-[Goal] ].
 swi_message(qlf_format_error(File, Message)) -->
     [ '~w: Invalid QLF file: ~w'-[File, Message] ].
 

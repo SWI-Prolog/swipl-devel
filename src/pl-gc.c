@@ -1928,14 +1928,15 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
         goto again;
       }
       case C_NOT:
+      case C_DET:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
-	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET at %d\n", PC-state->c0-1));
 	clear_choice_mark(state, PC[0]);
 	PC += 2;			/* skip the two arguments */
 	walk_and_mark(state, PC, C_CUT PASS_LD);
-	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
         goto again;
@@ -1970,6 +1971,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_SOFTCUT:
       case C_LCUTIFTHEN:
       case C_FASTCUT:
+      case C_DETTRUE:
 	mark_choice_mark(state, PC[0]);
         break;
 					/* variable access */

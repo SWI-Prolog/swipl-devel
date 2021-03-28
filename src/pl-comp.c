@@ -2157,12 +2157,14 @@ right_argument:
 	Output_0(ci, C_END);
 
 	succeed;
-      } else if ( fd == FUNCTOR_not_provable1 )		/* \+/1 */
+      } else if ( fd == FUNCTOR_not_provable1 ||	/* \+/1 */
+		  fd == FUNCTOR_dollar1 )		/* $/1 */
       { int var;
-	size_t tc_or;
+	size_t tc_or, tc_det;
 	VarTable vsave;
 	int rv;
 	cutInfo cutsave = ci->cut;
+	int isnot = (fd == FUNCTOR_not_provable1);
 
 	if ( !(var=allocChoiceVar(ci)) )
 	  return FALSE;
@@ -2172,15 +2174,22 @@ right_argument:
 	else
 	  vsave = NULL;
 
-	Output_2(ci, C_NOT, var, (code)0);
+	Output_2(ci, isnot ? C_NOT : C_DET, var, (code)0);
 	tc_or = PC(ci);
 	ci->cut.var = var;
 	ci->cut.instruction = C_LCUT;
 	if ( (rv=compileBody(argTermP(*body, 0), I_CALL, ci PASS_LD)) != TRUE )
 	  return rv;
 	ci->cut = cutsave;
-	Output_1(ci, C_CUT, var);
-	Output_0(ci, C_FAIL);
+	if ( isnot )
+	{ Output_1(ci, C_CUT, var);
+	  Output_0(ci, C_FAIL);
+	  tc_det = 0;			/* silence compiler */
+	} else
+	{ Output_1(ci, C_DETTRUE, var);
+	  Output_1(ci, C_JMP, (code)0);
+	  tc_det = PC(ci);
+	}
 	if ( ci->islocal )
 	{ OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	} else
@@ -2196,6 +2205,10 @@ right_argument:
 	  { seekBuffer(&ci->codes, tc_jmp-2, code);
 	    OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	  }
+	}
+	if ( !isnot )
+	{ Output_0(ci, C_DETFALSE);
+	  OpCode(ci, tc_det-1) = (code)(PC(ci) - tc_det);
 	}
 
 	succeed;
@@ -4771,7 +4784,8 @@ typedef struct
 } decompileInfo;
 
 static int decompile_head(Clause, term_t, decompileInfo * ARG_LD);
-static int decompileBody(decompileInfo *, code, Code ARG_LD);
+static int decompileBody(term_t body, decompileInfo *, code, Code ARG_LD);
+static int decompileBodyNoShift(decompileInfo *, code, Code ARG_LD);
 static int build_term(functor_t f, decompileInfo *di, int dir ARG_LD);
 static int put_functor(Word p, functor_t f ARG_LD);
 
@@ -5275,7 +5289,7 @@ decompile(Clause clause, term_t term, term_t bindings)
 { GET_LD
   decompileInfo dinfo;
   decompileInfo *di = &dinfo;
-  term_t body, vbody;
+  term_t body;
 
   di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
   di->arity       = (int)clause->predicate->functor->arity;
@@ -5340,16 +5354,23 @@ decompile(Clause clause, term_t term, term_t bindings)
   if ( fetchop(PC) == I_EXIT )
     return PL_unify_atom(body, ATOM_true);
 
-  for(;;)
+  return decompileBody(body, di, I_EXIT, (Code) NULL PASS_LD);
+}
+
+
+static int
+decompileBody(term_t body, decompileInfo *di, code end, Code until ARG_LD)
+{ for(;;)
   { fid_t fid;
     Code PCsave = di->pc;
+    term_t vbody;
     int rc;
 
     if ( !(fid = PL_open_foreign_frame()) )
       return FALSE;
     vbody = PL_new_term_ref();
     ARGP = valTermRef(vbody);
-    rc = decompileBody(di, I_EXIT, (Code) NULL PASS_LD);
+    rc = decompileBodyNoShift(di, end, (Code) NULL PASS_LD);
     if ( rc == TRUE )
     { rc = PL_unify(body, vbody);
       PL_close_foreign_frame(fid);
@@ -5415,13 +5436,13 @@ area is not in use during decompilation.
 	}
 #define TRY_DECOMPILE(di, end, until) \
 	{ int rc; \
-	  rc = decompileBody(di, end, until PASS_LD); \
+	  rc = decompileBodyNoShift(di, end, until PASS_LD); \
 	  if ( rc != TRUE ) \
 	    return rc; \
 	}
 
 static int
-decompileBody(decompileInfo *di, code end, Code until ARG_LD)
+decompileBodyNoShift(decompileInfo *di, code end, Code until ARG_LD)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
   code op;
@@ -5896,6 +5917,15 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
 			    pushed++;
 			    continue;
 			  }
+      case C_DET:				/* $ A */
+			  { PC += 2;		/* skip the two arguments */
+			    TRY_DECOMPILE(di, C_DETTRUE, NULL);   /* A */
+			    PC += 5;		/* skip C_DETTRUE <n> */
+						/*      C_JMP <n>, C_DETFALSE */
+			    BUILD_TERM(FUNCTOR_dollar1);
+			    pushed++;
+			    continue;
+			  }
 			  { Code adr1;
 			    int jmp;
 			    code icut;
@@ -5962,6 +5992,110 @@ decompileBody(decompileInfo *di, code end, Code until ARG_LD)
     BUILD_TERM(FUNCTOR_comma2);
 
   return TRUE;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Decompile a range of the body to a  body term, using the local variables
+from `fr`.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+decompile_body_range(term_t goal, LocalFrame fr, Clause clause,
+		     Code start, code end ARG_LD)
+{ decompileInfo dinfo;
+  decompileInfo *di = &dinfo;
+
+  di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
+  di->arity       = (int)clause->predicate->functor->arity;
+  di->bindings    = 0;
+  di->bvar_access = NULL;
+  di->pc          = start;
+
+  if ( clause->prolog_vars )
+    di->variables = consTermRef(argFrameP(fr,0));
+  else
+    di->variables = 0;
+
+  return decompileBody(goal, di, end, NULL PASS_LD);
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+det_goal_error() deals with errors of $/1. First, start_of_cdet() finds
+the C_DET instruction that starts the guarded area.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static Code
+start_of_cdet(Clause cl, Code pc_error)
+{ Code pc  = cl->codes;
+  Code end = pc + cl->code_size;
+
+  for(; pc < end; pc = stepPC(pc))
+  { code c = fetchop(pc);
+
+    if ( (c == C_DET) )
+    { Code end = pc+pc[1]+1;
+
+      assert(fetchop(end)   == C_DETFALSE);
+      assert(fetchop(end-4) == C_DETTRUE);
+
+      if ( pc_error == end ||
+	   pc_error == end-4 )
+	return pc;
+    }
+  }
+
+  assert(0);
+}
+
+int
+det_goal_error(LocalFrame fr, Code pc_error, atom_t found ARG_LD)
+{ Clause cl   = fr->clause->value.clause;
+  Code pc_det = start_of_cdet(cl, pc_error);
+  fid_t fid;
+  atom_t a = ATOM_error;
+
+  PL_current_prolog_flag(ATOM_determinism_error, PL_ATOM, &a);
+  if ( a == ATOM_silent )
+    return TRUE;
+
+  DEBUG(MSG_DETERMINISM,
+	{ size_t offset = pc_det - cl->codes;
+	  Sdprintf("$/1 in %d-th clause of %s at PC=%zd: Goal %s\n",
+		   clauseNo(cl, generationFrame(fr)),
+		   predicateName(fr->predicate),
+		   offset,
+		   found == ATOM_nondet ? "succeeded with choice point"
+					: "failed");
+	});
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t goal = PL_new_term_ref();
+    int rc;
+
+    if ( (rc=decompile_body_range(goal, fr, cl, pc_det+3, C_DETTRUE PASS_LD)) )
+    { if ( a == ATOM_warning )
+      { rc = printMessage(ATOM_warning,
+			  PL_FUNCTOR, FUNCTOR_error2,
+			    PL_FUNCTOR, FUNCTOR_determinism_error4,
+			      PL_TERM, goal,
+			      PL_ATOM, ATOM_det,
+			      PL_ATOM, found,
+			      PL_ATOM, ATOM_goal,
+			    PL_VARIABLE);
+      } else
+      { rc = PL_error(NULL, 0, NULL, ERR_DET_GOAL,
+		      goal, ATOM_det, found);
+      }
+    }
+
+    PL_close_foreign_frame(fid);
+
+    return rc;
+  }
+
+  return FALSE;
 }
 
 

@@ -1032,6 +1032,7 @@ F dmessage_queue	1
 F dmeta_call		1
 F dmutex		1
 F domain_error		2
+F dollar		1
 F dot			2
 F doublestar		2
 F dparse_quasi_quotations 2

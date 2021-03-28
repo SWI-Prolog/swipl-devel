@@ -43,7 +43,8 @@
 
 test_det_decl :-
     run_tests([ det_decl,
-                det_guard
+                det_guard,
+                det_goal
               ]).
 
 :- meta_predicate
@@ -123,6 +124,31 @@ test(fail, error(determinism_error(_:d/1,det,fail,guard_in_caller))) :-
 
 :- end_tests(det_guard).
 
+:- begin_tests(det_goal).
+
+nd(X) :- nd2(X).
+nd2(X) :- nd3(X).
+
+nd3(1).
+nd3(2).
+nd3(2).
+
+end.
+
+d(X) :- $nd(X), end.
+
+test(det) :-
+    d(1).
+test(ndet, error(determinism_error(nd(2),det,nondet,goal))) :-
+    d(2).
+test(ndet, error(determinism_error(nd(2),det,nondet,goal))) :-
+    with_debug(d(2)).
+test(fail, error(determinism_error(nd(3),det,fail,goal))) :-
+    d(3).
+test(fail, error(determinism_error(nd(3),det,fail,goal))) :-
+    with_debug(d(3)).
+
+:- end_tests(det_goal).
 
 
 with_debug(Goal) :-

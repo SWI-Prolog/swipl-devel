@@ -105,6 +105,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_TTY),
   DEBUG_TOPIC(MSG_OS_DIR),
   DEBUG_TOPIC(MSG_COMP_ARG_UNIFY),
+  DEBUG_TOPIC(MSG_DETERMINISM),
 						/* Parser */
   DEBUG_TOPIC(MSG_READ_TOKEN),
 

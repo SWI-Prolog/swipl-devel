@@ -353,6 +353,7 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     call(7,?,?,?,?,?,?,?),
     not(0),
     \+(0),
+    $(0),
     '->'(0,0),
     '*->'(0,0),
     once(0),
@@ -441,6 +442,10 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     !,
     prolog_current_choice(Ch),
     \+ '$meta_call'(G, M, Ch).
+'$meta_call'($(G), M, _) :-
+    !,
+    prolog_current_choice(Ch),
+    $('$meta_call'(G, M, Ch)).
 '$meta_call'(call(G), M, _) :-
     !,
     prolog_current_choice(Ch),
@@ -553,6 +558,12 @@ prolog_cut_to(_Choice) :-
 %   Declare that from now on this predicate succeeds deterministically.
 
 '$' :- '$'.
+
+%!  $(:Goal) is det.
+%
+%   Declare that Goal must succeed deterministically.
+
+$(Goal) :- $(Goal).
 
 %!  reset(:Goal, ?Ball, -Continue)
 %

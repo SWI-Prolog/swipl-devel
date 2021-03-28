@@ -10691,6 +10691,20 @@ The \predref{$}{0} constructs acts similar to the \predref{!}{0},
 but in addition declares that the remainder of the clause body shall
 succeed deterministically.  It exploits the same underlying mechanism
 as the det/1 declaration.
+
+    \predicate[experimental]{$}{1}{:Goal}
+Verify that \arg{Goal} succeeds deterministically.  This predicate
+has no effect if \arg{Goal} succeeds without a choicepoint.  Otherwise
+the result depends on the Prolog flag \prologflag{determinism_error}:
+
+    \begin{description}
+	\termitem{silent}{}
+    Act as once/1.
+	\termitem{warning}{}
+    Print a warning and act as once/1.
+	\termitem{error}{}
+    Raise a \const{determinism_error} exception.
+    \end{description}
 \end{description}
 
 A deterministic predicate may call normal predicates. No error is

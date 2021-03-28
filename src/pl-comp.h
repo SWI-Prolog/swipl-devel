@@ -51,6 +51,8 @@ COMMON(Clause)		assert_term(term_t term, Module m, ClauseRef where,
 COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
 COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
 COMMON(bool)		decompileHead(Clause clause, term_t head);
+COMMON(int)		det_goal_error(LocalFrame fr, Code PC,
+				       atom_t found ARG_LD);
 COMMON(Code)		skipArgs(Code PC, int skip);
 COMMON(int)		argKey(Code PC, int skip, word *key);
 COMMON(int)		arg1Key(Code PC, word *key);

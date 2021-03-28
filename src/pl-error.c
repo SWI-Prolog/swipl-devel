@@ -411,6 +411,19 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_ATOM, decl));
       break;
     }
+    case ERR_DET_GOAL:
+    { term_t goal     = va_arg(args, term_t);
+      atom_t expected = va_arg(args, atom_t);
+      atom_t found    = va_arg(args, atom_t);
+
+      rc = ( PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_determinism_error4,
+			     PL_TERM, goal,
+			     PL_ATOM, expected,
+			     PL_ATOM, found,
+			     PL_ATOM, ATOM_goal));
+      break;
+    }
     case ERR_IMPORT_PROC:
     { predicate_t pred = va_arg(args, predicate_t);
       atom_t dest = va_arg(args, atom_t);

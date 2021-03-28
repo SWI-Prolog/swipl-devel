@@ -105,6 +105,7 @@
 #define MSG_TTY			 59
 #define MSG_OS_DIR		 60
 #define MSG_COMP_ARG_UNIFY	 61
+#define MSG_DETERMINISM		 62
 
 #define MSG_READ_TOKEN		 65
 

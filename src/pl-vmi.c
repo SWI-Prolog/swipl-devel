@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2521,6 +2522,49 @@ VMI(C_IFTHEN, 0, 1, (CA1_CHP))
 
   NEXT_INSTRUCTION;
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+C_DET  is  like  C_NOT,  starting  a  block   that  is  asserted  to  be
+deterministic.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+VMI(C_DET, 0, 2, (CA1_CHP,CA1_JUMP))
+{ SEPARATE_VMI;
+  VMI_GOTO(C_IFTHENELSE);
+}
+
+VMI(C_DETTRUE, 0, 1, (CA1_CHP))
+{ Choice och = (Choice) valTermRef(varFrame(FR, *PC));
+  Choice ch = BFR;
+
+  if ( ch->parent == och )
+  { DEBUG(0, assert(ch->type == CHP_JUMP));
+    BFR = och;
+    DEBUG(0, assert(PC[1] == encode(C_JMP)));
+    PC += PC[2];
+    PC += 3;
+    NEXT_INSTRUCTION;
+  }
+
+  SAVE_REGISTERS(qid);
+  det_goal_error(FR, PC-1, ATOM_nondet PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  VMI_GOTO(C_CUT);
+}
+
+VMI(C_DETFALSE, 0, 0, ())
+{ SAVE_REGISTERS(qid);
+  det_goal_error(FR, PC-1, ATOM_fail PASS_LD);
+  LOAD_REGISTERS(qid);
+  if ( exception_term )
+    THROW_EXCEPTION;
+
+  BODY_FAILED;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_IFTHENELSE: contraction of C_IFTHEN and C_OR.  This contraction has been
