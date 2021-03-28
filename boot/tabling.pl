@@ -2024,11 +2024,13 @@ reeval_monotonic_node(ATrie, Size) :-
         ),
         fail
     ;   '$mono_reeval_done'(ATrie, Size, Deps),
-        (   Deps == []                % all done
-        ->  true
-        ;   Deps == false             % re-evaluation queued new answers
-        ->  reeval_node(ATrie)
-        ;   reeval_nodes(Deps),       % not all dependents are valid
+        (   Deps == []
+        ->  tdebug(reeval, 'Re-evaluation for ~p complete', [ATrie])
+        ;   Deps == false
+        ->  tdebug(reeval, 'Re-evaluation for ~p queued new answers', [ATrie]),
+            reeval_node(ATrie)
+        ;   tdebug(reeval, 'Re-evaluation for ~p: new invalid deps: ~p', [ATrie, Deps]),
+            reeval_nodes(Deps),
             reeval_node(ATrie)
         )
     ).
