@@ -6595,7 +6595,8 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 	      outOfCore();
 	  }
 	}
-      } else if ( !table_is_incomplete(n->atrie) ) /* Decrement falsecount */
+      } else if ( !table_is_incomplete(n->atrie) &&
+		  !n->mono_reevaluating )	/* Decrement falsecount */
       { int fc = ATOMIC_DEC(&n->falsecount);
 
 	assert(fc >= 0);
@@ -7210,6 +7211,7 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
 
     if ( idg && idg->falsecount && idg->monotonic && idg->lazy )
     { idg->lazy_queued = FALSE;			/* trap that new answers are queued */
+      idg->mono_reevaluating = TRUE;
       if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
@@ -7311,6 +7313,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
     if ( (idg=atrie->data.IDG) )
     { size_t invalid_deps;
 
+      idg->mono_reevaluating = FALSE;
       if ( !invalid_dependencies(A3, idg, &invalid_deps PASS_LD) )
 	return FALSE;
 

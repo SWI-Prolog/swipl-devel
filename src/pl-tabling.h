@@ -204,6 +204,7 @@ typedef struct idg_node
   unsigned	lazy : 1;		/* Lazy monotonic node */
   unsigned	lazy_queued : 1;	/* There are answers queued */
   unsigned	force_reeval : 1;	/* Forced reevaluation for monotonic */
+  unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
   int		falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS
   struct
