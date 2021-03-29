@@ -6035,7 +6035,7 @@ start_of_cdet(Clause cl, Code pc_error)
   { code c = fetchop(pc);
 
     if ( (c == C_DET) )
-    { Code end = pc+pc[1]+1;
+    { Code end = pc+pc[2]+3;
 
       assert(fetchop(end)   == C_DETFALSE);
       assert(fetchop(end-4) == C_DETTRUE);
