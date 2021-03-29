@@ -1636,14 +1636,8 @@ VMI(I_SSU_COMMIT, 0, 0, ())
 
   clear(FR, FR_SSU_DET);
 
-  { SAVE_REGISTERS(qid);
-    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
-    LOAD_REGISTERS(qid);
-    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
-    ARGP = argFrameP(lTop, 0);
-    if ( exception_term )
-      THROW_EXCEPTION;
-  }
+  lTop = (LocalFrame)BFR;
+  BFR = BFR->parent;
 
   VMI_GOTO(I_ENTER);
 }
