@@ -2396,6 +2396,9 @@ provide proper debugger output.
 VMI(I_CUT, VIF_BREAK, 0, ())
 { clear(FR, FR_SSU_DET);
 
+  if ( (LocalFrame)BFR <= FR )
+    NEXT_INSTRUCTION;
+
 #ifdef O_DEBUGGER
   if ( debugstatus.debugging )
   { int rc;
