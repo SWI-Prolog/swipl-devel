@@ -10690,7 +10690,7 @@ ERROR:   [10] p(a)
 The \predref{$}{0} constructs acts similar to the \predref{!}{0},
 but in addition declares that the remainder of the clause body shall
 succeed deterministically.  It exploits the same underlying mechanism
-as the det/1 declaration.
+as the det/1 declaration.   See also \predref{$}{1}.
 
     \predicate[experimental]{$}{1}{:Goal}
 Verify that \arg{Goal} succeeds deterministically.  This predicate
@@ -10705,6 +10705,13 @@ the result depends on the Prolog flag \prologflag{determinism_error}:
 	\termitem{error}{}
     Raise a \const{determinism_error} exception.
     \end{description}
+
+Note that if \predref{$}{1} is used for the last call, last call
+optimization is not effective. This behaviour ensures consistent errors
+or warnings. Last call optimization with determinism checking can be
+realised using \verb=..., $, Last.=, i.e. by executing
+\predref{$}{0} before the last call rather than wrapping the last call
+in \predref{$}{1}.
 \end{description}
 
 A deterministic predicate may call normal predicates. No error is
