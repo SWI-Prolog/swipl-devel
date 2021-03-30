@@ -219,6 +219,45 @@ fail/0 as body:
 sum_list(_,_,_) => fail.
 \end{code}
 
+\subsection{Single Sided Unification Guards}
+\label{sec:ssu-guard}
+
+Using the construction \exam{Head, Guard => Body}, the \arg{Guard} is
+executed \emph{after} the single sided head unification. If the
+\arg{Guard} succeeds the clause executes a cut (\predref{!}{0}) and
+proceeds normally. There are no restrictions on the guard code. A well
+behaved guard is a \jargon{test}.  Notably:
+
+\begin{itemize}
+    \item Though not enforced\footnote{We do not know about an efficient
+way to enforce unification against head arguments}, guard code shall
+not instantiate variables in the \arg{Head} because this breaks the
+promise of SSU and may make the node non-steadfast.
+    \item It is bad style (but again, not enforced) to have any type
+of side effects (output, database change, etc.)
+    \item Typically, guard calls are \const{semidet}.  Non-deterministic
+calls are allowed.  If the guard succeeds with choicepoints these are
+pruned before the body is entered.
+\end{itemize}
+
+As a special exception, explicit unification against a variable in the
+head is moved into the head. See \secref{indexbody}. In the example
+below, the \exam{X = f(I)} is moved into the head and (thus) is executed
+using single sided unification.
+
+\begin{code}
+p(X), X = f(I), integer(I) => q(X).
+\end{code}
+
+\begin{quote}
+\textbf{Warning} Moving the guard unification into the head changes the
+semantics of the unification. This may be defended by the rules above
+that claim one should not unify against the head arguments in the guard.
+Future versions may use a dedicated operator to indicate that the
+unification may be moved into the head.
+\end{quote}
+
+
 \subsection{Consequenses of {=>} single sided unification rules}
 \label{sec:ssu-consequences}
 

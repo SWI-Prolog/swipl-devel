@@ -1724,7 +1724,7 @@ compileClause(Clause *cp, Word head, Word body,
     ci.arity        = (int)def->functor->arity;
     ci.procedure    = proc;
     ci.argvars      = 0;
-    ci.head_unify   = ( !(flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) &&
+    ci.head_unify   = ( !(flags & (SSU_COMMIT_CLAUSE)) &&
 			false(def, P_DYNAMIC) );
     clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
@@ -5034,6 +5034,9 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
 	    INCARG();			\
 	  next_arg_ref(argp PASS_LD);	\
 	} while(0)
+
+  if ( decode(*PC) == I_CHP )		/* Upsets move unification as we */
+    PC++;				/* see the same arg twice */
 
   for(;;)
   { code c = decode(*PC++);
