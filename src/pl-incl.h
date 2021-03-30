@@ -886,6 +886,7 @@ with one operation, it turns out to be faster as well.
 #define P_MODIFIED		P_DIRTYREG
 #define P_NEW			SPY_ME
 #define P_NO_CLAUSES		TRACE_ME
+#define P_CHECK_SSU		HIDE_CHILDS
 
 /* Flags on clauses (unsigned int) */
 

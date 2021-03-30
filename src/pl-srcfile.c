@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2020, VU University Amsterdam
+    Copyright (c)  2014-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,8 @@
 #include "pl-dbref.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+
+static void	fix_ssu(p_reload *r, Clause clause);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
@@ -1087,7 +1090,9 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
     }
 
     if ( reload->number_of_clauses++ == 0 )
-      fix_discontiguous(reload);
+    { fix_discontiguous(reload);
+      fix_ssu(reload, clause);
+    }
 
     if ( true(reload, P_NEW|P_NO_CLAUSES) )
       return assertProcedure(proc, clause, CL_END PASS_LD);
@@ -1214,6 +1219,36 @@ setAttrProcedureSource(SourceFile sf, Procedure proc,
   return setAttrDefinition(proc->definition, attr, val);
 }
 
+static void
+check_ssu(p_reload *r)
+{ GET_LD
+  Definition def = r->predicate;
+  ClauseRef cref;
+  int errors = 0;
+
+  acquire_def(def);
+  for(cref=def->impl.clauses.first_clause; cref && !errors; cref=cref->next)
+  { Clause cl = cref->value.clause;
+
+    if ( false(cl, CL_ERASED) )
+    { if ( true(def, P_SSU_DET) &&
+	   false(cl, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+	errors++;
+      if ( false(def, P_SSU_DET) &&
+	   true(cl, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+	errors++;
+    }
+  }
+  release_def(def);
+
+  /* TBD: print_message/2.  Not easy as we cannot print.  So, we have
+   * to use the delayed event mechanism.
+   */
+  if ( errors )
+    Sdprintf("ERROR: Mixed SSU (=> and :-) clauses in %s\n",
+	     predicateName(def));
+}
+
 
 static void
 fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
@@ -1232,6 +1267,26 @@ fix_discontiguous(p_reload *r)
 
   if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
     clear(def, P_DISCONTIGUOUS);
+}
+
+
+static void
+fix_ssu(p_reload *r, Clause clause)
+{ Definition def = r->predicate;
+
+  if ( false(def, P_DYNAMIC|P_MULTIFILE) )
+  { if ( true(clause, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+    { if ( false(def, P_SSU_DET) )
+      { set(def, P_SSU_DET);
+	set(r, P_CHECK_SSU);
+      }
+    } else
+    { if ( true(def, P_SSU_DET) )
+      { clear(def, P_SSU_DET);
+	set(r, P_CHECK_SSU);
+      }
+    }
+  }
 }
 
 
@@ -1470,6 +1525,8 @@ end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
     delete_pending_clauses(sf, def, r PASS_LD);
     fix_attributes(sf, def, r PASS_LD);
     reconsultFinalizePredicate(sf->reload, def, r PASS_LD);
+    if ( true(r, P_CHECK_SSU) )
+      check_ssu(r);
   } else
   { dropped_access++;
     if ( true(r, P_NO_CLAUSES) )
