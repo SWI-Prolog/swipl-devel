@@ -1208,7 +1208,9 @@ will use for the following enhancements:
 These versions are called \emph{before} their 2-argument counterparts.
 The input layout term is either a variable (if no layout information is
 available) or a term carrying detailed layout information as returned by
-the \const{subterm_positions} of read_term/2.
+the \const{subterm_positions} of read_term/2. The output layout should be
+a variable if no layout information can be computed for the expansion;
+a sub-term can also be a variable to indicate ``don't know''.
 \end{description}
 
 
