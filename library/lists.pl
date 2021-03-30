@@ -540,8 +540,10 @@ ccount(List, _, List, C, C).
 %   @see compare/3
 %   @see max_list/2 for the maximum of a list of numbers.
 
-max_member(Max, [H|T]) :-
+max_member(Max, [H|T]) =>
     max_member_(T, H, Max).
+max_member(_, []) =>
+    fail.
 
 max_member_([], Max0, Max) =>
     Max = Max0.
@@ -560,8 +562,10 @@ max_member_([H|T], Max0, Max) =>
 %   @see compare/3
 %   @see min_list/2 for the minimum of a list of numbers.
 
-min_member(Min, [H|T]) :-
+min_member(Min, [H|T]) =>
     min_member_(T, H, Min).
+min_member(_, []) =>
+    fail.
 
 min_member_([], Min0, Min) =>
     Min = Min0.
@@ -596,8 +600,9 @@ sum_list([X|Xs], Sum0, Sum) =>
 %
 %   @see max_member/2.
 
-max_list([H|T], Max) :-
+max_list([H|T], Max) =>
     max_list(T, H, Max).
+max_list([], _) => fail.
 
 max_list([], Max0, Max) =>
     Max = Max0.
@@ -613,8 +618,9 @@ max_list([H|T], Max0, Max) =>
 %
 %   @see min_member/2.
 
-min_list([H|T], Min) :-
+min_list([H|T], Min) =>
     min_list(T, H, Min).
+min_list([], _) => fail.
 
 min_list([], Min0, Min) =>
     Min = Min0.
