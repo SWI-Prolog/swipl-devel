@@ -8049,7 +8049,10 @@ values for \arg{RoundMode} are the same as the flag values:
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the
 return value is in the original type.  For example, max(2.5, 3) compares
-the two values after converting to float, but returns the integer 3.
+the two values after converting to float, but returns the integer 3.  If
+both values are numerical equal the returned max is of the type used for
+the comparison.  For example, the max of 1 and 1.0 is 1.0 because both
+numbers are converted to float for the comparison.
 
     \function[ISO]{min}{2}{+Expr1, +Expr2}
 Evaluate to the smaller of \arg{Expr1} and \arg{Expr2}. See

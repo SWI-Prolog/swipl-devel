@@ -3164,10 +3164,15 @@ ar_max(Number n1, Number n2, Number r)
               signbit(n1->value.f) )
   { cpNumber(r, n2);
   } else
-  { if ( diff >= 0 )
+  { if ( diff == 0 )
+    { if ( !make_same_type_numbers(n1, n2) )
+	return FALSE;
       cpNumber(r, n1);
-    else
-      cpNumber(r, n2);
+    } else if ( diff > 0 )
+    { cpNumber(r, n1);
+    } else
+    { cpNumber(r, n2);
+    }
   }
 
   return TRUE;
@@ -3189,10 +3194,15 @@ ar_min(Number n1, Number n2, Number r)
               signbit(n2->value.f) )
   { cpNumber(r, n2);
   } else
-  { if ( diff <= 0 )
+  { if ( diff == 0 )
+    { if ( !make_same_type_numbers(n1, n2) )
+	return FALSE;
       cpNumber(r, n1);
-    else
-      cpNumber(r, n2);
+    } else if ( diff < 0 )
+    { cpNumber(r, n1);
+    } else
+    { cpNumber(r, n2);
+    }
   }
 
   return TRUE;
