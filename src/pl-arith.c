@@ -3150,6 +3150,11 @@ ar_mul(Number n1, Number n2, Number r)
  */
 
 static int
+is_min_zero(const Number n)
+{ return n->type == V_FLOAT && n->value.f == 0.0 && signbit(n->value.f);
+}
+
+static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
@@ -3158,21 +3163,20 @@ ar_max(Number n1, Number n2, Number r)
       cpNumber(r, n2);
     else
       cpNumber(r, n1);
-  } else if ( diff == CMP_EQUAL  &&
-              n1->type == V_FLOAT &&		/* is n1 -0.0 */
-              n1->value.f == 0.0 &&
-              signbit(n1->value.f) )
-  { cpNumber(r, n2);
-  } else
-  { if ( diff == 0 )
+  } else if ( diff == CMP_EQUAL )
+  { if ( is_min_zero(n1) )
+    { cpNumber(r, n2);
+    } else if ( is_min_zero(n2) )
+    { cpNumber(r, n1);
+    } else
     { if ( !make_same_type_numbers(n1, n2) )
 	return FALSE;
       cpNumber(r, n1);
-    } else if ( diff > 0 )
-    { cpNumber(r, n1);
-    } else
-    { cpNumber(r, n2);
     }
+  } else if ( diff > 0 )
+  { cpNumber(r, n1);
+  } else
+  { cpNumber(r, n2);
   }
 
   return TRUE;
@@ -3188,21 +3192,20 @@ ar_min(Number n1, Number n2, Number r)
       cpNumber(r, n2);
     else
       cpNumber(r, n1);
-  } else if ( diff == CMP_EQUAL  &&
-              n2->type == V_FLOAT &&		/* is n2 -0.0 */
-              n2->value.f == 0.0 &&
-              signbit(n2->value.f) )
-  { cpNumber(r, n2);
-  } else
-  { if ( diff == 0 )
+  } else if ( diff == CMP_EQUAL )
+  { if ( is_min_zero(n1) )
+    { cpNumber(r, n1);
+    } else if ( is_min_zero(n2) )
+    { cpNumber(r, n2);
+    } else
     { if ( !make_same_type_numbers(n1, n2) )
 	return FALSE;
       cpNumber(r, n1);
-    } else if ( diff < 0 )
-    { cpNumber(r, n1);
-    } else
-    { cpNumber(r, n2);
     }
+  } else if ( diff < 0 )
+  { cpNumber(r, n1);
+  } else
+  { cpNumber(r, n2);
   }
 
   return TRUE;
