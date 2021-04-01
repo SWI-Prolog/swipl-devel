@@ -236,19 +236,6 @@ triggers_goals([block_trigger(TriggerVar, BlockedGoal)|MoreTriggers]) -->
 	triggers_goals(MoreTriggers).
 
 
-block_wrapper((_Head :- GenBody)) :-
-	block_wrapper_body(GenBody).
-
-block_wrapper_body((var(_), MoreBody)) :-
-	!,
-	block_wrapper_body(MoreBody).
-block_wrapper_body((!, freeze(_, Wrapped), _)) :-
-	!,
-	compound(Wrapped),
-	functor(Wrapped, Name, _),
-	sub_atom(Name, 0, _, _, 'block ').
-
-
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
 %
 %	Rename a clause by prefixing its old name wit h Prefix.
@@ -272,6 +259,5 @@ system:term_expansion((:- block(Spec)), Clauses) :-
 system:term_expansion(Term, Wrapper) :-
 	head(Term, Module:Head),
 	block_declaration(Head, Module),
-	\+ block_wrapper(Term),		% avoid recursion
 	wrap_block(Module:Head, Term, Wrapper).
 
