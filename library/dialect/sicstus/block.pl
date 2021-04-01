@@ -156,55 +156,97 @@ block_arg(A) :-
 wrap_block(Pred, Term, Clause) :-
 	current_predicate(_, Pred), !,
 	rename_clause(Term, 'block ', Clause).
-wrap_block(Pred, Term, [Wrapper,FirstClause]) :-
-	block_declarations(Pred, Modes),
-	Pred = _:Head,
+wrap_block(Pred, Term, Clauses) :-
+	Pred = Module:Head,
 	functor(Head, Name, Arity),
-	length(Args, Arity),
-	GenHead =.. [Name|Args],
-	atom_concat('block ', Name, WrappedName),
-	WrappedHead =.. [WrappedName|Args],
-	when_cond(Modes, Args, Cond),
-	simplify_coroute(when(Cond, WrappedHead), Coroute),
-	Wrapper = (GenHead :- Coroute),
-	rename_clause(Term, 'block ', FirstClause).
+	findall(Wrapper, block_wrapper_clause(Module, Name, Arity, Wrapper), Wrappers),
+	rename_clause(Term, 'block ', FirstClause),
+	append(Wrappers, [FirstClause], Clauses).
 
-block_wrapper((_Head :- Coroute)) :-
-	simplify_coroute(when(_,Wrapped), Coroute),
+block_wrapper_clause(Module, Name, Arity, (GenHead :- GenBody)) :-
+	length(GenArgs, Arity),
+	GenHead =.. [Name|GenArgs],
+	functor(BlockHead, Name, Arity),
+	Module:'$block_pred'(BlockHead),
+	BlockHead =.. [_|BlockArgs],
+	find_args_to_block_on(BlockArgs, GenArgs, ToBlockOn),
+	args_to_var_conditions(ToBlockOn, GenBody, GenBody1),
+	GenBody1 = (!, freeze(TriggerVar, GenHead), GenBody2),
+	args_to_triggers(ToBlockOn, TriggerVar, Module:GenHead, GenBody2, true).
+block_wrapper_clause(_Module, Name, Arity, (GenHead :- WrappedHead)) :-
+	length(GenArgs, Arity),
+	GenHead =.. [Name|GenArgs],
+	atom_concat('block ', Name, WrappedName),
+	WrappedHead =.. [WrappedName|GenArgs].
+
+find_args_to_block_on([], [], []) :- !.
+find_args_to_block_on([-|MoreBlockArgs], [Arg|MoreHeadArgs], [Arg|MoreToBlockOn]) :-
+	!,
+	find_args_to_block_on(MoreBlockArgs, MoreHeadArgs, MoreToBlockOn).
+find_args_to_block_on([_|MoreBlockArgs], [_|MoreHeadArgs], ToBlockOn) :-
+	find_args_to_block_on(MoreBlockArgs, MoreHeadArgs, ToBlockOn).
+
+args_to_var_conditions([], Tail, Tail) :- !.
+args_to_var_conditions([Arg|MoreArgs], Conditions, Tail) :-
+	Conditions = (var(Arg), MoreConditions),
+	args_to_var_conditions(MoreArgs, MoreConditions, Tail).
+
+args_to_triggers([], _, _, Tail, Tail) :- !.
+args_to_triggers([Arg|MoreArgs], TriggerVar, BlockedGoal, Triggers, Tail) :-
+	Triggers = (block_directive:add_block_trigger(Arg, TriggerVar, BlockedGoal), MoreTriggers),
+	args_to_triggers(MoreArgs, TriggerVar, BlockedGoal, MoreTriggers, Tail).
+
+:- public add_block_trigger/2.
+add_block_trigger(Arg, TriggerVar, BlockedGoal) :-
+	(   get_attr(Arg, block_directive, Triggers)
+	->  true
+	;   Triggers = []
+	),
+	put_attr(Arg, block_directive, [block_trigger(TriggerVar, BlockedGoal)|Triggers]).
+
+
+attr_unify_hook(Triggers, NewVar) :-
+	var(NewVar),
+	!,
+	(   get_attr(NewVar, block_directive, ExistingTriggers)
+	->  append(Triggers, ExistingTriggers, NewTriggers),
+	    put_attr(NewVar, block_directive, NewTriggers)
+	;   put_attr(NewVar, block_directive, Triggers)
+	).
+attr_unify_hook(Triggers, _) :-
+	ground_all_triggers(Triggers).
+
+ground_all_triggers([]) :- !.
+ground_all_triggers([block_trigger(true, _)|MoreTriggers]) :-
+	ground_all_triggers(MoreTriggers).
+
+attribute_goals(Var) -->
+	{get_attr(Var, block_directive, Triggers)},
+	!,
+	triggers_goals(Triggers).
+
+triggers_goals([]) --> !, [].
+triggers_goals([block_trigger(TriggerVar, BlockedGoal)|MoreTriggers]) -->
+	% Output only goals that haven't already been unblocked
+	% by another variable being bound.
+	(   {var(TriggerVar)}
+	->  [BlockedGoal]
+	;   []
+	),
+	triggers_goals(MoreTriggers).
+
+
+block_wrapper((_Head :- GenBody)) :-
+	block_wrapper_body(GenBody).
+
+block_wrapper_body((var(_), MoreBody)) :-
+	!,
+	block_wrapper_body(MoreBody).
+block_wrapper_body((!, freeze(_, Wrapped), _)) :-
+	!,
 	compound(Wrapped),
 	functor(Wrapped, Name, _),
 	sub_atom(Name, 0, _, _, 'block ').
-
-block_declarations(M:P, Modes) :-
-	functor(P, Name, Arity),
-	functor(H, Name, Arity),
-	findall(H, M:'$block_pred'(H), Modes).
-
-when_cond([Head], Args, Cond) :- !,
-	one_cond(Args, Head, Cond).
-when_cond([H|T], Args, (C1,C2)) :-
-	one_cond(Args, H, C1),
-	when_cond(T, Args, C2).
-
-one_cond(Vars, Spec, Cond) :-
-	cond_vars(Vars, 1, Spec, CondVars),
-	nonvar_or(CondVars, Cond).
-
-cond_vars([], _, _, []).
-cond_vars([H|T0], I, Spec, L) :-
-	(   arg(I, Spec, -)
-	->  L = [H|T]
-	;   L = T
-	),
-	I2 is I + 1,
-	cond_vars(T0, I2, Spec, T).
-
-nonvar_or([V], nonvar(V)).
-nonvar_or([V|T], (nonvar(V);C)) :-
-	nonvar_or(T, C).
-
-simplify_coroute(when(nonvar(X), C), freeze(X, C)).
-simplify_coroute(Coroute, Coroute).
 
 
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
