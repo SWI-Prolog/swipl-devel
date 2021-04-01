@@ -669,7 +669,7 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
   PL_locale *def, *new = NULL;
   char *lname;
 
-  if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|REP_MB) )
+  if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|CVT_ATOM|REP_MB) )
   { const char *old;
 
     PL_LOCK(L_LOCALE);
