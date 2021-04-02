@@ -388,6 +388,7 @@ list_void_declarations :-
 
 void_attribute(public).
 void_attribute(volatile).
+void_attribute(det).
 
 %!  list_trivial_fails is det.
 %!  list_trivial_fails(+Options) is det.

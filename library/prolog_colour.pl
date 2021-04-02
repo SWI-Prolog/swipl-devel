@@ -2355,6 +2355,7 @@ def_goal_colours(discontiguous(_),       built_in-[declarations(discontiguous)])
 def_goal_colours(multifile(_),           built_in-[declarations(multifile)]).
 def_goal_colours(volatile(_),            built_in-[declarations(volatile)]).
 def_goal_colours(public(_),              built_in-[declarations(public)]).
+def_goal_colours(det(_),                 built_in-[declarations(det)]).
 def_goal_colours(table(_),               built_in-[declarations(table)]).
 def_goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
 def_goal_colours(consult(_),             built_in-[file]).
