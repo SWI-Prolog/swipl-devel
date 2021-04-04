@@ -148,6 +148,22 @@ test(fail, error(determinism_error(nd(3),det,fail,goal))) :-
 test(fail, error(determinism_error(nd(3),det,fail,goal))) :-
     with_debug(d(3)).
 
+d1 :- $ndd(X), u(X).
+d2 :- $nd3(X), u(X).
+d3 :- $ndf(X), u(X).
+ndd(1).
+ndf(1) :- fail.
+u(_).
+
+test(ndetv, true) :-
+    d1.
+test(ndetv, error(determinism_error(nd3(1),det,nondet,goal))) :-
+    d2.
+test(ndetv, error(determinism_error(ndf(_),det,fail,goal))) :-
+    d3.
+test(ndetvc, Body =@= $ndd(X), u(X)) :-
+    clause(d1, Body).
+
 :- end_tests(det_goal).
 
 

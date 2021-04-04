@@ -2192,7 +2192,7 @@ right_argument:
 	}
 	if ( ci->islocal )
 	{ OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
-	} else
+	} else if ( isnot )
 	{ size_t tc_jmp;
 
 	  Output_1(ci, C_JMP, (code)0);
@@ -2205,7 +2205,11 @@ right_argument:
 	  { seekBuffer(&ci->codes, tc_jmp-2, code);
 	    OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	  }
+	} else				/* $(Goal) */
+	{ balanceVars(vsave, ci->used_var, ci);
+	  OpCode(ci, tc_or-1) = (code)(PC(ci) - tc_or);
 	}
+
 	if ( !isnot )
 	{ Output_0(ci, C_DETFALSE);
 	  OpCode(ci, tc_det-1) = (code)(PC(ci) - tc_det);
@@ -5923,8 +5927,10 @@ decompileBodyNoShift(decompileInfo *di, code end, Code until ARG_LD)
       case C_DET:				/* $ A */
 			  { PC += 2;		/* skip the two arguments */
 			    TRY_DECOMPILE(di, C_DETTRUE, NULL);   /* A */
-			    PC += 5;		/* skip C_DETTRUE <n> */
-						/*      C_JMP <n>, C_DETFALSE */
+			    do			/* Skip to after C_DETFALSE */
+			    { op = fetchop(PC);
+			      PC = stepPC(PC);
+			    } while(op != C_DETFALSE);
 			    BUILD_TERM(FUNCTOR_dollar1);
 			    pushed++;
 			    continue;
@@ -6041,10 +6047,14 @@ start_of_cdet(Clause cl, Code pc_error)
     { Code end = pc+pc[2]+3;
 
       assert(fetchop(end)   == C_DETFALSE);
+      if ( pc_error == end )
+	return pc;
+					/* backskip balanceVars() */
+      while(fetchop(end-2) == C_VAR)
+	end -= 2;
       assert(fetchop(end-4) == C_DETTRUE);
 
-      if ( pc_error == end ||
-	   pc_error == end-4 )
+      if ( pc_error == end-4 )
 	return pc;
     }
   }
@@ -6072,6 +6082,9 @@ det_goal_error(LocalFrame fr, Code pc_error, atom_t found ARG_LD)
 		   found == ATOM_nondet ? "succeeded with choice point"
 					: "failed");
 	});
+
+  if ( found == ATOM_fail )
+    clearUninitialisedVarsFrame(fr, pc_det);
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t goal = PL_new_term_ref();
