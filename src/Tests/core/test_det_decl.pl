@@ -126,7 +126,7 @@ test(fail, error(determinism_error(_:d/1,det,fail,guard_in_caller))) :-
 
 :- begin_tests(det_goal).
 
-nd(X) :- nd2(X).
+nd(X) :- nd2(X), garbage_collect.
 nd2(X) :- nd3(X).
 
 nd3(1).
@@ -151,7 +151,7 @@ test(fail, error(determinism_error(nd(3),det,fail,goal))) :-
 d1 :- $ndd(X), u(X).
 d2 :- $nd3(X), u(X).
 d3 :- $ndf(X), u(X).
-ndd(1).
+ndd(1) :- garbage_collect.
 ndf(1) :- fail.
 u(_).
 

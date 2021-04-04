@@ -1932,10 +1932,11 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
+	code ec = op == C_NOT ? C_CUT : C_DETTRUE;
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET at %d\n", PC-state->c0-1));
 	clear_choice_mark(state, PC[0]);
 	PC += 2;			/* skip the two arguments */
-	walk_and_mark(state, PC, C_CUT PASS_LD);
+	walk_and_mark(state, PC, ec PASS_LD);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
