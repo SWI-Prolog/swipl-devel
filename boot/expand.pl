@@ -688,6 +688,10 @@ expand_control(call(A), P0, call(EA), P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P, PA),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
+expand_control($(A), P0, $(EA), P, M, MList, Term, Done) :-
+    !,
+    f1_pos(P0, PA0, P, PA),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
 expand_control(G0, P0, G, P, M, MList, Term, Done) :-
     is_meta_call(G0, M, Head),
     !,
@@ -1445,6 +1449,7 @@ control((_;_)).
 control((_->_)).
 control((_*->_)).
 control(\+(_)).
+control($(_)).
 
 is_aux_meta(Term) :-
     callable(Term),
