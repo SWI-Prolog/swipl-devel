@@ -55,4 +55,23 @@ test(list, Rest == `world`) :-
 	    close(In)),
 	!.
 
+% Verify that the Next argument is not copied
+
+test(state, Final == 5) :-
+    State = x(1, 5),
+    lazy_list(next(State), List),
+    forall(member(_, List),
+           true),
+    arg(1, State, Final).
+
+next(State, List, Tail) :-
+    State = x(Here, Max),
+    (   Here < Max
+    ->  Here2 is Here+1,
+        List = [Here2|Tail],
+        nb_setarg(1, State, Here2)
+    ;   List = [],
+        Tail = []
+    ).
+
 :- end_tests(lazy_lists).
