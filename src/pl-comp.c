@@ -4820,7 +4820,7 @@ mark_bvar_access(Clause cl, decompileInfo *di ARG_LD)
 	index = 1;
         break;
       case B_VAR2:
-	index = 1;
+	index = 2;
         break;
       case B_VAR:
 	index = VARNUM(pc[1]);
@@ -4830,7 +4830,10 @@ mark_bvar_access(Clause cl, decompileInfo *di ARG_LD)
     }
 
     if ( index < di->arity )
-    { set_bit(di->bvar_access, index);
+    { DEBUG(MSG_COMP_ARG_UNIFY,
+	    Sdprintf("Found access to argument %d\n", index+1));
+
+      set_bit(di->bvar_access, index);
       if ( index > max )
 	max = index;
     }
@@ -5055,7 +5058,8 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
     { if ( c == D_BREAK )
 	c = decode(replacedBreak(PC-1));
 
-      if ( c != H_VOID && c != H_VOID_N )
+      if ( c != H_VOID && c != H_VOID_N &&
+	   c != I_ENTER && c != I_SSU_COMMIT && c != I_SSU_CHOICE )
       { term_t t2;
 
 	DEBUG(MSG_COMP_ARG_UNIFY,
@@ -5213,12 +5217,15 @@ decompile_head(Clause clause, term_t head, decompileInfo *di ARG_LD)
       case I_SSU_COMMIT:
       case I_SSU_CHOICE:
 	{ assert(argn <= di->arity);
+	  assert(!pushed);
 
 	  if ( argp )
-	  { for(; argn < di->arity; argn++)
-	    { TRY(unifyVarGC(valTermRef(argp), di->variables,
+	  { while(argn < di->arity)
+	    { if ( di->bvar_access )
+		clear_bit(di->bvar_access, argn);
+	      TRY(unifyVarGC(valTermRef(argp), di->variables,
 			     VAROFFSET(argn) PASS_LD));
-	      next_arg_ref(argp PASS_LD);
+	      NEXTARG;
 	    }
 	    PL_reset_term_refs(argp);
 	  }
