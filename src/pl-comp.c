@@ -1423,6 +1423,7 @@ isFirstVarP(Word p, compileInfo *ci, int *i ARG_LD)
 
   deRef(p);
   if ( (idx=isIndexedVarTerm(*p PASS_LD)) >= 0 &&
+       idx >= ci->arity &&
        isFirstVar(ci->used_var, idx) )
   { *i = idx;
     succeed;
