@@ -2088,6 +2088,19 @@ PRED_IMPL("same_term", 2, same_term, 0)
   return PL_same_term(A1, A2);
 }
 
+static
+PRED_IMPL("$term_id", 2, term_id, 0)
+{ PRED_LD
+  Word t1 = valTermRef(A1);
+
+  deRef(t1);
+  if ( isTerm(*t1) )
+  { Functor f = valueTerm(*t1);
+    return PL_unify_int64(A2, (Word)f-gBase);
+  }
+
+  return PL_type_error("compound", A1);
+}
 
 		/********************************
 		*         TERM HACKING          *
@@ -5946,6 +5959,7 @@ BeginPredDefs(prims)
   PRED_DEF("@>=", 2, std_geq, PL_FA_ISO)
   PRED_DEF("?=", 2, can_compare, 0)
   PRED_DEF("same_term", 2, same_term, 0)
+  PRED_DEF("$term_id", 2, term_id, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
