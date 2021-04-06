@@ -6068,6 +6068,7 @@ start_of_cdet(Clause cl, Code pc_error)
   }
 
   assert(0);
+  return NULL;
 }
 
 int
