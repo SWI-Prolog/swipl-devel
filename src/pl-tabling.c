@@ -7065,7 +7065,8 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 
-	mono_idg_changed(atrie, (word)node);
+	if ( !mono_idg_changed(atrie, (word)node) )
+	  return FALSE;
 	if ( (def=atrie->data.predicate) &&
 	     def->events &&
 	     !atrie_answer_event(atrie, node PASS_LD) &&
