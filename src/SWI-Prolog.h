@@ -68,7 +68,7 @@ extern "C" {
 /* PLVERSION_TAG: a string, normally "", but for example "rc1" */
 
 #ifndef PLVERSION
-#define PLVERSION 80321
+#define PLVERSION 80322
 #endif
 #ifndef PLVERSION_TAG
 #define PLVERSION_TAG ""
