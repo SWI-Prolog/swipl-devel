@@ -423,11 +423,12 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 			.flags       = LD->transaction.flags
 		      };
 
-    LD->transaction.clauses  = NULL;
-    LD->transaction.id       = goal;
-    LD->transaction.stack    = &parent;
-    LD->transaction.gen_nest = LD->transaction.generation;
-    LD->transaction.flags    = flags;
+    LD->transaction.clauses     = NULL;
+    LD->transaction.id          = goal;
+    LD->transaction.stack       = &parent;
+    LD->transaction.gen_nest    = LD->transaction.generation;
+    LD->transaction.flags       = flags;
+    LD->transaction.table_trail = NULL;
     rc = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && constraint )
       rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
