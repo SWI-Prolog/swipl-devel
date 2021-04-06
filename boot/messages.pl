@@ -231,6 +231,10 @@ unknown_proc_msg((:-)/2) -->
     !,
     [nl, '  Rules must be loaded from a file'],
     faq('ToplevelMode').
+unknown_proc_msg((=>)/2) -->
+    !,
+    [nl, '  Rules must be loaded from a file'],
+    faq('ToplevelMode').
 unknown_proc_msg((:-)/1) -->
     !,
     [nl, '  Directives must be loaded from a file'],
