@@ -202,6 +202,7 @@ first. The last byte has its 0x80 mask set.
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
+#define PRED_DET         0x04		/* Determinism flag */
 
 #define CLAUSE_UNIT_CLAUSE 0x01
 #define CLAUSE_SSU_COMMIT  0x02
@@ -1124,6 +1125,8 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
       lflags |= P_LOCKED;
     if ( flags & PRED_HIDE_CHILDS )
       lflags |= HIDE_CHILDS;
+    if ( flags & PRED_DET )
+      lflags |= P_DET;
 
     set(def, lflags);
   }
@@ -2823,6 +2826,8 @@ predicateFlags(Definition def, atom_t sclass)
     flags |= PRED_SYSTEM;
   if ( true(def, HIDE_CHILDS) )
     flags |= PRED_HIDE_CHILDS;
+  if ( true(def, P_DET) )
+    flags |= PRED_DET;
 
   return flags;
 }
