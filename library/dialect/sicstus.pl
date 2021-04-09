@@ -503,6 +503,14 @@ prolog_flag(Flag, Value) :-
 	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
 	sicstus_flag(Flag, Value).
 
+sicstus_flag(host_type, HostType) :- !,
+	% Not a perfect emulation. SWI's arch flag only contains the
+	% architecture and OS family (e. g. 'x86_64-darwin'),
+	% but SICStus host_type also contains the OS version number
+	% (e. g. 'x86_64-darwin-15.6.0').
+	% But this works well enough for code that just checks the
+	% architecture/OS part and not the exact version.
+	current_prolog_flag(arch, HostType).
 sicstus_flag(system_type, Type) :- !,
 	(   current_prolog_flag(saved_program, true)
 	->  Type = runtime
