@@ -156,6 +156,7 @@ qualified(_:_).
 
 user:goal_expansion(use_module(Module,Imports),
 		    use_module(Module,[op(_,_,_)|Imports])) :-
+	in_sicstus_dialect,
 	% Prevent infinite recursion.
 	\+ memberchk(op(_,_,_),Imports).
 
