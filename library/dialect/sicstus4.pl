@@ -106,6 +106,16 @@ push_sicstus4_library :-
 :- push_sicstus4_library.
 
 
+%%	setup_dialect
+%
+%	Further dialect initialization.
+%
+%	sicstus4 currently performs the same initialization
+%	as the sicstus (SICStus 3) dialect.
+
+setup_dialect :- sicstus:setup_dialect.
+
+
 		 /*******************************
 		 *	  LIBRARY MODULES	*
 		 *******************************/
