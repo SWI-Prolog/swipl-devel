@@ -163,8 +163,19 @@ user:goal_expansion(use_module(Module,Imports),
 %%	setup_dialect
 %
 %	Further dialect initialization.
+%
+%	Currently this disables quoting when printing atoms,
+%	which SWI does by default, but SICStus doesn't.
+%	This globally modifies the print_write_options Prolog flag,
+%	so this change also affects code that doesn't request
+%	SICStus compatibility.
 
-setup_dialect.
+setup_dialect :-
+	current_prolog_flag(print_write_options, Options),
+	(   selectchk(quoted(true), Options, OptionsNoQuoted)
+	->  set_prolog_flag(print_write_options, OptionsNoQuoted)
+	;   true
+	).
 
 
 		 /*******************************
