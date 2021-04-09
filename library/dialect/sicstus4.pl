@@ -47,6 +47,7 @@
 	      create_mutable/2,
 	      get_mutable/2,
 	      update_mutable/2,
+	      sicstus_is_readable_stream/1,
 	      read_line/1,
 	      read_line/2,
 	      trimcore/0,

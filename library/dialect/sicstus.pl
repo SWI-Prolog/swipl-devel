@@ -49,6 +49,7 @@
 	    get_mutable/2,		% ?Value, +Mutable
 	    update_mutable/2,		% ?Value, !Mutable
 
+	    sicstus_is_readable_stream/1, % +Stream
 	    read_line/1,		% -Codes
 	    read_line/2,		% +Stream, -Codes
 
@@ -421,6 +422,20 @@ read_line(Codes) :-
 
 read_line(Stream, Codes) :-
     read_line_to_codes(Stream, Codes).
+
+% Emulate the SICStus behavior of at_end_of_stream, which silently fails
+% instead of blocking if reading from the stream would block.
+% Also fails silently if Stream is not actually a valid stream.
+
+sicstus_is_readable_stream(Stream) :-
+	is_stream(Stream),
+	stream_property(Stream, end_of_stream(not)).
+
+user:goal_expansion(at_end_of_stream(Stream), \+ sicstus_is_readable_stream(Stream)) :-
+	in_sicstus_dialect.
+
+user:goal_expansion(at_end_of_stream, \+ sicstus_is_readable_stream(current_input)) :-
+	in_sicstus_dialect.
 
 
 		 /*******************************
