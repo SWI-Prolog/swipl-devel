@@ -40,6 +40,9 @@
 	    proper_prefix_length/3,	% ?List, ?Prefix, ?Length
 	    suffix_length/3,		% ?List, ?Suffix, ?Length
 	    proper_suffix_length/3,	% ?List, ?Suffix, ?Length
+	    sublist/5,			% +Whole, ?Part, ?Before, ?Length, ?After
+	    sublist/4,			% +Whole, ?Part, ?Before, ?Length
+	    sublist/3,			% +Whole, ?Part, ?Before
 	    cons/3,			% ?Head, ?Tail, ?List
 	    last/3,			% ?Fore, ?Last, ?List
 	    head/2,			% ?List, ?Head
@@ -114,7 +117,6 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* perm/2
 	* perm2/4
 	* rotate_list/[2,3]
-	* sublist/[3,4,5]
 	* segment/2
 	* proper_segment/2
 	* cumlist/[4,5,6]
@@ -187,6 +189,20 @@ suffix_length(List, Suffix, Length) :-
 proper_suffix_length(List, Suffix, Length) :-
 	proper_suffix(List, Suffix),
 	length(Suffix, Length).
+
+
+sublist(Whole, Part, Before, Length, After) :-
+	append(Prefix, Tail, Whole),
+	append(Part, Suffix, Tail),
+	length(Prefix, Before),
+	length(Part, Length),
+	length(Suffix, After).
+
+sublist(Whole, Part, Before, Length) :-
+	sublist(Whole, Part, Before, Length, _).
+
+sublist(Whole, Part, Before) :-
+	sublist(Whole, Part, Before, _, _).
 
 
 cons(Head, Tail, [Head|Tail]).
