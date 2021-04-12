@@ -859,7 +859,11 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
   atom_t tp;
 
   if ( t == 0 )
-  { if ( (s = getStream(Scurout)) )
+  { if ( (s = getStream(
+#ifdef O_DEBUG
+                        LD->internal_debug.depth > 0 ? Serror :
+#endif
+                        Scurout)) )
       goto ok;
     no_stream(t, ATOM_current_output);
     return FALSE;

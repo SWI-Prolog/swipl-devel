@@ -4085,6 +4085,7 @@ compileFile(wic_state *state, const char *file)
       break;
 
     DEBUG(MSG_QLF_BOOT_READ,
+	  Sdprintf(""); /* To output line header */
 	  PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS);
 	  Sdprintf("\n"));
 

@@ -1010,6 +1010,11 @@ PL_initialise(int argc, char **argv)
   if ( GD->initialised )
     succeed;
 
+  /* Initialize debug flag early, if first argument */
+  if (argc > 2 && strcmp(argv[1],"-d") == 0)
+    /* One's complement tells p_d_f_s not to bail on error, just return */
+    prolog_debug_from_string(argv[2], ~TRUE);
+
   initAlloc();
   initPrologThreads();			/* initialise thread system */
   SinitStreams();

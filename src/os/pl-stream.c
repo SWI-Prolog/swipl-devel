@@ -110,6 +110,18 @@ locking is required.
 #include SYSLIB_H
 #endif
 
+#ifdef O_DEBUG
+#ifdef HAVE___THREAD
+/* It's not strictly necessary to have this in thread-local storage... */
+__thread
+#elif defined(O_PLMT)
+/* ...and the fail condition for a thread race just isn't that bad */
+volatile
+#endif
+/* Have we just emitted a newline? Should we print file/line on the next Sdprintf? */
+	 static int debug_new_output_line = 1;
+#endif
+
 #define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
 #define UNDO_SIZE ROUND(PL_MB_LEN_MAX, sizeof(wchar_t))
 
@@ -2418,6 +2430,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     }
   }
 
+#ifdef O_DEBUG
+  if (s == Serror && s->lastc == '\n') debug_new_output_line = 1;
+#endif
+
   if ( tmpbuf )
   { if ( S__removebuf(s) < 0 )
       goto error;
@@ -2517,6 +2533,9 @@ Svdprintf(const char *fm, va_list args)
   return rval;
 }
 
+#ifdef O_DEBUG
+#undef Sdprintf
+#endif
 
 int
 Sdprintf(const char *fm, ...)
@@ -2529,6 +2548,37 @@ Sdprintf(const char *fm, ...)
 
   return rval;
 }
+
+#ifdef O_DEBUG
+
+int
+Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  if (debug_new_output_line)
+  { const char *logfmt = "[%s] %s:%d: ";
+    if (!channel)
+      channel = "(unknown)";
+    debug_new_output_line = 0;
+    if (strncmp(channel, "DBG_LEVEL", 9) == 0)
+    { channel += 9;
+      logfmt = "<%s> %s:%d: ";
+    }
+    if (strncmp(file, "../", 3) == 0)
+      file += 3;
+    Sdprintf(logfmt, channel, file, line);
+  }
+
+  va_start(args, fm);
+  rval = Svdprintf(fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+#define Sdprintf(fmt...) Sdprintf_ex(NULL, __FILE__, __LINE__, fmt)
+#endif /*O_DEBUG*/
 
 #if 0
 		 /*******************************

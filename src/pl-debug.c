@@ -288,10 +288,33 @@ prolog_debug_topic(const char *topic, int flag)
   return TRUE;
 }
 
+const char *
+prolog_debug_topic_name(unsigned code)
+{ static unsigned last_code = -1;
+  static const char *last_name = NULL;
+  const debug_topic *dt;
+
+  if (code == last_code)
+    return last_name;
+
+  last_code = code;
+
+  for (dt=debug_topics; dt->name; dt++)
+  { if ( dt->code == code )
+      return last_name = dt->name;
+  }
+
+  Sdprintf("ERROR: Unknown debug code: %d\n", code);
+  return last_name = NULL;
+}
+
 
 int
 prolog_debug_from_string(const char *spec, int flag)
 { const char *end;
+  bool quiet = (flag < 0);
+  if (quiet)
+    flag = ~flag;
 
   while((end=strchr(spec, ',')))
   { if ( end-spec < MAX_TOPIC_LEN )
@@ -300,18 +323,22 @@ prolog_debug_from_string(const char *spec, int flag)
       strncpy(buf, spec, end-spec);
       buf[end-spec] = EOS;
       if ( !prolog_debug_topic(buf, flag) )
-      { Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
+      { if (quiet)
+          return FALSE;
+	Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
 	PL_halt(1);
       }
 
       spec = end+1;
-    } else
+    } else if (!quiet)
     { Sdprintf("ERROR: Invalid debug topic: %s\n", spec);
     }
   }
 
   if ( !prolog_debug_topic(spec, flag) )
-  { Sdprintf("ERROR: Unknown debug topic: %s\n", spec);
+  { if (quiet)
+      return FALSE;
+    Sdprintf("ERROR: Unknown debug topic: %s\n", spec);
     PL_halt(1);
   }
 
