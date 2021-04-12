@@ -6039,8 +6039,14 @@ decompile_body_range(term_t goal, LocalFrame fr, Clause clause,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-det_goal_error() deals with errors of $/1. First, start_of_cdet() finds
-the C_DET instruction that starts the guarded area.
+det_goal_error() deals with errors of  $/1. First, start_of_cdet() finds
+the C_DET instruction that starts the  guarded   area.  We walk the code
+from the start of the clause. If we   find  a C_DET, the location of the
+C_DETFALSE is easily computed. If this  is   our  error  location we are
+done. If not and our error location is a C_DETTRUE we walk the code from
+the C_DETTRUE to the C_DETFALSE and we   are  happy if this section only
+contains C_JMP and variable balancing instructions.  If not, we have the
+wrong C_DET.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Code
@@ -6052,19 +6058,25 @@ start_of_cdet(Clause cl, Code pc_error)
   { code c = fetchop(pc);
 
     if ( (c == C_DET) )
-    { Code end = pc+pc[2]+3;
+    { Code pcfalse = pc+pc[2]+3;
 
-      assert(fetchop(end)   == C_DETFALSE);
-      if ( pc_error == end )
+      assert(fetchop(pcfalse) == C_DETFALSE);
+      if ( pc_error == pcfalse )
 	return pc;
-					/* backskip balanceVars() */
-      while(fetchop(end-2) == C_VAR)
-	end -= 2;
-      assert(fetchop(end-4) == C_DETTRUE);
 
-      if ( pc_error == end-4 )
+      if ( fetchop(pc_error) == C_DETTRUE )
+      { Code pc2;
+
+	for(pc2=pc_error; pc2<pcfalse; pc2=stepPC(pc2))
+	{ c = fetchop(pc2);
+	  if ( !(c == C_DETTRUE || c == C_JMP || c == C_VAR_N || c == C_VAR) )
+	    goto continue_outer;
+	}
+
 	return pc;
+      }
     }
+  continue_outer:;
   }
 
   assert(0);
