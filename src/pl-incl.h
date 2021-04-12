@@ -2404,6 +2404,11 @@ typedef struct debuginfo
   intptr_t	retryFrame;		/* Frame to retry (local stack offset) */
 } pl_debugstatus_t;
 
+typedef struct internaldebuginfo
+{ int depth;           /* how many nested DEBUG() calls we are in */
+  const char *channel; /* string representation of the debug channel */
+} pl_internaldebugstatus_t;
+
 #define FT_ATOM		0		/* atom feature */
 #define FT_BOOL		1		/* boolean feature (true, false) */
 #define FT_INTEGER	2		/* integer feature */

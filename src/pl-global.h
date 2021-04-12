@@ -697,6 +697,7 @@ struct PL_local_data
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */
+  pl_internaldebugstatus_t internal_debug; /* status of C-level debug flags */
 
 #ifdef O_PLMT
   struct

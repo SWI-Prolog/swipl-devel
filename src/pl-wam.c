@@ -194,6 +194,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 
   if ( DEBUGGING(MSG_VMI) )
   { GET_LD
+    ENTER_DEBUG(MSG_VMI)
 
     if ( ofr != FR )
     { Sfprintf(Serror, "#%ld at [%ld] predicate %s\n",
@@ -218,6 +219,7 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 
       Sdprintf("\t%4ld %s\n", (long)(PC-relto), codeTable[decode(*PC)].name);
     }
+    EXIT_DEBUG(MSG_VMI)
   }
 }
 

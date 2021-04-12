@@ -210,12 +210,26 @@ is also printed if stdio is not available.
 
 #if O_DEBUG
 #define DEBUG(n, g) do { if ((n <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
-                             (n > DBG_LEVEL9 && GD->debug_topics && \
-                              true_bit(GD->debug_topics, n))) \
-                         { g; } } while(0)
+                             (n > DBG_LEVEL9 && DEBUGGING(n))) \
+                         { ENTER_DEBUG(n) g; EXIT_DEBUG(n) } } while(0)
+#define ENTER_DEBUG(n) pl_internaldebugstatus_t __orig_ld_debug = GLOBAL_LD->internal_debug; \
+                         int __new_ld_depth = ((GLOBAL_LD->internal_debug.channel = prolog_debug_topic_name(n)), \
+                                              ++GLOBAL_LD->internal_debug.depth);
+#define EXIT_DEBUG(n) if (GLOBAL_LD->internal_debug.depth != __new_ld_depth) \
+                        Sdprintf("DEBUG stack depth mismatch! %d != %d\n", GLOBAL_LD->internal_debug.depth, __new_ld_depth); \
+                      GLOBAL_LD->internal_debug = __orig_ld_debug;
 #define DEBUGGING(n) (GD->debug_topics && true_bit(GD->debug_topics, n))
+
+/* We want to use the version of Sdprintf with the debug channel, if possible */
+#undef Sdprintf
+#define Sdprintf(fmt...) Sdprintf_ex(GLOBAL_LD->internal_debug.channel, __FILE__, __LINE__, fmt)
+int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...);
+
 #else
 #define DEBUG(a, b) ((void)0)
+#define ENTER_DEBUG(n) ;
+#define EXIT_DEBUG(n) ;
+#define DEBUGGING(n) FALSE
 #endif
 
 #if O_SECURE

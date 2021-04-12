@@ -235,5 +235,6 @@ typedef struct debug_topic
 
 COMMON(void)	cleanupDebug(void);
 COMMON(int)	prolog_debug_from_string(const char *spec, int flag);
+COMMON(const char *) prolog_debug_topic_name(unsigned code);
 
 #endif /*PL_DEBUG_INCLUDED*/

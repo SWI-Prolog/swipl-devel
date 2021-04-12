@@ -288,6 +288,26 @@ prolog_debug_topic(const char *topic, int flag)
   return TRUE;
 }
 
+const char *
+prolog_debug_topic_name(unsigned code)
+{ static unsigned last_code = -1;
+  static const char *last_name = NULL;
+  const debug_topic *dt;
+
+  if (code == last_code)
+    return last_name;
+
+  last_code = code;
+
+  for (dt=debug_topics; dt->name; dt++)
+  { if ( dt->code == code )
+      return last_name = dt->name;
+  }
+
+  Sdprintf("ERROR: Unknown debug code: %d\n", code);
+  return last_name = NULL;
+}
+
 
 int
 prolog_debug_from_string(const char *spec, int flag)
