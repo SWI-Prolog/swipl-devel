@@ -2907,9 +2907,20 @@ typedef enum
 #define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
 #define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
 #define COMMA_TYPE_ARG(n,at,an) , at an
+#define TYPE_ARG_SEMI(n,at,an)	at an ;
 
+/* Define struct types for all the helper argument lists */
+#define _VMH(Name, na, at, an)		struct helper_args_ ## Name \
+					{ VMH_ARGS ## na (Name, at, an, TYPE_ARG_SEMI) };
+#include "pl-vmi.ih"
+
+#define ASSIGN_ARG(n,at,an)		at an = helper_args.n.an;
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
-#define _VMH_GOTO(n,args...)		goto helper_ ## n
+#undef _VMH_PROLOGUE
+#define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
+#define _VMH_GOTO(n,args...)		struct helper_args_ ## n __args = {args}; \
+					helper_args.n = __args; \
+					goto helper_ ## n;
 #define _SOLUTION_RETURN		return
 
 #if VMCODE_IS_ADDRESS
@@ -2954,10 +2965,18 @@ PL_next_solution(qid_t qid)
   unify_mode umode = uread;		/* Unification mode */
   int slow_unify = FALSE;		/* B_UNIFY_FIRSTVAR */
   exception_frame throw_env;		/* PL_thow() environment */
+  fid_t      FFR_ID = 0;		/* foreign function id */
+  struct foreign_context FNDET_CONTEXT;	/* foreign function non-deterministic context */
 #ifdef O_DEBUG
   int	     throwed_from_line=0;	/* Debugging: line we came from */
 #endif
 #define	     CL (FR->clause)		/* clause of current frame */
+
+  /* define local union with all "helper arguments" (formerly SHAREDVARS) */
+  union {
+#define _VMH(Name, ...) struct helper_args_ ## Name Name;
+#include "pl-vmi.ih"
+  } helper_args;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the labels of the various  virtual-machine instructions in an array.
