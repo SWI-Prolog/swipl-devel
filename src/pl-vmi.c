@@ -122,25 +122,6 @@ Virtual machine instruction names.  Prefixes:
   S_    Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-				ISSUES
-
-
-Sometime multiple instructions share variables. This   is done using the
-code below, so we can at  least   identify  them easily. Ultimately, the
-dependencies must be removed, probably  mostly   by  moving the reusable
-code into functions.
-
-	BEGIN_SHAREDVARS
-	Decls
-	VMI(...)
-	VMI(...)
-	END_SHAREDVARS
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define BEGIN_SHAREDVARS {
-#define END_SHAREDVARS   }
-
 #define FASTCOND_FAILED \
 	{ if ( !LD->fast_condition )   \
 	  { BODY_FAILED;	       \
@@ -467,11 +448,10 @@ constant argument. This is the same as   H_SMALLINT, except that we must
 mark atoms if AGC is in progress because the AGC marker may already have
 visited our stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-BEGIN_SHAREDVARS
-word c;
 
 VMI(H_ATOM, 0, 1, (CA1_DATA))
-{ IF_WRITE_MODE_GOTO(B_ATOM);
+{ word c;
+  IF_WRITE_MODE_GOTO(B_ATOM);
 
   c = (word)*PC++;
   pushVolatileAtom(c);
@@ -489,8 +469,7 @@ unified with a constant argument.
 VMI(H_SMALLINT, 0, 1, (CA1_DATA))
 { IF_WRITE_MODE_GOTO(B_SMALLINT);
 
-  c = (word)*PC++;
-  VMH_GOTO(h_const, c);
+  VMH_GOTO(h_const, (word)*PC++);
 }
 END_VMI
 
@@ -510,7 +489,6 @@ VMH(h_const, 1, (word), (c))
   CLAUSE_FAILED;
 }
 END_VMH
-END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1199,29 +1177,23 @@ variable, so we either copy the value   or make a reference. Trailing is
 not needed as we are writing above the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-int voffset;
 VMI(B_VAR0, VIF_LCO, 0, ())
-{ voffset = VAROFFSET(0);
-  VMH_GOTO(bvar_cont, voffset);
+{ VMH_GOTO(bvar_cont, VAROFFSET(0));
 }
 END_VMI
 
 VMI(B_VAR1, VIF_LCO, 0, ())
-{ voffset = VAROFFSET(1);
-  VMH_GOTO(bvar_cont, voffset);
+{ VMH_GOTO(bvar_cont, VAROFFSET(1));
 }
 END_VMI
 
 VMI(B_VAR2, VIF_LCO, 0, ())
-{ voffset = VAROFFSET(2);
-  VMH_GOTO(bvar_cont, voffset);
+{ VMH_GOTO(bvar_cont, VAROFFSET(2));
 }
 END_VMI
 
 VMI(B_VAR, VIF_LCO, 1, (CA1_VAR))
-{ voffset = (int)*PC++;
-  VMH_GOTO(bvar_cont, voffset);
+{ VMH_GOTO(bvar_cont, (int)*PC++);
 }
 END_VMI
 
@@ -1238,7 +1210,6 @@ VMH(bvar_cont, 1, (int), (voffset))
   NEXT_INSTRUCTION;
 }
 END_VMH
-END_SHAREDVARS
 
 #ifdef O_COMPILE_IS
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1640,20 +1611,16 @@ END_VMI
 arg/3 special cases
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-Word aidx;				/* arg(aidx,aterm,aarg) */
-Word aterm;
-Word aarg;
-intptr_t ai;
 
 VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_DATA,CA1_VAR,CA1_FVAR))
 { ENSURE_GLOBAL_SPACE(2, (void)0);
 
-  aidx  = (Word)PC;
-  ai    = valInt((word)*PC++);
-  aterm = varFrameP(FR, (int)*PC++);
-  aarg  = varFrameP(FR, (int)*PC++);
-  VMH_GOTO(arg3_fast, aidx, ai, aterm, aarg);
+  PC += 3;
+  VMH_GOTO(arg3_fast,
+	   (Word)PC-3,
+	   valInt((word)PC[-3]),
+	   varFrameP(FR, (int)PC[-2]),
+	   varFrameP(FR, (int)PC[-1]));
 }
 END_VMI
 
@@ -1689,7 +1656,7 @@ VMH(arg3_slow, 3, (Word, Word, Word), (aidx, aterm, aarg))
 END_VMH
 
 VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
-{ Word aidx0;
+{ Word aidx, aidx0, aterm, aarg;
 
   ENSURE_GLOBAL_SPACE(3, (void)0);
 
@@ -1702,15 +1669,13 @@ VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
 
   deRef2(aidx0, aidx);
   if ( isTaggedInt(*aidx) )
-  { ai = valInt(*aidx);
-    VMH_GOTO(arg3_fast, aidx, ai, aterm, aarg);
+  { VMH_GOTO(arg3_fast, aidx, valInt(*aidx), aterm, aarg);
   }
 
   aidx = aidx0;
   VMH_GOTO(arg3_slow, aidx, aterm, aarg);
 }
 END_VMI
-END_SHAREDVARS
 
 #endif /*O_COMPILE_IS*/
 
@@ -2955,33 +2920,30 @@ C_LSCUT does the same for the condition   part  of soft-cut (*->). Here,
 the choice argument is the new choice  created by the disjunction, so we
 must cut its parent.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-BEGIN_SHAREDVARS
-  Choice och;
-  Choice ch;
 
 VMI(C_LSCUT, 0, 1, (CA1_CHP))
 { word chref = varFrame(FR, *PC++);
+  Choice ch;
 
   if ( (intptr_t)chref < 0 )
     chref = (word)-(intptr_t)chref;
 
   ch = (Choice)valTermRef(chref);
-  och = ch->parent;
-  VMH_GOTO(c_lcut_cont, och);
+  VMH_GOTO(c_lcut_cont, ch->parent);
 }
 END_VMI
 
 VMI(C_LCUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC++));
-  VMH_GOTO(c_lcut_cont, och);
+{ VMH_GOTO(c_lcut_cont, (Choice) valTermRef(varFrame(FR, *PC++)));
 }
 END_VMI
 
 VMH(c_lcut_cont, 1, (Choice), (och))
-{ for(ch=BFR; ch; ch = ch->parent)
+{ Choice ch;
+
+  for(ch=BFR; ch; ch = ch->parent)
   { if ( ch->parent == och )
-    { och = ch;
-      VMH_GOTO(c_cut, och);
+    { VMH_GOTO(c_cut, ch);
     }
   }
   assert(BFR == och);			/* no choicepoint yet */
@@ -2997,6 +2959,7 @@ instruction is generated for $cut(Var), used by prolog_cut_to(Choice).
 
 VMI(I_CUTCHP, 0, 0, ())
 { Word a = argFrameP(FR, 0);
+  Choice och;
 
   deRef(a);
   if ( isInteger(*a) && storage(*a) == STG_INLINE )
@@ -3052,14 +3015,16 @@ TBD: Merge with dbgDiscardChoicesAfter()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_CUT, 0, 1, (CA1_CHP))
-{ och = (Choice) valTermRef(varFrame(FR, *PC));
+{ Choice och = (Choice) valTermRef(varFrame(FR, *PC));
   PC++;					/* cannot be in macro! */
   VMH_GOTO(c_cut, och);
 }
 END_VMI
 
 VMH(c_cut, 1, (Choice), (och))
-{ assert(BFR>=och);
+{ Choice ch;
+
+  assert(BFR>=och);
   for(ch=BFR; ch > och; ch = ch->parent)
   { LocalFrame fr2;
 
@@ -3119,7 +3084,6 @@ VMH(c_cut, 1, (Choice), (och))
   NEXT_INSTRUCTION;
 }
 END_VMH
-END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3248,19 +3212,16 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
 END_VMI
 
 
-BEGIN_SHAREDVARS
-functor_t fpred;
-Word p;
+
 /** var(@Term)
 */
 
 VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
-{ p = varFrameP(FR, (int)*PC++);
+{ Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
   if ( unlikely(debugstatus.debugging) )
-  { fpred = FUNCTOR_var1;
-    VMH_GOTO(debug_pred1, fpred, p);
+  { VMH_GOTO(debug_pred1, FUNCTOR_var1, p);
   }
 #endif
 
@@ -3291,12 +3252,11 @@ END_VMH
 */
 
 VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
-{ p = varFrameP(FR, (int)*PC++);
+{ Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
   if ( unlikely(debugstatus.debugging) )
-  { fpred = FUNCTOR_nonvar1;
-    VMH_GOTO(debug_pred1, fpred, p);
+  { VMH_GOTO(debug_pred1, FUNCTOR_nonvar1, p);
   }
 #endif
 
@@ -3314,17 +3274,16 @@ END_VMI
 
 #ifdef O_DEBUGGER
 #define TYPE_TEST(functor, test)           \
-	p = varFrameP(FR, (int)*PC++);     \
+	Word p = varFrameP(FR, (int)*PC++);\
 	deRef(p);                          \
         if ( test(*p) )			   \
           NEXT_INSTRUCTION;                \
 	FASTCOND_FAILED;
 #else
 #define TYPE_TEST(functor, test)		\
-	p = varFrameP(FR, (int)*PC++);		\
+	Word p = varFrameP(FR, (int)*PC++);	\
 	if ( unlikely(debugstatus.debugging) )	\
-        { fpred = functor;			\
-	  VMH_GOTO(debug_pred1, fpred, p);	\
+        { VMH_GOTO(debug_pred1, functor, p);	\
 	}					\
 	deRef(p);				\
         if ( test(*p) )				\
@@ -3377,7 +3336,6 @@ VMI(I_CALLABLE, VIF_BREAK, 1, (CA1_VAR))
 }
 END_VMI
 
-END_SHAREDVARS
 
 		 /*******************************
 		 *	    SUPERVISORS		*
@@ -3744,12 +3702,9 @@ is
 	S_NEXTCLAUSE
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-ClauseRef cref;
 
 VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
-{ cref = DEF->impl.clauses.first_clause;
-  VMH_GOTO(next_clause, cref);
+{ VMH_GOTO(next_clause, DEF->impl.clauses.first_clause);
 }
 END_VMI
 
@@ -3767,7 +3722,7 @@ END_VMH
 
 
 VMI(S_NEXTCLAUSE, 0, 0, ())
-{ cref = CL->next;
+{ ClauseRef cref = CL->next;
 
   if ( debugstatus.debugging && !debugstatus.suspendTrace )
   { ARGP = argFrameP(FR, 0);
@@ -3806,7 +3761,6 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
   VMH_GOTO(next_clause, cref);
 }
 END_VMI
-END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4049,12 +4003,9 @@ END_VMI
 A_VAR: Push a variable.  This can be any term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-  int offset;
 
 VMI(A_VAR, 0, 1, (CA1_VAR))
-{ offset = (int)*PC++;
-  VMH_GOTO(a_var_n, offset);
+{ VMH_GOTO(a_var_n, (int)*PC++);
 }
 END_VMI
 
@@ -4112,23 +4063,19 @@ VMH(a_var_n, 1, (int), (offset))
 END_VMH
 
 VMI(A_VAR0, 0, 0, ())
-{ offset = VAROFFSET(0);
-  VMH_GOTO(a_var_n, offset);
+{ VMH_GOTO(a_var_n, VAROFFSET(0));
 }
 END_VMI
 
 VMI(A_VAR1, 0, 0, ())
-{ offset = VAROFFSET(1);
-  VMH_GOTO(a_var_n, offset);
+{ VMH_GOTO(a_var_n, VAROFFSET(1));
 }
 END_VMI
 
 VMI(A_VAR2, 0, 0, ())
-{ offset = VAROFFSET(2);
-  VMH_GOTO(a_var_n, offset);
+{ VMH_GOTO(a_var_n, VAROFFSET(2));
 }
 END_VMI
-END_SHAREDVARS
 
 
 
@@ -4141,35 +4088,25 @@ A_FUNC2, function
 TBD: Keep knowledge on #argument in function!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-  int an;
-  code fn;
 
 VMI(A_FUNC0, 0, 1, (CA1_AFUNC))
-{ an = 0;
-  fn = *PC++;
-  VMH_GOTO(common_an, fn, an);
+{ VMH_GOTO(common_an, *PC++, 0);
 }
 END_VMI
 
 VMI(A_FUNC1, 0, 1, (CA1_AFUNC))
-{ an = 1;
-  fn = *PC++;
-  VMH_GOTO(common_an, fn, an);
+{ VMH_GOTO(common_an, *PC++, 1);
 }
 END_VMI
 
 VMI(A_FUNC2, 0, 1, (CA1_AFUNC))
-{ an = 2;
-  fn = *PC++;
-  VMH_GOTO(common_an, fn, an);
+{ VMH_GOTO(common_an, *PC++, 2);
 }
 END_VMI
 
 VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
-{ fn = *PC++;
-  an = (int) *PC++;
-  VMH_GOTO(common_an, fn, an);
+{ PC += 2;
+  VMH_GOTO(common_an, PC[-2], (int)PC[-1]);
 }
 END_VMI
 
@@ -4184,7 +4121,6 @@ VMH(common_an, 2, (code, int), (fn, an))
   NEXT_INSTRUCTION;
 }
 END_VMH
-END_SHAREDVARS
 
 VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
 { int mode = (int)*PC++;
@@ -4371,41 +4307,29 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
 	EXIT
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-  Number n1, n2;
-  int cmp;
-  int rc;
 
 #define CMP_FAST(op) \
-  n1 = argvArithStack(2 PASS_LD); \
-  n2 = n1 + 1; \
+  Number n1 = argvArithStack(2 PASS_LD); \
+  Number n2 = n1 + 1; \
   if ( n1->type == n2->type ) \
   { switch(n1->type) \
     { case V_INTEGER: \
-        rc = n1->value.i op n2->value.i; \
-	VMH_GOTO(a_cmp_out, rc); \
+	VMH_GOTO(a_cmp_out, n1->value.i op n2->value.i); \
       case V_FLOAT: \
-        rc = n1->value.f op n2->value.f; \
-	VMH_GOTO(a_cmp_out, rc); \
+	VMH_GOTO(a_cmp_out, n1->value.f op n2->value.f); \
       default: \
-        ; \
+	; \
     } \
   }
 #define CMP(opname) \
   CMP_FAST(opname ## _C); \
-  cmp = opname; \
-  VMH_GOTO(acmp, n1, n2, cmp);
+  VMH_GOTO(a_cmp_out, ar_compare(n1, n2, opname))
 
 
 VMI(A_LT, VIF_BREAK, 0, ())		/* A < B */
 { CMP(LT);
 }
 END_VMI
-VMH(acmp, 3, (Number, Number, int), (n1, n2, cmp))
-{ rc = ar_compare(n1, n2, cmp);
-  VMH_GOTO(a_cmp_out, n1, n2, cmp, rc);
-}
-END_VMH
 
 VMH(a_cmp_out, 1, (int), (rc))
 { popArgvArithStack(2 PASS_LD);
@@ -4440,7 +4364,6 @@ VMI(A_NE, VIF_BREAK, 0, ())		/* A \=:= B */
 { CMP(NE);
 }
 END_VMI
-END_SHAREDVARS
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4592,9 +4515,6 @@ END_VMI
 #define PROF_FOREIGN (void)0
 #endif
 
-BEGIN_SHAREDVARS
-volatile word rc;			/* make gcc quiet on non-initialised */
-volatile fid_t ffr_id;
 
 VMI(I_FOPEN, 0, 0, ())
 { FliFrame ffr;
@@ -4624,7 +4544,7 @@ VMI(I_FOPEN, 0, 0, ())
   ffr->parent = fli_context;
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;
-  ffr_id = consTermRef(ffr);
+  FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(qid);
 
   NEXT_INSTRUCTION;
@@ -4648,8 +4568,7 @@ VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
   context.predicate = DEF;
 
   PROF_FOREIGN;
-  rc = (*f)(h0, DEF->functor->arity, &context);
-  VMH_GOTO_AS_VMI(I_FEXITDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0, DEF->functor->arity, &context));
 }
 END_VMI
 
@@ -4663,8 +4582,7 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 { Func f = (Func)*PC++;
 
   PROF_FOREIGN;
-  rc = (*f)();
-  VMH_GOTO_AS_VMI(I_FEXITDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
 
@@ -4672,8 +4590,7 @@ END_VMI
   Func f = (Func)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
-  rc = (*f)(h0_args); \
-  VMH_GOTO_AS_VMI(I_FEXITDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0_args));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0);
@@ -4741,7 +4658,7 @@ VMI(I_FEXITDET, 0, 0, ())
 END_VMI
 
 VMH(I_FEXITDET, 1, (word), (rc))
-{ FliFrame ffr = (FliFrame)valTermRef(ffr_id);
+{ FliFrame ffr = (FliFrame)valTermRef(FFR_ID);
 
   LOAD_REGISTERS(qid);
   PC += 3;
@@ -4770,7 +4687,6 @@ VMH(I_FEXITDET, 1, (word), (rc))
   }
 }
 END_VMH
-END_SHAREDVARS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Non-deterministic foreign calls. This  is   compiled  into the following
@@ -4787,16 +4703,11 @@ take it to I_FREDO. I_FREDO updates the context structure and jumps back
 to the I_FCALLNDETVA (PC -= 4);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-volatile intptr_t rc;				/* make compiler happy */
-struct foreign_context context;
-volatile fid_t ffr_id;
-
 VMI(I_FOPENNDET, 0, 0, ())
-{ context.context   = 0L;
-  context.engine    = LD;
-  context.control   = FRG_FIRST_CALL;
-  context.predicate = DEF;
+{ FNDET_CONTEXT.context   = 0L;
+  FNDET_CONTEXT.engine    = LD;
+  FNDET_CONTEXT.control   = FRG_FIRST_CALL;
+  FNDET_CONTEXT.predicate = DEF;
 
   VMH_GOTO(foreign_redo);
 }
@@ -4817,7 +4728,7 @@ VMH(foreign_redo, 0, (), ())
   ffr->parent = fli_context;
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;
-  ffr_id = consTermRef(ffr);
+  FFR_ID = consTermRef(ffr);
   SAVE_REGISTERS(qid);
 
   NEXT_INSTRUCTION;
@@ -4830,8 +4741,7 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
   PROF_FOREIGN;
-  rc = (*f)(h0, DEF->functor->arity, &context);
-  VMH_GOTO_AS_VMI(I_FEXITNDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0, DEF->functor->arity, &FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4840,8 +4750,7 @@ VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 { Func f = (Func)*PC++;
 
   PROF_FOREIGN;
-  rc = (*f)(&context);
-  VMH_GOTO_AS_VMI(I_FEXITNDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
 
@@ -4849,8 +4758,7 @@ END_VMI
   Func f = (Func)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
-  rc = (*f)(h0_args, &context);\
-  VMH_GOTO_AS_VMI(I_FEXITNDET, rc);
+  VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0_args, &FNDET_CONTEXT));
 
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
@@ -4919,7 +4827,7 @@ VMI(I_FEXITNDET, 0, 0, ())
 END_VMI
 
 VMH(I_FEXITNDET, 1, (intptr_t), (rc))
-{ FliFrame ffr = (FliFrame) valTermRef(ffr_id);
+{ FliFrame ffr = (FliFrame) valTermRef(FFR_ID);
 
   LOAD_REGISTERS(qid);
   PC += 3;				/* saved at in I_FOPENNDET */
@@ -4977,15 +4885,14 @@ VMI(I_FREDO, 0, 0, ())
       THROW_EXCEPTION;
   }
 
-  context.context = (word)FR->clause;
-  context.control = FRG_REDO;
-  context.engine  = LD;
+  FNDET_CONTEXT.context = (word)FR->clause;
+  FNDET_CONTEXT.control = FRG_REDO;
+  FNDET_CONTEXT.engine  = LD;
   PC -= 4;
   VMH_GOTO(foreign_redo);
 }
 END_VMI
 
-END_SHAREDVARS
 
 
 		 /*******************************
@@ -5517,15 +5424,6 @@ END_VMH
 		 *	    META-CALLING	*
 		 *******************************/
 
-BEGIN_SHAREDVARS
-  Module module;
-  functor_t functor;
-  int arity;
-  Word args;
-  closure *clsp;
-  Word a;
-  int callargs;
-  bool is_call0;
 
 #ifdef O_CALL_AT_MODULE
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5584,7 +5482,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
   ap = varFrameP(FR, iv);
   deRef(ap);
   if ( isTextAtom(*ap) )
-  { module = lookupModule(*ap);
+  { Module module = lookupModule(*ap);
     DEF = proc->definition;
     NFR = lTop;
 
@@ -5607,7 +5505,7 @@ same as the end of I_USERCALL
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
-{ module = (Module)*PC++;
+{ Module module = (Module)*PC++;
   DEF    = ((Procedure)*PC++)->definition;
   NFR = lTop;
 
@@ -5629,7 +5527,9 @@ frame with the arguments of the term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_USERCALL0, VIF_BREAK, 0, ())
-{ NFR = lTop;
+{ Word a;
+
+  NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the goal */
 
   DEBUG(MSG_CALL,
@@ -5642,9 +5542,7 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
 	});
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  is_call0 = TRUE;
-  callargs = 0;
-  VMH_GOTO(i_usercall_common, a, callargs, is_call0);
+  VMH_GOTO(i_usercall_common, a, 0, TRUE);
 }
 END_VMI
 
@@ -5674,11 +5572,16 @@ undefined predicate for call/N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 { word goal;
-  module = NULL;
+  int arity = 0;
+  functor_t functor;
+  Word args;
+  Module module = NULL;
+  closure *clsp = NULL;
+
   if ( !(a = stripModule(a, &module, 0 PASS_LD)) )
     THROW_EXCEPTION;
   goal = *a;
-  clsp = NULL;
+
   if ( isAtom(goal) )
   { Atom ap = atomValue(goal);
 
@@ -5856,14 +5759,14 @@ I_USERCALLN: translation of call(Goal, Arg1, ...)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
-{ callargs = (int)*PC++;
+{ Word a;
+  int callargs = (int)*PC++;
 
   NFR = lTop;
   a = argFrameP(NFR, 0);		/* get the (now) instantiated */
   deRef(a);				/* variable */
 
-  is_call0 = FALSE;
-  VMH_GOTO(i_usercall_common, a, callargs, is_call0);
+  VMH_GOTO(i_usercall_common, a, callargs, FALSE);
 }
 END_VMI
 
@@ -5992,12 +5895,9 @@ shift(Ball) :-
     '$shift'(Ball).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-BEGIN_SHAREDVARS
-int shift_for_copy;
 
 VMI(I_SHIFT, 0, 1, (CA1_VAR))
-{ shift_for_copy = FALSE;
-  VMH_GOTO(shift_common, shift_for_copy);
+{ VMH_GOTO(shift_common, FALSE);
 }
 END_VMI
 
@@ -6031,13 +5931,9 @@ VMH(shift_common, 1, (int), (shift_for_copy))
 END_VMH
 
 VMI(I_SHIFTCP, 0, 1, (CA1_VAR))
-{ shift_for_copy = TRUE;
-  VMH_GOTO(shift_common, shift_for_copy);
+{ VMH_GOTO(shift_common, TRUE);
 }
 END_VMI
-END_SHAREDVARS
-
-END_SHAREDVARS
 
 
 		 /*******************************
@@ -6591,10 +6487,6 @@ VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
 END_VMI
 
 
-BEGIN_SHAREDVARS
-word c;
-Word k;
-
 VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
 { TRIE_TRY;
   VMI_GOTO(T_ATOM);
@@ -6602,7 +6494,7 @@ VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
 END_VMI
 
 VMI(T_ATOM, 0, 1, (CA1_DATA))
-{ c = (word)*PC++;
+{ word c = (word)*PC++;
   DEBUG(MSG_TRIE_VM, Sdprintf("T_ATOM %s\n", PL_atom_chars(c)));
   pushVolatileAtom(c);
   VMH_GOTO(t_const, c);
@@ -6616,14 +6508,15 @@ VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_DATA))
 END_VMI
 
 VMI(T_SMALLINT, 0, 1, (CA1_DATA))
-{ c = (word)*PC++;
+{ word c = (word)*PC++;
   DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", valInt(c)));
   VMH_GOTO(t_const, c);
 }
 END_VMI
 
 VMH(t_const, 1, (word), (c))
-{ deRef2(TrieCurrentP, k);
+{ Word k;
+  deRef2(TrieCurrentP, k);
   if ( *k == c )
   { TrieNextArg();
     NEXT_INSTRUCTION;
@@ -6637,7 +6530,6 @@ VMH(t_const, 1, (word), (c))
   CLAUSE_FAILED;
 }
 END_VMH
-END_SHAREDVARS
 
 		 /*******************************
 		 *	   BACKTRACKING		*

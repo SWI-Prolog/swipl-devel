@@ -461,7 +461,6 @@ _VMI(A_ADD, 0, 0, ()) _VMI_SEP
 _VMI(A_MUL, 0, 0, ()) _VMI_SEP
 _VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER)) _VMI_SEP
 _VMI(A_LT, VIF_BREAK, 0, ()) _VMI_SEP
-_VMH(acmp, 3, (Number, Number, int), (n1, n2, cmp)) _VMH_SEP
 _VMH(a_cmp_out, 1, (int), (rc)) _VMH_SEP
 _VMI(A_LE, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(A_GT, VIF_BREAK, 0, ()) _VMI_SEP
