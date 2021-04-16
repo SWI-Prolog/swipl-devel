@@ -2390,9 +2390,9 @@ in_clause_jump(Choice ch)
        false(ch->frame->predicate, P_FOREIGN) &&
        ch->frame->clause &&
        (cl=ch->frame->clause->value.clause) &&
-       ch->value.PC >= cl->codes &&
-       ch->value.PC < &cl->codes[cl->code_size] )
-    return ch->value.PC - cl->codes;
+       ch->value.pc >= cl->codes &&
+       ch->value.pc < &cl->codes[cl->code_size] )
+    return ch->value.pc - cl->codes;
 
   return (size_t)-1;
 }
@@ -2429,9 +2429,9 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 
     if ( ch->type == CHP_JUMP &&
 	 in_clause_jump(ch) == (size_t)-1 )
-    { if ( ch->value.PC == SUPERVISOR(next_clause) )
+    { if ( ch->value.pc == SUPERVISOR(next_clause) )
 	return PL_unify_atom(A3, ATOM_clause);
-      if ( decode(ch->value.PC[0]) == I_FREDO )
+      if ( decode(ch->value.pc[0]) == I_FREDO )
 	return PL_unify_atom(A3, ATOM_foreign);
       assert(0);
       return FALSE;

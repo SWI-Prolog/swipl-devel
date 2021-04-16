@@ -2255,7 +2255,7 @@ mark_choicepoints(mark_state *state, Choice ch ARG_LD)
 
     switch(ch->type)
     { case CHP_JUMP:
-	mark_environments(state, ch->frame, ch->value.PC PASS_LD);
+	mark_environments(state, ch->frame, ch->value.pc PASS_LD);
 	break;
       case CHP_CLAUSE:
       { LocalFrame fr = ch->frame;
@@ -3050,7 +3050,7 @@ static void
 sweep_choicepoints(Choice ch ARG_LD)
 { for( ; ch ; ch = ch->parent)
   { sweep_environments(ch->frame,
-		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
+		       ch->type == CHP_JUMP ? ch->value.pc : NULL);
     sweep_mark(&ch->mark PASS_LD);
   }
 }
@@ -3955,7 +3955,7 @@ check_choicepoints(Choice ch)
     choice_count++;
     check_mark(&ch->mark);
     check_environments(ch->frame,
-		       ch->type == CHP_JUMP ? ch->value.PC : NULL,
+		       ch->type == CHP_JUMP ? ch->value.pc : NULL,
 		       &key);
   }
 
@@ -4740,7 +4740,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
     { update_pointer(&ch->frame, ls);
       update_pointer(&ch->parent, ls);
       if ( ch->type == CHP_JUMP )
-	update_local_pointer(&ch->value.PC, ls);
+	update_local_pointer(&ch->value.pc, ls);
     }
     update_mark(&ch->mark, gs, ts);
 

@@ -1623,7 +1623,7 @@ struct choice
 #endif
   union
   { struct clause_choice clause;	/* Next candidate clause */
-    Code	PC;			/* Next candidate program counter */
+    Code	pc;			/* Next candidate program counter */
     word        foreign;		/* foreign redo handle */
   } value;
 };

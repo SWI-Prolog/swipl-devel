@@ -2239,7 +2239,7 @@ choice_type last_choice;
 #define ATTVAR_WAKEUP		VMH_GOTO(wakeup)
 #endif
 #ifdef O_DEBUG
-#define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
+#define THROW_EXCEPTION		do { THROWED_FROM_LINE = __LINE__; \
 				     VMH_GOTO(b_throw); } while(0)
 #else
 #define THROW_EXCEPTION		VMH_GOTO(b_throw)
@@ -2854,6 +2854,47 @@ typedef enum
 
 #include "pentium.h"
 
+/* All the registers used in PL_next_solution et al; there will always be a
+ * variable or macro called REGISTERS with the current active registers */
+typedef struct register_file
+{ qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
+# define     QID	(REGISTERS.qid)
+  QueryFrame qf;			/* Query frame */
+# define     QF		(REGISTERS.qf)
+  LocalFrame fr;			/* current frame */
+# define     FR		(REGISTERS.fr)
+# define     CL		(FR->clause)	/* clause of current frame */
+  LocalFrame nfr;			/* Next frame */
+# define     NFR	(REGISTERS.nfr)
+  Word       argp;			/* current argument pointer */
+# define     ARGP	(REGISTERS.argp)
+  Code       pc;			/* program counter */
+# define     PC		(REGISTERS.pc)
+  Definition def;			/* definition of current procedure */
+# define     DEF	(REGISTERS.def)
+  unify_mode umode;			/* Unification mode */
+# define     UMODE	(REGISTERS.umode)
+  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
+# define     SLOW_UNIFY	(REGISTERS.slow_unify)
+  exception_frame throw_env;		/* PL_thow() environment */
+# define     THROW_ENV	(REGISTERS.throw_env)
+  fid_t      ffr_id;			/* foreign function id */
+# define     FFR_ID	(REGISTERS.ffr_id)
+  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
+# define     FNDET_CONTEXT (REGISTERS.fndet_context)
+  ar_context pl_ar_ctx;
+# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
+#ifdef O_DEBUG
+  int	     throwed_from_line;		/* Debugging: line we came from */
+# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
+#endif
+#if VMI_FUNCTIONS
+  int        solution_ret;		/* return value for PL_next_solution, when a function returns FALSE */
+# define     SOLUTION_RET		(REGISTERS.solution_ret)
+#endif
+} register_file;
+
+
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
  * get defined per-implementation.
  */
@@ -2955,22 +2996,7 @@ typedef enum
 int
 PL_next_solution(qid_t qid)
 { GET_LD
-  AR_CTX
-  QueryFrame QF;			/* Query frame */
-  LocalFrame FR;			/* current frame */
-  LocalFrame NFR;			/* Next frame */
-  Word	     ARGP;			/* current argument pointer */
-  Code	     PC = NULL;			/* program counter */
-  Definition DEF = NULL;		/* definition of current procedure */
-  unify_mode umode = uread;		/* Unification mode */
-  int slow_unify = FALSE;		/* B_UNIFY_FIRSTVAR */
-  exception_frame throw_env;		/* PL_thow() environment */
-  fid_t      FFR_ID = 0;		/* foreign function id */
-  struct foreign_context FNDET_CONTEXT;	/* foreign function non-deterministic context */
-#ifdef O_DEBUG
-  int	     throwed_from_line=0;	/* Debugging: line we came from */
-#endif
-#define	     CL (FR->clause)		/* clause of current frame */
+  register_file REGISTERS = {.qid = qid};		/* Active registers */
 
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
   union {
@@ -3034,8 +3060,8 @@ variables used in the B_THROW instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &LD->exception.throw_environment));
-  throw_env.parent = LD->exception.throw_environment;
-  if ( setjmp(throw_env.exception_jmp_env) != 0 )
+  THROW_ENV.parent = LD->exception.throw_environment;
+  if ( setjmp(THROW_ENV.exception_jmp_env) != 0 )
   { FliFrame ffr;
 #ifdef O_PLMT
     __PL_ld = GLOBAL_LD;		/* might be clobbered */
@@ -3057,8 +3083,8 @@ variables used in the B_THROW instruction.
 
     THROW_EXCEPTION;
   } else				/* installation */
-  { throw_env.magic = THROW_MAGIC;
-    LD->exception.throw_environment = &throw_env;
+  { THROW_ENV.magic = THROW_MAGIC;
+    LD->exception.throw_environment = &THROW_ENV;
   }
 
   DEF = FR->predicate;

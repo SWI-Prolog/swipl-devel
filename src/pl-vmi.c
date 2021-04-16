@@ -141,9 +141,9 @@ Virtual machine instruction names.  Prefixes:
 #define ENSURE_LOCAL_SPACE(bytes, ifnot) \
 	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
         { int rc; \
-	  SAVE_REGISTERS(qid); \
+	  SAVE_REGISTERS(QID); \
 	  rc = growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD); \
-	  LOAD_REGISTERS(qid); \
+	  LOAD_REGISTERS(QID); \
 	  if ( rc != TRUE ) \
 	  { rc = raiseStackOverflow(rc); \
 	    ifnot; \
@@ -151,10 +151,10 @@ Virtual machine instruction names.  Prefixes:
 	}
 
 #define IF_WRITE_MODE_GOTO(label) \
-	if ( umode == uwrite ) VMI_GOTO(label)
+	if ( UMODE == uwrite ) VMI_GOTO(label)
 
 #define TRUST_CLAUSE(cref) \
-	umode = uread; \
+	UMODE = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
@@ -163,13 +163,13 @@ Virtual machine instruction names.  Prefixes:
 	PC    = cref->value.clause->codes; \
 	NEXT_INSTRUCTION;
 #define TRY_CLAUSE(cref, cond, altpc) \
-	umode = uread; \
+	UMODE = uread; \
 	CL    = cref; \
 	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
 	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
 	if ( cond ) \
 	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
-	  ch->value.PC = altpc; \
+	  ch->value.pc = altpc; \
 	} else if ( debugstatus.debugging ) \
 	{ newChoice(CHP_DEBUG, FR PASS_LD); \
 	} \
@@ -196,9 +196,9 @@ VMH(wakeup, 0, (), ())
 { DEBUG(1, Sdprintf("Activating wakeup\n"));
   NFR = lTop;
   setNextFrameFlags(NFR, FR);
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   DEF = GD->procedures.dwakeup1->definition;
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   ARGP = argFrameP(NFR, 0);
   ARGP[0] = *valTermRef(LD->attvar.head);
   setVar(*valTermRef(LD->attvar.head));
@@ -222,9 +222,9 @@ END_VMH
 #define ENSURE_STACK_SPACE(g, t, onchange) \
 	if ( !hasStackSpace(g, t) )			\
 	{ int __rc;					\
-	  SAVE_REGISTERS(qid);				\
+	  SAVE_REGISTERS(QID);				\
 	  __rc = ensureStackSpace(g, t);		\
-	  LOAD_REGISTERS(qid);				\
+	  LOAD_REGISTERS(QID);				\
 	  if ( __rc != TRUE )				\
 	  { raiseStackOverflow(__rc);			\
 	    THROW_EXCEPTION;				\
@@ -239,9 +239,9 @@ END_VMH
 	  Sdprintf("Forcing GC at %s:%d (cnt=%d)\n",	\
 		   __FILE__, __LINE__, ++__cnt);	\
 	  if ( __cnt == 131 ) trap_gdb();		\
-	  SAVE_REGISTERS(qid);				\
+	  SAVE_REGISTERS(QID);				\
 	  __rc = garbageCollect(GC_GLOBAL_OVERFLOW);	\
-	  LOAD_REGISTERS(qid);				\
+	  LOAD_REGISTERS(QID);				\
 	  if ( __rc != TRUE )				\
 	  { raiseStackOverflow(__rc);			\
 	    THROW_EXCEPTION;				\
@@ -290,9 +290,9 @@ VMI(D_BREAK, 0, 0, ())
     if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
     { int rc;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( rc != TRUE )
       { raiseStackOverflow(rc);
         THROW_EXCEPTION;
@@ -300,7 +300,7 @@ VMI(D_BREAK, 0, 0, ())
     }
 
     ch = newChoice(CHP_JUMP, FR PASS_LD);
-    ch->value.PC = LD->fast_condition;
+    ch->value.pc = LD->fast_condition;
     ARGP = argFrameP(lTop, 0);
     LD->fast_condition = NULL;
   }
@@ -315,7 +315,7 @@ VMI(D_BREAK, 0, 0, ())
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
   LD->query->next_environment = lTop;
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   setLTopInBody();
   DEBUG(0, memset(lTop, 0xbf, sizeof(word)*100));
   DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -330,7 +330,7 @@ VMI(D_BREAK, 0, 0, ())
     default:
       break;
   }
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   lTop = LD->query->next_environment;
   LD->query->next_environment = NULL;
   DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -399,9 +399,9 @@ VMH(retry, 0, (), ())
     }
   }
   Sdprintf("[Could not find retry-point]\n");
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   abortProlog();				/* What else? */
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   THROW_EXCEPTION;
 
 do_retry:
@@ -742,7 +742,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
 { Word k = varFrameP(FR, (int)*PC++);
   int rc;
 
-  if ( umode == uwrite )
+  if ( UMODE == uwrite )
   { if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
     { deRef(k);
       if ( isVar(*k) )
@@ -750,9 +750,9 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
 	{ if ( tTop+1 > tMax )
 	  { int rc;
 
-	    SAVE_REGISTERS(qid);
+	    SAVE_REGISTERS(QID);
 	    rc = ensureTrailSpace(1);
-	    LOAD_REGISTERS(qid);
+	    LOAD_REGISTERS(QID);
 	    if ( rc != TRUE )
 	    { raiseStackOverflow(rc);
 	      THROW_EXCEPTION;
@@ -778,9 +778,9 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     }
   }
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = unify_ptrs(k, ARGP, ALLOW_GC|ALLOW_SHIFT PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( rc )
   { ARGP++;
     NEXT_INSTRUCTION;
@@ -802,7 +802,7 @@ in the head.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
-{ if ( umode == uwrite )
+{ if ( UMODE == uwrite )
   { setVar(*ARGP);
     varFrame(FR, *PC++) = makeRefG(ARGP);
   } else
@@ -828,7 +828,7 @@ the argument stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_FUNCTOR, 0, 1, (CA1_FUNC))
-{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|umode));
+{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|UMODE));
   VMI_GOTO(H_RFUNCTOR);
 }
 END_VMI
@@ -855,7 +855,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     while(arity-->0)			/* must clear if we want to do GC */
       setVar(*ap++);
     bindConst(p, c);
-    umode = uwrite;
+    UMODE = uwrite;
     NEXT_INSTRUCTION;
   }
   if ( hasFunctor(*p, f) )
@@ -872,7 +872,7 @@ H_LIST:  As H_FUNCTOR, but using ./2 as predefined functor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_LIST, 0, 0, ())
-{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|umode));
+{ pushArgumentStack((Word)((intptr_t)(ARGP + 1)|UMODE));
 
   VMI_GOTO(H_RLIST);
 }
@@ -909,7 +909,7 @@ VMI(H_RLIST, 0, 0, ())
       setVar(ap[1]);
       bindConst(p, c);
       ARGP = ap;
-      umode = uwrite;
+      UMODE = uwrite;
       NEXT_INSTRUCTION;
     }
     default:
@@ -925,7 +925,7 @@ H_POP: Pop the saved argument pointer pushed by H_FUNCTOR and H_LIST.
 
 VMI(H_POP, 0, 0, ())
 { ARGP = *--aTop;
-  umode = ((int)(uintptr_t)ARGP & uwrite);
+  UMODE = ((int)(uintptr_t)ARGP & uwrite);
   ARGP = (Word)((intptr_t)ARGP&~uwrite);
   NEXT_INSTRUCTION;
 }
@@ -944,7 +944,7 @@ predicates:
 VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 { Word p;
 
-  if ( umode == uwrite )
+  if ( UMODE == uwrite )
   { p = ARGP;
     goto write;
   } else
@@ -961,7 +961,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 
     write:
       ENSURE_GLOBAL_SPACE(3,
-			  { if ( umode == uwrite )
+			  { if ( UMODE == uwrite )
 			      p = ARGP;
 			    else
 			      deRef2(ARGP, p);
@@ -972,7 +972,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
       *ap++ = FUNCTOR_dot2;
       setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap); ap++;
       setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap);
-      if ( umode == uwrite )
+      if ( UMODE == uwrite )
 	*p = c;
       else
 	bindConst(p, c);
@@ -1141,9 +1141,9 @@ VMI(B_ARGVAR, 0, 1, (CA1_VAR))
     { if ( tTop+1 > tMax )
       { int rc;
 
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	rc = ensureTrailSpace(1);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	if ( rc != TRUE )
 	{ raiseStackOverflow(rc);
 	  assert(exception_term);
@@ -1249,7 +1249,7 @@ VMI(B_UNIFY_VAR, VIF_BREAK, 1, (CA1_VAR))
 END_VMI
 
 VMH(unify_var_cont, 0, (), ())
-{ if ( (slow_unify=LD->slow_unify) )
+{ if ( (SLOW_UNIFY=LD->slow_unify) )
   { Word k = ARGP;
 
     if ( isVar(*k) )
@@ -1260,11 +1260,11 @@ VMH(unify_var_cont, 0, (), ())
     ARGP = argFrameP(lTop, 0);
     *ARGP++ = *k;
     setVar(*ARGP);
-    umode = uwrite;			/* must write for GC to work */
+    UMODE = uwrite;			/* must write for GC to work */
     NEXT_INSTRUCTION;
   }
 
-  umode = uread;			/* needed? */
+  UMODE = uread;			/* needed? */
   NEXT_INSTRUCTION;
 }
 END_VMH
@@ -1272,7 +1272,7 @@ END_VMH
 
 VMI(B_UNIFY_EXIT, 0, 0, ())
 { ARGP = argFrameP(lTop, 0);
-  if ( slow_unify )
+  if ( SLOW_UNIFY )
   { NFR = lTop;
     DEF = GD->procedures.equals2->definition;
     setNextFrameFlags(NFR, FR);
@@ -1376,9 +1376,9 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     VMH_GOTO(debug_equals2);
   }
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = unify_ptrs(v1, v2, ALLOW_GC|ALLOW_SHIFT PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( rc )
   { CHECK_WAKEUP;
     NEXT_INSTRUCTION;
@@ -1875,10 +1875,10 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
     if ( debugstatus.debugging )
     { int action;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       clearUninitialisedVarsFrame(FR, PC);
       action = tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       switch( action )
       { case ACTION_RETRY:
@@ -1970,9 +1970,9 @@ procedure and deallocate our temporary version if threading is not used.
   { int rc;
 
     lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     rc = growLocalSpace__LD(LOCAL_MARGIN, ALLOW_SHIFT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( rc != TRUE )
     { rc = raiseStackOverflow(rc);
       THROW_EXCEPTION;
@@ -2013,16 +2013,16 @@ VMH(depart_or_retry_continue, 0, (), ())
     }
 
     if ( is_signalled(PASS_LD1) )
-    { SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(QID);
       DEF = getProcDefinedDefinition(DEF PASS_LD); /* see (*) above */
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
       { setFramePredicate(FR, DEF);
 	setGenerationFrame(FR);
       }
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       handleSignals(PASS_LD1);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( exception_term )
       { CL = NULL;
 
@@ -2038,9 +2038,9 @@ VMH(depart_or_retry_continue, 0, (), ())
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       rc = run_undo_hooks(PASS_LD1);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( !rc )
 	THROW_EXCEPTION;
     }
@@ -2065,9 +2065,9 @@ VMH(depart_or_retry_continue, 0, (), ())
 #ifdef O_INFERENCE_LIMIT
     if ( LD->statistics.inferences >= LD->inference_limit.limit )
     { lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       raiseInferenceLimitException();
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( exception_term )
 	THROW_EXCEPTION;
     }
@@ -2078,9 +2078,9 @@ VMH(depart_or_retry_continue, 0, (), ())
     { int rc;
 
       lTop = (LocalFrame) argFrameP(FR, DEF->functor->arity);
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       DEF = getProcDefinedDefinition(DEF PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( FR->predicate != DEF )		/* auto imported/loaded */
       { setFramePredicate(FR, DEF);
 	setGenerationFrame(FR);
@@ -2092,9 +2092,9 @@ VMH(depart_or_retry_continue, 0, (), ())
       }
       set(FR, FR_INBOX);
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       rc = tracePort(FR, BFR, CALL_PORT, NULL PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       switch( rc )
       { case ACTION_FAIL:   FRAME_FAILED;
 	case ACTION_IGNORE: VMI_GOTO(I_EXIT);
@@ -2136,9 +2136,9 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
   { if ( true(FR, FR_WATCHED) )
     { LD->query->next_environment = lTop;
       lTop = (LocalFrame)ARGP;		/* just pushed arguments, so top */
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       frameFinished(FR, FINISH_EXIT PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       lTop = LD->query->next_environment;
       LD->query->next_environment = NULL;
       if ( exception_term )
@@ -2252,9 +2252,9 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
     if ( debugstatus.debugging )
     { int action;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       action = tracePort(FR, BFR, EXIT_PORT, PC PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       switch( action )
       { case ACTION_RETRY:
@@ -2283,9 +2283,9 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   { leave = NULL;
     clear(FR, FR_INBOX);
     if ( true(FR, FR_DET|FR_DETGUARD) )
-    { SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(QID);
       determinism_error(FR, ATOM_nondet PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( exception_term )
 	THROW_EXCEPTION;
     }
@@ -2297,9 +2297,9 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
   ARGP = argFrameP(lTop, 0);
   Profile(profResumeParent(FR->prof_node PASS_LD));
   if ( leave )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     frameFinished(leave, FINISH_EXIT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
@@ -2327,9 +2327,9 @@ VMI(I_EXITFACT, 0, 0, ())
     if ( debugstatus.debugging )
     { int action;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       action = tracePort(FR, BFR, UNIFY_PORT, PC PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       switch( action )
       { case ACTION_RETRY:
@@ -2370,7 +2370,7 @@ Created for the return of the toplevel query.
 VMI(I_EXITQUERY, 0, 0, ())
 { assert(!FR->parent);
 
-  QF = QueryFromQid(qid);		/* may be shifted: recompute */
+  QF = QueryFromQid(QID);		/* may be shifted: recompute */
   QF->solutions++;
 
   assert(FR == &QF->top_frame);
@@ -2381,9 +2381,9 @@ VMI(I_EXITQUERY, 0, 0, ())
     FR->clause = NULL;
 
     if ( true(FR, FR_WATCHED) )
-    { SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(QID);
       frameFinished(FR, FINISH_EXIT PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
     }
   }
 
@@ -2399,8 +2399,8 @@ VMI(I_EXITQUERY, 0, 0, ())
 #endif
 
   QF->foreign_frame = PL_open_foreign_frame();
-  assert(LD->exception.throw_environment == &throw_env);
-  LD->exception.throw_environment = throw_env.parent;
+  assert(LD->exception.throw_environment == &THROW_ENV);
+  LD->exception.throw_environment = THROW_ENV.parent;
 
 #define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
   SOLUTION_RETURN((QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : TRUE);
@@ -2422,7 +2422,7 @@ again resumes the VM.
 VMI(I_YIELD, VIF_BREAK, 0, ())
 { Word p;
 
-  QF = QueryFromQid(qid);
+  QF = QueryFromQid(QID);
   if ( !(QF->flags&PL_Q_ALLOW_YIELD) )
   { PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
     THROW_EXCEPTION;
@@ -2430,7 +2430,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   if ( (void*)BFR < (void*)FR )
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   ARGP = argFrameP(lTop, 0);
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
   QF->foreign_frame = PL_open_foreign_frame();
@@ -2438,14 +2438,14 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   p = argFrameP(FR, 0);
   if ( isVar(*p) )
   { ENSURE_GLOBAL_SPACE(1, p = argFrameP(FR, 0));
-    QF = QueryFromQid(qid);
+    QF = QueryFromQid(QID);
     globaliseVar(p);
   }
   *valTermRef(QF->yield.term) = linkValI(p);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  assert(LD->exception.throw_environment == &throw_env);
-  LD->exception.throw_environment = throw_env.parent;
+  assert(LD->exception.throw_environment == &THROW_ENV);
+  LD->exception.throw_environment = THROW_ENV.parent;
 
   p = argFrameP(FR, 1);
   deRef(p);
@@ -2571,17 +2571,17 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
 
   if ( true(FR, FR_WATCHED) )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     frameFinished(FR, FINISH_EXIT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
 
   if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     DEF = getProcDefinedDefinition(DEF PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
   }
 
   if ( true(DEF, P_TRANSPARENT) )
@@ -2602,9 +2602,9 @@ END_VMI
 
 VMI(I_TCALL, 0, 0, ())
 { if ( true(FR, FR_WATCHED) )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     frameFinished(FR, FINISH_EXIT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
@@ -2652,9 +2652,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     Choice ch;
     mark m;
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     rc = tracePort(FR, BFR, CUT_CALL_PORT, PC PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     switch( rc )
     { case ACTION_RETRY:
 	TRACE_RETRY;
@@ -2666,9 +2666,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 
     if ( (ch = findStartChoice(FR, BFR)) )
     { m = ch->mark;
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       dbg_discardChoicesAfter(FR, FINISH_CUT PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
       ch = newChoice(CHP_DEBUG, FR PASS_LD);
       ch->mark = m;
@@ -2680,9 +2680,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     if ( exception_term )
       THROW_EXCEPTION;
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     rc = tracePort(FR, BFR, CUT_EXIT_PORT, PC PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     switch( rc )
     { case ACTION_RETRY:
 	TRACE_RETRY;
@@ -2693,9 +2693,9 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     }
   } else
 #endif
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     discardChoicesAfter(FR, FINISH_CUT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
     ARGP = argFrameP(lTop, 0);
     if ( exception_term )
@@ -2733,9 +2733,9 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   if ( addPointer(lTop, sizeof(struct choice)) > (void*)lMax )
   { int rc;
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     rc = growLocalSpace__LD(sizeof(*ch), ALLOW_SHIFT PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( rc != TRUE )
     { raiseStackOverflow(rc);
       THROW_EXCEPTION;
@@ -2743,7 +2743,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
   }
 
   ch = newChoice(CHP_JUMP, FR PASS_LD);
-  ch->value.PC = PC+skip;
+  ch->value.pc = PC+skip;
   ARGP = argFrameP(lTop, 0);
 
   NEXT_INSTRUCTION;
@@ -2796,9 +2796,9 @@ VMI(C_DETTRUE, 0, 1, (CA1_CHP))
     NEXT_INSTRUCTION;
   }
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   det_goal_error(FR, PC-1, ATOM_nondet PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( exception_term )
     THROW_EXCEPTION;
 
@@ -2807,9 +2807,9 @@ VMI(C_DETTRUE, 0, 1, (CA1_CHP))
 END_VMI
 
 VMI(C_DETFALSE, 0, 0, ())
-{ SAVE_REGISTERS(qid);
+{ SAVE_REGISTERS(QID);
   det_goal_error(FR, PC-1, ATOM_fail PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( exception_term )
     THROW_EXCEPTION;
 
@@ -3043,9 +3043,9 @@ VMH(c_cut, 1, (Choice), (och))
       { char *lSave = (char*)lBase;
 
 	BFR = ch;
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	frameFinished(fr2, FINISH_CUT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	if ( lSave != (char*)lBase )	/* shifted */
 	{ intptr_t offset = (char*)lBase - lSave;
 
@@ -3355,9 +3355,9 @@ VMI(S_VIRGIN, 0, 0, ())
 { lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
 
   if ( !DEF->impl.any.defined && false(DEF, PROC_DEFINED) )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     DEF = getProcDefinedDefinition(DEF PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
 
     setFramePredicate(FR, DEF);
     setGenerationFrame(FR);
@@ -3406,12 +3406,12 @@ VMI(S_UNDEF, 0, 0, ())
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
       newChoice(CHP_DEBUG, FR PASS_LD);
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       if ( (fid = PL_open_foreign_frame()) )
       { PL_error(NULL, 0, NULL, ERR_UNDEFINED_PROC, DEF, caller);
 	PL_close_foreign_frame(fid);
       }
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       enterDefinition(DEF);		/* will be left in exception code */
 
@@ -3421,7 +3421,7 @@ VMI(S_UNDEF, 0, 0, ())
     { fid_t fid;
 
       lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       if ( (fid = PL_open_foreign_frame()) )
       { term_t pred;
 	int rc;
@@ -3496,7 +3496,7 @@ VMI(S_STATIC, 0, 0, ())
 	    checkData(argFrameP(FR, n));
 	});
 
-  umode = uread;
+  UMODE = uread;
   NEXT_INSTRUCTION;
 }
 END_VMI
@@ -3555,7 +3555,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
   { fid_t fid;
 
     lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )
     { Word ap;
       word w;
@@ -3582,8 +3582,8 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
       { size_t i;
 	Word fp;
 
-	LOAD_REGISTERS(qid);
-	SAVE_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
+	SAVE_REGISTERS(QID);
 	fp = argFrameP(FR, 0);
 
 	for(i=0; i<DEF->functor->arity; i++, fp++)
@@ -3605,7 +3605,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
       idg_add_dyncall(DEF, ctrie, t PASS_LD);
       PL_close_foreign_frame(fid);
     }
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
@@ -3736,9 +3736,9 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
 	if ( (fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD)) )
 	{ int action;
 
-	  SAVE_REGISTERS(qid);
+	  SAVE_REGISTERS(QID);
 	  action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 
 	  switch( action )
 	  { case ACTION_FAIL:
@@ -3804,9 +3804,9 @@ VMI(S_MQUAL, 0, 1, (CA1_VAR))
 { int arg = (int)*PC++;
   int rc;
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = m_qualify_argument(FR, arg PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( rc != TRUE )
   { if ( rc != FALSE )
       raiseStackOverflow(rc);
@@ -3822,9 +3822,9 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
 { int arg = (int)*PC++;
   int rc;
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = m_qualify_argument(FR, arg PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( rc != TRUE )
   { if ( rc != FALSE )
       raiseStackOverflow(rc);
@@ -4040,7 +4040,7 @@ VMH(a_var_n, 1, (int), (offset))
       number result;
       int rc;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       lTop = (LocalFrame)argFrameP(lTop, 1); /* for is/2.  See below */
       if ( (fid = PL_open_foreign_frame()) )
       { rc = valueExpression(consTermRef(p), &result PASS_LD);
@@ -4049,7 +4049,7 @@ VMH(a_var_n, 1, (int), (offset))
       { rc = FALSE;
       }
       lTop = addPointer(lBase, lsafe);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       if ( rc )
       { pushArithStack(&result PASS_LD);
@@ -4112,9 +4112,9 @@ END_VMI
 
 VMH(common_an, 2, (code, int), (fn, an))
 { int rc;
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = ar_func_n((int)fn, an PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   if ( !rc )
     AR_THROW_EXCEPTION;
 
@@ -4164,9 +4164,9 @@ VMI(A_ADD, 0, 0, ())
   int rc;
   number r;
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = pl_ar_add(argv+1, argv, &r);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
   { pushArithStack(&r PASS_LD);
@@ -4187,9 +4187,9 @@ VMI(A_MUL, 0, 0, ())
   int rc;
   number r;
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   rc = ar_mul(argv+1, argv, &r);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   popArgvArithStack(2 PASS_LD);
   if ( rc )
   { pushArithStack(&r PASS_LD);
@@ -4249,9 +4249,9 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     } else				/* but their sum might not fit */
     { int rc;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       rc = put_int64(&w, r, ALLOW_GC|ALLOW_SHIFT PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( rc != TRUE )
 	THROW_EXCEPTION;
       *rp = w;
@@ -4263,7 +4263,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     fid_t fid;
     int rc;
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     if ( (fid = PL_open_foreign_frame()) )	/* Still needed? */
     { rc = valueExpression(pushWordAsTermRef(np), &n PASS_LD);
       popTermRef();
@@ -4278,7 +4278,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
       PL_close_foreign_frame(fid);
     } else
       rc = FALSE;
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( !rc )
       THROW_EXCEPTION;
 
@@ -4402,9 +4402,9 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
     }
 
     ARGP++;				/* new_args must become 1 in */
-    SAVE_REGISTERS(qid);		/* get_vmi_state() */
+    SAVE_REGISTERS(QID);		/* get_vmi_state() */
     rc = put_number(&c, n, ALLOW_GC PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     ARGP--;
 
     if ( rc == TRUE )
@@ -4412,9 +4412,9 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
       if ( !isTerm(c) )
       { bindConst(k, c);
       } else
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	rc = unify_ptrs(k, &c, ALLOW_GC|ALLOW_SHIFT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	if ( rc == FALSE )
 	{ popArgvArithStack(1 PASS_LD);
 	  AR_END();
@@ -4479,10 +4479,10 @@ VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
   word w;
   int rc;
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   if ( (rc = put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
     rc = raiseStackOverflow(rc);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
 
   popArgvArithStack(1 PASS_LD);
   AR_END();
@@ -4545,7 +4545,7 @@ VMI(I_FOPEN, 0, 0, ())
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;
   FFR_ID = consTermRef(ffr);
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
 
   NEXT_INSTRUCTION;
 }
@@ -4660,7 +4660,7 @@ END_VMI
 VMH(I_FEXITDET, 1, (word), (rc))
 { FliFrame ffr = (FliFrame)valTermRef(FFR_ID);
 
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   PC += 3;
   DEBUG(CHK_SECURE, assert(PC[-1] == encode(I_FEXITDET)));
   fli_context = ffr->parent;
@@ -4719,7 +4719,7 @@ VMH(foreign_redo, 0, (), ())
 
   lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
   ch = newChoice(CHP_JUMP, FR PASS_LD);
-  ch->value.PC = PC+3;
+  ch->value.pc = PC+3;
 
   ffr = (FliFrame)(ch+1);
   lTop = (LocalFrame)(ffr+1);
@@ -4729,7 +4729,7 @@ VMH(foreign_redo, 0, (), ())
   ffr->magic = FLI_MAGIC;
   fli_context = ffr;
   FFR_ID = consTermRef(ffr);
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
 
   NEXT_INSTRUCTION;
 }
@@ -4829,7 +4829,7 @@ END_VMI
 VMH(I_FEXITNDET, 1, (intptr_t), (rc))
 { FliFrame ffr = (FliFrame) valTermRef(FFR_ID);
 
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   PC += 3;				/* saved at in I_FOPENNDET */
   fli_context = ffr->parent;
 
@@ -4837,7 +4837,7 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
   { case TRUE:
       if ( exception_term )		/* false alarm */
 	PL_clear_foreign_exception(FR);
-      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.pc == PC));
 #ifdef O_DEBUGGER
       if ( unlikely(debugstatus.debugging) )
 	BFR->type = CHP_DEBUG;
@@ -4850,7 +4850,7 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
       FR->clause = NULL;
       if ( exception_term )
 	THROW_EXCEPTION;
-      DEBUG(CHK_SECURE, assert(BFR->value.PC == PC));
+      DEBUG(CHK_SECURE, assert(BFR->value.pc == PC));
 #ifdef O_DEBUGGER
       if ( unlikely(debugstatus.debugging) )
 	BFR->type = CHP_DEBUG;
@@ -4878,9 +4878,9 @@ END_VMH
 
 VMI(I_FREDO, 0, 0, ())
 { if ( is_signalled(PASS_LD1) )
-  { SAVE_REGISTERS(qid);
+  { SAVE_REGISTERS(QID);
     handleSignals(PASS_LD1);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
@@ -4967,9 +4967,9 @@ VMI(I_EXITCLEANUP, 0, 0, ())
 	NEXT_INSTRUCTION;		/* choice from setup of setup_call_catcher_cleanup/4 */
     }
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     frameFinished(FR, FINISH_EXITCLEANUP PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( exception_term )
       THROW_EXCEPTION;
   }
@@ -5077,7 +5077,7 @@ VMH(b_throw, 0, (), ())
 
   LD->fast_condition = NULL;		/* A_FUNC exceptions */
   rewritten = 0;
-  QF  = QueryFromQid(qid);
+  QF  = QueryFromQid(QID);
   aTop = QF->aSave;
   assert(exception_term);
   outofstack = LD->outofstack;
@@ -5091,7 +5091,7 @@ VMH(b_throw, 0, (), ())
   DEBUG(MSG_THROW,
 	{ fid_t fid = PL_open_foreign_frame();
 	  Sdprintf("[%d] Throwing (from line %d): ",
-		   PL_thread_self(), throwed_from_line);
+		   PL_thread_self(), THROWED_FROM_LINE);
 	  PL_write_term(Serror, exception_term, 1200, 0);
 	  Sdprintf("\n");
 	  PL_discard_foreign_frame(fid);
@@ -5103,9 +5103,9 @@ VMH(b_throw, 0, (), ())
     fid = 0;
 
 again:
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term PASS_LD);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
   DEBUG(MSG_THROW,
 	{ if ( catchfr_ref )
 	  { LocalFrame fr = (LocalFrame)valTermRef(catchfr_ref);
@@ -5117,10 +5117,10 @@ again:
 	});
 
   DEBUG(CHK_SECURE,
-	{ SAVE_REGISTERS(qid);
+	{ SAVE_REGISTERS(QID);
 	  checkData(valTermRef(exception_term));
 	  checkStacks(NULL);
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	});
 
   if ( debugstatus.suspendTrace == FALSE && !rewritten++ &&
@@ -5128,9 +5128,9 @@ again:
        !resourceException(exception_term PASS_LD) )
   { int rc;
 
-    SAVE_REGISTERS(qid);
-    rc = exception_hook(qid, consTermRef(FR), catchfr_ref PASS_LD);
-    LOAD_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
+    rc = exception_hook(QID, consTermRef(FR), catchfr_ref PASS_LD);
+    LOAD_REGISTERS(QID);
 
     if ( rc && fid )
     { DEBUG(MSG_THROW,
@@ -5150,16 +5150,16 @@ again:
   start_tracer = FALSE;
   if ( !catchfr_ref &&
        !PL_same_term(exception_term, exception_printed) &&
-       false(QueryFromQid(qid), PL_Q_CATCH_EXCEPTION) )
+       false(QueryFromQid(QID), PL_Q_CATCH_EXCEPTION) )
   { term_t rc;
 
-    SAVE_REGISTERS(qid);
-    rc = isCaughtInOuterQuery(qid, exception_term PASS_LD);
+    SAVE_REGISTERS(QID);
+    rc = isCaughtInOuterQuery(QID, exception_term PASS_LD);
     DEBUG(MSG_THROW, Sdprintf("Caught in outer: %s\n", rc ? "YES" : "NO"));
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
 
     if ( !rc )					/* uncaught exception */
-    { SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(QID);
       if ( PL_is_functor(exception_term, FUNCTOR_error2) &&
 	   truePrologFlag(PLFLAG_DEBUG_ON_ERROR) )
       { debugmode(TRUE, NULL);
@@ -5179,7 +5179,7 @@ again:
 	(void)rc;
 	PL_put_term(exception_printed, exception_term);
       }
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
     }
   }
 
@@ -5202,13 +5202,13 @@ again:
 
 	lTop = (LocalFrame)(BFR+1);
 	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(qid);
+	      { SAVE_REGISTERS(QID);
 		checkStacks(NULL);
-		LOAD_REGISTERS(qid);
+		LOAD_REGISTERS(QID);
 	      });
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	dbg_discardChoicesAfter((LocalFrame)ch, FINISH_EXTERNAL_EXCEPT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	ch = (Choice)valTermRef(chref);
 	Undo(ch->mark);
 	DiscardMark(ch->mark);
@@ -5218,22 +5218,22 @@ again:
 	  PL_put_term(exception_printed, exception_term);
 
 	DEBUG(CHK_SECURE,
-	      { SAVE_REGISTERS(qid);
+	      { SAVE_REGISTERS(QID);
 	        checkStacks(NULL);
-		LOAD_REGISTERS(qid);
+		LOAD_REGISTERS(QID);
 		ch = (Choice)valTermRef(chref);
 	      });
 
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	rc = tracePort(FR, ch, EXCEPTION_PORT, PC PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 
 	switch( rc )
 	{ case ACTION_RETRY:
-	    SAVE_REGISTERS(qid);
+	    SAVE_REGISTERS(QID);
 	    discardChoicesAfter(FR, FINISH_CUT PASS_LD);
 	    resumeAfterException(TRUE, outofstack);
-	    LOAD_REGISTERS(qid);
+	    LOAD_REGISTERS(QID);
 	    DEF = FR->predicate;
 	    FR->clause = NULL;
 	    VMH_GOTO(depart_or_retry_continue);
@@ -5261,31 +5261,31 @@ again:
         fli_context = fli_context->parent;
 
       DEBUG(CHK_SECURE,
-	    { SAVE_REGISTERS(qid);
+	    { SAVE_REGISTERS(QID);
 	      memset(lTop, 0xfb, lMax-lTop);
 	      checkStacks(NULL);
-	      LOAD_REGISTERS(qid)
+	      LOAD_REGISTERS(QID)
 	    });
 
       if ( true(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	discardFrame(FR PASS_LD);
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
       } else
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	discardFrame(FR PASS_LD);
       }
 
       if ( start_tracer )		/* See (*) */
-      {	SAVE_REGISTERS(qid);
+      {	SAVE_REGISTERS(QID);
 	exceptionUnwindGC();
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 
 	DEBUG(MSG_STACK_OVERFLOW,
 	      Sdprintf("Unwinding for exception. g+l+t used = %zd+%zd+%zd\n",
@@ -5296,22 +5296,22 @@ again:
 	if ( trace_if_space() )
 	{ int rc;
 	  start_tracer = FALSE;
-	  SAVE_REGISTERS(qid);
+	  SAVE_REGISTERS(QID);
 	  LD->critical++;		/* do not handle signals */
 	  trimStacks(FALSE PASS_LD);
 	  rc = printMessage(ATOM_error, PL_TERM, exception_term);
 	  (void)rc;
 	  LD->critical--;
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	}
       }
     }
 
     if ( start_tracer )
     { Sdprintf("Failed to print resource exception due to lack of space\n");
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       PL_write_term(Serror, exception_term, 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
     }
   } else
 #endif /*O_DEBUGGER*/
@@ -5325,16 +5325,16 @@ again:
       ARGP = argFrameP(FR, 0);		/* otherwise GC sees `new' arguments */
       LD->statistics.inferences++;	/* box exit, needed for GC */
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
 
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       discardFrame(FR PASS_LD);
       if ( true(FR, FR_WATCHED) )
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	frameFinished(FR, FINISH_EXCEPT PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
       }
       DEBUG(CHK_SECURE, checkData(valTermRef(exception_term)));
     }
@@ -5350,9 +5350,9 @@ again:
 
     assert(FR == (LocalFrame)valTermRef(catchfr_ref));
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     dbg_discardChoicesAfter(FR, FINISH_EXTERNAL_EXCEPT_UNDO PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     environment_frame = FR;
 					/* re-unify */
     PL_unify(consTermRef(argFrameP(FR, 1)), exception_term);
@@ -5376,15 +5376,15 @@ again:
     { word lSafe = consTermRef(lTop);
       lTop = (LocalFrame)argFrameP(lTop, 1);
       ARGP = (Word)lTop;
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       resumeAfterException(TRUE, outofstack);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       lTop = (LocalFrame)valTermRef(lSafe);
     }
 
     VMI_GOTO(I_USERCALL0);
   } else
-  { QF = QueryFromQid(qid);		/* may be shifted */
+  { QF = QueryFromQid(QID);		/* may be shifted */
     set(QF, PL_Q_DETERMINISTIC);
     FR = environment_frame = &QF->top_frame;
     lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
@@ -5394,18 +5394,18 @@ again:
     QF->foreign_frame = PL_open_foreign_frame();
     QF->exception = PL_copy_term_ref(exception_term);
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     resumeAfterException(false(QF, PL_Q_PASS_EXCEPTION), outofstack);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( PL_pending(SIG_GC) )
-    { SAVE_REGISTERS(qid);
+    { SAVE_REGISTERS(QID);
       garbageCollect(LD->gc.stats.request);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
     }
-    QF = QueryFromQid(qid);		/* may be shifted: recompute */
+    QF = QueryFromQid(QID);		/* may be shifted: recompute */
 
-    assert(LD->exception.throw_environment == &throw_env);
-    LD->exception.throw_environment = throw_env.parent;
+    assert(LD->exception.throw_environment == &THROW_ENV);
+    LD->exception.throw_environment = THROW_ENV.parent;
 
     DEBUG(MSG_THROW,
 	  { Sdprintf("Leaving exception after callback: ");
@@ -5648,9 +5648,9 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	  term_t lTopH = consTermRef(lTop);
   
 	  lTop = (LocalFrame)argFrameP(NFR, 1);
-	  SAVE_REGISTERS(qid);
+	  SAVE_REGISTERS(QID);
 	  rc = growLocalSpace__LD(room*2, ALLOW_SHIFT PASS_LD);
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	  lTop = (LocalFrame)valTermRef(lTopH);
 	  if ( rc != TRUE )
 	  { raiseStackOverflow(rc);
@@ -5796,9 +5796,9 @@ VMH(mcall_cont, 1, (Module), (module))
     environment_frame = FR = NFR;
     lTop = (LocalFrame)argFrameP(NFR, DEF->functor->arity);
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     DEF = trapUndefined(DEF PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     NFR = (LocalFrame)valTermRef(nref);
 
     FR = FR->parent;
@@ -5872,9 +5872,9 @@ VMI(I_CALLCONT, 0, 1, (CA1_VAR))
   { term_t cont = pushWordAsTermRef(cp);
     Code pc;
 
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     pc = push_continuation(cont, FR, PC PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     popTermRef();
 
     if ( pc )
@@ -5910,11 +5910,11 @@ VMH(shift_common, 1, (int), (shift_for_copy))
   ballp = varFrameP(FR, (int)*PC++);
   ball  = pushWordAsTermRef(ballp);
 
-  SAVE_REGISTERS(qid);
+  SAVE_REGISTERS(QID);
   fid = PL_open_foreign_frame();
   pc = shift(ball, shift_for_copy PASS_LD);
   PL_close_foreign_frame(fid);
-  LOAD_REGISTERS(qid);
+  LOAD_REGISTERS(QID);
 
   popTermRef();
 
@@ -5963,10 +5963,10 @@ VMI(S_TRIE_GEN, 0, 0, ())
   if ( !isAtom(dbref) )
   {
   trie_gen_type_error:
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     PL_type_error("trie_or_clause", pushWordAsTermRef(argFrameP(FR, 0)));
     popTermRef();
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     THROW_EXCEPTION;
   }
 
@@ -5984,9 +5984,9 @@ VMI(S_TRIE_GEN, 0, 0, ())
     { if ( t->value_count == 0 )
 	FRAME_FAILED;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       dbref = compile_trie(FR->predicate, t PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
     }
 
     if ( dbref == ATOM_fail )
@@ -6036,7 +6036,7 @@ TBD:
           Choice ch;					     \
 	  ENSURE_LOCAL_SPACE(sizeof(*ch), THROW_EXCEPTION);  \
 	  ch = newChoice(CHP_JUMP, FR PASS_LD);		     \
-	  ch->value.PC = PC+skip;			     \
+	  ch->value.pc = PC+skip;			     \
 	} while(0)
 #define TrieNextArg() \
 	do \
@@ -6303,9 +6303,9 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
   { int rc;
 
     DEBUG(MSG_TRIE_VM, Sdprintf("Next var %zd\n", offset));
-    SAVE_REGISTERS(qid);
+    SAVE_REGISTERS(QID);
     rc = unify_ptrs(vp, TrieCurrentP, ALLOW_GC PASS_LD);
-    LOAD_REGISTERS(qid);
+    LOAD_REGISTERS(QID);
     if ( !rc )
     { if ( exception_term )
 	THROW_EXCEPTION;
@@ -6553,12 +6553,12 @@ VMH(shallow_backtrack, 0, (), ())
 
   if ( FR == ch->frame )
   { Undo(ch->mark);
-    QF = QueryFromQid(qid);
+    QF = QueryFromQid(QID);
     aTop = QF->aSave;
 
     if ( ch->type == CHP_JUMP )
     { DiscardMark(ch->mark);
-      PC   = ch->value.PC;
+      PC   = ch->value.pc;
       BFR  = ch->parent;
       lTop = (LocalFrame)ch;
       ARGP = argFrameP(lTop, 0);
@@ -6569,7 +6569,7 @@ VMH(shallow_backtrack, 0, (), ())
       if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
 	FRAME_FAILED;		/* can happen if scan-ahead was too short */
       PC = CL->value.clause->codes;
-      umode = uread;
+      UMODE = uread;
 
       if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
       { DiscardMark(ch->mark);		/* is this needed? */
@@ -6644,9 +6644,9 @@ next_choice:
 	environment_frame = FR;
 	FR->clause = NULL;
 	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	SAVE_REGISTERS(qid);
+	SAVE_REGISTERS(QID);
 	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	ch = BFR;			/* can be shifted */
 
 	switch( rc )
@@ -6672,15 +6672,15 @@ next_choice:
       lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
       FR->clause = NULL;
       if ( true(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	ssu_or_det_failed(FR PASS_LD);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	if ( exception_term )
 	  THROW_EXCEPTION;
       }
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       frameFinished(FR, FINISH_FAIL PASS_LD);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       ch = BFR;			/* can be shifted */
       if ( exception_term )
 	THROW_EXCEPTION;
@@ -6689,7 +6689,7 @@ next_choice:
 
   environment_frame = FR = ch->frame;
   Undo(ch->mark);
-  QF = QueryFromQid(qid);
+  QF = QueryFromQid(QID);
   aTop = QF->aSave;
   DEF  = FR->predicate;
 #ifdef O_DEBUG_BACKTRACK
@@ -6704,9 +6704,9 @@ next_choice:
     if ( UNDO_SCHEDULED(LD) )
     { int rc;
 
-      SAVE_REGISTERS(qid);
+      SAVE_REGISTERS(QID);
       rc = run_undo_hooks(PASS_LD1);
-      LOAD_REGISTERS(qid);
+      LOAD_REGISTERS(QID);
       if ( !rc )
 	THROW_EXCEPTION;
     }
@@ -6718,7 +6718,7 @@ next_choice:
 	    Sdprintf("    REDO #%ld: Jump in %s\n",
 		     loffset(FR),
 		     predicateName(DEF)));
-      PC   = ch->value.PC;
+      PC   = ch->value.pc;
       DiscardMark(ch->mark);
       BFR  = ch->parent;
       lTop = (LocalFrame)ch;
@@ -6733,9 +6733,9 @@ next_choice:
 	  if ( fr )
 	  { int action;
 
-	    SAVE_REGISTERS(qid);
-	    action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
-	    LOAD_REGISTERS(qid);
+	    SAVE_REGISTERS(QID);
+	    action = tracePort(fr, BFR, REDO_PORT, ch->value.pc PASS_LD);
+	    LOAD_REGISTERS(QID);
 	    ch = BFR;			/* can be shifted */
 
 	    switch( action )
@@ -6753,9 +6753,9 @@ next_choice:
 #endif
 #ifdef O_INFERENCE_LIMIT
         if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
+	{ SAVE_REGISTERS(QID);
 	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	  if ( exception_term )
 	    THROW_EXCEPTION;
 	}
@@ -6781,7 +6781,7 @@ next_choice:
       clause = CL->value.clause;
       PC     = clause->codes;
       lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      umode  = uread;
+      UMODE  = uread;
 
       DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
 
@@ -6794,10 +6794,10 @@ next_choice:
 	  if ( fr )
 	  { int action;
 
-	    SAVE_REGISTERS(qid);
+	    SAVE_REGISTERS(QID);
 	    clearLocalVariablesFrame(FR);
 	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	    LOAD_REGISTERS(qid);
+	    LOAD_REGISTERS(QID);
 	    ch = BFR;			/* can be shifted */
 
 	    switch( action )
@@ -6815,9 +6815,9 @@ next_choice:
 #endif
 #ifdef O_INFERENCE_LIMIT
         if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
+	{ SAVE_REGISTERS(QID);
 	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	  if ( exception_term )
 	    THROW_EXCEPTION;
 	}
@@ -6833,9 +6833,9 @@ next_choice:
       }
 
       if ( is_signalled(PASS_LD1) )
-      { SAVE_REGISTERS(qid);
+      { SAVE_REGISTERS(QID);
 	handleSignals(PASS_LD1);
-	LOAD_REGISTERS(qid);
+	LOAD_REGISTERS(QID);
 	if ( exception_term )
 	  THROW_EXCEPTION;
       }
@@ -6851,11 +6851,11 @@ next_choice:
 		     predicateName(DEF)));
       DiscardMark(ch->mark);
       Profile(profRedo(ch->prof_node PASS_LD));
-      QF = QueryFromQid(qid);
+      QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
-      assert(LD->exception.throw_environment == &throw_env);
-      LD->exception.throw_environment = throw_env.parent;
+      assert(LD->exception.throw_environment == &THROW_ENV);
+      LD->exception.throw_environment = THROW_ENV.parent;
       SOLUTION_RETURN(FALSE);
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
@@ -6869,9 +6869,9 @@ next_choice:
 	lTop = (LocalFrame)(ch+1);
 	FR->clause = NULL;
 	if ( true(ch->frame, FR_CLEANUP) )
-	{ SAVE_REGISTERS(qid);
+	{ SAVE_REGISTERS(QID);
 	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-	  LOAD_REGISTERS(qid);
+	  LOAD_REGISTERS(QID);
 	} else
 	{ set(ch->frame, FR_CATCHED);
 	}
