@@ -1071,6 +1071,16 @@ typedef uint64_t lgen_t;
 #define lcoSetNextFrameFlags(fr) \
 	lcoSetNextFrameFlags2(fr,fr)
 
+/* For a tail call we must not clear FR_CONTEXT.  The combination
+ * of FR->context and FR_CONTEXT is always correct.
+ */
+
+#define tcallSetNextFrameFlags(fr) \
+	do \
+	{ (fr)->level = (fr)->level+1; \
+	  (fr)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_DETGUARD_SET); \
+	} while(0)
+
 #define setFramePredicate(fr, def) \
 	do \
 	{ (fr)->predicate = (def); \

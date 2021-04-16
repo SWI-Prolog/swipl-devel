@@ -2364,7 +2364,7 @@ VMI(I_TCALL, 0, 0, ())
       THROW_EXCEPTION;
   }
 
-  lcoSetNextFrameFlags(FR);
+  tcallSetNextFrameFlags(FR);
   FR->clause = NULL;
   if ( true(DEF, HIDE_CHILDS) )
     set(FR, FR_HIDE_CHILDS);
