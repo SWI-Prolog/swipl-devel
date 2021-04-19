@@ -100,8 +100,18 @@ vm_list_clause(Clause) :-
     vm_list_labeled(Labeled, 0).
 
 vm_list_labeled([], _).
+vm_list_labeled([label(L),vmi(break(VMI),Size)|T], PC) :-
+    !,
+    format('~w: ~t~d~8| ~q % <breakpoint>~n', [L, PC, VMI]),
+    PC1 is PC+Size,
+    vm_list_labeled(T, PC1).
 vm_list_labeled([label(L),vmi(VMI,Size)|T], PC) :-
     format('~w: ~t~d~8| ~q~n', [L, PC, VMI]),
+    PC1 is PC+Size,
+    vm_list_labeled(T, PC1).
+vm_list_labeled([vmi(break(VMI),Size)|T], PC) :-
+    !,
+    format('~t~d~8| ~q % <breakpoint>~n', [PC, VMI]),
     PC1 is PC+Size,
     vm_list_labeled(T, PC1).
 vm_list_labeled([vmi(VMI,Size)|T], PC) :-
@@ -169,6 +179,9 @@ label_vmi([H|T], Here0, LI0, Pending0, Labeled) :-
     ),
     label_vmi(T, Here, LI1, Pending2, Labeled1).
 
+new_labels(break(VMI0), break(VMI), LI0, LI, End, Labels0, Labels) :-
+    !,
+    new_labels(VMI0, VMI, LI0, LI, End, Labels0, Labels).
 new_labels(VMI0, VMI, LI0, LI, End, Labels0, Labels) :-
     VMI0 =.. [Name|Argv0],
     '$vmi_property'(Name, argv(ArgvTypes)),
