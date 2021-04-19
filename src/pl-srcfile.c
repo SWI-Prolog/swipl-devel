@@ -1745,7 +1745,7 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
 
 
 
-/** '$clause_from_source'(+Owner, +File, +Line, -Clause) is semidet.
+/** '$clause_from_source'(+Owner, +File, +Line, -Clauses) is semidet.
 
 True when Clause is the clause that contains  Line in File. Owner is the
 source file owning Clause. For normal  files,   Owner  and  File are the
@@ -1764,17 +1764,20 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   ListCell cell;
   Clause c = NULL;
   int rc = FALSE;
+  tmp_buffer buf;
 
-  term_t owner = A1;
-  term_t file = A2;
-  term_t line = A3;
-  term_t clause = A4;
+  term_t owner   = A1;
+  term_t file    = A2;
+  term_t line    = A3;
+  term_t clauses = A4;
 
   if ( !PL_get_atom_ex(owner, &owner_name) ||
        !PL_get_atom_ex(file, &file_name) ||
        !PL_get_integer_ex(line, &ln) ||
        !(of = lookupSourceFile(owner_name, FALSE)) )
     return FALSE;
+
+  initBuffer(&buf);
 
   if ( file_name == owner_name ) {
     source_no = of->index;
@@ -1799,7 +1802,12 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 	if ( cl->source_no == source_no )
 	{ if ( ln >= (int)cl->line_no )
 	  { if ( !c || c->line_no < cl->line_no )
-	      c = cl;
+	    { c = cl;
+	      emptyBuffer(&buf, 512);
+	      addBuffer(&buf, cl, Clause);
+	    } else if ( c && c->line_no == cl->line_no )
+	    { addBuffer(&buf, cl, Clause);
+	    }
 	  }
 	}
       }
@@ -1808,10 +1816,25 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   }
   UNLOCKSRCFILE(of);
 
-  if ( c )
-    rc = PL_unify_clref(clause, c);
+					/* TBD: leaves clauses unreferenced */
+  if ( !isEmptyBuffer(&buf) )
+  { term_t tail = PL_copy_term_ref(clauses);
+    term_t head = PL_new_term_ref();
+    Clause *clp = baseBuffer(&buf, Clause);
+    Clause *elp = topBuffer(&buf, Clause);
+
+    for(; clp < elp; clp++)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_clref(head, c) )
+      { rc = FALSE;
+	break;
+      }
+    }
+    rc = PL_unify_nil(tail);
+  }
 
 out:
+  discardBuffer(&buf);
   if ( of ) releaseSourceFile(of);
   if ( sf ) releaseSourceFile(sf);
 
