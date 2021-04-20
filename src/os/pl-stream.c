@@ -2113,15 +2113,9 @@ next_chr(const char **s, IOENC enc)
   }
 }
 
-#ifdef O_DEBUG
-#define OUTCHR(s, c)	do { printed++; last_char = (c); \
-			     if ( Sputcode(last_char, (s)) < 0 ) goto error; \
-			   } while(0)
-#else
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
-#endif
 #define valdigit(c)	((c) - '0')
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
@@ -2160,9 +2154,6 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   char buf[TMPBUFSIZE];
   int tmpbuf;
   char *fs_malloced = NULL;
-#ifdef O_DEBUG
-  int last_char = 0;
-#endif
 
   SLOCK(s);
 
@@ -2440,7 +2431,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
   }
 
 #ifdef O_DEBUG
-  if (s == Serror && last_char == '\n') debug_new_output_line = 1;
+  if (s == Serror && s->lastc == '\n') debug_new_output_line = 1;
 #endif
 
   if ( tmpbuf )
