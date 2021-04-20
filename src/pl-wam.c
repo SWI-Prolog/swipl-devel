@@ -2852,6 +2852,94 @@ typedef enum
 } unify_mode;
 
 
+#include "pentium.h"
+
+/* Components of VMI/VMH macro expansion. The underscore-prefix macros
+ * get defined per-implementation.
+ */
+
+/* If the compiler complains about undeclared __is_vmi or __is_vmh, it means
+ * a mismatch of VMI..END_VMH or VMH..END_VMI.
+ */
+#define assert_exists(var, message) (void)(var)
+#define VMI(Name,f,na,a)	_VMI_DECLARATION(Name,f,na,a) \
+				{ int __is_vmi = 1; \
+				  { _VMI_PROLOGUE(Name,f,na,a); VMI_ENTER(Name)
+#define END_VMI			    _VMI_EPILOGUE \
+				  } \
+				  assert_exists(__is_vmi, "END_VMI used without VMI!"); \
+				}
+#define VMH(Name,na,at,an)	_VMH_DECLARATION(Name,na,at,an) \
+				{ int __is_vmh = 1; \
+				  { _VMH_PROLOGUE(Name,na,at,an)
+#define END_VMH			    _VMH_EPILOGUE \
+				  } \
+				  assert_exists(__is_vmh, "END_VMH used without VMH!"); \
+				}
+#define VMI_ENTER(n)		count(n, PC); START_PROF(n, #n);
+#define VMI_EXIT		END_PROF();
+#define NEXT_INSTRUCTION	do { VMI_EXIT; _NEXT_INSTRUCTION; } while(0)
+#define VMI_GOTO(n)		do { VMI_EXIT; _VMI_GOTO(n); } while(0)
+#define VMH_GOTO(n_args...)	do { _VMH_GOTO(n_args); } while(0)
+#define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
+#define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
+#define SEPARATE_VMI		(void)0 /* only needed for VMCODE_IS_ADDRESS */
+
+/* By default, instruction and helper prologue/epilogue are empty */
+#define _VMI_PROLOGUE(Name,f,na,a)	;
+#define _VMI_EPILOGUE			;
+#define _VMH_PROLOGUE(Name,na,at,an)	;
+#define _VMH_EPILOGUE			;
+
+/* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
+#define VMH_GOTO_AS_VMI(n,args...) do { VMI_EXIT; \
+					VMI_ENTER(n); \
+					VMH_GOTO(n, args); \
+				      } while(0)
+
+
+/* Helper macros for rendering VMH arguments */
+#define HEAD(h, ...) h
+#define TAIL(_, t...) (t)
+#define VMH_ARGS0(n,at,an,f,asep...) 
+#define VMH_ARGS1(n,at,an,f,asep...) f(n, HEAD at, HEAD an)
+#define VMH_ARGS2(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS1(n, TAIL at, TAIL an, f, asep)
+#define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
+#define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
+#define COMMA_TYPE_ARG(n,at,an) , at an
+
+#define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
+#define _VMH_GOTO(n,args...)		goto helper_ ## n
+#define _SOLUTION_RETURN		return
+
+#if VMCODE_IS_ADDRESS
+
+#define _VMI_DECLARATION(Name,f,na,a)	Name ## _LBL:
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
+#define _VMI_GOTO(n)			goto n ## _LBL
+#define _VMI_GOTO_CODE(c)		goto *(void *)(c)
+#undef SEPARATE_VMI
+/* This macro must ensure that two identical VMI instructions do not get
+ * merged onto the same address by the compiler, causing decompilation
+ * which translates the addresses back into the VMI number to fail.
+ * initWamTable() verfies this does not happen.
+ */
+#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
+
+#else
+
+#if __GNUC__
+#define UNUSED_LABEL __attribute__ ((unused))
+#else
+#define UNUSED_LABEL
+#endif
+
+#define _VMI_DECLARATION(Name,f,na,a)	case Name: case_ ## Name: UNUSED_LABEL
+#define _NEXT_INSTRUCTION		goto next_instruction
+#define _VMI_GOTO(n)			goto case_ ## n
+#define _VMI_GOTO_CODE(c)		thiscode = (c); goto resumebreak;
+
+#endif
 
 int
 PL_next_solution(qid_t qid)
@@ -2880,74 +2968,12 @@ will export jmp_table as the compiler  needs   to  know  this table. See
 pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pentium.h"
 
 #if VMCODE_IS_ADDRESS
 #include "pl-jumptable.ic"
-
-#define VMI(Name,f,na,a)	Name ## _LBL: \
-				  count(Name, PC); \
-				  START_PROF(Name, #Name);
-#define VMH(Name,na,at,an)	helper_ ## Name:
-#define VMI_GOTO(n)		do { END_PROF(); \
-				       goto n ## _LBL; \
-				   } while(0)
-#define VMH_GOTO(n,args...)	goto helper_ ## n;
-#define NEXT_INSTRUCTION	do { END_PROF(); \
-				     DbgPrintInstruction(FR, PC); \
-				     goto *(void *)((intptr_t)(*PC++)); \
-				   } while(0)
-#define VMI_GOTO_CODE(c)	do { void *addr = (void*)(c); \
-				     goto *addr; \
-				   } while(0)
-#define SOLUTION_RETURN(v)	return v
-
-
-/* This macro must ensure that two identical VMI instructions do not get
- * merged onto the same address by the compiler, causing decompilation
- * which translates the addresses back into the VMI number to fail.
- * initWamTable() verfies this does not happen.
- */
-#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
-
 #else /* VMCODE_IS_ADDRESS */
-
 code thiscode;
-
-#if __GNUC__
-#define UNUSED_LABEL __attribute__ ((unused))
-#else
-#define UNUSED_LABEL
-#endif
-
-#define VMI(Name,f,na,a)	case Name: \
-				  case_ ## Name: UNUSED_LABEL \
-				  count(Name, PC); \
-				  START_PROF(Name, #Name);
-#define VMH(Name,na,at,an)	helper_ ## Name:
-#define VMI_GOTO(n)		{ END_PROF(); \
-				  goto case_ ## n; \
-				}
-#define VMH_GOTO(n,args...)	goto helper_ ## n;
-#define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
-				  END_PROF(); \
-                                  goto next_instruction; \
-				}
-#define VMI_GOTO_CODE(c)	do { thiscode = (c); \
-				     goto resumebreak; \
-				   } while (0)
-#define SOLUTION_RETURN(v)	return v
-#define SEPARATE_VMI		(void)0
-
 #endif /* VMCODE_IS_ADDRESS */
-
-/* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
-#define VMH_GOTO_AS_VMI(n,args...) do { END_PROF(); \
-					count(n, PC); \
-					START_PROF(n, #n); \
-					VMH_GOTO(n, args); \
-				      } while(0)
-
 
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
@@ -3041,6 +3067,7 @@ initialised properly.
 
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
+  DbgPrintInstruction(FR, PC);
   thiscode = *PC++;
 #ifdef O_DEBUGGER
 resumebreak:

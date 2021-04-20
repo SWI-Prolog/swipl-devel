@@ -45,6 +45,7 @@ the derived tables, which is done by the program mkvmi.c.
 	VMI(Name, Flags, #Args, (ArgType, ...))
 	{
 	}
+	END_VMI
 
 There are also, for shared code, "helper instructions". These take a similar
 form to literal instructions, with the form:
@@ -52,6 +53,7 @@ form to literal instructions, with the form:
 	VMH(Name, #Args, (ArgType, ...), (ArgName, ...))
 	{
 	}
+	END_VMH
 
 These allow function-style calls from other instructions, but only in a goto
 (i.e. tailcall-like) usage.
@@ -223,6 +225,7 @@ VMH(wakeup, 0, (), ())
 
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 #else
 #define CHECK_WAKEUP (void)0
@@ -378,6 +381,7 @@ VMI(D_BREAK, 0, 0, ())
 
   VMI_GOTO_CODE(c);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			TRACER RETRY ACTION
@@ -440,6 +444,7 @@ do_retry:
 
   VMH_GOTO(depart_or_retry_continue);
 }
+END_VMH
 #endif /*O_DEBUGGER*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -449,6 +454,7 @@ I_NOP
 VMI(I_NOP, 0, 0, ())
 { NEXT_INSTRUCTION;
 }
+END_VMI
 
 		 /*******************************
 		 *	     HEAD UNIFY		*
@@ -471,6 +477,7 @@ VMI(H_ATOM, 0, 1, (CA1_DATA))
   pushVolatileAtom(c);
   VMH_GOTO(h_const, c);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -485,6 +492,7 @@ VMI(H_SMALLINT, 0, 1, (CA1_DATA))
   c = (word)*PC++;
   VMH_GOTO(h_const, c);
 }
+END_VMI
 
 VMH(h_const, 1, (word), (c))
 { Word k;
@@ -501,6 +509,7 @@ VMH(h_const, 1, (word), (c))
   }
   CLAUSE_FAILED;
 }
+END_VMH
 END_SHAREDVARS
 
 
@@ -528,6 +537,7 @@ VMI(H_NIL, 0, 0, ())
   }
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -572,6 +582,7 @@ VMI(H_INTEGER, 0, 1, (CA1_INTEGER))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -618,6 +629,7 @@ VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -668,6 +680,7 @@ VMI(H_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -683,11 +696,13 @@ VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 { SEPARATE_VMI;
   VMI_GOTO(H_STRING);
 }
+END_VMI
 
 VMI(H_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
 { SEPARATE_VMI;
   VMI_GOTO(H_STRING);
 }
+END_VMI
 
 VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
@@ -711,6 +726,7 @@ VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
   }
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -725,12 +741,14 @@ VMI(H_VOID, 0, 0, ())
 { ARGP++;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(H_VOID_N, 0, 1, (CA1_INTEGER))
 { ARGP += (int)*PC++;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -793,6 +811,7 @@ VMI(H_VAR, 0, 1, (CA1_VAR))
     THROW_EXCEPTION;
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -814,6 +833,7 @@ VMI(H_FIRSTVAR, 0, 1, (CA1_FVAR))
   ARGP++;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -833,6 +853,7 @@ VMI(H_FUNCTOR, 0, 1, (CA1_FUNC))
 { pushArgumentStack((Word)((intptr_t)(ARGP + 1)|umode));
   VMI_GOTO(H_RFUNCTOR);
 }
+END_VMI
 
 VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f;
@@ -865,6 +886,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
   }
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -876,6 +898,7 @@ VMI(H_LIST, 0, 0, ())
 
   VMI_GOTO(H_RLIST);
 }
+END_VMI
 
 
 VMI(H_RLIST, 0, 0, ())
@@ -915,6 +938,7 @@ VMI(H_RLIST, 0, 0, ())
       CLAUSE_FAILED;
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -927,6 +951,7 @@ VMI(H_POP, 0, 0, ())
   ARGP = (Word)((intptr_t)ARGP&~uwrite);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -981,6 +1006,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
   ARGP++;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 		 /*******************************
@@ -1000,16 +1026,19 @@ VMI(B_ATOM, VIF_LCO, 1, (CA1_DATA))
   *ARGP++ = c;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(B_SMALLINT, VIF_LCO, 1, (CA1_DATA))
 { *ARGP++ = (word)*PC++;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(B_NIL, VIF_LCO, 0, ())
 { *ARGP++ = ATOM_nil;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1038,6 +1067,7 @@ VMI(B_INTEGER, 0, 1, (CA1_INTEGER))
   *p++ = mkIndHdr(WORDS_PER_INT64, TAG_INTEGER);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1060,6 +1090,7 @@ VMI(B_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1080,6 +1111,7 @@ VMI(B_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1094,11 +1126,13 @@ VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 { SEPARATE_VMI;
   VMI_GOTO(B_STRING);
 }
+END_VMI
 
 VMI(B_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
 { SEPARATE_VMI;
   VMI_GOTO(B_STRING);
 }
+END_VMI
 
 VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { size_t sz = gsizeIndirectFromCode(PC);
@@ -1107,6 +1141,7 @@ VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
   *ARGP++ = globalIndirectFromCode(&PC);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1154,6 +1189,7 @@ VMI(B_ARGVAR, 0, 1, (CA1_VAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1169,21 +1205,25 @@ VMI(B_VAR0, VIF_LCO, 0, ())
 { voffset = VAROFFSET(0);
   VMH_GOTO(bvar_cont, voffset);
 }
+END_VMI
 
 VMI(B_VAR1, VIF_LCO, 0, ())
 { voffset = VAROFFSET(1);
   VMH_GOTO(bvar_cont, voffset);
 }
+END_VMI
 
 VMI(B_VAR2, VIF_LCO, 0, ())
 { voffset = VAROFFSET(2);
   VMH_GOTO(bvar_cont, voffset);
 }
+END_VMI
 
 VMI(B_VAR, VIF_LCO, 1, (CA1_VAR))
 { voffset = (int)*PC++;
   VMH_GOTO(bvar_cont, voffset);
 }
+END_VMI
 
 VMH(bvar_cont, 1, (int), (voffset))
 { Word p;
@@ -1197,6 +1237,7 @@ VMH(bvar_cont, 1, (int), (voffset))
   }
   NEXT_INSTRUCTION;
 }
+END_VMH
 END_SHAREDVARS
 
 #ifdef O_COMPILE_IS
@@ -1227,12 +1268,14 @@ VMI(B_UNIFY_FIRSTVAR, VIF_BREAK, 1, (CA1_FVAR))
   setVar(*ARGP);			/* needed for GC */
   VMH_GOTO(unify_var_cont);
 }
+END_VMI
 
 
 VMI(B_UNIFY_VAR, VIF_BREAK, 1, (CA1_VAR))
 { ARGP = varFrameP(FR, (int)*PC++);
   VMH_GOTO(unify_var_cont);
 }
+END_VMI
 
 VMH(unify_var_cont, 0, (), ())
 { if ( (slow_unify=LD->slow_unify) )
@@ -1253,6 +1296,7 @@ VMH(unify_var_cont, 0, (), ())
   umode = uread;			/* needed? */
   NEXT_INSTRUCTION;
 }
+END_VMH
 
 
 VMI(B_UNIFY_EXIT, 0, 0, ())
@@ -1267,6 +1311,7 @@ VMI(B_UNIFY_EXIT, 0, 0, ())
   CHECK_WAKEUP;				/* only for non-first-var */
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1298,6 +1343,7 @@ VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* B_UNIFY_VF is the same as B_UNIFY_FV, but the arguments
@@ -1311,6 +1357,7 @@ VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 { SEPARATE_VMI;
   VMI_GOTO(B_UNIFY_FV);
 }
+END_VMI
 
 
 VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
@@ -1333,6 +1380,7 @@ VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
@@ -1369,6 +1417,7 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
   BODY_FAILED;
 }
+END_VMI
 
 VMH(debug_equals2, 0, (), ())
 { NFR = lTop;
@@ -1376,6 +1425,7 @@ VMH(debug_equals2, 0, (), ())
   setNextFrameFlags(NFR, FR);
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_UNIFY_FC: Unify first variable with a constant.  Always succeeds, no
@@ -1398,6 +1448,7 @@ VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA))
   *f = c;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1433,6 +1484,7 @@ VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA))
   }
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1467,6 +1519,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
   FASTCOND_FAILED;
 }
+END_VMI
 
 VMH(debug_eq_vv, 0, (), ())
 { NFR = lTop;
@@ -1474,6 +1527,7 @@ VMH(debug_eq_vv, 0, (), ())
   setNextFrameFlags(NFR, FR);
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_EQ_VC Var == constant
@@ -1503,6 +1557,7 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 
   FASTCOND_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1540,6 +1595,7 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMH(debug_neq_vv, 0, (), ())
 { NFR = lTop;
@@ -1547,6 +1603,7 @@ VMH(debug_neq_vv, 0, (), ())
   setNextFrameFlags(NFR, FR);
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 B_NEQ_VC Var == constant
@@ -1576,6 +1633,7 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
 
   FASTCOND_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1597,6 +1655,7 @@ VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_DATA,CA1_VAR,CA1_FVAR))
   aarg  = varFrameP(FR, (int)*PC++);
   VMH_GOTO(arg3_fast, aidx, ai, aterm, aarg);
 }
+END_VMI
 
 VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
 { if ( isVar(*aterm) )
@@ -1613,6 +1672,7 @@ VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
   }
   VMH_GOTO(arg3_slow, aidx, aterm, aarg);
 }
+END_VMH
 
 VMH(arg3_slow, 3, (Word, Word, Word), (aidx, aterm, aarg))
 { globaliseFirstVar(aarg);
@@ -1626,6 +1686,7 @@ VMH(arg3_slow, 3, (Word, Word, Word), (aidx, aterm, aarg))
   setNextFrameFlags(NFR, FR);
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
 { Word aidx0;
@@ -1648,6 +1709,7 @@ VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR))
   aidx = aidx0;
   VMH_GOTO(arg3_slow, aidx, aterm, aarg);
 }
+END_VMI
 END_SHAREDVARS
 
 #endif /*O_COMPILE_IS*/
@@ -1665,6 +1727,7 @@ VMI(B_ARGFIRSTVAR, 0, 1, (CA1_FVAR))
   varFrame(FR, *PC++) = makeRefG(ARGP++);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1687,6 +1750,7 @@ VMI(B_FIRSTVAR, 0, 1, (CA1_FVAR))
   *ARGP++ = w;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1698,6 +1762,7 @@ VMI(B_VOID, VIF_LCO, 0, ())
 { setVar(*ARGP++);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1713,6 +1778,7 @@ VMI(B_FUNCTOR, 0, 1, (CA1_FUNC))
 { pushArgumentStack(ARGP+1);
   VMI_GOTO(B_RFUNCTOR);
 }
+END_VMI
 
 
 VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
@@ -1730,6 +1796,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1741,6 +1808,7 @@ VMI(B_LIST, 0, 0, ())
 { pushArgumentStack(ARGP+1);
   VMI_GOTO(B_RLIST);
 }
+END_VMI
 
 
 VMI(B_RLIST, 0, 0, ())
@@ -1754,6 +1822,7 @@ VMI(B_RLIST, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1764,6 +1833,7 @@ VMI(B_POP, 0, 0, ())
 { ARGP = *--aTop;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 		 /*******************************
@@ -1790,6 +1860,7 @@ VMI(I_CHP, 0, 0, ())
     newChoice(CHP_DEBUG, FR PASS_LD);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(I_SSU_CHOICE, 0, 0, ())
 { if ( tTop > BFR->mark.trailtop )
@@ -1797,6 +1868,7 @@ VMI(I_SSU_CHOICE, 0, 0, ())
 
   VMI_GOTO(I_ENTER);
 }
+END_VMI
 
 VMI(I_SSU_COMMIT, 0, 0, ())
 { if ( tTop > BFR->mark.trailtop )
@@ -1809,6 +1881,7 @@ VMI(I_SSU_COMMIT, 0, 0, ())
 
   VMI_GOTO(I_ENTER);
 }
+END_VMI
 
 		 /*******************************
 		 *	       ENTER		*
@@ -1857,6 +1930,7 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
   }
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CONTEXT is used by  non-meta  predicates   that  are  compiled  into a
@@ -1871,6 +1945,7 @@ VMI(I_CONTEXT, 0, 1, (CA1_MODULE))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 		 /*******************************
 		 *	       CALLING		*
@@ -1894,6 +1969,7 @@ VMI(I_CALL, VIF_BREAK, 1, (CA1_PROC))
   DEF = proc->definition;
   VMH_GOTO(normal_call);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This is the common part of the call variations.  By now the following is
@@ -1940,6 +2016,7 @@ procedure and deallocate our temporary version if threading is not used.
 
   VMH_GOTO(depart_or_retry_continue);
 }
+END_VMH
 
 VMH(depart_or_retry_continue, 0, (), ())
 {
@@ -2069,6 +2146,7 @@ VMH(depart_or_retry_continue, 0, (), ())
   PC = DEF->codes;
   NEXT_INSTRUCTION;
 }
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2129,6 +2207,7 @@ VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC))
   DEF = proc->definition;
   VMH_GOTO(normal_call);
 }
+END_VMI
 
 
 #ifdef O_CALL_AT_MODULE
@@ -2140,6 +2219,7 @@ VMI(I_DEPARTATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
 { PC++;						/* Ignore :-qualifier */
   VMI_GOTO(I_DEPARTM);
 }
+END_VMI
 #endif
 
 
@@ -2153,6 +2233,7 @@ VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
     VMI_GOTO(I_DEPART);
   }
 }
+END_VMI
 
 
 		 /*******************************
@@ -2260,6 +2341,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2296,6 +2378,7 @@ VMI(I_EXITFACT, 0, 0, ())
   }
   VMI_GOTO(I_EXIT);
 }
+END_VMI
 
 VMH(exit_checking_wakeup, 0, (), ())
 {
@@ -2312,6 +2395,7 @@ VMH(exit_checking_wakeup, 0, (), ())
 
   VMI_GOTO(I_EXIT);
 }
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2356,6 +2440,7 @@ VMI(I_EXITQUERY, 0, 0, ())
 #define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
   SOLUTION_RETURN((QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : TRUE);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_YIELD: Yield control from this engine. This  VMI fetches the first and
@@ -2409,6 +2494,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
     THROW_EXCEPTION;
   }
 }
+END_VMI
 
 		 /*******************************
 		 *	      LCO CALLS		*
@@ -2434,6 +2520,7 @@ VMI(L_NOLCO, 0, 1, (CA1_JUMP))
   PC += jmp;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2459,6 +2546,7 @@ VMI(L_VAR, 0, 2, (CA1_FVAR,CA1_VAR))
   *v1 = w;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(L_VOID, 0, 1, (CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
@@ -2466,6 +2554,7 @@ VMI(L_VOID, 0, 1, (CA1_FVAR))
   setVar(*v1);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
@@ -2474,6 +2563,7 @@ VMI(L_ATOM, 0, 2, (CA1_FVAR,CA1_DATA))
   *v1 = c;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(L_NIL, 0, 1, (CA1_FVAR))
 { Word v1 = varFrameP(FR, (int)*PC++);
@@ -2481,6 +2571,7 @@ VMI(L_NIL, 0, 1, (CA1_FVAR))
   *v1 = ATOM_nil;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_DATA))
 { Word v1 = varFrameP(FR, (int)*PC++);
@@ -2488,6 +2579,7 @@ VMI(L_SMALLINT, 0, 2, (CA1_FVAR,CA1_DATA))
   *v1 = c;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Actual tail call. The arguments for the   new predicate have been set by
@@ -2541,6 +2633,7 @@ VMI(I_LCALL, 0, 1, (CA1_PROC))
   setFramePredicate(FR, DEF);
   VMH_GOTO(depart_or_retry_continue);
 }
+END_VMI
 
 VMI(I_TCALL, 0, 0, ())
 { if ( true(FR, FR_WATCHED) )
@@ -2558,6 +2651,7 @@ VMI(I_TCALL, 0, 0, ())
 
   VMH_GOTO(depart_or_retry_continue);
 }
+END_VMI
 
 		 /*******************************
 		 *	      CONTROL		*
@@ -2573,6 +2667,7 @@ VMI(I_DET, 0, 0, ())
 
   VMI_GOTO(I_CUT);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_CUT: !. Task is to detroy  all   choicepoints  newer  then the current
@@ -2644,6 +2739,7 @@ VMI(I_CUT, VIF_BREAK, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2657,6 +2753,7 @@ VMI(C_JMP, 0, 1, (CA1_JUMP))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2686,6 +2783,7 @@ VMI(C_OR, 0, 1, (CA1_JUMP))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2700,12 +2798,14 @@ VMI(C_SOFTIFTHEN, 0, 1, (CA1_CHP))
 { SEPARATE_VMI;
   VMI_GOTO(C_IFTHEN);
 }
+END_VMI
 
 VMI(C_IFTHEN, 0, 1, (CA1_CHP))
 { varFrame(FR, *PC++) = consTermRef(BFR);
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 C_DET  is  like  C_NOT,  starting  a  block   that  is  asserted  to  be
@@ -2716,6 +2816,7 @@ VMI(C_DET, 0, 2, (CA1_CHP,CA1_JUMP))
 { SEPARATE_VMI;
   VMI_GOTO(C_IFTHENELSE);
 }
+END_VMI
 
 VMI(C_DETTRUE, 0, 1, (CA1_CHP))
 { Choice och = (Choice) valTermRef(varFrame(FR, *PC));
@@ -2738,6 +2839,7 @@ VMI(C_DETTRUE, 0, 1, (CA1_CHP))
 
   VMI_GOTO(C_CUT);
 }
+END_VMI
 
 VMI(C_DETFALSE, 0, 0, ())
 { SAVE_REGISTERS(qid);
@@ -2748,6 +2850,7 @@ VMI(C_DETFALSE, 0, 0, ())
 
   BODY_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2761,6 +2864,7 @@ VMI(C_NOT, 0, 2, (CA1_CHP,CA1_JUMP))
 { SEPARATE_VMI;
   VMI_GOTO(C_IFTHENELSE);
 }
+END_VMI
 
 
 VMI(C_IFTHENELSE, 0, 2, (CA1_CHP,CA1_JUMP))
@@ -2768,6 +2872,7 @@ VMI(C_IFTHENELSE, 0, 2, (CA1_CHP,CA1_JUMP))
 
   VMI_GOTO(C_OR);
 }
+END_VMI
 
 VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
 { size_t skip;
@@ -2782,6 +2887,7 @@ VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
   LD->fast_condition = PC+skip;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Commit the fast cut. This is normally   a  no-op, unless C_FASTCOND or a
@@ -2797,6 +2903,7 @@ VMI(C_FASTCUT, 0, 1, (CA1_CHP))
   LD->fast_condition = NULL;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2811,6 +2918,7 @@ VMI(C_VAR, 0, 1, (CA1_FVAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER))
@@ -2822,6 +2930,7 @@ VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2860,11 +2969,13 @@ VMI(C_LSCUT, 0, 1, (CA1_CHP))
   och = ch->parent;
   VMH_GOTO(c_lcut_cont, och);
 }
+END_VMI
 
 VMI(C_LCUT, 0, 1, (CA1_CHP))
 { och = (Choice) valTermRef(varFrame(FR, *PC++));
   VMH_GOTO(c_lcut_cont, och);
 }
+END_VMI
 
 VMH(c_lcut_cont, 1, (Choice), (och))
 { for(ch=BFR; ch; ch = ch->parent)
@@ -2876,6 +2987,7 @@ VMH(c_lcut_cont, 1, (Choice), (och))
   assert(BFR == och);			/* no choicepoint yet */
   NEXT_INSTRUCTION;
 }
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2906,16 +3018,19 @@ VMI(I_CUTCHP, 0, 0, ())
     THROW_EXCEPTION;
   }
 }
+END_VMI
 
 
 VMI(C_SCUT, 0, 0, ())
 { NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
 { SEPARATE_VMI;
   VMI_GOTO(C_CUT);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2941,6 +3056,7 @@ VMI(C_CUT, 0, 1, (CA1_CHP))
   PC++;					/* cannot be in macro! */
   VMH_GOTO(c_cut, och);
 }
+END_VMI
 
 VMH(c_cut, 1, (Choice), (och))
 { assert(BFR>=och);
@@ -3002,6 +3118,7 @@ VMH(c_cut, 1, (Choice), (och))
 			  loffset(BFR), loffset(lTop)));
   NEXT_INSTRUCTION;
 }
+END_VMH
 END_SHAREDVARS
 
 
@@ -3021,6 +3138,7 @@ VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP))
 			  lTop, loffset(lTop)));
   VMI_GOTO(C_OR);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3064,6 +3182,7 @@ VMI(C_SOFTCUT, 0, 1, (CA1_CHP))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3075,6 +3194,7 @@ semantics. They are different terms however.
 VMI(C_END, 0, 0, ())
 { NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3084,6 +3204,7 @@ C_FAIL is equivalent to fail/0. Used to implement \+/1.
 VMI(C_FAIL, 0, 0, ())
 { BODY_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3104,6 +3225,7 @@ VMI(I_FAIL, VIF_BREAK, 0, ())
 #endif
   BODY_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3123,6 +3245,7 @@ VMI(I_TRUE, VIF_BREAK, 0, ())
 #endif
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 BEGIN_SHAREDVARS
@@ -3146,6 +3269,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
     NEXT_INSTRUCTION;
   FASTCOND_FAILED;
 }
+END_VMI
 
 VMH(debug_pred1, 2, (functor_t, Word), (fpred, p))
 { if ( isVar(*p) )
@@ -3161,6 +3285,7 @@ VMH(debug_pred1, 2, (functor_t, Word), (fpred, p))
 
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 /** nonvar(@Term)
 */
@@ -3180,6 +3305,7 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
     NEXT_INSTRUCTION;
   FASTCOND_FAILED;
 }
+END_VMI
 
 /** integer(@Term), atom(@Term), etc.
 */
@@ -3209,38 +3335,47 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
 VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_integer1, isInteger);
 }
+END_VMI
 
 VMI(I_RATIONAL, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_rational1, isRational);
 }
+END_VMI
 
 VMI(I_FLOAT, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_float1, isFloat);
 }
+END_VMI
 
 VMI(I_NUMBER, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_number1, isNumber);
 }
+END_VMI
 
 VMI(I_ATOMIC, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_atomic1, isAtomic);
 }
+END_VMI
 
 VMI(I_ATOM, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_atom1, isTextAtom);
 }
+END_VMI
 
 VMI(I_STRING, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_string1, isString);
 }
+END_VMI
 
 VMI(I_COMPOUND, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_compound1, isTerm);
 }
+END_VMI
 
 VMI(I_CALLABLE, VIF_BREAK, 1, (CA1_VAR))
 { TYPE_TEST(FUNCTOR_callable1, isCallableLD);
 }
+END_VMI
 
 END_SHAREDVARS
 
@@ -3289,6 +3424,7 @@ VMI(S_VIRGIN, 0, 0, ())
   { assert(0);
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3354,6 +3490,7 @@ VMI(S_UNDEF, 0, 0, ())
       FRAME_FAILED;
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3404,6 +3541,7 @@ VMI(S_STATIC, 0, 0, ())
   umode = uread;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3418,6 +3556,7 @@ VMI(S_DYNAMIC, 0, 0, ())
   SEPARATE_VMI;
   VMI_GOTO(S_STATIC);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3433,6 +3572,7 @@ VMI(S_THREAD_LOCAL, 0, 0, ())
   PC = DEF->codes;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3514,6 +3654,7 @@ VMI(S_INCR_DYNAMIC, 0, 0, ())
 
   VMI_GOTO(S_STATIC);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3538,6 +3679,7 @@ VMI(S_WRAP, 0, 0, ())
   PC = codes;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3548,6 +3690,7 @@ clauses that can be added at runtime.
 VMI(S_MULTIFILE, 0, 0, ())
 { VMI_GOTO(S_STATIC);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3563,6 +3706,7 @@ VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF))
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3588,6 +3732,7 @@ VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
   FR->predicate = DEF = cref->value.clause->predicate;
   TRUST_CLAUSE(cref);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3606,6 +3751,7 @@ VMI(S_ALLCLAUSES, 0, 0, ())		/* Uses CHP_JUMP */
 { cref = DEF->impl.clauses.first_clause;
   VMH_GOTO(next_clause, cref);
 }
+END_VMI
 
 VMH(next_clause, 1, (ClauseRef), (cref))
 { ARGP = argFrameP(FR, 0);
@@ -3617,6 +3763,7 @@ VMH(next_clause, 1, (ClauseRef), (cref))
 
   FRAME_FAILED;
 }
+END_VMH
 
 
 VMI(S_NEXTCLAUSE, 0, 0, ())
@@ -3658,6 +3805,7 @@ VMI(S_NEXTCLAUSE, 0, 0, ())
   PC--;
   VMH_GOTO(next_clause, cref);
 }
+END_VMI
 END_SHAREDVARS
 
 
@@ -3686,6 +3834,7 @@ VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF))
 
   TRUST_CLAUSE(cref);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3712,6 +3861,7 @@ VMI(S_MQUAL, 0, 1, (CA1_VAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(S_LMQUAL, 0, 1, (CA1_VAR))
@@ -3730,17 +3880,20 @@ VMI(S_LMQUAL, 0, 1, (CA1_VAR))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(S_SSU_DET, 0, 0, ())
 { set(FR, FR_SSU_DET);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(S_DET, 0, 0, ())
 { set(FR, FR_DET);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -3788,6 +3941,7 @@ VMI(A_ENTER, 0, 0, ())
 { AR_BEGIN();
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_INTEGER: Push long integer following PC
@@ -3800,6 +3954,7 @@ VMI(A_INTEGER, 0, 1, (CA1_INTEGER))
   n->type    = V_INTEGER;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3814,6 +3969,7 @@ VMI(A_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
   n->type    = V_INTEGER;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3839,6 +3995,7 @@ VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 #endif
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_MPQ: Push mpq integer following PC
@@ -3870,6 +4027,7 @@ VMI(A_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
 #endif
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3884,6 +4042,7 @@ VMI(A_DOUBLE, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
   n->type       = V_FLOAT;
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3897,6 +4056,7 @@ VMI(A_VAR, 0, 1, (CA1_VAR))
 { offset = (int)*PC++;
   VMH_GOTO(a_var_n, offset);
 }
+END_VMI
 
 VMH(a_var_n, 1, (int), (offset))
 { Number n;
@@ -3949,21 +4109,25 @@ VMH(a_var_n, 1, (int), (offset))
     }
   }
 }
+END_VMH
 
 VMI(A_VAR0, 0, 0, ())
 { offset = VAROFFSET(0);
   VMH_GOTO(a_var_n, offset);
 }
+END_VMI
 
 VMI(A_VAR1, 0, 0, ())
 { offset = VAROFFSET(1);
   VMH_GOTO(a_var_n, offset);
 }
+END_VMI
 
 VMI(A_VAR2, 0, 0, ())
 { offset = VAROFFSET(2);
   VMH_GOTO(a_var_n, offset);
 }
+END_VMI
 END_SHAREDVARS
 
 
@@ -3986,24 +4150,28 @@ VMI(A_FUNC0, 0, 1, (CA1_AFUNC))
   fn = *PC++;
   VMH_GOTO(common_an, fn, an);
 }
+END_VMI
 
 VMI(A_FUNC1, 0, 1, (CA1_AFUNC))
 { an = 1;
   fn = *PC++;
   VMH_GOTO(common_an, fn, an);
 }
+END_VMI
 
 VMI(A_FUNC2, 0, 1, (CA1_AFUNC))
 { an = 2;
   fn = *PC++;
   VMH_GOTO(common_an, fn, an);
 }
+END_VMI
 
 VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER))
 { fn = *PC++;
   an = (int) *PC++;
   VMH_GOTO(common_an, fn, an);
 }
+END_VMI
 
 VMH(common_an, 2, (code, int), (fn, an))
 { int rc;
@@ -4015,6 +4183,7 @@ VMH(common_an, 2, (code, int), (fn, an))
 
   NEXT_INSTRUCTION;
 }
+END_VMH
 END_SHAREDVARS
 
 VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
@@ -4027,6 +4196,7 @@ VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
@@ -4046,6 +4216,7 @@ VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
     THROW_EXCEPTION;
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4068,6 +4239,7 @@ VMI(A_ADD, 0, 0, ())
 
   AR_THROW_EXCEPTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4090,6 +4262,7 @@ VMI(A_MUL, 0, 0, ())
 
   AR_THROW_EXCEPTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4179,6 +4352,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     NEXT_INSTRUCTION;
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4226,10 +4400,12 @@ BEGIN_SHAREDVARS
 VMI(A_LT, VIF_BREAK, 0, ())		/* A < B */
 { CMP(LT);
 }
+END_VMI
 VMH(acmp, 3, (Number, Number, int), (n1, n2, cmp))
 { rc = ar_compare(n1, n2, cmp);
   VMH_GOTO(a_cmp_out, n1, n2, cmp, rc);
 }
+END_VMH
 
 VMH(a_cmp_out, 1, (int), (rc))
 { popArgvArithStack(2 PASS_LD);
@@ -4238,26 +4414,32 @@ VMH(a_cmp_out, 1, (int), (rc))
     NEXT_INSTRUCTION;
   FASTCOND_FAILED;
 }
+END_VMH
 
 VMI(A_LE, VIF_BREAK, 0, ())		/* A =< B */
 { CMP(LE);
 }
+END_VMI
 
 VMI(A_GT, VIF_BREAK, 0, ())		/* A > B */
 { CMP(GT);
 }
+END_VMI
 
 VMI(A_GE, VIF_BREAK, 0, ())		/* A >= B */
 { CMP(GE);
 }
+END_VMI
 
 VMI(A_EQ, VIF_BREAK, 0, ())		/* A =:= B */
 { CMP(EQ);
 }
+END_VMI
 
 VMI(A_NE, VIF_BREAK, 0, ())		/* A \=:= B */
 { CMP(NE);
 }
+END_VMI
 END_SHAREDVARS
 
 
@@ -4356,6 +4538,7 @@ VMI(A_IS, VIF_BREAK, 0, ())		/* A is B */
 
   BODY_FAILED;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4387,6 +4570,7 @@ VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
   } else
     THROW_EXCEPTION;
 }
+END_VMI
 
 
 		 /*******************************
@@ -4445,6 +4629,7 @@ VMI(I_FOPEN, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4466,6 +4651,7 @@ VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
   rc = (*f)(h0, DEF->functor->arity, &context);
   VMH_GOTO_AS_VMI(I_FEXITDET, rc);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4480,6 +4666,7 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
   rc = (*f)();
   VMH_GOTO_AS_VMI(I_FEXITDET, rc);
 }
+END_VMI
 
 #define FCALL_DETN(h0_args...) \
   Func f = (Func)*PC++; \
@@ -4491,56 +4678,67 @@ VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0);
 }
+END_VMI
 
 
 VMI(I_FCALLDET2, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1);
 }
+END_VMI
 
 
 VMI(I_FCALLDET3, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2);
 }
+END_VMI
 
 
 VMI(I_FCALLDET4, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3);
 }
+END_VMI
 
 
 VMI(I_FCALLDET5, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4);
 }
+END_VMI
 
 
 VMI(I_FCALLDET6, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
+END_VMI
 
 
 VMI(I_FCALLDET7, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
+END_VMI
 
 
 VMI(I_FCALLDET8, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
+END_VMI
 
 
 VMI(I_FCALLDET9, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
+END_VMI
 
 
 VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN))
 { FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
+END_VMI
 
 
 VMI(I_FEXITDET, 0, 0, ())
 { THROW_EXCEPTION; /* probably should never happen?? */
 }
+END_VMI
 
 VMH(I_FEXITDET, 1, (word), (rc))
 { FliFrame ffr = (FliFrame)valTermRef(ffr_id);
@@ -4571,6 +4769,7 @@ VMH(I_FEXITDET, 1, (word), (rc))
     }
   }
 }
+END_VMH
 END_SHAREDVARS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4601,6 +4800,7 @@ VMI(I_FOPENNDET, 0, 0, ())
 
   VMH_GOTO(foreign_redo);
 }
+END_VMI
 
 VMH(foreign_redo, 0, (), ())
 { Choice ch;
@@ -4622,6 +4822,7 @@ VMH(foreign_redo, 0, (), ())
 
   NEXT_INSTRUCTION;
 }
+END_VMH
 
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
@@ -4632,6 +4833,7 @@ VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
   rc = (*f)(h0, DEF->functor->arity, &context);
   VMH_GOTO_AS_VMI(I_FEXITNDET, rc);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
@@ -4641,6 +4843,7 @@ VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
   rc = (*f)(&context);
   VMH_GOTO_AS_VMI(I_FEXITNDET, rc);
 }
+END_VMI
 
 #define FCALL_NDETN(h0_args...) \
   Func f = (Func)*PC++; \
@@ -4653,56 +4856,67 @@ VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET2, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET3, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET4, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET5, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET6, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET7, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET8, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET9, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
+END_VMI
 
 
 VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
 { FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
+END_VMI
 
 
 VMI(I_FEXITNDET, 0, 0, ())
 { THROW_EXCEPTION;
 }
+END_VMI
 
 VMH(I_FEXITNDET, 1, (intptr_t), (rc))
 { FliFrame ffr = (FliFrame) valTermRef(ffr_id);
@@ -4752,6 +4966,7 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
     }
   }
 }
+END_VMH
 
 VMI(I_FREDO, 0, 0, ())
 { if ( is_signalled(PASS_LD1) )
@@ -4768,6 +4983,7 @@ VMI(I_FREDO, 0, 0, ())
   PC -= 4;
   VMH_GOTO(foreign_redo);
 }
+END_VMI
 
 END_SHAREDVARS
 
@@ -4816,6 +5032,7 @@ VMI(I_CALLCLEANUP, 0, 0, ())
 
   VMI_GOTO(I_USERCALL0);
 }
+END_VMI
 
 
 /* (*) Work around a bug in the LLVM.  Just calling a dummy function avoids
@@ -4852,6 +5069,7 @@ VMI(I_EXITCLEANUP, 0, 0, ())
 
   NEXT_INSTRUCTION;			/* goto i_exit? */
 }
+END_VMI
 
 
 #if O_CATCHTHROW
@@ -4886,6 +5104,7 @@ VMI(I_CATCH, 0, 0, ())
   *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_USERCALL0);
 }
+END_VMI
 
 
 VMI(I_EXITCATCH, 0, 0, ())
@@ -4897,6 +5116,7 @@ VMI(I_EXITCATCH, 0, 0, ())
 
   VMI_GOTO(I_EXIT);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4940,6 +5160,7 @@ VMI(B_THROW, 0, 0, ())
 { PL_raise_exception(argFrameP(lTop, 0) - (Word)lBase);
   THROW_EXCEPTION;				/* sets origin */
 }
+END_VMI
 
 VMH(b_throw, 0, (), ())
 { term_t catchfr_ref;
@@ -5288,6 +5509,7 @@ again:
     SOLUTION_RETURN((QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : FALSE);
   }
 }
+END_VMH
 #endif /*O_CATCHTHROW*/
 
 
@@ -5315,6 +5537,7 @@ VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC))
 { PC++;
   VMI_GOTO(I_CALLM);
 }
+END_VMI
 
 VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
 { if ( (void *)BFR > (void *)FR || !truePrologFlag(PLFLAG_LASTCALL) )
@@ -5341,6 +5564,7 @@ VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
     }
   }
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5372,6 +5596,7 @@ VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC))
     THROW_EXCEPTION;
   }
 }
+END_VMI
 
 #endif
 
@@ -5388,6 +5613,7 @@ VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC))
 
   VMH_GOTO(mcall_cont, module);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_USERCALL0 is generated by the compiler if a variable is encountered as
@@ -5420,6 +5646,7 @@ VMI(I_USERCALL0, VIF_BREAK, 0, ())
   callargs = 0;
   VMH_GOTO(i_usercall_common, a, callargs, is_call0);
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Determine the functor definition associated with the goal as well as the
@@ -5613,6 +5840,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
 
   VMH_GOTO(mcall_cont, module);
 }
+END_VMH
 
 VMH(call_type_error, 0, (), ())
 { DEBUG(CHK_SECURE, checkStacks(NULL));
@@ -5621,6 +5849,7 @@ VMH(call_type_error, 0, (), ())
   popTermRef();
   THROW_EXCEPTION;
 }
+END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 I_USERCALLN: translation of call(Goal, Arg1, ...)
@@ -5636,6 +5865,7 @@ VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER))
   is_call0 = FALSE;
   VMH_GOTO(i_usercall_common, a, callargs, is_call0);
 }
+END_VMI
 
 VMH(max_arity_overflow, 0, (), ())
 { fid_t fid;
@@ -5645,6 +5875,7 @@ VMH(max_arity_overflow, 0, (), ())
   PL_close_foreign_frame(fid);
   THROW_EXCEPTION;
 }
+END_VMH
 
 VMH(mcall_cont, 1, (Module), (module))
 { setNextFrameFlags(NFR, FR);
@@ -5675,6 +5906,7 @@ VMH(mcall_cont, 1, (Module), (module))
 
   VMH_GOTO(normal_call);
 }
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5700,6 +5932,7 @@ VMI(I_RESET, 0, 0, ())
   *argFrameP(lTop, 0) = linkValI(p);
   VMI_GOTO(I_USERCALL0);
 }
+END_VMI
 
 
 VMI(I_EXITRESET, 0, 0, ())
@@ -5719,6 +5952,7 @@ VMI(I_EXITRESET, 0, 0, ())
     THROW_EXCEPTION;
   }
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $call_continuation(Cont)
@@ -5751,6 +5985,7 @@ VMI(I_CALLCONT, 0, 1, (CA1_VAR))
     }
   }
 }
+END_VMI
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 shift(Ball) :-
@@ -5764,6 +5999,7 @@ VMI(I_SHIFT, 0, 1, (CA1_VAR))
 { shift_for_copy = FALSE;
   VMH_GOTO(shift_common, shift_for_copy);
 }
+END_VMI
 
 VMH(shift_common, 1, (int), (shift_for_copy))
 { Word ballp;
@@ -5792,11 +6028,13 @@ VMH(shift_common, 1, (int), (shift_for_copy))
   { THROW_EXCEPTION;
   }
 }
+END_VMH
 
 VMI(I_SHIFTCP, 0, 1, (CA1_VAR))
 { shift_for_copy = TRUE;
   VMH_GOTO(shift_common, shift_for_copy);
 }
+END_VMI
 END_SHAREDVARS
 
 END_SHAREDVARS
@@ -5864,6 +6102,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
   ARGP = argFrameP(FR, 0);
   TRUST_CLAUSE(cref);
 }
+END_VMI
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -5976,6 +6215,7 @@ VMI(T_TRIE_GEN2, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(T_TRIE_GEN3, 0, 0, ())
 { Word ap;
@@ -6007,6 +6247,7 @@ VMI(T_TRIE_GEN3, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(T_VALUE, 0, 0, ())
@@ -6018,6 +6259,7 @@ VMI(T_VALUE, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
 { trie_node *answer = (trie_node*)*PC++;
@@ -6036,11 +6278,13 @@ VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
   tbl_push_delay(atrie, argTermP(*TrieTermP, 0), answer PASS_LD);
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(T_TRY_FUNCTOR, 0, 2, (CA1_JUMP,CA1_FUNC))
 { TRIE_TRY;
   VMI_GOTO(T_FUNCTOR);
 }
+END_VMI
 VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
   Word p;
@@ -6098,6 +6342,7 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
   DEBUG(1, checkStacks(NULL));
   CLAUSE_FAILED;
 }
+END_VMI
 
 VMI(T_POP, 0, 0, ())
 { ENSURE_GLOBAL_SPACE(0, (void)0);	/* allows for 3 trailed assignments */
@@ -6109,6 +6354,7 @@ VMI(T_POP, 0, 0, ())
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(T_POPN, 0, 1, (CA1_INTEGER))
 { intptr_t n = (intptr_t)*PC++;
@@ -6130,11 +6376,13 @@ VMI(T_POPN, 0, 1, (CA1_INTEGER))
 
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 VMI(T_TRY_VAR, 0, 2, (CA1_JUMP,CA1_INTEGER))
 { TRIE_TRY;
   VMI_GOTO(T_VAR);
 }
+END_VMI
 VMI(T_VAR, 0, 1, (CA1_INTEGER))
 { intptr_t offset = (intptr_t)*PC++;		/* offset = 1.. */
   Word vp = TrieVarP(offset);
@@ -6172,12 +6420,14 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
   TrieNextArg();
   NEXT_INSTRUCTION;
 }
+END_VMI
 
 
 VMI(T_TRY_INTEGER, 0, 2, (CA1_JUMP,CA1_INTEGER))
 { TRIE_TRY;
   VMI_GOTO(T_INTEGER);
 }
+END_VMI
 VMI(T_INTEGER, 0, 1, (CA1_INTEGER))
 { Word k;
 
@@ -6211,11 +6461,13 @@ VMI(T_INTEGER, 0, 1, (CA1_INTEGER))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 VMI(T_TRY_INT64, 0, 1+WORDS_PER_INT64, (CA1_JUMP,CA1_INT64))
 { TRIE_TRY;
   VMI_GOTO(T_INT64);
 }
+END_VMI
 VMI(T_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 { Word k;
 
@@ -6250,11 +6502,13 @@ VMI(T_INT64, 0, WORDS_PER_INT64, (CA1_INT64))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 VMI(T_TRY_FLOAT, 0, 1+WORDS_PER_DOUBLE, (CA1_JUMP,CA1_FLOAT))
 { TRIE_TRY;
   VMI_GOTO(T_FLOAT);
 }
+END_VMI
 VMI(T_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 { Word k;
 
@@ -6295,21 +6549,25 @@ VMI(T_FLOAT, 0, WORDS_PER_DOUBLE, (CA1_FLOAT))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 VMI(T_TRY_MPZ, 0, VM_DYNARGC, (CA1_JUMP,CA1_MPZ))
 { TRIE_TRY;
   VMI_GOTO(T_MPZ);
 }
+END_VMI
 VMI(T_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
 { SEPARATE_VMI;
   VMI_GOTO(T_STRING);
 }
+END_VMI
 
 VMI(T_TRY_STRING, 0, VM_DYNARGC, (CA1_JUMP,CA1_STRING))
 { TRIE_TRY;
   VMI_GOTO(T_STRING);
 }
+END_VMI
 VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
 
@@ -6330,6 +6588,7 @@ VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
 
   CLAUSE_FAILED;
 }
+END_VMI
 
 
 BEGIN_SHAREDVARS
@@ -6340,6 +6599,7 @@ VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA))
 { TRIE_TRY;
   VMI_GOTO(T_ATOM);
 }
+END_VMI
 
 VMI(T_ATOM, 0, 1, (CA1_DATA))
 { c = (word)*PC++;
@@ -6347,17 +6607,20 @@ VMI(T_ATOM, 0, 1, (CA1_DATA))
   pushVolatileAtom(c);
   VMH_GOTO(t_const, c);
 }
+END_VMI
 
 VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_DATA))
 { TRIE_TRY;
   VMI_GOTO(T_SMALLINT);
 }
+END_VMI
 
 VMI(T_SMALLINT, 0, 1, (CA1_DATA))
 { c = (word)*PC++;
   DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", valInt(c)));
   VMH_GOTO(t_const, c);
 }
+END_VMI
 
 VMH(t_const, 1, (word), (c))
 { deRef2(TrieCurrentP, k);
@@ -6373,6 +6636,7 @@ VMH(t_const, 1, (word), (c))
   }
   CLAUSE_FAILED;
 }
+END_VMH
 END_SHAREDVARS
 
 		 /*******************************
@@ -6452,6 +6716,7 @@ VMH(shallow_backtrack, 0, (), ())
   }
   VMH_GOTO(deep_backtrack);
 }
+END_VMH
 
 
 // frame_failed:
@@ -6737,5 +7002,8 @@ next_choice:
       DiscardMark(ch->mark);
       goto next_choice;
   }
+  assert(0);
+  SOLUTION_RETURN(FALSE);
 }
+END_VMH
 
