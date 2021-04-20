@@ -86,6 +86,8 @@
 	      sum_list/2 as sumlist,
 	      max_member/2,
 	      min_member/2,
+	      max_member/3,
+	      min_member/3,
 	      clumped/2
 	    ]).
 :- reexport('../../apply',
@@ -127,8 +129,6 @@ sicstus4:rename_module(lists, sicstus4_lists).
 	* include/[4,5]
 	* group/[3,4,5]
 	* ordered/[1,2]
-	* max_member/3
-	* min_member/3
 	* select_min/[3,4]
 	* select_max/[3,4]
 	* increasing_prefix/[3,4]
