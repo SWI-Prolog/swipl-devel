@@ -18,12 +18,27 @@
     - pl-vmi.h
 */
 
-#ifndef _VMI
+#if !defined(_VMI) && !defined(_VMH)
+/* Either of _VMI or _VMH is allowed to be empty, it means we only care about the other */
 # error "Do not include this file directly!"
+#endif
+
+#ifndef _VMI
+#define _VMI(...) /* Empty */
 #endif
 
 #ifndef _VMI_SEP
 #define _VMI_SEP /* Empty */
+#endif
+
+#ifndef _VMH
+# define _VMH(...) /* Empty */
+# define _VMH_SEP /* Empty */
+#else
+# ifndef _VMH_SEP
+/* _VMH_SEP defaults to the same as _VMI_SEP, as long as _VMH exists */
+#  define _VMH_SEP _VMI_SEP
+# endif
 #endif
 
 #define VM_LOWER(n) VMLCASE_ ## n
@@ -273,10 +288,13 @@
 
 /* Instruction definitions */
 
+_VMH(wakeup, 0, (), ()) _VMH_SEP
 _VMI(D_BREAK, 0, 0, ()) _VMI_SEP
+_VMH(retry, 0, (), ()) _VMH_SEP
 _VMI(I_NOP, 0, 0, ()) _VMI_SEP
 _VMI(H_ATOM, 0, 1, (CA1_DATA)) _VMI_SEP
 _VMI(H_SMALLINT, 0, 1, (CA1_DATA)) _VMI_SEP
+_VMH(h_const, 1, (word), (c)) _VMH_SEP
 _VMI(H_NIL, 0, 0, ()) _VMI_SEP
 _VMI(H_INTEGER, 0, 1, (CA1_INTEGER)) _VMI_SEP
 _VMI(H_INT64, 0, WORDS_PER_INT64, (CA1_INT64)) _VMI_SEP
@@ -308,20 +326,27 @@ _VMI(B_VAR0, VIF_LCO, 0, ()) _VMI_SEP
 _VMI(B_VAR1, VIF_LCO, 0, ()) _VMI_SEP
 _VMI(B_VAR2, VIF_LCO, 0, ()) _VMI_SEP
 _VMI(B_VAR, VIF_LCO, 1, (CA1_VAR)) _VMI_SEP
+_VMH(bvar_cont, 1, (int), (voffset)) _VMH_SEP
 _VMI(B_UNIFY_FIRSTVAR, VIF_BREAK, 1, (CA1_FVAR)) _VMI_SEP
 _VMI(B_UNIFY_VAR, VIF_BREAK, 1, (CA1_VAR)) _VMI_SEP
+_VMH(unify_var_cont, 0, (), ()) _VMH_SEP
 _VMI(B_UNIFY_EXIT, 0, 0, ()) _VMI_SEP
 _VMI(B_UNIFY_FF, VIF_BREAK, 2, (CA1_FVAR,CA1_FVAR)) _VMI_SEP
 _VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR)) _VMI_SEP
 _VMI(B_UNIFY_FV, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR)) _VMI_SEP
 _VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR)) _VMI_SEP
+_VMH(debug_equals2, 0, (), ()) _VMH_SEP
 _VMI(B_UNIFY_FC, VIF_BREAK, 2, (CA1_FVAR, CA1_DATA)) _VMI_SEP
 _VMI(B_UNIFY_VC, VIF_BREAK, 2, (CA1_VAR, CA1_DATA)) _VMI_SEP
 _VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR)) _VMI_SEP
+_VMH(debug_eq_vv, 0, (), ()) _VMH_SEP
 _VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA)) _VMI_SEP
 _VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR)) _VMI_SEP
+_VMH(debug_neq_vv, 0, (), ()) _VMH_SEP
 _VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA)) _VMI_SEP
 _VMI(B_ARG_CF, VIF_BREAK, 3, (CA1_DATA,CA1_VAR,CA1_FVAR)) _VMI_SEP
+_VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg)) _VMH_SEP
+_VMH(arg3_slow, 3, (Word, Word, Word), (aidx, aterm, aarg)) _VMH_SEP
 _VMI(B_ARG_VF, VIF_BREAK, 3, (CA1_VAR,CA1_VAR,CA1_FVAR)) _VMI_SEP
 _VMI(B_ARGFIRSTVAR, 0, 1, (CA1_FVAR)) _VMI_SEP
 _VMI(B_FIRSTVAR, 0, 1, (CA1_FVAR)) _VMI_SEP
@@ -337,11 +362,14 @@ _VMI(I_SSU_COMMIT, 0, 0, ()) _VMI_SEP
 _VMI(I_ENTER, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(I_CONTEXT, 0, 1, (CA1_MODULE)) _VMI_SEP
 _VMI(I_CALL, VIF_BREAK, 1, (CA1_PROC)) _VMI_SEP
+_VMH(normal_call, 0, (), ()) _VMH_SEP
+_VMH(depart_or_retry_continue, 0, (), ()) _VMH_SEP
 _VMI(I_DEPART, VIF_BREAK, 1, (CA1_PROC)) _VMI_SEP
 _VMI(I_DEPARTATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC)) _VMI_SEP
 _VMI(I_DEPARTM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC)) _VMI_SEP
 _VMI(I_EXIT, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(I_EXITFACT, 0, 0, ()) _VMI_SEP
+_VMH(exit_checking_wakeup, 0, (), ()) _VMH_SEP
 _VMI(I_EXITQUERY, 0, 0, ()) _VMI_SEP
 _VMI(I_YIELD, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(L_NOLCO, 0, 1, (CA1_JUMP)) _VMI_SEP
@@ -369,10 +397,12 @@ _VMI(C_VAR, 0, 1, (CA1_FVAR)) _VMI_SEP
 _VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER)) _VMI_SEP
 _VMI(C_LSCUT, 0, 1, (CA1_CHP)) _VMI_SEP
 _VMI(C_LCUT, 0, 1, (CA1_CHP)) _VMI_SEP
+_VMH(c_lcut_cont, 1, (Choice), (och)) _VMH_SEP
 _VMI(I_CUTCHP, 0, 0, ()) _VMI_SEP
 _VMI(C_SCUT, 0, 0, ()) _VMI_SEP
 _VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP)) _VMI_SEP
 _VMI(C_CUT, 0, 1, (CA1_CHP)) _VMI_SEP
+_VMH(c_cut, 1, (Choice), (och)) _VMH_SEP
 _VMI(C_SOFTIF, 0, 2, (CA1_CHP,CA1_JUMP)) _VMI_SEP
 _VMI(C_SOFTCUT, 0, 1, (CA1_CHP)) _VMI_SEP
 _VMI(C_END, 0, 0, ()) _VMI_SEP
@@ -380,6 +410,7 @@ _VMI(C_FAIL, 0, 0, ()) _VMI_SEP
 _VMI(I_FAIL, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(I_TRUE, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR)) _VMI_SEP
+_VMH(debug_pred1, 2, (functor_t, Word), (fpred, p)) _VMH_SEP
 _VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR)) _VMI_SEP
 _VMI(I_INTEGER, VIF_BREAK, 1, (CA1_VAR)) _VMI_SEP
 _VMI(I_RATIONAL, VIF_BREAK, 1, (CA1_VAR)) _VMI_SEP
@@ -401,6 +432,7 @@ _VMI(S_MULTIFILE, 0, 0, ()) _VMI_SEP
 _VMI(S_TRUSTME, 0, 1, (CA1_CLAUSEREF)) _VMI_SEP
 _VMI(S_CALLWRAPPER, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA)) _VMI_SEP
 _VMI(S_ALLCLAUSES, 0, 0, ()) _VMI_SEP
+_VMH(next_clause, 1, (ClauseRef), (cref)) _VMH_SEP
 _VMI(S_NEXTCLAUSE, 0, 0, ()) _VMI_SEP
 _VMI(S_LIST, 0, 2, (CA1_CLAUSEREF, CA1_CLAUSEREF)) _VMI_SEP
 _VMI(S_MQUAL, 0, 1, (CA1_VAR)) _VMI_SEP
@@ -414,6 +446,7 @@ _VMI(A_MPZ, 0, VM_DYNARGC, (CA1_MPZ)) _VMI_SEP
 _VMI(A_MPQ, 0, VM_DYNARGC, (CA1_MPQ)) _VMI_SEP
 _VMI(A_DOUBLE, 0, WORDS_PER_DOUBLE, (CA1_FLOAT)) _VMI_SEP
 _VMI(A_VAR, 0, 1, (CA1_VAR)) _VMI_SEP
+_VMH(a_var_n, 1, (int), (offset)) _VMH_SEP
 _VMI(A_VAR0, 0, 0, ()) _VMI_SEP
 _VMI(A_VAR1, 0, 0, ()) _VMI_SEP
 _VMI(A_VAR2, 0, 0, ()) _VMI_SEP
@@ -421,12 +454,15 @@ _VMI(A_FUNC0, 0, 1, (CA1_AFUNC)) _VMI_SEP
 _VMI(A_FUNC1, 0, 1, (CA1_AFUNC)) _VMI_SEP
 _VMI(A_FUNC2, 0, 1, (CA1_AFUNC)) _VMI_SEP
 _VMI(A_FUNC, 0, 2, (CA1_AFUNC, CA1_INTEGER)) _VMI_SEP
+_VMH(common_an, 2, (code, int), (fn, an)) _VMH_SEP
 _VMI(A_ROUNDTOWARDS_A, 0, 1, (CA1_INTEGER)) _VMI_SEP
 _VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR)) _VMI_SEP
 _VMI(A_ADD, 0, 0, ()) _VMI_SEP
 _VMI(A_MUL, 0, 0, ()) _VMI_SEP
 _VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER)) _VMI_SEP
 _VMI(A_LT, VIF_BREAK, 0, ()) _VMI_SEP
+_VMH(acmp, 3, (Number, Number, int), (n1, n2, cmp)) _VMH_SEP
+_VMH(a_cmp_out, 1, (int), (rc)) _VMH_SEP
 _VMI(A_LE, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(A_GT, VIF_BREAK, 0, ()) _VMI_SEP
 _VMI(A_GE, VIF_BREAK, 0, ()) _VMI_SEP
@@ -448,7 +484,9 @@ _VMI(I_FCALLDET8, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLDET9, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FEXITDET, 0, 0, ()) _VMI_SEP
+_VMH(I_FEXITDET, 1, (word), (rc)) _VMH_SEP
 _VMI(I_FOPENNDET, 0, 0, ()) _VMI_SEP
+_VMH(foreign_redo, 0, (), ()) _VMH_SEP
 _VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN)) _VMI_SEP
@@ -462,22 +500,29 @@ _VMI(I_FCALLNDET8, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLNDET9, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN)) _VMI_SEP
 _VMI(I_FEXITNDET, 0, 0, ()) _VMI_SEP
+_VMH(I_FEXITNDET, 1, (intptr_t), (rc)) _VMH_SEP
 _VMI(I_FREDO, 0, 0, ()) _VMI_SEP
 _VMI(I_CALLCLEANUP, 0, 0, ()) _VMI_SEP
 _VMI(I_EXITCLEANUP, 0, 0, ()) _VMI_SEP
 _VMI(I_CATCH, 0, 0, ()) _VMI_SEP
 _VMI(I_EXITCATCH, 0, 0, ()) _VMI_SEP
 _VMI(B_THROW, 0, 0, ()) _VMI_SEP
+_VMH(b_throw, 0, (), ()) _VMH_SEP
 _VMI(I_CALLATM, VIF_BREAK, 3, (CA1_MODULE, CA1_MODULE, CA1_PROC)) _VMI_SEP
 _VMI(I_DEPARTATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC)) _VMI_SEP
 _VMI(I_CALLATMV, VIF_BREAK, 3, (CA1_MODULE, CA1_VAR, CA1_PROC)) _VMI_SEP
 _VMI(I_CALLM, VIF_BREAK, 2, (CA1_MODULE, CA1_PROC)) _VMI_SEP
 _VMI(I_USERCALL0, VIF_BREAK, 0, ()) _VMI_SEP
+_VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0)) _VMH_SEP
+_VMH(call_type_error, 0, (), ()) _VMH_SEP
 _VMI(I_USERCALLN, VIF_BREAK, 1, (CA1_INTEGER)) _VMI_SEP
+_VMH(max_arity_overflow, 0, (), ()) _VMH_SEP
+_VMH(mcall_cont, 1, (Module), (module)) _VMH_SEP
 _VMI(I_RESET, 0, 0, ()) _VMI_SEP
 _VMI(I_EXITRESET, 0, 0, ()) _VMI_SEP
 _VMI(I_CALLCONT, 0, 1, (CA1_VAR)) _VMI_SEP
 _VMI(I_SHIFT, 0, 1, (CA1_VAR)) _VMI_SEP
+_VMH(shift_common, 1, (int), (shift_for_copy)) _VMH_SEP
 _VMI(I_SHIFTCP, 0, 1, (CA1_VAR)) _VMI_SEP
 _VMI(S_TRIE_GEN, 0, 0, ()) _VMI_SEP
 _VMI(T_TRIE_GEN2, 0, 0, ()) _VMI_SEP
@@ -504,8 +549,13 @@ _VMI(T_TRY_ATOM, 0, 2, (CA1_JUMP,CA1_DATA)) _VMI_SEP
 _VMI(T_ATOM, 0, 1, (CA1_DATA)) _VMI_SEP
 _VMI(T_TRY_SMALLINT, 0, 2, (CA1_JUMP,CA1_DATA)) _VMI_SEP
 _VMI(T_SMALLINT, 0, 1, (CA1_DATA)) _VMI_SEP
+_VMH(t_const, 1, (word), (c)) _VMH_SEP
+_VMH(shallow_backtrack, 0, (), ()) _VMH_SEP
+_VMH(deep_backtrack, 0, (), ()) _VMH_SEP
 
 /* AUTOGENERATED CONTENT ABOVE */
 
 #undef _VMI
 #undef _VMI_SEP
+#undef _VMH
+#undef _VMH_SEP

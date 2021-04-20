@@ -73,10 +73,13 @@ typedef struct				/* VMI( */
   char *flags;				/* Flags (VIF_*) */
   char *argc;				/* Argument length (or VM_DYNARGC) */
   char *args;				/* Argument types (max 3) */
+  char *argn;				/* VMH ONLY: Argument names */
+  int is_vmh;				/* 0 for VMI, 1 for VMH */
 } vmi;					/* ) */
 
 vmi vmi_list[MAX_VMI];
 int vmi_count = 0;
+int vmh_count = 0;
 
 char *synopsis;
 size_t syn_size = 0;
@@ -115,11 +118,12 @@ skip_ws(const char *s)
 
 
 static char *
-skip_id(const char *s)
+skip_id(const char *s, int allow_lower)
 { if ( s )
   { for (; *s; s++)
     { if ( *s == '_' ||
 	   (*s >= 'A' && *s <= 'Z') ||
+	   (*s >= 'a' && *s <= 'z' && allow_lower) ||
 	   (*s >= '0' && *s <= '9') )
 	continue;
 
@@ -184,32 +188,42 @@ load_vmis(const char *file)
     while(fgets(buf, sizeof(buf), fd))
     { line++;
 
-      if ( strncmp(buf, "VMI(", 4) == 0 )
-      { const char *s1 = skip_ws(buf+4);
-	const char *e1 = skip_id(s1);
-	const char *s2 = skip_ws(skip_over(e1, ','));
-	const char *e2 = skip_flags(s2);
-	const char *s3 = skip_ws(skip_over(e2, ','));
+      if ( strncmp(buf, "VMI(", 4) == 0 || strncmp(buf, "VMH(", 4) == 0 )
+      { const int is_vmh = buf[2] == 'H';
+        const char *s1 = skip_ws(buf+4);
+	const char *e1 = skip_id(s1, is_vmh);
+	const char *s2 = is_vmh ? NULL : skip_ws(skip_over(e1, ','));
+	const char *e2 = is_vmh ? NULL : skip_flags(s2);
+	const char *s3 = skip_ws(skip_over(is_vmh ? e1 : e2, ','));
 	const char *e3 = skip_flags(s3);
 	const char *s4 = skip_over(skip_ws(skip_over(e3, ',')), '(');
 	const char *e4 = skip_over(s4, ')');
+	const char *s5 = is_vmh ? skip_over(skip_ws(skip_over(e4, ',')), '(') : NULL;
+	const char *e5 = is_vmh ? skip_over(s5, ')') : NULL;
 
-	if ( !e4 )
+	if ( !e4 || (is_vmh && !e5) )
 	{ fprintf(stderr, "Syntax error at %s:%d\n", file, line);
 	  exit(1);
 	} else
-	  e4--;				/* backspace over ) */
+	{ e4--;				/* backspace over ) */
+	  e5 -= is_vmh;
+	}
 
 	vmi_list[vmi_count].name  = my_strndup(s1, e1-s1);
-	vmi_list[vmi_count].flags = my_strndup(s2, e2-s2);
+	vmi_list[vmi_count].flags = is_vmh ? NULL : my_strndup(s2, e2-s2);
 	vmi_list[vmi_count].argc  = my_strndup(s3, e3-s3);
 	vmi_list[vmi_count].args  = my_strndup(s4, e4-s4);
+	vmi_list[vmi_count].argn  = is_vmh ? my_strndup(s5, e5-s5) : NULL;
+	vmi_list[vmi_count].is_vmh = is_vmh;
 
-	add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
-	add_synopsis(s3, e3-s3);
-	add_synopsis(s4, e4-s4);
+	if (!is_vmh)			/* VMH pseudo-instructions aren't part of signature */
+	{ add_synopsis(s1, e1-s1);	/* flags (s2) isn't needed for VM signature */
+	  add_synopsis(s3, e3-s3);
+	  add_synopsis(s4, e4-s4);
+	}
 
 	vmi_count++;
+	vmh_count += is_vmh;
       }
     }
 
@@ -295,13 +309,19 @@ emit_vmi_hdr(const char *to)
 
   for(i=0; i<vmi_count; i++)
   { char name[100];
-    fprintf(out, "#define VMLCASE_%s %s\n", vmi_list[i].name, mystrlwr(name, vmi_list[i].name));
+    if (!vmi_list[i].is_vmh)
+      fprintf(out, "#define VMLCASE_%s %s\n", vmi_list[i].name, mystrlwr(name, vmi_list[i].name));
   }
 
   fprintf(out, "\n");
   fprintf(out, "/* Instruction definitions */\n\n");
   for(i=0; i<vmi_count; i++)
-    fprintf(out, "_VMI(%s, %s, %s, (%s)) _VMI_SEP\n", vmi_list[i].name, vmi_list[i].flags, vmi_list[i].argc, vmi_list[i].args);
+  { if (vmi_list[i].is_vmh)
+    { fprintf(out, "_VMH(%s, %s, (%s), (%s)) _VMH_SEP\n", vmi_list[i].name, vmi_list[i].argc, vmi_list[i].args, vmi_list[i].argn);
+    } else
+    { fprintf(out, "_VMI(%s, %s, %s, (%s)) _VMI_SEP\n", vmi_list[i].name, vmi_list[i].flags, vmi_list[i].argc, vmi_list[i].args);
+    }
+  }
 
   while (fgets(buf, sizeof(buf), in))
   { if (strncmp(buf, auto_end, sizeof(auto_end) - 1) == 0)
@@ -340,7 +360,7 @@ main(int argc, char **argv)
 
   load_vmis(buf);
   if ( verbose )
-    fprintf(stderr, "Found %d VMs\n", vmi_count);
+    fprintf(stderr, "Found %d VMs and %d helpers\n", vmi_count - vmh_count, vmh_count);
 
   if ( argc >= 2 )
   { snprintf(buf, sizeof(buf), "%s/%s", argv[1], vmi_hdr);
