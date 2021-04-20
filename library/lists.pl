@@ -61,6 +61,8 @@
                                         % Ordered operations
           max_member/2,                 % -Max, +List
           min_member/2,                 % -Min, +List
+          max_member/3,                 % :Pred, -Max, +List
+          min_member/3,                 % :Pred, -Min, +List
 
                                         % Lists of numbers
           sum_list/2,                   % +List, -Sum
@@ -573,6 +575,50 @@ min_member_([H|T], Min0, Min) =>
     (   H @>= Min0
     ->  min_member_(T, Min0, Min)
     ;   min_member_(T, H, Min)
+    ).
+
+
+%!  max_member(:Pred, -Max, +List) is semidet.
+%
+%   True when Max is the largest member according to Pred, which must be
+%   a 2-argument callable that behaves like (@=<)/2.
+%   Fails if List is empty.
+%
+%   @see max_list/2 for the maximum of a list of numbers.
+
+max_member(Pred, Max, [H|T]) =>
+    max_member_(T, Pred, H, Max).
+max_member(_, _, []) =>
+    fail.
+
+max_member_([], _, Max0, Max) =>
+    Max = Max0.
+max_member_([H|T], Pred, Max0, Max) =>
+    (   call(Pred, H, Max0)
+    ->  max_member_(T, Pred, Max0, Max)
+    ;   max_member_(T, Pred, H, Max)
+    ).
+
+
+%!  min_member(:Pred, -Min, +List) is semidet.
+%
+%   True when Min is the smallest member according to Pred, which must
+%   be a 2-argument callable that behaves like (@=<)/2.
+%   Fails if List is empty.
+%
+%   @see min_list/2 for the minimum of a list of numbers.
+
+min_member(Pred, Min, [H|T]) =>
+    min_member_(T, Pred, H, Min).
+min_member(_, _, []) =>
+    fail.
+
+min_member_([], _, Min0, Min) =>
+    Min = Min0.
+min_member_([H|T], Pred, Min0, Min) =>
+    (   call(Pred, Min0, H)
+    ->  min_member_(T, Pred, Min0, Min)
+    ;   min_member_(T, Pred, H, Min)
     ).
 
 
