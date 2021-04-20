@@ -364,25 +364,6 @@ Brief description of the local stack-layout.  This stack contains:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-		 /*******************************
-		 *	 LOCAL ALLOCATION	*
-		 *******************************/
-
-/* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
-
-#define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
-        { int rc; \
-	  SAVE_REGISTERS(qid); \
-	  rc = growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD); \
-	  LOAD_REGISTERS(qid); \
-	  if ( rc != TRUE ) \
-	  { rc = raiseStackOverflow(rc); \
-	    ifnot; \
-	  } \
-	}
-
-
 
 		 /*******************************
 		 *	    FOREIGN FRAME	*
@@ -2243,19 +2224,25 @@ copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(label) do { backtrack_from_line = __LINE__; goto label; } while(0)
+#define GO(helper) do { backtrack_from_line = __LINE__; VMH_GOTO(helper); } while(0)
 #else
-#define GO(label) goto label
+#define GO(helper) VMH_GOTO(helper)
 #endif
 
-#define FRAME_FAILED		GO(frame_failed)
-#define CLAUSE_FAILED		GO(clause_failed)
-#define BODY_FAILED		GO(body_failed)
+#define FRAME_FAILED		GO(deep_backtrack)
+#define CLAUSE_FAILED		GO(shallow_backtrack)
+#define BODY_FAILED		GO(shallow_backtrack)
+#ifdef O_DEBUGGER
+#define TRACE_RETRY		VMH_GOTO(retry)
+#endif
+#ifdef O_ATTVAR
+#define ATTVAR_WAKEUP		VMH_GOTO(wakeup)
+#endif
 #ifdef O_DEBUG
 #define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
-				     goto b_throw; } while(0)
+				     VMH_GOTO(b_throw); } while(0)
 #else
-#define THROW_EXCEPTION		goto b_throw
+#define THROW_EXCEPTION		VMH_GOTO(b_throw)
 #endif
 
 #ifdef O_PROFILE
@@ -2864,31 +2851,6 @@ typedef enum
   uwrite				/* Unification in write mode */
 } unify_mode;
 
-#define IF_WRITE_MODE_GOTO(label) \
-	if ( umode == uwrite ) VMI_GOTO(label)
-
-#define TRUST_CLAUSE(cref) \
-	umode = uread; \
-	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
-	if ( debugstatus.debugging ) \
-	  newChoice(CHP_DEBUG, FR PASS_LD); \
-	PC    = cref->value.clause->codes; \
-	NEXT_INSTRUCTION;
-#define TRY_CLAUSE(cref, cond, altpc) \
-	umode = uread; \
-	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
-	if ( cond ) \
-	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
-	  ch->value.PC = altpc; \
-	} else if ( debugstatus.debugging ) \
-	{ newChoice(CHP_DEBUG, FR PASS_LD); \
-	} \
-	PC    = cref->value.clause->codes; \
-	NEXT_INSTRUCTION;
 
 
 int
@@ -2926,13 +2888,20 @@ pl-comp.c
 #define VMI(Name,f,na,a)	Name ## _LBL: \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
+#define VMH(Name,na,at,an)	helper_ ## Name:
 #define VMI_GOTO(n)		do { END_PROF(); \
 				       goto n ## _LBL; \
 				   } while(0)
+#define VMH_GOTO(n,args...)	goto helper_ ## n;
 #define NEXT_INSTRUCTION	do { END_PROF(); \
 				     DbgPrintInstruction(FR, PC); \
 				     goto *(void *)((intptr_t)(*PC++)); \
 				   } while(0)
+#define VMI_GOTO_CODE(c)	do { void *addr = (void*)(c); \
+				     goto *addr; \
+				   } while(0)
+#define SOLUTION_RETURN(v)	return v
+
 
 /* This macro must ensure that two identical VMI instructions do not get
  * merged onto the same address by the compiler, causing decompilation
@@ -2955,26 +2924,29 @@ code thiscode;
 				  case_ ## Name: UNUSED_LABEL \
 				  count(Name, PC); \
 				  START_PROF(Name, #Name);
+#define VMH(Name,na,at,an)	helper_ ## Name:
 #define VMI_GOTO(n)		{ END_PROF(); \
 				  goto case_ ## n; \
 				}
+#define VMH_GOTO(n,args...)	goto helper_ ## n;
 #define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
 				  END_PROF(); \
                                   goto next_instruction; \
 				}
+#define VMI_GOTO_CODE(c)	do { thiscode = (c); \
+				     goto resumebreak; \
+				   } while (0)
+#define SOLUTION_RETURN(v)	return v
 #define SEPARATE_VMI		(void)0
 
 #endif /* VMCODE_IS_ADDRESS */
 
-#define FASTCOND_FAILED \
-	{ if ( !LD->fast_condition )   \
-	  { BODY_FAILED;	       \
-	  } else		       \
-	  { PC = LD->fast_condition;   \
-	    LD->fast_condition = NULL; \
-	    NEXT_INSTRUCTION;          \
-	  }                            \
-	}
+/* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
+#define VMH_GOTO_AS_VMI(n,args...) do { END_PROF(); \
+					count(n, PC); \
+					START_PROF(n, #n); \
+					VMH_GOTO(n, args); \
+				      } while(0)
 
 
 #if VMCODE_IS_ADDRESS
@@ -3058,7 +3030,7 @@ variables used in the B_THROW instruction.
     }
     BODY_FAILED;
   } else
-    goto retry_continue;		/* first call */
+    VMH_GOTO(depart_or_retry_continue);		/* first call */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main entry of the virtual machine cycle.  A branch to `next instruction'
@@ -3079,449 +3051,6 @@ resumebreak:
 #include "pl-vmi.c"
   }
 
-#ifdef O_ATTVAR
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Attributed variable handling
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-wakeup:
-  DEBUG(1, Sdprintf("Activating wakeup\n"));
-  NFR = lTop;
-  setNextFrameFlags(NFR, FR);
-  SAVE_REGISTERS(qid);
-  DEF = GD->procedures.dwakeup1->definition;
-  LOAD_REGISTERS(qid);
-  ARGP = argFrameP(NFR, 0);
-  ARGP[0] = *valTermRef(LD->attvar.head);
-  setVar(*valTermRef(LD->attvar.head));
-  setVar(*valTermRef(LD->attvar.tail));
-
-  goto normal_call;
-#endif
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-			TRACER RETRY ACTION
-
-By default, retries the  current  frame.  If   another  frame  is  to be
-retried, place the frame-reference, which  should   be  a  parent of the
-current frame, in debugstatus.retryFrame and jump to this label. This is
-implemented by returning retry(Frame) of the prolog_trace_interception/3
-hook.
-
-First, the system will leave any parent  frames. Next, it will undo back
-to the call-port and finally, restart the clause.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if O_DEBUGGER
-retry:					MARK(RETRY);
-{ LocalFrame rframe0, rframe;
-  mark m;
-  Choice ch;
-
-  if ( debugstatus.retryFrame )
-    rframe = (LocalFrame)valTermRef(debugstatus.retryFrame);
-  else
-    rframe = FR;
-  debugstatus.retryFrame = 0;
-  rframe0 = rframe;
-
-  m.trailtop = tTop;
-  m.globaltop = gTop;
-  for( ; rframe; rframe = rframe->parent )
-  { if ( (ch = findStartChoice(rframe, BFR)) )
-    { m = ch->mark;
-      goto do_retry;
-    }
-  }
-  Sdprintf("[Could not find retry-point]\n");
-  SAVE_REGISTERS(qid);
-  abortProlog();				/* What else? */
-  LOAD_REGISTERS(qid);
-  THROW_EXCEPTION;
-
-do_retry:
-  if ( rframe0 != rframe )
-  { DEBUG(MSG_TRACE,
-	  Sdprintf("[No retry-information for requested frame]\n"));
-  }
-
-  DEBUG(MSG_TRACE,
-	Sdprintf("[Retrying frame %d running %s]\n",
-		 (Word)rframe - (Word)lBase,
-		 predicateName(rframe->predicate)));
-
-  discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
-  rframe->clause = NULL;
-  environment_frame = FR = rframe;
-  DEF = FR->predicate;
-  clear(FR, FR_SKIPPED);
-  Undo(m);
-  exception_term = 0;
-
-  goto retry_continue;
-}
-#endif /*O_DEBUGGER*/
-
-		 /*******************************
-		 *	   BACKTRACKING		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The rest of this giant procedure handles   backtracking. This used to be
-very complicated, but as of pl-3.3.6, choice-points are explicit objects
-and life is a lot easier. In the old days we distinquished between three
-cases to get here. We leave that   it for documentation purposes as well
-as to investigate optimization in the future.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-				MARK(BKTRK);
-clause_failed:				/* shallow backtracking */
-body_failed:
-END_PROF();
-START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
-{ Choice ch = BFR;
-
-  if ( FR == ch->frame )
-  { Undo(ch->mark);
-    QF = QueryFromQid(qid);
-    aTop = QF->aSave;
-
-    if ( ch->type == CHP_JUMP )
-    { DiscardMark(ch->mark);
-      PC   = ch->value.PC;
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
-      ARGP = argFrameP(lTop, 0);
-
-      NEXT_INSTRUCTION;
-    } else if ( ch->type == CHP_CLAUSE )
-    { ARGP = argFrameP(FR, 0);
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
-	FRAME_FAILED;		/* can happen if scan-ahead was too short */
-      PC = CL->value.clause->codes;
-      umode = uread;
-
-      if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
-      { DiscardMark(ch->mark);		/* is this needed? */
-	if ( ch->value.clause.cref )
-	{ Mark(ch->mark);
-	  lTop = (LocalFrame)(ch+1);
-	  NEXT_INSTRUCTION;
-	} else if ( unlikely(debugstatus.debugging) )
-	{ ch->type = CHP_DEBUG;
-	  Mark(ch->mark);
-	  lTop = (LocalFrame)(ch+1);
-	  NEXT_INSTRUCTION;
-	}
-
-	BFR = ch->parent;
-	lTop = (LocalFrame)ch;
-	NEXT_INSTRUCTION;
-      } else				/* Choice point needs to move */
-      { struct clause_choice chp;
-
-        DiscardMark(ch->mark);
-	BFR = ch->parent;
-	chp = ch->value.clause;
-	lTop = (LocalFrame)argFrameP(FR, CL->value.clause->variables);
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
-
-	if ( chp.cref )
-	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = chp;
-	} else if ( unlikely(debugstatus.debugging) )
-	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	}
-	NEXT_INSTRUCTION;
-      }
-    }
-  }
-}
-
-
-frame_failed:
-END_PROF();
-START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
-{
-#ifdef O_DEBUGGER
-  term_t ch0_ref = BFR ? consTermRef(BFR) : 0;
-#endif
-  Choice ch;
-
-  DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
-
-next_choice:
-  ch = BFR;
-					/* leave older frames */
-  for(; (void *)FR > (void *)ch; FR = FR->parent)
-  {
-#ifdef O_DEBUGGER
-    if ( debugstatus.debugging && isDebugFrame(FR) )
-    { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
-
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
-
-      if ( sch )
-      { int rc;
-	Choice ch0 = findChoiceBeforeFrame(FR, sch);
-
-	ch0_ref = ch0 ? consTermRef(ch0) : 0;
-	Undo(sch->mark);
-	environment_frame = FR;
-	FR->clause = NULL;
-	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	SAVE_REGISTERS(qid);
-	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
-	LOAD_REGISTERS(qid);
-	ch = BFR;			/* can be shifted */
-
-	switch( rc )
-	{ case ACTION_RETRY:
-	    environment_frame = FR;
-	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED|FR_SKIPPED);
-	    goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
-	}
-      } else
-      { ch0_ref = 0;
-	DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
-			  levelFrame(FR), predicateName(FR->predicate)));
-      }
-    }
-#endif
-
-    leaveFrame(FR);
-    if ( true(FR, FR_WATCHED|FR_SSU_DET|FR_DET|FR_DETGUARD) )
-    { environment_frame = FR;
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-      FR->clause = NULL;
-      if ( true(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
-      { SAVE_REGISTERS(qid);
-	ssu_or_det_failed(FR PASS_LD);
-	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-      SAVE_REGISTERS(qid);
-      frameFinished(FR, FINISH_FAIL PASS_LD);
-      LOAD_REGISTERS(qid);
-      ch = BFR;			/* can be shifted */
-      if ( exception_term )
-	THROW_EXCEPTION;
-    }
-  }
-
-  environment_frame = FR = ch->frame;
-  Undo(ch->mark);
-  QF = QueryFromQid(qid);
-  aTop = QF->aSave;
-  DEF  = FR->predicate;
-#ifdef O_DEBUG_BACKTRACK
-  last_choice = ch->type;
-#endif
-
-  if ( LD->alerted )
-  { if ( LD->alerted & ALERT_BUFFER )
-    { LD->alerted &= ~ALERT_BUFFER;
-      release_string_buffers_from_frame(FR PASS_LD);
-    }
-    if ( UNDO_SCHEDULED(LD) )
-    { int rc;
-
-      SAVE_REGISTERS(qid);
-      rc = run_undo_hooks(PASS_LD1);
-      LOAD_REGISTERS(qid);
-      if ( !rc )
-	THROW_EXCEPTION;
-    }
-  }
-
-  switch(ch->type)
-  { case CHP_JUMP:
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Jump in %s\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      PC   = ch->value.PC;
-      DiscardMark(ch->mark);
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
-      ARGP = argFrameP(lTop, 0);
-      LD->statistics.inferences++;
-      if ( unlikely(LD->alerted) )
-      {
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
-
-	  if ( fr )
-	  { int action;
-
-	    SAVE_REGISTERS(qid);
-	    action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
-	    LOAD_REGISTERS(qid);
-	    ch = BFR;			/* can be shifted */
-
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-	        goto retry;
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
-	  }
-	}
-#endif
-#ifdef O_INFERENCE_LIMIT
-        if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
-	}
-#endif
-        Profile(profRedo(ch->prof_node PASS_LD));
-      }
-      NEXT_INSTRUCTION;
-    case CHP_CLAUSE:			/* try next clause */
-    { Clause clause;
-      struct clause_choice chp;
-
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Clause in %s\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      ARGP = argFrameP(FR, 0);
-      DiscardMark(ch->mark);
-      BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
-	goto next_choice;	/* Can happen of look-ahead was too short */
-
-      chp    = ch->value.clause;
-      clause = CL->value.clause;
-      PC     = clause->codes;
-      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      umode  = uread;
-
-      DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
-
-      if ( unlikely(LD->alerted) )
-      {
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
-
-	  if ( fr )
-	  { int action;
-
-	    SAVE_REGISTERS(qid);
-	    clearLocalVariablesFrame(FR);
-	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	    LOAD_REGISTERS(qid);
-	    ch = BFR;			/* can be shifted */
-
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-		goto retry_continue;
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
-	  }
-	}
-#endif
-#ifdef O_INFERENCE_LIMIT
-        if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
-	}
-#endif
-        Profile(profRedo(ch->prof_node PASS_LD));
-      }
-
-      if ( chp.cref )
-      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = chp;
-      } else if ( unlikely(debugstatus.debugging) )
-      { newChoice(CHP_DEBUG, FR PASS_LD);
-      }
-
-      if ( is_signalled(PASS_LD1) )
-      { SAVE_REGISTERS(qid);
-	handleSignals(PASS_LD1);
-	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-
-			/* require space for the args of the next frame */
-      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
-      NEXT_INSTRUCTION;
-    }
-    case CHP_TOP:			/* Query toplevel */
-    { DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: TOP\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      DiscardMark(ch->mark);
-      Profile(profRedo(ch->prof_node PASS_LD));
-      QF = QueryFromQid(qid);
-      set(QF, PL_Q_DETERMINISTIC);
-      QF->foreign_frame = PL_open_foreign_frame();
-      assert(LD->exception.throw_environment == &throw_env);
-      LD->exception.throw_environment = throw_env.parent;
-      fail;
-    }
-    case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: CATCH\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-            if ( true(ch->frame, FR_WATCHED) )
-      { DiscardMark(ch->mark);
-	environment_frame = FR = ch->frame;
-	lTop = (LocalFrame)(ch+1);
-	FR->clause = NULL;
-	if ( true(ch->frame, FR_CLEANUP) )
-	{ SAVE_REGISTERS(qid);
-	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-	  LOAD_REGISTERS(qid);
-	} else
-	{ set(ch->frame, FR_CATCHED);
-	}
-	ch = BFR;			/* can be shifted */
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      } else
-      { set(ch->frame, FR_CATCHED);
-      }
-      /*FALLTHROUGH*/
-    case CHP_DEBUG:			/* Just for debugging purposes */
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: DEBUG\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      #ifdef O_DEBUGGER
-      ch0_ref = consTermRef(ch);
-#endif
-      BFR = ch->parent;
-      DiscardMark(ch->mark);
-      goto next_choice;
-  }
-}
   assert(0);
   return FALSE;
 } /* end of PL_next_solution() */

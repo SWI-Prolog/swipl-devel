@@ -543,6 +543,13 @@ Arithmetic comparison
 #define NE 5
 #define EQ 6
 
+#define LT_C <
+#define GT_C >
+#define LE_C <=
+#define GE_C >=
+#define NE_C !=
+#define EQ_C ==
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
