@@ -334,6 +334,10 @@ mapargs_(_, _, _, _, _).
 %   instantiated, which means either Term1  or   Term2  must be bound or
 %   both Name and Arity must be bound.
 %
+%   This predicate handles both zero-argument compounds (`f()`) as atoms
+%   for Term1 and Term2. If only Name and   Arity are given and Arity is
+%   `0`, Term1 and Term2 are unified with Name (an atom).
+%
 %   @compat SICStus
 
 same_functor(Term1, Term2) :-
@@ -343,16 +347,24 @@ same_functor(Term1, Term2, Arity) :-
     same_functor(Term1, Term2, _Name, Arity).
 
 same_functor(Term1, Term2, Name, Arity) :-
-    (   nonvar(Term1)
+    (   compound(Term1)
     ->  compound_name_arity(Term1, Name, Arity),
         compound_name_arity(Term2, Name, Arity)
-    ;   nonvar(Term2)
+    ;   compound(Term2)
     ->  compound_name_arity(Term2, Name, Arity),
         compound_name_arity(Term1, Name, Arity)
+    ;   atom(Term1)
+    ->  Term1 = Term2,
+        Name = Term1,
+        Arity = 0
+    ;   atom(Term2)
+    ->  Term1 = Term2,
+        Name = Term1,
+        Arity = 0
     ;   nonvar(Name),
         nonvar(Arity)
-    ->  compound_name_arity(Term1, Name, Arity),
-        compound_name_arity(Term2, Name, Arity)
+    ->  functor(Term1, Name, Arity),
+        functor(Term2, Name, Arity)
     ;   instantiation_error(Term1)
     ).
 
