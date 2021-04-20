@@ -2921,7 +2921,7 @@ pl-comp.c
 #include "pentium.h"
 
 #if VMCODE_IS_ADDRESS
-#include <pl-jumptable.ic>
+#include "pl-jumptable.ic"
 
 #define VMI(Name,f,na,a)	Name ## _LBL: \
 				  count(Name, PC); \

@@ -217,13 +217,17 @@ else()
   )
 endif()
 
-# FIXME: we should create these in the build directory
 add_custom_target(
     vmi-metadata
-    COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR}
-    BYPRODUCTS pl-vmi.h pl-codetable.ic pl-jumptable.ic
-    DEPENDS ${PROG_MKVMI} pl-vmi.c
-    COMMENT "Generating VMI metadata"
+    DEPENDS pl-vmi.ih.stamp
+)
+add_custom_command(
+    COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -E touch pl-vmi.ih.stamp
+    OUTPUT pl-vmi.ih.stamp
+    DEPENDS ${PROG_MKVMI} pl-vmi.c pl-vmi.ih
+    COMMENT "Generating VMI metadata into pl-vmi.ih"
+    VERBATIM
 )
 
 add_custom_target(
