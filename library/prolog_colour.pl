@@ -2829,6 +2829,7 @@ specified_item(pce_arg, prolog(Term), TB,
 specified_item(pce_arg, Term, TB, Pos) :-
     compound(Term),
     Term \= [_|_],
+    \+ is_dict(Term),
     !,
     specified_item(pce_new, Term, TB, Pos).
 specified_item(pce_arg, Term, TB, Pos) :-
