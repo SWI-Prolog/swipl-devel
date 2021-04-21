@@ -2851,8 +2851,15 @@ typedef enum
   uwrite				/* Unification in write mode */
 } unify_mode;
 
+/* HACK: uncomment the following line to enable function mode */
+/* #define VMI_FUNCTIONS 1 */
 
 #include "pentium.h"
+
+#if VMI_FUNCTIONS
+struct register_file;
+typedef bool (*vmi_instr)(struct register_file *registers ARG_LD);
+#endif
 
 /* All the registers used in PL_next_solution et al; there will always be a
  * variable or macro called REGISTERS with the current active registers */
@@ -2924,7 +2931,7 @@ typedef struct register_file
 #define VMH_GOTO(n_args...)	do { _VMH_GOTO(n_args); } while(0)
 #define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
 #define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
-#define SEPARATE_VMI		(void)0 /* only needed for VMCODE_IS_ADDRESS */
+#define SEPARATE_VMI		(void)0 /* only needed for !VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
 
 /* By default, instruction and helper prologue/epilogue are empty */
 #define _VMI_PROLOGUE(Name,f,na,a)	;
@@ -2949,6 +2956,48 @@ typedef struct register_file
 #define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
 #define COMMA_TYPE_ARG(n,at,an) , at an
 #define TYPE_ARG_SEMI(n,at,an)	at an ;
+
+#if VMI_FUNCTIONS
+
+#define _VMI_DECLARATION(Name,na,at,an) static bool instr_ ## Name(register_file *registers ARG_LD)
+#define _VMH_DECLARATION(Name,na,at,an) static bool helper_ ## Name(register_file *registers ARG_LD VMH_ARGS ## na(Name, at, an, COMMA_TYPE_ARG))
+#define _NEXT_INSTRUCTION return TRUE
+#define _SOLUTION_RETURN(val) SOLUTION_RET = (val); return FALSE
+#define _VMI_GOTO(n) return instr_ ## n(registers PASS_LD)
+#define _VMH_GOTO(n,args...) return helper_ ## n(registers PASS_LD, ## args)
+#if VMCODE_IS_ADDRESS
+#define VMI_ADDR(c)		((vmi_instr)(c))
+#else
+#define VMI_ADDR(c)		jmp_table[c]
+#endif
+#define _VMI_GOTO_CODE(c)	return VMI_ADDR(c)(registers PASS_LD)
+
+/* Declare prototypes for all VMI/VMH functions */
+#define _VMI(args...) _VMI_DECLARATION(args);
+#define _VMH(args...) _VMH_DECLARATION(args);
+#include "pl-vmi.ih"
+
+/* Define the jump table with all the function addresses */
+static vmi_instr jmp_table[] =
+{
+#define _VMI(Name, ...) &instr_ ## Name,
+#include "pl-vmi.ih"
+  NULL
+};
+
+/* Define implementations */
+#define REGISTERS (*registers)
+#include "pl-vmi.c"
+#undef REGISTERS
+
+/* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_instruction() */
+#undef NEXT_INSTRUCTION
+#undef VMH_GOTO
+#define NEXT_INSTRUCTION instr_ret = TRUE
+#define VMH_GOTO(n) instr_ret = helper_##n(registers PASS_LD)
+
+#else /* VMI_FUNCTIONS */
+
 
 /* Define struct types for all the helper argument lists */
 #define _VMH(Name, na, at, an)		struct helper_args_ ## Name \
@@ -2978,7 +3027,7 @@ typedef struct register_file
  */
 #define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
 
-#else
+#else /* VMCODE_IS_ADDRESS */
 
 #if __GNUC__
 #define UNUSED_LABEL __attribute__ ((unused))
@@ -2991,13 +3040,19 @@ typedef struct register_file
 #define _VMI_GOTO(n)			goto case_ ## n
 #define _VMI_GOTO_CODE(c)		thiscode = (c); goto resumebreak;
 
-#endif
+#endif /* VMCODE_IS_ADDRESS */
+#endif /* VMI_FUNCTIONS */
 
 int
 PL_next_solution(qid_t qid)
 { GET_LD
   register_file REGISTERS = {.qid = qid};		/* Active registers */
 
+#if VMI_FUNCTIONS
+  register_file *registers = &REGISTERS;
+  bool instr_ret;
+
+#else /* VMI_FUNCTIONS */
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
   union {
 #define _VMH(Name, ...) struct helper_args_ ## Name Name;
@@ -3020,9 +3075,11 @@ pl-comp.c
 code thiscode;
 #endif /* VMCODE_IS_ADDRESS */
 
+#endif /* VMI_FUNCTIONS */
+
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
-  { interpreter_jmp_table = jmp_table;	/* make it globally known */
+  { interpreter_jmp_table = (void**) jmp_table;	/* make it globally known */
     succeed;
   }
 #endif /* VMCODE_IS_ADDRESS */
@@ -3098,8 +3155,8 @@ variables used in the B_THROW instruction.
       if ( exception_term )
 	THROW_EXCEPTION;
       NEXT_INSTRUCTION;
-    }
-    BODY_FAILED;
+    } else
+      BODY_FAILED;
   } else
     VMH_GOTO(depart_or_retry_continue);		/* first call */
 
@@ -3109,7 +3166,15 @@ will  cause  the  next  instruction  to  be  interpreted.   All  machine
 registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#if VMI_FUNCTIONS
+/* NEXT_INSTRUCTION or VMH_GOTO above will have set instr_ret */
+  while (instr_ret != FALSE)
+  { DbgPrintInstruction(FR, PC);
+    instr_ret = VMI_ADDR(*PC++)(registers PASS_LD);
+  }
+  return SOLUTION_RET;
 
+#else /* VMI_FUNCTIONS */
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
   DbgPrintInstruction(FR, PC);
@@ -3122,6 +3187,8 @@ resumebreak:
   {
 #include "pl-vmi.c"
   }
+
+#endif /* VMI_FUNCTIONS */
 
   assert(0);
   return FALSE;

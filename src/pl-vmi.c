@@ -5573,7 +5573,7 @@ undefined predicate for call/N.
 VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 { word goal;
   int arity = 0;
-  functor_t functor;
+  functor_t functor = -1;
   Word args;
   Module module = NULL;
   closure *clsp = NULL;
