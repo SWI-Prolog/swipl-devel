@@ -124,7 +124,7 @@ trigger_nonvar(X, Goal) :-
 %!  trigger_ground(@Term, :Goal)
 %
 %   Trigger Goal when Term becomes   ground.  The current implementation
-%   uses nonground/2, waiting for an   atribtrary  variable and re-check
+%   uses nonground/2, waiting for  an   arbitrary  variable and re-check
 %   Term  when  this  variable   is    bound.   Previous   version  used
 %   term_variables and suspended  on  a   term  constructed  from  these
 %   variables. It is clear  that  either   approach  performs  better on
@@ -173,12 +173,11 @@ trigger_disj([H|T], G) :-
 
 %!  check_disj(DisjVar, Disj, Goal)
 %
-%   If there is a disjunctive condition, we share a variable between
-%   the disjunctions. If the  goal  is  fired   due  to  one  of the
-%   conditions, the shared variable is boud   to (-). Note that this
-%   implies that the attributed  variable  is   left  in  place. The
-%   predicate  when_goal//1  skips  such   goals    on   behalfe  of
-%   copy_term/3.
+%   If there is a disjunctive condition, we share a variable between the
+%   disjunctions. If the goal is fired due to one of the conditions, the
+%   shared variable is bound to (-).  Note   that  this implies that the
+%   attributed variable is left  in   place.  The predicate when_goal//1
+%   skips such goals on behalf of copy_term/3.
 
 check_disj(Disj,_,Goal) :-
     (   Disj == (-)
