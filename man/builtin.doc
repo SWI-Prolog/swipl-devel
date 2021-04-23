@@ -6576,10 +6576,34 @@ is unbound and \arg{Name}/\arg{Arity} is insufficiently instantiated.
 
 SWI-Prolog also supports terms with arity 0, as in \exam{a()} (see
 \secref{extensions}). Such terms must be processed using
-compound_name_arity/3. The predicate functor/3 and \predref{=..}{2}
-raise a \const{domain_error} when faced with these terms. Without this
-precaution a \jargon{round trip} of a term with arity 0 over functor/3
-would create an atom.
+functor/4 or compound_name_arity/3. The predicate functor/3 and
+\predref{=..}{2} raise a \const{domain_error} when faced with these
+terms. Without this precaution a \jargon{round trip} of a term with
+arity 0 over functor/3 would create an atom.
+
+    \predicate{functor}{4}{?Term, ?Name, ?Arity, ?Type}
+As functor/3, but designed to work with zero-arity terms (e.g.,
+\exam{a()}, see \secref{extensions}). \arg{Type} is one of \const{atom},
+\const{compound}, \const{callable} or \const{atomic}. \arg{Type}
+\emph{must} be instantiated if \arg{Name} is an atom and \arg{Arity} is
+0 (zero).  In other cases \arg{Type} may be a variable.  This predicate
+is true if \arg{Term} (either initially or after haveing been created
+from \arg{Name} and \arg{Type}) and \arg{Type} are related as below
+
+    \begin{itemize}
+    \item If \arg{Term} is compound (including zero-arity compounds),
+    \arg{Type} must be \const{compound} or \const{callable}.  If
+    \arg{Type} is unbound is is unified with \const{compound}.
+    \item If \arg{Term} is an atom, \arg{Type} must be \const{atom}
+    or \const{callable}. If \arg{Type} is unbound is is unified with
+    \const{atom}.
+    \item Else \arg{Type} is unified with \const{atomic}.
+    \end{itemize}
+
+This predicate provides a safe \jargon{round trip} for zero-arity
+compounds and atoms. It can also be used as a variant of functor/3 that
+only processes compound or callable terms. See also compound/1,
+callable/1 and compound_name_arity/3.
 
     \predicate[ISO]{arg}{3}{?Arg, +Term, ?Value}
 \arg{Term} should be instantiated to a term, \arg{Arg} to an integer
@@ -6621,9 +6645,9 @@ ERROR: Domain error: `compound_non_zero_arity' expected, found `a()'
 \end{code}
 
     \predicate{compound_name_arity}{3}{?Compound, ?Name, ?Arity}
-Rationalized version of functor/3 that only works for compound terms
-and can examine and create compound terms with zero arguments (e.g,
-\exam{name()}).  See also compound_name_arguments/3.
+Version of functor/3 that only works for compound terms and can examine
+and create compound terms with zero arguments (e.g, \exam{name()}). See
+also compound_name_arguments/3.  See also functor/4.
 
     \predicate{compound_name_arguments}{3}{?Compound, ?Name, ?Arguments}
 Rationalized version of \predref{=..}{2} that can compose and decompose

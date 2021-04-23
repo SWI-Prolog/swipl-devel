@@ -2180,6 +2180,81 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 }
 
 
+/* functor(+Callable, -Name, -Arity, -Type) */
+/* functor(-Callable, +Name, +Arity, +Type) */
+
+static int
+match_functor_type(term_t Type, atom_t atype, atom_t type ARG_LD)
+{ if ( !atype )
+    return PL_unify_atom(Type, type);
+  if ( atype == type )
+    return TRUE;
+  if ( atype == ATOM_callable &&
+       ( type == ATOM_atom || type == ATOM_compound ) )
+    return TRUE;
+
+  return FALSE;
+}
+
+
+PRED_IMPL("functor", 4, functor, 0)
+{ PRED_LD
+  size_t arity;
+  atom_t name;
+  atom_t type;
+  Word p;
+
+  if ( !PL_get_atom(A4, &type) )
+  { if ( PL_is_variable(A4) )
+      type = 0;
+    else
+      return PL_type_error("atom", A4);
+  }
+
+  p = valTermRef(A1);
+  deRef(p);
+
+  if ( isTerm(*p) )
+  { FunctorDef fd = valueFunctor(functorTerm(*p));
+
+    return ( PL_unify_atom(A2, fd->name) &&
+	     PL_unify_integer(A3, fd->arity) &&
+	     match_functor_type(A4, type, ATOM_compound PASS_LD) );
+  } else if ( isAtom(*p) )
+  { return ( PL_unify_atom(A2, *p) &&
+	     PL_unify_integer(A3, 0) &&
+	     match_functor_type(A4, type, ATOM_atom PASS_LD) );
+  } else if ( !canBind(*p) )
+  { return ( PL_unify(A2, A1) &&
+	     PL_unify_integer(A3, 0) &&
+	     match_functor_type(A4, type, ATOM_atomic PASS_LD) );
+  }
+
+  if ( !PL_get_size_ex(A3, &arity) )
+    return FALSE;
+
+  if ( arity > 0 )
+  { return ( PL_get_atom_ex(A2, &name) &&
+	     match_functor_type(A4, type, ATOM_compound PASS_LD) &&
+	     PL_unify_compound(A1, PL_new_functor(name, arity)) );
+  } else if ( PL_get_atom(A2, &name) )
+  { if ( type == ATOM_compound )
+      return PL_unify_compound(A1, PL_new_functor(name, 0));
+    else if ( type == ATOM_callable || type == ATOM_atom )
+      return PL_unify_atom(A1, name);
+    else if ( type == ATOM_atomic )
+      return FALSE;
+    else
+      return PL_domain_error("functor_type", A4);
+  } else if ( PL_is_atomic(A2) )
+  { return ( PL_unify(A2, A1) &&
+	     match_functor_type(A4, type, ATOM_atomic PASS_LD) );
+  } else
+  { return PL_type_error("atomic", A2);
+  }
+}
+
+
 /** '$filled_array'(-Compound, +Name, +Arity, +Value) is det.
  * Created an array (compound) with all arguments set to Value.
  */
@@ -5961,6 +6036,7 @@ BeginPredDefs(prims)
   PRED_DEF("same_term", 2, same_term, 0)
   PRED_DEF("$term_id", 2, term_id, 0)
   PRED_DEF("functor", 3, functor, PL_FA_ISO)
+  PRED_DEF("functor", 4, functor, 0)
   PRED_DEF("=..", 2, univ, PL_FA_ISO)
   PRED_DEF("compound_name_arity", 3, compound_name_arity, 0)
   PRED_DEF("compound_name_arguments", 3, compound_name_arguments, 0)
