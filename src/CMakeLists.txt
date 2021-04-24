@@ -50,9 +50,9 @@ set(SRC_OS pl-buffer.c pl-ctype.c pl-file.c pl-files.c pl-glob.c pl-os.c
 prepend(SRC_OS os/ ${SRC_OS})
 
 
-set(SRC_TAI caltime_utc caltime_tai leapsecs_sub leapsecs_add
-    caldate_fmjd caldate_mjd leapsecs_init leapsecs_read tai_pack
-    tai_unpack)
+set(SRC_TAI caltime_utc.c caltime_tai.c leapsecs_sub.c leapsecs_add.c
+    caldate_fmjd.c caldate_mjd.c leapsecs_init.c leapsecs_read.c tai_pack.c
+    tai_unpack.c)
 prepend(SRC_TAI libtai/ ${SRC_TAI})
 
 set(SRC_MINIZIP zip.c unzip.c ioapi.c)
