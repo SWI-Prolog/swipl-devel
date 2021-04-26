@@ -7,7 +7,7 @@ provides two other forms of coroutines. Delimited continuations (see
 \secref{delcont}) allow creating coroutines that run in the same Prolog
 engine by capturing and restarting the \jargon{continuation}. This
 section discusses \jargon{engines}, also known as \jargon{interactors}.
-The idea was pinned by Paul Tarau \cite{DBLP:conf/coordination/Tarau11}.
+The idea was developed by Paul Tarau \cite{DBLP:conf/coordination/Tarau11}.
 The API described in this chapter has been established together with
 Paul Tarau and Paulo Moura.
 
