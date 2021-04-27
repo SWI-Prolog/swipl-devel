@@ -324,7 +324,7 @@ pp(Term, Ctx, Options) :-               % handle operators
             write(Out, Buf),
             modify_context(Ctx2, [indent=NIndent, priority=Right], Ctx3),
             pp(Arg, Ctx3, Options)
-        ;   format(atom(Buf), '(~w', [QName,Space]),
+        ;   format(atom(Buf), '(~w~w', [QName,Space]),
             atom_length(Buf, AL),
             NIndent is Indent + AL,
             write(Out, Buf),
