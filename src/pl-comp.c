@@ -6057,7 +6057,7 @@ start_of_cdet(Clause cl, Code pc_error)
   for(; pc < end; pc = stepPC(pc))
   { code c = fetchop(pc);
 
-    if ( (c == C_DET) )
+    if ( c == C_DET )
     { Code pcfalse = pc+pc[2]+3;
 
       assert(fetchop(pcfalse) == C_DETFALSE);
