@@ -38,7 +38,6 @@
 #include <windows.h>
 #endif
 
-#define O_DEBUG 1
 #ifdef __WINDOWS__
 
 #define INCLUDE_DDEML_H
