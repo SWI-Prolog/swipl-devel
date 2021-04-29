@@ -6680,7 +6680,9 @@ idg_changed(trie *atrie, int flags)
 { idg_node *n;
 
   DEBUG(MSG_TABLING_IDG_CHANGED,
-	print_answer_table(atrie, "IDG: dynamic change"));
+	print_answer_table(atrie, "IDG: %s change",
+			   flags&IDG_CHANGED_MONO ? "lazy monotonic"
+			                          : "dynamic"));
 
   if ( (n=atrie->data.IDG) && n->falsecount == 0 && idg_need_invalidated(n) )
   { trie *incomplete;
@@ -6688,7 +6690,13 @@ idg_changed(trie *atrie, int flags)
     DEBUG(MSG_TABLING_IDG_CHANGED, Sdprintf(" (propagating)\n"));
 
     if ( table_is_incomplete(atrie) )
+    { if ( flags&IDG_CHANGED_MONO )
+      { DEBUG(MSG_TABLING_IDG_CHANGED,
+	      Sdprintf("Incomplete table: stopping propagation\n"));
+	return TRUE;
+      }
       return change_incomplete_error(atrie);
+    }
     if ( ATOMIC_INC(&n->falsecount) == 1 )
     { TRIE_STAT_INC(n, invalidated);
       if ( (incomplete=idg_propagate_change(n, flags)) )

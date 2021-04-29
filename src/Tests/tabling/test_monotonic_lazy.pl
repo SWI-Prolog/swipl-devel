@@ -56,7 +56,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_8,
                 tabling_monotonic_lazy_9,
                 tabling_monotonic_lazy_10,
-                tabling_monotonic_lazy_11
+                tabling_monotonic_lazy_11,
+                tabling_monotonic_lazy_12
               ]).
 
 :- meta_predicate
@@ -369,6 +370,24 @@ test(rollback) :-
 
 :- end_tests(tabling_monotonic_lazy_11).
 
+:- begin_tests(tabling_monotonic_lazy_12).
+
+:- dynamic d/1 as monotonic.
+:- table (p/1,q/1) as (monotonic,lazy).
+
+p(X) :-
+    q(X).
+
+q(X) :-
+    d(X).
+
+test :-
+    cleanup([d/1]),
+    expect(X, q(X), []),
+    assert(d(1)),
+    expect(X, p(X), [1]).
+
+:- end_tests(tabling_monotonic_lazy_12).
 
 
 		 /*******************************
