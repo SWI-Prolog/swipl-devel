@@ -7066,19 +7066,14 @@ PRED_IMPL("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
 				    TRUE, NULL, NULL PASS_LD);
 
       if ( rc > 0 )
-      { Definition def;
-
-	if ( node->value )
+      { if ( node->value )
 	  return FALSE;
 	tt_add_answer(atrie, node PASS_LD);
 	set_trie_value_word(atrie, node, ATOM_trienode);
 
 	if ( !mono_idg_changed(atrie, (word)node) )
 	  return FALSE;
-	if ( (def=atrie->data.predicate) &&
-	     def->events &&
-	     !atrie_answer_event(atrie, node PASS_LD) &&
-	     PL_exception(0) )
+	if ( !atrie_answer_event(atrie, node PASS_LD) )
 	  return FALSE;
 
 	return TRUE;
@@ -7791,19 +7786,32 @@ reset_reevaluation(trie *atrie)
 		 *	      EVENTS		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Send an event for a new answer. Returns  FALSE if the event hooks raised
+an exception, i.e., failure is silently ignored.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 atrie_answer_event(trie *atrie, trie_node *answer ARG_LD)
-{ term_t wrapper, skel;
+{ Definition def;
 
-  if ( (wrapper=PL_new_term_ref()) &&
-       (skel=PL_new_term_ref()) &&
-       unify_skeleton(atrie, wrapper, skel PASS_LD) &&
-       unify_trie_term(answer, NULL, skel PASS_LD) )
-  { return table_answer_event(atrie->data.predicate,
-			      ATOM_new_answer, wrapper PASS_LD);
+  if ( (def=atrie->data.predicate) &&
+       def->events )
+  { term_t wrapper, skel;
+
+    if ( (wrapper=PL_new_term_ref()) &&
+	 (skel=PL_new_term_ref()) &&
+	 unify_skeleton(atrie, wrapper, skel PASS_LD) &&
+	 unify_trie_term(answer, NULL, skel PASS_LD) )
+    { if ( table_answer_event(atrie->data.predicate,
+			      ATOM_new_answer, wrapper PASS_LD) )
+	return TRUE;
+      else
+	return !PL_exception(0);
+    }
   }
 
-  return FALSE;
+  return TRUE;
 }
 
 
