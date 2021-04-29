@@ -868,6 +868,7 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 
 static void	fix_discontiguous(p_reload *r);
 static void	fix_metapredicate(p_reload *r);
+static void	fix_det(p_reload *r);
 
 #ifdef O_PLMT
 #define GEN_RELOAD (GEN_MAX-PL_thread_self())
@@ -1091,6 +1092,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
     if ( reload->number_of_clauses++ == 0 )
     { fix_discontiguous(reload);
+      fix_det(reload);
       fix_ssu(reload, clause);
     }
 
@@ -1267,6 +1269,17 @@ fix_discontiguous(p_reload *r)
 
   if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
     clear(def, P_DISCONTIGUOUS);
+}
+
+
+static void
+fix_det(p_reload *r)
+{ Definition def = r->predicate;
+
+  if ( true(def, P_DET) && false(r, P_DET) )
+  { clear(def, P_DET);
+    freeCodesDefinition(def, TRUE);
+  }
 }
 
 

@@ -3516,6 +3516,24 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
 
 
 static int
+setDetDefinition(Definition def, bool isdet)
+{ if ( ( isdet &&  true(def, P_DET)) ||
+       (!isdet && false(def, P_DET)) )
+    return TRUE;
+
+  if ( isdet )				/* nondet --> det */
+  { set(def, P_DET);
+    freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
+  } else				/* det --> nondet */
+  { clear(def, P_DET);
+    freeCodesDefinition(def, TRUE);	/* reset to S_VIRGIN */
+  }
+
+  return TRUE;
+}
+
+
+static int
 setDynamicDefinition_unlocked(Definition def, bool isdyn)
 { GET_LD
 
@@ -3619,6 +3637,8 @@ setAttrDefinition(Definition def, unsigned attr, int val)
   { rc = setThreadLocalDefinition(def, val);
   } else if ( attr == P_CLAUSABLE )
   { rc = setClausableDefinition(def, val);
+  } else if ( attr == P_DET )
+  { rc = setDetDefinition(def, val);
   } else
   { if ( !val )
     { clear(def, attr);
