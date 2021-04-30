@@ -1110,12 +1110,17 @@ gsizeIndirectFromCode(Code pc)
 { return wsizeofInd(pc[0]) + 2;
 }
 
+struct word_and_Code {
+	word word;
+	Code code;
+};
+#define WORD_AND_CODE(w,c) ((struct word_and_Code){(w),(c)})
 
-word
-globalIndirectFromCode(Code *PC)
-{ GET_LD
-  Code pc = *PC;
-  word m = *pc++;
+/* The VM_ alternatives of these functions pass and return pc, to avoid needing to
+ * store it in a memory address */
+static inline struct word_and_Code
+VM_globalIndirectFromCode(Code pc ARG_LD)
+{ word m = *pc++;
   size_t n = wsizeofInd(m);
   Word p = allocGlobal(n+2);
 
@@ -1127,17 +1132,22 @@ globalIndirectFromCode(Code *PC)
       *p++ = *pc++;
     *p++ = m;
 
-    *PC = pc;
-    return r;
+    return WORD_AND_CODE(r, pc);
   } else
-    return 0;
+    return WORD_AND_CODE(0, pc);
 }
 
-
-static int				/* used in pl-wam.c */
-equalIndirectFromCode(word a, Code *PC)
+word
+globalIndirectFromCode(Code *PC)
 { GET_LD
-  Word pc = *PC;
+  struct word_and_Code retval = VM_globalIndirectFromCode(*PC PASS_LD);
+  *PC = retval.code;
+  return retval.word;
+}
+
+static inline struct word_and_Code				/* used in pl-wam.c */
+VM_equalIndirectFromCode(word a, Code pc ARG_LD)
+{ Code orig_pc = pc;
   Word pa = addressIndirect(a);
 
   if ( *pc == *pa )
@@ -1145,16 +1155,25 @@ equalIndirectFromCode(word a, Code *PC)
 
     while(n-- > 0)
     { if ( *++pc != *++pa )
-	fail;
+	return WORD_AND_CODE(FALSE, orig_pc);
     }
     pc++;
-    *PC = pc;
-    succeed;
+    return WORD_AND_CODE(TRUE, pc);
   }
 
-  fail;
+  return WORD_AND_CODE(FALSE, orig_pc);
 }
 
+int
+equalIndirectFromCode(word a, Code *pPC)
+{ GET_LD
+  struct word_and_Code retval = VM_equalIndirectFromCode(a, *pPC PASS_LD);
+  if (retval.word)
+  { *pPC = retval.code;
+    succeed;
+  }
+  fail;
+}
 
 		 /*******************************
 		 *	     GNU MALLOC		*
