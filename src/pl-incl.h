@@ -2449,6 +2449,7 @@ typedef struct internaldebuginfo
 #define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
 #define PLFLAG_RATIONAL		    0x20000000 /* Natural rational numbers */
 #define PLFLAG_DEBUG_ON_INTERRUPT   0x40000000 /* Debug on Control-C */
+#define PLFLAG_OPTIMISE_UNIFY	    0x80000000 /* Move unifications in clauses */
 
 typedef struct
 { unsigned int flags;		/* Fast access to some boolean Prolog flags */

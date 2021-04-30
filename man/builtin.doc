@@ -1744,12 +1744,16 @@ head of a predicate, it is also provided by the predicate =/2.
 \begin{description}
     \infixop[ISO]{=}{?Term1}{?Term2}
 Unify \arg{Term1} with \arg{Term2}. True if the unification succeeds.
-For behaviour on cyclic terms see the Prolog flag
-\prologflag{occurs_check}. It acts as if defined by the following fact:
+It acts as if defined by the following fact:
 
 \begin{code}
 =(Term, Term).
 \end{code}
+
+For behaviour on cyclic terms see the Prolog flag
+\prologflag{occurs_check}. Calls to \predref{=}{2} in a clause body are
+compiled and may be (re)moved depending on the Prolog flag
+\prologflag{optimise_unify}.  See also \secref{indexbody}.
 
     \infixop[ISO]{\=}{@Term1}{@Term2}
 Equivalent to \exam{\Snot Term1 = Term2}.

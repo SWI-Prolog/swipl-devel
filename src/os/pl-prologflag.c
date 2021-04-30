@@ -1444,6 +1444,7 @@ initPrologFlags(void)
   setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
+  setPrologFlag("optimise_unify", FT_BOOL, TRUE, PLFLAG_OPTIMISE_UNIFY);
   setPrologFlag("optimise_debug", FT_ATOM, "default", 0);
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);

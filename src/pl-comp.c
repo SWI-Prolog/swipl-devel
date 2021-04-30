@@ -1725,8 +1725,12 @@ compileClause(Clause *cp, Word head, Word body,
     ci.arity        = (int)def->functor->arity;
     ci.procedure    = proc;
     ci.argvars      = 0;
-    ci.head_unify   = ( !(flags & (SSU_COMMIT_CLAUSE)) &&
-			false(def, P_DYNAMIC) );
+    ci.head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
+			( !(flags & (SSU_COMMIT_CLAUSE)) &&
+			  false(def, P_DYNAMIC) &&
+			  !truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
+			)
+		      );
     clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
