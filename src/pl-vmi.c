@@ -122,6 +122,14 @@ Virtual machine instruction names.  Prefixes:
   S_    Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if VMI_FUNCTIONS
+#define DECL_INDIRECT struct word_and_Code wC;
+#define globalIndirectFromCode(pPC) (wC=VM_globalIndirectFromCode(*(pPC) PASS_LD), *(pPC) = wC.code, wC.word)
+#define equalIndirectFromCode(a,pPC) (wC=VM_equalIndirectFromCode((a),*(pPC) PASS_LD), *(pPC) = wC.code, wC.word)
+#else
+#define DECL_INDIRECT 
+#endif
+
 #define FASTCOND_FAILED \
 	{ if ( !LD->fast_condition )   \
 	  { BODY_FAILED;	       \
@@ -684,6 +692,7 @@ END_VMI
 
 VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
+  DECL_INDIRECT
 
   IF_WRITE_MODE_GOTO(B_STRING);
 
@@ -1114,6 +1123,7 @@ END_VMI
 
 VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { size_t sz = gsizeIndirectFromCode(PC);
+  DECL_INDIRECT
 
   ENSURE_GLOBAL_SPACE(sz, (void)0);
   *ARGP++ = globalIndirectFromCode(&PC);
@@ -6466,6 +6476,7 @@ VMI(T_TRY_STRING, 0, VM_DYNARGC, (CA1_JUMP,CA1_STRING))
 END_VMI
 VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
+  DECL_INDIRECT
 
   deRef2(TrieCurrentP, k);
   if ( canBind(*k) )

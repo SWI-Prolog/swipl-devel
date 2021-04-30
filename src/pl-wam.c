@@ -2240,10 +2240,11 @@ choice_type last_choice;
 #endif
 #ifdef O_DEBUG
 #define THROW_EXCEPTION		do { THROWED_FROM_LINE = __LINE__; \
-				     VMH_GOTO(b_throw); } while(0)
+				     _THROW_EXCEPTION; } while(0)
 #else
-#define THROW_EXCEPTION		VMH_GOTO(b_throw)
+#define THROW_EXCEPTION		do { _THROW_EXCEPTION; } while(0)
 #endif
+#define _THROW_EXCEPTION	VMH_GOTO(b_throw)
 
 #ifdef O_PROFILE
 #define Profile(g) if ( unlikely(LD->profile.active) ) g
@@ -2853,12 +2854,29 @@ typedef enum
 
 /* HACK: uncomment the following line to enable function mode */
 /* #define VMI_FUNCTIONS 1 */
+/* #define VMI_REGISTER_VARIABLES 1 */
+/* #define VMI_USE_REGISTER_VARIABLES 1 */
+/* registers here MUST be in the list of callee-saved registers! */
+#define LD_REGISTER "rbx"
+#define REGFILE_REGISTER "r12"
 
 #include "pentium.h"
 
 #if VMI_FUNCTIONS
 struct register_file;
-typedef bool (*vmi_instr)(struct register_file *registers ARG_LD);
+#define VMI_RETTYPE Code
+# if VMI_USE_REGISTER_VARIABLES
+#  define VMI_ARG_DECL Code PC
+#  define VMI_ARG_PASS PC
+# else
+#  define VMI_ARG_DECL Code PC, struct register_file *registers ARG_LD
+#  define VMI_ARG_PASS PC, registers PASS_LD
+# endif
+typedef VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
+# if VMI_REGISTER_VARIABLES
+register struct register_file *__reg_registers asm(REGFILE_REGISTER);
+register PL_local_data_t *__reg_ld asm(LD_REGISTER);
+# endif
 #endif
 
 /* All the registers used in PL_next_solution et al; there will always be a
@@ -2896,11 +2914,20 @@ typedef struct register_file
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
 #endif
 #if VMI_FUNCTIONS
-  int        solution_ret;		/* return value for PL_next_solution, when a function returns FALSE */
+  int        solution_ret;		/* return value for PL_next_solution, when exit_vm_buf is used */
 # define     SOLUTION_RET		(REGISTERS.solution_ret)
+  jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
+# define     EXIT_VM_BUF		(REGISTERS.exit_vm_buf)
 #endif
 } register_file;
 
+
+/* Imperative code that gets executed just after entry to an instruction,
+ * and just before exit from an instruction (i.e. before goto/return/etc).
+ * For profiling/tracing purposes only, and not applied to VMH's.
+ */
+#define VMI_ENTER(n)		count(n, PC); START_PROF(n, #n);
+#define VMI_EXIT		END_PROF();
 
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
  * get defined per-implementation.
@@ -2924,11 +2951,9 @@ typedef struct register_file
 				  } \
 				  assert_exists(__is_vmh, "END_VMH used without VMH!"); \
 				}
-#define VMI_ENTER(n)		count(n, PC); START_PROF(n, #n);
-#define VMI_EXIT		END_PROF();
 #define NEXT_INSTRUCTION	do { VMI_EXIT; _NEXT_INSTRUCTION; } while(0)
 #define VMI_GOTO(n)		do { VMI_EXIT; _VMI_GOTO(n); } while(0)
-#define VMH_GOTO(n_args...)	do { _VMH_GOTO(n_args); } while(0)
+#define VMH_GOTO(...)		do { _VMH_GOTO(__VA_ARGS__); } while(0)
 #define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
 #define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
 #define SEPARATE_VMI		(void)0 /* only needed for !VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
@@ -2957,20 +2982,32 @@ typedef struct register_file
 #define COMMA_TYPE_ARG(n,at,an) , at an
 #define TYPE_ARG_SEMI(n,at,an)	at an ;
 
+/* Define struct types for all the helper argument lists */
+#define _VMH(Name, na, at, an)		struct helper_args_ ## Name \
+					{ VMH_ARGS ## na (Name, at, an, TYPE_ARG_SEMI) };
+#include "pl-vmi.ih"
+#define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
+#undef _VMH_PROLOGUE
+#define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
 #if VMI_FUNCTIONS
 
-#define _VMI_DECLARATION(Name,na,at,an) static bool instr_ ## Name(register_file *registers ARG_LD)
-#define _VMH_DECLARATION(Name,na,at,an) static bool helper_ ## Name(register_file *registers ARG_LD VMH_ARGS ## na(Name, at, an, COMMA_TYPE_ARG))
-#define _NEXT_INSTRUCTION return TRUE
-#define _SOLUTION_RETURN(val) SOLUTION_RET = (val); return FALSE
-#define _VMI_GOTO(n) return instr_ ## n(registers PASS_LD)
-#define _VMH_GOTO(n,args...) return helper_ ## n(registers PASS_LD, ## args)
+#undef PC
+#define HELPER_ARGS(n)			__args
+#define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
+#define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, struct helper_args_ ## Name __args)
+#define _NEXT_INSTRUCTION		return PC
+#define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
+#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		struct helper_args_ ## n __args = {__VA_ARGS__}; (void)__args; \
+					return helper_ ## n(VMI_ARG_PASS, __args)
+#undef _VMI_PROLOGUE
+#define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
 #if VMCODE_IS_ADDRESS
 #define VMI_ADDR(c)		((vmi_instr)(c))
 #else
 #define VMI_ADDR(c)		jmp_table[c]
 #endif
-#define _VMI_GOTO_CODE(c)	return VMI_ADDR(c)(registers PASS_LD)
+#define _VMI_GOTO_CODE(c)	PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
 
 /* Declare prototypes for all VMI/VMH functions */
 #define _VMI(args...) _VMI_DECLARATION(args);
@@ -2986,28 +3023,32 @@ static vmi_instr jmp_table[] =
 };
 
 /* Define implementations */
-#define REGISTERS (*registers)
+#if VMI_USE_REGISTER_VARIABLES
+# define REGISTERS (*__reg_registers)
+# undef LD
+# define LD (__reg_ld)
+# define _GET_LD /* empty */
+#else
+# define REGISTERS (*registers)
+#endif
 #include "pl-vmi.c"
 #undef REGISTERS
 
-/* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_instruction() */
+/* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_solution() */
 #undef NEXT_INSTRUCTION
 #undef VMH_GOTO
-#define NEXT_INSTRUCTION instr_ret = TRUE
-#define VMH_GOTO(n) instr_ret = helper_##n(registers PASS_LD)
+#define NEXT_INSTRUCTION (void)0
+#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, (struct helper_args_ ## n){})
+
+#if VMI_USE_REGISTER_VARIABLES
+# undef LD
+# define LD LOCAL_LD
+#endif
 
 #else /* VMI_FUNCTIONS */
 
-
-/* Define struct types for all the helper argument lists */
-#define _VMH(Name, na, at, an)		struct helper_args_ ## Name \
-					{ VMH_ARGS ## na (Name, at, an, TYPE_ARG_SEMI) };
-#include "pl-vmi.ih"
-
-#define ASSIGN_ARG(n,at,an)		at an = helper_args.n.an;
+#define HELPER_ARGS(n)			helper_args.n
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
-#undef _VMH_PROLOGUE
-#define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
 #define _VMH_GOTO(n,args...)		struct helper_args_ ## n __args = {args}; \
 					helper_args.n = __args; \
 					goto helper_ ## n;
@@ -3050,7 +3091,7 @@ PL_next_solution(qid_t qid)
 
 #if VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
-  bool instr_ret;
+  Code PC;
 
 #else /* VMI_FUNCTIONS */
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
@@ -3105,6 +3146,19 @@ depart_continue() to do the normal thing or to the backtrack point.
   FR  = &QF->frame;
   ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
+
+#if VMI_FUNCTIONS
+  if (setjmp(EXIT_VM_BUF) != 0)
+  { // LD->vmi_registers = old_registers;
+    return SOLUTION_RET;
+  }
+
+# if VMI_REGISTER_VARIABLES
+  /* Now that we've executed our exit setjmp, we can set register vars with impunity */
+  __reg_registers = registers;
+  __reg_ld = LD;
+# endif
+#endif /*VMI_FUNCTIONS*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Check for exceptions raised by foreign code.  PL_throw() uses longjmp()
@@ -3167,13 +3221,16 @@ registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #if VMI_FUNCTIONS
-/* NEXT_INSTRUCTION or VMH_GOTO above will have set instr_ret */
-  while (instr_ret != FALSE)
+  for (;;)
   { DbgPrintInstruction(FR, PC);
-    instr_ret = VMI_ADDR(*PC++)(registers PASS_LD);
+#if VMI_REGISTER_VARIABLES && !VMI_USE_REGISTER_VARIABLES
+    DEBUG(0,
+      assert(__reg_registers == &REGISTERS);
+      assert(__reg_ld == LD);
+    );
+#endif
+    PC = VMI_ADDR(*PC)(VMI_ARG_PASS);
   }
-  return SOLUTION_RET;
-
 #else /* VMI_FUNCTIONS */
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
