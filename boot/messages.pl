@@ -471,6 +471,8 @@ swi_message(determinism_error(Goal, det, nondet, goal)) -->
     [ 'Goal ~p succeeded with a choice point'-[Goal] ].
 swi_message(qlf_format_error(File, Message)) -->
     [ '~w: Invalid QLF file: ~w'-[File, Message] ].
+swi_message(goal_expansion_error(bound, Term)) -->
+    [ 'Goal expansion bound a variable to ~p'-[Term] ].
 
 det_error(nondet) -->
     [ ' succeeded with a choicepoint'- [] ].

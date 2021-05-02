@@ -1135,6 +1135,11 @@ t2(X) :-
     ).
 \end{code}
 
+Note that goal expansion should not bind any variables in the clause.
+Doing so may impact the semantics of the clause if the variable is also
+used elsewhere. In the general case this is not verified. It is verified
+for \predref{\+}{1} and \predref{;}{2}, resulting in an exception.
+
     \predicate{compile_aux_clauses}{1}{+Clauses}
 Compile clauses on behalf of goal_expansion/2.  This predicate compiles
 the argument clauses into static predicates, associating the predicates

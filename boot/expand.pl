@@ -434,14 +434,19 @@ diff3(>,  H1, T1, _H2, T2, Diff) :-
 %   branches claim the variable to  be   fresh,  we  can consider it
 %   fresh.
 
-merge_variable_info([]).
-merge_variable_info([Var=State|States]) :-
+merge_variable_info(State) :-
+    catch(merge_variable_info_(State),
+          error(uninstantiation_error(Term),_),
+          throw(error(goal_expansion_error(bound, Term), _))).
+
+merge_variable_info_([]).
+merge_variable_info_([Var=State|States]) :-
     (   get_attr(Var, '$var_info', CurrentState)
     ->  true
     ;   CurrentState = (-)
     ),
     merge_states(Var, State, CurrentState),
-    merge_variable_info(States).
+    merge_variable_info_(States).
 
 merge_states(_Var, State, State) :- !.
 merge_states(_Var, -, _) :- !.
@@ -473,13 +478,18 @@ save_variable_info([Var|Vars], [Var=State|States]):-
     ),
     save_variable_info(Vars, States).
 
-restore_variable_info([]).
-restore_variable_info([Var=State|States]) :-
+restore_variable_info(State) :-
+    catch(restore_variable_info_(State),
+          error(uninstantiation_error(Term),_),
+          throw(error(goal_expansion_error(bound, Term), _))).
+
+restore_variable_info_([]).
+restore_variable_info_([Var=State|States]) :-
     (   State == (-)
     ->  del_attr(Var, '$var_info')
     ;   put_attr(Var, '$var_info', State)
     ),
-    restore_variable_info(States).
+    restore_variable_info_(States).
 
 %!  var_property(+Var, ?Property)
 %
