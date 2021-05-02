@@ -344,18 +344,23 @@ else()
   set(LIBSWIPL_NAME swipl)
 endif()
 
-add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
-add_dependencies(libswipl git-version vmi-metadata core-constants)
+add_library(swiplobjs OBJECT ${LIBSWIPL_SRC})
+if(LIBSWIPL_TYPE STREQUAL "SHARED")
+  set_property(TARGET swiplobjs PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
+add_dependencies(swiplobjs git-version vmi-metadata core-constants)
+target_include_directories(swiplobjs BEFORE PRIVATE
+			   ${CMAKE_CURRENT_BINARY_DIR}
+			   ${CMAKE_CURRENT_SOURCE_DIR}
+			   ${ZLIB_INCLUDE_DIRS}
+			   ${LIBSWIPL_INCLUDES})
+
+add_library(libswipl ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs>)
 set_target_properties(libswipl PROPERTIES
 		      OUTPUT_NAME ${LIBSWIPL_NAME}
 		      VERSION ${SWIPL_VERSION_STRING}
 		      SOVERSION ${SWIPL_VERSION_MAJOR}
 		      GNUtoMS ON)
-target_include_directories(libswipl BEFORE PRIVATE
-			   ${CMAKE_CURRENT_BINARY_DIR}
-			   ${CMAKE_CURRENT_SOURCE_DIR}
-			   ${ZLIB_INCLUDE_DIRS}
-			   ${LIBSWIPL_INCLUDES})
 target_include_directories(libswipl INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
