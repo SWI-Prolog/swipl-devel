@@ -100,7 +100,8 @@ After    `sudo    ninja    install`,     `swipl`      will     be     in
 ## Customizing SWI-Prolog
 
 By default the system configures all   features. Several cmake _options_
-allow for restricting the system.
+allow for restricting the system, define   the  layout of the filesystem
+and libraries that are built.
 
   | Option                        | Description                           |
   | ----------------------------- | ------------------------------------- |
@@ -109,6 +110,7 @@ allow for restricting the system.
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers      |
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
+  | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
   | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |

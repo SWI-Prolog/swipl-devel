@@ -336,13 +336,16 @@ endif()
 
 if(MSVC AND NOT SWIPL_SHARED_LIB)
   # MSVC does not automatically prepend 'lib' to the library name
-  # Furthermore it would generate swipl.lib in the same directory as swipl.exe, causing a
-  # linking failure:
-  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'; error code 5"
+  # Furthermore it would generate swipl.lib in the same directory as swipl.exe,
+  # causing a linking failure:
+  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'
   set(LIBSWIPL_NAME libswipl)
 else()
   set(LIBSWIPL_NAME swipl)
 endif()
+
+# Create an OBJECT library so we can build both a static and dynamic
+# library
 
 add_library(swiplobjs OBJECT ${LIBSWIPL_SRC})
 if(LIBSWIPL_TYPE STREQUAL "SHARED")
@@ -355,17 +358,43 @@ target_include_directories(swiplobjs BEFORE PRIVATE
 			   ${ZLIB_INCLUDE_DIRS}
 			   ${LIBSWIPL_INCLUDES})
 
+function(libswipl_properties lib outname)
+  if(MSVC AND NOT SWIPL_SHARED_LIB)
+    # MSVC does not automatically prepend 'lib' to the library name
+    # Furthermore it would generate swipl.lib in the same directory as swipl.exe,
+    # causing a linking failure:
+    # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'
+    set(LIB_PREFIX lib)
+  else()
+    set(LIB_PREFIX)
+  endif()
+
+  set_target_properties(${lib} PROPERTIES
+			OUTPUT_NAME ${LIB_PREFIX}${outname}
+			VERSION ${SWIPL_VERSION_STRING}
+			SOVERSION ${SWIPL_VERSION_MAJOR}
+			GNUtoMS ON)
+  target_include_directories(${lib} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
+    $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
+  target_link_libraries(${lib} PRIVATE ${LIBSWIPL_LIBRARIES})
+endfunction()
+
+# Build the default library
+
 add_library(libswipl ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs>)
-set_target_properties(libswipl PROPERTIES
-		      OUTPUT_NAME ${LIBSWIPL_NAME}
-		      VERSION ${SWIPL_VERSION_STRING}
-		      SOVERSION ${SWIPL_VERSION_MAJOR}
-		      GNUtoMS ON)
-target_include_directories(libswipl INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
-  $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
-target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
+libswipl_properties(libswipl swipl)
+
+# If the default is shared, also build a static library
+
+if(LIBSWIPL_TYPE STREQUAL "SHARED" AND SWIPL_STATIC_LIB)
+add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
+libswipl_properties(libswipl_static swipl_static)
+set(STATIC_LIB libswipl_static)
+else()
+set(STATIC_LIB)
+endif()
 
 if(BUILD_SWIPL_LD)
   add_executable(swipl-ld ${SRC_SWIPL_LD})
@@ -555,7 +584,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl EXPORT SWIPL_EXPORT
+install(TARGETS swipl libswipl ${STATIC_LIB} EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}
