@@ -133,65 +133,30 @@ PL_register_foreign().
 \end{description}
 
 
-\subsection{Static Linking} \label{sec:staticl}
+\subsection{Static Linking} \label{sec:static-linking}
 
-Below is an outline of the file structure required for statically
-linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
-the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
-\file{<arch>} refers to the architecture identifier that may be obtained
-using the Prolog flag \prologflag{arch}.
+Older versions of SWI-Prolog were shipped by default with a
+\jargon{static library}. In recent versions we no longer ship a static
+library because practically every OS properly supports dynamic linking
+without serious drawbacks and dynamic linking has several advantages. It
+is on many platforms required to be able to load SWI-Prolog foreign
+libraries (see use_foreign_library/1). Only on ELF based systems such as
+Linux we can load foreign libraries \emph{if} the main executable is
+linked to export its global symbols (\program{gcc} \exam{-rdynamic}
+option). Another advantage of dynamic libraries is that the user does
+not have to worry about libraries that this particular build of
+SWI-Prolog requires such as \file{libgmp} as well as OS specific
+libraries.
 
-\begin{center}
-\begin{tabular}{ll}
-\file{.../swipl/runtime/<arch>/libswipl.a} & SWI-Library \\
-\file{.../swipl/include/SWI-Prolog.h}      & Include file \\
-\file{.../swipl/include/SWI-Stream.h}      & Stream I/O include file \\
-\file{.../swipl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{.../swipl/include/stub.c}            & Extension stub
-\end{tabular}
-\end{center}
+If one really wants a static library, use the \program{CMake} flag
+\exam{-DSWIPL_STATIC_LIB=ON} while configuring a build from source. This
+causes building and installing \file{libswipl_static.a}. Note the
+\const{_static} postfix to avoid a name conflict on Windows between the
+\jargon{import library} and the \jargon{static library}.\footnote{As is,
+the Windows build is cross-compiled using MinGW which produces
+\file{libswipl_static.a}. This file can, as far as we know, \emph{not}
+be used by MSVC.}.
 
-The definition of the foreign predicates is the same as for dynamic
-linking.  Unlike with dynamic linking, however, there is no
-initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
-may be copied to your project and modified to define the foreign
-extensions.  Below is \file{stub.c}, modified to link the lowercase example
-described later in this chapter:
-
-\begin{code}
-#include <stdio.h>
-#include <SWI-Prolog.h>
-
-extern foreign_t pl_lowercase(term, term);
-
-PL_extension predicates[] =
-{
-/*{ "name",      arity,  function,      PL_FA_<flags> },*/
-
-  { "lowercase", 2       pl_lowercase,  0 },
-  { NULL,        0,      NULL,          0 } /* terminating line */
-};
-
-
-int
-main(int argc, char **argv)
-{ PL_register_extensions(predicates);
-
-  if ( !PL_initialise(argc, argv) )
-    PL_halt(1);
-
-  PL_halt(PL_toplevel() ? 0 : 1);
-}
-\end{code}
-
-Now, a new executable may be created by compiling this file and linking
-it to \file{libpl.a} from the runtime directory and the libraries
-required by both the extensions and the SWI-Prolog kernel. This may be
-done by hand, or by using the \program{swipl-ld} utility described in
-\secref{plld}. If the linking is performed by hand, the command line
-option \cmdlineoption{--dump-runtime-variables} (see \secref{cmdline})
-can be used to obtain the required paths, libraries and linking options
-to link the new executable.
 
 \section{Interface Data Types}		\label{sec:foreigntypes}
 
