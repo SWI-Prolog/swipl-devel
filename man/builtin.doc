@@ -10695,7 +10695,7 @@ not quoted. See also \secref{processorcharset}.
 \end{description}
 
 \section{Debugging and declaring determinism}
-\label{sec:determinism}
+\label{sec:debug-determinism}
 
 A common issue with Prolog programs of a \jargon{procedural} nature is
 to guarantee deterministic behaviour and debug possible problems with
