@@ -426,8 +426,19 @@ term_expansion(safe_primitive(Goal), Term) :-
     ->  Term = safe_primitive(Goal)
     ;   Term = []
     ).
+term_expansion((safe_primitive(Goal) :- _), Term) :-
+    (   verify_safe_declaration(Goal)
+    ->  Term = safe_primitive(Goal)
+    ;   Term = []
+    ).
 
 system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
+    \+ current_prolog_flag(xref, true),
+    (   verify_safe_declaration(Goal)
+    ->  Term = sandbox:safe_primitive(Goal)
+    ;   Term = []
+    ).
+system:term_expansion((sandbox:safe_primitive(Goal) :- _), Term) :-
     \+ current_prolog_flag(xref, true),
     (   verify_safe_declaration(Goal)
     ->  Term = sandbox:safe_primitive(Goal)
@@ -468,8 +479,9 @@ ok_meta(system:use_module(_)).
 
 verify_predefined_safe_declarations :-
     forall(clause(safe_primitive(Goal), _Body, Ref),
-           ( catch(verify_safe_declaration(Goal), E, true),
-             (   nonvar(E)
+           ( E = error(F,_),
+             catch(verify_safe_declaration(Goal), E, true),
+             (   nonvar(F)
              ->  clause_property(Ref, file(File)),
                  clause_property(Ref, line_count(Line)),
                  print_message(error, bad_safe_declaration(Goal, File, Line))
@@ -745,7 +757,7 @@ safe_primitive('$tabling':abolish_all_tables).
 safe_primitive('$tabling':'$wrap_tabled'(Module:_Head, _Mode)) :-
     prolog_load_context(module, Module),
     !.
-safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_)) :-
+safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_,_)) :-
     prolog_load_context(module, Module),
     !.
 
