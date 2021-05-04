@@ -505,10 +505,10 @@ static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
   { if ( c == ' ' ||
-	 (!(c < 0xff && !isGraph(c)) && c != quote && c != '\\') )
+	 (iswgraph(c) && c != quote && c != '\\') )
     { TRY(Putc(c, stream));
     } else
-    { char esc[8];
+    { char esc[10];			/* Longest is UXXXXXXXX */
 
       esc[1] = EOS;
 
@@ -541,10 +541,14 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	    esc[0] = '\\';
 	    break;
 	  default:
-	    if ( c <= 0xff )
-	      Ssprintf(esc, "%03o\\", c);
+#if 1
+	      Ssprintf(esc, "%X\\", c);
+#else
+	    if ( c <= 0xffff )
+	      Ssprintf(esc, "u%04X", c);
 	    else
-	      assert(0);			/* to be done */
+	      Ssprintf(esc, "U%08X", c);
+#endif
 	}
       }
       if ( !Putc('\\', stream) ||
