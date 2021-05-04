@@ -7282,6 +7282,8 @@ digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
 \arg{Char} is a hexadecimal digit with value \arg{Weight}. I.e.\
 \exam{char_type(a, xdigit(X))} yields \arg{X} = \exam{'10'}. Useful for
 parsing numbers.
+    \termitem{print}{}
+\arg{Char} is printable character.
     \termitem{graph}{}
 \arg{Char} produces a visible mark on a page when printed. Note that
 the space is not included!

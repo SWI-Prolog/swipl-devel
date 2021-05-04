@@ -211,6 +211,7 @@ mkfunction(iswalpha)
 mkfunction(isascii)
 mkfunction(iswcntrl)
 mkfunction(iswdigit)
+mkfunction(iswprint)
 mkfunction(iswgraph)
 mkfunction(iswlower)
 mkfunction(iswupper)
@@ -231,6 +232,7 @@ static const char_type char_types[] =
   { ATOM_white,			     iswhite },
   { ATOM_cntrl,			     fiswcntrl },
   { ATOM_digit,			     fiswdigit },
+  { ATOM_print,			     fiswprint },
   { ATOM_graph,			     fiswgraph },
   { ATOM_lower,			     fiswlower },
   { ATOM_upper,			     fiswupper },
