@@ -135,7 +135,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
     prolog_wrap.pl prolog_trace.pl prolog_code.pl intercept.pl
-    prolog_deps.pl tables.pl hashtable.pl strings.pl)
+    prolog_deps.pl tables.pl hashtable.pl strings.pl increval.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
@@ -180,7 +180,7 @@ set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
-    increval.pl curr_sym.pl error_handler.pl lists.pl timed_call.pl
+    curr_sym.pl error_handler.pl lists.pl timed_call.pl
     standard.pl gpp.pl thread.pl gensym.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)

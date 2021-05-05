@@ -161,7 +161,8 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         thread_pool charsio debug csv lists main check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
-        prolog_jiti tables listing strings terms ugraphs portray_text)
+        prolog_jiti tables listing strings terms ugraphs portray_text
+        increval)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)

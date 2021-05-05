@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2021, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,7 +52,7 @@
           ]).
 :- use_module(library(tables)).
 
-/** <module> XSB incremental dynamic predicate modification
+/** <module> Incremental dynamic predicate modification
 
 This module emulates the XSB module   `increval`. This module serves two
 goals: (1) provide alternatives  for   the  dynamic  clause manipulation
@@ -62,6 +63,8 @@ The change propagation for incremental   dynamic  predicates. SWI-Prolog
 relies in prolog_listen/2 to forward any change to dynamic predicates to
 the table IDG  and  incr_assert/1  and   friends  thus  simply  call the
 corresponding database update.
+
+@compat XSB
 */
 
 :- meta_predicate

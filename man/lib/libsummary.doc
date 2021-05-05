@@ -93,6 +93,9 @@
 \libsummary{help}
 \input{summaries.d/help.tex}
 
+\libsummary{increval}
+\libsummary{summaries.d/increval.tex}
+
 \libsummary{intercept}
 \libsummary{summaries.d/intercept.tex}
 
