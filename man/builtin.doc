@@ -5108,11 +5108,12 @@ file descriptor that is not associated to a regular file.
 Determines behaviour of character output if the stream cannot represent
 a character. For example, an ISO Latin-1 stream cannot represent
 Cyrillic characters. The behaviour is one of \const{error} (throw an I/O
-error exception), \const{prolog} (write \verb$\uXXXX$ or
-\verb$\UXXXXXXXX$ escape sequences) or \const{xml} (write \verb$&#...;$
-XML character entity). The initial mode is \const{prolog} for the user
-streams and \const{error} for all other streams. See also
-\secref{encoding} and set_stream/2.
+error exception), \const{prolog} (write \verb$\x<hex>\$),
+\const{unicode} (write \verb$\uXXXX$ or \verb$\UXXXXXXXX$ escape
+sequences) or \const{xml} (write \verb$&#...;$ XML character entity).
+The initial mode is \const{unicode} for the user streams and
+\const{error} for all other streams. See also \secref{encoding} and
+set_stream/2.
 
     \termitem{timeout}{-Time}
 \arg{Time} is the timeout currently associated with the stream.  See
