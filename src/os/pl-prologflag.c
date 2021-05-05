@@ -93,7 +93,7 @@ static void initPrologFlagTable(void);
 
 typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
-  short		index;			/* index in PLFLAG_ mask */
+  short		index;			/* index in LD->prolog_flag.mask */
   union
   { atom_t	a;			/* value as atom */
     int64_t	i;			/* value as integer */
@@ -115,21 +115,6 @@ following arguments are to be provided:
     FT_TERM	a term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-indexOfBoolMask(unsigned int mask)
-{ int i=1;
-
-  if ( !mask )
-    return -1;
-
-  while(!(mask & 0x1))
-  { i++;
-    mask >>= 1;
-  }
-  return i;
-}
-
-
 void
 setPrologFlag(const char *name, int flags, ...)
 { GET_LD
@@ -150,7 +135,7 @@ setPrologFlag(const char *name, int flags, ...)
       return;
   } else
   { f = allocHeapOrHalt(sizeof(*f));
-    f->index = -1;
+    f->index = 0;
     f->flags = flags;
     addNewHTable(GD->prolog_flag.table, (void *)an, f);
     first_def = TRUE;
@@ -160,25 +145,23 @@ setPrologFlag(const char *name, int flags, ...)
   switch(type)
   { case FT_BOOL:
     { int           val = va_arg(args, int);
-      unsigned int mask = va_arg(args, unsigned int);
+      unsigned int flag = va_arg(args, unsigned int);
 
-      if ( !first_def && mask && f->index < 0 )	/* type definition */
-      { f->index = indexOfBoolMask(mask);
+      if ( !first_def && flag && !f->index )	/* type definition */
+      { f->index = flag;
 	val = (f->value.a == ATOM_true);
       } else if ( first_def )			/* 1st definition */
-      { f->index = indexOfBoolMask(mask);
+      { f->index = flag;
 	DEBUG(MSG_PROLOG_FLAG,
-	      Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
+	      Sdprintf("Prolog flag %s at %d\n", name, flag));
       }
 
       f->value.a = (val ? ATOM_true : ATOM_false);
-      if ( f->index >= 0 )
-      { mask = (unsigned int)1 << (f->index-1);
-
-	if ( val )
-	  setPrologFlagMask(mask);
+      if ( f->index )
+      { if ( val )
+	  setPrologFlagMask(f->index);
 	else
-	  clearPrologFlagMask(mask);
+	  clearPrologFlagMask(f->index);
       }
       break;
     }
@@ -404,12 +387,14 @@ setFileNameCaseHandling(atom_t a)
 { GET_LD
 
   if ( a == ATOM_case_sensitive )
-  { setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  { setPrologFlagMask(PLFLAG_FILE_CASE);
+    setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
   } else if ( a == ATOM_case_preserving )
   { setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
     clearPrologFlagMask(PLFLAG_FILE_CASE);
   } else if ( a == ATOM_case_insensitive )
-  { clearPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  { clearPrologFlagMask(PLFLAG_FILE_CASE);
+    clearPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
   } else
   { term_t value = PL_new_term_ref();
 
@@ -426,16 +411,13 @@ static atom_t
 currentFileNameCaseHandling(void)
 { GET_LD
 
-  switch ( LD->prolog_flag.mask.flags &
-	   (PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING) )
-  { case 0:
-      return ATOM_case_insensitive;
-    case PLFLAG_FILE_CASE_PRESERVING:
+  if ( truePrologFlag(PLFLAG_FILE_CASE) )
+  { if ( truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
       return ATOM_case_preserving;
-    case PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING:
-      return ATOM_case_sensitive;
-    default:
-      return ATOM_unknown;
+    else
+      return ATOM_case_insensitive;
+  } else
+  { return ATOM_case_sensitive;
   }
 }
 
@@ -682,7 +664,7 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
   anyway:
     PL_register_atom(k);
     f = allocHeapOrHalt(sizeof(*f));
-    f->index = -1;
+    f->index = 0;
 
     switch( (flags & FT_MASK) )
     { case FT_FROM_VALUE:
@@ -841,13 +823,11 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	}
       }
 					/* set the flag value */
-      if ( f->index > 0 && rval )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
-
-	if ( val )
-	  setPrologFlagMask(mask);
+      if ( f->index && rval )
+      { if ( val )
+	  setPrologFlagMask(f->index);
 	else
-	  clearPrologFlagMask(mask);
+	  clearPrologFlagMask(f->index);
       }
       f->value.a = (val ? ATOM_true : ATOM_false);
 
@@ -1190,11 +1170,8 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-      if ( f->index >= 0 )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
-
-	return PL_unify_bool_ex(val, truePrologFlag(mask) != FALSE);
-      }
+      if ( f->index )
+	return PL_unify_bool_ex(val, truePrologFlag(f->index) != FALSE);
       /*FALLTHROUGH*/
     case FT_ATOM:
       return PL_unify_atom(val, f->value.a);

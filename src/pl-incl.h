@@ -2418,46 +2418,55 @@ typedef struct internaldebuginfo
 #define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
-#define PLFLAG_CHARESCAPE	    0x00000001 /* handle \ in atoms */
-#define PLFLAG_GC		    0x00000002 /* do GC */
-#define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
-#define PLFLAG_GCTHREAD		    0x00000008 /* Do atom/clause GC in a thread */
-#define PLFLAG_TTY_CONTROL	    0x00000010 /* allow for tty control */
-#define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
-#define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
-#define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
-#define PLFLAG_FILE_CASE_PRESERVING 0x00000100 /* case preserving file names */
-#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x00000200
-#define ALLOW_VARNAME_FUNCTOR	    0x00000400 /* Read Foo(x) as 'Foo'(x) */
-#define PLFLAG_ISO		    0x00000800 /* Strict ISO compliance */
-#define PLFLAG_OPTIMISE		    0x00001000 /* -O: optimised compilation */
-#define PLFLAG_FILEVARS		    0x00002000 /* Expand $var and ~ in filename */
-#define PLFLAG_AUTOLOAD		    0x00004000 /* do autoloading */
-#define PLFLAG_CHARCONVERSION	    0x00008000 /* do character-conversion */
-#define PLFLAG_LASTCALL		    0x00010000 /* Last call optimization enabled? */
-#define PLFLAG_PORTABLE_VMI	    0x00020000 /* Generate portable VMI code */
-#define PLFLAG_SIGNALS		    0x00040000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	    0x00080000 /* generate debug info */
-#define PLFLAG_FILEERRORS	    0x00100000 /* Edinburgh file errors */
-#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x00200000 /* Warn overriding weak symbols */
-#define PLFLAG_QUASI_QUOTES	    0x00400000 /* Support quasi quotes */
-#define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
-#define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
-#define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
-#define PLFLAG_MITIGATE_SPECTRE	    0x04000000 /* Mitigate spectre attacks */
-#define PLFLAG_TABLE_INCREMENTAL    0x08000000 /* By default incremental tabling */
-#define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
-#define PLFLAG_RATIONAL		    0x20000000 /* Natural rational numbers */
-#define PLFLAG_DEBUG_ON_INTERRUPT   0x40000000 /* Debug on Control-C */
-#define PLFLAG_OPTIMISE_UNIFY	    0x80000000 /* Move unifications in clauses */
+typedef enum plflag
+{ PLFLAG_CHARESCAPE = 1,		/* handle \ in atoms */
+  PLFLAG_GC,				/* do GC */
+  PLFLAG_TRACE_GC,			/* verbose gc */
+  PLFLAG_GCTHREAD,			/* Do atom/clause GC in a thread */
+  PLFLAG_TTY_CONTROL,			/* allow for tty control */
+  PLFLAG_DEBUG_ON_ERROR,		/* start tracer on error */
+  PLFLAG_REPORT_ERROR,			/* print error message */
+  PLFLAG_FILE_CASE,			/* file names are case sensitive */
+  PLFLAG_FILE_CASE_PRESERVING,		/* case preserving file names */
+  PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR,	/* Ambigous actions on stream pair */
+  ALLOW_VARNAME_FUNCTOR,		/* Read Foo(x) as 'Foo'(x) */
+  PLFLAG_ISO,				/* Strict ISO compliance */
+  PLFLAG_OPTIMISE,			/* -O: optimised compilation */
+  PLFLAG_FILEVARS,			/* Expand $var and ~ in filename */
+  PLFLAG_AUTOLOAD,			/* do autoloading */
+  PLFLAG_CHARCONVERSION,		/* do character-conversion */
+  PLFLAG_LASTCALL,			/* Last call optimization enabled? */
+  PLFLAG_PORTABLE_VMI,			/* Generate portable VMI code */
+  PLFLAG_SIGNALS,			/* Handle signals */
+  PLFLAG_DEBUGINFO,			/* generate debug info */
+  PLFLAG_FILEERRORS,			/* Edinburgh file errors */
+  PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT, /* Warn overriding weak symbols */
+  PLFLAG_QUASI_QUOTES,			/* Support quasi quotes */
+  PLFLAG_DOT_IN_ATOM,			/* Allow atoms a.b.c */
+  PLFLAG_VARPREFIX,			/* Variable must start with _ */
+  PLFLAG_PROTECT_STATIC_CODE,		/* Deny clause/2 on static code */
+  PLFLAG_MITIGATE_SPECTRE,		/* Mitigate spectre attacks */
+  PLFLAG_TABLE_INCREMENTAL,		/* By default incremental tabling */
+  PLFLAG_TABLE_SHARED,			/* By default shared tabling */
+  PLFLAG_RATIONAL,			/* Natural rational numbers */
+  PLFLAG_DEBUG_ON_INTERRUPT,		/* Debug on Control-C */
+  PLFLAG_OPTIMISE_UNIFY			/* Move unifications in clauses */
+} plflag;
 
 typedef struct
-{ unsigned int flags;		/* Fast access to some boolean Prolog flags */
+{ unsigned int flags[2];	/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
-#define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
-#define setPrologFlagMask(flag)	  set(&LD->prolog_flag.mask, flag)
-#define clearPrologFlagMask(flag) clear(&LD->prolog_flag.mask, flag)
+#define prologFlagMask(flag) (1<<((flag)-1))
+#define prologFlagMaskInt(ld, flag) \
+	(ld->prolog_flag.mask.flags[(flag)/(sizeof(int)*8)])
+#define truePrologFlag(flag) \
+	(prologFlagMaskInt(LD, flag) & prologFlagMask(flag))
+#define setPrologFlagMask_LD(ld, flag) \
+	ATOMIC_OR(&prologFlagMaskInt(ld, flag), prologFlagMask(flag))
+#define clearPrologFlagMask(flag) \
+	ATOMIC_AND(&prologFlagMaskInt(LD, flag), ~prologFlagMask(flag))
+#define setPrologFlagMask(flag) setPrologFlagMask_LD(LD, flag)
 
 typedef enum
 { OCCURS_CHECK_FALSE = 0,	/* allow rational trees */

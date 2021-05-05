@@ -159,7 +159,8 @@ initOs(void)
 #ifdef __WINDOWS__
   setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #else
-  setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  setPrologFlagMask(PLFLAG_FILE_CASE);
+  setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #endif
 
   DEBUG(1, Sdprintf("OS:done\n"));
