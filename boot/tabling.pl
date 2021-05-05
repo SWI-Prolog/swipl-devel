@@ -1678,6 +1678,24 @@ propagate_assert(Head) :-
     ;   true
     ).
 
+%!  incr_propagate_assert(+Head) is det.
+%
+%   Propagate assertion of a dynamic clause with head Head, both
+%   through eager and dynamic tables.
+
+incr_propagate_assert(Head) :-
+    tdebug(monotonic, 'New dynamic answer ~p', [Head]),
+    (   dyn_affected(Head, DTrie),
+         '$idg_mono_affects'(DTrie, ATrie,
+                             dependency(Head, Cont, Skel)),
+        tdebug(monotonic, 'Propagating dyn ~p to ~p', [Head, ATrie]),
+        '$idg_set_current'(_, ATrie),
+        pdelim(Cont, Skel, ATrie),
+        fail
+    ;   true
+    ).
+
+
 %!  propagate_answer(+SrcTrie, +SrcSkel) is det.
 %
 %   Propagate the new answer SrcSkel to the answer table SrcTrie.

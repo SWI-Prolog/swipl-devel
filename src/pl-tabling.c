@@ -6302,10 +6302,12 @@ save_idg_edge_state(idg_edge_state *state)
   return state;
 }
 
+#define IDG_MONO_AFFECTS 0x1
+
 
 static foreign_t
-idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref, term_t answers,
-	     term_t status, control_t PL__ctx)
+idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
+	     term_t answers, term_t status, int flags, control_t PL__ctx)
 { PRED_LD
   idg_edge_state sbuf;
   idg_edge_state *state;
@@ -6330,13 +6332,13 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref, term
 	  state->table   = state->atrie->data.IDG->dependent;
 	} else
 	{ state->monotonic = TRUE;
-	  if ( answers )
+	  if ( answers )		/* '$idg_mono_affects_lazy'/5 */
 	  { if ( !state->atrie->data.IDG->lazy )
 	      return FALSE;
 	    state->lazy    = TRUE;
 	    state->dir     = ATOM_dependent;
 	    state->table   = state->atrie->data.IDG->dependent;
-	  } else
+	  } else			/* '$idg_mono_affects[_eager]'/3 */
 	  { state->lazy    = FALSE;
 	    state->dir     = ATOM_affected;
 	    state->table   = state->atrie->data.IDG->affected;
@@ -6393,11 +6395,12 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref, term
     { idg_mdep *mdep;
 
       if ( (mdep=state->dependencies) &&
-	   state->lazy == mdep->lazy &&
+	   (state->lazy == mdep->lazy || (flags & IDG_MONO_AFFECTS)) &&
 	   !state->force_reeval )
       { term_t t;
 
 	if ( answers &&			/* no answers on this dependency */
+	     !(flags & IDG_MONO_AFFECTS) &&
 	     !(mdep->queue && !isEmptyBuffer(mdep->queue)) )
 	  continue;
 
@@ -6464,7 +6467,7 @@ out_fail:
 
 static
 PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, A2, A3, 0, 0, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, A2, A3, 0, 0, 0, 0, 0, PL__ctx);
 }
 
 /** '$idg_false_edge'(+ATrie, -DTrie, -Status)
@@ -6476,7 +6479,7 @@ PRED_IMPL("$idg_edge", 3, idg_edge, PL_FA_NONDETERMINISTIC)
 
 static
 PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, 0, 0, 0, A3, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, 0, 0, 0, A3, 0, PL__ctx);
 }
 
 /** '$idg_mono_affects_eager'(+SrcTrie, -DstTrie, -Dependency)
@@ -6485,7 +6488,16 @@ PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
 static
 PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, 0, PL__ctx);
+}
+
+/** '$idg_mono_affects'(+SrcTrie, -DstTrie, -Dependency)
+ */
+
+static
+PRED_IMPL("$idg_mono_affects", 3, idg_mono_affects,
+	  PL_FA_NONDETERMINISTIC)
+{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, IDG_MONO_AFFECTS, PL__ctx);
 }
 
 /** '$idg_mono_affects_lazy'(+DstTrie, -SrcTrie, -Dependency, -Answers)
@@ -6497,7 +6509,7 @@ PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 static
 PRED_IMPL("$idg_mono_affects_lazy", 5, idg_mono_affects_lazy,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, A4, A5, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, A4, A5, 0, 0, PL__ctx);
 }
 
 
@@ -8639,6 +8651,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_monotonic_add_answer", 2, tbl_monotonic_add_answer, 0)
   PRED_DEF("$idg_add_monotonic_dep",    3, idg_add_monotonic_dep,    0)
   PRED_DEF("$idg_add_mono_dyn_dep",     3, idg_add_mono_dyn_dep,     0)
+  PRED_DEF("$idg_mono_affects",         3, idg_mono_affects,      NDET)
   PRED_DEF("$idg_mono_affects_eager",   3, idg_mono_affects_eager,NDET)
   PRED_DEF("$idg_mono_affects_lazy",    5, idg_mono_affects_lazy, NDET)
   PRED_DEF("$tbl_propagate_start",      1, tbl_propagate_start,      0)
