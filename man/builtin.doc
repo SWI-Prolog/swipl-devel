@@ -6145,15 +6145,13 @@ default is \const{false}. If \prologflag{character_escapes} is
 \const{true} (default) characters in the quoted atom or string are
 escaped using backslash (\chr{\}) sequences. To the minimum, the quote
 itself, newlines and backslash characters are escaped to make the output
-valid for read/1. The space and all characters in the set defined by
-iswgraph()\footnote{the set described by this POSIX function depends on
-the OS and \jargon{locale}. Future versions may include a different
-fixed classification.} are printed normally. All other characters are
-escaped using the appropriate ISO Prolog single character escape, e.g.,
-\verb$\t$ or the ISO hexadecimal escape sequence
-\verb$\x<hex>\$.\footnote{Future versions may provide a flag to emit the
-non-ISO-Prolog but more widely accepted \chr{\}uXXXX or \chr{\}UXXXXXXXX
-escape sequences.}
+valid for read/1. All unassigned unicode characters and characters in
+the Unicode \jargon{separator} (Z*) and \jargon{control} (C*) classes
+except for the ASCII space (\verb$\u0020$) are escaped using the
+appropriate ISO Prolog single character escape, e.g., \verb$\t$ or the
+ISO hexadecimal escape sequence \verb$\x<hex>\$.\footnote{Future
+versions may provide a flag to emit the non-ISO-Prolog but more widely
+accepted \chr{\}uXXXX or \chr{\}UXXXXXXXX escape sequences.}
 
     \termitem{spacing}{+Spacing}
 Determines whether and where extra white space is added to enhance

@@ -536,6 +536,7 @@ COMMON(int)		f_is_prolog_atom_start(wint_t c);
 COMMON(int)		f_is_prolog_identifier_continue(wint_t c);
 COMMON(int)		f_is_prolog_symbol(wint_t c);
 COMMON(int)		unicode_separator(pl_wchar_t c);
+COMMON(int)		unicode_quoted_escape(wint_t c);
 COMMON(int)		atom_varnameW(const pl_wchar_t *s, size_t len);
 COMMON(int)		atom_is_named_var(atom_t name);
 COMMON(strnumstat)	str_number(const unsigned char *string,

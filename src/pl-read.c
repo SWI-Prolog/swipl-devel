@@ -100,6 +100,17 @@ unicode_separator(pl_wchar_t c)
 { return PlBlankW(c);
 }
 
+int
+unicode_quoted_escape(wint_t c)
+{ if ( c != ' ' )
+  { int uflags = uflagsW(c);
+
+    return !uflags || (uflags&(U_SEPARATOR|U_CONTROL));
+  } else
+  { return FALSE;
+  }
+}
+
 /* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
 */
 

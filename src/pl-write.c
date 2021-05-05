@@ -504,8 +504,7 @@ PutCloseBrace(IOSTREAM *s)
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( c == ' ' ||
-	 (iswgraph(c) && c != quote && c != '\\') )
+  { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' )
     { TRY(Putc(c, stream));
     } else
     { char esc[10];			/* Longest is UXXXXXXXX */
@@ -542,7 +541,7 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	    break;
 	  default:
 #if 1
-	      Ssprintf(esc, "%X\\", c);
+	      Ssprintf(esc, "x%X\\", c);
 #else
 	    if ( c <= 0xffff )
 	      Ssprintf(esc, "u%04X", c);
