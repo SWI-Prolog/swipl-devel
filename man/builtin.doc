@@ -6022,6 +6022,12 @@ If \const{true} and \term{quoted}{true} is active, special characters
 in quoted atoms and strings are emitted as ISO escape sequences.
 Default is taken from the reference module (see below).
 
+    \termitem{character_escapes_unicode}{Bool}
+If \const{true} and \term{character_escapes}{true} and
+\term{quoted}{true} are active escapted characters are written using
+\verb$\uXXXX$ or \verb$\UXXXXXXXX$ syntax.  The default depends on the
+Prolog flag \prologflag{character_escapes_unicode}
+
     \termitem{cycles}{Bool}
 If \const{true} (default), cyclic terms are written as
 \term{@}{Template, Substitutions}, where \arg{Substitutions} is a list
@@ -6147,11 +6153,12 @@ escaped using backslash (\chr{\}) sequences. To the minimum, the quote
 itself, newlines and backslash characters are escaped to make the output
 valid for read/1. All unassigned unicode characters and characters in
 the Unicode \jargon{separator} (Z*) and \jargon{control} (C*) classes
-except for the ASCII space (\verb$\u0020$) are escaped using the
-appropriate ISO Prolog single character escape, e.g., \verb$\t$ or the
-ISO hexadecimal escape sequence \verb$\x<hex>\$.\footnote{Future
-versions may provide a flag to emit the non-ISO-Prolog but more widely
-accepted \chr{\}uXXXX or \chr{\}UXXXXXXXX escape sequences.}
+except for the ASCII space (\verb$\u0020$) are escaped. For those
+characters for which an ISO Prolog single character escape, e.g.,
+\verb$\t$ is defined, this is used. Otherwise the output depends on the
+option \const{character_escapes_unicode}. If this flag applies(default)
+the widely accepted \verb$\uXXXX$ or \verb$\UXXXXXXXX$ is used.
+Otherwise the ISO Prolog \verb$\x<hex>\$ syntax is used.
 
     \termitem{spacing}{+Spacing}
 Determines whether and where extra white space is added to enhance

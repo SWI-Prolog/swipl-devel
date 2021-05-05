@@ -2420,6 +2420,7 @@ typedef struct internaldebuginfo
 
 typedef enum plflag
 { PLFLAG_CHARESCAPE = 1,		/* handle \ in atoms */
+  PLFLAG_CHARESCAPE_UNICODE,		/* Write escape as \uXXXX */
   PLFLAG_GC,				/* do GC */
   PLFLAG_TRACE_GC,			/* verbose gc */
   PLFLAG_GCTHREAD,			/* Do atom/clause GC in a thread */
@@ -2457,9 +2458,9 @@ typedef struct
 { unsigned int flags[2];	/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
-#define prologFlagMask(flag) (1<<((flag)-1))
+#define prologFlagMask(flag) (1u<<(((flag)-1)%(sizeof(int)*8)))
 #define prologFlagMaskInt(ld, flag) \
-	(ld->prolog_flag.mask.flags[(flag)/(sizeof(int)*8)])
+	(ld->prolog_flag.mask.flags[(flag-1)/(sizeof(int)*8)])
 #define truePrologFlag(flag) \
 	(prologFlagMaskInt(LD, flag) & prologFlagMask(flag))
 #define setPrologFlagMask_LD(ld, flag) \

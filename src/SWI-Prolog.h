@@ -967,6 +967,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_NODOTINATOM     0x80000	/* never write a.b unquoted */
 #define PL_WRT_NO_LISTS	       0x100000	/* Do not write lists as [...] */
 #define PL_WRT_RAT_NATURAL     0x200000	/* Write rationals as 1/3 */
+#define PL_WRT_CHARESCAPES_UNICODE 0x400000 /* Output escape sequences as \uXXXX */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

@@ -203,7 +203,7 @@ typedef struct io_stream
   int			lastc;		/* last character written */
   int			magic;		/* magic number SIO_MAGIC */
   int			bufsize;	/* size of the buffer */
-  int			flags;		/* Status flags */
+  unsigned int		flags;		/* Status flags */
   IOPOS			posbuf;		/* location in file */
   IOPOS *		position;	/* pointer to above */
   void		       *handle;		/* function's handle */
@@ -263,6 +263,7 @@ typedef struct io_stream
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
+#define SIO_REPPLU	SmakeFlag(32)	/* Bad char --> Prolog \uXXXX */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */

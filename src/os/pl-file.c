@@ -2084,7 +2084,7 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
 
-    clear(s, SIO_REPXML|SIO_REPPL);
+    clear(s, SIO_REPXML|SIO_REPPL|SIO_REPPLU);
 
     if ( val == ATOM_error )
       ;
@@ -2092,6 +2092,8 @@ set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
       set(s, SIO_REPXML);
     else if ( val == ATOM_prolog )
       set(s, SIO_REPPL);
+    else if ( val == ATOM_unicode )
+      set(s, SIO_REPPLU);
     else
       return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 		      ATOM_representation_errors, a);
@@ -4575,6 +4577,8 @@ stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
     a = ATOM_xml;
   else if ( (s->flags & SIO_REPPL) )
     a = ATOM_prolog;
+  else if ( (s->flags & SIO_REPPLU) )
+    a = ATOM_unicode;
   else
     a = ATOM_error;
 

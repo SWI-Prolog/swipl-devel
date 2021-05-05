@@ -540,14 +540,14 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	    esc[0] = '\\';
 	    break;
 	  default:
-#if 1
-	      Ssprintf(esc, "x%X\\", c);
-#else
-	    if ( c <= 0xffff )
-	      Ssprintf(esc, "u%04X", c);
-	    else
-	      Ssprintf(esc, "U%08X", c);
-#endif
+	    if ( (flags & PL_WRT_CHARESCAPES_UNICODE) )
+	    { if ( c <= 0xffff )
+		Ssprintf(esc, "u%04X", c);
+	      else
+		Ssprintf(esc, "U%08X", c);
+	    } else
+	    { Ssprintf(esc, "x%X\\", c);
+	    }
 	}
       }
       if ( !Putc('\\', stream) ||
@@ -1843,29 +1843,30 @@ writeBlobMask(atom_t a)
 
 
 static const opt_spec write_term_options[] =
-{ { ATOM_quoted,	    OPT_BOOL },
-  { ATOM_ignore_ops,	    OPT_BOOL },
-  { ATOM_dotlists,	    OPT_BOOL },
-  { ATOM_brace_terms,	    OPT_BOOL },
-  { ATOM_numbervars,        OPT_BOOL },
-  { ATOM_portray,           OPT_BOOL },
-  { ATOM_portrayed,         OPT_BOOL },
-  { ATOM_portray_goal,      OPT_TERM },
-  { ATOM_character_escapes, OPT_BOOL },
-  { ATOM_max_depth,	    OPT_INT  },
-  { ATOM_module,	    OPT_ATOM },
-  { ATOM_back_quotes,	    OPT_ATOM },
-  { ATOM_attributes,	    OPT_ATOM },
-  { ATOM_priority,	    OPT_INT },
-  { ATOM_partial,	    OPT_BOOL },
-  { ATOM_spacing,	    OPT_ATOM },
-  { ATOM_blobs,		    OPT_ATOM },
-  { ATOM_cycles,	    OPT_BOOL },
-  { ATOM_variable_names,    OPT_TERM },
-  { ATOM_nl,		    OPT_BOOL },
-  { ATOM_fullstop,	    OPT_BOOL },
-  { ATOM_no_lists,	    OPT_BOOL },
-  { NULL_ATOM,		    0 }
+{ { ATOM_quoted,		    OPT_BOOL },
+  { ATOM_ignore_ops,		    OPT_BOOL },
+  { ATOM_dotlists,		    OPT_BOOL },
+  { ATOM_brace_terms,		    OPT_BOOL },
+  { ATOM_numbervars,		    OPT_BOOL },
+  { ATOM_portray,		    OPT_BOOL },
+  { ATOM_portrayed,		    OPT_BOOL },
+  { ATOM_portray_goal,		    OPT_TERM },
+  { ATOM_character_escapes,	    OPT_BOOL },
+  { ATOM_character_escapes_unicode, OPT_BOOL },
+  { ATOM_max_depth,		    OPT_INT  },
+  { ATOM_module,		    OPT_ATOM },
+  { ATOM_back_quotes,		    OPT_ATOM },
+  { ATOM_attributes,		    OPT_ATOM },
+  { ATOM_priority,		    OPT_INT },
+  { ATOM_partial,		    OPT_BOOL },
+  { ATOM_spacing,		    OPT_ATOM },
+  { ATOM_blobs,			    OPT_ATOM },
+  { ATOM_cycles,		    OPT_BOOL },
+  { ATOM_variable_names,	    OPT_TERM },
+  { ATOM_nl,			    OPT_BOOL },
+  { ATOM_fullstop,		    OPT_BOOL },
+  { ATOM_no_lists,		    OPT_BOOL },
+  { NULL_ATOM,			    0 }
 };
 
 foreign_t
@@ -1880,6 +1881,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   term_t gportray = 0;
   atom_t bq       = 0;
   bool charescape = -1;			/* not set */
+  bool charescape_unicode = -1;
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
   atom_t blobs    = ATOM_nil;
@@ -1901,7 +1903,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &dotlists, &braceterms,
 		     &numbervars, &portray, &portray, &gportray,
-		     &charescape, &options.max_depth, &mname,
+		     &charescape, &charescape_unicode,
+		     &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
 		     &blobs, &cycles, &varnames, &nl, &fullstop,
 		     &no_lists) )
@@ -1949,6 +1952,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
+  if ( charescape_unicode == TRUE ||
+       (charescape_unicode == -1 && truePrologFlag(PLFLAG_CHARESCAPE_UNICODE)) )
+    options.flags |= PL_WRT_CHARESCAPES_UNICODE;
   if ( true(options.module, RAT_NATURAL) )
     options.flags |= PL_WRT_RAT_NATURAL;
   if ( gportray )
@@ -1996,10 +2002,12 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.out = s;
   if ( !partial )
     PutOpenToken(EOF, s);		/* reset this */
-  if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
-  { s->flags |= SIO_REPPL;
+  if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&(SIO_REPPL|SIO_REPPLU)) )
+  { unsigned int flag = truePrologFlag(PLFLAG_CHARESCAPE_UNICODE) ? SIO_REPPLU
+								  : SIO_REPPL;
+    s->flags |= flag;
     rc = writeTopTerm(term, priority, &options);
-    s->flags &= ~SIO_REPPL;
+    s->flags &= ~flag;
   } else
   { rc = writeTopTerm(term, priority, &options);
   }
@@ -2178,21 +2186,36 @@ PRED_IMPL("$put_token", 2, put_token, 0)
   fail;
 }
 
-/** '$put_quoted_codes'(+Stream, +Quote, +Codes, +Options)
+/** '$put_quoted'(+Stream, +Quote, +Codes, +Options)
 
 Emit Codes using the escaped character  syntax,   but  does not emit the
-start and end-code itself. Options is  currently ignored. It is intended
-to provide additional preferences, so as using \uXXXX, \UXXXXXXXX, etc.
+start and end-code itself.
 */
+
+static const opt_spec put_quoted_options[] =
+{ { ATOM_character_escapes_unicode, OPT_BOOL },
+  { NULL_ATOM,			    0 }
+};
+
 
 static
 PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
-{ IOSTREAM *out;
+{ PRED_LD
+  IOSTREAM *out;
   pl_wchar_t *w;
   size_t i, len;
   int quote;
   int flags = PL_WRT_CHARESCAPES;
   int rc = TRUE;
+  bool charescape_unicode = -1;
+
+  if ( !scan_options(A4, 0, ATOM_write_option, put_quoted_options,
+		     &charescape_unicode) )
+    return FALSE;
+
+  if ( charescape_unicode == TRUE ||
+       (charescape_unicode == -1 && truePrologFlag(PLFLAG_CHARESCAPE_UNICODE)) )
+    flags |= PL_WRT_CHARESCAPES_UNICODE;
 
   if ( !PL_get_stream_handle(A1, &out) ||
        !PL_get_char_ex(A2, &quote, FALSE) ||

@@ -843,17 +843,20 @@ Sungetc(int c, IOSTREAM *s)
 
 static int
 reperror(int c, IOSTREAM *s)
-{ if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL)) )
+{ if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL|SIO_REPPLU)) )
   { char buf[16];
     const char *q;
 
     if ( (s->flags & SIO_REPPL) )
+    { sprintf(buf, "\\x%X\\", c);
+    } else if ( (s->flags & SIO_REPPLU) )
     { if ( c <= 0xffff )
 	sprintf(buf, "\\u%04X", c);
       else
 	sprintf(buf, "\\U%08X", c);
     } else
-      sprintf(buf, "&#%d;", c);
+    { sprintf(buf, "&#%d;", c);
+    }
 
     for(q = buf; *q; q++)
     { if ( put_byte(*q, s) < 0 )
@@ -3959,8 +3962,8 @@ Sclose_buffer(IOSTREAM *s)
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL),	/* Soutput */ \
-  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPLU),	/* Soutput */ \
+  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPLU)	/* Serror */
 
 
 IOSTREAM S__iob[] =

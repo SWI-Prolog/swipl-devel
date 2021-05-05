@@ -1521,6 +1521,8 @@ initPrologFlags(void)
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
+  setPrologFlag("character_escapes_unicode", FT_BOOL, TRUE,
+		PLFLAG_CHARESCAPE_UNICODE);
   setPrologFlag("var_prefix", FT_BOOL, FALSE, PLFLAG_VARPREFIX);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
