@@ -817,8 +817,8 @@ populated correctly and build a dependency. Next, if a new answer is
 added to the external data the user must call incr_propagate_calls/1
 from the Prolog library \pllib{increval}. Similarly, when an answer is
 removed from the extenal data we use incr_invalidate_calls/1. Both
-notification calls must be make \emph{after} the external data has been
-opdated, i.e., \nopredref{my_data}{2} must reflect the new situation
+notification calls must be made \emph{after} the external data has been
+updated, i.e., \nopredref{my_data}{2} must reflect the new situation
 before calling incr_propagate_calls/1 or incr_invalidate_calls/1.
 
 \begin{code}
