@@ -1589,7 +1589,7 @@ VMI(B_RLIST, 0, 0, ())
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-I_POPF: Pop the saved argument pointer (see H_FUNCTOR and B_FUNCTOR).
+B_POP: Pop the argument pointer pushed by B_FUNCTOR.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_POP, 0, 0, ())
