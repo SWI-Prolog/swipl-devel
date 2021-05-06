@@ -2137,9 +2137,11 @@ clear_frame_vars(LocalFrame target)
 
     if ( ch )
     { ch = ch->parent;
-      if ( ch->parent )
+      if ( ch )
       { fr = ch->frame;
 	PC = ch->type == CHP_JUMP ? ch->value.PC : NULL;
+	Code codes = fr->clause->value.clause->codes;	     \
+	assert(ch->value.PC < &codes[codes[-1]]);
 	continue;
       }
     }
