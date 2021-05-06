@@ -38,7 +38,7 @@
           [ test_incr_answer_subsumption/0
           ]).
 :- use_module(library(plunit)).
-:- use_module(library(dialect/xsb/increval)).
+:- use_module(library(increval)).
 :- use_module(library(tables)).
 
 %!  test_incr_answer_subsumption

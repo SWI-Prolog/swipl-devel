@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
+    Copyright (c)  2021, University of Amsterdam
                          VU University Amsterdam
 		         CWI, Amsterdam
+                         SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,12 +42,24 @@
 :- use_module(library(debug)).
 :- use_module(library(tables)).
 :- use_module(library(random)).
-:- use_module(library(dialect/xsb/increval)).
+:- use_module(library(increval)).
 
 test_monotonic :-
     run_tests([ monotonic_tabling,
-                monotonic_tabling_2
+                monotonic_tabling_2,
+                monotonic_tabling_3
               ]).
+
+:- meta_predicate
+    init(0),
+    cleanup(:),
+    queued_answers(:,-,-),
+    expect(?, 0, +),
+    expect_valid(0),
+    expect_invalid(0),
+    expect_forced(0),
+    incr_is_forced(0),
+    expect_queued_answers(:, +).
 
 :- begin_tests(monotonic_tabling).
 
@@ -252,3 +265,80 @@ test(twice_invalid, [Xs == [1,2,3], cleanup(clean)]) :-
     setof(X, p(X), Xs).
 
 :- end_tests(monotonic_tabling_2).
+
+:- begin_tests(monotonic_tabling_3).
+
+:- dynamic data/1.
+:- dynamic d/1 as monotonic.
+:- table p/1 as monotonic.
+
+p(X) :- d(X).
+d(X) :- data(X).
+
+test(incr_propagate) :-
+    cleanup([data/1]),
+    assert(data(1)),
+    expect(X, p(X), [1]),
+    assert(data(2)),
+    expect(X, p(X), [1]),
+    incr_propagate_answer(d(2)),
+    expect(X, p(X), [1,2]),
+    retractall(data(2)),
+    expect(X, p(X), [1,2]),
+    incr_invalidate_answer(d(2)),
+    expect(X, p(X), [1]).
+
+:- end_tests(monotonic_tabling_3).
+
+
+
+		 /*******************************
+		 *         TEST HELPERS		*
+		 *******************************/
+
+init(P) :-
+    forall(P, true).
+
+cleanup(M:List) :-
+    abolish_all_tables,
+    maplist(cleanup(M), List).
+
+cleanup(M, PI) :-
+    pi_head(PI, Head),
+    retractall(M:Head).
+
+expect(Templ, Goal, Answer) :-
+    findall(Templ, Goal, R0),
+    sort(R0, R),
+    sort(Answer, Answer1),
+    assertion(Answer1 == R).
+
+expect_valid(Goal) :-
+    assertion(\+ incr_is_invalid(Goal)).
+
+expect_invalid(Goal) :-
+    assertion(incr_is_invalid(Goal)).
+
+expect_forced(Goal) :-
+    assertion(incr_is_forced(Goal)).
+
+incr_is_forced(Goal) :-
+    get_call(Goal, ATrie, _Templ),
+    '$idg_forced'(ATrie).
+
+queued_answers(To, From, Count) :-
+    get_calls(To, DstTrie, _Ret),
+    '$idg_mono_affects_lazy'(DstTrie, SrcTrie, _Dep, _DepRef, Answers),
+    '$tbl_table_status'(SrcTrie, _Status, From0, _Skeleton),
+    unqualify(To, From0, From),
+    length(Answers, Count).
+
+unqualify(M:_, M:From, From) :- !.
+unqualify(_, From, From).
+
+
+expect_queued_answers(To, Expected0) :-
+    findall(From-Count, queued_answers(To, From, Count), Pairs1),
+    sort(Pairs1, Found),
+    sort(Expected0, Expected),
+    assertion(Found =@= Expected).

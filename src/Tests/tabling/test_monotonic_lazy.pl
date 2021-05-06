@@ -36,7 +36,7 @@
           [ test_monotonic_lazy/0
           ]).
 :- use_module(library(plunit)).
-:- use_module(library(dialect/xsb/increval)).
+:- use_module(library(increval)).
 :- use_module(library(apply)).
 :- use_module(library(debug)).
 :- use_module(library(prolog_code)).
@@ -57,7 +57,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_9,
                 tabling_monotonic_lazy_10,
                 tabling_monotonic_lazy_11,
-                tabling_monotonic_lazy_12
+                tabling_monotonic_lazy_12,
+                tabling_monotonic_lazy_13
               ]).
 
 :- meta_predicate
@@ -381,13 +382,38 @@ p(X) :-
 q(X) :-
     d(X).
 
-test :-
+test(indirect) :-
     cleanup([d/1]),
     expect(X, q(X), []),
     assert(d(1)),
     expect(X, p(X), [1]).
 
 :- end_tests(tabling_monotonic_lazy_12).
+
+
+:- begin_tests(tabling_monotonic_lazy_13).
+
+:- dynamic data/1.
+:- dynamic d/1 as monotonic.
+:- table p/1 as (monotonic,lazy).
+
+p(X) :- d(X).
+d(X) :- data(X).
+
+test(incr_propagate_lazy) :-
+    cleanup([data/1]),
+    assert(data(1)),
+    expect(X, p(X), [1]),
+    assert(data(2)),
+    expect(X, p(X), [1]),
+    incr_propagate_answer(d(2)),
+    expect(X, p(X), [1,2]),
+    retractall(data(2)),
+    expect(X, p(X), [1,2]),
+    incr_invalidate_answer(d(2)),
+    expect(X, p(X), [1]).
+
+:- end_tests(tabling_monotonic_lazy_13).
 
 
 		 /*******************************
