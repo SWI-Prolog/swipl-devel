@@ -205,7 +205,9 @@ incr_table_update :-
 
 %!  incr_propagate_answer(:Answer) is det.
 %
-%
+%   Activate the monotonic answer propagation similarly   to  when a new
+%   fact is asserted for a monotonic  dynamic predicate. The Answer term
+%   must match a monotonic dynamic predicate.
 
 incr_propagate_answer(Answer) :-
     setup_call_cleanup(
@@ -214,6 +216,9 @@ incr_propagate_answer(Answer) :-
         '$tbl_propagate_end'(Old)).
 
 %!  incr_invalidate_answer(:Answer) is det.
+%
+%   Invalidate the tables that depend on  Answer.   This  is the same as
+%   incr_invalidate_calls/1
 
 incr_invalidate_answer(Answer) :-
     incr_invalidate_calls(Answer).
