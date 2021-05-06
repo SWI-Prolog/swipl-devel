@@ -2559,6 +2559,7 @@ PRED_IMPL("trie_lookup_delete", 3, trie_lookup_delete, 0)
 typedef struct trie_compile_state
 { trie	       *trie;				/* Trie we are working on */
   int		try;				/* There are alternatives */
+  int		last_is_fail;			/* Ends in I_FAIL */
   tmp_buffer	codes;				/* Output instructions */
   size_t	else_loc;			/* last else */
   size_t	maxvar;				/* Highest var index */
@@ -2906,13 +2907,21 @@ children:
 	}
       }
       add_vmi(state, I_EXIT);
+      state->last_is_fail = FALSE;
     } else
     { add_vmi(state, I_FAIL);
-      if ( n == &state->trie->root )
-	add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
+      state->last_is_fail = TRUE;
     }
   }
 
+  return TRUE;
+}
+
+
+static int
+fixup_last_fail(trie_compile_state *state)
+{ if ( state->last_is_fail )
+    add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
   return TRUE;
 }
 
@@ -2959,6 +2968,7 @@ retry:
       init_trie_compile_state(&state, trie);
       add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
       if ( compile_trie_node(&trie->root, &state PASS_LD) &&
+	   fixup_last_fail(&state) &&
 	   create_trie_clause(def, &cl, &state) )
       { cref = assertDefinition(def, cl, CL_END PASS_LD);
 	if ( cref )
