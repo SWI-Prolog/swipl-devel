@@ -50,8 +50,7 @@
             incr_invalidate_calls/1,		% :Goal
             incr_table_update/0,
 
-            incr_propagate_answer/1,            % :Answer
-            incr_invalidate_answer/1            % :Answer
+            incr_propagate_calls/1              % :Answer
           ]).
 :- use_module(library(tables)).
 
@@ -82,8 +81,7 @@ corresponding database update.
     incr_is_invalid(:),
     incr_invalidate_call(:),
     incr_invalidate_calls(:),
-    incr_propagate_answer(:),
-    incr_invalidate_answer(:).
+    incr_propagate_calls(:).
 
 incr_assert(T)     :- assertz(T).
 incr_asserta(T)    :- asserta(T).
@@ -203,23 +201,14 @@ incr_table_update :-
     ;   !
     ).
 
-%!  incr_propagate_answer(:Answer) is det.
+%!  incr_propagate_calls(:Answer) is det.
 %
 %   Activate the monotonic answer propagation similarly   to  when a new
 %   fact is asserted for a monotonic  dynamic predicate. The Answer term
 %   must match a monotonic dynamic predicate.
 
-incr_propagate_answer(Answer) :-
+incr_propagate_calls(Answer) :-
     setup_call_cleanup(
         '$tbl_propagate_start'(Old),
         '$tabling':incr_propagate_assert(Answer),
         '$tbl_propagate_end'(Old)).
-
-%!  incr_invalidate_answer(:Answer) is det.
-%
-%   Invalidate the tables that depend on  Answer.   This  is the same as
-%   incr_invalidate_calls/1
-
-incr_invalidate_answer(Answer) :-
-    incr_invalidate_calls(Answer).
-

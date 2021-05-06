@@ -406,11 +406,11 @@ test(incr_propagate_lazy) :-
     expect(X, p(X), [1]),
     assert(data(2)),
     expect(X, p(X), [1]),
-    incr_propagate_answer(d(2)),
+    incr_propagate_calls(d(2)),
     expect(X, p(X), [1,2]),
     retractall(data(2)),
     expect(X, p(X), [1,2]),
-    incr_invalidate_answer(d(2)),
+    incr_invalidate_calls(d(2)),
     expect(X, p(X), [1]).
 
 :- end_tests(tabling_monotonic_lazy_13).

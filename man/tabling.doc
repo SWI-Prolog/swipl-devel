@@ -814,33 +814,29 @@ my_data(X, Y) :-
 
 Any monotonic table that depends on \nopredref{my_data}{2} will be
 populated correctly and build a dependency. Next, if a new answer is
-added to the external data the user must call incr_propagate_answer/1
+added to the external data the user must call incr_propagate_calls/1
 from the Prolog library \pllib{increval}. Similarly, when an answer is
-removed from the extenal data we use incr_invalidate_answer/1. Both
+removed from the extenal data we use incr_invalidate_calls/1. Both
 notification calls must be make \emph{after} the external data has been
 opdated, i.e., \nopredref{my_data}{2} must reflect the new situation
-before calling incr_propagate_answer/1 or incr_invalidate_answer/1.
+before calling incr_propagate_calls/1 or incr_invalidate_calls/1.
 
 \begin{code}
 :- use_module(library(increval)).
 
 on_new_my_data(X, Y) :-
-    incr_propagate_answer(my_data(X, Y)).
+    incr_propagate_calls(my_data(X, Y)).
 
 on_removed_my_data(X,Y) :-
-    incr_invalidate_answer(my_data(X, Y)).
+    incr_invalidate_calls(my_data(X, Y)).
 \end{code}
 
 \begin{description}
-    \predicate{incr_propagate_answer}{1}{:Answer}
+    \predicate{incr_propagate_calls}{1}{:Answer}
 Activate the monotonic answer propagation similarly to when a new
 fact is asserted for a monotonic dynamic predicate.  The \arg{Answer}
 term must match a monotonic dynamic predicate. See
 \secref{mono-external-data} for an example.
-
-    \predicate{incr_invalidate_answer}{1}{:Answer}
-Invalidate the tables that depend on \arg{Answer}.  This is the same
-as incr_invalidate_calls/1.
 \end{description}
 
 \paragraph{Status}
