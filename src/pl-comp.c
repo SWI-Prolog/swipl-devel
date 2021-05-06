@@ -6899,10 +6899,20 @@ vm_list(Code start, Code end)
     const code_info *ci = &codeTable[op];
 
     Sdprintf("%-3d %s\n", PC-start, ci->name);
-    switch(op)
-    { case I_EXIT:
-      case I_EXITFACT:
-	return;
+    if ( !end )
+    { switch(op)
+      { case I_EXIT:
+	case I_EXITFACT:
+	case I_EXITCATCH:
+	case I_EXITRESET:
+	case I_EXITQUERY:
+	case I_FEXITDET:
+	case I_FEXITNDET:
+	case I_FREDO:
+	case S_TRUSTME:
+	case S_LIST:
+	  return;
+      }
     }
   }
 }
