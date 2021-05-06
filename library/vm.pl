@@ -171,7 +171,7 @@ label_vmi([], _, _, _, []).
 label_vmi([H|T], Here0, LI0, Pending0, Labeled) :-
     H = vmi(VMI0,Size),
     Here is Here0+Size,
-    new_labels(VMI0, VMI, LI0, LI1, Here, Pending0, Pending1),
+    new_labels(VMI0, VMI, LI0, LI1, Here0, Here, Pending0, Pending1),
     (   selectchk(Label-Here0, Pending1, Pending2)
     ->  Labeled = [label(Label),vmi(VMI,Size)|Labeled1]
     ;   Labeled = [vmi(VMI,Size)|Labeled1],
@@ -179,14 +179,28 @@ label_vmi([H|T], Here0, LI0, Pending0, Labeled) :-
     ),
     label_vmi(T, Here, LI1, Pending2, Labeled1).
 
-new_labels(break(VMI0), break(VMI), LI0, LI, End, Labels0, Labels) :-
+new_labels(break(VMI0), break(VMI), LI0, LI, Start, End, Labels0, Labels) :-
     !,
-    new_labels(VMI0, VMI, LI0, LI, End, Labels0, Labels).
-new_labels(VMI0, VMI, LI0, LI, End, Labels0, Labels) :-
+    new_labels(VMI0, VMI, LI0, LI, Start, End, Labels0, Labels).
+new_labels(VMI0, VMI, LI0, LI, Start, End, Labels0, Labels) :-
     VMI0 =.. [Name|Argv0],
     '$vmi_property'(Name, argv(ArgvTypes)),
-    new_labels_(ArgvTypes, Argv0, Argv, LI0, LI, End, Labels0, Labels),
+    jmp_rel(Name, Start, End, Rel),
+    new_labels_(ArgvTypes, Argv0, Argv, LI0, LI, Rel, Labels0, Labels),
     VMI =.. [Name|Argv].
+
+%!  jmp_rel(+VMIName, +Start, +End, -JmpRel)
+%
+%   Relative position for the (choice) jump.  This   is  the  end of the
+%   instruction for most, but after the   address  for the compiled trie
+%   instructions.   Should be made consistent.
+
+jmp_rel(TrieVMI, Start, _End, Rel) :-
+    trie_vmi(TrieVMI), !,
+    Rel is Start+2.
+jmp_rel(_, _, End, End).
+
+trie_vmi(VMI) :- sub_atom(VMI, 0, _, _, t_).
 
 new_labels_([], [], [], LI, LI, _, Labels, Labels).
 new_labels_([jump|TT], [Offset|AT], [Label|LT], LI0, LI, End, Labels0, Labels) :-
