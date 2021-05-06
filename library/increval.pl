@@ -185,6 +185,8 @@ incr_invalidate_calls(Goal) :-
 %
 %   This is the XSB name, but   the  manual says incr_invalidate_calls/1
 %   and the comment with the code suggests this is misnamed.
+%
+%   @deprecated Use incr_invalidate_calls/1.
 
 incr_invalidate_call(Goal) :-
     incr_invalidate_calls(Goal).
