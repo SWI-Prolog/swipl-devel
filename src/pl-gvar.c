@@ -139,7 +139,6 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
   if ( !(old = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
   { addNewHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
     PL_register_atom(name);
-    PL_register_atom(ATOM_nil);
     old = ATOM_nil;
   }
   assert(old);
