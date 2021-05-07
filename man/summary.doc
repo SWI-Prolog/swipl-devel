@@ -763,6 +763,7 @@ suggest predicates from a keyword.
 \predicatesummary{tty_size}{2}{Get row/column size of the terminal}
 \predicatesummary{ttyflush}{0}{Flush output on terminal}
 \predicatesummary{undefined}{0}{Well Founded Semantics: true nor false}
+\predicatesummary{undo}{1}{Schedule goal for backtracking}
 \predicatesummary{unify_with_occurs_check}{2}{Logically sound unification}
 \predicatesummary{unifiable}{3}{Determining binding required for unification}
 \predicatesummary{unknown}{2}{Trap undefined predicates}

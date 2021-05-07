@@ -748,6 +748,12 @@ struct PL_local_data
   } autoload;
 
   struct
+  { term_t undo_list;			/* Stacked undo goals */
+    Buffer scheduled;
+    int    running;
+  } undo;
+
+  struct
   { intptr_t _total_marked;		/* # marked global cells */
     intptr_t _trailcells_deleted;	/* # garbage trailcells */
     intptr_t _relocation_chains;	/* # relocation chains (debugging) */

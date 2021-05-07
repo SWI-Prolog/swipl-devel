@@ -45,6 +45,7 @@
 #include "pl-prof.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-undo.h"
 #include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
@@ -283,6 +284,7 @@ updateAlerted(PL_local_data_t *ld)
   if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
 #endif
   if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
+  if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
 
   ld->alerted = mask;
 
@@ -1458,6 +1460,8 @@ __do_undo(mark *m ARG_LD)
     if ( isTrailVal(p) )
     { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
       tt--;
+      if ( tt->address == gBase )
+	push_undo(tt->address PASS_LD);
       *tt->address = trailVal(p);
       DEBUG(CHK_SECURE,
 	    if ( isAttVar(*tt->address) )
@@ -3319,9 +3323,20 @@ next_choice:
   last_choice = ch->type;
 #endif
 
-  if ( (LD->alerted & ALERT_BUFFER) )
-  { LD->alerted &= ~ALERT_BUFFER;
-    release_string_buffers_from_frame(FR PASS_LD);
+  if ( LD->alerted )
+  { if ( LD->alerted & ALERT_BUFFER )
+    { LD->alerted &= ~ALERT_BUFFER;
+      release_string_buffers_from_frame(FR PASS_LD);
+    }
+    if ( UNDO_SCHEDULED(LD) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = run_undo_hooks(PASS_LD1);
+      LOAD_REGISTERS(qid);
+      if ( !rc )
+	THROW_EXCEPTION;
+    }
   }
 
   switch(ch->type)

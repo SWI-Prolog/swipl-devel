@@ -92,6 +92,7 @@
             transaction/2,                      % :Goal, +Options
             transaction/3,                      % :Goal, :Constraint, +Mutex
             snapshot/1,                         % :Goal
+            undo/1,                             % :Goal
             set_prolog_gc_thread/1,		% +Status
 
             '$wrap_predicate'/5                 % :Head, +Name, -Closure, -Wrapped, +Body
@@ -1590,6 +1591,46 @@ transaction(Goal, Constraint, Mutex) :-
     '$transaction'(Goal, Constraint, Mutex).
 snapshot(Goal) :-
     '$snapshot'(Goal).
+
+
+		 /*******************************
+		 *            UNDO		*
+		 *******************************/
+
+:- meta_predicate
+    undo(0).
+
+%!  undo(:Goal)
+%
+%   Schedule Goal to be called when backtracking takes us back to
+%   before this call.
+
+undo(Goal) :-
+    '$undo'(Goal).
+
+:- public
+    '$run_undo'/1.
+
+'$run_undo'([One]) :-
+    !,
+    call(One).
+'$run_undo'(List) :-
+    run_undo(List, _, Error),
+    (   var(Error)
+    ->  true
+    ;   throw(Error)
+    ).
+
+run_undo([], E, E).
+run_undo([H|T], E0, E) :-
+    (   catch(H, E1, true)
+    ->  (   var(E1)
+        ->  true
+        ;   '$urgent_exception'(E0, E1, E2)
+        )
+    ;   true
+    ),
+    run_undo(T, E2, E).
 
 
 %!  '$wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body) is det.

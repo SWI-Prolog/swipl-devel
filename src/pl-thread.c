@@ -53,6 +53,7 @@
 
 #include "pl-incl.h"
 #include "pl-tabling.h"
+#include "pl-undo.h"
 #include "os/pl-cstack.h"
 #include "pl-prof.h"
 #include "pl-event.h"
@@ -682,6 +683,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     }
     destroy_thread_message_queue(&ld->thread.messages);
     free_predicate_references(ld);
+    free_undo_data(ld);
     if ( ld->btrace_store )
     { btrace_destroy(ld->btrace_store);
       ld->btrace_store = NULL;

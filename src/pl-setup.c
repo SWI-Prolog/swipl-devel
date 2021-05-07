@@ -44,6 +44,7 @@
 #include "pl-dbref.h"
 #include "pl-trie.h"
 #include "pl-tabling.h"
+#include "pl-undo.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -1423,6 +1424,7 @@ emptyStacks(void)
     LD->attvar.gc_attvars   = PL_new_term_ref();
     DEBUG(3, Sdprintf("attvar.tail at %p\n", valTermRef(LD->attvar.tail)));
 #endif
+    LD->undo.undo_list      = init_undo_list(); /* must be first.  See __do_undo() */
     LD->tabling.delay_list  = init_delay_list();
     LD->tabling.idg_current = PL_new_term_ref();
 #ifdef O_GVAR

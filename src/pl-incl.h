@@ -811,6 +811,7 @@ typedef enum
 #define	ALERT_WAKEUP	     0x040
 #define	ALERT_DEBUG	     0x080
 #define	ALERT_BUFFER	     0x100
+#define	ALERT_UNDO	     0x200
 
 
 		 /*******************************

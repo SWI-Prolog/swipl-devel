@@ -2393,17 +2393,68 @@ ERROR: Unhandled exception: Unknown message: ball
 \end{description}
 
     \predicate{call_cleanup}{2}{:Goal, :Cleanup}
-Same as \term{setup_call_cleanup}{true, Goal, Cleanup}.
-This is provided
-for compatibility with a number of other Prolog implementations only.  Do
-not use call_cleanup/2 if you perform side-effects prior to calling
-that will be undone by \arg{Cleanup}.  Instead, use
-setup_call_cleanup/3 with an appropriate first argument to perform those
-side-effects.
+Same as \term{setup_call_cleanup}{true, Goal, Cleanup}. This is provided
+for compatibility with a number of other Prolog implementations only. Do
+not use call_cleanup/2 if you perform side-effects prior to calling that
+will be undone by \arg{Cleanup}. Instead, use setup_call_cleanup/3 with
+an appropriate first argument to perform those side-effects.
 
     \predicate[deprecated]{call_cleanup}{3}{:Goal, +Catcher, :Cleanup}
 Same as \term{setup_call_catcher_cleanup}{true, Goal, Catcher, Cleanup}.
 The same warning as for call_cleanup/2 applies.
+
+    \predicate{undo}{1}{:Goal}
+Add \arg{Goal} to the \jargon{trail}. \arg{Goal} is executed as ignore/1
+on the first opportunity after backtracking to a point before the call
+to \arg{Goal}. This predicate is intended to make otherwise persistent
+changes to the database or created by foreign procedures backtrackable
+if it is possible to define a goal that reverts the effect of the
+initial call.  A typical use case is to define a \jargon{backtrackable
+assert}.
+
+\begin{code}
+b_assertz(Term) :-
+    assertz(Term, Ref),
+    undo(erase(Ref)).
+\end{code}
+
+Without undo/1 we can achieve something similar by leaving a choicepoint
+using the almost portable\footnote{assertz/2 is not part of the ISO
+standard but supported by multiple systems.} alternative below.
+
+\begin{code}
+b_assertz(Term) :-
+    assertz(Term, Ref),
+    (   true
+    ;	erase(Ref),
+	fail
+    ).
+\end{code}
+
+The undo/1 based solution avoids leaving a choice point open and, more
+importantly, keeps undoing the assert also if the choice point from the
+second alternative is pruned.
+
+Currently the following remarks apply
+
+\begin{itemize}
+    \item \arg{Goal} is \emph{copied} when it is registered.
+
+    \item ``First opportunity'' means after backtracking or at the first
+    call port reached.
+
+    \item Multiple undo goals may be scheduled that are executed as a
+    batch.  If multiple goals raise an exception, the most urgent is
+    preserved after all goals have been executed.
+
+    \item It is not allowed for \arg{Goal} to call undo/1.  An attempt
+    to do so results in a \const{permission_error} exception.
+
+    \item Note that an exception that is caught higher in the call stack
+    backtracks and therefore ensures \arg{Goal} is called.
+\end{itemize}
+
+See also snapshot/1 and transaction/1.
 \end{description}
 
 

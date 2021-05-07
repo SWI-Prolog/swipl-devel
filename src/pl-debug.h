@@ -152,6 +152,7 @@
 #define MSG_CALL_RESIDUE_VARS	 151
 #define MSG_SOFTCUT		 152
 #define MSG_WAKEUP		 153
+#define MSG_UNDO		 154
 
 #define MSG_HASH_TABLE_API	 160
 #define MSG_HASH_TABLE_KVS	 161

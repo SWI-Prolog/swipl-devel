@@ -71,7 +71,8 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
     pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
-    pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c)
+    pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
+    pl-undo.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}

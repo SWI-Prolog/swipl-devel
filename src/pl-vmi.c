@@ -1820,6 +1820,15 @@ retry_continue:
 	THROW_EXCEPTION;
       }
     }
+    if ( UNDO_SCHEDULED(LD) )
+    { int rc;
+
+      SAVE_REGISTERS(qid);
+      rc = run_undo_hooks(PASS_LD1);
+      LOAD_REGISTERS(qid);
+      if ( !rc )
+	THROW_EXCEPTION;
+    }
 
     Profile(FR->prof_node = profCall(DEF PASS_LD));
 
