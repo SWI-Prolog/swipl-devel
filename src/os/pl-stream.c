@@ -2559,10 +2559,9 @@ Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...
 { va_list args;
   int rval;
 
-  if (debug_new_output_line)
+  if ( debug_new_output_line && channel )
   { const char *logfmt = "[%s] %s:%d: ";
-    if (!channel)
-      channel = "(unknown)";
+
     debug_new_output_line = 0;
     if (strncmp(channel, "DBG_LEVEL", 9) == 0)
     { channel += 9;
