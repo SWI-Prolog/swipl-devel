@@ -509,9 +509,9 @@ visibleClause__LD(Clause cl, gen_t gen ARG_LD)
   MEMORY_ACQUIRE();
   e = cl->generation.erased;
 
-  if ( unlikely(e == LD->gen_reload) )
+  if ( unlikely(e == LD->reload.generation) )
     return FALSE;
-  if ( unlikely(c == LD->gen_reload) )
+  if ( unlikely(c == LD->reload.generation) )
     return TRUE;
 
   if ( c <= gen && e > gen )

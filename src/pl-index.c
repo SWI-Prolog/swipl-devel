@@ -414,7 +414,7 @@ first_clause_guarded(Word argv, size_t argc, ClauseList clist,
   hash_hints hints;
   ClauseChoice chp = ctx->chp;
 
-#define STATIC_RELOADING() (LD->gen_reload && false(ctx->predicate, P_DYNAMIC))
+#define STATIC_RELOADING() (LD->reload.generation && false(ctx->predicate, P_DYNAMIC))
 
   if ( unlikely(argc == 0) )
     goto simple;			/* TBD: alt supervisor */
@@ -554,7 +554,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 			      &def->impl.clauses,
 			      &ctx
 			      PASS_LD);
-#define CHK_STATIC_RELOADING() (LD->gen_reload && false(def, P_DYNAMIC))
+#define CHK_STATIC_RELOADING() (LD->reload.generation && false(def, P_DYNAMIC))
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
 					 generationFrame(fr)) ||

@@ -338,6 +338,9 @@ bool
 isDefinedProcedure(Procedure proc)
 { Definition def = proc->definition;
 
+  if ( strcmp(predicateName(def), "__aux_maplist/3_=+0/2") == 0 )
+    trap_gdb();
+
   if ( true(def, PROC_DEFINED) )
     succeed;
 
@@ -3359,7 +3362,7 @@ num_visible_clauses(Definition def, atom_t key, gen_t gen ARG_LD)
     count = def->impl.clauses.number_of_rules;
 
   if ( count > 0 &&
-       (LD->gen_reload != GEN_INVALID || true(def, P_DYNAMIC)) )
+       (LD->reload.generation != GEN_INVALID || true(def, P_DYNAMIC)) )
   { ClauseRef c;
 
     if ( !gen )
