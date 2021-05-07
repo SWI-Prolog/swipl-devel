@@ -137,6 +137,11 @@ system:goal_expansion(M:Goal, SicstusM:Goal) :-
 	prolog_load_context(dialect, sicstus4).
 
 
+% SICStus 4 copy_term/2 behaves like SWI copy_term_nat/2.
+user:goal_expansion(copy_term(Term, Copy), copy_term_nat(Term, Copy)) :-
+	prolog_load_context(dialect, sicstus4).
+
+
 %%	nonmember(?Element, ?List) is semidet.
 %
 %	True if Element doesn't unify with any element in List.
