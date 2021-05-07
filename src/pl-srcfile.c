@@ -893,6 +893,7 @@ startReconsultFile(SourceFile sf)
     sf->reload = r;
 
     LD->reload.generation = r->reload_gen;
+    LD->reload.nesting++;
 
     for(cell = sf->procedures; cell; cell = cell->next)
     { Procedure proc = cell->value;
@@ -1594,7 +1595,8 @@ endReconsult(SourceFile sf)
     sf->reload = NULL;
     freeHeap(reload, sizeof(*reload));
 
-    LD->reload.generation = GEN_INVALID;
+    if ( --LD->reload.nesting == 0 )
+      LD->reload.generation = GEN_INVALID;
 
     pl_garbage_collect_clauses();
     if ( sendDelayedEvents(TRUE) < 0 )

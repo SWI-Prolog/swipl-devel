@@ -739,6 +739,7 @@ struct PL_local_data
 
   struct
   { gen_t	generation;		/* reload generation */
+    int		nesting;		/* reload nesting */
   } reload;
 
   struct
