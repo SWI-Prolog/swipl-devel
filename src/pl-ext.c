@@ -407,6 +407,7 @@ DECL_PLIST(wrap);
 DECL_PLIST(event);
 DECL_PLIST(transaction);
 DECL_PLIST(undo);
+DECL_PLIST(error);
 
 void
 initBuildIns(void)
@@ -479,6 +480,7 @@ initBuildIns(void)
   REG_PLIST(event);
   REG_PLIST(transaction);
   REG_PLIST(undo);
+  REG_PLIST(error);
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \

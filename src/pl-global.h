@@ -156,6 +156,8 @@ struct PL_global_data
     int		engines_finished;	/* # engines threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
+    int		errors;			/* Printed error messages */
+    int		warnings;		/* Printed warning messages */
   } statistics;
 
 #ifdef O_PROFILE
@@ -520,6 +522,8 @@ struct PL_local_data
     double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
+    int		errors;			/* Printed error messages */
+    int		warnings;		/* Printed warning messages */
   } statistics;
 
 #ifdef O_GMP

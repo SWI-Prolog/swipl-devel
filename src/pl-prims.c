@@ -5709,6 +5709,10 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
     v->value.i = GD->statistics.indexes.created;
   else if (key == ATOM_indexes_destroyed)
     v->value.i = GD->statistics.indexes.destroyed;
+  else if (key == ATOM_warnings)
+    v->value.i = GD->statistics.warnings;
+  else if (key == ATOM_errors)
+    v->value.i = GD->statistics.errors;
 
   else
     return -1;				/* unknown key */

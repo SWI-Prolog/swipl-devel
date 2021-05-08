@@ -1763,7 +1763,8 @@ print_message_guarded(Level, Term) :-
                 ;   notrace(user:message_hook(Term, Level, Lines))
                 )
             ->  true
-            ;   print_system_message(Term, Level, Lines)
+            ;   '$inc_message_count'(Level),
+                print_system_message(Term, Level, Lines)
             )
         )
     ;   true

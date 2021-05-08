@@ -6256,6 +6256,11 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
     ld->statistics.user_cputime = ThreadCPUTime(ld, CPU_USER);
   else if ( k == ATOM_system_time )
     ld->statistics.system_cputime = ThreadCPUTime(ld, CPU_SYSTEM);
+  else if ( k == ATOM_warnings || k == ATOM_errors )
+  { PL_UNLOCK(L_THREAD);
+    return PL_unify_integer(A3, k == ATOM_warnings ? ld->statistics.warnings
+						   : ld->statistics.errors);
+  }
 
   if ( LD == ld )		/* self: unlock first to avoid deadlock */
   { PL_UNLOCK(L_THREAD);

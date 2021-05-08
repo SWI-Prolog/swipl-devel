@@ -379,11 +379,13 @@ message_queue_property/2 to get the number of queued messages for a
 thread.
 
     \predicate{thread_statistics}{3}{+Id, +Key, -Value}
-Obtains statistical information on thread \arg{Id} as statistics/2
-does in single-threaded applications.  This call supports all keys
-of statistics/2, although only stack sizes, \const{cputime},
-\const{inferences} and \const{epoch} yield different values
-for each thread.%
+Obtains statistical information on thread \arg{Id} as statistics/2 does
+in single-threaded applications. This call supports all keys of
+statistics/2, although only stack sizes, \const{cputime},
+\const{inferences}, \const{epoch}, \const{errors} and \const{warnings}
+yield different values for each thread. For \const{errors} and
+\const{warnings} statistics/2 gives the global process count and this
+predicate gives the counts for the calling thread.%
 	\footnote{There is no portable interface to obtain
 		  thread-specific CPU time and some operating systems
 		  provide no access to this information at all.  On

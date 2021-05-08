@@ -1338,3 +1338,28 @@ PL_get_module_ex(term_t name, Module *m)
 
   succeed;
 }
+
+
+static
+PRED_IMPL("$inc_message_count", 1, inc_message_count, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom_ex(A1, &a) )
+  { if ( a == ATOM_error )
+    { ATOMIC_INC(&GD->statistics.errors);
+      LD->statistics.errors++;
+    } else if ( a == ATOM_warning )
+    { ATOMIC_INC(&GD->statistics.warnings);
+      LD->statistics.warnings++;
+    } /* else ignore other levels */
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+BeginPredDefs(error)
+  PRED_DEF("$inc_message_count", 1, inc_message_count, 0)
+EndPredDefs
