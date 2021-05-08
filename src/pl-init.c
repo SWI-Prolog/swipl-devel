@@ -401,6 +401,14 @@ memarea_limit(const char *s)
 }
 
 
+static int
+on_error_style(const char *s)
+{ return ( strcmp(s, "print") == 0 ||
+	   strcmp(s, "halt") == 0 ||
+	   strcmp(s, "status") == 0 );
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 When detected to run under a  GNU-Emacs   shell  or using M-x run-prolog
 from GNU-Emacs, don't pretend we  can   manipulate  the TTY settings. On
@@ -513,6 +521,8 @@ cleanupPaths(void)
   cleanupStringP(&GD->options.topLevel);
   cleanupStringP(&GD->options.initFile);
   cleanupStringP(&GD->options.saveclass);
+  cleanupStringP(&GD->options.on_error);
+  cleanupStringP(&GD->options.on_warning);
   cleanupStringP(&GD->os.myhome);
 #ifdef __WINDOWS__
   cleanupStringP(&GD->paths.module);
@@ -619,6 +629,8 @@ initDefaultOptions(void)
   GD->options.initFile	       = store_string(systemDefaults.startup);
   GD->options.scriptFiles      = NULL;
   GD->options.saveclass	       = store_string("none");
+  GD->options.on_error	       = store_string("print");
+  GD->options.on_warning       = store_string("warning");
 
   if ( systemDefaults.goal )
     opt_append(&GD->options.goals, systemDefaults.goal);
@@ -782,6 +794,16 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 #endif
       } else if ( (optval=is_longopt(s, "dump-runtime-variables")) )
       { GD->options.config = store_string(optval);
+      } else if ( (optval=is_longopt(s, "on-error")) )
+      { if ( on_error_style(optval) )
+	  GD->options.on_error = store_string(optval);
+	else
+	  return -1;
+      } else if ( (optval=is_longopt(s, "on-warning")) )
+      { if ( on_error_style(optval) )
+	  GD->options.on_warning = store_string(optval);
+	else
+	  return -1;
       } else if ( !compile )
       { argvleft[argcleft++] = argv[0];
       }
@@ -1219,6 +1241,8 @@ usage(void)
     "    -s file                  Script source file\n",
     "    -p alias=path            Define file search path 'alias'\n",
     "    -O                       Optimised compilation\n",
+    "    --on-error=style         One of print, halt or status\n",
+    "    --on-warning=style       One of print, halt or status\n",
     "    --tty[=bool]             (Dis)allow tty control\n",
     "    --packs[=bool]           Do (not) attach add-ons\n",
     "    --signals[=bool]         Do (not) modify signal handling\n",

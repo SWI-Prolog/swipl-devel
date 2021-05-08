@@ -383,6 +383,15 @@ setUnknown(term_t value, atom_t a, Module m)
 
 
 static int
+checkOnError(term_t value, atom_t a, atom_t key)
+{ if ( a == ATOM_print || a == ATOM_halt || a == ATOM_status )
+    return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, key, value);
+}
+
+
+
+static int
 setFileNameCaseHandling(atom_t a)
 { GET_LD
 
@@ -847,6 +856,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       { rval = setRationalSyntax(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
+      } else if ( k == ATOM_on_error || k == ATOM_on_warning )
+      { rval = checkOnError(value, a, k);
       } else if ( k == ATOM_write_attributes )
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
@@ -1487,6 +1498,8 @@ initPrologFlags(void)
   setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
   setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
+  setPrologFlag("on_error", FT_ATOM, GD->options.on_error);
+  setPrologFlag("on_warning", FT_ATOM, GD->options.on_warning);
   setPrologFlag("break_level", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");

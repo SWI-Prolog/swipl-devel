@@ -77,6 +77,8 @@ typedef struct
   bool		traditional;		/* --traditional: no version 7 exts */
   bool		nothreads;		/* --no-threads */
   bool		nosignals;		/* --no-signals */
+  char *	on_error;
+  char *	on_warning;
   int		xpce;			/* --no-pce */
 #ifdef __WINDOWS__
   bool		win_app;		/* --win_app: be Windows application */
