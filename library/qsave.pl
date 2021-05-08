@@ -1257,7 +1257,8 @@ qsave_options(['-c'|T0], Files, Options) :-
 qsave_options([O|T0], Files, [Option|T]) :-
     string_concat(--, Opt, O),
     split_string(Opt, =, '', [NameS|Rest]),
-    atom_string(Name, NameS),
+    split_string(NameS, '-', '', NameParts),
+    atomic_list_concat(NameParts, '_', Name),
     qsave_option(Name, OptName, Rest, Value),
     !,
     Option =.. [OptName, Value],
@@ -1278,7 +1279,7 @@ qsave_option(Name, Name, [], true) :-
     save_option(Name, boolean, _),
     !.
 qsave_option(NoName, Name, [], false) :-
-    atom_concat('no-', Name, NoName),
+    atom_concat('no_', Name, NoName),
     save_option(Name, boolean, _),
     !.
 qsave_option(Name, Name, ValueStrings, Value) :-
