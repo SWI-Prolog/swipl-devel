@@ -1187,6 +1187,12 @@ prolog_message(close_on_abort(Stream)) -->
     [ 'Abort: closed stream ~p'-[Stream] ].
 prolog_message(cancel_halt(Reason)) -->
     [ 'Halt cancelled: ~p'-[Reason] ].
+prolog_message(on_error(halt(Status))) -->
+    { statistics(errors, Errors),
+      statistics(warnings, Warnings)
+    },
+    [ 'Halting with status ~w due to ~D errors and ~D warnings'-
+      [Status, Errors, Warnings] ].
 
 prolog_message(query(QueryResult)) -->
     query_result(QueryResult).
@@ -1764,11 +1770,23 @@ print_message_guarded(Level, Term) :-
                 )
             ->  true
             ;   '$inc_message_count'(Level),
-                print_system_message(Term, Level, Lines)
+                print_system_message(Term, Level, Lines),
+                maybe_halt_on_error(Level)
             )
         )
     ;   true
     ).
+
+maybe_halt_on_error(error) :-
+    current_prolog_flag(on_error, halt),
+    !,
+    halt(1).
+maybe_halt_on_error(warning) :-
+    current_prolog_flag(on_warning, halt),
+    !,
+    halt(1).
+maybe_halt_on_error(_).
+
 
 %!  print_system_message(+Term, +Kind, +Lines)
 %

@@ -4170,7 +4170,29 @@ length(_, Length) :-
 :- '$iso'((halt/0)).
 
 halt :-
-    halt(0).
+    '$exit_code'(Code),
+    (   Code == 0
+    ->  true
+    ;   print_message(warning, on_error(halt(1)))
+    ),
+    halt(Code).
+
+%!  '$exit_code'(Code)
+%
+%   Determine the exit code baed on the `on_error` and `on_warning`
+%   flags.  Also used by qsave_toplevel/0.
+
+'$exit_code'(Code) :-
+    (   (   current_prolog_flag(on_error, status),
+            statistics(errors, Count),
+            Count > 0
+        ;   current_prolog_flag(on_warning, status),
+            statistics(warnings, Count),
+            Count > 0
+        )
+    ->  Code = 1
+    ;   Code = 0
+    ).
 
 
 %!  at_halt(:Goal)

@@ -439,6 +439,14 @@ available as autoload component if it is installed and the system
 can access the graphics.  Using \exam{--pce} load the xpce system
 in user space and \exam{--no-pce} makes it unavailable in the session.
 
+    \cmdlineoptionitem{--on-error}{=style}
+How to handle on errors.  See the Prolog flag \prologflag{on_error}
+for details.
+
+    \cmdlineoptionitem{--on-warning}{=style}
+How to handle on warnings. See the Prolog flag \prologflag{on_warning}
+for details.
+
     \cmdlineoptionitem{--pldoc}{[=port]}
 Start the PlDoc documentation system on a free network port and launch
 the user's browser on \verb$http://localhost:$\arg{port}. If
@@ -1699,6 +1707,21 @@ is intended for debugging unintentional creations of cyclic terms. Note
 that this flag is a global flag modifying fundamental behaviour of
 Prolog. Changing the flag from its default may cause libraries to stop
 functioning properly.
+
+    \prologflagitem{on_error}{atom}{rw}
+Determines how to act on an error printed using print_message/2, i.e.,
+an error that is reported to the user. The possible values are
+\const{print} (default), \const{status} and \const{halt}. Using
+\const{halt} the process halts immediately with status 1. Otherwise
+execution continues.  Using \const{status} halt/0 exits with status
+1 if one or more errors were printed by the process. In \jargon{compile}
+mode (see \cmdlineoption{-c}) the default is \const{status}.  This flag
+can be set from the commandline using \cmdlineoption{--on-error}.
+See also \secref{compilation-messages}.
+
+    \prologflagitem{on_warning}{atom}{rw}
+As \prologflag{on_error}, but for warnings.  The default is always
+\const{print}.  The commandline option is \cmdlineoption{--on-warning}.
 
     \prologflagitem{open_shared_object}{bool}{r}
 If true, open_shared_object/2 and friends are implemented, providing

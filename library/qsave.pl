@@ -97,6 +97,10 @@ save_option(verbose,     boolean,
             "Be more verbose about the state creation").
 save_option(undefined,   oneof([ignore,error]),
             "How to handle undefined predicates").
+save_option(on_error,    oneof([print,halt,status]),
+            "How to handle errors").
+save_option(on_warning,  oneof([print,halt,status]),
+            "How to handle warnings").
 
 term_expansion(save_pred_options,
                (:- predicate_options(qsave_program/2, 2, Options))) :-
@@ -1243,9 +1247,23 @@ glob_match(Pattern, File) :-
 qsave_toplevel :-
     current_prolog_flag(os_argv, Argv),
     qsave_options(Argv, Files, Options),
+    set_on_error(Options),
     '$cmd_option_val'(compileout, Out),
     user:consult(Files),
+    maybe_exit_on_errors,
     qsave_program(Out, user:Options).
+
+set_on_error(Options) :-
+    option(on_error(_), Options), !.
+set_on_error(_Options) :-
+    set_prolog_flag(on_error, status).
+
+maybe_exit_on_errors :-
+    '$exit_code'(Code),
+    (   Code =\= 0
+    ->  halt
+    ;   true
+    ).
 
 qsave_options([], [], []).
 qsave_options([--|_], [], []) :-

@@ -3000,9 +3000,13 @@ the Prolog flag \prologflag{verbose} to \const{silent}.
 Message from library(debug).  See debug/3.
 
     \termitem{error}{}
-The message indicates an erroneous situation.  This kind is used to
-print uncaught exceptions of type \term{error}{Formal, Context}. See
-section introduction (\secref{printmsg}).
+The message indicates an erroneous situation. This kind is used to print
+uncaught exceptions of type \term{error}{Formal, Context}. See section
+introduction (\secref{printmsg}). An error message causes the process to
+halt with status 1 if the Prolog flag \prologflag{on_error} is set to
+\const{halt} and the message is not intercepted by message_hook/3.  Not
+intercepted error messages increment the \const{errors} key for
+statistics/2.
 
     \termitem{help}{}
 User requested help message, for example after entering `h' or `?' to
@@ -3025,7 +3029,11 @@ Messages from the (command line) tracer.
 
     \termitem{warning}{}
 The message indicates something dubious that is not considered fatal.
-For example, discontiguous predicates (see discontiguous/1).
+For example, discontiguous predicates (see discontiguous/1). A warning
+message causes the process to halt with status 1 if the Prolog flag
+\prologflag{on_warning} is set to \const{halt} and the message is not
+intercepted by message_hook/3. Not intercepted warning messages
+increment the \const{warnings} key for statistics/2.
 \end{description}
 
 The predicate print_message/2 first translates the \arg{Term} into a
@@ -10539,8 +10547,10 @@ and `a'.  See also \secref{urgentexceptions}.
 \end{code}
 
     \predicate[ISO]{halt}{0}{}
-Terminate Prolog execution.  This is the same as \term{halt}{0}. See
-halt/1 for details.
+Terminate Prolog execution with default exit code using halt/1. The
+default exit code is normally 0, but can be 1 if one of the Prolog
+flags \prologflag{on_error} or \prologflag{on_warning} is set to
+\const{status} and there have been errors or warnings.
 
     \predicate[ISO]{halt}{1}{+Status}
 Terminate Prolog execution with \arg{Status}. This predicate calls
