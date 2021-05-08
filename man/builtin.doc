@@ -1419,24 +1419,14 @@ between files must be a proper tree.
 This section discusses compiling files for the first time. For
 reloading, see \secref{loadrunningcode}.
 
-In older versions, compilation was thread-safe due to a global
-\jargon{lock} in load_files/2 and the code dealing with
-\jargon{autoloading} (see \secref{autoload}). Besides unnecessary
-stalling when multiple threads trap unrelated undefined predicates,
-this easily leads to deadlocks, notably if threads are started from an
-initialization/1 directive.\footnote{Although such goals are started
-after loading the file in which they appear, the calling thread is still
-likely to hold the `load' lock because it is compiling the file from
-which the file holding the directive is loaded.}
-
-Starting with version 5.11.27, the autoloader is no longer locked and
-multiple threads can compile files concurrently. This requires special
+Multiple threads can compile files concurrently. This requires special
 precautions only if multiple threads wish to load the same file at the
-same time. Therefore, load_files/2 checks automatically whether some other
-thread is already loading the file. If not, it starts loading the file.
-If another thread is already loading the file, the thread blocks until
-the other thread finishes loading the file. After waiting, and if the
-file is a module file, it will make the public predicates available.
+same time. Therefore, load_files/2 checks whether some other thread is
+already loading the file. If not, it starts loading the file. If a
+thread detects that another thread is already loading the file the
+thread blocks until the other thread finishes loading the file. After
+waiting, and if the file is a module file, it imports the exported
+predicates and operators from the module.
 
 Note that this schema does not prevent deadlocks under all situations.
 Consider two mutually dependent (see \secref{depload}) module files $A$
