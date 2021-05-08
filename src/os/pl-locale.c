@@ -669,26 +669,32 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
   PL_locale *def, *new = NULL;
   char *lname;
 
-  if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|CVT_ATOM|REP_MB) )
-  { const char *old;
-
-    PL_LOCK(L_LOCALE);
-    if ( (old=setlocale(LC_NUMERIC, lname)) )
-    { new = new_locale(NULL);
-      setlocale(LC_NUMERIC, old);
-    }
-    PL_UNLOCK(L_LOCALE);
-    if ( !old )
-    { if ( errno == ENOENT )
-	return PL_existence_error("locale", A2);
-      else
-	return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
-    }
-  } else
-  { if ( !getLocaleEx(A2, &def) )
-      return FALSE;
-    new = new_locale(def);
+  if ( getLocale(A2, &def) )
+  { new = new_locale(def);
     releaseLocale(def);
+  } else
+  { if ( PL_get_chars(A2, &lname, CVT_LIST|CVT_STRING|CVT_ATOM|REP_MB) )
+    { if ( strcmp(lname, "default") == 0 )
+      { new = new_locale(NULL);
+      } else
+      { const char *old;
+
+	PL_LOCK(L_LOCALE);
+	if ( (old=setlocale(LC_NUMERIC, lname)) )
+	{ new = new_locale(NULL);
+	  setlocale(LC_NUMERIC, old);
+	}
+	PL_UNLOCK(L_LOCALE);
+	if ( !old )
+	{ if ( errno == ENOENT )
+	    return PL_existence_error("locale", A2);
+	  else
+	    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+	}
+      }
+    } else
+    { return getLocaleEx(A2, &def);
+    }
   }
 
   if ( new )
