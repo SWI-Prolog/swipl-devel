@@ -1392,7 +1392,71 @@ content is first wiped and gradually rebuilt, while other threads see
 an \jargon{atomic} update from the old file content to the
 new.\footnote{This feature was implemented by Keri Harris.}
 
-\subsubsection{Compilation of mutually dependent code} \label{sec:depload}
+
+\subsubsection{Errors and warnings during compilation}
+\label{sec:compilation-messages}
+
+Errors and warnings reported while compiling a file are reported using
+print_message/2. Typical errors are syntax errors, errors during macro
+expansion by term_expansion/2 and goal_expansion/2, compiler errors such
+as illegal clauses or an attempt to redefine a system predicate and
+errors caused by executing \jargon{directives}, notably using
+initialization/1 and initialization/2.
+
+Merely reporting error messages and warnings is typically desirable for
+interactive usage. Non-interactive applications often require to be
+notified of such issues, typically using the \jargon{exit code} of the
+process. We can distinguish two types of errors and warnings: (1) those
+resulting from loading an invalid program and (2) messages that result
+from running the program.  A typical example is user code that wishes
+to try something and in case of an error report this and continue.
+
+\begin{code}
+    ...,
+    E = error(_,_),
+    catch(do_something, E,
+	  print_message(error, E)),
+    ...
+\end{code}
+
+User code may be (and often is) started from directives, while running
+user code may involve compilation due to autoloading, loading of data
+files, etc. As a result, it is unclear whether an error message should
+merely be printed, should result in a non-zero exit status at the end or
+should immediately terminate the process.
+
+The default behaviour is defined by the Prolog flags
+\prologflag{on_error} and \prologflag{on_warning}. It can be fine tuned
+by defining the \jargon{hook predicate} message_hook/3. The compiler
+calls print_message/2 using the level \const{silent} and the message
+below if errors or warnings where printed during the execution of
+load_files/2.
+
+\begin{description}
+    \termitem{load_file_errors}{File, Errors, Warnings}
+Here, \arg{File} is the raw file specification handed to load_files/2,
+i.e., \exam{'myfile.pl'} or \exam{library(lists)}, \arg{Errors} is the
+number of errors printed while loading and \arg{Warnings} is the number
+of warnings printed while loading.   Note that these counts include
+messages from (initialization) directives.
+\end{description}
+
+This allows the user to fine tune the behaviour on errors and, for
+example, halt the process on a non-zero error count right after
+loading the file wth errors using the code below.
+
+\begin{code}
+:- multifile user:message_hook/3.
+
+user:message_hook(load_file_errors(_File, Errors, _Warnings),
+		  _Level, _Lines) :-
+    Errors > 0,
+    halt(1).
+\end{code}
+
+
+\subsubsection{Compilation of mutually dependent code}
+\label{sec:depload}
 
 Large programs are generally split into multiple files. If file $A$
 accesses predicates from file $B$ which accesses predicates from file
@@ -1414,7 +1478,8 @@ between loaded files can still be arbitrary, but the consult relations
 between files must be a proper tree.
 
 
-\subsubsection{Compilation with multiple threads} \label{sec:mtload}
+\subsubsection{Compilation with multiple threads}
+\label{sec:mtload}
 
 This section discusses compiling files for the first time. For
 reloading, see \secref{loadrunningcode}.
