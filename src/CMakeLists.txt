@@ -521,10 +521,12 @@ if(MULTI_THREADED)
 endif()
 
 add_test(NAME swipl:basic
-	 COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
+	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	 -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
   add_test(NAME swipl:${test}
-	   COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
+	   COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	   -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
 # Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
