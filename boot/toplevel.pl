@@ -747,6 +747,7 @@ setup_interactive :-
 
 '$compile_' :-
     '$load_system_init_file',
+    catch(setup_colors, _, true),
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
