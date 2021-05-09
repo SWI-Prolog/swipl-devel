@@ -219,14 +219,13 @@ endif()
 
 add_custom_target(
     vmi-metadata
-    DEPENDS pl-vmi.ih.stamp
+    DEPENDS vmi-metadata.h
 )
 add_custom_command(
-    COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
-    COMMAND ${CMAKE_COMMAND} -E touch pl-vmi.ih.stamp
-    OUTPUT pl-vmi.ih.stamp
-    DEPENDS ${PROG_MKVMI} pl-vmi.c pl-vmi.ih
-    COMMENT "Generating VMI metadata into pl-vmi.ih"
+    COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT vmi-metadata.h
+    DEPENDS ${PROG_MKVMI} pl-vmi.c
+    COMMENT "Generating VMI metadata into vmi-metadata.h"
     VERBATIM
 )
 
