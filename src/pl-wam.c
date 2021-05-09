@@ -2981,11 +2981,15 @@ typedef struct register_file
 #define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
 #define COMMA_TYPE_ARG(n,at,an) , at an
 #define TYPE_ARG_SEMI(n,at,an)	at an ;
+#define VMH_ARGS(n) A_PASTE(VMH_ARGS, VMH_ARGCOUNT(n))(n, (VMH_ARGTYPES(n)), (VMH_ARGNAMES(n)), TYPE_ARG_SEMI)
 
 /* Define struct types for all the helper argument lists */
-#define _VMH(Name, na, at, an)		struct helper_args_ ## Name \
-					{ VMH_ARGS ## na (Name, at, an, TYPE_ARG_SEMI) };
-#include "pl-vmi.ih"
+#define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
+
+FOREACH_VMH(T_EMPTY,
+  ,VMH_ARGSTRUCT, { ,VMH_ARGS, };
+)
+
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
 #undef _VMH_PROLOGUE
 #define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
@@ -2994,11 +2998,11 @@ typedef struct register_file
 #undef PC
 #define HELPER_ARGS(n)			__args
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
-#define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, struct helper_args_ ## Name __args)
+#define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
 #define _NEXT_INSTRUCTION		return PC
 #define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
 #define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		struct helper_args_ ## n __args = {__VA_ARGS__}; (void)__args; \
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__}; (void)__args; \
 					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
@@ -3010,15 +3014,14 @@ typedef struct register_file
 #define _VMI_GOTO_CODE(c)	PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
 
 /* Declare prototypes for all VMI/VMH functions */
-#define _VMI(args...) _VMI_DECLARATION(args);
-#define _VMH(args...) _VMH_DECLARATION(args);
-#include "pl-vmi.ih"
+FOREACH_VMIDECL_CALL(T_SEMICOLON, _VMI_DECLARATION);
+FOREACH_VMHDECL_CALL(T_SEMICOLON, _VMH_DECLARATION);
 
 /* Define the jump table with all the function addresses */
 static vmi_instr jmp_table[] =
-{
-#define _VMI(Name, ...) &instr_ ## Name,
-#include "pl-vmi.ih"
+{ FOREACH_VMI(T_COMMA,
+    &,VMI_IDENT,
+  ),
   NULL
 };
 
@@ -3038,7 +3041,7 @@ static vmi_instr jmp_table[] =
 #undef NEXT_INSTRUCTION
 #undef VMH_GOTO
 #define NEXT_INSTRUCTION (void)0
-#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, (struct helper_args_ ## n){})
+#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, (VMH_ARGSTRUCT(n)){})
 
 #if VMI_USE_REGISTER_VARIABLES
 # undef LD
@@ -3049,8 +3052,8 @@ static vmi_instr jmp_table[] =
 
 #define HELPER_ARGS(n)			helper_args.n
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
-#define _VMH_GOTO(n,args...)		struct helper_args_ ## n __args = {args}; \
-					helper_args.n = __args; \
+#define _VMH_GOTO(n,args...)		VMH_ARGSTRUCT(n) __args = {args}; \
+					HELPER_ARGS(n) = __args; \
 					goto helper_ ## n;
 #define _SOLUTION_RETURN		return
 
@@ -3095,9 +3098,10 @@ PL_next_solution(qid_t qid)
 
 #else /* VMI_FUNCTIONS */
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
-  union {
-#define _VMH(Name, ...) struct helper_args_ ## Name Name;
-#include "pl-vmi.ih"
+  union
+  { FOREACH_VMH(T_EMPTY,
+      ,VMH_ARGSTRUCT, ,VMH_NAME,;
+    )
   } helper_args;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3111,7 +3115,14 @@ pl-comp.c
 
 
 #if VMCODE_IS_ADDRESS
-#include "pl-jumptable.ic"
+#undef VMI_IDENT
+#define VMI_IDENT(n) n ## _LBL
+  static void *jmp_table[] =
+  { FOREACH_VMI(T_COMMA,
+      &&,VMI_IDENT,
+    ),
+    NULL
+  };
 #else /* VMCODE_IS_ADDRESS */
 code thiscode;
 #endif /* VMCODE_IS_ADDRESS */
