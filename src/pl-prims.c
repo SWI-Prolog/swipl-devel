@@ -1405,7 +1405,6 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     t = valTermRef(wrapped);
 
     DEBUG(CHK_SECURE, checkStacks(NULL));
-    startCritical;
     switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
     { case TRUE:
 	if ( tTop + 2*count > tMax )
@@ -1418,8 +1417,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
       default:
 	unscan_shared(t PASS_LD);
 	PL_discard_foreign_frame(fid);
-	if ( !endCritical ||
-	     !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
+	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	  return FALSE;
 	continue;
     }
@@ -1432,9 +1430,6 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
   restore_shared_functors(valTermRef(vars) PASS_LD);
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));
-
-  if ( !endCritical )
-    return FALSE;
 
   _PL_get_arg(1, wrapped, wrapped);
   return ( PL_unify(template, wrapped) &&
@@ -3193,7 +3188,6 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
   term_t v0   = PL_new_term_refs(0);
   size_t count;
 
-  startCritical;
   initvisited(PASS_LD1);
   initTermAgenda(&agenda, 1, valTermRef(t));
   count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
@@ -3219,8 +3213,6 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
     count = o;
   }
   unvisit_and_unfirst(PASS_LD1);
-  if ( !endCritical )
-    return TV_EXCEPTION;
 
   *vp = v0;
   return count;
@@ -3463,7 +3455,6 @@ subsumes(term_t general, term_t specific ARG_LD)
        foreignWakeup(ex PASS_LD) )
   { int rc = TRUE;
 
-    startCritical;
     initvisited(PASS_LD1);
     for(i=0; i<n; i++)
     { Word p = valTermRef(v0+i);
@@ -3475,8 +3466,6 @@ subsumes(term_t general, term_t specific ARG_LD)
       }
     }
     unvisit(PASS_LD1);
-    if ( !endCritical )
-      return FALSE;
     return rc;
   }
 
@@ -3603,12 +3592,9 @@ PRED_IMPL("$free_variable_set", 3, free_variable_set, 0)
     size_t n;
     atom_t mname = (atom_t)0;
 
-    startCritical;
     initvisited(PASS_LD1);
     n = free_variables_loop(valTermRef(A1), &mname, goal PASS_LD);
     unvisit(PASS_LD1);
-    if ( !endCritical )
-      return FALSE;
     if ( n == TV_NOSPACE )
     { PL_reset_term_refs(goal);
       if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )

@@ -1381,12 +1381,10 @@ assertProcedure(Procedure proc, Clause clause, ClauseRef where ARG_LD)
 
 bool
 abolishProcedure(Procedure proc, Module module)
-{ GET_LD
-  Definition def = proc->definition;
+{ Definition def = proc->definition;
 
   DEBUG(MSG_PROC, Sdprintf("abolishProcedure(%s)\n", predicateName(def)));
 
-  startCritical;
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { Definition ndef	     = allocHeapOrHalt(sizeof(*ndef));
@@ -1406,8 +1404,6 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, TRUE);
   } else if ( true(def, P_THREAD_LOCAL) )
   { UNLOCKDEF(def);
-    if ( !endCritical )
-      return FALSE;
     return PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
 		    ATOM_modify, ATOM_thread_local_procedure, proc);
   } else				/* normal Prolog procedure */
@@ -1419,7 +1415,7 @@ abolishProcedure(Procedure proc, Module module)
   DEBUG(CHK_SECURE, checkDefinition(def));
   UNLOCKDEF(def);
 
-  return endCritical;
+  return TRUE;
 }
 
 
