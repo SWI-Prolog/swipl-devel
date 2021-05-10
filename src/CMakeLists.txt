@@ -448,7 +448,7 @@ else()
   add_custom_target(pgo_data)
 endif()
 
-set(PGO_TARGETS swipl libswipl)
+set(PGO_TARGETS swipl swiplobjs libswipl)
 
 if(PROFILE_GUIDED_OPTIMIZATION)
   if(PROFILE_GUIDED_OPTIMIZATION STREQUAL "GENERATE")
