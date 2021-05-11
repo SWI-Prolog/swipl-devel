@@ -1127,7 +1127,7 @@ pprint_wrapped(Out, Dict, _, Options) :-
     format(Out, '}', []).
 pprint_wrapped(Out, Term, _, Options) :-
     Term =.. [Name|Args],
-    format(Out, '~q(', Name),
+    format(Out, '~q(', [Name]),
     line_position(Out, Indent),
     pprint_args(Args, Indent, Out, Options),
     format(Out, ')', []).
