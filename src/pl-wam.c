@@ -2905,8 +2905,6 @@ typedef struct register_file
 # define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
   struct foreign_context fndet_context;	/* foreign function non-deterministic context */
 # define     FNDET_CONTEXT (REGISTERS.fndet_context)
-  exception_frame throw_env;		/* PL_thow() environment */
-# define     THROW_ENV	(REGISTERS.throw_env)
 #ifdef O_DEBUG
   int	     throwed_from_line;		/* Debugging: line we came from */
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
@@ -3087,8 +3085,9 @@ static vmi_instr jmp_table[] =
 int
 PL_next_solution(qid_t qid)
 { GET_LD
-  register_file REGISTERS = {.qid = qid};		/* Active registers */
-  Code PC;						/* program counter */
+  register_file REGISTERS = {.qid = qid};	/* Active registers */
+  Code PC;					/* program counter */
+  exception_frame THROW_ENV;			/* PL_thow() environment */
 
 #if VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
