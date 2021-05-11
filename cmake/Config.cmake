@@ -391,6 +391,9 @@ endif()
 if(SWIPL_SHARED_LIB)
   set(O_SHARED_KERNEL 1)
 endif()
+if(VMI_FUNCTIONS)
+  set(O_VMI_FUNCTIONS 1)
+endif()
 
 ################
 # Stuff we do not need to define is below such that findmacros.pl does
