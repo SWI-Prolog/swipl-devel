@@ -2405,7 +2405,7 @@ VMI(I_EXITQUERY, 0, 0, ())
 #endif
 
   QF->foreign_frame = PL_open_foreign_frame();
-#if !VMI_FUNCTIONS
+#if !O_VMI_FUNCTIONS
   assert(LD->exception.throw_environment == &THROW_ENV);
   LD->exception.throw_environment = THROW_ENV.parent;
 #endif
@@ -2457,7 +2457,7 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
 
   if ( isTaggedInt(*p) )
   {
-#if !VMI_FUNCTIONS
+#if !O_VMI_FUNCTIONS
     assert(LD->exception.throw_environment == &THROW_ENV);
     LD->exception.throw_environment = THROW_ENV.parent;
 #endif
@@ -5421,7 +5421,7 @@ again:
 	    Sdprintf("\n");
 	  });
 
-#if !VMI_FUNCTIONS
+#if !O_VMI_FUNCTIONS
     assert(LD->exception.throw_environment == &THROW_ENV);
     LD->exception.throw_environment = THROW_ENV.parent;
 #endif
@@ -6870,7 +6870,7 @@ next_choice:
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
-#if !VMI_FUNCTIONS
+#if !O_VMI_FUNCTIONS
       assert(LD->exception.throw_environment == &THROW_ENV);
       LD->exception.throw_environment = THROW_ENV.parent;
 #endif

@@ -2853,7 +2853,7 @@ typedef enum
 } unify_mode;
 
 /* HACK: uncomment the following line to enable function mode */
-/* #define VMI_FUNCTIONS 1 */
+/* #define O_VMI_FUNCTIONS 1 */
 /* #define VMI_REGISTER_VARIABLES 1 */
 /* #define VMI_USE_REGISTER_VARIABLES 1 */
 /* registers here MUST be in the list of callee-saved registers! */
@@ -2862,7 +2862,7 @@ typedef enum
 
 #include "pentium.h"
 
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
 struct register_file;
 #define VMI_RETTYPE Code
 # if VMI_USE_REGISTER_VARIABLES
@@ -2909,7 +2909,7 @@ typedef struct register_file
   int	     throwed_from_line;		/* Debugging: line we came from */
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
 #endif
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
   int        solution_ret;		/* return value for PL_next_solution, when exit_vm_buf is used */
 # define     SOLUTION_RET		(REGISTERS.solution_ret)
   jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
@@ -2952,7 +2952,7 @@ typedef struct register_file
 #define VMH_GOTO(...)		do { _VMH_GOTO(__VA_ARGS__); } while(0)
 #define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
 #define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
-#define SEPARATE_VMI		(void)0 /* only needed for !VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
+#define SEPARATE_VMI		(void)0 /* only needed for !O_VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
 
 /* By default, instruction and helper prologue/epilogue are empty */
 #define _VMI_PROLOGUE(Name,f,na,a)	;
@@ -2989,7 +2989,7 @@ FOREACH_VMH(T_EMPTY,
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
 #undef _VMH_PROLOGUE
 #define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
 
 #define HELPER_ARGS(n)			__args
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
@@ -3043,7 +3043,7 @@ static vmi_instr jmp_table[] =
 # define LD LOCAL_LD
 #endif
 
-#else /* VMI_FUNCTIONS */
+#else /* O_VMI_FUNCTIONS */
 
 #define HELPER_ARGS(n)			helper_args.n
 #define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
@@ -3080,7 +3080,7 @@ static vmi_instr jmp_table[] =
 #define _VMI_GOTO_CODE(c)		thiscode = (c); goto resumebreak;
 
 #endif /* VMCODE_IS_ADDRESS */
-#endif /* VMI_FUNCTIONS */
+#endif /* O_VMI_FUNCTIONS */
 
 int
 PL_next_solution(qid_t qid)
@@ -3089,10 +3089,10 @@ PL_next_solution(qid_t qid)
   Code PC;					/* program counter */
   exception_frame THROW_ENV;			/* PL_thow() environment */
 
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
 
-#else /* VMI_FUNCTIONS */
+#else /* O_VMI_FUNCTIONS */
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
   union
   { FOREACH_VMH(T_EMPTY,
@@ -3123,7 +3123,7 @@ pl-comp.c
 code thiscode;
 #endif /* VMCODE_IS_ADDRESS */
 
-#endif /* VMI_FUNCTIONS */
+#endif /* O_VMI_FUNCTIONS */
 
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
@@ -3154,7 +3154,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
   if (setjmp(EXIT_VM_BUF) != 0)
   { // LD->vmi_registers = old_registers;
     assert(LD->exception.throw_environment == &THROW_ENV);
@@ -3167,7 +3167,7 @@ depart_continue() to do the normal thing or to the backtrack point.
   __reg_registers = registers;
   __reg_ld = LD;
 # endif
-#endif /*VMI_FUNCTIONS*/
+#endif /*O_VMI_FUNCTIONS*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Check for exceptions raised by foreign code.  PL_throw() uses longjmp()
@@ -3229,7 +3229,7 @@ will  cause  the  next  instruction  to  be  interpreted.   All  machine
 registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#if VMI_FUNCTIONS
+#if O_VMI_FUNCTIONS
   for (;;)
   { DbgPrintInstruction(FR, PC);
 #if VMI_REGISTER_VARIABLES && !VMI_USE_REGISTER_VARIABLES
@@ -3240,7 +3240,7 @@ initialised properly.
 #endif
     PC = VMI_ADDR(*PC)(VMI_ARG_PASS);
   }
-#else /* VMI_FUNCTIONS */
+#else /* O_VMI_FUNCTIONS */
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
   DbgPrintInstruction(FR, PC);
@@ -3254,7 +3254,7 @@ resumebreak:
 #include "pl-vmi.c"
   }
 
-#endif /* VMI_FUNCTIONS */
+#endif /* O_VMI_FUNCTIONS */
 
   assert(0);
   return FALSE;
