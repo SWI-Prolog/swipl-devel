@@ -3391,6 +3391,7 @@ VMI(S_VIRGIN, 0, 0, ())
     NEXT_INSTRUCTION;
   } else				/* TBD: temporary */
   { assert(0);
+    FRAME_FAILED;			/* avoid compiler warning */
   }
 }
 END_VMI
