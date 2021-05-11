@@ -2143,7 +2143,7 @@ clear_frame_vars(LocalFrame target)
 	{ PC = ch->value.pc;
 	  DEBUG(0,
 		{ Code codes = fr->clause->value.clause->codes;
-		  assert(PC < &codes[codes[-1]])
+		  assert(PC < &codes[codes[-1]]);
 		});
 	} else
 	  PC = NULL;
