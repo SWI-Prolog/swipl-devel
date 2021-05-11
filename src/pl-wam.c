@@ -3157,6 +3157,8 @@ depart_continue() to do the normal thing or to the backtrack point.
 #if VMI_FUNCTIONS
   if (setjmp(EXIT_VM_BUF) != 0)
   { // LD->vmi_registers = old_registers;
+    assert(LD->exception.throw_environment == &THROW_ENV);
+    LD->exception.throw_environment = THROW_ENV.parent;
     return SOLUTION_RET;
   }
 
