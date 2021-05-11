@@ -2882,7 +2882,11 @@ register PL_local_data_t *__reg_ld asm(LD_REGISTER);
 /* All the registers used in PL_next_solution et al; there will always be a
  * variable or macro called REGISTERS with the current active registers */
 typedef struct register_file
-{ qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
+{ unify_mode umode;			/* Unification mode */
+# define     UMODE	(REGISTERS.umode)
+  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
+# define     SLOW_UNIFY	(REGISTERS.slow_unify)
+  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
 # define     QID	(REGISTERS.qid)
   QueryFrame qf;			/* Query frame */
 # define     QF		(REGISTERS.qf)
@@ -2895,18 +2899,14 @@ typedef struct register_file
 # define     ARGP	(REGISTERS.argp)
   Definition def;			/* definition of current procedure */
 # define     DEF	(REGISTERS.def)
-  unify_mode umode;			/* Unification mode */
-# define     UMODE	(REGISTERS.umode)
-  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
-# define     SLOW_UNIFY	(REGISTERS.slow_unify)
-  exception_frame throw_env;		/* PL_thow() environment */
-# define     THROW_ENV	(REGISTERS.throw_env)
   fid_t      ffr_id;			/* foreign function id */
 # define     FFR_ID	(REGISTERS.ffr_id)
-  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
-# define     FNDET_CONTEXT (REGISTERS.fndet_context)
   ar_context pl_ar_ctx;
 # define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
+  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
+# define     FNDET_CONTEXT (REGISTERS.fndet_context)
+  exception_frame throw_env;		/* PL_thow() environment */
+# define     THROW_ENV	(REGISTERS.throw_env)
 #ifdef O_DEBUG
   int	     throwed_from_line;		/* Debugging: line we came from */
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
@@ -2972,7 +2972,7 @@ typedef struct register_file
 /* Helper macros for rendering VMH arguments */
 #define HEAD(h, ...) h
 #define TAIL(_, t...) (t)
-#define VMH_ARGS0(n,at,an,f,asep...) 
+#define VMH_ARGS0(n,at,an,f,asep...)
 #define VMH_ARGS1(n,at,an,f,asep...) f(n, HEAD at, HEAD an)
 #define VMH_ARGS2(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS1(n, TAIL at, TAIL an, f, asep)
 #define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
