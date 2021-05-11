@@ -122,14 +122,6 @@ Virtual machine instruction names.  Prefixes:
   S_    Supervisor instructions.  See pl-supervisor.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if VMI_FUNCTIONS
-#define DECL_INDIRECT struct word_and_Code wC;
-#define globalIndirectFromCode(pPC) (wC=VM_globalIndirectFromCode(*(pPC) PASS_LD), *(pPC) = wC.code, wC.word)
-#define equalIndirectFromCode(a,pPC) (wC=VM_equalIndirectFromCode((a),*(pPC) PASS_LD), *(pPC) = wC.code, wC.word)
-#else
-#define DECL_INDIRECT 
-#endif
-
 #define FASTCOND_FAILED \
 	{ if ( !LD->fast_condition )   \
 	  { BODY_FAILED;	       \
@@ -692,24 +684,27 @@ END_VMI
 
 VMI(H_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
-  DECL_INDIRECT
 
   IF_WRITE_MODE_GOTO(B_STRING);
 
   deRef2(ARGP, k);
   if ( canBind(*k) )
-  { word c;
-    size_t sz = gsizeIndirectFromCode(PC);
+  { size_t sz = gsizeIndirectFromCode(PC);
 
     ENSURE_GLOBAL_SPACE(sz, deRef2(ARGP, k));
-    c = globalIndirectFromCode(&PC);
-    bindConst(k, c);
+    struct word_and_Code retval = VM_globalIndirectFromCode(PC PASS_LD);
+    PC = retval.code;
+    bindConst(k, retval.word);
     ARGP++;
     NEXT_INSTRUCTION;
   }
-  if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
-  { ARGP++;
-    NEXT_INSTRUCTION;
+  if ( isIndirect(*k) )
+  { struct word_and_Code retval = VM_equalIndirectFromCode(*k, PC PASS_LD);
+    if ( retval.word )
+    { PC = retval.code;
+      ARGP++;
+      NEXT_INSTRUCTION;
+    }
   }
   CLAUSE_FAILED;
 }
@@ -1123,10 +1118,11 @@ END_VMI
 
 VMI(B_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { size_t sz = gsizeIndirectFromCode(PC);
-  DECL_INDIRECT
 
   ENSURE_GLOBAL_SPACE(sz, (void)0);
-  *ARGP++ = globalIndirectFromCode(&PC);
+  struct word_and_Code retval = VM_globalIndirectFromCode(PC PASS_LD);
+  PC = retval.code;
+  *ARGP++ = retval.word;
   NEXT_INSTRUCTION;
 }
 END_VMI
@@ -5643,11 +5639,11 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
       } else
       { Clause cl;
         int rc;
-  
+
         if ( fd->functor == FUNCTOR_xpceref2 &&
 	     !checkCallAtContextInstantiation(a PASS_LD) )
 	  THROW_EXCEPTION;
-  
+
         lTop = NFR;
         setNextFrameFlags(NFR, FR);
         rc = compileClause(&cl, NULL, a, PROCEDURE_dcall1, module, 0, 0 PASS_LD);
@@ -5656,7 +5652,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
         if ( rc == LOCAL_OVERFLOW )
         { size_t room = roomStack(local);
 	  term_t lTopH = consTermRef(lTop);
-  
+
 	  lTop = (LocalFrame)argFrameP(NFR, 1);
 	  SAVE_REGISTERS(QID);
 	  rc = growLocalSpace__LD(room*2, ALLOW_SHIFT PASS_LD);
@@ -5668,7 +5664,7 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
 	  }
 	  VMI_GOTO(I_USERCALL0);
         }
-  
+
         DEF		  = NFR->predicate;
         DEBUG(CHK_SECURE, assert(DEF == PROCEDURE_dcall1->definition));
         NFR->parent	  = FR;
@@ -5682,11 +5678,11 @@ VMH(i_usercall_common, 3, (Word, int, bool), (a, callargs, is_call0))
         setGenerationFrame(NFR);
 #endif
         PC = cl->codes;
-  
+
         enterDefinition(DEF);
         environment_frame = FR = NFR;
         ARGP = argFrameP(lTop, 0);
-  
+
         NEXT_INSTRUCTION;
       }
     }
@@ -6476,21 +6472,24 @@ VMI(T_TRY_STRING, 0, VM_DYNARGC, (CA1_JUMP,CA1_STRING))
 END_VMI
 VMI(T_STRING, 0, VM_DYNARGC, (CA1_STRING))
 { Word k;
-  DECL_INDIRECT
 
   deRef2(TrieCurrentP, k);
   if ( canBind(*k) )
-  { word c;
-    size_t sz = gsizeIndirectFromCode(PC);
+  { size_t sz = gsizeIndirectFromCode(PC);
 
     ENSURE_GLOBAL_SPACE(sz, deRef2(TrieCurrentP, k));
-    c = globalIndirectFromCode(&PC);
-    bindConst(k, c);
+    struct word_and_Code retval = VM_globalIndirectFromCode(PC PASS_LD);
+    PC = retval.code;
+    bindConst(k, retval.word);
     TrieNextArg();
     NEXT_INSTRUCTION;
-  } else if ( isIndirect(*k) && equalIndirectFromCode(*k, &PC) )
-  { TrieNextArg();
-    NEXT_INSTRUCTION;
+  } else if ( isIndirect(*k) )
+  { struct word_and_Code retval = VM_equalIndirectFromCode(*k, PC PASS_LD);
+    if ( retval.word )
+    { PC = retval.code;
+      TrieNextArg();
+      NEXT_INSTRUCTION;
+    }
   }
 
   CLAUSE_FAILED;
