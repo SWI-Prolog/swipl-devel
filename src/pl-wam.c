@@ -2893,8 +2893,6 @@ typedef struct register_file
 # define     NFR	(REGISTERS.nfr)
   Word       argp;			/* current argument pointer */
 # define     ARGP	(REGISTERS.argp)
-  Code       pc;			/* program counter */
-# define     PC		(REGISTERS.pc)
   Definition def;			/* definition of current procedure */
 # define     DEF	(REGISTERS.def)
   unify_mode umode;			/* Unification mode */
@@ -2995,7 +2993,6 @@ FOREACH_VMH(T_EMPTY,
 #define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
 #if VMI_FUNCTIONS
 
-#undef PC
 #define HELPER_ARGS(n)			__args
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
 #define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
@@ -3091,10 +3088,10 @@ int
 PL_next_solution(qid_t qid)
 { GET_LD
   register_file REGISTERS = {.qid = qid};		/* Active registers */
+  Code PC;						/* program counter */
 
 #if VMI_FUNCTIONS
   register_file *registers = &REGISTERS;
-  Code PC;
 
 #else /* VMI_FUNCTIONS */
   /* define local union with all "helper arguments" (formerly SHAREDVARS) */
