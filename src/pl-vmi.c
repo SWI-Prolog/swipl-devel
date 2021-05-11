@@ -2405,8 +2405,10 @@ VMI(I_EXITQUERY, 0, 0, ())
 #endif
 
   QF->foreign_frame = PL_open_foreign_frame();
+#if !VMI_FUNCTIONS
   assert(LD->exception.throw_environment == &THROW_ENV);
   LD->exception.throw_environment = THROW_ENV.parent;
+#endif
 
 #define DET_EXIT (PL_Q_DETERMINISTIC|PL_Q_EXT_STATUS)
   SOLUTION_RETURN((QF->flags&DET_EXIT)==DET_EXIT ? PL_S_LAST : TRUE);
@@ -2450,14 +2452,17 @@ VMI(I_YIELD, VIF_BREAK, 0, ())
   *valTermRef(QF->yield.term) = linkValI(p);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
-  assert(LD->exception.throw_environment == &THROW_ENV);
-  LD->exception.throw_environment = THROW_ENV.parent;
-
   p = argFrameP(FR, 1);
   deRef(p);
 
   if ( isTaggedInt(*p) )
-  { SOLUTION_RETURN(valInt(*p));
+  {
+#if !VMI_FUNCTIONS
+    assert(LD->exception.throw_environment == &THROW_ENV);
+    LD->exception.throw_environment = THROW_ENV.parent;
+#endif
+
+    SOLUTION_RETURN(valInt(*p));
   } else
   { PL_error(NULL, 0, NULL, ERR_TYPE,
 	     ATOM_integer, pushWordAsTermRef(argFrameP(FR, 1)));
@@ -5410,15 +5415,16 @@ again:
     }
     QF = QueryFromQid(QID);		/* may be shifted: recompute */
 
-    assert(LD->exception.throw_environment == &THROW_ENV);
-    LD->exception.throw_environment = THROW_ENV.parent;
-
     DEBUG(MSG_THROW,
 	  { Sdprintf("Leaving exception after callback: ");
 	    PL_write_term(Serror, QF->exception, 1200, 0);
 	    Sdprintf("\n");
 	  });
 
+#if !VMI_FUNCTIONS
+    assert(LD->exception.throw_environment == &THROW_ENV);
+    LD->exception.throw_environment = THROW_ENV.parent;
+#endif
     SOLUTION_RETURN((QF->flags & PL_Q_EXT_STATUS) ? PL_S_EXCEPTION : FALSE);
   }
 }
@@ -6864,8 +6870,10 @@ next_choice:
       QF = QueryFromQid(QID);
       set(QF, PL_Q_DETERMINISTIC);
       QF->foreign_frame = PL_open_foreign_frame();
+#if !VMI_FUNCTIONS
       assert(LD->exception.throw_environment == &THROW_ENV);
       LD->exception.throw_environment = THROW_ENV.parent;
+#endif
       SOLUTION_RETURN(FALSE);
     }
     case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
