@@ -209,13 +209,7 @@ attribute_goals(V) -->
     when_goals(Attr).
 
 when_goals(det(trigger_determined(X, Y, G))) -->
-    !,
-    (   { disj_goal(G, Disj, DG) }
-    ->  disj_or(Disj, DG)
-    ;   { G = when:trigger(C, Goal) }
-    ->  [ when((?=(X,Y),C), Goal) ]
-    ;   [ when(?=(X,Y), G) ]
-    ).
+    when_trigger_goal(?=(X,Y), G).
 when_goals(call(Conj)) -->
     when_conj_goals(Conj).
 
@@ -227,33 +221,42 @@ when_conj_goals(when:G) -->
     when_goal(G).
 
 when_goal(trigger_nonvar(X, G)) -->
-    (   { disj_goal(G, Disj, DG) }
-    ->  disj_or(Disj, DG)
-    ;   { G = when:trigger(C, Goal) }
-    ->  [ when((nonvar(X),C), Goal) ]
-    ;   [ when(nonvar(X),G) ]
-    ).
+    when_trigger_goal(nonvar(X), G).
 when_goal(trigger_ground(X, G)) -->
-    (   { disj_goal(G, Disj, DG) }
-    ->  disj_or(Disj, DG)
-    ;   { G = when:trigger(C, Goal) }
-    ->  [ when((ground(X),C), Goal) ]
-    ;   [ when(ground(X),G) ]
-    ).
+    when_trigger_goal(ground(X), G).
 when_goal(wake_det(_)) -->
     [].
 
-disj_goal(when:check_disj(X, _, _), [], -) :- X == (-).
-disj_goal(when:check_disj(-, Or, DG), Or, DG).
+when_trigger_goal(Cond, when:trigger(InnerCond, InnerGoal)) -->
+    !,
+    when_trigger_goal((Cond, InnerCond), InnerGoal).
+when_trigger_goal(_, when:check_disj(Disj, _, _)) -->
+    { Disj == (-) },
+    !,
+    [].
+when_trigger_goal(_, when:check_disj(-, OrList, InnerGoal)) -->
+    { OrList \== [] },
+    !,
+    { or_list(OrList, OrCond) },
+    when_trigger_goal(OrCond, InnerGoal).
+when_trigger_goal(Cond, Goal) -->
+    [ when(Cond, Goal) ].
 
-disj_or([], _) --> [].
-disj_or(List, DG) -->
-    { or_list(List, Or) },
-    [when(Or, DG)].
-
-or_list([H], H) :- !.
-or_list([H|T], (H;OT)) :-
+or_list([H], HCond) :-
+    !,
+    or_list_member(H, HCond).
+or_list([H|T], (HCond;OT)) :-
+    or_list_member(H, HCond),
     or_list(T, OT).
+
+or_list_member(or(OrList), OrCond) :-
+    !,
+    or_list(OrList, OrCond).
+or_list_member((L, R), (LCond, RCond)) :-
+    !,
+    or_list_member(L, LCond),
+    or_list_member(R, RCond).
+or_list_member(Cond, Cond).
 
 :- multifile sandbox:safe_meta_predicate/1.
 
