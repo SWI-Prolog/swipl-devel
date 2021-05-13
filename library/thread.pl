@@ -360,8 +360,8 @@ fa_cleanup(Error, Workers, Q) :-
     debug(concurrent(fail), 'Destroying queue', []),
     retractall(fa_aborted(Q)),
     message_queue_destroy(Q),
-    (   Error = fa_worker_failed(Test, Why)
-    ->  debug(concurrent(fail), 'Test ~p failed: ~p', [Test, Why]),
+    (   Error = fa_worker_failed(_0Test, Why)
+    ->  debug(concurrent(fail), 'Test ~p failed: ~p', [_0Test, Why]),
         (   Why == false
         ->  fail
         ;   Why = error(E)
