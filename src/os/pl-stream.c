@@ -110,18 +110,6 @@ locking is required.
 #include SYSLIB_H
 #endif
 
-#ifdef O_DEBUG
-#ifdef HAVE___THREAD
-/* It's not strictly necessary to have this in thread-local storage... */
-__thread
-#elif defined(O_PLMT)
-/* ...and the fail condition for a thread race just isn't that bad */
-volatile
-#endif
-/* Have we just emitted a newline? Should we print file/line on the next Sdprintf? */
-	 static int debug_new_output_line = 1;
-#endif
-
 #define ROUND(p, n) ((((p) + (n) - 1) & ~((n) - 1)))
 #define UNDO_SIZE ROUND(PL_MB_LEN_MAX, sizeof(wchar_t))
 
@@ -2433,10 +2421,6 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
     }
   }
 
-#ifdef O_DEBUG
-  if (s == Serror && s->lastc == '\n') debug_new_output_line = 1;
-#endif
-
   if ( tmpbuf )
   { if ( S__removebuf(s) < 0 )
       goto error;
@@ -2559,10 +2543,9 @@ Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...
 { va_list args;
   int rval;
 
-  if ( debug_new_output_line && channel )
+  if ( Serror->position && Serror->position->linepos == 0 && channel)
   { const char *logfmt = "[%s] %s:%d: ";
 
-    debug_new_output_line = 0;
     if (strncmp(channel, "DBG_LEVEL", 9) == 0)
     { channel += 9;
       logfmt = "<%s> %s:%d: ";

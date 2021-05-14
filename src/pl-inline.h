@@ -393,7 +393,6 @@ lookupDefinition(functor_t f, Module m)
   return proc ? proc->definition : NULL;
 }
 
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
 value need not be trailed.
