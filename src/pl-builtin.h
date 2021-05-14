@@ -219,6 +219,9 @@ is also printed if stdio is not available.
                         Sdprintf("DEBUG stack depth mismatch! %d != %d\n", GLOBAL_LD->internal_debug.depth, __new_ld_depth); \
                       GLOBAL_LD->internal_debug = __orig_ld_debug;
 #define DEBUGGING(n) (GD->debug_topics && true_bit(GD->debug_topics, n))
+#define DEBUG_IF(cond, n) if (cond) for (pl_internaldebugstatus_t __orig_ld_debug = enter_debug(n); \
+					 __orig_ld_debug.depth >= 0; \
+					 exit_debug(n, __orig_ld_debug), __orig_ld_debug.depth = -1)
 
 /* We want to use the version of Sdprintf with the debug channel, if possible */
 #undef Sdprintf
@@ -230,6 +233,7 @@ int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm,
 #define ENTER_DEBUG(n) ;
 #define EXIT_DEBUG(n) ;
 #define DEBUGGING(n) FALSE
+#define DEBUG_IF(cond, n) if (0)
 #endif
 
 #if O_SECURE

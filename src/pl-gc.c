@@ -4272,7 +4272,7 @@ garbageCollect(gc_reason_t reason)
   save_backtrace("GC");
 #endif
 
-  if ( verbose )
+  DEBUG_IF ( verbose, 0 )
     Sdprintf("%% GC: ");
 
   get_vmi_state(LD->query, &state);
@@ -4395,7 +4395,7 @@ garbageCollect(gc_reason_t reason)
 
   stats = gc_stat_end(&LD->gc.stats PASS_LD);
 
-  if ( verbose )
+  DEBUG_IF ( verbose, 0 )
     Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
 	     stats->global_before - stats->global_after,
 	     stats->trail_before  - stats->trail_after,
@@ -5152,7 +5152,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
     DEBUG(MSG_SHIFT, verbose = TRUE);
 
-    if ( verbose )
+    DEBUG_IF ( verbose, MSG_SHIFT )
     { const char *prefix;
       int tid = PL_thread_self();
 
@@ -5162,11 +5162,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	prefix = "% ";
 
       if ( tid != 1 )
-	Sdprintf("%s[%d] SHIFT: l:g:t = %ld:%ld:%ld ...",
-		 prefix, tid, (long)l, (long)g, (long)t);
+	Sdprintf("%s[%d] SHIFT: l:g:t = %zd:%zd:%zd ...",
+		 prefix, tid, l?lsize:0, g?gsize:0, t?tsize:0);
       else
-	Sdprintf("%sSHIFT: l:g:t = %ld:%ld:%ld ...",
-		 prefix, (long)l, (long)g, (long)t);
+	Sdprintf("%sSHIFT: l:g:t = %zd:%zd:%zd ...",
+		 prefix, l?lsize:0, g?gsize:0, t?tsize:0);
     }
 
     DEBUG(CHK_SECURE,
@@ -5237,24 +5237,24 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ void *newmax = addPointer(newbase, newsize); \
-	  Sdprintf("%-6s: %p ... %p --> ", \
+	  Sdprintf("%-6s: %p ... %p [0x%zx] --> ", \
 		   name, \
 		   LD->stacks.stack.base, \
-		   LD->stacks.stack.max); \
+		   LD->stacks.stack.max, \
+		   (size_t)diffPointers(LD->stacks.stack.max, LD->stacks.stack.base)); \
 	  if ( LD->stacks.stack.base == newbase && \
 	       (void*)LD->stacks.stack.max == newmax ) \
 	  { Sdprintf("(no change)\n"); \
 	  } else \
-	  { Sdprintf("%p ... %p\n", newbase, newmax); \
+	  { Sdprintf("%p ... %p [0x%zx]\n", newbase, newmax, (size_t)diffPointers(newmax,newbase)); \
 	  } \
 	}
 
-    if ( verbose )
-    { DEBUG(0, { Sputchar('\n');
-		 PrintStackParms(global, "global", gb, gsize);
-		 PrintStackParms(local, "local", lb, lsize);
-		 PrintStackParms(trail, "trail", tb, tsize);
-	       });
+    DEBUG_IF ( verbose, MSG_SHIFT )
+    { Sputchar('\n');
+      PrintStackParms(global, "global", gb, gsize);
+      PrintStackParms(local, "local", lb, lsize);
+      PrintStackParms(trail, "trail", tb, tsize);
     }
 
     gBase++; gb++;
@@ -5275,7 +5275,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	    }
 	    gBase--;
 	  });
-    if ( verbose )
+    DEBUG_IF ( verbose, MSG_SHIFT )
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
 	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }

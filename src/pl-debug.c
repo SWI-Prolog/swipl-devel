@@ -233,17 +233,18 @@ const debug_topic debug_topics[] =
 };
 
 
-static int
-get_debug_code(const char *topic)
-{ const debug_topic *dt;
-
-  for (dt=debug_topics; dt->name; dt++)
-  { if ( strcasecmp(topic, dt->name) == 0 )
-    { return dt->code;
+static const debug_topic *
+get_next_debug_topic(const char *topic, const debug_topic *dt)
+{ int cmplen = strlen(topic) + 1;
+  if (cmplen > 1 && topic[cmplen-2] == '*')
+    cmplen -= 2;
+  for (dt = dt ? dt + 1 : debug_topics; dt->name; dt++)
+  { if ( strncasecmp(topic, dt->name, cmplen) == 0 )
+    { return dt;
     }
   }
 
-  return -1;
+  return NULL;
 }
 
 
@@ -265,28 +266,37 @@ static int
 prolog_debug_topic(const char *topic, int flag)
 { long level;
   char *end;
+  int success = FALSE;
 
   level = strtol(topic, &end, 10);
   if ( end > topic && *end == EOS )
   { GD->debug_level = level;
+    success = TRUE;
   } else
-  { int code;
+  { const debug_topic *dt = NULL;
 
     if ( !GD->debug_topics )
       GD->debug_topics = new_bitvector(debug_high_code()+1);
 
-    if( (code = get_debug_code(topic)) < 0 )
-      return FALSE;
+    if (topic[0] == '^')
+    { topic++;
+      flag = !flag;
+    }
 
-    if ( code <= DBG_LEVEL9 )
-      GD->debug_level = code;
-    else if (flag)
-      set_bit(GD->debug_topics, code);
-    else
-      clear_bit(GD->debug_topics, code);
+    while ( (dt = get_next_debug_topic(topic, dt)) )
+    { int code = dt->code;
+      success = TRUE;
+
+      if ( code <= DBG_LEVEL9 )
+        GD->debug_level = code;
+      else if (flag)
+        set_bit(GD->debug_topics, code);
+      else
+        clear_bit(GD->debug_topics, code);
+    }
   }
 
-  return TRUE;
+  return success;
 }
 
 const char *
