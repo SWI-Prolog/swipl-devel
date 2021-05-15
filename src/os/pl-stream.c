@@ -2543,7 +2543,7 @@ Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...
 { va_list args;
   int rval;
 
-  if ( Serror->position && Serror->position->linepos == 0 )
+  if ( Serror->position && Serror->position->linepos == 0 && channel)
   { const char *logfmt = "[%s] %s:%d: ";
 
     if (strncmp(channel, "DBG_LEVEL", 9) == 0)
