@@ -4272,7 +4272,7 @@ garbageCollect(gc_reason_t reason)
   save_backtrace("GC");
 #endif
 
-  DEBUG_IF ( verbose, 0 )
+  if ( verbose )
     Sdprintf("%% GC: ");
 
   get_vmi_state(LD->query, &state);
@@ -4395,7 +4395,7 @@ garbageCollect(gc_reason_t reason)
 
   stats = gc_stat_end(&LD->gc.stats PASS_LD);
 
-  DEBUG_IF ( verbose, 0 )
+  if ( verbose )
     Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
 	     stats->global_before - stats->global_after,
 	     stats->trail_before  - stats->trail_after,
@@ -5152,7 +5152,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
     DEBUG(MSG_SHIFT, verbose = TRUE);
 
-    DEBUG_IF ( verbose, MSG_SHIFT )
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { const char *prefix;
       int tid = PL_thread_self();
 
@@ -5250,7 +5250,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	  } \
 	}
 
-    DEBUG_IF ( verbose, MSG_SHIFT )
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { Sputchar('\n');
       PrintStackParms(global, "global", gb, gsize);
       PrintStackParms(local, "local", lb, lsize);
@@ -5275,7 +5275,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	    }
 	    gBase--;
 	  });
-    DEBUG_IF ( verbose, MSG_SHIFT )
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
 	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
     }

@@ -393,21 +393,6 @@ lookupDefinition(functor_t f, Module m)
   return proc ? proc->definition : NULL;
 }
 
-/* Inline function versions of ENTER_DEBUG/EXIT_DEBUG */
-static inline pl_internaldebugstatus_t
-enter_debug(unsigned int code)
-{ ENTER_DEBUG(code);
-  (void) __new_ld_depth;
-  return __orig_ld_debug;
-}
-
-static inline void
-exit_debug(unsigned int code, pl_internaldebugstatus_t __orig_ld_debug)
-{ int __new_ld_depth = __orig_ld_debug.depth + 1;
-  EXIT_DEBUG(code);
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
 value need not be trailed.
