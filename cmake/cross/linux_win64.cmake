@@ -11,3 +11,7 @@ set(CMAKE_CROSSCOMPILING_EMULATOR wine)
 if(NOT DEFINED MINGW_ROOT)
   set(MINGW_ROOT $ENV{MINGW64_ROOT} CACHE FILEPATH "MinGW dependencies")
 endif()
+
+if(CMAKE_TOOLCHAIN_FILE)
+  # Avoid "Manually-specified variables were not used by the project"
+endif()

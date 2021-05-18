@@ -3,6 +3,8 @@ PGO_DIR=PGO-data
 SRC_DIR="$(dirname "$(dirname "$0")")"
 PGO_PROGRAM="${SRC_DIR}/bench/run.pl"
 
+set -e # Exit on any error, rather than continuing
+
 if [ "$1" = "--off" ]; then
   ${CMAKE_COMMAND} -E echo "PGO: disabling"
   ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=OFF -G Ninja ${SRC_DIR}
@@ -21,6 +23,10 @@ else
 
   if [ -x src/swipl.exe ]; then
     SWIPL=src/swipl.exe
+    if ! $SWIPL --help &>/dev/null; then
+      # Can't run directly, try using wine
+      SWIPL="wine $SWIPL"
+    fi
   else
     SWIPL=src/swipl
   fi

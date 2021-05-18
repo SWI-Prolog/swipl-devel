@@ -13,7 +13,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
       STRING "Choose the type of build." FORCE)
   # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-	       "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "DEB")
+	       "Debug" "Release" "MinSizeRel" "RelWithDebInfo" "PGO" "DEB")
 endif()
 
 if(CMAKE_BUILD_TYPE STREQUAL "DEB")
@@ -41,6 +41,8 @@ if(CMAKE_COMPILER_IS_GNUCC)
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
   set(CMAKE_C_FLAGS_RELEASE "-O2"
       CACHE STRING "CFLAGS for a Release build" FORCE)
+  set(CMAKE_C_FLAGS_PGO "-O2"
+      CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
       "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
       CACHE STRING "CFLAGS for a Sanitize build" FORCE)
