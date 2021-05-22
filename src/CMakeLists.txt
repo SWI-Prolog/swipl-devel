@@ -198,13 +198,18 @@ if(NOT PGO_SUFFIX) # Don't define PGO versions of the aux targets (see PGO.cmake
 if(NOT CMAKE_CROSSCOMPILING)
   add_executable(mkvmi mkvmi.c)
   add_executable(defatom defatom.c)
+  add_executable(wrap-gcc EXCLUDE_FROM_ALL wrap-gcc.c) #only needed for PGO with GCC
   set(PROG_MKVMI mkvmi)
   set(PROG_DEFATOM defatom)
+  set(PROG_WRAPGCC wrap-gcc)
+  set(TARGET_WRAPGCC wrap-gcc)
 else()
   set(PROG_MKVMI
       ${CMAKE_CURRENT_BINARY_DIR}/mkvmi${CMAKE_HOST_EXECUTABLE_SUFFIX})
   set(PROG_DEFATOM
       ${CMAKE_CURRENT_BINARY_DIR}/defatom${CMAKE_HOST_EXECUTABLE_SUFFIX})
+  set(PROG_WRAPGCC
+      ${CMAKE_CURRENT_BINARY_DIR}/wrap-gcc${CMAKE_HOST_EXECUTABLE_SUFFIX})
 
   add_custom_command(
       OUTPUT  ${PROG_DEFATOM}
@@ -219,6 +224,15 @@ else()
               ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
   )
+
+  add_custom_command(
+      OUTPUT  ${PROG_WRAPGCC}
+      COMMAND ${CMAKE_HOST_CC} -o ${PROG_WRAPGCC}
+              ${CMAKE_CURRENT_SOURCE_DIR}/wrap-gcc.c
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/wrap-gcc.c
+  )
+  add_custom_target(build-wrap-gcc DEPENDS ${PROG_WRAPGCC})
+  set(TARGET_WRAPGCC build-wrap-gcc)
 endif()
 
 add_custom_target(

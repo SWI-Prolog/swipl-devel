@@ -3,30 +3,7 @@
 
 if(CMAKE_ARGC AND CMAKE_ARGV2 MATCHES "PGO.cmake")
   # Script mode, run as ``/path/to/cmake -P /path/to/PGO.cmake subcommand [args...]''
-  if(CMAKE_ARGV3 STREQUAL wrap-gcc)
-    # cmake -P PGO.cmake wrap-gcc PGO_TAG /usr/bin/gcc ...
-    set(PGO_TAG "${CMAKE_ARGV4}")
-    math(EXPR LASTARG "${CMAKE_ARGC}-1")
-    foreach(a RANGE 5 ${LASTARG})
-      set(ARG ${CMAKE_ARGV${a}})
-      if(DASH_O)
-        set(DASH_O)
-        set(OUTFILE ${ARG})
-        string(REPLACE "-${PGO_TAG}" "" ARG "${ARG}")
-        set(TEMPFILE ${ARG})
-      endif()
-      set(ARGS ${ARGS} ${ARG})
-      if(ARG STREQUAL "-o")
-        set(DASH_O true)
-      endif()
-    endforeach()
-    execute_process(COMMAND ${ARGS}
-          RESULT_VARIABLE STATUS)
-    if(NOT (STATUS EQUAL 0))
-      message(FATAL_ERROR "Compilation failed, see above for details")
-    endif()
-    file(RENAME ${TEMPFILE} ${OUTFILE})
-  elseif(CMAKE_ARGV3 STREQUAL write-timestamp-header)
+  if(CMAKE_ARGV3 STREQUAL write-timestamp-header)
     # cmake -P PGO.cmake write-timestamp-header PGO_HEADER_FILE [PGO_OUTPUT_FILE]
     set(PGO_HEADER_FILE "${CMAKE_ARGV4}")
     set(PGO_OUTPUT_FILE "${CMAKE_ARGV5}")
@@ -91,7 +68,7 @@ macro(configure_pgo pgo_tag)
           DEPENDS ${PGO_RUN_STAMP}
           COMMAND ${LLVM_PROFDATA} merge -output=${PGO_OUTPUT_FILE} ${PGO_DIR}/*.profraw)
   else()
-    set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
+    set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized -Werror=missing-profile "-fprofile-dir=${PGO_DIR}")
     set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
     set(PGO_USE_FLAGS      -fprofile-use ${PGO_CFLAGS_EXTRA})
     if(PGO_TAG)
@@ -104,9 +81,10 @@ macro(configure_pgo pgo_tag)
         # twice from the same build file), but the wrapper translates it to a -o
         # location in the NON-instrumented directory and, assuming the compilation
         # is successful, moves the object file to its final resting place afterwards.
-        set(PGO_COMPILER_LAUNCHER ${CMAKE_COMMAND} -P ${PGO_SCRIPT} wrap-gcc ${PGO_TAG})
+        set(PGO_COMPILER_LAUNCHER ${PROG_WRAPGCC} ${PGO_SUFFIX})
         if(is_generate)
           set_target_properties(${t} PROPERTIES C_COMPILER_LAUNCHER "${PGO_COMPILER_LAUNCHER}")
+          add_dependencies(${t} ${TARGET_WRAPGCC})
         endif()
       endfunction()
     endif(PGO_TAG)
@@ -139,9 +117,14 @@ function(add_pgo_dependency) # add_pgo_dependency(targets...)
 endfunction()
 
 function(run_pgo_program exec_target) # run_pgo_program(exec_target [args...])
+  if(CMAKE_CROSSCOMPILING AND CMAKE_CROSSCOMPILING_EMULATOR)
+    set(executable ${CMAKE_CROSSCOMPILING_EMULATOR} $<TARGET_FILE:${exec_target}${PGO_SUFFIX}>)
+  else()
+    set(executable "${exec_target}${PGO_SUFFIX}")
+  endif()
   add_custom_command(OUTPUT ${PGO_RUN_STAMP} APPEND
         DEPENDS "${exec_target}${PGO_SUFFIX}"
-        COMMAND "${exec_target}${PGO_SUFFIX}" ${ARGN}
+        COMMAND ${executable} ${ARGN}
         VERBATIM)
   # if we rebuild the binary, we have to clear the pgo data
   add_custom_command(TARGET "${exec_target}${PGO_SUFFIX}"
