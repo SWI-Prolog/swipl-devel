@@ -427,7 +427,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    }
 	  } else if ( c == '*' )
 	  { NEED_ARG;
-	    if ( PL_get_integer(argv, &arg) )
+	    if ( PL_get_integer(argv, &arg) && arg >= 0 )
 	    { SHIFT;
 	    } else
 	      FMT_ERROR("no or negative integer for `*' argument");
