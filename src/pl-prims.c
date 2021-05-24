@@ -3122,8 +3122,9 @@ PRED_IMPL("$unbind_template", 1, unbind_template, 0)
 		 *	   TERM-VARIABLES	*
 		 *******************************/
 
-#define TV_ATTVAR    0x1
-#define TV_SINGLETON 0x2
+#define TV_ATTVAR    0x1		/* attributed vars only */
+#define TV_SINGLETON 0x2		/* singletons */
+#define TV_ATTS      0x4		/* recurse into attributes */
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
@@ -3148,25 +3149,18 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 	continue;
       }
 
-      if ( (flags&TV_ATTVAR) )
-      { if ( isAttVar(w) )
-	{ Word p2 = valPAttVar(w);
+      if ( (flags&TV_ATTVAR) && !isAttVar(w) )
+	continue;
 
-	  if ( ++count > maxcount )
-	    return count;
-	  if ( !(v = PL_new_term_ref_noshift()) )
-	    return TV_NOSPACE;
-	  *valTermRef(v) = makeRefG(p);
-
-	  deRef2(p2, p);
-	  goto again;
-	}
-      } else
-      { if ( ++count > maxcount )
-	  return count;
-	if ( !(v = PL_new_term_ref_noshift()) )
-	  return TV_NOSPACE;
-	*valTermRef(v) = makeRefG(p);
+      if ( ++count > maxcount )
+	return count;
+      if ( !(v = PL_new_term_ref_noshift()) )
+	return TV_NOSPACE;
+      *valTermRef(v) = makeRefG(p);
+      if ( (flags&TV_ATTS) )
+      { Word p2 = valPAttVar(w);
+	deRef2(p2, p);
+	goto again;
       }
     } else if ( isTerm(w) )
     { Functor f = valueTerm(w);
@@ -3277,6 +3271,13 @@ PRED_IMPL("term_variables", 3, term_variables3, 0)
   return term_variables(A1, A2, A3, 0 PASS_LD);
 }
 
+static
+PRED_IMPL("$term_attvar_variables", 2, term_attvar_variables, 0)
+{ PRED_LD
+
+  return term_variables(A1, A2, 0, TV_ATTS PASS_LD);
+}
+
 
 static
 PRED_IMPL("term_singletons", 2, term_singletons, 0)
@@ -3293,7 +3294,7 @@ static
 PRED_IMPL("term_attvars", 2, term_attvars, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, 0, TV_ATTVAR PASS_LD);
+  return term_variables(A1, A2, 0, TV_ATTVAR|TV_ATTS PASS_LD);
 }
 
 
@@ -6045,6 +6046,7 @@ BeginPredDefs(prims)
   PRED_DEF("numbervars", 4, numbervars, 0)
   PRED_DEF("var_number", 2, var_number, 0)
   PRED_DEF("term_variables", 2, term_variables2, PL_FA_ISO)
+  PRED_DEF("$term_attvar_variables", 2, term_attvar_variables, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_singletons", 2, term_singletons, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)

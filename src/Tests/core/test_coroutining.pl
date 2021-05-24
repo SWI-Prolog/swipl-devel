@@ -39,6 +39,7 @@ to the GPL-2 license.
 
 :- module(test_coroutining,
           [test_coroutining/0]).
+:- use_module(library(clpfd)).
 :- use_module(library(plunit)).
 
 /** <module> Test coroutining primitives
@@ -61,6 +62,13 @@ test(frozen, G == (freeze(X, M:writeln(x)), freeze(Y, M:write(X-Z)))) :-
     freeze(Y, write(X-Z)),
     freeze(Y, write(X-Z)),
     frozen(Y, G).
+test(frozen_diff, Frozen == Frozen2) :-
+    dif(X, Y),
+    frozen([X, Y], Frozen),
+    frozen([X, Y], Frozen2).
+test(frozen_clpfd, Frozen == Frozen2) :-
+    Y #= X + 1, frozen([X, Y], Frozen),
+    Y #= X + 1, frozen([X, Y], Frozen2).
 
 % when/2 tests by Ulrich Neumerkel.  These tests are only available
 % under the GPL-2 license.
