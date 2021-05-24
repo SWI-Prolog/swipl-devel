@@ -111,6 +111,7 @@ and libraries that are built.
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers      |
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
+  | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
   | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
