@@ -60,13 +60,12 @@ parts:
       # Custom build process to enable PGO build
       mkdir -p $SNAPCRAFT_PART_SRC/build
       cd $SNAPCRAFT_PART_SRC/build
-      cmake -DCMAKE_BUILD_TYPE=Release \
+      cmake -DCMAKE_BUILD_TYPE=PGO \
       -DSWIPL_PACKAGES_JAVA=OFF \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DSWIPL_INSTALL_IN_LIB=ON \
       -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-core18-sdk/current \
       -G Ninja ..
-      ../scripts/pgo-compile.sh
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     build-snaps: [kde-frameworks-5-core18-sdk]
