@@ -299,6 +299,19 @@ This nonterminal is used by copy_term/3, on which the Prolog top level
 relies to ensure the basic invariant of pure Prolog programs: The
 answer is \textit{declaratively equivalent} to the query.
 
+The copy_term/3 primitive uses attribute_goals//1 inside a findall/3
+call. This implies that attribute_goals//1 can unify variables and
+modify attributes, for example, to tell other hooks that some attribute
+has already been taken care of. This nonterminal is also used by
+frozen/2 which does \emph{not} create a copy. Ideally attribute_goals//1
+should not modify anything to allow direct application in frozen/2. In
+the current implementation frozen/2 backtracks over attribute_goals//1
+to tolerate the current behavior. This work-around harms the performance
+of frozen/2. New implementations of attribute_goals//1 should avoid
+relying on backtracking when feasible. Future versions of frozen/2 and
+copy_term/3 may require attribute_goals//1 not to modify any variables
+or attributes.
+
 Note that instead of \jargon{defaulty} representations, a Prolog
 \textit{list} is used to represent residual goals. This simplifies
 processing and reasoning about residual goals throughout all programs
