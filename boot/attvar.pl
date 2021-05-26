@@ -134,16 +134,17 @@ frozen(Term, Goal) :-
     ;   sort(AttVars, AttVars2),
         '$term_attvar_variables'(Term, KVars),
         Keep =.. [v|KVars],
-        State = state(0),
-        (   phrase(attvars_residuals(AttVars2), GoalList0),
-            sort(GoalList0, GoalList),
-            make_conjunction(GoalList, Goal0),
-            nb_setarg(1, State, Keep+Goal0),
-            fail
-        ;   arg(1, State, Kept+Goal),
-            rebind_vars(Keep, Kept)
-        )
+        findall(Keep+Goal0,
+                frozen_residuals(AttVars2, Goal0),
+                [Kept+Goal]),
+        rebind_vars(Keep, Kept)
     ).
+
+frozen_residuals(AttVars, Goal) :-
+    phrase(attvars_residuals(AttVars), GoalList0),
+    sort(GoalList0, GoalList),
+    make_conjunction(GoalList, Goal).
+
 
 %!  rebind_vars(+Keep, +Kept) is det.
 %
