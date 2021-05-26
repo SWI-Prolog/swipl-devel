@@ -1490,7 +1490,7 @@ domain_expand_more_(from_to(From0, To0), M, Op, D) :-
             )
         ;   Op = div ->
             From1 cis From0*n(M1),
-            To1 cis (To0+n(1))*n(M1)-sign(M)
+            To1 cis (To0+n(1))*n(M1)-sign(n(M))
         ),
         (   M < 0 -> domain_negate(from_to(From1,To1), D)
         ;   D = from_to(From1,To1)
