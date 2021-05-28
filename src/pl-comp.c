@@ -3925,7 +3925,7 @@ compileBodyShift(Word arg, compileInfo *ci, int for_copy ARG_LD)
 
   if ( (i1 = isIndexedVarTerm(*a1 PASS_LD)) >= 0 &&
        !isFirstVar(ci->used_var, i1) )
-  { Output_1(ci, for_copy ? I_SHIFT : I_SHIFTCP, VAROFFSET(i1));
+  { Output_1(ci, for_copy ? I_SHIFTCP : I_SHIFT, VAROFFSET(i1));
     return TRUE;
   }
 
