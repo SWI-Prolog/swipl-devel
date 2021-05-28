@@ -1914,6 +1914,10 @@ objects.
 Space reserved for storing shared answer tables. See
 \secref{tabling-shared} and the Prolog flag \prologflag{table_space}.
 
+    \prologflagitem{shift_check}{bool}{rw}
+When \const{true} (default \const{false}), check for suspicious
+delimited continuations captured by shift_for_copy/1.
+
     \prologflagitem{signals}{bool}{r}
 Determine whether Prolog is handling signals (software interrupts). This
 flag is \const{false} if the hosting OS does not support signal handling

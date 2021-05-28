@@ -2462,7 +2462,8 @@ typedef enum plflag
   PLFLAG_TABLE_SHARED,			/* By default shared tabling */
   PLFLAG_RATIONAL,			/* Natural rational numbers */
   PLFLAG_DEBUG_ON_INTERRUPT,		/* Debug on Control-C */
-  PLFLAG_OPTIMISE_UNIFY			/* Move unifications in clauses */
+  PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
+  PLFLAG_SHIFT_CHECK			/* Check suspicious shifts */
 } plflag;
 
 typedef struct

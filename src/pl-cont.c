@@ -208,13 +208,13 @@ put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
   { for(i=cl->prolog_vars; i<cl->variables; i++)
     { if ( true_bit(active, i) )
       { if ( for_copy )
-	{ DEBUG(MSG_SHIFT_CHOICE,
-		{ Sdprintf("Shift: clause %d of %s: active "
-			   "choice-point in slot %d.  Stack:\n",
-			   clauseNo(cl, 0),
-			   predicateName(fr->predicate), i);
-		  PL_backtrace(10,1);
-		});
+	{ if ( truePrologFlag(PLFLAG_SHIFT_CHECK) )
+	  { Sdprintf("Shift: clause %d of %s: active "
+		     "choice-point in slot %d.  Stack:\n",
+		     clauseNo(cl, 0),
+		     predicateName(fr->predicate), i);
+	    PL_backtrace(10,1);
+	  };
 
 	  *p++ = 0;
 	} else
