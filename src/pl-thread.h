@@ -244,7 +244,7 @@ compile-time
 
 #define IF_MT(id, g) if ( id == L_THREAD || GD->thread.enabled ) g
 
-static inline void
+PL_INLINE void
 countingMutexLock(counting_mutex *cm)
 {
 #if O_CONTENTION_STATISTICS
@@ -260,7 +260,7 @@ countingMutexLock(counting_mutex *cm)
   cm->lock_count++;
 }
 
-static inline void
+PL_INLINE void
 countingMutexUnlock(counting_mutex *cm)
 { assert(cm->lock_count > 0);
   cm->lock_count--;

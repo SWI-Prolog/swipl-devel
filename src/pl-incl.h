@@ -383,6 +383,63 @@ A common basis for C keywords.
 #define inline
 #endif
 
+/* PL_INLINE-defined functions will get inlined by the compiler if possible,
+ * and otherwise will reference a single shared instance of the function code,
+ * emitted by pl-inline.c.
+ * 
+ * This is using the definition of "inline" given by the C99 spec, which states:
+ * 
+ *   If all of the file scope declarations for a function in a translation unit
+ *   include the inline function specifier without extern, then...[it] does not
+ *   provide an external definition for the function, and does not forbid an
+ *   external definition in another translation unit.
+ * 
+ * Thus, we have three different ways to write an inline function, *none* of
+ * which are mandatory-inlines (to get that functionality, you need the GCC
+ * attribute "always_inline"). Each of these assumes that EVERY declaration
+ * of this function visible to the translation unit uses the same keywords.
+ * Differing keywords - like "extern" in a declaration and no extern on the
+ * definition - cause trouble. Don't do it.
+ * 
+ * static inline void func()
+ *   - If possible and helpful, inline this function at the call site. The
+ *     compiler can decide what "helpful" means, possibly using PGO.
+ *   - If the compiler DOES inline the function at EVERY call site in this
+ *     file and the function address is not taken, do not emit a standalone
+ *     copy of the function code.
+ *   - If the compiler DOES NOT inline the function everywhere, or if the
+ *     function address is ever taken, emit an anonymous function body in
+ *     this .o file.
+ * 
+ * inline void func()
+ *   - If possible and helpful, inline this function at the call site.
+ *   - Do not emit a standalone copy of this function, no matter what.
+ *   - If any call site cannot be inlined, or if the address is taken,
+ *     emit an undefined linker reference into the object file, exactly
+ *     as if there were a declaration without inline and no definition.
+ * 
+ * extern inline void func()
+ *   - If possible and helpful, inline this function at the call site.
+ *   - Always emit a standalone copy of this function with public
+ *     linkage and visibility. (The use of COMMON, below, modifies that
+ *     so that it will be visible within libswipl but not outside.)
+ *   - If any call site cannot be inlined or the address is taken, the
+ *     standalone copy will be referenced.
+ * 
+ * PL_INLINE expands to "inline" (the second usage, above) for most of
+ * the codebase, so calls will be inlined but no anonymous functions
+ * will be emitted. However, in pl-inline.c, this is altered to expand
+ * to "extern inline" (the third usage), which will provide library-wide
+ * shared implementations of all inlinable functions. Since they have
+ * hidden visibility from COMMON, the linker should be capable of
+ * stripping any implementations out that aren't used.
+ */
+#ifdef EMIT_SHARED_INLINES /* defined only in pl-inline.c */
+# define PL_INLINE COMMON(extern inline) EMIT_SHARED_INLINES
+#else
+# define PL_INLINE COMMON(inline)
+#endif
+
 #if defined(__GNUC__) && !defined(__OPTIMIZE__)
 #define _DEBUG 1
 #endif

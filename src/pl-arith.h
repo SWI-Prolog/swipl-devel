@@ -83,7 +83,7 @@ COMMON(double)		PL_nan(void);
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
-static inline Number
+PL_INLINE Number
 allocArithStack(ARG1_LD)
 { if ( unlikely(LD->arith.stack.top == LD->arith.stack.max) )
     return growArithStack(PASS_LD1);
@@ -91,26 +91,26 @@ allocArithStack(ARG1_LD)
   return LD->arith.stack.top++;
 }
 
-static inline void
+PL_INLINE void
 pushArithStack(Number n ARG_LD)
 { Number np = allocArithStack(PASS_LD1);
 
   *np = *n;				/* structure copy */
 }
 
-static inline void
+PL_INLINE void
 resetArithStack(ARG1_LD)
 { LD->arith.stack.top = LD->arith.stack.base;
 }
 
-static inline Number
+PL_INLINE Number
 argvArithStack(int n ARG_LD)
 { DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
   return LD->arith.stack.top - n;
 }
 
-static inline void
+PL_INLINE void
 popArgvArithStack(int n ARG_LD)
 { DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
@@ -124,7 +124,7 @@ popArgvArithStack(int n ARG_LD)
 		 *	      MPZ/MPQ		*
 		 *******************************/
 
-static inline int
+PL_INLINE int
 isMPQNum__LD(word w ARG_LD)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);
@@ -139,7 +139,7 @@ isMPQNum__LD(word w ARG_LD)
   return FALSE;
 }
 
-static inline int
+PL_INLINE int
 isMPZNum__LD(word w ARG_LD)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);

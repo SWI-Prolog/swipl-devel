@@ -101,7 +101,7 @@ COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
 
 GLOBAL const event_type PL_events[PLEV_THIS_THREAD_EXIT+2];
 
-static inline event_list**
+PL_INLINE event_list**
 event_list_location(pl_event_type ev)
 { if ( likely(!PL_events[ev].local) )
   { return PL_events[ev].location;
@@ -112,7 +112,7 @@ event_list_location(pl_event_type ev)
 }
 
 
-static inline int WUNUSED
+PL_INLINE int WUNUSED
 callEventHook(pl_event_type ev, ...)
 { event_list **listp = event_list_location(ev);
 

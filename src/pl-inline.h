@@ -72,7 +72,7 @@
 */
 
 #define HAVE_MSB 1
-static inline int
+PL_INLINE int
 MSB(size_t i)
 { unsigned long index;
 #if SIZEOF_VOIDP == 8
@@ -88,7 +88,7 @@ MSB(size_t i)
 
 #if SIZEOF_VOIDP == 8
 #define HAVE_MSB64 1
-static inline int
+PL_INLINE int
 MSB64(int64_t i)
 { unsigned long index;
   _BitScanReverse64(&index, i);
@@ -100,7 +100,7 @@ MSB64(int64_t i)
 #define MEMORY_RELEASE() MemoryBarrier()
 #define MEMORY_BARRIER() MemoryBarrier()
 
-static inline size_t
+PL_INLINE size_t
 __builtin_popcount(size_t sz)
 {
 #if SIZEOF_VOIDP == 4
@@ -142,39 +142,39 @@ __builtin_popcount(size_t sz)
 	__atomic_compare_exchange_n(at, &(from), to, FALSE, \
 				    __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_PTR(void *at, void *from, void *to)
 { void **ptr = at;
 
   return __COMPARE_AND_SWAP(ptr, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_INT64(int64_t *at, int64_t from, int64_t to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_UINT64(uint64_t *at, uint64_t from, uint64_t to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_INT(int *at, int from, int to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_UINT(unsigned int *at, unsigned int from, unsigned int to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_SIZE(size_t *at, size_t from, size_t to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
 
-static inline int
+PL_INLINE int
 COMPARE_AND_SWAP_WORD(word *at, word from, word to)
 { return __COMPARE_AND_SWAP(at, from, to);
 }
@@ -198,7 +198,7 @@ COMPARE_AND_SWAP_WORD(word *at, word from, word to)
 
 #ifndef HAVE_MSB
 #define HAVE_MSB 1
-static inline int
+PL_INLINE int
 MSB(size_t i)
 { int j = 0;
 
@@ -218,7 +218,7 @@ MSB(size_t i)
 
 #ifndef HAVE_MSB64
 #define HAVE_MSB64 1
-static inline int
+PL_INLINE int
 MSB64(int64_t i)
 { int j = 0;
 
@@ -244,13 +244,13 @@ MSB64(int64_t i)
 		 *	 ATOMS/FUNCTORS		*
 		 *******************************/
 
-static inline void
+PL_INLINE void
 initAtoms(void)
 { if ( !likely(GD->atoms.initialised) )
     do_init_atoms();
 }
 
-static inline Atom
+PL_INLINE Atom
 fetchAtomArray(size_t index)
 { int idx = MSB(index);
 
@@ -258,14 +258,14 @@ fetchAtomArray(size_t index)
 }
 
 
-static inline FunctorDef
+PL_INLINE FunctorDef
 fetchFunctorArray(size_t index)
 { int idx = MSB(index);
 
   return GD->functors.array.blocks[idx][index];
 }
 
-static inline void
+PL_INLINE void
 pushVolatileAtom__LD(atom_t a ARG_LD)
 { LD->atoms.unregistering = a;
   if ( GD->atoms.gc_active )
@@ -290,12 +290,12 @@ typedef struct bit_vector
 #define offset(s, f) ((size_t)(&((struct s *)NULL)->f))
 #endif
 
-static inline size_t
+PL_INLINE size_t
 sizeof_bitvector(size_t bits)
 { return offset(bit_vector, chunk[(bits+BITSPERE-1)/BITSPERE]);
 }
 
-static inline void
+PL_INLINE void
 init_bitvector(bit_vector *v, size_t bits)
 { size_t bytes = offset(bit_vector, chunk[(bits+BITSPERE-1)/BITSPERE]);
 
@@ -303,7 +303,7 @@ init_bitvector(bit_vector *v, size_t bits)
   v->size = bits;
 }
 
-static inline bit_vector *
+PL_INLINE bit_vector *
 new_bitvector(size_t size)
 { size_t bytes = offset(bit_vector, chunk[(size+BITSPERE-1)/BITSPERE]);
   bit_vector *v = allocHeapOrHalt(bytes);
@@ -313,28 +313,28 @@ new_bitvector(size_t size)
   return v;
 }
 
-static inline void
+PL_INLINE void
 free_bitvector(bit_vector *v)
 { size_t bytes = offset(bit_vector, chunk[(v->size+BITSPERE-1)/BITSPERE]);
 
   freeHeap(v, bytes);
 }
 
-static inline void
+PL_INLINE void
 clear_bitvector(bit_vector *v)
 { size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
 
   memset(v->chunk, 0, chunks*sizeof(bitv_chunk));
 }
 
-static inline void
+PL_INLINE void
 setall_bitvector(bit_vector *v)
 { size_t chunks = (v->size+BITSPERE-1)/BITSPERE;
 
   memset(v->chunk, 0xff, chunks*sizeof(bitv_chunk));
 }
 
-static inline void
+PL_INLINE void
 set_bit(bit_vector *v, size_t which)
 { size_t e = which/BITSPERE;
   size_t b = which%BITSPERE;
@@ -342,7 +342,7 @@ set_bit(bit_vector *v, size_t which)
   v->chunk[e] |= ((bitv_chunk)1<<b);
 }
 
-static inline void
+PL_INLINE void
 clear_bit(bit_vector *v, size_t which)
 { size_t e = which/BITSPERE;
   size_t b = which%BITSPERE;
@@ -350,7 +350,7 @@ clear_bit(bit_vector *v, size_t which)
   v->chunk[e] &= ~((bitv_chunk)1<<b);
 }
 
-static inline int
+PL_INLINE int
 true_bit(bit_vector *v, size_t which)
 { size_t e = which/BITSPERE;
   size_t b = which%BITSPERE;
@@ -358,7 +358,7 @@ true_bit(bit_vector *v, size_t which)
   return (v->chunk[e]&((bitv_chunk)1<<b)) != 0;
 }
 
-static inline size_t
+PL_INLINE size_t
 popcount_bitvector(const bit_vector *v)
 { const bitv_chunk *p = v->chunk;
   int cnt = (int)(v->size+BITSPERE-1)/BITSPERE;
@@ -378,7 +378,7 @@ popcount_bitvector(const bit_vector *v)
 static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
 static Definition lookupDefinition(functor_t f, Module m) WUNUSED;
 
-static inline int
+PL_INLINE int
 same_type_numbers(Number n1, Number n2)
 { if ( n1->type == n2->type )
     return TRUE;
@@ -386,7 +386,7 @@ same_type_numbers(Number n1, Number n2)
 }
 
 
-static inline Definition
+PL_INLINE Definition
 lookupDefinition(functor_t f, Module m)
 { Procedure proc = lookupProcedure(f, m);
 
@@ -400,7 +400,7 @@ value need not be trailed.
 Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline void
+PL_INLINE void
 Trail__LD(Word p, word v ARG_LD)
 { DEBUG(CHK_SECURE, assert(tTop+1 <= tMax));
 
@@ -410,7 +410,7 @@ Trail__LD(Word p, word v ARG_LD)
 }
 
 
-static inline void
+PL_INLINE void
 bindConst__LD(Word p, word c ARG_LD)
 { DEBUG(0, assert(hasGlobalSpace(0)));
 
@@ -430,7 +430,7 @@ bindConst__LD(Word p, word c ARG_LD)
 }
 
 
-static inline word
+PL_INLINE word
 consPtr__LD(void *p, uintptr_t base, word ts ARG_LD)
 { uintptr_t v = (uintptr_t) p;
 
@@ -441,7 +441,7 @@ consPtr__LD(void *p, uintptr_t base, word ts ARG_LD)
 
 
 #if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
-static inline double
+PL_INLINE double
 valFloat__LD(word w ARG_LD)
 { Word p = valIndirectP(w);
   double d;
@@ -458,7 +458,7 @@ checking (unless compiled for debugging) and fetches the base address of
 the global stack only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline word
+PL_INLINE word
 linkValI__LD(Word p ARG_LD)
 { word w = *p;
   uintptr_t gb = LD->bases[STG_GLOBAL];
@@ -480,12 +480,12 @@ linkValI__LD(Word p ARG_LD)
   }
 }
 
-static inline int
+PL_INLINE int
 is_signalled(ARG1_LD)
 { return HAS_LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
 }
 
-static inline void
+PL_INLINE void
 register_attvar(Word gp ARG_LD)
 { if ( LD->attvar.attvars )
   { *gp = makeRefG(LD->attvar.attvars);
@@ -500,7 +500,7 @@ register_attvar(Word gp ARG_LD)
   LD->attvar.attvars = gp;
 }
 
-static inline int
+PL_INLINE int
 visibleClause__LD(Clause cl, gen_t gen ARG_LD)
 { gen_t c, e;
 
@@ -523,7 +523,7 @@ visibleClause__LD(Clause cl, gen_t gen ARG_LD)
   return FALSE;
 }
 
-static inline int
+PL_INLINE int
 visibleClauseCNT__LD(Clause cl, gen_t gen ARG_LD)
 { if ( likely(visibleClause__LD(cl, gen PASS_LD)) )
     return TRUE;
@@ -531,12 +531,12 @@ visibleClauseCNT__LD(Clause cl, gen_t gen ARG_LD)
   return FALSE;
 }
 
-static inline gen_t
+PL_INLINE gen_t
 global_generation(void)
 { return GD->_generation;
 }
 
-static inline gen_t
+PL_INLINE gen_t
 current_generation(Definition def ARG_LD)
 { if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
   { return LD->transaction.generation;
@@ -545,7 +545,7 @@ current_generation(Definition def ARG_LD)
   }
 }
 
-static inline gen_t
+PL_INLINE gen_t
 next_generation(Definition def ARG_LD)
 { if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
@@ -562,7 +562,7 @@ next_generation(Definition def ARG_LD)
   }
 }
 
-static inline gen_t
+PL_INLINE gen_t
 max_generation(Definition def ARG_LD)
 { if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
     return LD->transaction.gen_max;
@@ -581,7 +581,7 @@ global_generation()  and  storing  the  generation  in  our  frame,  our
 generation is updated and thus no harm is done.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline void
+PL_INLINE void
 setGenerationFrame__LD(LocalFrame fr ARG_LD)
 { if ( unlikely(LD->transaction.generation &&
 		true(fr->predicate, P_DYNAMIC)) )
@@ -596,7 +596,7 @@ setGenerationFrame__LD(LocalFrame fr ARG_LD)
   }
 }
 
-static inline int
+PL_INLINE int
 ensureLocalSpace__LD(size_t bytes ARG_LD)
 { int rc;
 
@@ -609,7 +609,7 @@ ensureLocalSpace__LD(size_t bytes ARG_LD)
   return raiseStackOverflow(rc);
 }
 
-static inline int
+PL_INLINE int
 ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
 { gcells += BIND_GLOBAL_SPACE;
   tcells += BIND_TRAIL_SPACE;
@@ -626,7 +626,7 @@ ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
 		 *******************************/
 
 #ifdef O_PLMT
-static inline PL_local_data_t *
+PL_INLINE PL_local_data_t *
 acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
 { PL_local_data_t *ld = info->thread_data;
   LD->thread.info->access.ldata = ld;
@@ -650,7 +650,7 @@ it is divided by 4 and the low 2   bits  are placed at the top (they are
 normally 0). longToPointer() does the inverse operation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline uintptr_t
+PL_INLINE uintptr_t
 pointerToInt(void *ptr)
 {
 #if SIZEOF_VOIDP == 8
@@ -667,7 +667,7 @@ pointerToInt(void *ptr)
 }
 
 
-static inline void *
+PL_INLINE void *
 intToPointer(uintptr_t p)
 {
 #if SIZEOF_VOIDP == 8

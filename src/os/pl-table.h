@@ -87,7 +87,7 @@ COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
 				    void **name, void **value);
 COMMON(size_t)		sizeofTable(Table ht);
 
-static inline int
+PL_INLINE int
 htable_valid_kv(void *kv)
 { intptr_t kvi = (intptr_t)kv;		/* avoid NULL, HTABLE_TOMBSTONE */
   return kvi > 0 || kvi	< -2;		/* and HTABLE_SENTINEL */

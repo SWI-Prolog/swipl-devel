@@ -56,7 +56,7 @@ COMMON(int)	  resortDictsInClause(Clause clause);
 COMMON(void)	  resortDictsInTerm(term_t t);
 
 #define termIsDict(w) termIsDict__LD(w PASS_LD)
-static inline int
+PL_INLINE int
 termIsDict__LD(word w ARG_LD)
 { Functor f = valueTerm(w);
   FunctorDef fd = valueFunctor(f->definition);
@@ -64,7 +64,7 @@ termIsDict__LD(word w ARG_LD)
   return ( fd->name == ATOM_dict && fd->arity%2 == 1 );
 }
 
-static inline int
+PL_INLINE int
 is_dict_key(word w)
 { return isAtom(w) || isTaggedInt(w);
 }

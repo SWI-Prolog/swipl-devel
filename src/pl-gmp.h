@@ -71,22 +71,22 @@ COMMON(void)	mpq_set_double(mpq_t q, double f);
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
 
-static inline word
+PL_INLINE word
 mpz_size_stack(int sz)
 { return ((word)sz<<1) & ~(word)MP_RAT_MASK;
 }
 
-static inline word
+PL_INLINE word
 mpq_size_stack(int sz)
 { return ((word)sz<<1) | MP_RAT_MASK;
 }
 
-static inline int
+PL_INLINE int
 mpz_stack_size(word w)
 { return (int)w>>1;
 }
 
-static inline int
+PL_INLINE int
 mpq_stack_size(word w)
 { return (int)w>>1;
 }

@@ -46,7 +46,7 @@ pl-file.c. These functions are used in pl-text.c.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
-static inline word
+PL_INLINE word
 valHandle__LD(term_t r ARG_LD)
 { Word p = valTermRef(r);
 
@@ -63,13 +63,13 @@ valHandle__LD(term_t r ARG_LD)
 #define CLOSE_SEQ_STRING(p, p0, tail, term, l) \
 	CLOSE_SEQ_STRING__LD(p, p0, tail, term, l PASS_LD)
 
-static inline Word
+PL_INLINE Word
 INIT_SEQ_STRING__LD(size_t n ARG_LD)
 { return allocGlobal(n*3);
 }
 
 
-static inline Word
+PL_INLINE Word
 EXTEND_SEQ_CODES__LD(Word p, int c ARG_LD)
 { *p++ = FUNCTOR_dot2;
   *p++ = consInt(c);
@@ -79,7 +79,7 @@ EXTEND_SEQ_CODES__LD(Word p, int c ARG_LD)
 }
 
 
-static inline Word
+PL_INLINE Word
 EXTEND_SEQ_CHARS__LD(Word p, int c ARG_LD)
 { *p++ = FUNCTOR_dot2;
   *p++ = codeToAtom(c);
@@ -89,7 +89,7 @@ EXTEND_SEQ_CHARS__LD(Word p, int c ARG_LD)
 }
 
 
-static inline int
+PL_INLINE int
 CLOSE_SEQ_STRING__LD(Word p, Word p0, term_t tail, term_t term, term_t l ARG_LD)
 { setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
   p--;

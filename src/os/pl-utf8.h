@@ -88,7 +88,7 @@ extern unicode_type_t _PL__utf8_type(const char *in0, size_t len);
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
-static inline int
+PL_INLINE int
 PL_utf8_code_point(const char **i, const char *e, int *cp)
 { unsigned char c = (unsigned char)**i;
 
@@ -100,7 +100,7 @@ PL_utf8_code_point(const char **i, const char *e, int *cp)
     return _PL__utf8_code_point(i, e, cp);
 }
 
-static inline char *
+PL_INLINE char *
 utf8_skip_char(const char *in)
 { if ( !(in[0]&0x80) )
   { return (char*)in+1;
@@ -112,7 +112,7 @@ utf8_skip_char(const char *in)
   }
 }
 
-static inline char *
+PL_INLINE char *
 utf8_skip_char_e(const char *in, const char *end)
 { if ( !(in[0]&0x80) )
   { return (char*)in+1;
@@ -124,14 +124,14 @@ utf8_skip_char_e(const char *in, const char *end)
   }
 }
 
-static inline char *
+PL_INLINE char *
 utf8_backskip_char(const char *start, const char *s)
 { for(s--; s>start && ISUTF8_CB(*s); s--)
     ;
   return (char*)s;
 }
 
-static inline int
+PL_INLINE int
 utf8_code_bytes(int chr)
 { if ( chr < 0x80 ) return 1;
   if ( chr < 0x800 ) return 2;

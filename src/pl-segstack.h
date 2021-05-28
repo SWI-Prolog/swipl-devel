@@ -67,7 +67,7 @@ typedef struct
 } segstack;
 
 
-static inline int
+PL_INLINE int
 emptySegStack(segstack *s)
 { return (s->top == s->base) &&
 	 (s->last == NULL || s->last->previous == NULL);
@@ -105,14 +105,14 @@ COMMON(void)	clearSegStack_(segstack *s);
 		 *	       INLINE		*
 		 *******************************/
 
-static inline void
+PL_INLINE void
 clearSegStack(segstack *s)
 { if ( s->first )
     clearSegStack_(s);
 }
 
 
-static inline void
+PL_INLINE void
 topsOfSegStack(segstack *stack, int count, void **tops)
 { char *p = stack->top - stack->unit_size;
   char *base = stack->base;
@@ -140,7 +140,7 @@ topsOfSegStack(segstack *stack, int count, void **tops)
    addition synchronization in that case.
 */
 
-static inline int
+PL_INLINE int
 quickPopTopOfSegStack(segstack *stack)
 { if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;
@@ -151,14 +151,14 @@ quickPopTopOfSegStack(segstack *stack)
 }
 
 
-static inline void
+PL_INLINE void
 popTopOfSegStack(segstack *stack)
 { if ( !quickPopTopOfSegStack(stack) )
     popTopOfSegStack_(stack);
 }
 
 
-static inline void
+PL_INLINE void
 initSegStack(segstack *stack, size_t unit_size, size_t len, void *data)
 { stack->unit_size = unit_size;
 

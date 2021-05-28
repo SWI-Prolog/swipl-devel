@@ -202,7 +202,7 @@ COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
 
-static inline int
+PL_INLINE int
 trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
 	    Word k, int add, TmpBuffer vars ARG_LD)
 { return trie_lookup_abstract(trie, node, nodep, k, add,

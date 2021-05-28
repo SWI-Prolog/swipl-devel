@@ -70,7 +70,7 @@ COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
 COMMON(void)		vm_list(Code code, Code end);
 COMMON(Module)		clauseBodyContext(const Clause cl);
 
-static inline code
+PL_INLINE code
 fetchop(Code PC)
 { code op = decode(*PC);
 
@@ -80,7 +80,7 @@ fetchop(Code PC)
   return op;
 }
 
-static inline code			/* caller must hold the L_BREAK lock */
+PL_INLINE code			/* caller must hold the L_BREAK lock */
 fetchop_unlocked(Code PC)
 { code op = decode(*PC);
 
@@ -90,7 +90,7 @@ fetchop_unlocked(Code PC)
   return op;
 }
 
-static inline Code
+PL_INLINE Code
 stepPC(Code PC)
 { code op = fetchop(PC++);
 
@@ -101,7 +101,7 @@ stepPC(Code PC)
 }
 
 
-static inline Code
+PL_INLINE Code
 stepPC_unlocked(Code PC)
 { code op = fetchop_unlocked(PC++);
 

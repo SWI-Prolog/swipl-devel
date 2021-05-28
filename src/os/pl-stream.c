@@ -67,6 +67,7 @@ locking is required.
 #endif
 
 #define PL_KERNEL 1
+#define PL_INLINE inline
 #define O_LOCALE 1
 #include <wchar.h>
 #define NEEDS_SWINSOCK

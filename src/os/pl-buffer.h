@@ -105,7 +105,7 @@ int	growBuffer(Buffer b, size_t minfree);
 #define allocFromBuffer(b, bytes) \
 	f__allocFromBuffer((Buffer)(b), (bytes))
 
-static inline void*
+PL_INLINE void*
 f__allocFromBuffer(Buffer b, size_t bytes)
 { if ( b->top + bytes <= b->max ||
        growBuffer(b, bytes) )
@@ -142,13 +142,13 @@ f__allocFromBuffer(Buffer b, size_t bytes)
 	((b)->top -= sizeof(type), (type*)(b)->top)
 #define discardBuffer(b)	 discardBuffer_((Buffer)(b))
 
-static inline void
+PL_INLINE void
 discardBuffer_(Buffer b)
 { if ( b->base && b->base != b->static_buffer )
     tmp_free(b->base);
 }
 
-static inline void
+PL_INLINE void
 emptyBuffer_(Buffer b, size_t discardsize, size_t emptysize)
 { if ( b->max - b->base < discardsize )
   { b->top = b->base;

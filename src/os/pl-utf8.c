@@ -35,6 +35,7 @@
 */
 
 #include <string.h>			/* get size_t */
+#define PL_INLINE inline
 #include "pl-utf8.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

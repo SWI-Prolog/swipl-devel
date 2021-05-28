@@ -71,7 +71,7 @@ typedef struct list_ctx
   Word gstore;
 } list_ctx;
 
-static inline void
+PL_INLINE void
 addAtomicList__LD(list_ctx *ctx, word value ARG_LD)
 { ctx->gstore[0] = consPtr(&ctx->gstore[1], TAG_COMPOUND|STG_GLOBAL);
   ctx->gstore[1] = FUNCTOR_dot2;
