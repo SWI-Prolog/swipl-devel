@@ -122,7 +122,7 @@ static functor_t fast_functors[FAST_FUNCTORS] = {0};
 
 static functor_t
 env_functor(int slots)
-{ int arity = slots+2;				/* clause and PC */
+{ int arity = slots+3;				/* Context, Clause and PC */
 
   if ( arity < FAST_FUNCTORS )
   { if ( likely(fast_functors[arity]) )
@@ -179,6 +179,10 @@ put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
 
   cref = lookup_clref(cl);
   *p++ = env_functor(slots);
+  if ( false(fr->predicate, P_TRANSPARENT) )
+    *p++ = ATOM_nil;
+  else
+    *p++ = contextModule(fr)->name;
   *p++ = cref;
   *p++ = consInt(pc - cl->codes);
 
@@ -464,10 +468,11 @@ retry:
     intptr_t pcoffset;
     size_t lneeded, lroom;
     int i;
+    atom_t mname = *ep++;
     word blob = *ep++;
 
     if ( !(cref = clause_clref(blob)) ||
-	 arityFunctor(f->definition) != cref->value.clause->variables + 2 )
+	 arityFunctor(f->definition) != cref->value.clause->variables + 3 )
     { PL_type_error("continuation", continuation);
       return NULL;
     }
@@ -525,16 +530,24 @@ retry:
 
     fr->programPointer = pcret;
     fr->parent         = pfr;
+    setNextFrameFlags(fr, pfr);
     fr->clause         = cref;
     setFramePredicate(fr, cl->predicate);
-    fr->context	       = fr->predicate->module;
-    setNextFrameFlags(fr, pfr);
+    if ( mname == ATOM_nil )
+    { fr->context      = fr->predicate->module;
+    } else
+    { fr->context      = lookupModule(mname);
+      set(fr, FR_CONTEXT);
+    }
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif
     setGenerationFrame(fr);
     enterDefinition(fr->predicate);
     environment_frame = fr;
+
+    if ( strcmp(predicateName(fr->predicate), "make_wrapper__/2") == 0 )
+      trap_gdb();
 
     DEBUG(MSG_CONTINUE,
 	  Sdprintf("Resume clause %d of %s at PC=%ld\n",

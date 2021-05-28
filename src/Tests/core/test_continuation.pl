@@ -208,7 +208,6 @@ p(N) :-
 
 no_lco.
 
-
 :- begin_tests(continuation).
 
 test(basic, [Ball,After] == [a,after]) :-
@@ -233,5 +232,18 @@ test(mcall2, Ball == a) :-
 	reset(call(shift, a), Ball, _Continuation).
 test(test_cref) :-
 	test_cref.
+
+:- dynamic test_cont_context_d/1.
+:- meta_predicate tassert(:).
+
+tassert(_:X) :-
+   shift(ball),
+   assertz(test_cont_context_d(X)),
+   no_lco.
+
+test(context, cleanup(retractall(test_cont_context_d(_)))) :-
+   reset(tassert(1), _, Cont),
+   call(Cont),
+   test_cont_context_d(1).
 
 :- end_tests(continuation).
