@@ -69,6 +69,7 @@ COMMON(fid_t)		PL_open_foreign_frame__LD(ARG1_LD);
 COMMON(void)		PL_close_foreign_frame__LD(fid_t id ARG_LD);
 COMMON(fid_t)		PL_open_signal_foreign_frame(int sync);
 COMMON(int)		foreignWakeup(term_t ex ARG_LD);
+COMMON(void)		resumeAfterException(int clear, Stack outofstack);
 COMMON(void)		updateAlerted(PL_local_data_t *ld);
 COMMON(int)		raiseSignal(PL_local_data_t *ld, int sig);
 COMMON(int)		pendingSignal(PL_local_data_t *ld, int sig);
@@ -160,6 +161,7 @@ COMMON(word)		linkValG__LD(Word p ARG_LD);
 COMMON(word)		linkValNoG__LD(Word p ARG_LD);
 COMMON(void)		bArgVar(Word ap, Word vp ARG_LD);
 COMMON(int)		_PL_put_number__LD(term_t t, Number n ARG_LD);
+FLI_INLINED
 COMMON(predicate_t)	_PL_predicate(const char *name, int arity,
 				      const char *module, predicate_t *bin);
 COMMON(void)		initialiseForeign(int argc, char **argv);
@@ -174,6 +176,7 @@ COMMON(int)		_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD);
 COMMON(term_t)		PL_new_term_ref__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_ref_noshift__LD(ARG1_LD);
 COMMON(term_t)		PL_new_term_refs__LD(int n ARG_LD);
+COMMON(int)		globalize_term_ref__LD(term_t t ARG_LD);
 COMMON(void)		PL_reset_term_refs__LD(term_t r ARG_LD);
 COMMON(term_t)		PL_copy_term_ref__LD(term_t from ARG_LD);
 COMMON(int)		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
@@ -182,14 +185,24 @@ COMMON(int)		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
 COMMON(int)		PL_unify_int64__LD(term_t t1, int64_t ARG_LD);
 COMMON(int)		PL_unify_int64_ex__LD(term_t t1, int64_t ARG_LD);
 COMMON(int)		PL_unify_functor__LD(term_t t, functor_t f ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
 COMMON(int)		PL_get_text_as_atom(term_t t, atom_t *a, int flags);
+FLI_INLINED
 COMMON(int)		PL_put_variable__LD(term_t t1 ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_put_integer__LD(term_t t1, long i ARG_LD);
+FLI_INLINED
+COMMON(int)		PL_put_int64__LD(term_t t, int64_t i ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_is_atomic__LD(term_t t ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_is_functor__LD(term_t t, functor_t f ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_is_variable__LD(term_t t ARG_LD);
 COMMON(int)		PL_strip_module__LD(term_t q, module_t *m,
 					    term_t t, int flags ARG_LD) WUNUSED;
@@ -210,6 +223,7 @@ COMMON(int)		PL_get_uintptr(term_t t, size_t *i);
 COMMON(int)		PL_unify_atom__LD(term_t t, atom_t a ARG_LD);
 COMMON(int)		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
 COMMON(int)		PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD);
+FLI_INLINED
 COMMON(int)		PL_is_atom__LD(term_t t ARG_LD);
 COMMON(int)		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
 COMMON(int)		PL_cons_list__LD(term_t l, term_t head, term_t tail
@@ -227,10 +241,13 @@ COMMON(void)            bindExtensions(const char *module,
 				       const PL_extension *ext);
 COMMON(void)		initForeign(void);
 COMMON(int)		PL_rethrow(void);
+FLI_INLINED
 COMMON(int)		PL_pending__LD(int sig ARG_LD);
 COMMON(int)		PL_clearsig__LD(int sig ARG_LD);
 COMMON(void)		cleanupCodeToAtom(void);
 COMMON(void)		PL_clear_foreign_exception(LocalFrame fr);
+COMMON(int)		has_emergency_space(void *sv, size_t needed);
+FLI_INLINED
 COMMON(except_class)    classify_exception__LD(term_t ex ARG_LD);
 COMMON(except_class)    classify_exception_p__LD(Word p ARG_LD);
 COMMON(void)		PL_abort_process(void) NORETURN;

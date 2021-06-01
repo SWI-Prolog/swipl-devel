@@ -36,6 +36,9 @@
 */
 
 /*#define O_DEBUG 1*/
+#define USE_FLI_INLINES 1
+#define USE_ALLOC_INLINES 1
+
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-arith.h"
@@ -229,10 +232,6 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 #endif
 
 
-
-
-#include "pl-alloc.c"
-#include "pl-index.c"
 
 
 		 /*******************************
@@ -1762,7 +1761,7 @@ TBD: In these modern days we can  probably   do  GC. Still, if it is not
 needed why would we?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+void
 resumeAfterException(int clear, Stack outofstack)
 { GET_LD
 
@@ -1809,8 +1808,6 @@ exceptionUnwindGC(void)
 		 /*******************************
 		 *   FOREIGN-LANGUAGE INTERFACE *
 		 *******************************/
-
-#include "pl-fli.c"
 
 #ifdef O_DEBUGGER
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

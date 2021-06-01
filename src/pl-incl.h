@@ -2607,6 +2607,28 @@ decrease).
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some functions can be inlined for some files only. These functions get
+declared with usual attributes for most files, including their original
+sources; files that want the inlines can define USE_XYZ_INLINES prior to
+including pl-incl.h, and for that file the function will be defined as
+"inline" - not "static inline" or "extern inline" but just "inline".
+What that means is that the function won't be compiled into a standalone
+code block in that file, and if the compiler decides not to inline it,
+it will emit a reference to the library-shared version of the function.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if USE_FLI_INLINES
+# define FLI_INLINED inline
+#else
+# define FLI_INLINED 
+#endif
+#if USE_ALLOC_INLINES
+# define ALLOC_INLINED inline
+#else
+# define ALLOC_INLINED 
+#endif
+
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
@@ -2634,4 +2656,11 @@ decrease).
 #undef try
 #endif
 
+/* include the appropriate inlines, when requested */
+#if USE_FLI_INLINES
+#include "pl-fli-inline.h"
+#endif
+#if USE_ALLOC_INLINES
+#include "pl-alloc-inline.h"
+#endif
 #endif /*_PL_INCLUDE_H*/

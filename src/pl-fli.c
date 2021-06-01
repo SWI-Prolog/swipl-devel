@@ -40,8 +40,16 @@
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-text.h"
+#include "os/pl-cstack.h"
 #include "pl-codelist.h"
+#include "pl-dict.h"
+#include "pl-arith.h"
+#include "pl-wrap.h"
+#include "pl-comp.h"
 #include <errno.h>
+
+/* Emit the non-inline definitions here */
+#include "pl-fli-inline.h"
 
 #ifdef __SANITIZE_ADDRESS__
 #include <sanitizer/lsan_interface.h>
@@ -88,8 +96,6 @@ Prolog int) is used by the garbage collector to update the stack frames.
 #endif
 #endif
 
-#define setHandle(h, w)		(*valTermRef(h) = (w))
-#define valHandleP(h)		valTermRef(h)
 #define VALID_INT_ARITY(a) \
 	{ if ( arity < 0 || arity > INT_MAX ) \
 	    fatalError("Arity out of range: %lld", (int64_t)arity); \
@@ -1441,17 +1447,7 @@ PL_get_bool(term_t t, int *b)
 }
 
 
-int
-PL_get_atom__LD(term_t t, atom_t *a ARG_LD)
-{ word w = valHandle(t);
-
-  if ( isAtom(w) )
-  { *a = (atom_t) w;
-    succeed;
-  }
-  fail;
-}
-
+/* PL_get_atom__LD(term_t t, atom_t *a ARG_LD) moved to pl-fli-inline.h */
 
 #undef PL_get_atom
 int
@@ -2277,13 +2273,7 @@ _PL_get_xpce_reference(term_t t, xpceref_t *ref)
 		 *		IS-*		*
 		 *******************************/
 
-int
-PL_is_variable__LD(term_t t ARG_LD)
-{ word w = valHandle(t);
-
-  return canBind(w) ? TRUE : FALSE;
-}
-
+/* PL_is_variable__LD(term_t t ARG_LD) moved to pl-fli-inline.h */
 
 #undef PL_is_variable
 int
@@ -2296,15 +2286,7 @@ PL_is_variable(term_t t)
 #define PL_is_variable(t) PL_is_variable__LD(t PASS_LD)
 
 
-int
-PL_is_atom__LD(term_t t ARG_LD)
-{ word w = valHandle(t);
-
-  if ( isTextAtom(w) )
-    return TRUE;
-
-  return FALSE;
-}
+/* PL_is_atom__LD(term_t t ARG_LD) moved to pl-fli-inline.h */
 
 
 #undef PL_is_atom
@@ -2409,17 +2391,7 @@ PL_is_callable(term_t t)
   return isCallable(valHandle(t) PASS_LD);
 }
 
-
-int
-PL_is_functor__LD(term_t t, functor_t f ARG_LD)
-{ word w = valHandle(t);
-
-  if ( hasFunctor(w, f) )
-    succeed;
-
-  fail;
-}
-
+/* PL_is_functor__LD(term_t t, functor_t f ARG_LD) moved to pl-fli-inline.h */
 
 #undef PL_is_functor
 int
@@ -2453,12 +2425,7 @@ PL_is_pair(term_t t)
 }
 
 
-int
-PL_is_atomic__LD(term_t t ARG_LD)
-{ word w = valHandle(t);
-
-  return !!isAtomic(w);
-}
+/* PL_is_atomic__LD(term_t t ARG_LD) moved to pl-fli-inline.h */
 
 
 #undef PL_is_atomic
@@ -2518,13 +2485,6 @@ PL_unify_string_nchars(term_t t, size_t len, const char *s)
 		 *             PUT-*		*
 		 *******************************/
 
-int
-PL_put_variable__LD(term_t t ARG_LD)
-{ Word p = valTermRef(t);
-
-  setVar(*p);
-  return TRUE;
-}
 
 
 #undef PL_put_variable
@@ -2537,12 +2497,7 @@ PL_put_variable(term_t t)
 #define PL_put_variable(t) PL_put_variable__LD(t PASS_LD)
 
 
-int
-PL_put_atom__LD(term_t t, atom_t a ARG_LD)
-{ setHandle(t, a);
-  return TRUE;
-}
-
+/* PL_put_atom__LD(term_t t, atom_t a ARG_LD) moved to pl-fli-inline.h */
 
 #undef PL_put_atom
 int
@@ -2724,29 +2679,9 @@ PL_put_list_chars(term_t t, const char *chars)
 }
 
 
-int
-PL_put_int64__LD(term_t t, int64_t i ARG_LD)
-{ word w = consInt(i);
-
-  if ( valInt(w) != i &&
-       put_int64(&w, i, ALLOW_GC PASS_LD) != TRUE )
-    return FALSE;
-
-  setHandle(t, w);
-  return TRUE;
-}
-
-
-int
-PL_put_integer__LD(term_t t, long i ARG_LD)
-{ return PL_put_int64__LD(t, i PASS_LD);
-}
-
-
-int
-PL_put_intptr__LD(term_t t, intptr_t i ARG_LD)
-{ return PL_put_int64__LD(t, i PASS_LD);
-}
+/* PL_put_int64__LD(term_t t, int64_t i ARG_LD) moved to pl-fli-inline.h */
+/* PL_put_integer__LD(term_t t, long i ARG_LD) moved to pl-fli-inline.h */
+/* PL_put_intptr__LD(term_t t, intptr_t i ARG_LD) moved to pl-fli-inline.h */
 
 
 int
@@ -4265,14 +4200,7 @@ PL_predicate(const char *name, int arity, const char *module)
 }
 
 
-predicate_t
-_PL_predicate(const char *name, int arity, const char *module,
-	      predicate_t *bin)
-{ if ( !*bin )
-    *bin = PL_predicate(name, arity, module);
-
-  return *bin;
-}
+/* _PL_predicate(const char *name, int arity, const char *module, moved to pl-fli-inline.h */
 
 
 int
@@ -4360,7 +4288,7 @@ PL_foreign_context_predicate(control_t h)
   return isCurrentProcedure(def->functor->functor, def->module);
 }
 
-static int
+int
 has_emergency_space(void *sv, size_t needed)
 { Stack s = (Stack) sv;
   ssize_t lacking = ((char*)s->top + needed) - (char*)s->max;
@@ -4452,16 +4380,7 @@ classify_exception_p__LD(Word p ARG_LD)
 }
 
 
-except_class
-classify_exception__LD(term_t exception ARG_LD)
-{ Word p;
-
-  if ( !exception )
-    return EXCEPT_NONE;
-
-  p = valTermRef(exception);
-  return classify_exception_p(p);
-}
+/* classify_exception__LD(term_t exception ARG_LD) moved to pl-fli-inline.h */
 
 
 int
@@ -4864,10 +4783,7 @@ PL_raise(int sig)
 }
 
 
-int
-PL_pending__LD(int sig ARG_LD)
-{ return pendingSignal(LD, sig);
-}
+/* PL_pending__LD(int sig ARG_LD) moved to pl-fli-inline.h */
 
 
 int
