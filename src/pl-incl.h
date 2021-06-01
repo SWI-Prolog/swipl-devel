@@ -403,6 +403,12 @@ A common basis for C keywords.
 #define MAY_ALIAS
 #endif
 
+#if defined(__GNUC__) && !defined(MAYBE_UNUSED)
+#define MAYBE_UNUSED __attribute__ ((unused))
+#else
+#define MAYBE_UNUSED
+#endif
+
 #ifdef HAVE___BUILTIN_EXPECT
 #define likely(x)       __builtin_expect((x), 1)
 #define unlikely(x)     __builtin_expect((x), 0)
@@ -2550,6 +2556,26 @@ decrease).
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some functions can be inlined for some files only. These functions get
+declared with usual attributes for most files, including their original
+sources; files that want the inlines can define USE_XYZ_INLINES prior to
+including pl-incl.h, and for that file the function will be declared as
+static. This may cause a small amount of code bloat in object files, but
+with any luck LTO could address that.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if USE_FLI_INLINES
+# define FLI_INLINE(type) static type MAYBE_UNUSED
+#else
+# define FLI_INLINE COMMON
+#endif
+#if USE_ALLOC_INLINES
+# define ALLOC_INLINE(type) static type MAYBE_UNUSED
+#else
+# define ALLOC_INLINE COMMON
+#endif
+
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
@@ -2577,4 +2603,11 @@ decrease).
 #undef try
 #endif
 
+/* include the appropriate inlines, when requested */
+#if USE_FLI_INLINES
+#include "pl-fli-inline.h"
+#endif
+#if USE_ALLOC_INLINES
+#include "pl-alloc-inline.h"
+#endif
 #endif /*_PL_INCLUDE_H*/

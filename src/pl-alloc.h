@@ -119,7 +119,7 @@ COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
 COMMON(int64_t)		valBignum__LD(word w ARG_LD);
 #endif
 COMMON(int)		equalIndirect(word r1, word r2);
-COMMON(size_t)		gsizeIndirectFromCode(Code PC);
+ALLOC_INLINE(size_t)	gsizeIndirectFromCode(Code PC);
 COMMON(word)		globalIndirectFromCode(Code *PC);
 COMMON(void *)		tmp_malloc(size_t req);
 COMMON(void *)		tmp_realloc(void *mem, size_t req);
