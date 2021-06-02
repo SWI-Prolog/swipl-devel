@@ -86,7 +86,7 @@ succeeds nowhere). For example:
 
 ```
 ?- maplist([C,R]>>(portray_text:text_code(C)->R=y;R=n),
-           `Générateur`,Results).
+           `G\u00e9n\u00e9rateur`,Results).
 Results = [y,n,y,n,y,y,y,y,y,y].
 ```
 
@@ -104,7 +104,7 @@ Then:
 
 ```
 ?- maplist([C,R]>>(portray_text:text_code(C)->R=y;R=n),
-           `Générateur`,Results).
+           `G\u00e9n\u00e9rateur`,Results).
 Results = [y,y,y,y,y,y,y,y,y,y].
 ```
 */
