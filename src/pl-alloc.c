@@ -38,6 +38,7 @@
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dict.h"
+#include "pl-arith.h"
 #include <math.h>
 #ifdef HAVE_SYS_MMAN_H
 #define MMAP_STACK 1
@@ -60,6 +61,8 @@
 #define ALLOC_NEW_MAGIC  0xF9
 #endif
 
+/* Emit the non-inline definitions here */
+#include "pl-alloc-inline.h"
 
 		 /*******************************
 		 *	    USE BOEHM GC	*
@@ -579,7 +582,7 @@ push_overflow_context(Stack stack, int extra)
     }
     *p++ = consInt(env_frames(environment_frame));
     *p++ = ATOM_environments;
-    *p++ = consInt(choice_points(BFR));
+    *p++ = consInt(choice_points(LD->choicepoints));
     *p++ = ATOM_choicepoints;
     gTop = p;
 
@@ -1104,64 +1107,12 @@ equalIndirect(word w1, word w2)
   fail;
 }
 
-
-size_t					/* size in cells */
-gsizeIndirectFromCode(Code pc)
-{ return wsizeofInd(pc[0]) + 2;
-}
-
-struct word_and_Code {
-	word word;
-	Code code;
-};
-#define WORD_AND_CODE(w,c) ((struct word_and_Code){(w),(c)})
-
-/* The VM_ alternatives of these functions pass and return pc, to avoid needing to
- * store it in a memory address */
-static inline struct word_and_Code
-VM_globalIndirectFromCode(Code pc ARG_LD)
-{ word m = *pc++;
-  size_t n = wsizeofInd(m);
-  Word p = allocGlobal(n+2);
-
-  if ( p )
-  { word r = consPtr(p, tag(m)|STG_GLOBAL);
-
-    *p++ = m;
-    while(n-- > 0)
-      *p++ = *pc++;
-    *p++ = m;
-
-    return WORD_AND_CODE(r, pc);
-  } else
-    return WORD_AND_CODE(0, pc);
-}
-
 word
 globalIndirectFromCode(Code *PC)
 { GET_LD
   struct word_and_Code retval = VM_globalIndirectFromCode(*PC PASS_LD);
   *PC = retval.code;
   return retval.word;
-}
-
-static inline struct word_and_Code				/* used in pl-wam.c */
-VM_equalIndirectFromCode(word a, Code pc ARG_LD)
-{ Code orig_pc = pc;
-  Word pa = addressIndirect(a);
-
-  if ( *pc == *pa )
-  { size_t n = wsizeofInd(*pc);
-
-    while(n-- > 0)
-    { if ( *++pc != *++pa )
-	return WORD_AND_CODE(FALSE, orig_pc);
-    }
-    pc++;
-    return WORD_AND_CODE(TRUE, pc);
-  }
-
-  return WORD_AND_CODE(FALSE, orig_pc);
 }
 
 int
