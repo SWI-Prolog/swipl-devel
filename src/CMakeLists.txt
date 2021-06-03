@@ -367,6 +367,7 @@ endif()
 # library
 
 add_library(swiplobjs${PGO_SUFFIX} OBJECT ${LIBSWIPL_SRC})
+set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY C_VISIBILITY_PRESET hidden)
 if(LIBSWIPL_TYPE STREQUAL "SHARED")
   set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()

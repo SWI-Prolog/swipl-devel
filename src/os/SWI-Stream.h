@@ -111,8 +111,13 @@ stuff.
 #define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
+# ifdef PL_SO_EXPORT
+#define PL_EXPORT(type)		extern PL_SO_EXPORT type
+#define PL_EXPORT_DATA(type)	extern PL_SO_EXPORT type
+# else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
+# endif
 #define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/

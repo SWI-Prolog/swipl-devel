@@ -105,7 +105,7 @@ special declaration) or exported from the executable or DLL.
 Both using native Microsoft MSVC as well   as recent Cygwin (tested 1.1)
 compilers support __declspec(...) for exporting symbols.
 
-As SWI-Prolog.h can be included separately or together with this file we
+As SWI-Stream.h can be included separately or together with this file we
 duplicated this stuff.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -137,8 +137,13 @@ duplicated this stuff.
 #define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
+# ifdef PL_SO_EXPORT
+#define PL_EXPORT(type)		extern PL_SO_EXPORT type
+#define PL_EXPORT_DATA(type)	extern PL_SO_EXPORT type
+# else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
+# endif
 #define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/

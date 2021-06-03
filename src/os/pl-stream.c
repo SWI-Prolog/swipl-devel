@@ -66,6 +66,10 @@ locking is required.
 #undef O_LARGEFILES
 #endif
 
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define PL_SO_EXPORT __attribute__((visibility("default")))
+#endif
+
 #define PL_KERNEL 1
 #define O_LOCALE 1
 #include <wchar.h>

@@ -64,9 +64,6 @@ for -DMD="config/win64.h"
 #include "os/windows/uxnt.h"		/* More Windows POSIX enhancements */
 #endif
 
-#include "pl-mutex.h"
-#include "os/SWI-Stream.h"
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Symbols are local to shared objects  by   default  in  COFF based binary
 formats, and public in ELF based formats.   In some ELF based systems it
@@ -78,12 +75,18 @@ supposed to be local to the SWI-Prolog kernel are declared using
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
+#define SO_LOCAL /*__attribute__((visibility("hidden")))*/
+#define SO_EXPORT __attribute__((visibility("default")))
+#define PL_SO_EXPORT SO_EXPORT
 #else
 #define SO_LOCAL
+#define SO_EXPORT
 #endif
 #define COMMON(type) SO_LOCAL type
 
+
+#include "pl-mutex.h"
+#include "os/SWI-Stream.h"
 
 		 /*******************************
 		 *	    ENGINE ACCESS	*
