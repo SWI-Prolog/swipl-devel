@@ -33,9 +33,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
-#include <ctype.h>
 #include "pl-ctype.h"
+#include "pl-text.h"
+#include <ctype.h>
 #include <errno.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

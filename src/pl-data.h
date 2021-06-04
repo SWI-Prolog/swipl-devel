@@ -317,6 +317,9 @@ and while loading .wic files.  It comes at no price.
 		 *	       VALUES		*
 		 *******************************/
 
+/* TODO: putting a prototype here to satisfy the compiler, but fetchAtomArray()
+ * may want to be moved somewhere else.  */
+static inline Atom	fetchAtomArray(size_t index);
 #define indexAtom(w)	((w)>>LMASK_BITS)
 #define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)

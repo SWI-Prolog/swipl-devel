@@ -102,4 +102,13 @@ COMMON(int)		file_name_is_iri(const char *path);
 COMMON(int)		iri_hook(const char *url, iri_op op, ...);
 COMMON(atom_t)		file_name_to_atom(const char *fn);
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define getTextInputStream(t, s)	getTextInputStream__LD(t, s PASS_LD)
+#define getBinaryInputStream(t, s)	getBinaryInputStream__LD(t, s PASS_LD)
+#define getTextOutputStream(t, s)	getTextOutputStream__LD(t, s PASS_LD)
+#define getBinaryOutputStream(t, s)	getBinaryOutputStream__LD(t, s PASS_LD)
+
 #endif /*PL_FILE_H_INCLUDED*/

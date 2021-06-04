@@ -34,7 +34,7 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-atom.h"
 #include "os/pl-ctype.h"
 #undef LD
 #define LD LOCAL_LD

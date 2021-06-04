@@ -39,7 +39,7 @@
 #define USE_FLI_INLINES 1
 #define USE_ALLOC_INLINES 1
 
-#include "pl-incl.h"
+#include "pl-wam.h"
 #include "pl-comp.h"
 #include "pl-arith.h"
 #include "pl-inline.h"

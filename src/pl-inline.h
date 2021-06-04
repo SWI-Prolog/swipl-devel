@@ -51,6 +51,7 @@
 #endif
 
 #include "pl-transaction.h"
+#include "pl-atom.h"
 
 
 		 /*******************************
@@ -410,6 +411,7 @@ Trail__LD(Word p, word v ARG_LD)
 }
 
 
+#define bindConst(p, c)		bindConst__LD(p, c PASS_LD)
 static inline void
 bindConst__LD(Word p, word c ARG_LD)
 { DEBUG(0, assert(hasGlobalSpace(0)));
@@ -430,6 +432,8 @@ bindConst__LD(Word p, word c ARG_LD)
 }
 
 
+#define consPtrB(p, base, ts)	consPtr__LD(p, (uintptr_t)(base), (ts) PASS_LD)
+#define consPtr(p, ts)		consPtrB(p, LD->bases[(ts)&STG_MASK], (ts))
 static inline word
 consPtr__LD(void *p, uintptr_t base, word ts ARG_LD)
 { uintptr_t v = (uintptr_t) p;
@@ -458,6 +462,7 @@ checking (unless compiled for debugging) and fetches the base address of
 the global stack only once.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define linkValI(p)		linkValI__LD(p PASS_LD)
 static inline word
 linkValI__LD(Word p ARG_LD)
 { word w = *p;
@@ -596,6 +601,7 @@ setGenerationFrame__LD(LocalFrame fr ARG_LD)
   }
 }
 
+#define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))
 static inline int
 ensureLocalSpace__LD(size_t bytes ARG_LD)
 { int rc;
@@ -609,6 +615,9 @@ ensureLocalSpace__LD(size_t bytes ARG_LD)
   return raiseStackOverflow(rc);
 }
 
+#define ensureGlobalSpace(n,f)  likely(ensureStackSpace__LD(n,0,f PASS_LD))
+#define ensureTrailSpace(n)     likely(ensureStackSpace__LD(0,n,ALLOW_GC PASS_LD))
+#define ensureStackSpace(g,t)   likely(ensureStackSpace__LD(g,t,ALLOW_GC PASS_LD))
 static inline int
 ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
 { gcells += BIND_GLOBAL_SPACE;

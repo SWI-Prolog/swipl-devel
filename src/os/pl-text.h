@@ -119,5 +119,10 @@ text_chr(const PL_chars_t *t, int chr)
   return (size_t)-1;
 }
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define PL_get_text(l, t, f)	PL_get_text__LD(l, t, f PASS_LD)
 
 #endif /*PL_TEXT_H_INCLUDED*/

@@ -32,7 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-version.h"
 #ifdef USE_GIT_VERSION_H
 #include <version.h>
 #endif

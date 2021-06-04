@@ -34,7 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-trace.h"
 #include "pl-comp.h"
 #include "os/pl-ctype.h"
 #include "os/pl-cstack.h"

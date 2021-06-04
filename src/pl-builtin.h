@@ -64,28 +64,6 @@ for -DMD="config/win64.h"
 #include "os/windows/uxnt.h"		/* More Windows POSIX enhancements */
 #endif
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Symbols are local to shared objects  by   default  in  COFF based binary
-formats, and public in ELF based formats.   In some ELF based systems it
-is possible to make them local   anyway. This enhances encapsulation and
-avoids an indirection for calling these   functions.  Functions that are
-supposed to be local to the SWI-Prolog kernel are declared using
-
-    COMMON(<type) <function>(<args>);
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL /*__attribute__((visibility("hidden")))*/
-#define SO_EXPORT __attribute__((visibility("default")))
-#define PL_SO_EXPORT SO_EXPORT
-#else
-#define SO_LOCAL
-#define SO_EXPORT
-#endif
-#define COMMON(type) SO_LOCAL type
-
-
-#include "pl-mutex.h"
 #include "os/SWI-Stream.h"
 
 		 /*******************************
@@ -267,12 +245,12 @@ typedef enum
   FRG_REDO	 = 2		/* Normal redo */
 } frg_code;
 
-typedef struct foreign_context
+struct foreign_context
 { uintptr_t		context;	/* context value */
   frg_code		control;	/* FRG_* action */
   struct PL_local_data *engine;		/* invoking engine */
   struct definition    *predicate;	/* called Prolog predicate */
-} *control_t;
+};
 
 #define FRG_REDO_MASK	0x03
 #define FRG_REDO_BITS	2

@@ -172,4 +172,12 @@ COMMON(void)		PL_release_string_buffers_from_mark__LD(buf_mark_t mark
 COMMON(void)		release_string_buffers_from_frame(LocalFrame fr ARG_LD);
 COMMON(void)		discardStringStack(string_stack *stack);
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define PL_mark_string_buffers(m) PL_mark_string_buffers__LD(m PASS_LD)
+#define PL_release_string_buffers_from_mark(m) \
+				PL_release_string_buffers_from_mark__LD(m PASS_LD)
+
 #endif /*BUFFER_H_INCLUDED*/

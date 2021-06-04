@@ -34,8 +34,7 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
-#include "pl-inline.h"
+#include "pl-attvar.h"
 #ifdef O_ATTVAR
 
 #undef LD
@@ -84,8 +83,6 @@ PL_get_attr__LD(term_t t, term_t a ARG_LD)
 
   fail;
 }
-
-#define PL_get_attr(t, a) PL_get_attr__LD(t, a PASS_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) Although this is an assignment from var   to value, we use a trailed

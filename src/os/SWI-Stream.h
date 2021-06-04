@@ -34,8 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _PL_STREAM_H
-#define _PL_STREAM_H
+#ifndef _SWI_STREAM_H
+#define _SWI_STREAM_H
 
 /* This appears to make the wide-character support compile and work
    on HPUX 11.23.  There really should be a cleaner way ...
@@ -153,12 +153,7 @@ typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
-#if defined(O_PLMT) && defined(PL_KERNEL)
-#include "pl-mutex.h"
-#define IOLOCK recursiveMutex
-#else
-typedef void *		IOLOCK;		/* Definition for external use */
-#endif
+typedef struct recursiveMutex IOLOCK;
 
 #ifndef PL_HAVE_TERM_T
 #define PL_HAVE_TERM_T
@@ -458,4 +453,4 @@ PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
 }
 #endif
 
-#endif /*_PL_STREAM_H*/
+#endif /*_SWI_STREAM_H*/

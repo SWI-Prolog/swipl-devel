@@ -78,6 +78,7 @@ locking is required.
 #include "pl-stream.h"
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
+#include "../pl-mutex.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -161,7 +162,6 @@ STRYLOCK(IOSTREAM *s)
 #include "os/pl-locale.h"
 #endif
 
-extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);

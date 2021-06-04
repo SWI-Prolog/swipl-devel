@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-util.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 

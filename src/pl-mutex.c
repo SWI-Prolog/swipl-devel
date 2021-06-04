@@ -34,7 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-mutex.h"
 #include "pl-thread.h"
 
 #undef LD

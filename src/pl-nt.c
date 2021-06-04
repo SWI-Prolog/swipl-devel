@@ -48,7 +48,7 @@
 #define PL_MSG_HANDLED 1
 #endif
 
-#include "pl-incl.h"
+#include "pl-nt.h"
 #include "os/pl-utf8.h"
 #include <process.h>
 #include "os/pl-ctype.h"

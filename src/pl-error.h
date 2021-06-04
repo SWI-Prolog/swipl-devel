@@ -34,6 +34,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _PL_ERROR_H
+#define _PL_ERROR_H
+
 #ifndef COMMON
 #define COMMON(type) extern type
 #endif
@@ -111,3 +114,11 @@ COMMON(int)		PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD);
 #endif
 COMMON(int)		PL_get_module_ex(term_t name, module_t *m);
 COMMON(int)		PL_get_arg_ex(int n, term_t term, term_t arg);
+
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+
+#endif /*_PL_ERROR_H*/

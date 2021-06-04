@@ -33,6 +33,11 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-incl.h"
+
+#ifndef _PL_INIT_H
+#define _PL_INIT_H
+
 		/********************************
 		*           STRUCTURES		*
 		********************************/
@@ -85,7 +90,20 @@ typedef struct
 #endif
 } pl_options_t;
 
-COMMON(int)	opt_append(opt_list **l, const char *s);
+		 /*******************************
+		 *    FUNCTION DECLARATIONS	*
+		 *******************************/
+
+int		startProlog(int argc, char **argv);
+bool		sysError(const char *fm, ...);
+void		fatalError(const char *fm, ...) NORETURN;
+bool		warning(const char *fm, ...);
+void		vfatalError(const char *fm, va_list args) NORETURN;
+bool		vwarning(const char *fm, va_list args);
+int		cleanupProlog(int status, int reclaim);
+int		run_on_halt(OnHalt *handlers, int rval);
+int		setTraditional(void);
+int		opt_append(opt_list **l, const char *s);
 
 
 		/********************************
@@ -125,3 +143,5 @@ COMMON(int)	opt_append(opt_list **l, const char *s);
 #define PLHOMEVAR_1	"SWI_HOME_DIR"
 #define PLHOMEVAR_2	"SWIPL"
 #define PLHOMEFILE	"swipl.home"
+
+#endif /*_PL_INIT_H*/

@@ -852,6 +852,7 @@ checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
 }
 
 
+#define getOutputStream(t, k, s)	getOutputStream__LD(t, k, s PASS_LD)
 static int
 getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 { atom_t a;
@@ -918,6 +919,7 @@ getBinaryOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
 }
 
 
+#define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
 static int
 getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 { atom_t a;

@@ -41,7 +41,7 @@
 #include <windows.h>
 #include <process.h>			/* getpid() */
 #endif
-#include "pl-incl.h"
+#include "pl-prologflag.h"
 #include "pl-arith.h"
 #include "pl-tabling.h"
 #include "pl-ctype.h"

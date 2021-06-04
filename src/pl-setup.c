@@ -36,8 +36,8 @@
 
 /*#define O_DEBUG 1*/
 
-#define GLOBAL SO_LOCAL			/* allocate global variables here */
-#include "pl-incl.h"
+#define GLOBAL			/* allocate global variables here */
+#include "pl-setup.h"
 #include "pl-comp.h"
 #include "pl-arith.h"
 #include "os/pl-cstack.h"

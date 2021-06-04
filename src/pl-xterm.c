@@ -38,7 +38,7 @@
 #endif
 
 /* #define O_DEBUG 1 */
-#include "pl-incl.h"
+#include "pl-xterm.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

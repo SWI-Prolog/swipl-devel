@@ -38,7 +38,7 @@ Formatted output (Prolog predicates format/[1,2,3]).   One  day,  the  C
 source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-incl.h"
+#include "pl-fmt.h"
 #include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"

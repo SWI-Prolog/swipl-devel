@@ -60,10 +60,17 @@ controlled using the following macros:
 	recursiveMutexUnlock(p)	unlock a recursive mutex
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#include "pl-incl.h"
+
 #ifndef PL_MUTEX_H_DEFINED
 #define PL_MUTEX_H_DEFINED
 
+void		initMutexes(void);
+foreign_t	pl_with_mutex(term_t mutex, term_t goal);
+
 #ifdef O_PLMT
+
+int		get_mutex(term_t t, pl_mutex **mutex, int create);
 
 #if defined(__WINDOWS__)
 #define USE_CRITICAL_SECTIONS 1
@@ -102,23 +109,25 @@ typedef pthread_mutex_t simpleMutex;
 
 #endif /*USE_CRITICAL_SECTIONS*/
 
+/* This struct name also appears in SWI-Stream.h */
+typedef struct recursiveMutex {
+  pthread_mutex_t lock;
+#ifndef RECURSIVE_MUTEXES
+	pthread_t owner;
+     unsigned int count;
+#endif
+} recursiveMutex;
+
 #ifdef RECURSIVE_MUTEXES
-typedef pthread_mutex_t recursiveMutex;
 
 #define NEED_RECURSIVE_MUTEX_INIT 1
 extern int recursiveMutexInit(recursiveMutex *m);
-#define recursiveMutexDelete(p)	 pthread_mutex_destroy(p)
-#define recursiveMutexLock(p)	 pthread_mutex_lock(p)
-#define recursiveMutexTryLock(p) pthread_mutex_trylock(p)
-#define recursiveMutexUnlock(p)	 pthread_mutex_unlock(p)
+#define recursiveMutexDelete(p)	 pthread_mutex_destroy(&((p)->lock))
+#define recursiveMutexLock(p)	 pthread_mutex_lock(&((p)->lock))
+#define recursiveMutexTryLock(p) pthread_mutex_trylock(&((p)->lock))
+#define recursiveMutexUnlock(p)	 pthread_mutex_unlock(&((p)->lock))
 
 #else /*RECURSIVE_MUTEXES*/
-
-typedef struct {
-  pthread_mutex_t lock;
-	pthread_t owner;
-     unsigned int count;
-} recursiveMutex;
 
 #define NEED_RECURSIVE_MUTEX_INIT 1
 #define NEED_RECURSIVE_MUTEX_DELETE 1

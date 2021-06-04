@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -33,8 +33,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _FLI_H_INCLUDED
-#define _FLI_H_INCLUDED
+#ifndef _SWI_PROLOG_H
+#define _SWI_PROLOG_H
 
 #ifndef __SWI_PROLOG__	/* use this to switch on Prolog dialect */
 #define __SWI_PROLOG__	/* normally defined by the swipl-ld compiler driver */
@@ -148,6 +148,29 @@ duplicated this stuff.
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The following two macros are used to define types that are internal to the
+SWI-Prolog library  but appear in  public  API signatures.  None of  these
+types should be  used by derived code;  the mangling  done by PL_OPAQUE is
+intended solely to avoid clutter  in global type namespaces and should not
+be relied upon to remain unchanged across versions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#ifndef PL_OPAQUE
+#define PL_OPAQUE(type)		__PL_ ## type
+#define _DEFINED_PL_OPAQUE
+#endif
+#ifndef PL_STRUCT
+#define PL_STRUCT(name)		struct PL_OPAQUE(name)
+#define _DEFINED_PL_STRUCT
+#endif
+
+/* Shorthand defines, for brevity in this file. They get undefined
+ * at the bottom, so don't use them in #define definitions (which
+ * use lazy evaluation) or in derived code.
+ */
+#define _PLQ PL_OPAQUE
+#define _PLS PL_STRUCT
+
 
 		 /*******************************
 		 *	  GCC ATTRIBUTES	*
@@ -164,26 +187,21 @@ duplicated this stuff.
 		 *	       TYPES		*
 		 *******************************/
 
-#ifdef _PL_INCLUDE_H
-typedef Module		module_t;	/* a module */
-typedef Procedure	predicate_t;	/* a predicate handle */
-typedef Record		record_t;	/* handle to a recorded term */
-typedef struct PL_local_data *PL_engine_t; /* handle to a engine */
-#else
-typedef	uintptr_t	atom_t;		/* Prolog atom */
-typedef uintptr_t	functor_t;	/* Name/arity pair */
-typedef void *		module_t;	/* Prolog module */
-typedef void *		predicate_t;	/* Prolog procedure */
-typedef void *		record_t;	/* Prolog recorded term */
+typedef uintptr_t	_PLQ(word);	/* Anonymous ptr-sized object*/
+typedef _PLQ(word)	atom_t;		/* Prolog atom */
+typedef _PLQ(word)	functor_t;	/* Name/arity pair */
+typedef uintptr_t	_PLQ(code);	/* Prolog bytecode type */
+typedef _PLS(module) *	module_t;	/* Prolog module */
+typedef _PLS(procedure) *predicate_t;	/* Prolog procedure */
+typedef _PLS(record) *	record_t;	/* Prolog recorded term */
 #ifndef PL_HAVE_TERM_T
 #define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
 #endif
 typedef uintptr_t	qid_t;		/* opaque query handle */
 typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
-typedef void *		control_t;	/* non-deterministic control arg */
-typedef void *		PL_engine_t;	/* opaque engine handle */
-#endif
+typedef _PLS(foreign_context) *control_t; /* non-deterministic control arg */
+typedef _PLS(PL_local_data) *PL_engine_t; /* opaque engine handle */
 typedef uintptr_t	PL_atomic_t;	/* same a word */
 typedef uintptr_t	foreign_t;	/* return type of foreign functions */
 typedef wchar_t	        pl_wchar_t;	/* Prolog wide character */
@@ -194,11 +212,9 @@ typedef foreign_t	(*pl_function_t)(); /* foreign language functions */
 #endif
 typedef uintptr_t	buf_mark_t;	/* buffer mark handle */
 
-#ifndef NORETURN
-#define NORETURN
-#endif
-
 #define fid_t PL_fid_t			/* avoid AIX name-clash */
+
+typedef struct io_stream IOSTREAM;	/* fully defined in SWI-Stream.h */
 
 					/* values for PL_get_term_value() */
 typedef union
@@ -465,6 +481,8 @@ PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
+PL_EXPORT(void)		PL_register_atom(atom_t a);
+PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #ifdef O_DEBUG_ATOMGC
 #define PL_register_atom(a) \
 	_PL_debug_register_atom(a, __FILE__, __LINE__, __PRETTY_FUNCTION__)
@@ -476,9 +494,6 @@ PL_EXPORT(void)		_PL_debug_register_atom(atom_t a,
 PL_EXPORT(void)		_PL_debug_unregister_atom(atom_t a,
 						  const char *file, int line,
 						  const char *func);
-#else
-PL_EXPORT(void)		PL_register_atom(atom_t a);
-PL_EXPORT(void)		PL_unregister_atom(atom_t a);
 #endif
 PL_EXPORT(functor_t)	PL_new_functor_sz(atom_t f, size_t a);
 PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
@@ -673,11 +688,7 @@ PL_EXPORT(int)		PL_existence_error(const char *type, term_t culprit);
 PL_EXPORT(int)		PL_permission_error(const char *operation,
 					    const char *type, term_t culprit);
 PL_EXPORT(int)		PL_resource_error(const char *resource);
-#ifdef SIO_MAGIC
 PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
-#else
-PL_EXPORT(int)		PL_syntax_error(const char *msg, void *in);
-#endif
 
 		 /*******************************
 		 *	       BLOBS		*
@@ -698,19 +709,10 @@ typedef struct PL_blob_t
   char *		name;		/* name of the type */
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
-#ifdef SIO_MAGIC
   int			(*write)(IOSTREAM *s, atom_t a, int flags);
-#else
-  int			(*write)(void *s, atom_t a, int flags);
-#endif
   void			(*acquire)(atom_t a);
-#ifdef SIO_MAGIC
   int			(*save)(atom_t a, IOSTREAM *s);
   atom_t		(*load)(IOSTREAM *s);
-#else
-  int			(*save)(atom_t a, void*);
-  atom_t		(*load)(void *s);
-#endif
   size_t		padding;	/* Required 0-padding */
 					/* private */
   void *		reserved[9];	/* for future extension */
@@ -918,7 +920,6 @@ PL_EXPORT(void)		PL_mark_string_buffers(buf_mark_t *mark);
 PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 
 
-#ifdef SIO_MAGIC			/* defined from <SWI-Stream.h> */
 		 /*******************************
 		 *	  STREAM SUPPORT	*
 		 *******************************/
@@ -985,8 +986,6 @@ PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 #define PL_COOKEDTTY	2		/* normal input */
 
 PL_EXPORT(int)		PL_ttymode(IOSTREAM *s);
-
-#endif /*SIO_MAGIC*/
 
 PL_EXPORT(int)  PL_put_term_from_chars(term_t t, int flags,
 				       size_t len, const char *s);
@@ -1240,14 +1239,8 @@ PL_EXPORT(int)		PL_destroy_engine(PL_engine_t engine);
 		 /*******************************
 		 *	    HASH TABLES		*
 		 *******************************/
-
-#ifdef TABLE_H_INCLUDED
-typedef Table		hash_table_t;
-typedef TableEnum	hash_table_enum_t;
-#else
-typedef struct pl_hash_table	  *hash_table_t;
-typedef struct pl_hash_table_enum *hash_table_enum_t;
-#endif
+typedef _PLS(table)	  *hash_table_t;
+typedef _PLS(table_enum) *hash_table_enum_t;
 
 #define PL_HT_NEW	0x0001
 #define PL_HT_UPDATE	0x0002
@@ -1329,17 +1322,11 @@ PL_EXPORT(int)	_PL_put_xpce_reference_a(term_t t, atom_t name);
 		 *         TRACE SUPPORT	*
 		 *******************************/
 
-#ifndef _PL_INCLUDE_H
-typedef void *QueryFrame;
-typedef void *LocalFrame;
-typedef void *Code;
-#endif
-
 typedef struct pl_context_t
 { PL_engine_t   ld;			/* Engine */
-  QueryFrame	qf;			/* Current query */
-  LocalFrame	fr;			/* Current localframe */
-  Code		pc;			/* Code pointer */
+  _PLS(queryFrame) *qf;			/* Current query */
+  _PLS(localFrame) *fr;			/* Current localframe */
+  _PLQ(code) *	pc;			/* Code pointer */
   void *	reserved[10];		/* Reserved for extensions */
 } pl_context_t;
 
@@ -1361,9 +1348,7 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 #define PL_get_compound_name_arity(t,n,a) PL_get_compound_name_arity_sz(t,n,a)
 #define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
 #define PL_unify_arg(i,t,a) PL_unify_arg_sz(i,t,a)
-#ifndef _PL_INCLUDE_H
 #define _PL_get_arg(i,t,a) _PL_get_arg_sz(i,t,a)
-#endif
 #else
 #warning "Term arity has changed from int to size_t."
 #warning "Please update your code or use #define PL_ARITY_AS_SIZE 0."
@@ -1373,4 +1358,20 @@ PL_EXPORT(int)	PL_describe_context(struct pl_context_t *c,
 }
 #endif
 
-#endif /*_FLI_H_INCLUDED*/
+/* Undefine the shorthands used in this file along with any of PL_OPAQUE
+ * or PL_STRUCT that were not provided externally.
+ */
+#undef _PLQ
+#undef _PLS
+
+#ifdef _DEFINED_PL_OPAQUE
+#undef _DEFINED_PL_OPAQUE
+#undef PL_OPAQUE
+#endif
+
+#ifdef _DEFINED_PL_STRUCT
+#undef _DEFINED_PL_STRUCT
+#undef PL_STRUCT
+#endif
+
+#endif /*_SWI_PROLOG_H*/

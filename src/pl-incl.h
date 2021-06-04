@@ -81,7 +81,33 @@
 #endif
 
 #define PL_KERNEL		1
-#include <inttypes.h>
+
+/* PL_SO_EXPORT is an optional declaration used by SWI-Prolog.h that
+ * marks API symbols for being exported from libswipl.so.
+ */
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define PL_SO_EXPORT __attribute__((visibility("default")))
+#endif
+
+/* The public API has references to a number of opaque types only
+ * defined in internal library code. The PL_OPAQUE macro prefixes
+ * the names with PL_ to avoid cluttering the type namespace, but
+ * here we want the original names.
+ */
+#define PL_OPAQUE(type) type
+
+#include "SWI-Prolog.h"
+
+/* Our definition of _PL_get_arg appears in pl-fli.h */
+#undef _PL_get_arg
+
+
+/* COMMON() was a macro used to mark symbols to be global to the library
+ * internals but not exported from the shared library. This is now the
+ * default visibility for library symbols, so it is no longer necessary.
+ */
+#define COMMON(type) type
+
 #include "pl-builtin.h"
 #include "pl-macros.h"
 
@@ -676,12 +702,33 @@ place them on the stack (see I_USERCALL).
 #define WORD_ALIGNED
 #endif
 
-#ifndef PL_HAVE_TERM_T
-#define PL_HAVE_TERM_T
+#if 0
+/* The following have all been defined in SWI-Prolog.h, included above,
+ * and are repeated here only for programmer reference and convenience.
+ */
+
+typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
+typedef	word			atom_t;		/* encoded atom */
+typedef word			functor_t;	/* encoded functor */
+typedef struct module *		module_t;	/* a module */
+typedef struct procedure *	predicate_t;	/* a predicate handle */
+typedef struct record *		record_t;	/* handle to a recorded term */
 typedef uintptr_t		term_t;		/* external term-reference */
+typedef uintptr_t		qid_t;		/* external query-id */
+typedef uintptr_t		PL_fid_t;	/* external foreign context-id */
+typedef struct foreign_context *control_t;	/* non-deterministic control arg */
+typedef struct PL_local_data *	PL_engine_t;	/* handle to an engine */
+typedef uintptr_t		PL_atomic_t;	/* same a word */
+typedef uintptr_t		foreign_t;	/* return type of foreign functions */
+typedef wchar_t	        	pl_wchar_t;	/* Prolog wide character */
+typedef foreign_t		(*pl_function_t)(); /* foreign language functions */
+typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
+
+#define 			fid_t \
+	PL_fid_t				/* avoid AIX name-clash */
 #endif
 
-typedef uintptr_t		word;		/* Anonymous 4 byte object */
+typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
 typedef word			functor_t;	/* encoded functor */
@@ -727,11 +774,8 @@ typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData;	/* pl-trace.c */
 typedef struct feature *	Feature;	/* pl-prims.c */
 typedef struct dirty_def_info * DirtyDefInfo;
-
-typedef uintptr_t qid_t;		/* external query-id */
-typedef uintptr_t PL_fid_t;		/* external foreign context-id */
-
-#define fid_t PL_fid_t			/* avoid AIX name-clash */
+typedef struct counting_mutex	counting_mutex;
+typedef struct pl_mutex		pl_mutex;
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -2006,8 +2050,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
-#include "SWI-Prolog.h"
-
 
 		 /*******************************
 		 *	       SIGNALS		*
@@ -2566,11 +2608,6 @@ static. This may cause a small amount of code bloat in object files, but
 with any luck LTO could address that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if USE_FLI_INLINES
-# define FLI_INLINE(type) static type MAYBE_UNUSED
-#else
-# define FLI_INLINE COMMON
-#endif
 #if USE_ALLOC_INLINES
 # define ALLOC_INLINE(type) static type MAYBE_UNUSED
 #else
@@ -2605,9 +2642,6 @@ with any luck LTO could address that.
 #endif
 
 /* include the appropriate inlines, when requested */
-#if USE_FLI_INLINES
-#include "pl-fli-inline.h"
-#endif
 #if USE_ALLOC_INLINES
 #include "pl-alloc-inline.h"
 #endif

@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-cont.h"
 #include "pl-comp.h"
 #include "pl-dbref.h"
 

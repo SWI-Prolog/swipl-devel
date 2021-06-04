@@ -51,7 +51,7 @@
 #define __finally
 #endif
 
-#include "pl-incl.h"
+#include "pl-thread.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
 #include "os/pl-cstack.h"
@@ -5639,22 +5639,22 @@ error:
 int
 recursiveMutexInit(recursiveMutex *m)
 {
-#ifdef RECURSIVE_MUTEXES
   pthread_mutexattr_t *attr = NULL;
+
+#ifdef RECURSIVE_MUTEXES
   int rc;
 
   if ( (rc=recursive_attr(&attr)) )
     return rc;
 
-  return pthread_mutex_init(m, attr);
-
 #else /*RECURSIVE_MUTEXES*/
 
   m->owner = 0;
   m->count = 0;
-  return pthread_mutex_init(&(m->lock), NULL);
 
 #endif /* RECURSIVE_MUTEXES */
+
+  return pthread_mutex_init(&(m->lock), attr);
 }
 
 #endif /*NEED_RECURSIVE_MUTEX_INIT*/

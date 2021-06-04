@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-index.h"
 #include "pl-comp.h"
 #include "pl-rsort.h"
 #include <math.h>

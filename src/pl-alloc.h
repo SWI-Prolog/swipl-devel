@@ -136,4 +136,13 @@ COMMON(void *)		xmalloc(size_t size);
 COMMON(void *)		xrealloc(void *mem, size_t size);
 #endif
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define allocGlobal(n)		allocGlobal__LD(n PASS_LD)
+#define allocGlobalNoShift(n)	allocGlobalNoShift__LD(n PASS_LD)
+#define getCharsString(s, l)	getCharsString__LD(s, l PASS_LD)
+#define getCharsWString(s, l)	getCharsWString__LD(s, l PASS_LD)
+
 #endif /*PL_ALLOC_H_INCLUDED*/

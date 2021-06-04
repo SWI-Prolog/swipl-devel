@@ -39,6 +39,8 @@
 
 #include "SWI-Stream.h"
 
+void	unallocStream(IOSTREAM *s);
+
 #ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)

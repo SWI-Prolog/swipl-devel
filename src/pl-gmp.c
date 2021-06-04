@@ -38,7 +38,7 @@
 #include <math.h>
 #include <fenv.h>
 #include <float.h>
-#include "pl-incl.h"
+#include "pl-gmp.h"
 #include "pl-arith.h"
 #include "pl-inline.h"
 #undef LD

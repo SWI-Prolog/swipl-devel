@@ -37,6 +37,9 @@
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
 #include "pl-allocpool.h"
+#include "pl-mutex.h"
+#include "pl-thread.h"
+#include "pl-gmp.h"
 
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern

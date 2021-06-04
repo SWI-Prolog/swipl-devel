@@ -35,7 +35,7 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-prims.h"
 #include "pl-arith.h"
 #include "os/pl-ctype.h"
 #include "pl-inline.h"

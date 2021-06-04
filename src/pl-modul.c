@@ -34,7 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-modul.h"
 #include "pl-comp.h"
 #undef LD
 #define LD LOCAL_LD

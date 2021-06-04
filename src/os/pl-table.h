@@ -123,4 +123,10 @@ htable_valid_kv(void *kv)
           ATOMIC_DEC(&kvs->accesses); \
 	}
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define lookupHTable(ht, n)	lookupHTable__LD(ht, n PASS_LD)
+
 #endif /*TABLE_H_INCLUDED*/

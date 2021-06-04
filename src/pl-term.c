@@ -39,7 +39,7 @@
 #endif
 
 #define bool pl_bool			/* avoid conflict with curses */
-#include "pl-incl.h"
+#include "pl-term.h"
 #undef bool
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -33,7 +33,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-flag.h"
 
 typedef enum flag_type
 { FLG_ATOM,

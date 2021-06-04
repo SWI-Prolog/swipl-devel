@@ -37,7 +37,7 @@
 #ifdef SECURE_GC
 #define O_DEBUG 1			/* include checkData() */
 #endif
-#include "pl-incl.h"
+#include "pl-pro.h"
 #include "pl-arith.h"
 #include "os/pl-cstack.h"
 #include "pl-event.h"

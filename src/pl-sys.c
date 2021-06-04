@@ -32,7 +32,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-sys.h"
 
 #ifndef MAXVARNAME
 #define MAXVARNAME 1024

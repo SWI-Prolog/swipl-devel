@@ -36,7 +36,9 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#define EMIT_FLI_INLINES 1
+#include "pl-fli.h"
+
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-text.h"
@@ -47,9 +49,6 @@
 #include "pl-wrap.h"
 #include "pl-comp.h"
 #include <errno.h>
-
-/* Emit the non-inline definitions here */
-#include "pl-fli-inline.h"
 
 #ifdef __SANITIZE_ADDRESS__
 #include <sanitizer/lsan_interface.h>
@@ -2122,11 +2121,13 @@ PL_get_arg(int index, term_t t, term_t a)
 #define PL_get_arg(i,t,a) PL_get_arg_sz(i,t,a)
 
 #ifdef O_ATTVAR
+#undef PL_get_attr
 int
 PL_get_attr(term_t t, term_t a)
 { GET_LD
   return PL_get_attr__LD(t, a PASS_LD);
 }
+#define PL_get_attr(t,a) PL_get_attr__LD(t,a PASS_LD)
 #endif
 
 
