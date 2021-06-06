@@ -1746,7 +1746,7 @@ dynamic/1).
     \prologflagitem{optimise_unify}{bool}{rw}
 If \const{true} (default), allow the compiler to (re)move explicit
 unification calls (\predref{=}{2}). While this behaviour can
-significantly improve performance, it is not yet handled propertly by
+significantly improve performance, it is not yet handled properly by
 the source-level debugger. See \secref{indexbody}.
 
     \prologflagitem{os_argv}{list}{rw}

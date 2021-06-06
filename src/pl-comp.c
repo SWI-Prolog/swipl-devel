@@ -1728,7 +1728,7 @@ compileClause(Clause *cp, Word head, Word body,
     ci.head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
 			( !(flags & (SSU_COMMIT_CLAUSE)) &&
 			  false(def, P_DYNAMIC) &&
-			  !truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
+			  truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
 			)
 		      );
     clause.flags    = flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE);
