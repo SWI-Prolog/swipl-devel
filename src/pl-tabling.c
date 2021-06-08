@@ -5694,6 +5694,9 @@ static void
 tt_rollback_answer(trie *atrie, trie_node *answer)
 { idg_node *idg;
 
+  DEBUG(MSG_TABLING_TRANSACTION,
+	print_answer("Rollback: ", answer));
+
   if ( (idg=atrie->data.IDG) && idg->lazy )
   { word v = answer->value;
 
@@ -6557,6 +6560,29 @@ typedef struct idg_propagate_state
 #define IDG_CHANGED_MONO	0x0002		/* Monotonic node change */
 #define IDG_PROPAGATE_FORCE	0x0004		/* See (**) */
 
+#ifdef O_DEBUG
+static const char *
+idg_flag_name(int flags)
+{ static char buf[100];
+  char *s = buf;
+
+  *s = 0;
+  if ( flags&IDG_CHANGED_NODE )
+  { strcpy(s, "NODE"); s+= strlen(s);
+  }
+  if ( flags&IDG_CHANGED_MONO )
+  { if ( s > buf ) *s++ = '|';
+    strcpy(s, "MONO"); s+= strlen(s);
+  }
+  if ( flags&IDG_PROPAGATE_FORCE )
+  { if ( s > buf ) *s++ = '|';
+    strcpy(s, "FORCE"); s+= strlen(s);
+  }
+
+  return buf;
+}
+#endif
+
 static void
 idg_changed_loop(idg_propagate_state *state, int flags)
 { typedef struct idg_node *IDGNode;
@@ -6571,7 +6597,9 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       DEBUG(MSG_TABLING_IDG_CHANGED,
 	    print_answer_table(
 		n->atrie,
-		"  IDG: propagate falsecount (re-eval=%d, falsecount=%d)",
+		"  IDG: propagate falsecount (%s re-eval=%d, falsecount=%d)",
+		(flags&IDG_PROPAGATE_FORCE) ? "->incr" :
+		   (flags&IDG_CHANGED_NODE) ? "+1" : "-1",
 		n->reevaluating, n->falsecount));
 
       if ( n->reevaluating )
@@ -6581,7 +6609,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
       { DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(
 		  n->atrie,
-		  "  Monotonic to incremental evaluation"));
+		  "  Monotonic to incremental evaluation (I)"));
 
 	if ( n->monotonic && !n->force_reeval )
 	{ mdep_empty_queues(v);
@@ -6595,7 +6623,12 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 	  state->incomplete = n->atrie;		/* return? */
 
 	if ( n->monotonic && !n->force_reeval && !(flags&IDG_CHANGED_MONO) )
-	{ mdep_empty_queues(v);
+	{ DEBUG(MSG_TABLING_MONOTONIC,
+	      print_answer_table(
+		  n->atrie,
+		  "  Monotonic to incremental evaluation (II)"));
+
+	  mdep_empty_queues(v);
 	  n->force_reeval = TRUE;
 	  idg_propagate_change(n, IDG_PROPAGATE_FORCE);
 	}
@@ -6648,7 +6681,8 @@ idg_propagate_change(idg_node *n, int flags)
   { idg_propagate_state state;
 
     DEBUG(MSG_TABLING_IDG_CHANGED,
-	  print_answer_table(n->atrie, "IDG propagate change (flags=0x%x)", flags));
+	  print_answer_table(n->atrie, "IDG propagate change (flags=%s)",
+			     idg_flag_name(flags)));
 
     state.modified = 0;
     state.incomplete = NULL;
