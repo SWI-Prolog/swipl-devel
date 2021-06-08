@@ -75,24 +75,24 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #undef rmdir
 #undef getcwd
 
-#define remove _xos_remove
-#define rename _xos_rename
-#define open _xos_open
-#define close _xos_close
-#define read _xos_read
-#define write _xos_write
-#define lseek _xos_lseek
-#define tell _xos_tell
-#define access _xos_access
-#define chmod _xos_chmod
-#define remove _xos_remove
-#define rename _xos_rename
-#define statfunc _xos_stat
-#define chdir _xos_chdir
-#define mkdir _xos_mkdir
-#define rmdir _xos_rmdir
-#define getcwd _xos_getcwd
-#define setenv _xos_setenv
+#define remove(...)	_xos_remove(__VA_ARGS__)
+#define rename(...)	_xos_rename(__VA_ARGS__)
+#define open(...)	_xos_open(__VA_ARGS__)
+#define close(...)	_xos_close(__VA_ARGS__)
+#define read(...)	_xos_read(__VA_ARGS__)
+#define write(...)	_xos_write(__VA_ARGS__)
+#define lseek(...)	_xos_lseek(__VA_ARGS__)
+#define tell(...)	_xos_tell(__VA_ARGS__)
+#define access(...)	_xos_access(__VA_ARGS__)
+#define chmod(...)	_xos_chmod(__VA_ARGS__)
+#define remove(...)	_xos_remove(__VA_ARGS__)
+#define rename(...)	_xos_rename(__VA_ARGS__)
+#define statfunc(...)	_xos_stat(__VA_ARGS__)
+#define chdir(...)	_xos_chdir(__VA_ARGS__)
+#define mkdir(...)	_xos_mkdir(__VA_ARGS__)
+#define rmdir(...)	_xos_rmdir(__VA_ARGS__)
+#define getcwd(...)	_xos_getcwd(__VA_ARGS__)
+#define setenv(...)	_xos_setenv(__VA_ARGS__)
 #define fopen(p, m) _xos_fopen(p, m)
 
 #ifndef HAVE_SETENV
