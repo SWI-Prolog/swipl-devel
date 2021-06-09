@@ -35,6 +35,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define EMIT_ALLOC_INLINES 1
 #include "pl-incl.h"
 #include "os/pl-cstack.h"
 #include "pl-dict.h"
@@ -1122,17 +1123,6 @@ globalIndirectFromCode(Code *PC)
   return retval.word;
 }
 
-int
-equalIndirectFromCode(word a, Code *pPC)
-{ GET_LD
-  struct word_and_Code retval = VM_equalIndirectFromCode(a, *pPC PASS_LD);
-  if (retval.word)
-  { *pPC = retval.code;
-    succeed;
-  }
-  fail;
-}
-
 		 /*******************************
 		 *	     GNU MALLOC		*
 		 *******************************/
@@ -1416,7 +1406,7 @@ tmp_nrealloc(void *mem, size_t req)
 }
 
 
-size_t
+static size_t
 tmp_malloc_size(void *mem)
 { if ( mem )
   { map_region *reg = (map_region *)((char*)mem-SA_OFFSET);

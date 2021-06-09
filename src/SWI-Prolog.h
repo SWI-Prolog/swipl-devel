@@ -1006,7 +1006,7 @@ PL_EXPORT(int)		PL_set_resource_db_mem(const unsigned char *data,
 					       size_t size);
 PL_EXPORT(int)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
-PL_EXPORT(void)		PL_cleanup_fork();
+PL_EXPORT(void)		PL_cleanup_fork(void);
 PL_EXPORT(int)		PL_halt(int status);
 
 		 /*******************************

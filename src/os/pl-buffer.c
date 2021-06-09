@@ -75,12 +75,6 @@ growBuffer(Buffer b, size_t minfree)
 		 *******************************/
 
 void
-initStringStack(string_stack *stack)
-{ memset(stack, 0, sizeof(*stack));
-}
-
-
-void
 discardStringStack(string_stack *stack)
 { unsigned int i;
 
@@ -123,7 +117,7 @@ allocNewStringBuffer(string_stack *stack)
 }
 
 
-string_buffer *
+static string_buffer *
 allocStringBuffer(string_stack *stack)
 { string_buffer *b;
 
@@ -156,7 +150,7 @@ currentBuffer(string_stack *stack)
 }
 
 
-unsigned int
+static unsigned int
 popStringBuffer(string_stack *stack)
 { assert(stack->top);
 

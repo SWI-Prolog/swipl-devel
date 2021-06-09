@@ -1529,7 +1529,6 @@ loffset(void *p)
   return (Word)p-(Word)lBase;
 }
 
-extern char *chp_chars(Choice ch);
 #endif
 
 static LocalFrame

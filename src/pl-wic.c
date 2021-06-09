@@ -2138,7 +2138,7 @@ freeXRSymbol(void *name, void *value)
 }
 
 
-void
+static void
 initXR(wic_state *state)
 { state->currentPred		   = NULL;
   state->currentSource		   = NULL;
@@ -2148,7 +2148,7 @@ initXR(wic_state *state)
 }
 
 
-void
+static void
 destroyXR(wic_state *state)
 { destroyHTable(state->savedXRTable);
   state->savedXRTable = NULL;

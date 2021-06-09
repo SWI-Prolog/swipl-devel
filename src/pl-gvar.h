@@ -38,7 +38,7 @@
 #ifndef _PL_GVAR_H
 #define _PL_GVAR_H
 
-void	destroyGlobalVars();
+void	destroyGlobalVars(void);
 void	freezeGlobal(ARG1_LD);
 int	gvar_value__LD(atom_t name, Word p ARG_LD);
 

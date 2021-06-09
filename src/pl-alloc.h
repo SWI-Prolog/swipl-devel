@@ -135,6 +135,18 @@ COMMON(size_t)		stack_nrealloc(void *mem, size_t req);
 COMMON(void *)		xmalloc(size_t size);
 COMMON(void *)		xrealloc(void *mem, size_t size);
 #endif
+#if USE_ALLOC_INLINES || EMIT_ALLOC_INLINES
+struct word_and_Code {
+	word word;
+	Code code;
+};
+#define WORD_AND_CODE(w,c) ((struct word_and_Code){(w),(c)})
+
+ALLOC_INLINE(struct word_and_Code)
+			VM_globalIndirectFromCode(Code pc ARG_LD);
+ALLOC_INLINE(struct word_and_Code)
+			VM_equalIndirectFromCode(word a, Code pc ARG_LD);
+#endif
 
 		 /*******************************
 		 *	LD-USING FUNCTIONS	*

@@ -1954,7 +1954,7 @@ mask such that  we  perform  a  couple   of  hash  lookups  rather  than
 enumerating the entire table.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-trie_choice *
+static trie_choice *
 add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 { trie_children children = node->children;
   trie_choice *ch;

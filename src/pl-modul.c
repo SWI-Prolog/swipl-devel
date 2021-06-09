@@ -1072,7 +1072,7 @@ PRED_IMPL("$current_source_module", 1, current_source_module, 0)
   return PL_unify_atom(A1, LD->modules.source->name);
 }
 
-
+static
 PRED_IMPL("$set_source_module", 1, set_source_module, 0)
 { PRED_LD
   atom_t name;

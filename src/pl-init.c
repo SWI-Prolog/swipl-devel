@@ -1388,7 +1388,7 @@ struct on_halt
   OnHalt	next;
 };
 
-void
+static void
 register_halt(OnHalt *where, halt_function f, void *arg)
 { if ( !GD->os.halting )
   { OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));

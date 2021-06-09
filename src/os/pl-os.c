@@ -2706,7 +2706,7 @@ argument to wait()
 
 #endif /*HAVE_SYS_WAIT_H*/
 
-const char *
+static const char *
 prog_shell(void)
 { GET_LD
 

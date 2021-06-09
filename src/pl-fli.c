@@ -4936,12 +4936,6 @@ cleanupInitialiseHooks(void)
 		 *	      PROMPT		*
 		 *******************************/
 
-void
-PL_prompt1(const char *s)
-{ prompt1(lookupAtom(s, strlen(s)));
-}
-
-
 int
 PL_ttymode(IOSTREAM *s)
 { GET_LD

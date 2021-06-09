@@ -1495,7 +1495,7 @@ push_propagate(spf_agenda *a, worklist *wl, trie_node *answer, int result)
   return TRUE;
 }
 
-propagate *
+static propagate *
 pop_propagate(spf_agenda *a)
 { if ( isEmptyBuffer(&a->buffer) )
     return NULL;

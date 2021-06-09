@@ -113,12 +113,6 @@ new_reserved_symbol(size_t len, const char *s)
 }
 
 
-atom_t
-PL_new_reserved_symbol(const char *s)
-{ return new_reserved_symbol(strlen(s), s);
-}
-
-
 static int
 compareReservedSymbol(atom_t h1, atom_t h2)
 { return strcmp(stringAtom(h1), stringAtom(h2));

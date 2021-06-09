@@ -1050,18 +1050,6 @@ reclaimRetracted(Clause cl)
 	});
 }
 
-void
-listNotReclaimed(void)
-{ if ( retracted_clauses )
-  { for_table(retracted_clauses, n, v,
-	      { Clause cl = n;
-		Definition def = cl->predicate;
-
-		Sdprintf("%p from %s\n", cl, predicateName(def));
-	      });
-  }
-}
-
 #else
 
 #define registerRetracted(cl) (void)0
@@ -1607,12 +1595,12 @@ unallocClause(Clause c)
 
 
 #ifdef O_DEBUG_ATOMGC
-void
+static void
 unregister_atom_clause(atom_t a)
 { PL_unregister_atom(a);
 }
 
-void
+static void
 register_atom_clause(atom_t a)
 { PL_register_atom(a);
 }

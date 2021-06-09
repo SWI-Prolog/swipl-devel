@@ -2933,6 +2933,7 @@ Peek input from Stream for  Len  characters   or  the  entire content of
 Stream.
 */
 
+static
 PRED_IMPL("peek_string", 3, peek_string, 0)
 { PRED_LD
   IOSTREAM *s;
@@ -5441,7 +5442,7 @@ typedef struct wrappedIO
 } wrappedIO;
 
 
-ssize_t
+static ssize_t
 Sread_user(void *handle, char *buf, size_t size)
 { GET_LD
   wrappedIO *wio = handle;

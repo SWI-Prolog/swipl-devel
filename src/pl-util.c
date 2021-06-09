@@ -60,7 +60,7 @@ procedureName(Procedure proc)
 	((s)->encoding == ENC_ISO_LATIN_1 ? (s)->text.t[i]&0xff \
 					  : (s)->text.w[i])
 
-const char *
+static const char *
 text_summary(PL_chars_t *txt, char q, unsigned int maxlen)
 { Buffer b;
   size_t i;

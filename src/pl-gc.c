@@ -4629,10 +4629,6 @@ the specified offset.
 Memory management description.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_DEBUG
-extern char *chp_chars(Choice ch);
-#endif
-
 #define update_pointer(p, offset) \
 	do { if ( *p ) *p = addPointer(*p,offset); } while(0)
 

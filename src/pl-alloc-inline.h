@@ -6,12 +6,6 @@ gsizeIndirectFromCode(Code pc)
 { return wsizeofInd(pc[0]) + 2;
 }
 
-struct word_and_Code {
-	word word;
-	Code code;
-};
-#define WORD_AND_CODE(w,c) ((struct word_and_Code){(w),(c)})
-
 /* The VM_ alternatives of these functions pass and return pc, to avoid needing to
  * store it in a memory address */
 ALLOC_INLINE(struct word_and_Code)

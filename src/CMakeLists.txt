@@ -368,6 +368,9 @@ endif()
 
 add_library(swiplobjs${PGO_SUFFIX} OBJECT ${LIBSWIPL_SRC})
 set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY C_VISIBILITY_PRESET hidden)
+if(CHECK_PROTOTYPES) # Can be defined on the command line
+target_compile_options(swiplobjs${PGO_SUFFIX} PRIVATE -Wmissing-prototypes -Wmissing-declarations)
+endif()
 if(LIBSWIPL_TYPE STREQUAL "SHARED")
   set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()

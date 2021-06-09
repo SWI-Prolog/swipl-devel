@@ -1590,7 +1590,7 @@ PL_thread_raise(int tid, int sig)
 }
 
 
-int
+static int
 thread_wait_signal(ARG1_LD)
 { int i;
 
@@ -5196,7 +5196,7 @@ ensure_waiting_for(ARG1_LD)
 }
 
 
-thread_dcell *
+static thread_dcell *
 register_waiting(Module m, PL_local_data_t *ld)
 { thread_dcell *c;
 
@@ -5224,7 +5224,7 @@ register_waiting(Module m, PL_local_data_t *ld)
   return c;
 }
 
-void
+static void
 unregister_waiting(Module m, PL_local_data_t *ld)
 { thread_dcell *c = ld->thread.waiting_for->registered;
 
@@ -7456,12 +7456,6 @@ pushPredicateAccessObj(Definition def ARG_LD)
   } while ( dref->generation != current_generation(def PASS_LD) );
 
   return dref;
-}
-
-
-gen_t
-pushPredicateAccess__LD(Definition def ARG_LD)
-{ return pushPredicateAccessObj(def PASS_LD)->generation;
 }
 
 

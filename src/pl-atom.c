@@ -776,7 +776,7 @@ markAtom(atom_t a)
   }
 }
 
-void
+static void
 unmarkAtoms(void)
 { size_t index;
   int i, last=FALSE;
@@ -802,7 +802,7 @@ unmarkAtoms(void)
 }
 
 
-void
+static void
 maybe_free_atom_tables(void)
 {
   AtomTable t = GD->atoms.table;

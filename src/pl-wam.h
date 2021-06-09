@@ -62,6 +62,9 @@ int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
 int		existingChoice(Choice ch ARG_LD);
+#ifdef O_DEBUG
+char *		chp_chars(Choice ch);
+#endif
 
 		 /*******************************
 		 *	LD-USING FUNCTIONS	*

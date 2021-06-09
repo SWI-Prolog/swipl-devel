@@ -336,7 +336,7 @@ assign_in_dict(Word dp, Word val ARG_LD)
 }
 
 
-int
+static int
 put_dict(word dict, int size, Word nv, word *new_dict ARG_LD)
 { Functor data = valueTerm(dict);
   int arity = arityFunctor(data->definition);
@@ -949,7 +949,7 @@ fix_firstvars(Code start, Code end)
   }
 }
 
-int
+static int
 resortDictsInCodes(Code PC, Code end)
 {
   for( ; PC < end; PC = stepPC(PC) )

@@ -1774,7 +1774,7 @@ markAtomsRecord(Record record)
 
 
 #ifdef O_DEBUG_ATOMGC
-void
+static void
 unregister_atom_rec(atom_t a)
 { PL_unregister_atom(a);
 }

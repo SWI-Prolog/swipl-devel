@@ -1017,7 +1017,7 @@ reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
 }
 
 
-int
+static int
 isRedefinedProcedure(Procedure proc, gen_t gen)
 { GET_LD
   Definition def = proc->definition;

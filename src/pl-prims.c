@@ -2113,6 +2113,7 @@ PRED_IMPL("$term_id", 2, term_id, 0)
 /* functor(+Term, -Name, -Arity) */
 /* functor(-Term, +Name, +Arity) */
 
+static
 PRED_IMPL("functor", 3, functor, 0)
 { PRED_LD
   size_t arity;
@@ -2157,6 +2158,7 @@ PRED_IMPL("functor", 3, functor, 0)
 /* compound_name_arity(+Compound, -Name, -Arity) */
 /* compound_name_arity(-Compound, +Name, +Arity) */
 
+static
 PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 { PRED_LD
   size_t arity;
@@ -2200,7 +2202,7 @@ match_functor_type(term_t Type, atom_t atype, atom_t type ARG_LD)
   return FALSE;
 }
 
-
+static
 PRED_IMPL("functor", 4, functor, 0)
 { PRED_LD
   size_t arity;
@@ -2263,7 +2265,7 @@ PRED_IMPL("functor", 4, functor, 0)
  * Created an array (compound) with all arguments set to Value.
  */
 
-
+static
 PRED_IMPL("$filled_array", 4, filled_array, 0)
 { PRED_LD
   size_t arity;
@@ -2606,6 +2608,7 @@ list Xs0:
 	Term  ... | malformed          | elements skipped
 */
 
+static
 PRED_IMPL("$skip_list", 3, skip_list, 0)
 { PRED_LD
   Word tail;

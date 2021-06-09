@@ -80,6 +80,21 @@
 #endif
 #endif
 
+/* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
+#ifdef HAVE_GMP_H
+#define O_GMP			1
+#endif
+
+#ifdef O_GMP
+# ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
+# pragma warning( disable : 4146 )
+# endif
+#include <gmp.h>
+# ifdef _MSC_VER
+# pragma warning( default : 4146 )
+# endif
+#endif
+
 #define PL_KERNEL		1
 
 /* PL_SO_EXPORT is an optional declaration used by SWI-Prolog.h that
@@ -215,9 +230,6 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
-#ifdef HAVE_GMP_H
-#define O_GMP			1
-#endif
 #ifdef __WINDOWS__
 #define NOTTYCONTROL           TRUE
 #define O_DDE 1
@@ -338,16 +350,6 @@ typedef _sigset_t sigset_t;
 #else
 #ifdef HAVE_SYS_MALLOC_H
 #include <sys/malloc.h>
-#endif
-#endif
-
-#ifdef O_GMP
-#ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
-#pragma warning( disable : 4146 )
-#endif
-#include <gmp.h>
-#ifdef _MSC_VER
-#pragma warning( default : 4146 )
 #endif
 #endif
 
