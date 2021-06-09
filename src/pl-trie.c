@@ -39,6 +39,15 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-indirect.h"
+#include "pl-proc.h"
+#include "pl-prims.h"
+#include "pl-wam.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-rec.h"
+#include "pl-util.h"
+#include "pl-attvar.h"
+#include "pl-pro.h"
 #define NO_AC_TERM_WALK 1
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"

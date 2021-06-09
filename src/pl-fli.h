@@ -195,6 +195,7 @@ void		resetForeign(void);
 		 *******************************/
 
 #if USE_FLI_INLINES || EMIT_FLI_INLINES
+#include "pl-wam.h"
 	
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)

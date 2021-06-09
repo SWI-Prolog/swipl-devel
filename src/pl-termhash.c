@@ -36,6 +36,7 @@
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-arith.h"
+#include "pl-pro.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
 

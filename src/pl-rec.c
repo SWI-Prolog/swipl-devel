@@ -42,6 +42,11 @@
 #include "pl-termwalk.c"
 #include "pl-dict.h"
 #include "pl-event.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
+#include "pl-funct.h"
+#include "pl-gc.h"
+#include "pl-proc.h"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 

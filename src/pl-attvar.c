@@ -35,6 +35,11 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-attvar.h"
+#include "pl-wam.h"
+#include "pl-gc.h"
+#include "pl-write.h"
+#include "pl-prims.h"
+#include "pl-fli.h"
 #ifdef O_ATTVAR
 
 #undef LD

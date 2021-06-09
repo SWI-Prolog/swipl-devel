@@ -39,6 +39,10 @@
 #include "pl-event.h"
 #include "pl-dbref.h"
 #include "pl-tabling.h"
+#include "pl-proc.h"
+#include "pl-util.h"
+#include "pl-pro.h"
+#include "pl-wam.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module implements _transactions_, notably _isolating_ transactions.

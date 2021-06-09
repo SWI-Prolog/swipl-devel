@@ -43,6 +43,7 @@
 #include <winsock2.h>
 #endif
 #include "pl-incl.h"
+#include "pl-nt.h"
 
 static int running_under_wine = FALSE;
 

@@ -58,6 +58,11 @@ handling times must be cleaned, but that not only holds for this module.
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "pl-stream.h"
+#include "../pl-fli.h"
+#include "../pl-pro.h"
+#include "../pl-write.h"
+#include "../pl-proc.h"
+#include "../pl-prims.h"
 #include <errno.h>
 
 #if defined(HAVE_POLL_H) && defined(HAVE_POLL)

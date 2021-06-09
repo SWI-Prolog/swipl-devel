@@ -36,6 +36,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-funct.h"
+#include "pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Functor (name/arity) handling.  A functor is a unique object (like atoms).

@@ -39,9 +39,14 @@ source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #include "pl-fmt.h"
-#include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "../pl-arith.h"
+#include "../pl-proc.h"
+#include "../pl-fli.h"
+#include "../pl-prims.h"
+#include "../pl-write.h"
+#include "../pl-pro.h"
 #include <ctype.h>
 #include <stdio.h>
 

@@ -35,6 +35,8 @@
 
 #include "pl-ctype.h"
 #include "pl-text.h"
+#include "../pl-read.h"
+#include "../pl-fli.h"
 #include <ctype.h>
 #include <errno.h>
 

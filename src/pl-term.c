@@ -40,6 +40,8 @@
 
 #define bool pl_bool			/* avoid conflict with curses */
 #include "pl-term.h"
+#include "pl-fli.h"
+#include "pl-util.h"
 #undef bool
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

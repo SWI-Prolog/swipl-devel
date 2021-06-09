@@ -40,6 +40,12 @@
 #include "pl-dbref.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-setup.h"
+#include "pl-util.h"
+#include "pl-proc.h"
+#include "pl-fli.h"
+#include "pl-modul.h"
+#include "pl-supervisor.h"
 
 static void	fix_ssu(p_reload *r, Clause clause);
 

@@ -40,6 +40,18 @@
 #include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include "pl-dbref.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-rec.h"
+#include "pl-prims.h"
+#include "pl-attvar.h"
+#include "pl-pro.h"
+#include "pl-util.h"
+#include "pl-wam.h"
+#include "pl-write.h"
+#include "pl-setup.h"
+#include "pl-proc.h"
+#include "os/pl-prologflag.h"
 #include <stdio.h>
 
 #define WFG_TRACING	0x02000

@@ -77,5 +77,41 @@ char *		print_addr(Word p, char *buf);
 char *		print_val(word w, char *buf);
 #endif
 
+		 /*******************************
+		 *	LD-USING FUNCTIONS	*
+		 *******************************/
+
+#define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))
+#define ensureGlobalSpace(n,f)  likely(ensureStackSpace__LD(n,0,f PASS_LD))
+#define ensureTrailSpace(n)     likely(ensureStackSpace__LD(0,n,ALLOW_GC PASS_LD))
+#define ensureStackSpace(g,t)   likely(ensureStackSpace__LD(g,t,ALLOW_GC PASS_LD))
+
+		 /*******************************
+		 *	INLINE DEFINITIONS	*
+		 *******************************/
+
+static inline int
+ensureLocalSpace__LD(size_t bytes ARG_LD)
+{ int rc;
+
+  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
+    return TRUE;
+
+  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
+    return TRUE;
+
+  return raiseStackOverflow(rc);
+}
+
+static inline int
+ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
+{ gcells += BIND_GLOBAL_SPACE;
+  tcells += BIND_TRAIL_SPACE;
+
+  if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
+    return TRUE;
+
+  return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
+}
 
 #endif /*_PL_GC_H*/

@@ -36,7 +36,25 @@
 
 /*#define O_DEBUG 1*/			/* include crash/0 */
 #include "pl-ext.h"
+#include "pl-prims.h"
+#include "pl-sys.h"
+#include "pl-pro.h"
+#include "pl-write.h"
+#include "pl-read.h"
+#include "pl-funct.h"
+#include "pl-proc.h"
+#include "pl-trace.h"
+#include "pl-dwim.h"
+#include "pl-modul.h"
+#include "pl-gc.h"
+#include "pl-flag.h"
+#include "pl-xterm.h"
+#include "pl-supervisor.h"
+#include "pl-fli.h"
+#include "pl-nt.h"
 #include "os/pl-ctype.h"
+#include "os/pl-fmt.h"
+#include "os/pl-prologflag.h"
 
 #if O_DEBUG
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -37,6 +37,12 @@
 #include "pl-comp.h"
 #include "pl-dict.h"
 #include "pl-rsort.h"
+#include "pl-funct.h"
+#include "pl-prims.h"
+#include "pl-wam.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-gvar.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Dicts are associative arrays,  where  keys   are  either  atoms  or small

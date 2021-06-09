@@ -35,6 +35,7 @@
 #include "pl-incl.h"
 #ifdef O_RESERVED_SYMBOLS
 #include "pl-ressymbol.h"
+#include "pl-write.h"
 
 		 /*******************************
 		 *	  RESERVED SYMBOLS	*

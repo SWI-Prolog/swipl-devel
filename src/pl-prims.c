@@ -37,6 +37,15 @@
 /*#define O_DEBUG 1*/
 #include "pl-prims.h"
 #include "pl-arith.h"
+#include "pl-attvar.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-wam.h"
+#include "pl-write.h"
+#include "pl-gvar.h"
+#include "pl-read.h"
+#include "pl-util.h"
+#include "pl-funct.h"
 #include "os/pl-ctype.h"
 #include "pl-inline.h"
 #include <math.h>

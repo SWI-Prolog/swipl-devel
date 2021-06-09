@@ -66,6 +66,8 @@ is supposed to give the POSIX standard one.
 #include "pl-os.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "../pl-fli.h"
+#include "../pl-setup.h"
 #include <math.h>
 #include <stdio.h>		/* rename() and remove() prototypes */
 

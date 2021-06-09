@@ -36,6 +36,12 @@
 #include "pl-cont.h"
 #include "pl-comp.h"
 #include "pl-dbref.h"
+#include "pl-util.h"
+#include "pl-gc.h"
+#include "pl-wam.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-modul.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation of `delimited continuation'.  Implements

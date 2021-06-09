@@ -42,6 +42,7 @@
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
+#include "../pl-fli.h"
 #include <stdio.h>
 #include <errno.h>
 

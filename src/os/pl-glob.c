@@ -40,7 +40,8 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "os/pl-utf8.h"
+#include "pl-utf8.h"
+#include "../pl-fli.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

@@ -34,6 +34,8 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-variant.h"
+#include "pl-gc.h"
+#include "pl-setup.h"
 
 
 		/********************************

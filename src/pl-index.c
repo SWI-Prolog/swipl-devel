@@ -36,6 +36,10 @@
 #include "pl-index.h"
 #include "pl-comp.h"
 #include "pl-rsort.h"
+#include "pl-util.h"
+#include "pl-proc.h"
+#include "pl-fli.h"
+#include "pl-wam.h"
 #include <math.h>
 
 		 /*******************************

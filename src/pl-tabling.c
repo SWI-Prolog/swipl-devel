@@ -43,6 +43,15 @@
 #include "pl-event.h"
 #include "pl-allocpool.h"
 #include "pl-dbref.h"
+#include "pl-prims.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-wam.h"
+#include "pl-proc.h"
+#include "pl-write.h"
+#include "pl-util.h"
+#include "pl-supervisor.h"
+#include "os/pl-prologflag.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:

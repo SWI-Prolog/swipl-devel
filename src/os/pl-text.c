@@ -37,7 +37,8 @@
 #include "pl-arith.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
-#include "pl-codelist.h"
+#include "../pl-codelist.h"
+#include "../pl-write.h"
 #include <errno.h>
 #include <stdio.h>
 #if HAVE_LIMITS_H

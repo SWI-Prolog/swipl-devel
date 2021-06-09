@@ -36,6 +36,10 @@
 #include "pl-incl.h"
 #include "pl-arith.h"
 #include "pl-dict.h"
+#include "pl-prims.h"
+#include "pl-gc.h"
+#include "pl-wam.h"
+#include "pl-fli.h"
 
 #undef LD
 #define LD LOCAL_LD

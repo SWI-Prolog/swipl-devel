@@ -41,6 +41,16 @@
 #include "pl-event.h"
 #include "pl-tabling.h"
 #include "pl-transaction.h"
+#include "pl-util.h"
+#include "pl-supervisor.h"
+#include "pl-index.h"
+#include "pl-srcfile.h"
+#include "pl-pro.h"
+#include "pl-modul.h"
+#include "pl-wam.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-funct.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General  handling  of  procedures:  creation;  adding/removing  clauses;

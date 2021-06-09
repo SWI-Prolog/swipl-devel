@@ -34,6 +34,7 @@
 */
 
 #include "pl-flag.h"
+#include "pl-rec.h"
 
 typedef enum flag_type
 { FLG_ATOM,

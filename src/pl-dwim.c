@@ -33,6 +33,8 @@
 */
 
 #include "pl-dwim.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
 #include "os/pl-ctype.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

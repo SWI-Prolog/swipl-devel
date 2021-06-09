@@ -42,9 +42,17 @@
 #include <process.h>			/* getpid() */
 #endif
 #include "pl-prologflag.h"
-#include "pl-arith.h"
-#include "pl-tabling.h"
 #include "pl-ctype.h"
+#include "../pl-arith.h"
+#include "../pl-tabling.h"
+#include "../pl-fli.h"
+#include "../pl-write.h"
+#include "../pl-pro.h"
+#include "../pl-wam.h"
+#include "../pl-trace.h"
+#include "../pl-setup.h"
+#include "../pl-modul.h"
+#include "../pl-version.h"
 #include <ctype.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>

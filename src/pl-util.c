@@ -34,6 +34,8 @@
 */
 
 #include "pl-util.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 

@@ -35,6 +35,7 @@
 #include "pl-incl.h"
 #include "pl-dbref.h"
 #include "pl-undo.h"
+#include "pl-wam.h"
 
 term_t
 init_undo_list(void)

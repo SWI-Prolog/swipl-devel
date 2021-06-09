@@ -40,8 +40,15 @@
 #include "pl-pro.h"
 #include "pl-arith.h"
 #include "os/pl-cstack.h"
+#include "os/pl-ctype.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-trace.h"
+#include "pl-setup.h"
+#include "pl-wam.h"
+#include "pl-attvar.h"
+#include "pl-proc.h"
+#include "pl-fli.h"
 
 
 		/********************************

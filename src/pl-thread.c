@@ -51,6 +51,7 @@
 #define __finally
 #endif
 
+#include "pl-incl.h"
 #include "pl-thread.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
@@ -58,6 +59,18 @@
 #include "pl-prof.h"
 #include "pl-event.h"
 #include "pl-comp.h"
+#include "pl-setup.h"
+#include "pl-fli.h"
+#include "pl-wam.h"
+#include "pl-pro.h"
+#include "pl-trace.h"
+#include "pl-rec.h"
+#include "pl-index.h"
+#include "pl-proc.h"
+#include "pl-modul.h"
+#include "pl-util.h"
+#include "pl-prims.h"
+#include "pl-supervisor.h"
 #include <stdio.h>
 #include <math.h>
 

@@ -33,8 +33,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
-#include "pl-dict.h"
+#include "../pl-incl.h"
+#include "../pl-dict.h"
+#include "../pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable argument list:

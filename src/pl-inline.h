@@ -377,21 +377,12 @@ popcount_bitvector(const bit_vector *v)
 		 *******************************/
 
 static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
-static Definition lookupDefinition(functor_t f, Module m) WUNUSED;
 
 static inline int
 same_type_numbers(Number n1, Number n2)
 { if ( n1->type == n2->type )
     return TRUE;
   return make_same_type_numbers(n1, n2);
-}
-
-
-static inline Definition
-lookupDefinition(functor_t f, Module m)
-{ Procedure proc = lookupProcedure(f, m);
-
-  return proc ? proc->definition : NULL;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -408,27 +399,6 @@ Trail__LD(Word p, word v ARG_LD)
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
   *p = v;
-}
-
-
-#define bindConst(p, c)		bindConst__LD(p, c PASS_LD)
-static inline void
-bindConst__LD(Word p, word c ARG_LD)
-{ DEBUG(0, assert(hasGlobalSpace(0)));
-
-#ifdef O_ATTVAR
-  if ( isVar(*p) )
-  { *p = (c);
-    if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-      (tTop++)->address = p;
-  } else
-  { assignAttVar(p, &(c) PASS_LD);
-  }
-#else
-  *p = (c);
-  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-    (tTop++)->address = p;
-#endif
 }
 
 
@@ -600,35 +570,6 @@ setGenerationFrame__LD(LocalFrame fr ARG_LD)
     } while(gen != global_generation());
   }
 }
-
-#define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))
-static inline int
-ensureLocalSpace__LD(size_t bytes ARG_LD)
-{ int rc;
-
-  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
-    return TRUE;
-
-  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
-    return TRUE;
-
-  return raiseStackOverflow(rc);
-}
-
-#define ensureGlobalSpace(n,f)  likely(ensureStackSpace__LD(n,0,f PASS_LD))
-#define ensureTrailSpace(n)     likely(ensureStackSpace__LD(0,n,ALLOW_GC PASS_LD))
-#define ensureStackSpace(g,t)   likely(ensureStackSpace__LD(g,t,ALLOW_GC PASS_LD))
-static inline int
-ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
-{ gcells += BIND_GLOBAL_SPACE;
-  tcells += BIND_TRAIL_SPACE;
-
-  if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
-    return TRUE;
-
-  return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
-}
-
 
 		 /*******************************
 		 *	      THREADS		*

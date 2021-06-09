@@ -35,6 +35,11 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-atom.h"
+#include "pl-setup.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
+#include "pl-read.h"
 #include "os/pl-ctype.h"
 #undef LD
 #define LD LOCAL_LD

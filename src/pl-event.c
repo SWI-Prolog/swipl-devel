@@ -41,6 +41,10 @@
 #include "pl-dbref.h"
 #include "pl-copyterm.h"
 #include "pl-tabling.h"
+#include "pl-proc.h"
+#include "pl-attvar.h"
+#include "pl-fli.h"
+#include "pl-trace.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Event interface

@@ -34,6 +34,7 @@
 
 #include "pl-incl.h"
 #include "pl-locale.h"
+#include "../pl-fli.h"
 #include <errno.h>
 
 #if defined(__sun) || __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ < 1070

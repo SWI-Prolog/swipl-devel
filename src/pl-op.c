@@ -35,6 +35,8 @@
 */
 
 #include "pl-op.h"
+#include "pl-fli.h"
+#include "pl-modul.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 In traditional Prolog, the operator table is global.  In modern systems

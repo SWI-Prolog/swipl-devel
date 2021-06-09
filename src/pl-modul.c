@@ -36,6 +36,13 @@
 
 #include "pl-modul.h"
 #include "pl-comp.h"
+#include "pl-util.h"
+#include "pl-proc.h"
+#include "pl-funct.h"
+#include "pl-srcfile.h"
+#include "pl-fli.h"
+#include "pl-prims.h"
+#include "pl-wam.h"
 #undef LD
 #define LD LOCAL_LD
 

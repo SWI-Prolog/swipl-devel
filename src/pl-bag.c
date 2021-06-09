@@ -36,6 +36,9 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-bag.h"
+#include "pl-rec.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
 
 #undef LD
 #define LD LOCAL_LD

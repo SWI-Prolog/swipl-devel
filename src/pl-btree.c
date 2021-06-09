@@ -34,6 +34,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-prims.h"
 
 #undef LD
 #define LD LOCAL_LD

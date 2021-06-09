@@ -33,6 +33,8 @@
 */
 
 #include "pl-incl.h"
+#include "pl-fli.h"
+#include "pl-prims.h"
 #undef LD
 #define LD LOCAL_LD
 

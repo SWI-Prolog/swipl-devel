@@ -38,6 +38,12 @@
 #include "pl-comp.h"
 #include "pl-wrap.h"
 #include "pl-dbref.h"
+#include "pl-util.h"
+#include "pl-supervisor.h"
+#include "pl-proc.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-funct.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Wrap and unwrap predicates. Wrapping  is   realised  by manipulating the

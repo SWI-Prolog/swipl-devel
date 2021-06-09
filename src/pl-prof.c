@@ -38,6 +38,13 @@
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-prof.h"
+#include "pl-wam.h"
+#include "pl-setup.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
+#include "pl-gc.h"
+#include "pl-util.h"
+#include "pl-pro.h"
 
 #undef LD
 #define LD LOCAL_LD

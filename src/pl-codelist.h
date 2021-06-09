@@ -34,6 +34,7 @@
 
 #ifndef PL_CODELIST_H_INCLUDED
 #define PL_CODELIST_H_INCLUDED
+#include "pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 TBD: This seems a  duplication  of   pl-privitf.[ch],  which  is used in

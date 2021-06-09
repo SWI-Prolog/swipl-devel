@@ -44,6 +44,14 @@
 #include "pentium.h"
 #include "pl-inline.h"
 #include "pl-prof.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
+#include "pl-util.h"
+#include "pl-attvar.h"
+#include "pl-proc.h"
+#include "pl-setup.h"
+#include "pl-bag.h"
+#include "pl-wam.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on

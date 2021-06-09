@@ -119,4 +119,18 @@ size_t		sizeof_predicate(Definition def);
 #define isCurrentProcedure(f,m) isCurrentProcedure__LD(f, m PASS_LD)
 #define resolveProcedure(f,m)	resolveProcedure__LD(f, m PASS_LD)
 
+		 /*******************************
+		 *	INLINE DEFINITIONS	*
+		 *******************************/
+
+static inline Definition lookupDefinition(functor_t f, Module m) WUNUSED;
+static inline Definition
+lookupDefinition(functor_t f, Module m)
+{ Procedure proc = lookupProcedure(f, m);
+
+  return proc ? proc->definition : NULL;
+}
+
+
+
 #endif /*_PL_PROC_H*/

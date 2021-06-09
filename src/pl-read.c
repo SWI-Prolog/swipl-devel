@@ -41,8 +41,18 @@
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include "os/pl-dtoa.h"
+#include "os/pl-prologflag.h"
 #include "pl-umap.c"			/* Unicode map */
 #include "pl-dict.h"
+#include "pl-fli.h"
+#include "pl-prims.h"
+#include "pl-pro.h"
+#include "pl-proc.h"
+#include "pl-write.h"
+#include "pl-gc.h"
+#include "pl-funct.h"
+#include "pl-op.h"
+#include "pl-modul.h"
 #include <errno.h>
 
 typedef const unsigned char * cucharp;

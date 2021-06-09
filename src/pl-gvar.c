@@ -35,6 +35,9 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-gvar.h"
+#include "pl-gc.h"
+#include "pl-wam.h"
+#include "pl-prims.h"
 #ifdef O_GVAR
 
 

@@ -42,6 +42,17 @@
 #include "os/pl-utf8.h"
 #include "pl-dbref.h"
 #include "pl-dict.h"
+#include "pl-funct.h"
+#include "pl-proc.h"
+#include "pl-util.h"
+#include "pl-modul.h"
+#include "pl-srcfile.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-prims.h"
+#include "pl-write.h"
+#include "pl-read.h"
+#include "os/pl-ctype.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif

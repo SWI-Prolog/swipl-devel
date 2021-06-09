@@ -53,6 +53,30 @@ Word		alloc_attvar(ARG1_LD);
 		 *	LD-USING FUNCTIONS	*
 		 *******************************/
 
-#define PL_get_attr(t, a) PL_get_attr__LD(t, a PASS_LD)
+#define PL_get_attr(t, a)	PL_get_attr__LD(t, a PASS_LD)
+#define bindConst(p, c)		bindConst__LD(p, c PASS_LD)
+
+		 /*******************************
+		 *	INLINE DEFINITIONS	*
+		 *******************************/
+
+static inline void
+bindConst__LD(Word p, word c ARG_LD)
+{ DEBUG(0, assert(hasGlobalSpace(0)));
+
+#ifdef O_ATTVAR
+  if ( isVar(*p) )
+  { *p = (c);
+    if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
+      (tTop++)->address = p;
+  } else
+  { assignAttVar(p, &(c) PASS_LD);
+  }
+#else
+  *p = (c);
+  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
+    (tTop++)->address = p;
+#endif
+}
 
 #endif /*_PL_ATTVAR_H*/

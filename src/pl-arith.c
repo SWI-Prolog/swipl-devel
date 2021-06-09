@@ -57,6 +57,12 @@ in this array.
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-arith.h"
+#include "pl-fli.h"
+#include "pl-funct.h"
+#include "pl-prims.h"
+#include "pl-gc.h"
+#include "pl-read.h"
+#include "os/pl-prologflag.h"
 #include <math.h>
 #include <limits.h>
 #ifdef HAVE_FLOAT_H

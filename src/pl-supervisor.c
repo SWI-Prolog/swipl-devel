@@ -40,6 +40,7 @@
 #include "pl-inline.h"
 #include "pl-wrap.h"
 #include "pl-tabling.h"
+#include "pl-util.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 

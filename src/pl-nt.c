@@ -49,6 +49,7 @@
 #endif
 
 #include "pl-nt.h"
+#include "pl-fli.h"
 #include "os/pl-utf8.h"
 #include <process.h>
 #include "os/pl-ctype.h"

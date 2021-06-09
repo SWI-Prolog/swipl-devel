@@ -39,6 +39,9 @@
 
 /* #define O_DEBUG 1 */
 #include "pl-xterm.h"
+#include "pl-fli.h"
+#include "pl-util.h"
+#include "os/pl-ctype.h"
 #if defined(HAVE_GRANTPT) && defined(O_PLMT)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

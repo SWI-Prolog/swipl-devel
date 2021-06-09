@@ -33,6 +33,7 @@
 */
 
 #include "pl-sys.h"
+#include "pl-fli.h"
 
 #ifndef MAXVARNAME
 #define MAXVARNAME 1024

@@ -49,6 +49,21 @@
 #include "pl-event.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-util.h"
+#include "pl-gc.h"
+#include "pl-trace.h"
+#include "pl-pro.h"
+#include "pl-modul.h"
+#include "pl-funct.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
+#include "pl-attvar.h"
+#include "pl-setup.h"
+#include "pl-prims.h"
+#include "pl-write.h"
+#include "pl-supervisor.h"
+#include "pl-index.h"
+#include "pl-cont.h"
 #include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */

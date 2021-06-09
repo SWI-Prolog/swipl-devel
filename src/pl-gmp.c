@@ -40,6 +40,10 @@
 #include <float.h>
 #include "pl-gmp.h"
 #include "pl-arith.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-attvar.h"
 #include "pl-inline.h"
 #undef LD
 #define LD LOCAL_LD

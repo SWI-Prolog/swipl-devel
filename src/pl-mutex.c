@@ -36,6 +36,8 @@
 
 #include "pl-mutex.h"
 #include "pl-thread.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
 
 #undef LD
 #define LD LOCAL_LD

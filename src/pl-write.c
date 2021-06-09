@@ -37,9 +37,17 @@
 #include "pl-write.h"
 #include "pl-arith.h"
 #include "pl-dict.h"
+#include "pl-fli.h"
+#include "pl-read.h"
+#include "pl-attvar.h"
+#include "pl-op.h"
+#include "pl-wam.h"
+#include "pl-prims.h"
+#include "pl-modul.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
+#include "os/pl-prologflag.h"
 #include <stdio.h>			/* sprintf() */
 #ifdef HAVE_LOCALE_H
 #include <locale.h>

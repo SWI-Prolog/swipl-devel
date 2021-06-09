@@ -35,7 +35,11 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-prims.h"
 #include "pl-copyterm.h"
+#include "pl-attvar.h"
+#include "pl-pro.h"
+#include "pl-gc.h"
 #define AC_TERM_WALK_LRD 1
 #include "pl-termwalk.c"
 

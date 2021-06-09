@@ -35,6 +35,9 @@
 
 #include "pl-incl.h"
 #include "pl-dbref.h"
+#include "pl-proc.h"
+#include "pl-rec.h"
+#include "pl-fli.h"
 
 typedef struct recref
 { RecordRef record;

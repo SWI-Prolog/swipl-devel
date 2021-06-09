@@ -34,8 +34,9 @@
 */
 
 #define _GNU_SOURCE
-#include "pl-incl.h"
-#include "os/pl-cstack.h"
+#include "../pl-incl.h"
+#include "pl-cstack.h"
+#include "../pl-setup.h"
 #include <time.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

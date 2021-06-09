@@ -2624,7 +2624,6 @@ with any luck LTO could address that.
 #include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
-#include "pl-funcs.h"			/* global functions */
 #include "pl-ldpass.h"			/* Wrap __LD functions */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */

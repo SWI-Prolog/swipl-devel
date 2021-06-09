@@ -39,6 +39,13 @@
 #include "os/pl-cstack.h"
 #include "pl-dict.h"
 #include "pl-arith.h"
+#include "pl-variant.h"
+#include "pl-prims.h"
+#include "pl-gvar.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-setup.h"
+#include "pl-pro.h"
 #include <math.h>
 #ifdef HAVE_SYS_MMAN_H
 #define MMAP_STACK 1

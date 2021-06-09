@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "pl-indirect.h"
+#include "pl-gc.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Indirect datatypes are represented by  a   tagged  pointer to the global
