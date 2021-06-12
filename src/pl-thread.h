@@ -433,7 +433,6 @@ foreign_t	pl_thread_signal(term_t thread, term_t goal);
 
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);
-foreign_t	pl_thread_self(term_t self);
 #ifdef O_PLMT
 int		unify_thread_id(term_t id, PL_thread_info_t *info);
 #endif
@@ -550,6 +549,8 @@ double	        ThreadCPUTime(PL_local_data_t *ld, int which);
 		 /*******************************
 		 *	       COMMON		*
 		 *******************************/
+
+foreign_t	pl_thread_self(term_t self);
 
 #define TWF_ASSERT	0x0001		/* Predicate actions */
 #define TWF_RETRACT	0x0002
