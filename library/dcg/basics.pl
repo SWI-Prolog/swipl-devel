@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, University of Amsterdam
+    Copyright (c)  2012-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,7 @@
 
 	    prolog_var_name//1,		% Read a Prolog variable name
 
+	    eol//0,			% End of line
 	    eos//0,			% Test end of input.
 	    remainder//1,		% -List
 
@@ -404,6 +406,14 @@ mkval([H|T], Base, W0, W) :-
 		 /*******************************
 		 *	   END-OF-STRING	*
 		 *******************************/
+
+%!	eol//
+%
+%	Matches end-of-line. Matching \r\n, \n or end of input (eos//0).
+
+eol --> "\n", !.
+eol --> "\r\n", !.
+eol --> eos.
 
 %%	eos//
 %
