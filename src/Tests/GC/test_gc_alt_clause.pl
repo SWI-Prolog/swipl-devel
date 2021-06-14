@@ -51,9 +51,17 @@ test_gc_alt_clause :-
                ]).
 
 alt(_X) :- garbage_collect, fail.
-alt(X)  :- use(1r3),     X = 1.
-alt(X)  :- use("hello"), X = 2.
-alt(X)  :- use(42.0),    X = 3.
+alt(X)  :- rat(Rat), use(Rat), X = 1.
+alt(X)  :- use("hello"),       X = 2.
+alt(X)  :- use(42.0),          X = 3.
+
+:- if(current_prolog_flag(bounded, false)).
+rat(R) :-
+    R is rdiv(1, 3).
+:- else.
+rat(0.33).
+:- endif.
+
 
 use(_).
 

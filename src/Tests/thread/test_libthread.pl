@@ -47,11 +47,11 @@ test_libthread :-
 
 :- begin_tests(concurrent_and, [sto(rational_trees)]).
 
-test(basic, Answer == [1-1, 2-4, 3-9]) :-
-    setof(X-Y, concurrent_and(between(1, 3, X), Y is X^2), Answer),
+test(basic, Answer == [1-2, 2-4, 3-6]) :-
+    setof(X-Y, concurrent_and(between(1, 3, X), Y is X*2), Answer),
     assertion(no_more_threads).
 test(select, Answer == [2-4]) :-
-    setof(X-Y, concurrent_and(between(1, 3, X), (X == 2, Y is X^2)), Answer),
+    setof(X-Y, concurrent_and(between(1, 3, X), (X == 2, Y is X*2)), Answer),
     assertion(no_more_threads).
 test(cut, true) :-
     setof(X-Y, (concurrent_and(between(1, 5, X), Y is X^2), (X==3->!;true)), _Ans),
