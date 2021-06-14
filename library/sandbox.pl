@@ -517,7 +517,10 @@ safe_primitive(nonvar(_)).
 safe_primitive(system:attvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
+:- if(current_predicate(rational/1)).
 safe_primitive(system:rational(_)).
+safe_primitive(system:rational(_,_,_)).
+:- endif.
 safe_primitive(number(_)).
 safe_primitive(atom(_)).
 safe_primitive(system:blob(_,_)).
