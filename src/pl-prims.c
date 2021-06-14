@@ -758,11 +758,12 @@ PRED_IMPL("float", 1, float, 0)
 { return PL_is_float(A1);
 }
 
+#if O_GMP
 static
 PRED_IMPL("rational", 1, rational, 0)
 { return PL_is_rational(A1);
 }
-
+#endif
 
 #if O_STRING
 static
@@ -6024,7 +6025,9 @@ BeginPredDefs(prims)
   PRED_DEF("var", 1, var, PL_FA_ISO)
   PRED_DEF("integer", 1, integer, PL_FA_ISO)
   PRED_DEF("float", 1, float, PL_FA_ISO)
+#ifdef O_GMP
   PRED_DEF("rational", 1, rational, 0)
+#endif
   PRED_DEF("number", 1, number, PL_FA_ISO)
   PRED_DEF("arg", 3, arg, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   PRED_DEF("atomic", 1, atomic, PL_FA_ISO)
