@@ -61,10 +61,11 @@ set_float_undefined(Old, New) :-
 
 :- begin_tests(rational,
 	       [ condition(current_prolog_flag(bounded, false)),
-                 setup((set_prefer_rationals(Old, true),
-                        set_float_undefined(OldU, nan))),
-                 cleanup((set_prefer_rationals(_, Old),
-                          set_float_undefined(_, OldU)))
+                 setup(set_float_flags(Old,
+                                       [ flag(prefer_rationals,true),
+                                         flag(float_undefined,nan)
+                                       ])),
+                 cleanup(set_float_flags(_, Old))
 	       ]).
 :- set_prolog_flag(rational_syntax, compatibility).
 
@@ -150,7 +151,7 @@ test(rat_to_rat) :-
     assertion(1r4 is -1r8**2r3),
     assertion(2 is 1r8** -1r3),
     assertion(-2 is -1r8** -1r3).
-    
+
 test(pow_special) :-
     assertion(1 is 1r4**0),
     assertion(1 is 1**1r2),
@@ -235,3 +236,12 @@ div0err(Exp) :-
     catch(_X is Exp,Err,true),
     nonvar(Err),
     Err = error(evaluation_error(zero_divisor), _).
+
+get_set_flag(Flag,Old,New) :-
+    current_prolog_flag(Flag,Old),
+    set_prolog_flag(Flag,New).
+
+set_float_flags([], []).
+set_float_flags([flag(Name,Old)|Olds], [flag(Name,New)|News]) :-
+    get_set_flag(Name,Old,New),
+    set_float_flags(Olds,News).

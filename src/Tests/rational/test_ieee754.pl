@@ -38,6 +38,14 @@ test_ieee754 :-
     run_tests([ ieee754
 	      ]).
 
+/** <module> Test IEEEE754 float handling
+
+@tbd This test is only executed if GMP is   used as it contains a lot of
+tests that involve rational numbers. Most   tests however do not require
+rationals. This file should be split into  two and the non-rational part
+should move back to the `core` tests.
+*/
+
 :- begin_tests(ieee754,
 	       [ condition(current_prolog_flag(bounded, false)),
                  setup(set_float_flags(Old,

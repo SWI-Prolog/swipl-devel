@@ -2816,7 +2816,8 @@ testdir('Tests/xsb/table_tests').
 testdir('Tests/xsb/incremental_tests').
 testdir('Tests/xsb/nonmt_tests').
 testdir('Tests/xsb/sub_tests').
-
+testdir('Tests/rational') :-
+	current_prolog_flag(bounded, false).
 
 :- dynamic
 	failed/1,

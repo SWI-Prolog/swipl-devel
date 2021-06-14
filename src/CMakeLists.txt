@@ -504,6 +504,9 @@ set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
 if(MULTI_THREADED)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait)
 endif()
+if(GMP_FOUND)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
+endif()
 
 add_test(NAME swipl:basic
 	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
