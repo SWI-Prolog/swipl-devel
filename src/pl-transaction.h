@@ -45,5 +45,8 @@
 COMMON(int)	transaction_retract_clause(Clause clause ARG_LD);
 COMMON(int)	transaction_assert_clause(Clause clause, ClauseRef where ARG_LD);
 COMMON(int)	transaction_visible_clause(Clause cl, gen_t gen ARG_LD);
+COMMON(gen_t)	transaction_last_modified_predicate(Definition def ARG_LD);
+COMMON(void)	transaction_set_last_modified(Definition def,
+					      gen_t gen, int flags);
 
 #endif /*_PL_TRANSACTION_H*/

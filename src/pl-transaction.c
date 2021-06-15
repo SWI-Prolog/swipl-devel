@@ -94,6 +94,7 @@ typedef struct tr_stack
   gen_t		    gen_nest;		/* Saved nesting generation */
   gen_t             generation;		/* Parent generation */
   Table		    clauses;		/* Parent changed clauses */
+  Table		    predicates;		/* Parent changed predicates */
   struct tbl_trail *table_trail;	/* Parent changes to tables */
   term_t	    id;			/* Parent goal */
   unsigned int	    flags;		/* TR_* flags */
@@ -210,6 +211,75 @@ transaction_visible_clause(Clause cl, gen_t gen ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Notion of last modified for a predicate   when  inside a transaction. If
+the transaction did not modify the predicate  this should be at most our
+global start transaction. If we did modify   we define the last modified
+to be the global start plus the local offset. Alternatively we could use
+the real transaction number, but that cannot  be represented as a 64-bit
+signed integer and thus is either  negative (upsetting simple arithmetic
+on modification stamps) or is a  GMP   number.  The latter is not always
+present and in any case, using GMP is relatively costly.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define LGEN(gen)		  ((gen)-LD->transaction.gen_base)
+#define GGEN(lgen)		  ((lgen)+LD->transaction.gen_base)
+#define LGEN_FLAGS_PTR(gen,flags) ((void*)((LGEN(gen)<<2)|flags))
+#define PTR_LGEN(ptr)		  ((uintptr_t)(ptr)>>2)
+#define PTR_GEN(ptr)		  GGEN((uintptr_t)(ptr)>>2)
+#define PTR_GEN_FLAGS(ptr)	  ((uintptr_t)(ptr)&0x3)
+#define PTR_ADD_FLAGS(ptr, flags) ((void*)((uintptr_t)(ptr)|(flags)))
+
+gen_t
+transaction_last_modified_predicate(Definition def ARG_LD)
+{ Table table;
+
+  if ( (table=LD->transaction.predicates) )
+  { void *lgen;
+
+    if ( (lgen = lookupHTable(table, def)) )
+    { uintptr_t lmod = PTR_LGEN(lgen);
+      return LD->transaction.gen_start + lmod;
+    }
+  }
+
+  return def->last_modified > LD->transaction.gen_start
+		? LD->transaction.gen_start
+		: def->last_modified;
+}
+
+void
+transaction_set_last_modified(Definition def, gen_t gen, int flags)
+{ GET_LD
+  void *lgen0;
+  int oflags;
+
+  if ( !LD->transaction.predicates )
+    LD->transaction.predicates = newHTable(16);
+
+  lgen0  = lookupHTable(LD->transaction.predicates, def);
+  oflags = PTR_GEN_FLAGS(lgen0);
+
+  updateHTable(LD->transaction.predicates, def,
+	       LGEN_FLAGS_PTR(gen, oflags|flags));
+}
+
+
+static void
+set_modified(gen_t gen ARG_LD)
+{ if ( LD->transaction.predicates )
+  { for_table(LD->transaction.predicates, n, v,
+	      { Definition def = n;
+		int flags = PTR_GEN_FLAGS(v);
+
+		setLastModifiedPredicate(def, gen, flags);
+	      });
+
+    destroyHTable(LD->transaction.predicates);
+    LD->transaction.predicates = NULL;
+  }
+}
+
 static int
 transaction_commit(ARG1_LD)
 { if ( LD->transaction.clauses )
@@ -252,6 +322,7 @@ transaction_commit(ARG1_LD)
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
 
+    set_modified(gen_commit PASS_LD);
     destroyHTable(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
   }
@@ -306,6 +377,10 @@ transaction_discard(ARG1_LD)
 	      });
     destroyHTable(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
+    if ( LD->transaction.predicates )
+    { destroyHTable(LD->transaction.predicates);
+      LD->transaction.predicates = NULL;
+    }
   }
 
   return rc;
@@ -320,6 +395,21 @@ merge_tables(Table into, Table from)
 	      addHTable(into, n, v);
 	    });
 }
+
+static void
+merge_pred_tables(Table into, Table from ARG_LD)
+{ for_table(from, n, v,
+	    { Definition def = n;
+	      void *lgen = v;
+	      void *lgen0 = lookupHTable(into, def);
+	      int oflags = PTR_GEN_FLAGS(lgen0);
+
+
+	      updateHTable(into, def,
+			   PTR_ADD_FLAGS(lgen, oflags));
+	    });
+}
+
 
 		 /*******************************
 		 *	      UPDATES		*
@@ -417,10 +507,11 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 
   initBuffer(&updates);
 
-  if ( LD->transaction.generation )
+  if ( LD->transaction.generation )	/* nested transaction */
   { tr_stack parent = { .generation  = LD->transaction.generation,
 			.gen_nest    = LD->transaction.gen_nest,
 			.clauses     = LD->transaction.clauses,
+			.predicates  = LD->transaction.predicates,
 			.table_trail = LD->transaction.table_trail,
 			.parent      = LD->transaction.stack,
 			.id          = LD->transaction.id,
@@ -428,6 +519,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 		      };
 
     LD->transaction.clauses     = NULL;
+    LD->transaction.predicates  = NULL;
     LD->transaction.id          = goal;
     LD->transaction.stack       = &parent;
     LD->transaction.gen_nest    = LD->transaction.generation;
@@ -437,8 +529,28 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
     if ( rc && constraint )
       rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
     if ( rc && (flags&TR_TRANSACTION) )
-    { if ( LD->transaction.clauses )
-      { if ( parent.clauses )
+    { if ( LD->transaction.table_trail )
+      { if ( parent.table_trail )
+	{ merge_tabling_trail(parent.table_trail, LD->transaction.table_trail);
+	} else
+	{ parent.table_trail = LD->transaction.table_trail;
+	}
+      }
+
+      if ( LD->transaction.predicates )
+      { if ( parent.predicates )
+	{ merge_pred_tables(parent.predicates,
+			    LD->transaction.predicates PASS_LD);
+	  destroyHTable(LD->transaction.predicates);
+	} else
+	{ parent.predicates = LD->transaction.predicates;
+	}
+      }
+
+      if ( LD->transaction.clauses )
+      {
+
+	if ( parent.clauses )
 	{ if ( (flags&TR_BULK) )
 	  { transaction_updates(&updates PASS_LD);
 	    if ( !announce_updates(&updates PASS_LD) )
@@ -449,11 +561,6 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	} else
 	{ parent.clauses = LD->transaction.clauses;
 	}
-	if ( parent.table_trail )
-	{ merge_tabling_trail(parent.table_trail, LD->transaction.table_trail);
-	} else
-	{ parent.table_trail = LD->transaction.table_trail;
-	}
       }
     } else
     { nested_discard:
@@ -463,6 +570,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
     }
     LD->transaction.gen_nest    = parent.gen_nest;
     LD->transaction.clauses     = parent.clauses;
+    LD->transaction.predicates  = parent.predicates;
     LD->transaction.table_trail = parent.table_trail;
     LD->transaction.stack       = parent.parent;
     LD->transaction.id          = parent.id;

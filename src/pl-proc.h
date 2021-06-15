@@ -55,6 +55,7 @@ bool		isDefinedProcedure(Procedure proc);
 void		shareDefinition(Definition def);
 int		unshareDefinition(Definition def);
 void		lingerDefinition(Definition def);
+void		setLastModifiedPredicate(Definition def, gen_t gen, int flags);
 int		get_head_functor(term_t head, functor_t *fdef,
 				 int flags ARG_LD);
 int		get_functor(term_t descr, functor_t *fdef,

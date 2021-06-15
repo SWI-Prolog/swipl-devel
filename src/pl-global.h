@@ -729,6 +729,7 @@ struct PL_local_data
     gen_t	      gen_nest;		/* Start of nested generation */
     gen_t	      generation;	/* Local current generation */
     Table	      clauses;		/* Affected clauses */
+    Table	      predicates;	/* Pred --> last modified */
     struct tbl_trail *table_trail;	/* Affected tables */
     term_t	      id;		/* Default the goal */
     struct tr_stack  *stack;		/* Nested transaction stack */

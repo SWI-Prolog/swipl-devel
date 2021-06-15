@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1199,22 +1200,26 @@ activePredicate(const Definition *defs, const Definition def)
   return FALSE;
 }
 
-static void
+void
 setLastModifiedPredicate(Definition def, gen_t gen, int flags)
 { Module m = def->module;
-  gen_t lmm;
 
-  def->last_modified = gen;
+  if ( likely(gen < GEN_TRANSACTION_BASE) )
+  { gen_t lmm;
+    def->last_modified = gen;
 
-  do
-  { lmm = m->last_modified;
-  } while ( lmm < gen &&
-	    !COMPARE_AND_SWAP_UINT64(&m->last_modified, lmm, gen) );
+    do
+    { lmm = m->last_modified;
+    } while ( lmm < gen &&
+	      !COMPARE_AND_SWAP_UINT64(&m->last_modified, lmm, gen) );
 
 #ifdef O_PLMT
-  if ( true(def, P_DYNAMIC) )
-    wakeupThreads(def, flags);
+    if ( true(def, P_DYNAMIC) )
+      wakeupThreads(def, flags);
 #endif
+  } else
+  { transaction_set_last_modified(def, gen, flags);
+  }
 }
 
 
@@ -3487,10 +3492,17 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
       fail;
     return PL_unify_int64(value, num_clauses);
   } else if ( key == ATOM_last_modified_generation )
-  { if ( def->flags & P_FOREIGN )
+  { gen_t g;
+
+    if ( def->flags & P_FOREIGN )
       fail;
     def = getProcDefinition(proc);
-    return PL_unify_int64(value, def->last_modified);
+    if ( true(def, P_DYNAMIC) && LD->transaction.generation )
+      g = transaction_last_modified_predicate(def PASS_LD);
+    else
+      g = def->last_modified;
+
+    return PL_unify_int64(value, g);
   } else if ( key == ATOM_number_of_rules )
   { if ( def->flags & P_FOREIGN )
       fail;
