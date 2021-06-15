@@ -3904,18 +3904,55 @@ performed.
     \end{description}
 \end{description}
 
-\paragraph{Status} SWI-Prolog transaction management is highly
-experimental. Interaction with other parts of the system such as the
-library \pllib{persistency}, incremental tabling
-(\secref{tabling-incremental}), etc.\ still have to be settled. Future
-versions may also support non-determinism through transactions and
-snapshots.  This is merely a first step to explore isolated changes to
-the dynamic predicate database.  If you use these facilities
+\subsubsection{Impact of transactions}
+\label{sec:transaction-impact}
 
-\begin{itemize}
-    \item Be aware that the API and exact semantics may still change.
-    \item Discuss successes and problems at our \href{https://swi-prolog.discourse.group/}{Discourse forum}.
-\end{itemize}
+Transactions interact with other facilities that depend on changing
+dynamic predicates.  This section discusses these interactions.
+
+\begin{description}
+    \item [ Last modified generation ]
+Using the predicate_property/2 property
+\term{last_modified_generation}{Generation} we can determine whether a
+predicate was modified. When a predicate is changed inside a transaction
+this generation is not updated. The generation for dynamic predicates
+that are modified in the transaction is updated to the \jargon{commit
+generation} when the transaction is committed.  Asking for the last
+modified generation \emph{inside} the transaction examines the log
+of modified clauses and reports the generation as one of
+
+    \begin{itemize}
+        \item The global modified generation if the predicate was
+	not modified in the transaction and not modified outside
+	the transaction to beyond the start generation of the
+	transaction.  If the modified generation is higher than
+	the transaction start generation, this generation is reported.
+	\bug{Note that the above implies that inside a transaction we
+	observe a changing last modified generation for predicates that
+	have only been modified outside the transaction while these
+	changes are not visible.}
+
+	\item The transaction start generation plus the local generation
+	of the last change if the predicate is modified inside the
+	transaction.
+    \end{itemize}
+
+    \item [ Wait for database changes ]
+The predicate thread_wait/2 does not wakeup threads for changes inside a
+transaction. The wakeup is delayed until the transaction is committed.
+Note that thread_wait/2 cannot be meaningfully called from inside a
+transaction because no external entities can cause changes to the
+dynamic database inside the transaction.
+
+    \item [ Incremental tabling ]
+Consistency of tables must be restored if the transaction is rolled
+back.  \textbf{This is not yet implemented}.
+\end{description}
+
+\paragraph{Status} SWI-Prolog transaction basics and API are stable.
+Interaction with other parts of the system that depend on dynamic
+predicates is still unsettled. Future versions may support
+non-determinism through transactions and snapshots.
 
 \subsection{The recorded database}
 \label{sec:recdb}

@@ -762,6 +762,11 @@ The execution of \arg{Goal} is synchronized between all threads calling
 this predicate on the same module, changes to dynamic predicates in
 this module and calls to thread_update/2 on the same module.
 
+This predicate raises a \const{permision_error} exception when called
+recursively or called from inside a transaction. See
+\secref{transaction-impact} for details about interaction with
+transactions.
+
     \predicate{thread_update}{2}{:Goal, :Options}
 Update a module (typically using assert/1 and/or retract/1 and friends)
 and on completion signal threads waiting for this module using

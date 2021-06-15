@@ -5377,6 +5377,11 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
     Mark(fli_context->mark);
   }
 
+  if ( LD->transaction.generation )
+    return PL_error("thread_wait", 2, "in transaction",
+		    ERR_PERMISSION,
+		    ATOM_thread, ATOM_wait, A1);
+
   if ( !ensure_waiting_for(PASS_LD1) ||
        !ensure_wait_area_module(module) )
     return FALSE;
@@ -5454,7 +5459,9 @@ signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
   DEBUG(MSG_THREAD_WAIT, Sdprintf("Checking wakeup for %d\n",
 				  ld->thread.info->pl_tid));
 
-  if ( (twf=ld->thread.waiting_for) && !twf->signalled )
+  if ( (twf=ld->thread.waiting_for) &&
+       !twf->signalled &&
+       !ld->transaction.generation )
   { if ( wch->type == TWF_PREDICATE )
     { thread_wait_channel *ch = baseBuffer(&twf->channels, thread_wait_channel);
       size_t i, count = entriesBuffer(&twf->channels, thread_wait_channel);
