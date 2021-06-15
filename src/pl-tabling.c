@@ -5574,6 +5574,48 @@ PRED_IMPL("$is_answer_trie", 2, is_answer_trie, 0)
 		 *     TRANSACTION SUPPORT	*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+True when `atrie` is an incremental or  monotonic table, we are inside a
+transaction and one of the dependent predicates has been modified inside
+the transaction. If this is the case we   must invalidate the table on a
+rollback of the transaction.  More precisely:
+
+  - For an incremental table we need to invalidate iff
+    - For a fresh table the initial evaluation depends on modified
+      dynamic predicates
+    - For a revaluated table it depends on modified predicates either
+      at the start of the reevaluation or the end.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+tt_has_modified_dependencies(trie *atrie ARG_LD)
+{ idg_node *n;
+  int found = FALSE;
+
+  if ( (n=atrie->data.IDG) &&
+       LD->transaction.predicates )
+  { Table deps;
+
+    if ( (deps=n->dependent) )
+    { for_table(deps, n, v,
+		{ idg_node *dep = n;
+		  trie *strie = dep->atrie;
+
+		  if ( strie->data.worklist == WL_DYNAMIC &&
+		       lookupHTable(LD->transaction.predicates,
+				    strie->data.predicate) )
+		  { found = TRUE;
+		    break;
+		  }
+		});
+    }
+  }
+
+  return found;
+}
+
+
+
 static void *
 tt_alloc(size_t bytes ARG_LD)
 { tbl_trail *tt;
