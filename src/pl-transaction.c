@@ -304,9 +304,9 @@ transaction_commit(ARG1_LD)
 		  { DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded in-transaction clause %p for %s\n",
 				   cl, predicateName(cl->predicate)));
-		    cl->generation.erased  = 2;
+		    cl->generation.erased  = GEN_TR_ASSERT_ERASE;
 		    MEMORY_RELEASE();
-		    cl->generation.created = 2;
+		    cl->generation.created = GEN_TR_ASSERT_ERASE;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
 		{ retract_clause(cl, gen_commit PASS_LD);
@@ -343,18 +343,18 @@ transaction_discard(ARG1_LD)
 
 		if ( IS_ASSERT_GEN(lgen) )
 		{ if ( false(cl, CL_ERASED) )
-		  { cl->generation.erased  = 3;
+		  { cl->generation.erased  = GEN_TR_DISCARD_ASSERT;
 		    MEMORY_RELEASE();
-		    cl->generation.created = 3;
+		    cl->generation.created = GEN_TR_DISCARD_ASSERT;
 		    retract_clause(cl, cl->generation.created PASS_LD);
 		    DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded asserted clause %p for %s\n",
 				   cl, predicateName(cl->predicate)));
 		    action = (lgen==GEN_ASSERTA ? ATOM_asserta : ATOM_assertz);
 		  } else
-		  { cl->generation.erased  = 4;
+		  { cl->generation.erased  = GEN_TR_DISCARD_ASSERT_ERASE;
 		    MEMORY_RELEASE();
-		    cl->generation.created = 4;
+		    cl->generation.created = GEN_TR_DISCARD_ASSERT_ERASE;
 		    DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded asserted&retracted "
 				   "clause %p for %s\n",

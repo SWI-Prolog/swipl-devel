@@ -42,6 +42,10 @@
 #define TR_SNAPSHOT		0x0002
 #define TR_BULK			0x0004
 
+#define GEN_TR_ASSERT_ERASE		2
+#define GEN_TR_DISCARD_ASSERT		3
+#define GEN_TR_DISCARD_ASSERT_ERASE	4
+
 COMMON(int)	transaction_retract_clause(Clause clause ARG_LD);
 COMMON(int)	transaction_assert_clause(Clause clause, ClauseRef where ARG_LD);
 COMMON(int)	transaction_visible_clause(Clause cl, gen_t gen ARG_LD);
