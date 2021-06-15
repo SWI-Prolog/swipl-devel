@@ -1212,7 +1212,6 @@ setLastModifiedPredicate(Definition def, gen_t gen, int flags)
     { lmm = m->last_modified;
     } while ( lmm < gen &&
 	      !COMPARE_AND_SWAP_UINT64(&m->last_modified, lmm, gen) );
-
 #ifdef O_PLMT
     if ( true(def, P_DYNAMIC) )
       wakeupThreads(def, flags);
@@ -1551,7 +1550,8 @@ retract_clause(Clause clause, gen_t generation ARG_LD)
     ATOMIC_DEC(&GD->clauses.dirty);
 
   registerDirtyDefinition(def PASS_LD);
-  setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
+  if ( generation != GEN_TR_DISCARD_ASSERT )
+    setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 
   return TRUE;
 }
