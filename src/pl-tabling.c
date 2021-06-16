@@ -5631,6 +5631,110 @@ tt_has_modified_dependencies(trie *atrie ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+tt_mono_status(trie *atrie ARG_LD) figures out how   to deal with a lazy
+monotonic table that is  being  reevaluated.   It  is  called before the
+reevaluation happens and examines the table status:
+
+  - If any of the dependent _tables_ is invalid, mark the table to
+    be invalidated.  Normally lazy monotonic tables reevaluation
+    starts at the leafs and an invalid dependent table thus indicates
+    a cycle.  Possibly there are scenarios where we can do better.
+  - Example the the queued clauses from dynamic dependencies and
+    - If all are older than the transaction, revaluate without
+      trailing.
+    - If all are from the transaction, trail the answers
+    - If there is a mix, mark for invalidation.  Again, it might
+      be possible to do better.  It is hard to tell whether an
+      answer is due to a new clause or due to an old one.
+
+This is called from '$mono_reeval_prepare'/2
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ size_t invalid_dep_tables;
+  size_t global_clauses;
+  size_t local_clauses;
+} mono_dep_status;
+
+
+static void
+lg_clauses(idg_mdep *mdep, mono_dep_status *s ARG_LD)
+{ word *base = baseBuffer(mdep->queue, word);
+  word *top  = topBuffer(mdep->queue, word);
+
+  for(; base < top; base++)
+  { if ( isAtom(*base) )
+    { ClauseRef cref = clause_clref(*base);
+      Clause cl = cref->value.clause;
+
+      if ( !true(cl, CL_ERASED) )
+      { if ( cl->generation.created < GEN_TRANSACTION_BASE )
+	  s->global_clauses++;
+	else if ( cl->generation.created >= LD->transaction.gen_base &&
+		  cl->generation.created <  LD->transaction.gen_max )
+	  s->local_clauses++;
+      }
+    } else
+    { assert(0);
+    }
+  }
+}
+
+typedef enum
+{ M_INVALID_DEPS,
+  M_OLD_CLAUSES,
+  M_MIXED_CLAUSES,
+  M_NEW_CLAUSES			/* also none of the above */
+} mono_status;
+
+static mono_status
+tt_mono_status(trie *atrie ARG_LD)
+{ idg_node *an;
+  mono_dep_status status = {0};
+
+  if ( (an=atrie->data.IDG) )
+  { Table deps;
+
+    DEBUG(MSG_TABLING_TRANSACTION,
+	  print_answer_table(atrie, "tt_mono_status()"));
+
+    if ( (deps=an->dependent) )
+    { for_table(deps, dn, v,
+		{ idg_node *dep = dn;
+		  trie *strie = dep->atrie;
+
+		  if ( strie->data.worklist == WL_DYNAMIC )
+		  { idg_mdep *mdep;
+
+		    DEBUG(MSG_TABLING_TRANSACTION,
+			  print_answer_table(strie, "Dynamic dependency"));
+
+		    if ( (mdep=lookupHTable(dep->affected, an)) )
+		      lg_clauses(mdep, &status PASS_LD);
+		  } else
+		  { if ( dep->falsecount > 0 ||
+			 dep->force_reeval )
+		      status.invalid_dep_tables++;
+		  }
+
+		  if ( status.invalid_dep_tables )
+		    break;
+		});
+    }
+  }
+
+  if ( status.invalid_dep_tables )
+    return M_INVALID_DEPS;
+  else if ( status.global_clauses && status.local_clauses )
+    return M_MIXED_CLAUSES;
+  else
+    return status.global_clauses ? M_OLD_CLAUSES : M_NEW_CLAUSES;
+}
+
+
+
+
 static void
 tt_free_table_symbol(void *k, void *v)
 { atom_t symbol = (atom_t)k;
@@ -5700,16 +5804,18 @@ reevaluated already, we record the answer in our trail.
 static void
 tt_add_answer(trie *atrie, trie_node *node ARG_LD)
 { if ( LD->transaction.generation )
-  { tbl_trail *tt = tt_trail(PASS_LD1);
+  { if ( !(atrie->data.IDG && atrie->data.IDG->tt_notrail) )
+    { tbl_trail *tt = tt_trail(PASS_LD1);
 
-    if ( !lookupHTable(tt->tables, (void*)trie_symbol(atrie)) )
-    { tbl_trail_answer *a = tt_alloc(sizeof(*a) PASS_LD);
-      a->type   = TT_ANSWER;
-      a->atrie  = atrie;
-      a->answer = node;
+      if ( !lookupHTable(tt->tables, (void*)trie_symbol(atrie)) )
+      { tbl_trail_answer *a = tt_alloc(sizeof(*a) PASS_LD);
+	a->type   = TT_ANSWER;
+	a->atrie  = atrie;
+	a->answer = node;
 
-      if ( false(atrie, TRIE_ISTRACKED) )
-	set(atrie, TRIE_ISTRACKED);
+	if ( false(atrie, TRIE_ISTRACKED) )
+	  set(atrie, TRIE_ISTRACKED);
+      }
     }
   }
 }
@@ -5819,11 +5925,21 @@ tt_rollback_tables(Table affected)
 	    { atom_t symbol = (atom_t)n;
 	      int flags = (int)(uintptr_t) v;
 	      trie *atrie = symbol_trie(symbol);
+	      idg_node *n;
 
 	      assert(flags==TT_TBL_INVALIDATE);
 
-	      if ( !idg_changed(atrie, IDG_CHANGED_NODE) )
-		rc = FALSE;		/* can this happen? */
+	      if ( (n=atrie->data.IDG) )
+	      { int flags = IDG_CHANGED_NODE;
+
+		if ( n->monotonic )
+		  flags |= IDG_CHANGED_MONO;
+
+		if ( !idg_changed(atrie, flags) )
+		  rc = FALSE;		/* can this happen? */
+		if ( n->monotonic && !n->force_reeval )
+		  n->force_reeval = TRUE;
+	      }
 	    });
 
   return rc;
@@ -7132,7 +7248,7 @@ PRED_IMPL("$idg_add_monotonic_dep", 3, idg_add_monotonic_dep, 0)
 }
 
 
-/** '$idg_add_mono_dyn_dep'(:Head, +Dependency, +TargetTrie)
+/** '$idg_add_mono_<dyn_dep'(:Head, +Dependency, +TargetTrie)
  */
 
 static
@@ -7391,7 +7507,22 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
   { idg_node *idg = atrie->data.IDG;
 
     if ( idg && idg->falsecount && idg->monotonic && idg->lazy )
-    { idg->lazy_queued = FALSE;			/* trap that new answers are queued */
+    { if ( LD->transaction.generation )
+      { switch(tt_mono_status(atrie PASS_LD))
+	{ case M_INVALID_DEPS:
+	  case M_MIXED_CLAUSES:
+	    tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
+	    break;
+	  case M_OLD_CLAUSES:
+	    idg->tt_notrail = TRUE;
+	    break;
+	  case M_NEW_CLAUSES:
+	    idg->tt_notrail = FALSE;
+	    break;
+	}
+      }
+
+      idg->lazy_queued = FALSE;		/* trap that new answers are queued */
       idg->mono_reevaluating = TRUE;
       if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
@@ -7527,6 +7658,13 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
       }
 
       idg->falsecount = invalid_deps + idg->lazy_queued;
+
+      if ( idg->falsecount == 0 )
+      { idg->tt_notrail = FALSE;
+// TBD: This is about new dependencies
+//	if ( tt_has_modified_dependencies(atrie PASS_LD) )
+//	  tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
+      }
     }
 
     return rc;
