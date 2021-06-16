@@ -241,13 +241,15 @@ typedef struct trie_array
 		 *    TRANSACTION RECORDING	*
 		 *******************************/
 
+#define TT_TBL_INVALIDATE	0x001
+
 typedef struct tbl_trail
-{ buffer	actions;
+{ Table		tables;			/* Affected tables */
+  buffer	actions;
 } tbl_trail;
 
 typedef enum tbl_trail_type
-{ TT_TABLE,
-  TT_ANSWER
+{ TT_ANSWER = 1
 } tbl_trail_type;
 
 typedef struct tbl_trail_any

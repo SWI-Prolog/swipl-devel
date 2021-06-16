@@ -159,11 +159,13 @@ static void	mdep_empty_queues(idg_mdep *mdep);
 static int	mdep_unify_answers(term_t t, idg_mdep *mdep);
 static void	prune_deleted_mdeps(idg_node *idg);
 static void	tt_abolish_table(trie *atrie);
-static void	tt_add_table(trie *atrie ARG_LD);
+static int	tt_has_modified_dependencies(trie *atrie ARG_LD);
+static void	tt_add_table(trie *atrie, int flags ARG_LD);
 static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 static table_props *get_predicate_table_props(Definition def);
 static int	inner_is_monotonic(ARG1_LD);
 static int	mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD);
+static int	idg_changed(trie *atrie, int flags);
 static trie    *idg_propagate_change(idg_node *n, int flags);
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
@@ -182,6 +184,9 @@ static trie    *idg_propagate_change(idg_node *n, int flags);
 
 #define DL_IS_DELAY_LIST(dl)	((dl) && (dl) != DL_UNDEFINED)
 
+#define IDG_CHANGED_NODE	0x0001		/* Normal node change */
+#define IDG_CHANGED_MONO	0x0002		/* Monotonic node change */
+#define IDG_PROPAGATE_FORCE	0x0004		/* See (**) */
 
 #ifdef O_PLMT
 #define	LOCK_SHARED_TABLE(t)	countingMutexLock(&GD->tabling.mutex);
@@ -2448,7 +2453,6 @@ retry:
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
       symb = trie_symbol(atrie);
-      tt_add_table(atrie PASS_LD);
 
 #ifdef O_PLMT
       if ( shared )
@@ -5626,19 +5630,45 @@ tt_has_modified_dependencies(trie *atrie ARG_LD)
 }
 
 
+static void
+tt_free_table_symbol(void *k, void *v)
+{ atom_t symbol = (atom_t)k;
+  (void)v;
 
-static void *
-tt_alloc(size_t bytes ARG_LD)
+  PL_unregister_atom(symbol);
+}
+
+
+static tbl_trail *
+tt_trail(ARG1_LD)
 { tbl_trail *tt;
-  size_t *szp;
-  char *buf;
 
-  if ( !(tt=LD->transaction.table_trail) )
+  if ( unlikely(!(tt=LD->transaction.table_trail)) )
   { tt = allocHeapOrHalt(sizeof(*tt));
     memset(tt, 0, sizeof(*tt));
     initBuffer(&tt->actions);
+    tt->tables = newHTable(16);
+    tt->tables->free_symbol = tt_free_table_symbol;
     LD->transaction.table_trail = tt;
   }
+
+  return tt;
+}
+
+
+static void
+tbl_trail_free(tbl_trail *tt)
+{ discardBuffer(&tt->actions);
+  destroyHTable(tt->tables);
+  freeHeap(tt, sizeof(*tt));
+}
+
+
+static void *
+tt_alloc(size_t bytes ARG_LD)
+{ tbl_trail *tt = tt_trail(PASS_LD1);
+  size_t *szp;
+  char *buf;
 
   buf  = allocFromBuffer(&tt->actions, bytes+sizeof(*szp));
   szp  = (size_t*)&buf[bytes];
@@ -5649,14 +5679,16 @@ tt_alloc(size_t bytes ARG_LD)
 
 
 static void
-tt_add_table(trie *atrie ARG_LD)
+tt_add_table(trie *atrie, int flags ARG_LD)
 { if ( LD->transaction.generation )
-  { tbl_trail_table *e = tt_alloc(sizeof(*e) PASS_LD);
-    e->type   = TT_TABLE;
-    e->symbol = trie_symbol(atrie);
-    PL_register_atom(e->symbol);
+  { tbl_trail *tt = tt_trail(PASS_LD1);
+    atom_t symbol = trie_symbol(atrie);
+
+    updateHTable(tt->tables, (void*)symbol, (void*)(uintptr_t)flags);
+    PL_register_atom(symbol);
   }
 }
+
 
 static void
 tt_add_answer(trie *atrie, trie_node *node ARG_LD)
@@ -5671,6 +5703,11 @@ tt_add_answer(trie *atrie, trie_node *node ARG_LD)
   }
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+tt_abolish_table(trie *atrie) is called  when   atrie  is  abolished. It
+discards all answers that have been registered with this table.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 tt_abolish_table(trie *atrie)
@@ -5698,8 +5735,6 @@ tt_abolish_table(trie *atrie)
 	    break;
 	  }
 	}
-        case TT_TABLE:
-	  break;
         default:
 	  assert(0);
       }
@@ -5726,20 +5761,14 @@ transaction_commit_tables(ARG1_LD)
       tsz = (tbl_trail_any*)top;
 
       switch(tsz->type)
-      { case TT_TABLE:
-	{ tbl_trail_table *e = (tbl_trail_table*)tsz;
-	  PL_unregister_atom(e->symbol);
-	  break;
-	}
-	case TT_ANSWER:
+      { case TT_ANSWER:
 	  break;
         default:
 	  assert(0);
       }
     }
 
-    discardBuffer(&tt->actions);
-    freeHeap(tt, sizeof(*tt));
+    tbl_trail_free(tt);
   }
 
   return TRUE;
@@ -5771,48 +5800,69 @@ tt_rollback_answer(trie *atrie, trie_node *answer)
 }
 
 
-int
-transaction_rollback_tables(ARG1_LD)
-{ tbl_trail *tt;
+static int
+tt_rollback_tables(Table affected)
+{ int rc = TRUE;
 
-  if ( (tt=LD->transaction.table_trail) )
-  { size_t *base = baseBuffer(&tt->actions, size_t);
-    size_t *top  = topBuffer(&tt->actions, size_t);
+  for_table(affected, n, v,
+	    { atom_t symbol = (atom_t)n;
+	      int flags = (int)(uintptr_t) v;
+	      trie *atrie = symbol_trie(symbol);
 
-    LD->transaction.table_trail = NULL;
+	      assert(flags==TT_TBL_INVALIDATE);
 
-    while(top>base)
-    { tbl_trail_any *tsz;
-      size_t bytes = *--top;
+	      if ( !idg_changed(atrie, IDG_CHANGED_NODE) )
+		rc = FALSE;		/* can this happen? */
+	    });
 
-      top = addPointer(top, -bytes);
-      tsz = (tbl_trail_any*)top;
+  return rc;
+}
 
-      switch(tsz->type)
-      { case TT_TABLE:
-	{ tbl_trail_table *e = (tbl_trail_table*)tsz;
 
-	  abolish_table(symbol_trie(e->symbol));
-	  PL_unregister_atom(e->symbol);
-	  break;
-	}
-        case TT_ANSWER:
-	{ tbl_trail_answer *ta = (tbl_trail_answer*)tsz;
+static int
+tt_rollback_actions(Buffer b)
+{ size_t *base = baseBuffer(b, size_t);
+  size_t *top  = topBuffer(b, size_t);
 
-	  if ( ta->atrie )
-	    tt_rollback_answer(ta->atrie, ta->answer);
-	  break;
-	}
-        default:
-	  assert(0);
+  while( top > base )
+  { tbl_trail_any *tsz;
+    size_t bytes = *--top;
+
+    top = addPointer(top, -bytes);
+    tsz = (tbl_trail_any*)top;
+
+    switch(tsz->type)
+    { case TT_ANSWER:
+      { tbl_trail_answer *ta = (tbl_trail_answer*)tsz;
+
+	if ( ta->atrie )
+	  tt_rollback_answer(ta->atrie, ta->answer);
+	break;
       }
+      default:
+	assert(0);
     }
-
-    discardBuffer(&tt->actions);
-    freeHeap(tt, sizeof(*tt));
   }
 
   return TRUE;
+}
+
+
+int
+transaction_rollback_tables(ARG1_LD)
+{ tbl_trail *tt;
+  int rc = TRUE;
+
+  if ( (tt=LD->transaction.table_trail) )
+  { LD->transaction.table_trail = NULL;
+
+    rc = tt_rollback_tables(tt->tables);
+    rc = tt_rollback_actions(&tt->actions) && rc;
+
+    tbl_trail_free(tt);
+  }
+
+  return rc;
 }
 
 void
@@ -6617,10 +6667,6 @@ typedef struct idg_propagate_state
   segstack  stack;
   idg_node  *buf[100];
 } idg_propagate_state;
-
-#define IDG_CHANGED_NODE	0x0001		/* Normal node change */
-#define IDG_CHANGED_MONO	0x0002		/* Monotonic node change */
-#define IDG_PROPAGATE_FORCE	0x0004		/* See (**) */
 
 #ifdef O_DEBUG
 static const char *
@@ -7666,11 +7712,14 @@ reeval_prep_node(trie_node *n, void *ctx)
  */
 
 static int
-prepare_reeval(trie *atrie)
+prepare_reeval(trie *atrie ARG_LD)
 { idg_node *idg = atrie->data.IDG;
 
   DEBUG(MSG_TABLING_IDG_REEVAL,
 	print_answer_table(atrie, "Preparing reeval of"));
+
+  if ( tt_has_modified_dependencies(atrie PASS_LD) )
+    tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
 
   idg->answer_count = atrie->value_count;
   idg->new_answer = FALSE;
@@ -7709,7 +7758,7 @@ PRED_IMPL("$tbl_reeval_prepare_top", 2, tbl_reeval_prepare_top, 0)
 	return PL_unify_atom(A2, trie_symbol(atrie));
     }
 
-    return prepare_reeval(atrie);
+    return prepare_reeval(atrie PASS_LD);
   }
 
   return FALSE;
@@ -7750,7 +7799,7 @@ PRED_IMPL("$tbl_reeval_prepare", 2, tbl_reeval_prepare, 0)
     if ( !unify_trie_term(atrie->data.variant, NULL, A2 PASS_LD) )
       return FALSE;
 
-    return prepare_reeval(atrie);
+    return prepare_reeval(atrie PASS_LD);
   }
 
   return FALSE;
