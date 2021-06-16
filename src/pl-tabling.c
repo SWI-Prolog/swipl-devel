@@ -2922,10 +2922,25 @@ clean_worklist(worklist *wl)
 
 
 static void
-complete_worklist(worklist *wl)
-{ clean_worklist(wl);
+complete_worklist(worklist *wl, int destroy ARG_LD)
+{ trie *atrie = wl->table;
 
-  COMPLETE_WORKLIST(wl->table, set(wl->table, TRIE_COMPLETE));
+  if ( tt_has_modified_dependencies(atrie PASS_LD) )
+    tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
+
+  if ( destroy )
+  { free_worklist(wl);
+    COMPLETE_WORKLIST(atrie,
+		      { atrie->data.worklist = NULL;
+			set(atrie, TRIE_COMPLETE);
+		      });
+  } else
+  { clean_worklist(wl);
+
+    COMPLETE_WORKLIST(atrie,
+		      { set(atrie, TRIE_COMPLETE);
+		      });
+  }
 }
 
 
@@ -4781,14 +4796,10 @@ PRED_IMPL("$tbl_table_complete_all", 3, tbl_table_complete_all, 0)
 	wl->table = NULL;
 	destroy_answer_trie(atrie);
 	free_worklist(wl);
-      } else if ( !wl->undefined && isEmptyBuffer(&wl->delays) ) /* see (*) */
-      { free_worklist(wl);
-	COMPLETE_WORKLIST(atrie,
-			  { atrie->data.worklist = NULL;
-			    set(atrie, TRIE_COMPLETE);
-			  });
       } else
-      { complete_worklist(wl);
+      { int destroy = !wl->undefined && isEmptyBuffer(&wl->delays); /* see (*) */
+
+	complete_worklist(wl, destroy PASS_LD);
       }
     }
     reset_newly_created_worklists(c, WLFS_FREE_NONE);
