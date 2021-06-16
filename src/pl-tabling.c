@@ -165,6 +165,7 @@ static int	atrie_answer_event(trie *atrie, trie_node *node ARG_LD);
 static table_props *get_predicate_table_props(Definition def);
 static int	inner_is_monotonic(ARG1_LD);
 static int	mono_queue_answer(trie *atrie, term_t ans, word an ARG_LD);
+static void	force_reeval(idg_node *n ARG_LD);
 static int	idg_changed(trie *atrie, int flags);
 static trie    *idg_propagate_change(idg_node *n, int flags);
 
@@ -5690,16 +5691,26 @@ tt_add_table(trie *atrie, int flags ARG_LD)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A    monotonic    new    answer    was      added    to    atrie    from
+`$tbl_monotonic_add_answer`/2. If the table is not marked to be (forced)
+reevaluated already, we record the answer in our trail.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 tt_add_answer(trie *atrie, trie_node *node ARG_LD)
 { if ( LD->transaction.generation )
-  { tbl_trail_answer *a = tt_alloc(sizeof(*a) PASS_LD);
-    a->type   = TT_ANSWER;
-    a->atrie  = atrie;
-    a->answer = node;
+  { tbl_trail *tt = tt_trail(PASS_LD1);
 
-    if ( false(atrie, TRIE_ISTRACKED) )
-      set(atrie, TRIE_ISTRACKED);
+    if ( !lookupHTable(tt->tables, (void*)trie_symbol(atrie)) )
+    { tbl_trail_answer *a = tt_alloc(sizeof(*a) PASS_LD);
+      a->type   = TT_ANSWER;
+      a->atrie  = atrie;
+      a->answer = node;
+
+      if ( false(atrie, TRIE_ISTRACKED) )
+	set(atrie, TRIE_ISTRACKED);
+    }
   }
 }
 
@@ -6692,7 +6703,7 @@ idg_flag_name(int flags)
 #endif
 
 static void
-idg_changed_loop(idg_propagate_state *state, int flags)
+idg_changed_loop(idg_propagate_state *state, int flags ARG_LD)
 { typedef struct idg_node *IDGNode;
 
   for(;;)
@@ -6721,7 +6732,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 
 	if ( n->monotonic && !n->force_reeval )
 	{ mdep_empty_queues(v);
-	  n->force_reeval = TRUE;
+	  force_reeval(n PASS_LD);
 	}
 	continue;
       }
@@ -6737,7 +6748,7 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 		  "  Monotonic to incremental evaluation (II)"));
 
 	  mdep_empty_queues(v);
-	  n->force_reeval = TRUE;
+	  force_reeval(n PASS_LD);
 	  idg_propagate_change(n, IDG_PROPAGATE_FORCE);
 	}
 
@@ -6786,7 +6797,8 @@ idg_changed_loop(idg_propagate_state *state, int flags)
 static trie *
 idg_propagate_change(idg_node *n, int flags)
 { if ( n->affected )
-  { idg_propagate_state state;
+  { GET_LD
+    idg_propagate_state state;
 
     DEBUG(MSG_TABLING_IDG_CHANGED,
 	  print_answer_table(n->atrie, "IDG propagate change (flags=%s)",
@@ -6796,7 +6808,7 @@ idg_propagate_change(idg_node *n, int flags)
     state.incomplete = NULL;
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
     state.en = newTableEnum(n->affected);
-    idg_changed_loop(&state, flags);
+    idg_changed_loop(&state, flags PASS_LD);
     clearSegStack(&state.stack);
 
     return state.incomplete;
@@ -7184,6 +7196,17 @@ mono_idg_changed(trie *atrie, word answer)
   }
 
   return TRUE;
+}
+
+
+static void
+force_reeval(idg_node *n ARG_LD)
+{ n->force_reeval = TRUE;
+
+  if ( LD->transaction.generation )
+  { tt_add_table(n->atrie, TT_TBL_INVALIDATE PASS_LD);
+    tt_abolish_table(n->atrie);			/* remove scheduled answers */
+  }
 }
 
 
