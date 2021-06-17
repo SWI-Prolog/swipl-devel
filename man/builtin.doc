@@ -3956,7 +3956,7 @@ local tables this is realised as follows:
 	\item A table is marked to be \jargon{invalidated} if, while it
 	is created or reevaluated, at least one dependent dynamic
 	predicate has been modified inside the transaction.
-	\iem Answers are marked to be retracted when they result from
+	\item Answers are marked to be retracted when they result from
 	monotonic reevaluation based on changes \emph{inside} the
 	transaction.
     \end{itemize}
