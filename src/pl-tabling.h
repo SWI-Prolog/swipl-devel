@@ -206,6 +206,7 @@ typedef struct idg_node
   unsigned	force_reeval : 1;	/* Forced reevaluation for monotonic */
   unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
   unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
+  unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
   int		falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS
   struct

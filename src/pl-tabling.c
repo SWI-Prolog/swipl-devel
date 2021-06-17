@@ -6150,8 +6150,8 @@ pointer.
 
 For monotonic tabling we need to store   the continuation along with the
 edge. This is passed as  a  Prolog   term  in  the `dep` parameter. This
-causes the link from the child  to  the   parent  to  be a pointer to an
-`mdep` structure. See new_mdep().
+causes the link from the child to   the parent (child->affected) to be a
+pointer to an `mdep` structure. See new_mdep().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -6170,6 +6170,12 @@ idg_add_child(idg_node *parent, idg_node *child, term_t dep, int flags ARG_LD)
       parent->lazy = TRUE;
     if ( parent->lazy )
       mdep->lazy = TRUE;
+    if ( mdep->lazy && LD->transaction.generation &&
+	 child->atrie->data.worklist == WL_DYNAMIC &&
+	 LD->transaction.predicates &&
+	 lookupHTable(LD->transaction.predicates,
+		      child->atrie->data.predicate) )
+      parent->tt_new_dep = TRUE;
   } else
   { mdep = NULL;
   }
@@ -7524,6 +7530,7 @@ PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
 
       idg->lazy_queued = FALSE;		/* trap that new answers are queued */
       idg->mono_reevaluating = TRUE;
+      idg->tt_new_dep = FALSE;		/* see idg_add_child() */
       if ( true(atrie, TRIE_ISMAP) )
 	map_trie_node(&atrie->root, mono_reeval_prep_node, atrie);
 
@@ -7626,6 +7633,8 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
     { size_t invalid_deps;
 
       idg->mono_reevaluating = FALSE;
+      if ( idg->tt_new_dep )
+	tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
       if ( !invalid_dependencies(A3, idg, &invalid_deps PASS_LD) )
 	return FALSE;
 
@@ -7660,11 +7669,7 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
       idg->falsecount = invalid_deps + idg->lazy_queued;
 
       if ( idg->falsecount == 0 )
-      { idg->tt_notrail = FALSE;
-// TBD: This is about new dependencies
-//	if ( tt_has_modified_dependencies(atrie PASS_LD) )
-//	  tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
-      }
+	idg->tt_notrail = FALSE;
     }
 
     return rc;
