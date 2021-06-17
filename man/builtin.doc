@@ -3946,7 +3946,33 @@ dynamic database inside the transaction.
 
     \item [ Incremental tabling ]
 Consistency of tables must be restored if the transaction is rolled
-back.  \textbf{This is not yet implemented}.
+back. For
+local tables this is realised as follows:
+
+    \begin{itemize}
+	\item Tables are either marked to be \jargon{invalidated} on
+	rollback or, for \jargon{monotonic} tabling individual answers
+	are marked to be removed on rollback.
+	\item A table is marked to be \jargon{invalidated} if, while it
+	is created or reevaluated, at least one dependent dynamic
+	predicate has been modified inside the transaction.
+	\iem Answers are marked to be retracted when they result from
+	monotonic reevaluation based on changes \emph{inside} the
+	transaction.
+    \end{itemize}
+
+In other words: tables being reevaluated inside a transaction that do
+not depend on predicates modified inside the transaction remain valid.
+Monotonic tables that get new answers due to asserts inside the
+transaction have these answers removed during the rollback while the
+table remains valid. Monotonic tables that are for some reason
+invalidated inside the transaction are invalidated during the rollback.
+
+Correct interaction between tabling and transaction currently
+\textbf{only deals with local tables}. \jargon{Shared} tables should not
+be combined with transactions. Future versions may improve on that. A
+possible route is to make a local copy from a shared table when
+(re)evaluation is performed inside a transaction.
 \end{description}
 
 \paragraph{Status} SWI-Prolog transaction basics and API are stable.
