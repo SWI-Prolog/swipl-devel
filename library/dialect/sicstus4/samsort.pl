@@ -32,7 +32,8 @@
 
 :- module(samsort,
 	  [ samsort/2,			% +RawList, -Sorted
-	    samsort/3			% :Order, +RawList, -SortedList
+	    samsort/3,			% :Order, +RawList, -SortedList
+	    samkeysort/2		% +RawList, -Sorted
 	  ]).
 :- reexport('../../backcomp', [merge/3]).
 
@@ -42,7 +43,6 @@
 	As of SICStus 4.6.0, the following predicates are missing:
 
 	* merge/4
-	* samkeysort/2
 	* keymerge/3
 
 @see	https://sicstus.sics.se/sicstus/docs/4.6.0/html/sicstus.html/lib_002dsamsort.html
@@ -76,3 +76,11 @@ samsort_3_key(OrderPred, Delta, E1, E2) :-
 :- meta_predicate samsort(2, +, -).
 samsort(Order, RawList, SortedList) :-
 	predsort(samsort_3_key(Order), RawList, SortedList).
+
+%!	samkeysort(+RawList, -Sorted) is det.
+%
+%	Same as keysort/2.
+%
+%	@compat SICStus 4
+
+samkeysort(RawList, Sorted) :- keysort(RawList, Sorted).
