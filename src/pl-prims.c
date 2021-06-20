@@ -2500,7 +2500,7 @@ setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
     deRef(v);
 
     if ( storage(*v) == STG_GLOBAL )
-    { if ( !(flags & SETARG_LINK) )
+    { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
 
 	if ( !duplicate_term(value, copy PASS_LD) )
