@@ -51,6 +51,9 @@ option(BUILD_TESTING
 option(SKIP_SSL_TESTS
        "Skip the SSL tests"
        OFF)
+option(TEST_PROTOBUFS_PROTOC
+       "Run protobuf tests that require protoc, etc."
+       OFF)
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"
        ON)
