@@ -552,9 +552,6 @@ retry:
     enterDefinition(fr->predicate);
     environment_frame = fr;
 
-    if ( strcmp(predicateName(fr->predicate), "make_wrapper__/2") == 0 )
-      trap_gdb();
-
     DEBUG(MSG_CONTINUE,
 	  Sdprintf("Resume clause %d of %s at PC=%ld\n",
 		   clauseNo(cl, 0),
