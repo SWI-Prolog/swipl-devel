@@ -5660,23 +5660,25 @@ typedef struct
 
 static void
 lg_clauses(idg_mdep *mdep, mono_dep_status *s ARG_LD)
-{ word *base = baseBuffer(mdep->queue, word);
-  word *top  = topBuffer(mdep->queue, word);
+{ if ( mdep->queue )
+  { word *base = baseBuffer(mdep->queue, word);
+    word *top  = topBuffer(mdep->queue, word);
 
-  for(; base < top; base++)
-  { if ( isAtom(*base) )
-    { ClauseRef cref = clause_clref(*base);
-      Clause cl = cref->value.clause;
+    for(; base < top; base++)
+    { if ( isAtom(*base) )
+      { ClauseRef cref = clause_clref(*base);
+	Clause cl = cref->value.clause;
 
-      if ( !true(cl, CL_ERASED) )
-      { if ( cl->generation.created < GEN_TRANSACTION_BASE )
-	  s->global_clauses++;
-	else if ( cl->generation.created >= LD->transaction.gen_base &&
-		  cl->generation.created <  LD->transaction.gen_max )
-	  s->local_clauses++;
+	if ( !true(cl, CL_ERASED) )
+	{ if ( cl->generation.created < GEN_TRANSACTION_BASE )
+	    s->global_clauses++;
+	  else if ( cl->generation.created >= LD->transaction.gen_base &&
+		    cl->generation.created <  LD->transaction.gen_max )
+	    s->local_clauses++;
+	}
+      } else
+      { assert(0);
       }
-    } else
-    { assert(0);
     }
   }
 }
@@ -5849,8 +5851,9 @@ tt_abolish_table(trie *atrie)
 	  if ( ta->atrie == atrie )
 	  { ta->atrie = NULL;
 	    ta->answer = NULL;
-	    break;
 	  }
+
+	  break;
 	}
         default:
 	  assert(0);
