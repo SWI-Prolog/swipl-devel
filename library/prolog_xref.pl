@@ -2107,7 +2107,10 @@ negate(else_false, else_false).
 public_list([(:- module(Module, Export0))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-
     !,
-    append(Export0, Reexport, Export),
+    (   is_list(Export0)
+    ->  append(Export0, Reexport, Export)
+    ;   Reexport = Export
+    ),
     public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
 public_list([(:- encoding(_))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-

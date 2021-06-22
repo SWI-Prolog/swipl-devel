@@ -285,12 +285,14 @@ update_directive(style_check(Style), _) :-
 update_directive(use_module(Spec), SM) :-
     ground(Spec),
     catch(module_decl(Spec, Path, Public), _, fail),
+    is_list(Public),
     !,
     maplist(import_syntax(Path, SM, _), Public).
 update_directive(use_module(Spec, Imports), SM) :-
     ground(Spec),
     is_list(Imports),
     catch(module_decl(Spec, Path, Public), _, fail),
+    is_list(Public),
     !,
     maplist(import_syntax(Path, SM, Imports), Public).
 update_directive(pce_begin_class_definition(_,_,_,_), SM) :-
@@ -372,17 +374,14 @@ read_module_decl(In, Decl) :-
     read(In, Term0),
     read_module_decl(Term0, In, Decl).
 
-read_module_decl(Term, _In, Decl) :-
-    subsumes_term((:- module(_, Decl)), Term),
-    !,
-    Term = (:- module(_, Decl)).
-read_module_decl(Term, In, Decl) :-
-    subsumes_term((:- encoding(_)), Term),
-    !,
-    Term = (:- encoding(Enc)),
+read_module_decl((:- module(_, DeclIn)), _In, Decl) =>
+    Decl = DeclIn.
+read_module_decl((:- encoding(Enc)), In, Decl) =>
     set_stream(In, encoding(Enc)),
     read(In, Term2),
     read_module_decl(Term2, In, Decl).
+read_module_decl(_, _, _) =>
+    fail.
 
 
 %!  read_source_term_at_location(+Stream, -Term, +Options) is semidet.
