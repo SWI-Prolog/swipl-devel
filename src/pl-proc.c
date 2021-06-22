@@ -349,9 +349,6 @@ bool
 isDefinedProcedure(Procedure proc)
 { Definition def = proc->definition;
 
-  if ( strcmp(predicateName(def), "__aux_maplist/3_=+0/2") == 0 )
-    trap_gdb();
-
   if ( true(def, PROC_DEFINED) )
     succeed;
 
