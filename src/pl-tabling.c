@@ -5806,7 +5806,9 @@ reevaluated already, we record the answer in our trail.
 static void
 tt_add_answer(trie *atrie, trie_node *node ARG_LD)
 { if ( LD->transaction.generation )
-  { if ( !(atrie->data.IDG && atrie->data.IDG->tt_notrail) )
+  { idg_node *idg;
+
+    if ( !((idg=atrie->data.IDG) && idg->tt_notrail) )
     { tbl_trail *tt = tt_trail(PASS_LD1);
 
       if ( !lookupHTable(tt->tables, (void*)trie_symbol(atrie)) )
@@ -7280,6 +7282,12 @@ PRED_IMPL("$idg_add_mono_dyn_dep", 3, idg_add_mono_dyn_dep, 0)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) We must increment the target falsecount  as otherwise it is possible
+that all other changed dependents evaluate  to   the  same table and the
+affected table is not updated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 mono_idg_changed(trie *atrie, word answer)
 { idg_node *sn = atrie->data.IDG;
@@ -7296,7 +7304,9 @@ mono_idg_changed(trie *atrie, word answer)
       int nonempty = 0;
 
       if ( dn->force_reeval )		/* Already marked as invalid */
+      { dn->falsecount++;		/* see (*) */
 	continue;
+      }
 
       while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
       { if ( mdep->lazy )
@@ -7560,7 +7570,11 @@ prune_deleted_mdeps(idg_node *idg)
     { idg_node *dn = k;
       idg_mdep *mdep = v;
 
-      if ( !dn->lazy || dn->force_reeval )	/* Invalidated; no queue */
+      if ( dn->force_reeval )			/* Invalidated; no queue */
+      { dn->falsecount++;			/* see mono_idg_changed() */
+	continue;
+      }
+      if ( !dn->lazy )				/* eager: no queue */
 	continue;
 
       while( mdep && mdep->magic == IDG_MDEP_MAGIC )

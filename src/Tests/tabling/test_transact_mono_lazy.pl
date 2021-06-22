@@ -49,7 +49,8 @@ test_transact_mono_lazy :-
     run_tests([ test_transact_mono_lazy_1,
                 test_transact_mono_lazy_2,
                 test_transact_mono_lazy_3,
-                test_transact_mono_lazy_4
+                test_transact_mono_lazy_4,
+                test_transact_mono_lazy_5
               ]).
 
 :- meta_predicate
@@ -242,6 +243,42 @@ test(new_dependencies, [cleanup(cleanup([da/1,db/1]))]) :-
     expect(X, p(X), [1]).
 
 :- end_tests(test_transact_mono_lazy_4).
+
+:- begin_tests(test_transact_mono_lazy_5).
+
+:- dynamic (da/1,db/1) as monotonic.
+:- table (p/1,q/1,r/1) as (monotonic,lazy).
+
+p(X) :- q(X).
+p(X) :- r(X).
+
+q(X) :- da(X).
+r(X) :- db(X), X < 10.
+
+test(already_forced_1, [cleanup(cleanup([da/1,db/1]))])  :-
+    cleanup([da/1,db/1]),
+    init(p(_)),
+    snapshot(( assert(db(11)),
+               retract(db(11)),         % forced reeval for p/1
+               assert(da(1)),
+               assert(da(2)),           % clean monotonic update for q/1
+               expect(X, p(X), [1,2])
+             )),
+    expect(X, p(X), []).
+
+test(already_forced_2, [cleanup(cleanup([da/1,db/1]))]) :-
+    cleanup([da/1,db/1]),
+    init(p(_)),
+    assert(db(11)),
+    snapshot(( assert(da(1)),
+               assert(da(2)),
+               expect(X, p(X), [1,2]),
+               retract(db(11)),
+               expect(X, p(X), [1,2])
+             )),
+    expect(X, p(X), []).
+
+:- end_tests(test_transact_mono_lazy_5).
 
 
 		 /*******************************
