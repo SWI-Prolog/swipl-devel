@@ -222,7 +222,7 @@ on modification stamps) or is a  GMP   number.  The latter is not always
 present and in any case, using GMP is relatively costly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define LGEN(gen)		  ((gen)-LD->transaction.gen_base)
+#define LGEN(gen)		  ((uintptr_t)((gen)-LD->transaction.gen_base))
 #define GGEN(lgen)		  ((lgen)+LD->transaction.gen_base)
 #define LGEN_FLAGS_PTR(gen,flags) ((void*)((LGEN(gen)<<2)|flags))
 #define PTR_LGEN(ptr)		  ((uintptr_t)(ptr)>>2)
