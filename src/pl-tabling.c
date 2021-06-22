@@ -5932,7 +5932,11 @@ tt_rollback_tables(Table affected)
 	      trie *atrie = symbol_trie(symbol);
 	      idg_node *n;
 
-	      assert(flags==TT_TBL_INVALIDATE);
+#ifdef O_DEBUG
+	      DEBUG(0,assert(flags==TT_TBL_INVALIDATE));
+#else
+	      (void)flags;
+#endif
 
 	      if ( (n=atrie->data.IDG) )
 	      { int flags = IDG_CHANGED_NODE;
