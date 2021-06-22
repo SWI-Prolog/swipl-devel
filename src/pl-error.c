@@ -1150,7 +1150,7 @@ PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 
 
 int
-PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
+pl_get_uint64__LD(term_t t, uint64_t *i, int ex ARG_LD)
 { number n;
   Word p = valTermRef(t);
 
@@ -1162,8 +1162,9 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
     { *i = v;
       return TRUE;
     }
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, t);
+    return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			 ATOM_not_less_than_zero, t)
+              : FALSE;
   }
 
   if ( PL_get_number(t, &n) )
@@ -1173,8 +1174,9 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
 	{ *i = n.value.i;
 	  return TRUE;
 	} else
-	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, t);
+	{ return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			       ATOM_not_less_than_zero, t)
+	            : FALSE;
 	}
 #if SIZEOF_VOIDP == 8 && defined(O_GMP)
       case V_MPZ:
@@ -1185,26 +1187,31 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
 	    *i = v;
 	    return TRUE;
 	  case -1:
-	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			    ATOM_not_less_than_zero, t);
+	    return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+				 ATOM_not_less_than_zero, t)
+		      : FALSE;
 	  case 1:
-	    return PL_representation_error("uint64_t");
+	    return ex ? PL_representation_error("uint64_t") : FALSE;
 	  default:
 	    assert(0);
 	    return FALSE;
 	}
       }
 #else
-      return PL_representation_error("uint64_t");
+      return ex ? PL_representation_error("uint64_t") : FALSE;
 #endif
       default:
 	break;
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return ex ? PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t) : FALSE;
 }
 
+int
+PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
+{ return pl_get_uint64__LD(t, i, TRUE PASS_LD);
+}
 
 #undef PL_get_size_ex
 int

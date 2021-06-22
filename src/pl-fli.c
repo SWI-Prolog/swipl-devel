@@ -1842,6 +1842,19 @@ PL_get_int64(term_t t, int64_t *i)
 }
 #define PL_get_int64(t, i) PL_get_int64__LD(t, i PASS_LD)
 
+int
+PL_get_uint64(term_t t, uint64_t *i)
+{ GET_LD
+
+  return pl_get_uint64__LD(t, i, FALSE PASS_LD);
+}
+
+int
+PL_get_uint64_ex(term_t t, uint64_t *i)
+{ GET_LD
+
+  return pl_get_uint64__LD(t, i, TRUE PASS_LD);
+}
 
 int
 PL_get_intptr(term_t t, intptr_t *i)

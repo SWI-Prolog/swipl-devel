@@ -645,6 +645,7 @@ PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
 
 
 PL_EXPORT(int)		PL_get_int64(term_t t, int64_t *i) WUNUSED;
+PL_EXPORT(int)		PL_get_uint64(term_t t, uint64_t *i) WUNUSED;
 PL_EXPORT(int)		PL_unify_int64(term_t t, int64_t value) WUNUSED;
 PL_EXPORT(int)		PL_unify_uint64(term_t t, uint64_t value) WUNUSED;
 PL_EXPORT(int)		PL_put_int64(term_t t, int64_t i) WUNUSED;
@@ -667,6 +668,7 @@ PL_EXPORT(int)		PL_get_atom_ex(term_t t, atom_t *a);
 PL_EXPORT(int)		PL_get_integer_ex(term_t t, int *i);
 PL_EXPORT(int)		PL_get_long_ex(term_t t, long *i);
 PL_EXPORT(int)		PL_get_int64_ex(term_t t, int64_t *i);
+PL_EXPORT(int)		PL_get_uint64_ex(term_t t, uint64_t *i);
 PL_EXPORT(int)		PL_get_intptr_ex(term_t t, intptr_t *i);
 PL_EXPORT(int)		PL_get_size_ex(term_t t, size_t *i);
 PL_EXPORT(int)		PL_get_bool_ex(term_t t, int *i);

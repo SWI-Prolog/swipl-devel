@@ -110,6 +110,7 @@ COMMON(int)		PL_no_memory(void);
 COMMON(int)		printMessage(atom_t severity, ...) WUNUSED;
 #ifdef ARG_LD
 COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
+COMMON(int)		pl_get_uint64__LD(term_t t, uint64_t *i, int ex ARG_LD);
 COMMON(int)		PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD);
 #endif
 COMMON(int)		PL_get_module_ex(term_t name, module_t *m);

@@ -891,6 +891,12 @@ function succeeds as well.  See also PL_get_int64().
 If \arg{t} is a Prolog integer or float that can be represented as a
 \ctype{int64_t}, assign its value over \arg{i}.
 
+\cfunction{int}{PL_get_uint64}{term_t +t, uint64_t *i}
+If \arg{t} is a Prolog integer that can be represented as a
+\ctype{uint64_t}, assign its value over \arg{i}. Note that this requires
+GMP support for representing \ctype{uint64_t} values with the high bit
+set.
+
 \cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
 Get an integer that is at least as wide as a pointer. On most
 platforms this is the same as PL_get_long(), but on Win64 pointers are 8
@@ -1749,8 +1755,14 @@ integer does not fit in a C \ctype{long}.
 
     \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i}
 As PL_get_int64(), but raises a type or instantiation error if
-\arg{t} is not an atom, or a representation error if the Prolog
+\arg{t} is not an integer, or a representation error if the Prolog
 integer does not fit in a C \ctype{int64_t}.
+
+    \cfunction{int}{PL_get_uint64_ex}{term_t t, uint64_t *i}
+As PL_get_uint64(), but raises a type, domain or instantiation error if
+\arg{t} is not an integer or \arg{t} is less than zero, or a
+representation error if the Prolog integer does not fit in a C
+\ctype{int64_t}.
 
     \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i}
 As PL_get_intptr(), but raises a type or instantiation error if
