@@ -10261,14 +10261,21 @@ the item.
     \predicate{access_file}{2}{+File, +Mode}
 True if \arg{File} exists and can be accessed by this Prolog
 process under mode \arg{Mode}.  \arg{Mode} is one of the atoms
-\const{read}, \const{write}, \const{append}, \const{exist}, \const{none} or
-\const{execute}. \arg{File} may also be the name of a directory. Fails
-silently otherwise.  \exam{access_file(File, none)} simply succeeds
-without testing anything.
+\const{read}, \const{write}, \const{append}, \const{execute},
+\const{search}, \const{exist}, or \const{none}. Fails silently otherwise.
+\arg{File} may also be the name of a directory.
+\exam{access_file(File, none)} simply succeeds without testing anything.
 
 If \arg{Mode} is \const{write} or \const{append}, this predicate also succeeds
 if the file does not exist and the user has write access to the
 directory of the specified location.
+
+The mode \const{execute} is only intended for use with regular files
+and the mode \const{search} only with directories. However, the two
+modes are currently equivalent and both can be used with either files
+or directories. This may change in the future, so the results of
+checking \const{execute} access on directories or \const{search} access
+on regular files should not be relied on.
 
 The behaviour is backed up by the POSIX access() API. The Windows
 replacement (_waccess()) returns incorrect results because it does not
@@ -10388,8 +10395,8 @@ in a directive, it uses the current source file as reference.
 
     \termitem{access}{Mode}
 Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
-is one of \const{read}, \const{write}, \const{append},
-\const{execute}, \const{exist} or \const{none}. See also access_file/2.
+is one of \const{read}, \const{write}, \const{append}, \const{execute},
+\const{search}, \const{exist} or \const{none}. See also access_file/2.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},

@@ -84,18 +84,16 @@
 	Some predicates don't fully support all options available on SICStus.
 	See the documentation for individual predicates for details.
 
-	The file access mode `execute` is interpreted slightly
-	differently on SICStus and SWI if the file in question
-	is a directory. On SWI, checking `execute` access on a
-	directory actually checks if the directory can be
-	listed/searched. This matches the meaning of the POSIX
-	execute permission bit.
+	The file access modes `execute` and `search` are interpreted
+	slightly differently on SICStus and SWI. On SWI, `execute` and
+	`search` are equivalent - both can be used with regular files
+	and directories and will check execute or search permission
+	depending on the file type, not the mode atom.
 
-	SICStus on the other hand adds a separate access mode
-	`search` for this purpose and uses `execute` *only* for
-	checking executability of regular files. Checking access
-	mode `execute` on a directory or `search` on a regular
-	file is equivalent to checking `exist`.
+	SICStus on the other hand checks the access modes only if the
+	file in question has the appropriate type. Checking access mode
+	`execute` on a directory or `search` on a regular file is
+	equivalent to checking `exist`.
 
 	This difference affects not just file_exists/2 and
 	directory_exists/2 in this library, but also the
@@ -365,7 +363,7 @@ directory_property(Directory, readable, Value) :-
 directory_property(Directory, writable, Value) :-
 	directory_exists(Directory, write) -> Value = true ; Value = false.
 directory_property(Directory, searchable, Value) :-
-	directory_exists(Directory, execute) -> Value = true ; Value = false.
+	directory_exists(Directory, search) -> Value = true ; Value = false.
 directory_property(Directory, Property, Value) :-
 	file_or_directory_property(Directory, Property, Value).
 
