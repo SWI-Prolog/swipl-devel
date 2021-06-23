@@ -41,6 +41,14 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-int	is_variant_ptr(Word p1, Word p2 ARG_LD);
+#if USE_LD_MACROS
+#define	is_variant_ptr(p1, p2)	LDFUNC(is_variant_ptr, p1, p2)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	is_variant_ptr(Word p1, Word p2);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_VARIANT_H*/			

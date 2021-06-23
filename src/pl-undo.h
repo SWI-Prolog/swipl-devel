@@ -38,10 +38,19 @@
 #ifndef PL_UNDO_H_INCLUDED
 #define PL_UNDO_H_INCLUDED
 
+#if USE_LD_MACROS
+#define	push_undo(l)		LDFUNC(push_undo, l)
+#define	run_undo_hooks(_)	LDFUNC(run_undo_hooks, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 term_t	init_undo_list(void);
 void	free_undo_data(PL_local_data_t *ld);
-void	push_undo(Word l ARG_LD);
-int	run_undo_hooks(ARG1_LD);
+void	push_undo(Word l);
+int	run_undo_hooks(void);
+
+#undef LDFUNC_DECLARATIONS
 
 #define UNDO_SCHEDULED(ld) \
 	( ld->undo.scheduled && \

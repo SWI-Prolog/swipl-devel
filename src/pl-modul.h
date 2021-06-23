@@ -43,9 +43,19 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-Module		lookupModule__LD(atom_t name ARG_LD);
-Module		isCurrentModule__LD(atom_t name ARG_LD);
-Module		acquireModule__LD(atom_t name ARG_LD);
+#if USE_LD_MACROS
+#define	lookupModule(name)			LDFUNC(lookupModule, name)
+#define	isCurrentModule(name)			LDFUNC(isCurrentModule, name)
+#define	acquireModule(name)			LDFUNC(acquireModule, name)
+#define	stripModule(term, module, flags)	LDFUNC(stripModule, term, module, flags)
+#define	stripModuleName(term, name)		LDFUNC(stripModuleName, term, name)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+Module		lookupModule(atom_t name);
+Module		isCurrentModule(atom_t name);
+Module		acquireModule(atom_t name);
 void		releaseModule(Module m);
 void		initModules(void);
 void		cleanupModules(void);
@@ -55,8 +65,8 @@ int		isSuperModule(Module s, Module m);
 void		clearSupersModule(Module m);
 int		addSuperModule(Module m, Module s, int where);
 int		getUnknownModule(Module m);
-Word		stripModule(Word term, Module *module, int flags ARG_LD);
-Word		stripModuleName(Word term, atom_t *name ARG_LD);
+Word		stripModule(Word term, Module *module, int flags);
+Word		stripModuleName(Word term, atom_t *name);
 bool		isPublicModule(Module module, Procedure proc);
 int		exportProcedure(Module module, Procedure proc);
 int		declareModule(atom_t name, atom_t class, atom_t super,
@@ -72,12 +82,6 @@ ModuleEnum	newModuleEnum(int flags);
 Module		advanceModuleEnum(ModuleEnum en);
 void		freeModuleEnum(ModuleEnum en);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define lookupModule(name)	lookupModule__LD(name PASS_LD)
-#define isCurrentModule(name)	isCurrentModule__LD(name PASS_LD)
-#define acquireModule(name)	acquireModule__LD(name PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_MODUL_H*/

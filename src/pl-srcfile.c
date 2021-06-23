@@ -946,8 +946,9 @@ find_clause(ClauseRef cref, gen_t generation)
 }
 
 
+#define advance_clause(r) LDFUNC(advance_clause, r)
 static void
-advance_clause(p_reload *r ARG_LD)
+advance_clause(DECL_LD p_reload *r)
 { ClauseRef cref;
 
   if ( (cref = r->current_clause) )
@@ -979,15 +980,16 @@ copy_clause_source(Clause dest, Clause src)
 }
 
 
+#define keep_clause(r, clause) LDFUNC(keep_clause, r, clause)
 static ClauseRef
-keep_clause(p_reload *r, Clause clause ARG_LD)
+keep_clause(DECL_LD p_reload *r, Clause clause)
 { ClauseRef cref = r->current_clause;
   Clause keep = cref->value.clause;
 
   keep->generation.erased = GEN_MAX;
   copy_clause_source(keep, clause);
   freeClause(clause);
-  advance_clause(r PASS_LD);
+  advance_clause(r);
 
   return cref;
 }
@@ -1006,7 +1008,7 @@ equal_clause(Clause cl1, Clause cl2)
 
 
 int
-reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
+reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
   if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
@@ -1038,8 +1040,9 @@ isRedefinedProcedure(Procedure proc, gen_t gen)
 }
 
 
+#define reloadContext(sf, proc) LDFUNC(reloadContext, sf, proc)
 static p_reload *
-reloadContext(SourceFile sf, Procedure proc ARG_LD)
+reloadContext(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
   if ( !(reload = lookupHTable(sf->reload->procedures, proc)) )
@@ -1054,7 +1057,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
     } else if ( isRedefinedProcedure(proc, global_generation()) )
-    { definition_ref *dref = pushPredicateAccessObj(def PASS_LD);
+    { definition_ref *dref = pushPredicateAccessObj(def);
 
       if ( !dref )
       { freeHeap(reload, sizeof(*reload));
@@ -1082,7 +1085,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
 
 
 ClauseRef
-assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
+assertProcedureSource(DECL_LD SourceFile sf, Procedure proc, Clause clause)
 { if ( sf && sf->reload )
   { p_reload *reload;
     Definition def = proc->definition;
@@ -1092,7 +1095,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
     sf->reload->number_of_clauses++;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
     { freeClause(clause);
       return NULL;
     }
@@ -1103,7 +1106,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
     }
 
     if ( true(reload, P_NEW|P_NO_CLAUSES) )
-      return assertProcedure(proc, clause, CL_END PASS_LD);
+      return assertProcedure(proc, clause, CL_END);
 
     if ( (cref = reload->current_clause) )
     { ClauseRef cref2;
@@ -1112,7 +1115,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       { DEBUG(MSG_RECONSULT_CLAUSE,
 	      Sdprintf("  Keeping clause %d\n",
 		       clauseNo(cref->value.clause, reload->generation)));
-	return keep_clause(reload, clause PASS_LD);
+	return keep_clause(reload, clause);
       }
 
       set(reload, P_MODIFIED);
@@ -1148,7 +1151,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 	  DEBUG(MSG_RECONSULT_CLAUSE,
 		Sdprintf("  Keeping clause %d\n",
 			 clauseNo(cref2->value.clause, reload->generation)));
-	  return keep_clause(reload, clause PASS_LD);
+	  return keep_clause(reload, clause);
 	}
       }
       release_def(def);
@@ -1156,12 +1159,12 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       DEBUG(MSG_RECONSULT_CLAUSE,
 	    Sdprintf("  Inserted before clause %d\n",
 		     clauseNo(cref->value.clause, reload->generation)));
-      if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
+      if ( (cref2 = assertProcedure(proc, clause, cref)) )
 	cref2->value.clause->generation.created = sf->reload->reload_gen;
 
       return cref2;
     } else
-    { if ( (cref = assertProcedure(proc, clause, CL_END PASS_LD)) )
+    { if ( (cref = assertProcedure(proc, clause, CL_END)) )
 	cref->value.clause->generation.created = sf->reload->reload_gen;
       DEBUG(MSG_RECONSULT_CLAUSE, Sdprintf("  Added at the end\n"));
 
@@ -1173,7 +1176,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
   { sf->number_of_clauses++;
   }
 
-  return assertProcedure(proc, clause, CL_END PASS_LD);
+  return assertProcedure(proc, clause, CL_END);
 }
 
 
@@ -1204,15 +1207,15 @@ associateSource(SourceFile sf, Procedure proc)
 #define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
 
 int
-setAttrProcedureSource(SourceFile sf, Procedure proc,
-		       unsigned attr, int val ARG_LD)
+setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
+		       unsigned attr, int val)
 { if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
       return FALSE;
 
     if ( val )
@@ -1258,8 +1261,9 @@ check_ssu(p_reload *r)
 }
 
 
+#define fix_attributes(sf, def, r) LDFUNC(fix_attributes, sf, def, r)
 static void
-fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
+fix_attributes(DECL_LD SourceFile sf, Definition def, p_reload *r)
 { if ( false(def, P_MULTIFILE) )
     def->flags = (def->flags & ~P_ATEND) | (r->flags & P_ATEND);
   else
@@ -1301,15 +1305,15 @@ fix_ssu(p_reload *r, Clause clause)
 
 
 int
-setMetapredicateSource(SourceFile sf, Procedure proc,
-		       arg_info *args ARG_LD)
+setMetapredicateSource(DECL_LD SourceFile sf, Procedure proc,
+		       arg_info *args)
 { associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
     size_t i, arity = proc->definition->functor->arity;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
       return FALSE;
 
     if ( !reload->args )
@@ -1493,8 +1497,9 @@ delete_old_predicates(SourceFile sf)
 }
 
 
+#define delete_pending_clauses(sf, def, r) LDFUNC(delete_pending_clauses, sf, def, r)
 static void
-delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
+delete_pending_clauses(DECL_LD SourceFile sf, Definition def, p_reload *r)
 { ClauseRef cref;
   sf_reload *rl = sf->reload;
 
@@ -1522,8 +1527,9 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
 }
 
 
+#define end_reconsult_proc(sf, proc, r) LDFUNC(end_reconsult_proc, sf, proc, r)
 static size_t
-end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
+end_reconsult_proc(DECL_LD SourceFile sf, Procedure proc, p_reload *r)
 { size_t dropped_access = 0;
 
   DEBUG(MSG_RECONSULT_CLAUSE,
@@ -1532,16 +1538,16 @@ end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
   if ( false(r, P_NEW|P_NO_CLAUSES) )
   { Definition def = proc->definition;
 
-    delete_pending_clauses(sf, def, r PASS_LD);
-    fix_attributes(sf, def, r PASS_LD);
-    reconsultFinalizePredicate(sf->reload, def, r PASS_LD);
+    delete_pending_clauses(sf, def, r);
+    fix_attributes(sf, def, r);
+    reconsultFinalizePredicate(sf->reload, def, r);
     if ( true(r, P_CHECK_SSU) )
       check_ssu(r);
   } else
   { dropped_access++;
     if ( true(r, P_NO_CLAUSES) )
     { Definition def = proc->definition;
-      fix_attributes(sf, def, r PASS_LD);
+      fix_attributes(sf, def, r);
     }
   }
   if ( r->args )
@@ -1567,7 +1573,7 @@ endReconsult(SourceFile sf)
 	      { Procedure proc = n;
 		p_reload *r = v;
 
-		accessed_preds -= end_reconsult_proc(sf, proc, r PASS_LD);
+		accessed_preds -= end_reconsult_proc(sf, proc, r);
 	      });
 
     popNPredicateAccess(accessed_preds);
@@ -1629,13 +1635,13 @@ flush_procedure(SourceFile sf, Procedure proc)
     { if ( false(r, P_NEW|P_NO_CLAUSES) )
       { Definition def = proc->definition;
 
-	delete_pending_clauses(sf, def, r PASS_LD);
-	fix_attributes(sf, def, r PASS_LD);
-	reconsultFinalizePredicate(reload, def, r PASS_LD);
+	delete_pending_clauses(sf, def, r);
+	fix_attributes(sf, def, r);
+	reconsultFinalizePredicate(reload, def, r);
       }
     } else
     { delete_old_predicate(sf, proc);
-      (void)reloadContext(sf, proc PASS_LD);
+      (void)reloadContext(sf, proc);
     }
   }
 
@@ -1858,8 +1864,9 @@ out:
  * subsequent changes to the predicate are _immediate_.
  */
 
+#define flush_predicate(pred) LDFUNC(flush_predicate, pred)
 static int
-flush_predicate(term_t pred ARG_LD)
+flush_predicate(DECL_LD term_t pred)
 { SourceFile sf;
   Procedure proc;
   Module m = LD->modules.source;
@@ -1885,7 +1892,7 @@ static
 PRED_IMPL("$flush_predicate", 1, flush_predicate, 0)
 { PRED_LD
 
-  return flush_predicate(A1 PASS_LD);
+  return flush_predicate(A1);
 }
 
 

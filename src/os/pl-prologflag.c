@@ -565,8 +565,9 @@ setAutoload(atom_t a)
 }
 
 
+#define propagateAutoload(val) LDFUNC(propagateAutoload, val)
 static int
-propagateAutoload(term_t val ARG_LD)
+propagateAutoload(DECL_LD term_t val)
 { if ( !GD->bootsession )
   { predicate_t pred;
     term_t av;
@@ -625,8 +626,9 @@ get_win_file_access_check(void)
 }
 #endif
 
+#define set_prolog_flag_unlocked(m, k, value, flags) LDFUNC(set_prolog_flag_unlocked, m, k, value, flags)
 static word
-set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
+set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 { prolog_flag *f;
   int rval = TRUE;
 
@@ -651,9 +653,9 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
     }
 
     if ( tbl_is_restraint_flag(k) )
-      return tbl_set_restraint_flag(value, k PASS_LD);
+      return tbl_set_restraint_flag(value, k);
     if ( is_arith_flag(k) )
-      return set_arith_flag(value, k PASS_LD);
+      return set_arith_flag(value, k);
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
@@ -966,11 +968,11 @@ set_prolog_flag(term_t key, term_t value, int flags)
        !PL_get_atom_ex(key, &k) )
     return FALSE;
 
-  if ( k == ATOM_autoload && !propagateAutoload(value PASS_LD) )
+  if ( k == ATOM_autoload && !propagateAutoload(value) )
     return FALSE;
 
   PL_LOCK(L_PLFLAG);
-  rc = set_prolog_flag_unlocked(m, k, value, flags PASS_LD);
+  rc = set_prolog_flag_unlocked(m, k, value, flags);
   PL_UNLOCK(L_PLFLAG);
 
   return rc;
@@ -1182,9 +1184,9 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   } else if ( key == ATOM_stack_limit )
   { return PL_unify_int64(val, LD->stacks.limit);
   } else if ( tbl_is_restraint_flag(key) )
-  { return tbl_get_restraint_flag(val, key PASS_LD) == TRUE;
+  { return tbl_get_restraint_flag(val, key) == TRUE;
   } else if ( is_arith_flag(key) )
-  { return get_arith_flag(val, key PASS_LD) == TRUE;
+  { return get_arith_flag(val, key) == TRUE;
   }
 
   switch(f->flags & FT_MASK)

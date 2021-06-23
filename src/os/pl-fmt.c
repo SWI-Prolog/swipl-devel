@@ -528,7 +528,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  PL_locale *l;
 
 		  NEED_ARG;
-		  if ( !valueExpression(argv, &n PASS_LD) )
+		  if ( !valueExpression(argv, &n) )
 		  { char f[2];
 
 		    f[0] = c;
@@ -562,7 +562,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  tmp_buffer b;
 
 		  NEED_ARG;
-		  if ( !valueExpression(argv, &i PASS_LD) ||
+		  if ( !valueExpression(argv, &i) ||
 		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
 

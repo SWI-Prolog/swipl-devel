@@ -262,36 +262,28 @@ unfindBuffer(Buffer b, int flags)
 
 
 void
-PL_mark_string_buffers__LD(buf_mark_t *mark ARG_LD)
+PL_mark_string_buffers(DECL_LD buf_mark_t *mark)
 { *mark = LD->fli.string_buffers.top;
 }
 
 void
-PL_release_string_buffers_from_mark__LD(buf_mark_t mark ARG_LD)
+PL_release_string_buffers_from_mark(DECL_LD buf_mark_t mark)
 { while(LD->fli.string_buffers.top > mark)
     popStringBuffer(&LD->fli.string_buffers);
 }
 
 
-#undef PL_mark_string_buffers
-void
-PL_mark_string_buffers(buf_mark_t *mark)
-{ GET_LD
+API_STUB(void)
+(PL_mark_string_buffers)(buf_mark_t *mark)
+( PL_mark_string_buffers(mark); )
 
-  PL_mark_string_buffers__LD(mark PASS_LD);
-}
-
-#undef PL_release_string_buffers_from_mark
-void
-PL_release_string_buffers_from_mark(buf_mark_t mark)
-{ GET_LD
-
-  PL_release_string_buffers_from_mark__LD(mark PASS_LD);
-}
+API_STUB(void)
+(PL_release_string_buffers_from_mark)(buf_mark_t mark)
+( PL_release_string_buffers_from_mark(mark); )
 
 
 void
-release_string_buffers_from_frame(LocalFrame fr ARG_LD)
+release_string_buffers_from_frame(DECL_LD LocalFrame fr)
 { word offset = consTermRef(fr);
 
   for(;;)

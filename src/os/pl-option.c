@@ -60,8 +60,9 @@ typedef union
 } optvalue;
 
 
+#define get_optval(valp, spec, val) LDFUNC(get_optval, valp, spec, val)
 static int
-get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
+get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
 { switch((spec->type & OPT_TYPE_MASK))
   { case OPT_BOOL:
     { int bval;
@@ -174,7 +175,7 @@ dict_option(term_t key, term_t value, int last, void *closure)
 
   for( n=0, s = ctx->specs; s->name; n++, s++ )
   { if ( s->name == name )
-    { if ( !get_optval(ctx->values[n], s, value PASS_LD) )
+    { if ( !get_optval(ctx->values[n], s, value) )
 	return -1;
       return 0;
     }
@@ -197,8 +198,9 @@ dict_option(term_t key, term_t value, int last, void *closure)
    need to worry right now.
 */
 
+#define dict_options(dict, flags, specs, values) LDFUNC(dict_options, dict, flags, specs, values)
 static int
-dict_options(term_t dict, int flags, const opt_spec *specs, optvalue *values ARG_LD)
+dict_options(DECL_LD term_t dict, int flags, const opt_spec *specs, optvalue *values)
 { dictopt_ctx ctx;
 
   ctx.specs  = specs;
@@ -230,7 +232,7 @@ scan_options(term_t options, int flags, atom_t optype,
   va_end(args);
 
   if ( PL_is_dict(options) )
-    return dict_options(options, flags, specs, values PASS_LD);
+    return dict_options(options, flags, specs, values);
 
   list = PL_copy_term_ref(options);
   av = PL_new_term_refs(3);
@@ -273,7 +275,7 @@ scan_options(term_t options, int flags, atom_t optype,
 	  }
 	  goto itemerror;
 	}
-	if ( !get_optval(values[n], s, val PASS_LD) )
+	if ( !get_optval(values[n], s, val) )
 	  return FALSE;
 	if ( (s->type&OPT_TYPE_MASK) == OPT_TERM )
 	  candiscard = FALSE;

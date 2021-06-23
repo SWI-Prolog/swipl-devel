@@ -472,7 +472,6 @@ void	resumeThreads(void);
 void	markAtomsMessageQueues(void);
 void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
 
 		 /*******************************
@@ -561,6 +560,16 @@ typedef struct
   int (*function)();			/* function to generate */
 } tprop;
 
+#if USE_LD_MACROS
+#define	pushPredicateAccessObj(def)	LDFUNC(pushPredicateAccessObj, def)
+#define	popPredicateAccess(def)		LDFUNC(popPredicateAccess, def)
+#define	popNPredicateAccess(n)		LDFUNC(popNPredicateAccess, n)
+#define	cgc_thread_stats(stats)		LDFUNC(cgc_thread_stats, stats)
+#define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int		get_prop_def(term_t t, atom_t expected,
 			     const tprop *list, const tprop **def);
 void		initPrologThreads(void);
@@ -570,19 +579,14 @@ Atom**		pl_atom_buckets_in_use(void);
 Definition*	predicates_in_use(void);
 int		pl_functor_table_in_use(FunctorTable functor_table);
 int		pl_kvs_in_use(KVS kvs);
-definition_ref* pushPredicateAccessObj(Definition def ARG_LD);
-void		popPredicateAccess__LD(Definition def ARG_LD);
-size_t		popNPredicateAccess__LD(size_t n ARG_LD);
+definition_ref* pushPredicateAccessObj(Definition def);
+void		popPredicateAccess(Definition def);
+size_t		popNPredicateAccess(size_t n);
 void		markAccessedPredicates(PL_local_data_t *ld);
-int		cgc_thread_stats(cgc_stats *stats ARG_LD);
+int		cgc_thread_stats(cgc_stats *stats);
 int		signalGCThread(int sig);
-int		isSignalledGCThread(int sig ARG_LD);
+int		isSignalledGCThread(int sig);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define popPredicateAccess(def) popPredicateAccess__LD(def PASS_LD)
-#define popNPredicateAccess(cnt) popNPredicateAccess__LD(cnt PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_THREAD_H_DEFINED*/

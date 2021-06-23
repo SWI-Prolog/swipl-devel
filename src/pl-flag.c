@@ -126,7 +126,7 @@ PRED_IMPL("get_flag", 2, get_flag, 0)
   term_t name  = A1;
   term_t value = A2;
 
-  if ( !getKeyEx(name, &key PASS_LD) )
+  if ( !getKeyEx(name, &key) )
     return FALSE;
 
   f = lookupFlag(key);
@@ -162,7 +162,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
   term_t name  = A1;
   term_t value = A2;
 
-  if ( !getKeyEx(name, &key PASS_LD) )
+  if ( !getKeyEx(name, &key) )
     return FALSE;
   f = lookupFlag(key);
 
@@ -223,7 +223,7 @@ pl_current_flag(term_t k, control_t h)
       {	e = newTableEnum(flagTable);
 	break;
       }
-      if ( getKeyEx(k, &key PASS_LD) &&
+      if ( getKeyEx(k, &key) &&
 	   lookupHTable(flagTable, (void *)key) )
 	succeed;
       fail;

@@ -92,7 +92,7 @@ setupProlog(void)
   DEBUG(1, Sdprintf("Starting Heap Initialisation\n"));
 
 #ifdef O_LOGICAL_UPDATE
-  next_generation(NULL PASS_LD);
+  next_generation(NULL);
 #endif
 
   LD->critical = 0;
@@ -117,7 +117,7 @@ setupProlog(void)
   GD->combined_stack.gc		 = TRUE;
   GD->combined_stack.overflow_id = STACK_OVERFLOW;
 
-  initPrologLocalData(PASS_LD1);
+  initPrologLocalData();
 
   DEBUG(1, Sdprintf("Atoms ...\n"));
   initAtoms();
@@ -174,7 +174,7 @@ setupProlog(void)
 
 
 void
-initPrologLocalData(ARG1_LD)
+initPrologLocalData(DECL_LD)
 {
 #ifdef O_LIMIT_DEPTH
   LD->depth_info.limit = DEPTH_NO_LIMIT;
@@ -514,7 +514,7 @@ dispatch_signal(int sig, int sync)
   }
 
   if ( !sync )
-    blockGC(0 PASS_LD);
+    blockGC(0);
   LD->signal.current = sig;
   LD->signal.is_sync = sync;
 
@@ -582,7 +582,7 @@ dispatch_signal(int sig, int sync)
   lTop = (LocalFrame)valTermRef(lTopSave);
 
   if ( !sync )
-    unblockGC(0 PASS_LD);
+    unblockGC(0);
 
 					/* we cannot return.  First try */
 					/* longjmp.  If that fails, crash */
@@ -1085,15 +1085,16 @@ int
 PL_handle_signals(void)
 { GET_LD
 
-  if ( !is_signalled(PASS_LD1) )
+  if ( !is_signalled() )
     return 0;
   else
-    return handleSignals(PASS_LD1);
+    return handleSignals();
 }
 
 #ifndef __unix__
+#define handleSigInt(_) LDFUNC(handleSigInt, _)
 static int
-handleSigInt(ARG1_LD)
+handleSigInt(DECL_LD)
 { int intmask = 1<<(SIGINT-1);
 
   if ( LD->signal.forced == SIGINT && LD->signal.pending[0] & intmask )
@@ -1114,18 +1115,18 @@ handleSigInt(ARG1_LD)
 #endif
 
 int
-handleSignals(ARG1_LD)
+handleSignals(DECL_LD)
 { int done = 0;
   int i;
 
-  if ( !is_signalled(PASS_LD1) )
+  if ( !is_signalled() )
     return 0;
   if ( !HAS_LD )
     return 0;
   if ( exception_term )
     return -1;
 #ifndef __unix__				/* on Unix we ask to signal twice */
-  if ( (done=handleSigInt(PASS_LD1)) )
+  if ( (done=handleSigInt()) )
     return done;
 #endif
   if ( LD->critical )
@@ -1197,7 +1198,7 @@ PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
 
 
 int
-endCritical__LD(ARG1_LD)
+f_endCritical(DECL_LD)
 { if ( exception_term )
     return FALSE;
 
@@ -1507,7 +1508,7 @@ allocStacks(void)
   if ( !gBase || !tBase || !aBase )
   { if ( gBase )
       *gBase++ = MARK_MASK;		/* compensate for freeStacks */
-    freeStacks(PASS_LD1);
+    freeStacks();
     return FALSE;
   }
 
@@ -1529,7 +1530,7 @@ allocStacks(void)
 
 
 void
-freeStacks(ARG1_LD)
+freeStacks(DECL_LD)
 { if ( gBase )
   { gBase--;
     stack_free(gBase);
@@ -1598,7 +1599,7 @@ trimStacks() reclaims all unused space on the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-trimStacks(int resize ARG_LD)
+trimStacks(DECL_LD int resize)
 { LD->trim_stack_requested = FALSE;
 
   if ( resize )
@@ -1630,7 +1631,7 @@ static
 PRED_IMPL("trim_stacks", 0, trim_stacks, 0)
 { PRED_LD
 
-  trimStacks(TRUE PASS_LD);
+  trimStacks(TRUE);
 
   succeed;
 }
@@ -1701,7 +1702,7 @@ set_stack_limit(size_t limit)
                sizeStack(global) +
                sizeStack(trail) )
   { garbageCollect(GC_USER);
-    trimStacks(TRUE PASS_LD);
+    trimStacks(TRUE);
 
     if ( limit < sizeStack(local) +
 	         sizeStack(global) +

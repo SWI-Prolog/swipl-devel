@@ -510,7 +510,7 @@ destroyHTable(Table ht)
 
 
 void*
-lookupHTable__LD(Table ht, void *name ARG_LD)
+lookupHTable(DECL_LD Table ht, void *name)
 { KVS kvs;
   void *v;
 

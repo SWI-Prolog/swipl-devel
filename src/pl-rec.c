@@ -470,8 +470,9 @@ typedef struct
 #define isAttVarP(p)  ((word)(p) & 0x1)
 #define valAttVarP(p) ((Word)((word)(p) & ~0x1L))
 
+#define compile_term_to_heap(agenda, info) LDFUNC(compile_term_to_heap, agenda, info)
 static int
-compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
+compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 { Word p;
 
   while( (p=nextTermAgenda(agenda)) )
@@ -634,14 +635,16 @@ compile_term_to_heap(term_agenda *agenda, CompileInfo info ARG_LD)
 
 #if O_CYCLIC
 
+#define init_cycle(_) LDFUNC(init_cycle, _)
 static void
-init_cycle(ARG1_LD)
+init_cycle(DECL_LD)
 { LD->cycle.lstack.unit_size = sizeof(cycle_mark);
 }
 
 
+#define unvisit(_) LDFUNC(unvisit, _)
 static void
-unvisit(ARG1_LD)
+unvisit(DECL_LD)
 { cycle_mark mark;
 
   while( popSegStack(&LD->cycle.lstack, &mark, cycle_mark) )
@@ -651,8 +654,8 @@ unvisit(ARG1_LD)
 
 #else
 
-static void init_cycle(ARG1_LD) {}
-static void unvisit(ARG1_LD) {}
+static void init_cycle(DECL_LD) {}
+static void unvisit(DECL_LD) {}
 
 #endif
 
@@ -674,7 +677,7 @@ restoreVars(compile_info *info)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-compileTermToHeap__LD() is the core of the recorded database.
+compileTermToHeap_ex() is the core of the recorded database.
 
 Returns NULL if there is insufficient   memory.  Otherwise the result of
 the  allocation  function.   The   default    allocation   function   is
@@ -682,10 +685,10 @@ PL_malloc_atomic_unmanaged().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Record
-compileTermToHeap__LD(term_t t,
+compileTermToHeap_ex(DECL_LD term_t t,
 		      void* (*allocate)(void *closure, size_t size),
 		      void* closure,
-		      int flags ARG_LD)
+		      int flags)
 { compile_info info;
   Record record;
   size_t size;
@@ -695,7 +698,7 @@ compileTermToHeap__LD(term_t t,
 
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
-  init_cycle(PASS_LD1);
+  init_cycle();
   initBuffer(&info.code);
   initBuffer(&info.vars);
   info.size = 0;
@@ -704,10 +707,10 @@ compileTermToHeap__LD(term_t t,
   info.lock = !(info.external || (flags&R_NOLOCK));
 
   initTermAgenda(&agenda, 1, valTermRef(t));
-  rc = compile_term_to_heap(&agenda, &info PASS_LD);
+  rc = compile_term_to_heap(&agenda, &info);
   clearTermAgenda(&agenda);
   restoreVars(&info);
-  unvisit(PASS_LD1);
+  unvisit();
 
   if ( rc )
   { size = rsize + sizeOfBuffer(&info.code);
@@ -804,8 +807,9 @@ rec_error(CompileInfo info)
 }
 
 
+#define compile_external_record(t, data) LDFUNC(compile_external_record, t, data)
 static int
-compile_external_record(term_t t, record_data *data ARG_LD)
+compile_external_record(DECL_LD term_t t, record_data *data)
 { Word p;
   int first = REC_HDR;
   term_agenda agenda;
@@ -815,7 +819,7 @@ compile_external_record(term_t t, record_data *data ARG_LD)
   p = valTermRef(t);
   deRef(p);
 
-  init_cycle(PASS_LD1);
+  init_cycle();
   initBuffer(&data->info.code);
   data->info.external = TRUE;
   data->info.lock = FALSE;
@@ -854,12 +858,12 @@ general:
   data->info.nvars = 0;
 
   initTermAgenda(&agenda, 1, p);
-  rc = compile_term_to_heap(&agenda, &data->info PASS_LD);
+  rc = compile_term_to_heap(&agenda, &data->info);
   clearTermAgenda(&agenda);
   if ( data->info.nvars == 0 )
     first |= REC_GROUND;
   restoreVars(&data->info);
-  unvisit(PASS_LD1);
+  unvisit();
   if ( !rc )
     return rec_error(&data->info);
   scode = (int)sizeOfBuffer(&data->info.code);
@@ -879,7 +883,7 @@ PL_record_external(term_t t, size_t *len)
 { GET_LD
   record_data data;
 
-  if ( compile_external_record(t, &data PASS_LD) )
+  if ( compile_external_record(t, &data) )
   { if ( data.simple )
     { int scode = (int)sizeOfBuffer(&data.info.code);
       char *rec = malloc(scode);
@@ -937,7 +941,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
   if ( PL_is_variable(string) )
   { record_data data;
 
-    if ( compile_external_record(term, &data PASS_LD) )
+    if ( compile_external_record(term, &data) )
     { if ( data.simple )
       { int rc;
 
@@ -951,7 +955,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	size_t scode = sizeOfBuffer(&data.info.code);
 	Word p;
 
-	if ( (p=allocString(shdr+scode+1 PASS_LD)) )
+	if ( (p=allocString(shdr+scode+1)) )
 	{ char *q = (char *)&p[1];
 	  word w  = consPtr(p, TAG_STRING|STG_GLOBAL);
 
@@ -994,7 +998,7 @@ PRED_IMPL("fast_write", 2, fast_write, 0)
     int rc;
 
     if ( out->encoding == ENC_OCTET )
-    { if ( (rc=compile_external_record(A2, &data PASS_LD)) )
+    { if ( (rc=compile_external_record(A2, &data)) )
       { if ( data.simple )
 	{ size_t len = sizeOfBuffer(&data.info.code);
 
@@ -1330,8 +1334,9 @@ fetchChars(CopyInfo b, unsigned len, Word to)
 }
 
 
+#define copy_record(p, b) LDFUNC(copy_record, p, b)
 static int
-copy_record(Word p, CopyInfo b ARG_LD)
+copy_record(DECL_LD Word p, CopyInfo b)
 { term_agenda agenda;
   int is_compound = FALSE;
   int tag;
@@ -1370,7 +1375,7 @@ copy_record(Word p, CopyInfo b ARG_LD)
 
 	DEBUG(MSG_REC_ATTVAR,
 	      Sdprintf("Restore attvar %ld at %p\n", (long)n, &b->gstore[1]));
-	register_attvar(b->gstore PASS_LD);
+	register_attvar(b->gstore);
 	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
 	*p = makeRefG(&b->gstore[1]);
 	b->vars[n] = p;
@@ -1547,7 +1552,7 @@ copy_record(Word p, CopyInfo b ARG_LD)
 
 
 int
-copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
+copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 { copy_info b;
   int rc;
 
@@ -1566,7 +1571,7 @@ copyRecordToGlobal(term_t copy, Record r, int flags ARG_LD)
 
   if ( (rc=init_copy_vars(&b, r->nvars)) == TRUE )
   { gTop += r->gsize;
-    rc = copy_record(valTermRef(copy), &b PASS_LD);
+    rc = copy_record(valTermRef(copy), &b);
     free_copy_vars(&b);
   }
   if ( rc != TRUE )
@@ -1748,7 +1753,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-markAtomsRecord(Record record ARG_LD) must be called on all records that
+markAtomsRecord(DECL_LD Record record) must be called on all records that
 use the R_NOLOCK option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -1899,11 +1904,11 @@ PL_recorded_external(const char *rec, term_t t)
   { uint nvars = fetchSizeInt(&b);
 
     if ( (rc=init_copy_vars(&b, nvars)) == TRUE )
-    { rc = copy_record(valTermRef(t), &b PASS_LD);
+    { rc = copy_record(valTermRef(t), &b);
       free_copy_vars(&b);
     }
   } else
-  { rc = copy_record(valTermRef(t), &b PASS_LD);
+  { rc = copy_record(valTermRef(t), &b);
   }
 
   if ( rc != TRUE )
@@ -1950,7 +1955,7 @@ unifyKey(term_t key, word val)
 
 
 int
-getKeyEx(term_t key, word *w ARG_LD)
+getKeyEx(DECL_LD term_t key, word *w)
 { Word k = valTermRef(key);
   deRef(k);
 
@@ -1978,7 +1983,7 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
     { if ( PL_is_variable(A1) )
       { e = newTableEnum(GD->recorded_db.record_lists);
 	break;
-      } else if ( getKeyEx(A1, &k PASS_LD) &&
+      } else if ( getKeyEx(A1, &k) &&
 		  isCurrentRecordList(k, TRUE) )
 	succeed;
 
@@ -2032,7 +2037,7 @@ record(term_t key, term_t term, term_t ref, record_az az)
 	   PL_write_term(Serror, term, 1200, PL_WRT_ATTVAR_WRITE);
 	   Sdprintf("\n"));
 
-  if ( !getKeyEx(key, &k PASS_LD) )
+  if ( !getKeyEx(key, &k) )
     fail;
   if ( ref && !PL_is_variable(ref) )
     return PL_uninstantiation_error(ref);
@@ -2186,7 +2191,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  { term_t copy = PL_new_term_ref();
 
 	    if ( (rc=copyRecordToGlobal(copy, record->record,
-					ALLOW_GC PASS_LD)) < 0 )
+					ALLOW_GC)) < 0 )
 	      rc = raiseStackOverflow(rc);
 	    else
 	      rc = PL_unify(term, copy);
@@ -2203,7 +2208,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
       if ( PL_is_variable(key) )
       { state->e = newTableEnum(GD->recorded_db.record_lists);
 	PL_LOCK(L_RECORD);
-      } else if ( getKeyEx(key, &k PASS_LD) )
+      } else if ( getKeyEx(key, &k) )
       { RecordList rl;
 
 	if ( !(rl = isCurrentRecordList(k, TRUE)) )
@@ -2246,7 +2251,7 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	if ( !copy && !(copy = PL_new_term_ref()) )
 	  goto error;
-	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC PASS_LD)) < 0 )
+	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC)) < 0 )
 	{ raiseStackOverflow(rc);
 	  goto error;
 	}
@@ -2321,8 +2326,9 @@ Rewrite `p ?=> g1, g2, !, body` to `p, g1, g2 => body`.
 TBD: Also use this to move rule/2,3 to C?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define fixup_ssu(in, out) LDFUNC(fixup_ssu, in, out)
 static int
-fixup_ssu(term_t in, term_t out ARG_LD)
+fixup_ssu(DECL_LD term_t in, term_t out)
 { term_t head  = PL_new_term_ref();
   term_t body  = PL_new_term_ref();
   term_t guard = PL_new_term_ref();
@@ -2397,7 +2403,7 @@ PRED_IMPL("instance", 2, instance, 0)
     { term_t tmp = PL_new_term_ref();
 
       return ( decompile(clause, tmp, 0) &&
-	       fixup_ssu(tmp, term PASS_LD) );
+	       fixup_ssu(tmp, term) );
     } else
     { return decompile(clause, term, 0);
     }
@@ -2405,7 +2411,7 @@ PRED_IMPL("instance", 2, instance, 0)
   { RecordRef rref = ptr;
     term_t t = PL_new_term_ref();
 
-    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC PASS_LD) == TRUE )
+    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC) == TRUE )
       return PL_unify(term, t);
   }
 

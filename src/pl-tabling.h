@@ -269,9 +269,20 @@ typedef struct tbl_trail_answer
   trie_node	       *answer;
 } tbl_trail_answer;
 
-COMMON(int)	transaction_commit_tables(ARG1_LD);
-COMMON(int)	transaction_rollback_tables(ARG1_LD);
-COMMON(void)	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
+#if USE_LD_MACROS
+#define	transaction_commit_tables(_)		LDFUNC(transaction_commit_tables, _)
+#define	transaction_rollback_tables(_)		LDFUNC(transaction_rollback_tables, _)
+#define	tbl_push_delay(atrie, wrapper, answer)	LDFUNC(tbl_push_delay, atrie, wrapper, answer)
+#define	idg_add_dyncall(def, ctrie, variant)	LDFUNC(idg_add_dyncall, def, ctrie, variant)
+#define	tbl_get_restraint_flag(t, key)		LDFUNC(tbl_get_restraint_flag, t, key)
+#define	tbl_set_restraint_flag(t, key)		LDFUNC(tbl_set_restraint_flag, t, key)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	transaction_commit_tables(void);
+int	transaction_rollback_tables(void);
+void	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 
 
 		 /*******************************
@@ -299,24 +310,26 @@ typedef struct table_props
 		 *	     PROTOTYPES		*
 		 *******************************/
 
-COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
-COMMON(term_t)	init_delay_list(void);
-COMMON(void)	tbl_push_delay(atom_t atrie, Word wrapper,
-			       trie_node *answer ARG_LD);
-COMMON(int)	answer_is_conditional(trie_node *answer);
-COMMON(void)	untable_from_clause(Clause cl);
-COMMON(void)	initTabling(void);
-COMMON(int)	idg_add_dyncall(Definition def, trie *ctrie,
-				term_t variant ARG_LD);
-COMMON(int)	tbl_is_predicate_attribute(atom_t key);
-COMMON(void)	tbl_reset_tabling_attributes(Definition def);
-COMMON(int)	tbl_get_predicate_attribute(Definition def,
-					    atom_t att, term_t value);
-COMMON(int)	tbl_set_predicate_attribute(Definition def,
-					    atom_t att, term_t value);
-COMMON(int)	tbl_is_restraint_flag(atom_t key);
-COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
-COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
-COMMON(int)	setMonotonicMode(atom_t a);
-COMMON(void)	tbl_set_incremental_predicate(Definition def, int val);
+void	clearThreadTablingData(PL_local_data_t *ld);
+term_t	init_delay_list(void);
+void	tbl_push_delay(atom_t atrie, Word wrapper,
+		       trie_node *answer);
+int	answer_is_conditional(trie_node *answer);
+void	untable_from_clause(Clause cl);
+void	initTabling(void);
+int	idg_add_dyncall(Definition def, trie *ctrie,
+			term_t variant);
+int	tbl_is_predicate_attribute(atom_t key);
+void	tbl_reset_tabling_attributes(Definition def);
+int	tbl_get_predicate_attribute(Definition def,
+				    atom_t att, term_t value);
+int	tbl_set_predicate_attribute(Definition def,
+				    atom_t att, term_t value);
+int	tbl_is_restraint_flag(atom_t key);
+int	tbl_get_restraint_flag(term_t t, atom_t key);
+int	tbl_set_restraint_flag(term_t t, atom_t key);
+
+#undef LDFUNC_DECLARATIONS
+int	setMonotonicMode(atom_t a);
+void	tbl_set_incremental_predicate(Definition def, int val);
 #endif /*_PL_TABLING_H*/

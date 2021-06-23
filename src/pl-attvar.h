@@ -42,26 +42,32 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-void		assignAttVar(Word av, Word value ARG_LD);
-int		saveWakeup(wakeup_state *state, int forceframe ARG_LD);
-void		restoreWakeup(wakeup_state *state ARG_LD);
-int		PL_get_attr__LD(term_t t, term_t a ARG_LD);
+#if USE_LD_MACROS
+#define	assignAttVar(av, value)		LDFUNC(assignAttVar, av, value)
+#define	saveWakeup(state, forceframe)	LDFUNC(saveWakeup, state, forceframe)
+#define	restoreWakeup(state)		LDFUNC(restoreWakeup, state)
+#define	PL_get_attr(t, a)		LDFUNC(PL_get_attr, t, a)
+#define	alloc_attvar(_)			LDFUNC(alloc_attvar, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+void		assignAttVar(Word av, Word value);
+int		saveWakeup(wakeup_state *state, int forceframe);
+void		restoreWakeup(wakeup_state *state);
+int		PL_get_attr(term_t t, term_t a);
 int		on_attvar_chain(Word avp);
-Word		alloc_attvar(ARG1_LD);
+Word		alloc_attvar(void);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define PL_get_attr(t, a)	PL_get_attr__LD(t, a PASS_LD)
-#define bindConst(p, c)		bindConst__LD(p, c PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 		 /*******************************
 		 *	INLINE DEFINITIONS	*
 		 *******************************/
 
+#define bindConst(p, c) LDFUNC(bindConst, p, c)
 static inline void
-bindConst__LD(Word p, word c ARG_LD)
+bindConst(DECL_LD Word p, word c)
 { DEBUG(0, assert(hasGlobalSpace(0)));
 
 #ifdef O_ATTVAR
@@ -70,7 +76,7 @@ bindConst__LD(Word p, word c ARG_LD)
     if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
       (tTop++)->address = p;
   } else
-  { assignAttVar(p, &(c) PASS_LD);
+  { assignAttVar(p, &(c));
   }
 #else
   *p = (c);

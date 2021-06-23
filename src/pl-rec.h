@@ -48,28 +48,34 @@ typedef enum record_az
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	compileTermToHeap_ex(term, allocate, ctx, flags)	LDFUNC(compileTermToHeap_ex, term, allocate, ctx, flags)
+#define	copyRecordToGlobal(copy, term, flags)			LDFUNC(copyRecordToGlobal, copy, term, flags)
+#define	getKeyEx(key, k)					LDFUNC(getKeyEx, key, k)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 void		initRecords(void);
 void		cleanupRecords(void);
-Record		compileTermToHeap__LD(term_t term,
-				      void* (*allocate)(void *ctx, size_t size),
-				      void* ctx,
-				      int flags ARG_LD);
+Record		compileTermToHeap_ex(term_t term,
+				     void* (*allocate)(void *ctx, size_t size),
+				     void* ctx,
+				     int flags);
 int		copyRecordToGlobal(term_t copy, Record term,
-				   int flags ARG_LD);
+				   int flags);
 int		variantRecords(const Record r1, const Record r2);
 bool		freeRecord(Record record);
 void		unallocRecordRef(RecordRef r);
 bool		unifyKey(term_t key, word val);
-int		getKeyEx(term_t key, word *k ARG_LD);
+int		getKeyEx(term_t key, word *k);
 word		pl_term_complexity(term_t t, term_t mx, term_t count);
 void		markAtomsRecord(Record record);
 int		PL_record_az(word k, term_t term, term_t ref, record_az az);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
+#undef LDFUNC_DECLARATIONS
 
 #define compileTermToHeap(t, f)	\
-	compileTermToHeap__LD(t, NULL, NULL, f PASS_LD)
+	compileTermToHeap_ex(t, NULL, NULL, f)
 
 #endif /*_PL_REC_H*/

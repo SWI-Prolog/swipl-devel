@@ -158,8 +158,9 @@ PL_unify_choice(term_t t, Choice ch)
 }
 
 
+#define valid_choice(ch) LDFUNC(valid_choice, ch)
 static inline int
-valid_choice(Choice ch ARG_LD)
+valid_choice(DECL_LD Choice ch)
 { if ( (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG &&
        onStack(local, ch->frame) )
     return TRUE;
@@ -177,7 +178,7 @@ PL_get_choice(term_t r, Choice *chp)
   { Choice ch = ((Choice)((Word)lBase + i));
 
     if ( !(ch >= (Choice)lBase && ch < (Choice)lTop) ||
-	 !valid_choice(ch PASS_LD) )
+	 !valid_choice(ch) )
       return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, r);
     *chp = ch;
 
@@ -316,7 +317,7 @@ canUnifyTermWithGoal(LocalFrame fr)
 	  int rval = TRUE;
 
 	  if ( copyRecordToGlobal(t, find->goal.term.term,
-				  ALLOW_GC|ALLOW_SHIFT PASS_LD) < 0 )
+				  ALLOW_GC|ALLOW_SHIFT) < 0 )
 	    fail;
 	  for(i=0; i<arity; i++)
 	  { Word a, b;
@@ -387,7 +388,7 @@ returns to the WAM interpreter how to continue the execution:
 	PC    = (pcref ? (Code)valTermRef(pcref) : PC);
 
 int
-tracePort(LocalFrame frame, Choice bfr, int port, Code PC ARG_LD)
+tracePort(DECL_LD LocalFrame frame, Choice bfr, int port, Code PC)
 { int action = ACTION_CONTINUE;
   wakeup_state wstate;
   term_t frameref, chref, frref, pcref;
@@ -434,7 +435,7 @@ Give a trace on the skipped goal for a redo.
 
       debugstatus.skiplevel = SKIP_REDO_IN_SKIP;
       SAVE_PTRS();
-      rc = tracePort(fr, bfr, REDO_PORT, pc2 PASS_LD);
+      rc = tracePort(fr, bfr, REDO_PORT, pc2);
       RESTORE_PTRS();
       debugstatus.skiplevel = levelFrame(fr);
       set(fr, FR_SKIPPED);		/* cleared by "creep" */
@@ -464,7 +465,7 @@ We are in searching mode; should we actually give this port?
     }
   }
 
-  if ( !saveWakeup(&wstate, FALSE PASS_LD) )
+  if ( !saveWakeup(&wstate, FALSE) )
     return action;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -526,7 +527,7 @@ again:
     Sfprintf(Sdout, "\n");
 
 out:
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
   if ( action == ACTION_ABORT )
     abortProlog();
 
@@ -960,7 +961,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
   Definition def = frame->predicate;
   int rc = TRUE;
 
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  if ( !saveWakeup(&wstate, TRUE) )
   { rc = FALSE;
     goto out;
   }
@@ -1045,7 +1046,7 @@ writeFrameGoal(IOSTREAM *out, LocalFrame frame, Code PC, unsigned int flags)
   }
 
 out:
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
   return rc;
 }
 
@@ -2013,8 +2014,9 @@ higher to accomodate debugging. This causes less  GC calls and thus less
 cases where debugging is harmed due to <garbage_collected> atoms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define enlargeMinFreeStacks(l, g, t) LDFUNC(enlargeMinFreeStacks, l, g, t)
 static int
-enlargeMinFreeStacks(size_t l, size_t g, size_t t ARG_LD)
+enlargeMinFreeStacks(DECL_LD size_t l, size_t g, size_t t)
 { if ( LD->stacks.local.min_free < l )
     LD->stacks.local.min_free = l;
   if ( LD->stacks.global.min_free < g )
@@ -2047,8 +2049,7 @@ debugmode(debug_type doit, debug_type *old)
     { if ( have_space_for_debugging() &&
 	   !enlargeMinFreeStacks(8*1024*SIZEOF_VOIDP,
 				 8*1024*SIZEOF_VOIDP,
-				 8*1024*SIZEOF_VOIDP
-				 PASS_LD) )
+				 8*1024*SIZEOF_VOIDP) )
 	return FALSE;
 
       debugstatus.skiplevel = SKIP_VERY_DEEP;

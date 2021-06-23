@@ -75,6 +75,13 @@ typedef struct
   term_t prec_opt;			/* term in write options with prec */
 } write_options;
 
+#if USE_LD_MACROS
+#define	enterPortray(_)		LDFUNC(enterPortray, _)
+#define	leavePortray(_)		LDFUNC(leavePortray, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static bool	writeTerm2(term_t term, int prec,
 			   write_options *options, bool arg) WUNUSED;
 static bool	writeTerm(term_t t, int prec,
@@ -84,11 +91,13 @@ static bool	writeArgTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
-static int	enterPortray(ARG1_LD);
-static void	leavePortray(ARG1_LD);
+static int	enterPortray(void);
+static void	leavePortray(void);
+
+#undef LDFUNC_DECLARATIONS
 
 char *
-var_name_ptr__LD(Word p, char *name ARG_LD)
+var_name_ptr(DECL_LD Word p, char *name)
 { size_t iref;
 
   deRef(p);
@@ -148,8 +157,9 @@ Return:	TRUE:  processes
 	-1:    error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define writeNumberVar(t, options) LDFUNC(writeNumberVar, t, options)
 static int
-writeNumberVar(term_t t, write_options *options ARG_LD)
+writeNumberVar(DECL_LD term_t t, write_options *options)
 { Word p = valTermRef(t);
   Functor f;
 
@@ -610,7 +620,7 @@ writeAttVar(term_t av, write_options *options)
 
     Sputcode('{', options->out);
     a = PL_new_term_ref();
-    PL_get_attr__LD(av, a PASS_LD);
+    PL_get_attr(av, a);
     if ( !writeTerm(a, 1200, options) )
       return FALSE;
     Sputcode('}', options->out);
@@ -628,9 +638,9 @@ writeAttVar(term_t av, write_options *options)
       pred = _PL_predicate("portray_attvar", 1, "$attvar",
 			   &GD->procedures.portray_attvar1);
 
-    if ( !enterPortray(PASS_LD1) )
+    if ( !enterPortray() )
       return FALSE;
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    if ( !saveWakeup(&wstate, TRUE) )
       return FALSE;
     old = Scurout;
     Scurout = options->out;
@@ -638,8 +648,8 @@ writeAttVar(term_t av, write_options *options)
     if ( rc != TRUE && !PL_exception(0) )
       rc = TRUE;
     Scurout = old;
-    restoreWakeup(&wstate PASS_LD);
-    leavePortray(PASS_LD1);
+    restoreWakeup(&wstate);
+    leavePortray();
 
     return rc;
   }
@@ -1107,8 +1117,9 @@ format_float(double f, char *buf)
 }
 
 #ifdef O_GMP
+#define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
 static int
-writeMPZ(mpz_t mpz, write_options *options ARG_LD)
+writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 { char tmp[1024];
   char *buf;
   size_t sz = mpz_sizeinbase(mpz, 10) + 2;
@@ -1151,17 +1162,17 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-      return writeMPZ(n->value.mpz, options PASS_LD);
+      return writeMPZ(n->value.mpz, options);
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
       char sep = true(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
 
       num[0] = *mpq_numref(n->value.mpq);
       den[0] = *mpq_denref(n->value.mpq);
-      return ( writeMPZ(num, options PASS_LD) &&
+      return ( writeMPZ(num, options) &&
 	       Sputcode(sep, options->out) != EOF &&
 	       (options->out->lastc = EOF) &&
-	       writeMPZ(den, options PASS_LD) );
+	       writeMPZ(den, options) );
     }
 #endif
     case V_FLOAT:
@@ -1213,8 +1224,9 @@ writePrimitive(term_t t, write_options *options)
 }
 
 
+#define pl_nl(stream) LDFUNC(pl_nl, stream)
 static int
-pl_nl__LD(term_t stream ARG_LD)
+pl_nl(DECL_LD term_t stream)
 { IOSTREAM *s;
 
   if ( getTextOutputStream(stream, &s) )
@@ -1230,14 +1242,14 @@ static
 PRED_IMPL("nl", 1, nl, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nl__LD(A1 PASS_LD);
+  return pl_nl(A1);
 }
 
 static
 PRED_IMPL("nl", 0, nl, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nl__LD(0 PASS_LD);
+  return pl_nl(0);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1279,7 +1291,7 @@ put_write_options(term_t opts_in, write_options *options)
 
 
 static int
-enterPortray(ARG1_LD)
+enterPortray(DECL_LD)
 { if ( LD->IO.portray_nesting >= MAX_PORTRAY_NESTING )
     return PL_resource_error("portray_nesting");
   LD->IO.portray_nesting++;
@@ -1288,7 +1300,7 @@ enterPortray(ARG1_LD)
 
 
 static void
-leavePortray(ARG1_LD)
+leavePortray(DECL_LD)
 { LD->IO.portray_nesting--;
 }
 
@@ -1317,9 +1329,9 @@ callPortray(term_t arg, int prec, write_options *options)
     int rval;
     term_t av;
 
-    if ( !enterPortray(PASS_LD1) )
+    if ( !enterPortray() )
       return -1;
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    if ( !saveWakeup(&wstate, TRUE) )
       return -1;
     Scurout = options->out;
     if ( options->portray_goal )
@@ -1337,8 +1349,8 @@ callPortray(term_t arg, int prec, write_options *options)
     if ( !rval && PL_exception(0) )
       rval = -1;
     Scurout = old;
-    restoreWakeup(&wstate PASS_LD);
-    leavePortray(PASS_LD1);
+    restoreWakeup(&wstate);
+    leavePortray();
 
     return rval;
   }
@@ -1460,8 +1472,9 @@ writeList(term_t list, write_options *options)
 }
 
 
+#define isBlockOp(t, arg, functor) LDFUNC(isBlockOp, t, arg, functor)
 static int
-isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
+isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
 { if ( functor == ATOM_nil || functor == ATOM_curl )
   { _PL_get_arg(1, t, arg);
     if ( (functor == ATOM_nil  && PL_is_pair(arg)) ||
@@ -1522,7 +1535,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   { return writePrimitive(t, options);
   } else
   { if ( true(options, PL_WRT_NUMBERVARS|PL_WRT_VARNAMES) )
-    { switch( writeNumberVar(t, options PASS_LD) )
+    { switch( writeNumberVar(t, options) )
       { case -1:
 	  return FALSE;
 	case TRUE:
@@ -1573,7 +1586,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	return FALSE;
 
       if ( arity == 1 ||
-	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
+	  (arity == 2 && isBlockOp(t, arg, functor)) )
       {
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
@@ -1634,7 +1647,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  succeed;
 	}
       } else if ( arity == 2 ||
-		 (arity == 3 && isBlockOp(t, arg, functor PASS_LD)) )
+		 (arity == 3 && isBlockOp(t, arg, functor)) )
       {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
@@ -1779,8 +1792,9 @@ writeTopTerm(term_t term, int prec, write_options *options)
 }
 
 
+#define bind_varnames(names) LDFUNC(bind_varnames, names)
 static int
-bind_varnames(term_t names ARG_LD)
+bind_varnames(DECL_LD term_t names)
 { term_t tail, head, var, namet;
   int check_cycle_after = 1000;
 
@@ -1999,7 +2013,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   BEGIN_NUMBERVARS(local_varnames);
   if ( varnames )
-  { if ( (rc=bind_varnames(varnames PASS_LD)) )
+  { if ( (rc=bind_varnames(varnames)) )
       options.flags |= PL_WRT_VARNAMES;
     else
       goto out;
@@ -2139,7 +2153,7 @@ pl_write_canonical2(term_t stream, term_t term)
   options.singletons = PL_is_acyclic(term);
   options.numbered_check = FALSE;
 
-  rc = ( numberVars(term, &options, 0 PASS_LD) != NV_ERROR &&
+  rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
 		   PL_WRT_NODOTINATOM, TRUE)

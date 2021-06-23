@@ -108,8 +108,9 @@ tr_free_clause_symbol(void *k, void *v)
   release_clause(cl);
 }
 
+#define tr_clause_table(_) LDFUNC(tr_clause_table, _)
 static Table
-tr_clause_table(ARG1_LD)
+tr_clause_table(DECL_LD)
 { Table t;
 
   if ( !(t=LD->transaction.clauses) )
@@ -146,24 +147,24 @@ This distinguishes three cases.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-transaction_retract_clause(Clause clause ARG_LD)
+transaction_retract_clause(DECL_LD Clause clause)
 { if ( clause->generation.created < LD->transaction.gen_base )
-  { uintptr_t lgen = ( next_generation(clause->predicate PASS_LD) -
+  { uintptr_t lgen = ( next_generation(clause->predicate) -
 		       LD->transaction.gen_base
 		     );
 
     acquire_clause(clause);
     ATOMIC_INC(&clause->tr_erased_no);
-    addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+    addHTable(tr_clause_table(), clause, (void*)lgen);
 
     return TRUE;
   } else if ( clause->generation.created <= LD->transaction.gen_nest )
-  { gen_t egen = next_generation(clause->predicate PASS_LD);
+  { gen_t egen = next_generation(clause->predicate);
     if ( !egen )
       return PL_representation_error("transaction_generations"),-1;
     clause->generation.erased = egen;
     acquire_clause(clause);
-    addHTable(tr_clause_table(PASS_LD1), clause, (void*)GEN_NESTED_RETRACT);
+    addHTable(tr_clause_table(), clause, (void*)GEN_NESTED_RETRACT);
 
     return TRUE;
 #if 0					/* see (*) */
@@ -181,18 +182,18 @@ transaction_retract_clause(Clause clause ARG_LD)
 }
 
 int
-transaction_assert_clause(Clause clause, ClauseRef where ARG_LD)
+transaction_assert_clause(DECL_LD Clause clause, ClauseRef where)
 { uintptr_t lgen = (where == CL_START ? GEN_ASSERTA : GEN_ASSERTZ);
 
   acquire_clause(clause);
-  addHTable(tr_clause_table(PASS_LD1), clause, (void*)lgen);
+  addHTable(tr_clause_table(), clause, (void*)lgen);
 
   return TRUE;
 }
 
 
 int
-transaction_visible_clause(Clause cl, gen_t gen ARG_LD)
+transaction_visible_clause(DECL_LD Clause cl, gen_t gen)
 { if ( cl->generation.created <= LD->transaction.gen_start &&
        cl->generation.erased   > LD->transaction.gen_start )
   { intptr_t lgen;
@@ -231,7 +232,7 @@ present and in any case, using GMP is relatively costly.
 #define PTR_ADD_FLAGS(ptr, flags) ((void*)((uintptr_t)(ptr)|(flags)))
 
 gen_t
-transaction_last_modified_predicate(Definition def ARG_LD)
+transaction_last_modified_predicate(DECL_LD Definition def)
 { Table table;
 
   if ( (table=LD->transaction.predicates) )
@@ -265,8 +266,9 @@ transaction_set_last_modified(Definition def, gen_t gen, int flags)
 }
 
 
+#define set_modified(gen) LDFUNC(set_modified, gen)
 static void
-set_modified(gen_t gen ARG_LD)
+set_modified(DECL_LD gen_t gen)
 { if ( LD->transaction.predicates )
   { for_table(LD->transaction.predicates, n, v,
 	      { Definition def = n;
@@ -280,8 +282,9 @@ set_modified(gen_t gen ARG_LD)
   }
 }
 
+#define transaction_commit(_) LDFUNC(transaction_commit, _)
 static int
-transaction_commit(ARG1_LD)
+transaction_commit(DECL_LD)
 { if ( LD->transaction.clauses )
   { gen_t gen_commit;
 
@@ -309,20 +312,20 @@ transaction_commit(ARG1_LD)
 		    cl->generation.created = GEN_TR_ASSERT_ERASE;
 		  }
 		} else if ( lgen == GEN_NESTED_RETRACT )
-		{ retract_clause(cl, gen_commit PASS_LD);
+		{ retract_clause(cl, gen_commit);
 		} else
 		{ DEBUG(MSG_COMMIT,
 			Sdprintf("Commit erased clause %p for %s\n",
 				 cl, predicateName(cl->predicate)));
 		  ATOMIC_DEC(&cl->tr_erased_no);
-		  retract_clause(cl, gen_commit PASS_LD);
+		  retract_clause(cl, gen_commit);
 		}
 	      });
     MEMORY_RELEASE();
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
 
-    set_modified(gen_commit PASS_LD);
+    set_modified(gen_commit);
     destroyHTable(LD->transaction.clauses);
     LD->transaction.clauses = NULL;
   }
@@ -330,8 +333,9 @@ transaction_commit(ARG1_LD)
   return TRUE;
 }
 
+#define transaction_discard(_) LDFUNC(transaction_discard, _)
 static int
-transaction_discard(ARG1_LD)
+transaction_discard(DECL_LD)
 { int rc = TRUE;
 
   if ( LD->transaction.clauses )
@@ -346,7 +350,7 @@ transaction_discard(ARG1_LD)
 		  { cl->generation.erased  = GEN_TR_DISCARD_ASSERT;
 		    MEMORY_RELEASE();
 		    cl->generation.created = GEN_TR_DISCARD_ASSERT;
-		    retract_clause(cl, cl->generation.created PASS_LD);
+		    retract_clause(cl, cl->generation.created);
 		    DEBUG(MSG_COMMIT,
 			  Sdprintf("Discarded asserted clause %p for %s\n",
 				   cl, predicateName(cl->predicate)));
@@ -371,7 +375,7 @@ transaction_discard(ARG1_LD)
 		if ( def && def->events && action &&
 		     !(LD->transaction.flags&TR_BULK) )
 		{ if ( !predicate_update_event(def, action, cl,
-					       P_EVENT_ROLLBACK PASS_LD) )
+					       P_EVENT_ROLLBACK) )
 		    rc = FALSE;
 		}
 	      });
@@ -396,8 +400,9 @@ merge_tables(Table into, Table from)
 	    });
 }
 
+#define merge_pred_tables(into, from) LDFUNC(merge_pred_tables, into, from)
 static void
-merge_pred_tables(Table into, Table from ARG_LD)
+merge_pred_tables(DECL_LD Table into, Table from)
 { for_table(from, n, v,
 	    { Definition def = n;
 	      void *lgen = v;
@@ -445,8 +450,9 @@ is_trie_clause(const Clause cl)
 }
 
 
+#define transaction_updates(b) LDFUNC(transaction_updates, b)
 static int
-transaction_updates(Buffer b ARG_LD)
+transaction_updates(DECL_LD Buffer b)
 { if ( LD->transaction.clauses )
   { for_table(LD->transaction.clauses, n, v,
 	      { Clause cl = n;
@@ -478,8 +484,9 @@ transaction_updates(Buffer b ARG_LD)
 }
 
 
+#define announce_updates(updates) LDFUNC(announce_updates, updates)
 static int
-announce_updates(Buffer updates ARG_LD)
+announce_updates(DECL_LD Buffer updates)
 { tr_update *u, *e;
 
   u = baseBuffer(updates, tr_update);
@@ -488,7 +495,7 @@ announce_updates(Buffer updates ARG_LD)
   for(; u<e; u++)
   { Definition def = u->clause->predicate;
 
-    if ( !predicate_update_event(def, nameFunctor(u->update), u->clause, 0 PASS_LD) )
+    if ( !predicate_update_event(def, nameFunctor(u->update), u->clause, 0) )
       return FALSE;
   }
 
@@ -500,8 +507,9 @@ announce_updates(Buffer updates ARG_LD)
 		 *	PROLOG CONNECTION	*
 		 *******************************/
 
+#define transaction(goal, constraint, lock, flags) LDFUNC(transaction, goal, constraint, lock, flags)
 static int
-transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
+transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 { int rc;
   buffer updates;
 
@@ -540,7 +548,7 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
       if ( LD->transaction.predicates )
       { if ( parent.predicates )
 	{ merge_pred_tables(parent.predicates,
-			    LD->transaction.predicates PASS_LD);
+			    LD->transaction.predicates);
 	  destroyHTable(LD->transaction.predicates);
 	} else
 	{ parent.predicates = LD->transaction.predicates;
@@ -552,8 +560,8 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 
 	if ( parent.clauses )
 	{ if ( (flags&TR_BULK) )
-	  { transaction_updates(&updates PASS_LD);
-	    if ( !announce_updates(&updates PASS_LD) )
+	  { transaction_updates(&updates);
+	    if ( !announce_updates(&updates) )
 	      goto nested_discard;
 	  }
 	  merge_tables(parent.clauses, LD->transaction.clauses);
@@ -564,8 +572,8 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
       }
     } else
     { nested_discard:
-      rc = transaction_discard(PASS_LD1) && rc;
-      rc = transaction_rollback_tables(PASS_LD1) && rc;
+      rc = transaction_discard() && rc;
+      rc = transaction_rollback_tables() && rc;
       LD->transaction.generation = parent.generation;
     }
     LD->transaction.gen_nest    = parent.gen_nest;
@@ -601,21 +609,21 @@ transaction(term_t goal, term_t constraint, term_t lock, int flags ARG_LD)
 	rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
       }
       if ( rc && (flags&TR_BULK) )
-      { transaction_updates(&updates PASS_LD);
-	rc = announce_updates(&updates PASS_LD);
+      { transaction_updates(&updates);
+	rc = announce_updates(&updates);
       }
       if ( rc )
-      { rc = ( transaction_commit_tables(PASS_LD1) &&
-	       transaction_commit(PASS_LD1) );
+      { rc = ( transaction_commit_tables() &&
+	       transaction_commit() );
 	if ( constraint ) TR_UNLOCK();
       } else
       { if ( constraint ) TR_UNLOCK();
-	transaction_discard(PASS_LD1);
-	transaction_rollback_tables(PASS_LD1);
+	transaction_discard();
+	transaction_rollback_tables();
       }
     } else
-    { rc = transaction_discard(PASS_LD1) && rc;
-      rc = transaction_rollback_tables(PASS_LD1) && rc;
+    { rc = transaction_discard() && rc;
+      rc = transaction_rollback_tables() && rc;
     }
     LD->transaction.id         = 0;
     LD->transaction.generation = 0;
@@ -648,21 +656,21 @@ PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
   if ( bulk )
     flags |= TR_BULK;
 
-  return transaction(A1, 0, 0, TR_TRANSACTION PASS_LD);
+  return transaction(A1, 0, 0, TR_TRANSACTION);
 }
 
 static
 PRED_IMPL("$transaction", 3, transaction, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return transaction(A1, A2, A3, TR_TRANSACTION PASS_LD);
+  return transaction(A1, A2, A3, TR_TRANSACTION);
 }
 
 static
 PRED_IMPL("$snapshot", 1, snapshot, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return transaction(A1, 0, 0, TR_SNAPSHOT PASS_LD);
+  return transaction(A1, 0, 0, TR_SNAPSHOT);
 }
 
 static
@@ -718,9 +726,10 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
   }
 }
 
+#define add_update(cl, action, tail, head, tmp) LDFUNC(add_update, cl, action, tail, head, tmp)
 static int
-add_update(Clause cl, functor_t action,
-	   term_t tail, term_t head, term_t tmp ARG_LD)
+add_update(DECL_LD Clause cl, functor_t action,
+	   term_t tail, term_t head, term_t tmp)
 { return ( PL_put_clref(tmp, cl) &&
 	   PL_cons_functor(tmp, action, tmp) &&
 	   PL_unify_list(tail, head, tail) &&
@@ -744,12 +753,12 @@ PRED_IMPL("transaction_updates", 1, transaction_updates, 0)
     int rc = TRUE;
 
     initBuffer(&buf);
-    transaction_updates((Buffer)&buf PASS_LD);
+    transaction_updates((Buffer)&buf);
     u = baseBuffer(&buf, tr_update);
     e = topBuffer(&buf, tr_update);
 
     for(; u<e; u++)
-    { if ( !add_update(u->clause, u->update, tail, head, tmp PASS_LD) )
+    { if ( !add_update(u->clause, u->update, tail, head, tmp) )
       { rc = FALSE;
 	break;
       }
@@ -771,7 +780,7 @@ PRED_IMPL("pred_generations", 1, pred_generations, PL_FA_TRANSPARENT)
   if ( get_procedure(A1, &proc, 0, GP_NAMEARITY) )
   { Definition def = getProcDefinition(proc);
     size_t count = 0;
-    gen_t gen = current_generation(def PASS_LD);
+    gen_t gen = current_generation(def);
     ClauseRef c;
 
     Sdprintf("Clauses for %s at %s (gen_start = %s)\n",

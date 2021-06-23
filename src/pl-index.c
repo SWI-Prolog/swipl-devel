@@ -86,8 +86,16 @@ typedef struct index_context
   iarg_t	position[MAXINDEXDEPTH+1]; /* Keep track of argument position */
 } index_context, *IndexContext;
 
+#if USE_LD_MACROS
+#define	bestHash(av, ac, clist, min_speedup, hints, ctx)	LDFUNC(bestHash, av, ac, clist, min_speedup, hints, ctx)
+#define	setClauseChoice(chp, cref, generation)			LDFUNC(setClauseChoice, chp, cref, generation)
+#define	first_clause_guarded(argv, argc, clist, ctx)		LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static int	bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
-			 hash_hints *hints, IndexContext ctx ARG_LD);
+			 hash_hints *hints, IndexContext ctx);
 static ClauseIndex hashDefinition(ClauseList clist, hash_hints *h,
 				  IndexContext ctx);
 static void	replaceIndex(Definition def, ClauseList cl,
@@ -96,7 +104,7 @@ static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
 static void	deleteIndex(Definition def, ClauseList cl, ClauseIndex ci);
 static void	insertIndex(Definition def, ClauseList clist, ClauseIndex ci);
 static void	setClauseChoice(ClauseChoice chp, ClauseRef cref,
-				gen_t generation ARG_LD);
+				gen_t generation);
 static int	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
 static void	addClauseToListIndexes(Definition def, ClauseList cl,
 				       Clause clause, ClauseRef where);
@@ -104,11 +112,13 @@ static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
 static ClauseRef first_clause_guarded(Word argv, size_t argc, ClauseList clist,
-				      IndexContext ctx ARG_LD);
+				      IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position);
 static void	unalloc_index_array(void *p);
 static void	wait_for_index(const ClauseIndex ci);
 static void	completed_index(ClauseIndex ci);
+
+#undef LDFUNC_DECLARATIONS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Compute the index in the hash-array from   a machine word and the number
@@ -133,8 +143,9 @@ hashIndex(word key, int buckets)
 }
 
 
+#define canIndex(w) LDFUNC(canIndex, w)
 static inline int
-canIndex(word w ARG_LD)
+canIndex(DECL_LD word w)
 { for(;;)
   { switch(tag(w))
     { case TAG_VAR:
@@ -150,8 +161,9 @@ canIndex(word w ARG_LD)
 }
 
 
+#define indexOfWord(w) LDFUNC(indexOfWord, w)
 static inline word
-indexOfWord(word w ARG_LD)
+indexOfWord(DECL_LD word w)
 { for(;;)
   { switch(tag(w))
     { case TAG_VAR:
@@ -192,12 +204,13 @@ getIndexOfTerm(term_t t)
 { GET_LD
   word w = *valTermRef(t);
 
-  return indexOfWord(w PASS_LD);
+  return indexOfWord(w);
 }
 
 
+#define nextClauseArg1(chp, generation) LDFUNC(nextClauseArg1, chp, generation)
 static inline ClauseRef
-nextClauseArg1(ClauseChoice chp, gen_t generation ARG_LD)
+nextClauseArg1(DECL_LD ClauseChoice chp, gen_t generation)
 { ClauseRef cref = chp->cref;
   word key = chp->key;
 
@@ -215,7 +228,7 @@ nextClauseArg1(ClauseChoice chp, gen_t generation ARG_LD)
 	  }
 	}
 	if ( --maxsearch == 0 )
-	{ setClauseChoice(chp, cref, generation PASS_LD);
+	{ setClauseChoice(chp, cref, generation);
 	  return result;
 	}
       }
@@ -246,8 +259,9 @@ argument we are processing.
 TBD: Keep a flag telling whether there are non-indexable clauses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define nextClauseFromBucket(ci, argv, ctx) LDFUNC(nextClauseFromBucket, ci, argv, ctx)
 static ClauseRef
-nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
+nextClauseFromBucket(DECL_LD ClauseIndex ci, Word argv, IndexContext ctx)
 { ClauseRef cref;
   word key = ctx->chp->key;
 
@@ -282,13 +296,13 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 	  DEBUG(MSG_INDEX_DEEP,
 		Sdprintf("Recursive index for %s at level %d\n",
 			 keyName(cref->d.key), ctx->depth));
-	  return first_clause_guarded(argv, argc, cl, ctx PASS_LD);
+	  return first_clause_guarded(argv, argc, cl, ctx);
 	}
 
 	ctx->chp->key = 0;		/* See (*) */
 	for(cr=cl->first_clause; cr; cr=cr->next)
 	{ if ( visibleClauseCNT(cr->value.clause, ctx->generation) )
-	  { setClauseChoice(ctx->chp, cr->next, ctx->generation PASS_LD);
+	  { setClauseChoice(ctx->chp, cr->next, ctx->generation);
 	    return cr;
 	  }
 	}
@@ -318,7 +332,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
       { if ( ((!cref->d.key || key == cref->d.key) &&
 	      visibleClauseCNT(cref->value.clause, ctx->generation)) ||
 	     --maxsearch == 0 )
-	{ setClauseChoice(ctx->chp, cref, ctx->generation PASS_LD);
+	{ setClauseChoice(ctx->chp, cref, ctx->generation);
 
 	  return result;
 	}
@@ -340,7 +354,7 @@ nextClauseFromBucket(ClauseIndex ci, Word argv, IndexContext ctx ARG_LD)
 */
 
 static void
-setClauseChoice(ClauseChoice chp, ClauseRef cref, gen_t generation ARG_LD)
+setClauseChoice(DECL_LD ClauseChoice chp, ClauseRef cref, gen_t generation)
 { while ( cref && !visibleClauseCNT(cref->value.clause, generation) )
     cref = cref->next;
 
@@ -356,16 +370,17 @@ murmur_key(void *ptr, size_t n)
 }
 
 
+#define indexKeyFromArgv(ci, argv) LDFUNC(indexKeyFromArgv, ci, argv)
 static inline word
-indexKeyFromArgv(ClauseIndex ci, Word argv ARG_LD)
+indexKeyFromArgv(DECL_LD ClauseIndex ci, Word argv)
 { if ( likely(ci->args[1] == 0) )
-  { return indexOfWord(argv[ci->args[0]-1] PASS_LD);
+  { return indexOfWord(argv[ci->args[0]-1]);
   } else
   { word key[MAX_MULTI_INDEX];
     int  harg;
 
     for(harg=0; ci->args[harg]; harg++)
-    { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1] PASS_LD)) )
+    { if ( !(key[harg] = indexOfWord(argv[ci->args[harg]-1])) )
 	return 0;
     }
 
@@ -411,8 +426,8 @@ TBD:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static ClauseRef
-first_clause_guarded(Word argv, size_t argc, ClauseList clist,
-		     IndexContext ctx ARG_LD)
+first_clause_guarded(DECL_LD Word argv, size_t argc, ClauseList clist,
+		     IndexContext ctx)
 { ClauseRef cref;
   ClauseIndex *cip;
   hash_hints hints;
@@ -436,7 +451,7 @@ retry:
       if ( ISDEADCI(ci) )
 	continue;
 
-      if ( (k=indexKeyFromArgv(ci, argv PASS_LD)) )
+      if ( (k=indexKeyFromArgv(ci, argv)) )
       { best_index = ci;
 	chp->key = k;
 	break;
@@ -455,7 +470,7 @@ retry:
 		       predicateName(ctx->predicate)));
 
 	if ( bestHash(argv, argc, clist, best_index->speedup,
-		      &hints, ctx PASS_LD) )
+		      &hints, ctx) )
 	{ ClauseIndex ci;
 
 	  DEBUG(MSG_JIT, Sdprintf("[%d] Found better at args %s\n",
@@ -463,7 +478,7 @@ retry:
 				  iargsName(hints.args, NULL)));
 
 	  if ( (ci=hashDefinition(clist, &hints, ctx)) )
-	  { chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+	  { chp->key = indexKeyFromArgv(ci, argv);
 	    assert(chp->key);
 	    best_index = ci;
 	  } else
@@ -479,18 +494,18 @@ retry:
 
       hi = hashIndex(chp->key, best_index->buckets);
       chp->cref = best_index->entries[hi].head;
-      return nextClauseFromBucket(best_index, argv, ctx PASS_LD);
+      return nextClauseFromBucket(best_index, argv, ctx);
     }
   }
 
   if ( unlikely(clist->number_of_clauses == 0) )
     return NULL;
 
-  if ( (chp->key = indexOfWord(argv[0] PASS_LD)) &&
+  if ( (chp->key = indexOfWord(argv[0])) &&
        (clist->number_of_clauses <= 10 || STATIC_RELOADING()) )
   { chp->cref = clist->first_clause;
 
-    cref = nextClauseArg1(chp, ctx->generation PASS_LD);
+    cref = nextClauseArg1(chp, ctx->generation);
     if ( !cref ||
 	 !(chp->cref && chp->cref->d.key == chp->key &&
 	   cref->d.key == chp->key) )
@@ -500,7 +515,7 @@ retry:
   }
 
   if ( !STATIC_RELOADING() &&
-       bestHash(argv, argc, clist, 0.0, &hints, ctx PASS_LD) )
+       bestHash(argv, argc, clist, 0.0, &hints, ctx) )
   { ClauseIndex ci;
 
     if ( (ci=hashDefinition(clist, &hints, ctx)) )
@@ -511,11 +526,11 @@ retry:
       if ( ci->invalid )
 	goto retry;
 
-      chp->key = indexKeyFromArgv(ci, argv PASS_LD);
+      chp->key = indexKeyFromArgv(ci, argv);
       assert(chp->key);
       hi = hashIndex(chp->key, ci->buckets);
       chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(ci, argv, ctx PASS_LD);
+      return nextClauseFromBucket(ci, argv, ctx);
     } else
     { goto retry;
     }
@@ -523,14 +538,14 @@ retry:
 
   if ( chp->key )
   { chp->cref = clist->first_clause;
-    return nextClauseArg1(chp, ctx->generation PASS_LD);
+    return nextClauseArg1(chp, ctx->generation);
   }
 
 simple:
   for(cref = clist->first_clause; cref; cref = cref->next)
   { if ( visibleClauseCNT(cref->value.clause, ctx->generation) )
     { chp->key = 0;
-      setClauseChoice(chp, cref->next, ctx->generation PASS_LD);
+      setClauseChoice(chp, cref->next, ctx->generation);
       break;
     }
   }
@@ -541,7 +556,7 @@ simple:
 int acquired = 0;
 
 ClauseRef
-firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
+firstClause(DECL_LD Word argv, LocalFrame fr, Definition def, ClauseChoice chp)
 { ClauseRef cref;
   index_context ctx;
 
@@ -556,8 +571,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
   cref = first_clause_guarded(argv,
 			      def->functor->arity,
 			      &def->impl.clauses,
-			      &ctx
-			      PASS_LD);
+			      &ctx);
 #define CHK_STATIC_RELOADING() (LD->reload.generation && false(def, P_DYNAMIC))
   DEBUG(CHK_SECURE, assert(!cref || !chp->cref ||
 			   visibleClause(chp->cref->value.clause,
@@ -570,7 +584,7 @@ firstClause(Word argv, LocalFrame fr, Definition def, ClauseChoice chp ARG_LD)
 
 
 ClauseRef
-nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD)
+nextClause(DECL_LD ClauseChoice chp, Word argv, LocalFrame fr, Definition def)
 { gen_t generation = generationFrame(fr);
   ClauseRef cref;
 
@@ -582,12 +596,12 @@ nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr, Definition def ARG_LD
   if ( !chp->key )			/* not indexed */
   { for(cref=chp->cref; cref; cref = cref->next)
     { if ( visibleClauseCNT(cref->value.clause, generation) )
-      { setClauseChoice(chp, cref->next, generation PASS_LD);
+      { setClauseChoice(chp, cref->next, generation);
 	break;
       }
     }
   } else
-  { cref = nextClauseArg1(chp, generation PASS_LD);
+  { cref = nextClauseArg1(chp, generation);
   }
   release_def(def);
 
@@ -2529,8 +2543,8 @@ expected speedup is
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
-bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
-	 hash_hints *hints, IndexContext ctx ARG_LD)
+bestHash(DECL_LD Word av, size_t ac, ClauseList clist, float min_speedup,
+	 hash_hints *hints, IndexContext ctx)
 { int i;
   assessment_set aset;
   hash_assessment *a;
@@ -2551,7 +2565,7 @@ bestHash(Word av, size_t ac, ClauseList clist, float min_speedup,
 
 					/* Step 1: find instantiated args */
   for(i=0; i<ac; i++)
-  { if ( canIndex(av[i] PASS_LD) )
+  { if ( canIndex(av[i]) )
       instantiated[ninstantiated++] = i;
   }
 
@@ -2798,8 +2812,9 @@ unify_clause_index(term_t t, ClauseIndex ci)
 }
 
 
+#define add_deep_indexes(ci, head, tail) LDFUNC(add_deep_indexes, ci, head, tail)
 static int
-add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
+add_deep_indexes(DECL_LD ClauseIndex ci, term_t head, term_t tail)
 { size_t i;
 
   for(i=0; i<ci->buckets; i++)
@@ -2821,7 +2836,7 @@ add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
 		 !unify_clause_index(head, ci) )
 	      return FALSE;
 	    if ( ci->is_list &&
-		 !add_deep_indexes(ci, head, tail PASS_LD) )
+		 !add_deep_indexes(ci, head, tail) )
 	      return FALSE;
 	  }
 	}
@@ -2836,7 +2851,7 @@ add_deep_indexes(ClauseIndex ci, term_t head, term_t tail ARG_LD)
 bool
 unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
-  Definition def = getProcDefinition__LD(proc->definition PASS_LD);
+  Definition def = getLocalProcDefinition(proc->definition);
   ClauseIndex *cip;
   int rc = FALSE;
   int found = 0;
@@ -2857,7 +2872,7 @@ unify_index_pattern(Procedure proc, term_t value)
 	   !unify_clause_index(head, ci) )
 	goto out;
       if ( ci->is_list )
-      { if ( !add_deep_indexes(ci, head, tail PASS_LD) )
+      { if ( !add_deep_indexes(ci, head, tail) )
 	  goto out;
       }
     }

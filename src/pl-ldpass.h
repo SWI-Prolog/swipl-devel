@@ -36,8 +36,4 @@
 #ifndef PL_LDPASS_H_INCLUDED
 #define PL_LDPASS_H_INCLUDED
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
 #endif /*PL_LDPASS_H_INCLUDED*/

@@ -43,6 +43,15 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	reloadHasClauses(sf, proc)			LDFUNC(reloadHasClauses, sf, proc)
+#define	assertProcedureSource(sf, proc, clause)		LDFUNC(assertProcedureSource, sf, proc, clause)
+#define	setAttrProcedureSource(sf, proc, attr, val)	LDFUNC(setAttrProcedureSource, sf, proc, attr, val)
+#define	setMetapredicateSource(sf, proc, args)		LDFUNC(setMetapredicateSource, sf, proc, args)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int		startConsult(SourceFile f);
 int		endConsult(SourceFile f);
 size_t		highSourceFileIndex(void);
@@ -53,16 +62,18 @@ void		cleanupSourceFiles(void);
 void		unlinkSourceFileModule(SourceFile sf, Module m);
 void		addProcedureSourceFile(SourceFile sf, Procedure proc);
 int		hasProcedureSourceFile(SourceFile sf, Procedure proc);
-int		reloadHasClauses(SourceFile sf, Procedure proc ARG_LD);
+int		reloadHasClauses(SourceFile sf, Procedure proc);
 ClauseRef	assertProcedureSource(SourceFile sf, Procedure proc,
-				      Clause clause ARG_LD);
+				      Clause clause);
 int		setAttrProcedureSource(SourceFile sf, Procedure proc,
-				       unsigned attr, int val ARG_LD);
+				       unsigned attr, int val);
 int		setMetapredicateSource(SourceFile sf, Procedure proc,
-				       arg_info *args ARG_LD);
+				       arg_info *args);
 int		exportProcedureSource(SourceFile sf, Module module,
 				      Procedure proc);
 void		registerReloadModule(SourceFile sf, Module module);
+
+#undef LDFUNC_DECLARATIONS
 
 #ifdef O_DEBUG
 void		acquireSourceFile_d(SourceFile f,

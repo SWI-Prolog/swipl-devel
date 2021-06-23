@@ -43,9 +43,15 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	tracePort(frame, bfr, port, PC)		LDFUNC(tracePort, frame, bfr, port, PC)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int		isDebugFrame(LocalFrame FR);
 int		tracePort(LocalFrame frame, Choice bfr,
-			  int port, Code PC ARG_LD);
+			  int port, Code PC);
 void		initTracer(void);
 int		enable_debug_on_interrupt(int enable);
 void		resetTracer(void);
@@ -64,5 +70,7 @@ word		pl_debuglevel(term_t old, term_t new);
 word		pl_prolog_current_frame(term_t fr);
 int		PL_put_frame(term_t t, LocalFrame fr);
 void		PL_put_choice(term_t t, Choice ch);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_TRACE_H*/			

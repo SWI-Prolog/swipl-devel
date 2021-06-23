@@ -50,145 +50,152 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-word		linkVal__LD(Word p ARG_LD);
-word		linkValG__LD(Word p ARG_LD);
-word		linkValNoG__LD(Word p ARG_LD);
-void		bArgVar(Word ap, Word vp ARG_LD);
-int		_PL_put_number__LD(term_t t, Number n ARG_LD);
+#if USE_LD_MACROS
+#define	linkVal(p)				LDFUNC(linkVal, p)
+#define	linkValG(p)				LDFUNC(linkValG, p)
+#define	linkValNoG(p)				LDFUNC(linkValNoG, p)
+#define	bArgVar(ap, vp)				LDFUNC(bArgVar, ap, vp)
+#define	_PL_put_number(t, n)			LDFUNC(_PL_put_number, t, n)
+#define	PL_unify_term(t, ...)			LDFUNC(PL_unify_term, t, __VA_ARGS__)
+#define	PL_unify_termv(t, args)			LDFUNC(PL_unify_termv, t, args)
+#define	pushWordAsTermRef(p)			LDFUNC(pushWordAsTermRef, p)
+#define	popTermRef(_)				LDFUNC(popTermRef, _)
+#define	_PL_get_arg(index, t, a)		LDFUNC(_PL_get_arg, index, t, a)
+#define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
+#define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
+#define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
+#define	globalizeTermRef(t)			LDFUNC(globalizeTermRef, t)
+#define	PL_reset_term_refs(r)			LDFUNC(PL_reset_term_refs, r)
+#define	PL_copy_term_ref(from)			LDFUNC(PL_copy_term_ref, from)
+#define	PL_unify(t1, t2)			LDFUNC(PL_unify, t1, t2)
+#define	PL_unify_output(t1, t2)			LDFUNC(PL_unify_output, t1, t2)
+#define	PL_unify_integer(t1, i)			LDFUNC(PL_unify_integer, t1, i)
+#define	PL_unify_int64(t1, int64_t)		LDFUNC(PL_unify_int64, t1, int64_t)
+#define	PL_unify_int64_ex(t1, int64_t)		LDFUNC(PL_unify_int64_ex, t1, int64_t)
+#define	PL_unify_functor(t, f)			LDFUNC(PL_unify_functor, t, f)
+#define	PL_get_atom(t1, a)			LDFUNC(PL_get_atom, t1, a)
+#define	PL_put_variable(t1)			LDFUNC(PL_put_variable, t1)
+#define	PL_put_atom(t1, a)			LDFUNC(PL_put_atom, t1, a)
+#define	PL_put_integer(t1, i)			LDFUNC(PL_put_integer, t1, i)
+#define	PL_put_int64(t, i)			LDFUNC(PL_put_int64, t, i)
+#define	PL_put_intptr(t1, i)			LDFUNC(PL_put_intptr, t1, i)
+#define	PL_is_atomic(t)				LDFUNC(PL_is_atomic, t)
+#define	PL_is_functor(t, f)			LDFUNC(PL_is_functor, t, f)
+#define	PL_is_variable(t)			LDFUNC(PL_is_variable, t)
+#define	PL_strip_module_flags(q, m, t, flags)	LDFUNC(PL_strip_module_flags, q, m, t, flags)
+#define	PL_strip_module_ex(raw, m, plain)	LDFUNC(PL_strip_module_ex, raw, m, plain)
+#define	PL_get_integer(t, i)			LDFUNC(PL_get_integer, t, i)
+#define	PL_get_long(t, i)			LDFUNC(PL_get_long, t, i)
+#define	PL_get_int64(t, i)			LDFUNC(PL_get_int64, t, i)
+#define	PL_get_size_ex(t, i)			LDFUNC(PL_get_size_ex, t, i)
+#define	PL_get_pointer(t, ptr)			LDFUNC(PL_get_pointer, t, ptr)
+#define	PL_put_term(t1, t2)			LDFUNC(PL_put_term, t1, t2)
+#define	PL_get_functor(t, f)			LDFUNC(PL_get_functor, t, f)
+#define	PL_get_name_arity_sz(t, name, arity)	LDFUNC(PL_get_name_arity_sz, t, name, arity)
+#define	PL_unify_atom(t, a)			LDFUNC(PL_unify_atom, t, a)
+#define	PL_unify_pointer(t, ptr)		LDFUNC(PL_unify_pointer, t, ptr)
+#define	PL_get_list(l, h, t)			LDFUNC(PL_get_list, l, h, t)
+#define	PL_is_atom(t)				LDFUNC(PL_is_atom, t)
+#define	PL_unify_list(l, h, t)			LDFUNC(PL_unify_list, l, h, t)
+#define	PL_cons_list(l, head, tail)		LDFUNC(PL_cons_list, l, head, tail)
+#define	PL_same_term(t1, t2)			LDFUNC(PL_same_term, t1, t2)
+#define	isCallable(w)				LDFUNC(isCallable, w)
+#define	PL_pending(sig)				LDFUNC(PL_pending, sig)
+#define	PL_clearsig(sig)			LDFUNC(PL_clearsig, sig)
+#define	classify_exception(ex)			LDFUNC(classify_exception, ex)
+#define	classify_exception_p(p)			LDFUNC(classify_exception_p, p)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+word		linkVal(Word p);
+word		linkValG(Word p);
+word		linkValNoG(Word p);
+void		bArgVar(Word ap, Word vp);
+int		_PL_put_number(term_t t, Number n);
 FLI_INLINE
 predicate_t	_PL_predicate(const char *name, int arity,
 			      const char *module, predicate_t *bin);
 void		initialiseForeign(int argc, char **argv);
 void		cleanupInitialiseHooks(void);
 atom_t		codeToAtom(int code);
-int		PL_unify_term__LD(term_t t ARG_LD, ...);
+int		PL_unify_term(term_t t, ...);
 int		PL_unify_termv(term_t t, va_list args);
-int		PL_unify_termv__LD(term_t t ARG_LD, va_list args);
-term_t		pushWordAsTermRef__LD(Word p ARG_LD);
-void		popTermRef__LD(ARG1_LD);
-int		_PL_get_arg__LD(size_t index, term_t t, term_t a ARG_LD);
-term_t		PL_new_term_ref__LD(ARG1_LD);
-term_t		PL_new_term_ref_noshift__LD(ARG1_LD);
-term_t		PL_new_term_refs__LD(int n ARG_LD);
-int		globalize_term_ref__LD(term_t t ARG_LD);
-void		PL_reset_term_refs__LD(term_t r ARG_LD);
-term_t		PL_copy_term_ref__LD(term_t from ARG_LD);
-int		PL_unify__LD(term_t t1, term_t t2 ARG_LD);
-int		PL_unify_output__LD(term_t t1, term_t t2 ARG_LD);
-int		PL_unify_integer__LD(term_t t1, intptr_t i ARG_LD);
-int		PL_unify_int64__LD(term_t t1, int64_t ARG_LD);
-int		PL_unify_int64_ex__LD(term_t t1, int64_t ARG_LD);
-int		PL_unify_functor__LD(term_t t, functor_t f ARG_LD);
-FLI_INLINE int	PL_get_atom__LD(term_t t1, atom_t *a ARG_LD);
+int		PL_unify_termv(term_t t, va_list args);
+term_t		pushWordAsTermRef(Word p);
+void		popTermRef(void);
+int		_PL_get_arg(size_t index, term_t t, term_t a);
+term_t		PL_new_term_ref(void);
+term_t		PL_new_term_ref_noshift(void);
+term_t		PL_new_term_refs(int n);
+int		globalizeTermRef(term_t t);
+void		PL_reset_term_refs(term_t r);
+term_t		PL_copy_term_ref(term_t from);
+int		PL_unify(term_t t1, term_t t2);
+int		PL_unify_output(term_t t1, term_t t2);
+int		PL_unify_integer(term_t t1, intptr_t i);
+int		PL_unify_int64(term_t t1, int64_t);
+int		PL_unify_int64_ex(term_t t1, int64_t);
+int		PL_unify_functor(term_t t, functor_t f);
+FLI_INLINE int	PL_get_atom(term_t t1, atom_t *a);
 int		PL_get_text_as_atom(term_t t, atom_t *a, int flags);
-FLI_INLINE int	PL_put_variable__LD(term_t t1 ARG_LD);
-FLI_INLINE int	PL_put_atom__LD(term_t t1, atom_t a ARG_LD);
-FLI_INLINE int	PL_put_integer__LD(term_t t1, long i ARG_LD);
-FLI_INLINE int	PL_put_int64__LD(term_t t, int64_t i ARG_LD);
-FLI_INLINE int	PL_put_intptr__LD(term_t t1, intptr_t i ARG_LD);
-FLI_INLINE int	PL_is_atomic__LD(term_t t ARG_LD);
-FLI_INLINE int	PL_is_functor__LD(term_t t, functor_t f ARG_LD);
-FLI_INLINE int	PL_is_variable__LD(term_t t ARG_LD);
-int		PL_strip_module__LD(term_t q, module_t *m,
-				    term_t t, int flags ARG_LD) WUNUSED;
-int		PL_strip_module_ex__LD(term_t raw, module_t *m,
-				       term_t plain ARG_LD) WUNUSED;
+FLI_INLINE int	PL_put_variable(term_t t1);
+FLI_INLINE int	PL_put_atom(term_t t1, atom_t a);
+FLI_INLINE int	PL_put_integer(term_t t1, long i);
+FLI_INLINE int	PL_put_int64(term_t t, int64_t i);
+FLI_INLINE int	PL_put_intptr(term_t t1, intptr_t i);
+FLI_INLINE int	PL_is_atomic(term_t t);
+FLI_INLINE int	PL_is_functor(term_t t, functor_t f);
+FLI_INLINE int	PL_is_variable(term_t t);
+int		PL_strip_module_flags(term_t q, module_t *m,
+				      term_t t, int flags) WUNUSED;
+int		PL_strip_module_ex(term_t raw, module_t *m,
+				   term_t plain) WUNUSED;
 int		PL_qualify(term_t raw, term_t qualified);
-int		PL_get_integer__LD(term_t t, int *i ARG_LD);
-int		PL_get_long__LD(term_t t, long *i ARG_LD);
-int		PL_get_int64__LD(term_t t, int64_t *i ARG_LD);
-int		PL_get_size_ex__LD(term_t t, size_t *i ARG_LD);
-int		PL_get_pointer__LD(term_t t, void **ptr ARG_LD);
-int		PL_put_term__LD(term_t t1, term_t t2 ARG_LD)/* WUNUSED*/;
-int		PL_get_functor__LD(term_t t, functor_t *f ARG_LD);
-int		PL_get_name_arity_sz__LD(term_t t, atom_t *name,
-						 size_t *arity ARG_LD);
+int		PL_get_integer(term_t t, int *i);
+int		PL_get_long(term_t t, long *i);
+int		PL_get_int64(term_t t, int64_t *i);
+int		PL_get_size_ex(term_t t, size_t *i);
+int		PL_get_pointer(term_t t, void **ptr);
+int		PL_put_term(term_t t1, term_t t2)/* WUNUSED*/;
+int		PL_get_functor(term_t t, functor_t *f);
+int		PL_get_name_arity_sz(term_t t, atom_t *name,
+					     size_t *arity);
 int		PL_get_uintptr(term_t t, size_t *i);
-int		PL_unify_atom__LD(term_t t, atom_t a ARG_LD);
-int		PL_unify_pointer__LD(term_t t, void *ptr ARG_LD);
-int		PL_get_list__LD(term_t l, term_t h, term_t t ARG_LD);
-FLI_INLINE int	PL_is_atom__LD(term_t t ARG_LD);
-int		PL_unify_list__LD(term_t l, term_t h, term_t t ARG_LD);
-int		PL_cons_list__LD(term_t l, term_t head, term_t tail
-				 ARG_LD);
+int		PL_unify_atom(term_t t, atom_t a);
+int		PL_unify_pointer(term_t t, void *ptr);
+int		PL_get_list(term_t l, term_t h, term_t t);
+FLI_INLINE int	PL_is_atom(term_t t);
+int		PL_unify_list(term_t l, term_t h, term_t t);
+int		PL_cons_list(term_t l, term_t head, term_t tail);
 int		PL_cons_list_v(term_t list, size_t count, term_t elems);
 int		PL_is_inf(term_t t);
-int		PL_same_term__LD(term_t t1, term_t t2 ARG_LD);
+int		PL_same_term(term_t t1, term_t t2);
 int		isUCSAtom(Atom a);
 atom_t		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 int		charCode(word w);
-int		isCallable(word w ARG_LD);
+int		isCallable(word w);
 
 void		registerForeignLicenses(void);
 void            bindExtensions(const char *module,
 			       const PL_extension *ext);
 void		initForeign(void);
 int		PL_rethrow(void);
-FLI_INLINE int	PL_pending__LD(int sig ARG_LD);
-int		PL_clearsig__LD(int sig ARG_LD);
+FLI_INLINE int	PL_pending(int sig);
+int		PL_clearsig(int sig);
 void		cleanupCodeToAtom(void);
 void		PL_clear_foreign_exception(LocalFrame fr);
 int		has_emergency_space(void *sv, size_t needed);
 FLI_INLINE
-except_class	classify_exception__LD(term_t ex ARG_LD);
-except_class    classify_exception_p__LD(Word p ARG_LD);
+except_class	classify_exception(term_t ex);
+except_class    classify_exception_p(Word p);
 void		PL_abort_process(void) NORETURN;
 void		resetForeign(void);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
+#undef LDFUNC_DECLARATIONS
 
-#define globalizeTermRef(t)	globalize_term_ref__LD(t PASS_LD)
-#define linkVal(p)		linkVal__LD(p PASS_LD)
-#define linkValG(p)		linkValG__LD(p PASS_LD)
-#define linkValNoG(p)		linkValNoG__LD(p PASS_LD)
-#define popTermRef()		popTermRef__LD(PASS_LD1)
-#define pushWordAsTermRef(p)	pushWordAsTermRef__LD(p PASS_LD)
-#define _PL_get_arg(n, t, a)	_PL_get_arg__LD(n, t, a PASS_LD)
-#define _PL_put_number(t, n)	_PL_put_number__LD(t, n PASS_LD)
-#define PL_new_term_ref()	PL_new_term_ref__LD(PASS_LD1)
-#define PL_new_term_ref_noshift()	PL_new_term_ref_noshift__LD(PASS_LD1)
-#define PL_new_term_refs(n)	PL_new_term_refs__LD(n PASS_LD)
-#define PL_reset_term_refs(t)	PL_reset_term_refs__LD(t PASS_LD)
-#define PL_copy_term_ref(t)	PL_copy_term_ref__LD(t PASS_LD)
-#define PL_unify(t1, t2)	PL_unify__LD(t1, t2 PASS_LD)
-#define PL_unify_integer(t, i)	PL_unify_integer__LD(t, i PASS_LD)
-#define PL_unify_int64(t, i)	PL_unify_int64__LD(t, i PASS_LD)
-#define PL_unify_functor(t, f)	PL_unify_functor__LD(t, f PASS_LD)
-#define PL_unify_term(t, ...)	PL_unify_term__LD(t PASS_LD, __VA_ARGS__)
-#define PL_unify_output(t1,t2)	PL_unify_output__LD(t1, t2 PASS_LD)
-#define PL_get_atom(t, a)	PL_get_atom__LD(t, a PASS_LD)
-#define PL_put_atom(t, a)	PL_put_atom__LD(t, a PASS_LD)
-#define PL_put_variable(t)	PL_put_variable__LD(t PASS_LD)
-#define PL_is_functor(t, f)	PL_is_functor__LD(t, f PASS_LD)
-#define PL_put_integer(t, i)	PL_put_integer__LD(t, i PASS_LD)
-#define PL_put_intptr(t, i)	PL_put_intptr__LD(t, i PASS_LD)
-#define PL_strip_module(q, m, t) PL_strip_module__LD(q, m, t, 0 PASS_LD)
-#define PL_get_integer(t, i)	PL_get_integer__LD(t, i PASS_LD)
-#define PL_get_long(t, i)	PL_get_long__LD(t, i PASS_LD)
-#define PL_get_int64(t, i)	PL_get_int64__LD(t, i PASS_LD)
-#define PL_get_size_ex(t,i)	PL_get_size_ex__LD(t,i PASS_LD)
-#define PL_get_pointer(t, ptr)	PL_get_pointer__LD(t, ptr PASS_LD)
-#define PL_put_term(t1, t2)	PL_put_term__LD(t1, t2 PASS_LD)
-#define PL_get_functor(t, f)	PL_get_functor__LD(t, f PASS_LD)
-#define PL_unify_atom(t, a)	PL_unify_atom__LD(t, a PASS_LD)
-#define _PL_unify_atomic(t, a)	PL_unify_atom__LD(t, a PASS_LD)
-#define PL_unify_pointer(t, p)	PL_unify_pointer__LD(t, p PASS_LD)
-#define PL_is_variable(t)	PL_is_variable__LD(t PASS_LD)
-#define PL_is_atomic(t)		PL_is_atomic__LD(t PASS_LD)
-#define PL_get_list(l, h, t)	PL_get_list__LD(l, h, t PASS_LD)
-#define PL_is_atom(t)		PL_is_atom__LD(t PASS_LD)
-#define PL_unify_list(l, h, t)	PL_unify_list__LD(l, h, t PASS_LD)
-#define PL_cons_list(l, h, t)	PL_cons_list__LD(l, h, t PASS_LD)
-#define PL_unify_int64_ex(t, i)	PL_unify_int64_ex__LD(t, i PASS_LD)
-#define PL_pending(sig)	        PL_pending__LD(sig PASS_LD)
-#define PL_clearsig(sig)        PL_clearsig__LD(sig PASS_LD)
-#define PL_same_term(t1, t2)	PL_same_term__LD(t1, t2 PASS_LD)
-#define PL_get_name_arity_sz(t,n,a) PL_get_name_arity_sz__LD(t,n,a PASS_LD)
-#define PL_strip_module_ex(t,m,p) PL_strip_module_ex__LD(t,m,p PASS_LD)
-#define classify_exception(ex)  classify_exception__LD(ex PASS_LD)
-#define classify_exception_p(p) classify_exception_p__LD(p PASS_LD)
+#define PL_strip_module(q, m, t) PL_strip_module_flags(q, m, t, 0)
+#define _PL_unify_atomic(t, a)	PL_unify_atom(t, a)
 
 		 /*******************************
 		 *	INLINE DEFINITIONS	*
@@ -201,8 +208,9 @@ void		resetForeign(void);
 #define valHandleP(h)		valTermRef(h)
 
     /* TODO: valHandle (which was in pl-codelisit.h) needs to be moved somewhere common! Namespacing it with fli_ for now to avoid conflicts. */
-    static inline word
-    fli_valHandle__LD(term_t r ARG_LD)
+    #define fli_valHandle(r) LDFUNC(fli_valHandle, r)
+static inline word
+    fli_valHandle(DECL_LD term_t r)
     { Word p = valTermRef(r);
     
       deRef(p);
@@ -210,10 +218,10 @@ void		resetForeign(void);
     }
     #pragma push_macro("valHandle")
     #undef valHandle
-    #define valHandle(r) fli_valHandle__LD(r PASS_LD)
+    #define valHandle(r) fli_valHandle(r)
 
 FLI_INLINE int
-PL_get_atom__LD(term_t t, atom_t *a ARG_LD)
+PL_get_atom(DECL_LD term_t t, atom_t *a)
 { word w = valHandle(t);
 
   if ( isAtom(w) )
@@ -224,14 +232,14 @@ PL_get_atom__LD(term_t t, atom_t *a ARG_LD)
 }
 
 FLI_INLINE int
-PL_is_variable__LD(term_t t ARG_LD)
+PL_is_variable(DECL_LD term_t t)
 { word w = valHandle(t);
 
   return canBind(w) ? TRUE : FALSE;
 }
 
 FLI_INLINE int
-PL_is_atom__LD(term_t t ARG_LD)
+PL_is_atom(DECL_LD term_t t)
 { word w = valHandle(t);
 
   if ( isTextAtom(w) )
@@ -241,7 +249,7 @@ PL_is_atom__LD(term_t t ARG_LD)
 }
 
 FLI_INLINE int
-PL_is_functor__LD(term_t t, functor_t f ARG_LD)
+PL_is_functor(DECL_LD term_t t, functor_t f)
 { word w = valHandle(t);
 
   if ( hasFunctor(w, f) )
@@ -251,14 +259,14 @@ PL_is_functor__LD(term_t t, functor_t f ARG_LD)
 }
 
 FLI_INLINE int
-PL_is_atomic__LD(term_t t ARG_LD)
+PL_is_atomic(DECL_LD term_t t)
 { word w = valHandle(t);
 
   return !!isAtomic(w);
 }
 
 FLI_INLINE int
-PL_put_variable__LD(term_t t ARG_LD)
+PL_put_variable(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   setVar(*p);
@@ -266,17 +274,17 @@ PL_put_variable__LD(term_t t ARG_LD)
 }
 
 FLI_INLINE int
-PL_put_atom__LD(term_t t, atom_t a ARG_LD)
+PL_put_atom(DECL_LD term_t t, atom_t a)
 { setHandle(t, a);
   return TRUE;
 }
 
 FLI_INLINE int
-PL_put_int64__LD(term_t t, int64_t i ARG_LD)
+PL_put_int64(DECL_LD term_t t, int64_t i)
 { word w = consInt(i);
 
   if ( valInt(w) != i &&
-       put_int64(&w, i, ALLOW_GC PASS_LD) != TRUE )
+       put_int64(&w, i, ALLOW_GC) != TRUE )
     return FALSE;
 
   setHandle(t, w);
@@ -284,13 +292,13 @@ PL_put_int64__LD(term_t t, int64_t i ARG_LD)
 }
 
 FLI_INLINE int
-PL_put_integer__LD(term_t t, long i ARG_LD)
-{ return PL_put_int64__LD(t, i PASS_LD);
+PL_put_integer(DECL_LD term_t t, long i)
+{ return PL_put_int64(t, i);
 }
 
 FLI_INLINE int
-PL_put_intptr__LD(term_t t, intptr_t i ARG_LD)
-{ return PL_put_int64__LD(t, i PASS_LD);
+PL_put_intptr(DECL_LD term_t t, intptr_t i)
+{ return PL_put_int64(t, i);
 }
 
 FLI_INLINE predicate_t
@@ -303,7 +311,7 @@ _PL_predicate(const char *name, int arity, const char *module,
 }
 
 FLI_INLINE except_class
-classify_exception__LD(term_t exception ARG_LD)
+classify_exception(DECL_LD term_t exception)
 { Word p;
 
   if ( !exception )
@@ -314,7 +322,7 @@ classify_exception__LD(term_t exception ARG_LD)
 }
 
 FLI_INLINE int
-PL_pending__LD(int sig ARG_LD)
+PL_pending(DECL_LD int sig)
 { return pendingSignal(LD, sig);
 }
 

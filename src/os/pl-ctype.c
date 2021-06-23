@@ -528,8 +528,9 @@ get_chr_from_text(const PL_chars_t *t, size_t index)
 }
 
 
+#define modify_case_atom(in, out, down, text_type) LDFUNC(modify_case_atom, in, out, down, text_type)
 static foreign_t
-modify_case_atom(term_t in, term_t out, int down, int text_type ARG_LD)
+modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 { PL_chars_t tin, tout;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
@@ -623,28 +624,28 @@ modify_case_atom(term_t in, term_t out, int down, int text_type ARG_LD)
 static
 PRED_IMPL("downcase_atom", 2, downcase_atom, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, TRUE, PL_ATOM PASS_LD);
+  return modify_case_atom(A1, A2, TRUE, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("upcase_atom", 2, upcase_atom, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, FALSE, PL_ATOM PASS_LD);
+  return modify_case_atom(A1, A2, FALSE, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("string_lower", 2, string_lower, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, TRUE, PL_STRING PASS_LD);
+  return modify_case_atom(A1, A2, TRUE, PL_STRING);
 }
 
 
 static
 PRED_IMPL("string_upper", 2, string_upper, 0)
 { PRED_LD
-  return modify_case_atom(A1, A2, FALSE, PL_STRING PASS_LD);
+  return modify_case_atom(A1, A2, FALSE, PL_STRING);
 }
 
 

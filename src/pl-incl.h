@@ -1110,7 +1110,7 @@ typedef uint64_t lgen_t;
 	do { (f)->generation = (gen); } while(0)
 #endif
 
-#define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
+#define setGenerationFrame(fr) setGenerationFrame(fr)
 
 #define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
 			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
@@ -1175,7 +1175,7 @@ it mean anything?
 
 #define startCritical (void)(LD->critical++)
 #define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
-				? endCritical__LD(PASS_LD1) : TRUE)
+				? f_endCritical() : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1326,8 +1326,6 @@ typedef struct functor_table
 	  (cl)->generation.erased   > (gen) \
 	)
 
-#define visibleClause(cl, gen) visibleClause__LD(cl, gen PASS_LD)
-#define visibleClauseCNT(cl, gen) visibleClauseCNT__LD(cl, gen PASS_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on
@@ -2000,7 +1998,6 @@ Note that all trail operations demand that   the caller ensures there is
 at least one free cell on the trail-stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define Trail(p, w) Trail__LD(p, w PASS_LD)
 					/* trail local stack pointer */
 #define LTrail(p) \
   (void)((tTop++)->address = p)
@@ -2225,7 +2222,7 @@ typedef enum
 	do { if ( likely(aTop+1 < aMax) ) \
 	       *aTop++ = (p); \
 	     else \
-	       pushArgumentStack__LD((p) PASS_LD); \
+	       f_pushArgumentStack(p); \
 	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2612,7 +2609,7 @@ with any luck LTO could address that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if USE_ALLOC_INLINES
-# define ALLOC_INLINE(type) static type MAYBE_UNUSED
+# define ALLOC_INLINE type static type MAYBE_UNUSED
 #else
 # define ALLOC_INLINE COMMON
 #endif

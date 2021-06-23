@@ -94,8 +94,8 @@ handling times must be cleaned, but that not only holds for this module.
 
 /* there are two types of stream property functions. In the usual case,
    they have an argument, but in a few cases they don't */
-typedef int (*property0_t)(IOSTREAM *s ARG_LD);
-typedef int (*property_t)(IOSTREAM *s, term_t prop ARG_LD);
+typedef int LDFUNCP (*property0_t)(DECL_LD IOSTREAM *s);
+typedef int LDFUNCP (*property_t)(DECL_LD IOSTREAM *s, term_t prop);
 
 static int	bad_encoding(const char *msg, atom_t name);
 static int	noprotocol(void);
@@ -616,8 +616,9 @@ static PL_blob_t stream_blob =
 #define SH_INPUT    0x10		/* We want an input stream */
 #define SH_NOPAIR   0x20		/* Do not allow for a pair */
 
+#define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
 static int
-get_stream_handle__LD(atom_t a, IOSTREAM **sp, int flags ARG_LD)
+get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 { stream_ref *ref;
   PL_blob_t *type;
   IOSTREAM *s;
@@ -714,12 +715,11 @@ noent:
   return FALSE;
 }
 
-#define get_stream_handle(t, sp, flags) \
-	get_stream_handle__LD(t, sp, flags PASS_LD)
 
 
+#define term_stream_handle(t, s, flags) LDFUNC(term_stream_handle, t, s, flags)
 static int
-term_stream_handle(term_t t, IOSTREAM **s, int flags ARG_LD)
+term_stream_handle(DECL_LD term_t t, IOSTREAM **s, int flags)
 { atom_t a;
 
   if ( !PL_get_atom(t, &a) )
@@ -733,7 +733,7 @@ int
 PL_get_stream_handle(term_t t, IOSTREAM **s)
 { GET_LD
 
-  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR PASS_LD);
+  return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR);
 }
 
 
@@ -748,7 +748,7 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
   if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
     myflags |= SH_NOPAIR;
 
-  return term_stream_handle(t, s, myflags PASS_LD);
+  return term_stream_handle(t, s, myflags);
 }
 
 
@@ -833,8 +833,9 @@ typedef enum
 } s_type;
 
 
+#define checkStreamType(text, s, error) LDFUNC(checkStreamType, text, s, error)
 static int
-checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
+checkStreamType(DECL_LD s_type text, IOSTREAM *s, atom_t *error)
 { if ( text == S_DONTCARE || LD->IO.stream_type_check == ST_FALSE )
     return TRUE;			/* no checking */
 
@@ -857,9 +858,9 @@ checkStreamType(s_type text, IOSTREAM *s, atom_t *error ARG_LD)
 }
 
 
-#define getOutputStream(t, k, s)	getOutputStream__LD(t, k, s PASS_LD)
+#define getOutputStream(t, text, stream) LDFUNC(getOutputStream, t, text, stream)
 static int
-getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
+getOutputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
 { atom_t a;
   IOSTREAM *s;
   atom_t tp;
@@ -893,7 +894,7 @@ getOutputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 ok:
   if ( !(s->flags&SIO_OUTPUT) )
   { tp = ATOM_stream;
-  } else if ( checkStreamType(text, s, &tp PASS_LD) )
+  } else if ( checkStreamType(text, s, &tp) )
   { *stream = s;
     return TRUE;
   }
@@ -913,20 +914,20 @@ ok:
 
 
 int
-getTextOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+getTextOutputStream(DECL_LD term_t t, IOSTREAM **stream)
 { return getOutputStream(t, S_TEXT, stream);
 }
 
 
 int
-getBinaryOutputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
+getBinaryOutputStream(DECL_LD term_t t, IOSTREAM **stream)
 { return getOutputStream(t, S_BINARY, stream);
 }
 
 
-#define getInputStream(t, k, s)		getInputStream__LD(t, k, s PASS_LD)
+#define getInputStream(t, text, stream) LDFUNC(getInputStream, t, text, stream)
 static int
-getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
+getInputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
 { atom_t a;
   IOSTREAM *s = NULL;				/* make compiler happy  */
   atom_t tp;
@@ -956,7 +957,7 @@ getInputStream__LD(term_t t, s_type text, IOSTREAM **stream ARG_LD)
 ok:
   if ( !(s->flags&SIO_INPUT) )
   { tp = ATOM_stream;
-  } else if ( checkStreamType(text, s, &tp PASS_LD) )
+  } else if ( checkStreamType(text, s, &tp) )
   { *stream = s;
     return TRUE;
   }
@@ -975,13 +976,13 @@ ok:
 }
 
 int
-getTextInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
-{ return getInputStream__LD(t, S_TEXT, stream PASS_LD);
+getTextInputStream(DECL_LD term_t t, IOSTREAM **stream)
+{ return getInputStream(t, S_TEXT, stream);
 }
 
 int
-getBinaryInputStream__LD(term_t t, IOSTREAM **stream ARG_LD)
-{ return getInputStream__LD(t, S_BINARY, stream PASS_LD);
+getBinaryInputStream(DECL_LD term_t t, IOSTREAM **stream)
+{ return getInputStream(t, S_BINARY, stream);
 }
 
 
@@ -1904,8 +1905,9 @@ set_buffering(IOSTREAM *s, atom_t b)
 /* returns TRUE: ok, FALSE: error, -1: not available
 */
 
+#define set_stream(s, stream, aname, a) LDFUNC(set_stream, s, stream, aname, a)
 static int
-set_stream(IOSTREAM *s, term_t stream, atom_t aname, term_t a ARG_LD)
+set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 { if ( aname == ATOM_alias )	/* alias(name) */
   { atom_t alias;
     int i;
@@ -2227,17 +2229,17 @@ found:
     if ( ref->read && (info->flags&SS_READ))
     { if ( !(s = getStream(ref->read)) )
         return symbol_no_stream(sblob);
-      rc = set_stream(s, stream, aname, aval PASS_LD);
+      rc = set_stream(s, stream, aname, aval);
       releaseStream(ref->read);
     }
     if ( rc && ref->write && (info->flags&SS_WRITE) )
     { if ( !(s = getStream(ref->write)) )
         return symbol_no_stream(sblob);
-      rc = set_stream(s, stream, aname, aval PASS_LD);
+      rc = set_stream(s, stream, aname, aval);
       releaseStream(ref->write);
     }
   } else if ( PL_get_stream_handle(stream, &s) )
-  { rc = set_stream(s, stream, aname, aval PASS_LD);
+  { rc = set_stream(s, stream, aname, aval);
     releaseStream(s);
   } else
     rc = FALSE;
@@ -2678,8 +2680,9 @@ skip_cr(IOSTREAM *s)
   return FALSE;
 }
 
+#define read_pending_input(input, list, tail, chars) LDFUNC(read_pending_input, input, list, tail, chars)
 static foreign_t
-read_pending_input(term_t input, term_t list, term_t tail, int chars ARG_LD)
+read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 { IOSTREAM *s;
 
 #define ADD_CODE(c) \
@@ -2915,7 +2918,7 @@ static
 PRED_IMPL("read_pending_codes", 3, read_pending_codes, 0)
 { PRED_LD
 
-  return read_pending_input(A1, A2, A3, FALSE PASS_LD);
+  return read_pending_input(A1, A2, A3, FALSE);
 }
 
 
@@ -2923,7 +2926,7 @@ static
 PRED_IMPL("read_pending_chars", 3, read_pending_chars, 0)
 { PRED_LD
 
-  return read_pending_input(A1, A2, A3, TRUE PASS_LD);
+  return read_pending_input(A1, A2, A3, TRUE);
 }
 
 
@@ -2994,8 +2997,9 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 }
 
 
+#define put_byte(stream, byte) LDFUNC(put_byte, stream, byte)
 static foreign_t
-put_byte(term_t stream, term_t byte ARG_LD)
+put_byte(DECL_LD term_t stream, term_t byte)
 { IOSTREAM *s;
   int c;
 
@@ -3014,7 +3018,7 @@ static
 PRED_IMPL("put_byte", 2, put_byte2, 0)
 { PRED_LD
 
-  return put_byte(A1, A2 PASS_LD);
+  return put_byte(A1, A2);
 }
 
 
@@ -3022,12 +3026,13 @@ static
 PRED_IMPL("put_byte", 1, put_byte1, 0)
 { PRED_LD
 
-  return put_byte(0, A1 PASS_LD);
+  return put_byte(0, A1);
 }
 
 
+#define put_code(stream, chr) LDFUNC(put_code, stream, chr)
 static foreign_t
-put_code(term_t stream, term_t chr ARG_LD)
+put_code(DECL_LD term_t stream, term_t chr)
 { IOSTREAM *s;
   int c = 0;
 
@@ -3046,7 +3051,7 @@ static
 PRED_IMPL("put_code", 2, put_code2, 0)
 { PRED_LD
 
-  return put_code(A1, A2 PASS_LD);
+  return put_code(A1, A2);
 }
 
 
@@ -3054,7 +3059,7 @@ static
 PRED_IMPL("put_code", 1, put_code1, 0)
 { PRED_LD
 
-  return put_code(0, A1 PASS_LD);
+  return put_code(0, A1);
 }
 
 
@@ -3062,7 +3067,7 @@ static
 PRED_IMPL("put", 2, put2, 0)
 { PRED_LD
 
-  return put_code(A1, A2 PASS_LD);
+  return put_code(A1, A2);
 }
 
 
@@ -3070,12 +3075,13 @@ static
 PRED_IMPL("put", 1, put1, 0)
 { PRED_LD
 
-  return put_code(0, A1 PASS_LD);
+  return put_code(0, A1);
 }
 
 
+#define get_nonblank(in, chr) LDFUNC(get_nonblank, in, chr)
 static foreign_t
-get_nonblank(term_t in, term_t chr ARG_LD)
+get_nonblank(DECL_LD term_t in, term_t chr)
 { IOSTREAM *s;
 
   if ( getTextInputStream(in, &s) )
@@ -3104,7 +3110,7 @@ static
 PRED_IMPL("get", 1, get1, 0)
 { PRED_LD
 
-  return get_nonblank(0, A1 PASS_LD);
+  return get_nonblank(0, A1);
 }
 
 
@@ -3112,12 +3118,13 @@ static
 PRED_IMPL("get", 2, get2, 0)
 { PRED_LD
 
-  return get_nonblank(A1, A2 PASS_LD);
+  return get_nonblank(A1, A2);
 }
 
 
+#define skip(in, chr) LDFUNC(skip, in, chr)
 static foreign_t
-skip(term_t in, term_t chr ARG_LD)
+skip(DECL_LD term_t in, term_t chr)
 { int c = -1;
   int r;
   IOSTREAM *s;
@@ -3138,7 +3145,7 @@ static
 PRED_IMPL("skip", 1, skip1, 0)
 { PRED_LD
 
-  return skip(0, A1 PASS_LD);
+  return skip(0, A1);
 }
 
 
@@ -3146,7 +3153,7 @@ static
 PRED_IMPL("skip", 2, skip2, 0)
 { PRED_LD
 
-  return skip(A1, A2 PASS_LD);
+  return skip(A1, A2);
 }
 
 
@@ -3176,8 +3183,9 @@ PRED_IMPL("get_single_char", 1, get_single_char, 0)
 }
 
 
+#define get_byte2(in, chr) LDFUNC(get_byte2, in, chr)
 static foreign_t
-get_byte2(term_t in, term_t chr ARG_LD)
+get_byte2(DECL_LD term_t in, term_t chr)
 { IOSTREAM *s;
 
   if ( getBinaryInputStream(in, &s) )
@@ -3200,7 +3208,7 @@ static
 PRED_IMPL("get_byte", 2, get_byte2, 0)
 { PRED_LD
 
-  return get_byte2(A1, A2 PASS_LD);
+  return get_byte2(A1, A2);
 }
 
 
@@ -3208,12 +3216,13 @@ static
 PRED_IMPL("get_byte", 1, get_byte1, 0)
 { PRED_LD
 
-  return get_byte2(0, A1 PASS_LD);
+  return get_byte2(0, A1);
 }
 
 
+#define get_code2(in, chr) LDFUNC(get_code2, in, chr)
 static foreign_t
-get_code2(term_t in, term_t chr ARG_LD)
+get_code2(DECL_LD term_t in, term_t chr)
 { IOSTREAM *s;
 
   if ( getTextInputStream(in, &s) )
@@ -3235,19 +3244,20 @@ get_code2(term_t in, term_t chr ARG_LD)
 static
 PRED_IMPL("get_code", 2, get_code2, 0)
 { PRED_LD
-  return get_code2(A1, A2 PASS_LD);
+  return get_code2(A1, A2);
 }
 
 
 static
 PRED_IMPL("get_code", 1, get_code1, 0)
 { PRED_LD
-  return get_code2(0, A1 PASS_LD);
+  return get_code2(0, A1);
 }
 
 
+#define get_char2(in, chr) LDFUNC(get_char2, in, chr)
 static foreign_t
-get_char2(term_t in, term_t chr ARG_LD)
+get_char2(DECL_LD term_t in, term_t chr)
 { IOSTREAM *s;
 
   if ( getTextInputStream(in, &s) )
@@ -3269,14 +3279,14 @@ get_char2(term_t in, term_t chr ARG_LD)
 static
 PRED_IMPL("get_char", 2, get_char2, 0)
 { PRED_LD
-  return get_char2(A1, A2 PASS_LD);
+  return get_char2(A1, A2);
 }
 
 
 static
 PRED_IMPL("get_char", 1, get_char1, 0)
 { PRED_LD
-  return get_char2(0, A1 PASS_LD);
+  return get_char2(0, A1);
 }
 
 
@@ -3402,8 +3412,9 @@ PrologPrompt(void)
 }
 
 
+#define tab(out, spaces) LDFUNC(tab, out, spaces)
 static int
-tab(term_t out, term_t spaces ARG_LD)
+tab(DECL_LD term_t out, term_t spaces)
 { int64_t count;
   IOSTREAM *s;
 
@@ -3425,14 +3436,14 @@ static
 PRED_IMPL("tab", 2, tab2, 0)
 { PRED_LD
 
-  return tab(A1, A2 PASS_LD);
+  return tab(A1, A2);
 }
 
 static
 PRED_IMPL("tab", 1, tab1, 0)
 { PRED_LD
 
-  return tab(0, A1 PASS_LD);
+  return tab(0, A1);
 }
 
 
@@ -4244,8 +4255,9 @@ do_close(IOSTREAM *s, int force)
 }
 
 
+#define pl_close(stream, force) LDFUNC(pl_close, stream, force)
 static int
-pl_close(term_t stream, int force ARG_LD)
+pl_close(DECL_LD term_t stream, int force)
 { IOSTREAM *s;
   atom_t a;
   stream_ref *ref;
@@ -4296,7 +4308,7 @@ static
 PRED_IMPL("close", 1, close, PL_FA_ISO)
 { PRED_LD
 
-  return pl_close(A1, FALSE PASS_LD);
+  return pl_close(A1, FALSE);
 }
 
 
@@ -4314,7 +4326,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
   if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
     return FALSE;
 
-  return pl_close(A1, force PASS_LD);
+  return pl_close(A1, force);
 }
 
 
@@ -4322,8 +4334,9 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
 		 *	 STREAM-PROPERTY	*
 		 *******************************/
 
+#define stream_file_name_propery(s, prop) LDFUNC(stream_file_name_propery, s, prop)
 static int
-stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
+stream_file_name_propery(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t name;
 
   for(; s && s->magic == SIO_MAGIC; s=s->downstream)
@@ -4337,8 +4350,9 @@ stream_file_name_propery(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_mode_property(s, prop) LDFUNC(stream_mode_property, s, prop)
 static int
-stream_mode_property(IOSTREAM *s, term_t prop ARG_LD)
+stream_mode_property(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t mode;
 
   if ( s->flags & SIO_INPUT )
@@ -4358,16 +4372,18 @@ stream_mode_property(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_input_prop(s) LDFUNC(stream_input_prop, s)
 static int
-stream_input_prop(IOSTREAM *s ARG_LD)
+stream_input_prop(DECL_LD IOSTREAM *s)
 { IGNORE_LD
 
   return (s->flags & SIO_INPUT) ? TRUE : FALSE;
 }
 
 
+#define stream_output_prop(s) LDFUNC(stream_output_prop, s)
 static int
-stream_output_prop(IOSTREAM *s ARG_LD)
+stream_output_prop(DECL_LD IOSTREAM *s)
 { IGNORE_LD
 
   return (s->flags & SIO_OUTPUT) ? TRUE : FALSE;
@@ -4378,8 +4394,9 @@ stream_output_prop(IOSTREAM *s ARG_LD)
 Incomplete: should be non-deterministic if the stream has multiple aliases!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define stream_alias_prop(s, prop) LDFUNC(stream_alias_prop, s, prop)
 static int
-stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_alias_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t name;
   stream_context *ctx;
   int i;
@@ -4412,8 +4429,9 @@ stream_alias_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_position_prop(s, prop) LDFUNC(stream_position_prop, s, prop)
 static int
-stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_position_prop(DECL_LD IOSTREAM *s, term_t prop)
 { IGNORE_LD
   IOPOS pos;
 
@@ -4431,8 +4449,9 @@ stream_position_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_end_of_stream_prop(s, prop) LDFUNC(stream_end_of_stream_prop, s, prop)
 static int
-stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_end_of_stream_prop(DECL_LD IOSTREAM *s, term_t prop)
 { if ( s->magic == SIO_MAGIC && (s->flags & SIO_INPUT) )
   { atom_t val;
 
@@ -4450,8 +4469,9 @@ stream_end_of_stream_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_eof_action_prop(s, prop) LDFUNC(stream_eof_action_prop, s, prop)
 static int
-stream_eof_action_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_eof_action_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t val;
 
   if ( s->flags & SIO_NOFEOF )
@@ -4473,8 +4493,9 @@ stream_eof_action_prop(IOSTREAM *s, term_t prop ARG_LD)
 #define S_ISREG(m) ((m&S_IFMT) == S_IFREG)
 #endif
 
+#define stream_reposition_prop(s, prop) LDFUNC(stream_reposition_prop, s, prop)
 static int
-stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_reposition_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t val;
 
   if ( s->magic == SIO_MAGIC && s->functions->seek )
@@ -4497,22 +4518,25 @@ stream_reposition_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_close_on_abort_prop(s, prop) LDFUNC(stream_close_on_abort_prop, s, prop)
 static int
-stream_close_on_abort_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_close_on_abort_prop(DECL_LD IOSTREAM *s, term_t prop)
 { IGNORE_LD
 
   return PL_unify_bool_ex(prop, !(s->flags & SIO_NOCLOSE));
 }
 
 
+#define stream_type_prop(s, prop) LDFUNC(stream_type_prop, s, prop)
 static int
-stream_type_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_type_prop(DECL_LD IOSTREAM *s, term_t prop)
 { return PL_unify_atom(prop, (s->flags & SIO_TEXT) ? ATOM_text : ATOM_binary);
 }
 
 
+#define stream_file_no_prop(s, prop) LDFUNC(stream_file_no_prop, s, prop)
 static int
-stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_file_no_prop(DECL_LD IOSTREAM *s, term_t prop)
 { int fd;
 
   if ( (fd = Sfileno(s)) >= 0 )
@@ -4522,8 +4546,9 @@ stream_file_no_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_tty_prop(s, prop) LDFUNC(stream_tty_prop, s, prop)
 static int
-stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_tty_prop(DECL_LD IOSTREAM *s, term_t prop)
 { IGNORE_LD
 
   if ( (s->flags & SIO_ISATTY) )
@@ -4533,8 +4558,9 @@ stream_tty_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_bom_prop(s, prop) LDFUNC(stream_bom_prop, s, prop)
 static int
-stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_bom_prop(DECL_LD IOSTREAM *s, term_t prop)
 { IGNORE_LD
 
   if ( (s->flags & SIO_BOM) )
@@ -4544,8 +4570,9 @@ stream_bom_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_newline_prop(s, prop) LDFUNC(stream_newline_prop, s, prop)
 static int
-stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_newline_prop(DECL_LD IOSTREAM *s, term_t prop)
 { switch ( s->newline )
   { case SIO_NL_POSIX:
     case SIO_NL_DETECT:
@@ -4558,8 +4585,9 @@ stream_newline_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_encoding_prop(s, prop) LDFUNC(stream_encoding_prop, s, prop)
 static int
-stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_encoding_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t ename = encoding_to_atom(s->encoding);
 
   if ( ename )
@@ -4569,16 +4597,18 @@ stream_encoding_prop(IOSTREAM *s, term_t prop ARG_LD)
 
 
 #ifdef O_LOCALE
+#define stream_locale_prop(s, prop) LDFUNC(stream_locale_prop, s, prop)
 static int
-stream_locale_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_locale_prop(DECL_LD IOSTREAM *s, term_t prop)
 { if ( s->locale )
     return unifyLocale(prop, s->locale, TRUE);
   return FALSE;
 }
 #endif
 
+#define stream_reperror_prop(s, prop) LDFUNC(stream_reperror_prop, s, prop)
 static int
-stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_reperror_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t a;
 
   if ( (s->flags & SIO_REPXML) )
@@ -4594,8 +4624,9 @@ stream_reperror_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_writeerror_prop(s, prop) LDFUNC(stream_writeerror_prop, s, prop)
 static int
-stream_writeerror_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_writeerror_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t a;
 
   if ( (s->flags & SIO_NOERROR) )
@@ -4607,8 +4638,9 @@ stream_writeerror_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_buffer_prop(s, prop) LDFUNC(stream_buffer_prop, s, prop)
 static int
-stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_buffer_prop(DECL_LD IOSTREAM *s, term_t prop)
 { atom_t b;
 
   if ( s->flags & SIO_FBUF )
@@ -4622,8 +4654,9 @@ stream_buffer_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_buffer_size_prop(s, prop) LDFUNC(stream_buffer_size_prop, s, prop)
 static int
-stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_buffer_size_prop(DECL_LD IOSTREAM *s, term_t prop)
 { int size;
 
   if ( (s->flags & SIO_NBUF) )
@@ -4636,8 +4669,9 @@ stream_buffer_size_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_timeout_prop(s, prop) LDFUNC(stream_timeout_prop, s, prop)
 static int
-stream_timeout_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_timeout_prop(DECL_LD IOSTREAM *s, term_t prop)
 { if ( s->timeout == -1 )
     return PL_unify_atom(prop, ATOM_infinite);
 
@@ -4645,8 +4679,9 @@ stream_timeout_prop(IOSTREAM *s, term_t prop ARG_LD)
 }
 
 
+#define stream_nlink_prop(s, prop) LDFUNC(stream_nlink_prop, s, prop)
 static int
-stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_nlink_prop(DECL_LD IOSTREAM *s, term_t prop)
 { int fd;
 
   if ( (fd = Sfileno(s)) >= 0 )
@@ -4660,8 +4695,9 @@ stream_nlink_prop(IOSTREAM *s, term_t prop ARG_LD)
   return FALSE;
 }
 
+#define stream_close_on_exec_prop(s, prop) LDFUNC(stream_close_on_exec_prop, s, prop)
 static int
-stream_close_on_exec_prop(IOSTREAM *s, term_t prop ARG_LD)
+stream_close_on_exec_prop(DECL_LD IOSTREAM *s, term_t prop)
 {  int fd;
 #ifdef __WINDOWS__
    DWORD Flags;
@@ -4699,32 +4735,32 @@ typedef struct
 
 
 static const sprop sprop_list [] =
-{ { FUNCTOR_file_name1,	    stream_file_name_propery },
-  { FUNCTOR_mode1,	    stream_mode_property },
+{ { FUNCTOR_file_name1,	    LDFUNC_REF(stream_file_name_propery) },
+  { FUNCTOR_mode1,	    LDFUNC_REF(stream_mode_property) },
   { FUNCTOR_input0,	    (property_t)stream_input_prop },
   { FUNCTOR_output0,	    (property_t)stream_output_prop },
-  { FUNCTOR_alias1,	    stream_alias_prop },
-  { FUNCTOR_position1,	    stream_position_prop },
-  { FUNCTOR_end_of_stream1, stream_end_of_stream_prop },
-  { FUNCTOR_eof_action1,    stream_eof_action_prop },
-  { FUNCTOR_reposition1,    stream_reposition_prop },
-  { FUNCTOR_type1,	    stream_type_prop },
-  { FUNCTOR_file_no1,	    stream_file_no_prop },
-  { FUNCTOR_buffer1,	    stream_buffer_prop },
-  { FUNCTOR_buffer_size1,   stream_buffer_size_prop },
-  { FUNCTOR_close_on_abort1,stream_close_on_abort_prop },
-  { FUNCTOR_tty1,	    stream_tty_prop },
-  { FUNCTOR_encoding1,	    stream_encoding_prop },
+  { FUNCTOR_alias1,	    LDFUNC_REF(stream_alias_prop) },
+  { FUNCTOR_position1,	    LDFUNC_REF(stream_position_prop) },
+  { FUNCTOR_end_of_stream1, LDFUNC_REF(stream_end_of_stream_prop) },
+  { FUNCTOR_eof_action1,    LDFUNC_REF(stream_eof_action_prop) },
+  { FUNCTOR_reposition1,    LDFUNC_REF(stream_reposition_prop) },
+  { FUNCTOR_type1,	    LDFUNC_REF(stream_type_prop) },
+  { FUNCTOR_file_no1,	    LDFUNC_REF(stream_file_no_prop) },
+  { FUNCTOR_buffer1,	    LDFUNC_REF(stream_buffer_prop) },
+  { FUNCTOR_buffer_size1,   LDFUNC_REF(stream_buffer_size_prop) },
+  { FUNCTOR_close_on_abort1,LDFUNC_REF(stream_close_on_abort_prop) },
+  { FUNCTOR_tty1,	    LDFUNC_REF(stream_tty_prop) },
+  { FUNCTOR_encoding1,	    LDFUNC_REF(stream_encoding_prop) },
 #ifdef O_LOCALE
-  { FUNCTOR_locale1,	    stream_locale_prop },
+  { FUNCTOR_locale1,	    LDFUNC_REF(stream_locale_prop) },
 #endif
-  { FUNCTOR_bom1,	    stream_bom_prop },
-  { FUNCTOR_newline1,	    stream_newline_prop },
-  { FUNCTOR_representation_errors1, stream_reperror_prop },
-  { FUNCTOR_write_errors1,  stream_writeerror_prop },
-  { FUNCTOR_timeout1,       stream_timeout_prop },
-  { FUNCTOR_nlink1,         stream_nlink_prop },
-  { FUNCTOR_close_on_exec1, stream_close_on_exec_prop },
+  { FUNCTOR_bom1,	    LDFUNC_REF(stream_bom_prop) },
+  { FUNCTOR_newline1,	    LDFUNC_REF(stream_newline_prop) },
+  { FUNCTOR_representation_errors1, LDFUNC_REF(stream_reperror_prop) },
+  { FUNCTOR_write_errors1,  LDFUNC_REF(stream_writeerror_prop) },
+  { FUNCTOR_timeout1,       LDFUNC_REF(stream_timeout_prop) },
+  { FUNCTOR_nlink1,         LDFUNC_REF(stream_nlink_prop) },
+  { FUNCTOR_close_on_exec1, LDFUNC_REF(stream_close_on_exec_prop) },
   { 0,			    NULL }
 };
 
@@ -4734,8 +4770,9 @@ static const sprop sprop_list [] =
     '$streams_properties'(?Property, -Pairs) is det.
 */
 
+#define get_stream_property_def(t) LDFUNC(get_stream_property_def, t)
 static const sprop *
-get_stream_property_def(term_t t ARG_LD)
+get_stream_property_def(DECL_LD term_t t)
 { functor_t f;
 
   if ( PL_get_functor(t, &f) )
@@ -4758,20 +4795,20 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
   IOSTREAM *s;
   int rc;
 
-  if ( !(p=get_stream_property_def(A2 PASS_LD)) )
+  if ( !(p=get_stream_property_def(A2)) )
     return FALSE;
 
   PL_LOCK(L_FILE);
-  if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD)) )
+  if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED)) )
   { switch(arityFunctor(p->functor))
     { case 0:
-	rc = (*(property0_t)p->function)(s PASS_LD);
+	rc = LDFUNCP(*(property0_t)p->function)(s);
 	break;
       case 1:
 	{ term_t a1 = PL_new_term_ref();
 
 	  _PL_get_arg(1, A2, a1);
-	  rc = (*p->function)(s, a1 PASS_LD);
+	  rc = LDFUNCP(*p->function)(s, a1);
 	  break;
 	}
       default:
@@ -4784,8 +4821,9 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
 }
 
 
+#define unify_stream_property_list(s, plist) LDFUNC(unify_stream_property_list, s, plist)
 static int
-unify_stream_property_list(IOSTREAM *s, term_t plist ARG_LD)
+unify_stream_property_list(DECL_LD IOSTREAM *s, term_t plist)
 { term_t tail = PL_copy_term_ref(plist);
   term_t head = PL_new_term_ref();
   term_t prop = PL_new_term_ref();
@@ -4798,12 +4836,12 @@ unify_stream_property_list(IOSTREAM *s, term_t plist ARG_LD)
 
     switch(arityFunctor(p->functor))
     { case 0:
-	rc = (*(property0_t)p->function)(s PASS_LD);
+	rc = LDFUNCP(*(property0_t)p->function)(s);
 	break;
       case 1:
       { term_t a1 = PL_new_term_ref();
 	_PL_get_arg(1, prop, a1);
-	rc = (*p->function)(s, a1 PASS_LD);
+	rc = LDFUNCP(*p->function)(s, a1);
 	break;
       }
       default:
@@ -4836,8 +4874,8 @@ PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
   IOSTREAM *s;
 
   PL_LOCK(L_FILE);
-  rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED PASS_LD) &&
-	 unify_stream_property_list(s, A2 PASS_LD)
+  rc = ( term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED) &&
+	 unify_stream_property_list(s, A2)
        );
   PL_UNLOCK(L_FILE);
 
@@ -4845,20 +4883,21 @@ PRED_IMPL("$stream_properties", 2, dstream_properties, 0)
 }
 
 
+#define unify_stream_property(s, p, t) LDFUNC(unify_stream_property, s, p, t)
 static int
-unify_stream_property(IOSTREAM *s, const sprop *p, term_t t ARG_LD)
+unify_stream_property(DECL_LD IOSTREAM *s, const sprop *p, term_t t)
 { int rc;
 
   if ( !(rc=PL_put_functor(t, p->functor)) )
     return FALSE;
   switch(arityFunctor(p->functor))
   { case 0:
-      rc = (*(property0_t)p->function)(s PASS_LD);
+      rc = LDFUNCP(*(property0_t)p->function)(s);
       break;
     case 1:
     { term_t a1 = PL_new_term_ref();
       _PL_get_arg(1, t, a1);
-      rc = (*p->function)(s, a1 PASS_LD);
+      rc = LDFUNCP(*p->function)(s, a1);
       PL_reset_term_refs(a1);
       break;
     }
@@ -4879,7 +4918,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
   term_t tail = PL_copy_term_ref(A2);
   term_t head = PL_new_term_ref();
 
-  if ( (p=get_stream_property_def(A1 PASS_LD)) )
+  if ( (p=get_stream_property_def(A1)) )
   { TableEnum e = newTableEnum(streamContext);
     IOSTREAM *s;
     term_t st = PL_new_term_ref();
@@ -4889,7 +4928,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
     PL_LOCK(L_FILE);
     while( advanceTableEnum(e, (void**)&s, NULL))
     { rc = ( s->context != NULL &&
-	     unify_stream_property(s, p, pt PASS_LD) &&
+	     unify_stream_property(s, p, pt) &&
 	     can_unify(valTermRef(A1), valTermRef(pt), ex) &&
 	     PL_unify_list(tail, head, tail) &&
 	     PL_unify_functor(head, FUNCTOR_minus2) &&
@@ -4921,7 +4960,7 @@ PRED_IMPL("$streams_properties", 2, dstreams_properties, 0)
 	     PL_get_arg(1, head, st) &&
 	     unify_stream_ref(st, s) &&
 	     PL_get_arg(2, head, pl) &&
-	     unify_stream_property_list(s, pl PASS_LD)
+	     unify_stream_property_list(s, pl)
 	   );
     }
     freeTableEnum(e);
@@ -4971,8 +5010,9 @@ PRED_IMPL("is_stream", 1, is_stream, 0)
 		 *******************************/
 
 
+#define flush_output(out) LDFUNC(flush_output, out)
 static int
-flush_output(term_t out ARG_LD)
+flush_output(DECL_LD term_t out)
 { IOSTREAM *s;
 
   if ( getOutputStream(out, S_DONTCARE, &s) )
@@ -4987,14 +5027,14 @@ static
 PRED_IMPL("flush_output", 0, flush_output, PL_FA_ISO)
 { PRED_LD
 
-  return flush_output(0 PASS_LD);
+  return flush_output(0);
 }
 
 static
 PRED_IMPL("flush_output", 1, flush_output1, PL_FA_ISO)
 { PRED_LD
 
-  return flush_output(A1 PASS_LD);
+  return flush_output(A1);
 }
 
 
@@ -5171,14 +5211,15 @@ PRED_IMPL("set_output", 1, set_output, PL_FA_ISO)
 }
 
 
+#define current_io(t, cur) LDFUNC(current_io, t, cur)
 static int
-current_io(term_t t, IOSTREAM *cur ARG_LD)
+current_io(DECL_LD term_t t, IOSTREAM *cur)
 { if ( PL_is_variable(t) )
   { return PL_unify_stream(t, cur);
   } else
   { IOSTREAM *s;
 
-    if ( term_stream_handle(t, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED PASS_LD) )
+    if ( term_stream_handle(t, &s, SH_ERRORS|SH_ALIAS|SH_UNLOCKED) )
       return s == cur;
     return FALSE;
   }
@@ -5187,14 +5228,14 @@ current_io(term_t t, IOSTREAM *cur ARG_LD)
 static
 PRED_IMPL("current_input", 1, current_input, PL_FA_ISO)
 { PRED_LD
-  return current_io(A1, Scurin PASS_LD);
+  return current_io(A1, Scurin);
 }
 
 
 static
 PRED_IMPL("current_output", 1, current_output, PL_FA_ISO)
 { PRED_LD
-  return current_io(A1, Scurout PASS_LD);
+  return current_io(A1, Scurout);
 }
 
 
@@ -5282,8 +5323,9 @@ PRED_IMPL("$set_source_location", 2, set_source_location, 0)
 }
 
 
+#define at_end_of_stream(stream) LDFUNC(at_end_of_stream, stream)
 static int
-at_end_of_stream(term_t stream ARG_LD)
+at_end_of_stream(DECL_LD term_t stream)
 { IOSTREAM *s;
 
   if ( getInputStream(stream, S_DONTCARE, &s) )
@@ -5309,13 +5351,13 @@ at_end_of_stream(term_t stream ARG_LD)
 static
 PRED_IMPL("at_end_of_stream", 1, at_end_of_stream, PL_FA_ISO)
 { PRED_LD
-  return at_end_of_stream(A1 PASS_LD);
+  return at_end_of_stream(A1);
 }
 
 static
 PRED_IMPL("at_end_of_stream", 0, at_end_of_stream0, PL_FA_ISO)
 { PRED_LD
-  return at_end_of_stream(0 PASS_LD);
+  return at_end_of_stream(0);
 }
 
 
@@ -5350,8 +5392,9 @@ PRED_IMPL("fill_buffer", 1, fill_buffer, 0)
 }
 
 
+#define peek(stream, chr, how) LDFUNC(peek, stream, chr, how)
 static foreign_t
-peek(term_t stream, term_t chr, int how ARG_LD)
+peek(DECL_LD term_t stream, term_t chr, int how)
 { IOSTREAM *s;
   int c;
 
@@ -5384,42 +5427,42 @@ peek(term_t stream, term_t chr, int how ARG_LD)
 static
 PRED_IMPL("peek_byte", 2, peek_byte2, 0)
 { PRED_LD
-  return peek(A1, A2, PL_BYTE PASS_LD);
+  return peek(A1, A2, PL_BYTE);
 }
 
 
 static
 PRED_IMPL("peek_byte", 1, peek_byte1, 0)
 { PRED_LD
-  return peek(0, A1, PL_BYTE PASS_LD);
+  return peek(0, A1, PL_BYTE);
 }
 
 
 static
 PRED_IMPL("peek_code", 2, peek_code2, 0)
 { PRED_LD
-  return peek(A1, A2, PL_CODE PASS_LD);
+  return peek(A1, A2, PL_CODE);
 }
 
 
 static
 PRED_IMPL("peek_code", 1, peek_code1, 0)
 { PRED_LD
-  return peek(0, A1, PL_CODE PASS_LD);
+  return peek(0, A1, PL_CODE);
 }
 
 
 static
 PRED_IMPL("peek_char", 2, peek_char2, 0)
 { PRED_LD
-  return peek(A1, A2, PL_CHAR PASS_LD);
+  return peek(A1, A2, PL_CHAR);
 }
 
 
 static
 PRED_IMPL("peek_char", 1, peek_char1, 0)
 { PRED_LD
-  return peek(0, A1, PL_CHAR PASS_LD);
+  return peek(0, A1, PL_CHAR);
 }
 
 
@@ -5672,8 +5715,9 @@ copy_stream_data(+StreamIn, +StreamOut, [Len])
 	and maybe we need something else to copy resources.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define copy_stream_data(in, out, len) LDFUNC(copy_stream_data, in, out, len)
 static int
-copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
+copy_stream_data(DECL_LD term_t in, term_t out, term_t len)
 { IOSTREAM *i, *o;
   int c, rc;
   int count = 0;
@@ -5723,13 +5767,13 @@ copy_stream_data(term_t in, term_t out, term_t len ARG_LD)
 static
 PRED_IMPL("copy_stream_data", 3, copy_stream_data3, 0)
 { PRED_LD
-  return copy_stream_data(A1, A2, A3 PASS_LD);
+  return copy_stream_data(A1, A2, A3);
 }
 
 static
 PRED_IMPL("copy_stream_data", 2, copy_stream_data2, 0)
 { PRED_LD
-  return copy_stream_data(A1, A2, 0 PASS_LD);
+  return copy_stream_data(A1, A2, 0);
 }
 
 

@@ -43,9 +43,22 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	isCurrentProcedure(f, m)		LDFUNC(isCurrentProcedure, f, m)
+#define	get_head_functor(head, fdef, flags)	LDFUNC(get_head_functor, head, fdef, flags)
+#define	assertDefinition(def, clause, where)	LDFUNC(assertDefinition, def, clause, where)
+#define	assertProcedure(proc, clause, where)	LDFUNC(assertProcedure, proc, clause, where)
+#define	retract_clause(clause, gen)		LDFUNC(retract_clause, clause, gen)
+#define	reconsultFinalizePredicate(rl, def, r)	LDFUNC(reconsultFinalizePredicate, rl, def, r)
+#define	resolveProcedure(f, module)		LDFUNC(resolveProcedure, f, module)
+#define	trapUndefined(undef)			LDFUNC(trapUndefined, undef)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 Procedure	lookupProcedure(functor_t f, Module m) WUNUSED;
 void		unallocProcedure(Procedure proc);
-Procedure	isCurrentProcedure__LD(functor_t f, Module m ARG_LD);
+Procedure	isCurrentProcedure(functor_t f, Module m);
 int		importDefinitionModule(Module m,
 				       Definition def, int flags);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
@@ -57,7 +70,7 @@ int		unshareDefinition(Definition def);
 void		lingerDefinition(Definition def);
 void		setLastModifiedPredicate(Definition def, gen_t gen, int flags);
 int		get_head_functor(term_t head, functor_t *fdef,
-				 int flags ARG_LD);
+				 int flags);
 int		get_functor(term_t descr, functor_t *fdef,
 			    Module *m, term_t h, int how);
 int		get_procedure(term_t descr, Procedure *proc,
@@ -69,11 +82,11 @@ void		clear_meta_declaration(Definition def);
 void		setMetapredicateMask(Definition def, arg_info *args);
 int		isTransparentMetamask(Definition def, arg_info *args);
 ClauseRef	assertDefinition(Definition def, Clause clause,
-				 ClauseRef where ARG_LD);
+				 ClauseRef where);
 ClauseRef	assertProcedure(Procedure proc, Clause clause,
-				ClauseRef where ARG_LD);
+				ClauseRef where);
 bool		abolishProcedure(Procedure proc, Module module);
-int		retract_clause(Clause clause, gen_t gen ARG_LD);
+int		retract_clause(Clause clause, gen_t gen);
 bool		retractClauseDefinition(Definition def, Clause clause,
 					int notify);
 void		unallocClause(Clause c);
@@ -85,10 +98,10 @@ ClauseRef	newClauseRef(Clause cl, word key);
 size_t		removeClausesPredicate(Definition def,
 				       int sfindex, int fromfile);
 void		reconsultFinalizePredicate(sf_reload *rl, Definition def,
-					   p_reload *r ARG_LD);
+					   p_reload *r);
 void		destroyDefinition(Definition def);
-Procedure	resolveProcedure__LD(functor_t f, Module module ARG_LD);
-Definition	trapUndefined(Definition undef ARG_LD);
+Procedure	resolveProcedure(functor_t f, Module module);
+Definition	trapUndefined(Definition undef);
 word		pl_abolish(term_t atom, term_t arity);
 word		pl_abolish1(term_t pred);
 int		redefineProcedure(Procedure proc, SourceFile sf,
@@ -113,12 +126,7 @@ int		ddi_is_garbage(DirtyDefInfo ddi,
 			       Clause cl);
 size_t		sizeof_predicate(Definition def);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define isCurrentProcedure(f,m) isCurrentProcedure__LD(f, m PASS_LD)
-#define resolveProcedure(f,m)	resolveProcedure__LD(f, m PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 		 /*******************************
 		 *	INLINE DEFINITIONS	*

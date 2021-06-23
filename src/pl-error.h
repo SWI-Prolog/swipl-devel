@@ -38,7 +38,7 @@
 #define _PL_ERROR_H
 
 #ifndef COMMON
-#define COMMON(type) extern type
+#define type extern type
 #endif
 
 typedef enum
@@ -104,22 +104,26 @@ typedef enum
 
 #define MSG_ERRNO		((char *)(-1))
 
-COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
-				 PL_error_code id, ...);
-COMMON(int)		PL_no_memory(void);
-COMMON(int)		printMessage(atom_t severity, ...) WUNUSED;
+int		PL_error(const char *pred, int arity, const char *msg,
+			 PL_error_code id, ...);
+int		PL_no_memory(void);
+int		printMessage(atom_t severity, ...) WUNUSED;
 #ifdef ARG_LD
-COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
-COMMON(int)		pl_get_uint64__LD(term_t t, uint64_t *i, int ex ARG_LD);
-COMMON(int)		PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD);
+#if USE_LD_MACROS
+#define	PL_get_atom_ex(t, a)		LDFUNC(PL_get_atom_ex, t, a)
+#define	pl_get_uint64(t, i, ex)		LDFUNC(pl_get_uint64, t, i, ex)
+#define	PL_get_uint64_ex(t, i)		LDFUNC(PL_get_uint64_ex, t, i)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int		PL_get_atom_ex(term_t t, atom_t *a);
+int		pl_get_uint64(term_t t, uint64_t *i, int ex);
+int		PL_get_uint64_ex(term_t t, uint64_t *i);
+
+#undef LDFUNC_DECLARATIONS
 #endif
-COMMON(int)		PL_get_module_ex(term_t name, module_t *m);
-COMMON(int)		PL_get_arg_ex(int n, term_t term, term_t arg);
-
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+int		PL_get_module_ex(term_t name, module_t *m);
+int		PL_get_arg_ex(int n, term_t term, term_t arg);
 
 #endif /*_PL_ERROR_H*/

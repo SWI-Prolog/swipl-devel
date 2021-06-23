@@ -46,11 +46,22 @@
 #define GEN_TR_DISCARD_ASSERT		3
 #define GEN_TR_DISCARD_ASSERT_ERASE	4
 
-COMMON(int)	transaction_retract_clause(Clause clause ARG_LD);
-COMMON(int)	transaction_assert_clause(Clause clause, ClauseRef where ARG_LD);
-COMMON(int)	transaction_visible_clause(Clause cl, gen_t gen ARG_LD);
-COMMON(gen_t)	transaction_last_modified_predicate(Definition def ARG_LD);
-COMMON(void)	transaction_set_last_modified(Definition def,
-					      gen_t gen, int flags);
+#if USE_LD_MACROS
+#define	transaction_retract_clause(clause)		LDFUNC(transaction_retract_clause, clause)
+#define	transaction_assert_clause(clause, where)	LDFUNC(transaction_assert_clause, clause, where)
+#define	transaction_visible_clause(cl, gen)		LDFUNC(transaction_visible_clause, cl, gen)
+#define	transaction_last_modified_predicate(def)	LDFUNC(transaction_last_modified_predicate, def)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	transaction_retract_clause(Clause clause);
+int	transaction_assert_clause(Clause clause, ClauseRef where);
+int	transaction_visible_clause(Clause cl, gen_t gen);
+gen_t	transaction_last_modified_predicate(Definition def);
+void	transaction_set_last_modified(Definition def,
+				      gen_t gen, int flags);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_TRANSACTION_H*/

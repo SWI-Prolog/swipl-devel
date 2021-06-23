@@ -383,8 +383,9 @@ static const opt_spec wildcard_options[] =
 };
 
 
+#define wildcard_match(pattern, string, options) LDFUNC(wildcard_match, pattern, string, options)
 static int
-wildcard_match(term_t pattern, term_t string, term_t options ARG_LD)
+wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
 { char *p, *s;
   int rc = FALSE;
   int mflags = 0;
@@ -416,14 +417,14 @@ static
 PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
 { PRED_LD
 
-  return wildcard_match(A1, A2, 0 PASS_LD);
+  return wildcard_match(A1, A2, 0);
 }
 
 static
 PRED_IMPL("wildcard_match", 3, wildcard_match, 0)
 { PRED_LD
 
-  return wildcard_match(A1, A2, A3 PASS_LD);
+  return wildcard_match(A1, A2, A3);
 }
 
 
@@ -471,8 +472,9 @@ free_expand_info(GlobInfo info)
 
 
 #ifndef __WINDOWS__
+#define mb_add_path(path, info) LDFUNC(mb_add_path, path, info)
 static void
-mb_add_path(const char *path, GlobInfo info ARG_LD)
+mb_add_path(DECL_LD const char *path, GlobInfo info)
 { int idx = (int)entriesBuffer(&info->strings, char);
   PL_chars_t txt;
 
@@ -532,8 +534,9 @@ un_escape(char *to, const char *from, const char *end)
 }
 
 
+#define utf8_exists_file(name) LDFUNC(utf8_exists_file, name)
 static int
-utf8_exists_file(const char *name ARG_LD)
+utf8_exists_file(DECL_LD const char *name)
 {
 #ifndef __WINDOWS__
   PL_chars_t txt;
@@ -557,8 +560,9 @@ utf8_exists_file(const char *name ARG_LD)
 #endif
 }
 
+#define utf8_opendir(name) LDFUNC(utf8_opendir, name)
 static DIR*
-utf8_opendir(const char *name ARG_LD)
+utf8_opendir(DECL_LD const char *name)
 {
 #ifndef __WINDOWS__
   PL_chars_t txt;
@@ -630,7 +634,7 @@ expand(const char *pattern, GlobInfo info)
 		if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
 		  path[plen++] = '/';
 		strcpy(&path[plen], prefix);
-		if ( end == 1 || utf8_exists_file(path PASS_LD) )
+		if ( end == 1 || utf8_exists_file(path) )
 		  utf8_add_path(path, info);
 	      }
 	    }
@@ -690,7 +694,7 @@ expand(const char *pattern, GlobInfo info)
       strcpy(path, current);
       strcpy(&path[clen], prefix);
 
-      if ( (d=utf8_opendir((path[0] ? OsPath(path, tmp) : ".") PASS_LD)) )
+      if ( (d=utf8_opendir((path[0] ? OsPath(path, tmp) : "."))) )
       { size_t plen = clen+prefix_len;
 
 	if ( plen > 0 && path[plen-1] != '/' )
@@ -711,7 +715,7 @@ expand(const char *pattern, GlobInfo info)
 #ifdef __WINDOWS__			/* readdir() emulation emits UTF-8 */
 	      utf8_add_path(newp, info);
 #else
-	      mb_add_path(newp, info PASS_LD);
+	      mb_add_path(newp, info);
 #endif
 	    }
 	  }

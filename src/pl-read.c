@@ -462,8 +462,9 @@ static void	init_term_stack(ReadData _PL_rd);
 static void	clear_term_stack(ReadData _PL_rd);
 
 
+#define init_read_data(_PL_rd, in) LDFUNC(init_read_data, _PL_rd, in)
 static void
-init_read_data(ReadData _PL_rd, IOSTREAM *in ARG_LD)
+init_read_data(DECL_LD ReadData _PL_rd, IOSTREAM *in)
 { memset(_PL_rd, 0, offsetof(read_data, _rb.fast));
 
   initBuffer(&var_name_buffer);
@@ -902,8 +903,9 @@ addToBuffer(int c, ReadData _PL_rd)
 }
 
 
+#define setCurrentSourceLocation(_PL_rd) LDFUNC(setCurrentSourceLocation, _PL_rd)
 static void
-setCurrentSourceLocation(ReadData _PL_rd ARG_LD)
+setCurrentSourceLocation(DECL_LD ReadData _PL_rd)
 { atom_t a;
   IOSTREAM *s = rb.stream;
 
@@ -950,7 +952,7 @@ getchr__(ReadData _PL_rd)
 			   addToBuffer(c, _PL_rd); \
 		        }
 #define set_start_line { if ( !something_read ) \
-			 { setCurrentSourceLocation(_PL_rd PASS_LD); \
+			 { setCurrentSourceLocation(_PL_rd); \
 			   something_read++; \
 			 } \
 		       }
@@ -1098,8 +1100,9 @@ raw_read_identifier(int c, ReadData _PL_rd)
 }
 
 
+#define add_comment(b, pos, _PL_rd) LDFUNC(add_comment, b, pos, _PL_rd)
 static int
-add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
+add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
 { term_t head = PL_new_term_ref();
 
   assert(_PL_rd->comments);
@@ -1128,8 +1131,9 @@ add_comment(Buffer b, IOPOS *pos, ReadData _PL_rd ARG_LD)
 }
 
 
+#define raw_read2(_PL_rd) LDFUNC(raw_read2, _PL_rd)
 static int
-raw_read2(ReadData _PL_rd ARG_LD)
+raw_read2(DECL_LD ReadData _PL_rd)
 { int c;
   bool something_read = FALSE;
   IOPOS pbuf;					/* comment start */
@@ -1235,7 +1239,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 			     (--level == 0 || _PL_rd->strictness) )
 			{ if ( cbuf )
 			  { addUTF8Buffer(cbuf, EOS);
-			    if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
+			    if ( !add_comment(cbuf, pos, _PL_rd) )
 			    { discardBuffer(cbuf);
 			      return FALSE;
 			    }
@@ -1304,7 +1308,7 @@ raw_read2(ReadData _PL_rd ARG_LD)
 		    break;
 		  }
 		  addUTF8Buffer(cbuf, EOS);
-		  if ( !add_comment(cbuf, pos, _PL_rd PASS_LD) )
+		  if ( !add_comment(cbuf, pos, _PL_rd) )
 		  { discardBuffer(cbuf);
 		    return FALSE;
 		  }
@@ -1475,8 +1479,9 @@ proper reconstruction of source locations. Comment   before  the term is
 skipped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define raw_read(_PL_rd, endp) LDFUNC(raw_read, _PL_rd, endp)
 static int
-raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
+raw_read(DECL_LD ReadData _PL_rd, unsigned char **endp)
 { int rc;
 
   if ( (rb.stream->flags & SIO_ISATTY) && Sfileno(rb.stream) >= 0 )
@@ -1484,10 +1489,10 @@ raw_read(ReadData _PL_rd, unsigned char **endp ARG_LD)
 
     PushTty(rb.stream, &tab, TTY_SAVE);		/* make sure tty is sane */
     PopTty(rb.stream, &ttytab, FALSE);
-    rc = raw_read2(_PL_rd PASS_LD);
+    rc = raw_read2(_PL_rd);
     PopTty(rb.stream, &tab, TRUE);
   } else
-  { rc = raw_read2(_PL_rd PASS_LD);
+  { rc = raw_read2(_PL_rd);
   }
 
   if ( endp )
@@ -1701,8 +1706,9 @@ warn_multiton(const char *name)
 #define LIST_SINGLETONS 1
 #define IS_MULTITON     2
 
+#define is_singleton(var, type, _PL_rd) LDFUNC(is_singleton, var, type, _PL_rd)
 static int
-is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
+is_singleton(DECL_LD Variable var, int type, ReadData _PL_rd)
 { if ( var->times == 1 )
   { if ( (type == IS_SINGLETON    && warn_singleton(var->name)) ||
 	 (type == LIST_SINGLETONS) ||
@@ -1735,14 +1741,15 @@ is_singleton(Variable var, int type, ReadData _PL_rd ARG_LD)
 }
 
 
+#define check_singletons(term, _PL_rd) LDFUNC(check_singletons, term, _PL_rd)
 static bool				/* TBD: new schema */
-check_singletons(term_t term, ReadData _PL_rd ARG_LD)
+check_singletons(DECL_LD term_t term, ReadData _PL_rd)
 { if ( _PL_rd->singles != TRUE )	/* returns <name> = var bindings */
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
     for_vars(var,
-	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd) )
 	     {	if ( !PL_unify_list(list, head, list) ||
 		     !PL_unify_term(head,
 				    PL_FUNCTOR,    FUNCTOR_equals2,
@@ -1758,7 +1765,7 @@ check_singletons(term_t term, ReadData _PL_rd ARG_LD)
 
 					/* singletons */
     for_vars(var,
-	     if ( is_singleton(var, IS_SINGLETON, _PL_rd PASS_LD) )
+	     if ( is_singleton(var, IS_SINGLETON, _PL_rd) )
 	     { if ( i < MAX_SINGLETONS )
 		 singletons[i++] = var->name;
 	     });
@@ -1771,7 +1778,7 @@ check_singletons(term_t term, ReadData _PL_rd ARG_LD)
     if ( (_PL_rd->styleCheck&MULTITON_CHECK) )
     { i = 0;				/* multiple _X* */
       for_vars(var,
-	       if ( is_singleton(var, IS_MULTITON, _PL_rd PASS_LD) )
+	       if ( is_singleton(var, IS_MULTITON, _PL_rd) )
 	       { if ( i < MAX_SINGLETONS )
 		   singletons[i++] = var->name;
 	       });
@@ -1787,8 +1794,9 @@ check_singletons(term_t term, ReadData _PL_rd ARG_LD)
 }
 
 
+#define bind_variable_names(_PL_rd) LDFUNC(bind_variable_names, _PL_rd)
 static bool
-bind_variable_names(ReadData _PL_rd ARG_LD)
+bind_variable_names(DECL_LD ReadData _PL_rd)
 { term_t list = PL_copy_term_ref(_PL_rd->varnames);
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
@@ -1816,8 +1824,9 @@ bind_variable_names(ReadData _PL_rd ARG_LD)
 }
 
 
+#define bind_variables(_PL_rd) LDFUNC(bind_variables, _PL_rd)
 static bool
-bind_variables(ReadData _PL_rd ARG_LD)
+bind_variables(DECL_LD ReadData _PL_rd)
 { term_t list = PL_copy_term_ref(_PL_rd->variables);
   term_t head = PL_new_term_ref();
 
@@ -1883,8 +1892,9 @@ PRED_IMPL("$qq_open", 2, qq_open, 0)
 }
 
 
+#define parse_quasi_quotations(_PL_rd) LDFUNC(parse_quasi_quotations, _PL_rd)
 static int
-parse_quasi_quotations(ReadData _PL_rd ARG_LD)
+parse_quasi_quotations(DECL_LD ReadData _PL_rd)
 { if ( _PL_rd->qq_tail )
   { term_t av;
     int rc;
@@ -2775,8 +2785,9 @@ ptr_to_pos(const unsigned char *p, ReadData _PL_rd)
 }
 
 
+#define get_token(must_be_op, _PL_rd) LDFUNC(get_token, must_be_op, _PL_rd)
 static Token
-get_token__LD(bool must_be_op, ReadData _PL_rd ARG_LD)
+get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 { int c;
   unsigned char *start;
 
@@ -3069,7 +3080,6 @@ out:
   return &cur_token;
 }
 
-#define get_token(must_be_op, rd) get_token__LD(must_be_op, rd PASS_LD)
 
 
 		 /*******************************
@@ -3095,8 +3105,9 @@ clear_term_stack(ReadData _PL_rd)
 }
 
 
+#define alloc_term(_PL_rd) LDFUNC(alloc_term, _PL_rd)
 static term_t
-alloc_term(ReadData _PL_rd ARG_LD)
+alloc_term(DECL_LD ReadData _PL_rd)
 { term_stack *ts = &_PL_rd->term_stack;
   term_t t;
 
@@ -3146,8 +3157,9 @@ statically allocated and thus unique.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
+#define readValHandle(term, argp, _PL_rd) LDFUNC(readValHandle, term, argp, _PL_rd)
 static inline void
-readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
+readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
 { word w = *valTermRef(term);
   Variable var;
 
@@ -3170,8 +3182,9 @@ readValHandle(term_t term, Word argp, ReadData _PL_rd ARG_LD)
 }
 
 
+#define ensureSpaceForTermRefs(n) LDFUNC(ensureSpaceForTermRefs, n)
 static inline int
-ensureSpaceForTermRefs(size_t n ARG_LD)
+ensureSpaceForTermRefs(DECL_LD size_t n)
 { return ensureLocalSpace(n*sizeof(word));
 }
 
@@ -3180,8 +3193,9 @@ ensureSpaceForTermRefs(size_t n ARG_LD)
    on the term-stack and pushes the result back to the term-stack
 */
 
+#define build_term(atom, arity, _PL_rd) LDFUNC(build_term, atom, arity, _PL_rd)
 static int
-build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
+build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
 { functor_t functor = lookupFunctorDef(atom, arity);
   word w;
   Word argp;
@@ -3190,7 +3204,7 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   if ( !hasGlobalSpace(arity+1) &&
        (rc=ensureGlobalSpace(arity+1, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
     return raiseStackOverflow(rc);
-  if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
+  if ( (rc=ensureSpaceForTermRefs(arity)) != TRUE )
     return rc;
 
   DEBUG(8, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
@@ -3203,14 +3217,14 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
   { term_t *av, *argv = term_av(-arity, _PL_rd);
 
     for(av=argv; arity-- > 0; av++, argp++)
-      readValHandle(*av, argp, _PL_rd PASS_LD);
+      readValHandle(*av, argp, _PL_rd);
 
     setHandle(argv[0], w);
     truncate_term_stack(&argv[1], _PL_rd);
     DEBUG(8, Sdprintf("result: ");
 	     PL_write_term(Serror, argv[0], 1200, PL_WRT_QUOTED|PL_WRT_NEWLINE));
   } else
-  { term_t t = alloc_term(_PL_rd PASS_LD);
+  { term_t t = alloc_term(_PL_rd);
 
     setHandle(t, w);
     DEBUG(8, Sdprintf("result: ");
@@ -3228,8 +3242,9 @@ build_term(atom_t atom, int arity, ReadData _PL_rd ARG_LD)
 	class, key1, value1, key2, value2, ...
 */
 
+#define build_dict(pairs, _PL_rd) LDFUNC(build_dict, pairs, _PL_rd)
 static int
-build_dict(int pairs, ReadData _PL_rd ARG_LD)
+build_dict(DECL_LD int pairs, ReadData _PL_rd)
 { int arity = pairs*2+1;
   term_t *argv = term_av(-arity, _PL_rd);
   word w;
@@ -3245,7 +3260,7 @@ build_dict(int pairs, ReadData _PL_rd ARG_LD)
   for(i=0; i<pairs; i++)
     indexes[i] = i;
 
-  if ( (i=dict_order_term_refs(argv+1, indexes, pairs PASS_LD)) )
+  if ( (i=dict_order_term_refs(argv+1, indexes, pairs)) )
   { term_t ex = PL_new_term_ref();
 
     rc = ( PL_unify_term(ex,
@@ -3263,7 +3278,7 @@ build_dict(int pairs, ReadData _PL_rd ARG_LD)
   if ( !hasGlobalSpace(pairs*2+2) &&
        (rc=ensureGlobalSpace(pairs*2+2, ALLOW_GC|ALLOW_SHIFT)) != TRUE )
     return rc;
-  if ( (rc=ensureSpaceForTermRefs(arity PASS_LD)) != TRUE )
+  if ( (rc=ensureSpaceForTermRefs(arity)) != TRUE )
     return rc;
 
   DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));
@@ -3271,11 +3286,11 @@ build_dict(int pairs, ReadData _PL_rd ARG_LD)
   w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
   gTop += pairs*2+2;
   *argp++ = dict_functor(pairs);
-  readValHandle(argv[0], argp++, _PL_rd PASS_LD); /* the class */
+  readValHandle(argv[0], argp++, _PL_rd); /* the class */
 
   for(i=0; i<pairs; i++)
-  { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd PASS_LD); /* value */
-    readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd PASS_LD); /* key */
+  { readValHandle(argv[indexes[i]*2+2], argp++, _PL_rd); /* value */
+    readValHandle(argv[indexes[i]*2+1], argp++, _PL_rd); /* key */
   }
 
   setHandle(argv[0], w);
@@ -3345,8 +3360,9 @@ pop_out_op(ReadData _PL_rd)
 	pop_out_op(_PL_rd); \
         cstate.out_n--;
 
+#define get_int_arg(t, n) LDFUNC(get_int_arg, t, n)
 static intptr_t
-get_int_arg(term_t t, int n ARG_LD)
+get_int_arg(DECL_LD term_t t, int n)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -3355,19 +3371,20 @@ get_int_arg(term_t t, int n ARG_LD)
 }
 
 
+#define opPos(op, args) LDFUNC(opPos, op, args)
 static term_t
-opPos(op_entry *op, out_entry *args ARG_LD)
+opPos(DECL_LD op_entry *op, out_entry *args)
 { if ( op->tpos )
-  { intptr_t fs = get_int_arg(op->tpos, 1 PASS_LD);
-    intptr_t fe = get_int_arg(op->tpos, 2 PASS_LD);
+  { intptr_t fs = get_int_arg(op->tpos, 1);
+    intptr_t fe = get_int_arg(op->tpos, 2);
     term_t r;
 
     if ( !(r=PL_new_term_ref()) )
       return 0;
 
     if ( op->kind == OP_INFIX )
-    { intptr_t s = get_int_arg(args[0].tpos, 1 PASS_LD);
-      intptr_t e = get_int_arg(args[1].tpos, 2 PASS_LD);
+    { intptr_t s = get_int_arg(args[0].tpos, 1);
+      intptr_t e = get_int_arg(args[1].tpos, 2);
 
       if ( !op->isblock )
       { if ( !PL_unify_term(r,
@@ -3396,9 +3413,9 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 
       if ( op->kind == OP_PREFIX )
       { s = fs;
-	e = get_int_arg(args[0].tpos, 2 PASS_LD);
+	e = get_int_arg(args[0].tpos, 2);
       } else
-      { s = get_int_arg(args[0].tpos, 1 PASS_LD);
+      { s = get_int_arg(args[0].tpos, 1);
 	e = fe;
       }
 
@@ -3431,8 +3448,9 @@ opPos(op_entry *op, out_entry *args ARG_LD)
 }
 
 
+#define op_name(e) LDFUNC(op_name, e)
 static inline atom_t
-op_name(op_entry *e ARG_LD)
+op_name(DECL_LD op_entry *e)
 { if ( !e->isterm )
   { return e->op.atom;
   } else
@@ -3451,8 +3469,9 @@ op_name(op_entry *e ARG_LD)
 }
 
 
+#define build_op_term(op, _PL_rd) LDFUNC(build_op_term, op, _PL_rd)
 static int
-build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
+build_op_term(DECL_LD op_entry *op, ReadData _PL_rd)
 { term_t tmp;
   out_entry *e;
   int arity = (op->kind == OP_INFIX ? 2 : 1);
@@ -3462,10 +3481,10 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
 
   e = out_op(-arity, _PL_rd);
   if ( !op->isblock )
-  { if ( !build_term(op->op.atom, arity, _PL_rd PASS_LD) )
+  { if ( !build_term(op->op.atom, arity, _PL_rd) )
       return FALSE;
   } else
-  { term_t term = alloc_term(_PL_rd PASS_LD);
+  { term_t term = alloc_term(_PL_rd);
     term_t *av = term_av(-(arity+1), _PL_rd);
     int i;
 
@@ -3474,12 +3493,12 @@ build_op_term(op_entry *op, ReadData _PL_rd ARG_LD)
     av[0] = term;
     PL_put_term(term, op->op.block);
 
-    if ( !build_term(op_name(op PASS_LD), arity+1, _PL_rd PASS_LD) )
+    if ( !build_term(op_name(op), arity+1, _PL_rd) )
       return FALSE;
   }
 
   e->pri = op->op_pri;
-  if ( op->tpos && !(e->tpos = opPos(op, e PASS_LD)) )
+  if ( op->tpos && !(e->tpos = opPos(op, e)) )
     return FALSE;
 
   _PL_rd->op.out_queue.top = (char*)(e+1);
@@ -3502,7 +3521,8 @@ functions:  complex_term()  which is involved with operator handling and
 simple_term() which reads everything, except for operators.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD);
+#define simple_term(token, positions, _PL_rd) LDFUNC(simple_term, token, positions, _PL_rd)
+static int simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd);
 
 typedef struct cterm_state
 { ReadData	rd;			/* Read global data */
@@ -3512,12 +3532,13 @@ typedef struct cterm_state
   int		rmo;			/* Operands more than operators */
 } cterm_state;
 
+#define isOp(e, kind, _PL_rd) LDFUNC(isOp, e, kind, _PL_rd)
 static bool
-isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
+isOp(DECL_LD op_entry *e, int kind, ReadData _PL_rd)
 { int pri;
   int type;
 
-  if ( !currentOperator(_PL_rd->module, op_name(e PASS_LD), kind, &type, &pri) )
+  if ( !currentOperator(_PL_rd->module, op_name(e), kind, &type, &pri) )
     fail;
   e->kind   = kind;
   e->op_pri = pri;
@@ -3537,7 +3558,7 @@ isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
 
 
 #define stringOp(e) \
-	stringAtom(op_name(e PASS_LD))
+	stringAtom(op_name(e))
 #define PushOp() \
 	queue_side_op(&in_op, _PL_rd); \
 	cstate.side_n++, cstate.side_p++;
@@ -3547,8 +3568,9 @@ isOp(op_entry *e, int kind, ReadData _PL_rd ARG_LD)
 #define SideOp(i) \
 	side_op(i, _PL_rd)
 
+#define modify_op(cstate, cpri) LDFUNC(modify_op, cstate, cpri)
 static int
-modify_op(cterm_state *cstate, int cpri ARG_LD)
+modify_op(DECL_LD cterm_state *cstate, int cpri)
 { ReadData _PL_rd = cstate->rd;
 
   if ( cstate->side_n > 0 && cstate->rmo == 0 &&
@@ -3559,18 +3581,18 @@ modify_op(cterm_state *cstate, int cpri ARG_LD)
 
       DEBUG(MSG_READ_OP, Sdprintf("Prefix %s to atom", stringOp(op)));
       cstate->rmo++;
-      if ( !(tmp = alloc_term(_PL_rd PASS_LD)) )
+      if ( !(tmp = alloc_term(_PL_rd)) )
 	return FALSE;
       PL_put_atom(tmp, op->op.atom);
       queue_out_op(0, op->tpos, _PL_rd);
       cstate->out_n++;
       PopOp(cstate);
     } else if ( op->kind == OP_INFIX && cstate->out_n > 0 &&
-		isOp(op, OP_POSTFIX, _PL_rd PASS_LD) )
+		isOp(op, OP_POSTFIX, _PL_rd) )
     { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfixn",
 				  stringOp(op)));
       cstate->rmo++;
-      if ( !build_op_term(op, _PL_rd PASS_LD) )
+      if ( !build_op_term(op, _PL_rd) )
 	return FALSE;
       PopOp(cstate);
     }
@@ -3672,8 +3694,9 @@ Returns: TRUE:   Ok
          FALSE:  Error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define reduce_op(cstate, cpri) LDFUNC(reduce_op, cstate, cpri)
 static int
-reduce_op(cterm_state *cstate, int cpri ARG_LD)
+reduce_op(DECL_LD cterm_state *cstate, int cpri)
 { ReadData _PL_rd = cstate->rd;
 
   while( cstate->out_n > 0 && cstate->side_n > 0 &&
@@ -3682,7 +3705,7 @@ reduce_op(cterm_state *cstate, int cpri ARG_LD)
 
     rc = can_reduce(SideOp(cstate->side_p), cpri, cstate->out_n, cstate->rd);
     if ( rc > 0 )
-    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd PASS_LD) )
+    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd) )
 	return FALSE;
       if ( SideOp(cstate->side_p)->kind == OP_INFIX )
 	cstate->out_n--;
@@ -3767,8 +3790,9 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 }
 
 
+#define unify_atomic_position(positions, token) LDFUNC(unify_atomic_position, positions, token)
 static int
-unify_atomic_position(term_t positions, Token token ARG_LD)
+unify_atomic_position(DECL_LD term_t positions, Token token)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_minus2,
@@ -3779,8 +3803,9 @@ unify_atomic_position(term_t positions, Token token ARG_LD)
 }
 
 
+#define unify_string_position(positions, token) LDFUNC(unify_string_position, positions, token)
 static int
-unify_string_position(term_t positions, Token token ARG_LD)
+unify_string_position(DECL_LD term_t positions, Token token)
 { if ( positions )
   { return PL_unify_term(positions,
 			 PL_FUNCTOR, FUNCTOR_string_position2,
@@ -3819,9 +3844,10 @@ consider  the  last  operator  on  the  side   queue  as  an  atom.  See
 modify_op().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define complex_term(stop, maxpri, positions, _PL_rd) LDFUNC(complex_term, stop, maxpri, positions, _PL_rd)
 static int
-complex_term(const char *stop, short maxpri, term_t positions,
-	     ReadData _PL_rd ARG_LD)
+complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
+	     ReadData _PL_rd)
 { op_entry in_op;
   term_t pin;
   Token token;
@@ -3878,7 +3904,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
       DEBUG(MSG_READ_OP, Sdprintf("name %s, rmo = %d\n",
 				  stringOp(&in_op), cstate.rmo));
 
-      if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd PASS_LD) )
+      if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
       { DEBUG(MSG_READ_OP, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
       push_op:
@@ -3886,7 +3912,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	if ( in_op.isblock )
 	{ term_t *top;
 
-	  if ( (rc = simple_term(token, pin, _PL_rd PASS_LD)) != TRUE )
+	  if ( (rc = simple_term(token, pin, _PL_rd)) != TRUE )
 	    return rc;			/* TBD: need cleanup? */
 	  top = term_av(-1, _PL_rd);
 	  in_op.op.block = PL_new_term_ref();
@@ -3894,32 +3920,32 @@ complex_term(const char *stop, short maxpri, term_t positions,
 	  PL_put_term(in_op.op.block, *top);
 	  truncate_term_stack(top, _PL_rd);
 	} else
-	{ if ( !unify_atomic_position(pin, token PASS_LD) )
+	{ if ( !unify_atomic_position(pin, token) )
 	    return FALSE;
 	}
 	PushOp();
 
 	continue;
       }
-      if ( isOp(&in_op, OP_INFIX, _PL_rd PASS_LD) )
+      if ( isOp(&in_op, OP_INFIX, _PL_rd) )
       { DEBUG(MSG_READ_OP, Sdprintf("Infix op: %s\n", stringOp(&in_op)));
 
-	if ( !modify_op(&cstate, in_op.left_pri PASS_LD) )
+	if ( !modify_op(&cstate, in_op.left_pri) )
 	  return FALSE;
 	if ( cstate.rmo == 1 )
-	{ if ( !reduce_op(&cstate, in_op.left_pri PASS_LD) )
+	{ if ( !reduce_op(&cstate, in_op.left_pri) )
 	    return FALSE;
 	  cstate.rmo--;
 	  goto push_op;
 	}
       }
-      if ( isOp(&in_op, OP_POSTFIX, _PL_rd PASS_LD) )
+      if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
       { DEBUG(MSG_READ_OP, Sdprintf("Postfix op: %s\n", stringOp(&in_op)));
 
-	if ( !modify_op(&cstate, in_op.left_pri PASS_LD) )
+	if ( !modify_op(&cstate, in_op.left_pri) )
 	  return FALSE;
 	if ( cstate.rmo == 1 )
-	{ if ( !reduce_op(&cstate, in_op.left_pri PASS_LD) )
+	{ if ( !reduce_op(&cstate, in_op.left_pri) )
 	    return FALSE;
 	  goto push_op;
 	}
@@ -3931,7 +3957,7 @@ complex_term(const char *stop, short maxpri, term_t positions,
       syntaxError("operator_expected", _PL_rd);
 
 					/* Read `simple' term */
-    rc = simple_term(token, pin, _PL_rd PASS_LD);
+    rc = simple_term(token, pin, _PL_rd);
     if ( rc != TRUE )
       return rc;
 
@@ -3944,9 +3970,9 @@ complex_term(const char *stop, short maxpri, term_t positions,
 
 exit:
   unget_token();			/* the full-stop or punctuation */
-  if ( !modify_op(&cstate, maxpri PASS_LD) )
+  if ( !modify_op(&cstate, maxpri) )
     return FALSE;
-  if ( !reduce_op(&cstate, maxpri PASS_LD) )
+  if ( !reduce_op(&cstate, maxpri) )
     return FALSE;
 
   if ( cstate.out_n == 1 && cstate.side_n == 0 ) /* simple term */
@@ -3962,7 +3988,7 @@ exit:
 
   if ( cstate.out_n == 0 && cstate.side_n == 1 ) /* single operator */
   { op_entry *op = SideOp(cstate.side_p);
-    term_t term = alloc_term(_PL_rd PASS_LD);
+    term_t term = alloc_term(_PL_rd);
     int rc;
 
     if ( !op->isblock )
@@ -4000,8 +4026,9 @@ exit:
 }
 
 
+#define set_range_position(positions, start, end) LDFUNC(set_range_position, positions, start, end)
 static void
-set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
+set_range_position(DECL_LD term_t positions, intptr_t start, intptr_t end)
 { Word p = valTermRef(positions);
 
   deRef(p);
@@ -4011,8 +4038,9 @@ set_range_position(term_t positions, intptr_t start, intptr_t end ARG_LD)
 }
 
 
+#define end_range(positions) LDFUNC(end_range, positions)
 static intptr_t
-end_range(term_t positions ARG_LD)
+end_range(DECL_LD term_t positions)
 { Word p = valTermRef(positions);
 
   deRef(p);
@@ -4029,8 +4057,9 @@ simple_term() uses less stack. Why is that?  Nevertheless, this is a lot
 more readable and makes selecting between inlining and not trivial.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define read_list(token, positions, _PL_rd) LDFUNC(read_list, token, positions, _PL_rd)
 static inline int
-read_list(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_list(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { term_t term, tail, *tmp;
   term_t pv;
 
@@ -4059,7 +4088,7 @@ special term-ref. It is always a reference   to the place where the next
 term is to be written.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  term = alloc_term(_PL_rd PASS_LD);
+  term = alloc_term(_PL_rd);
   if ( !PL_put_term(tail, term) )
     return FALSE;
 
@@ -4072,10 +4101,10 @@ term is to be written.
 	return FALSE;
     }
 
-    rc = complex_term(",|]", 999, P_ELEM, _PL_rd PASS_LD);
+    rc = complex_term(",|]", 999, P_ELEM, _PL_rd);
     if ( rc != TRUE )
       return rc;
-    if ( (rc=ensureSpaceForTermRefs(2 PASS_LD)) != TRUE )
+    if ( (rc=ensureSpaceForTermRefs(2)) != TRUE )
       return rc;
     if ( !hasGlobalSpace(3) &&
          (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
@@ -4088,7 +4117,7 @@ term is to be written.
     setVar(argp[0]);
     setVar(argp[1]);
     tmp = term_av(-1, _PL_rd);
-    readValHandle(tmp[0], argp++, _PL_rd PASS_LD);
+    readValHandle(tmp[0], argp++, _PL_rd);
     truncate_term_stack(tmp, _PL_rd);
     setHandle(tail, makeRefG(argp));
 
@@ -4097,7 +4126,7 @@ term is to be written.
     switch(token->value.character)
     { case ']':
 	{ if ( positions )
-	  { set_range_position(positions, -1, token->end PASS_LD);
+	  { set_range_position(positions, -1, token->end);
 	    if ( !PL_unify_nil(P_LIST) ||
 		 !PL_unify_atom(P_TAIL, ATOM_none) )
 	      return FALSE;
@@ -4108,11 +4137,11 @@ term is to be written.
 	{ int rc;
 	  term_t pt = (pv ? P_TAIL : 0);
 
-	  if ( (rc=complex_term(",|]", 999, pt, _PL_rd PASS_LD)) != TRUE )
+	  if ( (rc=complex_term(",|]", 999, pt, _PL_rd)) != TRUE )
 	    return rc;
 	  argp = unRef(*valTermRef(tail));
 	  tmp = term_av(-1, _PL_rd);
-	  readValHandle(tmp[0], argp, _PL_rd PASS_LD);
+	  readValHandle(tmp[0], argp, _PL_rd);
 	  truncate_term_stack(tmp, _PL_rd);
 	  token = get_token(FALSE, _PL_rd); /* discard ']' */
 	  switch(token->value.character)
@@ -4121,7 +4150,7 @@ term is to be written.
 	      syntaxError("list_rest", _PL_rd);
 	  }
 	  if ( positions )
-	  { set_range_position(positions, -1, token->end PASS_LD);
+	  { set_range_position(positions, -1, token->end);
 	    if ( !PL_unify_nil(P_LIST) )
 	      return FALSE;
 	  }
@@ -4137,8 +4166,9 @@ term is to be written.
 }
 
 
+#define read_brace_term(token, positions, _PL_rd) LDFUNC(read_brace_term, token, positions, _PL_rd)
 static inline int				/* read {...} */
-read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_brace_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { int rc;
   term_t pa;
 
@@ -4153,18 +4183,19 @@ read_brace_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   } else
     pa = 0;
 
-  if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
+  if ( (rc=complex_term("}", OP_MAXPRIORITY+1, pa, _PL_rd)) != TRUE )
     return rc;
   token = get_token(FALSE, _PL_rd);
   if ( positions )
-    set_range_position(positions, -1, token->end PASS_LD);
+    set_range_position(positions, -1, token->end);
 
-  return build_term(ATOM_curl, 1, _PL_rd PASS_LD);
+  return build_term(ATOM_curl, 1, _PL_rd);
 }
 
 
+#define read_parentheses_term(token, positions, _PL_rd) LDFUNC(read_parentheses_term, token, positions, _PL_rd)
 static inline int				/* read (...) */
-read_parentheses_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_parentheses_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { int rc;
   term_t pa;
 
@@ -4179,18 +4210,19 @@ read_parentheses_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   } else
     pa = 0;
 
-  if ( (rc=complex_term(")", OP_MAXPRIORITY+1, pa, _PL_rd PASS_LD)) != TRUE )
+  if ( (rc=complex_term(")", OP_MAXPRIORITY+1, pa, _PL_rd)) != TRUE )
     return rc;
   token = get_token(FALSE, _PL_rd);	/* skip ')' */
   if ( positions )
-    set_range_position(positions, -1, token->end PASS_LD);
+    set_range_position(positions, -1, token->end);
 
   succeed;
 }
 
 
+#define read_compound(token, positions, _PL_rd) LDFUNC(read_compound, token, positions, _PL_rd)
 static inline int				/* read f(a1, ...) */
-read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_compound(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { int arity = 0;
   atom_t functor;
   term_t pv;
@@ -4230,7 +4262,7 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       { if ( !PL_unify_list(P_ARG, P_HEAD, P_ARG) )
 	  return FALSE;
       }
-      if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd PASS_LD)) != TRUE )
+      if ( (rc=complex_term(",)", 999, P_HEAD, _PL_rd)) != TRUE )
       { if ( unlock )
 	  PL_unregister_atom(functor);
 	return rc;
@@ -4241,7 +4273,7 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   }
 
   if ( positions )
-  { set_range_position(positions, -1, token->end PASS_LD);
+  { set_range_position(positions, -1, token->end);
     if ( !PL_unify_nil(P_ARG) )
       return FALSE;
   }
@@ -4257,7 +4289,7 @@ read_compound(Token token, term_t positions, ReadData _PL_rd ARG_LD)
       functor = ATOM_dot;		/* the abstract cons name */
   }
 
-  rc = build_term(functor, arity, _PL_rd PASS_LD);
+  rc = build_term(functor, arity, _PL_rd);
   if ( unlock )
     PL_unregister_atom(functor);
 
@@ -4298,8 +4330,9 @@ is_key_token(Token token, ReadData _PL_rd)
    in pl-dict.c
 */
 
+#define read_dict(token, positions, _PL_rd) LDFUNC(read_dict, token, positions, _PL_rd)
 static inline int
-read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+read_dict(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { int pairs = 0;
   term_t pv;
   int rc;
@@ -4325,18 +4358,18 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 					/* Push the class */
   switch ( token->type )
   { case T_DICT:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
       break;
     }
     case T_VCLASS_DICT:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       setHandle(term, token->value.variable->signature);
       break;
     }
     case T_VOID_DICT:
-    { alloc_term(_PL_rd PASS_LD);
+    { alloc_term(_PL_rd);
     }
   }
 
@@ -4358,14 +4391,14 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 	return FALSE;
 
       if ( is_key_token(key, _PL_rd) )
-      { key_term = alloc_term(_PL_rd PASS_LD);
+      { key_term = alloc_term(_PL_rd);
 	PL_put_atom(key_term, key->value.atom);
 	Unlock(key->value.atom);
       } else if ( key->type == T_NUMBER )
       { Number n = &key->value.number;
 
 	if ( n->type == V_INTEGER && valInt(consInt(n->value.i)) == n->value.i )
-	{ key_term = alloc_term(_PL_rd PASS_LD);
+	{ key_term = alloc_term(_PL_rd);
 	  PL_put_integer(key_term, n->value.i);
 	} else
 	  syntaxError("key_domain", _PL_rd); /* representation error? */
@@ -4402,13 +4435,13 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 
       if ( (rc=complex_term(",}", 999,
 			    positions ? P_VALUE : 0,
-			    _PL_rd PASS_LD)) != TRUE )
+			    _PL_rd)) != TRUE )
 	return rc;
 
       if ( positions )
-      { intptr_t vend = end_range(P_VALUE PASS_LD);
+      { intptr_t vend = end_range(P_VALUE);
 
-	set_range_position(P_HEAD, -1, vend PASS_LD);
+	set_range_position(P_HEAD, -1, vend);
       }
 
       pairs++;
@@ -4417,7 +4450,7 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
   }
 
   if ( positions )
-  { set_range_position(positions, -1, token->end PASS_LD);
+  { set_range_position(positions, -1, token->end);
     if ( !PL_unify_nil(P_ARG) )
       return FALSE;
   }
@@ -4426,7 +4459,7 @@ read_dict(Token token, term_t positions, ReadData _PL_rd ARG_LD)
 #undef P_ARG
 #undef P_VALUE
 
-  return build_dict(pairs, _PL_rd PASS_LD);
+  return build_dict(pairs, _PL_rd);
 }
 
 
@@ -4436,57 +4469,57 @@ Token is the first token of the term.
 */
 
 static int
-simple_term(Token token, term_t positions, ReadData _PL_rd ARG_LD)
+simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 { switch(token->type)
   { case T_FULLSTOP:
       syntaxError("end_of_clause", _PL_rd);
     case T_VOID:
-      alloc_term(_PL_rd PASS_LD);
+      alloc_term(_PL_rd);
       /* nothing to do; term is already a variable */
-      return unify_atomic_position(positions, token PASS_LD);
+      return unify_atomic_position(positions, token);
     case T_VARIABLE:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       setHandle(term, token->value.variable->signature);
       DEBUG(9, Sdprintf("Pushed var at 0x%x\n", token->value.variable));
-      return unify_atomic_position(positions, token PASS_LD);
+      return unify_atomic_position(positions, token);
     }
     case T_NAME:
     case T_QNAME:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       PL_put_atom(term, token->value.atom);
       Unlock(token->value.atom);
-      return unify_atomic_position(positions, token PASS_LD);
+      return unify_atomic_position(positions, token);
     }
     case T_NUMBER:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       if ( !_PL_put_number(term, &token->value.number) )
 	return FALSE;
       clearNumber(&token->value.number);
-      return unify_atomic_position(positions, token PASS_LD);
+      return unify_atomic_position(positions, token);
     }
     case T_STRING:
-    { term_t term = alloc_term(_PL_rd PASS_LD);
+    { term_t term = alloc_term(_PL_rd);
       PL_put_term(term, token->value.term);
-      return unify_string_position(positions, token PASS_LD);
+      return unify_string_position(positions, token);
     }
     case T_FUNCTOR:
-      return read_compound(token, positions, _PL_rd PASS_LD);
+      return read_compound(token, positions, _PL_rd);
     case T_DICT:
     case T_VCLASS_DICT:
     case T_VOID_DICT:
-      return read_dict(token, positions, _PL_rd PASS_LD);
+      return read_dict(token, positions, _PL_rd);
     case T_PUNCTUATION:
     { switch(token->value.character)
       { case '(':
-	  return read_parentheses_term(token, positions, _PL_rd PASS_LD);
+	  return read_parentheses_term(token, positions, _PL_rd);
 	case '{':
-	  return read_brace_term(token, positions, _PL_rd PASS_LD);
+	  return read_brace_term(token, positions, _PL_rd);
 	case '[':
-	  return read_list(token, positions, _PL_rd PASS_LD);
+	  return read_list(token, positions, _PL_rd);
 	default:
-	{ term_t term = alloc_term(_PL_rd PASS_LD);
+	{ term_t term = alloc_term(_PL_rd);
 	  PL_put_atom(term, codeToAtom(token->value.character));
-	  return unify_atomic_position(positions, token PASS_LD);
+	  return unify_atomic_position(positions, token);
 	}
       }
     }
@@ -4498,7 +4531,7 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
     { int rc;
       term_t result, t, *argv, pv, av;
 
-      result = alloc_term(_PL_rd PASS_LD);
+      result = alloc_term(_PL_rd);
 
 				/* prepare (if we are the first in term) */
       if ( !_PL_rd->varnames )
@@ -4534,7 +4567,7 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 						/* push type */
       rc = complex_term("|", OP_MAXPRIORITY+1,
 			positions ? pv+1 : 0,
-			_PL_rd PASS_LD);
+			_PL_rd);
       if ( rc != TRUE )
 	return rc;
       token = get_token(FALSE, _PL_rd);		/* get the '|' */
@@ -4555,7 +4588,7 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 
 	if ( !PL_unify(pv+0, av+0) )
 	  return FALSE;
-	set_range_position(positions, -1, qqend PASS_LD);
+	set_range_position(positions, -1, qqend);
 	if ( !PL_unify_term(pv+2,
 			    PL_FUNCTOR, FUNCTOR_minus2,
 			      PL_INTPTR, token->end,	/* end of | token */
@@ -4592,8 +4625,9 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 instantiate_template(-Term, +AtTerm)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define instantiate_template(term, at_term) LDFUNC(instantiate_template, term, at_term)
 static int
-instantiate_template(term_t term, term_t at_term ARG_LD)
+instantiate_template(DECL_LD term_t term, term_t at_term)
 { term_t template, substitutions, head, var, value;
 
   if ( !(template = PL_new_term_ref()) ||
@@ -4631,15 +4665,16 @@ read_term(?term, ReadData rd)
     Common part of all read variations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define read_term(term, rd) LDFUNC(read_term, term, rd)
 static bool
-read_term(term_t term, ReadData rd ARG_LD)
+read_term(DECL_LD term_t term, ReadData rd)
 { int rc2, rc = FALSE;
   term_t *result;
   Token token;
   Word p;
   fid_t fid;
 
-  if ( !raw_read(rd, &rd->end PASS_LD) )
+  if ( !raw_read(rd, &rd->end) )
     fail;
 
   if ( !(fid=PL_open_foreign_frame()) )
@@ -4648,7 +4683,7 @@ read_term(term_t term, ReadData rd ARG_LD)
   rd->here = rd->base;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
   if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1,
-			 rd->subtpos, rd PASS_LD)) != TRUE )
+			 rd->subtpos, rd)) != TRUE )
   { rc = raiseStackOverflow(rc2);
     goto out;
   }
@@ -4661,12 +4696,12 @@ read_term(term_t term, ReadData rd ARG_LD)
     if ( !v )
       goto out;
     setVar(*v);
-    if ( (rc2=ensureSpaceForTermRefs(1 PASS_LD)) != TRUE )
+    if ( (rc2=ensureSpaceForTermRefs(1)) != TRUE )
     { rc = raiseStackOverflow(rc2);
       goto out;
     }
     p = valTermRef(result[0]);		/* may be shifted */
-    readValHandle(result[0], v, rd PASS_LD);
+    readValHandle(result[0], v, rd);
     *p = makeRefG(v);
   }
 
@@ -4678,22 +4713,22 @@ read_term(term_t term, ReadData rd ARG_LD)
   }
 
   if ( rd->cycles && PL_is_functor(result[0], FUNCTOR_xpceref2) )
-    rc = instantiate_template(term, result[0] PASS_LD);
+    rc = instantiate_template(term, result[0]);
   else
     rc = PL_unify(term, result[0]);
 
   truncate_term_stack(result, rd);
   if ( !rc )
     goto out;
-  if ( rd->varnames && !(rc=bind_variable_names(rd PASS_LD)) )
+  if ( rd->varnames && !(rc=bind_variable_names(rd)) )
     goto out;
 #ifdef O_QUASIQUOTATIONS
-  if ( !(rc=parse_quasi_quotations(rd PASS_LD)) )
+  if ( !(rc=parse_quasi_quotations(rd)) )
     goto out;
 #endif
-  if ( rd->variables && !(rc=bind_variables(rd PASS_LD)) )
+  if ( rd->variables && !(rc=bind_variables(rd)) )
     goto out;
-  if ( rd->singles && !(rc=check_singletons(term, rd PASS_LD)) )
+  if ( rd->singles && !(rc=check_singletons(term, rd)) )
     goto out;
 
   rc = TRUE;
@@ -4741,8 +4776,8 @@ pl_raw_read2(term_t from, term_t term)
   if ( !getTextInputStream(from, &in) )
     fail;
 
-  init_read_data(&rd, in PASS_LD);
-  if ( !raw_read(&rd, &e PASS_LD) )
+  init_read_data(&rd, in);
+  if ( !raw_read(&rd, &e) )
   { if ( Sferror(in) )
     { rval = streamStatus(in);
     } else
@@ -4798,8 +4833,8 @@ pl_read2(term_t from, term_t term)
   if ( !getTextInputStream(from, &s) )
     fail;
 
-  init_read_data(&rd, s PASS_LD);
-  rval = read_term(term, &rd PASS_LD);
+  init_read_data(&rd, s);
+  rval = read_term(term, &rd);
   if ( rd.has_exception )
     rval = PL_raise_exception(rd.exception);
   free_read_data(&rd);
@@ -4819,8 +4854,9 @@ pl_read(term_t term)
 }
 
 
+#define unify_read_term_position(tpos) LDFUNC(unify_read_term_position, tpos)
 static int
-unify_read_term_position(term_t tpos ARG_LD)
+unify_read_term_position(DECL_LD term_t tpos)
 { if ( tpos && source_line_no > 0 )
   { return PL_unify_term(tpos,
 			 PL_FUNCTOR, FUNCTOR_dstream_position4,
@@ -4891,7 +4927,7 @@ callCommentHook(predicate_t comment_hook,
 
 
 int
-read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
+read_clause(DECL_LD IOSTREAM *s, term_t term, term_t options)
 { read_data rd;
   int rval;
   fid_t fid;
@@ -4910,7 +4946,7 @@ read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD)
     return FALSE;
 
 retry:
-  init_read_data(&rd, s PASS_LD);
+  init_read_data(&rd, s);
 
   if ( options &&
        !scan_options(options, 0, ATOM_read_option, read_clause_options,
@@ -4937,8 +4973,8 @@ retry:
     rd.comments = PL_copy_term_ref(comments);
   rd.on_error = syntax_errors;
   rd.singles = rd.styleCheck & SINGLETON_CHECK ? TRUE : FALSE;
-  if ( (rval=read_term(term, &rd PASS_LD)) &&
-       (!tpos || (rval=unify_read_term_position(tpos PASS_LD))) )
+  if ( (rval=read_term(term, &rd)) &&
+       (!tpos || (rval=unify_read_term_position(tpos))) )
   { if ( rd.comments &&
 	 (rval = PL_unify_nil(rd.comments)) )
     { if ( opt_comments )
@@ -4968,7 +5004,7 @@ PRED_IMPL("read_clause", 3, read_clause, 0)
 
   if ( !getTextInputStream(A1, &s) )
     return FALSE;
-  rc = read_clause(s, A2, A3 PASS_LD);
+  rc = read_clause(s, A2, A3);
   if ( Sferror(s) )
     return streamStatus(s);
   else
@@ -5000,8 +5036,9 @@ static const opt_spec read_term_options[] =
 };
 
 
+#define read_term_from_stream(s, term, options) LDFUNC(read_term_from_stream, s, term, options)
 static foreign_t
-read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
+read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 { term_t tpos = 0;
   term_t tcomments = 0;
   int rval;
@@ -5015,7 +5052,7 @@ read_term_from_stream(IOSTREAM *s, term_t term, term_t options ARG_LD)
   fid_t fid = PL_open_foreign_frame();
 
 retry:
-  init_read_data(&rd, s PASS_LD);
+  init_read_data(&rd, s);
 
   if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
 		     &rd.varnames,
@@ -5071,13 +5108,13 @@ retry:
   if ( rd.subtpos )
     s->position = &s->posbuf;
 
-  rval = read_term(term, &rd PASS_LD);
+  rval = read_term(term, &rd);
   if ( Sferror(s) )
     return FALSE;
 
   if ( rval )
   { if ( tpos )
-      rval = unify_read_term_position(tpos PASS_LD);
+      rval = unify_read_term_position(tpos);
     if ( rval && tcomments )
     { if ( !PL_unify_nil(rd.comments) )
 	rval = FALSE;
@@ -5105,7 +5142,7 @@ PRED_IMPL("read_term", 3, read_term, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getTextInputStream(A1, &s) )
-  { if ( read_term_from_stream(s, A2, A3 PASS_LD) )
+  { if ( read_term_from_stream(s, A2, A3) )
       return PL_release_stream(s);
     if ( Sferror(s) )
       return streamStatus(s);
@@ -5126,7 +5163,7 @@ PRED_IMPL("read_term", 2, read_term, PL_FA_ISO)
   IOSTREAM *s;
 
   if ( getTextInputStream(0, &s) )
-  { if ( read_term_from_stream(s, A1, A2 PASS_LD) )
+  { if ( read_term_from_stream(s, A1, A2) )
       return PL_release_stream(s);
     if ( Sferror(s) )
       return streamStatus(s);
@@ -5159,7 +5196,7 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
     source_location oldsrc = LD->read_source;
 
     if ( (stream = Sopen_text(&txt, "r")) )
-    { rc = read_term_from_stream(stream, A2, A3 PASS_LD);
+    { rc = read_term_from_stream(stream, A2, A3);
       Sclose(stream);
     } else
       rc = FALSE;
@@ -5173,8 +5210,9 @@ PRED_IMPL("read_term_from_atom", 3, read_term_from_atom, 0)
 }
 
 
+#define atom_to_term(atom, term, bindings, text_type) LDFUNC(atom_to_term, atom, term, bindings, text_type)
 static int
-atom_to_term(term_t atom, term_t term, term_t bindings, int text_type ARG_LD)
+atom_to_term(DECL_LD term_t atom, term_t term, term_t bindings, int text_type)
 { PL_chars_t txt;
 
   if ( !bindings && PL_is_variable(atom) ) /* term_to_atom(+, -) */
@@ -5215,13 +5253,13 @@ atom_to_term(term_t atom, term_t term, term_t bindings, int text_type ARG_LD)
 
     stream = Sopen_text(&txt, "r");
 
-    init_read_data(&rd, stream PASS_LD);
+    init_read_data(&rd, stream);
     if ( bindings && (PL_is_variable(bindings) || PL_is_list(bindings)) )
       rd.varnames = bindings;
     else if ( bindings )
       return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, bindings);
 
-    if ( !(rval = read_term(term, &rd PASS_LD)) && rd.has_exception )
+    if ( !(rval = read_term(term, &rd)) && rd.has_exception )
       rval = PL_raise_exception(rd.exception);
     free_read_data(&rd);
     Sclose(stream);
@@ -5237,21 +5275,21 @@ atom_to_term(term_t atom, term_t term, term_t bindings, int text_type ARG_LD)
 static
 PRED_IMPL("atom_to_term", 3, atom_to_term, 0)
 { GET_LD
-  return atom_to_term(A1, A2, A3, PL_ATOM PASS_LD);
+  return atom_to_term(A1, A2, A3, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("term_to_atom", 2, term_to_atom, 0)
 { GET_LD
-  return atom_to_term(A2, A1, 0, PL_ATOM PASS_LD);
+  return atom_to_term(A2, A1, 0, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("term_string", 2, term_string, 0)
 { GET_LD
-  return atom_to_term(A2, A1, 0, PL_STRING PASS_LD);
+  return atom_to_term(A2, A1, 0, PL_STRING);
 }
 
 
@@ -5301,9 +5339,9 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
 		      (flags&REP_MB)   ? ENC_ANSI : ENC_ISO_LATIN_1);
   oldsrc = LD->read_source;
 
-  init_read_data(&rd, stream PASS_LD);
+  init_read_data(&rd, stream);
   PL_put_variable(t);
-  if ( !(rval = read_term(t, &rd PASS_LD)) && rd.has_exception )
+  if ( !(rval = read_term(t, &rd)) && rd.has_exception )
   { if ( (flags&CVT_EXCEPTION) )
       rval = PL_raise_exception(rd.exception);
     else
@@ -5340,9 +5378,9 @@ PL_wchars_to_term(const wchar_t *s, term_t t)
   { read_data rd;
 
     source_location oldsrc = LD->read_source;
-    init_read_data(&rd, stream PASS_LD);
+    init_read_data(&rd, stream);
     PL_put_variable(t);
-    if ( !(rc = read_term(t, &rd PASS_LD)) && rd.has_exception )
+    if ( !(rc = read_term(t, &rd)) && rd.has_exception )
       PL_put_term(t, rd.exception);
     free_read_data(&rd);
     Sclose(stream);

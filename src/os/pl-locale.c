@@ -345,32 +345,36 @@ getLocaleEx(term_t t, PL_locale **lp)
 		 *	 PROLOG BINDING		*
 		 *******************************/
 
+#define locale_alias_property(l, prop) LDFUNC(locale_alias_property, l, prop)
 static int		/* locale_property(Mutex, alias(Name)) */
-locale_alias_property(PL_locale *l, term_t prop ARG_LD)
+locale_alias_property(DECL_LD PL_locale *l, term_t prop)
 { if ( l->alias )
     return PL_unify_atom(prop, l->alias);
 
   return FALSE;
 }
 
+#define locale_decimal_point_property(l, prop) LDFUNC(locale_decimal_point_property, l, prop)
 static int		/* locale_property(Locale, decimal_point(Atom)) */
-locale_decimal_point_property(PL_locale *l, term_t prop ARG_LD)
+locale_decimal_point_property(DECL_LD PL_locale *l, term_t prop)
 { if ( l->decimal_point && l->decimal_point[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->decimal_point);
 
   return FALSE;
 }
 
+#define locale_thousands_sep_property(l, prop) LDFUNC(locale_thousands_sep_property, l, prop)
 static int		/* locale_property(Locale, thousands_sep(Atom)) */
-locale_thousands_sep_property(PL_locale *l, term_t prop ARG_LD)
+locale_thousands_sep_property(DECL_LD PL_locale *l, term_t prop)
 { if ( l->thousands_sep && l->thousands_sep[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->thousands_sep);
 
   return FALSE;
 }
 
+#define locale_grouping_property(l, prop) LDFUNC(locale_grouping_property, l, prop)
 static int		/* locale_property(Locale, grouping(List)) */
-locale_grouping_property(PL_locale *l, term_t prop ARG_LD)
+locale_grouping_property(DECL_LD PL_locale *l, term_t prop)
 { if ( l->grouping && l->grouping[0] )
   { term_t tail = PL_copy_term_ref(prop);
     term_t head = PL_new_term_ref();
@@ -396,10 +400,10 @@ locale_grouping_property(PL_locale *l, term_t prop ARG_LD)
 
 
 static const tprop lprop_list [] =
-{ { FUNCTOR_alias1,	    locale_alias_property },
-  { FUNCTOR_decimal_point1, locale_decimal_point_property },
-  { FUNCTOR_thousands_sep1, locale_thousands_sep_property },
-  { FUNCTOR_grouping1,      locale_grouping_property },
+{ { FUNCTOR_alias1,	    LDFUNC_REF(locale_alias_property) },
+  { FUNCTOR_decimal_point1, LDFUNC_REF(locale_decimal_point_property) },
+  { FUNCTOR_thousands_sep1, LDFUNC_REF(locale_thousands_sep_property) },
+  { FUNCTOR_grouping1,      LDFUNC_REF(locale_grouping_property) },
   { 0,			    NULL }
 };
 
@@ -544,7 +548,7 @@ enumerate:
       _PL_get_arg(1, property, arg);
 
     for(;;)
-    { if ( (*state->p->function)(state->l, arg PASS_LD) )
+    { if ( LDFUNCP(*state->p->function)(state->l, arg) )
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,
