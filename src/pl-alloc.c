@@ -323,14 +323,15 @@ typedef struct cycle_entry
 { LocalFrame frame;
 } cycle_entry;
 
+#define is_variant_frame(fr1, fr2) LDFUNC(is_variant_frame, fr1, fr2)
 static int
-is_variant_frame(LocalFrame fr1, LocalFrame fr2 ARG_LD)
+is_variant_frame(DECL_LD LocalFrame fr1, LocalFrame fr2)
 { if ( fr1->predicate == fr2->predicate )
   { size_t arity = fr1->predicate->functor->arity;
     size_t i;
 
     for(i=0; i<arity; i++)
-    { if ( !is_variant_ptr(argFrameP(fr1, i), argFrameP(fr2, i) PASS_LD) )
+    { if ( !is_variant_ptr(argFrameP(fr1, i), argFrameP(fr2, i)) )
 	return FALSE;
     }
 
@@ -341,11 +342,11 @@ is_variant_frame(LocalFrame fr1, LocalFrame fr2 ARG_LD)
 }
 
 
+#define non_terminating_recursion(fr0, ce, is_cycle) LDFUNC(non_terminating_recursion, fr0, ce, is_cycle)
 static int
-non_terminating_recursion(LocalFrame fr0,
+non_terminating_recursion(DECL_LD LocalFrame fr0,
 			  cycle_entry ce[MAX_CYCLE],
-			  int *is_cycle
-			  ARG_LD)
+			  int *is_cycle)
 { int depth, mindepth = 1, repeat;
   LocalFrame fr, ctx;
 
@@ -363,7 +364,7 @@ again:
   if ( !fr || depth >= MAX_CYCLE )
     return 0;
 
-  *is_cycle = is_variant_frame(fr0, fr PASS_LD);
+  *is_cycle = is_variant_frame(fr0, fr);
   ctx = fr;
 
   for(repeat=MIN_REPEAT; fr && --repeat > 0; )
@@ -392,15 +393,16 @@ again:
   return 0;
 }
 
+#define find_non_terminating_recursion(fr, ce, is_cycle) LDFUNC(find_non_terminating_recursion, fr, ce, is_cycle)
 static int
-find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE],
-			       int *is_cycle ARG_LD)
+find_non_terminating_recursion(DECL_LD LocalFrame fr, cycle_entry ce[MAX_CYCLE],
+			       int *is_cycle)
 { int max_pre_loop = MAX_PRE_LOOP;
 
   for(; fr && max_pre_loop; fr = parentFrame(fr), max_pre_loop--)
   { int len;
 
-    if ( (len=non_terminating_recursion(fr, ce, is_cycle PASS_LD)) )
+    if ( (len=non_terminating_recursion(fr, ce, is_cycle)) )
       return len;
   }
 
@@ -408,8 +410,9 @@ find_non_terminating_recursion(LocalFrame fr, cycle_entry ce[MAX_CYCLE],
 }
 
 
+#define top_of_stack(fr, ce, maxdepth) LDFUNC(top_of_stack, fr, ce, maxdepth)
 static int
-top_of_stack(LocalFrame fr, cycle_entry ce[MAX_CYCLE], int maxdepth ARG_LD)
+top_of_stack(DECL_LD LocalFrame fr, cycle_entry ce[MAX_CYCLE], int maxdepth)
 { int depth;
 
   for(depth = 0; fr && depth < maxdepth; fr = parentFrame(fr), depth++)
@@ -483,7 +486,7 @@ push_goal(LocalFrame fr)
 
 	if ( isList(*a) )
 	{ Word tail;
-	  intptr_t len = skip_list(a, &tail PASS_LD);
+	  intptr_t len = skip_list(a, &tail);
 
 	  *ad++ = FUNCTOR_dot2;
 	  deRef(tail);
@@ -548,8 +551,9 @@ push_cycle(cycle_entry ce[MAX_CYCLE], int depth)
 }
 
 
+#define push_stack(ce, depth, name, pp) LDFUNC(push_stack, ce, depth, name, pp)
 static void
-push_stack(cycle_entry ce[MAX_CYCLE], int depth, atom_t name, Word *pp ARG_LD)
+push_stack(DECL_LD cycle_entry ce[MAX_CYCLE], int depth, atom_t name, Word *pp)
 { word w;
   Word p = *pp;
 
@@ -601,19 +605,19 @@ push_overflow_context(Stack stack, int extra)
     { int is_cycle;
 
       if ( (depth=find_non_terminating_recursion(environment_frame, ce,
-						 &is_cycle PASS_LD)) )
+						 &is_cycle)) )
       { push_stack(ce, depth, is_cycle ? ATOM_cycle : ATOM_non_terminating,
-		   &p PASS_LD);
-      } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
-      { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
+		   &p);
+      } else if ( (depth=top_of_stack(environment_frame, ce, 5)) )
+      { push_stack(ce, depth, ATOM_stack, &p);
       }
-    } else if ( (depth=top_of_stack(environment_frame, ce, 5 PASS_LD)) )
-    { push_stack(ce, depth, ATOM_stack, &p PASS_LD);
+    } else if ( (depth=top_of_stack(environment_frame, ce, 5)) )
+    { push_stack(ce, depth, ATOM_stack, &p);
     }
 
     *dict = dict_functor((p-dict-2)/2);		/* final functor */
 
-    dict_order(dict, NULL PASS_LD);
+    dict_order(dict, NULL);
 
     return consPtr(dict, STG_GLOBAL|TAG_COMPOUND);
   } else
@@ -695,7 +699,7 @@ outOfStack(void *stack, stack_overflow_action how)
 	gTop += 5;
 
 	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
-	freezeGlobal(PASS_LD1);
+	freezeGlobal();
       } else
       { Sdprintf("ERROR: Out of global-stack.\n"
 		 "ERROR: No room for exception term.  Aborting.\n");
@@ -743,7 +747,7 @@ raiseStackOverflow(int overflow)
 
 
 void
-pushArgumentStack__LD(Word p ARG_LD)
+f_pushArgumentStack(DECL_LD Word p)
 { Word *newbase;
   size_t newsize = nextStackSize((Stack)&LD->stacks.argument, 1);
 
@@ -784,7 +788,7 @@ inline  as  it is simple and usualy very time critical.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-allocGlobal__LD(size_t n ARG_LD)
+allocGlobal(DECL_LD size_t n)
 { Word result;
 
   if ( !hasGlobalSpace(n) )
@@ -803,7 +807,7 @@ allocGlobal__LD(size_t n ARG_LD)
 }
 
 Word
-allocGlobalNoShift__LD(size_t n ARG_LD)
+allocGlobalNoShift(DECL_LD size_t n)
 { Word result;
 
   if ( gTop+n > gMax )
@@ -842,7 +846,7 @@ Return is one of:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-put_int64(Word at, int64_t l, int flags ARG_LD)
+put_int64(DECL_LD Word at, int64_t l, int flags)
 { Word p;
   word r, m;
   int req;
@@ -914,7 +918,7 @@ Note that these functions can trigger GC
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-allocString(size_t len ARG_LD)
+allocString(DECL_LD size_t len)
 { size_t lw = (len+sizeof(word))/sizeof(word);
   int pad = (int)(lw*sizeof(word) - len);
   Word p = allocGlobal(2 + lw);
@@ -934,7 +938,7 @@ allocString(size_t len ARG_LD)
 word
 globalString(size_t len, const char *s)
 { GET_LD
-  Word p = allocString(len+1 PASS_LD);
+  Word p = allocString(len+1);
 
   if ( p )
   { char *q = (char *)&p[1];
@@ -964,7 +968,7 @@ globalWString(size_t len, const pl_wchar_t *s)
   if ( p == e )				/* 8-bit string */
   { unsigned char *t;
 
-    if ( !(g = allocString(len+1 PASS_LD)) )
+    if ( !(g = allocString(len+1)) )
       return 0;
     t = (unsigned char *)&g[1];
     *t++ = 'B';
@@ -974,7 +978,7 @@ globalWString(size_t len, const pl_wchar_t *s)
   { char *t;
     pl_wchar_t *w;
 
-    if ( !(g = allocString((len+1)*sizeof(pl_wchar_t) PASS_LD)) )
+    if ( !(g = allocString((len+1)*sizeof(pl_wchar_t))) )
       return 0;
     t = (char *)&g[1];
     w = (pl_wchar_t*)t;
@@ -988,7 +992,7 @@ globalWString(size_t len, const pl_wchar_t *s)
 
 
 char *
-getCharsString__LD(word w, size_t *len ARG_LD)
+getCharsString(DECL_LD word w, size_t *len)
 { Word p = valPtr(w);
   word m = *p;
   size_t wn  = wsizeofInd(m);
@@ -1009,7 +1013,7 @@ getCharsString__LD(word w, size_t *len ARG_LD)
 
 
 pl_wchar_t *
-getCharsWString__LD(word w, size_t *len ARG_LD)
+getCharsWString(DECL_LD word w, size_t *len)
 { Word p = valPtr(w);
   word m = *p;
   size_t wn  = wsizeofInd(m);
@@ -1041,7 +1045,7 @@ might not be properly aligned.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-put_double(Word at, double d, int flags ARG_LD)
+put_double(DECL_LD Word at, double d, int flags)
 { Word p;
   word m = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 
@@ -1075,7 +1079,7 @@ put_double(Word at, double d, int flags ARG_LD)
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 
 int64_t					/* take care of alignment! */
-valBignum__LD(word w ARG_LD)
+valBignum(DECL_LD word w)
 { Word p = valIndirectP(w);
   union
   { int64_t i;
@@ -1121,7 +1125,7 @@ equalIndirect(word w1, word w2)
 word
 globalIndirectFromCode(Code *PC)
 { GET_LD
-  struct word_and_Code retval = VM_globalIndirectFromCode(*PC PASS_LD);
+  struct word_and_Code retval = VM_globalIndirectFromCode(*PC);
   *PC = retval.code;
   return retval.word;
 }
@@ -1931,7 +1935,7 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
     return FALSE;
 
   if ( how == ATOM_short )
-  { trimStacks(TRUE PASS_LD);
+  { trimStacks(TRUE);
     if ( fMallocExtension_MarkThreadTemporarilyIdle &&
 	 fMallocExtension_MarkThreadBusy )
       fMallocExtension_MarkThreadTemporarilyIdle();

@@ -71,8 +71,9 @@ unallocProcedureSymbol(void *name, void *value)
 }
 
 
+#define _lookupModule(name) LDFUNC(_lookupModule, name)
 static Module
-_lookupModule(atom_t name ARG_LD)
+_lookupModule(DECL_LD atom_t name)
 { Module m, super;
 
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
@@ -132,14 +133,14 @@ _lookupModule(atom_t name ARG_LD)
 
 
 Module
-lookupModule__LD(atom_t name ARG_LD)
+lookupModule(DECL_LD atom_t name)
 { Module m;
 
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
   PL_LOCK(L_MODULE);
-  m = _lookupModule(name PASS_LD);
+  m = _lookupModule(name);
   PL_UNLOCK(L_MODULE);
 
   return m;
@@ -147,7 +148,7 @@ lookupModule__LD(atom_t name ARG_LD)
 
 
 Module
-isCurrentModule__LD(atom_t name ARG_LD)
+isCurrentModule(DECL_LD atom_t name)
 { return lookupHTable(GD->tables.modules, (void*)name);
 }
 
@@ -169,7 +170,7 @@ temporary modules.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Module
-acquireModule__LD(atom_t name ARG_LD)
+acquireModule(DECL_LD atom_t name)
 { Module m;
 
   PL_LOCK(L_MODULE);
@@ -275,8 +276,8 @@ initModules(void)
 
     GD->tables.modules = newHTable(MODULEHASHSIZE);
     GD->tables.modules->free_symbol = unallocModuleSymbol;
-    GD->modules.system = _lookupModule(ATOM_system PASS_LD);
-    GD->modules.user   = _lookupModule(ATOM_user PASS_LD);
+    GD->modules.system = _lookupModule(ATOM_system);
+    GD->modules.user   = _lookupModule(ATOM_user);
   }
   PL_UNLOCK(L_MODULE);
 }
@@ -610,8 +611,9 @@ setSuperModule(Module m, Module s)
 }
 
 
+#define set_module(m, prop) LDFUNC(set_module, m, prop)
 static int
-set_module(Module m, term_t prop ARG_LD)
+set_module(DECL_LD Module m, term_t prop)
 { atom_t pname;
   size_t arity;
 
@@ -626,7 +628,7 @@ set_module(Module m, term_t prop ARG_LD)
       if ( !PL_get_atom_ex(arg, &mname) )
 	return FALSE;
 
-      return setSuperModule(m, _lookupModule(mname PASS_LD));
+      return setSuperModule(m, _lookupModule(mname));
     } else if ( pname == ATOM_class )
     { atom_t class;
 
@@ -685,13 +687,13 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
   Word p;
   int rc;
 
-  if ( !(p=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
+  if ( !(p=stripModuleName(valTermRef(A1), &mname)) )
     return FALSE;
   *valTermRef(prop) = linkValNoG(p);
 
   PL_LOCK(L_MODULE);
-  m = mname ? _lookupModule(mname PASS_LD) : MODULE_parse;
-  rc = set_module(m, prop PASS_LD);
+  m = mname ? _lookupModule(mname) : MODULE_parse;
+  rc = set_module(m, prop);
   PL_UNLOCK(L_MODULE);
 
   return rc;
@@ -732,7 +734,7 @@ return value is the plain term or NULL if `term` is cyclic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModuleName(Word term, atom_t *name ARG_LD)
+stripModuleName(DECL_LD Word term, atom_t *name)
 { int depth = 100;
   deRef(term);
   atom_t nm = 0;
@@ -746,7 +748,7 @@ stripModuleName(Word term, atom_t *name ARG_LD)
     nm = *mp;
     term = argTermP(*term, 1);
     deRef(term);
-    if ( --depth == 0 && !is_acyclic(term PASS_LD) )
+    if ( --depth == 0 && !is_acyclic(term) )
     { term_t t = pushWordAsTermRef(term);
       PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
       popTermRef();
@@ -768,11 +770,11 @@ remaining term.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
-stripModule(Word term, Module *module, int flags ARG_LD)
+stripModule(DECL_LD Word term, Module *module, int flags)
 { atom_t mname = 0;
   Word rc;
 
-  if ( (rc=stripModuleName(term, &mname PASS_LD)) )
+  if ( (rc=stripModuleName(term, &mname)) )
   { if ( mname )
     { if ( unlikely(flags&SM_NOCREATE) )
       { Module m;
@@ -906,8 +908,9 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
 }
 
 
+#define get_existing_source_file(file, sfp) LDFUNC(get_existing_source_file, file, sfp)
 static int
-get_existing_source_file(term_t file, SourceFile *sfp ARG_LD)
+get_existing_source_file(DECL_LD term_t file, SourceFile *sfp)
 { SourceFile sf;
   atom_t a;
 
@@ -960,7 +963,7 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
 	return FALSE;
       }
 
-      if ( !get_existing_source_file(file, &sf PASS_LD) )
+      if ( !get_existing_source_file(file, &sf) )
 	return FALSE;			/* given, but non-existing file */
 
       if ( sf )
@@ -1118,10 +1121,11 @@ typedef struct defm_target
 } defm_target;
 
 
+#define find_modules_with_defs(m, count, targets, tmp, mlist, l) LDFUNC(find_modules_with_defs, m, count, targets, tmp, mlist, l)
 static int
-find_modules_with_defs(Module m, int count, defm_target targets[],
+find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 		       term_t tmp, term_t mlist,
-		       int l ARG_LD)
+		       int l)
 { ListCell c;
   int i;
   int found = FALSE;
@@ -1162,7 +1166,7 @@ find_modules_with_defs(Module m, int count, defm_target targets[],
   for(c = m->supers; c; c=c->next)
   { Module s = c->value;
 
-    if ( !find_modules_with_defs(s, count, targets, tmp, mlist, l-1 PASS_LD) )
+    if ( !find_modules_with_defs(s, count, targets, tmp, mlist, l-1) )
       return FALSE;
   }
 
@@ -1198,7 +1202,7 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
   atom_t mname = 0;
   Word mp;
 
-  if ( !(mp=stripModuleName(valTermRef(A1), &mname PASS_LD)) )
+  if ( !(mp=stripModuleName(valTermRef(A1), &mname)) )
     return FALSE;
   *valTermRef(ttail) = linkValNoG(mp);
 
@@ -1225,7 +1229,7 @@ PRED_IMPL("$def_modules", 2, def_modules, PL_FA_TRANSPARENT)
   if ( !PL_get_nil_ex(ttail) )
     return FALSE;
 
-  if ( !find_modules_with_defs(m, tcount, targets, tmp, tail, 100 PASS_LD) )
+  if ( !find_modules_with_defs(m, tcount, targets, tmp, tail, 100) )
     return FALSE;
 
   return PL_unify_nil(tail);
@@ -1295,7 +1299,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
     clearHTable(module->public);
   }
   if ( super )
-    rc = setSuperModule(module, _lookupModule(super PASS_LD));
+    rc = setSuperModule(module, _lookupModule(super));
 
   PL_UNLOCK(L_MODULE);
 
@@ -1353,8 +1357,9 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
 }
 
 
+#define unify_export_list(public, module) LDFUNC(unify_export_list, public, module)
 static int
-unify_export_list(term_t public, Module module ARG_LD)
+unify_export_list(DECL_LD term_t public, Module module)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(public);
   int rval = TRUE;
@@ -1428,7 +1433,7 @@ PRED_IMPL("$module_property", 2, module_property, 0)
     else
       fail;
   } else if ( pname == ATOM_exports )
-  { return unify_export_list(a, m PASS_LD);
+  { return unify_export_list(a, m);
   } else if ( pname == ATOM_class )
   { return PL_unify_atom(a, m->class);
   } else if ( pname == ATOM_size )
@@ -1463,8 +1468,9 @@ exportProcedure(Module module, Procedure proc)
   return TRUE;
 }
 
+#define export_pi1(pi, module) LDFUNC(export_pi1, pi, module)
 static int
-export_pi1(term_t pi, Module module ARG_LD)
+export_pi1(DECL_LD term_t pi, Module module)
 { functor_t fd;
   Procedure proc;
 
@@ -1485,8 +1491,9 @@ export_pi1(term_t pi, Module module ARG_LD)
   }
 }
 
+#define export_pi(pi, module, depth) LDFUNC(export_pi, pi, module, depth)
 static int
-export_pi(term_t pi, Module module, int depth ARG_LD)
+export_pi(DECL_LD term_t pi, Module module, int depth)
 { if ( !PL_strip_module(pi, &module, pi) )
     return FALSE;
 
@@ -1497,13 +1504,13 @@ export_pi(term_t pi, Module module, int depth ARG_LD)
       return PL_type_error("acyclic_term", pi);
 
     _PL_get_arg(1, pi, a1);
-    if ( !export_pi(a1, module, depth PASS_LD) )
+    if ( !export_pi(a1, module, depth) )
       return FALSE;
     PL_reset_term_refs(a1);
     _PL_get_arg(2, pi, pi);
   }
 
-  return export_pi1(pi, module PASS_LD);
+  return export_pi1(pi, module);
 }
 
 
@@ -1513,7 +1520,7 @@ PRED_IMPL("export", 1, export, PL_FA_TRANSPARENT)
 { PRED_LD
   Module module = NULL;
 
-  return export_pi(A1, module, 0 PASS_LD);
+  return export_pi(A1, module, 0);
 }
 
 
@@ -1623,8 +1630,9 @@ atomToImportStrength(atom_t a)
 }
 
 
+#define import(pred, strength) LDFUNC(import, pred, strength)
 static int
-import(term_t pred, term_t strength ARG_LD)
+import(DECL_LD term_t pred, term_t strength)
 { Module source = NULL;
   Module destination = contextModule(environment_frame);
   functor_t fd;
@@ -1742,14 +1750,14 @@ static
 PRED_IMPL("import", 1, import, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return import(A1, 0 PASS_LD);
+  return import(A1, 0);
 }
 
 static
 PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return import(A1, A2 PASS_LD);
+  return import(A1, A2);
 }
 
 /** '$destroy_module'(+Module) is det.

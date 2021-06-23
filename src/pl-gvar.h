@@ -38,8 +38,17 @@
 #ifndef _PL_GVAR_H
 #define _PL_GVAR_H
 
+#if USE_LD_MACROS
+#define	freezeGlobal(_)		LDFUNC(freezeGlobal, _)
+#define	gvar_value(name, p)	LDFUNC(gvar_value, name, p)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 void	destroyGlobalVars(void);
-void	freezeGlobal(ARG1_LD);
-int	gvar_value__LD(atom_t name, Word p ARG_LD);
+void	freezeGlobal(void);
+int	gvar_value(atom_t name, Word p);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_GVAR_H*/

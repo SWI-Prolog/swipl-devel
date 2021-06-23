@@ -44,6 +44,12 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	read_clause(s, term, options)	LDFUNC(read_clause, s, term, options)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 void		resetRead(void);
 int		f_is_prolog_var_start(wint_t c);
 int		f_is_prolog_atom_start(wint_t c);
@@ -64,6 +70,8 @@ word		pl_read2(term_t stream, term_t term);
 void		initCharConversion(void);
 foreign_t	pl_char_conversion(term_t in, term_t out);
 foreign_t	pl_current_char_conversion(term_t in, term_t out, control_t h);
-int		read_clause(IOSTREAM *s, term_t term, term_t options ARG_LD);
+int		read_clause(IOSTREAM *s, term_t term, term_t options);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_READ_H*/

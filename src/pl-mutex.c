@@ -521,8 +521,9 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
 		 *	  MUTEX_PROPERTY	*
 		 *******************************/
 
+#define mutex_alias_property(m, prop) LDFUNC(mutex_alias_property, m, prop)
 static int		/* mutex_property(Mutex, alias(Name)) */
-mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
+mutex_alias_property(DECL_LD pl_mutex *m, term_t prop)
 { if ( !m->anonymous )
     return PL_unify_atom(prop, m->id);
 
@@ -530,8 +531,9 @@ mutex_alias_property(pl_mutex *m, term_t prop ARG_LD)
 }
 
 
+#define mutex_status_property(m, prop) LDFUNC(mutex_status_property, m, prop)
 static int		/* mutex_property(Mutex, status(locked(By, Count))) */
-mutex_status_property(pl_mutex *m, term_t prop ARG_LD)
+mutex_status_property(DECL_LD pl_mutex *m, term_t prop)
 { if ( m->owner )
   { int owner = m->owner;
     int count = m->count;
@@ -550,8 +552,8 @@ mutex_status_property(pl_mutex *m, term_t prop ARG_LD)
 
 
 static const tprop mprop_list [] =
-{ { FUNCTOR_alias1,	    mutex_alias_property },
-  { FUNCTOR_status1,	    mutex_status_property },
+{ { FUNCTOR_alias1,	    LDFUNC_REF(mutex_alias_property) },
+  { FUNCTOR_status1,	    LDFUNC_REF(mutex_status_property) },
   { 0,			    NULL }
 };
 
@@ -672,7 +674,7 @@ enumerate:
       _PL_get_arg(1, property, arg);
 
     for(;;)
-    { if ( (*state->p->function)(state->m, arg PASS_LD) )
+    { if ( LDFUNCP(*state->p->function)(state->m, arg) )
       { if ( state->enum_properties )
 	{ if ( !PL_unify_term(property,
 			      PL_FUNCTOR, state->p->functor,

@@ -39,26 +39,31 @@
 #ifndef O_PLGMP_INCLUDED
 #define O_PLGMP_INCLUDED
 
-int	PL_unify_number__LD(term_t t, Number n ARG_LD);
-int	PL_put_number__LD(term_t t, Number n ARG_LD);
-void	get_number(word w, Number n  ARG_LD);
-int	PL_get_number__LD(term_t t, Number n ARG_LD);
+#if USE_LD_MACROS
+#define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
+#define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
+#define	get_number(w, n)		LDFUNC(get_number, w, n)
+#define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
+#define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
+#define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	PL_unify_number(term_t t, Number n);
+int	PL_put_number(term_t t, Number n);
+void	get_number(word w, Number n);
 int	PL_get_number(term_t t, Number n);
-int	put_uint64(Word at, uint64_t l, int flags ARG_LD);
-int	put_number(Word at, Number n, int flags ARG_LD);
+int	PL_get_number(term_t t, Number n);
+int	put_uint64(Word at, uint64_t l, int flags);
+int	put_number(Word at, Number n, int flags);
 int	promoteToFloatNumber(Number n);
 int	make_same_type_numbers(Number n1, Number n2) WUNUSED;
 int     promoteNumber(Number n1, numtype type) WUNUSED;
 int	cmpNumbers(Number n1, Number n2);
 void	cpNumber(Number to, Number from);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define PL_get_number(t, n)	PL_get_number__LD(t, n PASS_LD)
-#define PL_unify_number(t, n)	PL_unify_number__LD(t, n PASS_LD)
-#define PL_put_number(t, n)	PL_put_number__LD(t, n PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 #ifdef O_GMP
 #include <gmp.h>

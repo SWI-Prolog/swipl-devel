@@ -56,8 +56,9 @@
 #undef LD
 #define LD LOCAL_LD
 
-static int	unify_with_occurs_check(Word t1, Word t2,
-					occurs_check_t mode ARG_LD);
+#define unify_with_occurs_check(t1, t2, mode) LDFUNC(unify_with_occurs_check, t1, t2, mode)
+static int	unify_with_occurs_check(DECL_LD Word t1, Word t2,
+					occurs_check_t mode);
 
 
 		 /*******************************
@@ -116,22 +117,25 @@ unifications of a realistic program are   covered by unify() and involve
 deep unification the overall impact of performance is small (< 3%).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define initvisited(_) LDFUNC(initvisited, _)
 static void
-initvisited(ARG1_LD)
+initvisited(DECL_LD)
 { LD->cycle.vstack.unit_size = sizeof(Word);
 }
 
 
 #ifdef O_DEBUG
+#define empty_visited(_) LDFUNC(empty_visited, _)
 static int
-empty_visited(ARG1_LD)
+empty_visited(DECL_LD)
 { return emptySegStack(&LD->cycle.vstack);
 }
 #endif
 
 
+#define visitedWord(p) LDFUNC(visitedWord, p)
 static inline int
-visitedWord(Word p ARG_LD)
+visitedWord(DECL_LD Word p)
 { if ( is_marked(p) )
     succeed;
   set_marked(p);
@@ -141,16 +145,18 @@ visitedWord(Word p ARG_LD)
 }
 
 
+#define visited(f) LDFUNC(visited, f)
 static inline int
-visited(Functor f ARG_LD)
+visited(DECL_LD Functor f)
 { Word p = &f->definition;
 
-  return visitedWord(p PASS_LD);
+  return visitedWord(p);
 }
 
 
+#define unvisit(_) LDFUNC(unvisit, _)
 static void
-unvisit(ARG1_LD)
+unvisit(DECL_LD)
 { Word p;
 
   while( popSegStack(&LD->cycle.vstack, &p, Word) )
@@ -158,8 +164,9 @@ unvisit(ARG1_LD)
   }
 }
 
+#define unvisit_and_unfirst(_) LDFUNC(unvisit_and_unfirst, _)
 static void
-unvisit_and_unfirst(ARG1_LD)
+unvisit_and_unfirst(DECL_LD)
 { Word p;
 
   while( popSegStack(&LD->cycle.vstack, &p, Word) )
@@ -168,8 +175,9 @@ unvisit_and_unfirst(ARG1_LD)
 }
 
 
+#define popVisited(_) LDFUNC(popVisited, _)
 static void
-popVisited(ARG1_LD)
+popVisited(DECL_LD)
 { Word p = NULL;
 
   popSegStack(&LD->cycle.vstack, &p, Word);
@@ -177,14 +185,16 @@ popVisited(ARG1_LD)
 }
 
 
+#define initCyclic(_) LDFUNC(initCyclic, _)
 static inline void
-initCyclic(ARG1_LD)
+initCyclic(DECL_LD)
 { LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
 
+#define linkTermsCyclic(f1, f2) LDFUNC(linkTermsCyclic, f1, f2)
 static inline void
-linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
+linkTermsCyclic(DECL_LD Functor f1, Functor f2)
 { Word p1 = (Word)&f1->definition;
   Word p2 = (Word)&f2->definition;
 
@@ -194,8 +204,9 @@ linkTermsCyclic(Functor f1, Functor f2 ARG_LD)
 }
 
 
+#define exitCyclic(_) LDFUNC(exitCyclic, _)
 static inline void
-exitCyclic(ARG1_LD)
+exitCyclic(DECL_LD)
 { Word p;
 
   while( popSegStack(&LD->cycle.lstack, &p, Word) )
@@ -205,11 +216,11 @@ exitCyclic(ARG1_LD)
 
 #else /*O_CYCLIC*/
 
-static inline visited(Functor f ARG_LD) { fail; }
-static inline unvisit(Word *base ARG_LD) { }
-static inline void initCyclic(ARG1_LD) {}
-static inline void exitCyclic(ARG1_LD) {}
-static inline void linkTermsCyclic(Functor f1, Functor f2 ARG_LD) {}
+static inline visited(DECL_LD Functor f) { fail; }
+static inline unvisit(DECL_LD Word *base) { }
+static inline void initCyclic(DECL_LD) {}
+static inline void exitCyclic(DECL_LD) {}
+static inline void linkTermsCyclic(DECL_LD Functor f1, Functor f2) {}
 
 #endif /*O_CYCLIC*/
 
@@ -251,8 +262,9 @@ Returns one of:
 
 #define SWAPW(p,q) { Word _tmp = p; p=q; q=_tmp; } while(0)
 
+#define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
 static int
-do_unify(Word t1, Word t2 ARG_LD)
+do_unify(DECL_LD Word t1, Word t2)
 { term_agendaLR agenda;
   int compound = FALSE;
   int rc = FALSE;
@@ -324,7 +336,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       { rc = overflowCode(0);
 	goto out_fail;
       }
-      assignAttVar(t1, t2 PASS_LD);
+      assignAttVar(t1, t2);
       continue;
     }
     if ( isAttVar(w2) )
@@ -332,7 +344,7 @@ do_unify(Word t1, Word t2 ARG_LD)
       { rc = overflowCode(0);
 	goto out_fail;
       }
-      assignAttVar(t2, t1 PASS_LD);
+      assignAttVar(t2, t1);
       continue;
     }
   #endif
@@ -374,7 +386,7 @@ do_unify(Word t1, Word t2 ARG_LD)
 
 	if ( !compound )
 	{ compound = TRUE;
-	  initCyclic(PASS_LD1);
+	  initCyclic();
 	  initTermAgendaLR(&agenda, arity, f1->arguments, f2->arguments);
 	} else
 	{ if ( !pushWorkAgendaLR(&agenda, arity, f1->arguments, f2->arguments) )
@@ -383,7 +395,7 @@ do_unify(Word t1, Word t2 ARG_LD)
 	  }
 	}
 
-	linkTermsCyclic(f1, f2 PASS_LD);
+	linkTermsCyclic(f1, f2);
 
 	continue;
       }
@@ -395,21 +407,22 @@ do_unify(Word t1, Word t2 ARG_LD)
 out_fail:
   if ( compound )
   { clearTermAgendaLR(&agenda);
-    exitCyclic(PASS_LD1);
+    exitCyclic();
   }
   return rc;
 }
 
 
+#define raw_unify_ptrs(t1, t2) LDFUNC(raw_unify_ptrs, t1, t2)
 static int
-raw_unify_ptrs(Word t1, Word t2 ARG_LD)
+raw_unify_ptrs(DECL_LD Word t1, Word t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
-      return do_unify(t1, t2 PASS_LD);
+      return do_unify(t1, t2);
     case OCCURS_CHECK_TRUE:
-      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE PASS_LD);
+      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_TRUE);
     case OCCURS_CHECK_ERROR:
-      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_ERROR PASS_LD);
+      return unify_with_occurs_check(t1, t2, OCCURS_CHECK_ERROR);
     default:
       assert(0);
       fail;
@@ -487,11 +500,11 @@ Return:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-unify_ptrs(Word t1, Word t2, int flags ARG_LD)
+unify_ptrs(DECL_LD Word t1, Word t2, int flags)
 { for(;;)
   { int rc;
 
-    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    rc = raw_unify_ptrs(t1, t2);
     if ( rc >= 0 )
       return rc;
 
@@ -534,8 +547,8 @@ can_unify(Word t1, Word t2, term_t ex)
     if ( !ex )
       ex = PL_new_term_ref();
 
-    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
-	 foreignWakeup(ex PASS_LD) )
+    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT) &&
+	 foreignWakeup(ex) )
     { PL_discard_foreign_frame(fid);
       return TRUE;
     }
@@ -567,8 +580,9 @@ entry.  Returns one of
 	- MEMORY_OVERFLOW if the malloc() fails.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define var_occurs_in(v, t) LDFUNC(var_occurs_in, v, t)
 static int
-var_occurs_in(Word v, Word t ARG_LD)
+var_occurs_in(DECL_LD Word v, Word t)
 { segstack visited;
   Functor tmp[256];
   term_agenda agenda;
@@ -629,12 +643,13 @@ PL_var_occurs_in(term_t var, term_t value)
 
   deRef(v);
 
-  return var_occurs_in(v, valTermRef(value) PASS_LD);
+  return var_occurs_in(v, valTermRef(value));
 }
 
 
+#define failed_unify_with_occurs_check(t1, t2, mode) LDFUNC(failed_unify_with_occurs_check, t1, t2, mode)
 static int
-failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
+failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 { int rc;
 
   if ( mode == OCCURS_CHECK_TRUE )
@@ -649,35 +664,35 @@ failed_unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
     t2 = tmp;
   }
 
-  blockGC(0 PASS_LD);
+  blockGC(0);
   rc = PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
-  unblockGC(0 PASS_LD);
+  unblockGC(0);
 
   return rc;
 }
 
 
 static int
-unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
+unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 { mark m;
   int rc;
 
   deRef(t1);
   deRef(t2);
   if ( canBind(*t1) )
-  { if ( onStack(global, t1) && var_occurs_in(t1, t2 PASS_LD) )
-      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-    return do_unify(t1, t2 PASS_LD);
+  { if ( onStack(global, t1) && var_occurs_in(t1, t2) )
+      return failed_unify_with_occurs_check(t1, t2, mode);
+    return do_unify(t1, t2);
   }
   if ( canBind(*t2) )
-  { if ( onStack(global, t2) && var_occurs_in(t2, t1 PASS_LD) )
-      return failed_unify_with_occurs_check(t1, t2, mode PASS_LD);
-    return do_unify(t1, t2 PASS_LD);
+  { if ( onStack(global, t2) && var_occurs_in(t2, t1) )
+      return failed_unify_with_occurs_check(t1, t2, mode);
+    return do_unify(t1, t2);
   }
 
   Mark(m);
   LD->mark_bar = NO_MARK_BAR;		/* see also unify_all_trail_ptrs() */
-  rc = do_unify(t1, t2 PASS_LD);
+  rc = do_unify(t1, t2);
   DiscardMark(m);
 
   if ( rc == TRUE )
@@ -698,7 +713,7 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
       }
 
       deRef2(p, p2);
-      if ( var_occurs_in(p2, p2 PASS_LD) )
+      if ( var_occurs_in(p2, p2) )
       { if ( mode == OCCURS_CHECK_ERROR )
 	{ Word t = allocGlobalNoShift(1);
 
@@ -706,7 +721,7 @@ unify_with_occurs_check(Word t1, Word t2, occurs_check_t mode ARG_LD)
 	    return GLOBAL_OVERFLOW;
 	  *t = *p2;
 	  Undo(m);
-	  rc = failed_unify_with_occurs_check(p, t, mode PASS_LD);
+	  rc = failed_unify_with_occurs_check(p, t, mode);
 	}
 	rc = FALSE;
         break;
@@ -823,8 +838,9 @@ ph_visited(Functor f, phase ph)
 }
 
 
+#define ph_ground(p, ph) LDFUNC(ph_ground, p, ph)
 static Word
-ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
+ph_ground(DECL_LD Word p, phase ph) /* Phase 1 marking */
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
@@ -847,7 +863,7 @@ ph_ground(Word p, phase ph ARG_LD) /* Phase 1 marking */
 
 
 Word
-ground__LD(Word p ARG_LD)
+ground(DECL_LD Word p)
 { Word rc1, rc2;
 
   deRef(p);
@@ -856,8 +872,8 @@ ground__LD(Word p ARG_LD)
   if ( !isTerm(*p) )
     return NULL;
 
-  rc1 = ph_ground(p, ph_mark PASS_LD);  /* mark functors */
-  rc2 = ph_ground(p, ph_unmark PASS_LD);  /* unmark the very same functors */
+  rc1 = ph_ground(p, ph_mark);  /* mark functors */
+  rc2 = ph_ground(p, ph_unmark);  /* unmark the very same functors */
   assert(rc1 == rc2);
   return rc1;
 }
@@ -867,7 +883,7 @@ int
 PL_is_ground(term_t t)
 { GET_LD
 
-  return ground__LD(valTermRef(t) PASS_LD) == NULL;
+  return ground(valTermRef(t)) == NULL;
 }
 
 
@@ -875,7 +891,7 @@ static
 PRED_IMPL("ground", 1, ground, PL_FA_ISO)
 { PRED_LD
 
-  return ground__LD(valTermRef(A1) PASS_LD) == NULL;
+  return ground(valTermRef(A1)) == NULL;
 }
 
 static
@@ -883,8 +899,8 @@ PRED_IMPL("nonground", 2, nonground, 0)
 { PRED_LD
   Word p;
 
-  if ( (p=ground__LD(valTermRef(A1) PASS_LD)) )
-    return unify_ptrs(valTermRef(A2), p, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+  if ( (p=ground(valTermRef(A1))) )
+    return unify_ptrs(valTermRef(A2), p, ALLOW_GC|ALLOW_SHIFT);
 
   return FALSE;
 }
@@ -906,13 +922,14 @@ PRED_IMPL("callable", 1, callable, PL_FA_ISO)
 		 *	     COMPLEXITY		*
 		 *******************************/
 
+#define term_size(p, max) LDFUNC(term_size, p, max)
 static size_t
-term_size(Word p, size_t max ARG_LD)
+term_size(DECL_LD Word p, size_t max)
 { size_t count = 0;
   term_agenda agenda;
   Word t;
 
-  initvisited(PASS_LD1);
+  initvisited();
   initTermAgenda(&agenda, 1, p);
 
   while((t=nextTermAgenda(&agenda)))
@@ -934,7 +951,7 @@ term_size(Word p, size_t max ARG_LD)
     { Functor f = valueTerm(*t);
       size_t arity = arityFunctor(f->definition);
 
-      if ( visited(f PASS_LD) )
+      if ( visited(f) )
 	continue;
 
       count += arity+1;
@@ -946,7 +963,7 @@ term_size(Word p, size_t max ARG_LD)
   }
 
   clearTermAgenda(&agenda);
-  unvisit(PASS_LD1);
+  unvisit();
 
   return count;
 }
@@ -970,7 +987,7 @@ PRED_IMPL("$term_size", 3, term_size, 0)
   else if ( !PL_get_size_ex(mx, &m) )
     return FALSE;
 
-  c = term_size(valTermRef(t), m PASS_LD);
+  c = term_size(valTermRef(t), m);
   if ( c > m )
     return FALSE;
 
@@ -1029,8 +1046,9 @@ typedef struct term_chain_agenda
 } term_chain_agenda;
 
 
+#define ph_acyclic_mark(p) LDFUNC(ph_acyclic_mark, p)
 static int
-ph_acyclic_mark(Word p ARG_LD)
+ph_acyclic_mark(DECL_LD Word p)
 { term_chain_agenda agenda;
   termChain chains[32];
   Functor top = valueTerm(*p);
@@ -1132,8 +1150,9 @@ ph_acyclic_mark(Word p ARG_LD)
 }
 
 
+#define ph_acyclic_unmark(p) LDFUNC(ph_acyclic_unmark, p)
 static int
-ph_acyclic_unmark(Word p ARG_LD)
+ph_acyclic_unmark(DECL_LD Word p)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
@@ -1157,13 +1176,13 @@ ph_acyclic_unmark(Word p ARG_LD)
 
 
 int
-is_acyclic(Word p ARG_LD)
+is_acyclic(DECL_LD Word p)
 { int rc1;
 
   deRef(p);
   if ( isTerm(*p) )
-  { rc1 = ph_acyclic_mark(p PASS_LD);
-    ph_acyclic_unmark(p PASS_LD);
+  { rc1 = ph_acyclic_mark(p);
+    ph_acyclic_unmark(p);
 
     return rc1;
   }
@@ -1172,11 +1191,12 @@ is_acyclic(Word p ARG_LD)
 }
 
 
+#define PL_is_acyclic(t) LDFUNC(PL_is_acyclic, t)
 static int
-PL_is_acyclic__LD(term_t t ARG_LD)
+PL_is_acyclic(DECL_LD term_t t)
 { int rc;
 
-  if ( (rc=is_acyclic(valTermRef(t) PASS_LD)) == TRUE )
+  if ( (rc=is_acyclic(valTermRef(t))) == TRUE )
     return TRUE;
 
   if ( rc == MEMORY_OVERFLOW )
@@ -1190,7 +1210,7 @@ int
 PL_is_acyclic(term_t t)
 { GET_LD
 
-  return PL_is_acyclic__LD(t PASS_LD);
+  return PL_is_acyclic(t);
 }
 
 
@@ -1198,7 +1218,7 @@ static
 PRED_IMPL("acyclic_term", 1, acyclic_term, PL_FA_ISO)
 { PRED_LD
 
-  return PL_is_acyclic__LD(A1 PASS_LD);
+  return PL_is_acyclic(A1);
 }
 
 
@@ -1207,7 +1227,7 @@ PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
   int rc;
 
-  if ( (rc=is_acyclic(valTermRef(A1) PASS_LD)) == TRUE )
+  if ( (rc=is_acyclic(valTermRef(A1))) == TRUE )
     return FALSE;
   if ( rc == FALSE )
     return TRUE;
@@ -1241,8 +1261,9 @@ following steps:
      into the term and setting the variable to be a real variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define scan_shared(t, vart, count) LDFUNC(scan_shared, t, vart, count)
 static int
-scan_shared(Word t, Word vart, size_t *count ARG_LD)
+scan_shared(DECL_LD Word t, Word vart, size_t *count)
 { term_agenda agenda;
   size_t shared = 0;
   Word p;
@@ -1292,8 +1313,9 @@ scan_shared(Word t, Word vart, size_t *count ARG_LD)
 /* Needed to restore if we run out of stack
 */
 
+#define unscan_shared(t) LDFUNC(unscan_shared, t)
 static int
-unscan_shared(Word t ARG_LD)
+unscan_shared(DECL_LD Word t)
 { term_agenda agenda;
   Word p;
 
@@ -1319,8 +1341,9 @@ unscan_shared(Word t ARG_LD)
 }
 
 
+#define reverse_factor_pointers(vars) LDFUNC(reverse_factor_pointers, vars)
 static void
-reverse_factor_pointers(Word vars ARG_LD)
+reverse_factor_pointers(DECL_LD Word vars)
 { while(*vars != ATOM_nil)
   { Word v = (Word)valueTerm(*vars);
     Functor t = valueTerm(v[5]);
@@ -1333,8 +1356,9 @@ reverse_factor_pointers(Word vars ARG_LD)
 }
 
 
+#define restore_shared_functors(vars) LDFUNC(restore_shared_functors, vars)
 static void
-restore_shared_functors(Word vars ARG_LD)
+restore_shared_functors(DECL_LD Word vars)
 { while(*vars != ATOM_nil)
   { Word v = (Word)valueTerm(*vars);
     Functor t = valueTerm(v[5]);
@@ -1349,8 +1373,9 @@ restore_shared_functors(Word vars ARG_LD)
 }
 
 
+#define link_shared(t) LDFUNC(link_shared, t)
 static int
-link_shared(Word t ARG_LD)
+link_shared(DECL_LD Word t)
 { term_agenda agenda;
   Word p;
 
@@ -1415,7 +1440,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     t = valTermRef(wrapped);
 
     DEBUG(CHK_SECURE, checkStacks(NULL));
-    switch( (rc=scan_shared(t, valTermRef(vars), &count PASS_LD)) )
+    switch( (rc=scan_shared(t, valTermRef(vars), &count)) )
     { case TRUE:
 	if ( tTop + 2*count > tMax )
 	  rc = TRAIL_OVERFLOW;
@@ -1425,7 +1450,7 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
 	  break;
 	/*FALLTHROUGH*/
       default:
-	unscan_shared(t PASS_LD);
+	unscan_shared(t);
 	PL_discard_foreign_frame(fid);
 	if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	  return FALSE;
@@ -1435,9 +1460,9 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     break;
   }
 
-  reverse_factor_pointers(valTermRef(vars) PASS_LD);
-  link_shared(t PASS_LD);
-  restore_shared_functors(valTermRef(vars) PASS_LD);
+  reverse_factor_pointers(valTermRef(vars));
+  link_shared(t);
+  restore_shared_functors(valTermRef(vars));
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
@@ -1491,8 +1516,9 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    TERM-HASH		*
 		 *******************************/
 
+#define termHashValue(term, depth, hval) LDFUNC(termHashValue, term, depth, hval)
 static bool
-termHashValue(word term, long depth, unsigned int *hval ARG_LD)
+termHashValue(DECL_LD word term, long depth, unsigned int *hval)
 { for(;;)
   { switch(tag(term))
     { case TAG_VAR:
@@ -1536,7 +1562,7 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 	Word p;
 	unsigned int atom_hashvalue;
 
-	if ( visited(t PASS_LD) )
+	if ( visited(t) )
 	{ *hval = MurmurHashAligned2(hval, sizeof(*hval), *hval);
 	  succeed;
 	}
@@ -1551,14 +1577,14 @@ termHashValue(word term, long depth, unsigned int *hval ARG_LD)
 
 	if ( --depth != 0 )
 	{ for(p = t->arguments; arity-- > 0; p++)
-	  { if ( !termHashValue(*p, depth, hval PASS_LD) )
-	    { popVisited(PASS_LD1);
+	  { if ( !termHashValue(*p, depth, hval) )
+	    { popVisited();
 	      fail;
 	    }
 	  }
 	}
 
-	popVisited(PASS_LD1);
+	popVisited();
 	succeed;
       }
       case TAG_REFERENCE:
@@ -1594,9 +1620,9 @@ PRED_IMPL("term_hash", 4, term_hash4, 0)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_one, A2);
 
   if ( depth != 0 )
-  { initvisited(PASS_LD1);
-    rc = termHashValue(*p, depth, &hraw PASS_LD);
-    DEBUG(CHK_SECURE, assert(empty_visited(PASS_LD1)));
+  { initvisited();
+    rc = termHashValue(*p, depth, &hraw);
+    DEBUG(CHK_SECURE, assert(empty_visited()));
   }
 
   if ( rc )
@@ -1654,13 +1680,14 @@ compareAtoms(atom_t w1, atom_t w2)
 }
 
 
+#define compareStrings(w1, w2) LDFUNC(compareStrings, w1, w2)
 static int
-compareStrings(word w1, word w2 ARG_LD)
+compareStrings(DECL_LD word w1, word w2)
 { PL_chars_t t1, t2;
   size_t len;
 
-  get_string_text(w1, &t1 PASS_LD);
-  get_string_text(w2, &t2 PASS_LD);
+  get_string_text(w1, &t1);
+  get_string_text(w2, &t2);
   len = (t1.length > t2.length ? t1.length : t2.length);
 
   return PL_cmp_text(&t1, 0, &t2, 0, len);
@@ -1684,8 +1711,9 @@ If eq == TRUE, only test for equality. In this case expensive inequality
 tests (alphabetical order) are skipped and the call returns NOTEQ.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define compare_primitives(p1, p2, eq) LDFUNC(compare_primitives, p1, p2, eq)
 static int
-compare_primitives(Word p1, Word p2, int eq ARG_LD)
+compare_primitives(DECL_LD Word p1, Word p2, int eq)
 { word t1, t2;
   word w1, w2;
 
@@ -1712,8 +1740,8 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
       { number left, right;
 	int rc;
 
-	get_number(w1, &left PASS_LD);
-	get_number(w2, &right PASS_LD);
+	get_number(w1, &left);
+	get_number(w2, &right);
 	if ( left.type == V_FLOAT && isnan(left.value.f) )
 	  rc = CMP_LESS;
 	else if ( right.type == V_FLOAT && isnan(right.value.f) )
@@ -1793,7 +1821,7 @@ compare_primitives(Word p1, Word p2, int eq ARG_LD)
     case TAG_ATOM:
       return eq ? CMP_NOTEQ : compareAtoms(w1, w2);
     case TAG_STRING:
-      return compareStrings(w1, w2 PASS_LD);
+      return compareStrings(w1, w2);
     case TAG_COMPOUND:
       return CMP_COMPOUND;
     default:
@@ -1817,8 +1845,9 @@ compare_functors(word f1, word f2, int eq)
   }
 }
 
+#define do_compare(agenda, f1, f2, eq) LDFUNC(do_compare, agenda, f1, f2, eq)
 static int
-do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
+do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, int eq)
 { Word p1, p2;
 
   goto compound;
@@ -1829,7 +1858,7 @@ do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
     deRef(p1);
     deRef(p2);
 
-    if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+    if ( (rc=compare_primitives(p1, p2, eq)) != CMP_COMPOUND )
     { if ( rc == CMP_EQUAL )
 	continue;
       return rc;
@@ -1854,7 +1883,7 @@ do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
       compound:
 	arity = arityFunctor(f1->definition);
 
-	linkTermsCyclic(f1, f2 PASS_LD);
+	linkTermsCyclic(f1, f2);
 	if ( !pushWorkAgendaLR(agenda, arity, f1->arguments, f2->arguments) )
 	{ PL_error(NULL, 0, NULL, ERR_RESOURCE, ATOM_memory);
 	  return CMP_ERROR;
@@ -1869,13 +1898,13 @@ do_compare(term_agendaLR *agenda, Functor f1, Functor f2, int eq ARG_LD)
 
 
 int
-compareStandard(Word p1, Word p2, int eq ARG_LD)
+compareStandard(DECL_LD Word p1, Word p2, int eq)
 { int rc;
 
   deRef(p1);
   deRef(p2);
 
-  if ( (rc=compare_primitives(p1, p2, eq PASS_LD)) != CMP_COMPOUND )
+  if ( (rc=compare_primitives(p1, p2, eq)) != CMP_COMPOUND )
   { return rc;
   } else
   { Functor f1 = (Functor)valPtr(*p1);
@@ -1886,11 +1915,11 @@ compareStandard(Word p1, Word p2, int eq ARG_LD)
     } else
     { term_agendaLR agenda;
 
-      initCyclic(PASS_LD1);
+      initCyclic();
       initTermAgendaLR0(&agenda);
-      rc = do_compare(&agenda, f1, f2, eq PASS_LD);
+      rc = do_compare(&agenda, f1, f2, eq);
       clearTermAgendaLR(&agenda);
-      exitCyclic(PASS_LD1);
+      exitCyclic();
 
       return rc;
     }
@@ -1917,7 +1946,7 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
     { a = *d;
 
       if ( a == ATOM_equals )
-	return compareStandard(p1, p2, TRUE PASS_LD) == CMP_EQUAL ? TRUE : FALSE;
+	return compareStandard(p1, p2, TRUE) == CMP_EQUAL ? TRUE : FALSE;
 
       if ( a != ATOM_smaller && a != ATOM_larger )
 	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_order, A1);
@@ -1925,7 +1954,7 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
       return PL_type_error("atom", A1);
   }
 
-  if ( (val = compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+  if ( (val = compareStandard(p1, p2, FALSE)) == CMP_ERROR )
     return FALSE;
 
   if ( a )
@@ -1950,7 +1979,7 @@ PRED_IMPL("@<", 2, std_lt, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, FALSE)) == CMP_ERROR )
     return FALSE;
 
   return rc < 0 ? TRUE : FALSE;
@@ -1964,7 +1993,7 @@ PRED_IMPL("@=<", 2, std_leq, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, FALSE)) == CMP_ERROR )
     return FALSE;
 
   return rc <= 0 ? TRUE : FALSE;
@@ -1978,7 +2007,7 @@ PRED_IMPL("@>", 2, std_gt, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, FALSE)) == CMP_ERROR )
     return FALSE;
 
   return rc > 0 ? TRUE : FALSE;
@@ -1992,7 +2021,7 @@ PRED_IMPL("@>=", 2, std_geq, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, FALSE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, FALSE)) == CMP_ERROR )
     return FALSE;
 
   return rc >= 0 ? TRUE : FALSE;
@@ -2009,7 +2038,7 @@ PRED_IMPL("==", 2, equal, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, TRUE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, TRUE)) == CMP_ERROR )
     return FALSE;
 
   return rc == CMP_EQUAL ? TRUE : FALSE;
@@ -2023,7 +2052,7 @@ PRED_IMPL("\\==", 2, nonequal, 0)
   Word p2 = p1+1;
   int rc;
 
-  if ( (rc=compareStandard(p1, p2, TRUE PASS_LD)) == CMP_ERROR )
+  if ( (rc=compareStandard(p1, p2, TRUE)) == CMP_ERROR )
     return FALSE;
 
   return rc == CMP_EQUAL ? FALSE : TRUE;
@@ -2069,7 +2098,7 @@ terms.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_same_term__LD(term_t T1, term_t T2 ARG_LD)
+PL_same_term(DECL_LD term_t T1, term_t T2)
 { Word t1 = valTermRef(T1);
   Word t2 = valTermRef(T2);
 
@@ -2190,8 +2219,9 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 /* functor(+Callable, -Name, -Arity, -Type) */
 /* functor(-Callable, +Name, +Arity, +Type) */
 
+#define match_functor_type(Type, atype, type) LDFUNC(match_functor_type, Type, atype, type)
 static int
-match_functor_type(term_t Type, atom_t atype, atom_t type ARG_LD)
+match_functor_type(DECL_LD term_t Type, atom_t atype, atom_t type)
 { if ( !atype )
     return PL_unify_atom(Type, type);
   if ( atype == type )
@@ -2226,15 +2256,15 @@ PRED_IMPL("functor", 4, functor, 0)
 
     return ( PL_unify_atom(A2, fd->name) &&
 	     PL_unify_integer(A3, fd->arity) &&
-	     match_functor_type(A4, type, ATOM_compound PASS_LD) );
+	     match_functor_type(A4, type, ATOM_compound) );
   } else if ( isAtom(*p) )
   { return ( PL_unify_atom(A2, *p) &&
 	     PL_unify_integer(A3, 0) &&
-	     match_functor_type(A4, type, ATOM_atom PASS_LD) );
+	     match_functor_type(A4, type, ATOM_atom) );
   } else if ( !canBind(*p) )
   { return ( PL_unify(A2, A1) &&
 	     PL_unify_integer(A3, 0) &&
-	     match_functor_type(A4, type, ATOM_atomic PASS_LD) );
+	     match_functor_type(A4, type, ATOM_atomic) );
   }
 
   if ( !PL_get_size_ex(A3, &arity) )
@@ -2242,7 +2272,7 @@ PRED_IMPL("functor", 4, functor, 0)
 
   if ( arity > 0 )
   { return ( PL_get_atom_ex(A2, &name) &&
-	     match_functor_type(A4, type, ATOM_compound PASS_LD) &&
+	     match_functor_type(A4, type, ATOM_compound) &&
 	     PL_unify_compound(A1, PL_new_functor(name, arity)) );
   } else if ( PL_get_atom(A2, &name) )
   { if ( type == ATOM_compound )
@@ -2255,7 +2285,7 @@ PRED_IMPL("functor", 4, functor, 0)
       return PL_domain_error("functor_type", A4);
   } else if ( PL_is_atomic(A2) )
   { return ( PL_unify(A2, A1) &&
-	     match_functor_type(A4, type, ATOM_atomic PASS_LD) );
+	     match_functor_type(A4, type, ATOM_atomic) );
   } else
   { return PL_type_error("atomic", A2);
   }
@@ -2289,7 +2319,7 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
   p[0] = f;
   if ( arity > 0 )
   { word w;
-    bArgVar(&p[1], v PASS_LD);
+    bArgVar(&p[1], v);
     w = isVar(p[1]) ? makeRefG(&p[1]) : p[1];
     for(i=2; i<=arity; i++)
       p[i] = w;
@@ -2314,8 +2344,9 @@ Get argument position from t.  Returns:
      - without exception if t is 0 or a large positive integer
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define get_arg_integer_ex(t, n) LDFUNC(get_arg_integer_ex, t, n)
 static int
-get_arg_integer_ex(term_t t, size_t *n ARG_LD)
+get_arg_integer_ex(DECL_LD term_t t, size_t *n)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -2370,11 +2401,11 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
       else
 	return PL_error("arg", 3, NULL, ERR_TYPE, ATOM_compound, term);
 
-      if ( (rc=get_arg_integer_ex(n, &idx PASS_LD)) == TRUE )
+      if ( (rc=get_arg_integer_ex(n, &idx)) == TRUE )
       { if ( idx <= arity )
 	{ Word ap = argTermP(*p, idx-1);
 
-	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+	  return unify_ptrs(valTermRef(arg), ap, ALLOW_GC|ALLOW_SHIFT);
 	}
 	fail;
       }
@@ -2439,7 +2470,7 @@ PRED_IMPL("arg", 3, arg, PL_FA_NONDETERMINISTIC)
 */
 
 void
-unify_vp(Word vp, Word val ARG_LD)
+unify_vp(DECL_LD Word vp, Word val)
 { deRef(val);
 
   if ( isVar(*val) )
@@ -2459,8 +2490,9 @@ unify_vp(Word vp, Word val ARG_LD)
 }
 
 
+#define setarg(n, term, value, flags) LDFUNC(setarg, n, term, value, flags)
 static word
-setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
+setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
 { size_t arity, argn;
   atom_t name;
   Word a, v;
@@ -2481,7 +2513,7 @@ setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
     a = argTermP(*a, argn-1);
 
     if ( isVar(*a) )
-    { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT PASS_LD);
+    { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT);
     } else
     { if ( !hasGlobalSpace(0) )
       { int rc;
@@ -2503,12 +2535,12 @@ setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
     { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
 
-	if ( !duplicate_term(value, copy PASS_LD) )
+	if ( !duplicate_term(value, copy) )
 	  fail;
 	value = copy;
       }
 
-      freezeGlobal(PASS_LD1);
+      freezeGlobal();
     }
 
     a = valTermRef(term);		/* duplicate may shift stacks */
@@ -2518,7 +2550,7 @@ setarg(term_t n, term_t term, term_t value, int flags ARG_LD)
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   v = valTermRef(value);
-  unify_vp(a, v PASS_LD);
+  unify_vp(a, v);
 
   return TRUE;
 }
@@ -2528,7 +2560,7 @@ static
 PRED_IMPL("setarg", 3, setarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, SETARG_BACKTRACKABLE PASS_LD);
+  return setarg(A1, A2, A3, SETARG_BACKTRACKABLE);
 }
 
 
@@ -2536,7 +2568,7 @@ static
 PRED_IMPL("nb_setarg", 3, nb_setarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, 0 PASS_LD);
+  return setarg(A1, A2, A3, 0);
 }
 
 
@@ -2544,7 +2576,7 @@ static
 PRED_IMPL("nb_linkarg", 3, nb_linkarg, 0)
 { PRED_LD
 
-  return setarg(A1, A2, A3, SETARG_LINK PASS_LD);
+  return setarg(A1, A2, A3, SETARG_LINK);
 }
 
 
@@ -2558,7 +2590,7 @@ See http://en.wikipedia.org/wiki/Cycle_detection#Brent.27s_algorithm
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 intptr_t
-skip_list(Word l, Word *tailp ARG_LD)
+skip_list(DECL_LD Word l, Word *tailp)
 { deRef(l);
 
   if ( !isList(*l) )
@@ -2615,8 +2647,8 @@ PRED_IMPL("$skip_list", 3, skip_list, 0)
   Word tail;
   intptr_t len;
 
-  len = skip_list(valTermRef(A2), &tail PASS_LD);
-  if ( unify_ptrs(valTermRef(A3), tail, ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+  len = skip_list(valTermRef(A2), &tail);
+  if ( unify_ptrs(valTermRef(A3), tail, ALLOW_GC|ALLOW_SHIFT) &&
        PL_unify_integer(A1, len) )
     return TRUE;
 
@@ -2639,7 +2671,7 @@ lengthList(term_t list, int errors)
   Word l = valTermRef(list);
   Word tail;
 
-  length = skip_list(l, &tail PASS_LD);
+  length = skip_list(l, &tail);
 
   if ( isNil(*tail) )
     return length;
@@ -2832,8 +2864,9 @@ both flags:
 #define CONTAINS_ATTVAR      (-11)
 #define REPRESENTATION_ERROR (-12)
 
+#define do_number_vars(p, options, n, m) LDFUNC(do_number_vars, p, options, n, m)
 static intptr_t
-do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
+do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
 { term_agenda agenda;
   intptr_t start = n;
 
@@ -2924,7 +2957,7 @@ do_number_vars(Word p, nv_options *options, intptr_t n, mark *m ARG_LD)
       }
 
     do_number:
-      if ( !options->singletons && visited(f PASS_LD) )
+      if ( !options->singletons && visited(f) )
 	continue;
 
       if ( !pushWorkAgenda(&agenda, arityFunctor(f->definition), f->arguments) )
@@ -2947,7 +2980,7 @@ Returns	>= 0: Number for next variable variable
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 intptr_t
-numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
+numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 { if ( !inTaggedNumRange(n) )
   { PL_representation_error("tagged_integer");
     return NV_ERROR;
@@ -2960,18 +2993,18 @@ numberVars(term_t t, nv_options *options, intptr_t n ARG_LD)
     intptr_t rc;
 
     Mark(m);
-    initvisited(PASS_LD1);
-    rc = do_number_vars(valTermRef(t), options, 0, &m PASS_LD);
-    unvisit(PASS_LD1);
+    initvisited();
+    rc = do_number_vars(valTermRef(t), options, 0, &m);
+    unvisit();
     if ( rc >= 0 )			/* all ok */
     { DiscardMark(m);
       if ( options->singletons )
       { intptr_t rc2;
 
 	options->singletons = 2;
-	initvisited(PASS_LD1);
-	rc2 = do_number_vars(valTermRef(t), options, 0, &m PASS_LD);
-	unvisit(PASS_LD1);
+	initvisited();
+	rc2 = do_number_vars(valTermRef(t), options, 0, &m);
+	unvisit();
 	assert(rc == rc2);
       }
       return rc + options->offset;
@@ -3050,12 +3083,12 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_numbervar_option, options);
 
   if ( opts.singletons )		/* Hack */
-  { if ( !is_acyclic(valTermRef(A1) PASS_LD) )
+  { if ( !is_acyclic(valTermRef(A1)) )
       opts.singletons = FALSE;
   }
 
   opts.functor = PL_new_functor(name, 1);
-  n = numberVars(t, &opts, n PASS_LD);
+  n = numberVars(t, &opts, n);
   if ( n != NV_ERROR )
     return PL_unify_int64(end, n);
 
@@ -3142,8 +3175,9 @@ PRED_IMPL("$unbind_template", 1, unbind_template, 0)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
 
+#define term_variables_loop(agenda, maxcount, flags) LDFUNC(term_variables_loop, agenda, maxcount, flags)
 static size_t
-term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
+term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
 { Word p;
   size_t count = 0;
 
@@ -3156,7 +3190,7 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
     if ( canBind(w) )
     { term_t v;
 
-      if ( visitedWord(p PASS_LD) )
+      if ( visitedWord(p) )
       { if ( (flags&TV_SINGLETON) )
 	  (*p) |= FIRST_MASK;
 	continue;
@@ -3178,7 +3212,7 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
     } else if ( isTerm(w) )
     { Functor f = valueTerm(w);
 
-      if ( visited(f PASS_LD) && !(flags&TV_SINGLETON) )
+      if ( visited(f) && !(flags&TV_SINGLETON) )
 	continue;
       if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
 	return TV_NOMEM;
@@ -3189,15 +3223,16 @@ term_variables_loop(term_agenda *agenda, size_t maxcount, int flags ARG_LD)
 }
 
 
+#define term_variables_to_termv(t, vp, maxcount, flags) LDFUNC(term_variables_to_termv, t, vp, maxcount, flags)
 static size_t
-term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
+term_variables_to_termv(DECL_LD term_t t, term_t *vp, size_t maxcount, int flags)
 { term_agenda agenda;
   term_t v0   = PL_new_term_refs(0);
   size_t count;
 
-  initvisited(PASS_LD1);
+  initvisited();
   initTermAgenda(&agenda, 1, valTermRef(t));
-  count = term_variables_loop(&agenda, maxcount, flags PASS_LD);
+  count = term_variables_loop(&agenda, maxcount, flags);
   clearTermAgenda(&agenda);
   if ( (flags&TV_SINGLETON) && (ssize_t)count >= 0 )
   { size_t o = 0;
@@ -3219,7 +3254,7 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 
     count = o;
   }
-  unvisit_and_unfirst(PASS_LD1);
+  unvisit_and_unfirst();
 
   *vp = v0;
   return count;
@@ -3227,8 +3262,9 @@ term_variables_to_termv(term_t t, term_t *vp, size_t maxcount, int flags ARG_LD)
 
 
 
+#define term_variables(t, vars, tail, flags) LDFUNC(term_variables, t, vars, tail, flags)
 static int
-term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
+term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
 { term_t list = PL_copy_term_ref(vars);
   term_t head = PL_new_term_ref();
   term_t v0;
@@ -3239,7 +3275,7 @@ term_variables(term_t t, term_t vars, term_t tail, int flags ARG_LD)
     maxcount = ~0;
 
   for(;;)
-  { count = term_variables_to_termv(t, &v0, maxcount, flags PASS_LD);
+  { count = term_variables_to_termv(t, &v0, maxcount, flags);
     if ( count == TV_EXCEPTION )
       return FALSE;
     if ( count == TV_NOSPACE )
@@ -3273,7 +3309,7 @@ static
 PRED_IMPL("term_variables", 2, term_variables2, PL_FA_ISO)
 { PRED_LD
 
-  return term_variables(A1, A2, 0, 0 PASS_LD);
+  return term_variables(A1, A2, 0, 0);
 }
 
 
@@ -3281,14 +3317,14 @@ static
 PRED_IMPL("term_variables", 3, term_variables3, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, A3, 0 PASS_LD);
+  return term_variables(A1, A2, A3, 0);
 }
 
 static
 PRED_IMPL("$term_attvar_variables", 2, term_attvar_variables, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, 0, TV_ATTS PASS_LD);
+  return term_variables(A1, A2, 0, TV_ATTS);
 }
 
 
@@ -3297,7 +3333,7 @@ PRED_IMPL("term_singletons", 2, term_singletons, 0)
 { PRED_LD
 
   if ( PL_is_acyclic(A1) )
-    return term_variables(A1, A2, 0, TV_SINGLETON PASS_LD);
+    return term_variables(A1, A2, 0, TV_SINGLETON);
   else
     return PL_representation_error("acyclic_term");
 }
@@ -3307,12 +3343,13 @@ static
 PRED_IMPL("term_attvars", 2, term_attvars, 0)
 { PRED_LD
 
-  return term_variables(A1, A2, 0, TV_ATTVAR|TV_ATTS PASS_LD);
+  return term_variables(A1, A2, 0, TV_ATTVAR|TV_ATTS);
 }
 
 
+#define is_most_general_term(p) LDFUNC(is_most_general_term, p)
 static int
-is_most_general_term(Word p ARG_LD)
+is_most_general_term(DECL_LD Word p)
 { deRef(p);
 
   if ( isAtom(*p) )
@@ -3324,7 +3361,7 @@ is_most_general_term(Word p ARG_LD)
     if ( t->definition == FUNCTOR_dot2 )
     { Word tail;
 
-      (void)skip_list(p, &tail PASS_LD);
+      (void)skip_list(p, &tail);
 
       if ( isNil(*tail) )
       { Word l = p;
@@ -3393,7 +3430,7 @@ static
 PRED_IMPL("is_most_general_term", 1, is_most_general_term, 0)
 { PRED_LD
 
-  return is_most_general_term(valTermRef(A1) PASS_LD);
+  return is_most_general_term(valTermRef(A1));
 }
 
 
@@ -3436,8 +3473,9 @@ The latest version of the old algorithm is in the GIT commit
 	f68eb71a9d5d0b9b6055483842d9654c30e29550
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define subsumes(general, specific) LDFUNC(subsumes, general, specific)
 static int
-subsumes(term_t general, term_t specific ARG_LD)
+subsumes(DECL_LD term_t general, term_t specific)
 { term_t v0;
   size_t i, n;
   term_t ex = 0;
@@ -3445,7 +3483,7 @@ subsumes(term_t general, term_t specific ARG_LD)
   int omode;
 
   for(;;)
-  { n = term_variables_to_termv(specific, &v0, ~0, 0 PASS_LD);
+  { n = term_variables_to_termv(specific, &v0, ~0, 0);
     if ( n == TV_EXCEPTION )
       return FALSE;
     if ( n == TV_NOSPACE )
@@ -3466,20 +3504,20 @@ subsumes(term_t general, term_t specific ARG_LD)
 
   if ( rc &&
        (ex = PL_new_term_ref()) &&
-       foreignWakeup(ex PASS_LD) )
+       foreignWakeup(ex) )
   { int rc = TRUE;
 
-    initvisited(PASS_LD1);
+    initvisited();
     for(i=0; i<n; i++)
     { Word p = valTermRef(v0+i);
       deRef(p);
 
-      if ( !canBind(*p) || visitedWord(p PASS_LD) )
+      if ( !canBind(*p) || visitedWord(p) )
       { rc = FALSE;
 	break;
       }
     }
-    unvisit(PASS_LD1);
+    unvisit();
     return rc;
   }
 
@@ -3497,7 +3535,7 @@ PRED_IMPL("subsumes_term", 2, subsumes_term, PL_FA_ISO)
   fid_t fid;
 
   fid = PL_open_foreign_frame();
-  rc = subsumes(A1, A2 PASS_LD);
+  rc = subsumes(A1, A2);
   PL_discard_foreign_frame(fid);
 
   return rc;
@@ -3512,8 +3550,9 @@ to be on the outside (except for M:) and removes ^/2 from the goal-term.
 The latter implies that we no longer need ^/2 as a predicate.
 */
 
+#define free_variables_loop(t, mname, goal) LDFUNC(free_variables_loop, t, mname, goal)
 static size_t
-free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
+free_variables_loop(DECL_LD Word t, atom_t *mname, term_t goal)
 { term_agenda agenda;
   int in_goal = FALSE;
   int existential = FALSE;		/* TRUE when processing left of ^ */
@@ -3531,7 +3570,7 @@ free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
     if ( canBind(*t) )
     { term_t v;
 
-      if ( !visitedWord(t PASS_LD) && !existential )
+      if ( !visitedWord(t) && !existential )
       { if ( !(v = PL_new_term_ref_noshift()) )
 	{ n = TV_NOSPACE;
 	  goto out;
@@ -3548,7 +3587,7 @@ free_variables_loop(Word t, atom_t *mname, term_t goal ARG_LD)
     { Functor f = valueTerm(*t);
       functor_t fd = f->definition;	/* modified by visited */
 
-      if ( visited(f PASS_LD) )
+      if ( visited(f) )
       { if ( !in_goal && !existential )
 	{ *valTermRef(goal) = *t;
 	  in_goal = TRUE;
@@ -3606,9 +3645,9 @@ PRED_IMPL("$free_variable_set", 3, free_variable_set, 0)
     size_t n;
     atom_t mname = (atom_t)0;
 
-    initvisited(PASS_LD1);
-    n = free_variables_loop(valTermRef(A1), &mname, goal PASS_LD);
-    unvisit(PASS_LD1);
+    initvisited();
+    n = free_variables_loop(valTermRef(A1), &mname, goal);
+    unvisit();
     if ( n == TV_NOSPACE )
     { PL_reset_term_refs(goal);
       if ( !makeMoreStackSpace(LOCAL_OVERFLOW, ALLOW_SHIFT) )
@@ -3667,8 +3706,9 @@ trailed variables and thus invalidate our nice   and clean trail. So, if
 there is no space we rewind and retry the whole process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define unifiable_occurs_check(t1, t2) LDFUNC(unifiable_occurs_check, t1, t2)
 static int
-unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
+unifiable_occurs_check(DECL_LD term_t t1, term_t t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
       return TRUE;
@@ -3678,12 +3718,11 @@ unifiable_occurs_check(term_t t1, term_t t2 ARG_LD)
       Word p2 = valTermRef(t2);
 
       deRef(p1);
-      if ( !var_occurs_in(p1, p2 PASS_LD) )
+      if ( !var_occurs_in(p1, p2) )
 	return TRUE;
 
       return failed_unify_with_occurs_check(p1, p2,
-					    LD->prolog_flag.occurs_check
-					    PASS_LD);
+					    LD->prolog_flag.occurs_check);
     }
     default:
       assert(0);
@@ -3698,14 +3737,15 @@ setting LD->mark_bar to the top  of   the  memory. Note that NO_MARK_BAR
 also needs support in garbageCollect() and growStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define unify_all_trail_ptrs(t1, t2, m) LDFUNC(unify_all_trail_ptrs, t1, t2, m)
 static bool
-unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
+unify_all_trail_ptrs(DECL_LD Word t1, Word t2, mark *m)
 { for(;;)
   { int rc;
 
     Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
-    rc = raw_unify_ptrs(t1, t2 PASS_LD);
+    rc = raw_unify_ptrs(t1, t2);
     if ( rc == TRUE )			/* Terms unified */
     { return rc;
     } else if ( rc == FALSE )		/* Terms did not unify */
@@ -3728,8 +3768,9 @@ unify_all_trail_ptrs(Word t1, Word t2, mark *m ARG_LD)
 }
 
 
+#define unifiable(t1, t2, subst) LDFUNC(unifiable, t1, t2, subst)
 static ssize_t
-unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
+unifiable(DECL_LD term_t t1, term_t t2, term_t subst)
 { mark m;
   int rc;
 
@@ -3737,7 +3778,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
   { if ( PL_compare(t1, t2) == 0 )
     { return PL_unify_atom(subst, ATOM_nil);
     } else
-    { if ( !unifiable_occurs_check(t1, t2 PASS_LD) )
+    { if ( !unifiable_occurs_check(t1, t2) )
 	fail;
 
       return PL_unify_term(subst,
@@ -3749,7 +3790,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
     }
   }
   if ( PL_is_variable(t2) )
-  { if ( !unifiable_occurs_check(t2, t1 PASS_LD) )
+  { if ( !unifiable_occurs_check(t2, t1) )
       fail;
 
     return PL_unify_term(subst,
@@ -3762,7 +3803,7 @@ unifiable(term_t t1, term_t t2, term_t subst ARG_LD)
 
 retry:
   if ( unify_all_trail_ptrs(valTermRef(t1),	/* can do shift/gc */
-			    valTermRef(t2), &m PASS_LD) )
+			    valTermRef(t2), &m) )
   { TrailEntry tt = tTop;
     TrailEntry mt = m.trailtop;
 
@@ -3855,7 +3896,7 @@ static
 PRED_IMPL("unifiable", 3, unifiable, 0)
 { PRED_LD
 
-  return unifiable(A1, A2, A3 PASS_LD);
+  return unifiable(A1, A2, A3);
 }
 
 
@@ -3896,8 +3937,9 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define	X_NO_SYNTAX_ERROR  0x40
 #define X_NO_LEADING_WHITE 0x80
 
+#define x_chars(pred, atom, string, how) LDFUNC(x_chars, pred, atom, string, how)
 static int
-x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
+x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 { PL_chars_t atext, stext;
   int arg1;
   int flags2 = CVT_STRING|CVT_LIST|CVT_EXCEPTION;
@@ -3981,35 +4023,35 @@ x_chars(const char *pred, term_t atom, term_t string, int how ARG_LD)
 static
 PRED_IMPL("name", 2, name, 0)
 { PRED_LD
-  return x_chars("name", A1, A2, X_AUTO PASS_LD);
+  return x_chars("name", A1, A2, X_AUTO);
 }
 
 
 static
 PRED_IMPL("atom_chars", 2, atom_chars, PL_FA_ISO)
 { PRED_LD
-  return x_chars("atom_chars", A1, A2, X_ATOM|X_CHARS PASS_LD);
+  return x_chars("atom_chars", A1, A2, X_ATOM|X_CHARS);
 }
 
 
 static
 PRED_IMPL("atom_codes", 2, atom_codes, PL_FA_ISO)
 { PRED_LD
-  return x_chars("atom_codes", A1, A2, X_ATOM PASS_LD);
+  return x_chars("atom_codes", A1, A2, X_ATOM);
 }
 
 
 static
 PRED_IMPL("number_chars", 2, number_chars, PL_FA_ISO)
 { PRED_LD
-  return x_chars("number_chars", A1, A2, X_NUMBER|X_CHARS PASS_LD);
+  return x_chars("number_chars", A1, A2, X_NUMBER|X_CHARS);
 }
 
 
 static
 PRED_IMPL("number_codes", 2, number_codes, PL_FA_ISO)
 { PRED_LD
-  return x_chars("number_codes", A1, A2, X_NUMBER PASS_LD);
+  return x_chars("number_codes", A1, A2, X_NUMBER);
 }
 
 
@@ -4017,8 +4059,7 @@ static
 PRED_IMPL("number_string", 2, number_string, 0)
 { PRED_LD
   return x_chars("number_string", A1, A2,
-		 X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR|X_NO_LEADING_WHITE
-		 PASS_LD);
+		 X_NUMBER|X_STRING|X_NO_SYNTAX_ERROR|X_NO_LEADING_WHITE);
 }
 
 
@@ -4116,8 +4157,9 @@ PRED_IMPL("$is_char", 1, is_char, 0)
 }
 
 
+#define is_text_list(text, lent, test) LDFUNC(is_text_list, text, lent, test)
 static int
-is_text_list(term_t text, term_t lent, int (*test)(word) ARG_LD)
+is_text_list(DECL_LD term_t text, term_t lent, int (*test)(word))
 { Word p = valTermRef(text);
   intptr_t len = 0;
 
@@ -4133,7 +4175,7 @@ is_text_list(term_t text, term_t lent, int (*test)(word) ARG_LD)
 
     if ( ++len == 1000 )
     { Word tail;
-      skip_list(p, &tail PASS_LD);
+      skip_list(p, &tail);
       if ( !isNil(*tail) )
 	return FALSE;
     }
@@ -4146,14 +4188,14 @@ static
 PRED_IMPL("$is_code_list", 2, is_code_list, 0)
 { PRED_LD
 
-  return is_text_list(A1, A2, is_code PASS_LD);
+  return is_text_list(A1, A2, is_code);
 }
 
 static
 PRED_IMPL("$is_char_list", 2, is_char_list, 0)
 { PRED_LD
 
-  return is_text_list(A1, A2, is_char PASS_LD);
+  return is_text_list(A1, A2, is_char);
 }
 
 
@@ -4235,12 +4277,13 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 #endif
 }
 
+#define concat(a1, a2, a3, bidirectional, ctx, accept, otype) LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
 static word
-concat(term_t a1, term_t a2, term_t a3,
+concat(DECL_LD term_t a1, term_t a2, term_t a3,
        int bidirectional,		/* FALSE: only mode +,+,- */
        control_t ctx,
        int accept,			/* CVT_* */
-       int otype ARG_LD)		/* PL_ATOM or PL_STRING */
+       int otype)		/* PL_ATOM or PL_STRING */
 { PL_chars_t t1, t2, t3;
   int rc;
   int inmode = bidirectional ? CVT_VARNOFAIL : 0;
@@ -4347,7 +4390,7 @@ static
 PRED_IMPL("atom_concat", 3, atom_concat, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 { PRED_LD
 
-  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_ATOM PASS_LD);
+  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_ATOM);
 }
 
 
@@ -4355,12 +4398,13 @@ static
 PRED_IMPL("atomic_concat", 3, atomic_concat, PL_FA_ISO)
 { PRED_LD
 
-  return concat(A1, A2, A3, FALSE, PL__ctx, CVT_ATOMIC, PL_ATOM PASS_LD);
+  return concat(A1, A2, A3, FALSE, PL__ctx, CVT_ATOMIC, PL_ATOM);
 }
 
 
+#define split_atom(list, st, atom) LDFUNC(split_atom, list, st, atom)
 static int
-split_atom(term_t list, PL_chars_t *st, term_t atom ARG_LD)
+split_atom(DECL_LD term_t list, PL_chars_t *st, term_t atom)
 { PL_chars_t at;
   size_t i, last;
   term_t tail = PL_copy_term_ref(list);
@@ -4438,8 +4482,9 @@ atomics_to_string/2,3.
 (-,+,+)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define atomic_list_concat(list, sep, atom, ret_type) LDFUNC(atomic_list_concat, list, sep, atom, ret_type)
 static foreign_t
-atomic_list_concat(term_t list, term_t sep, term_t atom, int ret_type ARG_LD)
+atomic_list_concat(DECL_LD term_t list, term_t sep, term_t atom, int ret_type)
 { term_t l = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   IOENC enc = ENC_ISO_LATIN_1;
@@ -4518,35 +4563,35 @@ split:
     return PL_domain_error("non_empty_atom", sep);
   }
 
-  return split_atom(list, &st, atom PASS_LD);
+  return split_atom(list, &st, atom);
 }
 
 
 static
 PRED_IMPL("atomic_list_concat", 3, atomic_list_concat, 0)
 { PRED_LD
-  return atomic_list_concat(A1, A2, A3, PL_ATOM PASS_LD);
+  return atomic_list_concat(A1, A2, A3, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("atomic_list_concat", 2, atomic_list_concat, 0)
 { PRED_LD
-  return atomic_list_concat(A1, 0, A2, PL_ATOM PASS_LD);
+  return atomic_list_concat(A1, 0, A2, PL_ATOM);
 }
 
 
 static
 PRED_IMPL("atomics_to_string", 3, atomics_to_string, 0)
 { PRED_LD
-  return atomic_list_concat(A1, A2, A3, PL_STRING PASS_LD);
+  return atomic_list_concat(A1, A2, A3, PL_STRING);
 }
 
 
 static
 PRED_IMPL("atomics_to_string", 2, atomics_to_string, 0)
 { PRED_LD
-  return atomic_list_concat(A1, 0, A2, PL_STRING PASS_LD);
+  return atomic_list_concat(A1, 0, A2, PL_STRING);
 }
 
 
@@ -4663,8 +4708,9 @@ typedef struct
 } sub_state;
 
 
+#define get_positive_integer_or_unbound(t, v) LDFUNC(get_positive_integer_or_unbound, t, v)
 static int
-get_positive_integer_or_unbound(term_t t, ssize_t *v ARG_LD)
+get_positive_integer_or_unbound(DECL_LD term_t t, ssize_t *v)
 { long i;
 
   if ( PL_get_long(t, &i) )		/* TBD: should be ssize_t */
@@ -4684,13 +4730,13 @@ get_positive_integer_or_unbound(term_t t, ssize_t *v ARG_LD)
 
 
 
+#define sub_text(atom, before, len, after, sub, h, type) LDFUNC(sub_text, atom, before, len, after, sub, h, type)
 static foreign_t
-sub_text(term_t atom,
+sub_text(DECL_LD term_t atom,
 	 term_t before, term_t len, term_t after,
 	 term_t sub,
 	 control_t h,
-	 int type			/* PL_ATOM or PL_STRING */
-	 ARG_LD)
+	 int type			/* PL_ATOM or PL_STRING */)
 { PL_chars_t ta, ts;			/* the strings */
   ssize_t b = -1, l = -1, a = -1;	/* the integers */
   sub_state *state;			/* non-deterministic state */
@@ -4706,9 +4752,9 @@ sub_text(term_t atom,
     { if ( !PL_get_text(atom, &ta, CVT_ATOMIC|BUF_ALLOW_STACK) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, expected, atom);
 
-      if ( !get_positive_integer_or_unbound(before, &b PASS_LD) ||
-	   !get_positive_integer_or_unbound(len, &l PASS_LD) ||
-	   !get_positive_integer_or_unbound(after, &a PASS_LD) )
+      if ( !get_positive_integer_or_unbound(before, &b) ||
+	   !get_positive_integer_or_unbound(len, &l) ||
+	   !get_positive_integer_or_unbound(after, &a) )
 	fail;
 
       if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
@@ -4944,7 +4990,7 @@ pl_sub_atom(term_t atom,
 	    term_t sub,
 	    control_t h)
 { GET_LD
-  return sub_text(atom, before, len, after, sub, h, PL_ATOM PASS_LD);
+  return sub_text(atom, before, len, after, sub, h, PL_ATOM);
 }
 
 
@@ -4974,7 +5020,7 @@ static
 PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 { PRED_LD
 
-  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_STRING PASS_LD);
+  return concat(A1, A2, A3, TRUE, PL__ctx, CVT_ATOMIC, PL_STRING);
 }
 
 
@@ -4982,7 +5028,7 @@ static
 PRED_IMPL("sub_string", 5, sub_string, PL_FA_NONDETERMINISTIC)
 { PRED_LD
 
-  return sub_text(A1, A2, A3, A4, A5, PL__ctx, PL_STRING PASS_LD);
+  return sub_text(A1, A2, A3, A4, A5, PL__ctx, PL_STRING);
 }
 
 #endif /* O_STRING */
@@ -5032,8 +5078,9 @@ pl_halt(term_t code)
 }
 
 #if defined(O_LIMIT_DEPTH) || defined(O_INFERENCE_LIMIT)
+#define unify_det(t) LDFUNC(unify_det, t)
 static foreign_t
-unify_det(term_t t ARG_LD)
+unify_det(DECL_LD term_t t)
 { Choice ch;
 
   for(ch=LD->choicepoints; ch; ch = ch->parent)
@@ -5099,16 +5146,18 @@ query.
 /* $depth_limit(+Limit, -OldLimit, -DepthReached)
 */
 
+#define unify_depth_LD(t, depth) LDFUNC(unify_depth_LD, t, depth)
 static int
-unify_depth_LD(term_t t, size_t depth ARG_LD)
+unify_depth_LD(DECL_LD term_t t, size_t depth)
 { if ( depth == DEPTH_NO_LIMIT )
     return PL_unify_atom(t, ATOM_inf);
   else
     return PL_unify_uint64(t, depth);
 }
 
+#define get_depth_LD(t, depth) LDFUNC(get_depth_LD, t, depth)
 static int
-get_depth_LD(term_t t, size_t *depth ARG_LD)
+get_depth_LD(DECL_LD term_t t, size_t *depth)
 { atom_t a;
 
   if ( PL_get_atom(t, &a) && a == ATOM_inf )
@@ -5119,8 +5168,8 @@ get_depth_LD(term_t t, size_t *depth ARG_LD)
   return PL_get_size_ex(t, depth);
 }
 
-#define unify_depth(t, d) unify_depth_LD(t, d PASS_LD)
-#define get_depth(t, d)   get_depth_LD(t, d PASS_LD)
+#define unify_depth(t, d) unify_depth_LD(t, d)
+#define get_depth(t, d)   get_depth_LD(t, d)
 
 static
 PRED_IMPL("$depth_limit", 3, pl_depth_limit, 0)
@@ -5176,7 +5225,7 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
 	if ( !PL_unify_integer(res, used) )
 	  return FALSE;
 
-	return unify_det(cut PASS_LD);
+	return unify_det(cut);
       }
 
       break;
@@ -5303,7 +5352,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
 	LD->inference_limit.limit = olimit;
 	updateAlerted(LD);
 
-	return unify_det(A3 PASS_LD);
+	return unify_det(A3);
       }
 
       return FALSE;
@@ -5473,9 +5522,9 @@ CStackSize(PL_local_data_t *ld)
 
 static int
 #ifdef O_PLMT
-qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *LD)
+qp_statistics(atom_t key, int64_t v[], PL_local_data_t *LD)
 #else
-qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
+qp_statistics(atom_t key, int64_t v[], PL_local_data_t *ld)
 #endif
 { int vn;
 
@@ -5579,9 +5628,9 @@ qp_statistics__LD(atom_t key, int64_t v[], PL_local_data_t *ld)
 
 static int
 #ifdef O_PLMT
-swi_statistics__LD(atom_t key, Number v, PL_local_data_t *LD)
+swi_statistics(atom_t key, Number v, PL_local_data_t *LD)
 #else
-swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
+swi_statistics(atom_t key, Number v, PL_local_data_t *ld)
 #endif
 { v->type = V_INTEGER;			/* most of them */
 
@@ -5720,7 +5769,7 @@ swi_statistics__LD(atom_t key, Number v, PL_local_data_t *ld)
 
 
 int
-pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
+pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
 { number result;			/* make compiler happy */
   atom_t key;
   int rc;
@@ -5732,7 +5781,7 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
     fail;
 
   if ( !PL_is_list(value) )
-  { switch(swi_statistics__LD(key, &result, ld))
+  { switch(swi_statistics(key, &result, ld))
     { case TRUE:
 	return PL_unify_number(value, &result);
       case FALSE:
@@ -5743,7 +5792,7 @@ pl_statistics_ld(term_t k, term_t value, PL_local_data_t *ld ARG_LD)
   }
 
 #ifdef QP_STATISTICS
-  if ( (rc=qp_statistics__LD(key, v, ld)) >= 0 )
+  if ( (rc=qp_statistics(key, v, ld)) >= 0 )
   { int64_t *p;
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();
@@ -5781,7 +5830,7 @@ PRED_IMPL("statistics", 2, statistics, 0)
       LD->statistics.system_cputime = ThreadCPUTime(LD, CPU_SYSTEM);
   }
 
-  return pl_statistics_ld(A1, A2, LD PASS_LD);
+  return pl_statistics_ld(A1, A2, LD);
 }
 
 

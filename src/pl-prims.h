@@ -43,16 +43,30 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-int		unify_ptrs(Word t1, Word t2, int flags ARG_LD);
-void		unify_vp(Word vp, Word val ARG_LD);
+#if USE_LD_MACROS
+#define	unify_ptrs(t1, t2, flags)	LDFUNC(unify_ptrs, t1, t2, flags)
+#define	unify_vp(vp, val)		LDFUNC(unify_vp, vp, val)
+#define	compareStandard(t1, t2, eq)	LDFUNC(compareStandard, t1, t2, eq)
+#define	skip_list(l, tailp)		LDFUNC(skip_list, l, tailp)
+#define	is_acyclic(p)			LDFUNC(is_acyclic, p)
+#define	numberVars(t, opts, n)		LDFUNC(numberVars, t, opts, n)
+#define	duplicate_term(in, copy)	LDFUNC(duplicate_term, in, copy)
+#define	pl_statistics_ld(k, value, ld)	LDFUNC(pl_statistics_ld, k, value, ld)
+#define	ground(p)			LDFUNC(ground, p)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int		unify_ptrs(Word t1, Word t2, int flags);
+void		unify_vp(Word vp, Word val);
 bool		can_unify(Word t1, Word t2, term_t ex);
-int		compareStandard(Word t1, Word t2, int eq ARG_LD);
+int		compareStandard(Word t1, Word t2, int eq);
 int		compareAtoms(atom_t a1, atom_t a2);
-intptr_t	skip_list(Word l, Word *tailp ARG_LD);
+intptr_t	skip_list(Word l, Word *tailp);
 intptr_t	lengthList(term_t list, int errors);
-int		is_acyclic(Word p ARG_LD);
-intptr_t	numberVars(term_t t, nv_options *opts, intptr_t n ARG_LD);
-int		duplicate_term(term_t in, term_t copy ARG_LD);
+int		is_acyclic(Word p);
+intptr_t	numberVars(term_t t, nv_options *opts, intptr_t n);
+int		duplicate_term(term_t in, term_t copy);
 word		stringToList(char *s);
 foreign_t	pl_sub_atom(term_t atom,
 			    term_t before, term_t len, term_t after,
@@ -62,14 +76,16 @@ word		pl_fail(void);
 word		pl_true(void);
 word		pl_halt(term_t code);
 int		pl_statistics_ld(term_t k, term_t value,
-				 PL_local_data_t *ld ARG_LD);
+				 PL_local_data_t *ld);
 int		set_pl_option(const char *name, const char *value);
 word		pl_novice(term_t old, term_t new);
-Word		ground__LD(Word p ARG_LD);
+Word		ground(Word p);
 int		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);
 int		PL_var_occurs_in(term_t var, term_t value);
 void		raiseInferenceLimitException(void);
+
+#undef LDFUNC_DECLARATIONS
 
 
 #endif /*_PL_PRIMS_H*/

@@ -296,18 +296,14 @@ and while loading .wic files.  It comes at no price.
 			 wsizeofIndirect(w) == sizeof(int64_t)/sizeof(word))
 
 #define MP_RAT_MASK	(0x1)
-#define isMPQNum(w)	isMPQNum__LD(w PASS_LD)
-#define isMPZNum(w)	isMPZNum__LD(w PASS_LD)
 
 #if ALIGNOF_INT64_T == ALIGNOF_VOIDP
 #define valBignum(w)	(*(int64_t *)valIndirectP(w))
 #else
-#define valBignum(w)	valBignum__LD(w PASS_LD)
 #endif
 #if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
 #define valFloat(w)	(*(double *)valIndirectP(w))
 #else
-#define valFloat(w)	valFloat__LD(w PASS_LD)
 #endif
 
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')

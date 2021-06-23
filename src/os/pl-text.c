@@ -178,7 +178,7 @@ i64toa(int64_t val, char *out)
 
 
 int
-PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
+PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 { word w = valHandle(l);
 
   if ( (flags & CVT_ATOM) && isAtom(w) )
@@ -187,7 +187,7 @@ PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD)
     if ( !get_atom_text(w, text) )
       goto maybe_write;
   } else if ( (flags & CVT_STRING) && isString(w) )
-  { if ( !get_string_text(w, text PASS_LD) )
+  { if ( !get_string_text(w, text) )
       goto maybe_write;
     if ( !PL_from_stack_text(text, flags) )
       return FALSE;			/* no memory */
@@ -460,8 +460,9 @@ globalSpaceRequirement(PL_chars_t *text)
 
 
 
+#define unify_text(term, tail, text, type) LDFUNC(unify_text, term, tail, text, type)
 static int
-unify_text(term_t term, term_t tail, PL_chars_t *text, int type ARG_LD)
+unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
     { atom_t a = textToAtom(text);
@@ -624,7 +625,7 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
   int rc;
 
   PL_STRINGS_MARK();
-  rc = unify_text(term, tail, text, type PASS_LD);
+  rc = unify_text(term, tail, text, type);
   PL_STRINGS_RELEASE();
   return rc;
 }

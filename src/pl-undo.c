@@ -157,7 +157,7 @@ PRED_IMPL("$undo", 1, undo, 0)
 
 
 void
-push_undo(Word p ARG_LD)
+push_undo(DECL_LD Word p)
 { deRef(p);
   if ( isTerm(*p) )
   { Functor f = valueTerm(*p);
@@ -187,8 +187,9 @@ push_undo(Word p ARG_LD)
 }
 
 
+#define put_scheduled_undo(list) LDFUNC(put_scheduled_undo, list)
 static int
-put_scheduled_undo(term_t list ARG_LD)
+put_scheduled_undo(DECL_LD term_t list)
 { PL_put_nil(list);
 
   if ( LD->undo.scheduled )
@@ -218,7 +219,7 @@ put_scheduled_undo(term_t list ARG_LD)
 }
 
 int
-run_undo_hooks(ARG1_LD)
+run_undo_hooks(DECL_LD)
 { fid_t fid;
 
   if ( (fid=PL_open_foreign_frame()) )
@@ -231,7 +232,7 @@ run_undo_hooks(ARG1_LD)
 
     LD->undo.running++;
     rc =  ( (list = PL_new_term_ref()) &&
-	    put_scheduled_undo(list PASS_LD) &&
+	    put_scheduled_undo(list) &&
 	    PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, list) );
     LD->undo.running--;
 

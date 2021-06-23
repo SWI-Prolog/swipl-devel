@@ -60,11 +60,11 @@
  * 
  * Example usage:
  * FOREACH_VMI(T_EMPTY,
- *   int ,VMI_IDENT,(Code PC,, ,(void *ctx ARG_LD),);
+ *   int ,VMI_IDENT,(Code PC,, ,(DECL_LD void *ctx),);
  * )
  * 
  * This would expand to:
- * int instr_D_BREAK(Code PC, void *ctx ARG_LD);
+ * int instr_D_BREAK(DECL_LD Code PC, void *ctx);
  * ... and so on. Note the double-comma acting as an escape for a single comma, and
  * the ,(...), production to escape an entire sequence with optional commas.
  */

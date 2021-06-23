@@ -94,8 +94,9 @@ applications.
 #define COPY_ATTRS	0x02			/* do copy attributes */
 #define COPY_ABSTRACT	0x04			/* Abstract compounds */
 
+#define mark_for_duplicate(p, flags) LDFUNC(mark_for_duplicate, p, flags)
 static int
-mark_for_duplicate(Word p, int flags ARG_LD)
+mark_for_duplicate(DECL_LD Word p, int flags)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
@@ -147,8 +148,9 @@ mark_for_duplicate(Word p, int flags ARG_LD)
    the ground marking.
 */
 
+#define unshare_attvar(p) LDFUNC(unshare_attvar, p)
 static void
-unshare_attvar(Word p ARG_LD)
+unshare_attvar(DECL_LD Word p)
 { for(;;)
   { deRef(p);
 
@@ -167,8 +169,9 @@ unshare_attvar(Word p ARG_LD)
 }
 
 
+#define can_share(p) LDFUNC(can_share, p)
 static int
-can_share(Word p ARG_LD)
+can_share(DECL_LD Word p)
 {
 again:
   switch(tag(*p))
@@ -188,15 +191,16 @@ again:
 }
 
 
+#define update_ground(p) LDFUNC(update_ground, p)
 static void
-update_ground(Word p ARG_LD)
+update_ground(DECL_LD Word p)
 { Functor t = valueTerm(*p);
   int arity = arityFunctor(t->definition);
   Word a = &t->arguments[arity];
   int ground = TRUE;
 
   while(--a >= t->arguments)
-  { if ( !can_share(a PASS_LD) )
+  { if ( !can_share(a) )
     { ground = FALSE;
       break;
     }
@@ -224,8 +228,9 @@ popForMark(segstack *stack, Word *pp, int *wr)
 }
 
 
+#define mark_for_copy(p, flags) LDFUNC(mark_for_copy, p, flags)
 static int
-mark_for_copy(Word p, int flags ARG_LD)
+mark_for_copy(DECL_LD Word p, int flags)
 { Word start = p;
   int walk_ref = FALSE;
   Word buf[1024];
@@ -297,7 +302,7 @@ mark_for_copy(Word p, int flags ARG_LD)
       if ( isAttVar(*p) )
       { Word ap = valPAttVar(*p);
 
-	unshare_attvar(ap PASS_LD);
+	unshare_attvar(ap);
       }
       if ( p == start )
       { clearSegStack(&stack);
@@ -308,7 +313,7 @@ mark_for_copy(Word p, int flags ARG_LD)
     p--;
     if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )
     { popForMark(&stack, &p, &walk_ref);
-      update_ground(p PASS_LD);
+      update_ground(p);
     }
   }
 }
@@ -318,8 +323,9 @@ mark_for_copy(Word p, int flags ARG_LD)
 		 *	      UNMARKING		*
 		 *******************************/
 
+#define cp_unmark(p, flags) LDFUNC(cp_unmark, p, flags)
 static void
-cp_unmark(Word p, int flags ARG_LD)
+cp_unmark(DECL_LD Word p, int flags)
 { term_agenda agenda;
 
   initTermAgenda(&agenda, 1, p);
@@ -354,18 +360,21 @@ cp_unmark(Word p, int flags ARG_LD)
 }
 
 
+#define initCyclicCopy(_) LDFUNC(initCyclicCopy, _)
 static void
-initCyclicCopy(ARG1_LD)
+initCyclicCopy(DECL_LD)
 { LD->cycle.lstack.unit_size = sizeof(Word);
 }
 
+#define TrailCyclic(p) LDFUNC(TrailCyclic, p)
 static int
-TrailCyclic(Word p ARG_LD)
+TrailCyclic(DECL_LD Word p)
 { return pushSegStack(&LD->cycle.lstack, p, Word);
 }
 
+#define exitCyclicCopy(flags) LDFUNC(exitCyclicCopy, flags)
 static inline void
-exitCyclicCopy(int flags ARG_LD)
+exitCyclicCopy(DECL_LD int flags)
 { Word p;
 
   while(popSegStack(&LD->cycle.lstack, &p, Word))
@@ -396,8 +405,9 @@ exitCyclicCopy(int flags ARG_LD)
 }
 
 
+#define copy_term(from, to, abstract, flags) LDFUNC(copy_term, from, to, abstract, flags)
 static int
-copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
+copy_term(DECL_LD Word from, Word to, size_t abstract, int flags)
 { term_agendaLRD agenda;
   int rc = TRUE;
   size_t aleft = (size_t)-1;
@@ -425,7 +435,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
       { if ( shared(*from) )
 	{ *to = VAR_MARK;
 	  *from = makeRefG(to);
-	  TrailCyclic(from PASS_LD);
+	  TrailCyclic(from);
 	} else if ( (flags&COPY_ABSTRACT) )
 	{ *to = makeRefG(from);
 	} else
@@ -443,12 +453,12 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  } else
 	  { Word attr;
 
-	    if ( !(attr = alloc_attvar(PASS_LD1)) )
+	    if ( !(attr = alloc_attvar()) )
 	    { rc = GLOBAL_OVERFLOW;
 	      goto out;
 	    }
-	    TrailCyclic(p PASS_LD);
-	    TrailCyclic(from PASS_LD);
+	    TrailCyclic(p);
+	    TrailCyclic(from);
 	    *from = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
 	    *to = makeRefG(attr);
 
@@ -465,8 +475,8 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	    } else
 	    { *to = VAR_MARK;
 	      *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR)|BOTH_MASK;
-	      TrailCyclic(p PASS_LD);
-	      TrailCyclic(from PASS_LD);
+	      TrailCyclic(p);
+	      TrailCyclic(from);
 	    }
 	  } else
 	  { setVar(*to);
@@ -504,7 +514,7 @@ copy_term(Word from, Word to, size_t abstract, int flags ARG_LD)
 	  }
 	  ft->definition = ff->definition & ~BOTH_MASK;
 	  ff->definition = makeRefG((Word)ft);
-	  TrailCyclic(&ff->definition PASS_LD);
+	  TrailCyclic(&ff->definition);
 	  *to = consPtr(ft, TAG_COMPOUND|STG_GLOBAL);
 
 	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
@@ -548,8 +558,9 @@ Both from and to  point  to  locations   on  the  global  stack. From is
 deferenced and to is a variable.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define do_copy_term(from, to, abstract, flags) LDFUNC(do_copy_term, from, to, abstract, flags)
 static int
-do_copy_term(Word from, Word to, int abstract, int flags ARG_LD)
+do_copy_term(DECL_LD Word from, Word to, int abstract, int flags)
 { int rc;
 
 again:
@@ -571,18 +582,18 @@ again:
   }
 
   if ( (flags&COPY_SHARE) )
-  { DEBUG(0, { mark_for_copy(from, flags PASS_LD);
-	       cp_unmark(from, flags PASS_LD);
+  { DEBUG(0, { mark_for_copy(from, flags);
+	       cp_unmark(from, flags);
 	       checkData(from);
 	     });
-    mark_for_copy(from, flags PASS_LD);
+    mark_for_copy(from, flags);
   } else if ( !(flags&COPY_ABSTRACT) )
-  { mark_for_duplicate(from, flags PASS_LD);
+  { mark_for_duplicate(from, flags);
   }
-  initCyclicCopy(PASS_LD1);
-  rc = copy_term(from, to, abstract, flags PASS_LD);
-  exitCyclicCopy(flags PASS_LD);
-  cp_unmark(from, flags PASS_LD);
+  initCyclicCopy();
+  rc = copy_term(from, to, abstract, flags);
+  exitCyclicCopy(flags);
+  cp_unmark(from, flags);
 /*DEBUG(0, if ( rc == TRUE )		May lead to "Reference to higher address"
 	   { checkData(from);
              checkData(to);
@@ -593,8 +604,9 @@ again:
 }
 
 
+#define copy_term_refs(from, to, abstract, flags) LDFUNC(copy_term_refs, from, to, abstract, flags)
 static int
-copy_term_refs(term_t from, term_t to, size_t abstract, int flags ARG_LD)
+copy_term_refs(DECL_LD term_t from, term_t to, size_t abstract, int flags)
 { for(;;)
   { fid_t fid;
     int rc;
@@ -611,7 +623,7 @@ copy_term_refs(term_t from, term_t to, size_t abstract, int flags ARG_LD)
     *valTermRef(to) = makeRefG(dest);
     src = valTermRef(from);
 
-    rc = do_copy_term(src, dest, abstract, flags PASS_LD);
+    rc = do_copy_term(src, dest, abstract, flags);
 
     if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
@@ -632,14 +644,14 @@ copy_term_refs(term_t from, term_t to, size_t abstract, int flags ARG_LD)
 
 
 int
-duplicate_term(term_t in, term_t copy ARG_LD)
-{ return copy_term_refs(in, copy, (size_t)-1, COPY_ATTRS PASS_LD);
+duplicate_term(DECL_LD term_t in, term_t copy)
+{ return copy_term_refs(in, copy, (size_t)-1, COPY_ATTRS);
 }
 
 
 int
-size_abstract_term(term_t in, term_t copy, size_t abstract ARG_LD)
-{ return copy_term_refs(in, copy, abstract, COPY_ATTRS|COPY_ABSTRACT PASS_LD);
+size_abstract_term(DECL_LD term_t in, term_t copy, size_t abstract)
+{ return copy_term_refs(in, copy, abstract, COPY_ATTRS|COPY_ABSTRACT);
 }
 
 
@@ -680,8 +692,9 @@ relocate_down(word w, size_t offset)
   }
 }
 
+#define relocate_up(w, offset) LDFUNC(relocate_up, w, offset)
 static word
-relocate_up(word w, size_t offset ARG_LD)
+relocate_up(DECL_LD word w, size_t offset)
 { if ( isAtom(w) )
   { pushVolatileAtom(w);
     return w;
@@ -692,7 +705,7 @@ relocate_up(word w, size_t offset ARG_LD)
 
 
 fastheap_term *
-term_to_fastheap(term_t t ARG_LD)
+term_to_fastheap(DECL_LD term_t t)
 { term_t copy = PL_new_term_ref();
   Word gcopy, gtop, p, o;
   size_t relocations=0;
@@ -703,7 +716,7 @@ term_to_fastheap(term_t t ARG_LD)
   size_t indirect_cells = 0;
   Word indirects;
 
-  if ( !duplicate_term(t, copy PASS_LD) )
+  if ( !duplicate_term(t, copy) )
     return NULL;
   gcopy = valTermRef(copy);
   gtop  = gTop;
@@ -776,7 +789,7 @@ free_fastheap(fastheap_term *fht)
 
 
 int
-put_fastheap(fastheap_term *fht, term_t t ARG_LD)
+put_fastheap(DECL_LD fastheap_term *fht, term_t t)
 { Word p, o;
   size_t offset;
   unsigned int *r;
@@ -794,7 +807,7 @@ put_fastheap(fastheap_term *fht, term_t t ARG_LD)
   offset = o-gBase;
   for(r = fht->relocations, p=o; *r != REL_END; r++)
   { p += *r;
-    *p = relocate_up(*p, offset PASS_LD);
+    *p = relocate_up(*p, offset);
   }
 
   gTop += fht->data_len;
@@ -817,7 +830,7 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
   } else
   { term_t copy = PL_new_term_ref();
 
-    if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE|COPY_ATTRS PASS_LD) )
+    if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE|COPY_ATTRS) )
       return PL_unify(copy, A2);
 
     fail;
@@ -834,7 +847,7 @@ PRED_IMPL("duplicate_term", 2, duplicate_term, 0)
   } else
   { term_t copy = PL_new_term_ref();
 
-    if ( duplicate_term(A1, copy PASS_LD) )
+    if ( duplicate_term(A1, copy) )
       return PL_unify(copy, A2);
 
     fail;
@@ -847,7 +860,7 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
 
-  if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE PASS_LD) )
+  if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE) )
     return PL_unify(copy, A2);
 
   fail;
@@ -862,7 +875,7 @@ PRED_IMPL("size_abstract_term", 3, size_abstract_term, 0)
   if ( PL_get_size_ex(A1, &abstract) )
   { term_t copy = PL_new_term_ref();
 
-    if ( size_abstract_term(A2, copy, abstract PASS_LD) )
+    if ( size_abstract_term(A2, copy, abstract) )
       return PL_unify(copy, A3);
   }
 

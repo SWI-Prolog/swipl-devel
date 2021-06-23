@@ -43,8 +43,18 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	f_endCritical(_)	LDFUNC(f_endCritical, _)
+#define	handleSignals(_)	LDFUNC(handleSignals, _)
+#define	initPrologLocalData(_)	LDFUNC(initPrologLocalData, _)
+#define	trimStacks(resize)	LDFUNC(trimStacks, resize)
+#define	freeStacks(_)		LDFUNC(freeStacks, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int		setupProlog(void);
-int		endCritical__LD(ARG1_LD);
+int		f_endCritical(void);
 void		dispatch_signal(int sig, int sync);
 handler_t	set_sighandler(int sig, handler_t func);
 void		blockSignals(sigset_t *mask);
@@ -54,20 +64,22 @@ void		unblockSignal(int sig);
 void		blockSignal(int sig);
 void		resetSignals(void);
 void		cleanupSignals(void);
-int		handleSignals(ARG1_LD);
+int		handleSignals(void);
 void		terminate_on_signal(int signo);
 
 int		initPrologStacks(size_t limit);
-void		initPrologLocalData(ARG1_LD);
+void		initPrologLocalData(void);
 void		deallocateStacks(void);
 bool		restoreStack(Stack s);
-void		trimStacks(int resize ARG_LD);
+void		trimStacks(int resize);
 void		emptyStacks(void);
-void		freeStacks(ARG1_LD);
+void		freeStacks(void);
 void		freePrologLocalData(PL_local_data_t *ld);
 int		ensure_room_stack(Stack s, size_t n, int ex);
 int		trim_stack(Stack s);
 int		set_stack_limit(size_t limit);
 const char *	signal_name(int sig);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_SETUP_H*/

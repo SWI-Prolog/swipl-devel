@@ -74,8 +74,9 @@ Where the compiler translates '$reset' into
 #define FRESET_NO_FRAME -1
 #define FRESET_FINDALL  -2
 
+#define findReset(fr, ball, rframe) LDFUNC(findReset, fr, ball, rframe)
 static int
-findReset(LocalFrame fr, term_t ball, term_t *rframe ARG_LD)
+findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
 { Definition reset3  = PROCEDURE_reset3->definition;
 
   for(; fr; fr = fr->parent)
@@ -371,11 +372,11 @@ Performs the following steps:
 */
 
 Code
-shift(term_t ball, int for_copy ARG_LD)
+shift(DECL_LD term_t ball, int for_copy)
 { term_t reset;
   int rc;
 
-  if ( (rc=findReset(environment_frame, ball, &reset PASS_LD)) == TRUE )
+  if ( (rc=findReset(environment_frame, ball, &reset)) == TRUE )
   { term_t cont = PL_new_term_ref();
     LocalFrame resetfr;
     LocalFrame fr;
@@ -455,7 +456,7 @@ effective after the next GC call and GC won't run concurrently with AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
-push_continuation(term_t continuation, LocalFrame pfr, Code pcret ARG_LD)
+push_continuation(DECL_LD term_t continuation, LocalFrame pfr, Code pcret)
 { LocalFrame top, fr;
   Word cont;
 
@@ -492,7 +493,7 @@ retry:
     if ( unlikely(lroom < lneeded) )	/* resize the stack */
     { int rc;
 
-      if ( (rc=growLocalSpace__LD(roomStack(local)*2, ALLOW_SHIFT PASS_LD))
+      if ( (rc=growLocalSpace(roomStack(local)*2, ALLOW_SHIFT))
 	   != TRUE )
       { raiseStackOverflow(rc);
 	return NULL;

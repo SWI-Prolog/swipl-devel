@@ -44,6 +44,13 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	f_ensureStackSpace(gcells, tcells, flags)	LDFUNC(f_ensureStackSpace, gcells, tcells, flags)
+#define	growLocalSpace(bytes, flags)			LDFUNC(growLocalSpace, bytes, flags)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
 int		garbageCollect(gc_reason_t reason);
@@ -55,9 +62,9 @@ int		shiftTightStacks(void);
 int		growStacks(size_t l, size_t g, size_t t);
 size_t		nextStackSize(Stack s, size_t minfree);
 int		makeMoreStackSpace(int overflow, int flags);
-int		f_ensureStackSpace__LD(size_t gcells, size_t tcells,
-				       int flags ARG_LD);
-int		growLocalSpace__LD(size_t bytes, int flags ARG_LD);
+int		f_ensureStackSpace(size_t gcells, size_t tcells,
+				   int flags);
+int		growLocalSpace(size_t bytes, int flags);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);
@@ -77,41 +84,41 @@ char *		print_addr(Word p, char *buf);
 char *		print_val(word w, char *buf);
 #endif
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
+#undef LDFUNC_DECLARATIONS
 
-#define ensureLocalSpace(n)	likely(ensureLocalSpace__LD(n PASS_LD))
-#define ensureGlobalSpace(n,f)  likely(ensureStackSpace__LD(n,0,f PASS_LD))
-#define ensureTrailSpace(n)     likely(ensureStackSpace__LD(0,n,ALLOW_GC PASS_LD))
-#define ensureStackSpace(g,t)   likely(ensureStackSpace__LD(g,t,ALLOW_GC PASS_LD))
+#define ensureLocalSpace(n)	likely(ensureLocalSpace_ex(n))
+#define ensureGlobalSpace(n,f)  likely(ensureStackSpace_ex(n,0,f))
+#define ensureTrailSpace(n)     likely(ensureStackSpace_ex(0,n,ALLOW_GC))
+#define ensureStackSpace(g,t)   likely(ensureStackSpace_ex(g,t,ALLOW_GC))
 
 		 /*******************************
 		 *	INLINE DEFINITIONS	*
 		 *******************************/
 
+#define ensureLocalSpace_ex(bytes) LDFUNC(ensureLocalSpace_ex, bytes)
 static inline int
-ensureLocalSpace__LD(size_t bytes ARG_LD)
+ensureLocalSpace_ex(DECL_LD size_t bytes)
 { int rc;
 
   if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
     return TRUE;
 
-  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
+  if ( (rc=growLocalSpace(bytes, ALLOW_SHIFT)) == TRUE )
     return TRUE;
 
   return raiseStackOverflow(rc);
 }
 
+#define ensureStackSpace_ex(gcells, tcells, flags) LDFUNC(ensureStackSpace_ex, gcells, tcells, flags)
 static inline int
-ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
+ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
 { gcells += BIND_GLOBAL_SPACE;
   tcells += BIND_TRAIL_SPACE;
 
   if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
     return TRUE;
 
-  return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
+  return f_ensureStackSpace(gcells, tcells, flags);
 }
 
 #endif /*_PL_GC_H*/

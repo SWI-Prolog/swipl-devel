@@ -43,7 +43,13 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-char *		var_name_ptr__LD(Word p, char *name ARG_LD);
+#if USE_LD_MACROS
+#define	var_name_ptr(p, name)	LDFUNC(var_name_ptr, p, name)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+char *		var_name_ptr(Word p, char *name);
 char *		varName(term_t var, char *buf);
 word		pl_write_canonical(term_t term);
 word		pl_write_canonical2(term_t stream, term_t term);
@@ -67,10 +73,6 @@ int		unquoted_atom(atom_t a);
 strnumstat	make_nan(double *f);
 double		NaN_value(double f);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define var_name_ptr(p, n)	var_name_ptr__LD(p, n PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_WRITE_H*/			

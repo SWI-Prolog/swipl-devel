@@ -46,7 +46,7 @@
 		 *******************************/
 
 void
-freezeGlobal(ARG1_LD)
+freezeGlobal(DECL_LD)
 { LD->frozen_bar = LD->mark_bar = gTop;
   DEBUG(2, Sdprintf("*** frozen bar to %p at freezeGlobal()\n",
 		    LD->frozen_bar));
@@ -102,8 +102,9 @@ SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
 	    2 more allocGlobal(1) makes g+t<3+3
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define setval(var, value, backtrackable) LDFUNC(setval, var, value, backtrackable)
 static int
-setval(term_t var, term_t value, int backtrackable ARG_LD)
+setval(DECL_LD term_t var, term_t value, int backtrackable)
 { atom_t name;
   Word p;
   word w, old;
@@ -159,7 +160,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     } else
     { p = allocGlobal(1);
       *p = old;
-      freezeGlobal(PASS_LD1);		/* The value location must be */
+      freezeGlobal();		/* The value location must be */
       if ( storage(old) != STG_GLOBAL )	/* preserved */
 	LD->gvar.grefs++;
       updateHTable(LD->gvar.nb_vars, (void*)name, (void*)makeRefG(p));
@@ -174,7 +175,7 @@ setval(term_t var, term_t value, int backtrackable ARG_LD)
     updateHTable(LD->gvar.nb_vars, (void*)name, (void*)w);
 
     if ( storage(w) == STG_GLOBAL )
-    { freezeGlobal(PASS_LD1);
+    { freezeGlobal();
       LD->gvar.grefs++;
     } else if ( isAtom(w) )
       PL_register_atom(w);
@@ -226,7 +227,7 @@ auto_define_gvar(atom_t name)
 }
 
 
-/* gvar_value__LD() is a quick and dirty way to get a global variable.
+/* gvar_value() is a quick and dirty way to get a global variable.
    It is used to get '$variable_names' for compiler warnings.
 
    Note that this function does *not* call auto_define_gvar().  This
@@ -236,7 +237,7 @@ auto_define_gvar(atom_t name)
 */
 
 int
-gvar_value__LD(atom_t name, Word p ARG_LD)
+gvar_value(DECL_LD atom_t name, Word p)
 { if ( LD->gvar.nb_vars )
   { word w;
     if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
@@ -249,8 +250,9 @@ gvar_value__LD(atom_t name, Word p ARG_LD)
 }
 
 
+#define getval(var, value, raise_error) LDFUNC(getval, var, value, raise_error)
 static int
-getval(term_t var, term_t value, int raise_error ARG_LD)
+getval(DECL_LD term_t var, term_t value, int raise_error)
 { atom_t name;
   int i;
 
@@ -300,7 +302,7 @@ static
 PRED_IMPL("nb_linkval", 2, nb_linkval, 0)
 { PRED_LD
 
-  return setval(A1, A2, FALSE PASS_LD);
+  return setval(A1, A2, FALSE);
 }
 
 
@@ -308,7 +310,7 @@ static
 PRED_IMPL("nb_getval", 2, nb_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2, TRUE PASS_LD);
+  return getval(A1, A2, TRUE);
 }
 
 
@@ -316,14 +318,14 @@ static
 PRED_IMPL("b_setval", 2, b_setval, 0)
 { PRED_LD
 
-  return setval(A1, A2, TRUE PASS_LD);
+  return setval(A1, A2, TRUE);
 }
 
 static
 PRED_IMPL("b_getval", 2, b_getval, 0)
 { PRED_LD
 
-  return getval(A1, A2, TRUE PASS_LD);
+  return getval(A1, A2, TRUE);
 }
 
 
@@ -359,7 +361,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       if ( PL_is_atom(A1) )
-	return getval(A1, A2, FALSE PASS_LD);
+	return getval(A1, A2, FALSE);
       if ( !PL_is_variable(A1) )
 	return PL_type_error("atom", A1);
       if ( LD->gvar.nb_vars )
@@ -386,7 +388,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
   }
   while( advanceTableEnum(e, (void**)&name, (void**)&val) )
   { if ( PL_unify_atom(A1, name) &&
-	 unify_ptrs(valTermRef(A2), &val, 0 PASS_LD) )
+	 unify_ptrs(valTermRef(A2), &val, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     } else

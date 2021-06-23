@@ -959,7 +959,7 @@ printMessage(atom_t severity, ...)
 
   if ( ++LD->in_print_message >= OK_RECURSIVE*3 )
     fatalError("printMessage(): recursive call\n");
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  if ( !saveWakeup(&wstate, TRUE) )
   { LD->in_print_message--;
     return FALSE;
   }
@@ -992,7 +992,7 @@ printMessage(atom_t severity, ...)
   else
     rc = TRUE;
 
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
   LD->in_print_message--;
 
   return rc;
@@ -1004,7 +1004,7 @@ printMessage(atom_t severity, ...)
 		 *******************************/
 
 int
-PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
+PL_get_atom_ex(DECL_LD term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     succeed;
 
@@ -1012,14 +1012,9 @@ PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
 }
 
 
-#undef PL_get_atom_ex
-int
-PL_get_atom_ex(term_t t, atom_t *a)
-{ GET_LD
-
-  return PL_get_atom_ex__LD(t, a PASS_LD);
-}
-#define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+API_STUB(int)
+(PL_get_atom_ex)(term_t t, atom_t *a)
+( return PL_get_atom_ex(t, a); )
 
 
 int
@@ -1090,7 +1085,7 @@ fits_size(int64_t val)
 #endif
 
 int
-PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
+PL_get_size_ex(DECL_LD term_t t, size_t *i)
 { number n;
   Word p = valTermRef(t);
 
@@ -1150,7 +1145,7 @@ PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 
 
 int
-pl_get_uint64__LD(term_t t, uint64_t *i, int ex ARG_LD)
+pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 { number n;
   Word p = valTermRef(t);
 
@@ -1209,17 +1204,13 @@ pl_get_uint64__LD(term_t t, uint64_t *i, int ex ARG_LD)
 }
 
 int
-PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
-{ return pl_get_uint64__LD(t, i, TRUE PASS_LD);
+PL_get_uint64_ex(DECL_LD term_t t, uint64_t *i)
+{ return pl_get_uint64(t, i, TRUE);
 }
 
-#undef PL_get_size_ex
-int
-PL_get_size_ex(term_t t, size_t *i)
-{ GET_LD
-  return PL_get_size_ex__LD(t, i PASS_LD);
-}
-#define PL_get_size_ex(t,i) PL_get_size_ex__LD(t,i PASS_LD)
+API_STUB(int)
+(PL_get_size_ex)(term_t t, size_t *i)
+( return PL_get_size_ex(t, i); )
 
 int
 PL_get_bool_ex(term_t t, int *i)

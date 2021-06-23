@@ -37,38 +37,49 @@
 #ifndef PL_COMP_H_INCLUDED
 #define PL_COMP_H_INCLUDED
 
-COMMON(void)		initWamTable(void);
-COMMON(void)		freeVarDefs(PL_local_data_t *ld);
-COMMON(int)		get_head_and_body_clause(term_t clause,
-					 term_t head, term_t body,
-					 Module *m, int *flags ARG_LD);
-COMMON(Procedure)	lookupBodyProcedure(functor_t functor, Module tm);
-COMMON(int)		compileClause(Clause *cp, Word head, Word body,
-				      Procedure proc, Module module,
-				      term_t warnings, int flags ARG_LD);
-COMMON(Clause)		assert_term(term_t term, Module m, ClauseRef where,
-				    atom_t owner, SourceLoc loc, int flags ARG_LD);
-COMMON(void)		forAtomsInClause(Clause clause, void (func)(atom_t a));
-COMMON(Code)		stepDynPC(Code PC, const code_info *ci);
-COMMON(bool)		decompileHead(Clause clause, term_t head);
-COMMON(int)		det_goal_error(LocalFrame fr, Code PC,
-				       atom_t found ARG_LD);
-COMMON(Code)		skipArgs(Code PC, int skip);
-COMMON(int)		argKey(Code PC, int skip, word *key);
-COMMON(int)		arg1Key(Code PC, word *key);
-COMMON(bool)		decompile(Clause clause, term_t term, term_t bindings);
-COMMON(word)		pl_nth_clause(term_t p, term_t n, term_t ref,
-				      control_t h);
-COMMON(void)		wamListClause(Clause clause);
-COMMON(Code)		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
-COMMON(int)		unify_definition(Module ctx, term_t head, Definition def,
-					 term_t thehead, int flags);
-COMMON(code)		replacedBreak(Code PC);
-COMMON(code)		replacedBreakUnlocked(Code PC);
-COMMON(int)		clearBreakPointsClause(Clause clause) WUNUSED;
-COMMON(int)		unify_functor(term_t t, functor_t fd, int how);
-COMMON(void)		vm_list(Code code, Code end);
-COMMON(Module)		clauseBodyContext(const Clause cl);
+#if USE_LD_MACROS
+#define	get_head_and_body_clause(clause, head, body, m, flags)		LDFUNC(get_head_and_body_clause, clause, head, body, m, flags)
+#define	compileClause(cp, head, body, proc, module, warnings, flags)	LDFUNC(compileClause, cp, head, body, proc, module, warnings, flags)
+#define	assert_term(term, m, where, owner, loc, flags)			LDFUNC(assert_term, term, m, where, owner, loc, flags)
+#define	det_goal_error(fr, PC, found)					LDFUNC(det_goal_error, fr, PC, found)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+void		initWamTable(void);
+void		freeVarDefs(PL_local_data_t *ld);
+int		get_head_and_body_clause(term_t clause,
+				 term_t head, term_t body,
+				 Module *m, int *flags);
+Procedure	lookupBodyProcedure(functor_t functor, Module tm);
+int		compileClause(Clause *cp, Word head, Word body,
+			      Procedure proc, Module module,
+			      term_t warnings, int flags);
+Clause		assert_term(term_t term, Module m, ClauseRef where,
+			    atom_t owner, SourceLoc loc, int flags);
+void		forAtomsInClause(Clause clause, void (func)(atom_t a));
+Code		stepDynPC(Code PC, const code_info *ci);
+bool		decompileHead(Clause clause, term_t head);
+int		det_goal_error(LocalFrame fr, Code PC,
+			       atom_t found);
+Code		skipArgs(Code PC, int skip);
+int		argKey(Code PC, int skip, word *key);
+int		arg1Key(Code PC, word *key);
+bool		decompile(Clause clause, term_t term, term_t bindings);
+word		pl_nth_clause(term_t p, term_t n, term_t ref,
+			      control_t h);
+void		wamListClause(Clause clause);
+Code		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
+int		unify_definition(Module ctx, term_t head, Definition def,
+				 term_t thehead, int flags);
+code		replacedBreak(Code PC);
+code		replacedBreakUnlocked(Code PC);
+int		clearBreakPointsClause(Clause clause) WUNUSED;
+int		unify_functor(term_t t, functor_t fd, int how);
+void		vm_list(Code code, Code end);
+Module		clauseBodyContext(const Clause cl);
+
+#undef LDFUNC_DECLARATIONS
 
 static inline code
 fetchop(Code PC)

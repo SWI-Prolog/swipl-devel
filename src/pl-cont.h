@@ -42,8 +42,16 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-Code	push_continuation(term_t cont, LocalFrame pfr, Code pcret
-			  ARG_LD);
-Code	shift(term_t ball, int for_copy ARG_LD);
+#if USE_LD_MACROS
+#define	push_continuation(cont, pfr, pcret)	LDFUNC(push_continuation, cont, pfr, pcret)
+#define	shift(ball, for_copy)			LDFUNC(shift, ball, for_copy)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+Code	push_continuation(term_t cont, LocalFrame pfr, Code pcret);
+Code	shift(term_t ball, int for_copy);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_CONT_H*/			

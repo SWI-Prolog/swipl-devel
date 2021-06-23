@@ -44,35 +44,41 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	TrailAssignment(p)		LDFUNC(TrailAssignment, p)
+#define	getLocalProcDefinition(def)	LDFUNC(getLocalProcDefinition, def)
+#define	PL_open_foreign_frame(_)	LDFUNC(PL_open_foreign_frame, _)
+#define	PL_close_foreign_frame(id)	LDFUNC(PL_close_foreign_frame, id)
+#define	foreignWakeup(ex)		LDFUNC(foreignWakeup, ex)
+#define	existingChoice(ch)		LDFUNC(existingChoice, ch)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 word		pl_count(void);
-void		TrailAssignment__LD(Word p ARG_LD);
+void		TrailAssignment(Word p);
 void		do_undo(mark *m);
-Definition	getProcDefinition__LD(Definition def ARG_LD);
+Definition	getLocalProcDefinition(Definition def);
 Definition	getProcDefinitionForThread(Definition def, unsigned int tid);
 void		destroyLocalDefinition(Definition def, unsigned int tid);
 void		fix_term_ref_count(void);
-fid_t		PL_open_foreign_frame__LD(ARG1_LD);
-void		PL_close_foreign_frame__LD(fid_t id ARG_LD);
+fid_t		PL_open_foreign_frame(void);
+void		PL_close_foreign_frame(fid_t id);
 fid_t		PL_open_signal_foreign_frame(int sync);
-int		foreignWakeup(term_t ex ARG_LD);
+int		foreignWakeup(term_t ex);
 void		resumeAfterException(int clear, Stack outofstack);
 void		updateAlerted(PL_local_data_t *ld);
 int		raiseSignal(PL_local_data_t *ld, int sig);
 int		pendingSignal(PL_local_data_t *ld, int sig);
 Module		contextModule(LocalFrame fr);
 void		setContextModule(LocalFrame fr, Module context);
-int		existingChoice(Choice ch ARG_LD);
+int		existingChoice(Choice ch);
 #ifdef O_DEBUG
 char *		chp_chars(Choice ch);
 #endif
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
+#undef LDFUNC_DECLARATIONS
 
-#define TrailAssignment(p)	TrailAssignment__LD(p PASS_LD)
-#define getProcDefinition(proc)	getProcDefinition__LD(proc->definition PASS_LD)
-#define PL_open_foreign_frame() PL_open_foreign_frame__LD(PASS_LD1)
-#define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
+#define getProcDefinition(proc)	getLocalProcDefinition(proc->definition)
 
 #endif /*_PL_WAM_H*/

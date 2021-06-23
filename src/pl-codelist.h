@@ -47,31 +47,28 @@ pl-file.c. These functions are used in pl-text.c.
 
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 
+#define valHandle(r) LDFUNC(valHandle, r)
 static inline word
-valHandle__LD(term_t r ARG_LD)
+valHandle(DECL_LD term_t r)
 { Word p = valTermRef(r);
 
   deRef(p);
   return *p;
 }
 
-#define valHandle(r) valHandle__LD(r PASS_LD)
 
 
-#define INIT_SEQ_STRING(n) INIT_SEQ_STRING__LD(n PASS_LD)
-#define EXTEND_SEQ_CODES(p, c) EXTEND_SEQ_CODES__LD(p, c PASS_LD)
-#define EXTEND_SEQ_CHARS(p, c) EXTEND_SEQ_CHARS__LD(p, c PASS_LD)
-#define CLOSE_SEQ_STRING(p, p0, tail, term, l) \
-	CLOSE_SEQ_STRING__LD(p, p0, tail, term, l PASS_LD)
 
+#define INIT_SEQ_STRING(n) LDFUNC(INIT_SEQ_STRING, n)
 static inline Word
-INIT_SEQ_STRING__LD(size_t n ARG_LD)
+INIT_SEQ_STRING(DECL_LD size_t n)
 { return allocGlobal(n*3);
 }
 
 
+#define EXTEND_SEQ_CODES(p, c) LDFUNC(EXTEND_SEQ_CODES, p, c)
 static inline Word
-EXTEND_SEQ_CODES__LD(Word p, int c ARG_LD)
+EXTEND_SEQ_CODES(DECL_LD Word p, int c)
 { *p++ = FUNCTOR_dot2;
   *p++ = consInt(c);
   *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -80,8 +77,9 @@ EXTEND_SEQ_CODES__LD(Word p, int c ARG_LD)
 }
 
 
+#define EXTEND_SEQ_CHARS(p, c) LDFUNC(EXTEND_SEQ_CHARS, p, c)
 static inline Word
-EXTEND_SEQ_CHARS__LD(Word p, int c ARG_LD)
+EXTEND_SEQ_CHARS(DECL_LD Word p, int c)
 { *p++ = FUNCTOR_dot2;
   *p++ = codeToAtom(c);
   *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
@@ -90,8 +88,9 @@ EXTEND_SEQ_CHARS__LD(Word p, int c ARG_LD)
 }
 
 
+#define CLOSE_SEQ_STRING(p, p0, tail, term, l) LDFUNC(CLOSE_SEQ_STRING, p, p0, tail, term, l)
 static inline int
-CLOSE_SEQ_STRING__LD(Word p, Word p0, term_t tail, term_t term, term_t l ARG_LD)
+CLOSE_SEQ_STRING(DECL_LD Word p, Word p0, term_t tail, term_t term, term_t l)
 { setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
   p--;
   if ( tail )
@@ -108,7 +107,7 @@ CLOSE_SEQ_STRING__LD(Word p, Word p0, term_t tail, term_t term, term_t l ARG_LD)
   }
 }
 
-COMMON(Buffer)		codes_or_chars_to_buffer(term_t l, unsigned int flags,
-						 int wide, CVT_result *status);
+Buffer		codes_or_chars_to_buffer(term_t l, unsigned int flags,
+					 int wide, CVT_result *status);
 
 #endif /*PL_CODELIST_H_INCLUDED*/

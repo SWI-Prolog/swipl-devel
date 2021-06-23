@@ -135,7 +135,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
     }
 
     if ( PL_unify(A1, h) )
-    { if ( foreignWakeup(ex PASS_LD) )
+    { if ( foreignWakeup(ex) )
       { PL_close_foreign_frame(fid);
 	succeed;
       } else
@@ -217,7 +217,7 @@ typedef struct
 
 					/* TBD: handle CMP_ERROR */
 #ifndef COMPARE_KEY
-#define COMPARE_KEY(x,y) compareStandard((x)->key, (y)->key, FALSE PASS_LD)
+#define COMPARE_KEY(x,y) compareStandard((x)->key, (y)->key, FALSE)
 #endif
 #ifndef FREE
 #define FREE(x) \
@@ -347,8 +347,9 @@ nat_sort(list data, int remove_dups, sort_order order)
 }
 
 
+#define extract_key(p1, argc, argv, pair) LDFUNC(extract_key, p1, argc, argv, pair)
 static Word
-extract_key(Word p1, int argc, const word *argv, int pair ARG_LD)
+extract_key(DECL_LD Word p1, int argc, const word *argv, int pair)
 { if ( pair )
   { if ( hasFunctor(*p1, FUNCTOR_minus2) )
     { p1 = argTermP(*p1, 0);
@@ -370,7 +371,7 @@ extract_key(Word p1, int argc, const word *argv, int pair ARG_LD)
       { if ( termIsDict(*p1) )
 	{ Word vp;
 
-	  if ( (vp = dict_lookup_ptr(*p1, argv[0] PASS_LD)) )
+	  if ( (vp = dict_lookup_ptr(*p1, argv[0])) )
 	  { p1 = vp;
 	    goto next;
 	  }
@@ -422,18 +423,19 @@ typedef enum
   SORT_NOSORT
 } list_sort;
 
+#define prolog_list_to_sort_list(t, remove_dups, argc, argv, pair, lp, end) LDFUNC(prolog_list_to_sort_list, t, remove_dups, argc, argv, pair, lp, end)
 static list_sort
-prolog_list_to_sort_list(term_t t,		/* input list */
+prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
 			 int remove_dups,	/* allow to be cyclic */
 			 int argc, const word *argv, int pair, /* find key */
-			 list *lp, Word *end ARG_LD)	/* result list */
+			 list *lp, Word *end)	/* result list */
 { Word l, tail;
   list p;
   intptr_t len;
   int rc;
 
   l = valTermRef(t);
-  len = skip_list(l, &tail PASS_LD);
+  len = skip_list(l, &tail);
   if ( !(isNil(*tail) ||			/* proper list */
 	 (isList(*tail) && remove_dups)) )	/* sort/2 on cyclic list */
   { if ( isVar(*tail) )
@@ -464,7 +466,7 @@ prolog_list_to_sort_list(term_t t,		/* input list */
   while(len-- > 0)
   { p->item.term = HeadList(l);
     deRef(p->item.term);
-    p->item.key = extract_key(p->item.term, argc, argv, pair PASS_LD);
+    p->item.key = extract_key(p->item.term, argc, argv, pair);
 
     if ( unlikely(!p->item.key) )
       return SORT_ERR;
@@ -511,11 +513,11 @@ put_sort_list(term_t l, list sl)
 }
 
 
+#define pl_nat_sort(in, out, remove_dups, order, argc, argv, pair) LDFUNC(pl_nat_sort, in, out, remove_dups, order, argc, argv, pair)
 static int
-pl_nat_sort(term_t in, term_t out,
+pl_nat_sort(DECL_LD term_t in, term_t out,
 	    int remove_dups, sort_order order,
-	    int argc, const word *argv, int pair
-	    ARG_LD)
+	    int argc, const word *argv, int pair)
 { list l = 0;
   Word top = NULL;
 
@@ -524,7 +526,7 @@ pl_nat_sort(term_t in, term_t out,
 
   switch( prolog_list_to_sort_list(in, remove_dups,
 				   argc, argv, pair,
-				   &l, &top PASS_LD) )
+				   &l, &top) )
   { case SORT_ERR:
       return FALSE;
     case SORT_NIL:
@@ -550,7 +552,7 @@ PRED_IMPL("sort", 2, sort, PL_FA_ISO)
 
   return pl_nat_sort(A1, A2,
 		     TRUE, SORT_ASC,
-		     0, NULL, FALSE PASS_LD);
+		     0, NULL, FALSE);
 }
 
 
@@ -560,7 +562,7 @@ PRED_IMPL("msort", 2, msort, 0)
 
   return pl_nat_sort(A1, A2,
 		     FALSE, SORT_ASC,
-		     0, NULL, FALSE PASS_LD);
+		     0, NULL, FALSE);
 }
 
 
@@ -570,7 +572,7 @@ PRED_IMPL("keysort", 2, keysort, PL_FA_ISO)
 
   return pl_nat_sort(A1, A2,
 		     FALSE, SORT_ASC,
-		     0, NULL, TRUE PASS_LD);
+		     0, NULL, TRUE);
 }
 
 /** sort(+Key, +Order, +Random, -Sorted)
@@ -580,8 +582,9 @@ ECLiPSe compatible sort.
 
 #define FAST_ARGV 10
 
+#define get_key_arg_ex(t, k, zero_ok) LDFUNC(get_key_arg_ex, t, k, zero_ok)
 static int
-get_key_arg_ex(term_t t, word *k, int zero_ok ARG_LD)
+get_key_arg_ex(DECL_LD term_t t, word *k, int zero_ok)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -646,7 +649,7 @@ PRED_IMPL("sort", 4, sort, 0)
   atom_t order_name;
   const order_def *od;
 
-  if ( (rc=get_key_arg_ex(A1, argv, TRUE PASS_LD)) == FALSE )
+  if ( (rc=get_key_arg_ex(A1, argv, TRUE)) == FALSE )
     return FALSE;
   if ( rc == TRUE )				/* Key is integer */
   { if ( argv[0] == consInt(0) )
@@ -668,7 +671,7 @@ PRED_IMPL("sort", 4, sort, 0)
 	    return PL_no_memory();
 	}
         for(argc=0; PL_get_list(tail, head, tail); argc++)
-	{ if ( get_key_arg_ex(head, &argv[argc], FALSE PASS_LD) != TRUE )
+	{ if ( get_key_arg_ex(head, &argv[argc], FALSE) != TRUE )
 	  { rc = FALSE;
 	    goto out;
 	  }
@@ -695,7 +698,7 @@ PRED_IMPL("sort", 4, sort, 0)
 
   rc = pl_nat_sort(A3, A4,
 		   od->remove_dups, od->order,
-		   argc, argv, FALSE PASS_LD);
+		   argc, argv, FALSE);
 
 out:
   if ( argv && argv != tmp )

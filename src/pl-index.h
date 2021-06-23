@@ -42,11 +42,18 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	firstClause(argv, fr, def, next)	LDFUNC(firstClause, argv, fr, def, next)
+#define	nextClause(chp, argv, fr, def)		LDFUNC(nextClause, chp, argv, fr, def)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 word		getIndexOfTerm(term_t t);
 ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
-			    ClauseChoice next ARG_LD);
-ClauseRef	nextClause__LD(ClauseChoice chp, Word argv, LocalFrame fr,
-			       Definition def ARG_LD);
+			    ClauseChoice next);
+ClauseRef	nextClause(ClauseChoice chp, Word argv, LocalFrame fr,
+			   Definition def);
 int		addClauseToIndexes(Definition def, Clause cl,
 				   ClauseRef where);
 void		delClauseFromIndex(Definition def, Clause cl);
@@ -64,10 +71,6 @@ void		checkClauseIndexes(Definition def);
 void		listIndexGenerations(Definition def, gen_t gen);
 size_t		sizeofClauseIndexes(Definition def);
 
-		 /*******************************
-		 *	LD-USING FUNCTIONS	*
-		 *******************************/
-
-#define nextClause(chp, argv, fr, def) nextClause__LD(chp, argv, fr, def PASS_LD)
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_INDEX_H*/

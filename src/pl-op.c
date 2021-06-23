@@ -482,10 +482,11 @@ typedef struct
 } op_enum;
 
 
+#define current_op(m, inherit, prec, type, name, h) LDFUNC(current_op, m, inherit, prec, type, name, h)
 static word
-current_op(Module m, int inherit,
+current_op(DECL_LD Module m, int inherit,
 	   term_t prec, term_t type, term_t name,
-	   control_t h ARG_LD)
+	   control_t h)
 { op_enum *e;
   Buffer b;
   int mx;
@@ -581,13 +582,14 @@ current_op(Module m, int inherit,
   fail;
 }
 
+#define get_op_module(a3, name, m) LDFUNC(get_op_module, a3, name, m)
 static int
-get_op_module(term_t a3, term_t name, Module *m ARG_LD)
+get_op_module(DECL_LD term_t a3, term_t name, Module *m)
 { atom_t mname = 0;
   Word p;
   word w;
 
-  if ( !(p=stripModuleName(valTermRef(a3), &mname PASS_LD)) ||
+  if ( !(p=stripModuleName(valTermRef(a3), &mname)) ||
        !(w=linkValG(p)) )
     return FALSE;
   *valTermRef(name) = w;
@@ -615,11 +617,11 @@ PRED_IMPL("current_op", 3, current_op,
 
   if ( CTX_CNTRL != FRG_CUTTED )
   { if ( !(name = PL_new_term_ref()) ||
-	 !get_op_module(A3, name, &m PASS_LD) )
+	 !get_op_module(A3, name, &m) )
       return FALSE;
   }
 
-  rc = current_op(m, TRUE, A1, A2, name, PL__ctx PASS_LD);
+  rc = current_op(m, TRUE, A1, A2, name, PL__ctx);
   if ( m != mp )
     releaseModule(m);
 
@@ -642,11 +644,11 @@ PRED_IMPL("$local_op", 3, local_op, PL_FA_NONDETERMINISTIC|PL_FA_TRANSPARENT)
 
   if ( CTX_CNTRL != FRG_CUTTED )
   { if ( !(name = PL_new_term_ref()) ||
-	 !get_op_module(A3, name, &m PASS_LD) )
+	 !get_op_module(A3, name, &m) )
       return FALSE;
   }
 
-  return current_op(m, FALSE, A1, A2, name, PL__ctx PASS_LD);
+  return current_op(m, FALSE, A1, A2, name, PL__ctx);
 }
 
 

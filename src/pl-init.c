@@ -1544,7 +1544,7 @@ emergency:
 #endif
 
   if ( reclaim_memory )
-  { freeStacks(PASS_LD1);
+  { freeStacks();
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
 #endif

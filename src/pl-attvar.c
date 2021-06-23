@@ -75,7 +75,7 @@ assignment until this is GC'ed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-PL_get_attr__LD(term_t t, term_t a ARG_LD)
+PL_get_attr(DECL_LD term_t t, term_t a)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -101,8 +101,9 @@ which must run in constant space.
 SHIFT-SAFE: Caller must ensure 6 global and 4 trail-cells
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define registerWakeup(name, value) LDFUNC(registerWakeup, name, value)
 static void
-registerWakeup(Word name, Word value ARG_LD)
+registerWakeup(DECL_LD Word name, Word value)
 { Word wake;
   Word tail = valTermRef(LD->attvar.tail);
 
@@ -165,7 +166,7 @@ SHIFT-SAFE: returns TRUE, GLOBAL_OVERFLOW or TRAIL_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-assignAttVar(Word av, Word value ARG_LD)
+assignAttVar(DECL_LD Word av, Word value)
 { Word a;
 
   assert(isAttVar(*av));
@@ -190,7 +191,7 @@ assignAttVar(Word av, Word value ARG_LD)
   }
 
   a = valPAttVar(*av);
-  registerWakeup(a, value PASS_LD);
+  registerWakeup(a, value);
 
   TrailAssignment(av);
   if ( isAttVar(*value) )
@@ -207,22 +208,23 @@ assignAttVar(Word av, Word value ARG_LD)
 Link known attributes variables into a reference list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define link_attvar(_) LDFUNC(link_attvar, _)
 static Word
-link_attvar(ARG1_LD)
+link_attvar(DECL_LD)
 { Word gp = gTop++;
 
-  register_attvar(gp PASS_LD);
+  register_attvar(gp);
 
   return gp+1;
 }
 
 
 Word
-alloc_attvar(ARG1_LD)
+alloc_attvar(DECL_LD)
 { Word gp = allocGlobalNoShift(3);
 
   if ( gp )
-  { register_attvar(&gp[0] PASS_LD);
+  { register_attvar(&gp[0]);
     gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
     gp[2] = ATOM_nil;
     return &gp[1];
@@ -259,8 +261,9 @@ destroyed on backtracking (and thus should not be reported) survives due
 to a frozen stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define trail_new_attvar(p) LDFUNC(trail_new_attvar, p)
 static inline void
-trail_new_attvar(Word p ARG_LD)
+trail_new_attvar(DECL_LD Word p)
 { if ( LD->attvar.call_residue_vars_count )
   { tTop->address = p;
     tTop++;
@@ -272,18 +275,19 @@ trail_new_attvar(Word p ARG_LD)
 SHIFT-SAFE: Requires 3 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define make_new_attvar(p) LDFUNC(make_new_attvar, p)
 static void
-make_new_attvar(Word p ARG_LD)
+make_new_attvar(DECL_LD Word p)
 { Word gp;
 
   assert(gTop+3 <= gMax && tTop+1 <= tMax);
 
-  gp = link_attvar(PASS_LD1);
+  gp = link_attvar();
   gp[1] = ATOM_nil;
   gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
   gTop += 2;
 
-  trail_new_attvar(gp PASS_LD);
+  trail_new_attvar(gp);
   Trail(p, makeRefG(gp));
 }
 
@@ -292,13 +296,14 @@ make_new_attvar(Word p ARG_LD)
 SHIFT-SAFE: Requires 7 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define put_new_attvar(p, name, value) LDFUNC(put_new_attvar, p, name, value)
 static void
-put_new_attvar(Word p, atom_t name, Word value ARG_LD)
+put_new_attvar(DECL_LD Word p, atom_t name, Word value)
 { Word gp, at;
 
   assert(gTop+7 <= gMax && tTop+1 <= tMax);
 
-  gp = link_attvar(PASS_LD1);
+  gp = link_attvar();
   gTop += 6;
   at = &gp[1];
   setVar(*at);
@@ -310,7 +315,7 @@ put_new_attvar(Word p, atom_t name, Word value ARG_LD)
   at[4] = ATOM_nil;
   at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
 
-  trail_new_attvar(gp PASS_LD);
+  trail_new_attvar(gp);
   Trail(p, makeRefG(gp));
 }
 
@@ -326,8 +331,9 @@ list is invalid.
 Caller must ensure 4 cells space on global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define find_attr(av, name, vp) LDFUNC(find_attr, av, name, vp)
 static int
-find_attr(Word av, atom_t name, Word *vp ARG_LD)
+find_attr(DECL_LD Word av, atom_t name, Word *vp)
 { Word l;
 
   deRef(av);
@@ -375,8 +381,9 @@ Word
 SHIFT-SAFE: Requires max 5 global + 2 trail
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define put_att_value(vp, name, value) LDFUNC(put_att_value, vp, name, value)
 static inline void
-put_att_value(Word vp, atom_t name, Word value ARG_LD)
+put_att_value(DECL_LD Word vp, atom_t name, Word value)
 { Word at = gTop;
 
   gTop += 4;
@@ -390,17 +397,18 @@ put_att_value(Word vp, atom_t name, Word value ARG_LD)
 }
 
 
+#define put_attr(av, name, value) LDFUNC(put_attr, av, name, value)
 static int
-put_attr(Word av, atom_t name, Word value ARG_LD)
+put_attr(DECL_LD Word av, atom_t name, Word value)
 { Word vp;
 
   assert(gTop+5 <= gMax && tTop+2 <= tMax);
 
-  if ( find_attr(av, name, &vp PASS_LD) )
+  if ( find_attr(av, name, &vp) )
   { TrailAssignment(vp);
     *vp = linkValI(value);
   } else if ( vp )
-  { put_att_value(vp, name, value PASS_LD);
+  { put_att_value(vp, name, value);
   } else
     return FALSE;			/* Bad attribute list */
 
@@ -408,8 +416,9 @@ put_attr(Word av, atom_t name, Word value ARG_LD)
 }
 
 
+#define get_attr(l, name, value) LDFUNC(get_attr, l, name, value)
 static int
-get_attr(Word l, atom_t name, term_t value ARG_LD)
+get_attr(DECL_LD Word l, atom_t name, term_t value)
 { for(;;)
   { deRef(l);
 
@@ -422,7 +431,7 @@ get_attr(Word l, atom_t name, term_t value ARG_LD)
 	deRef2(&f->arguments[0], n);
 	if ( *n == name )
 	{ return unify_ptrs(valTermRef(value), &f->arguments[1],
-			    ALLOW_GC|ALLOW_SHIFT PASS_LD);
+			    ALLOW_GC|ALLOW_SHIFT);
 	} else
 	{ l = &f->arguments[2];
 	}
@@ -434,8 +443,9 @@ get_attr(Word l, atom_t name, term_t value ARG_LD)
 }
 
 
+#define del_attr(av, name) LDFUNC(del_attr, av, name)
 static int
-del_attr(Word av, atom_t name ARG_LD)
+del_attr(DECL_LD Word av, atom_t name)
 { Word l, prev;
 
   deRef(av);
@@ -508,7 +518,7 @@ a wakeup was saved and 3 if both where saved.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-saveWakeup(wakeup_state *state, int forceframe ARG_LD)
+saveWakeup(DECL_LD wakeup_state *state, int forceframe)
 { state->flags = 0;
   state->outofstack = LD->outofstack;
 
@@ -550,8 +560,9 @@ saveWakeup(wakeup_state *state, int forceframe ARG_LD)
 }
 
 
+#define restore_exception(p) LDFUNC(restore_exception, p)
 static void
-restore_exception(Word p ARG_LD)
+restore_exception(DECL_LD Word p)
 { DEBUG(1, Sdprintf("Restore exception from %p\n", p));
 
   *valTermRef(exception_bin) = p[0];
@@ -561,8 +572,9 @@ restore_exception(Word p ARG_LD)
 }
 
 
+#define restore_wakeup(p) LDFUNC(restore_wakeup, p)
 static void
-restore_wakeup(Word p ARG_LD)
+restore_wakeup(DECL_LD Word p)
 { *valTermRef(LD->attvar.head) = p[0];
   *valTermRef(LD->attvar.tail) = p[1];
 
@@ -571,7 +583,7 @@ restore_wakeup(Word p ARG_LD)
 
 
 void
-restoreWakeup(wakeup_state *state ARG_LD)
+restoreWakeup(DECL_LD wakeup_state *state)
 { LD->outofstack = state->outofstack;
 
   if ( state->fid )
@@ -582,14 +594,14 @@ restoreWakeup(wakeup_state *state ARG_LD)
       if ( (state->flags & WAKEUP_STATE_EXCEPTION) )
       { if ( true(state, WAKEUP_KEEP_URGENT_EXCEPTION) )
 	{ if ( classify_exception_p(p) >= classify_exception(exception_term) )
-	    restore_exception(p PASS_LD);
+	    restore_exception(p);
 	} else if ( !(state->flags & WAKEUP_STATE_SKIP_EXCEPTION) )
-	{ restore_exception(p PASS_LD);
+	{ restore_exception(p);
 	}
         p++;
       }
       if ( (state->flags & WAKEUP_STATE_WAKEUP) )
-      { restore_wakeup(p PASS_LD);
+      { restore_wakeup(p);
       }
     }
 
@@ -643,7 +655,7 @@ PRED_IMPL("get_attr", 3, get_attr, 0) /* +Var, +Name, -Value */
     if ( !PL_get_atom_ex(A2, &name) )
       fail;
 
-    return get_attr(p, name, A3 PASS_LD);
+    return get_attr(p, name, A3);
   }
 
   fail;
@@ -683,10 +695,10 @@ PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
   deRef(av);
 
   if ( isVar(*av) )
-  { put_new_attvar(av, name, vp PASS_LD);
+  { put_new_attvar(av, name, vp);
     return TRUE;
   } else if ( isAttVar(*av) )
-  { if ( put_attr(av, name, vp PASS_LD) )
+  { if ( put_attr(av, name, vp) )
       return TRUE;
     return PL_error("put_attr", 3, "invalid attribute structure",
 		    ERR_TYPE, ATOM_attributes, A1);
@@ -712,7 +724,7 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
   deRef(av);
 
   if ( isVar(*av) )
-  { make_new_attvar(av PASS_LD);			/* SHIFT: 3+0 */
+  { make_new_attvar(av);			/* SHIFT: 3+0 */
     deRef(av);
   } else if ( !isAttVar(*av) )
   { return PL_error("put_attrs", 2, NULL, ERR_UNINSTANTIATION, 1, A1);
@@ -746,7 +758,7 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   deRef(av);
 
   if ( isAttVar(*av) )
-  { if ( del_attr(av, name PASS_LD) )			/* SHIFT: 1+2 */
+  { if ( del_attr(av, name) )			/* SHIFT: 1+2 */
     { Word l = valPAttVar(*av);
 
       deRef(l);
@@ -821,11 +833,11 @@ PRED_IMPL("$freeze", 2, freeze, 0)
     deRef(goal);
 
     if ( isVar(*v) )
-    { put_new_attvar(v, ATOM_freeze, goal PASS_LD);	/* SHIFT: 6+2 */
+    { put_new_attvar(v, ATOM_freeze, goal);	/* SHIFT: 6+2 */
     } else
     { Word vp;
 
-      if ( find_attr(v, ATOM_freeze, &vp PASS_LD) )
+      if ( find_attr(v, ATOM_freeze, &vp) )
       { Word gc = gTop;
 
 	gTop += 3;
@@ -876,14 +888,16 @@ typedef struct
 } when_state;
 
 
+#define is_or(c) LDFUNC(is_or, c)
 static int
-is_or(word c ARG_LD)
+is_or(DECL_LD word c)
 { return isTerm(c) && functorTerm(c) == FUNCTOR_or1;
 }
 
 
+#define add_or(or, c2) LDFUNC(add_or, or, c2)
 static int
-add_or(word or, word c2 ARG_LD)
+add_or(DECL_LD word or, word c2)
 { Word tail = argTermP(or, 0);
 
   deRef(tail);
@@ -893,7 +907,7 @@ add_or(word or, word c2 ARG_LD)
   }
   assert(*tail == ATOM_nil);
 
-  if ( is_or(c2 PASS_LD) )
+  if ( is_or(c2) )
   { Word l = argTermP(c2, 0);
     *tail = *l;
   } else
@@ -912,16 +926,17 @@ add_or(word or, word c2 ARG_LD)
 }
 
 
+#define make_disj_list(c1, c2, result) LDFUNC(make_disj_list, c1, c2, result)
 static when_status
-make_disj_list(word c1, word c2, Word result ARG_LD)
+make_disj_list(DECL_LD word c1, word c2, Word result)
 { int rc;
 
-  if ( is_or(c1 PASS_LD) )
-  { if ( (rc=add_or(c1, c2 PASS_LD)) < 0 )
+  if ( is_or(c1) )
+  { if ( (rc=add_or(c1, c2)) < 0 )
       return rc;
     *result = c1;
-  } else if ( is_or(c2 PASS_LD) )
-  { if ( (rc=add_or(c2, c1 PASS_LD)) < 0 )
+  } else if ( is_or(c2) )
+  { if ( (rc=add_or(c2, c1)) < 0 )
       return rc;
     *result = c2;
   } else
@@ -945,8 +960,9 @@ make_disj_list(word c1, word c2, Word result ARG_LD)
 }
 
 
+#define when_condition(cond, result, state) LDFUNC(when_condition, cond, result, state)
 static when_status
-when_condition(Word cond, Word result, when_state *state ARG_LD)
+when_condition(DECL_LD Word cond, Word result, when_state *state)
 { deRef(cond);
 
   if ( state->depth++ == 100 )
@@ -975,7 +991,7 @@ when_condition(Word cond, Word result, when_state *state ARG_LD)
     { Word a1;
 
       deRef2(&term->arguments[0], a1);
-      if ( ground__LD(a1 PASS_LD) == NULL )
+      if ( ground(a1) == NULL )
 	*result = ATOM_true;
       else
 	*result = *cond;
@@ -983,9 +999,9 @@ when_condition(Word cond, Word result, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state)) < 0 )
 	return rc;
-      if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[1], &c2, state)) < 0 )
 	return rc;
 
       if ( c1 == ATOM_true )
@@ -1008,17 +1024,17 @@ when_condition(Word cond, Word result, when_state *state ARG_LD)
     { word c1, c2;
       int rc;
 
-      if ( (rc=when_condition(&term->arguments[0], &c1, state PASS_LD)) < 0 )
+      if ( (rc=when_condition(&term->arguments[0], &c1, state)) < 0 )
 	return rc;
       if ( c1 == ATOM_true )
       { *result = c1;
       } else
-      { if ( (rc=when_condition(&term->arguments[1], &c2, state PASS_LD)) < 0 )
+      { if ( (rc=when_condition(&term->arguments[1], &c2, state)) < 0 )
 	  return rc;
 	if ( c2 == ATOM_true )
 	{ *result = c2;
 	} else
-	{ return make_disj_list(c1, c2, result PASS_LD);
+	{ return make_disj_list(c1, c2, result);
 	}
       }
     } else
@@ -1052,7 +1068,7 @@ retry:
   state.gSave = gTop;
   state.depth = 0;
 
-  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), &state PASS_LD)) < 0 )
+  if ( (rc=when_condition(valTermRef(A1), valTermRef(cond), &state)) < 0 )
   { gTop = state.gSave;
     PL_put_variable(cond);
 
@@ -1128,12 +1144,12 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
     t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
     t[1] = FUNCTOR_call1,
     t[2] = linkValI(g);
-    put_new_attvar(v, name, t PASS_LD);
+    put_new_attvar(v, name, t);
     return TRUE;
   } else if ( isAttVar(*v) )
   { Word vp;
 
-    if ( find_attr(v, name, &vp PASS_LD) )
+    if ( find_attr(v, name, &vp) )
     { Word g0;
 
       deRef2(vp, g0);
@@ -1160,7 +1176,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
       t[1] = FUNCTOR_call1,
       t[2] = linkValI(g);
 
-      put_att_value(vp, name, t PASS_LD);
+      put_att_value(vp, name, t);
       return TRUE;
     }
   } else
@@ -1192,8 +1208,9 @@ get_value(Word p)
 { return (*p) & ~MARK_MASK;
 }
 
+#define deRefM(p, pv) LDFUNC(deRefM, p, pv)
 static Word
-deRefM(Word p, Word pv ARG_LD)
+deRefM(DECL_LD Word p, Word pv)
 { for(;;)
   { word w = get_value(p);
 
@@ -1207,8 +1224,9 @@ deRefM(Word p, Word pv ARG_LD)
 }
 
 
+#define has_attributes_after(av, ch) LDFUNC(has_attributes_after, av, ch)
 static int
-has_attributes_after(Word av, Choice ch ARG_LD)
+has_attributes_after(DECL_LD Word av, Choice ch)
 { Word l;
   word w;
 
@@ -1219,12 +1237,12 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 		   var_name_ptr(av, vname), print_addr(ch->mark.globaltop, buf));
 	});
 
-  av = deRefM(av, &w PASS_LD);
+  av = deRefM(av, &w);
   assert(isAttVar(w));
   l = valPAttVar(w);
 
   for(;;)
-  { l = deRefM(l, &w PASS_LD);
+  { l = deRefM(l, &w);
 
     if ( isNil(w) )
     { fail;
@@ -1250,7 +1268,7 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 
 	if ( is_marked(pv) )
 	  return TRUE;			/* modified after choice point */
-	(void)deRefM(pv, &w PASS_LD);
+	(void)deRefM(pv, &w);
 	if ( isTerm(w) &&
 	     (Word)valueTerm(w) >= ch->mark.globaltop )
 	  return TRUE;			/* argument term after choice point */
@@ -1268,8 +1286,9 @@ has_attributes_after(Word av, Choice ch ARG_LD)
 }
 
 
+#define scan_trail(ch, set) LDFUNC(scan_trail, ch, set)
 static void
-scan_trail(Choice ch, int set ARG_LD)
+scan_trail(DECL_LD Choice ch, int set)
 { TrailEntry te, base;
 
   base = ch->mark.trailtop;
@@ -1313,7 +1332,7 @@ PRED_IMPL("$attvars_after_choicepoint", 2, attvars_after_choicepoint, 0)
 
 retry:
   ch = (Choice)((Word)lBase+off);
-  if ( !existingChoice(ch PASS_LD) )
+  if ( !existingChoice(ch) )
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_choice, A1);
 
   if ( !LD->attvar.attvars )
@@ -1324,7 +1343,7 @@ retry:
     goto grow;
   setVar(*list);
 
-  scan_trail(ch, TRUE PASS_LD);
+  scan_trail(ch, TRUE);
 
   gend = gTop;
   for(p=LD->attvar.attvars; p; p=next)
@@ -1332,7 +1351,7 @@ retry:
     next = isRef(*p) ? unRef(*p) : NULL;
 
     if ( isAttVar(*pav) &&
-	 has_attributes_after(pav, ch PASS_LD) )
+	 has_attributes_after(pav, ch) )
     { Word p = allocGlobalNoShift(3);
 
       if ( p )
@@ -1343,13 +1362,13 @@ retry:
 	tailp = &p[2];
       } else
       { gTop = gend;
-	scan_trail(ch, FALSE PASS_LD);
+	scan_trail(ch, FALSE);
 	goto grow;
       }
     }
   }
 
-  scan_trail(ch, FALSE PASS_LD);
+  scan_trail(ch, FALSE);
 
   if ( list == tailp )
   { gTop = gend;
