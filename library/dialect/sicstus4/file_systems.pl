@@ -71,6 +71,7 @@
 	    current_directory/1,	% -Directory
 	    current_directory/2		% -Directory, +NewDirectory
 	  ]).
+:- use_module(library(filesex), [delete_directory_and_contents/1, directory_member/3, set_time_file/3]).
 :- use_module(library(lists), [member/2]).
 :- use_module(system, [datime/2]).
 
@@ -148,16 +149,28 @@ delete_file(OldName) :-
 
 % SWI's built-in delete_directory/1 behaves like the one from SICStus library(file_systems).
 
+directory_not_empty_error(error(permission_error(delete, directory, _), _)).
+
 %!	delete_directory(+OldName, +Options) is semidet.
 %
-%	Extended verison of delete_directory/1. The only implemented
-%	option is `if_nonempty(error)`, which is also the default
-%	behavior. On SICStus, `if_nonempty` additionally accepts the
-%	values `ignore`, `fail`, and `delete`, which are not yet
-%	emulated.
+%	Extended verison of delete_directory/1. The only available
+%	option is `if_nonempty(Value)`, which controls the behavior
+%	when OldName is not empty. Value may be `ignore` (silently
+%	succeed without deleting anything), `fail` (silently fail
+%	without deleting anything), `error` (throw an error - default
+%	behavior), and `delete` (recursively delete the directory and
+%	its contents, as if by delete_directory_and_contents/1 from
+%	library(filesex)).
 
-delete_directory(OldName, []) :- delete_directory(OldName).
-delete_directory(OldName, [if_nonempty(error)]) :- delete_directory(OldName).
+delete_directory(OldName, []) :- !, delete_directory(OldName).
+delete_directory(OldName, [if_nonempty(ignore)]) :- !,
+	catch(delete_directory(OldName), E,
+	      (directory_not_empty_error(E) -> true ; throw(E))).
+delete_directory(OldName, [if_nonempty(fail)]) :- !,
+	catch(delete_directory(OldName), E,
+	      (directory_not_empty_error(E) -> fail ; throw(E))).
+delete_directory(OldName, [if_nonempty(error)]) :- !, delete_directory(OldName).
+delete_directory(OldName, [if_nonempty(delete)]) :- !, delete_directory_and_contents(OldName).
 
 
 %!	directory_exists(+Directory) is semidet.
@@ -213,31 +226,10 @@ directory_must_exist(Directory, Mode) :-
 	absolute_file_name(Directory, _, [file_type(directory), access(Mode), file_errors(error)]).
 
 
-any_member_of_directory(Directory, ExtraOpts, BaseName, FullName) :-
-	directory_files(Directory, Entries),
-	member(BaseName, Entries),
-	% SICStus docs say these special directories are never returned.
-	BaseName \== (.),
-	BaseName \== (..),
-	% Filter entries based on ExtraOpts,
-	% i. e. include only regular files or only directories.
-	absolute_file_name(BaseName, FullName, [relative_to(Directory), file_errors(fail)|ExtraOpts]).
-matching_member_of_directory(Directory, Pattern, ExtraOpts, BaseName, FullName) :-
-	% To match patterns relative to a different directory,
-	% make the pattern an absolute "path" relative to that directory.
-	absolute_file_name(Pattern, FullPattern, [relative_to(Directory)]),
-	atom_concat(Prefix, Pattern, FullPattern),
-	expand_file_name(FullPattern, Entries),
-	member(FullName, Entries),
-	% Because we made the pattern absolute,
-	% the returned entries will also be absolute,
-	% but the interface requires us to return relative names as well.
-	% This is a hacky way to convert the absolute entries back to relative.
-	atom_concat(Prefix, BaseName, FullName),
-	% Filter entries based on ExtraOpts,
-	% i. e. include only regular files or only directories.
-	% This also checks that the relative name hack above worked correctly.
-	absolute_file_name(BaseName, FullName, [relative_to(Directory), file_errors(fail)|ExtraOpts]).
+member_of_directory_internal(Directory, BaseName, FullName, Options) :-
+	absolute_file_name(Directory, AbsDirectory, [file_type(directory)]),
+	directory_member(AbsDirectory, FullName, Options),
+	file_base_name(FullName, BaseName).
 
 %!	directory_member_of_directory(-BaseName, -FullName) is nondet.
 %!	directory_member_of_directory(+Directory, -BaseName, -FullName) is nondet.
@@ -261,18 +253,20 @@ matching_member_of_directory(Directory, Pattern, ExtraOpts, BaseName, FullName) 
 directory_member_of_directory(BaseName, FullName) :-
 	directory_member_of_directory((.), BaseName, FullName).
 directory_member_of_directory(Directory, BaseName, FullName) :-
-	any_member_of_directory(Directory, [file_type(directory)], BaseName, FullName).
+	member_of_directory_internal(Directory, BaseName, FullName, [file_type(directory)]).
 directory_member_of_directory(Directory, Pattern, BaseName, FullName) :-
-	matching_member_of_directory(Directory, Pattern, [file_type(directory)], BaseName, FullName).
+	member_of_directory_internal(Directory, BaseName, FullName, [file_type(directory), matches(Pattern)]).
 
 file_member_of_directory(BaseName, FullName) :-
 	file_member_of_directory((.), BaseName, FullName).
 file_member_of_directory(Directory, BaseName, FullName) :-
-	% access(exist) is needed to filter out directories.
-	any_member_of_directory(Directory, [access(exist)], BaseName, FullName).
+	member_of_directory_internal(Directory, BaseName, FullName, []),
+	% directory_member/3 has no option for filtering out directories...
+	\+ directory_exists(FullName).
 file_member_of_directory(Directory, Pattern, BaseName, FullName) :-
-	% access(exist) is needed to filter out directories.
-	matching_member_of_directory(Directory, Pattern, [access(exist)], BaseName, FullName).
+	member_of_directory_internal(Directory, BaseName, FullName, [matches(Pattern)]),
+	% directory_member/3 has no option for filtering out directories...
+	\+ directory_exists(FullName).
 
 %!	directory_members_of_directory(-Set) is det.
 %!	directory_members_of_directory(+Directory, -Set) is det.
@@ -314,12 +308,17 @@ file_members_of_directory(Directory, Pattern, Set) :-
 %
 %	The following properties are currently supported:
 %
+%	* create_timestamp
 %	* modify_timestamp
-%	The file/directory's modification time as a Unix timestamp (as
-%	returned by SWI's time_file/2)
+%	* access_timestamp
+%	The file/directory's creation/modification/access time as a Unix
+%	timestamp (as returned by SWI's set_time_file/3).
+%	* create_localtime
 %	* modify_localtime
-%	The file/directory's modification time as a datime/6 term (as
-%	returned by datime/2 from SICStus library(system)).
+%	* access_localtime
+%	The file/directory's creation/modification/access time as a
+%	datime/6 term (as returned by datime/2 from SICStus
+%	library(system)).
 %	* readable
 %	* writable
 %	* executable
@@ -330,13 +329,14 @@ file_members_of_directory(Directory, Pattern, Set) :-
 %	* size_in_bytes
 %	The file's size in bytes. Not supported on directories.
 %
+%	On Unix systems, `create_timestamp`/`create_localtime` don't
+%	return the file's actual creation time, but rather its "ctime"
+%	or "metadata change time". This matches the behavior of
+%	SICStus 4.6.0.
+%
 %	As of SICStus 4.6.0, the following properties are not yet
 %	emulated:
 %
-%	* create_timestamp
-%	* access_timestamp
-%	* create_localtime
-%	* access_localtime
 %	* set_user_id
 %	* set_group_id
 %	* save_text
@@ -349,12 +349,34 @@ file_members_of_directory(Directory, Pattern, Set) :-
 %	* owner_user_name
 %	* owner_group_name
 
+time_property_name(create_timestamp).
+time_property_name(modify_timestamp).
+time_property_name(access_timestamp).
+time_property_name(create_localtime).
+time_property_name(modify_localtime).
+time_property_name(access_localtime).
+
+time_property(create_timestamp, Ctime, _, _, Timestamp) :-
+	Timestamp is integer(Ctime).
+time_property(modify_timestamp, _, Mtime, _, Timestamp) :-
+	Timestamp is integer(Mtime).
+time_property(access_timestamp, _, _, Atime, Timestamp) :-
+	Timestamp is integer(Atime).
+time_property(create_localtime, Ctime, _, _, Datime) :-
+	datime(Ctime, Datime).
+time_property(modify_localtime, _, Mtime, _, Datime) :-
+	datime(Mtime, Datime).
+time_property(access_localtime, _, _, Atime, Datime) :-
+	datime(Atime, Datime).
+
 % Properties that are available and implemented identically for files and directories.
-file_or_directory_property(FileOrDirectory, modify_timestamp, Value) :-
-	time_file(FileOrDirectory, Value).
-file_or_directory_property(FileOrDirectory, modify_localtime, Value) :-
-	file_or_directory_property(FileOrDirectory, modify_timestamp, Timestamp),
-	datime(Timestamp, Value).
+file_or_directory_property(FileOrDirectory, Name, Value) :-
+	\+ \+ time_property_name(Name),
+	% When backtracking over time properties,
+	% call set_time_file once and reuse the values for all properties,
+	% so that the different times and timestamp/localtime are consistent with each other.
+	set_time_file(FileOrDirectory, [changed(Ctime), modified(Mtime), access(Atime)], []),
+	time_property(Name, Ctime, Mtime, Atime, Value).
 
 directory_property(Directory, Property) :- directory_property(Directory, Property, true).
 
