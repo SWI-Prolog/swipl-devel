@@ -714,7 +714,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     md = ACCESS_WRITE;
   else if ( m == ATOM_read )
     md = ACCESS_READ;
-  else if ( m == ATOM_execute )
+  else if ( m == ATOM_execute || m == ATOM_search )
     md = ACCESS_EXECUTE;
   else if ( m == ATOM_exist )
     md = ACCESS_EXIST;
