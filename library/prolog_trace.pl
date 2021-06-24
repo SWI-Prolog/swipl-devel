@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, CWI, Amsterdam
+    Copyright (c)  2019-2021, CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,6 +41,7 @@
 :- autoload(library(apply),[maplist/2]).
 :- autoload(library(error),[instantiation_error/1]).
 :- autoload(library(prolog_wrap),[wrap_predicate/4]).
+:- autoload(library(prolog_code), [pi_head/2]).
 
 
 /** <module> Print access to predicates
@@ -116,7 +118,11 @@ set_trace(Spec, Pred) :-
     retractall(tracing_mask(Pred, _)),
     asserta(tracing_mask(Pred, Spec1)),
     mask_ports(Spec1, Ports),
-    pi_head(Pred, Head),
+    pi_head(Pred, Head0),
+    (   predicate_property(Head0, imported_from(M))
+    ->  requalify(Head0, M, Head)
+    ;   Head = Head0
+    ),
     (   Spec1 == 0
     ->  unwrap_predicate(Head, trace),
         print_message(informational, trace(Head, Ports))
@@ -124,6 +130,9 @@ set_trace(Spec, Pred) :-
         wrap_predicate(Head, trace, Wrapped, Wrapper),
         print_message(informational, trace(Head, Ports))
     ).
+
+requalify(Term, M, M:Plain) :-
+    strip_module(Term, _, Plain).
 
 modify(Var, _, _) :-
     var(Var),
@@ -158,15 +167,6 @@ mask_ports(0, []) :-
 mask_ports(Pattern, [H|T]) :-
     is_masked(Pattern, H, Pattern1),
     mask_ports(Pattern1, T).
-
-pi_head(M:PI, M:Head) :-
-    !,
-    pi_head(PI, Head).
-pi_head(Name/Arity, Head) :-
-    functor(Head, Name, Arity).
-pi_head(Name//Arity0, Head) :-
-    Arity is Arity0+1,
-    functor(Head, Name, Arity).
 
 wrapper(0, _, Wrapped, Wrapped) :-
     !.
