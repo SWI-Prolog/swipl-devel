@@ -174,11 +174,12 @@ success. Otherwise the exception
 \arg{Status} is the status as returned by thread_join/2.
 
     \predicate{thread_join}{2}{+Id, -Status}
-Wait for the termination of the thread with the given \arg{Id}.  Then unify
-the result status of the thread with \arg{Status}.
-After this call, \arg{Id} becomes invalid and all resources associated
-with the thread are reclaimed.  Note that threads with the attribute
-\term{detached}{true} cannot be joined.  See also thread_property/2.
+Wait for the termination of the thread with the given \arg{Id}. Then
+unify the result status of the thread with \arg{Status}. After this
+call, \arg{Id} becomes invalid and all resources associated with the
+thread are reclaimed. It is not allowed for two threads to join the same
+thread and the thread being joined cannot be \jargon{detached} (see the
+\term{detached}{true} option for thread_create/3 and thread_detach/1).
 
 A thread that has been completed without thread_join/2 being called on
 it is partly reclaimed: the Prolog stacks are released and the C thread
@@ -200,6 +201,13 @@ system exceptions into readable messages.
     \termitem{exited}{Term}
 The thread is terminated on thread_exit/1 using the argument \arg{Term}.
 \end{description}
+
+Note that the pthread primitive pthread_join() cannot be interrupted.
+Some systems provide pthread_timedjoin_np(). If this is provided
+thread_join/2 is implemented as a loop of timed joins with a 0.25 sec
+timeout while signals are being tested after each timeout.  Such systems
+allow combining thread_join/2 with call_with_time_limit/2 as well as
+signalling threads blocked in thread_join/2 using thread_signal/2.
 
     \predicate{thread_alias}{1}{+Alias}
 Set the alias name of the calling thread to \arg{Alias}.  An error is

@@ -2457,31 +2457,40 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
   term_t thread = A1;
   term_t retcode = A2;
 
+  PL_LOCK(L_THREAD);
   if ( !get_thread(thread, &info, TRUE) )
+  { PL_UNLOCK(L_THREAD);
     return FALSE;
+  }
 
-  if ( info == LD->thread.info || info->detached )
+  if ( info == LD->thread.info || info->detached || info->joining_by )
   { return PL_error("thread_join", 2,
-		    info->detached ? "Cannot join detached thread"
-				   : "Cannot join self",
+		    info->joining_by ? "Already being joined" :
+		    info->detached   ? "Cannot join detached thread"
+				     : "Cannot join self",
 		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
   }
+  info->joining_by = PL_thread_self();
+
+  PL_UNLOCK(L_THREAD);
 
   rc = pthread_join_interruptible(info->tid, &r);
 
-  switch(rc)
-  { case 0:
-      break;
-    case EINTR:
-      return FALSE;
-    case ESRCH:
-      Sdprintf("Join %s: ESRCH from %d\n",
-	       threadName(info->pl_tid), info->tid);
-      return PL_error("thread_join", 2, NULL,
-		      ERR_EXISTENCE, ATOM_thread, thread);
-    default:
-      return PL_error("thread_join", 2, ThError(rc),
-		      ERR_SYSCALL, "pthread_join");
+  if ( rc )
+  { info->joining_by = 0;
+
+    switch(rc)
+    { case EINTR:
+	return FALSE;
+      case ESRCH:
+	Sdprintf("Join %s: ESRCH from %d\n",
+		 threadName(info->pl_tid), info->tid);
+	return PL_error("thread_join", 2, NULL,
+			ERR_EXISTENCE, ATOM_thread, thread);
+      default:
+	return PL_error("thread_join", 2, ThError(rc),
+			ERR_SYSCALL, "pthread_join");
+    }
   }
 
   status = info->status;
@@ -2489,9 +2498,11 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
        COMPARE_AND_SWAP_INT((int*)&info->status, (int)status, (int)PL_THREAD_JOINED) )
   { rval = unify_thread_status(retcode, info, status, FALSE);
 
+    info->joining_by = 0;
     free_thread_info(info);
   } else
-  { rval = PL_error(NULL, 0, "already joined",
+  { info->joining_by = 0;		/* Cannot happen anymore (I think) */
+    rval = PL_error(NULL, 0, "already joined",
 		    ERR_EXISTENCE, ATOM_thread, thread);
   }
 
@@ -2530,6 +2541,13 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
 
   if ( !info->detached )
   { int rc;
+
+    if ( info->joining_by )
+    { PL_UNLOCK(L_THREAD);
+      return PL_error(NULL, 0, "Thread is being joined",
+		      ERR_PERMISSION,
+		      ATOM_detach, ATOM_thread, A1);
+    }
 
     if ( (rc=pthread_detach(info->tid)) )
     { assert(rc == ESRCH);

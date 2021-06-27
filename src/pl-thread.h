@@ -98,6 +98,7 @@ typedef struct _PL_thread_info_t
   unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
+  int		    joining_by;		/* TID of joining thread */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
 #ifdef PID_IDENTIFIES_THREAD
