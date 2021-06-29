@@ -1345,9 +1345,9 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
       succeed;
     }
 
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal_handler, sig);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_signal_handler, new);
   } else
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal_handler, sig);
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal_handler, new);
 
   succeed;
 }
