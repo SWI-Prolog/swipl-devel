@@ -48,13 +48,15 @@
             term_subsumer/3,            % +Special1, +Special2, -General
             term_factorized/3,          % +Term, -Skeleton, -Subsitution
             mapargs/3,                  % :Goal, ?Term1, ?Term2
+            mapsubterms/3,              % :Goal, ?Term1, ?Term2
             same_functor/2,             % ?Term1, ?Term2
             same_functor/3,             % ?Term1, ?Term2, -Arity
             same_functor/4              % ?Term1, ?Term2, ?Name, ?Arity
           ]).
 
 :- meta_predicate
-    mapargs(2,?,?).
+    mapargs(2,?,?),
+    mapsubterms(2,?,?).
 
 :- autoload(library(rbtrees),
 	    [ rb_empty/1,
@@ -323,6 +325,69 @@ mapargs_(I, Arity, Goal, Term1, Term2) :-
     I2 is I+1,
     mapargs_(I2, Arity, Goal, Term1, Term2).
 mapargs_(_, _, _, _, _).
+
+
+%!  mapsubterms(:Goal, +Term1, -Term2) is det.
+%
+%   Recursively map sub terms of Term1 into  subterms of Term2 for every
+%   pair for which call(Goal,  ST1,   ST2)  succeeds.  Procedurably, the
+%   mapping for each (sub) term pair `T1/T2` is defined as:
+%
+%     - If `T1` is a variable, Unify `T2` with `T1`.
+%     - If call(Goal, T1, T2) succeeds we are done.  Note that the
+%       mapping does not continue in `T2`.  If this is desired, `Goal`
+%       must call mapsubterms/3 explicitly as part of it conversion.
+%     - If `T1` is a dict, map all values, i.e., the _tag_ and _keys_
+%       are left untouched.
+%     - If `T1` is a list, map all elements, i.e., the list structure
+%       is left untouched.
+%     - If `T1` is a compound, use same_functor/3 to instantiate `T2`
+%       and recurse over the term arguments left to right.
+%     - Otherwise `T2` is unified with `T1`.
+
+mapsubterms(_Goal, Term1, Term2) :-
+    var(Term1),
+    !,
+    Term2 = Term1.
+mapsubterms(Goal, Term1, Term2) :-
+    call(Goal, Term1, Term2),
+    !.
+mapsubterms(Goal, Term1, Term2) :-
+    is_dict(Term1),
+    !,
+    dict_pairs(Term1, Tag, Pairs1),
+    map_dict_pairs(Pairs1, Pairs2, Goal),
+    dict_pairs(Term2, Tag, Pairs2).
+mapsubterms(Goal, Term1, Term2) :-
+     is_list(Term1),
+     !,
+     map_list_terms(Term1, Term2, Goal).
+mapsubterms(Goal, Term1, Term2) :-
+    compound(Term1),
+    !,
+    same_functor(Term1, Term2, Arity),
+    mapsubterms_(1, Arity, Goal, Term1, Term2).
+mapsubterms(_, Term, Term).
+
+map_dict_pairs([], [], _).
+map_dict_pairs([K-V0|T0], [K-V|T], Goal) :-
+    mapsubterms(Goal, V0, V),
+    map_dict_pairs(T0, T, Goal).
+
+map_list_terms([], [], _Goal).
+map_list_terms([H0|T0], [H|T], Goal) :-
+    mapsubterms(Goal, H0, H),
+    map_list_terms(T0, T, Goal).
+
+mapsubterms_(I, Arity, Goal, Term1, Term2) :-
+    I =< Arity,
+    !,
+    arg(I, Term1, A1),
+    arg(I, Term2, A2),
+    mapsubterms(Goal, A1, A2),
+    I2 is I+1,
+    mapsubterms_(I2, Arity, Goal, Term1, Term2).
+mapsubterms_(_, _, _, _, _).
 
 
 %!  same_functor(?Term1, ?Term2) is semidet.
