@@ -303,7 +303,8 @@ walk_from_initialization(OTerm) :-
              walk_from_initialization(Goal, OTerm))).
 
 init_goal_in_scope(Goal, SourceLocation, OTerm) :-
-    '$init_goal'(File, Goal, SourceLocation),
+    '$init_goal'(_When, Goal, SourceLocation),
+    SourceLocation = File:_Line,
     (   walk_option_module(OTerm, M),
         nonvar(M)
     ->  module_property(M, file(File))
