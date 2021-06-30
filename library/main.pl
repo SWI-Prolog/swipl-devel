@@ -40,9 +40,10 @@
             cli_parse_debug_options/2,  % +OptionsIn, -Options
             cli_enable_development_system/0
           ]).
-:- autoload(library(debug), [debug/1]).
-:- autoload(library(pce_dispatch), [pce_dispatch/1]).
-:- autoload(library(threadutil), [tspy/1]).
+% use autoload/1 to avoid checking these files at load time.
+:- autoload(library(debug)).
+:- autoload(library(threadutil)).
+:- autoload(library(pce_dispatch)).
 
 :- dynamic
     interactive/0.
