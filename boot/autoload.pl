@@ -796,8 +796,10 @@ autoload(M:File) :-
 autoload(M:File) :-
     '$must_be'(filespec, File),
     source_context(Context),
-    retractall(M:'$autoload'(File, _, _)),
-    assert_autoload(M:'$autoload'(File, Context, all)).
+    (   current_autoload(M:File, _, import(all))
+    ->  true
+    ;   assert_autoload(M:'$autoload'(File, Context, all))
+    ).
 
 autoload(M:File, Imports) :-
     (   \+ autoload_in(M, explicit)
