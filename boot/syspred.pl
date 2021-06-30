@@ -480,12 +480,11 @@ canonical_source_file(Spec, File) :-
     !,
     File = Spec.
 canonical_source_file(Spec, File) :-
-    absolute_file_name(Spec,
+    absolute_file_name(Spec, File,
                        [ file_type(prolog),
                          access(read),
                          file_errors(fail)
-                       ],
-                       File),
+                       ]),
     source_file(File).
 
 
