@@ -230,7 +230,8 @@ prolog_walk_code(Iteration, Options) :-
     (   walk_option_clauses(OTerm, Clauses),
         nonvar(Clauses)
     ->  walk_clauses(Clauses, OTerm)
-    ;   forall(( walk_option_module(OTerm, M),
+    ;   forall(( walk_option_module(OTerm, M0),
+                 copy_term(M0, M),
                  current_module(M),
                  scan_module(M, OTerm)
                ),
