@@ -706,10 +706,20 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		} else
 		  Warn("Can't ignore goal at this port\n");
 		return ACTION_CONTINUE;
-    case 'r':	if (port & (REDO_PORT|FAIL_PORT|EXIT_PORT|EXCEPTION_PORT))
-		{ FeedBack("retry\n[retry]\n");
-		  debugstatus.retryFrame = consTermRef(frame);
-		  return ACTION_RETRY;
+    case 'r':	if ( !def_arg ||
+		     (port & (REDO_PORT|FAIL_PORT|EXIT_PORT|EXCEPTION_PORT)) )
+		{ LocalFrame fr;
+
+		  if ( (fr = frameAtLevel(frame, def_arg ? 0 : num_arg,
+					  interactive)) )
+		  { if ( interactive )
+		      Sfprintf(Sdout, "retry\nretry %s at level %d\n",
+			       predicateName(fr->predicate), levelFrame(fr));
+		    debugstatus.retryFrame = consTermRef(fr);
+		    return ACTION_RETRY;
+		  } else
+		  { return ACTION_CONTINUE;
+		  }
 		} else
 		  Warn("Can't retry at this port\n");
 		return ACTION_CONTINUE;
@@ -817,7 +827,7 @@ helpTrace(void)
     { "i",		   "ignore current goal" },
     { "l",		   "leap to spy point" },
     { "L",		   "list current goal" },
-    { "r",		   "retry curent goal" },
+    { "[level] r",	   "retry goal [at level]" },
     { "s",		   "skip over" },
     { "[level] S",	   "save goal [at level]" },
     { "u",		   "up (complete goal)" },
