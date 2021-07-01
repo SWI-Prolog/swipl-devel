@@ -506,7 +506,7 @@ again:
       }
       buf[0] = c;
       buf[1] = EOS;
-      if ( isDigit(buf[0]) || buf[0] == '/' )
+      if ( isDigit(buf[0]) || buf[0] == '/' || buf[0] == '-' )
       { Sfprintf(Sdout, buf);
 	readLine(Sdin, Sdout, buf);
       }
@@ -636,6 +636,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 	    bool interactive)
 { GET_LD
   int num_arg;				/* numeric argument */
+  int def_arg = TRUE;			/* arg is default */
   char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
@@ -647,17 +648,17 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 			  else \
 			    warning(msg); \
 			}
-#define Default		(-1)
 
   for(s=cmd; *s && isBlank(*s); s++)
     ;
-  if ( isDigit(*s) )
+  if ( isDigit(*s) || (*s == '-' && s[1] && isDigit(s[1])) )
   { num_arg = strtol(s, &s, 10);
 
     while(isBlank(*s))
       s++;
+    def_arg = FALSE;
   } else
-    num_arg = Default;
+    num_arg = 0;
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
@@ -719,7 +720,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugstatus.skiplevel = levelFrame(frame) - 1;
 		return ACTION_CONTINUE;
     case 'd':   FeedBack("depth\n");
-                setPrintOptions(consInt(num_arg));
+                setPrintOptions(def_arg ? 10 : consInt(num_arg));
 		return ACTION_AGAIN;
     case 'w':   FeedBack("write\n");
                 setPrintOptions(ATOM_write);
@@ -735,7 +736,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugmode(DBG_OFF, NULL);
 		return ACTION_CONTINUE;
     case 'g':	FeedBack("goals\n");
-		PL_backtrace(num_arg == Default ? 5 : num_arg, PL_BT_USER);
+		PL_backtrace(def_arg ? 5 : num_arg, PL_BT_USER);
 		return ACTION_AGAIN;
     case 'A':	FeedBack("alternatives\n");
 		alternatives(bfr);
@@ -765,7 +766,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
     case '?':
     case 'h':	helpTrace();
 		return ACTION_AGAIN;
-    case 'D':   GD->debug_level = num_arg;
+    case 'D':   GD->debug_level = def_arg ? 0 : num_arg;
 		FeedBack("Debug level\n");
 		return ACTION_AGAIN;
     default:	Warn("Unknown option (h for help)\n");
@@ -779,17 +780,17 @@ helpTrace(void)
 
   Sfprintf(Sdout,
 	   "Options:\n"
-	   "+:                  spy        -:              no spy\n"
-	   "/c|e|r|f|u|a goal:  find       .:              repeat find\n"
-	   "a:                  abort      A:              alternatives\n"
-	   "b:                  break      c (ret, space): creep\n"
-	   "[depth] d:          depth      e:              exit\n"
-	   "f:                  fail       [ndepth] g:     goals (backtrace)\n"
-	   "h (?):              help       i:              ignore\n"
-	   "l:                  leap       L:              listing\n"
-	   "n:                  no debug   p:              print\n"
-	   "r:                  retry      s:              skip\n"
-	   "u:                  up         w:              write\n"
+	   "+:                  spy            -:              no spy\n"
+	   "/c|e|r|f|u|a goal:  find           .:              repeat find\n"
+	   "a:                  abort          A:              alternatives\n"
+	   "b:                  break          c (ret, space): creep\n"
+	   "[depth] d:          depth          e:              exit\n"
+	   "f:                  fail           [depth] g:      goals (backtrace, -N from top)\n"
+	   "h (?):              help           i:              ignore\n"
+	   "l:                  leap           L:              listing\n"
+	   "n:                  no debug       p:              print goals\n"
+	   "r:                  retry          s:              skip\n"
+	   "u:                  up             w:              (quoted) write goals\n"
 	   "m:                  exception details\n"
 	   "C:                  toggle show context\n"
 #if O_DEBUG
@@ -1087,6 +1088,8 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 }
 
 
+#define SHOW_FRAME(fr) ( isDebugFrame(fr) || !(flags&PL_BT_USER) )
+
 static void
 _PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
@@ -1103,6 +1106,26 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
     }
     if ( SYSTEM_MODE )
       flags &= ~PL_BT_USER;
+
+    if ( depth < 0 )			/* deph < 0: top depth frames */
+    { pl_context_t from = ctx;
+      int skip;
+
+      skip = depth = -depth;
+      while( PL_step_context(&ctx) )
+      { if ( SHOW_FRAME(ctx.fr) && --skip <= 0 )
+	  break;
+      }
+      while( PL_step_context(&ctx) )
+      { if ( SHOW_FRAME(ctx.fr) )
+	{ do
+	  { PL_step_context(&from);
+	  } while( !SHOW_FRAME(from.fr) );
+	}
+      }
+
+      ctx = from;
+    }
 
     for(; depth > 0; PL_step_context(&ctx))
     { LocalFrame frame;
@@ -1128,7 +1151,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 	def = frame->predicate;
       }
 
-      if ( isDebugFrame(frame) || !(flags&PL_BT_USER) )
+      if ( SHOW_FRAME(frame) )
       { writeContextFrame(out, &ctx, flags);
 	depth--;
       }
