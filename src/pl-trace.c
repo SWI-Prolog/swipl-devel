@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -255,6 +256,10 @@ static bool		hasAlternativesFrame(LocalFrame);
 static void		alternatives(Choice);
 static int		exceptionDetails(void);
 static int		listGoal(LocalFrame frame);
+static LocalFrame	frameAtLevel(LocalFrame frame, int at_depth,
+				     bool interactive);
+static int		saveGoal(LocalFrame frame, int at_depth,
+				 bool interactive);
 static int		traceInterception(LocalFrame, Choice, int, Code);
 static int		traceAction(char *cmd,
 				    int port,
@@ -757,6 +762,9 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
     case 'L':	FeedBack("Listing");
 		listGoal(frame);
 		return ACTION_AGAIN;
+    case 'S':	FeedBack("Save goal");
+		saveGoal(frame, def_arg ? 0 : num_arg, interactive);
+		return ACTION_AGAIN;
     case '+':	FeedBack("spy\n");
 		set(frame->predicate, SPY_ME);
 		return ACTION_AGAIN;
@@ -766,9 +774,11 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
     case '?':
     case 'h':	helpTrace();
 		return ACTION_AGAIN;
+#ifdef O_DEBUG
     case 'D':   GD->debug_level = def_arg ? 0 : num_arg;
 		FeedBack("Debug level\n");
 		return ACTION_AGAIN;
+#endif
     default:	Warn("Unknown option (h for help)\n");
 		return ACTION_AGAIN;
   }
@@ -809,6 +819,7 @@ helpTrace(void)
     { "L",		   "list current goal" },
     { "r",		   "retry curent goal" },
     { "s",		   "skip over" },
+    { "[level] S",	   "save goal [at level]" },
     { "u",		   "up (complete goal)" },
     { "s",		   "(quoted) write goals" },
     { "m",		   "exception details" },
@@ -1120,6 +1131,54 @@ listGoal(LocalFrame frame)
 
   return FALSE;
 }
+
+
+static LocalFrame
+frameAtLevel(LocalFrame frame, int at_depth, bool interactive)
+{ GET_LD
+
+  if ( at_depth )
+  { pl_context_t ctx;
+
+    if ( PL_get_context(&ctx, 0) )
+    { do
+      { if ( levelFrame(ctx.fr) == at_depth )
+	  return ctx.fr;
+      } while(PL_step_context(&ctx));
+
+      if ( interactive )
+	Sfprintf(Sdout, "No frame at level %d", at_depth);
+
+      return NULL;
+    }
+
+    return NULL;
+  }
+
+  return frame;
+}
+
+
+static int
+saveGoal(LocalFrame frame, int at_depth, bool interactive)
+{ GET_LD
+  term_t goal;
+
+  if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
+    return FALSE;
+
+  if ( (goal = PL_new_term_ref()) &&
+       put_frame_goal(goal, frame) &&
+       PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
+  { if ( interactive )
+      Sfprintf(Sdout, "\nRecorded goal to key `saved_goals`\n");
+    return TRUE;
+  }
+
+  Sfprintf(Sdout, "\nFailed to save goal\n");
+  return FALSE;
+}
+
 
 
 static void

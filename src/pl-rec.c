@@ -56,9 +56,6 @@ static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
 static int  is_external(const char *rec, size_t len);
 
-#define RECORDA 0
-#define RECORDZ 1
-
 #undef LD
 #define LD LOCAL_LD
 
@@ -2027,11 +2024,8 @@ PRED_IMPL("current_key", 1, current_key, PL_FA_NONDETERMINISTIC)
 
 
 static bool
-record(term_t key, term_t term, term_t ref, int az)
+record(term_t key, term_t term, term_t ref, record_az az)
 { GET_LD
-  RecordList l;
-  RecordRef r;
-  Record copy;
   word k = 0L;
 
   DEBUG(3, Sdprintf("record() of ");
@@ -2042,6 +2036,16 @@ record(term_t key, term_t term, term_t ref, int az)
     fail;
   if ( ref && !PL_is_variable(ref) )
     return PL_uninstantiation_error(ref);
+
+  return PL_record_az(k, term, ref, az);
+}
+
+int
+PL_record_az(word k, term_t term, term_t ref, record_az az)
+{ GET_LD
+  RecordList l;
+  RecordRef r;
+  Record copy;
 
   if ( !(copy = compileTermToHeap(term, 0)) )
     return PL_no_memory();

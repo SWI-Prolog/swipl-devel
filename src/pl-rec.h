@@ -39,6 +39,11 @@
 #ifndef _PL_REC_H
 #define _PL_REC_H
 
+typedef enum record_az
+{ RECORDA,
+  RECORDZ
+} record_az;
+
 		 /*******************************
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
@@ -58,6 +63,7 @@ bool		unifyKey(term_t key, word val);
 int		getKeyEx(term_t key, word *k ARG_LD);
 word		pl_term_complexity(term_t t, term_t mx, term_t count);
 void		markAtomsRecord(Record record);
+int		PL_record_az(word k, term_t term, term_t ref, record_az az);
 
 		 /*******************************
 		 *	LD-USING FUNCTIONS	*
