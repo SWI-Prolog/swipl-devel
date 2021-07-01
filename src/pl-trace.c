@@ -774,29 +774,76 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
   }
 }
 
+typedef struct trace_command
+{ const char *keys;
+  const char *comment;
+} trace_command;
+
+static void
+set_max_len(int *i, const char *s)
+{ size_t len = strlen(s);
+  if ( len > (int)*i )
+    *i = (int)len;
+}
+
 static void
 helpTrace(void)
 { GET_LD
+  const trace_command commands[] =
+  {
+    { "+",		   "set spy point" },
+    { "-",		   "clear spy point" },
+    { "/c|e|r|f|u|a goal", "find goal at port" },
+    { ".",		   "repeat find" },
+    { "a",		   "abort to toplevel" },
+    { "A",		   "alternatives" },
+    { "b",		   "break (new toplevel)" },
+    { "c (ret, space)",	   "creep to next port" },
+    { "[depth] d",	   "depth for printing" },
+    { "e",		   "exit Prolog" },
+    { "f",		   "make goal fail" },
+    { "[depth] g",	   "backtrace (-N from top)" },
+    { "h (?)",		   "help" },
+    { "i",		   "ignore current goal" },
+    { "l",		   "leap to spy point" },
+    { "L",		   "list current goal" },
+    { "r",		   "retry curent goal" },
+    { "s",		   "skip over" },
+    { "u",		   "up (complete goal)" },
+    { "s",		   "(quoted) write goals" },
+    { "m",		   "exception details" },
+    { "C",		   "toggle show context" },
+  #if O_DEBUG
+    { "[level] D",         "system debug level" },
+  #endif
+    { NULL,		   NULL }
+  };
+  const trace_command *cmd;
+  int lkw = 0, lcw = 0, rkw = 0, rcw = 0;
 
-  Sfprintf(Sdout,
-	   "Options:\n"
-	   "+:                  spy            -:              no spy\n"
-	   "/c|e|r|f|u|a goal:  find           .:              repeat find\n"
-	   "a:                  abort          A:              alternatives\n"
-	   "b:                  break          c (ret, space): creep\n"
-	   "[depth] d:          depth          e:              exit\n"
-	   "f:                  fail           [depth] g:      goals (backtrace, -N from top)\n"
-	   "h (?):              help           i:              ignore\n"
-	   "l:                  leap           L:              listing\n"
-	   "n:                  no debug       p:              print goals\n"
-	   "r:                  retry          s:              skip\n"
-	   "u:                  up             w:              (quoted) write goals\n"
-	   "m:                  exception details\n"
-	   "C:                  toggle show context\n"
-#if O_DEBUG
-	   "[level] D:	      set system debug level\n"
-#endif
-	   "");
+  for(cmd=commands; cmd->keys; cmd+=2)
+  { set_max_len(&lkw, cmd[0].keys);
+    set_max_len(&lcw, cmd[0].comment);
+
+    if ( cmd[1].keys )
+    { set_max_len(&rkw, cmd[1].keys);
+      set_max_len(&rcw, cmd[1].comment);
+    } else
+      break;
+  }
+
+  Sfprintf(Sdout, "Trace commands:\n");
+  for(cmd=commands; cmd->keys; cmd+=2)
+  { if ( cmd[1].keys )
+    { Sfprintf(Sdout, "%-*s %-*s | %-*s %s\n",
+	       lkw, cmd[0].keys, lcw, cmd[0].comment,
+	       rkw, cmd[1].keys,      cmd[1].comment);
+    } else
+    { Sfprintf(Sdout, "%-*s %s\n",
+	       lkw, cmd[0].keys, cmd[0].comment);
+      break;
+    }
+  }
 }
 
 
