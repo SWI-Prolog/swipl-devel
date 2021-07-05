@@ -3163,11 +3163,13 @@ unify_fresh(term_t t, trie *atrie, Definition def, int create ARG_LD)
 
 
 static atom_t
-complete_or_invalid_status(trie *atrie)
+complete_or_invalid_status(trie *atrie ARG_LD)
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) )
   { if ( n->monotonic && !n->lazy && !n->force_reeval )
+      return ATOM_complete;
+    if ( n->monotonic && n->lazy && LD->tabling.in_assert_propagation )
       return ATOM_complete;
     if ( n->falsecount > 0 )
       return ATOM_invalid;
@@ -3182,7 +3184,7 @@ complete_or_invalid_status(trie *atrie)
 static int
 unify_complete_or_invalid(term_t t, trie *atrie,
 			  Definition def, int create ARG_LD)
-{ atom_t status = complete_or_invalid_status(atrie);
+{ atom_t status = complete_or_invalid_status(atrie PASS_LD);
 
   if ( status == ATOM_fresh && create )
     return unify_fresh(t, atrie, def, create PASS_LD);
@@ -3237,9 +3239,9 @@ unify_table_status(term_t t, trie *trie, Definition def, int create ARG_LD)
 
 
 static atom_t
-table_status(trie *trie)
+table_status(trie *trie ARG_LD)
 { if ( true(trie, TRIE_COMPLETE) )
-  { return complete_or_invalid_status(trie);
+  { return complete_or_invalid_status(trie PASS_LD);
   } else
   { worklist *wl = trie->data.worklist;
 
@@ -7820,14 +7822,14 @@ table_status_reeval_wait(trie *atrie ARG_LD)
       int tid = PL_thread_self();
 
       if ( atrie->tid == tid )			/* remain owner */
-      { return table_status(atrie);
+      { return table_status(atrie PASS_LD);
       } else
       { atom_t status;
 
 	if ( !claim_answer_table(atrie, NULL, 0 PASS_LD) )
 	  return FALSE;				/* deadlock */
 
-	status = table_status(atrie);
+	status = table_status(atrie PASS_LD);
 	COMPLETE_WORKLIST(atrie, (void)0);
 	return status;
       }
