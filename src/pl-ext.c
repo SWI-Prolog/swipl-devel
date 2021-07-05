@@ -169,10 +169,6 @@ static const PL_extension foreigns[] = {
 #endif
   FRG("context_module",		1, pl_context_module,	     META),
 
-#if O_STRING
-  FRG("sub_string",		5, pl_sub_string,	     NDET),
-#endif /* O_STRING */
-
   FRG("format",			2, pl_format,		     META),
 #ifdef O_DEBUG
   FRG("$check_definition",	1, pl_check_definition,      META),

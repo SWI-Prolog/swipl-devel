@@ -57,9 +57,6 @@ word		stringToList(char *s);
 foreign_t	pl_sub_atom(term_t atom,
 			    term_t before, term_t len, term_t after,
 			    term_t sub, control_t h);
-word		pl_sub_string(term_t str,
-			      term_t offset, term_t length, term_t after,
-			      term_t sub, control_t h);
 word		pl_repeat(control_t h);
 word		pl_fail(void);
 word		pl_true(void);

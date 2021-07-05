@@ -4978,13 +4978,11 @@ PRED_IMPL("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
 }
 
 
-foreign_t
-pl_sub_string(term_t atom,
-	      term_t before, term_t len, term_t after,
-	      term_t sub,
-	      control_t h)
-{ GET_LD
-  return sub_text(atom, before, len, after, sub, h, PL_STRING PASS_LD);
+static
+PRED_IMPL("sub_string", 5, sub_string, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+
+  return sub_text(A1, A2, A3, A4, A5, PL__ctx, PL_STRING PASS_LD);
 }
 
 #endif /* O_STRING */
@@ -6103,6 +6101,7 @@ BeginPredDefs(prims)
   PRED_DEF("atomic_list_concat", 3, atomic_list_concat, 0)
   PRED_DEF("atomic_list_concat", 2, atomic_list_concat, 0)
   PRED_DEF("string_concat", 3, string_concat, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("sub_string", 5, sub_string, PL_FA_NONDETERMINISTIC)
   PRED_DEF("string_length", 2, string_length, 0)
   PRED_DEF("atomics_to_string", 3, atomics_to_string, 0)
   PRED_DEF("atomics_to_string", 2, atomics_to_string, 0)
