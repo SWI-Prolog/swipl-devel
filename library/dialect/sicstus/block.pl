@@ -36,6 +36,7 @@
 	  [ (block)/1,			% +Heads
 	    op(1150, fx, (block))
 	  ]).
+:- use_module(library(prolog_wrap), [wrap_predicate/4]).
 
 /** <module> Block: declare suspending predicates
 
@@ -84,10 +85,6 @@ head(H, Head) :-
 %	until any of the arguments in question are bound.
 %
 %	@compat SICStus Prolog
-%	@bug	It is not possible to block on a dynamic predicate
-%		because we cannot wrap assert/1.  Likewise, we cannot
-%		block foreign predicates, although it would be easier
-%		to support this.
 
 block(Spec) :-
 	throw(error(context_error(nodirective, block(Spec)), _)).
@@ -144,50 +141,58 @@ block_arg(?) :- !.
 block_arg(A) :-
 	domain_error(block_argument, A).
 
-%%	wrap_block(+Head, +Term, -Clauses) is det.
+%%	block_wrapper_clauses(+Module, +Head, -Clauses) is det.
 %
-%	Create a wrapper. The first clause deal   with the case where we
-%	already created the wrapper. The second  creates the wrapper and
-%	the first clause.
+%	Build a list of clauses that define a block wrapper around
+%	predicate Head in Module. If a wrapper for this predicate has
+%	already been defined, Clauses is an empty list.
 
-wrap_block(Pred, Term, Clause) :-
-	current_predicate(_, Pred), !,
-	rename_clause(Term, 'block ', Clause).
-wrap_block(Pred, Term, Clauses) :-
-	Pred = Module:Head,
+block_wrapper_clauses(Module, Head, Clauses) :-
 	functor(Head, Name, Arity),
-	findall(Wrapper, block_wrapper_clause(Module, Name, Arity, Wrapper), Wrappers),
-	rename_clause(Term, 'block ', FirstClause),
-	append(Wrappers, [FirstClause], Clauses).
+	atom_concat('$block_helper$', Name, HelperName),
+	functor(HelperHead, HelperName, Arity),
+	(   current_predicate(_, Module:HelperHead)
+	->  Clauses = []
+	;   findall(Wrapper, block_wrapper_clause(Module, Name, HelperHead, Wrapper), Clauses)
+	).
 
-%%	block_wrapper_clause(+Module, +Name, +Arity, -Clause) is nondet.
+%%	block_wrapper_clause(+Module, +Name, +HelperHead, -Clause) is nondet.
 %
-%	Generate the clauses for the wrapper. Each blockspec translates
-%	to a clause in the wrapper that checks if the block condition is
-%	true, i. e. all of the arguments marked as `-` are unbound.
-%	If so, attributes are added to all of these unbound arguments,
-%	so that once any of them are bound, the wrapper is called again
-%	and the block conditions are re-evaluated.
+%	Generate the clauses for the wrapper. The blockspecs are
+%	translated into a helper predicate, where each clause checks one
+%	block condition. If a block condition is true, attributes are
+%	added to all arguments marked as `-`, so that once any of them
+%	are bound, the predicate is called again and the block
+%	conditions are re-evaluated. If no block condition was true,
+%	the helper predicate fails.
 %
-%	Finally, a fallthrough clause is always generated, which calls
-%	the wrapped predicate immediately if none of the previous
-%	clauses (block conditions) was true.
+%	Finally, an initialization clause is generated that sets up the
+%	actual wrapper. This wrapper first calls the helper predicate
+%	to check all block conditions and delay the call if necessary.
+%	If the helper predicate fails (i. e. no block condition was
+%	true), the wrapped predicate is called immediately.
+%
+%	The wrapper must be set up in an initialization clause and not
+%	as part of the term expansion, because wrap_predicate/4 wrappers
+%	are not retained in saved states, which would cause block
+%	declarations to break when loading a saved state.
 
-block_wrapper_clause(Module, Name, Arity, (GenHead :- GenBody)) :-
-	length(GenArgs, Arity),
-	GenHead =.. [Name|GenArgs],
+block_wrapper_clause(Module, Name, HelperHead, (HelperHead :- GenBody)) :-
+	HelperHead =.. [_|HelperArgs],
+	length(HelperArgs, Arity),
 	functor(BlockHead, Name, Arity),
 	Module:'$block_pred'(BlockHead),
 	BlockHead =.. [_|BlockArgs],
-	find_args_to_block_on(BlockArgs, GenArgs, ToBlockOn),
+	find_args_to_block_on(BlockArgs, HelperArgs, ToBlockOn),
 	args_to_var_conditions(ToBlockOn, GenBody, GenBody1),
 	GenBody1 = (!, GenBody2),
-	args_to_suspend_calls(ToBlockOn, _IsAlreadyUnblocked, Module:GenHead, GenBody2, true).
-block_wrapper_clause(_Module, Name, Arity, (GenHead :- WrappedHead)) :-
-	length(GenArgs, Arity),
-	GenHead =.. [Name|GenArgs],
-	atom_concat('block ', Name, WrappedName),
-	WrappedHead =.. [WrappedName|GenArgs].
+	MainHead =.. [Name|HelperArgs],
+	args_to_suspend_calls(ToBlockOn, _IsAlreadyUnblocked, Module:MainHead, GenBody2, true).
+block_wrapper_clause(Module, Name, HelperHead, (:- initialization WrapCall)) :-
+	HelperHead =.. [_|HelperArgs],
+	ToWrapHead =.. [Name|HelperArgs],
+	atom_concat('$block_wrapper$', Name, WrapperName),
+	WrapCall = prolog_wrap:wrap_predicate(Module:ToWrapHead, WrapperName, Wrapped, (HelperHead -> true ; Wrapped)).
 
 %%	find_args_to_block_on(+BlockArgs, +HeadArgs, -ArgsToBlockOn) is semidet.
 %
@@ -277,8 +282,9 @@ rename_clause(Head, Prefix, NewHead) :-
 
 system:term_expansion((:- block(Spec)), Clauses) :-
 	expand_block_declaration(Spec, Clauses).
-system:term_expansion(Term, Wrapper) :-
+system:term_expansion(Term, Clauses) :-
 	head(Term, Module:Head),
 	block_declaration(Head, Module),
-	wrap_block(Module:Head, Term, Wrapper).
+	block_wrapper_clauses(Module, Head, WrapperClauses),
+	append(WrapperClauses, [Term], Clauses).
 
