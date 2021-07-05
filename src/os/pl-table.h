@@ -98,6 +98,23 @@ htable_valid_kv(void *kv)
 				    ((intptr_t)(p))) & \
 				   ((size)-1))
 
+#define FOR_TABLE(ht, n, v) \
+	for \
+	( void *n = NULL, \
+	       *v = NULL, \
+	       *__ft_ht = (ht), \
+	       *__ft_idx = NULL, \
+	       *__ft_kvs = ((Table)ht)->kvs, \
+	       *__ft_start = (void*)1 \
+	; \
+	  __ft_start \
+	  ? (ATOMIC_INC(&((KVS)__ft_kvs)->accesses) || 1) \
+	  : (ATOMIC_DEC(&((KVS)__ft_kvs)->accesses) && 0) \
+	; \
+	  __ft_start = NULL \
+	) \
+	  while ( htable_iter((Table)__ft_ht, (KVS)__ft_kvs, (int *)&__ft_idx, &n, &v) )
+
 #define for_table(ht, n, v, code) \
 	{ int idx = 0; \
           KVS kvs = ht->kvs; \
