@@ -2024,6 +2024,7 @@ reeval_monotonic_node(ATrie, Size) :-
                 '$clause'(Head, _Body, ClauseRef, _Bindings),
                 tdebug(monotonic, 'Propagating ~p from ~p to ~p',
                        [Head, _0SrcTrie, ATrie]),
+                '$idg_set_current'(_, ATrie),
                 pdelim(Cont, Skel, ATrie),
                 fail
             ;   '$idg_mono_empty_queue'(DepRef, Count)
@@ -2033,6 +2034,7 @@ reeval_monotonic_node(ATrie, Size) :-
                 '$tbl_node_answer'(Node, SrcSkel),
                 tdebug(monotonic, 'Propagating ~p from ~p to ~p',
                        [Skel, _0SrcTrie, ATrie]),
+                '$idg_set_current'(_, ATrie),
                 pdelim(Cont, Skel, ATrie),
                 fail
             ;   '$idg_mono_empty_queue'(DepRef, Count)
