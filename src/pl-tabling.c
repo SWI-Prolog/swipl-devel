@@ -7454,7 +7454,7 @@ PRED_IMPL("$tbl_collect_mono_dep", 0, tbl_collect_mono_dep, 0)
 /** '$mono_reeval_prepare'(+ATrie, -Size) is semidet.
  *
  *  Prepare  ATrie  for   lazy   monotonic    updates.   Together   with
- *  '$mono_reeval_done'/2, this should monitor whether   or not the trie
+ *  '$mono_reeval_done'/3, this should monitor whether   or not the trie
  *  has been modified. Without answer subsumption,  this is easy: as the
  *  trie is monotonic no answers  are  deleted   and  thus  the  trie is
  *  unchanged iff the `value_count` of the trie is unchanged.
@@ -7477,51 +7477,6 @@ mono_reeval_prep_node(trie_node *n, void *ctx)
 
   return NULL;
 }
-
-
-static int
-invalid_dependencies(term_t deps, idg_node *idg, size_t *count ARG_LD)
-{ term_t head = 0;
-  term_t tail = 0;
-  size_t cnt = 0;
-
-  if ( idg->dependent && idg->dependent->size > 0 )
-  { TableEnum en = newTableEnum(idg->dependent);
-    void *k, *v;
-
-    while(advanceTableEnum(en, &k, &v))
-    { idg_node *dep = k;
-
-      if ( dep->falsecount > 0 )
-      { if ( head == 0 )
-	{ tail = PL_copy_term_ref(deps);
-	  head = PL_new_term_ref();
-	}
-
-	if ( !PL_unify_list(tail, head, tail) ||
-	     !PL_unify_atom(head, trie_symbol(dep->atrie)) )
-	{ freeTableEnum(en);
-	  return FALSE;
-	}
-
-	cnt++;
-      }
-    }
-    freeTableEnum(en);
-  }
-
-  *count = cnt;
-
-  if ( cnt == 0 )
-  { if ( idg->lazy_queued )
-      return PL_unify_atom(deps, ATOM_false);
-    else
-      return PL_unify_nil(deps);
-  } else
-  { return PL_unify_nil(tail);
-  }
-}
-
 
 static
 PRED_IMPL("$mono_reeval_prepare", 2, mono_reeval_prepare, 0)
@@ -7633,6 +7588,140 @@ mono_reeval_done_node(trie_node *n, void *ctx)
   return NULL;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mono_scc_is_complete() validates that a lazy monotonic node is complete.
+A lazy monotonic node is complete if none of its (recursively) dependent
+lazy monotonic nodes has unprocessed  queued   answers  and there are no
+incremental invalid nodes or "force_reeval" nodes in the dependencies.
+
+If the SCC is complete, all nodes in the SCC are marked as valid.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct mono_scc_state
+{ idg_node *idg;				/* current node */
+  TableEnum en;					/* Enum on its dependencies */
+  Table visited;				/* Nodes we have seen */
+  segstack  stack;				/* agenda */
+  idg_node  *buf[100];
+} mono_scc_state;
+
+
+static int
+mono_scc_is_complete_loop(mono_scc_state *state ARG_LD)
+{ typedef struct idg_node *IDGNode;
+
+  for(;;)
+  { void *k, *v;
+
+    while(advanceTableEnum(state->en, &k, &v))
+    { idg_node *dep = k;
+      idg_mdep *mdep;
+
+      if ( (mdep=lookupHTable(dep->affected, state->idg)) &&
+	   mdep->queue && !isEmptyBuffer(mdep->queue) )
+	return FALSE;
+
+      if ( dep->falsecount )
+      { if ( dep->lazy && dep->dependent && dep->dependent->size > 0 &&
+	     !lookupHTable(state->visited, dep) )
+	{ if ( !pushSegStack(&state->stack, dep, IDGNode) )
+	    outOfCore();
+	  addHTable(state->visited, dep, (void*)TRUE);
+	}
+	if ( !dep->monotonic || dep-> force_reeval )
+	  return FALSE;
+      }
+    }
+
+    freeTableEnum(state->en);
+
+    if ( popSegStack(&state->stack, &state->idg, IDGNode) )
+    { state->en = newTableEnum(state->idg->dependent);
+    } else
+      break;
+  }
+
+  return TRUE;
+}
+
+
+static int
+mono_scc_is_complete(idg_node *idg ARG_LD)
+{ if ( idg->falsecount && idg->dependent && idg->dependent->size > 0 )
+  { mono_scc_state state;
+    int rc;
+
+    state.idg = idg;
+    state.visited = newHTable(4);
+    addHTable(state.visited, idg, (void*)TRUE);
+    initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
+    state.en = newTableEnum(idg->dependent);
+
+    rc = mono_scc_is_complete_loop(&state PASS_LD);
+    clearSegStack(&state.stack);
+    if ( rc )
+    { FOR_TABLE(state.visited, k, v)
+      { idg_node *dep = k;
+	(void) v;
+
+	dep->falsecount = 0;
+	dep->tt_notrail = FALSE;
+      }
+    }
+    destroyHTable(state.visited);
+
+    return rc;
+  }
+
+  return TRUE;
+}
+
+
+static int
+invalid_dependencies(term_t deps, idg_node *idg, size_t *count ARG_LD)
+{ term_t head = 0;
+  term_t tail = 0;
+  size_t cnt = 0;
+
+  if ( idg->dependent && idg->dependent->size > 0 )
+  { TableEnum en = newTableEnum(idg->dependent);
+    void *k, *v;
+
+    while(advanceTableEnum(en, &k, &v))
+    { idg_node *dep = k;
+
+      if ( dep->falsecount > 0 )
+      { if ( head == 0 )
+	{ tail = PL_copy_term_ref(deps);
+	  head = PL_new_term_ref();
+	}
+
+	if ( !PL_unify_list(tail, head, tail) ||
+	     !PL_unify_atom(head, trie_symbol(dep->atrie)) )
+	{ freeTableEnum(en);
+	  return FALSE;
+	}
+
+	cnt++;
+      }
+    }
+    freeTableEnum(en);
+  }
+
+  *count = cnt;
+
+  if ( cnt == 0 )
+  { if ( idg->lazy_queued )
+      return PL_unify_atom(deps, ATOM_false);
+    else
+      return PL_unify_nil(deps);
+  } else
+  { return PL_unify_nil(tail);
+  }
+}
+
+
 /** '$mono_reeval_done'(+ATrie, +SizeAtStart, -InvalidDependencies)
  *
  * We are done processing queues answers  towards ATrie. This only means
@@ -7654,11 +7743,12 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 
     if ( (idg=atrie->data.IDG) )
     { size_t invalid_deps;
+      term_t deps_t = PL_new_term_ref();
 
       idg->mono_reevaluating = FALSE;
       if ( idg->tt_new_dep )
 	tt_add_table(atrie, TT_TBL_INVALIDATE PASS_LD);
-      if ( !invalid_dependencies(A3, idg, &invalid_deps PASS_LD) )
+      if ( !invalid_dependencies(deps_t, idg, &invalid_deps PASS_LD) )
 	return FALSE;
 
       if ( atrie->value_count == vc )
@@ -7689,10 +7779,18 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
 				 atrie->value_count - vc));
       }
 
-      idg->falsecount = invalid_deps + idg->lazy_queued;
-
-      if ( idg->falsecount == 0 )
+      if ( invalid_deps + idg->lazy_queued )
+      { if ( mono_scc_is_complete(idg PASS_LD) )
+	{ rc = PL_unify_nil(A3);
+	} else
+	{ idg->falsecount = invalid_deps + idg->lazy_queued;
+	  rc = PL_unify(A3, deps_t);
+	}
+      } else
+      { idg->falsecount = 0;
 	idg->tt_notrail = FALSE;
+	rc = PL_unify_nil(A3);
+      }
     }
 
     return rc;

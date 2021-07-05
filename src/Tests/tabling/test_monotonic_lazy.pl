@@ -41,6 +41,7 @@
 :- use_module(library(debug)).
 :- use_module(library(prolog_code)).
 :- use_module(library(tables)).
+:- use_module(library(lists)).
 
 /** <module> Test lazy monotonic tabling
 */
@@ -58,7 +59,9 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_10,
                 tabling_monotonic_lazy_11,
                 tabling_monotonic_lazy_12,
-                tabling_monotonic_lazy_13
+                tabling_monotonic_lazy_13,
+                tabling_monotonic_lazy_14,
+                tabling_monotonic_lazy_15
               ]).
 
 :- meta_predicate
@@ -414,6 +417,125 @@ test(incr_propagate_lazy) :-
     expect(X, p(X), [1]).
 
 :- end_tests(tabling_monotonic_lazy_13).
+
+
+:- begin_tests(tabling_monotonic_lazy_14).
+% Test completion on lazy monotonic tables when there are
+% cyclic dependencies.
+
+:- dynamic (d/2) as monotonic.
+:- table (p/2) as (monotonic,lazy).
+
+p(X, Y) :-
+    d(X, Y).
+p(X, Y) :-
+    d(X, M),
+    p(M, Y).
+
+test(mono_completion, fail) :-
+    cleanup([d/2]),
+    assert(d(a, b)),
+    init(p(a,c)),
+    assert(d(b, a)),
+    p(a,c).
+
+:- end_tests(tabling_monotonic_lazy_14).
+
+:- begin_tests(tabling_monotonic_lazy_15).
+% Test transitive closure under different regimes.  Both
+% validate results and termination.
+
+test(closure) :-
+    test(50, 20, [tm,tml]).
+
+:- use_module(library(random)).
+:- meta_predicate solve(2, -).
+
+:- dynamic dm/2 as monotonic.
+:- dynamic dml/2 as (monotonic).
+:- dynamic dt/2.
+
+:- dynamic do_test/1.
+
+:- table t/2.
+
+t(A,B) :-
+    dt(A,B).
+t(A,B) :-
+    t(A,M),
+    dt(M,B).
+
+:- table tm/2 as monotonic.
+
+tm(A,B) :-
+    dm(A,B).
+tm(A,B) :-
+    tm(A,M),
+    dm(M,B).
+
+:- table tml/2 as (monotonic,lazy).
+
+tml(A,B) :-
+    dml(A,B).
+tml(A,B) :-
+    tml(A,M),
+    dml(M,B).
+
+test(Count, Size, DoTest) :-
+    clean,
+    forall(member(X, DoTest), assertz(do_test(X))),
+    test_loop(1, Count, Size).
+
+test_loop(I, N, M) :-
+    I =< N,
+    !,
+    random_between(1,M,A),
+    random_between(1,M,B),
+    assertz(dm(A,B)),
+    assertz(dml(A,B)),
+    assertz(dt(A,B)),
+    I2 is I+1,
+    verify(Len),
+    debug(tc, 'Interation ~D: ~D connections', [I, Len]),
+    test_loop(I2, N, M).
+test_loop(_,_,_).
+
+verify(Len) :-
+    solve(t, Ok),
+    verify(tm, Ok),
+    verify(tml, Ok),
+    length(Ok, Len).
+
+solve(Pred, Pairs) :-
+    (   Pred = M:t
+    ->  abolish_table_subgoals(M:t(_,_))
+    ;   true
+    ),
+    findall(A-B, call(Pred, A,B), Pairs0),
+    sort(Pairs0, Pairs).
+
+verify(Pred, Ok) :-
+    do_test(Pred),
+    !,
+    solve(Pred, Pairs),
+    (   Pairs == Ok
+    ->  true
+    ;   format('Wrong result for ~p~n', [Pred]),
+        abort
+    ).
+verify(_,_).
+
+clean :-
+    abolish_all_tables,
+    retractall(dt(_,_)),
+    retractall(dm(_,_)),
+    retractall(dml(_,_)),
+    retractall(do_test(_)).
+
+
+:- end_tests(tabling_monotonic_lazy_15).
+
+
 
 
 		 /*******************************
