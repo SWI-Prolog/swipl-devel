@@ -112,3 +112,6 @@
 [submodule "packages/redis"]
 	path = packages/redis
 	url = ../packages-redis.git
+[submodule "packages/stomp"]
+	path = packages/stomp
+	url = ../packages-stomp.git
