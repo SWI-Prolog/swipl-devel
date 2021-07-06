@@ -48,6 +48,9 @@
 #include "pl-setup.h"
 #include "pl-pro.h"
 #include <math.h>
+#ifdef HAVE_MALLOC_H
+#include <malloc.h>
+#endif
 #ifdef HAVE_SYS_MMAN_H
 #define MMAP_STACK 1
 #include <sys/mman.h>
@@ -1660,6 +1663,7 @@ static int (*fMallocExtension_SetNumericProperty)(const char *, size_t);
 static void (*fMallocExtension_MarkThreadIdle)(void) = NULL;
 static void (*fMallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
 static void (*fMallocExtension_MarkThreadBusy)(void) = NULL;
+static void (*fMallocExtension_ReleaseFreeMemory)(void) = NULL;
 
 static const char* tcmalloc_properties[] =
 { "generic.current_allocated_bytes",
@@ -1802,18 +1806,39 @@ heapUsed(void)
 }
 
 
-int
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Try to initialize tcmalloc(). Note that we   get all the functions using
+dlsym() rather than as static symbols  because   we  do not know whether
+tcmalloc is really there. Even if the   symbols  are present the library
+may be overruled.
+
+Returns 0 if tcmalloc is not present or not enabled.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int is_tcmalloc = FALSE;
+
+static int
 initTCMalloc(void)
 { static int done = FALSE;
   int set = 0;
 
   if ( done )
-    return !!fMallocExtension_GetNumericProperty;
+    return is_tcmalloc;
   done = TRUE;
 
   if ( (fMallocExtension_GetNumericProperty =
 		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
-  { PL_register_foreign_in_module("system", "malloc_property", 1, malloc_property,
+  { size_t in_use;
+
+    if ( fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &in_use) &&
+	 in_use > 100000 )
+    { is_tcmalloc = TRUE;
+      PL_set_prolog_flag("malloc", PL_ATOM, "tcmalloc");
+    } else
+    { return 0;
+    }
+
+    PL_register_foreign_in_module("system", "malloc_property", 1, malloc_property,
 			PL_FA_NONDETERMINISTIC);
     set++;
   }
@@ -1829,8 +1854,60 @@ initTCMalloc(void)
     PL_dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
   fMallocExtension_MarkThreadBusy =
     PL_dlsym(NULL, "MallocExtension_MarkThreadBusy");
+  fMallocExtension_ReleaseFreeMemory =
+    PL_dlsym(NULL, "MallocExtension_ReleaseFreeMemory");
 
   return set;
+}
+
+static int is_ptmalloc = FALSE;
+static struct mallinfo (*fmallinfo)(void) = NULL;
+static int             (*fmalloc_trim)(int pad) = NULL;
+
+static int
+initPTMalloc(void)
+{ static int done = FALSE;
+
+  if ( done )
+    return is_ptmalloc;
+  done = TRUE;
+
+  if ( (fmallinfo    = PL_dlsym(NULL, "mallinfo")) &&
+       (fmalloc_trim = PL_dlsym(NULL, "malloc_trim")) )
+  { struct mallinfo info = fmallinfo();
+
+    if ( info.uordblks > 100000 )
+    { PL_set_prolog_flag("malloc", PL_ATOM, "ptmalloc");
+      is_ptmalloc = TRUE;
+    }
+  }
+
+  return is_ptmalloc;
+}
+
+
+int
+initMalloc(void)
+{ return ( initTCMalloc() ||
+	   initPTMalloc() ||
+	   FALSE
+	 );
+}
+
+
+/** trim_heap
+ *
+ * Release as much as possible memory to the system.
+ */
+
+static
+PRED_IMPL("trim_heap", 0, trim_heap, 0)
+{ if ( is_tcmalloc && fMallocExtension_ReleaseFreeMemory )
+    fMallocExtension_ReleaseFreeMemory();
+  else if ( is_ptmalloc )
+    fmalloc_trim(0);
+
+  return TRUE;
 }
 
 
@@ -1889,4 +1966,5 @@ BeginPredDefs(alloc)
   PRED_DEF("garbage_collect_heap", 0, garbage_collect_heap, 0)
 #endif
   PRED_DEF("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
+  PRED_DEF("trim_heap",   0, trim_heap,   0)
 EndPredDefs

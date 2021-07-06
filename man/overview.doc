@@ -1589,6 +1589,11 @@ the value of this flag is the negation of the \prologflag{debug} flag.
 As programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
+    \prologflagitem{malloc}{atom}{r}
+Set after a successful identification of the used malloc()
+implementation.  Currently possibly values are \const{tcmalloc} and
+\const{ptmalloc}.  See \secref{malloc} for details.
+
     \prologflagitem{max_answers_for_subgoal}{integer}{rw}
 Limit the number of answers in a table. The atom
 \const{infinite} clears the flag.  By default this flag is not defined.

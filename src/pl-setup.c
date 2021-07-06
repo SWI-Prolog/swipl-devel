@@ -142,8 +142,8 @@ setupProlog(void)
   initFlags();
   DEBUG(1, Sdprintf("Foreign Predicates ...\n"));
   initBuildIns();
-  DEBUG(1, Sdprintf("TCMalloc binding ...\n"));
-  initTCMalloc();
+  DEBUG(1, Sdprintf("Malloc binding ...\n"));
+  initMalloc();
   DEBUG(1, Sdprintf("Operators ...\n"));
   initOperators();
   DEBUG(1, Sdprintf("GMP ...\n"));

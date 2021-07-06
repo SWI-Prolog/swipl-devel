@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2020, VU University Amsterdam
+    Copyright (c)  2012-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -91,7 +92,7 @@ COMMON(void)	free_lingering(linger_list **list, gen_t generation);
 		 *******************************/
 
 COMMON(void)		initAlloc(void);
-COMMON(int)		initTCMalloc(void);
+COMMON(int)		initMalloc(void);
 COMMON(size_t)		heapUsed(void);
 #ifndef DMALLOC
 COMMON(void *)		allocHeap(size_t n);

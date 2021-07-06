@@ -839,6 +839,7 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
         prompt(Old, '')
     ),
     trim_stacks,
+    trim_heap,
     repeat,
       read_query(Prompt, Query, Bindings),
       prompt(_, Old),

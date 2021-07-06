@@ -11192,7 +11192,8 @@ loop :-
 \end{code}
 
 The Prolog top-level loop is written this way, reclaiming memory
-resources after every user query.
+resources after every user query. See also trim_heap/0 and
+thread_idle/2.
 
     \predicate{set_prolog_stack}{2}{+Stack, +KeyValue}
 Set a parameter for one of the Prolog runtime stacks. \arg{Stack} is one
@@ -11242,6 +11243,7 @@ flag \prologflag{stack_limit}.
 \subsection{Heap memory (malloc)}	\label{sec:malloc}
 
 \index{tcmalloc}%
+\index{ptmalloc}%
 SWI-Prolog's memory management is based on the C runtime malloc()
 function and related functions.  The characteristics of the malloc()
 implementation may affect performance and overall memory usage of the
@@ -11281,6 +11283,23 @@ can also be achieved using the environment variable \const{LD_PRELOAD}:
 \begin{code}
 % LD_PRELOAD=/path/to/libtcmalloc.so swipl ...
 \end{code}
+
+SWI-Prolog attempts to detect the currently active allocator and sets
+the Prolog flag \prologflag{malloc} if the detection succeeds.
+regardless of the malloc implementation, trim_heap/0 is provided.
+
+\begin{description}
+    \predicate[det]{trim_heap}{0}
+This predicate attempts to return heap memory to the operating system.
+There is no portable way of doing so. If the system detects tcmalloc it
+calls MallocExtension_ReleaseFreeMemory(). If the system detects
+ptmalloc as provided by the GNU runtime library it calls malloc_trim().
+In other cases this predicate simply succeeds.  See also trim_stacks/0
+\end{description}
+
+
+\subsubsection{TCMalloc control predicates}
+\label{sec:tcmalloc}
 
 If SWI-Prolog core detects that tcmalloc is the current allocator and
 provides the following additional predicates.

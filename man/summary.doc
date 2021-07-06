@@ -752,7 +752,8 @@ suggest predicates from a keyword.
 \predicatesummary{trie_property}{2}{Examine a trie's properties}
 \predicatesummary{trie_update}{3}{Update associated value in trie}
 \predicatesummary{trie_term}{2}{Get term from a trie by handle}
-\predicatesummary{trim_stacks}{0}{Release unused memory resources}
+\predicatesummary{trim_heap}{0}{Release unused malloc() resources}
+\predicatesummary{trim_stacks}{0}{Release unused stack resources}
 \predicatesummary{tripwire}{2}{\hook{prolog} Handle a tabling tripwire event}
 \predicatesummary{true}{0}{Succeed}
 \predicatesummary{tspy}{1}{Set spy point and enable debugging in all threads}
