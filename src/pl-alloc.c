@@ -1860,6 +1860,7 @@ initTCMalloc(void)
   return set;
 }
 
+#ifdef HAVE_MALLINFO
 static int is_ptmalloc = FALSE;
 static struct mallinfo (*fmallinfo)(void) = NULL;
 static int             (*fmalloc_trim)(int pad) = NULL;
@@ -1884,6 +1885,11 @@ initPTMalloc(void)
 
   return is_ptmalloc;
 }
+#else
+#define is_ptmalloc FALSE
+#define initPTMalloc() FALSE
+#define fmalloc_trim(pad) (void)0
+#endif
 
 
 int
