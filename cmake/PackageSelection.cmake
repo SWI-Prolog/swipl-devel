@@ -49,6 +49,7 @@ set(SWIPL_PACKAGE_LIST_BASIC
     nlp
     paxos
     redis
+    stomp
     PDT
     pengines
     pldoc
@@ -128,6 +129,7 @@ set(SWIPL_PKG_DEPS_clib sgml)
 set(SWIPL_PKG_DEPS_http clib sgml ssl)
 set(SWIPL_PKG_DEPS_ltx2htm clib)
 set(SWIPL_PKG_DEPS_pengines clib http)
+set(SWIPL_PKG_DEPS_stomp clib http)
 set(SWIPL_PKG_DEPS_pldoc clib http pengines sgml)
 set(SWIPL_PKG_DEPS_semweb RDF clib http nlp sgml zlib)
 set(SWIPL_PKG_DEPS_ssl clib http sgml zlib)
@@ -266,6 +268,7 @@ endif()
 if(NOT MULTI_THREADED)
   swipl_del_package(swipl-win "requires multi-threading")
   swipl_del_package(tipc      "requires multi-threading")
+  swipl_del_package(stomp     "requires multi-threading")
 endif()
 
 if(INSTALL_DOCUMENTATION)
