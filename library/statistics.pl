@@ -76,49 +76,53 @@ use to obtain selective statistics during execution.
 
 %!  statistics is det.
 %
-%   Print information about resource usage using print_message/2.
+%   Print a nicely formatted output describing certain runtime
+%   statistics to the stream =|user_error|=.
 %
-%   @see    All statistics printed are obtained through statistics/2.
+%   @see    All statistics printed are obtained through (the built-in)
+%           statistics/2.
+%   @see    Printing is performed using print_message/2.
 
 statistics :-
     phrase(collect_stats, Stats),
-    print_message(information, statistics(Stats)).
+    print_message(information, statistics(Stats)). % handoff to msg_statistics(List)
 
 %!  statistics(-Stats:dict) is det.
 %
-%   Stats  is  a  dict   representing    the   same  information  as
+%   Stats is a dict representing the same information as printed  by
 %   statistics/0. This convience function is   primarily intended to
 %   pass  statistical  information  to  e.g.,  a  web  client.  Time
 %   critical code that wishes to   collect statistics typically only
-%   need a small subset  and  should   use  statistics/2  to  obtain
-%   exactly the data they need.
+%   needs a small subset and should use the built-in statistics/2 to
+%   obtain exactly the data required. Stats is a dict with  subdicts
+%   which themselves contain subdicts.
 
 statistics(Stats) :-
-    phrase(collect_stats, [CoreStats|StatList]),
-    dict_pairs(CoreStats, _, CorePairs),
-    map_list_to_pairs(dict_key, StatList, ExtraPairs),
-    append(CorePairs, ExtraPairs, Pairs),
-    dict_pairs(Stats, statistics, Pairs).
+    phrase(collect_stats, [CoreStats|MoreStats]),       % collect them into a list
+    dict_pairs(CoreStats, _, CorePairs),                % flatten CoreStats:dict to CorePairs
+    map_list_to_pairs(dict_key, MoreStats, MorePairs),  % remap MoreStats (a list of Dict) to MorePairs
+    append(CorePairs, MorePairs, AllPairs),             % ... MorePairs is a list of key-dict pairs
+    dict_pairs(Stats, statistics, AllPairs).            % build single output dict
 
+dict_key(Dict, agc) :-       % modified key for "atom garbage collector" subdict
+    gc{type:atom} :< Dict,   % if Dict has tag 'gc' and maps 'type' to 'atom'
+    !.
+dict_key(Dict, cgc) :-       % modified key for "clause garbage collector" subdict
+    gc{type:clause} :< Dict, % if Dict has tag 'gc' and maps 'type' to 'clause'
+    !.
 dict_key(Dict, Key) :-
-    gc{type:atom} :< Dict,
-    !,
-    Key = agc.
-dict_key(Dict, Key) :-
-    gc{type:clause} :< Dict,
-    !,
-    Key = cgc.
-dict_key(Dict, Key) :-
-    is_dict(Dict, Key).
+    is_dict(Dict, Key).      % just use the tag of the dict as key in the list of pairs
+
+% Below, we are actually getting values from the system
 
 collect_stats -->
-    core_statistics,
-    gc_statistics,
-    agc_statistics,
-    cgc_statistics,
-    shift_statistics,
-    thread_counts,
-    engine_counts.
+    core_statistics,  % keyed as "time", "data", "stacks" in the resulting dict
+    gc_statistics,    % keyed as "gc" in the resulting dict, may be missing
+    agc_statistics,   % keyed as "agc" in the resulting dict, may be missing
+    cgc_statistics,   % keyed as "cgc" in the resulting dict, may be missing
+    shift_statistics, % keyed as "shift" in the resulting dict, may be missing
+    thread_counts,    % keyed as "thread" in the resulting dict, may be missing
+    engine_counts.    % keyed as "engine" in the resulting dict, may be missing
 
 core_statistics -->
     { statistics(process_cputime, Cputime),
@@ -140,8 +144,11 @@ core_statistics -->
           }
     ].
 
+% If this is the single-threaded SWI-Prolog, create a local
+% thread_statistics/3 to replace the missing built-in.
+
 :- if(\+current_predicate(thread_statistics/3)).
-thread_statistics(_Thread, Key, Value) :-       % single threaded version
+thread_statistics(_Thread, Key, Value) :-
     statistics(Key, Value).
 :- endif.
 
@@ -241,143 +248,182 @@ engine_counts -->
 engine_counts --> [].
 
 
-%!  thread_statistics(?Thread, -Stats:dict) is nondet.
+%!  thread_statistics(?Id, -Stats:dict) is nondet.
 %
-%   Obtain statistical information about a single thread.  Fails
-%   silently of the Thread is no longer alive.
+%   Obtain runtime statistics about a single thread.  Fails
+%   silently if the thread turns out to be no longer alive.
 %
-%   @arg    Stats is a dict containing status, time and stack-size
-%           information about Thread.
+%   @arg    Stats is a dict containing information regarding status
+%           (keyed as =|status|=), time (keyed as =|time|=) and
+%           stack-size (keyed as =|stacks|= with several sub-dicts).
+%   @see    Values are obtained through thread_statistics/3 and
+%           thread_property/2.
 
-thread_statistics(Thread, Stats) :-
-    thread_property(Thread, status(Status)),
-    human_thread_id(Thread, Id),
-    Error = error(_,_),
-    (   catch(thread_stats(Thread, Stacks, Time), Error, fail)
-    ->  Stats = thread{id:Id,
+thread_statistics(Id, Stats) :-
+    thread_property(Id, status(Status)),
+    human_thread_id(Id, HuId),
+    (   catch(thread_stats(Id, Stacks, Time), error(_,_), fail)
+    ->  Stats = thread{id:HuId,
                        status:Status,
                        time:Time,
                        stacks:Stacks}
-    ;   Stats = thread{id:Thread,
+    ;   Stats = thread{id:HuId,        % Previously used Id instead of HuId
                        status:Status}
     ).
 
-human_thread_id(Thread, Id) :-
-    atom(Thread),
-    !,
-    Id = Thread.
-human_thread_id(Thread, Id) :-
-    thread_property(Thread, id(Id)).
+human_thread_id(Id, Id) :-
+    atom(Id),!.
+human_thread_id(Id, HuId) :-
+    thread_property(Id, id(HuId)).
 
-thread_stats(Thread, Stacks,
+thread_stats(Id, Stacks,
              time{cpu:CpuTime,
                   inferences:Inferences,
                   epoch:Epoch
                  }) :-
-    thread_statistics(Thread, cputime, CpuTime),
-    thread_statistics(Thread, inferences, Inferences),
-    thread_statistics(Thread, epoch, Epoch),
-    thread_stack_statistics(Thread, Stacks).
+    thread_statistics(Id, cputime, CpuTime),
+    thread_statistics(Id, inferences, Inferences),
+    thread_statistics(Id, epoch, Epoch),
+    thread_stack_statistics(Id, Stacks).
 
 
 %!  time(:Goal) is nondet.
 %
-%   Execute Goal, reporting statistics to the user. If Goal succeeds
-%   non-deterministically,  retrying  reports  the   statistics  for
-%   providing the next answer.
+%   Call Goal, reporting runtime statistics directly to the user in readable
+%   form by printing a formatted text tp the stream =|user_error|=. If Goal
+%   succeeds non-deterministically, redo-ing will report the runtime
+%   statistics collected for providing a next answer.
 %
 %   Statistics  are  retrieved  using   thread_statistics/3  on  the
 %   calling   thread.   Note   that   not    all   systems   support
 %   thread-specific CPU time. Notable, this is lacking on MacOS X.
 %
-%   @bug Inference statistics are often a few off.
+%   @bug The logical inference counter is often a few units off.
 %   @see statistics/2 for obtaining statistics in your program and
 %        understanding the reported values.
-%   @see call_time/2, call_time/3 to obtain the timing in a dict.
+%   @see call_time/2, call_time/3 to obtain the runtime statistics
+%        as a dict instead.
 
 time(Goal) :-
-    time_state(State0),
-    (   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
-                     Det = true),
-        time_true_report(State0),
-        (   Det == true
-        ->  !
-        ;   true
-        )
-    ;   report(State0, 11),
-        fail
-    ).
+    call_time(Goal, _Delta, true, true).
 
-%!  call_time(:Goal, -Time:dict).
-%!  call_time(:Goal, -Time:dict, -Result).
+%!  call_time(:Goal, -Delta:dict).
+%!  call_time(:Goal, -Delta:dict, -Result).
 %
-%   Call Goal as  call/1,  unifying  Time   with  a  dict  that provides
-%   information on the  resource  usage.   Currently  Time  contains the
-%   keys below.  Future versions may provide additional keys.
+%   Call Goal, unifying Usage with a dict that contains information about
+%   time passed and inferences performed. Delta contains the keys below.
+%   Future versions may provide additional keys.
 %
-%     - wall:Seconds
-%     - cpu:Seconds
-%     - inferences:Count
+%     - wall:Seconds (wallclock time passed, a float)
+%     - cpu:Seconds (cpu usage time accumulated, a float)
+%     - inferences:Count (logical inferences performed)
 %
 %   @arg Result is one of `true` or  `false` depending on whether or not
-%   the goal succeeded.
+%        the goal succeeded.
+%   @bug The logical inference counter is often a few units off.
+%   @see statistics/2 for obtaining statistics in your program and
+%        understanding the reported values.
+%   @see time/1 for the equivalent which reports directly to the user by
+%        printing a text to =|user_error|=.
 
-call_time(Goal, Time) :-
-    call_time(Goal, Time, true).
-call_time(Goal, Time, Result) :-
-    time_state(State0),
-    (   call_cleanup(catch(Goal, E, (report(State0,10), throw(E))),
-                     Det = true),
-        Result = true,
-        time_true_used(State0, Time),
-        (   Det == true
-        ->  !
-        ;   true
+call_time(Goal, Delta) :-
+    call_time(Goal, Delta, true).
+
+call_time(Goal, Delta, Result) :-
+    call_time(Goal, Delta, Result, false). % do not report
+
+call_time(Goal, Delta, Result, ReportIt) :-
+    time_state_now(State0),
+    % use fresh Result2 to make success/failure only dependent on Goal, not on Result
+    (   call_and_report(Goal, State0, Delta, ReportIt, Ncl, Result2, 10, 13, 4),
+        (   Ncl == true
+        ->  !                                       % cut if done
+        ;   true                                    % if not done, allow the caller to redo
         )
-    ;   time_used(State0, 11, Time),
-        Result = false
-    ).
+    ;   final_report(State0, Delta, ReportIt, 13),  % on goal failure, report
+        Result2 = false
+    ),
+    Result = Result2.     % This unification may fail
 
-report(State0, Sub) :-
-    time_used(State0, Sub, time{wall:Wall, cpu:Time, inferences:Inferences}),
+% call_and_report/9
+%
+% Call Goal and instantiate Delta (usage information dict) and
+% Ncl ("no choicepoint left") accordingly.
+%
+% If ReportIt == true, then the "usage information" dict is printed out,
+% and thus the same predicate can be used by time/1.
+%
+% Otherwise, nothing is printed but the caller can exploit Delta,
+% and thus the predicate can be used by call_time/2, call_time/3.
+%
+% The ShaveOnX values are fixed integers which are used to correct the
+% inference count delta.
+% Result is the reified outcome, which is unified with true on 
+% Goal success.
+
+call_and_report(Goal, State0, Delta, ReportIt, Ncl, Result, ShaveOnThrow, ShaveOnSucc, ShaveOnRedo) :-
+    call_cleanup(
+       catch(
+           Goal,     % can succeed, maybe leaving a choicepoint, can fail, or can throw
+           E,
+           (final_report(State0, Delta, ReportIt, ShaveOnThrow), throw(E))),  % on exception, report to stderr, then throw
+       Ncl = true),  % cleanup goal means no choicepoint left
+    Result = true,   % this unification fails if the caller made a bad guess with an instantiated Result
+    report_and_reset_on_redo(State0, Delta, ReportIt, ShaveOnSucc, ShaveOnRedo).
+
+final_report(State0, Delta, ReportIt, Shave) :-
+    time_used(State0, Shave, Delta),
+    ((ReportIt == true) -> report(Delta) ; true).
+
+report_and_reset_on_redo(State0, Delta, ReportIt, ShaveOnSucc, _ShaveOnRedo) :-
+    time_used(State0, ShaveOnSucc, Delta),
+    ((ReportIt == true) -> report(Delta) ; true).
+report_and_reset_on_redo(State0, _, _, _ShaveOnSucc, ShaveOnRedo) :-
+    nb_set_state_to_now(State0, ShaveOnRedo),
+    fail.
+
+% report(+State0:Dict)
+% Report to the user via print_message/2.
+% The text-generating predicate is prolog:message(time(_,_,_,_))
+
+report(time{wall:Wall, cpu:Time, inferences:Inferences}) :-
     (   Time =:= 0
     ->  Lips = 'Infinite'
     ;   Lips is integer(Inferences/Time)
     ),
     print_message(information, time(Inferences, Time, Wall, Lips)).
 
-time_used(time{wall:OldWall, cpu:OldTime, inferences:OldInferences}, Sub,
+% time_used(+State0:Dict, +Shave:Integer, -Delta:Dict)
+% Compute the delta between "now" and State0, giving Delta.
+% Subtract Shave inferences from the inference delta.
+
+time_used(time{wall:OldWall, cpu:OldTime, inferences:OldInferences},
+          Shave,
           time{wall:Wall, cpu:Time, inferences:Inferences}) :-
-    time_state(time{wall:NewWall, cpu:NewTime, inferences:NewInferences}),
+    time_state_now(time{wall:NewWall, cpu:NewTime, inferences:NewInferences}),
     Time       is NewTime - OldTime,
-    Inferences is NewInferences - OldInferences - Sub,
+    Inferences is NewInferences - OldInferences - Shave,
     Wall       is NewWall - OldWall.
 
-time_state(time{wall:Wall, cpu:Time, inferences:Inferences}) :-
+% time_state_now(-State0:Dict)
+% Get values for "now" and marshall them into State0.
+
+time_state_now(time{wall:Wall, cpu:Time, inferences:Inferences}) :-
     get_time(Wall),
     statistics(cputime, Time),
     statistics(inferences, Inferences).
 
-time_true_report(State) :-             % leave choice-point
-    report(State, 12).
-time_true_report(State) :-
-    time_true(State).
+% nb_set_state_to_now(!State:Dict,++Shave:Integer)
+% On redo, nb-set the values of State to the current values
+% causing the preceding predicate to start counting from "now" again.
+% (Previously called time_true/1 (with "Shave" hardcoded to 5))
 
-time_true_used(State, Time) :-         % leave choice-point
-    time_used(State, 12, Time).
-time_true_used(State, _) :-
-    time_true(State).
-
-
-time_true(State) :-
-    get_time(Wall),
-    statistics(cputime, Time),
-    statistics(inferences, Inferences0),
-    Inferences is Inferences0 - 5,
+nb_set_state_to_now(State,Shave) :-
+    time_state_now(time{wall:Wall, cpu:Time, inferences:Inferences0}),
+    Inferences is Inferences0 - Shave,
     nb_set_dict(wall, State, Wall),
     nb_set_dict(cpu, State, Time),
-    nb_set_dict(inferences, State, Inferences),
-    fail.
+    nb_set_dict(inferences, State, Inferences).
 
 
                  /*******************************
@@ -637,14 +683,36 @@ value(Name, Data, Value) :-
 % notation to make this code work with `swipl --traditional`
 
 prolog:message(time(UsedInf, UsedTime, Wall, Lips)) -->
-    [ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w Lips)'-
-      [UsedInf, UsedTime, Wall, Perc, Lips] ],
-    {   Wall > 0
-    ->  Perc is round(100*UsedTime/Wall)
-    ;   Perc = ?
+    [ '~D inferences, ~3f CPU in ~3f seconds (~w% CPU, ~w ~wLIPS)'-
+      [UsedInf, UsedTime, Wall, Perc, RescaledLips, Prefix] ],
+    { ( Wall > 0
+        ->  Perc is round(100*UsedTime/Wall) % round to nearest
+        ;   Perc = ?
+      ),
+      rescale(Lips, inferences, RescaledLips, _, Prefix)
     }.
 prolog:message(statistics(List)) -->
     msg_statistics(List).
+
+% Code below generates text that looks as follows:
+
+% ----8<----
+% Started at Fri Apr 30 23:24:37 2021
+% 42.811 seconds cpu time for 118,114,171 inferences
+% 5,577 atoms, 4,254 functors, 3,180 predicates, 44 modules, 125,015 VM-codes
+%
+%                      Limit    Allocated       In use
+% Local  stack:            -       76 KiB    2,128   B
+% Global stack:            -      128 MiB       42 MiB
+% Trail  stack:            -   16,386 KiB      387 KiB
+%        Total:    1,024 MiB      144 MiB       43 MiB
+%
+% 13 garbage collections gained 3,537 MiB in 4.190 seconds.
+% 3 atom garbage collections gained 866 atoms in 0.083 seconds.
+% 6 clause garbage collections gained 148 clauses in 0.000 seconds.
+% Stack shifts: 7 local, 15 global, 24 trail in 1.896 seconds
+% 2 threads, 0 finished threads used 0.000 seconds
+% ----8<----
 
 msg_statistics([]) --> [].
 msg_statistics([H|T]) -->
@@ -672,10 +740,11 @@ msg_statistics(gc, S) -->
         get_dict(count, S, Count),
         get_dict(gained, S, Gained),
         get_dict(unit, S, Unit),
-        get_dict(time, S, Time)
+        get_dict(time, S, Time),
+        rescale(Gained, Unit, RescaledGained, RescaledUnit, Suffix)
     },
-    [ '~D ~wgarbage collections gained ~D ~ws in ~3f seconds.'-
-      [ Count, Label, Gained, Unit, Time]
+    [ '~D ~wgarbage collections gained ~D ~w~w in ~3f seconds.'-
+      [ Count, Label, RescaledGained, RescaledUnit, Suffix, Time]
     ].
 msg_statistics(shift, S) -->
     { get_dict(local, S, Local),
@@ -706,11 +775,12 @@ time_stats(T) -->
     { get_dict(epoch, T, Epoch),
       format_time(string(EpochS), '%+', Epoch),
       get_dict(cpu, T, CPU),
-      get_dict(inferences, T, Inferences)
+      get_dict(inferences, T, Inferences),
+      rescale(Inferences, inferences, RescaledInferences, _, Prefix)
     },
     [ 'Started at ~s'-[EpochS], nl,
-      '~3f seconds cpu time for ~D inferences'-
-      [ CPU, Inferences ]
+      '~3f seconds cpu time for ~D ~winferences'-
+      [ CPU, RescaledInferences, Prefix ]
     ].
 data_stats(C) -->
     { get_dict(atoms, C, Atoms),
@@ -722,13 +792,31 @@ data_stats(C) -->
     [ '~D atoms, ~D functors, ~D predicates, ~D modules, ~D VM-codes'-
       [ Atoms, Functors, Predicates, Modules, VMCodes]
     ].
+
+% Build the following table with the indicated character counts.
+
+% <----------26------------><----13-----><-----13---->
+%                      Limit    Allocated       In use
+% Local  stack:            -       20 KiB    2,216   B
+% Global stack:            -       32 KiB   15,376   B
+% Trail  stack:            -       34 KiB      416   B
+%        Total:    1,024 MiB       86 KiB   18,008   B
+%
+% <----13----->
+
+%                      Limit    Allocated       In use
+% Local  stack:            -        76 KiB     2,128   B
+% Global stack:            -       878 MiB       231 MiB
+% Trail  stack:            -       146 MiB        42 KiB
+%        Total:    1,024 MiB     1,024 MiB       231 MiB
+
 stacks_stats(S) -->
     { get_dict(local, S, Local),
       get_dict(global, S, Global),
       get_dict(trail, S, Trail),
       get_dict(total, S, Total)
     },
-    [ '~|~tLimit~25+~tAllocated~12+~tIn use~12+'-[], nl ],
+    [ '~|~tLimit~26+~tAllocated~13+~tIn use~13+'-[], nl ],
     stack_stats('Local',  Local),  [nl],
     stack_stats('Global', Global), [nl],
     stack_stats('Trail',  Trail),  [nl],
@@ -740,39 +828,58 @@ stack_stats('Total', S) -->
       dict_human_bytes(usage,     S, Usage)
     },
     !,
-    [ '~|~tTotal:~13+~t~s~12+ ~t~s~12+ ~t~s~12+'-
+    [ '~|~tTotal:~13+~t~s~13+ ~t~s~13+ ~t~s~13+'-
       [Limit, Allocated, Usage]
     ].
 stack_stats(Stack, S) -->
     { dict_human_bytes(allocated, S, Allocated),
       dict_human_bytes(usage,     S, Usage)
     },
-    [ '~|~w ~tstack:~13+~t~w~12+ ~t~s~12+ ~t~s~12+'-
+    [ '~|~w ~tstack:~13+~t~w~13+ ~t~s~13+ ~t~s~13+'-
       [Stack, -, Allocated, Usage]
     ].
 
 dict_human_bytes(Key, Dict, String) :-
     get_dict(Key, Dict, Bytes),
-    human_bytes(Bytes, String).
+    human_bytes(Bytes, Rescaled, RescaledUnit),
+    format(string(String), '~|~t~D~8+ ~t~w~4+', [Rescaled, RescaledUnit]). % 13 chars wide
 
-human_bytes(Bytes, String) :-
-    Bytes < 20_000,
-    !,
-    format(string(String), '~D  b', [Bytes]).
-human_bytes(Bytes, String) :-
-    Bytes < 20_000_000,
-    !,
-    Kb is (Bytes+512) // 1024,
-    format(string(String), '~D Kb', [Kb]).
-human_bytes(Bytes, String) :-
-    Bytes < 20_000_000_000,
-    !,
-    Mb is (Bytes+512*1024) // (1024*1024),
-    format(string(String), '~D Mb', [Mb]).
-human_bytes(Bytes, String) :-
-    Gb is (Bytes+512*1024*1024) // (1024*1024*1024),
-    format(string(String), '~D Gb', [Gb]).
+human_bytes_t(0              , 20_000         , 1          , 'B').
+human_bytes_t(20_000         , 20_000_000     , 1024       , 'KiB').
+human_bytes_t(20_000_000     , 20_000_000_000 , 1048576    , 'MiB').
+human_bytes_t(20_000_000_000 , infinity       , 1073741824 , 'GiB').
 
+human_bytes(Value, Rescaled, Unit) :-
+   human_bytes_t(Low,High,Divisor,Unit),
+   Low =< Value,
+   (High == infinity -> true ; Value < High),
+   !,
+   Rescaled is (Value+(Divisor//2)) // Divisor.
+
+human_decimal_t(0              , 20_000         , 1            , '').
+human_decimal_t(20_000         , 20_000_000     , 1000         , 'kilo-').
+human_decimal_t(20_000_000     , 20_000_000_000 , 1000_000     , 'mega-').
+human_decimal_t(20_000_000_000 , infinity       , 1000_000_000 , 'giga-').
+
+human_decimal(Value, Rescaled, Prefix) :-
+   human_decimal_t(Low,High,Divisor,Prefix),
+   Low =< Value,
+   (High == infinity -> true ; Value < High),
+   !,
+   Rescaled is (Value+(Divisor//2)) // Divisor.
+
+% rescale(+Value, +Unit, -RescaledValue, -RescaledUnit, -SuffixOrPrefix)
+% rescale the unit 'byte' in a particular way
+% rescale the unit 'inferences' in a particular way
+% for anything else, do nothing
+
+rescale(Value, byte, RescaledValue, RescaledUnit, '') :-
+   !,
+   human_bytes(Value, RescaledValue, RescaledUnit).
+rescale(Value, inferences, RescaledValue, inferences, Prefix) :-
+   !,
+   human_decimal(Value, RescaledValue, Prefix).
+rescale(Value, Unit, Value, Unit, 's'). % 's' for "multiples of", not "seconds"
 
 :- multifile sandbox:safe_primitive/1.
 
