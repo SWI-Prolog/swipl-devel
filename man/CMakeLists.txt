@@ -158,7 +158,7 @@ endif()
 # NOTE: lib/libsummary.doc
 
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
-        thread_pool charsio debug csv lists main check random varnumbers
+        thread_pool charsio debug csv lists check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
         prolog_jiti tables listing strings terms ugraphs portray_text
@@ -190,6 +190,8 @@ pldoc(lib/predopts.tex lib/predopts.txt
 pldoc(lib/help.tex "library(help)"
       OPTIONS --subsection
       DEPENDS nlp)
+pldoc(lib/main.tex "library(main)"
+      DEPENDS pl2xpce)
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
 
