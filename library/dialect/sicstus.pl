@@ -472,13 +472,15 @@ vars_by_goal(Goal) -->
 	[ VarSet-Goal ].
 */
 
-%%	trimcore
+%%	trimcore is det.
 %
-%	Trims the stacks.  Other tasks of the SICStus trimcore/0 are
-%	automatically scheduled by SWI-Prolog.
+%	Trims the stacks and releases unused heap memory to the
+%	operating system where possible. Other tasks of the SICStus
+%	trimcore/0 are automatically scheduled by SWI-Prolog.
 
 trimcore :-
-	trim_stacks.
+	trim_stacks,
+	trim_heap.
 
 
 		 /*******************************
