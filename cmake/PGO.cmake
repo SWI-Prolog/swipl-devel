@@ -94,8 +94,7 @@ macro(configure_pgo pgo_tag)
   add_custom_command(OUTPUT ${PGO_HEADER_FILE}
           DEPENDS ${PGO_OUTPUT_FILE}
           COMMAND ${CMAKE_COMMAND} -P ${PGO_SCRIPT} write-timestamp-header ${PGO_HEADER_FILE} ${PGO_OUTPUT_FILE})
-  file(RELATIVE_PATH PGO_HEADER_RELATIVE ${CMAKE_BINARY_DIR} ${PGO_HEADER_FILE})
-  set(PGO_USE_FLAGS ${PGO_USE_FLAGS} -include "${PGO_HEADER_RELATIVE}")
+  set(PGO_USE_FLAGS ${PGO_USE_FLAGS} -include "${PGO_HEADER_FILE}")
   add_custom_target(pgo_data DEPENDS ${PGO_HEADER_FILE})
 
 endmacro()
