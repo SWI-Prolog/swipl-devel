@@ -722,11 +722,11 @@ typedef struct foreign_context *control_t;	/* non-deterministic control arg */
 typedef struct PL_local_data *	PL_engine_t;	/* handle to an engine */
 typedef uintptr_t		PL_atomic_t;	/* same a word */
 typedef uintptr_t		foreign_t;	/* return type of foreign functions */
-typedef wchar_t	        	pl_wchar_t;	/* Prolog wide character */
+typedef wchar_t			pl_wchar_t;	/* Prolog wide character */
 typedef foreign_t		(*pl_function_t)(); /* foreign language functions */
 typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
 
-#define 			fid_t \
+#define				fid_t \
 	PL_fid_t				/* avoid AIX name-clash */
 #endif
 
@@ -902,6 +902,7 @@ with one operation, it turns out to be faster as well.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define true(s, a)		((s)->flags & (a))
+#define alltrue(s, a)		(((s)->flags & (a)) == (a))
 #define false(s, a)		(!true((s), (a)))
 #define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))

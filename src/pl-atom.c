@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -536,10 +537,13 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
-  v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
+
+  if ( alltrue(type, PL_BLOB_UNIQUE|PL_BLOB_NOCOPY) )
+    v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
+  else
+    v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 
 redo:
-
   acquire_atom_table(table, buckets);
 
   v  = v0 & (buckets-1);
