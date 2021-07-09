@@ -1956,7 +1956,11 @@ false_path(ATrie, [ATrie|T], Seen) :-
     '$idg_false_edge'(ATrie, Dep, Status),
     tdebug(reeval, '    ~p has dependent ~p (~w)', [ATrie, Dep, Status]),
     (   Status == invalid
-    ->  false_path(Dep, T, [ATrie|Seen])
+    ->  (   false_path(Dep, T, [ATrie|Seen])
+        ->  true
+        ;   length(Seen, Len),               % invalid has no dependencies:
+            T = [s(2, Len, [])]              % dynamic and tabled or explicitly
+        )                                    % invalidated
     ;   status_rank(Status, Rank),
         length(Seen, Len),
         T = [s(Rank,Len,Dep)]

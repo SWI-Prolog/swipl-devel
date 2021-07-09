@@ -38,13 +38,15 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
+:- use_module(library(wfs)).
 
 /** <module> Incremental tabling reevaluation tests
 */
 
 test_reeval :-
     run_tests([ tabling_reeval,
-                tabling_reeval_merged
+                tabling_reeval_merged,
+                dynamic_tabled
               ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
@@ -90,7 +92,8 @@ q2(X) :- d2(X).
 
 d2(1).
 
-test(multiple_dependents) :-
+test(multiple_dependents,
+     [cleanup(retractall(d2(_)))]) :-
     answers(X, p2(X), [1]),
     assert(d2(2)),
     answers(X, q2(X), [1,2]),
@@ -109,7 +112,10 @@ answers(Templ, Goal, Expected) :-
     sort(Expected, Expected1),
     assertion(Got =@= Expected1).
 
-:- begin_tests(tabling_reeval_merged).
+:- begin_tests(tabling_reeval_merged,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
 
 :- dynamic d/2 as incremental.
 :- table p/2 as incremental.
@@ -119,13 +125,9 @@ p(X,Y) :-
 p(X,Z) :-
     d(X,Y), p(Y,Z).
 
-:- meta_predicate eval(0).
-
 % Tables being re-evaluated end up  in  a   merged  SCC.  Now we must be
 % careful  to  first  propagate  the  no-changes   and  then  clear  the
 % reevaluation state of the nodes.
-
-:- meta_predicate eval(0).
 
 test(only) :-
     assert(d(1,2)),
@@ -136,7 +138,34 @@ test(only) :-
     assert(d(1,3)),
     eval(p(1,_)).                       % caused assertion on falsecount >= 0
 
+:- end_tests(tabling_reeval_merged).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- begin_tests(dynamic_tabled,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% A incrementally tabled predicate can also be dynamic.
+
+:- table (p/1,q/1) as incremental.
+:- dynamic (p/1,q/1) as incremental.
+
+p(X) :- tnot(q(X)), tnot(p(X)).
+
+test(wfs,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    eval(p(1)),
+    retract(q(1)),
+    call_residual_program(p(1), P).
+
+:- end_tests(dynamic_tabled).
+
+:- meta_predicate
+    eval(0).
+
 eval(G) :-
     forall(G, true).
-
-:- end_tests(tabling_reeval_merged).
