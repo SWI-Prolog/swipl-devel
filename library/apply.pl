@@ -44,6 +44,8 @@
             maplist/4,                  % :Pred, ?List, ?List, ?List
             maplist/5,                  % :Pred, ?List, ?List, ?List, ?List
             convlist/3,                 % :Pred, +List, -List
+            convlist/4,                 % :Pred, +List, +List, -List
+            convlist/5,                 % :Pred, +List, +List, +List, -List
             foldl/4,                    % :Pred, +List, ?V0, ?V
             foldl/5,                    % :Pred, +List1, +List2, ?V0, ?V
             foldl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?V
@@ -52,8 +54,11 @@
             scanl/4,                    % :Pred, +List, ?V0, ?Vs
             scanl/5,                    % :Pred, +List1, +List2, ?V0, ?Vs
             scanl/6,                    % :Pred, +List1, +List2, +List3, ?V0, ?Vs
-            scanl/7                     % :Pred, +List1, +List2, +List3, +List4,
+            scanl/7,                    % :Pred, +List1, +List2, +List3, +List4,
                                         % ?V0, ?Vs
+            mapm/4,                     % :Pred, ?List, ?V0, ?Vn
+            mapm/5,                     % :Pred, ?List1, ?List2, ?V0, ?Vn
+            mapm/6                      % :Pred, ?List1, ?List2, ?List3, ?V0, ?Vn
           ]).
 :- autoload(library(error),[must_be/2]).
 
@@ -87,6 +92,8 @@ means that these calls are identical:
     maplist(3, ?, ?, ?),
     maplist(4, ?, ?, ?, ?),
     convlist(2, +, -),
+    convlist(3, +, +, -),
+    convlist(4, +, +, +, -),
     foldl(3, +, +, -),
     foldl(4, +, +, +, -),
     foldl(5, +, +, +, +, -),
@@ -94,7 +101,11 @@ means that these calls are identical:
     scanl(3, +, +, -),
     scanl(4, +, +, +, -),
     scanl(5, +, +, +, +, -),
-    scanl(6, +, +, +, +, +, -).
+    scanl(6, +, +, +, +, +, -),
+    mapm(3, ?, ?, ?),
+    mapm(4, ?, ?, ?, ?),
+    mapm(5, ?, ?, ?, ?, ?).
+
 
 
 %!  include(:Goal, +List1, ?List2) is det.
@@ -251,6 +262,8 @@ maplist_([Elem1|Tail1], [Elem2|Tail2], [Elem3|Tail3], [Elem4|Tail4], Goal) :-
 
 
 %!  convlist(:Goal, +ListIn, -ListOut) is det.
+%!  convlist(:Goal, +ListIn1, +ListIn2, -ListOut) is det.
+%!  convlist(:Goal, +ListIn1, +ListIn2, +ListIn3, -ListOut) is det.
 %
 %   Similar to maplist/3, but elements for   which call(Goal, ElemIn, _)
 %   fails are omitted from ListOut.  For example (using library(yall)):
@@ -275,6 +288,27 @@ convlist_([H0|T0], ListOut, Goal) :-
     ;   convlist_(T0, ListOut, Goal)
     ).
 
+convlist(Goal, ListIn1, ListIn2, ListOut) :-
+    convlist_(ListIn1, ListIn2, ListOut, Goal).
+
+convlist_([], [], [], _).
+convlist_([H0|T0], [H1|T1], ListOut, Goal) :-
+    (   call(Goal, H0, H1, H)
+    ->  ListOut = [H|T],
+        convlist_(T0, T1, T, Goal)
+    ;   convlist_(T0, T1, ListOut, Goal)
+    ).
+
+convlist(Goal, ListIn1, ListIn2, ListIn3, ListOut) :-
+    convlist_(ListIn1, ListIn2, ListIn3, ListOut, Goal).
+
+convlist_([], [], [], [], _).
+convlist_([H0|T0], [H1|T1], [H2|T2], ListOut, Goal) :-
+    (   call(Goal, H0, H1, H2, H)
+    ->  ListOut = [H|T],
+        convlist_(T0, T1, T2, T, Goal)
+    ;   convlist_(T0, T1, T2, ListOut, Goal)
+    ).
 
                  /*******************************
                  *            FOLDL             *
@@ -407,6 +441,76 @@ scanl_([], [], [], [], _, _, []).
 scanl_([H1|T1], [H2|T2], [H3|T3], [H4|T4], Goal, V, [VH|VT]) :-
     call(Goal, H1, H2, H3, H4, V, VH),
     scanl_(T1, T2, T3, T4, Goal, VH, VT).
+
+                 /*******************************
+                 *            MAPM              *
+                 *******************************/
+
+%!  mapm(:Goal, ?List, ?V0, ?V).
+%!  mapm(:Goal, ?List1, ?List2, ?V0, ?V).
+%!  mapm(:Goal, ?List1, ?List2, ?List3, ?V0, ?V).
+%
+%   Map a predicate over a series of lists, threading an final value object
+%   through the computation "monadically".  That is, each call is as though
+%   it was defined as:
+%
+%   ```
+%   mapm(G, [X_11, ..., X_1n],
+%           ...
+%           [X_m1, ..., X_mn],
+%           V0, Vn) :-
+%       call(G, X_11, ... Xm1, V0, V1),
+%       call(G, X_12, ... Xm2, V1, V2),
+%       ...
+%       call(G, X_1n, ... Xmn, V<n-1>, Vn).
+%   ```
+%
+%  `mapm` behaves like `scanl` retaining only the final value. The actual mode
+%  is dependent on `Goal` but it is possible to "run it backwards" given `Goal`
+%  has an admissible mode: `Goal(-X1, ... -Xm, -V<n-1>, +Vn)`.
+%
+%  This is particularly useful in using mapping operations while in DCGs
+%  where the implicit state must be threaded.
+%
+%  For instance, given the program:
+%
+%  ```
+%  read_both(X,Y) -->
+%      [X, Y].
+%
+%  test -->
+%      mapm(read_both, ["asdf", "fdsa"], ["X", "Y"]).
+%  ```
+%
+%  ```
+%  ?- phrase(test, ["asdf", "X", "fdsa", "Y"], L).
+%  L = [].
+%  ```
+
+mapm(P,L1,S0,SN) :-
+    mapm_(L1,S0,SN,P).
+
+mapm_([],S,S,_P).
+mapm_([H|T],S0,SN,P) :-
+    call(P,H,S0,S1),
+    mapm_(T,S1,SN,P).
+
+mapm(P,L1,L2,S0,SN) :-
+    mapm_(L1,L2,S0,SN,P).
+
+mapm_([],[],S,S,_P).
+mapm_([H|T],[HP|TP],S0,SN,P) :-
+    call(P,H,HP,S0,S1),
+    mapm_(T,TP,S1,SN,P).
+
+mapm(P,L1,L2,L3,S0,SN) :-
+    mapm_(L1,L2,L3,S0,SN,P).
+
+mapm_([],[],[],S,S,_P).
+mapm_([H|T],[HP|TP],[HM|TM],S0,SN,P) :-
+    call(P,H,HP,HM,S0,S1),
+    mapm_(T,TP,TM,S1,SN,P).
+
 
 
                  /*******************************
