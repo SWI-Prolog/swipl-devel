@@ -58,7 +58,6 @@
 %	    call_residue/2,		% :Goal, -Residue
 
 	    prolog_flag/3,		% +Flag, -Old, +New
-	    prolog_flag/2,		% +Flag, -Value
 
 	    statistics/2,		% ?Key, ?Value
 
@@ -487,6 +486,8 @@ trimcore :-
 		 *	       FLAGS		*
 		 *******************************/
 
+:- use_module(library(quintus), [prolog_flag/2 as quintus_flag]).
+
 %%	prolog_flag(+Flag, -Old, +New) is semidet.
 %
 %	Query and set a Prolog flag. Use the debug/1 topic =prolog_flag=
@@ -494,16 +495,10 @@ trimcore :-
 
 prolog_flag(Flag, Old, New) :-
 	debug(prolog_flag, 'prolog_flag(~q, ~q, ~q)', [Flag, Old, New]),
-	current_prolog_flag(Flag, Old),
+	sicstus_flag(Flag, Old),
 	set_prolog_flag(Flag, New).
 
-%%	prolog_flag(+Flag, -Value) is semidet.
-%
-%	Query a Prolog flag, mapping SICSTus flags to SWI-Prolog flags
-
-prolog_flag(Flag, Value) :-
-	debug(prolog_flag, 'prolog_flag(~q, ~q)', [Flag, Value]),
-	sicstus_flag(Flag, Value).
+:- public sicstus_flag/2.
 
 sicstus_flag(host_type, HostType) :- !,
 	% Not a perfect emulation. SWI's arch flag only contains the
@@ -519,7 +514,17 @@ sicstus_flag(system_type, Type) :- !,
 	;   Type = development
 	).
 sicstus_flag(Name, Value) :-
-	current_prolog_flag(Name, Value).
+	quintus_flag(Name, Value).
+
+% Replace all current_prolog_flag/2 and prolog_flag/2 calls with
+% sicstus_flag/2. prolog_flag/2 can also be autoloaded from
+% library(quintus) - this goal expansion ensures that sicstus_flag/2
+% takes priority when SICStus emulation is active.
+
+user:goal_expansion(Goal, sicstus:sicstus_flag(Name, Value)) :-
+	nonvar(Goal),
+	(Goal = current_prolog_flag(Name, Value) ; Goal = prolog_flag(Name, Value)),
+	in_sicstus_dialect.
 
 
 % As of SICStus 3.2.11, the following statistics/2 keys are still missing:
