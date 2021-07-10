@@ -52,7 +52,6 @@
 	      read_line/2,
 	      trimcore/0,
 	      prolog_flag/3,
-	      prolog_flag/2,
 	      op(1150, fx, (block)),
 	      op(1150, fx, (mode)),
 	      op(900, fy, (spy)),
