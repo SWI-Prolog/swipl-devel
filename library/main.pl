@@ -43,7 +43,6 @@
 % use autoload/1 to avoid checking these files at load time.
 :- autoload(library(debug)).
 :- autoload(library(threadutil)).
-:- autoload(library(pce_dispatch)).
 
 :- dynamic
     interactive/0.
@@ -230,7 +229,9 @@ cli_enable_development_system :-
     set_prolog_flag(xpce_threaded, true),
     set_prolog_flag(message_ide, true),
     (   current_prolog_flag(xpce_version, _)
-    ->  call(pce_dispatch([]))
+    ->  use_module(library(pce_dispatch)),
+        memberchk(Goal, [pce_dispatch([])]),
+        call(Goal)
     ;   true
     ),
     set_prolog_flag(toplevel_goal, prolog).
