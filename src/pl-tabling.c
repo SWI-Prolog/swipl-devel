@@ -5362,6 +5362,9 @@ static int
 unify_delay_info_dl(term_t t, trie_node *answer, void *ctx ARG_LD)
 { (void) ctx;
 
+  if ( (answer->flags & (TN_IDG_DELETED|TN_IDG_ADDED)) == TN_IDG_DELETED )
+    return FALSE;
+
   if ( answer_is_conditional(answer) )
   { if ( is_ground_trie_node(answer) )
       return PL_unify_pointer(t, answer);
