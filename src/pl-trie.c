@@ -219,7 +219,7 @@ trie_destroy(trie *trie)
 }
 
 
-static void
+void
 trie_discard_clause(trie *trie)
 { atom_t dbref;
 

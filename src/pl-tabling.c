@@ -8157,6 +8157,8 @@ reeval_complete(trie *atrie)
 
     if ( same_answers )
       idg_propagate_change(n, 0);
+    else
+      trie_discard_clause(atrie);
 
     TRIE_STAT_INC(n, reevaluated);
 

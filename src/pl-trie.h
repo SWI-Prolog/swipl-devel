@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2020, VU University Amsterdam
+    Copyright (c)  2017-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -201,6 +202,7 @@ COMMON(foreign_t) trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 COMMON(void *)	map_trie_node(trie_node *n,
 			      void* (*map)(trie_node *n, void *ctx), void *ctx);
 COMMON(atom_t)	compile_trie(Definition def, trie *trie ARG_LD);
+COMMON(void)	trie_discard_clause(trie *trie);
 
 static inline int
 trie_lookup(trie *trie, trie_node *node, trie_node **nodep,
