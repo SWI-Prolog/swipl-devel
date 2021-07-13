@@ -46,7 +46,8 @@
 test_reeval :-
     run_tests([ tabling_reeval,
                 tabling_reeval_merged,
-                dynamic_tabled
+                dynamic_tabled,
+                dynamic_tabled2
               ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
@@ -164,8 +165,45 @@ test(wfs,
 
 :- end_tests(dynamic_tabled).
 
+:- begin_tests(dynamic_tabled2,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% A incrementally tabled predicate can also be dynamic.
+
+:- table (p/1,qs/1) as incremental.
+:- dynamic q/1 as incremental.
+
+p(X) :- tnot(qs(X)), tnot(p(X)).
+p(X) :- qs(X).
+
+qs(X) :- q(X).
+
+test(wfs,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P).
+
+:- end_tests(dynamic_tabled2).
+
+
+		 /*******************************
+		 *       SHARED TEST CODE	*
+		 *******************************/
+
 :- meta_predicate
-    eval(0).
+    eval(0),
+    expect(?, 0, +).
 
 eval(G) :-
     forall(G, true).
+
+expect(Templ, Goal, Answer) :-
+    findall(Templ, Goal, R0),
+    sort(R0, R),
+    sort(Answer, Answer1),
+    assertion(Answer1 == R).
