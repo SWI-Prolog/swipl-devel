@@ -6315,6 +6315,30 @@ idg_add_edge(trie *atrie, trie *ctrie ARG_LD)
   return -1;
 }
 
+/** '$idg_add_edge'(+ATrie) is det.
+ *
+ * Add a child to the current dependency tree.  Used by tnot/1
+ * if the tnot is resolved from an already existing table.
+ */
+
+static
+PRED_IMPL("$idg_add_edge", 1, idg_add_edge, 0)
+{ PRED_LD
+  trie *ctrie = idg_current(PASS_LD1);
+
+  if ( ctrie && ctrie->data.IDG )
+  { trie *atrie;
+
+    if ( get_trie(A1, &atrie) )
+      return !!idg_add_edge(atrie, ctrie PASS_LD);
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 /** '$idg_set_current'(-OldCurrent, +ATrie)
  *
  * Set the current to Atrie and return the old current.
@@ -9090,6 +9114,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$is_answer_trie",		2, is_answer_trie,	     0)
 
   PRED_DEF("$idg_add_dyncall",          1, idg_add_dyncall,          0)
+  PRED_DEF("$idg_add_edge",             1, idg_add_edge,             0)
   PRED_DEF("$idg_set_current",          1, idg_set_current,          0)
   PRED_DEF("$idg_set_current",          2, idg_set_current,          0)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)

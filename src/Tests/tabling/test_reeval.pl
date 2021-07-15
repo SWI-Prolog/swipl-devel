@@ -47,7 +47,8 @@ test_reeval :-
     run_tests([ tabling_reeval,
                 tabling_reeval_merged,
                 dynamic_tabled,
-                dynamic_tabled2
+                dynamic_tabled2,
+                dynamic_tabled3
               ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
@@ -205,6 +206,34 @@ test(wfs2,
     call_residual_program(p(1), P).
 
 :- end_tests(dynamic_tabled2).
+
+
+:- begin_tests(dynamic_tabled3,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% Test that tnot creates a dependency
+
+:- table (p/1,qs/1,rs/1)  as incremental.
+:- dynamic q/1 as incremental.
+
+p(X) :- tnot(qs(X)), tnot(p(X)).
+p(X) :- tnot(rs(X)), tnot(p(X)).
+
+qs(X) :- q(X).
+rs(X) :- q(X).
+
+test(wfs, [ cleanup(retractall(q(_)))
+          ]) :-
+    assert(q(1)),
+    expect(x, p(1), []),
+    retract(q(1)),
+    call_residual_program(p(1), P),
+    assertion(P == [(p(1):-tnot(p(1)))]),
+    assert(q(1)),
+    expect(x, p(1), []).
+
+:- end_tests(dynamic_tabled3).
 
 
 		 /*******************************

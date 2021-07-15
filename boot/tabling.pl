@@ -848,7 +848,8 @@ completion_step(SourceWL) :-
 tnot(Goal0) :-
     '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
     (   '$tbl_existing_variant_table'(_, Goal, Trie, Status, Skeleton)
-    ->  (   '$tbl_answer_dl'(Trie, _, true)
+    ->  '$idg_add_edge'(Trie),
+        (   '$tbl_answer_dl'(Trie, _, true)
         ->  fail
         ;   '$tbl_answer_dl'(Trie, _, _)
         ->  tdebug(tnot, 'tnot: adding ~p to delay list', [Goal]),
