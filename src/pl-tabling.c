@@ -8120,16 +8120,35 @@ PRED_IMPL("$tbl_reeval_abandon", 1, tbl_reeval_abandon, 0)
 static void *
 reeval_complete_node(trie_node *n, void *ctx)
 { trie *atrie = ctx;
+#ifdef O_DEBUG
+  const char *action = NULL;
+#endif
+
+  if ( !n->value )
+  { clear(n, TN_IDG_MASK);
+    return NULL;
+  }
 
   if ( true(n, TN_IDG_DELETED) )
   { clear(n, TN_IDG_DELETED);		/* not used by trie admin */
     trie_delete(atrie, n, FALSE);	/* TBD: can we prune? */
     if ( false(n, TN_IDG_UNCONDITIONAL) )
       simplify_answer(atrie->data.worklist, n, FALSE);
+    DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Not reappeared");
   } else if ( true(n, TN_IDG_UNCONDITIONAL) &&
 	      answer_is_conditional(n) )
   { atrie->data.IDG->new_answer = TRUE;
+    DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Got conditional");
+  } else if ( false(n, TN_IDG_UNCONDITIONAL) &&
+	      !answer_is_conditional(n) )
+  { atrie->data.IDG->new_answer = TRUE;
+    DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Got UNconditional");
+  } else
+  { DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Not modified");
   }
+
+  DEBUG(MSG_TABLING_IDG_REEVAL_NODE,
+	print_answer(action, n));
 
   clear(n, TN_IDG_MASK);
 
