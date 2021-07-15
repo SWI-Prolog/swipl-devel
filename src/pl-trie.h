@@ -80,11 +80,10 @@ typedef union trie_children
 #define TN_IDG_DELETED			0x0008	/* IDG pre-evaluation */
 #define TN_IDG_ADDED			0x0010	/* IDG recovery */
 #define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
-#define TN_IDG_SAVED_UNCONDITIONAL	0x0040	/* IDG recovery */
-#define TN_IDG_AS_LAST			0x0080	/* IDG: answer subsumption node */
+#define TN_IDG_AS_LAST			0x0040	/* IDG: answer subsumption node */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
-	 TN_IDG_UNCONDITIONAL|TN_IDG_SAVED_UNCONDITIONAL|TN_IDG_AS_LAST)
+	 TN_IDG_UNCONDITIONAL|TN_IDG_AS_LAST)
 
 typedef struct trie_node
 { word			value;

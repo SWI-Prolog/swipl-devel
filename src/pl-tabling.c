@@ -1113,9 +1113,7 @@ retry:
 					/* Incremental tabling */
     if ( wl->table->data.IDG && wl->table->data.IDG->reevaluating )
     { if ( false(answer, TN_IDG_UNCONDITIONAL) )
-      { set(answer, TN_IDG_UNCONDITIONAL);
 	simplify_answer(wl, answer, TRUE);
-      }
     }
 
     DEBUG(TABLING_NO_EARLY_COMPLETION,
@@ -8221,10 +8219,6 @@ reset_evaluate_node(trie_node *n, void *ctx)
   { trie_delete(atrie, n, FALSE);	/* we are enumerating this node */
   } else				/* and cannot delete it (now) */
   { set(n, TN_IDG_DELETED);
-    if ( true(n, TN_IDG_SAVED_UNCONDITIONAL) )
-      set(n, TN_IDG_UNCONDITIONAL);
-    else
-      clear(n, TN_IDG_UNCONDITIONAL);
   }
 
   return NULL;
