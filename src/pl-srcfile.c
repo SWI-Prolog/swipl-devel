@@ -872,7 +872,6 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 		 *	    RECONSULT		*
 		 *******************************/
 
-static void	fix_discontiguous(p_reload *r);
 static void	fix_metapredicate(p_reload *r);
 static void	fix_det(p_reload *r);
 
@@ -922,6 +921,7 @@ startReconsultFile(SourceFile sf)
 	  cl->generation.erased = r->reload_gen;
 	}
 	release_def(def);
+	clear(def, P_DISCONTIGUOUS);		/* will be reinstantiated */
       }
       if ( true(def, P_AUTOLOAD) )
       { clear(def, P_AUTOLOAD);			/* should be be more selective? */
@@ -1098,8 +1098,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
     }
 
     if ( reload->number_of_clauses++ == 0 )
-    { fix_discontiguous(reload);
-      fix_det(reload);
+    { fix_det(reload);
       fix_ssu(reload, clause);
     }
 
@@ -1267,15 +1266,6 @@ fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
     def->flags |= (r->flags&P_ATEND);
 
   fix_metapredicate(r);
-}
-
-
-static void
-fix_discontiguous(p_reload *r)
-{ Definition def = r->predicate;
-
-  if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
-    clear(def, P_DISCONTIGUOUS);
 }
 
 
