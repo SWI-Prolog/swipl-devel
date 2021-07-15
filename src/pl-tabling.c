@@ -8002,6 +8002,7 @@ reeval_prep_node(trie_node *n, void *ctx)
 static int
 prepare_reeval(trie *atrie ARG_LD)
 { idg_node *idg = atrie->data.IDG;
+  worklist *wl  = atrie->data.worklist;
 
   DEBUG(MSG_TABLING_IDG_REEVAL,
 	print_answer_table(atrie, "Preparing reeval of"));
@@ -8016,6 +8017,12 @@ prepare_reeval(trie *atrie ARG_LD)
   if ( !idg->aborted )
     map_trie_node(&atrie->root, reeval_prep_node, atrie);
   idg->reevaluating = TRUE;
+
+  if ( WL_IS_WORKLIST(wl) )
+  { wl->negative    = FALSE;
+    wl->has_answers = FALSE;
+    wl->neg_delayed = FALSE;
+  }
 
   return TRUE;
 }
