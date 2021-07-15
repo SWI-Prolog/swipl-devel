@@ -4616,6 +4616,10 @@ in the current source.  See compile_aux_clauses/1.
     \termitem{det}{}
 The predicate is defined to be deterministic using det/1.
 
+    \termitem{discontiguous}{}
+True after discontiguous/1 was used to flag that the clauses of
+the predicates may not be contiguous.
+
     \termitem{dynamic}{}
 True if assert/1 and retract/1 may be used to modify the predicate.
 This property is set using dynamic/1.
