@@ -3198,6 +3198,7 @@ unify_complete_or_invalid(term_t t, trie *atrie,
  *
  *   - A worklist (if the trie is incomplete)
  *   - `complete`
+ *   - `invalid`
  *   - `dynamic` (for pseudo answer tries representing an incremental
  *     dynamic predicate)
  *   - `fresh` (if `create` is `FALSE`)

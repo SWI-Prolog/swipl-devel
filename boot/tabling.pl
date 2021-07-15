@@ -847,7 +847,8 @@ completion_step(SourceWL) :-
 
 tnot(Goal0) :-
     '$tnot_implementation'(Goal0, Goal),        % verifies Goal is tabled
-    (   '$tbl_existing_variant_table'(_, Goal, Trie, Status, Skeleton)
+    (   '$tbl_existing_variant_table'(_, Goal, Trie, Status, Skeleton),
+        Status \== invalid
     ->  '$idg_add_edge'(Trie),
         (   '$tbl_answer_dl'(Trie, _, true)
         ->  fail

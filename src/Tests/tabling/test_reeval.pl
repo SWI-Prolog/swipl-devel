@@ -48,7 +48,8 @@ test_reeval :-
                 tabling_reeval_merged,
                 dynamic_tabled,
                 dynamic_tabled2,
-                dynamic_tabled3
+                dynamic_tabled3,
+                dynamic_tabled4
               ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
@@ -234,6 +235,30 @@ test(wfs, [ cleanup(retractall(q(_)))
     expect(x, p(1), []).
 
 :- end_tests(dynamic_tabled3).
+
+:- begin_tests(dynamic_tabled4,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+
+:- table (p/1,q/1,r/1) as incremental.
+:- dynamic r1/1 as incremental.
+
+p(X) :- tnot(q(X)), r(X), tnot(p(X)).
+p(X) :- r(X).
+
+q(X) :- tnot(r(X)).
+r(X) :- r1(X).
+
+test(wfs,
+     [ cleanup(retractall(r1(_)))
+     ]) :-
+    assert(r1(1)),
+    expect(x, p(1), [x]),
+    retract(r1(1)),
+    expect(y, p(1), []).
+
+:- end_tests(dynamic_tabled4).
 
 
 		 /*******************************
