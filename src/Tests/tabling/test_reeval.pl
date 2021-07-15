@@ -187,6 +187,22 @@ test(wfs,
     expect(x, p(1), [x]),
     retract(q(1)),
     call_residual_program(p(1), P).
+% Validate that a conditional answer that became unconditional
+% worls and proper reinitialization of the worklist when it is used
+% again.
+test(wfs2,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P1),
+    assertion(P1 == [(p(1):-tnot(p(1)))]),
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P).
 
 :- end_tests(dynamic_tabled2).
 
