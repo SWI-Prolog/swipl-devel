@@ -3281,8 +3281,6 @@ END_VMI
 /** integer(@Term), atom(@Term), etc.
 */
 
-#define isCallableLD(t) isCallable(t)
-
 #ifdef O_DEBUGGER
 #define TYPE_TEST(functor, test)           \
 	Word p = varFrameP(FR, (int)*PC++);\
@@ -3343,7 +3341,7 @@ VMI(I_COMPOUND, VIF_BREAK, 1, (CA1_VAR))
 END_VMI
 
 VMI(I_CALLABLE, VIF_BREAK, 1, (CA1_VAR))
-{ TYPE_TEST(FUNCTOR_callable1, isCallableLD);
+{ TYPE_TEST(FUNCTOR_callable1, isCallable);
 }
 END_VMI
 

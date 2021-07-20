@@ -632,17 +632,19 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
   return TRUE;
 }
 
+#if USE_LD_MACROS
+#define init_cycle(_) LDFUNC(init_cycle, _)
+#define unvisit(_) LDFUNC(unvisit, _)
+#endif /*USE_LD_MACROS*/
 
 #if O_CYCLIC
 
-#define init_cycle(_) LDFUNC(init_cycle, _)
 static void
 init_cycle(DECL_LD)
 { LD->cycle.lstack.unit_size = sizeof(cycle_mark);
 }
 
 
-#define unvisit(_) LDFUNC(unvisit, _)
 static void
 unvisit(DECL_LD)
 { cycle_mark mark;
@@ -686,9 +688,9 @@ PL_malloc_atomic_unmanaged().
 
 Record
 compileTermToHeap_ex(DECL_LD term_t t,
-		      void* (*allocate)(void *closure, size_t size),
-		      void* closure,
-		      int flags)
+		     void* (*allocate)(void *closure, size_t size),
+		     void* closure,
+		     int flags)
 { compile_info info;
   Record record;
   size_t size;

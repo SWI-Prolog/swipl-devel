@@ -251,6 +251,7 @@ typedef struct vm_state
 #define	is_downward_ref(Word)				LDFUNC(is_downward_ref, Word)
 #define	is_upward_ref(Word)				LDFUNC(is_upward_ref, Word)
 #define	tight(s)					LDFUNC(tight, s)
+#define	do_check_relocation(Word, file, line)		LDFUNC(do_check_relocation, Word, file, line)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -272,16 +273,15 @@ forwards void		compact_global(void);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
 static size_t		tight(Stack s);
 
-#undef LDFUNC_DECLARATIONS
-
 #if O_DEBUG
 forwards int		cmp_address(const void *, const void *);
-#define do_check_relocation(Word, file, line) LDFUNC(do_check_relocation, Word, file, line)
-forwards void		do_check_relocation(DECL_LD Word, char *file, int line);
+forwards void		do_check_relocation(Word, char *file, int line);
 forwards void		needsRelocation(void *);
 forwards void		check_mark(mark *m);
 static int		check_marked(const char *s);
 #endif
+
+#undef LDFUNC_DECLARATIONS
 
 		/********************************
 		*           GLOBALS             *

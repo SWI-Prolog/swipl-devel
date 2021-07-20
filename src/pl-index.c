@@ -2851,7 +2851,7 @@ add_deep_indexes(DECL_LD ClauseIndex ci, term_t head, term_t tail)
 bool
 unify_index_pattern(Procedure proc, term_t value)
 { GET_LD
-  Definition def = getLocalProcDefinition(proc->definition);
+  Definition def = getProcDefinition(proc);
   ClauseIndex *cip;
   int rc = FALSE;
   int found = 0;

@@ -116,6 +116,13 @@
 /* Our definition of _PL_get_arg appears in pl-fli.h */
 #undef _PL_get_arg
 
+/* This is only here to assist static analysis; undefine this and
+ * the LDFUNC functions will look like normal definitions, as though
+ * this were a single-threaded build */
+#define USE_LD_MACROS 1
+#ifdef __INTELLISENSE__
+# undef USE_LD_MACROS
+#endif
 
 /* COMMON() was a macro used to mark symbols to be global to the library
  * internals but not exported from the shared library. This is now the
@@ -1109,8 +1116,6 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-
-#define setGenerationFrame(fr) setGenerationFrame(fr)
 
 #define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
 			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
@@ -2609,9 +2614,9 @@ with any luck LTO could address that.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if USE_ALLOC_INLINES
-# define ALLOC_INLINE type static type MAYBE_UNUSED
+# define ALLOC_INLINE static MAYBE_UNUSED
 #else
-# define ALLOC_INLINE COMMON
+# define ALLOC_INLINE 
 #endif
 
 #include "pl-alloc.h"			/* Allocation primitives */
@@ -2624,7 +2629,6 @@ with any luck LTO could address that.
 #include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
-#include "pl-ldpass.h"			/* Wrap __LD functions */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
 #include "os/pl-text.h"			/* text manipulation */

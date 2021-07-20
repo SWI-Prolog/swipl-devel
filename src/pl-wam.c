@@ -273,7 +273,7 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  if ( is_signalled(PASS_LDARG1(ld)) )		mask |= ALERT_SIGNAL;
+  WITH_LD(ld) if ( is_signalled() )		mask |= ALERT_SIGNAL;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -427,7 +427,6 @@ PL_open_foreign_frame(DECL_LD)
 API_STUB(fid_t)
 (PL_open_foreign_frame)(void)
 ( return PL_open_foreign_frame(); )
-				/* This local definition was here before */
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

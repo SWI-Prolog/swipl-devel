@@ -87,7 +87,6 @@
 #define	PL_get_integer(t, i)			LDFUNC(PL_get_integer, t, i)
 #define	PL_get_long(t, i)			LDFUNC(PL_get_long, t, i)
 #define	PL_get_int64(t, i)			LDFUNC(PL_get_int64, t, i)
-#define	PL_get_size_ex(t, i)			LDFUNC(PL_get_size_ex, t, i)
 #define	PL_get_pointer(t, ptr)			LDFUNC(PL_get_pointer, t, ptr)
 #define	PL_put_term(t1, t2)			LDFUNC(PL_put_term, t1, t2)
 #define	PL_get_functor(t, f)			LDFUNC(PL_get_functor, t, f)
@@ -98,12 +97,12 @@
 #define	PL_is_atom(t)				LDFUNC(PL_is_atom, t)
 #define	PL_unify_list(l, h, t)			LDFUNC(PL_unify_list, l, h, t)
 #define	PL_cons_list(l, head, tail)		LDFUNC(PL_cons_list, l, head, tail)
-#define	PL_same_term(t1, t2)			LDFUNC(PL_same_term, t1, t2)
 #define	isCallable(w)				LDFUNC(isCallable, w)
 #define	PL_pending(sig)				LDFUNC(PL_pending, sig)
 #define	PL_clearsig(sig)			LDFUNC(PL_clearsig, sig)
 #define	classify_exception(ex)			LDFUNC(classify_exception, ex)
 #define	classify_exception_p(p)			LDFUNC(classify_exception_p, p)
+#define	get_string_text(atom, text)		LDFUNC(get_string_text, atom, text)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -120,7 +119,6 @@ void		initialiseForeign(int argc, char **argv);
 void		cleanupInitialiseHooks(void);
 atom_t		codeToAtom(int code);
 int		PL_unify_term(term_t t, ...);
-int		PL_unify_termv(term_t t, va_list args);
 int		PL_unify_termv(term_t t, va_list args);
 term_t		pushWordAsTermRef(Word p);
 void		popTermRef(void);
@@ -155,7 +153,7 @@ int		PL_qualify(term_t raw, term_t qualified);
 int		PL_get_integer(term_t t, int *i);
 int		PL_get_long(term_t t, long *i);
 int		PL_get_int64(term_t t, int64_t *i);
-int		PL_get_size_ex(term_t t, size_t *i);
+/* PL_get_size_ex(term_t t, size_t *i) moved to pl-error.h */
 int		PL_get_pointer(term_t t, void **ptr);
 int		PL_put_term(term_t t1, term_t t2)/* WUNUSED*/;
 int		PL_get_functor(term_t t, functor_t *f);
@@ -170,7 +168,7 @@ int		PL_unify_list(term_t l, term_t h, term_t t);
 int		PL_cons_list(term_t l, term_t head, term_t tail);
 int		PL_cons_list_v(term_t list, size_t count, term_t elems);
 int		PL_is_inf(term_t t);
-int		PL_same_term(term_t t1, term_t t2);
+/* PL_same_term(term_t t1, term_t t2) moved to pl-prims.h */
 int		isUCSAtom(Atom a);
 atom_t		lookupUCSAtom(const pl_wchar_t *s, size_t len);
 int		charCode(word w);
@@ -192,6 +190,10 @@ except_class    classify_exception_p(Word p);
 void		PL_abort_process(void) NORETURN;
 void		resetForeign(void);
 
+int		get_atom_ptr_text(Atom atom, PL_chars_t *text);
+int		get_atom_text(atom_t atom, PL_chars_t *text);
+int		get_string_text(atom_t atom, PL_chars_t *text);
+
 #undef LDFUNC_DECLARATIONS
 
 #define PL_strip_module(q, m, t) PL_strip_module_flags(q, m, t, 0)
@@ -207,18 +209,6 @@ void		resetForeign(void);
 #define setHandle(h, w)		(*valTermRef(h) = (w))
 #define valHandleP(h)		valTermRef(h)
 
-    /* TODO: valHandle (which was in pl-codelisit.h) needs to be moved somewhere common! Namespacing it with fli_ for now to avoid conflicts. */
-    #define fli_valHandle(r) LDFUNC(fli_valHandle, r)
-static inline word
-    fli_valHandle(DECL_LD term_t r)
-    { Word p = valTermRef(r);
-    
-      deRef(p);
-      return *p;
-    }
-    #pragma push_macro("valHandle")
-    #undef valHandle
-    #define valHandle(r) fli_valHandle(r)
 
 FLI_INLINE int
 PL_get_atom(DECL_LD term_t t, atom_t *a)
@@ -325,8 +315,6 @@ FLI_INLINE int
 PL_pending(DECL_LD int sig)
 { return pendingSignal(LD, sig);
 }
-
-    #pragma pop_macro("valHandle")
 
 #endif /*USE_FLI_INLINES || EMIT_FLI_INLINESS*/
 

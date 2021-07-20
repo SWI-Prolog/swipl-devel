@@ -4165,7 +4165,7 @@ unify_arg_term(DECL_LD term_t a, Word v)
 static int
 unify_dependency(DECL_LD term_t a0, term_t dependency,
 		 worklist *wl, trie_node *answer)
-{ if ( likely(ensureStackSpace_ex(10, 5, ALLOW_GC)) )
+{ if ( ensureStackSpace(10, 5) )
   { term_t srcskel = PL_new_term_ref();
     Word dp = valTermRef(dependency);
     Functor f;

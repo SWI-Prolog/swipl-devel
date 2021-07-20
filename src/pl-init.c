@@ -1446,9 +1446,7 @@ with -DGC_DEBUG.
 
 int
 cleanupProlog(int rval, int reclaim_memory)
-{ GET_LD
-
-  if ( GD->cleaning != CLN_NORMAL )
+{ if ( GD->cleaning != CLN_NORMAL )
     return FALSE;
 
 #ifdef __WINDOWS__
@@ -1463,12 +1461,14 @@ cleanupProlog(int rval, int reclaim_memory)
   }
 
 #ifdef O_PLMT
-  if ( !LD )
+  if ( !GLOBAL_LD )
   { PL_thread_attach_engine(NULL);
-    LD = GLOBAL_LD;
-    if ( !LD )
-      goto emergency;
   }
+  GET_LD
+  if ( !LD )
+    goto emergency;
+#else
+  GET_LD
 #endif
 
   GD->cleaning = CLN_PROLOG;

@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define NO_TRIE_GEN_HELPERS 1
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-trie.h"
@@ -2288,7 +2289,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
     DEBUG(CHK_SECURE, PL_check_data(Key));
 
     if ( (!Value || unify_value(Value, n->value)) &&
-	 (!Data  || unify_data(Data, n, ctx)) )
+	 (!Data  || LDFUNCP(*unify_data)(Data, n, ctx)) )
     { if ( next_choice(state) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
@@ -2379,7 +2380,7 @@ unify_node_id(DECL_LD term_t t, trie_node *answer, void *ctx)
 
 static
 PRED_IMPL("$trie_gen_node", 3, trie_gen_node, PL_FA_NONDETERMINISTIC)
-{ return trie_gen(A1, 0, A2, 0, A3, unify_node_id, NULL, PL__ctx);
+{ return trie_gen(A1, 0, A2, 0, A3, LDFUNC_REF(unify_node_id), NULL, PL__ctx);
 }
 
 

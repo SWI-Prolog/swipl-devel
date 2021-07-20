@@ -459,6 +459,13 @@ win_thread_initialize(void)
 		 *	  LOCAL PROTOTYPES	*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define	get_message_queue_unlocked(t, queue)	LDFUNC(get_message_queue_unlocked, t, queue)
+#define	get_message_queue(t, queue)		LDFUNC(get_message_queue, t, queue)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static PL_thread_info_t *alloc_thread(void);
 static void	destroy_message_queue(message_queue *queue);
 static void	destroy_thread_message_queue(message_queue *queue);
@@ -474,13 +481,6 @@ static void	destroy_interactor(thread_handle *th, int gc);
 static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
 static void	free_thread_wait(PL_local_data_t *ld);
-
-#if USE_LD_MACROS
-#define	get_message_queue_unlocked(t, queue)	LDFUNC(get_message_queue_unlocked, t, queue)
-#define	get_message_queue(t, queue)		LDFUNC(get_message_queue, t, queue)
-#endif /*USE_LD_MACROS*/
-
-#define LDFUNC_DECLARATIONS
 
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked(term_t t, message_queue **queue);
@@ -498,11 +498,11 @@ static void	print_trace(int depth);
 #define		print_trace(depth) (void)0
 #endif
 
-#undef LDFUNC_DECLARATIONS
-
 static void timespec_diff(struct timespec *diff,
 			  const struct timespec *a, const struct timespec *b);
 static int  timespec_sign(const struct timespec *t);
+
+#undef LDFUNC_DECLARATIONS
 
 		 /*******************************
 		 *	     LOCAL DATA		*
@@ -572,7 +572,7 @@ initialise_thread(PL_thread_info_t *info)
     return FALSE;
   }
 
-  initPrologLocalData(info->thread_data);
+  WITH_LD(info->thread_data) initPrologLocalData();
   info->thread_data->magic = LD_MAGIC;
 
   return TRUE;
@@ -676,7 +676,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
   #ifdef O_PROFILE
     if ( ld->profile.active )
-      activateProfiler(FALSE, ld);
+      WITH_LD(ld) activateProfiler(FALSE);
   #endif
 
     destroy_event_list(&ld->event.hook.onthreadexit);
@@ -687,7 +687,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     ld->magic = 0;
     if ( ld->stacks.global.base )		/* otherwise not initialised */
     { simpleMutexLock(&ld->thread.scan_lock);
-      freeStacks(ld);
+      WITH_LD(ld) freeStacks();
       simpleMutexUnlock(&ld->thread.scan_lock);
     }
     freePrologLocalData(ld);
@@ -3263,22 +3263,22 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
     r = PL_record(A2);
     rc = PL_set_engine(new, &me);
     assert(rc == PL_ENGINE_SET);
-    LOCAL_LD = new;
 
-    if  ( (t = PL_new_term_ref()) &&
-	  (th->interactor.argv = PL_new_term_refs(2)) &&
-	  PL_recorded(r, t) &&
-	  PL_get_arg(1, t, th->interactor.argv+0) &&
-	  PL_get_arg(2, t, th->interactor.argv+1) )
-    { th->interactor.query = PL_open_query(NULL,
-					   PL_Q_CATCH_EXCEPTION|
-					   PL_Q_ALLOW_YIELD|
-					   PL_Q_EXT_STATUS,
-					   pred, th->interactor.argv+1);
-      PL_set_engine(me, NULL);
-      LOCAL_LD = me;
-    } else
-    { assert(0);			/* TBD: copy exception */
+    WITH_LD(new)
+    { if  ( (t = PL_new_term_ref()) &&
+	    (th->interactor.argv = PL_new_term_refs(2)) &&
+	    PL_recorded(r, t) &&
+	    PL_get_arg(1, t, th->interactor.argv+0) &&
+	    PL_get_arg(2, t, th->interactor.argv+1) )
+      { th->interactor.query = PL_open_query(NULL,
+					     PL_Q_CATCH_EXCEPTION|
+					     PL_Q_ALLOW_YIELD|
+					     PL_Q_EXT_STATUS,
+					     pred, th->interactor.argv+1);
+	PL_set_engine(me, NULL);
+      } else
+      { assert(0);			/* TBD: copy exception */
+      }
     }
 
     PL_erase(r);
@@ -3418,10 +3418,13 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
   if ( package )
     th->interactor.package = PL_record(package);
 
-  if ( (LOCAL_LD = activate_interactor(th)) )
+  WITH_LD ( activate_interactor(th) )
   { term_t t;
     int rc;
     record_t r;
+
+    if (!LOCAL_LD)
+      break; /* WITH_LD is a for() statement and can be broken out of */
 
     copy_debug_mode(LD, me);
     rc = PL_next_solution(th->interactor.query);
@@ -3443,7 +3446,7 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
       { PL_close_query(th->interactor.query);
 	th->interactor.query = 0;
 	done_interactor(th);
-	LOCAL_LD = suspend_interactor(me, th);
+	suspend_interactor(me, th);
 
 	return FALSE;
       }
@@ -3455,13 +3458,13 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
 	PL_close_query(th->interactor.query);
 	th->interactor.query = 0;
 	done_interactor(th);
-	LOCAL_LD = suspend_interactor(me, th);
+	WITH_LD(suspend_interactor(me, th))
+	{ rc = ( (ex = PL_new_term_ref()) &&
+		 PL_recorded(r, ex) &&
+		 PL_raise_exception(ex) );
 
-	rc = ( (ex = PL_new_term_ref()) &&
-	       PL_recorded(r, ex) &&
-	       PL_raise_exception(ex) );
-
-	PL_erase(r);
+	  PL_erase(r);
+	}
 	return rc;
       }
       case YIELD_ENGINE_YIELD:			/* engine_yield/1 */
@@ -3476,11 +3479,12 @@ interactor_post_answer_nolock(DECL_LD thread_handle *th,
       }
     }
 
-    LOCAL_LD = suspend_interactor(me, th);
-    rc = ( (t=PL_new_term_ref()) &&
-	   PL_recorded(r, t) &&
-	   PL_unify(term, t) );
-    PL_erase(r);
+    WITH_LD(suspend_interactor(me, th))
+    { rc = ( (t=PL_new_term_ref()) &&
+	     PL_recorded(r, t) &&
+	     PL_unify(term, t) );
+      PL_erase(r);
+    }
 
     return rc;
   }
@@ -3703,7 +3707,7 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
 	    exit(1);
 	  }
 
-	  if ( is_signalled(LD) )			/* thread-signal */
+	  if ( is_signalled() )			/* thread-signal */
 	  { queue->wait_for_drain--;
 	    return MSG_WAIT_INTR;
 	  }
@@ -3901,7 +3905,7 @@ cv_timedwait(message_queue *queue,
 
     rc = SleepConditionVariableCS(cond, mutex, api_timeout);
 
-    if ( is_signalled(LD) )
+    if ( is_signalled() )
       return CV_INTR;
     if ( !rc )
       return last ? CV_TIMEDOUT : CV_MAYBE;
@@ -3947,14 +3951,14 @@ cv_timedwait(message_queue *queue,
 
     switch( rc )
     { case ETIMEDOUT:
-	if ( is_signalled(LD) )
+	if ( is_signalled() )
 	  return CV_INTR;
 	if ( api_timeout == deadline )
 	  return CV_TIMEDOUT;
 	return CV_MAYBE;
       case EINTR:			/* can not happen in POSIX, but can in */
       case 0:				/* legacy systems */
-	if ( is_signalled(LD) )
+	if ( is_signalled() )
 	  return CV_INTR;
         return CV_READY;
       default:
@@ -4141,7 +4145,7 @@ get_message(DECL_LD message_queue *queue, term_t msg, struct timespec *deadline)
 	  exit(1);
 	}
 
-	if ( is_signalled(LD) )		/* thread-signal */
+	if ( is_signalled() )		/* thread-signal */
 	{ queue->waiting--;
 	  queue->waiting_var -= isvar;
 	  PL_discard_foreign_frame(fid);
@@ -4410,7 +4414,7 @@ wait_queue_message(DECL_LD term_t qterm, message_queue *q, thread_message *msg,
 #define thread_send_message(queue, msgterm, deadline) LDFUNC(thread_send_message, queue, msgterm, deadline)
 static int
 thread_send_message(DECL_LD term_t queue, term_t msgterm,
-		    struct timespec *deadline)
+			struct timespec *deadline)
 { message_queue *q;
   thread_message *msg;
   int rc;

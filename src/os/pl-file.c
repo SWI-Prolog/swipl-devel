@@ -63,6 +63,7 @@ handling times must be cleaned, but that not only holds for this module.
 #include "../pl-write.h"
 #include "../pl-proc.h"
 #include "../pl-prims.h"
+#include "../pl-trace.h"
 #include <errno.h>
 
 #if defined(HAVE_POLL_H) && defined(HAVE_POLL)
@@ -4731,37 +4732,40 @@ stream_close_on_exec_prop(DECL_LD IOSTREAM *s, term_t prop)
 typedef struct
 { functor_t functor;			/* functor of property */
   property_t function; /* function to generate */
+  property0_t function0; /* arity-0 function */
 } sprop;
 
 
+#define _SP0(functor, f0) {functor, NULL, LDFUNC_REF(f0)}
+#define _SP1(functor, f1) {functor, LDFUNC_REF(f1), NULL}
 static const sprop sprop_list [] =
-{ { FUNCTOR_file_name1,	    LDFUNC_REF(stream_file_name_propery) },
-  { FUNCTOR_mode1,	    LDFUNC_REF(stream_mode_property) },
-  { FUNCTOR_input0,	    (property_t)stream_input_prop },
-  { FUNCTOR_output0,	    (property_t)stream_output_prop },
-  { FUNCTOR_alias1,	    LDFUNC_REF(stream_alias_prop) },
-  { FUNCTOR_position1,	    LDFUNC_REF(stream_position_prop) },
-  { FUNCTOR_end_of_stream1, LDFUNC_REF(stream_end_of_stream_prop) },
-  { FUNCTOR_eof_action1,    LDFUNC_REF(stream_eof_action_prop) },
-  { FUNCTOR_reposition1,    LDFUNC_REF(stream_reposition_prop) },
-  { FUNCTOR_type1,	    LDFUNC_REF(stream_type_prop) },
-  { FUNCTOR_file_no1,	    LDFUNC_REF(stream_file_no_prop) },
-  { FUNCTOR_buffer1,	    LDFUNC_REF(stream_buffer_prop) },
-  { FUNCTOR_buffer_size1,   LDFUNC_REF(stream_buffer_size_prop) },
-  { FUNCTOR_close_on_abort1,LDFUNC_REF(stream_close_on_abort_prop) },
-  { FUNCTOR_tty1,	    LDFUNC_REF(stream_tty_prop) },
-  { FUNCTOR_encoding1,	    LDFUNC_REF(stream_encoding_prop) },
+{ _SP1( FUNCTOR_file_name1,	stream_file_name_propery ),
+  _SP1( FUNCTOR_mode1,		stream_mode_property ),
+  _SP0( FUNCTOR_input0,		stream_input_prop ),
+  _SP0( FUNCTOR_output0,	stream_output_prop ),
+  _SP1( FUNCTOR_alias1,		stream_alias_prop ),
+  _SP1( FUNCTOR_position1,	stream_position_prop ),
+  _SP1( FUNCTOR_end_of_stream1,	stream_end_of_stream_prop ),
+  _SP1( FUNCTOR_eof_action1,	stream_eof_action_prop ),
+  _SP1( FUNCTOR_reposition1,	stream_reposition_prop ),
+  _SP1( FUNCTOR_type1,		stream_type_prop ),
+  _SP1( FUNCTOR_file_no1,	stream_file_no_prop ),
+  _SP1( FUNCTOR_buffer1,	stream_buffer_prop ),
+  _SP1( FUNCTOR_buffer_size1,	stream_buffer_size_prop ),
+  _SP1( FUNCTOR_close_on_abort1,stream_close_on_abort_prop ),
+  _SP1( FUNCTOR_tty1,		stream_tty_prop ),
+  _SP1( FUNCTOR_encoding1,	stream_encoding_prop ),
 #ifdef O_LOCALE
-  { FUNCTOR_locale1,	    LDFUNC_REF(stream_locale_prop) },
+  _SP1( FUNCTOR_locale1,	stream_locale_prop ),
 #endif
-  { FUNCTOR_bom1,	    LDFUNC_REF(stream_bom_prop) },
-  { FUNCTOR_newline1,	    LDFUNC_REF(stream_newline_prop) },
-  { FUNCTOR_representation_errors1, LDFUNC_REF(stream_reperror_prop) },
-  { FUNCTOR_write_errors1,  LDFUNC_REF(stream_writeerror_prop) },
-  { FUNCTOR_timeout1,       LDFUNC_REF(stream_timeout_prop) },
-  { FUNCTOR_nlink1,         LDFUNC_REF(stream_nlink_prop) },
-  { FUNCTOR_close_on_exec1, LDFUNC_REF(stream_close_on_exec_prop) },
-  { 0,			    NULL }
+  _SP1( FUNCTOR_bom1,		stream_bom_prop ),
+  _SP1( FUNCTOR_newline1,	stream_newline_prop ),
+  _SP1( FUNCTOR_representation_errors1, stream_reperror_prop ),
+  _SP1( FUNCTOR_write_errors1,	stream_writeerror_prop ),
+  _SP1( FUNCTOR_timeout1,	stream_timeout_prop ),
+  _SP1( FUNCTOR_nlink1,		stream_nlink_prop ),
+  _SP1( FUNCTOR_close_on_exec1,	stream_close_on_exec_prop ),
+  { 0, NULL, NULL }
 };
 
 
@@ -4802,7 +4806,7 @@ PRED_IMPL("$stream_property", 2, dstream_property, 0)
   if ( (rc=term_stream_handle(A1, &s, SH_ERRORS|SH_UNLOCKED)) )
   { switch(arityFunctor(p->functor))
     { case 0:
-	rc = LDFUNCP(*(property0_t)p->function)(s);
+	rc = LDFUNCP(*p->function0)(s);
 	break;
       case 1:
 	{ term_t a1 = PL_new_term_ref();
@@ -4836,7 +4840,7 @@ unify_stream_property_list(DECL_LD IOSTREAM *s, term_t plist)
 
     switch(arityFunctor(p->functor))
     { case 0:
-	rc = LDFUNCP(*(property0_t)p->function)(s);
+	rc = LDFUNCP(*p->function0)(s);
 	break;
       case 1:
       { term_t a1 = PL_new_term_ref();
@@ -4892,7 +4896,7 @@ unify_stream_property(DECL_LD IOSTREAM *s, const sprop *p, term_t t)
     return FALSE;
   switch(arityFunctor(p->functor))
   { case 0:
-      rc = LDFUNCP(*(property0_t)p->function)(s);
+      rc = LDFUNCP(*p->function0)(s);
       break;
     case 1:
     { term_t a1 = PL_new_term_ref();

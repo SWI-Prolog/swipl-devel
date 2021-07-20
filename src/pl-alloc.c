@@ -1072,31 +1072,7 @@ put_double(DECL_LD Word at, double d, int flags)
 }
 
 
-		 /*******************************
-		 *	  64-BIT INTEGERS	*
-		 *******************************/
-
-#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
-
-int64_t					/* take care of alignment! */
-valBignum(DECL_LD word w)
-{ Word p = valIndirectP(w);
-  union
-  { int64_t i;
-    word w[WORDS_PER_INT64];
-  } val;
-
-#if ( SIZEOF_VOIDP == 4 )
-  val.w[0] = p[0];
-  val.w[1] = p[1];
-#else
-#error "Unsupported int64_t alignment conversion"
-#endif
-
-  return val.i;
-}
-
-#endif
+/* valBignum(DECL_LD word w) moved to pl-inline.h */
 
 		 /*******************************
 		 *  GENERIC INDIRECT OPERATIONS	*

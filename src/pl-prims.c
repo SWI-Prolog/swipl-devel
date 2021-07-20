@@ -1206,12 +1206,9 @@ PL_is_acyclic(DECL_LD term_t t)
 }
 
 
-int
-PL_is_acyclic(term_t t)
-{ GET_LD
-
-  return PL_is_acyclic(t);
-}
+API_STUB(int)
+(PL_is_acyclic)(term_t t)
+( return PL_is_acyclic(t); )
 
 
 static
@@ -5520,12 +5517,9 @@ CStackSize(PL_local_data_t *ld)
 
 #ifdef QP_STATISTICS
 
+#define qp_statistics(key, v) LDFUNC(qp_statistics, key, v)
 static int
-#ifdef O_PLMT
-qp_statistics(atom_t key, int64_t v[], PL_local_data_t *LD)
-#else
-qp_statistics(atom_t key, int64_t v[], PL_local_data_t *ld)
-#endif
+qp_statistics(DECL_LD atom_t key, int64_t v[])
 { int vn;
 
   if ( key == ATOM_runtime )		/* compat: exclude gc-time */
@@ -5626,12 +5620,9 @@ qp_statistics(atom_t key, int64_t v[], PL_local_data_t *ld)
 
 #endif /*QP_STATISTICS*/
 
+#define swi_statistics(key, v) LDFUNC(swi_statistics, key, v)
 static int
-#ifdef O_PLMT
-swi_statistics(atom_t key, Number v, PL_local_data_t *LD)
-#else
-swi_statistics(atom_t key, Number v, PL_local_data_t *ld)
-#endif
+swi_statistics(DECL_LD atom_t key, Number v)
 { v->type = V_INTEGER;			/* most of them */
 
   if      (key == ATOM_cputime)				/* time */
@@ -5781,7 +5772,7 @@ pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
     fail;
 
   if ( !PL_is_list(value) )
-  { switch(swi_statistics(key, &result, ld))
+  { switch(swi_statistics(PASS_AS_LD(ld) key, &result))
     { case TRUE:
 	return PL_unify_number(value, &result);
       case FALSE:
@@ -5792,7 +5783,7 @@ pl_statistics_ld(DECL_LD term_t k, term_t value, PL_local_data_t *ld)
   }
 
 #ifdef QP_STATISTICS
-  if ( (rc=qp_statistics(key, v, ld)) >= 0 )
+  if ( (rc=qp_statistics(PASS_AS_LD(ld) key, v)) >= 0 )
   { int64_t *p;
     term_t tail = PL_copy_term_ref(value);
     term_t head = PL_new_term_ref();

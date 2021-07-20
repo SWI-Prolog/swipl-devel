@@ -53,6 +53,7 @@
 #define	duplicate_term(in, copy)	LDFUNC(duplicate_term, in, copy)
 #define	pl_statistics_ld(k, value, ld)	LDFUNC(pl_statistics_ld, k, value, ld)
 #define	ground(p)			LDFUNC(ground, p)
+#define	PL_same_term(t1, t2)		LDFUNC(PL_same_term, t1, t2)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -84,6 +85,7 @@ int		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);
 int		PL_var_occurs_in(term_t var, term_t value);
 void		raiseInferenceLimitException(void);
+int		PL_same_term(term_t t1, term_t t2);
 
 #undef LDFUNC_DECLARATIONS
 
