@@ -1819,12 +1819,9 @@ PL_get_uint64(term_t t, uint64_t *i)
   return pl_get_uint64(t, i, FALSE);
 }
 
-int
-PL_get_uint64_ex(term_t t, uint64_t *i)
-{ GET_LD
-
-  return pl_get_uint64(t, i, TRUE);
-}
+API_STUB(int)
+(PL_get_uint64_ex)(term_t t, uint64_t *i)
+( return pl_get_uint64(t, i, TRUE); )
 
 int
 PL_get_intptr(term_t t, intptr_t *i)
@@ -2634,12 +2631,9 @@ PL_put_list_chars(term_t t, const char *chars)
 /* PL_put_intptr(DECL_LD term_t t, intptr_t i) moved to pl-fli.h */
 
 
-int
-PL_put_int64(term_t t, int64_t i)
-{ GET_LD
-
-  return PL_put_int64(t, i);
-}
+API_STUB(int)
+(PL_put_int64)(term_t t, int64_t i)
+( return PL_put_int64(t, i); )
 
 int
 PL_put_uint64(term_t t, uint64_t i)
@@ -3629,12 +3623,9 @@ failout:
   return FALSE;
 }
 
-int
-PL_unify_termv(term_t t, va_list args)
-{ GET_LD
-
-  return PL_unify_termv(t, args);
-}
+API_STUB(int)
+(PL_unify_termv)(term_t t, va_list args)
+( return PL_unify_termv(t, args); )
 
 
 int
@@ -3642,11 +3633,7 @@ PL_unify_term(DECL_LD term_t t, ...)
 { va_list args;
   int rval;
 
-#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
-  va_start(args, LOCAL_LD);
-#else
   va_start(args, t);
-#endif
   rval = PL_unify_termv(t, args);
   va_end(args);
 
@@ -3654,10 +3641,9 @@ PL_unify_term(DECL_LD term_t t, ...)
 }
 
 
-int
+API_STUB(int)
 (PL_unify_term)(term_t t, ...)
-{ GET_LD
-  va_list args;
+( va_list args;
   int rval;
 
   va_start(args, t);
@@ -3665,7 +3651,7 @@ int
   va_end(args);
 
   return rval;
-}
+)
 
 #define put_xpce_ref_arg(ref) LDFUNC(put_xpce_ref_arg, ref)
 static inline word

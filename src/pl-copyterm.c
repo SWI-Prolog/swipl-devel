@@ -85,7 +85,7 @@ applications.
 #define visited_once(w) (((w) & BOTH_MASK) == MARK_MASK)
 #define virgin(w)	(!visited(w))
 #define shared(w)	(((w) & BOTH_MASK) == BOTH_MASK)
-#define ground(w)	(((w) & BOTH_MASK) == FIRST_MASK)
+#define is_ground(w)	(((w) & BOTH_MASK) == FIRST_MASK)
 #define set_visited(w)	(w |= MARK_MASK)
 #define set_shared(w)	(w |= BOTH_MASK)
 #define set_ground(w)	(w &= ~MARK_MASK, w |= FIRST_MASK)
@@ -183,7 +183,7 @@ again:
       goto again;
     case TAG_COMPOUND:
     { Functor t = valueTerm(*p);
-      return ground(t->definition);
+      return is_ground(t->definition);
     }
     default:
       return TRUE;
@@ -499,7 +499,7 @@ copy_term(DECL_LD Word from, Word to, size_t abstract, int flags)
 	  continue;
 	}
 
-	if ( ground(ff->definition) )
+	if ( is_ground(ff->definition) )
 	{ *to = *from;
 	  continue;
 	}

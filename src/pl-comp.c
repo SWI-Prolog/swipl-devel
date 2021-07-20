@@ -244,11 +244,11 @@ typedef struct c_warning
 #define is_portable_smallint(w) (tagex(w) == (TAG_INTEGER|STG_INLINE))
 #define is_portable_constant(w) isConst(w)
 #else
+#define is_portable_smallint(w) LDFUNC(is_portable_smallint, w)
 #define is_portable_constant(w) (isAtom(w) || is_portable_smallint(w))
 
 #define PORTABLE_INT_MASK 0xffffffff80000000
 
-#define is_portable_smallint(w) LDFUNC(is_portable_smallint, w)
 static inline int
 is_portable_smallint(DECL_LD word w)
 { if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
@@ -1269,12 +1269,11 @@ forwards int	compileBodyTypeTest(functor_t functor, Word arg,
 				    compileInfo *ci);
 forwards int	compileBodyCallContinuation(Word arg, compileInfo *ci);
 forwards int	compileBodyShift(Word arg, compileInfo *ci, int for_copy);
-
-#undef LDFUNC_DECLARATIONS
-
 static void	initMerge(CompileInfo ci);
 static int	mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c);
 static int	try_fast_condition(CompileInfo ci, size_t tc_or);
+
+#undef LDFUNC_DECLARATIONS
 
 #define isIndexedVarTerm(w) LDFUNC(isIndexedVarTerm, w)
 static inline int
@@ -4933,14 +4932,7 @@ information is recalculated as the constants   may  be different accross
 runs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define valHandle(r) LDFUNC(valHandle, r)
-static inline word
-valHandle(DECL_LD term_t r)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
+/* valHandle(term_t r) moved to pl-inline.h */
 
 bool
 decompileHead(Clause clause, term_t head)

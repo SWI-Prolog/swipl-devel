@@ -215,6 +215,16 @@ void	trie_discard_clause(trie *trie);
 
 #undef LDFUNC_DECLARATIONS
 
+#ifndef NO_TRIE_GEN_HELPERS
+/* The common case is passing in the name of an LDFUNC, so this adds the LDFUNC_REF()
+ * to get proper mangling. To use this without the mangling either define the
+ * NO_TRIE_GEN_HELPERS macro (like pl-trie.c does) or put (trie_gen_raw) in parentheses. */
+#define trie_gen_raw(trie, root, Key, Value, Data, unify_func, ctx, PL__ctx) \
+	trie_gen_raw(trie, root, Key, Value, Data, LDFUNC_REF(unify_func), ctx, PL__ctx)
+#define trie_gen(Trie, Root, Key, Value, Data, unify_func, ctx, PL__ctx) \
+	trie_gen(Trie, Root, Key, Value, Data, LDFUNC_REF(unify_func), ctx, PL__ctx)
+#endif
+
 #define trie_lookup(trie, node, nodep, k, add, vars) LDFUNC(trie_lookup, trie, node, nodep, k, add, vars)
 static inline int
 trie_lookup(DECL_LD trie *trie, trie_node *node, trie_node **nodep,

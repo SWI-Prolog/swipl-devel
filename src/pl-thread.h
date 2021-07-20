@@ -302,18 +302,7 @@ All  thread-local  data  is  combined  in    one  structure  defined  in
 pl-global.h. If Prolog is compiled for single-threading this is a simple
 global variable and the macro LD is defined   to  pick up the address of
 this variable. In multithreaded context,  POSIX pthread_getspecific() is
-used to get separate versions for each  thread. Functions uisng LD often
-may wish to write:
-
-<header>
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
-  ...
-
-#undef LD
-#define LD GLOBAL_LD
-}
+used to get separate versions for each thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
@@ -472,7 +461,10 @@ void	resumeThreads(void);
 void	markAtomsMessageQueues(void);
 void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
+#define acquire_ldata(info)	LDFUNC(acquire_ldata, info)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
+/* defined in pl-inline.h */
+static inline PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
 
 		 /*******************************
 		 *     CONDITION VARIABLES	*
@@ -557,6 +549,10 @@ foreign_t	pl_thread_self(term_t self);
 
 typedef struct
 { functor_t functor;			/* functor of property */
+  /* FIXME: we should not be storing function pointers with
+   * incomplete prototypes! WASM in particular cannot call a
+   * function unless it has a full, correct prototype
+   */
   int (*function)();			/* function to generate */
 } tprop;
 

@@ -3986,6 +3986,7 @@ seed_random(DECL_LD)
 
 #else /* O_GMP */
 
+#define seed_random(_) LDFUNC(seed_random, _)
 static void
 seed_random(DECL_LD)
 { setRandom(NULL);

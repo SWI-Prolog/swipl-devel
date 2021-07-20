@@ -317,7 +317,7 @@ stopProfiler(void)
     ld->profile.time += tend - ld->profile.time_at_start;
 
     stopItimer();
-    activateProfiler(PROF_INACTIVE PASS_LDARG(ld));
+    WITH_LD(ld) activateProfiler(PROF_INACTIVE);
 #ifndef __WINDOWS__
     set_sighandler(timer_signal, SIG_IGN);
     timer_signal = 0;

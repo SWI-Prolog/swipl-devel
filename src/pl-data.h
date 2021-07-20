@@ -297,15 +297,7 @@ and while loading .wic files.  It comes at no price.
 
 #define MP_RAT_MASK	(0x1)
 
-#if ALIGNOF_INT64_T == ALIGNOF_VOIDP
-#define valBignum(w)	(*(int64_t *)valIndirectP(w))
-#else
-#endif
-#if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
-#define valFloat(w)	(*(double *)valIndirectP(w))
-#else
-#endif
-
+/* valBignum(w) and valFloat(w) moved to pl-inline.h */
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
 #define isWString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'W')
 

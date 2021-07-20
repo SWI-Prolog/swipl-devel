@@ -34,6 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-incl.h"
+
 #ifndef PL_ALLOC_H_INCLUDED
 #define PL_ALLOC_H_INCLUDED
 
@@ -100,7 +102,6 @@ void	free_lingering(linger_list **list, gen_t generation);
 #define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
 #define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
 #define	put_int64(p, i, flags)			LDFUNC(put_int64, p, i, flags)
-#define	valBignum(w)				LDFUNC(valBignum, w)
 #define	VM_globalIndirectFromCode(pc)		LDFUNC(VM_globalIndirectFromCode, pc)
 #define	VM_equalIndirectFromCode(a, pc)		LDFUNC(VM_equalIndirectFromCode, a, pc)
 #endif /*USE_LD_MACROS*/
@@ -132,11 +133,10 @@ pl_wchar_t *	getCharsWString(word w, size_t *len);
 Word		newTerm(void);
 int		put_double(Word p, double f, int flags);
 int		put_int64(Word p, int64_t i, int flags);
-#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
-int64_t		valBignum(word w);
-#endif
+/* valBignum(word w) moved to pl-inline.h */
 int		equalIndirect(word r1, word r2);
-ALLOC_INLINE size_t	gsizeIndirectFromCode(Code PC);
+ALLOC_INLINE
+size_t		gsizeIndirectFromCode(Code PC);
 word		globalIndirectFromCode(Code *PC);
 void *		tmp_malloc(size_t req);
 void *		tmp_realloc(void *mem, size_t req);

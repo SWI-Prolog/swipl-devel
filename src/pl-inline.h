@@ -35,8 +35,6 @@
 
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
-#undef LD
-#define LD LOCAL_LD
 
 #ifdef __WINDOWS__
   #include <windows.h>
@@ -416,7 +414,9 @@ f_consPtr(DECL_LD void *p, uintptr_t base, word ts)
 }
 
 
-#if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
+#if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
+#define valFloat(w) (*(double *)valIndirectP(w))
+#else
 #define valFloat(w) LDFUNC(valFloat, w)
 static inline double
 valFloat(DECL_LD word w)
@@ -427,6 +427,41 @@ valFloat(DECL_LD word w)
   return d;
 }
 #endif
+
+
+#if ALIGNOF_INT64_T == ALIGNOF_VOIDP
+#define valBignum(w) (*(int64_t *)valIndirectP(w))
+#else
+#define valBignum(w) LDFUNC(valBignum, w)
+static inline int64_t
+valBignum(DECL_LD word w)
+{ Word p = valIndirectP(w);
+  union
+  { int64_t i;
+    word w[WORDS_PER_INT64];
+  } val;
+
+#if ( SIZEOF_VOIDP == 4 )
+  val.w[0] = p[0];
+  val.w[1] = p[1];
+#else
+#error "Unsupported int64_t alignment conversion"
+#endif
+
+  return val.i;
+}
+#endif
+
+
+#define valHandle(r) LDFUNC(valHandle, r)
+static inline word
+valHandle(DECL_LD term_t r)
+{ Word p = valTermRef(r);
+
+  deRef(p);
+  return *p;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 linkValI(p)  is  an  inlined  version  of  linkVal()  that  assumes  the

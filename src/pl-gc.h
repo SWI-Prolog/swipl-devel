@@ -47,6 +47,8 @@
 #if USE_LD_MACROS
 #define	f_ensureStackSpace(gcells, tcells, flags)	LDFUNC(f_ensureStackSpace, gcells, tcells, flags)
 #define	growLocalSpace(bytes, flags)			LDFUNC(growLocalSpace, bytes, flags)
+#define	blockGC(flags)					LDFUNC(blockGC, flags)
+#define	unblockGC(flags)				LDFUNC(unblockGC, flags)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -83,8 +85,12 @@ bool		scan_global(int marked);
 char *		print_addr(Word p, char *buf);
 char *		print_val(word w, char *buf);
 #endif
+void		blockGC(int flags);	/* disallow garbage collect */
+void		unblockGC(int flags);	/* re-allow garbage collect */
 
 #undef LDFUNC_DECLARATIONS
+
+/* Convenience macros */
 
 #define ensureLocalSpace(n)	likely(ensureLocalSpace_ex(n))
 #define ensureGlobalSpace(n,f)  likely(ensureStackSpace_ex(n,0,f))

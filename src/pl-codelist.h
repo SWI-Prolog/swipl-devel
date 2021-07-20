@@ -45,18 +45,10 @@ pl-file.c. These functions are used in pl-text.c.
 		 *	    (CODE) LISTS	*
 		 *******************************/
 
+#ifndef setHandle
 #define setHandle(h, w)		(*valTermRef(h) = (w))
-
-#define valHandle(r) LDFUNC(valHandle, r)
-static inline word
-valHandle(DECL_LD term_t r)
-{ Word p = valTermRef(r);
-
-  deRef(p);
-  return *p;
-}
-
-
+#endif
+/* valHandle(term_t r) moved to pl-inline.h */
 
 
 #define INIT_SEQ_STRING(n) LDFUNC(INIT_SEQ_STRING, n)

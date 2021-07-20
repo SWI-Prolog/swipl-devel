@@ -68,7 +68,6 @@ typedef struct
 
 #if USE_LD_MACROS
 #define	PL_get_text(l, text, flags)	LDFUNC(PL_get_text, l, text, flags)
-#define	get_string_text(atom, text)	LDFUNC(get_string_text, atom, text)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -95,11 +94,11 @@ word		textToString(PL_chars_t *text);
 IOSTREAM *	Sopen_text(PL_chars_t *text, const char *mode);
 int		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
-					/* pl-fli.c */
-int		get_atom_ptr_text(Atom atom, PL_chars_t *text);
-int		get_atom_text(atom_t atom, PL_chars_t *text);
-int		get_string_text(atom_t atom, PL_chars_t *text);
-
+/* Moved to pl-fli.c:
+ int get_atom_ptr_text(Atom atom, PL_chars_t *text);
+ int get_atom_text(atom_t atom, PL_chars_t *text);
+ int get_string_text(atom_t atom, PL_chars_t *text);
+*/
 #undef LDFUNC_DECLARATIONS
 
 static inline int
