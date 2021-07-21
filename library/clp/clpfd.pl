@@ -132,7 +132,8 @@
                   fd_inf/2,
                   fd_sup/2,
                   fd_size/2,
-                  fd_dom/2
+                  fd_dom/2,
+                  fd_degree/2
                  ]).
 
 :- public                               % called from goal_expansion
@@ -7230,6 +7231,14 @@ fd_dom(X, Drep) :-
         ;   must_be(integer, X),
             Drep = X..X
         ).
+
+%% fd_degree(+Var, -Degree) is det.
+%
+%  Degree is the number of constraints currently attached to Var.
+
+fd_degree(X, Degree) :-
+        fd_get(X, _, Ps),
+        props_number(Ps, Degree).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Entailment detection. Subject to change.
