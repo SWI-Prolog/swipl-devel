@@ -861,6 +861,7 @@ analyzers and declarative debuggers.
   * [[fd_sup/2]]
   * [[fd_size/2]]
   * [[fd_dom/2]]
+  * [[fd_degree/2]]
 
 
 ## Closing and opening words about CLP(FD) {#clpfd-closing-opening}
