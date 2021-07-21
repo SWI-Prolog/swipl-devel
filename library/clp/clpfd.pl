@@ -90,6 +90,7 @@
                   op(700, xfx, #\=),
                   op(700, xfx, in),
                   op(700, xfx, ins),
+                  op(700, xfx, in_set),
                   op(450, xfx, ..), % should bind more tightly than \/
                   (#>)/2,
                   (#<)/2,
@@ -133,7 +134,35 @@
                   fd_sup/2,
                   fd_size/2,
                   fd_dom/2,
-                  fd_degree/2
+                  fd_degree/2,
+                                        % SICStus compatible fd_set API
+                  (in_set)/2,
+                  fd_set/2,
+                  is_fdset/1,
+                  empty_fdset/1,
+                  fdset_parts/4,
+                  empty_interval/2,
+                  fdset_interval/3,
+                  fdset_singleton/2,
+                  fdset_min/2,
+                  fdset_max/2,
+                  fdset_size/2,
+                  list_to_fdset/2,
+                  fdset_to_list/2,
+                  range_to_fdset/2,
+                  fdset_to_range/2,
+                  fdset_add_element/3,
+                  fdset_del_element/3,
+                  fdset_disjoint/2,
+                  fdset_intersect/2,
+                  fdset_intersection/3,
+                  fdset_member/2,
+                  fdset_eq/2,
+                  fdset_subset/2,
+                  fdset_subtract/3,
+                  fdset_union/3,
+                  fdset_union/2,
+                  fdset_complement/2
                  ]).
 
 :- public                               % called from goal_expansion
@@ -781,9 +810,9 @@ CLP(Q) which reason about _linear_ constraints over rational numbers.
 
 ## Reification				{#clpfd-reification}
 
-The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
-_reified_, which means reflecting their truth values into Boolean
-values represented by the integers 0 and 1. Let P and Q denote
+The constraints in/2, in_set/2, #=/2, #\=/2, #</2, #>/2, #=</2, and
+#>=/2 can be _reified_, which means reflecting their truth values into
+Boolean values represented by the integers 0 and 1. Let P and Q denote
 reifiable constraints or Boolean variables, then:
 
     | #\ Q      | True iff Q is false                  |
@@ -3492,6 +3521,7 @@ reifiable(E)      :- integer(E), E in 0..1.
 reifiable(?(E))   :- must_be_fd_integer(E).
 reifiable(#(E))   :- must_be_fd_integer(E).
 reifiable(V in _) :- fd_variable(V).
+reifiable(V in_set _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
@@ -3514,6 +3544,9 @@ reify_(?(B), B) --> [].
 reify_(#(B), B) --> [].
 reify_(V in Drep, B) -->
         { drep_to_domain(Drep, Dom) },
+        propagator_init_trigger(reified_in(V,Dom,B)),
+        a(B).
+reify_(V in_set Dom, B) -->
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
 reify_(tuples_in(Tuples, Relation), B) -->
@@ -7239,6 +7272,288 @@ fd_dom(X, Drep) :-
 fd_degree(X, Degree) :-
         fd_get(X, _, Ps),
         props_number(Ps, Degree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   FD set predicates
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Note: The predicate names and "FD set" terminology are used for
+   compatibility/consistency with SICStus Prolog's library(clpfd).
+   Outside of these predicates, the SWI-Prolog CLP(FD) implementation
+   refers to an "FD set" as simply a "domain". The human-readable domain
+   notation used by (is)/2, fd_dom/2, etc. is called a "ConstantRange"
+   by SICStus and a "drep" internally by SWI.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% ?Var in_set +Set is nondet.
+%
+%  Var is an element of the FD set Set.
+
+X in_set Set :- domain(X, Set).
+
+%% fd_set(?Var, -Set) is det.
+%
+%  Set is the FD set representation of the current domain of Var.
+
+fd_set(X, Set) :- fd_get(X, Set, _).
+
+%% is_fdset(@Set) is semidet.
+%
+%  Set is currently bound to a valid FD set.
+
+is_fdset(Set) :-
+        nonvar(Set),
+        is_domain(Set).
+
+%% empty_fdset(-Set) is det.
+%
+%  Set is the empty FD set.
+
+empty_fdset(empty).
+
+%% fdset_parts(?Set, ?Min, ?Max, ?Rest) is semidet.
+%
+%  Set is a non-empty FD set representing the domain Min..Max \/ Rest,
+%  where Min..Max is a non-empty interval (see fdset_interval/3)
+%  and Rest is another FD set (possibly empty).
+%
+%  If Max is *sup*, then Rest is the empty FD set. Otherwise, if Rest
+%  is non-empty, all elements of Rest are greater than Max+1.
+%
+%  This predicate should only be called with either Set or all other
+%  arguments being ground.
+
+% Single interval case for both modes.
+fdset_parts(from_to(CMin, CMax), Min, Max, empty) :-
+        !,
+        fdset_interval(from_to(CMin, CMax), Min, Max).
+% Split domain case for mode (-,+,+,+).
+fdset_parts(Set, Min, Max, Rest) :-
+        var(Set),
+        !,
+        Set = split(Hole, Left, Rest),
+        fdset_interval(Left, Min, Max),
+        % Rest is not empty, so Max cannot be sup, because all elements
+        % of Rest must be greater than Max.
+        Max \== sup,
+        Hole is Max + 1,
+        % Ensure that Min..Max is less than and not adjacent to Rest.
+        all_greater_than(Rest, Hole).
+% Special case for mode (+,-,-,-) for split domain with empty left side.
+% (The code for the common case would silently fail here.)
+fdset_parts(split(_, empty, Right), Min, Max, Rest) :-
+        !,
+        fdset_parts(Right, Min, Max, Rest).
+% Finally, handle all other split domains for mode (+,-,-,-).
+fdset_parts(split(Hole, Left, Right), Min, Max, Rest) :-
+        fdset_parts(Left, Min, Max, LeftRest),
+        (   LeftRest == empty
+        ->  Rest = Right
+        ;   Rest = split(Hole, LeftRest, Right)
+        ).
+
+%% empty_interval(+Min, +Max) is semidet.
+%
+%  Min..Max is an empty interval. Min and Max are integers or one of the
+%  atoms *inf* or *sup*.
+
+empty_interval(inf, inf) :- !.
+empty_interval(sup, inf) :- !.
+empty_interval(sup, sup) :- !.
+empty_interval(Min, Max) :-
+        Min \== inf,
+        Max \== sup,
+        Min > Max.
+
+%% fdset_interval(?Interval, ?Min, ?Max) is semidet.
+%
+%  Interval is a non-empty FD set consisting of the single interval
+%  Min..Max.
+%  Min is an integer or the atom *inf* to denote negative infinity.
+%  Max is an integer or the atom *sup* to denote positive infinity.
+%
+%  Either Interval or Min and Max must be ground.
+
+fdset_interval(from_to(inf, sup), inf, sup) :- !.
+fdset_interval(from_to(inf, n(Max)), inf, Max) :-
+        !,
+        integer(Max).
+fdset_interval(from_to(n(Min), sup), Min, sup) :-
+        !,
+        integer(Min).
+fdset_interval(from_to(n(Min), n(Max)), Min, Max) :-
+        integer(Min),
+        integer(Max),
+        Min =< Max.
+
+%% fdset_singleton(?Set, ?Elt) is semidet.
+%
+%  Set is the FD set containing the single integer Elt.
+%
+%  Either Set or Elt must be ground.
+
+fdset_singleton(Set, Elt) :- fdset_interval(Set, Elt, Elt).
+
+%% fdset_min(+Set, -Min) is semidet.
+%
+%  Min is the lower bound (infimum) of the non-empty FD set Set.
+%  Min is an integer or the atom *inf* if Set has no lower bound.
+
+fdset_min(Set, Min) :-
+        domain_infimum(Set, CMin),
+        bound_portray(CMin, Min).
+
+%% fdset_max(+Set, -Max) is semidet.
+%
+%  Max is the upper bound (supremum) of the non-empty FD set Set.
+%  Max is an integer or the atom *sup* if Set has no upper bound.
+
+fdset_max(Set, Max) :-
+        domain_supremum(Set, CMax),
+        bound_portray(CMax, Max).
+
+%% fdset_size(+Set, -Size) is det.
+%
+%  Size is the number of elements of the FD set Set, or the atom *sup*
+%  if Set is infinite.
+
+fdset_size(Set, Size) :-
+        domain_num_elements(Set, CSize),
+        bound_portray(CSize, Size).
+
+%% list_to_fdset(+List, -Set) is det.
+%
+%  Set is an FD set containing all elements of List, which must be a
+%  list of integers.
+
+list_to_fdset(List, Set) :- list_to_domain(List, Set).
+
+%% fdset_to_list(+Set, -List) is det.
+%
+%  List is a list containing all elements of the finite FD set Set,
+%  in ascending order.
+
+fdset_to_list(Set, List) :- domain_to_list(Set, List).
+
+%% range_to_fdset(+Domain, -Set) is det.
+%
+%  Set is an FD set equivalent to the domain Domain. Domain uses the
+%  same syntax as accepted by (in)/2.
+
+range_to_fdset(Domain, Set) :- drep_to_domain(Domain, Set).
+
+%% fdset_to_range(+Set, -Domain) is det.
+%
+%  Domain is a domain equivalent to the FD set Set. Domain is returned
+%  in the same format as by fd_dom/2.
+
+fdset_to_range(empty, 1..0) :- !.
+fdset_to_range(Set, Domain) :- domain_to_drep(Set, Domain).
+
+%% fdset_add_element(+Set1, +Elt, -Set2) is det.
+%
+%  Set2 is the same FD set as Set1, but with the integer Elt added.
+%  If Elt is already in Set1, the set is returned unchanged.
+
+fdset_add_element(Set1, Elt, Set2) :-
+        fdset_singleton(EltSet, Elt),
+        domains_union(Set1, EltSet, Set2).
+
+%% fdset_del_element(+Set1, +Elt, -Set2) is det.
+%
+%  Set2 is the same FD set as Set1, but with the integer Elt removed.
+%  If Elt is not in Set1, the set returned unchanged.
+
+fdset_del_element(Set1, Elt, Set2) :- domain_remove(Set1, Elt, Set2).
+
+%% fdset_disjoint(+Set1, +Set2) is semidet.
+%
+%  The FD sets Set1 and Set2 have no elements in common.
+
+fdset_disjoint(Set1, Set2) :- \+ fdset_intersect(Set1, Set2).
+
+%% fdset_intersect(+Set1, +Set2) is semidet.
+%
+%  The FD sets Set1 and Set2 have at least one element in common.
+
+fdset_intersect(Set1, Set2) :- domains_intersection(Set1, Set2, _).
+
+%% fdset_intersection(+Set1, +Set2, -Intersection) is det.
+%
+%  Intersection is an FD set (possibly empty) of all elements that the
+%  FD sets Set1 and Set2 have in common.
+
+fdset_intersection(Set1, Set2, Intersection) :-
+        domains_intersection_(Set1, Set2, Intersection).
+
+%% fdset_member(?Elt, +Set) is nondet.
+%
+%  The integer Elt is a member of the FD set Set. If Elt is unbound,
+%  Set must be finite and all elements are enumerated on backtracking.
+
+fdset_member(Elt, Set) :-
+        (   var(Elt)
+        ->  domain_direction_element(Set, up, Elt)
+        ;   integer(Elt),
+            domain_contains(Set, Elt)
+        ).
+
+%% fdset_eq(+Set1, +Set2) is semidet.
+%
+%  True if the FD sets Set1 and Set2 are equal, i. e. contain exactly
+%  the same elements. This is not necessarily the same as unification or
+%  a term equality check, because some FD sets have multiple possible
+%  term representations.
+
+fdset_eq(empty, empty) :- !.
+fdset_eq(Set1, Set2) :-
+        fdset_parts(Set1, Min, Max, Rest1),
+        fdset_parts(Set2, Min, Max, Rest2),
+        fdset_eq(Rest1, Rest2).
+
+%% fdset_subset(+Set1, +Set2) is semidet.
+%
+%  The FD set Set1 is a (non-strict) subset of Set2, i. e. every element
+%  of Set1 is also in Set2.
+
+fdset_subset(Set1, Set2) :- domain_subdomain(Set2, Set1).
+
+%% fdset_subtract(+Set1, +Set2, -Difference) is det.
+%
+%  The FD set Difference is Set1 with all elements of Set2 removed,
+%  i. e. the set difference of Set1 and Set2.
+
+fdset_subtract(Set1, Set2, Difference) :-
+        domain_subtract(Set1, Set2, Difference).
+
+%% fdset_union(+Set1, +Set2, -Union) is det.
+%
+%  The FD set Union is the union of FD sets Set1 and Set2.
+
+fdset_union(Set1, Set2, Union) :- domains_union(Set1, Set2, Union).
+
+%% fdset_union(+Sets, -Union) is det.
+%
+%  The FD set Union is the n-ary union of all FD sets in the list Sets.
+%  If Sets is empty, Union is the empty FD set.
+
+fdset_union([], empty).
+fdset_union([Set|Sets], Union) :- fdset_union_(Sets, Set, Union).
+
+fdset_union_([], Set, Set).
+fdset_union_([Set2|Sets], Set1, Union) :-
+        domains_union(Set1, Set2, SetTemp),
+        fdset_union_(Sets, SetTemp, Union).
+
+%% fdset_complement(+Set, -Complement) is det.
+%
+%  The FD set Complement is the complement of the FD set Set.
+%  Equivalent to fdset_subtract(inf..sup, Set, Complement).
+
+fdset_complement(Set, Complement) :- domain_complement(Set, Complement).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Entailment detection. Subject to change.
