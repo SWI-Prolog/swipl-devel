@@ -139,7 +139,7 @@ NOTE:	If the assert() fails, look at pl-wam.c: VMI(C_NOT, ... for
 
 #if VMCODE_IS_ADDRESS
 void
-initWamTable(void)
+initWamTable(DECL_LD)
 { unsigned int n;
   code maxcoded, mincoded;
 
@@ -186,7 +186,7 @@ initWamTable(void)
 #else /* VMCODE_IS_ADDRESS */
 
 void
-initWamTable()
+initWamTable(DECL_LD)
 { checkCodeTable();
   initSupervisors();
   initVMIMerge();

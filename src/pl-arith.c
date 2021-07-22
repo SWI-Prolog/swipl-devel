@@ -3952,9 +3952,6 @@ seed_from_crypt_context(DECL_LD)
 
   return TRUE;
 #else
-#ifdef O_PLMT
-  (void)__PL_ld;
-#endif
   return FALSE;
 #endif
 }

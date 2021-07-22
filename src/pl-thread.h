@@ -443,7 +443,6 @@ int		PL_mutex_unlock(struct pl_mutex *m);
 int		PL_thread_raise(int tid, int sig);
 void		cleanupThreads(void);
 intptr_t	system_thread_id(PL_thread_info_t *info);
-double	        ThreadCPUTime(PL_local_data_t *ld, int which);
 void		get_current_timespec(struct timespec *time);
 void	        carry_timespec_nanos(struct timespec *time);
 int		signal_waiting_threads(Module m, thread_wait_channel *wch);
@@ -534,8 +533,6 @@ int	cv_timedwait(message_queue *queue,
 #define acquire_ldata(ld)	(ld)
 #define release_ldata(ld)	(void)0
 
-double	        ThreadCPUTime(PL_local_data_t *ld, int which);
-
 #endif /*O_PLMT*/
 
 		 /*******************************
@@ -562,6 +559,7 @@ typedef struct
 #define	popNPredicateAccess(n)		LDFUNC(popNPredicateAccess, n)
 #define	cgc_thread_stats(stats)		LDFUNC(cgc_thread_stats, stats)
 #define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
+#define	ThreadCPUTime(which)		LDFUNC(ThreadCPUTime, which)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -582,6 +580,7 @@ void		markAccessedPredicates(PL_local_data_t *ld);
 int		cgc_thread_stats(cgc_stats *stats);
 int		signalGCThread(int sig);
 int		isSignalledGCThread(int sig);
+double	        ThreadCPUTime(int which);
 
 #undef LDFUNC_DECLARATIONS
 

@@ -232,20 +232,14 @@ dict_ordered(DECL_LD Word data, int count, Word dupl)
 }
 
 
-#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
-#define GET_LDARG(x) PL_local_data_t *__PL_ld = (x)
-#else
-#define GET_LDARG(x)
-#endif
-
 static int
 compare_dict_entry(const void *a, const void *b, void *arg)
-{ GET_LDARG(arg);
-  Word p = (Word)a+1;
+{ Word p = (Word)a+1;
   Word q = (Word)b+1;
-
-  deRef(p);
-  deRef(q);
+  WITH_LD(arg)
+  { deRef(p);
+    deRef(q);
+  }
   return (*p<*q ? -1 : *p>*q ? 1 : 0);
 }
 
@@ -275,13 +269,17 @@ typedef struct order_term_refs
 } order_term_refs;
 
 
+#define compare_term_refs(ip1, ip2, ctx) LDFUNC(compare_term_refs, ip1, ip2, ctx)
+static inline int compare_term_refs(DECL_LD const int *ip1, const int *ip2, order_term_refs *ctx);
+
 static int
-compare_term_refs(const void *a, const void *b, void *arg)
-{ const int *ip1 = a;
-  const int *ip2 = b;
-  order_term_refs *ctx = arg;
-  GET_LDARG(ctx->ld);
-  Word p = valTermRef(ctx->av[*ip1*2]);
+(compare_term_refs)(const void *a, const void *b, void *arg)
+{ return compare_term_refs(PASS_AS_LD(((order_term_refs*)arg)->ld) a, b, arg);
+}
+
+static inline int
+compare_term_refs(DECL_LD const int *ip1, const int *ip2, order_term_refs *ctx)
+{ Word p = valTermRef(ctx->av[*ip1*2]);
   Word q = valTermRef(ctx->av[*ip2*2]);
 
   assert(!isRef(*p));
@@ -787,13 +785,17 @@ typedef struct cmp_dict_index_data
   PL_local_data_t *ld;
 } cmp_dict_index_data;
 
+#define cmp_dict_index(ip1, ip2, ctx) LDFUNC(cmp_dict_index, ip1, ip2, ctx)
+static inline int cmp_dict_index(DECL_LD const int *ip1, const int *ip2, cmp_dict_index_data *ctx);
+
 static int
-cmp_dict_index(const void *a1, const void *a2, void *arg)
-{ int *ip1 = (int*)a1;
-  int *ip2 = (int*)a2;
-  cmp_dict_index_data *ctx = arg;
-  GET_LDARG(ctx->ld);
-  Word p = &ctx->data[*ip1*2+1];
+(cmp_dict_index)(const void *a1, const void *a2, void *arg)
+{ return cmp_dict_index(PASS_AS_LD(((cmp_dict_index_data*)arg)->ld) a1, a2, arg);
+}
+
+static inline int
+cmp_dict_index(DECL_LD const int *ip1, const int *ip2, cmp_dict_index_data *ctx)
+{ Word p = &ctx->data[*ip1*2+1];
   Word q = &ctx->data[*ip2*2+1];
   int rc;
 
@@ -821,12 +823,11 @@ cmp_dict_index(const void *a1, const void *a2, void *arg)
 
 
 int
-PL_for_dict(term_t dict,
-	   int (*func)(term_t key, term_t value, int last, void *closure),
+pl_for_dict(DECL_LD term_t dict,
+	   int LDFUNCP (*func)(DECL_LD term_t key, term_t value, int last, void *closure),
 	   void *closure,
 	   int flags)
-{ GET_LD
-  term_t av = PL_new_term_refs(2);
+{ term_t av = PL_new_term_refs(2);
   int i, arity, pairs;
   Word p = valTermRef(dict);
   int index_buf[256];
@@ -870,7 +871,7 @@ PL_for_dict(term_t dict,
     *valTermRef(av+0) = linkValI(&f->arguments[in+1]);
     *valTermRef(av+1) = linkValI(&f->arguments[in]);
 
-    if ( (rc=(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
+    if ( (rc=LDFUNCP(*func)(av+0, av+1, ++i == pairs, closure)) != 0 )
       break;
   }
 
@@ -1342,11 +1343,11 @@ typedef struct dict_pairs_ctx
   term_t tmp;
 } dict_pairs_ctx;
 
+#define put_pair(key, value, last, closure) LDFUNC(put_pair, key, value, last, closure)
 
 static int
-put_pair(term_t key, term_t value, int last, void *closure)
+put_pair(DECL_LD term_t key, term_t value, int last, void *closure)
 { dict_pairs_ctx *ctx = closure;
-  GET_LDARG(ctx->ld);
 
   if ( PL_cons_functor(ctx->tmp, FUNCTOR_minus2, key, value) &&
        PL_unify_list_ex(ctx->tail, ctx->head, ctx->tail) &&
@@ -1355,8 +1356,6 @@ put_pair(term_t key, term_t value, int last, void *closure)
 
   return -1;
 }
-
-#undef GET_LDARG
 
 
 static

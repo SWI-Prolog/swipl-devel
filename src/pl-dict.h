@@ -40,6 +40,7 @@
 #define DICT_SORTED	0x1		/* Sort dict entries */
 
 #if USE_LD_MACROS
+#define	pl_for_dict(dict, func, closure, flags)	LDFUNC(pl_for_dict, dict, func, closure, flags)
 #define	dict_order(dict, dupl)			LDFUNC(dict_order, dict, dupl)
 #define	dict_order_term_refs(av, indexes, cnt)	LDFUNC(dict_order_term_refs, av, indexes, cnt)
 #define	dict_lookup_ptr(dict, name)		LDFUNC(dict_lookup_ptr, dict, name)
@@ -48,8 +49,8 @@
 #define LDFUNC_DECLARATIONS
 
 int	PL_is_dict(term_t t);
-int	PL_for_dict(term_t dict,
-		   int (*func)(term_t key,
+int	pl_for_dict(term_t dict,
+		   int LDFUNCP (*func)(term_t key,
 			       term_t value,
 			       int last,
 			       void *closure),
@@ -64,6 +65,8 @@ int	  resortDictsInClause(Clause clause);
 void	  resortDictsInTerm(term_t t);
 
 #undef LDFUNC_DECLARATIONS
+
+#define PL_for_dict(dict, funcname, closure, flags) pl_for_dict(dict, LDFUNC_REF(funcname), closure, flags)
 
 #define termIsDict(w) LDFUNC(termIsDict, w)
 static inline int

@@ -399,11 +399,14 @@ extern struct {char *engine;} *PL__ctx;
 #define HAS_LD (1)
 
 #if USE_LD_MACROS
-# define WITH_LD(_) (~error_no_multi_engine_support~)
-# define PASS_AS_LD(_) (~error_no_multi_engine_support~)
+/* There are reasons why one might use WITH_LD or PASS_AS_LD in code written for single- or multi-engine */
+# define WITH_LD(_) for (int i=0; i < 1; i++)	
+# define PASS_AS_LD(_) 				
 #else
+/* For type-checking in static analysis */
+static inline int pass_as_ld_helper(PL_local_data_t *ld) {return 0;}
 # define WITH_LD(ld) for(PL_local_data_t *__ignore_ld=(ld), *__loopctr = NULL; !__loopctr; __loopctr++)
-# define PASS_AS_LD(_)
+# define PASS_AS_LD(ld) pass_as_ld_helper(ld) +
 #endif
 
 #endif
