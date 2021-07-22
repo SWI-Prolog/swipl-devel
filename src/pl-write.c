@@ -1485,9 +1485,10 @@ isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
   return FALSE;
 }
 
+#define writeDictPair(name, value, last, closure) LDFUNC(writeDictPair, name, value, last, closure)
 
 static int
-writeDictPair(term_t name, term_t value, int last, void *closure)
+writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
 { write_options *options = closure;
 
   if ( writeTerm(name, 1200, options) &&

@@ -53,9 +53,19 @@
 
 #define PROFTYPE_MAGIC 0x639a2fb1
 
+#if USE_LD_MACROS
+#define	profile(count)		LDFUNC(profile, count)
+#define	thread_prof_ticks(_)	LDFUNC(thread_prof_ticks, _)
+#endif
+
+#define LDFUNC_DECLARATIONS
+
 static int  identify_def(term_t t, void *handle);
 static int  get_def(term_t t, void **handle);
-static void profile(intptr_t count, PL_local_data_t *__PL_ld);
+static void profile(intptr_t count);
+static int  thread_prof_ticks(void);
+
+#undef LDFUNC_DECLARATIONS
 
 static PL_prof_type_t prof_default_type =
 { identify_def,					/* unify a Definition */
@@ -95,6 +105,9 @@ static void	collectSiblingsTime(void);
 
 #undef LDFUNC_DECLARATIONS
 
+#define WITH_LD_IF_PROFILING(_)		WITH_LD(GD->profile.thread) if(LD _)
+#define WITH_LD_IF_PROFILING_AND(cond)	WITH_LD_IF_PROFILING( && (cond))
+
 int
 activateProfiler(DECL_LD prof_status active)
 { int i;
@@ -125,7 +138,7 @@ activateProfiler(DECL_LD prof_status active)
   if ( active )
   { LD->profile.time_at_last_tick =
     LD->profile.time_at_start     = active == PROF_CPU
-					? ThreadCPUTime(LD, CPU_USER)
+					? ThreadCPUTime(CPU_USER)
 					: WallTime();
 
     GD->profile.thread = LD;
@@ -144,12 +157,12 @@ activateProfiler(DECL_LD prof_status active)
 
 
 static int
-thread_prof_ticks(PL_local_data_t *ld)
-{ double t0 = ld->profile.time_at_last_tick;
-  double t1 = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+thread_prof_ticks(DECL_LD)
+{ double t0 = LD->profile.time_at_last_tick;
+  double t1 = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
 				             : WallTime();
 
-  ld->profile.time_at_last_tick = t1;
+  LD->profile.time_at_last_tick = t1;
 
   DEBUG(MSG_PROF_TICKS,
 	Sdprintf("%d ms\n", (int)((t1-t0)*1000.0)));
@@ -172,16 +185,14 @@ typedef DWORD DWORD_PTR;
 
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
-{ PL_local_data_t *ld;
-
-  if ( (ld=GD->profile.thread) )
+{ WITH_LD_IF_PROFILING()
   { int newticks;
 
-    if ( (newticks = thread_prof_ticks(ld)) )
+    if ( (newticks = thread_prof_ticks()) )
     { if ( newticks < 0 )			/* Windows 95/98/... */
 	newticks = 1;
     }
-    profile(newticks, ld);
+    profile(newticks);
   }
 }
 
@@ -238,21 +249,20 @@ static int timer_signal;		/* SIG* */
 
 static void
 sig_profile(int sig)
-{ PL_local_data_t *ld;
-  (void)sig;
+{ (void)sig;
 
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, sig_profile);
 #endif
 
-  if ( (ld=GD->profile.thread) )
+  WITH_LD_IF_PROFILING()
   { int newticks;
 
-    if ( (newticks = thread_prof_ticks(ld)) )
+    if ( (newticks = thread_prof_ticks()) )
     { if ( newticks < 0 )			/* Windows 95/98/... */
 	newticks = 1;
     }
-    profile(newticks, ld);
+    profile(newticks);
   }
 }
 
@@ -307,17 +317,14 @@ stopItimer(void)
 
 static int
 stopProfiler(void)
-{ PL_local_data_t *ld;
-
-  if ( (ld=GD->profile.thread) &&
-       ld->profile.active )
-  { double tend = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+{ WITH_LD_IF_PROFILING_AND(LD->profile.active)
+  { double tend = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
 						 : WallTime();
 
-    ld->profile.time += tend - ld->profile.time_at_start;
+    LD->profile.time += tend - LD->profile.time_at_start;
 
     stopItimer();
-    WITH_LD(ld) activateProfiler(PROF_INACTIVE);
+    activateProfiler(PROF_INACTIVE);
 #ifndef __WINDOWS__
     set_sighandler(timer_signal, SIG_IGN);
     timer_signal = 0;
@@ -835,8 +842,14 @@ PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 		 *	       RESET		*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define prof_clear_environments(fr) LDFUNC(prof_clear_environments, fr)
+#define prof_clear_choicepoints(ch) LDFUNC(prof_clear_choicepoints, ch)
+#define prof_clear_stacks(fr, ch) LDFUNC(prof_clear_stacks, fr, ch)
+#endif
+
 static QueryFrame
-prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
+prof_clear_environments(DECL_LD LocalFrame fr)
 { if ( fr == NULL )
     return NULL;
 
@@ -844,7 +857,7 @@ prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
   { if ( true(fr, FR_MARKED) )
       return NULL;
     set(fr, FR_MARKED);
-    ld->gc._local_frames++;
+    LD->gc._local_frames++;
 
     fr->prof_node = NULL;
 
@@ -857,22 +870,22 @@ prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
 
 
 static void
-prof_clear_choicepoints(PL_local_data_t *ld, Choice ch)
+prof_clear_choicepoints(DECL_LD Choice ch)
 { for( ; ch; ch = ch->parent )
-  { ld->gc._choice_count++;
-    prof_clear_environments(ld, ch->frame);
+  { LD->gc._choice_count++;
+    prof_clear_environments(ch->frame);
   }
 }
 
 
 static void
-prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+prof_clear_stacks(DECL_LD LocalFrame fr, Choice ch)
 { QueryFrame qf;
 
   while(fr)
-  { qf = prof_clear_environments(ld, fr);
+  { qf = prof_clear_environments(fr);
     assert(qf->magic == QID_MAGIC);
-    prof_clear_choicepoints(ld, ch);
+    prof_clear_choicepoints(ch);
     if ( qf->parent )
     { QueryFrame pqf = qf->parent;
 
@@ -886,15 +899,14 @@ prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
 
 
 bool
-resetProfiler(void)
-{ GET_LD
-  stopProfiler();
+resetProfiler(DECL_LD)
+{ stopProfiler();
 
   assert(LD->gc._local_frames == 0);
   assert(LD->gc._choice_count == 0);
 
-  prof_clear_stacks(LD, environment_frame, LD->choicepoints);
-  unmark_stacks(LD, environment_frame, LD->choicepoints, FR_MARKED);
+  prof_clear_stacks(environment_frame, LD->choicepoints);
+  unmark_stacks(environment_frame, LD->choicepoints, FR_MARKED);
 
   assert(LD->gc._local_frames == 0);
   assert(LD->gc._choice_count == 0);
@@ -953,7 +965,7 @@ statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-profile(intptr_t count, PL_local_data_t *__PL_ld)
+profile(DECL_LD intptr_t count)
 { call_node *node;
 
   if ( !HAS_LD )

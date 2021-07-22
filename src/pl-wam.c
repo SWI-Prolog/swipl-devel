@@ -3114,10 +3114,13 @@ static vmi_instr jmp_table[] =
 #endif /* VMCODE_IS_ADDRESS */
 #endif /* O_VMI_FUNCTIONS */
 
+API_STUB(int)
+(PL_next_solution)(qid_t qid)
+( return PL_next_solution(qid); )
+
 int
-PL_next_solution(qid_t qid)
-{ GET_LD
-  register_file REGISTERS = {.qid = qid};	/* Active registers */
+PL_next_solution(DECL_LD qid_t qid)
+{ register_file REGISTERS = {.qid = qid};	/* Active registers */
   Code PC;					/* program counter */
   exception_frame THROW_ENV;			/* PL_thow() environment */
 
@@ -3215,9 +3218,8 @@ variables used in the B_THROW instruction.
   THROW_ENV.parent = LD->exception.throw_environment;
   if ( setjmp(THROW_ENV.exception_jmp_env) != 0 )
   { FliFrame ffr;
-#ifdef O_PLMT
-    __PL_ld = GLOBAL_LD;		/* might be clobbered */
-#endif
+    GET_LD		/* might be clobbered */
+
     ffr = fli_context;
 
     FR = environment_frame;

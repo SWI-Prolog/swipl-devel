@@ -47,6 +47,7 @@
 #if USE_LD_MACROS
 #define	f_ensureStackSpace(gcells, tcells, flags)	LDFUNC(f_ensureStackSpace, gcells, tcells, flags)
 #define	growLocalSpace(bytes, flags)			LDFUNC(growLocalSpace, bytes, flags)
+#define	unmark_stacks(fr, ch, mask)			LDFUNC(unmark_stacks, fr, ch, mask)
 #define	blockGC(flags)					LDFUNC(blockGC, flags)
 #define	unblockGC(flags)				LDFUNC(unblockGC, flags)
 #endif /*USE_LD_MACROS*/
@@ -77,8 +78,7 @@ void		markPredicatesInEnvironments(PL_local_data_t *ld,
 QueryFrame	queryOfFrame(LocalFrame fr);
 void		mark_active_environment(struct bit_vector *active,
 					LocalFrame fr, Code PC);
-void		unmark_stacks(PL_local_data_t *ld,
-			      LocalFrame fr, Choice ch, uintptr_t mask);
+void		unmark_stacks(LocalFrame fr, Choice ch, uintptr_t mask);
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
 word		checkStacks(void *vm_state);
 bool		scan_global(int marked);

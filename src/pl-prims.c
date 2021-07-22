@@ -5816,9 +5816,9 @@ PRED_IMPL("statistics", 2, statistics, 0)
   { if ( k == ATOM_process_cputime )
       GD->statistics.user_cputime = CpuTime(CPU_USER);
     if ( k == ATOM_cputime || k == ATOM_runtime )
-      LD->statistics.user_cputime = ThreadCPUTime(LD, CPU_USER);
+      LD->statistics.user_cputime = ThreadCPUTime(CPU_USER);
     else if ( k == ATOM_system_time )
-      LD->statistics.system_cputime = ThreadCPUTime(LD, CPU_SYSTEM);
+      LD->statistics.system_cputime = ThreadCPUTime(CPU_SYSTEM);
   }
 
   return pl_statistics_ld(A1, A2, LD);

@@ -49,6 +49,7 @@
 #define	getLocalProcDefinition(def)	LDFUNC(getLocalProcDefinition, def)
 #define	PL_open_foreign_frame(_)	LDFUNC(PL_open_foreign_frame, _)
 #define	PL_close_foreign_frame(id)	LDFUNC(PL_close_foreign_frame, id)
+#define	PL_next_solution(qid)		LDFUNC(PL_next_solution, qid)
 #define	foreignWakeup(ex)		LDFUNC(foreignWakeup, ex)
 #define	existingChoice(ch)		LDFUNC(existingChoice, ch)
 #endif /*USE_LD_MACROS*/
@@ -65,6 +66,7 @@ void		fix_term_ref_count(void);
 fid_t		PL_open_foreign_frame(void);
 void		PL_close_foreign_frame(fid_t id);
 fid_t		PL_open_signal_foreign_frame(int sync);
+int		PL_next_solution(qid_t qid);
 int		foreignWakeup(term_t ex);
 void		resumeAfterException(int clear, Stack outofstack);
 void		updateAlerted(PL_local_data_t *ld);

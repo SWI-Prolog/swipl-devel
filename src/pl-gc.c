@@ -579,7 +579,7 @@ gc_stat_aggregate(gc_stats *stats)
 static void
 gc_stat_start(DECL_LD gc_stats *stats, unsigned int reason)
 { gc_stat *this = &stats->last[stats->last_index];
-  double cpu = ThreadCPUTime(LD, CPU_USER);
+  double cpu = ThreadCPUTime(CPU_USER);
 
   if ( stats->last_index == 0 && this->global_before )
     gc_stat_aggregate(stats);
@@ -600,7 +600,7 @@ gc_stat_start(DECL_LD gc_stats *stats, unsigned int reason)
 static gc_stat *
 gc_stat_end(DECL_LD gc_stats *stats)
 { gc_stat *this = &stats->last[stats->last_index];
-  double cpu = ThreadCPUTime(LD, CPU_USER);
+  double cpu = ThreadCPUTime(CPU_USER);
 
   this->global_after  = usedStack(global);
   this->trail_after   = usedStack(trail);
@@ -782,8 +782,13 @@ Clear the mask (FR_MARKED or FR_MARKED_PRED) flags left after traversing
 all reachable frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if USE_LD_MACROS
+#define unmark_environments(fr, mask) LDFUNC(unmark_environments, fr, mask)
+#define unmark_choicepoints(ch, mask) LDFUNC(unmark_choicepoints, ch, mask)
+#endif
+
 static QueryFrame
-unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
+unmark_environments(DECL_LD LocalFrame fr, uintptr_t mask)
 { if ( fr == NULL )
     return NULL;
 
@@ -791,7 +796,7 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
   { if ( false(fr, mask) )
       return NULL;
     clear(fr, mask);
-    ld->gc._local_frames--;
+    LD->gc._local_frames--;
 
     if ( fr->parent )
       fr = fr->parent;
@@ -802,23 +807,23 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
 
 
 static void
-unmark_choicepoints(PL_local_data_t *ld, Choice ch, uintptr_t mask)
+unmark_choicepoints(DECL_LD Choice ch, uintptr_t mask)
 { for( ; ch; ch = ch->parent )
-  { ld->gc._choice_count--;
-    unmark_environments(ld, ch->frame, mask);
+  { LD->gc._choice_count--;
+    unmark_environments(ch->frame, mask);
   }
 }
 
 
 void
-unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
+unmark_stacks(DECL_LD LocalFrame fr, Choice ch,
 	      uintptr_t mask)
 { QueryFrame qf;
 
   while(fr)
-  { qf = unmark_environments(ld, fr, mask);
+  { qf = unmark_environments(fr, mask);
     assert(qf->magic == QID_MAGIC);
-    unmark_choicepoints(ld, ch, mask);
+    unmark_choicepoints(ch, mask);
     if ( qf->parent )
     { QueryFrame pqf = qf->parent;
 
@@ -4175,7 +4180,7 @@ checkStacks(void *state_ptr)
 
   DEBUG(CHK_SECURE, trailtops_marked = choice_count);
 
-  unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
+  unmark_stacks(state->frame, state->choice, FR_MARKED);
 
   assert(local_frames == 0);
   assert(choice_count == 0);
@@ -4980,7 +4985,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
 	  Sdprintf("%d frames, %d choice-points ...\n",
 		   local_frames, choice_count));
 
-    unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
+    unmark_stacks(state->frame, state->choice, FR_MARKED);
 
     assert(local_frames == 0);
     assert(choice_count == 0);
@@ -5222,7 +5227,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    double time, time0 = ThreadCPUTime(LD, CPU_USER);
+    double time, time0 = ThreadCPUTime(CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
 
     DEBUG(MSG_SHIFT, verbose = TRUE);
@@ -5340,7 +5345,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    time = ThreadCPUTime(LD, CPU_USER) - time0;
+    time = ThreadCPUTime(CPU_USER) - time0;
     LD->shift_status.time += time;
     DEBUG(CHK_SECURE,
 	  { gBase++;

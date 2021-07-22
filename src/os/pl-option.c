@@ -156,16 +156,13 @@ get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
 typedef struct dictopt_ctx
 { const opt_spec       *specs;		/* specifications */
   optvalue	       *values;		/* value pointers */
-  PL_local_data_t      *ld;		/* the engine */
 } dictopt_ctx;
 
+#define dict_option(key, value, last, closure) LDFUNC(dict_option, key, value, last, closure)
 
 static int
-dict_option(term_t key, term_t value, int last, void *closure)
+dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
 { dictopt_ctx *ctx = closure;
-#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
-  PL_local_data_t *__PL_ld = ctx->ld;
-#endif
   atom_t name;
   int n;
   const opt_spec *s;
@@ -205,17 +202,15 @@ dict_options(DECL_LD term_t dict, int flags, const opt_spec *specs, optvalue *va
 
   ctx.specs  = specs;
   ctx.values = values;
-  ctx.ld     = LD;
 
   return PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
 
 
 int
-scan_options(term_t options, int flags, atom_t optype,
+scan_options(DECL_LD term_t options, int flags, atom_t optype,
 	     const opt_spec *specs, ...)
-{ GET_LD
-  va_list args;
+{ va_list args;
   const opt_spec *s;
   optvalue values[MAXOPTIONS];
   term_t list;

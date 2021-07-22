@@ -38,6 +38,7 @@
 #define PL_COMP_H_INCLUDED
 
 #if USE_LD_MACROS
+#define	initWamTable(_)							LDFUNC(initWamTable, _)
 #define	get_head_and_body_clause(clause, head, body, m, flags)		LDFUNC(get_head_and_body_clause, clause, head, body, m, flags)
 #define	compileClause(cp, head, body, proc, module, warnings, flags)	LDFUNC(compileClause, cp, head, body, proc, module, warnings, flags)
 #define	assert_term(term, m, where, owner, loc, flags)			LDFUNC(assert_term, term, m, where, owner, loc, flags)

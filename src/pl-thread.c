@@ -695,7 +695,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     /*PL_unregister_atom(ld->prompt.current);*/
 
     freeThreadSignals(ld);
-    time = info->is_engine ? 0.0 : ThreadCPUTime(ld, CPU_USER);
+    time = info->is_engine ? 0.0 : ThreadCPUTime(PASS_AS_LD(ld) CPU_USER);
 
     if ( !after_fork )
     { PL_LOCK(L_THREAD);
@@ -4322,8 +4322,10 @@ static const opt_spec timeout_options[] =
 	   FALSE (leading to failure).
 */
 
+#define process_deadline_options(options, ts, pts) LDFUNC(process_deadline_options, options, ts, pts)
+
 static int
-process_deadline_options(term_t options,
+process_deadline_options(DECL_LD term_t options,
 			 struct timespec *ts, struct timespec **pts)
 { struct timespec now;
   struct timespec deadline;
@@ -6337,9 +6339,9 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
   if ( k == ATOM_heapused )
     ld = LD;
   else if ( k == ATOM_cputime || k == ATOM_runtime )
-    ld->statistics.user_cputime = ThreadCPUTime(ld, CPU_USER);
+    ld->statistics.user_cputime = ThreadCPUTime(PASS_AS_LD(ld) CPU_USER);
   else if ( k == ATOM_system_time )
-    ld->statistics.system_cputime = ThreadCPUTime(ld, CPU_SYSTEM);
+    ld->statistics.system_cputime = ThreadCPUTime(PASS_AS_LD(ld) CPU_SYSTEM);
   else if ( k == ATOM_warnings || k == ATOM_errors )
   { PL_UNLOCK(L_THREAD);
     return PL_unify_integer(A3, k == ATOM_warnings ? ld->statistics.warnings
@@ -6368,8 +6370,8 @@ PRED_IMPL("thread_statistics", 3, thread_statistics, 0)
 #define ntick 100.0
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t *info = ld->thread.info;
+ThreadCPUTime(DECL_LD int which)
+{ PL_thread_info_t *info = LD->thread.info;
   double t;
   FILETIME created, exited, kerneltime, usertime;
   HANDLE win_thread;
@@ -6408,8 +6410,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 #define NO_THREAD_SYSTEM_TIME 1
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t *info = ld->thread.info;
+ThreadCPUTime(DECL_LD int which)
+{ PL_thread_info_t *info = LD->thread.info;
 
   if ( which == CPU_SYSTEM )
     return 0.0;
@@ -6438,8 +6440,8 @@ ThreadCPUTime(PL_local_data_t *ld, int which)
 #include <mach/thread_act.h>
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t *info = ld->thread.info;
+ThreadCPUTime(DECL_LD int which)
+{ PL_thread_info_t *info = LD->thread.info;
 
   if ( info->has_tid )
   { kern_return_t error;
@@ -6581,8 +6583,8 @@ get_procps_entry(int tid)
 
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which)
-{ PL_thread_info_t *info = ld->thread.info;
+ThreadCPUTime(DECL_LD int which)
+{ PL_thread_info_t *info = LD->thread.info;
   procps_entry *e;
 
   if ( (e=get_procps_entry(info->pid)) )
@@ -6691,9 +6693,9 @@ SyncSystemCPU(int sig)
 #endif  /*LINUX_CPUCLOCKS*/
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which)
+ThreadCPUTime(DECL_LD int which)
 { GET_LD
-  PL_thread_info_t *info = ld->thread.info;
+  PL_thread_info_t *info = LD->thread.info;
 
 #ifdef NO_THREAD_SYSTEM_TIME
   if ( which == CPU_SYSTEM )
@@ -7185,7 +7187,7 @@ PL_cleanup_fork(void)
 }
 
 double
-ThreadCPUTime(PL_local_data_t *ld, int which) {
+ThreadCPUTime(DECL_LD int which) {
   return CpuTime(which);
 }
 

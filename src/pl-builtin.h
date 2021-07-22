@@ -160,7 +160,7 @@ void keyword:
     int func_two_args(DECL_LD int arg1, int arg2);
     int func_va_args(DECL_LD int arg, ...);
     int func_no_args(DECL_LD);
-    
+
     int
     func_two_args(DECL_LD int arg1, int arg2)
     { return arg1 + arg2;
@@ -204,7 +204,7 @@ function uses the LDFUNCP macro, with the same DECL_LD rules as defining
 an LDFUNC itself:
 
     int LDFUNCP (*p_ldfunc)(DECL_LD int arg1, int arg2) = NULL;
-    
+
     #define LDFUNC_DECLARATIONS
     int call_ld_func(int LDFUNCP (*ldfunc_arg)(int, int), int arg);
     #undef LDFUNC_DECLARATIONS
@@ -284,7 +284,7 @@ typedef struct PL_global_data PL_global_data_t;
 #ifdef __GNUC__
 # define _ASSERT_LD(cond) ({static_assert((cond), "Error: LOCAL_LD referenced without a local LD declaration in " __FILE__ ":" A_STRINGIFY(__LINE__)); NULL;})
 #else
-extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void); 
+extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void);
 # define _ASSERT_LD(cond) ((cond)?NULL:error_LOCAL_LD_referenced_without_a_local_LD_declaration())
 #endif
 
@@ -399,11 +399,14 @@ extern struct {char *engine;} *PL__ctx;
 #define HAS_LD (1)
 
 #if USE_LD_MACROS
-# define WITH_LD(_) (~error_no_multi_engine_support~)
-# define PASS_AS_LD(_) (~error_no_multi_engine_support~)
-#else
-# define WITH_LD(ld) for(PL_local_data_t *__ignore_ld=(ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+/* There are reasons why one might use WITH_LD or PASS_AS_LD in code written for single- or multi-engine */
+# define WITH_LD(_) for (int i=0; i < 1; i++)
 # define PASS_AS_LD(_)
+#else
+/* For type-checking in static analysis */
+static inline int pass_as_ld_helper(PL_local_data_t *ld) {return 0;}
+# define WITH_LD(ld) for(PL_local_data_t *__ignore_ld=(ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+# define PASS_AS_LD(ld) pass_as_ld_helper(ld) +
 #endif
 
 #endif
@@ -578,7 +581,7 @@ EndPredDefs
 /* Moved to pl-gc.c:
  * blockGC(int flags);
  * unblockGC(int flags);
- * 
+ *
  * Moved to pl-trace.c:
  * suspendTrace(int suspend);
  */

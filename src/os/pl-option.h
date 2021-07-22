@@ -55,7 +55,15 @@ typedef struct
   int		type;			/* Type of option */
 } opt_spec, *OptSpec;
 
+#if USE_LD_MACROS
+#define scan_options(list, flags, name, specs, ...) LDFUNC(scan_options, list, flags, name, specs, __VA_ARGS__)
+#endif
+
+#define LDFUNC_DECLARATIONS
+
 COMMON(int)		scan_options(term_t list, int flags, atom_t name,
 				     const opt_spec *specs, ...);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*OPTION_H_INCLUDED*/

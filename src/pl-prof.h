@@ -43,6 +43,7 @@ typedef enum
 
 #if USE_LD_MACROS
 #define	activateProfiler(status)	LDFUNC(activateProfiler, status)
+#define	resetProfiler(_)		LDFUNC(resetProfiler, _)
 #define	profCall(def)			LDFUNC(profCall, def)
 #define	profResumeParent(node)		LDFUNC(profResumeParent, node)
 #define	profExit(node)			LDFUNC(profExit, node)

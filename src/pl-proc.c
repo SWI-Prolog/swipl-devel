@@ -2538,7 +2538,7 @@ pl_garbage_collect_clauses(void)
        COMPARE_AND_SWAP_INT(&GD->clauses.cgc_active, FALSE, TRUE) )
   { size_t removed = 0;
     size_t erased_pending = GD->clauses.erased_size;
-    double gct, t0 = ThreadCPUTime(LD, CPU_USER);
+    double gct, t0 = ThreadCPUTime(CPU_USER);
     gen_t start_gen = global_generation();
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
     tmp_buffer tr_starts;
@@ -2605,7 +2605,7 @@ pl_garbage_collect_clauses(void)
     gcClauseRefs();
     GD->clauses.cgc_count++;
     GD->clauses.cgc_reclaimed	+= removed;
-    GD->clauses.cgc_time        += (gct=ThreadCPUTime(LD, CPU_USER) - t0);
+    GD->clauses.cgc_time        += (gct=ThreadCPUTime(CPU_USER) - t0);
     GD->clauses.erased_size_last = GD->clauses.erased_size;
 
     DEBUG(MSG_CGC, Sdprintf("CGC: removed %ld clauses "
