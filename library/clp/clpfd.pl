@@ -7287,7 +7287,7 @@ fd_degree(X, Degree) :-
    by SICStus and a "drep" internally by SWI.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%% ?Var in_set +Set is nondet.
+%% (?Var in_set +Set) is nondet.
 %
 %  Var is an element of the FD set Set.
 
