@@ -45,6 +45,7 @@ set(SWIPL_PACKAGE_LIST_BASIC
     inclpr
     cpp
     http
+    language_server
     ltx2htm
     nlp
     paxos
