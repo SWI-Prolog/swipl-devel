@@ -321,6 +321,7 @@ struct PL_global_data
     Procedure	prolog_trace_interception4;
     Procedure	prolog_break_hook6;	/* prolog:break_hook/6 */
     Procedure	portray;		/* portray/1 */
+    Procedure	portray_var2;		/* system:portray_var/2 */
     Procedure   dcall1;			/* $call/1 */
     Procedure   call3;			/* call/3*/
     Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */

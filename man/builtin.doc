@@ -6314,7 +6314,8 @@ current priority.
     \termitem{portrayed}{Bool}
 If \const{true}, the hook portray/1 is called before printing a term
 that is not a variable.  If portray/1 succeeds, the term is considered
-printed.  See also print/1.  The default is \const{false}.  This option
+printed.  Similarly, the hook portray_var/3 is called before printing
+a variable.  See also print/1.  The default is \const{false}.  This option
 is an extension to the ISO write_term options.
 
     \termitem{priority}{Integer}
@@ -6471,6 +6472,21 @@ behaviour of print/1 on (sub)terms.  For each subterm encountered that
 is not a variable print/1 first calls portray/1 using the term as
 argument.  For lists, only the list as a whole is given to portray/1.  If
 portray/1 succeeds print/1 assumes the term has been written.
+
+    \predicate{portray_var}{3}{+Var, +Id, +WriteOptions}
+A dynamic predicate, which can be defined by the user to change the
+behavior of print/1 on unbound variables. It is used by the Prolog flag
+\prologflag{auto_name_variables} to print variables with names. If defined
+by the user, it will be called before the auto_name_variables functionality
+regardless of the state of that flag, and passed the variable (which the
+hook should be careful not to instantiate), the variable's ID (the number
+that would be printed following an underscore) and the options to write_term/2
+that caused it to be printed. If portray_var/3 fails, Prolog will fall back
+to the \prologflag{auto_name_variables} functionality if enabled, or otherwise
+just print the default numeric variable ID following an underscore.
+
+This predicate must be defined using SSU (=>)/2 rules, to avoid accidental
+instantiation of the variable being portrayed.
 
     \predicate[ISO]{read}{1}{-Term}
 Read the next \textbf{Prolog term} from the current input stream and

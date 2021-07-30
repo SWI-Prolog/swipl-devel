@@ -76,6 +76,7 @@ typedef struct
 } write_options;
 
 #if USE_LD_MACROS
+#define	var_index_ptr(p)	LDFUNC(var_index_ptr, p)
 #define	enterPortray(_)		LDFUNC(enterPortray, _)
 #define	leavePortray(_)		LDFUNC(leavePortray, _)
 #endif /*USE_LD_MACROS*/
@@ -96,8 +97,8 @@ static void	leavePortray(void);
 
 #undef LDFUNC_DECLARATIONS
 
-char *
-var_name_ptr(DECL_LD Word p, char *name)
+static int64_t
+var_index_ptr(DECL_LD Word p)
 { size_t iref;
 
   deRef(p);
@@ -106,8 +107,12 @@ var_name_ptr(DECL_LD Word p, char *name)
     iref = ((Word)p - (Word)lBase)*2+1;
   else
     iref = ((Word)p - (Word)gBase)*2;
+  return (int64_t) iref;
+}
 
-  Ssprintf(name, "_%lld", (int64_t)iref);
+char *
+var_name_ptr(DECL_LD Word p, char *name)
+{ Ssprintf(name, "_%lld", var_index_ptr(p));
 
   return name;
 }
@@ -1315,7 +1320,9 @@ callPortray(term_t arg, int prec, write_options *options)
   if ( GD->cleaning > CLN_PROLOG )
     fail;				/* avoid dangerous callbacks */
 
-  if ( options->portray_goal )
+  if ( PL_is_variable(arg) )
+  { pred = _PL_predicate("portray_var", 2, "system", &GD->procedures.portray_var2);
+  } else if ( options->portray_goal )
   { pred = _PL_predicate("call", 3, "user", &GD->procedures.call3);
   } else
   { pred = _PL_predicate("portray", 1, "user", &GD->procedures.portray);
@@ -1334,7 +1341,11 @@ callPortray(term_t arg, int prec, write_options *options)
     if ( !saveWakeup(&wstate, TRUE) )
       return -1;
     Scurout = options->out;
-    if ( options->portray_goal )
+    if ( PL_is_variable(arg) )
+    { av = PL_new_term_refs(2);
+      PL_put_term(av+0, arg);
+      PL_put_int64(av+1, var_index_ptr(valTermRef(arg)));
+    } else if ( options->portray_goal )
     { av = PL_new_term_refs(3);
 
       PL_put_term(av+0, options->portray_goal);
@@ -1510,8 +1521,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   atom_t a;
   IOSTREAM *out = options->out;
 
-  if ( !PL_is_variable(t) &&
-       true(options, PL_WRT_PORTRAY) )
+  if ( true(options, PL_WRT_PORTRAY) )
   { switch( callPortray(t, prec, options) )
     { case TRUE:
 	return TRUE;

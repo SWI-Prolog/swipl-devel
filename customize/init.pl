@@ -80,6 +80,11 @@ hooks, file_search_path/2, set_prolog_flag/2 and portray/1.
 
 % :- set_prolog_flag(toplevel_print_anon, false).
 
+%	If you want unnamed variables to be printed using names (__A, __B)
+%	instead of ids (_1246, _1248).
+
+% :- set_prolog_flag(auto_name_variables, true).
+
 %	If you do not want the tracer to stop at at the exit port.
 
 % :- leash(-exit).

@@ -606,6 +606,7 @@ init_debug_flags :-
                        Keep),
     create_prolog_flag(toplevel_residue_vars, false, Keep),
     create_prolog_flag(toplevel_list_wfs_residual_program, true, Keep),
+    create_prolog_flag(auto_name_variables, false, Keep),
     '$set_debugger_write_options'(print).
 
 %!  setup_backtrace
@@ -840,6 +841,10 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
     ),
     trim_stacks,
     trim_heap,
+    (   BreakLev == 0
+    ->  reset_variable_names
+    ;   true
+    ),
     repeat,
       read_query(Prompt, Query, Bindings),
       prompt(_, Old),
@@ -1282,6 +1287,68 @@ diff3(=, _H1, T1, _H2, T2, Diff) :-
 diff3(>,  H1, T1, _H2, T2, Diff) :-
     diff21(T2, H1, T1, Diff).
 
+
+:- multifile system:portray_var/2, user:portray_var/2.
+:- dynamic system:portray_var/2, user:portray_var/2.
+
+system:portray_var(Var, Index) :-
+    predicate_property(user:portray_var(_,_), ssu),
+    catch(
+        \+ \+ user:portray_var(Var, Index),
+        error(existence_error(matching_rule, _), _),
+        fail
+    ),
+    !.
+
+system:portray_var(Var, _Index) :-
+    current_prolog_flag(auto_name_variables, true),
+    $,
+    (   nb_current('$named_variables', NVars)
+    ->  true
+    ;   NVars = [end]
+    ),
+    
+    var_nth0(Index, NVars, Var),
+    phrase(portray_var_name(Index), Codes),
+    format('~s', [Codes]),
+    nb_linkval('$named_variables', NVars).
+
+var_nth0(N, List, Var) :-
+    var_nth(List, Var, 0, N).
+var_nth(End, Var, N0, N) :-
+    End = [end],
+    !,
+    nb_linkarg(1, End, Var),
+    nb_setarg(2, End, [end]),
+    N = N0.
+var_nth([H|_], Var, N0, N) :-
+    H == Var,
+    !,
+    N = N0.
+var_nth([_|T], Var, N0, N) :-
+    succ(N0, N1),
+    var_nth(T, Var, N1, N).
+
+portray_var_name(Index) -->
+    `__`,
+    {   divmod(Index, 26, Rank, Letter),
+        LCode is Letter + 0'A
+    },
+    [LCode],
+    (   { Rank > 0, number_codes(Rank, RCodes) }
+    ->  RCodes
+    ;   []
+    ).
+
+%!  reset_variable_names is det.
+%
+%   Reset the current list of "variables seen" by the Prolog flag
+%   `auto_name_variables`, causing the next variable it prints to be
+%   named `__A`. This is called automatically by the toplevel whenever
+%   a query prompt is issued at break level 0.
+
+reset_variable_names :-
+    nb_delete('$named_variables').
 
 %!  project_constraints(+Bindings, +ResidueVars) is det.
 %

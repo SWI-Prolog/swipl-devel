@@ -1165,6 +1165,13 @@ definition is more practical.}
 Set if Prolog was started with a prolog file as argument.  Used by
 e.g., edit/0 to edit the initial file.
 
+    \prologflagitem{auto_name_variables}{bool}{rw}
+If \const{true}, variables printed with the \const{portray(true)} option
+of write_term/2 will be tracked and named by identity in the order they
+appear, in the sequence (\const{__A} .. \const{__Z}, \const{__A1} ..
+\const{__Z1}, etc). The sequence will be reset every time a query prompt
+is issued at break level 0.
+
     \prologflagitem{autoload}{atom}{rw}
 This flag controls autoloading predicates based on autoload/1 and
 autoload/2 as well as predicates from \jargon{autoload libraries}.
@@ -2299,6 +2306,9 @@ portability.
 \begin{itemlist}
     \item [portray/1]
 Hook into write_term/3 to alter the way terms are printed (ISO).
+    \item [portray_var/3]
+Extension to the portray/1 functionality to alter the way variables
+are printed.
     \item [message_hook/3]
 Hook into print_message/2 to alter the way system messages are printed
 (Quintus/SICStus).
