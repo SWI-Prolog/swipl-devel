@@ -54,7 +54,7 @@ freezeGlobal(DECL_LD)
 
 
 void
-destroyGlobalVars()
+destroyGlobalVars(void)
 { GET_LD
 
   if ( LD->gvar.nb_vars )
@@ -75,8 +75,7 @@ free_nb_linkval_name(atom_t name)
 
 static void
 free_nb_linkval_value(word value)
-{
-  if ( isAtom(value) )
+{ if ( isAtom(value) )
     PL_unregister_atom(value);
   else if ( storage(value) == STG_GLOBAL )
   { GET_LD
@@ -90,6 +89,34 @@ free_nb_linkval_symbol(void *name, void* value)
 { free_nb_linkval_value((word)value);
   free_nb_linkval_name((atom_t)name);
 }
+
+
+#define new_gvar(name, value) LDFUNC(new_gvar, name, value)
+static word
+new_gvar(DECL_LD atom_t name, atom_t value)
+{ word old = value;
+
+  if ( !LD->gvar.nb_vars )		/* LD: no race conditions */
+  { LD->gvar.nb_vars = newHTable(32);
+    LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
+  }
+
+  addNewHTable(LD->gvar.nb_vars, (void*)name, (void*)old);
+  PL_register_atom(name);
+
+  return old;
+}
+
+
+#define lookup_gvar(name) LDFUNC(lookup_gvar, name)
+static word
+lookup_gvar(DECL_LD atom_t name)
+{ if ( LD->gvar.nb_vars )
+    return (word)lookupHTable(LD->gvar.nb_vars, (void*)name);
+
+  return 0;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -111,11 +138,6 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
-
-  if ( !LD->gvar.nb_vars )
-  { LD->gvar.nb_vars = newHTable(32);
-    LD->gvar.nb_vars->free_symbol = free_nb_linkval_symbol;
-  }
 
   if ( !hasGlobalSpace(3) )		/* also ensures trail for */
   { int rc;				/* TrailAssignment() */
@@ -140,12 +162,12 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
     }
   }
 
-  if ( !(old = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
-  { addNewHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
-    PL_register_atom(name);
+  if ( !(old = lookup_gvar(name)) )
+    old = new_gvar(name, ATOM_nil);
+  if ( old == ATOM_no_value )
+  { updateHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
     old = ATOM_nil;
   }
-  assert(old);
 
   if ( w == old )
     succeed;
@@ -258,33 +280,30 @@ getval(DECL_LD term_t var, term_t value, int raise_error)
 
   if ( !PL_get_atom_ex(var, &name) )
     fail;
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != TRUE )
-      return raiseStackOverflow(rc);
-  }
-
 
   for(i=0; i<2; i++)
-  { if ( LD->gvar.nb_vars )
-    { word w;
-      if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
+  { word w;
+
+    if ( (w = lookup_gvar(name)) )
+    { if ( w != ATOM_no_value )
       { term_t tmp = PL_new_term_ref();
 
 	*valTermRef(tmp) = w;
 	return PL_unify(value, tmp);
-      }
+      } else
+	break;
     }
 
     switch(auto_define_gvar(name))
     { case gvar_fail:
-	fail;
+	new_gvar(name, ATOM_no_value);
+	return FALSE;
       case gvar_retry:
 	continue;
       case gvar_error:
 	if ( exception_term )
-	  fail;				/* error from handler */
+	  return FALSE;				/* error from handler */
+        new_gvar(name, ATOM_no_value);
         goto error;
     }
   }
@@ -335,14 +354,18 @@ PRED_IMPL("nb_delete", 1, nb_delete, 0)
   atom_t name;
 
   if ( !PL_get_atom_ex(A1, &name) )
-    fail;
+    return FALSE;
 
   if ( LD->gvar.nb_vars )
   { word w;
-    if ( (w = (word)lookupHTable(LD->gvar.nb_vars, (void*)name)) )
-    { deleteHTable(LD->gvar.nb_vars, (void*)name);
-      free_nb_linkval_name(name);
-      free_nb_linkval_value(w);
+
+    if ( (w = lookup_gvar(name)) )
+    { if ( w != ATOM_no_value )
+      { free_nb_linkval_value(w);
+	updateHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_no_value);
+      }
+    } else
+    { new_gvar(name, ATOM_no_value);
     }
   }
 
@@ -387,7 +410,9 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
     return FALSE;
   }
   while( advanceTableEnum(e, (void**)&name, (void**)&val) )
-  { if ( PL_unify_atom(A1, name) &&
+  { if ( val == ATOM_no_value )
+      continue;
+    if ( PL_unify_atom(A1, name) &&
 	 unify_ptrs(valTermRef(A2), &val, 0) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);

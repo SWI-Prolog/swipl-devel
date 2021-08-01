@@ -572,7 +572,8 @@ updateHTable(Table ht, void *name, void *value)
   acquire_kvs(ht, kvs);
 
   DEBUG(MSG_HASH_TABLE_API,
-        Sdprintf("updateHTable(). ht: %p, kvs: %p, name: %p, value: %p\n", ht, kvs, name, value));
+        Sdprintf("updateHTable(). ht: %p, kvs: %p, name: %p, value: %p\n",
+		 ht, kvs, name, value));
 
   v = htable_put(ht, kvs, name, value, HTABLE_NORMAL);
   release_kvs();

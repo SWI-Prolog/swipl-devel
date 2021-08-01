@@ -9470,7 +9470,7 @@ thread_initialization/1 to define a global variable it will be
 defined, restored after reloading a saved state and created in all
 threads that are created \emph{after} the registration.  Finally,
 global variables can be initialised using the exception hook
-exception/3.  The latter technique is used by CHR (see \chapref{chr}).
+exception/3.  See also nb_current/2 and nb_delete/1.
 
 
 \begin{description}
@@ -9479,7 +9479,8 @@ Associate the term \arg{Value} with the atom \arg{Name} or replace
 the currently associated value with \arg{Value}.  If \arg{Name} does
 not refer to an existing global variable, a variable with initial value
 \const{[]} is created (the empty list).  On backtracking the
-assignment is reversed.
+assignment is reversed.  Furture versions may cause subsequent fetching
+of the variable to fail.  See also nb_delete/1.
 
     \predicate{b_getval}{2}{+Name, -Value}
 Get the value associated with the global variable \arg{Name} and unify
@@ -9532,11 +9533,18 @@ demo_nb_linkval :-
 Enumerate all defined variables with their value. The order of
 enumeration is undefined. Note that nb_current/2 can be used as an
 alternative for nb_getval/2 to request the value of a variable and fail
-silently if the variable does not exists.
+silently if the variable does not exists. Note that if the variable is
+not defined, exception/3 is called attempting to define it. As of
+version 8.3.28, a failure of exception/3 to define the variable causes
+the variable to be defined with a reserved valued to avoid subsequent
+calls to exception/3.
 
     \predicate{nb_delete}{1}{+Name}
 Delete the named global variable.  Succeeds also if the named variable
-does not exist.
+does not exist. Deleting a global variable ensures the variable is
+associated to a reserved value to avoid subsequent calls to exception/3.
+Note that this implies that the resources associated with a global
+variable are never fully reclaimed.
 \end{description}
 
 

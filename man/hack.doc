@@ -470,7 +470,7 @@ predicates.  See also \prologflag{unknown} and \secref{autoload}.
     \termitem{undefined_global_variable}{}
 \arg{Context} is instantiated to the name of the missing global
 variable. The hook must call nb_setval/2 or b_setval/2 before returning
-with the action \const{retry}.
+with the action \const{retry}.  See also nb_current/2.
 \end{description}
 \end{description}
 
