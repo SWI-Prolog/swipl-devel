@@ -1980,7 +1980,7 @@ gvar(set-3) :-
 gvar(set-4) :-
 	(   b_setval(gnu, 1),
 	    fail
-	;   b_getval(gnu, [])
+	;   nogvar(gnu)
 	),
 	nb_delete(gnu).
 gvar(avar-1) :-

@@ -38,8 +38,10 @@
 #include "pl-gc.h"
 #include "pl-wam.h"
 #include "pl-prims.h"
-#ifdef O_GVAR
+#undef LD
+#define LD LOCAL_LD
 
+#ifdef O_GVAR
 
 		 /*******************************
 		 * NON-BACKTRACKABLE GLOBAL VARS*
@@ -163,11 +165,7 @@ setval(DECL_LD term_t var, term_t value, int backtrackable)
   }
 
   if ( !(old = lookup_gvar(name)) )
-    old = new_gvar(name, ATOM_nil);
-  if ( old == ATOM_no_value )
-  { updateHTable(LD->gvar.nb_vars, (void*)name, (void*)ATOM_nil);
-    old = ATOM_nil;
-  }
+    old = new_gvar(name, ATOM_no_value);
 
   if ( w == old )
     succeed;
@@ -272,6 +270,16 @@ gvar_value(DECL_LD atom_t name, Word p)
 }
 
 
+#define is_gval(w) LDFUNC(is_gval, w)
+static int
+is_gval(DECL_LD word w)
+{ if ( isRef(w) )
+    w = *unRef(w);
+
+  return w != ATOM_no_value;
+}
+
+
 #define getval(var, value, raise_error) LDFUNC(getval, var, value, raise_error)
 static int
 getval(DECL_LD term_t var, term_t value, int raise_error)
@@ -285,7 +293,7 @@ getval(DECL_LD term_t var, term_t value, int raise_error)
   { word w;
 
     if ( (w = lookup_gvar(name)) )
-    { if ( w != ATOM_no_value )
+    { if ( is_gval(w) )
       { term_t tmp = PL_new_term_ref();
 
 	*valTermRef(tmp) = w;
@@ -410,7 +418,7 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
     return FALSE;
   }
   while( advanceTableEnum(e, (void**)&name, (void**)&val) )
-  { if ( val == ATOM_no_value )
+  { if ( !is_gval(val) )
       continue;
     if ( PL_unify_atom(A1, name) &&
 	 unify_ptrs(valTermRef(A2), &val, 0) )

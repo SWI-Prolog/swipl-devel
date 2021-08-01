@@ -552,7 +552,10 @@ prolog_load_context(script, Bool) :-
     ;   Bool = false
     ).
 prolog_load_context(variable_names, Bindings) :-
-    nb_current('$variable_names', Bindings).
+    (   nb_current('$variable_names', Bindings0)
+    ->  Bindings = Bindings0
+    ;   Bindings = []
+    ).
 prolog_load_context(term, Term) :-
     nb_current('$term', Term).
 prolog_load_context(reloading, true) :-

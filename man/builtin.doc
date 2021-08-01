@@ -9476,11 +9476,13 @@ exception/3.  See also nb_current/2 and nb_delete/1.
 \begin{description}
     \predicate{b_setval}{2}{+Name, +Value}
 Associate the term \arg{Value} with the atom \arg{Name} or replace
-the currently associated value with \arg{Value}.  If \arg{Name} does
-not refer to an existing global variable, a variable with initial value
-\const{[]} is created (the empty list).  On backtracking the
-assignment is reversed.  Furture versions may cause subsequent fetching
-of the variable to fail.  See also nb_delete/1.
+the currently associated value with \arg{Value}.  On backtracking the
+assignment is reversed.	 If the variable \arg{Name} did not exist before
+calling b_setval/2, backtracking causes the variable to be
+deleted.\footnote{Prior to version 8.3.28 backtracking over the
+variable creation caused the variable to get the value \const{[]},
+i.e., the empty list. If this is desirable use \exam{nb_setval(Var,
+[])} before b_setval/2.}
 
     \predicate{b_getval}{2}{+Name, -Value}
 Get the value associated with the global variable \arg{Name} and unify
