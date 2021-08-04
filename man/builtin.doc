@@ -10383,18 +10383,17 @@ absolute filenames to register source files independent of the current
 working directory. See also absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
-
 Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
 predicate is to resolve files specified as Alias(Relative). This
 predicate \emph{only returns non-directories}, unless the option
-\term{file_type}{directory} is specified. \arg{Option} is a list of
-options to guide the conversion:
+\term{file_type}{directory} is specified or the requested access
+is \const{none}.  Supported \arg{Options} are:
 
 \begin{description}
     \termitem{extensions}{ListOfExtensions}
-List of file extensions to try.  Default is \const{''}.  For each
+List of file extensions to try.  Default is exam{['']}.  For each
 extension, absolute_file_name/3 will first add the extension and then
 verify the conditions imposed by the other options.  If the condition
 fails, the next extension on the list is tried.  Extensions may be
@@ -10408,18 +10407,25 @@ if \arg{Spec} is atomic and absolute_file_name/[2,3] is executed
 in a directive, it uses the current source file as reference.
 
     \termitem{access}{Mode}
-Imposes the condition access_file(\arg{File}, \arg{Mode}).  \arg{Mode}
-is one of \const{read}, \const{write}, \const{append}, \const{execute},
+Imposes the condition access_file(\arg{File}, \arg{Mode}). \arg{Mode} is
+one of \const{read}, \const{write}, \const{append}, \const{execute},
 \const{search}, \const{exist} or \const{none}. See also access_file/2.
+The default is \const{none} which, if \const{file_type} is \textbf{not}
+specified as \const{directory} or \const{regular}, returns absolute file
+names that result from expanding aliases without inspecting the actual
+file system.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
 \const{prolog} implies \const{['.pl', '']}, \const{executable} implies
 \const{['.so', '']} and \const{qlf} implies \const{['.qlf', '']}. The
 \arg{Type} \const{directory} implies \const{['']} and causes this
-predicate to generate (only) directories. The file type \const{source}
-is an alias for \const{prolog} for compatibility with SICStus Prolog.
-See also prolog_file_type/2.
+predicate to generate (only) directories. The \arg{Type} \const{regular}
+is the opposite of \const{directory} and is the default if no file
+type is specified and the effective access mode is \const{none}.
+
+The file type \const{source} is an alias for \const{prolog} for
+compatibility with SICStus Prolog. See also prolog_file_type/2.
 
     \termitem{file_errors}{fail/error}
 If \const{error} (default), throw an \const{existence_error} exception

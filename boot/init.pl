@@ -1218,7 +1218,9 @@ absolute_file_name(Spec, Path, Options) :-
     ),
     '$canonicalise_extensions'(Exts, Extensions),
                     % unless specified otherwise, ask regular file
-    (   nonvar(Type)
+    (   (   nonvar(Type)
+        ;   '$option'(access(none), Options, none)
+        )
     ->  Options2 = Options1
     ;   '$merge_options'(_{file_type:regular}, Options1, Options2)
     ),
@@ -1310,6 +1312,7 @@ absolute_file_name(Spec, Path, Options) :-
 '$ft_no_ext'(txt).
 '$ft_no_ext'(executable).
 '$ft_no_ext'(directory).
+'$ft_no_ext'(regular).
 
 %!  user:prolog_file_type(?Extension, ?Type)
 %
