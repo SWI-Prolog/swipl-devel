@@ -10376,11 +10376,34 @@ since Jan~1, 1970. See also convert_time/[2,8] and get_time/1.
 
     \predicate{absolute_file_name}{2}{+File, -Absolute}
 Expand a local filename into an absolute path. The absolute path is
-canonicalised: references to \file{.} and \file{..} are deleted. This
-predicate ensures that expanding a filename returns the same
-absolute path regardless of how the file is addressed. SWI-Prolog uses
-absolute filenames to register source files independent of the current
-working directory. See also absolute_file_name/3 and expand_file_name/2.
+canonicalised: references to \file{.}, \file{..} and repeated directory
+separators (\chr{/}) are deleted. This predicate ensures that expanding
+a filename returns the same absolute path regardless of how the file is
+addressed. Notably, if a file appears in multiple directories due to
+symbolic or hard links absolute_file_name/2 returns the same absolute
+filename. SWI-Prolog uses absolute filenames to register source files
+independent of the current working directory.
+
+This predicate has a different history than absolute_file_name/3 and
+should primarily be used to get an absolute canonical name from a
+relative name. If \arg{File} is a term Alias(Relative) is behaviour is
+defined as below, i.e., if an accessible file can be found using the
+provided search path this is returned. Otherwise it returns the the
+expansion of the alias path.\footnote{The SICStus implementation
+behaves as absolute_file_name/3 with an empty option list.}  Users are
+adviced to use absolute_file_name/3 with a appropriate options for
+resolving an Alias(Relative) term.
+
+\begin{code}
+absolute_file_name(Spec, AbsFile) :-
+    absolute_file_name(Spec, File, [access(read), file_errors(fail)]),
+    !,
+    AbsFile = File.
+absolute_file_name(Spec, AbsFile) :-
+    absolute_file_name(Spec, AbsFile, []).
+\end{code}
+
+See also absolute_file_name/3 and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Convert the given file specification into an absolute path. \arg{Spec}
