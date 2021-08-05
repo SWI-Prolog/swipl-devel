@@ -39,6 +39,7 @@ endforeach()
 # The pckages below do not depend on external libraries except for
 # the zlib package, but the core system already depends on zlib.
 set(SWIPL_PACKAGE_LIST_BASIC
+    binformat
     chr
     clib
     clpqr

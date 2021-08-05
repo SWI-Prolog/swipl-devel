@@ -118,3 +118,6 @@
 [submodule "packages/language_server"]
 	path = packages/language_server
 	url = ../packages-language_server.git
+[submodule "packages/binformat"]
+	path = packages/binformat
+	url = ../packages-binformat.git
