@@ -832,7 +832,8 @@ helpTrace(void)
     { "s",		   "skip over" },
     { "[level] S",	   "save goal [at level]" },
     { "u",		   "up (complete goal)" },
-    { "s",		   "(quoted) write goals" },
+    { "p",		   "print goals" },
+    { "w",		   "(quoted) write goals" },
     { "m",		   "exception details" },
     { "C",		   "toggle show context" },
   #if O_DEBUG
