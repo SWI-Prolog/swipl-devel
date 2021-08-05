@@ -165,6 +165,7 @@
                   fdset_complement/2
                  ]).
 
+:- meta_predicate with_local_attributes(?, ?, 0, ?).
 :- public                               % called from goal_expansion
         clpfd_equal/2,
         clpfd_geq/2.
