@@ -6279,11 +6279,18 @@ but uses the SWI-Prolog list functor, which is by default \verb$'[|]'$
 instead of the ISO Prolog \verb$'.'$.  Used by display/1.
 
     \termitem{numbervars}{Bool}
-If \const{true}, terms of the format \verb|$VAR(N)|, where \arg{N} is a
-non-negative integer, will be written as a variable name. If \arg{N} is
-an atom it is written without quotes. This extension allows for writing
-variables with user-provided names. The default is \const{false}. See
-also numbervars/3 and the option \const{variable_names}.
+If \const{true}, terms of the format \verb|$VAR(N)|, where \arg{N} is an
+integer that fits in 64-bit,\footnote{Larger integers are ignored.
+As no term that fits into memory can have that many variables, this
+is not a restriction.} will be written as a variable name. For \arg{N}
+in 0..25 it emits A..Z. For higher numbers it emits An..Zn, where
+\arg{n} is \arg{N}//26. For negative numbers it emits S_\arg{N}, which
+is used for representing shared sub-terms and cyclic terms.
+
+If \arg{N} is an atom it is written without quotes. This extension
+allows for writing variables with user-provided names. The default is
+\const{false}. See also numbervars/3 and the option
+\const{variable_names}.
 
     \termitem{partial}{Bool}
 If \const{true} (default \const{false}), do not reset the logic that
