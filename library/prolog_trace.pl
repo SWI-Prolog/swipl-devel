@@ -168,44 +168,51 @@ mask_ports(Pattern, [H|T]) :-
     is_masked(Pattern, H, Pattern1),
     mask_ports(Pattern1, T).
 
-wrapper(0, _, Wrapped, Wrapped) :-
+wrapper(Ports, Head, Wrapped, Wrapper) :-
+    wrapper(Ports, Head, Id-Level, Wrapped, Wrapped1),
+    Wrapper = (   prolog_current_frame(Id),
+                  prolog_frame_attribute(Id, level, Level),
+                  Wrapped1
+              ).
+
+wrapper(0, _, _, Wrapped, Wrapped) :-
     !.
-wrapper(Pattern, Head, Wrapped, Call) :-
+wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, call, Pattern1),
     !,
-    wrapper(Pattern1, Head, Wrapped, Call0),
-    Call = (   print_message(debug, frame(Head, trace(call))),
+    wrapper(Pattern1, Head, Id, Wrapped, Call0),
+    Call = (   print_message(debug, frame(Head, trace(call, Id))),
                Call0
            ).
-wrapper(Pattern, Head, Wrapped, Call) :-
+wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, exit, Pattern1),
     !,
-    wrapper(Pattern1, Head, Wrapped, Call0),
+    wrapper(Pattern1, Head, Id, Wrapped, Call0),
     Call = (   Call0,
-               print_message(debug, frame(Head, trace(exit)))
+               print_message(debug, frame(Head, trace(exit, Id)))
            ).
-wrapper(Pattern, Head, Wrapped, Call) :-
+wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, redo, Pattern1),
     !,
-    wrapper(Pattern1, Head, Wrapped, Call0),
+    wrapper(Pattern1, Head, Id, Wrapped, Call0),
     Call = (   call_cleanup(Call0, Det = true),
                (   Det == true
                ->  true
                ;   true
-               ;   print_message(debug, frame(Head, trace(redo))),
+               ;   print_message(debug, frame(Head, trace(redo, Id))),
                    fail
                )
            ).
-wrapper(Pattern, Head, Wrapped, Call) :-
+wrapper(Pattern, Head, Id, Wrapped, Call) :-
     is_masked(Pattern, fail, Pattern1),
     !,
-    wrapper(Pattern1, Head, Wrapped, Call0),
+    wrapper(Pattern1, Head, Id, Wrapped, Call0),
     Call = call((   call_cleanup(Call0, Det = true),
                     (   Det == true
                     ->  !
                     ;   true
                     )
-                ;   print_message(debug, frame(Head, trace(fail))),
+                ;   print_message(debug, frame(Head, trace(fail, Id))),
                     fail
                 )).
 

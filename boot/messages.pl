@@ -1516,6 +1516,12 @@ prolog_message(frame(Goal, trace(Port))) -->
     [ ' T ' ],
     port(Port),
     goal(Goal).
+prolog_message(frame(Goal, trace(Port, Id))) -->
+    !,
+    thread_context,
+    [ ' T ' ],
+    port(Port, Id),
+    goal(Goal).
 prolog_message(frame(Frame, Port, _PC)) -->
     frame_flags(Frame),
     port(Port),
@@ -1569,6 +1575,11 @@ frame_flags(Frame) -->
       )
     },
     [ '~w~w '-[T, S] ].
+
+% trace/1,2 context handling
+port(Port, _Id-Level) -->
+    [ '[~d] '-Level ],
+    port(Port).
 
 port(Port) -->
     { port_name(Port, Name)
