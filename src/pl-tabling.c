@@ -48,6 +48,7 @@
 #include "pl-fli.h"
 #include "pl-wam.h"
 #include "pl-proc.h"
+#include "pl-pro.h"
 #include "pl-write.h"
 #include "pl-util.h"
 #include "pl-supervisor.h"
@@ -6246,6 +6247,18 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 { volatile Table t;
   idg_mdep *mdep;
 
+  DEBUG(MSG_TABLING_IDG,
+	{ term_t f = PL_new_term_ref();
+	  term_t t = PL_new_term_ref();
+	  unify_trie_term( child->atrie->data.variant, NULL, f);
+	  unify_trie_term(parent->atrie->data.variant, NULL, t);
+	  Sdprintf("IDG: Edge %s", dep ? "(dep) " : "");
+	  PL_write_term(Serror, f, 999, 0);
+	  Sdprintf(" [fc=%d] -> ", child->falsecount);
+	  PL_write_term(Serror, t, 999, 0);
+	  Sdprintf(" [fc=%d]\n", parent->falsecount);
+	});
+
   if ( true(parent->atrie, TRIE_ISSHARED) &&
        false(child->atrie, TRIE_ISSHARED) )
     return idg_dependency_error(parent, child);
@@ -6374,19 +6387,7 @@ idg_add_edge(DECL_LD trie *atrie, trie *ctrie)
       ctrie = idg_current();
 
     if ( ctrie && ctrie->data.IDG )
-    { DEBUG(MSG_TABLING_IDG,
-	    { term_t f = PL_new_term_ref();
-	      term_t t = PL_new_term_ref();
-	      unify_trie_term(ctrie->data.variant, NULL, f);
-	      unify_trie_term(atrie->data.variant, NULL, t);
-	      Sdprintf("IDG: Edge ");
-	      PL_write_term(Serror, f, 999, 0);
-	      Sdprintf(" -> ");
-	      PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
-	    });
-
       return idg_add_child(ctrie->data.IDG, atrie->data.IDG, 0, 0);
-    }
   }
 
   return -1;
