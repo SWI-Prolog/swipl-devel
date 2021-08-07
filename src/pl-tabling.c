@@ -3211,15 +3211,16 @@ unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
 }
 
 
-#define complete_or_invalid_status(atrie) LDFUNC(complete_or_invalid_status, atrie)
+#define complete_or_invalid_status(atrie, create) \
+	LDFUNC(complete_or_invalid_status, atrie, create)
 static atom_t
-complete_or_invalid_status(DECL_LD trie *atrie)
+complete_or_invalid_status(DECL_LD trie *atrie, int create)
 { idg_node *n;
 
   if ( (n=atrie->data.IDG) )
   { if ( n->monotonic && !n->lazy && !n->force_reeval )
       return ATOM_complete;
-    if ( n->monotonic && n->lazy && LD->tabling.in_assert_propagation )
+    if ( n->monotonic && n->lazy && LD->tabling.in_assert_propagation && !create )
       return ATOM_complete;
     if ( n->falsecount > 0 )
       return ATOM_invalid;
@@ -3235,7 +3236,7 @@ complete_or_invalid_status(DECL_LD trie *atrie)
 static int
 unify_complete_or_invalid(DECL_LD term_t t, trie *atrie,
 			  Definition def, int create)
-{ atom_t status = complete_or_invalid_status(atrie);
+{ atom_t status = complete_or_invalid_status(atrie, create);
 
   if ( status == ATOM_fresh && create )
     return unify_fresh(t, atrie, def, create);
@@ -3258,7 +3259,7 @@ unify_complete_or_invalid(DECL_LD term_t t, trie *atrie,
  *   - `fresh(SCC, WL)` (if `create` is `TRUE`)
  *
  * @param `create` If `TRUE`, we are going to use this worklist for
- * filling the trie.  This is used by '$tbl_variant_table'/5 and
+ * filling the trie.  This is used by '$tbl_variant_table'/6 and
  * friends.
  */
 
@@ -3295,7 +3296,7 @@ unify_table_status(DECL_LD term_t t, trie *trie, Definition def, int create)
 static atom_t
 table_status(DECL_LD trie *trie)
 { if ( true(trie, TRIE_COMPLETE) )
-  { return complete_or_invalid_status(trie);
+  { return complete_or_invalid_status(trie, FALSE);
   } else
   { worklist *wl = trie->data.worklist;
 
