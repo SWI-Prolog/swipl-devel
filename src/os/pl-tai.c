@@ -410,12 +410,14 @@ cal_ftm(ftm *ftm, int required)
     ct.hour       = ftm->tm.tm_hour;
     ct.minute     = ftm->tm.tm_min;
     ct.second     = ftm->tm.tm_sec;
-    ct.offset     = -ftm->utcoff / 60;	/* TBD: make libtai speak seconds */
+    ct.offset     = 0;
 
     caltime_tai(&ct, &tai);
 
     if ( missing & HAS_WYDAY )
-    { caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
+    { /* Gets weekday and yday at UTC, so we compensate afterwards! */
+      caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
+      tai.x += ftm->utcoff;
       ftm->flags |= HAS_WYDAY;
     }
 
@@ -424,7 +426,6 @@ cal_ftm(ftm *ftm, int required)
     ftm->stamp -= (double)ct.second;
     ftm->stamp += ftm->sec;
     ftm->flags |= HAS_STAMP;
-
   }
 }
 
