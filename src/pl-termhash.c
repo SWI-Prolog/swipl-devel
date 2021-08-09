@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2015, University of Amsterdam
+    Copyright (c)  2010-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,10 +36,13 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-termhash.h"
 #include "pl-arith.h"
 #include "pl-pro.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
+#undef LD
+#define LD LOCAL_LD
 
 #ifdef __WINDOWS__
 typedef unsigned int uint32_t;
@@ -328,8 +332,6 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
 
 /* type to hold the SHA256 context  */
 
-#define SHA1_DIGEST_SIZE 20
-
 typedef struct
 {   uint32_t count[2];
     uint32_t hash[5];
@@ -400,11 +402,6 @@ hash_end(hash_state *state)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 State for processing the term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-typedef enum
-{ HASH_SHA1,
-  HASH_MURMUR
-} hash_algo;
 
 typedef struct
 { int		var_count;
@@ -548,14 +545,12 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 }
 
 
-#define variant_hash(term, hash, algorithm) LDFUNC(variant_hash, term, hash, algorithm)
-static int
-variant_hash(DECL_LD term_t term, term_t hash, hash_algo algorithm)
+int
+variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
 { int rc;
   ac_term_agenda agenda;
   sha1_state state;
   Word p;
-  int n;
 
   state.var_count = 0;
   state.algorithm = algorithm;
@@ -593,26 +588,11 @@ variant_hash(DECL_LD term_t term, term_t hash, hash_algo algorithm)
   }
 
   if ( state.algorithm == HASH_SHA1 )
-  { unsigned char sha1[SHA1_DIGEST_SIZE];
-    char hex[SHA1_DIGEST_SIZE*2];
-    const char hexd[] = "0123456789abcdef";
-    char *o;
-    const unsigned char *i;
+    sha1_end(hash->sha1, state.ctx.sha1);
+  else
+    hash->murmur = hash_end(state.ctx.murmur);
 
-    sha1_end(sha1, state.ctx.sha1);
-    o = hex;
-    i = sha1;
-    for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
-    { *o++ = hexd[*i >> 4];
-      *o++ = hexd[*i&0x0f];
-    }
-
-    return PL_unify_chars(hash, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
-  } else
-  { unsigned int key = hash_end(state.ctx.murmur)&PLMAXTAGGEDINT32;
-
-    return PL_unify_integer(hash, key);
-  }
+  return TRUE;
 }
 
 /** variant_sha1(@Term, -SHA1:string) is det.
@@ -625,13 +605,38 @@ basically execute numbervars.
 static
 PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 { PRED_LD
-  return variant_hash(A1, A2, HASH_SHA1);
+  termhash_t hash;
+
+  if ( variant_hash(A1, &hash, HASH_SHA1) )
+  { char hex[SHA1_DIGEST_SIZE*2];
+    const char hexd[] = "0123456789abcdef";
+    char *o;
+    const unsigned char *i;
+    int n;
+
+    o = hex;
+    i = hash.sha1;
+    for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
+    { *o++ = hexd[*i >> 4];
+      *o++ = hexd[*i&0x0f];
+    }
+
+    return PL_unify_chars(A2, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
+  } else
+  { return FALSE;
+  }
 }
 
 static
 PRED_IMPL("variant_hash", 2, variant_hash, 0)
 { PRED_LD
-  return variant_hash(A1, A2, HASH_MURMUR);
+  termhash_t hash;
+
+  if ( variant_hash(A1, &hash, HASH_MURMUR) )
+  { return PL_unify_integer(A2, hash.murmur&PLMAXTAGGEDINT32);
+  } else
+  { return FALSE;
+  }
 }
 
 		 /*******************************
