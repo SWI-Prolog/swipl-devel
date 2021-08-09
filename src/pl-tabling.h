@@ -224,6 +224,7 @@ Linked list of dependencies for monotonic tabling.
 typedef struct idg_mdep
 { int            magic;			/* IDG_MDEP_MAGIC */
   unsigned	 lazy : 1;		/* Dependency is lazy */
+  unsigned int	 hash;			/* Murmur hash of dependency */
   fastheap_term *dependency;		/* dependency structure */
   union
   { idg_node    *child;			/* Final child node */

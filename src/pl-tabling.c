@@ -53,6 +53,8 @@
 #include "pl-util.h"
 #include "pl-supervisor.h"
 #include "os/pl-prologflag.h"
+#include "pl-termhash.h"
+#include "pl-variant.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We provide two answer completion strategies:
@@ -125,6 +127,7 @@ typedef struct
 #define	inner_is_monotonic(_)				LDFUNC(inner_is_monotonic, _)
 #define	mono_queue_answer(atrie, ans, an)		LDFUNC(mono_queue_answer, atrie, ans, an)
 #define	force_reeval(n)					LDFUNC(force_reeval, n)
+#define find_dep(mdep, dep, found)			LDFUNC(find_dep, mdep, dep, found)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -193,7 +196,7 @@ static int	mono_queue_answer(trie *atrie, term_t ans, word an);
 static void	force_reeval(idg_node *n);
 static int	idg_changed(trie *atrie, int flags);
 static trie    *idg_propagate_change(idg_node *n, int flags);
-
+static int	find_dep(idg_mdep *mdep, term_t dep, idg_mdep **found);
 #undef LDFUNC_DECLARATIONS
 
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
@@ -6245,7 +6248,6 @@ pointer to an `mdep` structure. See new_mdep().
 static int
 idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 { volatile Table t;
-  idg_mdep *mdep;
 
   DEBUG(MSG_TABLING_IDG,
 	{ term_t f = PL_new_term_ref();
@@ -6263,23 +6265,6 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
        false(child->atrie, TRIE_ISSHARED) )
     return idg_dependency_error(parent, child);
 
-  if ( dep )
-  { if ( !(mdep=new_mdep(dep)) )
-      return FALSE;
-    if ( child->lazy )
-      parent->lazy = TRUE;
-    if ( parent->lazy )
-      mdep->lazy = TRUE;
-    if ( mdep->lazy && LD->transaction.generation &&
-	 child->atrie->data.worklist == WL_DYNAMIC &&
-	 LD->transaction.predicates &&
-	 lookupHTable(LD->transaction.predicates,
-		      child->atrie->data.predicate) )
-      parent->tt_new_dep = TRUE;
-  } else
-  { mdep = NULL;
-  }
-
   if ( !(t=child->affected) )
   { t = newHTable(4);
     t->free_symbol = idg_free_affected;
@@ -6288,9 +6273,35 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
       t = child->affected;
     }
   }
-  if ( mdep )
-  { mdep->next.any = addHTable(t, parent, child); /* chain old dependency */
-    updateHTable(t, parent, mdep);
+  if ( dep )
+  { idg_mdep *mdep0 = addHTable(t, parent, child); /* chain old dependency */
+    idg_mdep *mdep;
+
+    switch( find_dep(mdep0, dep, &mdep) )
+    { case TRUE:
+	break;
+      case FALSE:
+	DEBUG(MSG_TABLING_IDG,
+	      Sdprintf("  New dependency\n"));
+	if ( !(mdep=new_mdep(dep)) )
+	  return FALSE;
+	if ( child->lazy )
+	  parent->lazy = TRUE;
+	if ( parent->lazy )
+	  mdep->lazy = TRUE;
+	mdep->next.any = mdep0;
+	updateHTable(t, parent, mdep);
+        break;
+      default:
+	return FALSE;				   /* resource error */
+    }
+
+    if ( mdep->lazy && LD->transaction.generation &&
+	 child->atrie->data.worklist == WL_DYNAMIC &&
+	 LD->transaction.predicates &&
+	 lookupHTable(LD->transaction.predicates,
+		      child->atrie->data.predicate) )
+      parent->tt_new_dep = TRUE;
   } else
   { addHTable(t, parent, child);
   }
@@ -7171,6 +7182,20 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
 
 static void dep_free_queue(Buffer queue);
 
+#define mdep_hash(dep)		   LDFUNC(mdep_hash, dep)
+
+static unsigned int
+mdep_hash(DECL_LD term_t dep)
+{ termhash_t hash;
+
+  if ( variant_hash(dep, &hash, HASH_MURMUR) )
+    return hash.murmur;
+
+  assert(0);
+  return FALSE;
+}
+
+
 static idg_mdep *
 new_mdep(DECL_LD term_t dep)
 { fastheap_term *r;
@@ -7182,6 +7207,7 @@ new_mdep(DECL_LD term_t dep)
     { memset(mdep, 0, sizeof(*mdep));
       mdep->magic      = IDG_MDEP_MAGIC;
       mdep->dependency = r;
+      mdep->hash       = mdep_hash(dep);
 
       return mdep;
     }
@@ -7192,6 +7218,38 @@ new_mdep(DECL_LD term_t dep)
 
   return FALSE;
 }
+
+static int
+find_dep(DECL_LD idg_mdep *mdep, term_t dep, idg_mdep **found)
+{ if ( mdep && mdep->magic == IDG_MDEP_MAGIC )
+  { unsigned int hash = mdep_hash(dep);
+
+    while(mdep && mdep->magic == IDG_MDEP_MAGIC)
+    { if ( mdep->hash == hash )
+      { term_t dep2;
+	fid_t fid;
+
+	if ( (fid=PL_open_foreign_frame()) )
+	{ if ( (dep2=PL_new_term_ref()) &&
+	       put_fastheap(mdep->dependency, dep2) )
+	  { if ( is_variant_ptr(valTermRef(dep), valTermRef(dep2)) )
+	    { *found = mdep;
+	      return TRUE;
+	    }
+	    PL_discard_foreign_frame(fid);
+	    continue;
+	  }
+	}
+
+	return -1;				/* error */
+      }
+      mdep = mdep->next.dep;
+    }
+  }
+
+  return FALSE;
+}
+
 
 static
 PRED_IMPL("$idg_forced", 1, idg_forced, 0)
