@@ -2025,6 +2025,7 @@ reeval_monotonic_node(ATrie, Size) :-
     tdebug(reeval, 'Re-evaluating lazy monotonic ~p', [ATrie]),
     (   '$idg_mono_affects_lazy'(ATrie, _0SrcTrie, Dep, DepRef, Answers),
         length(Answers, Count),
+        '$idg_mono_empty_queue'(DepRef, Count),
         (   Dep = dependency(Head, Cont, Skel)
         ->  (   '$member'(ClauseRef, Answers),
                 '$clause'(Head, _Body, ClauseRef, _Bindings),
@@ -2033,7 +2034,7 @@ reeval_monotonic_node(ATrie, Size) :-
                 '$idg_set_current'(_, ATrie),
                 pdelim(Cont, Skel, ATrie),
                 fail
-            ;   '$idg_mono_empty_queue'(DepRef, Count)
+            ;   true
             )
         ;   Dep = dependency(SrcSkel, true, Cont, Skel)
         ->  (   '$member'(Node, Answers),
@@ -2043,7 +2044,7 @@ reeval_monotonic_node(ATrie, Size) :-
                 '$idg_set_current'(_, ATrie),
                 pdelim(Cont, Skel, ATrie),
                 fail
-            ;   '$idg_mono_empty_queue'(DepRef, Count)
+            ;   true
             )
         ;   tdebug(monotonic, 'Skipped queued ~p, answers ~p',
                    [Dep, Answers])
