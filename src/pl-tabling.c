@@ -6918,6 +6918,11 @@ dependent table) we have to give  up   on  lazy monotonic evaluation for
 affected nodes. This means we clean  the monotonic dependency queues and
 set `force_reeval` to  make  reeval_node/1   do  the  normal incremental
 reevaluation.
+
+(***) We can decrement below zero   if an internal '$mono_reeval_done'/3
+completes a component after  which  a   more  external  one propagates a
+no-change. Giving up this sanity check is dubious. Possibly we need some
+other way to detect this situation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct idg_propagate_state
@@ -7010,8 +7015,9 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 	  }
 	}
       } else if ( !table_is_incomplete(n->atrie) &&
-		  !n->mono_reevaluating )	/* Decrement falsecount */
-      { int fc = ATOMIC_DEC(&n->falsecount);
+		  !n->mono_reevaluating &&
+		  (n->lazy ? n->falsecount > 0 : TRUE /* see (***) */) )
+      { int fc = ATOMIC_DEC(&n->falsecount);	/* Decrement falsecount */
 
 	assert(fc >= 0);
 	if ( fc == 0 )
