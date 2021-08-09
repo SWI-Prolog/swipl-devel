@@ -233,45 +233,11 @@ load_vmis(const char *file)
 
 
 static int
-cmp_file(const char *from, const char *to)
-{ FILE *f1 = fopen(from, "r");
-  FILE *f2 = fopen(to, "r");
-  int rc = -1;
-
-  if ( f1 && f2 )
-  { char l1[1024];
-    char l2[1024];
-
-    while ( fgets(l1, sizeof(l1), f1) )
-    { if ( fgets(l2, sizeof(l2), f2) )
-      { if ( strcmp(l1, l2) == 0 )
-	  continue;
-      }
-      goto out;
-    }
-    if ( !fgets(l2, sizeof(l2), f2) )
-      rc = 0;
-  }
-
-out:
-  if ( f1 ) fclose(f1);
-  if ( f2 ) fclose(f2);
-  return rc;
-}
-
-
-static int
 update_file(const char *from, const char *to)
-{ if ( cmp_file(from, to) == 0 )
-  { if ( verbose )
-      fprintf(stderr, "\t%s: no change\n", to);
-    return remove(from);
-  } else
-  { remove(to);
-    if ( verbose )
-      fprintf(stderr, "\t%s: updated\n", to);
-    return rename(from, to);
-  }
+{ remove(to);
+  if ( verbose )
+    fprintf(stderr, "\t%s: updated\n", to);
+  return rename(from, to);
 }
 
 
