@@ -61,7 +61,8 @@ test_monotonic_lazy :-
                 tabling_monotonic_lazy_12,
                 tabling_monotonic_lazy_13,
                 tabling_monotonic_lazy_14,
-                tabling_monotonic_lazy_15
+                tabling_monotonic_lazy_15,
+                tabling_monotonic_lazy_16
               ]).
 
 :- meta_predicate
@@ -534,6 +535,47 @@ clean :-
 
 
 :- end_tests(tabling_monotonic_lazy_15).
+
+:- begin_tests(tabling_monotonic_lazy_16).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Problem:
+
+  - Lazy reevaluation creates a fresh table that depends on an
+    invalid lazy table because:
+    - The dependency gets to complete_or_invalid_status()
+    - As our dependency is lazy and we are in_assert_propagation
+      our table is considered complete.
+    - The new table is created from the old (invalid) data and
+      marked as complete and valid.
+      - The table is NOT valid!
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- table (p/1,q/1,r/1) as (monotonic,lazy).
+:- dynamic d/1 as monotonic.
+
+p(X) :-
+    d(1),
+    q(X).
+p(X) :-
+    d(11),
+    asserta(d(12)),
+    r(X).
+
+r(X) :-
+    q(X).
+
+q(X) :-
+    d(X),
+    X < 10.
+
+test(reeval) :-
+    cleanup([d/1]),
+    asserta(d(1)),
+    init(p(_)),
+    asserta(d(11)),
+    expect(X, p(X), [1]).
+
+:- end_tests(tabling_monotonic_lazy_16).
 
 
 
