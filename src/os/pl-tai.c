@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -417,9 +418,10 @@ cal_ftm(ftm *ftm, int required)
     if ( missing & HAS_WYDAY )
     { /* Gets weekday and yday at UTC, so we compensate afterwards! */
       caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
-      tai.x += ftm->utcoff;
       ftm->flags |= HAS_WYDAY;
     }
+
+    tai.x += ftm->utcoff;
 
     leapsecs_sub(&tai);
     ftm->stamp  = (double)((int64_t)tai.x - TAI_UTC_OFFSET);

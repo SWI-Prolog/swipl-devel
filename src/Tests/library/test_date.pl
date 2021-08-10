@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           www.swi-prolog.org
-    Copyright (c)  2006-2017, University of Amsterdam
+    Copyright (c)  2006-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -46,7 +47,8 @@
 test_date :-
 	non_unit_tests,
 	run_tests([ parse_time,
-		    format_time
+		    format_time,
+		    date_time_stamp
 		  ]).
 
 non_unit_tests :-
@@ -261,3 +263,10 @@ test(roundtrip_epoch, T =:= T2) :-
 	date_time_stamp(D, T2).
 
 :- end_tests(timestamp_roundtrip).
+
+:- begin_tests(date_time_stamp).
+
+test(tz, TS =:= -3600) :-
+	date_time_stamp(date(1970,1,1,0,0,0,-3600,-,-), TS).
+
+:- end_tests(date_time_stamp).
