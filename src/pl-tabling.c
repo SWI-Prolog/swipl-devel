@@ -7231,7 +7231,7 @@ find_dep(DECL_LD idg_mdep *mdep, term_t dep, idg_mdep **found)
 { if ( mdep && mdep->magic == IDG_MDEP_MAGIC )
   { unsigned int hash = mdep_hash(dep);
 
-    while(mdep && mdep->magic == IDG_MDEP_MAGIC)
+    for(; mdep && mdep->magic == IDG_MDEP_MAGIC; mdep = mdep->next.dep)
     { if ( mdep->hash == hash )
       { term_t dep2;
 	fid_t fid;
@@ -7250,7 +7250,6 @@ find_dep(DECL_LD idg_mdep *mdep, term_t dep, idg_mdep **found)
 
 	return -1;				/* error */
       }
-      mdep = mdep->next.dep;
     }
   }
 
