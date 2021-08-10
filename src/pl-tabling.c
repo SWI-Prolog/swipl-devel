@@ -7778,6 +7778,18 @@ typedef struct mono_scc_state
 } mono_scc_state;
 
 
+static int
+mdep_is_empty(idg_mdep *mdep)
+{ while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
+  { if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
+      return FALSE;
+    mdep = mdep->next.any;
+  }
+
+  return TRUE;
+}
+
+
 #define mono_scc_is_complete_loop(state) LDFUNC(mono_scc_is_complete_loop, state)
 static int
 mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
@@ -7791,7 +7803,7 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
       idg_mdep *mdep;
 
       if ( (mdep=lookupHTable(dep->affected, state->idg)) &&
-	   mdep->queue && !isEmptyBuffer(mdep->queue) )
+	   !mdep_is_empty(mdep) )
 	return FALSE;
 
       if ( dep->falsecount )
@@ -7801,7 +7813,7 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 	    outOfCore();
 	  addHTable(state->visited, dep, (void*)TRUE);
 	}
-	if ( !dep->monotonic || dep-> force_reeval )
+	if ( !dep->monotonic || dep->force_reeval )
 	  return FALSE;
       }
     }
