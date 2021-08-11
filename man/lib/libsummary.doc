@@ -132,6 +132,9 @@
 \libsummary{predicate_options}
 \input{summaries.d/predopts.tex}
 
+\libsummary{prologdebug}
+\input{summaries.d/prologdebug.tex}
+
 \libsummary{prologjiti}
 \input{summaries.d/prologjiti.tex}
 

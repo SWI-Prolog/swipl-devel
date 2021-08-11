@@ -60,6 +60,7 @@ documented at all.
 \input{pio}
 \input{portraytext}
 \input{predicateoptions}
+\input{prologdebug}
 \input{prologjiti}
 \input{prologpack}
 \input{prologxref}
