@@ -39,10 +39,6 @@
           [ leash/1,
             visible/1,
             style_check/1,
-            (spy)/1,
-            (nospy)/1,
-            nospyall/0,
-            debugging/0,
             flag/3,
             atom_prefix/2,
             dwim_match/2,
@@ -206,109 +202,6 @@ enum_style_check(Style) :-
     style_name(Style, Bit),
     Bit /\ Bits =\= 0.
 
-
-%!  prolog:debug_control_hook(+Action)
-%
-%   Allow user-hooks in the Prolog debugger interaction.  See the calls
-%   below for the provided hooks.  We use a single predicate with action
-%   argument to avoid an uncontrolled poliferation of hooks.
-
-:- multifile
-    prolog:debug_control_hook/1.    % +Action
-
-:- meta_predicate
-    spy(:),
-    nospy(:).
-
-%!  spy(:Spec) is det.
-%!  nospy(:Spec) is det.
-%!  nospyall is det.
-%
-%   Set/clear spy-points. A successfully set or cleared spy-point is
-%   reported using print_message/2, level  =informational=, with one
-%   of the following terms, where Spec is of the form M:Head.
-%
-%       - spy(Spec)
-%       - nospy(Spec)
-%
-%   @see    spy/1 and nospy/1 call the hook prolog:debug_control_hook/1
-%           to allow for alternative specifications of the thing to
-%           debug.
-
-spy(_:X) :-
-    var(X),
-    throw(error(instantiation_error, _)).
-spy(_:[]) :- !.
-spy(M:[H|T]) :-
-    !,
-    spy(M:H),
-    spy(M:T).
-spy(Spec) :-
-    notrace(prolog:debug_control_hook(spy(Spec))),
-    !.
-spy(Spec) :-
-    '$find_predicate'(Spec, Preds),
-    '$member'(PI, Preds),
-        pi_to_head(PI, Head),
-        '$define_predicate'(Head),
-        '$spy'(Head),
-    fail.
-spy(_).
-
-nospy(_:X) :-
-    var(X),
-    throw(error(instantiation_error, _)).
-nospy(_:[]) :- !.
-nospy(M:[H|T]) :-
-    !,
-    nospy(M:H),
-    nospy(M:T).
-nospy(Spec) :-
-    notrace(prolog:debug_control_hook(nospy(Spec))),
-    !.
-nospy(Spec) :-
-    '$find_predicate'(Spec, Preds),
-    '$member'(PI, Preds),
-         pi_to_head(PI, Head),
-        '$nospy'(Head),
-    fail.
-nospy(_).
-
-nospyall :-
-    notrace(prolog:debug_control_hook(nospyall)),
-    fail.
-nospyall :-
-    spy_point(Head),
-        '$nospy'(Head),
-    fail.
-nospyall.
-
-pi_to_head(M:PI, M:Head) :-
-    !,
-    pi_to_head(PI, Head).
-pi_to_head(Name/Arity, Head) :-
-    functor(Head, Name, Arity).
-
-%!  debugging is det.
-%
-%   Report current status of the debugger.
-
-debugging :-
-    notrace(prolog:debug_control_hook(debugging)),
-    !.
-debugging :-
-    current_prolog_flag(debug, true),
-    !,
-    print_message(informational, debugging(on)),
-    findall(H, spy_point(H), SpyPoints),
-    print_message(informational, spying(SpyPoints)).
-debugging :-
-    print_message(informational, debugging(off)).
-
-spy_point(Module:Head) :-
-    current_predicate(_, Module:Head),
-    '$get_predicate_attribute'(Module:Head, spy, 1),
-    \+ predicate_property(Module:Head, imported_from(_)).
 
 %!  flag(+Name, -Old, +New) is det.
 %
