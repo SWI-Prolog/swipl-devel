@@ -472,7 +472,7 @@ reserveAtom(void)
 #endif /*O_ATOMGC*/
 
   for(;;)
-  { index = GD->atoms.highest;
+  { index = __atomic_load_n(&GD->atoms.highest, __ATOMIC_ACQUIRE);
     idx = MSB(index);
     assert(index >= 0);
 
@@ -1131,7 +1131,7 @@ register_atom(volatile Atom p)
 
 void
 (PL_register_atom)(atom_t a)
-{ 
+{
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
 
@@ -1258,7 +1258,7 @@ unregister_atom(volatile Atom p)
 
 void
 (PL_unregister_atom)(atom_t a)
-{ 
+{
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
 
