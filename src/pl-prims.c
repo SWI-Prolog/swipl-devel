@@ -2692,7 +2692,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
 
   if ( PL_is_variable(t) )
   { atom_t name;
-    int arity;
+    intptr_t arity;
     term_t tail = PL_copy_term_ref(list);
     term_t head = PL_new_term_ref();
 
@@ -2711,7 +2711,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     if ( !PL_get_atom_ex(head, &name) )
       fail;
 
-    if ( (arity = (int)lengthList(tail, FALSE)) < 0 ) /* TBD: check MAXINT */
+    if ( (arity = lengthList(tail, FALSE)) < 0 )
     { if ( arity == -1 )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
       else
