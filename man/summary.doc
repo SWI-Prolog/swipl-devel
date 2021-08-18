@@ -949,6 +949,7 @@ suggest predicates from a keyword.
 \opsummary{700}{xfx}{@=<}{Predicate}
 \opsummary{700}{xfx}{@>}{Predicate}
 \opsummary{700}{xfx}{@>=}{Predicate}
+\opsummary{700}{xfx}{as}{Predicate}
 \opsummary{700}{xfx}{is}{Predicate}
 \opsummary{700}{xfx}{\=}{Predicate}
 \opsummary{700}{xfx}{\==}{Predicate}
