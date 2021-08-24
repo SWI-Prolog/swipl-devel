@@ -2019,6 +2019,12 @@ The recursive mode has been added for interactive usage of CHR (see
 \secref{chr}),\footnote{Suggested by Falco Nogatz} which maintains the
 global constraint store in backtrackable global variables.
 
+    \prologflagitem{toplevel_name_variables}{bool}{rw}
+If \const{true} (default), give names to variables at the toplevel
+instead of printing them as \arg{_NNN}.  The variables are named
+\arg{_A}, \arg{_B}, ...  Variables that appear only once (singletons)
+are printed as \arg{_}.
+
     \prologflagitem{toplevel_print_anon}{bool}{rw}
 If \const{true}, top-level variables starting with an underscore
 (\chr{_}) are printed normally.  If \const{false} they are hidden.

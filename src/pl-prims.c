@@ -3167,7 +3167,8 @@ PRED_IMPL("$unbind_template", 1, unbind_template, 0)
 
 #define TV_ATTVAR    0x1		/* attributed vars only */
 #define TV_SINGLETON 0x2		/* singletons */
-#define TV_ATTS      0x4		/* recurse into attributes */
+#define TV_SHARED    0x4		/* non-singletons */
+#define TV_ATTS      0x8		/* recurse into attributes */
 #define TV_EXCEPTION ((size_t)-1)
 #define TV_NOSPACE   ((size_t)-2)
 #define TV_NOMEM     ((size_t)-3)
@@ -3188,7 +3189,7 @@ term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
     { term_t v;
 
       if ( visitedWord(p) )
-      { if ( (flags&TV_SINGLETON) )
+      { if ( (flags&(TV_SINGLETON|TV_SHARED)) )
 	  (*p) |= FIRST_MASK;
 	continue;
       }
@@ -3209,7 +3210,7 @@ term_variables_loop(DECL_LD term_agenda *agenda, size_t maxcount, int flags)
     } else if ( isTerm(w) )
     { Functor f = valueTerm(w);
 
-      if ( visited(f) && !(flags&TV_SINGLETON) )
+      if ( visited(f) && !(flags&(TV_SINGLETON|TV_SHARED)) )
 	continue;
       if ( !pushWorkAgenda(agenda, arityFunctor(f->definition), f->arguments) )
 	return TV_NOMEM;
@@ -3231,7 +3232,7 @@ term_variables_to_termv(DECL_LD term_t t, term_t *vp, size_t maxcount, int flags
   initTermAgenda(&agenda, 1, valTermRef(t));
   count = term_variables_loop(&agenda, maxcount, flags);
   clearTermAgenda(&agenda);
-  if ( (flags&TV_SINGLETON) && (ssize_t)count >= 0 )
+  if ( (flags&(TV_SINGLETON|TV_SHARED)) && (ssize_t)count >= 0 )
   { size_t o = 0;
     size_t i;
 
@@ -3240,7 +3241,8 @@ term_variables_to_termv(DECL_LD term_t t, term_t *vp, size_t maxcount, int flags
 
       assert(isRef(*p));
       p = unRef(*p);
-      if ( !((*p)&FIRST_MASK) )
+      if ( (!((*p)&FIRST_MASK) && (flags&TV_SINGLETON)) ||
+	   (((*p)&FIRST_MASK)  && (flags&TV_SHARED)) )
       { if ( o != i )
 	  *valTermRef(v0+o) = *valTermRef(v0+i);
 	o++;
@@ -3331,6 +3333,17 @@ PRED_IMPL("term_singletons", 2, term_singletons, 0)
 
   if ( PL_is_acyclic(A1) )
     return term_variables(A1, A2, 0, TV_SINGLETON);
+  else
+    return PL_representation_error("acyclic_term");
+}
+
+
+static
+PRED_IMPL("$term_multitons", 2, term_multitons, 0)
+{ PRED_LD
+
+  if ( PL_is_acyclic(A1) )
+    return term_variables(A1, A2, 0, TV_SHARED);
   else
     return PL_representation_error("acyclic_term");
 }
@@ -6102,6 +6115,7 @@ BeginPredDefs(prims)
   PRED_DEF("$term_attvar_variables", 2, term_attvar_variables, 0)
   PRED_DEF("term_variables", 3, term_variables3, 0)
   PRED_DEF("term_singletons", 2, term_singletons, 0)
+  PRED_DEF("$term_multitons", 2, term_multitons, 0)
   PRED_DEF("term_attvars", 2, term_attvars, 0)
   PRED_DEF("is_most_general_term", 1, is_most_general_term, 0)
   PRED_DEF("$free_variable_set", 3, free_variable_set, 0)
