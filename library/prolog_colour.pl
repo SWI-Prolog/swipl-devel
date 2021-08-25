@@ -351,6 +351,12 @@ fix_operators((:- Directive), M, Src) :-
     !.
 fix_operators(_, _, _).
 
+:- multifile
+    prolog:xref_update_syntax/2.
+
+process_directive(Directive, M, _Src) :-
+    prolog:xref_update_syntax(Directive, M),
+    !.
 process_directive(style_check(X), _, _) :-
     !,
     style_check(X).

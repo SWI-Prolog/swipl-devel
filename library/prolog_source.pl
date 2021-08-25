@@ -90,6 +90,7 @@ users of the library are:
     prolog:xref_open_source/2,       % +SourceId, -Stream
     prolog:xref_close_source/2,      % +SourceId, -Stream
     prolog:alternate_syntax/4,       % Syntax, +Module, -Setup, -Restore
+    prolog:xref_update_syntax/2,     % +Directive, +Module
     prolog:quasi_quotation_syntax/2. % Syntax, Library
 
 
@@ -262,6 +263,9 @@ update_state((?- Directive), M) :-
     update_state((:- Directive), M).
 update_state(_, _).
 
+update_directive(Directive, Module) :-
+    prolog:xref_update_syntax(Directive, Module),
+    !.
 update_directive(module(Module, Public), _) :-
     atom(Module),
     is_list(Public),

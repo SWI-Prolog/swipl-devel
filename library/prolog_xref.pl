@@ -1335,6 +1335,7 @@ xref_meta(prolog_listen(Ev,G,_),[G+N]) :- event_xargs(Ev, N).
 xref_meta(tnot(G),		[G]).
 xref_meta(not_exists(G),	[G]).
 xref_meta(with_tty_raw(G),	[G]).
+xref_meta(residual_goals(G),    [G+2]).
 
                                         % XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
