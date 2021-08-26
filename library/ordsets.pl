@@ -54,6 +54,8 @@
             ord_empty/1,                % ?Set
             ord_memberchk/2,            % +Element, +Set,
             ord_symdiff/3,              % +Set1, +Set2, ?Diff
+            ord_difference/4,           % +Set1, +Set2, ?Diff1, ?Diff2
+            ord_partition/5,            % +Set1, +Set2, ?Diff1, ?Intersection, ?Diff2
                                         % SICSTus extensions
             ord_seteq/2,                % +Set1, +Set2
             ord_intersection/2          % +PowerSet, -Intersection
@@ -503,3 +505,44 @@ ord_symdiff(=, _, T1, _, T2, Difference) :-
 ord_symdiff(>, H1, T1, H2, Set2, [H2|Difference]) :-
     ord_symdiff(Set2, H1, T1, Difference).
 
+%!  ord_difference(+Set1, +Set2, ?Diff1, ?Diff2) is det.
+%
+%   Diff1 is the set holding all elements of Set1 that are not in
+%   Set2, and Diff2 is has the elements of Set2 not in Set1.
+%   This is the same as ord_partition(Set1, Set2, Diff1, _, Diff2).
+
+ord_difference(Set1, Set2, Diff1, Diff2) :-
+    ord_partition(Set1, Set2, Diff1, _, Diff2).
+
+%!  ord_partition(+Set1, +Set2, ?Diff1, ?Intersection, ?Diff2) is det.
+%
+%   Is true when Intersection is the set holding all elements common
+%   to Set1 and Set2, Diff1 has the elements unique to Set1, and
+%   Diff2 has the elements unique to Set2. This is semantically
+%   equivalent to:
+%
+%   ==
+%       ord_intersection(Set1, Set2, Intersection),
+%       ord_subtract(Set1, Set2, Diff1),
+%       ord_subtract(Set2, Set1, Diff2).
+%   ==
+ord_partition([], Set2, [], [], Set2).
+ord_partition([H1|T1], Set2, Diff1, Intersection, Diff2) :-
+    ord_partition21(Set2, H1, T1, Diff1, Intersection, Diff2).
+
+ord_partition21([], H1, T1, [H1|T1], [], []).
+ord_partition21([H2|T2], H1, T1, Diff1, Intersection, Diff2) :-
+    compare(Order, H1, H2),
+    ord_partition(Order, H1, T1, H2, T2, Diff1, Intersection, Diff2).
+
+ord_partition12([], H2, T2, [], [], [H2|T2]).
+ord_partition12([H1|T1], H2, T2, Diff1, Intersection, Diff2) :-
+    compare(Order, H1, H2),
+    ord_partition(Order, H1, T1, H2, T2, Diff1, Intersection, Diff2).
+
+ord_partition(<, H1, T1, H2, T2, [H1|Diff1], Intersection, Diff2) :-
+    ord_partition12(T1, H2, T2, Diff1, Intersection, Diff2).
+ord_partition(=, H1, T1, _H2, T2, Diff1, [H1|Intersection], Diff2) :-
+    ord_partition(T1, T2, Diff1, Intersection, Diff2).
+ord_partition(>, H1, T1, H2, T2, Diff1, Intersection, [H2|Diff2]) :-
+    ord_partition21(T2, H1, T1, Diff1, Intersection, Diff2).
