@@ -764,13 +764,13 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		{ FeedBack("No show context\n");
 		}
 		return ACTION_AGAIN;
-    case 'm':	FeedBack("Exception details");
+    case 'm':	FeedBack("Exception details\n");
 	        if ( port & EXCEPTION_PORT )
 		{ exceptionDetails();
 		} else
 		   Warn("No exception\n");
 		return ACTION_AGAIN;
-    case 'L':	FeedBack("Listing");
+    case 'L':	FeedBack("Listing\n");
 		listGoal(frame);
 		return ACTION_AGAIN;
     case 'S':	FeedBack("Save goal");
@@ -1106,7 +1106,7 @@ exceptionDetails()
   { int rc;
 
     Sflush(Suser_output);		/* make sure to stay in sync */
-    Sfprintf(Sdout, "\n\tException term: ");
+    Sfprintf(Sdout, "\tException term: ");
     rc = PL_write_term(Sdout, except, 1200, PL_WRT_QUOTED);
     Sfprintf(Sdout, "\n\t       Message: %s\n", messageToString(except));
 
