@@ -1265,6 +1265,20 @@ def_environment('PACKSODIR', Value) :-
     atom_concat('lib/', Arch, Value).
 def_environment('SWISOLIB', Value) :-
     current_prolog_flag(c_libplso, Value).
+
+% copied from library/prolog_config.pl:89 (runtime variable PLLIBDIR)
+def_environment('SWILIBDIR', Value) :-
+    current_prolog_flag(home, Home),
+    (   current_prolog_flag(c_libdir, Rel)
+    ->  atomic_list_concat([Home, Rel], /, Value)
+    ;   current_prolog_flag(windows, true)
+    ->  atomic_list_concat([Home, bin], /, Value)
+    ;   apple_bundle_libdir(LibDir)
+    ->  Value = LibDir
+    ;   current_prolog_flag(arch, Arch)
+    ->  atomic_list_concat([Home, lib, Arch], /, Value)
+    ).
+
 def_environment('SWILIB', '-lswipl').
 def_environment('CC', Value) :-
     (   getenv('CC', Value)
