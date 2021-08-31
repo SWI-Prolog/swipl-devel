@@ -116,5 +116,5 @@
 	path = packages/stomp
 	url = ../packages-stomp.git
 [submodule "packages/language_server"]
-	path = packages/language_server
+	path = packages/mqi
 	url = ../packages-language_server.git
