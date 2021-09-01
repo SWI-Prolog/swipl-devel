@@ -190,8 +190,11 @@ pldoc(lib/predopts.tex lib/predopts.txt
 pldoc(lib/help.tex "library(help)"
       OPTIONS --subsection
       DEPENDS nlp)
+has_package(xpce HAVE_XPCE)
+if(HAVE_XPCE)
 pldoc(lib/main.tex "library(main)"
       DEPENDS pl2xpce)
+endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
 
