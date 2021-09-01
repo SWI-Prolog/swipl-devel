@@ -2543,12 +2543,13 @@ isvar:
 
     if ( index < ci->arity )		/* variable on its own in the head */
     { if ( where & A_BODY )
-      { if ( where & A_ARG )
+      { if ( argUnifiedTo(*arg) )
+	  set(ci->clause, CL_HEAD_TERMS);
+
+	if ( where & A_ARG )
 	{ Output_0(ci, B_ARGVAR);
 	} else
-	{ if ( argUnifiedTo(*arg) )
-	    set(ci->clause, CL_HEAD_TERMS);
-	  if ( index < 3 )
+	{ if ( index < 3 )
 	  { Output_0(ci, B_VAR0 + index);
 	    return TRUE;
 	  }
@@ -4900,6 +4901,7 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
 	index = 2;
         break;
       case B_VAR:
+      case B_ARGVAR:
 	index = VARNUM(pc[1]);
         break;
       default:
