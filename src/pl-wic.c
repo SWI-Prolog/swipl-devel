@@ -218,7 +218,7 @@ first. The last byte has its 0x80 mask set.
 #define CLAUSE_UNIT_CLAUSE 0x01
 #define CLAUSE_SSU_COMMIT  0x02
 #define CLAUSE_SSU_CHOICE  0x04
-
+#define CLAUSE_HEAD_TERMS  0x08
 
 static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -1299,6 +1299,7 @@ loadClauseFlags(wic_state *state, Clause cl, int skip)
     if ( (flags&CLAUSE_UNIT_CLAUSE) ) lflags |= UNIT_CLAUSE;
     if ( (flags&CLAUSE_SSU_COMMIT) )  lflags |= SSU_COMMIT_CLAUSE;
     if ( (flags&CLAUSE_SSU_CHOICE) )  lflags |= SSU_CHOICE_CLAUSE;
+    if ( (flags&CLAUSE_HEAD_TERMS) )  lflags |= CL_HEAD_TERMS;
 
     cl->flags = lflags;
   }
@@ -2593,6 +2594,7 @@ clauseFlags(const Clause clause)
   if ( true(clause, UNIT_CLAUSE) )       flags |= CLAUSE_UNIT_CLAUSE;
   if ( true(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
   if ( true(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
+  if ( true(clause, CL_HEAD_TERMS) )     flags |= CLAUSE_HEAD_TERMS;
 
   return flags;
 }
