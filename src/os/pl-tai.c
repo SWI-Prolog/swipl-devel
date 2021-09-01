@@ -716,9 +716,17 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    fmt[1] = (char)c;
 	    fmt[2] = EOS;
 
+#ifndef __GLIBC__
+	    if ( fmt[1] == 'P' ) fmt[1] = 'p';
+#endif
+
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
 					/* conversion is not thread-safe under locale switch */
 	    strftime(buf, sizeof(buf), fmt, &ftm->tm);
+#ifndef __GLIBC__
+	    if ( c == 'P' )
+	      strlwr(buf);
+#endif
 	    OUTSTRA(buf);
 	    break;
 	  }
