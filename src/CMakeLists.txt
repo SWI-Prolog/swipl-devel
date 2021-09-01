@@ -473,7 +473,7 @@ if(GCOV)
   endforeach()
 endif()
 
-if (CMAKE_BUILD_TYPE STREQUAL "PGO")
+if (CMAKE_BUILD_TYPE STREQUAL "PGO" OR CMAKE_BUILD_TYPE STREQUAL "DEB")
   configure_pgo("pgo-instrumented")
   generate_pgo_data(${PGO_TARGETS})
   add_pgo_dependency(bootfile prolog_home)
