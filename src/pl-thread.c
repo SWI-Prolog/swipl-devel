@@ -719,18 +719,23 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     if ( !after_fork )
       PL_UNLOCK(L_THREAD);
 
-    if ( info->detached || acknowledge )
-      free_thread_info(info);
-
-    ld->thread.info = NULL;		/* help force a crash if ld used */
-    maybe_free_local_data(ld);
-
     if ( acknowledge )			/* == canceled */
     { DEBUG(MSG_CLEANUP_THREAD,
 	    Sdprintf("Acknowledge dead of %d\n", info->pl_tid));
-      pthread_detach(pthread_self());
-      sem_post(sem_canceled_ptr);
+#if !defined(_GNU_SOURCE) || defined(__GLIBC__)
+/* MUSL C library crashes when detaching from the cleanup handler */
+/* This is used for program termination only, so we should be ok */
+      pthread_detach(info->tid);
+#endif
     }
+
+    if ( info->detached || acknowledge )
+      free_thread_info(info);
+    ld->thread.info = NULL;		/* help force a crash if ld used */
+    maybe_free_local_data(ld);
+
+    if ( acknowledge )
+      sem_post(sem_canceled_ptr);
   }
 
   TLD_set_LD(old_ld);
