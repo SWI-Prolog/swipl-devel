@@ -2068,8 +2068,9 @@ the constructs in this section, except for repeat/0, are translated by
 the compiler. Please note that complex goals passed as arguments to
 meta-predicates such as findall/3 below cause the goal to be compiled to
 a temporary location before execution. It is faster to define a
-sub-predicate (i.e.\ \nopredref{one_character_atoms}{1} in the example
-below) and make a call to this simple predicate.
+sub-predicate (i.e., \nopredref{one_character_atoms}{1} in the example
+below) and make a call to this simple predicate.  See also the Prolog
+flag \prologflag{compile_meta_arguments}.
 
 \begin{code}
 one_character_atoms(As) :-
@@ -2106,23 +2107,49 @@ here means ``prunes $X$ choice point created by $X$''.
 \exam{t0 :- (a, !, b).}                 & \% prunes {a}/0 and {t0}/0 \\
 \exam{t1 :- (a, !, fail ; b).}          & \% prunes {a}/0 and {t1}/0 \\
 \exam{t2 :- (a -> b, ! ; c).}           & \% prunes {b}/0 and {t2}/0 \\
-\exam{t3 :- call((a, !, fail ; b)).}    & \% prunes {a}/0 \\
-\exam{t4 :- \Snot (a, !, fail).}        & \% prunes {a}/0 \\
+\exam{t3 :- (a, !, b -> c ; d).}        & \% prunes {a}/0 \\
+\exam{t4 :- call((a, !, fail ; b)).}    & \% prunes {a}/0 \\
+\exam{t5 :- \Snot (a, !, fail).}        & \% prunes {a}/0 \\
 \end{tabular}\end{center}
 
 \infixop[ISO]{,}{:Goal1}{:Goal2}
-Conjunction.  True if both `Goal1' and `Goal2' can be proved.  It is
-defined as follows (this definition does not lead to a loop as the second comma
-is handled by the compiler):
-\begin{code}
-Goal1, Goal2 :- Goal1, Goal2.
-\end{code}
+Conjunction (\jargon{and}). True if both \arg{Goal1} and \arg{Goal2}
+are true.
+
 \infixop[ISO]{;}{:Goal1}{:Goal2}
-The `or' predicate is defined as:
+Disjunction (\jargon{or}). True if either \arg{Goal1} or \arg{Goal2}
+succeeds. Note that the semantics change if \arg{Goal1} contains
+\predref{->}{2} or \predref{*->}{2}. \predref{;}{2} is transparent to
+cuts. See \predref{!}{0} for details.  For example:
+
 \begin{code}
-Goal1 ; _Goal2 :- Goal1.
-_Goal1 ; Goal2 :- Goal2.
+?- (between(1,2,X) ; X = a).
+X = 1 ;
+X = 2 ;
+X = a.
 \end{code}
+
+It is strongly adviced to \emph{always} use parenthesis around
+disjunctions. Conjunctions inside a disjunction should not use
+parenthesis.  Traditionally the \chr{;} is placed at the start
+of the line rather than at the end because a \chr{;} at the
+end of a line is easily overlooked.  Below is an example of
+the preferred style used in SWI-Prolog.\footnote{Some users
+prefer a newline after the \chr{;}.}
+
+\begin{code}
+p :-
+    a,
+    (   b,
+	c
+    ;	d
+    ).
+\end{code}
+
+Although \predref{;}{2} is a \jargon{control structure} that is normally
+handled by the compiler, SWI-Prolog implements \predref{;}{2} as a true
+predicate to support call/2 and friends as well as to allow for querying
+predicate properties, for example to support code analysis.
 
 \infixop{|}{:Goal1}{:Goal2}
 Equivalent to \predref{;}{2}.  Retained for compatibility only.  New code
@@ -2133,9 +2160,9 @@ If-then and If-Then-Else. The \predref{->}{2} construct commits to
 the choices made at its left-hand side, destroying choice points created
 inside the clause (by \predref{;}{2}), or by goals called by
 this clause. Unlike \predref{!}{0}, the choice point of the predicate as
-a whole (due to multiple clauses) is \strong{not} destroyed. The
-combination \predref{;}{2} and \predref{->}{2} acts as if
-defined as:
+a whole (due to multiple clauses) is \strong{not} destroyed.
+Disregarding the interaction with \predref{!}{0}, the combination
+\predref{;}{2} and \predref{->}{2} acts as if defined as:
 
 \begin{code}
 If -> Then; _Else :- If, !, Then.
@@ -2154,6 +2181,22 @@ this syntactic construct as defined above is \emph{different} from the
 simple nesting of the two individual constructs, i.e., the semantics of
 \predref{->}{2} \emph{changes} when embedded in \predref{;}{2}. See also
 once/1.
+
+As with \predref{;}{2}, this construct is always nested in parenthesis.
+Here is an example of the preferred layout for SWI-Prolog.
+
+\begin{code}
+p :-
+    a,
+    (   b,
+	c
+    ->  d,
+	e
+    ;   f
+    ->  g
+    ;	h
+    ).
+\end{code}
 
 \infixop{*->}{:Condition}{:Action ; :Else}
 This construct implements the so-called `soft-cut'. The control is
