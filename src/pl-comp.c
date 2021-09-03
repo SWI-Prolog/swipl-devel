@@ -5342,10 +5342,29 @@ clause_functor(const Clause cl)
   }
 }
 
-#define moved_unifications(body, di) LDFUNC(moved_unifications, body, di)
+
+#define moved_unification(i, eq, a, di) LDFUNC(moved_unification, i, eq, a, di)
 static int
-moved_unifications(DECL_LD term_t body, decompileInfo *di)
-{ int i;
+moved_unification(DECL_LD int i, term_t eq, term_t a, decompileInfo *di)
+{ if ( PL_unify_functor(eq, FUNCTOR_equals2) )
+  { _PL_get_arg(1, eq, a);
+    if ( !PL_unify(a, di->variables+i) )
+      return FALSE;
+    _PL_get_arg(2, eq, a);
+    if ( !PL_unify(a, di->bvar_args+i) )
+      return FALSE;
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+#define moved_unifications(body, di, hasbody) \
+	LDFUNC(moved_unifications, body, di, hasbody)
+static int
+moved_unifications(DECL_LD term_t body, decompileInfo *di, int hasbody)
+{ int i, last;
   term_t tmp;
   term_t eq, a;
 
@@ -5354,24 +5373,25 @@ moved_unifications(DECL_LD term_t body, decompileInfo *di)
   eq = tmp;
   a  = tmp+1;
 
-  for(i=0; i<di->arity; i++)
+  for(last=0, i=0; i<di->arity; i++)
   { if ( true_bit(di->bvar_access, i) )
-    { if ( PL_unify_functor(body, FUNCTOR_comma2) )
-      { _PL_get_arg(1, body, eq);
-	if ( PL_unify_functor(eq, FUNCTOR_equals2) )
-	{ _PL_get_arg(1, eq, a);
-	  if ( !PL_unify(a, di->variables+i) )
-	    return FALSE;
-	  _PL_get_arg(2, eq, a);
-	  if ( !PL_unify(a, di->bvar_args+i) )
-	    return FALSE;
+      last = i;
+  }
 
-	  _PL_get_arg(2, body, body);
-	  continue;
-	}
+  for(i=0; i<=last; i++)
+  { if ( true_bit(di->bvar_access, i) )
+    { if ( i == last && !hasbody )
+      { if ( !moved_unification(i, body, a, di) )
+	  return FALSE;
+	break;
       }
 
-      return FALSE;
+      if ( PL_unify_functor(body, FUNCTOR_comma2) )
+      { _PL_get_arg(1, body, eq);
+	if ( !moved_unification(i, eq, a, di) )
+	  return FALSE;
+	_PL_get_arg(2, body, body);
+      }
     }
   }
 
@@ -5444,9 +5464,12 @@ decompile(Clause clause, term_t term, term_t bindings)
     _PL_get_arg(2, body, body);
   }
 
-  if ( di->bvar_access &&
-       !moved_unifications(body, di) )
-    return FALSE;
+  if ( di->bvar_access )
+  { if ( fetchop(PC) == I_EXIT )
+      return moved_unifications(body, di, FALSE);
+    else if ( !moved_unifications(body, di, TRUE) )
+      return FALSE;
+  }
 
   if ( fetchop(PC) == I_EXIT )
     return PL_unify_atom(body, ATOM_true);
