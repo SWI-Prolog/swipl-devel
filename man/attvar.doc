@@ -177,10 +177,11 @@ Before explaining the code we give some example queries:
 \end{quote}
 
 The predicate \nopredref{domain}{2} fetches (first clause) or assigns
-(second clause) the variable a \emph{domain}, a set of values the variable can be
-unified with. In the second clause, domain/2 first associates the domain with a
-fresh variable (Y) and then unifies X to this variable to deal with the
-possibility that X already has a domain. The predicate attr_unify_hook/2 (see below)
+(second clause) the variable a \emph{domain}, a set of values the
+variable can be unified with. In the second clause,
+\nopredref{domain}{2} first associates the domain with a fresh variable
+(Y) and then unifies X to this variable to deal with the possibility
+that X already has a domain. The predicate attr_unify_hook/2 (see below)
 is a hook called after a variable with a domain is assigned a value. In
 the simple case where the variable is bound to a concrete value, we
 simply check whether this value is in the domain. Otherwise we take the
@@ -297,6 +298,19 @@ expected answers.
 This nonterminal is used by copy_term/3, on which the Prolog top level
 relies to ensure the basic invariant of pure Prolog programs: The
 answer is \textit{declaratively equivalent} to the query.
+
+The copy_term/3 primitive uses attribute_goals//1 inside a findall/3
+call. This implies that attribute_goals//1 can unify variables and
+modify attributes, for example, to tell other hooks that some attribute
+has already been taken care of. This nonterminal is also used by
+frozen/2 which does \emph{not} create a copy. Ideally attribute_goals//1
+should not modify anything to allow direct application in frozen/2. In
+the current implementation frozen/2 backtracks over attribute_goals//1
+to tolerate the current behavior. This work-around harms the performance
+of frozen/2. New implementations of attribute_goals//1 should avoid
+relying on backtracking when feasible. Future versions of frozen/2 and
+copy_term/3 may require attribute_goals//1 not to modify any variables
+or attributes.
 
 Note that instead of \jargon{defaulty} representations, a Prolog
 \textit{list} is used to represent residual goals. This simplifies
@@ -461,17 +475,21 @@ with the module \const{dif}.  It is an autoloaded predicate that is
 defined in the library \pllib{dif}.
 
     \predicate{freeze}{2}{+Var, :Goal}
-Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e. is
+Delay the execution of \arg{Goal} until \arg{Var} is bound (i.e., is
 not a variable or attributed variable).	 If \arg{Var} is bound on entry
 freeze/2 is equivalent to call/1.  The freeze/2 predicate is realised
 using an attributed variable associated with the module \const{freeze}.
-Use \exam{frozen(Var, Goal)} to find out whether
-and which goals are delayed on \arg{Var}.
+See also frozen/2.
 
-    \predicate{frozen}{2}{@{Var}, -Goal}
+    \predicate[det]{frozen}{2}{@{Term}, -Goal}
 Unify \arg{Goal} with the goal or conjunction of goals delayed on
-\arg{Var}.  If no goals are frozen on \arg{Var}, \arg{Goal} is unified
-to \const{true}.
+some attributed variable in \arg{Term}. If \arg{Term} is free of
+attributed variables, \arg{Goal} is unified to \const{true}. Note that
+frozen/2 reports all delayed goals, not only those delayed due to
+freeze/2. The goals are extracted using copy_term/3.\footnote{Versions
+prior to 8.3.7 only report goals delayed using freeze/2 on a plain
+variable. The new behaviour is compatible with SICStus.}  See also
+term_attvars/2 and call_residue_vars/2.
 
     \predicate{when}{2}{@{Condition}, :Goal}
 Execute \arg{Goal} when \arg{Condition} becomes true.  \arg{Condition}

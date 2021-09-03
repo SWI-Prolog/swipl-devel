@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="xenial bionic focal groovy"
+distros="xenial bionic focal hirsute"
 build=true
 buildbin=false
 push=false

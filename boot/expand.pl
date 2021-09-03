@@ -218,24 +218,52 @@ expand_bodies(Terms, Pos0, Out, Pos) :-
     expand_terms(expand_body(MList), Terms, Pos0, Out, Pos),
     remove_attributes(Out, '$var_info').
 
-expand_body(MList, (Head0 :- Body), Pos0, (Head :- ExpandedBody), Pos) :-
+expand_body(MList, Clause0, Pos0, Clause, Pos) :-
+    clause_head_body(Clause0, Left0, Neck, Body0),
     !,
-    term_variables(Head0, HVars),
-    mark_vars_non_fresh(HVars),
-    f2_pos(Pos0, HPos, BPos0, Pos, HPos, BPos),
-    expand_goal(Body, BPos0, ExpandedBody0, BPos, MList, (Head0 :- Body)),
-    (   compound(Head0),
-        '$current_source_module'(M),
-        replace_functions(Head0, Eval, Head, M),
-        Eval \== true
-    ->  ExpandedBody = (Eval,ExpandedBody0)
-    ;   Head = Head0,
-        ExpandedBody = ExpandedBody0
-    ).
+    clause_head_body(Clause, Left, Neck, Body),
+    f2_pos(Pos0, LPos0, BPos0, Pos, LPos, BPos),
+    (   head_guard(Left0, Neck, Head0, Guard0)
+    ->  f2_pos(LPos0, HPos, GPos0, LPos, HPos, GPos),
+        mark_head_variables(Head0),
+        expand_goal(Guard0, GPos0, Guard, GPos, MList, Clause0),
+        Left = (Head,Guard)
+    ;   LPos = LPos0,
+        Head0 = Left0,
+        Left = Head,
+        mark_head_variables(Head0)
+    ),
+    expand_goal(Body0, BPos0, Body1, BPos, MList, Clause0),
+    expand_head_functions(Head0, Head, Body1, Body).
 expand_body(MList, (:- Body), Pos0, (:- ExpandedBody), Pos) :-
     !,
     f1_pos(Pos0, BPos0, Pos, BPos),
     expand_goal(Body, BPos0, ExpandedBody, BPos, MList, (:- Body)).
+
+clause_head_body((Head :- Body), Head, :-, Body).
+clause_head_body((Head => Body), Head, =>, Body).
+clause_head_body(?=>(Head, Body), Head, ?=>, Body).
+
+head_guard(Left, Neck, Head, Guard) :-
+    nonvar(Left),
+    Left = (Head,Guard),
+    (   Neck == (=>)
+    ->  true
+    ;   Neck == (?=>)
+    ).
+
+mark_head_variables(Head) :-
+    term_variables(Head, HVars),
+    mark_vars_non_fresh(HVars).
+
+expand_head_functions(Head0, Head, Body0, Body) :-
+    compound(Head0),
+    '$current_source_module'(M),
+    replace_functions(Head0, Eval, Head, M),
+    Eval \== true,
+    !,
+    Body = (Eval,Body0).
+expand_head_functions(Head, Head, Body, Body).
 
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
     compound(Head0),
@@ -251,7 +279,7 @@ expand_body(_, Head, Pos, Head, Pos).
 %
 %   Loop over two constructs that  can   be  added by term-expansion
 %   rules in order to run the   next phase: calling term_expansion/2
-%   can  return  a  list  and  terms    may   be  preceeded  with  a
+%   can  return  a  list  and  terms    may   be  preceded  with   a
 %   source-location.
 
 expand_terms(_, X, P, X, P) :-
@@ -371,6 +399,32 @@ isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
 isect3(>, H1, T1,  _H2, T2, Int) :-
     isect2(T2, H1, T1, Int).
 
+%!  ord_subtract(+Set, +Subtract, -Diff)
+
+ord_subtract([], _Not, []).
+ord_subtract(S1, S2, Diff) :-
+    S1 == S2,
+    !,
+    Diff = [].
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    ord_subtract(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
 
 %!  merge_variable_info(+Saved)
 %
@@ -380,14 +434,19 @@ isect3(>, H1, T1,  _H2, T2, Int) :-
 %   branches claim the variable to  be   fresh,  we  can consider it
 %   fresh.
 
-merge_variable_info([]).
-merge_variable_info([Var=State|States]) :-
+merge_variable_info(State) :-
+    catch(merge_variable_info_(State),
+          error(uninstantiation_error(Term),_),
+          throw(error(goal_expansion_error(bound, Term), _))).
+
+merge_variable_info_([]).
+merge_variable_info_([Var=State|States]) :-
     (   get_attr(Var, '$var_info', CurrentState)
     ->  true
     ;   CurrentState = (-)
     ),
     merge_states(Var, State, CurrentState),
-    merge_variable_info(States).
+    merge_variable_info_(States).
 
 merge_states(_Var, State, State) :- !.
 merge_states(_Var, -, _) :- !.
@@ -419,13 +478,18 @@ save_variable_info([Var|Vars], [Var=State|States]):-
     ),
     save_variable_info(Vars, States).
 
-restore_variable_info([]).
-restore_variable_info([Var=State|States]) :-
+restore_variable_info(State) :-
+    catch(restore_variable_info_(State),
+          error(uninstantiation_error(Term),_),
+          throw(error(goal_expansion_error(bound, Term), _))).
+
+restore_variable_info_([]).
+restore_variable_info_([Var=State|States]) :-
     (   State == (-)
     ->  del_attr(Var, '$var_info')
     ;   put_attr(Var, '$var_info', State)
     ),
-    restore_variable_info(States).
+    restore_variable_info_(States).
 
 %!  var_property(+Var, ?Property)
 %
@@ -634,6 +698,10 @@ expand_control(call(A), P0, call(EA), P, M, MList, Term, Done) :-
     !,
     f1_pos(P0, PA0, P, PA),
     expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
+expand_control($(A), P0, $(EA), P, M, MList, Term, Done) :-
+    !,
+    f1_pos(P0, PA0, P, PA),
+    expand_goal(A, PA0, EA, PA, M, MList, Term, Done).
 expand_control(G0, P0, G, P, M, MList, Term, Done) :-
     is_meta_call(G0, M, Head),
     !,
@@ -785,7 +853,6 @@ expand_meta_arg(N, A0, P0, true, A, P, M, MList, Term, Done) :-
     term_variables(A0, VL),
     remove_arg_pos(A3, PA2, M, VL, Ex, A, P).
 expand_meta_arg(^, A0, PA0, true, A, PA, M, MList, Term, Done) :-
-    replace_functions(A0, true, _, M),
     !,
     expand_setof_goal(A0, PA0, A, PA, M, MList, Term, Done).
 expand_meta_arg(S, A0, _PA0, Eval, A, _PA, M, _MList, _Term, _Done) :-
@@ -915,8 +982,24 @@ expand_setof_goal(M0:G, P0, M0:EG, P, M, MList, Term, Done) :-
 expand_setof_goal(G, P0, EG, P, M, MList, Term, Done) :-
     !,
     expand_goal(G, P0, EG0, P, M, MList, Term, Done),
-    compile_meta_call(EG0, EG, M, Term).            % TBD: Pos?
+    compile_meta_call(EG0, EG1, M, Term),
+    (   extend_existential(G, EG1, V)
+    ->  EG = V^EG1
+    ;   EG = EG1
+    ).
 
+%!  extend_existential(+G0, +G1, -V) is semidet.
+%
+%   Extend  the  variable  template  to    compensate  for  intermediate
+%   variables introduced during goal expansion   (notably for functional
+%   notation).
+
+extend_existential(G0, G1, V) :-
+    term_variables(G0, GV0), sort(GV0, SV0),
+    term_variables(G1, GV1), sort(GV1, SV1),
+    ord_subtract(SV1, SV0, New),
+    New \== [],
+    V =.. [v|New].
 
 %!  call_goal_expansion(+ExpandModules,
 %!                      +Goal0, ?Pos0, -Goal, -Pos, +Done) is semidet.
@@ -1109,6 +1192,9 @@ conj(X, PX, Y, PY, (X,Y), P) :-
 %
 %   True if function expansion needs to be applied for the given
 %   term.
+
+:- multifile
+    function/2.
 
 function(.(_,_), _) :- \+ functor([_|_], ., _).
 
@@ -1373,6 +1459,7 @@ control((_;_)).
 control((_->_)).
 control((_*->_)).
 control(\+(_)).
+control($(_)).
 
 is_aux_meta(Term) :-
     callable(Term),

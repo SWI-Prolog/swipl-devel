@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2020, VU University Amsterdam
+    Copyright (c)  2012-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,6 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-incl.h"
+
 #ifndef PL_ALLOC_H_INCLUDED
 #define PL_ALLOC_H_INCLUDED
 
@@ -48,7 +51,7 @@
 #define freeForeignState(ptr, size)		GC_FREE(ptr)
 
 #ifdef GC_DEBUG
-COMMON(void) GC_linger(void *ptr);
+void GC_linger(void *ptr);
 #define GC_LINGER(p)				GC_linger(p)
 #else
 #define GC_LINGER(p)				((void)p)
@@ -82,58 +85,86 @@ typedef struct linger_list
   void	       (*unalloc)(void* obj);   /* actually free the object */
 } linger_list;
 
-COMMON(void)	linger(linger_list** list, void (*unalloc)(void *), void *object);
-COMMON(void)	free_lingering(linger_list **list, gen_t generation);
+void	linger(linger_list** list, void (*unalloc)(void *), void *object);
+void	free_lingering(linger_list **list, gen_t generation);
 
 
 		 /*******************************
 		 *	     PROTOTYPES		*
 		 *******************************/
 
-COMMON(void)		initAlloc(void);
-COMMON(int)		initTCMalloc(void);
-COMMON(size_t)		heapUsed(void);
+#if USE_LD_MACROS
+#define	allocGlobal(words)			LDFUNC(allocGlobal, words)
+#define	allocGlobalNoShift(words)		LDFUNC(allocGlobalNoShift, words)
+#define	f_pushArgumentStack(p)			LDFUNC(f_pushArgumentStack, p)
+#define	allocString(len)			LDFUNC(allocString, len)
+#define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
+#define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
+#define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
+#define	put_int64(p, i, flags)			LDFUNC(put_int64, p, i, flags)
+#define	VM_globalIndirectFromCode(pc)		LDFUNC(VM_globalIndirectFromCode, pc)
+#define	VM_equalIndirectFromCode(a, pc)		LDFUNC(VM_equalIndirectFromCode, a, pc)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+void		initAlloc(void);
+int		initMalloc(void);
+size_t		heapUsed(void);
 #ifndef DMALLOC
-COMMON(void *)		allocHeap(size_t n);
-COMMON(void *)		allocHeapOrHalt(size_t n);
-COMMON(void)		freeHeap(void *mem, size_t n);
+void *		allocHeap(size_t n);
+void *		allocHeapOrHalt(size_t n);
+void		freeHeap(void *mem, size_t n);
 #endif /*DMALLOC*/
-COMMON(int)		enableSpareStack(Stack s, int always);
-COMMON(void)		enableSpareStacks(void);
-COMMON(int)		outOfStack(void *stack, stack_overflow_action how);
-COMMON(int)		raiseStackOverflow(int which);
-COMMON(void)		outOfCore(void) NORETURN;
-COMMON(Word)		allocGlobal__LD(size_t words ARG_LD);
-COMMON(Word)		allocGlobalNoShift__LD(size_t words ARG_LD);
-COMMON(void)		pushArgumentStack__LD(Word p ARG_LD);
-COMMON(void)		initMemAlloc(void);
-COMMON(Word)		allocString(size_t len ARG_LD);
-COMMON(word)		globalString(size_t len, const char *s);
-COMMON(word)		globalWString(size_t len, const pl_wchar_t *s);
-COMMON(char *)		getCharsString__LD(word w, size_t *len ARG_LD);
-COMMON(pl_wchar_t *)	getCharsWString__LD(word w, size_t *len ARG_LD);
-COMMON(Word)		newTerm(void);
-COMMON(int)		put_double(Word p, double f, int flags ARG_LD);
-COMMON(int)		put_int64(Word p, int64_t i, int flags ARG_LD);
-#if ALIGNOF_INT64_T != ALIGNOF_VOIDP
-COMMON(int64_t)		valBignum__LD(word w ARG_LD);
-#endif
-COMMON(int)		equalIndirect(word r1, word r2);
-COMMON(size_t)		gsizeIndirectFromCode(Code PC);
-COMMON(word)		globalIndirectFromCode(Code *PC);
-COMMON(void *)		tmp_malloc(size_t req);
-COMMON(void *)		tmp_realloc(void *mem, size_t req);
-COMMON(void)		tmp_free(void *mem);
-COMMON(size_t)		tmp_nalloc(size_t req);
-COMMON(size_t)		tmp_nrealloc(void *mem, size_t req);
-COMMON(void *)		stack_malloc(size_t req);
-COMMON(void *)		stack_realloc(void *mem, size_t req);
-COMMON(void)		stack_free(void *mem);
-COMMON(size_t)		stack_nalloc(size_t req);
-COMMON(size_t)		stack_nrealloc(void *mem, size_t req);
+int		enableSpareStack(Stack s, int always);
+void		enableSpareStacks(void);
+int		outOfStack(void *stack, stack_overflow_action how);
+int		raiseStackOverflow(int which);
+void		outOfCore(void) NORETURN;
+Word		allocGlobal(size_t words);
+Word		allocGlobalNoShift(size_t words);
+void		f_pushArgumentStack(Word p);
+void		initMemAlloc(void);
+Word		allocString(size_t len);
+word		globalString(size_t len, const char *s);
+word		globalWString(size_t len, const pl_wchar_t *s);
+char *		getCharsString(word w, size_t *len);
+pl_wchar_t *	getCharsWString(word w, size_t *len);
+Word		newTerm(void);
+int		put_double(Word p, double f, int flags);
+int		put_int64(Word p, int64_t i, int flags);
+/* valBignum(word w) moved to pl-inline.h */
+int		equalIndirect(word r1, word r2);
+ALLOC_INLINE
+size_t		gsizeIndirectFromCode(Code PC);
+word		globalIndirectFromCode(Code *PC);
+void *		tmp_malloc(size_t req);
+void *		tmp_realloc(void *mem, size_t req);
+void		tmp_free(void *mem);
+size_t		tmp_nalloc(size_t req);
+size_t		tmp_nrealloc(void *mem, size_t req);
+void *		stack_malloc(size_t req);
+void *		stack_realloc(void *mem, size_t req);
+void		stack_free(void *mem);
+size_t		stack_nalloc(size_t req);
+size_t		stack_nrealloc(void *mem, size_t req);
 #ifndef xmalloc
-COMMON(void *)		xmalloc(size_t size);
-COMMON(void *)		xrealloc(void *mem, size_t size);
+void *		xmalloc(size_t size);
+void *		xrealloc(void *mem, size_t size);
 #endif
+#if USE_ALLOC_INLINES || EMIT_ALLOC_INLINES
+struct word_and_Code {
+	word word;
+	Code code;
+};
+#define WORD_AND_CODE(w,c) ((struct word_and_Code){(w),(c)})
+
+ALLOC_INLINE struct word_and_Code
+			VM_globalIndirectFromCode(Code pc);
+ALLOC_INLINE struct word_and_Code
+			VM_equalIndirectFromCode(word a, Code pc);
+#endif
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_ALLOC_H_INCLUDED*/

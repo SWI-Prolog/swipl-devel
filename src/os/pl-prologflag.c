@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,10 +41,18 @@
 #include <windows.h>
 #include <process.h>			/* getpid() */
 #endif
-#include "pl-incl.h"
-#include "pl-arith.h"
-#include "pl-tabling.h"
+#include "pl-prologflag.h"
 #include "pl-ctype.h"
+#include "../pl-arith.h"
+#include "../pl-tabling.h"
+#include "../pl-fli.h"
+#include "../pl-write.h"
+#include "../pl-pro.h"
+#include "../pl-wam.h"
+#include "../pl-trace.h"
+#include "../pl-setup.h"
+#include "../pl-modul.h"
+#include "../pl-version.h"
 #include <ctype.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -92,7 +101,7 @@ static void initPrologFlagTable(void);
 
 typedef struct _prolog_flag
 { short		flags;			/* Type | Flags */
-  short		index;			/* index in PLFLAG_ mask */
+  short		index;			/* index in LD->prolog_flag.mask */
   union
   { atom_t	a;			/* value as atom */
     int64_t	i;			/* value as integer */
@@ -114,21 +123,6 @@ following arguments are to be provided:
     FT_TERM	a term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-indexOfBoolMask(unsigned int mask)
-{ int i=1;
-
-  if ( !mask )
-    return -1;
-
-  while(!(mask & 0x1))
-  { i++;
-    mask >>= 1;
-  }
-  return i;
-}
-
-
 void
 setPrologFlag(const char *name, int flags, ...)
 { GET_LD
@@ -149,7 +143,7 @@ setPrologFlag(const char *name, int flags, ...)
       return;
   } else
   { f = allocHeapOrHalt(sizeof(*f));
-    f->index = -1;
+    f->index = 0;
     f->flags = flags;
     addNewHTable(GD->prolog_flag.table, (void *)an, f);
     first_def = TRUE;
@@ -159,25 +153,23 @@ setPrologFlag(const char *name, int flags, ...)
   switch(type)
   { case FT_BOOL:
     { int           val = va_arg(args, int);
-      unsigned int mask = va_arg(args, unsigned int);
+      unsigned int flag = va_arg(args, unsigned int);
 
-      if ( !first_def && mask && f->index < 0 )	/* type definition */
-      { f->index = indexOfBoolMask(mask);
+      if ( !first_def && flag && !f->index )	/* type definition */
+      { f->index = flag;
 	val = (f->value.a == ATOM_true);
       } else if ( first_def )			/* 1st definition */
-      { f->index = indexOfBoolMask(mask);
+      { f->index = flag;
 	DEBUG(MSG_PROLOG_FLAG,
-	      Sdprintf("Prolog flag %s at 0x%08lx\n", name, mask));
+	      Sdprintf("Prolog flag %s at %d\n", name, flag));
       }
 
       f->value.a = (val ? ATOM_true : ATOM_false);
-      if ( f->index >= 0 )
-      { mask = (unsigned int)1 << (f->index-1);
-
-	if ( val )
-	  setPrologFlagMask(mask);
+      if ( f->index )
+      { if ( val )
+	  setPrologFlagMask(f->index);
 	else
-	  clearPrologFlagMask(mask);
+	  clearPrologFlagMask(f->index);
       }
       break;
     }
@@ -399,16 +391,27 @@ setUnknown(term_t value, atom_t a, Module m)
 
 
 static int
+checkOnError(term_t value, atom_t a, atom_t key)
+{ if ( a == ATOM_print || a == ATOM_halt || a == ATOM_status )
+    return TRUE;
+  return PL_error(NULL, 0, NULL, ERR_DOMAIN, key, value);
+}
+
+
+
+static int
 setFileNameCaseHandling(atom_t a)
 { GET_LD
 
   if ( a == ATOM_case_sensitive )
-  { setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  { setPrologFlagMask(PLFLAG_FILE_CASE);
+    setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
   } else if ( a == ATOM_case_preserving )
   { setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
     clearPrologFlagMask(PLFLAG_FILE_CASE);
   } else if ( a == ATOM_case_insensitive )
-  { clearPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  { clearPrologFlagMask(PLFLAG_FILE_CASE);
+    clearPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
   } else
   { term_t value = PL_new_term_ref();
 
@@ -425,16 +428,13 @@ static atom_t
 currentFileNameCaseHandling(void)
 { GET_LD
 
-  switch ( LD->prolog_flag.mask.flags &
-	   (PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING) )
-  { case 0:
-      return ATOM_case_insensitive;
-    case PLFLAG_FILE_CASE_PRESERVING:
+  if ( truePrologFlag(PLFLAG_FILE_CASE) )
+  { if ( truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
       return ATOM_case_preserving;
-    case PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING:
-      return ATOM_case_sensitive;
-    default:
-      return ATOM_unknown;
+    else
+      return ATOM_case_insensitive;
+  } else
+  { return ATOM_case_sensitive;
   }
 }
 
@@ -565,8 +565,9 @@ setAutoload(atom_t a)
 }
 
 
+#define propagateAutoload(val) LDFUNC(propagateAutoload, val)
 static int
-propagateAutoload(term_t val ARG_LD)
+propagateAutoload(DECL_LD term_t val)
 { if ( !GD->bootsession )
   { predicate_t pred;
     term_t av;
@@ -625,8 +626,9 @@ get_win_file_access_check(void)
 }
 #endif
 
+#define set_prolog_flag_unlocked(m, k, value, flags) LDFUNC(set_prolog_flag_unlocked, m, k, value, flags)
 static word
-set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
+set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 { prolog_flag *f;
   int rval = TRUE;
 
@@ -651,9 +653,9 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
     }
 
     if ( tbl_is_restraint_flag(k) )
-      return tbl_set_restraint_flag(value, k PASS_LD);
+      return tbl_set_restraint_flag(value, k);
     if ( is_arith_flag(k) )
-      return set_arith_flag(value, k PASS_LD);
+      return set_arith_flag(value, k);
 
 #ifdef O_PLMT
     if ( GD->statistics.threads_created > 1 )
@@ -681,7 +683,7 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
   anyway:
     PL_register_atom(k);
     f = allocHeapOrHalt(sizeof(*f));
-    f->index = -1;
+    f->index = 0;
 
     switch( (flags & FT_MASK) )
     { case FT_FROM_VALUE:
@@ -827,6 +829,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	    PushTty(Sinput, &ttytab, TTY_SAVE);
 	  }
 	}
+      } else if ( k == ATOM_debug_on_interrupt )
+      {	rval = enable_debug_on_interrupt(val);
       } else if ( k == ATOM_protect_static_code )
       { if ( val != (f->value.a == ATOM_true) && val == FALSE )
 	{ term_t ex;
@@ -838,13 +842,11 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
 	}
       }
 					/* set the flag value */
-      if ( f->index > 0 && rval )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
-
-	if ( val )
-	  setPrologFlagMask(mask);
+      if ( f->index && rval )
+      { if ( val )
+	  setPrologFlagMask(f->index);
 	else
-	  clearPrologFlagMask(mask);
+	  clearPrologFlagMask(f->index);
       }
       f->value.a = (val ? ATOM_true : ATOM_false);
 
@@ -864,6 +866,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       { rval = setRationalSyntax(a, &m->flags);
       } else if ( k == ATOM_unknown )
       { rval = setUnknown(value, a, m);
+      } else if ( k == ATOM_on_error || k == ATOM_on_warning )
+      { rval = checkOnError(value, a, k);
       } else if ( k == ATOM_write_attributes )
       { rval = setWriteAttributes(a);
       } else if ( k == ATOM_occurs_check )
@@ -878,6 +882,8 @@ set_prolog_flag_unlocked(Module m, atom_t k, term_t value, int flags ARG_LD)
       { rval = setFileNameCaseHandling(a);
       } else if ( k == ATOM_autoload )
       { rval = setAutoload(a);
+      } else if ( k == ATOM_table_monotonic )
+      { rval = setMonotonicMode(a);
 #if O_XOS
       } else if ( k == ATOM_win_file_access_check )
       { rval = set_win_file_access_check(value);
@@ -962,11 +968,11 @@ set_prolog_flag(term_t key, term_t value, int flags)
        !PL_get_atom_ex(key, &k) )
     return FALSE;
 
-  if ( k == ATOM_autoload && !propagateAutoload(value PASS_LD) )
+  if ( k == ATOM_autoload && !propagateAutoload(value) )
     return FALSE;
 
   PL_LOCK(L_PLFLAG);
-  rc = set_prolog_flag_unlocked(m, k, value, flags PASS_LD);
+  rc = set_prolog_flag_unlocked(m, k, value, flags);
   PL_UNLOCK(L_PLFLAG);
 
   return rc;
@@ -1178,18 +1184,15 @@ unify_prolog_flag_value(Module m, atom_t key, prolog_flag *f, term_t val)
   } else if ( key == ATOM_stack_limit )
   { return PL_unify_int64(val, LD->stacks.limit);
   } else if ( tbl_is_restraint_flag(key) )
-  { return tbl_get_restraint_flag(val, key PASS_LD) == TRUE;
+  { return tbl_get_restraint_flag(val, key) == TRUE;
   } else if ( is_arith_flag(key) )
-  { return get_arith_flag(val, key PASS_LD) == TRUE;
+  { return get_arith_flag(val, key) == TRUE;
   }
 
   switch(f->flags & FT_MASK)
   { case FT_BOOL:
-      if ( f->index >= 0 )
-      { unsigned int mask = (unsigned int)1 << (f->index-1);
-
-	return PL_unify_bool_ex(val, truePrologFlag(mask) != FALSE);
-      }
+      if ( f->index )
+	return PL_unify_bool_ex(val, truePrologFlag(f->index) != FALSE);
       /*FALLTHROUGH*/
     case FT_ATOM:
       return PL_unify_atom(val, f->value.a);
@@ -1439,6 +1442,7 @@ initPrologFlags(void)
   setPrologFlag("pid", FT_INTEGER|FF_READONLY, getpid());
 #endif
   setPrologFlag("optimise", FT_BOOL, GD->cmdline.optimise, PLFLAG_OPTIMISE);
+  setPrologFlag("optimise_unify", FT_BOOL, TRUE, PLFLAG_OPTIMISE_UNIFY);
   setPrologFlag("optimise_debug", FT_ATOM, "default", 0);
   setPrologFlag("generate_debug_info", FT_BOOL,
 		truePrologFlag(PLFLAG_DEBUGINFO), PLFLAG_DEBUGINFO);
@@ -1504,6 +1508,8 @@ initPrologFlags(void)
   setPrologFlag("debug_on_error",	FT_BOOL, TRUE, PLFLAG_DEBUG_ON_ERROR);
   setPrologFlag("report_error",	FT_BOOL, TRUE, PLFLAG_REPORT_ERROR);
 #endif
+  setPrologFlag("on_error", FT_ATOM, GD->options.on_error);
+  setPrologFlag("on_warning", FT_ATOM, GD->options.on_warning);
   setPrologFlag("break_level", FT_INTEGER|FF_READONLY, 0, 0);
   setPrologFlag("user_flags", FT_ATOM, "silent");
   setPrologFlag("editor", FT_ATOM, "default");
@@ -1532,10 +1538,14 @@ initPrologFlags(void)
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
+  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, PLMAXWCHAR);
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
+  setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, MAXARITY);
   setPrologFlag("answer_format", FT_ATOM, "~p");
   setPrologFlag("colon_sets_calling_context", FT_BOOL|FF_READONLY, TRUE, 0);
   setPrologFlag("character_escapes", FT_BOOL, TRUE, PLFLAG_CHARESCAPE);
+  setPrologFlag("character_escapes_unicode", FT_BOOL, TRUE,
+		PLFLAG_CHARESCAPE_UNICODE);
   setPrologFlag("var_prefix", FT_BOOL, FALSE, PLFLAG_VARPREFIX);
   setPrologFlag("char_conversion", FT_BOOL, FALSE, PLFLAG_CHARCONVERSION);
 #ifdef O_QUASIQUOTATIONS
@@ -1544,6 +1554,7 @@ initPrologFlags(void)
   setPrologFlag("write_attributes", FT_ATOM, "ignore");
   setPrologFlag("stream_type_check", FT_ATOM, "loose");
   setPrologFlag("occurs_check", FT_ATOM, "false");
+  setPrologFlag("shift_check", FT_BOOL, FALSE,  PLFLAG_SHIFT_CHECK);
   setPrologFlag("access_level", FT_ATOM, "user");
   setPrologFlag("double_quotes", FT_ATOM,
 		GD->options.traditional ? "codes" : "string");
@@ -1553,6 +1564,9 @@ initPrologFlags(void)
   setPrologFlag("traditional", FT_BOOL|FF_READONLY, GD->options.traditional, 0);
   setPrologFlag("unknown", FT_ATOM, "error");
   setPrologFlag("debug", FT_BOOL, FALSE, 0);
+  setPrologFlag("debug_on_interrupt", FT_BOOL,
+		truePrologFlag(PLFLAG_DEBUG_ON_INTERRUPT),
+		PLFLAG_DEBUG_ON_INTERRUPT);
   setPrologFlag("verbose", FT_ATOM|FF_KEEP, GD->options.silent ? "silent" : "normal");
   setPrologFlag("verbose_load", FT_ATOM, "silent");
   setPrologFlag("verbose_autoload", FT_BOOL, FALSE, 0);
@@ -1564,9 +1578,11 @@ initPrologFlags(void)
 		PLFLAG_DOT_IN_ATOM);
   setPrologFlag("toplevel_var_size", FT_INTEGER, 1000);
   setPrologFlag("toplevel_print_anon", FT_BOOL, TRUE, 0);
+  setPrologFlag("toplevel_name_variables", FT_BOOL, TRUE, 0);
   setPrologFlag("toplevel_prompt", FT_ATOM, "~m~d~l~! ?- ");
   setPrologFlag("file_name_variables", FT_BOOL, FALSE, PLFLAG_FILEVARS);
   setPrologFlag("fileerrors", FT_BOOL, TRUE, PLFLAG_FILEERRORS);
+  setPrologFlag("determinism_error", FT_ATOM, "error");
 #ifdef O_DEBUG
   setPrologFlag("prolog_debug", FT_BOOL|FF_READONLY, TRUE, 0);
 #endif

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -46,6 +47,8 @@ typedef enum
 #define WORKLIST_MAGIC	0x67e9124e
 #define COMPONENT_MAGIC	0x67e9124f
 
+#define TF_MONOTONIC_LAZY	0x0001
+
 
 		 /*******************************
 		 *     GLOBAL ENTRY POINTS	*
@@ -86,9 +89,10 @@ typedef struct tbl_component
 } tbl_component;
 
 typedef struct tbl_status
-{ tbl_component *scc;
-  int		 hsc;
-  int		 iac;
+{ tbl_component *scc;				/* The SCC we are working on */
+  int		 hsc;				/* We have an active SCC */
+  int		 iac;				/* We are in answer completion */
+  int		 iap;				/* We are in assert propagation */
 } tbl_status;
 
 void save_tabling_status(tbl_status *stat);
@@ -120,6 +124,7 @@ typedef struct worklist
   unsigned	has_answers : 1;	/* At least one unconditional answer */
   unsigned	answer_completed : 1;	/* Is answer completed */
   unsigned	depend_abolish : 1;	/* Scheduled for depending abolish */
+  unsigned	needs_answer_gc : 1;	/* Contains garbage answers */
   size_t	undefined;		/* #undefined answers */
 
   tbl_component*component;		/* component I belong to */
@@ -183,14 +188,25 @@ typedef struct delay_info
 		 *	       IDG		*
 		 *******************************/
 
+#define IDG_NODE_MAGIC 0x347e54d2
+#define IDG_MDEP_MAGIC 0x745af3b0
+
 typedef struct idg_node
-{ Table		affected;		/* parent nodes */
-  Table		dependent;		/* childs */
+{ int           magic;			/* IDG_NODE_MAGIC */
   trie	       *atrie;			/* answer trie */
+  Table		affected;		/* parent IDG nodes */
+  Table		dependent;		/* child IDG nodes */
   size_t	answer_count;		/* #answers in previous complete state */
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */
   unsigned	aborted : 1;		/* re-evaluation was aborted */
+  unsigned	monotonic : 1;		/* Associated predicate is monotonic */
+  unsigned	lazy : 1;		/* Lazy monotonic node */
+  unsigned	lazy_queued : 1;	/* There are answers queued */
+  unsigned	force_reeval : 1;	/* Forced reevaluation for monotonic */
+  unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
+  unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
+  unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
   int		falsecount;		/* Invalidate count */
 #ifdef O_TRIE_STATS
   struct
@@ -201,6 +217,23 @@ typedef struct idg_node
 } idg_node;
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Linked list of dependencies for monotonic tabling.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct idg_mdep
+{ int            magic;			/* IDG_MDEP_MAGIC */
+  unsigned	 lazy : 1;		/* Dependency is lazy */
+  unsigned int	 hash;			/* Murmur hash of dependency */
+  fastheap_term *dependency;		/* dependency structure */
+  union
+  { idg_node    *child;			/* Final child node */
+    struct idg_mdep *dep;		/* Other dependency */
+    void *any;
+  } next;
+  Buffer	 queue;			/* Unprocessed answers */
+} idg_mdep;
+
 typedef struct trie_array
 { trie **blocks[MAX_BLOCKS];
   trie *preallocated[7];
@@ -208,14 +241,54 @@ typedef struct trie_array
 
 
 		 /*******************************
+		 *    TRANSACTION RECORDING	*
+		 *******************************/
+
+#define TT_TBL_INVALIDATE	0x001
+
+typedef struct tbl_trail
+{ Table		tables;			/* Affected tables */
+  buffer	actions;
+} tbl_trail;
+
+typedef enum tbl_trail_type
+{ TT_ANSWER = 1
+} tbl_trail_type;
+
+typedef struct tbl_trail_any
+{ tbl_trail_type	type;		/* TT_* */
+} tbl_trail_any;
+
+typedef struct tbl_trail_table
+{ tbl_trail_type	type;		/* TT_TABLE */
+  atom_t		symbol;
+} tbl_trail_table;
+
+typedef struct tbl_trail_answer
+{ tbl_trail_type	type;		/* TT_ANSWER */
+  trie                 *atrie;
+  trie_node	       *answer;
+} tbl_trail_answer;
+
+
+		 /*******************************
 		 *     PREDICATE PROPERTIES	*
 		 *******************************/
 
+#define TP_TABLED	(0x0001)	/* Predicate is tabled */
+#define TP_MONOTONIC	(0x0002)	/* Monotonic tabling */
+#define TP_SHARED	(0x0004)	/* Shared tabling */
+#define TP_OPAQUE	(0x0008)	/* Declared opaque */
+#define TP_LAZY		(0x0010)	/* Lazy (monotonic) */
+#define TP_INCREMENTAL	(0x0020)	/* Incremental tabling */
+
 typedef struct table_props
-{ size_t abstract;			/* IDG abstraction */
-  size_t subgoal_abstract;		/* Subgoal abstraction */
-  size_t answer_abstract;		/* Answer abstraction */
-  size_t max_answers;			/* Answer count limit */
+{ unsigned int	flags;			/* TP_* flags */
+  size_t	abstract;		/* IDG abstraction */
+  size_t	subgoal_abstract;	/* Subgoal abstraction */
+  size_t	answer_abstract;	/* Answer abstraction */
+  size_t	max_answers;		/* Answer count limit */
+  Buffer	lazy_queue;		/* Queued clauses for monotonic tabling */
 } table_props;
 
 
@@ -223,22 +296,42 @@ typedef struct table_props
 		 *	     PROTOTYPES		*
 		 *******************************/
 
-COMMON(void)	clearThreadTablingData(PL_local_data_t *ld);
-COMMON(term_t)	init_delay_list(void);
-COMMON(void)	tbl_push_delay(atom_t atrie, Word wrapper,
-			       trie_node *answer ARG_LD);
-COMMON(int)	answer_is_conditional(trie_node *answer);
-COMMON(void)	untable_from_clause(Clause cl);
-COMMON(void)	initTabling(void);
-COMMON(int)	idg_add_dyncall(Definition def, trie *ctrie,
-				term_t variant ARG_LD);
-COMMON(int)	tbl_is_predicate_attribute(atom_t key);
-COMMON(void)	tbl_reset_tabling_attributes(Definition def);
-COMMON(int)	tbl_get_predicate_attribute(Definition def,
-					    atom_t att, size_t *value);
-COMMON(int)	tbl_set_predicate_attribute(Definition def,
-					    atom_t att, size_t value);
-COMMON(int)	tbl_is_restraint_flag(atom_t key);
-COMMON(int)	tbl_get_restraint_flag(term_t t, atom_t key ARG_LD);
-COMMON(int)	tbl_set_restraint_flag(term_t t, atom_t key ARG_LD);
+#if USE_LD_MACROS
+#define		transaction_commit_tables(_)		LDFUNC(transaction_commit_tables, _)
+#define		transaction_rollback_tables(_)		LDFUNC(transaction_rollback_tables, _)
+#define		tbl_push_delay(atrie, wrapper, answer)	LDFUNC(tbl_push_delay, atrie, wrapper, answer)
+#define		idg_add_dyncall(def, ctrie, variant)	LDFUNC(idg_add_dyncall, def, ctrie, variant)
+#define		tbl_get_restraint_flag(t, key)		LDFUNC(tbl_get_restraint_flag, t, key)
+#define		tbl_set_restraint_flag(t, key)		LDFUNC(tbl_set_restraint_flag, t, key)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	transaction_commit_tables(void);
+int	transaction_rollback_tables(void);
+void	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
+
+void	clearThreadTablingData(PL_local_data_t *ld);
+term_t	init_delay_list(void);
+void	tbl_push_delay(atom_t atrie, Word wrapper,
+		       trie_node *answer);
+int	answer_is_conditional(trie_node *answer);
+void	untable_from_clause(Clause cl);
+void	initTabling(void);
+int	idg_add_dyncall(Definition def, trie *ctrie,
+			term_t variant);
+int	tbl_is_predicate_attribute(atom_t key);
+void	tbl_reset_tabling_attributes(Definition def);
+int	tbl_get_predicate_attribute(Definition def,
+				    atom_t att, term_t value);
+int	tbl_set_predicate_attribute(Definition def,
+				    atom_t att, term_t value);
+int	tbl_is_restraint_flag(atom_t key);
+int	tbl_get_restraint_flag(term_t t, atom_t key);
+int	tbl_set_restraint_flag(term_t t, atom_t key);
+int	setMonotonicMode(atom_t a);
+void	tbl_set_incremental_predicate(Definition def, int val);
+
+#undef LDFUNC_DECLARATIONS
+
 #endif /*_PL_TABLING_H*/

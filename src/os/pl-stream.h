@@ -39,6 +39,8 @@
 
 #include "SWI-Stream.h"
 
+void	unallocStream(IOSTREAM *s);
+
 #ifdef O_PLMT
 #define ATOMIC_ADD(ptr, v)	__atomic_add_fetch(ptr, v, __ATOMIC_SEQ_CST)
 #define ATOMIC_SUB(ptr, v)	__atomic_sub_fetch(ptr, v, __ATOMIC_SEQ_CST)
@@ -145,5 +147,12 @@ S__destroyed(IOSTREAM *s)
 #define S__destroyed(s)	  (void)0
 
 #endif /*O_DEBUG_STREAM_REFERENCES*/
+
+#ifdef O_DEBUG
+#ifndef Sdprintf
+#define Sdprintf(fmt...) Sdprintf_ex(NULL, __FILE__, __LINE__, fmt)
+#endif
+int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...);
+#endif
 
 #endif /*PL_STREAM_H_INCLUDED*/

@@ -3,9 +3,10 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -103,6 +104,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_REC_ATTVAR),
   DEBUG_TOPIC(MSG_TTY),
   DEBUG_TOPIC(MSG_OS_DIR),
+  DEBUG_TOPIC(MSG_COMP_ARG_UNIFY),
+  DEBUG_TOPIC(MSG_DETERMINISM),
 						/* Parser */
   DEBUG_TOPIC(MSG_READ_TOKEN),
 
@@ -148,6 +151,7 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_CALL_RESIDUE_VARS),
   DEBUG_TOPIC(MSG_SOFTCUT),
   DEBUG_TOPIC(MSG_WAKEUP),
+  DEBUG_TOPIC(MSG_UNDO),
 
   DEBUG_TOPIC(MSG_HASH_TABLE_API),
   DEBUG_TOPIC(MSG_HASH_TABLE_KVS),
@@ -206,10 +210,20 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_TABLING_ABOLISH),
   DEBUG_TOPIC(MSG_TABLING_CALL_SUBSUMPTION),
   DEBUG_TOPIC(MSG_TABLING_RESTRAINT),
+  DEBUG_TOPIC(MSG_TABLING_MONOTONIC),
+  DEBUG_TOPIC(MSG_TABLING_TRANSACTION),
+  DEBUG_TOPIC(MSG_TABLING_IDG_REEVAL_NODE),
 
   DEBUG_TOPIC(TABLING_NO_EARLY_COMPLETION),
   DEBUG_TOPIC(TABLING_NO_SIMPLIFY),
   DEBUG_TOPIC(TABLING_NO_AC),
+
+  DEBUG_TOPIC(MSG_THREAD_WAIT),
+
+  DEBUG_TOPIC(MSG_TRANSACTION),
+  DEBUG_TOPIC(MSG_COMMIT),
+
+  DEBUG_TOPIC(MSG_READ_OP),
 
   DEBUG_TOPIC(CHK_SECURE),
   DEBUG_TOPIC(CHK_HIGH_ARITY),
@@ -220,17 +234,18 @@ const debug_topic debug_topics[] =
 };
 
 
-static int
-get_debug_code(const char *topic)
-{ const debug_topic *dt;
-
-  for (dt=debug_topics; dt->name; dt++)
-  { if ( strcasecmp(topic, dt->name) == 0 )
-    { return dt->code;
+static const debug_topic *
+get_next_debug_topic(const char *topic, const debug_topic *dt)
+{ int cmplen = strlen(topic) + 1;
+  if (cmplen > 1 && topic[cmplen-2] == '*')
+    cmplen -= 2;
+  for (dt = dt ? dt + 1 : debug_topics; dt->name; dt++)
+  { if ( strncasecmp(topic, dt->name, cmplen) == 0 )
+    { return dt;
     }
   }
 
-  return -1;
+  return NULL;
 }
 
 
@@ -252,34 +267,66 @@ static int
 prolog_debug_topic(const char *topic, int flag)
 { long level;
   char *end;
+  int success = FALSE;
 
   level = strtol(topic, &end, 10);
   if ( end > topic && *end == EOS )
   { GD->debug_level = level;
+    success = TRUE;
   } else
-  { int code;
+  { const debug_topic *dt = NULL;
 
     if ( !GD->debug_topics )
       GD->debug_topics = new_bitvector(debug_high_code()+1);
 
-    if( (code = get_debug_code(topic)) < 0 )
-      return FALSE;
+    if (topic[0] == '^')
+    { topic++;
+      flag = !flag;
+    }
 
-    if ( code <= DBG_LEVEL9 )
-      GD->debug_level = code;
-    else if (flag)
-      set_bit(GD->debug_topics, code);
-    else
-      clear_bit(GD->debug_topics, code);
+    while ( (dt = get_next_debug_topic(topic, dt)) )
+    { int code = dt->code;
+      success = TRUE;
+
+      if ( code <= DBG_LEVEL9 )
+        GD->debug_level = code;
+      else if (flag)
+        set_bit(GD->debug_topics, code);
+      else
+        clear_bit(GD->debug_topics, code);
+    }
   }
 
-  return TRUE;
+  return success;
+}
+
+const char *
+prolog_debug_topic_name(unsigned code)
+{ static unsigned last_code = -1;
+  static const char *last_name = NULL;
+  const debug_topic *dt;
+
+  if (code == last_code)
+    return last_name;
+
+  last_code = code;
+
+  for (dt=debug_topics; dt->name; dt++)
+  { if ( dt->code == code )
+      return last_name = dt->name;
+  }
+
+  Sdprintf("ERROR: Unknown debug code: %d\n", code);
+  return last_name = NULL;
 }
 
 
 int
 prolog_debug_from_string(const char *spec, int flag)
 { const char *end;
+  bool quiet = (flag < 0);
+  if (quiet)
+    flag = ~flag;
 
   while((end=strchr(spec, ',')))
   { if ( end-spec < MAX_TOPIC_LEN )
@@ -288,18 +335,22 @@ prolog_debug_from_string(const char *spec, int flag)
       strncpy(buf, spec, end-spec);
       buf[end-spec] = EOS;
       if ( !prolog_debug_topic(buf, flag) )
-      { Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
+      { if (quiet)
+          return FALSE;
+	Sdprintf("ERROR: Unknown debug topic: %s\n", buf);
 	PL_halt(1);
       }
 
       spec = end+1;
-    } else
+    } else if (!quiet)
     { Sdprintf("ERROR: Invalid debug topic: %s\n", spec);
     }
   }
 
   if ( !prolog_debug_topic(spec, flag) )
-  { Sdprintf("ERROR: Unknown debug topic: %s\n", spec);
+  { if (quiet)
+      return FALSE;
+    Sdprintf("ERROR: Unknown debug topic: %s\n", spec);
     PL_halt(1);
   }
 

@@ -41,13 +41,26 @@ typedef enum
   PROF_WALL			/* Profile wall time */
 } prof_status;
 
-COMMON(void)		stopItimer(void);
-COMMON(int)		activateProfiler(prof_status status ARG_LD);
-COMMON(bool)		resetProfiler(void);
-COMMON(struct call_node*) profCall(Definition def ARG_LD);
-COMMON(void)		profResumeParent(struct call_node *node ARG_LD);
-COMMON(void)		profExit(struct call_node *node ARG_LD);
-COMMON(void)		profRedo(struct call_node *node ARG_LD);
-COMMON(void)		profSetHandle(struct call_node *node, void *handle);
+#if USE_LD_MACROS
+#define	activateProfiler(status)	LDFUNC(activateProfiler, status)
+#define	resetProfiler(_)		LDFUNC(resetProfiler, _)
+#define	profCall(def)			LDFUNC(profCall, def)
+#define	profResumeParent(node)		LDFUNC(profResumeParent, node)
+#define	profExit(node)			LDFUNC(profExit, node)
+#define	profRedo(node)			LDFUNC(profRedo, node)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+void		stopItimer(void);
+int		activateProfiler(prof_status status);
+bool		resetProfiler(void);
+struct call_node* profCall(Definition def);
+void		profResumeParent(struct call_node *node);
+void		profExit(struct call_node *node);
+void		profRedo(struct call_node *node);
+void		profSetHandle(struct call_node *node, void *handle);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_PROF_H_INCLUDED*/

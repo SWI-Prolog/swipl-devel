@@ -22,6 +22,7 @@ include(GCCBuiltins)
 include(TestSignalType)
 include(TestSCNProcessors)
 include(TestHeaderTime)
+include(PGO)
 
 # FIXME: Is this still needed?
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
@@ -50,9 +51,9 @@ set(SRC_OS pl-buffer.c pl-ctype.c pl-file.c pl-files.c pl-glob.c pl-os.c
 prepend(SRC_OS os/ ${SRC_OS})
 
 
-set(SRC_TAI caltime_utc caltime_tai leapsecs_sub leapsecs_add
-    caldate_fmjd caldate_mjd leapsecs_init leapsecs_read tai_pack
-    tai_unpack)
+set(SRC_TAI caltime_utc.c caltime_tai.c leapsecs_sub.c leapsecs_add.c
+    caldate_fmjd.c caldate_mjd.c leapsecs_init.c leapsecs_read.c tai_pack.c
+    tai_unpack.c)
 prepend(SRC_TAI libtai/ ${SRC_TAI})
 
 set(SRC_MINIZIP zip.c unzip.c ioapi.c)
@@ -71,7 +72,8 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
     pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
-    pl-allocpool.c pl-wrap.c pl-event.c)
+    pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
+    pl-undo.c pl-alloc.c pl-index.c pl-fli.c)
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}
@@ -98,8 +100,8 @@ set(SWIPL_DATA_DIRS
     boot
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
-    library/dialect/hprolog library/dialect/sicstus library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme
+    library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
+    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -135,7 +137,8 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     solution_sequences.pl iostream.pl dicts.pl yall.pl tabling.pl
     lazy_lists.pl prolog_jiti.pl zip.pl obfuscate.pl wfs.pl
     prolog_wrap.pl prolog_trace.pl prolog_code.pl intercept.pl
-    prolog_deps.pl tables.pl)
+    prolog_deps.pl tables.pl hashtable.pl strings.pl increval.pl
+    prolog_debug.pl)
 if(INSTALL_DOCUMENTATION)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} help.pl)
 endif()
@@ -154,6 +157,8 @@ set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
 
 set(SWIPL_DATA_library_theme auto.pl dark.pl)
 
+set(SWIPL_DATA_library_iri_scheme file.pl)
+
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     clpfd.pl clpb.pl)
 if(GMP_FOUND)
@@ -165,18 +170,21 @@ set(SWIPL_DATA_library_dcg basics.pl high_order.pl)
 set(SWIPL_DATA_library_unicode blocks.pl unicode_data.pl)
 
 set(SWIPL_DATA_library_dialect bim.pl commons.pl hprolog.pl ifprolog.pl
-    sicstus.pl yap.pl xsb.pl)
+    sicstus.pl sicstus4.pl yap.pl xsb.pl)
 
 set(SWIPL_DATA_library_dialect_swi syspred_options.pl)
 set(SWIPL_DATA_library_dialect_eclipse test_util_iso.pl)
 set(SWIPL_DATA_library_dialect_hprolog format.pl)
-set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl
+set(SWIPL_DATA_library_dialect_sicstus arrays.pl block.pl lists.pl ordsets.pl
     README.TXT sockets.pl swipl-lfr.pl system.pl terms.pl timeout.pl)
+set(SWIPL_DATA_library_dialect_sicstus4 aggregate.pl between.pl clpfd.pl
+    file_systems.pl lists.pl ordsets.pl samsort.pl sets.pl sockets.pl
+    system.pl terms.pl timeout.pl types.pl)
 set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
-    increval.pl curr_sym.pl error_handler.pl lists.pl timed_call.pl
+    curr_sym.pl error_handler.pl lists.pl timed_call.pl
     standard.pl gpp.pl thread.pl gensym.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
@@ -185,17 +193,25 @@ set(SWIPL_DATA_demo likes.pl README.md)
 # Custom targets and commands
 ################
 
+if(NOT PGO_SUFFIX) # Don't define PGO versions of the aux targets (see PGO.cmake)
+
 # build helpers
 if(NOT CMAKE_CROSSCOMPILING)
   add_executable(mkvmi mkvmi.c)
   add_executable(defatom defatom.c)
+  add_executable(wrap-gcc EXCLUDE_FROM_ALL wrap-gcc.c) #only needed for PGO with GCC
   set(PROG_MKVMI mkvmi)
   set(PROG_DEFATOM defatom)
+  set(TARGET_WRAPGCC wrap-gcc)
+  set(PROG_WRAPGCC
+      ${CMAKE_CURRENT_BINARY_DIR}/wrap-gcc${CMAKE_HOST_EXECUTABLE_SUFFIX})
 else()
   set(PROG_MKVMI
       ${CMAKE_CURRENT_BINARY_DIR}/mkvmi${CMAKE_HOST_EXECUTABLE_SUFFIX})
   set(PROG_DEFATOM
       ${CMAKE_CURRENT_BINARY_DIR}/defatom${CMAKE_HOST_EXECUTABLE_SUFFIX})
+  set(PROG_WRAPGCC
+      ${CMAKE_CURRENT_BINARY_DIR}/wrap-gcc${CMAKE_HOST_EXECUTABLE_SUFFIX})
 
   add_custom_command(
       OUTPUT  ${PROG_DEFATOM}
@@ -210,21 +226,36 @@ else()
               ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
   )
+
+  add_custom_command(
+      OUTPUT  ${PROG_WRAPGCC}
+      COMMAND ${CMAKE_HOST_CC} -o ${PROG_WRAPGCC}
+              ${CMAKE_CURRENT_SOURCE_DIR}/wrap-gcc.c
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/wrap-gcc.c
+  )
+  add_custom_target(build-wrap-gcc DEPENDS ${PROG_WRAPGCC})
+  set(TARGET_WRAPGCC build-wrap-gcc)
 endif()
 
-# FIXME: we should create these in the build directory
 add_custom_target(
     vmi-metadata
+    DEPENDS vmi-metadata.h
+)
+add_custom_command(
     COMMAND ${PROG_MKVMI} ${CMAKE_CURRENT_SOURCE_DIR}
-    BYPRODUCTS pl-vmi.h pl-codetable.ic pl-jumptable.ic
+    OUTPUT vmi-metadata.h
     DEPENDS ${PROG_MKVMI} pl-vmi.c
-    COMMENT "Generating VMI metadata"
+    COMMENT "Generating VMI metadata into vmi-metadata.h"
+    VERBATIM
 )
 
 add_custom_target(
     core-constants
+    DEPENDS pl-atom.ih pl-funct.ih)
+
+add_custom_command(
     COMMAND ${PROG_DEFATOM} ${CMAKE_CURRENT_SOURCE_DIR}
-    BYPRODUCTS pl-atom.ih pl-funct.ih
+    OUTPUT pl-atom.ih pl-funct.ih
     DEPENDS ${PROG_DEFATOM} ATOMS
     COMMENT "Generating static atoms and functors"
 )
@@ -233,6 +264,7 @@ set(USE_GIT_VERSION_H 1)
 add_custom_target(
     git-version
     COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mkversion.sh ${CMAKE_CURRENT_SOURCE_DIR}
+    BYPRODUCTS version.h
     COMMENT "Checking (git) version"
 )
 
@@ -241,15 +273,16 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E remove -f ${SWIPL_BOOT_FILE}
     COMMAND ${PROG_SWIPL_FOR_BOOT} -q -O -o ${SWIPL_BOOT_FILE}
 				   -b ${SWIPL_BUILD_HOME}/boot/init.pl
-    DEPENDS swipl ${SWIPL_BOOT_FILES}
+    DEPENDS ${DEP_SWIPL_FOR_BOOT} ${SWIPL_BOOT_FILES}
 )
+add_custom_target(bootfile DEPENDS ${SWIPL_BOOT_FILE})
 
 add_custom_target(library_index)
 
 library_index(${SWIPL_DATA_INDEXED_DIRS})
 
 add_custom_target(core ALL
-    DEPENDS ${SWIPL_BOOT_FILE}
+    DEPENDS swipl bootfile
 )
 
 # Precompile some popular larger libraries to .QLF
@@ -286,6 +319,8 @@ symlink(${SWIPL_BOOT_ROOT}/build_home.pl ${CMAKE_BINARY_DIR}/home/swipl-win.rc)
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dot.txt" ".\n")
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt" "..\n")
 
+endif(NOT PGO_SUFFIX)
+
 # Establish libraries
 if(CURSES_FOUND)
   set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} ${CURSES_LIBRARIES})
@@ -315,12 +350,11 @@ if(LIBTCMALLOC_LIBRARIES)
 endif()
 
 # build swipl
-add_executable(swipl ${SWIPL_SRC})
-target_link_libraries(swipl ${SWIPL_LIBRARIES} libswipl)
-target_c_stack(swipl 4000000)
+add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
+target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
+target_c_stack(swipl${PGO_SUFFIX} 4000000)
 if(MINGW_ROOT)
-  message("Adding -municode")
-  target_link_options(swipl PRIVATE -municode)
+  target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
 
 # build the library
@@ -330,33 +364,75 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
-if(MSVC AND NOT SWIPL_SHARED_LIB)
-  # MSVC does not automatically prepend 'lib' to the library name
-  # Furthermore it would generate swipl.lib in the same directory as swipl.exe, causing a
-  # linking failure:
-  # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'; error code 5"
-  set(LIBSWIPL_NAME libswipl)
-else()
-  set(LIBSWIPL_NAME swipl)
-endif()
+# Create an OBJECT library so we can build both a static and dynamic
+# library
 
-add_library(libswipl ${LIBSWIPL_TYPE} ${LIBSWIPL_SRC})
-add_dependencies(libswipl git-version vmi-metadata core-constants)
-set_target_properties(libswipl PROPERTIES
-		      OUTPUT_NAME ${LIBSWIPL_NAME}
-		      VERSION ${SWIPL_VERSION_STRING}
-		      SOVERSION ${SWIPL_VERSION_MAJOR}
-		      GNUtoMS ON)
-target_include_directories(libswipl BEFORE PRIVATE
+add_library(swiplobjs${PGO_SUFFIX} OBJECT ${LIBSWIPL_SRC})
+set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY C_VISIBILITY_PRESET hidden)
+if(CHECK_PROTOTYPES) # Can be defined on the command line
+target_compile_options(swiplobjs${PGO_SUFFIX} PRIVATE -Wmissing-prototypes -Wmissing-declarations)
+endif()
+if(LIBSWIPL_TYPE STREQUAL "SHARED")
+  set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY POSITION_INDEPENDENT_CODE 1)
+endif()
+add_dependencies(swiplobjs${PGO_SUFFIX} git-version vmi-metadata core-constants)
+target_include_directories(swiplobjs${PGO_SUFFIX} BEFORE PRIVATE
 			   ${CMAKE_CURRENT_BINARY_DIR}
 			   ${CMAKE_CURRENT_SOURCE_DIR}
 			   ${ZLIB_INCLUDE_DIRS}
 			   ${LIBSWIPL_INCLUDES})
-target_include_directories(libswipl INTERFACE
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
-  $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
-target_link_libraries(libswipl PRIVATE ${LIBSWIPL_LIBRARIES})
+
+function(libswipl_properties lib outname)
+  if(MSVC AND NOT SWIPL_SHARED_LIB)
+    # MSVC does not automatically prepend 'lib' to the library name
+    # Furthermore it would generate swipl.lib in the same directory as swipl.exe,
+    # causing a linking failure:
+    # "LNK1114 cannot overwrite the original file 'build/src/Debug/swipl.lib'
+    set(LIB_PREFIX lib)
+  else()
+    set(LIB_PREFIX)
+  endif()
+
+  set_target_properties(${lib} PROPERTIES
+			OUTPUT_NAME ${LIB_PREFIX}${outname}
+			VERSION ${SWIPL_VERSION_STRING}
+			SOVERSION ${SWIPL_VERSION_MAJOR}
+			GNUtoMS ON)
+  target_include_directories(${lib} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/os>
+    $<INSTALL_INTERFACE:${SWIPL_INSTALL_INCLUDE}>)
+  target_link_libraries(${lib} PRIVATE ${LIBSWIPL_LIBRARIES})
+endfunction()
+
+# Build the default library
+
+add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
+libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
+
+
+###################################################################################
+#                         END OF MAIN TARGET DEFINITIONS                          #
+# Everything needed to build the standard swipl binary should be above here! The  #
+# PGO/instrumentation build doesn't parse past here. Any changes that affect the  #
+# compilation of files listed in PGO_TARGETS below should be placed above this.   #
+###################################################################################
+
+if (PGO_SUFFIX)
+  message(STATUS "PGO: configuration of instrumented build complete")
+  return()
+endif()
+
+
+# If the default is shared, also build a static library
+
+if(LIBSWIPL_TYPE STREQUAL "SHARED" AND SWIPL_STATIC_LIB)
+add_library(libswipl_static STATIC $<TARGET_OBJECTS:swiplobjs>)
+libswipl_properties(libswipl_static swipl_static)
+set(STATIC_LIB libswipl_static)
+else()
+set(STATIC_LIB)
+endif()
 
 if(BUILD_SWIPL_LD)
   add_executable(swipl-ld ${SRC_SWIPL_LD})
@@ -384,53 +460,7 @@ endif()
 ################
 # PGO (profile guided optimization)
 
-set(PGO_PROGRAM ${CMAKE_SOURCE_DIR}/bench/run.pl
-    CACHE STRING
-    "Program to use for Profile Guided Optimization")
-
-set(PROFILE_GUIDED_OPTIMIZATION OFF
-    CACHE STRING
-    "Profile guided optimization mode")
-
-set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data)
-
-if(CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(PGO_GENERATE_FLAGS -fprofile-generate=${PGO_DIR})
-  set(PGO_USE_FLAGS      -fprofile-use=${PGO_DIR}/swipl.profdata)
-  get_filename_component(CMAKE_C_COMPILER_DIR ${CMAKE_C_COMPILER} DIRECTORY)
-  find_program(LLVM_PROFDATA llvm-profdata
-	       HINTS ${CMAKE_C_COMPILER_DIR})
-  add_custom_target(pgo_data
-		    ${LLVM_PROFDATA} merge -output=${PGO_DIR}/swipl.profdata ${PGO_DIR}/*.profraw)
-else()
-  set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
-  set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
-  set(PGO_USE_FLAGS      -fprofile-use ${PGO_CFLAGS_EXTRA})
-  add_custom_target(pgo_data)
-endif()
-
-set(PGO_TARGETS swipl libswipl)
-
-if(PROFILE_GUIDED_OPTIMIZATION)
-  if(PROFILE_GUIDED_OPTIMIZATION STREQUAL "GENERATE")
-    message("-- PGO: setup for data collection")
-    foreach(t ${PGO_TARGETS})
-      target_compile_options(${t} PRIVATE ${PGO_GENERATE_FLAGS})
-      string(REPLACE ";" " " gen_flags "${PGO_GENERATE_FLAGS}")
-      set_target_properties(${t} PROPERTIES LINK_FLAGS "${gen_flags}")
-#     requires cmake 3.13
-#     target_link_options(${t} PRIVATE ${PGO_GENERATE_FLAGS})
-    endforeach()
-  elseif(PROFILE_GUIDED_OPTIMIZATION STREQUAL "USE")
-    message("-- PGO: setup for compiling final version")
-    foreach(t ${PGO_TARGETS})
-      target_compile_options(${t} PRIVATE ${PGO_USE_FLAGS})
-      string(REPLACE ";" " " gen_flags "${PGO_USE_FLAGS}")
-      set_target_properties(${t} PROPERTIES LINK_FLAGS "${gen_flags}")
-#     target_link_options(${t} PRIVATE ${PGO_USE_FLAGS})
-    endforeach()
-  endif()
-endif()
+set(PGO_TARGETS swipl swiplobjs libswipl)
 
 if(GCOV)
   set(GCOV_FLAGS --coverage -fkeep-inline-functions -fkeep-static-functions)
@@ -443,28 +473,23 @@ if(GCOV)
   endforeach()
 endif()
 
-if(0)
-# Does not work.  Please use scripts/pgo-compile.sh
-add_custom_target(
-    pgo
-
-    COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=GENERATE -G Ninja ..
-    COMMAND ninja -t clean libswipl
-    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling instrumented version"
-    COMMAND ninja core
-    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Running program"
-    COMMAND ${CMAKE_COMMAND} -E remove_directory ${PGO_DIR}
-    # cannot use the target `swipl` as that causes a build before we run
-    COMMAND src/swipl ${PGO_PROGRAM}
-    COMMAND ${CMAKE_COMMAND} -DPROFILE_GUIDED_OPTIMIZATION=USE -G Ninja ..
-    COMMAND ninja -t clean libswipl
-    COMMAND ${CMAKE_COMMAND} -E echo "PGO: Compiling optimized version"
-    COMMAND ninja core
-
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-set_property(TARGET pgo PROPERTY
-	     JOB_POOL_COMPILE console)
-endif(0)
+if (CMAKE_BUILD_TYPE STREQUAL "PGO" OR CMAKE_BUILD_TYPE STREQUAL "DEB")
+  configure_pgo("pgo-instrumented")
+  generate_pgo_data(${PGO_TARGETS})
+  add_pgo_dependency(bootfile prolog_home)
+  run_pgo_program(swipl -f none --no-packs --no-threads "${PGO_PROGRAM}")
+  use_pgo_data(${PGO_TARGETS})
+elseif(PROFILE_GUIDED_OPTIMIZATION)
+  if(PROFILE_GUIDED_OPTIMIZATION STREQUAL "GENERATE")
+    message("-- PGO: setup for data collection")
+    configure_pgo("")
+    generate_pgo_data(${PGO_TARGETS})
+  elseif(PROFILE_GUIDED_OPTIMIZATION STREQUAL "USE")
+    message("-- PGO: setup for compiling final version")
+    configure_pgo("")
+    use_pgo_data(${PGO_TARGETS})
+  endif()
+endif()
 
 ################
 # Testing
@@ -473,19 +498,24 @@ add_custom_target(check
     COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl)
 
 set(SWIPL_TEST_DIRS unprotected core attvar debug tabling library
-    charset eclipse clp GC save files
+    compile charset eclipse clp GC save files transaction
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
     xsb/sub_tests)
 if(MULTI_THREADED)
-  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} thread thread_wait)
+endif()
+if(GMP_FOUND)
+  set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
 endif()
 
 add_test(NAME swipl:basic
-	 COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
+	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	 -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
 foreach(test ${SWIPL_TEST_DIRS})
   add_test(NAME swipl:${test}
-	   COMMAND ${PROG_SWIPL} -f none --no-packs -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
+	   COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
+	   -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-core ${test})
 endforeach()
 
 # Use a function to scope CMAKE_INSTALL_DEFAULT_COMPONENT_NAME
@@ -546,7 +576,7 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
  install(DIRECTORY DESTINATION ${SWIPL_TMP_DIR})
 endif()
 
-install(TARGETS swipl libswipl EXPORT SWIPL_EXPORT
+install(TARGETS swipl libswipl ${STATIC_LIB} EXPORT SWIPL_EXPORT
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
         LIBRARY DESTINATION ${LIBSWIPL_DIR}
         ARCHIVE DESTINATION ${LIBSWIPL_DIR}

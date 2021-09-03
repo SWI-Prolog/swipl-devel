@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -122,6 +123,7 @@ thread_local(Spec)       :- '$set_pattr'(Spec, pred, thread_local(true)).
 noprofile(Spec)          :- '$set_pattr'(Spec, pred, noprofile(true)).
 public(Spec)             :- '$set_pattr'(Spec, pred, public(true)).
 non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
+det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
 '$iso'(Spec)             :- '$set_pattr'(Spec, pred, iso(true)).
 '$clausable'(Spec)       :- '$set_pattr'(Spec, pred, clausable(true)).
 '$hide'(Spec)            :- '$set_pattr'(Spec, pred, trace(false)).
@@ -155,10 +157,7 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$set_pattr'(PI, M, _, []) :-
     !,
     '$pi_head'(M:PI, Pred),
-    (   '$get_predicate_attribute'(Pred, incremental, 1)
-    ->  '$wrap_incremental'(Pred)
-    ;   '$unwrap_incremental'(Pred)
-    ).
+    '$set_table_wrappers'(Pred).
 '$set_pattr'(A, M, How, [O|OT]) :-
     !,
     '$set_pattr'(A, M, How, O),
@@ -196,6 +195,12 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     ;   '$domain_error'(predicate_option, Opt)
     ).
 
+'$join_attrs'([], Attrs, Attrs) :-
+    !.
+'$join_attrs'([H|T], Attrs0, Attrs) :-
+    !,
+    '$join_attrs'(H, Attrs0, Attrs1),
+    '$join_attrs'(T, Attrs1, Attrs).
 '$join_attrs'(Attr, Attrs, Attrs) :-
     memberchk(Attr, Attrs),
     !.
@@ -208,8 +213,10 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
 '$join_attrs'(Attr, Attrs0, Attrs) :-
     '$append'(Attrs0, [Attr], Attrs).
 
-'$attr_option'(incremental, incremental(true)).
-'$attr_option'(opaque, incremental(false)).
+'$attr_option'(incremental, [incremental(true),opaque(false)]).
+'$attr_option'(monotonic, monotonic(true)).
+'$attr_option'(lazy, lazy(true)).
+'$attr_option'(opaque, [incremental(false),opaque(true)]).
 '$attr_option'(abstract(Level0), abstract(Level)) :-
     '$table_option'(Level0, Level).
 '$attr_option'(subgoal_abstract(Level0), subgoal_abstract(Level)) :-
@@ -267,6 +274,8 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     '$set_pattr'(Spec, M, directive, noprofile(true)).
 '$pattr_directive'(public(Spec), M) :-
     '$set_pattr'(Spec, M, directive, public(true)).
+'$pattr_directive'(det(Spec), M) :-
+    '$set_pattr'(Spec, M, directive, det(true)).
 
 %!  '$pi_head'(?PI, ?Head)
 
@@ -344,6 +353,7 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     call(7,?,?,?,?,?,?,?),
     not(0),
     \+(0),
+    $(0),
     '->'(0,0),
     '*->'(0,0),
     once(0),
@@ -432,6 +442,10 @@ non_terminal(Spec)       :- '$set_pattr'(Spec, pred, non_terminal(true)).
     !,
     prolog_current_choice(Ch),
     \+ '$meta_call'(G, M, Ch).
+'$meta_call'($(G), M, _) :-
+    !,
+    prolog_current_choice(Ch),
+    $('$meta_call'(G, M, Ch)).
 '$meta_call'(call(G), M, _) :-
     !,
     prolog_current_choice(Ch),
@@ -539,6 +553,18 @@ catch(_Goal, _Catcher, _Recover) :-
 prolog_cut_to(_Choice) :-
     '$cut'.                         % Maps to I_CUTCHP
 
+%!  $ is det.
+%
+%   Declare that from now on this predicate succeeds deterministically.
+
+'$' :- '$'.
+
+%!  $(:Goal) is det.
+%
+%   Declare that Goal must succeed deterministically.
+
+$(Goal) :- $(Goal).
+
 %!  reset(:Goal, ?Ball, -Continue)
 %
 %   Delimited continuation support.
@@ -546,12 +572,18 @@ prolog_cut_to(_Choice) :-
 reset(_Goal, _Ball, _Cont) :-
     '$reset'.
 
-%!  shift(+Ball)
+%!  shift(+Ball).
+%!  shift_for_copy(+Ball).
 %
-%   Shift control back to the enclosing reset/3
+%   Shift control back to the  enclosing   reset/3.  The  second version
+%   assumes the continuation will be saved to   be reused in a different
+%   context.
 
 shift(Ball) :-
     '$shift'(Ball).
+
+shift_for_copy(Ball) :-
+    '$shift_for_copy'(Ball).
 
 %!  call_continuation(+Continuation:list)
 %
@@ -798,7 +830,7 @@ initialization(Goal, When) :-
 '$clear_source_admin'(File) :-
     retractall('$init_goal'(_, _, File:_)),
     retractall('$load_context_module'(File, _, _)),
-    retractall('$resolved_source_path'(_, File)).
+    retractall('$resolved_source_path_db'(_, _, File)).
 
 
                  /*******************************
@@ -866,6 +898,7 @@ default_module(Me, Super) :-
 
 :- dynamic   user:exception/3.
 :- multifile user:exception/3.
+:- '$hide'(user:exception/3).
 
 %!  '$undefined_procedure'(+Module, +Name, +Arity, -Action) is det.
 %
@@ -901,9 +934,12 @@ default_module(Me, Super) :-
 
 '$loading'(Library) :-
     current_prolog_flag(threads, true),
-    '$loading_file'(FullFile, _Queue, _LoadThread),
-    file_name_extension(Library, _, FullFile),
-    !.
+    (   '$loading_file'(Library, _Queue, _LoadThread)
+    ->  true
+    ;   '$loading_file'(FullFile, _Queue, _LoadThread),
+        file_name_extension(Library, _, FullFile)
+    ->  true
+    ).
 
 %        handle debugger 'w', 'p' and <N> depth options.
 
@@ -1087,6 +1123,7 @@ user:file_search_path(user_profile, app_preferences('.')).
     exists_directory(Dir),
     !.
 '$make_config_dir'(Dir) :-
+    nb_current('$create_search_directories', true),
     file_directory_name(Dir, Parent),
     '$my_file'(Parent),
     catch(make_directory(Dir), _, fail).
@@ -1097,6 +1134,19 @@ user:file_search_path(user_profile, app_preferences('.')).
     ;   atom_concat(Dir, /, DirS)
     ).
 
+
+%!  '$expand_file_search_path'(+Spec, -Expanded, +Cond) is nondet.
+
+'$expand_file_search_path'(Spec, Expanded, Cond) :-
+    '$option'(access(Access), Cond),
+    memberchk(Access, [write,append]),
+    !,
+    setup_call_cleanup(
+        nb_setval('$create_search_directories', true),
+        expand_file_search_path(Spec, Expanded),
+        nb_delete('$create_search_directories')).
+'$expand_file_search_path'(Spec, Expanded, _Cond) :-
+    expand_file_search_path(Spec, Expanded).
 
 %!  expand_file_search_path(+Spec, -Expanded) is nondet.
 %
@@ -1168,7 +1218,9 @@ absolute_file_name(Spec, Path, Options) :-
     ),
     '$canonicalise_extensions'(Exts, Extensions),
                     % unless specified otherwise, ask regular file
-    (   nonvar(Type)
+    (   (   nonvar(Type)
+        ;   '$option'(access(none), Options, none)
+        )
     ->  Options2 = Options1
     ;   '$merge_options'(_{file_type:regular}, Options1, Options2)
     ),
@@ -1260,6 +1312,7 @@ absolute_file_name(Spec, Path, Options) :-
 '$ft_no_ext'(txt).
 '$ft_no_ext'(executable).
 '$ft_no_ext'(directory).
+'$ft_no_ext'(regular).
 
 %!  user:prolog_file_type(?Extension, ?Type)
 %
@@ -1373,8 +1426,9 @@ user:prolog_file_type(dylib,    executable) :-
 
 '$chk_alias_file'(Spec, Exts, Cond, true, CWD, FullFile) :-
     !,
-    findall(Exp, expand_file_search_path(Spec, Exp), Expansions),
-    Cache = cache(Exts, Cond, CWD, Expansions),
+    findall(Exp, '$expand_file_search_path'(Spec, Exp, Cond), Expansions),
+    current_prolog_flag(emulated_dialect, Dialect),
+    Cache = cache(Exts, Cond, CWD, Expansions, Dialect),
     variant_sha1(Spec+Cache, SHA1),
     get_time(Now),
     current_prolog_flag(file_search_cache_time, TimeOut),
@@ -1393,7 +1447,7 @@ user:prolog_file_type(dylib,    executable) :-
         )
     ).
 '$chk_alias_file'(Spec, Exts, Cond, false, _CWD, FullFile) :-
-    expand_file_search_path(Spec, Expanded),
+    '$expand_file_search_path'(Spec, Expanded, Cond),
     '$extend_file'(Expanded, Exts, LibFile),
     '$file_conditions'(Cond, LibFile),
     '$absolute_file_name'(LibFile, FullFile).
@@ -1485,20 +1539,36 @@ user:prolog_file_type(dylib,    executable) :-
 %!  '$list_to_set'(+List, -Set) is det.
 %
 %   Turn list into a set, keeping   the  left-most copy of duplicate
-%   elements.  Note  that  library(lists)  provides  an  O(N*log(N))
-%   version, but sets of file name extensions should be short enough
-%   for this not to matter.
+%   elements.  Copied from library(lists).
 
 '$list_to_set'(List, Set) :-
-    '$list_to_set'(List, [], Set).
+    '$number_list'(List, 1, Numbered),
+    sort(1, @=<, Numbered, ONum),
+    '$remove_dup_keys'(ONum, NumSet),
+    sort(2, @=<, NumSet, ONumSet),
+    '$pairs_keys'(ONumSet, Set).
 
-'$list_to_set'([], _, []).
-'$list_to_set'([H|T], Seen, R) :-
-    memberchk(H, Seen),
+'$number_list'([], _, []).
+'$number_list'([H|T0], N, [H-N|T]) :-
+    N1 is N+1,
+    '$number_list'(T0, N1, T).
+
+'$remove_dup_keys'([], []).
+'$remove_dup_keys'([H|T0], [H|T]) :-
+    H = V-_,
+    '$remove_same_key'(T0, V, T1),
+    '$remove_dup_keys'(T1, T).
+
+'$remove_same_key'([V1-_|T0], V, T) :-
+    V1 == V,
     !,
-    '$list_to_set'(T, R).
-'$list_to_set'([H|T], Seen, [H|R]) :-
-    '$list_to_set'(T, [H|Seen], R).
+    '$remove_same_key'(T0, V, T).
+'$remove_same_key'(L, _, L).
+
+'$pairs_keys'([], []).
+'$pairs_keys'([K-_|T0], [K|T]) :-
+    '$pairs_keys'(T0, T).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Canonicalise the extension list. Old SWI-Prolog   require  `.pl', etc, which
@@ -2278,18 +2348,39 @@ load_files(Module:Files, Options) :-
 %       * The file is already loaded.
 
 :- dynamic
-    '$resolved_source_path'/2.                  % ?Spec, ?Path
+    '$resolved_source_path_db'/3.                % ?Spec, ?Dialect, ?Path
 
 '$load_file'(File, Module, Options) :-
+    '$error_count'(E0, W0),
+    '$load_file_e'(File, Module, Options),
+    '$error_count'(E1, W1),
+    Errors is E1-E0,
+    Warnings is W1-W0,
+    (   Errors+Warnings =:= 0
+    ->  true
+    ;   '$print_message'(silent, load_file_errors(File, Errors, Warnings))
+    ).
+
+'$error_count'(Errors, Warnings) :-
+    current_prolog_flag(threads, true),
+    !,
+    thread_self(Me),
+    thread_statistics(Me, errors, Errors),
+    thread_statistics(Me, warnings, Warnings).
+'$error_count'(Errors, Warnings) :-
+    statistics(errors, Errors),
+    statistics(warnings, Warnings).
+
+'$load_file_e'(File, Module, Options) :-
     \+ memberchk(stream(_), Options),
     user:prolog_load_file(Module:File, Options),
     !.
-'$load_file'(File, Module, Options) :-
+'$load_file_e'(File, Module, Options) :-
     memberchk(stream(_), Options),
     !,
     '$assert_load_context_module'(File, Module, Options),
     '$qdo_load_file'(File, File, Module, Options).
-'$load_file'(File, Module, Options) :-
+'$load_file_e'(File, Module, Options) :-
     (   '$resolved_source_path'(File, FullFile, Options)
     ->  true
     ;   '$resolve_source_path'(File, FullFile, Options)
@@ -2301,7 +2392,8 @@ load_files(Module:Files, Options) :-
 %   True when File has already been resolved to an absolute path.
 
 '$resolved_source_path'(File, FullFile, Options) :-
-    '$resolved_source_path'(File, FullFile),
+    current_prolog_flag(emulated_dialect, Dialect),
+    '$resolved_source_path_db'(File, Dialect, FullFile),
     (   '$source_file_property'(FullFile, from_state, true)
     ;   '$source_file_property'(FullFile, resource, true)
     ;   '$option'(if(If), Options, true),
@@ -2323,13 +2415,14 @@ load_files(Module:Files, Options) :-
 
 
 '$register_resolved_source_path'(File, FullFile) :-
-    '$resolved_source_path'(File, FullFile),
-    !.
-'$register_resolved_source_path'(File, FullFile) :-
-    compound(File),
-    !,
-    asserta('$resolved_source_path'(File, FullFile)).
-'$register_resolved_source_path'(_, _).
+    (   compound(File)
+    ->  current_prolog_flag(emulated_dialect, Dialect),
+        (   '$resolved_source_path_db'(File, Dialect, FullFile)
+        ->  true
+        ;   asserta('$resolved_source_path_db'(File, Dialect, FullFile))
+        )
+    ;   true
+    ).
 
 %!  '$translated_source'(+Old, +New) is det.
 %
@@ -2337,8 +2430,8 @@ load_files(Module:Files, Options) :-
 
 :- public '$translated_source'/2.
 '$translated_source'(Old, New) :-
-    forall(retract('$resolved_source_path'(File, Old)),
-           assertz('$resolved_source_path'(File, New))).
+    forall(retract('$resolved_source_path_db'(File, Dialect, Old)),
+           assertz('$resolved_source_path_db'(File, Dialect, New))).
 
 %!  '$register_resource_file'(+FullFile) is det.
 %
@@ -2400,18 +2493,18 @@ load_files(Module:Files, Options) :-
 '$mt_load_file'(File, FullFile, Module, Options) :-
     current_prolog_flag(threads, true),
     !,
-    setup_call_cleanup(
-        with_mutex('$load_file',
-                   '$mt_start_load'(FullFile, Loading, Options)),
-        '$mt_do_load'(Loading, File, FullFile, Module, Options),
-        '$mt_end_load'(Loading)).
+    '$sig_atomic'(setup_call_cleanup(
+                      with_mutex('$load_file',
+                                 '$mt_start_load'(FullFile, Loading, Options)),
+                      '$mt_do_load'(Loading, File, FullFile, Module, Options),
+                      '$mt_end_load'(Loading))).
 '$mt_load_file'(File, FullFile, Module, Options) :-
     '$option'(if(If), Options, true),
     '$noload'(If, FullFile, Options),
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    '$qdo_load_file'(File, FullFile, Module, Options).
+    '$sig_atomic'('$qdo_load_file'(File, FullFile, Module, Options)).
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
     '$loading_file'(FullFile, Queue, LoadThread),
@@ -2974,7 +3067,7 @@ load_files(Module:Files, Options) :-
         fail                        % Still consider next term as first
     ).
 '$first_term'(Term, Layout, Id, State, Options) :-
-    '$start_non_module'(Id, State, Options),
+    '$start_non_module'(Id, Term, State, Options),
     '$compile_term'(Term, Layout, Id).
 
 '$compile_term'(Term, Layout, Id) :-
@@ -2998,11 +3091,11 @@ load_files(Module:Files, Options) :-
     catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
           '$print_message'(error, E)).
 
-'$start_non_module'(Id, _State, Options) :-
+'$start_non_module'(_Id, Term, _State, Options) :-
     '$option'(must_be_module(true), Options, false),
     !,
-    throw(error(domain_error(module_file, Id), _)).
-'$start_non_module'(Id, State, _Options) :-
+    '$domain_error'(module_header, Term).
+'$start_non_module'(Id, _Term, State, _Options) :-
     '$current_source_module'(Module),
     '$ifcompiling'('$qlf_start_file'(Id)),
     '$qset_dialect'(State),
@@ -3067,6 +3160,7 @@ load_files(Module:Files, Options) :-
     source_location(_File, Line),
     '$option'(redefine_module(Action), Options, false),
     '$module_class'(File, Class, Super),
+    '$reset_dialect'(File, Class),
     '$redefine_module'(Module, File, Action),
     '$declare_module'(Module, Class, Super, File, Line, false),
     '$export_list'(Public, Module, Ops),
@@ -3074,6 +3168,17 @@ load_files(Module:Files, Options) :-
     '$export_ops'(Ops, Module, File),
     '$qset_dialect'(State),
     nb_setarg(3, State, end_module).
+
+%!  '$reset_dialect'(+File, +Class) is det.
+%
+%   Load .pl files from the SWI-Prolog distribution _always_ in
+%   `swi` dialect.
+
+'$reset_dialect'(File, library) :-
+    file_name_extension(_, pl, File),
+    !,
+    set_prolog_flag(emulated_dialect, swi).
+'$reset_dialect'(_, _).
 
 
 %!  '$module3'(+Spec) is det.
@@ -3604,6 +3709,14 @@ load_files(Module:Files, Options) :-
     !,
     print_message(error, cannot_redefine_comma),
     fail.
+'$store_clause'((Pre => Body), _Layout, File, SrcLoc) :-
+    nonvar(Pre),
+    Pre = (Head,Cond),
+    !,
+    (   '$is_true'(Cond), current_prolog_flag(optimise, true)
+    ->  '$store_clause'((Head=>Body), _Layout, File, SrcLoc)
+    ;   '$store_clause'(?=>(Head,(Cond,!,Body)), _Layout, File, SrcLoc)
+    ).
 '$store_clause'(Clause, _Layout, File, SrcLoc) :-
     '$valid_clause'(Clause),
     !,
@@ -3612,6 +3725,10 @@ load_files(Module:Files, Options) :-
     ;   '$record_clause'(Clause, File, SrcLoc, Ref),
         '$qlf_assert_clause'(Ref, development)
     ).
+
+'$is_true'(true)  => true.
+'$is_true'((A,B)) => '$is_true'(A), '$is_true'(B).
+'$is_true'(_)     => fail.
 
 '$valid_clause'(_) :-
     current_prolog_flag(sandboxed_load, false),
@@ -4056,7 +4173,29 @@ length(_, Length) :-
 :- '$iso'((halt/0)).
 
 halt :-
-    halt(0).
+    '$exit_code'(Code),
+    (   Code == 0
+    ->  true
+    ;   print_message(warning, on_error(halt(1)))
+    ),
+    halt(Code).
+
+%!  '$exit_code'(Code)
+%
+%   Determine the exit code baed on the `on_error` and `on_warning`
+%   flags.  Also used by qsave_toplevel/0.
+
+'$exit_code'(Code) :-
+    (   (   current_prolog_flag(on_error, status),
+            statistics(errors, Count),
+            Count > 0
+        ;   current_prolog_flag(on_warning, status),
+            statistics(warnings, Count),
+            Count > 0
+        )
+    ->  Code = 1
+    ;   Code = 0
+    ).
 
 
 %!  at_halt(:Goal)

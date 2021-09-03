@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, VU University Amsterdam
+    Copyright (c)  2019-2021, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,10 +48,13 @@
 
             incr_invalidate_call/1,		% :Goal
             incr_invalidate_calls/1,		% :Goal
-            incr_table_update/0
-          ]).
+            incr_table_update/0,
 
-/** <module> XSB incremental dynamic predicate modification
+            incr_propagate_calls/1              % :Answer
+          ]).
+:- use_module(library(tables)).
+
+/** <module> Incremental dynamic predicate modification
 
 This module emulates the XSB module   `increval`. This module serves two
 goals: (1) provide alternatives  for   the  dynamic  clause manipulation
@@ -61,6 +65,8 @@ The change propagation for incremental   dynamic  predicates. SWI-Prolog
 relies in prolog_listen/2 to forward any change to dynamic predicates to
 the table IDG  and  incr_assert/1  and   friends  thus  simply  call the
 corresponding database update.
+
+@compat XSB
 */
 
 :- meta_predicate
@@ -74,7 +80,8 @@ corresponding database update.
     incr_trans_depends(:, :),
     incr_is_invalid(:),
     incr_invalidate_call(:),
-    incr_invalidate_calls(:).
+    incr_invalidate_calls(:),
+    incr_propagate_calls(:).
 
 incr_assert(T)     :- assertz(T).
 incr_asserta(T)    :- asserta(T).
@@ -159,7 +166,7 @@ invalid_subgoal(Goal, ATrie) :-
 %   True when Subgoal's table is marked as invalid.
 
 incr_is_invalid(Subgoal) :-
-    current_table(Subgoal, Table),
+    get_calls(Subgoal, Table, _Return),
     '$idg_falsecount'(Table, Count),
     Count > 0.
 
@@ -178,6 +185,8 @@ incr_invalidate_calls(Goal) :-
 %
 %   This is the XSB name, but   the  manual says incr_invalidate_calls/1
 %   and the comment with the code suggests this is misnamed.
+%
+%   @deprecated Use incr_invalidate_calls/1.
 
 incr_invalidate_call(Goal) :-
     incr_invalidate_calls(Goal).
@@ -193,3 +202,15 @@ incr_table_update :-
         fail
     ;   !
     ).
+
+%!  incr_propagate_calls(:Answer) is det.
+%
+%   Activate the monotonic answer propagation similarly   to  when a new
+%   fact is asserted for a monotonic  dynamic predicate. The Answer term
+%   must match a monotonic dynamic predicate.
+
+incr_propagate_calls(Answer) :-
+    setup_call_cleanup(
+        '$tbl_propagate_start'(Old),
+        '$tabling':incr_propagate_assert(Answer),
+        '$tbl_propagate_end'(Old)).

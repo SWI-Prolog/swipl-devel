@@ -35,7 +35,8 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-funct.h"
+#include "pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Functor (name/arity) handling.  A functor is a unique object (like atoms).
@@ -345,6 +346,7 @@ registerControlFunctors()
     FUNCTOR_softcut2,
     FUNCTOR_not_provable1,
     FUNCTOR_colon2,			/* Module:Goal */
+    FUNCTOR_dollar1,			/* $(Goal) */
 #ifdef O_CALL_AT_MODULE
     FUNCTOR_xpceref2,			/* Goal@Module */
 #endif

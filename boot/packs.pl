@@ -38,7 +38,8 @@
             attach_packs/1,                     % +Dir
             attach_packs/2,                     % +Dir, +Options
             '$pack_detach'/2,                   % +Name, -Dir
-            '$pack_attach'/1                    % +Dir
+            '$pack_attach'/1,                   % +Dir
+            '$pack_attach'/2
           ]).
 
 :- multifile user:file_search_path/2.
@@ -79,9 +80,12 @@ user:file_search_path(foreign, PackLib) :-
 %   Attach the given package
 
 '$pack_attach'(Dir) :-
-    attach_package(Dir, []),
+    '$pack_attach'(Dir, []).
+
+'$pack_attach'(Dir, Options) :-
+    attach_package(Dir, Options),
     !.
-'$pack_attach'(Dir) :-
+'$pack_attach'(Dir, _) :-
     (   exists_directory(Dir)
     ->  throw(error(existence_error(directory, Dir), _))
     ;   throw(error(domain_error(pack, Dir), _))

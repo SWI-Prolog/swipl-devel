@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2014, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,53 +39,73 @@
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
+
+_PL_utf8_code_point() advanced `i` but not beyond   `e`.  It returns the
+number of bytes consumed or `-1`  if   the  sequence is invalid. In that
+case it consumes one char.  Contributed by Abramo Bagnara.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define CONT(i)   ISUTF8_CB(in[i])
-#define VAL(i, s) ((in[i]&0x3f) << s)
+int
+_PL__utf8_code_point(const char **i, const char *e, int *cp)
+{ unsigned char c = (unsigned char)**i;
+  int code;
+  int n;
 
-#define IS_UTF8_2BYTE(in) \
-	((in[0]&0xe0) == 0xc0 && CONT(1))
-#define IS_UTF8_3BYTE(in) \
-	((in[0]&0xf0) == 0xe0 && CONT(1)&&CONT(2))
-#define IS_UTF8_4BYTE(in) \
-	((in[0]&0xf8) == 0xf0 && CONT(1)&&CONT(2)&&CONT(3))
-#define IS_UTF8_5BYTE(in) \
-	((in[0]&0xfc) == 0xf8 && CONT(1)&&CONT(2)&&CONT(3)&&CONT(4))
-#define IS_UTF8_6BYTE(in) \
-	((in[0]&0xfe) == 0xfc && CONT(1)&&CONT(2)&&CONT(3)&&CONT(4)&&CONT(5))
+  ++(*i);
+  *cp = c;
+  if ( c < 0x80 )
+    return 1;
+  if ( c < 0xc0 )
+    return -1;
 
+  if ( c < 0xe0)
+  { code = c & 0x1f;
+    n = 1;
+  } else if ( c < 0xf0 )
+  { code = c & 0x0f;
+    n = 2;
+  } else if ( c < 0xf8 )
+  { code = c & 0x07;
+    n = 3;
+  } else if ( c < 0xfc )
+  { code = c & 0x03;
+    n = 4;
+  } else if (c < 0xfe)
+  { code = c & 0x01;
+    n = 5;
+  } else
+  { return -1;
+  }
+
+  for (int k = 0; k < n; ++k)
+  { if ( *i + k == e )
+      return -1;
+
+    c = (*i)[k];
+    if ( c < 0x80 || c >= 0xc0 )
+      return -1;
+
+    code = (code << 6) | (c & 0x3f);
+  }
+
+  *i += n;
+  *cp = code;
+
+  return n + 1;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Deprecated old API for decoding UTF-8 strings.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
 _PL__utf8_get_char(const char *in, int *chr)
-{ if ( IS_UTF8_2BYTE(in) )		/* 2-byte, 0x80-0x7ff */
-  { *chr = ((in[0]&0x1f) << 6)|VAL(1,0);
-    return (char *)in+2;
-  }
+{ const char *i = in;
 
-  if ( IS_UTF8_3BYTE(in) )		/* 3-byte, 0x800-0xffff */
-  { *chr = ((in[0]&0xf) << 12)|VAL(1,6)|VAL(2,0);
-    return (char *)in+3;
-  }
+  _PL__utf8_code_point(&i, NULL, chr);
 
-  if ( IS_UTF8_4BYTE(in) )		/* 4-byte, 0x10000-0x1FFFFF */
-  { *chr = ((in[0]&0x7) << 18)|VAL(1,12)|VAL(2,6)|VAL(3,0);
-    return (char *)in+4;
-  }
-
-  if ( IS_UTF8_5BYTE(in) )		/* 5-byte, 0x200000-0x3FFFFFF */
-  { *chr = ((in[0]&0x3) << 24)|VAL(1,18)|VAL(2,12)|VAL(3,6)|VAL(4,0);
-    return (char *)in+5;
-  }
-
-  if ( IS_UTF8_6BYTE(in) )		/* 6-byte, 0x400000-0x7FFFFFF */
-  { *chr = ((in[0]&0x1) << 30)|VAL(1,24)|VAL(2,18)|VAL(3,12)|VAL(4,6)|VAL(5,0);
-    return (char *)in+6;
-  }
-
-  *chr = (*in)&0xff;			/* Error */
-
-  return (char *)in+1;
+  return (char*)i;
 }
 
 

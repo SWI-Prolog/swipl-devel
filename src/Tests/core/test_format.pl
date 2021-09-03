@@ -67,5 +67,7 @@ test(radix, error(domain_error(radix, 1))) :-
 	format(string(_), '~1r', [5]).
 test(radix, error(domain_error(radix, 37))) :-
 	format(string(_), '~37r', [5]).
+test(asterisk, error(format('no or negative integer for `*\' argument'))) :-
+    format('~t~*|', [-1]).
 
 :- end_tests(format).

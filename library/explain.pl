@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2018, University of Amsterdam,
+    Copyright (c)  1985-2021, University of Amsterdam,
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,7 @@
           ]).
 :- autoload(library(apply),[maplist/2,maplist/3]).
 :- autoload(library(lists),[flatten/2]).
+:- autoload(library(prolog_code), [pi_head/2]).
 
 :- if(exists_source(library(pldoc/man_index))).
 :- autoload(library(pldoc/man_index), [man_object_property/2]).
@@ -49,20 +51,20 @@
 The   library(explain)   describes   prolog-terms.   The   most   useful
 functionality is its cross-referencing function.
 
-==
+```
 ?- explain(subset(_,_)).
 "subset(_, _)" is a compound term
-        Referenced from 2-th clause of lists:subset/2
-        Referenced from 46-th clause of prolog_xref:imported/3
-        Referenced from 68-th clause of prolog_xref:imported/3
+    from 2-th clause of lists:subset/2
+    Referenced from 46-th clause of prolog_xref:imported/3
+    Referenced from 68-th clause of prolog_xref:imported/3
 lists:subset/2 is a predicate defined in
-        /staff/jan/lib/pl-5.6.17/library/lists.pl:307
-        Referenced from 2-th clause of lists:subset/2
-        Possibly referenced from 2-th clause of lists:subset/2
-==
+    /staff/jan/lib/pl-5.6.17/library/lists.pl:307
+    Referenced from 2-th clause of lists:subset/2
+    Possibly referenced from 2-th clause of lists:subset/2
+```
 
-Note  that  the  help-tool  for   XPCE    provides   a   nice  graphical
-cross-referencer.
+Note that PceEmacs can jump to definitions   and gxref/0 can be used for
+an overview of dependencies.
 */
 
 %!  explain(@Term) is det
@@ -126,7 +128,7 @@ explain([H|T], Explanation) :-
     (   utter(Explanation, '"~p" is a proper list with ~d elements',
               [List, L])
     ;   maplist(printable, List),
-        utter(Explanation, '~t~8|Text is "~s"',  [List])
+        utter(Explanation, '~t~4|Text is "~s"',  [List])
     ).
 explain([H|T], Explanation) :-
     !,
@@ -154,6 +156,11 @@ explain(Module:Head, Explanation) :-
     callable(Head),
     !,
     explain_predicate(Module:Head, Explanation).
+explain(Dict, Explanation) :-
+    is_dict(Dict, Tag),
+    !,
+    utter(Explanation, '"~W" is a dict with tag ~q',
+          [Dict, [quoted(true), numbervars(true)], Tag]).
 explain(Term, Explanation) :-
     numbervars(Term, 0, _, [singletons(true)]),
     utter(Explanation, '"~W" is a compound term',
@@ -190,7 +197,8 @@ op_type(X, postfix) :-
 
 printable(C) :-
     integer(C),
-    between(32, 126, C).
+    code_type(C, graph).
+
 
                 /********************************
                 *             ATOMS             *
@@ -240,7 +248,7 @@ lproperty(multifile,    ' multifile', []).
 lproperty(transparent,  ' meta', []).
 
 tproperty(imported_from(Module), ' imported from module ~w', [Module]).
-tproperty(file(File),           ' defined in~n~t~8|~w', [File]).
+tproperty(file(File),           ' defined in~n~t~4|~w', [File]).
 tproperty(line_count(Number),   ':~d', [Number]).
 tproperty(autoload,             ' that can be autoloaded', []).
 
@@ -285,7 +293,7 @@ explain_predicate(Pred, Explanation) :-
     source_file(Pred, File),
     current_prolog_flag(home, Home),
     sub_atom(File, 0, _, _, Home),
-    utter(Explanation, '~t~8|Summary: ``~w''''', [Summary]).
+    utter(Explanation, '~t~4|Summary: ``~w''''', [Summary]).
 :- endif.
 explain_predicate(Pred, Explanation) :-
     referenced(Pred, Explanation).
@@ -330,7 +338,8 @@ utter_referenced(_Module:lazy_get_method(_,_,_), _, _, _, _) :-
     current_prolog_flag(xpce, true),
     !,
     fail.
-utter_referenced(pce_xref:exported(_,_), _, _, _, _) :-
+utter_referenced(From, _, _, _, _) :-
+    hide_reference(From),
     !,
     fail.
 utter_referenced(pce_xref:defined(_,_,_), _, _, _, _) :-
@@ -344,24 +353,41 @@ utter_referenced(pce_principal:send_implementation(_, _, _),
     current_prolog_flag(xpce, true),
     !,
     xpce_method_id(Ref, Id),
-    utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
+    utter(Explanation, '~t~4|~w from ~w', [Text, Id]).
 utter_referenced(pce_principal:get_implementation(Id, _, _, _),
                  _, Ref, Text, Explanation) :-
     current_prolog_flag(xpce, true),
     !,
     xpce_method_id(Ref, Id),
-    utter(Explanation, '~t~8|~w from ~w', [Text, Id]).
-utter_referenced(Module:Head, N, _Ref, Text, Explanation) :-
-    functor(Head, Name, Arity),
+    utter(Explanation, '~t~4|~w from ~w', [Text, Id]).
+utter_referenced(Head, N, Ref, Text, Explanation) :-
+    clause_property(Ref, file(File)),
+    clause_property(Ref, line_count(Line)),
+    !,
+    pi_head(PI, Head),
     utter(Explanation,
-          '~t~8|~w from ~d-th clause of ~w:~w/~d',
-          [Text, N, Module, Name, Arity]).
+          '~t~4|~w from ~d-th clause of ~q at ~w:~d',
+          [Text, N, PI, File, Line]).
+utter_referenced(Head, N, _Ref, Text, Explanation) :-
+    pi_head(PI, Head),
+    utter(Explanation,
+          '~t~4|~w from ~d-th clause of ~q',
+          [Text, N, PI]).
 
 xpce_method_id(Ref, Id) :-
     clause(Head, _Body, Ref),
     strip_module(Head, _, H),
     arg(1, H, Id).
 
+hide_reference(pce_xref:exported(_,_)).
+hide_reference(pce_xref:defined(_,_,_)).
+hide_reference(pce_xref:called(_,_,_)).
+hide_reference(prolog_xref:pred_mode(_,_,_)).
+hide_reference(prolog_xref:exported(_,_)).
+hide_reference(prolog_xref:dynamic(_,_,_)).
+hide_reference(prolog_xref:imported(_,_,_)).
+hide_reference(prolog_xref:pred_comment(_,_,_,_)).
+hide_reference(_:'$mode'(_,_)).
 
 
                 /********************************

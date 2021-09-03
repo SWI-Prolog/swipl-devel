@@ -36,16 +36,18 @@
 	  [ (block)/1,			% +Heads
 	    op(1150, fx, (block))
 	  ]).
+:- use_module(library(prolog_wrap), [wrap_predicate/4]).
 
 /** <module> Block: declare suspending predicates
 
-This  module  realises  SICStus  Prolog   =|:-  block  BlockSpec,  ...|=
-declarations  using  a   wrapper   predicate    that   calls   the  real
-implementation through a coroutining primitive   (typically  when/2, but
-freeze/2 for simple cases).
+This module provides SICStus Prolog-compatible
+=|:- block BlockSpec, ...|= declarations for delaying predicate calls if
+certain arguments are unbound.
 
-@tbd	This emulation is barely tested.
+@see	https://sicstus.sics.se/sicstus/docs/3.12.11/html/sicstus/Block-Declarations.html
 */
+
+:- op(1150, fx, user:(block)).
 
 :- multifile
 	user:term_expansion/2,
@@ -76,18 +78,13 @@ head(H, Head) :-
 %	more :- block declarations. The   predicate  is suspended untill
 %	all mode patterns that apply to it are satisfied.
 %
-%	The implementation is realised by creating   a wrapper that uses
-%	when/2 to realize suspension of the renamed predicate.
+%	The implementation is realised by creating a wrapper that checks
+%	the block conditions and either calls the original predicate
+%	immediately (if none of the block conditions were true) or uses
+%	attributed variables to delay re-evaluating the block condition
+%	until any of the arguments in question are bound.
 %
 %	@compat SICStus Prolog
-%	@compat If the predicate is blocked on multiple conditions, it
-%		will not unblock before _all_ conditions are satisfied.
-%		SICStus unblocks when one arbitrary condition is
-%		satisfied.
-%	@bug	It is not possible to block on a dynamic predicate
-%		because we cannot wrap assert/1.  Likewise, we cannot
-%		block foreign predicates, although it would be easier
-%		to support this.
 
 block(Spec) :-
 	throw(error(context_error(nodirective, block(Spec)), _)).
@@ -144,64 +141,125 @@ block_arg(?) :- !.
 block_arg(A) :-
 	domain_error(block_argument, A).
 
-%%	wrap_block(+Head, +Term, -Clauses) is det.
+%%	block_wrapper_clauses(+Module, +Head, -Clauses) is det.
 %
-%	Create a wrapper. The first clause deal   with the case where we
-%	already created the wrapper. The second  creates the wrapper and
-%	the first clause.
+%	Build a list of clauses that define a block wrapper around
+%	predicate Head in Module. If a wrapper for this predicate has
+%	already been defined, Clauses is an empty list.
 
-wrap_block(Pred, Term, Clause) :-
-	current_predicate(_, Pred), !,
-	rename_clause(Term, 'block ', Clause).
-wrap_block(Pred, Term, [Wrapper,FirstClause]) :-
-	block_declarations(Pred, Modes),
-	Pred = _:Head,
+block_wrapper_clauses(Module, Head, Clauses) :-
 	functor(Head, Name, Arity),
-	length(Args, Arity),
-	GenHead =.. [Name|Args],
-	atom_concat('block ', Name, WrappedName),
-	WrappedHead =.. [WrappedName|Args],
-	when_cond(Modes, Args, Cond),
-	simplify_coroute(when(Cond, WrappedHead), Coroute),
-	Wrapper = (GenHead :- Coroute),
-	rename_clause(Term, 'block ', FirstClause).
+	atom_concat('$block_helper$', Name, HelperName),
+	functor(HelperHead, HelperName, Arity),
+	(   current_predicate(_, Module:HelperHead)
+	->  Clauses = []
+	;   findall(Wrapper, block_wrapper_clause(Module, Name, HelperHead, Wrapper), Clauses)
+	).
 
-block_wrapper((_Head :- Coroute)) :-
-	simplify_coroute(when(_,Wrapped), Coroute),
-	compound(Wrapped),
-	functor(Wrapped, Name, _),
-	sub_atom(Name, 0, _, _, 'block ').
+%%	block_wrapper_clause(+Module, +Name, +HelperHead, -Clause) is nondet.
+%
+%	Generate the clauses for the wrapper. The blockspecs are
+%	translated into a helper predicate, where each clause checks one
+%	block condition. If a block condition is true, attributes are
+%	added to all arguments marked as `-`, so that once any of them
+%	are bound, the predicate is called again and the block
+%	conditions are re-evaluated. If no block condition was true,
+%	the helper predicate fails.
+%
+%	Finally, an initialization clause is generated that sets up the
+%	actual wrapper. This wrapper first calls the helper predicate
+%	to check all block conditions and delay the call if necessary.
+%	If the helper predicate fails (i. e. no block condition was
+%	true), the wrapped predicate is called immediately.
+%
+%	The wrapper must be set up in an initialization clause and not
+%	as part of the term expansion, because wrap_predicate/4 wrappers
+%	are not retained in saved states, which would cause block
+%	declarations to break when loading a saved state.
 
-block_declarations(M:P, Modes) :-
-	functor(P, Name, Arity),
-	functor(H, Name, Arity),
-	findall(H, M:'$block_pred'(H), Modes).
+block_wrapper_clause(Module, Name, HelperHead, (HelperHead :- GenBody)) :-
+	HelperHead =.. [_|HelperArgs],
+	length(HelperArgs, Arity),
+	functor(BlockHead, Name, Arity),
+	Module:'$block_pred'(BlockHead),
+	BlockHead =.. [_|BlockArgs],
+	find_args_to_block_on(BlockArgs, HelperArgs, ToBlockOn),
+	args_to_var_conditions(ToBlockOn, GenBody, GenBody1),
+	GenBody1 = (!, GenBody2),
+	MainHead =.. [Name|HelperArgs],
+	args_to_suspend_calls(ToBlockOn, _IsAlreadyUnblocked, Module:MainHead, GenBody2, true).
+block_wrapper_clause(Module, Name, HelperHead, (:- initialization WrapCall)) :-
+	HelperHead =.. [_|HelperArgs],
+	ToWrapHead =.. [Name|HelperArgs],
+	atom_concat('$block_wrapper$', Name, WrapperName),
+	WrapCall = prolog_wrap:wrap_predicate(Module:ToWrapHead, WrapperName, Wrapped, (HelperHead -> true ; Wrapped)).
 
-when_cond([Head], Args, Cond) :- !,
-	one_cond(Args, Head, Cond).
-when_cond([H|T], Args, (C1,C2)) :-
-	one_cond(Args, H, C1),
-	when_cond(T, Args, C2).
+%%	find_args_to_block_on(+BlockArgs, +HeadArgs, -ArgsToBlockOn) is semidet.
+%
+%	Collect into ArgsToBlockOn all arguments from HeadArgs for which
+%	the corresponding argument in BlockArgs is `-`, indicating that
+%	the argument is part of the block condition.
 
-one_cond(Vars, Spec, Cond) :-
-	cond_vars(Vars, 1, Spec, CondVars),
-	nonvar_or(CondVars, Cond).
+find_args_to_block_on([], [], []) :- !.
+find_args_to_block_on([-|MoreBlockArgs], [Arg|MoreHeadArgs], [Arg|MoreToBlockOn]) :-
+	!,
+	find_args_to_block_on(MoreBlockArgs, MoreHeadArgs, MoreToBlockOn).
+find_args_to_block_on([_|MoreBlockArgs], [_|MoreHeadArgs], ToBlockOn) :-
+	find_args_to_block_on(MoreBlockArgs, MoreHeadArgs, ToBlockOn).
 
-cond_vars([], _, _, []).
-cond_vars([H|T0], I, Spec, L) :-
-	(   arg(I, Spec, -)
-	->  L = [H|T]
-	;   L = T
-	),
-	I2 is I + 1,
-	cond_vars(T0, I2, Spec, T).
+%%	args_to_var_conditions(+ArgsToBlockOn, -Conditions, ?ConditionsTail) is semidet.
+%
+%	Convert a list of arguments into a conjunction of var/1 checks
+%	that succeeds if all arguments are unbound variables.
+%
+%	This effectively generates an unrolled version of
+%	`maplist(var, ArgsToBlockOn), ConditionsTail`.
 
-nonvar_or([V], nonvar(V)).
-nonvar_or([V|T], (nonvar(V);C)) :-
-	nonvar_or(T, C).
+args_to_var_conditions([], Tail, Tail) :- !.
+args_to_var_conditions([Arg|MoreArgs], Conditions, Tail) :-
+	Conditions = (var(Arg), MoreConditions),
+	args_to_var_conditions(MoreArgs, MoreConditions, Tail).
 
-simplify_coroute(when(nonvar(X), C), freeze(X, C)).
-simplify_coroute(Coroute, Coroute).
+%%	args_to_suspend_calls(+ArgsToBlockOn, -IsAlreadyUnblocked, +BlockedGoal, -SuspendCalls, +Tail) is semidet.
+%
+%	Build a sequence of calls that delays BlockedGoal until any
+%	variable in ArgsToBlockOn is bound. IsAlreadyUnblocked should be
+%	an unbound fresh variable - it is passed directly to unblock/2,
+%	which will bind the variable so that the same blocked goal is
+%	not called again by another unblock/2 call from the same group.
+
+args_to_suspend_calls([], _, _, Tail, Tail) :- !.
+args_to_suspend_calls([Arg|MoreArgs], IsAlreadyUnblocked, BlockedGoal, SuspendCalls, Tail) :-
+	SuspendCalls = ('$suspend'(Arg, block_directive, block_directive:unblock(IsAlreadyUnblocked, BlockedGoal)), MoreSuspendCalls),
+	args_to_suspend_calls(MoreArgs, IsAlreadyUnblocked, BlockedGoal, MoreSuspendCalls, Tail).
+
+
+attr_unify_hook(call(ThisGoals), NewVar) :-
+	var(NewVar),
+	!,
+	(   get_attr(NewVar, block_directive, call(OtherGoals))
+	->  put_attr(NewVar, block_directive, call((ThisGoals, OtherGoals)))
+	;   put_attr(NewVar, block_directive, call(ThisGoals))
+	).
+attr_unify_hook(call(Goals), _) :- Goals.
+
+:- public unblock/2.
+unblock(IsAlreadyUnblocked, _) :- IsAlreadyUnblocked == (-), !.
+unblock(-, BlockedGoal) :- BlockedGoal.
+
+attribute_goals(Var) -->
+	{get_attr(Var, block_directive, call(Goals))},
+	!,
+	render_block_goals(Goals).
+
+render_block_goals((Left, Right)) -->
+	render_block_goals(Left),
+	render_block_goals(Right).
+render_block_goals(block_directive:unblock(IsAlreadyUnblocked, BlockedGoal)) -->
+	(   {IsAlreadyUnblocked == (-)}
+	->  []
+	;   [BlockedGoal]
+	).
 
 
 %%	rename_clause(+Clause, +Prefix, -Renamed) is det.
@@ -224,9 +282,9 @@ rename_clause(Head, Prefix, NewHead) :-
 
 system:term_expansion((:- block(Spec)), Clauses) :-
 	expand_block_declaration(Spec, Clauses).
-system:term_expansion(Term, Wrapper) :-
+system:term_expansion(Term, Clauses) :-
 	head(Term, Module:Head),
 	block_declaration(Head, Module),
-	\+ block_wrapper(Term),		% avoid recursion
-	wrap_block(Module:Head, Term, Wrapper).
+	block_wrapper_clauses(Module, Head, WrapperClauses),
+	append(WrapperClauses, [Term], Clauses).
 

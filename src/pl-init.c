@@ -45,6 +45,24 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-arith.h"
 #include "pl-zip.h"
 #include "pl-prof.h"
+#include "pl-read.h"
+#include "pl-prims.h"
+#include "pl-setup.h"
+#include "pl-fli.h"
+#include "pl-wic.h"
+#include "pl-pro.h"
+#include "pl-trace.h"
+#include "pl-proc.h"
+#include "pl-modul.h"
+#include "pl-flag.h"
+#include "pl-rec.h"
+#include "pl-term.h"
+#include "pl-funct.h"
+#include "pl-ext.h"
+#include "pl-srcfile.h"
+#include "pl-load.h"
+#include "pl-nt.h"
+#include "os/pl-prologflag.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 #include <errno.h>
@@ -401,6 +419,14 @@ memarea_limit(const char *s)
 }
 
 
+static int
+on_error_style(const char *s)
+{ return ( strcmp(s, "print") == 0 ||
+	   strcmp(s, "halt") == 0 ||
+	   strcmp(s, "status") == 0 );
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 When detected to run under a  GNU-Emacs   shell  or using M-x run-prolog
 from GNU-Emacs, don't pretend we  can   manipulate  the TTY settings. On
@@ -513,6 +539,8 @@ cleanupPaths(void)
   cleanupStringP(&GD->options.topLevel);
   cleanupStringP(&GD->options.initFile);
   cleanupStringP(&GD->options.saveclass);
+  cleanupStringP(&GD->options.on_error);
+  cleanupStringP(&GD->options.on_warning);
   cleanupStringP(&GD->os.myhome);
 #ifdef __WINDOWS__
   cleanupStringP(&GD->paths.module);
@@ -553,7 +581,8 @@ initDefaults(void)
   else
     setPrologFlagMask(PLFLAG_TTY_CONTROL);
 
-  setPrologFlagMask(PLFLAG_DEBUGINFO|PLFLAG_GCTHREAD);
+  setPrologFlagMask(PLFLAG_DEBUGINFO);
+  setPrologFlagMask(PLFLAG_GCTHREAD);
 }
 
 
@@ -618,6 +647,8 @@ initDefaultOptions(void)
   GD->options.initFile	       = store_string(systemDefaults.startup);
   GD->options.scriptFiles      = NULL;
   GD->options.saveclass	       = store_string("none");
+  GD->options.on_error	       = store_string("print");
+  GD->options.on_warning       = store_string("warning");
 
   if ( systemDefaults.goal )
     opt_append(&GD->options.goals, systemDefaults.goal);
@@ -691,6 +722,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	    GD->options.silent = TRUE;
 	} else
 	  return -1;
+      } else if ( (rc=is_bool_opt(s, "debug_on_interrupt", &b)) )
+      { if ( rc == TRUE )
+	{ if ( b )
+	    setPrologFlagMask(PLFLAG_DEBUG_ON_INTERRUPT);
+	} else
+	  return -1;
       } else if ( (rc=is_bool_opt(s, "debug", &b)) )
       { if ( rc == TRUE )
 	{ if ( !b )
@@ -702,6 +739,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 	{ if ( !b )
 	  { clearPrologFlagMask(PLFLAG_SIGNALS);
 	    clearPrologFlagMask(PLFLAG_GCTHREAD);
+	    GD->options.nosignals = TRUE;
 	  }
 	} else
 	  return -1;
@@ -774,6 +812,16 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 #endif
       } else if ( (optval=is_longopt(s, "dump-runtime-variables")) )
       { GD->options.config = store_string(optval);
+      } else if ( (optval=is_longopt(s, "on-error")) )
+      { if ( on_error_style(optval) )
+	  GD->options.on_error = store_string(optval);
+	else
+	  return -1;
+      } else if ( (optval=is_longopt(s, "on-warning")) )
+      { if ( on_error_style(optval) )
+	  GD->options.on_warning = store_string(optval);
+	else
+	  return -1;
       } else if ( !compile )
       { argvleft[argcleft++] = argv[0];
       }
@@ -1003,6 +1051,11 @@ PL_initialise(int argc, char **argv)
   if ( GD->initialised )
     succeed;
 
+  /* Initialize debug flag early, if first argument */
+  if (argc > 2 && strcmp(argv[1],"-d") == 0)
+    /* One's complement tells p_d_f_s not to bail on error, just return */
+    prolog_debug_from_string(argv[2], ~TRUE);
+
   initAlloc();
   initPrologThreads();			/* initialise thread system */
   SinitStreams();
@@ -1096,6 +1149,11 @@ PL_initialise(int argc, char **argv)
   initialiseForeign(GD->cmdline.os_argc, /* PL_initialise_hook() functions */
 		    GD->cmdline.os_argv);
   setAccessLevel(ACCESS_LEVEL_SYSTEM);
+  if ( GD->options.nosignals )
+  { GET_LD
+    clearPrologFlagMask(PLFLAG_SIGNALS);
+    clearPrologFlagMask(PLFLAG_GCTHREAD);
+  }
 
   if ( GD->bootsession )
   { IOSTREAM *s = SopenZIP(GD->resources.DB, "$prolog/state.qlf", RC_WRONLY);
@@ -1201,11 +1259,14 @@ usage(void)
     "    -s file                  Script source file\n",
     "    -p alias=path            Define file search path 'alias'\n",
     "    -O                       Optimised compilation\n",
+    "    --on-error=style         One of print, halt or status\n",
+    "    --on-warning=style       One of print, halt or status\n",
     "    --tty[=bool]             (Dis)allow tty control\n",
     "    --packs[=bool]           Do (not) attach add-ons\n",
     "    --signals[=bool]         Do (not) modify signal handling\n",
     "    --threads[=bool]         Do (not) allow for threads\n",
     "    --debug[=bool]           Do (not) generate debug info\n",
+    "    --debug-on-interrupt[=bool] Trap the debugger on interrupt\n",
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",
     "    --home=DIR               Use DIR as SWI-Prolog home\n",
@@ -1327,7 +1388,7 @@ struct on_halt
   OnHalt	next;
 };
 
-void
+static void
 register_halt(OnHalt *where, halt_function f, void *arg)
 { if ( !GD->os.halting )
   { OnHalt h = allocHeapOrHalt(sizeof(struct on_halt));
@@ -1385,9 +1446,7 @@ with -DGC_DEBUG.
 
 int
 cleanupProlog(int rval, int reclaim_memory)
-{ GET_LD
-
-  if ( GD->cleaning != CLN_NORMAL )
+{ if ( GD->cleaning != CLN_NORMAL )
     return FALSE;
 
 #ifdef __WINDOWS__
@@ -1402,12 +1461,14 @@ cleanupProlog(int rval, int reclaim_memory)
   }
 
 #ifdef O_PLMT
-  if ( !LD )
+  if ( !GLOBAL_LD )
   { PL_thread_attach_engine(NULL);
-    LD = GLOBAL_LD;
-    if ( !LD )
-      goto emergency;
   }
+  GET_LD
+  if ( !LD )
+    goto emergency;
+#else
+  GET_LD
 #endif
 
   GD->cleaning = CLN_PROLOG;
@@ -1483,7 +1544,7 @@ emergency:
 #endif
 
   if ( reclaim_memory )
-  { freeStacks(PASS_LD1);
+  { freeStacks();
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
 #endif

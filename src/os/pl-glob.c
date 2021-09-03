@@ -40,7 +40,8 @@
 
 #include "pl-incl.h"
 #include "pl-ctype.h"
-#include "os/pl-utf8.h"
+#include "pl-utf8.h"
+#include "../pl-fli.h"
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -122,9 +123,9 @@ typedef struct
 { tmp_buffer	pattern;
 } compiled_pattern;
 
-static char *compile_pattern(compiled_pattern *pattern, char *s,
-			     int curl, int flags);
-static int match_pattern(matchcode *pattern, char *s, int flags);
+static const char *compile_pattern(compiled_pattern *pattern, const char *s,
+				   int curl, int flags);
+static int match_pattern(matchcode *pattern, const char *s, int flags);
 
 #define Output(c)  addBuffer(&Out->pattern, c, matchcode)
 #define Here()	   entriesBuffer(&Out->pattern, matchcode)
@@ -153,23 +154,23 @@ compilePattern(char *p, compiled_pattern *cbuf, int flags)
 }
 
 static int
-utf8_peek(char *p, int n)
+utf8_peek(const char *p, int n)
 { int c;
 
   while(n-- > 0)
     p = utf8_skip_char(p);
 
-  utf8_get_char(p, &c);
+  PL_utf8_code_point(&p, NULL, &c);
 
   return c;
 }
 
-static char *
-compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
+static const char *
+compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 { int c;
 
   for(;;)
-  { p = utf8_get_char(p, &c);
+  { PL_utf8_code_point(&p, NULL, &c);
 
     switch(c)
     { case EOS:
@@ -178,7 +179,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
       case '\\':
       { int c2;
 
-	p = utf8_get_char(p, &c2);
+	PL_utf8_code_point(&p, NULL, &c2);
 	Output(c2 == EOS ? c : c2);
 	if ( c2 == EOS )
 	  break;
@@ -198,10 +199,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	Output(0);
 
 	for(;;)
-	{ int cn;
-
-	  p = utf8_get_char(p, &c);
-	  utf8_get_char(p, &cn);
+	{ PL_utf8_code_point(&p, NULL, &c);
 
 	  switch( c )
 	  { case EOS:
@@ -209,7 +207,7 @@ compile_pattern(compiled_pattern *Out, char *p, int curl, int mflags)
 	    case '\\':
 	    { int c2;
 
-	      p = utf8_get_char(p, &c2);
+	      PL_utf8_code_point(&p, NULL, &c2);
 	      if ( c2 == EOS )
 		return PL_syntax_error("Unmatched '['", NULL),NULL;
 	      Output(c2);
@@ -303,7 +301,7 @@ matchPattern(char *s, compiled_pattern *cbuf, int flags)
 }
 
 static bool
-match_pattern(matchcode *p, char *s, int flags)
+match_pattern(matchcode *p, const char *s, int flags)
 { matchcode c;
 
   for(;;)
@@ -320,7 +318,7 @@ match_pattern(matchcode *p, char *s, int flags)
 	int sz = *p++;
 	matchcode *anyend = &p[sz];
 
-	s = utf8_get_char(s, &c2);
+	PL_utf8_code_point(&s, NULL, &c2);
 	if ( (flags&M_IGNCASE) )
 	  c2 = makeLowerW(c2);
 
@@ -346,7 +344,7 @@ match_pattern(matchcode *p, char *s, int flags)
 	do
 	{ if ( match_pattern(p, s, flags) )
 	    return TRUE;
-	  s = utf8_get_char(s, &c2);
+	  PL_utf8_code_point(&s, NULL, &c2);
 	} while(c2);
 
 	return FALSE;
@@ -362,7 +360,7 @@ match_pattern(matchcode *p, char *s, int flags)
       default:						/* character */
       { int c2;
 
-	s = utf8_get_char(s, &c2);
+	PL_utf8_code_point(&s, NULL, &c2);
 	if ( (flags&M_IGNCASE) )
 	  c2 = makeLowerW(c2);
 
@@ -385,8 +383,9 @@ static const opt_spec wildcard_options[] =
 };
 
 
+#define wildcard_match(pattern, string, options) LDFUNC(wildcard_match, pattern, string, options)
 static int
-wildcard_match(term_t pattern, term_t string, term_t options ARG_LD)
+wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
 { char *p, *s;
   int rc = FALSE;
   int mflags = 0;
@@ -418,14 +417,14 @@ static
 PRED_IMPL("wildcard_match", 2, wildcard_match, 0)
 { PRED_LD
 
-  return wildcard_match(A1, A2, 0 PASS_LD);
+  return wildcard_match(A1, A2, 0);
 }
 
 static
 PRED_IMPL("wildcard_match", 3, wildcard_match, 0)
 { PRED_LD
 
-  return wildcard_match(A1, A2, A3 PASS_LD);
+  return wildcard_match(A1, A2, A3);
 }
 
 
@@ -473,8 +472,9 @@ free_expand_info(GlobInfo info)
 
 
 #ifndef __WINDOWS__
+#define mb_add_path(path, info) LDFUNC(mb_add_path, path, info)
 static void
-mb_add_path(const char *path, GlobInfo info ARG_LD)
+mb_add_path(DECL_LD const char *path, GlobInfo info)
 { int idx = (int)entriesBuffer(&info->strings, char);
   PL_chars_t txt;
 
@@ -534,8 +534,9 @@ un_escape(char *to, const char *from, const char *end)
 }
 
 
+#define utf8_exists_file(name) LDFUNC(utf8_exists_file, name)
 static int
-utf8_exists_file(const char *name ARG_LD)
+utf8_exists_file(DECL_LD const char *name)
 {
 #ifndef __WINDOWS__
   PL_chars_t txt;
@@ -559,8 +560,9 @@ utf8_exists_file(const char *name ARG_LD)
 #endif
 }
 
+#define utf8_opendir(name) LDFUNC(utf8_opendir, name)
 static DIR*
-utf8_opendir(const char *name ARG_LD)
+utf8_opendir(DECL_LD const char *name)
 {
 #ifndef __WINDOWS__
   PL_chars_t txt;
@@ -632,7 +634,7 @@ expand(const char *pattern, GlobInfo info)
 		if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
 		  path[plen++] = '/';
 		strcpy(&path[plen], prefix);
-		if ( end == 1 || utf8_exists_file(path PASS_LD) )
+		if ( end == 1 || utf8_exists_file(path) )
 		  utf8_add_path(path, info);
 	      }
 	    }
@@ -692,7 +694,7 @@ expand(const char *pattern, GlobInfo info)
       strcpy(path, current);
       strcpy(&path[clen], prefix);
 
-      if ( (d=utf8_opendir((path[0] ? OsPath(path, tmp) : ".") PASS_LD)) )
+      if ( (d=utf8_opendir((path[0] ? OsPath(path, tmp) : "."))) )
       { size_t plen = clen+prefix_len;
 
 	if ( plen > 0 && path[plen-1] != '/' )
@@ -713,7 +715,7 @@ expand(const char *pattern, GlobInfo info)
 #ifdef __WINDOWS__			/* readdir() emulation emits UTF-8 */
 	      utf8_add_path(newp, info);
 #else
-	      mb_add_path(newp, info PASS_LD);
+	      mb_add_path(newp, info);
 #endif
 	    }
 	  }

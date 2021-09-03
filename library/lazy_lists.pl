@@ -137,14 +137,23 @@ or engines, the resource is subject to (atom) garbage collection.
 lazy_list(Next, List) :-
     put_attr(List, lazy_lists, lazy_list(Next, _)).
 
+% (*) We need a copy of the  list   where  the copy must include the new
+% attributed  variable  to  avoid  that   backtracking  makes  the  list
+% non-lazy.  We do want to avoid copying `Next`.  So, we add a dummy and
+% then replace this using nb_linkarg/3 with our Next.
+
 attr_unify_hook(State, Value) :-
     State = lazy_list(Next, Read),
     (   var(Read)
     ->  call(Next, NewList, Tail),
         (   Tail == []
         ->  nb_setarg(2, State, NewList)
-        ;   lazy_list(Next, Tail),
-            nb_setarg(2, State, NewList)
+        ;   put_attr(Tail, lazy_lists, lazy_list(dummy, _)),  % See (*)
+            nb_setarg(2, State, NewList),
+            arg(2, State, NewListCP),
+            '$skip_list'(_, NewListCP, TailCP),
+            get_attr(TailCP, lazy_lists, LazyList),
+            nb_linkarg(1, LazyList, Next)
         ),
         arg(2, State, Value)
     ;   Value = Read

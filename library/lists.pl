@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2016, University of Amsterdam
+    Copyright (c)  2002-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -55,10 +56,13 @@
           reverse/2,                    % +List, -Reversed
           permutation/2,                % ?List, ?Permutation
           flatten/2,                    % +Nested, -Flat
+          clumped/2,                    % +Items,-Pairs
 
                                         % Ordered operations
           max_member/2,                 % -Max, +List
           min_member/2,                 % -Min, +List
+          max_member/3,                 % :Pred, -Max, +List
+          min_member/3,                 % :Pred, -Min, +List
 
                                         % Lists of numbers
           sum_list/2,                   % +List, -Sum
@@ -77,6 +81,9 @@
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(pairs),[pairs_keys/2]).
 
+:- meta_predicate
+    max_member(2, -, +),
+    min_member(2, -, +).
 
 :- set_prolog_flag(generate_debug_info, false).
 
@@ -179,11 +186,11 @@ selectchk(Elem, List, Rest) :-
 
 %!  select(?X, ?XList, ?Y, ?YList) is nondet.
 %
-%   Select from two lists at the  same   positon.  True  if XList is
-%   unifiable with YList apart a single element at the same position
-%   that is unified with X in XList and   with Y in YList. A typical
-%   use for this predicate is to _replace_   an element, as shown in
-%   the example below. All possible   substitutions are performed on
+%   Select from two lists  at  the  same   position.  True  if  XList is
+%   unifiable with YList apart a  single   element  at the same position
+%   that is unified with X in XList and   with Y in YList. A typical use
+%   for this predicate is to  _replace_  an   element,  as  shown in the
+%   example  below.  All  possible  substitutions    are   performed  on
 %   backtracking.
 %
 %     ==
@@ -494,6 +501,38 @@ flatten([Hd|Tl], Tail, List) :-
 flatten(NonList, Tl, [NonList|Tl]).
 
 
+		 /*******************************
+		 *            CLUMPS		*
+		 *******************************/
+
+%!  clumped(+Items, -Pairs)
+%
+%   Pairs is a list  of  `Item-Count`   pairs  that  represents the _run
+%   length encoding_ of Items.  For example:
+%
+%   ```
+%   ?- clumped([a,a,b,a,a,a,a,c,c,c], R).
+%   R = [a-2, b-1, a-4, c-3].
+%   ```
+%
+%   @compat SICStus
+
+clumped(Items, Counts) :-
+    clump(Items, Counts).
+
+clump([], []).
+clump([H|T0], [H-C|T]) :-
+    ccount(T0, H, T1, 1, C),
+    clump(T1, T).
+
+ccount([H|T0], E, T, C0, C) :-
+    E == H,
+    !,
+    C1 is C0+1,
+    ccount(T0, E, T, C1, C).
+ccount(List, _, List, C, C).
+
+
                  /*******************************
                  *       ORDER OPERATIONS       *
                  *******************************/
@@ -506,11 +545,14 @@ flatten(NonList, Tl, [NonList|Tl]).
 %   @see compare/3
 %   @see max_list/2 for the maximum of a list of numbers.
 
-max_member(Max, [H|T]) :-
+max_member(Max, [H|T]) =>
     max_member_(T, H, Max).
+max_member(_, []) =>
+    fail.
 
-max_member_([], Max, Max).
-max_member_([H|T], Max0, Max) :-
+max_member_([], Max0, Max) =>
+    Max = Max0.
+max_member_([H|T], Max0, Max) =>
     (   H @=< Max0
     ->  max_member_(T, Max0, Max)
     ;   max_member_(T, H, Max)
@@ -525,14 +567,67 @@ max_member_([H|T], Max0, Max) :-
 %   @see compare/3
 %   @see min_list/2 for the minimum of a list of numbers.
 
-min_member(Min, [H|T]) :-
+min_member(Min, [H|T]) =>
     min_member_(T, H, Min).
+min_member(_, []) =>
+    fail.
 
-min_member_([], Min, Min).
-min_member_([H|T], Min0, Min) :-
+min_member_([], Min0, Min) =>
+    Min = Min0.
+min_member_([H|T], Min0, Min) =>
     (   H @>= Min0
     ->  min_member_(T, Min0, Min)
     ;   min_member_(T, H, Min)
+    ).
+
+
+%!  max_member(:Pred, -Max, +List) is semidet.
+%
+%   True when Max is the largest member according to Pred, which must be
+%   a 2-argument callable that behaves like   (@=<)/2.  Fails if List is
+%   empty.  The following call is equivalent to max_member/2:
+%
+%       ?- max_member(@=<, X, [6,1,8,4]).
+%       X = 8.
+%
+%   @see max_list/2 for the maximum of a list of numbers.
+
+max_member(Pred, Max, [H|T]) =>
+    max_member_(T, Pred, H, Max).
+max_member(_, _, []) =>
+    fail.
+
+max_member_([], _, Max0, Max) =>
+    Max = Max0.
+max_member_([H|T], Pred, Max0, Max) =>
+    (   call(Pred, H, Max0)
+    ->  max_member_(T, Pred, Max0, Max)
+    ;   max_member_(T, Pred, H, Max)
+    ).
+
+
+%!  min_member(:Pred, -Min, +List) is semidet.
+%
+%   True when Min is the smallest member   according to Pred, which must
+%   be a 2-argument callable that behaves like (@=<)/2. Fails if List is
+%   empty. The following call is equivalent to max_member/2:
+%
+%       ?- min_member(@=<, X, [6,1,8,4]).
+%       X = 1.
+%
+%   @see min_list/2 for the minimum of a list of numbers.
+
+min_member(Pred, Min, [H|T]) =>
+    min_member_(T, Pred, H, Min).
+min_member(_, _, []) =>
+    fail.
+
+min_member_([], _, Min0, Min) =>
+    Min = Min0.
+min_member_([H|T], Pred, Min0, Min) =>
+    (   call(Pred, Min0, H)
+    ->  min_member_(T, Pred, Min0, Min)
+    ;   min_member_(T, Pred, H, Min)
     ).
 
 
@@ -547,8 +642,9 @@ min_member_([H|T], Min0, Min) :-
 sum_list(Xs, Sum) :-
     sum_list(Xs, 0, Sum).
 
-sum_list([], Sum, Sum).
-sum_list([X|Xs], Sum0, Sum) :-
+sum_list([], Sum0, Sum) =>
+    Sum = Sum0.
+sum_list([X|Xs], Sum0, Sum) =>
     Sum1 is Sum0 + X,
     sum_list(Xs, Sum1, Sum).
 
@@ -559,11 +655,13 @@ sum_list([X|Xs], Sum0, Sum) :-
 %
 %   @see max_member/2.
 
-max_list([H|T], Max) :-
+max_list([H|T], Max) =>
     max_list(T, H, Max).
+max_list([], _) => fail.
 
-max_list([], Max, Max).
-max_list([H|T], Max0, Max) :-
+max_list([], Max0, Max) =>
+    Max = Max0.
+max_list([H|T], Max0, Max) =>
     Max1 is max(H, Max0),
     max_list(T, Max1, Max).
 
@@ -575,11 +673,13 @@ max_list([H|T], Max0, Max) :-
 %
 %   @see min_member/2.
 
-min_list([H|T], Min) :-
+min_list([H|T], Min) =>
     min_list(T, H, Min).
+min_list([], _) => fail.
 
-min_list([], Min, Min).
-min_list([H|T], Min0, Min) :-
+min_list([], Min0, Min) =>
+    Min = Min0.
+min_list([H|T], Min0, Min) =>
     Min1 is min(H, Min0),
     min_list(T, Min1, Min).
 
@@ -675,15 +775,14 @@ remove_same_key(L, _, L).
 %
 %   @see ord_intersection/3.
 
-intersection([], _, []) :- !.
-intersection([X|T], L, Intersect) :-
-    memberchk(X, L),
-    !,
-    Intersect = [X|R],
-    intersection(T, L, R).
-intersection([_|T], L, R) :-
-    intersection(T, L, R).
-
+intersection([], _, Set) =>
+    Set = [].
+intersection([X|T], L, Intersect) =>
+    (   memberchk(X, L)
+    ->  Intersect = [X|R],
+        intersection(T, L, R)
+    ;   intersection(T, L, Intersect)
+    ).
 
 %!  union(+Set1, +Set2, -Set3) is det.
 %
@@ -694,14 +793,14 @@ intersection([_|T], L, R) :-
 %
 %   @see ord_union/3
 
-union([], L, L) :- !.
-union([H|T], L, R) :-
-    memberchk(H, L),
-    !,
-    union(T, L, R).
-union([H|T], L, [H|R]) :-
-    union(T, L, R).
-
+union([], L0, L) =>
+    L = L0.
+union([H|T], L, Union) =>
+    (   memberchk(H, L)
+    ->  union(T, L, Union)
+    ;   Union = [H|R],
+        union(T, L, R)
+    ).
 
 %!  subset(+SubSet, +Set) is semidet.
 %
@@ -712,8 +811,8 @@ union([H|T], L, [H|R]) :-
 %
 %   @see ord_subset/2.
 
-subset([], _) :- !.
-subset([E|R], Set) :-
+subset([], _) => true.
+subset([E|R], Set) =>
     memberchk(E, Set),
     subset(R, Set).
 
@@ -727,10 +826,11 @@ subset([E|R], Set) :-
 %
 %   @see ord_subtract/3.
 
-subtract([], _, []) :- !.
-subtract([E|T], D, R) :-
-    memberchk(E, D),
-    !,
-    subtract(T, D, R).
-subtract([H|T], D, [H|R]) :-
-    subtract(T, D, R).
+subtract([], _, R) =>
+    R = [].
+subtract([E|T], D, R) =>
+    (   memberchk(E, D)
+    ->  subtract(T, D, R)
+    ;   R = [E|R1],
+        subtract(T, D, R1)
+    ).

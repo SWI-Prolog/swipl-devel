@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,12 +36,23 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-wic.h"
 #include "pl-comp.h"
 #include "pl-arith.h"
 #include "os/pl-utf8.h"
 #include "pl-dbref.h"
 #include "pl-dict.h"
+#include "pl-funct.h"
+#include "pl-proc.h"
+#include "pl-util.h"
+#include "pl-modul.h"
+#include "pl-srcfile.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-prims.h"
+#include "pl-write.h"
+#include "pl-read.h"
+#include "os/pl-ctype.h"
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
@@ -201,6 +213,12 @@ first. The last byte has its 0x80 mask set.
 
 #define PRED_SYSTEM	 0x01		/* system predicate */
 #define PRED_HIDE_CHILDS 0x02		/* hide my childs */
+#define PRED_DET         0x04		/* Determinism flag */
+
+#define CLAUSE_UNIT_CLAUSE 0x01
+#define CLAUSE_SSU_COMMIT  0x02
+#define CLAUSE_SSU_CHOICE  0x04
+#define CLAUSE_HEAD_TERMS  0x08
 
 static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -265,30 +283,44 @@ typedef struct wic_state
   struct wic_state *parent;		/* parent state */
 } wic_state;
 
+#if USE_LD_MACROS
+#define	loadPredicate(state, skip)	LDFUNC(loadPredicate, state, skip)
+#define	loadImport(state, skip)		LDFUNC(loadImport, state, skip)
+#define	loadXRc(state, c)		LDFUNC(loadXRc, state, c)
+#define	getBlob(state)			LDFUNC(getBlob, state)
+#define	loadStatement(state, c, skip)	LDFUNC(loadStatement, state, c, skip)
+#define	loadPart(state, module, skip)	LDFUNC(loadPart, state, module, skip)
+#define	loadInModule(state, skip)	LDFUNC(loadInModule, state, skip)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static char *	getString(IOSTREAM *, size_t *len);
 static int64_t	getInt64(IOSTREAM *);
 static int	getInt32(IOSTREAM *s);
 static int	getInt(IOSTREAM *);
 static double	getFloat(IOSTREAM *);
 static bool	loadWicFd(wic_state *state);
-static bool	loadPredicate(wic_state *state, int skip ARG_LD);
-static bool	loadImport(wic_state *state, int skip ARG_LD);
+static bool	loadPredicate(wic_state *state, int skip);
+static bool	loadImport(wic_state *state, int skip);
 static void	saveXRBlobType(wic_state *state, PL_blob_t *type);
 static void	putString(const char *, size_t len, IOSTREAM *);
 static void	putInt64(int64_t, IOSTREAM *);
 static void	putFloat(double, IOSTREAM *);
 static void	saveWicClause(wic_state *state, Clause cl);
 static void	closePredicateWic(wic_state *state);
-static word	loadXRc(wic_state *state, int c ARG_LD);
-static atom_t   getBlob(wic_state *state ARG_LD);
-static bool	loadStatement(wic_state *state, int c, int skip ARG_LD);
-static bool	loadPart(wic_state *state, Module *module, int skip ARG_LD);
-static bool	loadInModule(wic_state *state, int skip ARG_LD);
+static word	loadXRc(wic_state *state, int c);
+static atom_t   getBlob(wic_state *state);
+static bool	loadStatement(wic_state *state, int c, int skip);
+static bool	loadPart(wic_state *state, Module *module, int skip);
+static bool	loadInModule(wic_state *state, int skip);
 static int	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
 static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
 static int	qlfIsCompatible(wic_state *state, const char *magic);
+
+#undef LDFUNC_DECLARATIONS
 
 /* Convert CA1_VAR arguments to VM independent and back
 */
@@ -665,21 +697,21 @@ getInt32(IOSTREAM *s)
 }
 
 
+#define loadXR(state) LDFUNC(loadXR, state)
 static inline word
-loadXR__LD(wic_state *state ARG_LD)
-{ return loadXRc(state, Qgetc(state->wicFd) PASS_LD);
+loadXR(DECL_LD wic_state *state)
+{ return loadXRc(state, Qgetc(state->wicFd));
 }
-#define loadXR(s) loadXR__LD(s PASS_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-loadXRc(int c0, IOSTREAM *fd ARG_LD) loads   a constant from the stream.
+loadXRc(DECL_LD int c0, IOSTREAM *fd) loads   a constant from the stream.
 Note that some constants (integers, floats and  strings) can cause GC or
 stack-shifts.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static word
-loadXRc(wic_state *state, int c ARG_LD)
+loadXRc(DECL_LD wic_state *state, int c)
 { IOSTREAM *fd = state->wicFd;
   word xr;
   int id = 0;				/* make gcc happy! */
@@ -704,7 +736,7 @@ loadXRc(wic_state *state, int c ARG_LD)
     }
     case XR_BLOB:
     { id = ++state->XR->id;
-      xr = getBlob(state PASS_LD);
+      xr = getBlob(state);
       DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = <blob>\n", id));
       break;
     }
@@ -753,7 +785,7 @@ loadXRc(wic_state *state, int c ARG_LD)
       word w;
       int rc;
 
-      if ( (rc=put_int64(&w, i, ALLOW_GC PASS_LD)) != TRUE )
+      if ( (rc=put_int64(&w, i, ALLOW_GC)) != TRUE )
       { raiseStackOverflow(rc);
 	return 0;
       }
@@ -765,7 +797,7 @@ loadXRc(wic_state *state, int c ARG_LD)
       double f = getFloat(fd);
       int rc;
 
-      if ( (rc=put_double(&w, f, ALLOW_GC PASS_LD)) != TRUE )
+      if ( (rc=put_double(&w, f, ALLOW_GC)) != TRUE )
       { raiseStackOverflow(rc);
 	return 0;
       }
@@ -851,7 +883,7 @@ loadXRc(wic_state *state, int c ARG_LD)
 
 
 static atom_t
-getBlob(wic_state *state ARG_LD)
+getBlob(DECL_LD wic_state *state)
 { PL_blob_t *type = (PL_blob_t*)loadXR(state);
 
   if ( type->load )
@@ -867,8 +899,9 @@ Returns FALSE while leaving a resource exception if the term cannot be
 allocated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define do_load_qlf_term(state, vars, term) LDFUNC(do_load_qlf_term, state, vars, term)
 static int
-do_load_qlf_term(wic_state *state, term_t vars[], term_t term ARG_LD)
+do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
 { IOSTREAM *fd = state->wicFd;
   int c = Qgetc(fd);
 
@@ -896,7 +929,7 @@ do_load_qlf_term(wic_state *state, term_t vars[], term_t term ARG_LD)
 
       for(n=0; n < arity; n++)
       { _PL_get_arg(n+1, term, c2);
-	if ( !do_load_qlf_term(state, vars, c2 PASS_LD) )
+	if ( !do_load_qlf_term(state, vars, c2) )
 	  return FALSE;
       }
 
@@ -907,7 +940,7 @@ do_load_qlf_term(wic_state *state, term_t vars[], term_t term ARG_LD)
   } else
   { word w;
 
-    if ( (w=loadXRc(state, c PASS_LD)) )
+    if ( (w=loadXRc(state, c)) )
       return _PL_unify_atomic(term, w);
 
     return FALSE;
@@ -915,8 +948,9 @@ do_load_qlf_term(wic_state *state, term_t vars[], term_t term ARG_LD)
 }
 
 
+#define loadQlfTerm(state, term) LDFUNC(loadQlfTerm, state, term)
 static int
-loadQlfTerm(wic_state *state, term_t term ARG_LD)
+loadQlfTerm(DECL_LD wic_state *state, term_t term)
 { IOSTREAM *fd = state->wicFd;
   int nvars;
   Word vars;
@@ -935,7 +969,7 @@ loadQlfTerm(wic_state *state, term_t term ARG_LD)
     vars = NULL;
 
   PL_put_variable(term);
-  rc = do_load_qlf_term(state, vars, term PASS_LD);
+  rc = do_load_qlf_term(state, vars, term);
   if ( rc )
     resortDictsInTerm(term);
   DEBUG(MSG_QLF_TERM,
@@ -1017,7 +1051,7 @@ loadWicFd(wic_state *state)
       case 'X':
         break;
       default:
-        { loadStatement(state, c, FALSE PASS_LD);
+        { loadStatement(state, c, FALSE);
 	  continue;
 	}
     }
@@ -1026,12 +1060,12 @@ loadWicFd(wic_state *state)
 
 
 static bool
-loadStatement(wic_state *state, int c, int skip ARG_LD)
+loadStatement(DECL_LD wic_state *state, int c, int skip)
 { IOSTREAM *fd = state->wicFd;
 
   switch(c)
   { case 'P':
-      return loadPredicate(state, skip PASS_LD);
+      return loadPredicate(state, skip);
 
     case 'O':
     { word mname = loadXR(state);
@@ -1039,13 +1073,13 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
       bool rval;
 
       LD->modules.source = lookupModule(mname);
-      rval = loadPredicate(state, skip PASS_LD);
+      rval = loadPredicate(state, skip);
       LD->modules.source = om;
 
       return rval;
     }
     case 'I':
-      return loadImport(state, skip PASS_LD);
+      return loadImport(state, skip);
 
     case 'D':
     { fid_t cid;
@@ -1059,7 +1093,7 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
 						 : NULL_ATOM);
 	source_line_no   = getInt(fd);
 
-	if ( !loadQlfTerm(state, goal PASS_LD) )
+	if ( !loadQlfTerm(state, goal) )
 	  return FALSE;
 	DEBUG(MSG_QLF_DIRECTIVE,
 	      if ( source_file_name )
@@ -1093,13 +1127,13 @@ loadStatement(wic_state *state, int c, int skip ARG_LD)
     { bool rc;
 
       state->load_nesting++;
-      rc = loadPart(state, NULL, skip PASS_LD);
+      rc = loadPart(state, NULL, skip);
       state->load_nesting--;
 
       return rc;
     }
     case 'M':
-      return loadInModule(state, skip PASS_LD);
+      return loadInModule(state, skip);
 
     default:
       return qlfLoadError(state);
@@ -1118,6 +1152,8 @@ loadPredicateFlags(wic_state *state, Definition def, int skip)
       lflags |= P_LOCKED;
     if ( flags & PRED_HIDE_CHILDS )
       lflags |= HIDE_CHILDS;
+    if ( flags & PRED_DET )
+      lflags |= P_DET;
 
     set(def, lflags);
   }
@@ -1253,8 +1289,25 @@ resolve_rlabel(vm_rlabel_state *state, unsigned int id, Code base, Clause clause
 }
 
 
+static void
+loadClauseFlags(wic_state *state, Clause cl, int skip)
+{ unsigned int flags = getUInt(state->wicFd);
+
+  if ( !skip )
+  { unsigned int lflags = 0;
+
+    if ( (flags&CLAUSE_UNIT_CLAUSE) ) lflags |= UNIT_CLAUSE;
+    if ( (flags&CLAUSE_SSU_COMMIT) )  lflags |= SSU_COMMIT_CLAUSE;
+    if ( (flags&CLAUSE_SSU_CHOICE) )  lflags |= SSU_CHOICE_CLAUSE;
+    if ( (flags&CLAUSE_HEAD_TERMS) )  lflags |= CL_HEAD_TERMS;
+
+    cl->flags = lflags;
+  }
+}
+
+
 static bool
-loadPredicate(wic_state *state, int skip ARG_LD)
+loadPredicate(DECL_LD wic_state *state, int skip)
 { IOSTREAM *fd = state->wicFd;
   Procedure proc;
   Definition def;
@@ -1296,8 +1349,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	initBuffer(&buf);
 	init_rlabels(&lstate);
 	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
-	clause->references = 0;
-	clause->line_no    = getUInt(fd);
+	clause->references   = 0;
+	clause->tr_erased_no = 0;
+	clause->line_no	     = getUInt(fd);
 
 	{ SourceFile of = (void *) loadXR(state);
 	  SourceFile sf = (void *) loadXR(state);
@@ -1316,11 +1370,9 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	  }
 	}
 
-	clearFlags(clause);
 	clause->prolog_vars = (unsigned short) getUInt(fd);
 	clause->variables   = (unsigned short) getUInt(fd);
-	if ( getUInt(fd) == 0 )		/* 0: fact */
-	  set(clause, UNIT_CLAUSE);
+	loadClauseFlags(state, clause, skip);
 	clause->predicate = def;
 
 #define addCode(c) addBuffer(&buf, (c), code)
@@ -1610,7 +1662,7 @@ loadPredicate(wic_state *state, int skip ARG_LD)
 	    csf->current_procedure = proc;
 
 	  GD->statistics.codes += clause->code_size;
-	  assertProcedureSource(csf, proc, clause PASS_LD);
+	  assertProcedureSource(csf, proc, clause);
 	}
 
         discardBuffer(&buf);
@@ -1645,7 +1697,7 @@ runInitialization(SourceFile sf)
 
 
 static bool
-loadImport(wic_state *state, int skip ARG_LD)
+loadImport(DECL_LD wic_state *state, int skip)
 { Procedure proc = (Procedure) loadXR(state);
   int flags = getInt(state->wicFd);
 
@@ -1742,8 +1794,9 @@ qlfLoadSource(wic_state *state)
 }
 
 
+#define loadModuleProperties(state, m, skip) LDFUNC(loadModuleProperties, state, m, skip)
 static bool
-loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
+loadModuleProperties(DECL_LD wic_state *state, Module m, int skip)
 { IOSTREAM *fd = state->wicFd;
 
   if ( !skip )
@@ -1804,7 +1857,7 @@ loadModuleProperties(wic_state *state, Module m, int skip ARG_LD)
 
 
 static bool
-loadPart(wic_state *state, Module *module, int skip ARG_LD)
+loadPart(DECL_LD wic_state *state, Module *module, int skip)
 { IOSTREAM *fd		= state->wicFd;
   Module om		= LD->modules.source;
   SourceFile of		= state->currentSource;
@@ -1858,7 +1911,7 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	  break;
       }
 
-      if ( !loadModuleProperties(state, LD->modules.source, skip PASS_LD) )
+      if ( !loadModuleProperties(state, LD->modules.source, skip) )
 	fail;
 
       break;
@@ -1893,14 +1946,14 @@ loadPart(wic_state *state, Module *module, int skip ARG_LD)
 	succeed;
       }
       default:
-	loadStatement(state, c, skip PASS_LD);
+	loadStatement(state, c, skip);
     }
   }
 }
 
 
 static bool
-loadInModule(wic_state *state, int skip ARG_LD)
+loadInModule(DECL_LD wic_state *state, int skip)
 { IOSTREAM *fd = state->wicFd;
   word mname = loadXR(state);
   Module om = LD->modules.source;
@@ -1916,14 +1969,15 @@ loadInModule(wic_state *state, int skip ARG_LD)
 	succeed;
       }
       default:
-	loadStatement(state, c, skip PASS_LD);
+	loadStatement(state, c, skip);
     }
   }
 }
 
 
+#define loadInclude(state) LDFUNC(loadInclude, state)
 static bool
-loadInclude(wic_state *state ARG_LD)
+loadInclude(DECL_LD wic_state *state)
 { IOSTREAM *fd = state->wicFd;
   atom_t owner, pn, fn;
   int line;
@@ -1951,7 +2005,7 @@ loadInclude(wic_state *state ARG_LD)
   loc.file = pn;
   loc.line = line;
 
-  assert_term(t, NULL, CL_END, owner, &loc, 0 PASS_LD);
+  assert_term(t, NULL, CL_END, owner, &loc, 0);
 
   PL_discard_foreign_frame(fid);
   return TRUE;
@@ -2103,7 +2157,7 @@ freeXRSymbol(void *name, void *value)
 }
 
 
-void
+static void
 initXR(wic_state *state)
 { state->currentPred		   = NULL;
   state->currentSource		   = NULL;
@@ -2113,7 +2167,7 @@ initXR(wic_state *state)
 }
 
 
-void
+static void
 destroyXR(wic_state *state)
 { destroyHTable(state->savedXRTable);
   state->savedXRTable = NULL;
@@ -2185,8 +2239,9 @@ savedXRPointer(wic_state *state, void *p)
 }
 
 
+#define saveXR(state, xr) LDFUNC(saveXR, state, xr)
 static void
-saveXR__LD(wic_state *state, word xr ARG_LD)
+saveXR(DECL_LD wic_state *state, word xr)
 { IOSTREAM *fd = state->wicFd;
 
   if ( isTaggedInt(xr) )		/* TBD: switch */
@@ -2240,7 +2295,6 @@ saveXR__LD(wic_state *state, word xr ARG_LD)
 
   assert(0);
 }
-#define saveXR(state, xr) saveXR__LD(state, xr PASS_LD)
 
 
 static void
@@ -2255,8 +2309,9 @@ saveXRBlobType(wic_state *state, PL_blob_t *type)
 }
 
 
+#define saveXRModule(state, m) LDFUNC(saveXRModule, state, m)
 static void
-saveXRModule(wic_state *state, Module m ARG_LD)
+saveXRModule(DECL_LD wic_state *state, Module m)
 { IOSTREAM *fd = state->wicFd;
 
   if ( !m )
@@ -2275,8 +2330,9 @@ saveXRModule(wic_state *state, Module m ARG_LD)
 }
 
 
+#define saveXRFunctor(state, f) LDFUNC(saveXRFunctor, state, f)
 static void
-saveXRFunctor(wic_state *state, functor_t f ARG_LD)
+saveXRFunctor(DECL_LD wic_state *state, functor_t f)
 { IOSTREAM *fd = state->wicFd;
   FunctorDef fdef;
   functor_t mapped;
@@ -2299,8 +2355,9 @@ saveXRFunctor(wic_state *state, functor_t f ARG_LD)
 }
 
 
+#define saveXRProc(state, p) LDFUNC(saveXRProc, state, p)
 static void
-saveXRProc(wic_state *state, Procedure p ARG_LD)
+saveXRProc(DECL_LD wic_state *state, Procedure p)
 { IOSTREAM *fd = state->wicFd;
 
   if ( savedXRPointer(state, p) )
@@ -2309,13 +2366,14 @@ saveXRProc(wic_state *state, Procedure p ARG_LD)
   DEBUG(MSG_QLF_XR, Sdprintf("XR(%d) = proc %s\n",
 			     state->savedXRTableId, procedureName(p)));
   Sputc(XR_PRED, fd);
-  saveXRFunctor(state, p->definition->functor->functor PASS_LD);
-  saveXRModule(state, p->definition->module PASS_LD);
+  saveXRFunctor(state, p->definition->functor->functor);
+  saveXRModule(state, p->definition->module);
 }
 
 
+#define saveXRSourceFile(state, f) LDFUNC(saveXRSourceFile, state, f)
 static void
-saveXRSourceFile(wic_state *state, SourceFile f ARG_LD)
+saveXRSourceFile(DECL_LD wic_state *state, SourceFile f)
 { IOSTREAM *fd = state->wicFd;
 
   if ( savedXRPointer(state, f) )
@@ -2337,8 +2395,9 @@ saveXRSourceFile(wic_state *state, SourceFile f ARG_LD)
 
 
 
+#define do_save_qlf_term(state, t) LDFUNC(do_save_qlf_term, state, t)
 static void
-do_save_qlf_term(wic_state *state, Word t ARG_LD)
+do_save_qlf_term(DECL_LD wic_state *state, Word t)
 { IOSTREAM *fd = state->wicFd;
 
   deRef(t);
@@ -2355,9 +2414,9 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
       int n, arity = arityFunctor(f);
 
       Sputc('t', fd);
-      saveXRFunctor(state, f PASS_LD);
+      saveXRFunctor(state, f);
       for(n=0; n < arity; n++, q++)
-	do_save_qlf_term(state, q PASS_LD);
+	do_save_qlf_term(state, q);
     }
   } else
   { assert(isAtomic(*t));
@@ -2366,8 +2425,9 @@ do_save_qlf_term(wic_state *state, Word t ARG_LD)
 }
 
 
+#define saveQlfTerm(state, t) LDFUNC(saveQlfTerm, state, t)
 static int
-saveQlfTerm(wic_state *state, term_t t ARG_LD)
+saveQlfTerm(DECL_LD wic_state *state, term_t t)
 { IOSTREAM *fd = state->wicFd;
   intptr_t nvars, rc=TRUE;
   fid_t cid;
@@ -2385,9 +2445,9 @@ saveQlfTerm(wic_state *state, term_t t ARG_LD)
   options.singletons = FALSE;		/* TBD: TRUE may be better! */
   options.numbered_check = TRUE;	/* otherwise may be wrong */
 
-  if ( (nvars = numberVars(t, &options, 0 PASS_LD)) != NV_ERROR )
+  if ( (nvars = numberVars(t, &options, 0)) != NV_ERROR )
   { putInt64(nvars, fd);
-    do_save_qlf_term(state, valTermRef(t) PASS_LD);	/* TBD */
+    do_save_qlf_term(state, valTermRef(t));	/* TBD */
     DEBUG(MSG_QLF_TERM, Sdprintf("to %d\n", Stell(fd)));
   } else
   { rc = FALSE;
@@ -2527,6 +2587,18 @@ put_mpz_bits(IOSTREAM *fd, mpz_t mpz, size_t size)
 #endif
 
 
+static unsigned int
+clauseFlags(const Clause clause)
+{ unsigned int flags = 0;
+
+  if ( true(clause, UNIT_CLAUSE) )       flags |= CLAUSE_UNIT_CLAUSE;
+  if ( true(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
+  if ( true(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
+  if ( true(clause, CL_HEAD_TERMS) )     flags |= CLAUSE_HEAD_TERMS;
+
+  return flags;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 saveWicClause()  saves  a  clause  to  the  .qlf  file.   For  predicate
 references of I_CALL and I_DEPART, we  cannot store the predicate itself
@@ -2550,15 +2622,13 @@ saveWicClause(wic_state *state, Clause clause)
   putUInt(state->obfuscate ? 0 : clause->line_no, fd);
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
-				    : indexToSourceFile(clause->owner_no)
-		   PASS_LD);
+				    : indexToSourceFile(clause->owner_no));
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
-				    : indexToSourceFile(clause->source_no)
-		   PASS_LD);
+				    : indexToSourceFile(clause->source_no));
   putUInt(clause->prolog_vars, fd);
   putUInt(clause->variables, fd);
-  putUInt(true(clause, UNIT_CLAUSE) ? 0 : 1, fd);
+  putUInt(clauseFlags(clause), fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
@@ -2638,22 +2708,22 @@ saveWicClause(wic_state *state, Clause clause)
     { switch(ats[n])
       { case CA1_PROC:
 	{ Procedure p = (Procedure) *bp++;
-	  saveXRProc(state, p PASS_LD);
+	  saveXRProc(state, p);
 	  break;
 	}
 	case CA1_MODULE:
 	{ Module m = (Module) *bp++;	/* can be NULL, see I_CALLATMV */
-	  saveXRModule(state, m PASS_LD);
+	  saveXRModule(state, m);
 	  break;
 	}
 	case CA1_FUNC:
 	{ functor_t f = (functor_t) *bp++;
-	  saveXRFunctor(state, f PASS_LD);
+	  saveXRFunctor(state, f);
 	  break;
 	}
 	case CA1_AFUNC:
 	{ functor_t f = functorArithFunction((unsigned int)*bp++);
-	  saveXRFunctor(state, f PASS_LD);
+	  saveXRFunctor(state, f);
 	  break;
 	}
 	case CA1_DATA:
@@ -2791,13 +2861,16 @@ predicateFlags(Definition def, atom_t sclass)
     flags |= PRED_SYSTEM;
   if ( true(def, HIDE_CHILDS) )
     flags |= PRED_HIDE_CHILDS;
+  if ( true(def, P_DET) )
+    flags |= PRED_DET;
 
   return flags;
 }
 
 
+#define openPredicateWic(state, def, sclass) LDFUNC(openPredicateWic, state, def, sclass)
 static void
-openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
+openPredicateWic(DECL_LD wic_state *state, Definition def, atom_t sclass)
 { if ( def != state->currentPred)
   { IOSTREAM *fd = state->wicFd;
     unsigned int mode = predicateFlags(def, sclass);
@@ -2812,7 +2885,7 @@ openPredicateWic(wic_state *state, Definition def, atom_t sclass ARG_LD)
     { Sputc('P', fd);
     }
 
-    saveXRFunctor(state, def->functor->functor PASS_LD);
+    saveXRFunctor(state, def->functor->functor);
     putUInt(mode, fd);
   }
 }
@@ -2868,16 +2941,17 @@ writeWicTrailer(wic_state *state)
 /* FIXME: Deal with owner/real location in saved state
 */
 
+#define addClauseWic(state, term, file) LDFUNC(addClauseWic, state, term, file)
 static bool
-addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
+addClauseWic(DECL_LD wic_state *state, term_t term, atom_t file)
 { Clause clause;
   sourceloc loc;
 
   loc.file = file;
   loc.line = source_line_no;
 
-  if ( (clause = assert_term(term, NULL, CL_END, file, &loc, 0 PASS_LD)) )
-  { openPredicateWic(state, clause->predicate, ATOM_development PASS_LD);
+  if ( (clause = assert_term(term, NULL, CL_END, file, &loc, 0)) )
+  { openPredicateWic(state, clause->predicate, ATOM_development);
     saveWicClause(state, clause);
 
     succeed;
@@ -2887,27 +2961,29 @@ addClauseWic(wic_state *state, term_t term, atom_t file ARG_LD)
   fail;
 }
 
+#define addDirectiveWic(state, term) LDFUNC(addDirectiveWic, state, term)
 static bool
-addDirectiveWic(wic_state *state, term_t term ARG_LD)
+addDirectiveWic(DECL_LD wic_state *state, term_t term)
 { IOSTREAM *fd = state->wicFd;
 
   closePredicateWic(state);
   Sputc('D', fd);
   putInt64(source_line_no, fd);
 
-  return saveQlfTerm(state, term PASS_LD);
+  return saveQlfTerm(state, term);
 }
 
 
+#define importWic(state, proc, strength) LDFUNC(importWic, state, proc, strength)
 static bool
-importWic(wic_state *state, Procedure proc, atom_t strength ARG_LD)
+importWic(DECL_LD wic_state *state, Procedure proc, atom_t strength)
 { int flags = atomToImportStrength(strength);
 
   assert(flags >= 0);
   closePredicateWic(state);
 
   Sputc('I', state->wicFd);
-  saveXRProc(state, proc PASS_LD);
+  saveXRProc(state, proc);
   putInt64(flags, state->wicFd);
 
   succeed;
@@ -3009,8 +3085,9 @@ qlfError(wic_state *state, const char *error, ...)
 }
 
 
+#define qlfSourceInfo(state, offset, list) LDFUNC(qlfSourceInfo, state, offset, list)
 static int
-qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
+qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 { IOSTREAM *s = state->wicFd;
   char *str;
   term_t head = PL_new_term_ref();
@@ -3027,11 +3104,12 @@ qlfSourceInfo(wic_state *state, size_t offset, term_t list ARG_LD)
 }
 
 
+#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
 static word
-qlfInfo(const char *file,
+qlfInfo(DECL_LD const char *file,
 	term_t cversion, term_t minload, term_t fversion,
 	term_t csig, term_t fsig,
-	term_t files0 ARG_LD)
+	term_t files0)
 { IOSTREAM *s = NULL;
   int lversion;
   int nqlf, i;
@@ -3101,7 +3179,7 @@ qlfInfo(const char *file,
   DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
 
   for(i=0; i<nqlf; i++)
-  { if ( !qlfSourceInfo(&state, qlfstart[i], files PASS_LD) )
+  { if ( !qlfSourceInfo(&state, qlfstart[i], files) )
       goto out;
   }
 
@@ -3140,7 +3218,7 @@ PRED_IMPL("$qlf_info", 7, qlf_info, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A8 PASS_LD);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A8);
 }
 
 
@@ -3152,7 +3230,7 @@ PRED_IMPL("$qlf_sources", 2, qlf_sources, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, 0, 0, 0, 0, 0, A2 PASS_LD);
+  return qlfInfo(name, 0, 0, 0, 0, 0, A2);
 }
 
 
@@ -3195,8 +3273,9 @@ qlfOpen(term_t file)
 }
 
 
+#define qlfClose(state) LDFUNC(qlfClose, state)
 static bool
-qlfClose(wic_state *state ARG_LD)
+qlfClose(DECL_LD wic_state *state)
 { int rc;
 
   closePredicateWic(state);
@@ -3349,8 +3428,9 @@ qlfIsCompatible(wic_state *state, const char *magic)
 }
 
 
+#define qlfLoad(state, module) LDFUNC(qlfLoad, state, module)
 static bool
-qlfLoad(wic_state *state, Module *module ARG_LD)
+qlfLoad(DECL_LD wic_state *state, Module *module)
 { IOSTREAM *fd = state->wicFd;
   bool rval;
   const char *absloadname;
@@ -3388,7 +3468,7 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
     { case 'Q':
         break;
       case 'I':
-	loadInclude(state PASS_LD);
+	loadInclude(state);
         continue;
       default:
 	qlfLoadError(state);
@@ -3397,7 +3477,7 @@ qlfLoad(wic_state *state, Module *module ARG_LD)
     break;
   }
 
-  rval = loadPart(state, module, FALSE PASS_LD);
+  rval = loadPart(state, module, FALSE);
   popXrIdTable(state);
   popPathTranslation(state);
 
@@ -3432,8 +3512,9 @@ qlfSaveSource(wic_state *state, SourceFile f)
 }
 
 
+#define qlfStartModule(state, m) LDFUNC(qlfStartModule, state, m)
 static bool
-qlfStartModule(wic_state *state, Module m ARG_LD)
+qlfStartModule(DECL_LD wic_state *state, Module m)
 { IOSTREAM *fd = state->wicFd;
   ListCell c;
   closePredicateWic(state);
@@ -3466,7 +3547,7 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
 			     stringAtom(nameFunctor(f)),
 			     arityFunctor(f)));
 	      Sputc('E', fd);
-	      saveXRFunctor(state, f PASS_LD);
+	      saveXRFunctor(state, f);
 	    })
 
   Sputc('X', fd);
@@ -3475,8 +3556,9 @@ qlfStartModule(wic_state *state, Module m ARG_LD)
 }
 
 
+#define qlfStartSubModule(state, m) LDFUNC(qlfStartSubModule, state, m)
 static bool
-qlfStartSubModule(wic_state *state, Module m ARG_LD)
+qlfStartSubModule(DECL_LD wic_state *state, Module m)
 { IOSTREAM *fd = state->wicFd;
 
   closePredicateWic(state);
@@ -3526,7 +3608,7 @@ PRED_IMPL("$qlf_start_module", 1, qlf_start_module, 0)
     if ( !PL_get_module_ex(A1, &m) )
       fail;
 
-    return qlfStartModule(state, m PASS_LD);
+    return qlfStartModule(state, m);
   }
 
   succeed;
@@ -3544,7 +3626,7 @@ PRED_IMPL("$qlf_start_sub_module", 1, qlf_start_sub_module, 0)
     if ( !PL_get_module_ex(A1, &m) )
       fail;
 
-    return qlfStartSubModule(state, m PASS_LD);
+    return qlfStartSubModule(state, m);
   }
 
   succeed;
@@ -3649,7 +3731,7 @@ PRED_IMPL("$qlf_close", 0, qlf_close, 0)
   wic_state *state;
 
   if ( (state=LD->qlf.current_state) )
-    return qlfClose(state PASS_LD);
+    return qlfClose(state);
 
   succeed;
 }
@@ -3689,7 +3771,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
   saved_enc = fd->encoding;
   fd->encoding = ENC_OCTET;
   LD->modules.source = m;
-  rval = qlfLoad(&state, &m PASS_LD);
+  rval = qlfLoad(&state, &m);
   LD->modules.source = oldsrc;
   fd->encoding = saved_enc;
 
@@ -3891,7 +3973,7 @@ PRED_IMPL("$add_directive_wic", 1, add_directive_wic, PL_FA_TRANSPARENT)
 			  PL_TERM, term) )
       return FALSE;
 
-    return addDirectiveWic(state, qterm PASS_LD);
+    return addDirectiveWic(state, qterm);
   }
 
   succeed;
@@ -3916,7 +3998,7 @@ PRED_IMPL("$import_wic", 3, import_wic, 0)
 	 !PL_get_atom_ex(A3, &strength) )
       fail;
 
-    return importWic(state, lookupProcedure(fd, m), strength PASS_LD);
+    return importWic(state, lookupProcedure(fd, m), strength);
   }
 
   succeed;
@@ -3939,7 +4021,7 @@ PRED_IMPL("$qlf_assert_clause", 2, qlf_assert_clause, 0)
 	 !PL_get_atom_ex(A2, &sclass) )
       fail;
 
-    openPredicateWic(state, clause->predicate, sclass PASS_LD);
+    openPredicateWic(state, clause->predicate, sclass);
     saveWicClause(state, clause);
   }
 
@@ -4038,7 +4120,7 @@ compileFile(wic_state *state, const char *file)
 
     DEBUG(2, Sdprintf("pl_read_clause() -> "));
     PL_put_variable(t);
-    if ( !read_clause(Scurin, t, 0 PASS_LD) ) /* syntax error */
+    if ( !read_clause(Scurin, t, 0) ) /* syntax error */
     { Sdprintf("%s:%d: Syntax error\n",
 	       PL_atom_chars(source_file_name),
 	       source_line_no);
@@ -4048,6 +4130,7 @@ compileFile(wic_state *state, const char *file)
       break;
 
     DEBUG(MSG_QLF_BOOT_READ,
+	  Sdprintf(""); /* To output line header */
 	  PL_write_term(Serror, t, 1200, PL_WRT_NUMBERVARS);
 	  Sdprintf("\n"));
 
@@ -4056,7 +4139,7 @@ compileFile(wic_state *state, const char *file)
 	    Sdprintf(":- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
-      addDirectiveWic(state, directive PASS_LD);
+      addDirectiveWic(state, directive);
       if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
 	Sdprintf("%s:%d: directive failed\n",
 		 PL_atom_chars(source_file_name),
@@ -4068,7 +4151,7 @@ compileFile(wic_state *state, const char *file)
 	    Sdprintf(".\n"));
       callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
     } else
-      addClauseWic(state, t, nf PASS_LD);
+      addClauseWic(state, t, nf);
 
     PL_discard_foreign_frame(cid);
   }

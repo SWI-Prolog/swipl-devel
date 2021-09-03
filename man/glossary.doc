@@ -301,7 +301,7 @@ Synonym for \g{compound} term.
 
     \glossitem{string}
 Used for the following representations of text: a packed array
-(see \secref{strings}, SWI-Prolog specific), a list of character
+(see \secref{string}, SWI-Prolog specific), a list of character
 codes or a list of one-character \g{atoms}.
 
     \glossitem{succeed}\index{succeed}%

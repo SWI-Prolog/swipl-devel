@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2017, University of Amsterdam
+    Copyright (c)  2009-2020, University of Amsterdam
                               VU University Amsterdam
     All rights reserved.
 
@@ -71,6 +71,20 @@ test(cyclic_body, [ sto(rational_trees),
 		  ]) :-
 	X = f(X),
 	assert((f(a) :- X)).
+test(max_procedure_arity, [ sto(rational_trees),
+			    error(representation_error(max_procedure_arity))
+		  ]) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max*2,
+	functor(F, f, Arity),
+	assert(F).
+test(max_procedure_arity, [ sto(rational_trees),
+			    error(representation_error(max_procedure_arity))
+		  ]) :-
+	current_prolog_flag(max_procedure_arity, Max),
+	Arity is Max*2,
+	functor(F, f, Arity),
+	assert((p :- F)).
 
 test(cut_cond, Body = (! -> fail)) :-
 	assert(f :- (! -> fail)),
@@ -91,6 +105,10 @@ test(theorist) :-
 test(theorist, [cleanup(retractall(foo(_)))]) :-
 	assert((foo(A) :- bar(A))),
 	\+ retract(foo(1) :- bar(2)).
+test(qhead, [X-A == 1-a, cleanup(retractall(foo(_)))]) :-
+	assert((foo(1) :- bar(a))),
+	context_module(M),
+	retract((M:foo(X) :- bar(A))).
 test(update_view, L == [ant,bee]) :-
 	retractall(insect(_)),
 	retractall(icopy(_)),

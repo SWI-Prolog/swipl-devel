@@ -159,20 +159,20 @@ test(freeze, true) :-
 test(hidden1, true) :-
 	test_answer('test_answer:hidden',
 		    [ '% with pending residual goals
-		      dif(_1,a)'
+		      dif(_,a)'
 		    ]).
 test(hidden2, true) :-
 	test_answer('test_answer:hidden, A = a',
 		    [ 'A = a,
 		      % with pending residual goals
-		      dif(_1,a)'
+		      dif(_,a)'
 		    ]).
 test(hidden3, true) :-
 	test_answer('test_answer:hidden, A = a, dif(B, b)',
 		    [ 'A = a,
 		      dif(B, b),
 		      % with pending residual goals
-		      dif(_1,a)'
+		      dif(_,a)'
 		    ]).
 
 :- end_tests(answer).

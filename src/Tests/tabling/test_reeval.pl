@@ -4,6 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2019, VU University Amsterdam
+		   2021, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,12 +38,19 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
+:- use_module(library(wfs)).
 
 /** <module> Incremental tabling reevaluation tests
 */
 
 test_reeval :-
-    run_tests(tabling_reeval).
+    run_tests([ tabling_reeval,
+                tabling_reeval_merged,
+                dynamic_tabled,
+                dynamic_tabled2,
+                dynamic_tabled3,
+                dynamic_tabled4
+              ]).
 
 :- begin_tests(tabling_reeval, [ sto(rational_trees),
                                  cleanup(abolish_all_tables)
@@ -87,7 +95,8 @@ q2(X) :- d2(X).
 
 d2(1).
 
-test(multiple_dependents) :-
+test(multiple_dependents,
+     [cleanup(retractall(d2(_)))]) :-
     answers(X, p2(X), [1]),
     assert(d2(2)),
     answers(X, q2(X), [1,2]),
@@ -105,3 +114,166 @@ answers(Templ, Goal, Expected) :-
     sort(Got0, Got),
     sort(Expected, Expected1),
     assertion(Got =@= Expected1).
+
+:- begin_tests(tabling_reeval_merged,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+
+:- dynamic d/2 as incremental.
+:- table p/2 as incremental.
+
+p(X,Y) :-
+    d(X,Y), Y > 10.
+p(X,Z) :-
+    d(X,Y), p(Y,Z).
+
+% Tables being re-evaluated end up  in  a   merged  SCC.  Now we must be
+% careful  to  first  propagate  the  no-changes   and  then  clear  the
+% reevaluation state of the nodes.
+
+test(only) :-
+    assert(d(1,2)),
+    assert(d(3,4)),
+    eval(p(1,_)),
+    eval(p(3,_)),
+    assert(d(3,1)),
+    assert(d(1,3)),
+    eval(p(1,_)).                       % caused assertion on falsecount >= 0
+
+:- end_tests(tabling_reeval_merged).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+:- begin_tests(dynamic_tabled,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% A incrementally tabled predicate can also be dynamic.
+
+:- table (p/1,q/1) as incremental.
+:- dynamic (p/1,q/1) as incremental.
+
+p(X) :- tnot(q(X)), tnot(p(X)).
+
+test(wfs,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    eval(p(1)),
+    retract(q(1)),
+    call_residual_program(p(1), P).
+
+:- end_tests(dynamic_tabled).
+
+:- begin_tests(dynamic_tabled2,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% A incrementally tabled predicate can also be dynamic.
+
+:- table (p/1,qs/1) as incremental.
+:- dynamic q/1 as incremental.
+
+p(X) :- tnot(qs(X)), tnot(p(X)).
+p(X) :- qs(X).
+
+qs(X) :- q(X).
+
+test(wfs,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P).
+% Validate that a conditional answer that became unconditional
+% worls and proper reinitialization of the worklist when it is used
+% again.
+test(wfs2,
+     [ cleanup(retractall(q(_))),
+       P == [(p(1):-tnot(p(1)))]
+     ]) :-
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P1),
+    assertion(P1 == [(p(1):-tnot(p(1)))]),
+    assert(q(1)),
+    expect(x, p(1), [x]),
+    retract(q(1)),
+    call_residual_program(p(1), P).
+
+:- end_tests(dynamic_tabled2).
+
+
+:- begin_tests(dynamic_tabled3,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+% Test that tnot creates a dependency
+
+:- table (p/1,qs/1,rs/1)  as incremental.
+:- dynamic q/1 as incremental.
+
+p(X) :- tnot(qs(X)), tnot(p(X)).
+p(X) :- tnot(rs(X)), tnot(p(X)).
+
+qs(X) :- q(X).
+rs(X) :- q(X).
+
+test(wfs, [ cleanup(retractall(q(_)))
+          ]) :-
+    assert(q(1)),
+    expect(x, p(1), []),
+    retract(q(1)),
+    call_residual_program(p(1), P),
+    assertion(P == [(p(1):-tnot(p(1)))]),
+    assert(q(1)),
+    expect(x, p(1), []).
+
+:- end_tests(dynamic_tabled3).
+
+:- begin_tests(dynamic_tabled4,
+               [ sto(rational_trees),
+                 cleanup(abolish_all_tables)
+               ]).
+
+:- table (p/1,q/1,r/1) as incremental.
+:- dynamic r1/1 as incremental.
+
+p(X) :- tnot(q(X)), r(X), tnot(p(X)).
+p(X) :- r(X).
+
+q(X) :- tnot(r(X)).
+r(X) :- r1(X).
+
+test(wfs,
+     [ cleanup(retractall(r1(_)))
+     ]) :-
+    assert(r1(1)),
+    expect(x, p(1), [x]),
+    retract(r1(1)),
+    expect(y, p(1), []).
+
+:- end_tests(dynamic_tabled4).
+
+
+		 /*******************************
+		 *       SHARED TEST CODE	*
+		 *******************************/
+
+:- meta_predicate
+    eval(0),
+    expect(?, 0, +).
+
+eval(G) :-
+    forall(G, true).
+
+expect(Templ, Goal, Answer) :-
+    findall(Templ, Goal, R0),
+    sort(R0, R),
+    sort(Answer, Answer1),
+    assertion(Answer1 == R).

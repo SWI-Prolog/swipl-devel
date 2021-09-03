@@ -43,6 +43,7 @@ documented at all.
 \input{dicts}
 \input{error}
 \input{gensym}
+\input{increval}
 \input{intercept}
 \input{iostream}
 \input{listing}
@@ -57,7 +58,9 @@ documented at all.
 \input{pairs}
 \input{persistency}
 \input{pio}
+\input{portraytext}
 \input{predicateoptions}
+\input{prologdebug}
 \input{prologjiti}
 \input{prologpack}
 \input{prologxref}
@@ -67,9 +70,11 @@ documented at all.
 \input{record}
 \input{registry}
 \input{settings}
+\input{strings}
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
 \input{tables}
+\input{terms}
 \input{thread}
 \input{threadpool}
 \input{ugraphs}

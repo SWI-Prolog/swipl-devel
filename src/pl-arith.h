@@ -48,70 +48,89 @@
 #define FLT_UNDEFINED		0x0040
 #define FLT_UNDERFLOW		0x0080
 
-COMMON(int)		ar_compare(Number n1, Number n2, int what);
-COMMON(int)		ar_compare_eq(Number n1, Number n2);
-COMMON(int)		pl_ar_add(Number n1, Number n2, Number r);
-COMMON(int)		ar_mul(Number n1, Number n2, Number r);
-COMMON(word)		pl_current_arithmetic_function(term_t f, control_t h);
-COMMON(void)		initArith(void);
-COMMON(void)		cleanupArith(void);
-COMMON(int)		indexArithFunction(functor_t fdef);
-COMMON(functor_t)	functorArithFunction(unsigned int n);
-COMMON(bool)		ar_func_n(int findex, int argc ARG_LD);
-COMMON(int)		ar_add_ui(Number n, intptr_t add);
-COMMON(int)		valueExpression(term_t p, Number n ARG_LD);
-COMMON(int)		toIntegerNumber(Number n, int flags);
-COMMON(int)		arithChar(Word p ARG_LD);
-COMMON(int)		getCharExpression(Word p, Number r ARG_LD);
-COMMON(Number)		growArithStack(ARG1_LD);
-COMMON(void)		freeArithLocalData(PL_local_data_t *ld);
-COMMON(int)		ar_sign_i(Number n1);
-COMMON(int)		ar_signbit(Number n1);
-COMMON(int)		check_float(Number n);
-COMMON(int)		ar_rdiv_mpz(Number n1, Number n2, Number r);
-COMMON(int)		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
-COMMON(int)		is_arith_flag(atom_t k);
-COMMON(int)		get_arith_flag(term_t val, atom_t k ARG_LD);
-COMMON(int)		set_arith_flag(term_t val, atom_t k ARG_LD);
-COMMON(void)		set_rounding(int mode);
-COMMON(int)		atom_to_rounding(atom_t a, int *m);
-COMMON(atom_t)		float_rounding_name(int m);
-COMMON(double)		PL_nan(void);
+#if USE_LD_MACROS
+#define	ar_func_n(findex, argc)		LDFUNC(ar_func_n, findex, argc)
+#define	valueExpression(p, n)		LDFUNC(valueExpression, p, n)
+#define	arithChar(p)			LDFUNC(arithChar, p)
+#define	getCharExpression(p, r)		LDFUNC(getCharExpression, p, r)
+#define	growArithStack(_)		LDFUNC(growArithStack, _)
+#define	get_arith_flag(val, k)		LDFUNC(get_arith_flag, val, k)
+#define	set_arith_flag(val, k)		LDFUNC(set_arith_flag, val, k)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int		ar_compare(Number n1, Number n2, int what);
+int		ar_compare_eq(Number n1, Number n2);
+int		pl_ar_add(Number n1, Number n2, Number r);
+int		ar_mul(Number n1, Number n2, Number r);
+word		pl_current_arithmetic_function(term_t f, control_t h);
+void		initArith(void);
+void		cleanupArith(void);
+int		indexArithFunction(functor_t fdef);
+functor_t	functorArithFunction(unsigned int n);
+bool		ar_func_n(int findex, int argc);
+int		ar_add_ui(Number n, intptr_t add);
+int		valueExpression(term_t p, Number n);
+int		toIntegerNumber(Number n, int flags);
+int		arithChar(Word p);
+int		getCharExpression(Word p, Number r);
+Number		growArithStack(void);
+void		freeArithLocalData(PL_local_data_t *ld);
+int		ar_sign_i(Number n1);
+int		ar_signbit(Number n1);
+int		check_float(Number n);
+int		ar_rdiv_mpz(Number n1, Number n2, Number r);
+int		PL_eval_expression_to_int64_ex(term_t t, int64_t *val);
+int		is_arith_flag(atom_t k);
+int		get_arith_flag(term_t val, atom_t k);
+int		set_arith_flag(term_t val, atom_t k);
+void		set_rounding(int mode);
+int		atom_to_rounding(atom_t a, int *m);
+atom_t		float_rounding_name(int m);
+double		PL_nan(void);
+
+#undef LDFUNC_DECLARATIONS
 
 
 		 /*******************************
 		 *	 INLINE FUNCTIONS	*
 		 *******************************/
 
+#define allocArithStack(_) LDFUNC(allocArithStack, _)
 static inline Number
-allocArithStack(ARG1_LD)
+allocArithStack(DECL_LD)
 { if ( unlikely(LD->arith.stack.top == LD->arith.stack.max) )
-    return growArithStack(PASS_LD1);
+    return growArithStack();
 
   return LD->arith.stack.top++;
 }
 
+#define pushArithStack(n) LDFUNC(pushArithStack, n)
 static inline void
-pushArithStack(Number n ARG_LD)
-{ Number np = allocArithStack(PASS_LD1);
+pushArithStack(DECL_LD Number n)
+{ Number np = allocArithStack();
 
   *np = *n;				/* structure copy */
 }
 
+#define resetArithStack(_) LDFUNC(resetArithStack, _)
 static inline void
-resetArithStack(ARG1_LD)
+resetArithStack(DECL_LD)
 { LD->arith.stack.top = LD->arith.stack.base;
 }
 
+#define argvArithStack(n) LDFUNC(argvArithStack, n)
 static inline Number
-argvArithStack(int n ARG_LD)
+argvArithStack(DECL_LD int n)
 { DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
   return LD->arith.stack.top - n;
 }
 
+#define popArgvArithStack(n) LDFUNC(popArgvArithStack, n)
 static inline void
-popArgvArithStack(int n ARG_LD)
+popArgvArithStack(DECL_LD int n)
 { DEBUG(0, assert(LD->arith.stack.top - n >= LD->arith.stack.base));
 
   for(; n>0; n--)
@@ -124,8 +143,9 @@ popArgvArithStack(int n ARG_LD)
 		 *	      MPZ/MPQ		*
 		 *******************************/
 
+#define isMPQNum(w) LDFUNC(isMPQNum, w)
 static inline int
-isMPQNum__LD(word w ARG_LD)
+isMPQNum(DECL_LD word w)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);
     size_t wsize = wsizeofInd(*p);
@@ -139,8 +159,9 @@ isMPQNum__LD(word w ARG_LD)
   return FALSE;
 }
 
+#define isMPZNum(w) LDFUNC(isMPZNum, w)
 static inline int
-isMPZNum__LD(word w ARG_LD)
+isMPZNum(DECL_LD word w)
 { if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
   { Word p = addressIndirect(w);
     size_t wsize = wsizeofInd(*p);

@@ -78,14 +78,24 @@ typedef struct
 		 *	     FUNCTIONS		*
 		 *******************************/
 
-COMMON(indirect_table*)	new_indirect_table(void);
-COMMON(void)		destroy_indirect_table(indirect_table *tab);
-COMMON(word)		intern_indirect(indirect_table *tab, word val,
-					int create ARG_LD);
-COMMON(word)		extern_indirect(indirect_table *tab,
-					word val, Word *gp ARG_LD);
-COMMON(word)		extern_indirect_no_shift(indirect_table *tab,
-						 word val ARG_LD);
-COMMON(size_t)		gsize_indirect(indirect_table *tab, word val);
+#if USE_LD_MACROS
+#define	intern_indirect(tab, val, create)	LDFUNC(intern_indirect, tab, val, create)
+#define	extern_indirect(tab, val, gp)		LDFUNC(extern_indirect, tab, val, gp)
+#define	extern_indirect_no_shift(tab, val)	LDFUNC(extern_indirect_no_shift, tab, val)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+indirect_table*	new_indirect_table(void);
+void		destroy_indirect_table(indirect_table *tab);
+word		intern_indirect(indirect_table *tab, word val,
+				int create);
+word		extern_indirect(indirect_table *tab,
+				word val, Word *gp);
+word		extern_indirect_no_shift(indirect_table *tab,
+					 word val);
+size_t		gsize_indirect(indirect_table *tab, word val);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_INDIRECT_H*/

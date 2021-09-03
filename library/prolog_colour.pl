@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -350,6 +351,12 @@ fix_operators((:- Directive), M, Src) :-
     !.
 fix_operators(_, _, _).
 
+:- multifile
+    prolog:xref_update_syntax/2.
+
+process_directive(Directive, M, _Src) :-
+    prolog:xref_update_syntax(Directive, M),
+    !.
 process_directive(style_check(X), _, _) :-
     !,
     style_check(X).
@@ -481,7 +488,7 @@ colourise_query(QueryString, TB) :-
 %   Colourise    the    next     term      on     Stream.     Unlike
 %   prolog_colourise_stream/3, this predicate assumes  it is reading
 %   a single term rather than the   entire stream. This implies that
-%   it cannot adjust syntax according to directives that preceed it.
+%   it cannot adjust syntax according to directives that precede it.
 %
 %   Options:
 %
@@ -629,11 +636,24 @@ colourise_term(Term, TB, Pos) :-
     colour_item(term, TB, F-T),     % TBD: Allow specifying by term_colours/2?
     specified_item(FuncSpec, Term, TB, FF-FT),
     specified_items(ArgSpecs, Term, TB, ArgPos).
-colourise_term((Head :- Body), TB,
-               term_position(F,T,FF,FT,[HP,BP])) :-
+colourise_term((Pre=>Body), TB,
+               term_position(F,T,FF,FT,[PP,BP])) :-
+    nonvar(Pre),
+    Pre = (Head,Cond),
+    PP = term_position(_HF,_HT,_HFF,_HFT,[HP,CP]),
     !,
     colour_item(clause,         TB, F-T),
-    colour_item(neck(clause),   TB, FF-FT),
+    colour_item(neck(=>),       TB, FF-FT),
+    colourise_clause_head(Head, TB, HP),
+    colour_item(rule_condition, TB, CP),
+    colourise_body(Cond, Head,  TB, CP),
+    colourise_body(Body, Head,  TB, BP).
+colourise_term(Term, TB,
+               term_position(F,T,FF,FT,[HP,BP])) :-
+    neck(Term, Head, Body, Neck),
+    !,
+    colour_item(clause,         TB, F-T),
+    colour_item(neck(Neck),     TB, FF-FT),
     colourise_clause_head(Head, TB, HP),
     colourise_body(Body, Head,  TB, BP).
 colourise_term(((Head,RHC) --> Body), TB,
@@ -645,28 +665,28 @@ colourise_term(((Head,RHC) --> Body), TB,
     colour_item(grammar_rule,       TB, F-T),
     colour_item(dcg_right_hand_ctx, TB, RHCP),
     colourise_term_arg(RHC, TB, RHCP),
-    colour_item(neck(grammar_rule), TB, FF-FT),
+    colour_item(neck(-->),          TB, FF-FT),
     colourise_extended_head(Head, 2, TB, HP),
     colourise_dcg(Body, Head,       TB, BP).
 colourise_term((Head --> Body), TB,                     % TBD: expansion!
                term_position(F,T,FF,FT,[HP,BP])) :-
     !,
     colour_item(grammar_rule,       TB, F-T),
-    colour_item(neck(grammar_rule), TB, FF-FT),
+    colour_item(neck(-->),          TB, FF-FT),
     colourise_extended_head(Head, 2, TB, HP),
     colourise_dcg(Body, Head,       TB, BP).
 colourise_term(:->(Head, Body), TB,
                term_position(F,T,FF,FT,[HP,BP])) :-
     !,
     colour_item(method,             TB, F-T),
-    colour_item(neck(method(send)), TB, FF-FT),
+    colour_item(neck(:->), TB, FF-FT),
     colour_method_head(send(Head),  TB, HP),
     colourise_method_body(Body,     TB, BP).
 colourise_term(:<-(Head, Body), TB,
                term_position(F,T,FF,FT,[HP,BP])) :-
     !,
     colour_item(method,            TB, F-T),
-    colour_item(neck(method(get)), TB, FF-FT),
+    colour_item(neck(:<-), TB, FF-FT),
     colour_method_head(get(Head),  TB, HP),
     colourise_method_body(Body,    TB, BP).
 colourise_term((:- Directive), TB, Pos) :-
@@ -683,6 +703,10 @@ colourise_term(Fact, TB, Pos) :-
     !,
     colour_item(clause, TB, Pos),
     colourise_clause_head(Fact, TB, Pos).
+
+neck((Head  :- Body), Head, Body, :-).
+neck((Head  => Body), Head, Body, =>).
+neck(?=>(Head, Body), Head, Body, ?=>).
 
 %!  colourise_extended_head(+Head, +ExtraArgs, +TB, +Pos) is det.
 %
@@ -1974,9 +1998,13 @@ colourise_decl_options(_, Which, TB, Pos) :-
 valid_decl_option(subsumptive,         table).
 valid_decl_option(variant,             table).
 valid_decl_option(incremental,         table).
+valid_decl_option(monotonic,           table).
 valid_decl_option(opaque,              table).
+valid_decl_option(lazy,                table).
+valid_decl_option(monotonic,           dynamic).
 valid_decl_option(incremental,         dynamic).
 valid_decl_option(abstract(_),         dynamic).
+valid_decl_option(opaque,              dynamic).
 valid_decl_option(shared,              table).
 valid_decl_option(private,             table).
 valid_decl_option(subgoal_abstract(_), table).
@@ -2125,8 +2153,13 @@ goal_classification(TB, Goal, _, How) :-
     xref_defined(SourceId, Goal, How),
     How \= public(_),
     !.
-goal_classification(_TB, Goal, _, Class) :-
-    call_goal_classification(Goal, Class),
+goal_classification(TB, Goal, _, Class) :-
+    (   colour_state_source_id(TB, SourceId),
+        xref_module(SourceId, Module)
+    ->  true
+    ;   Module = user
+    ),
+    call_goal_classification(Goal, Module, Class),
     !.
 goal_classification(TB, Goal, _, How) :-
     colour_state_module(TB, Module),
@@ -2137,27 +2170,45 @@ goal_classification(TB, Goal, _, How) :-
     How = imported(From).
 goal_classification(_TB, _Goal, _, undefined).
 
-%!  goal_classification(+Goal, -Class)
+%!  goal_classification(+Goal, +Module, -Class)
 %
 %   Multifile hookable classification for non-local goals.
 
-call_goal_classification(Goal, Class) :-
-    catch(goal_classification(Goal, Class), _,
+call_goal_classification(Goal, Module, Class) :-
+    catch(global_goal_classification(Goal, Module, Class), _,
           Class = type_error(callable)).
 
-goal_classification(Goal, built_in) :-
+global_goal_classification(Goal, _, built_in) :-
     built_in_predicate(Goal),
     !.
-goal_classification(Goal, autoload(From)) :-    % SWI-Prolog
+global_goal_classification(Goal, _, autoload(From)) :-  % SWI-Prolog
     predicate_property(Goal, autoload(From)).
-goal_classification(Goal, global) :-            % SWI-Prolog
+global_goal_classification(Goal, Module, Class) :-      % SWI-Prolog
     strip_module(Goal, _, PGoal),
     current_predicate(_, user:PGoal),
-    !.
-goal_classification(Goal, Class) :-
+    !,
+    (   Module == user
+    ->  Class = global(GClass, Location),
+        global_location(user:Goal, Location),
+        global_class(user:Goal, GClass)
+    ;   Class = global
+    ).
+global_goal_classification(Goal, _, Class) :-
     compound(Goal),
     compound_name_arity(Goal, Name, Arity),
     vararg_goal_classification(Name, Arity, Class).
+
+global_location(Goal, File:Line) :-
+    predicate_property(Goal, file(File)),
+    predicate_property(Goal, line_count(Line)),
+    !.
+global_location(_, -).
+
+global_class(Goal, dynamic)   :- predicate_property(Goal, dynamic), !.
+global_class(Goal, multifile) :- predicate_property(Goal, multifile), !.
+global_class(Goal, tabled)    :- predicate_property(Goal, tabled), !.
+global_class(_,    static).
+
 
 %!  vararg_goal_classification(+Name, +Arity, -Class) is semidet.
 %
@@ -2310,6 +2361,7 @@ def_goal_colours(discontiguous(_),       built_in-[declarations(discontiguous)])
 def_goal_colours(multifile(_),           built_in-[declarations(multifile)]).
 def_goal_colours(volatile(_),            built_in-[declarations(volatile)]).
 def_goal_colours(public(_),              built_in-[declarations(public)]).
+def_goal_colours(det(_),                 built_in-[declarations(det)]).
 def_goal_colours(table(_),               built_in-[declarations(table)]).
 def_goal_colours(meta_predicate(_),      built_in-[meta_declarations]).
 def_goal_colours(consult(_),             built_in-[file]).
@@ -2396,6 +2448,8 @@ def_style(goal(built_in,_),        [colour(blue)]).
 def_style(goal(imported(_),_),     [colour(blue)]).
 def_style(goal(autoload(_),_),     [colour(navy_blue)]).
 def_style(goal(global,_),          [colour(navy_blue)]).
+def_style(goal(global(dynamic,_),_), [colour(magenta)]).
+def_style(goal(global(_,_),_),     [colour(navy_blue)]).
 def_style(goal(undefined,_),       [colour(red)]).
 def_style(goal(thread_local(_),_), [colour(magenta), underline(true)]).
 def_style(goal(dynamic(_),_),      [colour(magenta)]).
@@ -2414,6 +2468,8 @@ def_style(goal(not_callable,_),    [background(orange)]).
 def_style(option_name,             [colour('#3434ba')]).
 def_style(no_option_name,          [colour(red)]).
 
+def_style(neck(_),		   [bold(true)]).
+
 def_style(head(exported,_),        [colour(blue), bold(true)]).
 def_style(head(public(_),_),       [colour('#016300'), bold(true)]).
 def_style(head(extern(_),_),       [colour(blue), bold(true)]).
@@ -2429,6 +2485,7 @@ def_style(head(iso,_),             [background(orange), bold(true)]).
 def_style(head(def_iso,_),         [colour(blue), bold(true)]).
 def_style(head(def_swi,_),         [colour(blue), bold(true)]).
 def_style(head(_,_),               [bold(true)]).
+def_style(rule_condition,	   [background('#d4ffe3')]).
 
 def_style(module(_),               [colour(dark_slate_blue)]).
 def_style(comment(_),              [colour(dark_green)]).
@@ -2516,12 +2573,12 @@ syntax_colour(Class, Attributes) :-
 term_colours((?- Directive), Colours) :-
     term_colours((:- Directive), Colours).
 term_colours((prolog:Head --> _),
-             neck(grammar_rule) - [ expanded - [ module(prolog),
-                                                 hook(message) - [ identifier
-                                                                 ]
-                                               ],
-                                    dcg_body(prolog:Head)
-                                  ]) :-
+             neck(-->) - [ expanded - [ module(prolog),
+                                        hook(message) - [ identifier
+                                                        ]
+                                      ],
+                           dcg_body(prolog:Head)
+                         ]) :-
     prolog_message_hook(Head).
 
 prolog_message_hook(message(_)).
@@ -2778,6 +2835,7 @@ specified_item(pce_arg, prolog(Term), TB,
 specified_item(pce_arg, Term, TB, Pos) :-
     compound(Term),
     Term \= [_|_],
+    \+ is_dict(Term),
     !,
     specified_item(pce_new, Term, TB, Pos).
 specified_item(pce_arg, Term, TB, Pos) :-
@@ -2950,6 +3008,12 @@ syntax_message(decl_option(_Opt)) -->
     [ 'Predicate property' ].
 syntax_message(rational(Value)) -->
     [ 'Rational number ~w'-[Value] ].
+syntax_message(rule_condition) -->
+    [ 'Guard' ].
+syntax_message(neck(=>)) -->
+    [ 'Rule' ].
+syntax_message(neck(-->)) -->
+    [ 'Grammar rule' ].
 
 goal_message(meta, _) -->
     [ 'Meta call' ].
@@ -2968,6 +3032,12 @@ goal_class(undefined) -->
     [ ' (undefined)' ].
 goal_class(global) -->
     [ ' (Auto-imported from module user)' ].
+goal_class(global(Class, File:Line)) -->
+    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+goal_class(global(Class, source_location(File,Line))) -->
+    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+goal_class(global(Class, -)) -->
+    [ ' (~w in user module)'-[Class] ].
 goal_class(imported(From)) -->
     [ ' (imported from ~q)'-[From] ].
 goal_class(extern(_, private)) -->

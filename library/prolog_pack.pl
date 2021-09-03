@@ -45,6 +45,7 @@
             pack_rebuild/0,             % All packages
             pack_remove/1,              % +Name
             pack_property/2,            % ?Name, ?Property
+            pack_attach/2,              % +Dir, +Options
 
             pack_url_file/2             % +URL, -File
           ]).
@@ -68,7 +69,7 @@
 The library(prolog_pack) provides the SWI-Prolog   package manager. This
 library lets you inspect installed   packages,  install packages, remove
 packages, etc. It is complemented by   the  built-in attach_packs/0 that
-makes installed packages available as libaries.
+makes installed packages available as libraries.
 
 @see    Installed packages can be inspected using =|?- doc_browser.|=
 @tbd    Version logic
@@ -2298,6 +2299,30 @@ string([]) --> [].
 string([H|T]) --> [H], string(T).
 
 
+%!  pack_attach(+Dir, +Options) is det.
+%
+%   Attach a single package in Dir.  The Dir is expected to contain
+%   the file `pack.pl` and a `prolog` directory.  Options processed:
+%
+%     - duplicate(+Action)
+%     What to do if the same package is already installed in a different
+%     directory.  Action is one of
+%       - warning
+%       Warn and ignore the package
+%       - keep
+%       Silently ignore the package
+%       - replace
+%       Unregister the existing and insert the new package
+%     - search(+Where)
+%     Determines the order of searching package library directories.
+%     Default is `last`, alternative is `first`.
+%
+%   @see attach_packs/2 to attach multiple packs from a directory.
+
+pack_attach(Dir, Options) :-
+    '$pack_attach'(Dir, Options).
+
+
                  /*******************************
                  *        USER INTERACTION      *
                  *******************************/
@@ -2493,9 +2518,10 @@ message(server_reply(exception(E))) -->
     [ 'Server reported the following error:'-[], nl ],
     '$messages':translate_message(E).
 message(cannot_create_dir(Alias)) -->
-    { setof(PackDir,
-            absolute_file_name(Alias, PackDir, [solutions(all)]),
-            PackDirs)
+    { findall(PackDir,
+              absolute_file_name(Alias, PackDir, [solutions(all)]),
+              PackDirs0),
+      sort(PackDirs0, PackDirs)
     },
     [ 'Cannot find a place to create a package directory.'-[],
       'Considered:'-[]

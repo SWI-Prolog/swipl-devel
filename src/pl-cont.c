@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -33,9 +33,15 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-cont.h"
 #include "pl-comp.h"
 #include "pl-dbref.h"
+#include "pl-util.h"
+#include "pl-gc.h"
+#include "pl-wam.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-modul.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Implementation of `delimited continuation'.  Implements
@@ -68,8 +74,9 @@ Where the compiler translates '$reset' into
 #define FRESET_NO_FRAME -1
 #define FRESET_FINDALL  -2
 
+#define findReset(fr, ball, rframe) LDFUNC(findReset, fr, ball, rframe)
 static int
-findReset(LocalFrame fr, term_t ball, term_t *rframe ARG_LD)
+findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
 { Definition reset3  = PROCEDURE_reset3->definition;
 
   for(; fr; fr = fr->parent)
@@ -111,7 +118,9 @@ because the environment structure we create is newer.
 (*) This loop stores all  non-prolog   variables.  These are pointers to
 choice points for if-then-else and related control structures. These are
 stored as offsets  to  the  local  stack   base.  We  put  them  in  the
-environment as integers.
+environment as integers. This works if   the continuation is immediately
+called. I the continuation is saved   (assert/1,  etc.) as, for example,
+for tabling, this does not work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define FAST_FUNCTORS 256
@@ -120,7 +129,7 @@ static functor_t fast_functors[FAST_FUNCTORS] = {0};
 
 static functor_t
 env_functor(int slots)
-{ int arity = slots+2;				/* clause and PC */
+{ int arity = slots+3;				/* Context, Clause and PC */
 
   if ( arity < FAST_FUNCTORS )
   { if ( likely(fast_functors[arity]) )
@@ -134,7 +143,7 @@ env_functor(int slots)
 
 
 static int
-put_environment(term_t env, LocalFrame fr, Code pc)
+put_environment(term_t env, LocalFrame fr, Code pc, int for_copy)
 { GET_LD
   term_t fr_ref   = consTermRef(fr);
   const Clause cl = fr->clause->value.clause;
@@ -177,6 +186,10 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 
   cref = lookup_clref(cl);
   *p++ = env_functor(slots);
+  if ( false(fr->predicate, P_TRANSPARENT) )
+    *p++ = ATOM_nil;
+  else
+    *p++ = contextModule(fr)->name;
   *p++ = cref;
   *p++ = consInt(pc - cl->codes);
 
@@ -191,7 +204,7 @@ put_environment(term_t env, LocalFrame fr, Code pc)
 	LTrail(vp);
 	*vp = makeRefG(p);
       } else
-      { *p = linkVal(vp);
+      { *p = linkValI(vp);
       }
     } else
     { *p = ATOM_cont_inactive;
@@ -201,11 +214,19 @@ put_environment(term_t env, LocalFrame fr, Code pc)
   if ( rc )
   { for(i=cl->prolog_vars; i<cl->variables; i++)
     { if ( true_bit(active, i) )
-      { DEBUG(MSG_CONTINUE,
-	      Sdprintf("%s: add choice-point reference from slot %d\n",
-		       predicateName(fr->predicate), i));
+      { if ( for_copy )
+	{ if ( truePrologFlag(PLFLAG_SHIFT_CHECK) )
+	  { Sdprintf("Shift: clause %d of %s: active "
+		     "choice-point in slot %d.  Stack:\n",
+		     clauseNo(cl, 0),
+		     predicateName(fr->predicate), i);
+	    PL_backtrace(10,1);
+	  };
 
-	*p++ = consInt(argFrame(fr, i));
+	  *p++ = 0;
+	} else
+	{ *p++ = consInt(argFrame(fr, i));
+	}
       } else
 	*p++ = 0;
     }
@@ -268,7 +289,8 @@ is_last_call(Code PC)
 
 
 static int
-put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
+put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
+		 int for_copy)
 { GET_LD
   term_t reset_ref = consTermRef(resetfr);
   term_t fr_ref    = consTermRef(fr);
@@ -311,7 +333,7 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc)
 	  depth = 0;
 	else
 	  return FALSE;
-      } else if ( !put_environment(contv+depth, fr, pc) )
+      } else if ( !put_environment(contv+depth, fr, pc, for_copy) )
 	return FALSE;
 
       resetfr = (LocalFrame)valTermRef(reset_ref);
@@ -350,11 +372,11 @@ Performs the following steps:
 */
 
 Code
-shift(term_t ball ARG_LD)
+shift(DECL_LD term_t ball, int for_copy)
 { term_t reset;
   int rc;
 
-  if ( (rc=findReset(environment_frame, ball, &reset PASS_LD)) == TRUE )
+  if ( (rc=findReset(environment_frame, ball, &reset)) == TRUE )
   { term_t cont = PL_new_term_ref();
     LocalFrame resetfr;
     LocalFrame fr;
@@ -364,7 +386,8 @@ shift(term_t ball ARG_LD)
     resetfr = (LocalFrame)valTermRef(reset);
     if ( !put_continuation(cont, resetfr,
 			   environment_frame->parent,
-			   environment_frame->programPointer) )
+			   environment_frame->programPointer,
+			   for_copy) )
     { DEBUG(MSG_CONTINUE, Sdprintf("Failed to collect continuation\n"));
       return FALSE;			/* resource error */
     }
@@ -433,7 +456,7 @@ effective after the next GC call and GC won't run concurrently with AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Code
-push_continuation(term_t continuation, LocalFrame pfr, Code pcret ARG_LD)
+push_continuation(DECL_LD term_t continuation, LocalFrame pfr, Code pcret)
 { LocalFrame top, fr;
   Word cont;
 
@@ -452,10 +475,11 @@ retry:
     intptr_t pcoffset;
     size_t lneeded, lroom;
     int i;
+    atom_t mname = *ep++;
     word blob = *ep++;
 
     if ( !(cref = clause_clref(blob)) ||
-	 arityFunctor(f->definition) != cref->value.clause->variables + 2 )
+	 arityFunctor(f->definition) != cref->value.clause->variables + 3 )
     { PL_type_error("continuation", continuation);
       return NULL;
     }
@@ -469,7 +493,7 @@ retry:
     if ( unlikely(lroom < lneeded) )	/* resize the stack */
     { int rc;
 
-      if ( (rc=growLocalSpace__LD(roomStack(local)*2, ALLOW_SHIFT PASS_LD))
+      if ( (rc=growLocalSpace(roomStack(local)*2, ALLOW_SHIFT))
 	   != TRUE )
       { raiseStackOverflow(rc);
 	return NULL;
@@ -484,21 +508,25 @@ retry:
     ap = argFrameP(fr, 0);
 
     for(i=0; i<cl->prolog_vars; i++, ep++, ap++)
-    { *ap = linkVal(ep);
+    { *ap = linkValI(ep);
     }
 
     for(; i<cl->variables; i++, ep++, ap++)
     { if ( isTaggedInt(*ep) )
-      { intptr_t i = valInt(*ep);
+      { intptr_t ichp = valInt(*ep);
 	Choice ch, chp;
 
-	ch = (Choice)valTermRef(i);
+	ch = (Choice)valTermRef(ichp);
 	for ( chp = LD->choicepoints; chp > ch; chp = chp->parent )
 	  ;
 	if ( ch == chp )
-	  *ap = i;
-	else
-	  *ap = consTermRef(LD->choicepoints);
+	{ *ap = ichp;
+
+	  DEBUG(MSG_CONTINUE,
+		Sdprintf("Restored choicepoint for slot %d\n", ichp));
+	} else
+	{ *ap = consTermRef(LD->choicepoints);
+	}
       } else
       { *ap = consTermRef(LD->choicepoints);
       }
@@ -509,10 +537,15 @@ retry:
 
     fr->programPointer = pcret;
     fr->parent         = pfr;
+    setNextFrameFlags(fr, pfr);
     fr->clause         = cref;
     setFramePredicate(fr, cl->predicate);
-    fr->context	       = fr->predicate->module;
-    setNextFrameFlags(fr, pfr);
+    if ( mname == ATOM_nil )
+    { fr->context      = fr->predicate->module;
+    } else
+    { fr->context      = lookupModule(mname);
+      set(fr, FR_CONTEXT);
+    }
 #ifdef O_PROFILE
     fr->prof_node      = NULL;
 #endif

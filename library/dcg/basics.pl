@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2016, University of Amsterdam
+    Copyright (c)  2012-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -58,6 +59,7 @@
 
 	    prolog_var_name//1,		% Read a Prolog variable name
 
+	    eol//0,			% End of line
 	    eos//0,			% Test end of input.
 	    remainder//1,		% -List
 
@@ -254,7 +256,7 @@ alpha_to_lower(L) -->
 %%	digit(?Char)// is det.
 %%	integer(?Integer)// is det.
 %
-%	Number processing. The predicate  digits//1   matches  a posibly
+%	Number processing. The predicate  digits//1   matches a possibly
 %	empty set of digits,  digit//1  processes   a  single  digit and
 %	integer processes an  optional  sign   followed  by  a non-empty
 %	sequence of digits into an integer.
@@ -347,7 +349,7 @@ exp --> "E".
 %
 %	Generate or extract an integer from   a  sequence of hexadecimal
 %	digits. Hexadecimal characters include both  uppercase (A-F) and
-%	lowercase (a-f) letters. The value may   be  preceeded by a sign
+%	lowercase (a-f) letters. The value may   be  preceded by  a sign
 %	(+/-)
 
 xinteger(Val, Head, Tail) :-
@@ -404,6 +406,14 @@ mkval([H|T], Base, W0, W) :-
 		 /*******************************
 		 *	   END-OF-STRING	*
 		 *******************************/
+
+%!	eol//
+%
+%	Matches end-of-line. Matching \r\n, \n or end of input (eos//0).
+
+eol --> "\n", !.
+eol --> "\r\n", !.
+eol --> eos.
 
 %%	eos//
 %

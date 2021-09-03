@@ -21,7 +21,7 @@ set(SWIPL_PATH_SEP "\;")
 set(SO_PATH PATH)
 
 set(SRC_OS_SPECIFIC pl-nt.c pl-ntconsole.c pl-dde.c os/windows/uxnt.c)
-set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib ws2_32.lib)
+set(LIBSWIPL_LIBRARIES ${LIBSWIPL_LIBRARIES} winmm.lib ws2_32.lib psapi.lib)
 
 if(NOT DEFINED WIN32_DLLS)
 
@@ -44,11 +44,13 @@ set(WIN32_DLL_PATTERNS zlib*.dll)
 if(USE_GMP)
   list(APPEND WIN32_DLL_PATTERNS "libgmp-*.dll")
 endif()
-if(MULTI_THREADED)
+# libgcc_s_seh-1.dll needs the thread libraries?
+if(MULTI_THREADED OR TRUE)
   list(APPEND WIN32_DLL_PATTERNS "*pthread*.dll")
 endif()
 if(MINGW)
   list(APPEND WIN32_DLL_PATTERNS "libgcc_s*.dll")
+  list(APPEND WIN32_DLL_PATTERNS "libssp*.dll")
 endif()
 
 function(find_windows_dlls var)

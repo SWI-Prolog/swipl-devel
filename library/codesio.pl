@@ -69,7 +69,7 @@ straight calls into similar SWI-Prolog primitives.
 
 This library is based on library(charsio)   that originates from Quintus
 Prolog. The naming is updated to reflect  the ISO naming conventions and
-the ISO predicats atom_codes/2, etc  are   obviously  removed  from this
+the ISO predicates atom_codes/2, etc  are  obviously  removed  from this
 library.
 
 @compat SICStus 4

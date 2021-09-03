@@ -64,26 +64,7 @@ for -DMD="config/win64.h"
 #include "os/windows/uxnt.h"		/* More Windows POSIX enhancements */
 #endif
 
-#include "pl-mutex.h"
 #include "os/SWI-Stream.h"
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Symbols are local to shared objects  by   default  in  COFF based binary
-formats, and public in ELF based formats.   In some ELF based systems it
-is possible to make them local   anyway. This enhances encapsulation and
-avoids an indirection for calling these   functions.  Functions that are
-supposed to be local to the SWI-Prolog kernel are declared using
-
-    COMMON(<type) <function>(<args>);
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef HAVE_VISIBILITY_ATTRIBUTE
-#define SO_LOCAL __attribute__((visibility("hidden")))
-#else
-#define SO_LOCAL
-#endif
-#define COMMON(type) SO_LOCAL type
-
 
 		 /*******************************
 		 *	    ENGINE ACCESS	*
@@ -98,97 +79,335 @@ user of this module must provide two   definitions:
 
 	* struct PL_local_data
 	Structure definition for the engine
-	* LD_GLOBAL
+	* GLOBAL_LD
 	Is a macro that expands to a pointer to the current engine.  The
 	implementation varies.  Without engines it is just an alias for
 	the address of the global engine structure.  With engines, it
 	can use pthread_getspecific() (POSIX), TlsGetValue (Windows) or
 	some compiler provided extension for thread-local variables.
 
-LD always points to the  engine,  but   retrieving  it  everywhere  in a
-function can be costly. GET_LD and  PRED_LD create an automatic variable
-__PL_ld pointing to the engine.  LOCAL_LD   points  there. Time critical
-modules generally start with:
+However,  thread-local  variable retrieval  can be costly when overused,
+and moreover this assumes that only one engine will ever get accessed in
+a given thread.  To improve performance and allow for accessing multiple
+engines in a single thread  (without having to resort to  altering which
+structure is pointed to  by GLOBAL_LD on every context switch,  which is
+even more costly),  the  LD pointer  gets passed between  functions that
+need  to reference it.  In order not to pollute  the codebase  with lots
+of references  to LD arguments,  this  context-passing functionality  is
+encapsulated in and implemented by the macro LDFUNC.
 
-#undef LD
-#define LD LOCAL_LD
+Ideally, all  library-internal functions  save those that neither access
+the LD structure  nor call functions that do  will be declared using the
+LDFUNC syntax. However, to support cases where the context object cannot
+for whatever reason  be passed in  as a function argument,  it is  still
+possible  to use  the macros  GET_LD or PRED_LD  at  the beginning  of a
+function to retrieve the (thread-local) default LD object via GLOBAL_LD.
+Note that,  regardless of whether a function  is declared as LDFUNC,  or
+whether it declares GET_LD,  the LD macro  (when defined as ANY_LD,  the
+default) will always provide a pointer to whatever is currently the best
+way to access the structure using a compile-time switch. The logic is:
 
-Now, functions that access LD must be written as:
+ - If there is a variable/parameter called __PL_ld in scope (as declared
+   by GET_LD or LDFUNC, below), use it.
+ - If there is a variable/parameter called PL__ctx in scope (as with
+   some API functions, or in a PRED_IMPL() definition), use
+   PL__ctx->engine.
+ - Otherwise, fall back to using GLOBAL_LD.
 
-func()
-{ GET_LD
+The LOCAL_LD logic is similar,  but it does not  fall back to GLOBAL_LD.
+Redefining LD as LOCAL_LD  provides a compile-time  (GCC, Clang, etc) or
+link-time (non-GCC) check to ensure no functions are inadvertently using
+the slow-access GLOBAL_LD.
 
-  ...
-}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			LDFUNC DECLARATION
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-And predicates as
+To declare a function as an LD-using function, it needs to have its name
+defined as a preprocessor macro  prior to its declaration,  in whichever
+of the following three forms is appropriate:
 
-static
-PRED_IMPL("foo", 2, foo, 0)
-{ PRED_LD
+    #define func_two_args(arg1, arg2) LDFUNC(func_two_args, arg1, arg2)
+    #define func_va_args(arg, ...) LDFUNC(func_va_args, arg, __VA_ARGS__)
+    #define func_no_args(_) LDFUNC(func_no_args, _)
 
-   ...
-}
+Note that  the zero-argument function  is declared as  a single-argument
+macro,  but C99 macro syntax allows a single-argument macro to be called
+with  empty parentheses.  It's good practice  to place these definitions
+near their prototypes and/or in a header file,  and to guard them behind
+a directive of [[#if USE_LD_MACROS]] to assist static code analysis, but
+the only strong requirement  is that it occur before  the first usage of
+a function name.
 
-In addition, LD can be passed between functions.  This is written as
+A function's declaration/prototype  also needs to be annotated to accept
+the LD argument, which can be done in one of two ways.  The first, which
+is suitable for  header files  or anywhere multiple  function prototypes
+are declared together, is to have the macro LDFUNC_DECLARATIONS defined,
+and then declare the function with the usual syntax:
 
-func1(int arg ARG_LD)
-{ ...
-}
+    #define LDFUNC_DECLARATIONS
+    int func_two_args(int arg1, int arg2);
+    int func_va_args(int arg, ...);
+    int func_no_args(void);
+    #undef LDFUNC_DECLARATIONS
 
-  func1(42 PASS_LD)
+The alternative, which should be used for function definition prototypes
+but can also  be used for  declaration prototypes,  is to put  a DECL_LD
+annotation  immediately after the open parenthesis of the argument list,
+with no following comma. For zero-argument functions, it can replace the
+void keyword:
 
-Note there is *NO* "," before ARG_LD   and PASS_LD, because these macros
-expand to nothing if there is just  one engine. The versions ARG1_LD and
-PASS_LD1 are used if there is no other argument.
+    int func_two_args(DECL_LD int arg1, int arg2);
+    int func_va_args(DECL_LD int arg, ...);
+    int func_no_args(DECL_LD);
 
-On some frequently used functions,   writing PASS_LD everywhere clutters
-the code too much. In this case  we   use  the schema below. Many of the
-time critical functions from the public   foreign  interface are handled
-this way for the internal builtins.
+    int
+    func_two_args(DECL_LD int arg1, int arg2)
+    { return arg1 + arg2;
+    }
 
-func__LD(int arg ARG_LD)
-{ ...
-}
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			LDFUNC NAME MANGLING
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-#define func(arg) func__LD(arg PASS_LD)
+The LDFUNC macro  mangles the  function's name,  even in a build without
+threading or  multiple engine  support,  so that  an internal LD-passing
+variant  of an API function  can and should  share the same  programmer-
+visible name. To declare a non-mangled function with the same name as an
+LDFUNC, it is sufficient to put the function name in parentheses,  which
+is transparent to C but suppresses macro expansion:
+
+    int
+    (PL_api_func)(int arg)
+    { GET_LD
+      return PL_api_func(arg);  <-- calls the LDFUNC variant!
+    }
+
+Note that  the GET_LD  isn't strictly necessary here  unless LD has been
+explicitly declared to LOCAL_LD,  because of  the automatic LD selection
+described above. For tiny API functions like this, however, the API_STUB
+macro (which does include GET_LD) can be used:
+
+    API_STUB(int)
+    (PL_api_func)(int arg)
+    ( return PL_api_func(arg); )
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			POINTERS TO LDFUNCS
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Because the  name mangling only occurs  in a function call  or prototype
+context,  where an opening parenthesis  immediately follows the function
+name,  special care  needs to be  taken  when declaring,  assigning,  or
+calling pointers  to LDFUNC functions.  Declaring a pointer to an LDFUNC
+function uses the LDFUNCP macro, with the same DECL_LD rules as defining
+an LDFUNC itself:
+
+    int LDFUNCP (*p_ldfunc)(DECL_LD int arg1, int arg2) = NULL;
+
+    #define LDFUNC_DECLARATIONS
+    int call_ld_func(int LDFUNCP (*ldfunc_arg)(int, int), int arg);
+    #undef LDFUNC_DECLARATIONS
+
+Dereferencing and calling a pointer also uses the LDFUNCP macro:
+
+    return LDFUNCP(*p_ldfunc)(1, 2);
+
+(Note that the difference in spacing is just convention; for declaration
+it looks like a syntax keyword, for dereferencing it looks like a
+function call.)
+
+To assign a specific function's address to such a pointer, however,  you
+need the  LDFUNC_REF macro,  which  performs  the same  name mangling as
+LDFUNC, but without any of the argument processing:
+
+    p_ldfunc = LDFUNC_REF(func_two_args);
+    return LDFUNCP(*p_ldfunc)(1, 2);
+
+If a function  takes an LDFUNCP  as an argument  and expects callers  to
+specify a literal function by name,  it may be helpful to define a macro
+which inserts LDFUNC_REF. See pl-trie.h for an example.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+			EXPLICIT LD SELECTION
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Two other  macros  need mentioning,  for cases where  the code  needs to
+specify  exactly which  LD structure  is passed  to an  LDFUNC function,
+rather than its own: WITH_LD and PASS_AS_LD.
+
+WITH_LD is  a macro  that introduces a  statement-scope redefinition  of
+the LD pointer.  This applies not just to calls to LDFUNC functions, but
+also to  direct references  to the quasi-variable LD.  The WITH_LD macro
+is defined as a for() loop that iterates exactly one time, and so shares
+semantics with it;  this means that  break statements  will break out of
+the WITH_LD itself.  If you need to break/continue  an enclosing for  or
+while loop, either use a goto or use the PASS_AS_LD macro instead.
+
+    #define get_current_ld(_) LDFUNC(get_current_ld,  _)
+    PL_local_data_t *my_ld = LD;
+    PL_local_data_t *other_ld = get_other_ld();
+    WITH_LD(other_ld)
+    { assert(LD == other_ld);
+      assert(get_current_ld() == other_ld);
+      break;
+      assert(FALSE);
+    }
+    assert(LD == my_ld);
+
+The PASS_AS_LD macro only works for LDFUNC function calls, but it can be
+used in an expression context, and it does not override the current LD:
+
+    #define get_current_ld(_) LDFUNC(get_current_ld,  _)
+    PL_local_data_t *my_ld = LD;
+    PL_local_data_t *other_ld = get_other_ld();
+
+    assert(LD == my_ld);
+    assert(get_current_ld(PASS_AS_LD(other_ld)) == other_ld);
+    return func_two_args(PASS_AS_LD(other_ld) 1, 2);
+
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct PL_local_data  PL_local_data_t;
 typedef struct PL_global_data PL_global_data_t;
 
-#define LD	  GLOBAL_LD
+#define LD	  ANY_LD
 
-#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
+/* API_STUB(rtype)(fname)(adecls...)(stub body) */
+#define API_STUB(rtype)		rtype _API_STUB_1
+#define _API_STUB_1(fname)	fname _API_STUB_2
+#define _API_STUB_2(...)	(__VA_ARGS__) _API_STUB_3
+#define _API_STUB_3(...)	{GET_LD __VA_ARGS__;}
+
+#if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
+
+#ifdef __GNUC__
+# define _ASSERT_LD(cond) ({static_assert((cond), "Error: LOCAL_LD referenced without a local LD declaration in " __FILE__ ":" A_STRINGIFY(__LINE__)); NULL;})
+#else
+extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void);
+# define _ASSERT_LD(cond) ((cond)?NULL:error_LOCAL_LD_referenced_without_a_local_LD_declaration())
+#endif
+
+/* These will never be compiled, they are here simply for scope detection */
+extern char *__PL_ld;
+extern struct {char *engine;} *PL__ctx;
+#define _LD_WITH_FALLBACK(f) \
+		  ( sizeof(*__PL_ld) > 1 ? (PL_local_data_t *)(__PL_ld) \
+		  : sizeof(*PL__ctx->engine) > 1 ? (PL_local_data_t *)(PL__ctx->engine) \
+		  : (PL_local_data_t *)(f) )
+#define LOCAL_LD  _LD_WITH_FALLBACK(_ASSERT_LD(sizeof(*__PL_ld) > 1 || sizeof(*PL__ctx->engine) > 1))
+#define ANY_LD    _LD_WITH_FALLBACK(GLOBAL_LD)
 
 #define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
 #define PRED_LD   PL_local_data_t *__PL_ld = PL__ctx->engine;
+/* The comma in the DECL_LD definition is the important part, the tilde
+ * is just to force a parse error if it ends up in the output.
+ * M_DEFER1 prevents this from being expanded before we can wrap it
+ * (and its following argument) in parentheses, below. */
+#define DECL_LD			M_DEFER1(~DECL_LD,)
 
-#define ARG1_LD   PL_local_data_t *__PL_ld
-#define ARG_LD    , ARG1_LD
-#define PASS_LD1  LD
-#define PASS_LD   , LD
-#define PASS_LDARG1(x)  x
-#define PASS_LDARG(x)   , x
-#define LOCAL_LD  __PL_ld
+#define LDFUNC_NAME(func)	func ## ___LD
+
+/* Using triple-underscore here because the calling convention has
+ * changed; LD now goes in first position, rather than last.
+ * Passing a0 to USE_LDFUNC in parentheses relaxes some of the
+ * timing constraints imposed by the M_DEFER1 above, since we don't
+ * need the expansion to occur at an exact moment in the processing. */
+#define LDFUNC(func, a0, ...)	LDFUNC_NAME(func) \
+				  M_IFEMPTY(LDFUNC_DECLARATIONS) \
+				  ( DECL_LDFUNC(a0, ## __VA_ARGS__) ) \
+				  ( USE_LDFUNC((a0), ## __VA_ARGS__) )
+/* «int LDFUNCP (*funcptr)(DECL_LD)» declares a variable or argument named
+ * "funcptr" which is a pointer to an LD-using function that accepts
+ * no arguments (other than a possible LD-passing arg) and returns int.
+ * You can call this function pointer with:
+ * int x = LDFUNCP(funcptr)();
+ */
+#define LDFUNCP(pdecl)		(pdecl) _LDFUNCP_ARGS
+/* Important that this mirrors the definition of LDFUNC() very
+ * closely, because of the timing constraints of the M_DEFER1
+ * in DECL_LD above. */
+#define _LDFUNCP_ARGS(a0, ...)	M_IFEMPTY(LDFUNC_DECLARATIONS) \
+				( DECL_LDFUNC(a0, ## __VA_ARGS__) ) \
+				( USE_LDFUNC((a0), ## __VA_ARGS__) )
+
+/* Gets a pointer to a function declared as an LDFUNC */
+#define LDFUNC_REF(func)	(&LDFUNC_NAME(func))
+
+#define _ARG1_LD PL_local_data_t *__PL_ld
 #define IGNORE_LD (void)__PL_ld;
 #define HAS_LD (LD != 0)
+
+#define __VOID_EMPTY_
+#define __VOID_EMPTY_void
+#define DECL_LDFUNC(a0, ...) \
+( A_UNWRAP	/* Remove parentheses from results of A_ARGN, below.	*/ \
+  ( A_ARGN	/* Expand to the third argument (index 2) after the arg	*/ \
+    ( 2,	/* expansion  pass.  If  a0 is  empty or  «void»,  then	*/ \
+      A_TRAILING_COMMA(__VOID_EMPTY_ ## a0) /* ← this will be empty, so	*/ \
+      (__VOID_EMPTY_ ## a0),	/* ← this is arg 0 (rather than arg 1).	*/ \
+      (_ARG1_LD, a0),		/* ← This is arg 2 when a0 is nonempty;	*/ \
+      (_ARG1_LD)		/* ← this is arg 2 when empty/void.	*/ \
+	/* (The argument after the A_TRAILING_COMMA is only used in the	*/ \
+	/* PASS_AS_LD macro; see its definition below for more info.)	*/ \
+    )			/* A_UNWRAP then  removes the parentheses  from	*/ \
+  ), ## __VA_ARGS__	/* that, and we append any other args declared.	*/ \
+)
+
+#define USE_LDFUNC(a0, ...) \
+( A_UNWRAP	/* As above,  but the extra comma in a0  comes from the	*/ \
+  ( A_ARGN	/* DECL_LD definition above.  The M_DEFER2 ensures that	*/ \
+    ( 2,	/* a0  isn't expanded  into its comma form  until right	*/ \
+      A_UNWRAP(a0),	/* ← this moment, so it sneaks in as "one" arg.	*/ \
+      A_CALL(DECL_LDFUNC, A_SHIFT1 a0),		/* ←  This then  is the	*/ \
+	/* expansion when DECL_LD is used in a prototype, and it passes	*/ \
+	/* the expansion  to DECL_LDFUNC() above.  The  A_CALL()  macro	*/ \
+        /* provides a level of indirection,  so that A_SHIFT1 (used for	*/ \
+        /* discarding DECL_LD's initial «~,»)  has settled before being	*/ \
+        /* passed to DECL_LDFUNC(), thus we get the right token in a0.	*/ \
+      (LD A_LEADING_COMMA(A_ECHO a0) )	/* ← This is the expansion when	*/ \
+        /* this is  a callsite.  LD is inserted  as the first argument,	*/ \
+        /* and  A_LEADING_COMMA  puts  a comma before a0  unless  a0 is	*/ \
+	/* empty (i.e. if this function's only argument is LD).		*/ \
+    ) \
+  ), ## __VA_ARGS__ \
+)
+
+/* Block-scope redefinition of LD in a function */
+#define WITH_LD(ld)	for (PL_local_data_t *__PL_ld = (ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+/* Passing an alternate LD to a called function. This uses the same mechanism
+ * as DECL_LD, but takes it one step further. _VE_PASSLD below is a macro that
+ * does not exist, but when DECL_LDFUNC() pastes __VOID_EMPTY_ to the beginning
+ * you get a macro that includes an *additional* comma, pushing the "arg 0" that
+ * doesn't normally get used into the proper position. */
+#define PASS_AS_LD(ld)	M_DEFER1(~PASS_AS_LD, _VE_PASSLD(ld))
+#define __VOID_EMPTY__VE_PASSLD(ld)	(ld),
 
 #else
 
 #define GET_LD
 #define PRED_LD
-#define ARG_LD
-#define ARG1_LD void
-#define PASS_LD
-#define PASS_LD1
-#define PASS_LDARG1(x)
-#define PASS_LDARG(x)
+#define DECL_LD
+#define LDFUNC_NAME(func)	func ## ___NOLD
+#define LDFUNC(func, ...) LDFUNC_NAME(func)(__VA_ARGS__)
+#define LDFUNCP(pdecl)		(pdecl)
+#define LDFUNC_REF(func)	(&LDFUNC_NAME(func))
 #define LOCAL_LD  (&PL_local_data)
 #define GLOBAL_LD (&PL_local_data)
-#define LD	  GLOBAL_LD
+#define ANY_LD    (&PL_local_data)
 #define IGNORE_LD
 #define HAS_LD (1)
+
+#if USE_LD_MACROS
+/* There are reasons why one might use WITH_LD or PASS_AS_LD in code written for single- or multi-engine */
+# define WITH_LD(_) for (int i=0; i < 1; i++)
+# define PASS_AS_LD(_)
+#else
+/* For type-checking in static analysis */
+static inline int pass_as_ld_helper(PL_local_data_t *ld) {return 0;}
+# define WITH_LD(ld) for(PL_local_data_t *__ignore_ld=(ld), *__loopctr = NULL; !__loopctr; __loopctr++)
+# define PASS_AS_LD(ld) pass_as_ld_helper(ld) +
+#endif
 
 #endif
 
@@ -209,13 +428,42 @@ is also printed if stdio is not available.
 #include "pl-debug.h"
 
 #if O_DEBUG
-#define DEBUG(n, g) do { if ((n <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
-                             (n > DBG_LEVEL9 && GD->debug_topics && \
-                              true_bit(GD->debug_topics, n))) \
-                         { g; } } while(0)
-#define DEBUGGING(n) (GD->debug_topics && true_bit(GD->debug_topics, n))
+#define DEBUG(n, g)	do \
+			{ if (DEBUGGING(n)) \
+			  { ENTER_DEBUG(n); g; EXIT_DEBUG(n); } \
+			} while(0)
+#define ENTER_DEBUG(n)	pl_internaldebugstatus_t \
+			  __orig_ld_debug = GLOBAL_LD->internal_debug, \
+			  __new_ld_debug = GLOBAL_LD->internal_debug = \
+			  (pl_internaldebugstatus_t) \
+			  { .channel = DEBUGGING(n) ? prolog_debug_topic_name(n) : NULL, \
+			    .depth = __orig_ld_debug.depth + 1, \
+			  }
+#define EXIT_DEBUG(n)	GLOBAL_LD->internal_debug = \
+			( GLOBAL_LD->internal_debug.depth != __new_ld_debug.depth \
+			? Sdprintf("DEBUG stack depth mismatch! %d != %d\n", GLOBAL_LD->internal_debug.depth, __new_ld_debug.depth) \
+			: 1 \
+			) ? __orig_ld_debug : __orig_ld_debug
+#define DEBUGGING(n)	(((n) <= DBG_LEVEL9 && GD->debug_level >= (n)) || \
+			 ((n) > DBG_LEVEL9 && GD->debug_topics && true_bit(GD->debug_topics, n)))
+#define WITH_DEBUG_FOR(n) for \
+			( ENTER_DEBUG(n); \
+			  __orig_ld_debug.depth >= 0; \
+			  EXIT_DEBUG(n), __orig_ld_debug.depth = -1 )
+#define IF_DEBUGGING(n)	if (DEBUGGING(n)) WITH_DEBUG_FOR(n)
+
+/* We want to use the version of Sdprintf with the debug channel, if possible */
+#undef Sdprintf
+#define Sdprintf(fmt...) Sdprintf_ex(GLOBAL_LD->internal_debug.channel, __FILE__, __LINE__, fmt)
+int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...);
+
 #else
 #define DEBUG(a, b) ((void)0)
+#define ENTER_DEBUG(n) ;
+#define EXIT_DEBUG(n) ;
+#define DEBUGGING(n) FALSE
+#define WITH_DEBUG_FOR(n) /* empty */
+#define IF_DEBUGGING(n) if (0)
 #endif
 
 #if O_SECURE
@@ -235,12 +483,12 @@ typedef enum
   FRG_REDO	 = 2		/* Normal redo */
 } frg_code;
 
-typedef struct foreign_context
+struct foreign_context
 { uintptr_t		context;	/* context value */
   frg_code		control;	/* FRG_* action */
   struct PL_local_data *engine;		/* invoking engine */
   struct definition    *predicate;	/* called Prolog predicate */
-} *control_t;
+};
 
 #define FRG_REDO_MASK	0x03
 #define FRG_REDO_BITS	2
@@ -330,19 +578,11 @@ EndPredDefs
 
 #define PL_unify_time(t, s) PL_unify_float(t, (double)(s))
 
-
-		 /*******************************
-		 *	       MISC		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-blockGC() and unblockGC() control  garbage   collection  in the provided
-engine. The calls can be  nested,  but   the  program  must  ensure each
-blockGC() is matched by an unblockGC().
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-COMMON(void)	blockGC(int flags ARG_LD);	/* disallow garbage collect */
-COMMON(void)	unblockGC(int flags ARG_LD);	/* re-allow garbage collect */
-COMMON(void)	suspendTrace(int suspend);	/* suspend/resume tracing */
-
+/* Moved to pl-gc.c:
+ * blockGC(int flags);
+ * unblockGC(int flags);
+ *
+ * Moved to pl-trace.c:
+ * suspendTrace(int suspend);
+ */
 #endif /*PL_BUILTIN_H_INCLUDED*/

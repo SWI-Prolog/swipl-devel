@@ -63,9 +63,11 @@ is supposed to give the POSIX standard one.
 #endif
 #endif
 
-#include "pl-incl.h"
+#include "pl-os.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "../pl-fli.h"
+#include "../pl-setup.h"
 #include <math.h>
 #include <stdio.h>		/* rename() and remove() prototypes */
 
@@ -159,7 +161,8 @@ initOs(void)
 #ifdef __WINDOWS__
   setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #else
-  setPrologFlagMask(PLFLAG_FILE_CASE|PLFLAG_FILE_CASE_PRESERVING);
+  setPrologFlagMask(PLFLAG_FILE_CASE);
+  setPrologFlagMask(PLFLAG_FILE_CASE_PRESERVING);
 #endif
 
   DEBUG(1, Sdprintf("OS:done\n"));
@@ -705,6 +708,7 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
 { char temp[MAXPATHLEN];
   const char *tmpdir = NULL;
   atom_t tname;
+  static int temp_counter = 0;
 
   tmpdir = tmp_dir();
 
@@ -712,14 +716,15 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
     return NULL_ATOM;
 
 retry:
+{ int tmpid = ATOMIC_INC(&temp_counter);
+
 #ifdef __unix__
-{ static int MTOK_temp_counter = 0;
-  const char *sep  = id[0]  ? "_" : "";
+{ const char *sep  = id[0]  ? "_" : "";
   const char *esep = ext[0] ? "." : "";
 
   if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d_%d%s%s",
 		 tmpdir, id, sep, (int) getpid(),
-		 MTOK_temp_counter++,
+		 tmpid,
 		 esep, ext) < 0 )
   { errno = ENAMETOOLONG;
     return NULL_ATOM;
@@ -729,7 +734,6 @@ retry:
 
 #ifdef __WINDOWS__
 { char *tmp;
-  static int temp_counter = 0;
   int rc;
 #ifndef __LCC__
   wchar_t *wtmp = NULL, *wtmpdir, *wid;
@@ -755,13 +759,14 @@ retry:
     const char *esep = ext[0] ? "." : "";
 
     if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d%s%s",
-		   tmpdir, id, sep, temp_counter++, esep, ext) < 0 )
+		   tmpdir, id, sep, tmpid, esep, ext) < 0 )
     { errno = ENAMETOOLONG;
       return NULL_ATOM;
     }
   }
 }
 #endif
+}
 
   if ( fdp )
   { int fd;
@@ -1353,17 +1358,24 @@ canonicaliseFileName(char *path)
 	    goto out;
 	  }
 	  if ( in[2] == '.' && (in[3] == '/' || in[3] == EOS) )
-	  { if ( !isEmptyBuffer(&saveb) )		/* delete /foo/../ */
-	    { out = popBuffer(&saveb, char*);
+	  { if ( out[-1] == '.' && out[-2] == '.' &&
+		 (out-2 == start || out[-3] == '/') )
+	    { strncpy(out, in, 3);
 	      in += 3;
-	      if ( in[0] == EOS && out > start+1 )
-	      { out[-1] = EOS;		/* delete trailing / */
-		goto out;
+	      out += 3;
+	    } else
+	    { if ( !isEmptyBuffer(&saveb) )		/* delete /foo/../ */
+	      { out = popBuffer(&saveb, char*);
+		in += 3;
+		if ( in[0] == EOS && out > start+1 )
+		{ out[-1] = EOS;		/* delete trailing / */
+		  goto out;
+		}
+		goto again;
+	      } else if (	start[0] == '/' && out == start+1 )
+	      { in += 3;
+		goto again;
 	      }
-	      goto again;
-	    } else if (	start[0] == '/' && out == start+1 )
-	    { in += 3;
-	      goto again;
 	    }
 	  }
 	}
@@ -1389,7 +1401,8 @@ static char *
 utf8_path_lwr(char *s, size_t len)
 { char buf[MAXPATHLEN];
   char *tmp = buf;
-  char *o=s, *i;
+  char *o=s;
+  const char *i;
 
   if ( len > sizeof(buf) )
   { if ( !(tmp = malloc(len)) )
@@ -1412,7 +1425,7 @@ utf8_path_lwr(char *s, size_t len)
   while( *i )
   { int c;
 
-    i = utf8_get_char(i, &c);
+    PL_utf8_code_point(&i, NULL, &c);
     c = towlower((wint_t)c);
     if ( o >= s + MAXPATHLEN-6 )
     { char ls[10];
@@ -2693,7 +2706,7 @@ argument to wait()
 
 #endif /*HAVE_SYS_WAIT_H*/
 
-const char *
+static const char *
 prog_shell(void)
 { GET_LD
 

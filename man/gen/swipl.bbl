@@ -16,7 +16,7 @@ David~R. Butenhof.
 \newblock {\em Programming with {POSIX} threads}.
 \newblock Ad{\-d}i{\-s}on-Wes{\-l}ey, Reading, MA, USA, 1997.
 
-\bibitem[Byrd, 1980]{Byrd:80}
+\bibitem[Byrd, 1980]{byrd:80}
 L.~Byrd.
 \newblock Understanding the control flow of {Prolog} programs.
 \newblock {\em Logic Programming Workshop}, 1980.
@@ -59,7 +59,7 @@ Susan~L. Graham, Peter~B. Kessler, and Marshall~K. McKusick.
 
 \bibitem[Grosof \& Swift, 2013]{DBLP:conf/aaai/GrosofS13}
 Benjamin~Nathan Grosof and Terrance Swift.
-\newblock Radial restraint: {A} semantically clean approach to bounded
+\newblock {Radial Restraint}: {A} semantically clean approach to bounded
   rationality for logic programs.
 \newblock In Marie desJardins and Michael~L. Littman, editors, {\em Proceedings
   of the Twenty-Seventh {AAAI} Conference on Artificial Intelligence, July
@@ -151,5 +151,15 @@ Markus Triska.
 \newblock The {Boolean} constraint solver of {SWI-Prolog}: System description.
 \newblock In {\em {FLOPS}}, volume 9613 of {\em LNCS}, pages 45--61, 2016.
 \newblock https://www.metalevel.at/swiclpb.pdf.
+
+\bibitem[Wielemaker, 2013]{DBLP:journals/corr/abs-1301-7669}
+Jan Wielemaker.
+\newblock Extending the logical update view with transaction support.
+\newblock {\em CoRR}, abs/1301.7669, 2013.
+
+\bibitem[Zhou, 2010]{declarativeloops:2010}
+Neng-Fa Zhou.
+\newblock Declarative loops and list comprehensions for {Prolog}.
+\newblock http://www.sci.brooklyn.cuny.edu/~zhou/papers/loops.pdf, Jan 2010.
 
 \end{thebibliography}

@@ -58,10 +58,10 @@
 #endif
 
 \newcommand{\vmajor}{8}
-\newcommand{\vminor}{2}
-\newcommand{\vpatch}{4}
+\newcommand{\vminor}{3}
+\newcommand{\vpatch}{29}
 \newcommand{\vtag}{}
-\newcommand{\vmonth}{January}
+\newcommand{\vmonth}{September}
 \newcommand{\vyear}{2021}
 
 #ifdef BOOK

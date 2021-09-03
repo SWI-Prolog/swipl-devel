@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2012, University of Amsterdam
+    Copyright (c)  2001-2020, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,7 +41,8 @@
             occurrences_of_term/3,      % +SubTerm, +Term, ?Tally
             occurrences_of_var/3,       % +SubTerm, +Term, ?Tally
             sub_term/2,                 % -SubTerm, +Term
-            sub_var/2                   % -SubTerm, +Term (SWI extra)
+            sub_var/2,                  % -SubTerm, +Term (SWI extra)
+            sub_term_shared_variables/3 % +Sub, +Term, -Vars
           ]).
 
 /** <module> Finding and counting sub-terms
@@ -125,6 +127,83 @@ sub_var(X, Term) :-
     compound(Term),
     arg(_, Term, Arg),
     sub_var(X, Arg).
+
+
+%!  sub_term_shared_variables(+Sub, +Term, -Vars) is det.
+%
+%   If Sub is a sub term of Term, Vars is bound to the list of variables
+%   in Sub that also appear  outside  Sub   in  Term.  Note  that if Sub
+%   appears twice in Term, its variables are all considered shared.
+%
+%   An  example  use-case  is  refactoring  a    large  clause  body  by
+%   introducing intermediate predicates. This predicate   can be used to
+%   find the arguments that must be passed to the new predicate.
+
+sub_term_shared_variables(Sub, Term, Vars) :-
+    term_replace_first(Term, Sub, true, Term2),
+    term_variables(Term2, AllVars),
+    term_variables(Sub, SubVars),
+    intersection_eq(SubVars, AllVars, Vars).
+
+term_replace_first(TermIn, From, To, TermOut) :-
+    term_replace_(TermIn, From, To, TermOut, done(_)).
+
+%term_replace(TermIn, From, To, TermOut) :-
+%    term_replace_(TermIn, From, To, TermOut, all).
+
+%!  term_replace_(+From, +To, +TermIn, -TermOut, +Done)
+%
+%   Replace instances (==/2) of From inside TermIn by To.
+
+term_replace_(TermIn, _From, _To, TermOut, done(Done)) :-
+    Done == true,
+    !,
+    TermOut = TermIn.
+term_replace_(TermIn, From, To, TermOut, Done) :-
+    From == TermIn,
+    !,
+    TermOut = To,
+    (   Done = done(Var)
+    ->  Var = true
+    ;   true
+    ).
+term_replace_(TermIn, From, To, TermOut, Done) :-
+    compound(TermIn),
+    compound_name_arity(TermIn, Name, Arity),
+    Arity > 0,
+    !,
+    compound_name_arity(TermOut, Name, Arity),
+    term_replace_compound(1, Arity, TermIn, From, To, TermOut, Done).
+term_replace_(Term, _, _, Term, _).
+
+term_replace_compound(I, Arity, TermIn, From, To, TermOut, Done) :-
+    I =< Arity,
+    !,
+    arg(I, TermIn, A1),
+    arg(I, TermOut, A2),
+    term_replace_(A1, From, To, A2, Done),
+    I2 is I+1,
+    term_replace_compound(I2, Arity, TermIn, From, To, TermOut, Done).
+term_replace_compound(_I, _Arity, _TermIn, _From, _To, _TermOut, _).
+
+%!  intersection_eq(+Small, +Big, -Shared) is det.
+%
+%   Shared are the variables in Small that   also appear in Big. The
+%   variables in Shared are in the same order as Small.
+
+intersection_eq([], _, []).
+intersection_eq([H|T0], L, List) :-
+    (   member_eq(H, L)
+    ->  List = [H|T],
+        intersection_eq(T0, L, T)
+    ;   intersection_eq(T0, L, List)
+    ).
+
+member_eq(E, [H|T]) :-
+    (   E == H
+    ->  true
+    ;   member_eq(E, T)
+    ).
 
 
                  /*******************************

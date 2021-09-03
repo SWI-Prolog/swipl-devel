@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -743,10 +744,12 @@ setup_interactive :-
     ->  true
     ;   print_message(error, error(goal_failed('$compile'), _)),
         halt(1)
-    ).
+    ),
+    halt.                               % set exit code
 
 '$compile_' :-
     '$load_system_init_file',
+    catch(setup_colors, _, true),
     '$set_file_search_paths',
     init_debug_flags,
     '$run_initialization',
@@ -837,6 +840,7 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
         prompt(Old, '')
     ),
     trim_stacks,
+    trim_heap,
     repeat,
       read_query(Prompt, Query, Bindings),
       prompt(_, Old),
@@ -857,9 +861,14 @@ read_query(Prompt, Goal, Bindings) :-
     current_prolog_flag(history, N),
     integer(N), N > 0,
     !,
-    read_history(h, '!h',
-                 [trace, end_of_file],
-                 Prompt, Goal, Bindings).
+    read_term_with_history(
+        Goal,
+        [ show(h),
+          help('!h'),
+          no_save([trace, end_of_file]),
+          prompt(Prompt),
+          variable_names(Bindings)
+        ]).
 read_query(Prompt, Goal, Bindings) :-
     remove_history_prompt(Prompt, Prompt1),
     repeat,                                 % over syntax errors
@@ -1128,6 +1137,7 @@ write_bindings(Bindings, ResidueVars, Delays, Det) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
+    name_vars(Bindings1, Residuals, Delays1),
     write_bindings2(Bindings1, Residuals, Delays1, Det).
 
 write_bindings2([], Residuals, Delays, _) :-
@@ -1149,6 +1159,50 @@ write_bindings2(Bindings, Residuals, Delays, _Det) :-
     ;   !,
         print_message(query, query(done))
     ).
+
+name_vars(Bindings, Residuals, Delays) :-
+    current_prolog_flag(toplevel_name_variables, true),
+    !,
+    '$term_multitons'(t(Bindings,Residuals,Delays), Vars),
+    name_vars_(Vars, Bindings, 0),
+    term_variables(t(Bindings,Residuals,Delays), SVars),
+    anon_vars(SVars).
+name_vars(_Bindings, _Residuals, _Delays).
+
+name_vars_([], _, _).
+name_vars_([H|T], Bindings, N) :-
+    name_var(Bindings, Name, N, N1),
+    H = '$VAR'(Name),
+    name_vars_(T, Bindings, N1).
+
+anon_vars([]).
+anon_vars(['$VAR'('_')|T]) :-
+    anon_vars(T).
+
+name_var(Bindings, Name, N0, N) :-
+    between(N0, infinite, N1),
+    I is N1//26,
+    J is 0'A + N1 mod 26,
+    (   I == 0
+    ->  format(atom(Name), '_~c', [J])
+    ;   format(atom(Name), '_~c~d', [J, I])
+    ),
+    (   current_prolog_flag(toplevel_print_anon, false)
+    ->  true
+    ;   \+ is_bound(Bindings, Name)
+    ),
+    !,
+    N is N1+1.
+
+is_bound([Vars=_|T], Name) :-
+    (   in_vars(Vars, Name)
+    ->  true
+    ;   is_bound(T, Name)
+    ).
+
+in_vars(Name, Name) :- !.
+in_vars(Names, Name) :-
+    '$member'(Name, Names).
 
 %!  residual_goals(:NonTerminal)
 %

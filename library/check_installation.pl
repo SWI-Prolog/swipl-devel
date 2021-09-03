@@ -53,7 +53,7 @@
 /** <module> Check installation issues and features
 
 This library performs checks on  the   installed  system to verify which
-optional components are available and  whether   all  libaries that load
+optional components are available and  whether  all  libraries that load
 shared objects/DLLs can be loaded.
 */
 
@@ -243,7 +243,7 @@ current_os(linux)   :- current_prolog_flag(arch, Arch), sub_atom(Arch, _, _, _, 
 
 %!  test_component(+Properties) is semidet.
 %
-%   Run additional tests to see whether the componnent really works.
+%   Run additional tests to see whether the component really works.
 
 test_component(Dict) :-
     Test = Dict.get(test),

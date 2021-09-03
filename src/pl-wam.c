@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,10 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#define USE_FLI_INLINES 1
+#define USE_ALLOC_INLINES 1
+
+#include "pl-wam.h"
 #include "pl-comp.h"
 #include "pl-arith.h"
 #include "pl-inline.h"
@@ -44,6 +48,22 @@
 #include "pl-prof.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-undo.h"
+#include "pl-util.h"
+#include "pl-gc.h"
+#include "pl-trace.h"
+#include "pl-pro.h"
+#include "pl-modul.h"
+#include "pl-funct.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
+#include "pl-attvar.h"
+#include "pl-setup.h"
+#include "pl-prims.h"
+#include "pl-write.h"
+#include "pl-supervisor.h"
+#include "pl-index.h"
+#include "pl-cont.h"
 #include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
@@ -57,7 +77,8 @@
 #define MARK(label)
 #endif
 
-static Choice	newChoice(choice_type type, LocalFrame fr ARG_LD);
+#define newChoice(type, fr) LDFUNC(newChoice, type, fr)
+static Choice	newChoice(DECL_LD choice_type type, LocalFrame fr);
 
 #if COUNTING
 
@@ -174,9 +195,9 @@ pl_count()
 		 *******************************/
 
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
-#define loffset(p) loffset__LD(p PASS_LD)
+#define loffset(p) LDFUNC(loffset, p)
 static intptr_t
-loffset__LD(void *p ARG_LD)
+loffset(DECL_LD void *p)
 { if ( p == NULL )
     return 0;
 
@@ -191,7 +212,7 @@ static void
 DbgPrintInstruction(LocalFrame FR, Code PC)
 { static LocalFrame ofr = NULL;		/* not thread-safe */
 
-  if ( DEBUGGING(MSG_VMI) )
+  IF_DEBUGGING(MSG_VMI)
   { GET_LD
 
     if ( ofr != FR )
@@ -229,10 +250,6 @@ DbgPrintInstruction(LocalFrame FR, Code PC)
 
 
 
-#include "pl-alloc.c"
-#include "pl-index.c"
-
-
 		 /*******************************
 		 *	     SIGNALS		*
 		 *******************************/
@@ -256,7 +273,7 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  if ( is_signalled(PASS_LDARG1(ld)) )		mask |= ALERT_SIGNAL;
+  WITH_LD(ld) if ( is_signalled() )		mask |= ALERT_SIGNAL;
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -280,6 +297,7 @@ updateAlerted(PL_local_data_t *ld)
   if ( ld->_debugstatus.debugging )		mask |= ALERT_DEBUG;
 #endif
   if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
+  if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
 
   ld->alerted = mask;
 
@@ -359,32 +377,14 @@ Brief description of the local stack-layout.  This stack contains:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
-		 /*******************************
-		 *	 LOCAL ALLOCATION	*
-		 *******************************/
-
-/* Note that lTop can be >= lMax when calling ENSURE_LOCAL_SPACE() */
-
-#define ENSURE_LOCAL_SPACE(bytes, ifnot) \
-	if ( unlikely(addPointer(lTop, (bytes)) > (void*)lMax) ) \
-        { int rc; \
-	  SAVE_REGISTERS(qid); \
-	  rc = growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD); \
-	  LOAD_REGISTERS(qid); \
-	  if ( rc != TRUE ) \
-	  { rc = raiseStackOverflow(rc); \
-	    ifnot; \
-	  } \
-	}
-
-
 
 		 /*******************************
 		 *	    FOREIGN FRAME	*
 		 *******************************/
 
+#define open_foreign_frame(_) LDFUNC(open_foreign_frame, _)
 static fid_t
-open_foreign_frame(ARG1_LD)
+open_foreign_frame(DECL_LD)
 { FliFrame fr = (FliFrame) lTop;
 
   assert((LocalFrame)(fr+1) <= lMax);
@@ -401,7 +401,7 @@ open_foreign_frame(ARG1_LD)
 
 
 void
-PL_close_foreign_frame__LD(fid_t id ARG_LD)
+PL_close_foreign_frame(DECL_LD fid_t id)
 { FliFrame fr = (FliFrame) valTermRef(id);
 
   if ( !id || fr->magic != FLI_MAGIC )
@@ -414,25 +414,19 @@ PL_close_foreign_frame__LD(fid_t id ARG_LD)
 
 
 fid_t
-PL_open_foreign_frame__LD(ARG1_LD)
+PL_open_foreign_frame(DECL_LD)
 { size_t lneeded = sizeof(struct fliFrame) + MINFOREIGNSIZE*sizeof(word);
 
   if ( !ensureLocalSpace(lneeded) )
     return 0;
 
-  return open_foreign_frame(PASS_LD1);
+  return open_foreign_frame();
 }
 
 
-#undef PL_open_foreign_frame
-fid_t
-PL_open_foreign_frame(void)
-{ GET_LD
-
-  return PL_open_foreign_frame__LD(PASS_LD1);
-}
-				/* This local definition was here before */
-#define PL_open_foreign_frame() open_foreign_frame(PASS_LD1)
+API_STUB(fid_t)
+(PL_open_foreign_frame)(void)
+( return PL_open_foreign_frame(); )
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -452,7 +446,7 @@ PL_open_signal_foreign_frame(int sync)
   { if ( sync )
     { int rc;
 
-      if ( (rc=growLocalSpace__LD(minspace, ALLOW_SHIFT PASS_LD)) != TRUE )
+      if ( (rc=growLocalSpace(minspace, ALLOW_SHIFT)) != TRUE )
 	return 0;
     } else
     { return 0;
@@ -471,14 +465,9 @@ PL_open_signal_foreign_frame(int sync)
 }
 
 
-#undef PL_close_foreign_frame
-void
-PL_close_foreign_frame(fid_t id)
-{ GET_LD
-
-  PL_close_foreign_frame__LD(id PASS_LD);
-}
-#define PL_close_foreign_frame(id) PL_close_foreign_frame__LD(id PASS_LD)
+API_STUB(void)
+(PL_close_foreign_frame)(fid_t id)
+( PL_close_foreign_frame(id); )
 
 
 void
@@ -504,6 +493,102 @@ PL_discard_foreign_frame(fid_t id)
   DiscardMark(fr->mark);
   lTop = (LocalFrame) fr;
 }
+
+
+#define determinism_error(fr, found) LDFUNC(determinism_error, fr, found)
+static int
+determinism_error(DECL_LD LocalFrame fr, atom_t found)
+{ fid_t fid;
+  int rc = FALSE;
+  atom_t a = ATOM_error;
+
+  PL_current_prolog_flag(ATOM_determinism_error, PL_ATOM, &a);
+  if ( a == ATOM_silent )
+    return TRUE;
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { Definition def = fr->predicate;
+    atom_t decl;
+
+    if ( true(fr, FR_DETGUARD) )
+    { if ( true(fr, FR_DETGUARD_SET) )
+      { decl = ATOM_guard;
+      } else
+      { LocalFrame fr2;
+
+	decl = ATOM_guard_in_caller;
+	for(fr2=fr->parent; fr2; fr2=fr2->parent)
+	{ if ( true(fr2, FR_DETGUARD_SET) )
+	  { def = fr2->predicate;
+	    break;
+	  }
+	}
+      }
+    } else
+    { decl = ATOM_property;
+
+      if ( false(def, P_DET) )
+      { LocalFrame fr2;
+
+	for(fr2=fr->parent; fr2; fr2=fr2->parent)
+	{ Definition def2 = fr2->predicate;
+	  if ( true(def2, P_DET) )
+	  { def = def2;
+	    break;
+	  }
+	}
+      }
+    }
+
+    if ( a == ATOM_warning )
+    { term_t pi = PL_new_term_ref();
+
+      rc = ( (pi=PL_new_term_ref()) &&
+	     unify_definition(MODULE_user, pi, def, 0,
+			      GP_NAMEARITY|GP_HIDESYSTEM) &&
+	     printMessage(ATOM_warning,
+			  PL_FUNCTOR, FUNCTOR_error2,
+			    PL_FUNCTOR, FUNCTOR_determinism_error4,
+			      PL_TERM, pi,
+			      PL_ATOM, ATOM_det,
+			      PL_ATOM, found,
+			      PL_ATOM, decl,
+			    PL_VARIABLE) );
+    } else
+    { rc = PL_error(NULL, 0, NULL, ERR_DETERMINISM,
+		    def, ATOM_det, found, decl);
+    }
+
+    PL_close_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+
+#define ssu_or_det_failed(fr) LDFUNC(ssu_or_det_failed, fr)
+static int
+ssu_or_det_failed(DECL_LD LocalFrame fr)
+{ fid_t fid;
+  int rc = FALSE;
+
+  if ( false(fr, FR_SSU_DET) )
+    return determinism_error(fr, ATOM_fail);
+
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t goal;
+
+    rc = ( (goal=PL_new_term_ref()) &&
+	   put_frame_goal(goal, fr) &&
+	   PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_matching_rule, goal)
+	 );
+
+    PL_close_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
 
 		/********************************
 		*         FOREIGN CALLS         *
@@ -549,8 +634,9 @@ PL_discard_foreign_frame(fid_t id)
     } \
   }
 
+#define discardForeignFrame(fr) LDFUNC(discardForeignFrame, fr)
 static void
-discardForeignFrame(LocalFrame fr ARG_LD)
+discardForeignFrame(DECL_LD LocalFrame fr)
 { Definition def = fr->predicate;
   int argc       = (int)def->functor->arity;
   Func function  = def->impl.foreign.function;
@@ -637,8 +723,9 @@ As frameFinished() is rather time critical this seems worthwhile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+#define call1(mdef, goal) LDFUNC(call1, mdef, goal)
 static int
-call1(Module mdef, term_t goal ARG_LD)
+call1(DECL_LD Module mdef, term_t goal)
 { static predicate_t PRED_call1 = NULL;
   qid_t qid;
   int rc;
@@ -654,13 +741,14 @@ call1(Module mdef, term_t goal ARG_LD)
 }
 
 
+#define call_term(mdef, goal) LDFUNC(call_term, mdef, goal)
 static int
-call_term(Module mdef, term_t goal ARG_LD)
+call_term(DECL_LD Module mdef, term_t goal)
 { Word p = valTermRef(goal);
   Module module = mdef;
 
   deRef(p);
-  if ( (p=stripModule(p, &module, 0 PASS_LD)) )
+  if ( (p=stripModule(p, &module, 0)) )
   { functor_t functor;
     term_t av;
     Procedure proc;
@@ -672,7 +760,7 @@ call_term(Module mdef, term_t goal ARG_LD)
       { functor = lookupFunctorDef(*p, 0);
 	av = 0;
       } else
-	return call1(mdef, goal PASS_LD);
+	return call1(mdef, goal);
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
       FunctorDef fd = valueFunctor(f->definition);
@@ -689,10 +777,10 @@ call_term(Module mdef, term_t goal ARG_LD)
 	ap = valTermRef(av);
 
 	for(i=0; i<arity; i++, ap++)
-	  *ap = linkVal(&args[i]);
+	  *ap = linkValG(&args[i]);
 	functor = f->definition;
       } else
-	return call1(mdef, goal PASS_LD);
+	return call1(mdef, goal);
     } else
     { return PL_type_error("callable", goal);
     }
@@ -715,8 +803,9 @@ call_cleanup/3.  Both may call-back the Prolog engine.
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define callCleanupHandler(fr, reason) LDFUNC(callCleanupHandler, fr, reason)
 static void
-callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
+callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 { if ( false(fr, FR_CATCHED) )		/* from handler */
   { size_t fref = consTermRef(fr);
     fid_t cid;
@@ -737,7 +826,7 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
-      if ( saveWakeup(&wstate, FALSE PASS_LD) )
+      if ( saveWakeup(&wstate, FALSE) )
       { static predicate_t PRED_call1 = NULL;
 	int rval;
 
@@ -745,12 +834,12 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 	  PRED_call1 = PL_predicate("call", 1, "system");
 
 	startCritical;
-        rval = call_term(contextModule(fr), clean PASS_LD);
+        rval = call_term(contextModule(fr), clean);
 	if ( !endCritical )
 	  rval = FALSE;
 	if ( !rval && exception_term )
 	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
-	restoreWakeup(&wstate PASS_LD);
+	restoreWakeup(&wstate);
       }
     }
 
@@ -759,11 +848,12 @@ callCleanupHandler(LocalFrame fr, enum finished reason ARG_LD)
 }
 
 
+#define frameFinished(fr, reason) LDFUNC(frameFinished, fr, reason)
 static int
-frameFinished(LocalFrame fr, enum finished reason ARG_LD)
+frameFinished(DECL_LD LocalFrame fr, enum finished reason)
 { if ( true(fr, FR_CLEANUP) )
   { size_t fref = consTermRef(fr);
-    callCleanupHandler(fr, reason PASS_LD);
+    callCleanupHandler(fr, reason);
     fr = (LocalFrame)valTermRef(fref);
   }
 
@@ -774,8 +864,9 @@ frameFinished(LocalFrame fr, enum finished reason ARG_LD)
 }
 
 
+#define mustBeCallable(call) LDFUNC(mustBeCallable, call)
 static int
-mustBeCallable(term_t call ARG_LD)
+mustBeCallable(DECL_LD term_t call)
 { Word p = valTermRef(call);
   Word ap;
 
@@ -830,23 +921,29 @@ typedef enum
 Unify a pointer into a new  global  term   (g)  with  a  pointer into an
 environment as obtained from some instruction VAR argument. This assumes
 we have allocated enough trail stack.
+
+See (*) with callBreakHook() for why we  need protect_var(). As the term
+reference is only used for  GC,  we   can  use  a  local stack reference
+(makeRefLok()).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define protect_var(v) LDFUNC(protect_var, v)
 static void
-protect_var(Word v ARG_LD)
+protect_var(DECL_LD Word v)
 { term_t t = PL_new_term_ref_noshift();
 
   if ( t )
-    *valTermRef(t) = makeRefL(v);
+    *valTermRef(t) = makeRefLok(v);
   else
     assert(0);		/* cannot happen due to MINFOREIGNSIZE */
 }
 
 
+#define unify_gl(g, l, has_firstvar) LDFUNC(unify_gl, g, l, has_firstvar)
 static void
-unify_gl(Word g, Word l, int has_firstvar ARG_LD)
+unify_gl(DECL_LD Word g, Word l, int has_firstvar)
 { if ( has_firstvar )
-    protect_var(l PASS_LD);
+    protect_var(l);
 
   deRef(l);
   if ( isVar(*l) )
@@ -855,15 +952,16 @@ unify_gl(Word g, Word l, int has_firstvar ARG_LD)
     assert(tTop+1 < tMax);
     LTrail(l);
   } else if ( needsRef(*l) )
-  { *g = makeRef(l);
+  { *g = makeRefG(l);
   } else
   { *g = *l;
   }
 }
 
 
+#define put_call_goal(t, proc) LDFUNC(put_call_goal, t, proc)
 static int
-put_call_goal(term_t t, Procedure proc ARG_LD)
+put_call_goal(DECL_LD term_t t, Procedure proc)
 { FunctorDef fd  = proc->definition->functor;
 
   if ( fd->arity > 0 )
@@ -881,7 +979,7 @@ put_call_goal(term_t t, Procedure proc ARG_LD)
 
     *gp++ = fd->functor;
     for(i=0; i<fd->arity; i++)
-      unify_gl(gp++, ap++, FALSE PASS_LD);
+      unify_gl(gp++, ap++, FALSE);
     *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
   } else
   { *valTermRef(t) = fd->name;
@@ -896,9 +994,10 @@ put_vm_call() creates a description of  the   instruction  to  which the
 break applied.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define put_vm_call(t, frref, PC, op, has_firstvar, pop) LDFUNC(put_vm_call, t, frref, PC, op, has_firstvar, pop)
 static int
-put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
-	    int *pop ARG_LD)
+put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
+	    int *pop)
 { atom_t simple_goal;
   functor_t ftor;
   int clean;
@@ -906,7 +1005,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
   switch(op)
   { case I_CALL:			/* procedure */
     case I_DEPART:
-    { return ( put_call_goal(t, (Procedure) PC[1] PASS_LD) &&
+    { return ( put_call_goal(t, (Procedure) PC[1]) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
     case I_CALLM:			/* module, procedure */
@@ -916,7 +1015,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, m->name) &&
-	       put_call_goal(av+1, (Procedure) PC[2] PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[2]) &&
 	       PL_cons_functor_v(t, FUNCTOR_colon2, av) &&
 	       PL_cons_functor_v(t, FUNCTOR_call1, t) );
     }
@@ -928,7 +1027,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[3]) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_atom(av+1, contextm->name) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
@@ -943,7 +1042,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return ( (av = PL_new_term_refs(2)) &&
 	       PL_put_atom(av+0, procm->name) &&
-	       put_call_goal(av+1, (Procedure) PC[3] PASS_LD) &&
+	       put_call_goal(av+1, (Procedure) PC[3]) &&
 	       PL_cons_functor_v(av+0, FUNCTOR_colon2, av) &&
 	       PL_put_term(av+1, cmv) &&
 	       PL_cons_functor_v(t, FUNCTOR_xpceref2, av) &&
@@ -990,7 +1089,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       if ( clean&0x1 ) setVar(*v1);
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = (word)PC[2];
       gt[3] = FUNCTOR_call1;
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
@@ -1017,8 +1116,8 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       if ( clean&0x2 ) setVar(*v2);
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
-      unify_gl(&gt[2], v2, has_firstvar PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar);
+      unify_gl(&gt[2], v2, has_firstvar);
       gt[3] = FUNCTOR_call1;
       gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
@@ -1027,7 +1126,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
     }
     case B_UNIFY_EXIT:
     { if ( debugstatus.debugging )
-      { return ( put_call_goal(t, GD->procedures.equals2 PASS_LD) &&
+      { return ( put_call_goal(t, GD->procedures.equals2) &&
 		 PL_cons_functor_v(t, FUNCTOR_call1, t) );
       } else
       { return PL_put_atom_chars(t, "unify_exit");
@@ -1052,7 +1151,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 	return FALSE;
 
       gt[0] = ftor;
-      unify_gl(&gt[1], v1, has_firstvar PASS_LD);
+      unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = FUNCTOR_call1;
       gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
       *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
@@ -1070,7 +1169,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       term_t av;
       int rc;
 
-      n1 = argvArithStack(2 PASS_LD);
+      n1 = argvArithStack(2);
       n2 = n1+1;
 
       rc = ((av = PL_new_term_refs(2)) &&
@@ -1083,7 +1182,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       return rc;
     }
     case A_IS:
-    { Number     val = argvArithStack(1 PASS_LD);
+    { Number     val = argvArithStack(1);
       LocalFrame NFR = LD->query->next_environment;
       term_t       r = consTermRef(argFrameP(NFR, 0));
       term_t av;
@@ -1099,7 +1198,7 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
       return rc;
     }
     case A_FIRSTVAR_IS:			/* call(A is B) */
-    { Number     val = argvArithStack(1 PASS_LD);
+    { Number     val = argvArithStack(1);
       LocalFrame  fr = (LocalFrame)valTermRef(frref);
       Word A         = varFrameP(fr, (int)PC[1]);
       term_t       r = consTermRef(A);
@@ -1128,10 +1227,10 @@ put_vm_call(term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       setVar(*A);
       gt[0] = FUNCTOR_plus2;
-      unify_gl(&gt[1], B, has_firstvar PASS_LD);
+      unify_gl(&gt[1], B, has_firstvar);
       gt[2] = consInt(add);
       gt[3] = FUNCTOR_is2;
-      unify_gl(&gt[4], A, has_firstvar PASS_LD);
+      unify_gl(&gt[4], A, has_firstvar);
       gt[5] = consPtr(&gt[0], STG_GLOBAL|TAG_COMPOUND);
       gt[6] = FUNCTOR_call1;
       gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
@@ -1161,14 +1260,15 @@ callBreakHook() calls prolog:break_hook/6 as
 initialise these to bind to the  goal.   However,  if GC comes along, it
 will reset these variables.  Therefore,  we   fake  GC  that  we already
 executed this instruction. The price is   that  V (normal var) arguments
-are not marked as used, and GC migh   thus  clean them. We fix that with
+are not marked as used, and GC might   thus clean them. We fix that with
 protect_var(), which creates a  term-reference   to  the local variable,
 such that it is marked from the foreign environment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define callBreakHook(frame, bfr, PC, op, pop) LDFUNC(callBreakHook, frame, bfr, PC, op, pop)
 static break_action
-callBreakHook(LocalFrame frame, Choice bfr,
-	      Code PC, code op, int *pop ARG_LD)
+callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
+	      Code PC, code op, int *pop)
 { predicate_t proc;
   fid_t cid;
   term_t frameref, chref, pcref;
@@ -1202,7 +1302,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
     }
   }
 
-  if ( saveWakeup(&wstate, FALSE PASS_LD) )
+  if ( saveWakeup(&wstate, FALSE) )
   { if ( (cid=PL_open_foreign_frame()) )
     { term_t argv = PL_new_term_refs(6);
       Clause clause = frame->clause->value.clause;
@@ -1214,9 +1314,9 @@ callBreakHook(LocalFrame frame, Choice bfr,
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
       if ( ( op == B_UNIFY_EXIT &&
-             put_call_goal(argv+4, GD->procedures.equals2 PASS_LD) &&
+             put_call_goal(argv+4, GD->procedures.equals2) &&
              PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
-           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop PASS_LD) )
+           put_vm_call(argv+4, frameref, PC, op, pc_offset != 0, pop) )
       { DEBUG(CHK_SECURE, checkStacks(NULL));
 	if ( (qid = PL_open_query(MODULE_user,
 				  PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION, proc, argv)) )
@@ -1242,7 +1342,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
 		goto invalid_action;
 
 	      PL_close_foreign_frame(cid);
-	      restoreWakeup(&wstate PASS_LD);
+	      restoreWakeup(&wstate);
 
 	      return action;
 	    } else if ( PL_is_functor(argv+5, FUNCTOR_call1) )
@@ -1256,7 +1356,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
 	      argFrame(NFR, 0) = *p;
 
 	      PL_close_foreign_frame(cid);
-	      restoreWakeup(&wstate PASS_LD);
+	      restoreWakeup(&wstate);
 
 	      return BRK_CALL;
 	    } else
@@ -1269,7 +1369,7 @@ callBreakHook(LocalFrame frame, Choice bfr,
 
       PL_discard_foreign_frame(cid);
     }
-    restoreWakeup(&wstate PASS_LD);
+    restoreWakeup(&wstate);
   }
 
 default_action:
@@ -1316,7 +1416,7 @@ Possibly this should also hold for the other `special term references'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-TrailAssignment__LD(Word p ARG_LD)
+TrailAssignment(DECL_LD Word p)
 { assert(gTop+1 <= gMax && tTop+2 <= tMax);
   assert(!(*p & (MARK_MASK|FIRST_MASK)));
 
@@ -1332,8 +1432,9 @@ TrailAssignment__LD(Word p ARG_LD)
 
 
 #ifdef O_ATTVAR
+#define reclaim_attvars(after) LDFUNC(reclaim_attvars, after)
 static void
-reclaim_attvars(Word after ARG_LD)
+reclaim_attvars(DECL_LD Word after)
 { while ( LD->attvar.attvars >= after )
   { word w = *LD->attvar.attvars;
 
@@ -1346,8 +1447,9 @@ reclaim_attvars(Word after ARG_LD)
 #endif
 
 
+#define __do_undo(m) LDFUNC(__do_undo, m)
 static inline void
-__do_undo(mark *m ARG_LD)
+__do_undo(DECL_LD mark *m)
 { TrailEntry tt = tTop;
   TrailEntry mt = m->trailtop;
 
@@ -1357,6 +1459,8 @@ __do_undo(mark *m ARG_LD)
     if ( isTrailVal(p) )
     { DEBUG(2, Sdprintf("Undoing a trailed assignment\n"));
       tt--;
+      if ( tt->address == gBase )
+	push_undo(tt->address);
       *tt->address = trailVal(p);
       DEBUG(CHK_SECURE,
 	    if ( isAttVar(*tt->address) )
@@ -1369,10 +1473,10 @@ __do_undo(mark *m ARG_LD)
   tTop = mt;
   if ( LD->frozen_bar > m->globaltop )
   { DEBUG(CHK_SECURE, assert(gTop >= LD->frozen_bar));
-    reclaim_attvars(LD->frozen_bar PASS_LD);
+    reclaim_attvars(LD->frozen_bar);
     gTop = LD->frozen_bar;
   } else
-  { reclaim_attvars(m->globaltop PASS_LD);
+  { reclaim_attvars(m->globaltop);
     gTop = m->globaltop;
   }
 }
@@ -1381,11 +1485,11 @@ __do_undo(mark *m ARG_LD)
 void
 do_undo(mark *m)
 { GET_LD
-  __do_undo(m PASS_LD);
+  __do_undo(m);
 }
 
 #undef Undo
-#define Undo(m) __do_undo(&m PASS_LD)
+#define Undo(m) __do_undo(&m)
 #endif /*O_DESTRUCTIVE_ASSIGNMENT*/
 
 
@@ -1398,8 +1502,9 @@ do_undo(mark *m)
 */
 
 #ifdef O_PLMT
+#define localDefinition(def) LDFUNC(localDefinition, def)
 static Definition
-localDefinition(Definition def ARG_LD)
+localDefinition(DECL_LD Definition def)
 { unsigned int tid = LD->thread.info->pl_tid;
   size_t idx = MSB(tid);
   LocalDefinitions v = def->impl.local.local;
@@ -1435,12 +1540,12 @@ destroyLocalDefinition(Definition def, unsigned int tid)
 #endif
 
 Definition
-getProcDefinition__LD(Definition def ARG_LD)
+getLocalProcDefinition(DECL_LD Definition def)
 {
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
   { MEMORY_ACQUIRE();
-    return localDefinition(def PASS_LD);
+    return localDefinition(def);
   }
 #endif
 
@@ -1460,14 +1565,15 @@ getProcDefinitionForThread(Definition def, unsigned int tid)
 }
 
 
+#define getProcDefinedDefinition(def) LDFUNC(getProcDefinedDefinition, def)
 static inline Definition
-getProcDefinedDefinition(Definition def ARG_LD)
+getProcDefinedDefinition(DECL_LD Definition def)
 { if ( !def->impl.any.defined && false(def, PROC_DEFINED) )
-    def = trapUndefined(def PASS_LD);
+    def = trapUndefined(def);
 
 #ifdef O_PLMT
   if ( true(def, P_THREAD_LOCAL) )
-    return getProcDefinition__LD(def PASS_LD);
+    return getLocalProcDefinition(def);
 #endif
 
   return def;
@@ -1506,19 +1612,21 @@ setContextModule(LocalFrame fr, Module context)
    compatible to at least SICStus and YAP.
 */
 
+#define is_qualified(p) LDFUNC(is_qualified, p)
 static inline int
-is_qualified(Word p ARG_LD)
+is_qualified(DECL_LD Word p)
 { return hasFunctor(*p, FUNCTOR_colon2);
 }
 
 
+#define m_qualify_argument(fr, arg) LDFUNC(m_qualify_argument, fr, arg)
 static int
-m_qualify_argument(LocalFrame fr, int arg ARG_LD)
+m_qualify_argument(DECL_LD LocalFrame fr, int arg)
 { Word k = varFrameP(fr, arg);
   Word p;
 
   deRef2(k, p);
-  if ( !is_qualified(p PASS_LD) )
+  if ( !is_qualified(p) )
   { Word p2;
 
     if ( !hasGlobalSpace(3) )
@@ -1543,7 +1651,7 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
       LTrail(p);
       *p = makeRefG(&p2[2]);
     } else
-    { p2[2] = (needsRef(*p) ? makeRef(p) : *p);
+    { p2[2] = (needsRef(*p) ? makeRefG(p) : *p);
     }
     *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
   } else
@@ -1554,13 +1662,13 @@ m_qualify_argument(LocalFrame fr, int arg ARG_LD)
       Word ap;
 
       deRef2(p2, ap);
-      if ( is_qualified(ap PASS_LD) )
+      if ( is_qualified(ap) )
       { Word a1 = argTermP(*p, 0);
 	deRef(a1);
 	if (! isAtom(*a1))
 	  break;
 	p = ap;
-	if ( --depth == 0 && !is_acyclic(p PASS_LD) )
+	if ( --depth == 0 && !is_acyclic(p) )
 	{ term_t t = pushWordAsTermRef(p);
 	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
 	  popTermRef();
@@ -1584,8 +1692,9 @@ instantiated to avoid teh compiler to generate a meta-call for it. Other
 errors will find their way to the user in other ways.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define checkCallAtContextInstantiation(p) LDFUNC(checkCallAtContextInstantiation, p)
 static int
-checkCallAtContextInstantiation(Word p ARG_LD)
+checkCallAtContextInstantiation(DECL_LD Word p)
 { Word g, m;
   atom_t pm;
 
@@ -1597,7 +1706,7 @@ checkCallAtContextInstantiation(Word p ARG_LD)
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
   g = argTermP(*p, 0);
   deRef(g);
-  if ( !(g=stripModuleName(g, &pm PASS_LD)) )
+  if ( !(g=stripModuleName(g, &pm)) )
     return FALSE;
   if ( hasFunctor(*g, FUNCTOR_colon2) )
   { m = argTermP(*g, 0);
@@ -1624,7 +1733,7 @@ Can perform GC/shift and may leave overflow exceptions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-foreignWakeup(term_t ex ARG_LD)
+foreignWakeup(DECL_LD term_t ex)
 { if ( unlikely(LD->alerted & ALERT_WAKEUP) )
   { LD->alerted &= ~ALERT_WAKEUP;
 
@@ -1678,7 +1787,7 @@ TBD: In these modern days we can  probably   do  GC. Still, if it is not
 needed why would we?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+void
 resumeAfterException(int clear, Stack outofstack)
 { GET_LD
 
@@ -1696,9 +1805,9 @@ resumeAfterException(int clear, Stack outofstack)
   }
 
   if ( !considerGarbageCollect((Stack)NULL) )
-  { trimStacks((outofstack != NULL) PASS_LD);
+  { trimStacks((outofstack != NULL));
   } else
-  { trimStacks(FALSE PASS_LD);		/* just re-enable the spare stacks */
+  { trimStacks(FALSE);		/* just re-enable the spare stacks */
     if ( outofstack != NULL )
       LD->trim_stack_requested = TRUE;	/* next time with resize */
   }
@@ -1725,8 +1834,6 @@ exceptionUnwindGC(void)
 		 /*******************************
 		 *   FOREIGN-LANGUAGE INTERFACE *
 		 *******************************/
-
-#include "pl-fli.c"
 
 #ifdef O_DEBUGGER
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1806,8 +1913,9 @@ findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define findCatcher(fr, ch, ex) LDFUNC(findCatcher, fr, ch, ex)
 static term_t
-findCatcher(LocalFrame fr, Choice ch, term_t ex ARG_LD)
+findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex)
 { Definition catch3  = PROCEDURE_catch3->definition;
 
   for(; fr; fr = fr->parent)
@@ -1860,8 +1968,9 @@ Returns:
 #endif
 
 #ifdef O_DEBUGGER
+#define isCaughtInOuterQuery(qid, ball) LDFUNC(isCaughtInOuterQuery, qid, ball)
 static term_t
-isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
+isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
 { Definition catch3 = PROCEDURE_catch3->definition;
   QueryFrame qf = QueryFromQid(qid);
 
@@ -1902,8 +2011,9 @@ isCaughtInOuterQuery(qid_t qid, term_t ball ARG_LD)
 }
 
 
+#define uncachableException(t) LDFUNC(uncachableException, t)
 static word
-uncachableException(term_t t ARG_LD)
+uncachableException(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -1913,8 +2023,9 @@ uncachableException(term_t t ARG_LD)
   return 0;
 }
 
+#define resourceException(t) LDFUNC(resourceException, t)
 static word
-resourceException(term_t t ARG_LD)
+resourceException(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -1953,8 +2064,9 @@ The cht argument is one of CHP_CLAUSE   or CHP_JUMP, indicating the type
 of redo.  We always show redo for an external redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define dbgRedoFrame(fr, cht) LDFUNC(dbgRedoFrame, fr, cht)
 static LocalFrame
-dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
+dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 { DEBUG(MSG_TRACE, Sdprintf("REDO on [%d] %s\n",
 			    (int)levelFrame(fr), predicateName(fr->predicate)));
 
@@ -1980,8 +2092,9 @@ dbgRedoFrame(LocalFrame fr, choice_type cht ARG_LD)
 
 #endif /*O_DEBUGGER*/
 
+#define exception_hook(pqid, fr, catchfr_ref) LDFUNC(exception_hook, pqid, fr, catchfr_ref)
 static int
-exception_hook(qid_t pqid, term_t fr, term_t catchfr_ref ARG_LD)
+exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
 { if ( PROCEDURE_exception_hook4->definition->impl.clauses.first_clause )
   { if ( !LD->exception.in_hook )
     { wakeup_state wstate;
@@ -1990,7 +2103,7 @@ exception_hook(qid_t pqid, term_t fr, term_t catchfr_ref ARG_LD)
       int debug, trace, rc;
 
       LD->exception.in_hook++;
-      if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+      if ( !saveWakeup(&wstate, TRUE) )
 	return FALSE;
 
       av = PL_new_term_refs(4);
@@ -1998,7 +2111,7 @@ exception_hook(qid_t pqid, term_t fr, term_t catchfr_ref ARG_LD)
       PL_put_frame(av+2, (LocalFrame)valTermRef(fr));
 
       if ( !catchfr_ref )
-	catchfr_ref = isCaughtInOuterQuery(pqid, exception_term PASS_LD);
+	catchfr_ref = isCaughtInOuterQuery(pqid, exception_term);
       if ( catchfr_ref == (term_t)-1 )
       { PL_put_atom_chars(av+3, "C");
       } else if ( catchfr_ref && catchfr_ref == LD->exception.fr_rewritten )
@@ -2045,7 +2158,7 @@ exception_hook(qid_t pqid, term_t fr, term_t catchfr_ref ARG_LD)
       }
 
     done:
-      restoreWakeup(&wstate PASS_LD);
+      restoreWakeup(&wstate);
       LD->exception.in_hook--;
 
       return rc;
@@ -2094,8 +2207,9 @@ The new arguments block can contain the following types:
 					brandy to Huub Knops, SWI
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define copyFrameArguments(from, to, argc) LDFUNC(copyFrameArguments, from, to, argc)
 static void
-copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
+copyFrameArguments(DECL_LD LocalFrame from, LocalFrame to, size_t argc)
 { Word ARGD, ARGS, ARGE;
 
   if ( argc == 0 )
@@ -2103,23 +2217,6 @@ copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
 
   ARGS = argFrameP(from, 0);
   ARGE = ARGS+argc;
-  ARGD = argFrameP(to, 0);
-  for( ; ARGS < ARGE; ARGS++, ARGD++) /* dereference the block */
-  { word k = *ARGS;
-
-    if ( isRefL(k) )
-    { Word p = unRefL(k);
-
-      if ( p > (Word)to )
-      { if ( isVar(*p) )
-	{ *p = makeRefL(ARGD);
-	  setVar(*ARGS);
-	} else
-	  *ARGS = *p;
-      }
-    }
-  }
-  ARGS = argFrameP(from, 0);
   ARGD = argFrameP(to, 0);
   while( ARGS < ARGE )			/* now copy them */
     *ARGD++ = *ARGS++;
@@ -2155,20 +2252,27 @@ copyFrameArguments(LocalFrame from, LocalFrame to, size_t argc ARG_LD)
 #ifdef O_DEBUG_BACKTRACK
 int backtrack_from_line;
 choice_type last_choice;
-#define GO(label) do { backtrack_from_line = __LINE__; goto label; } while(0)
+#define GO(helper) do { backtrack_from_line = __LINE__; VMH_GOTO(helper); } while(0)
 #else
-#define GO(label) goto label
+#define GO(helper) VMH_GOTO(helper)
 #endif
 
-#define FRAME_FAILED		GO(frame_failed)
-#define CLAUSE_FAILED		GO(clause_failed)
-#define BODY_FAILED		GO(body_failed)
-#ifdef O_DEBUG
-#define THROW_EXCEPTION		do { throwed_from_line = __LINE__; \
-				     goto b_throw; } while(0)
-#else
-#define THROW_EXCEPTION		goto b_throw
+#define FRAME_FAILED		GO(deep_backtrack)
+#define CLAUSE_FAILED		GO(shallow_backtrack)
+#define BODY_FAILED		GO(shallow_backtrack)
+#ifdef O_DEBUGGER
+#define TRACE_RETRY		VMH_GOTO(retry)
 #endif
+#ifdef O_ATTVAR
+#define ATTVAR_WAKEUP		VMH_GOTO(wakeup)
+#endif
+#ifdef O_DEBUG
+#define THROW_EXCEPTION		do { THROWED_FROM_LINE = __LINE__; \
+				     _THROW_EXCEPTION; } while(0)
+#else
+#define THROW_EXCEPTION		do { _THROW_EXCEPTION; } while(0)
+#endif
+#define _THROW_EXCEPTION	VMH_GOTO(b_throw)
 
 #ifdef O_PROFILE
 #define Profile(g) if ( unlikely(LD->profile.active) ) g
@@ -2193,8 +2297,9 @@ leaveFrame(LocalFrame fr)
 }
 
 
+#define discardFrame(fr) LDFUNC(discardFrame, fr)
 static void
-discardFrame(LocalFrame fr ARG_LD)
+discardFrame(DECL_LD LocalFrame fr)
 { Definition def = fr->predicate;
 
   DEBUG(2, Sdprintf("discard #%d running %s\n",
@@ -2203,7 +2308,7 @@ discardFrame(LocalFrame fr ARG_LD)
 
   if ( true(def, P_FOREIGN) )
   { if ( fr->clause )
-    { discardForeignFrame(fr PASS_LD);
+    { discardForeignFrame(fr);
       fr->clause = NULL;
     }
   } else
@@ -2259,7 +2364,7 @@ chp_chars(Choice ch)
 
 
 int
-existingChoice(Choice ch ARG_LD)
+existingChoice(DECL_LD Choice ch)
 { if ( onStack(local, ch) && onStack(local, ch->frame) &&
        (int)ch->type >= 0 && (int)ch->type <= CHP_DEBUG )
   { Choice ch2;
@@ -2292,8 +2397,9 @@ before calling frameFinished() such that the discarded frames are really
 invisible to GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define discardChoicesAfter(fr, reason) LDFUNC(discardChoicesAfter, fr, reason)
 static void
-discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
+discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 { if ( (LocalFrame)BFR > fr )
   { Choice me;
 
@@ -2325,7 +2431,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 	    DiscardMark(me->mark);
 	  }
 	  BFR = me;
-	  frameFinished(fr2, reason PASS_LD);
+	  frameFinished(fr2, reason);
 	  BFR = BFR->parent;
 	  if ( lSave != (char*)lBase )	/* shifted */
 	  { intptr_t offset = (char*)lBase - lSave;
@@ -2341,7 +2447,7 @@ discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
 #endif
 	}
 
-	discardFrame(fr2 PASS_LD);
+	discardFrame(fr2);
       }
 
       if ( (LocalFrame)me->parent <= fr )
@@ -2363,8 +2469,9 @@ Discard choicepoints in debugging mode.  As we might be doing callbacks
 on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define dbg_discardChoicesAfter(fr, reason) LDFUNC(dbg_discardChoicesAfter, fr, reason)
 static void
-dbg_discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
+dbg_discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
     word w;
@@ -2376,12 +2483,12 @@ dbg_discardChoicesAfter(LocalFrame fr, enum finished reason ARG_LD)
     assert(!isVar(w));
     PushVal(w);
     exception_term = 0;
-    discardChoicesAfter(fr, reason PASS_LD);
+    discardChoicesAfter(fr, reason);
     PopVal(w);
     *valTermRef(exception_bin) = w;
     exception_term = exception_bin;
   } else
-  { discardChoicesAfter(fr, reason PASS_LD);
+  { discardChoicesAfter(fr, reason);
   }
 }
 
@@ -2397,7 +2504,7 @@ for the one other choicepoint is ensured of a local frame is created.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static Choice
-newChoice(choice_type type, LocalFrame fr ARG_LD)
+newChoice(DECL_LD choice_type type, LocalFrame fr)
 { Choice ch = (Choice)lTop;
 
   DEBUG(0, assert(ch+1 <= (Choice)lMax));
@@ -2425,7 +2532,7 @@ one has a programPointer pointing to  I_EXITQUERY, doing the return from
 a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NDEBUG_SAVE_FLAGS (PLFLAG_LASTCALL)
+#define NDEBUG_SAVE_FLAGS prologFlagMask(PLFLAG_LASTCALL)
 
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
@@ -2433,7 +2540,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   QueryFrame qf;
   LocalFrame fr, top;
   Definition def;
-  size_t arity;
+  size_t i, arity;
   Word ap;
   size_t lneeded;
   static int top_initialized = FALSE;
@@ -2466,7 +2573,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   assert((Word)lTop >= refFliP(fli_context, fli_context->size));
 
 					/* resolve can call-back */
-  def = getProcDefinedDefinition(proc->definition PASS_LD);
+  def = getProcDefinedDefinition(proc->definition);
+  arity = def->functor->arity;
 
 #ifdef JMPBUF_ALIGNMENT
   lneeded = JMPBUF_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
@@ -2476,6 +2584,10 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   if ( !ensureLocalSpace(lneeded) )
     return (qid_t)0;
+  for(i=0; i<arity; i++)
+  { if ( !globalizeTermRef(args+i) )
+      return (qid_t)0;
+  }
 					/* should be struct alignment, */
 					/* but for now, I think this */
 					/* is always the same */
@@ -2494,12 +2606,13 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   top->clause        = &cref;
 #ifdef O_PROFILE
   if ( LD->profile.active )
-    top->prof_node = profCall(top->predicate PASS_LD);
+    top->prof_node = profCall(top->predicate);
   else
     top->prof_node = NULL;
 #endif
   if ( environment_frame )
   { setNextFrameFlags(top, environment_frame);
+    clear(top, FR_INRESET);		/* shift/1 can't pass callbacks */
   } else
   { top->flags	     = FR_MAGIC;
     top->level	     = 0;
@@ -2509,7 +2622,6 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   setNextFrameFlags(fr, top);
   set(top, FR_HIDE_CHILDS);
   fr->programPointer = clause.codes;
-  arity		     = def->functor->arity;
 
   DEBUG(CHK_SECURE, checkStacks(NULL));
   assert((uintptr_t)fli_context > (uintptr_t)environment_frame);
@@ -2538,7 +2650,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     Word p = valTermRef(args);
 
     for( n = arity; n-- > 0; p++ )
-      *ap++ = linkVal(p);
+      *ap++ = linkValI(p);
   }
 					/* lTop above the arguments */
   lTop = (LocalFrame)ap;
@@ -2549,7 +2661,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     suspendTrace(TRUE);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
-    qf->flags_saved = (LD->prolog_flag.mask.flags & NDEBUG_SAVE_FLAGS);
+    qf->flags_saved = (LD->prolog_flag.mask.flags[0] & NDEBUG_SAVE_FLAGS);
     setPrologFlagMask(PLFLAG_LASTCALL);
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = LD->depth_info.limit;
@@ -2592,17 +2704,18 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 }
 
 
+#define discard_query(qid) LDFUNC(discard_query, qid)
 static void
-discard_query(qid_t qid ARG_LD)
+discard_query(DECL_LD qid_t qid)
 { QueryFrame qf = QueryFromQid(qid);
 
-  discardChoicesAfter(&qf->frame, FINISH_CUT PASS_LD);
+  discardChoicesAfter(&qf->frame, FINISH_CUT);
   qf = QueryFromQid(qid);		/* may be shifted */
-  discardFrame(&qf->frame PASS_LD);
+  discardFrame(&qf->frame);
   if ( true(&qf->frame, FR_WATCHED) )
   { lTop = (LocalFrame)argFrameP(&qf->frame,
 				 qf->frame.predicate->functor->arity);
-    frameFinished(&qf->frame, FINISH_CUT PASS_LD);
+    frameFinished(&qf->frame, FINISH_CUT);
   }
 }
 
@@ -2628,8 +2741,8 @@ restore_after_query(QueryFrame qf)
   if ( true(qf, PL_Q_NODEBUG) )
   { suspendTrace(FALSE);
     debugstatus.debugging = qf->debugSave;
-    LD->prolog_flag.mask.flags &= (~NDEBUG_SAVE_FLAGS);
-    LD->prolog_flag.mask.flags |= qf->flags_saved;
+    LD->prolog_flag.mask.flags[0] &= (~NDEBUG_SAVE_FLAGS);
+    LD->prolog_flag.mask.flags[0] |= qf->flags_saved;
 #ifdef O_LIMIT_DEPTH
     LD->depth_info.limit   = qf->saved_depth_limit;
     LD->depth_info.reached = qf->saved_depth_reached;
@@ -2653,7 +2766,7 @@ PL_cut_query(qid_t qid)
   if ( false(qf, PL_Q_DETERMINISTIC) )
   { int exbefore = (exception_term != 0);
 
-    discard_query(qid PASS_LD);
+    discard_query(qid);
     qf = QueryFromQid(qid);
     if ( !exbefore && exception_term != 0 )
       rc = FALSE;
@@ -2681,7 +2794,7 @@ PL_close_query(qid_t qid)
     if ( false(qf, PL_Q_DETERMINISTIC) )
     { int exbefore = (exception_term != 0);
 
-      discard_query(qid PASS_LD);
+      discard_query(qid);
       qf = QueryFromQid(qid);
       if ( !exbefore && exception_term != 0 )
 	rc = FALSE;
@@ -2771,50 +2884,256 @@ typedef enum
   uwrite				/* Unification in write mode */
 } unify_mode;
 
-#define IF_WRITE_MODE_GOTO(label) \
-	if ( umode == uwrite ) VMI_GOTO(label)
+/* HACK: uncomment the following line to enable function mode */
+/* #define O_VMI_FUNCTIONS 1 */
+/* #define VMI_REGISTER_VARIABLES 1 */
+/* #define VMI_USE_REGISTER_VARIABLES 1 */
+/* registers here MUST be in the list of callee-saved registers! */
+#define LD_REGISTER "rbx"
+#define REGFILE_REGISTER "r12"
 
-#define TRUST_CLAUSE(cref) \
-	umode = uread; \
-	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
-	if ( debugstatus.debugging ) \
-	  newChoice(CHP_DEBUG, FR PASS_LD); \
-	PC    = cref->value.clause->codes; \
-	NEXT_INSTRUCTION;
-#define TRY_CLAUSE(cref, cond, altpc) \
-	umode = uread; \
-	CL    = cref; \
-	lTop  = (LocalFrame)(ARGP + cref->value.clause->variables); \
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION); \
-	if ( cond ) \
-	{ Choice ch = newChoice(CHP_JUMP, FR PASS_LD); \
-	  ch->value.PC = altpc; \
-	} else if ( debugstatus.debugging ) \
-	{ newChoice(CHP_DEBUG, FR PASS_LD); \
-	} \
-	PC    = cref->value.clause->codes; \
-	NEXT_INSTRUCTION;
+#include "pentium.h"
 
+#if O_VMI_FUNCTIONS
+struct register_file;
+#define VMI_RETTYPE Code
+# if VMI_USE_REGISTER_VARIABLES
+#  define VMI_ARG_DECL Code PC
+#  define VMI_ARG_PASS PC
+# else
+#  define VMI_ARG_DECL Code PC, struct register_file *registers ARG_LD
+#  define VMI_ARG_PASS PC, registers PASS_LD
+# endif
+typedef VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
+# if VMI_REGISTER_VARIABLES
+register struct register_file *__reg_registers asm(REGFILE_REGISTER);
+register PL_local_data_t *__reg_ld asm(LD_REGISTER);
+# endif
+#endif
+
+/* All the registers used in PL_next_solution et al; there will always be a
+ * variable or macro called REGISTERS with the current active registers */
+typedef struct register_file
+{ unify_mode umode;			/* Unification mode */
+# define     UMODE	(REGISTERS.umode)
+  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
+# define     SLOW_UNIFY	(REGISTERS.slow_unify)
+  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
+# define     QID	(REGISTERS.qid)
+  QueryFrame qf;			/* Query frame */
+# define     QF		(REGISTERS.qf)
+  LocalFrame fr;			/* current frame */
+# define     FR		(REGISTERS.fr)
+# define     CL		(FR->clause)	/* clause of current frame */
+  LocalFrame nfr;			/* Next frame */
+# define     NFR	(REGISTERS.nfr)
+  Word       argp;			/* current argument pointer */
+# define     ARGP	(REGISTERS.argp)
+  Definition def;			/* definition of current procedure */
+# define     DEF	(REGISTERS.def)
+  fid_t      ffr_id;			/* foreign function id */
+# define     FFR_ID	(REGISTERS.ffr_id)
+  ar_context pl_ar_ctx;
+# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
+  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
+# define     FNDET_CONTEXT (REGISTERS.fndet_context)
+#ifdef O_DEBUG
+  int	     throwed_from_line;		/* Debugging: line we came from */
+# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
+#endif
+#if O_VMI_FUNCTIONS
+  int        solution_ret;		/* return value for PL_next_solution, when exit_vm_buf is used */
+# define     SOLUTION_RET		(REGISTERS.solution_ret)
+  jmp_buf    exit_vm_buf;		/* jump target for exiting PL_next_solution */
+# define     EXIT_VM_BUF		(REGISTERS.exit_vm_buf)
+#endif
+} register_file;
+
+
+/* Imperative code that gets executed just after entry to an instruction,
+ * and just before exit from an instruction (i.e. before goto/return/etc).
+ * For profiling/tracing purposes only, and not applied to VMH's.
+ */
+#define VMI_ENTER(n)		count(n, PC); START_PROF(n, #n);
+#define VMI_EXIT		END_PROF();
+
+/* Components of VMI/VMH macro expansion. The underscore-prefix macros
+ * get defined per-implementation.
+ */
+
+/* If the compiler complains about undeclared __is_vmi or __is_vmh, it means
+ * a mismatch of VMI..END_VMH or VMH..END_VMI.
+ */
+#define assert_exists(var, message) (void)(var)
+#define VMI(Name,f,na,a)	_VMI_DECLARATION(Name,f,na,a) \
+				{ int __is_vmi = 1; \
+				  { _VMI_PROLOGUE(Name,f,na,a); VMI_ENTER(Name)
+#define END_VMI			    _VMI_EPILOGUE \
+				  } \
+				  assert_exists(__is_vmi, "END_VMI used without VMI!"); \
+				}
+#define VMH(Name,na,at,an)	_VMH_DECLARATION(Name,na,at,an) \
+				{ int __is_vmh = 1; \
+				  { _VMH_PROLOGUE(Name,na,at,an)
+#define END_VMH			    _VMH_EPILOGUE \
+				  } \
+				  assert_exists(__is_vmh, "END_VMH used without VMH!"); \
+				}
+#define NEXT_INSTRUCTION	do { VMI_EXIT; _NEXT_INSTRUCTION; } while(0)
+#define VMI_GOTO(n)		do { VMI_EXIT; _VMI_GOTO(n); } while(0)
+#define VMH_GOTO(...)		do { _VMH_GOTO(__VA_ARGS__); } while(0)
+#define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
+#define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
+#define SEPARATE_VMI		(void)0 /* only needed for !O_VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
+
+/* By default, instruction and helper prologue/epilogue are empty */
+#define _VMI_PROLOGUE(Name,f,na,a)	;
+#define _VMI_EPILOGUE			;
+#define _VMH_PROLOGUE(Name,na,at,an)	;
+#define _VMH_EPILOGUE			;
+
+/* Same syntax as VMH_GOTO, but handles profiling as if it were an instruction */
+#define VMH_GOTO_AS_VMI(n,args...) do { VMI_EXIT; \
+					VMI_ENTER(n); \
+					VMH_GOTO(n, args); \
+				      } while(0)
+
+
+/* Helper macros for rendering VMH arguments */
+#define HEAD(h, ...) h
+#define TAIL(_, t...) (t)
+#define VMH_ARGS0(n,at,an,f,asep...)
+#define VMH_ARGS1(n,at,an,f,asep...) f(n, HEAD at, HEAD an)
+#define VMH_ARGS2(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS1(n, TAIL at, TAIL an, f, asep)
+#define VMH_ARGS3(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS2(n, TAIL at, TAIL an, f, asep)
+#define VMH_ARGS4(n,at,an,f,asep...) f(n, HEAD at, HEAD an) asep VMH_ARGS3(n, TAIL at, TAIL an, f, asep)
+#define COMMA_TYPE_ARG(n,at,an) , at an
+#define TYPE_ARG_SEMI(n,at,an)	at an ;
+#define VMH_ARGS(n) A_PASTE(VMH_ARGS, VMH_ARGCOUNT(n))(n, (VMH_ARGTYPES(n)), (VMH_ARGNAMES(n)), TYPE_ARG_SEMI)
+
+/* Define struct types for all the helper argument lists */
+#define VMH_ARGSTRUCT(Name)		struct helper_args_ ## Name
+
+FOREACH_VMH(T_EMPTY,
+  ,VMH_ARGSTRUCT, { ,VMH_ARGS, };
+)
+
+#define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
+#undef _VMH_PROLOGUE
+#define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
+#if O_VMI_FUNCTIONS
+
+#define HELPER_ARGS(n)			__args
+#define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
+#define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
+#define _NEXT_INSTRUCTION		return PC
+#define _SOLUTION_RETURN(val)		SOLUTION_RET = (val); longjmp(EXIT_VM_BUF, 1)
+#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = {__VA_ARGS__}; (void)__args; \
+					return helper_ ## n(VMI_ARG_PASS, __args)
+#undef _VMI_PROLOGUE
+#define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
+#if VMCODE_IS_ADDRESS
+#define VMI_ADDR(c)		((vmi_instr)(c))
+#else
+#define VMI_ADDR(c)		jmp_table[c]
+#endif
+#define _VMI_GOTO_CODE(c)	PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
+
+/* Declare prototypes for all VMI/VMH functions */
+FOREACH_VMIDECL_CALL(T_SEMICOLON, _VMI_DECLARATION);
+FOREACH_VMHDECL_CALL(T_SEMICOLON, _VMH_DECLARATION);
+
+/* Define the jump table with all the function addresses */
+static vmi_instr jmp_table[] =
+{ FOREACH_VMI(T_COMMA,
+    &,VMI_IDENT,
+  ),
+  NULL
+};
+
+/* Define implementations */
+#if VMI_USE_REGISTER_VARIABLES
+# define REGISTERS (*__reg_registers)
+# undef LD
+# define LD (__reg_ld)
+# define _GET_LD /* empty */
+#else
+# define REGISTERS (*registers)
+#endif
+#include "pl-vmi.c"
+#undef REGISTERS
+
+/* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_solution() */
+#undef NEXT_INSTRUCTION
+#undef VMH_GOTO
+#define NEXT_INSTRUCTION (void)0
+#define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, (VMH_ARGSTRUCT(n)){})
+
+#if VMI_USE_REGISTER_VARIABLES
+# undef LD
+# define LD LOCAL_LD
+#endif
+
+#else /* O_VMI_FUNCTIONS */
+
+#define HELPER_ARGS(n)			helper_args.n
+#define _VMH_DECLARATION(Name,na,at,an)	helper_ ## Name:
+#define _VMH_GOTO(n,args...)		VMH_ARGSTRUCT(n) __args = {args}; \
+					HELPER_ARGS(n) = __args; \
+					goto helper_ ## n;
+#define _SOLUTION_RETURN		return
+
+#if VMCODE_IS_ADDRESS
+
+#define _VMI_DECLARATION(Name,f,na,a)	Name ## _LBL:
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
+#define _VMI_GOTO(n)			goto n ## _LBL
+#define _VMI_GOTO_CODE(c)		goto *(void *)(c)
+#undef SEPARATE_VMI
+/* This macro must ensure that two identical VMI instructions do not get
+ * merged onto the same address by the compiler, causing decompilation
+ * which translates the addresses back into the VMI number to fail.
+ * initWamTable() verfies this does not happen.
+ */
+#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
+
+#else /* VMCODE_IS_ADDRESS */
+
+#if __GNUC__
+#define UNUSED_LABEL __attribute__ ((unused))
+#else
+#define UNUSED_LABEL
+#endif
+
+#define _VMI_DECLARATION(Name,f,na,a)	case Name: case_ ## Name: UNUSED_LABEL
+#define _NEXT_INSTRUCTION		goto next_instruction
+#define _VMI_GOTO(n)			goto case_ ## n
+#define _VMI_GOTO_CODE(c)		thiscode = (c); goto resumebreak;
+
+#endif /* VMCODE_IS_ADDRESS */
+#endif /* O_VMI_FUNCTIONS */
+
+API_STUB(int)
+(PL_next_solution)(qid_t qid)
+( return PL_next_solution(qid); )
 
 int
-PL_next_solution(qid_t qid)
-{ GET_LD
-  AR_CTX
-  QueryFrame QF;			/* Query frame */
-  LocalFrame FR;			/* current frame */
-  LocalFrame NFR;			/* Next frame */
-  Word	     ARGP;			/* current argument pointer */
-  Code	     PC = NULL;			/* program counter */
-  Definition DEF = NULL;		/* definition of current procedure */
-  unify_mode umode = uread;		/* Unification mode */
-  int slow_unify = FALSE;		/* B_UNIFY_FIRSTVAR */
-  exception_frame throw_env;		/* PL_thow() environment */
-#ifdef O_DEBUG
-  int	     throwed_from_line=0;	/* Debugging: line we came from */
-#endif
-#define	     CL (FR->clause)		/* clause of current frame */
+PL_next_solution(DECL_LD qid_t qid)
+{ register_file REGISTERS = {.qid = qid};	/* Active registers */
+  Code PC;					/* program counter */
+  exception_frame THROW_ENV;			/* PL_thow() environment */
+
+#if O_VMI_FUNCTIONS
+  register_file *registers = &REGISTERS;
+
+#else /* O_VMI_FUNCTIONS */
+  /* define local union with all "helper arguments" (formerly SHAREDVARS) */
+  union
+  { FOREACH_VMH(T_EMPTY,
+      ,VMH_ARGSTRUCT, ,VMH_NAME,;
+    )
+  } helper_args;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the labels of the various  virtual-machine instructions in an array.
@@ -2825,68 +3144,25 @@ will export jmp_table as the compiler  needs   to  know  this table. See
 pl-comp.c
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pentium.h"
 
 #if VMCODE_IS_ADDRESS
-#include <pl-jumptable.ic>
-
-#define VMI(Name,f,na,a)	Name ## _LBL: \
-				  count(Name, PC); \
-				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		do { END_PROF(); \
-				       goto n ## _LBL; \
-				   } while(0)
-#define NEXT_INSTRUCTION	do { END_PROF(); \
-				     DbgPrintInstruction(FR, PC); \
-				     goto *(void *)((intptr_t)(*PC++)); \
-				   } while(0)
-
-/* This macro must ensure that two identical VMI instructions do not get
- * merged onto the same address by the compiler, causing decompilation
- * which translates the addresses back into the VMI number to fail.
- * initWamTable() verfies this does not happen.
- */
-#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
-
+#undef VMI_IDENT
+#define VMI_IDENT(n) n ## _LBL
+  static void *jmp_table[] =
+  { FOREACH_VMI(T_COMMA,
+      &&,VMI_IDENT,
+    ),
+    NULL
+  };
 #else /* VMCODE_IS_ADDRESS */
-
 code thiscode;
-
-#if __GNUC__
-#define UNUSED_LABEL __attribute__ ((unused))
-#else
-#define UNUSED_LABEL
-#endif
-
-#define VMI(Name,f,na,a)	case Name: \
-				  case_ ## Name: UNUSED_LABEL \
-				  count(Name, PC); \
-				  START_PROF(Name, #Name);
-#define VMI_GOTO(n)		{ END_PROF(); \
-				  goto case_ ## n; \
-				}
-#define NEXT_INSTRUCTION	{ DbgPrintInstruction(FR, PC); \
-				  END_PROF(); \
-                                  goto next_instruction; \
-				}
-#define SEPARATE_VMI		(void)0
-
 #endif /* VMCODE_IS_ADDRESS */
 
-#define FASTCOND_FAILED \
-	{ if ( !LD->fast_condition )   \
-	  { BODY_FAILED;	       \
-	  } else		       \
-	  { PC = LD->fast_condition;   \
-	    LD->fast_condition = NULL; \
-	    NEXT_INSTRUCTION;          \
-	  }                            \
-	}
-
+#endif /* O_VMI_FUNCTIONS */
 
 #if VMCODE_IS_ADDRESS
   if ( qid == QID_EXPORT_WAM_TABLE )
-  { interpreter_jmp_table = jmp_table;	/* make it globally known */
+  { interpreter_jmp_table = (void**) jmp_table;	/* make it globally known */
     succeed;
   }
 #endif /* VMCODE_IS_ADDRESS */
@@ -2913,6 +3189,21 @@ depart_continue() to do the normal thing or to the backtrack point.
   ARGP = argFrameP(FR, 0);
   DEBUG(9, Sdprintf("QF=%p, FR=%p\n", QF, FR));
 
+#if O_VMI_FUNCTIONS
+  if (setjmp(EXIT_VM_BUF) != 0)
+  { // LD->vmi_registers = old_registers;
+    assert(LD->exception.throw_environment == &THROW_ENV);
+    LD->exception.throw_environment = THROW_ENV.parent;
+    return SOLUTION_RET;
+  }
+
+# if VMI_REGISTER_VARIABLES
+  /* Now that we've executed our exit setjmp, we can set register vars with impunity */
+  __reg_registers = registers;
+  __reg_ld = LD;
+# endif
+#endif /*O_VMI_FUNCTIONS*/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Check for exceptions raised by foreign code.  PL_throw() uses longjmp()
 to get back here.  Our task is to restore the environment and throw the
@@ -2924,12 +3215,11 @@ variables used in the B_THROW instruction.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   DEBUG(9, Sdprintf("Setjmp env at %p\n", &LD->exception.throw_environment));
-  throw_env.parent = LD->exception.throw_environment;
-  if ( setjmp(throw_env.exception_jmp_env) != 0 )
+  THROW_ENV.parent = LD->exception.throw_environment;
+  if ( setjmp(THROW_ENV.exception_jmp_env) != 0 )
   { FliFrame ffr;
-#ifdef O_PLMT
-    __PL_ld = GLOBAL_LD;		/* might be clobbered */
-#endif
+    GET_LD		/* might be clobbered */
+
     ffr = fli_context;
 
     FR = environment_frame;
@@ -2947,8 +3237,8 @@ variables used in the B_THROW instruction.
 
     THROW_EXCEPTION;
   } else				/* installation */
-  { throw_env.magic = THROW_MAGIC;
-    LD->exception.throw_environment = &throw_env;
+  { THROW_ENV.magic = THROW_MAGIC;
+    LD->exception.throw_environment = &THROW_ENV;
   }
 
   DEF = FR->predicate;
@@ -2962,10 +3252,10 @@ variables used in the B_THROW instruction.
       if ( exception_term )
 	THROW_EXCEPTION;
       NEXT_INSTRUCTION;
-    }
-    BODY_FAILED;
+    } else
+      BODY_FAILED;
   } else
-    goto retry_continue;		/* first call */
+    VMH_GOTO(depart_or_retry_continue);		/* first call */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Main entry of the virtual machine cycle.  A branch to `next instruction'
@@ -2973,9 +3263,21 @@ will  cause  the  next  instruction  to  be  interpreted.   All  machine
 registers  should  hold  valid  data  and  the  machine stacks should be
 initialised properly.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
+#if O_VMI_FUNCTIONS
+  for (;;)
+  { DbgPrintInstruction(FR, PC);
+#if VMI_REGISTER_VARIABLES && !VMI_USE_REGISTER_VARIABLES
+    DEBUG(0,
+      assert(__reg_registers == &REGISTERS);
+      assert(__reg_ld == LD);
+    );
+#endif
+    PC = VMI_ADDR(*PC)(VMI_ARG_PASS);
+  }
+#else /* O_VMI_FUNCTIONS */
 #if !VMCODE_IS_ADDRESS			/* no goto *ptr; use a switch */
 next_instruction:
+  DbgPrintInstruction(FR, PC);
   thiscode = *PC++;
 #ifdef O_DEBUGGER
 resumebreak:
@@ -2986,430 +3288,8 @@ resumebreak:
 #include "pl-vmi.c"
   }
 
-#ifdef O_ATTVAR
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Attributed variable handling
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-wakeup:
-  DEBUG(1, Sdprintf("Activating wakeup\n"));
-  NFR = lTop;
-  setNextFrameFlags(NFR, FR);
-  SAVE_REGISTERS(qid);
-  DEF = GD->procedures.dwakeup1->definition;
-  LOAD_REGISTERS(qid);
-  ARGP = argFrameP(NFR, 0);
-  ARGP[0] = *valTermRef(LD->attvar.head);
-  setVar(*valTermRef(LD->attvar.head));
-  setVar(*valTermRef(LD->attvar.tail));
+#endif /* O_VMI_FUNCTIONS */
 
-  goto normal_call;
-#endif
-
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-			TRACER RETRY ACTION
-
-By default, retries the  current  frame.  If   another  frame  is  to be
-retried, place the frame-reference, which  should   be  a  parent of the
-current frame, in debugstatus.retryFrame and jump to this label. This is
-implemented by returning retry(Frame) of the prolog_trace_interception/3
-hook.
-
-First, the system will leave any parent  frames. Next, it will undo back
-to the call-port and finally, restart the clause.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#if O_DEBUGGER
-retry:					MARK(RETRY);
-{ LocalFrame rframe0, rframe;
-  mark m;
-  Choice ch;
-
-  if ( debugstatus.retryFrame )
-    rframe = (LocalFrame)valTermRef(debugstatus.retryFrame);
-  else
-    rframe = FR;
-  debugstatus.retryFrame = 0;
-  rframe0 = rframe;
-
-  m.trailtop = tTop;
-  m.globaltop = gTop;
-  for( ; rframe; rframe = rframe->parent )
-  { if ( (ch = findStartChoice(rframe, BFR)) )
-    { m = ch->mark;
-      goto do_retry;
-    }
-  }
-  Sdprintf("[Could not find retry-point]\n");
-  SAVE_REGISTERS(qid);
-  abortProlog();				/* What else? */
-  LOAD_REGISTERS(qid);
-  THROW_EXCEPTION;
-
-do_retry:
-  if ( rframe0 != rframe )
-  { DEBUG(MSG_TRACE,
-	  Sdprintf("[No retry-information for requested frame]\n"));
-  }
-
-  DEBUG(MSG_TRACE,
-	Sdprintf("[Retrying frame %d running %s]\n",
-		 (Word)rframe - (Word)lBase,
-		 predicateName(rframe->predicate)));
-
-  discardChoicesAfter(rframe, FINISH_CUT PASS_LD);
-  rframe->clause = NULL;
-  environment_frame = FR = rframe;
-  DEF = FR->predicate;
-  clear(FR, FR_SKIPPED);
-  Undo(m);
-  exception_term = 0;
-
-  goto retry_continue;
-}
-#endif /*O_DEBUGGER*/
-
-		 /*******************************
-		 *	   BACKTRACKING		*
-		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The rest of this giant procedure handles   backtracking. This used to be
-very complicated, but as of pl-3.3.6, choice-points are explicit objects
-and life is a lot easier. In the old days we distinquished between three
-cases to get here. We leave that   it for documentation purposes as well
-as to investigate optimization in the future.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-				MARK(BKTRK);
-clause_failed:				/* shallow backtracking */
-body_failed:
-END_PROF();
-START_PROF(P_SHALLOW_BACKTRACK, "P_SHALLOW_BACKTRACK");
-{ Choice ch = BFR;
-
-  if ( FR == ch->frame )
-  { Undo(ch->mark);
-    QF = QueryFromQid(qid);
-    aTop = QF->aSave;
-
-    if ( ch->type == CHP_JUMP )
-    { DiscardMark(ch->mark);
-      PC   = ch->value.PC;
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
-      ARGP = argFrameP(lTop, 0);
-
-      NEXT_INSTRUCTION;
-    } else if ( ch->type == CHP_CLAUSE )
-    { ARGP = argFrameP(FR, 0);
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
-	FRAME_FAILED;		/* can happen if scan-ahead was too short */
-      PC = CL->value.clause->codes;
-      umode = uread;
-
-      if ( ch == (Choice)argFrameP(FR, CL->value.clause->variables) )
-      { DiscardMark(ch->mark);		/* is this needed? */
-	if ( ch->value.clause.cref )
-	{ Mark(ch->mark);
-	  lTop = (LocalFrame)(ch+1);
-	  NEXT_INSTRUCTION;
-	} else if ( unlikely(debugstatus.debugging) )
-	{ ch->type = CHP_DEBUG;
-	  Mark(ch->mark);
-	  lTop = (LocalFrame)(ch+1);
-	  NEXT_INSTRUCTION;
-	}
-
-	BFR = ch->parent;
-	lTop = (LocalFrame)ch;
-	NEXT_INSTRUCTION;
-      } else				/* Choice point needs to move */
-      { struct clause_choice chp;
-
-        DiscardMark(ch->mark);
-	BFR = ch->parent;
-	chp = ch->value.clause;
-	lTop = (LocalFrame)argFrameP(FR, CL->value.clause->variables);
-	ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
-
-	if ( chp.cref )
-	{ ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	  ch->value.clause = chp;
-	} else if ( unlikely(debugstatus.debugging) )
-	{ ch = newChoice(CHP_DEBUG, FR PASS_LD);
-	}
-	NEXT_INSTRUCTION;
-      }
-    }
-  }
-}
-
-
-frame_failed:
-END_PROF();
-START_PROF(P_DEEP_BACKTRACK, "P_DEEP_BACKTRACK");
-{
-#ifdef O_DEBUGGER
-  term_t ch0_ref = BFR ? consTermRef(BFR) : 0;
-#endif
-  Choice ch;
-
-  DEBUG(MSG_BACKTRACK, Sdprintf("BACKTRACKING\n"));
-
-next_choice:
-  ch = BFR;
-					/* leave older frames */
-  for(; (void *)FR > (void *)ch; FR = FR->parent)
-  {
-#ifdef O_DEBUGGER
-    if ( debugstatus.debugging && isDebugFrame(FR) )
-    { Choice sch = ch0_ref ? findStartChoice(FR, (Choice)valTermRef(ch0_ref)) : NULL;
-
-      DEBUG(1, Sdprintf("FAIL on %s\n", predicateName(FR->predicate)));
-
-      if ( sch )
-      { int rc;
-	Choice ch0 = findChoiceBeforeFrame(FR, sch);
-
-	ch0_ref = ch0 ? consTermRef(ch0) : 0;
-	Undo(sch->mark);
-	environment_frame = FR;
-	FR->clause = NULL;
-	lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-	SAVE_REGISTERS(qid);
-	rc = tracePort(FR, BFR, FAIL_PORT, NULL PASS_LD);
-	LOAD_REGISTERS(qid);
-	ch = BFR;			/* can be shifted */
-
-	switch( rc )
-	{ case ACTION_RETRY:
-	    environment_frame = FR;
-	    DEF = FR->predicate;
-	    clear(FR, FR_CATCHED|FR_SKIPPED);
-	    goto retry_continue;
-	    case ACTION_ABORT:
-	      THROW_EXCEPTION;
-	}
-      } else
-      { ch0_ref = 0;
-	DEBUG(2, Sdprintf("Cannot trace FAIL [%d] %s\n",
-			  levelFrame(FR), predicateName(FR->predicate)));
-      }
-    }
-#endif
-
-    leaveFrame(FR);
-    if ( true(FR, FR_WATCHED) )
-    { environment_frame = FR;
-      lTop = (LocalFrame)argFrameP(FR, FR->predicate->functor->arity);
-      FR->clause = NULL;
-      SAVE_REGISTERS(qid);
-      frameFinished(FR, FINISH_FAIL PASS_LD);
-      LOAD_REGISTERS(qid);
-      ch = BFR;			/* can be shifted */
-      if ( exception_term )
-	THROW_EXCEPTION;
-    }
-  }
-
-  environment_frame = FR = ch->frame;
-  Undo(ch->mark);
-  QF = QueryFromQid(qid);
-  aTop = QF->aSave;
-  DEF  = FR->predicate;
-#ifdef O_DEBUG_BACKTRACK
-  last_choice = ch->type;
-#endif
-
-  if ( (LD->alerted & ALERT_BUFFER) )
-  { LD->alerted &= ~ALERT_BUFFER;
-    release_string_buffers_from_frame(FR PASS_LD);
-  }
-
-  switch(ch->type)
-  { case CHP_JUMP:
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Jump in %s\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      PC   = ch->value.PC;
-      DiscardMark(ch->mark);
-      BFR  = ch->parent;
-      lTop = (LocalFrame)ch;
-      ARGP = argFrameP(lTop, 0);
-      LD->statistics.inferences++;
-      if ( unlikely(LD->alerted) )
-      {
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-	{ LocalFrame fr = dbgRedoFrame(FR, CHP_JUMP PASS_LD);
-
-	  if ( fr )
-	  { int action;
-
-	    SAVE_REGISTERS(qid);
-	    action = tracePort(fr, BFR, REDO_PORT, ch->value.PC PASS_LD);
-	    LOAD_REGISTERS(qid);
-	    ch = BFR;			/* can be shifted */
-
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-	        goto retry;
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
-	  }
-	}
-#endif
-#ifdef O_INFERENCE_LIMIT
-        if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
-	}
-#endif
-        Profile(profRedo(ch->prof_node PASS_LD));
-      }
-      NEXT_INSTRUCTION;
-    case CHP_CLAUSE:			/* try next clause */
-    { Clause clause;
-      struct clause_choice chp;
-
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: Clause in %s\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      ARGP = argFrameP(FR, 0);
-      DiscardMark(ch->mark);
-      BFR = ch->parent;
-      if ( !(CL = nextClause(&ch->value.clause, ARGP, FR, DEF)) )
-	goto next_choice;	/* Can happen of look-ahead was too short */
-
-      chp    = ch->value.clause;
-      clause = CL->value.clause;
-      PC     = clause->codes;
-      lTop   = (LocalFrame)argFrameP(FR, clause->variables);
-      umode  = uread;
-
-      DEBUG(CHK_SECURE, assert(LD->mark_bar >= gBase && LD->mark_bar <= gTop));
-
-      if ( unlikely(LD->alerted) )
-      {
-#ifdef O_DEBUGGER
-	if ( debugstatus.debugging && !debugstatus.suspendTrace  )
-	{ LocalFrame fr = dbgRedoFrame(FR, CHP_CLAUSE PASS_LD);
-
-	  if ( fr )
-	  { int action;
-
-	    SAVE_REGISTERS(qid);
-	    clearLocalVariablesFrame(FR);
-	    action = tracePort(fr, BFR, REDO_PORT, NULL PASS_LD);
-	    LOAD_REGISTERS(qid);
-	    ch = BFR;			/* can be shifted */
-
-	    switch( action )
-	    { case ACTION_FAIL:
-		FRAME_FAILED;
-	      case ACTION_IGNORE:
-		VMI_GOTO(I_EXIT);
-	      case ACTION_RETRY:
-		goto retry_continue;
-	      case ACTION_ABORT:
-		THROW_EXCEPTION;
-	    }
-	  }
-	}
-#endif
-#ifdef O_INFERENCE_LIMIT
-        if ( LD->statistics.inferences >= LD->inference_limit.limit )
-	{ SAVE_REGISTERS(qid);
-	  raiseInferenceLimitException();
-	  LOAD_REGISTERS(qid);
-	  if ( exception_term )
-	    THROW_EXCEPTION;
-	}
-#endif
-        Profile(profRedo(ch->prof_node PASS_LD));
-      }
-
-      if ( chp.cref )
-      { ch = newChoice(CHP_CLAUSE, FR PASS_LD);
-	ch->value.clause = chp;
-      } else if ( unlikely(debugstatus.debugging) )
-      { newChoice(CHP_DEBUG, FR PASS_LD);
-      }
-
-      if ( is_signalled(PASS_LD1) )
-      { SAVE_REGISTERS(qid);
-	handleSignals(PASS_LD1);
-	LOAD_REGISTERS(qid);
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      }
-
-			/* require space for the args of the next frame */
-      ENSURE_LOCAL_SPACE(LOCAL_MARGIN, THROW_EXCEPTION);
-      NEXT_INSTRUCTION;
-    }
-    case CHP_TOP:			/* Query toplevel */
-    { DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: TOP\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      DiscardMark(ch->mark);
-      Profile(profRedo(ch->prof_node PASS_LD));
-      QF = QueryFromQid(qid);
-      set(QF, PL_Q_DETERMINISTIC);
-      QF->foreign_frame = PL_open_foreign_frame();
-      assert(LD->exception.throw_environment == &throw_env);
-      LD->exception.throw_environment = throw_env.parent;
-      fail;
-    }
-    case CHP_CATCH:			/* catch/3 & setup_call_cleanup/3 */
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: CATCH\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-            if ( true(ch->frame, FR_WATCHED) )
-      { DiscardMark(ch->mark);
-	environment_frame = FR = ch->frame;
-	lTop = (LocalFrame)(ch+1);
-	FR->clause = NULL;
-	if ( true(ch->frame, FR_CLEANUP) )
-	{ SAVE_REGISTERS(qid);
-	  callCleanupHandler(ch->frame, FINISH_FAIL PASS_LD);
-	  LOAD_REGISTERS(qid);
-	} else
-	{ set(ch->frame, FR_CATCHED);
-	}
-	ch = BFR;			/* can be shifted */
-	if ( exception_term )
-	  THROW_EXCEPTION;
-      } else
-      { set(ch->frame, FR_CATCHED);
-      }
-      /*FALLTHROUGH*/
-    case CHP_DEBUG:			/* Just for debugging purposes */
-      DEBUG(MSG_BACKTRACK,
-	    Sdprintf("    REDO #%ld: %s: DEBUG\n",
-		     loffset(FR),
-		     predicateName(DEF)));
-      #ifdef O_DEBUGGER
-      ch0_ref = consTermRef(ch);
-#endif
-      BFR = ch->parent;
-      DiscardMark(ch->mark);
-      goto next_choice;
-  }
-}
   assert(0);
   return FALSE;
 } /* end of PL_next_solution() */

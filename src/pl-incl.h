@@ -80,9 +80,58 @@
 #endif
 #endif
 
+/* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
+#ifdef HAVE_GMP_H
+#define O_GMP			1
+#endif
+
+#ifdef O_GMP
+# ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
+# pragma warning( disable : 4146 )
+# endif
+#include <gmp.h>
+# ifdef _MSC_VER
+# pragma warning( default : 4146 )
+# endif
+#endif
+
 #define PL_KERNEL		1
-#include <inttypes.h>
+
+/* PL_SO_EXPORT is an optional declaration used by SWI-Prolog.h that
+ * marks API symbols for being exported from libswipl.so.
+ */
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define PL_SO_EXPORT __attribute__((visibility("default")))
+#endif
+
+/* The public API has references to a number of opaque types only
+ * defined in internal library code. The PL_OPAQUE macro prefixes
+ * the names with PL_ to avoid cluttering the type namespace, but
+ * here we want the original names.
+ */
+#define PL_OPAQUE(type) type
+
+#include "SWI-Prolog.h"
+
+/* Our definition of _PL_get_arg appears in pl-fli.h */
+#undef _PL_get_arg
+
+/* This is only here to assist static analysis; undefine this and
+ * the LDFUNC functions will look like normal definitions, as though
+ * this were a single-threaded build */
+#define USE_LD_MACROS 1
+#ifdef __INTELLISENSE__
+# undef USE_LD_MACROS
+#endif
+
+/* COMMON() was a macro used to mark symbols to be global to the library
+ * internals but not exported from the shared library. This is now the
+ * default visibility for library symbols, so it is no longer necessary.
+ */
+#define COMMON(type) type
+
 #include "pl-builtin.h"
+#include "pl-macros.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
@@ -188,9 +237,6 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
-#ifdef HAVE_GMP_H
-#define O_GMP			1
-#endif
 #ifdef __WINDOWS__
 #define NOTTYCONTROL           TRUE
 #define O_DDE 1
@@ -314,16 +360,6 @@ typedef _sigset_t sigset_t;
 #endif
 #endif
 
-#ifdef O_GMP
-#ifdef _MSC_VER			/* ignore warning in gmp 5.0.2 header */
-#pragma warning( disable : 4146 )
-#endif
-#include <gmp.h>
-#ifdef _MSC_VER
-#pragma warning( default : 4146 )
-#endif
-#endif
-
 #if defined(STDC_HEADERS) || defined(HAVE_STRING_H)
 #include <string.h>
 /* An ANSI string.h and pre-ANSI memory.h might conflict.  */
@@ -400,6 +436,12 @@ A common basis for C keywords.
 #define MAY_ALIAS __attribute__ ((__may_alias__))
 #else
 #define MAY_ALIAS
+#endif
+
+#if defined(__GNUC__) && !defined(MAYBE_UNUSED)
+#define MAYBE_UNUSED __attribute__ ((unused))
+#else
+#define MAYBE_UNUSED
 #endif
 
 #ifdef HAVE___BUILTIN_EXPECT
@@ -543,6 +585,13 @@ Arithmetic comparison
 #define NE 5
 #define EQ 6
 
+#define LT_C <
+#define GT_C >
+#define LE_C <=
+#define GE_C >=
+#define NE_C !=
+#define EQ_C ==
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Operator types.  NOTE: if you change OP_*, check operatorTypeToAtom()!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -662,12 +711,33 @@ place them on the stack (see I_USERCALL).
 #define WORD_ALIGNED
 #endif
 
-#ifndef PL_HAVE_TERM_T
-#define PL_HAVE_TERM_T
+#if 0
+/* The following have all been defined in SWI-Prolog.h, included above,
+ * and are repeated here only for programmer reference and convenience.
+ */
+
+typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
+typedef	word			atom_t;		/* encoded atom */
+typedef word			functor_t;	/* encoded functor */
+typedef struct module *		module_t;	/* a module */
+typedef struct procedure *	predicate_t;	/* a predicate handle */
+typedef struct record *		record_t;	/* handle to a recorded term */
 typedef uintptr_t		term_t;		/* external term-reference */
+typedef uintptr_t		qid_t;		/* external query-id */
+typedef uintptr_t		PL_fid_t;	/* external foreign context-id */
+typedef struct foreign_context *control_t;	/* non-deterministic control arg */
+typedef struct PL_local_data *	PL_engine_t;	/* handle to an engine */
+typedef uintptr_t		PL_atomic_t;	/* same a word */
+typedef uintptr_t		foreign_t;	/* return type of foreign functions */
+typedef wchar_t			pl_wchar_t;	/* Prolog wide character */
+typedef foreign_t		(*pl_function_t)(); /* foreign language functions */
+typedef uintptr_t		buf_mark_t;	/* buffer mark handle */
+
+#define				fid_t \
+	PL_fid_t				/* avoid AIX name-clash */
 #endif
 
-typedef uintptr_t		word;		/* Anonymous 4 byte object */
+typedef uintptr_t		word;		/* Anonymous ptr-sized object*/
 typedef word *			Word;		/* a pointer to anything */
 typedef word			atom_t;		/* encoded atom */
 typedef word			functor_t;	/* encoded functor */
@@ -713,11 +783,8 @@ typedef struct on_halt *	OnHalt;		/* pl-os.c */
 typedef struct find_data_tag *	FindData;	/* pl-trace.c */
 typedef struct feature *	Feature;	/* pl-prims.c */
 typedef struct dirty_def_info * DirtyDefInfo;
-
-typedef uintptr_t qid_t;		/* external query-id */
-typedef uintptr_t PL_fid_t;		/* external foreign context-id */
-
-#define fid_t PL_fid_t			/* avoid AIX name-clash */
+typedef struct counting_mutex	counting_mutex;
+typedef struct pl_mutex		pl_mutex;
 
 		 /*******************************
 		 *	    ARITHMETIC		*
@@ -811,6 +878,7 @@ typedef enum
 #define	ALERT_WAKEUP	     0x040
 #define	ALERT_DEBUG	     0x080
 #define	ALERT_BUFFER	     0x100
+#define	ALERT_UNDO	     0x200
 
 
 		 /*******************************
@@ -841,6 +909,7 @@ with one operation, it turns out to be faster as well.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define true(s, a)		((s)->flags & (a))
+#define alltrue(s, a)		(((s)->flags & (a)) == (a))
 #define false(s, a)		(!true((s), (a)))
 #define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
@@ -848,7 +917,7 @@ with one operation, it turns out to be faster as well.
 
 /* Flags on predicates (packed in unsigned int */
 
-#define P_TABLED		(0x00000001) /* tabled predicate */
+#define P_SSU_DET		(0x00000001) /* Single Sided Unification: det */
 #define P_CLAUSABLE		(0x00000002) /* Clause/2 always works */
 #define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
 #define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
@@ -874,9 +943,9 @@ with one operation, it turns out to be faster as well.
 #define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
 #define SPY_ME			(0x01000000) /* Spy point placed */
 #define TRACE_ME		(0x02000000) /* Can be debugged */
-#define P_INCREMENTAL		(0x04000000) /* Incremental tabling */
+#define P_DET			(0x04000000) /* Predicate is deterministic */
 #define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
-#define P_TSHARED		(0x10000000) /* Using a shared table */
+#define P_WAITED_FOR		(0x10000000) /* Someone is waiting for this predicate */
 #define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
 #define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
 #define P_REDEFINED		(0x80000000) /* Overrules a definition */
@@ -886,6 +955,7 @@ with one operation, it turns out to be faster as well.
 #define P_MODIFIED		P_DIRTYREG
 #define P_NEW			SPY_ME
 #define P_NO_CLAUSES		TRACE_ME
+#define P_CHECK_SSU		HIDE_CHILDS
 
 /* Flags on clauses (unsigned int) */
 
@@ -898,6 +968,11 @@ with one operation, it turns out to be faster as well.
 #define DBREF_ERASED_CLAUSE	(0x0040) /* Deleted while referenced */
 #define CL_BODY_CONTEXT		(0x0080) /* Module context of body is different */
 					 /* from predicate */
+#define SSU_COMMIT_CLAUSE	(0x0100) /* Head => Body */
+#define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
+#define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
+
+#define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 
 /* Flags on a DDI (Dirty Definition Info struct */
 
@@ -927,6 +1002,7 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
 #define M_VARPREFIX		(0x00008000) /* _var, Atom */
 #define M_DESTROYED		(0x00010000)
+#define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
 
 /* Flags on functors */
 
@@ -960,11 +1036,15 @@ Macros for environment frames (local stack frames)
 #define FR_CONTEXT		(0x0080) /* fr->context is set */
 #define FR_CLEANUP		(0x0100) /* setup_call_cleanup/4 */
 #define FR_INRESET		(0x0200) /* Continuations: inside reset/3 */
+#define FR_SSU_DET		(0x0400) /* Demands det on => rules */
+#define FR_DET			(0x0800) /* Declared det */
+#define FR_DETGUARD		(0x1000) /* Frame is guarded for determinism */
+#define FR_DETGUARD_SET		(0x2000) /* Flag was set on this frame */
 #define FR_WATCHED (FR_CLEANUP|FR_DEBUG)
 
-#define FR_MAGIC_MASK		(0xfffff000)
-#define FR_MAGIC_MASK2		(0xffff0000)
-#define FR_MAGIC		(0x549d5000)
+#define FR_MAGIC_MASK		(0xffff0000)
+#define FR_MAGIC_MASK2		(0xfff00000)
+#define FR_MAGIC		(0xc9d50000)
 
 #define isFrame(fr)		(((fr)->flags&FR_MAGIC_MASK) == FR_MAGIC)
 #define wasFrame(fr)		(((fr)->flags&FR_MAGIC_MASK2) == \
@@ -973,6 +1053,7 @@ Macros for environment frames (local stack frames)
 
 #define ARGOFFSET		((int)sizeof(struct localFrame))
 #define VAROFFSET(var)		((var)+(ARGOFFSET/(int)sizeof(word)))
+#define VARNUM(i)		((int)((i) - (ARGOFFSET / (int) sizeof(word))))
 
 #define setLevelFrame(fr, l)	do { (fr)->level = (l); } while(0)
 #define levelFrame(fr)		((fr)->level)
@@ -987,6 +1068,10 @@ Macros for environment frames (local stack frames)
 				      (f)->predicate->functor->arity : \
 				      (f)->clause->clause->prolog_vars)
 
+
+		 /*******************************
+		 *	 LOGICAL UPDATE		*
+		 *******************************/
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Generations must be 64-bit to  avoid   overflow  in realistic scenarios.
 This makes them the only 64-bit value in struct localFrame. Stack frames
@@ -1002,11 +1087,15 @@ We enable this  if the alignment  of an int64_t type  is not the same as
 the alignment of pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_LOGICAL_UPDATE
 typedef uint64_t gen_t;
 
-#define GEN_MAX (~(gen_t)0)
-#define GEN_NEW_DIRTY (gen_t)0
+#define GEN_INVALID   ((gen_t)0)
+#define GEN_INFINITE  (~(gen_t)0)
+#define GEN_NEW_DIRTY ((gen_t)0)
+#define GEN_TRANSACTION_BASE 0x8000000000000000
+#define GEN_TRANSACTION_SIZE 0x0000000100000000
+#define GEN_MAX (GEN_TRANSACTION_BASE-1)
+#define GEN_TRMAX(g0) ((g0)|(GEN_TRANSACTION_SIZE-1))
 
 #if ALIGNOF_INT64_T != ALIGNOF_VOIDP
 typedef struct lgen_t
@@ -1027,29 +1116,36 @@ typedef uint64_t lgen_t;
 #define setGenerationFrameVal(f, gen) \
 	do { (f)->generation = (gen); } while(0)
 #endif
-#if defined(HAVE_GCC_ATOMIC_8) || SIZEOF_VOIDP == 8
-typedef uint64_t ggen_t;
-#else
-#define ATOMIC_GENERATION_HACK 1
-typedef struct ggen_t
-{ uint32_t	gen_l;
-  uint32_t	gen_u;
-} ggen_t;
-#endif /*HAVE_GCC_ATOMIC_8 || SIZEOF_VOIDP == 8*/
-#else /*O_LOGICAL_UPDATE*/
-#define global_generation()	 (0)
-#define next_global_generation() (0)
-#endif /*O_LOGICAL_UPDATE*/
 
-#define setGenerationFrame(fr) setGenerationFrame__LD((fr) PASS_LD)
-
-#define FR_CLEAR_NEXT	FR_SKIPPED|FR_WATCHED|FR_CATCHED|FR_HIDE_CHILDS|FR_CLEANUP
-#define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CONTEXT)
+#define FR_LCO_CLEAR	(FR_SKIPPED|FR_WATCHED|FR_CATCHED|\
+			 FR_HIDE_CHILDS|FR_CLEANUP|FR_SSU_DET)
+#define FR_CLEAR_NEXT	(FR_LCO_CLEAR|FR_DET|FR_DETGUARD)
+#define FR_CLEAR_ALWAYS (FR_CONTEXT|FR_DETGUARD_SET)
+#define FR_CLEAR_FLAGS	(FR_CLEAR_NEXT|FR_CLEAR_ALWAYS)
 
 #define setNextFrameFlags(next, fr) \
 	do \
 	{ (next)->level = (fr)->level+1; \
 	  (next)->flags = ((fr)->flags) & ~FR_CLEAR_FLAGS; \
+	} while(0)
+
+#define lcoSetNextFrameFlags2(next, fr) \
+	do \
+	{ (next)->level = (fr)->level+1; \
+	  (next)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_CLEAR_ALWAYS); \
+	} while(0)
+
+#define lcoSetNextFrameFlags(fr) \
+	lcoSetNextFrameFlags2(fr,fr)
+
+/* For a tail call we must not clear FR_CONTEXT.  The combination
+ * of FR->context and FR_CONTEXT is always correct.
+ */
+
+#define tcallSetNextFrameFlags(fr) \
+	do \
+	{ (fr)->level = (fr)->level+1; \
+	  (fr)->flags = ((fr)->flags) & ~(FR_LCO_CLEAR|FR_DETGUARD_SET); \
 	} while(0)
 
 #define setFramePredicate(fr, def) \
@@ -1069,6 +1165,10 @@ introduce a garbage collector (TBD).
 #define leaveDefinition(def) (void)0
 
 
+		 /*******************************
+		 *	 INHIBIT SIGNALS	*
+		 *******************************/
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 At times an abort is not allowed because the heap  is  inconsistent  the
 programmer  should  call  startCritical  to start such a code region and
@@ -1080,7 +1180,7 @@ it mean anything?
 
 #define startCritical (void)(LD->critical++)
 #define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
-				? endCritical__LD(PASS_LD1) : TRUE)
+				? f_endCritical() : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.
@@ -1226,29 +1326,11 @@ typedef struct functor_table
 
 #define FUNCTOR_IS_VALID(flags)		((flags) & VALID_F)
 
-
-#ifdef O_LOGICAL_UPDATE
-#define VISIBLE_CLAUSE(cl, gen) \
-	( ( (cl)->generation.created <= (gen) && \
-	    (cl)->generation.erased   > (gen) && \
-	    (cl)->generation.erased  != LD->gen_reload \
-	  ) || \
-	  ( (cl)->generation.created == LD->gen_reload \
-	  ) \
-	)
 #define GLOBALLY_VISIBLE_CLAUSE(cl, gen) \
 	( (cl)->generation.created <= (gen) && \
 	  (cl)->generation.erased   > (gen) \
 	)
-#else
-#define VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
-#define GLOBALLY_VISIBLE_CLAUSE(cl, gen) false(cl, CL_ERASED)
-#endif
 
-#define visibleClause(cl, gen) visibleClause__LD(cl, gen PASS_LD)
-#define visibleClauseCNT(cl, gen) visibleClauseCNT__LD(cl, gen PASS_LD)
-
-#define GEN_INVALID 0
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Struct clause must be a  multiple   of  sizeof(word)  for compilation on
@@ -1262,8 +1344,8 @@ struct clause
 { Definition		predicate;	/* Predicate I belong to */
 #ifdef O_LOGICAL_UPDATE
   struct
-  { gen_t created;			/* Generation that created me */
-    gen_t erased;			/* Generation I was erased */
+  { volatile gen_t created;		/* Generation that created me */
+    volatile gen_t erased;		/* Generation I was erased */
   } generation;
 #endif /*O_LOGICAL_UPDATE*/
   unsigned int		variables;	/* # of variables for frame */
@@ -1273,6 +1355,7 @@ struct clause
   unsigned int		source_no;	/* Index of source-file */
   unsigned int		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
+  unsigned int		tr_erased_no;	/* # transactions that erased me */
   code			code_size;	/* size of ->codes */
   code			codes[1];	/* VM codes of clause */
 };
@@ -1398,8 +1481,10 @@ typedef struct gc_stats
 #define CA1_JUMP       16	/* Instructions to skip */
 #define CA1_AFUNC      17	/* Number of arithmetic function */
 #define CA1_TRIE_NODE  18	/* Tabling: answer trie node with delays */
+#define CA1_END	       19	/* Highest+1 */
 
 #define VIF_BREAK      0x01	/* Can be a breakpoint */
+#define VIF_LCO        0x02	/* We have LCO support for this */
 
 typedef enum
 { VMI_REPLACE,
@@ -1595,7 +1680,7 @@ struct choice
 #endif
   union
   { struct clause_choice clause;	/* Next candidate clause */
-    Code	PC;			/* Next candidate program counter */
+    Code	pc;			/* Next candidate program counter */
     word        foreign;		/* foreign redo handle */
   } value;
 };
@@ -1812,6 +1897,7 @@ struct module
   size_t	code_limit;	/* Limit for code_size */
 #ifdef O_PLMT
   counting_mutex *mutex;	/* Mutex to guard module modifications */
+  struct thread_wait_area *wait;/* Manage waiting threads */
 #endif
 #ifdef O_PROLOG_HOOK
   Procedure	hook;		/* Hooked module */
@@ -1917,7 +2003,6 @@ Note that all trail operations demand that   the caller ensures there is
 at least one free cell on the trail-stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define Trail(p, w) Trail__LD(p, w PASS_LD)
 					/* trail local stack pointer */
 #define LTrail(p) \
   (void)((tTop++)->address = p)
@@ -1950,10 +2035,10 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define TMP_PTR_SIZE	(4)
 #define PushPtr(p)	do { int i = LD->tmp.top++; \
 			     assert(i<TMP_PTR_SIZE); \
-			     *valTermRef(LD->tmp.h[i]) = makeRef(p); \
+			     *valTermRef(LD->tmp.h[i]) = makeRefLG(p); \
 			   } while(0)
 #define PopPtr(p)	do { int i = --LD->tmp.top; \
-			     p = unRef(*valTermRef(LD->tmp.h[i])); \
+			     p = unRefLG(*valTermRef(LD->tmp.h[i])); \
 			     setVar(*valTermRef(LD->tmp.h[i])); \
 			   } while(0)
 #define PushVal(w)	do { int i = LD->tmp.top++; \
@@ -1969,8 +2054,6 @@ Temporary store/restore pointers to make them safe over GC/shift
 #define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
 #define QidFromQuery(f)		(consTermRef(f))
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
-
-#include "SWI-Prolog.h"
 
 
 		 /*******************************
@@ -2144,7 +2227,7 @@ typedef enum
 	do { if ( likely(aTop+1 < aMax) ) \
 	       *aTop++ = (p); \
 	     else \
-	       pushArgumentStack__LD((p) PASS_LD); \
+	       f_pushArgumentStack(p); \
 	   } while(0)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2383,6 +2466,13 @@ typedef struct debuginfo
   intptr_t	retryFrame;		/* Frame to retry (local stack offset) */
 } pl_debugstatus_t;
 
+#if O_DEBUG
+typedef struct internaldebuginfo
+{ int depth;           /* how many nested DEBUG() calls we are in */
+  const char *channel; /* string representation of the debug channel */
+} pl_internaldebugstatus_t;
+#endif
+
 #define FT_ATOM		0		/* atom feature */
 #define FT_BOOL		1		/* boolean feature (true, false) */
 #define FT_INTEGER	2		/* integer feature */
@@ -2392,44 +2482,57 @@ typedef struct debuginfo
 #define FT_FROM_VALUE	0x0f		/* Determine type from value */
 #define FT_MASK		0x0f		/* mask to get type */
 
-#define PLFLAG_CHARESCAPE	    0x00000001 /* handle \ in atoms */
-#define PLFLAG_GC		    0x00000002 /* do GC */
-#define PLFLAG_TRACE_GC		    0x00000004 /* verbose gc */
-#define PLFLAG_GCTHREAD		    0x00000008 /* Do atom/clause GC in a thread */
-#define PLFLAG_TTY_CONTROL	    0x00000010 /* allow for tty control */
-#define PLFLAG_DEBUG_ON_ERROR	    0x00000020 /* start tracer on error */
-#define PLFLAG_REPORT_ERROR	    0x00000040 /* print error message */
-#define PLFLAG_FILE_CASE	    0x00000080 /* file names are case sensitive */
-#define PLFLAG_FILE_CASE_PRESERVING 0x00000100 /* case preserving file names */
-#define PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR 0x00000200
-#define ALLOW_VARNAME_FUNCTOR	    0x00000400 /* Read Foo(x) as 'Foo'(x) */
-#define PLFLAG_ISO		    0x00000800 /* Strict ISO compliance */
-#define PLFLAG_OPTIMISE		    0x00001000 /* -O: optimised compilation */
-#define PLFLAG_FILEVARS		    0x00002000 /* Expand $var and ~ in filename */
-#define PLFLAG_AUTOLOAD		    0x00004000 /* do autoloading */
-#define PLFLAG_CHARCONVERSION	    0x00008000 /* do character-conversion */
-#define PLFLAG_LASTCALL		    0x00010000 /* Last call optimization enabled? */
-#define PLFLAG_PORTABLE_VMI	    0x00020000 /* Generate portable VMI code */
-#define PLFLAG_SIGNALS		    0x00040000 /* Handle signals */
-#define PLFLAG_DEBUGINFO	    0x00080000 /* generate debug info */
-#define PLFLAG_FILEERRORS	    0x00100000 /* Edinburgh file errors */
-#define PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT 0x00200000 /* Warn overriding weak symbols */
-#define PLFLAG_QUASI_QUOTES	    0x00400000 /* Support quasi quotes */
-#define PLFLAG_DOT_IN_ATOM	    0x00800000 /* Allow atoms a.b.c */
-#define PLFLAG_VARPREFIX	    0x01000000 /* Variable must start with _ */
-#define PLFLAG_PROTECT_STATIC_CODE  0x02000000 /* Deny clause/2 on static code */
-#define PLFLAG_MITIGATE_SPECTRE	    0x04000000 /* Mitigate spectre attacks */
-#define PLFLAG_TABLE_INCREMENTAL    0x08000000 /* By default incremental tabling */
-#define PLFLAG_TABLE_SHARED	    0x10000000 /* By default shared tabling */
-#define PLFLAG_RATIONAL		    0x20000000 /* Natural rational numbers */
+typedef enum plflag
+{ PLFLAG_CHARESCAPE = 1,		/* handle \ in atoms */
+  PLFLAG_CHARESCAPE_UNICODE,		/* Write escape as \uXXXX */
+  PLFLAG_GC,				/* do GC */
+  PLFLAG_TRACE_GC,			/* verbose gc */
+  PLFLAG_GCTHREAD,			/* Do atom/clause GC in a thread */
+  PLFLAG_TTY_CONTROL,			/* allow for tty control */
+  PLFLAG_DEBUG_ON_ERROR,		/* start tracer on error */
+  PLFLAG_REPORT_ERROR,			/* print error message */
+  PLFLAG_FILE_CASE,			/* file names are case sensitive */
+  PLFLAG_FILE_CASE_PRESERVING,		/* case preserving file names */
+  PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR,	/* Ambigous actions on stream pair */
+  ALLOW_VARNAME_FUNCTOR,		/* Read Foo(x) as 'Foo'(x) */
+  PLFLAG_ISO,				/* Strict ISO compliance */
+  PLFLAG_OPTIMISE,			/* -O: optimised compilation */
+  PLFLAG_FILEVARS,			/* Expand $var and ~ in filename */
+  PLFLAG_AUTOLOAD,			/* do autoloading */
+  PLFLAG_CHARCONVERSION,		/* do character-conversion */
+  PLFLAG_LASTCALL,			/* Last call optimization enabled? */
+  PLFLAG_PORTABLE_VMI,			/* Generate portable VMI code */
+  PLFLAG_SIGNALS,			/* Handle signals */
+  PLFLAG_DEBUGINFO,			/* generate debug info */
+  PLFLAG_FILEERRORS,			/* Edinburgh file errors */
+  PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT, /* Warn overriding weak symbols */
+  PLFLAG_QUASI_QUOTES,			/* Support quasi quotes */
+  PLFLAG_DOT_IN_ATOM,			/* Allow atoms a.b.c */
+  PLFLAG_VARPREFIX,			/* Variable must start with _ */
+  PLFLAG_PROTECT_STATIC_CODE,		/* Deny clause/2 on static code */
+  PLFLAG_MITIGATE_SPECTRE,		/* Mitigate spectre attacks */
+  PLFLAG_TABLE_INCREMENTAL,		/* By default incremental tabling */
+  PLFLAG_TABLE_SHARED,			/* By default shared tabling */
+  PLFLAG_RATIONAL,			/* Natural rational numbers */
+  PLFLAG_DEBUG_ON_INTERRUPT,		/* Debug on Control-C */
+  PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
+  PLFLAG_SHIFT_CHECK			/* Check suspicious shifts */
+} plflag;
 
 typedef struct
-{ unsigned int flags;		/* Fast access to some boolean Prolog flags */
+{ unsigned int flags[2];	/* Fast access to some boolean Prolog flags */
 } pl_features_t;
 
-#define truePrologFlag(flag)	  true(&LD->prolog_flag.mask, flag)
-#define setPrologFlagMask(flag)	  set(&LD->prolog_flag.mask, flag)
-#define clearPrologFlagMask(flag) clear(&LD->prolog_flag.mask, flag)
+#define prologFlagMask(flag) (1u<<(((flag)-1)%(sizeof(int)*8)))
+#define prologFlagMaskInt(ld, flag) \
+	(ld->prolog_flag.mask.flags[(flag-1)/(sizeof(int)*8)])
+#define truePrologFlag(flag) \
+	(prologFlagMaskInt(LD, flag) & prologFlagMask(flag))
+#define setPrologFlagMask_LD(ld, flag) \
+	ATOMIC_OR(&prologFlagMaskInt(ld, flag), prologFlagMask(flag))
+#define clearPrologFlagMask(flag) \
+	ATOMIC_AND(&prologFlagMaskInt(LD, flag), ~prologFlagMask(flag))
+#define setPrologFlagMask(flag) setPrologFlagMask_LD(LD, flag)
 
 typedef enum
 { OCCURS_CHECK_FALSE = 0,	/* allow rational trees */
@@ -2501,6 +2604,21 @@ decrease).
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Some functions can be inlined for some files only. These functions get
+declared with usual attributes for most files, including their original
+sources; files that want the inlines can define USE_XYZ_INLINES prior to
+including pl-incl.h, and for that file the function will be declared as
+static. This may cause a small amount of code bloat in object files, but
+with any luck LTO could address that.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if USE_ALLOC_INLINES
+# define ALLOC_INLINE static MAYBE_UNUSED
+#else
+# define ALLOC_INLINE 
+#endif
+
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
@@ -2511,8 +2629,6 @@ decrease).
 #include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
-#include "pl-funcs.h"			/* global functions */
-#include "pl-ldpass.h"			/* Wrap __LD functions */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
 #include "os/pl-text.h"			/* text manipulation */
@@ -2528,4 +2644,8 @@ decrease).
 #undef try
 #endif
 
+/* include the appropriate inlines, when requested */
+#if USE_ALLOC_INLINES
+#include "pl-alloc-inline.h"
+#endif
 #endif /*_PL_INCLUDE_H*/

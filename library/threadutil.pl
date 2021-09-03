@@ -57,7 +57,7 @@
 :- autoload(library(backcomp),[thread_at_exit/1]).
 :- autoload(library(edinburgh),[nodebug/0]).
 :- autoload(library(gui_tracer),[gdebug/0]).
-:- autoload(library(lists),[max_list/2]).
+:- autoload(library(lists),[max_list/2,append/2]).
 :- autoload(library(option),[merge_options/3,option/3]).
 :- autoload(library(pce),[send/2]).
 :- autoload(library(prolog_stack),
@@ -246,7 +246,7 @@ regkey(_, 'Anonymous').
 
 xterm_args(['-xrm', '*backarrowKeyIsErase: false']).
 xterm_args(['-xrm', '*backarrowKey: false']).
-xterm_args(['-fa', 'monospace;pixelsize=11;regular']).
+xterm_args(['-fa', 'Ubuntu Mono', '-fs', 12]).
 xterm_args(['-fg', '#000000']).
 xterm_args(['-bg', '#ffffdd']).
 xterm_args(['-sb', '-sl', 1000, '-rightbar']).

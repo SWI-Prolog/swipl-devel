@@ -49,11 +49,16 @@
             predicate_label/2,                  % +PI, -Label
             predicate_sort_key/2,               % +PI, -Key
 
-            is_control_goal/1                   % @Term
+            is_control_goal/1,                  % @Term
+            is_predicate_indicator/1,           % @Term
+
+            body_term_calls/2                   % :BodyTerm, -Goal
           ]).
 :- autoload(library(error),[must_be/2, instantiation_error/1]).
 :- autoload(library(lists),[append/3]).
 
+:- meta_predicate
+    body_term_calls(:, -).
 
 :- multifile
     user:prolog_predicate_name/2.
@@ -141,6 +146,25 @@ mkdisj(A,B,Conj) :-
 is_true(Goal) :- Goal == true.
 is_false(Goal) :- (Goal == false -> true ; Goal == fail).
 
+%!  is_predicate_indicator(@Term) is semidet.
+%
+%   True when Term is a predicate indicator
+
+is_predicate_indicator(Var) :-
+    var(Var),
+    !,
+    instantiation_error(Var).
+is_predicate_indicator(PI) :-
+    strip_module(PI, M, PI1),
+    atom(M),
+    (   PI1 = (Name/Arity)
+    ->  true
+    ;   PI1 = (Name//Arity)
+    ),
+    atom(Name),
+    integer(Arity),
+    Arity >= 0.
+
 %!  pi_head(?PredicateIndicator, ?Goal) is det.
 %
 %   Translate between a PredicateIndicator and a   Goal  term. The terms
@@ -185,12 +209,13 @@ most_general_goal(Compound, General) :-
 %!  extend_goal(:Goal0, +Extra, -Goal) is det.
 %
 %   Extend the possibly qualified Goal0   with additional arguments from
-%   Extra.
+%   Extra. If Goal0 is insufficiantly instantiated (i.e., a variable), a
+%   term call(Goal0, ...) is returned.
 
-extend_goal(Goal0, _, _) :-
+extend_goal(Goal0, Extra, Goal) :-
     var(Goal0),
     !,
-    instantiation_error(Goal0).
+    Goal =.. [call,Goal0|Extra].
 extend_goal(M:Goal0, Extra, M:Goal) :-
     extend_goal(Goal0, Extra, Goal).
 extend_goal(Atom, Extra, Goal) :-
@@ -278,3 +303,86 @@ is_control_goal((_->_)).
 is_control_goal((_|_)).
 is_control_goal((_*->_)).
 is_control_goal(\+(_)).
+
+%!  body_term_calls(:BodyTerm, -Goal) is nondet.
+%
+%   True when BodyTerm calls Goal.  This   predicate  looks into control
+%   structures as well as meta predicates based on predicate_property/2.
+%
+%   When a variable is  called,  this   is  normally  returned  in Goal.
+%   Currently if a variable is called   with additional arguments, e.g.,
+%   call(Var, a1), this call is reported as call(Var, a1).
+
+body_term_calls(M:Body, Calls) :-
+    body_term_calls(Body, M, M, Calls).
+
+body_term_calls(Var, M, C, Calls) :-
+    var(Var),
+    !,
+    qualify(M, C, Var, Calls).
+body_term_calls(M:Goal, _, C, Calls) :-
+    !,
+    body_term_calls(Goal, M, C, Calls).
+body_term_calls(Goal, M, C, Calls) :-
+    qualify(M, C, Goal, Calls).
+body_term_calls((A,B), M, C, Calls) :-
+    !,
+    (   body_term_calls(A, M, C, Calls)
+    ;   body_term_calls(B, M, C, Calls)
+    ).
+body_term_calls((A;B), M, C, Calls) :-
+    !,
+    (   body_term_calls(A, M, C, Calls)
+    ;   body_term_calls(B, M, C, Calls)
+    ).
+body_term_calls((A->B), M, C, Calls) :-
+    !,
+    (   body_term_calls(A, M, C, Calls)
+    ;   body_term_calls(B, M, C, Calls)
+    ).
+body_term_calls((A*->B), M, C, Calls) :-
+    !,
+    (   body_term_calls(A, M, C, Calls)
+    ;   body_term_calls(B, M, C, Calls)
+    ).
+body_term_calls(\+ A, M, C, Calls) :-
+    !,
+    body_term_calls(A, M, C, Calls).
+body_term_calls(Goal, M, C, Calls) :-
+    predicate_property(M:Goal, meta_predicate(Spec)),
+    \+ ( functor(Goal, call, _),
+         arg(1, Goal, A1),
+         strip_module(A1, _, P1),
+         var(P1)
+       ),
+    !,
+    arg(I, Spec, SArg),
+    arg(I, Goal, GArg),
+    meta_calls(SArg, GArg, Call0),
+    body_term_calls(Call0, M, C, Calls).
+
+meta_calls(0, Goal, Goal) :-
+    !.
+meta_calls(I, Goal0, Goal) :-
+    integer(I),
+    !,
+    length(Extra, I),
+    extend_goal(Goal0, Extra, Goal).
+meta_calls(//, Goal0, Goal) :-
+    extend_goal(Goal0, [_,_], Goal).
+meta_calls(^, Goal0, Goal) :-
+    !,
+    strip_existential(Goal0, Goal).
+
+strip_existential(Var, Var) :-
+    var(Var),
+    !.
+strip_existential(_^In, Out) :-
+    strip_existential(In, Out).
+
+qualify(M, C, Goal, Calls) :-
+    M == C,
+    !,
+    Calls = Goal.
+qualify(M, _, Goal, M:Goal).
+

@@ -34,6 +34,7 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-prims.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -83,13 +84,13 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
   for(;;)
   { Word a = &f->arguments[kp];
     Word n;
-    int d = compareStandard(k, a, FALSE PASS_LD);
+    int d = compareStandard(k, a, FALSE);
     int arg;
 
     if ( d == CMP_ERROR )
       return FALSE;
     if ( d == CMP_EQUAL )
-    { if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+    { if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
 	   PL_unify_atom(A5, ATOM_equals) )
 	return TRUE;
       return FALSE;
@@ -103,7 +104,7 @@ PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
     if ( !isTerm(*n) )
     { nomatch:
 
-      if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT PASS_LD) &&
+      if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
 	   PL_unify_atom(A5, arg == lp ? ATOM_smaller : ATOM_larger ) )
 	return TRUE;
       return FALSE;

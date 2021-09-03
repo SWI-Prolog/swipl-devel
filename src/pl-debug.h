@@ -3,8 +3,9 @@
     Author:        Keri Harris
     E-mail:        keri.harris@securitease.com
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -103,6 +104,8 @@
 #define MSG_REC_ATTVAR		 58
 #define MSG_TTY			 59
 #define MSG_OS_DIR		 60
+#define MSG_COMP_ARG_UNIFY	 61
+#define MSG_DETERMINISM		 62
 
 #define MSG_READ_TOKEN		 65
 
@@ -148,6 +151,7 @@
 #define MSG_CALL_RESIDUE_VARS	 151
 #define MSG_SOFTCUT		 152
 #define MSG_WAKEUP		 153
+#define MSG_UNDO		 154
 
 #define MSG_HASH_TABLE_API	 160
 #define MSG_HASH_TABLE_KVS	 161
@@ -206,10 +210,20 @@
 #define MSG_TABLING_ABOLISH	 314
 #define MSG_TABLING_CALL_SUBSUMPTION 315
 #define MSG_TABLING_RESTRAINT	 316
+#define MSG_TABLING_MONOTONIC	 317
+#define MSG_TABLING_TRANSACTION	 318
+#define MSG_TABLING_IDG_REEVAL_NODE 319
 
 #define TABLING_NO_EARLY_COMPLETION 320
 #define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
 #define TABLING_NO_AC		 322
+
+#define MSG_THREAD_WAIT		 350
+
+#define MSG_TRANSACTION		 360
+#define MSG_COMMIT		 361
+
+#define MSG_READ_OP		 360
 
 #define CHK_SECURE              1000
 #define CHK_HIGH_ARITY          1001
@@ -223,5 +237,6 @@ typedef struct debug_topic
 
 COMMON(void)	cleanupDebug(void);
 COMMON(int)	prolog_debug_from_string(const char *spec, int flag);
+COMMON(const char *) prolog_debug_topic_name(unsigned code);
 
 #endif /*PL_DEBUG_INCLUDED*/

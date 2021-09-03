@@ -34,8 +34,9 @@
 */
 
 #define _GNU_SOURCE
-#include "pl-incl.h"
-#include "os/pl-cstack.h"
+#include "../pl-incl.h"
+#include "pl-cstack.h"
+#include "../pl-setup.h"
 #include <time.h>
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -432,7 +433,7 @@ print_backtrace(int last)		/* 1..SAVE_TRACES */
 }
 
 
-void
+static void
 bstore_print_backtrace_named(btrace *bt, const char *why)
 { if ( bt )
   { int me = bt->current-1;

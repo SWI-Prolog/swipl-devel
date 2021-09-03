@@ -37,6 +37,9 @@
 #ifndef PL_GLOBAL_H_INCLUDED
 #define PL_GLOBAL_H_INCLUDED
 #include "pl-allocpool.h"
+#include "pl-mutex.h"
+#include "pl-thread.h"
+#include "pl-gmp.h"
 
 #ifndef GLOBAL			/* global variables */
 #define GLOBAL extern
@@ -111,12 +114,8 @@ struct PL_global_data
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
-#ifdef O_LOGICAL_UPDATE
-  volatile ggen_t _generation;		/* generation of the database */
-#ifdef ATOMIC_GENERATION_HACK
-  volatile gen_t _last_generation;	/* see pl-inline.h, global_generation() */
-#endif
-#endif
+
+  volatile gen_t _generation;		/* generation of the database */
 
   struct
   { int		os_argc;		/* main(int argc, char **argv) */
@@ -160,6 +159,8 @@ struct PL_global_data
     int		engines_finished;	/* # engines threads */
     double	thread_cputime;		/* Total CPU time of threads */
 #endif
+    int		errors;			/* Printed error messages */
+    int		warnings;		/* Printed warning messages */
   } statistics;
 
 #ifdef O_PROFILE
@@ -313,6 +314,7 @@ struct PL_global_data
     Procedure	is2;			/* is/2 */
     Procedure	strict_equal2;		/* ==/2 */
     Procedure	not_strict_equal2;	/* \==/2 */
+    Procedure   arg3;			/* arg/3 */
     Procedure	exception_hook4;
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
@@ -443,7 +445,6 @@ struct PL_local_data
 #endif
   int		in_arithmetic;		/* doing arithmetic */
   int		in_print_message;	/* Inside printMessage() */
-  gen_t		gen_reload;		/* reload generation */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
@@ -524,6 +525,8 @@ struct PL_local_data
     double	last_walltime;		/* Last Wall time (m-secs since start) */
     double	user_cputime;		/* User saved CPU time */
     double	system_cputime;		/* Kernel saved CPU time */
+    int		errors;			/* Printed error messages */
+    int		warnings;		/* Printed warning messages */
   } statistics;
 
 #ifdef O_GMP
@@ -614,6 +617,8 @@ struct PL_local_data
     alloc_pool *node_pool;		/* Node allocation pool for tries */
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */
+    int in_assert_propagation;		/* Running propagate_assert/1 */
+    int flags;				/* Global flags (TF_*) */
     term_t delay_list;			/* Global delay list */
     term_t idg_current;			/* Current node in IDG (trie symbol) */
     struct
@@ -698,6 +703,9 @@ struct PL_local_data
   pl_shift_status_t shift_status;	/* Stack shifter status */
   pl_debugstatus_t _debugstatus;	/* status of the debugger */
   struct btrace *btrace_store;		/* C-backtraces */
+#if O_DEBUG
+  pl_internaldebugstatus_t internal_debug; /* status of C-level debug flags */
+#endif
 
 #ifdef O_PLMT
   struct
@@ -709,9 +717,24 @@ struct PL_local_data
     struct _thread_sig   *sig_tail;	/* Tail of signal queue */
     DefinitionChain local_definitions;	/* P_THREAD_LOCAL predicates */
     simpleMutex scan_lock;		/* Hold for asynchronous scans */
+    thread_wait_for *waiting_for;	/* thread_wait/2 info */
     alert_channel alert;		/* How to alert the thread */
   } thread;
 #endif
+
+  struct
+  { gen_t	      gen_start;	/* Global start generation */
+    gen_t	      gen_base;		/* Local  start generation */
+    gen_t	      gen_max;		/* Transaction max gen */
+    gen_t	      gen_nest;		/* Start of nested generation */
+    gen_t	      generation;	/* Local current generation */
+    Table	      clauses;		/* Affected clauses */
+    Table	      predicates;	/* Pred --> last modified */
+    struct tbl_trail *table_trail;	/* Affected tables */
+    term_t	      id;		/* Default the goal */
+    struct tr_stack  *stack;		/* Nested transaction stack */
+    unsigned int      flags;		/*  */
+  } transaction;
 
 #ifdef O_LOCALE
   struct
@@ -725,9 +748,20 @@ struct PL_local_data
   } clauses;
 
   struct
+  { gen_t	generation;		/* reload generation */
+    int		nesting;		/* reload nesting */
+  } reload;
+
+  struct
   { DefinitionChain nesting;		/* Nesting chain in the autoloader */
     Definition	loop;			/* We are looping on this def */
   } autoload;
+
+  struct
+  { term_t undo_list;			/* Stacked undo goals */
+    Buffer scheduled;
+    int    running;
+  } undo;
 
   struct
   { intptr_t _total_marked;		/* # marked global cells */

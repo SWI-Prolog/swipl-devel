@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2020, University of Amsterdam
+    Copyright (c)  1997-2021, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,6 +33,9 @@
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 */
+
+#ifndef _PL_ERROR_H
+#define _PL_ERROR_H
 
 #ifndef COMMON
 #define COMMON(type) extern type
@@ -91,18 +95,35 @@ typedef enum
   ERR_SIGNALLED,		/* int sig, char *name */
   ERR_SYNTAX,			/* what */
   ERR_UNDEFINED_PROC,		/* Definition def */
-  ERR_DUPLICATE_KEY		/* term_t */
+  ERR_DUPLICATE_KEY,		/* term_t */
+  ERR_PERMISSION_SSU_DEF,	/* Definition def */
+  ERR_DETERMINISM,		/* Definition def, atom_t expect,
+				   atom_t found, atom_t decl */
+  ERR_DET_GOAL			/* term_t goal, atom_t expect, atom_t found */
 } PL_error_code;
 
 #define MSG_ERRNO		((char *)(-1))
 
-COMMON(int)		PL_error(const char *pred, int arity, const char *msg,
-				 PL_error_code id, ...);
-COMMON(int)		PL_no_memory(void);
-COMMON(int)		printMessage(atom_t severity, ...) WUNUSED;
-#ifdef ARG_LD
-COMMON(int)		PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD);
-COMMON(int)		PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD);
-#endif
-COMMON(int)		PL_get_module_ex(term_t name, module_t *m);
-COMMON(int)		PL_get_arg_ex(int n, term_t term, term_t arg);
+#if USE_LD_MACROS
+#define	PL_get_atom_ex(t, a)		LDFUNC(PL_get_atom_ex, t, a)
+#define	PL_get_size_ex(t, i)		LDFUNC(PL_get_size_ex, t, i)
+#define	pl_get_uint64(t, i, ex)		LDFUNC(pl_get_uint64, t, i, ex)
+#define	PL_get_uint64_ex(t, i)		LDFUNC(PL_get_uint64_ex, t, i)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int		PL_error(const char *pred, int arity, const char *msg,
+			 PL_error_code id, ...);
+int		PL_no_memory(void);
+int		printMessage(atom_t severity, ...) WUNUSED;
+int		PL_get_atom_ex(term_t t, atom_t *a);
+int		PL_get_size_ex(term_t t, size_t *i);
+int		pl_get_uint64(term_t t, uint64_t *i, int ex);
+int		PL_get_uint64_ex(term_t t, uint64_t *i);
+int		PL_get_module_ex(term_t name, module_t *m);
+int		PL_get_arg_ex(int n, term_t term, term_t arg);
+
+#undef LDFUNC_DECLARATIONS
+
+#endif /*_PL_ERROR_H*/

@@ -66,6 +66,12 @@ typedef struct
 	  (txt)->canonical = FALSE; \
 	}
 
+#if USE_LD_MACROS
+#define	PL_get_text(l, text, flags)	LDFUNC(PL_get_text, l, text, flags)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
 int	PL_unify_text_range(term_t term, PL_chars_t *text,
 			    size_t from, size_t len, int type);
@@ -81,17 +87,19 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 void	PL_free_text(PL_chars_t *text);
 int	PL_save_text(PL_chars_t *text, int flags);
 
-COMMON(int)		PL_get_text__LD(term_t l, PL_chars_t *text, int flags ARG_LD);
-COMMON(atom_t)		textToAtom(PL_chars_t *text);
-COMMON(word)		textToString(PL_chars_t *text);
+int		PL_get_text(term_t l, PL_chars_t *text, int flags);
+atom_t		textToAtom(PL_chars_t *text);
+word		textToString(PL_chars_t *text);
 
-COMMON(IOSTREAM *)	Sopen_text(PL_chars_t *text, const char *mode);
-COMMON(int)		PL_text_recode(PL_chars_t *text, IOENC encoding);
+IOSTREAM *	Sopen_text(PL_chars_t *text, const char *mode);
+int		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
-					/* pl-fli.c */
-COMMON(int)		get_atom_ptr_text(Atom atom, PL_chars_t *text);
-COMMON(int)		get_atom_text(atom_t atom, PL_chars_t *text);
-COMMON(int)		get_string_text(atom_t atom, PL_chars_t *text ARG_LD);
+/* Moved to pl-fli.c:
+ int get_atom_ptr_text(Atom atom, PL_chars_t *text);
+ int get_atom_text(atom_t atom, PL_chars_t *text);
+ int get_string_text(atom_t atom, PL_chars_t *text);
+*/
+#undef LDFUNC_DECLARATIONS
 
 static inline int
 text_get_char(const PL_chars_t *t, size_t i)
@@ -118,6 +126,5 @@ text_chr(const PL_chars_t *t, int chr)
 
   return (size_t)-1;
 }
-
 
 #endif /*PL_TEXT_H_INCLUDED*/

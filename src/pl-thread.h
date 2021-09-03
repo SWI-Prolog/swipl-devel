@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2019, University of Amsterdam
+    Copyright (c)  1999-2020, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -34,8 +34,12 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-incl.h"
+
 #ifndef PL_THREAD_H_DEFINED
 #define PL_THREAD_H_DEFINED
+#include "pl-mutex.h"
+#include "os/pl-buffer.h"
 
 #ifdef O_PLMT
 #include <pthread.h>
@@ -94,6 +98,7 @@ typedef struct _PL_thread_info_t
   unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
+  int		    joining_by;		/* TID of joining thread */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
 #ifdef PID_IDENTIFIES_THREAD
@@ -226,9 +231,10 @@ extern counting_mutex _PL_mutexes[];	/* Prolog mutexes */
 #define L_EVHOOK       26
 #define L_OSDIR	       27
 #define L_ALERT	       28
+#define L_GENERATION   29
 #ifdef __WINDOWS__
-#define L_DDE	       29
-#define L_CSTACK       30
+#define L_DDE	       30
+#define L_CSTACK       31
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -296,18 +302,7 @@ All  thread-local  data  is  combined  in    one  structure  defined  in
 pl-global.h. If Prolog is compiled for single-threading this is a simple
 global variable and the macro LD is defined   to  pick up the address of
 this variable. In multithreaded context,  POSIX pthread_getspecific() is
-used to get separate versions for each  thread. Functions uisng LD often
-may wish to write:
-
-<header>
-{ GET_LD
-#undef LD
-#define LD LOCAL_LD
-  ...
-
-#undef LD
-#define LD GLOBAL_LD
-}
+used to get separate versions for each thread.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 		 /*******************************
@@ -349,6 +344,66 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 
 
 		 /*******************************
+		 *	    WAIT SUPPORT	*
+		 *******************************/
+
+typedef struct thread_dcell
+{ PL_local_data_t     *ld;		/* The thread */
+  struct thread_dcell *next;		/* next in chain */
+  struct thread_dcell *prev;		/* previous in chain */
+} thread_dcell;
+
+typedef enum twf_type
+{ TWF_DB,
+  TWF_MODULE,
+  TWF_PREDICATE
+} twf_type;
+
+typedef struct thread_wait_channel
+{ twf_type	type;			/* TWF_* */
+  int		signalled;		/* Is signalled */
+  int		flags;			/* TWF_ASSERT/RETRACT */
+  gen_t		generation;		/* Overall generation */
+  union
+  { void       *any;
+    Module      module;			/* Module */
+    Definition  predicate;		/* Predicate */
+  } obj;
+} thread_wait_channel;
+
+typedef struct thread_wait_for		/* thread data for wait/update */
+{ buffer	channels;		/* channels we listen on */
+  int		signalled;		/* are we signalled? */
+  thread_dcell *registered;		/* cell in thread_wait_area */
+  struct module_cell *updating;		/* thread_update/2 modules */
+} thread_wait_for;
+
+typedef struct thread_wait_area		/* module data for wait/update */
+{ simpleMutex	mutex;
+#ifdef __WINDOWS__
+  CONDITION_VARIABLE cond;
+#else
+  pthread_cond_t     cond;
+#endif
+  thread_dcell *w_head;			/* waiting thread head */
+  thread_dcell *w_tail;			/* waiting thread tail */
+} thread_wait_area;
+
+
+
+#define wakeupThreads(def, flags) \
+	do \
+	{ if ( def->module->wait && def->module->wait->w_head ) \
+	  { thread_wait_channel wch = { .type = TWF_PREDICATE, \
+				        .obj.any = def, \
+					.flags = flags \
+				      }; \
+	    signal_waiting_threads(def->module, &wch); \
+	  } \
+	} while(0)
+
+
+		 /*******************************
 		 *	       WINDOWS		*
 		 *******************************/
 
@@ -359,47 +414,56 @@ extern TLD_KEY PL_ldata;		/* key to local data */
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-COMMON(int)		exitPrologThreads(void);
-COMMON(bool)		aliasThread(int tid, atom_t type, atom_t name);
-COMMON(word)		pl_thread_create(term_t goal, term_t id,
-					 term_t options);
-COMMON(word)		pl_thread_exit(term_t retcode);
-COMMON(foreign_t)	pl_thread_signal(term_t thread, term_t goal);
+int		exitPrologThreads(void);
+bool		aliasThread(int tid, atom_t type, atom_t name);
+word		pl_thread_create(term_t goal, term_t id,
+				 term_t options);
+word		pl_thread_exit(term_t retcode);
+foreign_t	pl_thread_signal(term_t thread, term_t goal);
 
-COMMON(foreign_t)	pl_thread_at_exit(term_t goal);
-extern int		PL_thread_self(void);
+foreign_t	pl_thread_at_exit(term_t goal);
+int		PL_thread_self(void);
+#ifdef O_PLMT
+int		unify_thread_id(term_t id, PL_thread_info_t *info);
+#endif
+int		enableThreads(int enable);
 
-COMMON(const char *)	threadName(int id);
-COMMON(void)		executeThreadSignals(int sig);
-COMMON(foreign_t)	pl_attach_xterm(term_t in, term_t out);
-COMMON(int)		attachConsole(void);
-COMMON(Definition)	localiseDefinition(Definition def);
-COMMON(LocalDefinitions) new_ldef_vector(void);
-COMMON(void)		free_ldef_vector(LocalDefinitions ldefs);
-COMMON(void)		cleanupLocalDefinitions(PL_local_data_t *ld);
-COMMON(void)		destroyLocalDefinitions(Definition def);
-int			PL_mutex_lock(struct pl_mutex *m);
-int			PL_mutex_unlock(struct pl_mutex *m);
-int			PL_thread_raise(int tid, int sig);
-COMMON(void)		cleanupThreads(void);
-COMMON(intptr_t)	system_thread_id(PL_thread_info_t *info);
-COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
-COMMON(void)		get_current_timespec(struct timespec *time);
-COMMON(void)	        carry_timespec_nanos(struct timespec *time);
+
+const char *	threadName(int id);
+void		executeThreadSignals(int sig);
+foreign_t	pl_attach_xterm(term_t in, term_t out);
+int		attachConsole(void);
+Definition	localiseDefinition(Definition def);
+LocalDefinitions new_ldef_vector(void);
+void		free_ldef_vector(LocalDefinitions ldefs);
+void		cleanupLocalDefinitions(PL_local_data_t *ld);
+void		destroyLocalDefinitions(Definition def);
+int		PL_mutex_lock(struct pl_mutex *m);
+int		PL_mutex_unlock(struct pl_mutex *m);
+int		PL_thread_raise(int tid, int sig);
+void		cleanupThreads(void);
+intptr_t	system_thread_id(PL_thread_info_t *info);
+void		get_current_timespec(struct timespec *time);
+void	        carry_timespec_nanos(struct timespec *time);
+int		signal_waiting_threads(Module m, thread_wait_channel *wch);
+void		free_wait_area(thread_wait_area *wa);
+
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
 		 *******************************/
 
-COMMON(void)	forThreadLocalDataUnsuspended(
-		    void (*func)(struct PL_local_data *),
-		    unsigned flags);
-COMMON(void)	resumeThreads(void);
-COMMON(void)	markAtomsMessageQueues(void);
-COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
+void	forThreadLocalDataUnsuspended(
+		    void (*func)(struct PL_local_data *, void *ctx),
+		    void *ctx);
+void	resumeThreads(void);
+void	markAtomsMessageQueues(void);
+void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
-#define acquire_ldata(info)	acquire_ldata__LD(info PASS_LD)
+#define acquire_ldata(info)	LDFUNC(acquire_ldata, info)
 #define release_ldata(ld)	(LD->thread.info->access.ldata = NULL)
+/* defined in pl-inline.h */
+static inline PL_local_data_t *acquire_ldata(DECL_LD PL_thread_info_t *info);
 
 		 /*******************************
 		 *     CONDITION VARIABLES	*
@@ -412,10 +476,11 @@ COMMON(void)	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 
 #ifdef __WINDOWS__
 
-COMMON(int)	cv_timedwait(message_queue *queue,
-			     CONDITION_VARIABLE *cv,
-			     CRITICAL_SECTION *external_mutex,
-			     struct timespec *deadline);
+int	cv_timedwait(message_queue *queue,
+		     CONDITION_VARIABLE *cv,
+		     CRITICAL_SECTION *external_mutex,
+		     struct timespec *deadline,
+		     const struct timespec *retry_every);
 
 #define cv_broadcast(cv)	WakeAllConditionVariable(cv)
 #define cv_signal(cv)		WakeConditionVariable(cv)
@@ -424,10 +489,11 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 
 #else
 
-COMMON(int)	cv_timedwait(message_queue *queue,
-			     pthread_cond_t *cv,
-			     pthread_mutex_t *external_mutex,
-			     struct timespec *deadline);
+int	cv_timedwait(message_queue *queue,
+		     pthread_cond_t *cv,
+		     pthread_mutex_t *external_mutex,
+		     struct timespec *deadline,
+		     const struct timespec *retry_every);
 
 #define cv_broadcast(cv)	pthread_cond_broadcast(cv)
 #define cv_signal(cv)		pthread_cond_signal(cv)
@@ -436,7 +502,7 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 
 #endif /* __WINDOWS__ */
 
-#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL)
+#define cv_wait(cv, m)		cv_timedwait(NULL, cv, m, NULL, NULL)
 
 
 #else /*O_PLMT, end of threading-stuff */
@@ -467,34 +533,55 @@ COMMON(int)	cv_timedwait(message_queue *queue,
 #define acquire_ldata(ld)	(ld)
 #define release_ldata(ld)	(void)0
 
-COMMON(double)	        ThreadCPUTime(PL_local_data_t *ld, int which);
-
 #endif /*O_PLMT*/
 
 		 /*******************************
 		 *	       COMMON		*
 		 *******************************/
 
+foreign_t	pl_thread_self(term_t self);
+
+#define TWF_ASSERT	0x0001		/* Predicate actions */
+#define TWF_RETRACT	0x0002
+
 typedef struct
 { functor_t functor;			/* functor of property */
+  /* FIXME: we should not be storing function pointers with
+   * incomplete prototypes! WASM in particular cannot call a
+   * function unless it has a full, correct prototype
+   */
   int (*function)();			/* function to generate */
 } tprop;
 
-COMMON(int)		get_prop_def(term_t t, atom_t expected,
-				     const tprop *list, const tprop **def);
-COMMON(void)		initPrologThreads(void);
-COMMON(int)		pl_atom_table_in_use(AtomTable atom_table);
-COMMON(int)		pl_atom_bucket_in_use(Atom *atom_bucket);
-COMMON(Atom**)		pl_atom_buckets_in_use(void);
-COMMON(Definition*)	predicates_in_use(void);
-COMMON(int)		pl_functor_table_in_use(FunctorTable functor_table);
-COMMON(int)		pl_kvs_in_use(KVS kvs);
-COMMON(definition_ref*) pushPredicateAccessObj(Definition def ARG_LD);
-COMMON(void)		popPredicateAccess__LD(Definition def ARG_LD);
-COMMON(size_t)		popNPredicateAccess__LD(size_t n ARG_LD);
-COMMON(void)		markAccessedPredicates(PL_local_data_t *ld);
-COMMON(int)		cgc_thread_stats(cgc_stats *stats ARG_LD);
-COMMON(int)		signalGCThread(int sig);
-COMMON(int)		isSignalledGCThread(int sig ARG_LD);
+#if USE_LD_MACROS
+#define	pushPredicateAccessObj(def)	LDFUNC(pushPredicateAccessObj, def)
+#define	popPredicateAccess(def)		LDFUNC(popPredicateAccess, def)
+#define	popNPredicateAccess(n)		LDFUNC(popNPredicateAccess, n)
+#define	cgc_thread_stats(stats)		LDFUNC(cgc_thread_stats, stats)
+#define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
+#define	ThreadCPUTime(which)		LDFUNC(ThreadCPUTime, which)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int		get_prop_def(term_t t, atom_t expected,
+			     const tprop *list, const tprop **def);
+void		initPrologThreads(void);
+int		pl_atom_table_in_use(AtomTable atom_table);
+int		pl_atom_bucket_in_use(Atom *atom_bucket);
+Atom**		pl_atom_buckets_in_use(void);
+Definition*	predicates_in_use(void);
+int		pl_functor_table_in_use(FunctorTable functor_table);
+int		pl_kvs_in_use(KVS kvs);
+definition_ref* pushPredicateAccessObj(Definition def);
+void		popPredicateAccess(Definition def);
+size_t		popNPredicateAccess(size_t n);
+void		markAccessedPredicates(PL_local_data_t *ld);
+int		cgc_thread_stats(cgc_stats *stats);
+int		signalGCThread(int sig);
+int		isSignalledGCThread(int sig);
+double	        ThreadCPUTime(int which);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_THREAD_H_DEFINED*/

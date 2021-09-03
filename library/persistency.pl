@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2017, VU University, Amsterdam
+    Copyright (c)  2009-2020, VU University, Amsterdam
+                              CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -69,18 +70,27 @@ in the database using the directive persistent/1.
 
 The persistent/1 expands each declaration into four predicates:
 
-        * name(Arg, ...)
-        * assert_name(Arg, ...)
-        * retract_name(Arg, ...)
-        * retractall_name(Arg, ...)
+ - name(Arg, ...)
+ - assert_name(Arg, ...)
+ - retract_name(Arg, ...)
+ - retractall_name(Arg, ...)
 
 As mentioned, a database can  only  be   accessed  from  within a single
 module. This limitation is on purpose,  forcing   the  user to provide a
 proper API for accessing the shared persistent data.
 
-Below is a simple example:
+This module requires  the  same   thread-synchronization  as  the normal
+Prolog database. This implies that if  each individual assert or retract
+takes the database from one consistent state  to the next, no additional
+locking is required. If more than   one elementary database operation is
+required to get from one consistent state to the next, both updating and
+querying the database must be locked using with_mutex/2.
 
-==
+Below is a simple example, where adding a  user does not need locking as
+it is a single _assert_, while modifying  a user requires both a retract
+and assert and thus needs to be locked.
+
+```
 :- module(user_db,
           [ attach_user_db/1,           % +File
             current_user_role/2,        % ?User, ?Role
@@ -109,7 +119,7 @@ set_user_role(Name, Role) :-
         with_mutex(user_db,
                    (  retractall_user_role(Name, _),
                       assert_user_role(Name, Role))).
-==
+```
 
 @tbd    Provide type safety while loading
 @tbd    Thread safety must now be provided at the user-level. Can we
@@ -119,6 +129,8 @@ set_user_role(Name, Role) :-
 @tbd    Transaction management?
 @tbd    Should assert_<name> only assert if the database does not
         contain a variant?
+@tbd	Since we have prolog_listen/2, we could use direct assert/1 and
+	retract/1 and use the system hooks to deal with the updates.
 */
 
 :- meta_predicate
@@ -436,11 +448,16 @@ db_attached(Module:File) :-
     db_retractall/1,
     db_retract/1.
 
-db_assert(Module:Term) :-
+db_assert(Term)     :- with_mutex('$persistency', db_assert_sync(Term)).
+db_asserta(Term)    :- with_mutex('$persistency', db_asserta_sync(Term)).
+db_retract(Term)    :- with_mutex('$persistency', db_retract_sync(Term)).
+db_retractall(Term) :- with_mutex('$persistency', db_retractall_sync(Term)).
+
+db_assert_sync(Module:Term) :-
     assert(Module:Term),
     persistent(Module, assert(Term)).
 
-db_asserta(Module:Term) :-
+db_asserta_sync(Module:Term) :-
     asserta(Module:Term),
     persistent(Module, asserta(Term)).
 
@@ -521,7 +538,7 @@ write_action(Stream, Action) :-
 %   Term is unbound, persistent/1 from the   calling  module is used as
 %   generator.
 
-db_retractall(Module:Term) :-
+db_retractall_sync(Module:Term) :-
     (   var(Term)
     ->  forall(persistent(Module, Term, _Types),
                db_retractall(Module:Term))
@@ -545,7 +562,7 @@ db_retractall(Module:Term) :-
 %
 %   Retract terms from the database one-by-one.
 
-db_retract(Module:Term) :-
+db_retract_sync(Module:Term) :-
     (   var(Term)
     ->  instantiation_error(Term)
     ;   retract(Module:Term),

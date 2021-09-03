@@ -35,7 +35,10 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-bag.h"
+#include "pl-rec.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -186,8 +189,9 @@ alloc_record(void *ctx, size_t bytes)
 }
 
 
+#define current_bag(_) LDFUNC(current_bag, _)
 static findall_bag *
-current_bag(ARG1_LD)
+current_bag(DECL_LD)
 { findall_bag *bag = LD->bags.bags;
 
   while(bag && bag->suspended)
@@ -199,9 +203,10 @@ current_bag(ARG1_LD)
 }
 
 
+#define add_findall_bag(term, count) LDFUNC(add_findall_bag, term, count)
 static foreign_t
-add_findall_bag(term_t term, term_t count ARG_LD)
-{ findall_bag *bag = current_bag(PASS_LD1);
+add_findall_bag(DECL_LD term_t term, term_t count)
+{ findall_bag *bag = current_bag();
   Record r;
 
   DEBUG(MSG_NSOLS, { Sdprintf("Adding to %p: ", bag);
@@ -221,7 +226,7 @@ add_findall_bag(term_t term, term_t count ARG_LD)
 		    ERR_PERMISSION, ATOM_append, cbag, term);
   }
 
-  if ( !(r = compileTermToHeap__LD(term, alloc_record, bag, R_NOLOCK PASS_LD)) )
+  if ( !(r = compileTermToHeap_ex(term, alloc_record, bag, R_NOLOCK)) )
     return PL_no_memory();
   if ( !pushRecordSegStack(&bag->answers, r) )
     return PL_no_memory();
@@ -241,21 +246,21 @@ static
 PRED_IMPL("$add_findall_bag", 1, add_findall_bag, 0)
 { PRED_LD
 
-  return add_findall_bag(A1, 0 PASS_LD);
+  return add_findall_bag(A1, 0);
 }
 
 static
 PRED_IMPL("$add_findall_bag", 2, add_findall_bag, 0)
 { PRED_LD
 
-  return add_findall_bag(A1, A2 PASS_LD);
+  return add_findall_bag(A1, A2);
 }
 
 
 static
 PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
 { PRED_LD
-  findall_bag *bag = current_bag(PASS_LD1);
+  findall_bag *bag = current_bag();
 
   if ( bag->solutions )
   { size_t space = bag->gsize + bag->solutions*3;
@@ -272,7 +277,7 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
       DEBUG(MSG_NSOLS, Sdprintf("Retrieving answer\n"));
-      copyRecordToGlobal(answer, r, ALLOW_GC PASS_LD);
+      copyRecordToGlobal(answer, r, ALLOW_GC);
       if (GD->atoms.gc_active)
         markAtomsRecord(r);
       PL_cons_list(list, answer, list);
@@ -313,7 +318,7 @@ PRED_IMPL("$suspend_findall_bag", 0, suspend_findall_bag, PL_FA_NONDETERMINISTIC
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
-      bag = current_bag(PASS_LD1);
+      bag = current_bag();
       simpleMutexLock(&LD->bags.mutex);
       clear_mem_pool(&bag->records);
       simpleMutexUnlock(&LD->bags.mutex);

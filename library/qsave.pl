@@ -97,6 +97,10 @@ save_option(verbose,     boolean,
             "Be more verbose about the state creation").
 save_option(undefined,   oneof([ignore,error]),
             "How to handle undefined predicates").
+save_option(on_error,    oneof([print,halt,status]),
+            "How to handle errors").
+save_option(on_warning,  oneof([print,halt,status]),
+            "How to handle warnings").
 
 term_expansion(save_pred_options,
                (:- predicate_options(qsave_program/2, 2, Options))) :-
@@ -267,6 +271,7 @@ doption(init_file).
 doption(system_init_file).
 doption(class).
 doption(home).
+doption(nosignals).
 
 %!  save_options(+ArchiveHandle, +SaveClass, +Options)
 %
@@ -1242,9 +1247,23 @@ glob_match(Pattern, File) :-
 qsave_toplevel :-
     current_prolog_flag(os_argv, Argv),
     qsave_options(Argv, Files, Options),
+    set_on_error(Options),
     '$cmd_option_val'(compileout, Out),
     user:consult(Files),
+    maybe_exit_on_errors,
     qsave_program(Out, user:Options).
+
+set_on_error(Options) :-
+    option(on_error(_), Options), !.
+set_on_error(_Options) :-
+    set_prolog_flag(on_error, status).
+
+maybe_exit_on_errors :-
+    '$exit_code'(Code),
+    (   Code =\= 0
+    ->  halt
+    ;   true
+    ).
 
 qsave_options([], [], []).
 qsave_options([--|_], [], []) :-
@@ -1256,7 +1275,8 @@ qsave_options(['-c'|T0], Files, Options) :-
 qsave_options([O|T0], Files, [Option|T]) :-
     string_concat(--, Opt, O),
     split_string(Opt, =, '', [NameS|Rest]),
-    atom_string(Name, NameS),
+    split_string(NameS, '-', '', NameParts),
+    atomic_list_concat(NameParts, '_', Name),
     qsave_option(Name, OptName, Rest, Value),
     !,
     Option =.. [OptName, Value],
@@ -1277,7 +1297,7 @@ qsave_option(Name, Name, [], true) :-
     save_option(Name, boolean, _),
     !.
 qsave_option(NoName, Name, [], false) :-
-    atom_concat('no-', Name, NoName),
+    atom_concat('no_', Name, NoName),
     save_option(Name, boolean, _),
     !.
 qsave_option(Name, Name, ValueStrings, Value) :-

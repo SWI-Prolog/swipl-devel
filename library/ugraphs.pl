@@ -3,8 +3,9 @@
     Author:        R.A.O'Keefe, Vitor Santos Costa, Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1984-2020, VU University Amsterdam
+    Copyright (c)  1984-2021, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions .b.v
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -72,70 +73,19 @@ Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker.
 @author R.A.O'Keefe
 @author Vitor Santos Costa
 @author Jan Wielemaker
-@license GPL+SWI-exception or Artistic 2.0
+@license BSD-2 or Artistic 2.0
 */
 
 :- autoload(library(lists),[append/3]).
 :- autoload(library(ordsets),
 	    [ord_subtract/3,ord_union/3,ord_add_element/3,ord_union/4]).
 
-
-/*
-
-:- public
-        p_to_s_graph/2,
-        s_to_p_graph/2, % edges
-        s_to_p_trans/2,
-        p_member/3,
-        s_member/3,
-        p_transpose/2,
-        s_transpose/2,
-        compose/3,
-        top_sort/2,
-        vertices/2,
-        warshall/2.
-
-:- mode
-        vertices(+, -),
-        p_to_s_graph(+, -),
-            p_to_s_vertices(+, -),
-            p_to_s_group(+, +, -),
-                p_to_s_group(+, +, -, -),
-        s_to_p_graph(+, -),
-            s_to_p_graph(+, +, -, -),
-        s_to_p_trans(+, -),
-            s_to_p_trans(+, +, -, -),
-        p_member(?, ?, +),
-        s_member(?, ?, +),
-        p_transpose(+, -),
-        s_transpose(+, -),
-            s_transpose(+, -, ?, -),
-                transpose_s(+, +, +, -),
-        compose(+, +, -),
-            compose(+, +, +, -),
-                compose1(+, +, +, -),
-                    compose1(+, +, +, +, +, +, +, -),
-        top_sort(+, -),
-            vertices_and_zeros(+, -, ?),
-            count_edges(+, +, +, -),
-                incr_list(+, +, +, -),
-            select_zeros(+, +, -),
-            top_sort(+, -, +, +, +),
-                decr_list(+, +, +, -, +, -),
-        warshall(+, -),
-            warshall(+, +, -),
-                warshall(+, +, +, -).
-
-*/
-
-
-%!  vertices(+S_Graph, -Vertices) is det.
+%!  vertices(+Graph, -Vertices)
 %
-%   Strips off the  neighbours  lists   of  an  S-representation  to
-%   produce  a  list  of  the  vertices  of  the  graph.  (It  is  a
-%   characteristic of S-representations that *every* vertex appears,
-%   even if it has no  neighbours.).   Vertices  is  in the standard
-%   order of terms.
+%   Unify Vertices with all vertices appearing in Graph. Example:
+%
+%       ?- vertices([1-[3,5],2-[4],3-[],4-[5],5-[]], L).
+%       L = [1, 2, 3, 4, 5]
 
 vertices([], []) :- !.
 vertices([Vertex-_|Graph], [Vertex|Vertices]) :-
@@ -170,6 +120,16 @@ vertices_edges_to_ugraph(Vertices, Edges, Graph) :-
     sort(VertexBag, VertexSet),
     p_to_s_group(VertexSet, EdgeSet, Graph).
 
+
+%!  add_vertices(+Graph, +Vertices, -NewGraph)
+%
+%   Unify NewGraph with a new  graph  obtained   by  adding  the list of
+%   Vertices to Graph. Example:
+%
+%   ```
+%   ?- add_vertices([1-[3,5],2-[]], [0,1,2,9], NG).
+%   NG = [0-[], 1-[3,5], 2-[], 9-[]]
+%   ```
 
 add_vertices(Graph, Vertices, NewGraph) :-
     msort(Vertices, V1),
@@ -239,14 +199,32 @@ split_on_del_vertices(>, V, Edges, [_|Vs], Vs, V1, [V-NEdges|NG], NG) :-
     ord_subtract(Edges, V1, NEdges).
 split_on_del_vertices(=, _, _, [_|Vs], Vs, _, NG, NG).
 
+%!  add_edges(+Graph, +Edges, -NewGraph)
+%
+%   Unify NewGraph with a new graph obtained by adding the list of Edges
+%   to Graph. Example:
+%
+%   ```
+%   ?- add_edges([1-[3,5],2-[4],3-[],4-[5],
+%                 5-[],6-[],7-[],8-[]],
+%                [1-6,2-3,3-2,5-7,3-2,4-5],
+%                NL).
+%   NL = [1-[3,5,6], 2-[3,4], 3-[2], 4-[5],
+%         5-[7], 6-[], 7-[], 8-[]]
+%   ```
+
 add_edges(Graph, Edges, NewGraph) :-
     p_to_s_graph(Edges, G1),
     ugraph_union(Graph, G1, NewGraph).
 
-%!  ugraph_union(+Set1, +Set2, ?Union)
+%!  ugraph_union(+Graph1, +Graph2, -NewGraph)
 %
-%   Is true when Union is the union of Set1 and Set2. This code is a
-%   copy of set union
+%   NewGraph is the union of Graph1 and Graph2. Example:
+%
+%   ```
+%   ?- ugraph_union([1-[2],2-[3]],[2-[4],3-[1,2,4]],L).
+%   L = [1-[2], 2-[3,4], 3-[1,2,4]]
+%   ```
 
 ugraph_union(Set1, [], Set1) :- !.
 ugraph_union([], Set2, Set2) :- !.
@@ -261,6 +239,18 @@ ugraph_union(<, Head1, Tail1, Head2, Tail2, [Head1|Union]) :-
     ugraph_union(Tail1, [Head2|Tail2], Union).
 ugraph_union(>, Head1, Tail1, Head2, Tail2, [Head2|Union]) :-
     ugraph_union([Head1|Tail1], Tail2, Union).
+
+%!  del_edges(+Graph, +Edges, -NewGraph)
+%
+%   Unify NewGraph with a new graph  obtained   by  removing the list of
+%   Edges from Graph. Notice that no vertices are deleted. Example:
+%
+%   ```
+%   ?- del_edges([1-[3,5],2-[4],3-[],4-[5],5-[],6-[],7-[],8-[]],
+%                [1-6,2-3,3-2,5-7,3-2,4-5,1-3],
+%                NL).
+%   NL = [1-[5],2-[4],3-[],4-[],5-[],6-[],7-[],8-[]]
+%   ```
 
 del_edges(Graph, Edges, NewGraph) :-
     p_to_s_graph(Edges, G1),
@@ -284,10 +274,12 @@ graph_subtract(<, Head1, Tail1, Head2, Tail2, [Head1|Difference]) :-
 graph_subtract(>, Head1, Tail1, _,     Tail2, Difference) :-
     graph_subtract([Head1|Tail1], Tail2, Difference).
 
-%!  edges(+UGraph, -Edges) is det.
+%!  edges(+Graph, -Edges)
 %
-%   Edges is the set of edges in UGraph. Each edge is represented as
-%   a pair From-To, where From and To are vertices in the graph.
+%   Unify Edges with all edges appearing in Graph. Example:
+%
+%       ?- edges([1-[3,5],2-[4],3-[],4-[5],5-[]], L).
+%       L = [1-3, 1-5, 2-4, 4-5]
 
 edges(Graph, Edges) :-
     s_to_p_graph(Graph, Edges).
@@ -327,6 +319,15 @@ s_to_p_graph([], _, P_Graph, P_Graph) :- !.
 s_to_p_graph([Neib|Neibs], Vertex, [Vertex-Neib|P], Rest_P) :-
     s_to_p_graph(Neibs, Vertex, P, Rest_P).
 
+%!  transitive_closure(+Graph, -Closure)
+%
+%   Generate the graph Closure  as  the   transitive  closure  of Graph.
+%   Example:
+%
+%   ```
+%   ?- transitive_closure([1-[2,3],2-[4,5],4-[6]],L).
+%   L = [1-[2,3,4,5,6], 2-[4,5,6], 4-[6]]
+%   ```
 
 transitive_closure(Graph, Closure) :-
     warshall(Graph, Graph, Closure).
@@ -376,18 +377,19 @@ flip_edges([], []).
 flip_edges([Key-Val|Pairs], [Val-Key|Flipped]) :-
     flip_edges(Pairs, Flipped).
 
-
-%!  compose(G1, G2, Composition)
+%!  compose(+LeftGraph, +RightGraph, -NewGraph)
 %
-%   Calculates the composition of two S-form  graphs, which need not
-%   have the same set of vertices.
+%   Compose NewGraph by connecting the  _drains_   of  LeftGraph  to the
+%   _sources_ of RightGraph. Example:
+%
+%       ?- compose([1-[2],2-[3]],[2-[4],3-[1,2,4]],L).
+%       L = [1-[4], 2-[1,2,4], 3-[]]
 
 compose(G1, G2, Composition) :-
     vertices(G1, V1),
     vertices(G2, V2),
     ord_union(V1, V2, V),
     compose(V, G1, G2, Composition).
-
 
 compose([], _, _, []) :- !.
 compose([Vertex|Vertices], [Vertex-Neibs|G1], G2,
@@ -516,7 +518,14 @@ decr_list(Neibs, [_|Vertices], [N|Counts1], [N|Counts2], Zi, Zo) :-
 %!  neighbors(+Vertex, +Graph, -Neigbours) is det.
 %!  neighbours(+Vertex, +Graph, -Neigbours) is det.
 %
-%   Neigbours is a sorted list of the neighbours of Vertex in Graph.
+%   Neigbours is a sorted list of  the   neighbours  of Vertex in Graph.
+%   Example:
+%
+%   ```
+%   ?- neighbours(4,[1-[3,5],2-[4],3-[],
+%                    4-[1,2,7,5],5-[],6-[],7-[],8-[]], NL).
+%   NL = [1,2,7,5]
+%   ```
 
 neighbors(Vertex, Graph, Neig) :-
     neighbours(Vertex, Graph, Neig).
@@ -573,8 +582,17 @@ before(_, 0).
 
 %!  complement(+UGraphIn, -UGraphOut)
 %
-%   UGraphOut is a ugraph with an edge between all vertices that are
-%   _not_ connected in UGraphIn and all edges from UGraphIn removed.
+%   UGraphOut is a ugraph with an  edge   between  all vertices that are
+%   _not_ connected in UGraphIn and  all   edges  from UGraphIn removed.
+%   Example:
+%
+%   ```
+%   ?- complement([1-[3,5],2-[4],3-[],
+%                  4-[1,2,7,5],5-[],6-[],7-[],8-[]], NL).
+%   NL = [1-[2,4,6,7,8],2-[1,3,5,6,7,8],3-[1,2,4,5,6,7,8],
+%         4-[3,5,6,8],5-[1,2,3,4,6,7,8],6-[1,2,3,4,5,7,8],
+%         7-[1,2,3,4,5,6,8],8-[1,2,3,4,5,6,7]]
+%   ```
 %
 %   @tbd Simple two-step algorithm. You could be smarter, I suppose.
 
@@ -591,7 +609,10 @@ complement([V-Ns|G], Vs, [V-INs|NG]) :-
 %!  reachable(+Vertex, +UGraph, -Vertices)
 %
 %   True when Vertices is  an  ordered   set  of  vertices  reachable in
-%   UGraph, including Vertex.
+%   UGraph, including Vertex.  Example:
+%
+%       ?- reachable(1,[1-[3,5],2-[4],3-[],4-[5],5-[]],V).
+%       V = [1, 3, 5]
 
 reachable(N, G, Rs) :-
     reachable([N], G, [N], Rs).

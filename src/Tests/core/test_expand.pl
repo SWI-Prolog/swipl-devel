@@ -104,6 +104,9 @@ one(X) :-
 	;   X = 2
 	).
 
+ssu_body => g_b.
+ssu_guard, g_b => true.
+
 
 		 /*******************************
 		 *	       TESTS		*
@@ -123,5 +126,9 @@ test(goal_expansion_local_pred) :-
 	test_foo_bar.
 test(expand_once, all(X == [1,2])) :-
 	one(X).
+test(ssu_body, true) :-
+	ssu_body.
+test(ssu_guard, true) :-
+	ssu_guard.
 
 :- end_tests(expand).

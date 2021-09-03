@@ -72,12 +72,11 @@ compilation:
 
 expects_dialect(Dialect) :-
     must_be(atom, Dialect),
-    set_prolog_flag(emulated_dialect, Dialect),
     (   Dialect == swi
     ->  true
     ;   attach_dialect(Dialect)
-    ).
-
+    ),
+    set_prolog_flag(emulated_dialect, Dialect).
 
 attach_dialect(Dialect) :-
     exists_source(library(dialect/Dialect)),

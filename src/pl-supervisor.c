@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2019, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,10 +35,12 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-supervisor.h"
 #include "pl-comp.h"
 #include "pl-inline.h"
 #include "pl-wrap.h"
+#include "pl-tabling.h"
+#include "pl-util.h"
 
 #define MAX_FLI_ARGS 10			/* extend switches on change */
 
@@ -284,7 +287,7 @@ listSupervisor(Definition def)
 static Code
 dynamicSupervisor(Definition def)
 { if ( true(def, P_DYNAMIC) )
-  { if ( true(def, P_INCREMENTAL) )
+  { if ( def->tabling && true(def->tabling, TP_INCREMENTAL) )
       return SUPERVISOR(incr_dynamic);
     else
       return SUPERVISOR(dynamic);
@@ -331,28 +334,39 @@ copyCodes(Code dest, Code src, size_t count)
 
 
 static Code
-chainMetaPredicateSupervisor(Definition def, Code post)
-{ if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+chainPredicateSupervisor(Definition def, Code post)
+{ if ( (true(def, P_META) && true(def, P_TRANSPARENT)) ||
+       true(def, P_SSU_DET|P_DET) )
   { tmp_buffer buf;
-    unsigned int i;
-    int count = 0;
     Code codes;
 
     initBuffer(&buf);
-    for(i=0; i < def->functor->arity; i++)
-    { int ma = def->impl.any.args[i].meta;
 
-      if ( MA_NEEDS_TRANSPARENT(ma) )
-      { addBuffer(&buf, encode(S_MQUAL), code);
-	addBuffer(&buf, VAROFFSET(i), code);
-	count++;
+    if ( true(def, P_SSU_DET) )
+      addBuffer(&buf, encode(S_SSU_DET), code);
+    if ( true(def, P_DET) )
+      addBuffer(&buf, encode(S_DET), code);
+
+    if ( true(def, P_META) && true(def, P_TRANSPARENT) )
+    { unsigned int i;
+      int loffset = -1;
+
+      for(i=0; i < def->functor->arity; i++)
+      { int ma = def->impl.any.args[i].meta;
+
+	if ( MA_NEEDS_TRANSPARENT(ma) )
+	{ loffset = entriesBuffer(&buf, code);
+	  addBuffer(&buf, encode(S_MQUAL), code);
+	  addBuffer(&buf, VAROFFSET(i), code);
+	}
       }
+
+      if ( loffset >= 0 )
+	baseBuffer(&buf, code)[loffset] = encode(S_LMQUAL);
     }
 
-    if ( count > 0 )
-    { baseBuffer(&buf, code)[(count-1)*2] = encode(S_LMQUAL);
-
-      copySuperVisorCode((Buffer)&buf, post);
+    if ( !isEmptyBuffer(&buf) )
+    { copySuperVisorCode((Buffer)&buf, post);
       freeCodes(post);
       codes = allocCodes(entriesBuffer(&buf, code));
       copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
@@ -397,7 +411,7 @@ createSupervisor(Definition def)
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
-  codes = chainMetaPredicateSupervisor(def, codes);
+  codes = chainPredicateSupervisor(def, codes);
 
   return codes;
 }

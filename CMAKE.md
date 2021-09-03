@@ -81,10 +81,12 @@ If this fails, one of these measures may be appropriate:
 ## Build types
 
 The default build type is `RelWithDebInfo`. Alternatives may be selected
-using e.g.,
+using e.g., See [Profile Guided Optimization](#PGO)   for details on the
+PGO build for maximum performance.
 
     cmake -DCMAKE_BUILD_TYPE=Debug -G Ninja ..
     cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
+    cmake -DCMAKE_BUILD_TYPE=PGO -G Ninja ..
 
 ## Install location
 
@@ -100,7 +102,8 @@ After    `sudo    ninja    install`,     `swipl`      will     be     in
 ## Customizing SWI-Prolog
 
 By default the system configures all   features. Several cmake _options_
-allow for restricting the system.
+allow for restricting the system, define   the  layout of the filesystem
+and libraries that are built.
 
   | Option                        | Description                           |
   | ----------------------------- | ------------------------------------- |
@@ -108,7 +111,9 @@ allow for restricting the system.
   | `-DUSE_SIGNALS=OFF`           | Drop signal support                   |
   | `-DUSE_GMP=OFF`               | Drop bignum and rational numbers      |
   | `-DUSE_TCMALLOC=OFF`          | Do not link against `-ltcmalloc`      |
+  | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
+  | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
   | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
@@ -148,57 +153,33 @@ process to use parts  of  an   incompatible  installed  system.  Running
 `cmake` warns if  such  an  environment   variable  is  found,  but  the
 environment must be cleaned when running `ninja` or `make`.
 
-## Profile Guided Optimization
+## Profile Guided Optimization {#PGO}
 
 When using Ninja and GCC, the system  may be built using _Profile Guided
 Optimization_ (PGO). This  first  builds   the  system  instrumented  to
 collect profile information, then runs  a   benchmark  suite and finally
 recompiles it using the benchmark suite  output to help (notably) branch
-prediction.  The  performance  improvement   is    about   10   to  20%.
-Unfortunately the process is a little hard   and the entire system needs
-to be recompiled on any change made to it. To build the PGO version, run
-the commands below. The `../scripts/pgo-compile.sh`   performs the three
-steps above using  the  core  system.   The  final  `ninja`  builds  the
-packages and documentation.
+prediction. The performance improvement  using   modern  GCC versions is
+about 30-40%
 
-    cmake -DCMAKE_BUILD_TYPE=Release -G Ninja ..
-    ../scripts/pgo-compile.sh
+    cmake -DCMAKE_BUILD_TYPE=PGO -G Ninja ..
     ninja
 
-To stop using PGO builds in the current build directory run the commands
-below. The `pgo-compile.sh --off`  restores   the  normal  build  flags,
-deletes the PGO data and cleans the core system files.
-
-    ../scripts/pgo-compile.sh --off
-    ninja
+Older versions provided a  helper   script  in `scripts/pgo-compile.sh`.
+This is now a dummy script  that   runs  `cmake --build`. Note that this
+simply builds the  system.  The  build   type  must  be  set  beforehand
+explicitly as indicated above.
 
 
 ## Cross build
 
-Cross building for Windows using (Ubuntu)   linux. Use `README.mingw` to
-download  and  build  the  dependencies.  Next,  set  these  environment
-variables:
+Cross  building  for  Windows  is  supported    by  means  of  a  Docker
+specification that can be found at the  location below. We advice to use
+the docker. Of course you can  use   the  recipies  in the Dockerfile to
+perform the process on your host Linux system.
 
-  - `MINGW64_ROOT` must point at the prefix where the dependencies
-    are for 64-bit Windows.
-  - `MINGW32_ROOT` must point at the prefix where the dependencies
-    are for 32-bit Windows.
+    https://github.com/SWI-Prolog/docker-swipl-build-mingw
 
-The cmake toolchain  config  files  (see   below)  search  for  Java  in
-`$HOME/.wine`. Please check these locations.
-
-### 64 bit Windows from Linux
-
-    mkdir win64
-    cd win64
-    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win64.cmake -G Ninja ..
-    ninja
-
-### 32 bit Windows from Linux
-
-    mkdir win32
-    cd win32
-    cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/cross/linux_win32.cmake -G Ninja ..
 
 ### WASM (Emscripten)
 

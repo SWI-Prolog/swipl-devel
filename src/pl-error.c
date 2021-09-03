@@ -41,6 +41,9 @@ throw(error(<Formal>, <SWI-Prolog>))
 
 #include "pl-incl.h"
 #include "pl-comp.h"
+#include "pl-fli.h"
+#include "pl-attvar.h"
+#include "pl-proc.h"
 #include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
@@ -359,6 +362,20 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			     PL_TERM, pi));
       break;
     }
+    case ERR_PERMISSION_SSU_DEF:
+    { Definition def = va_arg(args, Definition);
+
+      term_t pi = PL_new_term_ref();
+
+      rc = ( unify_definition(MODULE_user, pi, def, 0,
+			      GP_NAMEARITY|GP_HIDESYSTEM) &&
+	     PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_permission_error3,
+			     PL_ATOM, ATOM_assert,
+			     PL_ATOM, ATOM_procedure,
+			     PL_TERM, pi));
+      break;
+    }
     case ERR_PERMISSION_VMI:
     { const char *vmi = va_arg(args, const char *);
       rc = PL_unify_term(formal,
@@ -378,6 +395,36 @@ PL_error(const char *pred, int arity, const char *msg, PL_error_code id, ...)
 			   PL_FUNCTOR, FUNCTOR_divide2,
 			     PL_CHARS, name,
 			     PL_INT, arity);
+      break;
+    }
+    case ERR_DETERMINISM:
+    { Definition def  = va_arg(args, Definition);
+      atom_t expected = va_arg(args, atom_t);
+      atom_t found    = va_arg(args, atom_t);
+      atom_t decl     = va_arg(args, atom_t);
+      term_t pi       = PL_new_term_ref();
+
+      rc = ( unify_definition(MODULE_user, pi, def, 0,
+			      GP_NAMEARITY|GP_HIDESYSTEM) &&
+	     PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_determinism_error4,
+			     PL_TERM, pi,
+			     PL_ATOM, expected,
+			     PL_ATOM, found,
+			     PL_ATOM, decl));
+      break;
+    }
+    case ERR_DET_GOAL:
+    { term_t goal     = va_arg(args, term_t);
+      atom_t expected = va_arg(args, atom_t);
+      atom_t found    = va_arg(args, atom_t);
+
+      rc = ( PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_determinism_error4,
+			     PL_TERM, goal,
+			     PL_ATOM, expected,
+			     PL_ATOM, found,
+			     PL_ATOM, ATOM_goal));
       break;
     }
     case ERR_IMPORT_PROC:
@@ -912,7 +959,7 @@ printMessage(atom_t severity, ...)
 
   if ( ++LD->in_print_message >= OK_RECURSIVE*3 )
     fatalError("printMessage(): recursive call\n");
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  if ( !saveWakeup(&wstate, TRUE) )
   { LD->in_print_message--;
     return FALSE;
   }
@@ -945,7 +992,7 @@ printMessage(atom_t severity, ...)
   else
     rc = TRUE;
 
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
   LD->in_print_message--;
 
   return rc;
@@ -957,7 +1004,7 @@ printMessage(atom_t severity, ...)
 		 *******************************/
 
 int
-PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
+PL_get_atom_ex(DECL_LD term_t t, atom_t *a)
 { if ( PL_get_atom(t, a) )
     succeed;
 
@@ -965,14 +1012,9 @@ PL_get_atom_ex__LD(term_t t, atom_t *a ARG_LD)
 }
 
 
-#undef PL_get_atom_ex
-int
-PL_get_atom_ex(term_t t, atom_t *a)
-{ GET_LD
-
-  return PL_get_atom_ex__LD(t, a PASS_LD);
-}
-#define PL_get_atom_ex(t, a)	PL_get_atom_ex__LD(t, a PASS_LD)
+API_STUB(int)
+(PL_get_atom_ex)(term_t t, atom_t *a)
+( return PL_get_atom_ex(t, a); )
 
 
 int
@@ -1043,7 +1085,7 @@ fits_size(int64_t val)
 #endif
 
 int
-PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
+PL_get_size_ex(DECL_LD term_t t, size_t *i)
 { number n;
   Word p = valTermRef(t);
 
@@ -1103,7 +1145,7 @@ PL_get_size_ex__LD(term_t t, size_t *i ARG_LD)
 
 
 int
-PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
+pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 { number n;
   Word p = valTermRef(t);
 
@@ -1115,8 +1157,9 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
     { *i = v;
       return TRUE;
     }
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-		    ATOM_not_less_than_zero, t);
+    return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			 ATOM_not_less_than_zero, t)
+              : FALSE;
   }
 
   if ( PL_get_number(t, &n) )
@@ -1126,8 +1169,9 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
 	{ *i = n.value.i;
 	  return TRUE;
 	} else
-	{ return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			  ATOM_not_less_than_zero, t);
+	{ return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			       ATOM_not_less_than_zero, t)
+	            : FALSE;
 	}
 #if SIZEOF_VOIDP == 8 && defined(O_GMP)
       case V_MPZ:
@@ -1138,34 +1182,35 @@ PL_get_uint64_ex__LD(term_t t, uint64_t *i ARG_LD)
 	    *i = v;
 	    return TRUE;
 	  case -1:
-	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			    ATOM_not_less_than_zero, t);
+	    return ex ? PL_error(NULL, 0, NULL, ERR_DOMAIN,
+				 ATOM_not_less_than_zero, t)
+		      : FALSE;
 	  case 1:
-	    return PL_representation_error("uint64_t");
+	    return ex ? PL_representation_error("uint64_t") : FALSE;
 	  default:
 	    assert(0);
 	    return FALSE;
 	}
       }
 #else
-      return PL_representation_error("uint64_t");
+      return ex ? PL_representation_error("uint64_t") : FALSE;
 #endif
       default:
 	break;
     }
   }
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return ex ? PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t) : FALSE;
 }
 
-
-#undef PL_get_size_ex
 int
-PL_get_size_ex(term_t t, size_t *i)
-{ GET_LD
-  return PL_get_size_ex__LD(t, i PASS_LD);
+PL_get_uint64_ex(DECL_LD term_t t, uint64_t *i)
+{ return pl_get_uint64(t, i, TRUE);
 }
-#define PL_get_size_ex(t,i) PL_get_size_ex__LD(t,i PASS_LD)
+
+API_STUB(int)
+(PL_get_size_ex)(term_t t, size_t *i)
+( return PL_get_size_ex(t, i); )
 
 int
 PL_get_bool_ex(term_t t, int *i)
@@ -1294,3 +1339,28 @@ PL_get_module_ex(term_t name, Module *m)
 
   succeed;
 }
+
+
+static
+PRED_IMPL("$inc_message_count", 1, inc_message_count, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom_ex(A1, &a) )
+  { if ( a == ATOM_error )
+    { ATOMIC_INC(&GD->statistics.errors);
+      LD->statistics.errors++;
+    } else if ( a == ATOM_warning )
+    { ATOMIC_INC(&GD->statistics.warnings);
+      LD->statistics.warnings++;
+    } /* else ignore other levels */
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+BeginPredDefs(error)
+  PRED_DEF("$inc_message_count", 1, inc_message_count, 0)
+EndPredDefs

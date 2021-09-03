@@ -207,7 +207,7 @@ lazily using use_module/2.  See \secref{autoload} for details.
 The advantage of autoloading is that it requires less typing while it
 reduces the startup time and reduces the memory footprint of an
 application. It also allows moving old predicates or emulation thereof
-the the module \pllib{backcomp} without affecting existing code. This
+the module \pllib{backcomp} without affecting existing code. This
 procedure keeps the libraries and system clean. We make sure that there
 are not two modules that provide the same predicate as autoload
 predicate.
@@ -225,9 +225,9 @@ immediately needed and often are not needed at all in many runs of the
 program. This can be solved by creating an application-specific autoload
 library, but with multiple parties providing autoloadable predicates the
 maintenance becomes fragile.  For these two reasons we added autoload/1
-and autoload/2 that behave similar to use_module/1,2, but do not perform
-the actual loading.  The generic autoloader now proceeds as follows if
-a missing predicate is encountered:
+and autoload/2 that behave similar to use_module/[1,2], but do not
+perform the actual loading.  The generic autoloader now proceeds as
+follows if a missing predicate is encountered:
 
 \begin{enumerate}
     \item Check autoload/2 declarations.  If one specifies the predicate,
@@ -264,7 +264,7 @@ loaded. Instead, the declarations are verified when searching for a
 missing predicate.
 
 If the Prolog flag \prologflag{autoload} is set to \const{false}, these
-declarations are interpreted as use_module/1,2.
+declarations are interpreted as use_module/[1,2].
 \end{description}
 
 

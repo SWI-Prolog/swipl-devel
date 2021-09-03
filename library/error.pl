@@ -229,6 +229,7 @@ resource_error(Resource) :-
 %   | negative_integer | Integer < 0 |
 %   | nonneg | Integer >= 0 |
 %   | oneof(L) | Ground term that is member of L |
+%   | pair | Key-Value pair |
 %   | positive_integer | Integer > 0 |
 %   | proper_list | Same as list |
 %   | list(Type) | Proper list with elements of Type |
@@ -376,6 +377,7 @@ has_type(negative_integer, X)     :- integer(X), X < 0.
 has_type(nonvar, X)       :- nonvar(X).
 has_type(number, X)       :- number(X).
 has_type(oneof(L), X)     :- ground(X), \+ \+ memberchk(X, L).
+has_type(pair, X)         :- nonvar(X), X = _-_.
 has_type(proper_list, X)  :- is_list(X).
 has_type(list, X)         :- is_list(X).
 has_type(list_or_partial_list, X)  :- is_list_or_partial_list(X).

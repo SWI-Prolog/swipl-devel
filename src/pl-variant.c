@@ -33,7 +33,9 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-variant.h"
+#include "pl-gc.h"
+#include "pl-setup.h"
 
 
 		/********************************
@@ -190,8 +192,9 @@ Root(int i, node **r, Buffer buf)
   return k;
 }
 
+#define univ(t, d, a) LDFUNC(univ, t, d, a)
 static inline void
-univ(word t, Word d, Word *a ARG_LD)
+univ(DECL_LD word t, Word d, Word *a)
 { Functor f;
 
   f = valueTerm(t);
@@ -208,8 +211,9 @@ reset_terms(node * r)
 
 /* isomorphic (==) */
 
+#define isomorphic(a, i, j, buf) LDFUNC(isomorphic, a, i, j, buf)
 static int
-isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
+isomorphic(DECL_LD argPairs *a, int i, int j, Buffer buf)
 { Word l = NULL, r = NULL, lm, ln;
   word dm, dn;
   Word dummy = NULL;
@@ -220,8 +224,8 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
   if ( !push_args(a, dummy, dummy, 1) )
     return MEMORY_OVERFLOW;
 
-  univ(node_orig(Node(i, buf)), &dm, &lm PASS_LD);
-  univ(node_orig(Node(j, buf)), &dn, &ln PASS_LD);
+  univ(node_orig(Node(i, buf)), &dm, &lm);
+  univ(node_orig(Node(j, buf)), &dn, &ln);
 
   if ( dm != dn )
     return FALSE;
@@ -288,8 +292,8 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
 	if ( i==j )
 	  continue;
 
-	univ(node_orig(m), &dm, &lm PASS_LD);
-	univ(node_orig(n), &dn, &ln PASS_LD);
+	univ(node_orig(m), &dm, &lm);
+	univ(node_orig(n), &dn, &ln);
 
 	if ( dm != dn )
 	  return FALSE;
@@ -313,8 +317,9 @@ isomorphic(argPairs *a, int i, int j, Buffer buf ARG_LD)
 }
 
 /* t =@= u */
+#define variant(agenda, buf) LDFUNC(variant, agenda, buf)
 static int
-variant(argPairs *agenda, Buffer buf ARG_LD)
+variant(DECL_LD argPairs *agenda, Buffer buf)
 { Word l = NULL, r =NULL;
 
   while( next_arg(agenda, &l, &r) )
@@ -394,13 +399,13 @@ variant(argPairs *agenda, Buffer buf ARG_LD)
 	  k = node_variant(m);
 
 	  if ( 0 != k )
-	  { if ( ( h = isomorphic(agenda, k, j, buf PASS_LD) ) <= 0 )
+	  { if ( ( h = isomorphic(agenda, k, j, buf) ) <= 0 )
 	      return  h;
 	    continue;
 	  }
 
-	  univ(node_orig(m), &dm, &lm PASS_LD);
-	  univ(node_orig(Node(j,buf)), &dn, &ln PASS_LD);
+	  univ(node_orig(m), &dm, &lm);
+	  univ(node_orig(Node(j,buf)), &dn, &ln);
 
 	  if ( dm != dn )
 	    return FALSE;
@@ -420,7 +425,7 @@ variant(argPairs *agenda, Buffer buf ARG_LD)
 
 
 int
-is_variant_ptr(Word p1, Word p2 ARG_LD)
+is_variant_ptr(DECL_LD Word p1, Word p2)
 { argPairs agenda;
   tmp_buffer buf;
   Buffer VARIANT_BUFFER = (Buffer)&buf;
@@ -471,7 +476,7 @@ again:
 
   if ( (add_node_buffer(VARIANT_BUFFER, &new) >= 0) &&
        (push_start_args(&agenda, p1, p2, 1) >=0) )
-    rval = variant(&agenda, VARIANT_BUFFER PASS_LD);
+    rval = variant(&agenda, VARIANT_BUFFER);
   else
     rval = MEMORY_OVERFLOW;
 
@@ -497,14 +502,14 @@ static
 PRED_IMPL("=@=", 2, variant, 0)
 { PRED_LD
 
-  return is_variant_ptr(valTermRef(A1), valTermRef(A2) PASS_LD);
+  return is_variant_ptr(valTermRef(A1), valTermRef(A2));
 }
 
 static
 PRED_IMPL("\\=@=", 2, not_variant, 0)
 { PRED_LD
 
-  return !is_variant_ptr(valTermRef(A1), valTermRef(A2) PASS_LD);
+  return !is_variant_ptr(valTermRef(A1), valTermRef(A2));
 }
 
 		 /*******************************

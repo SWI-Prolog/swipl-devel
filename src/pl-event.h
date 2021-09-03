@@ -3,9 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2020, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,8 @@ typedef enum pl_event_type
 } pl_event_type;
 
 typedef struct event_callback
-{ Module		 module;	/* context module */
+{ atom_t		name;		/* Name of the callback */
+  Module		 module;	/* context module */
   Procedure		 procedure;	/* procedure to use */
   int		       (*function)();	/* C-function */
   union
@@ -80,19 +81,32 @@ typedef struct event_type
   event_list  **location;
 } event_type;
 
-COMMON(int)	delayEvents(void);
-COMMON(int)	sendDelayedEvents(int noerror);
-COMMON(int)	PL_call_event_hook(pl_event_type ev, ...);
-COMMON(int)	PL_call_event_hook_va(pl_event_type ev, va_list args);
-COMMON(int)	register_event_hook(event_list **list, int last,
-				    term_t closure, int argc);
-COMMON(int)	register_event_function(event_list **list, int last,
-					int (*func)(), void *closure, int argc);
-COMMON(void)	destroy_event_list(event_list **listp);
-COMMON(int)	predicate_update_event(Definition def,
-				       atom_t action, Clause cl ARG_LD);
-COMMON(int)	retractall_event(Definition def, term_t head, atom_t start
-				 ARG_LD);
+#define P_EVENT_ROLLBACK	0x0001
+
+#if USE_LD_MACROS
+#define	predicate_update_event(def, action, cl, flags)	LDFUNC(predicate_update_event, def, action, cl, flags)
+#define	table_answer_event(def, action, answer)		LDFUNC(table_answer_event, def, action, answer)
+#define	retractall_event(def, head, start)		LDFUNC(retractall_event, def, head, start)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	delayEvents(void);
+int	sendDelayedEvents(int noerror);
+int	PL_call_event_hook(pl_event_type ev, ...);
+int	PL_call_event_hook_va(pl_event_type ev, va_list args);
+int	register_event_hook(event_list **list, atom_t name, int last,
+			    term_t closure, int argc);
+int	register_event_function(event_list **list, atom_t name, int last,
+				int (*func)(), void *closure, int argc);
+void	destroy_event_list(event_list **listp);
+int	predicate_update_event(Definition def, atom_t action, Clause cl,
+			       unsigned flags);
+int	table_answer_event(Definition def, atom_t action,
+			   term_t answer);
+int	retractall_event(Definition def, term_t head, atom_t start);
+
+#undef LDFUNC_DECLARATIONS
 
 GLOBAL const event_type PL_events[PLEV_THIS_THREAD_EXIT+2];
 

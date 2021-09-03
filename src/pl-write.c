@@ -34,12 +34,20 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-write.h"
 #include "pl-arith.h"
 #include "pl-dict.h"
+#include "pl-fli.h"
+#include "pl-read.h"
+#include "pl-attvar.h"
+#include "pl-op.h"
+#include "pl-wam.h"
+#include "pl-prims.h"
+#include "pl-modul.h"
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
+#include "os/pl-prologflag.h"
 #include <stdio.h>			/* sprintf() */
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
@@ -67,6 +75,13 @@ typedef struct
   term_t prec_opt;			/* term in write options with prec */
 } write_options;
 
+#if USE_LD_MACROS
+#define	enterPortray(_)		LDFUNC(enterPortray, _)
+#define	leavePortray(_)		LDFUNC(leavePortray, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static bool	writeTerm2(term_t term, int prec,
 			   write_options *options, bool arg) WUNUSED;
 static bool	writeTerm(term_t t, int prec,
@@ -76,11 +91,13 @@ static bool	writeArgTerm(term_t t, int prec,
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
-static int	enterPortray(ARG1_LD);
-static void	leavePortray(ARG1_LD);
+static int	enterPortray(void);
+static void	leavePortray(void);
+
+#undef LDFUNC_DECLARATIONS
 
 char *
-var_name_ptr__LD(Word p, char *name ARG_LD)
+var_name_ptr(DECL_LD Word p, char *name)
 { size_t iref;
 
   deRef(p);
@@ -140,8 +157,9 @@ Return:	TRUE:  processes
 	-1:    error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define writeNumberVar(t, options) LDFUNC(writeNumberVar, t, options)
 static int
-writeNumberVar(term_t t, write_options *options ARG_LD)
+writeNumberVar(DECL_LD term_t t, write_options *options)
 { Word p = valTermRef(t);
   Functor f;
 
@@ -163,7 +181,7 @@ writeNumberVar(term_t t, write_options *options ARG_LD)
 
   p = &f->arguments[0];
   deRef(p);
-  if ( isInteger(*p) )
+  if ( isTaggedInt(*p) || isBignum(*p) )
   { int64_t n = valInteger(*p);
     char buf[32];			/* Max is H354745078340568300 */
 
@@ -504,11 +522,10 @@ PutCloseBrace(IOSTREAM *s)
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( c == ' ' ||
-	 (!(c < 0xff && !isGraph(c)) && c != quote && c != '\\') )
+  { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' )
     { TRY(Putc(c, stream));
     } else
-    { char esc[8];
+    { char esc[10];			/* Longest is UXXXXXXXX */
 
       esc[1] = EOS;
 
@@ -541,10 +558,14 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 	    esc[0] = '\\';
 	    break;
 	  default:
-	    if ( c <= 0xff )
-	      Ssprintf(esc, "%03o\\", c);
-	    else
-	      assert(0);			/* to be done */
+	    if ( (flags & PL_WRT_CHARESCAPES_UNICODE) )
+	    { if ( c <= 0xffff )
+		Ssprintf(esc, "u%04X", c);
+	      else
+		Ssprintf(esc, "U%08X", c);
+	    } else
+	    { Ssprintf(esc, "x%X\\", c);
+	    }
 	}
       }
       if ( !Putc('\\', stream) ||
@@ -599,7 +620,7 @@ writeAttVar(term_t av, write_options *options)
 
     Sputcode('{', options->out);
     a = PL_new_term_ref();
-    PL_get_attr__LD(av, a PASS_LD);
+    PL_get_attr(av, a);
     if ( !writeTerm(a, 1200, options) )
       return FALSE;
     Sputcode('}', options->out);
@@ -617,9 +638,9 @@ writeAttVar(term_t av, write_options *options)
       pred = _PL_predicate("portray_attvar", 1, "$attvar",
 			   &GD->procedures.portray_attvar1);
 
-    if ( !enterPortray(PASS_LD1) )
+    if ( !enterPortray() )
       return FALSE;
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    if ( !saveWakeup(&wstate, TRUE) )
       return FALSE;
     old = Scurout;
     Scurout = options->out;
@@ -627,8 +648,8 @@ writeAttVar(term_t av, write_options *options)
     if ( rc != TRUE && !PL_exception(0) )
       rc = TRUE;
     Scurout = old;
-    restoreWakeup(&wstate PASS_LD);
-    leavePortray(PASS_LD1);
+    restoreWakeup(&wstate);
+    leavePortray();
 
     return rc;
   }
@@ -1096,8 +1117,9 @@ format_float(double f, char *buf)
 }
 
 #ifdef O_GMP
+#define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
 static int
-writeMPZ(mpz_t mpz, write_options *options ARG_LD)
+writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 { char tmp[1024];
   char *buf;
   size_t sz = mpz_sizeinbase(mpz, 10) + 2;
@@ -1140,17 +1162,17 @@ WriteNumber(Number n, write_options *options)
     }
 #ifdef O_GMP
     case V_MPZ:
-      return writeMPZ(n->value.mpz, options PASS_LD);
+      return writeMPZ(n->value.mpz, options);
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
       char sep = true(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
 
       num[0] = *mpq_numref(n->value.mpq);
       den[0] = *mpq_denref(n->value.mpq);
-      return ( writeMPZ(num, options PASS_LD) &&
+      return ( writeMPZ(num, options) &&
 	       Sputcode(sep, options->out) != EOF &&
 	       (options->out->lastc = EOF) &&
-	       writeMPZ(den, options PASS_LD) );
+	       writeMPZ(den, options) );
     }
 #endif
     case V_FLOAT:
@@ -1202,8 +1224,9 @@ writePrimitive(term_t t, write_options *options)
 }
 
 
+#define pl_nl(stream) LDFUNC(pl_nl, stream)
 static int
-pl_nl__LD(term_t stream ARG_LD)
+pl_nl(DECL_LD term_t stream)
 { IOSTREAM *s;
 
   if ( getTextOutputStream(stream, &s) )
@@ -1219,14 +1242,14 @@ static
 PRED_IMPL("nl", 1, nl, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nl__LD(A1 PASS_LD);
+  return pl_nl(A1);
 }
 
 static
 PRED_IMPL("nl", 0, nl, PL_FA_ISO)
 { PRED_LD
 
-  return pl_nl__LD(0 PASS_LD);
+  return pl_nl(0);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1268,7 +1291,7 @@ put_write_options(term_t opts_in, write_options *options)
 
 
 static int
-enterPortray(ARG1_LD)
+enterPortray(DECL_LD)
 { if ( LD->IO.portray_nesting >= MAX_PORTRAY_NESTING )
     return PL_resource_error("portray_nesting");
   LD->IO.portray_nesting++;
@@ -1277,7 +1300,7 @@ enterPortray(ARG1_LD)
 
 
 static void
-leavePortray(ARG1_LD)
+leavePortray(DECL_LD)
 { LD->IO.portray_nesting--;
 }
 
@@ -1306,9 +1329,9 @@ callPortray(term_t arg, int prec, write_options *options)
     int rval;
     term_t av;
 
-    if ( !enterPortray(PASS_LD1) )
+    if ( !enterPortray() )
       return -1;
-    if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+    if ( !saveWakeup(&wstate, TRUE) )
       return -1;
     Scurout = options->out;
     if ( options->portray_goal )
@@ -1326,8 +1349,8 @@ callPortray(term_t arg, int prec, write_options *options)
     if ( !rval && PL_exception(0) )
       rval = -1;
     Scurout = old;
-    restoreWakeup(&wstate PASS_LD);
-    leavePortray(PASS_LD1);
+    restoreWakeup(&wstate);
+    leavePortray();
 
     return rval;
   }
@@ -1449,8 +1472,9 @@ writeList(term_t list, write_options *options)
 }
 
 
+#define isBlockOp(t, arg, functor) LDFUNC(isBlockOp, t, arg, functor)
 static int
-isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
+isBlockOp(DECL_LD term_t t, term_t arg, atom_t functor)
 { if ( functor == ATOM_nil || functor == ATOM_curl )
   { _PL_get_arg(1, t, arg);
     if ( (functor == ATOM_nil  && PL_is_pair(arg)) ||
@@ -1461,9 +1485,10 @@ isBlockOp(term_t t, term_t arg, atom_t functor ARG_LD)
   return FALSE;
 }
 
+#define writeDictPair(name, value, last, closure) LDFUNC(writeDictPair, name, value, last, closure)
 
 static int
-writeDictPair(term_t name, term_t value, int last, void *closure)
+writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
 { write_options *options = closure;
 
   if ( writeTerm(name, 1200, options) &&
@@ -1511,7 +1536,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   { return writePrimitive(t, options);
   } else
   { if ( true(options, PL_WRT_NUMBERVARS|PL_WRT_VARNAMES) )
-    { switch( writeNumberVar(t, options PASS_LD) )
+    { switch( writeNumberVar(t, options) )
       { case -1:
 	  return FALSE;
 	case TRUE:
@@ -1562,7 +1587,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	return FALSE;
 
       if ( arity == 1 ||
-	  (arity == 2 && isBlockOp(t, arg, functor PASS_LD)) )
+	  (arity == 2 && isBlockOp(t, arg, functor)) )
       {
 					  /* op <term> */
 	if ( currentOperator(options->module, functor, OP_PREFIX,
@@ -1623,7 +1648,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  succeed;
 	}
       } else if ( arity == 2 ||
-		 (arity == 3 && isBlockOp(t, arg, functor PASS_LD)) )
+		 (arity == 3 && isBlockOp(t, arg, functor)) )
       {					  /* <term> op <term> */
 	if ( currentOperator(options->module, functor, OP_INFIX,
 			     &op_type, &op_pri) )
@@ -1768,8 +1793,9 @@ writeTopTerm(term_t term, int prec, write_options *options)
 }
 
 
+#define bind_varnames(names) LDFUNC(bind_varnames, names)
 static int
-bind_varnames(term_t names ARG_LD)
+bind_varnames(DECL_LD term_t names)
 { term_t tail, head, var, namet;
   int check_cycle_after = 1000;
 
@@ -1840,29 +1866,30 @@ writeBlobMask(atom_t a)
 
 
 static const opt_spec write_term_options[] =
-{ { ATOM_quoted,	    OPT_BOOL },
-  { ATOM_ignore_ops,	    OPT_BOOL },
-  { ATOM_dotlists,	    OPT_BOOL },
-  { ATOM_brace_terms,	    OPT_BOOL },
-  { ATOM_numbervars,        OPT_BOOL },
-  { ATOM_portray,           OPT_BOOL },
-  { ATOM_portrayed,         OPT_BOOL },
-  { ATOM_portray_goal,      OPT_TERM },
-  { ATOM_character_escapes, OPT_BOOL },
-  { ATOM_max_depth,	    OPT_INT  },
-  { ATOM_module,	    OPT_ATOM },
-  { ATOM_back_quotes,	    OPT_ATOM },
-  { ATOM_attributes,	    OPT_ATOM },
-  { ATOM_priority,	    OPT_INT },
-  { ATOM_partial,	    OPT_BOOL },
-  { ATOM_spacing,	    OPT_ATOM },
-  { ATOM_blobs,		    OPT_ATOM },
-  { ATOM_cycles,	    OPT_BOOL },
-  { ATOM_variable_names,    OPT_TERM },
-  { ATOM_nl,		    OPT_BOOL },
-  { ATOM_fullstop,	    OPT_BOOL },
-  { ATOM_no_lists,	    OPT_BOOL },
-  { NULL_ATOM,		    0 }
+{ { ATOM_quoted,		    OPT_BOOL },
+  { ATOM_ignore_ops,		    OPT_BOOL },
+  { ATOM_dotlists,		    OPT_BOOL },
+  { ATOM_brace_terms,		    OPT_BOOL },
+  { ATOM_numbervars,		    OPT_BOOL },
+  { ATOM_portray,		    OPT_BOOL },
+  { ATOM_portrayed,		    OPT_BOOL },
+  { ATOM_portray_goal,		    OPT_TERM },
+  { ATOM_character_escapes,	    OPT_BOOL },
+  { ATOM_character_escapes_unicode, OPT_BOOL },
+  { ATOM_max_depth,		    OPT_INT  },
+  { ATOM_module,		    OPT_ATOM },
+  { ATOM_back_quotes,		    OPT_ATOM },
+  { ATOM_attributes,		    OPT_ATOM },
+  { ATOM_priority,		    OPT_INT },
+  { ATOM_partial,		    OPT_BOOL },
+  { ATOM_spacing,		    OPT_ATOM },
+  { ATOM_blobs,			    OPT_ATOM },
+  { ATOM_cycles,		    OPT_BOOL },
+  { ATOM_variable_names,	    OPT_TERM },
+  { ATOM_nl,			    OPT_BOOL },
+  { ATOM_fullstop,		    OPT_BOOL },
+  { ATOM_no_lists,		    OPT_BOOL },
+  { NULL_ATOM,			    0 }
 };
 
 foreign_t
@@ -1877,6 +1904,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   term_t gportray = 0;
   atom_t bq       = 0;
   bool charescape = -1;			/* not set */
+  bool charescape_unicode = -1;
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
   atom_t blobs    = ATOM_nil;
@@ -1898,7 +1926,8 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
 		     &quoted, &ignore_ops, &dotlists, &braceterms,
 		     &numbervars, &portray, &portray, &gportray,
-		     &charescape, &options.max_depth, &mname,
+		     &charescape, &charescape_unicode,
+		     &options.max_depth, &mname,
 		     &bq, &attr, &priority, &partial, &options.spacing,
 		     &blobs, &cycles, &varnames, &nl, &fullstop,
 		     &no_lists) )
@@ -1946,6 +1975,9 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( charescape == TRUE ||
        (charescape == -1 && true(options.module, M_CHARESCAPE)) )
     options.flags |= PL_WRT_CHARESCAPES;
+  if ( charescape_unicode == TRUE ||
+       (charescape_unicode == -1 && truePrologFlag(PLFLAG_CHARESCAPE_UNICODE)) )
+    options.flags |= PL_WRT_CHARESCAPES_UNICODE;
   if ( true(options.module, RAT_NATURAL) )
     options.flags |= PL_WRT_RAT_NATURAL;
   if ( gportray )
@@ -1982,7 +2014,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
 
   BEGIN_NUMBERVARS(local_varnames);
   if ( varnames )
-  { if ( (rc=bind_varnames(varnames PASS_LD)) )
+  { if ( (rc=bind_varnames(varnames)) )
       options.flags |= PL_WRT_VARNAMES;
     else
       goto out;
@@ -1993,10 +2025,12 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.out = s;
   if ( !partial )
     PutOpenToken(EOF, s);		/* reset this */
-  if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&SIO_REPPL) )
-  { s->flags |= SIO_REPPL;
+  if ( (options.flags & PL_WRT_QUOTED) && !(s->flags&(SIO_REPPL|SIO_REPPLU)) )
+  { unsigned int flag = truePrologFlag(PLFLAG_CHARESCAPE_UNICODE) ? SIO_REPPLU
+								  : SIO_REPPL;
+    s->flags |= flag;
     rc = writeTopTerm(term, priority, &options);
-    s->flags &= ~SIO_REPPL;
+    s->flags &= ~flag;
   } else
   { rc = writeTopTerm(term, priority, &options);
   }
@@ -2120,7 +2154,7 @@ pl_write_canonical2(term_t stream, term_t term)
   options.singletons = PL_is_acyclic(term);
   options.numbered_check = FALSE;
 
-  rc = ( numberVars(term, &options, 0 PASS_LD) != NV_ERROR &&
+  rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
 		   PL_WRT_NODOTINATOM, TRUE)
@@ -2175,21 +2209,36 @@ PRED_IMPL("$put_token", 2, put_token, 0)
   fail;
 }
 
-/** '$put_quoted_codes'(+Stream, +Quote, +Codes, +Options)
+/** '$put_quoted'(+Stream, +Quote, +Codes, +Options)
 
 Emit Codes using the escaped character  syntax,   but  does not emit the
-start and end-code itself. Options is  currently ignored. It is intended
-to provide additional preferences, so as using \uXXXX, \UXXXXXXXX, etc.
+start and end-code itself.
 */
+
+static const opt_spec put_quoted_options[] =
+{ { ATOM_character_escapes_unicode, OPT_BOOL },
+  { NULL_ATOM,			    0 }
+};
+
 
 static
 PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
-{ IOSTREAM *out;
+{ PRED_LD
+  IOSTREAM *out;
   pl_wchar_t *w;
   size_t i, len;
   int quote;
   int flags = PL_WRT_CHARESCAPES;
   int rc = TRUE;
+  bool charescape_unicode = -1;
+
+  if ( !scan_options(A4, 0, ATOM_write_option, put_quoted_options,
+		     &charescape_unicode) )
+    return FALSE;
+
+  if ( charescape_unicode == TRUE ||
+       (charescape_unicode == -1 && truePrologFlag(PLFLAG_CHARESCAPE_UNICODE)) )
+    flags |= PL_WRT_CHARESCAPES_UNICODE;
 
   if ( !PL_get_stream_handle(A1, &out) ||
        !PL_get_char_ex(A2, &quote, FALSE) ||

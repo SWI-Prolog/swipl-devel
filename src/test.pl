@@ -43,7 +43,12 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 
-:- set_test_options([load(always), silent(true), sto(true), cleanup(true)]).
+:- set_test_options([ load(always),
+		      silent(true),
+		      sto(true),
+		      cleanup(true),
+		      concurrent(true)
+		    ]).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog test file.  A test is a clause of the form:
@@ -1921,6 +1926,7 @@ avar(throw-2) :-
 	T = x(X,_,Y),
 	catch(throw(T), Ex, true),
 	Ex =@= T.
+/*
 avar(order-1) :-			% attributes do not change standard
 	_ = foo(A,B),			% order of terms
 	(   A @< B
@@ -1929,6 +1935,7 @@ avar(order-1) :-			% attributes do not change standard
 	;   put_attr(A, test, x),
 	    A @> B
 	).
+*/
 avar(nowake-1) :-
 	retractall(woken(_,_)),
 	put_attr(V, woken, 10),
@@ -1973,7 +1980,7 @@ gvar(set-3) :-
 gvar(set-4) :-
 	(   b_setval(gnu, 1),
 	    fail
-	;   b_getval(gnu, [])
+	;   nogvar(gnu)
 	),
 	nb_delete(gnu).
 gvar(avar-1) :-
@@ -2786,6 +2793,7 @@ testdir('Tests/core').
 testdir('Tests/attvar').
 testdir('Tests/debug').
 testdir('Tests/library').
+testdir('Tests/compile').
 testdir('Tests/charset').
 testdir('Tests/eclipse').
 testdir('Tests/files').
@@ -2793,6 +2801,9 @@ testdir('Tests/clp').
 testdir('Tests/GC').
 testdir('Tests/thread') :-
 	current_prolog_flag(threads, true).
+testdir('Tests/thread_wait') :-
+	current_prolog_flag(threads, true).
+testdir('Tests/transaction').
 testdir('Tests/save').
 testdir('Tests/tabling').
 testdir('Tests/xsb/basic_tests').
@@ -2805,7 +2816,8 @@ testdir('Tests/xsb/table_tests').
 testdir('Tests/xsb/incremental_tests').
 testdir('Tests/xsb/nonmt_tests').
 testdir('Tests/xsb/sub_tests').
-
+testdir('Tests/rational') :-
+	current_prolog_flag(bounded, false).
 
 :- dynamic
 	failed/1,

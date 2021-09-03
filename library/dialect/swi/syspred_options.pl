@@ -213,4 +213,7 @@
                        multifile(boolean),
                        thread(oneof([local,shared]))
 		     ]).
-
+:- predicate_options(system:prolog_listen/3, 3,
+                     [ as(oneof([first,last])),
+                       name(atom)
+                     ]).

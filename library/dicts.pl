@@ -34,6 +34,7 @@
 
 :- module(dicts,
           [ dicts_same_tag/2,           % +List, -Tag
+            dict_size/2,                % +Dict, -KeyCount
             dict_keys/2,                % +Dict, -Keys
             dicts_same_keys/2,          % +DictList, -Keys
             dicts_to_same_keys/3,       % +DictsIn, :OnEmpty, -DictsOut
@@ -71,6 +72,15 @@ dicts_same_tag(List, Tag) :-
 
 keys_tag(Tag, Dict) :-
     is_dict(Dict, Tag).
+
+%!  dict_size(+Dict, -KeyCount) is det.
+%
+%   True when KeyCount is the number of keys in Dict.
+
+dict_size(Dict, KeyCount) :-
+    must_be(dict,Dict),
+    compound_name_arity(Dict,_,Arity),
+    KeyCount is (Arity-1)//2.
 
 %!  dict_keys(+Dict, -Keys) is det.
 %

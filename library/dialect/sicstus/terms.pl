@@ -41,6 +41,11 @@
 
 sicstus:rename_module(terms, sicstus_terms).
 
+/** <module> SICStus 3-compatible library(terms).
+
+@see	https://sicstus.sics.se/sicstus/docs/3.12.11/html/sicstus/Term-Utilities.html
+*/
+
 %%	term_variables_bag(+Term, -Variables) is det.
 %
 %	Variables is a list  of  variables   that  appear  in  Term. The

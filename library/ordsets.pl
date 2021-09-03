@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
-    Author:        Jan Wielemaker
+    Author:        Jan Wielemaker and Jon Jagger
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2014, University of Amsterdam
+    Copyright (c)  2001-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -57,15 +58,6 @@
             ord_seteq/2,                % +Set1, +Set2
             ord_intersection/2          % +PowerSet, -Intersection
           ]).
-:- autoload(library(oset),
-	    [ oset_int/3,
-	      oset_addel/3,
-	      oset_delel/3,
-	      oset_diff/3,
-	      oset_union/3
-	    ]).
-
-
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Ordered set manipulation
@@ -181,7 +173,7 @@ ord_disjoint(Set1, Set2) :-
 %   @deprecated Use ord_intersection/3
 
 ord_intersect(Set1, Set2, Intersection) :-
-    oset_int(Set1, Set2, Intersection).
+    ord_intersection(Set1, Set2, Intersection).
 
 
 %!  ord_intersection(+PowerSet, -Intersection)
@@ -209,14 +201,30 @@ l_int([_-H|T], S0, S) :-
 
 %!  ord_intersection(+Set1, +Set2, -Intersection) is det.
 %
-%   Intersection holds the common elements of Set1 and Set2.  Uses
+%   Intersection holds the common  elements  of   Set1  and  Set2.  Uses
 %   ord_disjoint/2 if Intersection is bound to `[]` on entry.
 
 ord_intersection(Set1, Set2, Intersection) :-
     (   Intersection == []
     ->  ord_disjoint(Set1, Set2)
-    ;   oset_int(Set1, Set2, Intersection)
+    ;   ord_intersection_(Set1, Set2, Intersection)
     ).
+
+ord_intersection_([], _Int, []).
+ord_intersection_([H1|T1], L2, Int) :-
+    isect2(L2, H1, T1, Int).
+
+isect2([], _H1, _T1, []).
+isect2([H2|T2], H1, T1, Int) :-
+    compare(Order, H1, H2),
+    isect3(Order, H1, T1, H2, T2, Int).
+
+isect3(<, _H1, T1,  H2, T2, Int) :-
+    isect2(T1, H2, T2, Int).
+isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
+    ord_intersection_(T1, T2, Int).
+isect3(>, H1, T1,  _H2, T2, Int) :-
+    isect2(T2, H1, T1, Int).
 
 
 %!  ord_intersection(+Set1, +Set2, ?Intersection, ?Difference) is det.
@@ -246,8 +254,16 @@ ord_intersection2(>, H1, T1, H2, T2, Intersection, [H2|HDiff]) :-
 %   Insert  an  element  into  the  set.    This   is  the  same  as
 %   ord_union(Set1, [Element], Set2).
 
-ord_add_element(Set1, Element, Set2) :-
-    oset_addel(Set1, Element, Set2).
+ord_add_element([], El, [El]).
+ord_add_element([H|T], El, Add) :-
+    compare(Order, H, El),
+    addel(Order, H, T, El, Add).
+
+addel(<, H, T,  El, [H|Add]) :-
+    ord_add_element(T, El, Add).
+addel(=, H, T, _El, [H|T]).
+addel(>, H, T,  El, [El,H|T]).
+
 
 
 %!  ord_del_element(+Set, +Element, -NewSet) is det.
@@ -255,8 +271,15 @@ ord_add_element(Set1, Element, Set2) :-
 %   Delete an element from an  ordered  set.   This  is  the same as
 %   ord_subtract(Set, [Element], NewSet).
 
-ord_del_element(Set, Element, NewSet) :-
-    oset_delel(Set, Element, NewSet).
+ord_del_element([], _El, []).
+ord_del_element([H|T], El, Del) :-
+    compare(Order, H, El),
+    delel(Order, H, T, El, Del).
+
+delel(<,  H, T,  El, [H|Del]) :-
+    ord_del_element(T, El, Del).
+delel(=, _H, T, _El, T).
+delel(>,  H, T, _El, [H|T]).
 
 
 %!  ord_selectchk(+Item, ?Set1, ?Set2) is semidet.
@@ -341,8 +364,26 @@ ord_subset_(=, _, T1, T2) :-
 %   Diff is the set holding all elements of InOSet that are not in
 %   NotInOSet.
 
-ord_subtract(InOSet, NotInOSet, Diff) :-
-    oset_diff(InOSet, NotInOSet, Diff).
+ord_subtract([], _Not, []).
+ord_subtract([H1|T1], L2, Diff) :-
+    diff21(L2, H1, T1, Diff).
+
+diff21([], H1, T1, [H1|T1]).
+diff21([H2|T2], H1, T1, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff12([], _H2, _T2, []).
+diff12([H1|T1], H2, T2, Diff) :-
+    compare(Order, H1, H2),
+    diff3(Order, H1, T1, H2, T2, Diff).
+
+diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
+    diff12(T1, H2, T2, Diff).
+diff3(=, _H1, T1, _H2, T2, Diff) :-
+    ord_subtract(T1, T2, Diff).
+diff3(>,  H1, T1, _H2, T2, Diff) :-
+    diff21(T2, H1, T1, Diff).
 
 
 %!  ord_union(+SetOfSets, -Union) is det.
@@ -353,12 +394,13 @@ ord_subtract(InOSet, NotInOSet, Diff) :-
 %
 %   @author Copied from YAP, probably originally by Richard O'Keefe.
 
-ord_union([], []).
-ord_union([Set|Sets], Union) :-
+ord_union([], Union) =>
+    Union = [].
+ord_union([Set|Sets], Union) =>
     length([Set|Sets], NumberOfSets),
     ord_union_all(NumberOfSets, [Set|Sets], Union, []).
 
-ord_union_all(N, Sets0, Union, Sets) :-
+ord_union_all(N, Sets0, Union, Sets) =>
     (   N =:= 1
     ->  Sets0 = [Union|Sets]
     ;   N =:= 2
@@ -372,13 +414,30 @@ ord_union_all(N, Sets0, Union, Sets) :-
     ).
 
 
-%!  ord_union(+Set1, +Set2, ?Union) is det.
+%!  ord_union(+Set1, +Set2, -Union) is det.
 %
 %   Union is the union of Set1 and Set2
 
-ord_union(Set1, Set2, Union) :-
-    oset_union(Set1, Set2, Union).
+ord_union([], Set2, Union) =>
+    Union = Set2.
+ord_union([H1|T1], L2, Union) =>
+    union2(L2, H1, T1, Union).
 
+union2([], H1, T1, Union) =>
+    Union = [H1|T1].
+union2([H2|T2], H1, T1, Union) =>
+    compare(Order, H1, H2),
+    union3(Order, H1, T1, H2, T2, Union).
+
+union3(<, H1, T1,  H2, T2, Union) =>
+    Union = [H1|Union0],
+    union2(T1, H2, T2, Union0).
+union3(=, H1, T1, _H2, T2, Union) =>
+    Union = [H1|Union0],
+    ord_union(T1, T2, Union0).
+union3(>, H1, T1,  H2, T2, Union) =>
+    Union = [H2|Union0],
+    union2(T2, H1, T1, Union0).
 
 %!  ord_union(+Set1, +Set2, -Union, -New) is det.
 %

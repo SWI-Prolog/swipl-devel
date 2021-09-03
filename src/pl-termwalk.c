@@ -74,11 +74,10 @@ clearTermAgenda(term_agenda *a)
 { clearSegStack(&a->stack);
 }
 
-#define nextTermAgenda(a) \
-	nextTermAgenda__LD(a PASS_LD)
 
+#define nextTermAgenda(a) LDFUNC(nextTermAgenda, a)
 static inline Word
-nextTermAgenda__LD(term_agenda *a ARG_LD)
+nextTermAgenda(DECL_LD term_agenda *a)
 { Word p;
 
   if ( a->work.size > 0 )
@@ -175,11 +174,10 @@ ac_clearTermAgenda(ac_term_agenda *a)
 }
 
 
-#define ac_nextTermAgenda(a) \
-	ac_nextTermAgenda__LD(a PASS_LD)
 
+#define ac_nextTermAgenda(a) LDFUNC(ac_nextTermAgenda, a)
 static Word
-ac_nextTermAgenda__LD(ac_term_agenda *a ARG_LD)
+ac_nextTermAgenda(DECL_LD ac_term_agenda *a)
 { Word p;
 
   while ( a->work.size == 0 )
@@ -196,11 +194,10 @@ ac_nextTermAgenda__LD(ac_term_agenda *a ARG_LD)
   return p;
 }
 
-#define ac_pushTermAgenda(a, w, fp) \
-	ac_pushTermAgenda__LD(a, w, fp PASS_LD)
 
+#define ac_pushTermAgenda(a, w, fp) LDFUNC(ac_pushTermAgenda, a, w, fp)
 static int
-ac_pushTermAgenda__LD(ac_term_agenda *a, word w, functor_t *fp ARG_LD)
+ac_pushTermAgenda(DECL_LD ac_term_agenda *a, word w, functor_t *fp)
 { Functor term = valueTerm(w);
 
   if ( is_marked((Word)&term->definition) )
@@ -256,11 +253,10 @@ clearTermAgenda_P(term_agenda_P *a)
 { clearSegStack(&a->stack);
 }
 
-#define nextTermAgenda_P(a) \
-	nextTermAgenda_P__LD(a PASS_LD)
 
+#define nextTermAgenda_P(a) LDFUNC(nextTermAgenda_P, a)
 static inline Word
-nextTermAgenda_P__LD(term_agenda_P *a ARG_LD)
+nextTermAgenda_P(DECL_LD term_agenda_P *a)
 { Word p;
 
   while ( a->work.size == 0 )
@@ -505,11 +501,10 @@ clearTermAgendaLRS(term_agendaLRS *a)
 }
 
 
-#define nextTermAgendaLRS(a, lp, rp) \
-	nextTermAgendaLRS__LD(a, lp, rp PASS_LD)
 
+#define nextTermAgendaLRS(a, lp, rp) LDFUNC(nextTermAgendaLRS, a, lp, rp)
 static int
-nextTermAgendaLRS__LD(term_agendaLRS *a, Word *lp, Word *rp ARG_LD)
+nextTermAgendaLRS(DECL_LD term_agendaLRS *a, Word *lp, Word *rp)
 { Word p;
 
   while ( a->work.arg == a->work.arity )

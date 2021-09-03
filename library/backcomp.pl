@@ -88,7 +88,9 @@
             set_base_module/1,          % :Base
             eval_license/0,
             trie_insert_new/3,		% +Trie, +Term, -Node
-            thread_at_exit/1            % :Goal
+            thread_at_exit/1,           % :Goal
+            read_history/6              % +Show, +Help, +Special, +Prompt,
+                                        % -Term, -Bindings
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(lists),[sum_list/2]).
@@ -110,7 +112,7 @@
 
 This library defines predicates that used to exist in older version of
 SWI-Prolog, but are considered obsolete as there functionality is neatly
-covered by new features. Most often, these constructs are superceeded by
+covered by new features. Most often, these constructs are superseded by
 ISO-standard compliant predicates.
 
 Please also note the existence of   quintus.pl and edinburgh.pl for more
@@ -365,7 +367,7 @@ checklist(Goal, List) :-
 
 %!  sublist(:Goal, +List1, ?List2)
 %
-%   Succeeds if List2 unifies with a list holding those terms for wich
+%   Succeeds if List2 unifies with a list holding those terms for which
 %   call(Goal, Elem) succeeds.
 %
 %   @deprecated Use include/3 from library(apply)
@@ -619,7 +621,7 @@ hash(PI) :-
 
 %!  set_base_module(:Base) is det.
 %
-%   Set the default module from whic we inherit.
+%   Set the default module from which we inherit.
 %
 %   @deprecated Equivalent to set_module(base(Base)).
 
@@ -647,3 +649,17 @@ trie_insert_new(Trie, Term, Handle) :-
 
 thread_at_exit(Goal) :-
     prolog_listen(this_thread_exit, Goal).
+
+%!  read_history(+Show, +Help, +Special, +Prompt, -Term, -Bindings)
+%
+%   @deprecated use read_term_with_history/2.
+
+read_history(Show, Help, Special, Prompt, Term, Bindings) :-
+    read_term_with_history(
+        Term,
+        [ show(Show),
+          help(Help),
+          no_save(Special),
+          prompt(Prompt),
+          variable_names(Bindings)
+        ]).

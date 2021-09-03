@@ -31,133 +31,91 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- module(oset, [  oset_is/1,
-                    oset_union/3,
-                    oset_int/3,
-                    oset_diff/3,
-                    oset_dint/2,
-                    oset_dunion/2,
-                    oset_addel/3,
-                    oset_delel/3,
-                    oset_power/2
-                 ]).
-
+:- module(oset,
+          [ oset_is/1,
+            oset_union/3,
+            oset_int/3,
+            oset_diff/3,
+            oset_dint/2,
+            oset_dunion/2,
+            oset_addel/3,
+            oset_delel/3,
+            oset_power/2
+          ]).
+:- autoload(library(lists), [reverse/2]).
+:- autoload(library(ordsets),
+            [ is_ordset/1,
+              ord_union/3,
+              ord_intersection/3,
+              ord_subtract/3,
+              ord_add_element/3,
+              ord_del_element/3,
+              ord_union/2,
+              ord_intersection/2
+            ]).
 
 /** <module> Ordered set manipulation
 
-This library defines set operations on sets represented as ordered
-lists.
+This library defines set  operations  on   sets  represented  as ordered
+lists. This current library is a   thin wrapper around library(ordsets).
+Many of the  implementations  of   library(ordsets)  originate  from the
+library.
 
 @author Jon Jagger
-@deprecated Use the de-facto library ordsets.pl
+@deprecated Use the de-facto library(ordsets)
 */
 
-
-%% oset_is(+OSet)
+%!  oset_is(@OSet)
+%
 %   check that OSet in correct format (standard order)
+%
+%   @deprecated Use is_ordset/1 from library(ordsets)
 
-oset_is(-) :- !, fail.    % var filter
-oset_is([]).
-oset_is([H|T]) :-
-    oset_is(T, H).
+oset_is(OSet) :-
+    is_ordset(OSet).
 
-oset_is(-, _) :- !, fail.  % var filter
-oset_is([], _H).
-oset_is([H|T], H0) :-
-    H0 @< H,               % use standard order
-    oset_is(T, H).
+%! oset_union(+OSet1, +OSet2, -Union)
+%
+%  Union is the union of OSet1 and OSet2.
+%
+%  @deprecated Use ord_union/3 from library(ordsets)
 
+oset_union(OSet1, OSet2, Union) :-
+    ord_union(OSet1, OSet2, Union).
 
-
-%% oset_union(+OSet1, +OSet2, -Union).
-
-oset_union([], Union, Union).
-oset_union([H1|T1], L2, Union) :-
-    union2(L2, H1, T1, Union).
-
-union2([], H1, T1, [H1|T1]).
-union2([H2|T2], H1, T1, Union) :-
-    compare(Order, H1, H2),
-    union3(Order, H1, T1, H2, T2, Union).
-
-union3(<, H1, T1,  H2, T2, [H1|Union]) :-
-    union2(T1, H2, T2, Union).
-union3(=, H1, T1, _H2, T2, [H1|Union]) :-
-    oset_union(T1, T2, Union).
-union3(>, H1, T1,  H2, T2, [H2|Union]) :-
-    union2(T2, H1, T1, Union).
-
-
-%% oset_int(+OSet1, +OSet2, -Int)
+%!  oset_int(+OSet1, +OSet2, -Int)
+%
 %   ordered set intersection
 
-oset_int([], _Int, []).
-oset_int([H1|T1], L2, Int) :-
-    isect2(L2, H1, T1, Int).
+oset_int(Set1, Set2, Intersection) :-
+    ord_intersection(Set1, Set2, Intersection).
 
-isect2([], _H1, _T1, []).
-isect2([H2|T2], H1, T1, Int) :-
-    compare(Order, H1, H2),
-    isect3(Order, H1, T1, H2, T2, Int).
+%!  oset_diff(+InOSet, +NotInOSet, -Diff)
+%
+%   Ordered set difference
+%
+%   @deprecated Use ord_subtract/3 from library(ordsets)
 
-isect3(<, _H1, T1,  H2, T2, Int) :-
-    isect2(T1, H2, T2, Int).
-isect3(=, H1, T1, _H2, T2, [H1|Int]) :-
-    oset_int(T1, T2, Int).
-isect3(>, H1, T1,  _H2, T2, Int) :-
-    isect2(T2, H1, T1, Int).
+oset_diff(InOSet, NotInOSet, Diff) :-
+    ord_subtract(InOSet, NotInOSet, Diff).
 
+%!  oset_dunion(+SetofSets, -DUnion)
+%
+%   Distributed union.
+%
+%   @deprecated Use ord_union/2 from library(ordsets)
 
-%% oset_diff(+InOSet, +NotInOSet, -Diff)
-%   ordered set difference
+oset_dunion(SetofSets, DUnion) :-
+    ord_union(SetofSets, DUnion).
 
-oset_diff([], _Not, []).
-oset_diff([H1|T1], L2, Diff) :-
-    diff21(L2, H1, T1, Diff).
+%!  oset_dint(+SetofSets, -DInt)
+%
+%   Distributed intersection.
+%
+%   @deprecated Use ord_intersection/2 from library(ordsets)
 
-diff21([], H1, T1, [H1|T1]).
-diff21([H2|T2], H1, T1, Diff) :-
-    compare(Order, H1, H2),
-    diff3(Order, H1, T1, H2, T2, Diff).
-
-diff12([], _H2, _T2, []).
-diff12([H1|T1], H2, T2, Diff) :-
-    compare(Order, H1, H2),
-    diff3(Order, H1, T1, H2, T2, Diff).
-
-diff3(<,  H1, T1,  H2, T2, [H1|Diff]) :-
-    diff12(T1, H2, T2, Diff).
-diff3(=, _H1, T1, _H2, T2, Diff) :-
-    oset_diff(T1, T2, Diff).
-diff3(>,  H1, T1, _H2, T2, Diff) :-
-    diff21(T2, H1, T1, Diff).
-
-
-%% oset_dunion(+SetofSets, -DUnion)
-%   distributed union
-
-oset_dunion([], []).
-oset_dunion([H|T], DUnion) :-
-    oset_dunion(T, H, DUnion).
-
-oset_dunion([], DUnion, DUnion).
-oset_dunion([H|T], DUnion0, DUnion) :-
-    oset_union(H, DUnion0, DUnion1),
-    oset_dunion(T, DUnion1, DUnion).
-
-
-%% oset_dint(+SetofSets, -DInt)
-%   distributed intersection
-
-oset_dint([], []).
-oset_dint([H|T], DInt) :-
-    dint(T, H, DInt).
-
-dint([], DInt, DInt).
-dint([H|T], DInt0, DInt) :-
-    oset_int(H, DInt0, DInt1),
-    dint(T, DInt1, DInt).
-
+oset_dint(SetofSets, DInt) :-
+    ord_intersection(SetofSets, DInt).
 
 %!  oset_power(+Set, -PSet)
 %
@@ -183,32 +141,20 @@ happ([], _, []).
 happ([S|Ss], H, [[H|S],S|Rest]) :-
     happ(Ss, H, Rest).
 
+%!  oset_addel(+Set, +El, -Add)
+%
+%   Ordered set element addition.
+%
+%   @deprecated Use ord_add_element/3 from library(ordsets)
 
+oset_addel(Set1, Element, Set2) :-
+    ord_add_element(Set1, Element, Set2).
 
-%% oset_addel(+Set, +El, -Add)
-%   ordered set element addition
+%!  oset_delel(+Set, +El, -Del)
+%
+%   Ordered set element deletion.
+%
+%   @deprecated Use ord_del_element/3 from library(ordsets)
 
-oset_addel([], El, [El]).
-oset_addel([H|T], El, Add) :-
-    compare(Order, H, El),
-    addel(Order, H, T, El, Add).
-
-addel(<, H, T,  El, [H|Add]) :-
-    oset_addel(T, El, Add).
-addel(=, H, T, _El, [H|T]).
-addel(>, H, T,  El, [El,H|T]).
-
-
-%% oset_delel(+Set, +El, -Del)
-%   ordered set element deletion
-
-oset_delel([], _El, []).
-oset_delel([H|T], El, Del) :-
-    compare(Order, H, El),
-    delel(Order, H, T, El, Del).
-
-delel(<,  H, T,  El, [H|Del]) :-
-    oset_delel(T, El, Del).
-delel(=, _H, T, _El, T).
-delel(>,  H, T, _El, [H|T]).
-
+oset_delel(Set, Element, NewSet) :-
+    ord_del_element(Set, Element, NewSet).

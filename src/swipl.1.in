@@ -262,6 +262,25 @@ Disable generating code that can be debugged using
 .IR spy/1 ,
 etc.
 .TP
+.BR \-\-debug\-on\-interrupt [=bool]
+Immediately start handling SIGINT (Control-C) to start the debugger.
+By default this is enabled when the interactive toplevel is entered.
+.TP
+.BR \-\-on-error =style
+How to handle on a (printed) error message.  Default is
+.IR print
+which causes errors to be printed while execution continues.  Using
+.IR status
+execution continues as with print, but
+.I halt/0
+causes the process to exit with status 1 and
+.I halt
+causes the process to exit with status 1 on the first error.
+.TP
+.BR \-\-on-warning =style
+Similar to
+.I \-\-on-error, but for warning messages.
+.TP
 .BI \-g " goal"
 .I Goal
 is executed just before entering the top level. This option may appear

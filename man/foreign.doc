@@ -133,65 +133,30 @@ PL_register_foreign().
 \end{description}
 
 
-\subsection{Static Linking} \label{sec:staticl}
+\subsection{Static Linking} \label{sec:static-linking}
 
-Below is an outline of the file structure required for statically
-linking SWI-Prolog with foreign extensions. \file{.../swipl} refers to
-the SWI-Prolog home directory (see the Prolog flag \prologflag{home}).
-\file{<arch>} refers to the architecture identifier that may be obtained
-using the Prolog flag \prologflag{arch}.
+Older versions of SWI-Prolog were shipped by default with a
+\jargon{static library}. In recent versions we no longer ship a static
+library because practically every OS properly supports dynamic linking
+without serious drawbacks and dynamic linking has several advantages. It
+is on many platforms required to be able to load SWI-Prolog foreign
+libraries (see use_foreign_library/1). Only on ELF based systems such as
+Linux we can load foreign libraries \emph{if} the main executable is
+linked to export its global symbols (\program{gcc} \exam{-rdynamic}
+option). Another advantage of dynamic libraries is that the user does
+not have to worry about libraries that this particular build of
+SWI-Prolog requires such as \file{libgmp} as well as OS specific
+libraries.
 
-\begin{center}
-\begin{tabular}{ll}
-\file{.../swipl/runtime/<arch>/libswipl.a} & SWI-Library \\
-\file{.../swipl/include/SWI-Prolog.h}      & Include file \\
-\file{.../swipl/include/SWI-Stream.h}      & Stream I/O include file \\
-\file{.../swipl/include/SWI-Exports}       & Export declarations (AIX only) \\
-\file{.../swipl/include/stub.c}            & Extension stub
-\end{tabular}
-\end{center}
+If one really wants a static library, use the \program{CMake} flag
+\exam{-DSWIPL_STATIC_LIB=ON} while configuring a build from source. This
+causes building and installing \file{libswipl_static.a}. Note the
+\const{_static} postfix to avoid a name conflict on Windows between the
+\jargon{import library} and the \jargon{static library}.\footnote{As is,
+the Windows build is cross-compiled using MinGW which produces
+\file{libswipl_static.a}. This file can, as far as we know, \emph{not}
+be used by MSVC.}.
 
-The definition of the foreign predicates is the same as for dynamic
-linking.  Unlike with dynamic linking, however, there is no
-initialisation function.  Instead, the file \file{.../swipl/include/stub.c}
-may be copied to your project and modified to define the foreign
-extensions.  Below is \file{stub.c}, modified to link the lowercase example
-described later in this chapter:
-
-\begin{code}
-#include <stdio.h>
-#include <SWI-Prolog.h>
-
-extern foreign_t pl_lowercase(term, term);
-
-PL_extension predicates[] =
-{
-/*{ "name",      arity,  function,      PL_FA_<flags> },*/
-
-  { "lowercase", 2       pl_lowercase,  0 },
-  { NULL,        0,      NULL,          0 } /* terminating line */
-};
-
-
-int
-main(int argc, char **argv)
-{ PL_register_extensions(predicates);
-
-  if ( !PL_initialise(argc, argv) )
-    PL_halt(1);
-
-  PL_halt(PL_toplevel() ? 0 : 1);
-}
-\end{code}
-
-Now, a new executable may be created by compiling this file and linking
-it to \file{libpl.a} from the runtime directory and the libraries
-required by both the extensions and the SWI-Prolog kernel. This may be
-done by hand, or by using the \program{swipl-ld} utility described in
-\secref{plld}. If the linking is performed by hand, the command line
-option \cmdlineoption{--dump-runtime-variables} (see \secref{cmdline})
-can be used to obtain the required paths, libraries and linking options
-to link the new executable.
 
 \section{Interface Data Types}		\label{sec:foreigntypes}
 
@@ -713,7 +678,7 @@ dicts.
 \const{PL_ATOM}      & A Prolog atom \\
 \const{PL_NIL}       & The constant \verb$[]$ \\
 \const{PL_BLOB}	     & A blob (see \secref{blobaccess}) \\
-\const{PL_STRING}    & A string (see \secref{strings}) \\
+\const{PL_STRING}    & A string (see \secref{string}) \\
 \const{PL_INTEGER}   & A integer \\
 \const{PL_RATIONAL}  & A rational number \\
 \const{PL_FLOAT}     & A floating point number \\
@@ -821,7 +786,7 @@ read-only memory, so `temporary manipulation' can cause an error.
 If \arg{t} is a string object, store a pointer to a 0-terminated
 C-string in \arg{s} and the length of the string in \arg{len}.  Note
 that this pointer is invalidated by backtracking, garbage collection
-and stack-shifts, so generally the only save operations are to pass
+and stack-shifts, so generally the only safe operations are to pass
 it immediately to a C function that doesn't involve Prolog.
 
     \cfunction{int}{PL_get_chars}{term_t +t, char **s, unsigned flags}
@@ -925,6 +890,12 @@ function succeeds as well.  See also PL_get_int64().
 \cfunction{int}{PL_get_int64}{term_t +t, int64_t *i}
 If \arg{t} is a Prolog integer or float that can be represented as a
 \ctype{int64_t}, assign its value over \arg{i}.
+
+\cfunction{int}{PL_get_uint64}{term_t +t, uint64_t *i}
+If \arg{t} is a Prolog integer that can be represented as a
+\ctype{uint64_t}, assign its value over \arg{i}. Note that this requires
+GMP support for representing \ctype{uint64_t} values with the high bit
+set.
 
 \cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
 Get an integer that is at least as wide as a pointer. On most
@@ -1299,8 +1270,11 @@ Put the list terminator constant in \arg{l}. Always returns
 using the option \cmdlineoption{--traditional}, this is the same as
 \exam{PL_put_atom_chars("[]")}. See \secref{ext-lists}.
 
-    \cfunction{void}{PL_put_term}{term_t -t1, term_t +t2}
-Make \arg{t1} point to the same term as \arg{t2}.
+    \cfunction{int}{PL_put_term}{term_t -t1, term_t +t2}
+Make \arg{t1} point to the same term as \arg{t2}. Under the unusual
+condition that \arg{t2} is a fresh term reference this function requires
+a global stack cell and may thus return \arg{FALSE} and leave a resource
+exception in the environment.
 
     \cfunction{int}{PL_cons_functor}{term_t -h, functor_t f, \ldots}
 Create a term whose arguments are filled from a variable argument list
@@ -1781,8 +1755,14 @@ integer does not fit in a C \ctype{long}.
 
     \cfunction{int}{PL_get_int64_ex}{term_t t, int64_t *i}
 As PL_get_int64(), but raises a type or instantiation error if
-\arg{t} is not an atom, or a representation error if the Prolog
+\arg{t} is not an integer, or a representation error if the Prolog
 integer does not fit in a C \ctype{int64_t}.
+
+    \cfunction{int}{PL_get_uint64_ex}{term_t t, uint64_t *i}
+As PL_get_uint64(), but raises a type, domain or instantiation error if
+\arg{t} is not an integer or \arg{t} is less than zero, or a
+representation error if the Prolog integer does not fit in a C
+\ctype{int64_t}.
 
     \cfunction{int}{PL_get_intptr_ex}{term_t t, intptr_t *i}
 As PL_get_intptr(), but raises a type or instantiation error if
@@ -1892,7 +1872,7 @@ not required, to be closed by a full stop (.).
 
 If parsing produces an exception the behaviour depends on the
 \const{CVT_EXCEPTION} flag. If present, the exception is propagated into
-the environment.  Otherwise the exceptuion is placed in \arg{t} and
+the environment.  Otherwise, the exception is placed in \arg{t} and
 the return value is \const{FALSE}.\footnote{The \const{CVT_EXCEPTION}
 was added in version 8.3.12}.
 \end{description}
@@ -3371,7 +3351,7 @@ represented as a Prolog list of integers.
 
     \item[Opaque packed data on the stacks]
 It is possible to represent the raw binary representation of the foreign
-object as a Prolog string (see \secref{strings}). Strings may be created
+object as a Prolog string (see \secref{string}). Strings may be created
 from foreign data using PL_put_string_nchars() and retrieved using
 PL_get_string_chars(). It is good practice to wrap the string in a
 compound term with arity 1, so Prolog can identify the type. The hook
@@ -4335,7 +4315,7 @@ As of SWI-Prolog 8.3.2 the foreign API provides access to the internal
 thread-safe and lock-free hash tables that associate pointers or objects
 that fit in a pointer such as atoms (\ctype{atom_t}). An argument
 against providing these functions is that they have little to do with
-Prolog. The argument is favor is that it is hard to implement efficient
+Prolog. The argument in favor is that it is hard to implement efficient
 lock-free tables without low-level access to the underlying Prolog
 threads and exporting this interface has a low cost.
 
@@ -4349,7 +4329,7 @@ ignored or return the failure code where applicable.
 Create a new table for \arg{size} key-value pairs. The table is resized
 when needed. If you know the table will hold 10,000 key-value pairs,
 providing a suitable initial size avoids resizing.  The \arg{free_symbol}
-function is called whethever a key-value pair is removed from the table.
+function is called whenever a key-value pair is removed from the table.
 This can be \const{NULL}.
 
     \cfunction{int}{PL_free_hash_table}{hash_table_t table}

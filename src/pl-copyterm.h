@@ -42,10 +42,20 @@ typedef struct fastheap_term
   Word data;					/* the actual data */
 } fastheap_term;
 
-COMMON(fastheap_term*)	term_to_fastheap(term_t t ARG_LD);
-COMMON(void)		free_fastheap(fastheap_term *fht);
-COMMON(int)		put_fastheap(fastheap_term *fht, term_t t ARG_LD);
-COMMON(int)		size_abstract_term(term_t in, term_t copy,
-					   size_t abstract ARG_LD);
+#if USE_LD_MACROS
+#define	term_to_fastheap(t)			LDFUNC(term_to_fastheap, t)
+#define	put_fastheap(fht, t)			LDFUNC(put_fastheap, fht, t)
+#define	size_abstract_term(in, copy, abstract)	LDFUNC(size_abstract_term, in, copy, abstract)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+fastheap_term*	term_to_fastheap(term_t t);
+void		free_fastheap(fastheap_term *fht);
+int		put_fastheap(fastheap_term *fht, term_t t);
+int		size_abstract_term(term_t in, term_t copy,
+				   size_t abstract);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*_PL_COPYTERM_H*/

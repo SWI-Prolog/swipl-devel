@@ -33,6 +33,18 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _PL_CTYPE_H
+#define _PL_CTYPE_H
+#include "../pl-incl.h"
+
+		 /*******************************
+		 *    FUNCTION DECLARATIONS	*
+		 *******************************/
+
+IOENC		initEncoding(void);
+void		initCharTypes(void);
+access_level_t	setAccessLevel(access_level_t new_level);
+
 extern const char _PL_char_types[];	/* array of character types */
 
 #define CT  0			/* control-character */
@@ -93,3 +105,5 @@ extern const char _PL_char_types[];	/* array of character types */
 
 #define toLowerW(c)	((unsigned)(c) <= 'Z' ? (c) + 'a' - 'A' : towlower(c))
 #define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : towlower(c))
+
+#endif /*_PL_CTYPE_H*/

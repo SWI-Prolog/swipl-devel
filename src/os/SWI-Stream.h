@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,8 +34,8 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifndef _PL_STREAM_H
-#define _PL_STREAM_H
+#ifndef _SWI_STREAM_H
+#define _SWI_STREAM_H
 
 /* This appears to make the wide-character support compile and work
    on HPUX 11.23.  There really should be a cleaner way ...
@@ -91,8 +92,8 @@ stuff.
 
 #ifdef HAVE_DECLSPEC
 # ifdef PL_KERNEL
-#define PL_EXPORT(type)		__declspec(dllexport) type
-#define PL_EXPORT_DATA(type)	__declspec(dllexport) type
+#define PL_EXPORT(type)		__declspec(dllexport) extern type
+#define PL_EXPORT_DATA(type)	__declspec(dllexport) extern type
 #define install_t		void
 # else
 #  ifdef __BORLANDC__
@@ -110,8 +111,13 @@ stuff.
 #define install_t		__declspec(dllexport) void
 # endif
 #else /*HAVE_DECLSPEC*/
+# ifdef PL_SO_EXPORT
+#define PL_EXPORT(type)		extern PL_SO_EXPORT type
+#define PL_EXPORT_DATA(type)	extern PL_SO_EXPORT type
+# else
 #define PL_EXPORT(type)		extern type
 #define PL_EXPORT_DATA(type)	extern type
+# endif
 #define install_t		void
 #endif /*HAVE_DECLSPEC*/
 #endif /*_PL_EXPORT_DONE*/
@@ -147,12 +153,7 @@ typedef int64_t (*Sseek64_function)(void *handle, int64_t pos, int whence);
 typedef int   (*Sclose_function)(void *handle);
 typedef int   (*Scontrol_function)(void *handle, int action, void *arg);
 
-#if defined(O_PLMT) && defined(PL_KERNEL)
-#include "pl-mutex.h"
-#define IOLOCK recursiveMutex
-#else
-typedef void *		IOLOCK;		/* Definition for external use */
-#endif
+typedef struct recursiveMutex IOLOCK;
 
 #ifndef PL_HAVE_TERM_T
 #define PL_HAVE_TERM_T
@@ -202,7 +203,7 @@ typedef struct io_stream
   int			lastc;		/* last character written */
   int			magic;		/* magic number SIO_MAGIC */
   int			bufsize;	/* size of the buffer */
-  int			flags;		/* Status flags */
+  unsigned int		flags;		/* Status flags */
   IOPOS			posbuf;		/* location in file */
   IOPOS *		position;	/* pointer to above */
   void		       *handle;		/* function's handle */
@@ -262,6 +263,7 @@ typedef struct io_stream
 #define SIO_REPXML	SmakeFlag(29)	/* Bad char --> XML entity */
 #define SIO_REPPL	SmakeFlag(30)	/* Bad char --> Prolog \hex\ */
 #define SIO_BOM		SmakeFlag(31)	/* BOM was detected/written */
+#define SIO_REPPLU	SmakeFlag(32)	/* Bad char --> Prolog \uXXXX */
 
 #define	SIO_SEEK_SET	0	/* From beginning of file.  */
 #define	SIO_SEEK_CUR	1	/* From current position.  */
@@ -366,7 +368,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 		 *	    PROTOTYPES		*
 		 *******************************/
 
-PL_EXPORT(void)		SinitStreams();
+PL_EXPORT(void)		SinitStreams(void);
 PL_EXPORT(void)		Scleanup(void);
 PL_EXPORT(void)		Sreset(void);
 PL_EXPORT(int)		S__fupdatefilepos_getc(IOSTREAM *s, int c);
@@ -451,4 +453,4 @@ PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
 }
 #endif
 
-#endif /*_PL_STREAM_H*/
+#endif /*_SWI_STREAM_H*/

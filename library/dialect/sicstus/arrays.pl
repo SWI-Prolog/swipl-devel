@@ -43,11 +43,12 @@
 	  ]).
 :- use_module(library(rbtrees)).
 
-/** <module> SICStus 3 compatible array-library
+/** <module> SICStus 3-compatible library(arrays).
 
-@deprecated library(arrays) is dropped from SICStus
+@deprecated library(arrays) has been removed in SICStus 4.
 @compat	    This library builds on library(rbtrees) and therefore the
 	    internal representation differs from the SICStus implementation.
+@see	    https://sicstus.sics.se/sicstus/docs/3.12.11/html/sicstus/Arrays.html
 */
 
 

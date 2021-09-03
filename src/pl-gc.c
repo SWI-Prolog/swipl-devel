@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,12 +38,20 @@
 #ifdef SECURE_GC
 #define O_DEBUG 1
 #endif
-#include "pl-incl.h"
+#include "pl-gc.h"
 #include "pl-comp.h"
 #include "os/pl-cstack.h"
 #include "pentium.h"
 #include "pl-inline.h"
 #include "pl-prof.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
+#include "pl-util.h"
+#include "pl-attvar.h"
+#include "pl-proc.h"
+#include "pl-setup.h"
+#include "pl-bag.h"
+#include "pl-wam.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -137,11 +146,11 @@ Marking, testing marks and extracting values from GC masked words.
 
 #if O_DEBUG
 char tmp[256];				/* for calling print_val(), etc. */
-#define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__ PASS_LD)
-#define relocated_cell(p) do_relocated_cell(p PASS_LD)
-#define recordMark(p) recordMark__LD(p PASS_LD)
+#define check_relocation(p) do_check_relocation(p, __FILE__, __LINE__)
+#define relocated_cell(p) do_relocated_cell(p)
+#define recordMark(p) LDFUNC(recordMark, p)
 static inline void
-recordMark__LD(Word p ARG_LD)
+recordMark(DECL_LD Word p)
 { if ( DEBUGGING(CHK_SECURE) )
   { if ( (char*)p < (char*)lBase )
     { assert(onStack(global, p));
@@ -157,6 +166,17 @@ recordMark__LD(Word p ARG_LD)
 #define markLocal(p) (local_marked++)
 #define processLocal(p) (local_marked--)
 #endif
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Whereas in the rest of the system reference pointers always point at the
+global stack, GC needs to reverse pointers   and  thus be able to create
+reference pointers to the local stack as it used to be.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#undef makeRef
+#undef unRef
+#define makeRef(p)	((void*)p >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
+#define unRef(w)	((Word)valPtr(w))
 
 #define ldomark(p)	{ *(p) |= MARK_MASK; }
 #define domark(p)	{ if ( is_marked(p) ) \
@@ -220,31 +240,48 @@ typedef struct vm_state
 		 *     FUNCTION PROTOTYPES	*
 		 *******************************/
 
-forwards void		mark_variable(Word ARG_LD);
-static void		mark_local_variable(Word p ARG_LD);
+#if USE_LD_MACROS
+#define	mark_variable(Word)				LDFUNC(mark_variable, Word)
+#define	mark_local_variable(p)				LDFUNC(mark_local_variable, p)
+#define	sweep_global_mark(m)				LDFUNC(sweep_global_mark, m)
+#define	update_relocation_chain(Word, Word2)		LDFUNC(update_relocation_chain, Word, Word2)
+#define	into_relocation_chain(Word, stg)		LDFUNC(into_relocation_chain, Word, stg)
+#define	alien_into_relocation_chain(addr, orgst, stg)	LDFUNC(alien_into_relocation_chain, addr, orgst, stg)
+#define	sweep_mark(mark)				LDFUNC(sweep_mark, mark)
+#define	is_downward_ref(Word)				LDFUNC(is_downward_ref, Word)
+#define	is_upward_ref(Word)				LDFUNC(is_upward_ref, Word)
+#define	tight(s)					LDFUNC(tight, s)
+#define	do_check_relocation(Word, file, line)		LDFUNC(do_check_relocation, Word, file, line)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+forwards void		mark_variable(Word);
+static void		mark_local_variable(Word p);
 forwards void		sweep_foreign(void);
-static void		sweep_global_mark(Word *m ARG_LD);
-forwards void		update_relocation_chain(Word, Word ARG_LD);
-forwards void		into_relocation_chain(Word, int stg ARG_LD);
+static void		sweep_global_mark(Word *m);
+forwards void		update_relocation_chain(Word, Word);
+forwards void		into_relocation_chain(Word, int stg);
 forwards void		alien_into_relocation_chain(void *addr,
-						    int orgst, int stg
-						    ARG_LD);
+						    int orgst, int stg);
 forwards void		compact_trail(void);
-forwards void		sweep_mark(mark * ARG_LD);
+forwards void		sweep_mark(mark *);
 forwards void		sweep_trail(void);
-forwards bool		is_downward_ref(Word ARG_LD);
-forwards bool		is_upward_ref(Word ARG_LD);
+forwards bool		is_downward_ref(Word);
+forwards bool		is_upward_ref(Word);
 forwards void		compact_global(void);
 static void		get_vmi_state(QueryFrame qf, vm_state *state);
-static size_t		tight(Stack s ARG_LD);
+static size_t		tight(Stack s);
 
 #if O_DEBUG
 forwards int		cmp_address(const void *, const void *);
-forwards void		do_check_relocation(Word, char *file, int line ARG_LD);
+forwards void		do_check_relocation(Word, char *file, int line);
 forwards void		needsRelocation(void *);
 forwards void		check_mark(mark *m);
 static int		check_marked(const char *s);
 #endif
+
+#undef LDFUNC_DECLARATIONS
 
 		/********************************
 		*           GLOBALS             *
@@ -386,7 +423,7 @@ needsRelocation(void *addr)
 
 
 static void
-do_check_relocation(Word addr, char *file, int line ARG_LD)
+do_check_relocation(DECL_LD Word addr, char *file, int line)
 { if ( DEBUGGING(CHK_SECURE) )
   { void *chk;
 
@@ -408,8 +445,9 @@ do_check_relocation(Word addr, char *file, int line ARG_LD)
 }
 
 
+#define do_relocated_cell(addr) LDFUNC(do_relocated_cell, addr)
 static void
-do_relocated_cell(Word addr ARG_LD)
+do_relocated_cell(DECL_LD Word addr)
 { if ( DEBUGGING(CHK_SECURE) )
   { if ( relocated_check )		/* we cannot do this during the */
     { void *chk;			/* final up-phase because the addresses */
@@ -537,10 +575,11 @@ gc_stat_aggregate(gc_stats *stats)
   stats->aggr_index = STAT_NEXT_INDEX(stats->aggr_index);
 }
 
+#define gc_stat_start(stats, reason) LDFUNC(gc_stat_start, stats, reason)
 static void
-gc_stat_start(gc_stats *stats, unsigned int reason ARG_LD)
+gc_stat_start(DECL_LD gc_stats *stats, unsigned int reason)
 { gc_stat *this = &stats->last[stats->last_index];
-  double cpu = ThreadCPUTime(LD, CPU_USER);
+  double cpu = ThreadCPUTime(CPU_USER);
 
   if ( stats->last_index == 0 && this->global_before )
     gc_stat_aggregate(stats);
@@ -557,10 +596,11 @@ gc_stat_start(gc_stats *stats, unsigned int reason ARG_LD)
   stats->thread_cpu   = cpu;
 }
 
+#define gc_stat_end(stats) LDFUNC(gc_stat_end, stats)
 static gc_stat *
-gc_stat_end(gc_stats *stats ARG_LD)
+gc_stat_end(DECL_LD gc_stats *stats)
 { gc_stat *this = &stats->last[stats->last_index];
-  double cpu = ThreadCPUTime(LD, CPU_USER);
+  double cpu = ThreadCPUTime(CPU_USER);
 
   this->global_after  = usedStack(global);
   this->trail_after   = usedStack(trail);
@@ -605,8 +645,9 @@ gc_avg(gc_stats *stats)
   return d;
 }
 
+#define unify_gc_reason(t, stat) LDFUNC(unify_gc_reason, t, stat)
 static int
-unify_gc_reason(term_t t, gc_stat *stat ARG_LD)
+unify_gc_reason(DECL_LD term_t t, gc_stat *stat)
 { int go = (stat->reason>> 0)&0xff;
   int gr = (stat->reason>> 8)&0xff;
   int to = (stat->reason>>16)&0xff;
@@ -624,8 +665,9 @@ unify_gc_reason(term_t t, gc_stat *stat ARG_LD)
 }
 
 
+#define unify_gc_stats(t, stats, index) LDFUNC(unify_gc_stats, t, stats, index)
 static int
-unify_gc_stats(term_t t, gc_stat *stats, int index ARG_LD)
+unify_gc_stats(DECL_LD term_t t, gc_stat *stats, int index)
 { term_t tail = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
   term_t rt   = PL_new_term_ref();
@@ -640,7 +682,7 @@ unify_gc_stats(term_t t, gc_stat *stats, int index ARG_LD)
     if ( this->global_before )
     { if ( !PL_unify_list(tail, head, tail) ||
 	   !PL_put_variable(rt) ||
-	   !unify_gc_reason(rt, this PASS_LD) ||
+	   !unify_gc_reason(rt, this) ||
 	   !PL_unify_term(head,
 			  PL_FUNCTOR, FUNCTOR_gc_stats8,
 			    PL_TERM,   rt,
@@ -666,8 +708,8 @@ PRED_IMPL("$gc_statistics", 5, gc_statistics, 0)
   gc_stat  *last  = last_gc_stats(stats);
   gc_stat  *aggr  = &stats->aggr[STAT_PREV_INDEX(stats->aggr_index)];
 
-  return ( unify_gc_stats(A1, stats->last, stats->last_index PASS_LD) &&
-	   unify_gc_stats(A2, stats->aggr, stats->aggr_index PASS_LD) &&
+  return ( unify_gc_stats(A1, stats->last, stats->last_index) &&
+	   unify_gc_stats(A2, stats->aggr, stats->aggr_index) &&
 	   PL_unify_float(A3, gc_percentage(last)) &&
 	   PL_unify_float(A4, gc_percentage(aggr)) &&
 	   PL_unify_float(A5, gc_avg(stats))
@@ -717,8 +759,9 @@ offset_cell(Word p)
 }
 
 
+#define makePtr(ptr, tag) LDFUNC(makePtr, ptr, tag)
 static inline word
-makePtr(Word ptr, int tag ARG_LD)
+makePtr(DECL_LD Word ptr, int tag)
 { int stg;
 
   if ( onGlobalArea(ptr) )
@@ -739,8 +782,13 @@ Clear the mask (FR_MARKED or FR_MARKED_PRED) flags left after traversing
 all reachable frames.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if USE_LD_MACROS
+#define unmark_environments(fr, mask) LDFUNC(unmark_environments, fr, mask)
+#define unmark_choicepoints(ch, mask) LDFUNC(unmark_choicepoints, ch, mask)
+#endif
+
 static QueryFrame
-unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
+unmark_environments(DECL_LD LocalFrame fr, uintptr_t mask)
 { if ( fr == NULL )
     return NULL;
 
@@ -748,7 +796,7 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
   { if ( false(fr, mask) )
       return NULL;
     clear(fr, mask);
-    ld->gc._local_frames--;
+    LD->gc._local_frames--;
 
     if ( fr->parent )
       fr = fr->parent;
@@ -759,23 +807,23 @@ unmark_environments(PL_local_data_t *ld, LocalFrame fr, uintptr_t mask)
 
 
 static void
-unmark_choicepoints(PL_local_data_t *ld, Choice ch, uintptr_t mask)
+unmark_choicepoints(DECL_LD Choice ch, uintptr_t mask)
 { for( ; ch; ch = ch->parent )
-  { ld->gc._choice_count--;
-    unmark_environments(ld, ch->frame, mask);
+  { LD->gc._choice_count--;
+    unmark_environments(ch->frame, mask);
   }
 }
 
 
 void
-unmark_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch,
+unmark_stacks(DECL_LD LocalFrame fr, Choice ch,
 	      uintptr_t mask)
 { QueryFrame qf;
 
   while(fr)
-  { qf = unmark_environments(ld, fr, mask);
+  { qf = unmark_environments(fr, mask);
     assert(qf->magic == QID_MAGIC);
-    unmark_choicepoints(ld, ch, mask);
+    unmark_choicepoints(ch, mask);
     if ( qf->parent )
     { QueryFrame pqf = qf->parent;
 
@@ -823,7 +871,7 @@ last-argument-first).
 #define BACKWARD	goto backward
 
 static void
-mark_variable(Word start ARG_LD)
+mark_variable(DECL_LD Word start)
 { Word current;				/* current cell examined */
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
@@ -873,7 +921,7 @@ forward:				/* Go into the tree */
 	BACKWARD;			/* term has already been marked */
       val  = get_value(next);		/* invariant */
 					/* backwards pointer */
-      set_value(next, makePtr(current, TAG_ATTVAR PASS_LD));
+      set_value(next, makePtr(current, TAG_ATTVAR));
       DEBUG(MSG_GC_MARK_VAR_WALK,
 	    Sdprintf("Marking ATTVAR from %p to %p\n", current, next));
       current = next;			/* invariant */
@@ -904,7 +952,7 @@ forward:				/* Go into the tree */
       next--;				/* last cell of term */
       val = get_value(next);		/* invariant */
 					/* backwards pointer (NO ref!) */
-      set_value(next, makePtr(current, TAG_COMPOUND PASS_LD));
+      set_value(next, makePtr(current, TAG_COMPOUND));
       current = next;
       FORWARD;
     }
@@ -943,10 +991,10 @@ backward:				/* reversing backwards */
 	val = makeRef(current);
         break;
       case TAG_COMPOUND:
-	val = makePtr(current-1, t PASS_LD);
+	val = makePtr(current-1, t);
         break;
       case TAG_ATTVAR:
-	val = makePtr(current, t PASS_LD);
+	val = makePtr(current, t);
         break;
       default:
 	assert(0);
@@ -999,10 +1047,10 @@ mark_term_refs()
     { if ( !is_marked(sp) )
       { if ( isGlobalRef(*sp) )
 	{ DEBUG(MSG_GC_MARK_TERMREF, gmarked++);
-	  mark_variable(sp PASS_LD);
+	  mark_variable(sp);
 	} else
 	{ DEBUG(MSG_GC_MARK_TERMREF, lmarked++);
-	  mark_local_variable(sp PASS_LD);
+	  mark_local_variable(sp);
 	}
       }
     }
@@ -1016,8 +1064,9 @@ mark_term_refs()
 }
 
 
+#define save_grefs(_) LDFUNC(save_grefs, _)
 static void
-save_grefs(ARG1_LD)
+save_grefs(DECL_LD)
 {
 #ifdef O_ATTVAR
   if ( LD->attvar.attvars )
@@ -1026,8 +1075,9 @@ save_grefs(ARG1_LD)
 #endif
 }
 
+#define restore_grefs(_) LDFUNC(restore_grefs, _)
 static void
-restore_grefs(ARG1_LD)
+restore_grefs(DECL_LD)
 {
 #ifdef O_ATTVAR
   if ( LD->attvar.attvars )
@@ -1225,8 +1275,9 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
 
 
 #ifdef O_CALL_RESIDUE
+#define count_need_protection_attvars(_) LDFUNC(count_need_protection_attvars, _)
 static size_t
-count_need_protection_attvars(ARG1_LD)
+count_need_protection_attvars(DECL_LD)
 { Word p, next;
   size_t attvars = 0;
 
@@ -1241,8 +1292,9 @@ count_need_protection_attvars(ARG1_LD)
   return attvars;
 }
 
+#define link_attvars(_) LDFUNC(link_attvars, _)
 static fid_t
-link_attvars(ARG1_LD)
+link_attvars(DECL_LD)
 { if ( LD->attvar.call_residue_vars_count &&
        LD->attvar.attvars )
   { fid_t fid = PL_open_foreign_frame();
@@ -1265,8 +1317,9 @@ link_attvars(ARG1_LD)
     return 0;
 }
 
+#define restore_attvars(attvars) LDFUNC(restore_attvars, attvars)
 static void
-restore_attvars(fid_t attvars ARG_LD)
+restore_attvars(DECL_LD fid_t attvars)
 { if ( attvars )
     PL_close_foreign_frame(attvars);
 }
@@ -1311,6 +1364,7 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
 	  return;
 
 	case C_JMP:			/* jumps */
+	case L_NOLCO:
 	  PC += (int)PC[1]+2;
 	  c = fetchop(PC);
 	  goto again;
@@ -1349,6 +1403,10 @@ clearUninitialisedVarsFrame(LocalFrame fr, Code PC)
        case B_UNIFY_FC:
        case A_ADD_FC:
          setVar(varFrame(fr, PC[1]));
+         break;
+       case B_ARG_CF:
+       case B_ARG_VF:
+	 setVar(varFrame(fr, PC[3]));
          break;
       }
     }
@@ -1402,15 +1460,17 @@ stack to avoid allocation issues on the argument stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_DESTRUCTIVE_ASSIGNMENT
+#define push_marked(p) LDFUNC(push_marked, p)
 static inline void
-push_marked(Word p ARG_LD)
+push_marked(DECL_LD Word p)
 { if ( !pushSegStack(&LD->cycle.vstack, p, Word) )
     outOfCore();
 }
 
 
+#define popall_marked(_) LDFUNC(popall_marked, _)
 static void
-popall_marked(ARG1_LD)
+popall_marked(DECL_LD)
 { Word p;
 
   while( popSegStack(&LD->cycle.vstack, &p, Word) )
@@ -1419,9 +1479,10 @@ popall_marked(ARG1_LD)
 }
 
 
+#define mergeTrailedAssignments(top, mark, assignments) LDFUNC(mergeTrailedAssignments, top, mark, assignments)
 static void
-mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
-			int assignments ARG_LD)
+mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
+			int assignments)
 { GCTrailEntry te;
   LD->cycle.vstack.unit_size = sizeof(Word);
 
@@ -1441,7 +1502,7 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
 	trailcells_deleted += 2;
       } else
       { mark_first(p);
-	push_marked(p PASS_LD);
+	push_marked(p);
       }
     } else
     { if ( is_first(p) )
@@ -1451,7 +1512,7 @@ mergeTrailedAssignments(GCTrailEntry top, GCTrailEntry mark,
     }
   }
 
-  popall_marked(PASS_LD1);
+  popall_marked();
   assert(assignments == 0);
 }
 #endif
@@ -1482,8 +1543,9 @@ been marked. We however can remove  this   mark  as it will be re-marked
 should it be accessible and otherwise it really is garbage.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define early_reset_vars(m, top, te) LDFUNC(early_reset_vars, m, top, te)
 static GCTrailEntry
-early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
+early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 { GCTrailEntry tm = (GCTrailEntry)m->trailtop;
   GCTrailEntry te0 = te;
   int assignments = 0;
@@ -1513,7 +1575,7 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 			 print_val(*gp, b2),
 			 print_val(*tard, b3)));
 
-	  mark_variable(gp PASS_LD);
+	  mark_variable(gp);
 	  assert(is_marked(gp));
 	}
 
@@ -1563,26 +1625,27 @@ early_reset_vars(mark *m, Word top, GCTrailEntry te ARG_LD)
 
 #if O_DESTRUCTIVE_ASSIGNMENT
   if ( assignments >= 1 )
-    mergeTrailedAssignments(te0, tm, assignments PASS_LD);
+    mergeTrailedAssignments(te0, tm, assignments);
 #endif
 
   return te;
 }
 
 
+#define mark_foreign_frame(fr, te) LDFUNC(mark_foreign_frame, fr, te)
 static GCTrailEntry
-mark_foreign_frame(FliFrame fr, GCTrailEntry te ARG_LD)
+mark_foreign_frame(DECL_LD FliFrame fr, GCTrailEntry te)
 { DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
 
   if ( isRealMark(fr->mark) )
-  { te = early_reset_vars(&fr->mark, (Word)fr, te PASS_LD);
+  { te = early_reset_vars(&fr->mark, (Word)fr, te);
 
     DEBUG(MSG_GC_MARK_FOREIGN, Sdprintf("Marking foreign frame %p\n", fr));
     needsRelocation(&fr->mark.trailtop);
     check_relocation((Word)&fr->mark.trailtop);
     DEBUG(CHK_SECURE, assert(isRealMark(fr->mark)));
     alien_into_relocation_chain(&fr->mark.trailtop,
-				STG_TRAIL, STG_LOCAL PASS_LD);
+				STG_TRAIL, STG_LOCAL);
 
   }
 
@@ -1624,8 +1687,17 @@ typedef struct walk_state
 
 #define NO_ADEPTH 1234567
 
-static void	early_reset_choicepoint(mark_state *state, Choice ch ARG_LD);
-static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD);
+#if USE_LD_MACROS
+#define	early_reset_choicepoint(state, ch)	LDFUNC(early_reset_choicepoint, state, ch)
+#define	mark_alt_clauses(fr, cref)		LDFUNC(mark_alt_clauses, fr, cref)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+static void	early_reset_choicepoint(mark_state *state, Choice ch);
+static void	mark_alt_clauses(LocalFrame fr, ClauseRef cref);
+
+#undef LDFUNC_DECLARATIONS
 
 
 		 /*******************************
@@ -1673,7 +1745,7 @@ As long as we are a reference link along the local stack, keep marking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-mark_local_variable(Word p ARG_LD)
+mark_local_variable(DECL_LD Word p)
 { while ( tagex(*p) == (TAG_REFERENCE|STG_LOCAL) )
   { Word p2;
 
@@ -1685,26 +1757,28 @@ mark_local_variable(Word p ARG_LD)
   }
 
   if ( isGlobalRef(*p) )
-    mark_variable(p PASS_LD);
+    mark_variable(p);
   else
     ldomark(p);
 }
 
 
+#define mark_arguments(fr) LDFUNC(mark_arguments, fr)
 static void
-mark_arguments(LocalFrame fr ARG_LD)
+mark_arguments(DECL_LD LocalFrame fr)
 { Word sp = argFrameP(fr, 0);
   int slots = fr->predicate->functor->arity;
 
   for( ; slots-- > 0; sp++ )
   { if ( !is_marked(sp) )
-      mark_local_variable(sp PASS_LD);
+      mark_local_variable(sp);
   }
 }
 
 
+#define mark_new_arguments(state) LDFUNC(mark_new_arguments, state)
 static void
-mark_new_arguments(vm_state *state ARG_LD)
+mark_new_arguments(DECL_LD vm_state *state)
 { if ( state->lNext )
   { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
@@ -1715,21 +1789,22 @@ mark_new_arguments(vm_state *state ARG_LD)
     for( ; slots-- > 0; sp++ )
     { DEBUG(CHK_SECURE, assert(*sp != FLI_MAGIC));
       if ( !is_marked(sp) )
-	mark_local_variable(sp PASS_LD);
+	mark_local_variable(sp);
     }
   }
 }
 
 
+#define mark_trie_gen(fr) LDFUNC(mark_trie_gen, fr)
 static void
-mark_trie_gen(LocalFrame fr ARG_LD)
+mark_trie_gen(DECL_LD LocalFrame fr)
 { Word   sp = argFrameP(fr, 0);
   Clause cl = fr->clause->value.clause;
   int    mv = cl->prolog_vars;
 
   for(; mv-- > 0; sp++)
   { if ( !is_marked(sp) )
-      mark_local_variable(sp PASS_LD);
+      mark_local_variable(sp);
   }
 }
 
@@ -1743,10 +1818,11 @@ walk_and_mark(walk_state *state, Code PC, code end, Code until)
 See decompileBody for details on handling the branch instructions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define mark_frame_var(state, v) LDFUNC(mark_frame_var, state, v)
 static inline void
-mark_frame_var(walk_state *state, code v ARG_LD)
+mark_frame_var(DECL_LD walk_state *state, code v)
 { if ( state->active )
-  { int i = (int)v - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(v);
 
     DEBUG(MSG_CONTINUE, Sdprintf("Access %d (%scleared)\n",
 				 i, true_bit(state->clear, i) ? "" : "not "));
@@ -1756,7 +1832,7 @@ mark_frame_var(walk_state *state, code v ARG_LD)
   { Word sp = varFrameP(state->frame, v);
 
     if ( sp < state->envtop && !is_marked(sp) )
-    { mark_local_variable(sp PASS_LD);
+    { mark_local_variable(sp);
       state->unmarked--;
     }
   }
@@ -1766,7 +1842,7 @@ mark_frame_var(walk_state *state, code v ARG_LD)
 static inline void
 clear_frame_var(walk_state *state, code var, Code PC)
 { if ( state->clear )
-  { int i = (int)var - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(var);
 
     DEBUG(MSG_CONTINUE, Sdprintf("Clear %d\n", i));
     set_bit(state->clear, i);
@@ -1798,7 +1874,8 @@ clear_frame_var(walk_state *state, code var, Code PC)
 static inline void
 clear_choice_mark(walk_state *state, code slot)
 { if ( (state->flags & GCM_CHOICE) )
-  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
+  { int i = VARNUM(slot);
+    DEBUG(MSG_CONTINUE, Sdprintf("Clear choice %d\n", i));
     set_bit(state->clear, i);
   }
 }
@@ -1807,19 +1884,25 @@ clear_choice_mark(walk_state *state, code slot)
 static inline void
 mark_choice_mark(walk_state *state, code slot)
 { if ( (state->flags & GCM_CHOICE) )
-  { int i = (int)slot - sizeof(struct localFrame)/sizeof(word);
-    set_bit(state->active, i);
+  { int i = VARNUM(slot);
+
+    DEBUG(MSG_CONTINUE,
+	  Sdprintf("Found choice %d (%s)\n", i,
+		   true_bit(state->clear, i) ? "cleared" : "active"));
+    if ( !true_bit(state->clear, i) )
+      set_bit(state->active, i);
   }
 }
 
 
+#define mark_argp(state) LDFUNC(mark_argp, state)
 static inline void
-mark_argp(walk_state *state ARG_LD)
+mark_argp(DECL_LD walk_state *state)
 {
 #ifdef MARK_ALT_CLAUSES
   if ( !(state->flags & GCM_ACTIVE) && state->adepth == 0 )
   { if ( state->ARGP < state->envtop && !is_marked(state->ARGP) )
-    { mark_local_variable(state->ARGP PASS_LD);
+    { mark_local_variable(state->ARGP);
       state->unmarked--;
     }
     state->ARGP++;
@@ -1828,8 +1911,9 @@ mark_argp(walk_state *state ARG_LD)
 }
 
 
+#define walk_and_mark(state, PC, end) LDFUNC(walk_and_mark, state, PC, end)
 static Code
-walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
+walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 { code op;
 
   COUNT(marked_cont);
@@ -1857,7 +1941,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case H_STRING:			/* only skip the size of the */
       case H_MPZ:
       case H_MPQ:
-	mark_argp(state PASS_LD);
+	mark_argp(state);
 	/*FALLTHROUGH*/
       case B_STRING:			/* string + header */
       case A_MPZ:
@@ -1879,15 +1963,16 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case S_LIST:
 	return PC-1;
       case S_NEXTCLAUSE:
-	mark_alt_clauses(state->frame, state->frame->clause->next PASS_LD);
+	mark_alt_clauses(state->frame, state->frame->clause->next);
         return PC-1;
       case I_FREDO:
-	mark_arguments(state->frame PASS_LD);
+	mark_arguments(state->frame);
         return PC-1;
 
       case C_JMP:			/* unconditional jump */
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
+      case L_NOLCO:
 	PC += (int)PC[0]+1;
         op = decode(*PC++);
         goto again;
@@ -1898,20 +1983,22 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       { Code alt = PC+PC[0]+1;
 	DEBUG(MSG_GC_WALK, Sdprintf("C_OR at %d\n", PC-state->c0-1));
 	PC++;				/* skip <n> */
-	walk_and_mark(state, PC, C_JMP PASS_LD);
+	walk_and_mark(state, PC, C_JMP);
 	PC = alt;
 	op = decode(*PC++);
         goto again;
       }
       case C_NOT:
+      case C_DET:
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { Code alt = PC+PC[1]+2;
-	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT at %d\n", PC-state->c0-1));
+	code ec = op == C_NOT ? C_CUT : C_DETTRUE;
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET at %d\n", PC-state->c0-1));
 	clear_choice_mark(state, PC[0]);
 	PC += 2;			/* skip the two arguments */
-	walk_and_mark(state, PC, C_CUT PASS_LD);
-	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT-ALT at %d\n", alt-state->c0));
+	walk_and_mark(state, PC, ec);
+	DEBUG(MSG_GC_WALK, Sdprintf("C_NOT/C_DET-ALT at %d\n", alt-state->c0));
 	PC = alt;
 	op = decode(*PC++);
         goto again;
@@ -1925,7 +2012,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	clear_choice_mark(state, PC[0]);
 	DEBUG(MSG_GC_WALK, Sdprintf("C_IFTHENELSE at %d\n", PC-state->c0-1));
 	PC += 2;			/* skip the 'MARK' variable and jmp */
-	walk_and_mark(state, PC, C_JMP PASS_LD);
+	walk_and_mark(state, PC, C_JMP);
 	PC = alt;
 	op = decode(*PC++);
         goto again;
@@ -1935,7 +2022,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	if ( (state->flags & GCM_ALTCLAUSE) )
 	  break;
       { clear_choice_mark(state, PC[0]);
-	PC = walk_and_mark(state, PC+1, C_END PASS_LD);
+	PC = walk_and_mark(state, PC+1, C_END);
 	PC++;				/* skip C_END */
 	op = decode(*PC++);
         goto again;
@@ -1946,12 +2033,13 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case C_SOFTCUT:
       case C_LCUTIFTHEN:
       case C_FASTCUT:
+      case C_DETTRUE:
 	mark_choice_mark(state, PC[0]);
         break;
 					/* variable access */
 
       case B_UNIFY_VAR:			/* Var = Term */
-	mark_frame_var(state, PC[0] PASS_LD);
+	mark_frame_var(state, PC[0]);
         state->adepth = NO_ADEPTH;
 	break;
       case B_UNIFY_FIRSTVAR:
@@ -1973,7 +2061,7 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	break;
       }
       case H_LIST_FF:
-	mark_argp(state PASS_LD);
+	mark_argp(state);
         /*FALLTHROUGH*/
       case B_UNIFY_FF:
 	clear_frame_var(state, PC[0], PC);
@@ -1983,14 +2071,21 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case B_UNIFY_FV:
       case B_UNIFY_VF:
 	clear_frame_var(state, PC[0], PC);
-	mark_frame_var(state, PC[1] PASS_LD);
+	mark_frame_var(state, PC[1]);
 	break;
       case B_UNIFY_VV:
       case B_EQ_VV:
       case B_NEQ_VV:
-	mark_frame_var(state, PC[0] PASS_LD);
-        mark_frame_var(state, PC[1] PASS_LD);
+	mark_frame_var(state, PC[0]);
+        mark_frame_var(state, PC[1]);
 	break;
+      case B_ARG_VF:
+	mark_frame_var(state, PC[0]);
+        /*FALLTHROUGH*/
+      case B_ARG_CF:
+	mark_frame_var(state, PC[1]);
+	clear_frame_var(state, PC[2], PC);
+        break;
       case I_VAR:
       case I_NONVAR:
       case I_INTEGER:
@@ -2003,7 +2098,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
       case I_CALLABLE:
       case I_CALLCONT:
       case I_SHIFT:
-	mark_frame_var(state, PC[0] PASS_LD);
+      case I_SHIFTCP:
+	mark_frame_var(state, PC[0]);
         break;
 
       { size_t index;			/* mark variable access */
@@ -2020,28 +2116,28 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case B_VAR1:	    index = VAROFFSET(1);	goto var_common;
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
-	  mark_frame_var(state, index PASS_LD);
+	  mark_frame_var(state, index);
 	  break;
       }
 	case I_CALLCLEANUP:
-	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* main goal */
+	  mark_frame_var(state, VAROFFSET(1)); /* main goal */
 	  break;
 	case I_EXITCLEANUP:
-	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* The ball */
-	  mark_frame_var(state, VAROFFSET(3) PASS_LD); /* cleanup goal */
+	  mark_frame_var(state, VAROFFSET(2)); /* The ball */
+	  mark_frame_var(state, VAROFFSET(3)); /* cleanup goal */
 	  break;
 	case I_EXITCATCH:
 	case I_EXITRESET:
-	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* The ball */
-	  mark_frame_var(state, VAROFFSET(2) PASS_LD); /* recovery goal */
+	  mark_frame_var(state, VAROFFSET(1)); /* The ball */
+	  mark_frame_var(state, VAROFFSET(2)); /* recovery goal */
 	  break;
 	case I_CUTCHP:
-	  mark_frame_var(state, VAROFFSET(1) PASS_LD); /* choice-point */
+	  mark_frame_var(state, VAROFFSET(1)); /* choice-point */
 	  break;
 #ifdef O_CALL_AT_MODULE
 	case I_CALLATMV:
 	case I_DEPARTATMV:
-	  mark_frame_var(state, PC[1] PASS_LD);
+	  mark_frame_var(state, PC[1]);
 	  break;
 #endif
 #ifdef MARK_ALT_CLAUSES
@@ -2050,10 +2146,10 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  { clear_frame_var(state, PC[0], PC);
 	    break;
 	  }
-	  mark_argp(state PASS_LD);
+	  mark_argp(state);
 	  break;
 	case H_VAR:
-	  mark_frame_var(state, PC[0] PASS_LD);
+	  mark_frame_var(state, PC[0]);
 	  /*FALLTHROUGH*/
 	case H_ATOM:
 	case H_SMALLINT:
@@ -2061,11 +2157,11 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	case H_INTEGER:
 	case H_INT64:
 	case H_FLOAT:
-	  mark_argp(state PASS_LD);
+	  mark_argp(state);
 	  break;
 	case H_FUNCTOR:
 	case H_LIST:
-	  mark_argp(state PASS_LD);
+	  mark_argp(state);
 	  /*FALLTHROUGH*/
 	case B_FUNCTOR:
 	case B_LIST:
@@ -2087,6 +2183,8 @@ walk_and_mark(walk_state *state, Code PC, code end ARG_LD)
 	  assert(state->adepth == 0 || state->adepth == NO_ADEPTH);
 	  break;
 	case I_ENTER:
+	case I_SSU_COMMIT:
+	case I_SSU_CHOICE:
 	  assert(state->adepth==0);
 	  break;
 #endif /*MARK_ALT_CLAUSES*/
@@ -2126,7 +2224,7 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
   DEBUG(MSG_GC_WALK,
 	Sdprintf("Mark active for %s\n", predicateName(fr->predicate)));
 
-  walk_and_mark(&state, PC, I_EXIT PASS_LD);
+  walk_and_mark(&state, PC, I_EXIT);
   if ( buf != tmp )
     PL_free(buf);
 }
@@ -2134,7 +2232,7 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
 
 #ifdef MARK_ALT_CLAUSES
 static void
-mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
+mark_alt_clauses(DECL_LD LocalFrame fr, ClauseRef cref)
 { Word sp = argFrameP(fr, 0);
   int argc = fr->predicate->functor->arity;
   int i;
@@ -2164,7 +2262,7 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
     { COUNT(c_scanned);
       state.c0 = cref->value.clause->codes;
       DEBUG(MSG_GC_WALK, Sdprintf("Scanning clause %p\n", cref->value.clause));
-      walk_and_mark(&state, state.c0, I_EXIT PASS_LD);
+      walk_and_mark(&state, state.c0, I_EXIT);
     }
 
     state.adepth     = 0;
@@ -2175,21 +2273,21 @@ mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
 #else /*MARK_ALT_CLAUSES*/
 
 static void
-mark_alt_clauses(LocalFrame fr, ClauseRef cref ARG_LD)
-{ mark_arguments(fr PASS_LD);
+mark_alt_clauses(DECL_LD LocalFrame fr, ClauseRef cref)
+{ mark_arguments(fr);
 }
 
 #endif /*MARK_ALT_CLAUSES*/
 
 static void
-early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
+early_reset_choicepoint(DECL_LD mark_state *state, Choice ch)
 { LocalFrame fr = ch->frame;
   Word top;
 
   while((char*)state->flictx > (char*)ch)
   { FliFrame fli = state->flictx;
 
-    state->reset_entry = mark_foreign_frame(fli, state->reset_entry PASS_LD);
+    state->reset_entry = mark_foreign_frame(fli, state->reset_entry);
     state->flictx = fli->parent;
   }
 
@@ -2200,40 +2298,42 @@ early_reset_choicepoint(mark_state *state, Choice ch ARG_LD)
     top = (Word)ch;
   }
 
-  state->reset_entry = early_reset_vars(&ch->mark, top, state->reset_entry PASS_LD);
+  state->reset_entry = early_reset_vars(&ch->mark, top, state->reset_entry);
   needsRelocation(&ch->mark.trailtop);
   alien_into_relocation_chain(&ch->mark.trailtop,
-			      STG_TRAIL, STG_LOCAL PASS_LD);
+			      STG_TRAIL, STG_LOCAL);
   DEBUG(CHK_SECURE, trailtops_marked--);
 }
 
 
-static QueryFrame mark_environments(mark_state *state,
-				    LocalFrame fr, Code PC ARG_LD);
+#define mark_environments(state, fr, PC) LDFUNC(mark_environments, state, fr, PC)
+static QueryFrame mark_environments(DECL_LD mark_state *state,
+				    LocalFrame fr, Code PC);
 
+#define mark_choicepoints(state, ch) LDFUNC(mark_choicepoints, state, ch)
 static void
-mark_choicepoints(mark_state *state, Choice ch ARG_LD)
+mark_choicepoints(DECL_LD mark_state *state, Choice ch)
 { for(; ch; ch=ch->parent)
-  { early_reset_choicepoint(state, ch PASS_LD);
+  { early_reset_choicepoint(state, ch);
 
     switch(ch->type)
     { case CHP_JUMP:
-	mark_environments(state, ch->frame, ch->value.PC PASS_LD);
+	mark_environments(state, ch->frame, ch->value.pc);
 	break;
       case CHP_CLAUSE:
       { LocalFrame fr = ch->frame;
 
-	mark_alt_clauses(fr, ch->value.clause.cref PASS_LD);
+	mark_alt_clauses(fr, ch->value.clause.cref);
         if ( false(fr, FR_MARKED) )
 	{ set(fr, FR_MARKED);
 	  COUNT(marked_envs);
-	  mark_environments(state, fr->parent, fr->programPointer PASS_LD);
+	  mark_environments(state, fr->parent, fr->programPointer);
 	}
 	break;
       }
       case CHP_DEBUG:
       case CHP_CATCH:
-	mark_environments(state, ch->frame, NULL PASS_LD);
+	mark_environments(state, ch->frame, NULL);
 	break;
       case CHP_TOP:
 	break;
@@ -2274,7 +2374,7 @@ alternate flag for these two cases?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static QueryFrame
-mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
+mark_environments(DECL_LD mark_state *mstate, LocalFrame fr, Code PC)
 { QueryFrame qf = NULL;
 
   while ( fr )
@@ -2295,10 +2395,10 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { DEBUG(MSG_GC_MARK_ARGS,
 	    Sdprintf("Marking arguments for [%d] %s\n",
 		     levelFrame(fr), predicateName(fr->predicate)));
-      mark_arguments(fr PASS_LD);
+      mark_arguments(fr);
     } else if ( fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN2) ||
 		fr->clause->value.clause->codes[0] == encode(T_TRIE_GEN3) )
-    { mark_trie_gen(fr PASS_LD);
+    { mark_trie_gen(fr);
     } else
     { Word argp0;
       state.frame    = fr;
@@ -2313,7 +2413,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
       { argp0        = mstate->vm_state->argp0;
 	state.ARGP   = mstate->vm_state->argp;
 	state.adepth = mstate->vm_state->adepth;
-	mark_new_arguments(mstate->vm_state PASS_LD);
+	mark_new_arguments(mstate->vm_state);
       } else
       { argp0 = NULL;
       }
@@ -2323,11 +2423,11 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 		     levelFrame(fr), predicateName(fr->predicate),
 		     PC-state.c0));
 
-      walk_and_mark(&state, PC, I_EXIT PASS_LD);
+      walk_and_mark(&state, PC, I_EXIT);
 
       if ( argp0 && !is_marked(argp0) )		/* see (**) */
       { assert(onStackArea(local, argp0));
-	mark_local_variable(argp0 PASS_LD);
+	mark_local_variable(argp0);
       }
 
       if ( true(fr, FR_WATCHED) &&		/* (***) */
@@ -2339,7 +2439,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 	sp = argFrameP(fr, 0);
 	for( ; slots-- > 0; sp++ )
 	{ if ( !is_marked(sp) )
-	    mark_local_variable(sp PASS_LD);
+	    mark_local_variable(sp);
 	}
       }
     }
@@ -2354,7 +2454,7 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
     { qf = queryOfFrame(fr);
 
       if ( qf->saved_environment )
-	mark_arguments(qf->saved_environment PASS_LD); /* (*) */
+	mark_arguments(qf->saved_environment); /* (*) */
 
       break;
     }
@@ -2365,12 +2465,13 @@ mark_environments(mark_state *mstate, LocalFrame fr, Code PC ARG_LD)
 
 
 
+#define mark_query_stacks(state, fr, ch, PC) LDFUNC(mark_query_stacks, state, fr, ch, PC)
 static QueryFrame
-mark_query_stacks(mark_state *state, LocalFrame fr, Choice ch, Code PC ARG_LD)
+mark_query_stacks(DECL_LD mark_state *state, LocalFrame fr, Choice ch, Code PC)
 { QueryFrame qf;
 
-  qf = mark_environments(state, fr, PC PASS_LD);
-  mark_choicepoints(state, ch PASS_LD);
+  qf = mark_environments(state, fr, PC);
+  mark_choicepoints(state, ch);
 
   return qf;
 }
@@ -2394,7 +2495,7 @@ mark_stacks(vm_state *vmstate)
 
   while(fr)
   { DEBUG(MSG_GC_MARK_QUERY, Sdprintf("Marking query %p\n", qf));
-    qf = mark_query_stacks(&state, fr, ch, PC PASS_LD);
+    qf = mark_query_stacks(&state, fr, ch, PC);
 
     if ( qf->parent )			/* same code in checkStacks() */
     { QueryFrame pqf = qf->parent;
@@ -2416,7 +2517,7 @@ mark_stacks(vm_state *vmstate)
 
   for( ; state.flictx; state.flictx = state.flictx->parent)
     state.reset_entry = mark_foreign_frame(state.flictx,
-					   state.reset_entry PASS_LD);
+					   state.reset_entry);
 
   DEBUG(MSG_GC_STATS,
 	Sdprintf("Trail stack garbage: %ld cells\n", trailcells_deleted));
@@ -2489,7 +2590,7 @@ chain.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-update_relocation_chain(Word current, Word dest ARG_LD)
+update_relocation_chain(DECL_LD Word current, Word dest)
 { Word head = current;
   word val = get_value(current);
 
@@ -2511,7 +2612,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 	    if ( onStack(local, f) && f->magic == FLI_MAGIC )
 	      Sdprintf("Updating trail-mark of foreign frame at %p\n", f);
 	  });
-    set_value(current, makePtr(dest, tag PASS_LD));
+    set_value(current, makePtr(dest, tag));
     relocated_cell(current);
   } while( is_first(current) );
 
@@ -2521,7 +2622,7 @@ update_relocation_chain(Word current, Word dest ARG_LD)
 
 
 static void
-into_relocation_chain(Word current, int stg ARG_LD)
+into_relocation_chain(DECL_LD Word current, int stg)
 { Word head;
   word val = get_value(current);
 
@@ -2545,11 +2646,11 @@ into_relocation_chain(Word current, int stg ARG_LD)
 
 
 static void
-alien_into_relocation_chain(void *addr, int orgst, int stg ARG_LD)
+alien_into_relocation_chain(DECL_LD void *addr, int orgst, int stg)
 { void **ptr = (void **)addr;
 
   *ptr = (void *)consPtr(*ptr, orgst);
-  into_relocation_chain(addr, stg PASS_LD);
+  into_relocation_chain(addr, stg);
 
   alien_relocations++;
 }
@@ -2567,7 +2668,7 @@ compact_trail(void)
 	/* compact the trail stack */
   for( dest = current = (GCTrailEntry)tBase; current < (GCTrailEntry)tTop; )
   { if ( is_first(&current->address) )
-      update_relocation_chain(&current->address, &dest->address PASS_LD);
+      update_relocation_chain(&current->address, &dest->address);
 #if O_DEBUG
     else if ( DEBUGGING(CHK_SECURE) )
     { void *chk;
@@ -2584,7 +2685,7 @@ compact_trail(void)
       current++;
   }
   if ( is_first(&current->address) )
-    update_relocation_chain(&current->address, &dest->address PASS_LD);
+    update_relocation_chain(&current->address, &dest->address);
 
   tTop = (TrailEntry)dest;
 
@@ -2600,8 +2701,9 @@ trail-stack into tagged ones as  used  on   the  other  stacks,  to make
 pointer reversal in the relocation chains uniform.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define tag_trail(_) LDFUNC(tag_trail, _)
 static void
-tag_trail(ARG1_LD)
+tag_trail(DECL_LD)
 { TrailEntry te;
 
   for( te = tTop; --te >= tBase; )
@@ -2628,8 +2730,9 @@ tag_trail(ARG1_LD)
 }
 
 
+#define untag_trail(_) LDFUNC(untag_trail, _)
 static void
-untag_trail(ARG1_LD)
+untag_trail(DECL_LD)
 { TrailEntry te;
 
   for(te = tBase; te < tTop; te++)
@@ -2663,8 +2766,9 @@ the value is no longer a TAG_ATTVAR   reference  and there is no trailed
 assignment for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define is_dead_attvar(p) LDFUNC(is_dead_attvar, p)
 static int
-is_dead_attvar(Word p ARG_LD)
+is_dead_attvar(DECL_LD Word p)
 { word w = *p;
 
   if ( (w & MARK_MASK) )
@@ -2678,8 +2782,9 @@ is_dead_attvar(Word p ARG_LD)
 }
 
 
+#define clean_attvar_chain(_) LDFUNC(clean_attvar_chain, _)
 static void
-clean_attvar_chain(ARG1_LD)
+clean_attvar_chain(DECL_LD)
 { Word p, last = NULL, next;
 #ifdef O_DEBUG
   size_t cleaned = 0;
@@ -2690,7 +2795,7 @@ clean_attvar_chain(ARG1_LD)
 
     next = isRef(*p) ? unRef(*p) : NULL;
 
-    if ( is_dead_attvar(avp PASS_LD) )
+    if ( is_dead_attvar(avp) )
     { if ( last )
 	*last = *p;
       else
@@ -2772,7 +2877,7 @@ finds one of these cells, we simply fetch the value and go to `done'.
 #define valVar(w)  ((intptr_t)(w) >> LMASK_BITS)
 
 static void
-sweep_global_mark(Word *m ARG_LD)
+sweep_global_mark(DECL_LD Word *m)
 { Word gm;
 
   DEBUG(CHK_SECURE, assert(onStack(local, m)));
@@ -2808,7 +2913,7 @@ sweep_global_mark(Word *m ARG_LD)
       DEBUG(MSG_GC_RELOC, Sdprintf("gTop mark from choice point: "));
       needsRelocation(m);
       check_relocation((Word)m);
-      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL PASS_LD);
+      alien_into_relocation_chain(m, STG_GLOBAL, STG_LOCAL);
 
       return;
     } else				/* a large cell */
@@ -2826,12 +2931,12 @@ sweep_global_mark(Word *m ARG_LD)
 
 
 static inline void
-sweep_mark(mark *m ARG_LD)
+sweep_mark(DECL_LD mark *m)
 { marks_swept++;
-  sweep_global_mark(&m->globaltop PASS_LD);
+  sweep_global_mark(&m->globaltop);
   if ( m->saved_bar > gTop )
     m->saved_bar = gTop;
-  sweep_global_mark(&m->saved_bar PASS_LD);
+  sweep_global_mark(&m->saved_bar);
 }
 
 
@@ -2847,14 +2952,14 @@ sweep_foreign()
     DEBUG(CHK_SECURE, assert(fr->magic == FLI_MAGIC));
 
     if ( isRealMark(fr->mark) )
-      sweep_mark(&fr->mark PASS_LD);
+      sweep_mark(&fr->mark);
     for( ; n-- > 0; sp++ )
     { if ( is_marked(sp) )
       {	unmark(sp);
 	if ( isGlobalRef(get_value(sp)) )
 	{ processLocal(sp);
 	  check_relocation(sp);
-	  into_relocation_chain(sp, STG_LOCAL PASS_LD);
+	  into_relocation_chain(sp, STG_LOCAL);
 	}
       }
     }
@@ -2862,8 +2967,9 @@ sweep_foreign()
 }
 
 
+#define unsweep_mark(m) LDFUNC(unsweep_mark, m)
 static void
-unsweep_mark(mark *m ARG_LD)
+unsweep_mark(DECL_LD mark *m)
 { m->trailtop  = (TrailEntry)valPtr2((word)m->trailtop,  STG_TRAIL);
   m->globaltop = valPtr2((word)m->globaltop, STG_GLOBAL);
   m->saved_bar = valPtr2((word)m->saved_bar, STG_GLOBAL);
@@ -2874,21 +2980,23 @@ unsweep_mark(mark *m ARG_LD)
 }
 
 
+#define unsweep_foreign(_) LDFUNC(unsweep_foreign, _)
 static void
-unsweep_foreign(ARG1_LD)
+unsweep_foreign(DECL_LD)
 { FliFrame fr = fli_context;
 
   for( ; fr; fr = fr->parent )
   { if ( isRealMark(fr->mark) )
-      unsweep_mark(&fr->mark PASS_LD);
+      unsweep_mark(&fr->mark);
   }
 }
 
 
+#define unsweep_choicepoints(ch) LDFUNC(unsweep_choicepoints, ch)
 static void
-unsweep_choicepoints(Choice ch ARG_LD)
+unsweep_choicepoints(DECL_LD Choice ch)
 { for( ; ch ; ch = ch->parent)
-    unsweep_mark(&ch->mark PASS_LD);
+    unsweep_mark(&ch->mark);
 }
 
 
@@ -2901,15 +3009,16 @@ unsweep_environments(LocalFrame fr)
 }
 
 
+#define unsweep_stacks(state) LDFUNC(unsweep_stacks, state)
 static void
-unsweep_stacks(vm_state *state ARG_LD)
+unsweep_stacks(DECL_LD vm_state *state)
 { QueryFrame query;
   LocalFrame fr = state->frame;
   Choice ch = state->choice;
 
   for( ; fr; fr = query->saved_environment, ch = query->saved_bfr )
   { query = unsweep_environments(fr);
-    unsweep_choicepoints(ch PASS_LD);
+    unsweep_choicepoints(ch);
   }
 }
 
@@ -2931,13 +3040,13 @@ sweep_trail(void)
       if ( ttag(te->address) == TAG_TRAILVAL )
       { needsRelocation(&te->address);
 	check_relocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
+	into_relocation_chain(&te->address, STG_TRAIL);
       } else
 #endif
       if ( storage(te->address) == STG_GLOBAL )
       { needsRelocation(&te->address);
 	check_relocation(&te->address);
-	into_relocation_chain(&te->address, STG_TRAIL PASS_LD);
+	into_relocation_chain(&te->address, STG_TRAIL);
       }
     }
   }
@@ -2945,8 +3054,9 @@ sweep_trail(void)
 
 
 
+#define sweep_frame(fr, slots) LDFUNC(sweep_frame, fr, slots)
 static void
-sweep_frame(LocalFrame fr, int slots ARG_LD)
+sweep_frame(DECL_LD LocalFrame fr, int slots)
 { Word sp;
 
   sp = argFrameP(fr, 0);
@@ -2956,7 +3066,7 @@ sweep_frame(LocalFrame fr, int slots ARG_LD)
       if ( isGlobalRef(get_value(sp)) )
       { processLocal(sp);
 	check_relocation(sp);
-	into_relocation_chain(sp, STG_LOCAL PASS_LD);
+	into_relocation_chain(sp, STG_LOCAL);
       }
     } else
     { word w = *sp;
@@ -2995,7 +3105,7 @@ sweep_environments(LocalFrame fr, Code PC)
 	  Sdprintf("Sweep %d arguments for [%d] %s\n",
 		   slots, levelFrame(fr), predicateName(fr->predicate)));
 
-    sweep_frame(fr, slots PASS_LD);
+    sweep_frame(fr, slots);
 
     if ( fr->parent )
     { PC = fr->programPointer;
@@ -3009,18 +3119,20 @@ sweep_environments(LocalFrame fr, Code PC)
 }
 
 
+#define sweep_choicepoints(ch) LDFUNC(sweep_choicepoints, ch)
 static void
-sweep_choicepoints(Choice ch ARG_LD)
+sweep_choicepoints(DECL_LD Choice ch)
 { for( ; ch ; ch = ch->parent)
   { sweep_environments(ch->frame,
-		       ch->type == CHP_JUMP ? ch->value.PC : NULL);
-    sweep_mark(&ch->mark PASS_LD);
+		       ch->type == CHP_JUMP ? ch->value.pc : NULL);
+    sweep_mark(&ch->mark);
   }
 }
 
 
+#define sweep_new_arguments(state) LDFUNC(sweep_new_arguments, state)
 static void
-sweep_new_arguments(vm_state *state ARG_LD)
+sweep_new_arguments(DECL_LD vm_state *state)
 { if ( state->lNext )
   { Word sp = argFrameP(state->lNext, 0);
     int slots = state->new_args;
@@ -3031,7 +3143,7 @@ sweep_new_arguments(vm_state *state ARG_LD)
       if ( isGlobalRef(get_value(sp)) )
       { processLocal(sp);
 	check_relocation(sp);
-	into_relocation_chain(sp, STG_LOCAL PASS_LD);
+	into_relocation_chain(sp, STG_LOCAL);
       }
     }
   }
@@ -3045,7 +3157,7 @@ sweep_stacks(vm_state *state)
   Choice ch = state->choice;
   Code PC = state->pc_start_vmi;
 
-  sweep_new_arguments(state PASS_LD);
+  sweep_new_arguments(state);
 
   while( fr )
   { QueryFrame qf = sweep_environments(fr, PC);
@@ -3053,14 +3165,14 @@ sweep_stacks(vm_state *state)
 
     assert(qf->magic == QID_MAGIC);
 
-    sweep_choicepoints(ch PASS_LD);
+    sweep_choicepoints(ch);
     if ( qf->parent )
     { QueryFrame pqf = qf->parent;
 
       if ( (fr = pqf->registers.fr) )
       { get_vmi_state(pqf, &sub_state);
 	PC = sub_state.pc_start_vmi;
-	sweep_new_arguments(&sub_state PASS_LD);
+	sweep_new_arguments(&sub_state);
       } else
       { fr = qf->saved_environment;
 	PC = NULL;
@@ -3109,7 +3221,7 @@ size.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
-is_downward_ref(Word p ARG_LD)
+is_downward_ref(DECL_LD Word p)
 { word val = get_value(p);
 
   switch(tag(val))
@@ -3134,7 +3246,7 @@ is_downward_ref(Word p ARG_LD)
 
 
 static bool
-is_upward_ref(Word p ARG_LD)
+is_upward_ref(DECL_LD Word p)
 { word val = get_value(p);
 
   switch(tag(val))
@@ -3205,8 +3317,9 @@ a check in into_relocation_chain() I discovered   that the above was the
 reason for the failure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define downskip_combine_garbage(current, dest) LDFUNC(downskip_combine_garbage, current, dest)
 static Word
-downskip_combine_garbage(Word current, Word dest ARG_LD)
+downskip_combine_garbage(DECL_LD Word current, Word dest)
 { Word top_gc = current + offset_cell(current);
 
   for(current-- ; ; current-- )
@@ -3215,7 +3328,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
       { DEBUG(MSG_GC_HOLE, Sdprintf("Normal-non-GC cell at %p\n", current));
 	return make_gc_hole(current+1, top_gc);
       } else if ( is_first(current) )
-      { update_relocation_chain(current, dest PASS_LD);
+      { update_relocation_chain(current, dest);
       } else					/* large cell */
       { size_t offset;
 
@@ -3228,7 +3341,7 @@ downskip_combine_garbage(Word current, Word dest ARG_LD)
 			 current, offset+1));
 	  return make_gc_hole(current+offset+1, top_gc);
 	} else if ( is_first(current) )
-	{ update_relocation_chain(current, dest PASS_LD);
+	{ update_relocation_chain(current, dest);
 	}
       }
     }
@@ -3262,14 +3375,14 @@ compact_global(void)
       DEBUG(MSG_GC_RELOC,
 	    Sdprintf("Marked cell at %p (dest = %p)\n", current, dest));
       if ( is_first(current) )
-	update_relocation_chain(current, dest PASS_LD);
-      if ( is_downward_ref(current PASS_LD) )
+	update_relocation_chain(current, dest);
+      if ( is_downward_ref(current) )
       { check_relocation(current);
-	into_relocation_chain(current, STG_GLOBAL PASS_LD);
+	into_relocation_chain(current, STG_GLOBAL);
       }
     } else if ( is_first(current) )
     { first_large_cell:
-      update_relocation_chain(current, dest PASS_LD);	/* gTop refs from marks */
+      update_relocation_chain(current, dest);	/* gTop refs from marks */
     } else if ( storage(*current) == STG_LOCAL ) /* large cell */
     { size_t offset = offset_cell(current);
 
@@ -3282,11 +3395,11 @@ compact_global(void)
       { goto first_large_cell;
       }	else
       { DEBUG(MSG_GC_HOLE, Sdprintf("Downskip from indirect\n"));
-	current = downskip_combine_garbage(current, dest PASS_LD);
+	current = downskip_combine_garbage(current, dest);
       }
     } else
     { DEBUG(MSG_GC_HOLE, Sdprintf("Downskip from normal cell\n"));
-      current = downskip_combine_garbage(current, dest PASS_LD);
+      current = downskip_combine_garbage(current, dest);
     }
   }
 
@@ -3319,13 +3432,13 @@ compact_global(void)
     { intptr_t l, n;
 
       if ( is_first(current) )
-	update_relocation_chain(current, dest PASS_LD);
+	update_relocation_chain(current, dest);
 
       if ( (l = offset_cell(current)) == 0 )	/* normal cells */
       { *dest = *current;
-        if ( is_upward_ref(current PASS_LD) )
+        if ( is_upward_ref(current) )
 	{ check_relocation(current);
-          into_relocation_chain(dest, STG_GLOBAL PASS_LD);
+          into_relocation_chain(dest, STG_GLOBAL);
 	}
 	unmark(dest);
 	dest++;
@@ -3381,13 +3494,13 @@ collect_phase(vm_state *state, Word *saved_bar_at)
   sweep_stacks(state);
   if ( saved_bar_at )
   { DEBUG(2, Sdprintf("Sweeping frozen bar\n"));
-    sweep_global_mark(saved_bar_at PASS_LD);
+    sweep_global_mark(saved_bar_at);
   }
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting global stack\n"));
   compact_global();
 
-  unsweep_foreign(PASS_LD1);
-  unsweep_stacks(state PASS_LD);
+  unsweep_foreign();
+  unsweep_stacks(state);
 
   assert(marks_swept==marks_unswept);
   if ( relocation_chains != 0 )
@@ -3506,6 +3619,8 @@ setStartOfVMI(vm_state *state)
 	  assert(state->adepth == 0);
 	  break;
 	case I_ENTER:
+	case I_SSU_COMMIT:
+	case I_SSU_CHOICE:
 	  state->in_body = TRUE;
 	  assert(state->adepth==0);
       }
@@ -3738,8 +3853,9 @@ alloc_start_map()
 }
 #endif
 
+#define set_start(m) LDFUNC(set_start, m)
 static void
-set_start(Word m ARG_LD)
+set_start(DECL_LD Word m)
 { size_t i = m-gBase;
   int bit = i % INTBITS;
   size_t at  = i / INTBITS;
@@ -3748,8 +3864,9 @@ set_start(Word m ARG_LD)
 }
 
 
+#define is_start(m) LDFUNC(is_start, m)
 static int
-is_start(Word m ARG_LD)
+is_start(DECL_LD Word m)
 { size_t i = m-gBase;
   int bit = i % INTBITS;
   size_t at  = i / INTBITS;
@@ -3771,7 +3888,7 @@ scan_global(int flags)
   { size_t offset;
 
     if ( regstart )
-      set_start(current PASS_LD);
+      set_start(current);
     cells++;
 
     if ( tagex(*current) == (TAG_VAR|STG_RESERVED) )
@@ -3814,7 +3931,7 @@ scan_global(int flags)
     }
   }
   if ( regstart )
-    set_start(gTop PASS_LD);
+    set_start(gTop);
 
   for( current = gTop - 1; current >= gBase; current-- )
   { cells--;
@@ -3845,8 +3962,8 @@ check_mark(mark *m)
   assert(onGlobalArea(m->saved_bar));
   assert(m->saved_bar <= m->globaltop);
   if ( start_map )
-  { assert(is_start(m->globaltop PASS_LD));
-    assert(is_start(m->saved_bar PASS_LD));
+  { assert(is_start(m->globaltop));
+    assert(is_start(m->saved_bar));
   }
 }
 
@@ -3916,7 +4033,7 @@ check_choicepoints(Choice ch)
     choice_count++;
     check_mark(&ch->mark);
     check_environments(ch->frame,
-		       ch->type == CHP_JUMP ? ch->value.PC : NULL,
+		       ch->type == CHP_JUMP ? ch->value.pc : NULL,
 		       &key);
   }
 
@@ -4063,7 +4180,7 @@ checkStacks(void *state_ptr)
 
   DEBUG(CHK_SECURE, trailtops_marked = choice_count);
 
-  unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
+  unmark_stacks(state->frame, state->choice, FR_MARKED);
 
   assert(local_frames == 0);
   assert(choice_count == 0);
@@ -4119,8 +4236,9 @@ sane   state,   which   isn't   the   case    during   GC.   The   mutex
 LD->thread.scan_lock is used to avoid GC during AGC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define enterGC(_) LDFUNC(enterGC, _)
 static void
-enterGC(ARG1_LD)
+enterGC(DECL_LD)
 {
 #ifdef O_PLMT
   if ( !LD->gc.active )
@@ -4129,8 +4247,9 @@ enterGC(ARG1_LD)
 #endif
 }
 
+#define leaveGC(_) LDFUNC(leaveGC, _)
 static void
-leaveGC(ARG1_LD)
+leaveGC(DECL_LD)
 {
 #ifdef O_PLMT
   if ( --LD->gc.active == 0 )
@@ -4145,8 +4264,9 @@ If gcEnsureSpace() returns overflow or out-of-stack, it has restored the
 given vm-state.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define gcEnsureSpace(state) LDFUNC(gcEnsureSpace, state)
 static int
-gcEnsureSpace(vm_state *state ARG_LD)
+gcEnsureSpace(DECL_LD vm_state *state)
 { int rc = TRUE;
   size_t lneeded = 0;
 
@@ -4157,7 +4277,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
   if ( LD->attvar.call_residue_vars_count && LD->attvar.attvars )
-  { size_t protect = count_need_protection_attvars(PASS_LD1);
+  { size_t protect = count_need_protection_attvars();
     lneeded += sizeof(struct fliFrame) + protect*sizeof(word);
   }
 
@@ -4166,7 +4286,7 @@ gcEnsureSpace(vm_state *state ARG_LD)
     { int rc2;
 
       restore_vmi_state(state);
-      if ( (rc2=growLocalSpace__LD(lneeded, ALLOW_SHIFT PASS_LD)) != TRUE )
+      if ( (rc2=growLocalSpace(lneeded, ALLOW_SHIFT)) != TRUE )
 	return rc2;
       rc = FALSE;
     } else
@@ -4225,7 +4345,7 @@ garbageCollect(gc_reason_t reason)
   if ( gc_status.blocked || !truePrologFlag(PLFLAG_GC) )
     return FALSE;
 
-  gc_stat_start(&LD->gc.stats, reason PASS_LD);
+  gc_stat_start(&LD->gc.stats, reason);
 
   assert(LD->fast_condition == NULL);
 
@@ -4238,17 +4358,17 @@ garbageCollect(gc_reason_t reason)
 
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
-  if ( (rc=gcEnsureSpace(&state PASS_LD)) < 0 )
+  if ( (rc=gcEnsureSpace(&state)) < 0 )
   { return rc;
   } else if ( rc == FALSE )		/* shifted; reload */
   { get_vmi_state(LD->query, &state);
   }
 
-  enterGC(PASS_LD1);
+  enterGC();
 #ifndef UNBLOCKED_GC
   blockSignals(&LD->gc.saved_sigmask);
 #endif
-  blockGC(0 PASS_LD);			/* avoid recursion due to */
+  blockGC(0);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
   gc_status.active = TRUE;
@@ -4258,7 +4378,7 @@ garbageCollect(gc_reason_t reason)
 
 #ifdef O_PROFILE
   if ( LD->profile.active )
-    prof_node = profCall(GD->procedures.dgarbage_collect1->definition PASS_LD);
+    prof_node = profCall(GD->procedures.dgarbage_collect1->definition);
 #endif
 
 #if O_DEBUG
@@ -4295,24 +4415,24 @@ garbageCollect(gc_reason_t reason)
   setVar(*gTop);	/* always one space; see initPrologStacks() */
   tTop->address = 0;	/* gMax-- and tMax-- */
 
-  attvars = link_attvars(PASS_LD1);
+  attvars = link_attvars();
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
-  save_grefs(PASS_LD1);
+  save_grefs();
   DEBUG(CHK_SECURE, check_foreign());
-  tag_trail(PASS_LD1);
+  tag_trail();
   mark_phase(&state);
 
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting trail\n"));
   compact_trail();
   collect_phase(&state, saved_bar_at);
-  restore_grefs(PASS_LD1);
-  untag_trail(PASS_LD1);
-  clean_attvar_chain(PASS_LD1);
+  restore_grefs();
+  untag_trail();
+  clean_attvar_chain();
 
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
-  restore_attvars(attvars PASS_LD);
+  restore_attvars(attvars);
 
   assert(LD->mark_bar <= gTop);
 
@@ -4331,7 +4451,7 @@ garbageCollect(gc_reason_t reason)
 
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active )
-    profExit(prof_node PASS_LD);
+    profExit(prof_node);
 #endif
 
   restore_vmi_state(&state);
@@ -4341,20 +4461,20 @@ garbageCollect(gc_reason_t reason)
   if ( no_mark_bar )
     LD->mark_bar = NO_MARK_BAR;
   gc_status.active = FALSE;
-  unblockGC(0 PASS_LD);
+  unblockGC(0);
   LD->gc.inferences = LD->statistics.inferences;
 
   preShiftLTop = consTermRef(lTop);		/* see (*) above */
   lTop = safeLTop;
-  trimStacks(LD->trim_stack_requested PASS_LD);
+  trimStacks(LD->trim_stack_requested);
   lTop = (LocalFrame)valTermRef(preShiftLTop);
 
 #ifndef UNBLOCKED_GC
   unblockSignals(&LD->gc.saved_sigmask);
 #endif
-  leaveGC(PASS_LD1);
+  leaveGC();
 
-  stats = gc_stat_end(&LD->gc.stats PASS_LD);
+  stats = gc_stat_end(&LD->gc.stats);
 
   if ( verbose )
     Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
@@ -4389,7 +4509,7 @@ pl_garbage_collect(term_t d)
 
 
 void
-blockGC(int flags ARG_LD)
+blockGC(DECL_LD int flags)
 { if ( !(flags & ALLOW_GC) )
     gc_status.blocked++;
   if ( !(flags & ALLOW_SHIFT) )
@@ -4398,7 +4518,7 @@ blockGC(int flags ARG_LD)
 
 
 void
-unblockGC(int flags ARG_LD)
+unblockGC(DECL_LD int flags)
 { if ( !(flags & ALLOW_GC) )
     gc_status.blocked--;
   if ( !(flags & ALLOW_SHIFT) )
@@ -4474,7 +4594,7 @@ makeMoreStackSpace(int overflow, int flags)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-int f_ensureStackSpace__LD(size_t gcell, size_t tcells int flags ARG_LD)
+int f_ensureStackSpace(DECL_LD size_t gcell, size_t tcells int flags)
 
 Makes sure we have the requested amount of space on the global stack
 and trail stack. If the space is not available
@@ -4485,12 +4605,12 @@ and trail stack. If the space is not available
 
 Returns TRUE, FALSE or *_OVERFLOW
 
-Normally called through the inline function ensureStackSpace__LD() and
+Normally called through the inline function ensureStackSpace_ex() and
 the macros ensureTrailSpace() and ensureGlobalSpace()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-f_ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
+f_ensureStackSpace(DECL_LD size_t gcells, size_t tcells, int flags)
 { if ( gTop+gcells <= gMax && tTop+tcells <= tMax )
     return TRUE;
 
@@ -4517,12 +4637,12 @@ f_ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
 
     /* Consider a stack-shift.  ALLOW_GC implies ALLOW_SHIFT */
 
-    if ( gTop+gcells > gMax || tight((Stack)&LD->stacks.global PASS_LD) )
+    if ( gTop+gcells > gMax || tight((Stack)&LD->stacks.global) )
       gmin = gcells*sizeof(word);
     else
       gmin = 0;
 
-    if ( tTop+tcells > tMax || tight((Stack)&LD->stacks.trail PASS_LD) )
+    if ( tTop+tcells > tMax || tight((Stack)&LD->stacks.trail) )
       tmin = tcells*sizeof(struct trail_entry);
     else
       tmin = 0;
@@ -4541,7 +4661,7 @@ f_ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-growLocalSpace__LD() ensures sufficient local  stack   space.  User code
+growLocalSpace() ensures sufficient local  stack   space.  User code
 typically calls the inlined ensureLocalSpace().
 
 NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
@@ -4549,7 +4669,7 @@ NOTE: This is often called from ENSURE_LOCAL_SPACE(), while already lTop
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-growLocalSpace__LD(size_t bytes, int flags ARG_LD)
+growLocalSpace(DECL_LD size_t bytes, int flags)
 { if ( addPointer(lTop, bytes) <= (void*)lMax )
     return TRUE;
 
@@ -4581,10 +4701,6 @@ the specified offset.
 
 Memory management description.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef O_DEBUG
-extern char *chp_chars(Choice ch);
-#endif
 
 #define update_pointer(p, offset) \
 	do { if ( *p ) *p = addPointer(*p,offset); } while(0)
@@ -4621,8 +4737,9 @@ update_local_pointer(Code *p, intptr_t ls)
 }
 
 
+#define update_lg_pointer(p, ls, gs) LDFUNC(update_lg_pointer, p, ls, gs)
 static inline void
-update_lg_pointer(Word *p, intptr_t ls, intptr_t gs ARG_LD)
+update_lg_pointer(DECL_LD Word *p, intptr_t ls, intptr_t gs)
 { if ( onStackArea(local, *p) )
   { update_pointer(p, ls);
   } else if ( onGlobalArea(*p) )
@@ -4683,7 +4800,7 @@ update_environments(LocalFrame fr, intptr_t ls, intptr_t gs)
 	update_local_pointer(&query->registers.pc, ls);
       }
       if ( ls || gs )
-      { update_lg_pointer(&query->registers.argp, ls, gs PASS_LD);
+      { update_lg_pointer(&query->registers.argp, ls, gs);
       }
 
       return query;
@@ -4701,7 +4818,7 @@ update_choicepoints(Choice ch, intptr_t ls, intptr_t gs, intptr_t ts)
     { update_pointer(&ch->frame, ls);
       update_pointer(&ch->parent, ls);
       if ( ch->type == CHP_JUMP )
-	update_local_pointer(&ch->value.PC, ls);
+	update_local_pointer(&ch->value.pc, ls);
     }
     update_mark(&ch->mark, gs, ts);
 
@@ -4868,7 +4985,7 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
 	  Sdprintf("%d frames, %d choice-points ...\n",
 		   local_frames, choice_count));
 
-    unmark_stacks(LD, state->frame, state->choice, FR_MARKED);
+    unmark_stacks(state->frame, state->choice, FR_MARKED);
 
     assert(local_frames == 0);
     assert(choice_count == 0);
@@ -5021,14 +5138,16 @@ new_stack_size(Stack s, size_t request, size_t *newsize)
 }
 
 
+#define needStack(s) LDFUNC(needStack, s)
 static size_t
-needStack(Stack s ARG_LD)
+needStack(DECL_LD Stack s)
 { return usedStackP(s) + s->min_free + s->def_spare;
 }
 
 
+#define grow_stacks(l, g, t) LDFUNC(grow_stacks, l, g, t)
 static int
-grow_stacks(size_t l, size_t g, size_t t ARG_LD)
+grow_stacks(DECL_LD size_t l, size_t g, size_t t)
 { sigset_t mask;
   size_t lsize=0, gsize=0, tsize=0;
   vm_state state;
@@ -5050,9 +5169,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { return rc;
   } else
   { if ( tsize + gsize + lsize > LD->stacks.limit )
-    { size_t ulocal  = needStack((Stack)&LD->stacks.local PASS_LD)  + l;
-      size_t uglobal = needStack((Stack)&LD->stacks.global PASS_LD) + g;
-      size_t utrail  = needStack((Stack)&LD->stacks.trail PASS_LD)  + t +
+    { size_t ulocal  = needStack((Stack)&LD->stacks.local)  + l;
+      size_t uglobal = needStack((Stack)&LD->stacks.global) + g;
+      size_t utrail  = needStack((Stack)&LD->stacks.trail)  + t +
 		       uglobal/GLOBAL_TRAIL_RATIO;
       size_t need    = ulocal + utrail + uglobal;
       size_t limit   = LD->stacks.limit;
@@ -5093,9 +5212,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   if ( !(l || g || t) )
     return TRUE;
 
-  enterGC(PASS_LD1);			/* atom-gc synchronisation */
+  enterGC();			/* atom-gc synchronisation */
   blockSignals(&mask);
-  blockGC(0 PASS_LD);			/* avoid recursion due to */
+  blockGC(0);			/* avoid recursion due to */
   PL_clearsig(SIG_GC);
 
   get_vmi_state(LD->query, &state);
@@ -5108,12 +5227,12 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
   { TrailEntry tb = tBase;
     Word gb = gBase;
     LocalFrame lb = lBase;
-    double time, time0 = ThreadCPUTime(LD, CPU_USER);
+    double time, time0 = ThreadCPUTime(CPU_USER);
     int verbose = truePrologFlag(PLFLAG_TRACE_GC);
 
     DEBUG(MSG_SHIFT, verbose = TRUE);
 
-    if ( verbose )
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { const char *prefix;
       int tid = PL_thread_self();
 
@@ -5123,11 +5242,11 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	prefix = "% ";
 
       if ( tid != 1 )
-	Sdprintf("%s[%d] SHIFT: l:g:t = %ld:%ld:%ld ...",
-		 prefix, tid, (long)l, (long)g, (long)t);
+	Sdprintf("%s[%d] SHIFT: l:g:t = %zd:%zd:%zd ...",
+		 prefix, tid, l, g, t);
       else
-	Sdprintf("%sSHIFT: l:g:t = %ld:%ld:%ld ...",
-		 prefix, (long)l, (long)g, (long)t);
+	Sdprintf("%sSHIFT: l:g:t = %zd:%zd:%zd ...",
+		 prefix, l, g, t);
     }
 
     DEBUG(CHK_SECURE,
@@ -5198,24 +5317,24 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 
 #define PrintStackParms(stack, name, newbase, newsize) \
 	{ void *newmax = addPointer(newbase, newsize); \
-	  Sdprintf("%-6s: %p ... %p --> ", \
+	  Sdprintf("%-6s: %p ... %p [0x%zx] --> ", \
 		   name, \
 		   LD->stacks.stack.base, \
-		   LD->stacks.stack.max); \
+		   LD->stacks.stack.max, \
+		   (size_t)diffPointers(LD->stacks.stack.max, LD->stacks.stack.base)); \
 	  if ( LD->stacks.stack.base == newbase && \
 	       (void*)LD->stacks.stack.max == newmax ) \
 	  { Sdprintf("(no change)\n"); \
 	  } else \
-	  { Sdprintf("%p ... %p\n", newbase, newmax); \
+	  { Sdprintf("%p ... %p [0x%zx]\n", newbase, newmax, (size_t)diffPointers(newmax,newbase)); \
 	  } \
 	}
 
-    if ( verbose )
-    { DEBUG(0, { Sputchar('\n');
-		 PrintStackParms(global, "global", gb, gsize);
-		 PrintStackParms(local, "local", lb, lsize);
-		 PrintStackParms(trail, "trail", tb, tsize);
-	       });
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
+    { Sputchar('\n');
+      PrintStackParms(global, "global", gb, gsize);
+      PrintStackParms(local, "local", lb, lsize);
+      PrintStackParms(trail, "trail", tb, tsize);
     }
 
     gBase++; gb++;
@@ -5226,7 +5345,7 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
     LD->stacks.global.max = addPointer(LD->stacks.global.base, gsize);
     LD->stacks.trail.max  = addPointer(LD->stacks.trail.base,  tsize);
 
-    time = ThreadCPUTime(LD, CPU_USER) - time0;
+    time = ThreadCPUTime(CPU_USER) - time0;
     LD->shift_status.time += time;
     DEBUG(CHK_SECURE,
 	  { gBase++;
@@ -5236,9 +5355,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	    }
 	    gBase--;
 	  });
-    if ( verbose )
-    { Sdprintf("l+g+t = %lld+%lld+%lld (%.3f sec)\n",
-	       (int64_t)lsize, (int64_t)gsize, (int64_t)tsize, time);
+    if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
+    { Sdprintf("l+g+t = %zd+%zd+%zd (%.3f sec)\n",
+	       lsize, gsize, tsize, time);
     }
   }
 
@@ -5248,9 +5367,9 @@ grow_stacks(size_t l, size_t g, size_t t ARG_LD)
 	  gBase--;
 	});
   restore_vmi_state(&state);
-  unblockGC(0 PASS_LD);
+  unblockGC(0);
   unblockSignals(&mask);
-  leaveGC(PASS_LD1);
+  leaveGC();
 
   if ( fatal )
     return fatal->overflow_id;
@@ -5314,7 +5433,7 @@ growStacks(size_t l, size_t g, size_t t)
   include_spare_stack(&LD->stacks.trail,  &t);
 
   gBase--; gMax++; tMax++;
-  rc = grow_stacks(l, g, t PASS_LD);
+  rc = grow_stacks(l, g, t);
   gBase++; gMax--; tMax--;
 
   reenable_spare_stack(&LD->stacks.trail,  rc);
@@ -5353,7 +5472,7 @@ allow us to get per-thread CPU statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
-tight(Stack s ARG_LD)
+tight(DECL_LD Stack s)
 { size_t min_room  = sizeStackP(s)/3;
   size_t spare_gap = s->def_spare - s->spare;
 
@@ -5379,9 +5498,9 @@ Return TRUE on success or *_OVERFLOW when out of space.
 int
 shiftTightStacks(void)
 { GET_LD
-  size_t l = tight((Stack)&LD->stacks.local PASS_LD);
-  size_t g = tight((Stack)&LD->stacks.global PASS_LD);
-  size_t t = tight((Stack)&LD->stacks.trail PASS_LD);
+  size_t l = tight((Stack)&LD->stacks.local);
+  size_t g = tight((Stack)&LD->stacks.global);
+  size_t t = tight((Stack)&LD->stacks.trail);
 
   if ( (l|g|t) )
     return growStacks(l, g, t);
@@ -5462,8 +5581,10 @@ time).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-markAtomsOnStacks(PL_local_data_t *ld)
-{ assert(!ld->gc.status.active);
+markAtomsOnStacks(PL_local_data_t *ld, void *ctx)
+{ (void)ctx;
+
+  assert(!ld->gc.status.active);
 
   if ( !ld->magic )
     return;				/* avoid AGC on finished threads */
@@ -5515,9 +5636,20 @@ don't care.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-markPredicatesInEnvironments(PL_local_data_t *ld)
+markPredicatesInEnvironments(PL_local_data_t *ld, void *ctx)
 { GET_LD
   Word lbase, lend, current;
+
+  if ( ld->transaction.gen_start )
+  { Buffer tr_starts = ctx;
+
+    for_table(GD->procedures.dirty, n, v,
+	      { DirtyDefInfo ddi = v;
+
+		ddi_add_access_gen(ddi, ld->transaction.gen_start);
+	      });
+    addBuffer(tr_starts, ld->transaction.generation, gen_t);
+  }
 
   lbase = (Word)ld->stacks.local.base;
   lend  = (Word)ld->stacks.local.top;		/* see (*) */

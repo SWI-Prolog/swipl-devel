@@ -35,8 +35,6 @@
 
 #ifndef PL_INLINE_H_INCLUDED
 #define PL_INLINE_H_INCLUDED
-#undef LD
-#define LD LOCAL_LD
 
 #ifdef __WINDOWS__
   #include <windows.h>
@@ -49,6 +47,10 @@
     #pragma intrinsic(_BitScanReverse)
   #endif
 #endif
+
+#include "pl-transaction.h"
+#include "pl-atom.h"
+
 
 		 /*******************************
 		 *	 LOCK-FREE SUPPORT	*
@@ -262,14 +264,14 @@ fetchFunctorArray(size_t index)
   return GD->functors.array.blocks[idx][index];
 }
 
+#define pushVolatileAtom(a) LDFUNC(pushVolatileAtom, a)
 static inline void
-pushVolatileAtom__LD(atom_t a ARG_LD)
+pushVolatileAtom(DECL_LD atom_t a)
 { LD->atoms.unregistering = a;
   if ( GD->atoms.gc_active )
     markAtom(a);
 }
 
-#define pushVolatileAtom(a) pushVolatileAtom__LD(a PASS_LD)
 
 
 		 /*******************************
@@ -373,7 +375,6 @@ popcount_bitvector(const bit_vector *v)
 		 *******************************/
 
 static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
-static Definition lookupDefinition(functor_t f, Module m) WUNUSED;
 
 static inline int
 same_type_numbers(Number n1, Number n2)
@@ -382,15 +383,6 @@ same_type_numbers(Number n1, Number n2)
   return make_same_type_numbers(n1, n2);
 }
 
-
-static inline Definition
-lookupDefinition(functor_t f, Module m)
-{ Procedure proc = lookupProcedure(f, m);
-
-  return proc ? proc->definition : NULL;
-}
-
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Mark() sets LD->mark_bar, indicating  that   any  assignment  above this
 value need not be trailed.
@@ -398,8 +390,9 @@ value need not be trailed.
 Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define Trail(p, v) LDFUNC(Trail, p, v)
 static inline void
-Trail__LD(Word p, word v ARG_LD)
+Trail(DECL_LD Word p, word v)
 { DEBUG(CHK_SECURE, assert(tTop+1 <= tMax));
 
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
@@ -408,39 +401,25 @@ Trail__LD(Word p, word v ARG_LD)
 }
 
 
-static inline void
-bindConst__LD(Word p, word c ARG_LD)
-{ DEBUG(0, assert(hasGlobalSpace(0)));
-
-#ifdef O_ATTVAR
-  if ( isVar(*p) )
-  { *p = (c);
-    if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-      (tTop++)->address = p;
-  } else
-  { assignAttVar(p, &(c) PASS_LD);
-  }
-#else
-  *p = (c);
-  if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
-    (tTop++)->address = p;
-#endif
-}
-
-
+#define consPtrB(p, base, ts)	f_consPtr(p, (uintptr_t)(base), ts)
+#define consPtr(p, ts)		consPtrB(p, LD->bases[(ts)&STG_MASK], (ts))
+#define f_consPtr(p, base, ts) LDFUNC(f_consPtr, p, base, ts)
 static inline word
-consPtr__LD(void *p, word ts ARG_LD)
+f_consPtr(DECL_LD void *p, uintptr_t base, word ts)
 { uintptr_t v = (uintptr_t) p;
 
-  v -= LD->bases[ts&STG_MASK];
+  v -= base;
   DEBUG(CHK_SECURE, assert(v < MAXTAGGEDPTR && !(v&0x3)));
   return (v<<5)|ts;
 }
 
 
-#if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
+#if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
+#define valFloat(w) (*(double *)valIndirectP(w))
+#else
+#define valFloat(w) LDFUNC(valFloat, w)
 static inline double
-valFloat__LD(word w ARG_LD)
+valFloat(DECL_LD word w)
 { Word p = valIndirectP(w);
   double d;
 
@@ -449,13 +428,80 @@ valFloat__LD(word w ARG_LD)
 }
 #endif
 
+
+#if ALIGNOF_INT64_T == ALIGNOF_VOIDP
+#define valBignum(w) (*(int64_t *)valIndirectP(w))
+#else
+#define valBignum(w) LDFUNC(valBignum, w)
+static inline int64_t
+valBignum(DECL_LD word w)
+{ Word p = valIndirectP(w);
+  union
+  { int64_t i;
+    word w[WORDS_PER_INT64];
+  } val;
+
+#if ( SIZEOF_VOIDP == 4 )
+  val.w[0] = p[0];
+  val.w[1] = p[1];
+#else
+#error "Unsupported int64_t alignment conversion"
+#endif
+
+  return val.i;
+}
+#endif
+
+
+#define valHandle(r) LDFUNC(valHandle, r)
+static inline word
+valHandle(DECL_LD term_t r)
+{ Word p = valTermRef(r);
+
+  deRef(p);
+  return *p;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+linkValI(p)  is  an  inlined  version  of  linkVal()  that  assumes  the
+dereferenced value of `p` lives on  the   global  stack. It has no error
+checking (unless compiled for debugging) and fetches the base address of
+the global stack only once.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define linkValI(p) LDFUNC(linkValI, p)
+static inline word
+linkValI(DECL_LD Word p)
+{ word w = *p;
+  uintptr_t gb = LD->bases[STG_GLOBAL];
+
+  while(isRef(w))
+  { //p = unRef(w);
+    p = (Word)valPtrB(w,gb);
+    w = *p;
+  }
+
+  DEBUG(CHK_ATOM_GARBAGE_COLLECTED, assert(w != ATOM_garbage_collected));
+
+  if ( !needsRef(w) )
+  { return w;
+  } else
+  { // return makeRefG(p);
+    DEBUG(0, assert(p<(Word)lBase));
+    return consPtrB(p, gb, TAG_REFERENCE|STG_GLOBAL);
+  }
+}
+
+#define is_signalled(_) LDFUNC(is_signalled, _)
 static inline int
-is_signalled(ARG1_LD)
+is_signalled(DECL_LD)
 { return HAS_LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
 }
 
+#define register_attvar(gp) LDFUNC(register_attvar, gp)
 static inline void
-register_attvar(Word gp ARG_LD)
+register_attvar(DECL_LD Word gp)
 { if ( LD->attvar.attvars )
   { *gp = makeRefG(LD->attvar.attvars);
     DEBUG(MSG_ATTVAR_LINK,
@@ -469,65 +515,80 @@ register_attvar(Word gp ARG_LD)
   LD->attvar.attvars = gp;
 }
 
+#define visibleClause(cl, gen) LDFUNC(visibleClause, cl, gen)
 static inline int
-visibleClause__LD(Clause cl, gen_t gen ARG_LD)
-{ return VISIBLE_CLAUSE(cl, gen);
+visibleClause(DECL_LD Clause cl, gen_t gen)
+{ gen_t c, e;
+
+  c = cl->generation.created;
+  MEMORY_ACQUIRE();
+  e = cl->generation.erased;
+
+  if ( unlikely(e == LD->reload.generation) )
+    return FALSE;
+  if ( unlikely(c == LD->reload.generation) )
+    return TRUE;
+
+  if ( c <= gen && e > gen )
+    return TRUE;
+
+  if ( unlikely(gen >= LD->transaction.gen_base) &&
+       true(cl->predicate, P_DYNAMIC) )
+    return transaction_visible_clause(cl, gen);
+
+  return FALSE;
 }
 
+#define visibleClauseCNT(cl, gen) LDFUNC(visibleClauseCNT, cl, gen)
 static inline int
-visibleClauseCNT__LD(Clause cl, gen_t gen ARG_LD)
-{ if ( likely(visibleClause__LD(cl, gen PASS_LD)) )
+visibleClauseCNT(DECL_LD Clause cl, gen_t gen)
+{ if ( likely(visibleClause(cl, gen)) )
     return TRUE;
   LD->clauses.erased_skipped++;
   return FALSE;
 }
-
-#ifdef ATOMIC_GENERATION_HACK
-/* Work around lacking 64-bit atomic operations.  These are designed to
-   be safe if we assume that read and increment complete before other
-   threads incremented 4G generations.
-*/
-
-static inline gen_t
-global_generation(void)
-{ gen_t g;
-  gen_t last;
-
-  do
-  { last = GD->_last_generation;
-    g = (gen_t)GD->_generation.gen_u<<32 | GD->_generation.gen_l;
-  } while ( unlikely(g < last) );
-
-  if ( unlikely(last != g) )
-    GD->_last_generation = g;
-
-  return g;
-}
-
-static inline gen_t
-next_global_generation(void)
-{ uint32_t u = GD->_generation.gen_u;
-  uint32_t l;
-
-  if ( unlikely((l=ATOMIC_INC(&GD->_generation.gen_l)) == 0) )
-    u = ATOMIC_INC(&GD->_generation.gen_u);
-
-  return (gen_t)u<<32|l;
-}
-
-#else /*ATOMIC_GENERATION_HACK*/
 
 static inline gen_t
 global_generation(void)
 { return GD->_generation;
 }
 
+#define current_generation(def) LDFUNC(current_generation, def)
 static inline gen_t
-next_global_generation(void)
-{ return ATOMIC_INC(&GD->_generation);
+current_generation(DECL_LD Definition def)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  { return LD->transaction.generation;
+  } else
+  { return GD->_generation;
+  }
 }
 
-#endif /*ATOMIC_GENERATION_HACK*/
+#define next_generation(def) LDFUNC(next_generation, def)
+static inline gen_t
+next_generation(DECL_LD Definition def)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+  { if ( LD->transaction.generation < LD->transaction.gen_max )
+      return ++LD->transaction.generation;
+    return 0;
+  } else
+  { gen_t gen;
+
+    PL_LOCK(L_GENERATION);
+    gen = ++GD->_generation;
+    PL_UNLOCK(L_GENERATION);
+
+    return gen;
+  }
+}
+
+#define max_generation(def) LDFUNC(max_generation, def)
+static inline gen_t
+max_generation(DECL_LD Definition def)
+{ if ( unlikely(!!LD->transaction.generation) && def && true(def, P_DYNAMIC) )
+    return LD->transaction.gen_max;
+  else
+    return GEN_MAX;
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 We must ensure that cleanDefinition() does   not remove clauses that are
@@ -540,51 +601,30 @@ global_generation()  and  storing  the  generation  in  our  frame,  our
 generation is updated and thus no harm is done.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define setGenerationFrame(fr) LDFUNC(setGenerationFrame, fr)
 static inline void
-setGenerationFrame__LD(LocalFrame fr ARG_LD)
-{
-#ifdef O_LOGICAL_UPDATE
-  gen_t gen;
+setGenerationFrame(DECL_LD LocalFrame fr)
+{ if ( unlikely(LD->transaction.generation &&
+		true(fr->predicate, P_DYNAMIC)) )
+  { setGenerationFrameVal(fr, LD->transaction.generation);
+  } else
+  { gen_t gen;
 
-  do
-  { gen = global_generation();
-    setGenerationFrameVal(fr, gen);
-  } while(gen != global_generation());
-#endif
+    do
+    { gen = global_generation();
+      setGenerationFrameVal(fr, gen);
+    } while(gen != global_generation());
+  }
 }
-
-static inline int
-ensureLocalSpace__LD(size_t bytes ARG_LD)
-{ int rc;
-
-  if ( likely(addPointer(lTop, bytes) <= (void*)lMax) )
-    return TRUE;
-
-  if ( (rc=growLocalSpace__LD(bytes, ALLOW_SHIFT PASS_LD)) == TRUE )
-    return TRUE;
-
-  return raiseStackOverflow(rc);
-}
-
-static inline int
-ensureStackSpace__LD(size_t gcells, size_t tcells, int flags ARG_LD)
-{ gcells += BIND_GLOBAL_SPACE;
-  tcells += BIND_TRAIL_SPACE;
-
-  if ( likely(gTop+gcells <= gMax) && likely(tTop+tcells <= tMax) )
-    return TRUE;
-
-  return f_ensureStackSpace__LD(gcells, tcells, flags PASS_LD);
-}
-
 
 		 /*******************************
 		 *	      THREADS		*
 		 *******************************/
 
 #ifdef O_PLMT
+#define acquire_ldata(info) LDFUNC(acquire_ldata, info)
 static inline PL_local_data_t *
-acquire_ldata__LD(PL_thread_info_t *info ARG_LD)
+acquire_ldata(DECL_LD PL_thread_info_t *info)
 { PL_local_data_t *ld = info->thread_data;
   LD->thread.info->access.ldata = ld;
   if ( ld && ld->magic == LD_MAGIC )

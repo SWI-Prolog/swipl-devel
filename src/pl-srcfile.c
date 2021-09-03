@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2020, VU University Amsterdam
+    Copyright (c)  2014-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,11 +35,19 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-srcfile.h"
 #include "pl-comp.h"
 #include "pl-dbref.h"
 #include "pl-event.h"
 #include "pl-tabling.h"
+#include "pl-setup.h"
+#include "pl-util.h"
+#include "pl-proc.h"
+#include "pl-fli.h"
+#include "pl-modul.h"
+#include "pl-supervisor.h"
+
+static void	fix_ssu(p_reload *r, Clause clause);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Source administration. The core object is  SourceFile, which keeps track
@@ -332,7 +341,7 @@ acquireSourceFile(SourceFile sf)
 }
 
 
-static void
+void
 acquireSourceFileNo(int index)
 { SourceFile sf;
 
@@ -863,8 +872,8 @@ PRED_IMPL("$unload_file", 1, unload_file, 0)
 		 *	    RECONSULT		*
 		 *******************************/
 
-static void	fix_discontiguous(p_reload *r);
 static void	fix_metapredicate(p_reload *r);
+static void	fix_det(p_reload *r);
 
 #ifdef O_PLMT
 #define GEN_RELOAD (GEN_MAX-PL_thread_self())
@@ -888,7 +897,8 @@ startReconsultFile(SourceFile sf)
     r->pred_access_count = popNPredicateAccess(0);
     sf->reload = r;
 
-    LD->gen_reload = r->reload_gen;
+    LD->reload.generation = r->reload_gen;
+    LD->reload.nesting++;
 
     for(cell = sf->procedures; cell; cell = cell->next)
     { Procedure proc = cell->value;
@@ -911,6 +921,7 @@ startReconsultFile(SourceFile sf)
 	  cl->generation.erased = r->reload_gen;
 	}
 	release_def(def);
+	clear(def, P_DISCONTIGUOUS);		/* will be reinstantiated */
       }
       if ( true(def, P_AUTOLOAD) )
       { clear(def, P_AUTOLOAD);			/* should be be more selective? */
@@ -935,8 +946,9 @@ find_clause(ClauseRef cref, gen_t generation)
 }
 
 
+#define advance_clause(r) LDFUNC(advance_clause, r)
 static void
-advance_clause(p_reload *r ARG_LD)
+advance_clause(DECL_LD p_reload *r)
 { ClauseRef cref;
 
   if ( (cref = r->current_clause) )
@@ -968,15 +980,16 @@ copy_clause_source(Clause dest, Clause src)
 }
 
 
+#define keep_clause(r, clause) LDFUNC(keep_clause, r, clause)
 static ClauseRef
-keep_clause(p_reload *r, Clause clause ARG_LD)
+keep_clause(DECL_LD p_reload *r, Clause clause)
 { ClauseRef cref = r->current_clause;
   Clause keep = cref->value.clause;
 
   keep->generation.erased = GEN_MAX;
   copy_clause_source(keep, clause);
   freeClause(clause);
-  advance_clause(r PASS_LD);
+  advance_clause(r);
 
   return cref;
 }
@@ -995,7 +1008,7 @@ equal_clause(Clause cl1, Clause cl2)
 
 
 int
-reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
+reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
   if ( sf->reload && (reload=lookupHTable(sf->reload->procedures, proc)) )
@@ -1006,7 +1019,7 @@ reloadHasClauses(SourceFile sf, Procedure proc ARG_LD)
 }
 
 
-int
+static int
 isRedefinedProcedure(Procedure proc, gen_t gen)
 { GET_LD
   Definition def = proc->definition;
@@ -1027,8 +1040,9 @@ isRedefinedProcedure(Procedure proc, gen_t gen)
 }
 
 
+#define reloadContext(sf, proc) LDFUNC(reloadContext, sf, proc)
 static p_reload *
-reloadContext(SourceFile sf, Procedure proc ARG_LD)
+reloadContext(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
   if ( !(reload = lookupHTable(sf->reload->procedures, proc)) )
@@ -1043,7 +1057,13 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
     if ( true(def, P_THREAD_LOCAL|P_FOREIGN) )
     { set(reload, P_NO_CLAUSES);
     } else if ( isRedefinedProcedure(proc, global_generation()) )
-    { reload->generation = pushPredicateAccess(def);
+    { definition_ref *dref = pushPredicateAccessObj(def);
+
+      if ( !dref )
+      { freeHeap(reload, sizeof(*reload));
+	return NULL;
+      }
+      reload->generation = dref->generation;
       acquire_def(def);
       reload->current_clause = find_clause(def->impl.clauses.first_clause,
 					   reload->generation);
@@ -1065,7 +1085,7 @@ reloadContext(SourceFile sf, Procedure proc ARG_LD)
 
 
 ClauseRef
-assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
+assertProcedureSource(DECL_LD SourceFile sf, Procedure proc, Clause clause)
 { if ( sf && sf->reload )
   { p_reload *reload;
     Definition def = proc->definition;
@@ -1075,16 +1095,18 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 
     sf->reload->number_of_clauses++;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
     { freeClause(clause);
       return NULL;
     }
 
     if ( reload->number_of_clauses++ == 0 )
-      fix_discontiguous(reload);
+    { fix_det(reload);
+      fix_ssu(reload, clause);
+    }
 
     if ( true(reload, P_NEW|P_NO_CLAUSES) )
-      return assertProcedure(proc, clause, CL_END PASS_LD);
+      return assertProcedure(proc, clause, CL_END);
 
     if ( (cref = reload->current_clause) )
     { ClauseRef cref2;
@@ -1093,7 +1115,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       { DEBUG(MSG_RECONSULT_CLAUSE,
 	      Sdprintf("  Keeping clause %d\n",
 		       clauseNo(cref->value.clause, reload->generation)));
-	return keep_clause(reload, clause PASS_LD);
+	return keep_clause(reload, clause);
       }
 
       set(reload, P_MODIFIED);
@@ -1129,7 +1151,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
 	  DEBUG(MSG_RECONSULT_CLAUSE,
 		Sdprintf("  Keeping clause %d\n",
 			 clauseNo(cref2->value.clause, reload->generation)));
-	  return keep_clause(reload, clause PASS_LD);
+	  return keep_clause(reload, clause);
 	}
       }
       release_def(def);
@@ -1137,12 +1159,12 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
       DEBUG(MSG_RECONSULT_CLAUSE,
 	    Sdprintf("  Inserted before clause %d\n",
 		     clauseNo(cref->value.clause, reload->generation)));
-      if ( (cref2 = assertProcedure(proc, clause, cref PASS_LD)) )
+      if ( (cref2 = assertProcedure(proc, clause, cref)) )
 	cref2->value.clause->generation.created = sf->reload->reload_gen;
 
       return cref2;
     } else
-    { if ( (cref = assertProcedure(proc, clause, CL_END PASS_LD)) )
+    { if ( (cref = assertProcedure(proc, clause, CL_END)) )
 	cref->value.clause->generation.created = sf->reload->reload_gen;
       DEBUG(MSG_RECONSULT_CLAUSE, Sdprintf("  Added at the end\n"));
 
@@ -1154,7 +1176,7 @@ assertProcedureSource(SourceFile sf, Procedure proc, Clause clause ARG_LD)
   { sf->number_of_clauses++;
   }
 
-  return assertProcedure(proc, clause, CL_END PASS_LD);
+  return assertProcedure(proc, clause, CL_END);
 }
 
 
@@ -1185,15 +1207,15 @@ associateSource(SourceFile sf, Procedure proc)
 #define P_ATEND	(P_VOLATILE|P_PUBLIC|P_ISO|P_NOPROFILE|P_NON_TERMINAL)
 
 int
-setAttrProcedureSource(SourceFile sf, Procedure proc,
-		       unsigned attr, int val ARG_LD)
+setAttrProcedureSource(DECL_LD SourceFile sf, Procedure proc,
+		       unsigned attr, int val)
 { if ( val && (attr&PROC_DEFINED) )
     associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
       return FALSE;
 
     if ( val )
@@ -1208,9 +1230,40 @@ setAttrProcedureSource(SourceFile sf, Procedure proc,
   return setAttrDefinition(proc->definition, attr, val);
 }
 
-
 static void
-fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
+check_ssu(p_reload *r)
+{ GET_LD
+  Definition def = r->predicate;
+  ClauseRef cref;
+  int errors = 0;
+
+  acquire_def(def);
+  for(cref=def->impl.clauses.first_clause; cref && !errors; cref=cref->next)
+  { Clause cl = cref->value.clause;
+
+    if ( false(cl, CL_ERASED) )
+    { if ( true(def, P_SSU_DET) &&
+	   false(cl, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+	errors++;
+      if ( false(def, P_SSU_DET) &&
+	   true(cl, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+	errors++;
+    }
+  }
+  release_def(def);
+
+  /* TBD: print_message/2.  Not easy as we cannot print.  So, we have
+   * to use the delayed event mechanism.
+   */
+  if ( errors )
+    Sdprintf("ERROR: Mixed SSU (=> and :-) clauses in %s\n",
+	     predicateName(def));
+}
+
+
+#define fix_attributes(sf, def, r) LDFUNC(fix_attributes, sf, def, r)
+static void
+fix_attributes(DECL_LD SourceFile sf, Definition def, p_reload *r)
 { if ( false(def, P_MULTIFILE) )
     def->flags = (def->flags & ~P_ATEND) | (r->flags & P_ATEND);
   else
@@ -1221,24 +1274,46 @@ fix_attributes(SourceFile sf, Definition def, p_reload *r ARG_LD)
 
 
 static void
-fix_discontiguous(p_reload *r)
+fix_det(p_reload *r)
 { Definition def = r->predicate;
 
-  if ( true(def, P_DISCONTIGUOUS) && false(r, P_DISCONTIGUOUS) )
-    clear(def, P_DISCONTIGUOUS);
+  if ( true(def, P_DET) && false(r, P_DET) )
+  { clear(def, P_DET);
+    freeCodesDefinition(def, TRUE);
+  }
+}
+
+
+static void
+fix_ssu(p_reload *r, Clause clause)
+{ Definition def = r->predicate;
+
+  if ( false(def, P_DYNAMIC|P_MULTIFILE) )
+  { if ( true(clause, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
+    { if ( false(def, P_SSU_DET) )
+      { set(def, P_SSU_DET);
+	set(r, P_CHECK_SSU);
+      }
+    } else
+    { if ( true(def, P_SSU_DET) )
+      { clear(def, P_SSU_DET);
+	set(r, P_CHECK_SSU);
+      }
+    }
+  }
 }
 
 
 int
-setMetapredicateSource(SourceFile sf, Procedure proc,
-		       arg_info *args ARG_LD)
+setMetapredicateSource(DECL_LD SourceFile sf, Procedure proc,
+		       arg_info *args)
 { associateSource(sf, proc);
 
   if ( sf->reload )
   { p_reload *reload;
     size_t i, arity = proc->definition->functor->arity;
 
-    if ( !(reload = reloadContext(sf, proc PASS_LD)) )
+    if ( !(reload = reloadContext(sf, proc)) )
       return FALSE;
 
     if ( !reload->args )
@@ -1422,8 +1497,9 @@ delete_old_predicates(SourceFile sf)
 }
 
 
+#define delete_pending_clauses(sf, def, r) LDFUNC(delete_pending_clauses, sf, def, r)
 static void
-delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
+delete_pending_clauses(DECL_LD SourceFile sf, Definition def, p_reload *r)
 { ClauseRef cref;
   sf_reload *rl = sf->reload;
 
@@ -1451,8 +1527,9 @@ delete_pending_clauses(SourceFile sf, Definition def, p_reload *r ARG_LD)
 }
 
 
+#define end_reconsult_proc(sf, proc, r) LDFUNC(end_reconsult_proc, sf, proc, r)
 static size_t
-end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
+end_reconsult_proc(DECL_LD SourceFile sf, Procedure proc, p_reload *r)
 { size_t dropped_access = 0;
 
   DEBUG(MSG_RECONSULT_CLAUSE,
@@ -1461,14 +1538,16 @@ end_reconsult_proc(SourceFile sf, Procedure proc, p_reload *r ARG_LD)
   if ( false(r, P_NEW|P_NO_CLAUSES) )
   { Definition def = proc->definition;
 
-    delete_pending_clauses(sf, def, r PASS_LD);
-    fix_attributes(sf, def, r PASS_LD);
-    reconsultFinalizePredicate(sf->reload, def, r PASS_LD);
+    delete_pending_clauses(sf, def, r);
+    fix_attributes(sf, def, r);
+    reconsultFinalizePredicate(sf->reload, def, r);
+    if ( true(r, P_CHECK_SSU) )
+      check_ssu(r);
   } else
   { dropped_access++;
     if ( true(r, P_NO_CLAUSES) )
     { Definition def = proc->definition;
-      fix_attributes(sf, def, r PASS_LD);
+      fix_attributes(sf, def, r);
     }
   }
   if ( r->args )
@@ -1494,7 +1573,7 @@ endReconsult(SourceFile sf)
 	      { Procedure proc = n;
 		p_reload *r = v;
 
-		accessed_preds -= end_reconsult_proc(sf, proc, r PASS_LD);
+		accessed_preds -= end_reconsult_proc(sf, proc, r);
 	      });
 
     popNPredicateAccess(accessed_preds);
@@ -1518,7 +1597,8 @@ endReconsult(SourceFile sf)
     sf->reload = NULL;
     freeHeap(reload, sizeof(*reload));
 
-    LD->gen_reload = GEN_INVALID;
+    if ( --LD->reload.nesting == 0 )
+      LD->reload.generation = GEN_INVALID;
 
     pl_garbage_collect_clauses();
     if ( sendDelayedEvents(TRUE) < 0 )
@@ -1555,13 +1635,13 @@ flush_procedure(SourceFile sf, Procedure proc)
     { if ( false(r, P_NEW|P_NO_CLAUSES) )
       { Definition def = proc->definition;
 
-	delete_pending_clauses(sf, def, r PASS_LD);
-	fix_attributes(sf, def, r PASS_LD);
-	reconsultFinalizePredicate(reload, def, r PASS_LD);
+	delete_pending_clauses(sf, def, r);
+	fix_attributes(sf, def, r);
+	reconsultFinalizePredicate(reload, def, r);
       }
     } else
     { delete_old_predicate(sf, proc);
-      (void)reloadContext(sf, proc PASS_LD);
+      (void)reloadContext(sf, proc);
     }
   }
 
@@ -1682,7 +1762,7 @@ PRED_IMPL("$end_consult", 1, end_consult, 0)
 
 
 
-/** '$clause_from_source'(+Owner, +File, +Line, -Clause) is semidet.
+/** '$clause_from_source'(+Owner, +File, +Line, -Clauses) is semidet.
 
 True when Clause is the clause that contains  Line in File. Owner is the
 source file owning Clause. For normal  files,   Owner  and  File are the
@@ -1701,17 +1781,20 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   ListCell cell;
   Clause c = NULL;
   int rc = FALSE;
+  tmp_buffer buf;
 
-  term_t owner = A1;
-  term_t file = A2;
-  term_t line = A3;
-  term_t clause = A4;
+  term_t owner   = A1;
+  term_t file    = A2;
+  term_t line    = A3;
+  term_t clauses = A4;
 
   if ( !PL_get_atom_ex(owner, &owner_name) ||
        !PL_get_atom_ex(file, &file_name) ||
        !PL_get_integer_ex(line, &ln) ||
        !(of = lookupSourceFile(owner_name, FALSE)) )
     return FALSE;
+
+  initBuffer(&buf);
 
   if ( file_name == owner_name ) {
     source_no = of->index;
@@ -1736,7 +1819,12 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
 	if ( cl->source_no == source_no )
 	{ if ( ln >= (int)cl->line_no )
 	  { if ( !c || c->line_no < cl->line_no )
-	      c = cl;
+	    { c = cl;
+	      emptyBuffer(&buf, 512);
+	      addBuffer(&buf, cl, Clause);
+	    } else if ( c && c->line_no == cl->line_no )
+	    { addBuffer(&buf, cl, Clause);
+	    }
 	  }
 	}
       }
@@ -1745,10 +1833,25 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   }
   UNLOCKSRCFILE(of);
 
-  if ( c )
-    rc = PL_unify_clref(clause, c);
+					/* TBD: leaves clauses unreferenced */
+  if ( !isEmptyBuffer(&buf) )
+  { term_t tail = PL_copy_term_ref(clauses);
+    term_t head = PL_new_term_ref();
+    Clause *clp = baseBuffer(&buf, Clause);
+    Clause *elp = topBuffer(&buf, Clause);
+
+    for(; clp < elp; clp++)
+    { if ( !PL_unify_list(tail, head, tail) ||
+	   !PL_unify_clref(head, c) )
+      { rc = FALSE;
+	break;
+      }
+    }
+    rc = PL_unify_nil(tail);
+  }
 
 out:
+  discardBuffer(&buf);
   if ( of ) releaseSourceFile(of);
   if ( sf ) releaseSourceFile(sf);
 
@@ -1761,8 +1864,9 @@ out:
  * subsequent changes to the predicate are _immediate_.
  */
 
+#define flush_predicate(pred) LDFUNC(flush_predicate, pred)
 static int
-flush_predicate(term_t pred ARG_LD)
+flush_predicate(DECL_LD term_t pred)
 { SourceFile sf;
   Procedure proc;
   Module m = LD->modules.source;
@@ -1788,7 +1892,7 @@ static
 PRED_IMPL("$flush_predicate", 1, flush_predicate, 0)
 { PRED_LD
 
-  return flush_predicate(A1 PASS_LD);
+  return flush_predicate(A1);
 }
 
 

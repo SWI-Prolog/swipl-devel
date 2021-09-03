@@ -41,10 +41,17 @@ typedef struct closure
 { struct definition def;
 } closure;
 
-GLOBAL PL_blob_t _PL_closure_blob;
-COMMON(void)	  resetWrappedSupervisor(Definition def);
-COMMON(int)	  get_closure_predicate__LD(term_t t, Definition *def ARG_LD);
+#if USE_LD_MACROS
+#define	get_closure_predicate(t, def)	LDFUNC(get_closure_predicate, t, def)
+#endif /*USE_LD_MACROS*/
 
-#define get_closure_predicate(t, def) get_closure_predicate__LD(t, def PASS_LD)
+#define LDFUNC_DECLARATIONS
+
+GLOBAL PL_blob_t _PL_closure_blob;
+void	  resetWrappedSupervisor(Definition def);
+int	  get_closure_predicate(term_t t, Definition *def);
+
+#undef LDFUNC_DECLARATIONS
+
 
 #endif /*_PL_WRAP_H*/

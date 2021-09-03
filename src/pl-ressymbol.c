@@ -35,6 +35,7 @@
 #include "pl-incl.h"
 #ifdef O_RESERVED_SYMBOLS
 #include "pl-ressymbol.h"
+#include "pl-write.h"
 
 		 /*******************************
 		 *	  RESERVED SYMBOLS	*
@@ -62,6 +63,7 @@ static const atom_t special_atoms[] =
   ATOM_dot,				/* 1: .(_|_) or '[|]'(_,_) */
   ATOM_dict,				/* 2: <dict> */
   ATOM_trienode,			/* 3: <trienode> */
+  ATOM_no_value,			/* 4: <no value> */
   (atom_t)0
 };
 
@@ -86,6 +88,7 @@ initReservedSymbols(void)
   GD->atoms.nontext_rank++;
   atomValue(ATOM_dict)->type     = &reserved_symbol;
   atomValue(ATOM_trienode)->type = &reserved_symbol;
+  atomValue(ATOM_no_value)->type = &reserved_symbol;
 
   if ( !GD->options.traditional )
   { const atom_t *ap;
@@ -109,12 +112,6 @@ new_reserved_symbol(size_t len, const char *s)
 { int new;
 
   return lookupBlob(s, len, &reserved_symbol, &new);
-}
-
-
-atom_t
-PL_new_reserved_symbol(const char *s)
-{ return new_reserved_symbol(strlen(s), s);
 }
 
 

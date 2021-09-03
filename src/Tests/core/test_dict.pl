@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2016, VU University Amsterdam
+    Copyright (c)  2013-2020, VU University Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -164,6 +164,8 @@ test('get_dict/5') :-
 	V == v1,
 	D = a{k1:v2}.
 test('get_dict/5') :-
+	gd5.
+test('get_dict/5') :-
 	\+ get_dict(k2, a{k1:v1}, _, _, v2).
 test('get_dict/5') :-
 	\+ get_dict(k1, a{k1:v1}, v2, _, v2).
@@ -262,6 +264,13 @@ test(select, fail) :-
 	a{x:_} :< a{y:2}.
 test(select, R =@= _{z:3}) :-		% implicit conversion
 	select_dict([x(1)], [x(1),z(3)], R).
+
+gd5 :-
+	Dict = #{a:42},
+	get_dict(a, Dict, V, NewDict, NewV),
+	assertion(V == 42),
+	get_dict(a, NewDict, V2),
+	assertion(V2 == NewV).
 
 :- end_tests(dict_bips).
 
@@ -368,6 +377,8 @@ test(forall, true) :-
 	forall(dict(M), M.b mod 2 =:= 0).
 test(findall, As = [1,3]) :-
 	findall(A, (dict(M), A = M.a), As).
+test(bagof, As = [1,3]) :-		% test ^ annotation
+	bagof(A, M^(dict(M), A = M.a), As).
 
 test(head, X == 1) :-
 	x_dict1(_{x:1}, X).

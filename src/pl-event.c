@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2020, University of Amsterdam
+                              VU University Amsterdam
+		              CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -39,6 +40,11 @@
 #include "pl-event.h"
 #include "pl-dbref.h"
 #include "pl-copyterm.h"
+#include "pl-tabling.h"
+#include "pl-proc.h"
+#include "pl-attvar.h"
+#include "pl-fli.h"
+#include "pl-trace.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Event interface
@@ -96,8 +102,9 @@ link_event(event_list *list, event_callback *cb, int last)
 }
 
 
+#define get_callback(closure, m, cb) LDFUNC(get_callback, closure, m, cb)
 static int
-get_callback(term_t closure, Module *m, term_t cb ARG_LD)
+get_callback(DECL_LD term_t closure, Module *m, term_t cb)
 { if ( !PL_strip_module(closure, m, cb) )
     return FALSE;
   if ( !PL_is_callable(cb) )
@@ -108,26 +115,50 @@ get_callback(term_t closure, Module *m, term_t cb ARG_LD)
 
 
 static int
-add_event_hook(event_list *list, int last, term_t closure, int argc)
+add_event_hook(event_list *list, atom_t name, int last, term_t closure, int argc)
 { GET_LD
   Module m = NULL;
   event_callback *cb;
-  atom_t name;
+  atom_t pname;
   term_t t = PL_new_term_ref();
 
-  if ( !get_callback(closure, &m, t PASS_LD) )
+  if ( !get_callback(closure, &m, t) )
     return FALSE;
+
+  if ( name )
+  { event_callback *ev;
+
+    LOCK_LIST(list);
+
+    for(ev = list->head; ev; ev = ev->next)
+    { if ( ev->name == name && !ev->function )
+      { struct fastheap_term *r = ev->closure.term;
+
+	ev->closure.term = term_to_fastheap(closure);
+	if ( r )
+	  free_fastheap(r);
+
+	return TRUE;
+      }
+    }
+
+    UNLOCK_LIST(list);
+  }
 
   cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
+  if ( name )
+  { cb->name = name;
+    PL_register_atom(name);
+  }
   cb->argc = argc;
   cb->module = m;
 
-  if ( PL_get_atom(t, &name) )
-  { cb->procedure = resolveProcedure(PL_new_functor(name, argc), m);
+  if ( PL_get_atom(t, &pname) )
+  { cb->procedure = resolveProcedure(PL_new_functor(pname, argc), m);
   } else
   { cb->procedure    = PL_predicate("call", argc+1, "system");
-    cb->closure.term = term_to_fastheap(closure PASS_LD);
+    cb->closure.term = term_to_fastheap(closure);
   }
 
   return link_event(list, cb, last);
@@ -152,13 +183,14 @@ get_event_list(event_list **list)
 }
 
 int
-register_event_hook(event_list **list, int last, term_t closure, int argc)
-{ return add_event_hook(get_event_list(list), last, closure, argc);
+register_event_hook(event_list **list, atom_t name, int last, term_t closure, int argc)
+{ return add_event_hook(get_event_list(list), name, last, closure, argc);
 }
 
 
+#define get_event_listp(type, listpp, argc) LDFUNC(get_event_listp, type, listpp, argc)
 static int
-get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
+get_event_listp(DECL_LD term_t type, event_list ***listpp, size_t *argc)
 { atom_t name;
   size_t arity;
 
@@ -176,7 +208,7 @@ get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
 	  return TRUE;
 	}
       }
-    } else if ( get_procedure(type, &proc, 0, GP_FIND|GP_NAMEARITY) )
+    } else if ( get_procedure(type, &proc, 0, GP_RESOLVE|GP_NAMEARITY) )
     { *listpp = &proc->definition->events;
       *argc   = 2;				/* action, cref */
 
@@ -191,18 +223,21 @@ get_event_listp(term_t type, event_list ***listpp, size_t *argc ARG_LD)
 
 static const opt_spec prolog_listen_options[] =
 { { ATOM_as,		 OPT_ATOM },
+  { ATOM_name,		 OPT_ATOM },
   { NULL_ATOM,		 0 }
 };
 
+#define prolog_listen(type, closure, options) LDFUNC(prolog_listen, type, closure, options)
 static int
-prolog_listen(term_t type, term_t closure, term_t options ARG_LD)
+prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
 { event_list **listp;
   size_t argc;
   atom_t as = ATOM_first;
+  atom_t name = 0;
 
   if ( options && !scan_options(options, 0, /*OPT_ALL,*/
 				ATOM_prolog_listen_option, prolog_listen_options,
-				&as) )
+				&as, &name) )
     return FALSE;
 
   if ( !(as == ATOM_first || as == ATOM_last) )
@@ -210,8 +245,8 @@ prolog_listen(term_t type, term_t closure, term_t options ARG_LD)
     return PL_put_atom(ex, as) && PL_domain_error("as", ex);
   }
 
-  if ( get_event_listp(type, &listp, &argc PASS_LD) )
-    return register_event_hook(listp, as == ATOM_last, closure, argc);
+  if ( get_event_listp(type, &listp, &argc) )
+    return register_event_hook(listp, name, as == ATOM_last, closure, argc);
 
   return FALSE;
 }
@@ -220,14 +255,14 @@ static
 PRED_IMPL("prolog_listen", 2, prolog_listen, META)
 { PRED_LD
 
-  return prolog_listen(A1, A2, 0 PASS_LD);
+  return prolog_listen(A1, A2, 0);
 }
 
 static
 PRED_IMPL("prolog_listen", 3, prolog_listen, META)
 { PRED_LD
 
-  return prolog_listen(A1, A2, A3 PASS_LD);
+  return prolog_listen(A1, A2, A3);
 }
 
 
@@ -237,7 +272,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
   event_list **listp;
   size_t argc;
 
-  if ( get_event_listp(A1, &listp, &argc PASS_LD) )
+  if ( get_event_listp(A1, &listp, &argc) )
   { event_list *list;
 
     if ( (list = *listp) )
@@ -249,7 +284,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
       term_t tmp = PL_new_term_ref();
       Procedure proc = NULL;
 
-      if ( !get_callback(A2, &m, t PASS_LD) )
+      if ( !get_callback(A2, &m, t) )
 	return FALSE;
       if ( PL_get_atom(t, &name) )
 	proc = resolveProcedure(PL_new_functor(name, argc), m);
@@ -272,7 +307,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 	      continue;
 	    }
 	  } else if ( ev->closure.term )
-	  { if ( put_fastheap(ev->closure.term, tmp PASS_LD) &&
+	  { if ( put_fastheap(ev->closure.term, tmp) &&
 		 PL_unify(A2, tmp) )
 	      goto delete;
 	    if ( PL_exception(0) )
@@ -296,7 +331,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 
 
 int
-register_event_function(event_list **list, int last, int (*func)(),
+register_event_function(event_list **list, atom_t name, int last, int (*func)(),
 			void *closure, int argc)
 { event_callback *cb = PL_malloc(sizeof(*cb));
   memset(cb, 0, sizeof(*cb));
@@ -312,6 +347,8 @@ static void
 free_event_callback(event_callback *cb)
 { if ( !cb->function && cb->closure.term )
     free_fastheap(cb->closure.term);
+  if ( cb->name )
+    PL_unregister_atom(cb->name);
 
   PL_free(cb);
 }
@@ -334,8 +371,9 @@ destroy_event_list(event_list **listp)
 }
 
 
+#define call_event_list(list, argc, argv) LDFUNC(call_event_list, list, argc, argv)
 static int
-call_event_list(event_list *list, int argc, term_t argv ARG_LD)
+call_event_list(DECL_LD event_list *list, int argc, term_t argv)
 { int rc = TRUE;
 
   if ( list )
@@ -360,7 +398,7 @@ call_event_list(event_list *list, int argc, term_t argv ARG_LD)
 	}
       } else if ( ev->closure.term )
       { rc = rc &&
-	     ( put_fastheap(ev->closure.term, argv PASS_LD) &&
+	     ( put_fastheap(ev->closure.term, argv) &&
 	       PL_call_predicate(ev->module, PL_Q_NODEBUG|PL_Q_PASS_EXCEPTION,
 				 ev->procedure, argv) );
       } else
@@ -545,7 +583,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     return TRUE;
   }
 
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  if ( !saveWakeup(&wstate, TRUE) )
     return FALSE;
   av = PL_new_term_refs(event_decl->argc+1);
 
@@ -608,7 +646,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
   }
 
   if ( rc )
-  { rc = call_event_list(list, event_decl->argc, av PASS_LD);
+  { rc = call_event_list(list, event_decl->argc, av);
 
     if ( !rc && PL_exception(0) )
       set(&wstate, WAKEUP_KEEP_URGENT_EXCEPTION);
@@ -617,39 +655,71 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
   }
 
 out:
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
 
   return rc;
 }
 
 
 int
-predicate_update_event(Definition def, atom_t action, Clause cl ARG_LD)
+predicate_update_event(DECL_LD Definition def, atom_t action, Clause cl,
+		       unsigned flags)
 { wakeup_state wstate;
-  term_t av;
-  int rc = TRUE;
+  int rc;
 
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
-    return FALSE;
-  av = PL_new_term_refs(3);			/* closure, action, clause */
-  if ( !PL_put_atom(av+1, action) ||
-       !PL_put_clref(av+2, cl) )
-    return FALSE;
+  if ( (rc=saveWakeup(&wstate, TRUE)) )
+  { term_t av;
 
-  rc = call_event_list(def->events, 2, av PASS_LD);
+    rc = ( (av=PL_new_term_refs(3)) && /* closure, action, clause */
+	   PL_put_atom(av+1, action) &&
+	   PL_put_clref(av+2, cl) );
 
-  restoreWakeup(&wstate PASS_LD);
+    if ( rc && (flags&P_EVENT_ROLLBACK) )
+      rc = PL_cons_functor(av+1, FUNCTOR_rollback1, av+1);
+
+    if ( rc )
+      rc = call_event_list(def->events, 2, av);
+
+    restoreWakeup(&wstate);
+  }
 
   return rc;
 }
 
 int
-retractall_event(Definition def, term_t head, functor_t start ARG_LD)
+table_answer_event(DECL_LD Definition def, atom_t action, term_t answer)
+{ wakeup_state wstate;
+  int rc;
+
+  if ( (rc=saveWakeup(&wstate, TRUE)) )
+  { term_t av;
+
+    rc = ( (av=PL_new_term_refs(3)) && /* closure, action, answer */
+	   PL_put_atom(av+1, action) &&
+	   PL_put_term(av+2, answer) );
+
+    if ( rc )
+    { tbl_status tblstat;
+
+      save_tabling_status(&tblstat);
+      rc = call_event_list(def->events, 2, av);
+      restore_tabling_status(&tblstat);
+    }
+
+    restoreWakeup(&wstate);
+  }
+
+  return rc;
+}
+
+
+int
+retractall_event(DECL_LD Definition def, term_t head, functor_t start)
 { wakeup_state wstate;
   term_t av;
   int rc = TRUE;
 
-  if ( !saveWakeup(&wstate, TRUE PASS_LD) )
+  if ( !saveWakeup(&wstate, TRUE) )
     return FALSE;
   av = PL_new_term_refs(4);			/* closure, action, start/end, head */
 
@@ -660,9 +730,9 @@ retractall_event(Definition def, term_t head, functor_t start ARG_LD)
        !PL_put_atom(av+1, ATOM_retractall) )
     return FALSE;
 
-  rc = call_event_list(def->events, 2, av PASS_LD);
+  rc = call_event_list(def->events, 2, av);
 
-  restoreWakeup(&wstate PASS_LD);
+  restoreWakeup(&wstate);
 
   return rc;
 }

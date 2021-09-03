@@ -34,10 +34,36 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-incl.h"
+
 #ifndef O_PLGMP_INCLUDED
 #define O_PLGMP_INCLUDED
 
-#define COMMON(type) SO_LOCAL type
+#if USE_LD_MACROS
+#define	PL_unify_number(t, n)		LDFUNC(PL_unify_number, t, n)
+#define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
+#define	get_number(w, n)		LDFUNC(get_number, w, n)
+#define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
+#define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
+#define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+int	PL_unify_number(term_t t, Number n);
+int	PL_put_number(term_t t, Number n);
+void	get_number(word w, Number n);
+int	PL_get_number(term_t t, Number n);
+int	PL_get_number(term_t t, Number n);
+int	put_uint64(Word at, uint64_t l, int flags);
+int	put_number(Word at, Number n, int flags);
+int	promoteToFloatNumber(Number n);
+int	make_same_type_numbers(Number n1, Number n2) WUNUSED;
+int     promoteNumber(Number n1, numtype type) WUNUSED;
+int	cmpNumbers(Number n1, Number n2);
+void	cpNumber(Number to, Number from);
+
+#undef LDFUNC_DECLARATIONS
 
 #ifdef O_GMP
 #include <gmp.h>
@@ -45,28 +71,28 @@
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
-COMMON(void)	initGMP(void);
-COMMON(void)	cleanupGMP(void);
-COMMON(void)	get_integer(word w, number *n);
-COMMON(void)	get_rational(word w, number *n);
-COMMON(Code)	get_mpz_from_code(Code pc, mpz_t mpz);
-COMMON(Code)	get_mpq_from_code(Code pc, mpq_t mpq);
-COMMON(int)	promoteToMPZNumber(number *n);
-COMMON(int)	promoteToMPQNumber(number *n);
-COMMON(void)	ensureWritableNumber(Number n);
-COMMON(void)	clearGMPNumber(Number n);
-COMMON(void)	addMPZToBuffer(Buffer b, mpz_t mpz);
-COMMON(void)	addMPQToBuffer(Buffer b, mpq_t mpq);
-COMMON(char *)	loadMPZFromCharp(const char *data, Word r, Word *store);
-COMMON(char *)	loadMPQFromCharp(const char *data, Word r, Word *store);
-COMMON(char *)	skipMPZOnCharp(const char *data);
-COMMON(char *)	skipMPQOnCharp(const char *data);
-COMMON(int)	mpz_to_int64(mpz_t mpz, int64_t *i);
-COMMON(int)	mpz_to_uint64(mpz_t mpz, uint64_t *i);
-COMMON(void)	mpz_init_set_si64(mpz_t mpz, int64_t i);
-COMMON(double)	mpX_round(double f);
-COMMON(double)	mpq_to_double(mpq_t q);
-COMMON(void)	mpq_set_double(mpq_t q, double f);
+void	initGMP(void);
+void	cleanupGMP(void);
+void	get_integer(word w, number *n);
+void	get_rational(word w, number *n);
+Code	get_mpz_from_code(Code pc, mpz_t mpz);
+Code	get_mpq_from_code(Code pc, mpq_t mpq);
+int	promoteToMPZNumber(number *n);
+int	promoteToMPQNumber(number *n);
+void	ensureWritableNumber(Number n);
+void	clearGMPNumber(Number n);
+void	addMPZToBuffer(Buffer b, mpz_t mpz);
+void	addMPQToBuffer(Buffer b, mpq_t mpq);
+char *	loadMPZFromCharp(const char *data, Word r, Word *store);
+char *	loadMPQFromCharp(const char *data, Word r, Word *store);
+char *	skipMPZOnCharp(const char *data);
+char *	skipMPQOnCharp(const char *data);
+int	mpz_to_int64(mpz_t mpz, int64_t *i);
+int	mpz_to_uint64(mpz_t mpz, uint64_t *i);
+void	mpz_init_set_si64(mpz_t mpz, int64_t i);
+double	mpX_round(double f);
+double	mpq_to_double(mpq_t q);
+void	mpq_set_double(mpq_t q, double f);
 
 #define clearNumber(n) \
 	do { if ( (n)->type != V_INTEGER ) clearGMPNumber(n); } while(0)
@@ -158,7 +184,7 @@ typedef struct ar_context
 	  mp_cleanup(&__PL_ar_ctx); \
 	} while(0)
 
-COMMON(void)	mp_cleanup(ar_context *ctx);
+void	mp_cleanup(ar_context *ctx);
 
 #else /*O_MY_GMP_ALLOC*/
 

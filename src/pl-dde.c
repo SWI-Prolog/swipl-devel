@@ -38,11 +38,14 @@
 #include <windows.h>
 #endif
 
-#define O_DEBUG 1
 #ifdef __WINDOWS__
 
 #define INCLUDE_DDEML_H
 #include "pl-incl.h"
+#include "pl-nt.h"
+#include "pl-modul.h"
+#include "pl-funct.h"
+#include "pl-fli.h"
 
 #if O_DDE
 #include <string.h>

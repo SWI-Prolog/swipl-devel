@@ -877,6 +877,20 @@ process((Head :- Body), Src) :-
     !,
     assert_defined(Src, Head),
     process_body(Body, Head, Src).
+process((Left => Body), Src) :-
+    !,
+    (   nonvar(Left),
+        Left = (Head, Guard)
+    ->  assert_defined(Src, Head),
+        process_body(Guard, Head, Src),
+        process_body(Body, Head, Src)
+    ;   assert_defined(Src, Left),
+        process_body(Body, Left, Src)
+    ).
+process(?=>(Head, Body), Src) :-
+    !,
+    assert_defined(Src, Head),
+    process_body(Body, Head, Src).
 process('$source_location'(_File, _Line):Clause, Src) :-
     !,
     process(Clause, Src).
@@ -1196,6 +1210,30 @@ xref_meta_src(Head, Called, _) :-
     Extra is Arity - 1,
     arg(1, Head, G),
     Called = [G+Extra].
+xref_meta_src(Head, Called, _) :-
+    predicate_property(user:Head, meta_predicate(Meta)),
+    !,
+    Meta =.. [_|Args],
+    meta_args(Args, 1, Head, Called).
+
+meta_args([], _, _, []).
+meta_args([H0|T0], I, Head, [H|T]) :-
+    xargs(H0, N),
+    !,
+    arg(I, Head, A),
+    (   N == 0
+    ->  H = A
+    ;   H = (A+N)
+    ),
+    I2 is I+1,
+    meta_args(T0, I2, Head, T).
+meta_args([_|T0], I, Head, T) :-
+    I2 is I+1,
+    meta_args(T0, I2, Head, T).
+
+xargs(N, N) :- integer(N), !.
+xargs(//, 2).
+xargs(^, 0).
 
 apply_pred(call).                               % built-in
 apply_pred(maplist).                            % library(apply_macros)
@@ -1256,6 +1294,9 @@ xref_meta(thread_at_exit(A),    [A]).
 xref_meta(thread_initialization(A), [A]).
 xref_meta(engine_create(_,A,_), [A]).
 xref_meta(engine_create(_,A,_,_), [A]).
+xref_meta(transaction(A),       [A]).
+xref_meta(transaction(A,B,_),   [A,B]).
+xref_meta(snapshot(A),          [A]).
 xref_meta(predsort(A,_,_),      [A+3]).
 xref_meta(call_cleanup(A, B),   [A, B]).
 xref_meta(call_cleanup(A, _, B),[A, B]).
@@ -1268,6 +1309,8 @@ xref_meta(assertion(G),         [G]).   % library(debug)
 xref_meta(freeze(_, G),         [G]).
 xref_meta(when(C, A),           [C, A]).
 xref_meta(time(G),              [G]).   % development system
+xref_meta(call_time(G, _),      [G]).   % development system
+xref_meta(call_time(G, _, _),   [G]).   % development system
 xref_meta(profile(G),           [G]).
 xref_meta(at_halt(G),           [G]).
 xref_meta(call_with_time_limit(_, G), [G]).
@@ -1292,6 +1335,7 @@ xref_meta(prolog_listen(Ev,G,_),[G+N]) :- event_xargs(Ev, N).
 xref_meta(tnot(G),		[G]).
 xref_meta(not_exists(G),	[G]).
 xref_meta(with_tty_raw(G),	[G]).
+xref_meta(residual_goals(G),    [G+2]).
 
                                         % XPCE meta-predicates
 xref_meta(pce_global(_, new(_)), _) :- !, fail.
@@ -2064,7 +2108,10 @@ negate(else_false, else_false).
 public_list([(:- module(Module, Export0))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-
     !,
-    append(Export0, Reexport, Export),
+    (   is_list(Export0)
+    ->  append(Export0, Reexport, Export)
+    ;   Reexport = Export
+    ),
     public_list_(Decls, Path, Meta, MT, Reexport, Rest, Public, PT).
 public_list([(:- encoding(_))|Decls], Path,
             Module, Meta, MT, Export, Rest, Public, PT) :-

@@ -38,6 +38,12 @@
 #include "pl-comp.h"
 #include "pl-wrap.h"
 #include "pl-dbref.h"
+#include "pl-util.h"
+#include "pl-supervisor.h"
+#include "pl-proc.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-funct.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Wrap and unwrap predicates. Wrapping  is   realised  by manipulating the
@@ -135,7 +141,7 @@ unify_closure(term_t t, Definition def, Code supervisor)
  */
 
 int
-get_closure_predicate__LD(term_t t, Definition *def ARG_LD)
+get_closure_predicate(DECL_LD term_t t, Definition *def)
 { void *data;
   PL_blob_t *type;
 
@@ -193,15 +199,20 @@ find_wrapper(Definition def, atom_t name)
 }
 
 
+#define assert_wrapper(clause) LDFUNC(assert_wrapper, clause)
 static ClauseRef
-assert_wrapper(term_t clause ARG_LD)
+assert_wrapper(DECL_LD term_t clause)
 { Clause cl;
 
-  if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0 PASS_LD)) )
+  if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0)) )
   { Definition def = cl->predicate;
+    definition_ref *dref = pushPredicateAccessObj(def);
     ClauseRef cref;
 
-    (void)pushPredicateAccess(def);
+    if ( !dref )
+    { retractClauseDefinition(def, cl, FALSE);
+      return NULL;
+    }
     acquire_def(def);
     for( cref = def->impl.clauses.first_clause; cref; cref = cref->next)
     { if ( cref->value.clause == cl )
@@ -219,8 +230,9 @@ assert_wrapper(term_t clause ARG_LD)
 }
 
 
+#define unify_wrapped(wrapped, closure, head) LDFUNC(unify_wrapped, wrapped, closure, head)
 static int
-unify_wrapped(term_t wrapped, atom_t closure, term_t head ARG_LD)
+unify_wrapped(DECL_LD term_t wrapped, atom_t closure, term_t head)
 { Word from;
 
 retry:
@@ -237,7 +249,7 @@ retry:
 
       *to++ = PL_new_functor(closure, arity);
       for(; arity > 0; arity--)
-	*to++ = linkVal(f++);
+	*to++ = linkValI(f++);
 
       return _PL_unify_atomic(wrapped, w);
     } else
@@ -280,14 +292,14 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
     atom_t aref = (atom_t)codes[2];
 
     if ( !PL_unify_atom(closure, aref) ||
-	 !unify_wrapped(A4, aref, head PASS_LD) )
+	 !unify_wrapped(A4, aref, head) )
       return FALSE;
 
-    if ( (cref = assert_wrapper(A5 PASS_LD)) )
+    if ( (cref = assert_wrapper(A5)) )
     { Clause cl = ((ClauseRef)codes[1])->value.clause;
 
       codes[1] = (code)cref;
-      retractClauseDefinition(cl->predicate, cl);
+      retractClauseDefinition(cl->predicate, cl, FALSE);
 
       return TRUE;
     }
@@ -297,10 +309,10 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       atom_t aref;
 
       if ( !PL_get_atom_ex(closure, &aref) ||
-	   !unify_wrapped(A4, aref, head PASS_LD) )
+	   !unify_wrapped(A4, aref, head) )
 	return FALSE;				/* something really wrong */
 
-      if ( (cref = assert_wrapper(A5 PASS_LD)) )
+      if ( (cref = assert_wrapper(A5)) )
       { codes = allocCodes(4);
 	PL_register_atom(aref);
 	PL_register_atom(wname);
@@ -397,7 +409,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
 	a = valueTerm(*a)->arguments;
 	p[0] = lookupFunctorDef(aref, arity);
 	for(i=0; i<arity; i++)
-	  p[i+1] = linkVal(&a[i]);
+	  p[i+1] = linkValI(&a[i]);
 	*valTermRef(impl) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
 	return PL_unify(A3, impl);
       }
@@ -440,7 +452,7 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
 	continue;
       }
 
-      retractClauseDefinition(cl->predicate, cl);
+      retractClauseDefinition(cl->predicate, cl, FALSE);
       *cp = cls->def.impl.wrapped.supervisor;
 
       freeSupervisor(def, codes, TRUE);

@@ -49,57 +49,68 @@ typedef enum iri_op
   IRI_TIME		/* -> double *time */
 } iri_op;
 
+#if USE_LD_MACROS
+#define	getTextInputStream(t, s)	LDFUNC(getTextInputStream, t, s)
+#define	getBinaryInputStream(t, s)	LDFUNC(getBinaryInputStream, t, s)
+#define	getTextOutputStream(t, s)	LDFUNC(getTextOutputStream, t, s)
+#define	getBinaryOutputStream(t, s)	LDFUNC(getBinaryOutputStream, t, s)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 /* pl-file.c */
-COMMON(void)		initIO(void);
-COMMON(void)		dieIO(void);
-COMMON(void)		closeFiles(int all);
-COMMON(int)		openFileDescriptors(unsigned char *buf, int size);
-COMMON(void)		protocol(const char *s, size_t n);
-COMMON(int)		getTextInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
-COMMON(int)		getBinaryInputStream__LD(term_t t, IOSTREAM **s ARG_LD);
-COMMON(int)		getTextOutputStream__LD(term_t t, IOSTREAM **s ARG_LD);
-COMMON(int)		getBinaryOutputStream__LD(term_t t, IOSTREAM **s ARG_LD);
-COMMON(int)	        reportStreamError(IOSTREAM *s);
-COMMON(int)		streamStatus(IOSTREAM *s);
-COMMON(int)		setFileNameStream(IOSTREAM *s, atom_t name);
-COMMON(atom_t)		fileNameStream(IOSTREAM *s);
-COMMON(int)		getSingleChar(IOSTREAM *s, int signals);
-COMMON(int)		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
-COMMON(int)		LockStream(void);
-COMMON(int)		UnlockStream(void);
-COMMON(IOSTREAM *)	PL_current_input(void);
-COMMON(IOSTREAM *)	PL_current_output(void);
-COMMON(int)		pl_see(term_t f);
-COMMON(int)		pl_seen(void);
-COMMON(int)		seeString(const char *s);
-COMMON(int)		seeingString(void);
-COMMON(int)		seenString(void);
-COMMON(int)		tellString(char **s, size_t *size, IOENC enc);
-COMMON(int)		toldString(void);
-COMMON(void)		prompt1(atom_t prompt);
-COMMON(atom_t)		PrologPrompt(void);
-COMMON(int)		streamNo(term_t spec, int mode);
-COMMON(void)		release_stream_handle(term_t spec);
-COMMON(int)		unifyTime(term_t t, time_t time);
+void		initIO(void);
+void		dieIO(void);
+void		closeFiles(int all);
+int		openFileDescriptors(unsigned char *buf, int size);
+void		protocol(const char *s, size_t n);
+int		getTextInputStream(term_t t, IOSTREAM **s);
+int		getBinaryInputStream(term_t t, IOSTREAM **s);
+int		getTextOutputStream(term_t t, IOSTREAM **s);
+int		getBinaryOutputStream(term_t t, IOSTREAM **s);
+int	        reportStreamError(IOSTREAM *s);
+int		streamStatus(IOSTREAM *s);
+int		setFileNameStream(IOSTREAM *s, atom_t name);
+atom_t		fileNameStream(IOSTREAM *s);
+int		getSingleChar(IOSTREAM *s, int signals);
+int		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
+int		LockStream(void);
+int		UnlockStream(void);
+IOSTREAM *	PL_current_input(void);
+IOSTREAM *	PL_current_output(void);
+int		pl_see(term_t f);
+int		pl_seen(void);
+int		seeString(const char *s);
+int		seeingString(void);
+int		seenString(void);
+int		tellString(char **s, size_t *size, IOENC enc);
+int		toldString(void);
+void		prompt1(atom_t prompt);
+atom_t		PrologPrompt(void);
+int		streamNo(term_t spec, int mode);
+void		release_stream_handle(term_t spec);
+int		unifyTime(term_t t, time_t time);
 #ifdef __WINDOWS__
-COMMON(word)		pl_make_fat_filemap(term_t dir);
+word		pl_make_fat_filemap(term_t dir);
 #endif
-COMMON(int)		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
-COMMON(void)		pushOutputContext(void);
-COMMON(void)		popOutputContext(void);
-COMMON(IOENC)		atom_to_encoding(atom_t a);
-COMMON(atom_t)		encoding_to_atom(IOENC enc);
-COMMON(int)		setupOutputRedirect(term_t to,
-					    redir_context *ctx,
-					    int redir);
-COMMON(int)		closeOutputRedirect(redir_context *ctx);
-COMMON(void)		discardOutputRedirect(redir_context *ctx);
-COMMON(int)		push_input_context(atom_t type);
-COMMON(int)		pop_input_context(void);
-COMMON(int)		stream_encoding_options(atom_t type, atom_t encoding,
-						int *bom, IOENC *enc);
-COMMON(int)		file_name_is_iri(const char *path);
-COMMON(int)		iri_hook(const char *url, iri_op op, ...);
-COMMON(atom_t)		file_name_to_atom(const char *fn);
+int		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
+void		pushOutputContext(void);
+void		popOutputContext(void);
+IOENC		atom_to_encoding(atom_t a);
+atom_t		encoding_to_atom(IOENC enc);
+int		setupOutputRedirect(term_t to,
+				    redir_context *ctx,
+				    int redir);
+int		closeOutputRedirect(redir_context *ctx);
+void		discardOutputRedirect(redir_context *ctx);
+int		push_input_context(atom_t type);
+int		pop_input_context(void);
+int		stream_encoding_options(atom_t type, atom_t encoding,
+					int *bom, IOENC *enc);
+int		file_name_is_iri(const char *path);
+int		iri_hook(const char *url, iri_op op, ...);
+atom_t		file_name_to_atom(const char *fn);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_FILE_H_INCLUDED*/

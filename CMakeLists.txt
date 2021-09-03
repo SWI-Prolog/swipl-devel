@@ -9,6 +9,9 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(MULTI_THREADED
        "Enable multiple Prolog threads"
        ON)
+option(VMI_FUNCTIONS
+       "Create a function for each VM instruction"
+       OFF)
 option(USE_SIGNALS
        "Enable signal handling"
        ON)
@@ -47,6 +50,9 @@ option(BUILD_TESTING
        ON)
 option(SKIP_SSL_TESTS
        "Skip the SSL tests"
+       OFF)
+option(TEST_PROTOBUFS_PROTOC
+       "Run protobuf tests that require protoc, etc."
        OFF)
 option(BUILD_SWIPL_LD
        "Create the swipl-ld utility"

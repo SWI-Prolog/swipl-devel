@@ -34,6 +34,10 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#ifndef _PL_OS_H
+#define _PL_OS_H
+#include "../pl-incl.h"
+
 #ifdef HAVE_SYS_PARAM_H			/* get MAXPATHLEN */
 #include <sys/param.h>
 #endif
@@ -43,10 +47,14 @@
 		*         MISCELLANEOUS         *
 		*********************************/
 
-extern char *OsError(void);
-extern bool initOs(void);
-COMMON(int) CpuCount(void);
-
+char *		OsError(void);
+bool		initOs(void);
+void		cleanupOs(void);
+int		CpuCount(void);
+void		setRandom(unsigned int *seed);
+uint64_t	_PL_Random(void);
+void		setOSPrologFlags(void);
+int		Pause(double time);
 
 		/********************************
 		*              FILES            *
@@ -76,7 +84,20 @@ COMMON(int) CpuCount(void);
 #endif
 #endif
 
-COMMON(char*)	canonicaliseFileName(char *path);
+char *		canonicaliseFileName(char *path);
+char *		canonicalisePath(char *path);
+char *		OsPath(const char *plpath, char *ospath);
+char *		PrologPath(const char *ospath, char *plpath, size_t len);
+void		RemoveTemporaryFiles(void);
+char *		expandVars(const char *pattern, char *expanded, int len);
+char *		AbsoluteFile(const char *spec, char *path);
+int		IsAbsolutePath(const char *spec);
+char *		BaseName(const char *f, char *buf);
+char *		DirName(const char *f, char *buf);
+atom_t		TemporaryFile(const char *id,
+			      const char *ext, int *fdp);
+int		DeleteTemporaryFile(atom_t name);
+char *		findExecutable(const char *module, char *buf, size_t len);
 
 
 		/********************************
@@ -88,16 +109,18 @@ typedef enum
   CPU_SYSTEM
 } cputime_kind;
 
-extern double	  CpuTime(cputime_kind);
-extern double	  WallTime(void);
+double		CpuTime(cputime_kind);
+double		WallTime(void);
+struct tm *	PL_localtime_r(const time_t *t, struct tm *r);
+char *		PL_asctime_r(const struct tm *tm, char *buf);
 
 
 		 /*******************************
 		 *	      MEMORY		*
 		 *******************************/
 
-extern uintptr_t	UsedMemory(void);
-extern uintptr_t	FreeMemory(void);
+uintptr_t	UsedMemory(void);
+uintptr_t	FreeMemory(void);
 
 
 		/********************************
@@ -133,14 +156,22 @@ extern int	ttyfileno;		/* Main TTY file number */
 
 #define IsaTty(fd)	isatty(fd)
 
-extern bool PushTty(IOSTREAM *s, ttybuf *buf, int mode);
-extern bool PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
-extern void ResetTty(void);
-extern int  Sttymode(IOSTREAM *s);
+bool		PushTty(IOSTREAM *s, ttybuf *buf, int mode);
+bool		PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
+void		ResetTty(void);
+int		Sttymode(IOSTREAM *s);
+int		hasConsole(void);
 
 
 		/********************************
 		*        PROCESS CONTROL        *
 		*********************************/
 
-extern int System(char *command);
+bool		ChDir(const char *path);
+size_t		getenv3(const char *, char *buf, size_t buflen);
+char *		Getenv(const char *, char *buf, size_t buflen);
+int		Setenv(char *name, char *value);
+int		Unsetenv(char *name);
+int		System(char *command);
+
+#endif /*_PL_OS_H*/

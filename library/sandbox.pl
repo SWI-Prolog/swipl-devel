@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2020, VU University Amsterdam
+    Copyright (c)  2013-2021, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -426,8 +427,19 @@ term_expansion(safe_primitive(Goal), Term) :-
     ->  Term = safe_primitive(Goal)
     ;   Term = []
     ).
+term_expansion((safe_primitive(Goal) :- _), Term) :-
+    (   verify_safe_declaration(Goal)
+    ->  Term = safe_primitive(Goal)
+    ;   Term = []
+    ).
 
 system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
+    \+ current_prolog_flag(xref, true),
+    (   verify_safe_declaration(Goal)
+    ->  Term = sandbox:safe_primitive(Goal)
+    ;   Term = []
+    ).
+system:term_expansion((sandbox:safe_primitive(Goal) :- _), Term) :-
     \+ current_prolog_flag(xref, true),
     (   verify_safe_declaration(Goal)
     ->  Term = sandbox:safe_primitive(Goal)
@@ -468,8 +480,9 @@ ok_meta(system:use_module(_)).
 
 verify_predefined_safe_declarations :-
     forall(clause(safe_primitive(Goal), _Body, Ref),
-           ( catch(verify_safe_declaration(Goal), E, true),
-             (   nonvar(E)
+           ( E = error(F,_),
+             catch(verify_safe_declaration(Goal), E, true),
+             (   nonvar(F)
              ->  clause_property(Ref, file(File)),
                  clause_property(Ref, line_count(Line)),
                  print_message(error, bad_safe_declaration(Goal, File, Line))
@@ -504,7 +517,10 @@ safe_primitive(nonvar(_)).
 safe_primitive(system:attvar(_)).
 safe_primitive(integer(_)).
 safe_primitive(float(_)).
+:- if(current_predicate(rational/1)).
 safe_primitive(system:rational(_)).
+safe_primitive(system:rational(_,_,_)).
+:- endif.
 safe_primitive(number(_)).
 safe_primitive(atom(_)).
 safe_primitive(system:blob(_,_)).
@@ -745,7 +761,7 @@ safe_primitive('$tabling':abolish_all_tables).
 safe_primitive('$tabling':'$wrap_tabled'(Module:_Head, _Mode)) :-
     prolog_load_context(module, Module),
     !.
-safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_)) :-
+safe_primitive('$tabling':'$moded_wrap_tabled'(Module:_Head,_,_,_,_)) :-
     prolog_load_context(module, Module),
     !.
 
@@ -1035,6 +1051,7 @@ safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
 safe_meta('$attvar':call_residue_vars(0,*)).
 safe_meta('$syspreds':call_with_inference_limit(0,*,*)).
 safe_meta('$syspreds':call_with_depth_limit(0,*,*)).
+safe_meta('$syspreds':undo(0)).
 safe_meta(^(*,0)).
 safe_meta(\+(0)).
 safe_meta(call(0)).

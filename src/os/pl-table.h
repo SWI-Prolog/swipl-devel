@@ -69,23 +69,31 @@ struct table_enum
   int		idx;		/* Index of current symbol-chain */
 };
 
-COMMON(void)		initTables(void);
-COMMON(Table)		newHTable(int size);
-COMMON(void)		destroyHTable(Table ht);
-COMMON(void*)		lookupHTable__LD(Table ht, void *name ARG_LD);
-COMMON(void*)		addHTable(Table ht, void *name, void *value);
-COMMON(void*)		addNewHTable(Table ht, void *name, void *value);
-COMMON(void*)		updateHTable(Table ht, void *name, void *value);
-COMMON(void*)		deleteHTable(Table ht, void *name);
-COMMON(void)		clearHTable(Table ht);
-COMMON(Table)		copyHTable(Table org);
-COMMON(TableEnum)	newTableEnum(Table ht);
-COMMON(void)		freeTableEnum(TableEnum e);
-COMMON(int)		advanceTableEnum(TableEnum e, void **name, void **value);
+#if USE_LD_MACROS
+#define	lookupHTable(ht, name)	LDFUNC(lookupHTable, ht, name)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+void		initTables(void);
+Table		newHTable(int size);
+void		destroyHTable(Table ht);
+void*		lookupHTable(Table ht, void *name);
+void*		addHTable(Table ht, void *name, void *value);
+void*		addNewHTable(Table ht, void *name, void *value);
+void*		updateHTable(Table ht, void *name, void *value);
+void*		deleteHTable(Table ht, void *name);
+void		clearHTable(Table ht);
+Table		copyHTable(Table org);
+TableEnum	newTableEnum(Table ht);
+void		freeTableEnum(TableEnum e);
+int		advanceTableEnum(TableEnum e, void **name, void **value);
 					/* used by for_table() macro */
-COMMON(int)		htable_iter(Table ht, KVS kvs, int *idx,
-				    void **name, void **value);
-COMMON(size_t)		sizeofTable(Table ht);
+int		htable_iter(Table ht, KVS kvs, int *idx,
+			    void **name, void **value);
+size_t		sizeofTable(Table ht);
+
+#undef LDFUNC_DECLARATIONS
 
 static inline int
 htable_valid_kv(void *kv)
@@ -97,6 +105,23 @@ htable_valid_kv(void *kv)
 				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
 				    ((intptr_t)(p))) & \
 				   ((size)-1))
+
+#define FOR_TABLE(ht, n, v) \
+	for \
+	( void *n = NULL, \
+	       *v = NULL, \
+	       *__ft_ht = (ht), \
+	       *__ft_idx = NULL, \
+	       *__ft_kvs = ((Table)ht)->kvs, \
+	       *__ft_start = (void*)1 \
+	; \
+	  __ft_start \
+	  ? (ATOMIC_INC(&((KVS)__ft_kvs)->accesses) || 1) \
+	  : (ATOMIC_DEC(&((KVS)__ft_kvs)->accesses) && 0) \
+	; \
+	  __ft_start = NULL \
+	) \
+	  while ( htable_iter((Table)__ft_ht, (KVS)__ft_kvs, (int *)&__ft_idx, &n, &v) )
 
 #define for_table(ht, n, v, code) \
 	{ int idx = 0; \

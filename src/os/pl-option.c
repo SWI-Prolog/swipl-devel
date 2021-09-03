@@ -33,8 +33,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
-#include "pl-dict.h"
+#include "../pl-incl.h"
+#include "../pl-dict.h"
+#include "../pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Variable argument list:
@@ -59,8 +60,9 @@ typedef union
 } optvalue;
 
 
+#define get_optval(valp, spec, val) LDFUNC(get_optval, valp, spec, val)
 static int
-get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
+get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
 { switch((spec->type & OPT_TYPE_MASK))
   { case OPT_BOOL:
     { int bval;
@@ -154,16 +156,13 @@ get_optval(optvalue valp, const opt_spec *spec, term_t val ARG_LD)
 typedef struct dictopt_ctx
 { const opt_spec       *specs;		/* specifications */
   optvalue	       *values;		/* value pointers */
-  PL_local_data_t      *ld;		/* the engine */
 } dictopt_ctx;
 
+#define dict_option(key, value, last, closure) LDFUNC(dict_option, key, value, last, closure)
 
 static int
-dict_option(term_t key, term_t value, int last, void *closure)
+dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
 { dictopt_ctx *ctx = closure;
-#if defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)
-  PL_local_data_t *__PL_ld = ctx->ld;
-#endif
   atom_t name;
   int n;
   const opt_spec *s;
@@ -173,7 +172,7 @@ dict_option(term_t key, term_t value, int last, void *closure)
 
   for( n=0, s = ctx->specs; s->name; n++, s++ )
   { if ( s->name == name )
-    { if ( !get_optval(ctx->values[n], s, value PASS_LD) )
+    { if ( !get_optval(ctx->values[n], s, value) )
 	return -1;
       return 0;
     }
@@ -196,23 +195,22 @@ dict_option(term_t key, term_t value, int last, void *closure)
    need to worry right now.
 */
 
+#define dict_options(dict, flags, specs, values) LDFUNC(dict_options, dict, flags, specs, values)
 static int
-dict_options(term_t dict, int flags, const opt_spec *specs, optvalue *values ARG_LD)
+dict_options(DECL_LD term_t dict, int flags, const opt_spec *specs, optvalue *values)
 { dictopt_ctx ctx;
 
   ctx.specs  = specs;
   ctx.values = values;
-  ctx.ld     = LD;
 
   return PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
 
 
 int
-scan_options(term_t options, int flags, atom_t optype,
+scan_options(DECL_LD term_t options, int flags, atom_t optype,
 	     const opt_spec *specs, ...)
-{ GET_LD
-  va_list args;
+{ va_list args;
   const opt_spec *s;
   optvalue values[MAXOPTIONS];
   term_t list;
@@ -229,7 +227,7 @@ scan_options(term_t options, int flags, atom_t optype,
   va_end(args);
 
   if ( PL_is_dict(options) )
-    return dict_options(options, flags, specs, values PASS_LD);
+    return dict_options(options, flags, specs, values);
 
   list = PL_copy_term_ref(options);
   av = PL_new_term_refs(3);
@@ -260,7 +258,7 @@ scan_options(term_t options, int flags, atom_t optype,
     { return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     } else
     { itemerror:
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, optype, head);
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_option, head);
     }
 
     for( n=0, s = specs; s->name; n++, s++ )
@@ -272,7 +270,7 @@ scan_options(term_t options, int flags, atom_t optype,
 	  }
 	  goto itemerror;
 	}
-	if ( !get_optval(values[n], s, val PASS_LD) )
+	if ( !get_optval(values[n], s, val) )
 	  return FALSE;
 	if ( (s->type&OPT_TYPE_MASK) == OPT_TERM )
 	  candiscard = FALSE;

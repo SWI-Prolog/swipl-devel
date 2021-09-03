@@ -103,10 +103,10 @@ decorate uncaught exceptions:
 %
 %     * frame(+Frame)
 %     Start at Frame instead of the current frame.
-%     * goal_depth(+Depth)
+%     * goal_term_depth(+Depth)
 %     If Depth > 0, include a shallow copy of the goal arguments
 %     into the stack.  Default is set by the Prolog flag
-%     `backtrace_goal_depth`, set to `2` initially, showing the
+%     `backtrace_goal_depth`, set to `3` initially, showing the
 %     goal and toplevel of any argument.
 %     * guard(+Guard)
 %     Do not show stack frames above Guard.  See stack_guard/1.

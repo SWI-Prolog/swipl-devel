@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2020, VU University Amsterdam
+    Copyright (c)  2016-2021, VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -33,11 +34,21 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#define NO_TRIE_GEN_HELPERS 1
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-indirect.h"
+#include "pl-proc.h"
+#include "pl-prims.h"
+#include "pl-wam.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-rec.h"
+#include "pl-util.h"
+#include "pl-attvar.h"
+#include "pl-pro.h"
 #define NO_AC_TERM_WALK 1
 #define AC_TERM_WALK_POP 1
 #include "pl-termwalk.c"
@@ -92,10 +103,20 @@ typedef struct ukey_state
   Word		var_buf[NVARS_FAST];	/* quick var buffer */
 } ukey_state;
 
-static int	unify_key(ukey_state *state, word key ARG_LD);
-static void	init_ukey_state(ukey_state *state, trie *trie, Word p ARG_LD);
-static void	destroy_ukey_state(ukey_state *state ARG_LD);
+#if USE_LD_MACROS
+#define	unify_key(state, key)			LDFUNC(unify_key, state, key)
+#define	init_ukey_state(state, trie, p)		LDFUNC(init_ukey_state, state, trie, p)
+#define	destroy_ukey_state(state)		LDFUNC(destroy_ukey_state, state)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+static int	unify_key(ukey_state *state, word key);
+static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
+static void	destroy_ukey_state(ukey_state *state);
 static void	set_trie_clause_general_undefined(Clause cl);
+
+#undef LDFUNC_DECLARATIONS
 
 
 		 /*******************************
@@ -209,7 +230,7 @@ trie_destroy(trie *trie)
 }
 
 
-static void
+void
 trie_discard_clause(trie *trie)
 { atom_t dbref;
 
@@ -221,7 +242,7 @@ trie_discard_clause(trie *trie)
       if ( cref )
       { Clause cl = cref->value.clause;
 	set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
-	retractClauseDefinition(cl->predicate, cl);
+	retractClauseDefinition(cl->predicate, cl, FALSE);
       }
       PL_unregister_atom(dbref);
     }
@@ -252,8 +273,9 @@ trie_clean(trie *trie)
 }
 
 
+#define get_child(n, key) LDFUNC(get_child, n, key)
 static trie_node *
-get_child(trie_node *n, word key ARG_LD)
+get_child(DECL_LD trie_node *n, word key)
 { trie_children children = n->children;
 
   if ( children.any )
@@ -270,6 +292,25 @@ get_child(trie_node *n, word key ARG_LD)
   }
 
   return NULL;
+}
+
+
+int
+is_leaf_trie_node(trie_node *n)
+{ trie_children children = n->children;
+
+  if ( children.any )
+  { switch( children.any->type )
+    { case TN_KEY:
+	return FALSE;
+      case TN_HASHED:
+	return children.hash->table->size == 0;
+      default:
+	assert(0);
+    }
+  }
+
+  return TRUE;
 }
 
 
@@ -378,6 +419,8 @@ prune_node(trie *trie, trie_node *n)
       }
     }
 
+    if ( !trie )
+      trie = get_trie_from_node(n);
     destroy_node(trie, n);
   }
 }
@@ -519,8 +562,9 @@ options:
     compared to the hash table anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define insert_child(trie, n, key) LDFUNC(insert_child, trie, n, key)
 static trie_node *
-insert_child(trie *trie, trie_node *n, word key ARG_LD)
+insert_child(DECL_LD trie *trie, trie_node *n, word key)
 { for(;;)
   { trie_children children = n->children;
     trie_node *new = new_trie_node(trie, key);
@@ -601,25 +645,27 @@ insert_child(trie *trie, trie_node *n, word key ARG_LD)
 }
 
 
+#define follow_node(trie, n, value, add) LDFUNC(follow_node, trie, n, value, add)
 static trie_node *
-follow_node(trie *trie, trie_node *n, word value, int add ARG_LD)
+follow_node(DECL_LD trie *trie, trie_node *n, word value, int add)
 { trie_node *child;
 
-  if ( (child=get_child(n, value PASS_LD)) )
+  if ( (child=get_child(n, value)) )
     return child;
 
   if ( add )
-    return insert_child(trie, n, value PASS_LD);
+    return insert_child(trie, n, value);
   else
     return NULL;
 }
 
 
+#define trie_intern_indirect(trie, w, add) LDFUNC(trie_intern_indirect, trie, w, add)
 static word
-trie_intern_indirect(trie *trie, word w, int add ARG_LD)
+trie_intern_indirect(DECL_LD trie *trie, word w, int add)
 { for(;;)
   { if ( trie->indirects )
-    { return intern_indirect(trie->indirects, w, add PASS_LD);
+    { return intern_indirect(trie->indirects, w, add);
     } else if ( add )
     { indirect_table *newtab = new_indirect_table();
 
@@ -638,9 +684,10 @@ trie_intern_indirect(trie *trie, word w, int add ARG_LD)
  * only, the performance loss is not vital.
  */
 
+#define prune_error(trie, node) LDFUNC(prune_error, trie, node)
 static void
-prune_error(trie *trie, trie_node *node ARG_LD)
-{ prune_node(trie, follow_node(trie, node, TRIE_ERROR_VAL, TRUE PASS_LD));
+prune_error(DECL_LD trie *trie, trie_node *node)
+{ prune_node(trie, follow_node(trie, node, TRIE_ERROR_VAL, TRUE));
 }
 
 
@@ -667,9 +714,9 @@ Return:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
+trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 		     Word k, int add, size_abstract *abstract,
-		     TmpBuffer vars ARG_LD)
+		     TmpBuffer vars)
 { term_agenda_P agenda;
   size_t var_number = 0;
   int rc = TRUE;
@@ -695,7 +742,7 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
     if ( (popn = IS_AC_TERM_POP(p)) )
     { compounds -= popn;
       if ( compounds > 0 )
-      { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add PASS_LD)) )
+      { if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
 	  break;
 	continue;
       } else
@@ -722,12 +769,12 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
 	    *p = w2;
 	  w = w2;
 	}
-        node = follow_node(trie, node, w, add PASS_LD);
+        node = follow_node(trie, node, w, add);
 	break;
       case TAG_ATTVAR:
 	rc = TRIE_LOOKUP_CONTAINS_ATTVAR;
 
-        prune_error(trie, node PASS_LD);
+        prune_error(trie, node);
         node = NULL;
         break;
       case TAG_COMPOUND:
@@ -740,12 +787,12 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
 
 	  if ( aleft != (size_t)-1 )
 	    aleft--;
-	  if ( ++compounds == 1000 && add && !is_acyclic(p PASS_LD) )
+	  if ( ++compounds == 1000 && add && !is_acyclic(p) )
 	  { rc = TRIE_LOOKUP_CYCLIC;
-	    prune_error(trie, node PASS_LD);
+	    prune_error(trie, node);
 	    node = NULL;
 	  } else
-	  { node = follow_node(trie, node, f->definition, add PASS_LD);
+	  { node = follow_node(trie, node, f->definition, add);
 	    pushWorkAgenda_P(&agenda, arity, f->arguments);
 	  }
 	}
@@ -753,12 +800,12 @@ trie_lookup_abstract(trie *trie, trie_node *node, trie_node **nodep,
       }
       default:
       { if ( !isIndirect(w) )
-	{ node = follow_node(trie, node, w, add PASS_LD);
+	{ node = follow_node(trie, node, w, add);
 	} else
-	{ word i = trie_intern_indirect(trie, w, add PASS_LD);
+	{ word i = trie_intern_indirect(trie, w, add);
 
 	  if ( i )
-	    node = follow_node(trie, node, i, add PASS_LD);
+	    node = follow_node(trie, node, i, add);
 	  else
 	    node = NULL;
 	}
@@ -850,7 +897,7 @@ print_keys(Word k, size_t kc)
 #define MAX_FAST 256
 
 int
-unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
+unify_trie_term(DECL_LD trie_node *node, trie_node **parent, term_t term)
 { word fast[MAX_FAST];
   Word keys = fast;
   size_t keys_allocated = MAX_FAST;
@@ -896,10 +943,10 @@ unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
 
   retry:
     Mark(m);
-    init_ukey_state(&ustate, trie_ptr, valTermRef(term) PASS_LD);
+    init_ukey_state(&ustate, trie_ptr, valTermRef(term));
     for(i=kc; i-- > 0; )
-    { if ( (rc=unify_key(&ustate, keys[i] PASS_LD)) != TRUE )
-      { destroy_ukey_state(&ustate PASS_LD);
+    { if ( (rc=unify_key(&ustate, keys[i])) != TRUE )
+      { destroy_ukey_state(&ustate);
 	if ( rc == FALSE )
 	  goto out;
 	Undo(m);
@@ -909,7 +956,7 @@ unify_trie_term(trie_node *node, trie_node **parent, term_t term ARG_LD)
 	  goto out;
       }
     }
-    destroy_ukey_state(&ustate PASS_LD);
+    destroy_ukey_state(&ustate);
     break;
   }
 
@@ -1047,10 +1094,10 @@ symbol_trie(atom_t symbol)
 }
 
 
-#define unify_trie(t, trie) unify_trie__LD(t, trie PASS_LD)
 
+#define unify_trie(t, trie) LDFUNC(unify_trie, t, trie)
 static int
-unify_trie__LD(term_t t, trie *trie ARG_LD)
+unify_trie(DECL_LD term_t t, trie *trie)
 { return PL_unify_atom(t, trie->symbol);
 }
 
@@ -1166,8 +1213,9 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 
 #define isRecord(w) (((w)&0x3) == 0)
 
+#define intern_value(value) LDFUNC(intern_value, value)
 static word
-intern_value(term_t value ARG_LD)
+intern_value(DECL_LD term_t value)
 { if ( value )
   { Word vp = valTermRef(value);
 
@@ -1205,8 +1253,9 @@ equal_value(word v1, word v2)
 }
 
 
+#define unify_value(t, value) LDFUNC(unify_value, t, value)
 static int
-unify_value(term_t t, word value ARG_LD)
+unify_value(DECL_LD term_t t, word value)
 { if ( !isRecord(value) )
   { return _PL_unify_atomic(t, value);
   } else
@@ -1221,7 +1270,7 @@ unify_value(term_t t, word value ARG_LD)
 
 
 int
-put_trie_value(term_t t, trie_node *node ARG_LD)
+put_trie_value(DECL_LD term_t t, trie_node *node)
 { if ( !isRecord(node->value) )
   { *valTermRef(t) = node->value;
     return TRUE;
@@ -1259,8 +1308,8 @@ set_trie_value_word(trie *trie, trie_node *node, word val)
 }
 
 int
-set_trie_value(trie *trie, trie_node *node, term_t value ARG_LD)
-{ word val = intern_value(value PASS_LD);
+set_trie_value(DECL_LD trie *trie, trie_node *node, term_t value)
+{ word val = intern_value(value);
 
   if ( !set_trie_value_word(trie, node, val) &&
        isRecord(val) )
@@ -1314,9 +1363,10 @@ trie_delete(trie *trie, trie_node *node, int prune)
  * @error permission_error if Key was associated with a different value
  */
 
+#define trie_insert(Trie, Key, Value, nodep, update, abstract) LDFUNC(trie_insert, Trie, Key, Value, nodep, update, abstract)
 static int
-trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
-	    int update, size_abstract *abstract ARG_LD)
+trie_insert(DECL_LD term_t Trie, term_t Key, term_t Value, trie_node **nodep,
+	    int update, size_abstract *abstract)
 { trie *trie;
 
   if ( get_trie(Trie, &trie) )
@@ -1339,8 +1389,8 @@ trie_insert(term_t Trie, term_t Key, term_t Value, trie_node **nodep,
     kp	= valTermRef(Key);
 
     if ( (rc=trie_lookup_abstract(trie, NULL, &node, kp,
-				  TRUE, abstract, NULL PASS_LD)) == TRUE )
-    { word val = intern_value(Value PASS_LD);
+				  TRUE, abstract, NULL)) == TRUE )
+    { word val = intern_value(Value);
 
       if ( nodep )
 	*nodep = node;
@@ -1398,7 +1448,7 @@ static
 PRED_IMPL("trie_insert", 3, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, FALSE, NULL PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, FALSE, NULL);
 }
 
 /**
@@ -1414,7 +1464,7 @@ static
 PRED_IMPL("trie_insert", 2, trie_insert, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, 0, NULL, FALSE, NULL PASS_LD);
+  return trie_insert(A1, A2, 0, NULL, FALSE, NULL);
 }
 
 
@@ -1430,7 +1480,7 @@ PRED_IMPL("$trie_insert_abstract", 3, trie_insert_abstract, 0)
   size_abstract sa = {.from_depth = 1};
 
   return ( PL_get_size_ex(A2, &sa.size ) &&
-	   trie_insert(A1, A3, 0, NULL, FALSE, &sa PASS_LD) > 0 );
+	   trie_insert(A1, A3, 0, NULL, FALSE, &sa) > 0 );
 }
 
 
@@ -1447,7 +1497,7 @@ static
 PRED_IMPL("trie_update", 3, trie_update, 0)
 { PRED_LD
 
-  return trie_insert(A1, A2, A3, NULL, TRUE, NULL PASS_LD);
+  return trie_insert(A1, A2, A3, NULL, TRUE, NULL);
 }
 
 
@@ -1467,7 +1517,7 @@ PRED_IMPL("trie_insert", 4, trie_insert, 0)
 { PRED_LD
   trie_node *node;
 
-  return ( trie_insert(A1, A2, A3, &node, FALSE, NULL PASS_LD) &&
+  return ( trie_insert(A1, A2, A3, &node, FALSE, NULL) &&
 	   PL_unify_pointer(A4, node) );
 }
 
@@ -1484,9 +1534,9 @@ PRED_IMPL("trie_delete", 3, trie_delete, 0)
 
     kp = valTermRef(A2);
 
-    if ( (rc=trie_lookup(trie, NULL, &node, kp, FALSE, NULL PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(trie, NULL, &node, kp, FALSE, NULL)) == TRUE )
     { if ( node->value )
-      { if ( unify_value(A3, node->value PASS_LD) )
+      { if ( unify_value(A3, node->value) )
 	{ trie_delete(trie, node, TRUE);
 	  return TRUE;
 	}
@@ -1513,9 +1563,9 @@ PRED_IMPL("trie_lookup", 3, trie_lookup, 0)
 
     kp = valTermRef(A2);
 
-    if ( (rc=trie_lookup(trie, NULL, &node, kp, FALSE, NULL PASS_LD)) == TRUE )
+    if ( (rc=trie_lookup(trie, NULL, &node, kp, FALSE, NULL)) == TRUE )
     { if ( node->value )
-	return unify_value(A3, node->value PASS_LD);
+	return unify_value(A3, node->value);
       return FALSE;
     }
 
@@ -1538,7 +1588,7 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
   void *ptr;
 
   return ( PL_get_pointer_ex(A1, &ptr) &&
-	   unify_trie_term(ptr, NULL, A2 PASS_LD)
+	   unify_trie_term(ptr, NULL, A2)
 	 );
 }
 
@@ -1554,7 +1604,7 @@ PRED_IMPL("trie_term", 2, trie_term, 0)
  */
 
 static void
-init_ukey_state(ukey_state *state, trie *trie, Word p ARG_LD)
+init_ukey_state(DECL_LD ukey_state *state, trie *trie, Word p)
 { state->trie = trie;
   state->ptr  = p;
   state->umode = uread;
@@ -1563,7 +1613,7 @@ init_ukey_state(ukey_state *state, trie *trie, Word p ARG_LD)
 }
 
 static void
-destroy_ukey_state(ukey_state *state ARG_LD)
+destroy_ukey_state(DECL_LD ukey_state *state)
 { if ( state->max_var_seen && state->vars != state->var_buf )
     PL_free(state->vars);
   aTop = aBase + state->a_offset;
@@ -1596,7 +1646,7 @@ find_var(ukey_state *state, size_t index)
 
 
 static int
-unify_key(ukey_state *state, word key ARG_LD)
+unify_key(DECL_LD ukey_state *state, word key)
 { Word p = state->ptr;
 
   switch(tagex(key))
@@ -1651,7 +1701,7 @@ unify_key(ukey_state *state, word key ARG_LD)
 	      t[0] = key;
 	      for(i=0; i<arity; i++)
 		setVar(t[i+1]);
-	      assignAttVar(p, &w PASS_LD);
+	      assignAttVar(p, &w);
 	      state->ptr = &t[1];
 	      return TRUE;
 	    } else
@@ -1713,7 +1763,7 @@ unify_key(ukey_state *state, word key ARG_LD)
 	} else
 	{ int rc;
 
-	  if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE PASS_LD)) != TRUE )
+	  if ( (rc=unify_ptrs(state->ptr, *v, ALLOW_RETCODE)) != TRUE )
 	    return rc;
 	}
       }
@@ -1726,7 +1776,7 @@ unify_key(ukey_state *state, word key ARG_LD)
     case STG_GLOBAL|TAG_FLOAT:
     { word w;
 
-      w = extern_indirect_no_shift(state->trie->indirects, key PASS_LD);
+      w = extern_indirect_no_shift(state->trie->indirects, key);
       if ( !w )
 	return GLOBAL_OVERFLOW;
 
@@ -1810,7 +1860,8 @@ typedef struct
   desc_tstate  buffer[64];	/* Quick buffer for stack */
 } descent_state;
 
-static int	advance_node(trie_choice *ch ARG_LD);
+#define advance_node(ch) LDFUNC(advance_node, ch)
+static int	advance_node(DECL_LD trie_choice *ch);
 
 static void
 init_trie_state(trie_gen_state *state, trie *trie, const trie_node *root)
@@ -1843,6 +1894,13 @@ clear_trie_state(trie_gen_state *state)
     freeForeignState(state, sizeof(*state));
 }
 
+foreign_t
+clear_trie_gen_state(void *ctx)
+{ trie_gen_state *state = ctx;
+
+  clear_trie_state(state);
+  return TRUE;
+}
 
 static void
 clear_descent_state(descent_state *dstate)
@@ -1850,8 +1908,9 @@ clear_descent_state(descent_state *dstate)
     clearSegStack(&dstate->stack);
 }
 
+#define get_key(state, dstate, key) LDFUNC(get_key, state, dstate, key)
 static int
-get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
+get_key(DECL_LD trie_gen_state *state, descent_state *dstate, word *key)
 { Word p;
 
   if ( dstate->size == 0 )
@@ -1893,7 +1952,7 @@ get_key(trie_gen_state *state, descent_state *dstate, word *key ARG_LD)
     dstate->size--;
 
     if ( isIndirect(*p) )
-    { *key = trie_intern_indirect(state->trie, *p, FALSE PASS_LD);
+    { *key = trie_intern_indirect(state->trie, *p, FALSE);
       return *key != 0;
     } else
     { *key = *p;
@@ -1916,8 +1975,9 @@ mask such that  we  perform  a  couple   of  hash  lookups  rather  than
 enumerating the entire table.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-trie_choice *
-add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
+#define add_choice(state, dstate, node) LDFUNC(add_choice, state, dstate, node)
+static trie_choice *
+add_choice(DECL_LD trie_gen_state *state, descent_state *dstate, trie_node *node)
 { trie_children children = node->children;
   trie_choice *ch;
   int has_key;
@@ -1930,7 +1990,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	    deRef2(dstate->term, p);
 	    Sdprintf("add_choice() for %s\n", print_val(*p, NULL));
 	  });
-    if ( !(has_key = get_key(state, dstate, &k PASS_LD)) )
+    if ( !(has_key = get_key(state, dstate, &k)) )
       dstate->prune = FALSE;
   } else
     has_key = FALSE;
@@ -1995,7 +2055,7 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 	    ch->var_mask   = children.hash->var_mask;
 	    ch->var_index  = 1;
 	    ch->novar      = k;
-	    if ( advance_node(ch PASS_LD) )
+	    if ( advance_node(ch) )
 	    { return ch;
 	    } else
 	    { state->choicepoints.top = (char*)ch;
@@ -2028,11 +2088,12 @@ add_choice(trie_gen_state *state, descent_state *dstate, trie_node *node ARG_LD)
 }
 
 
+#define descent_node(state, dstate, ch) LDFUNC(descent_node, state, dstate, ch)
 static trie_choice *
-descent_node(trie_gen_state *state, descent_state *dstate, trie_choice *ch ARG_LD)
+descent_node(DECL_LD trie_gen_state *state, descent_state *dstate, trie_choice *ch)
 { while( ch && ch->child->children.any &&
 	 false(ch->child, state->vflags) )
-  { ch = add_choice(state, dstate, ch->child PASS_LD);
+  { ch = add_choice(state, dstate, ch->child);
   }
 
   return ch;
@@ -2040,7 +2101,7 @@ descent_node(trie_gen_state *state, descent_state *dstate, trie_choice *ch ARG_L
 
 
 static int
-advance_node(trie_choice *ch ARG_LD)
+advance_node(DECL_LD trie_choice *ch)
 { if ( ch->table_enum )
   { void *k, *v;
 
@@ -2075,14 +2136,15 @@ advance_node(trie_choice *ch ARG_LD)
 }
 
 
+#define next_choice0(state, dstate) LDFUNC(next_choice0, state, dstate)
 static trie_choice *
-next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
+next_choice0(DECL_LD trie_gen_state *state, descent_state *dstate)
 { trie_choice *btm = base_choice(state);
   trie_choice  *ch = top_choice(state)-1;
 
   while(ch >= btm)
-  { if ( advance_node(ch PASS_LD) )
-      return descent_node(state, dstate, ch PASS_LD);
+  { if ( advance_node(ch) )
+      return descent_node(state, dstate, ch);
 
     if ( ch->table_enum )
       freeTableEnum(ch->table_enum);
@@ -2095,8 +2157,9 @@ next_choice0(trie_gen_state *state, descent_state *dstate ARG_LD)
 }
 
 
+#define next_choice(state) LDFUNC(next_choice, state)
 static trie_choice *
-next_choice(trie_gen_state *state ARG_LD)
+next_choice(DECL_LD trie_gen_state *state)
 { trie_choice *ch;
   descent_state dstate;
 
@@ -2104,7 +2167,7 @@ next_choice(trie_gen_state *state ARG_LD)
   dstate.compound = FALSE;
 
   do
-  { ch = next_choice0(state, &dstate PASS_LD);
+  { ch = next_choice0(state, &dstate);
   } while (ch && false(ch->child, state->vflags));
 
   return ch;
@@ -2124,23 +2187,24 @@ Unify term with the term represented a trie path (list of trie_choice).
 Returns one of TRUE, FALSE or *_OVERFLOW.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define unify_trie_path(term, tn, gstate) LDFUNC(unify_trie_path, term, tn, gstate)
 static int
-unify_trie_path(term_t term, trie_node **tn, trie_gen_state *gstate ARG_LD)
+unify_trie_path(DECL_LD term_t term, trie_node **tn, trie_gen_state *gstate)
 { ukey_state ustate;
   trie_choice *ch = base_choice(gstate);
   trie_choice *top = top_choice(gstate);
 
-  init_ukey_state(&ustate, gstate->trie, valTermRef(term) PASS_LD);
+  init_ukey_state(&ustate, gstate->trie, valTermRef(term));
   for( ; ch < top; ch++ )
   { int rc;
 
-    if ( (rc=unify_key(&ustate, ch->key PASS_LD)) != TRUE )
-    { destroy_ukey_state(&ustate PASS_LD);
+    if ( (rc=unify_key(&ustate, ch->key)) != TRUE )
+    { destroy_ukey_state(&ustate);
       return rc;
     }
   }
 
-  destroy_ukey_state(&ustate PASS_LD);
+  destroy_ukey_state(&ustate);
   *tn = ch[-1].child;
 
   return TRUE;
@@ -2149,7 +2213,7 @@ unify_trie_path(term_t term, trie_node **tn, trie_gen_state *gstate ARG_LD)
 
 foreign_t
 trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
-	     term_t Data, int (*unify_data)(term_t, trie_node*, void *ctx ARG_LD),
+	     term_t Data, int LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	     void *ctx, control_t PL__ctx)
 { PRED_LD
   trie_gen_state state_buf;
@@ -2173,9 +2237,9 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
       acquire_trie(trie);
       state = &state_buf;
       init_trie_state(state, trie, root);
-      rc = ( (ch = add_choice(state, &dstate, root PASS_LD)) &&
-	     (ch = descent_node(state, &dstate, ch PASS_LD)) &&
-	     (true(ch->child, state->vflags) || next_choice(state PASS_LD)) );
+      rc = ( (ch = add_choice(state, &dstate, root)) &&
+	     (ch = descent_node(state, &dstate, ch)) &&
+	     (true(ch->child, state->vflags) || next_choice(state)) );
       clear_descent_state(&dstate);
       if ( !rc )
       { clear_trie_state(state);
@@ -2186,7 +2250,7 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
     case FRG_REDO:
       state = CTX_PTR;
       if ( true(gen_state_leaf(state), state->vflags) ||
-	   next_choice(state PASS_LD) )		/* pending choice was deleted */
+	   next_choice(state) )		/* pending choice was deleted */
       { break;
       } else
       { clear_trie_state(state);
@@ -2202,12 +2266,12 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
   }
 
   Mark(fli_context->mark);
-  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state PASS_LD) )
+  for( ; !isEmptyBuffer(&state->choicepoints); next_choice(state) )
   { for(;;)
     { int rc;
       size_t asize = aTop - aBase; /* using the argument stack may be dubious */
 
-      if ( (rc=unify_trie_path(Key, &n, state PASS_LD)) == TRUE )
+      if ( (rc=unify_trie_path(Key, &n, state)) == TRUE )
 	break;
 
       aTop = aBase+asize;
@@ -2224,9 +2288,9 @@ trie_gen_raw(trie *trie, trie_node *root, term_t Key, term_t Value,
 
     DEBUG(CHK_SECURE, PL_check_data(Key));
 
-    if ( (!Value || unify_value(Value, n->value PASS_LD)) &&
-	 (!Data  || unify_data(Data, n, ctx PASS_LD)) )
-    { if ( next_choice(state PASS_LD) )
+    if ( (!Value || unify_value(Value, n->value)) &&
+	 (!Data  || LDFUNCP(*unify_data)(Data, n, ctx)) )
+    { if ( next_choice(state) )
       { if ( !state->allocated )
 	{ trie_gen_state *nstate = allocForeignState(sizeof(*state));
 	  TmpBuffer nchp = &nstate->choicepoints;
@@ -2267,7 +2331,7 @@ next:;
 
 foreign_t
 trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
-	 term_t Data, int (*unify_data)(term_t, trie_node*, void *ctx ARG_LD),
+	 term_t Data, int LDFUNCP (*unify_data)(DECL_LD term_t, trie_node*, void *ctx),
 	 void *ctx, control_t PL__ctx)
 { if ( CTX_CNTRL == FRG_FIRST_CALL )
   { trie *trie;
@@ -2306,8 +2370,9 @@ PRED_IMPL("trie_gen", 2, trie_gen, PL_FA_NONDETERMINISTIC)
 { return trie_gen(A1, 0, A2, 0, 0, NULL, NULL, PL__ctx);
 }
 
+#define unify_node_id(t, answer, ctx) LDFUNC(unify_node_id, t, answer, ctx)
 static int
-unify_node_id(term_t t, trie_node *answer, void *ctx ARG_LD)
+unify_node_id(DECL_LD term_t t, trie_node *answer, void *ctx)
 { (void) ctx;
 
   return PL_unify_pointer(t, answer);
@@ -2315,7 +2380,7 @@ unify_node_id(term_t t, trie_node *answer, void *ctx ARG_LD)
 
 static
 PRED_IMPL("$trie_gen_node", 3, trie_gen_node, PL_FA_NONDETERMINISTIC)
-{ return trie_gen(A1, 0, A2, 0, A3, unify_node_id, NULL, PL__ctx);
+{ return trie_gen(A1, 0, A2, 0, A3, LDFUNC_REF(unify_node_id), NULL, PL__ctx);
 }
 
 
@@ -2438,9 +2503,9 @@ PRED_IMPL("trie_insert_insert", 3, trie_insert_insert, 0)
     kp	= valTermRef(A2);
     vp	= valTermRef(A3);
 
-    rc = trie_lookup(trie, NULL, &root, kp, TRUE, &vars PASS_LD);
+    rc = trie_lookup(trie, NULL, &root, kp, TRUE, &vars);
     if ( rc == TRUE )
-    { rc = trie_lookup(trie, root, &node, vp, TRUE, &vars PASS_LD);
+    { rc = trie_lookup(trie, root, &node, vp, TRUE, &vars);
 
       if ( rc == TRUE )
       { set(root, TN_PRIMARY);
@@ -2473,7 +2538,7 @@ PRED_IMPL("trie_lookup_gen", 3, trie_lookup_gen, PL_FA_NONDETERMINISTIC)
     int rc;
 
     kp = valTermRef(A2);
-    rc = trie_lookup(trie, NULL, &root, kp, FALSE, NULL PASS_LD);
+    rc = trie_lookup(trie, NULL, &root, kp, FALSE, NULL);
     if ( rc == TRUE )
     { return trie_gen_raw(trie, root, A3, 0, 0, NULL, NULL, PL__ctx);
     } else
@@ -2499,12 +2564,12 @@ PRED_IMPL("trie_lookup_delete", 3, trie_lookup_delete, 0)
     int rc;
 
     kp = valTermRef(A2);
-    rc = trie_lookup(trie, NULL, &root, kp, FALSE, NULL PASS_LD);
+    rc = trie_lookup(trie, NULL, &root, kp, FALSE, NULL);
     if ( rc == TRUE )
     { Word vp = valTermRef(A3);
       trie_node *node;
 
-      rc = trie_lookup(trie, root, &node, vp, FALSE, NULL PASS_LD);
+      rc = trie_lookup(trie, root, &node, vp, FALSE, NULL);
       if ( rc == TRUE )
       { trie_delete(trie, node, TRUE);
       } else
@@ -2530,6 +2595,7 @@ PRED_IMPL("trie_lookup_delete", 3, trie_lookup_delete, 0)
 typedef struct trie_compile_state
 { trie	       *trie;				/* Trie we are working on */
   int		try;				/* There are alternatives */
+  int		last_is_fail;			/* Ends in I_FAIL */
   tmp_buffer	codes;				/* Output instructions */
   size_t	else_loc;			/* last else */
   size_t	maxvar;				/* Highest var index */
@@ -2582,8 +2648,9 @@ fixup_else(trie_compile_state *state)
 }
 
 
+#define compile_trie_value(v, state) LDFUNC(compile_trie_value, v, state)
 static int
-compile_trie_value(Word v, trie_compile_state *state ARG_LD)
+compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 { term_agenda_P agenda;
   size_t var_number = 0;
   tmp_buffer varb;
@@ -2669,7 +2736,7 @@ compile_trie_value(Word v, trie_compile_state *state ARG_LD)
 	{ Functor f = valueTerm(w);
 	  size_t arity = arityFunctor(f->definition);
 
-	  if ( ++compounds == 1000 && !is_acyclic(p PASS_LD) )
+	  if ( ++compounds == 1000 && !is_acyclic(p) )
 	  { rc = TRIE_LOOKUP_CYCLIC;
 	    goto out;
 	  }
@@ -2698,8 +2765,9 @@ out:
 }
 
 
+#define compile_trie_node(n, state) LDFUNC(compile_trie_node, n, state)
 static int
-compile_trie_node(trie_node *n, trie_compile_state *state ARG_LD)
+compile_trie_node(DECL_LD trie_node *n, trie_compile_state *state)
 { trie_children children;
   word key;
   int rc;
@@ -2839,7 +2907,7 @@ children:
 	    goto next;
 	  }
 
-	  if ( (rc=compile_trie_node(n, state PASS_LD)) != TRUE )
+	  if ( (rc=compile_trie_node(n, state)) != TRUE )
 	  { freeTableEnum(e);
 	    return rc;
 	  }
@@ -2868,7 +2936,7 @@ children:
 	  { Word p = valTermRef(t2);
 
 	    deRef(p);
-	    if ( (rc = compile_trie_value(p, state PASS_LD)) != TRUE )
+	    if ( (rc = compile_trie_value(p, state)) != TRUE )
 	      return rc;
 	  } else
 	  { return FALSE;
@@ -2877,13 +2945,21 @@ children:
 	}
       }
       add_vmi(state, I_EXIT);
+      state->last_is_fail = FALSE;
     } else
     { add_vmi(state, I_FAIL);
-      if ( n == &state->trie->root )
-	add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
+      state->last_is_fail = TRUE;
     }
   }
 
+  return TRUE;
+}
+
+
+static int
+fixup_last_fail(trie_compile_state *state)
+{ if ( state->last_is_fail )
+    add_vmi(state, I_EXIT);	/* make sure the clause ends with I_EXIT */
   return TRUE;
 }
 
@@ -2913,7 +2989,7 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 
 
 atom_t
-compile_trie(Definition def, trie *trie ARG_LD)
+compile_trie(DECL_LD Definition def, trie *trie)
 { atom_t dbref;
 
 retry:
@@ -2929,14 +3005,15 @@ retry:
 
       init_trie_compile_state(&state, trie);
       add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
-      if ( compile_trie_node(&trie->root, &state PASS_LD) &&
+      if ( compile_trie_node(&trie->root, &state) &&
+	   fixup_last_fail(&state) &&
 	   create_trie_clause(def, &cl, &state) )
-      { cref = assertDefinition(def, cl, CL_END PASS_LD);
+      { cref = assertDefinition(def, cl, CL_END);
 	if ( cref )
 	{ dbref = lookup_clref(cref->value.clause);
 	  if ( !COMPARE_AND_SWAP_WORD(&trie->clause, 0, dbref) )
 	  { PL_unregister_atom(dbref);
-	    retractClauseDefinition(def, cref->value.clause);
+	    retractClauseDefinition(def, cref->value.clause, FALSE);
 	    goto retry;
 	  }
 	}
@@ -2959,7 +3036,7 @@ PRED_IMPL("$trie_compile", 2, trie_compile, 0)
   { Procedure proc = (true(trie, TRIE_ISMAP)
 			     ? GD->procedures.trie_gen_compiled3
 			     : GD->procedures.trie_gen_compiled2);
-    atom_t clref = compile_trie(proc->definition, trie PASS_LD);
+    atom_t clref = compile_trie(proc->definition, trie);
 
     return _PL_unify_atomic(A2, clref);
   }

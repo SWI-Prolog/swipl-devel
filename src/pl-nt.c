@@ -36,6 +36,7 @@
 #ifdef __WINDOWS__
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
+#include <psapi.h>
 
 #ifdef __MINGW32__
 #ifndef _WIN32_IE
@@ -47,7 +48,8 @@
 #define PL_MSG_HANDLED 1
 #endif
 
-#include "pl-incl.h"
+#include "pl-nt.h"
+#include "pl-fli.h"
 #include "os/pl-utf8.h"
 #include <process.h>
 #include "os/pl-ctype.h"
@@ -78,6 +80,7 @@ hasConsole(void)
     succeed;
 
 					/* I found a console */
+
   if ( (h = GetStdHandle(STD_OUTPUT_HANDLE)) != INVALID_HANDLE_VALUE )
   { DWORD mode;
 
@@ -455,7 +458,7 @@ utf8towcs(wchar_t *o, const char *src)
 { for( ; *src; )
   { int wc;
 
-    src = utf8_get_char(src, &wc);
+    PL_utf8_code_point(&src, NULL, &wc);
     *o++ = wc;
   }
   *o = 0;
@@ -798,6 +801,64 @@ PL_dlclose(void *handle)
 }
 
 #endif /*EMULATE_DLOPEN*/
+
+
+static
+PRED_IMPL("win_process_modules", 1, win_process_modules, 0)
+{ PRED_LD
+  HANDLE hProcess = GetCurrentProcess();
+  HMODULE lphModule[100];
+  HMODULE *found=lphModule;
+  DWORD cb = sizeof(lphModule);
+  DWORD lpcbNeeded;
+  int rc;
+
+  for(;;)
+  { if ( EnumProcessModules(hProcess, found, cb, &lpcbNeeded) )
+    { if ( lpcbNeeded > cb )
+      { if ( !(found = malloc(lpcbNeeded)) )
+	  return PL_no_memory();
+	cb = lpcbNeeded;
+      } else
+      { term_t tail = PL_copy_term_ref(A1);
+	term_t head = PL_new_term_ref();
+	int i;
+
+	for(i=0; i<lpcbNeeded/sizeof(HMODULE); i++)
+	{ wchar_t name[MAXPATHLEN];
+	  int n;
+
+	  if ( (n=GetModuleFileNameW(found[i], name, MAXPATHLEN)) > 0 )
+	  { name[n] = EOS;
+	    char name_utf8[MAXPATHLEN*2];
+	    char pname[MAXPATHLEN*2];
+
+	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8), XOS_DOWNCASE) &&
+		 PrologPath(name_utf8, pname, sizeof(pname)) )
+	    { if ( !PL_unify_list(tail, head, tail) ||
+		   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, pname)  )
+	      { rc = FALSE;
+		goto out;
+	      }
+	    } else
+	    { rc = PL_representation_error("max_path_length");
+	      goto out;
+	    }
+	  }
+	}
+
+	rc = PL_unify_nil(tail);
+	break;
+      }
+    }
+  }
+
+out:
+  if ( found != lphModule )
+    free(found);
+
+  return rc;
+}
 
 
 		 /*******************************
@@ -1153,12 +1214,13 @@ PL_w32_running_under_wine(void)
 		 *******************************/
 
 BeginPredDefs(win)
-  PRED_DEF("win_shell", 2, win_shell2, 0)
-  PRED_DEF("win_shell", 3, win_shell3, 0)
-  PRED_DEF("win_registry_get_value", 3, win_registry_get_value, 0)
-  PRED_DEF("win_folder", 2, win_folder, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("win_add_dll_directory", 2, win_add_dll_directory, 0)
+  PRED_DEF("win_shell",		       2, win_shell2,		    0)
+  PRED_DEF("win_shell",		       3, win_shell3,		    0)
+  PRED_DEF("win_registry_get_value",   3, win_registry_get_value,   0)
+  PRED_DEF("win_folder",	       2, win_folder,		    PL_FA_NONDETERMINISTIC)
+  PRED_DEF("win_add_dll_directory",    2, win_add_dll_directory,    0)
   PRED_DEF("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
+  PRED_DEF("win_process_modules",      1, win_process_modules,	    0)
 EndPredDefs
 
 #endif /*__WINDOWS__*/

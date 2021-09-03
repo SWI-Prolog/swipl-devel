@@ -38,6 +38,13 @@
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-prof.h"
+#include "pl-wam.h"
+#include "pl-setup.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
+#include "pl-gc.h"
+#include "pl-util.h"
+#include "pl-pro.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -46,9 +53,19 @@
 
 #define PROFTYPE_MAGIC 0x639a2fb1
 
+#if USE_LD_MACROS
+#define	profile(count)		LDFUNC(profile, count)
+#define	thread_prof_ticks(_)	LDFUNC(thread_prof_ticks, _)
+#endif
+
+#define LDFUNC_DECLARATIONS
+
 static int  identify_def(term_t t, void *handle);
 static int  get_def(term_t t, void **handle);
-static void profile(intptr_t count, PL_local_data_t *__PL_ld);
+static void profile(intptr_t count);
+static int  thread_prof_ticks(void);
+
+#undef LDFUNC_DECLARATIONS
 
 static PL_prof_type_t prof_default_type =
 { identify_def,					/* unify a Definition */
@@ -77,11 +94,22 @@ typedef struct call_node
   struct call_node *siblings;		/* my offspring */
 } call_node;
 
+#if USE_LD_MACROS
+#define	collectSiblingsTime(_)	LDFUNC(collectSiblingsTime, _)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static void	freeProfileData(void);
-static void	collectSiblingsTime(ARG1_LD);
+static void	collectSiblingsTime(void);
+
+#undef LDFUNC_DECLARATIONS
+
+#define WITH_LD_IF_PROFILING(_)		WITH_LD(GD->profile.thread) if(LD _)
+#define WITH_LD_IF_PROFILING_AND(cond)	WITH_LD_IF_PROFILING( && (cond))
 
 int
-activateProfiler(prof_status active ARG_LD)
+activateProfiler(DECL_LD prof_status active)
 { int i;
   PL_local_data_t *profiling;
 
@@ -110,7 +138,7 @@ activateProfiler(prof_status active ARG_LD)
   if ( active )
   { LD->profile.time_at_last_tick =
     LD->profile.time_at_start     = active == PROF_CPU
-					? ThreadCPUTime(LD, CPU_USER)
+					? ThreadCPUTime(CPU_USER)
 					: WallTime();
 
     GD->profile.thread = LD;
@@ -129,12 +157,12 @@ activateProfiler(prof_status active ARG_LD)
 
 
 static int
-thread_prof_ticks(PL_local_data_t *ld)
-{ double t0 = ld->profile.time_at_last_tick;
-  double t1 = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+thread_prof_ticks(DECL_LD)
+{ double t0 = LD->profile.time_at_last_tick;
+  double t1 = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
 				             : WallTime();
 
-  ld->profile.time_at_last_tick = t1;
+  LD->profile.time_at_last_tick = t1;
 
   DEBUG(MSG_PROF_TICKS,
 	Sdprintf("%d ms\n", (int)((t1-t0)*1000.0)));
@@ -157,16 +185,14 @@ typedef DWORD DWORD_PTR;
 
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
-{ PL_local_data_t *ld;
-
-  if ( (ld=GD->profile.thread) )
+{ WITH_LD_IF_PROFILING()
   { int newticks;
 
-    if ( (newticks = thread_prof_ticks(ld)) )
+    if ( (newticks = thread_prof_ticks()) )
     { if ( newticks < 0 )			/* Windows 95/98/... */
 	newticks = 1;
     }
-    profile(newticks, ld);
+    profile(newticks);
   }
 }
 
@@ -188,7 +214,7 @@ startProfiler(prof_status how)
   else
     return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 
-  return activateProfiler(PROF_CPU PASS_LD);
+  return activateProfiler(PROF_CPU);
 }
 
 
@@ -223,21 +249,20 @@ static int timer_signal;		/* SIG* */
 
 static void
 sig_profile(int sig)
-{ PL_local_data_t *ld;
-  (void)sig;
+{ (void)sig;
 
 #if !defined(BSD_SIGNALS) && !defined(HAVE_SIGACTION)
   signal(SIGPROF, sig_profile);
 #endif
 
-  if ( (ld=GD->profile.thread) )
+  WITH_LD_IF_PROFILING()
   { int newticks;
 
-    if ( (newticks = thread_prof_ticks(ld)) )
+    if ( (newticks = thread_prof_ticks()) )
     { if ( newticks < 0 )			/* Windows 95/98/... */
 	newticks = 1;
     }
-    profile(newticks, ld);
+    profile(newticks);
   }
 }
 
@@ -268,7 +293,7 @@ startProfiler(prof_status how)
 
   itimer = timer;
 
-  return activateProfiler(how PASS_LD);
+  return activateProfiler(how);
 }
 
 void
@@ -292,17 +317,14 @@ stopItimer(void)
 
 static int
 stopProfiler(void)
-{ PL_local_data_t *ld;
-
-  if ( (ld=GD->profile.thread) &&
-       ld->profile.active )
-  { double tend = ld->profile.active == PROF_CPU ? ThreadCPUTime(ld, CPU_USER)
+{ WITH_LD_IF_PROFILING_AND(LD->profile.active)
+  { double tend = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
 						 : WallTime();
 
-    ld->profile.time += tend - ld->profile.time_at_start;
+    LD->profile.time += tend - LD->profile.time_at_start;
 
     stopItimer();
-    activateProfiler(PROF_INACTIVE PASS_LDARG(ld));
+    activateProfiler(PROF_INACTIVE);
 #ifndef __WINDOWS__
     set_sighandler(timer_signal, SIG_IGN);
     timer_signal = 0;
@@ -379,8 +401,9 @@ $prof_node(+Node, -Pred, -Calls, -Redos, -Exits,
 	   -Recursive, -Ticks, -SiblingTicks)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define get_node(t, node) LDFUNC(get_node, t, node)
 static int
-get_node(term_t t, call_node **node ARG_LD)
+get_node(DECL_LD term_t t, call_node **node)
 { if ( PL_is_functor(t, FUNCTOR_dprof_node1) )
   { term_t a = PL_new_term_ref();
     void *ptr;
@@ -400,8 +423,9 @@ get_node(term_t t, call_node **node ARG_LD)
 }
 
 
+#define unify_node(t, node) LDFUNC(unify_node, t, node)
 static int
-unify_node(term_t t, call_node *node ARG_LD)
+unify_node(DECL_LD term_t t, call_node *node)
 { return PL_unify_term(t,
 		       PL_FUNCTOR, FUNCTOR_dprof_node1,
 		         PL_POINTER, node);
@@ -419,15 +443,15 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
     { atom_t a;
 
       if ( !PL_is_variable(A1) )
-      { if ( get_node(A1, &sibling PASS_LD) )
+      { if ( get_node(A1, &sibling) )
 	{ if ( sibling->parent )
-	    return unify_node(A2, sibling->parent PASS_LD);
+	    return unify_node(A2, sibling->parent);
 	}
 	fail;
       } else
       { if ( PL_get_atom(A2, &a) && a == ATOM_minus )
 	  sibling = LD->profile.roots;
-	else if ( get_node(A2, &parent PASS_LD) )
+	else if ( get_node(A2, &parent) )
 	  sibling = parent->siblings;
 	else
 	  fail;
@@ -442,7 +466,7 @@ PRED_IMPL("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
     { sibling = CTX_PTR;
 
     return_sibling:
-      if ( !unify_node(A1, sibling PASS_LD) )
+      if ( !unify_node(A1, sibling) )
 	fail;
       if ( sibling->next )
 	ForeignRedoPtr(sibling->next);
@@ -478,10 +502,10 @@ PRED_IMPL("$prof_node", 8, prof_node, 0)
 { PRED_LD
   call_node *n = NULL;
 
-  if ( !get_node(A1, &n PASS_LD) )
+  if ( !get_node(A1, &n) )
     return FALSE;
 
-  collectSiblingsTime(PASS_LD1);
+  collectSiblingsTime();
 
   return ( unify_node_id(A2, n) &&
 	   PL_unify_integer(A3, n->calls) &&
@@ -638,9 +662,10 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 
 
 
+#define sumProfile(n, handle, type, sum, seen) LDFUNC(sumProfile, n, handle, type, sum, seen)
 static int
-sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
-	   node_sum *sum, int seen ARG_LD)
+sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
+	   node_sum *sum, int seen)
 { call_node *s;
   int count = 0;
 
@@ -666,14 +691,15 @@ sumProfile(call_node *n, void *handle, PL_prof_type_t *type,
   }
 
   for(s=n->siblings; s; s = s->next)
-    count += sumProfile(s, handle, type, sum, seen PASS_LD);
+    count += sumProfile(s, handle, type, sum, seen);
 
   return count;
 }
 
 
+#define unify_relatives(list, r) LDFUNC(unify_relatives, list, r)
 static int
-unify_relatives(term_t list, prof_ref *r ARG_LD)
+unify_relatives(DECL_LD term_t list, prof_ref *r)
 { term_t tail = PL_copy_term_ref(list);
   term_t head = PL_new_term_ref();
   term_t tmp = PL_new_term_ref();
@@ -765,10 +791,10 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
   if ( !get_handle(A1, &handle) )
     fail;
 
-  collectSiblingsTime(PASS_LD1);
+  collectSiblingsTime();
   memset(&sum, 0, sizeof(sum));
   for(n=LD->profile.roots; n; n=n->next)
-    count += sumProfile(n, handle, &prof_default_type, &sum, 0 PASS_LD);
+    count += sumProfile(n, handle, &prof_default_type, &sum, 0);
 
   if ( count == 0 )
     fail;				/* nothing known about this one */
@@ -778,8 +804,8 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_integer(A4, sum.calls) &&
 	 PL_unify_integer(A5, sum.redos) &&
 	 PL_unify_integer(A6, sum.exits) &&
-	 unify_relatives(A7, sum.callers PASS_LD) &&
-	 unify_relatives(A8, sum.callees PASS_LD)
+	 unify_relatives(A7, sum.callers) &&
+	 unify_relatives(A8, sum.callees)
        );
 
   free_relatives(sum.callers);
@@ -816,8 +842,14 @@ PRED_IMPL("$prof_statistics", 5, prof_statistics, 0)
 		 *	       RESET		*
 		 *******************************/
 
+#if USE_LD_MACROS
+#define prof_clear_environments(fr) LDFUNC(prof_clear_environments, fr)
+#define prof_clear_choicepoints(ch) LDFUNC(prof_clear_choicepoints, ch)
+#define prof_clear_stacks(fr, ch) LDFUNC(prof_clear_stacks, fr, ch)
+#endif
+
 static QueryFrame
-prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
+prof_clear_environments(DECL_LD LocalFrame fr)
 { if ( fr == NULL )
     return NULL;
 
@@ -825,7 +857,7 @@ prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
   { if ( true(fr, FR_MARKED) )
       return NULL;
     set(fr, FR_MARKED);
-    ld->gc._local_frames++;
+    LD->gc._local_frames++;
 
     fr->prof_node = NULL;
 
@@ -838,22 +870,22 @@ prof_clear_environments(PL_local_data_t *ld, LocalFrame fr)
 
 
 static void
-prof_clear_choicepoints(PL_local_data_t *ld, Choice ch)
+prof_clear_choicepoints(DECL_LD Choice ch)
 { for( ; ch; ch = ch->parent )
-  { ld->gc._choice_count++;
-    prof_clear_environments(ld, ch->frame);
+  { LD->gc._choice_count++;
+    prof_clear_environments(ch->frame);
   }
 }
 
 
 static void
-prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
+prof_clear_stacks(DECL_LD LocalFrame fr, Choice ch)
 { QueryFrame qf;
 
   while(fr)
-  { qf = prof_clear_environments(ld, fr);
+  { qf = prof_clear_environments(fr);
     assert(qf->magic == QID_MAGIC);
-    prof_clear_choicepoints(ld, ch);
+    prof_clear_choicepoints(ch);
     if ( qf->parent )
     { QueryFrame pqf = qf->parent;
 
@@ -867,15 +899,14 @@ prof_clear_stacks(PL_local_data_t *ld, LocalFrame fr, Choice ch)
 
 
 bool
-resetProfiler(void)
-{ GET_LD
-  stopProfiler();
+resetProfiler(DECL_LD)
+{ stopProfiler();
 
   assert(LD->gc._local_frames == 0);
   assert(LD->gc._choice_count == 0);
 
-  prof_clear_stacks(LD, environment_frame, LD->choicepoints);
-  unmark_stacks(LD, environment_frame, LD->choicepoints, FR_MARKED);
+  prof_clear_stacks(environment_frame, LD->choicepoints);
+  unmark_stacks(environment_frame, LD->choicepoints, FR_MARKED);
 
   assert(LD->gc._local_frames == 0);
   assert(LD->gc._choice_count == 0);
@@ -934,7 +965,7 @@ statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-profile(intptr_t count, PL_local_data_t *__PL_ld)
+profile(DECL_LD intptr_t count)
 { call_node *node;
 
   if ( !HAS_LD )
@@ -988,8 +1019,9 @@ node_name(call_node *n)
 }
 #endif
 
+#define prof_call(handle, type) LDFUNC(prof_call, handle, type)
 static call_node *
-prof_call(void *handle, PL_prof_type_t *type ARG_LD)
+prof_call(DECL_LD void *handle, PL_prof_type_t *type)
 { call_node *node = LD->profile.current;
 
   LD->profile.accounting = TRUE;
@@ -1081,11 +1113,11 @@ prof_call(void *handle, PL_prof_type_t *type ARG_LD)
 
 
 call_node *
-profCall(Definition def ARG_LD)
+profCall(DECL_LD Definition def)
 { if ( true(def, P_NOPROFILE) )
     return LD->profile.current;
 
-  return prof_call(def, &prof_default_type PASS_LD);
+  return prof_call(def, &prof_default_type);
 }
 
 
@@ -1100,7 +1132,7 @@ code.  Considering this is development only, we'll leave this for now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-profResumeParent(struct call_node *node ARG_LD)
+profResumeParent(DECL_LD struct call_node *node)
 { call_node *n;
 
   if ( node && node->magic != PROFNODE_MAGIC )
@@ -1119,16 +1151,16 @@ profResumeParent(struct call_node *node ARG_LD)
 
 
 void
-profExit(struct call_node *node ARG_LD)
+profExit(DECL_LD struct call_node *node)
 { if ( !node || node->magic != PROFNODE_MAGIC )
     return;
 
-  profResumeParent(node->parent PASS_LD);
+  profResumeParent(node->parent);
 }
 
 
 void
-profRedo(struct call_node *node ARG_LD)
+profRedo(DECL_LD struct call_node *node)
 { if ( node && node->magic != PROFNODE_MAGIC )
     return;
 
@@ -1190,7 +1222,7 @@ void *
 PL_prof_call(void *handle, PL_prof_type_t *type)
 { GET_LD
 
-  return prof_call(handle, type PASS_LD);
+  return prof_call(handle, type);
 }
 
 void
@@ -1198,7 +1230,7 @@ PL_prof_exit(void *node)
 { GET_LD
   struct call_node *n = node;
 
-  profResumeParent(n->parent PASS_LD);
+  profResumeParent(n->parent);
 }
 
 
@@ -1222,7 +1254,7 @@ collectSiblingsNode(call_node *n)
 
 
 static void
-collectSiblingsTime(ARG1_LD)
+collectSiblingsTime(DECL_LD)
 { if ( !LD->profile.sum_ok )
   { call_node *n;
 
@@ -1234,8 +1266,9 @@ collectSiblingsTime(ARG1_LD)
 }
 
 
+#define freeProfileNode(node) LDFUNC(freeProfileNode, node)
 static void
-freeProfileNode(call_node *node ARG_LD)
+freeProfileNode(DECL_LD call_node *node)
 { call_node *n, *next;
 
   assert(node->magic == PROFNODE_MAGIC);
@@ -1243,7 +1276,7 @@ freeProfileNode(call_node *node ARG_LD)
   for(n=node->siblings; n; n=next)
   { next = n->next;
 
-    freeProfileNode(n PASS_LD);
+    freeProfileNode(n);
   }
 
   node->magic = 0;
@@ -1263,7 +1296,7 @@ freeProfileData(void)
 
   for(; n; n=next)
   { next = n->next;
-    freeProfileNode(n PASS_LD);
+    freeProfileNode(n);
   }
 
   assert(LD->profile.nodes == 0);

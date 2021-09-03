@@ -861,6 +861,51 @@ analyzers and declarative debuggers.
   * [[fd_sup/2]]
   * [[fd_size/2]]
   * [[fd_dom/2]]
+  * [[fd_degree/2]]
+
+
+### FD set predicaes {#clpfd-fdset-predicates}
+
+These predicates allow operating directly on the internal representation
+of CLP(FD) domains. In this context, such an internal domain
+representation is called an *FD set*.
+
+Note that the exact term representation of FD sets is unspecified and
+will vary across CLP(FD) implementations or even different versions of
+the same implementation. FD set terms should be manipulated *only*
+using the predicates in this section. The behavior of other operations
+on FD set terms is undefined. In particular, you should *not* construct
+or deconstruct FD sets by unification, and you *cannot* reliably compare
+FD sets using unification or generic term equality/comparison
+predicates.
+
+  * [[(in_set)/2]]
+  * [[fd_set/2]]
+  * [[is_fdset/1]]
+  * [[empty_fdset/1]]
+  * [[fdset_parts/4]]
+  * [[empty_interval/2]]
+  * [[fdset_interval/3]]
+  * [[fdset_singleton/2]]
+  * [[fdset_min/2]]
+  * [[fdset_max/2]]
+  * [[fdset_size/2]]
+  * [[list_to_fdset/2]]
+  * [[fdset_to_list/2]]
+  * [[range_to_fdset/2]]
+  * [[fdset_to_range/2]]
+  * [[fdset_add_element/3]]
+  * [[fdset_del_element/3]]
+  * [[fdset_disjoint/2]]
+  * [[fdset_intersect/2]]
+  * [[fdset_intersection/3]]
+  * [[fdset_member/2]]
+  * [[fdset_eq/2]]
+  * [[fdset_subset/2]]
+  * [[fdset_subtract/3]]
+  * [[fdset_union/3]]
+  * [[fdset_union/2]]
+  * [[fdset_complement/2]]
 
 
 ## Closing and opening words about CLP(FD) {#clpfd-closing-opening}

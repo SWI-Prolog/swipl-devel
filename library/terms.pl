@@ -3,8 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam, VU University Amsterdam
-    All rights reserved.
+    Copyright (c) 2008-2020, University of Amsterdam,
+                             VU University
+                             SWI-Prolog Solutions b.v.
+    Amsterdam All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
     modification, are permitted provided that the following conditions
@@ -44,8 +46,18 @@
             cyclic_term/1,              % @Term
             acyclic_term/1,             % @Term
             term_subsumer/3,            % +Special1, +Special2, -General
-            term_factorized/3           % +Term, -Skeleton, -Subsitution
+            term_factorized/3,          % +Term, -Skeleton, -Subsitution
+            mapargs/3,                  % :Goal, ?Term1, ?Term2
+            mapsubterms/3,              % :Goal, ?Term1, ?Term2
+            same_functor/2,             % ?Term1, ?Term2
+            same_functor/3,             % ?Term1, ?Term2, -Arity
+            same_functor/4              % ?Term1, ?Term2, ?Name, ?Arity
           ]).
+
+:- meta_predicate
+    mapargs(2,?,?),
+    mapsubterms(2,?,?).
+
 :- autoload(library(rbtrees),
 	    [ rb_empty/1,
 	      rb_lookup/3,
@@ -55,6 +67,7 @@
 	      ord_list_to_rbtree/2,
 	      rb_update/5
 	    ]).
+:- autoload(library(error), [instantiation_error/1]).
 
 
 /** <module> Term manipulation
@@ -292,3 +305,119 @@ mk_subst([Val0-Var|T0], [Var=Val|T], Subst) :-
     functor(Val,  Name, Arity),
     insert_arg_vars(1, Val0, Val, Subst),
     mk_subst(T0, T, Subst).
+
+
+%!  mapargs(:Goal, ?Term1, ?Term2)
+%
+%   Term1 and Term2 have the  same   functor  (name/arity)  and for each
+%   matching pair of arguments call(Goal, A1, A2) is true.
+
+mapargs(Goal, Term1, Term2) :-
+    same_functor(Term1, Term2, Arity),
+    mapargs_(1, Arity, Goal, Term1, Term2).
+
+mapargs_(I, Arity, Goal, Term1, Term2) :-
+    I =< Arity,
+    !,
+    arg(I, Term1, A1),
+    arg(I, Term2, A2),
+    call(Goal, A1, A2),
+    I2 is I+1,
+    mapargs_(I2, Arity, Goal, Term1, Term2).
+mapargs_(_, _, _, _, _).
+
+
+%!  mapsubterms(:Goal, +Term1, -Term2) is det.
+%
+%   Recursively map sub terms of Term1 into  subterms of Term2 for every
+%   pair for which call(Goal,  ST1,   ST2)  succeeds.  Procedurably, the
+%   mapping for each (sub) term pair `T1/T2` is defined as:
+%
+%     - If `T1` is a variable, Unify `T2` with `T1`.
+%     - If call(Goal, T1, T2) succeeds we are done.  Note that the
+%       mapping does not continue in `T2`.  If this is desired, `Goal`
+%       must call mapsubterms/3 explicitly as part of it conversion.
+%     - If `T1` is a dict, map all values, i.e., the _tag_ and _keys_
+%       are left untouched.
+%     - If `T1` is a list, map all elements, i.e., the list structure
+%       is left untouched.
+%     - If `T1` is a compound, use same_functor/3 to instantiate `T2`
+%       and recurse over the term arguments left to right.
+%     - Otherwise `T2` is unified with `T1`.
+
+mapsubterms(_Goal, Term1, Term2) :-
+    var(Term1),
+    !,
+    Term2 = Term1.
+mapsubterms(Goal, Term1, Term2) :-
+    call(Goal, Term1, Term2),
+    !.
+mapsubterms(Goal, Term1, Term2) :-
+    is_dict(Term1),
+    !,
+    dict_pairs(Term1, Tag, Pairs1),
+    map_dict_pairs(Pairs1, Pairs2, Goal),
+    dict_pairs(Term2, Tag, Pairs2).
+mapsubterms(Goal, Term1, Term2) :-
+     is_list(Term1),
+     !,
+     map_list_terms(Term1, Term2, Goal).
+mapsubterms(Goal, Term1, Term2) :-
+    compound(Term1),
+    !,
+    same_functor(Term1, Term2, Arity),
+    mapsubterms_(1, Arity, Goal, Term1, Term2).
+mapsubterms(_, Term, Term).
+
+map_dict_pairs([], [], _).
+map_dict_pairs([K-V0|T0], [K-V|T], Goal) :-
+    mapsubterms(Goal, V0, V),
+    map_dict_pairs(T0, T, Goal).
+
+map_list_terms([], [], _Goal).
+map_list_terms([H0|T0], [H|T], Goal) :-
+    mapsubterms(Goal, H0, H),
+    map_list_terms(T0, T, Goal).
+
+mapsubterms_(I, Arity, Goal, Term1, Term2) :-
+    I =< Arity,
+    !,
+    arg(I, Term1, A1),
+    arg(I, Term2, A2),
+    mapsubterms(Goal, A1, A2),
+    I2 is I+1,
+    mapsubterms_(I2, Arity, Goal, Term1, Term2).
+mapsubterms_(_, _, _, _, _).
+
+
+%!  same_functor(?Term1, ?Term2) is semidet.
+%!  same_functor(?Term1, ?Term2, -Arity) is semidet.
+%!  same_functor(?Term1, ?Term2, ?Name, ?Arity) is semidet.
+%
+%   True when Term1 and Term2  are  terms   that  have  the same functor
+%   (Name/Arity). The arguments must be sufficiently instantiated, which
+%   means either Term1 or Term2 must  be   bound  or both Name and Arity
+%   must be bound.
+%
+%   If  Arity  is  0,  Term1  and  Term2   are  unified  with  Name  for
+%   compatibility.
+%
+%   @compat SICStus
+
+same_functor(Term1, Term2) :-
+    same_functor(Term1, Term2, _Name, _Arity).
+
+same_functor(Term1, Term2, Arity) :-
+    same_functor(Term1, Term2, _Name, Arity).
+
+same_functor(Term1, Term2, Name, Arity) :-
+    (   nonvar(Term1)
+    ->  functor(Term1, Name, Arity, Type),
+        functor(Term2, Name, Arity, Type)
+    ;   nonvar(Term2)
+    ->  functor(Term2, Name, Arity, Type),
+        functor(Term1, Name, Arity, Type)
+    ;   functor(Term2, Name, Arity),
+        functor(Term1, Name, Arity)
+    ).
+

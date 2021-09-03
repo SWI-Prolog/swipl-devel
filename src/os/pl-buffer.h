@@ -163,13 +163,22 @@ emptyBuffer_(Buffer b, size_t discardsize, size_t emptysize)
 		 *	    FUNCTIONS		*
 		 *******************************/
 
-COMMON(Buffer)		findBuffer(int flags);
-COMMON(int)		unfindBuffer(Buffer b, int flags);
-COMMON(char *)		buffer_string(const char *s, int flags);
-COMMON(void)		PL_mark_string_buffers__LD(buf_mark_t *mark ARG_LD);
-COMMON(void)		PL_release_string_buffers_from_mark__LD(buf_mark_t mark
-								ARG_LD);
-COMMON(void)		release_string_buffers_from_frame(LocalFrame fr ARG_LD);
-COMMON(void)		discardStringStack(string_stack *stack);
+#if USE_LD_MACROS
+#define	PL_mark_string_buffers(mark)			LDFUNC(PL_mark_string_buffers, mark)
+#define	PL_release_string_buffers_from_mark(mark)	LDFUNC(PL_release_string_buffers_from_mark, mark)
+#define	release_string_buffers_from_frame(fr)		LDFUNC(release_string_buffers_from_frame, fr)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
+Buffer		findBuffer(int flags);
+int		unfindBuffer(Buffer b, int flags);
+char *		buffer_string(const char *s, int flags);
+void		PL_mark_string_buffers(buf_mark_t *mark);
+void		PL_release_string_buffers_from_mark(buf_mark_t mark);
+void		release_string_buffers_from_frame(LocalFrame fr);
+void		discardStringStack(string_stack *stack);
+
+#undef LDFUNC_DECLARATIONS
 
 #endif /*BUFFER_H_INCLUDED*/

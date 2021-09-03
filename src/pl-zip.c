@@ -38,6 +38,7 @@
 
 #include "pl-incl.h"
 #include "pl-zip.h"
+#include "pl-fli.h"
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>

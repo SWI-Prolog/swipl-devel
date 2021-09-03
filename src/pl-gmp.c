@@ -38,8 +38,12 @@
 #include <math.h>
 #include <fenv.h>
 #include <float.h>
-#include "pl-incl.h"
+#include "pl-gmp.h"
 #include "pl-arith.h"
+#include "pl-pro.h"
+#include "pl-fli.h"
+#include "pl-gc.h"
+#include "pl-attvar.h"
 #include "pl-inline.h"
 #undef LD
 #define LD LOCAL_LD
@@ -236,8 +240,9 @@ mpz_wsize(mpz_t mpz, size_t *s)
 }
 
 
+#define globalMPZ(at, mpz, flags) LDFUNC(globalMPZ, at, mpz, flags)
 static int
-globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
+globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 { DEBUG(CHK_SECURE, assert(!onStackArea(global, at) && !onStackArea(local, at)));
 
   if ( mpz->_mp_alloc )
@@ -286,8 +291,9 @@ globalMPZ(Word at, mpz_t mpz, int flags ARG_LD)
 }
 
 
+#define globalMPQ(at, mpq, flags) LDFUNC(globalMPQ, at, mpq, flags)
 static int
-globalMPQ(Word at, mpq_t mpq, int flags ARG_LD)
+globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 { mpz_t num, den;			/* num/den */
 
   num[0] = *mpq_numref(mpq);
@@ -462,7 +468,7 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 addMPZToBuffer(Buffer b, mpz_t mpz)
 	Add mpz in a machine independent representation to the given buffer.
-	The data is stored in limps of 1 byte, preceeded by the byte-count
+	The data is stored in limps of 1 byte, preceded by the byte-count
 	as 4-byte big-endian number;
 
 addMPQToBuffer(Buffer b, mpq_t mpq)
@@ -972,8 +978,9 @@ most compact representation, which is  essential   to  make unify() work
 without any knowledge of the represented data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define put_mpz(at, mpz, flags) LDFUNC(put_mpz, at, mpz, flags)
 static int
-put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
+put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
 { int64_t v;
 
   DEBUG(2,
@@ -1001,9 +1008,9 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
     *at = consInt(v);
     return TRUE;
   } else if ( mpz_to_int64(mpz, &v) )
-  { return put_int64(at, v, flags PASS_LD);
+  { return put_int64(at, v, flags);
   } else
-  { return globalMPZ(at, mpz, flags PASS_LD);
+  { return globalMPZ(at, mpz, flags);
   }
 }
 
@@ -1018,16 +1025,16 @@ put_mpz(Word at, mpz_t mpz, int flags ARG_LD)
 */
 
 int
-put_uint64(Word at, uint64_t l, int flags ARG_LD)
+put_uint64(DECL_LD Word at, uint64_t l, int flags)
 { if ( (int64_t)l >= 0 )
-  { return put_int64(at, l, flags PASS_LD);
+  { return put_int64(at, l, flags);
   } else
   {
 #ifdef O_GMP
     mpz_t mpz;
 
     mpz_init_set_uint64(mpz, l);
-    return put_mpz(at, mpz, flags PASS_LD);
+    return put_mpz(at, mpz, flags);
 #else
     return LOCAL_OVERFLOW;
 #endif
@@ -1043,14 +1050,14 @@ affected by GC/shift.  The intented scenario is:
 
   { word c;
 
-    if ( (rc=put_number(&c, n, ALLOW_GC PASS_LD)) == TRUE )
+    if ( (rc=put_number(&c, n, ALLOW_GC)) == TRUE )
       bindConst(<somewhere>, c);
     ...
   }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-put_number(Word at, Number n, int flags ARG_LD)
+put_number(DECL_LD Word at, Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
     { word w = consInt(n->value.i);
@@ -1067,20 +1074,20 @@ put_number(Word at, Number n, int flags ARG_LD)
         return TRUE;
       }
 
-      return put_int64(at, n->value.i, flags PASS_LD);
+      return put_int64(at, n->value.i, flags);
     }
 #ifdef O_GMP
     case V_MPZ:
-      return put_mpz(at, n->value.mpz, flags PASS_LD);
+      return put_mpz(at, n->value.mpz, flags);
     case V_MPQ:
     { if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
-	return put_mpz(at, mpq_numref(n->value.mpq), flags PASS_LD);
+	return put_mpz(at, mpq_numref(n->value.mpq), flags);
       else
-	return globalMPQ(at, n->value.mpq, flags PASS_LD);
+	return globalMPQ(at, n->value.mpq, flags);
     }
 #endif
     case V_FLOAT:
-      return put_double(at, n->value.f, flags PASS_LD);
+      return put_double(at, n->value.f, flags);
   }
 
   assert(0);
@@ -1089,7 +1096,7 @@ put_number(Word at, Number n, int flags ARG_LD)
 
 
 int
-PL_unify_number__LD(term_t t, Number n ARG_LD)
+PL_unify_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -1098,7 +1105,7 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
   { word w;
     int rc;
 
-    if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
+    if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
       return raiseStackOverflow(rc);
 
     p = valTermRef(t);			/* put_number can shift the stacks */
@@ -1156,11 +1163,11 @@ PL_unify_number__LD(term_t t, Number n ARG_LD)
 
 
 int
-PL_put_number__LD(term_t t, Number n ARG_LD)
+PL_put_number(DECL_LD term_t t, Number n)
 { word w;
   int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC PASS_LD)) != TRUE )
+  if ( (rc=put_number(&w, n, ALLOW_GC)) != TRUE )
     return raiseStackOverflow(rc);
 
   *valTermRef(t) = w;
@@ -1170,7 +1177,7 @@ PL_put_number__LD(term_t t, Number n ARG_LD)
 
 
 void
-get_number(word w, Number n ARG_LD)
+get_number(DECL_LD word w, Number n)
 { if ( isRational(w) )
   { get_rational(w, n);
   } else
@@ -1181,7 +1188,7 @@ get_number(word w, Number n ARG_LD)
 
 
 int
-PL_get_number__LD(term_t t, Number n ARG_LD)
+PL_get_number(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -1198,14 +1205,9 @@ PL_get_number__LD(term_t t, Number n ARG_LD)
   fail;
 }
 
-#undef PL_get_number
-int
-PL_get_number(term_t t, Number n)
-{ GET_LD
-
-  return PL_get_number__LD(t, n PASS_LD);
-}
-#define PL_get_number(t, n) PL_get_number__LD(t, n PASS_LD)
+API_STUB(int)
+(PL_get_number)(term_t t, Number n)
+( return PL_get_number(t, n); )
 
 
 		 /*******************************
@@ -1671,7 +1673,7 @@ PL_get_mpq(term_t t, mpq_t mpq)
   { GET_LD
     number n;
 
-    if ( valueExpression(t, &n PASS_LD) )
+    if ( valueExpression(t, &n) )
     { switch(n.type)
       { case V_INTEGER:
 	  if ( n.value.i >= LONG_MIN && n.value.i <= LONG_MAX )

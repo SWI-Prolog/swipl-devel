@@ -8,7 +8,7 @@ set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 # Libraries documented in .doc files
 set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex gensym.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
-    record.tex registry.tex ugraphs.tex wwwbrowser.tex)
+    record.tex registry.tex wwwbrowser.tex)
 if(GMP_FOUND)
 set(DOC_LIB ${DOC_LIB} simplex.tex)
 endif()
@@ -20,7 +20,7 @@ set(FIGS broadcast by-sa profnode swipl xrefchatdep xrefchatfile)
 set(DOC_CORE abstract.tex intro.tex overview.tex builtin.tex module.tex
     foreign.tex runtime.tex hack.tex summary.tex xpce.tex glossary.tex
     ide.tex license.tex threads.tex engines.tex profile.tex
-    attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex
+    attvar.tex chr.tex xref.tex bit64.tex dialect.tex extensions.tex ssu.tex
     tabling.tex)
 
 set(STYFILES html.sty txt.sty)
@@ -89,7 +89,6 @@ set(PLDOC_LIB)
 function(pldoc tex input)
     set(options
 	--source=${CMAKE_CURRENT_SOURCE_DIR}
-	--summaries
         --out=${tex})
     set(depends ${PLDOC2TEX_DEPENDS})
     set(byproducts)
@@ -101,9 +100,6 @@ function(pldoc tex input)
       set(depends "../library/${base}.pl")
     endif()
 
-    get_filename_component(base ${tex} NAME_WE)
-    set(byproducts lib/summaries.d/${base}.tex)
-
     foreach(arg ${ARGN})
       if(arg MATCHES "^--")
         set(options ${options} ${arg})
@@ -113,6 +109,20 @@ function(pldoc tex input)
         set(depends ${depends} ${arg})
       endif()
     endforeach()
+
+    set(haspl)
+    foreach(dep ${depends})
+      get_filename_component(ext ${dep} EXT)
+      if(ext STREQUAL ".pl")
+	set(haspl true)
+      endif()
+    endforeach()
+
+    if(haspl)
+      set(options ${options} --summaries)
+      get_filename_component(base ${tex} NAME_WE)
+      set(byproducts lib/summaries.d/${base}.tex)
+    endif()
 
     add_custom_command(
 	OUTPUT  ${tex}
@@ -148,10 +158,11 @@ endif()
 # NOTE: lib/libsummary.doc
 
 libsdoc(apply dicts error url pairs option optparse ordsets aggregate
-        thread_pool charsio debug csv lists main check random varnumbers
+        thread_pool charsio debug csv lists check random varnumbers
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
-        prolog_jiti tables listing)
+        prolog_jiti tables listing strings terms ugraphs portray_text
+        increval prolog_debug)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)
@@ -163,6 +174,8 @@ pldoc(lib/assoclib.tex lib/assoclib.md
 pldoc(lib/clpblib.tex lib/clpblib.md
       OPTIONS --lib=clpb --module=clpb
       DEPENDS lib/clpblib.md ../library/clp/clpb.pl)
+pldoc(textdebugger.tex textdebugger.md
+      DEPENDS textdebugger.md)
 pldoc(lib/clpfdlib.tex lib/clpfdlib.md
       OPTIONS --lib=clpfd --module=clpfd
       DEPENDS lib/clpfdlib.md ../library/clp/clpfd.pl)
@@ -177,6 +190,11 @@ pldoc(lib/predopts.tex lib/predopts.txt
 pldoc(lib/help.tex "library(help)"
       OPTIONS --subsection
       DEPENDS nlp)
+has_package(xpce HAVE_XPCE)
+if(HAVE_XPCE)
+pldoc(lib/main.tex "library(main)"
+      DEPENDS pl2xpce)
+endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
 

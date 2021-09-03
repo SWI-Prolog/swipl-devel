@@ -175,6 +175,7 @@ check_function_exists(confstr HAVE_CONFSTR)
 check_function_exists(getrlimit HAVE_GETRLIMIT)
 check_function_exists(getrusage HAVE_GETRUSAGE)
 check_function_exists(_NSGetEnviron HAVE__NSGETENVIRON)
+check_function_exists(mallinfo HAVE_MALLINFO)
 # dynamic linking
 check_function_exists(shl_load HAVE_SHL_LOAD)
 check_function_exists(dlopen HAVE_DLOPEN)
@@ -390,6 +391,9 @@ if(HAVE_READLINK)
 endif()
 if(SWIPL_SHARED_LIB)
   set(O_SHARED_KERNEL 1)
+endif()
+if(VMI_FUNCTIONS)
+  set(O_VMI_FUNCTIONS 1)
 endif()
 
 ################

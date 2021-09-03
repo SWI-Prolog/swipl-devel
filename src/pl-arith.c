@@ -57,6 +57,12 @@ in this array.
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
 #include "pl-arith.h"
+#include "pl-fli.h"
+#include "pl-funct.h"
+#include "pl-prims.h"
+#include "pl-gc.h"
+#include "pl-read.h"
+#include "os/pl-prologflag.h"
 #include <math.h>
 #include <limits.h>
 #ifdef HAVE_FLOAT_H
@@ -127,11 +133,19 @@ problem.
 #endif
 #endif
 
+#if USE_LD_MACROS
+#define	set_roundtoward(p, old)		LDFUNC(set_roundtoward, p, old)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static int		ar_minus(Number n1, Number n2, Number r);
 static int		mul64(int64_t x, int64_t y, int64_t *r);
 static int		notLessThanZero(const char *f, int a, Number n);
 static int		mustBePositive(const char *f, int a, Number n);
-static int		set_roundtoward(Word p, Number old ARG_LD);
+static int		set_roundtoward(Word p, Number old);
+
+#undef LDFUNC_DECLARATIONS
 
 
 		/********************************
@@ -304,8 +318,9 @@ PRED_IMPL("succ", 2, succ, 0)
 }
 
 
+#define var_or_integer(t, n, which, mask) LDFUNC(var_or_integer, t, n, which, mask)
 static int
-var_or_integer(term_t t, number *n, int which, int *mask ARG_LD)
+var_or_integer(DECL_LD term_t t, number *n, int which, int *mask)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -328,9 +343,9 @@ PRED_IMPL("plus", 3, plus, 0)
   int mask = 0;
   int rc;
 
-  if ( !var_or_integer(A1, &m, 0x1, &mask PASS_LD) ||
-       !var_or_integer(A2, &n, 0x2, &mask PASS_LD) ||
-       !var_or_integer(A3, &o, 0x4, &mask PASS_LD) )
+  if ( !var_or_integer(A1, &m, 0x1, &mask) ||
+       !var_or_integer(A2, &n, 0x2, &mask) ||
+       !var_or_integer(A3, &o, 0x4, &mask) )
     fail;
 
   switch(mask)
@@ -422,8 +437,9 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
 
 #ifdef O_GMP
 
+#define get_mpz(t, n) LDFUNC(get_mpz, t, n)
 static int
-get_mpz(term_t t, Number n ARG_LD)
+get_mpz(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 
   deRef(p);
@@ -453,8 +469,8 @@ PRED_IMPL("divmod", 4, divmod, 0)
   number N = {V_INTEGER}, D = {V_INTEGER};
   int rc = FALSE;
 
-  if ( get_mpz(A1, &N PASS_LD) &&
-       get_mpz(A2, &D PASS_LD) )
+  if ( get_mpz(A1, &N) &&
+       get_mpz(A2, &D) )
   { if ( mpz_sgn(D.value.mpz) != 0 )
     { number Q = {V_MPZ}, R = {V_MPZ};
 
@@ -490,7 +506,7 @@ PRED_IMPL("nth_integer_root_and_remainder", 4,
   int rc = FALSE;
 
   if ( PL_get_long_ex(A1, &I) &&
-       get_mpz(A2, &N PASS_LD) )
+       get_mpz(A2, &N) )
   { if ( I >= 1 )
     { number root = {V_MPZ};
       number rem = {V_MPZ};
@@ -606,16 +622,17 @@ ar_compare(Number n1, Number n2, int what)
 }
 
 
+#define compareNumbers(n1, n2, what) LDFUNC(compareNumbers, n1, n2, what)
 static word
-compareNumbers(term_t n1, term_t n2, int what ARG_LD)
+compareNumbers(DECL_LD term_t n1, term_t n2, int what)
 { AR_CTX
   number left, right;
   int rc;
 
   AR_BEGIN();
 
-  if ( valueExpression(n1, &left PASS_LD) &&
-       valueExpression(n2, &right PASS_LD) )
+  if ( valueExpression(n1, &left) &&
+       valueExpression(n2, &right) )
   { rc = ar_compare(&left, &right, what);
 
     clearNumber(&left);
@@ -632,37 +649,37 @@ compareNumbers(term_t n1, term_t n2, int what ARG_LD)
 static
 PRED_IMPL("<", 2, lt, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, LT PASS_LD);
+  return compareNumbers(A1, A2, LT);
 }
 
 static
 PRED_IMPL(">", 2, gt, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, GT PASS_LD);
+  return compareNumbers(A1, A2, GT);
 }
 
 static
 PRED_IMPL("=<", 2, leq, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, LE PASS_LD);
+  return compareNumbers(A1, A2, LE);
 }
 
 static
 PRED_IMPL(">=", 2, geq, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, GE PASS_LD);
+  return compareNumbers(A1, A2, GE);
 }
 
 static
 PRED_IMPL("=\\=", 2, neq, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, NE PASS_LD);
+  return compareNumbers(A1, A2, NE);
 }
 
 static
 PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 { PRED_LD
-  return compareNumbers(A1, A2, EQ PASS_LD);
+  return compareNumbers(A1, A2, EQ);
 }
 
 
@@ -671,7 +688,7 @@ PRED_IMPL("=:=", 2, eq, PL_FA_ISO)
 		 *******************************/
 
 Number
-growArithStack(ARG1_LD)
+growArithStack(DECL_LD)
 { Number n;
 
   if ( LD->arith.stack.top == LD->arith.stack.max )
@@ -907,7 +924,7 @@ popForMark(segstack *stack, Word *pp, int *wr)
 
 
 int
-valueExpression(term_t expr, number *result ARG_LD)
+valueExpression(DECL_LD term_t expr, number *result)
 { segstack term_stack;
   segstack arg_stack;
   Word term_buf[16];
@@ -968,7 +985,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	break;
       }
       case TAG_STRING:
-	if ( getCharExpression(p, n PASS_LD) != TRUE )
+	if ( getCharExpression(p, n) != TRUE )
 	  goto error;
         break;
       case TAG_COMPOUND:
@@ -976,7 +993,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	size_t arity = arityFunctor(term->definition);
 
 	if ( term->definition == FUNCTOR_dot2 )
-	{ if ( getCharExpression(p, n PASS_LD) != TRUE )
+	{ if ( getCharExpression(p, n) != TRUE )
 	    goto error;
 	  break;
 	}
@@ -998,7 +1015,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	if ( ++pushed > 100 && !known_acyclic )
 	{ int rc;
 
-	  if ( (rc=is_acyclic(start PASS_LD)) == TRUE )
+	  if ( (rc=is_acyclic(start)) == TRUE )
 	  { known_acyclic = TRUE;
 	  } else
 	  { if ( rc == MEMORY_OVERFLOW )
@@ -1011,7 +1028,7 @@ valueExpression(term_t expr, number *result ARG_LD)
 	if ( term->definition == FUNCTOR_roundtoward2 )
 	{ number crnd;
 
-	  if ( !set_roundtoward(&term->arguments[1], &crnd PASS_LD) )
+	  if ( !set_roundtoward(&term->arguments[1], &crnd) )
 	    goto error;
 	  if ( !pushSegStack(&arg_stack, crnd, number) )
 	  { PL_no_memory();
@@ -1156,7 +1173,7 @@ int arithChar(Word p)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-arithChar(Word p ARG_LD)
+arithChar(DECL_LD Word p)
 { deRef(p);
 
   if ( isInteger(*p) )
@@ -1184,7 +1201,7 @@ arithChar(Word p ARG_LD)
 
 
 int
-getCharExpression(Word p, Number r ARG_LD)
+getCharExpression(DECL_LD Word p, Number r)
 { word w = *p;
 
   switch(tag(w))
@@ -1219,7 +1236,7 @@ getCharExpression(Word p, Number r ARG_LD)
     { Word a = argTermP(w, 0);
       int chr;
 
-      if ( (chr = arithChar(a PASS_LD)) == EOF )
+      if ( (chr = arithChar(a)) == EOF )
 	fail;
 
       a = argTermP(w, 1);
@@ -2725,7 +2742,7 @@ ar_nexttoward(Number n1, Number n2, Number r)
 }
 
 static int
-set_roundtoward(Word p, Number old ARG_LD)
+set_roundtoward(DECL_LD Word p, Number old)
 { deRef(p);
 
   old->type = V_INTEGER;
@@ -3150,6 +3167,11 @@ ar_mul(Number n1, Number n2, Number r)
  */
 
 static int
+is_min_zero(const Number n)
+{ return n->type == V_FLOAT && n->value.f == 0.0 && signbit(n->value.f);
+}
+
+static int
 ar_max(Number n1, Number n2, Number r)
 { int diff = cmpNumbers(n1, n2);
 
@@ -3158,16 +3180,20 @@ ar_max(Number n1, Number n2, Number r)
       cpNumber(r, n2);
     else
       cpNumber(r, n1);
-  } else if ( diff == CMP_EQUAL  &&
-              n1->type == V_FLOAT &&		/* is n1 -0.0 */
-              n1->value.f == 0.0 &&
-              signbit(n1->value.f) )
-  { cpNumber(r, n2);
-  } else
-  { if ( diff >= 0 )
+  } else if ( diff == CMP_EQUAL )
+  { if ( is_min_zero(n1) )
+    { cpNumber(r, n2);
+    } else if ( is_min_zero(n2) )
+    { cpNumber(r, n1);
+    } else
+    { if ( !make_same_type_numbers(n1, n2) )
+	return FALSE;
       cpNumber(r, n1);
-    else
-      cpNumber(r, n2);
+    }
+  } else if ( diff > 0 )
+  { cpNumber(r, n1);
+  } else
+  { cpNumber(r, n2);
   }
 
   return TRUE;
@@ -3183,16 +3209,20 @@ ar_min(Number n1, Number n2, Number r)
       cpNumber(r, n2);
     else
       cpNumber(r, n1);
-  } else if ( diff == CMP_EQUAL  &&
-              n2->type == V_FLOAT &&		/* is n2 -0.0 */
-              n2->value.f == 0.0 &&
-              signbit(n2->value.f) )
-  { cpNumber(r, n2);
-  } else
-  { if ( diff <= 0 )
+  } else if ( diff == CMP_EQUAL )
+  { if ( is_min_zero(n1) )
+    { cpNumber(r, n1);
+    } else if ( is_min_zero(n2) )
+    { cpNumber(r, n2);
+    } else
+    { if ( !make_same_type_numbers(n1, n2) )
+	return FALSE;
       cpNumber(r, n1);
-    else
-      cpNumber(r, n2);
+    }
+  } else if ( diff < 0 )
+  { cpNumber(r, n1);
+  } else
+  { cpNumber(r, n2);
   }
 
   return TRUE;
@@ -3845,8 +3875,9 @@ ar_truncate(Number n1, Number r)
 #define RAND_SEED_LEN 128
 #define MIN_RAND_SEED_LEN 16
 
+#define seed_from_dev(dev) LDFUNC(seed_from_dev, dev)
 static int
-seed_from_dev(const char *dev ARG_LD)
+seed_from_dev(DECL_LD const char *dev)
 { int done = FALSE;
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
   int fd;
@@ -3891,8 +3922,9 @@ seed_from_dev(const char *dev ARG_LD)
 
 
 
+#define seed_from_crypt_context(_) LDFUNC(seed_from_crypt_context, _)
 static int
-seed_from_crypt_context(ARG1_LD)
+seed_from_crypt_context(DECL_LD)
 {
 #ifdef __WINDOWS__
   HCRYPTPROV hCryptProv;
@@ -3920,19 +3952,17 @@ seed_from_crypt_context(ARG1_LD)
 
   return TRUE;
 #else
-#ifdef O_PLMT
-  (void)__PL_ld;
-#endif
   return FALSE;
 #endif
 }
 
 
+#define seed_random(_) LDFUNC(seed_random, _)
 static void
-seed_random(ARG1_LD)
-{ if ( !seed_from_dev("/dev/urandom" PASS_LD) &&
-       !seed_from_dev("/dev/random" PASS_LD) &&
-       !seed_from_crypt_context(PASS_LD1) )
+seed_random(DECL_LD)
+{ if ( !seed_from_dev("/dev/urandom") &&
+       !seed_from_dev("/dev/random") &&
+       !seed_from_crypt_context() )
   { union
     { double t;
       unsigned long l[sizeof(double)/sizeof(long)];
@@ -3953,15 +3983,17 @@ seed_random(ARG1_LD)
 
 #else /* O_GMP */
 
+#define seed_random(_) LDFUNC(seed_random, _)
 static void
-seed_random(ARG1_LD)
+seed_random(DECL_LD)
 { setRandom(NULL);
 }
 
 #endif /*O_GMP*/
 
+#define init_random(_) LDFUNC(init_random, _)
 static void
-init_random(ARG1_LD)
+init_random(DECL_LD)
 {
 #ifdef O_GMP
   if ( !LD->arith.random.initialised )
@@ -3973,7 +4005,7 @@ init_random(ARG1_LD)
     gmp_randinit_default(LD->arith.random.state);
 #endif
     LD->arith.random.initialised = TRUE;
-    seed_random(PASS_LD1);
+    seed_random();
     LD->gmp.persistent--;
   }
 #endif
@@ -3986,7 +4018,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
   atom_t name;
   size_t arity;
 
-  init_random(PASS_LD1);
+  init_random();
 
   if ( PL_get_name_arity(A1, &name, &arity) && arity == 1 )
   { term_t arg = PL_new_term_ref();
@@ -3996,7 +4028,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
     { atom_t a;
 
       if ( PL_get_atom(arg, &a) && a == ATOM_random )
-      { seed_random(PASS_LD1);
+      { seed_random();
 	return TRUE;
       } else
       { number n;
@@ -4054,7 +4086,7 @@ PRED_IMPL("random_property", 1, random_property, 0)
   atom_t name;
   size_t arity;
 
-  init_random(PASS_LD1);
+  init_random();
 
   if ( PL_get_name_arity(A1, &name, &arity) && arity == 1 )
   { term_t arg = PL_new_term_ref();
@@ -4089,7 +4121,7 @@ ar_random(Number n1, Number r)
   if ( ar_sign_i(n1) <= 0 )
     return mustBePositive("random", 1, n1);
 
-  init_random(PASS_LD1);
+  init_random();
 
   switch(n1->type)
   {
@@ -4128,7 +4160,7 @@ static int
 ar_random_float(Number r)
 { GET_LD
 
-  init_random(PASS_LD1);
+  init_random();
 
   do
   {
@@ -4241,7 +4273,7 @@ PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
   }
 
   AR_BEGIN();
-  if ( (rc=valueExpression(A2, &arg PASS_LD)) )
+  if ( (rc=valueExpression(A2, &arg)) )
   { rc = PL_unify_number(A1, &arg);
     clearNumber(&arg);
     AR_END();
@@ -4532,7 +4564,7 @@ is_arith_flag(atom_t k)
 }
 
 int
-get_arith_flag(term_t val, atom_t k ARG_LD)
+get_arith_flag(DECL_LD term_t val, atom_t k)
 { atom_t a;
 #ifdef O_GMP
   size_t sz;
@@ -4572,8 +4604,9 @@ set_restraint(term_t t, size_t *valp)
   return PL_get_size_ex(t, valp);
 }
 
+#define set_restraint_action(t, key, valp) LDFUNC(set_restraint_action, t, key, valp)
 static int
-set_restraint_action(term_t t, atom_t key, atom_t *valp ARG_LD)
+set_restraint_action(DECL_LD term_t t, atom_t key, atom_t *valp)
 { atom_t act;
 
   if ( PL_get_atom_ex(t, &act) )
@@ -4625,7 +4658,7 @@ set_rounding(int mode)
 
 
 int
-set_arith_flag(term_t val, atom_t key ARG_LD)
+set_arith_flag(DECL_LD term_t val, atom_t key)
 { atom_t a;
 
 #ifdef O_GMP
@@ -4634,7 +4667,7 @@ set_arith_flag(term_t val, atom_t key ARG_LD)
   if ( key == ATOM_max_rational_size_action )
     return set_restraint_action(
 	       val, key,
-	       &LD->arith.rat.max_rational_size_action PASS_LD);
+	       &LD->arith.rat.max_rational_size_action);
 #endif
 
   if ( PL_get_atom_ex(val, &a) )
@@ -4742,11 +4775,11 @@ clearNumber()
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
-ar_func_n(int findex, int argc ARG_LD)
+ar_func_n(DECL_LD int findex, int argc)
 { number result;
   int rval;
   ArithF f = FunctionFromIndex(findex);
-  Number argv = argvArithStack(argc PASS_LD);
+  Number argv = argvArithStack(argc);
 
   DEBUG(0, if ( !f )
 	     fatalError("No function at index %d", findex));
@@ -4769,10 +4802,10 @@ ar_func_n(int findex, int argc ARG_LD)
       sysError("Too many arguments to arithmetic function");
   }
 
-  popArgvArithStack(argc PASS_LD);
+  popArgvArithStack(argc);
 
   if ( rval )
-    pushArithStack(&result PASS_LD);
+    pushArithStack(&result);
 
   return rval;
 }
@@ -4793,7 +4826,7 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
   number n;
   int rval;
 
-  if ( valueExpression(t, &n PASS_LD) )
+  if ( valueExpression(t, &n) )
   { if ( toIntegerNumber(&n, 0) )
     { switch(n.type)
       { case V_INTEGER:

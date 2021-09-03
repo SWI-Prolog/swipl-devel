@@ -33,7 +33,9 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "pl-incl.h"
+#include "pl-util.h"
+#include "pl-fli.h"
+#include "pl-proc.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
 
@@ -58,7 +60,7 @@ procedureName(Procedure proc)
 	((s)->encoding == ENC_ISO_LATIN_1 ? (s)->text.t[i]&0xff \
 					  : (s)->text.w[i])
 
-const char *
+static const char *
 text_summary(PL_chars_t *txt, char q, unsigned int maxlen)
 { Buffer b;
   size_t i;
@@ -119,7 +121,7 @@ string_summary(word string, unsigned int maxlen)
 { GET_LD
   PL_chars_t txt;
 
-  if ( !get_string_text(string, &txt PASS_LD) )
+  if ( !get_string_text(string, &txt) )
     return NULL;
 
   return text_summary(&txt, '"', maxlen);
@@ -191,7 +193,7 @@ keyName(word key)
 	{ GET_LD
 	  number n;
 
-	  get_number(key, &n PASS_LD);
+	  get_number(key, &n);
 	  switch(n.type)
 	  { case V_INTEGER:
 	      Ssprintf(tmp, "%lld", n.value.i);
@@ -235,7 +237,18 @@ generationName(gen_t gen)
 
   if ( gen == GEN_MAX )
     return "GEN_MAX";
-  Ssprintf(tmp, "%lld", (int64_t)gen);
+  if ( gen == GEN_INFINITE )
+    return "GEN_INFINITE";
+
+  if ( gen > GEN_TRANSACTION_BASE )
+  { int tid    = (gen-GEN_TRANSACTION_BASE)/GEN_TRANSACTION_SIZE;
+    int64_t g2 = (gen-GEN_TRANSACTION_BASE)%GEN_TRANSACTION_SIZE;
+
+    Ssprintf(tmp, "%d@%lld", tid, (int64_t)g2);
+  } else
+  { Ssprintf(tmp, "%lld", (int64_t)gen);
+  }
+
   return buffer_string(tmp, BUF_STACK);
 }
 

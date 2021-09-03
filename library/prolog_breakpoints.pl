@@ -40,10 +40,10 @@
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
-:- autoload(library(debug),[debug/3]).
-:- autoload(library(error),[existence_error/2]).
-:- autoload(library(lists),[nth1/3]).
-:- autoload(library(prolog_clause),[clause_info/4,clause_name/2]).
+:- autoload(library(debug), [debug/3]).
+:- autoload(library(error), [existence_error/2]).
+:- autoload(library(lists), [nth1/3, member/2]).
+:- autoload(library(prolog_clause), [clause_info/4, clause_name/2]).
 
 
 /** <module> Manage Prolog break-points
@@ -86,7 +86,8 @@ set_breakpoint(File, Line, Char, Id) :-
     set_breakpoint(File, File, Line, Char, Id).
 set_breakpoint(Owner, File, Line, Char, Id) :-
     debug(break, 'break_at(~q, ~d, ~d).', [File, Line, Char]),
-    '$clause_from_source'(Owner, File, Line, ClauseRef),
+    '$clause_from_source'(Owner, File, Line, ClauseRefs),
+    member(ClauseRef, ClauseRefs),
     clause_info(ClauseRef, InfoFile, TermPos, _NameOffset),
     (   InfoFile == File
     ->  '$break_pc'(ClauseRef, PC, NextPC),

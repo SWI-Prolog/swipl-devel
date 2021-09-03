@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2015, University of Amsterdam
+    Copyright (c)  2010-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,9 +36,13 @@
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "pl-termhash.h"
 #include "pl-arith.h"
+#include "pl-pro.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
+#undef LD
+#define LD LOCAL_LD
 
 #ifdef __WINDOWS__
 typedef unsigned int uint32_t;
@@ -78,8 +83,9 @@ allocBuffer(Buffer b, size_t size)
 }
 
 
+#define primitiveHashValue(term, hval) LDFUNC(primitiveHashValue, term, hval)
 static int
-primitiveHashValue(word term, unsigned int *hval ARG_LD)
+primitiveHashValue(DECL_LD word term, unsigned int *hval)
 { switch(tag(term))
   { case TAG_VAR:
     case TAG_ATTVAR:
@@ -122,8 +128,9 @@ primitiveHashValue(word term, unsigned int *hval ARG_LD)
 }
 
 
+#define start_term(work, b, w) LDFUNC(start_term, work, b, w)
 static void
-start_term(th_data *work, Buffer b, word w ARG_LD)
+start_term(DECL_LD th_data *work, Buffer b, word w)
 { atom_t name;
 
   work->term     = valueTerm(w);
@@ -154,8 +161,9 @@ This is not enough.  Consider:
 Making every parent a cycle works, but might loose a bit too much :-(
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define next_arg(workp, b) LDFUNC(next_arg, workp, b)
 static Word
-next_arg(th_data **workp, Buffer b ARG_LD)
+next_arg(DECL_LD th_data **workp, Buffer b)
 { th_data *work = *workp;
 
   for(;;)
@@ -213,12 +221,13 @@ update_cycle(th_data *here, th_data *start, Buffer b)
 }
 
 
+#define termHashValue(p, hval) LDFUNC(termHashValue, p, hval)
 static int
-termHashValue(Word p, unsigned int *hval ARG_LD)
+termHashValue(DECL_LD Word p, unsigned int *hval)
 { deRef(p);
   if ( !isTerm(*p) )
   { *hval = MURMUR_SEED;
-    return primitiveHashValue(*p, hval PASS_LD);
+    return primitiveHashValue(*p, hval);
   } else
   { tmp_buffer tmp;
     Buffer b = (Buffer)&tmp;
@@ -228,13 +237,13 @@ termHashValue(Word p, unsigned int *hval ARG_LD)
 
     initBuffer(&tmp);
     work = allocBuffer(b, sizeof(*work));	/* cannot fail */
-    start_term(work, b, *p PASS_LD);
+    start_term(work, b, *p);
     work->parent_offset = (size_t)-1;
     t->definition = consInt(0);
 
-    while ( (p = next_arg(&work, b PASS_LD)) )
+    while ( (p = next_arg(&work, b)) )
     { if ( !isTerm(*p) )
-      { if ( primitiveHashValue(*p, &work->hash PASS_LD) )
+      { if ( primitiveHashValue(*p, &work->hash) )
 	{ work->arg++;
 	} else
 	{ rc = FALSE;
@@ -267,7 +276,7 @@ termHashValue(Word p, unsigned int *hval ARG_LD)
 	  { rc = -1;			/* out of memory */
 	    goto out;
 	  }
-	  start_term(work, b, *p PASS_LD);
+	  start_term(work, b, *p);
 	  work->parent_offset = parent;
 	  t->definition = consInt(nodeID(work, b));
 	}
@@ -305,7 +314,7 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
   unsigned int hraw;
   int rc;
 
-  rc = termHashValue(p, &hraw PASS_LD);
+  rc = termHashValue(p, &hraw);
 
   if ( rc )
   { hraw = hraw & PLMAXTAGGEDINT32;	/* ensure tagged (portable) */
@@ -322,8 +331,6 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
 		 *******************************/
 
 /* type to hold the SHA256 context  */
-
-#define SHA1_DIGEST_SIZE 20
 
 typedef struct
 {   uint32_t count[2];
@@ -396,11 +403,6 @@ hash_end(hash_state *state)
 State for processing the term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef enum
-{ HASH_SHA1,
-  HASH_MURMUR
-} hash_algo;
-
 typedef struct
 { int		var_count;
   hash_algo	algorithm;
@@ -440,8 +442,9 @@ push_attvar(Word p, sha1_state *state)
 	    hash_compile(state->ctx.murmur, (const unsigned char*)(p), (l)); \
 	} while(0)
 
+#define variant_sha1(agenda, state) LDFUNC(variant_sha1, agenda, state)
 static status
-variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
+variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 { Word p;
 
   while( (p=ac_nextTermAgenda(agenda)) )
@@ -542,13 +545,12 @@ variant_sha1(ac_term_agenda *agenda, sha1_state *state ARG_LD)
 }
 
 
-static int
-variant_hash(term_t term, term_t hash, hash_algo algorithm ARG_LD)
+int
+variant_hash(DECL_LD term_t term, termhash_t *hash, hash_algo algorithm)
 { int rc;
   ac_term_agenda agenda;
   sha1_state state;
   Word p;
-  int n;
 
   state.var_count = 0;
   state.algorithm = algorithm;
@@ -559,7 +561,7 @@ variant_hash(term_t term, term_t hash, hash_algo algorithm ARG_LD)
   ac_initTermAgenda(&agenda, valTermRef(term));
   initSegStack(&state.vars, sizeof(Word),
 	       sizeof(state.vars_first_chunk), state.vars_first_chunk);
-  rc = variant_sha1(&agenda, &state PASS_LD);
+  rc = variant_sha1(&agenda, &state);
   ac_clearTermAgenda(&agenda);
   while(popSegStack(&state.vars, &p, Word))
   { word w = (word)p;
@@ -586,26 +588,11 @@ variant_hash(term_t term, term_t hash, hash_algo algorithm ARG_LD)
   }
 
   if ( state.algorithm == HASH_SHA1 )
-  { unsigned char sha1[SHA1_DIGEST_SIZE];
-    char hex[SHA1_DIGEST_SIZE*2];
-    const char hexd[] = "0123456789abcdef";
-    char *o;
-    const unsigned char *i;
+    sha1_end(hash->sha1, state.ctx.sha1);
+  else
+    hash->murmur = hash_end(state.ctx.murmur);
 
-    sha1_end(sha1, state.ctx.sha1);
-    o = hex;
-    i = sha1;
-    for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
-    { *o++ = hexd[*i >> 4];
-      *o++ = hexd[*i&0x0f];
-    }
-
-    return PL_unify_chars(hash, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
-  } else
-  { unsigned int key = hash_end(state.ctx.murmur)&PLMAXTAGGEDINT32;
-
-    return PL_unify_integer(hash, key);
-  }
+  return TRUE;
 }
 
 /** variant_sha1(@Term, -SHA1:string) is det.
@@ -618,13 +605,38 @@ basically execute numbervars.
 static
 PRED_IMPL("variant_sha1", 2, variant_sha1, 0)
 { PRED_LD
-  return variant_hash(A1, A2, HASH_SHA1 PASS_LD);
+  termhash_t hash;
+
+  if ( variant_hash(A1, &hash, HASH_SHA1) )
+  { char hex[SHA1_DIGEST_SIZE*2];
+    const char hexd[] = "0123456789abcdef";
+    char *o;
+    const unsigned char *i;
+    int n;
+
+    o = hex;
+    i = hash.sha1;
+    for(n=0; n<SHA1_DIGEST_SIZE; n++,i++)
+    { *o++ = hexd[*i >> 4];
+      *o++ = hexd[*i&0x0f];
+    }
+
+    return PL_unify_chars(A2, PL_ATOM|REP_ISO_LATIN_1, sizeof(hex), hex);
+  } else
+  { return FALSE;
+  }
 }
 
 static
 PRED_IMPL("variant_hash", 2, variant_hash, 0)
 { PRED_LD
-  return variant_hash(A1, A2, HASH_MURMUR PASS_LD);
+  termhash_t hash;
+
+  if ( variant_hash(A1, &hash, HASH_MURMUR) )
+  { return PL_unify_integer(A2, hash.murmur&PLMAXTAGGEDINT32);
+  } else
+  { return FALSE;
+  }
 }
 
 		 /*******************************

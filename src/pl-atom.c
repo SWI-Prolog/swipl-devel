@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,7 +35,12 @@
 */
 
 /*#define O_DEBUG 1*/
-#include "pl-incl.h"
+#include "pl-atom.h"
+#include "pl-setup.h"
+#include "pl-gc.h"
+#include "pl-fli.h"
+#include "pl-pro.h"
+#include "pl-read.h"
 #include "os/pl-ctype.h"
 #undef LD
 #define LD LOCAL_LD
@@ -466,7 +472,7 @@ reserveAtom(void)
 #endif /*O_ATOMGC*/
 
   for(;;)
-  { index = GD->atoms.highest;
+  { index = __atomic_load_n(&GD->atoms.highest, __ATOMIC_ACQUIRE);
     idx = MSB(index);
     assert(index >= 0);
 
@@ -531,10 +537,13 @@ lookupBlob(const char *s, size_t length, PL_blob_t *type, int *new)
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
-  v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
+
+  if ( alltrue(type, PL_BLOB_UNIQUE|PL_BLOB_NOCOPY) )
+    v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
+  else
+    v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 
 redo:
-
   acquire_atom_table(table, buckets);
 
   v  = v0 & (buckets-1);
@@ -771,7 +780,7 @@ markAtom(atom_t a)
   }
 }
 
-void
+static void
 unmarkAtoms(void)
 { size_t index;
   int i, last=FALSE;
@@ -797,7 +806,7 @@ unmarkAtoms(void)
 }
 
 
-void
+static void
 maybe_free_atom_tables(void)
 {
   AtomTable t = GD->atoms.table;
@@ -1037,9 +1046,9 @@ pl_garbage_collect_atoms(void)
   blockSignals(&set);
   t = CpuTime(CPU_USER);
   unmarkAtoms();
-  markAtomsOnStacks(LD);
+  markAtomsOnStacks(LD, NULL);
 #ifdef O_PLMT
-  forThreadLocalDataUnsuspended(markAtomsOnStacks, 0);
+  forThreadLocalDataUnsuspended(markAtomsOnStacks, NULL);
   markAtomsMessageQueues();
 #endif
   oldcollected = GD->atoms.collected;
@@ -1086,8 +1095,6 @@ considerAGC(void)
 
 #endif /*O_ATOMGC*/
 
-#undef PL_register_atom
-#undef PL_unregister_atom
 
 void
 resetAtoms()
@@ -1123,7 +1130,7 @@ register_atom(volatile Atom p)
 
 
 void
-PL_register_atom(atom_t a)
+(PL_register_atom)(atom_t a)
 {
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
@@ -1250,7 +1257,7 @@ unregister_atom(volatile Atom p)
 
 
 void
-PL_unregister_atom(atom_t a)
+(PL_unregister_atom)(atom_t a)
 {
 #ifdef O_ATOMGC
   size_t index = indexAtom(a);
@@ -1658,8 +1665,9 @@ cleanupAtoms(void)
 }
 
 
+#define current_blob(a, type, call, state) LDFUNC(current_blob, a, type, call, state)
 static word
-current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
+current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
 { atom_t type_name = 0;
   size_t index;
   int i, last=0;
@@ -1717,7 +1725,7 @@ current_blob(term_t a, term_t type, frg_code call, intptr_t state ARG_LD)
 	   atom->atom != ATOM_garbage_collected &&
 	   bump_atom_references(atom, refs) )
       { DEBUG(CHK_ATOM_GARBAGE_COLLECTED,
-	      /* avoid trap through linkVal__LD() check */
+	      /* avoid trap through linkVal() check */
 	      if ( atom->atom == ATOM_garbage_collected )
 	      { PL_unregister_atom(atom->atom);
 	        continue;
@@ -1753,7 +1761,7 @@ static
 PRED_IMPL("current_blob", 2, current_blob, PL_FA_NONDETERMINISTIC)
 { PRED_LD
 
-  return current_blob(A1, A2, CTX_CNTRL, CTX_INT PASS_LD);
+  return current_blob(A1, A2, CTX_CNTRL, CTX_INT);
 }
 
 
@@ -1761,7 +1769,7 @@ static
 PRED_IMPL("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
 { PRED_LD
 
-  return current_blob(A1, 0, CTX_CNTRL, CTX_INT PASS_LD);
+  return current_blob(A1, 0, CTX_CNTRL, CTX_INT);
 }
 
 
@@ -2095,7 +2103,7 @@ atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
     for(; index<upto; index++)
     { Atom a = b + index;
 
-      if ( is_signalled(PASS_LD1) )	/* Notably allow windows version */
+      if ( is_signalled() )	/* Notably allow windows version */
       { if ( PL_handle_signals() < 0 )	/* to break out on ^C */
 	  return FALSE;
       }

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2017, University of Amsterdam
+    Copyright (c)  2002-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,8 +36,16 @@
 
 :- module(prolog_main,
           [ main/0,
-            argv_options/3                      % +Argv, -RestArgv, -Options
+            argv_options/3,             % +Argv, -RestArgv, -Options
+            cli_parse_debug_options/2,  % +OptionsIn, -Options
+            cli_enable_development_system/0
           ]).
+% use autoload/1 to avoid checking these files at load time.
+:- autoload(library(debug)).
+:- autoload(library(threadutil)).
+
+:- dynamic
+    interactive/0.
 
 /** <module> Provide entry point for scripts
 
@@ -81,7 +90,11 @@ main :-
     context_module(M),
     set_signals,
     current_prolog_flag(argv, Av),
-    catch_with_backtrace(M:main(Av), Error, throw(Error)).
+    catch_with_backtrace(M:main(Av), Error, throw(Error)),
+    (   interactive
+    ->  cli_enable_development_system
+    ;   true
+    ).
 
 set_signals :-
     on_signal(int, _, interrupt).
@@ -139,6 +152,94 @@ convert_option(_, String, Atom) :-
 canonical_name(Name, PlName) :-
     split_string(Name, "-_", "", Parts),
     atomic_list_concat(Parts, '_', PlName).
+
+%!	cli_parse_debug_options(+OptionsIn, -Options) is det.
+%
+%       Parse certain commandline options for  debugging and development
+%       purposes. Options processed are  below.   Note  that  the option
+%       argument is an atom such that these  options may be activated as
+%       e.g., ``--debug='http(_)'``.
+%
+%         - debug(Topic)
+%           Call debug(Topic).  See debug/1 and debug/3.
+%         - spy(Predicate)
+%           Place a spy-point on Predicate.
+%         - gspy(Predicate)
+%           As spy using the graphical debugger.  See tspy/1.
+%         - interactive(true)
+%           Start the Prolog toplevel after main/1 completes.
+
+cli_parse_debug_options([], []).
+cli_parse_debug_options([H|T0], Opts) :-
+    debug_option(H),
+    !,
+    cli_parse_debug_options(T0, Opts).
+cli_parse_debug_options([H|T0], [H|T]) :-
+    cli_parse_debug_options(T0, T).
+
+debug_option(interactive(true)) :-
+    asserta(interactive).
+debug_option(debug(TopicS)) :-
+    term_string(Topic, TopicS),
+    debug(Topic).
+debug_option(spy(Atom)) :-
+    atom_pi(Atom, PI),
+    spy(PI).
+debug_option(gspy(Atom)) :-
+    atom_pi(Atom, PI),
+    tspy(PI).
+
+atom_pi(Atom, Module:PI) :-
+    split(Atom, :, Module, PiAtom),
+    !,
+    atom_pi(PiAtom, PI).
+atom_pi(Atom, Name//Arity) :-
+    split(Atom, //, Name, Arity),
+    !.
+atom_pi(Atom, Name/Arity) :-
+    split(Atom, /, Name, Arity),
+    !.
+atom_pi(Atom, _) :-
+    format(user_error, 'Invalid predicate indicator: "~w"~n', [Atom]),
+    halt(1).
+
+split(Atom, Sep, Before, After) :-
+    sub_atom(Atom, BL, _, AL, Sep),
+    !,
+    sub_atom(Atom, 0, BL, _, Before),
+    sub_atom(Atom, _, AL, 0, AfterAtom),
+    (   atom_number(AfterAtom, After)
+    ->  true
+    ;   After = AfterAtom
+    ).
+
+
+%!  cli_enable_development_system
+%
+%   Re-enable the development environment. Currently  re-enables xpce if
+%   this was loaded, but not  initialised   and  causes  the interactive
+%   toplevel to be re-enabled.
+%
+%   This predicate may  be  called  from   main/1  to  enter  the Prolog
+%   toplevel  rather  than  terminating  the  application  after  main/1
+%   completes.
+
+cli_enable_development_system :-
+    on_signal(int, _, debug),
+    set_prolog_flag(xpce_threaded, true),
+    set_prolog_flag(message_ide, true),
+    (   current_prolog_flag(xpce_version, _)
+    ->  use_module(library(pce_dispatch)),
+        memberchk(Goal, [pce_dispatch([])]),
+        call(Goal)
+    ;   true
+    ),
+    set_prolog_flag(toplevel_goal, prolog).
+
+
+		 /*******************************
+		 *          IDE SUPPORT		*
+		 *******************************/
 
 :- multifile
     prolog:called_by/2.

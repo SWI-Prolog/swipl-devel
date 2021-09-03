@@ -128,6 +128,8 @@ test(error, error(instantiation_error)) :-
 	atom_to_term(_, _, _).
 test(eof, error(syntax_error(_))) :-
 	atom_to_term('x /* comment', _, _).
+test(read, T-V =@= A-['A' = A] ) :-
+	atom_to_term('A', T, V).
 
 :- end_tests(atom_to_term).
 

@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,6 +42,7 @@
 
 #include "pl-incl.h"
 #include "pl-utf8.h"
+#include "../pl-fli.h"
 #include <stdio.h>
 #include <errno.h>
 
@@ -624,7 +626,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
     for(s = name; *s; )
     { int chr;
 
-      s = utf8_get_char(s, &chr);
+      PL_utf8_code_point(&s, NULL, &chr);
       addBuffer(b, (wchar_t)chr, wchar_t);
     }
     addBuffer(b, (wchar_t)0, wchar_t);
@@ -712,7 +714,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     md = ACCESS_WRITE;
   else if ( m == ATOM_read )
     md = ACCESS_READ;
-  else if ( m == ATOM_execute )
+  else if ( m == ATOM_execute || m == ATOM_search )
     md = ACCESS_EXECUTE;
   else if ( m == ATOM_exist )
     md = ACCESS_EXIST;
@@ -1224,12 +1226,11 @@ PRED_IMPL("$my_file", 1, my_file, 0)
     return FALSE;
 
 #ifdef HAVE_GETUID
-{
-  statstruct buf;
+{ statstruct buf;
   char tmp[MAXPATHLEN];
 
   if ( statfunc(OsPath(n, tmp), &buf) < 0 )
-  { perror("tmp");
+  { perror(tmp);
     return FALSE;
   }
 

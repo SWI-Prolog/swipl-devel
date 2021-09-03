@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,7 +36,9 @@
 
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
-#include "pl-incl.h"
+#include "../pl-incl.h"
+#include "../pl-fli.h"
+#include "../pl-write.h"
 #include <math.h>
 #include "libtai/taia.h"
 #include "libtai/caltime.h"
@@ -408,21 +411,23 @@ cal_ftm(ftm *ftm, int required)
     ct.hour       = ftm->tm.tm_hour;
     ct.minute     = ftm->tm.tm_min;
     ct.second     = ftm->tm.tm_sec;
-    ct.offset     = -ftm->utcoff / 60;	/* TBD: make libtai speak seconds */
+    ct.offset     = 0;
 
     caltime_tai(&ct, &tai);
 
     if ( missing & HAS_WYDAY )
-    { caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
+    { /* Gets weekday and yday at UTC, so we compensate afterwards! */
+      caltime_utc(&ct, &tai, &ftm->tm.tm_wday, &ftm->tm.tm_yday);
       ftm->flags |= HAS_WYDAY;
     }
+
+    tai.x += ftm->utcoff;
 
     leapsecs_sub(&tai);
     ftm->stamp  = (double)((int64_t)tai.x - TAI_UTC_OFFSET);
     ftm->stamp -= (double)ct.second;
     ftm->stamp += ftm->sec;
     ftm->flags |= HAS_STAMP;
-
   }
 }
 
@@ -711,9 +716,17 @@ format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 	    fmt[1] = (char)c;
 	    fmt[2] = EOS;
 
+#ifndef __GLIBC__
+	    if ( fmt[1] == 'P' ) fmt[1] = 'p';
+#endif
+
 	    cal_ftm(ftm, HAS_STAMP|HAS_WYDAY);
 					/* conversion is not thread-safe under locale switch */
 	    strftime(buf, sizeof(buf), fmt, &ftm->tm);
+#ifndef __GLIBC__
+	    if ( c == 'P' )
+	      strlwr(buf);
+#endif
 	    OUTSTRA(buf);
 	    break;
 	  }

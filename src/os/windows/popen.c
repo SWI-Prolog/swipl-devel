@@ -207,7 +207,7 @@ utf8towcs(wchar_t *o, const char *src)
 { for( ; *src; )
   { int wc;
 
-    src = utf8_get_char(src, &wc);
+    PL_utf8_code_point(&src, NULL, &wc);
     *o++ = wc;
   }
   *o = 0;

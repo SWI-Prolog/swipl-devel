@@ -35,6 +35,7 @@
 
 #include "pl-incl.h"
 #include "pl-indirect.h"
+#include "pl-gc.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Indirect datatypes are represented by  a   tagged  pointer to the global
@@ -61,10 +62,19 @@ global stack. In the latter case  there   are  never references from the
 volatile areas and thus we can use purely reference count based GC.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if USE_LD_MACROS
+#define	reserve_indirect(tab, val)	LDFUNC(reserve_indirect, tab, val)
+#define	create_indirect(h, index, val)	LDFUNC(create_indirect, h, index, val)
+#endif /*USE_LD_MACROS*/
+
+#define LDFUNC_DECLARATIONS
+
 static void	 rehash_indirect_table(indirect_table *tab);
 static int	 bump_ref(indirect *h, unsigned int refs);
-static indirect *reserve_indirect(indirect_table *tab, word val ARG_LD);
-static indirect *create_indirect(indirect *h, size_t index, word val ARG_LD);
+static indirect *reserve_indirect(indirect_table *tab, word val);
+static indirect *create_indirect(indirect *h, size_t index, word val);
+
+#undef LDFUNC_DECLARATIONS
 
 /* TBD: register with LD structure */
 #define acquire_itable_buckets(tab) (tab->table)
@@ -156,7 +166,7 @@ destroy_indirect_table(indirect_table *tab)
 
 
 word
-intern_indirect(indirect_table *tab, word val, int create ARG_LD)
+intern_indirect(DECL_LD indirect_table *tab, word val, int create)
 { Word	 idata     = addressIndirect(val);	/* points at header */
   size_t isize     = wsizeofInd(*idata);	/* include header */
   unsigned int key = MurmurHashAligned2(idata+1, isize*sizeof(word), MURMUR_SEED);
@@ -192,7 +202,7 @@ intern_indirect(indirect_table *tab, word val, int create ARG_LD)
       continue;				/* try again */
 
     if ( create )
-    { indirect *h = reserve_indirect(tab, val PASS_LD);
+    { indirect *h = reserve_indirect(tab, val);
 
       h->next = buckets->buckets[ki];
       if ( !COMPARE_AND_SWAP_PTR(&buckets->buckets[ki], head, h) ||
@@ -247,7 +257,7 @@ allocate_indirect_block(indirect_table *tab, int idx)
 
 
 static indirect *
-reserve_indirect(indirect_table *tab, word val ARG_LD)
+reserve_indirect(DECL_LD indirect_table *tab, word val)
 { size_t index;
   int i;
   int last = FALSE;
@@ -268,7 +278,7 @@ reserve_indirect(indirect_table *tab, word val ARG_LD)
       if ( INDIRECT_IS_FREE(refs) &&
 	   COMPARE_AND_SWAP_UINT(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
       { tab->no_hole_before = index+1;
-	return create_indirect(a, index, val PASS_LD);
+	return create_indirect(a, index, val);
       }
     }
   }
@@ -291,7 +301,7 @@ reserve_indirect(indirect_table *tab, word val ARG_LD)
     if ( INDIRECT_IS_FREE(refs) &&
 	 COMPARE_AND_SWAP_UINT(&a->references, refs, INDIRECT_RESERVED_REFERENCE) )
     { ATOMIC_INC(&tab->highest);
-      return create_indirect(a, index, val PASS_LD);
+      return create_indirect(a, index, val);
     }
   }
 }
@@ -304,7 +314,7 @@ we cannot distinguish inlined integers from bignums and MPZ integers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static indirect *
-create_indirect(indirect *h, size_t index, word val ARG_LD)
+create_indirect(DECL_LD indirect *h, size_t index, word val)
 { Word	 idata = addressIndirect(val);	/* points at header */
   size_t isize = wsizeofInd(*idata);	/* include header */
 
@@ -361,7 +371,7 @@ rehash_indirect_table(indirect_table *tab)
 
 
 word
-extern_indirect(indirect_table *tab, word val, Word *gp ARG_LD)
+extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
 { size_t index = val>>LMASK_BITS;
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
@@ -396,7 +406,7 @@ extern_indirect(indirect_table *tab, word val, Word *gp ARG_LD)
 
 
 word
-extern_indirect_no_shift(indirect_table *tab, word val ARG_LD)
+extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
 { size_t index = val>>LMASK_BITS;
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];

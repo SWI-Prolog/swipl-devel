@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -65,6 +66,10 @@ locking is required.
 #undef O_LARGEFILES
 #endif
 
+#ifdef HAVE_VISIBILITY_ATTRIBUTE
+#define PL_SO_EXPORT __attribute__((visibility("default")))
+#endif
+
 #define PL_KERNEL 1
 #define O_LOCALE 1
 #include <wchar.h>
@@ -73,6 +78,7 @@ locking is required.
 #include "pl-stream.h"
 #include "SWI-Prolog.h"
 #include "pl-utf8.h"
+#include "../pl-mutex.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
@@ -156,7 +162,6 @@ STRYLOCK(IOSTREAM *s)
 #include "os/pl-locale.h"
 #endif
 
-extern int			fatalError(const char *fm, ...);
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
 extern int			reportStreamError(IOSTREAM *s);
@@ -830,17 +835,20 @@ Sungetc(int c, IOSTREAM *s)
 
 static int
 reperror(int c, IOSTREAM *s)
-{ if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL)) )
+{ if ( c >= 0 && (s->flags & (SIO_REPXML|SIO_REPPL|SIO_REPPLU)) )
   { char buf[16];
     const char *q;
 
     if ( (s->flags & SIO_REPPL) )
+    { sprintf(buf, "\\x%X\\", c);
+    } else if ( (s->flags & SIO_REPPLU) )
     { if ( c <= 0xffff )
 	sprintf(buf, "\\u%04X", c);
       else
 	sprintf(buf, "\\U%08X", c);
     } else
-      sprintf(buf, "&#%d;", c);
+    { sprintf(buf, "&#%d;", c);
+    }
 
     for(q = buf; *q; q++)
     { if ( put_byte(*q, s) < 0 )
@@ -2074,27 +2082,31 @@ Svprintf(const char *fm, va_list args)
 { return Svfprintf(Soutput, fm, args);
 }
 
-
-#define NEXTCHR(s, c)				\
-	switch (enc)				\
-	{ case ENC_ANSI:			\
-	  case ENC_ISO_LATIN_1:			\
-	    c = *(s)++; c &= 0xff;		\
-	    break;				\
-	  case ENC_UTF8:			\
-	    (s) = utf8_get_char((s), &(c));	\
-	    break;				\
-	  case ENC_WCHAR:			\
-	  { wchar_t *_w = (wchar_t*)(s);	\
-	    c = *_w++;				\
-	    (s) = (char*)_w;			\
-	    break;				\
-	  }					\
-	  default:				\
-	    c = 0;				\
-	    assert(0);				\
-	    break;				\
-	}
+static int
+next_chr(const char **s, IOENC enc)
+{ switch(enc)
+  { case ENC_ANSI:
+    case ENC_ISO_LATIN_1:
+    { unsigned char c = (unsigned char)**s;
+      ++(*s);
+      return c;
+    }
+    case ENC_UTF8:
+    { int c;
+      PL_utf8_code_point(s, NULL, &(c));
+      return c;
+    }
+    case ENC_WCHAR:
+    { const wchar_t *w = (const wchar_t*)*s;
+      wint_t c = *w++;
+      *s = (const char*)w;
+      return c;
+    }
+    default:
+      assert(0);
+      return -1;
+  }
+}
 
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
@@ -2343,8 +2355,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  if ( align == A_LEFT )
 	  { int w = 0;
 	    while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	      w++;
 	    }
@@ -2384,8 +2395,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      }
 	    }
 	    while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	    }
 	  }
@@ -2395,8 +2405,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	      OUTCHR(s, *fs++);
 	  } else
 	  { while(*fs)
-	    { int c;
-	      NEXTCHR(fs, c);
+	    { int c = next_chr((const char**)&fs, enc);
 	      OUTCHR(s, c);
 	    }
 	  }
@@ -2515,6 +2524,9 @@ Svdprintf(const char *fm, va_list args)
   return rval;
 }
 
+#ifdef O_DEBUG
+#undef Sdprintf
+#endif
 
 int
 Sdprintf(const char *fm, ...)
@@ -2527,6 +2539,35 @@ Sdprintf(const char *fm, ...)
 
   return rval;
 }
+
+#ifdef O_DEBUG
+
+int
+Sdprintf_ex(const char *channel, const char *file, int line, const char *fm, ...)
+{ va_list args;
+  int rval;
+
+  if ( Serror->position && Serror->position->linepos == 0 && channel)
+  { const char *logfmt = "[%s] %s:%d: ";
+
+    if (strncmp(channel, "DBG_LEVEL", 9) == 0)
+    { channel += 9;
+      logfmt = "<%s> %s:%d: ";
+    }
+    if (strncmp(file, "../", 3) == 0)
+      file += 3;
+    Sdprintf(logfmt, channel, file, line);
+  }
+
+  va_start(args, fm);
+  rval = Svdprintf(fm, args);
+  va_end(args);
+
+  return rval;
+}
+
+#define Sdprintf(fmt...) Sdprintf_ex(NULL, __FILE__, __LINE__, fmt)
+#endif /*O_DEBUG*/
 
 #if 0
 		 /*******************************
@@ -3907,8 +3948,8 @@ Sclose_buffer(IOSTREAM *s)
 #define SIO_STDIO (SIO_FILE|SIO_STATIC|SIO_NOCLOSE|SIO_ISATTY|SIO_TEXT)
 #define STDIO_STREAMS \
   STDIO(0, SIO_STDIO|SIO_LBUF|SIO_INPUT|SIO_NOFEOF),	/* Sinput */ \
-  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPL),	/* Soutput */ \
-  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPL)	/* Serror */
+  STDIO(1, SIO_STDIO|SIO_LBUF|SIO_OUTPUT|SIO_REPPLU),	/* Soutput */ \
+  STDIO(2, SIO_STDIO|SIO_NBUF|SIO_OUTPUT|SIO_REPPLU)	/* Serror */
 
 
 IOSTREAM S__iob[] =

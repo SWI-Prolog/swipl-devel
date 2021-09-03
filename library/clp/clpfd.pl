@@ -90,6 +90,7 @@
                   op(700, xfx, #\=),
                   op(700, xfx, in),
                   op(700, xfx, ins),
+                  op(700, xfx, in_set),
                   op(450, xfx, ..), % should bind more tightly than \/
                   (#>)/2,
                   (#<)/2,
@@ -132,9 +133,39 @@
                   fd_inf/2,
                   fd_sup/2,
                   fd_size/2,
-                  fd_dom/2
+                  fd_dom/2,
+                  fd_degree/2,
+                                        % SICStus compatible fd_set API
+                  (in_set)/2,
+                  fd_set/2,
+                  is_fdset/1,
+                  empty_fdset/1,
+                  fdset_parts/4,
+                  empty_interval/2,
+                  fdset_interval/3,
+                  fdset_singleton/2,
+                  fdset_min/2,
+                  fdset_max/2,
+                  fdset_size/2,
+                  list_to_fdset/2,
+                  fdset_to_list/2,
+                  range_to_fdset/2,
+                  fdset_to_range/2,
+                  fdset_add_element/3,
+                  fdset_del_element/3,
+                  fdset_disjoint/2,
+                  fdset_intersect/2,
+                  fdset_intersection/3,
+                  fdset_member/2,
+                  fdset_eq/2,
+                  fdset_subset/2,
+                  fdset_subtract/3,
+                  fdset_union/3,
+                  fdset_union/2,
+                  fdset_complement/2
                  ]).
 
+:- meta_predicate with_local_attributes(?, ?, 0, ?).
 :- public                               % called from goal_expansion
         clpfd_equal/2,
         clpfd_geq/2.
@@ -145,6 +176,8 @@
 :- use_module(library(error)).
 :- use_module(library(lists)).
 :- use_module(library(pairs)).
+
+:- set_prolog_flag(generate_debug_info, false).
 
 :- op(700, xfx, cis).
 :- op(700, xfx, cis_geq).
@@ -778,9 +811,9 @@ CLP(Q) which reason about _linear_ constraints over rational numbers.
 
 ## Reification				{#clpfd-reification}
 
-The constraints in/2, #=/2, #\=/2, #</2, #>/2, #=</2, and #>=/2 can be
-_reified_, which means reflecting their truth values into Boolean
-values represented by the integers 0 and 1. Let P and Q denote
+The constraints in/2, in_set/2, #=/2, #\=/2, #</2, #>/2, #=</2, and
+#>=/2 can be _reified_, which means reflecting their truth values into
+Boolean values represented by the integers 0 and 1. Let P and Q denote
 reifiable constraints or Boolean variables, then:
 
     | #\ Q      | True iff Q is false                  |
@@ -1093,6 +1126,17 @@ cis_sign(sup, n(1)).
 cis_sign(inf, n(-1)).
 cis_sign(n(N), n(S)) :- S is sign(N).
 
+cis_slash(sup, Y, Z)  :- ( Y cis_geq n(0) -> Z = sup ; Z = inf ).
+cis_slash(inf, Y, Z)  :- ( Y cis_geq n(0) -> Z = inf ; Z = sup ).
+cis_slash(n(X), Y, Z) :- cis_slash_(Y, X, Z).
+
+cis_slash_(sup, _, n(0)).
+cis_slash_(inf, _, n(0)).
+cis_slash_(n(Y), X, Z) :-
+        (   Y =:= 0 -> (  X >= 0 -> Z = sup ; Z = inf )
+        ;   Z0 is X // Y, Z = n(Z0)
+        ).
+
 cis_div(sup, Y, Z)  :- ( Y cis_geq n(0) -> Z = sup ; Z = inf ).
 cis_div(inf, Y, Z)  :- ( Y cis_geq n(0) -> Z = inf ; Z = sup ).
 cis_div(n(X), Y, Z) :- cis_div_(Y, X, Z).
@@ -1101,16 +1145,8 @@ cis_div_(sup, _, n(0)).
 cis_div_(inf, _, n(0)).
 cis_div_(n(Y), X, Z) :-
         (   Y =:= 0 -> (  X >= 0 -> Z = sup ; Z = inf )
-        ;   Z0 is X // Y, Z = n(Z0)
+        ;   Z0 is X div Y, Z = n(Z0)
         ).
-
-cis_slash(sup, _, sup).
-cis_slash(inf, _, inf).
-cis_slash(n(N), B, S) :- cis_slash_(B, N, S).
-
-cis_slash_(sup, _, n(0)).
-cis_slash_(inf, _, n(0)).
-cis_slash_(n(B), A, n(S)) :- S is A // B.
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1464,28 +1500,36 @@ domain_expand_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
    from interval.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_expand_more(D0, M, D) :-
+domain_expand_more(D0, M, Op, D) :-
         %format("expanding ~w by ~w\n", [D0,M]),
-        (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
-        ;   D1 = D0, M1 = M
-        ),
-        domain_expand_more_(D1, M1, D).
+        %(   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
+        %;   D1 = D0, M1 = M
+        %),
+        %domain_expand_more_(D1, M1, Op, D).
+        domain_expand_more_(D0, M, Op, D).
         %format("yield: ~w\n", [D]).
 
-domain_expand_more_(empty, _, empty).
-domain_expand_more_(from_to(From0, To0), M, from_to(From,To)) :-
-        (   From0 cis_leq n(0) ->
-            From cis (From0-n(1))*n(M) + n(1)
-        ;   From cis From0*n(M)
+domain_expand_more_(empty, _, _, empty).
+domain_expand_more_(from_to(From0, To0), M, Op, D) :-
+        M1 is abs(M),
+        (   Op = // ->
+            (   From0 cis_leq n(0) -> From1 cis (From0-n(1))*n(M1) + n(1)
+            ;   From1 cis From0*n(M1)
+            ),
+            (   To0 cis_lt n(0) -> To1 cis To0*n(M1)
+            ;   To1 cis (To0+n(1))*n(M1) - n(1)
+            )
+        ;   Op = div ->
+            From1 cis From0*n(M1),
+            To1 cis (To0+n(1))*n(M1)-sign(n(M))
         ),
-        (   To0 cis_lt n(0) ->
-            To cis To0*n(M)
-        ;   To cis (To0+n(1))*n(M) - n(1)
+        (   M < 0 -> domain_negate(from_to(From1,To1), D)
+        ;   D = from_to(From1,To1)
         ).
-domain_expand_more_(split(S0, Left0, Right0), M, split(S, Left, Right)) :-
+domain_expand_more_(split(S0, Left0, Right0), M, Op, split(S, Left, Right)) :-
         S is M*S0,
-        domain_expand_more_(Left0, M, Left),
-        domain_expand_more_(Right0, M, Right).
+        domain_expand_more_(Left0, M, Op, Left),
+        domain_expand_more_(Right0, M, Op, Right).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Scale a domain down by a constant multiplier. Assuming (//)/2.
@@ -1520,20 +1564,25 @@ domain_contract_(split(_,Left0,Right0), M, D) :-
    {21,23} contracted by 4 is 5. It contracts "less".
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-domain_contract_less(D0, M, D) :-
+domain_contract_less(D0, M, Op, D) :-
         (   M < 0 -> domain_negate(D0, D1), M1 is abs(M)
         ;   D1 = D0, M1 = M
         ),
-        domain_contract_less_(D1, M1, D).
+        domain_contract_less_(D1, M1, Op, D).
 
-domain_contract_less_(empty, _, empty).
-domain_contract_less_(from_to(From0, To0), M, from_to(From,To)) :-
-        From cis From0 // n(M), To cis To0 // n(M).
-domain_contract_less_(split(_,Left0,Right0), M, D) :-
+domain_contract_less_(empty, _, _, empty).
+domain_contract_less_(from_to(From0, To0), M, Op, from_to(From,To)) :-
+        (   Op = div -> From cis From0 div n(M),
+            To cis To0 div n(M)
+        ;   Op = // -> From cis From0 // n(M),
+            To cis To0 // n(M)
+        ).
+
+domain_contract_less_(split(_,Left0,Right0), M, Op, D) :-
         %  Scaled down domains do not necessarily retain any holes of
         %  the original domain.
-        domain_contract_less_(Left0, M, Left),
-        domain_contract_less_(Right0, M, Right),
+        domain_contract_less_(Left0, M, Op, Left),
+        domain_contract_less_(Right0, M, Op, Right),
         domains_union(Left, Right, D).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2472,7 +2521,7 @@ parse_clpfd(E, R,
              m(abs(A))         => [g(?(R) #>= 0), p(pabs(A, R))],
 %             m(A/B)            => [g(B #\= 0), p(ptzdiv(A, B, R))],
              m(A//B)           => [g(B #\= 0), p(ptzdiv(A, B, R))],
-             m(A div B)        => [g(?(R) #= (A - (A mod B)) // B)],
+             m(A div B)        => [g(B #\= 0), p(pdiv(A, B, R))],
              m(A rdiv B)       => [g(B #\= 0), p(prdiv(A, B, R))],
              m(A^B)            => [p(pexp(A, B, R))],
              % bitwise operations
@@ -2480,8 +2529,8 @@ parse_clpfd(E, R,
              m(msb(A))         => [p(pfunction(msb, A, R))],
              m(lsb(A))         => [p(pfunction(lsb, A, R))],
              m(popcount(A))    => [p(pfunction(popcount, A, R))],
-             m(A<<B)           => [p(pfunction(<<, A, B, R))],
-             m(A>>B)           => [p(pfunction(>>, A, B, R))],
+             m(A<<B)           => [p(pshift(A, B, R, 1))],
+             m(A>>B)           => [p(pshift(A, B, R, -1))],
              m(A/\B)           => [p(pfunction(/\, A, B, R))],
              m(A\/B)           => [p(pfunction(\/, A, B, R))],
              m(A xor B)        => [p(pfunction(xor, A, B, R))],
@@ -3373,8 +3422,8 @@ parse_reified(E, R, D,
                m(msb(A))     => [function(D,msb,A,R)],
                m(lsb(A))     => [function(D,lsb,A,R)],
                m(popcount(A)) => [function(D,popcount,A,R)],
-               m(A<<B)       => [function(D,<<,A,B,R)],
-               m(A>>B)       => [function(D,>>,A,B,R)],
+               m(A<<B)       => [d(D), p(pshift(A,B,R,1)), a(A,B,R)],
+               m(A>>B)       => [d(D), p(pshift(A,B,R,-1)), a(A,B,R)],
                m(A/\B)       => [function(D,/\,A,B,R)],
                m(A\/B)       => [function(D,\/,A,B,R)],
                m(A xor B)    => [function(D,xor,A,B,R)],
@@ -3473,6 +3522,7 @@ reifiable(E)      :- integer(E), E in 0..1.
 reifiable(?(E))   :- must_be_fd_integer(E).
 reifiable(#(E))   :- must_be_fd_integer(E).
 reifiable(V in _) :- fd_variable(V).
+reifiable(V in_set _) :- fd_variable(V).
 reifiable(Expr)   :-
         Expr =.. [Op,Left,Right],
         (   memberchk(Op, [#>=,#>,#=<,#<,#=,#\=])
@@ -3495,6 +3545,9 @@ reify_(?(B), B) --> [].
 reify_(#(B), B) --> [].
 reify_(V in Drep, B) -->
         { drep_to_domain(Drep, Dom) },
+        propagator_init_trigger(reified_in(V,Dom,B)),
+        a(B).
+reify_(V in_set Dom, B) -->
         propagator_init_trigger(reified_in(V,Dom,B)),
         a(B).
 reify_(tuples_in(Tuples, Relation), B) -->
@@ -4577,7 +4630,102 @@ run_propagator(ptimes(X,Y,Z), MState) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % X div Y = Z
-run_propagator(pdiv(X,Y,Z), MState) :- kill(MState), Z #= (X-(X mod Y)) // Y.
+run_propagator(pdiv(X,Y,Z), MState) :-
+        (   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Y =\= 0, Z is X div Y
+            ;   fd_get(Y, YD, YL, YU, YPs),
+                (   nonvar(Z) ->
+                    (   Z =:= 0 ->
+                        (   X =:= 0 -> NI = split(0, from_to(inf,n(-1)),
+                                                  from_to(n(1),sup))
+                        ;   NY_ is X+sign(X),
+                            (   X > 0 -> NI = from_to(n(NY_), sup)
+                            ;   NI = from_to(inf, n(NY_))
+                            )
+                        ),
+                        domains_intersection(YD, NI, NYD),
+                        fd_put(Y, NYD, YPs)
+                    ;   (   sign(X) =:= 1 ->
+                            NYL cis max(div(n(X)*n(Z), n(Z)*(n(Z)+n(1))) + n(1), YL),
+                            NYU cis min(div(n(X), n(Z)), YU)
+                        ;   NYL cis max(-(div(-n(X), n(Z))), YL),
+                            NYU cis min(-(div(-n(X)*n(Z), (n(Z)*(n(Z)+n(1))))) - n(1), YU)
+                        ),
+                        update_bounds(Y, YD, YPs, YL, YU, NYL, NYU)
+                    )
+                ;   fd_get(Z, ZD, ZL, ZU, ZPs),
+                    (   X >= 0, ( YL cis_gt n(0) ; YU cis_lt n(0) )->
+                        NZL cis max(div(n(X), YU), ZL),
+                        NZU cis min(div(n(X), YL), ZU)
+                    ;   X < 0, ( YL cis_gt n(0) ; YU cis_lt n(0) ) ->
+                        NZL cis max(div(n(X), YL), ZL),
+                        NZU cis min(div(n(X), YU), ZU)
+                    ;   % TODO: more stringent bounds, cover Y
+                        NZL cis max(-abs(n(X)), ZL),
+                        NZU cis min(abs(n(X)), ZU)
+                    ),
+                    update_bounds(Z, ZD, ZPs, ZL, ZU, NZL, NZU),
+                    (   X >= 0, NZL cis_gt n(0), fd_get(Y, YD1, YPs1) ->
+                        NYL cis div(n(X), (NZU + n(1))) + n(1),
+                        NYU cis div(n(X), NZL),
+                        domains_intersection(YD1, from_to(NYL, NYU), NYD1),
+                        fd_put(Y, NYD1, YPs1)
+                    ;   % TODO: more cases
+                        true
+                    )
+                )
+            )
+        ;   nonvar(Y) ->
+            Y =\= 0,
+            (   Y =:= 1 -> kill(MState), X = Z
+            ;   Y =:= -1 -> kill(MState), Z #= -X
+            ;   fd_get(X, XD, XL, XU, XPs),
+                (   nonvar(Z) ->
+                    kill(MState),
+                    (   Y > 0 ->
+                        NXL cis max(n(Z)*n(Y), XL),
+                        NXU cis min((n(Z)+n(1))*n(Y)-n(1), XU)
+                    ;   NXL cis max((n(Z)+n(1))*n(Y)+n(1), XL),
+                        NXU cis min(n(Z)*n(Y), XU)
+                    ),
+                    update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
+                ;   fd_get(Z, ZD, ZPs),
+                    domain_contract_less(XD, Y, div, Contracted),
+                    domains_intersection(ZD, Contracted, NZD),
+                    fd_put(Z, NZD, ZPs),
+                    (   fd_get(X, XD2, XPs2) ->
+                        domain_expand_more(NZD, Y, div, Expanded),
+                        domains_intersection(XD2, Expanded, NXD2),
+                        fd_put(X, NXD2, XPs2)
+                    ;   true
+                    )
+                )
+            )
+        ;   nonvar(Z) ->
+            fd_get(X, XD, XL, XU, XPs),
+            fd_get(Y, _, YL, YU, _),
+            (   YL cis_geq n(0), XL cis_geq n(0) ->
+                NXL cis max(YL*n(Z), XL),
+                NXU cis min(YU*(n(Z)+n(1))-n(1), XU)
+            ;   %TODO: cover more cases
+                NXL = XL, NXU = XU
+            ),
+            update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
+        ;   (   X == Y -> kill(MState), Z = 1
+            ;   fd_get(X, _, XL, XU, _),
+                fd_get(Y, _, YL, _, _),
+                fd_get(Z, ZD, ZPs),
+                NZU cis max(abs(XL), XU),
+                NZL cis -NZU,
+                domains_intersection(ZD, from_to(NZL,NZU), NZD0),
+                (   XL cis_geq n(0), YL cis_geq n(0) ->
+                    domain_remove_smaller_than(NZD0, 0, NZD1)
+                ;   % TODO: cover more cases
+                    NZD1 = NZD0
+                ),
+                fd_put(Z, NZD1, ZPs)
+            )
+        ).
 
 % X rdiv Y = Z
 run_propagator(prdiv(X,Y,Z), MState) :- kill(MState), Z*Y #= X.
@@ -4620,7 +4768,8 @@ run_propagator(ptzdiv(X,Y,Z), MState) :-
                         NYU cis n(X) // NZL,
                         domains_intersection(YD1, from_to(NYL, NYU), NYD1),
                         fd_put(Y, NYD1, YPs1)
-                    ;   true
+                    ;   % TODO: more cases
+                        true
                     )
                 )
             )
@@ -4642,11 +4791,11 @@ run_propagator(ptzdiv(X,Y,Z), MState) :-
                     ),
                     update_bounds(X, XD, XPs, XL, XU, NXL, NXU)
                 ;   fd_get(Z, ZD, ZPs),
-                    domain_contract_less(XD, Y, Contracted),
+                    domain_contract_less(XD, Y, //, Contracted),
                     domains_intersection(ZD, Contracted, NZD),
                     fd_put(Z, NZD, ZPs),
                     (   fd_get(X, XD2, XPs2) ->
-                        domain_expand_more(NZD, Y, Expanded),
+                        domain_expand_more(NZD, Y, //, Expanded),
                         domains_intersection(XD2, Expanded, NXD2),
                         fd_put(X, NXD2, XPs2)
                     ;   true
@@ -5083,6 +5232,31 @@ run_propagator(pexp(X,Y,Z), MState) :-
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Z = X << (Y*S)
+
+run_propagator(pshift(X,Y,Z,S), MState) :-
+        (   Y == 0 -> kill(MState), Z = X
+        ;   nonvar(X) ->
+            (   nonvar(Y) -> kill(MState), Z is X << (Y*S)
+            ;   nonvar(Z) ->
+                kill(MState),
+                (   X =:= 0 -> Z =:= 0
+                ;   abs(Z) > abs(X) -> Z #= X * 2^(Y*S)
+                ;   X div (2^(-Y*S)) #= Z
+                )
+            ;   % TODO: handle these cases
+                true
+            )
+        ;   nonvar(Y) ->
+            kill(MState),
+            (   Y*S > 0 -> Z #= X * 2^(Y*S)
+            ;   X div (2^(-Y*S)) #= Z
+            )
+        ;   % TODO: handle these cases
+            true
+        ).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 run_propagator(pzcompare(Order, A, B), MState) :-
         (   A == B -> kill(MState), Order = (=)
         ;   (   nonvar(A) ->
@@ -5382,40 +5556,44 @@ min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
             L2 cis_lt n(0), U2 cis_gt n(0),
             L3 cis_lt n(0), U3 cis_gt n(0) ->
             maplist(in_(L1,U1), [Z1,Z2]),
-            in_(L2, n(-1), X1), in_(n(1), U3, Y1),
-            (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
-                ;   Inf1 = n(Y1), Sup1 = n(Y1)
+            with_local_attributes([X1,Y1,X2,Y2], [], (
+                in_(L2, n(-1), X1), in_(n(1), U3, Y1),
+                (   X1*Y1 #= Z1 ->
+                    (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                    ;   Inf1 = n(Y1), Sup1 = n(Y1)
+                    )
+                ;   Inf1 = inf, Sup1 = n(-1)
+                ),
+                in_(n(1), U2, X2), in_(L3, n(-1), Y2),
+                (   X2*Y2 #= Z2 ->
+                    (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                    ;   Inf2 = n(Y2), Sup2 = n(Y2)
+                    )
+                ;   Inf2 = n(1), Sup2 = sup
                 )
-            ;   Inf1 = inf, Sup1 = n(-1)
-            ),
-            in_(n(1), U2, X2), in_(L3, n(-1), Y2),
-            (   X2*Y2 #= Z2 ->
-                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
-                ;   Inf2 = n(Y2), Sup2 = n(Y2)
-                )
-            ;   Inf2 = n(1), Sup2 = sup
-            ),
+            ), [Inf1,Sup1,Inf2,Sup2]),
             Min cis max(min(Inf1,Inf2), L3),
             Max cis min(max(Sup1,Sup2), U3)
         ;   L1 cis_gt n(0),
             L2 cis_lt n(0), U2 cis_gt n(0),
             L3 cis_lt n(0), U3 cis_gt n(0) ->
             maplist(in_(L1,U1), [Z1,Z2]),
-            in_(L2, n(-1), X1), in_(L3, n(-1), Y1),
-            (   X1*Y1 #= Z1 ->
-                (   fd_get(Y1, _, Inf1, Sup1, _) -> true
-                ;   Inf1 = n(Y1), Sup1 = n(Y1)
+            with_local_attributes([X1,Y1,X2,Y2], [], (
+                in_(L2, n(-1), X1), in_(L3, n(-1), Y1),
+                (   X1*Y1 #= Z1 ->
+                    (   fd_get(Y1, _, Inf1, Sup1, _) -> true
+                    ;   Inf1 = n(Y1), Sup1 = n(Y1)
+                    )
+                ;   Inf1 = n(1), Sup1 = sup
+                ),
+                in_(n(1), U2, X2), in_(n(1), U3, Y2),
+                (   X2*Y2 #= Z2 ->
+                    (   fd_get(Y2, _, Inf2, Sup2, _) -> true
+                    ;   Inf2 = n(Y2), Sup2 = n(Y2)
+                    )
+                ;   Inf2 = inf, Sup2 = n(-1)
                 )
-            ;   Inf1 = n(1), Sup1 = sup
-            ),
-            in_(n(1), U2, X2), in_(n(1), U3, Y2),
-            (   X2*Y2 #= Z2 ->
-                (   fd_get(Y2, _, Inf2, Sup2, _) -> true
-                ;   Inf2 = n(Y2), Sup2 = n(Y2)
-                )
-            ;   Inf2 = inf, Sup2 = n(-1)
-            ),
+            ), [Inf1,Sup1,Inf2,Sup2]),
             Min cis max(min(Inf1,Inf2), L3),
             Max cis min(max(Sup1,Sup2), U3)
         ;   min_factor(L1, U1, L2, U2, Min0),
@@ -5426,34 +5604,34 @@ min_max_factor(L1, U1, L2, U2, L3, U3, Min, Max) :-
 
 min_factor(L1, U1, L2, U2, Min) :-
         (   L1 cis_geq n(0), L2 cis_gt n(0), finite(U2) ->
-            Min cis div(L1+U2-n(1),U2)
-        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis div(U1,U2)
+            Min cis (L1+U2-n(1))//U2
+        ;   L1 cis_gt n(0), U2 cis_lt n(0) -> Min cis U1//U2
         ;   L1 cis_gt n(0), L2 cis_geq n(0) -> Min = n(1)
         ;   L1 cis_gt n(0) -> Min cis -U1
         ;   U1 cis_lt n(0), U2 cis_leq n(0) ->
-            (   finite(L2) -> Min cis div(U1+L2+n(1),L2)
+            (   finite(L2) -> Min cis (U1+L2+n(1))//L2
             ;   Min = n(1)
             )
-        ;   U1 cis_lt n(0), L2 cis_geq n(0) -> Min cis div(L1,L2)
+        ;   U1 cis_lt n(0), L2 cis_geq n(0) -> Min cis L1//L2
         ;   U1 cis_lt n(0) -> Min = L1
         ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Min = inf
-        ;   Min cis min(min(div(L1,L2),div(L1,U2)),min(div(U1,L2),div(U1,U2)))
+        ;   Min cis min(min(L1//L2,L1//U2),min(U1//L2,U1//U2))
         ).
 max_factor(L1, U1, L2, U2, Max) :-
-        (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis div(U1,L2)
+        (   L1 cis_geq n(0), L2 cis_geq n(0) -> Max cis U1//L2
         ;   L1 cis_gt n(0), U2 cis_leq n(0) ->
-            (   finite(L2) -> Max cis div(L1-L2-n(1),L2)
+            (   finite(L2) -> Max cis (L1-L2-n(1))//L2
             ;   Max = n(-1)
             )
         ;   L1 cis_gt n(0) -> Max = U1
-        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis div(L1,U2)
+        ;   U1 cis_lt n(0), U2 cis_lt n(0) -> Max cis L1//U2
         ;   U1 cis_lt n(0), L2 cis_geq n(0) ->
-            (   finite(U2) -> Max cis div(U1-U2+n(1),U2)
+            (   finite(U2) -> Max cis (U1-U2+n(1))//U2
             ;   Max = n(-1)
             )
         ;   U1 cis_lt n(0) -> Max cis -L1
         ;   L2 cis_leq n(0), U2 cis_geq n(0) -> Max = sup
-        ;   Max cis max(max(div(L1,L2),div(L1,U2)),max(div(U1,L2),div(U1,U2)))
+        ;   Max cis max(max(L1//L2,L1//U2),max(U1//L2,U1//U2))
         ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7092,6 +7270,296 @@ fd_dom(X, Drep) :-
             Drep = X..X
         ).
 
+%% fd_degree(+Var, -Degree) is det.
+%
+%  Degree is the number of constraints currently attached to Var.
+
+fd_degree(X, Degree) :-
+        fd_get(X, _, Ps),
+        props_number(Ps, Degree).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   FD set predicates
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+   Note: The predicate names and "FD set" terminology are used for
+   compatibility/consistency with SICStus Prolog's library(clpfd).
+   Outside of these predicates, the SWI-Prolog CLP(FD) implementation
+   refers to an "FD set" as simply a "domain". The human-readable domain
+   notation used by (is)/2, fd_dom/2, etc. is called a "ConstantRange"
+   by SICStus and a "drep" internally by SWI.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+%% (?Var in_set +Set) is nondet.
+%
+%  Var is an element of the FD set Set.
+
+X in_set Set :- domain(X, Set).
+
+%% fd_set(?Var, -Set) is det.
+%
+%  Set is the FD set representation of the current domain of Var.
+
+fd_set(X, Set) :- fd_get(X, Set, _).
+
+%% is_fdset(@Set) is semidet.
+%
+%  Set is currently bound to a valid FD set.
+
+is_fdset(Set) :-
+        nonvar(Set),
+        is_domain(Set).
+
+%% empty_fdset(-Set) is det.
+%
+%  Set is the empty FD set.
+
+empty_fdset(empty).
+
+%% fdset_parts(?Set, ?Min, ?Max, ?Rest) is semidet.
+%
+%  Set is a non-empty FD set representing the domain Min..Max \/ Rest,
+%  where Min..Max is a non-empty interval (see fdset_interval/3)
+%  and Rest is another FD set (possibly empty).
+%
+%  If Max is *sup*, then Rest is the empty FD set. Otherwise, if Rest
+%  is non-empty, all elements of Rest are greater than Max+1.
+%
+%  This predicate should only be called with either Set or all other
+%  arguments being ground.
+
+% Single interval case for both modes.
+fdset_parts(from_to(CMin, CMax), Min, Max, empty) :-
+        !,
+        fdset_interval(from_to(CMin, CMax), Min, Max).
+% Split domain case for mode (-,+,+,+).
+fdset_parts(Set, Min, Max, Rest) :-
+        var(Set),
+        !,
+        Set = split(Hole, Left, Rest),
+        fdset_interval(Left, Min, Max),
+        % Rest is not empty, so Max cannot be sup, because all elements
+        % of Rest must be greater than Max.
+        Max \== sup,
+        Hole is Max + 1,
+        % Ensure that Min..Max is less than and not adjacent to Rest.
+        all_greater_than(Rest, Hole).
+% Special case for mode (+,-,-,-) for split domain with empty left side.
+% (The code for the common case would silently fail here.)
+fdset_parts(split(_, empty, Right), Min, Max, Rest) :-
+        !,
+        fdset_parts(Right, Min, Max, Rest).
+% Finally, handle all other split domains for mode (+,-,-,-).
+fdset_parts(split(Hole, Left, Right), Min, Max, Rest) :-
+        fdset_parts(Left, Min, Max, LeftRest),
+        (   LeftRest == empty
+        ->  Rest = Right
+        ;   Rest = split(Hole, LeftRest, Right)
+        ).
+
+%% empty_interval(+Min, +Max) is semidet.
+%
+%  Min..Max is an empty interval. Min and Max are integers or one of the
+%  atoms *inf* or *sup*.
+
+empty_interval(inf, inf) :- !.
+empty_interval(sup, inf) :- !.
+empty_interval(sup, sup) :- !.
+empty_interval(Min, Max) :-
+        Min \== inf,
+        Max \== sup,
+        Min > Max.
+
+%% fdset_interval(?Interval, ?Min, ?Max) is semidet.
+%
+%  Interval is a non-empty FD set consisting of the single interval
+%  Min..Max.
+%  Min is an integer or the atom *inf* to denote negative infinity.
+%  Max is an integer or the atom *sup* to denote positive infinity.
+%
+%  Either Interval or Min and Max must be ground.
+
+fdset_interval(from_to(inf, sup), inf, sup) :- !.
+fdset_interval(from_to(inf, n(Max)), inf, Max) :-
+        !,
+        integer(Max).
+fdset_interval(from_to(n(Min), sup), Min, sup) :-
+        !,
+        integer(Min).
+fdset_interval(from_to(n(Min), n(Max)), Min, Max) :-
+        integer(Min),
+        integer(Max),
+        Min =< Max.
+
+%% fdset_singleton(?Set, ?Elt) is semidet.
+%
+%  Set is the FD set containing the single integer Elt.
+%
+%  Either Set or Elt must be ground.
+
+fdset_singleton(Set, Elt) :- fdset_interval(Set, Elt, Elt).
+
+%% fdset_min(+Set, -Min) is semidet.
+%
+%  Min is the lower bound (infimum) of the non-empty FD set Set.
+%  Min is an integer or the atom *inf* if Set has no lower bound.
+
+fdset_min(Set, Min) :-
+        domain_infimum(Set, CMin),
+        bound_portray(CMin, Min).
+
+%% fdset_max(+Set, -Max) is semidet.
+%
+%  Max is the upper bound (supremum) of the non-empty FD set Set.
+%  Max is an integer or the atom *sup* if Set has no upper bound.
+
+fdset_max(Set, Max) :-
+        domain_supremum(Set, CMax),
+        bound_portray(CMax, Max).
+
+%% fdset_size(+Set, -Size) is det.
+%
+%  Size is the number of elements of the FD set Set, or the atom *sup*
+%  if Set is infinite.
+
+fdset_size(Set, Size) :-
+        domain_num_elements(Set, CSize),
+        bound_portray(CSize, Size).
+
+%% list_to_fdset(+List, -Set) is det.
+%
+%  Set is an FD set containing all elements of List, which must be a
+%  list of integers.
+
+list_to_fdset(List, Set) :- list_to_domain(List, Set).
+
+%% fdset_to_list(+Set, -List) is det.
+%
+%  List is a list containing all elements of the finite FD set Set,
+%  in ascending order.
+
+fdset_to_list(Set, List) :- domain_to_list(Set, List).
+
+%% range_to_fdset(+Domain, -Set) is det.
+%
+%  Set is an FD set equivalent to the domain Domain. Domain uses the
+%  same syntax as accepted by (in)/2.
+
+range_to_fdset(Domain, Set) :- drep_to_domain(Domain, Set).
+
+%% fdset_to_range(+Set, -Domain) is det.
+%
+%  Domain is a domain equivalent to the FD set Set. Domain is returned
+%  in the same format as by fd_dom/2.
+
+fdset_to_range(empty, 1..0) :- !.
+fdset_to_range(Set, Domain) :- domain_to_drep(Set, Domain).
+
+%% fdset_add_element(+Set1, +Elt, -Set2) is det.
+%
+%  Set2 is the same FD set as Set1, but with the integer Elt added.
+%  If Elt is already in Set1, the set is returned unchanged.
+
+fdset_add_element(Set1, Elt, Set2) :-
+        fdset_singleton(EltSet, Elt),
+        domains_union(Set1, EltSet, Set2).
+
+%% fdset_del_element(+Set1, +Elt, -Set2) is det.
+%
+%  Set2 is the same FD set as Set1, but with the integer Elt removed.
+%  If Elt is not in Set1, the set returned unchanged.
+
+fdset_del_element(Set1, Elt, Set2) :- domain_remove(Set1, Elt, Set2).
+
+%% fdset_disjoint(+Set1, +Set2) is semidet.
+%
+%  The FD sets Set1 and Set2 have no elements in common.
+
+fdset_disjoint(Set1, Set2) :- \+ fdset_intersect(Set1, Set2).
+
+%% fdset_intersect(+Set1, +Set2) is semidet.
+%
+%  The FD sets Set1 and Set2 have at least one element in common.
+
+fdset_intersect(Set1, Set2) :- domains_intersection(Set1, Set2, _).
+
+%% fdset_intersection(+Set1, +Set2, -Intersection) is det.
+%
+%  Intersection is an FD set (possibly empty) of all elements that the
+%  FD sets Set1 and Set2 have in common.
+
+fdset_intersection(Set1, Set2, Intersection) :-
+        domains_intersection_(Set1, Set2, Intersection).
+
+%% fdset_member(?Elt, +Set) is nondet.
+%
+%  The integer Elt is a member of the FD set Set. If Elt is unbound,
+%  Set must be finite and all elements are enumerated on backtracking.
+
+fdset_member(Elt, Set) :-
+        (   var(Elt)
+        ->  domain_direction_element(Set, up, Elt)
+        ;   integer(Elt),
+            domain_contains(Set, Elt)
+        ).
+
+%% fdset_eq(+Set1, +Set2) is semidet.
+%
+%  True if the FD sets Set1 and Set2 are equal, i. e. contain exactly
+%  the same elements. This is not necessarily the same as unification or
+%  a term equality check, because some FD sets have multiple possible
+%  term representations.
+
+fdset_eq(empty, empty) :- !.
+fdset_eq(Set1, Set2) :-
+        fdset_parts(Set1, Min, Max, Rest1),
+        fdset_parts(Set2, Min, Max, Rest2),
+        fdset_eq(Rest1, Rest2).
+
+%% fdset_subset(+Set1, +Set2) is semidet.
+%
+%  The FD set Set1 is a (non-strict) subset of Set2, i. e. every element
+%  of Set1 is also in Set2.
+
+fdset_subset(Set1, Set2) :- domain_subdomain(Set2, Set1).
+
+%% fdset_subtract(+Set1, +Set2, -Difference) is det.
+%
+%  The FD set Difference is Set1 with all elements of Set2 removed,
+%  i. e. the set difference of Set1 and Set2.
+
+fdset_subtract(Set1, Set2, Difference) :-
+        domain_subtract(Set1, Set2, Difference).
+
+%% fdset_union(+Set1, +Set2, -Union) is det.
+%
+%  The FD set Union is the union of FD sets Set1 and Set2.
+
+fdset_union(Set1, Set2, Union) :- domains_union(Set1, Set2, Union).
+
+%% fdset_union(+Sets, -Union) is det.
+%
+%  The FD set Union is the n-ary union of all FD sets in the list Sets.
+%  If Sets is empty, Union is the empty FD set.
+
+fdset_union([], empty).
+fdset_union([Set|Sets], Union) :- fdset_union_(Sets, Set, Union).
+
+fdset_union_([], Set, Set).
+fdset_union_([Set2|Sets], Set1, Union) :-
+        domains_union(Set1, Set2, SetTemp),
+        fdset_union_(Sets, SetTemp, Union).
+
+%% fdset_complement(+Set, -Complement) is det.
+%
+%  The FD set Complement is the complement of the FD set Set.
+%  Equivalent to fdset_subtract(inf..sup, Set, Complement).
+
+fdset_complement(Set, Complement) :- domain_complement(Set, Complement).
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    Entailment detection. Subject to change.
 
@@ -7233,6 +7701,8 @@ attribute_goal_(x_leq_y_plus_c(X,Y,C)) --> [?(X) #=< ?(Y) + C].
 attribute_goal_(ptzdiv(X,Y,Z))         --> [?(X) // ?(Y) #= ?(Z)].
 attribute_goal_(pdiv(X,Y,Z))           --> [?(X) div ?(Y) #= ?(Z)].
 attribute_goal_(prdiv(X,Y,Z))          --> [?(X) rdiv ?(Y) #= ?(Z)].
+attribute_goal_(pshift(X,Y,Z,1))       --> [?(X) << ?(Y) #= ?(Z)].
+attribute_goal_(pshift(X,Y,Z,-1))      --> [?(X) >> ?(Y) #= ?(Z)].
 attribute_goal_(pexp(X,Y,Z))           --> [?(X) ^ ?(Y) #= ?(Z)].
 attribute_goal_(pabs(X,Y))             --> [?(Y) #= abs(?(X))].
 attribute_goal_(pmod(X,M,K))           --> [?(X) mod ?(M) #= ?(K)].

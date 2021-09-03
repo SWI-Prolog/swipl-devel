@@ -60,6 +60,7 @@
 is_dict_func(Key) :- atomic(Key), !.
 is_dict_func(Var) :- var(Var), !.
 is_dict_func(get(_)).
+is_dict_func(get(_,_)).
 is_dict_func(put(_)).
 is_dict_func(put(_,_)).
 
@@ -71,7 +72,23 @@ is_dict_func(put(_,_)).
 
 eval_dict_function(get(Key), _, Dict, Value) :-
     !,
-    get_dict(Key, Dict, Value).
+    (   atomic(Key)
+    ->  get_dict(Key, Dict, Value)
+    ;   var(Key)
+    ->  get_dict(Key, Dict, Value)
+    ;   get_dict_path(Key, Dict, Value)
+    ).
+eval_dict_function(get(Key, Default), _, Dict, Value) :-
+    !,
+    (   (   atomic(Key)
+        ->  get_dict(Key, Dict, Value0)
+        ;   var(Key)
+        ->  get_dict(Key, Dict, Value0)
+        ;   get_dict_path(Key, Dict, Value0)
+        )
+    *-> Value = Value0
+    ;   Value = Default
+    ).
 eval_dict_function(put(Key, Value), _, Dict, NewDict) :-
     !,
     (   atomic(Key)
@@ -95,27 +112,38 @@ put_dict_path(Key, Dict, Value, NewDict) :-
     !,
     put_dict(Key, Dict, Value, NewDict).
 put_dict_path(Path, Dict, Value, NewDict) :-
-    get_dict_path(Path, Dict, _Old, NewDict, Value).
+    put_dict_path(Path, Dict, _Old, NewDict, Value).
 
-get_dict_path(Path, _, _, _, _) :-
+put_dict_path(Path, _, _, _, _) :-
     var(Path),
     !,
     '$instantiation_error'(Path).
-get_dict_path(Path/Key, Dict, Old, NewDict, New) :-
+put_dict_path(Path/Key, Dict, Old, NewDict, New) :-
     !,
-    get_dict_path(Path, Dict, OldD, NewDict, NewD),
+    put_dict_path(Path, Dict, OldD, NewDict, NewD),
     (   get_dict(Key, OldD, Old, NewD, New),
         is_dict(Old)
     ->  true
     ;   Old = _{},
         put_dict(Key, OldD, New, NewD)
     ).
-get_dict_path(Key, Dict, Old, NewDict, New) :-
+put_dict_path(Key, Dict, Old, NewDict, New) :-
     get_dict(Key, Dict, Old, NewDict, New),
     is_dict(Old),
     !.
-get_dict_path(Key, Dict, _{}, NewDict, New) :-
+put_dict_path(Key, Dict, _{}, NewDict, New) :-
     put_dict(Key, Dict, New, NewDict).
+
+%!  get_dict_path(+Path, +Dict, -Value)
+
+get_dict_path(Path, Dict, Value) :-
+    compound(Path),
+    Path = (Path0/Key),
+    !,
+    get_dict_path(Path0, Dict, Dict1),
+    get_dict(Key, Dict1, Value).
+get_dict_path(Key, Dict, Value) :-
+    get_dict(Key, Dict, Value).
 
 
                  /*******************************

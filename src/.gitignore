@@ -11,9 +11,6 @@ pl-atom.ic
 pl-atom.ih
 pl-funct.ic
 pl-funct.ih
-pl-codetable.ic
-pl-jumptable.ic
-pl-vmi.h
 defatom
 mkvmi
 vmi

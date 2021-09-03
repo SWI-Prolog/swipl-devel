@@ -38,10 +38,15 @@ Formatted output (Prolog predicates format/[1,2,3]).   One  day,  the  C
 source should also use format() to produce error messages, etc.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#include "pl-incl.h"
-#include "pl-arith.h"
+#include "pl-fmt.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "../pl-arith.h"
+#include "../pl-proc.h"
+#include "../pl-fli.h"
+#include "../pl-prims.h"
+#include "../pl-write.h"
+#include "../pl-pro.h"
 #include <ctype.h>
 #include <stdio.h>
 
@@ -165,7 +170,7 @@ oututf8(format_state *state, const char *s, size_t len)
   while(s<e)
   { int chr;
 
-    s = utf8_get_char(s, &chr);
+    PL_utf8_code_point(&s, e, &chr);
     if ( !outchr(state, chr) )
       return FALSE;
   }
@@ -427,7 +432,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	    }
 	  } else if ( c == '*' )
 	  { NEED_ARG;
-	    if ( PL_get_integer(argv, &arg) )
+	    if ( PL_get_integer(argv, &arg) && arg >= 0 )
 	    { SHIFT;
 	    } else
 	      FMT_ERROR("no or negative integer for `*' argument");
@@ -523,7 +528,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  PL_locale *l;
 
 		  NEED_ARG;
-		  if ( !valueExpression(argv, &n PASS_LD) )
+		  if ( !valueExpression(argv, &n) )
 		  { char f[2];
 
 		    f[0] = c;
@@ -557,7 +562,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  tmp_buffer b;
 
 		  NEED_ARG;
-		  if ( !valueExpression(argv, &i PASS_LD) ||
+		  if ( !valueExpression(argv, &i) ||
 		       !toIntegerNumber(&i, 0) )
 		  { char f[2];
 
@@ -915,7 +920,7 @@ emit_rubber(format_state *state)
     }
 
     if ( s < e )
-    { s = utf8_get_char(s, &chr);
+    { PL_utf8_code_point(&s, e, &chr);
       if ( Sputcode(chr, state->out) < 0 )
 	return FALSE;
     } else
