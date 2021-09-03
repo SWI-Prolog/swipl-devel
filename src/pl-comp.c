@@ -2560,7 +2560,9 @@ isvar:
 	{ Word p;
 
 	  if ( (p=argUnifiedTo(*arg)) )
+	  { set(ci->clause, CL_HEAD_TERMS);
 	    return compileArgument(p, where, ci);
+	  }
 	  Output_0(ci, H_VOID);
 	  return TRUE;
 	}
@@ -4901,6 +4903,7 @@ mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
 	index = 2;
         break;
       case B_VAR:
+      case H_VAR:
       case B_ARGVAR:
 	index = VARNUM(pc[1]);
         break;
@@ -5395,6 +5398,13 @@ decompile(Clause clause, term_t term, term_t bindings)
   } else
     di->variables = 0;
 
+  if ( true(clause, CL_HEAD_TERMS) )
+  { di->bvar_access = alloca(sizeof_bitvector(di->arity));
+    init_bitvector(di->bvar_access, di->arity);
+    if ( !mark_bvar_access(clause, di) )
+      return FALSE;
+  }
+
   if ( true(clause, UNIT_CLAUSE) )	/* fact */
   { if ( decompile_head(clause, term, di) )
     { if ( di->variables )
@@ -5415,13 +5425,6 @@ decompile(Clause clause, term_t term, term_t bindings)
     fail;
   } else
   { term_t a = PL_new_term_ref();
-
-    if ( true(clause, CL_HEAD_TERMS) )
-    { di->bvar_access = alloca(sizeof_bitvector(di->arity));
-      init_bitvector(di->bvar_access, di->arity);
-      if ( !mark_bvar_access(clause, di) )
-	return FALSE;
-    }
 
     TRY(PL_unify_functor(term, clause_functor(clause)));
     _PL_get_arg(1, term, a);
