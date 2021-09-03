@@ -78,7 +78,18 @@ s3(A,B,C) :-
 	A = v(X),
 	q(A,B,C,X).
 
+s4(X, X) :-
+     X = f(_).
+
+s5(X) :-
+    X = f(X).
+
+s6(X) :-
+    X = f(_),
+    q([X]).
+
 nf_add_case(_Rel,_CLP,_A,_As,_Cs,_B,_Bs,_Ka,_Kb,_Pa).
+q(_).
 q(_,_,_,_).
 q(_,_,_,_,_,_).
 
@@ -103,6 +114,19 @@ test(decomp4, (Head :- Body) =@= (s3(A,B,C) :-
                                      A = v(X),
                                      q(A,B,C,X) )) :-
     Head = s3(_,_,_),
+    clause(Head, Body).
+test(decomp5, (Head :- Body) =@= (s4(A,A) :-
+                                     A = f(_) )) :-
+    Head = s4(_,_),
+    clause(Head, Body).
+test(decomp6, (Head :- Body) =@= (s5(A) :-
+                                     A = f(A) )) :-
+    Head = s5(_),
+    clause(Head, Body).
+test(decomp7, (Head :- Body) =@= (s6(A) :-
+                                     A = f(_),
+                                     q([A]))) :-
+    Head = s6(_),
     clause(Head, Body).
 
 :- end_tests(moved_decompile).
