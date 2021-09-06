@@ -88,6 +88,10 @@ s6(X) :-
     X = f(_),
     q([X]).
 
+s7(X) :-
+    X = f(A),
+    q(A).
+
 nf_add_case(_Rel,_CLP,_A,_As,_Cs,_B,_Bs,_Ka,_Kb,_Pa).
 q(_).
 q(_,_,_,_).
@@ -127,6 +131,10 @@ test(decomp7, (Head :- Body) =@= (s6(A) :-
                                      A = f(_),
                                      q([A]))) :-
     Head = s6(_),
+    clause(Head, Body).
+test(decomp8, (Head :- Body) =@= (s7(f(A)) :-
+                                     q(A))) :-
+    Head = s7(_),
     clause(Head, Body).
 
 :- end_tests(moved_decompile).
