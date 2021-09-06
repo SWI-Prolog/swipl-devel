@@ -2566,6 +2566,9 @@ isvar:
 	  Output_0(ci, H_VOID);
 	  return TRUE;
 	}
+	if ( argUnifiedTo(*arg) )
+	  set(ci->clause, CL_HEAD_TERMS);
+
 	Output_0(ci, H_VAR);
       }
       Output_a(ci, VAROFFSET(index));
