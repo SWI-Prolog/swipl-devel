@@ -2446,80 +2446,61 @@ Find an existing module or create a new module with the name \arg{name}.
 \subsection{Prolog exceptions in foreign code}
 \label{sec:foreign-exceptions}
 
-This section discusses PL_exception(), PL_throw() and
-PL_raise_exception(), the interface functions to detect and generate
-Prolog exceptions from C code. PL_throw() and PL_raise_exception() from
-the C interface raise an exception from foreign code. PL_throw()
-exploits the C function longjmp() to return immediately to the innermost
-PL_next_solution(). PL_raise_exception() registers the exception term
-and returns \const{FALSE}. If a foreign predicate returns \const{FALSE}, while
-an exception term is registered, a Prolog exception will be raised by
-the virtual machine.
+This section discusses PL_exception() and PL_raise_exception(), the
+interface functions to detect and generate Prolog exceptions from C
+code. PL_raise_exception() from the C interface registers the exception
+term and returns \const{FALSE}. If a foreign predicate returns
+\const{FALSE}, while an exception term is registered, a Prolog exception
+will be raised by the virtual machine. This implies for a foreign
+function that implements a predicate and wishes to raise an exception,
+the function shall call PL_raise_exception(), perform any necessary
+cleanup and return the return code of PL_raise_exception() or explicitly
+\const{FALSE}. Calling PL_raise_exception() outside the context of a
+function implementing a foreign predicate results in undefined
+behaviour.
 
-Calling these functions outside the context of a function implementing a
-foreign predicate results in undefined behaviour.
+Note that many of the C API functions may call PL_raise_exception() and
+return \const{FALSE}. The user shall test for this, cleanup and make the
+foreign function return \const{FALSE}.
 
-PL_exception() may be used after a call to PL_next_solution() fails,
-and returns a term reference to an exception term if an exception
-was raised, and 0 otherwise.
+PL_exception() may be used to inspect the currently registered
+exception. It is normally called after a call to PL_next_solution()
+returns \const{FALSE}, and returns a term reference to an exception term
+if an exception is pedning, and \exam{(term_t)0} otherwise. It may also
+be called after, e.g., PL_unify() to distinguish a normal failing
+unification from a unification that raised an resource error exception.
 
-If a C function implementing a predicate calls Prolog and detects
-an exception using PL_exception(), it can handle this exception or
-return with the exception.  Some caution is required though.  It is
-\strong{not} allowed to call PL_close_query() or
-PL_discard_foreign_frame() afterwards, as this will invalidate the
-exception term.  Below is the code that calls a Prolog-defined
-arithmetic function (see arithmetic_function/1).
+If a C function implementing a predicate that calls Prolog should use
+PL_open_query() with the flag \const{PL_Q_PASS_EXCEPTION} and make the
+function return FALSE if PL_next_solution() returns \const{FALSE} and
+PL_exception() indicates an exception is pending.
 
-If PL_next_solution() succeeds, the result is analysed and translated to
-a number, after which the query is closed and all Prolog data created
-after PL_open_foreign_frame() is destroyed. On the other hand, if
-PL_next_solution() fails and if an exception was raised, just pass it.
-Otherwise generate an exception (PL_error() is an internal call for
-building the standard error terms and calling PL_raise_exception()).
-After this, the Prolog environment should be discarded using
-PL_cut_query() and PL_close_foreign_frame() to avoid invalidating the
-exception term.
-
-\begin{code}
-static int
-prologFunction(ArithFunction f, term_t av, Number r)
-{ int arity = f->proc->definition->functor->arity;
-  fid_t fid = PL_open_foreign_frame();
-  qid_t qid;
-  int rval;
-
-  qid = PL_open_query(NULL, PL_Q_NORMAL, f->proc, av);
-
-  if ( PL_next_solution(qid) )
-  { rval = valueExpression(av+arity-1, r);
-    PL_close_query(qid);
-    PL_discard_foreign_frame(fid);
-  } else
-  { term_t except;
-
-    if ( (except = PL_exception(qid)) )
-    { rval = PL_throw(except);		/* pass exception */
-    } else
-    { char *name = stringAtom(f->proc->definition->functor->name);
-
-					/* generate exception */
-      rval = PL_error(name, arity-1, NULL, ERR_FAILED, f->proc);
-    }
-
-    PL_cut_query(qid);			/* do not destroy data */
-    PL_close_foreign_frame(fid);	/* same */
-  }
-
-  return rval;
-}
-\end{code}
-
+Both for C functions implementing a predicate and when Prolog is called
+while the main control of the process is in C, user code should always
+check for exceptions. As explained above, C functions implementing a
+predicate should normally cleanup and return with \const{FALSE}. If the
+C function whishes to continue it may call PL_clear_exception(). Note
+that this may cause any exeption to be ignored, including \emph{time
+outs} and \emph{abort}. Typically the user should check the exeption
+details before ignoring an exception. If the C code does not implement a
+predicate it normally prints the exception and calls
+PL_clear_exception() to discard it. Exceptions may be printed by calling
+print_message/2 through the C interface.
 
 \begin{description}
     \cfunction{int}{PL_raise_exception}{term_t exception}
-Generate an exception (as throw/1) and return \const{FALSE}.  Below is
-an example returning an exception from a foreign predicate:
+Generate an exception (as throw/1) and return \const{FALSE}. This
+function is rarely used directly. Instead, errors are typically raised
+using the functions in \secref{cerror} or the C api functions that
+end in \exam{_ex} such as PL_get_atom_ex(). Below we give an example
+returning an exception from a foreign predicate the verbose way. Note
+that the exception is raised in a sequence of actions connected using
+\verb$&&$. This ensures that a proper exception is raised should any of
+the calls used to build or raise the exception themselves raise an
+exception.  In this simple case PL_new_term_ref() is guaranteed to
+succeed because the system guarantees at least 10 available term
+references before entering the foreign predicate.  PL_unify_term()
+however may raise a resource exception for the global stack.
 
 \begin{code}
 foreign_t
@@ -2529,35 +2510,60 @@ pl_hello(term_t to)
   if ( PL_get_atom_chars(to, &s) )
   { Sprintf("Hello \"%s\"\n", s);
 
-    PL_succeed;
+    return TRUE;
   } else
-  { term_t except = PL_new_term_ref();
+  { term_t except;
 
-    PL_unify_term(except,
-		  PL_FUNCTOR_CHARS, "type_error", 2,
-		    PL_CHARS, "atom",
-		    PL_TERM, to);
-
-    return PL_raise_exception(except);
+    return  ( (except=PL_new_term_ref()) &&
+	      PL_unify_term(except,
+			    PL_FUNCTOR_CHARS, "type_error", 2,
+			      PL_CHARS, "atom",
+			      PL_TERM, to) &&
+	      PL_raise_exception(except) );
   }
 }
 \end{code}
+
+For reference, the preferred implementation of the above is below. The
+\const{CVT_EXCEPTION} tells the system to generate an exception if the
+conversion fails. The other \const{CVT_} flags define the admissible
+types and \const{REP_MB} requests the string to be provided in the
+current \jargon{locale} representation.  This implies that Unicode
+text is printed correctly if the current environment can represent
+it.  If not, a \const{representation_error} is raised.
+
+\begin{code}
+foreign_t
+pl_hello(term_t to)
+{ char *s;
+
+  if ( PL_get_chars(to, &s, CVT_ATOM|CVT_STRING|CVT_EXCEPTION|REP_MB) )
+  { Sprintf("Hello \"%s\"\n", s);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+\end{code}
+
     \cfunction{int}{PL_throw}{term_t exception}
 Similar to PL_raise_exception(), but returns using the C longjmp()
-function to the innermost PL_next_solution().
+function to the innermost PL_next_solution(). This function is
+deprecated as it does not provide the opportunity to cleanup.
 
     \cfunction{term_t}{PL_exception}{qid_t qid}
 If PL_next_solution() fails, this can be due to normal failure of the
 Prolog call, or because an exception was raised using throw/1.  This
 function returns a handle to the exception term if an exception was
-raised, or 0 if the Prolog goal simply failed. If there is an exception,
-PL_exception() allocates a term-handle using PL_new_term_ref() that is
-used to return the exception term.
+raised, or \exam{(term_t)0} if the Prolog goal simply failed. If there
+is an exception, PL_exception() returns a term reference that
+contains the exception term.
 
 Additionally, \verb$PL_exception(0)$ returns the pending exception in
-the current query or 0 if no exception is pending. This can be used to
-check the error status after a failing call to, e.g., one of the
-unification functions.
+the current query or \exam{(term_t)0} if no exception is pending. This
+can be used to check the error status after a failing call to, e.g., one
+of the unification functions.
 
     \cfunction{void}{PL_clear_exception}{void}
 Tells Prolog that the encountered exception must be ignored. This
