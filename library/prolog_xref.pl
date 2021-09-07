@@ -354,9 +354,15 @@ xref_setup(Src, In, Options, state(In, Dialect, Xref, [SRef|HRefs])) :-
     set_xref(Xref),
     (   verbose(Src)
     ->  HRefs = []
-    ;   asserta(user:thread_message_hook(_,_,_), Ref),
+    ;   asserta((user:thread_message_hook(_,Level,_) :-
+                     hide_message(Level)),
+                Ref),
         HRefs = [Ref]
     ).
+
+hide_message(warning).
+hide_message(error).
+hide_message(informational).
 
 assert_option(_, Var) :-
     var(Var),
