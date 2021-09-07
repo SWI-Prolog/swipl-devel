@@ -1220,6 +1220,7 @@ residual_goals(NonTerminal) :-
 
 system:term_expansion((:- residual_goals(NonTerminal)),
                       '$toplevel':residual_goal_collector(M2:Head)) :-
+    \+ current_prolog_flag(xref, true),
     prolog_load_context(module, M),
     strip_module(M:NonTerminal, M2, Head),
     '$must_be'(callable, Head).
