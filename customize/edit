@@ -7,15 +7,23 @@
 #
 #      xterm -iconic -title 'PceEmacs server' -e swipl -g emacs_server
 #
+# If you use the `terminator`  terminal   emulator,  consider adding the
+# editor plugin from https://github.com/mchelem/terminator-editor-plugin
+# and use the command ``edit  --no-wait {filepath}:{line}``. This allows
+# opening  locations  reported  as  `file:line`    to  be  opened  using
+# ctrl-click in PceEmacs.
+#
 # Author: Jan Wielemaker
 # Copying: Public domain
 
 usage()
-{ echo "usage: `basename $0` [+line] file[:line]"
+{ echo "usage: `basename $0` [--no-wait] [+line] file[:line]"
   exit 1
 }
 
 line=""
+opts="-bc"
+wait=wait
 
 HOST=`hostname`
 APPCONFIG=${XDG_DATA_HOME-$HOME/.config}/swi-prolog/xpce
@@ -45,6 +53,11 @@ while [ $done = false ]; do
 		line=`echo "$1" | sed 's/^+//'`
 		shift
 		;;
+	--no-wait)
+		opts=-c
+		wait=nowait
+		shift
+		;;
 	*)
 		done=true
 		;;
@@ -70,14 +83,14 @@ case "$file" in
 esac
 
 if [ -z "$line" ]; then
-	cmd="edit('$file')"
+	cmd="edit('$file',[],[],$wait)"
 elif [ -z "$charpos" ]; then
-	cmd="edit('$file', $line)"
+	cmd="edit('$file',$line,[],$wait)"
 else
-	cmd="edit('$file', $line, $charpos)"
+	cmd="edit('$file',$line,$charpos,$wait)"
 fi
 
-xpce-client $server -bc "$cmd"
+xpce-client $server $opts "$cmd"
 
 if [ $? = 2 ]; then
   if [ "$line" = "" ]; then
