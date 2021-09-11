@@ -252,7 +252,8 @@ bind_vars([_|T]) :-
 '$find_predicate'(M:S, List) :-
     name_arity(S, Name, Arity),
     '$current_typein_module'(TypeIn),
-    (   M == TypeIn                 % I.e. unspecified default module
+    (   M == TypeIn,                % I.e. unspecified default module
+        \+ module_property(M, class(temporary))
     ->  true
     ;   Module = M
     ),
