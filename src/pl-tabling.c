@@ -7790,7 +7790,26 @@ static int
 mdep_is_empty(idg_mdep *mdep)
 { while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
   { if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
-      return FALSE;
+    { word *base = baseBuffer(mdep->queue, word);
+      word *top  = topBuffer(mdep->queue, word);
+
+      /* There may only be deleted answers in the queue. */
+      /* see also mdep_unify_answers() */
+      for(; base < top; base++)
+      { if ( isAtom(*base) )
+	{ ClauseRef cref = clause_clref(*base);
+
+	  if ( !true(cref->value.clause, CL_ERASED) )
+	    return FALSE;
+	} else
+	{ trie_node *an = (trie_node *)*base;
+
+	  if ( an->value )
+	    return FALSE;
+	}
+      }
+    }
+
     mdep = mdep->next.any;
   }
 
