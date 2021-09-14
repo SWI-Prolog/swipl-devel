@@ -7889,6 +7889,36 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
   return TRUE;
 }
 
+#define has_queued_answers(idg) LDFUNC(has_queued_answers, idg)
+static int
+has_queued_answers(DECL_LD idg_node *idg)
+{ int queued = FALSE;
+
+  if ( idg->dependent && idg->dependent->size > 0 )
+  { TableEnum en = newTableEnum(idg->dependent);
+    void *k, *v;
+
+    while( !queued && advanceTableEnum(en, &k, &v) )
+    { idg_node *dep = k;
+      idg_mdep *mdep;
+
+      if ( (mdep=lookupHTable(dep->affected, idg)) &&
+	   !mdep_is_empty(mdep) )
+	queued = TRUE;
+    }
+
+    freeTableEnum(en);
+  }
+
+  return queued;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Count the invalid dependencies and return a   list of the lazy monotonic
+ones that have pending answers and  the invalid non-lazy-monotonic ones.
+This is the list of nodes that are ready to be evaluated.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define invalid_dependencies(deps, idg, count) LDFUNC(invalid_dependencies, deps, idg, count)
 static int
@@ -7905,18 +7935,21 @@ invalid_dependencies(DECL_LD term_t deps, idg_node *idg, size_t *count)
     { idg_node *dep = k;
 
       if ( dep->falsecount > 0 )
-      { if ( head == 0 )
-	{ tail = PL_copy_term_ref(deps);
-	  head = PL_new_term_ref();
-	}
+      { cnt++;
 
-	if ( !PL_unify_list(tail, head, tail) ||
-	     !PL_unify_atom(head, trie_symbol(dep->atrie)) )
-	{ freeTableEnum(en);
-	  return FALSE;
-	}
+	if ( (dep->monotonic && !dep->force_reeval && has_queued_answers(dep)) ||
+	     !(dep->monotonic && !dep->force_reeval) )
+	{ if ( head == 0 )
+	  { tail = PL_copy_term_ref(deps);
+	    head = PL_new_term_ref();
+	  }
 
-	cnt++;
+	  if ( !PL_unify_list(tail, head, tail) ||
+	       !PL_unify_atom(head, trie_symbol(dep->atrie)) )
+	  { freeTableEnum(en);
+	    return FALSE;
+	  }
+	}
       }
     }
     freeTableEnum(en);
@@ -7930,7 +7963,7 @@ invalid_dependencies(DECL_LD term_t deps, idg_node *idg, size_t *count)
     else
       return PL_unify_nil(deps);
   } else
-  { return PL_unify_nil(tail);
+  { return PL_unify_nil(tail ? tail : deps);
   }
 }
 
