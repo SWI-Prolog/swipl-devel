@@ -6774,21 +6774,25 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 	   !state->force_reeval )
       { term_t t;
 
-	if ( answers &&			/* no answers on this dependency */
-	     !(flags & IDG_MONO_AFFECTS) &&
-	     !(mdep->queue && !isEmptyBuffer(mdep->queue)) )
-	  continue;
+	if ( answers )
+	{ int rc;
+
+	  if ( !(flags & IDG_MONO_AFFECTS) &&
+	       !(mdep->queue && !isEmptyBuffer(mdep->queue)) )
+	    continue;			/* no answers on this dependency */
+
+	  if ( (rc=mdep_unify_answers(answers, mdep)) == -1 ||
+	       !PL_unify_pointer(depref, mdep) )
+	    return FALSE;		/* error */
+
+	  if ( rc == 0 )
+	    continue;			/* no real answers */
+	}
 
 	if ( !(t = PL_new_term_ref()) ||
 	     !put_fastheap(mdep->dependency, t) ||
 	     !PL_unify(t, dep) )
 	  return FALSE;
-
-	if ( answers )
-	{ if ( !mdep_unify_answers(answers, mdep) ||
-	       !PL_unify_pointer(depref, mdep) )
-	    return FALSE;
-	}
       } else
       { continue;
       }
@@ -7306,11 +7310,11 @@ mdep_queue_answer(idg_mdep *mdep, word ans)
 static int
 mdep_unify_answers(term_t t, idg_mdep *mdep)
 { GET_LD
-
   word *base = baseBuffer(mdep->queue, word);
   word *top  = topBuffer(mdep->queue, word);
   term_t tail = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
+  int count = 0;
 
   for(; base < top; base++)
   { if ( isAtom(*base) )
@@ -7319,7 +7323,8 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
       if ( !true(cref->value.clause, CL_ERASED) )
       { if ( !PL_unify_list(tail, head, tail) ||
 	     !PL_unify_atom(head, *base) )
-	  return FALSE;
+	  return -1;
+	count++;
       }
     } else
     { trie_node *an = (trie_node *)*base;
@@ -7327,12 +7332,16 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
       if ( an->value )
       { if ( !PL_unify_list(tail, head, tail) ||
 	     !PL_unify_pointer(head, an) )
-	  return FALSE;
+	  return -1;
+	count++;
       }
     }
   }
 
-  return PL_unify_nil(tail);
+  if ( !PL_unify_nil(tail) )
+    return -1;
+
+  return count;
 }
 
 
