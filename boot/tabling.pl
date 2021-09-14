@@ -2034,6 +2034,12 @@ reeval_monotonic_node(ATrie, Size) :-
         reeval_node(ATrie)
     ).
 
+%!  reeval_nodes(+Nodes:list(trie)) is det.
+%
+%   After pulling in the monotonic answers  into   some  node, this is a
+%   list if invalid dependencies.  We must revaluate these and then pull
+%   in possible queued answers before we are done.
+
 reeval_nodes([]).
 reeval_nodes([H|T]) :-
     reeval_node(H),
