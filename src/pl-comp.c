@@ -2560,9 +2560,7 @@ isvar:
 	{ Word p;
 
 	  if ( (p=argUnifiedTo(*arg)) )
-	  { set(ci->clause, CL_HEAD_TERMS);
 	    return compileArgument(p, where, ci);
-	  }
 	  Output_0(ci, H_VOID);
 	  return TRUE;
 	}
