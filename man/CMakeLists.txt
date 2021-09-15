@@ -194,6 +194,8 @@ has_package(xpce HAVE_XPCE)
 if(HAVE_XPCE)
 pldoc(lib/main.tex "library(main)"
       DEPENDS pl2xpce)
+else()
+pldoc(lib/main.tex "library(main)")
 endif()
 pldoc(lib/dcgbasics.tex "library(dcg/basics)")
 pldoc(lib/dcghighorder.tex "library(dcg/high_order)")
