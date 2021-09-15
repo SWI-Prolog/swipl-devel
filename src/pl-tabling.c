@@ -7774,7 +7774,8 @@ A lazy monotonic node is complete if none of its (recursively) dependent
 lazy monotonic nodes has unprocessed  queued   answers  and there are no
 incremental invalid nodes or "force_reeval" nodes in the dependencies.
 
-If the SCC is complete, all nodes in the SCC are marked as valid.
+If the SCC is complete, all  nodes  in   the  SCC  are  marked as valid.
+Otherwise it returns the found invalid dependency.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct mono_scc_state
@@ -7816,9 +7817,10 @@ mdep_is_empty(idg_mdep *mdep)
   return TRUE;
 }
 
+#define mono_scc_is_complete_loop(state) \
+	LDFUNC(mono_scc_is_complete_loop, state)
 
-#define mono_scc_is_complete_loop(state) LDFUNC(mono_scc_is_complete_loop, state)
-static int
+static idg_node *
 mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 { typedef struct idg_node *IDGNode;
 
@@ -7833,14 +7835,14 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 	   !mdep_is_empty(mdep) )
       { DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(dep->atrie, "  queued answers"));
-	return FALSE;
+	return state->idg;
       }
 
       if ( dep->falsecount )
       { if ( !dep->monotonic || dep->force_reeval )
 	{ DEBUG(MSG_TABLING_MONOTONIC,
 		print_answer_table(dep->atrie, "  not monotonic or forced"));
-	  return FALSE;
+	  return dep;
 	}
 
 	if ( dep->lazy && dep->dependent && dep->dependent->size > 0 &&
@@ -7860,19 +7862,21 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
       break;
   }
 
-  return TRUE;
+  return NULL;
 }
 
 
-#define mono_scc_is_complete(idg) LDFUNC(mono_scc_is_complete, idg)
-static int
+#define mono_scc_is_complete(idg) \
+	LDFUNC(mono_scc_is_complete, idg)
+
+static idg_node *
 mono_scc_is_complete(DECL_LD idg_node *idg)
 { DEBUG(MSG_TABLING_MONOTONIC,
 	print_answer_table(idg->atrie, "Checking completeness of monotonic SCC"));
 
   if ( idg->falsecount && idg->dependent && idg->dependent->size > 0 )
   { mono_scc_state state;
-    int rc;
+    idg_node *invalid;
 
     state.idg = idg;
     state.visited = newHTable(4);
@@ -7880,9 +7884,9 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
     state.en = newTableEnum(idg->dependent);
 
-    rc = mono_scc_is_complete_loop(&state);
+    invalid = mono_scc_is_complete_loop(&state);
     clearSegStack(&state.stack);
-    if ( rc )
+    if ( !invalid )
     { FOR_TABLE(state.visited, k, v)
       { idg_node *dep = k;
 	(void) v;
@@ -7893,10 +7897,10 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
     }
     destroyHTable(state.visited);
 
-    return rc;
+    return invalid;
   }
 
-  return TRUE;
+  return NULL;
 }
 
 #define has_queued_answers(idg) LDFUNC(has_queued_answers, idg)
@@ -7930,7 +7934,9 @@ ones that have pending answers and  the invalid non-lazy-monotonic ones.
 This is the list of nodes that are ready to be evaluated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define invalid_dependencies(deps, idg, count) LDFUNC(invalid_dependencies, deps, idg, count)
+#define invalid_dependencies(deps, idg, count) \
+	LDFUNC(invalid_dependencies, deps, idg, count)
+
 static int
 invalid_dependencies(DECL_LD term_t deps, idg_node *idg, size_t *count)
 { term_t head = 0;
@@ -8036,11 +8042,22 @@ PRED_IMPL("$mono_reeval_done", 3, mono_reeval_done, 0)
       }
 
       if ( invalid_deps + idg->lazy_queued )
-      { if ( mono_scc_is_complete(idg) )
+      { idg_node *invalid;
+
+	if ( (invalid=mono_scc_is_complete(idg)) == NULL )
 	{ rc = PL_unify_nil(A3);
 	} else
 	{ idg->falsecount = invalid_deps + idg->lazy_queued;
-	  rc = PL_unify(A3, deps_t);
+	  if ( PL_get_nil(deps_t) )
+	  { term_t t2;
+
+	    rc = ( (t2=PL_new_term_ref()) &&
+		    PL_put_atom(t2, trie_symbol(invalid->atrie)) &&
+		   PL_cons_list(deps_t, t2, deps_t) &&
+		   PL_unify(A3, deps_t) );
+	  } else
+	  { rc = PL_unify(A3, deps_t);
+	  }
 	}
       } else
       { idg->falsecount = 0;
