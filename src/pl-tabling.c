@@ -7831,17 +7831,24 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 
       if ( (mdep=lookupHTable(dep->affected, state->idg)) &&
 	   !mdep_is_empty(mdep) )
+      { DEBUG(MSG_TABLING_MONOTONIC,
+	      print_answer_table(dep->atrie, "  queued answers"));
 	return FALSE;
+      }
 
       if ( dep->falsecount )
-      { if ( dep->lazy && dep->dependent && dep->dependent->size > 0 &&
+      { if ( !dep->monotonic || dep->force_reeval )
+	{ DEBUG(MSG_TABLING_MONOTONIC,
+		print_answer_table(dep->atrie, "  not monotonic or forced"));
+	  return FALSE;
+	}
+
+	if ( dep->lazy && dep->dependent && dep->dependent->size > 0 &&
 	     !lookupHTable(state->visited, dep) )
 	{ if ( !pushSegStack(&state->stack, dep, IDGNode) )
 	    outOfCore();
 	  addHTable(state->visited, dep, (void*)TRUE);
 	}
-	if ( !dep->monotonic || dep->force_reeval )
-	  return FALSE;
       }
     }
 
@@ -7860,7 +7867,10 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 #define mono_scc_is_complete(idg) LDFUNC(mono_scc_is_complete, idg)
 static int
 mono_scc_is_complete(DECL_LD idg_node *idg)
-{ if ( idg->falsecount && idg->dependent && idg->dependent->size > 0 )
+{ DEBUG(MSG_TABLING_MONOTONIC,
+	print_answer_table(idg->atrie, "Checking completeness of monotonic SCC"));
+
+  if ( idg->falsecount && idg->dependent && idg->dependent->size > 0 )
   { mono_scc_state state;
     int rc;
 
