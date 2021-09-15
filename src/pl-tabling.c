@@ -6779,14 +6779,16 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 
 	  if ( !(flags & IDG_MONO_AFFECTS) &&
 	       !(mdep->queue && !isEmptyBuffer(mdep->queue)) )
-	    continue;			/* no answers on this dependency */
+	    goto next;			/* no answers on this dependency */
 
-	  if ( (rc=mdep_unify_answers(answers, mdep)) == -1 ||
-	       !PL_unify_pointer(depref, mdep) )
-	    return FALSE;		/* error */
-
+	  if ( (rc=mdep_unify_answers(answers, mdep)) == -1 )
+	    goto out_error;
 	  if ( rc == 0 )
-	    continue;			/* no real answers */
+	    goto next;			/* no real answers */
+
+	  if ( !PL_unify_pointer(depref, mdep) )
+	    goto out_error;
+
 	}
 
 	if ( !(t = PL_new_term_ref()) ||
@@ -6794,7 +6796,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 	     !PL_unify(t, dep) )
 	  return FALSE;
       } else
-      { continue;
+      { goto next;
       }
     }
 
@@ -6805,15 +6807,15 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
       if ( (astat=table_status_reeval_wait(dtrie)) )
       { if ( astat == ATOM_dynamic || astat == ATOM_complete )
 	{ if ( state->dyn_or_complete )
-	    continue;
+	    goto next;
 	  else
 	    state->dyn_or_complete = TRUE;
 	}
 
 	if ( !PL_unify_atom(status, astat) )
-	  goto out_fail;
+	  goto out_error;
       } else
-      { goto out_fail;			/* Deadlock */
+      { goto out_error;			/* Deadlock */
       }
     }
 
@@ -6828,14 +6830,19 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
     }
 
     if ( PL_exception(0) )
-      goto out_fail;
+      goto out_error;
 
+  next:
     Undo(fli_context->mark);
   } while(advance_idg_edge_state(state));
 
 out_fail:
   free_idg_edge_state(state);
   return FALSE;
+
+out_error:
+  assert(PL_exception(0));
+  goto out_fail;
 }
 
 
