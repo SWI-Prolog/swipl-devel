@@ -3410,7 +3410,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 
       compileArithArgument(a, ci);
     } else
-    { for(a+=ar-1, n=ar; n-- > 0; a--)
+    { for(a+=ar-1, n=ar; n-- > 0; a--)	/* pushed right to left */
       { if ( !compileArithArgument(a, ci) )
 	  return FALSE;
       }
@@ -5830,10 +5830,10 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 #endif
 #if O_COMPILE_ARITH
       case A_ADD:
-			    BUILD_TERM(FUNCTOR_plus2);
+			    BUILD_TERM_REV(FUNCTOR_plus2);
 			    continue;
       case A_MUL:
-			    BUILD_TERM(FUNCTOR_star2);
+			    BUILD_TERM_REV(FUNCTOR_star2);
 			    continue;
       case A_FUNC0:
       case A_FUNC1:
