@@ -2901,8 +2901,20 @@ struct register_file;
 #  define VMI_ARG_DECL Code PC
 #  define VMI_ARG_PASS PC
 # else
-#  define VMI_ARG_DECL Code PC, struct register_file *registers ARG_LD
-#  define VMI_ARG_PASS PC, registers PASS_LD
+/* Avoiding the LDFUNC builtins entirely here, because they don't play
+ * nicely with indirect usage, and the VMI-function/non-VMI-function
+ * switch is already complicated enough. Luckily, the VMI functions
+ * are entirely self-contained and they are only ever called from our
+ * macros (and from functions with local __PL_ld defined), so replicating
+ * the pl-builtin.h logic here isn't such a hazard.
+ */
+#  if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
+#   define VMI_ARG_DECL PL_local_data_t *__PL_ld, Code PC, struct register_file *registers
+#   define VMI_ARG_PASS __PL_ld, PC, registers
+#  else
+#   define VMI_ARG_DECL Code PC, struct register_file *registers
+#   define VMI_ARG_PASS PC, registers
+#  endif
 # endif
 typedef VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
 # if VMI_REGISTER_VARIABLES
