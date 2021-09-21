@@ -58,6 +58,8 @@
             ord_seteq/2,                % +Set1, +Set2
             ord_intersection/2          % +PowerSet, -Intersection
           ]).
+:- use_module(library(error)).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 /** <module> Ordered set manipulation
@@ -184,17 +186,24 @@ ord_intersect(Set1, Set2, Intersection) :-
 %   @compat sicstus
 
 ord_intersection(PowerSet, Intersection) :-
+    must_be(list, PowerSet),
     key_by_length(PowerSet, Pairs),
     keysort(Pairs, [_-S|Sorted]),
     l_int(Sorted, S, Intersection).
 
 key_by_length([], []).
 key_by_length([H|T0], [L-H|T]) :-
-    length(H, L),
-    key_by_length(T0, T).
+    '$skip_list'(L, H, Tail),
+    (   Tail == []
+    ->  key_by_length(T0, T)
+    ;   type_error(list, H)
+    ).
 
-l_int([], S, S).
-l_int([_-H|T], S0, S) :-
+l_int(_, [], I) =>
+    I = [].
+l_int([], S, I) =>
+    I = S.
+l_int([_-H|T], S0, S) =>
     ord_intersection(S0, H, S1),
     l_int(T, S1, S).
 
