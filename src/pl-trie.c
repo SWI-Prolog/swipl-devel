@@ -1790,9 +1790,11 @@ unify_key(DECL_LD ukey_state *state, word key)
 	    bindConst(p, w);
 	  else
 	    return overflowCode(0);
-	} else
+	} else if ( tag(w) == tag(*p) && isIndirect(*p) )
 	{ if ( !equalIndirect(w, *p) )
 	    return FALSE;
+	} else
+	{ return FALSE;
 	}
       }
 
