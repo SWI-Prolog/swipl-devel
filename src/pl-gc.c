@@ -392,10 +392,10 @@ print_val(word val, char *buf)
     if ( storage(val) == STG_GLOBAL )
       offset -= gBase - (Word)base_addresses[STG_GLOBAL];
 
-    Ssprintf(o, "%s at %s(%ld)",
+    Ssprintf(o, "%s at %s(%zd)",
 	     tag_name[tag(val)],
 	     stg_name[storage(val) >> 3],
-	     (long)offset);
+	     offset);
   }
 
   return buf;
