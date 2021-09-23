@@ -535,6 +535,10 @@ the stack view references non-existing frames.
 Globally registered channel that is called by any thread just
 before the thread is terminated.
 
+    \termitem{thread_start}{Thread}
+Globally registered channel that is called by any thread after the
+thread initialization and before running the thread's goal.
+
     \termitem{this_thread_exit}{}
 Thread local version of the \const{thread_exit} channel that
 is also used by the \term{at_exit}{Closure} option of
