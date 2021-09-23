@@ -78,6 +78,7 @@ const event_type PL_events[] =
   GEVENT(PLEV_FRAMEFINISHED,    ATOM_frame_finished,   1, onframefinish),
   GEVENT(PLEV_UNTABLE,		ATOM_untable,          1, onuntable),
 #ifdef O_PLMT
+  GEVENT(PLEV_THREAD_START,     ATOM_thread_start,     1, onthreadstart),
   GEVENT(PLEV_THREAD_EXIT,      ATOM_thread_exit,      1, onthreadexit),
   LEVENT(PLEV_THIS_THREAD_EXIT, ATOM_this_thread_exit, 0, onthreadexit),
 #endif
@@ -625,6 +626,7 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
       break;
     }
 #ifdef O_PLMT
+    case PLEV_THREAD_START:
     case PLEV_THREAD_EXIT:
     { PL_thread_info_t *info = va_arg(args, PL_thread_info_t*);
 

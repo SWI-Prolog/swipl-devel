@@ -1827,6 +1827,8 @@ start_thread(void *closure)
     PL_put_atom(goal, ATOM_dthread_init);
 
     rval = callProlog(MODULE_system, goal, PL_Q_CATCH_EXCEPTION, &ex);
+    if ( rval )
+      rval = callEventHook(PLEV_THREAD_START, info);
 
     if ( rval )
     { if ( !PL_recorded(info->goal, goal) )

@@ -48,6 +48,7 @@ typedef enum pl_event_type
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PLEV_UNTABLE,				/* Stop tabling some predicate */
 					/* Keep these two at the end */
+  PLEV_THREAD_START,			/* A thread started */
   PLEV_THREAD_EXIT,			/* A thread has finished */
   PLEV_THIS_THREAD_EXIT			/* This thread has finished */
 } pl_event_type;

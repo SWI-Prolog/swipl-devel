@@ -280,6 +280,7 @@ struct PL_global_data
       struct event_list *onbreak;	/* breakpoint change */
       struct event_list *onframefinish; /* Debugged frame finished */
 #ifdef O_PLMT
+      struct event_list *onthreadstart;	/* thread start hook */
       struct event_list *onthreadexit;	/* thread exit hook */
 #endif
       struct event_list *onuntable;	/* Untable after reload */
