@@ -378,6 +378,66 @@ get_chr_from_text(const PL_chars_t *t, int index)
 }
 
 
+typedef struct sub_state
+{ char          buf[BUFSIZE];
+  char         *str;
+  size_t        bufsize;
+  format_state *fstate;
+  IOSTREAM     *old_stream;
+} sub_state;
+
+static int
+prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
+{ state->fstate = fstate;
+
+  if ( !fstate->pending_rubber &&
+       fd->position &&
+       fd->position->linepos == fstate->column )
+  { state->old_stream = Scurout;
+
+    Scurout = fd;
+  } else
+  { state->old_stream = NULL;
+    state->str        = state->buf;
+    state->bufsize    = sizeof(state->buf);
+
+    tellString(&state->str, &state->bufsize, ENC_UTF8);
+    if ( true(fd, SIO_ISATTY) )
+      set(Scurout, SIO_ISATTY);
+  }
+
+  return TRUE;
+}
+
+static int
+end_sub_format(sub_state *state, int rc)
+{ int lp = Scurout->position->linepos;
+
+  if ( state->old_stream )
+  { Scurout = state->old_stream;
+
+    if ( rc )
+      state->fstate->column = lp;
+  } else
+  { int lp = Scurout->position->linepos;
+
+    toldString();
+    if ( rc )
+    { int c0 = state->fstate->column;
+      rc = oututf8(state->fstate, state->str, state->bufsize);
+      state->fstate->column = c0 + lp;
+    }
+    if ( state->str != state->buf )
+      free(state->str);
+  }
+
+  return rc;
+}
+
+
+
+
+
 		/********************************
 		*       ACTUAL FORMATTING	*
 		********************************/
@@ -452,9 +512,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	       (proc = lookupHTable(format_predicates, (void*)((intptr_t)c))) )
 	  { size_t arity;
 	    term_t av;
-	    char buf[BUFSIZE];
-	    char *str = buf;
-	    size_t bufsize = BUFSIZE;
+	    sub_state sstate;
 	    int i;
 
 	    PL_predicate_info(proc, NULL, &arity, NULL);
@@ -471,13 +529,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      SHIFT;
 	    }
 
-	    tellString(&str, &bufsize, ENC_UTF8);
+	    if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
+	      goto out;
 	    rc = PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, proc, av);
-	    toldString();
-	    if ( rc )
-	      rc = oututf8(&state, str, bufsize);
-	    if ( str != buf )
-	      free(str);
+	    rc = end_sub_format(&sstate, rc);
+
 	    if ( !rc )
 	      goto out;
 
@@ -645,8 +701,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  break;
 		}
 		{ Func f;
-		  char buf[BUFSIZE];
-		  char *str;
+		  sub_state sstate;
 
 	      case 'k':			/* write_canonical */
 		  f = pl_write_canonical;
@@ -662,121 +717,51 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  pl_common:
 
 		  NEED_ARG;
-		  if ( state.pending_rubber )
-		  { size_t bufsize = BUFSIZE;
 
-		    str = buf;
-		    tellString(&str, &bufsize, ENC_UTF8);
-		    rc = (*f)(argv);
-		    toldString();
-		    if ( rc )
-		      rc = oututf8(&state, str, bufsize);
-		    if ( str != buf )
-		      free(str);
-		    if ( !rc )
-		      goto out;
-		  } else
-		  { if ( fd->position &&
-			 fd->position->linepos == state.column )
-		    { IOSTREAM *old = Scurout;
+		  if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
+		    goto out;
+		  rc = (int)(*f)(argv);
+		  rc = end_sub_format(&sstate, rc);
 
-		      Scurout = fd;
-		      rc = (int)(*f)(argv);
-		      Scurout = old;
-		      if ( !rc )
-			goto out;
-
-		      state.column = fd->position->linepos;
-		    } else
-		    { size_t bufsize = BUFSIZE;
-
-		      str = buf;
-		      tellString(&str, &bufsize, ENC_UTF8);
-		      rc = (*f)(argv);
-		      toldString();
-		      if ( rc )
-			rc = oututf8(&state, str, bufsize);
-		      if ( str != buf )
-			free(str);
-		      if ( !rc )
-			goto out;
-		    }
-		  }
 		  SHIFT;
 		  here++;
 		  break;
 		}
 	      case 'W':			/* write_term(Value, Options) */
-	       { char buf[BUFSIZE];
-		 char *str;
+	       { sub_state sstate;
 
 		 if ( argc < 2 )
 		 { FMT_ERROR("not enough arguments");
 		 }
-		 if ( state.pending_rubber )
-		  { size_t bufsize = BUFSIZE;
 
-		    str = buf;
-		    tellString(&str, &bufsize, ENC_UTF8);
-		    rc = (int)pl_write_term(argv, argv+1);
-		    toldString();
-		    if ( rc )
-		      rc = oututf8(&state, str, bufsize);
-		    if ( str != buf )
-		      free(str);
-		    if ( !rc )
-		      goto out;
-		  } else
-		  { if ( fd->position &&
-			 fd->position->linepos == state.column )
-		    { IOSTREAM *old = Scurout;
+		 if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
+		   goto out;
+		 rc = (int)pl_write_term(argv, argv+1);
+		 rc = end_sub_format(&sstate, rc);
 
-		      Scurout = fd;
-		      rc = (int)pl_write_term(argv, argv+1);
-		      Scurout = old;
-		      if ( !rc )
-			goto out;
+		 if ( !rc )
+		   goto out;
 
-		      state.column = fd->position->linepos;
-		    } else
-		    { size_t bufsize = BUFSIZE;
-
-		      str = buf;
-		      tellString(&str, &bufsize, ENC_UTF8);
-		      rc = (int)pl_write_term(argv, argv+1);
-		      toldString();
-		      if ( rc )
-			rc = oututf8(&state, str, bufsize);
-		      if ( str != buf )
-			free(str);
-		      if ( !rc )
-			goto out;
-		    }
-		  }
-		  SHIFT;
-		  SHIFT;
-		  here++;
-		  break;
+		 SHIFT;
+		 SHIFT;
+		 here++;
+		 break;
 	       }
 	      case '@':
-	        { char buf[BUFSIZE];
-		  char *str = buf;
-		  size_t bufsize = BUFSIZE;
-		  term_t ex = 0;
+	        { term_t ex = 0;
+		  sub_state sstate;
 
 		  if ( argc < 1 )
 		  { FMT_ERROR("not enough arguments");
 		  }
-		  tellString(&str, &bufsize, ENC_UTF8);
+
+		  if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
+		    goto out;
 		  rc = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
-		  toldString();
-		  if ( rc )
-		    rc = oututf8(&state, str, bufsize);
-		  if ( str != buf )
-		    free(str);
+		  rc = end_sub_format(&sstate, rc);
 
 		  if ( !rc )
-		  { if ( ex )
+		  { if ( ex && !PL_exception(0) )
 		      rc = PL_raise_exception(ex);
 		    goto out;
 		  }
