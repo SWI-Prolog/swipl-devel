@@ -9261,6 +9261,19 @@ positive integer. E.g., the following three examples all pass 46
 ?- format('~w ~*t ~w~72|~n', ['Title', 46, 'Page']).
 \end{code}
 
+Some format expressions may call back Prolog, i.e., \verb$~p$,
+\verb$~W$, \verb$~@$ and user defined extensions registered with
+format_predicate/2. Output written to the stream \const{current_output}
+is merged into the format/2 output. If there is no pending
+\jargon{rubber} (\verb$~t$) and the the position notation aligns, only
+the output is switched. Otherwise the output is captured in a temporary
+memory buffer and emitted after the callback finishes. The system
+attempts to preserve the position and alignment promises.  It sets
+the \const{tty} property of the temporary stream to reflect the main
+stream and uses the position information of the temporary stream to
+update its notion of the position.  Notable ansi_format/3 cooperates
+properly in callbacks.\footnote{As of version 8.3.30}.
+
 Numeric conversion (\chr{d}, \chr{D}, \chr{e}, \chr{E}, \chr{f}, \chr{g}
 and \chr{G}) accept an arithmetic expression as argument. This is
 introduced to handle rational numbers transparently (see
