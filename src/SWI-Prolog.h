@@ -778,6 +778,7 @@ PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 		 *******************************/
 
 PL_EXPORT(int)		PL_cvt_i_char(term_t p, char *c);
+PL_EXPORT(int)		PL_cvt_i_schar(term_t p, signed char *c);
 PL_EXPORT(int)		PL_cvt_i_uchar(term_t p, unsigned char *c);
 PL_EXPORT(int)		PL_cvt_i_short(term_t p, short *s);
 PL_EXPORT(int)		PL_cvt_i_ushort(term_t p, unsigned short *s);
