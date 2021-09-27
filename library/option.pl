@@ -44,7 +44,9 @@
             dict_options/2              % ?Dict, ?Options
           ]).
 :- autoload(library(lists), [selectchk/3]).
-:- autoload(library(error), [must_be/2]).
+:- autoload(library(error), [must_be/2, domain_error/2]).
+:- autoload(library(pairs), [map_list_to_pairs/3, pairs_values/2]).
+
 :- set_prolog_flag(generate_debug_info, false).
 
 :- meta_predicate
@@ -352,7 +354,8 @@ meta_option(O, _, _, O).
 %     - Dict keys can be integers. This is not allowed in canonical
 %       option lists.
 %     - Options can hold multiple options with the same key. This is
-%       not allowed in dicts.
+%       not allowed in dicts.  This predicate removes all but the
+%       first option on the same key.
 %     - Options can have more than one value (name(V1,V2)).  This is
 %       not allowed in dicts.
 %
@@ -366,4 +369,14 @@ dict_options(Dict, Options) :-
     dict_pairs(Dict, _, Pairs),
     canonicalise_options2(Pairs, Options).
 dict_options(Dict, Options) :-
-    dict_create(Dict, _, Options).
+    canonicalise_options(Options, Options1),
+    map_list_to_pairs(key_name, Options1, Keyed),
+    sort(1, @<, Keyed, UniqueKeyed),
+    pairs_values(UniqueKeyed, Unique),
+    dict_create(Dict, _, Unique).
+
+key_name(Opt, Key) :-
+    functor(Opt, Key, 1),
+    !.
+key_name(Opt, _) :-
+    domain_error(option, Opt).
