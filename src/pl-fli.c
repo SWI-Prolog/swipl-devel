@@ -1007,8 +1007,8 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
 
 
 bool
-PL_cvt_i_char(term_t p, char *c)
-{ return _PL_cvt_i_char(p, c, SCHAR_MIN, SCHAR_MAX);
+PL_cvt_i_schar(term_t p, signed char *c)
+{ return _PL_cvt_i_char(p, (char *)c, SCHAR_MIN, SCHAR_MAX);
 }
 
 bool
@@ -1016,6 +1016,12 @@ PL_cvt_i_uchar(term_t p, unsigned char *c)
 { return _PL_cvt_i_char(p, (char *)c, 0, UCHAR_MAX);
 }
 
+
+bool
+PL_cvt_i_char(term_t p, char *c)
+{ return ((char) 255 == -1) ? PL_cvt_i_schar(p, (signed char*)c)
+			    : PL_cvt_i_uchar(p, (unsigned char *)c);
+}
 
 static bool
 _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
