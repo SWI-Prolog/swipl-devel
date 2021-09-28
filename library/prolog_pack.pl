@@ -283,7 +283,7 @@ pack_info_term(title(atom)).
 pack_info_term(keywords(list(atom))).
 pack_info_term(description(list(atom))).
 pack_info_term(version(version)).
-pack_info_term(author(atom, email_or_url)).     % Persons
+pack_info_term(author(atom, email_or_url_or_empty)).     % Persons
 pack_info_term(maintainer(atom, email_or_url)).
 pack_info_term(packager(atom, email_or_url)).
 pack_info_term(home(atom)).                     % Home page
@@ -305,6 +305,11 @@ error:has_type(email_or_url, Address) :-
     (   sub_atom(Address, _, _, _, @)
     ->  true
     ;   uri_is_global(Address)
+    ).
+error:has_type(email_or_url_or_empty, Address) :-
+    (   Address == ''
+    ->  true
+    ;   error:has_type(email_or_url, Address)
     ).
 error:has_type(dependency, Value) :-
     is_dependency(Value, _Token, _Version).
