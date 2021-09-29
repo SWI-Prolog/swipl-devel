@@ -1110,11 +1110,16 @@ configure_foreign(PackDir, Options) :-
     exists_file(Configure),
     !,
     build_environment(BuildEnv),
-    run_process(path(bash), [Configure],
+    findall(Opt, configure_option(Opt), Opts),
+    run_process(path(bash), [Configure|Opts],
                 [ env(BuildEnv),
                   directory(PackDir)
                 ]).
 configure_foreign(_, _).
+
+configure_option(Opt) :-
+    prolog_prefix(Prefix),
+    format(atom(Opt), '--prefix=~w', [Prefix]).
 
 make_configure(PackDir, _Options) :-
     directory_file_path(PackDir, 'configure', Configure),
@@ -1134,16 +1139,21 @@ autoconf_master('configure.in').
 
 %!  cmake_configure_foreign(+PackDir, +Options) is det.
 %
-%   Create a `build` directory in PackDir and run `cmake ..`
+%   Create a `build` directory in PackDir and run `cmake [options] ..`
 
 cmake_configure_foreign(PackDir, _Options) :-
     directory_file_path(PackDir, build, BuildDir),
     make_directory_path(BuildDir),
-    current_prolog_flag(executable, Exe),
-    format(atom(CDEF), '-DSWIPL=~w', [Exe]),
-    run_process(path(cmake), [CDEF, '..'],
+    findall(Opt, cmake_option(Opt), Argv, [..]),
+    run_process(path(cmake), Argv,
                 [directory(BuildDir)]).
 
+cmake_option(CDEF) :-
+    current_prolog_flag(executable, Exe),
+    format(atom(CDEF), '-DSWIPL=~w', [Exe]).
+cmake_option(CDEF) :-
+    prolog_prefix(Prefix),
+    format(atom(CDEF), '-DCMAKE_INSTALL_PREFIX=~w', [Prefix]).
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
@@ -1405,6 +1415,43 @@ mingw_root(MinGwRoot) :-
     format(atom(MinGwRoot), '~a:/MinGW', [Drive]),
     exists_directory(MinGwRoot),
     !.
+
+%!  prolog_prefix(-Prefix) is semidet.
+%
+%   Return the directory that can be  passed into `configure` or `cmake`
+%   to install executables and other  related   resources  in  a similar
+%   location as SWI-Prolog itself.  Tries these rules:
+%
+%     1. If the Prolog flag `pack_prefix` at a writable directory, use
+%        this.
+%     2. If the current executable can be found on $PATH and the parent
+%        of the directory of the executable is writable, use this.
+%     3. If the user has a writable ``~/bin`` directory, use ``~``.
+
+prolog_prefix(Prefix) :-
+    current_prolog_flag(pack_prefix, Prefix),
+    access_file(Prefix, write),
+    !.
+prolog_prefix(Prefix) :-
+    current_prolog_flag(os_argv, [Name|_]),
+    has_program(path(Name), EXE),
+    file_directory_name(EXE, Bin),
+    file_directory_name(Bin, Prefix0),
+    (   local_prefix(Prefix0, Prefix1)
+    ->  Prefix = Prefix1
+    ;   Prefix = Prefix0
+    ),
+    access_file(Prefix, write),
+    !.
+prolog_prefix(Prefix) :-
+    expand_file_name(~, UserHome),
+    directory_file_path(UserHome, bin, BinDir),
+    exists_directory(BinDir),
+    access_file(BinDir, write),
+    !,
+    Prefix = UserHome.
+
+local_prefix('/usr', '/usr/local').
 
 
                  /*******************************
