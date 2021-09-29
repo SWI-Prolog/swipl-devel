@@ -683,6 +683,7 @@ safe_primitive(asserta(X)) :- safe_assert(X).
 safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
+safe_primitive('$dcg':dcg_translate_rule(_,_)).
 
 % We need to do data flow analysis to find the tag of the
 % target key before we can conclude that functions on dicts
