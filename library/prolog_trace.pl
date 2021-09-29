@@ -36,7 +36,8 @@
 :- module(prolog_trace,
           [ trace/1,                            % :Spec
             trace/2,                            % :Spec, +Ports
-            tracing/2                           % :Spec, -Ports
+            tracing/2,                          % :Spec, -Ports
+            notraceall/0
           ]).
 :- autoload(library(apply),[maplist/2]).
 :- autoload(library(error),[instantiation_error/1]).
@@ -229,3 +230,11 @@ is_masked(Pattern0, Port, Pattern) :-
 tracing(Spec, Ports) :-
     tracing_mask(Spec, Mask),
     mask_ports(Mask, Ports).
+
+%!  notraceall is det.
+%
+%   Remove all trace points
+
+notraceall :-
+    forall(tracing(M:Spec, _Ports),
+           trace(M:Spec, -all)).
