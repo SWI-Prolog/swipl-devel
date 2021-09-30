@@ -95,6 +95,10 @@ case "$tag" in
 	vfrom="$(echo $tag | sed 's/\.\..*//')"
 	vto="$(echo $tag | sed 's/.*\.\.//')"
 	;;
+   [0-9a-f]*)
+	vfrom=$tag
+	vto=
+	;;
 esac
 shift
 
@@ -186,9 +190,9 @@ if [ "$modules" = true ]; then
   echo
 
   for d in `git submodule -q foreach pwd`; do
-    mfrom=$(mtag V$vfrom $d)
+    mfrom=$(mtag $(vvtag $vfrom) $d)
     if [ ! -z "$vto" ]; then
-      mto=$(mtag V$vto $d)
+      mto=$(mtag $(vvtag $vto) $d)
     else
       mto=$(mtag HEAD $d)
     fi
