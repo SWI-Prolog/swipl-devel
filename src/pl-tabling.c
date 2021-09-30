@@ -6874,7 +6874,7 @@ PRED_IMPL("$idg_false_edge", 3, idg_false_edge, PL_FA_NONDETERMINISTIC)
 static
 PRED_IMPL("$idg_mono_affects_eager", 3, idg_mono_affects_eager,
 	  PL_FA_NONDETERMINISTIC)
-{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, 0, PL__ctx);
+{ return idg_edge_gen(A1, 0, A2, A3, 0, 0, 0, IDG_MONO_AFFECTS, PL__ctx);
 }
 
 /** '$idg_mono_affects'(+SrcTrie, -DstTrie, -Dependency)
