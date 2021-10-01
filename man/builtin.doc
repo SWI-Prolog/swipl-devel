@@ -4771,7 +4771,7 @@ predicate.  Fails for foreign predicates.  This property respects the
 the predicate was started.
 
     \termitem{number_of_rules}{RuleCount}
-Similar to \termitem{number_of_clauses}{ClauseCount}, but only counts
+Similar to \term{number_of_clauses}{ClauseCount}, but only counts
 \jargon{rules}. A \jargon{rule} is defined as a clauses that has a body
 that is not just \const{true} (i.e., a \jargon{fact}).
 
