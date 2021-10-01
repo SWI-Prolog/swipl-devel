@@ -120,6 +120,9 @@ alternative clauses), \const{foreign} (non-deterministic foreign
 predicate), \const{jump} (clause internal choice point), \const{top}
 (first dummy choice point), \const{catch} (catch/3 to allow for undo),
 \const{debug} (help the debugger), or \const{none} (has been deleted).
+    \termitem{pc}{}
+Requests the program counter to which the choice point refers. Only
+applicable for in-clause choice points.
 \end{description}
 
 This predicate is used for the graphical debugger to show the
