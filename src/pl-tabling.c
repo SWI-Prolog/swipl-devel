@@ -7027,7 +7027,7 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 	}
       } else if ( !table_is_incomplete(n->atrie) &&
 		  !n->mono_reevaluating &&
-		  (n->lazy ? n->falsecount > 0 : TRUE /* see (***) */) )
+		  (n->monotonic ? n->falsecount > 0 : TRUE /* see (***) */) )
       { int fc = ATOMIC_DEC(&n->falsecount);	/* Decrement falsecount */
 
 	assert(fc >= 0);
