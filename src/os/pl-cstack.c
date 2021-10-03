@@ -371,7 +371,7 @@ addr2line(const char *fname, uintptr_t offset, char *buf, size_t size)
 
       *o = '\0';
 
-      fclose(fd);
+      pclose(fd);
       return o > buf;
     }
   }
