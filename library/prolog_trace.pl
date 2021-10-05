@@ -117,7 +117,10 @@ set_trace(Spec, Pred) :-
     ),
     modify(Spec, Spec0, Spec1),
     retractall(tracing_mask(Pred, _)),
-    asserta(tracing_mask(Pred, Spec1)),
+    (   Spec1 == []
+    ->  true
+    ;   asserta(tracing_mask(Pred, Spec1))
+    ),
     mask_ports(Spec1, Ports),
     pi_head(Pred, Head0),
     (   predicate_property(Head0, imported_from(M))
