@@ -1337,7 +1337,8 @@ version(void)
 
 static int
 abi_version(void)
-{ setupProlog();
+{ initDefaultOptions();
+  setupProlog();
   Sprintf(PLPKGNAME "-abi-%d-%d-%08x-%08x\n",
 	  PL_FLI_VERSION,
 	  PL_QLF_LOADVERSION,
