@@ -509,6 +509,8 @@ if(GMP_FOUND)
   set(SWIPL_TEST_DIRS ${SWIPL_TEST_DIRS} rational)
 endif()
 
+add_test(NAME swipl:abi-version
+	 COMMAND ${PROG_SWIPL} --abi-version)
 add_test(NAME swipl:basic
 	 COMMAND ${PROG_SWIPL} -f none --no-packs --on-error=status
 	 -q ${CMAKE_CURRENT_SOURCE_DIR}/test.pl --no-subdirs)
