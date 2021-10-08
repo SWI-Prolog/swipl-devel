@@ -3026,13 +3026,16 @@ is_alive(int status)
 }
 
 
-foreign_t
-pl_thread_signal(term_t thread, term_t goal)
-{ GET_LD
+static
+PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
+{ PRED_LD
   Module m = NULL;
   thread_sig *sg;
   PL_thread_info_t *info;
   PL_local_data_t *ld;
+
+  term_t thread = A1;
+  term_t goal   = A2;
 
   if ( !PL_strip_module(goal, &m, goal) )
     return FALSE;
@@ -7681,6 +7684,8 @@ BeginPredDefs(thread)
   PRED_DEF("thread_peek_message",    1,	thread_peek_message_1, PL_FA_ISO)
   PRED_DEF("thread_peek_message",    2,	thread_peek_message_2, PL_FA_ISO)
   PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
+
+  PRED_DEF("thread_signal",	     2, thread_signal,         META|PL_FA_ISO)
 
   PRED_DEF("thread_wait",	     2, thread_wait,           META)
   PRED_DEF("thread_update",	     2, thread_update,         META)

@@ -419,7 +419,6 @@ bool		aliasThread(int tid, atom_t type, atom_t name);
 word		pl_thread_create(term_t goal, term_t id,
 				 term_t options);
 word		pl_thread_exit(term_t retcode);
-foreign_t	pl_thread_signal(term_t thread, term_t goal);
 
 foreign_t	pl_thread_at_exit(term_t goal);
 int		PL_thread_self(void);
