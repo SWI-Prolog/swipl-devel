@@ -3078,6 +3078,129 @@ out:
 }
 
 
+struct siglist
+{ term_t list;
+  term_t tail;
+  term_t head;
+  term_t goal;
+  Module m;
+};
+
+
+#define append_signal(sg, sl) \
+	LDFUNC(append_signal, sg, sl)
+
+static int
+append_signal(DECL_LD thread_sig *sg, struct siglist *sl)
+{ if ( !sl->tail )
+  { if ( !(sl->tail = PL_copy_term_ref(sl->list)) ||
+	 !(sl->head=PL_new_term_ref()) ||
+	 !(sl->goal=PL_new_term_ref()) ||
+	 !PL_strip_module(sl->tail, &sl->m, sl->tail) )
+      return FALSE;
+  }
+
+  if ( sg->module == sl->m )
+    return ( PL_unify_list(sl->tail, sl->head, sl->tail) &&
+	     PL_recorded(sg->goal, sl->goal) &&
+	     PL_unify(sl->goal, sl->head) );
+  else
+    return ( PL_put_atom(sl->head, sg->module->name) &&
+	     PL_recorded(sg->goal, sl->goal) &&
+	     PL_cons_functor(sl->goal, FUNCTOR_colon2, sl->head, sl->goal) &&
+	     PL_unify_list(sl->tail, sl->head, sl->tail) &&
+	     PL_unify(sl->goal, sl->head) );
+}
+
+
+#define close_signals(sl) \
+	LDFUNC(close_signals, sl)
+
+static int
+close_signals(DECL_LD struct siglist *sl)
+{ return PL_unify_nil(sl->tail ? sl->tail : sl->list);
+}
+
+
+static
+PRED_IMPL("sig_pending", 1, sig_pending, META)
+{ PRED_LD
+
+  if ( LD->thread.sig_head )
+  { struct siglist sl = {0};
+    thread_sig *sg;
+    int rc;
+
+    sl.list = A1;
+
+    PL_LOCK(L_THREAD);
+    for( sg=LD->thread.sig_head; sg; sg = sg->next )
+    { if ( !(rc=append_signal(sg, &sl)) )
+	break;
+    }
+    PL_UNLOCK(L_THREAD);
+
+    return rc && close_signals(&sl);
+  } else
+    return PL_unify_nil(A1);
+}
+
+static
+PRED_IMPL("sig_remove", 2, sig_remove, META)
+{ PRED_LD
+  Module m = NULL;
+  term_t pattern = PL_new_term_ref();
+  term_t ex = PL_new_term_ref();
+  term_t tmp = 0;
+  int rc = TRUE;
+  thread_sig *sg, *prev = NULL, *next;
+  struct siglist sl = {0};
+
+  if ( !PL_strip_module(A1, &m, pattern) )
+    return FALSE;
+  sl.list = A2;
+
+  PL_LOCK(L_THREAD);
+  for( sg=LD->thread.sig_head; sg; prev=sg, sg = next )
+  { next = sg->next;
+
+    if ( sg->module == m )
+    { if ( !tmp && !(tmp=PL_new_term_ref()) )
+      { rc = FALSE;
+	break;
+      }
+      if ( PL_recorded(sg->goal, tmp) &&
+	   can_unify(valTermRef(pattern), valTermRef(tmp), ex) )
+      { thread_sig *rm = sg;
+
+	if ( !(rc=append_signal(sg, &sl)) )
+	  break;
+
+	sg = prev;			/* do not update prev */
+	if ( prev )
+	{ prev->next = next;
+	} else
+	{ LD->thread.sig_head = next;
+	  if ( !LD->thread.sig_head )
+	    LD->thread.sig_tail = NULL;
+	}
+
+	PL_erase(rm->goal);
+	freeHeap(rm, sizeof(*rm));
+      } else if ( PL_exception(0) )
+      { rc = FALSE;
+	break;
+      } else if ( !PL_is_variable(ex) )
+      { rc = PL_raise_exception(ex);
+	break;
+      }
+    }
+  }
+  PL_UNLOCK(L_THREAD);
+
+  return rc && close_signals(&sl);
+}
+
 void
 executeThreadSignals(int sig)
 { GET_LD
@@ -7690,6 +7813,8 @@ BeginPredDefs(thread)
   PRED_DEF("message_queue_destroy",  1,	message_queue_destroy, PL_FA_ISO)
 
   PRED_DEF("thread_signal",	     2, thread_signal,         META|PL_FA_ISO)
+  PRED_DEF("sig_pending",	     1, sig_pending,           META)
+  PRED_DEF("sig_remove",             2, sig_remove,	       META)
 
   PRED_DEF("thread_wait",	     2, thread_wait,           META)
   PRED_DEF("thread_update",	     2, thread_update,         META)
