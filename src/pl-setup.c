@@ -575,7 +575,7 @@ dispatch_signal(int sig, int sync)
 
   LD->signal.current = saved_current_signal;
   LD->signal.is_sync = saved_sync;
-  if ( sync || exception_term )
+  if ( sync )
     PL_close_foreign_frame(fid);
   else
     PL_discard_foreign_frame(fid);
