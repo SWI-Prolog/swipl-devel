@@ -3201,50 +3201,65 @@ PRED_IMPL("sig_remove", 2, sig_remove, META)
   return rc && close_signals(&sl);
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Execute pending signals on this thread. If the thread is no longer alive
+all signals are ignored. This routine   returns after having handled all
+signals or after an exception was raised while copying the signal to the
+stack or executing it. No signals are processed while we are executing a
+signal handler. Of course, new signals may arrive.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 executeThreadSignals(int sig)
 { GET_LD
-  thread_sig *sg, *next;
   fid_t fid;
   (void)sig;
+  term_t goal;
 
-  if ( !is_alive(LD->thread.info->status) )
+  if ( !is_alive(LD->thread.info->status) ||
+       !LD->thread.sig_head ||
+       !(fid=PL_open_foreign_frame()) ||
+       !(goal=PL_new_term_ref()) )
     return;
 
-  PL_LOCK(L_THREAD);
-  sg = LD->thread.sig_head;
-  LD->thread.sig_head = LD->thread.sig_tail = NULL;
-  PL_UNLOCK(L_THREAD);
-
-  fid = PL_open_foreign_frame();
-
-  for( ; sg; sg = next)
-  { term_t goal = PL_new_term_ref();
+  while( LD->thread.sig_head )
+  { thread_sig *sg;
     Module gm;
     term_t ex;
-    int rval;
+    int rval = FALSE;
 
-    next = sg->next;
-    rval = PL_recorded(sg->goal, goal);
-    PL_erase(sg->goal);
-    gm = sg->module;
-    freeHeap(sg, sizeof(*sg));
+    PL_LOCK(L_THREAD);
+    if ( (sg = LD->thread.sig_head) )
+    { if ( !(LD->thread.sig_head = sg->next) )
+	LD->thread.sig_tail = NULL;
+    }
+
+    if ( sg )
+    { gm = sg->module;
+      rval = PL_recorded(sg->goal, goal);
+      PL_erase(sg->goal);
+      freeHeap(sg, sizeof(*sg));
+    }
+    PL_UNLOCK(L_THREAD);
+
+    if ( !rval )
+      return;				/* No signal or no space to handle */
 
     DEBUG(MSG_THREAD,
 	  Sdprintf("[%d] Executing thread signal\n", PL_thread_self()));
-    if ( rval )
+
     {
 #ifdef O_LIMIT_DEPTH
       size_t olimit = LD->depth_info.limit;
       LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
+      startCritical;
       rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
+      rval = endCritical && rval;
 #ifdef O_LIMIT_DEPTH
       LD->depth_info.limit = olimit;
 #endif
-    } else
-    { rval = raiseStackOverflow(GLOBAL_OVERFLOW);
-      ex = exception_term;
     }
 
     if ( !rval && ex )
@@ -3258,19 +3273,11 @@ executeThreadSignals(int sig)
 	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
 	    });
 
-      for(sg = next; sg; sg=next)
-      { next = sg->next;
-	PL_erase(sg->goal);
-	freeHeap(sg, sizeof(*sg));
-      }
-
       return;
     }
-
-    PL_rewind_foreign_frame(fid);
   }
 
-  PL_discard_foreign_frame(fid);
+  PL_close_foreign_frame(fid);
 }
 
 
