@@ -835,6 +835,17 @@ tracing the receiving thread.
 In the Windows version, the receiving thread immediately executes
 the signal if it reaches a Windows GetMessage() call, which generally
 happens if the thread is waiting for (user) input.
+
+    \predicate{sig_atomic}{:Goal}
+Execute \arg{Goal} as once/1 while blocking both thread signals
+(see thread_signal/2) and OS signals (see on_signal/3).  The system
+executes some goals while blocking signals.  These are:
+
+\begin{itemize}
+    \item The \arg{Setup} call of setup_call_cleanup/3 and friends.
+    \item The \arg{Cleanup} call of call_cleanup/2 and friends.
+    \item Compiling a file or loading a \jargon{quick load file}.
+\end{itemize}
 \end{description}
 
 
