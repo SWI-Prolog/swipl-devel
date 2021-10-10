@@ -84,6 +84,8 @@
             nb_setval/2,                        % +Var, +Value
             thread_create/2,                    % :Goal, -Id
             thread_join/1,                      % +Id
+            sig_block/1,                        % :Pattern
+            sig_unblock/1,                      % :Pattern
             transaction/1,                      % :Goal
             transaction/2,                      % :Goal, +Options
             transaction/3,                      % :Goal, :Constraint, +Mutex
@@ -102,7 +104,9 @@
     transaction(0,0,+),
     snapshot(0),
     rule(:, -),
-    rule(:, -, ?).
+    rule(:, -, ?),
+    sig_block(:),
+    sig_unblock(:).
 
 
                 /********************************
@@ -1428,6 +1432,47 @@ thread_join(Id) :-
     ->  true
     ;   throw(error(thread_error(Id, Status), _))
     ).
+
+%!  sig_block(:Pattern) is det.
+%
+%   Block thread signals that unify with Pattern.
+
+%!  sig_unblock(:Pattern) is det.
+%
+%   Remove any signal block that is more specific than Pattern.
+
+sig_block(Pattern) :-
+    (   nb_current('$sig_blocked', List)
+    ->  true
+    ;   List = []
+    ),
+    nb_setval('$sig_blocked', [Pattern|List]).
+
+sig_unblock(Pattern) :-
+    (   nb_current('$sig_blocked', List)
+    ->  unblock(List, Pattern, NewList),
+        (   List == NewList
+        ->  true
+        ;   nb_setval('$sig_blocked', NewList),
+            '$sig_unblock'
+        )
+    ;   true
+    ).
+
+unblock([], _, []).
+unblock([H|T], P, List) :-
+    (   subsumes_term(P, H)
+    ->  unblock(T, P, List)
+    ;   List = [H|T1],
+        unblock(T, P, T1)
+    ).
+
+:- public signal_is_blocked/1.          % called by signal_is_blocked()
+
+signal_is_blocked(Head) :-
+    nb_current('$sig_blocked', List),
+    '$member'(Head, List),
+    !.
 
 %!  set_prolog_gc_thread(+Status)
 %

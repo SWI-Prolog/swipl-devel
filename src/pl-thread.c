@@ -3011,6 +3011,7 @@ typedef struct _thread_sig
 { struct _thread_sig *next;		/* Next in queue */
   Module   module;			/* Module for running goal */
   record_t goal;			/* Goal to run */
+  int	   blocked;			/* Signal is blocked */
 } thread_sig;
 
 
@@ -3030,9 +3031,10 @@ static
 PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
 { PRED_LD
   Module m = NULL;
-  thread_sig *sg;
+  thread_sig *sg = NULL;
   PL_thread_info_t *info;
   PL_local_data_t *ld;
+  int rc;
 
   term_t thread = A1;
   term_t goal   = A2;
@@ -3201,6 +3203,78 @@ PRED_IMPL("sig_remove", 2, sig_remove, META)
   return rc && close_signals(&sl);
 }
 
+#define unblock_signals(_) \
+	LDFUNC(unblock_signals, _)
+
+static void
+unblock_signals(DECL_LD)
+{ thread_sig *sg;
+  int unblocked = 0;
+
+  if ( (sg=LD->thread.sig_head) )
+  { for(; sg; sg = sg->next)
+    { if ( sg->blocked )
+      { sg->blocked = FALSE;
+	unblocked++;
+      }
+    }
+  }
+
+  DEBUG(MSG_THREAD_SIGNAL,
+	Sdprintf("Unblocked %d signals\n", unblocked));
+
+  if  ( unblocked )
+    raiseSignal(LD, SIG_THREAD_SIGNAL);
+}
+
+#define signal_is_blocked(sg) \
+	LDFUNC(signal_is_blocked, sg)
+
+static int
+signal_is_blocked(DECL_LD thread_sig *sg)
+{ static predicate_t pred = NULL;
+  fid_t fid;
+  int rc = FALSE;
+
+  if ( !pred )
+    pred = PL_predicate("signal_is_blocked", 1, "$syspreds");
+
+  if ( (fid=PL_open_foreign_frame()) )
+  { term_t av = PL_new_term_refs(1);
+    term_t m  = PL_new_term_ref();
+
+    startCritical;
+    rc = ( PL_put_atom(m, sg->module->name) &&
+	   PL_recorded(sg->goal, av+0) &&
+	   PL_cons_functor(av+0, FUNCTOR_colon2, m, av+0) &&
+	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av)
+	 );
+    rc = endCritical && rc;
+
+    if ( rc )
+    { DEBUG(MSG_THREAD_SIGNAL,
+	    { Sdprintf("Blocked signal: ");
+	      PL_write_term(Serror, av+0, 1200,
+			    PL_WRT_QUOTED|PL_WRT_NEWLINE);
+	    });
+      sg->blocked = TRUE;
+    }
+
+    PL_discard_foreign_frame(fid);
+  }
+
+  return rc;
+}
+
+static
+PRED_IMPL("$sig_unblock", 0, sig_unblock, 0)
+{ PRED_LD
+
+  unblock_signals();
+
+  return TRUE;
+}
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Execute pending signals on this thread. If the thread is no longer alive
@@ -3208,6 +3282,10 @@ all signals are ignored. This routine   returns after having handled all
 signals or after an exception was raised while copying the signal to the
 stack or executing it. No signals are processed while we are executing a
 signal handler. Of course, new signals may arrive.
+
+Note that during the  execution  new  signals   may  be  added  by other
+threads. Other manipulation of the signal queue can only be done by this
+thread, but may happen as part of the signal execution.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -3216,32 +3294,42 @@ executeThreadSignals(int sig)
   fid_t fid;
   (void)sig;
   term_t goal;
+  thread_sig *sg, *prev = NULL, *next;
 
   if ( !is_alive(LD->thread.info->status) ||
-       !LD->thread.sig_head ||
+       !(sg=LD->thread.sig_head) ||
        !(fid=PL_open_foreign_frame()) ||
        !(goal=PL_new_term_ref()) )
     return;
 
-  while( LD->thread.sig_head )
-  { thread_sig *sg;
-    Module gm;
+  for( ; sg; prev=sg, sg=next )
+  { Module gm;
     term_t ex;
     int rval = FALSE;
 
+    prev=sg;
+    next=sg->next;
+
+    if ( sg->blocked ||
+	 signal_is_blocked(sg) )
+      continue;
+
     PL_LOCK(L_THREAD);
-    if ( (sg = LD->thread.sig_head) )
+    if ( (sg == LD->thread.sig_head) )
     { if ( !(LD->thread.sig_head = sg->next) )
 	LD->thread.sig_tail = NULL;
-    }
-
-    if ( sg )
-    { gm = sg->module;
-      rval = PL_recorded(sg->goal, goal);
-      PL_erase(sg->goal);
-      freeHeap(sg, sizeof(*sg));
+    } else
+    { prev->next = sg->next;
+      if ( sg == LD->thread.sig_tail )
+	LD->thread.sig_tail = prev;
     }
     PL_UNLOCK(L_THREAD);
+
+    gm = sg->module;
+    rval = PL_recorded(sg->goal, goal);
+    PL_erase(sg->goal);
+    freeHeap(sg, sizeof(*sg));
+    sg = prev;
 
     if ( !rval )
       return;				/* No signal or no space to handle */
@@ -7822,6 +7910,7 @@ BeginPredDefs(thread)
   PRED_DEF("thread_signal",	     2, thread_signal,         META|PL_FA_ISO)
   PRED_DEF("sig_pending",	     1, sig_pending,           META)
   PRED_DEF("sig_remove",             2, sig_remove,	       META)
+  PRED_DEF("$sig_unblock",	     0, sig_unblock,	       0)
 
   PRED_DEF("thread_wait",	     2, thread_wait,           META)
   PRED_DEF("thread_update",	     2, thread_update,         META)

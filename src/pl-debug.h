@@ -219,6 +219,7 @@
 #define TABLING_NO_AC		 322
 
 #define MSG_THREAD_WAIT		 350
+#define MSG_THREAD_SIGNAL	 351
 
 #define MSG_TRANSACTION		 360
 #define MSG_COMMIT		 361
