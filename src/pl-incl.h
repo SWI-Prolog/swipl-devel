@@ -2593,6 +2593,13 @@ decrease).
 #define O_MAINTENANCE
 #endif
 
+#if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
+word		checkStacks(void *vm_state);
+bool		scan_global(int marked);
+char *		print_addr(Word p, char *buf);
+char *		print_val(word w, char *buf);
+#endif
+
 #include "os/pl-os.h"			/* OS dependencies */
 
 #ifdef SYSLIB_H
@@ -2616,7 +2623,7 @@ with any luck LTO could address that.
 #if USE_ALLOC_INLINES
 # define ALLOC_INLINE static MAYBE_UNUSED
 #else
-# define ALLOC_INLINE 
+# define ALLOC_INLINE
 #endif
 
 #include "pl-alloc.h"			/* Allocation primitives */

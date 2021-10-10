@@ -79,12 +79,6 @@ QueryFrame	queryOfFrame(LocalFrame fr);
 void		mark_active_environment(struct bit_vector *active,
 					LocalFrame fr, Code PC);
 void		unmark_stacks(LocalFrame fr, Choice ch, uintptr_t mask);
-#if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
-word		checkStacks(void *vm_state);
-bool		scan_global(int marked);
-char *		print_addr(Word p, char *buf);
-char *		print_val(word w, char *buf);
-#endif
 void		blockGC(int flags);	/* disallow garbage collect */
 void		unblockGC(int flags);	/* re-allow garbage collect */
 
