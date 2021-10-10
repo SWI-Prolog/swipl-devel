@@ -3040,37 +3040,41 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   if ( !PL_strip_module(goal, &m, goal) )
     return FALSE;
 
+  sg = allocHeapOrHalt(sizeof(*sg));
+  sg->next    = NULL;
+  sg->module  = m;
+  sg->goal    = PL_record(goal);
+  sg->blocked = FALSE;
+
   PL_LOCK(L_THREAD);
-  if ( !get_thread(thread, &info, TRUE) )
-  { PL_UNLOCK(L_THREAD);
-    fail;
-  }
-  if ( !is_alive(info->status) )
+  if ( !(rc=get_thread(thread, &info, TRUE)) )
+    goto out;
+  if ( !(rc=is_alive(info->status)) )
   { error:
     PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
-    PL_UNLOCK(L_THREAD);
-    fail;
+    goto out;
   }
-
-  sg = allocHeapOrHalt(sizeof(*sg));
-  sg->next = NULL;
-  sg->module = m;
-  sg->goal = PL_record(goal);
 
   ld = info->thread_data;
   if ( !ld->thread.sig_head )
-    ld->thread.sig_head = ld->thread.sig_tail = sg;
-  else
+  { ld->thread.sig_head = ld->thread.sig_tail = sg;
+  } else
   { ld->thread.sig_tail->next = sg;
     ld->thread.sig_tail = sg;
   }
+  sg = NULL;
   raiseSignal(ld, SIG_THREAD_SIGNAL);
   if ( info->has_tid && !alertThread(info) )
     goto error;
 
+out:
+  if ( sg )
+  { PL_erase(sg->goal);
+    freeHeap(sg, sizeof(*sg));
+  }
   PL_UNLOCK(L_THREAD);
 
-  succeed;
+  return rc;
 }
 
 
