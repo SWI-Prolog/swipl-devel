@@ -22,34 +22,37 @@ description: |
 
 apps:
   swipl:
-    command: swipl
-    extensions:
-      - kde-neon
-    plugs:
-      - home
-      - network
-      - removable-media
-      - opengl
-      - audio-playback
-      - audio-record
+    command: bin/desktop-launch $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl
   swipl-win:
-    command: swipl-win
-    extensions:
-      - kde-neon
-    plugs:
-      - home
-      - network
-      - removable-media
-      - opengl
-      - audio-playback
-      - audio-record
+     command: bin/desktop-launch $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl-win
 
 grade: stable
-confinement: strict
+confinement: classic
+compression: lzo    # should make startup nearly as fast as regular executables
+
+plugs:
+  graphics-core20:
+    interface: content
+    target: $SNAP/graphics
+    default-provider: mesa-core20
+
+layout:
+  /usr/share/libdrm:  # Needed by mesa-core20 on AMD GPUs
+    bind: $SNAP/graphics/libdrm
+  /usr/share/drirc.d:  # Used by mesa-core20 for app specific workarounds
+    bind: $SNAP/graphics/drirc.d
+
+environment:
+  LD_LIBRARY_PATH:    $SNAP/graphics/lib
+  LIBGL_DRIVERS_PATH: $SNAP/graphics/dri
+  LIBVA_DRIVERS_PATH: $SNAP/graphics/dri
+  __EGL_VENDOR_LIBRARY_DIRS: $SNAP/graphics/glvnd/egl_vendor.d
 
 parts:
   swi-prolog:
     source: https://github.com/SWI-Prolog/swipl-devel.git
+    after:
+      - qt5
     source-type: git
     source-depth: 1
     plugin: cmake
@@ -64,23 +67,21 @@ parts:
       -DSWIPL_PACKAGES_JAVA=OFF \
       -DCMAKE_INSTALL_PREFIX=/usr \
       -DSWIPL_INSTALL_IN_LIB=ON \
-      -DCMAKE_FIND_ROOT_PATH=/snap/kde-frameworks-5-core18-sdk/current \
       -G Ninja ..
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    build-snaps: [kde-frameworks-5-core18-sdk]
     stage-packages:
       # Remove packages available in the kde base
-      # - ca-certificates
-      # - libarchive13
-      # - libdb5.3
-      # - libedit2
-      # - libfontconfig1
-      # - libglu1-mesa
-      # - libgmp10
-      # - libjpeg8
-      # - libssl1.1
-      # - libx11-6
+      - ca-certificates
+      - libarchive13
+      - libdb5.3
+      - libedit2
+      - libfontconfig1
+      - libglu1-mesa
+      - libgmp10
+      - libjpeg8
+      - libssl1.1
+      - libx11-6
       - libossp-uuid16
       - libpcre3
       - libserd-0-0
@@ -117,3 +118,35 @@ parts:
       - libyaml-dev
       - libglvnd-dev
       - libgoogle-perftools-dev
+  qt5:
+    source: https://github.com/ubuntu/snapcraft-desktop-helpers.git
+    source-subdir: qt
+    plugin: make
+    make-parameters: ["FLAVOR=qt5"]
+    build-packages:
+      - qtbase5-dev
+      - dpkg-dev
+    stage-packages:
+      - libxkbcommon0
+      - ttf-ubuntu-font-family
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libqt5gui5
+      - libgdk-pixbuf2.0-0
+      - libqt5svg5 # for loading icon themes which are svg
+      - locales-all
+  cleanup:
+    after: [swi-prolog]
+    plugin: nil
+    build-snaps: [ mesa-core20 ]
+    override-prime: |
+      set -eux
+      cd /snap/mesa-core20/current/egl/lib
+      find . -type f,l -exec rm -f $SNAPCRAFT_PRIME/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/{} \;
+      rm -fr "$SNAPCRAFT_PRIME/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/dri"
+      for CRUFT in bug drirc.d glvnd libdrm lintian man; do
+        rm -rf "$SNAPCRAFT_PRIME/usr/share/$CRUFT"
+      done
