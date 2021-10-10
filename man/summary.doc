@@ -639,6 +639,10 @@ suggest predicates from a keyword.
 \predicatesummary{shift_for_copy}{1}{Shift control to the closest reset/3}
 \predicatesummary{show_profile}{1}{Show results of the profiler}
 \predicatesummary{sig_atomic}{1}{Run goal without handling signals}
+\predicatesummary{sig_block}{1}{Block matching thread signals}
+\predicatesummary{sig_pending}{1}{Query pending signals}
+\predicatesummary{sig_remove}{2}{Remove pending signals}
+\predicatesummary{sig_unblock}{1}{Unblock matching thread signals}
 \predicatesummary{size_abstract_term}{3}{Abstract a term (tabling support)}
 \predicatesummary{size_file}{2}{Get size of a file in characters}
 \predicatesummary{size_nb_set}{2}{Determine size of non-backtrackable set}
