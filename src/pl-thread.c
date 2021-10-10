@@ -3080,6 +3080,19 @@ out:
 }
 
 
+void
+updatePendingThreadSignals(DECL_LD)
+{ thread_sig *sg;
+
+  for(sg=LD->thread.sig_head; sg; sg=sg->next)
+  { if ( !sg->blocked )
+    { raiseSignal(LD, SIG_THREAD_SIGNAL);
+      break;
+    }
+  }
+}
+
+
 struct siglist
 { term_t list;
   term_t tail;

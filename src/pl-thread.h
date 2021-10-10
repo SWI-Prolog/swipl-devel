@@ -559,6 +559,7 @@ typedef struct
 #define	cgc_thread_stats(stats)		LDFUNC(cgc_thread_stats, stats)
 #define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
 #define	ThreadCPUTime(which)		LDFUNC(ThreadCPUTime, which)
+#define updatePendingThreadSignals(_)	LDFUNC(updatePendingThreadSignals, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -580,6 +581,7 @@ int		cgc_thread_stats(cgc_stats *stats);
 int		signalGCThread(int sig);
 int		isSignalledGCThread(int sig);
 double	        ThreadCPUTime(int which);
+void		updatePendingThreadSignals(void);
 
 #undef LDFUNC_DECLARATIONS
 

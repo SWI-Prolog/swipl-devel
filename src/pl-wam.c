@@ -1814,6 +1814,10 @@ resumeAfterException(int clear, Stack outofstack)
 
   LD->exception.processing = FALSE;
   LD->outofstack = NULL;
+
+#ifdef O_PLMT
+  updatePendingThreadSignals();
+#endif
 }
 
 
