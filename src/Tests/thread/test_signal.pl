@@ -74,7 +74,7 @@ call_loop(From, I) :-
 loop_1 :- loop_1.
 loop_2 :- repeat, fail.
 loop_3 :-
-	'$sig_atomic'(member(x, [a,b,c,d,x])),
+	sig_atomic(member(x, [a,b,c,d,x])),
 	loop_3.
 
 

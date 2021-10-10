@@ -49,7 +49,7 @@ Most likely it is possible to achieve the same effect by proper ordering
 of the writes in restore_after_query()   -including  bariers- and taking
 care in the marking functions.
 
-Note that '$sig_atomic'/1 is used by setup_call_cleanup/3.
+Note that sig_atomic/1 is used by setup_call_cleanup/3.
 */
 
 test_agc_callback :-
@@ -64,7 +64,7 @@ tagc(N) :-
 	Status == exception(stop).
 
 call_loop :-
-	'$sig_atomic'(member(x, [a,b,c,d,x])),
+	sig_atomic(member(x, [a,b,c,d,x])),
 	call_loop.
 
 graph :-

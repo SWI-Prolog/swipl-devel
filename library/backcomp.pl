@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2017, University of Amsterdam
+    Copyright (c)  1985-2021, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -89,8 +90,9 @@
             eval_license/0,
             trie_insert_new/3,		% +Trie, +Term, -Node
             thread_at_exit/1,           % :Goal
-            read_history/6              % +Show, +Help, +Special, +Prompt,
+            read_history/6,             % +Show, +Help, +Special, +Prompt,
                                         % -Term, -Bindings
+            '$sig_atomic'/1             % :Goal
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(lists),[sum_list/2]).
@@ -106,7 +108,8 @@
     index(:),
     hash(:),
     set_base_module(:),
-    thread_at_exit(0).
+    thread_at_exit(0),
+    '$sig_atomic'(0).
 
 /** <module> Backward compatibility
 
@@ -663,3 +666,12 @@ read_history(Show, Help, Special, Prompt, Term, Bindings) :-
           prompt(Prompt),
           variable_names(Bindings)
         ]).
+
+%!  '$sig_atomic'(:Goal)
+%
+%   Execute Goal without processing signals.
+%
+%   @deprecated use sig_atomic/1.
+
+'$sig_atomic'(Goal) :-
+    sig_atomic(Goal).

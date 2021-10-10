@@ -644,7 +644,7 @@ catch_with_backtrace(Goal, Ball, Recover) :-
 %   can only be changed together with the kernel.
 
 setup_call_catcher_cleanup(Setup, _Goal, _Catcher, _Cleanup) :-
-    '$sig_atomic'(Setup),
+    sig_atomic(Setup),
     '$call_cleanup'.
 
 setup_call_cleanup(Setup, Goal, Cleanup) :-
@@ -2493,18 +2493,18 @@ load_files(Module:Files, Options) :-
 '$mt_load_file'(File, FullFile, Module, Options) :-
     current_prolog_flag(threads, true),
     !,
-    '$sig_atomic'(setup_call_cleanup(
-                      with_mutex('$load_file',
-                                 '$mt_start_load'(FullFile, Loading, Options)),
-                      '$mt_do_load'(Loading, File, FullFile, Module, Options),
-                      '$mt_end_load'(Loading))).
+    sig_atomic(setup_call_cleanup(
+                   with_mutex('$load_file',
+                              '$mt_start_load'(FullFile, Loading, Options)),
+                   '$mt_do_load'(Loading, File, FullFile, Module, Options),
+                   '$mt_end_load'(Loading))).
 '$mt_load_file'(File, FullFile, Module, Options) :-
     '$option'(if(If), Options, true),
     '$noload'(If, FullFile, Options),
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    '$sig_atomic'('$qdo_load_file'(File, FullFile, Module, Options)).
+    sig_atomic('$qdo_load_file'(File, FullFile, Module, Options)).
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
     '$loading_file'(FullFile, Queue, LoadThread),
