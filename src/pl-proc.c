@@ -3316,7 +3316,7 @@ pl_abolish1(term_t spec)		/* Name/Arity */
 
 typedef struct patt_mask
 { atom_t	key;
-  unsigned int  mask;
+  uint64_t      mask;
 } patt_mask;
 
 static const patt_mask patt_masks[] =
@@ -3340,10 +3340,11 @@ static const patt_mask patt_masks[] =
   { ATOM_autoload,	   P_AUTOLOAD },
   { ATOM_ssu,		   P_SSU_DET },
   { ATOM_det,		   P_DET },
+  { ATOM_sig_atomic,	   P_SIG_ATOMIC },
   { (atom_t)0,		   0 }
 };
 
-static unsigned int
+static uint64_t
 attribute_mask(atom_t key)
 { const patt_mask *p;
 
@@ -3434,7 +3435,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   functor_t fd;
   atom_t key;
   Module module = (Module) NULL;
-  unsigned int att;
+  uint64_t att;
   term_t head = PL_new_term_ref();
 
   if ( !PL_strip_module(pred, &module, head) ||
@@ -3650,7 +3651,7 @@ setClausableDefinition(Definition def, int val)
 }
 
 int
-setAttrDefinition(Definition def, unsigned attr, int val)
+setAttrDefinition(Definition def, uint64_t attr, int val)
 { int rc;
 
   if ( attr == P_DYNAMIC )
@@ -3697,7 +3698,7 @@ PRED_IMPL("$set_predicate_attribute", 3, set_predicate_attribute,
   Definition def;
   atom_t key;
   int val;
-  uintptr_t att;
+  uint64_t att;
 
   if ( !PL_get_atom_ex(what, &key) )
     return FALSE;

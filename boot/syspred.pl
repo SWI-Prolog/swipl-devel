@@ -803,6 +803,8 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, iso, 1).
 '$predicate_property'(det, Pred) :-
     '$get_predicate_attribute'(Pred, det, 1).
+'$predicate_property'(sig_atomic, Pred) :-
+    '$get_predicate_attribute'(Pred, sig_atomic, 1).
 '$predicate_property'(quasi_quotation_syntax, Pred) :-
     '$get_predicate_attribute'(Pred, quasi_quotation_syntax, 1).
 '$predicate_property'(defined, Pred) :-

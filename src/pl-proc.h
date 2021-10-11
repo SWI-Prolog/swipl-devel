@@ -117,7 +117,7 @@ Procedure	isStaticSystemProcedure(functor_t fd);
 foreign_t	pl_garbage_collect_clauses(void);
 int		setDynamicDefinition(Definition def, bool isdyn);
 int		setThreadLocalDefinition(Definition def, bool isdyn);
-int		setAttrDefinition(Definition def, unsigned attr, int val);
+int		setAttrDefinition(Definition def, uint64_t attr, int val);
 int		PL_meta_predicate(predicate_t def, const char*);
 void		ddi_add_access_gen(DirtyDefInfo ddi, gen_t access);
 int		ddi_contains_gen(DirtyDefInfo ddi, gen_t access);

@@ -300,7 +300,7 @@ Execute Goal as once/1 while blocking signals.
 */
 
 static
-PRED_IMPL("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
+PRED_IMPL("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
 { PRED_LD
   int rval;
 
@@ -866,18 +866,14 @@ accessLevel(void)
   return NULL_ATOM;
 }
 
-
-
-
-
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(pro)
-  PRED_DEF("abort", 0, abort, 0)
-  PRED_DEF("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
-  PRED_DEF("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT)
-  PRED_DEF("$trap_gdb", 0, trap_gdb, 0)
+  PRED_DEF("abort",	     0, abort,         0)
+  PRED_DEF("notrace",        1, notrace,       PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+  PRED_DEF("sig_atomic",     1, sig_atomic,    PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
+  PRED_DEF("$trap_gdb",      0, trap_gdb,      0)
   PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 EndPredDefs

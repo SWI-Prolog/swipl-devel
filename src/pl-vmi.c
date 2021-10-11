@@ -2026,19 +2026,22 @@ VMH(depart_or_retry_continue, 0, (), ())
       { setFramePredicate(FR, DEF);
 	setGenerationFrame(FR);
       }
-      SAVE_REGISTERS(QID);
-      handleSignals();
-      LOAD_REGISTERS(QID);
-      if ( exception_term )
-      { CL = NULL;
+      if ( false(DEF, P_SIG_ATOMIC) )
+      { SAVE_REGISTERS(QID);
+	handleSignals();
+	LOAD_REGISTERS(QID);
 
-	enterDefinition(DEF);
-					/* The catch is not yet installed, */
-					/* so we ignore it */
-	if ( FR->predicate == PROCEDURE_catch3->definition )
-	  set(FR, FR_CATCHED);
+	if ( exception_term )
+	{ CL = NULL;
 
-	THROW_EXCEPTION;
+	  enterDefinition(DEF);
+					  /* The catch is not yet installed, */
+					  /* so we ignore it */
+	  if ( FR->predicate == PROCEDURE_catch3->definition )
+	    set(FR, FR_CATCHED);
+
+	  THROW_EXCEPTION;
+	}
       }
     }
     if ( UNDO_SCHEDULED(LD) )
@@ -4888,11 +4891,13 @@ END_VMH
 
 VMI(I_FREDO, 0, 0, ())
 { if ( is_signalled() )
-  { SAVE_REGISTERS(QID);
-    handleSignals();
-    LOAD_REGISTERS(QID);
-    if ( exception_term )
-      THROW_EXCEPTION;
+  { if ( false(DEF, P_SIG_ATOMIC) )
+    { SAVE_REGISTERS(QID);
+      handleSignals();
+      LOAD_REGISTERS(QID);
+      if ( exception_term )
+	THROW_EXCEPTION;
+    }
   }
 
   FNDET_CONTEXT.context = (word)FR->clause;
