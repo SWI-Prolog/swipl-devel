@@ -5357,7 +5357,7 @@ thread_wait_preds(DECL_LD Module m, term_t preds)
       _PL_get_arg(1, head, head);
     }
 
-    if ( get_functor(head, &fdef, &m2, 0, GP_NAMEARITY) )
+    if ( get_functor(head, &fdef, &m2, 0, GF_NAMEARITY) )
     { if ( m != m2 )
 	return PL_permission_error("thread_wait", "external_procedure", head);
 
