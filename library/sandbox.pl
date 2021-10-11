@@ -1064,6 +1064,7 @@ safe_meta(call(5,*,*,*,*,*)).
 safe_meta(call(6,*,*,*,*,*,*)).
 safe_meta('$tabling':start_tabling(*,0)).
 safe_meta('$tabling':start_tabling(*,0,*,*)).
+safe_meta(wfs:call_delays(0,*)).
 
 %!  safe_output(+Output)
 %
