@@ -41,8 +41,9 @@
 :- use_module(library(wfs)).
 
 test_wfs :-
-	run_tests([ wfs_delays
-		  ]).
+    run_tests([ wfs_delays,
+		wfs_dwin
+	      ]).
 
 :- begin_tests(wfs_delays).
 :- use_module(library(dialect/xsb)).
@@ -79,6 +80,26 @@ test(as, D =@= [(puas(1,_) :- tnot(tabled_call(plunit_wfs_delays:puas(1,B)))),
     call_residual_program(puas(1,_), D).
 
 :- end_tests(wfs_delays).
+
+:- begin_tests(wfs_dwin).
+
+test(dwin) :-
+    call_delays(dwin(0), C),
+    C \== true.
+
+:- table dwin/1.
+dwin(X) :- win_cnt(X,Cnt), Cnt >= 2.
+
+:- table win_cnt(_,lattice(sum/3)).
+sum(X,Y,Z) :- Z is X+Y, nl.
+
+win_cnt(X,1) :- move(X,Y), tnot(dwin(Y)).
+
+move(0,1).
+move(0,0).
+
+:- end_tests(wfs_dwin).
+
 
 % Use imported definitions to test qualification
 

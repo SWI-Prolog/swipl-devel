@@ -745,29 +745,30 @@ moded_activate(SkeletonMA, Worker, WorkList) :-
 :- public
     update/7.
 
-update(0b11, Wrapper, M, A1, A2, A3, delete) :-
+% both unconditional
+update(0b11, Wrapper, M, Agg, New, Next, delete) :-
     !,
-    M:'$table_update'(Wrapper, A1, A2, A3),
-    A1 \=@= A3.
-update(0b10, Wrapper, M, A1, A2, A3, Action) :-
+    M:'$table_update'(Wrapper, Agg, New, Next),
+    Agg \=@= Next.
+% old unconditional, new conditional
+update(0b10, Wrapper, M, Agg, New, Next, keep) :-
     !,
-    (   is_subsumed_by(Wrapper, M, A2, A1)
-    ->  Action = done
-    ;   A3 = A2,
-        Action = keep
+    M:'$table_update'(Wrapper, Agg, New, Next0),
+    (   Next0 =@= Agg
+    ->  Next = Agg
+    ;   Next = Next0
     ).
-update(0b01, Wrapper, M, A1, A2, A2, Action) :-
+% old conditional, new unconditional,
+update(0b01, Wrapper, M, Agg, New, Next, keep) :-
     !,
-    (   is_subsumed_by(Wrapper, M, A1, A2)
-    ->  Action = delete
-    ;   Action = keep
+    M:'$table_update'(Wrapper, New, Agg, Next0),
+    (   Next0 =@= Agg
+    ->  Next = Agg
+    ;   Next = Next0
     ).
-update(0b00, _Wrapper, _M, _A1, A2, A2, keep) :-
+% both conditional
+update(0b00, _Wrapper, _M, _Agg, New, New, keep) :-
     !.
-
-is_subsumed_by(Wrapper, M, Instance, General) :-
-    M:'$table_update'(Wrapper, Instance, General, New),
-    New =@= General.
 
 %!  completion(+Component, -Status, -Clause) is det.
 %
