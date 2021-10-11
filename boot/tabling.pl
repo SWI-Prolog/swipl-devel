@@ -732,7 +732,7 @@ moded_activate(SkeletonMA, Worker, WorkList) :-
 %   succeeds, the aggregated value is updated to   A3. If Del is unified
 %   with `true`, A1 should be deleted.
 %
-%   @arg Flags is a bit mask telling which of A1 and A2 are uncondional
+%   @arg Flags is a bit mask telling which of A1 and A2 are unconditional
 %   @arg Head is the head of the predicate
 %   @arg Module is the module of the predicate
 %   @arg A1 is the currently aggregated value
