@@ -5433,7 +5433,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
   double retry_every = 1.0;
   term_t wait_preds = 0, modified = 0;
   struct timespec retry;
-  int ign_filter = FALSE;
+  int ign_filter = TRUE;
   term_t options = PL_new_term_ref();
   atom_t mname = NULL_ATOM;
 
