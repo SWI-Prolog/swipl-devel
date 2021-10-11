@@ -85,13 +85,16 @@ test(wakeall, cleanup(cleanup)) :-
 test(wakep, cleanup(cleanup)) :-
     do_later(0.05, assert(p)),
     +thread_wait(p, [wait_preds([p/0])]).
+test(wakep, cleanup(cleanup)) :-
+    assert(p),
+    +thread_wait(p, [wait_preds([p/0])]).
 test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
     do_later(0.05, assert(p)),
     0.2+thread_wait(p, [retry_every(0.3),wait_preds([-(p/0)])]).
 test(nowakep, [exception(time_limit_exceeded),cleanup(cleanup)]) :-
     assert(p),
     do_later(0.05, retract(p)),
-    0.2+thread_wait(p, [retry_every(0.3),wait_preds([+(p/0)])]).
+    0.2+thread_wait(\+ p, [retry_every(0.3),wait_preds([+(p/0)])]).
 test(modified, [cleanup(cleanup)]) :-
     do_later(0.05, assert(p)),
     +thread_wait(p(M), [modified(M), wait_preds([p/0])]).
