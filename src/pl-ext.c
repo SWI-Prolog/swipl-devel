@@ -347,6 +347,7 @@ registerBuiltins(const PL_extension *f)
       if ( f->flags & PL_FA_VARARGS )	       set(def, P_VARARG);
       if ( f->flags & PL_FA_CREF )	       set(def, P_FOREIGN_CREF);
       if ( f->flags & PL_FA_ISO )	       set(def, P_ISO);
+      if ( f->flags & PL_FA_SIG_ATOMIC )       set(def, P_SIG_ATOMIC);
 
       def->impl.foreign.function = f->function;
       createForeignSupervisor(def, f->function);

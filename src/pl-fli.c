@@ -4441,6 +4441,7 @@ bindForeign(Module m, const char *name, int arity, Func f, int flags)
   if ( (flags & PL_FA_TRANSPARENT) )	  set(def, P_TRANSPARENT);
   if ( (flags & PL_FA_NONDETERMINISTIC) ) set(def, P_NONDET);
   if ( (flags & PL_FA_VARARGS) )	  set(def, P_VARARG);
+  if ( (flags & PL_FA_SIG_ATOMIC) )	  set(def, P_SIG_ATOMIC);
 
   createForeignSupervisor(def, f);
   notify_registered_foreign(fdef, m);

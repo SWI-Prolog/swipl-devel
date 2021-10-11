@@ -351,6 +351,7 @@ typedef struct PL_extension
 #define PL_FA_CREF		(0x10)	/* Internal: has clause-reference */
 #define PL_FA_ISO		(0x20)	/* Internal: ISO core predicate */
 #define PL_FA_META		(0x40)	/* Additional meta-argument spec */
+#define PL_FA_SIG_ATOMIC	(0x80)  /* Internal: do not dispatch signals */
 
 extern			PL_extension PL_extensions[]; /* not Win32! */
 PL_EXPORT(void)		PL_register_extensions(const PL_extension *e);

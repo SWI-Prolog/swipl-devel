@@ -915,40 +915,41 @@ with one operation, it turns out to be faster as well.
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
 
-/* Flags on predicates (packed in unsigned int */
+/* Flags on predicates (packed in uint64_t) */
 
-#define P_SSU_DET		(0x00000001) /* Single Sided Unification: det */
-#define P_CLAUSABLE		(0x00000002) /* Clause/2 always works */
-#define P_QUASI_QUOTATION_SYNTAX (0x00000004) /* {|Type||Quasi Quote|} */
-#define P_NON_TERMINAL		(0x00000008) /* Grammar rule (Name//Arity) */
-#define P_SHRUNKPOW2		(0x00000010) /* See reconsider_index() */
-#define P_FOREIGN		(0x00000020) /* Implemented in C */
-#define P_NONDET		(0x00000040) /* Foreign: nondet */
-#define P_VARARG		(0x00000080) /* Foreign: use alt calling API */
-#define P_FOREIGN_CREF		(0x00000100) /* Foreign: ndet ctx is clause */
-#define P_DYNAMIC		(0x00000200) /* Dynamic predicate */
-#define P_THREAD_LOCAL		(0x00000400) /* Thread local dynamic predicate */
-#define P_VOLATILE		(0x00000800) /* Clauses are not saved */
-#define P_DISCONTIGUOUS		(0x00001000) /* Clauses are not together */
-#define P_MULTIFILE		(0x00002000) /* Clauses are in multiple files */
-#define P_PUBLIC		(0x00004000) /* Called from somewhere */
-#define P_ISO			(0x00008000) /* Part of the ISO standard */
-#define P_LOCKED		(0x00010000) /* Locked as system predicate */
-#define P_NOPROFILE		(0x00020000) /* Profile children, not me */
-#define P_TRANSPARENT		(0x00040000) /* Inherit calling module */
-#define P_META			(0x00080000) /* Has meta_predicate declaration */
-#define P_MFCONTEXT		(0x00100000) /* Used for Goal@Module */
-#define P_DIRTYREG		(0x00200000) /* Part of GD->procedures.dirty */
-#define P_ERASED		(0x00400000) /* Predicate has been destroyed */
-#define HIDE_CHILDS		(0x00800000) /* Hide children from tracer */
-#define SPY_ME			(0x01000000) /* Spy point placed */
-#define TRACE_ME		(0x02000000) /* Can be debugged */
-#define P_DET			(0x04000000) /* Predicate is deterministic */
-#define P_AUTOLOAD		(0x08000000) /* autoload/2 explicit import */
-#define P_WAITED_FOR		(0x10000000) /* Someone is waiting for this predicate */
-#define	P_LOCKED_SUPERVISOR	(0x20000000) /* Fixed supervisor */
-#define FILE_ASSIGNED		(0x40000000) /* Is assigned to a file */
-#define P_REDEFINED		(0x80000000) /* Overrules a definition */
+#define P_SSU_DET		(0x00000001LL) /* Single Sided Unification: det */
+#define P_CLAUSABLE		(0x00000002LL) /* Clause/2 always works */
+#define P_QUASI_QUOTATION_SYNTAX (0x00000004LL) /* {|Type||Quasi Quote|} */
+#define P_NON_TERMINAL		(0x00000008LL) /* Grammar rule (Name//ArityLL) */
+#define P_SHRUNKPOW2		(0x00000010LL) /* See reconsider_index(LL) */
+#define P_FOREIGN		(0x00000020LL) /* Implemented in C */
+#define P_NONDET		(0x00000040LL) /* Foreign: nondet */
+#define P_VARARG		(0x00000080LL) /* Foreign: use alt calling API */
+#define P_FOREIGN_CREF		(0x00000100LL) /* Foreign: ndet ctx is clause */
+#define P_DYNAMIC		(0x00000200LL) /* Dynamic predicate */
+#define P_THREAD_LOCAL		(0x00000400LL) /* Thread local predicate */
+#define P_VOLATILE		(0x00000800LL) /* Clauses are not saved */
+#define P_DISCONTIGUOUS		(0x00001000LL) /* Clauses are not together */
+#define P_MULTIFILE		(0x00002000LL) /* Clauses are in multiple files */
+#define P_PUBLIC		(0x00004000LL) /* Called from somewhere */
+#define P_ISO			(0x00008000LL) /* Part of the ISO standard */
+#define P_LOCKED		(0x00010000LL) /* Locked as system predicate */
+#define P_NOPROFILE		(0x00020000LL) /* Profile children, not me */
+#define P_TRANSPARENT		(0x00040000LL) /* Inherit calling module */
+#define P_META			(0x00080000LL) /* Has meta_predicate decl */
+#define P_MFCONTEXT		(0x00100000LL) /* Used for Goal@Module */
+#define P_DIRTYREG		(0x00200000LL) /* Part of GD->procedures.dirty */
+#define P_ERASED		(0x00400000LL) /* Predicate has been destroyed */
+#define HIDE_CHILDS		(0x00800000LL) /* Hide children from tracer */
+#define SPY_ME			(0x01000000LL) /* Spy point placed */
+#define TRACE_ME		(0x02000000LL) /* Can be debugged */
+#define P_DET			(0x04000000LL) /* Predicate is deterministic */
+#define P_AUTOLOAD		(0x08000000LL) /* autoload/2 explicit import */
+#define P_WAITED_FOR		(0x10000000LL) /* Someone is waiting for me */
+#define	P_LOCKED_SUPERVISOR	(0x20000000LL) /* Fixed supervisor */
+#define FILE_ASSIGNED		(0x40000000LL) /* Is assigned to a file */
+#define P_REDEFINED		(0x80000000LL) /* Overrules a definition */
+#define P_SIG_ATOMIC	      (0x0100000000LL) /* Do not call handleSignals */
 #define PROC_DEFINED		(P_DYNAMIC|P_FOREIGN|P_MULTIFILE|\
 				 P_DISCONTIGUOUS|P_LOCKED_SUPERVISOR)
 /* flags for p_reload data (reconsult) */
@@ -1564,7 +1565,7 @@ struct definition
     impl_wrapped wrapped;		/* Wrapped predicate */
     impl_local   local;			/* P_THREAD_LOCAL predicates */
   } impl;
-  unsigned int  flags;			/* booleans (P_*) */
+  uint64_t	flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
