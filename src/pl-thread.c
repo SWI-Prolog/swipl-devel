@@ -3033,6 +3033,7 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   thread_sig *sg;
   PL_thread_info_t *info;
   PL_local_data_t *ld;
+  int rc;
 
   term_t thread = A1;
   term_t goal   = A2;
@@ -3044,7 +3045,6 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
   sg->next    = NULL;
   sg->module  = m;
   sg->goal    = PL_record(goal);
-  sg->blocked = FALSE;
 
   PL_LOCK(L_THREAD);
   if ( !(rc=get_thread(thread, &info, TRUE)) )
