@@ -50,8 +50,6 @@ int		abortProlog(void);
 bool		prologToplevel(atom_t toplevel);
 int		query_loop(atom_t goal, int loop);
 word		pl_metacut(void);
-int		trap_gdb(void);
-word		checkData(Word p);
 word		checkDataEx(Word p, int flags);
 int		getAccessLevelMask(atom_t a, access_level_t *val);
 atom_t		accessLevel(void);

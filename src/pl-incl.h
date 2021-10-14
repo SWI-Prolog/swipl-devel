@@ -2595,11 +2595,13 @@ decrease).
 #endif
 
 #if defined(O_DEBUG) || defined(SECURE_GC) || defined(O_MAINTENANCE)
+word		checkData(Word p);
 word		checkStacks(void *vm_state);
 bool		scan_global(int marked);
 char *		print_addr(Word p, char *buf);
 char *		print_val(word w, char *buf);
 #endif
+int		trap_gdb(void);
 
 #include "os/pl-os.h"			/* OS dependencies */
 
@@ -2627,6 +2629,7 @@ with any luck LTO could address that.
 # define ALLOC_INLINE
 #endif
 
+#include "pl-util.h"			/* (Debug) utilities */
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */
 #include "pl-error.h"			/* Exception generation */
