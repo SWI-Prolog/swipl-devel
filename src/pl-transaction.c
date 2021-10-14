@@ -556,9 +556,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
       }
 
       if ( LD->transaction.clauses )
-      {
-
-	if ( parent.clauses )
+      {	if ( parent.clauses )
 	{ if ( (flags&TR_BULK) )
 	  { transaction_updates(&updates);
 	    if ( !announce_updates(&updates) )
