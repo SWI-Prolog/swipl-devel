@@ -196,13 +196,22 @@ int
 transaction_visible_clause(DECL_LD Clause cl, gen_t gen)
 { if ( cl->generation.created <= LD->transaction.gen_start &&
        cl->generation.erased   > LD->transaction.gen_start )
-  { intptr_t lgen;
+  { if ( cl->tr_erased_no )
+    { tr_stack s = { .clauses = LD->transaction.clauses,
+                     .parent  = LD->transaction.stack
+		   };
+      tr_stack *stack;
 
-    if ( cl->tr_erased_no && LD->transaction.clauses &&
-	 (lgen = (intptr_t)lookupHTable(LD->transaction.clauses, cl)) &&
-	 !IS_ASSERT_GEN(lgen) )
-    { if ( lgen+LD->transaction.gen_base <= gen )
-	return FALSE;
+      for(stack=&s; stack; stack=stack->parent)
+      { intptr_t lgen;
+
+	if ( stack->clauses &&
+	     (lgen = (intptr_t)lookupHTable(stack->clauses, cl)) &&
+	     !IS_ASSERT_GEN(lgen) )
+	{ if ( lgen+LD->transaction.gen_base <= gen )
+	    return FALSE;
+	}
+      }
     }
 
     return TRUE;

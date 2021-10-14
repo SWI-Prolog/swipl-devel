@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
+    Copyright (c)  2021, University of Amsterdam
                          VU University Amsterdam
 		         CWI, Amsterdam
     All rights reserved.
@@ -87,6 +87,11 @@ test(nested7, [cleanup(cleanup)]) :-
     test_transaction([tr([z+p,tr([-p]),\+p])]).
 test(nested8, [cleanup(cleanup)]) :-
     test_transaction([tr([+p,tr([-p,discard]),?p])]).
+test(nested9, [cleanup(cleanup)]) :-
+    assert(p),
+    transaction((
+        retract(p),
+        transaction(\+p))).
 
 test(update1, [cleanup(cleanup)]) :-
     test_transaction([tr([+p, u([z+p])])]).
