@@ -429,8 +429,7 @@ test(instantiation_is_rbtree_1, fail) :-
     is_rbtree(_).
 
 % TODO: The following 2 instantiation tests should fail, but they
-%       currently succeed; also, list_to_rbtree/2 checks for
-%       variables, so some way of creating illegal trees is needed.
+%       currently succeed.
 
 % test(instantiation_is_rbtree_1b, fail) :-
 %     list_to_rbtree([_-1,b-2], Tree),

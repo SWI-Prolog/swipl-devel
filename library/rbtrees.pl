@@ -99,8 +99,6 @@ form colour(Left, Key, Value, Right), where _colour_  is one of =red= or
     rb_apply(+,+,2,-),
     rb_fold(3,+,+,-).
 
-:- use_module(library(error), [must_be/2]).
-
 /*
 :- use_module(library(type_check)).
 
@@ -996,12 +994,10 @@ construct_rbtree(L, M, _, _, Nil, Nil) :- M < L, !.
 construct_rbtree(L, L, Ar, Depth, Nil, Node) :-
     !,
     arg(L, Ar, K-Val),
-    must_be(nonvar, K), % TODO: must_be(ground,K)?
     build_node(Depth, Nil, K, Val, Nil, Node).
 construct_rbtree(I0, Max, Ar, Depth, Nil, Node) :-
     I is (I0+Max)//2,
     arg(I, Ar, K-Val),
-    must_be(nonvar, K), % TODO: must_be(ground,K)?
     build_node(Depth, Left, K, Val, Right, Node),
     I1 is I-1,
     NewDepth is Depth-1,
@@ -1052,6 +1048,11 @@ is_rbtree_error(Err) => throw(Err).
 %
 % This code checks if a tree is ordered and a rbtree
 %
+% TODO: Use (?=)/2 to verify that pairwise keys are strictly
+%       ordered, no matter how the keys become instantiated.
+%       This is not a complete test; to be completely safe, all
+%       use of compare/3 (and (@<)/2 etc) would need to also
+%       use (?=)/2, which would be expensive.
 
 rbtree1(black(L,K,_,R)) =>
     find_path_blacks(L, 0, Bls),
