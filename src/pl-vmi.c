@@ -2293,7 +2293,7 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
     clear(FR, FR_INBOX);
     if ( true(FR, FR_DET|FR_DETGUARD) )
     { SAVE_REGISTERS(QID);
-      determinism_error(FR, ATOM_nondet);
+      determinism_error(FR, BFR, ATOM_nondet);
       LOAD_REGISTERS(QID);
       if ( exception_term )
 	THROW_EXCEPTION;
