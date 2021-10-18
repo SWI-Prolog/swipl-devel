@@ -590,46 +590,42 @@ group_length_([Word|Words], LineLength, Remains, ThisLine, Groups, GroupsAcc) :-
 %}}}
 
 
-%{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPTSSPEC DEFAULTS
-
+%!  add_default_defaults(+OptSpecIn, -OptSpec, +Options) is det.
+%
+%   Add defaults to the user speficified options.
 
 add_default_defaults(OptsSpec0, OptsSpec, Options) :-
     option(suppress_empty_meta(SEM), Options, true),
     maplist(default_defaults(SEM), OptsSpec0, OptsSpec).
 
 default_defaults(SuppressEmptyMeta, OptSpec0, OptSpec) :-
-    (  SuppressEmptyMeta
-    -> Meta = ''
-    ;  memberchk(type(Type), OptSpec0)
-    -> meta_placeholder(Type, Meta)
-    ;  Meta = 'T'
+    (   SuppressEmptyMeta
+    ->  Meta = ''
+    ;   memberchk(type(Type), OptSpec0)
+    ->  meta_placeholder(Type, Meta)
+    ;   Meta = 'T'
     ),
 
-    Defaults = [ help('')
-             , type(term)
-             , shortflags([])
-             , longflags([])
-             , default('_')
-             , meta(Meta)
-             ],
+    Defaults = [ help(''),
+                 type(term),
+                 shortflags([]),
+                 longflags([]),
+                 default('_'),
+                 meta(Meta)
+               ],
     merge_options(OptSpec0, Defaults, OptSpec).
-    %merge_options(+New, +Old, -Merged)
-
 
 meta_placeholder(boolean, 'B').
-meta_placeholder(atom, 'A').
-meta_placeholder(float, 'F').
+meta_placeholder(atom,    'A').
+meta_placeholder(float,   'F').
 meta_placeholder(integer, 'I').
-meta_placeholder(term, 'T').
+meta_placeholder(term,    'T').
 
 
+%!  check_opts_spec(+OptSpecIn, +Options, -OptSpec)
+%
+%   Verify and possibly fix the user option specification.
 
-%}}}
-
-
-%{{{ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% OPTSSPEC VALIDATION
-
-%this is a bit paranoid, but OTOH efficiency is no issue
 check_opts_spec(OptsSpec0, Options, OptsSpec) :-
     validate_opts_spec(OptsSpec0, Options),
     add_default_defaults(OptsSpec0, OptsSpec, Options),
@@ -805,7 +801,7 @@ parse_args_([], _, []) :- !.
 short_flag_w_equals([0'-,_C], [0'=|_]) :-
     throw(error(syntax_error('disallowed: <shortflag>=<value>'),_)).
 
-
+%!  flag_id_type(+OptSpec, +FlagCodes, -ID, -Type) is semidet.
 
 flag_id_type(OptsSpec, FlagCodes, ID, Type) :-
     atom_codes(Flag, FlagCodes),
@@ -872,7 +868,8 @@ parse_val(Opt, Type, Cs, Val) :-
       throw(E))
     ).
 
-%parse_loc(+Type, +ListOfCodes, -Result).
+%!  parse_loc(+Type, +ListOfCodes, -Result).
+
 parse_loc(Type, _LOC, _) :-
     var(Type), !, throw(error(instantiation_error, _)).
 parse_loc(_Type, LOC, _) :-
@@ -883,17 +880,14 @@ parse_loc(atom, Cs, Result) :- atom_codes(Result, Cs), !.
 parse_loc(integer, Cs, Result) :-
     number_codes(Result, Cs),
     integer(Result),
-
     !.
 parse_loc(float, Cs, Result)   :-
     number_codes(Result, Cs),
     float(Result),
-
     !.
 parse_loc(term, Cs, Result) :-
     atom_codes(A, Cs),
     term_to_atom(Result, A),
-
     !.
 parse_loc(Type, Cs, Result) :-
     parse_type(Type, Cs, Result),
