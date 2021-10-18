@@ -847,15 +847,13 @@ name_char( 0'_ ).
 name_char( 0'- ). %}}}
 
 
-%{{{ PARSE OPTION
+%!  parse_option(+OptSpec, +Flag:codes, +Val:codes, -Opt)
+
 parse_option(OptsSpec, Arg1, Arg2, opt(KID, Val)) :-
-    (  flag_id_type(OptsSpec, Arg1, KID, Type)
-    -> parse_val(Arg1, Type, Arg2, Val)
-    ;  format(atom(Msg), '~s', [Arg1]),
-     opt_help(OptsSpec, Help),        %unknown flag: dump usage on stderr
-     nl(user_error),
-     write(user_error, Help),
-     throw(error(domain_error(flag_value, Msg),context(_, 'unknown flag')))
+    (   flag_id_type(OptsSpec, Arg1, KID, Type)
+    ->  parse_val(Arg1, Type, Arg2, Val)
+    ;   atom_codes(Flag, Arg1),
+        existence_error(commandline_option, Flag)
     ).
 
 
