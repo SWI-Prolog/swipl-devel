@@ -545,7 +545,7 @@ format_opt(LongestFlagWidth, [SFlagsCW, MTDCW], HelpOptions, Opt, Line) :-
     option(line_width(LW), HelpOptions, 80),
     option(min_help_width(MHW), HelpOptions, 40),
     HelpWidth is max(MHW, LW - HelpIndent),
-    (  atom(Help)
+    (  ( atom(Help) ; string(Help) )
     -> line_breaks(Help, HelpWidth, HelpIndent, BrokenHelp)
     ;  assertion(is_list_of_atoms(Help))
     -> indent_lines(Help, HelpIndent, BrokenHelp)
