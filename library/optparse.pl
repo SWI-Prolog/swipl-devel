@@ -707,7 +707,7 @@ invalidate_opts_spec(OptsSpec, ParseOptions) :-
     ->  existence_error(type, Type)
 
     ;   memberchk(type(Type), OptSpec),
-        current_type(Type, _Var, _Body),
+        current_type(Type, _, _),
         memberchk(default(Default), OptSpec),
         Default \== '_'
     ->  \+ must_be(Type, Default)
