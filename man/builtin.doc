@@ -9399,6 +9399,10 @@ Set a tab stop on the current position. If an argument is supplied set
 a tab stop on the position of that argument. This will cause all
 \fmtseq{~t}'s to be distributed between the previous and this tab stop.
 
+If the current column is at or past the requested tabstop and the
+modifier (:) is used, a newline is inserted and the padding character
+of the last \fmtseq{~t} is used to pad to the requested position.
+
     \fmtchar{+}
 Set a tab stop (as \fmtseq{~|}) relative to the last tab stop or the
 beginning of the line if no tab stops are set before the \fmtseq{~+}.
