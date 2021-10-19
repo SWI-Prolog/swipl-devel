@@ -215,7 +215,7 @@ static int	update_column(int, Char);
 static bool	do_format(IOSTREAM *fd, PL_chars_t *fmt,
 			  int ac, term_t av, Module m);
 static void	distribute_rubber(struct rubber *, int, int);
-static int	emit_rubber(format_state *state);
+static WUNUSED int emit_rubber(format_state *state);
 
 
 		/********************************
@@ -830,7 +830,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  distribute_rubber(state.rub,
 				    state.pending_rubber,
 				    stop - state.column);
-		  emit_rubber(&state);
+		  if ( !(rc=emit_rubber(&state)) )
+		    goto out;
 
 		  if ( nl_and_reindent )
 		  { if ( Sputcode('\n', state.out) < 0 )
@@ -846,7 +847,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		    distribute_rubber(state.rub,
 				      state.pending_rubber,
 				      stop - state.column);
-		    emit_rubber(&state);
+		    if ( !(rc=emit_rubber(&state)) )
+		      goto out;
 		  }
 
 		  state.column = tab_stop = stop;
@@ -876,7 +878,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
   }
 
   if ( state.pending_rubber )		/* not closed ~t: flush out */
-    emit_rubber(&state);
+  { if ( !(rc=emit_rubber(&state)) )
+      goto out;
+  }
   if ( argc != 0 )
     FMT_ERROR("too many arguments");
 
