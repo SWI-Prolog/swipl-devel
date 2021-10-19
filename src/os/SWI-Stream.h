@@ -295,15 +295,16 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define Sgetc(s) S__updatefilepos_getc((s), Snpgetc(s))
 
 /* Control-operations */
-#define SIO_GETSIZE	(1)		/* get size of underlying object */
-#define SIO_GETFILENO	(2)		/* get underlying file (if any) */
-#define SIO_SETENCODING	(3)		/* modify encoding of stream */
-#define SIO_FLUSHOUTPUT	(4)		/* flush output */
-#define SIO_LASTERROR	(5)		/* string holding last error */
+#define SIO_GETSIZE	  (1)		/* get size of underlying object */
+#define SIO_GETFILENO	  (2)		/* get underlying file (if any) */
+#define SIO_SETENCODING	  (3)		/* modify encoding of stream */
+#define SIO_FLUSHOUTPUT	  (4)		/* flush output */
+#define SIO_LASTERROR	  (5)		/* string holding last error */
 #ifdef __WINDOWS__
-#define SIO_GETWINSOCK  (6)		/* get underlying SOCKET object */
+#define SIO_GETWINSOCK    (6)		/* get underlying SOCKET object */
 #endif
-#define SIO_GETPENDING	(7)		/* get #pending bytes */
+#define SIO_GETPENDING    (7)		/* get #pending bytes */
+#define SIO_GETREPOSITION (8)		/* Test if stream is repositionable */
 
 /* Sread_pending() */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
