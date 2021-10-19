@@ -4497,25 +4497,29 @@ stream_eof_action_prop(DECL_LD IOSTREAM *s, term_t prop)
 #define stream_reposition_prop(s, prop) LDFUNC(stream_reposition_prop, s, prop)
 static int
 stream_reposition_prop(DECL_LD IOSTREAM *s, term_t prop)
-{ atom_t val;
+{ int val;
 
-  if ( s->magic == SIO_MAGIC && s->functions->seek )
-  {
+  if ( s->magic == SIO_MAGIC &&
+       (s->functions->seek || s->functions->seek64) )
+  { if ( s->functions->control &&
+	 (*s->functions->control)(s->handle, SIO_GETREPOSITION, &val) == 0 )
+      return PL_unify_bool(prop, val);
+
 #ifdef HAVE_FSTAT
     int fd = Sfileno(s);
     struct stat buf;
 
     if ( fd != -1 && fstat(fd, &buf) == 0 && S_ISREG(buf.st_mode) )
-      val = ATOM_true;
+      val = TRUE;
     else
-      val = ATOM_false;
+      val = FALSE;
 #else
-    val = ATOM_true;
+    val = TRUE;
 #endif
   } else
-    val = ATOM_false;
+    val = FALSE;
 
-  return PL_unify_atom(prop, val);
+  return PL_unify_bool(prop, val);
 }
 
 
