@@ -495,8 +495,10 @@ read_string(Input, ",)", "\t ", Sep, String)
 
     \predicate{open_string}{2}{+String, -Stream}
 True when \arg{Stream} is an input stream that accesses the content of
-\arg{String}.  \arg{String} can be any text representation, i.e.,
-string, atom, list of codes or list of characters.
+\arg{String}. \arg{String} can be any text representation, i.e., string,
+atom, list of codes or list of characters. The created \arg{Stream} has
+the \const{reposition} property (see stream_property/2). Note that the
+internal encoding of the data is either ISO Latin 1 or UTF-8.
 \end{description}
 
 \subsection{Why has the representation of double quoted text changed?}

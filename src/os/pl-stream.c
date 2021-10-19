@@ -3709,6 +3709,12 @@ Scontrol_memfile(void *handle, int action, void *arg)
       *szp = mf->here;
       return 0;
     }
+    case SIO_GETREPOSITION:
+    { int *valp = arg;
+      *valp = TRUE;
+
+      return 0;
+    }
     default:
       errno = EINVAL;
       return -1;
