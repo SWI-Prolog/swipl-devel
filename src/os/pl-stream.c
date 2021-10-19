@@ -3633,30 +3633,48 @@ Sread_memfile(void *handle, char *buf, size_t size)
 }
 
 
-static long
-Sseek_memfile(void *handle, long offset, int whence)
+static int64_t
+Sseek_memfile64(void *handle, int64_t offset, int whence)
 { memfile *mf = handle;
 
   switch(whence)
   { case SIO_SEEK_SET:
       break;
     case SIO_SEEK_CUR:
-      offset += (long)mf->here;		/* Win64: truncates */
+      offset += mf->here;
       break;
     case SIO_SEEK_END:
-      offset = (long)mf->size - offset;	/* Win64 */
+      offset = mf->size - offset;
       break;
     default:
       errno = EINVAL;
       return -1;
   }
-  if ( offset < 0 || offset > (long)mf->size )
+  if ( offset < 0 || offset > mf->size )
   { errno = EINVAL;
     return -1;
   }
   mf->here = offset;
 
   return offset;
+}
+
+
+static long
+Sseek_memfile(void *handle, long offset, int whence)
+{ memfile *mf = handle;
+  size_t old = mf->here;
+
+  int64_t rval = Sseek_memfile64(handle, (int64_t)offset, whence);
+  long rc = (long)rval;
+
+  if ( rval == rc )
+  { return rc;
+  } else
+  { mf->here = old;
+    errno = EINVAL;
+    return -1;
+  }
 }
 
 
@@ -3703,7 +3721,8 @@ IOFUNCTIONS Smemfunctions =
   Swrite_memfile,
   Sseek_memfile,
   Sclose_memfile,
-  Scontrol_memfile
+  Scontrol_memfile,
+  Sseek_memfile64
 };
 
 
