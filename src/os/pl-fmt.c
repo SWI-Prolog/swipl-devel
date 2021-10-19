@@ -806,13 +806,21 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		}
 	      case '|':			/* set tab */
 		{ int stop;
+		  int nl_and_reindent;
 
 		  if ( arg == DEFAULT )
 		    arg = state.column;
+		  /*FALLTHROUGH*/
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
 		  stop = (c == '+' ? tab_stop + arg : arg);
+
+		  if ( stop < state.column && mod_colon )
+		    nl_and_reindent = state.pending_rubber ?
+						state.rub[state.pending_rubber-1].pad : ' ';
+		  else
+		    nl_and_reindent = 0;
 
 		  if ( state.pending_rubber == 0 ) /* nothing to distribute */
 		  { state.rub[0].where = state.buffered;
@@ -823,6 +831,23 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 				    state.pending_rubber,
 				    stop - state.column);
 		  emit_rubber(&state);
+
+		  if ( nl_and_reindent )
+		  { if ( Sputcode('\n', state.out) < 0 )
+		    { rc = FALSE;
+		      goto out;
+		    }
+		    state.column = update_column(state.column, '\n');
+
+		    state.rub[0].where = state.buffered;
+		    state.rub[0].pad = nl_and_reindent;
+		    state.pending_rubber++;
+
+		    distribute_rubber(state.rub,
+				      state.pending_rubber,
+				      stop - state.column);
+		    emit_rubber(&state);
+		  }
 
 		  state.column = tab_stop = stop;
 		  here++;
@@ -882,7 +907,7 @@ distribute_rubber(struct rubber *r, int rn, int space)
 }
 
 
-static int
+static WUNUSED int
 emit_rubber(format_state *state)
 { const char *s = baseBuffer(&state->buffer, char);
   const char *e = &s[entriesBuffer(&state->buffer, char)];
