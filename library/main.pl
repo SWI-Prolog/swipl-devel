@@ -185,6 +185,9 @@ interrupt(_Sig) :-
 %         As `file`, and check access using access_file/2.  A value `-`
 %         is not checked for access, assuming the application handles
 %         this as standard input or output.
+%       - term
+%         Parse option value to a Prolog term.  Variable names for
+%         the _last_ term processed are available using var_property/2.
 %
 %     - opt_help(Name, HelpString)
 %       Help string used by argv_usage/1.
@@ -443,6 +446,9 @@ opt_convert(file(Access), Spec, Value) :-
         ;   opt_error(access_file(Spec, Access))
         )
     ).
+opt_convert(term, Spec, Value) :-
+    term_string(Value, Spec, [variable_names(Bindings)]),
+    b_setval('$variable_names', Bindings).
 
 to_bool(true,    true).
 to_bool('True',  true).
