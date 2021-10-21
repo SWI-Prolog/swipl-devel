@@ -97,7 +97,13 @@ test(cut_cond, Body = (! -> fail)) :-
 
 :- dynamic foo/1, insect/1, icopy/1.
 
-test(theorist) :-
+test(fact, [X == 1, cleanup(retractall(foo(_)))]) :-
+	assert(foo(1)),
+	retract(foo(X)).
+test(rule, [X == 1, cleanup(retractall(foo(_)))]) :-
+	assert(foo(1)),
+	retract((foo(X):-true)).
+test(theorist, [cleanup(retractall(foo(_)))]) :-
 	(   assert((foo(A) :- bar(A))),
 	    retract(foo(1) :- B)
 	->  B == bar(1)
