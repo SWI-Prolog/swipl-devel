@@ -3065,7 +3065,7 @@ PRED_IMPL("retract", 1, retract,
     while( cref )
     { Clause clause = cref->value.clause;
 
-      if ( (clause->flags & CLAUSE_TYPE_MASK) == flags &&
+      if ( (clause->flags&CLAUSE_SSU_FLAGS) == (flags&CLAUSE_SSU_FLAGS) &&
 	   decompile(clause, cl, 0) )
       { if ( retractClauseDefinition(ctx->def, clause, TRUE) ||
 	     CTX_CNTRL != FRG_FIRST_CALL )

@@ -974,6 +974,7 @@ with one operation, it turns out to be faster as well.
 #define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
 
 #define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
+#define CLAUSE_SSU_FLAGS (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 
 /* Flags on a DDI (Dirty Definition Info struct */
 
