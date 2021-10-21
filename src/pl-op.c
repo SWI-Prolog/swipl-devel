@@ -368,9 +368,9 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   }
 
   if ( !PL_get_atom_ex(type, &tp) )
-    fail;
+    return FALSE;
   if ( !PL_get_integer_ex(pri, &p) )
-    fail;
+    return FALSE;
   if ( !((p >= 0 && p <= OP_MAXPRIORITY) || (p == -1 && m != MODULE_user)) )
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_operator_priority, pri);
   if ( !(t = atomToOperatorType(tp)) )
@@ -382,17 +382,17 @@ PRED_IMPL("op", 3, op, PL_FA_TRANSPARENT|PL_FA_ISO)
   { term_t l = PL_copy_term_ref(name);
     term_t e = PL_new_term_ref();
 
-    while( PL_get_list(l, e, l) )
+    while( PL_get_list_ex(l, e, l) )
     { if ( !PL_get_atom(e, &nm) )
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atom, e);
       if ( !defOperator(m, nm, t, p, FALSE) )
 	return FALSE;
     }
-    if ( !PL_get_nil(l) )
-      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
+    if ( !PL_get_nil_ex(l) )
+      return FALSE;
   }
 
-  succeed;
+  return TRUE;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
