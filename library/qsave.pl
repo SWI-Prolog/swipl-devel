@@ -73,6 +73,8 @@ save_option(toplevel,    callable,
             "Toplevel goal").
 save_option(init_file,   atom,
             "Application init file").
+save_option(pce,         boolean,
+            "Do (not) include the xpce graphics subsystem").
 save_option(packs,       boolean,
             "Do (not) attach packs").
 save_option(class,       oneof([runtime,development]),
