@@ -3351,7 +3351,7 @@ executeThreadSignals(int sig)
       continue;
 
     PL_LOCK(L_THREAD);
-    if ( (sg == LD->thread.sig_head) )
+    if ( sg == LD->thread.sig_head )
     { if ( !(LD->thread.sig_head = sg->next) )
 	LD->thread.sig_tail = NULL;
     } else
