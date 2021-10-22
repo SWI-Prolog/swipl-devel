@@ -82,18 +82,17 @@
 %       Start the messages at the same line (instead of using ~N)
 
 translate_message(Term) -->
+    { nonvar(Term) },
     translate_message2(Term),
     !.
 translate_message(Term) -->
-    { Term = error(_, _) },
+    { nonvar(Term),
+      Term = error(_, _)
+    },
     [ 'Unknown exception: ~p'-[Term] ].
 translate_message(Term) -->
     [ 'Unknown message: ~p'-[Term] ].
 
-translate_message2(Term) -->
-    {var(Term)},
-    !,
-    [ 'Unknown message: ~p'-[Term] ].
 translate_message2(Term) -->
     prolog:message(Term).
 translate_message2(Term) -->
