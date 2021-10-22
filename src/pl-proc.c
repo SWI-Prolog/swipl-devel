@@ -2150,7 +2150,7 @@ considerClauseGC(DECL_LD)
 
     stats.dirty_pred_clauses = GD->clauses.dirty;
     if ( stats.dirty_pred_clauses == (size_t)-1 )
-      return FALSE;			/* already clicked in */
+      return FALSE;			/* already kicked in */
 
     if ( !cgc_thread_stats(&stats) )
       return FALSE;

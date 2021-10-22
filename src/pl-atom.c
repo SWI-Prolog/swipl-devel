@@ -1088,7 +1088,11 @@ static void
 considerAGC(void)
 { if ( GD->atoms.margin != 0 &&
        GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
-  { signalGCThread(SIG_ATOM_GC);
+  { DEBUG(MSG_AGC_CONSIDER,
+	  Sdprintf("Signal AGC.  Unregistered %zd, non-garbage %zd, margin %zd\n",
+		   GD->atoms.unregistered, GD->atoms.non_garbage,
+		   GD->atoms.margin));
+    signalGCThread(SIG_ATOM_GC);
   }
 }
 
