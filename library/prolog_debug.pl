@@ -33,8 +33,8 @@
 */
 
 :- module(prolog_debug_tools,
-          [ spy/1,                  % :Spec
-            nospy/1,                % :Spec
+          [ (spy)/1,                % :Spec (some users tend to define these as
+            (nospy)/1,              % :Spec  an operator)
             nospyall/0,
             debugging/0,
             trap/1,                 % +Exception
