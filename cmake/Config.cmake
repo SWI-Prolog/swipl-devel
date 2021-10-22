@@ -277,6 +277,7 @@ check_function_exists(pthread_attr_setstacksize HAVE_PTHREAD_ATTR_SETSTACKSIZE)
 check_function_exists(sched_setaffinity HAVE_SCHED_SETAFFINITY)
 check_function_exists(sema_init HAVE_SEMA_INIT)
 check_function_exists(sem_init HAVE_SEM_INIT)
+check_function_exists(sem_timedwait HAVE_SEM_TIMEDWAIT)
 
 include(TestRecursiveMutex)
 
