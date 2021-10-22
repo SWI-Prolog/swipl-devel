@@ -957,19 +957,46 @@ cleanupThreads(void)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-A first step towards clean destruction of the system.  Ideally, we would
-like the following to happen:
+Cleanup the system. This is  rather   complicated  in the multi-threaded
+environment. We do want to give threads  the opportunity to cleanup, but
+asynchronously signalling a thread to ask for its termination may not be
+honoured.  The approach is as follows:
 
-    * Close-down all threads except for the main one
-	+ Have all thread exit hooks called
-    * Run the at_halt/1 hooks in the main thread
-    * Exit from the main thread.
+  - Find all running threads, not being myself.  Then
+    - If the thread already stopped, join it
+    - If it is running and has a cancel function, call this.
+    - Else send abort/0 using the thread signal API.
+  - For both last cases, count the number of threads we signalled.
+  - Now wait for them to die for at most a second (turn this into a
+    flag?) by:
+    - Setting up a semaphore because semaphores are signal-safe
+    - Have the thread exit handler call sem_post() when complete
+    - Call sem_wait() as many times as the number of cancelled threads.
 
-There are a lot of problems however.
+Unfortunately, this may not work, so  we   need  a rescue. We have three
+options:
 
-    * Somehow Halt() should always be called from the main thread
-      to have the process working properly.
+  - Use sem_timedwait().  This is the preferred solution.  Unfortunately
+    it is not available everywhere (e.g., MacOS).
+  - Use sem_wait() and guard it using setitimer().  That seems to work
+    on MacOS.
+  - The initial implementation: a polling loop using sem_trywait().
+    Unfortunately that typically causes a 0.1 sec delay in terminating.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if !defined(HAVE_SEM_TIMEDWAIT) && defined(HAVE_SETITIMER)
+#define USE_TIMER_WAIT 1
+
+#include <sys/time.h>
+static int exit_wait_timeout = FALSE;
+
+static void
+dummy_handler(int sig)
+{ (void)sig;
+
+  exit_wait_timeout = TRUE;
+}
+#endif
 
 int
 exitPrologThreads(void)
@@ -1026,19 +1053,39 @@ exitPrologThreads(void)
     }
   }
 
-  if ( canceled > 0 )
+  if ( canceled > 0 )		    /* see (*) above */
   { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads ", canceled));
 
-#ifdef HAVE_SEM_TIMEDWAIT
+#ifdef USE_TIMER_WAIT
+    struct itimerval timeout = {0};
+    struct sigaction act = {0};
+
+    timeout.it_value.tv_sec = 1;
+    act.sa_handler = dummy_handler;
+
+    if ( sigaction(SIGALRM, &act, NULL) != 0 ||
+	 setitimer(ITIMER_REAL, &timeout, NULL) != 0 )
+      Sdprintf("WARNING: Failed to install timeout for shutdown\n");
+
+    while(canceled > 0)
+    { if ( sem_wait(sem_canceled_ptr) == 0 )
+      { canceled--;
+	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left %d", canceled));
+      } else
+      { if ( errno != EINTR || exit_wait_timeout )
+	  break;
+      }
+    }
+
+#elif defined(HAVE_SEM_TIMEDWAIT)
     struct timespec deadline;
-    int rc;
 
     get_current_timespec(&deadline);
     deadline.tv_nsec += 1000000000; /* 1 sec */
     carry_timespec_nanos(&deadline);
 
     while(canceled > 0)
-    { if ( (rc=sem_timedwait(sem_canceled_ptr, &deadline)) == 0 )
+    { if ( sem_timedwait(sem_canceled_ptr, &deadline) == 0 )
       { canceled--;
 	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left %d", canceled));
       } else
@@ -1048,7 +1095,6 @@ exitPrologThreads(void)
     }
 
 #else
-
     int maxwait = 10;
 
     for(maxwait = 10; maxwait > 0 && canceled > 0; maxwait--)

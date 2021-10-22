@@ -278,6 +278,7 @@ check_function_exists(sched_setaffinity HAVE_SCHED_SETAFFINITY)
 check_function_exists(sema_init HAVE_SEMA_INIT)
 check_function_exists(sem_init HAVE_SEM_INIT)
 check_function_exists(sem_timedwait HAVE_SEM_TIMEDWAIT)
+check_function_exists(setitimer HAVE_SETITIMER)
 
 include(TestRecursiveMutex)
 
