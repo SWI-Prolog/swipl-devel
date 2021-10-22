@@ -3171,6 +3171,10 @@ Prefix printed before each line.  This argument is handed to format/3.
 The default is \verb$'~N'$. For example, messages of kind
 \const{warning} use \verb$'~NWarning: '$.
 
+	\termitem{tag}{-Tag}
+Defines the text part for the \const{prefix} property for error and
+warning messages.
+
 	\termitem{location_prefix}{+Location, -FirstPrefix, -ContinuePrefix}
 Used for printing messages that are related to a source location.
 Currently, \arg{Location} is a term \mbox{\arg{File}:\arg{Line}}.

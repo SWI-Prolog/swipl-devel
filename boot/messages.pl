@@ -1983,22 +1983,27 @@ msg_property(Kind, prefix(Prefix)) :-
 msg_property(_, prefix('~N')) :- !.
 msg_property(query, stream(user_output)) :- !.
 msg_property(_, stream(user_error)) :- !.
-msg_property(error,
+msg_property(error, tag('ERROR:')).
+msg_property(warning, tag('Warning:')).
+msg_property(Level,
              location_prefix(File:Line,
-                             '~NERROR: ~w:~d:'-[File,Line],
-                             '~NERROR:    ')) :- !.
-msg_property(warning,
-             location_prefix(File:Line,
-                             '~NWarning: ~w:~d:'-[File,Line],
-                             '~NWarning:    ')) :- !.
+                             Prefix1-[File,Line],
+                             PrefixC)) :-
+    include_msg_location(Level),
+    msg_property(Level, tag(Tag)),
+    atomics_to_string(['~N', Tag, ': ~w:~d:'], Prefix1),
+    atomics_to_string(['~N', Tag, ':    '  ], PrefixC).
 msg_property(error,   wait(0.1)) :- !.
+
+include_msg_location(warning).
+include_msg_location(error).
 
 msg_prefix(debug(_), Prefix) :-
     msg_context('~N% ', Prefix).
-msg_prefix(warning, Prefix) :-
-    msg_context('~NWarning: ', Prefix).
-msg_prefix(error, Prefix) :-
-    msg_context('~NERROR: ', Prefix).
+msg_prefix(Level, Prefix) :-
+    msg_property(Level, tag(Tag)),
+    atomics_to_string(['~N', Tag, ': '], Prefix0),
+    msg_context(Prefix0, Prefix).
 msg_prefix(informational, '~N% ').
 msg_prefix(information,   '~N% ').
 
