@@ -1507,7 +1507,8 @@ cleanupProlog(int rval, int reclaim_memory)
   resetProfiler();			/* don't do profiling anymore */
 #endif
 #ifdef O_PLMT
-  exitPrologThreads();
+  if ( !exitPrologThreads() )		/* reclaim memory while a thread */
+    reclaim_memory = FALSE;		/* runs is likely to crash */
 
 emergency:
 #endif
