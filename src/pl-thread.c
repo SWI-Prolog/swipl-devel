@@ -1027,9 +1027,30 @@ exitPrologThreads(void)
   }
 
   if ( canceled > 0 )
-  { int maxwait = 10;
+  { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads ", canceled));
 
-    DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Waiting for %d threads ", canceled));
+#ifdef HAVE_SEM_TIMEDWAIT
+    struct timespec deadline;
+    int rc;
+
+    get_current_timespec(&deadline);
+    deadline.tv_nsec += 1000000000; /* 1 sec */
+    carry_timespec_nanos(&deadline);
+
+    while(canceled > 0)
+    { if ( (rc=sem_timedwait(sem_canceled_ptr, &deadline)) == 0 )
+      { canceled--;
+	DEBUG(MSG_CLEANUP_THREAD, Sdprintf("Left %d", canceled));
+      } else
+      { if ( errno != EINTR )
+	  break;
+      }
+    }
+
+#else
+
+    int maxwait = 10;
+
     for(maxwait = 10; maxwait > 0 && canceled > 0; maxwait--)
     { while ( sem_trywait(sem_canceled_ptr) == 0 )
       { DEBUG(MSG_CLEANUP_THREAD, Sdprintf("."));
@@ -1040,6 +1061,8 @@ exitPrologThreads(void)
 	Pause(0.1);
       }
     }
+
+#endif
     DEBUG(MSG_CLEANUP_THREAD, Sdprintf("\nLeft: %d threads\n", canceled));
   }
 
