@@ -69,17 +69,19 @@
 %   Translate a message Term into message lines. The produced lines
 %   is a list of
 %
-%       * nl
-%       Emit a newline
-%       * Fmt-Args
-%       Emit the result of format(Fmt, Args)
-%       * Fmt
-%       Emit the result of format(Fmt)
-%       * flush
-%       Used only as last element of the list.   Simply flush the
-%       output instead of producing a final newline.
-%       * at_same_line
-%       Start the messages at the same line (instead of using ~N)
+%       - nl
+%         Emit a newline
+%       - Fmt-Args
+%         Emit the result of format(Fmt, Args)
+%       - Fmt
+%         Emit the result of format(Fmt)
+%       - ansi(Code, Fmt, Args)
+%         Use ansi_format/3 for color output.
+%       - flush
+%         Used only as last element of the list.   Simply flush the
+%         output instead of producing a final newline.
+%       - at_same_line
+%         Start the messages at the same line (instead of using ~N)
 
 translate_message(Term) -->
     { nonvar(Term) },
