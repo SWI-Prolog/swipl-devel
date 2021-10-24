@@ -109,10 +109,11 @@ prolog:translate_message(Term) -->
 %   called from user and library definitions for message translation.
 
 translate_message(Term) -->
-    { nonvar(Term),
-      message_lang(Lang)
-    },
-    prolog:message(Lang, Term),
+    { nonvar(Term) },
+    (   { message_lang(Lang) },
+        prolog:message(Lang, Term)
+    ;   prolog:message(Term)
+    ),
     !.
 translate_message(Term) -->
     { nonvar(Term) },
