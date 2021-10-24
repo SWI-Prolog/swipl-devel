@@ -9761,6 +9761,11 @@ operations before starting threads or thoroughly study threading aspects
 of locale support in your environment before using in multithreaded
 environments. Locale settings are used by format_time/3, collation_key/2
 and locale_sort/2.
+
+The \const{messages} locale defines the language used by
+print_message/2. Note that this locale is not available on all operating
+system. Notably Windows does not support this category. See
+win_get_user_preferred_ui_languages/2.
 \end{description}
 
 \subsection{Windows-specific Operating System Interaction}
@@ -9897,6 +9902,8 @@ Unifies \arg{Languages} with a list of the user preferred languages
 \href{https://docs.microsoft.com/en-us/windows/win32/intl/language-names}{Language Names}
 for details.  If \arg{Format} is \const{id}, \arg{Languages} is
 a list of numeric language ids represented as Prolog integers.
+This predicate provides Windows alternative to setlocale/3 using
+the category \const{messages}.
 \end{description}
 
 
