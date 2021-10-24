@@ -186,8 +186,11 @@ interrupt(_Sig) :-
 %         is not checked for access, assuming the application handles
 %         this as standard input or output.
 %       - term
-%         Parse option value to a Prolog term.  Variable names for
-%         the _last_ term processed are available using var_property/2.
+%         Parse option value to a Prolog term.
+%       - term(+Options)
+%         As `term`, but passes Options to term_string/3. If the option
+%         variable_names(Bindings) is given the option value is set to
+%         the _pair_ `Term-Bindings`.
 %
 %     - opt_help(Name, HelpString)
 %       Help string used by argv_usage/1.
@@ -459,8 +462,13 @@ opt_convert(file(Access), Spec, Value) :-
         )
     ).
 opt_convert(term, Spec, Value) :-
-    term_string(Value, Spec, [variable_names(Bindings)]),
-    b_setval('$variable_names', Bindings).
+    term_string(Value, Spec, []).
+opt_convert(term(Options), Spec, Value) :-
+    term_string(Term, Spec, Options),
+    (   option(variable_names(Bindings), Options)
+    ->  Value = Term-Bindings
+    ;   Value = Term
+    ).
 
 to_bool(true,    true).
 to_bool('True',  true).
