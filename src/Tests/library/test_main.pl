@@ -44,7 +44,8 @@
 test_main :-
     run_tests([ argv_options_unguided,
                 argv_options_bool,
-                argv_options_typed
+                argv_options_typed,
+                argv_options_pos
               ]).
 
 :- begin_tests(argv_options_unguided).
@@ -126,6 +127,8 @@ opt_type(string,  string,  string).
 opt_type(s,       string,  string).
 opt_type(enum,    enum,    oneof([silent,warning,error])).
 opt_type(e,       enum,    oneof([silent,warning,error])).
+opt_type(t,       term,    term).
+opt_type(tv,      term,    term([variable_names(_)])).
 
 % int tests
 test(int, Pos-Opt == []-[integer(42)]) :-
@@ -163,6 +166,23 @@ test(enum, Pos-Opt == []-[enum(silent)]) :-
 test(enum, error(opt_error(value_type(e, oneof([silent,warning,error]),
                                       'fatal')))) :-
     argv_options(['-e', 'fatal'], _Pos, _Opt, []).
+test(term, Opt =@= [term(p(_))]) :-
+    argv_options(['-t', 'p(X)'], _Pos, Opt, []).
+test(term, Opt =@= [term(p(X)-['X'=X])]) :-
+    argv_options(['--tv', 'p(X)'], _Pos, Opt, []).
 
 :- end_tests(argv_options_typed).
 
+:- begin_tests(argv_options_pos).
+
+opt_type(a,    atom,    atom).
+
+test(no_opts_after_pos, Pos-Opt == []-[atom(aap)]) :-
+    argv_options(['-a', 'aap'], Pos, Opt, [options_after_arguments(false)]).
+test(no_opts_after_pos, Pos-Opt == [a0, '-a', 'aap']-[]) :-
+    argv_options([a0, '-a', 'aap'], Pos, Opt, [options_after_arguments(false)]).
+test(no_opts_after_pos, Pos-Opt == [a0, '-a', 'aap']-[atom(t)]) :-
+    argv_options(['-a', 't', a0, '-a', 'aap'], Pos, Opt,
+                 [options_after_arguments(false)]).
+
+:- end_tests(argv_options_pos).
