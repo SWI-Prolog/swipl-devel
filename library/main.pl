@@ -212,18 +212,24 @@ argv_options(_:Argv, Positional, Options) :-
 %   halt/1 by passing an empty list to ParseOptions. ParseOptions:
 %
 %     - on_error(+Goal)
-%       If Goal is halt(Code), exit with Code.
+%       If Goal is halt(Code), exit with Code.  Other goals are
+%       currently not supported.
+%     - options_after_arguments(+Boolean)
+%       If `false` (default `true`), stop parsing after the first
+%       positional argument, returning options that follow this
+%       argument as positional arguments.  E.g, ``-x file -y``
+%       results in positional arguments `[file, '-y']`
 
 argv_options(Argv, Positional, Options, POptions) :-
     option(on_error(halt(Code)), POptions),
     !,
     E = error(_,_),
-    catch(opt_parse(Argv, Positional, Options), E,
+    catch(opt_parse(Argv, Positional, Options, POptions), E,
           ( print_message(error, E),
             halt(Code)
           )).
-argv_options(Argv, Positional, Options, _POptions) :-
-    opt_parse(Argv, Positional, Options).
+argv_options(Argv, Positional, Options, POptions) :-
+    opt_parse(Argv, Positional, Options, POptions).
 
 %!  argv_untyped_options(+Argv, -RestArgv, -Options) is det.
 %
@@ -270,7 +276,7 @@ canonical_name(Name, PlName) :-
     split_string(Name, "-_", "", Parts),
     atomic_list_concat(Parts, '_', PlName).
 
-%!  opt_parse(:Argv, -Positional, -Options) is det.
+%!  opt_parse(:Argv, -Positional, -Options, +POptions) is det.
 %
 %   Rules follow those of Python optparse:
 %
@@ -280,35 +286,41 @@ canonical_name(Name, PlName) :-
 %     - Long options can have "=value" or have the value in the
 %       next argument.
 
-opt_parse(M:Argv, _Positional, _Options) :-
+opt_parse(M:Argv, _Positional, _Options, _POptions) :-
     opt_needs_help(Argv),
+    !,
     argv_usage(M:debug),
     halt(0).
-opt_parse(M:Argv, Positional, Options) :-
-    opt_parse(Argv, Positional, Options, M).
+opt_parse(M:Argv, Positional, Options, POptions) :-
+    opt_parse(Argv, Positional, Options, M, POptions).
 
 opt_needs_help(['-h']).
 opt_needs_help(['-?']).
 opt_needs_help(['--help']).
 
-opt_parse([], [], [], _).
-opt_parse([--|T], T, [], _) :-
-    !.
-opt_parse([H|T], Positional, Options, M) :-
-    atom_concat(--, Long, H),
-    !,
-    take_long(Long, T, Positional, Options, M).
-opt_parse([H|T], Positional, Options, M) :-
+opt_parse([], Positional, Options, _, _) =>
+    Positional = [],
+    Options = [].
+opt_parse([--|T], Positional, Options, _, _) =>
+    Positional = T,
+    Options = [].
+opt_parse([H|T], Positional, Options, M, POptions), atom_concat(--, Long, H) =>
+    take_long(Long, T, Positional, Options, M, POptions).
+opt_parse([H|T], Positional, Options, M, POptions),
     H \== '-',
-    string_concat(-, Opts, H),
-    !,
+    string_concat(-, Opts, H) =>
     string_chars(Opts, Shorts),
-    take_shorts(Shorts, T, Positional, Options, M).
-opt_parse([H|T], [H|PT], Options, M) :-
-    opt_parse(T, PT, Options, M).
+    take_shorts(Shorts, T, Positional, Options, M, POptions).
+opt_parse(Argv, Positional, Options, _M, POptions),
+    option(options_after_arguments(false), POptions) =>
+    Positional = Argv,
+    Options = [].
+opt_parse([H|T], Positional, Options, M, POptions) =>
+    Positional = [H|PT],
+    opt_parse(T, PT, Options, M, POptions).
 
 
-take_long(Long, T, Positional, Options, M) :- % --long=Value
+take_long(Long, T, Positional, Options, M, POptions) :- % --long=Value
     sub_atom(Long, B, _, A, =),
     !,
     sub_atom(Long, 0, B, _, LName0),
@@ -318,20 +330,20 @@ take_long(Long, T, Positional, Options, M) :- % --long=Value
     ->  opt_value(Type, Long, VAtom, Value),
         Opt =.. [Name,Value],
         Options = [Opt|OptionsT],
-        opt_parse(T, Positional, OptionsT, M)
+        opt_parse(T, Positional, OptionsT, M, POptions)
     ;   opt_error(unknown_option(LName0))
     ).
-take_long(LName0, T, Positional, Options, M) :- % --long
+take_long(LName0, T, Positional, Options, M, POptions) :- % --long
     canonical_name(LName0, LName),
-    take_long_(LName, T, Positional, Options, M).
+    take_long_(LName, T, Positional, Options, M, POptions).
 
-take_long_(Long, T, Positional, Options, M) :- % --long
+take_long_(Long, T, Positional, Options, M, POptions) :- % --long
     opt_bool_type(Long, Name, Value, M),
     !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
-    opt_parse(T, Positional, OptionsT, M).
-take_long_(Long, T, Positional, Options, M) :- % --no-long, --nolong
+    opt_parse(T, Positional, OptionsT, M, POptions).
+take_long_(Long, T, Positional, Options, M, POptions) :- % --no-long, --nolong
     (   atom_concat('no_', LName, Long)
     ;   atom_concat('no', LName, Long)
     ),
@@ -340,29 +352,29 @@ take_long_(Long, T, Positional, Options, M) :- % --no-long, --nolong
     negate(Value0, Value),
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
-    opt_parse(T, Positional, OptionsT, M).
-take_long_(Long, T, Positional, Options, M) :- % --long
+    opt_parse(T, Positional, OptionsT, M, POptions).
+take_long_(Long, T, Positional, Options, M, POptions) :- % --long
     in(M:opt_type(Long, Name, Type)),
     !,
     (   T = [VAtom|T1]
     ->  opt_value(Type, Long, VAtom, Value),
         Opt =.. [Name,Value],
         Options = [Opt|OptionsT],
-        opt_parse(T1, Positional, OptionsT, M)
+        opt_parse(T1, Positional, OptionsT, M, POptions)
     ;   opt_error(missing_value(Long, Type))
     ).
-take_long_(Long, _, _, _, _) :-
+take_long_(Long, _, _, _, _, _) :-
     opt_error(unknown_option(Long)).
 
-take_shorts([], T, Positional, Options, M) :-
-    opt_parse(T, Positional, Options, M).
-take_shorts([H|T], Argv, Positional, Options, M) :-
+take_shorts([], T, Positional, Options, M, POptions) :-
+    opt_parse(T, Positional, Options, M, POptions).
+take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
     opt_bool_type(H, Name, Value, M),
     !,
     Opt =.. [Name,Value],
     Options = [Opt|OptionsT],
-    take_shorts(T, Argv, Positional, OptionsT, M).
-take_shorts([H|T], Argv, Positional, Options, M) :-
+    take_shorts(T, Argv, Positional, OptionsT, M, POptions).
+take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
     in(M:opt_type(H, Name, Type)),
     !,
     (   T == []
@@ -370,16 +382,16 @@ take_shorts([H|T], Argv, Positional, Options, M) :-
         ->  opt_value(Type, H, VAtom, Value),
             Opt =.. [Name,Value],
             Options = [Opt|OptionsT],
-            take_shorts(T, ArgvT, Positional, OptionsT, M)
+            take_shorts(T, ArgvT, Positional, OptionsT, M, POptions)
         ;   opt_error(missing_value(H, Type))
         )
     ;   atom_chars(VAtom, T),
         opt_value(Type, H, VAtom, Value),
         Opt =.. [Name,Value],
         Options = [Opt|OptionsT],
-        take_shorts([], Argv, Positional, OptionsT, M)
+        take_shorts([], Argv, Positional, OptionsT, M, POptions)
     ).
-take_shorts([H|_], _, _, _, _) :-
+take_shorts([H|_], _, _, _, _, _) :-
     opt_error(unknown_option(H)).
 
 opt_bool_type(Opt, Name, Value, M) :-
