@@ -9885,6 +9885,14 @@ and as a helper for packaging all dependencies when creating a
 distribution.  According to the Windows documentation this API may
 return incorrect results if DLLs are loaded or unloaded while
 EnumProcessModules() is in progress. See also qsave_program/2.
+
+    \predicate{win_get_user_preferred_ui_languages}{2}{+Format, -Languages}
+Unifies \arg{Languages} with a list of the user preferred languages
+(\jargon{Windows Display Languages}) in order of preference. If
+\arg{Format} is \const{name}, the list elements are atoms.  See
+\href{https://docs.microsoft.com/en-us/windows/win32/intl/language-names}{Language Names}
+for details.  If \arg{Format} is \const{id}, \arg{Languages} is
+a list of numeric language ids represented as Prolog integers.
 \end{description}
 
 

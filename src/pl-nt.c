@@ -1210,6 +1210,89 @@ PL_w32_running_under_wine(void)
 
 
 		 /*******************************
+		 *	        MUI		*
+		 *******************************/
+
+
+static int
+langid_num(const wchar_t *s)
+{ int v=0;
+
+  for(; *s; s++)
+  { v =	v<<4;
+    if ( *s >= '0' && *s <= '9' )
+      v += *s-'0';
+    else if ( *s >= 'A' && *s <= 'F' )
+      v += *s-'A'+10;
+    else if ( *s >= 'a' && *s <= 'f' )
+      v += *s-'a'+10;
+    else
+      assert(0);
+  }
+
+  return v;
+}
+
+
+static
+PRED_IMPL("win_get_user_preferred_ui_languages", 2, win_get_user_preferred_ui_languages, 0)
+{ PRED_LD
+  char *how;
+  DWORD flags;
+  ULONG num, sz = 0;
+  wchar_t store[1024];
+  wchar_t *buf = store;
+  int rc = TRUE;
+
+  if ( PL_get_atom_chars(A1, &how) )
+  { if ( strcmp(how, "id") == 0 )
+      flags = MUI_LANGUAGE_ID;
+    else if ( strcmp(how, "name") == 0 )
+      flags = MUI_LANGUAGE_NAME;
+    else
+      return PL_domain_error("format", A1);
+  } else
+    return PL_type_error("atom", A1);
+
+  if ( (rc=GetUserPreferredUILanguages(flags, &num, NULL, &sz)) )
+  { if ( sz > sizeof(store)/sizeof(store[0]) )
+    { if ( !(buf = malloc(sz*sizeof(store[0]))) )
+	return PL_no_memory();
+    }
+    if ( (rc=GetUserPreferredUILanguages(flags, &num, buf, &sz)) )
+    { term_t tail = PL_copy_term_ref(A2);
+      term_t head = PL_new_term_ref();
+      wchar_t *s = buf;
+
+      while( rc && *s )
+      { if ( (rc=PL_unify_list(tail, head, tail)) )
+	{ if ( flags == MUI_LANGUAGE_NAME )
+	  { rc = PL_unify_wchars(head, PL_ATOM, (size_t)-1, s);
+	  } else
+	  { rc = PL_unify_integer(head, langid_num(s));
+	  }
+	}
+
+	if ( rc )
+	{ s += wcslen(s);
+	  s ++;
+	}
+      }
+      rc = rc && PL_unify_nil(tail);
+    }
+  }
+
+  if ( buf && buf != store )
+    free(buf);
+
+  return rc;
+}
+
+
+
+
+
+		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
@@ -1221,6 +1304,7 @@ BeginPredDefs(win)
   PRED_DEF("win_add_dll_directory",    2, win_add_dll_directory,    0)
   PRED_DEF("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
   PRED_DEF("win_process_modules",      1, win_process_modules,	    0)
+  PRED_DEF("win_get_user_preferred_ui_languages", 2, win_get_user_preferred_ui_languages, 0)
 EndPredDefs
 
 #endif /*__WINDOWS__*/
