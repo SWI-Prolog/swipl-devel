@@ -1804,15 +1804,22 @@ current_message_lang(Lang) :-
     (   current_prolog_flag(message_language, Lang0),
         Lang0 \== default
     ->  Lang = Lang0
-    ;   (   setlocale(messages, _, ''),
-            setlocale(messages, Lang0, Lang0)
-        ;   getenv('LANG', Lang0)
-        )
+    ;   os_user_lang(Lang0)
     ->  clean_encoding(Lang0, Lang1),
         set_prolog_flag(message_language, Lang1),
         Lang = Lang1
     ;   Lang = en
     ).
+
+os_user_lang(Lang) :-
+    current_prolog_flag(windows, true),
+    win_get_user_preferred_ui_languages(name, [Lang|_]).
+os_user_lang(Lang) :-
+    catch(setlocale(messages, _, ''), _, fail),
+    setlocale(messages, Lang, Lang).
+os_user_lang(Lang) :-
+    getenv('LANG', Lang).
+
 
 clean_encoding(Lang0, Lang) :-
     (   sub_atom(Lang0, A, _, _, '.')
