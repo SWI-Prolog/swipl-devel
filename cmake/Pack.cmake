@@ -81,8 +81,8 @@ if(WIN32)
 
   set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
   set(CPACK_NSIS_MODIFY_PATH ON)
-  set(CPACK_NSIS_DISPLAY_NAME "SWI-Prolog ${CPACK_PACKAGE_VERSION}")
-  set(CPACK_NSIS_URL_INFO_ABOUT "http://swi-prolog.org")
+  set(CPACK_NSIS_DISPLAY_NAME "SWI-Prolog")
+  set(CPACK_NSIS_URL_INFO_ABOUT "https://swi-prolog.org")
   set(CPACK_NSIS_INSTALLED_ICON_NAME bin\\\\swipl-win.exe)
 
   createShortCut("SWI-Prolog" "swipl-win" "--win_app" ON)
