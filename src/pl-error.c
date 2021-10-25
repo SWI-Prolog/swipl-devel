@@ -1173,7 +1173,7 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 			       ATOM_not_less_than_zero, t)
 	            : FALSE;
 	}
-#if SIZEOF_VOIDP == 8 && defined(O_GMP)
+#ifdef O_GMP
       case V_MPZ:
       { uint64_t v;
 
