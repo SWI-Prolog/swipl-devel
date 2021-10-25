@@ -151,6 +151,8 @@ interrupt(_Sig) :-
 %       use ``_`` as _word separator_, user options may use either ``_``
 %       or ``-``.  Type is one of:
 %
+%       - A|B
+%         Disjunctive type.
 %       - boolean(Default)
 %       - boolean
 %         Boolean options are special.  They do not take a value except
@@ -419,6 +421,11 @@ opt_value(Type, Opt, VAtom, _) :-
 
 %!  opt_convert(+Type, +VAtom, -Value) is semidet.
 
+opt_convert(A|B, Spec, Value) :-
+    (   opt_convert(A, Spec, Value)
+    ->  true
+    ;   opt_convert(B, Spec, Value)
+    ).
 opt_convert(boolean, Spec, Value) :-
     to_bool(Spec, Value).
 opt_convert(boolean(_), Spec, Value) :-
@@ -734,7 +741,7 @@ opt_error(missing_value(Opt, Type)) -->
     [ ' requires an argument (of type ~p)'-[Type] ].
 opt_error(value_type(Opt, Type, Found)) -->
     [ 'Option '-[] ],
-    opt(Opt),
+    opt(Opt), [' requires'],
     type(Type),
     [ ' (found '-[], ansi(code, '~w', [Found]), ')'-[] ].
 opt_error(access_file(File, exist)) -->
@@ -752,7 +759,6 @@ access_verb(write,   writing).
 access_verb(append,  writing).
 access_verb(execute, executing).
 
-
 opt(Opt) -->
     { short_opt(Opt) },
     !,
@@ -760,21 +766,30 @@ opt(Opt) -->
 opt(Opt) -->
     [ ansi(bold, '--~w', [Opt]) ].
 
+type(A|B) -->
+    type(A), [' or'],
+    type(B).
+type(oneof([One])) -->
+    !,
+    [ ' ' ],
+    atom(One).
 type(oneof(List)) -->
     !,
-    [ ' requires one of '-[] ],
+    [ ' one of '-[] ],
     sequence(atom, [', '], List).
 type(between(Low, High)) -->
     !,
-    [ ' requires a number '-[],
+    [ ' a number '-[],
       ansi(code, '~w', [Low]), '..', ansi(code, '~w', [High])
     ].
 type(nonneg) -->
-    [ ' requires a non-negative integer'-[] ].
+    [ ' a non-negative integer'-[] ].
 type(natural) -->
-    [ ' requires a positive integer (>= 1)'-[] ].
+    [ ' a positive integer (>= 1)'-[] ].
+type(file(Access)) -->
+    [ ' a file with ~w access'-[Access] ].
 type(Type) -->
-    [ ' requires an argument of type '-[], ansi(code, '~w', [Type]) ].
+    [ ' an argument of type '-[], ansi(code, '~w', [Type]) ].
 
 atom(A) -->
     [ ansi(code, '~w', [A]) ].
