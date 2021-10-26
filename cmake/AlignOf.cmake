@@ -16,13 +16,13 @@ function(alignof VAR_ALIGNOF_INT64_T VAR_ALIGNOF_VOIDP VAR_ALIGNOF_DOUBLE)
 
          # Read patterns from compiled executable
          FILE(STRINGS ${alignof_checker_target} alignof_int64_pat
-            REGEX "^N?INT64_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
+            REGEX "INT64_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
          FILE(STRINGS ${alignof_checker_target} alignof_voidp_pat
-            REGEX "^N?VOIDP_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
+            REGEX "VOIDP_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
          FILE(STRINGS ${alignof_checker_target} alignof_double_pat
-            REGEX "^N?DOUBLE_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
+            REGEX "DOUBLE_ALIGNMENT=${alignof_pat_regex}" LIMIT_COUNT 1)
 
          # Extract alignments from patterns and assign them to the variables
          string(REGEX MATCH "${alignof_pat_regex}$" int64_alignment "${alignof_int64_pat}")
