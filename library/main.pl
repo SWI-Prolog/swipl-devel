@@ -51,7 +51,7 @@
 :- autoload(library(pairs), [pairs_keys/2, pairs_values/2]).
 :- autoload(library(prolog_code), [pi_head/2]).
 :- autoload(library(prolog_debug), [spy/1]).
-:- autoload(library(dcg/high_order), [sequence/5]).
+:- autoload(library(dcg/high_order), [sequence//3, sequence//2]).
 :- autoload(library(option), [option/2]).
 
 :- meta_predicate
@@ -509,17 +509,28 @@ to_bool('0',     false).
 %
 %   Use print_message/2 to print a usage message  at Level. To print the
 %   message as plain text indefault color, use `debug`. Other meaningful
-%   options are `informational` or `warning`.
+%   options are `informational` or `warning`. The  help page consists of
+%   four sections, two of which are optional:
 %
-%   The default initial usage line is as below, where <command> is an as
-%   good as possible approximation for running the script.
+%     1. The __header__ is created from opt_help(help(header), String).
+%        It is optional.
+%     2. The __usage__ is added by default.  The part behind
+%        ``Usage: <command>`` is by default ``[options]`` and can be
+%        overruled using opt_help(help(usage), String).
+%     3. The actual option descriptions.  The options are presented
+%        in the order they are defined in opt_type/3.  Subsequent
+%        options for the same _destination_ (option name) are joined
+%        with the first.
+%     4. The _footer__ is created from opt_help(help(footer), String).
+%        It is optional.
 %
-%       Usage: <command> [options]
+%   The help provided by help(header),  help(usage) and help(footer) are
+%   either a simple  string  or  a  list   of  elements  as  defined  by
+%   print_message_lines/3. In the latter case, the construct `\Callable`
+%   can be used to call a DCG  rule   in  the module from which the user
+%   calls argv_options/3.  For example, we can add a bold title using
 %
-%   The usage line can  be  defined   using  opt_help/1,  as illustrated
-%   below.
-%
-%       opt_help(usage, String).
+%       opt_help(help(header), [ansi(bold, '~w', ['My title'])]).
 
 argv_usage(M:Level) :-
     print_message(Level, opt_usage(M)).
@@ -531,14 +542,45 @@ prolog:message(opt_usage(M)) -->
     usage(M).
 
 usage(M) -->
+    usage_text(M:header),
     usage_line(M),
-    usage_options(M).
+    usage_options(M),
+    usage_text(M:footer).
+
+%!  usage_text(:Which)// is det.
+%
+%   Emit  a  user  element.  This  may    use  elements  as  defined  by
+%   print_message_lines/3 or can be a simple string.
+
+usage_text(M:Which) -->
+    { in(M:opt_help(help(Which), Help))
+    },
+    !,
+    (   {Which == header}
+    ->  user_text(M:Help), [nl]
+    ;   [nl], user_text(M:Help)
+    ).
+usage_text(_) -->
+    [].
+
+user_text(M:Entries) -->
+    { is_list(Entries) },
+    sequence(help_elem(M), Entries).
+user_text(_:Help) -->
+    [ '~w'-[Help] ].
+
+help_elem(M, \Callable) -->
+    { callable(Callable) },
+    call(M:Callable),
+    !.
+help_elem(_M, Elem) -->
+    [ Elem ].
 
 usage_line(M) -->
     [ ansi(comment, 'Usage: ', []) ],
     cmdline(M),
-    (   {in(M:opt_help(usage, Help))}
-    ->  [ ' ~w'-[Help] ]
+    (   {in(M:opt_help(help(usage), Help))}
+    ->  user_text(M:Help)
     ;   [ ' [options]'-[] ]
     ),
     [ nl, nl ].
