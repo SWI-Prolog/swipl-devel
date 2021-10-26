@@ -202,6 +202,12 @@ interrupt(_Sig) :-
 %       in the help message.  The default is the uppercase version of
 %       the type _functor name_. This produces the ``FILE`` in e.g. ``-f
 %       FILE``.
+%
+%    By default, ``-h``, ``-?`` and  ``--help``   are  bound to help. If
+%    opt_type(Opt, help, boolean) is true for   some  `Opt`, the default
+%    help binding and help message  are   disabled  and  the normal user
+%    rules apply. In particular, the user should also provide a rule for
+%    opt_help(help, String).
 
 argv_options(M:Argv, Positional, Options) :-
     in(M:opt_type(_,_,_)),
@@ -292,16 +298,25 @@ canonical_name(Name, PlName) :-
 %       next argument.
 
 opt_parse(M:Argv, _Positional, _Options, _POptions) :-
-    opt_needs_help(Argv),
+    opt_needs_help(M:Argv),
     !,
     argv_usage(M:debug),
     halt(0).
 opt_parse(M:Argv, Positional, Options, POptions) :-
     opt_parse(Argv, Positional, Options, M, POptions).
 
-opt_needs_help(['-h']).
-opt_needs_help(['-?']).
-opt_needs_help(['--help']).
+opt_needs_help(M:[Arg]) :-
+    in(M:opt_type(_, help, boolean)),
+    !,
+    in(M:opt_type(Opt, help, boolean)),
+    (   short_opt(Opt)
+    ->  atom_concat(-, Opt, Arg)
+    ;   atom_concat(--, Opt, Arg)
+    ),
+    !.
+opt_needs_help(_:['-h']).
+opt_needs_help(_:['-?']).
+opt_needs_help(_:['--help']).
 
 opt_parse([], Positional, Options, _, _) =>
     Positional = [],
@@ -336,7 +351,7 @@ take_long(Long, T, Positional, Options, M, POptions) :- % --long=Value
         Opt =.. [Name,Value],
         Options = [Opt|OptionsT],
         opt_parse(T, Positional, OptionsT, M, POptions)
-    ;   opt_error(unknown_option(LName0))
+    ;   opt_error(unknown_option(M:LName0))
     ).
 take_long(LName0, T, Positional, Options, M, POptions) :- % --long
     canonical_name(LName0, LName),
@@ -368,8 +383,8 @@ take_long_(Long, T, Positional, Options, M, POptions) :- % --long
         opt_parse(T1, Positional, OptionsT, M, POptions)
     ;   opt_error(missing_value(Long, Type))
     ).
-take_long_(Long, _, _, _, _, _) :-
-    opt_error(unknown_option(Long)).
+take_long_(Long, _, _, _, M, _) :-
+    opt_error(unknown_option(M:Long)).
 
 take_shorts([], T, Positional, Options, M, POptions) :-
     opt_parse(T, Positional, Options, M, POptions).
@@ -396,8 +411,8 @@ take_shorts([H|T], Argv, Positional, Options, M, POptions) :-
         Options = [Opt|OptionsT],
         take_shorts([], Argv, Positional, OptionsT, M, POptions)
     ).
-take_shorts([H|_], _, _, _, _, _) :-
-    opt_error(unknown_option(H)).
+take_shorts([H|_], _, _, _, M, _) :-
+    opt_error(unknown_option(M:H)).
 
 opt_bool_type(Opt, Name, Value, M) :-
     in(M:opt_type(Opt, Name, Type)),
@@ -668,6 +683,7 @@ options_width(opt(_Name, _Type, Short, Long, _Help, Meta), W) =>
 
 get_option(M, opt(help, boolean, [h,?], [help],
                   Help, -)) :-
+    \+ in(M:opt_type(_, help, boolean)),       % user defined help
     (   in(M:opt_help(help, Help))
     ->  true
     ;   Help = "Show this help message and exit"
@@ -731,10 +747,10 @@ opt_error(Error) :-
 prolog:error_message(opt_error(Error)) -->
     opt_error(Error).
 
-opt_error(unknown_option(Opt)) -->
+opt_error(unknown_option(M:Opt)) -->
     [ 'Unknown option: '-[] ],
     opt(Opt),
-    [ ' (-h for help)'-[] ].
+    hint_help(M).
 opt_error(missing_value(Opt, Type)) -->
     [ 'Option '-[] ],
     opt(Opt),
@@ -758,6 +774,13 @@ access_verb(read,    reading).
 access_verb(write,   writing).
 access_verb(append,  writing).
 access_verb(execute, executing).
+
+hint_help(M) -->
+    { in(M:opt_type(Opt, help, boolean)) },
+    !,
+    [ ' (' ], opt(Opt), [' for help)'].
+hint_help(_) -->
+    [ ' (-h for help)'-[] ].
 
 opt(Opt) -->
     { short_opt(Opt) },
