@@ -22,9 +22,9 @@ description: |
 
 apps:
   swipl:
-    command: bin/desktop-launch $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl
+    command: $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl
   swipl-win:
-     command: bin/desktop-launch $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl-win
+    command: bin/desktop-launch $SNAP/usr/lib/swipl/bin/x86_64-linux/swipl-win
 
 grade: stable
 confinement: classic
