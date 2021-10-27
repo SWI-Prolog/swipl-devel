@@ -734,6 +734,50 @@ initTerminationSignals(void)
 }
 #endif /*HAVE_SIGNAL*/
 
+#ifdef HAVE_SIGALTSTACK
+static void
+alt_segv_handler(int sig)
+{ DEBUG(MSG_SIGNAL,
+	Sdprintf("Got C-stack overflow; critical = %d\n",
+		 GD->signals.sig_critical));
+
+  if ( GD->signals.sig_critical )
+  { siglongjmp(GD->signals.context, TRUE);
+    /*NORETURN*/
+  }
+
+  sigCrashHandler(sig);
+}
+#endif
+
+static int
+initGuardCStack(void)
+{
+#ifdef HAVE_SIGALTSTACK
+  stack_t ss = {0};
+
+  if ( (ss.ss_sp = malloc(SIGSTKSZ)) )
+  { ss.ss_size = SIGSTKSZ;
+    ss.ss_flags = 0;
+
+    if ( sigaltstack(&ss, NULL) == 0)
+    { struct sigaction sa = {0};
+
+      sa.sa_flags = SA_ONSTACK;
+      sa.sa_handler = alt_segv_handler;
+      sigemptyset(&sa.sa_mask);
+
+      if ( sigaction(SIGSEGV, &sa, NULL) == 0 )
+      { DEBUG(MSG_SIGNAL, Sdprintf("Setup SEGV on altstack\n"));
+	return TRUE;
+      }
+    }
+  }
+#endif
+
+  return FALSE;
+}
+
 static void
 agc_handler(int sig)
 { GET_LD
@@ -805,6 +849,7 @@ initSignals(void)
     set_sighandler(SIGPIPE, SIG_IGN);
 #endif
     initTerminationSignals();
+    initGuardCStack();
 #endif /*HAVE_SIGNAL*/
     initBackTrace();
     for( ; sn->name; sn++)

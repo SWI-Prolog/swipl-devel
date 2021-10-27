@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2020, University of Amsterdam
+    Copyright (c)  1997-2021, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -111,6 +112,10 @@ struct PL_global_data
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
 #ifdef HAVE_SIGNAL
+#ifdef HAVE_SIGALTSTACK
+    jmp_buf	context;		/* Guarded for C-stack overflows */
+    int		sig_critical;
+#endif
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
