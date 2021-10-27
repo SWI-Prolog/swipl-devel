@@ -1764,7 +1764,9 @@ writeTopTerm(term_t term, int prec, write_options *options)
   Slock(options->out);
   if ( (!(options->flags&PL_WRT_NO_CYCLES) && options->max_depth) ||
        PL_is_acyclic(term) )
-  { rc = writeTerm(term, prec, options);
+  { C_STACK_OVERFLOW_GUARDED(
+	rc = writeTerm(term, prec, options),
+        (void)0);
   } else
   { fid_t fid;
     term_t template, substitutions, cycles, at_term;
@@ -1784,7 +1786,9 @@ writeTopTerm(term_t term, int prec, write_options *options)
 			  PL_TERM, template,
 			  PL_TERM, cycles) )
       return FALSE;
-    rc = writeTerm(at_term, prec, options);
+    C_STACK_OVERFLOW_GUARDED(
+	rc = writeTerm(at_term, prec, options),
+	(void)0);
     PL_discard_foreign_frame(fid);
   }
   Sunlock(options->out);

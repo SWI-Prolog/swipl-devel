@@ -464,7 +464,7 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 void
 initBackTrace(void)
 {
-#ifdef SIGSEGV
+#if defined(SIGSEGV) && !defined(HAVE_SIGALTSTACK)
   PL_signal(SIGSEGV, sigCrashHandler);
 #endif
 #ifdef SIGILL

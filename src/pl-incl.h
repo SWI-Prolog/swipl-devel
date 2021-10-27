@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam,
+    Copyright (c)  1985-2021, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2102,6 +2103,30 @@ typedef struct
 #define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
 #define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+5)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Guard against C-stack overflows.  This is done for POSIX systems using
+the alternative signal stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#ifdef HAVE_SIGALTSTACK
+#define C_STACK_OVERFLOW_GUARDED(code, cleanup) \
+	do						\
+	{ GD->signals.sig_critical = TRUE;		\
+	  if ( sigsetjmp(GD->signals.context, TRUE) )	\
+	  { cleanup;					\
+	    rc = PL_resource_error("c_stack");		\
+	  } else					\
+	  { code;					\
+	  }						\
+	  GD->signals.sig_critical = FALSE;		\
+	} while(0)
+#else
+#define C_STACK_OVERFLOW_GUARDED(code, cleanup) \
+	do						\
+	{ code;						\
+	} while(0)
+#endif
 
 
 		 /*******************************
