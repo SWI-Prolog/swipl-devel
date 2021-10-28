@@ -1103,14 +1103,13 @@ prolog_message(autoload(read_index(Dir))) -->
 prolog_message(autoload(disabled(Loaded))) -->
     [ 'Disabled autoloading (loaded ~D files)'-[Loaded] ].
 prolog_message(autoload(already_defined(PI, From))) -->
-    [ ansi(code, '~p', [PI]) ],
+    code(PI),
     (   { '$pi_head'(PI, Head),
           predicate_property(Head, built_in)
         }
     ->  [' is a built-in predicate']
-    ;   [ ' is already imported from module ',
-          ansi(code, '~p', [From])
-        ]
+    ;   [ ' is already imported from module ' ],
+        code(From)
     ).
 
 swi_message(autoload(Msg)) -->
@@ -1827,6 +1826,16 @@ clean_encoding(Lang0, Lang) :-
     ->  sub_atom(Lang0, 0, A, _, Lang)
     ;   Lang = Lang0
     ).
+
+		 /*******************************
+		 *          PRIMITIVES		*
+		 *******************************/
+
+code(Term) -->
+    code('~p', Term).
+
+code(Format, Term) -->
+    [ ansi(code, Format, [Term]) ].
 
 
 		 /*******************************
