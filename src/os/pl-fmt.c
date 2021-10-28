@@ -723,6 +723,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  rc = (int)(*f)(argv);
 		  rc = end_sub_format(&sstate, rc);
 
+		  if ( !rc )
+		   goto out;
+
 		  SHIFT;
 		  here++;
 		  break;
