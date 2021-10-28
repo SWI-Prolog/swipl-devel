@@ -4682,11 +4682,16 @@ read_term(DECL_LD term_t term, ReadData rd)
 
   rd->here = rd->base;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
-  if ( (rc2=complex_term(NULL, OP_MAXPRIORITY+1,
-			 rd->subtpos, rd)) != TRUE )
+
+  C_STACK_OVERFLOW_GUARDED(
+      rc2,
+      complex_term(NULL, OP_MAXPRIORITY+1, rd->subtpos, rd),
+      (void)0);
+  if ( rc2 != TRUE )
   { rc = raiseStackOverflow(rc2);
     goto out;
   }
+
   assert(rd->term_stack.top == 1);
   result = term_av(-1, rd);
   p = valTermRef(result[0]);
