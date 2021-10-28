@@ -138,6 +138,8 @@ term_message(Term) -->
 term_message(Term) -->
     [ 'Unknown error term: ~p'-[Term] ].
 
+iso_message(resource_error(c_stack)) -->
+    out_of_c_stack.
 iso_message(resource_error(Missing)) -->
     [ 'Not enough resources: ~w'-[Missing] ].
 iso_message(type_error(evaluable, Actual)) -->
@@ -990,6 +992,29 @@ resolve_overflow(enlarge) -->
       'Use the --stack_limit=size[KMG] command line option or'-[], nl,
       '?- set_prolog_flag(stack_limit, ~I). to double the limit.'-[NewLimit]
     ].
+
+%!  out_of_c_stack
+%
+%   The thread's C-stack limit was exceeded. Give  some advice on how to
+%   resolve this.
+
+out_of_c_stack -->
+    { statistics(c_stack, Limit), Limit > 0 },
+    !,
+    [ 'C-stack limit (~D bytes) exceeded.'-[Limit], nl ],
+    resolve_c_stack_overflow(Limit).
+out_of_c_stack -->
+    { statistics(c_stack, Limit), Limit > 0 },
+    [ 'C-stack limit exceeded.'-[Limit], nl ],
+    resolve_c_stack_overflow(Limit).
+
+resolve_c_stack_overflow(_Limit) -->
+    { thread_self(main) },
+    [ 'Use the shell command ' ], code('~w', 'ulimit -s size'),
+    [ ' to enlarge the limit.' ].
+resolve_c_stack_overflow(_Limit) -->
+    [ 'Use the ' ], code('~w', 'c_stack(KBytes)'),
+    [ ' option of '], code(thread_create/3), [' to enlarge the limit.' ].
 
 
                  /*******************************
