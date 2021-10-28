@@ -737,12 +737,15 @@ initTerminationSignals(void)
 #ifdef HAVE_SIGALTSTACK
 static void
 alt_segv_handler(int sig)
-{ DEBUG(MSG_SIGNAL,
-	Sdprintf("Got C-stack overflow; critical = %d\n",
-		 GD->signals.sig_critical));
+{ GET_LD
+  (void)sig;
 
-  if ( GD->signals.sig_critical )
-  { siglongjmp(GD->signals.context, TRUE);
+  DEBUG(MSG_SIGNAL,
+	Sdprintf("Got C-stack overflow; critical = %d\n",
+		 LD->signal.sig_critical));
+
+  if ( LD->signal.sig_critical )
+  { siglongjmp(LD->signal.context, TRUE);
     /*NORETURN*/
   }
 
@@ -750,26 +753,32 @@ alt_segv_handler(int sig)
 }
 #endif
 
-static int
+int
 initGuardCStack(void)
 {
 #ifdef HAVE_SIGALTSTACK
+  GET_LD
   stack_t ss = {0};
 
-  if ( (ss.ss_sp = malloc(SIGSTKSZ)) )
-  { ss.ss_size = SIGSTKSZ;
+  if ( (LD->signal.alt_stack = malloc(SIGSTKSZ)) )
+  { ss.ss_sp = LD->signal.alt_stack;
+    ss.ss_size = SIGSTKSZ;
     ss.ss_flags = 0;
 
     if ( sigaltstack(&ss, NULL) == 0)
-    { struct sigaction sa = {0};
+    { DEBUG(MSG_SIGNAL, Sdprintf("Setup altstack (%zd bytes)\n", SIGSTKSZ));
 
-      sa.sa_flags = SA_ONSTACK;
-      sa.sa_handler = alt_segv_handler;
-      sigemptyset(&sa.sa_mask);
+      if ( LD == &PL_local_data )	/* main thread, only need this once */
+      { struct sigaction sa = {0};
 
-      if ( sigaction(SIGSEGV, &sa, NULL) == 0 )
-      { DEBUG(MSG_SIGNAL, Sdprintf("Setup SEGV on altstack\n"));
-	return TRUE;
+	sa.sa_flags = SA_ONSTACK;
+	sa.sa_handler = alt_segv_handler;
+	sigemptyset(&sa.sa_mask);
+
+	if ( sigaction(SIGSEGV, &sa, NULL) == 0 )
+	{ DEBUG(MSG_SIGNAL, Sdprintf("Setup SEGV on altstack\n"));
+	  return TRUE;
+	}
       }
     }
   }
@@ -1730,6 +1739,11 @@ freePrologLocalData(PL_local_data_t *ld)
     free_alloc_pool(ld->tabling.node_pool);
 
   clearThreadTablingData(ld);
+
+#ifdef HAVE_SIGALTSTACK
+  if ( ld->signal.alt_stack )
+    free(ld->signal.alt_stack);
+#endif
 }
 
 

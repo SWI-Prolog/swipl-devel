@@ -111,11 +111,6 @@ struct PL_global_data
 
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#ifdef HAVE_SIGNAL
-#ifdef HAVE_SIGALTSTACK
-    jmp_buf	context;		/* Guarded for C-stack overflows */
-    int		sig_critical;
-#endif
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
@@ -461,6 +456,12 @@ struct PL_local_data
     int		is_sync;		/* current signal is synchronous */
 #ifndef __unix__
     int		forced;			/* Forced signal */
+#endif
+#ifdef HAVE_SIGNAL
+#ifdef HAVE_SIGALTSTACK
+    jmp_buf	context;		/* Guarded for C-stack overflows */
+    int		sig_critical;		/* context is valid */
+    void       *alt_stack;		/* The stack */
 #endif
   } signal;
 

@@ -2112,14 +2112,14 @@ the alternative signal stack.
 #ifdef HAVE_SIGALTSTACK
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
-	{ GD->signals.sig_critical = TRUE;		\
-	  if ( sigsetjmp(GD->signals.context, TRUE) )	\
+	{ LD->signal.sig_critical = TRUE;		\
+	  if ( sigsetjmp(LD->signal.context, TRUE) )	\
 	  { cleanup;					\
 	    rc = PL_resource_error("c_stack");		\
 	  } else					\
 	  { rc = code;					\
 	  }						\
-	  GD->signals.sig_critical = FALSE;		\
+	  LD->signal.sig_critical = FALSE;		\
 	} while(0)
 #else
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
