@@ -1444,7 +1444,7 @@ prolog_prefix(Prefix) :-
     access_file(Prefix, write),
     !.
 prolog_prefix(Prefix) :-
-    expand_file_name(~, UserHome),
+    expand_file_name(~, [UserHome]),
     directory_file_path(UserHome, bin, BinDir),
     exists_directory(BinDir),
     access_file(BinDir, write),
