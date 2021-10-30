@@ -2125,7 +2125,7 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       PL_put_frame(av+2, (LocalFrame)valTermRef(fr));
 
       if ( !catchfr_ref )
-	catchfr_ref = isCaughtInOuterQuery(pqid, exception_term);
+	catchfr_ref = isCaughtInOuterQuery(pqid, exception_bin);
       if ( catchfr_ref == (term_t)-1 )
       { PL_put_atom_chars(av+3, "C");
       } else if ( catchfr_ref && catchfr_ref == LD->exception.fr_rewritten )
