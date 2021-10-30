@@ -172,6 +172,18 @@ MurmurHashAligned2(const void *key, size_t len, unsigned int seed)
 Optimized version for our Prolog word type
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if WORDS_BIGENDIAN
+static int
+swap_bytes(unsigned int v)
+{ union { unsigned int i;
+	  const unsigned char c[4];
+	} u;
+
+  u.i = v;
+  return u.c[0] | u.c[1]<<8 | u.c[2]<<16 | u.c[3]<<24;
+}
+#endif
+
 unsigned int
 MurmurHashIntptr(intptr_t v, unsigned int seed)
 { const unsigned int m = 0x5bd1e995;
@@ -181,9 +193,9 @@ MurmurHashIntptr(intptr_t v, unsigned int seed)
 
 #if SIZEOF_VOIDP == 8
 #if WORDS_BIGENDIAN
-  k = (v>>32) & 0xffffffff;
+  k = swap_bytes((unsigned int)(v>>32));
   MIX(h,k,m);
-  k = v & 0xffffffff;
+  k = swap_bytes((unsigned int)v);
 #else
   k = v & 0xffffffff;
   MIX(h,k,m);
