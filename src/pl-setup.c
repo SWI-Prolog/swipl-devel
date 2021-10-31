@@ -745,7 +745,7 @@ alt_segv_handler(int sig)
 		 LD->signal.sig_critical));
 
   if ( LD->signal.sig_critical )
-  { siglongjmp(LD->signal.context, TRUE);
+  { longjmp(LD->signal.context, TRUE);
     /*NORETURN*/
   }
 

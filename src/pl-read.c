@@ -53,6 +53,7 @@
 #include "pl-funct.h"
 #include "pl-op.h"
 #include "pl-modul.h"
+#include "pl-setup.h"
 #include <errno.h>
 
 typedef const unsigned char * cucharp;
