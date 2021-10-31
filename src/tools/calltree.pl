@@ -1,12 +1,13 @@
-#!/home/jan/bin/swipl -q -g true -t main -G4g -T4g -s
+#!/bin/env swipl
 
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2013, University of Amsterdam
+    Copyright (c)  2009-2021, University of Amsterdam
 			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,8 @@
 :- use_module(sexp).
 :- use_module(library(debug)).
 
+:- initialization(main,main).
+
 % :- debug(rtl).
 
 process(File, Into) :-
@@ -63,17 +66,17 @@ terms([_|T], Function, Out) :-
 function_comment(Comment, Function) :-
 	atomic_list_concat(['Function',Function|_], ' ', Comment).
 
-calls([_, _, _, _, Where|Rest], File, Line, Callee) :-
-	atom(Where),
-	atomic_list_concat([File,LineTxt], ':', Where),
+calls([_, _, _, _, Called, File, LineAndCol|_], File, Line, Callee) :-
+	atom(LineAndCol),
+	atomic_list_concat(['', LineTxt,_ColTxt], ':', LineAndCol),
 	atom_number(LineTxt, Line),
-	(   sub_term(['symbol_ref:di', [Callee]|_], Rest)
+	(   sub_term(['symbol_ref:di', [Callee]|_], Called)
 	->  true
-	;   sub_term(['reg/f:di', _, '[',_,']'], Rest)
+	;   sub_term(['reg/f:di', _, '[',_,']'], Called)
 	->  Callee = '<POINTER>'
 	;   Callee = '<UNKNOWN>',
 	    (	debugging(rtl)
-	    ->	pp(Rest),
+	    ->	pp(Called),
 		abort
 	    ;	put(user_error, '!')
 	    )

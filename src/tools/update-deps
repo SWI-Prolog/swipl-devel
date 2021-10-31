@@ -8,18 +8,22 @@ if [ "x$tooldir" == x ]; then
 fi
 
 build=`pwd`
-home=`dirname $build`/src
+home=$(echo $build | sed 's/swipl-devel.*/swipl-devel\/src/')
+echo home=$home
 
 function basesource
 { case $1 in
     pl-wam.c)
-	echo $1 pl-alloc.c pl-index.c pl-fli.c pl-vmi.c
+	echo $1 pl-vmi.c
 	;;
-    pl-prims.c|pl-rec.c)
+    pl-prims.c|pl-rec.c|pl-trie.c|pl-termhash.c|pl-copyterm.c)
 	echo $1 pl-termwalk.c
 	;;
     pl-read.c)
 	echo $1 pl-umap.c
+	;;
+    pl-dtoa.c)
+	echo $1 dtoa.c
 	;;
     *)
 	echo $1
@@ -43,7 +47,7 @@ update()
   tout="$base.tree"
   fout="$base.functions"
   src=`find $home -name $base`
-  obj=`echo $base | sed 's/\.c$/.o/'`
+  obj=`echo $base | sed 's/\.c$/.c.o/'`
   aobj=`find $build -name $obj`
 
   if [ ! -r $tout -o $1 -nt $tout ]; then
@@ -68,11 +72,16 @@ update()
 }
 
 ext_builtins()
-{ funcs=`nm pl-ext.o | grep 'U pl_' | awk '{ print $2 }'`
+{ funcs=`nm pl-ext.c.o | grep 'U pl_' | awk '{ print $2 }'`
   for f in $funcs; do
-    grep -w $f pl-ext.c | sed 's/.*"\(.*\)",[	]*\([0-9]*\).*/predicate('"'"'\1'"'"', \2, '$f')./'
+    grep -w $f $home/pl-ext.c | sed 's/.*"\(.*\)",[	 ]*\([0-9]*\).*/predicate('"'"'\1'"'"', \2, '$f')./'
   done
 }
+
+rm *.functions
+rm *.tree
+rm built-in-predicates
+
 
 if [ -z "$1" ]; then
    files="*.expand"
@@ -80,7 +89,7 @@ else
    files="$*"
 fi
 
-ext_builtins > buildin-predicates
+ext_builtins > built-in-predicates
 
 for f in $files; do
    if ! update $f; then
