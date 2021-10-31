@@ -1762,23 +1762,53 @@ goal-term and therefore initialised. This implies   there  is no need to
 play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define compileClauseGuarded(ci, cp, head, body, proc, module, warnings, flags) \
+	LDFUNC(compileClauseGuarded, ci, cp, head, body, proc, module, warnings, flags)
+static int compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
+				Procedure proc, Module module, term_t warnings,
+				int flags);
+
+#define cleanupCompile(ci) LDFUNC(cleanupCompile, ci)
+
+static void
+cleanupCompile(DECL_LD CompileInfo ci)
+{ resetVars();
+  discardBuffer(&ci->codes);
+}
+
 int
 compileClause(DECL_LD Clause *cp, Word head, Word body,
 	      Procedure proc, Module module, term_t warnings,
 	      int flags)
 { compileInfo ci;			/* data base for the compiler */
-  struct clause clause = {0};
+  int rc;
+
+  initBuffer(&ci.codes);
+
+  C_STACK_OVERFLOW_GUARDED(
+      rc,
+      compileClauseGuarded(&ci, cp, head, body, proc, module, warnings, flags),
+      cleanupCompile(&ci));
+
+  return rc;
+}
+
+static int
+compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, Word body,
+		     Procedure proc, Module module, term_t warnings,
+		     int flags)
+{ struct clause clause = {0};
   Clause cl;
   Definition def = getProcDefinition(proc);
   int rc;
 
   if ( head )
-  { ci.islocal      = FALSE;
-    ci.subclausearg = 0;
-    ci.arity        = (int)def->functor->arity;
-    ci.procedure    = proc;
-    ci.argvars      = 0;
-    ci.head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
+  { ci->islocal      = FALSE;
+    ci->subclausearg = 0;
+    ci->arity        = (int)def->functor->arity;
+    ci->procedure    = proc;
+    ci->argvars      = 0;
+    ci->head_unify   = ( (flags&SSU_CHOICE_CLAUSE) ||
 			( !(flags & (SSU_COMMIT_CLAUSE)) &&
 			  false(def, P_DYNAMIC) &&
 			  truePrologFlag(PLFLAG_OPTIMISE_UNIFY)
@@ -1788,29 +1818,31 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
   } else
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
-    ci.islocal      = TRUE;
-    ci.subclausearg = 0;
-    ci.argvars	    = 1;
-    ci.argvar       = 1;
-    ci.arity        = 0;
-    ci.procedure    = NULL;		/* no LCO */
-    ci.head_unify   = FALSE;
+    ci->islocal      = TRUE;
+    ci->subclausearg = 0;
+    ci->argvars	    = 1;
+    ci->argvar       = 1;
+    ci->arity        = 0;
+    ci->procedure    = NULL;		/* no LCO */
+    ci->head_unify   = FALSE;
     clause.flags    = GOAL_CLAUSE;
     *g		    = *body;
   }
 
   clause.predicate  = def;
 
-  ci.clause = &clause;
-  ci.module = module;
-  ci.colon_context.type = TM_NONE;
+  ci->clause = &clause;
+  ci->module = module;
+  ci->colon_context.type = TM_NONE;
 #ifdef O_CALL_AT_MODULE
-  ci.at_context.type = TM_NONE;
+  ci->at_context.type = TM_NONE;
 #endif
-  ci.warning_list    = warnings;
-  ci.warnings        = NULL;
+  ci->warning_list    = warnings;
+  ci->warnings        = NULL;
 
-  if ( (rc=analyse_variables(head, body, &ci)) < 0 )
+  rc = analyse_variables(head, body, ci);
+
+  if ( rc < 0 )
   { switch ( rc )
     { case CYCLIC_HEAD:
       case CYCLIC_BODY:
@@ -1825,16 +1857,15 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 	assert(0);
     }
   }
-  ci.cut.var = 0;
-  ci.cut.instruction = 0;
-  if ( !ci.islocal )
-  { ci.used_var = alloca(sizeofVarTable(ci.vartablesize));
-    clearVarTable(&ci);
+  ci->cut.var = 0;
+  ci->cut.instruction = 0;
+  if ( !ci->islocal )
+  { ci->used_var = alloca(sizeofVarTable(ci->vartablesize));
+    clearVarTable(ci);
   } else
-    ci.used_var = NULL;
+    ci->used_var = NULL;
 
-  initBuffer(&ci.codes);
-  initMerge(&ci);
+  initMerge(ci);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First compile  the  head  of  the  term.   The  arguments  are  compiled
@@ -1842,14 +1873,14 @@ left-to-right.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
-    Output_0(&ci, I_CHP);
+    Output_0(ci, I_CHP);
 
   if ( head )
   { int n;
     Word arg;
 
-    for ( arg = argTermP(*head, 0), n = 0; n < ci.arity; n++, arg++ )
-    { if ( (rc=compileArgument(arg, A_HEAD, &ci)) < 0 )
+    for ( arg = argTermP(*head, 0), n = 0; n < ci->arity; n++, arg++ )
+    { if ( (rc=compileArgument(arg, A_HEAD, ci)) < 0 )
 	goto exit_fail;
     }
   }
@@ -1874,31 +1905,31 @@ that have an I_CONTEXT because we need to reset the context.
 
       switch(flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE))
       { case 0:
-	  Output_0(&ci, I_ENTER);
+	  Output_0(ci, I_ENTER);
 	  break;
 	case SSU_COMMIT_CLAUSE:
-	  Output_0(&ci, I_SSU_COMMIT);
+	  Output_0(ci, I_SSU_COMMIT);
 	  break;
 	case SSU_CHOICE_CLAUSE:
-	  Output_0(&ci, I_SSU_CHOICE);
+	  Output_0(ci, I_SSU_CHOICE);
 	  break;
         default:
 	  assert(0);
       }
 					/* ok; all live in the same module */
       if ( false(def, P_MFCONTEXT) &&
-	   ci.module != def->module &&
+	   ci->module != def->module &&
 	   false(proc->definition, P_TRANSPARENT) )
 	set(def, P_MFCONTEXT);
 
       if ( true(def, P_MFCONTEXT) )
       { set(&clause, CL_BODY_CONTEXT);
-	Output_1(&ci, I_CONTEXT, (code)ci.module);
+	Output_1(ci, I_CONTEXT, (code)ci->module);
       }
     }
 
-    bi = PC(&ci);
-    if ( (rc=compileBody(body, I_DEPART, &ci)) != TRUE )
+    bi = PC(ci);
+    if ( (rc=compileBody(body, I_DEPART, ci)) != TRUE )
     { if ( rc <= NOT_CALLABLE )
       {	resetVars();
 	switch(rc)
@@ -1918,27 +1949,27 @@ that have an I_CONTEXT because we need to reset the context.
 
       goto exit_fail;
     }
-    Output_0(&ci, I_EXIT);
-    if ( OpCode(&ci, bi) == encode(I_CUT) )
+    Output_0(ci, I_EXIT);
+    if ( OpCode(ci, bi) == encode(I_CUT) )
     { set(&clause, COMMIT_CLAUSE);
     }
   } else if ( (flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)) )
-  { Output_0(&ci, (flags&SSU_COMMIT_CLAUSE) ? I_SSU_COMMIT : I_SSU_CHOICE);
-    Output_0(&ci, I_EXIT);
+  { Output_0(ci, (flags&SSU_COMMIT_CLAUSE) ? I_SSU_COMMIT : I_SSU_CHOICE);
+    Output_0(ci, I_EXIT);
   } else
   { set(&clause, UNIT_CLAUSE);		/* fact (for decompiler) */
-    Output_0(&ci, I_EXITFACT);
+    Output_0(ci, I_EXITFACT);
   }
 
   resetVars();
 
-  if ( ci.warning_list && (rc=push_compiler_warnings(&ci)) != TRUE )
+  if ( ci->warning_list && (rc=push_compiler_warnings(ci)) != TRUE )
     goto exit_fail;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Finish up the clause.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-  clause.code_size = entriesBuffer(&ci.codes, code);
+  clause.code_size = entriesBuffer(&ci->codes, code);
 
   if ( head )
   { size_t size  = sizeofClause(clause.code_size);
@@ -1953,7 +1984,7 @@ Finish up the clause.
     cl = PL_malloc_atomic(size);
     ATOMIC_ADD(&m->code_size, clsize);
     memcpy(cl, &clause, sizeofClause(0));
-    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+    memcpy(cl->codes, baseBuffer(&ci->codes, code), sizeOfBuffer(&ci->codes));
 
     ATOMIC_ADD(&GD->statistics.codes, clause.code_size);
     ATOMIC_INC(&GD->statistics.clauses);
@@ -1966,8 +1997,8 @@ Finish up the clause.
 
     DEBUG(MSG_COMP_ARGVAR,
 	  Sdprintf("%d argvars; %d prolog vars; %d vars",
-		   ci.argvars, clause.prolog_vars, clause.variables));
-    assert(ci.argvars == ci.argvar);
+		   ci->argvars, clause.prolog_vars, clause.variables));
+    assert(ci->argvars == ci->argvar);
 
 					/* check space */
     space = ( clause.variables*sizeof(word) +
@@ -1993,7 +2024,7 @@ Finish up the clause.
     cref->next = NULL;
     cref->value.clause = cl = (Clause)p;
     memcpy(cl, &clause, sizeofClause(0));
-    memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
+    memcpy(cl->codes, baseBuffer(&ci->codes, code), sizeOfBuffer(&ci->codes));
     p = addPointer(p, sizeofClause(clause.code_size));
     cl->variables += (int)(p-p0);
 
@@ -2007,14 +2038,14 @@ Finish up the clause.
     lTop = (LocalFrame)p;
   }
 
-  discardBuffer(&ci.codes);
+  discardBuffer(&ci->codes);
 
   *cp = cl;
   return TRUE;
 
 exit_fail:
   resetVars();
-  discardBuffer(&ci.codes);
+  discardBuffer(&ci->codes);
   return rc;
 }
 
