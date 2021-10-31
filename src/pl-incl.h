@@ -2105,16 +2105,22 @@ typedef struct
 #define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+5)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Guard against C-stack overflows.  This is done for POSIX systems using
-the alternative signal stack.
+Guard against C-stack overflows. This is   done  for POSIX systems using
+the  alternative  signal  stack.  The  signal    handling   is  done  by
+alt_segv_handler().
+
+Note that we  use  setjmp()  rather   than  sigsetjmp().  The  latter is
+simpler, but a lot slower as it  implies   a  system  call. We assume no
+other signals are involved and unblock SIGSEGV by hand.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef HAVE_SIGALTSTACK
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
 	{ LD->signal.sig_critical = TRUE;		\
-	  if ( sigsetjmp(LD->signal.context, TRUE) )	\
+	  if ( setjmp(LD->signal.context) )		\
 	  { cleanup;					\
+	    unblockSignal(SIGSEGV);			\
 	    rc = PL_resource_error("c_stack");		\
 	  } else					\
 	  { rc = code;					\
