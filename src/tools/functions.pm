@@ -47,11 +47,24 @@ while (@ARGV)
       $type = "vmi";
       head();
       $useword++;
-    } elsif ( /^PRED_IMPL\("([^"]+)",\s*([0-9]+)/ )
+    } elsif ( /^VMH\(([a-zA-Z0-9_]+),/ )
+    { $func = $1;
+      $file = $infile;
+      $line = $inline;
+      $type = "vmh";
+      head();
+      $useword++;
+    } elsif ( /^PRED_IMPL\("([^"]+)",\s*([0-9]+|va)/ )
     { $func = "$1/$2";
       $file = $infile;
       $line = $inline;
       $type = "predicate";
+      head();
+    } elsif ( /^([a-zA-Z0-9_]+)\(DECL_LD/ )
+    { $func = "$1___LD";
+      $file = $infile;
+      $line = $inline;
+      $type = "function";
       head();
     } elsif ( /^([a-zA-Z0-9_]+)\(/ )
     { $func = $1;
@@ -59,7 +72,7 @@ while (@ARGV)
       $line = $inline;
       $type = "function";
       head();
-    } elsif ( /^{/ && $state == HEAD_SEEN && $inline == $line+1 )
+    } elsif ( /^{/ && $state == HEAD_SEEN && $inline > $line && $inline < $line+3 )
     { $state = BODY;
     } elsif ( /^}/ && $state == BODY )
     { print "function('$func', $type, '$file', $line, $inline, $useword, $usemark).\n";

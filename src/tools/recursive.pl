@@ -1,12 +1,13 @@
-#!/home/jan/bin/swipl -q -g true -t main -s
+#!/bin/env swipl
 
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2013, University of Amsterdam
+    Copyright (c)  2009-2021, University of Amsterdam
 			      VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,162 +36,173 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-:- use_module(library(debug)).
-:- use_module(safe).
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find recursive C functions.
+
+Usage:
+
+  - Build SWI-Prolog:
+
+      mkdir build.analysis
+      cd build.analysis
+      CFLAGS="-fdump-rtl-expand" cmake -DSWIPL_PACKAGES=OFF -DCMAKE_BUILD_TYPE=Debug -G Ninja ..
+      sed -i 's/DO_DEBUG -DO_DEBUG_ATOMGC//' CMakeCache.txt
+      ninja
+      cd src/CMakeFiles/swiplobjs.dir
+      ../../../../src/tools/update-deps *.expand
+      swipl ../../../../src/tools/recursive.pl
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+:- initialization(main,main).
 
 :- op(500, xfx, @).
 
-:- multifile
+:- dynamic
 	function/7,	% Name, Type, File, StartLine, EndLine, Word, Mark
 	calls/4,	% Name, Callee, File, Line
 	object/2,	% Object, Source
-	static/2.	% Name, File
+	static/2,	% Name, File
+	predicate/3.
 
 load :-
 	expand_file_name('*.functions', FFiles),
-	maplist(consult, FFiles),
+	maplist(load_file, FFiles),
 	expand_file_name('*.tree', TFiles),
-	maplist(consult, TFiles),
-	consult('buildin-predicates').
+	maplist(load_file, TFiles),
+	load_file('./built-in-predicates').
 
-:- dynamic
-	caller/4,			% Func, File, Path, shift/gc
-	only/1,
-	report/1.
+load_file(File) :-
+	setup_call_cleanup(
+	    open(File, read, In),
+	    load_stream(In),
+	    close(In)).
 
-stop('PL_error').
-stop('PL_warning').
-stop('fatalError').
-stop('sysError').
-stop('errorWarning').
-stop('tracePort').
-stop('PL_raise_exception').
-stop('__assert_fail').
-stop('PL_malloc').
-stop('allocHeap__LD').
-stop('garbageCollect').
-stop('ensureGlobalSpace').
-stop('ensureLocalSpace').
-stop('makeMoreStackSpace').
-stop('ensureTrailSpace').
-stop('outOfStack').
-stop('outOfCore').
-stop('abortProlog').
-stop('isSuperModule').
-stop('reachableModule').
-stop('scanVisibleOperators').
-stop('find_modules_with_def').
-stop('PL_register_blob_type').
-stop('Sdprintf').
-stop('Svsprintf').
-stop('Output_0').
-stop('trapUndefined').
-stop('callEventHook').
-stop('printMessage').
-stop('visibleProcedure').
-stop('reperror').
-stop('Sputcode').
-stop('handleSignals').
-stop('PL_get_text__LD').
-stop('frameFinished').
-stop('put_byte').
-stop('Sfeof').
-stop('export_pi').
-stop('scanPriorityOperator').
-stop('format_time').
-stop('free_thread_info').
-stop('loadXR__LD').
-stop('loadPart').
-stop('autoImport').
-stop('reportStreamError').
-stop('PL_unify_term').
-					% maintenance
-stop('checkData').
-					% unsolvable
-stop('callProlog').
-stop('PL_next_solution').
-					% mild problems
-stop('when_condition').
-stop('compilePattern').
-stop('matchPattern').
-stop('collectSiblingsNode').
-stop('sumProfile').
-stop('freeProfileNode').
-stop('getUnknownModule').
-					% real problems
-stop_show('analyseVariables2',	     lao).
-stop_show('compileArgument',	     lao).
-stop_show('compileBody',	     no_lao).
-stop_show('find_if_then_end',	     no_lao).
-stop_show('ar_func_n',		     no_lao).
-stop_show('termHashValue',	     no_lao).
-stop_show('complex_term',	     no_lao).
-stop_show('writeTerm',		     no_lao).
-stop_show('decompileBody',	     no_lao).
-stop_show('do_load_qlf_term',	     no_lao).
-stop_show('do_save_qlf_term',	     no_lao).
-
-stop_because(Function, _Problems) :-
-	stop(Function), !.
-stop_because(Function, Problems) :-
-	stop_show(Function, Lao), !,
-	Problem =.. [Lao,Function],
-	memberchk(Problem, Problems).
-
-recursive_predicate(Name/Arity, Stack, Problem) :-
-	(   function(PredAtom, predicate, File, StartLine, EndLine, _, _),
-	    atomic_list_concat([Name,Arity], /, PredAtom),
-	    calls(Func, Callee, LocalFile, Line),
-	    sub_atom(File, _, _, 0, LocalFile),
-	    between(StartLine, EndLine, Line),
-	    has_loop(Callee, LocalFile, [Callee,Func], Loop, Problems)
-	;   predicate(Name, Arity, Func),
-	    has_loop(Func, LocalFile, [Func], Loop, Problems)
-	),
-	reverse(Loop, Stack),
-	close_list(Problems),
-	Problems = [Problem].
-
-has_loop(Function, _, Done, Done, Problems) :-
-	stop_because(Function, Problems), !.
-has_loop(Function, File, Done, Loop, Problems) :-
-	calls(Function, Callee, _, _),
-	(   memberchk(Callee, Done)
-	->  Loop = [Callee|Done]
-	;   has_loop(Callee, File, [Function|Done], Loop, Problems)
+load_stream(In) :-
+	repeat,
+	read_term(In, Term, []),
+	(   Term == end_of_file
+	->  !
+	;   call(Term)
+	->  fail
+	;   assertz(Term),
+	    fail
 	).
-
-close_list([]) :- !.
-close_list([_|T]) :-
-	close_list(T).
 
 problems :-
-	setof(Pred-Problems,
-	      setof(Problem,
-		    Loop^recursive_predicate(Pred, Loop, Problem),
-		    Problems),
-	      Pairs),
-	forall(member(Pred-Problems, Pairs),
-	       report(Pred, Problems)).
+	forall(calls(Func,Func),
+	       recursive_function(Func)).
 
-report(Name/Arity, Problems) :-
-	format('| ~w/~w | ', [Name, Arity]),
-	problem_functions(Problems),
-	format(' |~n').
+recursive_function(Func) :-
+	distinct(Loop, recursive_function(Func, Loop)),
+	maplist(write_call, Loop).
 
-problem_functions([]).
-problem_functions([H|T]) :-
-	problem_function(H),
-	(   T == []
-	->  true
-	;   format(', '),
-	    problem_functions(T)
+write_call((Func@_)@Site) =>
+	format('    ~w at ~w~n', [Func, Site]).
+write_call((Func)@Site) =>
+	format('~w at ~w~n', [Func, Site]).
+write_call(Func) =>
+	format('~w~n', [Func]).
+
+recursive_function(Func, [Func|Loop]) :-
+	calls(Func, Func),
+	between(1, 10, Depth),
+	edge(Func, Callee, Site),
+	path(Callee, Func, [Callee@Site], Loop0, Depth),
+	reverse(Loop0, Loop).
+
+path(Target, Target, Loop, Loop, _) :-
+	!.
+path(Target@_, Target, Loop, Loop, _) :-
+	!.
+path(Target, Target@_, Loop, Loop, _) :-
+	!.
+path(Here, Target, Seen, Loop, Depth) :-
+	Depth > 0,
+	edge(Here, There, Site),
+	\+ seen(There, Seen),
+	Depth1 is Depth-1,
+	path(There, Target, [There@Site|Seen], Loop, Depth1).
+
+seen(Func, Seen) :- memberchk(Func, Seen), !.
+seen(Func, Seen) :- atom(Func), memberchk(Func@_, Seen), !.
+seen(Func@_, Seen) :- memberchk(Func, Seen), !.
+
+
+%!	calls(?Func, ?Callee) is nondet.
+
+:- op(650, xfx, @).
+
+calls(Func, Callee) :-
+	anormal(Func, Func1),
+	anormal(Callee, Callee1),
+	tcalls(Func1, Callee1),
+	znormal(Func, Func1),
+	znormal(Callee, Callee1).
+
+anormal(Func, _Term), var(Func) => true.
+anormal(Func, Term),  atom(Func) => Term = Func@_.
+anormal(Func@Loc, Term) => Term	= Func@Loc.
+
+znormal(Func, Func) :- !.
+znormal(Func, Func@_).
+
+edge(Func, Callee, Where) :-
+	anormal(Func, Func1),
+	anormal(Callee, Callee1),
+	dcall(Func1, Callee1, Where),
+	znormal(Func, Func1),
+	znormal(Callee, Callee1).
+
+:- table tcalls/2.
+
+tcalls(Func, Callee) :-
+	tcalls(Func, Callee0),
+	tcalls(Callee0, Callee).
+tcalls(Func, Callee) :-
+	dcall(Func, Callee, _).
+
+:- table dcall/3.
+
+dcall(Func@File:SLine, Callee, File:CallLine) :-
+	function(Func, Type, File, SLine, ELine, _, _),
+	(   Type == function
+	->  calls(Func, Callee0, File, CallLine)
+	;   calls(_Func, Callee0, File, CallLine) % predicate, vmi, vmh
+	),
+	between(SLine, ELine, CallLine),
+	(   function(Callee0, function, File, SLineCallee, _, _, _)
+	->  Callee = Callee0@File:SLineCallee
+	;   Callee = Callee0
 	).
 
-problem_function(lao(F)) :-
-	format('~w', [F]).
-problem_function(no_lao(F)) :-
-	format('*~w*', [F]).
+duplicate_name(F, Files) :-
+	setof(File, function(F, File), Files),
+	Files = [_,_|_].
+
+function(F, File:Line) :-
+	function(F, _, File, Line, _, _, _).
+
+cleanup_empty_functions :-
+	predicate_property(function(_, _, _, _, _, _, _),
+			   number_of_clauses(N0)),
+	forall(empty_function(Func),
+	       retract_function(Func)),
+	predicate_property(function(_, _, _, _, _, _, _),
+			   number_of_clauses(N1)),
+	Cleaned is N0-N1,
+	format('Removed ~D duplicate functions; left ~D~n',
+	       [Cleaned, N1]).
+
+retract_function(Func@File:Line) :-
+	retractall(function(Func, _, File, Line, _, _, _)).
+
+empty_function(Func@File:SL2) :-
+	duplicate_name(Func, Locs),
+	member(File:SL1, Locs),
+	member(File:SL2, Locs),
+	SL1 \== SL2,
+	dcall(Func@File:SL1, _, _),
+	\+ dcall(Func@File:SL2, _, _).
 
 
 		 /*******************************
@@ -207,9 +219,5 @@ problem_function(no_lao(F)) :-
 
 main :-
 	load,
+	cleanup_empty_functions,
 	problems.
-
-
-
-
-
