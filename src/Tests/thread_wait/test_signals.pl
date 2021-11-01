@@ -366,7 +366,7 @@ normally(Goal) :-
     call(Goal),
     !.
 normally(Goal) :-
-    print_message(error, normally(Goal)).
+    print_message(warning, normally(Goal)).
 
 
 :- multifile prolog:message//1.
