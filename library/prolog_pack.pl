@@ -868,19 +868,24 @@ must_match(Values, Field) :-
 
 %!  prepare_pack_dir(+Dir, +Options)
 %
-%   Prepare for installing the package into  Dir. This should create
-%   Dir if it does not  exist  and   warn  if  the directory already
-%   exists, asking to make it empty.
+%   Prepare for installing the package into  Dir. This
+%
+%     - If the directory exist and is empty, done.
+%     - Else if the directory exists, remove the directory and recreate
+%       it. Note that if the directory is a symlink this just deletes
+%       the link.
+%     - Else create the directory.
 
 prepare_pack_dir(Dir, Options) :-
     exists_directory(Dir),
     !,
     (   empty_directory(Dir)
     ->  true
-    ;   option(upgrade(true), Options)
-    ->  delete_directory_contents(Dir)
-    ;   confirm(remove_existing_pack(Dir), yes, Options),
-        delete_directory_contents(Dir)
+    ;   (   option(upgrade(true), Options)
+        ;   confirm(remove_existing_pack(Dir), yes, Options)
+        )
+    ->  delete_directory_and_contents(Dir),
+        make_directory(Dir)
     ).
 prepare_pack_dir(Dir, _) :-
     make_directory(Dir).
