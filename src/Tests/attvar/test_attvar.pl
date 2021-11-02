@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2020, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -73,6 +73,18 @@ test(freeze_and, true) :-
     X=Y,
     freeze(X, true),
     X=a.
+test(freeze_memberchk, L == [1,2,3]) :-
+    freeze(L, L=[1,2,3]),
+    memberchk(2, L).
+test(freeze_memberchk, L == [1,2,3]) :-
+    freeze(L, L=[1,2,3]),
+    memberchk(2, [a,b|L]).
+test(freeze_memberchk, E-L == 1-[1,2,3]) :-
+    freeze(L, L=[1,2,3]),
+    memberchk(E, L).
+test(freeze_memberchk, E == 2) :-
+    freeze(E, E = 2),
+    memberchk(2, [1,E]).
 
 :- end_tests(freeze).
 

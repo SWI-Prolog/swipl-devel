@@ -66,6 +66,31 @@ attempt to call the Prolog defined trace interceptor.
 '$:-'('$boot_message'('Loading boot file ...~n', [])).
 
 
+		 /*******************************
+		 *          MEMBER[CHK]		*
+		 *******************************/
+
+'$member'(El, [H|T]) :-
+    '$member_'(T, El, H).
+
+'$member_'(_, El, El).
+'$member_'([H|T], El, _) :-
+    '$member_'(T, El, H).
+
+%!  memberchk(?E, ?List) is semidet.
+%
+%   Semantically equivalent to once(member(E,List)).   Implemented in C.
+%   If List is partial though we need to   do  the work in Prolog to get
+%   the proper constraint behavior.
+
+memberchk(E, List) :-
+    '$memberchk'(E, List, Tail),
+    (   nonvar(Tail)
+    ->  true
+    ;   '$member'(E, Tail),
+        !
+    ).
+
                 /********************************
                 *          DIRECTIVES           *
                 *********************************/
@@ -3991,14 +4016,6 @@ compile_aux_clauses(Clauses) :-
                 /********************************
                 *       LIST PROCESSING         *
                 *********************************/
-
-'$member'(El, [H|T]) :-
-    '$member_'(T, El, H).
-
-'$member_'(_, El, El).
-'$member_'([H|T], El, _) :-
-    '$member_'(T, El, H).
-
 
 '$append'([], L, L).
 '$append'([H|T], L, [H|R]) :-

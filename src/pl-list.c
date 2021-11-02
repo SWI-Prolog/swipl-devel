@@ -109,7 +109,7 @@ PRED_IMPL("$length", 2, dlength, 0)
 
 
 static
-PRED_IMPL("memberchk", 2, memberchk, 0)
+PRED_IMPL("$memberchk", 3, memberchk, 0)
 { GET_LD
   term_t ex = PL_new_term_ref();
   term_t h = PL_new_term_ref();
@@ -128,6 +128,11 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, A2);
     }
 
+    if ( PL_is_variable(l) )
+    { PL_close_foreign_frame(fid);
+      return PL_unify(A3, l);
+    }
+
     if ( !PL_unify_list(l, h, l) )
     { PL_close_foreign_frame(fid);
       PL_unify_nil_ex(l);
@@ -137,7 +142,7 @@ PRED_IMPL("memberchk", 2, memberchk, 0)
     if ( PL_unify(A1, h) )
     { if ( foreignWakeup(ex) )
       { PL_close_foreign_frame(fid);
-	succeed;
+	return PL_unify_nil(A3);
       } else
       { if ( !isVar(*valTermRef(ex)) )
 	  return PL_raise_exception(ex);
@@ -712,11 +717,11 @@ out:
 		 *******************************/
 
 BeginPredDefs(list)
-  PRED_DEF("is_list", 1, is_list, 0)
-  PRED_DEF("$length", 2, dlength, 0)
-  PRED_DEF("memberchk", 2, memberchk, 0)
-  PRED_DEF("sort", 2, sort, PL_FA_ISO)
-  PRED_DEF("msort", 2, msort, 0)
-  PRED_DEF("keysort", 2, keysort, PL_FA_ISO)
-  PRED_DEF("sort", 4, sort, 0)
+  PRED_DEF("is_list",	 1, is_list,   0)
+  PRED_DEF("$length",	 2, dlength,   0)
+  PRED_DEF("$memberchk", 3, memberchk, 0)
+  PRED_DEF("sort",	 2, sort,      PL_FA_ISO)
+  PRED_DEF("msort",	 2, msort,     0)
+  PRED_DEF("keysort",	 2, keysort,   PL_FA_ISO)
+  PRED_DEF("sort",	 4, sort,      0)
 EndPredDefs
