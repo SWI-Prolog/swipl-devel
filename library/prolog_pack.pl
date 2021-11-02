@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2019, VU University Amsterdam
+    Copyright (c)  2012-2021, VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -63,6 +64,12 @@
 :- use_module(library(http/json)).
 :- use_module(library(http/http_client), []).   % plugin for POST support
 :- use_module(library(prolog_config)).
+:- use_module(library(debug), [assertion/1]).
+:- use_module(library(pairs), [group_pairs_by_key/2, pairs_values/2]).
+% Stuff we may not have and may not need
+:- autoload(library(git)).
+:- autoload(library(sgml)).
+:- autoload(library(sha)).
 
 /** <module> A package manager for Prolog
 
@@ -100,11 +107,15 @@ makes installed packages available as libraries.
                  *******************************/
 
 %!  current_pack(?Pack) is nondet.
+%!  current_pack(?Pack, ?Dir) is nondet.
 %
 %   True if Pack is a currently installed pack.
 
 current_pack(Pack) :-
-    '$pack':pack(Pack, _).
+    current_pack(Pack, _).
+
+current_pack(Pack, Dir) :-
+    '$pack':pack(Pack, Dir).
 
 %!  pack_list_installed is det.
 %
@@ -452,7 +463,7 @@ search_info(download(_)).
 %       star (*) for the version.  In this case pack_install asks
 %       for the directory content and selects the latest version.
 %     * GIT URL (not well supported yet)
-%     * A local directory name given as =|file://|= URL.
+%     * A local directory name given as =|file://|= URL or `'.'`
 %     * A package name.  This queries the package repository
 %       at http://www.swi-prolog.org
 %
@@ -508,6 +519,19 @@ pack_default_options(FileURL, Pack, _, Options) :-      % Install from directory
     (   pack_info_term(Dir, version(Version))
     ->  uri_file_name(DirURL, Dir),
         Options = [url(DirURL), version(Version)]
+    ;   throw(error(existence_error(key, version, Dir),_))
+    ).
+pack_default_options('.', Pack, _, Options) :-          % Install from CWD
+    pack_info_term('.', name(Pack)),
+    !,
+    working_directory(Dir, Dir),
+    (   pack_info_term(Dir, version(Version))
+    ->  uri_file_name(DirURL, Dir),
+        Options = [url(DirURL), version(Version) | Options1],
+        (   current_prolog_flag(windows, true)
+        ->  Options1 = []
+        ;   Options1 = [link(true), rebuild(make)]
+        )
     ;   throw(error(existence_error(key, version, Dir),_))
     ).
 pack_default_options(URL, Pack, _, Options) :-          % Install from URL
@@ -607,9 +631,19 @@ url_menu_item(URL, URL=install_from(URL)).
 %     * upgrade(+Boolean)
 %     If `true` (default `false`), upgrade package if it is already
 %     installed.
+%     * rebuild(Condition)
+%     Rebuild the foreign components.  Condition is one of
+%     `if_absent` (default, do nothing if the directory with foreign
+%     resources exists), `make` (run `make`) or `true` (run `make
+%     distclean` followed by the default configure and build steps).
 %     * git(+Boolean)
 %     If `true` (default `false` unless `URL` ends with =.git=),
 %     assume the URL is a GIT repository.
+%     * link(+Boolean)
+%     Can be used if the installation source is a local directory
+%     and the file system supports symbolic links.  In this case
+%     the system adds the current directory to the pack registration
+%     using a symbolic link and performs the local installation steps.
 %
 %   Non-interactive installation can be established using the option
 %   interactive(false). It is adviced to   install from a particular
@@ -684,8 +718,9 @@ pack_create_install_dir(_, _, _) :-
 %     an error and fail.
 
 pack_install(Name, _, Options) :-
-    current_pack(Name),
+    current_pack(Name, Dir),
     option(upgrade(false), Options, false),
+    \+ pack_is_in_local_dir(Name, Dir, Options),
     print_message(error, pack(already_installed(Name))),
     pack_info(Name),
     print_message(information, pack(remove_with(Name))),
@@ -713,8 +748,17 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
     exists_directory(Source),
     !,
     directory_file_path(PackTopDir, Name, PackDir),
-    prepare_pack_dir(PackDir, Options),
-    copy_directory(Source, PackDir),
+    (   option(link(true), Options)
+    ->  (   same_file(Source, PackDir)
+        ->  true
+        ;   atom_concat(PackTopDir, '/', PackTopDirS),
+            relative_file_name(Source, PackTopDirS, RelPath),
+            link_file(RelPath, PackDir, symbolic),
+            assertion(same_file(Source, PackDir))
+        )
+    ;   prepare_pack_dir(PackDir, Options),
+        copy_directory(Source, PackDir)
+    ),
     pack_post_install(Name, PackDir, Options).
 pack_install_from_local(Source, PackTopDir, Name, Options) :-
     exists_file(Source),
@@ -722,6 +766,11 @@ pack_install_from_local(Source, PackTopDir, Name, Options) :-
     prepare_pack_dir(PackDir, Options),
     pack_unpack(Source, PackDir, Name, Options),
     pack_post_install(Name, PackDir, Options).
+
+pack_is_in_local_dir(_Pack, PackDir, Options) :-
+    option(url(DirURL), Options),
+    uri_file_name(DirURL, Dir),
+    same_file(PackDir, Dir).
 
 
 %!  pack_unpack(+SourceFile, +PackDir, +Pack, +Options)
@@ -1020,15 +1069,12 @@ download_scheme(https) :-
 %
 %   Process post installation work.  Steps:
 %
-%     - Create foreign resources [TBD]
+%     - Create foreign resources
 %     - Register directory as autoload library
 %     - Attach the package
 
 pack_post_install(Pack, PackDir, Options) :-
-    post_install_foreign(Pack, PackDir,
-                         [ build_foreign(if_absent)
-                         | Options
-                         ]),
+    post_install_foreign(Pack, PackDir, Options),
     post_install_autoload(PackDir, Options),
     '$pack_attach'(PackDir).
 
@@ -1037,13 +1083,20 @@ pack_post_install(Pack, PackDir, Options) :-
 %   Rebuilt possible foreign components of Pack.
 
 pack_rebuild(Pack) :-
-    '$pack':pack(Pack, BaseDir),
+    current_pack(Pack, PackDir),
     !,
-    catch(pack_make(BaseDir, [distclean], []), E,
-          print_message(warning, E)),
-    post_install_foreign(Pack, BaseDir, []).
+    pack_clean(Pack, PackDir, distclean),
+    post_install_foreign(Pack, PackDir, []).
 pack_rebuild(Pack) :-
     existence_error(pack, Pack).
+
+pack_clean(Pack, PackDir, How) :-
+    (   var(PackDir)
+    ->  current_pack(Pack, PackDir)
+    ;   true
+    ),
+    catch(pack_make(PackDir, [How], []), E,
+          print_message(warning, E)).
 
 %!  pack_rebuild is det.
 %
@@ -1063,10 +1116,15 @@ pack_rebuild :-
 post_install_foreign(Pack, PackDir, Options) :-
     is_foreign_pack(PackDir),
     !,
-    (   option(build_foreign(if_absent), Options),
+    option(rebuild(Rebuild), Options, if_absent),
+    (   Rebuild == if_absent,
         foreign_present(PackDir)
     ->  print_message(informational, pack(kept_foreign(Pack)))
-    ;   setup_path,
+    ;   (   Rebuild == true
+        ->  pack_clean(Pack, PackDir, distclean)
+        ;   true
+        ),
+        setup_path,
         save_build_environment(PackDir),
         configure_foreign(PackDir, Options),
         make_foreign(PackDir, Options)
