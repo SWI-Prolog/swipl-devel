@@ -1226,14 +1226,6 @@ make_foreign(PackDir, Options) :-
     pack_make(PackDir, [all, check, install], Options).
 
 pack_make(PackDir, Targets, _Options) :-
-    directory_file_path(PackDir, 'Makefile', Makefile),
-    exists_file(Makefile),
-    !,
-    build_environment(BuildEnv),
-    ProcessOptions = [ directory(PackDir), env(BuildEnv) ],
-    forall(member(Target, Targets),
-           run_process(path(make), [Target], ProcessOptions)).
-pack_make(PackDir, Targets, _Options) :-
     directory_file_path(PackDir, 'CMakeLists.txt', CMakefile),
     exists_file(CMakefile),
     directory_file_path(PackDir, 'build', BuildDir),
@@ -1246,6 +1238,14 @@ pack_make(PackDir, Targets, _Options) :-
         forall(member(Target, Targets),
                run_cmake_target(Target, BuildDir, ProcessOptions))
     ).
+pack_make(PackDir, Targets, _Options) :-
+    directory_file_path(PackDir, 'Makefile', Makefile),
+    exists_file(Makefile),
+    !,
+    build_environment(BuildEnv),
+    ProcessOptions = [ directory(PackDir), env(BuildEnv) ],
+    forall(member(Target, Targets),
+           run_process(path(make), [Target], ProcessOptions)).
 pack_make(_, _, _).
 
 run_cmake_target(check, BuildDir, ProcessOptions) :-
