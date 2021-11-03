@@ -1208,8 +1208,10 @@ cmake_configure_foreign(PackDir, _Options) :-
     directory_file_path(PackDir, build, BuildDir),
     make_directory_path(BuildDir),
     findall(Opt, cmake_option(Opt), Argv, [..]),
+    build_environment(BuildEnv),
     run_process(path(cmake), Argv,
-                [directory(BuildDir)]).
+                [directory(BuildDir),
+                 env(BuildEnv)]).
 
 cmake_option(CDEF) :-
     current_prolog_flag(executable, Exe),
