@@ -163,7 +163,9 @@ concurrent_with(G1, G2) :-
     setup_call_cleanup(
         thread_create(G1, Id, []),
         G2,
-        (   thread_signal(Id, abort),
+        (   catch(thread_signal(Id, abort),
+                  error(existence_error(thread, Id), _),
+                  true),
             thread_join(Id, _)
         )).
 
