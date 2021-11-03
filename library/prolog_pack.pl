@@ -1217,6 +1217,9 @@ cmake_option(CDEF) :-
 cmake_option(CDEF) :-
     prolog_prefix(Prefix),
     format(atom(CDEF), '-DCMAKE_INSTALL_PREFIX=~w', [Prefix]).
+cmake_option(Opt) :-
+    has_program(path(ninja), _),
+    member(Opt, ['-G', 'Ninja']).
 
 %!  make_foreign(+PackDir, +Options) is det.
 %
@@ -1255,6 +1258,11 @@ run_cmake_target(check, BuildDir, ProcessOptions) :-
     ->  run_process(path(ctest), [], ProcessOptions)
     ;   true
     ).
+run_cmake_target(Target, BuildDir, ProcessOptions) :-
+    directory_file_path(BuildDir, 'build.ninja', NinjaFile),
+    exists_file(NinjaFile),
+    !,
+    run_process(path(ninja), [Target], ProcessOptions).
 run_cmake_target(Target, _, ProcessOptions) :-
     run_process(path(make), [Target], ProcessOptions).
 
