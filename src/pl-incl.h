@@ -2114,7 +2114,8 @@ simpler, but a lot slower as it  implies   a  system  call. We assume no
 other signals are involved and unblock SIGSEGV by hand.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef HAVE_SIGALTSTACK
+#if defined(HAVE_SIGALTSTACK) && !defined(__SANITIZE_ADDRESS__)
+#define O_C_STACK_GUARDED 1
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
 	{ LD->signal.sig_critical = TRUE;		\

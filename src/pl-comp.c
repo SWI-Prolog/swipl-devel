@@ -1768,7 +1768,7 @@ static int compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, W
 				Procedure proc, Module module, term_t warnings,
 				int flags);
 
-#ifdef HAVE_SIGALTSTACK
+#ifdef O_C_STACK_GUARDED
 #define cleanupCompile(ci) LDFUNC(cleanupCompile, ci)
 
 static void
