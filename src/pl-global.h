@@ -458,7 +458,7 @@ struct PL_local_data
     int		forced;			/* Forced signal */
 #endif
 #ifdef HAVE_SIGNAL
-#ifdef HAVE_SIGALTSTACK
+#ifdef O_C_STACK_GUARDED
     jmp_buf	context;		/* Guarded for C-stack overflows */
     int		sig_critical;		/* context is valid */
     void       *alt_stack;		/* The stack */

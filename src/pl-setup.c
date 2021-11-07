@@ -734,7 +734,7 @@ initTerminationSignals(void)
 }
 #endif /*HAVE_SIGNAL*/
 
-#ifdef HAVE_SIGALTSTACK
+#ifdef O_C_STACK_GUARDED
 static void
 alt_segv_handler(int sig)
 { GET_LD
@@ -756,7 +756,7 @@ alt_segv_handler(int sig)
 int
 initGuardCStack(void)
 {
-#ifdef HAVE_SIGALTSTACK
+#ifdef O_C_STACK_GUARDED
   GET_LD
   stack_t ss = {0};
 
@@ -1740,7 +1740,7 @@ freePrologLocalData(PL_local_data_t *ld)
 
   clearThreadTablingData(ld);
 
-#ifdef HAVE_SIGALTSTACK
+#ifdef O_C_STACK_GUARDED
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif
