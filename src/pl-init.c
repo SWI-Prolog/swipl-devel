@@ -65,6 +65,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "os/pl-prologflag.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
+#include "os/pl-cstack.h"
 #include <errno.h>
 #ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
@@ -1675,14 +1676,20 @@ vsysError(const char *fm, va_list args)
     unblockSignals(&LD->gc.saved_sigmask);
   }
 
+  Sfprintf(Serror, "\n");
+  save_backtrace("SYSERROR");
+  print_backtrace_named("SYSERROR");
+
 #if defined(O_DEBUGGER)
   Sfprintf(Serror, "\n\nPROLOG STACK:\n");
   PL_backtrace(10, 0);
   Sfprintf(Serror, "]\n");
 #endif /*O_DEBUGGER*/
 
-  if ( GD->bootsession )
-    PL_abort_process();
+  if ( !(true(Sinput, SIO_ISATTY) &&
+	 true(Serror, SIO_ISATTY)) ||
+       GD->bootsession )
+    PL_abort_process();			/* non-interactive or booting */
 
 action:
 #ifdef HAVE_GETPID
