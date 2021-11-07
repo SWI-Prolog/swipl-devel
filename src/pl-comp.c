@@ -1768,6 +1768,7 @@ static int compileClauseGuarded(DECL_LD CompileInfo ci, Clause *cp, Word head, W
 				Procedure proc, Module module, term_t warnings,
 				int flags);
 
+#ifdef HAVE_SIGALTSTACK
 #define cleanupCompile(ci) LDFUNC(cleanupCompile, ci)
 
 static void
@@ -1775,6 +1776,7 @@ cleanupCompile(DECL_LD CompileInfo ci)
 { resetVars();
   discardBuffer(&ci->codes);
 }
+#endif
 
 int
 compileClause(DECL_LD Clause *cp, Word head, Word body,
