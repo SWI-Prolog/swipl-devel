@@ -1347,14 +1347,16 @@ start_thread_gc_thread(void)
 
 static void
 gc_thread(thread_handle *ref)
-{ thread_handle *h;
+{ if ( GD->cleaning == CLN_NORMAL )	/* otherwise we are terminating */
+  { thread_handle *h;
 
-  do
-  { h = gced_threads;
-    ref->next_free = h;
-  } while( !COMPARE_AND_SWAP_PTR(&gced_threads, h, ref) );
+    do
+    { h = gced_threads;
+      ref->next_free = h;
+    } while( !COMPARE_AND_SWAP_PTR(&gced_threads, h, ref) );
 
-  start_thread_gc_thread();
+    start_thread_gc_thread();
+  }
 }
 
 
