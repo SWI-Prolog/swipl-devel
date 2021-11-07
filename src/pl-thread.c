@@ -1022,7 +1022,8 @@ exitPrologThreads(void)
 	{ void *r;
 	  int rc;
 
-	  if ( (rc=pthread_join(info->tid, &r)) )
+	  if ( !COMPARE_AND_SWAP_INT(&info->joining_by, 0, me) &&
+	       (rc=pthread_join(info->tid, &r)) )
 	    Sdprintf("Failed to join thread %d: %s\n", i, ThError(rc));
 
 	  break;
@@ -1278,7 +1279,8 @@ discard_thread(thread_handle *h)
   if ( !alive )
   { double delay = 0.0001;
 
-    if ( !info->detached )
+    if ( !info->detached &&
+	 COMPARE_AND_SWAP_INT(&info->joining_by, 0, -1) )
     { void *r;
 
       while( pthread_join(info->tid, &r) == EINTR )
@@ -2561,15 +2563,15 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
     return FALSE;
   }
 
-  if ( info == LD->thread.info || info->detached || info->joining_by )
+  if ( info == LD->thread.info ||
+       info->detached ||
+       !COMPARE_AND_SWAP_INT(&info->joining_by, 0, PL_thread_self()) )
   { return PL_error("thread_join", 2,
 		    info->joining_by ? "Already being joined" :
 		    info->detached   ? "Cannot join detached thread"
 				     : "Cannot join self",
 		    ERR_PERMISSION, ATOM_join, ATOM_thread, thread);
   }
-  info->joining_by = PL_thread_self();
-
   PL_UNLOCK(L_THREAD);
 
   rc = pthread_join_interruptible(info->tid, &r);
