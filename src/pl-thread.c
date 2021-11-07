@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2020, University of Amsterdam,
+    Copyright (c)  1999-2021, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -4182,7 +4183,9 @@ get_current_timespec(struct timespec *time)
 
 void
 carry_timespec_nanos(struct timespec *time)
-{ while ( time->tv_nsec >= 1000000000 )
+{ DEBUG(0, assert(time->tv_nsec >= 0));
+
+  while ( time->tv_nsec >= 1000000000 )
   { time->tv_nsec -= 1000000000;
     time->tv_sec += 1;
   }
