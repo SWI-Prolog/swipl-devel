@@ -2410,8 +2410,8 @@ protectCRef(ClauseRef cref)
 { GET_LD
   void *k;
 
-  if ( !protectedCRefs )
-    protectedCRefs = newHTable(64);
+  if ( !protectedCRefs )		/* may waste a table.  Only O_DEBUG */
+    COMPARE_AND_SWAP_PTR(&protectedCRefs, NULL, newHTable(64));
 
   if ( (k=lookupHTable(protectedCRefs, cref)) )
   { k = (void*)((intptr_t)k+1);
