@@ -1253,6 +1253,11 @@ pack_make(PackDir, Targets, _Options) :-
            run_process(path(make), [Target], ProcessOptions)).
 pack_make(_, _, _).
 
+%!  run_cmake_target(+Target, +BuildDir, +ProcessOptions) is det.
+%
+%   Run a process step for CMake. We handle `check` using `ctest`, `all`
+%   using ``cmake --build .`` and `install` using ``cmake --install .``.
+
 run_cmake_target(check, BuildDir, ProcessOptions) :-
     !,
     (   directory_file_path(BuildDir, 'CTestTestfile.cmake', TestFile),
@@ -1260,6 +1265,12 @@ run_cmake_target(check, BuildDir, ProcessOptions) :-
     ->  run_process(path(ctest), [], ProcessOptions)
     ;   true
     ).
+run_cmake_target(all, _BuildDir, ProcessOptions) :-
+    !,
+    run_process(path(cmake), ['--build', '.'], ProcessOptions).
+run_cmake_target(install, _BuildDir, ProcessOptions) :-
+    !,
+    run_process(path(cmake), ['--install', '.'], ProcessOptions).
 run_cmake_target(Target, BuildDir, ProcessOptions) :-
     directory_file_path(BuildDir, 'build.ninja', NinjaFile),
     exists_file(NinjaFile),
