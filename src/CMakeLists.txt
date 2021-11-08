@@ -101,7 +101,7 @@ set(SWIPL_DATA_DIRS
     ${SWIPL_DATA_INDEXED_DIRS}
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
-    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme
+    library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
     demo)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
@@ -186,6 +186,7 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
     curr_sym.pl error_handler.pl lists.pl timed_call.pl
     standard.pl gpp.pl thread.pl gensym.pl)
+set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
 
