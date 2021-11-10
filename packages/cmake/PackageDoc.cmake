@@ -5,7 +5,8 @@ function(doc2tex file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${tex}
-      DEPENDS ${file} ${DOC2TEX_DEPENDS})
+      DEPENDS ${file} ${DOC2TEX_DEPENDS}
+      VERBATIM)
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
 
@@ -14,7 +15,8 @@ function(txt2tex file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} --outdir=. ${CMAKE_CURRENT_SOURCE_DIR}/${file}
-      DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
+      DEPENDS ${PLDOC2TEX_DEPENDS} ${file}
+      VERBATIM)
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
 
@@ -22,7 +24,8 @@ function(copy_file file)
   add_custom_command(
       OUTPUT ${file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-              ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${file})
+              ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${file}
+      VERBATIM)
   set(cpfiles ${cpfiles} ${file} PARENT_SCOPE)
 endfunction()
 
@@ -38,7 +41,7 @@ function(pldoc file)
     if(arg MATCHES ".*\\.tex")
       set(tex ${arg})
     elseif(arg MATCHES "library")
-      set(lib "\"${arg}\"")
+      set(lib "${arg}")
     elseif(arg MATCHES "^--")
       set(options ${options} ${arg})
     endif()
@@ -55,9 +58,9 @@ function(pldoc file)
     else()
       get_filename_component(base ${file} NAME_WE)
       if(libsubdir)
-	set(lib "\"library('${libsubdir}/${base}')\"")
+	set(lib "library('${libsubdir}/${base}')")
       else()
-	set(lib "\"library('${base}')\"")
+	set(lib "library('${base}')")
       endif()
     endif()
   endif()
@@ -66,7 +69,8 @@ function(pldoc file)
   add_custom_command(
       OUTPUT ${tex}
       COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} --out=${tex} ${seclevel} ${options} ${lib}
-      DEPENDS ${PLDOC2TEX_DEPENDS} ${file})
+      DEPENDS ${PLDOC2TEX_DEPENDS} ${file}
+      VERBATIM)
 
   set(texfiles ${texfiles} ${tex} PARENT_SCOPE)
 endfunction()
