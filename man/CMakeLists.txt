@@ -33,7 +33,8 @@ add_custom_command(
 	    -c ${CMAKE_CURRENT_SOURCE_DIR}/pldoc2tex.pl
             -- --nopce
     DEPENDS pldoc2tex.pl swipl core prolog_home
-            pldoc clib sgml http nlp)
+            pldoc clib sgml http nlp
+    VERBATIM)
 
 add_custom_target(
     pldoc2tex_state
@@ -43,7 +44,8 @@ function(copy_file file)
   add_custom_command(
       OUTPUT ${file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different
-              ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${file})
+              ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${file}
+      VERBATIM)
   set(cpfiles ${cpfiles} ${file} PARENT_SCOPE)
 endfunction()
 
@@ -68,12 +70,14 @@ function(doc2tex)
 	  OUTPUT ${f}
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
 	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
-	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
+	  DEPENDS ${docin} ${DOC2TEX_DEPENDS}
+	  VERBATIM)
     else()
       add_custom_command(
 	  OUTPUT ${f}
 	  COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${docin} ${f}
-	  DEPENDS ${docin} ${DOC2TEX_DEPENDS})
+	  DEPENDS ${docin} ${DOC2TEX_DEPENDS}
+	  VERBATIM)
     endif()
   endforeach()
 endfunction()
@@ -126,9 +130,10 @@ function(pldoc tex input)
 
     add_custom_command(
 	OUTPUT  ${tex}
-	COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "'${input}'"
+	COMMAND ${PROG_SWIPL} -f none --no-packs ${PLDOC2TEX} ${options} "${input}"
 	DEPENDS ${depends}
-	BYPRODUCTS ${byproducts})
+	BYPRODUCTS ${byproducts}
+	VERBATIM)
 endfunction()
 
 function(libdoc lib)
@@ -221,7 +226,8 @@ add_custom_command(
 add_custom_command(
     OUTPUT  ${DOC}.tex
     COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${DOC}.doc ${DOC}.tex
-    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS})
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${DOC}.doc ${DOC2TEX_DEPENDS}
+    VERBATIM)
 
 set(BIBTEX_DATA ${CMAKE_CURRENT_BINARY_DIR}/pl.bib)
 
@@ -229,7 +235,8 @@ add_custom_command(
     OUTPUT pl.bib
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
 	    ${CMAKE_CURRENT_SOURCE_DIR}/pl.bib .
-    DEPENDS pl.bib)
+    DEPENDS pl.bib
+    VERBATIM)
 
 # Collect all input files
 
@@ -252,13 +259,15 @@ add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
     COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
     DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles} prolog_home
-    COMMENT "Generating ${DOC}.pdf")
+    COMMENT "Generating ${DOC}.pdf"
+    VERBATIM)
 else()
 add_custom_command(
     OUTPUT  ${DOC}.bbl
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
             ${CMAKE_CURRENT_SOURCE_DIR}/gen/swipl.bbl ${DOC}.bbl
-    COMMENT "Copying pre-build LaTeX .bbl file")
+    COMMENT "Copying pre-build LaTeX .bbl file"
+    VERBATIM)
 endif()
 
 # Create the HTML manual
@@ -282,7 +291,8 @@ if(WIN32)
       OUTPUT windows.html
       COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} windows
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/windows.tex
-              core latex2html)
+              core latex2html
+      VERBATIM)
 
   add_custom_target(
       core.doc.windows.html
@@ -295,14 +305,16 @@ if(APPLE)
       COMMAND ${CMAKE_COMMAND} -E make_directory macosx
       COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/macosx/macosx.doc
 	                       macosx/macosx.tex
-      DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS})
+      DEPENDS macosx/macosx.doc ${DOC2TEX_DEPENDS}
+      VERBATIM)
 
   add_custom_command(
       OUTPUT  macosx/macosx.html
       COMMAND ${PROG_SWIPL} -f none --no-packs ${LATEX2HTML} macosx
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/macosx/macosx.tex
               core latex2html
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx)
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/macosx
+      VERBATIM)
 
   add_custom_target(
       core.doc.macosx.html

@@ -34,7 +34,7 @@ function(add_swipl_target name)
   endif()
 
   foreach(s ${my_LIBS})
-    set(options ${options} -g "\"use_module(library(${s}))\"")
+    set(options ${options} -g "use_module(library(${s}))")
   endforeach()
 
   foreach(s ${my_SCRIPT})
@@ -43,10 +43,11 @@ function(add_swipl_target name)
 
   add_custom_command(
       OUTPUT ${my_OUTPUT}
-      COMMAND ${PROG_SWIPL} ${options} -g "\"${my_COMMAND}\"" -- ${my_OPTIONS}
+      COMMAND ${PROG_SWIPL} ${options} -g "${my_COMMAND}" -- ${my_OPTIONS}
       COMMENT "${my_COMMENT}"
       DEPENDS core prolog_home
-              ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}")
+              ${SWIPL_COMMAND_DEPENDS} "${my_DEPENDS}"
+      VERBATIM)
   add_custom_target(
       ${name} ALL
       DEPENDS ${my_OUTPUT})
