@@ -102,7 +102,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/sicstus library/dialect/sicstus4 library/dialect/iso
     library/dialect/yap library/dialect/xsb library/theme library/iri_scheme library/build
-    demo)
+    demo cmake)
 
 set(SWIPL_DATA_boot init.pl syspred.pl toplevel.pl license.pl bags.pl apply.pl
     expand.pl dcg.pl history.pl attvar.pl packs.pl dwim.pl rc.pl predopts.pl
@@ -189,6 +189,7 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
 
 set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_cmake swipl.cmake)
 
 ################
 # Custom targets and commands
@@ -622,9 +623,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 
 # Install cmake config files
 install(EXPORT SWIPL_EXPORT
-  FILE SWIPLTargets.cmake
-  NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
-  DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
+	FILE SWIPLTargets.cmake
+	NAMESPACE "${SWIPL_CMAKE_NAMESPACE}"
+	DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/SWIPLConfigVersion.cmake"
         DESTINATION "${SWIPL_INSTALL_CMAKE_CONFIG_DIR}")
