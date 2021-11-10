@@ -324,8 +324,8 @@ maplist_([H0|T0], [H|T], Goal) :-
 Define the predicates referenced by the comma-separated list \arg{Head}
 as \jargon{meta-predicates}. Each argument of each head is a
 \jargon{meta argument specifier}. Defined specifiers are given below.
-Only 0..9, \chr{:} and \chr{^} are interpreted; the mode declarations
-\chr{+}, \chr{-} and \chr{?} are ignored.
+Only 0..9, \chr{:}, \chr{^} and \const{//} are interpreted; the mode
+declarations \chr{+}, \chr{-}, \chr{*} and \chr{?} are ignored.
 
     \begin{description}
         \termitem{0..9}{}
@@ -335,24 +335,20 @@ example: \exam{call(0)} or \exam{maplist(1, +)}.
         \termitem{:}{}
 The argument is module-sensitive, but does not directly refer
 to a predicate.  For example: \exam{consult(:)}.
-        \termitem{-}{}
-The argument is not module-sensitive and unbound on entry.
-        \termitem{?}{}
-The argument is not module-sensitive and the mode is unspecified.
-        \termitem{*}{}
-The argument is not module-sensitive and the mode is unspecified.
-The specification \chr{*} is equivalent to \chr{?}.  It is accepted
-for compatibility reasons.  The predicate predicate_property/2 reports
-arguments declared using \chr{*} with \chr{?}.
-        \termitem{+}{}
-The argument is not module-sensitive and bound (i.e., nonvar)
-on entry.
         \termitem{^}{}
 This extension is used to denote the possibly \verb$^$-annotated goal of
 setof/3, bagof/3, aggregate/3 and aggregate/4. It is processed similar
 to `0', but leaving the \chr{^}/2 intact.
 	\termitem{//}{}
 The argument is a DCG body.  See phrase/3.
+        \termitem{-}{}
+        \termitem{?}{}
+        \termitem{*}{}
+        \termitem{+}{}
+All these have the same semantics, declaring the argument to be not
+module sensitive.  The \chr{*} notation is an alias for \chr{?} for
+compatibility with e.g., Logtalk.  The specific mode has merely
+documentation value.  See \secref{argmode} for details.
     \end{description}
 
 Each argument that is module-sensitive (i.e., marked 0..9, \chr{:} or
