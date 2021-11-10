@@ -1,10 +1,7 @@
 # Building SWI-Prolog using cmake
 
 As of version 7.7.20,  SWI-Prolog   ships  with `cmake` `CMakeLists.txt`
-configuration files that cover the  entire   project.  Builds  have been
-tested on Ubuntu 16.04,  18.04,  18.10,   Fedora  28,  MacOSX  and cross
-compilation for Win32 as well  as  Win64   using  Ubuntu  18.04  as host
-system.
+configuration files that cover the  entire   project.
 
 The build has  been  tested  with   the  "Unix  Makefiles"  and  "Ninja"
 generators.  We  use  [Ninja](https://ninja-build.org/)   as  it  builds
@@ -16,7 +13,7 @@ classical Unix make.
 
 ## Getting cmake
 
-Building SWI-Prolog requires cmake version 3.5  or later (*). Many Linux
+Building SWI-Prolog requires cmake version 3.9  or later (*). Many Linux
 systems ship with a cmake package. On  MacOS we use the Macport version.
 If the shipped cmake version is too old   you may wish to download cmake
 from https://cmake.org/download/ On  Linux   systems,  installing  e.g.,
@@ -25,7 +22,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
     wget https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh
     sudo sh cmake-3.12.0-Linux-x86_64.sh --prefix=/usr/local --exclude-subdir
 
-(*) Tested with 3.5 (Ubuntu Xenial), 3.10 (Ubuntu Bionic), 3.14 (MacOS).
+(*) The ODBC package requires 3.9.  For the rest 3.5 should suffice.
 
 
 ## Native build
@@ -35,15 +32,7 @@ cmake 3.12 (please pick the latest stable version) is as simple as:
 The   source   may   be    downloaded    as     a    tar    ball    from
 http://www.swi-prolog.org or downloaded using git.  The git sequence is:
 
-    git clone https://github.com/SWI-Prolog/swipl-devel.git
-    cd swipl-devel
-    git submodule update --init
-
-If not all modules are needed,  one can  clone/update particular ones as
-follows:
-
-    git submodule update --init packages/jpl packages/clib packages/sgml
-
+    git clone --recursive https://github.com/SWI-Prolog/swipl-devel.git
 
 ### Building from source
 
@@ -66,17 +55,18 @@ latest version:
     git pull
     git submodule update --init
     cd build
-    cmake ..
+    ninja
     ninja
     ctest -j 8
     ninja install
 
-If this fails, one of these measures may be appropriate:
+Note that `ninja` is called twice.  Under some situations not everything
+is properly updated after the first run. This is a bug.
 
-  1. run `ninja clean` before `ninja`
-  2. remove the entire `build` directory and re-create it as above.
-     Note that the build process makes no modifications outside the
-     `build` directory.
+If the build fails, one could try to remove the entire `build` directory
+and re-create it as  above.  Note  that   the  build  process  makes  no
+modifications outside the `build` directory.
+
 
 ## Build types
 
@@ -91,12 +81,11 @@ PGO build for maximum performance.
 ## Install location
 
 To install in a particular   location, use `-DCMAKE_INSTALL_PREFIX`. For
-example, this will build SWI to be installed in  `/usr/local/swipl-git`:
+example, this will build SWI to be installed in ``~/bin``.
 
-    cmake -DCMAKE_INSTALL_PREFIX=/usr/local/swipl-git -G Ninja ..
+    cmake -DCMAKE_INSTALL_PREFIX=$HOME -G Ninja ..
 
-After    `sudo    ninja    install`,     `swipl`      will     be     in
-`/usr/local/swipl-git/bin/swipl`.
+After `ninja install`, `swipl` will be in `~/bin/swipl`.
 
 
 ## Customizing SWI-Prolog
@@ -129,6 +118,13 @@ and libraries that are built.
 Note that packages for  which  the   prerequisites  cannot  be found are
 dropped automatically, as are packages  for   which  the sources are not
 installed.
+
+Note that many combinations of these options are not properly supported.
+You are strongly encouraged  to  install   the  full  system for desktop
+usage. When installing in lightweight and   server  environments one may
+drop  one  or  more  of  ``SWIPL_PACKAGES_X``,  ``SWIPL_PACKAGES_JAVA``,
+``SWIPL_PACKAGES_ODBC`` and ``INSTALL_DOCUMENTATION``.
+
 
 ## Embedding SWI-Prolog in Java, C, C++, etc.
 
