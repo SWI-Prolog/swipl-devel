@@ -47,7 +47,8 @@ function(create_directory dir)
       add_custom_command(
 	  OUTPUT ${LNTDIR}/.created
 	  COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	  COMMAND ${TOUCH_EPOCH} ${dir}/.created)
+	  COMMAND ${TOUCH_EPOCH} ${dir}/.created
+	  VERBATIM)
       list(APPEND done ${dir})
       set_property(GLOBAL PROPERTY CREATE_DIRECTORY_STATE "${done}")
     endif()
@@ -55,7 +56,8 @@ function(create_directory dir)
     add_custom_command(
 	OUTPUT ${LNTDIR}/.created
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-	COMMAND ${TOUCH_EPOCH} ${dir}/.created)
+	COMMAND ${TOUCH_EPOCH} ${dir}/.created
+	VERBATIM)
   endif()
 endfunction()
 
@@ -69,13 +71,15 @@ function(add_symlink_command from to)
 	OUTPUT ${to}
 	COMMAND ${CMAKE_COMMAND} -E create_symlink ${LNLNK} ./${LNTNAME}
 	WORKING_DIRECTORY ${LNTDIR}
-	DEPENDS ${LNTDIR}/.created)
+	DEPENDS ${LNTDIR}/.created
+	VERBATIM)
   else()
     add_custom_command(
 	OUTPUT ${to}
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${LNLNK} ./${LNTNAME}
 	WORKING_DIRECTORY ${LNTDIR}
-	DEPENDS ${LNTDIR}/.created ${from})
+	DEPENDS ${LNTDIR}/.created ${from}
+	VERBATIM)
   endif()
 endfunction()
 

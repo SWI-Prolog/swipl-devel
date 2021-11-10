@@ -93,7 +93,8 @@ macro(configure_pgo pgo_tag)
   set(PGO_HEADER_FILE ${CMAKE_CURRENT_BINARY_DIR}/pgo-timestamp.h)
   add_custom_command(OUTPUT ${PGO_HEADER_FILE}
           DEPENDS ${PGO_OUTPUT_FILE}
-          COMMAND ${CMAKE_COMMAND} -P ${PGO_SCRIPT} write-timestamp-header ${PGO_HEADER_FILE} ${PGO_OUTPUT_FILE})
+          COMMAND ${CMAKE_COMMAND} -P ${PGO_SCRIPT} write-timestamp-header ${PGO_HEADER_FILE} ${PGO_OUTPUT_FILE}
+          VERBATIM)
   set(PGO_USE_FLAGS ${PGO_USE_FLAGS} -include "${PGO_HEADER_FILE}")
   add_custom_target(pgo_data DEPENDS ${PGO_HEADER_FILE})
 
@@ -136,7 +137,8 @@ endfunction()
 function(use_pgo_data) # use_pgo_data(targets...)
   if(PGO_RUN_STAMP)
     add_custom_command(OUTPUT ${PGO_RUN_STAMP} APPEND
-          COMMAND ${CMAKE_COMMAND} -E touch ${PGO_RUN_STAMP})
+          COMMAND ${CMAKE_COMMAND} -E touch ${PGO_RUN_STAMP}
+          VERBATIM)
   endif()
   string(REPLACE ";" " " use_flags "${PGO_USE_FLAGS}")
   foreach(t IN LISTS ARGV)
