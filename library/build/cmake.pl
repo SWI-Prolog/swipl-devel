@@ -85,12 +85,11 @@ prolog:build_step(clean, cmake, State0, State) :-
     ensure_build_dir(build, State0, State),
     run_cmake_target(State, clean).
 prolog:build_step(distclean, cmake, State, State) :-
-    (   State.get(bin_dir) \== State.src_dir
-    ->  delete_directory_and_contents(State.bin_dir)
-    ;   ensure_build_dir(build, State, State1),
-        run_cmake_target(State1, distclean)
+    directory_file_path(State.src_dir, build, BinDir),
+    (   exists_directory(BinDir)
+    ->  delete_directory_and_contents(BinDir)
+    ;   true
     ).
-
 
 cmake_option(_, CDEF) :-
     current_prolog_flag(executable, Exe),
