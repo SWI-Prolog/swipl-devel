@@ -75,3 +75,6 @@ function(target_link_swipl target)
       PRIVATE ${swipl_include_dir})
   endif()
 endfunction()
+
+# Avoid message on unused variable
+set(SWIPL "${SWIPL}")
