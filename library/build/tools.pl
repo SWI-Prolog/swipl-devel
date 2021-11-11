@@ -33,7 +33,7 @@
 */
 
 :- module(build_tools,
-          [ build_steps/2,              % +Steps, +SrcDir
+          [ build_steps/3,              % +Steps, +SrcDir, +Options
             build_environment/1,        % -Env
             save_build_environment/2,   % +BuildDir, +Env
             prolog_install_prefix/1,    % -Prefix
@@ -42,12 +42,16 @@
             path_sep/1,                 % -Separator
             ensure_build_dir/3          % +Dir, +State0, -State
           ]).
-:- autoload(library(lists), [selectchk/3, member/2]).
-:- autoload(library(option), [option/2, option/3]).
+:- autoload(library(lists), [selectchk/3, member/2, append/3, last/2]).
+:- autoload(library(option), [option/2, option/3, dict_options/2]).
 :- autoload(library(pairs), [pairs_values/2]).
 :- autoload(library(process), [process_create/3, process_wait/2]).
 :- autoload(library(readutil), [read_stream_to_codes/3]).
 :- autoload(library(dcg/basics), [string/3]).
+:- autoload(library(apply), [foldl/4, maplist/2]).
+:- autoload(library(filesex), [directory_file_path/3, make_directory_path/1]).
+:- autoload(library(prolog_config), [apple_bundle_libdir/1]).
+:- autoload(library(solution_sequences), [distinct/2]).
 
 % The plugins.  Load them in the order of preference.
 :- use_module(conan).
@@ -74,12 +78,12 @@ unique to the toolchain.   Currently it supports
     for configuration and building
 */
 
-%!  build_steps(+Steps:list, SrcDir:atom) is det.
+%!  build_steps(+Steps:list, SrcDir:atom, +Options) is det.
 %
 %   Run the desired build steps.  Normally,   Steps  is  the list below,
 %   optionally prefixed with `distclean` or `clean`.
 %
-%       [dependencies, configure, build, test, install]
+%       [[dependencies], [configure], build, [test], install]
 %
 %   Each step finds an applicable toolchain  based on known unique files
 %   and calls the matching plugin to perform  the step. A step may fail,
@@ -90,22 +94,31 @@ unique to the toolchain.   Currently it supports
 %   skipped. This is ok for some steps such as `dependencies` or `test`.
 %   Possibly we should force the `install` step to succeed?
 
-build_steps(Steps, SrcDir) :-
+build_steps(Steps, SrcDir, Options) :-
+    dict_options(Dict0, Options),
     setup_path,
     build_environment(BuildEnv),
-    State0 = #{ env: BuildEnv,
-                src_dir: SrcDir
-              },
+    State0 = Dict0.put(#{ env: BuildEnv,
+                          src_dir: SrcDir
+                        }),
     foldl(build_step, Steps, State0, _State).
 
-build_step(Step, State0, State) :-
+build_step(Spec, State0, State) :-
+    step_name(Spec, Step),
     prolog:build_file(File, Tool),
     directory_file_path(State0.src_dir, File, Path),
     exists_file(Path),
     prolog:build_step(Step, Tool, State0, State),
     post_step(Step, Tool, State),
     !.
-build_step(_, State, State).
+build_step([_], State, State) :-
+    !.
+build_step(Step, State, State) :-
+    print_message(warning, build(step_failed(Step))).
+
+step_name([Step], Step) :-              % options
+    !.
+step_name(Step, Step).
 
 post_step(configure, _, State) :-
     !,
@@ -638,6 +651,8 @@ message(no_mingw) -->
 message(process_output(Codes)) -->
     { split_lines(Codes, Lines) },
     process_lines(Lines).
+message(step_failed(Step)) -->
+    [ 'Nu build plugin could execute build step ~p'-[Step] ].
 
 split_lines([], []) :- !.
 split_lines(All, [Line1|More]) :-

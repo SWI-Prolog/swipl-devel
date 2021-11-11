@@ -1112,12 +1112,12 @@ post_install_foreign(Pack, PackDir, Options) :-
     (   Rebuild == if_absent,
         foreign_present(PackDir)
     ->  print_message(informational, pack(kept_foreign(Pack)))
-    ;   BuildSteps0 = [dependencies, configure, build, test, install],
+    ;   BuildSteps0 = [[dependencies], [configure], build, [test], install],
         (   Rebuild == true
         ->  BuildSteps = [distclean|BuildSteps0]
         ;   BuildSteps = BuildSteps0
         ),
-        build_steps(BuildSteps, PackDir)
+        build_steps(BuildSteps, PackDir, Options)
     ).
 
 

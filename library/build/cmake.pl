@@ -53,7 +53,7 @@ prolog:build_file('CMakeLists.txt', cmake).
 
 prolog:build_step(configure, cmake, State0, State) :-
     ensure_build_dir(build, State0, State),
-    findall(Opt, cmake_option(State.env, Opt), Argv, [..]),
+    findall(Opt, cmake_option(State, Opt), Argv, [..]),
     run_process(path(cmake), Argv,
                 [ directory(State.bin_dir),
                   env(State.env)
@@ -91,14 +91,19 @@ prolog:build_step(distclean, cmake, State, State) :-
     ;   true
     ).
 
+%!  cmake_option(+State, -Define) is nondet.
+
 cmake_option(_, CDEF) :-
     current_prolog_flag(executable, Exe),
     format(atom(CDEF), '-DSWIPL=~w', [Exe]).
 cmake_option(_, CDEF) :-
     prolog_install_prefix(Prefix),
     format(atom(CDEF), '-DCMAKE_INSTALL_PREFIX=~w', [Prefix]).
-cmake_option(Env, Opt) :-
-    has_program(path(ninja), _, Env),
+cmake_option(State, CDEF) :-
+    cmake_build_type(State, Type),
+    format(atom(CDEF), '-DCMAKE_BUILD_TYPE=~w', [Type]).
+cmake_option(State, Opt) :-
+    has_program(path(ninja), _, State.env),
     member(Opt, ['-G', 'Ninja']).
 
 run_cmake_target(State, Target) :-
@@ -112,6 +117,20 @@ run_cmake_target(State, Target) :-
 
 cmake_generator_file(ninja, 'build.ninja').
 cmake_generator_file(make,  'Makefile').
+
+cmake_build_type(State, Type) :-
+    Type = State.get(build_type),
+    !.
+cmake_build_type(_, Type) :-
+    current_prolog_flag(cmake_build_type, PlType),
+    project_build_type(PlType, Type),
+    !.
+cmake_build_type(_, 'Release').
+
+project_build_type('PGO', 'Release').
+project_build_type('DEB', 'Release').
+project_build_type(Type, Type).
+
 
 test_jobs(Jobs) :-
     current_prolog_flag(cpu_count, Cores),
