@@ -141,7 +141,7 @@ configure_option(Opt) :-
     format(atom(Opt), '--prefix=~w', [Prefix]).
 
 needs_build(Target, Sources) :-
-    Error = error(existence_error(source_sink, _), _),
+    Error = error(existence_error(file, _), _),
     maplist(to_file, Sources, SourceFiles),
     catch(maplist(time_file, SourceFiles, SourceTimes),
           Error,
