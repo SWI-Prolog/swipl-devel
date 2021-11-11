@@ -2174,9 +2174,6 @@ message(pack(no_upgrade_info(Pack))) -->
 candidate_dirs([]) --> [].
 candidate_dirs([H|T]) --> [ nl, '    ~w'-[H] ], candidate_dirs(T).
 
-message(no_mingw) -->
-    [ 'Cannot find MinGW and/or MSYS.'-[] ].
-
                                                 % Questions
 message(resolve_remove) -->
     [ nl, 'Please select an action:', nl, nl ].

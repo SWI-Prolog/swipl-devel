@@ -492,7 +492,7 @@ print_output(OutCodes, Options) :-
     !,
     Codes = OutCodes.
 print_output(OutCodes, _) :-
-    print_message(informational, pack(process_output(OutCodes))).
+    print_message(informational, build(process_output(OutCodes))).
 
 print_error(OutCodes, Options) :-
     option(error(Codes), Options),
@@ -500,7 +500,7 @@ print_error(OutCodes, Options) :-
     Codes = OutCodes.
 print_error(OutCodes, _) :-
     phrase(classify_message(Level), OutCodes, _),
-    print_message(Level, pack(process_output(OutCodes))).
+    print_message(Level, build(process_output(OutCodes))).
 
 classify_message(error) -->
     string(_), "fatal:",
@@ -598,7 +598,7 @@ setup_path(_) :-
     !,
     (   mingw_extend_path
     ->  true
-    ;   print_message(error, pack(no_mingw))
+    ;   print_message(error, build(no_mingw))
     ).
 setup_path(_).
 
@@ -623,4 +623,34 @@ mingw_root(MinGwRoot) :-
     format(atom(MinGwRoot), '~a:/MinGW', [Drive]),
     exists_directory(MinGwRoot),
     !.
+
+                 /*******************************
+                 *            MESSAGES          *
+                 *******************************/
+
+:- multifile prolog:message//1.
+
+prolog:message(build(Msg)) -->
+    message(Msg).
+
+message(no_mingw) -->
+    [ 'Cannot find MinGW and/or MSYS.'-[] ].
+message(process_output(Codes)) -->
+    { split_lines(Codes, Lines) },
+    process_lines(Lines).
+
+split_lines([], []) :- !.
+split_lines(All, [Line1|More]) :-
+    append(Line1, [0'\n|Rest], All),
+    !,
+    split_lines(Rest, More).
+split_lines(Line, [Line]).
+
+process_lines([]) --> [].
+process_lines([H|T]) -->
+    [ '~s'-[H] ],
+    (   {T==[]}
+    ->  []
+    ;   [nl], process_lines(T)
+    ).
 
