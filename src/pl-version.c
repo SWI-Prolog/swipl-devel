@@ -43,4 +43,7 @@ setGITVersion(void)
 #ifdef GIT_VERSION
   PL_set_prolog_flag("version_git", PL_ATOM|FF_READONLY, GIT_VERSION);
 #endif
+#ifdef CMAKE_BUILD_TYPE
+  PL_set_prolog_flag("cmake_build_type", PL_ATOM|FF_READONLY, CMAKE_BUILD_TYPE);
+#endif
 }

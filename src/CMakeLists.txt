@@ -260,13 +260,11 @@ add_custom_command(
     COMMENT "Generating static atoms and functors"
 )
 
+
 set(USE_GIT_VERSION_H 1)
-add_custom_target(
-    git-version
-    COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/mkversion.sh ${CMAKE_CURRENT_SOURCE_DIR}
-    BYPRODUCTS version.h
-    COMMENT "Checking (git) version"
-)
+include(GitVersion)
+git_version(GIT_VERSION)
+configure_file(version.h.in version.h)
 
 add_custom_command(
     OUTPUT  ${SWIPL_BOOT_FILE}
@@ -375,7 +373,7 @@ endif()
 if(LIBSWIPL_TYPE STREQUAL "SHARED")
   set_property(TARGET swiplobjs${PGO_SUFFIX} PROPERTY POSITION_INDEPENDENT_CODE 1)
 endif()
-add_dependencies(swiplobjs${PGO_SUFFIX} git-version vmi-metadata core-constants)
+add_dependencies(swiplobjs${PGO_SUFFIX} vmi-metadata core-constants)
 target_include_directories(swiplobjs${PGO_SUFFIX} BEFORE PRIVATE
 			   ${CMAKE_CURRENT_BINARY_DIR}
 			   ${CMAKE_CURRENT_SOURCE_DIR}
