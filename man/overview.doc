@@ -1266,6 +1266,10 @@ If \const{true} (default), write/1 and friends write escaped characters
 using the \verb$\uXXXX$ or \verb$\UXXXXXXXX$ syntax rather than the
 ISO Prolog \verb$\x<hex>\$ syntax.  SWI-Prolog reads both.
 
+    \prologflagitem{cmake_build_type}{atom}{ro}
+Provides the \href{https://cmake.org/}{cmake} \jargon{build type} used
+to build this version of SWI-Prolog.
+
     \prologflagitem{colon_sets_calling_context}{bool}{ro}
 Using the construct <module>:<goal> sets the \jargon{calling context}
 for executing <goal>.  This flag is defined by ISO/IEC 13211-2 (Prolog
