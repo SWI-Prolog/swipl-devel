@@ -89,6 +89,10 @@ prolog:build_step(build, make, State0, State) :-
     ensure_build_dir(., State0, State),
     debug(build(build), 'Running make', []),
     run_make(State, []).
+prolog:build_step(install, make, State0, State) :-
+    ensure_build_dir(., State0, State),
+    debug(build(build), 'Running make', []),
+    run_make(State, [install]).
 prolog:build_step(test, make, State0, State) :-
     ensure_build_dir(., State0, State),
     debug(build(test), 'Running make check', []),
