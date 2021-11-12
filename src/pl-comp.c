@@ -4428,15 +4428,15 @@ PRED_IMPL("$start_aux", 2, start_aux, 0)
   atom_t filename;
   SourceFile sf;
   Procedure proc;
-  Definition def;
 
   if ( !PL_get_atom_ex(A1, &filename) )
     return FALSE;
 
   sf = lookupSourceFile(filename, TRUE);
   if ( (proc=sf->current_procedure) &&
-       (def=proc->definition) )
-    return unify_definition(NULL, A2, def, 0, GP_QUALIFY|GP_NAMEARITY);
+       isDefinedProcedure(proc) )
+    return unify_definition(NULL, A2, proc->definition,
+			    0, GP_QUALIFY|GP_NAMEARITY);
   else
     return PL_unify_nil(A2);
 }
@@ -4457,7 +4457,7 @@ PRED_IMPL("$end_aux", 2, end_aux, 0)
   if ( PL_get_nil(A2) )
   { sf->current_procedure = NULL;
   } else
-  { if ( get_procedure(A2, &proc, 0, GP_NAMEARITY|GP_EXISTENCE_ERROR) )
+  { if ( get_procedure(A2, &proc, 0, GP_NAMEARITY) )
       sf->current_procedure = proc;
     else
       rc = FALSE;
