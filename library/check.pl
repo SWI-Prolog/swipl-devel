@@ -383,6 +383,11 @@ list_void_declarations :-
                           check(void_declaration(P, Attr)))
         ),
         fail
+    ;   predicate_property(P, discontiguous),
+        \+ (predicate_property(P, number_of_clauses(N)), N > 0),
+        print_message(warning,
+                      check(void_declaration(P, discontiguous))),
+        fail
     ;   true
     ).
 
