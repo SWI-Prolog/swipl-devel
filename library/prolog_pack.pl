@@ -1075,7 +1075,9 @@ download_scheme(https) :-
 %     - Attach the package
 
 pack_post_install(Pack, PackDir, Options) :-
-    post_install_foreign(Pack, PackDir, Options),
+    (   is_foreign_pack(PackDir, _)
+     -> post_install_foreign(Pack, PackDir, Options)
+      ; true), % no foreign code => do nothing
     post_install_autoload(PackDir, Options),
     '$pack_attach'(PackDir).
 
