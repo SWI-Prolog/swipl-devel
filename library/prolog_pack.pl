@@ -1119,6 +1119,7 @@ post_install_foreign(Pack, PackDir, Options) :-
         ),
         build_steps(BuildSteps, PackDir, Options)
     ).
+post_install_foreign(_, _, _).
 
 
 %!  foreign_present(+PackDir) is semidet.
