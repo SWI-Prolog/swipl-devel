@@ -2106,8 +2106,8 @@ message(install_downloaded(File)) -->
       size_file(File, Size) },
     [ 'Install "~w" (~D bytes)'-[Base, Size] ].
 message(git_post_install(PackDir, Pack)) -->
-    (   { is_foreign_pack(PackDir) }
-    ->  [ 'Run post installation scripts for pack "~w"'-[Pack] ]
+    (   { is_foreign_pack(PackDir, Type) }
+    ->  [ 'Run post installation scripts for pack "~w" (~q)'-[Pack, Type] ]
     ;   [ 'Activate pack "~w"'-[Pack] ]
     ).
 message(no_meta_data(BaseDir)) -->
