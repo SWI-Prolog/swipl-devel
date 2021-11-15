@@ -56,6 +56,17 @@ dif(X,Y) :-
     X \== Y,
     dif_c_c(X,Y,_).
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The constraint is helt in  an   attribute  `dif`. A constrained variable
+holds a term  vardif(L1,L2)  where  `L1`   is  a  list  OrNode-Value for
+constraints on this variable  and  `L2`   is  the  constraint list other
+variables have on me.
+
+The `OrNode` is a term node(Count, Pairs),   where `Count` is the number
+of disjunctive nodes unresolved. Pairs is a of list Var=Value terms.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
 dif_unifiable(X, Y, Us) :-
     (    current_prolog_flag(occurs_check, error)
     ->   catch(unifiable(X,Y,Us), error(occurs_check(_,_),_), false)
