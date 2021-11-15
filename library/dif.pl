@@ -3,7 +3,8 @@
     Author:        Tom Schrijvers, Markus Triska and Jan Wielemaker
     E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2016, K.U.Leuven
+    Copyright (c)  2004-2021, K.U.Leuven
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -82,6 +83,15 @@ dif_c_c(X,Y,OrNode) :-
     ;   or_succeed(OrNode)
     ).
 
+
+%!  dif_c_c_l(+Unifier, +OrNode)
+%
+%   Extend OrNode with new elements from the   unifier.  Note that it is
+%   possible that a unification against the   same variable appears as a
+%   result of how unifiable acts on  sharing subterms. This is prevented
+%   by block_contradictions/1.
+%
+%   @see test 14 in src/Tests/attvar/test_dif.pl.
 
 dif_c_c_l(Unifier,OrNode) :-
     length(Unifier,N),
