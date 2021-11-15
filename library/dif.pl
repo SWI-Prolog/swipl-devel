@@ -96,7 +96,11 @@ dif_c_c(X,Y,OrNode) :-
 dif_c_c_l(Unifier,OrNode) :-
     length(Unifier,N),
     extend_ornode(OrNode,N,List,Tail),
-    dif_c_c_l_aux(Unifier,OrNode,List,Tail).
+    dif_c_c_l_aux(Unifier,OrNode,List,Tail),
+    (   block_contradictions(List)
+    ->  true
+    ;   or_succeed(OrNode)
+    ).
 
 extend_ornode(OrNode,N,List,Vars) :-
     (   get_attr(OrNode,dif,Attr)
@@ -112,6 +116,19 @@ dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
     List = [X=Y|Rest],
     add_ornode(X,Y,OrNode),
     dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
+
+block_contradictions(List) :-
+    sort(1, @=<, List, Sorted),
+    block_contradictions_(Sorted).
+
+block_contradictions_([]) =>
+    true.
+block_contradictions_([Var=Val1,Var=Val2|T]) =>
+    Val1 = Val2,
+    block_contradictions_([Var=Val2|T]).
+block_contradictions_([_|T]) =>
+    block_contradictions_(T).
+
 
 add_ornode(X,Y,OrNode) :-
     add_ornode_var1(X,Y,OrNode),

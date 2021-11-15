@@ -77,6 +77,17 @@ dif(12) :-		% https://github.com/SWI-Prolog/issues/issues/15
 	dif(X-Y,1-2), X=Y, Y = 1.
 dif(13) :-		% https://github.com/SWI-Prolog/issues/issues/15
 	dif(X-Y,1-2), X=Y, Y = 2.
+dif(14) :-
+	P = t3(A,A),
+	A = t5(D,D),
+	D = t8(c,b),
+
+	Q = t3(t5(t8(_,b),t8(c,b)),
+	       t5(G,_)),
+
+	dif(P,Q),
+	G=t8(x,b),
+	assertion(term_attvars(P+Q, [])).
 
 :- dynamic
 	failed/1.
