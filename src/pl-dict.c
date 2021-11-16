@@ -990,6 +990,11 @@ resortDictsInCodes(Code PC, Code end)
 	    return PL_no_memory();
 
 	  PC = stepPC(PC);		/* skip *_FUNCTOR */
+	  if ( fetchop(PC) == H_VOID_N ) /* deal with _{key:_, ...} */
+	  { assert(PC[1] == (code)2);
+	    PC[0] = encode(H_VOID);
+	    PC[1] = encode(H_VOID);
+	  }
 	  PC = skipArgs(PC, 1);		/* skip the type */
 	  fields_start = PC;
 
