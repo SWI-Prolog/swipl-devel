@@ -1668,10 +1668,6 @@ initMerge(CompileInfo ci)
 { ci->mstate.candidates = NULL;
 }
 
-static void
-flushMerge(CompileInfo ci)
-{ ci->mstate.candidates = NULL;
-}
 
 static int
 mergeInstructions(CompileInfo ci, const vmi_merge *m, vmi c)
@@ -2661,11 +2657,9 @@ isvar:
   } else
   { ssize_t ar;
     functor_t fdef;
-    FunctorDef fd;
     int isright = (where & A_RIGHT);
 
     fdef = functorTerm(*arg);
-    fd   = valueFunctor(fdef);
     if ( fdef == FUNCTOR_dot2 )
     { code c;
 
@@ -2688,23 +2682,11 @@ isvar:
 
       Output_1(ci, c, (word)fdef);
     }
-    ar = fd->arity;
+    ar = arityFunctor(fdef);
     where &= ~(A_RIGHT|A_NOARGVAR);
     where |= A_ARG;
 
-    arg = argTermP(*arg, 0);
-					/* Prevent <h_atom C'dict h_void 2> */
-    if ( unlikely(fd->name == ATOM_dict && ar >= 3) )
-    { int rc;
-
-      if ( (rc=compileArgument(arg, where, ci)) < 0 )
-	return rc;
-      flushMerge(ci);
-      arg++;
-      ar--;
-    }
-
-    for(; --ar > 0; arg++)
+    for(arg = argTermP(*arg, 0); --ar > 0; arg++)
     { int rc;
 
       if ( (rc=compileArgument(arg, where, ci)) < 0 )
