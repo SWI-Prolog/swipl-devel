@@ -553,7 +553,6 @@ simple:
   return cref;
 }
 
-int acquired = 0;
 
 ClauseRef
 firstClause(DECL_LD Word argv, LocalFrame fr, Definition def, ClauseChoice chp)
