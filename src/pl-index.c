@@ -1046,40 +1046,46 @@ deleteClauseBucket(ClauseBucket ch, Clause clause, word key, int is_list)
 (*) The  clause  list   may   have   been   marked    as   "dirty"   by
 deleteActiveClauseFromBucket()  even though  it  does  not  contain the
 clause being deleted. We reset the count when we have finished scanning
-the list.
+the list to the number of erased clauses remaining in the list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 gcClauseList(ClauseList clist, DirtyDefInfo ddi, gen_t start, Buffer tr_starts)
 { ClauseRef cref=clist->first_clause, prev = NULL;
+  size_t left = 0;
 
   while(cref && clist->erased_clauses)
   { Clause cl = cref->value.clause;
 
-    if ( true(cl, CL_ERASED) && ddi_is_garbage(ddi, start, tr_starts, cl) )
-    { ClauseRef c = cref;
+    if ( true(cl, CL_ERASED) )
+    { if ( ddi_is_garbage(ddi, start, tr_starts, cl) )
+      { ClauseRef c = cref;
 
-      clist->erased_clauses--;
+	clist->erased_clauses--;
 
-      cref = cref->next;
-      if ( !prev )
-      { clist->first_clause = c->next;
-	if ( !c->next )
-	  clist->last_clause = NULL;
+	cref = cref->next;
+	if ( !prev )
+	{ clist->first_clause = c->next;
+	  if ( !c->next )
+	    clist->last_clause = NULL;
+	} else
+	{ prev->next = c->next;
+	  if ( c->next == NULL)
+	    clist->last_clause = prev;
+	}
+
+	lingerClauseRef(c);
+	continue;
       } else
-      { prev->next = c->next;
-	if ( c->next == NULL)
-	  clist->last_clause = prev;
+      { left++;
       }
-
-      lingerClauseRef(c);
-    } else
-    { prev = cref;
-      cref = cref->next;
     }
+
+    prev = cref;
+    cref = cref->next;
   }
 
-  clist->erased_clauses = 0; /* see (*) */
+  clist->erased_clauses = left; /* see (*) */
 }
 
 
@@ -1101,7 +1107,8 @@ gcClauseBucket(Definition def, ClauseBucket ch,
 
       if ( cl->erased_clauses )
       { gcClauseList(cl, ddi, start, tr_starts);
-	dirty--;
+	if ( !cl->erased_clauses )
+	  dirty--;
 
 	if ( cl->first_clause == NULL )
 	  goto delete;
