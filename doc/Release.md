@@ -172,11 +172,11 @@ stamps vary.  Now
 ### Update docker-swipl
 
   - cp -r <latest version> <new version>
-  - Edit <newversion>/stretch/Dockerfile, e.g.
+  - Edit <newversion>/bullseye/Dockerfile, e.g.
     - SWIPL_VER=8.2.3; \
     - SWIPL_CHECKSUM=9403972f9d87f1f4971fbd4a5644b4976b1b18fc174be84506c6b713bd1f9c93; \
   - Test using
-    - `docker pull debian:stretch-slim`
+    - `docker pull debian:bullseye-slim`
     - `docker build . 2>&1 | tee build.log
   - On success, add the Dockerfile and create a PR
 
