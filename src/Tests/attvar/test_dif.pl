@@ -94,7 +94,24 @@ test(14) :-
 	       t5(G,_)),
 
 	dif(P,Q),
-	G=t8(x,b),
+	G = t8(x,b),
 	assertion(term_attvars(P+Q, [])).
+test(15, [X == done, blocked(fails)]) :-
+	P2 = t123(t124(A),A),
+	A  = t125(t126(a,t127(B1))),
+	Q2 = t123(C1,t125(t126(a,t127(D1)))),
+
+	dif(P2,Q2),
+
+	C1 = t124(t125(t126(a,E1))),
+	D1 = B1,
+	E1 = t127(x),
+
+	X = done,
+
+	\+ B1 = x.	% this should fail
+test(16, blocked(fails)) :-
+	dif(_A-C,_B-D),
+	C-D=z-z.
 
 :- end_tests(dif).
