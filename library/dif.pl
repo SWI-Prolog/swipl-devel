@@ -114,10 +114,9 @@ add_ornode_var2(X,Y,OrNode) :-
     ).
 
 attr_unify_hook(vardif(V1,V2),Other) :-
-    (   var(Other)
+    (   get_attr(Other,dif,OAttr)
     ->  reverse_lookups(V1,Other,OrNodes1,NV1),
         or_one_fails(OrNodes1),
-        get_attr(Other,dif,OAttr),
         OAttr = vardif(OV1,OV2),
         reverse_lookups(OV1,Other,OrNodes2,NOV1),
         or_one_fails(OrNodes2),
@@ -129,6 +128,8 @@ attr_unify_hook(vardif(V1,V2),Other) :-
         ->  del_attr(Other,dif)
         ;   put_attr(Other,dif,vardif(CV1,CV2))
         )
+    ;   var(Other)			% unrelated variable
+    ->  true
     ;   verify_compounds(V1,Other),
         verify_compounds(V2,Other)
     ).
@@ -163,9 +164,8 @@ verify_compounds([OrNode-Y|Rest],X) :-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 or_succeed(OrNode) :-
-    (   attvar(OrNode)
-    ->  get_attr(OrNode,dif,Attr),
-        Attr = node(_Counter,Pairs),
+    (   get_attr(OrNode,dif,Attr)
+    ->  Attr = node(_Counter,Pairs),
         del_attr(OrNode,dif),
         OrNode = (-),
         del_or_dif(Pairs)
@@ -178,9 +178,8 @@ or_one_fails([N|Ns]) :-
     or_one_fails(Ns).
 
 or_one_fail(OrNode) :-
-    (   attvar(OrNode)
-    ->  get_attr(OrNode,dif,Attr),
-        Attr = node(Counter,Pairs),
+    (   get_attr(OrNode,dif,Attr)
+    ->  Attr = node(Counter,Pairs),
         NCounter is Counter - 1,
         (   NCounter == 0
         ->  fail
@@ -196,9 +195,8 @@ del_or_dif([X=Y|Xs]) :-
     del_or_dif(Xs).
 
 cleanup_dead_nodes(X) :-
-    (   attvar(X)
-    ->  get_attr(X,dif,Attr),
-        Attr = vardif(V1,V2),
+    (   get_attr(X,dif,Attr)
+    ->  Attr = vardif(V1,V2),
         filter_dead_ors(V1,NV1),
         filter_dead_ors(V2,NV2),
         (   NV1 == [], NV2 == []
