@@ -64,15 +64,41 @@ constraints on this variable  and  `L2`   is  the  constraint list other
 variables have on me.
 
 The `OrNode` is a term node(Count, Pairs),   where `Count` is the number
-of disjunctive nodes unresolved. Pairs is a of list Var=Value terms.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+of  pending  unifications  and  Pairs  is  a  of  list  Var=Value  terms
+representing the pending  unifications.  The   original  dif/2  call  is
+represented by a single OrNode.
 
+If a unification related to an  OrNode   fails  the terms are definitely
+unequal and thus we can kill all   pending constraints and succeed. If a
+unequal related to an OrNode succeeds we   decrement  the `Count` of the
+node. If the count  reaches  0  all   unifications  of  the  OrNode have
+succeeded, the original terms are equal and thus we need to fail.
+
+The following invariants must hold
+
+  - Any variable involved in a dif/2 constraint has an attribute
+    vardif(L1,L2), Where each element of both lists is a term
+    OrNode-Value, L1 represents the values this variable may __not__
+    become equal to and L2 represents this variable involved in other
+    constraints.  I.e, L2 is only used if a dif/2 requires two variables
+    to be different.
+  - An OrNode has an attribute node(Count,Pairs), where Count represents
+    the number of elements in Pairs that are not yet equal.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 dif_unifiable(X, Y, Us) :-
     (    current_prolog_flag(occurs_check, error)
     ->   catch(unifiable(X,Y,Us), error(occurs_check(_,_),_), false)
     ;    unifiable(X, Y, Us)
     ).
+
+%!  dif_c_c(+X,+Y,!OrNode)
+%
+%   Enforce dif(X,Y) that is related to the given OrNode. If X and Y are
+%   equal we reduce the OrNode.  If  they   cannot  unify  we  are done.
+%   Otherwise we extend the OrNode with  new pairs and create/extend the
+%   vardif/2 terms for the left hand side of  the unifier as well as the
+%   right hand if this is a variable.
 
 dif_c_c(X,Y,OrNode) :-
     (   dif_unifiable(X, Y, Unifier)
@@ -151,25 +177,35 @@ add_ornode_var2(X,Y,OrNode) :-
     ;   put_attr(Y,dif,vardif([],[OrNode-X]))
     ).
 
+%!  attr_unify_hook(+VarDif, +Other)
+%
+%   If two dif/2 variables are unified  we   must  join the two vardif/2
+%   terms. To do so, we filter the vardif terms for the ones involved in
+%   this unification. Those that  are  represent   OrNodes  that  have a
+%   unification satisfied. For the rest we  remove the unifications with
+%   _self_, append them and use this as new vardif term.
+%
+%   On unification with a value, we recursively call dif_c_c/3 using the
+%   existing OrNodes.
+
 attr_unify_hook(vardif(V1,V2),Other) :-
-    (   get_attr(Other,dif,OAttr)
-    ->  reverse_lookups(V1,Other,OrNodes1,NV1),
+    (   get_attr(Other, dif, vardif(OV1,OV2))
+    ->  reverse_lookups(V1, Other, OrNodes1, NV1),
         or_one_fails(OrNodes1),
-        OAttr = vardif(OV1,OV2),
-        reverse_lookups(OV1,Other,OrNodes2,NOV1),
+        reverse_lookups(OV1, Other, OrNodes2, NOV1),
         or_one_fails(OrNodes2),
-        remove_obsolete(V2,Other,NV2),
-        remove_obsolete(OV2,Other,NOV2),
-        append(NV1,NOV1,CV1),
-        append(NV2,NOV2,CV2),
+        remove_obsolete(V2, Other, NV2),
+        remove_obsolete(OV2, Other, NOV2),
+        append(NV1, NOV1, CV1),
+        append(NV2, NOV2, CV2),
         (   CV1 == [], CV2 == []
-        ->  del_attr(Other,dif)
-        ;   put_attr(Other,dif,vardif(CV1,CV2))
+        ->  del_attr(Other, dif)
+        ;   put_attr(Other, dif, vardif(CV1,CV2))
         )
     ;   var(Other)			% unrelated variable
     ->  true
-    ;   verify_compounds(V1,Other),
-        verify_compounds(V2,Other)
+    ;   verify_compounds(V1, Other),
+        verify_compounds(V2, Other)
     ).
 
 remove_obsolete([], _, []).
@@ -200,7 +236,13 @@ verify_compounds([OrNode-Y|Rest],X) :-
     ),
     verify_compounds(Rest,X).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%!  or_succeed(+OrNode) is det.
+%
+%   The dif/2 constraint related  to  OrNode   is  complete,  i.e., some
+%   (sub)terms can definitely not become equal.   Next,  we can clean up
+%   the constraints. We do so by setting   the  OrNode to `-` and remove
+%   this _dead_ OrNode from every vardif/2 attribute we can find.
+
 or_succeed(OrNode) :-
     (   get_attr(OrNode,dif,Attr)
     ->  Attr = node(_Counter,Pairs),
@@ -210,26 +252,10 @@ or_succeed(OrNode) :-
     ;   true
     ).
 
-or_one_fails([]).
-or_one_fails([N|Ns]) :-
-    or_one_fail(N),
-    or_one_fails(Ns).
-
-or_one_fail(OrNode) :-
-    (   get_attr(OrNode,dif,Attr)
-    ->  Attr = node(Counter,Pairs),
-        NCounter is Counter - 1,
-        (   NCounter == 0
-        ->  fail
-        ;   put_attr(OrNode,dif,node(NCounter,Pairs))
-        )
-    ;   fail
-    ).
-
 del_or_dif([]).
 del_or_dif([X=Y|Xs]) :-
     cleanup_dead_nodes(X),
-    cleanup_dead_nodes(Y),
+    cleanup_dead_nodes(Y),              % JW: what about embedded variables?
     del_or_dif(Xs).
 
 cleanup_dead_nodes(X) :-
@@ -251,6 +277,30 @@ filter_dead_ors([Or-Y|Rest],List) :-
     ;   List = NRest
     ),
     filter_dead_ors(Rest,NRest).
+
+
+%!  or_one_fail(+OrNode) is semidet.
+%
+%   Some unification related to OrNode succeeded.   We can decrement the
+%   `Count` of the OrNode. If this  reaches   0,  the original terms are
+%   equal and we must fail.
+
+or_one_fail(OrNode) :-
+    (   get_attr(OrNode,dif,Attr)
+    ->  Attr = node(Counter,Pairs),
+        NCounter is Counter - 1,
+        (   NCounter == 0
+        ->  fail
+        ;   put_attr(OrNode,dif,node(NCounter,Pairs))
+        )
+    ;   fail
+    ).
+
+or_one_fails([]).
+or_one_fails([N|Ns]) :-
+    or_one_fail(N),
+    or_one_fails(Ns).
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
    The attribute of a variable X is vardif/2. The first argument is a
