@@ -1158,7 +1158,8 @@ PL_EXPORT(int)	PL_current_prolog_flag(atom_t name, int type, void *ptr);
 #define PL_VERSION_VM		6	/* VM signature */
 #define PL_VERSION_BUILT_IN	7	/* Built-in predicate signature */
 
-PL_EXPORT(unsigned int) PL_version(int which);
+#define PL_version(id) PL_version_info(id)
+PL_EXPORT(unsigned int) PL_version_info(int which);
 
 
 		/********************************

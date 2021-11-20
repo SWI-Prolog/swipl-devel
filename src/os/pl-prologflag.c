@@ -1744,12 +1744,12 @@ abi_version_dict(term_t dict)
 			  ATOM_built_in };
   term_t values = PL_new_term_refs(6);
 
-  return ( PL_unify_integer(values+0, PL_version(PL_VERSION_FLI)) &&
-	   PL_unify_integer(values+1, PL_version(PL_VERSION_REC)) &&
-	   PL_unify_integer(values+2, PL_version(PL_VERSION_QLF)) &&
-	   PL_unify_integer(values+3, PL_version(PL_VERSION_QLF_LOAD)) &&
-	   PL_unify_integer(values+4, PL_version(PL_VERSION_VM)) &&
-	   PL_unify_integer(values+5, PL_version(PL_VERSION_BUILT_IN)) &&
+  return ( PL_unify_integer(values+0, PL_version_info(PL_VERSION_FLI)) &&
+	   PL_unify_integer(values+1, PL_version_info(PL_VERSION_REC)) &&
+	   PL_unify_integer(values+2, PL_version_info(PL_VERSION_QLF)) &&
+	   PL_unify_integer(values+3, PL_version_info(PL_VERSION_QLF_LOAD)) &&
+	   PL_unify_integer(values+4, PL_version_info(PL_VERSION_VM)) &&
+	   PL_unify_integer(values+5, PL_version_info(PL_VERSION_BUILT_IN)) &&
 
 	   PL_put_dict(dict, ATOM_abi, 6, keys, values) );
 }

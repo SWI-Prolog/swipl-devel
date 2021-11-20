@@ -5312,7 +5312,7 @@ registerForeignLicenses(void)
 		 *******************************/
 
 unsigned int
-PL_version(int which)
+PL_version_info(int which)
 { switch(which)
   { case PL_VERSION_SYSTEM:	return PLVERSION;
     case PL_VERSION_FLI:	return PL_FLI_VERSION;

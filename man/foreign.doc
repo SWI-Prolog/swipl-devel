@@ -3048,11 +3048,16 @@ mp_set_memory_functions() in the GMP documentation. The action returns
 \const{FALSE} if there is no GMP support or GMP is already initialised.
 \end{description}
 
-\cfunction{unsigned int}{PL_version}{int key}
+\cfunction{unsigned int}{PL_version_info}{int key}
 Query version information.  This function may be called before
 PL_initialise().  If the key is unknown the function returns 0.
 See \secref{abi-versions} for a more in-depth discussion on
-binary compatibility.  Defined keys are:
+binary compatibility.  Versions upto SWI-Prolog 8.5.2 defined
+this function as PL_version().  It was renamed to avoid a conflict
+with Perl affecting
+\href{https://github.com/salva/p5-Language-Prolog-Yaswi}{Yaswi}.
+PL_version() is provided as a macro for compatibility. Defined
+keys are:
 
     \begin{description}
 	\termitem{PL_VERSION_SYSTEM}{}

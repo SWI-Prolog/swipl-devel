@@ -3533,7 +3533,7 @@ SWI-Prolog first of all attempts to maintain \jargon{source code}
 compatibility between versions. Data and programs can often be
 represented in binary form.  This touches a number of interfaces
 with varying degrees of compatibility.  The relevant version numbers
-and signatures are made available by PL_version(), the
+and signatures are made available by PL_version_info(), the
 \cmdlineoption{--abi-version} and the Prolog flag
 \prologflag{abi_version}.
 
@@ -3549,7 +3549,7 @@ form, notably for platforms on which compilation is complicated (e.g.,
 Windows). This compatibility is therefore high on the priority list, but
 must infrequently be compromised.
 
-PL_version(): \const{PL_VERSION_FLI}, \prologflag{abi_version} key:
+PL_version_info(): \const{PL_VERSION_FLI}, \prologflag{abi_version} key:
 \const{foreign_interface}
 
     \definition{Binary terms}
@@ -3558,7 +3558,7 @@ fast_write/2. As these formats are used for storing binary terms in
 databases or communicate terms between Prolog processes in binary form,
 great care is taken to maintain compatibility.
 
-PL_version(): \const{PL_VERSION_REC}, \prologflag{abi_version} key:
+PL_version_info(): \const{PL_VERSION_REC}, \prologflag{abi_version} key:
 \const{record}
 
     \definition{QLF files}
@@ -3567,7 +3567,7 @@ module. They represent clauses as sequences of \jargon{virtual machine}
 (VM) instructions. Their compatibility relies on the QLF file format and
 the ABI of the VM.  Some care is taken to maintain compatibility.
 
-PL_version(): \const{PL_VERSION_QLF}, \const{PL_VERSION_QLF_LOAD} and
+PL_version_info(): \const{PL_VERSION_QLF}, \const{PL_VERSION_QLF_LOAD} and
 \const{PL_VERSION_VM}, \prologflag{abi_version} key: \const{qlf},
 \const{qlf_min_load}, \const{vmi}
 
@@ -3583,7 +3583,7 @@ level releases in the \emph{stable branch} will as much as possible
 maintain compatibility.
 
 The relevant ABI version keys are the same as for QLF files with one
-addition: PL_version(): \const{PL_VERSION_BUILT_IN}, \prologflag{abi_version}
+addition: PL_version_info(): \const{PL_VERSION_BUILT_IN}, \prologflag{abi_version}
 key: \const{built_in}
 \end{description}
 
