@@ -40,6 +40,8 @@
 :- use_module(library(debug)).
 :- use_module(library(dif)).
 :- use_module(library(plunit)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
 test_dif :-
 	run_tests([ dif
@@ -67,6 +69,10 @@ test(7) :-
 	dif(a(x(1,2), B), a(X, 1)),
 	X = x(1,2),
 	\+ B = 1.
+test('7b') :-
+	dif(a(x(1,2), B), a(X, 1)),
+	X = x(1,2),
+	B \= 1.
 test(8, [sto(rational_trees)]) :-
 	dif(a(x(1,2), B), a(X, 1)),
 	X = x(1,Y),
@@ -78,6 +84,8 @@ test(10) :-
 	dif(f(X,_Z),f(a,b)),
 	dif(f(X,Y),f(b,b)),
 	X = a, Y = b.
+test(res1, L == []) :-
+	call_residue_vars((dif(a(_,B), a(_,1)), B = 2), L).
 test(11) :-
 	dif(A,B), memberchk(A, [B, C]),
 	A == C.
@@ -96,7 +104,7 @@ test(14) :-
 	dif(P,Q),
 	G = t8(x,b),
 	assertion(term_attvars(P+Q, [])).
-test(15, [X == done, blocked(fails)]) :-
+test(15, [sto(rational_trees)]) :-
 	P2 = t123(t124(A),A),
 	A  = t125(t126(a,t127(B1))),
 	Q2 = t123(C1,t125(t126(a,t127(D1)))),
@@ -107,11 +115,38 @@ test(15, [X == done, blocked(fails)]) :-
 	D1 = B1,
 	E1 = t127(x),
 
-	X = done,
-
 	\+ B1 = x.	% this should fail
-test(16, blocked(fails)) :-
+test(16) :-
 	dif(_A-C,_B-D),
 	C-D=z-z.
+test(no_dup, [P==[x, y, z, z], nondet]) :-
+	permutation_no_dup([x,y,Z,Z],P), P=[x,y,z,z].
 
 :- end_tests(dif).
+
+% From issue#105
+
+permutation_no_dup([], []).
+permutation_no_dup(L, PL):-
+    same_length(L, PL),
+    length(L, Len),
+    numlist(1,Len, RLMax),
+    reverse(RLMax, LMax),
+    length(LCur, Len),
+    maplist(=(1), LCur),
+    permutation_no_dup(LCur, L, LMax/LCur-L, [], PL).
+
+permutation_no_dup([], _, _, PL, PL).
+permutation_no_dup([], _, LMax/LCur-L, PL, PL1):-
+    next(LCur, LMax, NLCur),
+    dif(PL, PL1),
+    permutation_no_dup(NLCur, L, LMax/NLCur-L, [], PL1).
+permutation_no_dup([Take|LCur], L, Info, PL, PL1):-
+    nth1(Take, L, Item, L1),
+    permutation_no_dup(LCur, L1, Info, [Item|PL], PL1).
+
+next([Cur|LCur], [Max|_], [NCur|LCur]):-
+    Cur < Max,
+    NCur is Cur+1.
+next([Cur|LCur], [Cur|LMax], [1|NLCur]):-
+    next(LCur, LMax, NLCur).

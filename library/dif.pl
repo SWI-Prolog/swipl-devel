@@ -54,7 +54,10 @@
 %   identical.
 
 dif(X,Y) :-
-    X \== Y,
+    ?=(X,Y),
+    !,
+    X \== Y.
+dif(X,Y) :-
     dif_c_c(X,Y,_).
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -63,9 +66,8 @@ holds a term  vardif(L1,L2)  where  `L1`   is  a  list  OrNode-Value for
 constraints on this variable  and  `L2`   is  the  constraint list other
 variables have on me.
 
-The `OrNode` is a term node(Count, Pairs),   where `Count` is the number
-of  pending  unifications  and  Pairs  is  a  of  list  Var=Value  terms
-representing the pending  unifications.  The   original  dif/2  call  is
+The `OrNode` is a term node(Pairs), where `Pairs` is a of list Var=Value
+terms representing the pending unifications. The  original dif/2 call is
 represented by a single OrNode.
 
 If a unification related to an  OrNode   fails  the terms are definitely
@@ -82,8 +84,8 @@ The following invariants must hold
     become equal to and L2 represents this variable involved in other
     constraints.  I.e, L2 is only used if a dif/2 requires two variables
     to be different.
-  - An OrNode has an attribute node(Count,Pairs), where Count represents
-    the number of elements in Pairs that are not yet equal.
+  - An OrNode has an attribute node(Pairs), where Pairs contains the
+    possible unifications.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 dif_unifiable(X, Y, Us) :-
@@ -104,10 +106,16 @@ dif_c_c(X,Y,OrNode) :-
     (   dif_unifiable(X, Y, Unifier)
     ->  (   Unifier == []
         ->  or_one_fail(OrNode)
-        ;   dif_c_c_l(Unifier,OrNode)
+        ;   dif_c_c_l(Unifier,OrNode, U),
+            subunifier(U, OrNode)
         )
     ;   or_succeed(OrNode)
     ).
+
+subunifier([], _).
+subunifier([X=Y|T], OrNode) :-
+    dif_c_c(X, Y, OrNode),
+    subunifier(T, OrNode).
 
 
 %!  dif_c_c_l(+Unifier, +OrNode)
@@ -119,23 +127,22 @@ dif_c_c(X,Y,OrNode) :-
 %
 %   @see test 14 in src/Tests/attvar/test_dif.pl.
 
-dif_c_c_l(Unifier,OrNode) :-
-    length(Unifier,N),
-    extend_ornode(OrNode,N,List,Tail),
-    dif_c_c_l_aux(Unifier,OrNode,List,Tail),
-    (   block_contradictions(List)
+dif_c_c_l(Unifier, OrNode, U) :-
+    extend_ornode(OrNode, List, Tail),
+    dif_c_c_l_aux(Unifier, OrNode, List0, Tail),
+    (   simplify_ornode(List0, List, U)
     ->  true
-    ;   or_succeed(OrNode)
+    ;   List = List0,
+        or_succeed(OrNode),
+        U = []
     ).
 
-extend_ornode(OrNode,N,List,Vars) :-
-    (   get_attr(OrNode,dif,Attr)
-    ->  Attr = node(M,Vars),
-        O is N + M - 1
-    ;   O = N,
-        Vars = []
+extend_ornode(OrNode, List, Vars) :-
+    (   get_attr(OrNode, dif, node(Vars))
+    ->  true
+    ;   Vars = []
     ),
-    put_attr(OrNode,dif,node(O,List)).
+    put_attr(OrNode,dif,node(List)).
 
 dif_c_c_l_aux([],_,List,List).
 dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
@@ -143,18 +150,9 @@ dif_c_c_l_aux([X=Y|Unifier],OrNode,List,Tail) :-
     add_ornode(X,Y,OrNode),
     dif_c_c_l_aux(Unifier,OrNode,Rest,Tail).
 
-block_contradictions(List) :-
-    sort(1, @=<, List, Sorted),
-    block_contradictions_(Sorted).
-
-block_contradictions_([]) =>
-    true.
-block_contradictions_([Var=Val1,Var=Val2|T]) =>
-    Val1 = Val2,
-    block_contradictions_([Var=Val2|T]).
-block_contradictions_([_|T]) =>
-    block_contradictions_(T).
-
+%!  add_ornode(+X, +Y, +OrNode)
+%
+%   Extend the vardif constraints on X and Y with the OrNode.
 
 add_ornode(X,Y,OrNode) :-
     add_ornode_var1(X,Y,OrNode),
@@ -176,6 +174,52 @@ add_ornode_var2(X,Y,OrNode) :-
         put_attr(Y,dif,vardif(V1,[OrNode-X|V2]))
     ;   put_attr(Y,dif,vardif([],[OrNode-X]))
     ).
+
+%!  simplify_ornode(+OrNode) is semidet.
+%
+%   Simplify the possible unifications left on the original dif/2 terms.
+%   There are two reasons for simplification. First   of all, due to the
+%   way unifiable works we may end up with variables in the unifier that
+%   do not refer to the original terms,   but  to variables in subterms,
+%   e.g. `[V1 = f(a, V2), V2 = b]`.   As a result of subsequent unifying
+%   variables, the unifier may end up   having  multiple entries for the
+%   same variable, possibly having different values, e.g.,  `[X = a, X =
+%   b]`.  As  these  can  never  be  satified  both  we  have  prove  of
+%   inequality.
+%
+%   Finally, we remove elements from the list that have become equal. If
+%   the OrNode is empty, the original terms   are equal and thus we must
+%   fail.
+
+simplify_ornode(OrNode) :-
+    (   get_attr(OrNode, dif, node(Pairs0))
+    ->  simplify_ornode(Pairs0, Pairs, U),
+        Pairs \== [],
+        put_attr(OrNode, dif, node(Pairs)),
+        subunifier(U, OrNode)
+    ;   true
+    ).
+
+simplify_ornode(List0, List, U) :-
+    sort(1, @=<, List0, Sorted),
+    simplify_ornode_(Sorted, List, U).
+
+simplify_ornode_([], List, U) =>
+    List = [],
+    U = [].
+simplify_ornode_([Var=Val1,Var=Val2|T], List, U), var(Var) =>
+    (   ?=(Val1, Val2)
+    ->  Val1 == Val2,
+        simplify_ornode_([Var=Val2|T], List, U)
+    ;   U = [Val1=Val2|UT],
+        simplify_ornode_([Var=Val2|T], List, UT)
+    ).
+simplify_ornode_([V1=V2|T], List, U), V1 == V2 =>
+    simplify_ornode_(T, List, U).
+simplify_ornode_([H|T], List, U) =>
+    List = [H|Rest],
+    simplify_ornode_(T, Rest, U).
+
 
 %!  attr_unify_hook(+VarDif, +Other)
 %
@@ -245,7 +289,7 @@ verify_compounds([OrNode-Y|Rest],X) :-
 
 or_succeed(OrNode) :-
     (   get_attr(OrNode,dif,Attr)
-    ->  Attr = node(_Counter,Pairs),
+    ->  Attr = node(Pairs),
         del_attr(OrNode,dif),
         OrNode = (-),
         del_or_dif(Pairs)
@@ -286,15 +330,7 @@ filter_dead_ors([Or-Y|Rest],List) :-
 %   equal and we must fail.
 
 or_one_fail(OrNode) :-
-    (   get_attr(OrNode,dif,Attr)
-    ->  Attr = node(Counter,Pairs),
-        NCounter is Counter - 1,
-        (   NCounter == 0
-        ->  fail
-        ;   put_attr(OrNode,dif,node(NCounter,Pairs))
-        )
-    ;   fail
-    ).
+    simplify_ornode(OrNode).
 
 or_one_fails([]).
 or_one_fails([N|Ns]) :-
@@ -317,7 +353,7 @@ attribute_goals(Var) -->
     ).
 
 or_node(O) -->
-    (   { get_attr(O, dif, node(_, Pairs)) }
+    (   { get_attr(O, dif, node(Pairs)) }
     ->  { eqs_lefts_rights(Pairs, As, Bs) },
         mydif(As, Bs),
         { del_attr(O, dif) }
@@ -326,7 +362,7 @@ or_node(O) -->
 
 or_nodes([], _)       --> [].
 or_nodes([O-_|Os], X) -->
-    (   { get_attr(O, dif, node(_, Eqs)) }
+    (   { get_attr(O, dif, node(Eqs)) }
     ->  (   { Eqs = [LHS=_|_], LHS == X }
         ->  { eqs_lefts_rights(Eqs, As, Bs) },
             mydif(As, Bs),
