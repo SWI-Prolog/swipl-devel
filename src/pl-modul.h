@@ -47,6 +47,7 @@
 #define	lookupModule(name)			LDFUNC(lookupModule, name)
 #define	isCurrentModule(name)			LDFUNC(isCurrentModule, name)
 #define	acquireModule(name)			LDFUNC(acquireModule, name)
+#define	acquireModulePtr(module)		LDFUNC(acquireModulePtr, module)
 #define	stripModule(term, module, flags)	LDFUNC(stripModule, term, module, flags)
 #define	stripModuleName(term, name)		LDFUNC(stripModuleName, term, name)
 #endif /*USE_LD_MACROS*/
@@ -56,6 +57,7 @@
 Module		lookupModule(atom_t name);
 Module		isCurrentModule(atom_t name);
 Module		acquireModule(atom_t name);
+void		acquireModulePtr(Module m);
 void		releaseModule(Module m);
 void		initModules(void);
 void		cleanupModules(void);

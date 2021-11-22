@@ -45,6 +45,7 @@
 #include "pl-gc.h"
 #include "pl-util.h"
 #include "pl-pro.h"
+#include "pl-modul.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -62,6 +63,7 @@
 
 static int  identify_def(term_t t, void *handle);
 static int  get_def(term_t t, void **handle);
+static void prof_release_def(void *handle);
 static void profile(intptr_t count);
 static int  thread_prof_ticks(void);
 
@@ -69,9 +71,10 @@ static int  thread_prof_ticks(void);
 
 static PL_prof_type_t prof_default_type =
 { identify_def,					/* unify a Definition */
-  get_def,
-  NULL,						/* dummy */
-  PROFTYPE_MAGIC
+  get_def,					/* Find a definition */
+  NULL,						/* Acquire */
+  prof_release_def,				/* Release a definition */
+  .magic = PROFTYPE_MAGIC
 };
 
 #define MAX_PROF_TYPES 10
@@ -771,6 +774,14 @@ get_handle(term_t t, void **handle)
   fail;
 }
 
+static void
+prof_release_def(void *handle)
+{ Definition def = handle;
+
+  releaseModule(def->module);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 $prof_procedure_data(+PredicateIndicator,
 		     -Ticks, -TicksSiblings,
@@ -1117,6 +1128,8 @@ profCall(DECL_LD Definition def)
 { if ( true(def, P_NOPROFILE) )
     return LD->profile.current;
 
+  acquireModulePtr(def->module);
+
   return prof_call(def, &prof_default_type);
 }
 
@@ -1275,6 +1288,9 @@ freeProfileNode(DECL_LD call_node *node)
 
   for(n=node->siblings; n; n=next)
   { next = n->next;
+
+    if ( n->type && n->type->release )
+      (*n->type->release)(n->handle);
 
     freeProfileNode(n);
   }
