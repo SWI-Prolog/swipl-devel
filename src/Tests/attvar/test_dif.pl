@@ -121,6 +121,8 @@ test(16) :-
 	C-D=z-z.
 test(no_dup, [P==[x, y, z, z], nondet]) :-
 	permutation_no_dup([x,y,Z,Z],P), P=[x,y,z,z].
+test(17) :-		% from Issue#17
+	dif(A,[_|B]),A=[[]|_],A=[B].
 
 :- end_tests(dif).
 
