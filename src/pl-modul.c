@@ -183,6 +183,15 @@ acquireModule(DECL_LD atom_t name)
 }
 
 void
+acquireModulePtr(DECL_LD Module m)
+{ if ( m && m->class == ATOM_temporary )
+  { PL_LOCK(L_MODULE);
+    m->references++;
+    PL_UNLOCK(L_MODULE);
+  }
+}
+
+void
 releaseModule(Module m)
 { if ( m->class == ATOM_temporary )
   { PL_LOCK(L_MODULE);
