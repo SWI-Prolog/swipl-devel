@@ -170,6 +170,8 @@ interrupt(_Sig) :-
 %         As `integer`.  Requires value >= 0.
 %       - natural
 %         As `integer`.  Requires value >= 1.
+%       - number
+%         Any number (integer, float, rational).
 %       - between(Low, High)
 %         If both one of Low and High is a float, convert as `float`,
 %         else convert as `integer`.  Then check the range.
@@ -445,6 +447,8 @@ opt_convert(boolean, Spec, Value) :-
     to_bool(Spec, Value).
 opt_convert(boolean(_), Spec, Value) :-
     to_bool(Spec, Value).
+opt_convert(number, Spec, Value) :-
+    atom_number(Spec, Value).
 opt_convert(integer, Spec, Value) :-
     atom_number(Spec, Value),
     integer(Value).
