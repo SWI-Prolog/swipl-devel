@@ -23,6 +23,14 @@ set(PGO_PROGRAM ${CMAKE_SOURCE_DIR}/bench/run.pl
     CACHE STRING
     "Program to use for Profile Guided Optimization")
 
+set(PGO_SWIPL_OPTIONS -f none --no-packs --no-threads -O
+    CACHE STRING
+    "Prolog options for PGO run")
+
+set(PGO_PROGRAM_OPTIONS --speedup=10
+    CACHE STRING
+    "Options to give to the benchmark script")
+
 set(PGO_DIR ${CMAKE_BINARY_DIR}/PGO-data
     CACHE PATH
     "Directory to store PGO data in")
