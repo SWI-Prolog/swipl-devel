@@ -22,7 +22,6 @@ include(GCCBuiltins)
 include(TestSignalType)
 include(TestSCNProcessors)
 include(TestHeaderTime)
-include(PGO)
 
 # FIXME: Is this still needed?
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
