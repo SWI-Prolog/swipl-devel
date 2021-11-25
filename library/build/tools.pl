@@ -180,6 +180,8 @@ ensure_build_dir(Dir, State0, State) :-
 %       ``-ISWIPL-INCLUDE-DIR``.
 %     - ``LDSOFLAGS`` Link flags for linking modules.
 %     - ``SOEXT`` Shared object extension, e.g. `so` or `dll`.
+%     - ``PREFIX`` Install prefix for global binaries, libraries and
+%       include files.
 %
 %     In addition, several environment variables   are  passes verbatim:
 %     ``TMP``, ``TEMP``, ``USER`` and ``HOME``.
@@ -286,6 +288,8 @@ def_environment('LDSOFLAGS', Value) :-
     atomic_list_concat([LDFlags, '-shared' | Extra], ' ', Value).
 def_environment('SOEXT', Value) :-
     current_prolog_flag(shared_object_extension, Value).
+def_environment('PREFIX', Value) :-
+    prolog_install_prefix(Value).
 def_environment(Pass, Value) :-
     pass_env(Pass),
     getenv(Pass, Value).
