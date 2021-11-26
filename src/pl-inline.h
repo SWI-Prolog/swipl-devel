@@ -621,9 +621,33 @@ setGenerationFrame(DECL_LD LocalFrame fr)
 		 *	      INDEXING		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+murmur_key() is used to quickly compute  a   key  from indirect data for
+clause indexing. ptr is the start of the  data. It is word aligned and n
+is the size in bytes, a multiple of sizeof(word). If the indirect is too
+long we has based on the start, end and length.
+
+The hash should not conflict  with   a  functor_t  (hence the STG_GLOBAL
+mask) and may never be 0.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static inline word
 murmur_key(void *ptr, size_t n)
-{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+{ word k;
+
+  DEBUG(0, assert(n%sizeof(word) == 0));
+
+  if ( n > sizeof(word)*4 )
+  { word data[3];
+
+    data[0] = ((Word)ptr)[0];
+    data[1] = ((Word)ptr)[n/sizeof(word)-1];
+    data[2] = n;
+
+    k = MurmurHashAligned2(data, sizeof(word)*3, MURMUR_SEED);
+  } else
+  { k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+  }
 
   k &= ~((word)STG_GLOBAL);
   if ( !k ) k = 1;
