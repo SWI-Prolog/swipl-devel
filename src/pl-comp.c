@@ -4665,16 +4665,9 @@ NOTE: this function must  be  kept   consistent  with  indexOfWord()  in
 pl-index.c.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline word
-murmur_key(void *ptr, size_t n)
-{ return MurmurHashAligned2(ptr, n, MURMUR_SEED);
-}
-
 int
 argKey(Code PC, int skip, word *key)
-{ word ikey;
-
-  if ( skip > 0 )
+{ if ( skip > 0 )
     PC = skipArgs(PC, skip);
 
   for(;;)
@@ -4687,49 +4680,45 @@ argKey(Code PC, int skip, word *key)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
-        succeed;
+        return TRUE;
       case H_ATOM:
       case H_SMALLINT:
 	*key = *PC;
-	succeed;
+	return TRUE;
       case H_NIL:
 	*key = ATOM_nil;
-        succeed;
+        return TRUE;
       case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
-        succeed;
+        return TRUE;
 #if SIZEOF_VOIDP == 4
       case H_INT64:			/* only on 32-bit hardware! */
-	ikey = murmur_key(PC, 2*sizeof(*PC));
-        goto nofunctor;
+	*key = murmur_key(PC, 2*sizeof(*PC));
+	return TRUE;
 #endif
       case H_INTEGER:
 #if SIZEOF_VOIDP == 4
       { int64_t val;
 	val = (int64_t)(intptr_t)*PC;
-	ikey = murmur_key(&val, sizeof(val));
+	*key = murmur_key(&val, sizeof(val));
       }
 #else
-	ikey = murmur_key(PC, sizeof(*PC));
+	*key = murmur_key(PC, sizeof(*PC));
 #endif
-      nofunctor:
-	ikey &= ~((word)STG_GLOBAL);
-	if ( !ikey ) ikey = 1;
-	*key = ikey;
-	succeed;
+	return TRUE;
       case H_FLOAT:
-	ikey = murmur_key(PC, sizeof(double));
-        goto nofunctor;
+	*key = murmur_key(PC, sizeof(double));
+        return TRUE;
       case H_STRING:
       case H_MPZ:
       case H_MPQ:
       { word m = *PC++;
 	size_t n = wsizeofInd(m);
 
-	ikey = murmur_key(PC, n*sizeof(*PC));
-	goto nofunctor;
+	*key = murmur_key(PC, n*sizeof(*PC));
+	return TRUE;
       }
       case H_FIRSTVAR:
       case H_VAR:
@@ -4783,19 +4772,19 @@ arg1Key(Code PC, word *key)
     { case H_FUNCTOR:
       case H_RFUNCTOR:
 	*key = (functor_t)*PC;
-        succeed;
+        return TRUE;
       case H_ATOM:
       case H_SMALLINT:
 	*key = *PC;
-	succeed;
+	return TRUE;
       case H_NIL:
 	*key = ATOM_nil;
-        succeed;
+        return TRUE;
       case H_LIST_FF:
       case H_LIST:
       case H_RLIST:
 	*key = FUNCTOR_dot2;
-        succeed;
+        return TRUE;
       case H_INT64:
       case H_INTEGER:
       case H_FLOAT:
@@ -5345,7 +5334,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	    PL_reset_term_refs(argp);
 	  }
 
-	  succeed;
+	  return TRUE;
 	}
       case T_TRIE_GEN2:
       case T_TRIE_GEN3:
