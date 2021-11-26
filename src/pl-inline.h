@@ -618,6 +618,20 @@ setGenerationFrame(DECL_LD LocalFrame fr)
 }
 
 		 /*******************************
+		 *	      INDEXING		*
+		 *******************************/
+
+static inline word
+murmur_key(void *ptr, size_t n)
+{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
+
+  k &= ~((word)STG_GLOBAL);
+  if ( !k ) k = 1;
+
+  return k;
+}
+
+		 /*******************************
 		 *	      THREADS		*
 		 *******************************/
 

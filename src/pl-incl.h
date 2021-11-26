@@ -2673,10 +2673,10 @@ with any luck LTO could address that.
 #include "os/pl-locale.h"		/* Locale objects */
 #include "os/pl-file.h"			/* Stream management */
 #include "pl-global.h"			/* global data */
+#include "pl-hash.h"			/* Murmurhash function */
 #include "pl-inline.h"			/* Inline facilities */
 #include "pl-privitf.h"			/* private foreign interface */
 #include "os/pl-text.h"			/* text manipulation */
-#include "pl-hash.h"			/* Murmurhash function */
 #include "os/pl-option.h"		/* Option processing */
 #include "os/pl-files.h"		/* File management */
 #include "os/pl-string.h"		/* Basic string functions */

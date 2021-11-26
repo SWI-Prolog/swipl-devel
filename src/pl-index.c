@@ -179,12 +179,8 @@ indexOfWord(DECL_LD word w)
       case TAG_FLOAT:
       { Word p = addressIndirect(w);
 	size_t n = wsizeofInd(*p);
-	word k;
 
-	k = MurmurHashAligned2(p+1, n*sizeof(*p), MURMUR_SEED);
-	k &= ~((word)STG_GLOBAL);	/* avoid confusion with functor_t */
-	if ( !k ) k = 1;		/* avoid no-key */
-	return k;
+	return murmur_key(p+1, n*sizeof(*p));
       }
       case TAG_COMPOUND:
 	w = *valPtr(w);			/* functor_t */
@@ -359,14 +355,6 @@ setClauseChoice(DECL_LD ClauseChoice chp, ClauseRef cref, gen_t generation)
     cref = cref->next;
 
   chp->cref = cref;
-}
-
-
-static inline word
-murmur_key(void *ptr, size_t n)
-{ word k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
-  if ( !k ) k = 1;
-  return k;
 }
 
 
