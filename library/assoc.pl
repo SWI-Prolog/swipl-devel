@@ -168,11 +168,14 @@ gen_assoc(Key, Assoc, Value) :-
     ;   gen_assoc_(Key, Assoc, Value)
     ).
 
-gen_assoc_(Key, t(_,_,_,L,_), Val) :-
+gen_assoc_(Key, t(_,_,_,L,_), Val) =>
     gen_assoc_(Key, L, Val).
-gen_assoc_(Key, t(Key,Val,_,_,_), Val).
-gen_assoc_(Key, t(_,_,_,_,R), Val) :-
+gen_assoc_(Key, t(Key,Val0,_,_,_), Val) =>
+    Val = Val0.
+gen_assoc_(Key, t(_,_,_,_,R), Val) =>
     gen_assoc_(Key, R, Val).
+gen_assoc_(_, t, _) =>
+    fail.
 
 
 %!  get_assoc(+Key, +Assoc, -Value) is semidet.
@@ -207,9 +210,12 @@ get_assoc(>, Key, _, _, Tree, Val) :-
 %
 %   True if Key-Val0 is in Assoc0 and Key-Val is in Assoc.
 
-get_assoc(Key, t(K,V,B,L,R), Val, t(K,NV,B,NL,NR), NVal) :-
+get_assoc(Key, t(K,V,B,L,R), Val, Assoc, NVal) =>
+    Assoc = t(K,NV,B,NL,NR),
     compare(Rel, Key, K),
     get_assoc(Rel, Key, V, L, R, Val, NV, NL, NR, NVal).
+get_assoc(_Key, t, _Val, _, _) =>
+    fail.
 
 get_assoc(=, _, Val, L, R, Val, NVal, L, R, NVal).
 get_assoc(<, Key, V, L, R, Val, V, NL, R, NVal) :-
@@ -226,13 +232,14 @@ get_assoc(>, Key, V, L, R, Val, V, L, NR, NVal) :-
 %   @error domain_error(unique_key_pairs, List) if List contains duplicate keys
 
 list_to_assoc(List, Assoc) :-
-    (  List = [] -> Assoc = t
-    ;  keysort(List, Sorted),
-           (  ord_pairs(Sorted)
-           -> length(Sorted, N),
-              list_to_assoc(N, Sorted, [], _, Assoc)
-           ;  domain_error(unique_key_pairs, List)
-           )
+    (   List == []
+    ->  Assoc = t
+    ;   keysort(List, Sorted),
+        (  ord_pairs(Sorted)
+        -> length(Sorted, N),
+           list_to_assoc(N, Sorted, [], _, Assoc)
+        ;  domain_error(unique_key_pairs, List)
+        )
     ).
 
 list_to_assoc(1, [K-V|More], More, 1, t(K,V,-,t,t)) :- !.
@@ -256,12 +263,13 @@ list_to_assoc(N, List, More, Depth, t(K,V,Balance,L,R)) :-
 %   @error domain_error(key_ordered_pairs, List) if pairs are not ordered.
 
 ord_list_to_assoc(Sorted, Assoc) :-
-    (  Sorted = [] -> Assoc = t
-    ;  (  ord_pairs(Sorted)
-           -> length(Sorted, N),
-              list_to_assoc(N, Sorted, [], _, Assoc)
-           ;  domain_error(key_ordered_pairs, Sorted)
-           )
+    (   Sorted == []
+    ->  Assoc = t
+    ;   (  ord_pairs(Sorted)
+        -> length(Sorted, N),
+           list_to_assoc(N, Sorted, [], _, Assoc)
+        ;  domain_error(key_ordered_pairs, Sorted)
+        )
     ).
 
 %!  ord_pairs(+Pairs) is semidet
@@ -282,8 +290,9 @@ ord_pairs([K-_V|Rest], K0) :-
 map_assoc(Pred, T) :-
     map_assoc_(T, Pred).
 
-map_assoc_(t, _).
-map_assoc_(t(_,Val,_,L,R), Pred) :-
+map_assoc_(t, _) =>
+    true.
+map_assoc_(t(_,Val,_,L,R), Pred) =>
     map_assoc_(L, Pred),
     call(Pred, Val),
     map_assoc_(R, Pred).
@@ -296,8 +305,10 @@ map_assoc_(t(_,Val,_,L,R), Pred) :-
 map_assoc(Pred, T0, T) :-
     map_assoc_(T0, Pred, T).
 
-map_assoc_(t, _, t).
-map_assoc_(t(Key,Val,B,L0,R0), Pred, t(Key,Ans,B,L1,R1)) :-
+map_assoc_(t, _, Assoc) =>
+    Assoc = t.
+map_assoc_(t(Key,Val,B,L0,R0), Pred, Assoc) =>
+    Assoc = t(Key,Ans,B,L1,R1),
     map_assoc_(L0, Pred, L1),
     call(Pred, Val, Ans),
     map_assoc_(R0, Pred, R1).
@@ -307,8 +318,10 @@ map_assoc_(t(Key,Val,B,L0,R0), Pred, t(Key,Ans,B,L1,R1)) :-
 %
 %   True if Key-Value is in Assoc and Key is the largest key.
 
-max_assoc(t(K,V,_,_,R), Key, Val) :-
+max_assoc(t(K,V,_,_,R), Key, Val) =>
     max_assoc(R, K, V, Key, Val).
+max_assoc(t, _, _) =>
+    fail.
 
 max_assoc(t, K, V, K, V).
 max_assoc(t(K,V,_,_,R), _, _, Key, Val) :-
@@ -319,8 +332,10 @@ max_assoc(t(K,V,_,_,R), _, _, Key, Val) :-
 %
 %   True if Key-Value is in assoc and Key is the smallest key.
 
-min_assoc(t(K,V,_,L,_), Key, Val) :-
+min_assoc(t(K,V,_,L,_), Key, Val) =>
     min_assoc(L, K, V, Key, Val).
+min_assoc(t, _, _) =>
+    fail.
 
 min_assoc(t, K, V, K, V).
 min_assoc(t(K,V,_,L,_), _, _, Key, Val) :-
@@ -335,8 +350,10 @@ min_assoc(t(K,V,_,L,_), _, _, Key, Val) :-
 put_assoc(Key, A0, Value, A) :-
     insert(A0, Key, Value, A, _).
 
-insert(t, Key, Val, t(Key,Val,-,t,t), yes).
-insert(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
+insert(t, Key, Val, Assoc, Changed) =>
+    Assoc = t(Key,Val,-,t,t),
+    Changed = yes.
+insert(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) =>
     compare(Rel, K, Key),
     insert(Rel, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged).
 
@@ -399,9 +416,11 @@ del_assoc(Key, A0, Value, A) :-
     delete(A0, Key, Value, A, _).
 
 % delete(+Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
-delete(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) :-
+delete(t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged) =>
     compare(Rel, K, Key),
     delete(Rel, t(Key,Val,B,L,R), K, V, NewTree, WhatHasChanged).
+delete(t, _, _, _, _) =>
+    fail.
 
 % delete(+KeySide, +Subtree, +SearchedKey, ?SearchedValue, ?SubtreeOut, ?WhatHasChanged)
 % KeySide is an operator {<,=,>} indicating which branch should be searched for the key.
