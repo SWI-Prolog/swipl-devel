@@ -637,6 +637,8 @@ url_menu_item(URL, URL=install_from(URL)).
 %     `if_absent` (default, do nothing if the directory with foreign
 %     resources exists), `make` (run `make`) or `true` (run `make
 %     distclean` followed by the default configure and build steps).
+%     * test(Boolean)
+%     If `true` (default), run the pack tests.
 %     * git(+Boolean)
 %     If `true` (default `false` unless `URL` ends with =.git=),
 %     assume the URL is a GIT repository.
@@ -1114,8 +1116,12 @@ post_install_foreign(Pack, PackDir, Options) :-
     ->  print_message(informational, pack(kept_foreign(Pack)))
     ;   BuildSteps0 = [[dependencies], [configure], build, [test], install],
         (   Rebuild == true
-        ->  BuildSteps = [distclean|BuildSteps0]
-        ;   BuildSteps = BuildSteps0
+        ->  BuildSteps1 = [distclean|BuildSteps0]
+        ;   BuildSteps1 = BuildSteps0
+        ),
+        (   option(test(false), Options)
+        ->  delete(BuildSteps1, [test], BuildSteps)
+        ;   BuildSteps = BuildSteps1
         ),
         build_steps(BuildSteps, PackDir, Options)
     ).
