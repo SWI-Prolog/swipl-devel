@@ -375,33 +375,176 @@ test(in4, KVs = [b=2,c=3,d=4]) :-
     list_to_rbtree([b-2,c-3,d-4], Tree),
     bagof(K=V, rb_in(K, V, Tree), KVs).
 
+% TODO: similar tests for library(assoc).
+test(steadfast_rb_visit) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_visit(Tree, [a-1,b-2]).
+test(steadfast_empty_1a) :-
+    rb_empty(Empty),
+    rb_empty(Empty). % make sure rb_empty/1 allows an existing tree
+test(steadfast_empty_1b) :-
+    list_to_rbtree([], Empty),
+    rb_empty(Empty).
+test(steadfast_new_1a) :-
+    rb_new(New),
+    rb_new(New). % make sure rb_new/1 allows an existing tree
+test(steadfast_new_1b) :-
+    list_to_rbtree([], New),
+    rb_new(New).
+test(steadfast_lookup_3) :-
+    list_to_rbtree([a-1,b-2,c-3,d-4], Tree),
+    rb_lookup(b, 2, Tree).
+test(steadfast_update_4a) :-
+    % This test won't succeed for arbitrary rbtrees because there
+    % can be more than one form of a tree with a given contents.
+    list_to_rbtree([a-1,b-2,c-3,d-4], Tree),
+    list_to_rbtree([a-1,b-666,c-3,d-4], Tree2),
+    rb_update(Tree, b, 666, Tree2).
+test(steadfast_update_5a) :-
+    % This test won't succeed for arbitrary rbtrees because there
+    % can be more than one form of a tree with a given contents.
+    list_to_rbtree([a-1,b-2,c-3,d-4], Tree),
+    list_to_rbtree([a-1,b-2,c-666,d-4], Tree2),
+    rb_update(Tree, c, 3, 666, Tree2).
+test(steadfast_apply_4) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    list_to_rbtree([a-2,b-2], Tree2),
+    rb_apply(Tree, a, plus1, Tree2).
+test(steadfast_insert_4) :-
+    % This test won't succeed for arbitrary rbtrees because there
+    % can be more than one form of a tree with a given contents.
+    list_to_rbtree([a-1,c-3], Tree1),
+    list_to_rbtree([a-1,b-2,c-3], Tree2),
+    list_to_rbtree([a-111,b-2,c-3], Tree3),
+    rb_insert(Tree1, b, 2, Tree2),
+    rb_insert(Tree2, a, 111, Tree3).
+test(steadfast_insert_new_4) :-
+    rb_empty(Tree1),
+    rb_insert_new(Tree1, x, 666, Tree2),
+    rb_insert_new(Tree2, a, 1, Tree3),
+    % Can't use list_to_rbtree/2 because the tree has a different shape;
+    % repeat the test to check steadfastness:
+    rb_empty(Tree1),
+    rb_insert_new(Tree1, x, 666, Tree2),
+    rb_insert_new(Tree2, a, 1, Tree3).
+test(steadfast_delete_3) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree1),
+    rb_delete(Tree1, a, Tree2),
+    % repeat the test to check steadfastness:
+    rb_delete(Tree1, a, Tree2).
+test(steadfast_delete_4) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree1),
+    rb_delete(Tree1, c, Val, Tree2),
+    % repeat the test to check steadfastness:
+    rb_delete(Tree1, c, Val, Tree2).
+test(steadfast_keys_2) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_keys(Tree, [a,b,c]).
+test(steadfast_map_3) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree1),
+    list_to_rbtree([a-2,b-3,c-4], Tree2),
+    rb_map(Tree1, plus1, Tree2).
+test(steadfast_min) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_min(Tree, a, 1).
+test(steadfast_max) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_max(Tree, c, 3).
+test(steadfast_next) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_min(Tree, a, 1),
+    rb_next(Tree, a, b, 2),
+    rb_next(Tree, b, c, 3).
+test(steadfast_previous) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_max(Tree, c, 3),
+    rb_previous(Tree, c, b, 2),
+    rb_previous(Tree, b, a, 1).
+test(steadfast_list_to_rbtree) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    list_to_rbtree([a-1,b-2,c-3], Tree).
+test(steadfast_size) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_size(Tree, 3).
+test(steadfast_in, [nondet]) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    rb_in(b, 2, Tree).
+
+% TODO: similar tests for library(assoc).
 test(instantiation_visit_2, [error(existence_error(matching_rule,
                                                    rbtrees:rb_visit(_,_)),
                                    context(rbtrees:rb_visit/2,_))]) :-
-    rb_visit(_, _).
-% TOD: add full error + context to the following tests:
-test(instantiation_lookup_3, [error(existence_error(matching_rule,_),_)]) :-
-    rb_lookup(_,_,_).
-test(instantiation_update_4, [error(existence_error(matching_rule,_),_)]) :-
-    rb_update(_,_,_,_).
-test(instantiation_update_5, [error(existence_error(matching_rule,_),_)]) :-
-    rb_update(_,_,_,_,_).
-test(instantiation_apply_4, [error(existence_error(matching_rule,_),_)]) :-
-    rb_apply(_,_,_,_).
-test(instantiation_insert_4, [error(existence_error(matching_rule,_),_)]) :-
-    rb_insert(_,_,_,_).
-test(instantiation_insert_new_4, [error(existence_error(matching_rule,_),_)]) :-
-    rb_insert_new(_,_,_,_).
-test(instantiation_delete_3, [error(existence_error(matching_rule,_),_)]) :-
-    rb_delete(_,_,_).
-test(instantiation_delete_4, [error(existence_error(matching_rule,_),_)]) :-
-    rb_delete(_,_,_,_).
+    rb_visit(_Tree, _Pairs).
+% TODO: add full error + context to the following tests:
+test(instantiation_lookup_3a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_lookup(_Key,_Value,_Tree).
+test(instantiation_lookup_3b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_lookup(k,_Value,_Tree).
+test(instantiation_lookup_3c, [error(_)]) :- % existence_error or type_error(compound,'')
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_lookup(_Key,_Value,Tree).
+test(instantiation_lookup_3d, V==1) :-
+    list_to_rbtree([A-1,b-2], Tree),
+    rb_lookup(A,V,Tree).
+test(instantiation_update_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(_Tree,_Key,_NewVal,_NewTree).
+test(instantiation_update_4b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(_Tree,k,_NewVal,_NewTree).
+test(instantiation_update_4c, [error(existence_error(matching_rule,_),_)]) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_update(Tree,_Key,_NewVal,_NewTree).
+test(instantiation_update_5a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(_Tree,_Key,_NewVal,_NewTree).
+test(instantiation_update_5b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(_Tree,k,_OldVal,_NewVal,_NewTree).
+test(instantiation_update_5c, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(_Tree,k,_OldVal,v,_NewTree).
+test(instantiation_update_5d, [error(existence_error(matching_rule,_),_)]) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_update(Tree,_Key,_OldVal,_NewVal,_NewTree).
+test(instantiation_apply_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_apply(_Tree,_Key,_Goal,_NewTree).
+test(instantiation_apply_4b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_apply(_Tree,k,_Goal,_NewTree).
+test(instantiation_apply_4c, [error(existence_error(matching_rule,_),_)]) :-
+    rb_apply(_Tree,k,goal,_NewTree).
+test(instantiation_insert_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert(_Tree,_Key,_Value,_NewTree).
+test(instantiation_insert_4b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert(_Tree,k,_Value,_NewTree).
+test(instantiation_insert_new_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert_new(_Tree,_Key,_Value,_NewTree).
+test(instantiation_insert_new_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert_new(_Tree,k,_Value,_NewTree).
+test(instantiation_delete_3a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_Tree,_Key,_NewTree).
+test(instantiation_delete_3b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_Tree,k,_NewTree).
+test(instantiation_delete_3c, [error(existence_error(matching_rule,_),_)]) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_delete(Tree,_Key,_NewTree).
+test(instantiation_delete_4a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_Tree,_Key,_Val,_NewTree).
+test(instantiation_delete_4b, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_Tree,k,_Val,_NewTree).
 test(instantiation_keys_2, [error(existence_error(matching_rule,_),_)]) :-
-    rb_keys(_,_).
-test(instantiation_map_2, [error(existence_error(matching_rule,_),_)]) :-
-    rb_map(_,_).
-test(instantiation_map_3, [error(existence_error(matching_rule,_),_)]) :-
-    rb_map(_,_,_).
+    rb_keys(_Tree,_Keys).
+test(instantiation_map_2a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_map(_Tree,_Goal).
+test(instantiation_map_2b, [error(instantiation_error,_)]) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_map(Tree,_Goal).
+test(instantiation_map_2c) :-
+    rb_empty(Tree),
+    rb_map(Tree,_Goal).
+test(instantiation_map_3a, [error(existence_error(matching_rule,_),_)]) :-
+    rb_map(_Tree,_Goal,_NewTree).
+test(instantiation_map_3b, [error(instantiation_error,_)]) :-
+    list_to_rbtree([a-1,b-2], Tree),
+    rb_map(Tree,_Goal,_NewTree).
+test(instantiation_map_3c) :-
+    rb_empty(Tree),
+    rb_map(Tree,_Goal,_NewTree).
 test(instantiation_partial_map_4, [error(existence_error(matching_rule,_),_)]) :-
     rb_partial_map(_,_,_,_).
 test(instantiation_fold_4, [error(existence_error(matching_rule,_),_)]) :-
@@ -428,6 +571,62 @@ test(instantiation_ord_list_to_rbtree_2, [error(instantiation_error,_)]) :- % er
     ord_list_to_rbtree(_, _).
 test(instantiation_is_rbtree_1, fail) :-
     is_rbtree(_).
+
+test(not_tree_visit_2, [error(existence_error(matching_rule,_),_)]) :-
+    rb_visit(foo, _).
+test(not_tree_lookup_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_lookup(_,_,foo).
+test(not_tree_update_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(foo,_,_,_).
+test(not_tree_update_5, [error(existence_error(matching_rule,_),_)]) :-
+    rb_update(foo,_,_,_,_).
+test(not_tree_apply_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_apply(_,_,_,_).
+test(not_tree_insert_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert(_,_,_,_).
+test(not_tree_insert_new_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_insert_new(_,_,_,_).
+test(not_tree_delete_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_,_,_).
+test(not_tree_delete_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_delete(_,_,_,_).
+test(not_tree_keys_2, [error(existence_error(matching_rule,_),_)]) :-
+    rb_keys(_,_).
+test(not_tree_map_2, [error(existence_error(matching_rule,_),_)]) :-
+    rb_map(_,_).
+test(not_tree_map_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_map(_,_,_).
+test(not_tree_partial_map_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_partial_map(_,_,_,_).
+test(not_tree_fold_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_fold(_,_,_,_).
+test(not_tree_clone_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_clone(_,_,_).
+test(not_tree_min_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_min(_,_,_).
+test(not_tree_max_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_max(_,_,_).
+test(not_tree_del_min_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_del_min(_,_,_,_).
+test(not_tree_del_max_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_del_max(_,_,_,_).
+test(not_tree_min_3, [error(existence_error(matching_rule,_),_)]) :-
+    rb_min(_,_,_).
+test(not_tree_next_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_next(_,_,_,_).
+test(not_tree_previous_4, [error(existence_error(matching_rule,_),_)]) :-
+    rb_previous(_,_,_,_).
+test(not_tree_is_rbtree_1, fail) :-
+    is_rbtree(foo).
+
+test(is_rbtree_1) :-
+    rb_empty(Tree),
+    is_rbtree(Tree).
+test(is_rbtree_2) :-
+    list_to_rbtree([a-1,b-2,c-3], Tree),
+    is_rbtree(Tree).
+
+
 
 % TODO: The following 2 instantiation tests should fail, but they
 %       currently succeed.
