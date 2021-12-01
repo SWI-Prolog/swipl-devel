@@ -627,13 +627,22 @@ test(not_tree_previous_4, [error(existence_error(matching_rule,_),_)]) :-
 test(not_tree_is_rbtree_1, fail) :-
     is_rbtree(foo).
 
-test(is_rbtree_1) :-
+test(is_rbtree_1a) :-
     rb_empty(Tree),
     is_rbtree(Tree).
-test(is_rbtree_2) :-
+test(is_rbtree_1b) :-
     list_to_rbtree([a-1,b-2,c-3], Tree),
     is_rbtree(Tree).
-
+test(is_rbtree_1c) :-
+    list_to_rbtree([A-1,m-2], Tree),
+    A = a,
+    rb_visit(Tree, [a-1,m-2]), % in order
+    assertion(is_rbtree(Tree)).
+test(is_rbtree_1c) :-
+    list_to_rbtree([A-1,m-2], Tree),
+    A = z,
+    rb_visit(Tree, [z-1,m-2]), % out of order
+    assertion(\+ is_rbtree(Tree)).
 
 
 % TODO: The following 2 instantiation tests should fail, but they
