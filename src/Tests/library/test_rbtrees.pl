@@ -155,6 +155,10 @@ pretty_print(black(L,K,_,R),D) :-
 % Predicate for testing rb_apply/4, rb_map/3, rb_partial_map/4:
 plus1(X, X1) :- X1 is X + 1.
 
+% PRedicate for testing rb_map/3:
+plus_or_minus(X, X1) :- X1 is X + 1.
+plus_or_minus(X, X1) :- X1 is X - 1.
+
 % Predicate for testing rb_map/2:
 even(X) :- 0 is X mod 2.
 
@@ -247,7 +251,7 @@ test(sequence, Tree2List == [a-1, b-2, c-555]) :-
 test(keys1, Keys == [a,b,c,d]) :-
     list_to_rbtree([a-1,b-2,c-3,d-4], Tree),
     rb_keys(Tree, Keys).
-test(keys2, Keys = []) :-
+test(keys2, Keys == []) :-
     rb_empty(Tree),
     rb_keys(Tree, Keys).
 
@@ -268,9 +272,13 @@ test(map3, Tree2List == [a-2,b-666,c-4]) :-
 test(map3b, fail) :-
     list_to_rbtree([a-1,b-666,c-3], Tree1),
     rb_partial_map(Tree1, [c,a], plus1, _). % [c,a] not ordered
-test(map4, Tree2List = [a-1,b-2,c-3]) :-
+test(map4, Tree2List == [a-1,b-2,c-3]) :-
     list_to_rbtree([a-1,b-2,c-3], Tree1),
     rb_partial_map(Tree1, [], plus1, Tree2),
+    rb_visit(Tree2, Tree2List).
+tst(map5, all(Tree2List = [[a-2,b-3],[a-0,b-3],[a-2,b-1],[a-0,b-1]])) :-
+    list_to_rbtree([a-1,b-2], Tree1),
+    rb_map(Tree1, plus_or_minus, Tree2),
     rb_visit(Tree2, Tree2List).
 
 test(fold, Sum == [a,b,c]-6) :-
@@ -371,7 +379,7 @@ test(in3, fail) :-
     ;   rb_in(a, _, Tree)
     ;   rb_in(b2, _, Tree)
     ).
-test(in4, KVs = [b=2,c=3,d=4]) :-
+test(in4, KVs == [b=2,c=3,d=4]) :-
     list_to_rbtree([b-2,c-3,d-4], Tree),
     bagof(K=V, rb_in(K, V, Tree), KVs).
 
