@@ -15,7 +15,18 @@
 #     the above to either add `swipl::libswipl` to your target,
 #     or, if linking is not needed, only the include directories.
 
-set(swipl_home_dir $ENV{SWIHOME})
+if("$ENV{SWIPL_PACK_VERSION}" EQUAL 2)
+  set(swipl_home_dir   $ENV{SWIPL_HOME_DIR})
+  set(swipl_version    $ENV{SWIPL_VERSION})
+  set(swipl_module_lib $ENV{SWIPL_MODULE_LIB})
+else()
+  set(swipl_home_dir   $ENV{SWIHOME})
+  set(swipl_version    $ENV{SWIPLVERSION})
+  set(swipl_module_lib $ENV{SWISOLIB})
+endif()
+
+math(EXPR swipl_version_major "${swipl_version} / 10000")
+
 if(${swipl_home_dir} MATCHES "/home$")
   cmake_path(GET swipl_home_dir PARENT_PATH swipl_build_dir)
   message("Using swipl from build directory ${swipl_build_dir}.")
@@ -31,7 +42,6 @@ if(${swipl_home_dir} MATCHES "/home$")
     NO_PACKAGE_ROOT_PATH
     NO_SYSTEM_ENVIRONMENT_PATH)
   cmake_path(GET swipl_libs FILENAME swipl_soname)
-  math(EXPR swipl_version_major "$ENV{SWIPLVERSION} / 10000")
   set(swipl_soname "${swipl_soname}.${swipl_version_major}")
 
   add_library(swipl::libswipl SHARED IMPORTED)
@@ -48,8 +58,8 @@ else()
   endif()
 endif()
 
-if(DEFINED ENV{SWISOLIB})
-  if("$ENV{SWISOLIB}" STREQUAL "")
+if(swipl_module_lib)
+  if("${swipl_module_lib}" STREQUAL "")
     set(SWIPL_MODULE_LINK_LIBSWIPL OFF)
   else()
     set(SWIPL_MODULE_LINK_LIBSWIPL ON)

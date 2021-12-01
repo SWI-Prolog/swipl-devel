@@ -34,8 +34,6 @@
 
 :- module(build_tools,
           [ build_steps/3,              % +Steps, +SrcDir, +Options
-            build_environment/1,        % -Env
-            save_build_environment/2,   % +BuildDir, +Env
             prolog_install_prefix/1,    % -Prefix
             run_process/3,              % +Executable, +Argv, +Options
             has_program/3,              % +Spec, -Path, +Env
@@ -81,7 +79,8 @@ unique to the toolchain.   Currently it supports
 %!  build_steps(+Steps:list, SrcDir:atom, +Options) is det.
 %
 %   Run the desired build steps.  Normally,   Steps  is  the list below,
-%   optionally prefixed with `distclean` or `clean`.
+%   optionally prefixed with `distclean` or `clean`. `[test]` may be
+%   omited if ``--no-test`` is effective.
 %
 %       [[dependencies], [configure], build, [test], install]
 %
@@ -97,7 +96,7 @@ unique to the toolchain.   Currently it supports
 build_steps(Steps, SrcDir, Options) :-
     dict_options(Dict0, Options),
     setup_path,
-    build_environment(BuildEnv),
+    build_environment(BuildEnv, Options),
     State0 = Dict0.put(#{ env: BuildEnv,
                           src_dir: SrcDir
                         }),
@@ -149,48 +148,71 @@ ensure_build_dir(Dir, State0, State) :-
 		 *          ENVIRONMENT		*
 		 *******************************/
 
-%!  build_environment(-Env) is det.
+%!  build_environment(-Env, +Options) is det.
 %
 %   Assemble a clean  build  environment   for  creating  extensions  to
-%   SWI-Prolog. Env is a list of   `Var=Value` pairs. Provided variables
-%   are:
+%   SWI-Prolog. Env is a list of   `Var=Value` pairs. The variable names
+%   depend on the `pack_version(Version)`  term   from  `pack.pl`.  When
+%   absent or `1`, the old names are used. These names are confusing and
+%   conflict with some build environments. Using `2` (or later), the new
+%   names are used. The list below  first   names  the new name and than
+%   between parenthesis, the new name.  Provided variables are:
 %
-%     - ``PATH`` contains the environment path with the directory
-%       holding the currently running SWI-Prolog instance prepended
-%       in front of it.  As a result, `swipl` is always present and
-%       runs the same SWI-Prolog instance as the current Prolog process.
-%     - ``SWIPL`` contains the absolute file name of the running
-%       executable.
-%     - ``SWIPLVERSION`` contains the numeric SWI-Prolog version
-%       defined as _|Major*10000+Minor*100+Patch|_.
-%     - ``SWIHOME`` contains the directory holding the SWI-Prolog
-%       home.
-%     - ``SWIARCH`` contains the machine architecture identifier.
-%     - ``PACKSODIR`` constains the destination directory for
-%       shared objects/DLLs relative to a Prolog pack, i.e.,
-%       ``lib/$SWIARCH``.
-%     - ``SWISOLIB`` The SWI-Prolog library or an empty string
-%       when it is not required to link modules against this
-%       library (e.g., ELF systems)
-%     - ``SWILIB`` The SWI-Prolog library we need to link to for
-%       programs that _embed_ SWI-Prolog.
-%     - ``CC`` Prefered C compiler
-%     - ``LD`` Prefered linker
-%     - ``CFLAGS`` C-Flags for building extensions.  Always contains
-%       ``-ISWIPL-INCLUDE-DIR``.
-%     - ``LDSOFLAGS`` Link flags for linking modules.
-%     - ``SOEXT`` Shared object extension, e.g. `so` or `dll`.
-%     - ``PREFIX`` Install prefix for global binaries, libraries and
-%       include files.
+%     $ ``PATH`` :
+%     contains the environment path with the directory
+%     holding the currently running SWI-Prolog instance prepended
+%     in front of it.  As a result, `swipl` is always present and
+%     runs the same SWI-Prolog instance as the current Prolog process.
+%     $ ``SWIPL`` :
+%     contains the absolute file name of the running executable.
+%     $ ``SWIPL_PACK_VERSION`` :
+%     Version of the pack system (1 or 2)
+%     $ ``SWIPL_VERSION`` (``SWIPLVERSION``) :
+%     contains the numeric SWI-Prolog version defined as
+%     _|Major*10000+Minor*100+Patch|_.
+%     $ ``SWIPL_HOME_DIR`` (``SWIHOME``) :
+%     contains the directory holding the SWI-Prolog home.
+%     $ ``SWIPL_ARCH`` (``SWIARCH``) :
+%     contains the machine architecture identifier.
+%     $ ``SWIPL_MODULE_DIR`` (``PACKSODIR``) :
+%     constains the destination directory for shared objects/DLLs
+%     relative to a Prolog pack, i.e., ``lib/$SWIARCH``.
+%     $ ``SWIPL_MODULE_LIB`` (``SWISOLIB``) :
+%     The SWI-Prolog library or an empty string when it is not required
+%     to link modules against this library (e.g., ELF systems)
+%     $ ``SWIPL_LIB`` (``SWILIB``) :
+%     The SWI-Prolog library we need to link to for programs that
+%     _embed_ SWI-Prolog (normally ``-lswipl``).
+%     $ ``SWIPL_INCLUDE_DIRS`` :
+%     CMake style variable that contains the directory holding
+%     ``SWI-Prolog.h``, ``SWI-Stream.h`` and ``SWI-cpp.h``.
+%     $ ``SWIPL_LIBRARIES_DIR`` :
+%     CMake style variable that contains the directory holding `libswipl`
+%     $ ``SWIPL_CC`` (``CC``) :
+%     Prefered C compiler
+%     $ ``SWIPL_LD`` (``LD``) :
+%     Prefered linker
+%     $ ``SWIPL_CFLAGS`` (``CLFLAGS``) :
+%     C-Flags for building extensions. Always contains ``-ISWIPL-INCLUDE-DIR``.
+%     $ ``SWIPL_MODULE_LDFLAGS`` (``LDSOFLAGS``) :
+%     Link flags for linking modules.
+%     $ ``SWIPL_MODULE_EXT`` (``SOEXT``) :
+%     File name extension for modules (e.g., `so` or `dll`)
+%     $ ``SWIPL_PREFIX`` (``PREFIX``) :
+%     Install prefix for global binaries, libraries and include files.
 %
 %     In addition, several environment variables   are  passes verbatim:
-%     ``TMP``, ``TEMP``, ``USER`` and ``HOME``.
+%     ``TMP``, ``TEMP``, ``USER``, ``HOME``, ``LANG``, ``CC``,
+%     ``CXX``, ``LD``, ``CFLAGS``, ``CXXFLAGS`` and ``LDFLAGS`` are
+%     passed verbatim unless redefined for version 1 packs as described
+%     above.
 
-
-build_environment(Env) :-
-    findall(Name=Value, distinct(Name, user_environment(Name, Value)), UserEnv),
+build_environment(Env, Options) :-
     findall(Name=Value,
-            ( def_environment(Name, Value),
+            distinct(Name, user_environment(Name, Value)),
+            UserEnv),
+    findall(Name=Value,
+            ( def_environment(Name, Value, Options),
               \+ memberchk(Name=_, UserEnv)
             ),
             DefEnv),
@@ -206,7 +228,7 @@ user_environment(Name, Value) :-
 %   Hook  to  define  the  environment   for  building  packs.  This
 %   Multifile hook extends the  process   environment  for  building
 %   foreign extensions. A value  provided   by  this  hook overrules
-%   defaults provided by def_environment/2. In  addition to changing
+%   defaults provided by def_environment/3. In  addition to changing
 %   the environment, this may be used   to pass additional values to
 %   the environment, as in:
 %
@@ -220,45 +242,61 @@ user_environment(Name, Value) :-
 %          value of the variable.
 
 
-%!  def_environment(-Name, -Value) is nondet.
+%!  def_environment(-Name, -Value, +Options) is nondet.
 %
 %   True if Name=Value must appear in   the environment for building
 %   foreign extensions.
 
-def_environment('PATH', Value) :-
+def_environment('PATH', Value, _) :-
     getenv('PATH', PATH),
     current_prolog_flag(executable, Exe),
     file_directory_name(Exe, ExeDir),
     prolog_to_os_filename(ExeDir, OsExeDir),
     path_sep(Sep),
     atomic_list_concat([OsExeDir, Sep, PATH], Value).
-def_environment('SWIPL', Value) :-
+def_environment('SWIPL', Value, _) :-
     current_prolog_flag(executable, Value).
-def_environment('SWIPLVERSION', Value) :-
+def_environment('SWIPL_PACK_VERSION', Value, Options) :-
+    option(pack_version(Value), Options, 1).
+def_environment(VAR, Value, Options) :-
+    env_name(version, VAR, Options),
     current_prolog_flag(version, Value).
-def_environment('SWIHOME', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(home, VAR, Options),
     current_prolog_flag(home, Value).
-def_environment('SWIARCH', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(arch, VAR, Options),
     current_prolog_flag(arch, Value).
-def_environment('PACKSODIR', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(module_dir, VAR, Options),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, Value).
-def_environment('SWISOLIB', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(module_lib, VAR, Options),
     current_prolog_flag(c_libplso, Value).
-def_environment('SWILIB', '-lswipl').
-def_environment('CC', Value) :-
+def_environment(VAR, '-lswipl', Options) :-
+    env_name(lib, VAR, Options).
+def_environment(VAR, Value, Options) :-
+    env_name(cc, VAR, Options),
     (   getenv('CC', Value)
     ->  true
     ;   default_c_compiler(Value)
     ->  true
     ;   current_prolog_flag(c_cc, Value)
     ).
-def_environment('LD', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(ld, VAR, Options),
     (   getenv('LD', Value)
     ->  true
     ;   current_prolog_flag(c_cc, Value)
     ).
-def_environment('CFLAGS', Value) :-
+def_environment('SWIPL_INCLUDE_DIRS', Value, _) :- % CMake style environment
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/include', Value).
+def_environment('SWIPL_LIBRARIES_DIR', Value, _) :-
+    swipl_libraries_dir(Value).
+def_environment(VAR, Value, Options) :-
+    env_name(cflags, VAR, Options),
     (   getenv('CFLAGS', SystemFlags)
     ->  Extra = [' ', SystemFlags]
     ;   Extra = []
@@ -266,7 +304,8 @@ def_environment('CFLAGS', Value) :-
     current_prolog_flag(c_cflags, Value0),
     current_prolog_flag(home, Home),
     atomic_list_concat([Value0, ' -I"', Home, '/include"' | Extra], Value).
-def_environment('LDSOFLAGS', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(module_ldflags, VAR, Options),
     (   getenv('LDFLAGS', SystemFlags)
     ->  Extra = [SystemFlags|System]
     ;   Extra = System
@@ -286,18 +325,67 @@ def_environment('LDSOFLAGS', Value) :-
     ),
     current_prolog_flag(c_ldflags, LDFlags),
     atomic_list_concat([LDFlags, '-shared' | Extra], ' ', Value).
-def_environment('SOEXT', Value) :-
+def_environment(VAR, Value, Options) :-
+    env_name(module_ext, VAR, Options),
     current_prolog_flag(shared_object_extension, Value).
-def_environment('PREFIX', Value) :-
+def_environment('PREFIX', Value, _) :-
     prolog_install_prefix(Value).
-def_environment(Pass, Value) :-
+def_environment(Pass, Value, _) :-
     pass_env(Pass),
     getenv(Pass, Value).
+
+swipl_libraries_dir(Dir) :-
+    current_prolog_flag(windows, true),
+    !,
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/bin', Dir).
+swipl_libraries_dir(Dir) :-
+    apple_bundle_libdir(Dir),
+    !.
+swipl_libraries_dir(Dir) :-
+    prolog_library_dir(Dir).
 
 pass_env('TMP').
 pass_env('TEMP').
 pass_env('USER').
 pass_env('HOME').
+pass_env('LANG').
+pass_env('CC').
+pass_env('CXX').
+pass_env('LD').
+pass_env('CFLAGS').
+pass_env('CXXFLAGS').
+pass_env('LDFLAGS').
+
+env_name(Id, Name, Options) :-
+    option(pack_version(V), Options, 1),
+    must_be(oneof([1,2]), V),
+    env_name_v(Id, V, Name).
+
+env_name_v(version,        1, 'SWIPLVERSION').
+env_name_v(version,        2, 'SWIPL_VERSION').
+env_name_v(home,           1, 'SWIHOME').
+env_name_v(home,           2, 'SWIPL_HOME_DIR').
+env_name_v(module_dir,     1, 'PACKSODIR').
+env_name_v(module_dir,     2, 'SWIPL_MODULE_DIR').
+env_name_v(module_lib,     1, 'SWISOLIB').
+env_name_v(module_lib,     2, 'SWIPL_MODULE_LIB').
+env_name_v(lib,            1, 'SWILIB').
+env_name_v(lib,            2, 'SWIPL_LIB').
+env_name_v(arch,           1, 'SWIARCH').
+env_name_v(arch,           2, 'SWIPL_ARCH').
+env_name_v(cc,             1, 'CC').
+env_name_v(cc,             2, 'SWIPL_CC').
+env_name_v(ld,             1, 'LD').
+env_name_v(ld,             2, 'SWIPL_LD').
+env_name_v(cflags,         1, 'CFLAGS').
+env_name_v(cflags,         2, 'SWIPL_CFLAGS').
+env_name_v(module_ldflags, 1, 'LDSOFLAGS').
+env_name_v(module_ldflags, 2, 'SWIPL_MODULE_LDFLAGS').
+env_name_v(module_ext,     1, 'SOEXT').
+env_name_v(module_ext,     2, 'SWIPL_MODULE_EXT').
+env_name_v(prefix,         1, 'PREFIX').
+env_name_v(prefix,         2, 'SWIPL_PREFIX').
 
 %!  prolog_library_dir(-Dir) is det.
 %

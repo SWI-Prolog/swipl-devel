@@ -298,6 +298,7 @@ pack_info_term(version(version)).
 pack_info_term(author(atom, email_or_url_or_empty)).     % Persons
 pack_info_term(maintainer(atom, email_or_url)).
 pack_info_term(packager(atom, email_or_url)).
+pack_info_term(pack_version(nonneg)).           % Package convention version
 pack_info_term(home(atom)).                     % Home page
 pack_info_term(download(atom)).                 % Source
 pack_info_term(provides(atom)).                 % Dependencies
@@ -1110,6 +1111,10 @@ pack_rebuild :-
 post_install_foreign(Pack, PackDir, Options) :-
     is_foreign_pack(PackDir, _),
     !,
+    (   pack_info_term(PackDir, pack_version(Version))
+    ->  true
+    ;   Version = 1
+    ),
     option(rebuild(Rebuild), Options, if_absent),
     (   Rebuild == if_absent,
         foreign_present(PackDir)
@@ -1123,7 +1128,7 @@ post_install_foreign(Pack, PackDir, Options) :-
         ->  delete(BuildSteps1, [test], BuildSteps)
         ;   BuildSteps = BuildSteps1
         ),
-        build_steps(BuildSteps, PackDir, Options)
+        build_steps(BuildSteps, PackDir, [pack_version(Version)|Options])
     ).
 post_install_foreign(_, _, _).
 
