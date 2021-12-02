@@ -209,12 +209,7 @@ add_findall_bag(DECL_LD term_t term, term_t count)
 { findall_bag *bag = current_bag();
   Record r;
 
-  DEBUG(MSG_NSOLS, { Sdprintf("Adding to %p: ", bag);
-		     PL_write_term(Serror, term, 1200,
-				   PL_WRT_ATTVAR_DOTS|
-				   PL_WRT_NEWLINE|
-				   PL_WRT_QUOTED);
-		   });
+  DEBUG(MSG_NSOLS, Sdprintf("Adding answer to %p\n", bag););
 
   if ( !bag )
   { static atom_t cbag;

@@ -446,7 +446,9 @@ bstore_print_backtrace_named(btrace *bt, const char *why)
 	return;
       }
       if ( --me == bt->current-1 )
+      { Sdprintf("No backtrace named %s\n", why);
 	break;
+      }
     }
   }
 }
