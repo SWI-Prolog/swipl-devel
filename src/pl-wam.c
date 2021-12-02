@@ -837,11 +837,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
       fr = (LocalFrame)valTermRef(fref);
       clean = consTermRef(argFrameP(fr, 3));
       if ( saveWakeup(&wstate, FALSE) )
-      { static predicate_t PRED_call1 = NULL;
-	int rval;
-
-	if ( !PRED_call1 )
-	  PRED_call1 = PL_predicate("call", 1, "system");
+      { int rval;
 
 	startCritical;
         rval = call_term(contextModule(fr), clean);
