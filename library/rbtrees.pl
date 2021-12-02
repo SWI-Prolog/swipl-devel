@@ -35,13 +35,13 @@
 :- module(rbtrees,
           [ rb_new/1,                   % -Tree
             rb_empty/1,                 % ?Tree
-            rb_lookup/3,                % +Key, ?Value, +Tree
-            rb_update/4,                % +Tree, +Key,          +NewVal, -NewTree
-            rb_update/5,                % +Tree, +Key, ?OldVal, +NewVal, -NewTree
+            rb_lookup/3,                % +Key, -Value, +Tree
+            rb_update/4,                % +Tree, +Key,          ?NewVal, -NewTree
+            rb_update/5,                % +Tree, +Key, -OldVal, ?NewVal, -NewTree
             rb_apply/4,                 % +Tree, +Key, :G, -NewTree
             rb_insert/4,                % +Tree, +Key, ?Value, -NewTree
             rb_insert_new/4,            % +Tree, +Key, ?Value, -NewTree
-            rb_delete/3,                % +Tree, +Key, -NewTree
+            rb_delete/3,                % +Tree, +Key,       -NewTree
             rb_delete/4,                % +Tree, +Key, -Val, -NewTree
             rb_visit/2,                 % +Tree, -Pairs
             rb_keys/2,                  % +Tree, +Keys
@@ -141,31 +141,31 @@ rb_new(t(Nil,Nil)) :-
 rb_empty(t(Nil,Nil)) :-
     Nil = black('',_,_,'').
 
-%!  rb_lookup(+Key, ?Value, +Tree) is semidet.
+%!  rb_lookup(+Key, -Value, +Tree) is semidet.
 %
 %   True when Value is associated with Key   in the Red-Black tree Tree.
 %   The given Key may include variables, in   which  case the RB tree is
 %   searched for a key with equivalent  variables (using (==)/2).   Time
 %   complexity is O(log N) in the number of elements in the tree.
-%   Throws an error if Key is not sufficiently instantiated (see rb_in/3
-%   if you wish to backtrack over all keys).
+%   This predicate may fail or give unexpected results if Key is not
+%   sufficiently instantiated - see rb_in/3 for backtracking  over keys.
 
 rb_lookup(Key, Val, t(_,Tree)) =>
     lookup(Key, Val, Tree).
 
-lookup(Key, _Val, black('',_,_,'')), nonvar(Key) => fail.
+lookup(_Key, _Val, black('',_,_,'')) => fail. % TODO: nonvar(Key)
 lookup(Key, Val, Tree) =>
     arg(2,Tree,KA),
     compare(Cmp,KA,Key),
     lookup(Cmp,Key,Val,Tree).
 
-lookup(>, K, V, Tree) =>
+lookup(>, K, V, Tree) :-
     arg(1,Tree,NTree),
     lookup(K, V, NTree).
-lookup(<, K, V, Tree) =>
+lookup(<, K, V, Tree) :-
     arg(4,Tree,NTree),
     lookup(K, V, NTree).
-lookup(=, _, V, Tree) =>
+lookup(=, _, V, Tree) :-
     arg(3,Tree,V).
 
 %!  rb_min(+Tree, -Key, -Value) is semidet.
@@ -213,13 +213,13 @@ next(Tree, Key, Next, Val, Candidate) =>
     compare(Cmp,KA,Key),
     next(Cmp, Key, KA, VA, Next, Val, Tree, Candidate).
 
-next(>, K, KA, VA, NK, V, Tree, _) =>
+next(>, K, KA, VA, NK, V, Tree, _) :-
     arg(1,Tree,NTree),
     next(NTree,K,NK,V,KA-VA).
-next(<, K, _, _, NK, V, Tree, Candidate) =>
+next(<, K, _, _, NK, V, Tree, Candidate) :-
     arg(4,Tree,NTree),
     next(NTree,K,NK,V,Candidate).
-next(=, _, _, _, NK, Val, Tree, Candidate) =>
+next(=, _, _, _, NK, Val, Tree, Candidate) :-
     arg(4,Tree,NTree),
     (   min(NTree, NK, Val)
     ->  true
@@ -242,31 +242,33 @@ previous(Tree, Key, Previous, Val, Candidate) =>
     compare(Cmp,KA,Key),
     previous(Cmp, Key, KA, VA, Previous, Val, Tree, Candidate).
 
-previous(>, K, _, _, NK, V, Tree, Candidate) =>
+previous(>, K, _, _, NK, V, Tree, Candidate) :-
     arg(1,Tree,NTree),
     previous(NTree,K,NK,V,Candidate).
-previous(<, K, KA, VA, NK, V, Tree, _) =>
+previous(<, K, KA, VA, NK, V, Tree, _) :-
     arg(4,Tree,NTree),
     previous(NTree,K,NK,V,KA-VA).
-previous(=, _, _, _, K, Val, Tree, Candidate) =>
+previous(=, _, _, _, K, Val, Tree, Candidate) :-
     arg(1,Tree,NTree),
     (   max(NTree, K, Val)
     ->  true
     ;   Candidate = (K-Val)
     ).
 
-%!  rb_update(+Tree, +Key,          +NewVal, -NewTree) is semidet.
-%!  rb_update(+Tree, +Key, ?OldVal, ?NewVal, -NewTree) is semidet.
+%!  rb_update(+Tree, +Key,          ?NewVal, -NewTree) is semidet.
+%!  rb_update(+Tree, +Key, -OldVal, ?NewVal, -NewTree) is semidet.
 %
 %   Tree NewTree is tree Tree, but with   value  for Key associated with
-%   NewVal. Fails if it cannot find Key in Tree.
-%   Throws an `existence_error` if Key is not sufficiently instantiated.
+%   NewVal.
+%   Fails if Key is not in Tree (using (==)/2).
+%   This predicate may fail or give unexpected results if Key is not
+%   sufficiently instantiated - see rb_in/3 for backtracking  over keys.
 
-rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2), nonvar(Key) =>
+rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2) => % TODO: nonvar(Key)
     NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, OldVal, Val, NewTree).
 
-rb_update(t(Nil,OldTree), Key, Val, NewTree2), nonvar(Key) =>
+rb_update(t(Nil,OldTree), Key, Val, NewTree2) => % TODO: nonvar(Key)
     NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, _, Val, NewTree).
 
@@ -351,11 +353,12 @@ apply(red(Left,Key0,Val0,Right), Key, Goal,
 rb_in(Key, Val, t(_,T)) =>
     enum(Key, Val, T).
 
-enum(Key, Val, black(L,K,V,R)) :-
+enum(Key, Val, black(L,K,V,R)) =>
     L \= '',
     enum_cases(Key, Val, L, K, V, R).
-enum(Key, Val, red(L,K,V,R)) :-
+enum(Key, Val, red(L,K,V,R)) =>
     enum_cases(Key, Val, L, K, V, R).
+enum(_Key, _Val, _Tree) => fail.
 
 enum_cases(Key, Val, L, _, _, _) :-
     enum(Key, Val, L).
@@ -556,13 +559,14 @@ fix_right(black(De,KC,VC,red(Ga,KB,VB,red(Be,KA,VA,Al))),
 fix_right(T,T,done).
 
 
-%!  rb_delete(+Tree, +Key, -NewTree).
+%!  rb_delete(+Tree, +Key,       -NewTree).
 %!  rb_delete(+Tree, +Key, -Val, -NewTree).
 %
 %   Delete element with key Key from the  tree Tree, returning the value
 %   Val associated with the key and a new tree NewTree.
-%   Fails if Key is not in Tree.
-%   Throws an `existence_error` if Key is not sufficiently instantiated.
+%   Fails if Key is not in Tree (using (==)/2).
+%   This predicate may fail or give unexpected results if Key is not
+%   sufficiently instantiated - see rb_in/3 for backtracking  over keys.
 
 rb_delete(t(Nil,T), K, NewTree) =>
     NewTree = t(Nil,NT),
@@ -580,7 +584,7 @@ delete(red(L,K0,V0,R), K, V, NT, Flag) =>
     delete_red(L,K0,V0,R, K, V, NT, Flag).
 delete(black(L,K0,V0,R), K, V, NT, Flag) =>
     delete_black(L,K0,V0,R, K, V, NT, Flag).
-delete('', K, _V, _NT, _Flag), nonvar(K) =>
+delete('', _K, _V, _NT, _Flag) => % TODO: nonvar(K)
     fail.
 
 delete_red(L,K0,V0,R, K, V, NT, Flag), K @< K0 =>
@@ -827,13 +831,11 @@ map(black('',_,_,''),_,Nil0,Nil) => Nil0 = Nil.
 map(red(L,K,V,R),Goal,NewTree,Nil) =>
     NewTree = red(NL,K,NV,NR),
     call(Goal,V,NV),
-    !,
     map(L,Goal,NL,Nil),
     map(R,Goal,NR,Nil).
 map(black(L,K,V,R),Goal,NewTree,Nil) =>
     NewTree = black(NL,K,NV,NR),
     call(Goal,V,NV),
-    !,
     map(L,Goal,NL,Nil),
     map(R,Goal,NR,Nil).
 
@@ -846,7 +848,8 @@ map(black(L,K,V,R),Goal,NewTree,Nil) =>
 %   value  associated  with  Key  in   NewTree    is   ValF.   Fails  if
 %   call(G,Val0,ValF) is not satisfiable for all Val0.
 %   If G is non-deterministic, rb_map/3 will backtrack over all possible
-%   values from call(G,Val0,ValF).
+%   values from call(G,Val0,ValF). You should not depend on the order
+%   of tree traversal (currently: key order).
 
 rb_map(t(_,Tree),Goal) =>
     map(Tree,Goal).
@@ -1000,7 +1003,7 @@ list_to_rbtree(List, T) :-
 ord_list_to_rbtree([], Tree) =>
     Tree = t(Nil,Nil),
     Nil = black('', _, _, '').
-ord_list_to_rbtree([K-V], Tree), nonvar(K) =>
+ord_list_to_rbtree([K-V], Tree) => % TODO: nonvar(K)
     Tree = t(Nil,black(Nil,K,V,Nil)),
     Nil = black('', _, _, '').
 ord_list_to_rbtree(List, Tree2) =>
