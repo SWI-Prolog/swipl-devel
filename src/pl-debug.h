@@ -92,7 +92,7 @@
 #define MSG_PROF_CALLTREE	 46
 #define MSG_PROF_TICKS		 47
 #define MSG_INFERENCE_LIMIT	 48
-#define MSG_NSOLS		 40
+#define MSG_NSOLS		 49
 #define MSG_SRCFILE		 50
 #define MSG_SRCFILE_REF		 51
 #define MSG_DESTROY_MODULE	 52
