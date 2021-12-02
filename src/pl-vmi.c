@@ -6758,6 +6758,14 @@ next_choice:
 	    LOAD_REGISTERS(QID);
 	    ch = BFR;			/* can be shifted */
 
+	    if ( true(FR->predicate, P_FOREIGN) &&
+		 ( action == ACTION_FAIL ||
+		   action == ACTION_IGNORE ||
+		   action == ACTION_RETRY ||
+		   action == ACTION_ABORT
+		 ) )
+	      discardForeignFrame(FR);
+
 	    switch( action )
 	    { case ACTION_FAIL:
 		FRAME_FAILED;
