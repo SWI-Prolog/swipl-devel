@@ -32,6 +32,10 @@
 
 :- module(sicstus4_sockets,
 	  [ socket_client_open/3,
+	    socket_server_open/2,
+	    socket_server_open/3,
+	    socket_server_accept/4,
+	    socket_server_close/1,
 	    socket_select/7,
 	    current_host/1
 	  ]).
@@ -50,15 +54,13 @@ sicstus4:rename_module(sockets, sicstus4_sockets).
 /** <module> SICStus 4-compatible library(sockets).
 
 @tbd	This library is incomplete.
-	As of SICStus 4.6.0, the following predicates are missing:
-
-	* socket_server_open/[2,3]
-	* socket_server_accept/4
-	* socket_server_close/1
+	Some predicates don't fully support all options available on SICStus.
+	See the documentation for individual predicates for details.
 
 @see	https://sicstus.sics.se/sicstus/docs/4.6.0/html/sicstus.html/lib_002dsockets.html
 */
 
+sicstus_address_to_swi(Address, Address) :- var(Address), !.
 sicstus_address_to_swi(inet(Nodename, Servname), SwiAddress) :- !,
 	sicstus_address_to_swi(Nodename:Servname, SwiAddress).
 sicstus_address_to_swi('':Servname, Servname) :- !.
@@ -67,8 +69,7 @@ sicstus_address_to_swi(Address, Address).
 % The following options are not supported yet:
 % * eof_action(Action)
 % * eol(Eol)
-socket_client_open(Addr, Stream, Options) :-
-	sicstus_address_to_swi(Addr, SwiAddr),
+sicstus_parse_stream_options(Options, [type(Type), encoding(Encoding)]) :-
 	(   selectchk(type(Type), Options, Options1)
 	->  true
 	;   Type = text,
@@ -80,10 +81,60 @@ socket_client_open(Addr, Stream, Options) :-
 	    Options2 = Options1
 	),
 	% Check that no unsupported options were passed
-	Options2 == [],
+	Options2 == [].
+
+sicstus_apply_stream_options(Stream, ParsedOptions) :-
+	maplist(set_stream(Stream), ParsedOptions).
+
+socket_client_open(Addr, Stream, Options) :-
+	sicstus_address_to_swi(Addr, SwiAddr),
+	sicstus_parse_stream_options(Options, ParsedOptions),
 	tcp_connect(SwiAddr, Stream, []),
-	set_stream(Stream, type(Type)),
-	set_stream(Stream, encoding(Encoding)).
+	sicstus_apply_stream_options(Stream, ParsedOptions).
+
+sicstus_address_handle_loopback(Address, false, Address) :- !.
+sicstus_address_handle_loopback(Servname, true, localhost:Servname) :- var(Servname), !.
+sicstus_address_handle_loopback(_Nodename:Servname, true, localhost:Servname) :- !.
+sicstus_address_handle_loopback(Servname, true, localhost:Servname) :- !.
+
+sicstus_server_address_to_swi(Address, Loopback, SwiAddress) :-
+	sicstus_address_to_swi(Address, TempAddress),
+	sicstus_address_handle_loopback(TempAddress, Loopback, SwiAddress).
+
+% The following options are not supported yet:
+% * numeric_nodename(Bool)
+% * numeric_servname(Bool)
+socket_server_open(Addr, ServerSocket) :- socket_server_open(Addr, ServerSocket, []).
+socket_server_open(Addr, ServerSocket, Options) :-
+	(   selectchk(reuseaddr(ReuseAddr), Options, Options1)
+	->  (ReuseAddr == true ; ReuseAddr == false)
+	;   ReuseAddr = false,
+	    Options1 = Options
+	),
+	(   selectchk(loopback(Loopback), Options1, Options2)
+	->  (Loopback == true ; Loopback == false)
+	;   Loopback = false,
+	    Options2 = Options1
+	),
+	sicstus_server_address_to_swi(Addr, Loopback, SwiAddr),
+	% Check that no unsupported options were passed
+	Options2 == [],
+	tcp_socket(SocketId),
+	(   ReuseAddr == true
+	->  tcp_setopt(SocketId, reuseaddr)
+	;   true
+	),
+	tcp_bind(SocketId, SwiAddr),
+	tcp_listen(SocketId, 5),
+	tcp_open_socket(SocketId, ServerSocket).
+
+socket_server_accept(ServerSocket, Client, Stream, StreamOptions) :-
+	sicstus_parse_stream_options(StreamOptions, ParsedStreamOptions),
+	tcp_accept(ServerSocket, ClientSocket, Client),
+	tcp_open_socket(ClientSocket, Stream),
+	sicstus_apply_stream_options(Stream, ParsedStreamOptions).
+
+socket_server_close(ServerSocket) :- close(ServerSocket).
 
 sicstus_timeout_to_swi(off, infinite).
 sicstus_timeout_to_swi(Seconds:Microseconds, N) :-
