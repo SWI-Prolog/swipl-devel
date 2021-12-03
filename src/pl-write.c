@@ -317,6 +317,9 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
     return TRUE;
   }
 
+  if ( fd && Scanrepresent(*s, fd) != 0 )
+    return FALSE;
+
   do
   { for( ++s;
 	 ( --len > 0 &&
