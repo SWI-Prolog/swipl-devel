@@ -153,7 +153,7 @@ rb_empty(t(Nil,Nil)) :-
 rb_lookup(Key, Val, t(_,Tree)) =>
     lookup(Key, Val, Tree).
 
-lookup(_Key, _Val, black('',_,_,'')) => fail. % TODO: nonvar(Key)
+lookup(_Key, _Val, black('',_,_,'')) => fail. % TODO: check that Key is sufficiently instantiated
 lookup(Key, Val, Tree) =>
     arg(2,Tree,KA),
     compare(Cmp,KA,Key),
@@ -255,8 +255,7 @@ previous(=, _, _, _, K, Val, Tree, Candidate) :-
     ;   Candidate = (K-Val)
     ).
 
-%!  rb_update(+Tree, +Key,          ?NewVal, -NewTree) is semidet.
-%!  rb_update(+Tree, +Key, -OldVal, ?NewVal, -NewTree) is semidet.
+%!  rb_update(+Tree, +Key, ?NewVal, -NewTree) is semidet.
 %
 %   Tree NewTree is tree Tree, but with   value  for Key associated with
 %   NewVal.
@@ -264,11 +263,16 @@ previous(=, _, _, _, K, Val, Tree, Candidate) :-
 %   This predicate may fail or give unexpected results if Key is not
 %   sufficiently instantiated - see rb_in/3 for backtracking  over keys.
 
-rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2) => % TODO: nonvar(Key)
+rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2) => % TODO: check that Key is sufficiently instantiated
     NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, OldVal, Val, NewTree).
 
-rb_update(t(Nil,OldTree), Key, Val, NewTree2) => % TODO: nonvar(Key)
+%!  rb_update(+Tree, +Key, -OldVal, ?NewVal, -NewTree) is semidet.
+%
+% Same as =|rb_update(Tree, Key, NewVal, NewTree)|= but also unifies
+% OldVal with the value associated with Key in Tree.
+
+rb_update(t(Nil,OldTree), Key, Val, NewTree2) => % TODO: check that Key is sufficiently instantiated
     NewTree2 = t(Nil,NewTree),
     update(OldTree, Key, _, Val, NewTree).
 
@@ -559,8 +563,7 @@ fix_right(black(De,KC,VC,red(Ga,KB,VB,red(Be,KA,VA,Al))),
 fix_right(T,T,done).
 
 
-%!  rb_delete(+Tree, +Key,       -NewTree).
-%!  rb_delete(+Tree, +Key, -Val, -NewTree).
+%!  rb_delete(+Tree, +Key, -NewTree).
 %
 %   Delete element with key Key from the  tree Tree, returning the value
 %   Val associated with the key and a new tree NewTree.
@@ -571,6 +574,11 @@ fix_right(T,T,done).
 rb_delete(t(Nil,T), K, NewTree) =>
     NewTree = t(Nil,NT),
     delete(T, K, _, NT, _).
+
+%!  rb_delete(+Tree, +Key, -Val, -NewTree).
+%
+% Same as =|rb_delete(Tree, Key, NewTree)|=, but also unifies Val
+% with the value associated with Key in Tree.
 
 rb_delete(t(Nil,T), K, V, NewTree) =>
     NewTree = t(Nil,NT),
@@ -584,7 +592,7 @@ delete(red(L,K0,V0,R), K, V, NT, Flag) =>
     delete_red(L,K0,V0,R, K, V, NT, Flag).
 delete(black(L,K0,V0,R), K, V, NT, Flag) =>
     delete_black(L,K0,V0,R, K, V, NT, Flag).
-delete('', _K, _V, _NT, _Flag) => % TODO: nonvar(K)
+delete('', _K, _V, _NT, _Flag) => % TODO: check that K is sufficiently instantiated
     fail.
 
 delete_red(L,K0,V0,R, K, V, NT, Flag), K @< K0 =>
@@ -1003,7 +1011,7 @@ list_to_rbtree(List, T) :-
 ord_list_to_rbtree([], Tree) =>
     Tree = t(Nil,Nil),
     Nil = black('', _, _, '').
-ord_list_to_rbtree([K-V], Tree) => % TODO: nonvar(K)
+ord_list_to_rbtree([K-V], Tree) => % TODO: check that K is sufficiently instantiated
     Tree = t(Nil,black(Nil,K,V,Nil)),
     Nil = black('', _, _, '').
 ord_list_to_rbtree(List, Tree2) =>
