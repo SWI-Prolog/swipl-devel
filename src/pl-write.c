@@ -526,7 +526,8 @@ PutCloseBrace(IOSTREAM *s)
 static bool
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' )
+  { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' &&
+	 (!stream || Scanrepresent(c, stream) == 0) )
     { TRY(Putc(c, stream));
     } else
     { char esc[10];			/* Longest is UXXXXXXXX */
