@@ -1889,6 +1889,7 @@ writeBlobMask(atom_t a)
 
 static const opt_spec write_term_options[] =
 { { ATOM_quoted,		    OPT_BOOL },
+  { ATOM_quote_non_ascii,	    OPT_BOOL },
   { ATOM_ignore_ops,		    OPT_BOOL },
   { ATOM_dotlists,		    OPT_BOOL },
   { ATOM_brace_terms,		    OPT_BOOL },
@@ -1927,6 +1928,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   atom_t bq       = 0;
   bool charescape = -1;			/* not set */
   bool charescape_unicode = -1;
+  bool quote_non_ascii = FALSE;
   atom_t mname    = ATOM_user;
   atom_t attr     = ATOM_nil;
   atom_t blobs    = ATOM_nil;
@@ -1946,7 +1948,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   options.spacing = ATOM_standard;
 
   if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
-		     &quoted, &ignore_ops, &dotlists, &braceterms,
+		     &quoted, &quote_non_ascii, &ignore_ops, &dotlists, &braceterms,
 		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &charescape_unicode,
 		     &options.max_depth, &mname,
@@ -2013,14 +2015,15 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( numbervars == -1 )
     numbervars = (portray ? TRUE : FALSE);
 
-  if ( quoted )     options.flags |= PL_WRT_QUOTED;
-  if ( ignore_ops ) options.flags |= PL_WRT_IGNOREOPS;
-  if ( dotlists )   options.flags |= PL_WRT_DOTLISTS;
-  if ( braceterms ) options.flags |= PL_WRT_BRACETERMS;
-  if ( numbervars ) options.flags |= PL_WRT_NUMBERVARS;
-  if ( portray )    options.flags |= PL_WRT_PORTRAY;
-  if ( !cycles )    options.flags |= PL_WRT_NO_CYCLES;
-  if ( no_lists )   options.flags |= PL_WRT_NO_LISTS;
+  if ( quoted )          options.flags |= PL_WRT_QUOTED;
+  if ( quote_non_ascii ) options.flags |= PL_WRT_QUOTE_NON_ASCII;
+  if ( ignore_ops )      options.flags |= PL_WRT_IGNOREOPS;
+  if ( dotlists )        options.flags |= PL_WRT_DOTLISTS;
+  if ( braceterms )      options.flags |= PL_WRT_BRACETERMS;
+  if ( numbervars )      options.flags |= PL_WRT_NUMBERVARS;
+  if ( portray )         options.flags |= PL_WRT_PORTRAY;
+  if ( !cycles )         options.flags |= PL_WRT_NO_CYCLES;
+  if ( no_lists )        options.flags |= PL_WRT_NO_LISTS;
   if ( bq )
   { unsigned int flags = 0;
 
@@ -2178,7 +2181,8 @@ pl_write_canonical2(term_t stream, term_t term)
 
   rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
-		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
+		   PL_WRT_QUOTED|PL_WRT_QUOTE_NON_ASCII|
+		   PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
 		   PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS, TRUE)
        );
 
