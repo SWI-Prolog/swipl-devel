@@ -242,12 +242,23 @@ wr_is_symbol(int c, write_options *options)
 }
 
 static int
+code_requires_quoted(int c, IOSTREAM *fd, int flags)
+{ if ( c > 0x7f && (flags&PL_WRT_QUOTE_NON_ASCII) )
+    return TRUE;
+  if ( fd && Scanrepresent(c, fd) != 0 )
+    return TRUE;
+
+  return FALSE;
+}
+
+static int
 atomType(atom_t a, write_options *options)
 { Atom atom = atomValue(a);
   char *s = atom->name;
   size_t len = atom->length;
   IOSTREAM *fd = options ? options->out : NULL;
   Module m = options ? options->module : MODULE_user;
+  int flags = options ? options->flags : 0;
 
   if ( len == 0 )
     return AT_QUOTE;
@@ -255,7 +266,7 @@ atomType(atom_t a, write_options *options)
   if ( isLower(*s) || (true(m, M_VARPREFIX) && isAlpha(*s)) )
   { do
     { for( ++s;
-	   --len > 0 && isAlpha(*s) && (!fd || Scanrepresent(*s, fd)==0);
+	   --len > 0 && isAlpha(*s) && !code_requires_quoted(*s, fd, flags);
 	   s++)
 	;
     } while ( len >= 2 &&
@@ -277,7 +288,7 @@ atomType(atom_t a, write_options *options)
 
     for( ;
 	 left > 0 && wr_is_symbol(*s, options) &&
-	 (!fd || Scanrepresent(*s, fd)==0);
+	 !code_requires_quoted(*s, fd, flags);
 	 s++, left--)
       ;
     if ( left > 0 )
@@ -311,20 +322,20 @@ unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
   if ( !f_is_prolog_atom_start(*s) )
   { for( ; len > 0; s++, len--)
     { if ( !f_is_prolog_symbol(*s) ||
-	   (fd && Scanrepresent(*s, fd)<0) )
+	   code_requires_quoted(*s, fd, flags) )
 	return FALSE;
     }
     return TRUE;
   }
 
-  if ( fd && Scanrepresent(*s, fd) != 0 )
+  if ( code_requires_quoted(*s, fd, flags) )
     return FALSE;
 
   do
   { for( ++s;
 	 ( --len > 0 &&
 	   f_is_prolog_identifier_continue(*s) &&
-	   (!fd || Scanrepresent(*s, fd)==0)
+	   !code_requires_quoted(*s, fd, flags)
 	 );
 	 s++)
       ;
