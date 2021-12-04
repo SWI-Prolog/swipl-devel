@@ -2168,7 +2168,7 @@ pl_write_canonical2(term_t stream, term_t term)
   rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
-		   PL_WRT_NODOTINATOM, TRUE)
+		   PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS, TRUE)
        );
 
   END_NUMBERVARS(TRUE);
