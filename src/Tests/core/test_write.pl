@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2016, University of Amsterdam
+    Copyright (c)  2011-2021, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -34,6 +35,7 @@
 
 :- module(test_write, [test_write/0]).
 :- use_module(library(plunit)).
+:- use_module(library(debug)).
 
 /** <module> Misc tests
 
@@ -46,9 +48,13 @@ test_write :-
 	run_tests([ portray,
 		    write_op,
 		    write_canonical,
+		    write_quoted,
 		    write_variable_names,
 		    write_float
 		  ]).
+
+:- meta_predicate
+	write_encoding(0, +, -).
 
 :- begin_tests(portray).
 
@@ -106,8 +112,50 @@ test(varname, L == [39,1040,1080,39]) :-
 	with_output_to(atom(X),
 		       writeq(A)),
 	atom_codes(X,L).
+test(braceterm, S=="{}(a)") :-
+	with_output_to(string(S),
+		       write_canonical({a})).
+test(braceterm, S=="{}(','(a,b))") :-
+	with_output_to(string(S),
+		       write_canonical({a,b})).
+test(quote, S=="'\u03B1'") :-		% quote_non_ascii
+	with_output_to(string(S),
+		       write_canonical('\u03B1')).
+test(quote, S=="'\\x3B1\\'") :-
+	write_encoding(write_canonical('\u03B1'),
+		       ascii, S).
 
 :- end_tests(write_canonical).
+
+:- begin_tests(write_quoted).
+
+test(comment, S == "'/*'") :-
+	with_output_to(string(S), writeq('/*')).
+test(comment, S == "'/*+'") :-
+	with_output_to(string(S), writeq('/*+')).
+test(comment, S == "+/*") :-		% Quote /* only when at start
+	with_output_to(string(S), writeq('+/*')).
+test(comment, S == "'%'") :-
+	with_output_to(string(S), writeq('%')).
+test(escape, S == "\u03B1") :-		  % Greek Aplha character
+	with_output_to(string(S), write_term('\u03B1', [quoted(true)])).
+test(escape, S == "'\u03B1'") :-
+	with_output_to(string(S),
+		       write_term('\u03B1',
+				  [ quoted(true),
+				    quote_non_ascii(true)
+				  ])).
+test(escape, S == "'\\u03B1'") :-
+	assertion(current_prolog_flag(character_escapes_unicode, true)),
+	write_encoding(write_term('\u03B1', [quoted(true)]), ascii, S).
+test(escape, S == "'\\x3B1\\'") :-
+	write_encoding(write_term('\u03B1',
+				  [ quoted(true),
+				    character_escapes_unicode(false)
+				  ]),
+		       ascii, S).
+
+:- end_tests(write_quoted).
 
 :- begin_tests(write_variable_names).
 
@@ -152,6 +200,18 @@ test(nan) :-
 	abs(Float) < 2.
 
 :- end_tests(write_float).
+
+write_encoding(Goal, Encoding, String) :-
+	setup_call_cleanup(
+	    tmp_file_stream(File, Out, [encoding(Encoding)]),
+	    with_output_to(Out, Goal),
+	    close(Out)),
+	setup_call_cleanup(
+	    open(File, read, In, [encoding(Encoding)]),
+	    read_string(In, _, String),
+	    close(In)),
+	delete_file(File).
+
 
 :- multifile
 	prolog:message//1.

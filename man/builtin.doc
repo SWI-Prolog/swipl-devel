@@ -6396,6 +6396,14 @@ option \const{character_escapes_unicode}. If this flag applies(default)
 the widely accepted \verb$\uXXXX$ or \verb$\UXXXXXXXX$ is used.
 Otherwise the ISO Prolog \verb$\x<hex>\$ syntax is used.
 
+    \termitem{quote_non_ascii}{Bool}
+Quote an atom that contains non-ASCII, i.e., larger than 127 code
+points.  The Prolog standard only describes non-quoted atom syntax
+containing ASCII characters.  While SWI-Prolog extends this to
+Unicode (see \secref{unicodesyntax}), transferring atoms holding
+non-ASCII text to other Prolog implementations may cause problems.
+This flag is used by write_canonical/1.
+
     \termitem{spacing}{+Spacing}
 Determines whether and where extra white space is added to enhance
 readability. The default is \const{standard}, adding only space where
@@ -6446,16 +6454,17 @@ the length of a huge term with a bounded maximum.
     \predicate[ISO]{write_canonical}{1}{+Term}
 Write \arg{Term} on the current output stream using standard
 parenthesised prefix notation (i.e., ignoring operator declarations).
-Atoms that need quotes are quoted.  Terms written with this predicate
-can always be read back, regardless of current operator declarations.
+Atoms that need quotes are quoted. Terms written with this predicate can
+always be read back, regardless of current operator declarations.
 Equivalent to write_term/2 using the options \const{ignore_ops},
-\const{quoted} and \const{numbervars} after numbervars/4 using the
-\const{singletons} option.
+\const{quoted}, \const{quote_non_ascii}, \term{brace_terms}{false} and
+\const{numbervars} after numbervars/4 using the \const{singletons}
+option.
 
 Note that due to the use of numbervars/4, non-ground terms must be
 written using a \emph{single} write_canonical/1 call.  This used to
 be the case anyhow, as garbage collection between multiple calls
-to one of the write predicates can change the \verb|_G|<NNN> identity
+to one of the write predicates can change the \verb|_|<NNN> identity
 of the variables.
 
     \predicate[ISO]{write_canonical}{2}{+Stream, +Term}
