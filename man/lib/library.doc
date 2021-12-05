@@ -66,6 +66,7 @@ documented at all.
 \input{prologxref}
 \input{quasiquotations}
 \input{random}
+\input{rbtrees}
 \input{readutil}
 \input{record}
 \input{registry}

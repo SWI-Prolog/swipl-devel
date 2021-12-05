@@ -166,6 +166,9 @@
 \libsummary{random}
 \input{summaries.d/random.tex}
 
+\libsummary{rbtrees}
+\input{summaries.d/rbtrees.tex}
+
 \libsummary{readutil}
 \input{summaries.d/readutil.tex}
 
