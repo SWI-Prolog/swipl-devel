@@ -87,11 +87,20 @@
 \libsummary{error}
 \input{summaries.d/error.tex}
 
+\libsummary{fastrw}
+\input{summaries.d/fastrw.tex}
+
 \libsummary{explain}
 \input{summaries.d/explain.tex}
 
 \libsummary{help}
 \input{summaries.d/help.tex}
+
+\libsummary{gensym}
+\libsummary{summaries.d/gensym.tex}
+
+\libsummary{heaps}
+\libsummary{summaries.d/heaps.tex}
 
 \libsummary{increval}
 \libsummary{summaries.d/increval.tex}
@@ -211,6 +220,9 @@ This library is only available on Windows systems.
 \predicatesummary{transportation}{4}{Solve transportation problem}
 \predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
 \end{summarylist}}{}
+
+\libsummary{statistics}
+\input{summaries.d/statistics.tex}
 
 \libsummary{terms}
 

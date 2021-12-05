@@ -42,7 +42,9 @@ documented at all.
 \input{debug}
 \input{dicts}
 \input{error}
+\input{fastrw}
 \input{gensym}
+\input{heaps}
 \input{increval}
 \input{intercept}
 \input{iostream}
@@ -71,6 +73,7 @@ documented at all.
 \input{record}
 \input{registry}
 \input{settings}
+\input{statistics}
 \input{strings}
 \InputIfFileExists{simplex}{}{}
 \input{solutionsequences}
