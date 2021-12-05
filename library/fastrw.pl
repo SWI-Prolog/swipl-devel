@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2016, VU University Amsterdam
+    Copyright (c)  2010-2021, VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,7 +53,9 @@ defined.
 
 The current implementation  is  based   on  PL_record_external(),  which
 provides a binary representation of terms  that is processed efficiently
-and can handle cycles as well as attributes.   We try to keep the format
+and can handle subterm sharing,  cycles   and  attributed  variables. In
+other words, this library can handle any Prolog term except _blobs_ such
+as stream handles, database references, etc. We   try to keep the format
 compatible between versions, but this is   not guaranteed. Conversion is
 always possible by reading a database  using   the  old version, dump it
 using write_canonical/1 and read it into the new version.
@@ -65,9 +68,9 @@ This library is built upon the following built in predicates:
 
 @tbd    Establish a portable binary format.
 @compat The format is not compatible to SICStus/Ciao (which are not
-        compatible either).  Funture versions of this library might
+        compatible either).  Future versions of this library might
         implement a different encoding.
-@bug    The current implementation of fast_read/1 *is not safe*.
+@bug    The current implementation of fast_read/1 __is not safe__.
         It is guaranteed to safely read terms written using
         fast_write/1, but may crash on arbitrary input.  The
         implementation does perform some basic sanity checks,
