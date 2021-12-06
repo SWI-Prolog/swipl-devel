@@ -1921,7 +1921,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool quoted     = FALSE;
   bool ignore_ops = FALSE;
   bool dotlists   = FALSE;
-  bool braceterms = FALSE;
+  bool braceterms = TRUE;
   bool numbervars = -1;			/* not set */
   bool portray    = FALSE;
   term_t gportray = 0;
@@ -2019,7 +2019,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( quote_non_ascii ) options.flags |= PL_WRT_QUOTE_NON_ASCII;
   if ( ignore_ops )      options.flags |= PL_WRT_IGNOREOPS;
   if ( dotlists )        options.flags |= PL_WRT_DOTLISTS;
-  if ( braceterms )      options.flags |= PL_WRT_BRACETERMS;
+  if ( !braceterms )     options.flags |= PL_WRT_BRACETERMS;
   if ( numbervars )      options.flags |= PL_WRT_NUMBERVARS;
   if ( portray )         options.flags |= PL_WRT_PORTRAY;
   if ( !cycles )         options.flags |= PL_WRT_NO_CYCLES;

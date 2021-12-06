@@ -79,7 +79,7 @@ display(Stream, Term) :-
                [ quoted(true),
                  ignore_ops(true),
                  no_lists(true),
-                 brace_terms(true)
+                 brace_terms(false)
                ]).
 
 %!  unknown(-Old, +New) is det.
