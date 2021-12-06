@@ -51,6 +51,7 @@
 :- autoload(library(lists),[member/2]).
 :- autoload(library(option),[option/2,option/3,meta_options/3]).
 :- autoload(library(prolog_clause),[clause_info/5]).
+:- autoload(library(prolog_code), [most_general_goal/2]).
 
 %:- set_prolog_flag(generate_debug_info, false).
 
