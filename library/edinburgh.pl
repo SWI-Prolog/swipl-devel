@@ -68,9 +68,9 @@ Standard Prolog.
 %   dicts using the dict notation.
 %
 %   @see  write_canonical/2.  SWI-Prolog's  write_canonical/2,  however,
-%   prints lists using lst notation to reduce incompatibility due to the
-%   modified list functor (`'[|]'` rather than   `.`)  and reduce memory
-%   usage while parsing lists.
+%   prints lists using list notation to   reduce  incompatibility due to
+%   the modified list functor  (`'[|]'`  rather   than  `.`)  and reduce
+%   memory usage while parsing lists.
 
 display(Term) :-
     display(current_output, Term).
