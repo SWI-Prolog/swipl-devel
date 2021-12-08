@@ -497,13 +497,24 @@ subgoal_position(ClauseRef, PC, File, CharA, CharZ) :-
     arg(1, PosTerm, CharA),
     arg(2, PosTerm, CharZ).
 
+%!  find_subgoal(+PosList, +TermPos, -SubGoalPos).
+%
+%   @see Same as find_subgoal/3 in trace.pl from the GUI tracer.
+
+find_subgoal(_, Pos, Pos) :-
+    var(Pos),
+    !.
 find_subgoal([A|T], term_position(_, _, _, _, PosL), SPos) :-
-    is_list(PosL),
     nth1(A, PosL, Pos),
-    nonvar(Pos),
     !,
     find_subgoal(T, Pos, SPos).
-find_subgoal([], Pos, Pos).
+find_subgoal([1|T], brace_term_position(_,_,Pos), SPos) :-
+    !,
+    find_subgoal(T, Pos, SPos).
+find_subgoal(List, parentheses_term_position(_,_,Pos), SPos) :-
+    !,
+    find_subgoal(List, Pos, SPos).
+find_subgoal(_, Pos, Pos).
 
 
 %!  lineno(+File, +Char, -Line)
