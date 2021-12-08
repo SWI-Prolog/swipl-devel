@@ -92,6 +92,7 @@ in places that do not affect the   standard order relative to other keys
 in the tree or make sure to not unify against these variables as long as
 the tree is being used.
 
+@see            library(pairs), library(assoc)
 @author Vitor Santos Costa, Jan Wielemaker, Samer Abdallah,
         Peter Ludemann.
 @see "Introduction to Algorithms", Second Edition Cormen, Leiserson,
@@ -275,7 +276,9 @@ previous(=, _, _, _, K, Val, Tree, Candidate) :-
 %   Tree NewTree is tree Tree, but with   value  for Key associated with
 %   NewVal. Fails if Key is not in   Tree (using (==)/2). This predicate
 %   may fail or give  unexpected  results   if  Key  is not sufficiently
-%   instantiated - see rb_in/3 for backtracking over keys.
+%   instantiated.
+%
+%   @see rb_in/3 for backtracking over keys.
 
 rb_update(t(Nil,OldTree), Key, OldVal, Val, NewTree2) =>
     NewTree2 = t(Nil,NewTree),
@@ -365,7 +368,7 @@ apply(red(Left,Key0,Val0,Right), Key, Goal,
 %
 %        rb_visit(Tree, Pairs), member(Key-Value, Pairs)
 %
-%   Leaves a choicepoint, even  if  Key   is  instantiated;  to  avoid a
+%   Leaves a choicepoint  even  if  Key   is  instantiated;  to  avoid a
 %   choicepoint, use rb_lookup/3.
 
 rb_in(Key, Val, t(_,T)) =>
@@ -581,9 +584,9 @@ fix_right(T,T,done).
 %
 %   Delete element with key Key from the  tree Tree, returning the value
 %   Val associated with the key and a new  tree NewTree. Fails if Key is
-%   not in Tree  (using  (==)/2).  This   predicate  may  fail  or  give
-%   unexpected results if Key is  not   sufficiently  instantiated - see
-%   rb_in/3 for backtracking over keys.
+%   not in Tree  (using  (==)/2).
+%
+%   @see rb_in/3 for backtracking over keys.
 
 rb_delete(t(Nil,T), K, NewTree) =>
     NewTree = t(Nil,NT),
@@ -1076,7 +1079,7 @@ size(black(L,_,_,R),Sz0,Szf) :-
 %
 %   True if Term is a valid Red-Black   tree. Processes the entire tree,
 %   checking the coloring of the nodes, the  balance and the ordering of
-%   keys. Does _not_ validate that keys are sufficiently instantiated
+%   keys.    Does _not_ validate that keys are sufficiently instantiated
 %   to ensure the tree remains valid if a key is further instantiated.
 
 is_rbtree(X), var(X) =>
