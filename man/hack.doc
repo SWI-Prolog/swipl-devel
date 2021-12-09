@@ -123,6 +123,9 @@ predicate), \const{jump} (clause internal choice point), \const{top}
     \termitem{pc}{}
 Requests the program counter to which the choice point refers. Only
 applicable for in-clause choice points.
+    \termitem{clause}{}
+Request the clause that will be tried if this choice point is activated.
+Only applicable for choice points of type \const{clause}.
 \end{description}
 
 This predicate is used for the graphical debugger to show the

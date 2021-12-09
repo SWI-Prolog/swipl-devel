@@ -2550,6 +2550,29 @@ in_clause_jump(Choice ch)
 }
 
 
+static atom_t
+choice_type_atom(Choice ch)
+{ static const atom_t types[] =
+  { ATOM_jump,
+    ATOM_clause,
+    ATOM_top,
+    ATOM_catch,
+    ATOM_debug
+  };
+
+  if ( ch->type == CHP_JUMP &&
+       in_clause_jump(ch) == (size_t)-1 )
+  { if ( ch->value.pc == SUPERVISOR(next_clause) )
+      return ATOM_clause;
+    if ( decode(ch->value.pc[0]) == I_FREDO )
+      return ATOM_foreign;
+    assert(0);
+    return FALSE;
+  } else
+    return types[ch->type];
+}
+
+
 static
 PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
 { PRED_LD
@@ -2571,29 +2594,19 @@ PRED_IMPL("prolog_choice_attribute", 3, prolog_choice_attribute, 0)
   } else if ( key == ATOM_frame )
   { return PL_unify_frame(A3, ch->frame);
   } else if ( key == ATOM_type )
-  { static const atom_t types[] =
-    { ATOM_jump,
-      ATOM_clause,
-      ATOM_top,
-      ATOM_catch,
-      ATOM_debug
-    };
-
-    if ( ch->type == CHP_JUMP &&
-	 in_clause_jump(ch) == (size_t)-1 )
-    { if ( ch->value.pc == SUPERVISOR(next_clause) )
-	return PL_unify_atom(A3, ATOM_clause);
-      if ( decode(ch->value.pc[0]) == I_FREDO )
-	return PL_unify_atom(A3, ATOM_foreign);
-      assert(0);
-      return FALSE;
-    } else
-      return PL_unify_atom(A3, types[ch->type]);
+  { return PL_unify_atom(A3, choice_type_atom(ch));
   } else if ( key == ATOM_pc )
   { size_t offset = in_clause_jump(ch);
 
     if ( offset != (size_t)-1 )
       return PL_unify_int64(A3, offset);
+    return FALSE;
+  } else if ( key == ATOM_clause )
+  { if ( ch->type == CHP_CLAUSE )
+    { return PL_unify_clref(A3, ch->value.clause.cref->value.clause);
+    } else if ( choice_type_atom(ch) == ATOM_clause )
+    { Sdprintf("S_ALLCLAUSES not yet supported\n");
+    }
     return FALSE;
   } else
     return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_key, A2);
