@@ -649,7 +649,7 @@ initDefaultOptions(void)
   GD->options.scriptFiles      = NULL;
   GD->options.saveclass	       = store_string("none");
   GD->options.on_error	       = store_string("print");
-  GD->options.on_warning       = store_string("warning");
+  GD->options.on_warning       = store_string("print");
 
   if ( systemDefaults.goal )
     opt_append(&GD->options.goals, systemDefaults.goal);
