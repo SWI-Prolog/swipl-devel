@@ -391,17 +391,27 @@ typedef struct thread_wait_area		/* module data for wait/update */
 
 
 
-#define wakeupThreads(def, flags) \
+#define wakeupThreads(def, wflags) \
 	do \
 	{ if ( def->module->wait && def->module->wait->w_head ) \
 	  { thread_wait_channel wch = { .type = TWF_PREDICATE, \
 				        .obj.any = def, \
-					.flags = flags \
+					.flags = wflags \
 				      }; \
 	    signal_waiting_threads(def->module, &wch); \
 	  } \
 	} while(0)
 
+#define wakeupThreadsModule(module, wflags) \
+	do \
+	{ if ( module->wait && module->wait->w_head ) \
+	  { thread_wait_channel wch = { .type = TWF_MODULE, \
+				        .obj.any = module, \
+					.flags = wflags \
+				      }; \
+	    signal_waiting_threads(module, &wch); \
+	  } \
+	} while(0)
 
 		 /*******************************
 		 *	       WINDOWS		*
