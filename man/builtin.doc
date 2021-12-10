@@ -1594,9 +1594,13 @@ the user's preferred editor. Typically, edit/1 can be handed the name of
 a predicate, module, basename of a file, XPCE class, XPCE method, etc.
 
     \predicate{edit}{0}{}
-Edit the `default' file using edit/1.  The default file is the file
-loaded with the command line option \cmdlineoption{-s} or, in Windows,
-the file loaded by double-clicking from the Windows shell.
+Edit the `default' file using edit/1.  The default file is either the
+first \fileext{pl} file from the commandline (the \jargon{associated}
+file, see the Prolog flag \prologflag{associated_file} or the first
+script file specified using the \cmdlineoption{-s} or \cmdlineoption{-l}
+command line option. When using the Windows shell while SWI-Prolog is
+associated with the \fileext{pl} extension this is the file loaded by
+double-clicking a \fileext{pl} file. See also \secref{plscript}.
 \end{description}
 
 \subsection{Customizing the editor interface}
