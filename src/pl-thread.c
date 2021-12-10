@@ -5807,8 +5807,12 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
 
     register_waiting(module, LD);
     ign_filter = FALSE;
-    switch ( cv_timedwait(NULL, &module->wait->cond,
-			  &module->wait->mutex, dlop, &retry) )
+    DEBUG(MSG_THREAD_WAIT, Sdprintf("Wait on module %s ...\n",
+				    PL_atom_chars(module->name)));
+    int wrc = cv_timedwait(NULL, &module->wait->cond,
+			   &module->wait->mutex, dlop, &retry);
+    DEBUG(MSG_THREAD_WAIT, Sdprintf("Wakeup %d\n", wrc));
+    switch(wrc)
     { case CV_INTR:
 	if ( PL_handle_signals() >= 0 )
 	  continue;
@@ -5990,6 +5994,11 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 
   if ( !rc )
     goto out;
+
+  DEBUG(MSG_THREAD_WAIT,
+	Sdprintf("%s to module %s\n",
+		 notify == ATOM_broadcast ? "broadcast" : "signal",
+		 PL_atom_chars(module->name)));
 
   if ( notify == ATOM_broadcast )
     cv_broadcast(&module->wait->cond);
