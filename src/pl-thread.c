@@ -5626,10 +5626,19 @@ signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
   if ( (twf=ld->thread.waiting_for) &&
        !twf->signalled &&
        !ld->transaction.generation )
-  { if ( wch->type == TWF_PREDICATE )
+  { if ( wch->type == TWF_PREDICATE || wch->type == TWF_MODULE )
     { thread_wait_channel *ch = baseBuffer(&twf->channels, thread_wait_channel);
       size_t i, count = entriesBuffer(&twf->channels, thread_wait_channel);
-      Definition def = wch->obj.predicate;
+      Definition def;
+      Module m;
+
+      if ( wch->type == TWF_PREDICATE )
+      { def = wch->obj.predicate;
+	m = def->module;
+      } else
+      { def = NULL;
+	m = wch->obj.module;
+      }
 
       for(i=0; i<count; i++, ch++)
       { switch( ch->type )
@@ -5639,7 +5648,7 @@ signal_waiting_thread(PL_local_data_t *ld, thread_wait_channel *wch)
 	    done++;
 	    break;
 	  case TWF_MODULE:
-	    if ( ch->obj.module == def->module )
+	    if ( ch->obj.module == m )
 	    { DEBUG(MSG_THREAD_WAIT, Sdprintf("  module modified\n"));
 	      ch->signalled = TRUE;
 	      done++;
@@ -5747,6 +5756,8 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
   if ( !ensure_waiting_for() ||
        !ensure_wait_area_module(module) )
     return FALSE;
+
+  wakeupThreadsModule(module, 0);
 
   if ( lock )
     simpleMutexLock(&module->wait->mutex);

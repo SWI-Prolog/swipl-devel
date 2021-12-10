@@ -105,5 +105,16 @@ test(module, cleanup(cleanup)) :-
 test(update, Ready == true) :-
     do_later(0.05, thread_update(true, [])),
     +thread_wait(Ready = true, []).
+test(update, Ready == true) :-
+    M = tw_module,
+    set_flag(tw_flag, false),
+    do_later(0.05,
+             ( set_flag(tw_flag, true),
+               thread_update(true, [notify(broadcast),module(M)])
+             )),
+    0.2+thread_wait(( get_flag(tw_flag, true),
+                      Ready = true
+                    ),
+                    [db(false),module(M)]).
 
 :- end_tests(thread_wait).
