@@ -72,7 +72,7 @@ elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "HomebrewOpt")
   # JW: Not sure we need to use the Cellar
   latest_subdir(OPENSSL_ROOT_DIR /opt/homebrew/Cellar/openssl@3/)
   latest_subdir(LibArchive_ROOT /opt/homebrew/Cellar/libarchive)
-  latest_subdir(/opt/homebrew/Cellar/readline)
+  latest_subdir(Readline_ROOT /opt/homebrew/Cellar/readline)
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL None)
   message("-- Trying to build without Macports or Homebrew dependencies")
 elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
