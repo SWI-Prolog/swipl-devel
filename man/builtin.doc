@@ -3122,6 +3122,14 @@ a list of message elements.  The elements of this list are:
 	prolog:message_line_element/2.  The library \pllib{ansi_term}
 	implements this hook to achieve coloured output. If it is not
 	intercepted it invokes \term{format}{Stream, Format, Args}.
+    \termitem{url}{Location}
+	Print a source location.  \arg{Location} is one of the terms
+	\verb$File:Line:Column$, \verb$File:Line$ or \verb$File$.  When
+	using library \pllib{ansi_term}, this is translated into a
+	hyperlink for modern terminals.
+    \termitem{url}{URL, Label}
+        Print \arg{Label}.  When using library \pllib{ansi_term},
+	this is translated into a hyperlink for modern terminals.
     \termitem{nl}{}
         A new line is started.  If the message is not complete,
 	\arg{Prefix} is printed before the remainder of the message.

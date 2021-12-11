@@ -2177,10 +2177,28 @@ line_element(S, ansi(_, Fmt, Args)) :-
 line_element(S, ansi(_, Fmt, Args, _Ctx)) :-
     !,
     safe_format(S, Fmt, Args).
+line_element(S, url(URL)) :-
+    !,
+    print_link(S, URL).
+line_element(S, url(_URL, Fmt-Args)) :-
+    !,
+    safe_format(S, Fmt, Args).
+line_element(S, url(_URL, Fmt)) :-
+    !,
+    safe_format(S, Fmt, []).
 line_element(_, begin(_Level, _Ctx)) :- !.
 line_element(_, end(_Ctx)) :- !.
 line_element(S, Fmt) :-
     safe_format(S, Fmt, []).
+
+print_link(S, File:Line:Column) :-
+    !,
+    safe_format(S, '~w:~d:~d', [File, Line, Column]).
+print_link(S, File:Line) :-
+    !,
+    safe_format(S, '~w:~d', [File, Line]).
+print_link(S, File) :-
+    safe_format(S, '~w', [File]).
 
 %!  safe_format(+Stream, +Format, +Args) is det.
 
