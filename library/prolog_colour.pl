@@ -3033,9 +3033,9 @@ goal_class(undefined) -->
 goal_class(global) -->
     [ ' (Auto-imported from module user)' ].
 goal_class(global(Class, File:Line)) -->
-    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+    [ ' (~w in user module from '-[Class], url(File:Line), ')' ].
 goal_class(global(Class, source_location(File,Line))) -->
-    [ ' (~w in user module from ~w:~w)'-[Class, File, Line] ].
+    [ ' (~w in user module from '-[Class], url(File:Line), ')' ].
 goal_class(global(Class, -)) -->
     [ ' (~w in user module)'-[Class] ].
 goal_class(imported(From)) -->

@@ -402,7 +402,7 @@ where_no_goal(call(PI), _) -->
     [ '~w'-[PI] ].
 where_no_goal(pred_line(PredName, File:Line), _) -->
     !,
-    [ '~w at ~w:~d'-[PredName, File, Line] ].
+    [ '~w at '-[PredName], url(File:Line) ].
 where_no_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -420,7 +420,7 @@ where_goal(foreign(_), _) -->
     !.
 where_goal(pred_line(_PredName, File:Line), _) -->
     !,
-    [ ' at ~w:~d'-[File, Line] ].
+    [ ' at ', url(File:Line) ].
 where_goal(clause_name(ClauseName), _) -->
     !,
     [ '~w <no source>'-[ClauseName] ].
@@ -435,7 +435,7 @@ where_goal(clause(Clause, _PC), _) -->
       clause_property(Clause, line_count(Line))
     },
     !,
-    [ ' at ~w:~d'-[ File, Line] ].
+    [ ' at ', url(File:Line) ].
 where_goal(clause(Clause, _PC), _) -->
     { clause_name(Clause, ClauseName)
     },

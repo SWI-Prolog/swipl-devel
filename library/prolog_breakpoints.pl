@@ -290,10 +290,9 @@ setclear(delete) -->
 breakpoint(Id) -->
     breakpoint_name(Id),
     (   { breakpoint_property(Id, file(File)),
-          file_base_name(File, Base),
           breakpoint_property(Id, line_count(Line))
         }
-    ->  [ ' at ~w:~d'-[Base, Line] ]
+    ->  [ ' at ', url(File:Line) ]
     ;   []
     ).
 

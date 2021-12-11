@@ -926,13 +926,13 @@ prolog:message(check_options(new(Decls))) -->
 
 error_location(file_char_count(File, CharPos)) -->
     { filepos_line(File, CharPos, Line, LinePos) },
-    [ '~w:~d:~d: '-[File, Line, LinePos] ].
+    [ url(File:Line:LinePos), ': ' ].
 error_location(clause(ClauseRef)) -->
     { clause_property(ClauseRef, file(File)),
       clause_property(ClauseRef, line_count(Line))
     },
     !,
-    [ '~w:~d: '-[File, Line] ].
+    [ url(File:Line), ': ' ].
 error_location(clause(ClauseRef)) -->
     [ 'Clause ~q: '-[ClauseRef] ].
 

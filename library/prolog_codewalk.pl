@@ -1135,7 +1135,7 @@ prolog:message_location(clause(ClauseRef)) -->
       clause_property(ClauseRef, line_count(Line))
     },
     !,
-    [ '~w:~d: '-[File, Line] ].
+    [ url(File:Line), ': ' ].
 prolog:message_location(clause(ClauseRef)) -->
     { clause_name(ClauseRef, Name) },
     [ '~w: '-[Name] ].
@@ -1156,7 +1156,7 @@ message_location_file_term_position(File, TermPos) -->
     { arg(1, TermPos, CharCount),
       filepos_line(File, CharCount, Line, LinePos)
     },
-    [ '~w:~d:~d: '-[File, Line, LinePos] ].
+    [ url(File:Line:LinePos), ': ' ].
 
 %!  filepos_line(+File, +CharPos, -Line, -Column) is det.
 %

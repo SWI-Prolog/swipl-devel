@@ -4018,6 +4018,15 @@ compile_aux_clauses(Clauses) :-
 '$append'([H|T], L, [H|R]) :-
     '$append'(T, L, R).
 
+'$append'(ListOfLists, List) :-
+    '$must_be'(list, ListOfLists),
+    '$append_'(ListOfLists, List).
+
+'$append_'([], []).
+'$append_'([L|Ls], As) :-
+    '$append'(L, Ws, As),
+    '$append_'(Ls, Ws).
+
 '$select'(X, [X|Tail], Tail).
 '$select'(Elem, [Head|Tail], [Head|Rest]) :-
     '$select'(Elem, Tail, Rest).
