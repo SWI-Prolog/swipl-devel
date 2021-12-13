@@ -427,14 +427,14 @@ class_attrs(Attrs, Attrs).
 ansi_hyperlink(Stream, File:Line:Column) :-
     !,
     (   url_file_name(URI, File)
-    ->  format(Stream, '\e]8;;~w#L~d:~d\e\\~w:~d:~d\e]8;;\e\\',
+    ->  format(Stream, '\e]8;;~w#~d:~d\e\\~w:~d:~d\e]8;;\e\\',
                [ URI, Line, Column, File, Line, Column ])
     ;   format(Stream, '~w:~w:~w', [File, Line, Column])
     ).
 ansi_hyperlink(Stream, File:Line) :-
     !,
     (   url_file_name(URI, File)
-    ->  format(Stream, '\e]8;;~w#L~w\e\\~w:~d\e]8;;\e\\',
+    ->  format(Stream, '\e]8;;~w#~w\e\\~w:~d\e]8;;\e\\',
                [ URI, Line, File, Line ])
     ;   format(Stream, '~w:~w', [File, Line])
     ).
