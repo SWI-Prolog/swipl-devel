@@ -36,6 +36,8 @@
 :- module(test_random,
 	  [ test_random/0
 	  ]).
+:- use_module(library(dialect/sicstus4/lists), [subseq/3]).
+:- use_module(library(lists), [numlist/3]).
 :- use_module(library(plunit)).
 
 test_random :-
@@ -64,6 +66,18 @@ random_seq(0, []).
 
 test(state, [X==Y]) :-
 	tr(100, X,Y).
+
+test(random_subseq, [
+	forall((between(-3, 3, U), numlist(-3, U, List))),
+	true(subseq(List, Subseq, Complement))
+]) :-
+	random_subseq(List, Subseq, Complement).
+
+test(random_numlist, [
+	forall(between(-3, 3, U)),
+	true((numlist(-3, U, NumList), subseq(NumList, List, _)))
+]) :-
+	random_numlist(0.5, -3, U, List).
 
 :- endif.
 

@@ -48,10 +48,12 @@
 
             random_member/2,            % -Element, +List
             random_select/3,            % ?Element, +List, -Rest
+            random_subseq/3,            % ?List, ?Subseq, ?Complement
 
             randseq/3,                  % +Size, +Max, -Set
             randset/3,                  % +Size, +Max, -List
             random_permutation/2,       % ?List, ?Permutation
+            random_numlist/4,           % +P, +L, +U, -List
 
                                         % deprecated interface
             random/3                    % +Low, +High, -Random
@@ -274,6 +276,33 @@ random_select(_, List, Rest) :-
     must_be(list, List),
     must_be(list, Rest).
 
+%!  random_subseq(+List, -Subseq, -Complement) is det.
+%!  random_subseq(-List, +Subseq, +Complement) is semidet.
+%
+%   Selects  a  random  subsequence  Subseq  of  List,  with  Complement
+%   containing all elements of List that were not selected. Each element
+%   of List is included  with  equal   probability  in  either Subseq or
+%   Complement.
+%
+%   random_subseq/3 may also be called with  Subseq and Complement bound
+%   and List unbound, which will recreate  List by randomly interleaving
+%   Subseq and Complement. This mode may fail randomly, matching SICStus
+%   behavior. The failure probability corresponds  to the probability of
+%   the "forward" mode selecting a   Subseq/Complement  combination with
+%   different lengths.
+%
+%   @compat SICStus 4
+
+random_subseq([], [], []).
+random_subseq([Head|Tail], Subseq, Complement) :-
+    (   maybe
+    ->  Subseq = [Head|SubTail],
+        Complement = CompTail
+    ;   Subseq = SubTail,
+        Complement = [Head|CompTail]
+    ),
+    random_subseq(Tail, SubTail, CompTail).
+
 %!  randset(+K:int, +N:int, -S:list(int)) is det.
 %
 %   S is a sorted list of K unique   random  integers in the range 1..N.
@@ -380,6 +409,31 @@ key_random([], []).
 key_random([H|T0], [K-H|T]) :-
     random(K),
     key_random(T0, T).
+
+%!  random_numlist(+P, +L, +U, -List) is det.
+%
+%   Unify List with an ascending list of integers between L and U
+%   (inclusive). Each integer in the range L..U is included with
+%   probability P.
+%
+%   @compat SICStus 4
+
+random_numlist(P, L, U, List) :-
+    must_be(between(0.0, 1.0), P),
+    must_be(integer, L),
+    must_be(integer, U),
+    random_numlist_(P, L, U, List).
+random_numlist_(_P, L, U, List) :-
+    L > U,
+    !,
+    List = [].
+random_numlist_(P, L, U, List) :-
+    (   maybe(P)
+    ->  List = [L|Tail]
+    ;   List = Tail
+    ),
+    L1 is L + 1,
+    random_numlist_(P, L1, U, Tail).
 
 %!  partial_list(@Term) is semidet.
 %
