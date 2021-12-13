@@ -51,6 +51,7 @@
 	    proper_prefix/2,		% ?List, ?Prefix
 	    suffix/2,			% ?List, ?Suffix
 	    proper_suffix/2,		% ?List, ?Suffix
+	    subseq/3,			% ?Sequence, ?SubSequence, ?Complement
 	    subseq0/2,			% +Sequence, ?SubSequence
 	    subseq1/2,			% +Sequence, ?SubSequence
 	    scanlist/4,			% :Pred, ?Xs, ?V1, ?V
