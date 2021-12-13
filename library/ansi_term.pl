@@ -72,7 +72,8 @@ The behavior of this library is controlled by two Prolog flags:
 
 :- multifile
     prolog:console_color/2,                     % +Term, -AnsiAttrs
-    supports_get_color/0.
+    supports_get_color/0,
+    hyperlink/2.                                % +Stream, +Spec
 
 
 color_term_flag_default(true) :-
@@ -424,6 +425,9 @@ class_attrs(Attrs, Attrs).
 %
 %   @see https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
+ansi_hyperlink(Stream, Location) :-
+    hyperlink(Stream, url(Location)),
+    !.
 ansi_hyperlink(Stream, File:Line:Column) :-
     !,
     (   url_file_name(URI, File)
@@ -446,11 +450,23 @@ ansi_hyperlink(Stream, File) :-
     ).
 
 ansi_hyperlink(Stream, URL, Label) :-
+    hyperlink(Stream, url(URL, Label)),
+    !.
+ansi_hyperlink(Stream, URL, Label) :-
     (   current_prolog_flag(hyperlink_term, true)
     ->  format(Stream, '\e]8;;~w\e\\~w\e]8;;\e\\',
                [ URL, Label ])
     ;   format(Stream, '~w', [Label])
     ).
+
+%!  hyperlink(+Stream, +Spec) is semidet.
+%
+%   Multifile hook that may be used   to redefine ansi_hyperlink/2,3. If
+%   this predicate succeeds the system assumes the link has been written
+%   to Stream.
+%
+%   @arg  Spec  is  either  url(Location)    or   url(URL,  Label).  See
+%   ansi_hyperlink/2,3 for details.
 
 :- dynamic has_lib_uri/1 as volatile.
 
