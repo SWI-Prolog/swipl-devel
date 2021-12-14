@@ -168,12 +168,17 @@ now(When) :-
 	When is integer(Now).
 
 %%	datime(+When, -Datime) is det.
+%%	datime(-When, +Datime) is det.
 %
 %	True when Datime is a  datime/6   record  that reflects the time
 %	stamp When.
 %
 %	@compat sicstus
 
+datime(When, datime(Year,Month,Day,Hour,Min,Sec)) :-
+	var(When),
+	!,
+	date_time_stamp(date(Year,Month,Day,Hour,Min,Sec,_,_,_), When).
 datime(When, datime(Year,Month,Day,Hour,Min,Sec)) :-
 	stamp_date_time(When, date(Year,Month,Day,Hour,Min,SecF,_,_,_), local),
 	Sec is integer(SecF).
