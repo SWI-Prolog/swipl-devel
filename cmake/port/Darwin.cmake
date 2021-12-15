@@ -45,6 +45,9 @@ if(MACOSX_DEPENDENCIES_FROM STREQUAL "Macports")
       /opt/local/lib)
   set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH}
       /opt/local/include)
+  if(EXISTS /opt/local/libexec/jpeg)
+    set(JPEG_ROOT /opt/local/libexec/jpeg)
+  endif()
 elseif(MACOSX_DEPENDENCIES_FROM STREQUAL "HomebrewLocal")
   message("-- Using Homebrew packages from /usr/local")
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH}
@@ -84,7 +87,13 @@ elseif(MACOSX_DEPENDENCIES_FROM MATCHES "/.*")
   set(CMAKE_IGNORE_PATH
       /opt/local/lib
       /opt/local/include
-      /opt/local/bin)
+      /opt/local/bin
+      /usr/local/lib
+      /usr/local/include
+      /usr/local/bin
+      /opt/homebrew/lib
+      /opt/homebrew/include
+      /opt/homebrew/bin)
 else()
   message(FATAL_ERROR "Invalid MACOSX_DEPENDENCIES_FROM: ${MACOSX_DEPENDENCIES_FROM}")
 endif()
