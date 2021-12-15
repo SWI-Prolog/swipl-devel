@@ -2243,6 +2243,14 @@ actions_to_format([ansi(_Attrs, Fmt0, Args0)|Tail], Fmt, Args) :-
     actions_to_format(Tail, Fmt1, Args1),
     atom_concat(Fmt0, Fmt1, Fmt),
     append_args(Args0, Args1, Args).
+actions_to_format([url(Pos)|Tail], Fmt, Args) :-
+    !,
+    actions_to_format(Tail, Fmt1, Args1),
+    url_actions_to_format(url(Pos), Fmt1, Args1, Fmt, Args).
+actions_to_format([url(URL, Label)|Tail], Fmt, Args) :-
+    !,
+    actions_to_format(Tail, Fmt1, Args1),
+    url_actions_to_format(url(URL, Label), Fmt1, Args1, Fmt, Args).
 actions_to_format([Fmt0-Args0|Tail], Fmt, Args) :-
     !,
     actions_to_format(Tail, Fmt1, Args1),
@@ -2266,6 +2274,24 @@ action_skip(at_same_line).
 action_skip(flush).
 action_skip(begin(_Level, _Ctx)).
 action_skip(end(_Ctx)).
+
+url_actions_to_format(url(File:Line:Column), Fmt1, Args1, Fmt, Args) :-
+    !,
+    atom_concat('~w:~d:~d', Fmt1, Fmt),
+    append_args([File,Line,Column], Args1, Args).
+url_actions_to_format(url(File:Line), Fmt1, Args1, Fmt, Args) :-
+    !,
+    atom_concat('~w:~d', Fmt1, Fmt),
+    append_args([File,Line], Args1, Args).
+url_actions_to_format(url(File), Fmt1, Args1, Fmt, Args) :-
+    !,
+    atom_concat('~w', Fmt1, Fmt),
+    append_args([File], Args1, Args).
+url_actions_to_format(url(_URL, Label), Fmt1, Args1, Fmt, Args) :-
+    !,
+    atom_concat('~w', Fmt1, Fmt),
+    append_args([Label], Args1, Args).
+
 
 append_args(M:Args0, Args1, M:Args) :-
     !,
