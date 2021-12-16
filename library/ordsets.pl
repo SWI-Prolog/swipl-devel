@@ -373,8 +373,11 @@ ord_subset_(=, _, T1, T2) :-
 %   Diff is the set holding all elements of InOSet that are not in
 %   NotInOSet.
 
-ord_subtract([], _Not, []).
-ord_subtract([H1|T1], L2, Diff) :-
+ord_subtract([], _Not, Diff) =>
+    Diff = [].
+ord_subtract(List, [], Diff) =>
+    Diff = List.
+ord_subtract([H1|T1], L2, Diff) =>
     diff21(L2, H1, T1, Diff).
 
 diff21([], H1, T1, [H1|T1]).
