@@ -1088,30 +1088,34 @@ subst_chars([H|T]) -->
 '$execute_goal2'(Goal, Bindings, true) :-
     restore_debug,
     '$current_typein_module'(TypeIn),
-    residue_vars(TypeIn:Goal, Vars, TypeIn:Delays),
+    residue_vars(TypeIn:Goal, Vars, TypeIn:Delays, Chp),
     deterministic(Det),
     (   save_debug
     ;   restore_debug, fail
     ),
     flush_output(user_output),
+    (   Det == true
+    ->  DetOrChp = true
+    ;   DetOrChp = Chp
+    ),
     call_expand_answer(Bindings, NewBindings),
-    (    \+ \+ write_bindings(NewBindings, Vars, Delays, Det)
+    (    \+ \+ write_bindings(NewBindings, Vars, Delays, DetOrChp)
     ->   !
     ).
 '$execute_goal2'(_, _, false) :-
     save_debug,
     print_message(query, query(no)).
 
-residue_vars(Goal, Vars, Delays) :-
+residue_vars(Goal, Vars, Delays, Chp) :-
     current_prolog_flag(toplevel_residue_vars, true),
     !,
-    '$wfs_call'(call_residue_vars(stop_backtrace(Goal), Vars), Delays).
-residue_vars(Goal, [], Delays) :-
-    '$wfs_call'(stop_backtrace(Goal), Delays).
+    '$wfs_call'(call_residue_vars(stop_backtrace(Goal, Chp), Vars), Delays).
+residue_vars(Goal, [], Delays, Chp) :-
+    '$wfs_call'(stop_backtrace(Goal, Chp), Delays).
 
-stop_backtrace(Goal) :-
+stop_backtrace(Goal, Chp) :-
     toplevel_call(Goal),
-    no_lco.
+    prolog_current_choice(Chp).
 
 toplevel_call(Goal) :-
     call(Goal),
@@ -1119,7 +1123,7 @@ toplevel_call(Goal) :-
 
 no_lco.
 
-%!  write_bindings(+Bindings, +ResidueVars, +Delays +Deterministic)
+%!  write_bindings(+Bindings, +ResidueVars, +Delays, +DetOrChp)
 %!	is semidet.
 %
 %   Write   bindings   resulting   from   a     query.    The   flag
@@ -1133,12 +1137,12 @@ no_lco.
 %        the prolog flag `toplevel_residue_vars` is set to
 %        `project`.
 
-write_bindings(Bindings, ResidueVars, Delays, Det) :-
+write_bindings(Bindings, ResidueVars, Delays, DetOrChp) :-
     '$current_typein_module'(TypeIn),
     translate_bindings(Bindings, Bindings1, ResidueVars, TypeIn:Residuals),
     omit_qualifier(Delays, TypeIn, Delays1),
     name_vars(Bindings1, Residuals, Delays1),
-    write_bindings2(Bindings1, Residuals, Delays1, Det).
+    write_bindings2(Bindings1, Residuals, Delays1, DetOrChp).
 
 write_bindings2([], Residuals, Delays, _) :-
     current_prolog_flag(prompt_alternatives_on, groundness),
@@ -1148,10 +1152,10 @@ write_bindings2(Bindings, Residuals, Delays, true) :-
     current_prolog_flag(prompt_alternatives_on, determinism),
     !,
     print_message(query, query(yes(Bindings, Delays, Residuals))).
-write_bindings2(Bindings, Residuals, Delays, _Det) :-
+write_bindings2(Bindings, Residuals, Delays, Chp) :-
     repeat,
         print_message(query, query(more(Bindings, Delays, Residuals))),
-        get_respons(Action),
+        get_respons(Action, Chp),
     (   Action == redo
     ->  !, fail
     ;   Action == show_again
@@ -1576,52 +1580,55 @@ hide_names([Name|T0], Skel, Subst, [Name|T]) :-
 self_bounded(binding([Name], Value, [])) :-
     Value == '$VAR'(Name).
 
-%!  get_respons(-Action)
+%!  get_respons(-Action, +Chp)
 %
 %   Read the continuation entered by the user.
 
-get_respons(Action) :-
+get_respons(Action, Chp) :-
     repeat,
         flush_output(user_output),
         get_single_char(Char),
-        answer_respons(Char, Action),
+        answer_respons(Char, Chp, Action),
         (   Action == again
         ->  print_message(query, query(action)),
             fail
         ;   !
         ).
 
-answer_respons(Char, again) :-
+answer_respons(Char, _, again) :-
     '$in_reply'(Char, '?h'),
     !,
     print_message(help, query(help)).
-answer_respons(Char, redo) :-
+answer_respons(Char, _, redo) :-
     '$in_reply'(Char, ';nrNR \t'),
     !,
     print_message(query, if_tty([ansi(bold, ';', [])])).
-answer_respons(Char, redo) :-
+answer_respons(Char, _, redo) :-
     '$in_reply'(Char, 'tT'),
     !,
     trace,
     save_debug,
     print_message(query, if_tty([ansi(bold, '; [trace]', [])])).
-answer_respons(Char, continue) :-
+answer_respons(Char, _, continue) :-
     '$in_reply'(Char, 'ca\n\ryY.'),
     !,
     print_message(query, if_tty([ansi(bold, '.', [])])).
-answer_respons(0'b, show_again) :-
+answer_respons(0'b, _, show_again) :-
     !,
     break.
-answer_respons(Char, show_again) :-
+answer_respons(0'*, Chp, show_again) :-
+    !,
+    print_last_chpoint(Chp).
+answer_respons(Char, _, show_again) :-
     print_predicate(Char, Pred, Options),
     !,
     print_message(query, if_tty(['~w'-[Pred]])),
     set_prolog_flag(answer_write_options, Options).
-answer_respons(-1, show_again) :-
+answer_respons(-1, _, show_again) :-
     !,
     print_message(query, halt('EOF')),
     halt(0).
-answer_respons(Char, again) :-
+answer_respons(Char, _, again) :-
     print_message(query, no_action(Char)).
 
 print_predicate(0'w, [write], [ quoted(true),
@@ -1632,6 +1639,18 @@ print_predicate(0'p, [print], [ quoted(true),
                                 max_depth(10),
                                 spacing(next_argument)
                               ]).
+
+
+print_last_chpoint(Chp) :-
+    current_predicate(print_last_choice_point/0),
+    !,
+    print_last_chpoint_(Chp).
+print_last_chpoint(Chp) :-
+    use_module(library(prolog_stack), [print_last_choicepoint/2]),
+    print_last_chpoint_(Chp).
+
+print_last_chpoint_(Chp) :-
+    print_last_choicepoint(Chp, [message_level(information)]).
 
 
                  /*******************************

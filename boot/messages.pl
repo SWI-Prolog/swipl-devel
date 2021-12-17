@@ -1307,11 +1307,11 @@ query_result(more(Bindings, Delays, Residuals)) -->
     result(Bindings, Delays, Residuals),
     prompt(more, Bindings, Delays, Residuals).
 query_result(help) -->
-    [ nl, 'Actions:'-[], nl, nl,
-      '; (n, r, space, TAB): redo    t:          trace & redo'-[], nl,
-      'b:                    break   c (a, RET): exit'-[], nl,
-      'w:                    write   p           print'-[], nl,
-      'h (?):                help'-[],
+    [ ansi(bold, '  Possible actions:', []), nl,
+      '  ; (n,r,space,TAB): redo              | t:         trace&redo'-[], nl,
+      '  *:                 show choicepoint  | c (a,RET): stop'-[], nl,
+      '  w:                 write             | p:         print'-[], nl,
+      '  b:                 break             | h (?):     help'-[],
       nl, nl
     ].
 query_result(action) -->
