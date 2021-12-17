@@ -64,11 +64,12 @@ build_win64()
   fi
 }
 
+# Used on the M1 where we build using Clang and Qt 6.2.2
 build_macosx()
 { rm -rf build.macosx
   mkdir build.macosx
   ( cd build.macosx
-    export PATH=$HOME/deps/bin:$PATH
+    export PATH=$HOME/deps/bin:$HOME/Qt/6.2.2/macos/bin:$PATH
     MACOSX_DEPLOYMENT_TARGET=10.12 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
