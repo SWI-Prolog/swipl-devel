@@ -15,16 +15,16 @@
 PREFIX="$HOME/deps"
 export MACOSX_DEPLOYMENT_TARGET=10.12
 
-GMP_VERSION=6.1.2
-SSL_VERSION=1.1.1l
+GMP_VERSION=6.2.1
+SSL_VERSION=1.1.1m
 JPEG_VERSION=9b
 ZLIB_VERSION=1.2.11
-ARCHIVE_VERSION=3.4.0
+ARCHIVE_VERSION=3.5.2
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
-ODBC_VERSION=2.3.7
+ODBC_VERSION=2.3.9
 PCRE_VERSION=8.43
-FFI_VERSION=3.3
+FFI_VERSION=3.4.2
 YAML_VERSION=0.1.7
 READLINE_VERSION=8.0
 
@@ -78,7 +78,16 @@ download_ssl()
 
 build_ssl()
 { ( cd openssl-$SSL_VERSION
-    ./Configure --prefix=$PREFIX shared threads darwin64-x86_64-cc
+    case "$(uname -a)" in
+	*arm*) target=darwin64-arm64-cc
+	       ;;
+	*x86_64*) target=darwin64-x86_64-cc
+		  ;;
+	*) echo "Unknown Darmin target"
+	   return 1
+	   ;;
+    esac
+    ./Configure --prefix=$PREFIX shared threads $target
     make depend
     make
     make install_sw
@@ -257,7 +266,7 @@ build_libuuid()
 download_libffi()
 { FFI_FILE=libffi-$FFI_VERSION.tar.gz
   [ -f $FFI_FILE ] || \
-  curl ftp://sourceware.org/pub/libffi/$FFI_FILE > $FFI_FILE
+  wget https://github.com/libffi/libffi/releases/download/v$FFI_VERSION/$FFI_FILE
   tar zxvf $FFI_FILE
 }
 
