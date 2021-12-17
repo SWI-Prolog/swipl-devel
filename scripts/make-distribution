@@ -81,7 +81,7 @@ build_macosx()
 }
 
 
-# Use gcc 9 from Macport `port install gcc9`
+# Use gcc 11 from Macport `port install gcc11`
 build_macosx_gcc()
 { rm -rf build.macosx-gcc
   mkdir build.macosx-gcc
