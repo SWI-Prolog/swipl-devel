@@ -388,6 +388,8 @@ hide_reference(prolog_xref:dynamic(_,_,_)).
 hide_reference(prolog_xref:imported(_,_,_)).
 hide_reference(prolog_xref:pred_comment(_,_,_,_)).
 hide_reference(_:'$mode'(_,_)).
+hide_reference(_:'$pldoc'(_,_,_,_)).
+hide_reference(prolog_manual_index:man_index(_,_,_,_,_)).
 
 
                 /********************************
