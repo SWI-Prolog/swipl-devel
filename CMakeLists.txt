@@ -18,9 +18,16 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
+if(APPLE)
+# tcmalloc breaks setlocale() on MacOS 10.12 (Monterey)
+option(USE_TCMALLOC
+       "Use Google tcmalloc instead of default malloc"
+       OFF)
+else()
 option(USE_TCMALLOC
        "Use Google tcmalloc instead of default malloc"
        ON)
+endif()
 option(SWIPL_SHARED_LIB
        "Put kernel in a shared library"
        ON)
