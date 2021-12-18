@@ -1388,6 +1388,33 @@ pl_prolog_flag(term_t name, term_t value, control_t h)
 }
 
 
+static void
+set_arch(void)
+{
+#ifdef __APPLE__
+#include <sys/sysctl.h>
+  uint32_t cputype;
+  size_t size = sizeof(cputype);
+
+  if ( sysctlbyname("hw.cputype", &cputype, &size, NULL, 0) == 0 )
+  { switch(cputype&0xff)
+    { case 7:
+	setPrologFlag("arch", FT_ATOM|FF_READONLY, "x86_64-darwin");
+        return;
+      case 12:
+	setPrologFlag("arch", FT_ATOM|FF_READONLY, "arm64-darwin");
+        return;
+      default:
+	Sdprintf("sysctlbyname() cputype = %d (unknown)\n", (int)cputype);
+    }
+  }
+#endif
+
+  setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
+}
+
+
+
 		 /*******************************
 		 *	INITIALISE FEATURES	*
 		 *******************************/
@@ -1415,8 +1442,9 @@ initPrologFlagTable(void)
 void
 initPrologFlags(void)
 { GET_LD
+
   setPrologFlag("iso",  FT_BOOL, FALSE, PLFLAG_ISO);
-  setPrologFlag("arch", FT_ATOM|FF_READONLY, PLARCH);
+  set_arch();
 #if __WINDOWS__
   setPrologFlag("windows",	FT_BOOL|FF_READONLY, TRUE, 0);
   const char *wine_version;
