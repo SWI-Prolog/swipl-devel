@@ -91,6 +91,7 @@ build_ssl()
     make depend
     make
     make install_sw
+    make install_ssldirs	# installs deps/ssl/openssl.cnf
   )
 }
 
