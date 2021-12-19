@@ -1040,6 +1040,9 @@ user:file_search_path(library, app_config(lib)).
 user:file_search_path(library, swi(library)).
 user:file_search_path(library, swi(library/clp)).
 user:file_search_path(foreign, swi(ArchLib)) :-
+    current_prolog_flag(apple_universal_binary, true),
+    ArchLib = 'lib/fat-darwin'.
+user:file_search_path(foreign, swi(ArchLib)) :-
     \+ current_prolog_flag(windows, true),
     current_prolog_flag(arch, Arch),
     atom_concat('lib/', Arch, ArchLib).
