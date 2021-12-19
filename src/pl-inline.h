@@ -638,13 +638,14 @@ murmur_key(void *ptr, size_t n)
   DEBUG(0, assert(n%sizeof(word) == 0));
 
   if ( n > sizeof(word)*4 )
-  { word data[3];
+  { word data[4];
 
     data[0] = ((Word)ptr)[0];
-    data[1] = ((Word)ptr)[n/sizeof(word)-1];
-    data[2] = n;
+    data[1] = ((Word)ptr)[1];
+    data[2] = ((Word)ptr)[n/sizeof(word)-1];
+    data[3] = n;
 
-    k = MurmurHashAligned2(data, sizeof(word)*3, MURMUR_SEED);
+    k = MurmurHashAligned2(data, sizeof(word)*4, MURMUR_SEED);
   } else
   { k = MurmurHashAligned2(ptr, n, MURMUR_SEED);
   }
