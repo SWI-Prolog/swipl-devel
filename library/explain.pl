@@ -99,7 +99,7 @@ explain(I, [isa(I, 'an integer')]) :-
 explain(F, [isa(F, 'a floating point number')]) :-
     float(F),
     !.
-explain(Q, [isa(Q, 'a rational (\U0001D410) number')]) :-
+explain(Q, [isa(Q, 'a rational (Q) number')]) :-
     rational(Q),
     !.
 explain(S, [isa(S, 'a string')]) :-
