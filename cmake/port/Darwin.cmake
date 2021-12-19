@@ -105,6 +105,10 @@ endif()
 if(BUILD_MACOS_BUNDLE)
   set(MACOS_APP "SWI-Prolog")
 
+  if(MACOS_UNIVERSAL_BINARY)
+    set(SWIPL_CPACK_ARCH fat)
+  endif()
+
 # These definitions must be here rather than in CPack.cmake as that
 # file is loaded after attaching packages/swipl-win and thus isn't picked
 # up.  See URL below for the defined variables.
