@@ -35,12 +35,40 @@ MacOS dependencies for new releases, in particular for OpenSSL.
   - Install Apple Xcode
   - Install Macports
     - Install these packages
+      - autoconf
+      - automake
       - gnutar
       - gsed
-      - gcc-10
+      - gcc11 (when building for x86_64 only)
       - cmake
-  - Install Java JDK
+      - openjdk17
+      - Qt 6.2.2
   - Build the SWI-Prolog dependencies according to `scripts/macos-deps.sh`
+
+#### MacOS universal binaries
+
+We assume the build is done on an M1 system.
+
+  - Build the dependencies for both x86_64 and arm64.  Either on
+    machines with both architectures or using `clang -arch` option.
+  - Copy the x86_64 deps tree to ~/deps.x86_64.
+  - Go to `deps` and run
+
+	~/src/swipl-devel/scripts/macos-import-arch.sh ../deps.x86_64
+
+  - Verify you now have fat binaries using
+
+	lipo -info <some of the .dylib files>
+
+  - Macports openjdk17 is single-archirecture.  Install both
+    architectures and use `lipo` to create a fat version of
+    `libjvm.dylib` for the M1 OpenJDK installation:
+
+        lipo -create libjvm.dylib.arm64 libjvm.dylib.x86_64 -output libjvm.dylib
+
+  - From there, the recipe in `scripts/make-distribution` does
+    the job.
+
 
 ## Accounts, etc
 
