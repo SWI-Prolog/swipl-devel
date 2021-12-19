@@ -13,7 +13,7 @@
 # Configure using cmake -DMACOSX_DEPENDENCIES_FROM=$PREFIX
 
 PREFIX="$HOME/deps"
-export MACOSX_DEPLOYMENT_TARGET=10.12
+export MACOSX_DEPLOYMENT_TARGET=10.14
 
 GMP_VERSION=6.2.1
 SSL_VERSION=1.1.1m
@@ -36,7 +36,7 @@ src="$(pwd)"
 # Handy for running autoconf from a directory
 
 export LDFLAGS=-L$PREFIX/lib
-export CFLAGS="-mmacosx-version-min=10.12 -O2"
+export CFLAGS="-mmacosx-version-min=10.14 -O2"
 
 config()
 { if [ -r ./configure ]; then

@@ -1146,10 +1146,20 @@ the C compiler used to compile this version of SWI-Prolog defines
 \verb$__APPLE__$.  Note that the \prologflag{unix} is also defined
 for MacOSX.
 
+    \prologflag{apple_universal_binary}{bool}{r}
+If present and \const{true}, SWI-Prolog has been build as a
+\jargon{universal binary}.  Universal binaries contain native
+executable code for multiple architectures.  Currently the
+supported architectures are \const{x86_64} and \const{arm64}.
+The archirecture prefix for components is \const{fat-darwin}
+while the \prologflagitem{arch} depends on the actual CPU
+type.
+
     \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
 on. Used to select foreign files for the right architecture. See also
-\secref{shlib} and file_search_path/2.
+\secref{shlib} and file_search_path/2.  For Apple, see also
+\prologflagitem{apple_universal_binary}.
 
     \prologflagitem{argv}{list}{rw}
 List is a list of atoms representing the application command line
