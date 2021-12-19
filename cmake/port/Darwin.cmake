@@ -2,6 +2,10 @@ if(APPLE)
 
 set(CMAKE_FIND_APPBUNDLE NEVER) # Make sure cmake does not find the Apple gui version of GIT
 
+if(MACOS_UNIVERSAL_BINARY)
+  set(SWIPL_ARCH fat-darwin)
+endif()
+
 if(MACOSX_DEPENDENCIES_FROM STREQUAL "Homebrew")
   if(EXISTS /usr/local/bin/brew)
     set(MACOSX_DEPENDENCIES_FROM HomebrewLocal)

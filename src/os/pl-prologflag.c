@@ -1396,16 +1396,20 @@ set_arch(void)
   uint32_t cputype;
   size_t size = sizeof(cputype);
 
-  if ( sysctlbyname("hw.cputype", &cputype, &size, NULL, 0) == 0 )
-  { switch(cputype&0xff)
-    { case 7:
-	setPrologFlag("arch", FT_ATOM|FF_READONLY, "x86_64-darwin");
-        return;
-      case 12:
-	setPrologFlag("arch", FT_ATOM|FF_READONLY, "arm64-darwin");
-        return;
-      default:
-	Sdprintf("sysctlbyname() cputype = %d (unknown)\n", (int)cputype);
+  if ( strcmp(PLARCH, "fat-darwin") == 0 )
+  { setPrologFlag("apple_universal_binary", FT_BOOL|FF_READONLY, TRUE, 0);
+
+    if ( sysctlbyname("hw.cputype", &cputype, &size, NULL, 0) == 0 )
+    { switch(cputype&0xff)
+      { case 7:
+	  setPrologFlag("arch", FT_ATOM|FF_READONLY, "x86_64-darwin");
+          return;
+        case 12:
+	  setPrologFlag("arch", FT_ATOM|FF_READONLY, "arm64-darwin");
+          return;
+        default:
+	  Sdprintf("sysctlbyname() cputype = %d (unknown)\n", (int)cputype);
+      }
     }
   }
 #endif

@@ -19,7 +19,7 @@ option(USE_GMP
        "Use GNU MP Bignum library (GPL)"
        ON)
 if(APPLE)
-# tcmalloc breaks setlocale() on MacOS 10.12 (Monterey)
+# tcmalloc breaks setlocale() on MacOS 12 (Monterey)
 option(USE_TCMALLOC
        "Use Google tcmalloc instead of default malloc"
        OFF)
@@ -48,6 +48,9 @@ option(INSTALL_DOCUMENTATION
        ON)
 option(BUILD_PDF_DOCUMENTATION
        "Build the PDF manuals from source"
+       OFF)
+option(MACOS_UNIVERSAL_BINARY
+       "Build a universal binary for x86_64 and arm64"
        OFF)
 option(BUILD_MACOS_BUNDLE
        "Install for a MacOS bundle (SWI-Prolog.app)"
@@ -181,6 +184,11 @@ if(MSVC)
   add_compile_options(/W3)
 else()
   add_compile_options(-Wall)
+endif()
+
+if(MACOS_UNIVERSAL_BINARY)
+# Does not work!?  Now uses CFLAGS=-arcg x86_64 on M1.  See scripts/make-distribution
+# add_compile_options("SHELL:-arch x86_64" "SHELL:-arch arm64")
 endif()
 
 if(SWIPL_M32)

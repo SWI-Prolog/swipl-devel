@@ -70,9 +70,28 @@ build_macosx()
   mkdir build.macosx
   ( cd build.macosx
     export PATH=$HOME/deps/bin:$HOME/Qt/6.2.2/macos/bin:$PATH
-    MACOSX_DEPLOYMENT_TARGET=10.12 \
+    MACOSX_DEPLOYMENT_TARGET=10.14 \
 	cmake -DCMAKE_BUILD_TYPE=Release \
 	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
+              -DBUILD_MACOS_BUNDLE=ON \
+	      -DJAVA_COMPATIBILITY=ON \
+	      -G Ninja ..
+    ninja
+    cpack
+  )
+}
+
+
+build_macos_universal_binary()
+{ rm -rf build.macosx-fat
+  mkdir build.macosx-fat
+  ( cd build.macosx-fat
+    export PATH=$HOME/deps/bin:$HOME/Qt/6.2.2/macos/bin:$PATH
+    CFLAGS="-arch x86_64" CXXFLAGS="-arch x86_64" \
+    MACOSX_DEPLOYMENT_TARGET=10.14 \
+	cmake -DCMAKE_BUILD_TYPE=Release \
+	      -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
+              -DMACOS_UNIVERSAL_BINARY=ON \
               -DBUILD_MACOS_BUNDLE=ON \
 	      -DJAVA_COMPATIBILITY=ON \
 	      -G Ninja ..
@@ -89,7 +108,7 @@ build_macosx_gcc()
   ( cd build.macosx-gcc
     export PATH=$HOME/deps/bin:$PATH
     export CC=gcc-mp-11
-    MACOSX_DEPLOYMENT_TARGET=10.12 \
+    MACOSX_DEPLOYMENT_TARGET=10.14 \
         cmake -DCMAKE_BUILD_TYPE=PGO \
               -DMACOSX_DEPENDENCIES_FROM=$HOME/deps \
               -DBUILD_MACOS_BUNDLE=ON \
