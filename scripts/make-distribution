@@ -135,7 +135,11 @@ build_PPAs()
 
 build()
 { if [ $(uname) = Darwin ]; then
-    build_macosx_gcc
+    if uname | grep arm64 > /dev/null; then
+      build_macos_universal_binary
+    else
+      build_macosx_gcc
+    fi
   else
     build_pdf
     build_win32
@@ -163,7 +167,10 @@ upload_win64()
 }
 
 upload_macosx()
-{ if [ -f build.macosx-gcc/swipl-${version}-1.x86_64.dmg ]; then
+{ if [ -f build.macosx-fat/swipl-${version}-1.x86_64.dmg ]; then
+    echo "Uploading universal binary version"
+    upload_file bin build.macosx-fat/swipl-${version}-1.x86_64.dmg
+  elif [ -f build.macosx-gcc/swipl-${version}-1.x86_64.dmg ]; then
     echo "Uploading fast GCC version"
     upload_file bin build.macosx-gcc/swipl-${version}-1.x86_64.dmg
   else
