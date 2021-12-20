@@ -48,6 +48,7 @@
 #define LDFUNC_DECLARATIONS
 
 void		initWamTable(void);
+void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
 int		get_head_and_body_clause(term_t clause,
 				 term_t head, term_t body,

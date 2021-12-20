@@ -2957,6 +2957,9 @@ typedef struct register_file
 # define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
   struct foreign_context fndet_context;	/* foreign function non-deterministic context */
 # define     FNDET_CONTEXT (REGISTERS.fndet_context)
+#if VMCODE_IS_ADDRESS
+  int	     nop;			/* See SEPARATE_VMI */
+#endif
 #ifdef O_DEBUG
   int	     throwed_from_line;		/* Debugging: line we came from */
 # define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
@@ -3116,7 +3119,7 @@ static vmi_instr jmp_table[] =
  * which translates the addresses back into the VMI number to fail.
  * initWamTable() verfies this does not happen.
  */
-#define SEPARATE_VMI { static volatile int nop = 0; (void)nop; }
+#define SEPARATE_VMI { if ( ++REGISTERS.nop == 0 ) separate_vmi(REGISTERS.nop); }
 
 #else /* VMCODE_IS_ADDRESS */
 
@@ -3140,9 +3143,14 @@ API_STUB(int)
 
 int
 PL_next_solution(DECL_LD qid_t qid)
-{ register_file REGISTERS = {.qid = qid};	/* Active registers */
-  Code PC;					/* program counter */
-  exception_frame THROW_ENV;			/* PL_thow() environment */
+{ register_file REGISTERS =
+  { .qid = qid
+#if VMCODE_IS_ADDRESS
+    , .nop = 0
+#endif
+  };					/* Active registers */
+  Code PC;				/* program counter */
+  exception_frame THROW_ENV;		/* PL_thow() environment */
 
 #if O_VMI_FUNCTIONS
   register_file *registers = &REGISTERS;

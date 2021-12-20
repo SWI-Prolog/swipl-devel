@@ -183,6 +183,13 @@ initWamTable(DECL_LD)
   initVMIMerge();
 }
 
+/* See SEPARATE_VMI */
+
+void
+separate_vmi(int nop)
+{
+}
+
 #else /* VMCODE_IS_ADDRESS */
 
 void
