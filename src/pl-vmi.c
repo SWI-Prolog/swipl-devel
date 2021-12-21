@@ -671,13 +671,13 @@ TBD:	Deal with multiple identical instructions
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(H_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(H_STRING);
 }
 END_VMI
 
 VMI(H_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI2;
   VMI_GOTO(H_STRING);
 }
 END_VMI
@@ -1105,13 +1105,13 @@ H_STRING.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(B_STRING);
 }
 END_VMI
 
 VMI(B_MPQ, 0, VM_DYNARGC, (CA1_MPQ))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI2;
   VMI_GOTO(B_STRING);
 }
 END_VMI
@@ -1331,7 +1331,7 @@ END_VMI
  */
 
 VMI(B_UNIFY_VF, VIF_BREAK, 2, (CA1_FVAR,CA1_VAR))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(B_UNIFY_FV);
 }
 END_VMI
@@ -2774,7 +2774,7 @@ relative address simplifies the stack-shifter.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_SOFTIFTHEN, 0, 1, (CA1_CHP))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(C_IFTHEN);
 }
 END_VMI
@@ -2792,7 +2792,7 @@ deterministic.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_DET, 0, 2, (CA1_CHP,CA1_JUMP))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(C_IFTHENELSE);
 }
 END_VMI
@@ -2840,7 +2840,7 @@ look-ahead.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(C_NOT, 0, 2, (CA1_CHP,CA1_JUMP))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI2;
   VMI_GOTO(C_IFTHENELSE);
 }
 END_VMI
@@ -3004,7 +3004,7 @@ VMI(C_SCUT, 0, 0, ())
 END_VMI
 
 VMI(C_LCUTIFTHEN, 0, 1, (CA1_CHP))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(C_CUT);
 }
 END_VMI
@@ -3524,7 +3524,7 @@ code.
 VMI(S_DYNAMIC, 0, 0, ())
 { enterDefinition(DEF);
 
-  SEPARATE_VMI;
+  SEPARATE_VMI1;
   VMI_GOTO(S_STATIC);
 }
 END_VMI
@@ -6470,7 +6470,7 @@ VMI(T_TRY_MPZ, 0, VM_DYNARGC, (CA1_JUMP,CA1_MPZ))
 }
 END_VMI
 VMI(T_MPZ, 0, VM_DYNARGC, (CA1_MPZ))
-{ SEPARATE_VMI;
+{ SEPARATE_VMI1;
   VMI_GOTO(T_STRING);
 }
 END_VMI

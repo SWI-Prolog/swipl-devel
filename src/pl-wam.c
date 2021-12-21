@@ -2962,7 +2962,8 @@ typedef struct register_file
   struct foreign_context fndet_context;	/* foreign function non-deterministic context */
 # define     FNDET_CONTEXT (REGISTERS.fndet_context)
 #if VMCODE_IS_ADDRESS
-  int	     nop;			/* See SEPARATE_VMI */
+  int	     nop1;			/* See SEPARATE_VMI1 */
+  int	     nop2;			/* See SEPARATE_VMI2 */
 #endif
 #ifdef O_DEBUG
   int	     throwed_from_line;		/* Debugging: line we came from */
@@ -3011,7 +3012,8 @@ typedef struct register_file
 #define VMH_GOTO(...)		do { _VMH_GOTO(__VA_ARGS__); } while(0)
 #define SOLUTION_RETURN(val)	do { VMI_EXIT; _SOLUTION_RETURN(val); } while(0)
 #define VMI_GOTO_CODE(c)	do { VMI_EXIT; _VMI_GOTO_CODE(c); } while(0)
-#define SEPARATE_VMI		(void)0 /* only needed for !O_VMI_FUNCTIONS && VMCODE_IS_ADDRESS */
+#define SEPARATE_VMI1		(void)0
+#define SEPARATE_VMI2		(void)0
 
 /* By default, instruction and helper prologue/epilogue are empty */
 #define _VMI_PROLOGUE(Name,f,na,a)	;
@@ -3117,13 +3119,18 @@ static vmi_instr jmp_table[] =
 #define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); _VMI_GOTO_CODE(*PC++)
 #define _VMI_GOTO(n)			goto n ## _LBL
 #define _VMI_GOTO_CODE(c)		goto *(void *)(c)
-#undef SEPARATE_VMI
+#undef SEPARATE_VMI1
+#undef SEPARATE_VMI2
 /* This macro must ensure that two identical VMI instructions do not get
  * merged onto the same address by the compiler, causing decompilation
  * which translates the addresses back into the VMI number to fail.
- * initWamTable() verfies this does not happen.
+ * initWamTable() verfies this does not happen.  We have two versions
+ * to deal with jumps from to VMI to the same implementation.
  */
-#define SEPARATE_VMI { if ( ++REGISTERS.nop == 0 ) separate_vmi(REGISTERS.nop); }
+#define SEPARATE_VMI1 \
+	{ if ( ++REGISTERS.nop1 == 0 ) separate_vmi(REGISTERS.nop1); }
+#define SEPARATE_VMI2 \
+	{ if ( ++REGISTERS.nop2 == 0 ) separate_vmi(REGISTERS.nop2); }
 
 #else /* VMCODE_IS_ADDRESS */
 
@@ -3150,7 +3157,7 @@ PL_next_solution(DECL_LD qid_t qid)
 { register_file REGISTERS =
   { .qid = qid
 #if VMCODE_IS_ADDRESS
-    , .nop = 0
+    , .nop1 = 0, .nop2 = 0
 #endif
   };					/* Active registers */
   Code PC;				/* program counter */
