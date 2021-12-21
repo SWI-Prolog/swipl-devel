@@ -1,5 +1,7 @@
 name: swi-prolog
-base: core20
+# Should be core20 to avoid fontconfig warnings, but Qt is broken on
+# core20
+base: core18
 adopt-info: swi-prolog
 #icon: packages/swipl-win/swipl.png
 license: 'BSD-2-Clause'
