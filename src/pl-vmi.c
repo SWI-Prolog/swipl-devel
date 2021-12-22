@@ -3659,7 +3659,7 @@ clauses that can be added at runtime.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_MULTIFILE, 0, 0, ())
-{ SEPARATE_VMI1;
+{ SEPARATE_VMI2;
   VMI_GOTO(S_STATIC);
 }
 END_VMI
