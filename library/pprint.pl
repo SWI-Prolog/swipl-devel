@@ -250,7 +250,7 @@ pp(List, Ctx, Options) :-
     ;   format(Out, '[ ', []),
         Nindent is Indent + 2,
         NDepth is Depth + 1,
-        modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx),
+        modify_context(Ctx, [indent=Nindent, depth=NDepth, priority=999], NCtx),
         pp_list_elements(List, NCtx, Options),
         indent(Out, Indent, Options),
         format(Out, ']', [])
@@ -400,7 +400,9 @@ pp(Term, Ctx, Options) :-               % compound
         ),
         context(Ctx, depth, Depth),
         NDepth is Depth + 1,
-        modify_context(Ctx, [indent=Nindent, depth=NDepth], NCtx0),
+        modify_context(Ctx,
+                       [indent=Nindent, depth=NDepth, priority=999],
+                       NCtx0),
         dec_depth(NCtx0, NCtx),
         pp_compound_args(Args, NCtx, Options),
         write(Out, ')')
