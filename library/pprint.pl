@@ -72,40 +72,45 @@ etc.
 %
 %   Pretty print a Prolog term. The following options are processed:
 %
-%     * output(+Stream)
-%     Define the output stream.  Default is =user_output=
-%     * right_margin(+Integer)
-%     Width of a line.  Default is 72 characters.
-%     * left_margin(+Integer)
-%     Left margin for continuation lines.  Default is 0.
-%     * tab_width(+Integer)
-%     Distance between tab-stops.  Default is 8 characters.
-%     * indent_arguments(+Spec)
-%     Defines how arguments of compound terms are placed.  Defined
-%     values are:
-%       $ =false= :
+%     - output(+Stream)
+%       Define the output stream.  Default is `user_output`
+%     - right_margin(+Integer)
+%       Width of a line.  Default is 72 characters.
+%     - left_margin(+Integer)
+%       Left margin for continuation lines.  Default is 0.
+%     - tab_width(+Integer)
+%       Distance between tab-stops.  Default is 8 characters.
+%     - indent_arguments(+Spec)
+%       Defines how arguments of compound terms are placed.  Defined
+%       values are:
+%       $ `false` :
 %       Simply place them left to right (no line-breaks)
-%       $ =true= :
+%       $ `true` :
 %       Place them vertically, aligned with the open bracket (not
 %       implemented)
-%       $ =auto= (default) :
+%       $ `auto` (default) :
 %       As horizontal if line-width is not exceeded, vertical
 %       otherwise.
 %       $ An integer :
 %       Place them vertically aligned, <N> spaces to the right of
 %       the beginning of the head.
-%     * operators(+Boolean)
-%     This is the inverse of the write_term/3 option =ignore_ops=.
-%     Default is to respect them.
-%     * write_options(+List)
-%     List of options passed to write_term/3 for terms that are
-%     not further processed.  Default:
-%       ==
+%     - operators(+Boolean)
+%       This is the inverse of the write_term/3 option `ignore_ops`.
+%       Default is to respect them.
+%     - write_options(+List)
+%       List of options passed to write_term/3 for terms that are
+%       not further processed.  Default:
+%
+%       ```
 %           [ numbervars(true),
 %             quoted(true),
 %             portray(true)
 %           ]
-%       ==
+%       ```
+%     - fullstop(Boolean)
+%       If `true` (default `false`), add a full stop (.) to the output.
+%     - nl(Boolean)
+%       If `true` (default `false`), add a newline to the output.
 
 print_term(Term, Options) :-
     \+ \+ print_term_2(Term, Options).
@@ -123,7 +128,17 @@ print_term_2(Term, Options0) :-
     dict_create(Context, #, [max_depth(MaxDepth)|Options]),
     pp(Template, Context, Options),
     print_extra(Cycles, Context, 'where', Options),
-    print_extra(Constraints, Context, 'with constraints', Options).
+    print_extra(Constraints, Context, 'with constraints', Options),
+    (   option(fullstop(true), Options)
+    ->  option(output(Out), Options),
+        put_char(Out, '.')
+    ;   true
+    ),
+    (   option(nl(true), Options)
+    ->  option(output(Out), Options),
+        nl(Out)
+    ;   true
+    ).
 
 print_extra([], _, _, _) :- !.
 print_extra(List, Context, Comment, Options) :-
@@ -255,7 +270,6 @@ pp(List, Ctx, Options) :-
         indent(Out, Indent, Options),
         format(Out, ']', [])
     ).
-:- if(current_predicate(is_dict/1)).
 pp(Dict, Ctx, Options) :-
     is_dict(Dict),
     !,
@@ -290,7 +304,6 @@ pp(Dict, Ctx, Options) :-
         indent(Out, BraceIndent, Options),
         write(Out, '}')
     ).
-:- endif.
 pp(Term, Ctx, Options) :-               % handle operators
     compound(Term),
     compound_name_arity(Term, Name, Arity),
