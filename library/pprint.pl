@@ -350,28 +350,57 @@ pp(Term, Ctx, Options) :-               % handle operators
             pp(Arg, Ctx3, Options),
             format(Out, '~w~w)', [Space,QName])
         )
-    ;   arg(1, Term, Arg1),
+    ;   arg(1, Term, Arg1),             % Infix operators
         arg(2, Term, Arg2),
-        (   (   space_op(Name)
-            ;   need_space(Arg1, Name, LeftOptions, FuncOptions)
-            ;   need_space(Name, Arg2, FuncOptions, RightOptions)
+        (   print_width(Term, Width, Options),
+            option(right_margin(RM), Options),
+            Indent + Width < RM
+        ->  ToWide = false,
+            (   (   space_op(Name)
+                ;   need_space(Arg1, Name, LeftOptions, FuncOptions)
+                ;   need_space(Name, Arg2, FuncOptions, RightOptions)
+                )
+            ->  Space = ' '
+            ;   Space = ''
             )
-        ->  Space = ' '
-        ;   Space = ''
+        ;   ToWide = true,
+            (   (   is_solo(Name)
+                ;   space_op(Name)
+                )
+            ->  Space = ''
+            ;   Space = ' '
+            )
         ),
         (   CPrec >= Prec
-        ->  modify_context(Ctx2, [priority=Left], Ctx3),
-            pp(Arg1, Ctx3, Options),
-            format(Out, '~w~w~w', [Space,QName,Space]),
-            modify_context(Ctx2, [priority=Right], Ctx4),
-            pp(Arg2, Ctx4, Options)
-        ;   format(Out, '(', []),
+        ->  (   ToWide == false
+            ->  modify_context(Ctx2, [priority=Left], Ctx3),
+                pp(Arg1, Ctx3, Options),
+                format(Out, '~w~w~w', [Space,QName,Space]),
+                modify_context(Ctx2, [priority=Right], Ctx4),
+                pp(Arg2, Ctx4, Options)
+            ;   infix_list(Term, Name, List),
+                Pri is min(Left,Right),
+                modify_context(Ctx2, [space=Space, priority=Pri], Ctx3),
+                pp_infix_list(List, QName, 2, Ctx3, Options)
+            )
+        ;   ToWide == false
+        ->  format(Out, '(', []),
             NIndent is Indent + 1,
             modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
             pp(Arg1, Ctx3, Options),
             format(Out, '~w~w~w', [Space,QName,Space]),
             modify_context(Ctx2, [priority=Right], Ctx4),
             pp(Arg2, Ctx4, Options),
+            format(Out, ')', [])
+        ;   infix_list(Term, Name, List),
+            Pri is min(Left,Right),
+            format(Out, '( ', []),
+            NIndent is Indent + 2,
+            modify_context(Ctx2,
+                           [space=Space, indent=NIndent, priority=Pri],
+                           Ctx3),
+            pp_infix_list(List, QName, 0, Ctx3, Options),
+            indent(Out, Indent, Options),
             format(Out, ')', [])
         )
     ).
@@ -415,6 +444,55 @@ quoted_op(Op, Atom) :-
     Atom = Op.
 quoted_op(Op, Q) :-
     format(atom(Q), '~q', [Op]).
+
+%!  infix_list(+Term, ?Op, -List) is semidet.
+%
+%   True when List is a list of subterms  of Term that are the result of
+%   the nested infix operator  Op.  Deals   both  with  `xfy`  and `yfx`
+%   operators.
+
+infix_list(Term, Op, List) :-
+    phrase(infix_list(Term, Op), List).
+
+infix_list(Term, Op) -->
+    { compound(Term),
+      compound_name_arity(Term, Op, 2)
+    },
+    (   {current_op(_Pri, xfy, Op)}
+    ->  { arg(1, Term, H),
+          arg(2, Term, Term2)
+        },
+        [H],
+        infix_list(Term2, Op)
+    ;   {current_op(_Pri, yfx, Op)}
+    ->  { arg(1, Term, Term2),
+          arg(2, Term, T)
+        },
+        infix_list(Term2, Op),
+        [T]
+    ).
+infix_list(Term, Op) -->
+    {atom(Op)},                      % we did something before
+    [Term].
+
+pp_infix_list([H|T], QName, IncrIndent, Ctx, Options) =>
+    pp(H, Ctx, Options),
+    context(Ctx, space, Space),
+    (   T == []
+    ->  true
+    ;   option(output(Out), Options),
+        format(Out, '~w~w', [Space,QName]),
+        context(Ctx, indent, Indent),
+        NIndent is Indent+IncrIndent,
+        indent(Out, NIndent, Options),
+        modify_context(Ctx, [indent=NIndent], Ctx2),
+        pp_infix_list(T, QName, 0, Ctx2, Options)
+    ).
+
+
+%!  pp_list_elements(+List, +Ctx, +Options) is det.
+%
+%   Print the elements of a possibly open list as a vertical list.
 
 pp_list_elements(_, Ctx, Options) :-
     context(Ctx, max_depth, 0),
