@@ -99,7 +99,22 @@ echo([H|T]) :-
 %   Call main/1 using the passed  command-line arguments. Before calling
 %   main/1  this  predicate  installs  a  signal  handler  for  =SIGINT=
 %   (Control-C) that terminates the process with status 1.
+%
+%   When main/0 is called interactively it  simply calls main/1 with the
+%   arguments. This allows for debugging scripts as follows:
+%
+%   ```
+%   $ swipl -l script.pl -- arg ...
+%   ?- gspy(suspect/1).		% setup debugging
+%   ?- main.			% run program
+%   ```
 
+main :-
+    current_prolog_flag(break_level, _),
+    !,
+    current_prolog_flag(argv, Av),
+    context_module(M),
+    M:main(Av).
 main :-
     context_module(M),
     set_signals,
