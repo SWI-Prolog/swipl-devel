@@ -149,19 +149,19 @@ mkconj_((A,B), C, Conj) =>
 mkconj_(A, B, C) =>
     C = (A,B).
 
-mkdisj(A,B,Conj) :-
+mkdisj(A,B,Disj) :-
     (   is_false(A)
-    ->  Conj = B
+    ->  Disj = B
     ;   is_false(B)
-    ->  Conj = A
-    ;   mkdisj_(A,B,Conj)
+    ->  Disj = A
+    ;   mkdisj_(A,B,Disj)
     ).
 
-mkdisj_((A,B), C, Conj) =>
-    Conj = (A,C2),
-    mkdisj_(B,C,C2).
+mkdisj_((A;B), C, Disj) =>
+    Disj = (A;C2),
+    mkdisj_(B, C, C2).
 mkdisj_(A, B, C) =>
-    C = (A,B).
+    C = (A;B).
 
 is_true(Goal) :- Goal == true.
 is_false(Goal) :- (Goal == false -> true ; Goal == fail).
@@ -405,4 +405,3 @@ qualify(M, C, Goal, Calls) :-
     !,
     Calls = Goal.
 qualify(M, _, Goal, M:Goal).
-
