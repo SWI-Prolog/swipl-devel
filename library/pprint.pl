@@ -628,7 +628,8 @@ indent(Out, Indent, Options) :-
 
 print_width(Term, W, Options) :-
     option(right_margin(RM), Options),
-    (   write_length(Term, W, [max_length(RM)|Options])
+    option(write_options(WOpts), Options),
+    (   write_length(Term, W, [max_length(RM)|WOpts])
     ->  true
     ;   W = RM
     ).
