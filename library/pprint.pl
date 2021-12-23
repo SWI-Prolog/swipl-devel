@@ -74,8 +74,11 @@ etc.
 %
 %     - output(+Stream)
 %       Define the output stream.  Default is `user_output`
-%     - right_margin(+Integer)
-%       Width of a line.  Default is 72 characters.
+%     - right_margin(?Column)
+%       Width of a line. If the output is a _tty_ and tty_size/2
+%       can produce a size the default is the number of columns
+%       minus 8.  Otherwise the default is 72 characters.  If the
+%       Column is unbound it is unified with the computed value.
 %     - left_margin(+Integer)
 %       Left margin for continuation lines.  Default is 0.
 %     - tab_width(+Integer)
@@ -113,17 +116,19 @@ etc.
 %       If `true` (default `false`), add a newline to the output.
 
 print_term(Term, Options) :-
-    \+ \+ print_term_2(Term, Options).
-
-print_term_2(Term, Options0) :-
-    prepare_term(Term, Template, Cycles, Constraints),
     defaults(Defs0),
     select_option(write_options(WrtDefs), Defs0, Defs),
-    select_option(write_options(WrtUser), Options0, Options1, []),
+    select_option(write_options(WrtUser), Options, Options1, []),
     merge_options(WrtUser, WrtDefs, WrtOpts),
     merge_options(Options1, Defs, Options2),
+    Options3 = [write_options(WrtOpts)|Options2],
+    default_margin(Options3, Options4),
+    \+ \+ print_term_2(Term, Options4).
+
+print_term_2(Term, Options) :-
+    prepare_term(Term, Template, Cycles, Constraints),
+    option(write_options(WrtOpts), Options),
     option(max_depth(MaxDepth), WrtOpts, infinite),
-    Options = [write_options(WrtOpts)|Options2],
 
     dict_create(Context, #, [max_depth(MaxDepth)|Options]),
     pp(Template, Context, Options),
@@ -195,7 +200,6 @@ bind_non_cycles([H|T0], I, [H|T]) :-
 
 defaults([ output(user_output),
            left_margin(0),
-           right_margin(72),
            depth(0),
            indent(0),
            indent_arguments(auto),
@@ -207,6 +211,25 @@ defaults([ output(user_output),
                          ]),
            priority(1200)
          ]).
+
+default_margin(Options0, Options) :-
+    option(right_margin(Margin), Options0),
+    !,
+    (   var(Margin)
+    ->  tty_right_margin(Options0, Margin)
+    ;   true
+    ),
+    Options = Options0.
+default_margin(Options0, [right_margin(Margin)|Options0]) :-
+    tty_right_margin(Options0, Margin).
+
+tty_right_margin(Options, Margin) :-
+    option(output(Output), Options),
+    stream_property(Output, tty(true)),
+    catch(tty_size(_Rows, Columns), error(_,_), fail),
+    !,
+    Margin is Columns - 8.
+tty_right_margin(_, 72).
 
 
                  /*******************************
