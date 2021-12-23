@@ -125,23 +125,43 @@ var_tail(H, H) :-
 %!  mkdisj(A,B,Disj) is det.
 %
 %   Create a conjunction or  disjunction  from   two  terms.  Reduces on
-%   `true`.
+%   `true` (mkconj/2) and  `false`  (mkdisj/2).   Note  that  a  `false`
+%   encountered in a conjunction does __not__   cause the conjunction to
+%   be `false`, i.e. semantics under side effects are preserved.
+%
+%   The Prolog `,` and `;` operators  are   of  type  `xfy`, i.e. _right
+%   associative_. These predicates preserve this grouping. For example,
+%
+%       ?- mkconj((a,b), c, Conj)
+%       Conj = (a,b,c)
 
 mkconj(A,B,Conj) :-
     (   is_true(A)
     ->  Conj = B
     ;   is_true(B)
     ->  Conj = A
-    ;   Conj = (A,B)
+    ;   mkconj_(A,B,Conj)
     ).
+
+mkconj_((A,B), C, Conj) =>
+    Conj = (A,C2),
+    mkconj_(B,C,C2).
+mkconj_(A, B, C) =>
+    C = (A,B).
 
 mkdisj(A,B,Conj) :-
     (   is_false(A)
     ->  Conj = B
     ;   is_false(B)
     ->  Conj = A
-    ;   Conj = (A;B)
+    ;   mkdisj_(A,B,Conj)
     ).
+
+mkdisj_((A,B), C, Conj) =>
+    Conj = (A,C2),
+    mkdisj_(B,C,C2).
+mkdisj_(A, B, C) =>
+    C = (A,B).
 
 is_true(Goal) :- Goal == true.
 is_false(Goal) :- (Goal == false -> true ; Goal == fail).
