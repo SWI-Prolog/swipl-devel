@@ -408,36 +408,39 @@ pp(Term, Ctx, Options) :-               % handle operators
             )
         ),
         (   CPrec >= Prec
-        ->  (   ToWide == false
-            ->  modify_context(Ctx2, [priority=Left], Ctx3),
+        ->  (   ToWide == true,
+                infix_list(Term, Name, List),
+                List == [_,_|_]
+            ->  Pri is min(Left,Right),
+                modify_context(Ctx2, [space=Space, priority=Pri], Ctx3),
+                pp_infix_list(List, QName, 2, Ctx3, Options)
+            ;   modify_context(Ctx2, [priority=Left], Ctx3),
                 pp(Arg1, Ctx3, Options),
                 format(Out, '~w~w~w', [Space,QName,Space]),
                 modify_context(Ctx2, [priority=Right], Ctx4),
                 pp(Arg2, Ctx4, Options)
-            ;   infix_list(Term, Name, List),
-                Pri is min(Left,Right),
-                modify_context(Ctx2, [space=Space, priority=Pri], Ctx3),
-                pp_infix_list(List, QName, 2, Ctx3, Options)
             )
-        ;   ToWide == false
-        ->  format(Out, '(', []),
-            NIndent is Indent + 1,
-            modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
-            pp(Arg1, Ctx3, Options),
-            format(Out, '~w~w~w', [Space,QName,Space]),
-            modify_context(Ctx2, [priority=Right], Ctx4),
-            pp(Arg2, Ctx4, Options),
-            format(Out, ')', [])
-        ;   infix_list(Term, Name, List),
-            Pri is min(Left,Right),
-            format(Out, '( ', []),
-            NIndent is Indent + 2,
-            modify_context(Ctx2,
+        ;   (   ToWide == true,
+                infix_list(Term, Name, List),
+                List = [_,_|_]
+            ->  Pri is min(Left,Right),
+                format(Out, '( ', []),
+                NIndent is Indent + 2,
+                modify_context(Ctx2,
                            [space=Space, indent=NIndent, priority=Pri],
-                           Ctx3),
-            pp_infix_list(List, QName, 0, Ctx3, Options),
-            indent(Out, Indent, Options),
-            format(Out, ')', [])
+                               Ctx3),
+                pp_infix_list(List, QName, 0, Ctx3, Options),
+                indent(Out, Indent, Options),
+                format(Out, ')', [])
+            ;   format(Out, '(', []),
+                NIndent is Indent + 1,
+                modify_context(Ctx2, [indent=NIndent, priority=Left], Ctx3),
+                pp(Arg1, Ctx3, Options),
+                format(Out, '~w~w~w', [Space,QName,Space]),
+                modify_context(Ctx2, [priority=Right], Ctx4),
+                pp(Arg2, Ctx4, Options),
+                format(Out, ')', [])
+            )
         )
     ).
 pp(Term, Ctx, Options) :-               % compound
