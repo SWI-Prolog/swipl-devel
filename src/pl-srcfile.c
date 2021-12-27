@@ -46,6 +46,7 @@
 #include "pl-fli.h"
 #include "pl-modul.h"
 #include "pl-supervisor.h"
+#include "pl-wam.h"
 
 static void	fix_ssu(p_reload *r, Clause clause);
 
@@ -1807,7 +1808,7 @@ PRED_IMPL("$clause_from_source", 4, clause_from_source, 0)
   LOCKSRCFILE(of);
   for(cell = of->procedures; cell; cell = cell->next)
   { Procedure proc = cell->value;
-    Definition def = proc->definition;
+    Definition def = getProcDefinition(proc);
 
     if ( def && false(def, P_FOREIGN) )
     { ClauseRef cref;
