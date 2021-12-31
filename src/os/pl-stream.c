@@ -76,9 +76,9 @@ locking is required.
 #define NEEDS_SWINSOCK
 #define PL_STREAM_IMPL
 #include "pl-stream.h"
-#include "SWI-Prolog.h"
 #include "pl-utf8.h"
 #include "../pl-mutex.h"
+#include "SWI-Prolog.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
