@@ -656,7 +656,17 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   DEBUG(5, Sdprintf("\tCut %s, context = %p\n",
 		    predicateName(def), fr->clause));
 
-  context.context = (word)fr->clause;
+  switch((word)fr->clause & FRG_REDO_MASK)
+  { case REDO_INT:
+      context.context = (word)fr->clause >> FRG_REDO_BITS;
+      break;
+    case REDO_PTR:
+      context.context = (word)fr->clause;
+      break;
+    case YIELD_PTR:
+      context.context = (word)fr->clause & ~FRG_REDO_MASK;
+      break;
+  }
   context.control = FRG_CUTTED;
   context.engine  = LD;
 
@@ -3309,6 +3319,10 @@ variables used in the B_THROW instruction.
       DEBUG(CHK_SECURE, checkStacks(NULL));
       if ( exception_term )
 	THROW_EXCEPTION;
+      if ( QF->yield.term == -1 )		/* foreign yield */
+      { DEF = FR->predicate;
+	QF->yield.term = 0;
+      }
       NEXT_INSTRUCTION;
     } else
       BODY_FAILED;

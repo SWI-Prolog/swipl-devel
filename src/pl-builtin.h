@@ -480,7 +480,8 @@ int Sdprintf_ex(const char *channel, const char *file, int line, const char *fm,
 typedef enum
 { FRG_FIRST_CALL = 0,		/* Initial call */
   FRG_CUTTED     = 1,		/* Context was cutted */
-  FRG_REDO	 = 2		/* Normal redo */
+  FRG_REDO	 = 2,		/* Normal redo */
+  FRG_RESUME	 = 3		/* Resume from yield */
 } frg_code;
 
 struct foreign_context
@@ -492,14 +493,17 @@ struct foreign_context
 
 #define FRG_REDO_MASK	0x03
 #define FRG_REDO_BITS	2
-#define REDO_INT	0x02		/* Returned an integer */
-#define REDO_PTR	0x03		/* returned a pointer */
+#define REDO_PTR	0x00		/* Returned a pointer */
+#define REDO_INT	0x01		/* Returned an integer */
+#define YIELD_PTR	0x02		/* Returned a pointer */
 
 #define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
 #define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
+#define ForeignYieldPtrVal(v)	(((uintptr_t)(v))|YIELD_PTR)
 
 #define ForeignRedoInt(v)	return ForeignRedoIntVal(v)
 #define ForeignRedoPtr(v)	return ForeignRedoPtrVal(v)
+#define ForeignYieldPtr(v)	return ForeignYieldPtrVal(v)
 
 #define ForeignControl(h)	((h)->control)
 #define ForeignContextInt(h)	((intptr_t)(h)->context)

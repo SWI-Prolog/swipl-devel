@@ -5254,6 +5254,8 @@ PRED_IMPL("$depth_limit_true", 5, pl_depth_limit_true, PL_FA_NONDETERMINISTIC)
     }
     case FRG_CUTTED:
       return TRUE;
+    case FRG_RESUME:
+      assert(0);
   }
 
   return FALSE;
@@ -5383,6 +5385,8 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
     }
     case FRG_CUTTED:
       return TRUE;
+    case FRG_RESUME:
+      assert(0);
   }
 
   return FALSE;

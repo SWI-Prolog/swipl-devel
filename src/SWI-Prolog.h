@@ -321,12 +321,15 @@ typedef union
 #define PL_CUTTED		(1)	/* deprecated */
 #define PL_PRUNED		(1)
 #define PL_REDO			(2)
+#define PL_RESUME		(3)
 
 #define PL_retry(n)		return _PL_retry(n)
 #define PL_retry_address(a)	return _PL_retry_address(a)
+#define PL_yield_address(a)	return _PL_yield_address(a)
 
 PL_EXPORT(foreign_t)	_PL_retry(intptr_t);
 PL_EXPORT(foreign_t)	_PL_retry_address(void *);
+PL_EXPORT(foreign_t)	_PL_yield_address(void *);
 PL_EXPORT(int)		PL_foreign_control(control_t);
 PL_EXPORT(intptr_t)	PL_foreign_context(control_t);
 PL_EXPORT(void *)	PL_foreign_context_address(control_t);
@@ -413,7 +416,7 @@ PL_EXPORT(const atom_t) *_PL_atoms(void); /* base of reserved (meta-)atoms */
 #define PL_S_FALSE		0	/* Query failed */
 #define PL_S_TRUE		1	/* Query succeeded with choicepoint */
 #define PL_S_LAST		2	/* Query succeeded without CP */
-
+#define PL_S_YIELD	      255	/* Foreign yield */
 
 			/* Foreign context frames */
 PL_EXPORT(fid_t)	PL_open_foreign_frame(void);

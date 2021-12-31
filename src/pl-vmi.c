@@ -4841,14 +4841,15 @@ VMI(I_FEXITNDET, 0, 0, ())
 END_VMI
 
 VMH(I_FEXITNDET, 1, (intptr_t), (rc))
-{ FliFrame ffr = (FliFrame) valTermRef(FFR_ID);
+{ FliFrame ffr;
 
   LOAD_REGISTERS(QID);
   PC += 3;				/* saved at in I_FOPENNDET */
-  fli_context = ffr->parent;
 
   switch(rc)
   { case TRUE:
+      ffr = (FliFrame) valTermRef(FFR_ID);
+      fli_context = ffr->parent;
       if ( exception_term )		/* false alarm */
 	PL_clear_foreign_exception(FR);
       DEBUG(CHK_SECURE, assert(BFR->value.pc == PC));
@@ -4861,6 +4862,8 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
       FR->clause = NULL;
       VMH_GOTO(exit_checking_wakeup);
     case FALSE:
+      ffr = (FliFrame) valTermRef(FFR_ID);
+      fli_context = ffr->parent;
       FR->clause = NULL;
       if ( exception_term )
 	THROW_EXCEPTION;
@@ -4877,21 +4880,39 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
       if ( exception_term )		/* false alarm */
 	PL_clear_foreign_exception(FR);
 
-      if ( (rc & FRG_REDO_MASK) == REDO_INT )
-      { rc = (word)(((intptr_t)rc)>>FRG_REDO_BITS);
-      } else
-      { rc &= ~FRG_REDO_MASK;
-      }
       CL = (ClauseRef)rc;
-      lTop = (LocalFrame)(BFR+1);
-      VMH_GOTO(exit_checking_wakeup);
+
+      if ( (rc&YIELD_PTR) )
+      { fid_t fid = PL_open_foreign_frame();
+
+	if ( !fid )
+	  THROW_EXCEPTION;
+
+	QF = QueryFromQid(QID);
+	if ( !(QF->flags&PL_Q_ALLOW_YIELD) ) /* TBD: Error */
+	{ PL_error(NULL, 0, "not an engine", ERR_PERMISSION_VMI, "I_YIELD");
+	  THROW_EXCEPTION;
+	}
+	SAVE_REGISTERS(QID);
+	QF->foreign_frame = fid;
+	QF->solutions = -1;
+	QF->yield.term = -1;
+	SOLUTION_RETURN(PL_S_YIELD);
+      } else
+      { ffr = (FliFrame) valTermRef(FFR_ID);
+	fli_context = ffr->parent;
+	lTop = (LocalFrame)(BFR+1);
+	VMH_GOTO(exit_checking_wakeup);
+      }
     }
   }
 }
 END_VMH
 
 VMI(I_FREDO, 0, 0, ())
-{ if ( is_signalled() )
+{ DEBUG(0, assert(true(DEF, P_FOREIGN)));
+
+  if ( is_signalled() )
   { if ( false(DEF, P_SIG_ATOMIC) )
     { SAVE_REGISTERS(QID);
       handleSignals();
@@ -4901,10 +4922,28 @@ VMI(I_FREDO, 0, 0, ())
     }
   }
 
-  FNDET_CONTEXT.context = (word)FR->clause;
-  FNDET_CONTEXT.control = FRG_REDO;
-  FNDET_CONTEXT.engine  = LD;
-  PC -= 4;
+  FNDET_CONTEXT.engine = LD;
+  switch((word)FR->clause & FRG_REDO_MASK)
+  { case REDO_INT:
+      FNDET_CONTEXT.context = (word)FR->clause >> FRG_REDO_BITS;
+      FNDET_CONTEXT.control = FRG_REDO;
+      break;
+    case REDO_PTR:
+      FNDET_CONTEXT.context = (word)FR->clause;
+      FNDET_CONTEXT.control = FRG_REDO;
+      break;
+    case YIELD_PTR:
+      FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
+      FNDET_CONTEXT.control = FRG_RESUME;
+      PC -= 4;
+      SAVE_REGISTERS(QID);
+      NEXT_INSTRUCTION;
+      break;
+    default:
+      assert(0);
+  }
+
+  PC -= 4;				     /* Back to I_FCALL* */
   VMH_GOTO(foreign_redo);
 }
 END_VMI

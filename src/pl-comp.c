@@ -8346,6 +8346,8 @@ PRED_IMPL("$current_break", 2, current_break, PL_FA_NONDETERMINISTIC)
       e = CTX_PTR;
       freeTableEnum(e);
       succeed;
+    case FRG_RESUME:
+      assert(0);
   }
 
   while( advanceTableEnum(e, NULL, (void**)&bp) )

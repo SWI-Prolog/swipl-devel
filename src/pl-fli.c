@@ -4143,7 +4143,6 @@ _PL_retry(intptr_t v)
 { ForeignRedoInt(v);
 }
 
-
 foreign_t
 _PL_retry_address(void *v)
 { if ( (uintptr_t)v & FRG_REDO_MASK )
@@ -4152,6 +4151,13 @@ _PL_retry_address(void *v)
   ForeignRedoPtr(v);
 }
 
+foreign_t
+_PL_yield_address(void *v)
+{ if ( (uintptr_t)v & FRG_REDO_MASK )
+    PL_fatal_error("PL_yield_address(%p): bad alignment", v);
+
+  ForeignYieldPtr(v);
+}
 
 intptr_t
 PL_foreign_context(control_t h)
