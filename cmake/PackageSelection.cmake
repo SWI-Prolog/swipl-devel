@@ -270,6 +270,7 @@ if(NOT MULTI_THREADED)
   swipl_del_package(swipl-win "requires multi-threading")
   swipl_del_package(tipc      "requires multi-threading")
   swipl_del_package(stomp     "requires multi-threading")
+  swipl_del_package(mqi       "requires multi-threading")
 endif()
 
 if(INSTALL_DOCUMENTATION)
