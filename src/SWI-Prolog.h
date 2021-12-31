@@ -198,7 +198,7 @@ typedef _PLS(record) *	record_t;	/* Prolog recorded term */
 #define PL_HAVE_TERM_T
 typedef uintptr_t	term_t;		/* opaque term handle */
 #endif
-typedef uintptr_t	qid_t;		/* opaque query handle */
+typedef _PLS(queryRef) *qid_t;		/* opaque query handle */
 typedef uintptr_t	PL_fid_t;	/* opaque foreign context handle */
 typedef _PLS(foreign_context) *control_t; /* non-deterministic control arg */
 typedef _PLS(PL_local_data) *PL_engine_t; /* opaque engine handle */
@@ -436,6 +436,7 @@ PL_EXPORT(int)		PL_next_solution(qid_t qid) WUNUSED;
 PL_EXPORT(int)		PL_close_query(qid_t qid);
 PL_EXPORT(int)		PL_cut_query(qid_t qid);
 PL_EXPORT(qid_t)	PL_current_query(void);
+PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);

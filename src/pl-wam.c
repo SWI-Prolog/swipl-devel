@@ -2704,26 +2704,30 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   environment_frame = fr;
   qf->parent = LD->query;
   LD->query = qf;
+  qf->qid = allocHeapOrHalt(sizeof(*qf->qid));
+  qf->qid->engine = LD;
+  qf->qid->offset = consTermRef(qf);
 
-  DEBUG(2, Sdprintf("QID=%d\n", QidFromQuery(qf)));
+  DEBUG(2, Sdprintf("QID=%p\n", QidFromQuery(qf)));
   updateAlerted(LD);
 
   return QidFromQuery(qf);
 }
 
 
-#define discard_query(qid) LDFUNC(discard_query, qid)
 static void
-discard_query(DECL_LD qid_t qid)
+discard_query(qid_t qid)
 { QueryFrame qf = QueryFromQid(qid);
 
-  discardChoicesAfter(&qf->frame, FINISH_CUT);
-  qf = QueryFromQid(qid);		/* may be shifted */
-  discardFrame(&qf->frame);
-  if ( true(&qf->frame, FR_WATCHED) )
-  { lTop = (LocalFrame)argFrameP(&qf->frame,
-				 qf->frame.predicate->functor->arity);
-    frameFinished(&qf->frame, FINISH_CUT);
+  WITH_LD(qid->engine)
+  { discardChoicesAfter(&qf->frame, FINISH_CUT);
+    qf = QueryFromQid(qid);		/* may be shifted */
+    discardFrame(&qf->frame);
+    if ( true(&qf->frame, FR_WATCHED) )
+    { lTop = (LocalFrame)argFrameP(&qf->frame,
+				   qf->frame.predicate->functor->arity);
+      frameFinished(&qf->frame, FINISH_CUT);
+    }
   }
 }
 
@@ -2763,25 +2767,31 @@ restore_after_query(QueryFrame qf)
 
 int
 PL_cut_query(qid_t qid)
-{ GET_LD
-  QueryFrame qf = QueryFromQid(qid);
-  int rc = TRUE;
+{ int rc = TRUE;
 
-  DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
-  if ( qf->foreign_frame )
-    PL_close_foreign_frame(qf->foreign_frame);
+  if ( qid )
+  { WITH_LD(qid->engine)
+    { QueryFrame qf = QueryFromQid(qid);
 
-  if ( false(qf, PL_Q_DETERMINISTIC) )
-  { int exbefore = (exception_term != 0);
+      DEBUG(0, assert(qf->magic == QID_MAGIC));
+      if ( qf->foreign_frame )
+	PL_close_foreign_frame(qf->foreign_frame);
 
-    discard_query(qid);
-    qf = QueryFromQid(qid);
-    if ( !exbefore && exception_term != 0 )
-      rc = FALSE;
+      if ( false(qf, PL_Q_DETERMINISTIC) )
+      { int exbefore = (exception_term != 0);
+
+	discard_query(qid);
+	qf = QueryFromQid(qid);
+	if ( !exbefore && exception_term != 0 )
+	  rc = FALSE;
+      }
+
+      restore_after_query(qf);
+      qf->magic = QID_CMAGIC;		/* disqualify the frame */
+
+      freeHeap(qid, sizeof(*qid));
+    }
   }
-
-  restore_after_query(qf);
-  qf->magic = 0;			/* disqualify the frame */
 
   return rc;
 }
@@ -2791,28 +2801,30 @@ int
 PL_close_query(qid_t qid)
 { int rc = TRUE;
 
-  if ( qid != 0 )
-  { GET_LD
-    QueryFrame qf = QueryFromQid(qid);
+  if ( qid )
+  { WITH_LD(qid->engine)
+    { QueryFrame qf = QueryFromQid(qid);
 
-    DEBUG(CHK_SECURE, assert(qf->magic == QID_MAGIC));
-    if ( qf->foreign_frame )
-      PL_close_foreign_frame(qf->foreign_frame);
+      DEBUG(0, assert(qf->magic == QID_MAGIC));
+      if ( qf->foreign_frame )
+	PL_close_foreign_frame(qf->foreign_frame);
 
-    if ( false(qf, PL_Q_DETERMINISTIC) )
-    { int exbefore = (exception_term != 0);
+      if ( false(qf, PL_Q_DETERMINISTIC) )
+      { int exbefore = (exception_term != 0);
 
-      discard_query(qid);
-      qf = QueryFromQid(qid);
-      if ( !exbefore && exception_term != 0 )
-	rc = FALSE;
+	discard_query(qid);
+	qf = QueryFromQid(qid);
+	if ( !exbefore && exception_term != 0 )
+	  rc = FALSE;
+      }
+
+      if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
+	Undo(qf->choice.mark);
+
+      restore_after_query(qf);
+      qf->magic = QID_CMAGIC;		/* disqualify the frame */
+      freeHeap(qid, sizeof(*qid));
     }
-
-    if ( !(qf->exception && true(qf, PL_Q_PASS_EXCEPTION)) )
-      Undo(qf->choice.mark);
-
-    restore_after_query(qf);
-    qf->magic = 0;			/* disqualify the frame */
   }
 
   return rc;
@@ -2824,11 +2836,17 @@ PL_current_query(void)
 { GET_LD
 
   if ( HAS_LD )
-  { if ( LD->query )
+  { if ( LD->query && LD->query->magic == QID_MAGIC )
       return QidFromQuery(LD->query);
   }
 
   return 0;
+}
+
+
+PL_engine_t
+PL_query_engine(qid_t qid)
+{ return qid->engine;
 }
 
 
@@ -2866,8 +2884,7 @@ PL_exception(qid_t qid)
 
 term_t
 PL_yielded(qid_t qid)
-{ GET_LD
-  QueryFrame qf = QueryFromQid(qid);
+{ QueryFrame qf = QueryFromQid(qid);
 
   return qf->yield.term;
 }
@@ -3212,6 +3229,8 @@ depart_continue() to do the normal thing or to the backtrack point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   QF  = QueryFromQid(qid);
+  if ( QF->magic == QID_CMAGIC )
+    return FALSE;
   DEBUG(CHK_SECURE, assert(QF->magic == QID_MAGIC));
   if ( true(QF, PL_Q_DETERMINISTIC) )	/* last one succeeded */
   { fid_t fid = QF->foreign_frame;

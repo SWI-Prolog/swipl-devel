@@ -617,6 +617,11 @@ setGenerationFrame(DECL_LD LocalFrame fr)
   }
 }
 
+static inline QueryFrame
+QueryFromQid(QueryRef qid)
+{ return (QueryFrame) (&((Word)qid->engine->stacks.local.base)[qid->offset]);
+}
+
 		 /*******************************
 		 *	      INDEXING		*
 		 *******************************/

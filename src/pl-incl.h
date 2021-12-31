@@ -616,6 +616,7 @@ Magic for assertions.
 
 #define StackMagic(n)	((n) | 0x98765000)
 #define QID_MAGIC	StackMagic(1)	/* Query frame */
+#define QID_CMAGIC	StackMagic(2)	/* Closed Query frame */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 			  PROLOG DATA REPRESENTATION
@@ -1721,6 +1722,11 @@ typedef struct exception_frame		/* PL_throw exception environments */
 } exception_frame;
 
 
+typedef struct queryRef
+{ PL_engine_t	engine;			/* Engine for the query */
+  uintptr_t	offset;			/* queryFrane offset in local stack */
+} *QueryRef;
+
 #define QF_NODEBUG		0x0001	/* debug-able query */
 #define QF_DETERMINISTIC	0x0002	/* deterministic success */
 #define	QF_INTERACTIVE		0x0004	/* interactive goal (prolog()) */
@@ -1752,6 +1758,7 @@ struct queryFrame
   Choice	saved_bfr;		/* Saved choice-point */
   LocalFrame	saved_ltop;		/* Saved lTop */
   QueryFrame	parent;			/* Parent queryFrame */
+  QueryRef	qid;			/* Opaque query id */
   struct choice	choice;			/* First (dummy) choice-point */
   LocalFrame	saved_environment;	/* Parent local-frame */
 					/* Do not put anything between */
@@ -2054,8 +2061,7 @@ Temporary store/restore pointers to make them safe over GC/shift
 			   } while(0)
 
 
-#define QueryFromQid(qid)	((QueryFrame) valTermRef(qid))
-#define QidFromQuery(f)		(consTermRef(f))
+#define QidFromQuery(f)		((f)->qid)
 #define QID_EXPORT_WAM_TABLE	(qid_t)(-1)
 
 
