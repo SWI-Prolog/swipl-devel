@@ -43,8 +43,9 @@
 #endif
 
 /* Maximum unsigned 32-bit value used as placeholder for zip64 */
-#define MAXU32 0xffffffff
-
+#ifndef MAXU32
+#define MAXU32 (0xffffffff)
+#endif
 
 #ifdef __cplusplus
 extern "C" {
