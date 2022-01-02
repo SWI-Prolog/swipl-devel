@@ -2857,6 +2857,15 @@ PL_current_query(void)
   return 0;
 }
 
+int
+PL_can_yield(void)
+{ GET_LD
+
+  return ( HAS_LD &&
+	   LD->query &&
+	   LD->query->magic == QID_MAGIC &&
+	   true(LD->query, PL_Q_ALLOW_YIELD) );
+}
 
 PL_engine_t
 PL_query_engine(qid_t qid)

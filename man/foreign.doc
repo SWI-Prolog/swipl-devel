@@ -721,6 +721,12 @@ needs to be invalidated the predicate must do so when returning either
 \const{TRUE} or \const{FALSE}.  If the engine terminates the predicate
 the predicate is called with status \const{PL_PRUNED}, in which case
 the predicate must cleanup.
+
+    \cfunction{int}{PL_can_yield}{void}
+Returns \const{TRUE} when called from inside a foreign predicate if
+the query that (indirectly) calls this foreign predicate can yield
+using PL_yield_address().  Returns \const{FALSE} when either there
+is no current query or the query cannot yield.
 \end{description}
 
 

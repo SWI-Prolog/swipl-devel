@@ -440,6 +440,7 @@ PL_EXPORT(int)		PL_close_query(qid_t qid);
 PL_EXPORT(int)		PL_cut_query(qid_t qid);
 PL_EXPORT(qid_t)	PL_current_query(void);
 PL_EXPORT(PL_engine_t)	PL_query_engine(qid_t qid);
+PL_EXPORT(int)		PL_can_yield(void);
 
 			/* Simplified (but less flexible) call-back */
 PL_EXPORT(int)		PL_call(term_t t, module_t m);
