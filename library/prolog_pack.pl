@@ -1091,7 +1091,19 @@ pack_rebuild(Pack) :-
     !,
     post_install_foreign(Pack, PackDir, [rebuild(true)]).
 pack_rebuild(Pack) :-
+    unattached_pacth(Pack, PackDir),
+    !,
+    post_install_foreign(Pack, PackDir, [rebuild(true)]).
+pack_rebuild(Pack) :-
     existence_error(pack, Pack).
+
+unattached_pacth(Pack, BaseDir) :-
+    directory_file_path(Pack, 'pack.pl', PackFile),
+    absolute_file_name(pack(PackFile), PackPath,
+                       [ access(read),
+                         file_errors(fail)
+                       ]),
+    file_directory_name(PackPath, BaseDir).
 
 %!  pack_rebuild is det.
 %
@@ -1261,13 +1273,8 @@ pack_remove_forced(Pack) :-
     print_message(informational, pack(remove(BaseDir))),
     delete_directory_and_contents(BaseDir).
 pack_remove_forced(Pack) :-
-    directory_file_path(Pack, 'pack.pl', PackFile),
-    absolute_file_name(pack(PackFile), PackPath,
-                       [ access(read),
-                         file_errors(fail)
-                       ]),
+    unattached_pacth(Pack, BaseDir),
     !,
-    file_directory_name(PackPath, BaseDir),
     delete_directory_and_contents(BaseDir).
 pack_remove_forced(Pack) :-
     print_message(informational, error(existence_error(pack, Pack),_)).
