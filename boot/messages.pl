@@ -2130,11 +2130,12 @@ url_actions_to_format(url(_URL, Label), Fmt1, Args1, Fmt, Args) :-
 append_args(M:Args0, Args1, M:Args) :-
     !,
     strip_module(Args1, _, A1),
-    '$append'(Args0, A1, Args).
+    to_list(Args0, Args01),
+    '$append'(Args01, A1, Args).
 append_args(Args0, Args1, Args) :-
     strip_module(Args1, _, A1),
-    '$append'(Args0, A1, Args).
-
+    to_list(Args0, Args01),
+    '$append'(Args01, A1, Args).
 
                  /*******************************
                  *    MESSAGES TO PRINT ONCE    *
