@@ -396,7 +396,7 @@ message_frames(frame(Level, _Where, '$toplevel':toplevel_call(_)), _) -->
     [ '<user>'-[] ].
 message_frames(frame(Level, Where, Goal), Options) -->
     level(Level),
-    [ ansi(code, '~p', Goal) ],
+    [ ansi(code, '~p', [Goal]) ],
     where_goal(Where, Options).
 
 where_no_goal(foreign(PI), _) -->
