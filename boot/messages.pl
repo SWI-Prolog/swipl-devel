@@ -675,7 +675,7 @@ prolog_message(unhandled_exception(E)) -->
 prolog_message(initialization_error(_, E, File:Line)) -->
     !,
     [ url(File:Line),
-      'Initialization goal raised exception:', nl
+      ': Initialization goal raised exception:', nl
     ],
     translate_message(E).
 prolog_message(initialization_error(Goal, E, _)) -->
@@ -684,7 +684,7 @@ prolog_message(initialization_error(Goal, E, _)) -->
 prolog_message(initialization_failure(_Goal, File:Line)) -->
     !,
     [ url(File:Line),
-      'Initialization goal failed'-[]
+      ': Initialization goal failed'-[]
     ].
 prolog_message(initialization_failure(Goal, _)) -->
     [ 'Initialization goal failed: ~p'-[Goal]
