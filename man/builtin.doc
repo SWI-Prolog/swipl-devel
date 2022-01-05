@@ -7070,6 +7070,35 @@ ground term from another ground term with exactly the same structure,
 ground sub-terms are \emph{shared} between \arg{In} and \arg{Out}.
 Sharing ground terms does affect setarg/3.  SWI-Prolog provides
 duplicate_term/2 to create a true copy of a term.
+
+    \predicate{copy_term}{4}{+VarsIn, +In, -VarsOut, -Out}
+Similar to copy_term/2, but only rename the variables in \arg{VarsIn}
+that appear in \arg{In}.\footnote{This predicate is based on a
+similar predicate in s(CASP) by Joaquin Arias.} Variables in \arg{In}
+that do not appear in \arg{VarsIn} are \emph{shared} between \arg{In}
+and \arg{Out}. Sub terms that only contain such shared variables are
+shared as a whole between \arg{In} and \arg{Out}. \arg{VarsIn} is often
+a list, but can be an arbitrary term. For example:
+
+\begin{code}
+?- copy_term([X], q(X,Y), Vars, Term).
+Vars = [_A],
+Term = q(_A, Y).
+\end{code}
+
+Note that if \arg{VarsIn} and \arg{In} do not share any variables,
+\arg{Out} is equivalent to \arg{In} and \arg{VarsOut} is a copy
+(as copy_term/2) of \arg{VarsIn}.  If \arg{In} does not contain
+any variables not in \arg{VarsIn} the result is the same as
+\exam{copy_term(VarsIn-In, VarsOut-Out}).
+
+    \predicate{copy_term_nat}{4}{+VarsIn, +In, -VarsOut, -Out}
+As copy_term/4, using the attributed variable semantics
+of copy_term_nat/2.  This implies that attributed variables that
+appear in \arg{VarsIn} appear as renamed plain variables in
+\arg{VarsOut} and \arg{Out}.  Attributed variables in \arg{In}
+that do \emph{not} appear in \arg{VarsIn} are shared between
+\arg{In} and \arg{Out}.
 \end{description}
 
 
