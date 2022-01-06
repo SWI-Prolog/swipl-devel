@@ -196,22 +196,18 @@ gen_assoc_(Key, _,_,_,R, Val) :-
 %!  get_assoc(+Key, +Assoc, -Value) is semidet.
 %
 %   True if Key-Value is an association in Assoc.
-%
-%   @error type_error(assoc, Assoc) if Assoc is not an association list.
-
-get_assoc(Key, Assoc, Val) :-
-    must_be(assoc, Assoc),
-    get_assoc_(Key, Assoc, Val).
 
 :- if(current_predicate('$btree_find_node'/5)).
-get_assoc_(Key, Tree, Val) :-
+get_assoc(Key, Tree, Val) :-
     Tree \== t,
     '$btree_find_node'(Key, Tree, 0x010405, Node, =),
     arg(2, Node, Val).
 :- else.
-get_assoc_(Key, t(K,V,_,L,R), Val) :-
+get_assoc(Key, t(K,V,_,L,R), Val) =>
     compare(Rel, Key, K),
     get_assoc(Rel, Key, V, L, R, Val).
+get_assoc(_, t, _) =>
+    fail.
 
 get_assoc(=, _, Val, _, _, Val).
 get_assoc(<, Key, _, Tree, _, Val) :-
