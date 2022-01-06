@@ -132,12 +132,11 @@ qsave_program(File) :-
     qsave_program(File, []).
 
 qsave_program(FileBase, Options0) :-
-    meta_options(is_meta, Options0, Options),
-    check_options(Options),
-    exe_file(FileBase, File, Options),
-    option(class(SaveClass),    Options, runtime),
-    option(init_file(InitFile), Options, DefInit),
-    default_init_file(SaveClass, DefInit),
+    meta_options(is_meta, Options0, Options1),
+    check_options(Options1),
+    exe_file(FileBase, File, Options1),
+    option(class(SaveClass), Options1, runtime),
+    qsave_init_file_option(SaveClass, Options1, Options),
     prepare_entry_points(Options),
     save_autoload(Options),
     setup_call_cleanup(
@@ -149,7 +148,7 @@ qsave_program(FileBase, Options0) :-
                                      % running on this state
           setup_call_catcher_cleanup(
               open(File, write, StateOut, [type(binary)]),
-              write_state(StateOut, SaveClass, InitFile, Options),
+              write_state(StateOut, SaveClass, Options),
               Reason,
               finalize_state(Reason, StateOut, File))
         ),
@@ -157,19 +156,16 @@ qsave_program(FileBase, Options0) :-
     cleanup,
     !.
 
-write_state(StateOut, SaveClass, InitFile, Options) :-
+write_state(StateOut, SaveClass, Options) :-
     make_header(StateOut, SaveClass, Options),
     setup_call_cleanup(
         zip_open_stream(StateOut, RC, []),
-        write_zip_state(RC, SaveClass, InitFile, Options),
+        write_zip_state(RC, SaveClass, Options),
         zip_close(RC, [comment('SWI-Prolog saved state')])),
     flush_output(StateOut).
 
-write_zip_state(RC, SaveClass, InitFile, Options) :-
-    save_options(RC, SaveClass,
-                 [ init_file(InitFile)
-                 | Options
-                 ]),
+write_zip_state(RC, SaveClass, Options) :-
+    save_options(RC, SaveClass, Options),
     save_resources(RC, SaveClass),
     lock_files(SaveClass),
     save_program(RC, SaveClass, Options),
@@ -201,15 +197,18 @@ exe_file(Base, Exe, Options) :-
     file_name_extension(Base, exe, Exe).
 exe_file(Exe, Exe, _).
 
-default_init_file(runtime, none) :- !.
-default_init_file(_,       InitFile) :-
-    '$cmd_option_val'(init_file, InitFile).
-
 delete_if_exists(File) :-
     (   exists_file(File)
     ->  delete_file(File)
     ;   true
     ).
+
+qsave_init_file_option(runtime, Options1, Options) :-
+    \+ option(init_file(_), Options1),
+    !,
+    Options = [init_file(none)|Options1].
+qsave_init_file_option(_, Options, Options).
+
 
                  /*******************************
                  *           HEADER             *
@@ -287,12 +286,12 @@ doption(nosignals).
 save_options(RC, SaveClass, Options) :-
     zipper_open_new_file_in_zip(RC, '$prolog/options.txt', Fd, []),
     (   doption(OptionName),
-            '$cmd_option_val'(OptionName, OptionVal0),
-            save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
-            OptTerm =.. [OptionName,OptionVal2],
-            (   option(OptTerm, Options)
+            (   OptTerm =.. [OptionName,OptionVal2],
+                option(OptTerm, Options)
             ->  convert_option(OptionName, OptionVal2, OptionVal, FmtVal)
-            ;   OptionVal = OptionVal1,
+            ;   '$cmd_option_val'(OptionName, OptionVal0),
+                save_option_value(SaveClass, OptionName, OptionVal0, OptionVal1),
+                OptionVal = OptionVal1,
                 FmtVal = '~w'
             ),
             atomics_to_string(['~w=', FmtVal, '~n'], Fmt),

@@ -110,9 +110,6 @@ int		opt_append(opt_list **l, const char *s);
 		*           PARAMETERS		*
 		********************************/
 
-#ifndef DEFSTARTUP
-#define DEFSTARTUP "init.pl"
-#endif
 #ifndef SYSTEMHOME
 #define SYSTEMHOME "/usr/lib/swipl"
 #endif

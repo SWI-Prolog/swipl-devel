@@ -491,7 +491,11 @@ initPaths(int argc, const char **argv)
 #endif
   }
 
-  systemDefaults.startup = store_string(PrologPath(DEFSTARTUP, plp, sizeof(plp)));
+#ifdef DEFSTARTUP
+  systemDefaults.startup = store_string(DEFSTARTUP);
+#else
+  systemDefaults.startup = NULL;
+#endif
 
 #ifdef O_XOS
   if ( systemDefaults.home )
