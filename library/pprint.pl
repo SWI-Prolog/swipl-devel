@@ -601,7 +601,7 @@ pp_dict_args([Name-Value|T], Ctx, Options) :-
 
 match_op(fx,    1, prefix,  P, _, R) :- R is P - 1.
 match_op(fy,    1, prefix,  P, _, P).
-match_op(xf,    1, postfix, P, _, L) :- L is P - 1.
+match_op(xf,    1, postfix, P, L, _) :- L is P - 1.
 match_op(yf,    1, postfix, P, P, _).
 match_op(xfx,   2, infix,   P, A, A) :- A is P - 1.
 match_op(xfy,   2, infix,   P, L, P) :- L is P - 1.
@@ -751,12 +751,13 @@ end_code_type(List, Type, _) :-
     Type = punct.
 end_code_type(OpTerm, Type, Options) :-
     compound_name_arity(OpTerm, Name, 1),
-    is_op1(Name, Type, Pri, ArgPri, Options),
+    is_op1(Name, OpType, Pri, ArgPri, Options),
     \+ Options.get(ignore_ops) == true,
     !,
     (   Pri > Options.priority
     ->  Type = punct
-    ;   (   Type == prefix
+    ;   op_or_arg(OpType, Options.side, OpArg),
+        (   OpArg == op
         ->  end_code_type(Name, Type, Options)
         ;   arg(1, OpTerm, Arg),
             arg_options(Options, ArgOptions),
@@ -777,6 +778,13 @@ end_code_type(OpTerm, Type, Options) :-
 end_code_type(Compound, Type, Options) :-
     compound_name_arity(Compound, Name, _),
     end_code_type(Name, Type, Options).
+
+op_or_arg(prefix,  left,  op).
+op_or_arg(prefix,  right, arg).
+op_or_arg(postfix, left,  arg).
+op_or_arg(postfix, right, op).
+
+
 
 end_type(S, Type, Options) :-
     number(S),
