@@ -402,7 +402,10 @@ ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
                 set_prolog_flag(xref, OldXRef)
               )),
           E,
-          expand_failed(E, Read)).
+          expand_failed(E, Read)),
+    compound(TermPos),                  % make sure somthing is filled.
+    arg(1, TermPos, A1), nonvar(A1),
+    arg(2, TermPos, A2), nonvar(A2).
 
 set_xref_flag(Value) :-
     current_prolog_flag(xref, Value),
