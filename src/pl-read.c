@@ -3791,7 +3791,9 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 }
 
 
-#define unify_atomic_position(positions, token) LDFUNC(unify_atomic_position, positions, token)
+#define unify_atomic_position(positions, token) \
+	LDFUNC(unify_atomic_position, positions, token)
+
 static int
 unify_atomic_position(DECL_LD term_t positions, Token token)
 { if ( positions )
@@ -3804,7 +3806,9 @@ unify_atomic_position(DECL_LD term_t positions, Token token)
 }
 
 
-#define unify_string_position(positions, token) LDFUNC(unify_string_position, positions, token)
+#define unify_string_position(positions, token) \
+	LDFUNC(unify_string_position, positions, token)
+
 static int
 unify_string_position(DECL_LD term_t positions, Token token)
 { if ( positions )
@@ -3815,6 +3819,35 @@ unify_string_position(DECL_LD term_t positions, Token token)
   } else
     return TRUE;
 }
+
+
+#define prepare_op(in_op, token, pin, _PL_rd) \
+	LDFUNC(push_op, in_op, token, pin, _PL_rd)
+
+static int
+prepare_op(DECL_LD op_entry *in_op, Token token, term_t pin, ReadData _PL_rd)
+{ int rc = TRUE;
+
+  Unlock(in_op->op.atom);		/* ok; part of an operator */
+
+  if ( in_op->isblock )
+  { term_t *top;
+
+    if ( (rc = simple_term(token, pin, _PL_rd)) != TRUE )
+      return rc;			/* TBD: need cleanup? */
+    top = term_av(-1, _PL_rd);
+    in_op->op.block = PL_new_term_ref();
+    in_op->isterm = TRUE;
+    PL_put_term(in_op->op.block, *top);
+    truncate_term_stack(top, _PL_rd);
+  } else
+  { if ( !unify_atomic_position(pin, token) )
+      return FALSE;
+  }
+
+  return rc;
+}
+
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -3845,7 +3878,9 @@ consider  the  last  operator  on  the  side   queue  as  an  atom.  See
 modify_op().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define complex_term(stop, maxpri, positions, _PL_rd) LDFUNC(complex_term, stop, maxpri, positions, _PL_rd)
+#define complex_term(stop, maxpri, positions, _PL_rd) \
+	LDFUNC(complex_term, stop, maxpri, positions, _PL_rd)
+
 static int
 complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	     ReadData _PL_rd)
@@ -3908,22 +3943,8 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
       if ( cstate.rmo == 0 && isOp(&in_op, OP_PREFIX, _PL_rd) )
       { DEBUG(MSG_READ_OP, Sdprintf("Prefix op: %s\n", stringOp(&in_op)));
 
-      push_op:
-	Unlock(in_op.op.atom);		/* ok; part of an operator */
-	if ( in_op.isblock )
-	{ term_t *top;
-
-	  if ( (rc = simple_term(token, pin, _PL_rd)) != TRUE )
-	    return rc;			/* TBD: need cleanup? */
-	  top = term_av(-1, _PL_rd);
-	  in_op.op.block = PL_new_term_ref();
-	  in_op.isterm = TRUE;
-	  PL_put_term(in_op.op.block, *top);
-	  truncate_term_stack(top, _PL_rd);
-	} else
-	{ if ( !unify_atomic_position(pin, token) )
-	    return FALSE;
-	}
+	if ( !prepare_op(&in_op, token, pin, _PL_rd) )
+	  return FALSE;
 	PushOp();
 
 	continue;
@@ -3937,7 +3958,10 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	{ if ( !reduce_op(&cstate, in_op.left_pri) )
 	    return FALSE;
 	  cstate.rmo--;
-	  goto push_op;
+	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
+	    return FALSE;
+	  PushOp();
+	  continue;
 	}
       }
       if ( isOp(&in_op, OP_POSTFIX, _PL_rd) )
@@ -3946,9 +3970,20 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	if ( !modify_op(&cstate, in_op.left_pri) )
 	  return FALSE;
 	if ( cstate.rmo == 1 )
-	{ if ( !reduce_op(&cstate, in_op.left_pri) )
+	{ short cpri = maxpri;
+
+	  if ( cstate.side_n > 0 )
+	  { op_entry *prev = SideOp(cstate.side_p);
+	    if ( prev->kind == OP_PREFIX || prev->kind == OP_INFIX )
+	      cpri = prev->right_pri;
+	  }
+
+	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
 	    return FALSE;
-	  goto push_op;
+	  PushOp();
+	  if ( !reduce_op(&cstate, cpri) )
+	    return FALSE;
+	  continue;
 	}
       }
     } else if ( rc < 0 )
