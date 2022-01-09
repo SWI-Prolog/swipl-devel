@@ -3972,6 +3972,9 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	if ( cstate.rmo == 1 )
 	{ short cpri = maxpri;
 
+	  if ( !reduce_op(&cstate, in_op.left_pri) )
+	    return FALSE;
+
 	  if ( cstate.side_n > 0 )
 	  { op_entry *prev = SideOp(cstate.side_p);
 	    if ( prev->kind == OP_PREFIX || prev->kind == OP_INFIX )
