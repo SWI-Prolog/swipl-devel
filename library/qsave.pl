@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2020, University of Amsterdam
+    Copyright (c)  1995-2021, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,7 +44,8 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
-:- use_module(library(shlib)).
+:- autoload(library(shlib), [current_foreign_library/2]).
+:- autoload(library(prolog_autoload), [autoload_all/1]).
 
 /** <module> Save current program as a state or executable
 
