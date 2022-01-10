@@ -43,6 +43,7 @@
 :- use_module(library(option)).
 :- use_module(library(error)).
 :- use_module(library(apply)).
+:- use_module(library(shlib)).
 
 /** <module> Save current program as a state or executable
 
