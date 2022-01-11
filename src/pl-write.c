@@ -2296,7 +2296,9 @@ Swrite_lss(void *handle, char *buf, size_t size)
   (void)buf;
 
   if ( lss->stream->position->charno > lss->length )
+  { errno = EINVAL;
     return -1;
+  }
 
   return size;
 }

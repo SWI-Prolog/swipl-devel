@@ -632,8 +632,9 @@ indent(Out, Indent, Options) :-
 print_width(Term, W, Options) :-
     option(right_margin(RM), Options),
     option(write_options(WOpts), Options),
-    (   write_length(Term, W, [max_length(RM)|WOpts])
-    ->  true
+    (   catch(write_length(Term, W, [max_length(RM)|WOpts]),
+              error(_,_), fail)      % silence uncaught exceptions from
+    ->  true                         % nested portray callbacks
     ;   W = RM
     ).
 
