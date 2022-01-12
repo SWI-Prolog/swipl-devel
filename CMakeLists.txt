@@ -201,6 +201,7 @@ endif()
 
 # Configuration we need everywhere
 if(MULTI_THREADED)
+  set(THREADS_PREFER_PTHREAD_FLAG TRUE)
   find_package(Threads)
 endif()
 
