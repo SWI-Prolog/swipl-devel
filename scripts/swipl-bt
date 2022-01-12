@@ -86,7 +86,7 @@ case "$stack" in
        cmd+=bt
        ;;
     prolog)
-       cmd+='printf "%s", PL_backtrace_string('$btdepth,$btflags')'
+       cmd+='printf "%s\n", (char*)PL_backtrace_string('$btdepth,$btflags')'
        ;;
     info)
        cmd="info threads"
