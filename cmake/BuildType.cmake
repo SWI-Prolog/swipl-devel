@@ -41,7 +41,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
       CACHE STRING "CFLAGS for a RelWithDebInfo build" FORCE)
   set(CMAKE_C_FLAGS_RELEASE "-O2"
       CACHE STRING "CFLAGS for a Release build" FORCE)
-  set(CMAKE_C_FLAGS_PGO "-O2"
+  set(CMAKE_C_FLAGS_PGO "-O2 -gdwarf-2 -g3"
       CACHE STRING "CFLAGS for a PGO build" FORCE)
   set(CMAKE_C_FLAGS_SANITIZE
       "-O0 -gdwarf-2 -g3 -fsanitize=address -fno-omit-frame-pointer"
