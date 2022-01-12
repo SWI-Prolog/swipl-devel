@@ -90,7 +90,8 @@ user:file_search_path(foreign, PackLib) :-
 
 %!  attach_packs
 %
-%   Attach packages from all package directories.
+%   Attach  packages  from  all  package    directories.  If  there  are
+%   duplicates the first package found is used.
 
 attach_packs :-
     set_prolog_flag(packs, true),
@@ -103,7 +104,7 @@ attach_packs :-
     (   PackDirs \== []
     ->  remove_dups(PackDirs, UniquePackDirs, []),
         forall('$member'(PackDir, UniquePackDirs),
-               attach_packs(PackDir))
+               attach_packs(PackDir, [duplicates(keep)]))
     ;   true
     ).
 
