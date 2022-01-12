@@ -104,7 +104,7 @@ attach_packs :-
     (   PackDirs \== []
     ->  remove_dups(PackDirs, UniquePackDirs, []),
         forall('$member'(PackDir, UniquePackDirs),
-               attach_packs(PackDir, [duplicates(keep)]))
+               attach_packs(PackDir, [duplicate(keep)]))
     ;   true
     ).
 
