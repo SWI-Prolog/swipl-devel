@@ -6642,9 +6642,10 @@ a huge amount of output).
 
     \termitem{dotlists}{Bool}
 If \const{true} (default \const{false}), read \verb$.(a,[])$ as a list,
-even if lists are internally nor constructed using the dot as functor.
-This is primarily intended to read the output from write_canonical/1
-from other Prolog systems.  See \secref{ext-lists}.
+even if lists are internally constructed a different functor
+(\verb$[|](Head,Tail)$). This is primarily intended to read the output
+from write_canonical/1 from other Prolog systems. See
+\secref{ext-lists}.
 
     \termitem{double_quotes}{Atom}
 Defines how to read "\ldots" strings. See the Prolog flag
