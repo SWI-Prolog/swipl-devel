@@ -105,6 +105,42 @@ variables.
 #define COPY_MARKED	0x08			/* Only copy marked variables */
 #define COPYING_ATTVAR  0x10			/* See mark_for_copy() */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+mark_vars() is a helper for copy_term/4.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define mark_vars(t, set) LDFUNC(mark_vars, t, set)
+
+static int
+mark_vars(DECL_LD term_t t, int set)
+{ term_agenda agenda;
+  Word p = valTermRef(t);
+
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { switch(tag(*p))
+    { case TAG_ATTVAR:
+      case TAG_VAR:
+	if ( set )
+	  set_copy(*p);
+        else
+	  clear_marks(*p);
+        break;
+      case TAG_COMPOUND:
+      { Functor t = valueTerm(*p);
+	int arity = arityFunctor(t->definition);
+
+	if ( !pushWorkAgenda(&agenda, arity, t->arguments) )
+	  return MEMORY_OVERFLOW;
+      }
+    }
+  }
+  clearTermAgenda(&agenda);
+
+  return TRUE;
+}
+
+
 #define mark_for_duplicate(p, flags) LDFUNC(mark_for_duplicate, p, flags)
 static int
 mark_for_duplicate(DECL_LD Word p, int flags)
@@ -709,9 +745,12 @@ again:
 }
 
 
-#define copy_term_refs(from, to, abstract, flags) LDFUNC(copy_term_refs, from, to, abstract, flags)
+#define copy_term_refs(from, to, vars, abstract, flags) \
+	LDFUNC(copy_term_refs, from, to, vars, abstract, flags)
+
 static int
-copy_term_refs(DECL_LD term_t from, term_t to, size_t abstract, int flags)
+copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
+	       size_t abstract, int flags)
 { for(;;)
   { fid_t fid;
     int rc;
@@ -728,13 +767,19 @@ copy_term_refs(DECL_LD term_t from, term_t to, size_t abstract, int flags)
     *valTermRef(to) = makeRefG(dest);
     src = valTermRef(from);
 
+    if ( vars )
+      mark_vars(vars, TRUE);
     rc = do_copy_term(src, dest, abstract, flags);
 
     if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
       PL_put_variable(to);		/* gc consistency */
+      if ( vars )
+	mark_vars(vars, FALSE);
       if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
+      Sdprintf("Not enoush space; retrying\n");
+      DEBUG(CHK_SECURE, checkStacks(NULL));
     } else
     { PL_close_foreign_frame(fid);
       DEBUG(CHK_SECURE,
@@ -750,41 +795,13 @@ copy_term_refs(DECL_LD term_t from, term_t to, size_t abstract, int flags)
 
 int
 duplicate_term(DECL_LD term_t in, term_t copy)
-{ return copy_term_refs(in, copy, (size_t)-1, COPY_ATTRS);
+{ return copy_term_refs(in, copy, 0, (size_t)-1, COPY_ATTRS);
 }
 
 
 int
 size_abstract_term(DECL_LD term_t in, term_t copy, size_t abstract)
-{ return copy_term_refs(in, copy, abstract, COPY_ATTRS|COPY_ABSTRACT);
-}
-
-#define mark_vars(t) LDFUNC(mark_vars, t)
-
-static int
-mark_vars(DECL_LD term_t t)
-{ term_agenda agenda;
-  Word p = valTermRef(t);
-
-  initTermAgenda(&agenda, 1, p);
-  while((p=nextTermAgenda(&agenda)))
-  { switch(tag(*p))
-    { case TAG_ATTVAR:
-      case TAG_VAR:
-	set_copy(*p);
-        break;
-      case TAG_COMPOUND:
-      { Functor t = valueTerm(*p);
-	int arity = arityFunctor(t->definition);
-
-	if ( !pushWorkAgenda(&agenda, arity, t->arguments) )
-	  return MEMORY_OVERFLOW;
-      }
-    }
-  }
-  clearTermAgenda(&agenda);
-
-  return TRUE;
+{ return copy_term_refs(in, copy, 0, abstract, COPY_ATTRS|COPY_ABSTRACT);
 }
 
 
@@ -963,7 +980,7 @@ PRED_IMPL("copy_term", 2, copy_term, 0)
   } else
   { term_t copy = PL_new_term_ref();
 
-    if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE|COPY_ATTRS) )
+    if ( copy_term_refs(A1, copy, 0, (size_t)-1, COPY_SHARE|COPY_ATTRS) )
       return PL_unify(copy, A2);
 
     fail;
@@ -981,8 +998,7 @@ copy_term_4(DECL_LD term_t vs0, term_t t0, term_t vs, term_t t, int flags)
   return ( (term = PL_new_term_ref()) &&
 	   (copy = PL_new_term_ref()) &&
 	   PL_cons_functor(term, FUNCTOR_minus2, vs0, t0) &&
-	   mark_vars(vs0) &&
-	   copy_term_refs(term, copy, (size_t)-1,
+	   copy_term_refs(term, copy, vs0, (size_t)-1,
 			  COPY_SHARE|COPY_MARKED|flags) &&
 	   PL_get_arg(1, copy, term) &&
 	   PL_unify(vs, term) &&
@@ -1023,7 +1039,7 @@ PRED_IMPL("copy_term_nat", 2, copy_term_nat, 0)
 { PRED_LD
   term_t copy = PL_new_term_ref();
 
-  if ( copy_term_refs(A1, copy, (size_t)-1, COPY_SHARE) )
+  if ( copy_term_refs(A1, copy, 0, (size_t)-1, COPY_SHARE) )
     return PL_unify(copy, A2);
 
   fail;
