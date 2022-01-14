@@ -778,7 +778,6 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
 	mark_vars(vars, FALSE);
       if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
-      Sdprintf("Not enoush space; retrying\n");
       DEBUG(CHK_SECURE, checkStacks(NULL));
     } else
     { PL_close_foreign_frame(fid);
