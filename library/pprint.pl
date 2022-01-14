@@ -140,8 +140,8 @@ print_term_2(Term, Options) :-
     ;   true
     ),
     (   option(nl(true), Options)
-    ->  option(output(Out), Options),
-        nl(Out)
+    ->  option(output(Out2), Options),
+        nl(Out2)
     ;   true
     ).
 
