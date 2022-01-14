@@ -50,6 +50,7 @@
 #include "os/pl-ctype.h"
 #include "os/pl-prologflag.h"
 #include <stdio.h>			/* sprintf() */
+#include <errno.h>
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
