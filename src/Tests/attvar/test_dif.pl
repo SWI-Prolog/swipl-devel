@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2015, University of Amsterdam
+    Copyright (c)  2008-2021, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,58 +37,118 @@
 :- module(test_dif,
 	  [ test_dif/0
 	  ]).
+:- use_module(library(debug)).
+:- use_module(library(dif)).
+:- use_module(library(plunit)).
+:- use_module(library(apply)).
+:- use_module(library(lists)).
 
-:- '$clausable'(dif/1).
+test_dif :-
+	run_tests([ dif
+		  ]).
 
-dif(1) :-
+:- begin_tests(dif).
+
+test(1) :-
 	dif(1, A), \+ A = 1.
-dif(2) :-
+test(2) :-
 	dif(1, A), dif(2, A), \+ A = 1.
-dif(3) :-
+test(3) :-
 	dif(1, A), dif(2, A), \+ A = 2.
-dif(4) :-
+test(4) :-
 	dif(A, B), A = 1, \+ B = 1.
-dif(5) :-
+test(5, [sto(rational_trees)]) :-
 	A = a(A, 1),
 	B = a(B, X),
 	dif(A, B), \+ X = 1.
-dif(6) :-
+test(6) :-
 	dif(a(x(1,2), B), a(X, 1)),
 	X = a,
 	\+ attvar(B).
-dif(7) :-
+test(7) :-
 	dif(a(x(1,2), B), a(X, 1)),
 	X = x(1,2),
 	\+ B = 1.
-dif(8) :-
+test('7b') :-
+	dif(a(x(1,2), B), a(X, 1)),
+	X = x(1,2),
+	B \= 1.
+test(8, [sto(rational_trees)]) :-
 	dif(a(x(1,2), B), a(X, 1)),
 	X = x(1,Y),
 	Y = 3,
 	\+ attvar(B).
-dif(9) :-
+test(9) :-
 	dif(X, Y), \+ X = Y.
-dif(10) :-
+test(10) :-
 	dif(f(X,_Z),f(a,b)),
 	dif(f(X,Y),f(b,b)),
 	X = a, Y = b.
-dif(11) :-
+test(res1, L == []) :-
+	call_residue_vars((dif(a(_,B), a(_,1)), B = 2), L).
+test(11) :-
 	dif(A,B), memberchk(A, [B, C]),
 	A == C.
-dif(12) :-		% https://github.com/SWI-Prolog/issues/issues/15
+test(12) :-		% https://github.com/SWI-Prolog/issues/issues/15
 	dif(X-Y,1-2), X=Y, Y = 1.
-dif(13) :-		% https://github.com/SWI-Prolog/issues/issues/15
+test(13) :-		% https://github.com/SWI-Prolog/issues/issues/15
 	dif(X-Y,1-2), X=Y, Y = 2.
+test(14) :-
+	P = t3(A,A),
+	A = t5(D,D),
+	D = t8(c,b),
 
-:- dynamic
-	failed/1.
+	Q = t3(t5(t8(_,b),t8(c,b)),
+	       t5(G,_)),
 
-test_dif :-
-	retractall(failed(_)),
-	forall(clause(dif(N), _, _),
-	       (   dif(N)
-	       ->  true
-	       ;   format('~NFailed: ~w~n', [dif(N)]),
-		   assert(failed(N))
-	       )),
-	\+ failed(_).
+	dif(P,Q),
+	G = t8(x,b),
+	assertion(term_attvars(P+Q, [])).
+test(15, [sto(rational_trees)]) :-
+	P2 = t123(t124(A),A),
+	A  = t125(t126(a,t127(B1))),
+	Q2 = t123(C1,t125(t126(a,t127(D1)))),
 
+	dif(P2,Q2),
+
+	C1 = t124(t125(t126(a,E1))),
+	D1 = B1,
+	E1 = t127(x),
+
+	\+ B1 = x.	% this should fail
+test(16) :-
+	dif(_A-C,_B-D),
+	C-D=z-z.
+test(no_dup, [P==[x, y, z, z], nondet]) :-
+	permutation_no_dup([x,y,Z,Z],P), P=[x,y,z,z].
+test(17) :-		% from Issue#17
+	dif(A,[_|B]),A=[[]|_],A=[B].
+
+:- end_tests(dif).
+
+% From issue#105
+
+permutation_no_dup([], []).
+permutation_no_dup(L, PL):-
+    same_length(L, PL),
+    length(L, Len),
+    numlist(1,Len, RLMax),
+    reverse(RLMax, LMax),
+    length(LCur, Len),
+    maplist(=(1), LCur),
+    permutation_no_dup(LCur, L, LMax/LCur-L, [], PL).
+
+permutation_no_dup([], _, _, PL, PL).
+permutation_no_dup([], _, LMax/LCur-L, PL, PL1):-
+    next(LCur, LMax, NLCur),
+    dif(PL, PL1),
+    permutation_no_dup(NLCur, L, LMax/NLCur-L, [], PL1).
+permutation_no_dup([Take|LCur], L, Info, PL, PL1):-
+    nth1(Take, L, Item, L1),
+    permutation_no_dup(LCur, L1, Info, [Item|PL], PL1).
+
+next([Cur|LCur], [Max|_], [NCur|LCur]):-
+    Cur < Max,
+    NCur is Cur+1.
+next([Cur|LCur], [Cur|LMax], [1|NLCur]):-
+    next(LCur, LMax, NLCur).
