@@ -1041,6 +1041,27 @@ input. Expanding \const{begin_of_file} may be used to initialise the
 compilation, for example base on the file name extension. It was added
 in SWI-Prolog 8.1.1.
 
+If you wish to avoid term expansion in the defining module, you can
+do something like this:
+\begin{code}
+:- module(my_expansion, [my_import_sentinal/0, ...]).
+
+my_import_sentinel. % dummy predicate for detecting module that wants this expansion
+
+% True if the module being read has opted-in to EDCG macro expansion.
+wants_my_expansion :-
+    prolog_load_context(module, Module),
+    wants_my_expansion(Module).
+
+wants_my_expansion(Module) :-
+    Module \== my_expansion,  % don't expand macros in our own library
+    predicate_property(Module:my_import_sentinel, imported_from(my_expansion)).
+
+term_expansion(Term, Expansion) :-
+    wants_edcg_expansion,
+    my_term_expansion(Term, Expansion).
+\end{code}
+
     \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler on terms read from the
 input to perform preprocessing.  It consists of four steps, where each
@@ -1217,6 +1238,15 @@ the \const{subterm_positions} of read_term/2. The output layout should be
 a variable if no layout information can be computed for the expansion;
 a sub-term can also be a variable to indicate ``don't know''.
 \end{description}
+
+For debugging \predicate{term_expansion}{4} and \predicate{goal_expansion}{4},
+\predicate{prolog_clause:valid_term_position}{2} can be used to verify that
+the generated \emph{Term} matches the generated \emph{Layout}. For example:
+\begin{code}
+term_expansion(Term, Layout0, Expansion, Layout) :-
+    my_term_expansion(Term, Layout0, Expansion, Layout),
+    assertion(valid_term_position(Expansion, Layout)).
+\end{code}
 
 
 \subsubsection{Conditional compilation}
@@ -6750,7 +6780,7 @@ with the term position of the tail, otherwise with the atom \const{none}.
     secure refactoring of terms.
 
 	\termitem{quasi_quotation_position}{\arg{From}, \arg{To},
-					    \arg{SyntaxFrom}, \arg{SyntaxTo},
+					    \arg{SyntaxTerm}, \arg{SyntaxPos},
 					    \arg{ContentPos}}
     Used for quasi quotations.
     \end{description}

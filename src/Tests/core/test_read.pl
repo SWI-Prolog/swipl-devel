@@ -34,6 +34,7 @@
 
 :- module(test_read, [test_read/0]).
 :- use_module(library(plunit)).
+:- use_module(library(prolog_clause)).
 
 /** <module> Read tests
 
@@ -67,6 +68,84 @@ test(position,
                 [ subterm_positions(TermPos),
                   comments(Comments)
                 ]).
+
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
+    term_position_check(TermString, ExpectedTerm, ExpectedTermPos, ExpectedTermPos).
+
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos, ExpectedTermPos2) :-
+    term_string(Term, TermString, [subterm_positions(TermPos)]),
+    assertion(ground(TermPos)),
+    assertion(ground(ExpectedTermPos)),
+    assertion(Term =@= ExpectedTerm),
+    assertion(TermPos == ExpectedTermPos),
+    valid_term_position(Term, ExpectedTermPos), % check
+    valid_term_position(Term, TermPos2),        % generate
+    assertion(ExpectedTermPos2 = TermPos2).     % =/2, not ==/2
+
+test(valid_position_var) :-
+    term_position_check("Var", _Var, 0-3).
+
+test(valid_position_atom) :-
+    term_position_check("'Atom'", 'Atom', 0-6).
+
+test(valid_position_number1) :-
+    term_position_check(" 123 ", 123, 1-4).
+test(valid_position_number2) :-
+    term_position_check(" -123.45     ", -123.45, 1-8).
+
+test(valid_position_string) :-
+    term_position_check('"abc"', "abc", string_position(0,5)).
+
+test(valid_position_nil) :-
+    term_position_check(" [   ] ", [], 1-6).
+
+test(valid_position_braces) :-
+    term_position_check(" { foo, bar } ", {foo,bar},
+                        brace_term_position(1,13,term_position(3,11,6,7,[3-6,8-11]))).
+
+test(valid_position_braces1) :-
+    term_position_check(" [ foo, [bar] ] ", [foo,[bar]],
+                        list_position(1,15,[3-6,list_position(8,13,[9-12],none)],none)).
+test(valid_position_braces2) :-
+    term_position_check(" [ foo,123 | bar] ", [foo,123|bar],
+                        list_position(1,17,[3-6,7-10],13-16)).
+test(valid_position_braces3) :-
+    term_position_check("[X|Xs]", [_X|_Xs],
+                        list_position(0,6,[1-2],3-5)).
+
+test(valid_position_term1) :-
+    term_position_check("a()", a(), term_position(0, 3, 0, 1, [])).
+test(valid_position_term2) :-
+    term_position_check("a(X,y)", a(_X,y), term_position(0, 6, 0, 1, [2-3, 4-5])).
+test(valid_position_term2) :-
+    term_position_check("call(X):[adder]", call(_X):[adder],
+                        term_position(0, 15, 7, 8,
+                                      [term_position(0, 7, 0, 4, [5-6]),
+                                       list_position(8, 15, [9-14], none)])).
+test(valid_position_dict1) :-
+    term_position_check("_{}", _{},
+                        dict_position(0,3,0,1,[])).
+test(valid_position_dict2) :-
+    term_position_check("_{a:[1],b:{}}", _{a:[1],b:{}},
+                        dict_position(0,13,0,1,
+                                      [key_value_position(2,7,3,4,a,2-3,list_position(4,7,[5-6],none)),
+                                       key_value_position(8,12,9,10,b,8-9,10-12)])).
+test(valid_position_dict3) :-
+    % Can't use test_position_check/3 because the generated list is in
+    % a different order than the `key_value_position` items in `dict_position`
+    term_position_check("tag{bb:1,aa:2}", tag{aa:2,bb:1},
+                        dict_position(0,14,0,3,
+                                      [key_value_position(4,8,6,7,bb,4-6,7-8),
+                                       key_value_position(9,13,11,12,aa,9-11,12-13)
+                                      ]),
+                        dict_position(0,14,0,3,
+                                      [key_value_position(9,13,11,12,aa,9-11,12-13),
+                                       key_value_position(4,8,6,7,bb,4-6,7-8)
+                                      ])).
+
+% TODO: test(valid_position_quasi_quotation)
+%       e.g., using use_module(library(http/html_quasiquotations))
+%       "{|html(Name,Address)||<tr><td>Name<td>Address</tr>|}"
 
 :- end_tests(read_term).
 
