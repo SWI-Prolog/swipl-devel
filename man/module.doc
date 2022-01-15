@@ -448,6 +448,51 @@ Not that SWI-Prolog does not define \chr{@} as an operator.  Some
 systems define this construct using \exam{op(900, xfx, @)}.
 \end{description}
 
+\section{Special modules: `user`, `system`, `prolog`}
+\label{sec:special-modules}
+
+
+\const{user} is the place to be if you do not use modules. SWI-Prolog
+also allows using it for defining stuff that affects all modules, such
+as global operators and predicates. That has great value for dealing
+with emulating other Prolog systems, but should probably be handled
+differently.
+
+\const{system} sits above user and is where all built-in predicates
+reside or are imported to and is the direct super-module of the
+libraries. Typically, don’t touch. Nothing really prevents you from
+doing so though.
+
+\const{prolog} is a module that have become fashionable for holding
+hooks. As \const{system} should not be touched, this is not the ideal
+place. Quintus derived systems used user for this, but this pollutes
+the user module which we should (IMO) normally leave empty (unless you
+decide not to use modules at all). So, by intend the prolog module
+only contains multifile predicates. It is not reserved in any way
+though, so if you want to misuse it for anything else your are free to
+do so.
+
+See also default_module/2.
+
+Note that module inheritance affects:
+
+\begin{itemlist}
+\item [operators] (if the operator is not defined or cancelled locally, look in the super)
+
+\item [predicates] (if a predicate is undefined, look in the super)
+
+\item [Macro expansion (term/goal)]: expand locally, next feed the
+result through the expansion rules of the super (pipeline).
+
+Term and goal expansion follow the module inheritance path, first
+doing all work in the current module, than in \const{user} and finally
+in \const{system}. SWI-Prolog libraries follow a different inheritance
+path, going directly from the module to \const{system}. The same logic
+is used for operators.
+
+\end{itemlist}
+
+
 
 \section{Interacting with modules from the top level}
 \label{sec:mtoplevel}
