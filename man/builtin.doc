@@ -6738,9 +6738,16 @@ with the term position of the tail, otherwise with the atom \const{none}.
     secure refactoring of terms.
 
 	\termitem{quasi_quotation_position}{\arg{From}, \arg{To},
-					    \arg{SyntaxFrom}, \arg{SyntaxTo},
+					    \arg{SyntaxTerm}, \arg{SyntaxPos},
 					    \arg{ContentPos}}
-    Used for quasi quotations.
+    Used for quasi quotations.  Given the input \verb${|Syntax||Content|}$,
+    \arg{SyntaxTerm} is the parsed term representation from \arg{Syntax},
+    e.g., \verb${|string(X)||Hello {{X}}|}$ produces \arg{Syntax}
+    \term{string}{X} and \arg{SyntaxPos} describes the layout of this
+    term.   \arg{ContentPos} is always a term \arg{From}-\arg{To} describing
+    the character range of \arg{Content}.\footnote{The layout of the term
+    produced by the quasi quotation parser is not available.  Future versions
+    may provide an interface that allows contributing a layout term.}
     \end{description}
 
     \termitem{term_position}{Pos}
