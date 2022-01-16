@@ -568,8 +568,42 @@ import module, which is \const{user} for all normal user modules and
 imports from \const{system} where all built-in predicates reside. These
 special modules are described in more detail in \secref{resmodules}.
 
-The list of import modules can be manipulated and queried using the
-following predicates, as well as using set_module/1.
+In general, the import relations between modules form an acyclic
+directed graph. The import relation affects the following mechanisms:
+
+\begin{description}
+    \item [Predicate visibility]
+When looking for a specific predicate definition the system starts in
+the target module. If the predicate is undefined there it walks the
+module import relations depth-first left-to-right searching for a module
+that defines the predicate. The first encountered definition is used.
+Note that using the default setup this means it searches the
+\const{user} and \const{system} modules (in that order).
+
+    \item [Operators]
+Operators are also searched through the import relations.  System
+operators are defined in the module \const{system}.  The user may
+define operators in \const{user} to make them globally visible for
+compatibility with e.g., SICStus Prolog that has no local operators.
+Normally operators are defined in a module and, when applicable,
+exported using the module/2 module header.
+
+    \item [The \prologflag{unknown} flag]
+This flag controls the response to encountering an undefined predicate
+in the target module.
+
+    \item [Term and goal expansion]
+The hooks term_expansion/2 and goal_expansion/2 (see
+\secref{progtransform}) are \jargon{chained} over the import modules
+that define these hooks.  This implies we collect all modules that
+provide definitions for these hook predicates by traversing the
+import module relation depth-first and left-to-right.  Next, we
+perform the transformations in a \jargon{pipeline}, starting at the
+target module.
+\end{description}
+
+The list of import modules for a specific module can be manipulated and
+queried using the following predicates, as well as using set_module/1.
 
 \begin{description}
     \predicate[nondet]{import_module}{2}{+Module, -Import}
@@ -596,28 +630,31 @@ Delete \arg{Import} from the list of import modules for \arg{Module}.
 Fails silently if \arg{Import} is not in the list.
 \end{description}
 
-One usage scenario of import modules is to define a module that is a
-copy of another, but where one or more predicates have an alternative
-definition.
-
-
 \section{Reserved Modules and using the `user' module}
 \label{sec:resmodules}
 
 As mentioned above, SWI-Prolog contains two special modules. The first
 one is the module \const{system}. This module contains all built-in
-predicates. Module \const{system} has no import module. The second
-special module is the module \const{user}. This module forms the initial
-working space of the user. Initially it is empty. The import module of
+predicates. Module \const{system} has no import module, i.e., is a
+\jargon{root} of the module graph. The second special module is the
+module \const{user}. This module forms the initial working space of the
+user. Initially it is empty.\footnote{Unfortunately some \jargon{hooks}
+are traditionally defined in the user module}. The import module of
 module \const{user} is \const{system}, making all built-in predicates
 available.
 
-All other modules import from the module \const{user}. This implies they
-can use all predicates imported into \const{user} without explicitly
-importing them. If an application loads all modules from the
+All normal application modules import from the module \const{user}. This
+implies they can use all predicates imported into \const{user} without
+explicitly importing them. If an application loads all modules from the
 \const{user} module using use_module/1, one achieves a scoping system
 similar to the C-language, where every module can access all exported
 predicates without any special precautions.
+
+All \jargon{library} modules (see module_property/2) import directly
+from \const{system}. Library modules are modules loaded from the
+SWI-Prolog installation. As they import from \const{system}, the
+functionality of a library is not affected by operator or predicate
+definitions in the \const{user} module.
 
 
 \section{An alternative import/export interface}

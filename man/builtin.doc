@@ -1041,6 +1041,48 @@ input. Expanding \const{begin_of_file} may be used to initialise the
 compilation, for example base on the file name extension. It was added
 in SWI-Prolog 8.1.1.
 
+The current macro-expansion mechanism originates from Prolog systems in
+the 1980s and 1990s. It has several flaws, (1) the hooks act globally
+(except for definitions in a module), (2) it is hard to deal with
+interactions between transformations, (3) macros can not be reused
+between modules using the normal module export/import protocol and (4)
+it is hard to make source code aware tools such as the graphical
+debugger act properly in the context of macro expansion. Several Prolog
+implementations have tried to implement better expansion mechanisms.
+None of these solve all problems and all are largely incompatible with
+our current macro expansion. Future versions may provide a new mechanism
+to solve these issues.
+
+Controlled interaction is provided between macro expansion defined in a
+module and the \const{user} and \const{system} modules. Here, SWI-Prolog
+uses a \jargon{pipeline} where the result of local module expansion is
+the input for the expansion in \const{user}, which is the input for the
+expansion in \const{system}. See also \secref{importmodule}.
+
+\emph{Scoping}, i.e., make a rule defined in a module only active if
+this module is imported into the module being compiled, can be emulated
+by defining the macro globally in the \const{user} module and using
+prolog_load_context/2 and some logic to verify the macro expansion
+should apply. If (goal) expansion effectively defined \jargon{inlining}
+it is good practice to also define the predicate and have the macro
+expansion check that the predicate is in scope. Here is an example.
+
+\begin{code}
+:- module(m1, [double/2]).
+
+double(X, D) :- D is X*2.
+
+user:goal_expansion(double(X,D), D is X*2) :-
+    prolog_load_context(module, M),
+    predicate_property(M:double(_,_), imported_from(m1)).
+\end{code}
+
+For term expansion that is not related to a specific predicate we can
+define a senitel predicate rather than using the goal predicate and
+check it is imported into the current module to verify that the module
+that defines the expansion is imported into the current compilation
+context.
+
     \predicate{expand_term}{2}{+Term1, -Term2}
 This predicate is normally called by the compiler on terms read from the
 input to perform preprocessing.  It consists of four steps, where each
