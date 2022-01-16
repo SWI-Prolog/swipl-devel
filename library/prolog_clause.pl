@@ -300,6 +300,13 @@ find_varname(Var, [_|T], Name) :-
 %   This predicate calls the multifile predicate unify_clause_hook/5
 %   with the same arguments to support user extensions.
 %
+%   @arg Module is the source module that   was active when loading this
+%   clause,  which  is  the  same  as  prolog_load_context/2  using  the
+%   `module` context. If this cannot be established  it is the module to
+%   which the clause itself is associated.   The argument may be used to
+%   determine whether or not a specific user transformation is in scope.
+%   See also term_expansion/2,4 and goal_expansion/2,4.
+%
 %   @tbd    This really must be  more   flexible,  dealing with much
 %           more complex source-translations,  falling   back  to  a
 %           heuristic method locating as much as possible.
