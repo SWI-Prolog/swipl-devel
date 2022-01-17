@@ -1078,7 +1078,7 @@ user:goal_expansion(double(X,D), D is X*2) :-
 \end{code}
 
 For term expansion that is not related to a specific predicate we can
-define a senitel predicate rather than using the goal predicate and
+define a sentinel predicate rather than using the goal predicate and
 check it is imported into the current module to verify that the module
 that defines the expansion is imported into the current compilation
 context.
