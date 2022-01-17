@@ -1152,14 +1152,14 @@ If present and \const{true}, SWI-Prolog has been build as a
 executable code for multiple architectures.  Currently the
 supported architectures are \const{x86_64} and \const{arm64}.
 The archirecture prefix for components is \const{fat-darwin}
-while the \prologflagitem{arch} depends on the actual CPU
+while the \prologflag{arch} depends on the actual CPU
 type.
 
     \prologflagitem{arch}{atom}{r}
 Identifier for the hardware and operating system SWI-Prolog is running
 on. Used to select foreign files for the right architecture. See also
 \secref{shlib} and file_search_path/2.  For Apple, see also
-\prologflagitem{apple_universal_binary}.
+\prologflag{apple_universal_binary}.
 
     \prologflagitem{argv}{list}{rw}
 List is a list of atoms representing the application command line
