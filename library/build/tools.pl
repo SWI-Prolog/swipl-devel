@@ -744,7 +744,7 @@ message(process_output(Codes)) -->
     { split_lines(Codes, Lines) },
     process_lines(Lines).
 message(step_failed(Step)) -->
-    [ 'Nu build plugin could execute build step ~p'-[Step] ].
+    [ 'No build plugin could execute build step ~p'-[Step] ].
 
 split_lines([], []) :- !.
 split_lines(All, [Line1|More]) :-
