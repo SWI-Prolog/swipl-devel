@@ -3686,6 +3686,33 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
 }
 
 
+#define reduce_one_op(cstate, cpri) \
+	LDFUNC(reduce_one_op, cstate, cpri)
+
+static int
+reduce_one_op(DECL_LD cterm_state *cstate, int cpri)
+{ ReadData _PL_rd = cstate->rd;
+
+  if ( cstate->out_n > 0 && cstate->side_n > 0 &&
+	 cpri >= SideOp(cstate->side_p)->op_pri )
+  { int rc;
+
+    rc = can_reduce(SideOp(cstate->side_p), cpri, cstate->out_n, cstate->rd);
+    if ( rc > 0 )
+    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd) )
+	return -1;
+      if ( SideOp(cstate->side_p)->kind == OP_INFIX )
+	cstate->out_n--;
+      PopOp(cstate);
+    }
+
+    return rc;
+  }
+
+  return FALSE;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Combine operators from the side queue and out queue as long as there are
 sufficient operators and operands and the   priority  of the operator is
@@ -3695,30 +3722,17 @@ Returns: TRUE:   Ok
          FALSE:  Error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define reduce_op(cstate, cpri) LDFUNC(reduce_op, cstate, cpri)
+#define reduce_op(cstate, cpri) \
+	LDFUNC(reduce_op, cstate, cpri)
+
 static int
 reduce_op(DECL_LD cterm_state *cstate, int cpri)
-{ ReadData _PL_rd = cstate->rd;
+{ int rc;
 
-  while( cstate->out_n > 0 && cstate->side_n > 0 &&
-	 cpri >= SideOp(cstate->side_p)->op_pri )
-  { int rc;
+  while((rc=reduce_one_op(cstate, cpri)) == TRUE)
+    ;
 
-    rc = can_reduce(SideOp(cstate->side_p), cpri, cstate->out_n, cstate->rd);
-    if ( rc > 0 )
-    { if ( !build_op_term(SideOp(cstate->side_p), cstate->rd) )
-	return FALSE;
-      if ( SideOp(cstate->side_p)->kind == OP_INFIX )
-	cstate->out_n--;
-      PopOp(cstate);
-    } else if ( rc == FALSE )
-    { break;
-    } else
-    { return FALSE;
-    }
-  }
-
-  return TRUE;
+  return !rc;		/* FALSE --> TRUE, -1 --> FALSE */
 }
 
 
@@ -3984,7 +3998,7 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	  if ( !prepare_op(&in_op, token, pin, _PL_rd) )
 	    return FALSE;
 	  PushOp();
-	  if ( !reduce_op(&cstate, cpri) )
+	  if ( reduce_one_op(&cstate, cpri) == -1 )
 	    return FALSE;
 	  continue;
 	}

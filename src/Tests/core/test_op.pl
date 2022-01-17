@@ -175,5 +175,7 @@ test(parse, error(syntax_error(_))) :-
     parse("xf100 xf200 xf100", _).
 test(parse, Term == xf200(fx100(1))) :-
     parse("fx100 1 xf200", Term).
+test(parse, Term == ','(p, xfy900(yf100(q),c))) :-
+    parse("p, q yf100 xfy900 c", Term).
 
 :-  end_tests(op_syntax).
