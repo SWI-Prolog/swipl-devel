@@ -257,7 +257,7 @@ copy_figures(${FIGS})
 if(BUILD_PDF_DOCUMENTATION)
 add_custom_command(
     OUTPUT  ${DOC}.pdf ${DOC}.bbl
-    COMMAND env TEXINPUTS=lib:$$TEXINPUTS ${RUNTEX} --pdf ${DOC}
+    COMMAND env TEXINPUTS=lib:$ENV{TEXINPUTS} ${RUNTEX} --pdf ${DOC}
     DEPENDS ${TEXFILES} ${BIBTEX_DATA} ${cpfiles} prolog_home
     COMMENT "Generating ${DOC}.pdf"
     VERBATIM)
