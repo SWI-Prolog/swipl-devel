@@ -47,7 +47,7 @@
             file_alias_path/2,          % ?Alias, ?Dir
             path_segments_atom/2,       % ?Segments, ?Atom
             directory_source_files/3,   % +Dir, -Files, +Options
-            valid_term_position/2    % +Term, +TermPos
+            valid_term_position/2       % +Term, +TermPos
           ]).
 :- autoload(library(apply), [maplist/2, maplist/3, foldl/4]).
 :- autoload(library(debug), [debug/3, assertion/1]).
@@ -921,7 +921,9 @@ dir_file_path(Dir, File, Path) :-
 %   corresponding   part   of   Term   succeeds.    This   matches   the
 %   term_expansion/4 treats "unknown" layout information.   If part of a
 %   TermPos is given, then all its "from"   and "to" information must be
-%   specified; for example, `string_position
+%   specified; for example,    string_position(X,Y)   is   an  error but
+%   string_position(0,5) succeeds.   The position values are checked for
+%   being plausible -- e.g., string_position(5,0) will fail.
 %
 %   This should always succeed:
 %
