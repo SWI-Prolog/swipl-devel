@@ -1840,9 +1840,9 @@ initTCMalloc(void)
   return set;
 }
 
-#ifdef HAVE_MALLINFO
+#ifdef HAVE_MALLINFO2
 static int is_ptmalloc = FALSE;
-static struct mallinfo (*fmallinfo)(void) = NULL;
+static struct mallinfo2 (*fmallinfo)(void) = NULL;
 static int             (*fmalloc_trim)(int pad) = NULL;
 
 static int
@@ -1853,9 +1853,9 @@ initPTMalloc(void)
     return is_ptmalloc;
   done = TRUE;
 
-  if ( (fmallinfo    = PL_dlsym(NULL, "mallinfo")) &&
+  if ( (fmallinfo    = PL_dlsym(NULL, "mallinfo2")) &&
        (fmalloc_trim = PL_dlsym(NULL, "malloc_trim")) )
-  { struct mallinfo info = fmallinfo();
+  { struct mallinfo2 info = fmallinfo();
 
     if ( info.uordblks > 100000 )
     { PL_set_prolog_flag("malloc", PL_ATOM, "ptmalloc");
