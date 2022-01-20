@@ -175,7 +175,7 @@ check_function_exists(confstr HAVE_CONFSTR)
 check_function_exists(getrlimit HAVE_GETRLIMIT)
 check_function_exists(getrusage HAVE_GETRUSAGE)
 check_function_exists(_NSGetEnviron HAVE__NSGETENVIRON)
-check_function_exists(mallinfo HAVE_MALLINFO)
+check_function_exists(mallinfo2 HAVE_MALLINFO2)
 # dynamic linking
 check_function_exists(shl_load HAVE_SHL_LOAD)
 check_function_exists(dlopen HAVE_DLOPEN)
