@@ -1887,15 +1887,7 @@ start_thread(void *closure)
     return (void *)FALSE;
 
   { GET_LD
-
-#if __GNUC__ == 11
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
     pthread_cleanup_push(free_prolog_thread, info->thread_data);
-#if __GNUC__  == 11
-#pragma GCC diagnostic pop
-#endif
 
     PL_LOCK(L_THREAD);
     info->status = PL_THREAD_RUNNING;
