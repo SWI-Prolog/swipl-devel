@@ -1840,6 +1840,16 @@ initTCMalloc(void)
   return set;
 }
 
+#ifdef HAVE_MALLINFO2
+#define mallinfo mallinfo2
+#define mallinfo_fname "mallinfo2"
+#ifndef HAVE_MALLINFO
+#define HAVE_MALLINFO
+#endif
+#else
+#define mallinfo_fname "mallinfo"
+#endif
+
 #ifdef HAVE_MALLINFO
 static int is_ptmalloc = FALSE;
 static struct mallinfo (*fmallinfo)(void) = NULL;
@@ -1853,7 +1863,7 @@ initPTMalloc(void)
     return is_ptmalloc;
   done = TRUE;
 
-  if ( (fmallinfo    = PL_dlsym(NULL, "mallinfo")) &&
+  if ( (fmallinfo    = PL_dlsym(NULL, mallinfo_fname)) &&
        (fmalloc_trim = PL_dlsym(NULL, "malloc_trim")) )
   { struct mallinfo info = fmallinfo();
 
