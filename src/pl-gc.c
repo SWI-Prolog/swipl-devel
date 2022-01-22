@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1525,9 +1525,18 @@ space. For a trailed assignment this means   we should restore the value
 with the trailed value. Note however that  the trailed value has already
 been marked. We however can remove  this   mark  as it will be re-marked
 should it be accessible and otherwise it really is garbage.
+
+(*) When running under  call_residue_vars/2,   attributed  variables are
+protected against GC so we  can  report   them.  There  is  also a false
+possitive scenario though. If the attvar is  subject to _early reset_ it
+becomes an unbound attvar again  and  is   reported.  If  we  are inside
+call_residue_vars/2 we reset the location  to ATOM_garbage_collected and
+keep the trail entry.  See test `call_residue_vars:early_reset`:
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define early_reset_vars(m, top, te) LDFUNC(early_reset_vars, m, top, te)
+#define early_reset_vars(m, top, te) \
+	LDFUNC(early_reset_vars, m, top, te)
+
 static GCTrailEntry
 early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 { GCTrailEntry tm = (GCTrailEntry)m->trailtop;
@@ -1540,6 +1549,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 #if O_DESTRUCTIVE_ASSIGNMENT
     if ( isTrailVal(te->address) )
     { Word tard = val_ptr(te[-1].address);
+      Word gp = val_ptr(te->address);
 
       if ( tard >= top || (tard >= gKeep && tard < gMax) )
       { te->address = 0;
@@ -1547,8 +1557,8 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	te->address = 0;
 	trailcells_deleted += 2;
       } else if ( is_marked(tard) )
-      { Word gp = val_ptr(te->address);
-
+      {
+      keep:
 	assert(onGlobal(gp));
 	assert(!is_first(gp));
 	if ( !is_marked(gp) )
@@ -1566,23 +1576,29 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	assignments++;
 	te--;
       } else
-      { Word gp = val_ptr(te->address);
-
-	DEBUG(MSG_GC_RESET,
+      { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64]; char b3[64];
 	      Sdprintf("Early reset of assignment at %s (%s --> %s)\n",
 		       print_addr(tard, b1),
 		       print_val(*tard, b2),
 		       print_val(*gp, b3)));
 
-	assert(onGlobal(gp));
-	*tard = *gp;
-	unmark(tard);
+	if ( unlikely(isAttVar(*gp) &&
+		      LD->attvar.call_residue_vars_count &&
+		      LD->attvar.attvars) )
+	{ *tard = ATOM_garbage_collected;	/* see (*) */
+	  domark(tard);
+	  goto keep;
+	} else
+	{ assert(onGlobal(gp));
+	  *tard = *gp;
+	  unmark(tard);
 
-	te->address = 0;
-	te--;
-	te->address = 0;
-	trailcells_deleted += 2;
+	  te->address = 0;
+	  te--;
+	  te->address = 0;
+	  trailcells_deleted += 2;
+	}
       }
     } else
 #endif

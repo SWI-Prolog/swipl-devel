@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2018, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -40,91 +41,94 @@
 :- use_module(library(plunit)).
 
 test_call_residue_vars :-
-	run_tests([ call_residue_vars
-		  ]).
+    run_tests([ call_residue_vars
+	      ]).
 
 :- begin_tests(call_residue_vars).
 
 test(freeze_in, Vars == [X]) :-
-	call_residue_vars(freeze(X, true), Vars).
+    call_residue_vars(freeze(X, true), Vars).
 test(freeze_bind, Vars == []) :-
-	call_residue_vars((freeze(X, true), X = 1), Vars).
+    call_residue_vars((freeze(X, true), X = 1), Vars).
 test(freeze_out, Vars == []) :-
-	x(X),
-	freeze(X, true),
-	call_residue_vars(true, Vars).
+    x(X),
+    freeze(X, true),
+    call_residue_vars(true, Vars).
 test(freeze_oi, Vars == [X]) :-
-	x(X),
-	freeze(X, true),
-	call_residue_vars(freeze(X, fail), Vars).
+    x(X),
+    freeze(X, true),
+    call_residue_vars(freeze(X, fail), Vars).
 test(nogc, Vars = [_]) :-
-	call_residue_vars(gc_able, Vars).
+    call_residue_vars(gc_able, Vars).
 test(gc, Vars = [_]) :-
-	call_residue_vars((gc_able, garbage_collect), Vars).
+    call_residue_vars((gc_able, garbage_collect), Vars).
 test(gc2, Vars = [_]) :-
-	call_residue_vars(gc_able2_gc, Vars).
+    call_residue_vars(gc_able2_gc, Vars).
 test(gc3) :-
-	call_residue_vars((length(Zs,1000), big_freeze_test(1,50,Zs)), _Vars).
+    call_residue_vars((length(Zs,1000), big_freeze_test(1,50,Zs)), _Vars).
 test(modify, Vars == [X]) :-
-	put_attr(X, a, 1),
-	call_residue_vars(put_attr(X, a, 2), Vars).
+    put_attr(X, a, 1),
+    call_residue_vars(put_attr(X, a, 2), Vars).
 test(trail, [all(Vars == [[]])]) :-
-	G=(freeze(X,X=1),X=1),
-	call_residue_vars(G,Vars),
-	(true;Vars=[2]).
+    G=(freeze(X,X=1),X=1),
+    call_residue_vars(G,Vars),
+    (true;Vars=[2]).
 test(frozen_stacks, Vars == []) :-
-	x(X),
-	call_residue_vars(
-	    (	freeze(X, true),
-		nb_setval(x, a(b)),
-		fail
-	    ;   true
-	    ),
-	    Vars).
+    x(X),
+    call_residue_vars(
+        (   freeze(X, true),
+            nb_setval(x, a(b)),
+            fail
+        ;   true
+        ),
+        Vars).
 test(copy_term) :-
-	T = x(X), put_attr(X, a, 1),
-	copy_term(T, T2),
-	garbage_collect,
-	x(T2).
+    T = x(X), put_attr(X, a, 1),
+    copy_term(T, T2),
+    garbage_collect,
+    x(T2).
 test(copy_term, Vars == [V]) :-
-	T = x(X), put_attr(X, a, 1),
-	call_residue_vars(copy_term(T, T2), Vars),
-	arg(1, T2, V).
+    T = x(X), put_attr(X, a, 1),
+    call_residue_vars(copy_term(T, T2), Vars),
+    arg(1, T2, V).
 test(copy_term, Vars == [V]) :-
-	put_attr(X, a, 1),
-	T = x(X,X),
-	call_residue_vars(copy_term(T, T2), Vars),
-	arg(1, T2, V).
+    put_attr(X, a, 1),
+    T = x(X,X),
+    call_residue_vars(copy_term(T, T2), Vars),
+    arg(1, T2, V).
 test(record) :-
-	T = x(X), put_attr(X, a, 1),
-	cp_record(T, T2),
-	garbage_collect,
-	x(T2).
+    T = x(X), put_attr(X, a, 1),
+    cp_record(T, T2),
+    garbage_collect,
+    x(T2).
 test(record, Vars == [V]) :-
-	T = x(X), put_attr(X, a, 1),
-	call_residue_vars(cp_record(T, T2), Vars),
-	arg(1, T2, V).
+    T = x(X), put_attr(X, a, 1),
+    call_residue_vars(cp_record(T, T2), Vars),
+    arg(1, T2, V).
 test(record, Vars == [V]) :-
-	put_attr(X, a, 1),
-	T = x(X,X),
-	call_residue_vars(cp_record(T, T2), Vars),
-	arg(1, T2, V).
+    put_attr(X, a, 1),
+    T = x(X,X),
+    call_residue_vars(cp_record(T, T2), Vars),
+    arg(1, T2, V).
+test(early_reset, Vars = []) :-
+    call_residue_vars(early_reset_attvar, Vars),
+    !.
 
 cp_record(T,T2) :-			% copy using recorded DB
-	findall(T2, T2=T, [T2]).
+    findall(T2, T2=T, [T2]).
 
 x(_).					% avoid singleton warnings
 
 gc_able :-
-	gc_able2.
+    gc_able2.
 
 gc_able2 :-
-	x(X),
-	freeze(X, fail).
+    x(X),
+    freeze(X, fail).
 
 gc_able2_gc :-
-        freeze(X, writeln(X)),
-        garbage_collect.
+    freeze(X, writeln(X)),
+    garbage_collect.
 
 % from https://stackoverflow.com/questions/31095081/freeze-2-goals-blocking-on-variables-that-have-become-unreachable
 % tests resizing the local stack during GC to make room for the term
@@ -142,5 +146,23 @@ big_freeze_test(N0,N,Zs0) :-
       N1 is N0+1,
       big_freeze_test(N1,N,Zs1)
    ).
+
+%!  early_reset_attvar
+%
+%   Test that early reset of attvars doesn't get them reported as
+%   false possitives.
+
+early_reset_attvar :-
+    early_reset_attvar_helper,
+    garbage_collect.
+
+early_reset_attvar_helper :-
+    av(Av),
+    (   Av = c(1)
+    ;   var(Av)                         % just access
+    ).
+
+av(A) :-
+    when(nonvar(A), true).
 
 :- end_tests(call_residue_vars).
