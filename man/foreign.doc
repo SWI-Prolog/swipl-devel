@@ -1175,8 +1175,8 @@ is actually a term nor whether \arg{index} is a valid argument index.
 
 \cfunction{int}{PL_get_dict_key}{atom_t key, term_t +dict, term_t -value}
 If \arg{dict} is a dict, get the associated value in \arg{value}. Fails
-silently if \arg{key} does not appear in \arg{dict} and with an
-exception if \arg{dict} is not a dict.
+silently if \arg{key} does not appear in \arg{dict} or
+if if \arg{dict} is not a dict.
 \end{description}
 
 
