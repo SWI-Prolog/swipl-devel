@@ -24,6 +24,25 @@ function(symlink from to)
 		  WORKING_DIRECTORY ${LNTDIR})
 endfunction()
 
+# Build on MSYS2 does not like symlink
+function(symlink_or_copy from to)
+  get_filename_component(LNTDIR ${to} DIRECTORY)
+  get_filename_component(LNTNAME ${to} NAME)
+  file(RELATIVE_PATH LNLNK ${LNTDIR} ${from})
+  if(NOT EXISTS ${LNTDIR})
+    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${LNTDIR})
+  endif()
+  if(CMAKE_HOST_UNIX)
+    execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${LNLNK} ./${LNTNAME}
+            WORKING_DIRECTORY ${LNTDIR})
+  else()
+    execute_process(COMMAND ${CMAKE_COMMAND} -E copy
+            ${LNLNK} ./${LNTNAME}
+            WORKING_DIRECTORY ${LNTDIR})
+  endif()
+endfunction()
+
 # create_directory(dir)
 #
 # Creates a custom target to create   a directory. Multiple projects may
