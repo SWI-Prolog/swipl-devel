@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2020, University of Amsterdam
+    Copyright (c)  2014-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -80,7 +81,8 @@ etc.
 %       minus 8.  Otherwise the default is 72 characters.  If the
 %       Column is unbound it is unified with the computed value.
 %     - left_margin(+Integer)
-%       Left margin for continuation lines.  Default is 0.
+%       Left margin for continuation lines.  Default is the current
+%       line position or `0` if that is not available.
 %     - tab_width(+Integer)
 %       Distance between tab-stops.  Default is 8 characters.
 %     - indent_arguments(+Spec)
@@ -149,7 +151,9 @@ print_extra([], _, _, _) :- !.
 print_extra(List, Context, Comment, Options) :-
     option(output(Out), Options),
     format(Out, ', % ~w', [Comment]),
-    modify_context(Context, [indent=4], Context1),
+    context(Context, indent, Indent),
+    NewIndent is Indent+4,
+    modify_context(Context, [indent=NewIndent], Context1),
     print_extra_2(List, Context1, Options).
 
 print_extra_2([H|T], Context, Options) :-
@@ -179,7 +183,6 @@ prepare_term(Term, Template, Cycles, Constraints) :-
                [singletons(true)]).
 prepare_term(Term, Template, Cycles, Constraints) :-
     copy_term(Term, Copy, Constraints),
-    !,
     '$factorize_term'(Copy, Template, Factors),
     bind_non_cycles(Factors, 1, Cycles),
     numbervars(Template+Cycles+Constraints, 0, _,
@@ -199,9 +202,7 @@ bind_non_cycles([H|T0], I, [H|T]) :-
 
 
 defaults([ output(user_output),
-           left_margin(0),
            depth(0),
-           indent(0),
            indent_arguments(auto),
            operators(true),
            write_options([ quoted(true),
@@ -213,6 +214,10 @@ defaults([ output(user_output),
          ]).
 
 default_margin(Options0, Options) :-
+    default_right_margin(Options0, Options1),
+    default_indent(Options1, Options).
+
+default_right_margin(Options0, Options) :-
     option(right_margin(Margin), Options0),
     !,
     (   var(Margin)
@@ -220,7 +225,7 @@ default_margin(Options0, Options) :-
     ;   true
     ),
     Options = Options0.
-default_margin(Options0, [right_margin(Margin)|Options0]) :-
+default_right_margin(Options0, [right_margin(Margin)|Options0]) :-
     tty_right_margin(Options0, Margin).
 
 tty_right_margin(Options, Margin) :-
@@ -230,6 +235,15 @@ tty_right_margin(Options, Margin) :-
     !,
     Margin is Columns - 8.
 tty_right_margin(_, 72).
+
+default_indent(Options0, Options) :-
+    option(output(Output), Options0),
+    (   stream_property(Output, position(Pos))
+    ->  stream_position_data(line_position, Pos, Column)
+    ;   Column = 0
+    ),
+    option(left_margin(LM), Options0, Column),
+    Options = [indent(LM)|Options0].
 
 
                  /*******************************
