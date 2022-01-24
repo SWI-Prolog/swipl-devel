@@ -148,7 +148,7 @@ tz_name(int dst)
 
   do_tzset();
 
-#ifdef _MSC_VER
+#if defined(__WINDOWS__) || defined (__CYGWIN__)
   return _tzname[dst];
 #else
   return tzname[dst];
