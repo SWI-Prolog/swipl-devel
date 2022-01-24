@@ -844,7 +844,7 @@ operator_module(Module, Options) :-
     Module = Options.get(module),
     !.
 operator_module(TypeIn, _) :-
-    '$module'(TypeIn, TypeIn).
+    '$current_typein_module'(TypeIn).
 
 %!  arg_options(+Options, -OptionsOut) is det.
 %
