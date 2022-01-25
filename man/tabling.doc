@@ -1237,16 +1237,22 @@ tabled_call(Goal) :- call(Goal).
 True when \arg{Trie} is the answer table for \arg{Variant}.
 
     \predicate{untable}{1}{:Specification}
-Remove the tabling instrumentation for the specified predicates.
-\arg{Specification} is compatible with table/1, although tabling with
-\jargon{answer subsumption} may be removed using a name/arity
-specification. Note that although using untable/1 and table/1 may be
-used to flush all tables associated with the given predicate(s),
-flushing tables should be done using one table abolish predicates,
+Remove the tables and tabling instrumentation for the specified
+predicates. \arg{Specification} is compatible with table/1, although
+tabling with \jargon{answer subsumption} may be removed using a
+name/arity specification. The untable/1 predicate is first of all
+intended for examining the effect of various tabling scenarios on a
+particuar program interactively from the toplevel.
+
+Note that although using untable/1 followed by table/1 may be used to
+flush all tables associated with the given predicate(s), flushing tables
+should be done using one of the table abolish predicates both for
+better performance and compatibility with other Prolog implementations:
 abolish_all_tables/0, abolish_private_tables/0, abolish_shared_tables/0,
-abolish_module_tables/1 or abolish_table_subgoals/1.  For example, to
-remove all tables for p/3, run the goal below.  The predicate functor/3
-may be used to create a \jargon{head term} from a given name and arity.
+abolish_module_tables/1 or abolish_table_subgoals/1. For example, to
+remove all tables for \nopredref{p}{3}, run the goal below. The
+predicate functor/3 may be used to create a \jargon{head term} from a
+given name and arity.
 
 \begin{code}
 ?- abolish_table_subgoals(p(_,_,_)).
