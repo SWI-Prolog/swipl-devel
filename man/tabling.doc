@@ -1240,7 +1240,17 @@ True when \arg{Trie} is the answer table for \arg{Variant}.
 Remove the tabling instrumentation for the specified predicates.
 \arg{Specification} is compatible with table/1, although tabling with
 \jargon{answer subsumption} may be removed using a name/arity
-specification.
+specification. Note that although using untable/1 and table/1 may be
+used to flush all tables associated with the given predicate(s),
+flushing tables should be done using one table abolish predicates,
+abolish_all_tables/0, abolish_private_tables/0, abolish_shared_tables/0,
+abolish_module_tables/1 or abolish_table_subgoals/1.  For example, to
+remove all tables for p/3, run the goal below.  The predicate functor/3
+may be used to create a \jargon{head term} from a given name and arity.
+
+\begin{code}
+?- abolish_table_subgoals(p(_,_,_)).
+\end{code}
 
     \predicate{abolish_all_tables}{0}{}
 Remove all tables, both \jargon{private} and \jargon{shared} (see
