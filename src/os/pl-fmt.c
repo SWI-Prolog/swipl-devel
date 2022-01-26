@@ -302,7 +302,7 @@ format_impl(IOSTREAM *out, term_t format, term_t Args, Module m)
   int rval;
   PL_chars_t fmt;
 
-  if ( !PL_get_text(format, &fmt, CVT_ALL|BUF_STACK) )
+  if ( !PL_get_text(format, &fmt, CVT_ATOM|CVT_STRING|CVT_LIST|BUF_STACK) )
     return PL_error("format", 3, NULL, ERR_TYPE, ATOM_text, format);
 
   if ( (argc = (int)lengthList(args, FALSE)) >= 0 )
