@@ -1714,7 +1714,7 @@ static void
 setTZPrologFlag(void)
 { tzset();
 
-#ifdef _MSC_VER
+#if defined(__WINDOWS__) || defined(__CYGWIN__)
 #define timezone _timezone
 #endif
 
