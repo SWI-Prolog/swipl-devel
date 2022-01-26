@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -661,7 +662,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		      FMT_EXEPTION();
 		  } else			/* r,R */
 		  { if ( arg == DEFAULT )
-		      FMT_ERROR("r,R requires radix specifier");
+		      arg = 8;
 		    if ( arg < 2 || arg > 36 )
 		    { term_t r = PL_new_term_ref();
 
