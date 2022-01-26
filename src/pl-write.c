@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1624,7 +1625,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  }
 				/* +/-(Number) : avoid parsing as number */
 	  options->out->lastc |= C_PREFIX_OP;
-	  if ( functor == ATOM_minus || functor == ATOM_plus )
+	  if ( functor == ATOM_minus )
 	    options->out->lastc |= C_PREFIX_SIGN;
 
 	  _PL_get_arg(arity, t, arg);

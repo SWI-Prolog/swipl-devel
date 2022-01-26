@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2918,7 +2919,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 
 	        rdhere = SkipSymbol(rdhere, _PL_rd);
 		if ( rdhere == start+1 )
-		{ if ( (c == '+' || c == '-') &&	/* +- number */
+		{ if ( c == '-' &&			/* -number */
 		       !must_be_op &&
 		       isDigit(*rdhere) )
 		  { goto case_digit;
@@ -5363,7 +5364,7 @@ PL_put_term_from_chars(term_t t, int flags, size_t len, const char *s)
     len = strlen(s);
 
   if ( len >= 1 &&
-       (isDigit(*s&0xff) || *s == '-' || *s == '+') &&
+       (isDigit(*s&0xff) || *s == '-') &&
        isDigit(s[len-1]) )
   { char buf[256];
     unsigned char *e;
