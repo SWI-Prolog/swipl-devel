@@ -810,15 +810,11 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
       { debugstatus.showContext = val;
 #ifdef O_PLMT
       } else if ( k == ATOM_threads )
-      { if ( val )
+      { if ( !!val != !!GD->thread.enabled )
 	{ rval = enableThreads(val);
-	  PL_LOCK(L_PLFLAG);
-	} else
-	{ PL_UNLOCK(L_PLFLAG);
-	  rval = enableThreads(val);
+	  if ( !rval )
+	    break;			/* do not change value */
 	}
-	if ( !rval )
-	  break;			/* don't change value */
 #endif
       } else if ( k == ATOM_tty_control )
       { if ( val != (f->value.a == ATOM_true) )
@@ -970,6 +966,8 @@ set_prolog_flag(term_t key, term_t value, int flags)
 
   if ( k == ATOM_autoload && !propagateAutoload(value) )
     return FALSE;
+  if ( k == ATOM_threads )
+    return set_prolog_flag_unlocked(m, k, value, flags);
 
   PL_LOCK(L_PLFLAG);
   rc = set_prolog_flag_unlocked(m, k, value, flags);
