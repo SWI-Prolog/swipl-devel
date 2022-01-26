@@ -9468,10 +9468,11 @@ digit groups.
     \fmtchar{R}
 Same as {\bf r}, but uses uppercase letters for digits above 9.
     \fmtchar{s}
-Output text from a list of character codes or a string (see string/1 and
-\secref{string}) from the next argument.\footnote{The \textbf{s}
-modifier also accepts an atom for compatibility.  This is deprecated
-due to the ambiguity of \texttt{[]}.}
+Output text from a list of character codes, characters, string (see
+string/1 and \secref{string}) or atom from the next argument.  If
+an numeric argument is given the string is truncated to this number
+of characters.
+
     \fmtchar{@}
 Interpret the next argument as a goal and execute it.  Output written
 to the \const{current_output} stream is inserted at this place.  Goal

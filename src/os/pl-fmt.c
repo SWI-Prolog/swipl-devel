@@ -685,10 +685,16 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_LIST|CVT_STRING) &&
-		       !PL_get_text(argv, &txt, CVT_ATOM) ) /* SICStus compat */
+		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_LIST|CVT_STRING) )
 		    FMT_ARG("s", argv);
+		  if ( arg != DEFAULT )
+		  { if ( arg < 0 )
+		      arg = 0;
+		    if ( arg < txt.length )
+		      txt.length = arg;
+		  }
 		  rc = outtext(&state, &txt);
+		  PL_free_text(&txt);
 		  SHIFT;
 		  if ( !rc )
 		    goto out;
