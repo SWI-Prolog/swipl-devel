@@ -760,6 +760,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 	      case '@':
 	        { term_t ex = 0;
 		  sub_state sstate;
+		  fid_t fid;
 
 		  if ( argc < 1 )
 		  { FMT_ERROR("not enough arguments");
@@ -767,7 +768,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 
 		  if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
 		    goto out;
-		  rc = callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex);
+
+		  rc = ( (fid=PL_open_foreign_frame()) &&
+			 callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex) );
+		  if ( rc )
+		    PL_rewind_foreign_frame(fid);
 		  rc = end_sub_format(&sstate, rc);
 
 		  if ( !rc )

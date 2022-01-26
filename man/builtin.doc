@@ -9490,7 +9490,9 @@ Interpret the next argument as a goal and execute it.  Output written
 to the \const{current_output} stream is inserted at this place.  Goal
 is called in the module calling format/3.  This option is not present
 in the original definition by Quintus, but supported by some other
-Prolog systems.
+Prolog systems.  The goal is executed as \verb$\+ \+ Goal$, i.e.,
+bindings created by the goal are discarded.
+
     \fmtchar{t}
 All remaining space between 2 tab stops is distributed equally over
 \fmtseq{~t} statements between the tab stops. This space is padded
