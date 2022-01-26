@@ -3362,7 +3362,7 @@ compileArithArgument(DECL_LD Word arg, compileInfo *ci)
 #endif
 	}
 #ifdef O_GMP
-      } else if ( p[0]&MP_RAT_MASK )
+      } else if ( p[1]&MP_RAT_MASK )
       { Output_n(ci, A_MPQ, p, n+1);
       } else
       { Output_n(ci, A_MPZ, p, n+1);
