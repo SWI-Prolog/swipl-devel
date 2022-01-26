@@ -9471,7 +9471,7 @@ Give the next argument to print/1.
 Give the next argument to writeq/1.
 
     \fmtchar{r}
-Print integer in radix numeric argument notation. Thus
+Print integer in radix numeric argument notation (default 8). Thus
 \fmtseq{~16r} prints its argument hexadecimal. The argument should
 be in the range $[2, \ldots, 36]$. Lowercase letters are used for
 digits above 9.  The colon modifier may be used to form locale-specific
