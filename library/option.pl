@@ -133,15 +133,13 @@ option(Opt, Options, Default) :-        % make option processing stead-fast
 %   as well as the Name(Value)  convention.   Fails  silently if the
 %   option does not appear in OptionList.
 %
-%   @param Option   Term of the form Name(?Value).
+%   @arg Option   Term of the form Name(?Value).
 
-option(Opt, Options) :-                 % make option processing stead-fast
-    is_dict(Options),
-    !,
+option(Opt, Options), is_dict(Options) =>
     functor(Opt, Name, 1),
     get_dict(Name, Options, Val),
     arg(1, Opt, Val).
-option(Opt, Options) :-                 % make option processing stead-fast
+option(Opt, Options), is_list(Options) =>
     functor(Opt, Name, Arity),
     functor(GenOpt, Name, Arity),
     get_option(GenOpt, Options),
