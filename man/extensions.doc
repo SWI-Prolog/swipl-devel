@@ -451,7 +451,9 @@ Convert \arg{String} to lower case and unify the result with
 Read at most \arg{Length} characters from \arg{Stream} and
 return them in the string \arg{String}.  If \arg{Length} is
 unbound, \arg{Stream} is read to the end and \arg{Length} is
-unified with the number of characters read.
+unified with the number of characters read. Note that
+\textit{characters} must be read as \jargon{Unicode code points},
+\emph{not} bytes.
 
     \predicate{read_string}{5}{+Stream, +SepChars, +PadChars, -Sep, -String}
 Read a string from \arg{Stream}, providing functionality similar to
