@@ -2350,6 +2350,7 @@ skipToTerm(Clause clause, const iarg_t *position)
 
     if ( an > 0 )
       pc = skipArgs(pc, an);
+  again:
     c = decode(*pc);
     switch(c)
     { case H_FUNCTOR:
@@ -2363,6 +2364,9 @@ skipToTerm(Clause clause, const iarg_t *position)
 	var[1] = encode(H_VOID);
 	return var;
       }
+      case I_CHP:
+	pc = stepPC(pc);
+        goto again;
 #if defined(O_DEBUG) || defined(O_MAINTENANCE)
       case H_FIRSTVAR:
       case H_VAR:
