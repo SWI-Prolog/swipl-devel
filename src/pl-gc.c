@@ -3578,6 +3578,7 @@ setStartOfVMI(vm_state *state)
       switch(op)
       { case H_STRING:
 	case H_MPZ:
+	case H_MPQ:
 	case H_LIST_FF:
 	case H_FIRSTVAR:
 	case H_VAR:
