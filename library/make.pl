@@ -118,12 +118,19 @@ modified_file(File) :-
     (   catch(time_file(File, Modified), _, fail),
         Modified - LoadTime > 0.001             % (*)
     ->  true
-    ;   source_file_property(Source, includes(Included, IncLoadTime)),
+    ;   file_includes(Source, Included, IncLoadTime, [Source]),
         catch(time_file(Included, Modified), _, fail),
         Modified - IncLoadTime > 0.001          % (*)
     ->  true
     ).
 
+file_includes(Source, Included, IncLoadTime, Seen) :-
+    source_file_property(Source, includes(Included0, IncLoadTime0)),
+    \+ memberchk(Included0, Seen),
+    (   Included = Included0,
+        IncLoadTime = IncLoadTime0
+    ;   file_includes(Included0, Included, IncLoadTime, [Included0|Seen])
+    ).
 
 %!  reload_file(File)
 %
