@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -390,6 +391,7 @@ DECL_PLIST(wic);
 DECL_PLIST(attvar);
 DECL_PLIST(gvar);
 DECL_PLIST(win);
+DECL_PLIST(apple);
 DECL_PLIST(file);
 DECL_PLIST(files);
 DECL_PLIST(glob);
@@ -478,6 +480,9 @@ initBuildIns(void)
 #ifdef __WINDOWS__
   REG_PLIST(win);
   REG_PLIST(dde);
+#endif
+#ifdef __APPLE__
+  REG_PLIST(apple);
 #endif
 #ifdef O_LOCALE
   REG_PLIST(locale);

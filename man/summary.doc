@@ -69,6 +69,7 @@ suggest predicates from a keyword.
 \predicatesummary{add_nb_set}{2}{Add term to a non-backtrackable set}
 \predicatesummary{add_nb_set}{3}{Add term to a non-backtrackable set}
 \predicatesummary{append}{1}{Append to a file}
+\predicatesummary{apple_current_locale_identifier}{1}{Get Apple locale info}
 \predicatesummary{apply}{2}{Call goal with additional arguments}
 \predicatesummary{apropos}{1}{\pllib{online_help} Search manual}
 \predicatesummary{arg}{3}{Access argument of a term}

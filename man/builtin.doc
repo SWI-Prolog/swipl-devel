@@ -10010,6 +10010,28 @@ the category \const{messages}.
 \end{description}
 
 
+\subsection{Apple specific Operating System Interaction}
+\label{sec:apple}
+
+Non-portable Apple MacOS specific predicates are prefixed woth
+\const{apple_}.
+
+\begin{description}
+    \predicate{apple_current_locale_identifier}{1}{-Identifier}
+Unify \arg{Identifier} with the value for CFLocaleGetIdentifier() of the
+Apple current locale. The \arg{Identifier} is an atom that consists of
+the primary language identifier, e.g., \const{en} for english followed
+by an undercore and an identifier for the \jargon{Region} in the MacOS
+\jargon{Language \& Region} preferences.  For example, with the primary
+language set to ``English (UK)'' and the \textit{Region} to ``United
+Kingdom'' we get \const{en_GB}.  This relates to the locale identifier
+\const{en_GB.UTF-8}.  Unfortunately it is not that simple.  For example,
+we can combine the primary language ``English (UK)'' with the
+\textit{Region} ``Netherlands'' to end up with \const{en_NL} which is
+not a valid MacOS locale.
+\end{description}
+
+
 \subsection{Dealing with time and date}		\label{sec:timedate}
 
 Representing time in a computer system is surprisingly complicated.
