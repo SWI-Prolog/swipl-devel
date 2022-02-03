@@ -289,8 +289,6 @@ extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void);
 #endif
 
 /* These will never be compiled, they are here simply for scope detection */
-extern char *__PL_ld;
-extern struct {char *engine;} *PL__ctx;
 #define _LD_WITH_FALLBACK(f) \
 		  ( sizeof(*__PL_ld) > 1 ? (PL_local_data_t *)(__PL_ld) \
 		  : sizeof(*PL__ctx->engine) > 1 ? (PL_local_data_t *)(PL__ctx->engine) \
