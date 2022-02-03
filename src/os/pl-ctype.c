@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -886,20 +887,28 @@ initEncoding(void)
   { if ( !LD->encoding )
     { char *enc;
 
+#if __APPLE__
+      if ( !getenv("LANG") && !getenv("LC_CTYPE") )
+	putenv("LC_CTYPE=UTF-8");
+#endif
+
       if ( !init_locale() )
       { LD->encoding = ENC_ISO_LATIN_1;
       } else if ( (enc = setlocale(LC_CTYPE, NULL)) )
-      { LD->encoding = ENC_ANSI;		/* text encoding */
+      { char *ext = strchr(enc, '.');
+	const enc_map *m;
 
-	if ( (enc = strchr(enc, '.')) )
-	{ const enc_map *m;
-	  enc++;				/* skip '.' */
+	LD->encoding = ENC_ANSI;		/* text encoding */
 
-	  for ( m=map; m->name; m++ )
-	  { if ( strcmp(enc, m->name) == 0 )
-	    { LD->encoding = m->encoding;
-	      break;
-	    }
+	if ( ext )
+	  ext++;
+	else
+	  ext = enc;
+
+	for ( m=map; m->name; m++ )
+	{ if ( strcmp(enc, m->name) == 0 )
+	  { LD->encoding = m->encoding;
+	    break;
 	  }
 	}
       } else
