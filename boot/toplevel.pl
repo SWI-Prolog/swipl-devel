@@ -510,6 +510,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
+    set_working_direcory,
     '$run_initialization',
     '$load_system_init_file',
     set_toplevel,
@@ -533,6 +534,15 @@ initialise_prolog :-
             run_main_init
         )
     ).
+
+set_working_direcory :-
+    current_prolog_flag(apple, true),
+    current_prolog_flag(readline, swipl_win),
+    expand_file_name('~/Documents', [Dir]),
+    exists_directory(Dir),
+    !,
+    working_directory(_, Dir).
+set_working_direcory.
 
 opt_attach_packs :-
     current_prolog_flag(packs, true),
