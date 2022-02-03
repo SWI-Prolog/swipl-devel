@@ -814,6 +814,12 @@ GLOBAL PL_local_data_t  PL_local_data;
 #ifdef O_MULTIPLE_ENGINES
 GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #endif
+/* See _LD_WITH_FALLBACK().  These should never be compiled,
+   but are on clang in debug mode
+ */
+GLOBAL char *__PL_ld;
+GLOBAL struct {char *engine;} *PL__ctx;
+
 
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
