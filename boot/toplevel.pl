@@ -548,7 +548,8 @@ apple_set_locale :-
 	apple_current_locale_identifier(LocaleID),
 	atom_concat(LocaleID, '.UTF-8', Locale),
 	catch(setlocale(ctype, _Old, Locale), _, fail)
-    ->  setenv('LANG', Locale)
+    ->  setenv('LANG', Locale),
+        unsetenv('LC_CTYPE')
     ;   true
     ).
 
