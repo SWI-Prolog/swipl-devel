@@ -510,7 +510,7 @@ initialise_error(E) :-
 
 initialise_prolog :-
     '$clean_history',
-    set_working_direcory,
+    apple_setup_app,
     '$run_initialization',
     '$load_system_init_file',
     set_toplevel,
@@ -535,14 +535,30 @@ initialise_prolog :-
         )
     ).
 
-set_working_direcory :-
+:- if(current_prolog_flag(apple,true)).
+apple_set_working_directory :-
+    (   expand_file_name('~', [Dir]),
+	exists_directory(Dir)
+    ->  working_directory(_, Dir)
+    ;   true
+    ).
+
+apple_set_locale :-
+    (   getenv('LC_CTYPE', 'UTF-8'),
+	apple_current_locale_identifier(LocaleID),
+	atom_concat(LocaleID, '.UTF-8', Locale),
+	catch(setlocale(ctype, _Old, Locale), _, fail)
+    ->  setenv('LANG', Locale)
+    ;   true
+    ).
+
+apple_setup_app :-
     current_prolog_flag(apple, true),
-    current_prolog_flag(readline, swipl_win),
-    expand_file_name('~/Documents', [Dir]),
-    exists_directory(Dir),
-    !,
-    working_directory(_, Dir).
-set_working_direcory.
+    current_prolog_flag(console_menu, true),	% SWI-Prolog.app on MacOS
+    apple_set_working_directory,
+    apple_set_locale.
+:- endif.
+apple_setup_app.
 
 opt_attach_packs :-
     current_prolog_flag(packs, true),
