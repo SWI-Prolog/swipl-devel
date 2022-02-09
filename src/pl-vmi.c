@@ -375,12 +375,14 @@ hook.
 
 First, the system will leave any parent  frames. Next, it will undo back
 to the call-port and finally, restart the clause.
+
+(*) We use FINISH_EXTERNAL_EXCEPT_UNDO to ensure we undo all marks
+    created after the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_DEBUGGER
 VMH(retry, 0, (), ())
 { LocalFrame rframe0, rframe;
-  mark m;
   Choice ch;
 					MARK(RETRY);
   if ( debugstatus.retryFrame )
@@ -390,40 +392,44 @@ VMH(retry, 0, (), ())
   debugstatus.retryFrame = 0;
   rframe0 = rframe;
 
-  m.trailtop = tTop;
-  m.globaltop = gTop;
+  /* Find a frame with a choicepoint at the start */
   for( ; rframe; rframe = rframe->parent )
   { if ( (ch = findStartChoice(rframe, BFR)) )
-    { m = ch->mark;
-      goto do_retry;
+      break;
+  }
+
+  if ( rframe )
+  { term_t rframe_ref = consTermRef(rframe);
+
+    if ( rframe0 != rframe )
+    { DEBUG(MSG_TRACE,
+	    Sdprintf("[No retry-information for requested frame]\n"));
     }
+
+    DEBUG(MSG_TRACE,
+	  Sdprintf("[Retrying frame %d running %s]\n",
+		   (Word)rframe - (Word)lBase,
+		   predicateName(rframe->predicate)));
+
+    SAVE_REGISTERS(QID);
+    discardChoicesAfter(rframe, FINISH_EXTERNAL_EXCEPT_UNDO); /* See (*) */
+    LOAD_REGISTERS(QID);
+    rframe = (LocalFrame)valTermRef(rframe_ref);
+
+    rframe->clause = NULL;
+    environment_frame = FR = rframe;
+    DEF = FR->predicate;
+    clear(FR, FR_SKIPPED);
+    exception_term = 0;
+
+    VMH_GOTO(depart_or_retry_continue);
+  } else
+  { Sdprintf("[Could not find retry-point]\n");
+    SAVE_REGISTERS(QID);
+    abortProlog();				/* What else? */
+    LOAD_REGISTERS(QID);
+    THROW_EXCEPTION;
   }
-  Sdprintf("[Could not find retry-point]\n");
-  SAVE_REGISTERS(QID);
-  abortProlog();				/* What else? */
-  LOAD_REGISTERS(QID);
-  THROW_EXCEPTION;
-
-do_retry:
-  if ( rframe0 != rframe )
-  { DEBUG(MSG_TRACE,
-	  Sdprintf("[No retry-information for requested frame]\n"));
-  }
-
-  DEBUG(MSG_TRACE,
-	Sdprintf("[Retrying frame %d running %s]\n",
-		 (Word)rframe - (Word)lBase,
-		 predicateName(rframe->predicate)));
-
-  discardChoicesAfter(rframe, FINISH_CUT);
-  rframe->clause = NULL;
-  environment_frame = FR = rframe;
-  DEF = FR->predicate;
-  clear(FR, FR_SKIPPED);
-  Undo(m);
-  exception_term = 0;
-
-  VMH_GOTO(depart_or_retry_continue);
 }
 END_VMH
 #endif /*O_DEBUGGER*/
