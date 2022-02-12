@@ -47,7 +47,7 @@
 	    [instantiation_error/1,type_error/2,domain_error/2]).
 :- autoload(library(lists),
 	    [append/3,member/2,sum_list/2,max_list/2,min_list/2]).
-:- autoload(library(ordsets),[ord_subtract/3,ord_intersection/3]).
+:- autoload(library(ordsets),[ord_intersection/3]).
 :- autoload(library(pairs),[pairs_values/2]).
 
 :- set_prolog_flag(generate_debug_info, false).
