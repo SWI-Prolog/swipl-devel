@@ -1456,11 +1456,15 @@ github_release_url(URL, Pack, Version) :-
     uri_data(scheme, Components, Scheme),
     download_scheme(Scheme),
     uri_data(path, Components, Path),
-    atomic_list_concat(['',_Project,Pack,archive,File], /, Path),
+    github_archive_path(Archive),
+    atomic_list_concat(['',_Project,Pack,Archive,File], /, Path),
     file_name_extension(Tag, Ext, File),
     github_archive_extension(Ext),
     tag_version(Tag, Version),
     !.
+
+github_archive_path(archive).
+github_archive_path('archive/refs/tags').
 
 github_archive_extension(tgz).
 github_archive_extension(zip).
