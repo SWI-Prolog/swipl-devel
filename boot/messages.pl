@@ -221,6 +221,12 @@ permission_error(open, source_sink, alias(Alias)) -->
     [ 'No permission to reuse alias "~p": already taken'-[Alias] ].
 permission_error(tnot, non_tabled_procedure, Pred) -->
     [ 'The argument of tnot/1 is not tabled: ~p'-[Pred] ].
+permission_error(assert, procedure, Pred) -->
+    { '$pi_head'(Pred, Head),
+      predicate_property(Head, ssu)
+    },
+    [ '~p: an SSU (Head => Body) predicate cannot have normal Prolog clauses'-
+      [Pred] ].
 permission_error(Action, Type, Object) -->
     [ 'No permission to ~w ~w `~p'''-[Action, Type, Object] ].
 
