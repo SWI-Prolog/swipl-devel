@@ -1853,8 +1853,12 @@ VMI(I_SSU_COMMIT, 0, 0, ())
 
   clear(FR, FR_SSU_DET);
 
-  lTop = (LocalFrame)BFR;
-  BFR = BFR->parent;
+  if ( !debugstatus.debugging )
+  { lTop = (LocalFrame)BFR;
+    BFR = BFR->parent;
+  } else
+  { BFR->type = CHP_DEBUG;
+  }
 
   VMI_GOTO(I_ENTER);
 }
