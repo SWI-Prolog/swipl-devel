@@ -204,10 +204,6 @@ each parent frame of the frame generating the exception until the
 exception is caught or the user restarts normal computation using
 \const{retry}.  \arg{Except} is the pending exception term.
 
-    \termitem{break}{PC}
-A \const{break} instruction is executed.  \arg{PC} is program counter.
-This port is used by the graphical debugger.
-
     \termitem{cut_call}{PC}
 A cut is encountered at \arg{PC}. This port is used by the graphical
 debugger to visualise the effect of the cut.
