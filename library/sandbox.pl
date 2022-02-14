@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2021, VU University Amsterdam
+    Copyright (c)  2013-2022, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v
     All rights reserved.
@@ -579,6 +579,7 @@ safe_primitive(system:compound_name_arity(_,_,_)).
 safe_primitive(system:compound_name_arguments(_,_,_)).
 safe_primitive(system:'$filled_array'(_,_,_,_)).
 safe_primitive(copy_term(_,_)).
+safe_primitive(system:copy_term(_,_,_,_)).
 safe_primitive(system:duplicate_term(_,_)).
 safe_primitive(system:copy_term_nat(_,_)).
 safe_primitive(system:size_abstract_term(_,_,_)).
