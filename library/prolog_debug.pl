@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2021, SWI-Prolog Solutions b.v.
+    Copyright (c)  2021-2022, SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,8 @@
 :- autoload(library(edinburgh), [debug/0]).
 :- autoload(library(gensym), [gensym/2]).
 
+:- set_prolog_flag(generate_debug_info, false).
+
 /** <module> User level debugging tools
 
 This  library  provides  tools   to    control   the  Prolog  debuggers.
@@ -80,53 +82,62 @@ the library.
 %           to allow for alternative specifications of the thing to
 %           debug.
 
-spy(_:X) :-
+spy(Spec) :-
+    notrace(spy_(Spec)).
+
+spy_(_:X) :-
     var(X),
     throw(error(instantiation_error, _)).
-spy(_:[]) :- !.
-spy(M:[H|T]) :-
+spy_(_:[]) :- !.
+spy_(M:[H|T]) :-
     !,
     spy(M:H),
     spy(M:T).
-spy(Spec) :-
+spy_(Spec) :-
     notrace(prolog:debug_control_hook(spy(Spec))),
     !.
-spy(Spec) :-
+spy_(Spec) :-
     '$find_predicate'(Spec, Preds),
     '$member'(PI, Preds),
         pi_to_head(PI, Head),
         '$define_predicate'(Head),
         '$spy'(Head),
     fail.
-spy(_).
+spy_(_).
 
-nospy(_:X) :-
+nospy(Spec) :-
+    notrace(nospy_(Spec)).
+
+nospy_(_:X) :-
     var(X),
     throw(error(instantiation_error, _)).
-nospy(_:[]) :- !.
-nospy(M:[H|T]) :-
+nospy_(_:[]) :- !.
+nospy_(M:[H|T]) :-
     !,
     nospy(M:H),
     nospy(M:T).
-nospy(Spec) :-
-    notrace(prolog:debug_control_hook(nospy(Spec))),
+nospy_(Spec) :-
+    prolog:debug_control_hook(nospy(Spec)),
     !.
-nospy(Spec) :-
+nospy_(Spec) :-
     '$find_predicate'(Spec, Preds),
     '$member'(PI, Preds),
          pi_to_head(PI, Head),
         '$nospy'(Head),
     fail.
-nospy(_).
+nospy_(_).
 
 nospyall :-
-    notrace(prolog:debug_control_hook(nospyall)),
+    notrace(nospyall_).
+
+nospyall_ :-
+    prolog:debug_control_hook(nospyall),
     fail.
-nospyall :-
+nospyall_ :-
     spy_point(Head),
         '$nospy'(Head),
     fail.
-nospyall.
+nospyall_.
 
 pi_to_head(M:PI, M:Head) :-
     !,
@@ -139,9 +150,12 @@ pi_to_head(Name/Arity, Head) :-
 %   Report current status of the debugger.
 
 debugging :-
-    notrace(prolog:debug_control_hook(debugging)),
+    notrace(debugging_).
+
+debugging_ :-
+    prolog:debug_control_hook(debugging),
     !.
-debugging :-
+debugging_ :-
     (   current_prolog_flag(debug, true)
     ->  print_message(informational, debugging(on)),
         findall(H, spy_point(H), SpyPoints),
@@ -181,6 +195,9 @@ spy_point(Module:Head) :-
     installed/1.                    % ClauseRef
 
 trap(Error) :-
+    notrace(trap_(Error)).
+
+trap_(Error) :-
     gensym(ex, Rule),
     asserta(exception(Rule, error(Error, _), true, true)),
     print_message(informational, trap(Rule, error(Error, _), true, true)),
@@ -188,6 +205,9 @@ trap(Error) :-
     debug.
 
 notrap(Error) :-
+    notrace(notrap_(Error)).
+
+notrap_(Error) :-
     Exception = error(Error, _),
     findall(exception(Name, Exception, NotCaught, Caught),
             retract(exception(Name, error(Error, _), Caught, NotCaught)),
