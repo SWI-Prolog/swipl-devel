@@ -2651,7 +2651,7 @@ I_DET sets the determinism guard for  this predicate, implying that this
 predicate shall succeed deterministically.  It is bound to '$'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-VMI(I_DET, 0, 0, ())
+VMI(I_DET, VIF_BREAK, 0, ())
 { set(FR, FR_DETGUARD|FR_DETGUARD_SET);
 
   VMI_GOTO(I_CUT);
