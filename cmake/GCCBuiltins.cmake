@@ -10,6 +10,12 @@ check_c_source_compiles(
     "int i=0; int main() { return __builtin_expect(i, 0) ? 0 : 1; }"
     HAVE___BUILTIN_EXPECT)
 check_c_source_compiles(
+    "int i=0; struct {int x[10];} st; int main() { return __builtin_choose_expr(1, i, st); }"
+    HAVE___BUILTIN_CHOOSE_EXPR)
+check_c_source_compiles(
+    "int i=0; int main() { return __builtin_types_compatible_p(typeof(i), int); }"
+    HAVE___BUILTIN_TYPES_COMPATIBLE_P)
+check_c_source_compiles(
     "__thread int i=0; int main() { return 0; }"
     HAVE___THREAD)
 check_c_source_compiles(
