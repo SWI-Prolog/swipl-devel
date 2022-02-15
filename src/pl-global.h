@@ -111,6 +111,7 @@ struct PL_global_data
 
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+#ifdef HAVE_SIGNAL
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
@@ -457,7 +458,6 @@ struct PL_local_data
 #ifndef __unix__
     int		forced;			/* Forced signal */
 #endif
-#ifdef HAVE_SIGNAL
 #ifdef O_C_STACK_GUARDED
     jmp_buf	context;		/* Guarded for C-stack overflows */
     int		sig_critical;		/* context is valid */
@@ -814,12 +814,6 @@ GLOBAL PL_local_data_t  PL_local_data;
 #ifdef O_MULTIPLE_ENGINES
 GLOBAL PL_local_data_t *PL_current_engine_ptr;
 #endif
-/* See _LD_WITH_FALLBACK().  These should never be compiled,
-   but are on clang in debug mode
- */
-GLOBAL char *__PL_ld;
-GLOBAL struct {char *engine;} *PL__ctx;
-
 
 #define GD (&PL_global_data)
 #define CD (&PL_code_data)
