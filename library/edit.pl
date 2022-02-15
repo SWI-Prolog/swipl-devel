@@ -492,6 +492,7 @@ read_number(Max, X) :-
     Max < 10,
     !,
     get_single_char(C),
+    put_code(user_error, C),
     between(0'0, 0'9, C),
     X is C - 0'0.
 read_number(_, X) :-
