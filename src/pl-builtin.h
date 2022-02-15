@@ -287,13 +287,26 @@ typedef struct PL_global_data PL_global_data_t;
 extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void);
 # define _ASSERT_LD(cond) ((cond)?NULL:error_LOCAL_LD_referenced_without_a_local_LD_declaration())
 #endif
+#ifdef HAVE___BUILTIN_CHOOSE_EXPR
+/* __builtin_choose_expr is basically a ternary operator for compile-time constants */
+# define _CHOOSE_EXPR(cond, iftrue, iffalse) __builtin_choose_expr((cond), (iftrue), (iffalse))
+#else
+# define _CHOOSE_EXPR(cond, iftrue, iffalse) ((cond) ? (iftrue) : (iffalse))
+#endif
+#ifdef HAVE___BUILTIN_TYPES_COMPATIBLE_P
+/* __builtin_types_compatible_p is stricter than a sizeof check */
+# define _IS_LDPTR(expr) __builtin_types_compatible_p(typeof(expr), PL_local_data_t*)
+#else
+# define _IS_LDPTR(expr) (sizeof(expr) == sizeof(PL_local_data_t*) && sizeof(*expr) == sizeof(PL_local_data_t))
+#endif
+#define _AS_LDPTR(expr) ((PL_local_data_t*)(expr))
+#define _TRY_LDPTR(expr, otherwise) _CHOOSE_EXPR(_IS_LDPTR(expr), _AS_LDPTR(expr), otherwise)
 
 /* These will never be compiled, they are here simply for scope detection */
-#define _LD_WITH_FALLBACK(f) \
-		  ( sizeof(*__PL_ld) > 1 ? (PL_local_data_t *)(__PL_ld) \
-		  : sizeof(*PL__ctx->engine) > 1 ? (PL_local_data_t *)(PL__ctx->engine) \
-		  : (PL_local_data_t *)(f) )
-#define LOCAL_LD  _LD_WITH_FALLBACK(_ASSERT_LD(sizeof(*__PL_ld) > 1 || sizeof(*PL__ctx->engine) > 1))
+extern char *__PL_ld;
+extern struct {char *engine;} *PL__ctx;
+#define _LD_WITH_FALLBACK(f) _TRY_LDPTR(__PL_ld, _TRY_LDPTR(PL__ctx->engine, f))
+#define LOCAL_LD  _LD_WITH_FALLBACK(_ASSERT_LD(_IS_LDPTR(__PL_ld) || _IS_LDPTR(PL__ctx->engine)))
 #define ANY_LD    _LD_WITH_FALLBACK(GLOBAL_LD)
 
 #define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
