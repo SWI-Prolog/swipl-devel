@@ -558,6 +558,7 @@ ubody(Read, Decompiled, Module, TermPosRead, TermPosDecompiled) :-
 ubody(X0, X, M,
       term_position(F,T,FF,TT,PA0),
       term_position(F,T,FF,TT,PA)) :-
+    callable(X0),
     meta(M, X0, S),
     !,
     X0 =.. [_|A0],
