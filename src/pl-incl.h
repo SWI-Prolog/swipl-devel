@@ -2668,6 +2668,37 @@ with any luck LTO could address that.
 # define ALLOC_INLINE
 #endif
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Helpers for weak function references, where we want our behavior to change
+based on if we've been linked against a specific library or not. To use a
+weak function, you should (e.g. for weak-importing malloc):
+
+1. WEAK_DECLARE(void *, malloc, (size_t size)); at .c file scope
+2. WEAK_IMPORT(malloc) in startup code (returns success)
+3. if (WEAK_FUNC(malloc)) to check if the import succeeded
+4a. WEAK_FUNC(malloc)(sizeof(x)) to call the function, if import worked, or
+4b. WEAK_TRY_CALL(malloc, sizeof(x)) to combine check and call.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if HAVE_WEAK_ATTRIBUTE
+static inline int __ptr_to_bool(const void *ptr) { return ptr != NULL; }
+# define WEAK_DECLARE(RType, Name, Params) \
+	extern RType __attribute__((weak)) Name Params
+# define WEAK_IMPORT(Name) __ptr_to_bool(&Name)
+# define WEAK_FUNC(Name) (&Name)
+#elif defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
+# define WEAK_DECLARE(RType, Name, Params) \
+	static RType (*wf##Name) Params = NULL
+# define WEAK_IMPORT(Name) __ptr_to_bool((wf##Name = PL_dlsym(NULL, #Name)))
+# define WEAK_FUNC(Name) (wf##Name)
+#else 
+# define WEAK_DECLARE(RType, Name, Params) \
+	extern RType Name Params
+# define WEAK_IMPORT(Name) 0
+# define WEAK_FUNC(Name) 0
+#endif
+#define WEAK_TRY_CALL(Name, ...) (WEAK_FUNC(Name) != NULL ? WEAK_FUNC(Name)(__VA_ARGS__) : 0)
+
 #include "pl-util.h"			/* (Debug) utilities */
 #include "pl-alloc.h"			/* Allocation primitives */
 #include "pl-init.h"			/* Declarations needed by pl-init.c */

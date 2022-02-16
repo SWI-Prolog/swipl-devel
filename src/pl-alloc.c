@@ -51,6 +51,10 @@
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
+#ifdef HAVE_TCMALLOC_EXTENSION_C_H
+/* Provides error checking for the weak declarations below */
+#include <gperftools/malloc_extension_c.h>
+#endif
 #ifdef HAVE_SYS_MMAN_H
 #define MMAP_STACK 1
 #include <sys/mman.h>
@@ -1638,12 +1642,12 @@ stack_nrealloc(void *mem, size_t req)
 		 *	       TCMALLOC		*
 		 *******************************/
 
-static int (*fMallocExtension_GetNumericProperty)(const char *, size_t *);
-static int (*fMallocExtension_SetNumericProperty)(const char *, size_t);
-static void (*fMallocExtension_MarkThreadIdle)(void) = NULL;
-static void (*fMallocExtension_MarkThreadTemporarilyIdle)(void) = NULL;
-static void (*fMallocExtension_MarkThreadBusy)(void) = NULL;
-static void (*fMallocExtension_ReleaseFreeMemory)(void) = NULL;
+WEAK_DECLARE(int, MallocExtension_GetNumericProperty, (const char *, size_t *));
+WEAK_DECLARE(int, MallocExtension_SetNumericProperty, (const char *, size_t));
+WEAK_DECLARE(void, MallocExtension_MarkThreadIdle, (void));
+WEAK_DECLARE(void, MallocExtension_MarkThreadTemporarilyIdle, (void));
+WEAK_DECLARE(void, MallocExtension_MarkThreadBusy, (void));
+WEAK_DECLARE(void, MallocExtension_ReleaseFreeMemory, (void));
 
 static const char* tcmalloc_properties[] =
 { "generic.current_allocated_bytes",
@@ -1678,7 +1682,7 @@ malloc_property(term_t prop, control_t handle)
 	  { if ( streq(s, *pname) )
 	    { size_t val;
 
-	      if ( fMallocExtension_GetNumericProperty(*pname, &val) )
+	      if ( WEAK_FUNC(MallocExtension_GetNumericProperty)(*pname, &val) )
 	      { term_t a = PL_new_term_ref();
 		_PL_get_arg(1, prop, a);
 		return PL_unify_uint64(a, val);
@@ -1703,7 +1707,7 @@ malloc_property(term_t prop, control_t handle)
       for(; *pname; pname++)
       { size_t val;
 
-	if ( fMallocExtension_GetNumericProperty(*pname, &val) )
+	if ( WEAK_FUNC(MallocExtension_GetNumericProperty)(*pname, &val) )
 	{ if ( PL_unify_term(prop, PL_FUNCTOR_CHARS, *pname, 1,
 			             PL_INT64, val) )
 	  { PL_close_foreign_frame(fid);
@@ -1753,7 +1757,7 @@ set_malloc(term_t prop)
 
       for(; *pname; pname++)
       { if ( streq(s, *pname) )
-	{ if ( fMallocExtension_SetNumericProperty(*pname, val) )
+	{ if ( WEAK_FUNC(MallocExtension_SetNumericProperty)(*pname, val) )
 	    return TRUE;
 	  else
 	    return PL_permission_error("set", "malloc_property", prop);
@@ -1772,8 +1776,7 @@ size_t
 heapUsed(void)
 { size_t val;
 
-  if (fMallocExtension_GetNumericProperty &&
-      fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &val))
+  if (WEAK_TRY_CALL(MallocExtension_GetNumericProperty, "generic.current_allocated_bytes", &val))
   {
 #ifdef MMAP_STACK
     val += GD->statistics.stack_space;
@@ -1806,11 +1809,10 @@ initTCMalloc(void)
     return is_tcmalloc;
   done = TRUE;
 
-  if ( (fMallocExtension_GetNumericProperty =
-		PL_dlsym(NULL, "MallocExtension_GetNumericProperty")) )
+  if ( WEAK_IMPORT(MallocExtension_GetNumericProperty) )
   { size_t in_use;
 
-    if ( fMallocExtension_GetNumericProperty("generic.current_allocated_bytes", &in_use) &&
+    if ( WEAK_FUNC(MallocExtension_GetNumericProperty)("generic.current_allocated_bytes", &in_use) &&
 	 in_use > 100000 )
     { is_tcmalloc = TRUE;
       PL_set_prolog_flag("malloc", PL_ATOM, "tcmalloc");
@@ -1822,38 +1824,44 @@ initTCMalloc(void)
 			PL_FA_NONDETERMINISTIC);
     set++;
   }
-  if ( (fMallocExtension_SetNumericProperty =
-		PL_dlsym(NULL, "MallocExtension_SetNumericProperty")) )
+  if ( WEAK_IMPORT(MallocExtension_SetNumericProperty) )
   { PL_register_foreign_in_module("system", "set_malloc", 1, set_malloc, 0);
     set++;
   }
 
-  fMallocExtension_MarkThreadIdle =
-    PL_dlsym(NULL, "MallocExtension_MarkThreadIdle");
-  fMallocExtension_MarkThreadTemporarilyIdle =
-    PL_dlsym(NULL, "MallocExtension_MarkThreadTemporarilyIdle");
-  fMallocExtension_MarkThreadBusy =
-    PL_dlsym(NULL, "MallocExtension_MarkThreadBusy");
-  fMallocExtension_ReleaseFreeMemory =
-    PL_dlsym(NULL, "MallocExtension_ReleaseFreeMemory");
+  WEAK_IMPORT(MallocExtension_MarkThreadIdle);
+  WEAK_IMPORT(MallocExtension_MarkThreadTemporarilyIdle);
+  WEAK_IMPORT(MallocExtension_MarkThreadBusy);
+  WEAK_IMPORT(MallocExtension_ReleaseFreeMemory);
 
   return set;
 }
 
-#ifdef HAVE_MALLINFO2
-#define mallinfo mallinfo2
-#define mallinfo_fname "mallinfo2"
+/* Don't rely on having the headers at compile-time, these functions
+ * might get linked in as late as runtime */
+#define DECLARE_MALLINFO_FIELDS(Type) \
+	Type arena;     /* Non-mmapped space allocated (bytes) */ \
+	Type ordblks;   /* Number of free chunks */ \
+	Type smblks;    /* Number of free fastbin blocks */ \
+	Type hblks;     /* Number of mmapped regions */ \
+	Type hblkhd;    /* Space allocated in mmapped regions (bytes) */ \
+	Type usmblks;   /* Maximum total allocated space (bytes) */ \
+	Type fsmblks;   /* Space in freed fastbin blocks (bytes) */ \
+	Type uordblks;  /* Total allocated space (bytes) */ \
+	Type fordblks;  /* Total free space (bytes) */ \
+	Type keepcost;  /* Top-most, releasable space (bytes) */ \
+
 #ifndef HAVE_MALLINFO
-#define HAVE_MALLINFO
+struct mallinfo { DECLARE_MALLINFO_FIELDS(int) };
 #endif
-#else
-#define mallinfo_fname "mallinfo"
+#ifndef HAVE_MALLINFO2
+struct mallinfo2 { DECLARE_MALLINFO_FIELDS(size_t) };
 #endif
 
-#ifdef HAVE_MALLINFO
 static int is_ptmalloc = FALSE;
-static struct mallinfo (*fmallinfo)(void) = NULL;
-static int             (*fmalloc_trim)(int pad) = NULL;
+WEAK_DECLARE(struct mallinfo, mallinfo, (void));
+WEAK_DECLARE(struct mallinfo2, mallinfo2, (void));
+WEAK_DECLARE(int, malloc_trim, (size_t pad));
 
 static int
 initPTMalloc(void)
@@ -1863,23 +1871,21 @@ initPTMalloc(void)
     return is_ptmalloc;
   done = TRUE;
 
-  if ( (fmallinfo    = PL_dlsym(NULL, mallinfo_fname)) &&
-       (fmalloc_trim = PL_dlsym(NULL, "malloc_trim")) )
-  { struct mallinfo info = fmallinfo();
+  size_t uordblks = 0;
+  if ( WEAK_IMPORT(mallinfo2) )
+  { uordblks = WEAK_FUNC(mallinfo2)().uordblks; }
+  if ( WEAK_IMPORT(mallinfo) && uordblks < 100000 )
+  { uordblks = WEAK_FUNC(mallinfo)().uordblks; }
 
-    if ( info.uordblks > 100000 )
-    { PL_set_prolog_flag("malloc", PL_ATOM, "ptmalloc");
-      is_ptmalloc = TRUE;
-    }
+  if ( uordblks > 100000 )
+  { PL_set_prolog_flag("malloc", PL_ATOM, "ptmalloc");
+    is_ptmalloc = TRUE;
   }
+
+  WEAK_IMPORT(malloc_trim); /* we hope to have trim but it doesn't change the test */
 
   return is_ptmalloc;
 }
-#else
-#define is_ptmalloc FALSE
-#define initPTMalloc() FALSE
-#define fmalloc_trim(pad) (void)0
-#endif
 
 
 int
@@ -1898,10 +1904,10 @@ initMalloc(void)
 
 static
 PRED_IMPL("trim_heap", 0, trim_heap, 0)
-{ if ( is_tcmalloc && fMallocExtension_ReleaseFreeMemory )
-    fMallocExtension_ReleaseFreeMemory();
-  else if ( is_ptmalloc )
-    fmalloc_trim(0);
+{ if ( is_tcmalloc )
+    WEAK_TRY_CALL(MallocExtension_ReleaseFreeMemory);
+  else
+    WEAK_TRY_CALL(malloc_trim, 0);
 
   return TRUE;
 }
@@ -1922,22 +1928,17 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 
   if ( how == ATOM_short )
   { trimStacks(TRUE);
-    if ( fMallocExtension_MarkThreadTemporarilyIdle &&
-	 fMallocExtension_MarkThreadBusy )
-      fMallocExtension_MarkThreadTemporarilyIdle();
+    WEAK_TRY_CALL(MallocExtension_MarkThreadTemporarilyIdle);
   } else if ( how == ATOM_long )
   { LD->trim_stack_requested = TRUE;
     garbageCollect(GC_USER);
     LD->trim_stack_requested = FALSE;
-    if ( fMallocExtension_MarkThreadIdle  &&
-	 fMallocExtension_MarkThreadBusy )
-      fMallocExtension_MarkThreadIdle();
+    WEAK_TRY_CALL(MallocExtension_MarkThreadIdle);
   }
 
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
 
-  if ( fMallocExtension_MarkThreadBusy )
-    fMallocExtension_MarkThreadBusy();
+  WEAK_TRY_CALL(MallocExtension_MarkThreadBusy);
 
   return rc;
 }

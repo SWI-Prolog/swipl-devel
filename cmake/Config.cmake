@@ -51,6 +51,7 @@ check_include_file(mach/thread_act.h HAVE_MACH_THREAD_ACT_H)
 check_include_file(sys/stropts.h HAVE_SYS_STROPTS_H)
 check_include_file(zlib.h HAVE_ZLIB_H)
 check_include_file(crt_externs.h HAVE_CRT_EXTERNS_H)
+check_include_file(gperftools/malloc_extension_c.h HAVE_TCMALLOC_EXTENSION_C_H)
 
 check_c_source_compiles(
     "int val = 1;

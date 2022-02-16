@@ -27,6 +27,9 @@ check_c_source_compiles(
 check_c_source_compiles(
     "int main() { void *p = &&lbl; goto *p; lbl: return 0; }"
     O_LABEL_ADDRESSES)
+check_c_source_runs(
+    "extern int __attribute__((weak)) foo(); int main() { return &foo == 0 ? 0 : 1; }"
+    HAVE_WEAK_ATTRIBUTE)
 
 function(check_visibility)
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Werror)
