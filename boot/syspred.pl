@@ -1352,15 +1352,17 @@ conditional_rule(?=>(Head, Body0), Rule),
 conditional_rule(Head, Rule) =>
     Rule = Head.
 
-split_on_cut(Var, _, _) :-
-    var(Var),
-    !,
+split_on_cut((Cond0,!,Body0), Cond, Body) =>
+    Cond = Cond0,
+    Body = Body0.
+split_on_cut((!,Body0), Cond, Body) =>
+    Cond = true,
+    Body = Body0.
+split_on_cut((A,B), Cond, Body) =>
+    Cond = (A,Cond1),
+    split_on_cut(B, Cond1, Body).
+split_on_cut(_, _, _) =>
     fail.
-split_on_cut((Cond,!,Body), Cond, Body) :-
-    !.
-split_on_cut((A,B), (A,Cond), Body) :-
-    split_on_cut(B, Cond, Body).
-
 
 
                  /*******************************
