@@ -315,6 +315,14 @@ unify_clause(Read, _, _, _, _) :-
     var(Read),
     !,
     fail.
+unify_clause((RHead :- RBody), (CHead :- CBody), Module, TermPos1, TermPos) :-
+    '$expand':f2_pos(TermPos1, HPos, BPos1,
+                     TermPos2, HPos, BPos2),
+    inlined_unification(RBody, CBody, RBody1, CBody1, RHead,
+                        BPos1, BPos2),
+    RBody1 \== RBody,
+    !,
+    unify_clause((RHead :- RBody1), (CHead :- CBody1), Module, TermPos2, TermPos).
 unify_clause(Read, Decompiled, _, TermPos, TermPos) :-
     Read =@= Decompiled,
     !,
@@ -386,7 +394,6 @@ unify_clause((Head,Cond => Body), Compiled1, Module,
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
     unify_clause(Head :- Body, Compiled1, Module, TermPos0, TermPos).
-                                        % general term-expansion
 unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
     match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
@@ -398,6 +405,26 @@ unify_clause(_, _, _, _, _) :-
 unify_clause_head(H1, H2) :-
     strip_module(H1, _, H),
     strip_module(H2, _, H).
+
+inlined_unification((V=T,RBody0), (CV=CT,CBody0),
+                    RBody, CBody, RHead, BPos1, BPos),
+    sub_term(V2, RHead),
+    V == V2,
+    (V=T) =@= (CV=CT) =>
+    argpos(2, BPos1, BPos2),
+    inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
+inlined_unification((V=T,RBody0), CBody0,
+                    RBody, CBody, RHead, BPos1, BPos),
+    sub_term(V2, RHead),
+    V == V2,
+    \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
+    argpos(2, BPos1, BPos2),
+    inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
+inlined_unification(RBody0, CBody0, RBody, CBody, _RHead,
+                    BPos0, BPos) =>
+    RBody = RBody0,
+    BPos  = BPos0,
+    CBody = CBody0.
 
 ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
     catch(setup_call_cleanup(
@@ -643,6 +670,16 @@ mkconj(Conj, M, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
     mkconj(B, M, PB, TGA, TG, TPA, TP).
 mkconj(A0, M, P0, [A|TG], TG, [P|TP], TP) :-
     ubody(A, A0, M, P, P0).
+
+%!  argpos(+N, +PositionTerm, -ArgPositionTerm) is det.
+%
+%   Get the position for the nth argument of PositionTerm.
+
+argpos(N, parentheses_term_position(_,_,PosIn), Pos) =>
+    argpos(N, PosIn, Pos).
+argpos(N, term_position(_,_,_,_,ArgPos), Pos) =>
+    nth1(N, ArgPos, Pos).
+argpos(_, _, _) => true.
 
 
                  /*******************************
