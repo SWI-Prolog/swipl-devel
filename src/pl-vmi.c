@@ -3294,7 +3294,7 @@ END_VMI
 /** integer(@Term), atom(@Term), etc.
 */
 
-#ifdef O_DEBUGGER
+#ifndef O_DEBUGGER
 #define TYPE_TEST(functor, test)           \
 	Word p = varFrameP(FR, (int)*PC++);\
 	deRef(p);                          \
