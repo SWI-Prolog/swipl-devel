@@ -390,7 +390,13 @@ DllMain(HINSTANCE hinstDll, DWORD fdwReason, LPVOID lpvReserved)
   { case DLL_PROCESS_ATTACH:
       GD->thread.instance = hinstDll;
       W32initMutexes();
-      TLD_alloc(&PL_ldata);
+
+#if !(defined(USE_CRITICAL_SECTIONS) && defined(O_SHARED_KERNEL))
+#ifndef HAVE___THREAD
+    TLD_alloc(&PL_ldata);		/* see line 889 */
+#endif
+#endif
+
       break;
     case DLL_PROCESS_DETACH:
       deleteMutexes();
