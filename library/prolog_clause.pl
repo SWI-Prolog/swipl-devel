@@ -406,6 +406,11 @@ unify_clause_head(H1, H2) :-
     strip_module(H1, _, H),
     strip_module(H2, _, H).
 
+%!  inlined_unification(+BodyRead, +BodyCompiled,
+%!                      -BodyReadOut, -BodyCompiledOut,
+%!                      +HeadRead,
+%!                      +BodyPosIn, -BodyPosOut) is det.
+
 inlined_unification((V=T,RBody0), (CV=CT,CBody0),
                     RBody, CBody, RHead, BPos1, BPos),
     sub_term(V2, RHead),
