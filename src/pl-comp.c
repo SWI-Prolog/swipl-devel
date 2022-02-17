@@ -6572,14 +6572,16 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
 	    return FALSE;
 	  if ( (clause->flags & CLAUSE_TYPE_MASK) != hflags )
 	    return FALSE;
-	  if ( unify_head(tmp, h) && PL_unify(body, b) )
-	    succeed;
+	  if ( !unify_head(tmp, h) )
+	    return FALSE;
+	  if ( PL_unify(body, (flags&IS_CLAUSE) ? b : term) )
+	    return TRUE;
 	}
 
-	fail;
+	return FALSE;
       }
       if ( !get_procedure(head, &proc, 0, GP_FIND) )
-	fail;
+	return FALSE;
       def = getProcDefinition(proc);
       if ( !isDefinedProcedure(proc) && true(def, P_AUTOLOAD) )
 	def = trapUndefined(def);
