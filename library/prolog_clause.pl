@@ -373,24 +373,25 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     !,
     TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
     match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
-unify_clause((Head,Cond => Body), Compiled1, Module,
+unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
              term_position(F,T,FF,FT,
                            [ term_position(_,_,_,_,[HP,CP]),
                              BP
                            ]),
              TermPos) :-
+    split_on_cut(CCondAndBody, CCond, CBody),
     !,
-    TermPos1 = term_position(F,T,FF,FT,
-                             [ HP,
-                               term_position(_,_,_,_,
-                                             [ CP,
-                                               term_position(_,_,_,_,
-                                                             [ FF-FT,
-                                                               BP
-                                                             ])
-                                             ])
-                             ]),
-    unify_clause((Head :- Cond, !, Body), Compiled1, Module, TermPos1, TermPos).
+    inlined_unification(RCond, CCond, RCond1, CCond1, Head, CP, CP1),
+    TermPos1 = term_position(F,T,FF,FT, [HP, BP1]),
+    BP2 = term_position(_,_,_,_, [FF-FT, BP]), % Represent (!, Body), placing
+    (   CCond1 == true                         % ! at =>
+    ->  BP1 = BP2,                             % Whole guard is inlined
+        unify_clause((Head :- !, Body), (CHead :- !, CBody),
+                     Module, TermPos1, TermPos)
+    ;   BP1 = term_position(_,_,_,_, [CP1, BP2]),
+        unify_clause((Head :- RCond1, !, Body), (CHead :- CCond1, !, CBody),
+                     Module, TermPos1, TermPos)
+    ).
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
     unify_clause(Head :- Body, Compiled1, Module, TermPos0, TermPos).
@@ -418,6 +419,14 @@ inlined_unification((V=T,RBody0), (CV=CT,CBody0),
     (V=T) =@= (CV=CT) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
+inlined_unification((V=T), (CV=CT),
+                    RBody, CBody, RHead, BPos1, BPos),
+    sub_term(V2, RHead),
+    V == V2,
+    (V=T) =@= (CV=CT) =>
+    RBody = true,
+    CBody = true,
+    argpos(2, BPos1, BPos).
 inlined_unification((V=T,RBody0), CBody0,
                     RBody, CBody, RHead, BPos1, BPos),
     sub_term(V2, RHead),
@@ -425,11 +434,30 @@ inlined_unification((V=T,RBody0), CBody0,
     \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
+inlined_unification((V=_), true,
+                    RBody, CBody, RHead, BPos1, BPos),
+    sub_term(V2, RHead),
+    V == V2 =>
+    RBody = true,
+    CBody = true,
+    argpos(2, BPos1, BPos).
 inlined_unification(RBody0, CBody0, RBody, CBody, _RHead,
                     BPos0, BPos) =>
     RBody = RBody0,
     BPos  = BPos0,
     CBody = CBody0.
+
+split_on_cut((Cond0,!,Body0), Cond, Body) =>
+    Cond = Cond0,
+    Body = Body0.
+split_on_cut((!,Body0), Cond, Body) =>
+    Cond = true,
+    Body = Body0.
+split_on_cut((A,B), Cond, Body) =>
+    Cond = (A,Cond1),
+    split_on_cut(B, Cond1, Body).
+split_on_cut(_, _, _) =>
+    fail.
 
 ci_expand(Read, Compiled, Module, TermPos0, TermPos) :-
     catch(setup_call_cleanup(
