@@ -1338,10 +1338,15 @@ rule(Head, Rule, Ref) :-
     conditional_rule(Rule0, Rule1),
     Rule = Rule1.
 
-conditional_rule(?=>(Head, Body0), (Head,Cond=>Body)) :-
-    split_on_cut(Body0, Cond, Body),
-    !.
-conditional_rule(Rule, Rule).
+conditional_rule(?=>(Head, (!, Body)), Rule) =>
+    Rule = (Head => Body).
+conditional_rule(?=>(Head, !), Rule) =>
+    Rule = (Head => true).
+conditional_rule(?=>(Head, Body0), Rule),
+    split_on_cut(Body0, Cond, Body) =>
+    Rule = (Head,Cond=>Body).
+conditional_rule(Head, Rule) =>
+    Rule = Head.
 
 split_on_cut(Var, _, _) :-
     var(Var),
