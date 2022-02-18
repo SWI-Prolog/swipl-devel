@@ -499,9 +499,11 @@ dispatch_signal(int sig, int sync)
 	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
 
-  if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync)) &&
-       !is_fatal_signal(sig) &&
-       sig != SIGINT )
+  if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
+#ifdef HAVE_SIGNAL
+       && sig != SIGINT
+#endif
+       && !is_fatal_signal(sig)	)
   { PL_raise(sig);			/* wait for better times! */
     return;
   }
