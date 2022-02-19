@@ -1632,7 +1632,7 @@ alertThread(PL_thread_info_t *info)
     return TRUE;			/* NOTE: PostThreadMessage() can */
 					/* fail if thread is being created */
   }
-#else
+#elif defined(SIG_ALERT)
   if ( info->has_tid && GD->signals.sig_alert )
     return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
 #endif
@@ -1696,7 +1696,7 @@ thread_wait_signal(DECL_LD)
     MSG msg;
     if ( !GetMessage(&msg, (HWND)-1, WM_SIGNALLED, WM_SIGNALLED) )
       return -1;
-#else
+#elif defined(SIG_ALERT)
     sigset_t set;
     int sig;
 
@@ -1884,8 +1884,10 @@ start_thread(void *closure)
   int rval;
 
   assert(info->goal);
+#if O_SIGNALS
   blockSignal(SIGINT);			/* only the main thread processes */
 					/* Control-C */
+#endif
   set_system_thread_id(info);		/* early to get exit code ok */
 
   if ( !initialise_thread(info) )
@@ -6208,8 +6210,10 @@ GCmain(void *closure)
 #ifdef HAVE_SIGPROCMASK
   sigset_t set;
   allSignalMask(&set);
+#ifdef SIG_ALERT
   if ( GD->signals.sig_alert )
     sigdelset(&set, GD->signals.sig_alert);
+#endif
   pthread_sigmask(SIG_BLOCK, &set, NULL);
 #endif
 

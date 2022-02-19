@@ -111,7 +111,7 @@ struct PL_global_data
 
   struct
   { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#ifdef HAVE_SIGNAL
+#ifdef SIG_ALERT
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;

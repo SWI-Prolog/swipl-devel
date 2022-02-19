@@ -1911,7 +1911,7 @@ int
 enable_debug_on_interrupt(int enable)
 { GET_LD
 
-#ifdef SIGINT
+#if O_SIGNALS && defined(SIGINT)
   if ( enable )
   { if ( truePrologFlag(PLFLAG_SIGNALS) )
     { PL_signal(SIGINT, PL_interrupt);

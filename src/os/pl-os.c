@@ -2736,8 +2736,10 @@ System(char *cmd)
   int pid;
   const char *shell = prog_shell();
   int rval;
+#if O_SIGNALS
   void (*old_int)();
   void (*old_stop)();
+#endif
 
   if ( (pid = fork()) == -1 )
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
@@ -2771,10 +2773,12 @@ System(char *cmd)
   { wait_t status;			/* the parent */
     int n;
 
+#if O_SIGNALS
     old_int  = signal(SIGINT,  SIG_IGN);
 #ifdef SIGTSTP
     old_stop = signal(SIGTSTP, SIG_DFL);
 #endif /* SIGTSTP */
+#endif
 
     for(;;)
     {
@@ -2815,10 +2819,12 @@ System(char *cmd)
     }
   }
 
+#if O_SIGNALS
   signal(SIGINT,  old_int);		/* restore signal handlers */
 #ifdef SIGTSTP
   signal(SIGTSTP, old_stop);
 #endif /* SIGTSTP */
+#endif
 
   return rval;
 }

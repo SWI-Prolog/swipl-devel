@@ -403,9 +403,8 @@ extern struct {char *engine;} *PL__ctx;
 #define LDFUNC(func, ...) LDFUNC_NAME(func)(__VA_ARGS__)
 #define LDFUNCP(pdecl)		(pdecl)
 #define LDFUNC_REF(func)	(&LDFUNC_NAME(func))
-#define LOCAL_LD  (&PL_local_data)
-#define GLOBAL_LD (&PL_local_data)
-#define ANY_LD    (&PL_local_data)
+#define LOCAL_LD GLOBAL_LD
+#define ANY_LD GLOBAL_LD
 #define IGNORE_LD
 #define HAS_LD (1)
 

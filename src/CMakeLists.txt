@@ -291,6 +291,18 @@ add_qcompile_target(prolog_xref)
 # The C config file
 configure_file(config.h.cmake config.h)
 
+# export all O_XYZ variables to be accessible at the top level (i.e. to packages)
+get_directory_property(varnames VARIABLES)
+# message(STATUS "Exporting config options to top level:")
+foreach(varname IN LISTS varnames)
+  if(varname MATCHES "^O_")
+    # message(STATUS "  ${varname} = ${${varname}}")
+    set(${varname} ${${varname}} PARENT_SCOPE)
+  endif()
+endforeach()
+unset(varname)
+unset(varnames)
+
 # Configure some data files.  Uses a function because these
 # files use old-style variable names and we want to avoid these
 # leaking into the cmake environment.
