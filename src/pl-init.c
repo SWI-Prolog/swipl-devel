@@ -782,7 +782,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
-#ifdef HAVE_SIGNAL
+#if defined(HAVE_SIGNAL) && defined(SIG_ALERT)
       } else if ( (optval=is_longopt(s, "sigalert")) )
       { char *e;
 	long sig = strtol(optval, &e, 10);

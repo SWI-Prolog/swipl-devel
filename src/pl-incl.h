@@ -198,6 +198,13 @@ handy for it someone wants to add a data type to the system.
       Default for the `prefer_rationals` flag.
   O_RATIONAL_SYNTAX
       Default support for rational syntax (RAT_NATURAL or RAT_COMPAT)
+  O_SIGNALS
+      Include OS-level signal-handling code. This does not affect any
+      virtual Prolog "signals" defined above SIG_PROLOG_OFFSET, but
+      SIG_ALERT loses its "interrupt a blocking system call" semantics
+      when this is disabled. Presently this also disables support for
+      Prolog-facing signal handling (on_signal/3, etc) but that may
+      change in the future.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -350,9 +357,20 @@ typedef _sigset_t sigset_t;
 #include <stdarg.h>
 #include <limits.h>
 
-#ifdef HAVE_SIGNAL
+#ifdef HAVE_SIGNAL_H 
 #include <signal.h>
 #endif
+#if !O_SIGNALS
+/* Pretend like we don't have access to any of these system calls */
+# undef HAVE_SIGNAL
+# undef HAVE_SIGPROCMASK
+# undef HAVE_SIGSETMASK
+# undef HAVE_SIGGETMASK
+# undef HAVE_SIGACTION
+# undef HAVE_SIGSET
+# undef HAVE_SIGBLOCK
+# undef HAVE_SIGALTSTACK
+#endif /* O_SIGNALS */
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #else
