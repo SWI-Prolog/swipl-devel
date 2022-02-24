@@ -3765,11 +3765,6 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 	    return -1;
 	  }
 	  return TRUE;
-	case ',':
-	  if ( !must_be_op && _PL_rd->strictness > 0 )
-	  { errorWarning("quoted_punctuation", 0, _PL_rd);
-	    return -1;
-	  }
 	default:
 	  return TRUE;
       }
@@ -4570,6 +4565,8 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 	  return read_brace_term(token, positions, _PL_rd);
 	case '[':
 	  return read_list(token, positions, _PL_rd);
+        case ',':
+	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
 	{ term_t term = alloc_term(_PL_rd);
 	  PL_put_atom(term, codeToAtom(token->value.character));
