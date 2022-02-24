@@ -1748,6 +1748,28 @@ freePrologLocalData(PL_local_data_t *ld)
 #endif
 }
 
+/* The following definitions aren't necessary for compiling, and in fact
+ * you could comment this whole section out without breaking the code.
+ * However, they don't take up much space in the binary and they assist
+ * in C-level debugging, so I'm leaving them in regardless of O_DEBUG. */
+
+const intptr_t __PL_ld = -1;
+const intptr_t PL__ctx = -1;
+
+inline PL_local_data_t*
+(__FIND_LD)(PL_local_data_t *pl_ld, control_t pl_ctx, PL_local_data_t *fallback)
+{ if ((intptr_t)pl_ld != -1)
+  { return pl_ld; }
+  if ((intptr_t)pl_ctx != -1)
+  { return pl_ctx->engine; }
+  return fallback;
+}
+
+#ifndef no_local_ld
+PL_local_data_t*
+no_local_ld(void)
+{ return NULL; }
+#endif
 
 
 		 /*******************************
