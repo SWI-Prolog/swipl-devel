@@ -1570,7 +1570,7 @@ int
 PL_w32thread_raise(DWORD id, int sig)
 { int i;
 
-  if ( sig < 0 || sig > MAXSIGNAL )
+  if ( !IS_VALID_SIGNAL(sig) )
     return FALSE;			/* illegal signal */
 
   PL_LOCK(L_THREAD);
@@ -1706,10 +1706,10 @@ thread_wait_signal(DECL_LD)
 #endif
   }
 
-  for(i=0; i<2; i++)
+  for(i=0; i<SIGMASK_WORDS; i++)
   { while( LD->signal.pending[i] )
-    { int sig = 1+32*i;
-      int mask = 1;
+    { int sig = MINSIGNAL+SIGMASK_WIDTH*i;
+      sigmask_t mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )

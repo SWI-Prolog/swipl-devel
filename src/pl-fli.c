@@ -4685,11 +4685,8 @@ PL_raise(int sig)
 
 int
 PL_clearsig(DECL_LD int sig)
-{ if ( sig > 0 && sig <= MAXSIGNAL && HAS_LD )
-  { int off  = (sig-1)/32;
-    int mask = 1 << ((sig-1)%32);
-
-    ATOMIC_AND(&LD->signal.pending[off], ~mask);
+{ if ( IS_VALID_SIGNAL(sig) && HAS_LD )
+  { WSIGMASK_CLEAR(LD->signal.pending, sig);
     updateAlerted(LD);
     return TRUE;
   }

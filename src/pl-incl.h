@@ -131,8 +131,15 @@
  */
 #define COMMON(type) type
 
-#include "pl-builtin.h"
 #include "pl-macros.h"
+
+/* C11 gives us the _Static_assert operator, let's make it a little nicer.
+ * Accept either static_assert(cond, "message") or static_assertion(cond). */
+#define static_assert(condition, message) _Static_assert(condition, message)
+#define static_assertion(condition) _Static_assert(condition, "Assertion failed: ("#condition") [expansion: " A_STRINGIFY(condition) "]")
+
+#include "pl-builtin.h"
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 		      PROLOG SYSTEM OPTIONS
@@ -2093,16 +2100,21 @@ still have signals that trigger Prolog   housekeeping  events. These are
 not bound to operating system signal handling though.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals - specified in docs */
+
 #if HAVE_SIGNAL
-#define MAXSIGNAL		64	/* highest system signal number */
-#define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals */
+
+#define MINSIGNAL		1	/* number of first signal */
+#define MAXSIGNAL		64	/* highest supported signal number */
 
 #else /* HAVE_SIGNAL */
 
-#define MAXSIGNAL		32	/* highest system signal number */
-#define SIG_PROLOG_OFFSET	1	/* Start of Prolog signals */
+#define MINSIGNAL		SIG_PROLOG_OFFSET /* No system signals, only Prolog sigs */
+#define MAXSIGNAL		(SIG_PROLOG_OFFSET+31)	/* we'd like this to fit in 32 bits */
 
 #endif /* HAVE_SIGNAL */
+
+#define NUM_SIGNALS (MAXSIGNAL - MINSIGNAL + 1)
 
 #ifndef RETSIGTYPE
 #define RETSIGTYPE void
@@ -2116,17 +2128,74 @@ typedef struct
   int	      flags;			/* PLSIG_*, defined in pl-setup.c */
 } sig_handler, *SigHandler;
 
+/* Declare numbers for the virtual signals, in their own domain. For now, these
+ * just map to the numbers starting at SIG_PROLOG_OFFSET. Note, we could omit
+ * some of these definitions based on preprocessor statements, but there are
+ * few enough of them that it doesn't seem necessary.
+ */
+typedef enum virtual_signum
+{ VSIG_ATOM_GC,
+  VSIG_GC,
+  VSIG_THREAD_SIGNAL,
+  VSIG_CLAUSE_GC,
+  VSIG_PLABORT,
+  VSIG_TUNE_GC,
+  VSIG_MAX
+} virtual_signum;
 
+#define NUM_VSIGS 6 /* Preprocessor can see this constant */
+static_assertion(NUM_VSIGS == VSIG_MAX); /* Make sure it matches the enum */
+static_assertion(NUM_SIGNALS >= VSIG_MAX && NUM_SIGNALS < 128); /* Sanity check, 128 is arbitrary */
+static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS <= MAXSIGNAL);
+
+/* Define the macros that map vsignals into the signal domain. */
 #ifdef O_ATOMGC
-#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+0)
+#define SIG_ATOM_GC	  (SIG_PROLOG_OFFSET+VSIG_ATOM_GC)
 #endif
-#define SIG_GC		  (SIG_PROLOG_OFFSET+1)
+#define SIG_GC		  (SIG_PROLOG_OFFSET+VSIG_GC)
 #ifdef O_PLMT
-#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+2)
+#define SIG_THREAD_SIGNAL (SIG_PROLOG_OFFSET+VSIG_THREAD_SIGNAL)
 #endif
-#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+3)
-#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+4)
-#define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+5)
+#define SIG_CLAUSE_GC	  (SIG_PROLOG_OFFSET+VSIG_CLAUSE_GC)
+#define SIG_PLABORT	  (SIG_PROLOG_OFFSET+VSIG_PLABORT)
+#define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+VSIG_TUNE_GC)
+
+/* The "search for a free signal" functionality of PL_sigaction starts after
+ * the predefined VSIG numbers */
+#define SIG_USER_OFFSET	  (SIG_PROLOG_OFFSET+VSIG_MAX)
+
+/* Get a zero-based array index for this signal */
+#define SIGNAL_INDEX(sig)	((sig) - MINSIGNAL)
+/* Return the signal given an array index */
+#define SIGNAL_FROM_INDEX(idx)	((idx) + MINSIGNAL)
+/* Is this a valid signal number? */
+#define IS_VALID_SIGNAL(sig)	((sig) >= MINSIGNAL && (sig) <= MAXSIGNAL)
+/* Is this a virtual signal? */
+#define IS_VSIG(sig)		((sig) >= SIG_PROLOG_OFFSET)
+
+/* We want fast types for signal bitmasks; on a 64-bit arch this is probably the same as uint64_t */
+typedef uint_fast32_t		sigmask_t;
+
+/* How many bits can fit in a single sigmask_t? */
+#define SIGMASK_WIDTH		(sizeof(sigmask_t) * 8)
+/* How many sigmask_t's does it take to store all supported signals? */
+#define SIGMASK_WORDS		((NUM_SIGNALS + SIGMASK_WIDTH - 1) / SIGMASK_WIDTH)
+/* Which sigmask word is this signal in? */
+#define SIGMASK_WORD(sig)	(SIGNAL_INDEX(sig) / SIGMASK_WIDTH)
+/* Which bit of the given word? */
+#define SIGMASK_BIT(sig)	(SIGNAL_INDEX(sig) % SIGMASK_WIDTH)
+/* Single-bit mask corresponding to SIGMASK_BIT */
+#define SIGMASK_MASK(sig)	(((sigmask_t)1) << SIGMASK_BIT(sig))
+
+/* Obtain signal given sigmask word and bit */
+#define SIGNAL_FROM_SIGMASK(word, bit) SIGNAL_FROM_INDEX((word) * SIGMASK_WIDTH + (bit))
+
+typedef sigmask_t		wsigmask_t[SIGMASK_WORDS];
+
+/* Helper macros for interacting with sigmask_t arrays */
+#define WSIGMASK_ISSET(wm, sig)	(((wm)[SIGMASK_WORD(sig)] & SIGMASK_MASK(sig)) != 0)
+#define WSIGMASK_SET(wm, sig)	ATOMIC_OR(&(wm)[SIGMASK_WORD(sig)], SIGMASK_MASK(sig))
+#define WSIGMASK_CLEAR(wm, sig)	ATOMIC_AND(&(wm)[SIGMASK_WORD(sig)], ~SIGMASK_MASK(sig))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Guard against C-stack overflows. This is   done  for POSIX systems using
