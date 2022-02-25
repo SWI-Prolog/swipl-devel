@@ -316,12 +316,10 @@ updateAlerted(PL_local_data_t *ld)
 
 int
 raiseSignal(PL_local_data_t *ld, int sig)
-{ if ( sig > 0 && sig <= MAXSIGNAL && ld )
-  { int off = (sig-1) / 32;
-    int mask = (1 << ((sig-1)%32));
-    int alerted;
+{ if ( IS_VALID_SIGNAL(sig) && ld )
+  { int alerted;
 
-    ATOMIC_OR(&ld->signal.pending[off], mask);
+    WSIGMASK_SET(ld->signal.pending, sig);
 
     do
     { alerted = ld->alerted;
@@ -336,11 +334,8 @@ raiseSignal(PL_local_data_t *ld, int sig)
 
 int
 pendingSignal(PL_local_data_t *ld, int sig)
-{ if ( sig > 0 && sig <= MAXSIGNAL && ld )
-  { int off  = (sig-1)/32;
-    int mask = 1 << ((sig-1)%32);
-
-    return (ld->signal.pending[off] & mask) ? TRUE : FALSE;
+{ if ( IS_VALID_SIGNAL(sig) && ld )
+  { return WSIGMASK_ISSET(ld->signal.pending, sig) ? TRUE : FALSE;
   }
 
   return -1;

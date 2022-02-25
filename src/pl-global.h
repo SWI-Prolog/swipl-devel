@@ -110,7 +110,7 @@ struct PL_global_data
   } resources;
 
   struct
-  { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
+  { sig_handler handlers[NUM_SIGNALS];	/* How Prolog receives signals */
 #ifdef SIG_ALERT
     int		sig_alert;		/* our alert signal */
 #endif
@@ -452,7 +452,7 @@ struct PL_local_data
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct
-  { int		pending[2];		/* PL_raise() pending signals */
+  { wsigmask_t	pending;		/* PL_raise() pending signals */
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
 #ifndef __unix__

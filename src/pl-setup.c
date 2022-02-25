@@ -97,8 +97,8 @@ setupProlog(void)
 
   LD->critical = 0;
   LD->magic = LD_MAGIC;
-  LD->signal.pending[0] = 0;
-  LD->signal.pending[1] = 0;
+  for (int i = 0; i < SIGMASK_WORDS; i++)
+    LD->signal.pending[i] = 0;
   LD->statistics.start_time = WallTime();
 
   startCritical;
@@ -451,7 +451,7 @@ is_fatal_signal(int sig)
 void
 dispatch_signal(int sig, int sync)
 { GET_LD
-  SigHandler sh = &GD->signals.handlers[sig-1];
+  SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   fid_t fid;
   term_t lTopSave;
   int saved_current_signal;
@@ -494,7 +494,7 @@ dispatch_signal(int sig, int sync)
   if ( is_fatal_signal(sig) && sig == LD->signal.current )
     sysError("Recursively received fatal signal %d", sig);
 
-  if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
+  if ( gc_status.active && !IS_VSIG(sig) )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
 	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
@@ -567,8 +567,8 @@ dispatch_signal(int sig, int sync)
 #endif
 
     DEBUG(MSG_SIGNAL,
-	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
-		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
+	  Sdprintf("Handler %p finished (pending=0x%"PRIxFAST32",0x%"PRIxFAST32")\n",
+		   sh->handler, LD->signal.pending[0], SIGMASK_WORDS > 1 ? LD->signal.pending[1] : 0));
 
     if ( !ex_pending && exception_term && !sync )	/* handler: PL_raise_exception() */
       fatalError("Async exception handler for signal %s (%d) raised "
@@ -644,11 +644,11 @@ set_sighandler(int sig, handler_t func)
 
 static SigHandler
 prepareSignal(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
   if ( false(sh, PLSIG_PREPARED) )
   { set(sh, PLSIG_PREPARED);
-    if ( sig < SIG_PROLOG_OFFSET )
+    if ( !IS_VSIG(sig) )
       sh->saved_handler = set_sighandler(sig, pl_signal_handler);
   }
 
@@ -658,10 +658,10 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
   if ( true(sh, PLSIG_PREPARED) )
-  { if ( sig < SIG_PROLOG_OFFSET )
+  { if ( !IS_VSIG(sig) )
       set_sighandler(sig, sh->saved_handler);
     sh->flags         = 0;
     sh->handler       = NULL;
@@ -838,7 +838,7 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
   if ( sh->saved_handler &&
        sh->saved_handler != SIG_IGN &&
@@ -919,8 +919,8 @@ resetSignals(void)
 { GET_LD
 
   LD->signal.current = 0;
-  LD->signal.pending[0] = 0;
-  LD->signal.pending[1] = 0;
+  for (int i = 0; i < SIGMASK_WORDS; i++)
+    LD->signal.pending[i] = 0;
 }
 
 #if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
@@ -1050,14 +1050,14 @@ int
 PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
 { SigHandler sh = NULL;
 
-  if ( sig < 0 || sig > MAXSIGNAL )
+  if ( sig && !IS_VALID_SIGNAL(sig) )
   { errno = EINVAL;
     return -1;
   }
 
   if ( sig == 0 )
-  { for(sig=SIG_PROLOG_OFFSET; sig<MAXSIGNAL; sig++)
-    { sh = &GD->signals.handlers[sig-1];
+  { for(sig=SIG_USER_OFFSET; sig<=MAXSIGNAL; sig++)
+    { sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
       if ( sh->flags == 0 )
 	break;
     }
@@ -1066,7 +1066,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
       return -2;
     }
   } else
-  { sh = &GD->signals.handlers[sig-1];
+  { sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   }
 
   if ( old )
@@ -1151,10 +1151,8 @@ PL_handle_signals(void)
 #define handleSigInt(_) LDFUNC(handleSigInt, _)
 static int
 handleSigInt(DECL_LD)
-{ int intmask = 1<<(SIGINT-1);
-
-  if ( LD->signal.forced == SIGINT && LD->signal.pending[0] & intmask )
-  { ATOMIC_AND(&LD->signal.pending[0], ~intmask);
+{ if ( LD->signal.forced == SIGINT && WSIGMASK_ISSET(LD->signal.pending, SIGINT) )
+  { WSIGMASK_CLEAR(LD->signal.pending, SIGINT);
 
     LD->signal.forced = 0;
     dispatch_signal(SIGINT, TRUE);
@@ -1188,10 +1186,10 @@ handleSignals(DECL_LD)
   if ( LD->critical )
     return 0;
 
-  for(i=0; i<2; i++)
+  for(i=0; i<SIGMASK_WORDS; i++)
   { while( LD->signal.pending[i] )
-    { int sig = 1+32*i;
-      unsigned mask = 1;
+    { int sig = MINSIGNAL+SIGMASK_WIDTH*i;
+      sigmask_t mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
@@ -1316,7 +1314,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
        !get_meta_arg(new, mnew, new) )
     return FALSE;
 
-  if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
+  if ( PL_get_integer(sig, &sign) && IS_VALID_SIGNAL(sign) )
   { TRY(PL_unify_atom_chars(name, signal_name(sign)));
   } else if ( PL_get_atom_chars(name, &sn) )
   { if ( (sign = signal_index(sn)) != -1 )
@@ -1326,7 +1324,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &GD->signals.handlers[sign-1];
+  sh = &GD->signals.handlers[SIGNAL_INDEX(sign)];
 
   if ( false(sh, PLSIG_PREPARED) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
