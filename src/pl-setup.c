@@ -82,9 +82,16 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if USE_LD_MACROS
+#define allocStacks(_)		LDFUNC(allocStacks, _)
+#define initSignals(_)		LDFUNC(initSignals, _)
+#endif
+
+#define LDFUNC_DECLARATIONS
 static int allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
+#undef LDFUNC_DECLARATIONS
 
 int
 setupProlog(void)
@@ -191,6 +198,11 @@ initPrologLocalData(DECL_LD)
   LD->transaction.gen_base = GEN_INFINITE;
 #endif
 
+#if STDC_CV_ALERT
+  cnd_init(&LD->signal.alert_cv);
+  mtx_init(&LD->signal.alert_mtx, mtx_plain);
+#endif
+
   updateAlerted(LD);
 }
 
@@ -240,7 +252,7 @@ static struct signame
   int	      flags;
 } signames[] =
 {
-#ifdef HAVE_SIGNAL
+#ifdef HAVE_OS_SIGNALS
 #ifdef SIGHUP
   { SIGHUP,	"hup",    0},
 #endif
@@ -319,7 +331,7 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
-#endif /*HAVE_SIGNAL*/
+#endif /*HAVE_OS_SIGNALS*/
 
 /* The signals below here are recorded as Prolog interrupts, but
    not supported by OS signals.  They start at offset 32.
@@ -504,7 +516,7 @@ dispatch_signal(int sig, int sync)
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
-#ifdef HAVE_SIGNAL
+#if O_SIGNALS
        && sig != SIGINT
 #endif
        && !is_fatal_signal(sig)	)
@@ -683,6 +695,8 @@ unprepareSignal(int sig)
 }
 
 
+#if O_SIGNALS
+
 #ifdef SIGHUP
 static void
 hupHandler(int sig)
@@ -693,7 +707,6 @@ hupHandler(int sig)
 #endif
 
 
-#ifdef HAVE_SIGNAL
 /* terminate_handler() is called on termination signals like SIGTERM.
    It runs hooks registered using PL_exit_hook() and then kills itself.
    The hooks are called with the exit status `3`.
@@ -746,7 +759,7 @@ initTerminationSignals(void)
   terminate_on_signal(SIGQUIT);
 #endif
 }
-#endif /*HAVE_SIGNAL*/
+#endif /*O_SIGNALS*/
 
 #ifdef O_C_STACK_GUARDED
 static void
@@ -861,16 +874,16 @@ alert_handler(int sig)
 
 
 static void
-initSignals(void)
-{ GET_LD
-
+initSignals(DECL_LD)
+{
+#if O_SIGNALS
   /* This is general signal handling that is not strictly needed */
   if ( truePrologFlag(PLFLAG_SIGNALS) )
   { struct signame *sn = signames;
-#ifdef HAVE_SIGNAL
+#ifdef HAVE_OS_SIGNALS
     initTerminationSignals();
     initGuardCStack();
-#endif /*HAVE_SIGNAL*/
+#endif /*HAVE_OS_SIGNALS*/
     initBackTrace();
     for( ; sn->name; sn++)
     {
@@ -895,6 +908,7 @@ initSignals(void)
   if ( GD->signals.sig_alert )
     PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
 #endif
+#endif /*O_SIGNALS*/
 
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
@@ -938,7 +952,7 @@ resetSignals(void)
 #define sigprocmask(how, new, old) pthread_sigmask(how, new, old)
 #endif
 
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
 
 void
 allSignalMask(sigset_t *set)
@@ -1037,7 +1051,7 @@ blockSignal(int sig)
   DEBUG(1, Sdprintf("signal %d\n", sig));
 }
 
-#else /*HAVE_SIGPROCMASK*/
+#else /*O_SIGNALS && defined(HAVE_SIGPROCMASK)*/
 
 void blockSignals(sigset_t *old) {}
 void unblockSignals(sigset_t *old) {}
@@ -1266,11 +1280,13 @@ f_endCritical(DECL_LD)
 }
 
 
-#ifdef HAVE_SIGNAL
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 on_signal(?SigNum, ?SigName, :OldHandler, :NewHandler)
 
 Assign NewHandler to be called if signal arrives.
+
+We always support this even when compiled without OS-level signal support,
+because of internal virtual signal handling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1412,8 +1428,6 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   succeed;
 }
 
-#endif /*HAVE_SIGNAL*/
-
 
 		 /*******************************
 		 *	       STACKS		*
@@ -1541,9 +1555,8 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 
 
 static int
-allocStacks(void)
-{ GET_LD
-  size_t minglobal = 8*SIZEOF_VOIDP K;
+allocStacks(DECL_LD)
+{ size_t minglobal = 8*SIZEOF_VOIDP K;
   size_t minlocal  = 4*SIZEOF_VOIDP K;
   size_t mintrail  = 4*SIZEOF_VOIDP K;
   size_t minarg    = 1*SIZEOF_VOIDP K;
@@ -1893,10 +1906,8 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 BeginPredDefs(setup)
   PRED_DEF("$set_prolog_stack",	  4, set_prolog_stack,	  0)
   PRED_DEF("trim_stacks",	  0, trim_stacks,	  0)
-#ifdef HAVE_SIGNAL
   PRED_DEF("$on_signal",	  4, on_signal,		  0)
 #ifdef SIG_ALERT
   PRED_DEF("prolog_alert_signal", 2, prolog_alert_signal, 0)
-#endif
 #endif
 EndPredDefs

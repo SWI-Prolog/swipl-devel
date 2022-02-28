@@ -2211,32 +2211,40 @@ popen(pwd-1) :-
 	same_file(Pwd, '.').
 popen(cat-1) :-
 	(   current_prolog_flag(windows, true)
-	->  true		% there is *no* cmd.exe command like cat!?
-	;   current_prolog_flag(pid, Pid),
-	    format(atom(File), 'pltest-~w.txt', [Pid]),
-	    Text = 'Hello World',
-	    Cmd = cat,
-	    atomic_list_concat([Cmd, ' > ', File], Command),
-	    open(pipe(Command), write, Fd),
-	    format(Fd, '~w', [Text]),
-	    close(Fd),
-	    open(File, read, Fd2),
-	    collect_data(Fd2, String),
-	    close(Fd2),
-	    delete_file(File),
-	    atom_codes(A, String),
-	    A == Text
-	).
+	->  Cmd = 'cmd /c type con'		% "type con" is cmd-speak for "cat /dev/stdin"
+	;   Cmd = cat
+	),
+	current_prolog_flag(pid, Pid),
+	format(atom(File), 'pltest-~w.txt', [Pid]),
+	Text = 'Hello World',
+	atomic_list_concat([Cmd, ' > ', File], Command),
+	open(pipe(Command), write, Fd),
+	format(Fd, '~w', [Text]),
+	close(Fd),
+	open(File, read, Fd2),
+	collect_data(Fd2, String),
+	close(Fd2),
+	delete_file(File),
+	atom_codes(A, String),
+	A == Text.
 popen(cat-2) :-
 	(   current_prolog_flag(windows, true)
 	->  Cmd = 'cmd /c rem true'
-	;   Cmd = true
+	;   Cmd = true,
+	    (	current_prolog_flag(signals, false)
+	    ->	on_signal(pipe, OldSigPipe, ignore)
+	    ;	true
+	    )
 	),
 	open(pipe(Cmd), write, Pipe),
 	catch(forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
 	      E,
 	      true),
 	catch(close(Pipe), _, true),	% ???
+	(	nonvar(OldSigPipe)
+	->	on_signal(pipe, _, OldSigPipe)
+	;	true
+	),
 	(   var(E)
 	->  format(user_error, 'No exception?~n', []),
 	    fail

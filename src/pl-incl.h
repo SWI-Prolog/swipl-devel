@@ -208,10 +208,8 @@ handy for it someone wants to add a data type to the system.
   O_SIGNALS
       Include OS-level signal-handling code. This does not affect any
       virtual Prolog "signals" defined above SIG_PROLOG_OFFSET, but
-      SIG_ALERT loses its "interrupt a blocking system call" semantics
-      when this is disabled. Presently this also disables support for
-      Prolog-facing signal handling (on_signal/3, etc) but that may
-      change in the future.
+      PL_thread_raise loses its "interrupt a blocking system call"
+      semantics when this is disabled.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -367,17 +365,30 @@ typedef _sigset_t sigset_t;
 #ifdef HAVE_SIGNAL_H 
 #include <signal.h>
 #endif
-#if !O_SIGNALS
-/* Pretend like we don't have access to any of these system calls */
-# undef HAVE_SIGNAL
-# undef HAVE_SIGPROCMASK
-# undef HAVE_SIGSETMASK
-# undef HAVE_SIGGETMASK
-# undef HAVE_SIGACTION
-# undef HAVE_SIGSET
-# undef HAVE_SIGBLOCK
-# undef HAVE_SIGALTSTACK
-#endif /* O_SIGNALS */
+
+/* We have two important feature test macros relating to signals. The first is
+ * O_SIGNALS, which controls whether Prolog itself should perform OS-level
+ * signal handling, and is set by the USE_SIGNALS config directive.
+ * 
+ * The other macro is HAVE_OS_SIGNALS. This controls whether OS-level signal
+ * handling is available at all, e.g. from the on_signal/3 predicate.
+ */
+#ifndef HAVE_OS_SIGNALS
+# if defined(HAVE_SIGNAL) || defined(HAVE_SIGACTION)
+/* if we have at least one of these functions, assume we have access to
+ * OS-level signals, unless HAVE_OS_SIGNALS has been explicitly disabled. */
+#  define HAVE_OS_SIGNALS 1
+# endif
+#elif !HAVE_OS_SIGNALS
+/* If HAVE_OS_SIGNALS was explicitly defined to 0, turn that into an undef
+ * so that we can use either #if or #ifdef with it in libswipl code. */
+# undef HAVE_OS_SIGNALS
+#endif
+
+#if !HAVE_OS_SIGNALS
+/* If we can't access OS signals, don't include code that uses them. */
+# undef O_SIGNALS
+#endif
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #else
@@ -428,6 +439,14 @@ typedef _sigset_t sigset_t;
 
 #ifndef MAXPATHLEN
 #define MAXPATHLEN 1024
+#endif
+
+/* If we have a threads-supporting C11 environment, we can use C11 thread
+ * primitives (as a fallback, if we don't have a system-specific impl). */
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+# include <threads.h>
+# undef thread_local /* we use this as an identifier, it's not in the C11 spec anyway */
+# define HAVE_STDC_THREADS 	1
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2102,17 +2121,17 @@ not bound to operating system signal handling though.
 
 #define SIG_PROLOG_OFFSET	32	/* Start of Prolog signals - specified in docs */
 
-#if HAVE_SIGNAL
+#if HAVE_OS_SIGNALS
 
 #define MINSIGNAL		1	/* number of first signal */
 #define MAXSIGNAL		64	/* highest supported signal number */
 
-#else /* HAVE_SIGNAL */
+#else /* HAVE_OS_SIGNALS */
 
 #define MINSIGNAL		SIG_PROLOG_OFFSET /* No system signals, only Prolog sigs */
 #define MAXSIGNAL		(SIG_PROLOG_OFFSET+31)	/* we'd like this to fit in 32 bits */
 
-#endif /* HAVE_SIGNAL */
+#endif /* HAVE_OS_SIGNALS */
 
 #define NUM_SIGNALS (MAXSIGNAL - MINSIGNAL + 1)
 
@@ -2173,6 +2192,15 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 /* Is this a virtual signal? */
 #define IS_VSIG(sig)		((sig) >= SIG_PROLOG_OFFSET)
 
+#if O_DEBUG
+#undef SIGNAL_INDEX
+static inline int
+SIGNAL_INDEX(int sig)
+{ assert(IS_VALID_SIGNAL(sig));
+  return sig - MINSIGNAL;
+}
+#endif
+
 /* We want fast types for signal bitmasks; on a 64-bit arch this is probably the same as uint64_t */
 typedef uint_fast32_t		sigmask_t;
 
@@ -2207,7 +2235,7 @@ simpler, but a lot slower as it  implies   a  system  call. We assume no
 other signals are involved and unblock SIGSEGV by hand.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if defined(HAVE_SIGALTSTACK) && !defined(__SANITIZE_ADDRESS__)
+#if O_SIGNALS && defined(HAVE_SIGALTSTACK) && !defined(__SANITIZE_ADDRESS__)
 #define O_C_STACK_GUARDED 1
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\

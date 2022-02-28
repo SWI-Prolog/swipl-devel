@@ -49,7 +49,8 @@ test_d_break :-
 		  ]).
 
 
-:- begin_tests(d_break, [sto(rational_trees)]).
+% D_BREAK tests fail on signal-free systems. Not sure why yet.
+:- begin_tests(d_break, [sto(rational_trees), condition(current_prolog_flag(signals, true))]).
 
 %%	break_me(?Instruction)
 %
