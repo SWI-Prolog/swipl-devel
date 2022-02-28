@@ -590,6 +590,10 @@ initialise_thread(PL_thread_info_t *info)
 static void
 free_local_data(PL_local_data_t *ld)
 { simpleMutexDelete(&ld->thread.scan_lock);
+#if STDC_CV_ALERT
+  cnd_destroy(&ld->signal.alert_cv);
+  mtx_destroy(&ld->signal.alert_mtx);
+#endif
   freeHeap(ld, sizeof(*ld));
 }
 
@@ -1306,7 +1310,7 @@ discard_thread(thread_handle *h)
 static void *
 thread_gc_loop(void *closure)
 {
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
   sigset_t set;
   allSignalMask(&set);
   pthread_sigmask(SIG_BLOCK, &set, NULL);
@@ -1620,11 +1624,29 @@ alertThread(PL_thread_info_t *info)
         cv_broadcast(&ld->thread.alert.obj.queue->drain_var);
 	done = TRUE;
 	break;
+#if STDC_CV_ALERT
+      case ALERT_LOCK_CV:
+        /* thread_wait_signal locks L_ALERT inside alert_mtx, so we
+	 * must do the same to avoid deadlocks. A thread race here
+	 * will only cause us to alert a non-waiting thread, which
+	 * isn't a problem. */
+	PL_UNLOCK(L_ALERT);
+	mtx_lock(&ld->signal.alert_mtx);
+	PL_LOCK(L_ALERT);
+	done = cnd_broadcast(&ld->signal.alert_cv) == thrd_success;
+	mtx_unlock(&ld->signal.alert_mtx);
+	break;
+#endif
     }
     PL_UNLOCK(L_ALERT);
     if ( done )
       return TRUE;
   }
+
+#if STDC_CV_ALERT
+  /* Try sending a notification on the thread's alert cv, if it exists */
+  cnd_broadcast(&ld->signal.alert_cv);
+#endif
 
 #ifdef __WINDOWS__
   if ( info->w32id )
@@ -1633,7 +1655,7 @@ alertThread(PL_thread_info_t *info)
 					/* fail if thread is being created */
   }
 #elif defined(SIG_ALERT)
-  if ( info->has_tid && GD->signals.sig_alert )
+  WITH_LD(ld) if ( info->has_tid && truePrologFlag(PLFLAG_SIGNALS) && GD->signals.sig_alert )
     return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
 #endif
   return -1;
@@ -1696,13 +1718,30 @@ thread_wait_signal(DECL_LD)
     MSG msg;
     if ( !GetMessage(&msg, (HWND)-1, WM_SIGNALLED, WM_SIGNALLED) )
       return -1;
+    continue;
 #elif defined(SIG_ALERT)
-    sigset_t set;
-    int sig;
+    if ( truePrologFlag(PLFLAG_SIGNALS) )
+    { sigset_t set;
+      int sig;
 
-    sigemptyset(&set);
-    sigaddset(&set, GD->signals.sig_alert);
-    sigwait(&set, &sig);
+      sigemptyset(&set);
+      sigaddset(&set, GD->signals.sig_alert);
+      sigwait(&set, &sig);
+      continue;
+    }
+#endif
+#if STDC_CV_ALERT
+    LD->thread.alert.type = ALERT_LOCK_CV;
+    mtx_lock(&LD->signal.alert_mtx);
+    if (!is_signalled())
+      cnd_wait(&LD->signal.alert_cv, &LD->signal.alert_mtx);
+    PL_LOCK(L_ALERT);
+    LD->thread.alert.type = 0;
+    PL_UNLOCK(L_ALERT);
+    mtx_unlock(&LD->signal.alert_mtx);
+#else
+    /* Shouldn't happen? but let's avoid the spin cycle anyway */
+    Pause(0.001);
 #endif
   }
 
@@ -6447,7 +6486,7 @@ static rc_cancel cancelGCThread(int tid);
 static void *
 GCmain(void *closure)
 { PL_thread_attr_t attrs = {0};
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
   sigset_t set;
   allSignalMask(&set);
 #ifdef SIG_ALERT

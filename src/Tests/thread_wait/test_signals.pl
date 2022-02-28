@@ -151,7 +151,10 @@ test(nested_likely) :-
     findall(C, retract(caught(C)), CL),
     normally(CL==[2]).
 
-a_non_atomic :- catch(b, b(X), r(X)), sleep(1).
+% The _=_ below and in a_atomic allow this test to work on systems without
+% OS-level signals, since pending signals are only checked at the call port,
+% not the exit port, and a bare true would get optimized away.
+a_non_atomic :- catch((b, _=_), b(X), r(X)), sleep(1).
 
 % here we have a guarantee as we signal ourselves inside
 % sig_atomic/1.
@@ -172,7 +175,7 @@ test(nested_atomic, CL==[1,2]) :-
     catch(a_atomic, a(X), r(X)),
     findall(C, retract(caught(C)), CL).
 
-a_atomic :- catch(b, b(X), sig_atomic(r(X))), sleep(1).
+a_atomic :- catch((b, _=_), b(X), sig_atomic(r(X))), sleep(1).
 
 b :- ready(b), sleep(1).
 

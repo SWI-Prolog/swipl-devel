@@ -1894,10 +1894,8 @@ PL_interrupt(int sig)
 
 
 void
-initTracer(void)
-{ GET_LD
-
-  debugstatus.visible      =
+initTracer(DECL_LD)
+{ debugstatus.visible      =
   debugstatus.leashing     = CALL_PORT|FAIL_PORT|REDO_PORT|EXIT_PORT|
 			     EXCEPTION_PORT;
   debugstatus.showContext  = FALSE;
@@ -1908,9 +1906,8 @@ initTracer(void)
 }
 
 int
-enable_debug_on_interrupt(int enable)
-{ GET_LD
-
+enable_debug_on_interrupt(DECL_LD int enable)
+{
 #if O_SIGNALS && defined(SIGINT)
   if ( enable )
   { if ( truePrologFlag(PLFLAG_SIGNALS) )

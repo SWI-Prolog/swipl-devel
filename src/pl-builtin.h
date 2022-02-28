@@ -281,6 +281,12 @@ typedef struct PL_global_data PL_global_data_t;
 
 #if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
 
+#ifdef __GNUC__
+/* Instructing GCC to treat this as a system header greatly simplifies
+ * diagnostic output when, for example, getting a no_local_ld error. */
+#pragma GCC system_header
+#endif
+
 /* These are defined in pl-setup.c, but they'll never actually get used.
  * They're just here for scope-detection. */
 const extern intptr_t __PL_ld;

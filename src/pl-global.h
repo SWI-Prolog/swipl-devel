@@ -453,6 +453,10 @@ struct PL_local_data
 
   struct
   { wsigmask_t	pending;		/* PL_raise() pending signals */
+#if STDC_CV_ALERT /* use C11 condition variable/mutex for thread signalling */
+    cnd_t	alert_cv;		/* notify when a signal is in pending */
+    mtx_t	alert_mtx;		/* lock on this while waiting for _cv */
+#endif
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
 #ifndef __unix__

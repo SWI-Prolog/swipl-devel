@@ -782,7 +782,7 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
 #endif
       } else if ( (optval=is_longopt(s, "traditional")) )
       { setTraditional();
-#if defined(HAVE_SIGNAL) && defined(SIG_ALERT)
+#if O_SIGNALS && defined(SIG_ALERT)
       } else if ( (optval=is_longopt(s, "sigalert")) )
       { char *e;
 	long sig = strtol(optval, &e, 10);
@@ -1074,7 +1074,7 @@ PL_initialise(int argc, char **argv)
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   { GET_LD
-#ifdef HAVE_SIGNAL
+#ifdef O_SIGNALS
     setPrologFlagMask(PLFLAG_SIGNALS);	/* default: handle signals */
 #endif
 

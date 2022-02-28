@@ -45,6 +45,8 @@
 
 #if USE_LD_MACROS
 #define	tracePort(frame, bfr, port, PC)		LDFUNC(tracePort, frame, bfr, port, PC)
+#define initTracer(_)				LDFUNC(initTracer, _)
+#define enable_debug_on_interrupt(enable)	LDFUNC(enable_debug_on_interrupt, enable)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS

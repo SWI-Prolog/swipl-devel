@@ -50,6 +50,12 @@
 
 #ifndef __WINDOWS__
 #define SIG_ALERT  SIGUSR2
+#if HAVE_STDC_THREADS
+/* Use a C11 condition variable to do cross-thread alerting, if signal
+ * support is compiled out (!O_SIGNALS) or disabled (--sigalert=0)
+ */
+#define STDC_CV_ALERT 1
+#endif
 #endif
 
 #if defined(__linux__) || defined(__CYGWIN__)
@@ -190,6 +196,9 @@ typedef struct pl_mutex
 
 #define ALERT_QUEUE_RD	1
 #define ALERT_QUEUE_WR	2
+#if STDC_CV_ALERT
+# define ALERT_LOCK_CV	3
+#endif
 
 typedef struct alert_channel
 { int	type;				/* Type of channel */
