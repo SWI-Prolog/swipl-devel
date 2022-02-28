@@ -222,7 +222,11 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define PLSIG_USERFLAGS 0x0000ffff	/* range of API-visible flags */
+#define PLSIG_STATEFLAGS 0xffff0000	/* range of internal flags */
+
 #define PLSIG_PREPARED 0x00010000	/* signal is prepared */
+#define PLSIG_IGNORED  0x00020000	/* signal is ignored */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -252,7 +256,7 @@ static struct signame
 #endif
   { SIGSEGV,	"segv",   0},
 #ifdef SIGPIPE
-  { SIGPIPE,	"pipe",   0},
+  { SIGPIPE,	"pipe",   PLSIG_IGNORE},
 #endif
 #ifdef SIGALRM
   { SIGALRM,	"alrm",   PLSIG_THROW},
@@ -643,13 +647,21 @@ set_sighandler(int sig, handler_t func)
 }
 
 static SigHandler
-prepareSignal(int sig)
+prepareSignal(int sig, int plsig_flags)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
+  int current_state = sh->flags & PLSIG_STATEFLAGS;
+  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED : PLSIG_PREPARED;
 
-  if ( false(sh, PLSIG_PREPARED) )
-  { set(sh, PLSIG_PREPARED);
+  plsig_flags &= ~(PLSIG_STATEFLAGS | PLSIG_IGNORE);
+
+  if ( current_state != desired_state )
+  { clearFlags(sh);
+    set(sh, desired_state | plsig_flags);
     if ( !IS_VSIG(sig) )
-      sh->saved_handler = set_sighandler(sig, pl_signal_handler);
+    { handler_t old_handler = set_sighandler(sig, desired_state == PLSIG_IGNORED ? SIG_IGN : pl_signal_handler);
+      if ( current_state == 0 )
+        sh->saved_handler = old_handler;
+    }
   }
 
   return sh;
@@ -660,7 +672,7 @@ static void
 unprepareSignal(int sig)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
-  if ( true(sh, PLSIG_PREPARED) )
+  if ( true(sh, PLSIG_STATEFLAGS) )
   { if ( !IS_VSIG(sig) )
       set_sighandler(sig, sh->saved_handler);
     sh->flags         = 0;
@@ -856,9 +868,6 @@ initSignals(void)
   if ( truePrologFlag(PLFLAG_SIGNALS) )
   { struct signame *sn = signames;
 #ifdef HAVE_SIGNAL
-#ifdef SIGPIPE
-    set_sighandler(SIGPIPE, SIG_IGN);
-#endif
     initTerminationSignals();
     initGuardCStack();
 #endif /*HAVE_SIGNAL*/
@@ -871,9 +880,7 @@ initSignals(void)
 	sn->flags = 0;
 #endif
       if ( sn->flags )
-      { SigHandler sh = prepareSignal(sn->sig);
-	sh->flags |= sn->flags;
-      }
+        prepareSignal(sn->sig, sn->flags);
     }
 
 #ifdef SIGHUP
@@ -1094,9 +1101,8 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
     if ( active )
     { sh->handler   = act->sa_cfunction;
       sh->predicate = act->sa_predicate;
-      sh->flags     = (sh->flags&~0xffff)|act->sa_flags;
-      if ( false(sh, PLSIG_PREPARED) )
-	prepareSignal(sig);
+      sh->flags     = (sh->flags&~PLSIG_USERFLAGS)|act->sa_flags;
+      prepareSignal(sig, act->sa_flags);
     } else
     { unprepareSignal(sig);
       sh->handler   = NULL;
@@ -1123,7 +1129,7 @@ PL_signal(int sigandflags, handler_t func)
   if ( (sigandflags&PL_SIGNOFRAME) )
     act.sa_flags |= PLSIG_NOFRAME;
 
-  if ( PL_sigaction((sigandflags & 0xffff), &act, &old) >= 0 )
+  if ( PL_sigaction((sigandflags & PLSIG_USERFLAGS), &act, &old) >= 0 )
   { if ( (old.sa_flags&PLSIG_PREPARED) && old.sa_cfunction )
       return old.sa_cfunction;
 
@@ -1326,8 +1332,10 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
   sh = &GD->signals.handlers[SIGNAL_INDEX(sign)];
 
-  if ( false(sh, PLSIG_PREPARED) )		/* not handled */
+  if ( false(sh, PLSIG_STATEFLAGS) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
+  } else if ( true(sh, PLSIG_IGNORED) )		/* signal ignored */
+  { TRY(PL_unify_atom(old, ATOM_ignore));
   } else if ( true(sh, PLSIG_THROW) )		/* throw exception */
   { TRY(PL_unify_atom(old, ATOM_throw));
   } else if ( sh->predicate )			/* call predicate */
@@ -1359,15 +1367,15 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_default )
     { unprepareSignal(sign);
+    } else if ( a == ATOM_ignore )
+    { prepareSignal(sign, PLSIG_IGNORE);	/* request to ignore this signal */
     } else if ( a == ATOM_throw )
-    { sh = prepareSignal(sign);
-      set(sh, PLSIG_THROW|PLSIG_SYNC);
+    { sh = prepareSignal(sign, PLSIG_THROW|PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else if ( a == ATOM_debug )
-    { sh = prepareSignal(sign);
+    { sh = prepareSignal(sign, 0);
 
-      clear(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler = (handler_t)PL_interrupt;
       sh->predicate = NULL;
 
@@ -1379,9 +1387,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 	return FALSE;
       pred = lookupProcedure(PL_new_functor(a, 1), m);
 
-      sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW);
-      set(sh, PLSIG_SYNC);
+      sh = prepareSignal(sign, PLSIG_SYNC);
       sh->handler = NULL;
       sh->predicate = pred;
     }
@@ -1392,8 +1398,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     _PL_get_arg(1, new, a);
 
     if ( PL_get_pointer(a, &f) )
-    { sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW|PLSIG_SYNC);
+    { sh = prepareSignal(sign, 0);
       sh->handler = (handler_t)f;
       sh->predicate = NULL;
 

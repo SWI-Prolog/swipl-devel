@@ -1101,6 +1101,7 @@ PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 #define PLSIG_THROW     0x0002		/* throw signal(num, name) */
 #define PLSIG_SYNC      0x0004		/* call synchronously */
 #define PLSIG_NOFRAME   0x0008		/* Do not create a Prolog frame */
+#define PLSIG_IGNORE    0x0010		/* ignore signal entirely */
 
 
 
