@@ -3373,8 +3373,9 @@ in module <Module>. The handler is called with a single argument:
 the name of the signal as an atom. The Prolog names for signals are
 explained below.
 
-Three names have special meaning. \const{throw} implies Prolog will map
+Four names have special meaning. \const{throw} implies Prolog will map
 the signal onto a Prolog exception as described in \secref{exception},
+\const{ignore} causes Prolog to ignore the signal entirely,
 \const{debug} specifies the debug interrupt prompt that is initially
 bound to \const{SIGINT} (Control-C) and \const{default} resets the
 handler to the settings active before SWI-Prolog manipulated the
@@ -3406,6 +3407,8 @@ and start the tracer.
 Bound to an empty signal handler used to make blocking system calls
 return.  This allows thread_signal/2 to interrupt threads blocked in
 a system call.  See also prolog_alert_signal/2.
+    \definition{pipe}
+Ignored.
     \definition{hup, term, abrt, quit}
 Causes normal Prolog cleanup (e.g., at_halt/1) before terminating the
 process with the same signal.
