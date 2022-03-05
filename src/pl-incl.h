@@ -442,8 +442,11 @@ typedef _sigset_t sigset_t;
 #endif
 
 /* If we have a threads-supporting C11 environment, we can use C11 thread
- * primitives (as a fallback, if we don't have a system-specific impl). */
-#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__)
+ * primitives (as a fallback, if we don't have a system-specific impl).
+ * We do not need this stuff on Windows as it is used for internal signal
+ * handling if no true signals are available.
+ */
+#if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__WINDOWS__)
 # include <threads.h>
 # undef thread_local /* we use this as an identifier, it's not in the C11 spec anyway */
 # define HAVE_STDC_THREADS 	1
