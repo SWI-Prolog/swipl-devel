@@ -118,11 +118,11 @@ freeze(_, Goal) :-
 %!  frozen(@Term, -Goal)
 %
 %   Unify Goals with the goals frozen on  Var   or  true if no goals are
-%   grozen on Var.
+%   frozen on Var.
 %
 %   Note that attribute_goals//1 may   destructively  update attributes,
 %   often used to simplify the produced attributes. For frozen/2 however
-%   we  must  keep  the  original  variables.  Ideall  we  would  demand
+%   we must keep  the  original  variables.   Ideally  we  would  demand
 %   attribute_goals//1 to not modify any  attributes.   As  that is hard
 %   given where we are we now copy   the  result and fail, restoring the
 %   bindings. This is a simplified version of bagof/3.
