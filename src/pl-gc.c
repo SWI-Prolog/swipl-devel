@@ -1535,7 +1535,14 @@ protected against GC so we  can  report   them.  There  is  also a false
 possitive scenario though. If the attvar is  subject to _early reset_ it
 becomes an unbound attvar again  and  is   reported.  If  we  are inside
 call_residue_vars/2 we reset the location  to ATOM_garbage_collected and
-keep the trail entry.  See test `call_residue_vars:early_reset`:
+keep the trail entry. See test `call_residue_vars:early_reset`:
+
+(**) This case deals  with  a   registered  attributed  variable  (under
+call_residue_vars/2) that is marked. If we  remove this trail entry, the
+attvar is not reset to a normal var.   Normally  that is not an issue as
+the global stack is truncated to before   the mark (gKeep), but this may
+not be the case if a later stack  freeze   is  in  effect at the time of
+backtracking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define early_reset_vars(m, top, te) \
@@ -1613,7 +1620,20 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	te->address = 0;
 	trailcells_deleted++;
       } else if ( tard > gKeep && tard < gMax )
-      { te->address = 0;
+      { if ( LD->attvar.attvars &&	/* see (**) */
+	     is_marked(tard) && isRef(*tard) &&
+	     te-1 >= tm )
+	{ Word tard2 = val_ptr(te[-1].address);
+
+	  if ( is_marked(tard2) && isAttVar(*tard2) )
+	  { te--;
+	    DEBUG(MSG_GC_RESET,
+		  Sdprintf("Keep trail for attvar _%lld\n",
+			   (int64_t)(tard2-gBase)*2));
+	    continue;
+	  }
+	}
+	te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
       { DEBUG(MSG_GC_RESET,
