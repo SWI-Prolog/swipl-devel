@@ -52,6 +52,7 @@
 #include "pl-setup.h"
 #include "pl-bag.h"
 #include "pl-wam.h"
+#include "pl-write.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -1480,7 +1481,10 @@ mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
     { assignments--;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
-	      Sdprintf("Delete duplicate trailed assignment at %p\n", p));
+	      { char vname[32];
+		Sdprintf("Delete duplicate trailed assignment at %s\n",
+			 var_name_ptr(p, vname));
+	      });
 	te->address = 0;
 	te[1].address = 0;
 	trailcells_deleted += 2;
@@ -1615,7 +1619,7 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n",
-		       print_addr(tard, b1), print_val(*tard, b2)));
+		       var_name_ptr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
