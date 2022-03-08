@@ -709,6 +709,10 @@ There are several alternatives though:
           Interact with SWI-Prolog directly in Emacs buffers.
     \item \url{https://www.metalevel.at/etrace/}\\
           Trace Prolog code with Emacs.
+    \item \url{https://emacs-lsp.github.io/dap-mode/page/configuration/#swi-prolog}\\
+          Debug Adapter Protocol (DAP) for SWI-Prolog with Emacs using
+          \exam{dap-mode} and the \const{debug_adapter} pack from
+          \url{https://github.com/eshelyaron/debug_adapter}
 \end{shortlist}
 
 
