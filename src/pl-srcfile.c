@@ -247,9 +247,9 @@ clearSourceAdmin(atom_t sf_name)
   { term_t name = PL_new_term_ref();
 
     PL_put_atom(name, sf_name);
-    startCritical;			/* block signals */
+    startCritical();			/* block signals */
     rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, name);
-    endCritical;
+    rc = endCritical() && rc;
 
     PL_discard_foreign_frame(fid);
   }

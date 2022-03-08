@@ -362,14 +362,14 @@ typedef _sigset_t sigset_t;
 #include <stdarg.h>
 #include <limits.h>
 
-#ifdef HAVE_SIGNAL_H 
+#ifdef HAVE_SIGNAL_H
 #include <signal.h>
 #endif
 
 /* We have two important feature test macros relating to signals. The first is
  * O_SIGNALS, which controls whether Prolog itself should perform OS-level
  * signal handling, and is set by the USE_SIGNALS config directive.
- * 
+ *
  * The other macro is HAVE_OS_SIGNALS. This controls whether OS-level signal
  * handling is available at all, e.g. from the on_signal/3 predicate.
  */
@@ -449,7 +449,7 @@ typedef _sigset_t sigset_t;
 #if __STDC_VERSION__ >= 201112L && !defined(__STDC_NO_THREADS__) && !defined(__WINDOWS__)
 # include <threads.h>
 # undef thread_local /* we use this as an identifier, it's not in the C11 spec anyway */
-# define HAVE_STDC_THREADS 	1
+# define HAVE_STDC_THREADS	1
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1219,19 +1219,6 @@ introduce a garbage collector (TBD).
 		 /*******************************
 		 *	 INHIBIT SIGNALS	*
 		 *******************************/
-
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-At times an abort is not allowed because the heap  is  inconsistent  the
-programmer  should  call  startCritical  to start such a code region and
-endCritical to end it.
-
-MT/TBD: how to handle this gracefully in the multi-threading case.  Does
-it mean anything?
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#define startCritical (void)(LD->critical++)
-#define endCritical   ((--(LD->critical) == 0 && LD->alerted) \
-				? f_endCritical() : TRUE)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 LIST processing macros.

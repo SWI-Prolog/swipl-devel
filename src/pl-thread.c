@@ -665,7 +665,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       PL_UNLOCK(L_THREAD);
 
       if ( ld->stacks.argument.base )		/* are stacks initialized? */
-      { ld->critical++;   /* startCritical  */
+      { WITH_LD(ld) startCritical();
 	info->in_exit_hooks = TRUE;
 	if ( LD == ld )
 	  rc1 = callEventHook(PLEV_THIS_THREAD_EXIT);
@@ -679,7 +679,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 	  PL_clear_exception();
 	}
 	info->in_exit_hooks = FALSE;
-	ld->critical--;   /* endCritical */
+	WITH_LD(ld) endCritical();	/* TBD: exception? */
       }
     } else
     { acknowledge = FALSE;
@@ -1655,8 +1655,13 @@ alertThread(PL_thread_info_t *info)
 					/* fail if thread is being created */
   }
 #elif defined(SIG_ALERT)
-  WITH_LD(ld) if ( info->has_tid && truePrologFlag(PLFLAG_SIGNALS) && GD->signals.sig_alert )
-    return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
+  WITH_LD(ld)
+  { if ( info->has_tid && truePrologFlag(PLFLAG_SIGNALS) && GD->signals.sig_alert )
+    { DEBUG(MSG_THREAD_SIGNAL, Sdprintf("Sending signal %d to %d\n",
+					GD->signals.sig_alert, info->pl_tid));
+      return pthread_kill(info->tid, GD->signals.sig_alert) == 0;
+    }
+  }
 #endif
   return -1;
 }
@@ -3378,13 +3383,13 @@ signal_is_blocked(DECL_LD thread_sig *sg)
   { term_t av = PL_new_term_refs(1);
     term_t m  = PL_new_term_ref();
 
-    startCritical;
+    startCritical();
     rc = ( PL_put_atom(m, sg->module->name) &&
 	   PL_recorded(sg->goal, av+0) &&
 	   PL_cons_functor(av+0, FUNCTOR_colon2, m, av+0) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av)
 	 );
-    rc = endCritical && rc;
+    rc = endCritical() && rc;
 
     if ( rc )
     { DEBUG(MSG_THREAD_SIGNAL,
@@ -3477,9 +3482,9 @@ executeThreadSignals(int sig)
       size_t olimit = LD->depth_info.limit;
       LD->depth_info.limit = DEPTH_NO_LIMIT;
 #endif
-      startCritical;
+      startCritical();
       rval = callProlog(gm, goal, PL_Q_CATCH_EXCEPTION, &ex);
-      rval = endCritical && rval;
+      rval = endCritical() && rval;
 #ifdef O_LIMIT_DEPTH
       LD->depth_info.limit = olimit;
 #endif
@@ -3490,10 +3495,10 @@ executeThreadSignals(int sig)
       PL_close_foreign_frame(fid);
 
       DEBUG(MSG_THREAD,
-	    { print_trace(8);
-	      Sdprintf("[%d]: Prolog backtrace:\n", PL_thread_self());
+	    { Sdprintf("[%d]: Thread signal raised exception. Backtrace:\n",
+		       PL_thread_self());
 	      PL_backtrace(5, 0);
-	      Sdprintf("[%d]: end Prolog backtrace:\n", PL_thread_self());
+	      Sdprintf("[%d]: end Prolog backtrace\n", PL_thread_self());
 	    });
 
       return;

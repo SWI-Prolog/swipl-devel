@@ -8319,9 +8319,9 @@ PRED_IMPL("$break_at", 3, break_at, 0)
     else
       et = PLEV_NOBREAK;
 
-    startCritical;			/* Call event handler sig_atomic */
+    startCritical();			/* Call event handler sig_atomic */
     rc = callEventHook(et, clause, offset);
-    rc = endCritical && rc;
+    rc = endCritical() && rc;
   }
 
   return rc;

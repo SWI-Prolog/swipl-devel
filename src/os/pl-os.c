@@ -2170,9 +2170,8 @@ Sread_terminal(void *handle, char *buf, size_t size)
 void
 ResetTty(void)
 { GET_LD
-  startCritical;
-  ResetStdin();
 
+  ResetStdin();
   if ( !GD->os.iofunctions.read )
   { GD->os.iofunctions       = *Sinput->functions;
     GD->os.iofunctions.read  = Sread_terminal;
@@ -2182,7 +2181,6 @@ ResetTty(void)
     Serror->functions  = &GD->os.iofunctions;
   }
   LD->prompt.next = TRUE;
-  endCritical;
 }
 
 #ifdef O_HAVE_TERMIO			/* sys/termios.h or sys/termio.h */

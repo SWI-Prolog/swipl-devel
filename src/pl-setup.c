@@ -108,7 +108,6 @@ setupProlog(void)
     LD->signal.pending[i] = 0;
   LD->statistics.start_time = WallTime();
 
-  startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
   initWamTable();
   DEBUG(1, Sdprintf("character types ...\n"));
@@ -171,9 +170,6 @@ setupProlog(void)
   GD->clauses.cgc_space_factor  = 8;
   GD->clauses.cgc_stack_factor  = 0.03;
   GD->clauses.cgc_clause_factor = 1.0;
-
-  if ( !endCritical )
-    return FALSE;
 
   DEBUG(1, Sdprintf("Heap Initialised\n"));
   return TRUE;
@@ -865,6 +861,8 @@ static void
 alert_handler(int sig)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
+  DEBUG(MSG_THREAD_SIGNAL, Sdprintf("[%d]: received alert\n", PL_thread_self()));
+
   if ( sh->saved_handler &&
        sh->saved_handler != SIG_IGN &&
        sh->saved_handler != SIG_DFL )
@@ -1204,7 +1202,11 @@ handleSignals(DECL_LD)
     return done;
 #endif
   if ( LD->critical )
+  { DEBUG(MSG_THREAD_SIGNAL,
+	  Sdprintf("[%d]: ignoring signal (critical = %d)\n",
+		   PL_thread_self(), LD->critical));
     return 0;
+  }
 
   for(i=0; i<SIGMASK_WORDS; i++)
   { while( LD->signal.pending[i] )
@@ -1271,9 +1273,15 @@ PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
 #endif
 
 
+void
+startCritical(DECL_LD)
+{ LD->critical++;
+}
+
+
 int
-f_endCritical(DECL_LD)
-{ if ( exception_term )
+endCritical(DECL_LD)
+{ if ( --LD->critical == 0 && LD->alerted && exception_term )
     return FALSE;
 
   return TRUE;

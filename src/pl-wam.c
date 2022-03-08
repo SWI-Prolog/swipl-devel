@@ -844,9 +844,9 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
       if ( saveWakeup(&wstate, FALSE) )
       { int rval;
 
-	startCritical;
+	startCritical();
         rval = call_term(contextModule(fr), clean);
-	if ( !endCritical )
+	if ( !endCritical() )
 	  rval = FALSE;
 	if ( !rval && exception_term )
 	  wstate.flags |= WAKEUP_KEEP_URGENT_EXCEPTION;
@@ -2144,11 +2144,11 @@ exception_hook(DECL_LD qid_t pqid, term_t fr, term_t catchfr_ref)
       { PL_put_frame(av+3, NULL);	/* puts 'none' */
       }
 
-      startCritical;
+      startCritical();
       qid = PL_open_query(MODULE_user, PL_Q_NODEBUG|PL_Q_CATCH_EXCEPTION,
 			  PROCEDURE_exception_hook4, av);
       rc = PL_next_solution(qid);
-      rc = endCritical && rc;
+      rc = endCritical() && rc;
       debug = debugstatus.debugging;
       trace = debugstatus.tracing;
       if ( rc )				/* pass user setting trace/debug */

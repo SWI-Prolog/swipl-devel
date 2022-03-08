@@ -45,7 +45,8 @@
 		 *******************************/
 
 #if USE_LD_MACROS
-#define	f_endCritical(_)	LDFUNC(f_endCritical, _)
+#define	startCritical(_)	LDFUNC(startCritical, _)
+#define	endCritical(_)		LDFUNC(endCritical, _)
 #define	handleSignals(_)	LDFUNC(handleSignals, _)
 #define	initPrologLocalData(_)	LDFUNC(initPrologLocalData, _)
 #define	trimStacks(resize)	LDFUNC(trimStacks, resize)
@@ -55,7 +56,8 @@
 #define LDFUNC_DECLARATIONS
 
 int		setupProlog(void);
-int		f_endCritical(void);
+void		startCritical(void);
+int		endCritical(void);
 void		dispatch_signal(int sig, int sync);
 handler_t	set_sighandler(int sig, handler_t func);
 void		blockSignals(sigset_t *mask);

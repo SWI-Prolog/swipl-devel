@@ -1245,11 +1245,9 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       ctx = from;
     }
 
-    for(; depth > 0; PL_step_context(&ctx))
-    { LocalFrame frame;
-
-      if ( !(frame=ctx.fr) )
-	return;
+    startCritical();
+    for(; depth > 0 && ctx.fr; PL_step_context(&ctx))
+    { LocalFrame frame = ctx.fr;
 
       if ( frame->predicate == def )
       { if ( ++same_proc >= 10 )
@@ -1274,6 +1272,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
 	depth--;
       }
     }
+    endCritical();
   } else
   { Sfprintf(out, "No stack??\n");
   }

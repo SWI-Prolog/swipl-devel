@@ -304,9 +304,9 @@ PRED_IMPL("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
 { PRED_LD
   int rval;
 
-  startCritical;
+  startCritical();
   rval = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
-  if ( !endCritical )
+  if ( !endCritical() )
     fail;				/* aborted */
 
   return rval;
