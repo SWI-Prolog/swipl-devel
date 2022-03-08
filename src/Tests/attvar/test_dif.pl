@@ -123,6 +123,21 @@ test(no_dup, [P==[x, y, z, z], nondet]) :-
 	permutation_no_dup([x,y,Z,Z],P), P=[x,y,z,z].
 test(17) :-		% from Issue#17
 	dif(A,[_|B]),A=[[]|_],A=[B].
+test(other_atts) :-
+	call_residue_vars((
+		freeze(X, XDone = true),
+		freeze(Y, YDone = true),
+		dif(A, B),
+		X = A,
+		Y = B,
+		\+ X = Y,
+		X = 1,
+		\+ Y = 1,
+		Y = 2
+	), Vars),
+	Vars == [],
+	XDone == true,
+	YDone == true.
 
 :- end_tests(dif).
 

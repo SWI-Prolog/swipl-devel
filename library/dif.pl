@@ -247,7 +247,7 @@ attr_unify_hook(vardif(V1,V2),Other) :-
         ;   put_attr(Other, dif, vardif(CV1,CV2))
         )
     ;   var(Other)			% unrelated variable
-    ->  true
+    ->  put_attr(Other, dif, vardif(V1,V2))
     ;   verify_compounds(V1, Other),
         verify_compounds(V2, Other)
     ).
