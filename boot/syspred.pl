@@ -869,7 +869,7 @@ visible_predicate(Pred) :-
     ->  (   '$get_predicate_attribute'(Pred, defined, 1)
         ->  true
         ;   \+ current_prolog_flag(M:unknown, fail),
-            functor(Head, Name, Arity),
+            '$head_name_arity'(Head, Name, Arity),
             '$find_library'(M, Name, Arity, _LoadModule, _Library)
         )
     ;   setof(PI, visible_in_module(M, PI), PIs),
