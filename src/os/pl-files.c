@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -908,7 +908,7 @@ PRED_IMPL("$tmp_file_stream", 4, tmp_file_stream, 0)
   if ( !PL_get_chars(A1, &ext, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) ||
        !PL_get_atom_ex(A2, &encoding) )
     return FALSE;
-  if ( (enc = atom_to_encoding(encoding)) == ENC_UNKNOWN )
+  if ( (enc = PL_atom_to_encoding(encoding)) == ENC_UNKNOWN )
   { if ( encoding == ATOM_binary )
     { enc = ENC_OCTET;
       mode = "wb";

@@ -505,7 +505,7 @@ setOccursCheck(atom_t a)
 static int
 setEncoding(atom_t a)
 { GET_LD
-  IOENC enc = atom_to_encoding(a);
+  IOENC enc = PL_atom_to_encoding(a);
 
   if ( enc == ENC_UNKNOWN )
   { term_t value = PL_new_term_ref();
@@ -1633,7 +1633,8 @@ initPrologFlags(void)
 #endif
 #endif
 
-  setPrologFlag("encoding", FT_ATOM, stringAtom(encoding_to_atom(LD->encoding)));
+  setPrologFlag("encoding", FT_ATOM,
+		stringAtom(PL_encoding_to_atom(LD->encoding)));
 
   setPrologFlag("tty_control", FT_BOOL,
 		truePrologFlag(PLFLAG_TTY_CONTROL), PLFLAG_TTY_CONTROL);

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -179,6 +179,7 @@ typedef struct io_position
 
 					/* NOTE: check with encoding_names */
 					/* in pl-file.c */
+#undef IOENC
 typedef enum
 { ENC_UNKNOWN = 0,			/* invalid/unknown */
   ENC_OCTET,				/* raw 8 bit input */
@@ -449,6 +450,11 @@ PL_EXPORT(int)		Sseek64(IOSTREAM *s, int64_t pos, int whence);
 
 PL_EXPORT(int)		ScheckBOM(IOSTREAM *s);
 PL_EXPORT(int)		SwriteBOM(IOSTREAM *s);
+
+#ifdef _SWI_PROLOG_H
+PL_EXPORT(IOENC)	PL_atom_to_encoding(atom_t name);
+PL_EXPORT(atom_t)	PL_encoding_to_atom(IOENC enc);
+#endif
 
 #ifdef __cplusplus
 }
