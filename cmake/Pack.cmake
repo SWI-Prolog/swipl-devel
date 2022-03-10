@@ -88,13 +88,37 @@ if(WIN32)
   createShortCut("SWI-Prolog" "swipl-win" "--win_app" ON)
   createShortCut("SWI-Prolog (console)" "swipl" "" OFF)
 
-  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
-  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
-  ")
-  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-  DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-  ")
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home_x64' '$INSTDIR'
+    ")
+  else()
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home_x86' '$INSTDIR'
+    ")
+  endif()
+
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+    DeleteRegValue HKLM 'Software\\\\SWI\\\\Prolog' 'home_x64'
+    ClearErrors
+    ReadRegStr $0 HKLM 'Software\\\\SWI\\\\Prolog' 'home_x86'
+    IfErrors 0 +2
+      DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+    ")
+  else()
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+    DeleteRegValue HKLM 'Software\\\\SWI\\\\Prolog' 'home_x86'
+    ClearErrors
+    ReadRegStr $0 HKLM 'Software\\\\SWI\\\\Prolog' 'home_x64'
+    IfErrors 0 +2
+      DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+    ")
+  endif()
 endif()
 
 if(NOT SWIPL_CPACK_ARCH)
