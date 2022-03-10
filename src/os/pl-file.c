@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -2066,7 +2067,7 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
 	return streamStatus(s2);
       }
       return streamStatus(s);
-    } else if ( (enc = atom_to_encoding(val)) == ENC_UNKNOWN )
+    } else if ( (enc = PL_atom_to_encoding(val)) == ENC_UNKNOWN )
     { bad_encoding(NULL, val);
       return FALSE;
     }
@@ -3470,7 +3471,7 @@ static struct encname
 
 
 IOENC
-atom_to_encoding(atom_t a)
+PL_atom_to_encoding(atom_t a)
 { struct encname *en;
 
   for(en=encoding_names; en->name; en++)
@@ -3483,7 +3484,7 @@ atom_to_encoding(atom_t a)
 
 
 atom_t
-encoding_to_atom(IOENC enc)
+PL_encoding_to_atom(IOENC enc)
 { if ( (int)enc > 0 &&
        (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
     return encoding_names[enc].name;
@@ -3698,7 +3699,7 @@ stream_encoding_options(atom_t type, atom_t encoding, int *bom, IOENC *enc)
 { GET_LD
 
   if ( encoding != NULL_ATOM )
-  { *enc = atom_to_encoding(encoding);
+  { *enc = PL_atom_to_encoding(encoding);
 
     if ( *enc == ENC_UNKNOWN )
       return bad_encoding(NULL, encoding);
@@ -4593,7 +4594,7 @@ stream_newline_prop(DECL_LD IOSTREAM *s, term_t prop)
 #define stream_encoding_prop(s, prop) LDFUNC(stream_encoding_prop, s, prop)
 static int
 stream_encoding_prop(DECL_LD IOSTREAM *s, term_t prop)
-{ atom_t ename = encoding_to_atom(s->encoding);
+{ atom_t ename = PL_encoding_to_atom(s->encoding);
 
   if ( ename )
     return PL_unify_atom(prop, ename);
