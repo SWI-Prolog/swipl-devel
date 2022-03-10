@@ -259,7 +259,7 @@ represents the new aggregated answer.
     \termitem{po}{PI}
 \jargon{Partial Ordering}. The new answer is added iff
 \term{call}{PI, +Old, +Answer} succeeds. For example, \verb$po('<'/2)$
-accumulates the largest result. In SWI-Prolog the arity (2) may be
+accumulates the smallest result. In SWI-Prolog the arity (2) may be
 omitted, resulting in \verb$po(<)$.
 
     \termitem{-}{}
