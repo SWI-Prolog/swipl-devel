@@ -574,3 +574,9 @@ initBuildIns(void)
 
   extensions_loaded = TRUE;
 }
+
+
+void
+cleanupBuildIns(void)
+{ destroyHTable(GD->procedures.dirty);
+}

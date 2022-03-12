@@ -183,6 +183,12 @@ initWamTable(DECL_LD)
   initVMIMerge();
 }
 
+void
+cleanupWamTable(void)
+{ free(dewam_table);
+  dewam_table = NULL;
+}
+
 /* See SEPARATE_VMI */
 
 void
@@ -197,6 +203,11 @@ initWamTable(DECL_LD)
 { checkCodeTable();
   initSupervisors();
   initVMIMerge();
+}
+
+void
+cleanupWamTable(void)
+{
 }
 
 #endif /* VMCODE_IS_ADDRESS */

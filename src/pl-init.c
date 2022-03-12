@@ -47,6 +47,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-prof.h"
 #include "pl-read.h"
 #include "pl-prims.h"
+#include "pl-comp.h"
 #include "pl-setup.h"
 #include "pl-fli.h"
 #include "pl-wic.h"
@@ -1557,6 +1558,7 @@ emergency:
 #endif
     freePrologLocalData(LD);
     cleanupModules();
+    cleanupBuildIns();
     cleanupPrologFlags();
     cleanupFlags();
     cleanupRecords();
@@ -1566,6 +1568,7 @@ emergency:
     cleanupArith();
     cleanupInitialiseHooks();
     cleanupExtensions();
+    cleanupWamTable();
     cleanupOs();
     cleanupSourceFiles();
     Scleanup();
