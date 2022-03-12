@@ -3549,12 +3549,11 @@ file_name_is_iri(const char *path)
 static int
 call_iri_hook(term_t argv, iri_op op, va_list args)
 { GET_LD
-  static predicate_t pred = NULL;
 
-  if ( !pred )
-    pred = PL_predicate("iri_hook", 4, "$iri");
+  if ( !GD->procedures.iri_hook4 )
+    GD->procedures.iri_hook4 = PL_predicate("iri_hook", 4, "$iri");
 
-  if ( !hasClausesDefinition(pred->definition) )
+  if ( !hasClausesDefinition(GD->procedures.iri_hook4->definition) )
   { sysError("IRI scheme handler not yet installed");
     return FALSE;
   }
@@ -3608,7 +3607,8 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
       return FALSE;
   }
 
-  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, argv) )
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION,
+			 GD->procedures.iri_hook4, argv) )
   { switch(op)
     { case IRI_OPEN:
       {	IOSTREAM **vp = va_arg(args, IOSTREAM**);

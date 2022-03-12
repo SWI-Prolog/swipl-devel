@@ -215,13 +215,12 @@ typedef enum
 static gvar_action
 auto_define_gvar(atom_t name)
 { GET_LD
-  static predicate_t pred;
   fid_t fid;
   term_t av;
   gvar_action rc = gvar_error;
 
-  if ( !pred )
-    pred = PL_predicate("exception", 3, "user");
+  if ( !GD->procedures.exception3 )
+    GD->procedures.exception3 = PL_predicate("exception", 3, "user");
 
   if ( !(fid = PL_open_foreign_frame()) )
     return gvar_error;
@@ -229,7 +228,8 @@ auto_define_gvar(atom_t name)
   PL_put_atom(av+0, ATOM_undefined_global_variable);
   PL_put_atom(av+1, name);
 
-  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) )
+  if ( PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION,
+			 GD->procedures.exception3, av) )
   { atom_t action;			/* retry, error, fail */
 
     if ( (rc=PL_get_atom_ex(av+2, &action)) )

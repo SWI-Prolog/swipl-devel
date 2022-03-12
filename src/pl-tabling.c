@@ -1877,14 +1877,14 @@ call_answer_completion(DECL_LD trie *atrie)
 { fid_t fid;
 
   if ( (fid = PL_open_foreign_frame()) )
-  { static predicate_t pred = NULL;
+  { predicate_t pred;
     term_t av = PL_new_term_refs(2);
     int rc;
     tbl_component *scc_old = LD->tabling.component;
     int hsc = LD->tabling.has_scheduling_component;
 
-    if ( !pred )
-      pred = PL_predicate("answer_completion", 2, "$tabling");
+    pred = _PL_predicate("answer_completion", 2, "$tabling",
+			 &GD->procedures.answer_completion2);
 
     DEBUG(MSG_TABLING_AC,
 	  { term_t t = PL_new_term_ref();
@@ -3804,15 +3804,15 @@ update_subsuming_answer(trie_node *node, void *ptr)
 
   if ( true(node, TN_SECONDARY) )
   { GET_LD
-    static predicate_t PRED_update7 = 0;
+    predicate_t PRED_update7;
     term_t av = ctx->argv;
     term_t agg = av+5;
     term_t action = av+6;
     atom_t conditional = answer_is_conditional(node) ? 0
 						     : AS_OLD_DEFINED;
 
-    if ( !PRED_update7 )
-	  PRED_update7 = PL_predicate("update", 7, "$tabling");
+    PRED_update7 = _PL_predicate("update", 7, "$tabling",
+				 &GD->procedures.update7);
 
     if ( tbl_put_moded_args(av+3, node) &&
 	 PL_put_integer(av+0, ctx->flags|conditional) &&
@@ -8942,10 +8942,10 @@ generalise_answer_substitution(DECL_LD term_t spec, term_t gen)
 
 static int
 add_answer_count_restraint(void)
-{ static predicate_t pred = NULL;
+{ predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("answer_count_restraint", 0, "system");
+  pred = _PL_predicate("answer_count_restraint", 0, "system",
+		       &GD->procedures.answer_count_restraint0);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8956,10 +8956,10 @@ add_answer_count_restraint(void)
 
 static int
 add_radial_restraint(void)
-{ static predicate_t pred = NULL;
+{ predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("radial_restraint", 0, "system");
+  pred = _PL_predicate("radial_restraint", 0, "system",
+		       &GD->procedures.radial_restraint0);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8971,11 +8971,10 @@ add_radial_restraint(void)
 static int
 tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 { GET_LD
-  static predicate_t pred = NULL;
+  predicate_t pred;
   term_t av;
 
-  if ( !pred )
-    pred = PL_predicate("tripwire", 3, "$tabling");
+  pred = _PL_predicate("tripwire", 3, "$tabling", &GD->procedures.tripwire3);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8991,11 +8990,10 @@ tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 static int
 tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
 { GET_LD
-  static predicate_t pred = NULL;
+  predicate_t pred;
   term_t av;
 
-  if ( !pred )
-    pred = PL_predicate("tripwire", 3, "$tabling");
+  pred = _PL_predicate("tripwire", 3, "$tabling", &GD->procedures.tripwire3);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));

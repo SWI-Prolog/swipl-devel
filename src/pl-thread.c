@@ -3372,12 +3372,12 @@ unblock_signals(DECL_LD)
 
 static int
 signal_is_blocked(DECL_LD thread_sig *sg)
-{ static predicate_t pred = NULL;
+{ predicate_t pred;
   fid_t fid;
   int rc = FALSE;
 
-  if ( !pred )
-    pred = PL_predicate("signal_is_blocked", 1, "$syspreds");
+  pred = _PL_predicate("signal_is_blocked", 1, "$syspreds",
+		       &GD->procedures.signal_is_blocked1);
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t av = PL_new_term_refs(1);
@@ -3602,7 +3602,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
   if ( (new = PL_create_engine(&attrs)) )
   { PL_engine_t me;
-    static predicate_t pred = NULL;
+    predicate_t pred;
     record_t r;
     thread_handle *th;
     term_t t;
@@ -3629,8 +3629,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
     }
     PL_unregister_atom(th->symbol);
 
-    if ( !pred )
-      pred = PL_predicate("call", 1, "system");
+    pred = _PL_predicate("call", 1, "system", &GD->procedures.call1);
 
     r = PL_record(A2);
     rc = PL_set_engine(new, &me);
@@ -6508,11 +6507,10 @@ GCmain(void *closure)
   if ( PL_thread_attach_engine(&attrs) > 0 )
   { GET_LD
     PL_thread_info_t *info = LD->thread.info;
-    static predicate_t pred = 0;
+    predicate_t pred;
     int rc;
 
-    if ( !pred )
-      pred = PL_predicate("$gc", 0, "system");
+    pred = _PL_predicate("$gc", 0, "system", &GD->procedures.dgc0);
 
     GC_id = PL_thread_self();
     info->cancel = cancelGCThread;

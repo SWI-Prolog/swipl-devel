@@ -741,14 +741,13 @@ As frameFinished() is rather time critical this seems worthwhile.
 #define call1(mdef, goal) LDFUNC(call1, mdef, goal)
 static int
 call1(DECL_LD Module mdef, term_t goal)
-{ static predicate_t PRED_call1 = NULL;
+{ predicate_t pred;
   qid_t qid;
   int rc;
 
-  if ( !PRED_call1 )
-    PRED_call1 = PL_predicate("call", 1, "system");
+  pred = _PL_predicate("call", 1, "system", &GD->procedures.call1);
 
-  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, PRED_call1, goal);
+  qid = PL_open_query(mdef, PL_Q_PASS_EXCEPTION, pred, goal);
   rc = PL_next_solution(qid);
   PL_cut_query(qid);
 

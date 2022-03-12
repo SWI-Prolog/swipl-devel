@@ -238,10 +238,10 @@ clearSourceAdmin(atom_t sf_name)
 { GET_LD
   int rc = FALSE;
   fid_t fid;
-  static predicate_t pred = NULL;
+  predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("$clear_source_admin", 1, "system");
+  pred = _PL_predicate("$clear_source_admin", 1, "system",
+		       &GD->procedures.clear_source_admin1);
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t name = PL_new_term_ref();

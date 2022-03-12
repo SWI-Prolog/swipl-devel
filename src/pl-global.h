@@ -324,7 +324,8 @@ struct PL_global_data
     Procedure	prolog_break_hook6;	/* prolog:break_hook/6 */
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
-    Procedure   call3;			/* call/3*/
+    Procedure   call1;			/* call/1 */
+    Procedure   call3;			/* call/3 */
     Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
@@ -338,12 +339,34 @@ struct PL_global_data
     Procedure	tune_gc3;		/* prolog:tune_gc */
     Procedure	trie_gen_compiled2;
     Procedure	trie_gen_compiled3;
+    Procedure	exception3;		/* user:exception/3 */
+    Procedure	iri_hook4;		/* $iri:iri_hook/4 */
+    Procedure	absolute_file_name3;	/* system:absolute_file_name/3 */
+    Procedure	c_open_resource3;	/* $rc:c_open_resource/3 */
+    Procedure	clear_source_admin1;	/* system:$clear_source_admin/1 */
+    Procedure	answer_completion2;	/* $tabling:answer_completion/2 */
+    Procedure	update7;		/* $tabling:update/7 */
+    Procedure	answer_count_restraint0;/* $tabling:answer_count_restraint/0 */
+    Procedure	radial_restraint0;	/* $tabling:radial_restraint/0 */
+    Procedure	tripwire3;		/* $tabling:tripwire/3 */
+#if O_PLMT
+    Procedure	signal_is_blocked1;	/* $syspreds:signal_is_blocked1/1 */
+    Procedure	dgc0;			/* system:$gc/0 */
+#endif
+    Procedure	drun_undo1;		/* $syspreds:$run_undo/1 */
+    Procedure	drun_initialization2;	/* system:$run_initialization/2 */
+    Procedure	dtranslated_source2;	/* system:$translated_source/2 */
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
     Table	dirty;			/* Table of dirty procedures */
 #endif
   } procedures;
+
+  struct				/* see raiseInferenceLimitException() */
+  { int		initialized;
+    predicate_t	not_exceed_[6];
+  } inference_limit;
 
   struct
   { ClauseRef	lingering;		/* Unlinked clause refs */

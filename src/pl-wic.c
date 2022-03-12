@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1680,10 +1680,10 @@ runInitialization(SourceFile sf)
   { GET_LD
     fid_t fid = PL_open_foreign_frame();
     term_t av = PL_new_term_refs(2);
-    static predicate_t pred = NULL;
+    predicate_t pred;
 
-    if ( !pred )
-      pred = PL_predicate("$run_initialization", 2, "system");
+    pred = _PL_predicate("$run_initialization", 2, "system",
+			 &GD->procedures.drun_initialization2);
 
     PL_put_atom(av+0, sf->name);
     PL_put_nil( av+1);
@@ -3380,12 +3380,12 @@ popPathTranslation(wic_state *state)
       if ( (tr=old->translated) )
       { GET_LD
         path_translated *n;
-	static predicate_t pred = NULL;
+	predicate_t pred;
 	fid_t fid = PL_open_foreign_frame();
 	term_t av = PL_new_term_refs(2);
 
-	if ( !pred )
-	  pred = PL_predicate("$translated_source", 2, "system");
+	pred = _PL_predicate("$translated_source", 2, "system",
+			     &GD->procedures.dtranslated_source2);
 
 	for(; tr; tr=n)
 	{ n = tr->next;

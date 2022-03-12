@@ -4641,15 +4641,15 @@ PL_open_resource(Module m,
 { GET_LD
   IOSTREAM *s = NULL;
   fid_t fid;
-  static predicate_t MTOK_pred;
+  predicate_t pred;
   term_t t0;
 
   (void)rc_class;
 
   if ( !m )
     m = MODULE_user;
-  if ( !MTOK_pred )
-    MTOK_pred = PL_predicate("c_open_resource", 3, "$rc");
+  pred = _PL_predicate("c_open_resource", 3, "$rc",
+		       &GD->procedures.c_open_resource3);
 
   if ( !(fid = PL_open_foreign_frame()) )
   { errno = ENOENT;
@@ -4659,7 +4659,7 @@ PL_open_resource(Module m,
   PL_put_atom_chars(t0+0, name);
   PL_put_atom_chars(t0+1, mode);
 
-  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
+  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, pred, t0) ||
        !PL_get_stream_handle(t0+2, &s) )
     errno = ENOENT;
 

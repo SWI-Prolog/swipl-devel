@@ -501,7 +501,9 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
   { fid_t fid;
 
     if ( (fid = PL_open_foreign_frame()) )
-    { predicate_t pred = PL_predicate("absolute_file_name", 3, "system");
+    { if ( !GD->procedures.absolute_file_name3 )
+	GD->procedures.absolute_file_name3 =
+	  PL_predicate("absolute_file_name", 3, "system");
       term_t av = PL_new_term_refs(3);
       term_t options = PL_copy_term_ref(av+2);
       int rc = TRUE;
@@ -520,7 +522,8 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
 	rc = add_option(options, FUNCTOR_access1, ATOM_execute);
 
       if ( rc ) rc = PL_unify_nil(options);
-      if ( rc ) rc = PL_call_predicate(NULL, cflags, pred, av);
+      if ( rc ) rc = PL_call_predicate(NULL, cflags,
+				       GD->procedures.absolute_file_name3, av);
       if ( rc ) rc = PL_get_nchars(av+1, &len, namep,
 				   CVT_ATOMIC|BUF_STACK|REP_FN);
       if ( rc && strlen(*namep) != len )

@@ -647,14 +647,13 @@ writeAttVar(term_t av, write_options *options)
     return TRUE;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->cleaning <= CLN_PROLOG )
-  { static predicate_t pred;
+  { predicate_t pred;
     IOSTREAM *old;
     wakeup_state wstate;
     int rc;
 
-    if ( !pred )
-      pred = _PL_predicate("portray_attvar", 1, "$attvar",
-			   &GD->procedures.portray_attvar1);
+    pred = _PL_predicate("portray_attvar", 1, "$attvar",
+			 &GD->procedures.portray_attvar1);
 
     if ( !enterPortray() )
       return FALSE;

@@ -5441,8 +5441,6 @@ void
 raiseInferenceLimitException(void)
 { GET_LD
   fid_t fid;
-  static predicate_t not_exceed[6];
-  static int done = FALSE;
   Definition def = environment_frame->predicate;
   int64_t olimit;
   int i;
@@ -5456,7 +5454,8 @@ raiseInferenceLimitException(void)
   DEBUG(MSG_INFERENCE_LIMIT,
 	Sdprintf("Got inference limit in %s\n", predicateName(def)));
 
-  if ( !done )
+#define not_exceed GD->inference_limit.not_exceed_
+  if ( !GD->inference_limit.initialized )
   { not_exceed[0] = PL_predicate("$inference_limit_true",     3, "system");
     not_exceed[1] = PL_predicate("$inference_limit_false",    1, "system");
     not_exceed[2] = PL_predicate("$inference_limit_except",   3, "system");
