@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2021, VU University Amsterdam
+    Copyright (c)  2013-2022, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -73,18 +73,14 @@ static int PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags);
 #define DICT_GET_COLON	0x04
 #define DICT_GET_TERM	0x08
 
-#define CACHED_DICT_FUNCTORS 128
-
-static functor_t dict_functors[CACHED_DICT_FUNCTORS] = {0};
-
 functor_t
 dict_functor(int pairs)
 { if ( pairs < CACHED_DICT_FUNCTORS )
-  { if ( dict_functors[pairs] )
-      return dict_functors[pairs];
+  { if ( GD->dict.dict_functors[pairs] )
+      return GD->dict.dict_functors[pairs];
 
-    dict_functors[pairs] = lookupFunctorDef(ATOM_dict, pairs*2+1);
-    return dict_functors[pairs];
+    GD->dict.dict_functors[pairs] = lookupFunctorDef(ATOM_dict, pairs*2+1);
+    return GD->dict.dict_functors[pairs];
   } else
   { return lookupFunctorDef(ATOM_dict, pairs*2+1);
   }

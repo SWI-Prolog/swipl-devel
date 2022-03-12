@@ -429,6 +429,10 @@ struct PL_global_data
   } thread;
 #endif /*O_PLMT*/
 
+  struct
+  { functor_t dict_functors[CACHED_DICT_FUNCTORS];
+  } dict;
+
 #ifdef O_LOCALE
   struct
   { Table		localeTable;	/* Name --> locale table */

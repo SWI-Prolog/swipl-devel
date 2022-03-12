@@ -2700,6 +2700,8 @@ typedef enum
 #define INFERENCE_NO_LIMIT 0x7fffffffffffffffLL /* Highest value */
 #endif
 
+#define CACHED_DICT_FUNCTORS 128	/* Max size of dict to cache */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Administration of loaded intermediate code files  (see  pl-wic.c).  Used
 with the -c option to include all these if necessary.
