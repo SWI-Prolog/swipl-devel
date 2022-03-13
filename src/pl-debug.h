@@ -114,6 +114,7 @@
 #define MSG_CLEANUP_THREAD	 80
 #define MSG_INITIALISE		 81
 #define MSG_COPYTERM		 82
+#define MSG_PRED_COUNT		 83
 
 #define MSG_BACKTRACK		 90
 

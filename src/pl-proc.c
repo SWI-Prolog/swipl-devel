@@ -134,6 +134,8 @@ lookupProcedure(functor_t f, Module m)
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
 				 procedureName(proc), proc));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Created %s at %p\n",
+				 predicateName(def), def));
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
@@ -226,7 +228,7 @@ destroyDefinition(Definition def)
   if ( def->tabling )
     freeHeap(def->tabling, sizeof(*def->tabling));
 
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(def)));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
   freeHeap(def, sizeof(*def));
 }
 
