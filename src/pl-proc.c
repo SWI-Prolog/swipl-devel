@@ -203,12 +203,13 @@ destroyDefinition(Definition def)
 
     deleteIndexesDefinition(def);
     removeClausesPredicate(def, 0, FALSE);
-    registerDirtyDefinition(def);
-    DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
-    def->module = NULL;
-    set(def, P_ERASED);
-
-    return;
+    if ( GD->cleaning != CLN_DATA )
+    { registerDirtyDefinition(def);
+      DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
+      def->module = NULL;
+      set(def, P_ERASED);
+      return;
+    }
   } else					/* foreign and thread-local */
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
 				   predicateName(def)));
@@ -1443,7 +1444,7 @@ MT: Caller must hold L_PREDICATE
 size_t
 removeClausesPredicate(Definition def, int sfindex, int fromfile)
 { GET_LD
-  ClauseRef c;
+  ClauseRef c, next;
   size_t deleted = 0;
   size_t memory = 0;
   gen_t update;
@@ -1454,8 +1455,10 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   PL_LOCK(L_GENERATION);
   update = global_generation()+1;
   acquire_def(def);
-  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  for(c = def->impl.clauses.first_clause; c; c = next)
   { Clause cl = c->value.clause;
+
+    next = c->next;
 
     if ( (sfindex == 0 || sfindex == cl->owner_no) &&
 	 (!fromfile || cl->line_no > 0) &&
@@ -1470,8 +1473,12 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
       def->impl.clauses.erased_clauses++;
       if ( false(cl, UNIT_CLAUSE) )
 	def->impl.clauses.number_of_rules--;
-      deleteActiveClauseFromIndexes(def, cl);
-      registerRetracted(cl);
+      if ( GD->cleaning != CLN_DATA )
+      { deleteActiveClauseFromIndexes(def, cl);
+	registerRetracted(cl);
+      } else
+      { freeClauseRef(c);
+      }
     }
   }
   release_def(def);
