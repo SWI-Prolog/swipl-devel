@@ -1556,8 +1556,8 @@ emergency:
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
 #endif
-    cleanupProcedures();
     cleanupModules();
+    cleanupProcedures();
     cleanupPrologFlags();
     cleanupFlags();
     cleanupRecords();
