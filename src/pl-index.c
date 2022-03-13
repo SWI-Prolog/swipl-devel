@@ -715,7 +715,6 @@ unallocClauseIndexTableEntries(ClauseIndex ci)
     }
   }
 
-  ATOMIC_INC(&GD->statistics.indexes.destroyed);
   freeHeap(ci->entries, ci->buckets * sizeof(struct clause_bucket));
 }
 
@@ -724,6 +723,7 @@ void
 unallocClauseIndexTable(ClauseIndex ci)
 { unallocClauseIndexTableEntries(ci);
   freeHeap(ci, sizeof(struct clause_index));
+  ATOMIC_INC(&GD->statistics.indexes.destroyed);
 }
 
 
