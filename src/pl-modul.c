@@ -415,9 +415,11 @@ destroyModule(Module m)
 
 
 static void
-emptyModule(Module m)
-{ DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
-  if ( m->procedures ) clearHTable(m->procedures);
+empty_module(void *name, void *value)
+{ Module m = value;
+
+  DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
+  unallocModule(m);
 }
 
 
@@ -426,9 +428,8 @@ cleanupModules(void)
 { Table t;
 
   if ( (t=GD->tables.modules) )
-  { for_table(t, name, value, emptyModule(value));
-
-    GD->tables.modules = NULL;
+  { GD->tables.modules = NULL;
+    t->free_symbol = empty_module;
     destroyHTable(t);
   }
 }

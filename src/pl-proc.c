@@ -190,7 +190,8 @@ guarantee they are not in use.
 void
 destroyDefinition(Definition def)
 { ATOMIC_DEC(&GD->statistics.predicates);
-  ATOMIC_SUB(&def->module->code_size, sizeof(*def));
+  if ( GD->cleaning != CLN_DATA )
+    ATOMIC_SUB(&def->module->code_size, sizeof(*def));
 
   DEBUG(MSG_CGC_PRED,
 	Sdprintf("destroyDefinition(%s)\n", predicateName(def)));
@@ -237,7 +238,7 @@ unallocProcedure(Procedure proc)
   if ( proc->source_no )
     releaseSourceFileNo(proc->source_no);
   freeHeap(proc, sizeof(*proc));
-  if ( m )
+  if ( m && GD->cleaning != CLN_DATA )
     ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
@@ -1478,7 +1479,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   PL_UNLOCK(L_GENERATION);
 
   if ( deleted )
-  { ATOMIC_SUB(&def->module->code_size, memory);
+  { if ( GD->cleaning != CLN_DATA )
+      ATOMIC_SUB(&def->module->code_size, memory);
     ATOMIC_ADD(&GD->clauses.erased_size, memory);
     ATOMIC_ADD(&GD->clauses.erased, deleted);
     if( true(def, P_DIRTYREG) )
