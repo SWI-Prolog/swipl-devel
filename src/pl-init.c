@@ -1556,13 +1556,13 @@ emergency:
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
 #endif
-    freePrologLocalData(LD);
     cleanupProcedures();
     cleanupModules();
     cleanupPrologFlags();
     cleanupFlags();
     cleanupRecords();
     cleanupTerm();
+    freePrologLocalData(LD);
     cleanupAtoms();
     cleanupFunctors();
     cleanupArith();

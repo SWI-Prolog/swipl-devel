@@ -191,7 +191,7 @@ guarantee they are not in use.
 void
 destroyDefinition(Definition def)
 { ATOMIC_DEC(&GD->statistics.predicates);
-  if ( GD->cleaning != CLN_DATA )
+  if ( def->module )
     ATOMIC_SUB(&def->module->code_size, sizeof(*def));
 
   DEBUG(MSG_CGC_PRED,
@@ -235,6 +235,7 @@ unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
   Module m = def->module;
 
+  def->module = NULL;
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     destroyDefinition(def);
@@ -242,7 +243,7 @@ unallocProcedure(Procedure proc)
   if ( proc->source_no )
     releaseSourceFileNo(proc->source_no);
   freeHeap(proc, sizeof(*proc));
-  if ( m && GD->cleaning != CLN_DATA )
+  if ( m )
     ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
