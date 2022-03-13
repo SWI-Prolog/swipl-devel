@@ -1770,6 +1770,11 @@ freePrologLocalData(PL_local_data_t *ld)
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif
+
+  if ( ld->btrace_store )
+  { btrace_destroy(ld->btrace_store);
+    ld->btrace_store = NULL;
+  }
 }
 
 /* The following definitions aren't necessary for compiling, and in fact
