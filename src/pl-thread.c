@@ -7362,6 +7362,9 @@ destroyLocalDefinitions(Definition def)
       }
     }
   }
+
+  free_ldef_vector(ldefs);
+  def->impl.local.local = NULL;
 }
 
 
