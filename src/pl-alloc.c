@@ -222,17 +222,21 @@ freeHeap(void *mem, size_t n)
 
 void
 linger(linger_list** list, void (*unalloc)(void *), void *object)
-{ linger_list *c = allocHeapOrHalt(sizeof(*c));
-  linger_list *o;
+{ if ( GD->cleaning != CLN_DATA )
+  { linger_list *c = allocHeapOrHalt(sizeof(*c));
+    linger_list *o;
 
-  c->generation	= global_generation();
-  c->object	= object;
-  c->unalloc	= unalloc;
+    c->generation	= global_generation();
+    c->object	= object;
+    c->unalloc	= unalloc;
 
-  do
-  { o = *list;
-    c->next = o;
-  } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
+    do
+    { o = *list;
+      c->next = o;
+    } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
+  } else
+  { (*unalloc)(object);
+  }
 }
 
 void
