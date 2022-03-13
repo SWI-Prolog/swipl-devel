@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2015, VU University Amsterdam
+    Copyright (c)  2013-2022, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -182,8 +183,7 @@ alias_locale(PL_locale *l, atom_t alias)
     PL_put_atom(obj, alias);
     rc = PL_error("locale_create", 2, "Alias name already taken",
 		  ERR_PERMISSION, ATOM_create, ATOM_locale, obj);
-  }
-  else
+  } else
   { addNewHTable(GD->locale.localeTable, (void*)alias, l);
     l->alias = alias;
     PL_register_atom(alias);
@@ -900,6 +900,14 @@ releaseLocale(PL_locale *l)
   PL_UNLOCK(L_LOCALE);
 }
 
+
+void
+cleanupLocale(void)
+{ if ( GD->locale.localeTable )
+  { destroyHTable(GD->locale.localeTable);
+    GD->locale.localeTable = NULL;
+  }
+}
 
 
 

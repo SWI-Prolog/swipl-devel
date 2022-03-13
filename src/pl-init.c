@@ -1570,6 +1570,7 @@ emergency:
     cleanupExtensions();
     cleanupWamTable();
     cleanupOs();
+    cleanupLocale();
     cleanupSourceFiles();
     Scleanup();
 #ifdef O_PLMT
