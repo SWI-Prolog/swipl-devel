@@ -1751,6 +1751,8 @@ retry:
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				   procedureName(nproc), nproc));
   }
 
   return TRUE;

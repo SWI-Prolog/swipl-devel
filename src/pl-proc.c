@@ -132,7 +132,8 @@ lookupProcedure(functor_t f, Module m)
   }
   resetProcedure(proc, TRUE);
 
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s\n", procedureName(proc)));
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				 procedureName(proc), proc));
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&m->code_size, SIZEOF_PROC);
 
@@ -235,6 +236,9 @@ unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
   Module m = def->module;
 
+  DEBUG(MSG_PROC_COUNT, Sdprintf("Freed procedure %s at %p\n",
+				 predicateName(def), proc));
+
   def->module = NULL;
   if ( unshareDefinition(def) == 0 )
   { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
@@ -300,6 +304,8 @@ importDefinitionModule(Module m, Definition def, int flags)
     proc->flags      = flags;
     proc->source_no  = 0;
     addNewHTable(m->procedures, (void *)functor, proc);
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				   procedureName(proc), proc));
   }
   UNLOCKMODULE(m);
 
