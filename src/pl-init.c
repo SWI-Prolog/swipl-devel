@@ -1587,6 +1587,8 @@ emergency:
 
   PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
 
+  DEBUG(0, assert(GD->clauses.lingering == 0));
+
   if ( reclaim_memory )
   { memset(&PL_global_data, 0, sizeof(PL_global_data));
     memset(&PL_local_data,  0, sizeof(PL_local_data));
