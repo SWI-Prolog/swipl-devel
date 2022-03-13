@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1485,9 +1485,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   GD->_generation = update;
   PL_UNLOCK(L_GENERATION);
 
-  if ( deleted )
-  { if ( GD->cleaning != CLN_DATA )
-      ATOMIC_SUB(&def->module->code_size, memory);
+  if ( deleted && GD->cleaning != CLN_DATA )
+  { ATOMIC_SUB(&def->module->code_size, memory);
     ATOMIC_ADD(&GD->clauses.erased_size, memory);
     ATOMIC_ADD(&GD->clauses.erased, deleted);
     if( true(def, P_DIRTYREG) )
@@ -2468,7 +2467,10 @@ oldest generation is 0 and thus no clause reference will be collected.
 
 static void
 registerDirtyDefinition(DECL_LD Definition def)
-{ if ( false(def, P_DIRTYREG) )
+{ if ( unlikely(GD->cleaning == CLN_DATA) )
+    return;
+
+  if ( false(def, P_DIRTYREG) )
   { DirtyDefInfo ddi = ddi_new(def);
 
     if ( addHTable(GD->procedures.dirty, def, ddi) == ddi )
