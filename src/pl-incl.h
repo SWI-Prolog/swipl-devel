@@ -589,7 +589,7 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 2^N.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define ATOMHASHSIZE		1024	/* global atom table */
+#define ATOMHASHSIZE		4096	/* global atom table */
 #define FUNCTORHASHSIZE		512	/* global functor table */
 #define PROCEDUREHASHSIZE	256	/* predicates in module user */
 #define MODULEPROCEDUREHASHSIZE 16	/* predicates in other modules */
