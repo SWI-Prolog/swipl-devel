@@ -76,6 +76,7 @@ static int	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def);
 static void	unregisterDirtyDefinition(Definition def);
 static gen_t	ddi_oldest_generation(DirtyDefInfo ddi);
+static void	gcClauseRefs(void);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -241,6 +242,23 @@ unallocProcedure(Procedure proc)
   freeHeap(proc, sizeof(*proc));
   if ( m && GD->cleaning != CLN_DATA )
     ATOMIC_SUB(&m->code_size, sizeof(*proc));
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+cleanupProcedures()  deals  with  the  cleanup    during   halt.  Normal
+procedures are cleaned by cleanupModules(). This   deals mostly with the
+allocations pending on clause GC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+void
+cleanupProcedures(void)
+{ if ( GD->procedures.dirty )
+  { destroyHTable(GD->procedures.dirty);
+    GD->procedures.dirty = NULL;
+  }
+
+  gcClauseRefs();
 }
 
 

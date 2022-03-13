@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -100,6 +100,7 @@ size_t		removeClausesPredicate(Definition def,
 void		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 					   p_reload *r);
 void		destroyDefinition(Definition def);
+void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition undef);
 word		pl_abolish(term_t atom, term_t arity);

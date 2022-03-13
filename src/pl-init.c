@@ -1557,8 +1557,8 @@ emergency:
     cleanupLocalDefinitions(LD);
 #endif
     freePrologLocalData(LD);
+    cleanupProcedures();
     cleanupModules();
-    cleanupBuildIns();
     cleanupPrologFlags();
     cleanupFlags();
     cleanupRecords();

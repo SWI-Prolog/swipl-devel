@@ -45,7 +45,6 @@
 		 *******************************/
 
 void		initBuildIns(void);
-void		cleanupBuildIns(void);
 void		cleanupExtensions(void);
 void            rememberExtensions(const char *module,
 				   const PL_extension *e);

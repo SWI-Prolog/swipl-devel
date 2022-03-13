@@ -7792,34 +7792,36 @@ Definition*
 predicates_in_use(void)
 {
 #ifdef O_PLMT
-  int i, index=0;
-  size_t sz = 32;
+  if ( GD->cleaning != CLN_DATA )
+  { int i, index=0;
+    size_t sz = 32;
 
-  Definition *buckets = allocHeapOrHalt(sz * sizeof(Definition));
-  memset(buckets, 0, sz * sizeof(Definition*));
+    Definition *buckets = allocHeapOrHalt(sz * sizeof(Definition));
+    memset(buckets, 0, sz * sizeof(Definition*));
 
-  for(i=1; i<=GD->thread.highest_id; i++)
-  { PL_thread_info_t *info = GD->thread.threads[i];
-    if ( info && info->access.predicate )
-    { if ( index >= sz-1 )
-      { int j = 0;
-        size_t oldsz = sz;
-        sz *= 2;
-        Definition *newbuckets = allocHeapOrHalt(sz * sizeof(Definition));
-	memset(newbuckets, 0, sz * sizeof(Definition));
-	for ( ; j < oldsz; j++ )
-	{ newbuckets[j] = buckets[j];
+    for(i=1; i<=GD->thread.highest_id; i++)
+    { PL_thread_info_t *info = GD->thread.threads[i];
+      if ( info && info->access.predicate )
+      { if ( index >= sz-1 )
+	{ int j = 0;
+	  size_t oldsz = sz;
+	  sz *= 2;
+	  Definition *newbuckets = allocHeapOrHalt(sz * sizeof(Definition));
+	  memset(newbuckets, 0, sz * sizeof(Definition));
+	  for ( ; j < oldsz; j++ )
+	  { newbuckets[j] = buckets[j];
+	  }
+	  PL_free(buckets);
+	  buckets = newbuckets;
 	}
-	PL_free(buckets);
-        buckets = newbuckets;
+	buckets[index] = info->access.predicate;
+	if ( buckets[index] )	/* atom_bucket may have been released */
+	  index++;
       }
-      buckets[index] = info->access.predicate;
-      if ( buckets[index] )	/* atom_bucket may have been released */
-        index++;
     }
-  }
 
-  return buckets;
+    return buckets;
+  }
 #endif
 
   return NULL;
