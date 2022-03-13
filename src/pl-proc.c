@@ -1439,6 +1439,8 @@ abolishProcedure(Procedure proc, Module module)
     ATOMIC_INC(&GD->statistics.predicates);
     ATOMIC_ADD(&module->code_size, sizeof(*ndef));
     resetProcedure(proc, TRUE);
+    DEBUG(MSG_PRED_COUNT, Sdprintf("Created %s at %p\n",
+				   predicateName(ndef), ndef));
   } else if ( true(def, P_FOREIGN) )	/* foreign: make normal */
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
     resetProcedure(proc, TRUE);
@@ -2557,6 +2559,7 @@ maybeUnregisterDirtyDefinition(Definition def)
       freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
       if ( def->tabling )
 	freeHeap(def->tabling, sizeof(*def->tabling));
+      DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
       freeHeap(def, sizeof(*def));
     }
   }
@@ -2808,6 +2811,7 @@ found:
 	    GD->statistics.threads_finished) == 1 )
       { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(odef)));
 	unregisterDirtyDefinition(odef);
+	DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(odef), odef));
 	freeHeap(odef, sizeof(*odef));
 	GD->statistics.predicates--;
       } else
@@ -2818,7 +2822,9 @@ found:
       }
       PL_UNLOCK(L_THREAD);
 #else
+      DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(odef), odef));
       freeHeap(odef, sizeof(struct definition));
+      GD->statistics.predicates--;
 #endif
     }
   }
