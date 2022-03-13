@@ -808,8 +808,8 @@ unmarkAtoms(void)
 
 static void
 maybe_free_atom_tables(void)
-{
-  AtomTable t = GD->atoms.table;
+{ AtomTable t = GD->atoms.table;
+
   while ( t )
   { AtomTable t2 = t->prev;
     if ( t2 && !pl_atom_table_in_use(t2) )
