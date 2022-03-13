@@ -227,6 +227,8 @@ destroyDefinition(Definition def)
 
   if ( def->tabling )
     freeHeap(def->tabling, sizeof(*def->tabling));
+  if ( def->impl.any.args )
+    freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
 
   DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
   freeHeap(def, sizeof(*def));
