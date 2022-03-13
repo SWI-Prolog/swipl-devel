@@ -210,6 +210,8 @@ destroyDefinition(Definition def)
       def->module = NULL;
       set(def, P_ERASED);
       return;
+    } else
+    { free_lingering(&def->lingering, GEN_MAX);
     }
   } else					/* foreign and thread-local */
   { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
