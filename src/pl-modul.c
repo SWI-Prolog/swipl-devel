@@ -312,8 +312,7 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
-    DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
-    freeHeap(def, sizeof(*def));
+    unallocDefinition(def);
     freeHeap(c, sizeof(*c));
   }
 }

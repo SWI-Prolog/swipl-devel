@@ -100,6 +100,7 @@ size_t		removeClausesPredicate(Definition def,
 void		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 					   p_reload *r);
 void		destroyDefinition(Definition def);
+void		unallocDefinition(Definition def);
 void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
 Definition	trapUndefined(Definition undef);

@@ -171,7 +171,6 @@ lingerDefinition(Definition def)
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Linger %s\n", predicateName(def)));
   ATOMIC_SUB(&m->code_size, sizeof(*def));
-  ATOMIC_DEC(&GD->statistics.predicates);
 
   /*GC_LINGER(def);*/
 }
@@ -193,8 +192,7 @@ guarantee they are not in use.
 
 void
 destroyDefinition(Definition def)
-{ ATOMIC_DEC(&GD->statistics.predicates);
-  if ( def->module )
+{ if ( def->module )
     ATOMIC_SUB(&def->module->code_size, sizeof(*def));
 
   DEBUG(MSG_CGC_PRED,
@@ -217,21 +215,29 @@ destroyDefinition(Definition def)
     { free_lingering(&def->lingering, GEN_MAX);
     }
   } else					/* foreign and thread-local */
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
-				   predicateName(def)));
+  {
 #ifdef O_PLMT
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
+				   predicateName(def)));
     if ( true(def, P_THREAD_LOCAL) )
       destroyLocalDefinitions(def);
 #endif
   }
 
-  if ( def->tabling )
+  unallocDefinition(def);
+}
+
+
+void
+unallocDefinition(Definition def)
+{ if ( def->tabling )
     freeHeap(def->tabling, sizeof(*def->tabling));
   if ( def->impl.any.args )
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
 
   DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
   freeHeap(def, sizeof(*def));
+  ATOMIC_DEC(&GD->statistics.predicates);
 }
 
 
@@ -2558,11 +2564,7 @@ maybeUnregisterDirtyDefinition(Definition def)
 	    });
       unregisterDirtyDefinition(def);
       deleteIndexes(&def->impl.clauses, TRUE);
-      freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
-      if ( def->tabling )
-	freeHeap(def->tabling, sizeof(*def->tabling));
-      DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
-      freeHeap(def, sizeof(*def));
+      unallocDefinition(def);
     }
   }
 }
@@ -2813,9 +2815,7 @@ found:
 	    GD->statistics.threads_finished) == 1 )
       { DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc %s\n", predicateName(odef)));
 	unregisterDirtyDefinition(odef);
-	DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(odef), odef));
-	freeHeap(odef, sizeof(*odef));
-	GD->statistics.predicates--;
+	unallocDefinition(odef);
       } else
       { DEBUG(MSG_PROC, Sdprintf("autoImport(%s,%s): Linger %s (%p)\n",
 				 functorName(f), PL_atom_chars(m->name),
@@ -2824,9 +2824,7 @@ found:
       }
       PL_UNLOCK(L_THREAD);
 #else
-      DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(odef), odef));
-      freeHeap(odef, sizeof(struct definition));
-      GD->statistics.predicates--;
+      unallocDefinition(odef);
 #endif
     }
   }
