@@ -100,6 +100,11 @@ freeCodesDefinition(Definition def, int do_linger)
   { if ( (codes = def->codes) )
     { if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
       { resetWrappedSupervisor(def);
+	if ( GD->cleaning == CLN_DATA )
+	{ codes = def->codes;
+	  def->codes = SUPERVISOR(virgin);
+	  freeSupervisor(def, codes, do_linger);
+	}
       } else
       { def->codes = SUPERVISOR(virgin);
 	freeSupervisor(def, codes, do_linger);
