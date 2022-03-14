@@ -1490,6 +1490,7 @@ deleteIndexesDefinition(Definition def)
     }
 
     freeHeap(cip0, 0);
+    clist->clause_indexes = NULL;
   }
 }
 
