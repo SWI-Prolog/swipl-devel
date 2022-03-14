@@ -1137,6 +1137,7 @@ PL_initialise(int argc, char **argv)
     }
     argc = done;
     argv = argvleft;
+    GD->cmdline.appl_malloc = TRUE;
   } else
   { argc--;				/* saved state: only drop program */
     argv++;
@@ -1587,6 +1588,9 @@ emergency:
   { zip_close_archive(GD->resources.DB);
     GD->resources.DB = NULL;
   }
+
+  if ( GD->cmdline.appl_malloc )
+    free(GD->cmdline.appl_argv);
 
   PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
 

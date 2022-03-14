@@ -122,6 +122,7 @@ struct PL_global_data
   { int		os_argc;		/* main(int argc, char **argv) */
     char **	os_argv;
     int		appl_argc;		/* Application options */
+    int		appl_malloc;		/* Array is allocated */
     char **	appl_argv;
     int		notty;			/* -tty: do not use ioctl() */
     int		optimise;		/* -O: optimised compilation */
