@@ -240,6 +240,9 @@ clearSourceAdmin(atom_t sf_name)
   fid_t fid;
   predicate_t pred;
 
+  if ( GD->cleaning == CLN_DATA )
+    return TRUE;
+
   pred = _PL_predicate("$clear_source_admin", 1, "system",
 		       &GD->procedures.clear_source_admin1);
 
