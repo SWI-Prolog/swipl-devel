@@ -1332,7 +1332,10 @@ zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 
 int
 zip_close_archive(zipper *z)
-{ return close_zipper(z);
+{ int rc = close_zipper(z);
+
+  free(z);
+  return rc;
 }
 
 
