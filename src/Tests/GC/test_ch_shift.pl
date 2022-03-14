@@ -37,6 +37,9 @@
 	  ]).
 
 test_ch_shift :-
+	getenv('ASAN', _),
+	!.				% runs out of stack
+test_ch_shift :-
 	test1,
 	test2.
 

@@ -42,6 +42,9 @@
 */
 
 test_db :-
+	getenv('ASAN', _),
+	!.				% runs out of stack
+test_db :-
 	run_tests([ assert,
 		    retract,
 		    retractall,
