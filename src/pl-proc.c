@@ -1537,7 +1537,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
     PL_UNLOCK(L_GENERATION);
 
     if ( deleted )
-    { ATOMIC_SUB(&def->module->code_size, memory);
+    { if ( def->module )
+	ATOMIC_SUB(&def->module->code_size, memory);
       ATOMIC_ADD(&GD->clauses.erased_size, memory);
       ATOMIC_ADD(&GD->clauses.erased, deleted);
       if( true(def, P_DIRTYREG) )
