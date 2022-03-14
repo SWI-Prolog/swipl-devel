@@ -368,7 +368,6 @@ fileNameStream(IOSTREAM *s)
   return name;
 }
 
-
 void
 initIO(void)
 { GET_LD
@@ -1206,8 +1205,29 @@ static IOSTREAM *openStream(term_t file, term_t mode, term_t options);
 void
 dieIO(void)
 { if ( GD->io_initialised )
-  { noprotocol();
+  { GD->io_initialised = FALSE;
+
+    noprotocol();
     closeFiles(TRUE);
+
+    if ( streamAliases )
+    { destroyHTable(streamAliases);
+      streamAliases = NULL;
+    }
+    if ( streamContext )
+    { destroyHTable(streamContext);
+      streamContext = NULL;
+    }
+
+    for(int i=0; i<=2; i++)
+    { IOSTREAM *s = &S__iob[i];
+
+      if ( s->context )
+      { freeHeap(s->context, sizeof(stream_context));
+	s->context = NULL;
+      }
+    }
+
     if ( ttymodified && ttyfileno == Sfileno(Sinput) )
       PopTty(Sinput, &ttytab, TRUE);
   }
