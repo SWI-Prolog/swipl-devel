@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2018-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,22 @@
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
 #include "pl-incl.h"
+
+#if defined(HAVE_MMAP) || defined(__WINDOWS__)
+#define HAVE_FILE_MAPPING 1
+
+typedef struct mapped_file
+{ char *start;
+  char *end;
+#ifdef __WINDOWS__
+  HANDLE hfile;					/* handle to the file */
+  HANDLE hmap;					/* handle to the map */
+#endif
+} mapped_file;
+
+static void	unmap_file(mapped_file *mf);
+#endif
+
 #include "pl-zip.h"
 #include "pl-fli.h"
 #include <fcntl.h>
@@ -477,6 +494,12 @@ close_zipper(zipper *z)
     }
     z->input.any = NULL;
   }
+#ifdef HAVE_FILE_MAPPING
+  if ( z->mapped_file )
+  { unmap_file(z->mapped_file);
+    z->mapped_file = NULL;
+  }
+#endif
 
   return rc;
 }
@@ -1116,17 +1139,7 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
 		 *	      MAPPING		*
 		 *******************************/
 
-#if defined(HAVE_MMAP) || defined(__WINDOWS__)
-#define HAVE_FILE_MAPPING 1
-
-typedef struct mapped_file
-{ char *start;
-  char *end;
-#ifdef __WINDOWS__
-  HANDLE hfile;					/* handle to the file */
-  HANDLE hmap;					/* handle to the map */
-#endif
-} mapped_file;
+#ifdef HAVE_FILE_MAPPING
 
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
@@ -1244,25 +1257,24 @@ unmap_file(mapped_file *mf)
 		 *	 ARCHIVE EMULATION	*
 		 *******************************/
 
-/* TBD: get rid of the mapped_file on close
-*/
-
 zipper *
 zip_open_archive(const char *file, int flags)
 { zipper z = {0};
   zipper *r = NULL;
 
   if ( (flags&RC_RDONLY) )
-  {
-#ifdef HAVE_FILE_MAPPING
-    mapped_file *mf;
+  { mapped_file *mf;
 
+#ifdef HAVE_FILE_MAPPING
     DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
 
     if ( (mf=map_file(file)) )
-    { if ( !(r=zip_open_archive_mem((const unsigned char *)mf->start,
+    { if ( (r=zip_open_archive_mem((const unsigned char *)mf->start,
 				    mf->end-mf->start, flags)) )
-	unmap_file(mf);
+      { r->mapped_file = mf;
+      } else
+      { unmap_file(mf);
+      }
     }
 #else
     DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
@@ -1275,8 +1287,8 @@ zip_open_archive(const char *file, int flags)
 #ifdef O_PLMT
       simpleMutexInit(&r->lock);
 #endif
-      r->input_type = ZIP_FILE;
-      r->input.any  = NULL;
+      r->input_type  = ZIP_FILE;
+      r->input.any   = NULL;
     }
 #endif
   } else
