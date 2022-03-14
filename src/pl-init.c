@@ -1541,11 +1541,6 @@ emergency:
 
   RemoveTemporaryFiles();
 
-  if ( GD->resources.DB )
-  { zip_close_archive(GD->resources.DB);
-    GD->resources.DB = NULL;
-  }
-
   cleanupSignals();
 #ifdef HAVE_DMALLOC_H
   dmalloc_verify(0);
@@ -1583,6 +1578,11 @@ emergency:
     cleanupGMP();
 #endif
     cleanupDebug();
+  }
+
+  if ( GD->resources.DB )
+  { zip_close_archive(GD->resources.DB);
+    GD->resources.DB = NULL;
   }
 
   PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
