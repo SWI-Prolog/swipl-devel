@@ -1368,7 +1368,8 @@ gc_thread(thread_handle *ref)
     } while( !COMPARE_AND_SWAP_PTR(&gced_threads, h, ref) );
 
     start_thread_gc_thread();
-  }
+  } else
+    PL_free(ref);
 }
 
 
