@@ -6239,7 +6239,7 @@ allocSimpleMutex(const char *name)
 
 
 void
-freeSimpleMutex(counting_mutex *m)
+deleteSimpleMutex(counting_mutex *m)
 { PL_LOCK(L_MUTEX);
   if ( m->next )
     m->next->prev = m->prev;
@@ -6251,6 +6251,12 @@ freeSimpleMutex(counting_mutex *m)
 
   simpleMutexDelete(&m->mutex);
   remove_string((char *)m->name);
+}
+
+
+void
+freeSimpleMutex(counting_mutex *m)
+{ deleteSimpleMutex(m);
   freeHeap(m, sizeof(*m));
 }
 

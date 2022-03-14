@@ -9310,6 +9310,16 @@ initTabling(void)
   setPrologFlag("table_monotonic",	          FT_ATOM,    "eager");
 }
 
+void
+cleanupTabling(void)
+{
+#ifdef O_PLMT
+  deleteSimpleMutex(&GD->tabling.mutex);
+  cv_destroy(&GD->tabling.cvar);
+#endif
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/

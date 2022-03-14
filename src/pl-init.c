@@ -59,6 +59,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-flag.h"
 #include "pl-event.h"
 #include "pl-rec.h"
+#include "pl-tabling.h"
 #include "pl-term.h"
 #include "pl-funct.h"
 #include "pl-ext.h"
@@ -1562,6 +1563,7 @@ emergency:
     cleanupTerm();
     freePrologLocalData(LD);
     cleanupEvents();
+    cleanupTabling();
     cleanupAtoms();
     cleanupFunctors();
     cleanupArith();
