@@ -870,6 +870,10 @@ clearGMPNumber(Number n)
 		 *	       INIT		*
 		 *******************************/
 
+static void *(*smp_alloc)(size_t);
+static void *(*smp_realloc)(void *, size_t, size_t);
+static void  (*smp_free)(void *, size_t);
+
 void
 initGMP(void)
 { if ( !GD->gmp.initialised )
@@ -886,7 +890,9 @@ initGMP(void)
 #endif
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
+    { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+    }
 #endif
 
 #if __GNU_MP__ > 3 && __GNU_MP__ < 6
@@ -899,18 +905,19 @@ initGMP(void)
 
 
 void
-cleanupGMP()
+cleanupGMP(void)
 { if ( GD->gmp.initialised )
   { GD->gmp.initialised = FALSE;
 
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
-      mp_set_memory_functions(NULL, NULL, NULL);
+      mp_set_memory_functions(smp_alloc, smp_realloc, smp_free);
 #endif
     mpz_clear(MPZ_MIN_TAGGED);
     mpz_clear(MPZ_MAX_TAGGED);
     mpz_clear(MPZ_MIN_PLINT);
     mpz_clear(MPZ_MAX_PLINT);
+    mpz_clear(MPZ_MAX_UINT64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_clear(MPZ_MIN_LONG);
     mpz_clear(MPZ_MAX_LONG);
