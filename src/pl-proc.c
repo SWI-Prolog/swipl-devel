@@ -244,7 +244,6 @@ unallocDefinition(Definition def)
 void
 unallocProcedure(Procedure proc)
 { Definition def = proc->definition;
-  Module m = def->module;
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Freed procedure %s at %p\n",
 				 predicateName(def), proc));
@@ -257,8 +256,6 @@ unallocProcedure(Procedure proc)
   if ( proc->source_no )
     releaseSourceFileNo(proc->source_no);
   freeHeap(proc, sizeof(*proc));
-  if ( m )
-    ATOMIC_SUB(&m->code_size, sizeof(*proc));
 }
 
 
