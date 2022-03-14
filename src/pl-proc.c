@@ -1491,48 +1491,54 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
   if ( true(def, P_THREAD_LOCAL) )
     return 0;
 
-  PL_LOCK(L_GENERATION);
-  update = global_generation()+1;
-  acquire_def(def);
-  for(c = def->impl.clauses.first_clause; c; c = next)
-  { Clause cl = c->value.clause;
+  if ( GD->cleaning != CLN_DATA )		/* normal operation */
+  { PL_LOCK(L_GENERATION);
+    update = global_generation()+1;
+    acquire_def(def);
+    for(c = def->impl.clauses.first_clause; c; c = next)
+    { Clause cl = c->value.clause;
 
-    next = c->next;
+      next = c->next;
 
-    if ( (sfindex == 0 || sfindex == cl->owner_no) &&
-	 (!fromfile || cl->line_no > 0) &&
-	 false(cl, CL_ERASED) )
-    { set(cl, CL_ERASED);
+      if ( (sfindex == 0 || sfindex == cl->owner_no) &&
+	   (!fromfile || cl->line_no > 0) &&
+	   false(cl, CL_ERASED) )
+      { set(cl, CL_ERASED);
 #ifdef O_LOGICAL_UPDATE
-      cl->generation.erased = update;
+	cl->generation.erased = update;
 #endif
-      deleted++;
-      memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
-      def->impl.clauses.number_of_clauses--;
-      def->impl.clauses.erased_clauses++;
-      if ( false(cl, UNIT_CLAUSE) )
-	def->impl.clauses.number_of_rules--;
-      if ( GD->cleaning != CLN_DATA )
-      { deleteActiveClauseFromIndexes(def, cl);
+	deleted++;
+	memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
+	def->impl.clauses.number_of_clauses--;
+	def->impl.clauses.erased_clauses++;
+	if ( false(cl, UNIT_CLAUSE) )
+	  def->impl.clauses.number_of_rules--;
+	deleteActiveClauseFromIndexes(def, cl);
 	registerRetracted(cl);
-      } else
-      { freeClauseRef(c);
       }
     }
-  }
-  release_def(def);
-  GD->_generation = update;
-  PL_UNLOCK(L_GENERATION);
+    release_def(def);
+    GD->_generation = update;
+    PL_UNLOCK(L_GENERATION);
 
-  if ( deleted && GD->cleaning != CLN_DATA )
-  { ATOMIC_SUB(&def->module->code_size, memory);
-    ATOMIC_ADD(&GD->clauses.erased_size, memory);
-    ATOMIC_ADD(&GD->clauses.erased, deleted);
-    if( true(def, P_DIRTYREG) )
-      ATOMIC_SUB(&GD->clauses.dirty, deleted);
+    if ( deleted )
+    { ATOMIC_SUB(&def->module->code_size, memory);
+      ATOMIC_ADD(&GD->clauses.erased_size, memory);
+      ATOMIC_ADD(&GD->clauses.erased, deleted);
+      if( true(def, P_DIRTYREG) )
+	ATOMIC_SUB(&GD->clauses.dirty, deleted);
 
-    registerDirtyDefinition(def);
-    DEBUG(CHK_SECURE, checkDefinition(def));
+      registerDirtyDefinition(def);
+      DEBUG(CHK_SECURE, checkDefinition(def));
+    }
+  } else				      /* final cleanup */
+  { for(c = def->impl.clauses.first_clause; c; c = next)
+    { Clause cl = c->value.clause;
+
+      next = c->next;
+      set(cl, CL_ERASED);
+      freeClauseRef(c);
+    }
   }
 
   return deleted;
