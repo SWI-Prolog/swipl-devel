@@ -262,6 +262,21 @@ unallocProcedure(Procedure proc)
 }
 
 
+static void
+free_ddi_symbol(void *name, void *value)
+{ DirtyDefInfo ddi = value;
+
+  (void)name;
+  PL_free(ddi);
+}
+
+
+void
+initProcedures(void)
+{ GD->procedures.dirty = newHTable(32);
+  GD->procedures.dirty->free_symbol = free_ddi_symbol;
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 cleanupProcedures()  deals  with  the  cleanup    during   halt.  Normal
 procedures are cleaned by cleanupModules(). This   deals mostly with the

@@ -430,7 +430,7 @@ initBuildIns(void)
 { ExtensionCell ecell;
   Module m = MODULE_system;
 
-  GD->procedures.dirty = newHTable(32);
+  initProcedures();
 
   registerBuiltins(foreigns);
   REG_PLIST(alloc);
