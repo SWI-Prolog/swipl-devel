@@ -249,9 +249,9 @@ unallocProcedure(Procedure proc)
   DEBUG(MSG_PROC_COUNT, Sdprintf("Freed procedure %s at %p\n",
 				 predicateName(def), proc));
 
-  def->module = NULL;
   if ( unshareDefinition(def) == 0 )
-  { DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
+  { def->module = NULL;
+    DEBUG(MSG_PROC, Sdprintf("Reclaiming %s\n", predicateName(def)));
     destroyDefinition(def);
   }
   if ( proc->source_no )
