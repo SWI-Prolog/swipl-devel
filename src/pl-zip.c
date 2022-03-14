@@ -508,7 +508,10 @@ static int
 release_zipper(atom_t aref)
 { zipper *z = PL_blob_data(aref, NULL, NULL);
 
+  if ( z == GD->resources.DB )
+    GD->resources.DB = NULL;
   close_zipper(z);
+
 #ifdef O_PLMT
   simpleMutexDelete(&z->lock);
 #endif
