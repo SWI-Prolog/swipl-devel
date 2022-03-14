@@ -9317,6 +9317,11 @@ cleanupTabling(void)
   deleteSimpleMutex(&GD->tabling.mutex);
   cv_destroy(&GD->tabling.cvar);
 #endif
+
+  if ( GD->tabling.node_pool )
+  { free_alloc_pool(GD->tabling.node_pool);
+    GD->tabling.node_pool = NULL;
+  }
 }
 
 
