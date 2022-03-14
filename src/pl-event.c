@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019-2020, University of Amsterdam
+    Copyright (c)  2019-2022, University of Amsterdam
                               VU University Amsterdam
 		              CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -370,6 +370,17 @@ destroy_event_list(event_list **listp)
     PL_free(list);
   }
 }
+
+void
+cleanupEvents(void)
+{ const event_type *ep;
+
+  for(ep=PL_events; ep->name; ep++)
+  { if ( !ep->local )
+      destroy_event_list(ep->location);
+  }
+}
+
 
 
 #define call_event_list(list, argc, argv) LDFUNC(call_event_list, list, argc, argv)

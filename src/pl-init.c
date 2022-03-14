@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2012-2020, University of Amsterdam
+    Copyright (c)  2012-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -56,6 +57,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-proc.h"
 #include "pl-modul.h"
 #include "pl-flag.h"
+#include "pl-event.h"
 #include "pl-rec.h"
 #include "pl-term.h"
 #include "pl-funct.h"
@@ -1558,6 +1560,7 @@ emergency:
     cleanupRecords();
     cleanupTerm();
     freePrologLocalData(LD);
+    cleanupEvents();
     cleanupAtoms();
     cleanupFunctors();
     cleanupArith();

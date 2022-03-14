@@ -92,6 +92,7 @@ typedef struct event_type
 
 #define LDFUNC_DECLARATIONS
 
+void	cleanupEvents(void);
 int	delayEvents(void);
 int	sendDelayedEvents(int noerror);
 int	PL_call_event_hook(pl_event_type ev, ...);
