@@ -512,11 +512,11 @@ initPaths(int argc, const char **argv)
 
 
 static void
-cleanupStringP(char **loc)
+setStringP(char **loc, const char *val)
 { char *s;
 
   if ( (s=*loc) )
-  { *loc = NULL;
+  { *loc = val ? store_string(val) : NULL;
     remove_string(s);
   }
 }
@@ -540,19 +540,19 @@ cleanupOptListP(opt_list **listp)
 
 static void
 cleanupPaths(void)
-{ cleanupStringP(&GD->paths.executable);
-  cleanupStringP(&systemDefaults.home);
-  cleanupStringP(&systemDefaults.startup);
-  cleanupStringP(&GD->options.systemInitFile);
-  cleanupStringP(&GD->options.compileOut);
-  cleanupStringP(&GD->options.topLevel);
-  cleanupStringP(&GD->options.initFile);
-  cleanupStringP(&GD->options.saveclass);
-  cleanupStringP(&GD->options.on_error);
-  cleanupStringP(&GD->options.on_warning);
-  cleanupStringP(&GD->os.myhome);
+{ setStringP(&GD->paths.executable, NULL);
+  setStringP(&systemDefaults.home, NULL);
+  setStringP(&systemDefaults.startup, NULL);
+  setStringP(&GD->options.systemInitFile, NULL);
+  setStringP(&GD->options.compileOut, NULL);
+  setStringP(&GD->options.topLevel, NULL);
+  setStringP(&GD->options.initFile, NULL);
+  setStringP(&GD->options.saveclass, NULL);
+  setStringP(&GD->options.on_error, NULL);
+  setStringP(&GD->options.on_warning, NULL);
+  setStringP(&GD->os.myhome, NULL);
 #ifdef __WINDOWS__
-  cleanupStringP(&GD->paths.module);
+  setStringP(&GD->paths.module, NULL);
 #endif
 
   cleanupOptListP(&GD->options.scriptFiles);
@@ -823,12 +823,12 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft, int compile)
       { GD->options.config = store_string(optval);
       } else if ( (optval=is_longopt(s, "on-error")) )
       { if ( on_error_style(optval) )
-	  GD->options.on_error = store_string(optval);
+	  setStringP(&GD->options.on_error, optval);
 	else
 	  return -1;
       } else if ( (optval=is_longopt(s, "on-warning")) )
       { if ( on_error_style(optval) )
-	  GD->options.on_warning = store_string(optval);
+	  setStringP(&GD->options.on_warning, optval);
 	else
 	  return -1;
       } else if ( !compile )
