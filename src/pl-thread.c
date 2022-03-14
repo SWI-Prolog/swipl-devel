@@ -496,7 +496,6 @@ static void	initMessageQueues(void);
 static int	get_thread(term_t t, PL_thread_info_t **info, int warn);
 static int	is_alive(int status);
 static void	init_predicate_references(PL_local_data_t *ld);
-static void	free_predicate_references(PL_local_data_t *ld);
 static int	ldata_in_use(PL_local_data_t *ld);
 #ifdef O_C_BACKTRACE
 static void	print_trace(int depth);
@@ -718,14 +717,10 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     destroy_thread_message_queue(&ld->thread.messages);
     free_predicate_references(ld);
     free_undo_data(ld);
-    if ( ld->btrace_store )
-    { btrace_destroy(ld->btrace_store);
-      ld->btrace_store = NULL;
-    }
-  #ifdef O_LOCALE
+#ifdef O_LOCALE
     if ( ld->locale.current )
       releaseLocale(ld->locale.current);
-  #endif
+#endif
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = FALSE;		/* needed? */
     if ( !after_fork )
@@ -7876,7 +7871,7 @@ init_predicate_references(PL_local_data_t *ld)
   refs->blocks[2] = refs->preallocated - 1;
 }
 
-static void
+void
 free_predicate_references(PL_local_data_t *ld)
 { definition_refs *refs = &ld->predicate_references;
   int i;

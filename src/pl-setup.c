@@ -1757,6 +1757,7 @@ freePrologLocalData(PL_local_data_t *ld)
     destroyHTable(ld->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
+  free_predicate_references(ld);
 #endif
 
   if ( ld->qlf.getstr_buffer )
@@ -1770,6 +1771,8 @@ freePrologLocalData(PL_local_data_t *ld)
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif
+
+  free_undo_data(ld);
 
   if ( ld->btrace_store )
   { btrace_destroy(ld->btrace_store);
