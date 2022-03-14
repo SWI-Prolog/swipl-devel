@@ -1466,6 +1466,12 @@ deleteIndexes(ClauseList clist, int isnew)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Only called from destroyDefinition(), which is only called when removing
+a temporary module or during  final  cleanup.   So,  there  are  no more
+references.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 deleteIndexesDefinition(Definition def)
 { ClauseList clist = &def->impl.clauses;
@@ -1482,6 +1488,8 @@ deleteIndexesDefinition(Definition def)
 
       deleteIndexP(def, clist, cip);
     }
+
+    freeHeap(cip0, 0);
   }
 }
 
