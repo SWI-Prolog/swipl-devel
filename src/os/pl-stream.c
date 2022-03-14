@@ -4108,6 +4108,10 @@ Scleanup(void)
   for(i=0; i<=2; i++)
   { IOSTREAM *s = &S__iob[i];
 
+    if ( s->mbstate )
+      free(s->mbstate);
+    if ( s->locale )
+      releaseLocale(s->locale);
     s->bufp = s->buffer;		/* avoid actual flush */
     S__removebuf(s);
 

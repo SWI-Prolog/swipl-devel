@@ -166,6 +166,16 @@ update_locale(PL_locale *l, int category, const char *locale)
 }
 
 
+static void
+free_locale_symbol(void *name, void *value)
+{ PL_locale *l = value;
+  (void)name;
+
+  l->alias = 0;
+  releaseLocale(l);
+}
+
+
 static int
 alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
@@ -174,7 +184,9 @@ alias_locale(PL_locale *l, atom_t alias)
   PL_LOCK(L_LOCALE);
 
   if ( !GD->locale.localeTable )
-    GD->locale.localeTable = newHTable(16);
+  { GD->locale.localeTable = newHTable(16);
+    GD->locale.localeTable->free_symbol = free_locale_symbol;
+  }
 
   if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
   { GET_LD
@@ -850,7 +862,6 @@ initLocale(void)
 
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
-    def->references++;
     GD->locale.default_locale = def;
     LD->locale.current = acquireLocale(def);
 
