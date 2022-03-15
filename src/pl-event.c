@@ -50,6 +50,8 @@
 Event interface
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void	free_event_callback(event_callback *cb);
+
 #ifdef O_PLMT
 #define INIT_LIST_LOCK(l) recursiveMutexInit(&(l)->lock)
 #define DELETE_LIST_LOCK(l) recursiveMutexDelete(&(l)->lock)
@@ -305,6 +307,7 @@ PRED_IMPL("prolog_unlisten", 2, prolog_unlisten, 0)
 		if ( !list->head )
 		  list->tail = NULL;
 	      }
+	      free_event_callback(ev);
 	      continue;
 	    }
 	  } else if ( ev->closure.term )
