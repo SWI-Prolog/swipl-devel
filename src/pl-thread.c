@@ -690,7 +690,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       WITH_LD(ld) activateProfiler(FALSE);
   #endif
 
-    destroy_event_list(&ld->event.hook.onthreadexit);
     free_thread_wait(ld);
     cleanupLocalDefinitions(ld);
 

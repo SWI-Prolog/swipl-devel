@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-event.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
 #include "pl-modul.h"
@@ -1758,6 +1760,7 @@ freePrologLocalData(PL_local_data_t *ld)
     PL_UNLOCK(L_PLFLAG);
   }
   free_predicate_references(ld);
+  destroy_event_list(&ld->event.hook.onthreadexit);
 #endif
 
   if ( ld->qlf.getstr_buffer )
