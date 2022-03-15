@@ -1230,6 +1230,10 @@ dieIO(void)
 
     if ( ttymodified && ttyfileno == Sfileno(Sinput) )
       PopTty(Sinput, &ttytab, TRUE);
+    freeHeap(ttytab.state, 0);
+    memset(&ttytab, 0, sizeof(ttytab));
+    ttymodified = FALSE;
+    ttyfileno = -1;
   }
 }
 
