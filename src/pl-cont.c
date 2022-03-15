@@ -82,10 +82,8 @@ findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
   for(; fr; fr = fr->parent)
   { int rc;
     term_t tref;
-    static Procedure proc_fl = NULL;
-
-    if ( !proc_fl )
-      proc_fl = PL_predicate("findall_loop", 4, "$bags");
+    Procedure proc_fl = _PL_predicate("findall_loop", 4, "$bags",
+				      &GD->procedures.findall_loop4);
 
     if ( fr->predicate == proc_fl->definition )
       return FRESET_FINDALL;

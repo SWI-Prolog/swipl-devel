@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2021, University of Amsterdam
+    Copyright (c)  1997-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -357,6 +357,7 @@ struct PL_global_data
     Procedure	drun_undo1;		/* $syspreds:$run_undo/1 */
     Procedure	drun_initialization2;	/* system:$run_initialization/2 */
     Procedure	dtranslated_source2;	/* system:$translated_source/2 */
+    Procedure	findall_loop4;		/* $bags:findall_loop/4 */
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
