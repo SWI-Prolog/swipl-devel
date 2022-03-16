@@ -236,8 +236,12 @@ delayedDestroyDefinition(Definition def)
 { DEBUG(MSG_PRED_COUNT, Sdprintf("Delayed unalloc %s at %p\n",
 				 predicateName(def), def));
   assert(def->module == NULL);
-  if ( def->impl.clauses.first_clause == NULL )
-  { DEBUG(0,
+  if ( def->impl.clauses.first_clause == NULL ||
+       GD->cleaning == CLN_DATA )
+  { if ( GD->cleaning == CLN_DATA )
+      removeClausesPredicate(def, 0, FALSE);
+
+    DEBUG(0,
 	  if ( def->lingering )
 	  { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
 		     predicateName(def));
@@ -1577,6 +1581,8 @@ removeClausesPredicate(Definition def, int sfindex, int fromfile)
       set(cl, CL_ERASED);
       freeClauseRef(c);
     }
+    def->impl.clauses.first_clause = NULL;
+    def->impl.clauses.last_clause = NULL;
   }
 
   return deleted;
