@@ -1761,6 +1761,7 @@ freePrologLocalData(PL_local_data_t *ld)
   }
   free_predicate_references(ld);
   destroy_event_list(&ld->event.hook.onthreadexit);
+  free_thread_wait(ld);
 #endif
 
   if ( ld->qlf.getstr_buffer )

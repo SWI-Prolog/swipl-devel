@@ -466,6 +466,7 @@ void		get_current_timespec(struct timespec *time);
 void	        carry_timespec_nanos(struct timespec *time);
 int		signal_waiting_threads(Module m, thread_wait_channel *wch);
 void		free_wait_area(thread_wait_area *wa);
+void		free_thread_wait(PL_local_data_t *ld);
 void		free_predicate_references(PL_local_data_t *ld);
 
 		 /*******************************

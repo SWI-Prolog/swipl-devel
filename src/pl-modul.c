@@ -335,6 +335,7 @@ unallocModule(Module m)
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+  if ( m->wait )       free_wait_area(m->wait);
 #endif
   if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 

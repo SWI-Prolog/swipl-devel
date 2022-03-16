@@ -486,7 +486,6 @@ static thread_handle *symbol_thread_handle(atom_t a);
 static void	destroy_interactor(thread_handle *th, int gc);
 static PL_engine_t PL_current_engine(void);
 static void	detach_engine(PL_engine_t e);
-static void	free_thread_wait(PL_local_data_t *ld);
 
 static int	unify_queue(term_t t, message_queue *q);
 static int	get_message_queue_unlocked(term_t t, message_queue **queue);
@@ -690,7 +689,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       WITH_LD(ld) activateProfiler(FALSE);
   #endif
 
-    free_thread_wait(ld);
     cleanupLocalDefinitions(ld);
 
     DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
@@ -5581,7 +5579,7 @@ free_wait_area(thread_wait_area *wa)
   free(wa);
 }
 
-static void
+void
 free_thread_wait(PL_local_data_t *ld)
 { thread_wait_for *twf;
 
