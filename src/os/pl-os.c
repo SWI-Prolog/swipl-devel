@@ -1097,18 +1097,17 @@ deleteCanonicalDir(CanonicalDir d)
     for(cd=GD->os.dir_table.entries[k]; cd; cd=cd->next)
     { if ( cd->next == d )
       { cd->next = d->next;
-
-	remove_string(d->name);
-	if ( d->canonical != d->name )
-	  remove_string(d->canonical);
-	PL_free(d);
-
-	return;
+	break;
       }
     }
 
-    assert(0);
+    assert(cd);
   }
+
+  remove_string(d->name);
+  if ( d->canonical != d->name )
+    remove_string(d->canonical);
+  PL_free(d);
 }
 
 
