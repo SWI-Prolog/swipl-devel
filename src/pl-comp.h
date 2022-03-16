@@ -76,6 +76,7 @@ void		wamListClause(Clause clause);
 Code		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
 int		unify_definition(Module ctx, term_t head, Definition def,
 				 term_t thehead, int flags);
+void		cleanupBreakPoints(void);
 code		replacedBreak(Code PC);
 code		replacedBreakUnlocked(Code PC);
 int		clearBreakPointsClause(Clause clause) WUNUSED;

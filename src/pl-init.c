@@ -1552,6 +1552,7 @@ emergency:
 
   if ( reclaim_memory )
   { freeStacks();
+    cleanupBreakPoints();
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
 #endif

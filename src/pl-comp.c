@@ -8154,6 +8154,22 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
+static void
+free_break_symbol(void *name, void *value)
+{ BreakPoint bp = value;
+
+  (void)name;
+  freeHeap(bp, sizeof(*bp));
+}
+
+void
+cleanupBreakPoints(void)
+{ if ( breakTable )
+  { destroyHTable(breakTable);
+    breakTable = NULL;
+  }
+}
+
 #define BRK_NOTSET 0
 #define BRK_SET    1
 #define BRK_EXISTS 2
@@ -8170,7 +8186,9 @@ set_second:
   dop = decode(op);
 
   if ( !breakTable )
-    breakTable = newHTable(16);
+  { breakTable = newHTable(16);
+    breakTable->free_symbol = free_break_symbol;
+  }
 
   if ( dop == D_BREAK )
     return BRK_EXISTS;
