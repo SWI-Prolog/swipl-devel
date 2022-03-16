@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -87,7 +87,7 @@ freeSupervisor(Definition def, Code codes, int do_linger)
   { if ( do_linger )
       linger(&def->lingering, free_codes_ptr, codes);
     else
-      freeHeap(&codes[-1], (size+1)*sizeof(code));
+      freeCodes(codes);
   }
 }
 
