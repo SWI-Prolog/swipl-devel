@@ -2310,14 +2310,14 @@ is_variant_trie(trie *trie)
 
 
 static void
-clear_variant_table(PL_local_data_t *ld)
+clear_variant_table(trie **vtriep)
 { trie *vtrie;
 
-  if ( (vtrie=ld->tabling.variant_table) )
+  if ( (vtrie=*vtriep) )
   { vtrie->magic = TRIE_CMAGIC;
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
-    ld->tabling.variant_table = NULL;
+    *vtriep = NULL;
   }
 }
 
@@ -2562,7 +2562,7 @@ void
 clearThreadTablingData(PL_local_data_t *ld)
 { reset_global_worklist(ld->tabling.component);
   reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
-  clear_variant_table(ld);
+  clear_variant_table(&ld->tabling.variant_table);
 }
 
 
@@ -9321,7 +9321,8 @@ initTabling(void)
 
 void
 cleanupTabling(void)
-{
+{ clear_variant_table(&GD->tabling.variant_table);
+
 #ifdef O_PLMT
   deleteSimpleMutex(&GD->tabling.mutex);
   cv_destroy(&GD->tabling.cvar);
