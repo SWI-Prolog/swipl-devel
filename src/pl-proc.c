@@ -207,7 +207,7 @@ destroyDefinition(Definition def)
     removeClausesPredicate(def, 0, FALSE);
     if ( GD->cleaning != CLN_DATA )
     { registerDirtyDefinition(def);
-      DEBUG(MSG_PROC_COUNT, Sdprintf("Erased %s\n", predicateName(def)));
+      DEBUG(MSG_PRED_COUNT, Sdprintf("Erased %s at\n", predicateName(def), def));
       def->module = NULL;
       set(def, P_ERASED);
       return;
@@ -217,7 +217,7 @@ destroyDefinition(Definition def)
   } else					/* foreign and thread-local */
   {
 #ifdef O_PLMT
-    DEBUG(MSG_PROC_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
+    DEBUG(MSG_PRED_COUNT, Sdprintf("Unalloc foreign/thread-local: %s\n",
 				   predicateName(def)));
     if ( true(def, P_THREAD_LOCAL) )
       destroyLocalDefinitions(def);
@@ -233,7 +233,8 @@ destroyDefinition(Definition def)
 
 static void
 delayedDestroyDefinition(Definition def)
-{ DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
+{ DEBUG(MSG_PRED_COUNT, Sdprintf("Delayed unalloc %s at %p\n",
+				 predicateName(def), def));
   assert(def->module == NULL);
   if ( def->impl.clauses.first_clause == NULL )
   { DEBUG(0,

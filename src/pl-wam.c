@@ -1543,6 +1543,10 @@ destroyLocalDefinition(Definition def, unsigned int tid)
   LocalDefinitions v = def->impl.local.local;
   Definition local;
 
+  DEBUG(MSG_PRED_COUNT,
+	Sdprintf("Free local def[%d] for %s at %p\n",
+		 tid, predicateName(def), def));
+
   local = v->blocks[idx][tid];
   v->blocks[idx][tid] = NULL;
   destroyDefinition(local);

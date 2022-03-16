@@ -7398,7 +7398,8 @@ localiseDefinition(Definition def)
   local->impl.clauses.clause_indexes = NULL;
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&local->module->code_size, sizeof(*local));
-  DEBUG(MSG_PROC_COUNT, Sdprintf("Localise %s\n", predicateName(def)));
+  DEBUG(MSG_PRED_COUNT, Sdprintf("Localise def[%d] %s at %p\n",
+				 PL_thread_self(), predicateName(def), local));
 
   setSupervisor(local);
   registerLocalDefinition(def);
