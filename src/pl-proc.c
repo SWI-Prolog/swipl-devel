@@ -224,7 +224,27 @@ destroyDefinition(Definition def)
 #endif
   }
 
+  if ( true(def, P_DIRTYREG) )
+    unregisterDirtyDefinition(def);
   unallocDefinition(def);
+}
+
+/* Finish the job when P_ERASED is det in destroyDefinition() */
+
+static void
+delayedDestroyDefinition(Definition def)
+{ DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
+  assert(def->module == NULL);
+  if ( def->impl.clauses.first_clause == NULL )
+  { DEBUG(0,
+	  if ( def->lingering )
+	  { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
+		     predicateName(def));
+	  });
+    unregisterDirtyDefinition(def);
+    deleteIndexes(&def->impl.clauses, TRUE);
+    unallocDefinition(def);
+  }
 }
 
 
@@ -264,9 +284,11 @@ unallocProcedure(Procedure proc)
 static void
 free_ddi_symbol(void *name, void *value)
 { DirtyDefInfo ddi = value;
+  Definition def = name;
 
-  (void)name;
   PL_free(ddi);
+  if ( true(def, P_ERASED) )
+    delayedDestroyDefinition(def);
 }
 
 
@@ -2575,19 +2597,7 @@ maybeUnregisterDirtyDefinition(Definition def)
   }
 
   if ( true(def, P_ERASED) )
-  { DEBUG(MSG_PROC_COUNT, Sdprintf("Delayed unalloc %s\n", predicateName(def)));
-    assert(def->module == NULL);
-    if ( def->impl.clauses.first_clause == NULL )
-    { DEBUG(0,
-	    if ( def->lingering )
-	    { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
-		       predicateName(def));
-	    });
-      unregisterDirtyDefinition(def);
-      deleteIndexes(&def->impl.clauses, TRUE);
-      unallocDefinition(def);
-    }
-  }
+    delayedDestroyDefinition(def);
 }
 
 
