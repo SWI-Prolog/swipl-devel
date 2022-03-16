@@ -428,6 +428,7 @@ struct PL_global_data
     { pthread_mutex_t	mutex;
       pthread_cond_t	cond;
     } index;
+    linger_list	       *lingering;
   } thread;
 #endif /*O_PLMT*/
 

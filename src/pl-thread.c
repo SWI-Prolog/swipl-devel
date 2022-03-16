@@ -898,8 +898,8 @@ initPrologThreads(void)
   PL_local_data.magic = LD_MAGIC;
   { GD->thread.thread_max = 4;		/* see resizeThreadMax() */
     GD->thread.highest_allocated = 1;
-    GD->thread.threads = allocHeapOrHalt(GD->thread.thread_max *
-					 sizeof(*GD->thread.threads));
+    GD->thread.threads = PL_malloc(GD->thread.thread_max *
+				   sizeof(*GD->thread.threads));
     memset(GD->thread.threads, 0,
 	   GD->thread.thread_max * sizeof(*GD->thread.threads));
     info = GD->thread.threads[1] = allocHeapOrHalt(sizeof(*info));
@@ -955,8 +955,8 @@ cleanupThreads(void)
     if ( info )
       freeHeap(info, sizeof(*info));
   }
-  freeHeap(GD->thread.threads,
-	   GD->thread.thread_max * sizeof(*GD->thread.threads));
+  free_lingering(&GD->thread.lingering, GEN_MAX);
+  PL_free(GD->thread.threads);
   GD->thread.threads = NULL;
   threads_ready = FALSE;
 }
@@ -1442,8 +1442,6 @@ static PL_blob_t thread_blob =
 Resizing max-threads. Note that we do *not* deallocate the old structure
 to ensure we can  access  GD->thread.threads[i]   at  any  time  without
 locking.
-
-TBD: remember the old ones, such that PL_cleanup() can remove them.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1453,12 +1451,12 @@ resizeThreadMax(void)
   size_t dsize = GD->thread.thread_max * sizeof(*GD->thread.threads);
 
   oldinfo = GD->thread.threads;
-  newinfo = allocHeapOrHalt(newmax * sizeof(*GD->thread.threads));
+  newinfo = PL_malloc(newmax * sizeof(*GD->thread.threads));
   memset(addPointer(newinfo,dsize), 0, dsize);
   memcpy(newinfo, oldinfo, dsize);
   GD->thread.threads = newinfo;
   GD->thread.thread_max = newmax;
-  GC_LINGER(oldinfo);
+  linger(&GD->thread.lingering, PL_free, oldinfo);
 
   return TRUE;
 }
