@@ -7873,6 +7873,7 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
     }
 
     freeTableEnum(state->en);
+    state->en = NULL;
 
     if ( popSegStack(&state->stack, &state->idg, IDGNode) )
     { state->en = newTableEnum(state->idg->dependent);
@@ -7900,9 +7901,12 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
     state.visited = newHTable(4);
     addHTable(state.visited, idg, (void*)TRUE);
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
-    state.en = newTableEnum(idg->dependent);
 
+    state.en = newTableEnum(idg->dependent);
     invalid = mono_scc_is_complete_loop(&state);
+    if ( state.en )
+      freeTableEnum(state.en);
+
     clearSegStack(&state.stack);
     if ( !invalid )
     { FOR_TABLE(state.visited, k, v)
