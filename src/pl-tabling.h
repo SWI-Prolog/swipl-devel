@@ -234,9 +234,11 @@ typedef struct idg_mdep
   Buffer	 queue;			/* Unprocessed answers */
 } idg_mdep;
 
+#define TRIE_ARRAY_PREALLOCATED 7
+
 typedef struct trie_array
 { trie **blocks[MAX_BLOCKS];
-  trie *preallocated[7];
+  trie *preallocated[TRIE_ARRAY_PREALLOCATED];
 } trie_array;
 
 

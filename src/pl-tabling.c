@@ -9126,11 +9126,24 @@ new_trie_array(void)
 { trie_array *a = allocHeapOrHalt(sizeof(*a));
 
   memset(a, 0, sizeof(*a));
-  a->blocks[0] = a->preallocated - 1;
-  a->blocks[1] = a->preallocated - 1;
-  a->blocks[2] = a->preallocated - 1;
+  for(int i=0; i<=MSB(TRIE_ARRAY_PREALLOCATED); i++)
+    a->blocks[i] = a->preallocated - 1;
 
   return a;
+}
+
+
+static void
+free_trie_array(trie_array *a)
+{ for(int i = 0; i < MAX_BLOCKS; i++)
+  { if ( a->blocks[i] && a->blocks[i] != a->preallocated - 1 )
+    { size_t bs = (size_t)1<<i;
+
+      PL_free(a->blocks[i]+bs);
+    }
+  }
+
+  freeHeap(a, sizeof(*a));
 }
 
 
@@ -9333,6 +9346,11 @@ cleanupTabling(void)
   if ( GD->tabling.node_pool )
   { free_alloc_pool(GD->tabling.node_pool);
     GD->tabling.node_pool = NULL;
+  }
+
+  if ( GD->tabling.waiting )
+  { free_trie_array(GD->tabling.waiting);
+    GD->tabling.waiting = NULL;
   }
 }
 
