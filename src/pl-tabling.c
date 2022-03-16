@@ -6149,17 +6149,24 @@ idg_destroy(idg_node *node)
   PL_free(node);
 }
 
-static void
-idg_free_affected(void *n, void *v)
-{ idg_node *child  = v;
-  idg_node *parent = n;
-
-  while ( child->magic != IDG_NODE_MAGIC )
+static idg_node *
+free_mdep_chain(idg_node *child)
+{ while ( child->magic != IDG_NODE_MAGIC )
   { idg_mdep *mdep = (idg_mdep*)child;
 
     child = mdep->next.child;
     free_mdep(mdep);
   }
+
+  return child;
+}
+
+static void
+idg_free_affected(void *n, void *v)
+{ idg_node *child  = v;
+  idg_node *parent = n;
+
+  child = free_mdep_chain(child);
 
   assert(parent->dependent);
   if ( !deleteHTable(parent->dependent, child) )
@@ -6172,7 +6179,9 @@ idg_free_dependent(void *n, void *v)
   idg_node *child  = n;
 
   assert(child->affected);
-  if ( !deleteHTable(child->affected, parent) )
+  if ( (child=deleteHTable(child->affected, parent)) )
+    free_mdep_chain(child);
+  else
     Sdprintf("OOPS: idg_free_dependent() failed to delete backlink\n");
 }
 
