@@ -953,7 +953,8 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 
 	return rc;
       } else
-      { size_t shdr  = sizeOfBuffer(&data.hdr);
+      { int rc;
+	size_t shdr  = sizeOfBuffer(&data.hdr);
 	size_t scode = sizeOfBuffer(&data.info.code);
 	Word p;
 
@@ -965,7 +966,10 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	  memcpy(q,      data.hdr.base,       shdr);
 	  memcpy(q+shdr, data.info.code.base, scode);
 
-	  return _PL_unify_atomic(string, w);
+	  rc = _PL_unify_atomic(string, w);
+	  discard_record_data(&data);
+
+	  return rc;
 	} else
 	{ discard_record_data(&data);
 	  return FALSE;
