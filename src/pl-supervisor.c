@@ -169,6 +169,23 @@ createForeignSupervisor(Definition def, Func f)
 }
 
 
+static int
+equalSupervisors(const Code s1, const Code s2)
+{ if ( s1 != s2 )
+  { size_t sz1 = (size_t)s1[-1];
+    size_t sz2 = (size_t)s2[-1];
+
+    if ( sz1 && sz1 == sz2 &&
+	 memcmp(s1, s2, sz1*sizeof(*s1)) == 0 )
+      return TRUE;
+
+    return FALSE;
+  }
+
+  return TRUE;
+}
+
+
 		 /*******************************
 		 *	   PROLOG CASES		*
 		 *******************************/
@@ -424,13 +441,19 @@ this is not yet enough to stop all racer conditions between this code.
 
 int
 setSupervisor(Definition def)
-{ Code codes;
+{ if ( false(def, P_LOCKED_SUPERVISOR) )
+  { Code codes, old;
 
-  if ( false(def, P_LOCKED_SUPERVISOR) )
-  { PL_LOCK(L_PREDICATE);
+    PL_LOCK(L_PREDICATE);
+    old = def->codes;
     codes = createSupervisor(def);
-    MEMORY_BARRIER();
-    def->codes = codes;
+    if ( equalSupervisors(old, codes) )
+    { freeSupervisor(def, codes, FALSE);
+    } else
+    { MEMORY_BARRIER();
+      def->codes = codes;
+      freeSupervisor(def, old, TRUE);
+    }
     PL_UNLOCK(L_PREDICATE);
   }
 
