@@ -5601,6 +5601,29 @@ wrapIO(IOSTREAM *s,
 }
 
 
+static ssize_t
+Swrite_stderr(void *handle, char *buf, size_t size)
+{ IOSTREAM *org = handle;
+
+  return ( Sfwrite(buf, 1, size, org) == size &&
+	   Sflush(org) == 0
+	 ) ? 0 : -1;
+}
+
+static IOFUNCTIONS Sstderrfunctions =
+{ NULL,
+  Swrite_stderr,
+  NULL,
+  NULL,
+  NULL,
+#ifdef O_LARGEFILES
+  NULL,
+#else
+  NULL
+#endif
+};
+
+
 static int
 getIOStreams(term_t tin, term_t tout, term_t terror,
 	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
@@ -5612,7 +5635,9 @@ getIOStreams(term_t tin, term_t tout, term_t terror,
     return FALSE;
 
   if ( PL_compare(tout, terror) == 0 )	/* == */
-  { *error = getStream(Snew((*out)->handle, (*out)->flags, (*out)->functions));
+  { *error = getStream(Snew((*out),
+			    (*out)->flags & ~WRAP_CLEAR_FLAGS,
+			    &Sstderrfunctions));
     if ( !*error )
       return FALSE;
   } else
@@ -5669,7 +5694,7 @@ out:
     releaseStream(in);
   if ( out )
     releaseStream(out);
-  if ( error && error != out )
+  if ( error )
     releaseStream(error);
 
   return rval;
