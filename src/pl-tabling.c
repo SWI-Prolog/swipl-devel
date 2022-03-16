@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2021, VU University Amsterdam
+    Copyright (c)  2017-2022, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -2274,7 +2274,7 @@ reset_answer_table(trie *atrie, int cleanup)
   clear(atrie, TRIE_COMPLETE);
 
   if ( (n=atrie->data.IDG) )
-  { if ( true(atrie, TRIE_ISSHARED) )
+  { if ( true(atrie, TRIE_ISSHARED) && GD->cleaning != CLN_DATA )
     { idg_reset(n);
     } else
     { atrie->data.IDG = NULL;
@@ -2315,6 +2315,8 @@ clear_variant_table(trie **vtriep)
 
   if ( (vtrie=*vtriep) )
   { vtrie->magic = TRIE_CMAGIC;
+    if ( true(vtrie, TRIE_ISSHARED) )
+      release_trie(vtrie);			/* acquired in variant_table() */
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
     *vtriep = NULL;
