@@ -226,9 +226,9 @@ linger(linger_list** list, void (*unalloc)(void *), void *object)
   { linger_list *c = allocHeapOrHalt(sizeof(*c));
     linger_list *o;
 
-    c->generation	= global_generation();
-    c->object	= object;
-    c->unalloc	= unalloc;
+    c->generation = global_generation();
+    c->object	  = object;
+    c->unalloc	  = unalloc;
 
     do
     { o = *list;
