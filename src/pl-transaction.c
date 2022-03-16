@@ -625,11 +625,13 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 	if ( constraint ) TR_UNLOCK();
       } else
       { if ( constraint ) TR_UNLOCK();
+	LD->transaction.generation = 0;	/* avoid recording the rollback */
 	transaction_discard();
 	transaction_rollback_tables();
       }
     } else
-    { rc = transaction_discard() && rc;
+    { LD->transaction.generation = 0;  /* avoid recording the rollback */
+      rc = transaction_discard() && rc;
       rc = transaction_rollback_tables() && rc;
     }
     LD->transaction.id         = 0;
