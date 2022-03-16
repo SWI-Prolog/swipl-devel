@@ -576,7 +576,8 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
     { switch( children.any->type )
       { case TN_KEY:
 	{ if ( children.key->key == key )
-	  { return children.key->child;
+	  { destroy_node(trie, new);	/* someone else did this */
+	    return children.key->child;
 	  } else
 	  { trie_children_hashed *hnode;
 
