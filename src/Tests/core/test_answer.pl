@@ -88,8 +88,9 @@ send_bindings(In, Out) :-
 	set_prolog_IO(In, Out, Out),
 	set_prolog_flag(toplevel_residue_vars, true),
 	prolog,
-	close(In),
-	close(Out).
+	close(user_input),
+	close(user_output),
+	close(user_error).
 
 %%	test_answer(+Query, -OkReplies) is semidet.
 %
