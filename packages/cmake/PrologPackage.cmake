@@ -216,6 +216,7 @@ endfunction(swipl_plugin)
 
 function(install_dll)
 if(WIN32)
+if(NOT WIN32_DLLS STRMATCH "")
   set(dlls)
 
   foreach(lib ${ARGN})
@@ -251,6 +252,7 @@ if(WIN32)
        DESTINATION ${CMAKE_BINARY_DIR}/src)
   install(FILES ${dlls}
 	  DESTINATION ${SWIPL_INSTALL_ARCH_EXE})
+endif()
 endif()
 endfunction()
 
