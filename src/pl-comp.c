@@ -8157,8 +8157,10 @@ matching_unify_break(Clause clause, int offset, code op)
 static void
 free_break_symbol(void *name, void *value)
 { BreakPoint bp = value;
+  Code PC = name;
 
-  (void)name;
+  *PC = bp->saved_instruction;
+
   freeHeap(bp, sizeof(*bp));
 }
 
