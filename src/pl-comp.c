@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -80,6 +80,7 @@
 #define valHandleP(h)		valTermRef(h)
 
 static void	initVMIMerge(void);
+static void	cleanupMerge(void);
 
 static void
 checkCodeTable(void)
@@ -187,6 +188,7 @@ void
 cleanupWamTable(void)
 { free(dewam_table);
   dewam_table = NULL;
+  cleanupMerge();
 }
 
 /* See SEPARATE_VMI */
@@ -1678,6 +1680,17 @@ initVMIMerge(void)
   mergeSeq(H_VOID_N, I_SSU_CHOICE, I_SSU_CHOICE, 0);
   mergeSeq(H_VOID,   H_POP,	   H_POP,	 0);
   mergeSeq(H_VOID_N, H_POP,	   H_POP,	 0);
+}
+
+
+static void
+cleanupMerge(void)
+{ for(int i=0; i<I_HIGHEST; i++)
+  { if ( merge_def[i] )
+    { free(merge_def[i]);
+      merge_def[i] = NULL;
+    }
+  }
 }
 
 
