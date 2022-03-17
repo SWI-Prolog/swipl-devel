@@ -169,9 +169,11 @@ update_locale(PL_locale *l, int category, const char *locale)
 static void
 free_locale_symbol(void *name, void *value)
 { PL_locale *l = value;
-  (void)name;
+  atom_t alias = (uintptr_t)name;
 
   l->alias = 0;
+  PL_unregister_atom(alias);
+
   releaseLocale(l);
 }
 
@@ -199,6 +201,7 @@ alias_locale(PL_locale *l, atom_t alias)
   { addNewHTable(GD->locale.localeTable, (void*)alias, l);
     l->alias = alias;
     PL_register_atom(alias);
+    l->references++;	/* acquireLocale(), but that will deadlock */
     rc = TRUE;
   }
   PL_UNLOCK(L_LOCALE);
@@ -231,7 +234,7 @@ static void
 acquire_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  (void)ref;
+  acquireLocale(ref->data);
 }
 
 
@@ -240,7 +243,7 @@ release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   PL_LOCK(L_LOCALE);
-  if ( ref->data->references == 0 )
+  if ( --ref->data->references == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
@@ -424,6 +427,7 @@ typedef struct
   PL_locale *l;				/* current locale */
   const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
+  int allocated;			/* Is allocated */
 } lprop_enum;
 
 
@@ -457,7 +461,8 @@ free_lstate(lprop_enum *state)
   else if ( state->l )
     releaseLocale(state->l);
 
-  freeForeignState(state, sizeof(*state));
+  if ( state->allocated )
+    freeForeignState(state, sizeof(*state));
 }
 
 
@@ -522,6 +527,7 @@ PRED_IMPL("locale_property", 2, locale_property, PL_FA_NONDETERMINISTIC)
 	    state->enum_properties = TRUE;
 	    goto enumerate;
 	  case -1:
+	    free_lstate(state);
 	    return FALSE;
 	}
       } else
@@ -573,25 +579,24 @@ enumerate:
 	}
 
 	if ( advance_lstate(state) )
-	{ if ( state == &statebuf )
+	{ if ( !state->allocated )
 	  { lprop_enum *copy = allocForeignState(sizeof(*copy));
 
 	    *copy = *state;
+	    copy->allocated = TRUE;
 	    state = copy;
 	  }
 
 	  ForeignRedoPtr(state);
 	}
 
-	if ( state != &statebuf )
-	  free_lstate(state);
+	free_lstate(state);
 	return TRUE;
       }
 
       if ( !advance_lstate(state) )
       { error:
-	if ( state != &statebuf )
-	  free_lstate(state);
+	free_lstate(state);
 	return FALSE;
       }
     }
@@ -754,7 +759,9 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     if ( alias && !alias_locale(new, alias) )
       goto error;
 
-    return unifyLocale(A1, new, TRUE);
+    int rc = unifyLocale(A1, new, TRUE);
+    DEBUG(0, assert(new->references == 1));
+    return rc;
   } else
   { return PL_no_memory();
   }
@@ -774,6 +781,7 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
       if ( lookupHTable(GD->locale.localeTable, (void*)alias) )
 	deleteHTable(GD->locale.localeTable, (void*)alias);
       l->alias = 0;
+      l->references--;
       PL_unregister_atom(alias);
       PL_UNLOCK(L_LOCALE);
     }
@@ -862,7 +870,7 @@ initLocale(void)
 
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
-    GD->locale.default_locale = def;
+    GD->locale.default_locale = acquireLocale(def);
     LD->locale.current = acquireLocale(def);
 
     initDefaultsStreamsLocale(def);
@@ -906,6 +914,7 @@ acquireLocale(PL_locale *l)
 void
 releaseLocale(PL_locale *l)
 { PL_LOCK(L_LOCALE);
+  assert(l->references > 0);
   if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
     free_locale(l);
   PL_UNLOCK(L_LOCALE);
@@ -914,7 +923,12 @@ releaseLocale(PL_locale *l)
 
 void
 cleanupLocale(void)
-{ if ( GD->locale.localeTable )
+{ if ( GD->locale.default_locale )
+  { releaseLocale(GD->locale.default_locale);
+    GD->locale.default_locale = NULL;
+  }
+
+  if ( GD->locale.localeTable )
   { destroyHTable(GD->locale.localeTable);
     GD->locale.localeTable = NULL;
   }

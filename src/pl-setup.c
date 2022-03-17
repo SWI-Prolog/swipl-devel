@@ -1764,6 +1764,11 @@ freePrologLocalData(PL_local_data_t *ld)
   free_thread_wait(ld);
 #endif
 
+#ifdef O_LOCALE
+  if ( ld->locale.current )
+    releaseLocale(ld->locale.current);
+#endif
+
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
 

@@ -713,11 +713,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     }
     destroy_thread_message_queue(&ld->thread.messages);
     free_predicate_references(ld);
-    free_undo_data(ld);
-#ifdef O_LOCALE
-    if ( ld->locale.current )
-      releaseLocale(ld->locale.current);
-#endif
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = FALSE;		/* needed? */
     if ( !after_fork )
