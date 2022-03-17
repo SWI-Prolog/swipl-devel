@@ -732,7 +732,7 @@ void
 initOperators(void)
 { const opdef *op;
 
-  MODULE_system->operators = newOperatorTable(32);
+  MODULE_system->operators = newOperatorTable(128);
 
   for( op = operators; op->name; op++ )
     defOperator(MODULE_system, op->name, op->type, op->priority, TRUE);
