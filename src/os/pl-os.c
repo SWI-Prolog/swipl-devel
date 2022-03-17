@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -128,6 +129,7 @@ static void	initExpand(void);
 static void	cleanupExpand(void);
 static void	initEnviron(void);
 static char    *utf8_path_lwr(char *s, size_t len);
+static void	clean_tmp_dir(void);
 
 #ifndef DEFAULT_PATH
 #define DEFAULT_PATH "/bin:/usr/bin"
@@ -174,6 +176,7 @@ initOs(void)
 void
 cleanupOs(void)
 { cleanupExpand();
+  clean_tmp_dir();
 }
 
 
@@ -639,6 +642,21 @@ free_tmp_symbol(void *name, void *value)
  * encoding.
  */
 
+static atom_t      tmp_aname = NULL_ATOM;
+static const char *tmp_name = NULL;
+
+static void
+clean_tmp_dir(void)
+{ if ( tmp_name )
+  { PL_free((void*)tmp_name);
+    tmp_name = NULL;
+  }
+  if ( tmp_aname )
+  { PL_unregister_atom(tmp_aname);
+    tmp_aname = 0;
+  }
+}
+
 static const char *
 tmp_dir(void)
 { GET_LD
@@ -647,8 +665,6 @@ tmp_dir(void)
   if ( LD )
 #endif
   { atom_t a;
-    static atom_t      tmp_aname = NULL_ATOM;
-    static const char *tmp_name = NULL;
 
     if ( PL_current_prolog_flag(ATOM_tmp_dir, PL_ATOM, &a) )
     { if ( a == tmp_aname )
@@ -660,8 +676,7 @@ tmp_dir(void)
 	if ( (t=PL_new_term_ref()) &&
 	     PL_put_atom(t, a) &&
 	     PL_get_chars(t, &s, CVT_ATOM|REP_FN|BUF_MALLOC) )
-	{ if ( tmp_name ) PL_free((void*)tmp_name);
-	  if ( tmp_aname ) PL_unregister_atom(tmp_aname);
+	{ clean_tmp_dir();
 
 	  tmp_aname = a;
 	  tmp_name = s;
