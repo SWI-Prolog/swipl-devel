@@ -613,9 +613,9 @@ sizes  of  the  hash  tables are defined.  Note that these should all be
 
 #define ATOMHASHSIZE		4096	/* global atom table */
 #define FUNCTORHASHSIZE		512	/* global functor table */
-#define PROCEDUREHASHSIZE	256	/* predicates in module user */
+#define PROCEDUREHASHSIZE	1024	/* predicates in module user */
 #define MODULEPROCEDUREHASHSIZE 16	/* predicates in other modules */
-#define MODULEHASHSIZE		16	/* global module table */
+#define MODULEHASHSIZE		128	/* global module table */
 #define PUBLICHASHSIZE		8	/* Module export table */
 #define FLAGHASHSIZE		16	/* global flag/3 table */
 

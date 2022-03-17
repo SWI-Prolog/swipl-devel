@@ -1436,7 +1436,7 @@ initPrologFlagTable(void)
 { if ( !GD->prolog_flag.table )
   { initPrologThreads();	/* may be called before PL_initialise() */
 
-    GD->prolog_flag.table = newHTable(64);
+    GD->prolog_flag.table = newHTable(256);
   }
 }
 
