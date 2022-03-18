@@ -2210,20 +2210,25 @@ popen(pwd-1) :-
 	atom_codes(Pwd, String),
 	same_file(Pwd, '.').
 popen(cat-1) :-
-	(   current_prolog_flag(windows, true)
-	->  Cmd = 'cmd /c type con'		% "type con" is cmd-speak for "cat /dev/stdin"
-	;   Cmd = cat
-	),
+	swipl_exe(SWIPL),
 	current_prolog_flag(pid, Pid),
 	format(atom(File), 'pltest-~w.txt', [Pid]),
 	Text = 'Hello World',
-	atomic_list_concat([Cmd, ' > ', File], Command),
+	format(string(Command),
+	       '"~w" \c
+		-g "tell(~q),\c
+		    copy_stream_data(current_input,current_output),\c
+		    told" \c
+		-t halt',
+	       [SWIPL, File]),
 	open(pipe(Command), write, Fd),
-	format(Fd, '~w', [Text]),
+	write(Fd, Text),
+	flush_output(Fd),
 	close(Fd),
-	open(File, read, Fd2),
-	collect_data(Fd2, String),
-	close(Fd2),
+	setup_call_cleanup(
+	    open(File, read, Fd2),
+	    collect_data(Fd2, String),
+	    close(Fd2)),
 	delete_file(File),
 	atom_codes(A, String),
 	A == Text.
@@ -2260,6 +2265,17 @@ popen(cat-2) :-
 	;   format(user_error, 'Wrong exception: ~p~n', [E]),
 	    fail
 	).
+
+swipl_exe(Exe) :-
+	current_prolog_flag(executable, Exe0),
+	prolog_to_os_filename(Exe1, Exe0),
+	downcase_atom(Exe1, Exe2),
+	file_base_name(Exe2, 'swipl-win.exe'),
+	!,
+	file_directory_name(Exe1, Dir),
+	atom_concat(Dir, '/swipl.exe', Exe).
+swipl_exe(Exe) :-
+	current_prolog_flag(executable, Exe).
 
 collect_line(Fd, String) :-
 	get0(Fd, C0),
