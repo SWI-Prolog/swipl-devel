@@ -779,7 +779,7 @@ unloadFile(SourceFile sf)
 
 static int
 unloadFile(SourceFile sf)
-{ ListCell cell, next;
+{ ListCell cell;
   size_t deleted = 0;
   int rc;
 
@@ -807,13 +807,7 @@ unloadFile(SourceFile sf)
   }
   DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
 
-				      /* cleanup the procedure list */
-  for(cell = sf->procedures; cell; cell = next)
-  { next = cell->next;
-    freeHeap(cell, sizeof(struct list_cell));
-  }
-  sf->procedures = NULL;
-
+  freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
