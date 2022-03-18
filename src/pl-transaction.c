@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2020-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -300,36 +301,36 @@ transaction_commit(DECL_LD)
     PL_LOCK(L_GENERATION);
     gen_commit = global_generation()+1;
 
-    for_table(LD->transaction.clauses, n, v,
-	      { Clause cl = n;
-		uintptr_t lgen = (uintptr_t)v;
+    FOR_TABLE(LD->transaction.clauses, n, v)
+    { Clause cl = n;
+      uintptr_t lgen = (uintptr_t)v;
 
-		if ( IS_ASSERT_GEN(lgen) )
-		{ if ( false(cl, CL_ERASED) )
-		  { cl->generation.erased  = GEN_MAX;
-		    MEMORY_RELEASE();
-		    cl->generation.created = gen_commit;
-		    DEBUG(MSG_COMMIT,
-			Sdprintf("Commit added clause %p for %s\n",
-				 cl, predicateName(cl->predicate)));
-		  } else
-		  { DEBUG(MSG_COMMIT,
-			  Sdprintf("Discarded in-transaction clause %p for %s\n",
-				   cl, predicateName(cl->predicate)));
-		    cl->generation.erased  = GEN_TR_ASSERT_ERASE;
-		    MEMORY_RELEASE();
-		    cl->generation.created = GEN_TR_ASSERT_ERASE;
-		  }
-		} else if ( lgen == GEN_NESTED_RETRACT )
-		{ retract_clause(cl, gen_commit);
-		} else
-		{ DEBUG(MSG_COMMIT,
-			Sdprintf("Commit erased clause %p for %s\n",
-				 cl, predicateName(cl->predicate)));
-		  ATOMIC_DEC(&cl->tr_erased_no);
-		  retract_clause(cl, gen_commit);
-		}
-	      });
+      if ( IS_ASSERT_GEN(lgen) )
+      { if ( false(cl, CL_ERASED) )
+	{ cl->generation.erased  = GEN_MAX;
+	  MEMORY_RELEASE();
+	  cl->generation.created = gen_commit;
+	  DEBUG(MSG_COMMIT,
+	      Sdprintf("Commit added clause %p for %s\n",
+		       cl, predicateName(cl->predicate)));
+	} else
+	{ DEBUG(MSG_COMMIT,
+		Sdprintf("Discarded in-transaction clause %p for %s\n",
+			 cl, predicateName(cl->predicate)));
+	  cl->generation.erased  = GEN_TR_ASSERT_ERASE;
+	  MEMORY_RELEASE();
+	  cl->generation.created = GEN_TR_ASSERT_ERASE;
+	}
+      } else if ( lgen == GEN_NESTED_RETRACT )
+      { retract_clause(cl, gen_commit);
+      } else
+      { DEBUG(MSG_COMMIT,
+	      Sdprintf("Commit erased clause %p for %s\n",
+		       cl, predicateName(cl->predicate)));
+	ATOMIC_DEC(&cl->tr_erased_no);
+	retract_clause(cl, gen_commit);
+      }
+    }
     MEMORY_RELEASE();
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
@@ -412,16 +413,15 @@ merge_tables(Table into, Table from)
 #define merge_pred_tables(into, from) LDFUNC(merge_pred_tables, into, from)
 static void
 merge_pred_tables(DECL_LD Table into, Table from)
-{ for_table(from, n, v,
-	    { Definition def = n;
-	      void *lgen = v;
-	      void *lgen0 = lookupHTable(into, def);
-	      int oflags = PTR_GEN_FLAGS(lgen0);
+{ FOR_TABLE(from, n, v)
+  { Definition def = n;
+    void *lgen = v;
+    void *lgen0 = lookupHTable(into, def);
+    int oflags = PTR_GEN_FLAGS(lgen0);
 
 
-	      updateHTable(into, def,
-			   PTR_ADD_FLAGS(lgen, oflags));
-	    });
+    updateHTable(into, def, PTR_ADD_FLAGS(lgen, oflags));
+  };
 }
 
 
