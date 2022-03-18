@@ -1488,6 +1488,8 @@ delete_old_predicates(SourceFile sf)
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
+
+      freeHeap(cell, sizeof(*cell));
     } else
     { prev = cell;
     }
