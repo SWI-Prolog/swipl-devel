@@ -3961,10 +3961,11 @@ returns 1 if successful, 0 otherwise.
     \cfunction{int}{PL_cleanup}{int status}
 This function performs the reverse of PL_initialise(). It runs the
 PL_on_halt() and at_halt/1 handlers, closes all streams (except for the
-`standard I/O' streams which are flushed only), deallocates all memory
-if \arg{status} equals `0' and restores all signal handlers. The
-\arg{status} argument is passed to the various termination hooks and
-indicates the \jargon{exit-status}.
+`standard I/O' streams which are flushed only), restores all signal
+handlers, deallocates all memory if \arg{status} equals `0' and it
+successfully joined all Prolog threads. The \arg{status} argument is
+passed to the various termination hooks and indicates the
+\jargon{exit-status}.
 
 The function returns \const{TRUE} if successful and \const{FALSE}
 otherwise. Currently, \const{FALSE} is returned when an attempt is made
@@ -3972,15 +3973,14 @@ to call PL_cleanup() recursively or if one of the exit handlers
 cancels the termination using cancel_halt/1.  Exit handlers may only
 cancel termination if \arg{status} is 0.
 
-In theory, this function allows deleting and restarting the Prolog
-system in the same process. In practice, SWI-Prolog's cleanup process is
-far from complete, and trying to revive the system using PL_initialise()
-will leak memory in the best case. It can also crash the application.
-
-In this state, there is little practical use for this function. If you
-want to use Prolog temporarily, consider running it in a separate process.
-If you want to be able to reset Prolog, your options are (again) a
-separate process, modules or threads.
+This function allows deleting and restarting the Prolog system in the
+same process. In versions older than 8.5.9 this did not work. As of
+version 8.5.9, it works for the basic Prolog engine. Many of the plugins
+that contain foreign code do not implement a suitable \jargon{uninstall}
+handler and will leak memory and possibly other resources. Note that
+shutting Prolog down and renitializing it is slow. For almost all
+scenarios there are faster alternatives such as reloading modified code,
+using \jargon{temporary modules}, using \jargon{threads}, etc.
 
     \cfunction{void}{PL_cleanup_fork}{}
 Stop intervaltimer that may be running on behalf of profile/1.  The call
