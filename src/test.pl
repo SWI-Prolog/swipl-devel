@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2020, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,8 @@
 %:- set_prolog_flag(optimise, true).
 % keep debug/3 goals, even if optimise = true.
 :- set_prolog_flag(optimise_debug, false).
+% do not load xpce from threadutil.pl as this leaks memory
+:- set_prolog_flag(xpce, false).
 
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
