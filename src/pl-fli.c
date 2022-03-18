@@ -4728,7 +4728,7 @@ cleanAbortHooks(PL_local_data_t *ld)
   { AbortHandle next;
 
     for(AbortHandle h = abort_head; h; h=next)
-    { next = h;
+    { next = h->next;
       freeHeap(h, sizeof(*h));
     }
     abort_head = abort_tail = NULL;
