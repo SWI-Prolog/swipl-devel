@@ -401,13 +401,15 @@ transaction_discard(DECL_LD)
 }
 
 static void
-merge_tables(Table into, Table from)
-{ for_table(from, n, v,
-	    { Clause cl = n;
+merge_clause_tables(Table into, Table from)
+{ FOR_TABLE(from, n, v)
+  { Clause cl = n;
 
-	      acquire_clause(cl);
-	      addHTable(into, n, v);
-	    });
+    if ( addHTable(into, cl, v) == v )
+      acquire_clause(cl);		/* new in outer table */
+    else
+      updateHTable(into, cl, v);	/* already in outer table */
+  };
 }
 
 #define merge_pred_tables(into, from) LDFUNC(merge_pred_tables, into, from)
@@ -571,7 +573,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 	    if ( !announce_updates(&updates) )
 	      goto nested_discard;
 	  }
-	  merge_tables(parent.clauses, LD->transaction.clauses);
+	  merge_clause_tables(parent.clauses, LD->transaction.clauses);
 	  destroyHTable(LD->transaction.clauses);
 	} else
 	{ parent.clauses = LD->transaction.clauses;
