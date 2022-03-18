@@ -2653,6 +2653,9 @@ pl_thread_exit(term_t retcode)
 
   DEBUG(MSG_THREAD, Sdprintf("thread_exit(%d)\n", info->pl_tid));
 
+  for(QueryFrame qf=LD->query; qf; qf = qf->parent)
+    freeHeap(qf->qid, sizeof(*qf->qid));
+
   pthread_exit(NULL);
   assert(0);
   fail;
