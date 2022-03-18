@@ -1551,7 +1551,8 @@ emergency:
 #endif
 
   if ( reclaim_memory )
-  { freeStacks();
+  { cleanupOs();
+    freeStacks();
     cleanupBreakPoints();
 #ifdef O_PLMT
     cleanupLocalDefinitions(LD);
@@ -1571,7 +1572,6 @@ emergency:
     cleanupInitialiseHooks();
     cleanupExtensions();
     cleanupWamTable();
-    cleanupOs();
     cleanupLocale();
     cleanupSourceFiles();
     Scleanup();

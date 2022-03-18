@@ -1787,6 +1787,8 @@ freePrologLocalData(PL_local_data_t *ld)
   { btrace_destroy(ld->btrace_store);
     ld->btrace_store = NULL;
   }
+
+  cleanAbortHooks(ld);
 }
 
 /* The following definitions aren't necessary for compiling, and in fact

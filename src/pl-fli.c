@@ -4722,16 +4722,38 @@ PL_abort_hook(PL_abort_hook_t func)
 }
 
 
+void
+cleanAbortHooks(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { AbortHandle next;
+
+    for(AbortHandle h = abort_head; h; h=next)
+    { next = h;
+      freeHeap(h, sizeof(*h));
+    }
+    abort_head = abort_tail = NULL;
+  }
+}
+
 int
 PL_abort_unhook(PL_abort_hook_t func)
 { GET_LD
   AbortHandle h = abort_head;
+  AbortHandle prev = NULL;
 
   for(; h; h = h->next)
   { if ( h->function == func )
     { h->function = NULL;
+      if ( prev )
+	prev->next = h->next;
+      else
+	abort_head = h->next;
+      if ( !h->next )
+	abort_tail = prev;
+      freeHeap(h, sizeof(*h));
       return TRUE;
     }
+    prev = h;
   }
 
   return FALSE;
