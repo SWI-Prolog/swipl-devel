@@ -264,12 +264,13 @@ clearSourceAdmin(atom_t sf_name)
 static atom_t
 destroySourceFile(SourceFile sf)
 { if ( sf->magic == SF_MAGIC )
-  { SourceFile f;
-    atom_t name;
+  { atom_t name;
+    SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
     f = deleteHTable(GD->files.table, (void*)sf->name);
     assert(f);
+    (void)f;
     name = sf->name;
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -806,6 +807,7 @@ unloadFile(SourceFile sf)
     }
   }
   DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
+  (void)deleted;
 
   freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);

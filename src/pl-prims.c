@@ -875,6 +875,7 @@ ground(DECL_LD Word p)
   rc1 = ph_ground(p, ph_mark);  /* mark functors */
   rc2 = ph_ground(p, ph_unmark);  /* unmark the very same functors */
   assert(rc1 == rc2);
+  (void)rc2;
   return rc1;
 }
 
@@ -3003,6 +3004,7 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 	rc2 = do_number_vars(valTermRef(t), options, 0, &m);
 	unvisit();
 	assert(rc == rc2);
+	(void)rc2;
       }
       return rc + options->offset;
     } else

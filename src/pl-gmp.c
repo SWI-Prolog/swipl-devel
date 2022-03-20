@@ -1388,6 +1388,7 @@ cmpNumbers(Number n1, Number n2)
       return cmpFloatNumbers(n1, n2);
     rc = make_same_type_numbers(n1, n2);
     assert(rc != CMP_ERROR);
+    (void)rc;
   }
 
   switch(n1->type)

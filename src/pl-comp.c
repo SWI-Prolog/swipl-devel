@@ -209,7 +209,7 @@ initWamTable(DECL_LD)
 
 void
 cleanupWamTable(void)
-{
+{ cleanupMerge();
 }
 
 #endif /* VMCODE_IS_ADDRESS */

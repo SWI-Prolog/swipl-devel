@@ -4811,6 +4811,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
       ;
     e = (unsigned char*)utf8_get_char((char*)s, &chr);
     assert(e == end);
+    (void)e;
     if ( !PlBlankW(chr) )
       return (unsigned char*)end;
   }

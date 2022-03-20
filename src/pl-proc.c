@@ -2121,7 +2121,6 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
 { Definition def = proc->definition;
   int arity = def->functor->arity;
   int i;
-  int mask = 0;
   int transparent = FALSE;
   const unsigned char *s = (const unsigned char*)spec_s;
 
@@ -2164,7 +2163,6 @@ PL_meta_predicate(predicate_t proc, const char *spec_s)
     }
 
     def->impl.any.args[i].meta = spec;
-    mask |= spec<<(i*4);
     if ( MA_NEEDS_TRANSPARENT(spec) )
       transparent = TRUE;
   }

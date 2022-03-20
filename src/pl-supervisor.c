@@ -433,6 +433,7 @@ createSupervisor(Definition def)
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
+  (void)has_codes;
   codes = chainPredicateSupervisor(def, codes);
 
   return codes;
