@@ -1266,9 +1266,10 @@ zip_open_archive(const char *file, int flags)
   zipper *r = NULL;
 
   if ( (flags&RC_RDONLY) )
-  { mapped_file *mf;
-
+  {
 #ifdef HAVE_FILE_MAPPING
+    mapped_file *mf;
+
     DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
 
     if ( (mf=map_file(file)) )
