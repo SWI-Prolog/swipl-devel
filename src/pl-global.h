@@ -443,6 +443,10 @@ struct PL_global_data
   } locale;
 #endif
 
+  struct
+  { int tz_initialized;			/* time zone is initialized */
+  } date;
+
   struct stack		combined_stack; /* ID for combined stack */
 };
 
