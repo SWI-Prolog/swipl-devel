@@ -667,7 +667,7 @@ PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
   if ( bulk )
     flags |= TR_BULK;
 
-  return transaction(A1, 0, 0, TR_TRANSACTION);
+  return transaction(A1, 0, 0, flags);
 }
 
 static
