@@ -712,7 +712,6 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       GD->statistics.thread_cputime += time;
     }
     destroy_thread_message_queue(&ld->thread.messages);
-    free_predicate_references(ld);
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = FALSE;		/* needed? */
     if ( !after_fork )
@@ -7875,7 +7874,9 @@ free_predicate_references(PL_local_data_t *ld)
     definition_ref *d0 = refs->blocks[i];
 
     if ( d0 )
-      freeHeap(d0+bs, bs*sizeof(definition_ref));
+    { freeHeap(d0+bs, bs*sizeof(definition_ref));
+      refs->blocks[i] = NULL;
+    }
   }
 }
 #endif /*O_PLMT*/
