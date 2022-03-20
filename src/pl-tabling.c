@@ -9340,12 +9340,12 @@ initTabling(void)
 
 void
 cleanupTabling(void)
-{ clear_variant_table(&GD->tabling.variant_table);
-
+{
 #ifdef O_PLMT
+  clear_variant_table(&GD->tabling.variant_table);
+
   deleteSimpleMutex(&GD->tabling.mutex);
   cv_destroy(&GD->tabling.cvar);
-#endif
 
   if ( GD->tabling.node_pool )
   { free_alloc_pool(GD->tabling.node_pool);
@@ -9356,6 +9356,7 @@ cleanupTabling(void)
   { free_trie_array(GD->tabling.waiting);
     GD->tabling.waiting = NULL;
   }
+#endif
 }
 
 
