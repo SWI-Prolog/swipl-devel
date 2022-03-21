@@ -2325,20 +2325,20 @@ clear_variant_table(trie **vtriep)
 
 
 #define VAR_SKEL_FAST 8
+static functor_t fast_ret_functor[VAR_SKEL_FAST] = {0};
 
 #define unify_trie_ret(ret, vars) LDFUNC(unify_trie_ret, ret, vars)
 static int
 unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 { Word *pp = baseBuffer(vars, Word);
   Word *ep = topBuffer(vars, Word);
-  static functor_t fast[VAR_SKEL_FAST] = {0};
   size_t arity = ep-pp;
   functor_t vf;
 
   assert(arity > 0);
   if ( arity < VAR_SKEL_FAST )
-  { if ( !(vf=fast[arity]) )
-      fast[arity] = vf = PL_new_functor(ATOM_ret, arity);
+  { if ( !(vf=fast_ret_functor[arity]) )
+      fast_ret_functor[arity] = vf = PL_new_functor(ATOM_ret, arity);
   } else
   { vf = PL_new_functor(ATOM_ret, arity);
   }
@@ -9340,7 +9340,8 @@ initTabling(void)
 
 void
 cleanupTabling(void)
-{
+{ memset(fast_ret_functor, 0, sizeof(fast_ret_functor));
+
 #ifdef O_PLMT
   clear_variant_table(&GD->tabling.variant_table);
 
