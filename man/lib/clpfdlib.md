@@ -864,7 +864,7 @@ analyzers and declarative debuggers.
   * [[fd_degree/2]]
 
 
-### FD set predicaes {#clpfd-fdset-predicates}
+### FD set predicates {#clpfd-fdset-predicates}
 
 These predicates allow operating directly on the internal representation
 of CLP(FD) domains. In this context, such an internal domain
@@ -906,6 +906,15 @@ predicates.
   * [[fdset_union/3]]
   * [[fdset_union/2]]
   * [[fdset_complement/2]]
+
+
+### FD miscellaneous predicates {#clpfd-misc-predicates}
+
+The predicates in this section are not clp(fd) predicates. They ended up
+in this library for historical reasons and may be moved to other libraries
+in the future.
+
+  * [[transpose/2]]
 
 
 ## Closing and opening words about CLP(FD) {#clpfd-closing-opening}
