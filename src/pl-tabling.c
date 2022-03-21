@@ -5102,16 +5102,13 @@ PRED_IMPL("$tbl_scc_data", 2, tbl_scc_data, 0)
   if ( get_scc(A1, &scc) )
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
-    static functor_t f = 0;
-
-    if ( !f ) f = PL_new_functor(PL_new_atom("scc"),5);
 
     return ( unify_pointer_or_nil(av+0, scc->parent) &&
 	     unify_scc_set(av+1, scc->children) &&
 	     unify_component_status(av+2, scc) &&
 	     unify_wl_set(av+3, scc->worklist) &&
 	     unify_wl_set(av+4, scc->created_worklists) &&
-	     PL_cons_functor_v(t, f, av) &&
+	     PL_cons_functor_v(t, FUNCTOR_scc5, av) &&
 	     PL_unify(t, A2) );
   }
 
@@ -5189,16 +5186,13 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
   if ( get_worklist(A1, &wl) )
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
-    static functor_t f = 0;
-
-    if ( !f ) f = PL_new_functor(PL_new_atom("worklist"),5);
 
     return ( PL_unify_pointer(av+0, wl->component) &&
 	     _PL_unify_atomic(av+1, wl->table->symbol) &&
 	     PL_unify_bool(av+2, wl->in_global_wl) &&
 	     PL_unify_bool(av+3, wl->executing) &&
 	     unify_clusters(av+4, wl) &&
-	     PL_cons_functor_v(t, f, av) &&
+	     PL_cons_functor_v(t, FUNCTOR_worklist5, av) &&
 	     PL_unify(t, A2)
 	   );
   }

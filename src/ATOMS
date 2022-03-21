@@ -720,6 +720,7 @@ A runtime		"runtime"
 A save_class		"save_class"
 A save_option		"save_option"
 A saved_goals		"saved_goals"
+A scc			"scc"
 A search		"search"
 A see			"see"
 A seed			"seed"
@@ -941,6 +942,7 @@ A wildcard_option	"wildcard_option"
 A win_file_access_check "win_file_access_check"
 A when_condition	"when_condition"
 A white			"white"
+A worklist		"worklist"
 A write			"write"
 A write_attributes	"write_attributes"
 A write_errors		"write_errors"
@@ -1200,6 +1202,7 @@ F rollback		1
 F round			1
 F roundtoward		2
 F rshift		2
+F scc			5
 F semicolon		2
 F setup_call_catcher_cleanup 4
 F shared_object		2
@@ -1260,6 +1263,7 @@ F var			1
 F waiting		1
 F wakeup		3
 F warning		3
+F worklist		5
 F write_errors		1
 F xor			2
 F xpceref		1
