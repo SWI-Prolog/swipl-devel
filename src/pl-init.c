@@ -63,6 +63,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-term.h"
 #include "pl-funct.h"
 #include "pl-ext.h"
+#include "pl-cont.h"
 #include "pl-srcfile.h"
 #include "pl-load.h"
 #include "pl-nt.h"
@@ -1581,6 +1582,7 @@ emergency:
     cleanupForeign();
     cleanupPaths();
     cleanupCodeToAtom();
+    cleanupCont();
 #ifdef O_GMP
     cleanupGMP();
 #endif

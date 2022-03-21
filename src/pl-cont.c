@@ -571,3 +571,8 @@ retry:
 
 BeginPredDefs(cont)
 EndPredDefs
+
+void
+cleanupCont(void)
+{ memset(fast_functors, 0, sizeof(fast_functors));
+}

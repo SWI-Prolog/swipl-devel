@@ -2343,6 +2343,8 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
   { vf = PL_new_functor(ATOM_ret, arity);
   }
 
+  assert(valueFunctor(vf));
+
   if ( hasGlobalSpace(arity+1) )
   { Word p = allocGlobalNoShift(arity+1);
     word w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);

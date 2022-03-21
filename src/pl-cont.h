@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2021, VU University Amsterdam
+    Copyright (c)  2016-2022, VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -54,4 +54,6 @@ Code	shift(term_t ball, int for_copy);
 
 #undef LDFUNC_DECLARATIONS
 
-#endif /*_PL_CONT_H*/			
+void	cleanupCont(void);
+
+#endif /*_PL_CONT_H*/
