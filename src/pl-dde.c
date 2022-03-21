@@ -374,6 +374,13 @@ dde_uninitialise(void *closure)
 
     DdeUninitialize(ddeInst);
   }
+
+  FUNCTOR_dde_connect3 = 0;
+  FUNCTOR_dde_connect_confirm3 = 0;
+  FUNCTOR_dde_disconnect1 = 0;
+  FUNCTOR_dde_request4 = 0;
+  FUNCTOR_dde_execute3 = 0;
+  FUNCTOR_error1 = 0;
 }
 
 

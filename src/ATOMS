@@ -547,6 +547,7 @@ A nlink			"nlink"
 A no_lists		"no_lists"
 A no_memory		"no_memory"
 A no_value		"no_value"
+A node			"node"
 A node_count		"node_count"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
@@ -1151,6 +1152,7 @@ F nan			0
 F newline		1
 F nexttoward		2
 F nlink			1
+F node			7
 F nonvar		1
 F not_implemented	2
 F not_provable		1
