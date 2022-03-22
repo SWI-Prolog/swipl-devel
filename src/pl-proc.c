@@ -123,6 +123,10 @@ lookupProcedure(functor_t f, Module m)
   memset(def, 0, sizeof(*def));
   def->functor = valueFunctor(f);
   def->module  = m;
+#ifdef __SANITIZE_ADDRESS__
+  def->name = strdup(predicateName(def));
+  __lsan_ignore_object(def->name);
+#endif
   def->shared  = 1;
   if ( def->functor->arity > 0 )
   { def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);

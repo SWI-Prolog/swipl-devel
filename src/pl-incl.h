@@ -112,6 +112,10 @@
  */
 #define PL_OPAQUE(type) type
 
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+#endif
+
 #include "SWI-Prolog.h"
 
 /* Our definition of _PL_get_arg appears in pl-fli.h */
@@ -1608,6 +1612,9 @@ struct definition
   gen_t		last_modified;		/* Generation I was last modified */
   struct event_list  *events;		/* Forward update events */
   struct table_props *tabling;		/* Extended properties for tabling */
+#ifdef __SANITIZE_ADDRESS__
+  char	       *name;			/* Name for debugging */
+#endif
 #ifdef O_PROF_PENTIUM
   int		prof_index;		/* index in profiling */
   char	       *prof_name;		/* name in profiling */

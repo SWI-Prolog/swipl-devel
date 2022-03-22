@@ -1606,6 +1606,19 @@ emergency:
     memset(&PL_local_data,  0, sizeof(PL_local_data));
   }
 
+#ifdef __SANITIZE_ADDRESS__
+  char *s;
+
+  if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
+  { printf("Checking leaks\n");
+    if ( __lsan_do_recoverable_leak_check() )
+    { printf("Leaks detected; sleeping 60 sec.  Attach using\n"
+	     "   gdb -p %d\n", getpid());
+      sleep(60);
+    }
+  }
+#endif
+
   return TRUE;
 }
 
