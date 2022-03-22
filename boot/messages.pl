@@ -1869,6 +1869,12 @@ print_system_message(_, Kind, Lines) :-
     msg_property(Kind, stream(Stream)),
     print_message_lines(Stream, kind(Kind), Lines).
 
+to_list(ListIn, List) :-
+    is_list(ListIn),
+    !,
+    List = ListIn.
+to_list(NonList, [NonList]).
+
 :- multifile
     user:message_property/2.
 
