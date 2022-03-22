@@ -318,10 +318,20 @@ See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
 
 You can run the tests normally using   `ctest`. Note that the `swipl:GC`
 test requires more stack than the   default when using AddressSanitizer.
-To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
-test  `jpl:prolog_in_java`  will  fail  because  Java is not loaded with
-AddressSanitizer preloaded.   All other tests should pass (about 4 times
+To fix this run (bash) `ulimit -s unlimited` before running `ctest`. The
+test `jpl:prolog_in_java` will fail because  Java   is  not  loaded with
+AddressSanitizer preloaded. All other tests should   pass (about 4 times
 slower than normal).
+
+By   default,   memory   leak   checking   is   disabled   by   defining
+`__asan_default_options()` in `pl-main.c`. Leak checking  may be enabled
+by setting `ASAN_OPTIONS`:
+
+    % ASAN_OPTIONS=detect_leaks=1 src/swipl ...
+
+This option also causes Prolog  __not__   to  unload foreign extensions,
+which is needed to  make  ASAN   properly  report  locations  in foreign
+extensions.
 
 
 ## Packaging

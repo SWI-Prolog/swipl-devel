@@ -176,7 +176,8 @@ True if we are running under valgrind.
 
 #ifdef HAVE_VALGRIND_VALGRIND_H
 #include <valgrind/valgrind.h>
-#else
+#endif
+#ifndef RUNNING_ON_VALGRIND
 #define RUNNING_ON_VALGRIND (getenv("VALGRIND_OPTS") != NULL)
 #endif
 
@@ -186,12 +187,21 @@ under_valgrind(void)
 
   if ( vg == -1 )
   {
-#ifdef RUNNING_ON_VALGRIND
-    if ( RUNNING_ON_VALGRIND )
-      vg = TRUE;
-    else
+#ifdef __SANITIZE_ADDRESS__
+    char *s;
+
+    if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
+    { vg = TRUE;
+      return vg;
+    }
 #endif
-      vg = FALSE;
+
+    if ( RUNNING_ON_VALGRIND )
+    { vg = TRUE;
+      return vg;
+    }
+
+    vg = FALSE;
   }
 
   return vg;
