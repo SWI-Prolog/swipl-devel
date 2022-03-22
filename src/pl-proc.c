@@ -241,7 +241,7 @@ delayedDestroyDefinition(Definition def)
   { if ( GD->cleaning == CLN_DATA )
       removeClausesPredicate(def, 0, FALSE);
 
-    DEBUG(0,
+    DEBUG(1,
 	  if ( def->lingering )
 	  { Sdprintf("maybeUnregisterDirtyDefinition(%s): lingering data\n",
 		     predicateName(def));
