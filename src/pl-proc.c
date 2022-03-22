@@ -2640,17 +2640,17 @@ pl_garbage_collect_clauses(void)
 	  });
 
 					/* sanity-check */
-    for_table(GD->procedures.dirty, n, v,
-	      { DirtyDefInfo ddi = v;
+    FOR_TABLE(GD->procedures.dirty, n, v)
+    { DirtyDefInfo ddi = v;
 
-		DEBUG(CHK_SECURE,
-		      { Definition def = n;
-			LOCKDEF(def);
-			checkDefinition(def);
-			UNLOCKDEF(def);
-		      });
-		ddi_reset(ddi);			  /* see (*) */
-	      });
+      DEBUG(CHK_SECURE,
+	    { Definition def = n;
+	      LOCKDEF(def);
+	      checkDefinition(def);
+	      UNLOCKDEF(def);
+	    });
+      ddi_reset(ddi);			  /* see (*) */
+    }
 
     initBuffer(&tr_starts);
     markPredicatesInEnvironments(LD, (Buffer)&tr_starts);
@@ -2661,28 +2661,28 @@ pl_garbage_collect_clauses(void)
 
     DEBUG(MSG_CGC, Sdprintf("(marking done)\n"));
 
-    for_table(GD->procedures.dirty, n, v,
-	      { Definition def = n;
-		DirtyDefInfo ddi = v;
+    FOR_TABLE(GD->procedures.dirty, n, v)
+    { Definition def = n;
+      DirtyDefInfo ddi = v;
 
-		if ( false(def, P_FOREIGN) &&
-		     def->impl.clauses.erased_clauses > 0 )
-		{ size_t del = cleanDefinition(def, ddi,
-					       start_gen, (Buffer)&tr_starts,
-					       &rc);
+      if ( false(def, P_FOREIGN) &&
+	   def->impl.clauses.erased_clauses > 0 )
+      { size_t del = cleanDefinition(def, ddi,
+				     start_gen, (Buffer)&tr_starts,
+				     &rc);
 
-		  removed += del;
-		  DEBUG(MSG_CGC_PRED,
-			Sdprintf("cleanDefinition(%s, %s): "
-				 "%zd clauses (left %d)\n",
-				 predicateName(def),
-				 ddi_generation_name(ddi),
-				 del,
-				 (int)def->impl.clauses.erased_clauses));
-		}
+	removed += del;
+	DEBUG(MSG_CGC_PRED,
+	      Sdprintf("cleanDefinition(%s, %s): "
+		       "%zd clauses (left %d)\n",
+		       predicateName(def),
+		       ddi_generation_name(ddi),
+		       del,
+		       (int)def->impl.clauses.erased_clauses));
+      }
 
-		maybeUnregisterDirtyDefinition(def);
-	      });
+      maybeUnregisterDirtyDefinition(def);
+    }
 
     discardBuffer(&tr_starts);
     gcClauseRefs();
