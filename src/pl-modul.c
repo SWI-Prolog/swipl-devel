@@ -192,21 +192,27 @@ acquireModulePtr(DECL_LD Module m)
   }
 }
 
+static void
+releaseModule_unlocked(Module m)
+{ if ( --m->references == 0 &&
+       true(m, M_DESTROYED) )
+  { unlinkSourceFilesModule(m);
+#ifdef O_PLMT
+    if ( m->wait )
+      free_wait_area(m->wait);
+#endif
+    GD->statistics.modules--;
+    PL_unregister_atom(m->name);
+    unallocModule(m);
+  }
+}
+
+
 void
 releaseModule(Module m)
 { if ( m->class == ATOM_temporary )
   { PL_LOCK(L_MODULE);
-    if ( --m->references == 0 &&
-	 true(m, M_DESTROYED) )
-    { unlinkSourceFilesModule(m);
-#ifdef O_PLMT
-      if ( m->wait )
-	free_wait_area(m->wait);
-#endif
-      GD->statistics.modules--;
-      PL_unregister_atom(m->name);
-      unallocModule(m);
-    }
+    releaseModule_unlocked(m);
     PL_UNLOCK(L_MODULE);
   }
 }
@@ -244,8 +250,8 @@ advanceModuleEnum(ModuleEnum en)
     if ( m && m->class == ATOM_temporary )
     { if ( (en->flags&MENUM_TEMP) )
       { m->references++;
-	if ( en->current )
-	  releaseModule(en->current);
+	if ( en->current && en->current->class == ATOM_temporary )
+	  releaseModule_unlocked(en->current);
 	en->current = m;
       } else
 	continue;
@@ -261,8 +267,8 @@ advanceModuleEnum(ModuleEnum en)
 void
 freeModuleEnum(ModuleEnum en)
 { freeTableEnum(en->tenum);
-  if ( en->current )
-    releaseModule(en->current);
+  if ( en->current && en->current->class == ATOM_temporary )
+    releaseModule_unlocked(en->current);
   free(en);
 }
 

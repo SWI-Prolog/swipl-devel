@@ -1008,7 +1008,9 @@ PRED_IMPL("current_predicate", 1, current_predicate,
 
       if ( e->functor )
       { if ( !e->emod )			/* fully specified */
-	  return (visibleProcedure(e->functor, e->module) != NULL);
+	{ rval = (visibleProcedure(e->functor, e->module) != NULL);
+	  goto clean;
+	}
       } else
       { e->epred = newTableEnum(e->module->procedures);
       }
@@ -1099,7 +1101,8 @@ clean:
       freeModuleEnum(e->emod);
     if ( e->module && e->macq )
       releaseModule(e->module);
-    freeForeignState(e, sizeof(*e));
+    if ( e != &e0 )
+      freeForeignState(e, sizeof(*e));
   }
 
   return rval;
