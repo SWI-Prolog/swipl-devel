@@ -425,10 +425,12 @@ destroyModule(Module m)
 
 
 static void
-empty_module(void *name, void *value)
+empty_module(void *key, void *value)
 { Module m = value;
+  atom_t name = (atom_t)key;
 
   unallocModule(m);
+  (void)name;
 }
 
 
@@ -1612,18 +1614,17 @@ static inline void
 fixExportModule(Module m, Definition old, Definition new)
 { LOCKMODULE(m);
 
-  for_table(m->procedures, name, value,
-	    { Procedure proc = value;
+  FOR_TABLE(m->procedures, name, value)
+  { Procedure proc = value;
 
-	      if ( proc->definition == old )
-	      { DEBUG(1, Sdprintf("Patched def of %s\n",
-				  procedureName(proc)));
-		shareDefinition(new);
-		proc->definition = new;
-		if ( unshareDefinition(old) == 0 )
-		  lingerDefinition(old);
-	      }
-	    });
+    if ( proc->definition == old )
+    { DEBUG(1, Sdprintf("Patched def of %s\n", procedureName(proc)));
+      shareDefinition(new);
+      proc->definition = new;
+      if ( unshareDefinition(old) == 0 )
+	lingerDefinition(old);
+    }
+  }
 
   UNLOCKMODULE(m);
 }
@@ -1632,8 +1633,8 @@ fixExportModule(Module m, Definition old, Definition new)
 static void
 fixExport(Definition old, Definition new)
 { PL_LOCK(L_MODULE);
-  for_table(GD->tables.modules, name, value,
-	    fixExportModule(value, old, new));
+  FOR_TABLE(GD->tables.modules, name, value)
+    fixExportModule(value, old, new);
   PL_UNLOCK(L_MODULE);
 }
 
