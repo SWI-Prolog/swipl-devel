@@ -80,14 +80,13 @@ _lookupModule(DECL_LD atom_t name)
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
-  DEBUG(MSG_CREATE_MODULE,
-	{ Sdprintf("Creating module %s:\n%s",
-		   PL_atom_chars(name),
-		   PL_backtrace_string(10,0));
-	});
-
   m = allocHeapOrHalt(sizeof(struct module));
   memset(m, 0, sizeof(*m));
+
+  DEBUG(MSG_CREATE_MODULE,
+	{ Sdprintf("Created module %s at %p\n",
+		   PL_atom_chars(name), m);
+	});
 
   m->name = name;
 #ifdef O_PLMT
@@ -329,6 +328,9 @@ static void
 unallocModule(Module m)
 { GET_LD
 
+  DEBUG(MSG_CREATE_MODULE, Sdprintf("unallocModule(%s) at %p\n",
+				    PL_atom_chars(m->name), m));
+
 #ifdef O_PLMT
   if ( LD )
 #endif
@@ -426,7 +428,6 @@ static void
 empty_module(void *name, void *value)
 { Module m = value;
 
-  DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
   unallocModule(m);
 }
 
