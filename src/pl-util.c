@@ -142,7 +142,7 @@ predicateName(Definition def)
     return "(nil)";
 
   if ( def->module != MODULE_user && !isUserSystemPredicate(def) )
-  { if ( def->module )
+  { if ( def->module && GD->cleaning != CLN_DATA )
       strcpy(e, atom_summary(def->module->name, 50));
     else
       strcpy(e, "(nil)");
