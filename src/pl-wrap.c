@@ -282,12 +282,14 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
   Code codes = NULL;
   term_t head = PL_new_term_ref();
   term_t closure = A3;
+  Definition def;
 
   if ( !PL_get_atom_ex(A2, &wname) ||
        !get_procedure(A1, &proc, head, GP_DEFINE) )
     return FALSE;
+  def = proc->definition;
 
-  if ( (codes = find_wrapper(proc->definition, wname)) )
+  if ( (codes = find_wrapper(def, wname)) )
   { ClauseRef cref;
     atom_t aref = (atom_t)codes[2];
 
@@ -304,7 +306,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       return TRUE;
     }
   } else
-  { if ( unify_closure(closure, proc->definition, proc->definition->codes) )
+  { if ( unify_closure(closure, def, def->codes) )
     { ClauseRef cref;
       atom_t aref;
 
@@ -322,7 +324,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
-	proc->definition->codes = codes;
+	setSupervisor(def, codes);
 
 	return TRUE;
       }

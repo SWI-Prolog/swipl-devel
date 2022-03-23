@@ -440,13 +440,31 @@ createSupervisor(Definition def)
 }
 
 
+void
+setSupervisor(Definition def, Code codes)
+{ PL_LOCK(L_PREDICATE);
+  Code old = def->codes;
+
+  if ( equalSupervisors(old, codes) )
+  { freeSupervisor(def, codes, FALSE);
+  } else
+  { MEMORY_BARRIER();
+    def->codes = codes;
+    freeSupervisor(def, old, TRUE);
+  }
+  PL_UNLOCK(L_PREDICATE);
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-setSupervisor() is synchronised with   unloadFile() (reconsult/1). Seems
-this is not yet enough to stop all racer conditions between this code.
+setDefaultSupervisor() is synchronised with  unloadFile() (reconsult/1).
+Seems this is not yet enough to   stop all racer conditions between this
+code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-setSupervisor(Definition def)
+setDefaultSupervisor(Definition def)
 { if ( false(def, P_LOCKED_SUPERVISOR) )
   { Code codes, old;
 

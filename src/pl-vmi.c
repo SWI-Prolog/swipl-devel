@@ -3397,7 +3397,7 @@ VMI(S_VIRGIN, 0, 0, ())
 #endif
   }
 
-  if ( setSupervisor(DEF) )
+  if ( setDefaultSupervisor(DEF) )
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
   } else				/* TBD: temporary */
