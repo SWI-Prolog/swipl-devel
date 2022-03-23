@@ -4575,7 +4575,7 @@ destroy_message_queue(message_queue *queue)
 { thread_message *msgp;
   thread_message *next;
 
-  if ( GD->cleaning || !queue->initialized )
+  if ( !queue->initialized )
     return;				/* deallocation is centralised */
   queue->initialized = FALSE;
 
