@@ -1614,11 +1614,14 @@ emergency:
   char *s;
 
   if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
-  { printf("Checking leaks (reclaim_memory=%d)\n", reclaim_memory);
+  { printf("Running LSAN memory leak check (reclaim_memory=%d)\n",
+	   reclaim_memory);
     if ( __lsan_do_recoverable_leak_check() )
     { printf("Leaks detected; sleeping 60 sec.  Attach using\n"
 	     "   gdb -p %d\n", getpid());
       sleep(60);
+    } else
+    { printf("No leaks detected\n");
     }
   }
 #endif
