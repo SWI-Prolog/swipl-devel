@@ -290,16 +290,20 @@ freeStream(IOSTREAM *s)
   DEBUG(1, Sdprintf("freeStream(%p)\n", s));
 
   PL_LOCK(L_FILE);
-  unaliasStream(s, NULL_ATOM);
+  if ( streamAliases )
+    unaliasStream(s, NULL_ATOM);
+
   ctx = s->context;
   if ( ctx && COMPARE_AND_SWAP_PTR(&s->context, ctx, NULL) )
-  { deleteHTable(streamContext, s);
-    if ( ctx->filename != NULL_ATOM )
-    { PL_unregister_atom(ctx->filename);
+  { if ( streamContext )
+    { deleteHTable(streamContext, s);
+      if ( ctx->filename != NULL_ATOM )
+      { PL_unregister_atom(ctx->filename);
 
-      if ( ctx->filename == source_file_name )
-      { source_file_name = NULL_ATOM;	/* TBD: pop? */
-	source_line_no = -1;
+	if ( ctx->filename == source_file_name )
+	{ source_file_name = NULL_ATOM;	/* TBD: pop? */
+	  source_line_no = -1;
+	}
       }
     }
 
