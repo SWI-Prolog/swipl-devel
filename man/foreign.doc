@@ -3958,22 +3958,48 @@ portability layer on top of the above idea.
 Runs the goal of the \argoption{-t}{toplevel} switch (default prolog/0) and
 returns 1 if successful, 0 otherwise.
 
-    \cfunction{int}{PL_cleanup}{int status}
-This function performs the reverse of PL_initialise(). It runs the
-PL_on_halt() and at_halt/1 handlers, closes all streams (except for the
-`standard I/O' streams which are flushed only), restores all signal
-handlers, deallocates all memory if \arg{status} equals `0' and it
-successfully joined all Prolog threads. The \arg{status} argument is
-passed to the various termination hooks and indicates the
-\jargon{exit-status}.
+    \cfunction{int}{PL_cleanup}{int status_and_flags}
+This function may be called instead of PL_halt() to cleanup Prolog
+without exitting the process. It performs the reverse of
+PL_initialise(). It runs the PL_on_halt() and at_halt/1 handlers, closes
+all streams (except for the \jargon{standard I/O} streams, which are
+flushed only), restores all signal handlers and reclaims all memory
+unless asked not to.  \arg{status_and_flags} accepts the following
+flags:
 
-The function returns \const{TRUE} if successful and \const{FALSE}
-otherwise. Currently, \const{FALSE} is returned when an attempt is made
-to call PL_cleanup() recursively or if one of the exit handlers
-cancels the termination using cancel_halt/1.  Exit handlers may only
-cancel termination if \arg{status} is 0.
+\begin{description}
+    \definition{\const{PL_CLEANUP_NO_RECLAIM_MEMORY}}
+Do not reclaim memory.  This is the default when called from PL_halt()
+for the release versions because the OS will do so anyway.
 
-This function allows deleting and restarting the Prolog system in the
+    \definition{\const{PL_CLEANUP_NO_CANCEL}}
+Do not allow Prolog and foreign \jargon{halt} hooks to cancel the
+cleanup.
+\end{description}
+
+The return value of PL_cleanup() is one of the following:
+
+\begin{description}
+    \definition{\const{PL_CLEANUP_CANCELED}}
+A Prolog or foreign  \jargon{halt} hook cancelled the cleanup.  Note
+that some of the halt hooks may have been executed.
+
+    \definition{\const{PL_CLEANUP_SUCCESS}}
+Cleanup completed successfully.  Unless \const{PL_CLEANUP_NO_RECLAIM_MEMORY}
+was specified this implies most of the memory was reclaimed and Prolog
+may be reinitialized in the same process using PL_initialise().
+
+    \definition{\const{PL_CLEANUP_FAILED}}
+Cleanup failed.  This happens if the user requested to reclaim
+all memory but this failed because the system was not able to
+\jargon{join} all Prolog threads and could therefore not reclaim
+the memory.
+
+    \definition{\const{PL_CLEANUP_RECURSIVE}}
+PL_cleanup() was called from a hook called by the cleanup process.
+\end{description}
+
+PL_cleanup() allows deleting and restarting the Prolog system in the
 same process. In versions older than 8.5.9 this did not work. As of
 version 8.5.9, it works for the basic Prolog engine. Many of the plugins
 that contain foreign code do not implement a suitable \jargon{uninstall}

@@ -4588,27 +4588,20 @@ variable LSAN_OPTIONS=.
 
 static int
 haltProlog(int status)
-{ int reclaim_memory = FALSE;
+{ status |= PL_CLEANUP_NO_RECLAIM_MEMORY;
 
 #if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
-  reclaim_memory = TRUE;
+  status &= ~PL_CLEANUP_NO_RECLAIM_MEMORY;
 #endif
 
-  if ( cleanupProlog(status, reclaim_memory) )
-  { run_on_halt(&GD->os.exit_hooks, status);
-
-#if 0 && defined(__SANITIZE_ADDRESS__)
-// Disabled as this doesn't work
-    Sdprintf("About to exit\n");
-    __lsan_do_leak_check();
-    Sdprintf("Done checking\n");
-    __lsan_disable();
-#endif
-
-    return TRUE;
+  switch( PL_cleanup(status) )
+  { case PL_CLEANUP_CANCELED:
+    case PL_CLEANUP_RECURSIVE:
+      return FALSE;
+    default:
+      run_on_halt(&GD->os.exit_hooks, status);
+      return TRUE;
   }
-
-  return FALSE;
 }
 
 int

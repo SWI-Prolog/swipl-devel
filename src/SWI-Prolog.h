@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -1008,6 +1009,15 @@ PL_EXPORT(int)	PL_wchars_to_term(const pl_wchar_t *chars,
 		 /*******************************
 		 *	    EMBEDDING		*
 		 *******************************/
+
+#define PL_CLEANUP_STATUS_MASK		(0x0ffff)
+#define PL_CLEANUP_NO_RECLAIM_MEMORY	(0x10000)
+#define PL_CLEANUP_NO_CANCEL		(0x20000)
+
+#define PL_CLEANUP_CANCELED	0
+#define PL_CLEANUP_SUCCESS	1
+#define PL_CLEANUP_FAILED      -1
+#define PL_CLEANUP_RECURSIVE   -2
 
 PL_EXPORT(int)		PL_initialise(int argc, char **argv);
 PL_EXPORT(int)		PL_winitialise(int argc, wchar_t **argv);

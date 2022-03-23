@@ -1444,22 +1444,23 @@ run_on_halt(OnHalt *handlers, int rval)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Cleanup Prolog. The reclaim_memory  argument   says  whether  the system
-tries to reclaim memory. This  is   true  when called from PL_cleanup().
-Ideally, this would allow for  restarting   the  system  without loosing
-memory. In practice, this is hard,   especially if foreign libraries are
-loaded.
+Cleanup Prolog.  `status` carries the exit status as well as flags.  See
+the docs for PL_cleanup() for a description.
 
-When called from PL_halt(),  reclaim_memory   is  FALSE, unless compiled
-with -DGC_DEBUG.
+When called from PL_halt(), PL_CLEANUP_NO_RECLAIM_MEMORY  is set, unless
+compiled for debugging or using ASAN.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define MAX_HALT_CANCELLED 10
 
 int
-cleanupProlog(int rval, int reclaim_memory)
-{ if ( GD->cleaning != CLN_NORMAL )
-    return FALSE;
+PL_cleanup(int status)
+{ int rval = status&PL_CLEANUP_STATUS_MASK;
+  int asked_reclaim_memory = (status&PL_CLEANUP_NO_RECLAIM_MEMORY) == 0;
+  int reclaim_memory = asked_reclaim_memory;
+
+  if ( GD->cleaning != CLN_NORMAL )
+    return PL_CLEANUP_RECURSIVE;
 
 #ifdef __WINDOWS__
   if ( rval != 0 && !hasConsole() )
@@ -1469,7 +1470,7 @@ cleanupProlog(int rval, int reclaim_memory)
   PL_LOCK(L_INIT);
   if ( GD->cleaning != CLN_NORMAL )
   { PL_UNLOCK(L_INIT);
-    return FALSE;
+    return PL_CLEANUP_RECURSIVE;
   }
 
 #ifdef O_PLMT
@@ -1494,20 +1495,21 @@ cleanupProlog(int rval, int reclaim_memory)
 
     PL_set_prolog_flag("exit_status", PL_INTEGER, rval);
     if ( query_loop(PL_new_atom("$run_at_halt"), FALSE) == FALSE &&
-	 rval == 0 )
+	 !(status&PL_CLEANUP_NO_CANCEL) )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
 	PL_UNLOCK(L_INIT);
-	return FALSE;
+	return PL_CLEANUP_CANCELED;
       }
     }
 
     GD->cleaning = CLN_FOREIGN;
-    if ( !run_on_halt(&GD->os.on_halt_list, rval) && rval == 0 )
+    if ( !run_on_halt(&GD->os.on_halt_list, rval) &&
+	 !(status&PL_CLEANUP_NO_CANCEL) )
     { if ( ++GD->halt_cancelled	< MAX_HALT_CANCELLED )
       { GD->cleaning = CLN_NORMAL;
 	PL_UNLOCK(L_INIT);
-	return FALSE;
+	return PL_CLEANUP_CANCELED;
       }
     }
   }
@@ -1519,7 +1521,12 @@ cleanupProlog(int rval, int reclaim_memory)
 #endif
 #ifdef O_PLMT
   if ( !exitPrologThreads() )		/* reclaim memory while a thread */
-    reclaim_memory = FALSE;		/* runs is likely to crash */
+  { if ( reclaim_memory )
+    { Sdprintf("WARNING: Failed to stop Prolog threads. "
+	       "Not reclaming memory.\n");
+      reclaim_memory = FALSE;
+    }
+  }
 
 emergency:
 #endif
@@ -1547,9 +1554,6 @@ emergency:
   RemoveTemporaryFiles();
 
   cleanupSignals();
-#ifdef HAVE_DMALLOC_H
-  dmalloc_verify(0);
-#endif
 
   if ( reclaim_memory )
   { cleanupOs();
@@ -1587,15 +1591,15 @@ emergency:
     cleanupGMP();
 #endif
     cleanupDebug();
+
+    if ( GD->cmdline.appl_malloc )
+      free(GD->cmdline.appl_argv);
   }
 
   if ( GD->resources.DB )
   { zip_close_archive(GD->resources.DB);
     GD->resources.DB = NULL;
   }
-
-  if ( GD->cmdline.appl_malloc )
-    free(GD->cmdline.appl_argv);
 
   PL_UNLOCK(L_INIT);				/* requires GD->thread.enabled */
 
@@ -1610,7 +1614,7 @@ emergency:
   char *s;
 
   if ( (s=getenv("ASAN_OPTIONS")) && strstr(s,"detect_leaks=1") )
-  { printf("Checking leaks\n");
+  { printf("Checking leaks (reclaim_memory=%d)\n", reclaim_memory);
     if ( __lsan_do_recoverable_leak_check() )
     { printf("Leaks detected; sleeping 60 sec.  Attach using\n"
 	     "   gdb -p %d\n", getpid());
@@ -1619,13 +1623,8 @@ emergency:
   }
 #endif
 
-  return TRUE;
-}
-
-
-int
-PL_cleanup(int rc)
-{ return cleanupProlog(rc, rc == 0);
+  return reclaim_memory == asked_reclaim_memory ? PL_CLEANUP_SUCCESS
+						: PL_CLEANUP_FAILED;
 }
 
 
