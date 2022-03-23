@@ -1234,12 +1234,16 @@ lingerClauseRef(ClauseRef cref)
 	  assert(0);
 	});
 
-  do
-  { o = GD->clauses.lingering;
-    cref->d.gnext = o;
-  } while(!COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, o, cref) );
+  if ( GD->cleaning != CLN_DATA )
+  { do
+    { o = GD->clauses.lingering;
+      cref->d.gnext = o;
+    } while(!COMPARE_AND_SWAP_PTR(&GD->clauses.lingering, o, cref) );
 
-  ATOMIC_INC(&GD->clauses.lingering_count);
+    ATOMIC_INC(&GD->clauses.lingering_count);
+  } else
+  { freeClauseRef(cref);
+  }
 }
 
 
