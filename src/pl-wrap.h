@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2019, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2019-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,7 +49,8 @@ typedef struct closure
 #define LDFUNC_DECLARATIONS
 
 GLOBAL PL_blob_t _PL_closure_blob;
-void	  resetWrappedSupervisor(Definition def);
+void	  resetWrappedSupervisor(Definition def, int do_linger);
+void	  unregisterWrappedSupervisor(Code codes);
 int	  get_closure_predicate(term_t t, Definition *def);
 
 #undef LDFUNC_DECLARATIONS

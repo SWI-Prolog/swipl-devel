@@ -176,7 +176,7 @@ will eventually trap this and re-create an appropriate new supervisor.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-resetWrappedSupervisor(Definition def0)
+resetWrappedSupervisor(Definition def0, int do_linger)
 { Definition def = def0;
   Code codes = def->codes;
 
@@ -187,9 +187,9 @@ resetWrappedSupervisor(Definition def0)
     codes = c->def.impl.wrapped.supervisor;
   }
 
-  assert(def != def0);
+  assert(def != def0);	/* def is the definition inside the closure */
   def->impl.wrapped.supervisor = SUPERVISOR(virgin);
-  freeSupervisor(def, codes, TRUE);		/* is this the right def? */
+  freeSupervisor(def, codes, do_linger);
 }
 
 
