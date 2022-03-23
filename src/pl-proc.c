@@ -265,6 +265,7 @@ unallocDefinition(Definition def)
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
   if ( def->events )
     destroy_event_list(&def->events);
+  free_lingering(&def->lingering, GEN_MAX);
 
   DEBUG(MSG_PRED_COUNT, Sdprintf("Freed %s at %p\n", predicateName(def), def));
   freeHeap(def, sizeof(*def));
