@@ -1484,6 +1484,7 @@ abolishProcedure(Procedure proc, Module module)
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
   { Definition ndef	     = allocHeapOrHalt(sizeof(*ndef));
+    Definition odef          = def;
 
     memset(ndef, 0, sizeof(*ndef));
     ndef->functor            = def->functor; /* should be merged with */
@@ -1497,6 +1498,8 @@ abolishProcedure(Procedure proc, Module module)
     resetProcedure(proc, TRUE);
     DEBUG(MSG_PRED_COUNT, Sdprintf("Created %s at %p\n",
 				   predicateName(ndef), ndef));
+    if ( unshareDefinition(odef) == 0 )
+      lingerDefinition(odef);
   } else if ( true(def, P_FOREIGN) )	/* foreign: make normal */
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = NULL;
     resetProcedure(proc, TRUE);
