@@ -157,6 +157,18 @@ get_closure_predicate(DECL_LD term_t t, Definition *def)
 }
 
 
+void
+unregisterWrappedSupervisor(Code codes)
+{ if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+  { atom_t aref  = (atom_t)codes[2];
+    atom_t wname = (atom_t)codes[3];
+
+    PL_unregister_atom(aref);
+    PL_unregister_atom(wname);
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Called  from  freeCodesDefinition()  to  reset  the  eventually  wrapped
 supervisor to S_VIRGIN after a change   to the wrapped predicate. S_WRAP

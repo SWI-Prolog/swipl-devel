@@ -58,6 +58,8 @@ static void
 freeCodes(Code codes)
 { size_t size = (size_t)codes[-1];
 
+  unregisterWrappedSupervisor(codes); /* holds atom_t references */
+
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
     freeHeap(&codes[-1], (size+1)*sizeof(code));
 }
