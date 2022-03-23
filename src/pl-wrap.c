@@ -86,7 +86,10 @@ acquire_closure(atom_t aref)
 static int
 release_closure(atom_t aref)
 { closure *c = PL_blob_data(aref, NULL, NULL);
-  (void) c;
+  Definition def = &c->def;
+
+  freeCodesDefinition(def, FALSE);
+  free_lingering(&def->lingering, GEN_MAX);
 
   return TRUE;
 }
