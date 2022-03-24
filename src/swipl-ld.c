@@ -435,11 +435,12 @@ prependArgList(arglist *list, const char *arg)
 
   if ( list->size == 0 )
   { list->list = xmalloc(sizeof(char*) * (list->size+2));
+    list->list[1] = NULL;
   } else
   { list->list = xrealloc(list->list, sizeof(char*) * (list->size+2));
+    for(n=++list->size; n>0; n--)
+      list->list[n] = list->list[n-1];
   }
-  for(n=++list->size; n>0; n--)
-    list->list[n] = list->list[n-1];
 
   list->list[0] = strdup(arg);
 }
