@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (C): 1985-2020, University of Amsterdam
+    Copyright (C): 1985-2022, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
 
     This library is free software; you can redistribute it and/or
     modify it under the terms of the GNU Lesser General Public
@@ -47,6 +48,7 @@ test_arith :-
                     minint_promotion,
                     maxint,
                     maxint_promotion,
+		    round,
 		    float_overflow,
 		    float_zero,
 		    float_special,
@@ -383,6 +385,15 @@ test(multiplication) :-
 :- endif.
 
 :- end_tests(maxint_promotion).
+
+:- begin_tests(round).
+
+test(half_down, N == 0) :-
+	X is nexttoward(0.5,-10), N is round(X).
+test(nhalf_up, N == 0) :-
+	X is nexttoward(-0.5,10), N is round(X).
+
+:- end_tests(round).
 
 :- begin_tests(float_overflow).
 

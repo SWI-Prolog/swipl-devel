@@ -3609,16 +3609,12 @@ ar_integer(Number n1, Number r)
       }
 
       if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
-      { if ( n1->value.f > 0 )
-	{ r->value.i = (int64_t)(n1->value.f + 0.5);
-	  if ( r->value.i < 0 )		/* Why can this happen? */
-	    r->value.i = PLMAXINT;
-	} else
-	{ r->value.i = (int64_t)(n1->value.f - 0.5);
-	  if ( r->value.i > 0 )
-	    r->value.i = PLMININT;
-	}
-
+      {
+#if SIZEOF_LONG == 8
+	r->value.i = lround(n1->value.f);
+#else
+	r->value.i = llround(n1->value.f);
+#endif
 	r->type = V_INTEGER;
 	return TRUE;
       }
