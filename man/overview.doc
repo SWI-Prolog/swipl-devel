@@ -1572,14 +1572,6 @@ SWI-Prolog behaviour.  Currently it has the following effect:
           predicates.
     \item Syntax is closer to the ISO standard:
 	  \begin{itemize}
-		\item Unquoted commas and bars appearing as atoms
-		      are not allowed.  Instead of
-		      \exam{f(,,a)} now write \exam{f(',',a)}.
-		      Unquoted commas can only be used to separate arguments in
-		      functional notation and list notation, and as a conjunction operator.
-		      Unquoted bars can only appear within lists to separate head
-		      and tail, like \exam{[Head|Tail]}, and as infix operator for
-		      alternation in grammar rules, like \exam{a --> b | c.}
 		\item Within functional notation and list notation terms must have priority
 		      below 1000.  That means that rules and control constructs
 		      appearing as arguments need bracketing.
