@@ -6,9 +6,9 @@ include(Documentation)
 set(DOC SWI-Prolog-${SWIPL_VERSION_STRING})
 
 # Libraries documented in .doc files
-set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex gensym.tex
+set(DOC_LIB assoc.tex broadcast.tex clpb.tex clpfd.tex clpqr.tex
     library.tex libsummary.tex nbset.tex pio.tex predicateoptions.tex
-    record.tex registry.tex wwwbrowser.tex)
+    record.tex registry.tex)
 if(GMP_FOUND)
 set(DOC_LIB ${DOC_LIB} simplex.tex)
 endif()
@@ -167,7 +167,8 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         quasi_quotations solution_sequences iostream persistency yall
         settings occurs ansi_term readutil prolog_xref intercept thread
         prolog_jiti tables listing strings terms ugraphs portray_text
-        increval prolog_debug rbtrees statistics heaps fastrw)
+        increval prolog_debug rbtrees statistics heaps fastrw gensym
+        www_browser)
 libdoc(shlib --subsection)
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)

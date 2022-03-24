@@ -97,19 +97,19 @@
 \input{summaries.d/help.tex}
 
 \libsummary{gensym}
-\libsummary{summaries.d/gensym.tex}
+\input{summaries.d/gensym.tex}
 
 \libsummary{heaps}
-\libsummary{summaries.d/heaps.tex}
+\input{summaries.d/heaps.tex}
 
 \libsummary{increval}
-\libsummary{summaries.d/increval.tex}
+\input{summaries.d/increval.tex}
 
 \libsummary{intercept}
-\libsummary{summaries.d/intercept.tex}
+\input{summaries.d/intercept.tex}
 
 \libsummary{iostream}
-\libsummary{summaries.d/iostream.tex}
+\input{summaries.d/iostream.tex}
 
 \libsummary{listing}
 \input{summaries.d/listing.tex}
@@ -203,6 +203,7 @@ This library is only available on Windows systems.
 \end{summarylist}
 
 \libsummary{settings}
+\input{summaries.d/settings.tex}
 
 \IfFileExists{summaries.d/simplexlib.tex}{
 \libsummary{simplex}
@@ -225,8 +226,10 @@ This library is only available on Windows systems.
 \input{summaries.d/statistics.tex}
 
 \libsummary{terms}
+\input{summaries.d/terms.tex}
 
 \libsummary{ugraphs}
+\input{summaries.d/ugraphs.tex}
 
 \begin{summarylist}{ll}
 \predicatesummary{vertices_edges_to_ugraph}{3}{Create unweighted graph}
@@ -252,10 +255,7 @@ This library is only available on Windows systems.
 \input{summaries.d/url.tex}
 
 \libsummary{www_browser}
-
-\begin{summarylist}{ll}
-\predicatesummary{www_open_url}{1}{Open a web-page in a browser}
-\end{summarylist}
+\input{summaries.d/wwwbrowser.tex}
 
 \libsummary{solution_sequences}
 \input{summaries.d/solutionsequences.tex}
