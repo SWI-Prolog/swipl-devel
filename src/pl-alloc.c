@@ -1605,7 +1605,11 @@ stack_malloc(size_t size)
 void *
 stack_realloc(void *mem, size_t size)
 { size_t osize = tmp_malloc_size(mem);
-  void *ptr = tmp_realloc(mem, size);
+  void *ptr ;
+  if(mem)
+    ptr = tmp_realloc(mem, size);
+  else
+    ptr = tmp_malloc(size);
 
   if ( ptr )
   { size = tmp_malloc_size(ptr);
