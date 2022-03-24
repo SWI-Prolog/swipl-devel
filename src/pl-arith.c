@@ -3615,6 +3615,11 @@ ar_integer(Number n1, Number r)
 #else
 	r->value.i = llround(n1->value.f);
 #endif
+	if ( n1->value.f > 0 && r->value.i < 0 )
+	  r->value.i = PLMAXINT;
+	else if ( n1->value.f < 0 && r->value.i > 0 )
+	  r->value.i = PLMININT;
+
 	r->type = V_INTEGER;
 	return TRUE;
       }

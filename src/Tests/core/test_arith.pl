@@ -392,6 +392,10 @@ test(half_down, N == 0) :-
 	X is nexttoward(0.5,-10), N is round(X).
 test(nhalf_up, N == 0) :-
 	X is nexttoward(-0.5,10), N is round(X).
+test(maxint, A == 9223372036854775807 ) :-
+	A is round(9223372036854775807.000000).
+test(minint, A == -9223372036854775808 ) :-
+	A is round(-9223372036854775808.000000).
 
 :- end_tests(round).
 
