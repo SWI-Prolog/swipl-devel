@@ -19,12 +19,16 @@ files=( $(find . -type f \( -perm -0700 -o -name '*.dylib' -o -name '*.so' \) -a
 for f in $files; do
     if file $f | grep Mach-O > /dev/null; then
 	if [ -f $f -a -f $from/$f ]; then
-	    echo -n "Joining $f and $from/$f ... "
-	    if lipo -create $f $from/$f -output $f.U; then
-		mv $f.U $f
-		echo ok
+	    if lipo -info $f | grep -q x86_64; then
+		echo "$f already contains x86_64"
 	    else
-		echo "FAILED"
+		echo -n "Joining $f and $from/$f ... "
+		if lipo -create $f $from/$f -output $f.U; then
+		    mv $f.U $f
+		    echo ok
+		else
+		    echo "FAILED"
+		fi
 	    fi
 	else
 	    echo "WARNING: Cannot find $from/$f"
