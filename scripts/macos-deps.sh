@@ -23,7 +23,8 @@ ARCHIVE_VERSION=3.5.2
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 ODBC_VERSION=2.3.9
-PCRE_VERSION=8.45  # TODO: update for PCRE2
+PCRE_VERSION=8.45
+PCRE2_VERSION=10.39
 FFI_VERSION=3.4.2
 YAML_VERSION=0.1.7
 READLINE_VERSION=8.0
@@ -222,8 +223,6 @@ build_libarchive()
 #################################
 # Download and install libpcre
 
-
-# TODO: update for PCRE2
 download_libpcre()
 { PCRE_FILE=pcre-$PCRE_VERSION.tar.gz
 
@@ -238,6 +237,25 @@ build_libpcre()
     ./configure --prefix=$PREFIX \
 	--disable-static --disable-cpp --enable-utf8 --enable-unicode-properties
     make pcre.dll
+    make install
+  )
+}
+
+
+download_libpcre2()
+{ PCRE2_FILE=pcre2-$PCRE2_VERSION.tar.gz
+
+  [ -f $PCRE2_FILE ] || \
+    wget https://github.com/PhilipHazel/pcre2/releases/download/pcre2-$PCRE2_VERSION/pcre2-$PCRE2_VERSION.tar.gz
+  tar xzf $PCRE2_FILE
+}
+
+
+build_libpcre2()
+{ ( cd pcre2-$PCRE2_VERSION
+    ./configure --prefix=$PREFIX \
+	--disable-static --disable-cpp --enable-utf8 --enable-unicode-properties
+    make pcre2.dll
     make install
   )
 }
