@@ -23,7 +23,7 @@ ARCHIVE_VERSION=3.5.2
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
 ODBC_VERSION=2.3.9
-PCRE_VERSION=8.43
+PCRE_VERSION=8.45  # TODO: update for PCRE2
 FFI_VERSION=3.4.2
 YAML_VERSION=0.1.7
 READLINE_VERSION=8.0
@@ -223,6 +223,7 @@ build_libarchive()
 # Download and install libpcre
 
 
+# TODO: update for PCRE2
 download_libpcre()
 { PCRE_FILE=pcre-$PCRE_VERSION.tar.gz
 

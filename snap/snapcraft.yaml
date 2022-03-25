@@ -84,7 +84,7 @@ parts:
       # - libssl1.1
       # - libx11-6
       - libossp-uuid16
-      - libpcre3
+      - libpcre2
       - libserd-0-0
       - libxft2
       - libxpm4
@@ -102,7 +102,7 @@ parts:
       - libice-dev
       - libjpeg-dev
       - libossp-uuid-dev
-      - libpcre3-dev
+      - libpcre2-dev
       - libraptor2-dev
       - libreadline-dev
       - libserd-dev

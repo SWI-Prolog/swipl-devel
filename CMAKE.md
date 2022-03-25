@@ -399,7 +399,7 @@ The defined components are:
   | Commandline_editors  | Readline and libedit interfaces      |
   | ODBC_interface       | ODBC binding                         |
   | BerkeleyDB_interface | BDB interface                        |
-  | Perl_regex           | PCRE library binding                 |
+  | Perl_regex           | PCRE2 library binding                |
   | YAML_support         | Libyaml binding                      |
   | Java_interface       | Java interface (JPL)                 |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |
