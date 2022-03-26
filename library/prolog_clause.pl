@@ -322,15 +322,16 @@ unify_clause((RHead :- RBody), (CHead :- CBody), Module, TermPos1, TermPos) :-
                         BPos1, BPos2),
     RBody1 \== RBody,
     !,
-    unify_clause((RHead :- RBody1), (CHead :- CBody1), Module, TermPos2, TermPos).
+    unify_clause2((RHead :- RBody1), (CHead :- CBody1), Module,
+                  TermPos2, TermPos).
 unify_clause(Read, Decompiled, _, TermPos, TermPos) :-
     Read =@= Decompiled,
     !,
     Read = Decompiled.
-                                        % XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos),
     !.
+                                        % XPCE send-methods
 unify_clause(:->(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
     pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
@@ -351,7 +352,7 @@ unify_clause((TH :- Body),
                                         % module:head :- body
 unify_clause((Head :- Read),
              (Head :- _M:Compiled), Module, TermPos0, TermPos) :-
-    unify_clause((Head :- Read), (Head :- Compiled), Module, TermPos0, TermPos1),
+    unify_clause2((Head :- Read), (Head :- Compiled), Module, TermPos0, TermPos1),
     TermPos1 = term_position(TA,TZ,FA,FZ,[PH,PB]),
     TermPos  = term_position(TA,TZ,FA,FZ,
                              [ PH,
@@ -373,6 +374,7 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     !,
     TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
     match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
+                                               % SSU rules
 unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
              term_position(F,T,FF,FT,
                            [ term_position(_,_,_,_,[HP,CP]),
@@ -386,20 +388,31 @@ unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
     BP2 = term_position(_,_,_,_, [FF-FT, BP]), % Represent (!, Body), placing
     (   CCond1 == true                         % ! at =>
     ->  BP1 = BP2,                             % Whole guard is inlined
-        unify_clause((Head :- !, Body), (CHead :- !, CBody),
-                     Module, TermPos1, TermPos)
+        unify_clause2((Head :- !, Body), (CHead :- !, CBody),
+                      Module, TermPos1, TermPos)
     ;   BP1 = term_position(_,_,_,_, [CP1, BP2]),
-        unify_clause((Head :- RCond1, !, Body), (CHead :- CCond1, !, CBody),
-                     Module, TermPos1, TermPos)
+        unify_clause2((Head :- RCond1, !, Body), (CHead :- CCond1, !, CBody),
+                      Module, TermPos1, TermPos)
     ).
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
-    unify_clause(Head :- Body, Compiled1, Module, TermPos0, TermPos).
-unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
+    unify_clause2(Head :- Body, Compiled1, Module, TermPos0, TermPos).
+unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
+    unify_clause2(Read, Decompiled, Module, TermPos0, TermPos).
+
+%!  unify_clause2(+Read, +Decompiled, +Module, +TermPosIn, -TermPosOut)
+%
+%   Stratified version to be used after the first match
+
+unify_clause2(Read, Decompiled, _, TermPos, TermPos) :-
+    Read =@= Decompiled,
+    !,
+    Read = Decompiled.
+unify_clause2(Read, Compiled1, Module, TermPos0, TermPos) :-
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
     match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
                                         % I don't know ...
-unify_clause(_, _, _, _, _) :-
+unify_clause2(_, _, _, _, _) :-
     debug(clause_info, 'Could not unify clause', []),
     fail.
 
