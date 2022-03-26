@@ -94,7 +94,9 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
         debug(break, 'Clause ~p, PC=~p NextPC=~p', [ClauseRef, PC, NextPC]),
         '$clause_term_position'(ClauseRef, NextPC, List),
         debug(break, 'Location = ~w', [List]),
-        range(List, TermPos, A, Z),
+        range(List, TermPos, SubPos),
+        arg(1, SubPos, A),
+        arg(2, SubPos, Z),
         debug(break, 'Term from ~w-~w', [A, Z]),
         Z >= Char, !,
         Len is Z - A,
@@ -108,14 +110,20 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
     nb_delete('$breakpoint'),
     known_breakpoint(ClauseRef, PC, _Location, Id).
 
-range(_,  Pos, _, _) :-
-    var(Pos), !, fail.
-range([], Pos, A, Z) :-
-    arg(1, Pos, A),
-    arg(2, Pos, Z).
-range([H|T], term_position(_, _, _, _, PosL), A, Z) :-
+range(_,  Pos, _), var(Pos) =>
+    fail.
+range(List, parentheses_term_position(_,_,Pos), SubPos) =>
+    range(List, Pos, SubPos).
+range([], Pos, SubPos) =>
+    SubPos = Pos.
+range([H|T], term_position(_, _, _, _, PosL), SubPos) =>
     nth1(H, PosL, Pos),
-    range(T, Pos, A, Z).
+    range(T, Pos, SubPos).
+range(exit, Pos, SubPos) =>
+    arg(2, Pos, End),
+    Dot is End,
+    EndDot is Dot+1,
+    SubPos = Dot-EndDot.
 
 :- dynamic
     known_breakpoint/4,             % ClauseRef, PC, Location, Id
