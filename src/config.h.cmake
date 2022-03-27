@@ -22,6 +22,7 @@
 #cmakedefine HAVE_BACKTRACE @HAVE_BACKTRACE@
 #cmakedefine HAVE_BSTRING_H @HAVE_BSTRING_H@
 #cmakedefine HAVE_CEIL @HAVE_CEIL@
+#cmakedefine LLROUND_OK @LLROUND_OK@
 #cmakedefine HAVE_CFMAKERAW @HAVE_CFMAKERAW@
 #cmakedefine HAVE_CHMOD @HAVE_CHMOD@
 #cmakedefine HAVE_GETUID @HAVE_GETUID@
