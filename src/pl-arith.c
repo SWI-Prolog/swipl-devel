@@ -3613,7 +3613,14 @@ ar_integer(Number n1, Number r)
 #if SIZEOF_LONG == 8
 	r->value.i = lround(n1->value.f);
 #else
-	r->value.i = llround(n1->value.f);
+#if defined(__GNUC__) & defined(__MINGW32__)
+        /* The fix is to add not +/- 0.5, but +/- nextafter(0.5,-1.)
+         * See https://gcc.gnu.org/ml/gcc-patches/2006-10/msg00917.html and follow-ups
+         */
+        r->value.i = n1->value.f + copysign(nexttoward(0.5, -1.0), n1->value.f) ;
+#else
+        r->value.i = llround(n1->value.f) ;
+#endif
 #endif
 	if ( n1->value.f > 0 && r->value.i < 0 )
 	  r->value.i = PLMAXINT;
