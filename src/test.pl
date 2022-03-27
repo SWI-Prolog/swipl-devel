@@ -2213,28 +2213,31 @@ popen(pwd-1) :-
 	atom_codes(Pwd, String),
 	same_file(Pwd, '.').
 popen(cat-1) :-
-	swipl_exe(SWIPL),
 	current_prolog_flag(pid, Pid),
 	format(atom(File), 'pltest-~w.txt', [Pid]),
+	(   current_prolog_flag(windows, true)
+	->  format(atom(Bat), 'pltest-~w.bat', [Pid]),
+            open(Bat, write, Fd1),
+            writeln(Fd1, '@findstr .* > %1'),
+            close(Fd1),
+	    format(atom(Cmd), 'cmd /c ~w ~w', [Bat, File])
+	;   format(atom(Cmd), 'cat > ~w', [File])
+	),
 	Text = 'Hello World',
-	format(string(Command),
-	       '"~w" \c
-		-g "tell(~q),\c
-		    copy_stream_data(current_input,current_output),\c
-		    told" \c
-		-t halt',
-	       [SWIPL, File]),
-	open(pipe(Command), write, Fd),
-	write(Fd, Text),
-	flush_output(Fd),
-	close(Fd),
-	setup_call_cleanup(
-	    open(File, read, Fd2),
-	    collect_data(Fd2, String),
-	    close(Fd2)),
+	open(pipe(Cmd), write, Fd2),
+	format(Fd2, '~w~n', [Text]),
+	close(Fd2),
+	open(File, read, Fd3),
+	collect_data(Fd3, String),
+	close(Fd3),
 	delete_file(File),
+	(   current_prolog_flag(windows, true)
+	->  delete_file(Bat)
+	;   true
+	),
+	!,
 	atom_codes(A, String),
-	A == Text.
+	format(atom(A), '~w~n', [Text]).
 popen(cat-2) :-
 	(   current_prolog_flag(windows, true)
 	->  Cmd = 'cmd /c rem true'
