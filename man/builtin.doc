@@ -5122,10 +5122,15 @@ SWI-Prolog also allows \arg{SrcDest} to be a term \term{pipe}{Command}.
 In this form, \arg{Command} is started as a child process and if
 \arg{Mode} is \const{write}, output written to \arg{Stream} is sent to
 the standard input of \arg{Command}. Vice versa, if \arg{Mode} is
-\const{read}, data written by \arg{Command} to the standard output may
+\const{read}, data written by \arg{Command} to the standard output can
 be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
 popen() which hands it to the Unix shell. On Windows, \arg{Command} is
-executed directly. See also process_create/3 from \pllib{process}.
+executed directly and therefore shell syntax such as redirecting (using
+e.g., \verb$>$ \arg{file}) does not work. Use of the
+\term{pipe}{Command} feature is deprecated. The predicate
+process_create/3 from \pllib{process} provides a richer and more
+portable alternative for interacting with processes including handling
+all three standard streams.
 
 If \arg{SrcDest} is an \jargon{IRI}, i.e., starts with
 <scheme>\verb$://$, where <scheme> is a non-empty sequence of lowercase
