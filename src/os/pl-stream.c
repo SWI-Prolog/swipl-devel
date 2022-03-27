@@ -3426,14 +3426,6 @@ Swinsock(IOSTREAM *s)
 		 *******************************/
 
 #ifdef HAVE_POPEN
-#ifdef __WINDOWS__
-#include "windows/popen.c"
-
-#undef popen
-#undef pclose
-#define popen(cmd, how) pt_popen(cmd, how)
-#define pclose(fd)	pt_pclose(fd)
-#endif
 
 static ssize_t
 Sread_pipe(void *handle, char *buf, size_t size)
@@ -4021,10 +4013,6 @@ SinitStreams(void)
       s->newline = SIO_NL_DOS;
 #endif
     }
-
-#ifdef __WINDOWS__
-    pt_init();				/* init popen() issues */
-#endif
   }
 }
 
