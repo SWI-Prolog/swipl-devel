@@ -8287,6 +8287,18 @@ false.
 \end{code}
 \end{description}
 
+\subsubsection{Floating point arithmetic precision}
+\label{sec:float-precision}
+
+SWI-Prolog represents floats using the C \ctype{double} type. On
+virtually all modern hardware this implies it uses 64-bit IEEE~754
+floating point numbers. See also \secref{ieee-float}. All floating point
+arithmetic is performed using C. Different C compilers, different C math
+libraries and different hardware floating point support may yield
+different results for the same expression on different instances of
+SWI-Prolog.
+
+
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
@@ -8314,7 +8326,7 @@ such functions on `as-needed' basis if the function is widely supported
 elsewhere and notably if it is part of the
 \href{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}{C99}
 mathematical library.  In addition, we try to maintain compatibility
-with \href{http://www.dcc.fc.up.pt/~vsc/Yap/}{YAP}.
+with other Prolog implementations.
 
 \begin{description}
     \prefixfunction[ISO]{-}{+Expr}
