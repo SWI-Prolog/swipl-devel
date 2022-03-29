@@ -113,7 +113,8 @@ mark_vars() is a helper for copy_term/4.
 
 static int
 mark_vars(DECL_LD term_t t, int set)
-{ term_agenda agenda;
+{ int rc = TRUE;
+  term_agenda agenda;
   Word p = valTermRef(t);
 
   initTermAgenda(&agenda, 1, p);
@@ -127,17 +128,45 @@ mark_vars(DECL_LD term_t t, int set)
 	  clear_marks(*p);
         break;
       case TAG_COMPOUND:
-      { Functor t = valueTerm(*p);
-	int arity = arityFunctor(t->definition);
+      {	if ( !visited(*p) )
+	{ Functor t = valueTerm(*p);
+	  int arity = arityFunctor(t->definition);
 
-	if ( !pushWorkAgenda(&agenda, arity, t->arguments) )
-	  return MEMORY_OVERFLOW;
+	  set_visited(*p);
+	  if ( !pushWorkAgenda(&agenda, arity, t->arguments) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto end_loop;
+	  }
+	}
       }
     }
   }
+end_loop:
   clearTermAgenda(&agenda);
 
-  return TRUE;
+  p = valTermRef(t);
+  initTermAgenda(&agenda, 1, p);
+  while((p=nextTermAgenda(&agenda)))
+  { switch(tag(*p))
+    { case TAG_ATTVAR:
+      case TAG_VAR:
+	if ( rc != TRUE )
+	  clear_marks(*p);
+        break;
+      case TAG_COMPOUND:
+      { if ( visited(*p) )
+	{ clear_marks(*p);
+
+	  Functor t = valueTerm(*p);
+	  int arity = arityFunctor(t->definition);
+	  if ( !pushWorkAgenda(&agenda, arity, t->arguments) )
+	    fatalError("No memory for cleaning\n");
+	}
+      }
+    }
+  }
+
+  return rc;
 }
 
 
@@ -768,14 +797,18 @@ copy_term_refs(DECL_LD term_t from, term_t to, term_t vars,
     src = valTermRef(from);
 
     if ( vars )
-      mark_vars(vars, TRUE);
+    { if ( mark_vars(vars, TRUE) != TRUE )
+	return PL_no_memory();
+    }
     rc = do_copy_term(src, dest, abstract, flags);
 
     if ( rc < 0 )			/* no space for copy */
     { PL_discard_foreign_frame(fid);
       PL_put_variable(to);		/* gc consistency */
       if ( vars )
-	mark_vars(vars, FALSE);
+      { if ( mark_vars(vars, FALSE) != TRUE )
+	  return PL_no_memory();
+      }
       if ( !makeMoreStackSpace(rc, ALLOW_SHIFT|ALLOW_GC) )
 	return FALSE;
       DEBUG(CHK_SECURE, checkStacks(NULL));
