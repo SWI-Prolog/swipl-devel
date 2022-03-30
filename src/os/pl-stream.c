@@ -3761,6 +3761,7 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
   int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX|SIO_TEXT;
   size_t size;
+  IOSTREAM *s;
 
   if ( !mf )
   { errno = ENOMEM;
@@ -3810,7 +3811,10 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
   mf->sizep	= sizep;
   mf->here      = 0;
 
-  return Snew(mf, flags, &Smemfunctions);
+  if ( (s=Snew(mf, flags, &Smemfunctions)) )
+    s->newline = SIO_NL_POSIX;
+
+  return s;
 }
 
 		 /*******************************
