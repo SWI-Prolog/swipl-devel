@@ -911,7 +911,8 @@ UNICODE file functions.
 #else
 #define REP_FN		    REP_MB
 #endif
-
+#define REP_NL_POSIX        0x00400000  /* use ~n instead of ~r~n on Windows */
+	
 #define PL_DIFF_LIST	    0x01000000	/* PL_unify_chars() */
 
 
