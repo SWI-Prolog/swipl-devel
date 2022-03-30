@@ -672,6 +672,8 @@ prepareSignal(int sig, int plsig_flags)
       if ( current_state == 0 )
         sh->saved_handler = old_handler;
     }
+  } else
+  { sh->flags = (sh->flags & ~PLSIG_USERFLAGS) | plsig_flags;
   }
 
   return sh;
