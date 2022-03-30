@@ -1095,6 +1095,10 @@ Convert the text to a UTF-8 string. This works for all text.
     \termitem{REP_MB}{}
 Convert to default locale-defined 8-bit string. Success depends on the
 locale. Conversion is done using the wcrtomb() C library function.
+
+    \termitem{REP_NL_POSIX}{}
+Convert to text and use LF for line breaks even on Windows where
+CRLF is typically used. Mostly for internal use.
 \end{description}
 
 
