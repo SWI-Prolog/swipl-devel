@@ -340,6 +340,8 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
       size = sizeof(text->buf);
       fd = Sopenmem(&r, &size, "w");
       fd->encoding = *enc;
+      if(flags & REP_NL_POSIX)
+        fd->newline = SIO_NL_POSIX;
       if ( PL_write_term(fd, l, 1200, wflags) &&
 	   Sputcode(EOS, fd) >= 0 &&
 	   Sflush(fd) >= 0 )
