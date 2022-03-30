@@ -221,6 +221,8 @@
 #define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
 #define TABLING_NO_AC		 322
 
+#define MSG_GVAR_LAZY		 330
+
 #define MSG_THREAD_WAIT		 350
 #define MSG_THREAD_SIGNAL	 351
 

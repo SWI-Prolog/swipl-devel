@@ -222,6 +222,10 @@ auto_define_gvar(atom_t name)
   if ( !GD->procedures.exception3 )
     GD->procedures.exception3 = PL_predicate("exception", 3, "user");
 
+  DEBUG(MSG_GVAR_LAZY, Sdprintf("[%d]: auto_define_gvar(%s)\n",
+				PL_thread_self(), PL_atom_chars(name)));
+
+
   if ( !(fid = PL_open_foreign_frame()) )
     return gvar_error;
   av = PL_new_term_refs(3);
@@ -242,6 +246,10 @@ auto_define_gvar(atom_t name)
 
 
   PL_close_foreign_frame(fid);
+
+  DEBUG(MSG_GVAR_LAZY,
+	Sdprintf("  %s --> %d\n", PL_atom_chars(name), rc));
+
 
   return rc;
 }
