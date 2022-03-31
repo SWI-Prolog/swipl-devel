@@ -38,7 +38,7 @@
 	    test_answer/2
 	  ]).
 
-:- if(exists_source(library(unix)).
+:- if(exists_source(library(unix))).
 
 :- use_module(library(plunit)).
 :- use_module(library(unix)).
