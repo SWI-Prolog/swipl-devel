@@ -38,7 +38,7 @@ test_ieee754 :-
     run_tests([ ieee754
 	      ]).
 
-/** <module> Test IEEEE754 float handling
+/** <module> Test IEEE754 float handling
 
 @tbd This test is only executed if GMP is   used as it contains a lot of
 tests that involve rational numbers. Most   tests however do not require

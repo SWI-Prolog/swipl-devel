@@ -3800,7 +3800,12 @@ ar_float_fractional_part(Number n1, Number r)
     case V_FLOAT:
     { double ip;
 
+#ifdef MODF_OK
       r->value.f = modf(n1->value.f, &ip);
+#else
+      /* return -0.0 for fractional part of -0.0 (IEEE754) */
+      r->value.f = copysign(modf(n1->value.f, &ip), n1->value.f);
+#endif
       r->type = V_FLOAT;
       return check_float(r);
     }
