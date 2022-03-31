@@ -38,17 +38,7 @@
 	    test_answer/2
 	  ]).
 
-:- prolog_load_context(directory, Here),
-   atom_concat(Here, '../../../../packages/clib', ClibDir0),
-   absolute_file_name(ClibDir0, ClibDir),
-   asserta(user:file_search_path(library, ClibDir)),
-   asserta(user:file_search_path(foreign, ClibDir)).
-
-:- if(absolute_file_name(foreign(unix), _,
-			 [ file_type(executable),
-			   file_errors(fail),
-			   access(read)
-			 ])).
+:- if(exists_source(library(unix)).
 
 :- use_module(library(plunit)).
 :- use_module(library(unix)).
