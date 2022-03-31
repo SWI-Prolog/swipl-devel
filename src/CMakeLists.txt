@@ -24,6 +24,7 @@ include(TestSignalType)
 include(TestSCNProcessors)
 include(TestHeaderTime)
 include(TestLLRound)
+include(TestModF)
 
 # FIXME: Is this still needed?
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
