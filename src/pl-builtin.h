@@ -540,10 +540,10 @@ struct foreign_context
 #define FRG_REDO_MASK	0x03
 #define FRG_REDO_BITS	2
 #define REDO_PTR	0x00		/* Returned a pointer */
-#define REDO_INT	0x01		/* Returned an integer */
-#define YIELD_PTR	0x02		/* Returned a pointer */
+#define YIELD_PTR	0x01		/* Returned a pointer */
+#define REDO_INT	0x02		/* Returned an integer */
 
-#define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
+#define ForeignRedoIntVal(v)	(((uintptr_t)((v)<<FRG_REDO_BITS))|REDO_INT)
 #define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
 #define ForeignYieldPtrVal(v)	(((uintptr_t)(v))|YIELD_PTR)
 

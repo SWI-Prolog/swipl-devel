@@ -4935,7 +4935,7 @@ VMI(I_FREDO, 0, 0, ())
   FNDET_CONTEXT.engine = LD;
   switch((word)FR->clause & FRG_REDO_MASK)
   { case REDO_INT:
-      FNDET_CONTEXT.context = (word)FR->clause >> FRG_REDO_BITS;
+      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       FNDET_CONTEXT.control = FRG_REDO;
       break;
     case REDO_PTR:
