@@ -434,8 +434,9 @@ prependArgList(arglist *list, const char *arg)
 { int n;
 
   if ( list->size == 0 )
-  { list->list = xmalloc(sizeof(char*) * (list->size+2));
+  { list->list = xmalloc(sizeof(char*)*2);
     list->list[1] = NULL;
+    list->size = 1;
   } else
   { list->list = xrealloc(list->list, sizeof(char*) * (list->size+2));
     for(n=++list->size; n>0; n--)
