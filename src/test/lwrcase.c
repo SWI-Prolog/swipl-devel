@@ -33,9 +33,10 @@
 */
 
 #include <SWI-Prolog.h>
+#include <string.h>
 #include <ctype.h>
 
-foreign_t
+static foreign_t
 pl_lowercase(term_t u, term_t l)
 { char *copy;
   char *s, *q;
@@ -44,6 +45,8 @@ pl_lowercase(term_t u, term_t l)
   if ( !PL_get_atom_chars(u, &s) )
     return PL_warning("lowercase/2: instantiation fault");
   copy = malloc(strlen(s)+1);
+  if ( !copy )
+    return PL_resource_error("memory");
 
   for( q=copy; *s; q++, s++)
     *q = (isupper(*s) ? tolower(*s) : *s);

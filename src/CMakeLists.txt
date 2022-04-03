@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 project(swipl)
 
+add_subdirectory(Tests/foreign2)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake")
 
 include(Version)

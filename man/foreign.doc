@@ -510,7 +510,9 @@ my_function(term_t a0, term_t a1, control_t handle)
 
   switch( PL_foreign_control(handle) )
   { case PL_FIRST_CALL:
-        ctxt = malloc(sizeof(struct context));
+        ctxt = malloc(sizeof *ctxt);
+        if ( !ctxt )
+          return PL_resource_error("memory");
         ...
         PL_retry_address(ctxt);
     case PL_REDO:
@@ -624,7 +626,7 @@ read_or_block(term_t a0, int arity, void *context)
 
   char buf[BUFSIZE];
 
-  size_t n = Sfread(buf, sizeof(char), sizeof(buf)/sizeof(char), s);
+  size_t n = Sfread(buf, sizeof buf[0], sizeof buf / sizeof buf[0], s);
   if ( n == 0 )                     // timeout or error
   { if ( (s->flags&SIO_TIMEOUT) )
       PL_yield_address(s);	  // timeout: yield
@@ -1586,7 +1588,7 @@ foreign_t
 pl_hostname(term_t name)
 { char buf[100];
 
-  if ( gethostname(buf, sizeof(buf)) )
+  if ( gethostname(buf, sizeof buf) )
   { term_t tmp = PL_new_term_ref();
 
     PL_put_atom_chars(tmp, buf);
@@ -1604,7 +1606,7 @@ foreign_t
 pl_hostname(term_t name)
 { char buf[100];
 
-  if ( gethostname(buf, sizeof(buf)) )
+  if ( gethostname(buf, sizeof buf) )
     return PL_unify_atom_chars(name, buf);
 
   PL_fail;
@@ -2118,7 +2120,7 @@ Java atoms,  Microsoft's COM objects, etc., providing safe combined
 garbage collection.
 
 To exploit these features safely and in an organised manner, the
-SWI-Prolog foreign interface allows for creating `atoms' with additional
+SWI-Prolog foreign interface allows creating `atoms' with additional
 type information. The type is represented by a structure holding C
 function pointers that tell Prolog how to handle releasing the atom,
 writing it, sorting it, etc. Two atoms created with different types can
@@ -2126,6 +2128,29 @@ represent the same sequence of bytes. Atoms are first ordered on the
 rank number of the type and then on the result of the
 \cfuncref{compare}{} function.  Rank numbers are assigned when the
 type is registered.
+
+Blobs are in the end atoms (or actually, the other way around). The
+blob handle is a tagged offset into a dynamic array of atoms
+structures. The atom content is malloc'ed (unless the blob uses the
+NOCOPY flag).
+
+So, neither are affected by stack shifts, GC, etc. Only atom-gc may
+invalidate an entry of the array, call the release hook to dispose of
+resources associated to the blob's content and finally call free() on
+the content. After invalidation, the handle may be reused. For Prolog,
+reuse is safe as we are guaranteed that the previous version was
+unreachable. Foreign code must use PL_register_atom() when storing the
+handle in some permanent location to prevent atom-GC reclaiming it.
+
+PL_get_atom() does not register the atom, because it is protected by
+the term you got it from.  PL_new_atom() returns a registered atom to
+avoid GC reclaiming it as soon as you created it (GC runs
+concurrently).
+
+It is not likely anything will ever change here. Memory-wise it would
+be interesting to maintain the content strings in something more
+clever than malloc() and shift them to avoid fragmentation. In a
+concurrent system this is very hard to do safely.
 
 
 \subsubsection{Defining a BLOB type}
@@ -2139,11 +2164,13 @@ displayed below. The structure contains additional fields at the
 typedef struct PL_blob_t
 { uintptr_t	magic;		/* PL_BLOB_MAGIC */
   uintptr_t	flags;		/* Bitwise or of PL_BLOB_* */
-  char *	name;		/* name of the type */
+  const char *	name;		/* name of the type */
   int		(*release)(atom_t a);
   int		(*compare)(atom_t a, atom_t b);
   int		(*write)(IOSTREAM *s, atom_t a, int flags);
   void		(*acquire)(atom_t a);
+  int		(*save)(atom_t a, IOSTREAM *s);
+  atom_t	(*load)(IOSTREAM *s);
   ...
 } PL_blob_t;
 \end{code}
@@ -2187,11 +2214,24 @@ can retrieve the data of the blob using PL_blob_data().  If it
 returns \const{FALSE} the atom garbage collector will \emph{not}
 reclaim the atom.
 
-    \cfunction{int}{compare}{atom_t a, atom_t b}
-Compare the blobs \arg{a} and \arg{b}, both of which are of the
-type associated to this blob type.  Return values are, as memcmp(),
-$< 0$ if \arg{a} is less than \arg{b}, $= 0$ if both are equal, and
-$> 0$ otherwise.
+    \cfunction{int}{compare}{atom_t a, atom_t b} Compare the blobs
+\arg{a} and \arg{b}, both of which are of the type associated to this
+blob type.  Return values are, as memcmp(), $< 0$ if \arg{a} is less
+than \arg{b}, $= 0$ if both are equal, and $> 0$ otherwise. The
+default implementation is a bitwise comparison of the blobs'
+contents. If you cannot guarantee that the blobs all have unique
+contents, then you should incorporate the blob address (the system
+guarantees that blobs are not shifted in memory after they are
+allocated). The following minimal compare function gives a stable
+total ordering:
+\begin{code}
+static int
+compare_my_blob(atom_t a, atom_t b)
+{ const struct my_blob_data *blob_a = PL_blob_data(a, NULL, NULL);
+  const struct my_blob_data *blob_b = PL_blob_data(b, NULL, NULL);
+  return (blob_a > blob_b) ?  1 :  (blob_a < blob_b) ? -1 : 0;
+}
+\end{code}
 
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
 Write the content of the blob \arg{a} to the stream \arg{s}
@@ -3071,7 +3111,7 @@ load_words(term_t name)
       return FALSE;
 
     if ( (fid = PL_open_foreign_frame()) )
-    { while(fgets(word, sizeof(word), fd))
+    { while(fgets(word, sizeof word, fd))
       { size_t len;
 
 	if ( (len=strlen(word)) )
@@ -4365,7 +4405,6 @@ of foreign code.
 \begin{code}
 /*  Include file depends on local installation */
 #include <SWI-Prolog.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -4378,6 +4417,8 @@ pl_lowercase(term_t u, term_t l)
   if ( !PL_get_atom_chars(u, &s) )
     return PL_warning("lowercase/2: instantiation fault");
   copy = malloc(strlen(s)+1);
+  if ( !copy )
+    return PL_resource_error("memory");
 
   for( q=copy; *s; q++, s++)
     *q = (isupper(*s) ? tolower(*s) : *s);
@@ -4644,7 +4685,7 @@ subsequent modifications.
 Get the next key-value pair from a cursor.
 \end{description}
 
-\subsection{Debugging and profiling foreign code (valgrind)}
+\subsection{Debugging and profiling foreign code (valgrind, asan)}
 \label{sec:foreign-debug-and-profile}
 
 \index{valgrind}\index{profiling,foreign code}%
@@ -4667,6 +4708,27 @@ using \program{bash} as login shell:
 % VALGRIND=yes valgrind --tool=callgrind pl <args>
 <prolog interaction>
 % kcachegrind callgrind.out.<pid>
+\end{code}
+
+\index{asan}\index{profiling,foreign code}%
+
+Instead of \program{valgrind}, you can use
+\href{https://github.com/google/sanitizers/wiki/AddressSanitizer}{AddressSanitizer}
+or \program{asan}. Here is a short example for building with
+\jargon{asan} enabled and then running the resulting binary. When you
+exit \program{swipl}, a message is printed and any leaks are printed.
+During execution, other messages may be printed out, such as freeing
+an address twice or using freed or unallocated memory.
+
+\begin{code}
+% cd build.sanitize
+% cmake -G Ninja -DCMAKE_BUILD_TYPE=Sanitize ..
+% ninja
+% ASAN_OPTIONS=detect_leaks=1 build.sanitize/src/swipl
+<prolog interaction>
+% halt
+Running LSAN memory leak check (reclaim_memory=1)
+No leaks detected
 \end{code}
 
 \subsection{Name Conflicts in C modules}
