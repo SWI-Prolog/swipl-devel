@@ -247,22 +247,23 @@ Srlc_write(void *handle, char *buffer, size_t size)
 }
 
 
+
 static int
 Srlc_close(void *handle)
 { rlc_console c = handle;
   uintptr_t v;
   int closed = 0;
 
-  if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v &&
-       ((IOSTREAM *)v)->flags && SIO_CLOSING )
+#define ison(p,f) (((p)->flags)&(f))
+#define IS_CLOSING(v) ison((IOSTREAM *)v, SIO_CLOSING)
+
+  if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_INPUT, 0L, NULL);
     closed++;
-  } else if ( rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v &&
-	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  } else if ( rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_OUTPUT, 0L, NULL);
     closed++;
-  } else if ( rlc_get(handle, RLC_PROLOG_ERROR, &v) && v &&
-	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  } else if ( rlc_get(handle, RLC_PROLOG_ERROR, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_ERROR, 0L, NULL);
   }
 
