@@ -266,7 +266,7 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 
   s = osname;
 					/* /c:/ --> c:/ */
-  if ( q[0] == '/' && q[1] < 0x80 && isalpha(q[1]) && q[2] == ':' &&
+  if ( q[0] == '/' && !(q[1]&0x80) && isalpha(q[1]) && q[2] == ':' &&
        (q[3] == '/' || q[3] == '\0') )
   { if ( s+2 >= e )
     { errno = ENAMETOOLONG;
