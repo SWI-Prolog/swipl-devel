@@ -574,6 +574,7 @@ safe_primitive(system:setarg(_,_,_)).
 safe_primitive(system:nb_setarg(_,_,_)).
 safe_primitive(system:nb_linkarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
+safe_primitive(system:functor(_,_,_,_)).
 safe_primitive(_ =.. _).
 safe_primitive(system:compound_name_arity(_,_,_)).
 safe_primitive(system:compound_name_arguments(_,_,_)).
