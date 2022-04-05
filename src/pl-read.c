@@ -4868,6 +4868,7 @@ pl_raw_read2(term_t from, term_t term)
   txt.canonical = FALSE;
 
   rval = PL_unify_text(term, 0, &txt, PL_ATOM);
+  PL_free_text(&txt);
   free_read_data(&rd);
 
   return rval;
