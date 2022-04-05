@@ -4934,6 +4934,12 @@ matches.
 True if \arg{Head} can be unified with a clause head and \arg{Body} with
 the corresponding clause body. Gives alternative clauses on
 backtracking. For facts, \arg{Body} is unified with the atom \arg{true}.
+Note that SWI-Prolog allows clause/2 to work on both dynamic and static
+code.\footnote{Using clause/2 is disallowed if either the flag
+\prologflag{iso} or \prologflag{protect_static_code} is \const{true}.}
+Note that clause/2 \jargon{decompiles} the actual clause and may return
+a clause that is different from the source or asserted clause, i.e.,
+clause/2 only promises \jargon{semantic equivalence}.
 
     \predicate{clause}{3}{:Head, ?Body, ?Reference}
 Equivalent to clause/2, but unifies \arg{Reference} with a unique
