@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2015, VU University Amsterdam
+    Copyright (c)  2014-2022, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -73,5 +74,17 @@ test(dcg, error(permission_error(call, sandboxed, open(_,_,_)))) :-
 	safe_goal(my_call(open(_,_,_))).
 test(contexr, error(permission_error(call, sandboxed, @(_,_)))) :-
 	safe_goal(@(open(_,_,_), user)).
+test(assert) :-
+	safe_goal(assert(bar)).
+test(assert, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(assert(foo:bar)).
+test(predicate_property) :-
+	safe_goal(predicate_property(member(_,_), _P)).
+test(predicate_property, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(predicate_property(lists:member(_,_), _P)).
+test(flag, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(set_prolog_flag(threads, false)).
+test(flag) :-
+	safe_goal(set_prolog_flag(double_quotes, chars)).
 
 :- end_tests(sandbox).

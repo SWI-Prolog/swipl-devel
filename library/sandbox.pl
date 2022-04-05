@@ -427,9 +427,9 @@ term_expansion(safe_primitive(Goal), Term) :-
     ->  Term = safe_primitive(Goal)
     ;   Term = []
     ).
-term_expansion((safe_primitive(Goal) :- _), Term) :-
+term_expansion((safe_primitive(Goal) :- Body), Term) :-
     (   verify_safe_declaration(Goal)
-    ->  Term = safe_primitive(Goal)
+    ->  Term = (safe_primitive(Goal) :- Body)
     ;   Term = []
     ).
 
@@ -439,10 +439,10 @@ system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
     ->  Term = sandbox:safe_primitive(Goal)
     ;   Term = []
     ).
-system:term_expansion((sandbox:safe_primitive(Goal) :- _), Term) :-
+system:term_expansion((sandbox:safe_primitive(Goal) :- Body), Term) :-
     \+ current_prolog_flag(xref, true),
     (   verify_safe_declaration(Goal)
-    ->  Term = sandbox:safe_primitive(Goal)
+    ->  Term = (sandbox:safe_primitive(Goal) :- Body)
     ;   Term = []
     ).
 
@@ -477,6 +477,7 @@ ok_meta(system:assert(_)).
 ok_meta(system:load_files(_,_)).
 ok_meta(system:use_module(_,_)).
 ok_meta(system:use_module(_)).
+ok_meta('$syspreds':predicate_property(_,_)).
 
 verify_predefined_safe_declarations :-
     forall(clause(safe_primitive(Goal), _Body, Ref),
@@ -686,6 +687,9 @@ safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
 safe_primitive('$dcg':dcg_translate_rule(_,_)).
+safe_primitive('$syspreds':predicate_property(Pred, _)) :-
+    nonvar(Pred),
+    Pred \= (_:_).
 
 % We need to do data flow analysis to find the tag of the
 % target key before we can conclude that functions on dicts
