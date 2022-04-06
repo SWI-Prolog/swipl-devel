@@ -1527,11 +1527,11 @@ Not sure whether it is worth the trouble to use a hash-table here.
 
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
 
-#define for_vars(v, code) \
-	{ Variable v   = baseBuffer(&var_buffer, struct variable); \
-	  Variable _ev = topBuffer(&var_buffer, struct variable); \
-	  for( ; v < _ev; v++ ) { code; } \
-	}
+#define FOR_VARS(v) \
+	for( Variable v = baseBuffer(&var_buffer, struct variable), \
+		    _ev = topBuffer(&var_buffer, struct variable); \
+	     v < _ev; \
+	     v++ )
 
 #define isAnonVarName(n)       ((n)[0] == '_' && (n)[1] == EOS)
 #define isAnonVarNameN(n, l)   ((n)[0] == '_' && (l) == 1)
@@ -1546,7 +1546,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
   if ( (nb = baseBuffer(&var_name_buffer, char)) != ob )
   { ptrdiff_t shift = nb - ob;
 
-    for_vars(v, v->name += shift);
+    FOR_VARS(v) v->name += shift;
   }
 
   return baseBuffer(&var_name_buffer, char) + e;
@@ -1581,7 +1581,7 @@ rehashVariables(ReadData _PL_rd)
   if ( var_buckets )
   { memset(var_buckets, 0, var_hash_size*sizeof(*var_buckets));
 
-    for_vars(v, linkVariable(v, _PL_rd));
+    FOR_VARS(v) linkVariable(v, _PL_rd);
     return 0;
   } else
     return MEMORY_OVERFLOW;
@@ -1635,11 +1635,12 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 	}
       }
     } else
-    { for_vars(v,
-	       if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
-	       { v->times++;
-		 return v;
-	       })
+    { FOR_VARS(v)
+      { if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
+	{ v->times++;
+	  return v;
+	}
+      }
     }
   }
 
@@ -1750,15 +1751,16 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
-    for_vars(var,
-	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd) )
-	     {	if ( !PL_unify_list(list, head, list) ||
-		     !PL_unify_term(head,
-				    PL_FUNCTOR,    FUNCTOR_equals2,
-				    PL_UTF8_CHARS, var->name,
-				    PL_TERM,       var->variable) )
-		  fail;
-	     });
+    FOR_VARS(var)
+    { if ( is_singleton(var, LIST_SINGLETONS, _PL_rd) )
+      {	if ( !PL_unify_list(list, head, list) ||
+	     !PL_unify_term(head,
+			    PL_FUNCTOR,    FUNCTOR_equals2,
+			    PL_UTF8_CHARS, var->name,
+			    PL_TERM,       var->variable) )
+	  return FALSE;
+      }
+    }
 
     return PL_unify_nil(list);
   } else				/* just report */
@@ -1766,11 +1768,12 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
     int i = 0;
 
 					/* singletons */
-    for_vars(var,
-	     if ( is_singleton(var, IS_SINGLETON, _PL_rd) )
-	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = var->name;
-	     });
+    FOR_VARS(var)
+    { if ( is_singleton(var, IS_SINGLETON, _PL_rd) )
+      { if ( i < MAX_SINGLETONS )
+	  singletons[i++] = var->name;
+      }
+    }
 
     if ( i > 0 )
     { if ( !singletonWarning(term, "singletons", singletons, i) )
@@ -1779,11 +1782,12 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
 
     if ( (_PL_rd->styleCheck&MULTITON_CHECK) )
     { i = 0;				/* multiple _X* */
-      for_vars(var,
-	       if ( is_singleton(var, IS_MULTITON, _PL_rd) )
-	       { if ( i < MAX_SINGLETONS )
-		   singletons[i++] = var->name;
-	       });
+      FOR_VARS(var)
+      { if ( is_singleton(var, IS_MULTITON, _PL_rd) )
+	{ if ( i < MAX_SINGLETONS )
+	    singletons[i++] = var->name;
+	}
+      }
 
       if ( i > 0 )
       { if ( !singletonWarning(term, "multitons", singletons, i) )
@@ -1803,24 +1807,25 @@ bind_variable_names(DECL_LD ReadData _PL_rd)
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
 
-  for_vars(var,
-	   if ( !isAnonVarName(var->name) )
-	   { PL_chars_t txt;
+  FOR_VARS(var)
+  { if ( !isAnonVarName(var->name) )
+    { PL_chars_t txt;
 
-	     txt.text.t    = var->name;
-	     txt.length    = strlen(var->name);
-	     txt.storage   = PL_CHARS_HEAP;
-	     txt.encoding  = ENC_UTF8;
-	     txt.canonical = FALSE;
+      txt.text.t    = var->name;
+      txt.length    = strlen(var->name);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_UTF8;
+      txt.canonical = FALSE;
 
-	     if ( !PL_unify_list(list, head, list) ||
-		  !PL_unify_functor(head, FUNCTOR_equals2) ||
-		  !PL_get_arg(1, head, a) ||
-		  !PL_unify_text(a, 0, &txt, PL_ATOM) ||
-		  !PL_get_arg(2, head, a) ||
-		  !PL_unify(a, var->variable) )
-	       fail;
-	   });
+      if ( !PL_unify_list(list, head, list) ||
+	   !PL_unify_functor(head, FUNCTOR_equals2) ||
+	   !PL_get_arg(1, head, a) ||
+	   !PL_unify_text(a, 0, &txt, PL_ATOM) ||
+	   !PL_get_arg(2, head, a) ||
+	   !PL_unify(a, var->variable) )
+	return FALSE;
+    }
+  }
 
   return PL_unify_nil(list);
 }
@@ -1832,11 +1837,11 @@ bind_variables(DECL_LD ReadData _PL_rd)
 { term_t list = PL_copy_term_ref(_PL_rd->variables);
   term_t head = PL_new_term_ref();
 
-  for_vars(var,
-	   if ( !PL_unify_list(list, head, list) ||
-		!PL_unify(head, var->variable) )
-	     fail;
-	   );
+  FOR_VARS(var)
+  { if ( !PL_unify_list(list, head, list) ||
+	 !PL_unify(head, var->variable) )
+      return FALSE;
+  }
 
   return PL_unify_nil(list);
 }
