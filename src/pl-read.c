@@ -1810,6 +1810,7 @@ bind_variable_names(DECL_LD ReadData _PL_rd)
   FOR_VARS(var)
   { if ( !isAnonVarName(var->name) )
     { PL_chars_t txt;
+      int rc;
 
       txt.text.t    = var->name;
       txt.length    = strlen(var->name);
@@ -1817,12 +1818,16 @@ bind_variable_names(DECL_LD ReadData _PL_rd)
       txt.encoding  = ENC_UTF8;
       txt.canonical = FALSE;
 
-      if ( !PL_unify_list(list, head, list) ||
-	   !PL_unify_functor(head, FUNCTOR_equals2) ||
-	   !PL_get_arg(1, head, a) ||
-	   !PL_unify_text(a, 0, &txt, PL_ATOM) ||
-	   !PL_get_arg(2, head, a) ||
-	   !PL_unify(a, var->variable) )
+      rc = ( PL_unify_list(list, head, list) &&
+	     PL_unify_functor(head, FUNCTOR_equals2) &&
+	     PL_get_arg(1, head, a) &&
+	     PL_unify_text(a, 0, &txt, PL_ATOM) &&
+	     PL_get_arg(2, head, a) &&
+	     PL_unify(a, var->variable) );
+
+      PL_free_text(&txt);
+
+      if ( !rc )
 	return FALSE;
     }
   }
