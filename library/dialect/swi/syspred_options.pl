@@ -43,6 +43,7 @@
 		     [ type(oneof([text,binary])),
 		       alias(atom),
 		       encoding(encoding),
+                       newline(oneof([dos,posix,detect])),
 		       bom(boolean),
 		       create(list(atom)),
 		       eof_action(oneof([eof_code,error,reset])),

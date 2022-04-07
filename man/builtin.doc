@@ -5243,6 +5243,12 @@ fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
 
+    \termitem{newline}{Mode}
+Set end-of-line processing for the stream. \arg{Mode} is one of
+\const{posix}, \const{dos} or \const{detect}. This option is ignored for
+binary streams. Using \const{detect} on an \jargon{output stream} raises
+an exception.  See also set_stream/2.
+
     \termitem{type}{Type}
 Using type \const{text} (default), Prolog will write a text file in
 an operating system compatible way. Using type \const{binary} the

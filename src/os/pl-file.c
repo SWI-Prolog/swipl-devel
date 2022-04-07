@@ -1931,6 +1931,24 @@ set_buffering(IOSTREAM *s, atom_t b)
 }
 
 
+static int
+atom_to_newline_mode(atom_t val, unsigned int flags, int *mode)
+{ if ( val == ATOM_posix )
+    *mode = SIO_NL_POSIX;
+  else if ( val == ATOM_dos )
+    *mode = SIO_NL_DOS;
+  else if ( val == ATOM_detect )
+  { if ( !(flags&SIO_INPUT) )
+      return PL_error(NULL, 0, "detect only allowed for input streams",
+		      ERR_DOMAIN, ATOM_newline, val),FALSE;
+    *mode = SIO_NL_DETECT;
+  } else
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_newline, val),FALSE;
+
+  return TRUE;
+}
+
+
 /* returns TRUE: ok, FALSE: error, -1: not available
 */
 
@@ -2153,22 +2171,17 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     return TRUE;
   } else if ( aname == ATOM_newline )
   { atom_t val;
+    int mode;
 
     if ( !PL_get_atom_ex(a, &val) )
       return FALSE;
-    if ( val == ATOM_posix )
-      s->newline = SIO_NL_POSIX;
-    else if ( val == ATOM_dos )
-      s->newline = SIO_NL_DOS;
-    else if ( val == ATOM_detect )
-    { if ( false(s, SIO_INPUT) )
-	return PL_error(NULL, 0, "detect only allowed for input streams",
-			ERR_DOMAIN, ATOM_newline, a);
-      s->newline = SIO_NL_DETECT;
-    } else
-      return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_newline, a);
 
-    return TRUE;
+    if ( atom_to_newline_mode(val, s->flags, &mode) )
+    { s->newline = mode;
+      return TRUE;
+    } else
+      return FALSE;
+
   } else if ( aname == ATOM_close_on_exec ) /* close_on_exec(bool) */
   { int val;
 
@@ -3712,6 +3725,7 @@ static const opt_spec open4_options[] =
   { ATOM_lock,		 OPT_ATOM },
   { ATOM_wait,		 OPT_BOOL },
   { ATOM_encoding,	 OPT_ATOM },
+  { ATOM_newline,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
   { ATOM_create,	 OPT_TERM },
 #ifdef O_LOCALE
@@ -3772,6 +3786,8 @@ openStream(term_t file, term_t mode, term_t options)
   atom_t eof_action     = ATOM_eof_code;
   atom_t buffer         = ATOM_full;
   atom_t lock		= ATOM_none;
+  atom_t newline	= 0;
+  int	 fnewline       = -1;
   int	 wait		= TRUE;
   atom_t encoding	= NULL_ATOM;
 #ifdef O_LOCALE
@@ -3790,7 +3806,7 @@ openStream(term_t file, term_t mode, term_t options)
   { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
-		       &encoding, &bom, &create
+		       &encoding, &newline, &bom, &create
 #ifdef O_LOCALE
 		       , &locale
 #endif
@@ -3852,6 +3868,12 @@ openStream(term_t file, term_t mode, term_t options)
 
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return NULL;
+  if ( newline && type != ATOM_binary )
+  { if ( !atom_to_newline_mode(newline,
+			       how[0] == 'r' ? SIO_INPUT : SIO_OUTPUT,
+			       &fnewline) )
+      return FALSE;
+  }
 
   if ( bom == -1 )
     bom = (mname == ATOM_read ? TRUE : FALSE);
@@ -3934,6 +3956,8 @@ openStream(term_t file, term_t mode, term_t options)
   }
 
   s->encoding = enc;
+  if ( fnewline != -1 )
+    s->newline = fnewline;
 #ifdef O_LOCALE
   if ( locale )
   { Ssetlocale(s, locale, NULL);
