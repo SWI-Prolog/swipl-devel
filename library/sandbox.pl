@@ -57,7 +57,8 @@
     safe_meta/2,                    % Goal, Calls
     safe_meta/3,                    % Goal, Context, Calls
     safe_global_variable/1,         % Name
-    safe_directive/1.               % Module:Goal
+    safe_directive/1,               % Module:Goal
+    safe_prolog_flag/2.             % +Name, +Value
 
 % :- debug(sandbox).
 
