@@ -222,7 +222,7 @@ appropriate libraries.
 
 This predicate is used by qsave_program/[1,2] to ensure the saved state
 does not depend on availability of the libraries. The predicate
-autoload/0 examines all clauses of the loaded program (obtained with
+autoload_all/0 examines all clauses of the loaded program (obtained with
 clause/2) and analyzes the body for referenced goals. Such an analysis
 cannot be complete in Prolog, which allows for the creation of arbitrary terms at
 runtime and the use of them as a goal. The current analysis is limited to the
