@@ -82,7 +82,8 @@ shared objects/DLLs can be loaded.
 
 % Feature tests
 component(tcmalloc,
-          _{ test:test_tcmalloc,
+          _{ optional:true,
+             test:test_tcmalloc,
              url:'tcmalloc.html'
            }).
 component(gmp,
