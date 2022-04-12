@@ -356,7 +356,7 @@ archive_format(F, Name) :-
     ->  archive_close(A)
     ;   true
     ),
-    \+ subsumes_term(error(domain_error(filter, _),_), E).
+    \+ subsumes_term(error(domain_error(format, _),_), E).
 
 a_filter(bzip2).
 a_filter(compress).
