@@ -2175,7 +2175,7 @@ X = 2 ;
 X = a.
 \end{code}
 
-It is strongly adviced to \emph{always} use parenthesis around
+It is strongly advised to \emph{always} use parenthesis around
 disjunctions. Conjunctions inside a disjunction should not use
 parenthesis.  Traditionally the \chr{;} is placed at the start
 of the line rather than at the end because a \chr{;} at the
@@ -10601,7 +10601,7 @@ defined as below, i.e., if an accessible file can be found using the
 provided search path this is returned. Otherwise it returns the the
 expansion of the alias path.\footnote{The SICStus implementation
 behaves as absolute_file_name/3 with an empty option list.}  Users are
-adviced to use absolute_file_name/3 with a appropriate options for
+advised to use absolute_file_name/3 with appropriate options for
 resolving an Alias(Relative) term.
 
 \begin{code}
@@ -10613,13 +10613,14 @@ absolute_file_name(Spec, AbsFile) :-
     absolute_file_name(Spec, AbsFile, []).
 \end{code}
 
-See also absolute_file_name/3 and expand_file_name/2.
+See also absolute_file_name/3, file_search_path/2, and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
-predicate is to resolve files specified as Alias(Relative). This
+predicate is to resolve files specified as Alias(Relative), which use
+file_search_path/2 to look up the possibilities for Alias. This
 predicate \emph{only returns non-directories}, unless the option
 \term{file_type}{directory} is specified or the requested access
 is \const{none}.  Supported \arg{Options} are:
@@ -10681,7 +10682,7 @@ patterns such as \exam{*} should be avoided.
 \end{description}
 
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
-to help debugging Prolog's search for files.
+to help debugging Prolog's search for files. See also file_search_path/2.
 
 This predicate is derived from Quintus Prolog. In Quintus Prolog, the
 argument order was \term{absolute_file_name}{+Spec, +Options, -Path}.
