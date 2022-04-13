@@ -7275,8 +7275,11 @@ fd_dom(X, Drep) :-
 %  Degree is the number of constraints currently attached to Var.
 
 fd_degree(X, Degree) :-
-        fd_get(X, _, Ps),
-        props_number(Ps, Degree).
+        (   fd_get(X, _, Ps) ->
+            props_number(Ps, Degree)
+        ;   must_be(integer, X),
+            Degree = 0
+        ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -7302,7 +7305,12 @@ X in_set Set :- domain(X, Set).
 %
 %  Set is the FD set representation of the current domain of Var.
 
-fd_set(X, Set) :- fd_get(X, Set, _).
+fd_set(X, Set) :-
+        (   fd_get(X, Set, _) ->
+            true
+        ;   must_be(integer, X),
+            Set = from_to(n(X), n(X))
+        ).
 
 %% is_fdset(@Set) is semidet.
 %
