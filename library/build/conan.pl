@@ -67,7 +67,7 @@ prolog:build_file('conanfile.py',   conan).
 
 prolog:build_step(dependencies, conan, State0, State) :-
     ensure_build_dir(build, State0, State1),
-    run_process(path(conan), ['install', '-b', missing, State1.src_dir],
+    run_process(path(conan), ['install', '-b', missing, '--profile:host', default, '--profile:build', default, State1.src_dir],
                 [ env(State1.env),
                   directory(State1.bin_dir)
                 ]),
