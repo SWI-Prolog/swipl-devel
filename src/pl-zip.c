@@ -658,7 +658,8 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
 #endif
     if ( clone->path )
       clone->path = strdup(clone->path);
-    clone->reader     = unzClone(clone->reader);
+    clone->reader = unzClone(clone->reader);
+    clone->mapped_file = NULL;			/* I'm just a clone */
 
     return unify_zipper(A2, clone);
   }
