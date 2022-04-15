@@ -909,9 +909,13 @@ require([H|T], M, Needed) :-
    (   '$get_predicate_attribute'(system:Head, defined, 1)
    ->  require(T, M, Needed)
    ;   '$pi_head'(Module:Name/Arity, M:Head),
-       (   '$find_library'(Module, Name, Arity, _LoadModule, Library)
-       ->  Needed = [Library-H|More],
-           require(T, M, More)
+       (   '$find_library'(Module, Name, Arity, LoadModule, Library)
+       ->  (   current_predicate(LoadModule:Name/Arity)
+           ->  Module:import(LoadModule:Name/Arity),
+               require(T, M, Needed)
+           ;   Needed = [Library-H|More],
+               require(T, M, More)
+           )
        ;   print_message(error, error(existence_error(procedure, Name/Arity), _)),
            require(T, M, Needed)
        )
