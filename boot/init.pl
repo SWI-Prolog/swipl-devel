@@ -2461,7 +2461,8 @@ load_files(Module:Files, Options) :-
 %   check the modification again.
 
 '$register_resource_file'(FullFile) :-
-    (   sub_atom(FullFile, 0, _, _, 'res://')
+    (   sub_atom(FullFile, 0, _, _, 'res://'),
+        \+ file_name_extension(_, qlf, FullFile)
     ->  '$set_source_file'(FullFile, resource, true)
     ;   true
     ).
