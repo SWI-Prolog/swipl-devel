@@ -2279,8 +2279,10 @@ load_files(Module:Files, Options) :-
                 Mode = qcompile,
                 LoadFile = FullFile
             ;   Why == old,
-                current_prolog_flag(home, PlHome),
-                sub_atom(FullFile, 0, _, _, PlHome)
+                (   current_prolog_flag(home, PlHome),
+                    sub_atom(FullFile, 0, _, _, PlHome)
+                ;   sub_atom(QlfFile, 0, _, _, 'res://')
+                )
             ->  print_message(silent,
                               qlf(system_lib_out_of_date(Spec, QlfFile))),
                 Mode = qload,

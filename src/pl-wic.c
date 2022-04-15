@@ -3104,6 +3104,37 @@ qlfSourceInfo(DECL_LD wic_state *state, size_t offset, term_t list)
 }
 
 
+static int
+open_qlf_file(const char *file, IOSTREAM **sp)
+{ int sl;
+
+  if ( (sl=file_name_is_iri(file)) )
+  { IOSTREAM *s;
+
+    if ( !iri_hook(file, IRI_OPEN, ATOM_read, 0, &s) )
+      return FALSE;
+    s->encoding = ENC_OCTET;
+    clear(s, SIO_TEXT);
+
+    *sp = s;
+
+    return TRUE;
+  } else
+  { if ( (*sp = Sopen_file(file, "rbr")) )
+    { return TRUE;
+    } else
+    { GET_LD
+      term_t f = PL_new_term_ref();
+
+      PL_put_atom_chars(f, file);
+      return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
+		      ATOM_open, ATOM_source_sink, f);
+    }
+  }
+}
+
+
+
 #define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
 static word
 qlfInfo(DECL_LD const char *file,
@@ -3121,13 +3152,8 @@ qlfInfo(DECL_LD const char *file,
   memset(&state, 0, sizeof(state));
   state.wicFile = (char*)file;
 
-  if ( !(s = Sopen_file(file, "rbr")) )
-  { term_t f = PL_new_term_ref();
-
-    PL_put_atom_chars(f, file);
-    return PL_error(NULL, 0, OsError(), ERR_FILE_OPERATION,
-		    ATOM_open, ATOM_source_sink, f);
-  }
+  if ( !open_qlf_file(file, &s) )
+    return FALSE;
   state.wicFd = s;
 
   if ( cversion )
