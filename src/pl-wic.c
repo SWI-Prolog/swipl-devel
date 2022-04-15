@@ -3135,7 +3135,9 @@ open_qlf_file(const char *file, IOSTREAM **sp)
 
 
 
-#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
+#define qlfInfo(file, cversion, minload, fversion, csig, fsig, files0) \
+	LDFUNC(qlfInfo, file, cversion, minload, fversion, csig, fsig, files0)
+
 static word
 qlfInfo(DECL_LD const char *file,
 	term_t cversion, term_t minload, term_t fversion,
@@ -3146,7 +3148,6 @@ qlfInfo(DECL_LD const char *file,
   int nqlf, i;
   size_t *qlfstart = NULL;
   word rval = FALSE;
-  term_t files = PL_copy_term_ref(files0);
   wic_state state;
 
   memset(&state, 0, sizeof(state));
@@ -3180,36 +3181,39 @@ qlfInfo(DECL_LD const char *file,
   if ( !pushPathTranslation(&state, file, 0) )
     goto out;
 
-  if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
-  { qlfError(&state, "seek to index failed: %s", OsError());
-    goto out;
-  }
-  if ( (nqlf = getInt32(s)) < 0 )
-  { qlfError(&state, "invalid number of files (%d)", nqlf);
-    goto out;
-  }
-  if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
-  { qlfError(&state, "seek to files failed: %s", OsError());
-    goto out;
-  }
-
-  DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
-  if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
-  { PL_no_memory();
-    goto out;
-  }
-  for(i=0; i<nqlf; i++)
-  { qlfstart[i] = (size_t)getInt32(s);
-    DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
-  }
-  DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
-
-  for(i=0; i<nqlf; i++)
-  { if ( !qlfSourceInfo(&state, qlfstart[i], files) )
+  if ( files0 )
+  { term_t files = PL_copy_term_ref(files0);
+    if ( Sseek(s, -4, SIO_SEEK_END) < 0 )	/* 4 bytes of PutInt32() */
+    { qlfError(&state, "seek to index failed: %s", OsError());
       goto out;
-  }
+    }
+    if ( (nqlf = getInt32(s)) < 0 )
+    { qlfError(&state, "invalid number of files (%d)", nqlf);
+      goto out;
+    }
+    if ( Sseek(s, -4 * (nqlf+1), SIO_SEEK_END) < 0 )
+    { qlfError(&state, "seek to files failed: %s", OsError());
+      goto out;
+    }
 
-  rval = PL_unify_nil(files);
+    DEBUG(MSG_QLF_SECTION, Sdprintf("Found %d sources at", nqlf));
+    if ( !(qlfstart = malloc(sizeof(size_t)*nqlf)) )
+    { PL_no_memory();
+      goto out;
+    }
+    for(i=0; i<nqlf; i++)
+    { qlfstart[i] = (size_t)getInt32(s);
+      DEBUG(MSG_QLF_SECTION, Sdprintf(" %ld", qlfstart[i]));
+    }
+    DEBUG(MSG_QLF_SECTION, Sdprintf("\n"));
+
+    for(i=0; i<nqlf; i++)
+    { if ( !qlfSourceInfo(&state, qlfstart[i], files) )
+	goto out;
+    }
+
+    rval = PL_unify_nil(files);
+  }
 
 out:
   popPathTranslation(&state);
@@ -3226,6 +3230,9 @@ out:
 		-CurrentVersion, -MinLOadVersion, -FileVersion,
 		-CurrentSignature, -FileSignature,
 		-Files)
+    '$qlf_info'(+File,
+		-CurrentVersion, -MinLOadVersion, -FileVersion,
+		-CurrentSignature, -FileSignature)
 
 Provide information about a QLF file.
 
@@ -3237,6 +3244,18 @@ Provide information about a QLF file.
 */
 
 static
+PRED_IMPL("$qlf_info", 6, qlf_info, 0)
+{ PRED_LD
+  char *name;
+
+  if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
+    fail;
+
+  return qlfInfo(name, A2, A3, A4, A5, A6, 0);
+}
+
+
+static
 PRED_IMPL("$qlf_info", 7, qlf_info, 0)
 { PRED_LD
   char *name;
@@ -3244,7 +3263,7 @@ PRED_IMPL("$qlf_info", 7, qlf_info, 0)
   if ( !PL_get_file_name(A1, &name, PL_FILE_ABSOLUTE) )
     fail;
 
-  return qlfInfo(name, A2, A3, A4, A5, A6, A8);
+  return qlfInfo(name, A2, A3, A4, A5, A6, A7);
 }
 
 
@@ -4277,6 +4296,7 @@ wicPutStringW(const pl_wchar_t *w, size_t len, IOSTREAM *fd)
 		 *******************************/
 
 BeginPredDefs(wic)
+  PRED_DEF("$qlf_info",		    6, qlf_info,	     0)
   PRED_DEF("$qlf_info",		    7, qlf_info,	     0)
   PRED_DEF("$qlf_sources",	    2, qlf_sources,	     0)
   PRED_DEF("$qlf_load",		    2, qlf_load,	     PL_FA_TRANSPARENT)
