@@ -671,7 +671,7 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
 */
 
 static
-PRED_IMPL("zip_close", 2, zip_close, 0)
+PRED_IMPL("zip_close_", 2, zip_close, 0)
 { PRED_LD
   char *comment = NULL;
   zipper *z;
@@ -682,11 +682,13 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
        (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) &&
        zacquire(z, ZIP_CLOSE, &prev_state, "close") )
   { if ( prev_state == ZIP_READ_ENTRY )
+    { PL_register_atom(z->symbol);
       return TRUE;				/* delay */
-    else if ( close_zipper(z) == 0 )
-      return TRUE;
-    else
-      return PL_warning("zip_close/2 failed");
+    } else if ( close_zipper(z) == 0 )
+    { return TRUE;
+    } else
+    { return PL_warning("zip_close/2 failed");
+    }
   }
 
   return FALSE;
@@ -759,6 +761,7 @@ Sclose_zip_entry(void *handle)
   if ( z->state == ZIP_CLOSE )
   { zrelease(z);
     close_zipper(z);
+    PL_register_atom(z->symbol);		/* revert delayed zip_close_/2 */
   } else if ( true(z, ZIP_RELEASE_ON_CLOSE) )
   { zrelease(z);
   } else
