@@ -80,7 +80,7 @@ save_option(pce,         boolean,
             "Do (not) include the xpce graphics subsystem").
 save_option(packs,       boolean,
             "Do (not) attach packs").
-save_option(class,       oneof([runtime,development]),
+save_option(class,       oneof([runtime,development,prolog]),
             "Development state").
 save_option(op,          oneof([save,standard]),
             "Save operators").
@@ -677,14 +677,16 @@ save_predicate(P, SaveClass) :-
     feedback('~nsaving ~w/~d ', [F, A]),
     (   (   H = resource(_,_)
         ;   H = resource(_,_,_)
-        ),
-        SaveClass \== development
-    ->  save_attribute(P, (dynamic)),
-        (   M == user
-        ->  save_attribute(P, (multifile))
-        ),
-        feedback('(Skipped clauses)', []),
-        fail
+        )
+    ->  (   SaveClass == development
+        ->  true
+        ;   save_attribute(P, (dynamic)),
+            (   M == user
+            ->  save_attribute(P, (multifile))
+            ),
+            feedback('(Skipped clauses)', []),
+            fail
+        )
     ;   true
     ),
     (   no_save(P)
