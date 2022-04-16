@@ -237,7 +237,7 @@ try_open_source(File, In) :-
     open_source(File, In),
     !.
 try_open_source(File, In) :-
-    open(File, read, In).
+    open(File, read, In, [reposition(true)]).
 
 
 %!  make_varnames(+ReadClause, +DecompiledClause,

@@ -748,6 +748,16 @@ Swrite_zip_entry(void *handle, char *buf, size_t size)
   }
 }
 
+static long
+Sseek_zip_entry(void *handle, long pos, int whence)
+{ (void) handle;
+  (void) pos;
+  (void) whence;
+
+  errno = ESPIPE;
+  return -1;
+}
+
 static int
 Sclose_zip_entry(void *handle)
 { zipper *z = handle;
@@ -804,12 +814,20 @@ Scontrol_zip_entry(void *handle, int action, void *arg)
 IOFUNCTIONS Szipfunctions =
 { Sread_zip_entry,
   Swrite_zip_entry,
-  NULL,						/* seek */
+  NULL,
   Sclose_zip_entry,
-  Scontrol_zip_entry,				/* control */
+  Scontrol_zip_entry,
   NULL						/* seek64 */
 };
 
+IOFUNCTIONS Szipfunctions_repositioning =
+{ Sread_zip_entry,
+  Swrite_zip_entry,
+  Sseek_zip_entry,
+  Sclose_zip_entry,
+  Scontrol_zip_entry,
+  NULL						/* seek64 */
+};
 
 		 /*******************************
 		 *	  HANDLE ENTRIES	*
@@ -1028,6 +1046,7 @@ static const opt_spec zipopen3_options[] =
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
   { ATOM_release,	 OPT_BOOL },
+  { ATOM_reposition,	 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -1035,15 +1054,17 @@ static
 PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 { PRED_LD
   zipper *z;
-  atom_t type     = ATOM_text;
-  atom_t encoding = NULL_ATOM;
-  int	 bom      = -1;
-  int    release  = TRUE;
-  int flags       = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
+  atom_t type       = ATOM_text;
+  atom_t encoding   = NULL_ATOM;
+  int	 bom        = -1;
+  int    release    = TRUE;
+  int	 reposition = FALSE;
+  size_t size       = 0;
+  int flags         = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   IOENC enc;
 
   if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
-		     &type, &encoding, &bom, &release) )
+		     &type, &encoding, &bom, &release, &reposition) )
     return FALSE;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return FALSE;
@@ -1067,11 +1088,30 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 
     if ( release )
       set(z, ZIP_RELEASE_ON_CLOSE);
+
+    if ( reposition )
+    { unz_file_info64 info;
+      char fname[MAXPATHLEN];
+      char extra[1024];
+      char comment[1024];
+
+      if ( unzGetCurrentFileInfo64(z->reader,
+				 &info,
+				 fname, sizeof(fname),
+				 extra, sizeof(extra),
+				 comment, sizeof(comment)) == UNZ_OK )
+	size = info.uncompressed_size;
+    }
+
     if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
-    { IOSTREAM *s = Snew(z, flags, &Szipfunctions);
+    { IOSTREAM *s = Snew(z, flags, reposition ? &Szipfunctions_repositioning
+					      : &Szipfunctions);
 
       if ( s )
       { s->encoding = enc;
+
+	if ( reposition && size )
+	  Ssetbuffer(s, NULL, size);
 
 	if ( bom && ScheckBOM(s) < 0 )
 	  return PL_release_stream(PL_acquire_stream(s));

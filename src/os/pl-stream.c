@@ -1806,7 +1806,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
 
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
-  else if ( pos <= LONG_MAX )
+  else if ( s->functions->seek && pos <= LONG_MAX && pos >= LONG_MIN )
     pos = (*s->functions->seek)(s->handle, (long)pos, whence);
   else
   { errno = EINVAL;
