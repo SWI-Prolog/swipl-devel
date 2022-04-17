@@ -715,7 +715,7 @@ PL_EXPORT(int)		PL_syntax_error(const char *msg, IOSTREAM *in);
 typedef struct PL_blob_t
 { uintptr_t		magic;		/* PL_BLOB_MAGIC */
   uintptr_t		flags;		/* PL_BLOB_* */
-  char *		name;		/* name of the type */
+  const char *		name;		/* name of the type */
   int			(*release)(atom_t a);
   int			(*compare)(atom_t a, atom_t b);
   int			(*write)(IOSTREAM *s, atom_t a, int flags);
