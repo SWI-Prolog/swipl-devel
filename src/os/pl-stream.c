@@ -3330,6 +3330,36 @@ Sopen_file(const char *path, const char *how)
 
 
 IOSTREAM *
+Sopen_iri_or_file(const char *path, const char *how)
+{ int sl;
+  IOSTREAM *s;
+
+  if ( (sl=file_name_is_iri(path)) )
+  { atom_t mname = how[0] == 'r' ? ATOM_read : ATOM_write;
+    const char *m;
+
+    if ( !iri_hook(path, IRI_OPEN, mname, 0, &s) )
+      return NULL;
+
+    for(m=&how[1]; *m; m++)
+    { if ( *m == 'b' )
+      { clear(s, SIO_TEXT);
+	s->encoding = ENC_OCTET;
+	s->newline  = SIO_NL_POSIX;
+      } else if ( *m == 'r' )
+      { clear(s, SIO_RECORDPOS);
+	s->position = NULL;
+      }
+    }
+  } else
+  { s = Sopen_file(path, how);
+  }
+
+  return s;
+}
+
+
+IOSTREAM *
 Sfdopen(int fd, const char *type)
 { intptr_t lfd;
   int flags = SIO_FILE|SIO_RECORDPOS|SIO_FBUF;
