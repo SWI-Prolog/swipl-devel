@@ -309,15 +309,25 @@ special precautions from the C programmer.
 
 \begin{description}
     \item[atom_t]
-An atom in Prolog's internal representation.  Atoms are pointers to an
-opaque structure.  They are a unique representation for represented
-text, which implies that atom $A$ represents the same text as
-atom $B$ if and only if $A$ and $B$ are the same pointer.
+The type \ctype{atom_t} actually represents a \jargon{blob} (see
+\secref{blob}). Blobs are the super type of Prolog atoms, where atoms
+are blobs that represent textual content. Textual content is also
+represented by Prolog string (see \secref{string}, which makes the
+general notion of \jargon{string} in Prolog ambiguous. The core idea
+behind blobs/atoms is to represent arbitrary content using a
+\emph{unique} handle such that comparing the handle is enough to prove
+equivalence of the content, i.e., given two different atom handles we
+know they represent different texts. This uniqueness feature allows the
+core engine to reason about atoms without considering their content.
 
-Atoms are the central representation for textual constants in Prolog.
-The transformation of a character string $C$ to an atom implies a
-hash-table lookup.  If the same atom is needed often, it is advised
-to store its reference in a global variable to avoid repeated lookup.
+Because atoms are often used to represent (parts of) arbitrary input,
+intermediate results and output of data processed by Prolog it is
+necessary that atoms are subject to \jargon{garbage collection} (see
+garbage_collect_atoms/0).  The garbage collection make atoms ideal
+handles to arbitrary data structures and resulted in adding
+\jargon{blobs}.   Blobs provide \emph{safe} access to many internal
+Prolog data structures such as streams, clause references, etc.
+
     \item[functor_t]
 A functor is the internal representation of a name/arity pair. They are
 used to find the name and arity of a compound term as well as to
@@ -510,19 +520,34 @@ my_function(term_t a0, term_t a1, control_t handle)
 
   switch( PL_foreign_control(handle) )
   { case PL_FIRST_CALL:
-        ctxt = malloc(sizeof(struct context));
-        ...
-        PL_retry_address(ctxt);
+        if ( !(ctxt = malloc(sizeof *ctxt)) )
+          return PL_resource_error("memory");
+        <initialize ctxt>
+        break;
     case PL_REDO:
         ctxt = PL_foreign_context_address(handle);
-        ...
-        PL_retry_address(ctxt);
+        break;
     case PL_PRUNED:
         ctxt = PL_foreign_context_address(handle);
         ...
         free(ctxt);
-        PL_succeed;
+        return TRUE;
   }
+
+  <find first/next solution from ctxt>
+  ...
+  // We fail */
+  if ( <no_solution> )
+  { free(ctx);
+    return FALSE;
+  }
+  // We succeed without a choice point */
+  if ( <last_solution> )
+  { free(ctx);
+    return TRUE;
+  }
+  // We succeed with a choice point */
+  PL_retry_address(ctxt);
 }
 \end{code}
     \caption{Skeleton for non-deterministic foreign functions}
@@ -624,7 +649,7 @@ read_or_block(term_t a0, int arity, void *context)
 
   char buf[BUFSIZE];
 
-  size_t n = Sfread(buf, sizeof(char), sizeof(buf)/sizeof(char), s);
+  size_t n = Sfread(buf, sizeof buf[0], sizeof buf / sizeof buf[0], s);
   if ( n == 0 )                     // timeout or error
   { if ( (s->flags&SIO_TIMEOUT) )
       PL_yield_address(s);	  // timeout: yield
@@ -794,13 +819,15 @@ allowing for multiple encodings. The \arg{rep} argument is one of
 strlen().
 
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
-Return a C-string for the text represented by the given atom. The
-returned text will not be changed by Prolog. It is not allowed to modify
-the contents, not even `temporary' as the string may reside in read-only
-memory. The returned string becomes invalid if the atom is
-garbage collected (see \secref{atomgc}).  Foreign functions that require
-the text from an atom passed in a \ctype{term_t} normally use
-PL_get_atom_chars() or PL_get_atom_nchars().
+Deprecated. This function returns a pointer to the content represented
+by the atom or blob regardless of its type. New code should use the blob
+functions such as PL_blob_data() to get a pointer to the content, the
+size of the content and the type of the content. Most applications that
+need to get text from a \ctype{term_t} handle shall use PL_get_nchars()
+or PL_get_wchars(). If it is \emph{knows} that \arg{atom} is a classical
+Prolog text atom one can use PL_atom_nchars() to obtain the C string and
+its length for ISO-Latin-1 atoms or PL_atom_wchars() to obtain a C wide
+string (\ctype{wchar_t}).
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity
@@ -1028,6 +1055,7 @@ With the introduction of wide characters (see \secref{encoding}), not
 all atoms can be converted into a \ctype{char*}.  This function fails
 if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
+See also PL_get_wchars().
 
 \begin{description}
     \termitem{CVT_ATOM}{}
@@ -1253,14 +1281,15 @@ is computed from \arg{s} using wcslen().
     \cfunction{const pl_wchar_t*}{PL_atom_wchars}{atom_t atom, size_t *len}
 Extract characters from a wide-character atom.  Succeeds on any atom
 marked as `text'.  If the underlying atom is a wide-character atom,
-the returned pointer is a pointer into the atom structure.  If it is
-an ISO-Latin-1 character, the returned pointer comes from Prolog's
-`buffer ring' (see PL_get_chars()).
+the returned pointer is a pointer into the atom structure.  If the
+atom is represented as an ISO-Latin-1 string, the returned pointer
+comes from Prolog's `buffer stack' (see \secref{foreign-strings}).
 
     \cfunction{int}{PL_get_wchars}{term_t t, size_t *len,
 				   pl_wchar_t **s, unsigned flags}
 Wide-character version of PL_get_chars().  The \arg{flags} argument
-is the same as for PL_get_chars().
+is the same as for PL_get_chars().  Note that this operation may
+return a pointer into Prolog's `buffer stack' (see \secref{foreign-strings}).
 
     \cfunction{int}{PL_unify_wchars}{term_t t, int type,
 				     size_t len,
@@ -1586,7 +1615,7 @@ foreign_t
 pl_hostname(term_t name)
 { char buf[100];
 
-  if ( gethostname(buf, sizeof(buf)) )
+  if ( gethostname(buf, sizeof buf) )
   { term_t tmp = PL_new_term_ref();
 
     PL_put_atom_chars(tmp, buf);
@@ -1604,7 +1633,7 @@ foreign_t
 pl_hostname(term_t name)
 { char buf[100];
 
-  if ( gethostname(buf, sizeof(buf)) )
+  if ( gethostname(buf, sizeof buf) )
     return PL_unify_atom_chars(name, buf);
 
   PL_fail;
@@ -2118,7 +2147,7 @@ Java atoms,  Microsoft's COM objects, etc., providing safe combined
 garbage collection.
 
 To exploit these features safely and in an organised manner, the
-SWI-Prolog foreign interface allows for creating `atoms' with additional
+SWI-Prolog foreign interface allows creating `atoms' with additional
 type information. The type is represented by a structure holding C
 function pointers that tell Prolog how to handle releasing the atom,
 writing it, sorting it, etc. Two atoms created with different types can
@@ -2126,6 +2155,36 @@ represent the same sequence of bytes. Atoms are first ordered on the
 rank number of the type and then on the result of the
 \cfuncref{compare}{} function.  Rank numbers are assigned when the
 type is registered.
+
+While the blob is alive neither its handle nor the location of the
+contents (see PL_blob_data()) change. If the blob's type has the
+\const{PL_BLOB_UNIQUE} feature the content of the blob shall remain
+unmodified. Blobs are \emph{only} reclaimed by the atom garbage
+collector. In this case the atom garbage collector calls the
+\cfuncref{release} function associated with the blob type and reclaims
+the memory allocated for the content unless this is owned by the creator
+of the blob indicated by the \const{PL_BLOB_NOCOPY} flag. After an
+\ctype{atom_t} value is reclaimed by the atom garbage collector this
+value may be reused for allocating a new blob or atom.
+
+If foreign code stores the \ctype{atom_t} handle in some permanent
+location it must make sure the handle is \jargon{registered} to prevent
+it from being garbage collected. If the handle is obtained from a
+\ctype{term_t} object it is \textbf{not} registered because it is
+protected by the \ctype{term_t} object. This applies to e.g.,
+PL_get_atom(). Functions that create a handle from data such as
+PL_new_atom() return a registered handle to prevent the asynchronous
+atom garbage collector from reclaiming it immediately. Note that many of
+the API functions create an atom or blob handle and use this to fill a
+\ctype{term_t} object, e.g., PL_unify_blob(), PL_unify_chars(), etc. In
+this scenario the handle is protected by the \ctype{term_t} object.
+Registering and unregistering \ctype{atom_t} handles is done by
+PL_register_atom() and PL_unregister_atom().
+
+Note that during program shutdown using PL_cleanup() all atoms and blobs
+are reclaimed as described above. \textbf{These objects are reclaimed
+regardless of their registration coount. The order in which the atoms
+are blobs are reclaimed under PL_cleanup() is undefined.}
 
 
 \subsubsection{Defining a BLOB type}
@@ -2139,11 +2198,13 @@ displayed below. The structure contains additional fields at the
 typedef struct PL_blob_t
 { uintptr_t	magic;		/* PL_BLOB_MAGIC */
   uintptr_t	flags;		/* Bitwise or of PL_BLOB_* */
-  char *	name;		/* name of the type */
+  const char *	name;		/* name of the type */
   int		(*release)(atom_t a);
   int		(*compare)(atom_t a, atom_t b);
   int		(*write)(IOSTREAM *s, atom_t a, int flags);
   void		(*acquire)(atom_t a);
+  int		(*save)(atom_t a, IOSTREAM *s);
+  atom_t	(*load)(IOSTREAM *s);
   ...
 } PL_blob_t;
 \end{code}
@@ -2177,21 +2238,50 @@ behaviour of built-in atoms. Below are the defined member functions:
 
 \begin{description}
     \cfunction{void}{acquire}{atom_t a}
-Called if a new blob of this type is created through PL_put_blob()
-or PL_unify_blob().  This callback may be used together with the
-release hook to deal with reference-counted external objects.
+Called if a new blob of this type is created through PL_put_blob() or
+PL_unify_blob(). Note this this call is done as part of creating the
+blob. The call to PL_unify_blob() may fail if the unification fails or
+cannot be completed due to a resource error. PL_put_blob() has no such
+error conditions. This callback is typically used to store the
+\ctype{atom_t} handle into the content of the blob. Given a pointer to
+the content we can now use PL_unify_atom() to bind a Prolog term with a
+reference to the pointed to object. If the content of the blob can be
+modified (\const{PL_BLOB_UNIQUE} is not present) this is the only way to
+get access to the \ctype{atom_t} handle that belongs to this blob. If
+\const{PL_BLOB_UNIQUE} is provided and respected, PL_unify_blob() given
+the same pointer and length will produce the same \const{atom_t} handle.
 
     \cfunction{int}{release}{atom_t a}
-The blob (atom) \arg{a} is about to be released.  This function
-can retrieve the data of the blob using PL_blob_data().  If it
-returns \const{FALSE} the atom garbage collector will \emph{not}
-reclaim the atom.
+The blob (atom) \arg{a} is about to be released. This function can
+retrieve the data of the blob using PL_blob_data(). If it returns
+\const{FALSE}, the atom garbage collector will \emph{not} reclaim the
+atom. The \cfuncref{release} function is called when the atom is
+reclaimed by the atom garbage collector. For critical resources such as
+file handles or significant memory resources it may be desirable to have
+an explicit call to dispose (most of) the resources. For example,
+close/1 reclaims the file handle and most of the resources associated
+with a stream, leaving only a tiny bit of content to the garbage
+collector.  See also setup_call_cleanup/3.
 
     \cfunction{int}{compare}{atom_t a, atom_t b}
-Compare the blobs \arg{a} and \arg{b}, both of which are of the
-type associated to this blob type.  Return values are, as memcmp(),
-$< 0$ if \arg{a} is less than \arg{b}, $= 0$ if both are equal, and
-$> 0$ otherwise.
+Compare the blobs \arg{a} and \arg{b}, both of which are of the type
+associated to this blob type. Return values are, as memcmp(), $< 0$ if
+\arg{a} is less than \arg{b}, $= 0$ if both are equal, and $> 0$
+otherwise. The default implementation is a bitwise comparison of the
+blobs' contents. If you cannot guarantee that the blobs all have unique
+contents, then you should incorporate the blob address (the system
+guarantees that blobs are not shifted in memory after they are
+allocated). The following minimal compare function gives a stable total
+ordering:
+
+\begin{code}
+static int
+compare_my_blob(atom_t a, atom_t b)
+{ const struct my_blob_data *blob_a = PL_blob_data(a, NULL, NULL);
+  const struct my_blob_data *blob_b = PL_blob_data(b, NULL, NULL);
+  return (blob_a > blob_b) ?  1 :  (blob_a < blob_b) ? -1 : 0;
+}
+\end{code}
 
     \cfunction{int}{write}{IOSTREAM *s, atom_t a, int flags}
 Write the content of the blob \arg{a} to the stream \arg{s}
@@ -2199,7 +2289,8 @@ respecting the \arg{flags}.  The \arg{flags} are a bitwise
 \emph{or} of zero or more of the \const{PL_WRT_*} flags defined in
 \file{SWI-Prolog.h}. This prototype is available if the
 undocumented \file{SWI-Stream.h} is included \emph{before}
-\file{SWI-Prolog.h}.
+\file{SWI-Prolog.h}. This function can retrieve the data of the blob
+using PL_blob_data().
 
 If this function is not provided, write/1 emits the content
 of the blob for blobs of type \const{PL_BLOB_TEXT} or a
@@ -2238,8 +2329,31 @@ filled with the type of the blob.
 
     \cfunction{int}{PL_unify_blob}{term_t t, void *blob, size_t len,
 				   PL_blob_t *type}
-Unify \arg{t} to a new blob constructed from the given data and
-associated to the given type.  See also PL_unify_atom_nchars().
+Unify \arg{t} to a blob constructed from the given data and associated
+to the given type.  This performs the following steps:
+
+\begin{enumerate}
+    \item If the \arg{type} has \const{PL_BLOB_UNIQUE} set, search the
+	  blob database for a blob of the same time with the same
+	  content.  When found, unify \arg{t} with the existing handle.
+    \item If not found above or \const{PL_BLOB_UNIQUE} is not set, create
+          a new blob handle. If \const{PL_BLOB_NOCOPY} is set, associate
+	  it to the given memory.  Else, copy the memory to a new area
+	  owned by the blob.  Call the \cfunction{acquire} function of
+	  the \arg{type}.
+    \item Unify \arg{t} to the existing or new handle.  This succeeds
+          if \arg{t} is already bound to the existing blob handle.  If
+	  \arg{t} is a variable it succeeds \emph{if} sufficient
+	  resources are available to perform the unification. If \arg{t}
+	  is bound to something else this fails.
+\end{enumerate}
+
+It is possible that a blob referencing critial resources is created
+after which the unification fails. Typically these resources are
+eventually reclaimed because the new blob is not referenced and
+reclaimed by the atom garbage collector. As described with the
+\cfuncref{release} function, it can be desirable to reclaim the critical
+resources after the failing PL_unify_blob() call.
 
     \cfunction{int}{PL_put_blob}{term_t t, void *blob, size_t len,
 				 PL_blob_t *type}
@@ -3071,7 +3185,7 @@ load_words(term_t name)
       return FALSE;
 
     if ( (fid = PL_open_foreign_frame()) )
-    { while(fgets(word, sizeof(word), fd))
+    { while(fgets(word, sizeof word, fd))
       { size_t len;
 
 	if ( (len=strlen(word)) )
@@ -4365,7 +4479,6 @@ of foreign code.
 \begin{code}
 /*  Include file depends on local installation */
 #include <SWI-Prolog.h>
-#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -4378,6 +4491,8 @@ pl_lowercase(term_t u, term_t l)
   if ( !PL_get_atom_chars(u, &s) )
     return PL_warning("lowercase/2: instantiation fault");
   copy = malloc(strlen(s)+1);
+  if ( !copy )
+    return PL_resource_error("memory");
 
   for( q=copy; *s; q++, s++)
     *q = (isupper(*s) ? tolower(*s) : *s);
@@ -4644,7 +4759,7 @@ subsequent modifications.
 Get the next key-value pair from a cursor.
 \end{description}
 
-\subsection{Debugging and profiling foreign code (valgrind)}
+\subsection{Debugging and profiling foreign code (valgrind, asan)}
 \label{sec:foreign-debug-and-profile}
 
 \index{valgrind}\index{profiling,foreign code}%
@@ -4667,6 +4782,27 @@ using \program{bash} as login shell:
 % VALGRIND=yes valgrind --tool=callgrind pl <args>
 <prolog interaction>
 % kcachegrind callgrind.out.<pid>
+\end{code}
+
+\index{asan}\index{profiling,foreign code}%
+
+Instead of \program{valgrind}, you can use
+\href{https://github.com/google/sanitizers/wiki/AddressSanitizer}{AddressSanitizer}.
+Here is a short example for building with \jargon{asan} enabled and then
+running the resulting binary. When you exit \program{swipl}, a message
+is printed and any leaks are printed. During execution, other messages
+may be printed out, such as freeing an address twice or using freed or
+unallocated memory.
+
+\begin{code}
+% cd build.sanitize
+% cmake -G Ninja -DCMAKE_BUILD_TYPE=Sanitize ..
+% ninja
+% ASAN_OPTIONS=detect_leaks=1 build.sanitize/src/swipl
+<prolog interaction>
+% halt
+Running LSAN memory leak check (reclaim_memory=1)
+No leaks detected
 \end{code}
 
 \subsection{Name Conflicts in C modules}
