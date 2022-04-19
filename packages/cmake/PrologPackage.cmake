@@ -103,6 +103,7 @@ function(swipl_plugin name)
   set(v_pl_subdirs)			# list of subdirs
   set(v_pl_gensubdirs)			# list of subdirs (generated files)
   set(v_index ON)
+  set(v_test OFF)
 
   add_custom_target(${target})
 
@@ -113,6 +114,8 @@ function(swipl_plugin name)
       set(mode md_module)
     elseif(arg STREQUAL "NOINDEX")
       set(v_index OFF)
+    elseif(arg STREQUAL "TEST_ONLY")
+      set(v_test ON)
     elseif(arg STREQUAL "SHARED")
       set(mode md_module)
       set(type SHARED)
@@ -176,8 +179,10 @@ function(swipl_plugin name)
     endif()
     add_dependencies(${target} ${foreign_target})
 
-    install(TARGETS ${foreign_target}
-	    LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
+    if(NOT v_test)
+      install(TARGETS ${foreign_target}
+	      LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
+    endif()
   endif()
 
   foreach(sd ${v_pl_subdirs})
