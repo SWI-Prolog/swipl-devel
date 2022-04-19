@@ -603,6 +603,15 @@ ubody(A, B, _, P1, P2) :-
 ubody(B, D, _, term_position(_,_,_,_,[_,RP]), TPOut) :-
     nonvar(B), B = M:R,
     ubody(R, D, M, RP, TPOut).
+ubody(B, D, M, term_position(_,_,_,_,[RP0,RP1]), TPOut) :-
+    nonvar(B), B = (B0,B1),
+    (   maybe_optimized(B0),
+        ubody(B1, D, M, RP1, TPOut)
+    ->  true
+    ;   maybe_optimized(B1),
+        ubody(B0, D, M, RP0, TPOut)
+    ),
+    !.
 ubody(B0, B, M,
       brace_term_position(F,T,A0),
       Pos) :-
@@ -682,6 +691,11 @@ ubody_elem(0, G0, G, M, PA0, PA) :-
     ubody(G0, G, M, PA0, PA).
 ubody_elem(_, G, G, _, PA, PA).
 
+%!  conj(+GoalTerm, +PositionTerm, -GoalList, -PositionList)
+%
+%   Turn a conjunctive body into a list   of  goals and their positions,
+%   i.e., removing the positions of the (,)/2 terms.
+
 conj(Goal, Pos, GoalList, PosList) :-
     conj(Goal, Pos, GoalList, [], PosList, []).
 
@@ -705,6 +719,8 @@ conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
 conj(A, P, [A|TG], TG, [P|TP], TP).
 
 
+%!  mkconj(+Decompiled, +Module, -Position, +ReadGoals, +ReadPositions)
+
 mkconj(Goal, M, Pos, GoalList, PosList) :-
     mkconj(Goal, M, Pos, GoalList, [], PosList, []).
 
@@ -715,7 +731,15 @@ mkconj(Conj, M, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
     mkconj(A, M, PA, GL, TGA, PL, TPA),
     mkconj(B, M, PB, TGA, TG, TPA, TP).
 mkconj(A0, M, P0, [A|TG], TG, [P|TP], TP) :-
-    ubody(A, A0, M, P, P0).
+    ubody(A, A0, M, P, P0),
+    !.
+mkconj(A0, M, P0, [RG|TG0], TG, [_|TP0], TP) :-
+    maybe_optimized(RG),
+    mkconj(A0, M, P0, TG0, TG, TP0, TP).
+
+maybe_optimized(debug(_,_,_)).
+maybe_optimized(assertion(_)).
+maybe_optimized(true).
 
 %!  argpos(+N, +PositionTerm, -ArgPositionTerm) is det.
 %
