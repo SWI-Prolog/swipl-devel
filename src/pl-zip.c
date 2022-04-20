@@ -1091,7 +1091,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 
     if ( reposition )
     { unz_file_info64 info;
-      char fname[MAXPATHLEN];
+      char fname[PATH_MAX];
       char extra[1024];
       char comment[1024];
 
@@ -1134,7 +1134,7 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
 
   if ( get_zipper(A1, &z) )
   { unz_file_info64 info;
-    char fname[MAXPATHLEN];
+    char fname[PATH_MAX];
     char extra[1024];
     char comment[1024];
 

@@ -250,8 +250,8 @@ opt_append(opt_list **l, const char *s)
 static char *
 findHome(const char *symbols, int argc, const char **argv)
 { const char *home = NULL;
-  char envbuf[MAXPATHLEN];
-  char plp[MAXPATHLEN];
+  char envbuf[PATH_MAX];
+  char plp[PATH_MAX];
   const char *val;
 
   if ( (val=longopt("home", argc, argv)) )
@@ -283,8 +283,8 @@ findHome(const char *symbols, int argc, const char **argv)
 
 #ifdef PLHOMEFILE
   if ( (home = symbols) )
-  { char buf[MAXPATHLEN];
-    char parent[MAXPATHLEN];
+  { char buf[PATH_MAX];
+    char parent[PATH_MAX];
     IOSTREAM *fd;
     char *pparent;
 
@@ -303,14 +303,14 @@ findHome(const char *symbols, int argc, const char **argv)
 	buf[l] = EOS;
 
 #if O_XOS
-      { char buf2[MAXPATHLEN];
-	_xos_canonical_filename(buf, buf2, MAXPATHLEN, 0);
+      { char buf2[PATH_MAX];
+	_xos_canonical_filename(buf, buf2, PATH_MAX, 0);
 	strcpy(buf, buf2);
       }
 #endif
 
 	if ( !IsAbsolutePath(buf) )
-	{ char buf2[MAXPATHLEN];
+	{ char buf2[PATH_MAX];
 
 	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
 	       !(home = AbsoluteFile(buf2, plp)) )
@@ -353,7 +353,7 @@ basename of the running program, taking all the leading alnum characters.
 
 static char *
 defaultSystemInitFile(const char *a0)
-{ char plp[MAXPATHLEN];
+{ char plp[PATH_MAX];
   char *base = BaseName(PrologPath(a0, plp, sizeof(plp)), plp);
 
   if ( base )
@@ -375,7 +375,7 @@ defaultSystemInitFile(const char *a0)
 
 static int
 is_hash_bang_file(const char *s)
-{ char fb[MAXPATHLEN];
+{ char fb[PATH_MAX];
   char *fn;
   IOSTREAM *fd;
   int rc = FALSE;
@@ -467,10 +467,10 @@ setupGNUEmacsInferiorMode(void)
 
 static void
 initPaths(int argc, const char **argv)
-{ char plp[MAXPATHLEN];
+{ char plp[PATH_MAX];
 
   if ( argc > 0 )
-  { char plp1[MAXPATHLEN];
+  { char plp1[PATH_MAX];
     const char *symbols = NULL;		/* The executable */
 
     if ( !(symbols = findExecutable(argv[0], plp1, sizeof(plp1))) ||
@@ -504,7 +504,7 @@ initPaths(int argc, const char **argv)
 
 #ifdef O_XOS
   if ( systemDefaults.home )
-  { char buf[MAXPATHLEN];
+  { char buf[PATH_MAX];
     _xos_limited_os_filename(systemDefaults.home, buf);
     systemDefaults.home = store_string(buf);
   }
@@ -927,8 +927,8 @@ openResourceDB(int argc, char **argv, int is_hash_bang)
 { zipper *rc;
   char *xfile = NULL;
   int flags = (GD->bootsession ? RC_WRONLY|RC_CREATE|RC_TRUNC : RC_RDONLY);
-  char tmp[MAXPATHLEN];
-  char plp[MAXPATHLEN];
+  char tmp[PATH_MAX];
+  char plp[PATH_MAX];
   char *exe, *exedir;
   int n;
 
@@ -968,14 +968,14 @@ openResourceDB(int argc, char **argv, int is_hash_bang)
     return rc;
   if ( (exe = PrologPath(tmp, plp, sizeof(plp))) &&
        (exedir = DirName(exe, plp)) &&
-       strlen(exedir)+strlen("/swipl.prc")+1 < MAXPATHLEN )
+       strlen(exedir)+strlen("/swipl.prc")+1 < PATH_MAX )
   { strcat(exedir, "/swipl.prc");
     if ( (rc=zip_open_archive(exedir, flags)) )
       return rc;
   }
 
   if ( systemDefaults.home )
-  { if ( strlen(systemDefaults.home)+1+strlen(SWIPL_BOOT_BASE) < MAXPATHLEN )
+  { if ( strlen(systemDefaults.home)+1+strlen(SWIPL_BOOT_BASE) < PATH_MAX )
     { strcpy(tmp, systemDefaults.home);
       strcat(tmp, "/");
       strcat(tmp, SWIPL_BOOT_BASE);
@@ -1247,7 +1247,7 @@ typedef const char *cline;
 
 static int
 usage(void)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
 
   static const cline lines[] = {
     "%s: Usage:\n",

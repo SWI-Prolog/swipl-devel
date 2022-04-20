@@ -35,8 +35,8 @@
 
 #include "pl-load.h"
 #include "pl-fli.h"
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -592,8 +592,8 @@ static int
 expand(const char *pattern, GlobInfo info)
 { GET_LD
   const char *pat = pattern;
-  char prefix[MAXPATHLEN];		/* before first pattern */
-  char patbuf[MAXPATHLEN];		/* pattern buffer */
+  char prefix[PATH_MAX];		/* before first pattern */
+  char patbuf[PATH_MAX];		/* pattern buffer */
   size_t prefix_len;
   int end, dot;
   int mflags = 0;
@@ -625,11 +625,11 @@ expand(const char *pattern, GlobInfo info)
 
 	    end = info->end;
 	    for( ; info->start < end; info->start++ )
-	    { char path[MAXPATHLEN];
+	    { char path[PATH_MAX];
 	      const char *entry = expand_entry(info, info->start);
 	      size_t plen = strlen(entry);
 
-	      if ( plen+prefix_len+2 <= MAXPATHLEN )
+	      if ( plen+prefix_len+2 <= PATH_MAX )
 	      { strcpy(path, entry);
 		if ( prefix[0] && plen > 0 && path[plen-1] != '/' )
 		  path[plen++] = '/';
@@ -683,8 +683,8 @@ expand(const char *pattern, GlobInfo info)
     for(; info->start < end; info->start++)
     { DIR *d;
       struct dirent *e;
-      char path[MAXPATHLEN];
-      char tmp[MAXPATHLEN];
+      char path[PATH_MAX];
+      char tmp[PATH_MAX];
       const char *current = expand_entry(info, info->start);
       size_t clen = strlen(current);
 
@@ -707,7 +707,7 @@ expand(const char *pattern, GlobInfo info)
 #endif
 	  if ( (dot || e->d_name[0] != '.') &&
 	       matchPattern(e->d_name, &info->pattern, mflags) )
-	  { char newp[MAXPATHLEN];
+	  { char newp[PATH_MAX];
 
 	    if ( plen+strlen(e->d_name)+1 < sizeof(newp) )
 	    { strcpy(newp, path);
@@ -763,7 +763,7 @@ sort_expand(GlobInfo info)
 static
 PRED_IMPL("expand_file_name", 2, expand_file_name, 0)
 { PRED_LD
-  char spec[MAXPATHLEN];
+  char spec[PATH_MAX];
   char *s;
   glob_info info;
   term_t l    = PL_copy_term_ref(A2);

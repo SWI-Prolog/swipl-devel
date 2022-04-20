@@ -1675,7 +1675,7 @@ initPrologFlags(void)
 
 static void
 setTmpDirPrologFlag(void)
- { char envbuf[MAXPATHLEN];
+ { char envbuf[PATH_MAX];
    char *td = NULL;
 
 #ifdef __unix__

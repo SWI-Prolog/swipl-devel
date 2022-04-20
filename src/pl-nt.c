@@ -332,7 +332,7 @@ setOSPrologFlags(void)
 char *
 findExecutable(const char *module, char *exe, size_t exelen)
 { int n;
-  wchar_t wbuf[MAXPATHLEN];
+  wchar_t wbuf[PATH_MAX];
   HMODULE hmod;
 
   if ( module )
@@ -347,7 +347,7 @@ findExecutable(const char *module, char *exe, size_t exelen)
   } else
     hmod = NULL;
 
-  if ( (n = GetModuleFileNameW(hmod, wbuf, MAXPATHLEN)) > 0 )
+  if ( (n = GetModuleFileNameW(hmod, wbuf, PATH_MAX)) > 0 )
   { wbuf[n] = EOS;
     return _xos_long_file_name_toA(wbuf, exe, exelen);
   } else if ( module )
@@ -599,7 +599,7 @@ PRED_IMPL("win_shell", 3, win_shell3, 0)
 
 foreign_t
 pl_win_module_file(term_t module, term_t file)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *m;
   char *f;
 
@@ -825,13 +825,13 @@ PRED_IMPL("win_process_modules", 1, win_process_modules, 0)
 	int i;
 
 	for(i=0; i<lpcbNeeded/sizeof(HMODULE); i++)
-	{ wchar_t name[MAXPATHLEN];
+	{ wchar_t name[PATH_MAX];
 	  int n;
 
-	  if ( (n=GetModuleFileNameW(found[i], name, MAXPATHLEN)) > 0 )
+	  if ( (n=GetModuleFileNameW(found[i], name, PATH_MAX)) > 0 )
 	  { name[n] = EOS;
-	    char name_utf8[MAXPATHLEN*2];
-	    char pname[MAXPATHLEN*2];
+	    char name_utf8[PATH_MAX*2];
+	    char pname[PATH_MAX*2];
 
 	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8), XOS_DOWNCASE) &&
 		 PrologPath(name_utf8, pname, sizeof(pname)) )

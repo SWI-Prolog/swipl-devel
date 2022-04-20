@@ -120,8 +120,8 @@ static void initHeapDebug(void);
 #define isletter(c) (_istalpha(c) || (c) == '_')
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 256
+#ifndef PATH_MAX
+#define PATH_MAX 256
 #endif
 
 #ifndef CHAR_MAX
@@ -304,7 +304,7 @@ rlc_long_name(TCHAR *buffer)
 
 static void
 rlc_long_name(TCHAR *file)
-{ TCHAR buf[MAXPATHLEN];
+{ TCHAR buf[PATH_MAX];
   TCHAR *i = file;
   TCHAR *o = buf;
   TCHAR *ok = buf;
@@ -402,7 +402,7 @@ rlc_main(HANDLE hInstance, HANDLE hPrevInstance,
 	 RlcMain mainfunc, HICON icon)
 { TCHAR *	    argv[100];
   int		    argc;
-  TCHAR		    program[MAXPATHLEN];
+  TCHAR		    program[PATH_MAX];
   TCHAR		    progbase[100];
   RlcData           b;
   rlc_console_attr  attr;

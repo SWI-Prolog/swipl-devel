@@ -447,7 +447,7 @@ getString(IOSTREAM *fd, size_t *length)
   size_t len = (size_t)getInt64(fd);
   size_t i;
 
-  if ( !length && len > MAXPATHLEN )
+  if ( !length && len > PATH_MAX )
     return NULL;
   if ( length && len > globalStackLimit() )
     return NULL;
@@ -1710,7 +1710,7 @@ loadImport(DECL_LD wic_state *state, int skip)
 
 static atom_t
 qlfFixSourcePath(wic_state *state, const char *raw)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *canonical;
 
   if ( state->load_state->has_moved &&
@@ -1719,14 +1719,14 @@ qlfFixSourcePath(wic_state *state, const char *raw)
     size_t lensave = strlen(state->load_state->save_dir);
     const char *tail = &raw[lensave];
 
-    if ( strlen(state->load_state->load_dir)+1+strlen(tail)+1 > MAXPATHLEN )
+    if ( strlen(state->load_state->load_dir)+1+strlen(tail)+1 > PATH_MAX )
       fatalError("Path name too long: %s", raw);
 
     strcpy(buf, state->load_state->load_dir);
     s = &buf[strlen(buf)];
     strcpy(s, tail);
   } else
-  { if ( strlen(raw)+1 > MAXPATHLEN )
+  { if ( strlen(raw)+1 > PATH_MAX )
     { fatalError("Path name too long: %s", raw);
       return NULL_ATOM;
     }
@@ -3287,7 +3287,7 @@ static wic_state *
 qlfOpen(term_t file)
 { char *name;
   char *absname;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   IOSTREAM *out;
   wic_state *state;
 
@@ -3370,12 +3370,12 @@ pushPathTranslation(wic_state *state, const char *absloadname, int flags)
     return qlfError(state, "bad string");
 
   if ( absloadname && !streq(absloadname, abssavename) )
-  { char load[MAXPATHLEN];
-    char save[MAXPATHLEN];
+  { char load[PATH_MAX];
+    char save[PATH_MAX];
     char *l, *s, *le, *se;
 
-    if ( ( strlen(abssavename)+1 > MAXPATHLEN ||
-	   strlen(absloadname)+1 > MAXPATHLEN
+    if ( ( strlen(abssavename)+1 > PATH_MAX ||
+	   strlen(absloadname)+1 > PATH_MAX
 	 ) )
       return PL_representation_error("max_path_length");
 
@@ -3479,7 +3479,7 @@ qlfLoad(DECL_LD wic_state *state, Module *module)
 { IOSTREAM *fd = state->wicFd;
   bool rval;
   const char *absloadname;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   atom_t file;
 
   if ( (file = fileNameStream(fd)) )
@@ -4130,7 +4130,7 @@ directiveClause(term_t directive, term_t clause, const char *functor)
 static bool
 compileFile(wic_state *state, const char *file)
 { GET_LD
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   char *path;
   term_t f = PL_new_term_ref();
   SourceFile sf;

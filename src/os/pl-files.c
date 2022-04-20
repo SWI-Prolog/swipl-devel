@@ -99,13 +99,13 @@ LastModifiedFile(const char *name, double *tp)
 {
 #ifdef __WINDOWS__
   HANDLE hFile;
-  wchar_t wfile[MAXPATHLEN];
+  wchar_t wfile[PATH_MAX];
 
 #define nano * 0.000000001
 #define ntick 100.0
 #define SEC_TO_UNIX_EPOCH 11644473600.0
 
-  if ( !_xos_os_filenameW(name, wfile, MAXPATHLEN) )
+  if ( !_xos_os_filenameW(name, wfile, PATH_MAX) )
     return FALSE;
 
   if ( (hFile=CreateFileW(wfile,
@@ -138,7 +138,7 @@ LastModifiedFile(const char *name, double *tp)
 
   return FALSE;
 #else
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(name, tmp), &buf) < 0 )
@@ -163,7 +163,7 @@ be accessed.
 
 static int64_t
 SizeFile(const char *path)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(path, tmp), &buf) < 0 )
@@ -203,7 +203,7 @@ access_mode(int mode)
 
 int
 AccessFile(const char *path, int mode)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
 #ifdef HAVE_ACCESS
   return access(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
 #else
@@ -215,7 +215,7 @@ int
 AccessDirectory(const char *path, int mode)
 {
 #if O_XOS
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   return _xos_access_dir(OsPath(path, tmp), access_mode(mode)) == 0 ? TRUE : FALSE;
 #else
   return AccessFile(path, mode);
@@ -229,7 +229,7 @@ ExistsFile(const char *path)
 #ifdef O_XOS
   return _xos_exists(path, _XOS_FILE);
 #else
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(path, tmp), &buf) == -1 || !S_ISREG(buf.st_mode) )
@@ -247,7 +247,7 @@ ExistsDirectory(const char *path)
 #ifdef O_XOS
   return _xos_exists(path, _XOS_DIR);
 #else
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
   char *ospath = OsPath(path, tmp);
   statstruct buf;
 
@@ -268,7 +268,7 @@ ReadLink(const char *f, char *buf)
 #ifdef HAVE_READLINK
   int n;
 
-  if ( (n=readlink(f, buf, MAXPATHLEN-1)) > 0 )
+  if ( (n=readlink(f, buf, PATH_MAX-1)) > 0 )
   { buf[n] = EOS;
     return buf;
   }
@@ -280,7 +280,7 @@ ReadLink(const char *f, char *buf)
 
 static char *
 DeRefLink1(const char *f, char *lbuf)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *l;
 
   if ( (l=ReadLink(f, buf)) )
@@ -316,7 +316,7 @@ removed). Returns NULL if more than 20 links have been followed.
 
 char *
 DeRefLink(const	char *link, char *buf)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
   char *f;
   int n = 20;				/* avoid loop! */
 
@@ -361,7 +361,7 @@ SameFile(const char *f1, const char *f2)
 #ifdef __unix__				/* doesn't work on most not Unix's */
   { statstruct buf1;
     statstruct buf2;
-    char tmp[MAXPATHLEN];
+    char tmp[PATH_MAX];
 
     if ( statfunc(OsPath(f1, tmp), &buf1) != 0 ||
 	 statfunc(OsPath(f2, tmp), &buf2) != 0 )
@@ -389,7 +389,7 @@ otherwise.
 
 int
 RemoveFile(const char *path)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
 
 #ifdef HAVE_REMOVE
   return remove(OsPath(path, tmp)) == 0 ? TRUE : FALSE;
@@ -401,8 +401,8 @@ RemoveFile(const char *path)
 
 static int
 RenameFile(const char *old, const char *new)
-{ char oldbuf[MAXPATHLEN];
-  char newbuf[MAXPATHLEN];
+{ char oldbuf[PATH_MAX];
+  char newbuf[PATH_MAX];
   char *osold, *osnew;
 
   osold = OsPath(old, oldbuf);
@@ -550,12 +550,12 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
     return PL_error(NULL, 0, "file name contains a 0-code",
 		    ERR_DOMAIN, ATOM_file_name, n);
   }
-  if ( len >= MAXPATHLEN )
+  if ( len >= PATH_MAX )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
 		    ATOM_max_path_length);
 
   if ( truePrologFlag(PLFLAG_FILEVARS) )
-  { if ( !(name = expandVars(name, tmp, MAXPATHLEN)) )
+  { if ( !(name = expandVars(name, tmp, PATH_MAX)) )
       return FALSE;
   }
 
@@ -590,8 +590,8 @@ get_file_name(term_t n, char **namep, char *tmp, int flags)
 
 int
 PL_get_file_name(term_t n, char **namep, int flags)
-{ char buf[MAXPATHLEN];
-  char ospath[MAXPATHLEN];
+{ char buf[PATH_MAX];
+  char ospath[PATH_MAX];
   char *name;
   int rc;
 
@@ -611,8 +611,8 @@ PL_get_file_name(term_t n, char **namep, int flags)
 
 int
 PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
-{ char buf[MAXPATHLEN];
-  char ospath[MAXPATHLEN];
+{ char buf[PATH_MAX];
+  char ospath[PATH_MAX];
   char *name;
   int rc;
 
@@ -737,7 +737,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
     return TRUE;
 
   if ( md == ACCESS_WRITE && !AccessFile(n, ACCESS_EXIST) )
-  { char tmp[MAXPATHLEN];
+  { char tmp[PATH_MAX];
     char *dir;
 
     if ( !(dir = DirName(n, tmp)) )
@@ -757,7 +757,7 @@ PRED_IMPL("access_file", 2, access_file, 0)
 static
 PRED_IMPL("read_link", 3, read_link, 0)
 { char *n, *l, *t;
-  char buf[MAXPATHLEN];
+  char buf[PATH_MAX];
 
   term_t file = A1;
   term_t link = A2;
@@ -845,7 +845,7 @@ PRED_IMPL("same_file", 2, same_file, 0)
 static
 PRED_IMPL("file_base_name", 2, file_base_name, 0)
 { char *n, *b;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
@@ -860,7 +860,7 @@ PRED_IMPL("file_base_name", 2, file_base_name, 0)
 static
 PRED_IMPL("file_directory_name", 2, file_directory_name, 0)
 { char *n, *d;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
 
   if ( !PL_get_chars(A1, &n, CVT_ALL|REP_FN|CVT_EXCEPTION) )
     return FALSE;
@@ -1030,7 +1030,7 @@ PRED_IMPL("rename_file", 2, rename_file, 0)
 static
 PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 { char *n;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
 
   term_t name = A1;
   term_t expanded = A2;
@@ -1046,7 +1046,7 @@ PRED_IMPL("$absolute_file_name", 2, absolute_file_name, 0)
 
 static
 PRED_IMPL("$cwd", 1, cwd, 0)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   const char *wd;
 
   if ( !(wd = PL_cwd(buf, sizeof(buf))) )
@@ -1107,7 +1107,7 @@ static
 PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
 { PRED_LD
   char *b = NULL, *e = NULL, *f;
-  char buf[MAXPATHLEN];
+  char buf[PATH_MAX];
 
   term_t base = A1;
   term_t ext  = A2;
@@ -1149,7 +1149,7 @@ PRED_IMPL("file_name_extension", 3, file_name_extension, 0)
       e++;
     if ( has_extension(b, e) || e[0] == EOS )
       return PL_unify(base, full);
-    if ( strlen(b) + 1 + strlen(e) + 1 > MAXPATHLEN )
+    if ( strlen(b) + 1 + strlen(e) + 1 > PATH_MAX )
       return name_too_long();
     strcpy(buf, b);
     s = buf + strlen(buf);
@@ -1174,10 +1174,10 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
   if ( !PL_is_variable(pl) )
   { char *n;
-    wchar_t buf[MAXPATHLEN];
+    wchar_t buf[PATH_MAX];
 
     if ( PL_get_chars(pl, &n, CVT_ALL|REP_UTF8|CVT_EXCEPTION) )
-    { if ( !_xos_os_filenameW(n, buf, MAXPATHLEN) )
+    { if ( !_xos_os_filenameW(n, buf, PATH_MAX) )
 	return name_too_long();
 
       return PL_unify_wchars(os, PL_ATOM, -1, buf);
@@ -1186,11 +1186,11 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
   }
 
   if ( PL_get_wchars(os, NULL, &wn, CVT_ALL) )
-  { wchar_t lbuf[MAXPATHLEN];
-    char buf[MAXPATHLEN];
+  { wchar_t lbuf[PATH_MAX];
+    char buf[PATH_MAX];
 
-    _xos_long_file_nameW(wn, lbuf, MAXPATHLEN);
-    _xos_canonical_filenameW(lbuf, buf, MAXPATHLEN, 0);
+    _xos_long_file_nameW(wn, lbuf, PATH_MAX);
+    _xos_canonical_filenameW(lbuf, buf, PATH_MAX, 0);
 
     return PL_unify_chars(pl, PL_ATOM|REP_UTF8, -1, buf);
   }
@@ -1230,7 +1230,7 @@ PRED_IMPL("$my_file", 1, my_file, 0)
 
 #ifdef HAVE_GETUID
 { statstruct buf;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
 
   if ( statfunc(OsPath(n, tmp), &buf) < 0 )
   { perror(tmp);

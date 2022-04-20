@@ -74,9 +74,6 @@
 /* Define if you have shares using the notation //netbios/share */
 #define O_NETBIOS 1
 
-/* Maximum length of a path-name.  Note XOS! */
-#define MAXPATHLEN PATH_MAX
-
 /* Define if floats are IEEE754 */
 #define IEEE754 1
 

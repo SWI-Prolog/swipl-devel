@@ -720,7 +720,7 @@ verify_tmp_dir(const char* tmpdir)
 
 atom_t
 TemporaryFile(const char *id, const char *ext, int *fdp)
-{ char temp[MAXPATHLEN];
+{ char temp[PATH_MAX];
   const char *tmpdir = NULL;
   atom_t tname;
   static int temp_counter = 0;
@@ -752,14 +752,14 @@ retry:
   int rc;
 #ifndef __LCC__
   wchar_t *wtmp = NULL, *wtmpdir, *wid;
-  wchar_t buf1[MAXPATHLEN], buf2[MAXPATHLEN];
+  wchar_t buf1[PATH_MAX], buf2[PATH_MAX];
 #endif
 
 #ifdef __LCC__
   rc = (tmp = tmpnam(NULL)) != NULL;
 #else
-  rc = ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, MAXPATHLEN)) &&
-	 (wid     = _xos_os_filenameW(id,     buf2, MAXPATHLEN)) &&
+  rc = ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, PATH_MAX)) &&
+	 (wid     = _xos_os_filenameW(id,     buf2, PATH_MAX)) &&
 	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
 	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
   if ( wtmp )
@@ -851,7 +851,7 @@ RemoveTemporaryFiles(void)
 /*  Conversion rules Prolog <-> OS/2 (using HPFS)
     / <-> \
     /x:/ <-> x:\  (embedded drive letter)
-    No length restrictions up to MAXPATHLEN, no case conversions.
+    No length restrictions up to PATH_MAX, no case conversions.
 */
 
 char *
@@ -882,7 +882,7 @@ PrologPath(char *ospath, char *path, size_t len)
 char *
 OsPath(const char *plpath, char *path)
 { const char *s = plpath, *p = path;
-  int limit = MAXPATHLEN-1;
+  int limit = PATH_MAX-1;
 
   if ( s[0] == '/' && isLetter(s[1]) && s[2] == ':') /* embedded drive letter*/
   { s++;
@@ -999,10 +999,10 @@ initExpand(void)
   GD->paths.CWDlen = 0;
 
 #ifdef O_CANONICALISE_DIRS
-{ char envbuf[MAXPATHLEN];
+{ char envbuf[PATH_MAX];
 
   if ( (cpaths = Getenv("CANONICAL_PATHS", envbuf, sizeof(envbuf))) )
-  { char buf[MAXPATHLEN];
+  { char buf[PATH_MAX];
 
     while(*cpaths)
     { char *e;
@@ -1159,7 +1159,7 @@ not it updates the cache and returns FALSE.
 
 static int
 verify_entry(CanonicalDir d)
-{ char tmp[MAXPATHLEN];
+{ char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(d->canonical, tmp), &buf) == 0 )
@@ -1186,7 +1186,7 @@ static char *
 canonicaliseDir_sync(char *path)
 { CanonicalDir d;
   statstruct buf;
-  char tmp[MAXPATHLEN];
+  char tmp[PATH_MAX];
 
   DEBUG(MSG_OS_DIR, Sdprintf("canonicaliseDir(%s) --> ", path));
 
@@ -1199,7 +1199,7 @@ canonicaliseDir_sync(char *path)
   }
 
   if ( statfunc(OsPath(path, tmp), &buf) == 0 )
-  { char parent[MAXPATHLEN];
+  { char parent[PATH_MAX];
     char *e = path + strlen(path);
 
     DEBUG(MSG_OS_DIR, Sdprintf("Looking for ino=%ld\n", buf.st_ino));
@@ -1413,7 +1413,7 @@ out:
 
 static char *
 utf8_path_lwr(char *s, size_t len)
-{ char buf[MAXPATHLEN];
+{ char buf[PATH_MAX];
   char *tmp = buf;
   char *o=s;
   const char *i;
@@ -1441,10 +1441,10 @@ utf8_path_lwr(char *s, size_t len)
 
     PL_utf8_code_point(&i, NULL, &c);
     c = towlower((wint_t)c);
-    if ( o >= s + MAXPATHLEN-6 )
+    if ( o >= s + PATH_MAX-6 )
     { char ls[10];
       char *e = utf8_put_char(ls,c);
-      if ( o+(e-ls) >= s + MAXPATHLEN )
+      if ( o+(e-ls) >= s + PATH_MAX )
       { errno = ENAMETOOLONG;
 	s = NULL;
 	goto out;
@@ -1467,7 +1467,7 @@ canonicalisePath(char *path)
 { GET_LD
 
   if ( !truePrologFlag(PLFLAG_FILE_CASE) )
-  { if ( !utf8_path_lwr(path, MAXPATHLEN) )
+  { if ( !utf8_path_lwr(path, PATH_MAX) )
     { if ( errno == ENAMETOOLONG )
 	return PL_representation_error("max_path_length"),NULL;
       else
@@ -1479,7 +1479,7 @@ canonicalisePath(char *path)
 
 #ifdef O_CANONICALISE_DIRS
 { char *e;
-  char dirname[MAXPATHLEN];
+  char dirname[PATH_MAX];
   size_t plen = strlen(path);
 
   if ( plen > 0 )
@@ -1524,7 +1524,7 @@ char *
 expandVars(const char *pattern, char *expanded, int maxlen)
 { GET_LD
   int size = 0;
-  char wordbuf[MAXPATHLEN];
+  char wordbuf[PATH_MAX];
   char *rc = expanded;
 
   if ( *pattern == '~' )
@@ -1542,7 +1542,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
       value = _xos_home();
 #else /*O_XOS*/
       if ( !(value = GD->os.myhome) )
-      { char envbuf[MAXPATHLEN];
+      { char envbuf[PATH_MAX];
 
 	if ( (value = Getenv("HOME", envbuf, sizeof(envbuf))) &&
 	     (value = PrologPath(value, wordbuf, sizeof(wordbuf))) )
@@ -1607,7 +1607,7 @@ expandVars(const char *pattern, char *expanded, int maxlen)
     { case EOS:
 	break;
       case '$':
-	{ char envbuf[MAXPATHLEN];
+	{ char envbuf[PATH_MAX];
 	  char *var = takeWord(&pattern, wordbuf, sizeof(wordbuf));
 	  char *value;
 	  int l;
@@ -1744,8 +1744,8 @@ IsAbsolutePath(const char *p)
 char *
 AbsoluteFile(const char *spec, char *path)
 { GET_LD
-  char tmp[MAXPATHLEN];
-  char buf[MAXPATHLEN];
+  char tmp[PATH_MAX];
+  char buf[PATH_MAX];
   char *file = PrologPath(spec, buf, sizeof(buf));
   size_t cwdlen;
 
@@ -1764,7 +1764,7 @@ AbsoluteFile(const char *spec, char *path)
 
 #ifdef O_HASDRIVES
   if ( isDriveRelativePath(file) )	/* /something  --> d:/something */
-  { if ((strlen(file) + 3) > MAXPATHLEN)
+  { if ((strlen(file) + 3) > PATH_MAX)
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
       return (char *) NULL;
     }
@@ -1775,11 +1775,11 @@ AbsoluteFile(const char *spec, char *path)
   }
 #endif /*O_HASDRIVES*/
 
-  if ( !PL_cwd(path, MAXPATHLEN) )
+  if ( !PL_cwd(path, PATH_MAX) )
     return NULL;
   cwdlen = strlen(path);
 
-  if ( (cwdlen + strlen(file) + 1) >= MAXPATHLEN )
+  if ( (cwdlen + strlen(file) + 1) >= PATH_MAX )
   { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
     return (char *) NULL;
   }
@@ -1806,7 +1806,7 @@ cwd_unlocked(char *cwd, size_t cwdlen)
 { GET_LD
 
   if ( GD->paths.CWDlen == 0 )
-  { char buf[MAXPATHLEN];
+  { char buf[PATH_MAX];
     char *rval;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1886,7 +1886,7 @@ BaseName(const char *f, char *base)
 
       if ( e == end && *e == '/' )
       { strcpy(base, "/");
-      } else if ( end-e+1 <= MAXPATHLEN )
+      } else if ( end-e+1 <= PATH_MAX )
       { memmove(base, e, end-e);		/* may overlap */
 	base[end-e] = EOS;
       } else
@@ -1924,7 +1924,7 @@ DirName(const char *f, char *dir)
 	  strcpy(dir, ".");
       } else
       { if ( dir != f )			/* otherwise it is in-place */
-	{ if ( e-f+1 <= MAXPATHLEN )
+	{ if ( e-f+1 <= PATH_MAX )
 	  { strncpy(dir, f, e-f);
 	    dir[e-f] = EOS;
 	  } else
@@ -1965,8 +1965,8 @@ is_cwd(const char *dir)
 
 bool
 ChDir(const char *path)
-{ char ospath[MAXPATHLEN];
-  char tmp[MAXPATHLEN];
+{ char ospath[PATH_MAX];
+  char tmp[PATH_MAX];
 
   OsPath(path, ospath);
 
@@ -2756,7 +2756,7 @@ System(char *cmd)
   if ( (pid = fork()) == -1 )
   { return PL_error("shell", 2, OsError(), ERR_SYSCALL, "fork");
   } else if ( pid == 0 )		/* The child */
-  { char tmp[MAXPATHLEN];
+  { char tmp[PATH_MAX];
     char *argv[4];
     extern char **environ;
     int in  = Sfileno(Suser_input);
@@ -2915,8 +2915,8 @@ static char *	Which(const char *program, char *fullname);
 char *
 findExecutable(const char *av0, char *buffer, size_t buflen)
 { char *file;
-  char buf[MAXPATHLEN];
-  char tmp[MAXPATHLEN];
+  char buf[PATH_MAX];
+  char tmp[PATH_MAX];
 
   if ( !av0 || !PrologPath(av0, buf, sizeof(buf)) )
     return NULL;
@@ -2925,7 +2925,7 @@ findExecutable(const char *av0, char *buffer, size_t buflen)
 #if __unix__				/* argv[0] can be an #! script! */
   if ( file )
   { int n, fd;
-    char buf[MAXPATHLEN];
+    char buf[PATH_MAX];
 					/* Fails if mode is x-only, but */
 					/* then it can't be a script! */
     if ( (fd = open(file, O_RDONLY)) < 0 )
@@ -2974,7 +2974,7 @@ okToExec(const char *s)
       return ExistsFile(s) ? (char *)s : (char *) NULL;
 
   for(ext = extensions; *ext; ext++)
-  { static char path[MAXPATHLEN];
+  { static char path[PATH_MAX];
 
     strcpy(path, s);
     strcat(path, *ext);
@@ -3025,7 +3025,7 @@ Which(const char *program, char *fullname)
 #if OS2 && EMX
   if ((e = okToExec(program)) != NULL)
   {
-    getcwd(fullname, MAXPATHLEN);
+    getcwd(fullname, PATH_MAX);
     strcat(fullname, "/");
     strcat(fullname, e);
     return fullname;
@@ -3041,13 +3041,13 @@ Which(const char *program, char *fullname)
       else
         path++;				/* fix by Ron Hess (hess@sco.com) */
     } else
-    { char tmp[MAXPATHLEN];
+    { char tmp[PATH_MAX];
 
       for(dir = fullname; *path && *path != PATHSEP; *dir++ = *path++)
 	;
       if (*path)
 	path++;				/* skip : */
-      if ((dir-fullname) + strlen(program)+2 > MAXPATHLEN)
+      if ((dir-fullname) + strlen(program)+2 > PATH_MAX)
         continue;
       *dir++ = '/';
       strcpy(dir, program);

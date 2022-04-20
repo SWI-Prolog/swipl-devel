@@ -435,14 +435,14 @@ typedef _sigset_t sigset_t;
 #define EMULATE_DLOPEN 1		/* Emulated dlopen() in pl-beos.c */
 #endif
 
-/* MAXPATHLEN is an optional POSIX feature (Bug#63).  As SWI-Prolog has
+/* PATH_MAX is an optional POSIX feature (Bug#63).  As SWI-Prolog has
    no length limits on text except for representing paths, we should
-   rewrite all file handling code to avoid MAXPATHLEN.  For now we just
+   rewrite all file handling code to avoid PATH_MAX.  For now we just
    define it.
 */
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 /* If we have a threads-supporting C11 environment, we can use C11 thread

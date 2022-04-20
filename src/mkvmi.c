@@ -47,8 +47,8 @@
 #pragma warning(disable : 4996)	/* deprecate open() etc */
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 #define NO_SWIPL 1
@@ -347,7 +347,7 @@ emit_vmi_hdr(const char *to)
 int
 main(int argc, char **argv)
 { program = argv[0];
-  char buf[MAXPATHLEN];
+  char buf[PATH_MAX];
 
   argc--;
   argv++;

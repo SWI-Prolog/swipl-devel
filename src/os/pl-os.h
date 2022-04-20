@@ -38,7 +38,7 @@
 #define _PL_OS_H
 #include "../pl-incl.h"
 
-#ifdef HAVE_SYS_PARAM_H			/* get MAXPATHLEN */
+#ifdef HAVE_SYS_PARAM_H			/* get PATH_MAX */
 #include <sys/param.h>
 #endif
 
@@ -74,12 +74,12 @@ int		Pause(double time);
 #define Pclose(fd)	pclose(fd)
 #endif
 
-#ifndef MAXPATHLEN
+#ifndef PATH_MAX
 #ifdef PATH_MAX
-#define MAXPATHLEN PATH_MAX
+#define PATH_MAX PATH_MAX
 #else
 #ifdef PATHSIZE
-#define MAXPATHLEN PATHSIZE
+#define PATH_MAX PATHSIZE
 #endif
 #endif
 #endif

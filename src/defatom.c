@@ -46,8 +46,8 @@
 #pragma warning(disable : 4996)	/* deprecate open() etc */
 #endif
 
-#ifndef MAXPATHLEN
-#define MAXPATHLEN 1024
+#ifndef PATH_MAX
+#define PATH_MAX 1024
 #endif
 
 int verbose = 0;
@@ -113,7 +113,7 @@ main(int argc, char **argv)
   int line=0;
   char buf[256];
   int errors=0;
-  char atom_defs[MAXPATHLEN];
+  char atom_defs[PATH_MAX];
 
   argc--;
   argv++;
