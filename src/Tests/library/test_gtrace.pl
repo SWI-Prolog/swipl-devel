@@ -126,6 +126,12 @@ ssu5(X) =>
     X = aap-noot,
     writeln(X).
 
+bp(ssu6(X,Y), [atom(X), atom(Y), =>, writeln(X-Y)]).
+
+ssu6(X,Y), atom(X), atom(Y) =>
+    writeln(X-Y).
+
+
 % optimized statements (doesn't work in test environment?)
 :- if(false).
 
