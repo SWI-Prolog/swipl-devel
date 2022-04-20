@@ -427,14 +427,14 @@ unify_clause_head(H1, H2) :-
 
 inlined_unification((V=T,RBody0), (CV=CT,CBody0),
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     (V=T) =@= (CV=CT) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=T), (CV=CT),
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     (V=T) =@= (CV=CT) =>
     RBody = true,
@@ -442,14 +442,14 @@ inlined_unification((V=T), (CV=CT),
     argpos(2, BPos1, BPos).
 inlined_unification((V=T,RBody0), CBody0,
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=_), true,
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2 =>
     RBody = true,
     CBody = true,
@@ -459,6 +459,15 @@ inlined_unification(RBody0, CBody0, RBody, CBody, _RHead,
     RBody = RBody0,
     BPos  = BPos0,
     CBody = CBody0.
+
+%!  inlineable_head_var(+Head, -Var) is nondet
+%
+%   True when Var is a variable in  Head   that  may  be used for inline
+%   unification. Currently we only inline direct arguments to the head.
+
+inlineable_head_var(Head, Var) :-
+    compound(Head),
+    arg(_, Head, Var).
 
 split_on_cut((Cond0,!,Body0), Cond, Body) =>
     Cond = Cond0,

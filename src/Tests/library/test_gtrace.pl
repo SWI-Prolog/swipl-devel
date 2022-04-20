@@ -89,6 +89,12 @@ hu2(X) :-
     X = aap(_),
     writeln(X).
 
+bp(hu3(_), [_=aap(_), writeln(_)]).
+
+hu3(f(X)) :-
+    X = aap(_),
+    writeln(X).
+
 % => rules
 
 bp(ssu1(_), [atom(_), =>, writeln(_)]).
@@ -119,6 +125,20 @@ bp(ssu5(_), [_=aap-noot, writeln(_)]).
 ssu5(X) =>
     X = aap-noot,
     writeln(X).
+
+% optimized statements (doesn't work in test environment?)
+:- if(false).
+
+bp(opt1(_), [writeln(_)]).
+
+:- set_prolog_flag(optimise, true).
+
+opt1(X) :-
+    debug(x, ftm, []),
+    writeln(X).
+
+:- set_prolog_flag(optimise, false).
+:- endif.
 
 		 /*******************************
 		 *            TEST CODE		*
