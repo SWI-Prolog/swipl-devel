@@ -83,10 +83,6 @@
 #define XENOMAP 1
 #define XENOMEM 2
 
-#ifndef PATH_MAX
-#define PATH_MAX 260
-#endif
-
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
 
