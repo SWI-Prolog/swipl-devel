@@ -312,19 +312,23 @@ special precautions from the C programmer.
 The type \ctype{atom_t} actually represents a \jargon{blob} (see
 \secref{blob}). Blobs are the super type of Prolog atoms, where atoms
 are blobs that represent textual content. Textual content is also
-represented by Prolog string (see \secref{string}, which makes the
+represented by Prolog string (see \secref{string}), which makes the
 general notion of \jargon{string} in Prolog ambiguous. The core idea
 behind blobs/atoms is to represent arbitrary content using a
-\emph{unique} handle such that comparing the handle is enough to prove
-equivalence of the content, i.e., given two different atom handles we
+\emph{unique} handle, such that comparing the handle is enough to prove
+equivalence of the content; i.e., given two different atom handles we
 know they represent different texts. This uniqueness feature allows the
 core engine to reason about atoms without considering their content.
+\jargon{Strings} (\secref{string}) and blobs without the
+\const{PL_BLOB_UNIQUE} feature do \emph{not} have this uniqueness
+property - to test for equality, the contents of the strings or
+blobs must be compared.
 
 Because atoms are often used to represent (parts of) arbitrary input,
-intermediate results and output of data processed by Prolog it is
-necessary that atoms are subject to \jargon{garbage collection} (see
-garbage_collect_atoms/0).  The garbage collection make atoms ideal
-handles to arbitrary data structures and resulted in adding
+intermediate results, and output of data processed by Prolog, it is
+necessary that atoms be subject to \jargon{garbage collection} (see
+garbage_collect_atoms/0).  The garbage collection makes atoms ideal
+handles for arbitrary data structures, which are generalized as
 \jargon{blobs}.   Blobs provide \emph{safe} access to many internal
 Prolog data structures such as streams, clause references, etc.
 
@@ -494,7 +498,7 @@ Extracts an address as passed in by PL_retry_address().
 
 Fetch the Prolog predicate that is executing this function. Note that if
 the predicate is imported, the returned predicate refers to the final
-definition rather than the imported predicate, i.e., the module reported
+definition rather than the imported predicate; i.e., the module reported
 by PL_predicate_info() is the module in which the predicate is defined
 rather than the module where it was called. See also
 PL_predicate_info().
@@ -603,7 +607,7 @@ using PL_create_engine(). Next, we create a query in the engine using
 PL_open_query() with the flags \const{PL_Q_ALLOW_YIELD} and
 \const{PL_Q_EXT_STATUS}. A foreign predicate that needs to be capable of
 suspending must be registered using PL_register_foreign() and the flags
-\const{PL_FA_VARARGS} and \const{PL_FA_NONDETERMINISTIC}, i.e., only
+\const{PL_FA_VARARGS} and \const{PL_FA_NONDETERMINISTIC}; i.e., only
 non-det predicates can yield. This is no restriction as non-det
 predicate can always return \const{TRUE} to indicate deterministic
 success. Finally, PL_yield_address() allows the predicate to yield
@@ -822,11 +826,11 @@ strlen().
 Deprecated. This function returns a pointer to the content represented
 by the atom or blob regardless of its type. New code should use the blob
 functions such as PL_blob_data() to get a pointer to the content, the
-size of the content and the type of the content. Most applications that
-need to get text from a \ctype{term_t} handle shall use PL_get_nchars()
-or PL_get_wchars(). If it is \emph{knows} that \arg{atom} is a classical
-Prolog text atom one can use PL_atom_nchars() to obtain the C string and
-its length for ISO-Latin-1 atoms or PL_atom_wchars() to obtain a C wide
+size of the content, and the type of the content. Most applications that
+need to get text from a \ctype{term_t} handle should use PL_get_nchars()
+or PL_get_wchars(). If it is \emph{known} that \arg{atom} is a classical
+Prolog text atom, one can use PL_atom_nchars() to obtain the C string and
+its length (for ISO-Latin-1 atoms) or PL_atom_wchars() to obtain a C wide
 string (\ctype{wchar_t}).
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
@@ -2156,15 +2160,15 @@ rank number of the type and then on the result of the
 \cfuncref{compare}{} function.  Rank numbers are assigned when the
 type is registered.
 
-While the blob is alive neither its handle nor the location of the
+While the blob is alive, neither its handle nor the location of the
 contents (see PL_blob_data()) change. If the blob's type has the
-\const{PL_BLOB_UNIQUE} feature the content of the blob shall remain
+\const{PL_BLOB_UNIQUE} feature, the content of the blob must remain
 unmodified. Blobs are \emph{only} reclaimed by the atom garbage
 collector. In this case the atom garbage collector calls the
 \cfuncref{release} function associated with the blob type and reclaims
 the memory allocated for the content unless this is owned by the creator
 of the blob indicated by the \const{PL_BLOB_NOCOPY} flag. After an
-\ctype{atom_t} value is reclaimed by the atom garbage collector this
+\ctype{atom_t} value is reclaimed by the atom garbage collector, the
 value may be reused for allocating a new blob or atom.
 
 If foreign code stores the \ctype{atom_t} handle in some permanent
@@ -2181,10 +2185,12 @@ this scenario the handle is protected by the \ctype{term_t} object.
 Registering and unregistering \ctype{atom_t} handles is done by
 PL_register_atom() and PL_unregister_atom().
 
-Note that during program shutdown using PL_cleanup() all atoms and blobs
+Note that during program shutdown using PL_cleanup(), all atoms and blobs
 are reclaimed as described above. \textbf{These objects are reclaimed
-regardless of their registration coount. The order in which the atoms
-are blobs are reclaimed under PL_cleanup() is undefined.}
+regardless of their registration count. The order in which the atoms
+or blobs are reclaimed under PL_cleanup() is undefined.} However, when
+these objects are reclaimed using garbage_collect_atoms/0, registration
+counts are taken into account.
 
 
 \subsubsection{Defining a BLOB type}
@@ -2244,7 +2250,7 @@ blob. The call to PL_unify_blob() may fail if the unification fails or
 cannot be completed due to a resource error. PL_put_blob() has no such
 error conditions. This callback is typically used to store the
 \ctype{atom_t} handle into the content of the blob. Given a pointer to
-the content we can now use PL_unify_atom() to bind a Prolog term with a
+the content, we can now use PL_unify_atom() to bind a Prolog term with a
 reference to the pointed to object. If the content of the blob can be
 modified (\const{PL_BLOB_UNIQUE} is not present) this is the only way to
 get access to the \ctype{atom_t} handle that belongs to this blob. If
@@ -2265,7 +2271,7 @@ collector.  See also setup_call_cleanup/3.
 
     \cfunction{int}{compare}{atom_t a, atom_t b}
 Compare the blobs \arg{a} and \arg{b}, both of which are of the type
-associated to this blob type. Return values are, as memcmp(), $< 0$ if
+associated to this blob type. Return values are as memcmp(): $< 0$ if
 \arg{a} is less than \arg{b}, $= 0$ if both are equal, and $> 0$
 otherwise. The default implementation is a bitwise comparison of the
 blobs' contents. If you cannot guarantee that the blobs all have unique
@@ -2330,22 +2336,22 @@ filled with the type of the blob.
     \cfunction{int}{PL_unify_blob}{term_t t, void *blob, size_t len,
 				   PL_blob_t *type}
 Unify \arg{t} to a blob constructed from the given data and associated
-to the given type.  This performs the following steps:
+with the given type.  This performs the following steps:
 
 \begin{enumerate}
     \item If the \arg{type} has \const{PL_BLOB_UNIQUE} set, search the
-	  blob database for a blob of the same time with the same
-	  content.  When found, unify \arg{t} with the existing handle.
-    \item If not found above or \const{PL_BLOB_UNIQUE} is not set, create
+	  blob database for a blob of the same type with the same
+	  content.  If found, unify \arg{t} with the existing handle.
+    \item If not found or \const{PL_BLOB_UNIQUE} is not set, create
           a new blob handle. If \const{PL_BLOB_NOCOPY} is set, associate
-	  it to the given memory.  Else, copy the memory to a new area
-	  owned by the blob.  Call the \cfunction{acquire} function of
+	  it to the given memory; else, copy the memory to a new area
+	  owned by the blob.  Call the \cfuncref{acquire}{} function of
 	  the \arg{type}.
-    \item Unify \arg{t} to the existing or new handle.  This succeeds
+    \item Unify \arg{t} with the existing or new handle.  This succeeds
           if \arg{t} is already bound to the existing blob handle.  If
-	  \arg{t} is a variable it succeeds \emph{if} sufficient
-	  resources are available to perform the unification. If \arg{t}
-	  is bound to something else this fails.
+	  \arg{t} is a variable, it succeeds \emph{if} sufficient
+	  resources are available to perform the unification; if \arg{t}
+	  is bound to something else, this fails.
 \end{enumerate}
 
 It is possible that a blob referencing critial resources is created
