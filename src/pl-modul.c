@@ -1480,11 +1480,9 @@ head from the context module.
 
 int
 exportProcedure(Module module, Procedure proc)
-{ LOCKMODULE(module);
-  updateHTable(module->public,
+{ updateHTable(module->public,
 	       (void *)proc->definition->functor->functor,
 	       proc);
-  UNLOCKMODULE(module);
 
   return TRUE;
 }
@@ -1679,8 +1677,11 @@ import(DECL_LD term_t pred, term_t strength)
 retry:
   if ( (old = isCurrentProcedure(proc->definition->functor->functor,
 				 destination)) )
-  { if ( old->definition == proc->definition )
-      succeed;			/* already done this! */
+  { LOCKMODULE(destination);
+    if ( old->definition == proc->definition )
+    { UNLOCKMODULE(destination);
+      return TRUE;			/* already done this! */
+    }
 
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
@@ -1694,11 +1695,14 @@ retry:
       }
       set(old, pflags|PROC_IMPORTED);
 
-      succeed;
+      UNLOCKMODULE(destination);
+      return TRUE;
     }
 
     if ( old->definition->module == destination )
-    { if ( (pflags & PROC_WEAK) )
+    { UNLOCKMODULE(destination);
+
+      if ( (pflags & PROC_WEAK) )
       { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
 	{ term_t pi = PL_new_term_ref();
 
@@ -1719,11 +1723,14 @@ retry:
     }
 
     if ( old->definition->module != source )	/* already imported */
-    { return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
+    { UNLOCKMODULE(destination);
+
+      return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
 		      proc, destination->name,
 		      old->definition->module->name);
     }
 
+    UNLOCKMODULE(destination);
     sysError("Unknown problem importing %s into module %s",
 	     procedureName(proc),
 	     stringAtom(destination->name));
@@ -1750,10 +1757,8 @@ retry:
     shareDefinition(proc->definition);
     nproc->definition = proc->definition;
 
-    LOCKMODULE(destination);
     old = addHTable(destination->procedures,
 		    (void *)proc->definition->functor->functor, nproc);
-    UNLOCKMODULE(destination);
     if ( old != nproc )
     { int shared = unshareDefinition(proc->definition);
       assert(shared > 0);
