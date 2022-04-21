@@ -1421,15 +1421,14 @@ fix_module(Module m, m_reload *r)
 { GET_LD
 
   LOCKMODULE(m);
-  for_table(m->public, n, v,
-	    { if ( !r->public ||
-		   !lookupHTable(r->public, n) )
-	      { DEBUG(MSG_RECONSULT_MODULE,
-		      Sdprintf("Delete export %s\n",
-			       procedureName(v)));
-		deleteHTable(m->public, n);
-	      }
-	    });
+  FOR_TABLE(m->public, n, v)
+  { if ( !r->public ||
+	 !lookupHTable(r->public, n) )
+    { DEBUG(MSG_RECONSULT_MODULE,
+	    Sdprintf("Delete export %s\n", procedureName(v)));
+      deleteHTable(m->public, n);
+    }
+  };
   UNLOCKMODULE(m);
 }
 
