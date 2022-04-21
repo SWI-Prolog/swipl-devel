@@ -120,9 +120,8 @@ static void initHeapDebug(void);
 #define isletter(c) (_istalpha(c) || (c) == '_')
 #endif
 
-#ifndef PATH_MAX
-#define PATH_MAX 256
-#endif
+#undef PATH_MAX
+#define PATH_MAX 1024
 
 #ifndef CHAR_MAX
 #define CHAR_MAX 256

@@ -37,7 +37,6 @@
 
 #ifndef _PL_OS_H
 #define _PL_OS_H
-#include "../pl-incl.h"
 
 /* Get PATH_MAX for legacy BSD systems */
 #ifndef PATH_MAX
@@ -51,6 +50,10 @@
 #endif
 #endif
 
+#if WIN_PATH_MAX
+#undef PATH_MAX
+#define PATH_MAX WIN_PATH_MAX
+#endif
 
 		/********************************
 		*         MISCELLANEOUS         *

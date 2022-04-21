@@ -64,7 +64,7 @@ is supposed to give the POSIX standard one.
 #endif
 #endif
 
-#include "pl-os.h"
+#include "pl-incl.h"
 #include "pl-ctype.h"
 #include "pl-utf8.h"
 #include "../pl-fli.h"

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2015-2017, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2015-2022, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -52,6 +53,13 @@
 
 /* Define for emulating dlopen(), etc. using LoadLibrary */
 #define EMULATE_DLOPEN 1
+
+/* Define to overrule PATH_MAX.  This is set to 260 on Windows,
+ * but Windows handles up to 32k length paths, depending on file system
+ * and register settings.
+ */
+
+#define WIN_PATH_MAX 32768
 
 /* Define for the _xos_... functions */
 #define O_XOS 1

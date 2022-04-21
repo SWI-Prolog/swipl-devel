@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -763,11 +764,11 @@ print_trace(btrace *bt, int me)
       {
 #ifdef HAVE_LIBDWARF
         IMAGEHLP_MODULE64 moduleInfo;
-        char dwarf_srclinebuf[MAX_PATH];
+        char dwarf_srclinebuf[PATH_MAX];
         char *dwarf_srcline = dwarf_srclinebuf;
 
         memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
-        memset(dwarf_srcline, 0, MAX_PATH);
+        memset(dwarf_srcline, 0, PATH_MAX);
         moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         if ( SymGetModuleInfo64(hProcess, s->frame[depth].offset, &moduleInfo) &&
              dwarf_addr2line(&moduleInfo, s->frame[depth].offset, &dwarf_srcline) )

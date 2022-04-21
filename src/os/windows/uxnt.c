@@ -196,7 +196,7 @@ existsAndWriteableDir(const TCHAR *name)
 
 
 char *
-_xos_home()				/* expansion of ~ */
+_xos_home(void)				/* expansion of ~ */
 { static char home[PATH_MAX];
   static int done = FALSE;
 

@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2019, University of Amsterdam
+    Copyright (c)  1995-2022, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -960,7 +961,7 @@ static const folderid folderids[] =
 
 static int
 unify_csidl_path(term_t t, int csidl)
-{ wchar_t buf[MAX_PATH];
+{ wchar_t buf[PATH_MAX];
 
   if ( SHGetSpecialFolderPathW(0, buf, csidl, FALSE) )
   { wchar_t *p;

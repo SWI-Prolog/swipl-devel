@@ -112,8 +112,18 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 		 *	     TYPES, ETC		*
 		 *******************************/
 
-#ifndef PATH_MAX
-#define PATH_MAX 1024
+/* Windows claims PATH_MAX as 260 as that is supported on all versions.
+ * It however handles paths up to 32k, depending on file system and
+ * registry settings.
+ */
+
+#if PATH_MAX < 1024
+#undef PATH_MAX
+#if WIN_PATH_MAX
+#define PATH_MAX WIN_PATH_MAX
+#else
+#define PATH_MAX 32768
+#endif
 #endif
 
 #define XOS_ACCESS_ACCESS		0
