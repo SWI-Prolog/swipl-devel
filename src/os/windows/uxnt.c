@@ -99,13 +99,16 @@ _xos_errno(void)
 		 *		UTF-8		*
 		 *******************************/
 
+#define FITS_UTF8(c, o, e) \
+	((o)+6 < (e) || (o)+utf8_code_bytes(c) < (e))
+
 static char *
 wcstoutf8(char *dest, const wchar_t *src, size_t len)
 { char *o = dest;
-  char *e = &o[len];
+  char *e = &o[len-1];
 
   for(; *src; src++)
-  { if ( o+6 >= e && o+utf8_code_bytes(*src) >= e )
+  { if ( !FITS_UTF8(*src, o, e) )
     { errno = ENAMETOOLONG;
       return NULL;
     }
@@ -182,10 +185,10 @@ utf8_strlen(const char *s, size_t len)
 
 static int
 existsAndWriteableDir(const TCHAR *name)
-{ DWORD a;
+{ DWORD a = GetFileAttributes(name);
 
-  if ( (a=GetFileAttributes(name)) != 0xFFFFFFFF )
-  { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+  if ( a != INVALID_FILE_ATTRIBUTES )
+  { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
     { if ( !(a & FILE_ATTRIBUTE_READONLY) )
 	return TRUE;
     }
@@ -382,7 +385,8 @@ int
 _xos_is_absolute_filename(const char *spec)
 { TCHAR buf[PATH_MAX];
 
-  _xos_os_filenameW(spec, buf, PATH_MAX);
+  if ( !_xos_os_filenameW(spec, buf, PATH_MAX) )
+    return FALSE;
   if ( buf[1] == ':' && buf[0] < 0x80 && iswalpha(buf[0]) )
     return TRUE;			/* drive */
   if ( buf[0] == '\\' && buf[1] == '\\' )
@@ -545,15 +549,21 @@ are in UTF-8 encoding!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-_xos_limited_os_filename(const char *spec, char *limited)
+_xos_limited_os_filename(const char *spec, char *limited, size_t len)
 { const char *i = spec;
   char *o = limited;
+  char *e = &limited[len-1];
 
   while(*i)
   { int wc;
 
     i = utf8_get_char(i, &wc);
     wc = towlower((wchar_t)wc);
+    if ( !FITS_UTF8(wc, o, e) )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+
     o = utf8_put_char(o, wc);
   }
   *o = '\0';
@@ -841,15 +851,15 @@ static int
 exists_file_or_dir(const TCHAR *path, int flags)
 { DWORD a;
 
-  if ( (a=GetFileAttributes(path)) != 0xFFFFFFFF )
-  { if ( flags & _XOS_DIR )
-    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+  if ( (a=GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES )
+  { if ( (flags & _XOS_DIR) )
+    { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
 	return TRUE;
       else
 	return FALSE;
     }
-    if ( flags & _XOS_FILE )
-    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+    if ( (flags & _XOS_FILE) )
+    { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
 	return FALSE;
     }
 
@@ -878,18 +888,20 @@ _xos_exists(const char *path, int flags)
 DIR *
 opendir(const char *path)
 { TCHAR buf[PATH_MAX];
-  DIR *dp = malloc(sizeof(DIR));
+  TCHAR *edir;
+  DIR *dp = malloc(sizeof(*dp));
 
   if ( !dp )
   { errno = ENOMEM;
     return NULL;
   }
 
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX-5) )
   { free(dp);
     return NULL;
   }
-  _tcscat(buf, _T("\\*.*"));
+  edir = buf+_tcslen(buf);
+  _tcscat(edir, _T("\\*.*"));		/* TBD: Just \\*? */
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { free(dp);
@@ -900,9 +912,10 @@ opendir(const char *path)
   dp->handle = FindFirstFile(buf, dp->data);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
-  { if ( _waccess(buf, 04) )		/* does not exist */
-    { free(dp->data);
-      free(dp);
+  { *edir = 0;
+
+    if ( _waccess(buf, R_OK) )		/* Dir does not exist or is unreadable */
+    { closedir(dp);
       return NULL;
     }
   }
@@ -914,7 +927,7 @@ opendir(const char *path)
 int
 closedir(DIR *dp)
 { if ( dp )
-  { if ( dp->handle )
+  { if ( dp->handle != INVALID_HANDLE_VALUE )
       FindClose(dp->handle);
     free(dp->data);
     free(dp);
@@ -928,12 +941,10 @@ closedir(DIR *dp)
 
 static struct dirent *
 translate_data(DIR *dp)
-{ WIN32_FIND_DATA *data;
-
-  if ( !dp->handle )
+{ if ( !dp->handle )
     return NULL;
 
-  data = dp->data;
+  WIN32_FIND_DATA *data = dp->data;
   if ( wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name)) )
     return dp;
 
@@ -949,7 +960,7 @@ readdir(DIR *dp)
     if ( dp->first )
     { dp->first = 0;
     } else
-    { if ( dp->handle )
+    { if ( dp->handle != INVALID_HANDLE_VALUE )
       { if ( !FindNextFile(dp->handle, dp->data) )
 	  return NULL;
       }

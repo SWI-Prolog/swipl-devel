@@ -505,7 +505,9 @@ initPaths(int argc, const char **argv)
 #ifdef O_XOS
   if ( systemDefaults.home )
   { char buf[PATH_MAX];
-    _xos_limited_os_filename(systemDefaults.home, buf);
+
+    if ( !_xos_limited_os_filename(systemDefaults.home, buf, sizeof(buf)) )
+      fatalError("Home path too long");
     systemDefaults.home = store_string(buf);
   }
 #endif

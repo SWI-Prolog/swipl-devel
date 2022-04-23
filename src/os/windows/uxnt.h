@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -143,7 +144,7 @@ _export char *	_xos_canonical_filename(const char *cname,
 					char *osname, size_t len, int flags);
 _export int	_xos_is_absolute_filename(const char *spec);
 _export char *	_xos_absolute_filename(const char *local, char *absolute, size_t len);
-_export char *	_xos_limited_os_filename(const char *spec, char *limited);
+_export char *	_xos_limited_os_filename(const char *spec, char *limited, size_t len);
 _export wchar_t*_xos_long_file_nameW(const wchar_t *n8and3,
 				     wchar_t *name, size_t len);
 _export char*	_xos_long_file_name_toA(const wchar_t *n8and3,
