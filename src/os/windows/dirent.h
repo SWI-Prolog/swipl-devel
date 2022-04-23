@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,7 +45,8 @@
 #define _export extern
 #endif
 
-#define DIRENT_MAX 512
+/* 256 is max directory entry.  4 is max UTF-8 length for 1..0x10ffff */
+#define DIRENT_MAX (256*4)
 
 typedef struct dirent
 { void *		data;		/* actually WIN32_FIND_DATA * */
