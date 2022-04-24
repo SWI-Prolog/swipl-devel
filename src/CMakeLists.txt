@@ -370,7 +370,7 @@ endif()
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
 target_c_stack(swipl${PGO_SUFFIX} 4000000)
-if(MINGW_ROOT)
+if(WIN32)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
 
