@@ -538,7 +538,10 @@ test(ieee_rndto) :-
     assertion(test_roundto(-2.0** 1r3)),
     assertion(test_roundto( 2.0** 1r3)),
     assertion(test_roundto(pi)),
-    assertion(test_roundto(e)).
+    assertion(test_roundto(e)),
+    assertion(test_roundto(sin(pi/2))),
+    assertion(test_roundto(atan2(1,-1))),
+    assertion(test_roundto(cosh(-0.5))).
 
 test(bounded) :-
     assertion(bounded_number(0,10,1)),
@@ -605,7 +608,11 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
 %
 %   Round is a term r(Nearest, Positive, Negative, Zero)
 
+check_round(_Exp, r(R,R,R,R)) :- 
+	float(R), float_class(R,infinite),
+	!.
 check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
+	abs(Rp-Rc+Rn-Rz) < 1e-15,  % all values should be almost equal so sum~=0
     Rn =< Rc, Rc =< Rp,
     (   Rc < 0
     ->  Rz >= Rc, expect_less_then(Exp, n=Rn, z=Rz)

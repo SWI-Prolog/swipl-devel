@@ -8470,6 +8470,20 @@ values for \arg{RoundMode} are the same as the flag values:
 \const{to_nearest}, \const{to_positive}, \const{to_negative} or
 \const{to_zero}.
 
+Note that floating point arithmetic is provided by the C~compiler and
+C~runtime library. Unfortunately most C~libraries do not correctly
+implement the rounding modes for notably the trigonometry and
+exponential functions. There exist correct libraries such as
+\href{https://github.com/taschini/crlibm}{crlibm}, but these libraries
+are large, most of them are poorly maintained or have an incompatible
+license.  Rick Workman noticed that C runtime libraries typically do
+correctly implement the default \jargon{to nearest} rounding mode.
+SWI-Prolog now assumes this mode is correct and translates upward
+rounding to be the \funcref{nexttoward}{2} infinity and downward
+rounding \funcref{nexttoward}{2} -infinity.  This ensures that the
+true value is between the downward and upward rounded values, although
+the generated interval is larger than needed.
+
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
 arguments are compared after converting to the same type, but the

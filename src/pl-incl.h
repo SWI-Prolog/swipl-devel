@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam,
+    Copyright (c)  1985-2022, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -214,6 +214,12 @@ handy for it someone wants to add a data type to the system.
       virtual Prolog "signals" defined above SIG_PROLOG_OFFSET, but
       PL_thread_raise loses its "interrupt a blocking system call"
       semantics when this is disabled.
+  O_ROUND_UP_DOWN
+      Force true values for floating point functions are between the
+      downward and upward rounded values.  Works around the fact that
+      most C runtime libraries do not correctly implement the float
+      rouding modes for many of the trigonomy and expononential
+      functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -241,6 +247,7 @@ handy for it someone wants to add a data type to the system.
 #define O_GVAR			1
 #define O_CYCLIC		1
 #define O_MITIGATE_SPECTRE	1
+#define O_ROUND_UP_DOWN		1
 #ifndef O_PREFER_RATIONALS
 #define O_PREFER_RATIONALS	FALSE
 #endif
