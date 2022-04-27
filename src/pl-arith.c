@@ -1853,6 +1853,177 @@ ar_lcm(Number n1, Number n2, Number r)
 }
 
 
+/* The implementation of the elementary real functions (exp, log, sin, cos, etc.) provided
+ * by the platform dependent 'libm's is variable and largely incorrect when considering
+ * all the IEEE rounding modes. However, most such implementations seem to agree 
+ * when using the default FE_TONEAREST mode. So rather than depending on correct results
+ * for the other rounding modes, the following defines a set of elementary functions which
+ * use 'libm' in FE_TONEAREST mode and then explicitly "round" in the appropriate direction,
+ * as defined by current rounding mode from 'fegetround()', using 'nexttoward()'. This results
+ * in slightly wider "ranges" than a proper correctly rounded library, e.g., crlibm, but
+ * is much simpler to incremenatally add compared to an additional external library. This 
+ * assumes that the libraries do generate correct values when FE_TONEAREST mode is in effect
+ * which is not a proven fact. 
+ *
+ * This set of correctly rounded functions (cr_exp, cr_log, cr_sin, cr_cos, etc.) are used
+ * to redefine the standard functions as used in the various 'ar_...' arithmetic functions.
+ *
+ */
+
+// #define general form of unary function with no limits on result
+#define CR_FUNC(func) \
+static double cr_##func(double in) \
+{ double result; \
+  int roundMode = fegetround(); \
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST); \
+  result = func(in); \
+  if (isfinite(result)) switch( roundMode ) {  \
+	case FE_UPWARD     : result = nexttoward(result, INFINITY); break; \
+	case FE_DOWNWARD   : result = nexttoward(result,-INFINITY); break; \
+	case FE_TOWARDZERO : result = nexttoward(result, 0); break; \
+  } ; \
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode); \
+  return result; \
+}
+
+// #define unary function with abs(result) =< 1.0
+#define CR_FUNC_1(func) \
+static double cr_##func(double in) \
+{ double result; \
+  int roundMode = fegetround(); \
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST); \
+  result = func(in); \
+  if (isfinite(result)) switch( roundMode ) {  \
+	case FE_UPWARD     : result = (result <  1.0) ? nexttoward(result, INFINITY) :  1.0; break; \
+	case FE_DOWNWARD   : result = (result > -1.0) ? nexttoward(result,-INFINITY) : -1.0; break; \
+	case FE_TOWARDZERO : result = nexttoward(result, 0); break; \
+  } ; \
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode); \
+  return result; \
+}
+
+// special case for unary function exp with lower limit of 0.0
+static double cr_exp(double in)
+{ double result;
+  int roundMode = fegetround();
+  //DEBUG(1, Sdprintf("Calling cr_exp(%f) with rounding %d\n",in,roundMode));
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = exp(in);  // result >= 0
+  switch( roundMode ) {
+	case FE_UPWARD     : if (in != -INFINITY) result = nexttoward(result, INFINITY); break;
+	case FE_DOWNWARD   :
+	case FE_TOWARDZERO : if (result !=  INFINITY) result = nexttoward(result,0); break;
+  } ;
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define exp(x) cr_exp(x)
+
+CR_FUNC(log)
+#define log(x) cr_log(x)
+
+CR_FUNC(log10)
+#define log10(x) cr_log10(x)
+
+CR_FUNC_1(sin)
+#define sin(x) cr_sin(x)
+
+CR_FUNC_1(cos)
+#define cos(x) cr_cos(x)
+
+CR_FUNC(tan)
+#define tan(x) cr_tan(x)
+
+CR_FUNC(asin)
+#define asin(x) cr_asin(x)
+
+CR_FUNC(acos)
+#define acos(x) cr_acos(x)
+
+CR_FUNC(atan)
+#define atan(x) cr_atan(x)
+
+// special case for binary atan2 function with standard rounding, finite result
+static double cr_atan2(double y, double x) 
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = atan2(y,x);  // abs(result) =< pi
+  switch( roundMode ) {
+	case FE_UPWARD     : result = nexttoward(result, INFINITY); break;
+	case FE_DOWNWARD   : result = nexttoward(result,-INFINITY); break;
+	case FE_TOWARDZERO : result = nexttoward(result, 0); break;
+  } ;
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define atan2(y,x) cr_atan2(y,x)
+
+CR_FUNC(sinh)
+#define sinh(x) cr_sinh(x)
+
+// special case for unary cosh with lower limit of 1.0
+static double cr_cosh(double in)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = cosh(in);  // result >= 1.0
+  if (fpclassify(result) != FP_NAN) switch( roundMode ) {
+	case FE_UPWARD     : result = nexttoward(result, INFINITY); break;
+	case FE_DOWNWARD   :
+	case FE_TOWARDZERO : if (result != INFINITY) result = (result > 1.0) ? nexttoward(result, 0) : 1.0; break;
+  } ;
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define cosh(x) cr_cosh(x)
+
+CR_FUNC_1(tanh)
+#define tanh(x) cr_tanh(x)
+
+// special case for binary function pow with lower limit of 0.0
+static double cr_pow(double base, double exp)
+{ double result;
+  int roundMode = fegetround();
+  if (roundMode != FE_TONEAREST) fesetround(FE_TONEAREST);
+  result = pow(base, exp);
+  if (fpclassify(result) != FP_NAN) switch( roundMode ) {
+	case FE_UPWARD     : result = (exp == -INFINITY) ? 0.0 : nexttoward(result, INFINITY); break;
+	case FE_DOWNWARD   : result = (exp == -INFINITY) ? 0.0 : nexttoward(result,-INFINITY); break;
+	case FE_TOWARDZERO : if (result !=  INFINITY) result = nexttoward(result,0); break;
+  } ;
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+} 
+#define pow(b,e) cr_pow(b,e)
+
+// special case for unary erf with bounded by +/- 1.0
+static double cr_erf(double in)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = erf(in);  // abs(result) =< 1.0
+  if ((fpclassify(result) != FP_NAN) && (fpclassify(in) != FP_INFINITE)) switch( roundMode ) {
+	case FE_UPWARD     : result = (result <  1.0) ? nexttoward(result, INFINITY) : 1.0; break;
+	case FE_DOWNWARD   : result = (result > -1.0) ? nexttoward(result,-INFINITY) :-1.0; break;
+	case FE_TOWARDZERO : if (fpclassify(in) != FP_INFINITE) result = nexttoward(result, 0); break;
+  } ;
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define erf(x) cr_erf(x)
+
+static double cr_erfc(double in)
+{ return 1.0-cr_erf(in);
+}
+#define erfc(x) cr_erfc(x)
+
+CR_FUNC(lgamma)
+#define lgamma(x) cr_lgamma(x)
+
+/* End of definitions of correctly rounded versions of elementary functions */
+
+
 /* Unary functions requiring double argument */
 
 #define UNAIRY_FLOAT_FUNCTION(name, op) \
