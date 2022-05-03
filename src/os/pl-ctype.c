@@ -712,6 +712,41 @@ PRED_IMPL("normalize_space", 2, normalize_space, 0)
 #if defined(HAVE_LOCALE_H) && defined(HAVE_SETLOCALE)
 #include <locale.h>
 
+typedef struct
+{ const char *name;
+  IOENC encoding;
+} enc_map;
+
+static const enc_map map[] =
+{ { "UTF-8",	  ENC_UTF8 },
+  { "utf8",	  ENC_UTF8 },
+  { "ISO8859-1",  ENC_ISO_LATIN_1 },
+  { "ISO8859_1",  ENC_ISO_LATIN_1 },
+  { "iso88591",   ENC_ISO_LATIN_1 },
+  { "iso_8859_1", ENC_ISO_LATIN_1 },
+  { NULL, ENC_UNKNOWN }
+};
+
+static IOENC
+enc_from_locale(const char *enc)
+{ const char *ext = strchr(enc, '.');
+  const enc_map *m;
+
+  if ( ext )
+    ext++;
+  else
+    ext = enc;
+
+  for ( m=map; m->name; m++ )
+  { if ( strcmp(enc, m->name) == 0 )
+    { return m->encoding;
+    }
+  }
+
+  return ENC_ANSI;			/* text encoding */
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Note: on some installations, locale doesn't   work correctly. Printing a
 message isn't really cute. It would be better to use printMessage(), but
@@ -723,14 +758,27 @@ that locale support is broken. We don't   depend too much on the others,
 so we ignore possible problems.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static IOENC
 init_locale(void)
-{ int rc = TRUE;
+{ int rc = ENC_UNKNOWN;
 
-  if ( !setlocale(LC_CTYPE, "") )
-  { rc = FALSE;
-    DEBUG(0, Sdprintf("Failed to set LC_CTYPE locale\n"));
+#ifdef __WINDOWS__
+  UINT cp = GetACP();
+
+  if ( cp == 65001 )
+    rc = ENC_UTF8;
+#endif
+
+  if ( rc == ENC_UNKNOWN && setlocale(LC_CTYPE, "") )
+  { char *enc;
+
+    if ( (enc = setlocale(LC_CTYPE, NULL)) )
+      rc = enc_from_locale(enc);
+  } else if ( rc == ENC_UNKNOWN )
+  { rc = ENC_ISO_LATIN_1;
+    DEBUG(0, Sdprintf("Failed to set LC_CTYPE locale: %s\n", strerror(errno)));
   }
+
   if ( !setlocale(LC_TIME, "") )
   { DEBUG(0, Sdprintf("Failed to set LC_TIME locale\n"));
   }
@@ -864,56 +912,19 @@ const char _PL_char_types[] = {
 };
 
 
-typedef struct
-{ const char *name;
-  IOENC encoding;
-} enc_map;
-
-static const enc_map map[] =
-{ { "UTF-8",	  ENC_UTF8 },
-  { "utf8",	  ENC_UTF8 },
-  { "ISO8859-1",  ENC_ISO_LATIN_1 },
-  { "ISO8859_1",  ENC_ISO_LATIN_1 },
-  { "iso88591",   ENC_ISO_LATIN_1 },
-  { "iso_8859_1", ENC_ISO_LATIN_1 },
-  { NULL, ENC_UNKNOWN }
-};
-
 IOENC
 initEncoding(void)
 { GET_LD
 
   if ( HAS_LD )
   { if ( !LD->encoding )
-    { char *enc;
-
+    {
 #if __APPLE__
       if ( !getenv("LANG") && !getenv("LC_CTYPE") )
 	putenv("LC_CTYPE=UTF-8");
 #endif
 
-      if ( !init_locale() )
-      { LD->encoding = ENC_ISO_LATIN_1;
-      } else if ( (enc = setlocale(LC_CTYPE, NULL)) )
-      { char *ext = strchr(enc, '.');
-	const enc_map *m;
-
-	LD->encoding = ENC_ANSI;		/* text encoding */
-
-	if ( ext )
-	  ext++;
-	else
-	  ext = enc;
-
-	for ( m=map; m->name; m++ )
-	{ if ( strcmp(enc, m->name) == 0 )
-	  { LD->encoding = m->encoding;
-	    break;
-	  }
-	}
-      } else
-      { LD->encoding = ENC_ISO_LATIN_1;
-      }
+      LD->encoding = init_locale();
     }
 
     return LD->encoding;
