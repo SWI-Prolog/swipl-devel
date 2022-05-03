@@ -10617,7 +10617,16 @@ imply the user has read, search or write permission for the
 directory.
 
     \predicate{delete_file}{1}{+File}
-Remove \arg{File} from the file system.
+Remove \arg{File} from the file system. Note that on POSIX systems the
+remove() call works on read-only files as long as the containing
+directory has write access. The Windows remove() call raises a
+permission error if the file is read-only. SWI-Prolog removes the
+read-only attribute if remove() fails and tries again. If the file still
+cannot be removed it restores the read-only attribute and delete_file/1
+raises a permission error. As a consequence a read-only file that cannot
+be removed is briefly read-write. Also note that while an open file can
+be removed on POSIX systems (where it is actually deleted when closed),
+deleting an open file on Windows is not possible.
 
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} as \arg{File2}. The semantics is compatible to the

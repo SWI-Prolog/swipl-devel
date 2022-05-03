@@ -815,7 +815,22 @@ _xos_remove(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _wremove(buf);
+  if ( _wremove(buf) == 0 )
+    return 0;
+
+  if ( errno == EACCES )		/* try to remove read only file */
+  { DWORD atts = GetFileAttributes(buf);
+
+    if ( (atts & FILE_ATTRIBUTE_READONLY) )
+    { DWORD rwatts = atts & ~FILE_ATTRIBUTE_READONLY;
+      SetFileAttributes(buf, rwatts);
+      if ( DeleteFile(buf) )
+	return 0;
+      SetFileAttributes(buf, atts);
+    }
+  }
+
+  return -1;
 }
 
 
