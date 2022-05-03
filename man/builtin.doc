@@ -8476,13 +8476,16 @@ implement the rounding modes for notably the trigonometry and
 exponential functions. There exist correct libraries such as
 \href{https://github.com/taschini/crlibm}{crlibm}, but these libraries
 are large, most of them are poorly maintained or have an incompatible
-license.  Rick Workman noticed that C runtime libraries typically do
-correctly implement the default \jargon{to nearest} rounding mode.
-SWI-Prolog now assumes this mode is correct and translates upward
-rounding to be the \funcref{nexttoward}{2} infinity and downward
-rounding \funcref{nexttoward}{2} -infinity.  This ensures that the
-true value is between the downward and upward rounded values, although
-the generated interval is larger than needed.
+license. C~runtime libraries do a better job using the default
+\jargon{to nearest} rounding mode. SWI-Prolog now assumes this mode is
+correct and translates upward rounding to be the \funcref{nexttoward}{2}
+infinity and downward rounding \funcref{nexttoward}{2} -infinity. If the
+``to nearest'' rounding mode is correct, this ensures that the true
+value is between the downward and upward rounded values, although the
+generated interval is larger than needed. Unfortunately this is not the
+case as shown in \href{https://hal.inria.fr/hal-03141101}{Accuracy of
+Mathematical Functions in Single, Double, Extended Double and Quadruple
+Precision} by \textit{Vincenzo Innocente and Paul Zimmermann}.
 
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
