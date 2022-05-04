@@ -220,6 +220,8 @@ handy for it someone wants to add a data type to the system.
       most C runtime libraries do not correctly implement the float
       rouding modes for many of the trigonomy and expononential
       functions.
+  O_COVERAGE
+      Include low-level coverage analysis code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define O_COMPILE_OR		1
@@ -248,6 +250,7 @@ handy for it someone wants to add a data type to the system.
 #define O_CYCLIC		1
 #define O_MITIGATE_SPECTRE	1
 #define O_ROUND_UP_DOWN		1
+#define O_COVERAGE		1
 #ifndef O_PREFER_RATIONALS
 #define O_PREFER_RATIONALS	FALSE
 #endif
@@ -939,6 +942,7 @@ typedef enum
 #define	ALERT_DEBUG	     0x080
 #define	ALERT_BUFFER	     0x100
 #define	ALERT_UNDO	     0x200
+#define ALERT_COVERAGE	     0x400
 
 
 		 /*******************************

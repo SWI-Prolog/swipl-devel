@@ -792,6 +792,13 @@ struct PL_local_data
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
   } clauses;
 
+#ifdef O_COVERAGE
+  struct
+  { Table	table;			/* Table for recording data */
+    int		active;			/* We are recording */
+  } coverage;
+#endif
+
   struct
   { gen_t	generation;		/* reload generation */
     int		nesting;		/* reload nesting */

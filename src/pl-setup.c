@@ -63,6 +63,7 @@
 #include "pl-proc.h"
 #include "pl-pro.h"
 #include "pl-gvar.h"
+#include "pl-coverage.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -1781,6 +1782,10 @@ freePrologLocalData(PL_local_data_t *ld)
 #ifdef O_C_STACK_GUARDED
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
+#endif
+
+#ifdef O_COVERAGE
+  free_coverage_data(ld);
 #endif
 
   free_undo_data(ld);

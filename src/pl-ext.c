@@ -424,6 +424,7 @@ DECL_PLIST(event);
 DECL_PLIST(transaction);
 DECL_PLIST(undo);
 DECL_PLIST(error);
+DECL_PLIST(coverage);
 
 void
 initBuildIns(void)
@@ -500,6 +501,9 @@ initBuildIns(void)
   REG_PLIST(transaction);
   REG_PLIST(undo);
   REG_PLIST(error);
+#ifdef O_COVERAGE
+  REG_PLIST(coverage);
+#endif
 
 #define LOOKUPPROC(name) \
 	{ GD->procedures.name = lookupProcedure(FUNCTOR_ ## name, m); \

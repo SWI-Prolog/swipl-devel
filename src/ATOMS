@@ -105,6 +105,7 @@ A byte			"byte"
 A c_stack		"c_stack"
 A call			"call"
 A call_continuation	"call_continuation"
+A call_site		"call_site"
 A callable		"callable"
 A callpred		"$callpred"
 A canceled		"canceled"
@@ -997,6 +998,7 @@ F buffer_size		1
 F busy			2
 F call			1
 F call_continuation	1
+F call_site		3
 F callable		1
 F callpred		2
 F catch			3

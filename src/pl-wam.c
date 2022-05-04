@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -64,6 +64,7 @@
 #include "pl-supervisor.h"
 #include "pl-index.h"
 #include "pl-cont.h"
+#include "pl-coverage.h"
 #include <fenv.h>
 #ifdef _MSC_VER
 #pragma warning(disable: 4102)		/* unreferenced labels */
@@ -298,6 +299,7 @@ updateAlerted(PL_local_data_t *ld)
 #endif
   if ( ld->fli.string_buffers.top )		mask |= ALERT_BUFFER;
   if ( UNDO_SCHEDULED(ld) )			mask |= ALERT_UNDO;
+  if ( LD->coverage.active )			mask |= ALERT_COVERAGE;
 
   ld->alerted = mask;
 

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1907,6 +1907,8 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
     }
 #endif /*O_DEBUGGER*/
 
+    Coverage(FR, UNIFY_PORT);
+
     CHECK_WAKEUP;
   }
   NEXT_INSTRUCTION;
@@ -2065,6 +2067,7 @@ VMH(depart_or_retry_continue, 0, (), ())
     }
 
     Profile(FR->prof_node = profCall(DEF));
+    Coverage(FR, CALL_PORT);
 
 #ifdef O_LIMIT_DEPTH
     { size_t depth = levelFrame(FR);
@@ -2291,6 +2294,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 #endif /*O_DEBUGGER*/
   }
 
+  Coverage(FR, EXIT_PORT);
+
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
@@ -2358,6 +2363,7 @@ VMI(I_EXITFACT, 0, 0, ())
       }
     }
 #endif /*O_DEBUGGER*/
+    Coverage(FR, UNIFY_PORT);
     VMH_GOTO(exit_checking_wakeup);
   }
   VMI_GOTO(I_EXIT);
