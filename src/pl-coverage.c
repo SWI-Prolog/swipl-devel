@@ -359,7 +359,7 @@ int
 free_coverage_data(PL_local_data_t *ld)
 { WITH_LD(ld)
   { if ( !debugstatus.debugging )
-      setPrologFlagMask(PLFLAG_LASTCALL);
+      setPrologRunMode(RUN_MODE_NORMAL);
     LD->coverage.active = 0;
     updateAlerted(LD);
 
@@ -418,7 +418,7 @@ PRED_IMPL("$cov_start", 0, cov_start, 0)
     LD->coverage.table = t;
   }
 
-  clearPrologFlagMask(PLFLAG_LASTCALL);
+  clearPrologRunMode(RUN_MODE_NORMAL);
   LD->coverage.active++;
   updateAlerted(LD);
 
@@ -443,7 +443,7 @@ PRED_IMPL("$cov_stop", 0, cov_stop, 0)
 
   if ( --LD->coverage.active == 0 )
   { if ( !debugstatus.debugging )
-      setPrologFlagMask(PLFLAG_LASTCALL);
+      setPrologRunMode(RUN_MODE_NORMAL);
     LD->coverage.active = FALSE;
     updateAlerted(LD);
   }

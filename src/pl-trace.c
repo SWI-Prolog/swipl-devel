@@ -1727,7 +1727,7 @@ resetTracer(void)
   debugstatus.skiplevel    = 0;
   debugstatus.retryFrame   = 0;
 
-  setPrologFlagMask(PLFLAG_LASTCALL);
+  setPrologRunMode(RUN_MODE_NORMAL);
 }
 
 
@@ -2050,7 +2050,7 @@ debugmode(debug_type doit, debug_type *old)
 	return FALSE;
 
       debugstatus.skiplevel = SKIP_VERY_DEEP;
-      clearPrologFlagMask(PLFLAG_LASTCALL);
+      clearPrologRunMode(RUN_MODE_NORMAL);
       if ( doit == DBG_ALL )
       { QueryFrame qf;
 
@@ -2060,13 +2060,15 @@ debugmode(debug_type doit, debug_type *old)
 	doit = DBG_ON;
       }
     } else
-    { setPrologFlagMask(PLFLAG_LASTCALL);
+    { setPrologRunMode(RUN_MODE_NORMAL);
     }
     debugstatus.debugging = doit;
     updateAlerted(LD);
     return printMessage(ATOM_silent,
 			PL_FUNCTOR_CHARS, "debug_mode", 1,
 			  PL_ATOM, doit ? ATOM_on : ATOM_off);
+  } else if ( !doit )
+  { setPrologRunMode(RUN_MODE_NORMAL);
   }
 
   return TRUE;

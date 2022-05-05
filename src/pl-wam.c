@@ -274,7 +274,14 @@ void
 updateAlerted(PL_local_data_t *ld)
 { int mask = 0;
 
-  WITH_LD(ld) if ( is_signalled() )		mask |= ALERT_SIGNAL;
+  WITH_LD(ld)
+  { if ( is_signalled() )		        mask |= ALERT_SIGNAL;
+    if ( !truePrologFlag(PLFLAG_VMI_BUILTIN) ||
+	 ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+      ld->slow_unify = TRUE;  /* see VMI B_UNIFY_VAR */
+    else
+      ld->slow_unify = FALSE;
+  }
 #ifdef O_PROFILE
   if ( ld->profile.active )			mask |= ALERT_PROFILE;
 #endif
@@ -302,11 +309,6 @@ updateAlerted(PL_local_data_t *ld)
   if ( LD->coverage.active )			mask |= ALERT_COVERAGE;
 
   ld->alerted = mask;
-
-  if ( (mask&ALERT_DEBUG) || ld->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
-    ld->slow_unify = TRUE;		/* see VMI B_UNIFY_VAR */
-  else
-    ld->slow_unify = FALSE;
 }
 
 
@@ -2554,7 +2556,7 @@ one has a programPointer pointing to  I_EXITQUERY, doing the return from
 a query.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define NDEBUG_SAVE_FLAGS prologFlagMask(PLFLAG_LASTCALL)
+#define NDEBUG_SAVE_FLAGS RUN_MODE_NORMAL
 
 qid_t
 PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
@@ -2684,7 +2686,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = DBG_OFF;
     qf->flags_saved = (LD->prolog_flag.mask.flags[0] & NDEBUG_SAVE_FLAGS);
-    setPrologFlagMask(PLFLAG_LASTCALL);
+    setPrologRunMode(RUN_MODE_NORMAL);
 #ifdef O_LIMIT_DEPTH
     qf->saved_depth_limit   = LD->depth_info.limit;
     qf->saved_depth_reached = LD->depth_info.reached;

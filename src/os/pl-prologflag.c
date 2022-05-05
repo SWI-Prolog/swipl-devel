@@ -1479,6 +1479,7 @@ initPrologFlags(void)
   setPrologFlag("protect_static_code", FT_BOOL, FALSE,
 		PLFLAG_PROTECT_STATIC_CODE);
   setPrologFlag("last_call_optimisation", FT_BOOL, TRUE, PLFLAG_LASTCALL);
+  setPrologFlag("vmi_builtin", FT_BOOL, TRUE, PLFLAG_VMI_BUILTIN);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
   setPrologFlag("c_cc",	     FT_ATOM, C_CC);

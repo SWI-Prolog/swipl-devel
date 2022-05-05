@@ -1480,7 +1480,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   int rc;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) || isVar(*v2) )
     { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
 			       v2 = varFrameP(FR, (int)PC[-1]);
@@ -1521,7 +1521,7 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   word c  = (word)*PC++;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) )
     { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
       globaliseVar(v1);
@@ -1553,7 +1553,7 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   int rc;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) || isVar(*v2) )
     { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
 			       v2 = varFrameP(FR, (int)PC[-1]);
@@ -1597,7 +1597,7 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   word c  = (word)*PC++;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) )
     { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
       globaliseVar(v1);
@@ -1641,7 +1641,7 @@ VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
   { globaliseVar(aterm);
   } else
   { deRef(aterm);
-    if ( isTerm(*aterm) && likely(!debugstatus.debugging) )
+    if ( isTerm(*aterm) && likely(truePrologFlag(PLFLAG_VMI_BUILTIN)) )
     { size_t arity = arityTerm(*aterm);
       if ( ai > 0 && ai <= arity )
       { *aarg = linkValI(argTermP(*aterm, ai-1));
@@ -2873,7 +2873,7 @@ VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
 { size_t skip;
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
     VMI_GOTO(C_IFTHENELSE);
 #endif
 
@@ -3209,7 +3209,7 @@ when in debug-mode, so we can trace the call.
 VMI(I_FAIL, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
     DEF = lookupDefinition(FUNCTOR_fail0, MODULE_system);
@@ -3229,7 +3229,7 @@ I_TRUE: Translation of true/0.  See also I_FAIL.
 VMI(I_TRUE, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
     DEF = lookupDefinition(FUNCTOR_true0, MODULE_system);
@@ -3250,7 +3250,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
 { Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { VMH_GOTO(debug_pred1, FUNCTOR_var1, p);
   }
 #endif
@@ -3285,7 +3285,7 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
 { Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { VMH_GOTO(debug_pred1, FUNCTOR_nonvar1, p);
   }
 #endif
@@ -3310,7 +3310,7 @@ END_VMI
 #else
 #define TYPE_TEST(functor, test)		\
 	Word p = varFrameP(FR, (int)*PC++);	\
-	if ( unlikely(debugstatus.debugging) )	\
+	if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )	\
         { VMH_GOTO(debug_pred1, functor, p);	\
 	}					\
 	deRef(p);				\
@@ -4245,7 +4245,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   deRef(np);
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { Word expr;
 
     ENSURE_GLOBAL_SPACE(4,

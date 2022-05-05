@@ -2198,6 +2198,15 @@ platform-specific version information as a list. \arg{Extra} is used for
 Available if created from a git repository.  See \program{git-describe}
 for details.
 
+    \prologflagitem{vmi_builtin}{bool}{rw}
+Determines whether well known built-ins such as true/0 or atom/1 are
+handled by their translation into virtual machine code.  The default
+for this flag is \const{true}, unless debug mode is enabled. Setting
+this flag to \const{false} may improve other runtime instrumentation
+results.  Note that optimized arithmetic (\cmdlineoption{-O}, see
+Prolog flag \prologflag{optimise}) is currently not translated into
+a normal predicate call.
+
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
 imported predicate is clobbered by a local definition.  See
