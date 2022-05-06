@@ -173,7 +173,7 @@ static int
 unify_cov(term_t t, const cov_obj *cov)
 { switch( cov->type )
   { case COV_PC:
-      ClauseRef cref = clause_clref(cov->cref);
+    { ClauseRef cref = clause_clref(cov->cref);
       Clause    cl   = cref->value.clause;
 
       if ( cref )
@@ -192,6 +192,7 @@ unify_cov(term_t t, const cov_obj *cov)
 	}
       }
       return FALSE;
+    }
     case COV_CLAUSE:
       return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_clause1,
 			        PL_ATOM, cov->cref);
