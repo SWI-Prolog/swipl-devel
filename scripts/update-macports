@@ -35,7 +35,7 @@ fi
 
 size=$(wc -c < $file | xargs)
 sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
-rmd160=$(openssl rmd160 < $file | cut -d ' ' -f 2)
+rmd160=$(openssl -provider legacy rmd160 < $file | cut -d ' ' -f 2)
 
 if [ -d $portprefix/var/macports/distfiles ]; then
   cp $file $portprefix/var/macports/distfiles/swi-prolog || exit 1
