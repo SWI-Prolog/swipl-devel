@@ -1122,6 +1122,8 @@ that reads from or writes to \arg{Stream}.
     ...
 \end{code}
 
+Note that the setting for this flag in the \const{main} thread applies.
+
     \prologflagitem{agc_margin}{integer}{rw}
 If this amount of atoms possible garbage atoms exist perform atom
 garbage collection at the first opportunity.  Initial value is 10,000.
