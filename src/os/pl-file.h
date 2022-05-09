@@ -62,6 +62,8 @@ typedef enum iri_op
 /* pl-file.c */
 void		initIO(void);
 void		dieIO(void);
+void		referenceStandardStreams(PL_local_data_t *ld);
+void		unreferenceStandardStreams(PL_local_data_t *ld);
 void		closeFiles(int all);
 int		openFileDescriptors(unsigned char *buf, int size);
 void		protocol(const char *s, size_t n);

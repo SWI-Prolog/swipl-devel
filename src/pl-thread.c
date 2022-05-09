@@ -2044,6 +2044,7 @@ copy_local_data(PL_local_data_t *ldnew, PL_local_data_t *ldold,
   ldnew->thread.waiting_for = NULL;
   init_message_queue(&ldnew->thread.messages, max_queue_size);
   init_predicate_references(ldnew);
+  referenceStandardStreams(ldnew);
 }
 
 

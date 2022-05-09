@@ -1796,6 +1796,7 @@ freePrologLocalData(PL_local_data_t *ld)
   }
 
   cleanAbortHooks(ld);
+  unreferenceStandardStreams(ld);
 }
 
 /* The following definitions aren't necessary for compiling, and in fact

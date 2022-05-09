@@ -1096,6 +1096,32 @@ Address size of the hosting machine.  Typically 32 or 64.  Except for
 the maximum stack limit, this has few implications to the user.  See
 also the Prolog flag \prologflag{arch}.
 
+    \prologflagitem{agc_close_streams}{boolean}{rw}
+When \const{true} (default \const{false}\footnote{Future versions are
+likely to change the default to \const{true}.}), that atom garbage
+collector streams that are garbage collected while being open. In
+addition, a warning is printed. Below is an example of such a warning.
+
+\begin{code}
+WARNING: AGC: closed <stream>(0x560e29014400)
+\end{code}
+
+Note that closing I/O streams should not be left to the (atom) garbage
+collector because it may take long before the atom garbage collector
+runs and because that atom garbage collector is \jargon{conservative},
+which implies that it is not guaranteed that all garbage atoms are
+reclaimed. Code that uses I/O streams should use setup_call_cleanup/3
+using the skeleton below, where \nopredref{process}{1} is a predicate
+that reads from or writes to \arg{Stream}.
+
+\begin{code}
+    setup_call_cleanup(
+	open(..., Stream),
+	process(Stream),
+	close(Stream)),
+    ...
+\end{code}
+
     \prologflagitem{agc_margin}{integer}{rw}
 If this amount of atoms possible garbage atoms exist perform atom
 garbage collection at the first opportunity.  Initial value is 10,000.

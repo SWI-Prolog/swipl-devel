@@ -40,6 +40,7 @@
 :- set_prolog_flag(optimise_debug, false).
 % do not load xpce from threadutil.pl as this leaks memory
 :- set_prolog_flag(xpce, false).
+:- set_prolog_flag(agc_close_streams, true).
 
 :- use_module(library(plunit)).
 :- use_module(library(lists)).

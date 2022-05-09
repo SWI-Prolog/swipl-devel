@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1499,6 +1499,7 @@ initPrologFlags(void)
   setPrologFlag("trace_gc",  FT_BOOL,	       FALSE, PLFLAG_TRACE_GC);
 #ifdef O_ATOMGC
   setPrologFlag("agc_margin",FT_INTEGER,	       GD->atoms.margin);
+  setPrologFlag("agc_close_streams", FT_BOOL, FALSE, PLFLAG_AGC_CLOSE_STREAMS);
 #endif
   setPrologFlag("table_space", FT_INTEGER, GD->options.tableSpace);
 #ifdef O_PLMT

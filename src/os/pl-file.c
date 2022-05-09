@@ -280,6 +280,54 @@ unaliasStream(IOSTREAM *s, atom_t name)
 }
 
 
+void
+referenceStandardStreams(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { int i;
+    const atom_t *np;
+
+    for(i=0, np = standardStreams; *np; np++, i++ )
+    { IOSTREAM *s;
+
+      if ( (s=LD->IO.streams[i]) )
+	Sreference(s);
+    }
+  }
+}
+
+
+void
+unreferenceStandardStreams(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { int i;
+    const atom_t *np;
+
+    for(i=0, np = standardStreams; *np; np++, i++ )
+    { IOSTREAM *s;
+
+      if ( (s=LD->IO.streams[i]) )
+	Sunreference(s);
+    }
+  }
+}
+
+
+#define setStandardStream(i, s) LDFUNC(setStandardStream, i, s)
+
+static void
+setStandardStream(DECL_LD int i, IOSTREAM *s)
+{ IOSTREAM *old = LD->IO.streams[i];
+
+  LD->IO.streams[i] = s;
+  if ( old != s )
+  { if ( old )
+      Sunreference(old);
+    if ( s )
+      Sreference(s);
+  }
+}
+
+
 static void
 freeStream(IOSTREAM *s)
 { GET_LD
@@ -319,14 +367,14 @@ freeStream(IOSTREAM *s)
        (sp=LD->IO.streams) )
   { for(i=0; i<6; i++, sp++)
     { if ( *sp == s )
-      { if ( s->flags & SIO_INPUT )
-	  *sp = Sinput;
+      { *sp = NULL;
+
+	if ( s->flags & SIO_INPUT )
+	  setStandardStream(i, Sinput);
 	else if ( sp == &Suser_error )
-	  *sp = Serror;
-	else if ( sp == &Sprotocol )
-	  *sp = NULL;
-	else
-	  *sp = Soutput;
+	  setStandardStream(i, Serror);
+	else if ( sp != &Sprotocol )
+	  setStandardStream(i, Soutput);
       }
     }
   }
@@ -408,17 +456,19 @@ initIO(void)
   Scurin       = Sinput;		/* see/tell */
   Scurout      = Soutput;
   Sprotocol    = NULL;			/* protocolling */
+  referenceStandardStreams(LD);
 
   getStreamContext(Sinput);		/* add for enumeration */
   getStreamContext(Soutput);
   getStreamContext(Serror);
 
   for( i=0, np = standardStreams; *np; np++, i++ )
-    addNewHTable(streamAliases, (void *)*np, (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
+    addNewHTable(streamAliases,
+		 (void *)*np,
+		 (void *)(intptr_t)(i ^ STD_HANDLE_MASK));
 
   GD->io_initialised = TRUE;
 }
-
 
 		 /*******************************
 		 *	     GET HANDLES	*
@@ -566,17 +616,53 @@ acquire_stream_ref(atom_t aref)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A garbage collected stream that is  open   cannot  be subject to any I/O
+operations. Previously we left these open. Now we close them if they are
+not yet closed. We only so so  when   the  stream is unlocked though. In
+theory we could force destruction of the stream   but for now we stay on
+the safe side.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+gc_close_stream(atom_t aref, IOSTREAM *s)
+{ if ( s->erased )
+  { unallocStream(s);
+  } else if ( s->magic == SIO_MAGIC && !true(s, SIO_CLOSING) )
+  { int doit;
+
+    WITH_LD(&PL_local_data)
+      doit = truePrologFlag(PLFLAG_AGC_CLOSE_STREAMS);
+
+    if ( doit )
+    { int rc = Sgcclose(s, SIO_CLOSE_TRYLOCK);
+
+      if ( s != Serror )
+      { Slock(Serror);
+	if ( rc == 0 )
+	  Sdprintf("WARNING: AGC: closed ");
+	else
+	  Sdprintf("WARNING: AGC: failed to close (locked) ");
+	write_stream_ref(Serror, aref, 0);
+	Sdprintf("\n");
+	Sunlock(Serror);
+      }
+    }
+  }
+}
+
+
 static int
 release_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-  { if ( Sunreference(ref->read) == 0 && ref->read->erased )
-      unallocStream(ref->read);
+  { if ( Sunreference(ref->read) == 0 )
+      gc_close_stream(aref, ref->read);
   }
   if ( ref->write )
-  { if ( Sunreference(ref->write) == 0 && ref->write->erased )
-      unallocStream(ref->write);
+  { if ( Sunreference(ref->write) == 0 )
+      gc_close_stream(aref, ref->write);
   }
 
   return TRUE;
@@ -1318,7 +1404,7 @@ protocol(const char *str, size_t n)
   { while( n-- > 0 )
       Sputcode(*str++&0xff, s);
     Sflush(s);
-    if ( !releaseStream(s) )		/* we don not check errors */
+    if ( !releaseStream(s) )		/* we do not check errors */
       PL_clear_exception();
   }
 }
@@ -1963,9 +2049,9 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
       return FALSE;
 
     if ( (i=standardStreamIndexFromName(alias)) >= 0 )
-    { LD->IO.streams[i] = s;
+    { setStandardStream(i, s);
       if ( i == 0 )
-	LD->prompt.next = TRUE;	/* changed standard input: prompt! */
+	LD->prompt.next = TRUE;		/* changed Sinput: prompt! */
       return TRUE;
     }
 
@@ -1973,7 +2059,7 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     aliasStream(s, alias);
     PL_UNLOCK(L_FILE);
     return TRUE;
-  } else if ( aname == ATOM_buffer ) /* buffer(Buffering) */
+  } else if ( aname == ATOM_buffer )	/* buffer(Buffering) */
   { atom_t b;
 
     if ( !PL_get_atom_ex(a, &b) )
@@ -5697,13 +5783,13 @@ PRED_IMPL("set_prolog_IO", 3, set_prolog_IO, 0)
 
   PL_LOCK(L_FILE);
 
-  LD->IO.streams[1] = out;		/* user_output */
-  LD->IO.streams[2] = error;		/* user_error */
-  LD->IO.streams[4] = out;		/* current_output */
+  setStandardStream(1, out);		/* user_output */
+  setStandardStream(2, error);		/* user_error */
+  setStandardStream(4, out);		/* current_output */
 
   if ( wrapin )
-  { LD->IO.streams[3] = in;		/* current_input */
-    LD->IO.streams[0] = in;		/* user_input */
+  { setStandardStream(3, in);		/* current_input */
+    setStandardStream(0, in);		/* user_input */
     wrapIO(in, Sread_user, NULL);
     LD->prompt.next = TRUE;
   }
