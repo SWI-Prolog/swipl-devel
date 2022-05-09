@@ -2381,8 +2381,17 @@ ignored.
     \cfunction{void *}{PL_blob_data}{atom_t a,
 				     size_t *len,
 				     PL_blob_t **type}
-Get the data and type associated to a blob.  This function is mainly
-used from the callback functions described in \secref{blobtype}.
+
+Get the data and type associated to a blob. This function is mainly used
+from the callback functions described in \secref{blobtype}. Note that if
+the release() hook is called from PL_cleanup(), blobs are releases
+regardless of whether or not they are referenced and the order in which
+blobs are released is undefined (the order depends on the ordering in
+the atom hash table). PL_blob_data() may be called safely on a blob that
+has already been released. If this happens during PL_cleanup() the
+return value is guaranteed to be \const{NULL}. During normal execution
+it may return the content of a newly allocated blob that reused the
+released handle.
 \end{description}
 
 

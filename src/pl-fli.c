@@ -3810,6 +3810,12 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
   if ( len )
     *len = x->length;
+  if ( unlikely(x->type == ATOM_TYPE_INVALID) )
+  { if ( type )
+      *type = NULL;
+    return NULL;
+  }
+
   if ( type )
     *type = x->type;
 
