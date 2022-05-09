@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -1924,8 +1924,8 @@ object, which in turn calls the  ->unlink   which  may wish to close the
 associated stream.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-Sclose(IOSTREAM *s)
+static int
+S__close(IOSTREAM *s, int flags)
 { int rval = 0;
 
   if ( s->magic != SIO_MAGIC )		/* already closed!? */
@@ -1943,7 +1943,19 @@ Sclose(IOSTREAM *s)
     return -1;
   }
 
-  SLOCK(s);
+  if ( (flags & (SIO_CLOSE_TRYLOCK|SIO_CLOSE_FORCE)) )
+  { if ( !STRYLOCK(s) )
+    { if ( (flags&SIO_CLOSE_FORCE) )
+      { PL_free(s->mutex);
+	s->mutex = NULL;
+      } else
+      { errno = EDEADLK;
+	return -1;
+      }
+    }
+  } else
+    SLOCK(s);
+
   s->flags |= SIO_CLOSING;
   rval = S__removebuf(s);
   if ( s->mbstate )
@@ -1986,6 +1998,16 @@ Sclose(IOSTREAM *s)
     s->erased = TRUE;
 
   return rval;
+}
+
+int
+Sclose(IOSTREAM *s)
+{ return S__close(s, 0);
+}
+
+int
+Sgcclose(IOSTREAM *s, int flags)
+{ return S__close(s, flags);
 }
 
 

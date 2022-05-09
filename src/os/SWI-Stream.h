@@ -311,6 +311,9 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define SIO_RP_BLOCK 0x1		/* wait for new input */
 #define SIO_RP_NOPOS 0x2		/* Do not update position */
 
+#define SIO_CLOSE_TRYLOCK	0x1	/* Sgcclose(): fail if we cannot lock */
+#define SIO_CLOSE_FORCE		0x2	/* Sgcclose(): force regardless of lock */
+
 #if IOSTREAM_REPLACES_STDIO
 
 #undef FILE
@@ -408,6 +411,7 @@ PL_EXPORT(int64_t)	Ssize(IOSTREAM *s);
 PL_EXPORT(int)		Sseek(IOSTREAM *s, long pos, int whence);
 PL_EXPORT(long)		Stell(IOSTREAM *s);
 PL_EXPORT(int)		Sclose(IOSTREAM *s);
+PL_EXPORT(int)		Sgcclose(IOSTREAM *s, int flags);
 PL_EXPORT(char *)	Sfgets(char *buf, int n, IOSTREAM *s);
 PL_EXPORT(char *)	Sgets(char *buf);
 PL_EXPORT(ssize_t)	Sread_pending(IOSTREAM *s,
