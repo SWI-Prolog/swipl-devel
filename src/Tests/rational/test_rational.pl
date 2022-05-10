@@ -117,18 +117,6 @@ test(conversion) :-
     assertion((R1 is float(5r3), R2 is (5)/(3), check_error(R1,R2))),
     assertion(rationalize((1)/(2)) =:= 1r2).
 
-% rational exponent power tests (3)
-test(float_to_rat) :-
-    assertion(8.0 is 4.0**3r2),
-    assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
-    assertion(2.0 is 8.0**1r3),
-    assertion(-2.0 is -8.0**1r3),
-    assertion(4.0 is 8.0**2r3),
-    assertion(4.0 is -8.0**2r3),
-    assertion(0.5 is 8.0** -1r3),
-    assertion(-0.5 is -8.0** -1r3),
-    assertion(2**1r2 =:= sqrt(2)).
-
 test(int_to_rat) :-
     assertion(div0err(0** -1)),  % additional test for negative integer exp.
     assertion(div0err(0** -1r2)),
