@@ -1545,9 +1545,9 @@ mpz_fdiv(mpz_t num, mpz_t den)
     }
 
     if ( swapped )
-      res = (l/s) * pow(2.0, le-se);
+      res = ldexp(l/s, le-se);
     else
-      res = (s/l) * pow(2.0, se-le);
+      res = ldexp(s/l, se-le);
 
     if ( negative )
       fesetround(r_mode);
