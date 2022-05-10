@@ -584,11 +584,12 @@ state1(_,   X, X, _).
 %   L = [1,2,3,4|_].
 %   ```
 %
-%   Note that SWI-Prolog up to  version   8.3.4  created  copies of Goal using
-%   copy_term/2 for each iteration, this makes the current implementation
-%   unable to  properly handle compound terms (in Goal’s arguments) that share
-%   variables with the Generator. As a workaround you can define a goal that
-%   does not use compound terms, like in this example:
+%   Note that SWI-Prolog up to  version   8.3.4  created  copies of Goal
+%   using  copy_term/2  for  each  iteration,  this  makes  the  current
+%   implementation unable to properly handle   compound terms (in Goal's
+%   arguments) that share variables with the  Generator. As a workaround
+%   you can define a goal that does not use compound terms, like in this
+%   example:
 %
 %   ```
 %   mem(E,L) :-  % mem/2 hides the compound argument from foreach/2
