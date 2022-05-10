@@ -2228,37 +2228,6 @@ get_int_exponent(Number n, unsigned long *expp)
   return TRUE;
 }
 
-/* cond_minus_pow() handles rounding mode issues calculating pow with
-   negative base float have to reverse to_positive and to_negative.
-*/
-
-static double
-cond_minus_pow(double base, double exp)
-{ double res;
-
-  if ( base < 0 )
-  { switch( fegetround() )
-    { case FE_UPWARD:
-	fesetround(FE_DOWNWARD);
-        res = -pow(-base,exp);
-	fesetround(FE_UPWARD);
-	break;
-      case FE_DOWNWARD:
-	fesetround(FE_UPWARD);
-        res = -pow(-base,exp);
-	fesetround(FE_DOWNWARD);
-	break;
-      default:
-	res = -pow(-base,exp);
-    }
-  } else
-  { res = pow(base,exp);
-  }
-
-  return res;
-}
-
-
 static int
 ar_smallint(Number n, int *i)
 { switch(n->type)
@@ -2542,17 +2511,65 @@ ar_pow(Number n1, Number n2, Number r)
         if ( n1->value.f < 0  && !( r_den & 1 ))
 	{ r->value.f = const_nan;	/* negative base, even denominator */
 	} else
-        {
+	{ int roundMode;
+	  int roundMode1, roundMode2;
+	  int neg_res;
+
 	doreal_mpq:
-	  mpq_init(r->value.mpq);
-	  mpq_set_ui(r->value.mpq,1,mpz_get_ui(mpq_denref(n2->value.mpq)));
-	  double dexp = mpq_get_d(r->value.mpq);  /* float(1/n2.den) */
-	  mpq_clear(r->value.mpq);
-	  r->value.f = pow(cond_minus_pow(n1->value.f, dexp),
-			   mpz_get_ui(mpq_numref(n2->value.mpq)));
+	  /* float n1 ^ rat n2*exp_sign, permit -ve float
+	   * Difficult to keep rounding modes straight as (1) the pow function
+	   * switches between monotonic increasing and decreasing depending on
+	   * value of n1 and n2, and (2) it is a two step function
+	   * (promoteToFloatNumber() * and pow()) with independent rounding.
+	   */
+	  roundMode = fegetround();
+	  neg_res = (n1->value.f < 0.0) &&
+		    (mpz_get_ui(mpq_numref(n2->value.mpq)) & 1);
+	  if ( neg_res )                 // pow monotonic increasing or decreasing
+	  { switch (roundMode)           // decreasing
+	    { case FE_UPWARD:
+		roundMode1 = FE_DOWNWARD;
+		break;
+	      case FE_DOWNWARD:
+		roundMode1 = FE_UPWARD;
+		break;
+	      default:
+		roundMode1 = roundMode;
+	    };
+	  } else                         // increasing
+	    roundMode1 = roundMode;
+
+	  n1->value.f = fabs(n1->value.f);
+	  if ( n1->value.f < 1.0 )       // pow monotonic increasing or decreasing
+	  { switch (roundMode1)          // decreasing
+	    { case FE_UPWARD:
+		roundMode2 = FE_DOWNWARD;
+		break;
+	      case FE_DOWNWARD:
+		roundMode2 = FE_UPWARD;
+		break;
+	      default:
+		roundMode2 = roundMode1;
+	    }
+	  } else                         // increasing
+	    roundMode2 = roundMode1;
+
+	  fesetround(roundMode2);
 	  if ( exp_sign == -1 )
-	    r->value.f = 1.0/r->value.f;
-        }
+	    mpq_neg(n2->value.mpq, n2->value.mpq);
+	  if ( !promoteToFloatNumber(n2) )             // using roundMode as set
+	    return FALSE;
+
+	  if (roundMode1 != roundMode2)
+	    fesetround(roundMode1);
+	  r->value.f = pow(n1->value.f, n2->value.f);  // using roundMode1
+
+	  if ( neg_res )
+	    r->value.f = -r->value.f;
+
+	  if ( roundMode1 != roundMode )
+	    fesetround(roundMode);
+	}  /* doreal_mpq */
 
         r->type = V_FLOAT;
         return check_float(r);
