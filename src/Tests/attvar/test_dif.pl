@@ -143,6 +143,9 @@ test(issue122) :-
 	C=[_|_],
 	dif(C, A),
 	C=[B|B].
+test(issue109) :-
+	A=[B|A], C=[D|B], dif(A, C), A=[D|A],
+	attvar(D).
 
 :- end_tests(dif).
 
