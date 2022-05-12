@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -138,6 +138,11 @@ test(other_atts) :-
 	Vars == [],
 	XDone == true,
 	YDone == true.
+test(issue122) :-
+	A=[B|_],
+	C=[_|_],
+	dif(C, A),
+	C=[B|B].
 
 :- end_tests(dif).
 
