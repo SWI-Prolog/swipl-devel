@@ -595,6 +595,13 @@ the system in debug mode. All debugging modes can be shut off at once by
 calling nodebug/0 since shutting off debug mode automatically turns off
 trace mode.
 
+In addition, SWI-Prolog supports attaching an arbitrary goal to each
+breakpoint via `set_breakpoint/5`, which yields *Conditional
+Breakpoints*. A conditional breakpoint is the same as the regular
+breakpoints discussed thus far, except that whenever the breakpoint is
+triggered, the given goal is invoked and trace mode is only turned on
+in case it succeeds.
+
 ## Command Line Debugger Summary {#trace-summary}
 
 In summary, there are really two distinct "tracing" features: trace

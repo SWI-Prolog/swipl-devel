@@ -62,18 +62,25 @@ other hooks the opportunity to react.
 */
 
 %!  set_breakpoint(+File, +Line, +Char, -Id) is det.
+%!  set_breakpoint(+File, +Line, +Char, :Cond, -Id) is det.
 %!  set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
 %
 %   Put a breakpoint at the indicated source-location. File is a current
 %   sourcefile (as reported by source_file/1). Line  is the 1-based line
 %   in which Char is. Char is the position of the break.
 %
+%   Cond is a goal that will be invoked whenever the newly set
+%   breakpoint is triggered. If goal fails, the breakpoint is skipped
+%   and execution commences normaly.  In the context of Cond,
+%   break_context_frame/1 is made available for obtaining the
+%   execution frame identifier in which the breakpoint was triggered.
+%
 %   First, '$clause_from_source'/4 uses  the   SWI-Prolog  clause-source
 %   information  to  find  the  last    clause   starting  before  Line.
-%   '$break_pc'  generated  (on  backtracking),  a    list  of  possible
-%   break-points.
+%   '$break_pc'  generates  (on  backtracking),  a    list  of  possible
+%   breakpoints.
 %
-%   Note that in addition to setting the break-point, the system must be
+%   Note that in addition to setting the breakpoint, the system must be
 %   in debug mode for the  breakpoint   to  take  effect. With threading
 %   enabled, there are various different  ways   this  may  be done. See
 %   debug/0, tdebug/0 and tdebug/1. Therefore, this predicate does *not*
@@ -85,7 +92,15 @@ other hooks the opportunity to react.
 
 set_breakpoint(File, Line, Char, Id) :-
     set_breakpoint(File, File, Line, Char, Id).
+
 set_breakpoint(Owner, File, Line, Char, Id) :-
+    integer(Char),
+    !,
+    set_breakpoint(Owner, File, Line, Char, true, Id).
+set_breakpoint(File, Line, Char, Cond, Id) :-
+    set_breakpoint(File, File, Line, Char, Cond, Id).
+
+set_breakpoint(Owner, File, Line, Char, Cond, Id) :-
     debug(break, 'break_at(~q, ~d, ~d).', [File, Line, Char]),
     '$clause_from_source'(Owner, File, Line, ClauseRefs),
     member(ClauseRef, ClauseRefs),
@@ -101,7 +116,7 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
         debug(break, 'Term from ~w-~w', [A, Z]),
         Z >= Char, !,
         Len is Z - A,
-        b_setval('$breakpoint', file_location(File, Line, A, Len))
+        b_setval('$breakpoint', file_location(File, Line, A, Len)-Cond)
     ;   print_message(warning, breakpoint(no_source(ClauseRef, File, Line))),
         '$break_pc'(ClauseRef, PC, _), !,
         nb_delete('$breakpoint')
@@ -109,7 +124,7 @@ set_breakpoint(Owner, File, Line, Char, Id) :-
     debug(break, 'Break at clause ~w, PC=~w', [ClauseRef, PC]),
     '$break_at'(ClauseRef, PC, true),
     nb_delete('$breakpoint'),
-    known_breakpoint(ClauseRef, PC, _Location, Id).
+    known_breakpoint(ClauseRef, PC, _Location, _Cond, Id).
 
 range(_,  Pos, _), var(Pos) =>
     fail.
@@ -127,7 +142,7 @@ range(exit, Pos, SubPos) =>
     SubPos = Dot-EndDot.
 
 :- dynamic
-    known_breakpoint/4,             % ClauseRef, PC, Location, Id
+    known_breakpoint/5,           % ClauseRef, PC, Location, Cond, Id
     break_id/1.
 
 next_break_id(Id) :-
@@ -148,7 +163,7 @@ next_break_id(1) :-
 
 delete_breakpoint(Id) :-
     integer(Id),
-    known_breakpoint(ClauseRef, PC, _Location, Id),
+    known_breakpoint(ClauseRef, PC, _Location, _Cond, Id),
     !,
     '$break_at'(ClauseRef, PC, false).
 delete_breakpoint(Id) :-
@@ -171,13 +186,13 @@ delete_breakpoint(Id) :-
 %       Reference of the clause in which the breakpoint resides.
 
 breakpoint_property(Id, file(File)) :-
-    known_breakpoint(ClauseRef,_,_,Id),
+    known_breakpoint(ClauseRef,_,_,_,Id),
     clause_property(ClauseRef, file(File)).
 breakpoint_property(Id, line_count(Line)) :-
-    known_breakpoint(_,_,Location,Id),
+    known_breakpoint(_,_,Location,_,Id),
     location_line(Location, Line).
 breakpoint_property(Id, character_range(Start, Len)) :-
-    known_breakpoint(ClauseRef,PC,Location,Id),
+    known_breakpoint(ClauseRef,PC,Location,_,Id),
     (   Location = file_location(_File, _Line, Start, Len)
     ->  true
     ;   break_location(ClauseRef, PC, _File, SubPos),
@@ -188,7 +203,9 @@ breakpoint_property(Id, character_range(Start, Len)) :-
         Len is End+1-Start
     ).
 breakpoint_property(Id, clause(Reference)) :-
-    known_breakpoint(Reference,_,_,Id).
+    known_breakpoint(Reference,_,_,_,Id).
+breakpoint_property(Id, condition(Cond)) :-
+    known_breakpoint(_,_,_,Cond,Id).
 
 location_line(file_location(_File, Line, _Start, _Len), Line).
 location_line(file_character_range(File, Start, _Len), Line) :-
@@ -230,24 +247,26 @@ stream_line(In, Index, Line0, Line) :-
     prolog_listen(break, onbreak).
 
 onbreak(exist, ClauseRef, PC) :-
-    known_breakpoint(ClauseRef, PC, _Location, Id),
+    known_breakpoint(ClauseRef, PC, _Location, _Cond, Id),
     !,
     break_message(breakpoint(exist, Id)).
 onbreak(true, ClauseRef, PC) :-
     !,
     debug(break, 'Trap in Clause ~p, PC ~d', [ClauseRef, PC]),
     with_mutex('$break', next_break_id(Id)),
-    (   nb_current('$breakpoint', Location)
+    (   nb_current('$breakpoint', Location-Cond)
     ->  true
-    ;   break_location(ClauseRef, PC, File, A-Z)
-    ->  Len is Z+1-A,
-        Location = file_character_range(File, A, Len)
-    ;   clause_property(ClauseRef, file(File)),
-        clause_property(ClauseRef, line_count(Line))
-    ->  Location = file_line(File, Line)
-    ;   Location = unknown
+    ;   Cond = true,
+        (   break_location(ClauseRef, PC, File, A-Z)
+        ->  Len is Z+1-A,
+            Location = file_character_range(File, A, Len)
+        ;   clause_property(ClauseRef, file(File)),
+            clause_property(ClauseRef, line_count(Line))
+            ->  Location = file_line(File, Line)
+        ;   Location = unknown
+        )
     ),
-    asserta(known_breakpoint(ClauseRef, PC, Location, Id)),
+    asserta(known_breakpoint(ClauseRef, PC, Location, Cond, Id)),
     break_message(breakpoint(set, Id)).
 onbreak(false, ClauseRef, PC) :-
     debug(break, 'Remove breakpoint from ~p, PC ~d', [ClauseRef, PC]),
@@ -321,4 +340,17 @@ breakpoint_name(Id) -->
         ['~w in ~w'-[Id, Name]]
     ).
 
+
+:- thread_local break_context_frame/1.
+:- multifile prolog:break_hook/6.
+
+prolog:break_hook(Clause, PC, Frame, _Choice, _Goal, Action) :-
+    known_breakpoint(Clause, PC, _, Cond, _Id),
+    current_prolog_flag(debug, true),
+    setup_call_cleanup(asserta(break_context_frame(Frame), Ref),
+                       (   Cond
+                       ->  Action = trace
+                       ;   Action = continue
+                       ),
+                       prolog:erase(Ref)).
 

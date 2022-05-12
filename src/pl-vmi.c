@@ -268,7 +268,7 @@ END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 D_BREAK implements break-points in the  code.   A  break-point is set by
-replacing  an  instruction  by  a   D_BREAK  instruction.  The  orininal
+replacing  an  instruction  by  a   D_BREAK  instruction.  The  original
 instruction is saved in a table. replacedBreak() fetches it.
 
 We simply switch to trace-mode, which will   trap the tracer on the next
