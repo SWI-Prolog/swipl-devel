@@ -38,6 +38,7 @@
 :- module(prolog_breakpoints,
           [ set_breakpoint/4,           % +File, +Line, +CharPos, -Id
             set_breakpoint/5,           % +Owner, +File, +Line, +CharPos, -Id
+            set_breakpoint/6,           % +Owner, +File, +Line, +CharPos, +Cond, -Id
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
@@ -61,9 +62,11 @@ Note that the hook must fail  after   creating  its side-effects to give
 other hooks the opportunity to react.
 */
 
+:- meta_predicate set_breakpoint(+, +, +, +, 0, -).
+
 %!  set_breakpoint(+File, +Line, +Char, -Id) is det.
-%!  set_breakpoint(+File, +Line, +Char, :Cond, -Id) is det.
 %!  set_breakpoint(+Owner, +File, +Line, +Char, -Id) is det.
+%!  set_breakpoint(+Owner, +File, +Line, +Char, :Cond, -Id) is det.
 %
 %   Put a breakpoint at the indicated source-location. File is a current
 %   sourcefile (as reported by source_file/1). Line  is the 1-based line
@@ -71,7 +74,7 @@ other hooks the opportunity to react.
 %
 %   Cond is a goal that will be invoked whenever the newly set
 %   breakpoint is triggered. If goal fails, the breakpoint is skipped
-%   and execution commences normaly.  In the context of Cond,
+%   and execution commences normally.  In the context of Cond,
 %   break_context_frame/1 is made available for obtaining the
 %   execution frame identifier in which the breakpoint was triggered.
 %
@@ -94,11 +97,7 @@ set_breakpoint(File, Line, Char, Id) :-
     set_breakpoint(File, File, Line, Char, Id).
 
 set_breakpoint(Owner, File, Line, Char, Id) :-
-    integer(Char),
-    !,
     set_breakpoint(Owner, File, Line, Char, true, Id).
-set_breakpoint(File, Line, Char, Cond, Id) :-
-    set_breakpoint(File, File, Line, Char, Cond, Id).
 
 set_breakpoint(Owner, File, Line, Char, Cond, Id) :-
     debug(break, 'break_at(~q, ~d, ~d).', [File, Line, Char]),

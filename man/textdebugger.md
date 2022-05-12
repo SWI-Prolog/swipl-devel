@@ -596,7 +596,7 @@ calling nodebug/0 since shutting off debug mode automatically turns off
 trace mode.
 
 In addition, SWI-Prolog supports attaching an arbitrary goal to each
-breakpoint via `set_breakpoint/5`, which yields *Conditional
+breakpoint via `set_breakpoint/6`, which yields *Conditional
 Breakpoints*. A conditional breakpoint is the same as the regular
 breakpoints discussed thus far, except that whenever the breakpoint is
 triggered, the given goal is invoked and trace mode is only turned on
@@ -616,7 +616,8 @@ like this:
 |:
 |: ^Dtrue.
 
-?- set_breakpoint('/...path.../Example.pl', 8, 24, user:should_break, ID).
+?- Path = '/...path.../Example.pl', set_breakpoint(Path, Path, 8, 24, user:should_break, ID).
+Path = '/...path.../Example.pl',
 ID = 1.
 
 ?- debug.
