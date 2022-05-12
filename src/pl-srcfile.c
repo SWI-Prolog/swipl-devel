@@ -603,33 +603,33 @@ static
 PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 { PRED_LD
   atom_t name;
-  int rc = TRUE;
+  int rc = FALSE;
   SourceFile sf;
 
   term_t file = A1;
 
-  PL_LOCK(L_SRCFILE);
   if ( PL_get_atom_ex(file, &name) &&
-       (sf = lookupSourceFile_unlocked(name, FALSE)) &&
-       sf->count > 0 )
-  { term_t tail = PL_copy_term_ref(A2);
-    term_t head = PL_new_term_ref();
-    ListCell cell;
+       (sf = lookupSourceFile(name, FALSE)) )
+  { if ( sf->count > 0 )
+    { term_t tail = PL_copy_term_ref(A2);
+      term_t head = PL_new_term_ref();
+      ListCell cell;
 
-    LOCKSRCFILE(sf);
-    for(cell=sf->procedures; rc && cell; cell = cell->next )
-    { Procedure proc = cell->value;
-      Definition def = proc->definition;
+      LOCKSRCFILE(sf);
+      for(cell=sf->procedures; rc && cell; cell = cell->next )
+      { Procedure proc = cell->value;
+	Definition def = proc->definition;
 
-      rc = ( PL_unify_list(tail, head, tail) &&
-	     unify_definition(MODULE_user, head, def, 0, GP_QUALIFY)
-	   );
+	rc = ( PL_unify_list(tail, head, tail) &&
+	       unify_definition(MODULE_user, head, def, 0, GP_QUALIFY)
+	     );
+      }
+      rc = (rc && PL_unify_nil(tail));
+      UNLOCKSRCFILE(sf);
     }
-    rc = (rc && PL_unify_nil(tail));
-    UNLOCKSRCFILE(sf);
-  } else
-    rc = FALSE;
-  PL_UNLOCK(L_SRCFILE);
+
+    releaseSourceFile(sf);
+  }
 
   return rc;
 }
