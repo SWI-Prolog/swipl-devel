@@ -602,6 +602,38 @@ breakpoints discussed thus far, except that whenever the breakpoint is
 triggered, the given goal is invoked and trace mode is only turned on
 in case it succeeds.
 
+To enable tracing just when ``noun/2`` is called from ``test_noun2/2``
+with ``rock2`` as the first argument, `set_breakpoint/4` can be used
+like this:
+
+~~~
+?- [user].
+|:
+|: should_break :-
+|:     prolog_breakpoints:break_context_frame(Frame),
+|:     prolog_frame_attribute(Frame, argument(1), Arg),
+|:     Arg == rock2.
+|:
+|: ^Dtrue.
+
+?- set_breakpoint('/...path.../Example.pl', 8, 24, user:should_break, ID).
+ID = 1.
+
+?- debug.
+true.
+
+[debug]  ?- test_noun2(X, rock).
+X = rock1 ;
+X = rock2.
+
+[debug]  ?- test_noun2(foo, rock).
+   Call: (11) noun(foo, rock) ? goals
+     [11] noun(foo, rock)
+     [10] test_noun2(foo, rock)
+   Call: (11) noun(foo, rock) ? abort
+[trace]  ?-
+~~~
+
 ## Command Line Debugger Summary {#trace-summary}
 
 In summary, there are really two distinct "tracing" features: trace

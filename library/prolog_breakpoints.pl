@@ -342,11 +342,10 @@ breakpoint_name(Id) -->
 
 
 :- thread_local break_context_frame/1.
-:- multifile prolog:break_hook/6.
+:- multifile prolog:break_hook/7.
 
-prolog:break_hook(Clause, PC, Frame, _Choice, _Goal, Action) :-
+prolog:break_hook(Clause, PC, Frame, _Choice, _Goal, true, Action) :-
     known_breakpoint(Clause, PC, _, Cond, _Id),
-    current_prolog_flag(debug, true),
     setup_call_cleanup(asserta(break_context_frame(Frame), Ref),
                        (   Cond
                        ->  Action = trace

@@ -287,16 +287,18 @@ with the library \pllib{prolog_breakpoints}. Setting a breakpoint
 replaces a virtual machine instruction with the \const{D_BREAK}
 instruction.  If the virtual machine executes a \const{D_BREAK}, it
 performs a callback to decide on the action to perform.  This section
-describes this callback, called prolog:break_hook/6.
+describes this callback, called prolog:break_hook/7.
 
 \begin{description}
-    \predicate[hook,semidet]{prolog:break_hook}{6}{+Clause, +PC, +FR,
-						   +BFR, +Expression, -Action}
+    \predicate[hook,semidet]{prolog:break_hook}{7}{+Clause, +PC, +FR,
+						   +BFR, +Expression, +Debug, -Action}
 \emph{Experimental}
 This hook is called if the virtual machine executes a \const{D_BREAK},
 set using set_breakpoint/4. \arg{Clause} and \arg{PC} identify the
 breakpoint. \arg{FR} and \arg{BFR} provide the environment frame and
-current choicepoint.  \arg{Expression} identifies the action that is
+current choicepoint. \arg{Debug} is \const{true} if the system was in
+debug mode when the breakpoint was reached, otherwise \arg{Debug} is
+\const{false}. \arg{Expression} identifies the action that is
 interrupted, and is one of the following:
 
     \begin{description}
@@ -334,7 +336,7 @@ interrupted, and is one of the following:
     both the unification start and end instructions.}
     \end{description}
 
-If prolog:break_hook/6 succeeds, it must unify \arg{Action} with a value
+If prolog:break_hook/7 succeeds, it must unify \arg{Action} with a value
 that describes how execution must continue. Possible values for
 \arg{Action} are:
 
