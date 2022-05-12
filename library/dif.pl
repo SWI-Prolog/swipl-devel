@@ -3,7 +3,7 @@
     Author:        Tom Schrijvers, Markus Triska and Jan Wielemaker
     E-mail:        Tom.Schrijvers@cs.kuleuven.ac.be
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2021, K.U.Leuven
+    Copyright (c)  2004-2022, K.U.Leuven
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -194,7 +194,7 @@ add_ornode_var2(X,Y,OrNode) :-
 simplify_ornode(OrNode) :-
     (   get_attr(OrNode, dif, node(Pairs0))
     ->  simplify_ornode(Pairs0, Pairs, U),
-        Pairs \== [],
+        Pairs-U \== []-[],
         put_attr(OrNode, dif, node(Pairs)),
         subunifier(U, OrNode)
     ;   true
@@ -207,15 +207,15 @@ simplify_ornode(List0, List, U) :-
 simplify_ornode_([], List, U) =>
     List = [],
     U = [].
-simplify_ornode_([Var=Val1,Var=Val2|T], List, U), var(Var) =>
-    (   ?=(Val1, Val2)
-    ->  Val1 == Val2,
-        simplify_ornode_([Var=Val2|T], List, U)
-    ;   U = [Val1=Val2|UT],
-        simplify_ornode_([Var=Val2|T], List, UT)
-    ).
 simplify_ornode_([V1=V2|T], List, U), V1 == V2 =>
     simplify_ornode_(T, List, U).
+simplify_ornode_([V1=Val1,V2=Val2|T], List, U), var(V1), V1 == V2 =>
+    (   ?=(Val1, Val2)
+    ->  Val1 == Val2,
+        simplify_ornode_([V1=Val2|T], List, U)
+    ;   U = [Val1=Val2|UT],
+        simplify_ornode_([V2=Val2|T], List, UT)
+    ).
 simplify_ornode_([H|T], List, U) =>
     List = [H|Rest],
     simplify_ornode_(T, Rest, U).
