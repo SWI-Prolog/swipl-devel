@@ -38,7 +38,7 @@
 :- module(prolog_breakpoints,
           [ set_breakpoint/4,           % +File, +Line, +CharPos, -Id
             set_breakpoint/5,           % +Owner, +File, +Line, +CharPos, -Id
-            set_breakpoint/6,           % +Owner, +File, +Line, +CharPos, +Cond, -Id
+            set_breakpoint/6,           % +Owner, +File, +Line, +CharPos, :Cond, -Id
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
@@ -350,5 +350,5 @@ prolog:break_hook(Clause, PC, Frame, _Choice, _Goal, true, Action) :-
                        ->  Action = trace
                        ;   Action = continue
                        ),
-                       prolog:erase(Ref)).
+                       erase(Ref)).
 

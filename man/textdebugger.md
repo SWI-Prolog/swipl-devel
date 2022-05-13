@@ -627,11 +627,12 @@ true.
 X = rock1 ;
 X = rock2.
 
-[debug]  ?- test_noun2(foo, rock).
-   Call: (11) noun(foo, rock) ? goals
-     [11] noun(foo, rock)
-     [10] test_noun2(foo, rock)
-   Call: (11) noun(foo, rock) ? abort
+[debug]  ?- test_noun2(rock2, rock).
+   Call: (11) noun(rock2, rock) ? creep
+   Call: (12) is_a(rock2, rock) ? creep
+   Exit: (12) is_a(rock2, rock) ? creep
+   Exit: (11) noun(rock2, rock) ? creep
+   Exit: (10) test_noun2(rock2, rock) ? creep
 [trace]  ?-
 ~~~
 
