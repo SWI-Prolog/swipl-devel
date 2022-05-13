@@ -143,7 +143,7 @@ test(issue122) :-
 	C=[_|_],
 	dif(C, A),
 	C=[B|B].
-test(issue109) :-
+test(issue109, [sto(rational_trees)]) :-
 	A=[B|A], C=[D|B], dif(A, C), A=[D|A],
 	attvar(D).
 
