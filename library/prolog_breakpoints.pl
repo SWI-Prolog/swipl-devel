@@ -39,6 +39,7 @@
           [ set_breakpoint/4,           % +File, +Line, +CharPos, -Id
             set_breakpoint/5,           % +Owner, +File, +Line, +CharPos, -Id
             set_breakpoint/6,           % +Owner, +File, +Line, +CharPos, :Cond, -Id
+            set_breakpoint_condition/2, % +Id, :Cond
             delete_breakpoint/1,        % +Id
             breakpoint_property/2       % ?Id, ?Property
           ]).
@@ -340,7 +341,33 @@ breakpoint_name(Id) -->
     ).
 
 
+                 /**********************************************
+                 *            Conditional Breakpoints          *
+                 **********************************************/
+
+
+%!  set_breakpoint_condition(+Id, :Cond) is det.
+%
+%   Set the condition goal of the breakpoint with given Id to Cond.
+%
+%   @error existence_error(breakpoint, Id).
+
+set_breakpoint_condition(Id, Cond) :-
+    retract(known_breakpoint(ClauseRef, PC, Location, _OldCond, Id)),
+    !,
+    asserta(known_breakpoint(ClauseRef, PC, Location, Cond, Id)).
+set_breakpoint_condition(Id, _Cond) :-
+    existence_error(breakpoint, Id).
+
+
+%!  break_context_frame(-Frame) is semidet.
+%
+%   When called from the condition goal of a conditional breakpoint,
+%   this predicate unifies Frame with an identifier of the frame in
+%   which the pending breakpoint was triggered.
+
 :- thread_local break_context_frame/1.
+
 :- multifile prolog:break_hook/7.
 
 prolog:break_hook(Clause, PC, Frame, _Choice, _Goal, true, Action) :-

@@ -596,15 +596,16 @@ calling nodebug/0 since shutting off debug mode automatically turns off
 trace mode.
 
 In addition, SWI-Prolog supports attaching an arbitrary goal to each
-breakpoint via `set_breakpoint/6`, which yields *Conditional
+breakpoint via `set_breakpoint_condition/2`, which yields *Conditional
 Breakpoints*. A conditional breakpoint is the same as the regular
 breakpoints discussed thus far, except that whenever the breakpoint is
 triggered, the given goal is invoked and trace mode is only turned on
-in case it succeeds.
+in case it succeeds. It is also possible to specify a condition for a
+breakpoint when creating the breakpoint with `set_breakpoint/6`.
 
 To enable tracing just when ``noun/2`` is called from ``test_noun2/2``
-with ``rock2`` as the first argument, `set_breakpoint/4` can be used
-like this:
+with ``rock2`` as the first argument, `set_breakpoint_condition/2` can
+be used like this:
 
 ~~~
 ?- [user].
@@ -616,9 +617,11 @@ like this:
 |:
 |: ^Dtrue.
 
-?- Path = '/...path.../Example.pl', set_breakpoint(Path, Path, 8, 24, user:should_break, ID).
-Path = '/...path.../Example.pl',
+?- set_breakpoint('/tmp/e.pl', 8, 24, ID).
 ID = 1.
+
+?- set_breakpoint_condition(1, user:should_break).
+true.
 
 ?- debug.
 true.
@@ -633,6 +636,27 @@ X = rock2.
    Exit: (12) is_a(rock2, rock) ? creep
    Exit: (11) noun(rock2, rock) ? creep
    Exit: (10) test_noun2(rock2, rock) ? creep
+true.
+
+[trace]  ?- notrace.
+true.
+
+[debug]  ?- set_breakpoint_condition(1, true).
+true.
+
+[debug]  ?- test_noun2(X, rock).
+   Call: (11) noun(_23686, rock) ? creep
+   Call: (12) is_a(_23686, rock) ? creep
+   Exit: (12) is_a(rock1, rock) ? creep
+   Exit: (11) noun(rock1, rock) ? creep
+   Exit: (10) test_noun2(rock1, rock) ? creep
+X = rock1 ;
+   Redo: (12) is_a(_23686, rock) ? creep
+   Exit: (12) is_a(rock2, rock) ? creep
+   Exit: (11) noun(rock2, rock) ? creep
+   Exit: (10) test_noun2(rock2, rock) ? creep
+X = rock2.
+
 [trace]  ?-
 ~~~
 
