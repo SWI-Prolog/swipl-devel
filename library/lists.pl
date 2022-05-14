@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2021, University of Amsterdam
+    Copyright (c)  2002-2022, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -405,15 +405,17 @@ same_length([_|T1], [_|T2]) :-
 
 %!  reverse(?List1, ?List2)
 %
-%   Is true when the elements of List2 are in reverse order compared to
-%   List1.
+%   Is true when the elements of List2  are in reverse order compared to
+%   List1. This predicate is deterministic if   either  list is a proper
+%   list. If both  lists  are   _partial  lists_  backtracking generates
+%   increasingly long lists.
 
 reverse(Xs, Ys) :-
-    reverse(Xs, [], Ys, Ys).
+    reverse(Xs, Ys, [], Ys).
 
-reverse([], Ys, Ys, []).
-reverse([X|Xs], Rs, Ys, [_|Bound]) :-
-    reverse(Xs, [X|Rs], Ys, Bound).
+reverse([], [], Ys, Ys).
+reverse([X|Xs], [_|Bound], Rs, Ys) :-
+    reverse(Xs, Bound, [X|Rs], Ys).
 
 
 %!  permutation(?Xs, ?Ys) is nondet.
