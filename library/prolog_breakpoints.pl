@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -179,7 +180,11 @@ breakpoint_property(Id, character_range(Start, Len)) :-
     known_breakpoint(ClauseRef,PC,Location,Id),
     (   Location = file_location(_File, _Line, Start, Len)
     ->  true
-    ;   break_location(ClauseRef, PC, _File, Start-End),
+    ;   break_location(ClauseRef, PC, _File, SubPos),
+        compound(SubPos),
+        arg(1, SubPos, Start),
+        arg(2, Start, End),
+        nonvar(Start), nonvar(End),
         Len is End+1-Start
     ).
 breakpoint_property(Id, clause(Reference)) :-
@@ -256,21 +261,22 @@ onbreak(gc, ClauseRef, PC) :-
 break_message(Message) :-
     print_message(informational, Message).
 
-%!  break_location(+ClauseRef, +PC, -File, -AZ) is det.
+%!  break_location(+ClauseRef, +PC, -File, -Pos) is det.
 %
-%   True when File and AZ represent the  location of the goal called
-%   at PC in ClauseRef.
+%   True when File and Pos represent the  file and subterm position term
+%   for the goal called at PC in ClauseRef.
 %
-%   @param AZ is a term A-Z, where   A and Z are character positions
-%   in File.
+%   @arg Pos is a subterm position  term (see `subterm_positions` option
+%   of read_term/3, where positions are character positions in File. The
+%   first two argument always hold the start and end of the term.
 
-break_location(ClauseRef, PC, File, A-Z) :-
+break_location(ClauseRef, PC, File, SubPos) :-
     clause_info(ClauseRef, File, TermPos, _NameOffset),
     '$fetch_vm'(ClauseRef, PC, NPC, _VMI),
     '$clause_term_position'(ClauseRef, NPC, List),
     debug(break, 'ClausePos = ~w', [List]),
-    range(List, TermPos, A, Z),
-    debug(break, 'Range: ~d .. ~d', [A, Z]).
+    range(List, TermPos, SubPos),
+    debug(break, 'Subgoal at: ~p', [SubPos]).
 
 
                  /*******************************
