@@ -1569,27 +1569,27 @@ endReconsult(SourceFile sf)
     delayEvents();
     delete_old_predicates(sf);
 
-    for_table(reload->procedures, n, v,
-	      { Procedure proc = n;
-		p_reload *r = v;
+    FOR_TABLE(reload->procedures, n, v)
+    { Procedure proc = n;
+      p_reload *r = v;
 
-		accessed_preds -= end_reconsult_proc(sf, proc, r);
-	      });
+      accessed_preds -= end_reconsult_proc(sf, proc, r);
+    }
 
     popNPredicateAccess(accessed_preds);
     assert(reload->pred_access_count == popNPredicateAccess(0));
     destroyHTable(reload->procedures);
 
     if ( reload->modules )
-    { for_table(reload->modules, n, v,
-		{ Module m = n;
-		  m_reload *r = v;
+    { FOR_TABLE(reload->modules, n, v)
+      { Module m = n;
+	m_reload *r = v;
 
-		  fix_module(m, r);
-		  if ( r->public )
-		    destroyHTable(r->public);
-		  freeHeap(r, sizeof(*r));
-		});
+	fix_module(m, r);
+	if ( r->public )
+	  destroyHTable(r->public);
+	freeHeap(r, sizeof(*r));
+      }
       destroyHTable(reload->modules);
     }
 

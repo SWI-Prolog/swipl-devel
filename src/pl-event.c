@@ -74,7 +74,7 @@ const event_type PL_events[] =
   GEVENT(PLEV_BREAK,            ATOM_break,            3, onbreak),
   GEVENT(PLEV_BREAK_EXISTS,     ATOM_break,            3, onbreak),
   GEVENT(PLEV_NOBREAK,          ATOM_break,            3, onbreak),
-  GEVENT(PLEV_GCNOBREAK,        ATOM_break,            3, onbreak),
+  GEVENT(PLEV_RETRACTNOBREAK,   ATOM_break,            3, onbreak),
   GEVENT(PLEV_FRAMEFINISHED,    ATOM_frame_finished,   1, onframefinish),
   GEVENT(PLEV_UNTABLE,		ATOM_untable,          1, onuntable),
 #ifdef O_PLMT
@@ -455,7 +455,7 @@ delayEvent(pl_event_type ev, va_list args)
     { case PLEV_BREAK_EXISTS:
       case PLEV_BREAK:
       case PLEV_NOBREAK:
-      case PLEV_GCNOBREAK:
+      case PLEV_RETRACTNOBREAK:
 	dev.value.pc.clause = va_arg(args, Clause);
 	dev.value.pc.offset = va_arg(args, int);
 	acquire_clause(dev.value.pc.clause);
@@ -518,7 +518,7 @@ sendDelayedEvents(int noerror)
 	{ case PLEV_BREAK_EXISTS:
 	  case PLEV_BREAK:
 	  case PLEV_NOBREAK:
-	  case PLEV_GCNOBREAK:
+	  case PLEV_RETRACTNOBREAK:
 	    noerror = callEventHook(dev->type,
 				    dev->value.pc.clause, dev->value.pc.offset);
 	    sent++;
@@ -606,15 +606,15 @@ PL_call_event_hook_va(pl_event_type ev, va_list args)
     case PLEV_BREAK:
     case PLEV_BREAK_EXISTS:
     case PLEV_NOBREAK:
-    case PLEV_GCNOBREAK:
+    case PLEV_RETRACTNOBREAK:
     { Clause cl = va_arg(args, Clause);
       int offset = va_arg(args, int);
 
       rc = ( PL_put_atom(av+1,
-			 ev == PLEV_BREAK     ? ATOM_true :
-			 ev == PLEV_NOBREAK   ? ATOM_false :
-			 ev == PLEV_GCNOBREAK ? ATOM_gc :
-			                        ATOM_exist) &&
+			 ev == PLEV_BREAK          ? ATOM_true :
+			 ev == PLEV_NOBREAK        ? ATOM_false :
+			 ev == PLEV_RETRACTNOBREAK ? ATOM_retract :
+			                             ATOM_exist) &&
 	     PL_put_clref(av+2, cl) &&
 	     PL_put_intptr(av+3, offset) );
       break;
