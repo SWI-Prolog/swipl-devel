@@ -251,12 +251,15 @@ onbreak(true, ClauseRef, PC) :-
     break_message(breakpoint(set, Id)).
 onbreak(false, ClauseRef, PC) :-
     debug(break, 'Remove breakpoint from ~p, PC ~d', [ClauseRef, PC]),
+    delete_breakpoint(ClauseRef, PC).
+onbreak(retract, ClauseRef, PC) :-
+    debug(break, 'Remove breakpoint from ~p, PC ~d (due to retract)',
+          [ClauseRef, PC]),
+    delete_breakpoint(ClauseRef, PC).
+
+delete_breakpoint(ClauseRef, PC) :-
     clause(known_breakpoint(ClauseRef, PC, _Location, Id), true, Ref),
     call_cleanup(break_message(breakpoint(delete, Id)), erase(Ref)).
-onbreak(gc, ClauseRef, PC) :-
-    debug(break, 'Remove breakpoint from ~p, PC ~d (due to CGC)',
-          [ClauseRef, PC]),
-    retractall(known_breakpoint(ClauseRef, PC, _Location, _Id)).
 
 break_message(Message) :-
     print_message(informational, Message).

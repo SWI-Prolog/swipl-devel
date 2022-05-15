@@ -1673,7 +1673,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   if ( generation != GEN_TR_DISCARD_ASSERT )
     setLastModifiedPredicate(def, clause->generation.erased, TWF_RETRACT);
 
-  return TRUE;
+  return clearBreakPointsClause >= 0;
 }
 
 
@@ -1752,8 +1752,7 @@ freeClause(Clause c)
 
 static int WUNUSED			/* FALSE if there was an error */
 announceErasedClause(Clause clause)
-{ return ( clearBreakPointsClause(clause) >= 0 &&
-	   callEventHook(PLEV_ERASED_CLAUSE, clause) );
+{ return callEventHook(PLEV_ERASED_CLAUSE, clause);
 }
 
 
@@ -1916,6 +1915,8 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
 	if ( true(def, P_DYNAMIC) )
 	  deleteActiveClauseFromIndexes(def, cl);
 	registerRetracted(cl);
+	int rc = clearBreakPointsClause(cl);
+	(void)rc;			/* in delayEvents(), so cannot fail */
       } else if ( cl->generation.created == rl->reload_gen )
       { cl->generation.created = update;
 	added++;

@@ -44,7 +44,7 @@ typedef enum pl_event_type
   PLEV_BREAK,				/* a break-point was set */
   PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
-  PLEV_GCNOBREAK,			/* cleared due to clause GC */
+  PLEV_RETRACTNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PLEV_UNTABLE,				/* Stop tabling some predicate */
 					/* Keep these two at the end */

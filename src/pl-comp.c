@@ -8274,22 +8274,22 @@ clear_second:
 
 int
 clearBreakPointsClause(Clause clause)
-{ if ( breakTable )
+{ if ( breakTable && true(clause, HAS_BREAKPOINTS) )
   { int rc = TRUE;
 
     delayEvents();
     PL_LOCK(L_BREAK);
-    for_table(breakTable, name, value,
-              { BreakPoint bp = (BreakPoint)value;
-		if ( bp->clause == clause )
-		{ int offset = bp->offset;
-		  clearBreak(clause, bp->offset);
-		  rc = callEventHook(PLEV_GCNOBREAK, clause, offset) && rc;
-		}
-	      })
+    FOR_TABLE(breakTable, name, value)
+    { BreakPoint bp = (BreakPoint)value;
+      if ( bp->clause == clause )
+      { int offset = bp->offset;
+	clearBreak(clause, bp->offset);
+	rc = callEventHook(PLEV_RETRACTNOBREAK, clause, offset) && rc;
+      }
+    }
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
-    return sendDelayedEvents(rc);
+    return sendDelayedEvents(rc);	/* returns -1 on error */
   }
 
   return 0;
