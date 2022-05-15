@@ -322,7 +322,7 @@ struct PL_global_data
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;
-    Procedure	prolog_break_hook6;	/* prolog:break_hook/6 */
+    Procedure	prolog_break_hook7;	/* prolog:break_hook/7 */
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
     Procedure   call1;			/* call/1 */

@@ -1266,9 +1266,9 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-callBreakHook() calls prolog:break_hook/6 as
+callBreakHook() calls prolog:break_hook/7 as
 
-    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, -Action) is semidet.
+    prolog:break_hook(+Clause, +PC, +Frame, +Choice, +Goal, +Debug, -Action) is semidet.
 
 (*) If put_vm_call() addresses  `F`  (first   var)  variables,  it  will
 initialise these to bind to the  goal.   However,  if GC comes along, it
@@ -1294,8 +1294,8 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
   { LD->slow_unify = TRUE;
     goto default_action;
   }
-  proc = _PL_predicate("break_hook", 6, "prolog",
-		       &GD->procedures.prolog_break_hook6);
+  proc = _PL_predicate("break_hook", 7, "prolog",
+		       &GD->procedures.prolog_break_hook7);
   if ( !getProcDefinition(proc)->impl.any.defined )
     goto default_action;
 
@@ -1318,7 +1318,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 
   if ( saveWakeup(&wstate, FALSE) )
   { if ( (cid=PL_open_foreign_frame()) )
-    { term_t argv = PL_new_term_refs(6);
+    { term_t argv = PL_new_term_refs(7);
       Clause clause = frame->clause->value.clause;
       qid_t qid;
 
@@ -1327,6 +1327,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
       PL_put_intptr(argv+1, PC - clause->codes);
       PL_put_frame(argv+2, frame);
       PL_put_choice(argv+3, bfr);
+      PL_put_bool(argv+5, debugstatus.debugging);
       if ( ( op == B_UNIFY_EXIT &&
              put_call_goal(argv+4, GD->procedures.equals2) &&
              PL_cons_functor_v(argv+4, FUNCTOR_call1, argv+4) ) ||
@@ -1345,7 +1346,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	  { atom_t a_action;
 	    break_action action;
 
-	    if ( PL_get_atom(argv+5, &a_action) )
+	    if ( PL_get_atom(argv+6, &a_action) )
 	    { if ( a_action == ATOM_continue )
 	      { action = BRK_CONTINUE;
 	      } else if ( a_action == ATOM_trace )
@@ -1359,9 +1360,9 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	      restoreWakeup(&wstate);
 
 	      return action;
-	    } else if ( PL_is_functor(argv+5, FUNCTOR_call1) )
+	    } else if ( PL_is_functor(argv+6, FUNCTOR_call1) )
 	    { LocalFrame NFR = LD->query->next_environment;
-	      Word p = valTermRef(argv+5);
+	      Word p = valTermRef(argv+6);
 
 	      deRef(p);
 	      assert(hasFunctor(p[0], FUNCTOR_call1));
@@ -1375,7 +1376,7 @@ callBreakHook(DECL_LD LocalFrame frame, Choice bfr,
 	      return BRK_CALL;
 	    } else
 	    { invalid_action:
-	      PL_warning("prolog:break_hook/6: invalid action");
+	      PL_warning("prolog:break_hook/7: invalid action");
 	    }
 	  }
 	}
