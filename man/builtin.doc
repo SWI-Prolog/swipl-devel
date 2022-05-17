@@ -11151,6 +11151,19 @@ debugging and maintaining deterministic code easier. One of them is
 described in \secref{ssu}. This section deals with annotating your
 program.
 
+If a program does not behave according to these annotations it raises an
+\funcref{error}{2} exception where the formal term is
+\term{determinism_error}{Pred, Declared, Observed, DeclType}, where
+\arg{Declared} is currently always \const{det}, \arg{Observed} is one of
+\arg{fail} or \arg{nondet} and \arg{DeclType} is one of \arg{property}
+(det/1), \arg{guard} (\predref{$}{0}) or \arg{goal} (\predref{$}{1}).
+Using trap/1 or gtrap/1 we can ask Prolog to start the debugger in such
+events using
+
+\begin{code}
+?- gtrap(determinism_error(_,_,_,_)).
+\end{code}
+
 \begin{quote}
 \textbf{WARNING:} The primitives in this section are experimental.
 The naming and exact semantics may change.  If you are interested
@@ -11188,11 +11201,17 @@ ERROR: In:
 ERROR:   [10] p(a)
 \end{code}
 
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, property}.
+
     \predicate[experimental]{$}{0}{}
 The \predref{$}{0} constructs acts similar to the \predref{!}{0},
 but in addition declares that the remainder of the clause body shall
 succeed deterministically.  It exploits the same underlying mechanism
 as the det/1 declaration.   See also \predref{$}{1}.
+
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, guard}.
 
     \predicate[experimental]{$}{1}{:Goal}
 Verify that \arg{Goal} succeeds deterministically.  This predicate
@@ -11214,6 +11233,9 @@ or warnings. Last call optimization with determinism checking can be
 realised using \verb=..., $, Last.=, i.e. by executing
 \predref{$}{0} before the last call rather than wrapping the last call
 in \predref{$}{1}.
+
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, goal}.
 \end{description}
 
 A deterministic predicate may call normal predicates. No error is
