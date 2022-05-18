@@ -129,7 +129,7 @@ range(exit, Pos, SubPos) =>
 
 :- dynamic
     known_breakpoint/4,             % ClauseRef, PC, Location, Id
-    breakpoint_condition/3,         % Id, CondString, CondTerm, VarOffsets
+    breakpoint_condition/4,         % Id, CondString, CondTerm, VarOffsets
     break_id/1.
 
 next_break_id(Id) :-
