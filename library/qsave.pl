@@ -1009,7 +1009,7 @@ strip_file(File, Stripped) :-
 strip_file(File, File).
 
 do_strip_file(Strip, File, Stripped) :-
-    format(atom(Cmd), '"~w" -o "~w" "~w"',
+    format(atom(Cmd), '"~w" -x -o "~w" "~w"',
            [Strip, Stripped, File]),
     shell(Cmd),
     exists_file(Stripped).
