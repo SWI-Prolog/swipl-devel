@@ -4899,8 +4899,10 @@ again:
 		   PL_unify_integer(len,    ls) &&
 		   PL_unify_integer(after,  la-ls-state->n1));
 
-	  state->n1++;
-	  goto next;
+	  if ( ++state->n1 + ls > la )
+            goto exit_succeed;
+          else
+            goto next;
 	}
       }
       goto exit_fail;
