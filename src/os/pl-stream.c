@@ -2267,8 +2267,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
 	switch(*fm)
 	{ case 'c':
-	    *fe++ = va_arg(args, int);
+	  { int c = va_arg(args, int);
+	    fe = utf8_put_char(fe, c);
+	    enc = ENC_UTF8;
 	    break;
+	  }
 	  case 'p':
 	  { void *ptr = va_arg(args, void*);
 	    char fmbuf[8], *fp=fmbuf;
