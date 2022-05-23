@@ -2138,6 +2138,24 @@ next_chr(const char **s, IOENC enc)
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
+#define OUTFS() \
+	do \
+	{ if ( fs == fbuf ) \
+	  { while(fs < fe) \
+	    { int c = next_chr((const char**)&fs, enc); \
+	      OUTCHR(s, c); \
+	    } \
+	  } else \
+	  { for(;;) \
+	    { int c = next_chr((const char**)&fs, enc); \
+	      if ( c ) \
+		OUTCHR(s, c); \
+	      else \
+		break; \
+	    } \
+	  } \
+	} while(0)
+
 #define valdigit(c)	((c) - '0')
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
@@ -2378,17 +2396,20 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    break;
 	}
 
+	/* Now `fs` is either the result of some sub-formatting or the
+           argument of `%s`.  In the latter case it is by definition
+	   0-terminated.  In the former case it may hold 0-bytes, e.g.,
+	   `%c` using a 0 argument.  `fe` points at the end.
+	*/
+
 	if ( has_arg1 )			/* aligned field */
 	{ if ( fs == fbuf )
 	    *fe = '\0';
 
 	  if ( align == A_LEFT )
-	  { int w = 0;
-	    while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	      w++;
-	    }
+	  { int printed0 = printed;
+	    OUTFS();
+	    int w = printed-printed0;
 	    while(w < arg1)
 	    { OUTCHR(s, pad);
 	      w++;
@@ -2424,21 +2445,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		w--;
 	      }
 	    }
-	    while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	    }
+	    OUTFS();
 	  }
 	} else
-	{ if ( fs == fbuf )		/* unaligned field, just output */
-	  { while(fs < fe)
-	      OUTCHR(s, *fs++);
-	  } else
-	  { while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	    }
-	  }
+	{ OUTFS();
 	}
 	fm++;
 	if ( fs_malloced )
