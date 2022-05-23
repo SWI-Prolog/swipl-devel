@@ -560,6 +560,7 @@ cleanupPaths(void)
 
   cleanupOptListP(&GD->options.scriptFiles);
   cleanupOptListP(&GD->options.goals);
+  cleanupOptListP(&GD->options.search_paths);
 }
 
 
