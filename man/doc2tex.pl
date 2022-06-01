@@ -135,6 +135,11 @@ tr(Codes) -->
     matched(Mark, Codes).
 tr(Codes) -->
     here(Mark),
+    "\\satom{", tex_urlarg(1),
+    !,
+    matched(Mark, Codes).
+tr(Codes) -->
+    here(Mark),
     "\\url{", tex_urlarg(1),
     !,
     matched(Mark, Codes).
