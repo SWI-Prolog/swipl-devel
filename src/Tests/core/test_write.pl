@@ -181,6 +181,22 @@ test(variable_names, X = 'a(A,B)') :-
 	    atom(X),
 	    write_term(a('$VAR'(0), A),
 		       [variable_names(['B'=A]), numbervars(true)])).
+test(variable_names, X = 'a($VAR(0),B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(0), A),
+		       [variable_names(['B'=A])])),
+        A = 2.
+test(variable_names, X = 'a(A,B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(0), A),
+		       [variable_names(['B'=A]), numbervars(true)])),
+        A = 2.
+test(variable_names) :-
+    write_term('', [numbervars, variable_names(['XN'=V])]),
+    V = 2.
+
 
 :- end_tests(write_variable_names).
 
