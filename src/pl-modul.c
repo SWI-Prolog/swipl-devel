@@ -1626,9 +1626,9 @@ fixExportModule(Module m, Definition old, Definition new)
 
 static void
 fixExport(Definition old, Definition new)
-{ PL_LOCK(L_MODULE);
-  for_table(GD->tables.modules, name, value,
-	    fixExportModule(value, old, new));
+{ PL_LOCK(L_MODULE);		/* Otherwise tmp modules may disappear */
+  FOR_TABLE(GD->tables.modules, name, value)
+    fixExportModule(value, old, new);
   PL_UNLOCK(L_MODULE);
 }
 
@@ -1681,17 +1681,21 @@ retry:
 
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
+      int fixup = FALSE;
 
       old->definition = proc->definition;
       shareDefinition(proc->definition);
       if ( unshareDefinition(odef) > 0 )
-      { fixExport(odef, proc->definition);
+      { fixup = TRUE;			/* delay to avoid a deadlock */
       } else
       { lingerDefinition(odef);
       }
       set(old, pflags|PROC_IMPORTED);
 
       UNLOCKMODULE(destination);
+      if ( fixup )
+	fixExport(odef, proc->definition);
+
       return TRUE;
     }
 
