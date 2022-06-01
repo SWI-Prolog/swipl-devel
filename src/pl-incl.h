@@ -2401,6 +2401,8 @@ typedef struct
 	  if ( save ) \
 	  { _savedf = LD->var_names.numbervars_frame; \
 	    LD->var_names.numbervars_frame = PL_open_foreign_frame(); \
+	  } else \
+	  { _savedf = 0; /* avoid (false) uninitialized */  \
 	  }
 #define END_NUMBERVARS(save) \
           if ( save ) \

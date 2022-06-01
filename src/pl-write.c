@@ -177,7 +177,8 @@ writeNumberVar(DECL_LD term_t t, write_options *options)
   { FliFrame fr = (FliFrame)valTermRef(LD->var_names.numbervars_frame);
 
     assert(fr->magic == FLI_MAGIC);
-    if ( fr->mark.globaltop > (Word)f )
+    if ( false(options, PL_WRT_NUMBERVARS) &&
+         fr->mark.globaltop > (Word)f )
       return FALSE;			/* older $VAR term */
   }
 
@@ -1940,7 +1941,6 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   bool fullstop   = FALSE;
   bool no_lists   = FALSE;
   term_t varnames = 0;
-  int local_varnames;
   IOSTREAM *s = NULL;
   write_options options;
   int rc;
@@ -2036,9 +2036,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
       options.flags |= PL_WRT_BACKQUOTE_IS_SYMBOL;
   }
 
-  local_varnames = (varnames && false(&options, PL_WRT_NUMBERVARS));
-
-  BEGIN_NUMBERVARS(local_varnames);
+  BEGIN_NUMBERVARS(varnames);
   if ( varnames )
   { if ( (rc=bind_varnames(varnames)) )
       options.flags |= PL_WRT_VARNAMES;
@@ -2067,7 +2065,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
     rc = Putc('\n', s);
 
 out:
-  END_NUMBERVARS(local_varnames);
+  END_NUMBERVARS(varnames);
 
   return (!s || streamStatus(s)) && rc;
 }
@@ -2183,7 +2181,7 @@ pl_write_canonical2(term_t stream, term_t term)
   rc = ( numberVars(term, &options, 0) != NV_ERROR &&
 	 do_write2(stream, term,
 		   PL_WRT_QUOTED|PL_WRT_QUOTE_NON_ASCII|
-		   PL_WRT_IGNOREOPS|PL_WRT_NUMBERVARS|
+		   PL_WRT_IGNOREOPS|PL_WRT_VARNAMES|
 		   PL_WRT_NODOTINATOM|PL_WRT_BRACETERMS, TRUE)
        );
 
