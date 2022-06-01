@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -181,6 +181,22 @@ test(variable_names, X = 'a(A,B)') :-
 	    atom(X),
 	    write_term(a('$VAR'(0), A),
 		       [variable_names(['B'=A]), numbervars(true)])).
+test(variable_names, X = 'a($VAR(0),B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(0), A),
+		       [variable_names(['B'=A])])),
+        A = 2.
+test(variable_names, X = 'a(A,B)') :-
+	with_output_to(
+	    atom(X),
+	    write_term(a('$VAR'(0), A),
+		       [variable_names(['B'=A]), numbervars(true)])),
+        A = 2.
+test(variable_names) :-
+	write_term('', [numbervars(true), variable_names(['XN'=V])]),
+	V = 2.
+
 
 :- end_tests(write_variable_names).
 
