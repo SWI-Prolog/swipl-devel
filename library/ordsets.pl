@@ -178,10 +178,11 @@ ord_intersect(Set1, Set2, Intersection) :-
     ord_intersection(Set1, Set2, Intersection).
 
 
-%!  ord_intersection(+PowerSet, -Intersection)
+%!  ord_intersection(+PowerSet, -Intersection) is semidet.
 %
-%   Intersection of a powerset. True when Intersection is an ordered
-%   set holding all elements common to all sets in PowerSet.
+%   Intersection of a powerset. True when Intersection is an ordered set
+%   holding all elements common  to  all   sets  in  PowerSet.  Fails if
+%   PowerSet is an empty list.
 %
 %   @compat sicstus
 
