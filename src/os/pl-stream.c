@@ -1924,6 +1924,8 @@ object, which in turn calls the  ->unlink   which  may wish to close the
 associated stream.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define SIO_CLOSE_GC	0x4
+
 static int
 S__close(IOSTREAM *s, int flags)
 { int rval = 0;
@@ -1982,8 +1984,8 @@ S__close(IOSTREAM *s, int flags)
     if ( rval == 0 )
       rval = rc;
   }
-  if ( rval < 0 )
-    reportStreamError(s);
+  if ( rval < 0 && !(flags&SIO_CLOSE_GC) )
+    reportStreamError(s);		/* Cannot throw error from AGC */
   run_close_hooks(s);			/* deletes Prolog registration */
   s->magic = SIO_CMAGIC;
   SUNLOCK(s);
@@ -2007,7 +2009,7 @@ Sclose(IOSTREAM *s)
 
 int
 Sgcclose(IOSTREAM *s, int flags)
-{ return S__close(s, flags);
+{ return S__close(s, SIO_CLOSE_GC|flags);
 }
 
 

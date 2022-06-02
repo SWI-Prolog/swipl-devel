@@ -313,6 +313,7 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 
 #define SIO_CLOSE_TRYLOCK	0x1	/* Sgcclose(): fail if we cannot lock */
 #define SIO_CLOSE_FORCE		0x2	/* Sgcclose(): force regardless of lock */
+/*#define #define SIO_CLOSE_GC	0x4        Sgcclose(): used internally */
 
 #if IOSTREAM_REPLACES_STDIO
 
