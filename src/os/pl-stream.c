@@ -2047,12 +2047,16 @@ out:
 char *
 Sgets(char *buf)
 { char *s = Sfgets(buf, Slinesize, Sinput);
-  char *q;
 
   if ( s )				/* delete trailing \n */
-  { q = &s[strlen(s)];
-    if ( q > s && q[-1] == '\n' )
-      *--q = '\0';
+  { char *q;
+
+    for(q=s; q<s+Slinesize; q++)
+    { if ( *q == '\n' )
+      { *q = '\0';
+	break;
+      }
+    }
   }
 
   return s;
