@@ -4870,3 +4870,6 @@ term references.
 The Prolog interface for the graphical user interface package XPCE
 shares about 90\% of the code using a simple macro layer to deal
 with different naming and calling conventions of the interfaces.
+
+% SWI-Stream.h docs
+\input{streams.tex}
