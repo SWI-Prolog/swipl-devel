@@ -172,23 +172,23 @@ terms referenced by foreign code and thus allows the kernel to perform
 garbage collection and/or stack-shifts while foreign code is active,
 for example during a callback from C.
 
-A term reference is a C unsigned long, representing the offset of a
-variable on the Prolog environment stack.  A foreign function is passed
-term references for the predicate arguments, one for each argument.  If
+A term reference is a C \ctype{uintptr_t}, representing the offset of a
+variable on the Prolog environment stack. A foreign function is passed
+term references for the predicate arguments, one for each argument. If
 references for intermediate results are needed, such references may be
-created using PL_new_term_ref() or PL_new_term_refs().  These references
+created using PL_new_term_ref() or PL_new_term_refs(). These references
 normally live till the foreign function returns control back to Prolog.
-Their scope can be explicitly limited using PL_open_foreign_frame()
-and PL_close_foreign_frame()/PL_discard_foreign_frame().
+Their scope can be explicitly limited using PL_open_foreign_frame() and
+PL_close_foreign_frame()/PL_discard_foreign_frame().
 
-A \ctype{term_t} always refers to a valid Prolog term (variable, atom, integer,
-float or compound term). A term lives either until backtracking takes us
-back to a point before the term was created, the garbage collector has
-collected the term, or the term was created after a
+A \ctype{term_t} always refers to a valid Prolog term (variable, atom,
+integer, float or compound term). A term lives either until backtracking
+takes us back to a point before the term was created, the garbage
+collector has collected the term, or the term was created after a
 PL_open_foreign_frame() and PL_discard_foreign_frame() has been called.
 
-The foreign interface functions can either {\em read}, {\em unify} or
-{\em write} to term references.  In this document we use the
+The foreign interface functions can either \textit{read}, \textit{unify}
+or \textit{write} to term references. In this document we use the
 following notation for arguments of type \ctype{term_t}:
 
 \begin{quote}
@@ -207,11 +207,12 @@ written.\footnote{This could have been avoided by \jargon{trailing} term
 references when data is written to them. This seriously hurts
 performance in some scenarios though. If this is desired, use
 PL_put_variable() followed by one of the PL_unify_*() functions.}
-Compounds, large integers, floats and strings are all allocated on the
-global stack. Below is a typical scenario where this may happen. The
-first solution writes a term extracted from the solution into \arg{a}.
-After the system backtracks due to PL_next_solution(), \arg{a} becomes a
-reference to a term that no longer exists.
+Compound terms, dicts, large integers, rational numbers, floats and
+strings are all allocated on the global stack. Below is a typical
+scenario where this may happen. The first solution writes a term
+extracted from the solution into \arg{a}. After the system backtracks
+due to PL_next_solution(), \arg{a} becomes a reference to a term that no
+longer exists.
 
 \begin{code}
 term_t a = PL_new_term_ref();
