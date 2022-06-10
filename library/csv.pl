@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2009-2018, VU University Amsterdam
-                              CWI, Amsterdam
+    Copyright (c)  2009-2022, VU University Amsterdam
+                              CWI, Amsterdam,
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -90,7 +91,8 @@ have the same name and arity.
                        pass_to(phrase_from_file/3, 3)
                      ]).
 :- predicate_options(csv_read_file_row/3, 3,
-                     [ pass_to(csv//2, 2),
+                     [ line(-integer),
+                       pass_to(csv//2, 2),
                        pass_to(open/4, 4)
                      ]).
 :- predicate_options(csv_write_file/3, 3,
