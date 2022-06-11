@@ -634,6 +634,8 @@ gc_close_stream(atom_t aref, IOSTREAM *s)
     WITH_LD(&PL_local_data)
       doit = truePrologFlag(PLFLAG_AGC_CLOSE_STREAMS);
 
+    doit = doit && standardStreamIndexFromStream(s) < 0;
+
     if ( doit )
     { int rc = Sgcclose(s, SIO_CLOSE_TRYLOCK);
 
