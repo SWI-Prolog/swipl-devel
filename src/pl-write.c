@@ -77,6 +77,21 @@ typedef struct
   term_t prec_opt;			/* term in write options with prec */
 } write_options;
 
+#define W_OP_ARG	1		/* writeTerm() location argument */
+
+#define W_TOP		0		/* top term */
+#define W_LIST_ARG	0		/* normal list argument */
+#define W_LIST_TAIL	0		/* List tail (behind |) */
+#define W_COMPOUND_ARG	0		/* f(arg) */
+#define W_KEY		0		/* dict key */
+#define W_VALUE		0		/* dict value */
+#define W_TAG		0		/* dict tag */
+#define W_BLOCK_OP	0		/* {} or [] block operator */
+#define W_PREFIX_ARG	W_OP_ARG	/* f arg */
+#define W_POSTFIX_ARG	W_OP_ARG	/* arg f */
+#define W_INFIX_ARG1	W_OP_ARG	/* arg1 f arg2 */
+#define W_INFIX_ARG2	W_OP_ARG	/* arg1 f arg2 */
+
 #if USE_LD_MACROS
 #define	enterPortray(_)		LDFUNC(enterPortray, _)
 #define	leavePortray(_)		LDFUNC(leavePortray, _)
@@ -85,11 +100,9 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 
 static bool	writeTerm2(term_t term, int prec,
-			   write_options *options, bool arg) WUNUSED;
+			   write_options *options, int flags) WUNUSED;
 static bool	writeTerm(term_t t, int prec,
-			  write_options *options) WUNUSED;
-static bool	writeArgTerm(term_t t, int prec,
-			     write_options *options, bool arg) WUNUSED;
+			  write_options *options, int flags) WUNUSED;
 static int	PutToken(const char *s, IOSTREAM *stream);
 static int	writeAtom(atom_t a, write_options *options);
 static int	callPortray(term_t arg, int prec, write_options *options);
@@ -639,7 +652,7 @@ writeAttVar(term_t av, write_options *options)
     Sputcode('{', options->out);
     a = PL_new_term_ref();
     PL_get_attr(av, a);
-    if ( !writeTerm(a, 1200, options) )
+    if ( !writeTerm(a, 1200, options, W_TOP) )
       return FALSE;
     Sputcode('}', options->out);
     PL_close_foreign_frame(fid);
@@ -1378,7 +1391,7 @@ callPortray(term_t arg, int prec, write_options *options)
 
 
 static bool
-writeArgTerm(term_t t, int prec, write_options *options, bool arg)
+writeTerm(term_t t, int prec, write_options *options, int flags)
 { GET_LD
   int rval;
   int levelSave = options->depth;
@@ -1396,7 +1409,7 @@ writeArgTerm(term_t t, int prec, write_options *options, bool arg)
   { PutOpenToken('.', options->out);
     rval = PutString("...", options->out);
   } else
-  { rval = writeTerm2(t, prec, options, arg);
+  { rval = writeTerm2(t, prec, options, flags);
   }
 
 out:
@@ -1406,11 +1419,6 @@ out:
   return rval;
 }
 
-static bool
-writeTerm(term_t t, int prec, write_options *options)
-{
-  return writeArgTerm(t, prec, options, FALSE);
-}
 
 static bool
 writeList(term_t list, write_options *options)
@@ -1422,7 +1430,7 @@ writeList(term_t list, write_options *options)
   { TRY(Putc('[', options->out));
     for(;;)
     { PL_get_list(l, head, l);
-      TRY(writeArgTerm(head, 999, options, TRUE));
+      TRY(writeTerm(head, 999, options, W_LIST_ARG));
 
       if ( PL_get_nil(l) )
 	break;
@@ -1430,7 +1438,7 @@ writeList(term_t list, write_options *options)
 	return PutString("|...]", options->out);
       if ( !PL_is_functor(l, FUNCTOR_dot2) )
       { TRY(Putc('|', options->out));
-	TRY(writeArgTerm(l, 999, options, TRUE));
+	TRY(writeTerm(l, 999, options, W_LIST_TAIL));
 	break;
       }
 
@@ -1452,7 +1460,7 @@ writeList(term_t list, write_options *options)
       }
 
       if ( !Putc('(', options->out) ||
-	   !writeArgTerm(head, 999, options, TRUE) ||
+	   !writeTerm(head, 999, options, W_COMPOUND_ARG) ||
 	   !PutComma(options) )
 	return FALSE;
 
@@ -1475,7 +1483,7 @@ writeList(term_t list, write_options *options)
       }
 
       if ( !PL_is_functor(l, FUNCTOR_dot2) )
-      { if ( !writeArgTerm(l, 999, options, TRUE) )
+      { if ( !writeTerm(l, 999, options, W_COMPOUND_ARG) )
 	  return FALSE;
 	break;
       }
@@ -1509,9 +1517,9 @@ static int
 writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
 { write_options *options = closure;
 
-  if ( writeTerm(name, 1200, options) &&
+  if ( writeTerm(name, 1200, options, W_KEY) &&
        PutToken(":", options->out) &&
-       writeTerm(value, 999, options) &&
+       writeTerm(value, 999, options, W_VALUE) &&
        (last || PutComma(options)) )
     return 0;				/* continue */
 
@@ -1520,7 +1528,7 @@ writeDictPair(DECL_LD term_t name, term_t value, int last, void *closure)
 
 
 static bool
-writeTerm2(term_t t, int prec, write_options *options, bool arg)
+writeTerm2(term_t t, int prec, write_options *options, int flags)
 { GET_LD
   atom_t functor;
   size_t arity, n;
@@ -1541,7 +1549,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
   }
 
   if ( PL_get_atom(t, &a) )
-  { if ( !arg && prec < 1200 && priorityOperator(NULL, a) > 0 )
+  { if ( (flags&W_OP_ARG) && priorityOperator(options->module, a) > 0 )
     { if ( PutOpenBrace(out) &&
 	   writeAtom(a, options) &&
 	   PutCloseBrace(out) )
@@ -1570,7 +1578,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       if ( (arg=PL_new_term_ref()) &&
 	   PL_get_arg(1, t, arg) &&
 	   PutToken("{", out) &&
-	   writeTerm(arg, 1200, options) &&
+	   writeTerm(arg, 1200, options, W_TOP) &&
 	   Putc('}', out) )
 	return TRUE;
 
@@ -1588,7 +1596,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 
       if ( (class=PL_new_term_ref()) &&
 	   PL_get_arg(1, t, class) )
-      { if ( writeTerm(class, 1200, options) &&
+      { if ( writeTerm(class, 1200, options, W_TAG) &&
 	     Putc('{', out) &&
 	     PL_for_dict(t, writeDictPair, options, DICT_SORTED) == 0 &&
 	     Putc('}', out) )
@@ -1621,7 +1629,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  { TRY(writeAtom(functor, options));
 	  } else
 	  { _PL_get_arg(1, t, arg);
-	    TRY(writeTerm(arg, 1200, options));
+	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
 	  }
 				/* +/-(Number) : avoid parsing as number */
 	  options->out->lastc |= C_PREFIX_OP;
@@ -1631,7 +1639,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_FX ? op_pri-1 : op_pri,
-			options));
+			options, W_PREFIX_ARG));
 
 	  if ( embrace )
 	   TRY(PutCloseBrace(out));
@@ -1649,7 +1657,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_XF ? op_pri-1 : op_pri,
-			options));
+			options, W_POSTFIX_ARG));
 	  if ( arity == 1 )
 	  { TRY(writeAtom(functor, options));
 	  } else
@@ -1658,7 +1666,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	      TRY(Putc(' ', out));
 	    _PL_get_arg(1, t, arg);
 
-	    TRY(writeTerm(arg, 1200, options));
+	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
 	  }
 	  if (op_pri > prec)
 	    TRY(PutCloseBrace(out));
@@ -1681,7 +1689,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_XFY
 				? op_pri-1 : op_pri,
-			options));
+			options, W_INFIX_ARG1));
 	  if ( arity == 2 )
 	  { if ( functor == ATOM_comma )
 	    { TRY(PutComma(options));
@@ -1700,13 +1708,13 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
 	    options->out->lastc |= C_INFIX_OP;
 	  } else			/* block operator */
 	  { _PL_get_arg(1, t, arg);
-	    TRY(writeTerm(arg, 1200, options));
+	    TRY(writeTerm(arg, 1200, options, W_BLOCK_OP));
 	  }
 	  _PL_get_arg(arity, t, arg);
 	  TRY(writeTerm(arg,
 			op_type == OP_XFX || op_type == OP_YFX
 				? op_pri-1 : op_pri,
-			options));
+			options, W_INFIX_ARG2));
 	  if ( op_pri > prec )
 	    TRY(PutCloseBrace(out));
 	  succeed;
@@ -1723,7 +1731,7 @@ writeTerm2(term_t t, int prec, write_options *options, bool arg)
       { if (n > 0)
 	  TRY(PutComma(options));
 	_PL_get_arg(n+1, t, a);
-	TRY(writeArgTerm(a, 999, options, TRUE));
+	TRY(writeTerm(a, 999, options, W_COMPOUND_ARG));
       }
       return Putc(')', out);
     }
@@ -1784,7 +1792,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
        PL_is_acyclic(term) )
   { C_STACK_OVERFLOW_GUARDED(
 	rc,
-	writeTerm(term, prec, options),
+	writeTerm(term, prec, options, W_TOP),
         (void)0);
   } else
   { fid_t fid;
@@ -1807,7 +1815,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
       return FALSE;
     C_STACK_OVERFLOW_GUARDED(
 	rc,
-	writeTerm(at_term, prec, options),
+	writeTerm(at_term, prec, options, W_TOP),
 	(void)0);
     PL_discard_foreign_frame(fid);
   }
