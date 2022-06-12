@@ -154,6 +154,15 @@ test(escape, S == "'\\x3B1\\'") :-
 				    character_escapes_unicode(false)
 				  ]),
 		       ascii, S).
+test(space, S == "= (is)") :-
+	with_output_to(string(S),
+		       (   write('= '),
+			   write_term(is,
+				      [ quoted(true),
+					priority(699),
+					partial(true)
+				      ])
+		       )).
 
 :- end_tests(write_quoted).
 
