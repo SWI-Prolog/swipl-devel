@@ -985,6 +985,7 @@ PL_EXPORT(IOSTREAM *)*_PL_streams(void);	/* base of streams */
 #define PL_WRT_RAT_NATURAL         0x200000 /* Write rationals as 1/3 */
 #define PL_WRT_CHARESCAPES_UNICODE 0x400000 /* Use \uXXXX escapes */
 #define PL_WRT_QUOTE_NON_ASCII	   0x800000 /* Quote atoms containing non-ascii */
+#define PL_WRT_PARTIAL		  0x1000000 /* Partial output */
 
 PL_EXPORT(int)	PL_write_term(IOSTREAM *s,
 			     term_t term,

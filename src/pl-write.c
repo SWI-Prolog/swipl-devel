@@ -474,7 +474,7 @@ needSpace(int c, IOSTREAM *s)
   if ( ((f_is_prolog_identifier_continue(s->lastc) &&
 	 f_is_prolog_identifier_continue(c)) ||
 	(f_is_prolog_symbol(s->lastc) && f_is_prolog_symbol(c)) ||
-	(c == '(' && !isPunctW(s->lastc)) ||
+	(c == '(' && !(isPunctW(s->lastc)||isBlank(s->lastc)) ) ||
 	(c == '\'' && (isDigit(s->lastc))) ||
 	(isquote(c) && s->lastc == c)
        ) )
@@ -1786,13 +1786,19 @@ static int
 writeTopTerm(term_t term, int prec, write_options *options)
 { GET_LD
   int rc;
+  int wflags;
+
+  if ( true(options, PL_WRT_PARTIAL) && prec != 999 && prec != 1200 )
+    wflags = W_OP_ARG;
+  else
+    wflags = W_TOP;
 
   Slock(options->out);
   if ( (!(options->flags&PL_WRT_NO_CYCLES) && options->max_depth) ||
        PL_is_acyclic(term) )
   { C_STACK_OVERFLOW_GUARDED(
 	rc,
-	writeTerm(term, prec, options, W_TOP),
+	writeTerm(term, prec, options, wflags),
         (void)0);
   } else
   { fid_t fid;
@@ -1815,7 +1821,7 @@ writeTopTerm(term_t term, int prec, write_options *options)
       return FALSE;
     C_STACK_OVERFLOW_GUARDED(
 	rc,
-	writeTerm(at_term, prec, options, W_TOP),
+	writeTerm(at_term, prec, options, wflags),
 	(void)0);
     PL_discard_foreign_frame(fid);
   }
@@ -2033,6 +2039,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   if ( portray )         options.flags |= PL_WRT_PORTRAY;
   if ( !cycles )         options.flags |= PL_WRT_NO_CYCLES;
   if ( no_lists )        options.flags |= PL_WRT_NO_LISTS;
+  if ( partial )	 options.flags |= PL_WRT_PARTIAL;
   if ( bq )
   { unsigned int flags = 0;
 

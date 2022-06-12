@@ -6427,6 +6427,12 @@ write_value(Value) :-
 	write('.'), nl.
 \end{code}
 
+In addition, if the priority is not 1200 or 999 this assumes we are
+printing an operant of an operator.  If \arg{Term} is an atom that is
+also an operator it will always be embraced.\footnote{If the priority
+is 1200 it is assumed to be a toplevel term and if the priority is
+999 it is assumed to be a list element or argument of a compound term.}
+
     \termitem{portray}{Bool}
 Same as \term{portrayed}{Bool}.  Deprecated.
 
