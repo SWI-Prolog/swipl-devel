@@ -887,7 +887,7 @@ PL_record_external(term_t t, size_t *len)
 
   if ( compile_external_record(t, &data) )
   { if ( data.simple )
-    { int scode = (int)sizeOfBuffer(&data.info.code);
+    { size_t scode = sizeOfBuffer(&data.info.code);
       char *rec = malloc(scode);
 
       if ( rec )
@@ -903,8 +903,8 @@ PL_record_external(term_t t, size_t *len)
 	return NULL;
       }
     } else
-    { int shdr  = (int)sizeOfBuffer(&data.hdr);
-      int scode = (int)sizeOfBuffer(&data.info.code);
+    { size_t shdr  = sizeOfBuffer(&data.hdr);
+      size_t scode = sizeOfBuffer(&data.info.code);
       char *rec = malloc(shdr + scode);
 
       if ( rec )
