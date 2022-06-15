@@ -104,7 +104,7 @@ _xos_errno(void)
 		 *******************************/
 
 #define FITS_UTF8(c, o, e) \
-	((o)+6 < (e) || (o)+utf8_code_bytes(c) < (e))
+	((o)+6 < (e) || (o)+utf8_code_bytes(c) <= (e))
 
 static char *
 wcstoutf8(char *dest, const wchar_t *src, size_t len)
