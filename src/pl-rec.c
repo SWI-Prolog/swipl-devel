@@ -833,7 +833,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
       v = valInt(*p);
     else if ( isBignum(*p) )
       v = valBignum(*p);
-    else
+    else				/* GMP integers */
       goto general;
 
     first |= (REC_INT|REC_GROUND);
