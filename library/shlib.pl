@@ -552,17 +552,35 @@ unload_foreign(File) :-
 %
 %   @error domain_error(operating_system, windows) if the current OS
 %   is not Windows.
+%   @error existence_error(directory, AbsDir) if AbsDir does not
+%   exist.
 
 win_add_dll_directory(Dir) :-
     (   current_prolog_flag(windows, true)
-    ->  (   catch(win_add_dll_directory(Dir, _), _, fail)
-        ->  true
-        ;   prolog_to_os_filename(Dir, OSDir),
-            getenv('PATH', Path0),
-            atomic_list_concat([Path0, OSDir], ';', Path),
-            setenv('PATH', Path)
-        )
+    ->  windows_add_dll_directory(Dir)
     ;   domain_error(operating_system, windows)
+    ).
+
+windows_add_dll_directory(Dir) :-
+    prolog_to_os_filename(PLDir, Dir),
+    absolute_file_name(PLDir, AbsDir),
+    PLDir \= AbsDir,
+    !,
+    print_message(silent, shlib(AbsDir, abs_dir)),
+    windows_add_dll_directory(AbsDir).
+
+windows_add_dll_directory(Dir) :-
+    \+ exists_directory(Dir),
+    !,
+    existence_error(directory, Dir).
+
+windows_add_dll_directory(Dir) :-
+    (   catch(win_add_dll_directory(Dir, _), _, fail)
+    ->  true
+    ;   prolog_to_os_filename(Dir, OSDir),
+        getenv('PATH', Path0),
+        atomic_list_concat([Path0, OSDir], ';', Path),
+        setenv('PATH', Path)
     ).
 
                  /*******************************
@@ -577,6 +595,8 @@ prolog:message(shlib(LibFile, load_failed)) -->
     [ '~w: Failed to load file'-[LibFile] ].
 prolog:message(shlib(not_supported)) -->
     [ 'Emulator does not support foreign libraries' ].
+prolog:message(shlib(AbsDir, abs_dir)) -->
+    [ 'Adding ~w to the DLL search path'-[AbsDir] ].
 
 prolog:error_message(existence_error(foreign_install_function,
                                      install(Lib, List))) -->
