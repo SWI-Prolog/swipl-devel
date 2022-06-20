@@ -478,10 +478,11 @@ exports(File, Module, Exports) :-
             nonvar(Directive)
         ->  fail
         ;   !
-        ),
-        arg(2, State, Module),
-        arg(3, State, Exports)
-    ).
+        )
+    ;   true
+    ),
+    arg(2, State, Module),
+    arg(3, State, Exports).
 
 
                  /*******************************
