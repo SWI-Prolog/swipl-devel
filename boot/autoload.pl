@@ -424,13 +424,9 @@ install_index(Out, Catcher, StagedIndex, Index) :-
 
 index_files([], _, _).
 index_files([File|Files], DirS, Fd) :-
-    catch(setup_call_cleanup(
-              open(File, read, In),
-              read(In, Term),
-              close(In)),
-          E, print_message(warning, E)),
-    (   Term = (:- module(Module, Public)),
-        is_list(Public)
+    (   catch(exports(File, Module, Public), E,
+              print_message(warning, E)),
+        nonvar(Module)
     ->  atom_concat(DirS, Local, File),
         file_name_extension(Base, _, Local),
         forall(public_predicate(Public, Name/Arity),
@@ -455,6 +451,37 @@ index_header(Fd):-
     format(Fd, '/*  Creator: make/0~n~n', []),
     format(Fd, '    Purpose: Provide index for autoload~n', []),
     format(Fd, '*/~n~n', []).
+
+exports(File, Module, Exports) :-
+    State = state(true, _, []),
+    (   '$source_term'(File, _,_,Term0,_,_,[syntax_errors(quiet)]),
+        (   is_list(Term0)
+        ->  '$member'(Term, Term0)
+        ;   Term = Term0
+        ),
+        (   Term = (:- module(M,Public)),
+            is_list(Public),
+            arg(1, State, true)
+        ->  nb_setarg(1, State, false),
+            nb_setarg(2, State, M),
+            nb_setarg(3, State, Public),
+            fail
+        ;   nb_setarg(1, State, false),
+            fail
+        ;   Term = (:- export(PI)),
+            ground(PI)
+        ->  arg(3, State, E0),
+            '$append'(E0, [PI], E1),
+            nb_setarg(3, State, E1),
+            fail
+        ;   Term = (:- Directive),
+            nonvar(Directive)
+        ->  fail
+        ;   !
+        ),
+        arg(2, State, Module),
+        arg(3, State, Exports)
+    ).
 
 
                  /*******************************
