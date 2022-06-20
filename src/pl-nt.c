@@ -162,10 +162,9 @@ PlMessage(const char *fm, ...)
 		 *	WinAPI ERROR CODES	*
 		 *******************************/
 
-const char *
-WinError(void)
-{ int id = GetLastError();
-  char *msg;
+static const char *
+WinErrorNo(int id)
+{ char *msg;
   static WORD lang;
   static int lang_initialised = 0;
 
@@ -199,6 +198,12 @@ again:
   }
 }
 
+const char *
+WinError(void)
+{ int id = GetLastError();
+
+  return WinErrorNo(id);
+}
 
 		 /*******************************
 		 *	  SLEEP/1 SUPPORT	*
@@ -701,13 +706,22 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
     if ( _xos_os_filenameW(dirs, dirw, len+10) == NULL )
       return PL_representation_error("file_name");
     if ( load_library_search_flags() )
-    { if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
+    { int eno;
+
+      if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
       { DEBUG(MSG_WIN_API,
 	      Sdprintf("AddDllDirectory(%Ws) ok\n", dirw));
 
 	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
       }
-      return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "AddDllDirectory()");
+
+      switch((eno=GetLastError()))
+      { case ERROR_FILE_NOT_FOUND:
+	  return PL_existence_error("directory", A1);
+        case ERROR_INVALID_PARAMETER:
+	  return PL_domain_error("absolute_file_name", A1);
+      }
+      return PL_error(NULL, 0, WinErrorNo(eno), ERR_SYSCALL, "AddDllDirectory()");
     } else
       return FALSE;
   } else
