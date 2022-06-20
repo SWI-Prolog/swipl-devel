@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2020, University of Amsterdam
+    Copyright (c)  1995-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -43,11 +44,13 @@
             reload_foreign_libraries/0,
                                         % Directives
             use_foreign_library/1,      % :LibFile
-            use_foreign_library/2,      % :LibFile, +InstallFunc
-
-            win_add_dll_directory/1     % +Dir
+            use_foreign_library/2       % :LibFile, +InstallFunc
           ]).
-:- autoload(library(error),[existence_error/2,domain_error/2]).
+:- if(current_predicate(win_add_dll_directory/2)).
+:- export(win_add_dll_directory/1).
+:- endif.
+
+:- autoload(library(error),[existence_error/2]).
 :- autoload(library(lists),[member/2,reverse/2]).
 
 :- set_prolog_flag(generate_debug_info, false).
@@ -545,25 +548,28 @@ unload_foreign(File) :-
     ).
 
 
+:- if(current_predicate(win_add_dll_directory/2)).
+:- export(win_add_dll_directory/1).
 %!  win_add_dll_directory(+AbsDir) is det.
 %
-%   Add AbsDir to the directories where  dependent DLLs are searched
-%   on Windows systems.
+%   Add AbsDir to the directories where   dependent DLLs are searched on
+%   Windows systems. This  call  uses   the  AddDllDirectory()  API when
+%   provided. On older Windows systems it extends ``%PATH%``.
 %
-%   @error domain_error(operating_system, windows) if the current OS
-%   is not Windows.
+%   @error existence_error(directory, AbsDir) if the target directory
+%   does not exist.
+%   @error domain_error(absolute_file_name, AbsDir) if AbsDir is not an
+%   absolute file name.
 
 win_add_dll_directory(Dir) :-
-    (   current_prolog_flag(windows, true)
-    ->  (   catch(win_add_dll_directory(Dir, _), _, fail)
-        ->  true
-        ;   prolog_to_os_filename(Dir, OSDir),
-            getenv('PATH', Path0),
-            atomic_list_concat([Path0, OSDir], ';', Path),
-            setenv('PATH', Path)
-        )
-    ;   domain_error(operating_system, windows)
-    ).
+    win_add_dll_directory(Dir, _),
+    !.
+win_add_dll_directory(Dir) :-
+    prolog_to_os_filename(Dir, OSDir),
+    getenv('PATH', Path0),
+    atomic_list_concat([Path0, OSDir], ';', Path),
+    setenv('PATH', Path).
+:- endif.
 
                  /*******************************
                  *            MESSAGES          *

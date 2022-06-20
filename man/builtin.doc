@@ -10011,7 +10011,8 @@ Otherwise, \const{\%PATH\%} is extended with the provided directory.
 \arg{AbsDir} may be specified in the Prolog canonical syntax.  See
 prolog_to_os_filename/2.  Note that use_foreign_library/1 passes an
 absolute path to the DLL if the destination DLL can be located from
-the specification using absolute_file_name/3.
+the specification using absolute_file_name/3.  This predicate is
+available from library \pllib{shlib} and can be autoloaded.
 
     \predicate{win_add_dll_directory}{2}{+AbsDir, -Cookie}
 This predicate adds a directory to the search path for dependent DLL
@@ -10020,8 +10021,6 @@ that must be passed to win_remove_dll_directory/1 to remove the
 directory from the search path. Error conditions:
 
     \begin{itemize}
-    \item This predicate is available in the Windows port of SWI-Prolog
-	  starting from 6.3.8/6.2.6.
     \item This predicate \emph{fails} if Windows does not yet support the
           underlying primitives.  These are available in recently
 	  patched Windows~7 systems and later.
@@ -10035,7 +10034,7 @@ friends,\footnote{Windows~7 with up-to-date patches or Windows~8.}
 SWI-Prolog uses LoadLibraryEx() with the flags
 \const{LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR} and
 \const{LOAD_LIBRARY_SEARCH_DEFAULT_DIRS}. In this scenario, directories
-from \const{\%PATH\%} and \emph{not} searched. Additional directories
+from \const{\%PATH\%} are \emph{not} searched. Additional directories
 can be added using win_add_dll_directory/2.
 
     \predicate{win_remove_dll_directory}{1}{-Cookie}
