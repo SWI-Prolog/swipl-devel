@@ -6,6 +6,6 @@ following Unicode data files:
 
 Then run
 
-	% swipl -s prolog_syntax_map.pl -g main,halt
+	% swipl prolog_syntax_map.pl
 
-We used the Unicode 6.0.0 files
+We used the Unicode 14.0.0 files
