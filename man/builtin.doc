@@ -7653,7 +7653,8 @@ against the character classification function.
 \arg{Char} is an ASCII control character (0..31), ASCII DEL character
 (127), or non-ASCII character in the range 128..159 or 8232..8233.
     \termitem{digit}{}
-\arg{Char} is a digit.
+\arg{Char} is a digit, i.e., \arg{Char} is in $0 \ldots 9$.  See
+also \const{decimal}.
     \termitem{digit}{Weight}
 \arg{Char} is a digit with value \arg{Weight}. I.e.\ \exam{char_type(X,
 digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
@@ -7661,6 +7662,12 @@ digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
 \arg{Char} is a hexadecimal digit with value \arg{Weight}. I.e.\
 \exam{char_type(a, xdigit(X))} yields \arg{X} = \exam{'10'}. Useful for
 parsing numbers.
+    \termitem{decimal}{}
+\arg{Char} is a decimal digit in any script.   This implies it has the
+Unicode \jargon{general category} \textbf{Nd}).
+    \termitem{decimal}{Weight}
+\arg{Char} is a decimal digit in any script with \arg{Weight} $0 \ldots
+9$.
     \termitem{print}{}
 \arg{Char} is printable character.
     \termitem{graph}{}

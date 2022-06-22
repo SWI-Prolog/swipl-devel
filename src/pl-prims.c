@@ -3992,38 +3992,68 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
   switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
-      return PL_unify_text(atom, 0, &stext, PL_ATOM);
+    { int rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
+      PL_free_text(&stext);
+      return rc;
+    }
     case X_NUMBER:
     case X_AUTO:
     { strnumstat rc;
 
-      if ( stext.encoding == ENC_ISO_LATIN_1 )
-      { unsigned char *q, *s = (unsigned char *)stext.text.t;
+      if ( stext.encoding == ENC_ISO_LATIN_1 ||
+	   stext.encoding == ENC_UTF8 )
+      { unsigned char *q, *s;
 	number n;
+
+      utf8:
+	s = (unsigned char *)stext.text.t;
 
 	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
 	{ while(*s && isBlank(*s))		/* ISO: number_codes(X, "  42") */
 	    s++;
 	}
 
-	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK ) /* TBD: rational support? */
+	if ( (rc=str_number(s, &q, &n, 0)) == NUM_OK )
 	{ if ( *q == EOS )
 	  { int rc2 = PL_unify_number(atom, &n);
 	    clearNumber(&n);
+	    PL_free_text(&stext);
 	    return rc2;
 	  } else
 	    rc = NUM_ERROR;
 	  clearNumber(&n);
 	}
+      } else if ( stext.encoding == ENC_WCHAR )
+      { wchar_t *ws = stext.text.w;
+
+	if ( (how&X_MASK) == X_NUMBER && !(how&X_NO_LEADING_WHITE) )
+	{ while(*ws && isBlankW(*ws))		/* ISO: number_codes(X, "  42") */
+	    ws++;
+	}
+
+	if ( *ws == '-' || *ws == '+' )
+	  ws++;
+	if ( f_is_decimal(*ws) )
+	{ if ( !PL_mb_text(&stext, REP_UTF8) )
+	  { PL_free_text(&stext);
+	    return FALSE;
+	  }
+	  goto utf8;
+	} else
+	  rc = NUM_ERROR;
       } else
 	rc = NUM_ERROR;
 
       if ( (how&X_MASK) == X_AUTO )
-	goto case_atom;
-      else if ( !(how & X_NO_SYNTAX_ERROR) )
-	return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
-      else
-	return FALSE;
+      { goto case_atom;
+      } else
+      { PL_free_text(&stext);
+
+	if ( !(how & X_NO_SYNTAX_ERROR) )
+	  return PL_error(pred, 2, NULL, ERR_SYNTAX, str_number_error(rc));
+	else
+	  return FALSE;
+      }
     }
     default:
       assert(0);
@@ -4217,12 +4247,12 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
   char *s;
   size_t len;
 
-  if ( PL_get_nchars(A1, &len, &s, CVT_ATOM|CVT_STRING) )
+  if ( PL_get_nchars(A1, &len, &s, REP_UTF8|CVT_ATOM|CVT_STRING) )
   { number n;
     unsigned char *q;
     strnumstat rc;
 
-    if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) ) /* TBD: rational support */
+    if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) )
     { if ( *q == EOS )
       { int rc = PL_unify_number(A2, &n);
         clearNumber(&n);

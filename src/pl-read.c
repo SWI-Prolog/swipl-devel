@@ -83,7 +83,7 @@ static void	  addUTF8Buffer(Buffer b, int c);
 				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
 #define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
-#define PlDigitW(c)	CharTypeW(c, == DI, U_DECIMAL)
+#define PlDecimalW(c)	CharTypeW(c, == DI, U_DECIMAL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
@@ -851,6 +851,14 @@ reportReadError(ReadData rd)
 		/********************************
 		*           RAW READING         *
 		*********************************/
+
+static cucharp
+backskip_utf8(cucharp s)
+{ for(s--; ISUTF8_CB(*s); s--)
+    ;
+
+  return s;
+}
 
 static unsigned char *
 backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
@@ -2122,25 +2130,48 @@ skip_digit_separator(cucharp *sp, int base, int *grouped)
 }
 
 
+static int
+skip_decimal_separator(cucharp *sp, int zero, int *grouped)
+{ cucharp s = *sp;
+  int c;
+
+  if ( *s == '_' )
+    s = skipSpaces(s+1);
+  else if ( *s == ' ' )
+    s++;
+
+  utf8_get_uchar(s, &c);
+  if ( isDecimal(zero, c) )
+  { *sp = s;
+    if ( grouped )
+      *grouped = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static strnumstat
-scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
+scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 { int64_t maxi = PLMAXINT/10;
   int maxlastdigit = PLMAXINT % 10;
   int64_t mini = PLMININT/10;
   int minlastdigit = PLMININT % 10;
   int64_t t = 0;
-  cucharp s = *sp;
-  int c = *s;
+  cucharp s = *sp, sn;
+  int c;
 
-  if ( !isDigit(c) )
+  utf8_get_uchar(s, &c);
+  if ( !isDecimal(zero, c) )
     return NUM_ERROR;
 
   *grouped = FALSE;
 
   do
-  { for(c = *s; isDigit(c); c = *++s)
-    { if (    (  negative && ( (t < mini) || (t == mini && '0' - c < minlastdigit) ))
-           || ( !negative && ( (t > maxi) || (t == maxi && c - '0' > maxlastdigit) )) )
+  { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+    { if (    (  negative && ( (t < mini) || (t == mini && zero - c < minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && c - zero > maxlastdigit) )) )
       {
 #ifdef O_GMP
 	n->value.i = t;
@@ -2148,14 +2179,15 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 	promoteToMPZNumber(n);
 
 	do
-	{ for(c = *s; isDigit(c); c = *++s)
-	  { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
+	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+	  { s = sn;
+	    mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
             if (negative)
-	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - '0');
+	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - zero);
             else
-              mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+              mpz_add_ui(n->value.mpz, n->value.mpz, c - zero);
 	  }
-	} while ( skip_digit_separator(&s, 10, grouped) );
+	} while ( skip_decimal_separator(&s, zero, grouped) );
 
 	*sp = s;
 
@@ -2165,31 +2197,34 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 	double minf = -MAXREAL / 10.0 + 10.0;
 	double tf = (double)t;
 	do
-        { for(c = *s; isDigit(c); c = *++s)
-	  { if (negative)
+        { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+	  { s = sn;
+	    if (negative)
             { if ( tf < minf )
 	        fail;				/* number too large */
-              tf = tf * 10.0 - (double)(c - '0');
+              tf = tf * 10.0 - (double)(c - zero);
             } else
             { if ( tf > maxf )
 	        fail;				/* number too large */
-              tf = tf * 10.0 + (double)(c - '0');
+              tf = tf * 10.0 + (double)(c - zero);
             }
 	  }
-	} while ( skip_digit_separator(&s, 10, grouped) );
+	} while ( skip_decimal_separator(&s, zero, grouped) );
 	n->value.f = tf;
 	n->type = V_FLOAT;
 	*sp = s;
 	return NUM_OK;
 #endif
       } else
-      { if (negative)
-          t = t * 10 - (c - '0');
+      { s = sn;
+
+	if (negative)
+          t = t * 10 - (c - zero);
         else
-          t = t * 10 + (c - '0');
+          t = t * 10 + (c - zero);
       }
     }
-  } while ( skip_digit_separator(&s, 10, grouped) );
+  } while ( skip_decimal_separator(&s, zero, grouped) );
 
   *sp = s;
 
@@ -2693,17 +2728,24 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     }
   }
 
-  if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
+  int c0;
+  int zero = '0';
+  utf8_get_uchar(in, &c0);
+  if ( PlDecimalW(c0) )
+    zero = c0-decimal_weight(c0);
+
+  if ( (rc=scan_decimal(&in, zero, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
 
 #ifdef O_GMP
   if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
 	 *in == 'r') &&
-       isDigit(in[1]) )
+       utf8_get_uchar(&in[1], &c0) &&
+       isDecimal(zero, c0) )
   { number num, den;
 
     in++;
-    if ( (rc=scan_decimal(&in, FALSE, &den, &grouped)) != NUM_OK )
+    if ( (rc=scan_decimal(&in, zero, FALSE, &den, &grouped)) != NUM_OK )
     { clearNumber(value);
       return rc;			/* too large? */
     }
@@ -2730,6 +2772,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 					/* base'value number */
   if ( *in == '\'' &&
+       zero == '0' &&
        value->type == V_INTEGER &&
        value->value.i <= 36 &&
        value->value.i > 1 &&
@@ -2745,7 +2788,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 
 					/* floating point numbers */
-  if ( *in == '.' && isDigit(in[1]) )
+  if ( *in == '.' && zero == '0' && isDigit(in[1]) )
   { clearNumber(value);
     value->type = V_FLOAT;
 
@@ -2858,6 +2901,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     }
     if ( PlSymbolW(c) )
       goto case_symbol;
+    if ( PlDecimalW(c) )
+      goto case_digit;
     if ( PlInvalidW(c) )
       syntaxError("illegal_character", _PL_rd);
     goto case_solo;
@@ -2939,7 +2984,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case DI:	{ number value;
 		  strnumstat rc;
 
-		  if ( (rc=str_number(&rdhere[-1], &rdhere, &value,
+		  if ( (rc=str_number(backskip_utf8(rdhere), &rdhere, &value,
 				      _PL_rd->flags)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
