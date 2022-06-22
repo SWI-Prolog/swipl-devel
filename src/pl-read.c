@@ -83,6 +83,7 @@ static void	  addUTF8Buffer(Buffer b, int c);
 				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
 #define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
+#define PlDigitW(c)	CharTypeW(c, == DI, U_DECIMAL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
@@ -108,6 +109,11 @@ f_is_prolog_symbol(wint_t c)
 }
 
 int
+f_is_decimal(wint_t c)
+{ return PlDecimalW(c) != 0;
+}
+
+int
 unicode_separator(pl_wchar_t c)
 { return PlBlankW(c);
 }
@@ -122,6 +128,36 @@ unicode_quoted_escape(wint_t c)
   { return FALSE;
   }
 }
+
+
+int
+decimal_weight(int code)
+{ if ( code >= '0' && code <= '9' )
+  { return code-'0';
+  } else
+  { const int *s = decimal_bases;
+    const int *e = &decimal_bases[sizeof(decimal_bases)/sizeof(decimal_bases[0])];
+    const int *m = &s[(e-s)/2];
+
+    for(; e > s; )
+    { if ( code < *m )
+      { e = (e == m ? e-1 : m);
+	m = &s[(e-s)/2];
+      } else if ( code > *m+10 )
+      { s = (s == m ? s+1 : m);
+	m = &s[(e-s)/2];
+      } else
+      { return code - *m;
+      }
+    }
+
+    assert(0);
+    return -1;
+  }
+}
+
+
+
 
 /* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
 */

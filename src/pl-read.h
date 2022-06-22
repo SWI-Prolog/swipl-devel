@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -55,6 +56,8 @@ int		f_is_prolog_var_start(wint_t c);
 int		f_is_prolog_atom_start(wint_t c);
 int		f_is_prolog_identifier_continue(wint_t c);
 int		f_is_prolog_symbol(wint_t c);
+int		f_is_decimal(wint_t c);
+int		decimal_weight(int code);
 int		unicode_separator(pl_wchar_t c);
 int		unicode_quoted_escape(wint_t c);
 int		atom_varnameW(const pl_wchar_t *s, size_t len);

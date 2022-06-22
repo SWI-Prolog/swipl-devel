@@ -182,6 +182,14 @@ rdigit(wint_t d)
 
 
 static int
+ff_decimal(wint_t chr)
+{ if ( f_is_decimal(chr) )
+    return decimal_weight(chr);
+  else
+    return -1;
+}
+
+static int
 fxdigit(wint_t chr)
 { if ( chr > 0xff )
     return -1;
@@ -229,6 +237,8 @@ static const char_type char_types[] =
   { ATOM_prolog_var_start,	     f_is_prolog_var_start },
   { ATOM_prolog_atom_start,	     f_is_prolog_atom_start },
   { ATOM_prolog_identifier_continue, f_is_prolog_identifier_continue },
+  { ATOM_decimal,		     f_is_decimal },
+  { ATOM_decimal,		     ff_decimal, NULL, 1, CTX_CODE },
   { ATOM_prolog_symbol,		     f_is_prolog_symbol },
   { ATOM_csymf,			     fiscsymf },
   { ATOM_ascii,			     fisascii },
@@ -251,8 +261,8 @@ static const char_type char_types[] =
   { ATOM_to_lower,		     ftoupper,	ftolower, 1, CTX_CHAR },
   { ATOM_to_upper,		     ftolower,	ftoupper, 1, CTX_CHAR },
   { ATOM_paren,			     fparen,	rparen,   1, CTX_CHAR },
-  { ATOM_digit,			     fdigit,	rdigit,   1, CTX_CODE  },
-  { ATOM_xdigit,		     fxdigit,	rxdigit,  1, CTX_CODE  },
+  { ATOM_digit,			     fdigit,	rdigit,   1, CTX_CODE },
+  { ATOM_xdigit,		     fxdigit,	rxdigit,  1, CTX_CODE },
   { NULL_ATOM,			     NULL }
 };
 
@@ -370,7 +380,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	}
       }
 
-      if ( do_enum == ENUM_CHAR && arity == 1 )
+      if ( do_enum == ENUM_CHAR && arity == 1 && cc->reverse )
       {	term_t a = PL_new_term_ref();	/* char_type(X, lower('A')) */
 	int ca;
 

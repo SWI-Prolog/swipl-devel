@@ -132,7 +132,8 @@ write_sort_map(Out, Options) :-
 		is_list(Map)),
 	       write_codepage(Out, CP, Map, Options)),
 	write_map(Out, Tables, Options),
-	write_footer(Out, Options).
+	write_footer(Out, Options),
+	write_decimal_bases(Out, Options).
 
 write_codepage(Out, CP, Map, Options) :-
 	option(lang(javascript), Options), !,
@@ -324,13 +325,16 @@ gen_tables(Tables, Options) :-
 	findall(table(CP,Map), table(CP, Map, Options), Tables).
 
 table(CP, Map, Options) :-
-	last_unicode_page(DefPage),
-	option(first_codepage(First), Options, 0),
-	option(last_codepage(Last), Options, DefPage),
-	between(First, Last, CP),
+	code_page(CP, Options),
 	option(lang(Lang), Options, 'C'),
 	findall(M, char(CP, M, Lang), Map0),
 	flat_map(Map0, Map).
+
+code_page(CP, Options) :-
+	last_unicode_page(DefPage),
+	option(first_codepage(First), Options, 0),
+	option(last_codepage(Last), Options, DefPage),
+	between(First, Last, CP).
 
 char(CP, Value, Lang) :-
 	between(0, 255, I),
@@ -440,3 +444,81 @@ control_cat('Cn').	% a reserved unassigned code point or a noncharacter
 flat_map(Map0, Value) :-
 	sort(Map0, [Value]), !.
 flat_map(Map, Map).
+
+
+		 /*******************************
+		 *	      DECIMALS		*
+		 *******************************/
+
+write_decimal_bases(Out, Options) :-
+	decimal_bases(Bases, Options),
+	format(Out, 'static const int decimal_bases[] =~n{ ', []),
+	write_bases(Out, Bases, 0).
+
+write_bases(Out, [], _) :-
+	!,
+	format(Out, '~N};~n~n', []).
+write_bases(Out, [H|T], I) :-
+	(   I == 0
+	->  true
+	;   0 =:= I mod 8
+	->  format(Out, ',~n  ', [])
+	;   format(Out, ', ', [])
+	),
+	format(Out, '0x~|~`0t~16r~2+', [H]),
+	I2 is I + 1,
+	write_bases(Out, T, I2).
+
+
+%!	decimal_bases(-Bases, +Options) is det.
+%
+%	Basis is a list of base codepoints for a decimal block of length
+%	10.
+
+decimal_bases(Bases, Options) :-
+	findall(Digit, digit(Digit, Options), Digits),
+	digit_blocks(Digits, Blocks),
+	maplist(digit_base, Blocks, Bases0),
+	flatten(Bases0, Bases).
+
+digit(Digit, Options) :-
+	code_page(CP, Options),
+	Start is CP*256,
+	End is Start+255,
+	between(Start, End, Digit),
+	code_flag(Digit, decimal).
+
+digit_blocks(Digits, [Block|BT]) :-
+	block(Digits, T, Block),
+	!,
+	digit_blocks(T, BT).
+digit_blocks(_, []).
+
+block([H|T0], T, [H|Block]) :-
+	sequence(H, T0, T, Block),
+	Block \== [],
+	!.
+block([_|T0], T, Block) :-
+	block(T0, T, Block).
+
+sequence(I0, [H|T0], T, [H|BT]) :-
+	H =:= I0+1,
+	!,
+	sequence(H, T0, T, BT).
+sequence(_, T, T, []).
+
+digit_base(Block, Base) :-
+	length(Block, 10),
+	!,
+	Block = [Base|_].
+digit_base(Block, [Base0|Bases]) :-
+	length(Block, Len),
+	Len mod 10 =:= 0,
+	Block = [Base0|_],
+	End is Len/10-1,
+	numlist(1, End, N0),
+	maplist(mul(10), N0, N1),
+	maplist(plus(Base0), N1, Bases).
+
+mul(Times, N0, N) :-
+	N is N0*Times.
