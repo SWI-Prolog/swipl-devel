@@ -2890,10 +2890,10 @@ SWI-Prolog supports Unicode in source files we must extend the syntax.
 This section describes the implication for the source files, while
 writing international source files is described in \secref{intsrcfile}.
 
-The SWI-Prolog Unicode character classification is based on version
-6.0.0 of the Unicode standard. Please note that char_type/2 and
-friends, intended to be used with all text except Prolog source code, is
-based on the C library locale-based classification routines.
+The SWI-Prolog Unicode character classification is currently based on
+version 14.0.0 of the Unicode standard. Please note that char_type/2
+and friends, intended to be used with all text except Prolog source
+code, is based on the C library locale-based classification routines.
 
 
 \begin{itemlist}
@@ -2915,13 +2915,25 @@ an atom.  Note that many languages do not have the notion of
 character case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
+    \item [Decimals]
+Decimal number characters (Nd) are accepted to form numbers, regardless
+of the Unicode block in which they appear.   Currently this is supported
+for integers and rational numbers (see
+\secref{syntax-rational-numbers}), \emph{not} for floating point
+numbers.   In any number (integer or rational), \emph{all} digits
+must come from the same block.
+
     \item [White space]
 All characters marked as separators (Z*) in the Unicode tables are
 handled as layout characters.
 
     \item [Control and unassigned characters]
 Control and unassigned (C*) characters produce a syntax error if
-encountered outside quoted atoms/strings and outside comments.
+encountered outside quoted atoms/strings and outside comments. Quoted
+writing (e.g., writeq/1) of an atom or string that contains one of these
+characters causes the atom or string to be quoted and the control or
+unassigned characters to be written using an escape sequence.  See
+\secref{charescapes}.
 
     \item [Other characters]
 The first 128 characters follow the ISO Prolog standard.  Unicode symbol
