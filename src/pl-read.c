@@ -2639,6 +2639,28 @@ starts_1dot(cucharp s)
 }
 
 
+static int
+points_at_decimal(cucharp in, int zero)
+{ int c;
+
+  utf8_get_uchar(in, &c);
+
+  return isDecimal(zero, c);
+}
+
+
+static cucharp
+skip_decimals(cucharp in, int zero)
+{ int c;
+  cucharp n;
+
+  for(n=utf8_get_uchar(in, &c); isDecimal(zero, c); n=utf8_get_uchar(in, &c))
+    in = n;
+
+  return in;
+}
+
+
 static strnumstat
 special_float(cucharp *in, cucharp start, Number value)
 { cucharp s;
@@ -2665,6 +2687,54 @@ special_float(cucharp *in, cucharp start, Number value)
 
   *in = s;
   return NUM_OK;
+}
+
+static int
+ascii_to_double(cucharp s, cucharp e, double *dp)
+{ char *es;
+  double d;
+
+  errno = 0;
+  d = strtod((char*)s, &es);
+  if ( (cucharp)es == e || (e[0] == '.' && e+1 == (cucharp)es) )
+  { if ( errno == ERANGE && fabs(d) > 1.0 )
+      return NUM_FOVERFLOW;
+
+    *dp = d;
+    return NUM_OK;
+  }
+
+  return NUM_ERROR;
+}
+
+static int
+to_double(cucharp s, cucharp e, int zero, double *dp)
+{ if ( zero == '0' )
+  { return ascii_to_double(s, e, dp);
+  } else
+  { tmp_buffer b;
+    int rc;
+
+    initBuffer(&b);
+    for(; s<e; )
+    { int c;
+
+      s = utf8_get_uchar(s, &c);
+      if ( c >= zero )
+      { assert(c <= zero+9);
+	addBuffer(&b, c-zero+'0', char);
+      } else
+      { assert(c <= 127);
+	addBuffer(&b, c, char);
+      }
+    }
+    addBuffer(&b, 0, char);
+
+    rc = ascii_to_double(baseBuffer(&b, unsigned char),
+			 topBuffer(&b, unsigned char)-1, dp);
+    discardBuffer(&b);
+    return rc;
+  }
 }
 
 
@@ -2740,8 +2810,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
 #ifdef O_GMP
   if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
 	 *in == 'r') &&
-       utf8_get_uchar(&in[1], &c0) &&
-       isDecimal(zero, c0) )
+       points_at_decimal(in+1, zero) )
   { number num, den;
 
     in++;
@@ -2788,25 +2857,22 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 
 					/* floating point numbers */
-  if ( *in == '.' && zero == '0' && isDigit(in[1]) )
+  if ( *in == '.' && points_at_decimal(in+1, zero) )
   { clearNumber(value);
     value->type = V_FLOAT;
 
-    in++;
-    while( isDigit(*in) )
-      in++;
+    in = skip_decimals(in+1, zero);
   }
 
   if ( (*in == 'e' || *in == 'E') &&
-       ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
+       ((isSign(in[1]) && points_at_decimal(in+2, zero)) || points_at_decimal(in+1, zero)) )
   { clearNumber(value);
     value->type = V_FLOAT;
 
     in++;
     if ( isSign(*in) )
       in++;
-    while( isDigit(*in) )
-      in++;
+    in = skip_decimals(in, zero);
   }
 
   if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
@@ -2816,14 +2882,8 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 
   if ( value->type == V_FLOAT )
-  { char *e;
-
-    errno = 0;
-    value->value.f = strtod((char*)start, &e);
-    if ( e != (char*)in && !(*in == '.' && (char*)in+1 == e) )
-      return NUM_ERROR;
-    if ( errno == ERANGE && fabs(value->value.f) > 1.0 )
-      return NUM_FOVERFLOW;
+  { if ( (rc=to_double(start, in, zero, &value->value.f)) != NUM_OK )
+      return rc;
 
     *end = (ucharp)in;
 

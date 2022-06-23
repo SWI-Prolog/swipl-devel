@@ -58,5 +58,11 @@ test(atom_number, N == 0123456789) :-
     atom_number('٠١٢٣٤٥٦٧٨٩', N).
 test(string_number, N == 0123456789) :-
     number_string(N, "٠١٢٣٤٥٦٧٨٩").
+test(string_number, N == 12.3456789) :-
+    number_string(N, "١٢.٣٤٥٦٧٨٩").
+test(string_number, N == -12.34567e89) :-
+    number_string(N, "-١٢.٣٤٥٦٧e٨٩").
+test(string_number, N == -12.34567e-89) :-
+    number_string(N, "-١٢.٣٤٥٦٧e-٨٩").
 
 :- end_tests(numbers).

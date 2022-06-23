@@ -2915,13 +2915,16 @@ an atom.  Note that many languages do not have the notion of
 character case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
-    \item [Decimals]
+    \item [Numbers]
+
 Decimal number characters (Nd) are accepted to form numbers, regardless
-of the Unicode block in which they appear.   Currently this is supported
-for integers and rational numbers (see
-\secref{syntax-rational-numbers}), \emph{not} for floating point
-numbers.   In any number (integer or rational), \emph{all} digits
-must come from the same block.
+of the Unicode block in which they appear. Currently this is supported
+for integers, rational numbers (see \secref{syntax-rational-numbers})
+and floating point numbers. In any number, \emph{all} digits must come
+from the same block, i.e., if the nominator of a rational is uses
+Indian script, so must the demoninator.  All special characters such
+as the sign, rational separator, floating point \chr{.}, and floating
+point exponent must use their usual ASCII character.
 
     \item [White space]
 All characters marked as separators (Z*) in the Unicode tables are
