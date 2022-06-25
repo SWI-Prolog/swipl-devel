@@ -355,13 +355,14 @@ Performs the following steps:
   2. Collect the continuation as a list of terms, each
      term is of the form
 
-	'$cont'(Clause, PC, EnvArg1, ...)
+	'$cont$'(Module, Clause, PC, EnvArg1, ...)
 
-     Here, Clause is the clause, PC is the program counter inside
-     the clause, EnvArg1 is an array holding the frame arguments
-     in the same order as the frame layout.  The atom '<inactive>'
-     is used for frame slots that are not accessed by the remainder
-     of the continuation.
+     Here, Module is the context module for transparent predicates
+     or `[]` for normal predicates.  Clause is the clause, PC is the
+     program counter inside the clause, EnvArg1 is an array holding the
+     frame arguments in the same order as the frame layout. The atom
+     '<inactive>' is used for frame slots that are not accessed by the
+     remainder of the continuation.
   3. Unify Cont of the reset/2 goal with the continuation
   4. Return the program counter for contueing in the parent of the
      reset/3. Sets environment_frame to the parent of the reset frame.
