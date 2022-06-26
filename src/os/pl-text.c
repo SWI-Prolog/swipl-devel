@@ -964,9 +964,9 @@ static int
 native_byte_order(IOENC enc)
 {
 #ifdef WORDS_BIGENDIAN
-  return enc == ENC_UNICODE_BE;
+  return enc == ENC_UTF16BE;
 #else
-  return enc == ENC_UNICODE_LE;
+  return enc == ENC_UTF16LE;
 #endif
 }
 

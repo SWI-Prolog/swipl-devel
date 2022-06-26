@@ -1498,8 +1498,8 @@ typedef struct
 
 static const bomdef bomdefs[] =
 { { ENC_UTF8,       3, "\357\273\277" }, /* 0xef, 0xbb, 0xbb */
-  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, 0xff */
-  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, 0xfe */
+  { ENC_UTF16BE,    2, "\376\377" },	 /* 0xfe, 0xff */
+  { ENC_UTF16LE,    2, "\377\376" },	 /* 0xff, 0xfe */
   { ENC_UNKNOWN,    0, NULL }
 };
 
@@ -1541,8 +1541,8 @@ int
 SwriteBOM(IOSTREAM *s)
 { switch(s->encoding)
   { case ENC_UTF8:
-    case ENC_UNICODE_LE:
-    case ENC_UNICODE_BE:
+    case ENC_UTF16LE:
+    case ENC_UTF16BE:
     { if ( Sputcode(0xfeff, s) != -1 )
       { s->flags |= SIO_BOM;
 
@@ -1783,8 +1783,8 @@ Sunit_size(IOSTREAM *s)
     case ENC_ANSI:
     case ENC_UTF8:
       return 1;
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
+    case ENC_UTF16BE:
+    case ENC_UTF16LE:
       return 2;
     case ENC_WCHAR:
       return sizeof(wchar_t);

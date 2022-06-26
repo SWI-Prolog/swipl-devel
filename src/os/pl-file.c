@@ -3631,9 +3631,16 @@ static struct encname
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
   { ENC_ANSI,	     ATOM_text },
   { ENC_UTF8,        ATOM_utf8 },
-  { ENC_UNICODE_BE,  ATOM_unicode_be },
-  { ENC_UNICODE_LE,  ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_utf16be },
+  { ENC_UTF16LE,     ATOM_utf16le },
   { ENC_WCHAR,	     ATOM_wchar_t },
+					/* Aliases */
+  { ENC_ISO_LATIN_1, ATOM_ISO_8859_1 },
+  { ENC_UTF8,        ATOM_UTF_8 },
+  { ENC_UTF16BE,     ATOM_unicode_be },
+  { ENC_UTF16LE,     ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_UTF_16BE },
+  { ENC_UTF16LE,     ATOM_UTF_16LE },
   { ENC_UNKNOWN,     0 },
 };
 
@@ -3653,8 +3660,7 @@ PL_atom_to_encoding(atom_t a)
 
 atom_t
 PL_encoding_to_atom(IOENC enc)
-{ if ( (int)enc > 0 &&
-       (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
+{ if ( (int)enc > 0 && (int)enc < ENC_WCHAR )
     return encoding_names[enc].name;
   return NULL_ATOM;
 }

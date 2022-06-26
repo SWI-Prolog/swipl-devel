@@ -3390,27 +3390,35 @@ but generates errors and warnings on encountering values above
 127.
 
     \termitem{iso_latin_1}{}
-8-bit encoding supporting many Western languages.  This causes
-the stream to be read and written fully untranslated.
+8-bit encoding supporting many Western languages. This causes the stream
+to be read and written fully untranslated. The above is the SWI-Prolog
+native name. This encoding may be specified using the official
+\href{https://www.iana.org}{IANA} name \const{ISO-8859-1}.
 
     \termitem{text}{}
 C library default locale encoding for text files.  Files are read and
 written using the C library functions mbrtowc() and wcrtomb().  This
-may be the same as one of the other locales, notably it may be the
+may be the same as one of the other encodings, notably it may be the
 same as \const{iso_latin_1} for Western languages and \const{utf8}
 in a UTF-8 context.
 
     \termitem{utf8}{}
-Multi-byte encoding of full UCS, compatible with \const{ascii}.
-See above.
+Multi-byte encoding of full Unicode, compatible with \const{ascii}.
+See above. The above is the SWI-Prolog native name.  This encoding
+may be specified using the official \href{https://www.iana.org}{IANA}
+name \const{UTF-8}.
 
-    \termitem{unicode_be}{}
-Unicode \jargon{Big Endian}.  Reads input in pairs of bytes, most
-significant byte first.  Can only represent 16-bit characters.
-
-    \termitem{unicode_le}{}
-Unicode \jargon{Little Endian}.  Reads input in pairs of bytes, least
-significant byte first.  Can only represent 16-bit characters.
+    \termitem{utf16be}{}
+    \nodescription
+    \termitem{utf16le}{}
+UTF-16 encoding. Reads input in pairs of bytes. \const{utf16be} is
+\jargon{Big Endian}, putting the most significant byte first and
+\const{utf16le} is \jargon{Little Endian}, putting the most significant
+byte second. UTF-16 can represent full Unicode using \jargon{surrogate
+pairs}.  The above are the SWI-Prolog native names.  These encodings
+may be specified using the official \href{https://www.iana.org}{IANA}
+names \const{UTF-16BE} and \const{UTF-16LE}.  For backward compatibility
+we also support \const{unicode_be} and \const{unicode_le}.
 \end{description}
 
 Note that not all encodings can represent all characters. This implies
