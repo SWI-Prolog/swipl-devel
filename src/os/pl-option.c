@@ -217,6 +217,7 @@ scan_options(DECL_LD term_t options, int flags, atom_t optype,
   term_t av, head, tmp, val;
   int n;
   int candiscard = TRUE;
+  int count = 0;
 
   if ( truePrologFlag(PLFLAG_ISO) )
     flags |= OPT_ALL;
@@ -239,6 +240,11 @@ scan_options(DECL_LD term_t options, int flags, atom_t optype,
   { atom_t name;
     size_t arity;
     int implicit_true = FALSE;
+
+    if ( count++ == 1000 )
+    { if ( !PL_is_acyclic(list) )
+	return PL_type_error("list", options);
+    }
 
     if ( PL_get_name_arity(head, &name, &arity) )
     { if ( name == ATOM_equals && arity == 2 )
