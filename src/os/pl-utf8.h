@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -142,5 +142,30 @@ utf8_code_bytes(int chr)
   return -1;
 }
 
+
+		 /*******************************
+		 *	      UTF-16		*
+		 *******************************/
+
+/* See https://en.wikipedia.org/wiki/UTF-16#Examples */
+
+#define IS_UTF16_LEAD(c)      ((c) >= 0xD800 && (c) <= 0xDBFF)
+#define IS_UTF16_TRAIL(c)     ((c) >= 0xDC00 && (c) <= 0xDFFF)
+#define IS_UTF16_SURROGATE(c) ((c) >= 0xD800 && (c) <= 0xDFFF)
+
+static inline int
+utf16_decode(int lead, int trail)
+{ int l = (lead-0xD800) << 10;
+  int t = (trail-0xDC00);
+
+  return l+t+0x10000;
+}
+
+static inline void
+utf16_encode(int c, int *lp, int *tp)
+{ c -= 0x10000;
+  *lp = (c>>10)+0xD800;
+  *tp = (c&0X3FF)+0xDC00;
+}
 
 #endif /*UTF8_H_INCLUDED*/

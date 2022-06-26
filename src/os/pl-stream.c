@@ -862,6 +862,40 @@ reperror(int c, IOSTREAM *s)
   return -1;
 }
 
+static int
+put_usc2(int c, IOSTREAM *s, int be)
+{ if ( be )
+  { if ( put_byte(c>>8, s) < 0 ||
+	 put_byte(c&0xff, s) < 0 )
+      return -1;
+  } else
+  { if ( put_byte(c&0xff, s) < 0 ||
+	 put_byte(c>>8, s) < 0 )
+      return -1;
+  }
+
+  return 0;
+}
+
+static int
+put_utf16(int c, IOSTREAM *s, int be)
+{ if ( c > 0xffff )
+  { int c1, c2;
+
+    utf16_encode(c, &c1, &c2);
+    if ( put_usc2(c1, s, s->encoding == ENC_UTF16BE) < 0 ||
+	 put_usc2(c2, s, s->encoding == ENC_UTF16BE) < 0 )
+      return -1;
+  } else if ( IS_UTF16_SURROGATE(c) )
+  { if ( reperror(c, s) < 0 )
+      return -1;
+  } else
+  { if ( put_usc2(c, s, s->encoding == ENC_UTF16BE) < 0 )
+      return -1;
+  }
+
+  return 0;
+}
 
 
 static int
@@ -924,19 +958,25 @@ put_code(int c, IOSTREAM *s)
 
       break;
     }
-    case ENC_UNICODE_BE:
-      if ( put_byte(c>>8, s) < 0 )
-	return -1;
-      if ( put_byte(c&0xff, s) < 0 )
+    case ENC_UTF16BE:
+      if ( put_utf16(c, s, TRUE) < 0 )
 	return -1;
       break;
-    case ENC_UNICODE_LE:
-      if ( put_byte(c&0xff, s) < 0 )
-	return -1;
-      if ( put_byte(c>>8, s) < 0 )
+    case ENC_UTF16LE:
+      if ( put_utf16(c, s, FALSE) < 0 )
 	return -1;
       break;
     case ENC_WCHAR:
+#if SIZEOF_WCHAR_T == 2
+#ifdef WORDS_BIGENDIAN
+      if ( put_utf16(c, s, TRUE) < 0 )
+	return -1;
+#else
+      if ( put_utf16(c, s, FALSE) < 0 )
+	return -1;
+#endif
+      break;
+#else
     { pl_wchar_t chr = c;
       unsigned char *q = (unsigned char *)&chr;
       unsigned char *e = &q[sizeof(pl_wchar_t)];
@@ -948,6 +988,7 @@ put_code(int c, IOSTREAM *s)
 
       break;
     }
+#endif
     case ENC_UNKNOWN:
       return -1;
   }
@@ -1005,20 +1046,65 @@ Scanrepresent(int c, IOSTREAM *s)
 	return 0;
       return -1;
     }
+    case ENC_UTF16BE:
+    case ENC_UTF16LE:
+#if SIZEOF_WCHAR_T > 2
+      if ( IS_UTF16_SURROGATE(c) )
+	return -1;
+#endif
+    /*FALLTHROUGH*/
     case ENC_WCHAR:
       if ( sizeof(wchar_t) > 2 )
 	return 0;
     /*FALLTHROUGH*/
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
-      if ( c <= 0xffff )
-	return 0;
-      return -1;
     case ENC_UTF8:
       return 0;
     default:
       assert(0);
       return -1;
+  }
+}
+
+
+static int
+get_ucs2(IOSTREAM *s, int be)
+{ int c1, c2;
+
+  c1 = get_byte(s);
+  if ( c1 == EOF )
+    return -1;
+  c2 = get_byte(s);
+
+  if ( c2 == EOF )
+  { Sseterr(s, SIO_WARN, "EOF in unicode character");
+    return UTF8_MALFORMED_REPLACEMENT;
+  } else
+  { if ( be )
+      return (c1<<8)+c2;
+    else
+      return (c2<<8)+c1;
+  }
+}
+
+
+static int
+get_utf16(IOSTREAM *s, int be)
+{ int c = get_ucs2(s, be);
+
+  if ( IS_UTF16_LEAD(c) )
+  { int c2 = get_ucs2(s, be);
+
+    if ( c2 == EOF )
+    { Sseterr(s, SIO_WARN, "EOF in unicode character");
+      return UTF8_MALFORMED_REPLACEMENT;
+    } else if ( !IS_UTF16_TRAIL(c2) )
+    { Sseterr(s, SIO_WARN, "Illegal UTF-16 continuation");
+      return UTF8_MALFORMED_REPLACEMENT;
+    } else
+    { return utf16_decode(c, c2);
+    }
+  } else
+  { return c;
   }
 }
 
@@ -1105,30 +1191,21 @@ retry:
       }
       break;
     }
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
-    { int c1, c2;
-
-      c1 = get_byte(s);
-      if ( c1 == EOF )
-      { c = -1;
-	goto out;
-      }
-      c2 = get_byte(s);
-
-      if ( c2 == EOF )
-      { Sseterr(s, SIO_WARN, "EOF in unicode character");
-	c = UTF8_MALFORMED_REPLACEMENT;
-      } else
-      { if ( s->encoding == ENC_UNICODE_BE )
-	  c = (c1<<8)+c2;
-	else
-	  c = (c2<<8)+c1;
-      }
-
+    case ENC_UTF16BE:
+      c = get_utf16(s, TRUE);
       break;
-    }
+    case ENC_UTF16LE:
+      c = get_utf16(s, FALSE);
+      break;
     case ENC_WCHAR:
+#if SIZEOF_WCHAR_T == 2
+#ifdef WORDS_BIGENDIAN
+      c = get_utf16(s, TRUE);
+#else
+      c = get_utf16(s, FALSE);
+#endif
+      break;
+#else
     { pl_wchar_t chr;
       char *p = (char*)&chr;
       size_t n;
@@ -1153,6 +1230,7 @@ retry:
       c = chr;
       break;
     }
+#endif
     default:
       assert(0);
       c = -1;
