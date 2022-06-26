@@ -341,8 +341,8 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	return PL_error("char_type", 2, NULL, ERR_INSTANTIATION);
 
       if ( !(do_enum & ENUM_CHAR) )
-      { if ( !PL_get_char(chr, &c, TRUE) )
-	  fail;
+      { if ( !PL_get_char_ex(chr, &c, TRUE) )
+	  return FALSE;
 	if ( c == -1 )
 	  return PL_unify_atom(class, ATOM_end_of_file);
       }

@@ -69,7 +69,14 @@ PL_get_char(term_t c, int *p, int eof)
 
   if ( PL_get_integer(c, &chr) )
   { if ( chr >= 0 )
-    { *p = chr;
+    { if ( chr > 0x10ffff )
+	return PL_domain_error("character", c);
+#if PLMAXWCHAR != 0x10ffff
+      if ( chr > PLMAXWCHAR )
+	return PL_representation_error("character");
+#endif
+
+      *p = chr;
       return TRUE;
     }
     if ( eof && chr == -1 )
