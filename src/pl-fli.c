@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2021, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -920,6 +920,13 @@ charCode(word w)
 
       return p[0];
     }
+#if SIZEOF_WCHAR_T == 2
+    if ( a->length == 2*sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    { pl_wchar_t *p = (pl_wchar_t*)a->name;
+
+      return utf16_decode(p[0], p[1]);
+    }
+#endif
   }
 
   return -1;
@@ -2949,12 +2956,13 @@ uncachedCodeToAtom(int chrcode)
     tmp[0] = (char)chrcode;
     return lookupAtom(tmp, 1);
   } else
-  { pl_wchar_t tmp[1];
+  { wchar_t tmp[2];
+    wchar_t *end;
     int new;
 
-    tmp[0] = chrcode;
+    end = put_wchar(tmp, chrcode);
 
-    return lookupBlob((const char *)tmp, sizeof(pl_wchar_t),
+    return lookupBlob((const char *)tmp, sizeof(tmp[0])*(end-tmp),
 		      &ucs_atom, &new);
   }
 }

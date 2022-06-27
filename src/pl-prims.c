@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 #include "pl-util.h"
 #include "pl-funct.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include "pl-inline.h"
 #include <math.h>
 #ifdef HAVE_SYS_RESOURCE_H
@@ -3929,7 +3931,7 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
     flags = CVT_ALL|CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(A1, &txt, flags) )
-  { int rc = PL_unify_int64_ex(A2, txt.length);
+  { int rc = PL_unify_int64_ex(A2, PL_text_length(&txt));
 
     PL_free_text(&txt);
 
@@ -3949,7 +3951,9 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define	X_NO_SYNTAX_ERROR  0x40
 #define X_NO_LEADING_WHITE 0x80
 
-#define x_chars(pred, atom, string, how) LDFUNC(x_chars, pred, atom, string, how)
+#define x_chars(pred, atom, string, how) \
+	LDFUNC(x_chars, pred, atom, string, how)
+
 static int
 x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 { PL_chars_t atext, stext;
@@ -4108,7 +4112,6 @@ PRED_IMPL("number_string", 2, number_string, 0)
 static
 PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 { PRED_LD
-  PL_chars_t txt;
   int n;
   term_t atom = A1;
   term_t chr  = A2;
@@ -4121,35 +4124,27 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   if ( !vatom )
-  { if ( PL_get_text(atom, &txt, CVT_ATOM|CVT_STRING) && txt.length == 1 )
-    { if ( txt.encoding == ENC_WCHAR )
-	achr = txt.text.w[0];
-      else
-	achr = txt.text.t[0]&0xff;
-    } else
-    { return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, atom);
-    }
+  { atom_t a;
+
+    if ( !PL_get_atom(atom, &a) || (achr = charCode(a)) == -1 )
+      return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, atom);
   }
 
   if ( !vchr )
   { if ( !PL_get_integer_ex(chr, &n) )
-      fail;
+      return FALSE;
 
-    if ( n >= 0 && n <= PLMAXWCHAR )
-      cchr = n;
-    else if ( n < 0 || n > 0x10ffff )
+    if ( n < 0 || n > 0x10ffff )
       return PL_type_error("character_code", chr);
 #if SIZEOF_WCHAR_T == 2
-    else if ( n > PLMAXWCHAR )
+    if ( IS_UTF16_SURROGATE(n) )
       return PL_representation_error("character_code");
-#else
-    else
-      assert(0);
 #endif
+    cchr = n;
   }
 
   if ( achr == cchr )
-    succeed;
+    return TRUE;
   if ( vatom )
     return PL_unify_atom(atom, codeToAtom(cchr));
   else

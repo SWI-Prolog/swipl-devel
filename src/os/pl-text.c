@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -139,6 +140,33 @@ PL_from_stack_text(PL_chars_t *text, int flags)
 
   return TRUE;
 }
+
+
+size_t
+PL_text_length(const PL_chars_t *text)
+{ assert(text->canonical);
+
+#if SIZEOF_WCHAR_T == 2
+  if ( text->encoding == ENC_WCHAR )
+  { const wchar_t *s = (const wchar_t *)text->text.t;
+    const wchar_t *e = &s[text->length];
+    size_t count = 0;
+
+    while(s < e)
+    { int c = *s++;
+
+      count++;
+      if ( IS_UTF16_LEAD(c) )
+	s++;
+    }
+
+    return count;
+  }
+#endif
+
+  return text->length;
+}
+
 
 
 #define INT64_DIGITS 20
@@ -460,7 +488,9 @@ globalSpaceRequirement(PL_chars_t *text)
 
 
 
-#define unify_text(term, tail, text, type) LDFUNC(unify_text, term, tail, text, type)
+#define unify_text(term, tail, text, type) \
+	LDFUNC(unify_text, term, tail, text, type)
+
 static int
 unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
@@ -529,12 +559,20 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
             if ( !(p0 = p = INIT_SEQ_STRING(text->length)) )
 	      return FALSE;
 
-            if ( type == PL_CODE_LIST ) {
-              for( ; s < e; s++)
-                p = EXTEND_SEQ_CODES(p, *s);
-            } else {
-              for( ; s < e; s++)
-                p = EXTEND_SEQ_CHARS(p, *s);
+            if ( type == PL_CODE_LIST )
+	    { while(s < e)
+	      { int c;
+
+		s = get_wchar(s, &c);
+                p = EXTEND_SEQ_CODES(p, c);
+	      }
+            } else
+	    { while(s < e)
+	      { int c;
+
+		s = get_wchar(s, &c);
+                p = EXTEND_SEQ_CHARS(p, c);
+	      }
             }
 	    break;
 	  }
@@ -1079,6 +1117,10 @@ PL_canonicalise_text(PL_chars_t *text)
 	    if ( chr > 0xff )		/* requires wide characters */
 	      wide = TRUE;
 	    len++;
+#if SIZEOF_WCHAR_T < 4
+	    if ( chr > 0xffff )
+	      len++;
+#endif
 	  }
 
 	  s = (const char *)text->text.t;
@@ -1089,7 +1131,7 @@ PL_canonicalise_text(PL_chars_t *text)
 
 	    for(t=to; s<e; )
 	    { PL_utf8_code_point(&s, e, &chr);
-	      *t++ = chr;
+	      t = put_wchar(t, chr);
 	    }
 	    *t = EOS;
 
