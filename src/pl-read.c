@@ -1445,8 +1445,8 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  return TRUE;
 		}
 		c = getchr();
-		if ( isSymbolW(c) )
-		{ while( c != EOF && isSymbolW(c) &&
+		if ( PlSymbolW(c) )
+		{ while( c != EOF && PlSymbolW(c) &&
 			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
@@ -1460,7 +1460,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  break;
 		}
 	        /*FALLTHROUGH*/
-      default:	if ( (unsigned)c < 0xff )
+      default:	if ( (unsigned)c <= 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
@@ -1473,14 +1473,14 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      } while( c != EOF && PlBlankW(c) );
 		      goto handle_c;
 		    case SY:
+		    symbol:
 		      set_start_line;
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
 			if ( c == '`' && true(_PL_rd, BQ_MASK) )
 			  break;
-		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
-					/* TBD: wide symbols? */
+		      } while( c != EOF && PlSymbolW(c) );
 		      goto handle_c;
 		    case LC:
 		    case UC:
@@ -1508,7 +1508,9 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
 		  { goto blank;
-		  } else
+		  } else if ( PlSymbolW(c) )
+		  { goto symbol;
+		  }
 		  { addToBuffer(c, _PL_rd);
 		    set_start_line;
 		  }
