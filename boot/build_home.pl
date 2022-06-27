@@ -208,6 +208,15 @@ add_package_path(PkgBinDir) :-
           add_package(Pkg, PkgBinDir)).
 :- endif.
 
+% Add %MINGW_PREFIX%/bin to dll search path under MSYS2
+:- if(current_prolog_flag(windows, true)).
+:- (   getenv('MINGW_PREFIX', Prefix)
+   ->  format(atom(Bin), '~w/bin', [Prefix]),
+       win_add_dll_directory(Bin, _)
+   ;   true
+   ).
+:- endif.
+
 %!  set_version_info
 %
 %   Indicate we are running from the   build directory rather than using
