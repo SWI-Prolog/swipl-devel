@@ -4776,9 +4776,11 @@ sub_text(DECL_LD term_t atom,
   int match;
   fid_t fid;
   size_t b,l,a;				/* before,length,after match */
+  size_t lab = SIZE_NOT_SET;		/* length of haystack */
+  size_t lsb = SIZE_NOT_SET;		/* length of needle */
 
-#define la ta.length
-#define ls ts.length
+#define la (SIZE_GIVEN(lab) ? lab : (lab=PL_text_length(&ta)))
+#define ls (SIZE_GIVEN(lsb) ? lsb : (lsb=PL_text_length(&ts)))
 
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
@@ -4911,8 +4913,8 @@ again:
   switch(state->type)
   { case SUB_SEARCH:
     { PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK);
-      la = state->n2;
-      ls = state->n3;
+      lab = state->n2;
+      lsb = state->n3;
 
       for( ; state->n1+ls <= la; state->n1++ )
       { if ( PL_cmp_text(&ta, state->n1, &ts, 0, ls) == 0 )
@@ -4929,9 +4931,9 @@ again:
       goto exit_fail;
     }
     case SUB_SPLIT_TAIL:		/* before given, rest unbound */
-    { la = state->n2;
-      b  = state->n3;
-      l  = state->n1++;
+    { lab = state->n2;
+      b   = state->n3;
+      l   = state->n1++;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(len, l) &&
@@ -4945,9 +4947,9 @@ again:
 	goto exit_fail;
     }
     case SUB_SPLIT_LEN:
-    { b  = state->n1++;
-      l  = state->n2;
-      la = state->n3;
+    { b   = state->n1++;
+      l   = state->n2;
+      lab = state->n3;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
@@ -4955,10 +4957,10 @@ again:
       goto out;
     }
     case SUB_SPLIT_HEAD:
-    { b  = state->n1++;
-      la = state->n2;
-      a  = state->n3;
-      l  = la - a - b;
+    { b   = state->n1++;
+      lab = state->n2;
+      a   = state->n3;
+      l   = la - a - b;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
@@ -4971,10 +4973,10 @@ again:
 	goto exit_fail;
     }
     case SUB_ENUM:
-    { b  = state->n1;
-      l  = state->n2++;
-      la = state->n3;
-      a  = la-b-l;
+    { b   = state->n1;
+      l   = state->n2++;
+      lab = state->n3;
+      a   = la-b-l;
 
       match = (PL_unify_text_range(sub, &ta, b, l, type) &&
 	       PL_unify_integer(before, b) &&
