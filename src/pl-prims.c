@@ -4314,13 +4314,15 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 #endif
 }
 
-#define concat(a1, a2, a3, bidirectional, ctx, accept, otype) LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
+#define concat(a1, a2, a3, bidirectional, ctx, accept, otype) \
+	LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
+
 static word
 concat(DECL_LD term_t a1, term_t a2, term_t a3,
        int bidirectional,		/* FALSE: only mode +,+,- */
        control_t ctx,
        int accept,			/* CVT_* */
-       int otype)		/* PL_ATOM or PL_STRING */
+       int otype)			/* PL_ATOM or PL_STRING */
 { PL_chars_t t1, t2, t3;
   int rc;
   int inmode = bidirectional ? CVT_VARNOFAIL : 0;
@@ -4802,18 +4804,20 @@ sub_text(DECL_LD term_t atom,
       { if ( SIZE_GIVEN(l) && ls != l ) /* len conflict */
 	  return FALSE;
 	if ( SIZE_GIVEN(b) )		/* before given: test */
-	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == 0 )
+	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == CMP_EQUAL )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
 	  }
 	  return FALSE;
 	}
 	if ( SIZE_GIVEN(a) )		/* after given: test */
-	{ ssize_t off = la-a-ls;
+	{ if ( la >= a+ls )
+	  { size_t off = la-a-ls;
 
-	  if ( off >= 0 && PL_cmp_text(&ta, (unsigned)off, &ts, 0, ls) == 0 )
-	  { return (PL_unify_integer(len, ls) &&
-		    PL_unify_integer(before, off)) ? TRUE : FALSE;
+	    if ( PL_cmp_text(&ta, off, &ts, 0, ls) == CMP_EQUAL )
+	    { return ( PL_unify_integer(len, ls) &&
+		       PL_unify_integer(before, off) );
+	    }
 	  }
 	  return FALSE;
 	}
@@ -4838,9 +4842,11 @@ sub_text(DECL_LD term_t atom,
 	  return FALSE;
 	}
 	if ( SIZE_GIVEN(a) )		/* after given */
-	{ if ( (l = la-a-b) >= 0 )
-	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
-		 PL_unify_integer(len, l) )
+	{ if ( la >= a+b )
+	  { size_t l2 = la-a-b;
+
+	    if ( PL_unify_text_range(sub, &ta, b, l2, type) &&
+		 PL_unify_integer(len, l2) )
 	      return TRUE;
 	  }
 
@@ -4859,9 +4865,11 @@ sub_text(DECL_LD term_t atom,
 	  return FALSE;
 
 	if ( SIZE_GIVEN(a) )		/* len and after */
-	{ if ( (b = la-a-l) >= 0 )
-	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
-		 PL_unify_integer(before, b) )
+	{ if ( la >= a+l )
+	  { size_t b2 = la-a-l;
+
+	    if ( PL_unify_text_range(sub, &ta, b2, l, type) &&
+		 PL_unify_integer(before, b2) )
 	      return TRUE;
 	  }
 

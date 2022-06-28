@@ -74,7 +74,7 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 
 int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
-int	PL_unify_text_range(term_t term, PL_chars_t *text,
+int	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
 
 int	PL_promote_text(PL_chars_t *text);

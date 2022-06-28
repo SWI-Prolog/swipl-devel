@@ -669,48 +669,128 @@ PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type)
 }
 
 
-int
-PL_unify_text_range(term_t term, PL_chars_t *text,
-		    size_t offset, size_t len, int type)
-{ if ( offset == 0 && len == text->length )
-  { return PL_unify_text(term, 0, text, type);
-  } else
-  { PL_chars_t sub;
-    int rc;
+static const void*
+PL_seek_text_from(const PL_chars_t *t, const void *start, ssize_t offset)
+{ if ( offset == 0 )
+    return start;
 
-    if ( offset > text->length || offset + len > text->length )
-      return FALSE;
-
-    if ( len == 1 && type == PL_ATOM )
-    { GET_LD
-      int c;
-
-      if ( text->encoding == ENC_ISO_LATIN_1 )
-	c = text->text.t[offset]&0xff;
-      else
-	c = text->text.w[offset];
-
-      return PL_unify_atom(term, codeToAtom(c));
+  switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+    { const char *s = start;
+      s += offset;
+      if ( s < t->text.t || s > t->text.t+t->length )
+	return NULL;
+      return s;
     }
+    case ENC_WCHAR:
+    {
+#if SIZEOF_WCHAR_T == 2
+      const wchar_t *s = start;
 
-    sub.length = len;
-    sub.storage = text->storage == PL_CHARS_STACK ? PL_CHARS_STACK : PL_CHARS_HEAP;
-    if ( text->encoding == ENC_ISO_LATIN_1 )
-    { sub.text.t   = text->text.t+offset;
-      sub.encoding = ENC_ISO_LATIN_1;
-      sub.canonical = TRUE;
-    } else
-    { sub.text.w   = text->text.w+offset;
-      sub.encoding = ENC_WCHAR;
-      sub.canonical = FALSE;
+      if ( offset > 0 )
+      { const wchar_t *e = &t->text.w[t->length];
+
+	while ( offset-- > 0 && s < e )
+	{ int c = *s++;
+	  if ( IS_UTF16_LEAD(c) )
+	    s++;
+	}
+	return s <= e ? s : NULL;
+      } else
+      { while ( offset++ < 0 && s > t->text.w )
+	{ int c = *--s;
+	  if ( IS_UTF16_TRAIL(c) )
+	    s--;
+	}
+	return offset == 0 ? s : NULL;
+      }
+#else
+      const wchar_t *s = start;
+
+      s += offset;
+      if ( s < t->text.w || s > t->text.w+t->length )
+	return NULL;
+      return s;
+#endif
     }
-
-    rc = PL_unify_text(term, 0, &sub, type);
-
-    PL_free_text(&sub);
-
-    return rc;
+    default:
+      assert(0);
+      return NULL;
   }
+}
+
+
+
+static const void*
+PL_seek_text(const PL_chars_t *t, size_t offset)
+{ return PL_seek_text_from(t, t->text.t, offset);
+}
+
+
+static const void*
+PL_seek_text_rev(const PL_chars_t *t, size_t offset)
+{ ssize_t off = offset;
+  const void *from;
+
+  switch(t->encoding)
+  { case ENC_ISO_LATIN_1:
+      from = &t->text.t[t->length];
+      break;
+    case ENC_WCHAR:
+      from = &t->text.w[t->length];
+      break;
+    default:
+      assert(0);
+      from = NULL;
+  }
+
+  return PL_seek_text_from(t, from, -off);
+}
+
+
+int
+PL_unify_text_range(term_t term, const PL_chars_t *text,
+		    size_t offset, size_t len, int type)
+{ const void *as = PL_seek_text(text, offset);
+  const void *ae = PL_seek_text_from(text, as, len);
+
+  assert(text->canonical);
+
+  if ( !as || !ae )
+    return FALSE;			/* offset > length */
+
+  if ( len == 1 && type == PL_ATOM && ae > as )
+  { GET_LD
+    int c;
+
+    if ( text->encoding == ENC_ISO_LATIN_1 )
+    { const unsigned char *s = as;
+      c = s[0];
+    } else
+    { const wchar_t *s = as;
+      get_wchar(s, &c);
+    }
+
+    return PL_unify_atom(term, codeToAtom(c));
+  }
+
+  PL_chars_t sub;
+  sub.storage = text->storage == PL_CHARS_STACK ? PL_CHARS_STACK : PL_CHARS_HEAP;
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+  { sub.text.t    = (char*)as;
+    sub.length    = (const char*)ae - (const char *)as;
+    sub.encoding  = ENC_ISO_LATIN_1;
+    sub.canonical = TRUE;
+  } else
+  { sub.text.w    = (wchar_t*)as;
+    sub.length    = (const wchar_t*)ae - (const wchar_t*)as;
+    sub.encoding  = ENC_WCHAR;
+    sub.canonical = FALSE;
+  }
+
+  int rc = PL_unify_text(term, 0, &sub, type);
+  PL_free_text(&sub);
+  return rc;
 }
 
 
@@ -1367,62 +1447,76 @@ Compares two substrings of two text representations.
 int
 PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 	    size_t len)
-{ ssize_t l = len;
-  int ifeq = 0;
+{ const void *s1 = PL_seek_text(t1, o1);
+  const void *s2 = PL_seek_text(t2, o2);
 
-  if ( l > (ssize_t)(t1->length - o1) )
-  { l = t1->length - o1;
-    ifeq = CMP_LESS;				/* first is short */
-  }
-  if ( l > (ssize_t)(t2->length - o2) )
-  { l = t2->length - o2;
-    if ( ifeq == 0 )
-      ifeq = CMP_GREATER;
-  }
+#define CMP_LENGTH \
+	if ( len-- == 0 ) return CMP_EQUAL; \
+	if ( (const void*)s >= e1 ) return CMP_LESS; \
+	if ( (const void*)q >= e2 ) return CMP_GREATER
+#define CMP_CHARS \
+	if ( c1 != c2 ) \
+	  return (c1 > c2 ? CMP_GREATER : CMP_LESS)
 
-  if ( l == 0 )					/* too long offsets */
-    return ifeq;
+  if ( s1 && s2 )
+  { const void *e1 = PL_seek_text_rev(t1, 0);
+    const void *e2 = PL_seek_text_rev(t2, 0);
 
-  if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )
-  { const unsigned char *s = (const unsigned char *)t1->text.t+o1;
-    const unsigned char *q = (const unsigned char *)t2->text.t+o2;
+    if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_ISO_LATIN_1 )
+    { const unsigned char *s = s1;
+      const unsigned char *q = s2;
 
-    for(; l-- > 0 && *s == *q; s++, q++ )
-      ;
-    if ( l < 0 )
-      return ifeq;
-    else
-      return *s > *q ? CMP_GREATER : CMP_LESS;
-  } else if ( t1->encoding == ENC_WCHAR && t2->encoding == ENC_WCHAR )
-  { const pl_wchar_t *s = t1->text.w+o1;
-    const pl_wchar_t *q = t2->text.w+o2;
+      for(;;)
+      { int c1, c2;
 
-    for(; l-- > 0 && *s == *q; s++, q++ )
-      ;
-    if ( l < 0 )
-      return ifeq;
-    else
-      return *s > *q ? CMP_GREATER : CMP_LESS;
-  } else if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_WCHAR )
-  { const unsigned char *s = (const unsigned char *)t1->text.t+o1;
-    const pl_wchar_t *q = t2->text.w+o2;
+	CMP_LENGTH;
+	c1 = *s++;
+	c2 = *q++;
+	CMP_CHARS;
+      }
+    } else if ( t1->encoding == ENC_WCHAR && t2->encoding == ENC_WCHAR )
+    { const pl_wchar_t *s = s1;
+      const pl_wchar_t *q = s2;
 
-    for(; l-- > 0 && *s == *q; s++, q++ )
-      ;
-    if ( l < 0 )
-      return ifeq;
-    else
-      return *s > *q ? CMP_GREATER : CMP_LESS;
+      for(;;)
+      { int c1, c2;
+
+	CMP_LENGTH;
+	s = get_wchar(s, &c1);
+	q = get_wchar(q, &c2);
+	CMP_CHARS;
+      }
+    } else if ( t1->encoding == ENC_ISO_LATIN_1 && t2->encoding == ENC_WCHAR )
+    { const unsigned char *s = s1;
+      const pl_wchar_t *q = s2;
+
+      for(;;)
+      { int c1, c2;
+
+	CMP_LENGTH;
+	c1 = *s++;
+	q = get_wchar(q, &c2);
+	CMP_CHARS;
+      }
+    } else
+    { const pl_wchar_t *s = s1;
+      const unsigned char *q = s2;
+
+      for(;;)
+      { int c1, c2;
+
+	CMP_LENGTH;
+	s = get_wchar(s, &c1);
+	c2 = *q++;
+	CMP_CHARS;
+      }
+    }
+  } else if ( s1 /*&& !s2*/ )
+  { return CMP_GREATER;
+  } else if ( s2 /*&& !s1*/ )
+  { return CMP_LESS;
   } else
-  { const pl_wchar_t *s = t1->text.w+o1;
-    const unsigned char *q = (const unsigned char *)t2->text.t+o2;
-
-    for(; l-- > 0 && *s == *q; s++, q++ )
-      ;
-    if ( l < 0 )
-      return ifeq;
-    else
-      return *s > *q ? CMP_GREATER : CMP_LESS;
+  { return CMP_EQUAL;
   }
 }
 
