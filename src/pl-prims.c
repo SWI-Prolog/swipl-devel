@@ -4745,29 +4745,25 @@ typedef struct
 } sub_state;
 
 
-#define get_positive_integer_or_unbound(t, v) LDFUNC(get_positive_integer_or_unbound, t, v)
+#define get_positive_integer_or_unbound(t, v) \
+	LDFUNC(get_positive_integer_or_unbound, t, v)
+
+#define SIZE_NOT_SET  ((size_t)-1)
+#define SIZE_GIVEN(v) ((v) != SIZE_NOT_SET)
+
 static int
-get_positive_integer_or_unbound(DECL_LD term_t t, ssize_t *v)
-{ long i;
-
-  if ( PL_get_long(t, &i) )		/* TBD: should be ssize_t */
-  { if ( i < 0 )
-      PL_error(NULL, 0, NULL, ERR_DOMAIN,
-	       ATOM_not_less_than_zero, t);
-    *v = i;
-
+get_positive_integer_or_unbound(DECL_LD term_t t, size_t *v)
+{ if ( PL_is_variable(t) )
+  { *v = SIZE_NOT_SET;
     return TRUE;
   }
 
-  if ( PL_is_variable(t) )
-    return TRUE;
-
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
+  return PL_get_size_ex(t, v);
 }
 
+#define sub_text(atom, before, len, after, sub, h, type) \
+	LDFUNC(sub_text, atom, before, len, after, sub, h, type)
 
-
-#define sub_text(atom, before, len, after, sub, h, type) LDFUNC(sub_text, atom, before, len, after, sub, h, type)
 static foreign_t
 sub_text(DECL_LD term_t atom,
 	 term_t before, term_t len, term_t after,
@@ -4775,11 +4771,11 @@ sub_text(DECL_LD term_t atom,
 	 control_t h,
 	 int type			/* PL_ATOM or PL_STRING */)
 { PL_chars_t ta, ts;			/* the strings */
-  ssize_t b = -1, l = -1, a = -1;	/* the integers */
   sub_state *state;			/* non-deterministic state */
   atom_t expected = (type == PL_STRING ? ATOM_string : ATOM_atom);
   int match;
   fid_t fid;
+  size_t b,l,a;				/* before,length,after match */
 
 #define la ta.length
 #define ls ts.length
@@ -4792,7 +4788,7 @@ sub_text(DECL_LD term_t atom,
       if ( !get_positive_integer_or_unbound(before, &b) ||
 	   !get_positive_integer_or_unbound(len, &l) ||
 	   !get_positive_integer_or_unbound(after, &a) )
-	fail;
+	return FALSE;
 
       if ( !PL_get_text(sub, &ts, CVT_ATOMIC|BUF_ALLOW_STACK) )
       { if ( !PL_is_variable(sub) )
@@ -4801,23 +4797,23 @@ sub_text(DECL_LD term_t atom,
       }
 
       if ( ts.text.t )			/* `sub' given */
-      { if ( l >= 0 && (int)ls != l )	/* len conflict */
-	  fail;
-	if ( b >= 0 )			/* before given: test */
+      { if ( SIZE_GIVEN(l) && ls != l ) /* len conflict */
+	  return FALSE;
+	if ( SIZE_GIVEN(b) )		/* before given: test */
 	{ if ( PL_cmp_text(&ta, b, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(after, la-ls-b)) ? TRUE : FALSE;
 	  }
-	  fail;
+	  return FALSE;
 	}
-	if ( a >= 0 )			/* after given: test */
+	if ( SIZE_GIVEN(a) )		/* after given: test */
 	{ ssize_t off = la-a-ls;
 
 	  if ( off >= 0 && PL_cmp_text(&ta, (unsigned)off, &ts, 0, ls) == 0 )
 	  { return (PL_unify_integer(len, ls) &&
 		    PL_unify_integer(before, off)) ? TRUE : FALSE;
 	  }
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SEARCH;
@@ -4827,26 +4823,26 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( b >= 0 )			/* before given */
-      { if ( b > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(b) )		/* before given */
+      { if ( b > la )
+	  return FALSE;
 
-	if ( l >= 0 )			/* len given */
-	{ if ( b+l <= (int)la )		/* deterministic fit */
+	if ( SIZE_GIVEN(l) )		/* len given */
+	{ if ( b+l <= la )		/* deterministic fit */
 	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
 		 PL_unify_integer(after, la-b-l) )
-	      succeed;
+	      return TRUE;
 	  }
-	  fail;
+	  return FALSE;
 	}
-	if ( a >= 0 )			/* after given */
+	if ( SIZE_GIVEN(a) )		/* after given */
 	{ if ( (l = la-a-b) >= 0 )
 	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
 		 PL_unify_integer(len, l) )
-	      succeed;
+	      return TRUE;
 	  }
 
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_TAIL;
@@ -4856,18 +4852,18 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( l >= 0 )			/* no before, len given */
-      { if ( l > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(l) )		/* no before, len given */
+      { if ( l > la )
+	  return FALSE;
 
-	if ( a >= 0 )			/* len and after */
+	if ( SIZE_GIVEN(a) )		/* len and after */
 	{ if ( (b = la-a-l) >= 0 )
 	  { if ( PL_unify_text_range(sub, &ta, b, l, type) &&
 		 PL_unify_integer(before, b) )
-	      succeed;
+	      return TRUE;
 	  }
 
-	  fail;
+	  return FALSE;
 	}
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_LEN;
@@ -4877,9 +4873,9 @@ sub_text(DECL_LD term_t atom,
 	break;
       }
 
-      if ( a >= 0 )			/* only after given */
-      { if ( a > (int)la )
-	  fail;
+      if ( SIZE_GIVEN(a) )		/* only after given */
+      { if ( a > la )
+	  return FALSE;
 
 	state = allocForeignState(sizeof(*state));
 	state->type = SUB_SPLIT_HEAD;
@@ -4904,10 +4900,10 @@ sub_text(DECL_LD term_t atom,
       state = ForeignContextPtr(h);
       if ( state )
 	freeForeignState(state, sizeof(*state));
-      succeed;
+      return TRUE;
     default:
       assert(0);
-      fail;
+      return FALSE;
   }
 
   fid = PL_open_foreign_frame();
@@ -5000,11 +4996,11 @@ again:
 
 exit_fail:
   freeForeignState(state, sizeof(*state));
-  fail;
+  return FALSE;
 
 exit_succeed:
   freeForeignState(state, sizeof(*state));
-  succeed;
+  return TRUE;
 
 next:
   if ( match )
