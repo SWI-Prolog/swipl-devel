@@ -89,37 +89,37 @@ static void	  addUTF8Buffer(Buffer b, int c);
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
-f_is_prolog_var_start(wint_t c)
+f_is_prolog_var_start(int c)
 { return (PlUpperW(c) || c == '_');
 }
 
 int
-f_is_prolog_atom_start(wint_t c)
+f_is_prolog_atom_start(int c)
 { return PlIdStartW(c) && !((PlUpperW(c) || c == '_'));
 }
 
 int
-f_is_prolog_identifier_continue(wint_t c)
+f_is_prolog_identifier_continue(int c)
 { return PlIdContW(c) || c == '_';
 }
 
 int
-f_is_prolog_symbol(wint_t c)
+f_is_prolog_symbol(int c)
 { return PlSymbolW(c) != 0;
 }
 
 int
-f_is_decimal(wint_t c)
+f_is_decimal(int c)
 { return PlDecimalW(c) != 0;
 }
 
 int
-unicode_separator(pl_wchar_t c)
+unicode_separator(int c)
 { return PlBlankW(c);
 }
 
 int
-unicode_quoted_escape(wint_t c)
+unicode_quoted_escape(int c)
 { if ( c != ' ' )
   { int uflags = uflagsW(c);
 

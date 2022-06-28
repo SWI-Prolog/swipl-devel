@@ -55,8 +55,8 @@ See manual for details.
 
 typedef struct
 { atom_t	name;			/* name of the class */
-  int (*test)(wint_t chr);		/* boolean */
-  int (*reverse)(wint_t chr);		/* reverse mapping */
+  int (*test)(int chr);			/* boolean */
+  int (*reverse)(int chr);		/* reverse mapping */
   short		arity;			/* arity of class (i.e. lower('A')) */
   short		ctx_type;		/* CTX_* */
 } char_type;
@@ -74,69 +74,69 @@ typedef struct
 
 
 static int
-iswhite(wint_t chr)
+iswhite(int chr)
 { return chr == ' ' || chr == '\t';
 }
 
 
 static int
-fiscsym(wint_t chr)
+fiscsym(int chr)
 { return iswalnum(chr) || chr == '_';
 }
 
 
 static int
-fiscsymf(wint_t chr)
+fiscsymf(int chr)
 { return iswalpha(chr) || chr == '_';
 }
 
 static int
-iseof(wint_t chr)
+iseof(int chr)
 { return chr == (wint_t)-1;
 }
 
 static int
-iseol(wint_t chr)
+iseol(int chr)
 { return chr >= 10 && chr <= 13;
 }
 
 static int
-isnl(wint_t chr)
+isnl(int chr)
 { return chr == '\n';
 }
 
 static int
-isperiod(wint_t chr)
+isperiod(int chr)
 { return chr && strchr(".?!", chr) != NULL;
 }
 
 static int
-isquote(wint_t chr)
+isquote(int chr)
 { return chr && strchr("'`\"", chr) != NULL;
 }
 
 static int
-fupper(wint_t chr)
+fupper(int chr)
 { return iswlower(chr) ? (int)towupper(chr) : -1;
 }
 
 static int
-flower(wint_t chr)
+flower(int chr)
 { return iswupper(chr) ? (int)towlower(chr) : -1;
 }
 
 static int
-ftoupper(wint_t chr)
+ftoupper(int chr)
 { return towupper(chr);
 }
 
 static int
-ftolower(wint_t chr)
+ftolower(int chr)
 { return towlower(chr);
 }
 
 static int
-fparen(wint_t chr)
+fparen(int chr)
 { switch(chr)
   { case '(':
       return ')';
@@ -151,7 +151,7 @@ fparen(wint_t chr)
 
 
 static int
-rparen(wint_t chr)
+rparen(int chr)
 { switch(chr)
   { case ')':
       return '(';
@@ -166,7 +166,7 @@ rparen(wint_t chr)
 
 
 static int
-fdigit(wint_t chr)
+fdigit(int chr)
 { if ( chr <= 0xff && isdigit(chr) )
     return chr - '0';
   return -1;
@@ -174,7 +174,7 @@ fdigit(wint_t chr)
 
 
 static int
-rdigit(wint_t d)
+rdigit(int d)
 { if ( (int)d >= 0 && d <= 9 )
     return d+'0';
   return -1;
@@ -182,7 +182,7 @@ rdigit(wint_t d)
 
 
 static int
-ff_decimal(wint_t chr)
+ff_decimal(int chr)
 { if ( f_is_decimal(chr) )
     return decimal_weight(chr);
   else
@@ -190,7 +190,7 @@ ff_decimal(wint_t chr)
 }
 
 static int
-fxdigit(wint_t chr)
+fxdigit(int chr)
 { if ( chr > 0xff )
     return -1;
   if ( isdigit(chr) )
@@ -204,7 +204,7 @@ fxdigit(wint_t chr)
 
 
 static int
-rxdigit(wint_t d)
+rxdigit(int d)
 { if ( (int)d >= 0 && d <= 9 )
     return d+'0';
   if ( d >= 10 && d <= 15 )
@@ -215,7 +215,7 @@ rxdigit(wint_t d)
 
 
 #define mkfunction(name) \
-	static int f ## name(wint_t chr) { return name(chr); }
+	static int f ## name(int chr) { return name(chr); }
 
 mkfunction(iswalnum)
 mkfunction(iswalpha)

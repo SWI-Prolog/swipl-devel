@@ -1054,8 +1054,10 @@ Scanrepresent(int c, IOSTREAM *s)
 #endif
     /*FALLTHROUGH*/
     case ENC_WCHAR:
-      if ( sizeof(wchar_t) > 2 )
-	return 0;
+#if SIZEOF_WCHAR_T == 2
+      if ( IS_UTF16_SURROGATE(c) )
+	return -1;
+#endif
     /*FALLTHROUGH*/
     case ENC_UTF8:
       return 0;
