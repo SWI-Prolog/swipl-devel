@@ -571,6 +571,19 @@ win_add_dll_directory(Dir) :-
     setenv('PATH', Path).
 :- endif.
 
+:- if(current_predicate(win_add_dll_directory/2)).
+% Under MSYS2, the program is invoked from a bash, with the dll 
+% dependencies (zlib1.dll etc.) in %MINGW_PREFIX%/bin instead of
+% the installation directory). Here we add this folder to the dll
+% search path. If MINGW_PREFIX is undefined, the directive is
+% skipped.
+:- (   getenv('MINGW_PREFIX', Prefix)
+   ->  format(atom(Bin), '~w/bin', [Prefix]),
+       win_add_dll_directory(Bin)
+   ;   true
+   ).
+:- endif.
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
