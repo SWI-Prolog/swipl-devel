@@ -806,7 +806,10 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 	Putc(quote, fd));
 
     while(s < e)
-    { TRY(putQuoted(*s++, quote, flags, fd));
+    { int c;
+
+      s = get_wchar(s, &c);
+      TRY(putQuoted(c, quote, flags, fd));
     }
 
     return Putc(quote, fd);
