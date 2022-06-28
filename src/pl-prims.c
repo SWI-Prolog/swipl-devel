@@ -4314,6 +4314,9 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
 #endif
 }
 
+#define SIZE_NOT_SET  ((size_t)-1)
+#define SIZE_GIVEN(v) ((v) != SIZE_NOT_SET)
+
 #define concat(a1, a2, a3, bidirectional, ctx, accept, otype) \
 	LDFUNC(concat, a1, a2, a3, bidirectional, ctx, accept, otype)
 
@@ -4326,10 +4329,13 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
 { PL_chars_t t1, t2, t3;
   int rc;
   int inmode = bidirectional ? CVT_VARNOFAIL : 0;
+  size_t l1 = SIZE_NOT_SET;
+  size_t l2 = SIZE_NOT_SET;
+  size_t l3 = SIZE_NOT_SET;
 
-#define L1 t1.length
-#define L2 t2.length
-#define L3 t3.length
+#define L1 (SIZE_GIVEN(l1) ? l1 : (l1=PL_text_length(&t1)))
+#define L2 (SIZE_GIVEN(l2) ? l2 : (l2=PL_text_length(&t2)))
+#define L3 (SIZE_GIVEN(l3) ? l3 : (l3=PL_text_length(&t3)))
 
   if ( ForeignControl(ctx) == FRG_CUTTED )
     succeed;
@@ -4343,9 +4349,9 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
 
   if ( t1.text.t && t2.text.t )
   { if ( t3.text.t )
-    { rc = ( t1.length + t2.length == t3.length &&
-	     PL_cmp_text(&t1, 0, &t3, 0, t1.length) == 0 &&
-	     PL_cmp_text(&t2, 0, &t3, t1.length, t2.length) == 0 );
+    { rc = ( L1 + L2 == L3 &&
+	     PL_cmp_text(&t1, 0, &t3,  0, L1) == 0 &&
+	     PL_cmp_text(&t2, 0, &t3, L1, L2) == 0 );
       goto out;
     } else
     { PL_chars_t c;
@@ -4366,14 +4372,16 @@ concat(DECL_LD term_t a1, term_t a2, term_t a3,
     return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
 
   if ( t1.text.t )			/* +, -, + */
-  { if ( L1 <= L3 &&
-	 PL_cmp_text(&t1, 0, &t3, 0, L1) == 0 )
-      return PL_unify_text_range(a2, &t3, L1, L3-L1, otype);
+  { (void)L1;
+    if ( l1 <= L3 &&
+	 PL_cmp_text(&t1, 0, &t3, 0, l1) == 0 )
+      return PL_unify_text_range(a2, &t3, l1, L3-l1, otype);
     fail;
   } else if ( t2.text.t )		/* -, +, + */
-  { if ( L2 <= L3 &&
-	 PL_cmp_text(&t2, 0, &t3, L3-L2, L2) == 0 )
-      return PL_unify_text_range(a1, &t3, 0, L3-L2, otype);
+  { (void)L2;
+    if ( l2 <= L3 &&
+	 PL_cmp_text(&t2, 0, &t3, L3-l2, l2) == 0 )
+      return PL_unify_text_range(a1, &t3, 0, L3-l2, otype);
     fail;
   } else				/* -, -, + */
   { size_t at_n;
@@ -4749,9 +4757,6 @@ typedef struct
 
 #define get_positive_integer_or_unbound(t, v) \
 	LDFUNC(get_positive_integer_or_unbound, t, v)
-
-#define SIZE_NOT_SET  ((size_t)-1)
-#define SIZE_GIVEN(v) ((v) != SIZE_NOT_SET)
 
 static int
 get_positive_integer_or_unbound(DECL_LD term_t t, size_t *v)
