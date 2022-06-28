@@ -2430,7 +2430,7 @@ again:
 	  return ESC_ERROR;
 	}
       }
-      if ( chr > PLMAXWCHAR )
+      if ( chr > UNICODE_MAX )
       { if ( _PL_rd )
 	{ last_token_start = (unsigned char*)errpos;
 	  errorWarning("Illegal character code", 0, _PL_rd);
