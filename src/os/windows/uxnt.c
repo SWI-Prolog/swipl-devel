@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -62,6 +63,7 @@
 #endif
 #include <errno.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #ifndef TRUE
 #define TRUE 1
@@ -129,13 +131,17 @@ static size_t
 wcutf8len(const wchar_t *src)
 { size_t len = 0;
 
-  for(; *src; src++)
-  { if ( *src < 0x80 )
+  while( *src )
+  { int c;
+
+    src = get_wchar(src, &c);
+
+    if ( c < 0x80 )
     { len++;
     } else
     { char o[6];
       char *e;
-      e = utf8_put_char(o, *src);
+      e = utf8_put_char(o, c);
       len += e-o;
     }
   }
@@ -147,13 +153,15 @@ wcutf8len(const wchar_t *src)
 static wchar_t *
 utf8towcs(wchar_t *dest, const char *src, size_t len)
 { wchar_t *o = dest;
-  wchar_t *e = &o[len-1];
+  wchar_t *e = &o[len];
 
   for( ; *src; )
   { int wc;
+    int wl;
 
     src = utf8_get_char(src, &wc);
-    if ( o+1 >= e )
+    wl = (wc <= 0xffff ? 1 : 2);
+    if ( o+wl >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
@@ -165,21 +173,24 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
 }
 
 
+/* length of wide string needed to represent UTF-8 string */
+
 static size_t
-utf8_strlen(const char *s, size_t len)
+utf8_wcslen(const char *s, size_t len)
 { const char *e = &s[len];
-  unsigned int l = 0;
+  size_t l = 0;
 
   while(s<e)
   { int chr;
 
     s = utf8_get_char(s, &chr);
+    if ( chr > 0xffff )
+      l++;
     l++;
   }
 
   return l;
 }
-
 
 
 		 /*******************************
@@ -1074,6 +1085,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
     }
 
     size = wcslen(valp);		/* return sometimes holds 0-bytes */
+
     if ( wcstoutf8(buf, valp, buflen) )
       rc = strlen(buf);
     else
@@ -1101,11 +1113,14 @@ _xos_setenv(const char *name, char *value, int overwrite)
   if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
     return 0;
   if ( !utf8towcs(val, value, PATH_MAX) )
-  { size_t wlen = utf8_strlen(value, strlen(value)) + 1;
+  { size_t wlen = utf8_wcslen(value, strlen(value)) + 1;
+    wchar_t *s;
 
     if ( (val = malloc(wlen*sizeof(TCHAR))) == NULL )
       return -1;
-    utf8towcs(val, value, wlen);
+    s = utf8towcs(val, value, wlen);
+    assert(s==val);
+    (void)s;
   }
 
   rc = SetEnvironmentVariable(nm, val);
