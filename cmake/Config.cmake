@@ -94,7 +94,7 @@ set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
 )
 
-set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h)
+set(CMAKE_EXTRA_INCLUDE_FILES ${CMAKE_EXTRA_INCLUDE_FILES} math.h wchar.h)
 
 #if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 #  set(CMAKE_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS} -Wno-builtin-declaration-mismatch)
@@ -108,6 +108,7 @@ check_type_size("long" SIZEOF_LONG)
 check_type_size("void *" SIZEOF_VOIDP)
 check_type_size("long long" SIZEOF_LONG_LONG)
 check_type_size("wchar_t" SIZEOF_WCHAR_T)
+check_type_size("wint_t" SIZEOF_WINT_T)
 check_type_size("off_t" SIZEOF_OFF_T)
 if(USE_GMP)
   check_type_size("mp_bitcnt_t" SIZEOF_MP_BITCNT_T)
