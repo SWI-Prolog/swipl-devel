@@ -197,13 +197,11 @@ random_code(Enc, Code) :-
 	max_char(Enc, Max),
 	repeat,
 	Code is 1+random(Max-1),
-	\+ forbidden(Enc, Code),
+	\+ forbidden(Code),
 	!.
 
-forbidden(_, 0'\r).
-forbidden(utf16be, Code) :-
-	surrogate_point(Code).
-forbidden(utf16le, Code) :-
+forbidden(0'\r).
+forbidden(Code) :-
 	surrogate_point(Code).
 
 surrogate_point(Code) :-
