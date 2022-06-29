@@ -107,12 +107,15 @@ wcstoutf8(char *dest, const wchar_t *src, size_t len)
 { char *o = dest;
   char *e = &o[len-1];
 
-  for(; *src; src++)
-  { if ( !FITS_UTF8(*src, o, e) )
+  while( *src )
+  { int c;
+
+    src = get_wchar(src, &c);
+    if ( !FITS_UTF8(c, o, e) )
     { errno = ENAMETOOLONG;
       return NULL;
     }
-    o = utf8_put_char(o, *src);
+    o = utf8_put_char(o, c);
   }
   *o = '\0';
 
@@ -150,11 +153,11 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
   { int wc;
 
     src = utf8_get_char(src, &wc);
-    if ( o >= e )
+    if ( o+1 >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
-    *o++ = wc;
+    o = put_wchar(o, wc);
   }
   *o = 0;
 
@@ -349,13 +352,16 @@ _xos_canonical_filenameW(const wchar_t *spec,
     s += 2;
   }
 
-  for(; *s; s++)
-  { int c = *s;
+  while(*s)
+  { int c;
+
+    s = get_wchar(s, &c);
 
     if ( c == '\\' )
     { c = '/';
     } else if ( (flags&XOS_DOWNCASE) )
-    { c = towlower((wchar_t)c);
+    { if ( c <= 0xffff )
+	c = towlower((wint_t)c);
     }
 
     if ( p+6 >= e )
