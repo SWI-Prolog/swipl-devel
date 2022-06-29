@@ -137,13 +137,13 @@ test(directory_files, true) :-
 	directory_files(Dir, Files),
 	memberchk(Plain, Files).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, F),
+	long_segment(40000, F),
 	absolute_file_name(F, _, [access(read)]).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, F),
+	long_segment(40000, F),
 	file_base_name(F, _).
 test(max_path_len, error(representation_error(max_path_length))) :-
-	long_segment(10000, D),
+	long_segment(40000, D),
 	long_segment(2000, F),
 	atomic_list_concat([D,F], /, Path),
 	file_directory_name(Path, _).
