@@ -519,22 +519,6 @@ PRED_IMPL("iswctype", 2, iswctype, 0)
 #endif
 
 
-static void
-addUTF16Buffer(Buffer b, int c)
-{
-#if SIZEOF_WCHAR_T == 2
-  if ( c > 0xffff )
-  { int l, t;
-
-    utf16_encode(c, &l, &t);
-    addBuffer(b, l, wchar_t);
-    addBuffer(b, t, wchar_t);
-  } else
-#endif
-  addBuffer(b, c, wchar_t);
-}
-
-
 static int
 get_chr_from_text(const PL_chars_t *t, size_t *index)
 { if ( *index >= t->length )
