@@ -4497,6 +4497,15 @@ ar_cputime(Number r)
 }
 
 
+static int
+ar_cputime_resolution(Number r)
+{ r->value.f = CpuTimeResolution();
+
+  r->type = V_FLOAT;
+  succeed;
+}
+
+
 		/********************************
 		*       PROLOG CONNECTION       *
 		*********************************/
@@ -4669,6 +4678,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_nan0,		ar_nan, 0),
 
   ADD(FUNCTOR_cputime0,		ar_cputime, 0),
+  ADD(FUNCTOR_cputime_resolution0, ar_cputime_resolution, 0),
   ADD(FUNCTOR_msb1,		ar_msb, 0),
   ADD(FUNCTOR_lsb1,		ar_lsb, 0),
   ADD(FUNCTOR_popcount1,	ar_popcount, 0),

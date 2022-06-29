@@ -112,6 +112,7 @@ typedef enum
 } cputime_kind;
 
 double		CpuTime(cputime_kind);
+double		CpuTimeResolution(void);
 double		WallTime(void);
 struct tm *	PL_localtime_r(const time_t *t, struct tm *r);
 char *		PL_asctime_r(const struct tm *tm, char *buf);

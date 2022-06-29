@@ -272,6 +272,17 @@ clock_jitter(double t)
 #endif /*HAVE_TIMES*/
 
 double
+CpuTimeResolution()
+{
+#if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
+  struct timespec ts;
+  if ( clock_getres(CLOCK_PROCESS_CPUTIME_ID, &ts) == 0 )
+    return clock_jitter(timespec_to_double(ts));
+#endif
+  return 0.0;
+}
+
+double
 CpuTime(cputime_kind which)
 {
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)

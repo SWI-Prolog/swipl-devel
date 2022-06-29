@@ -164,6 +164,7 @@ A core			"core"
 A core_left		"core_left"
 A cos			"cos"
 A cosh			"cosh"
+A cputime_resolution	"cputime_resolution"
 A cputime		"cputime"
 A create		"create"
 A csym			"csym"
@@ -1019,6 +1020,7 @@ F context		2
 F copysign		2
 F cos			1
 F cosh			1
+F cputime_resolution	0
 F cputime		0
 F curl			1
 F cut_call		1

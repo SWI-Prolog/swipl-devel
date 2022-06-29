@@ -8845,6 +8845,11 @@ Evaluate to \emph{Not a Number}. See \secref{floatsyntax} and
 Evaluate to a floating point number expressing the {\sc cpu} time (in seconds)
 used by Prolog up till now. See also statistics/2 and time/1.
 
+    \function{cputime_resolution}{0}{}
+Evaluate to a floating point number expressing the resolution of the value
+returned from \funcref{cputime}{0} (in seconds). If this information is not
+available, evaluates to 0.0.
+
     \function{eval}{1}{+Expr}
 Evaluate \arg{Expr}. Although ISO standard dictates that `$A$=1+2, $B$ is
 $A$' works and unifies $B$ to 3, it is widely felt that source level
