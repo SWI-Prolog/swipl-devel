@@ -630,7 +630,7 @@ PL_get_file_nameW(term_t n, wchar_t **namep, int flags)
     { int chr;
 
       PL_utf8_code_point(&s, NULL, &chr);
-      addBuffer(b, (wchar_t)chr, wchar_t);
+      addUTF16Buffer(b, chr);
     }
     addBuffer(b, (wchar_t)0, wchar_t);
 

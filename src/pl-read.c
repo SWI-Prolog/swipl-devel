@@ -2463,7 +2463,7 @@ again:
 	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
-	  if ( chr > PLMAXWCHAR )
+	  if ( chr > UNICODE_MAX )
 	  { if ( _PL_rd )
 	    { last_token_start = (unsigned char*)errpos;
 	      errorWarning("Illegal character code", 0, _PL_rd);
@@ -5643,7 +5643,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
        !PL_get_atom_ex(A2, &class) )
     return FALSE;
 
-  if ( code > PLMAXWCHAR )
+  if ( code > UNICODE_MAX )
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
 
   c = PL_atom_chars(class);

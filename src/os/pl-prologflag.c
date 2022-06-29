@@ -42,6 +42,7 @@
 #include <process.h>			/* getpid() */
 #endif
 #include "pl-prologflag.h"
+#include "pl-utf8.h"
 #include "pl-ctype.h"
 #include "../pl-arith.h"
 #include "../pl-tabling.h"
@@ -1570,7 +1571,7 @@ initPrologFlags(void)
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "down");
   else
     setPrologFlag("integer_rounding_function", FT_ATOM|FF_READONLY, "toward_zero");
-  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, PLMAXWCHAR);
+  setPrologFlag("max_char_code", FT_INTEGER|FF_READONLY, UNICODE_MAX);
   setPrologFlag("max_arity", FT_ATOM|FF_READONLY, "unbounded");
   setPrologFlag("max_procedure_arity", FT_INTEGER|FF_READONLY, MAXARITY);
   setPrologFlag("answer_format", FT_ATOM, "~p");

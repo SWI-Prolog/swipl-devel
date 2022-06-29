@@ -4157,7 +4157,7 @@ is_code(word w)
 { if ( isTaggedInt(w) )
   { intptr_t code = valInt(w);
 
-    return code >= 0 && code <= PLMAXWCHAR;
+    return code >= 0 && code <= UNICODE_MAX;
   }
 
   return FALSE;
