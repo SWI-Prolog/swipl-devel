@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2018, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -73,7 +74,7 @@ typedef struct
 #define LDFUNC_DECLARATIONS
 
 int	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
-int	PL_unify_text_range(term_t term, PL_chars_t *text,
+int	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
 
 int	PL_promote_text(PL_chars_t *text);
@@ -86,6 +87,7 @@ int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);
 int	PL_save_text(PL_chars_t *text, int flags);
+size_t  PL_text_length(const PL_chars_t *text);
 
 int		PL_get_text(term_t l, PL_chars_t *text, int flags);
 atom_t		textToAtom(PL_chars_t *text);

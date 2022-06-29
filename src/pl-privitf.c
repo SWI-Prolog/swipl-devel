@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2016, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@
 #include "pl-incl.h"
 #include "pl-fli.h"
 #include "pl-prims.h"
+#include "os/pl-utf8.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -71,10 +73,6 @@ PL_get_char(term_t c, int *p, int eof)
   { if ( chr >= 0 )
     { if ( chr > 0x10ffff )
 	return PL_domain_error("character", c);
-#if PLMAXWCHAR != 0x10ffff
-      if ( chr > PLMAXWCHAR )
-	return PL_representation_error("character");
-#endif
 
       *p = chr;
       return TRUE;
@@ -83,13 +81,23 @@ PL_get_char(term_t c, int *p, int eof)
     { *p = chr;
       return TRUE;
     }
+  } else if ( PL_get_atom(c, &name) )
+  { if ( (chr = charCode(name)) != -1 )
+    { *p = chr;
+      return TRUE;
+    }
+    if ( eof && name == ATOM_end_of_file )
+    { *p = -1;
+      return TRUE;
+    }
   } else if ( PL_get_text(c, &text, CVT_ATOM|CVT_STRING|CVT_LIST) &&
-	      text.length == 1 )
-  { *p = text.encoding == ENC_ISO_LATIN_1 ? text.text.t[0]&0xff
-					  : text.text.w[0];
-    return TRUE;
-  } else if ( eof && PL_get_atom(c, &name) && name == ATOM_end_of_file )
-  { *p = -1;
+	      PL_text_length(&text) == 1 )
+  { if ( text.encoding == ENC_ISO_LATIN_1 )
+    { *p = text.text.t[0]&0xff;
+    } else
+    { get_wchar(text.text.w, p);
+    }
+
     return TRUE;
   }
 

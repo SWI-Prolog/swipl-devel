@@ -49,6 +49,7 @@
 #include <math.h>
 #include "os/pl-dtoa.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #include "os/pl-prologflag.h"
 #include <stdio.h>			/* sprintf() */
 #include <errno.h>
@@ -329,39 +330,51 @@ atomType(atom_t a, write_options *options)
 static int
 unquoted_atomW(atom_t atom, IOSTREAM *fd, int flags)
 { Atom ap = atomValue(atom);
-  pl_wchar_t *s = (pl_wchar_t*)ap->name;
+  const pl_wchar_t *s = (const pl_wchar_t*)ap->name;
+  const pl_wchar_t *s1;
   size_t len = ap->length/sizeof(pl_wchar_t);
+  const pl_wchar_t *e = &s[len];
+  int c;
 
   if ( len == 0 )
     return FALSE;
 
-  if ( !f_is_prolog_atom_start(*s) )
-  { for( ; len > 0; s++, len--)
-    { if ( !f_is_prolog_symbol(*s) ||
-	   code_requires_quoted(*s, fd, flags) )
+  s1 = get_wchar(s, &c);
+  if ( !f_is_prolog_atom_start(c) )	/* Sequence of symbol chars */
+  { while ( s < e )
+    { s = get_wchar(s, &c);
+
+      if ( !f_is_prolog_symbol(c) ||
+	   code_requires_quoted(c, fd, flags) )
 	return FALSE;
     }
     return TRUE;
   }
 
-  if ( code_requires_quoted(*s, fd, flags) )
+  if ( code_requires_quoted(c, fd, flags) )
     return FALSE;
 
-  do
-  { for( ++s;
-	 ( --len > 0 &&
-	   f_is_prolog_identifier_continue(*s) &&
-	   !code_requires_quoted(*s, fd, flags)
-	 );
-	 s++)
-      ;
-  } while ( len >= 2 &&
-	    *s == '.' && f_is_prolog_identifier_continue(s[1]) &&
-	    truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
-	    !(flags&PL_WRT_NODOTINATOM)
-	  );
+  s = s1;				/* 1st char is ID_START */
+  int dot_in_atom = ( truePrologFlagNoLD(PLFLAG_DOT_IN_ATOM) &&
+		      !(flags&PL_WRT_NODOTINATOM) );
 
-  return len == 0;
+  while ( s < e )
+  { s = get_wchar(s, &c);
+
+    if ( c == '.' && dot_in_atom && s < e )
+    { s = get_wchar(s, &c);
+      if ( f_is_prolog_identifier_continue(c) &&
+	   !code_requires_quoted(c, fd, flags) )
+	continue;
+      return FALSE;
+    }
+
+    if ( !f_is_prolog_identifier_continue(c) ||
+	 code_requires_quoted(c, fd, flags) )
+      return FALSE;
+  }
+
+  return TRUE;
 }
 
 
@@ -782,9 +795,9 @@ writeAtomToStream(IOSTREAM *s, atom_t atom)
 int
 writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 { Atom a = atomValue(atom);
-  pl_wchar_t *s = (pl_wchar_t*)a->name;
+  const pl_wchar_t *s = (const pl_wchar_t*)a->name;
   size_t len = a->length/sizeof(pl_wchar_t);
-  pl_wchar_t *e = &s[len];
+  const pl_wchar_t *e = &s[len];
 
   if ( (flags&PL_WRT_QUOTED) && !unquoted_atomW(atom, fd, flags) )
   { pl_wchar_t quote = L'\'';
@@ -793,17 +806,28 @@ writeUCSAtom(IOSTREAM *fd, atom_t atom, int flags)
 	Putc(quote, fd));
 
     while(s < e)
-    { TRY(putQuoted(*s++, quote, flags, fd));
+    { int c;
+
+      s = get_wchar(s, &c);
+      TRY(putQuoted(c, quote, flags, fd));
     }
 
     return Putc(quote, fd);
   }
 
-  if ( s < e && !PutOpenToken(s[0], fd) )
-    return FALSE;
-  for( ; s<e; s++)
-  { if ( !Putc(*s, fd) )
+  if ( e > s )
+  { int c;
+
+    get_wchar(s, &c);
+    if ( !PutOpenToken(c, fd) )
       return FALSE;
+
+    while ( s < e )
+    { s = get_wchar(s, &c);
+
+      if ( !Putc(c, fd) )
+	return FALSE;
+    }
   }
 
   return TRUE;

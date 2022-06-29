@@ -187,10 +187,14 @@ typedef enum
   ENC_ISO_LATIN_1,			/* ISO Latin-1 (0..256) */
   ENC_ANSI,				/* default (multibyte) codepage */
   ENC_UTF8,
-  ENC_UNICODE_BE,			/* big endian unicode file */
-  ENC_UNICODE_LE,			/* little endian unicode file */
-  ENC_WCHAR				/* pl_wchar_t */
+  ENC_UTF16BE,				/* big endian UTF-16 */
+  ENC_UTF16LE,				/* little endian UTF-16 file */
+  ENC_WCHAR				/* wchar_t */
 } IOENC;
+
+#define ENC_UNICODE_BE ENC_UTF16BE
+#define ENC_UNICODE_LE ENC_UTF16LE
+
 
 #define SIO_NL_POSIX  0			/* newline as \n */
 #define SIO_NL_DOS    1			/* newline as \r\n */

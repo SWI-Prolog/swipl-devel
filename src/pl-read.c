@@ -89,37 +89,37 @@ static void	  addUTF8Buffer(Buffer b, int c);
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
-f_is_prolog_var_start(wint_t c)
+f_is_prolog_var_start(int c)
 { return (PlUpperW(c) || c == '_');
 }
 
 int
-f_is_prolog_atom_start(wint_t c)
+f_is_prolog_atom_start(int c)
 { return PlIdStartW(c) && !((PlUpperW(c) || c == '_'));
 }
 
 int
-f_is_prolog_identifier_continue(wint_t c)
+f_is_prolog_identifier_continue(int c)
 { return PlIdContW(c) || c == '_';
 }
 
 int
-f_is_prolog_symbol(wint_t c)
+f_is_prolog_symbol(int c)
 { return PlSymbolW(c) != 0;
 }
 
 int
-f_is_decimal(wint_t c)
+f_is_decimal(int c)
 { return PlDecimalW(c) != 0;
 }
 
 int
-unicode_separator(pl_wchar_t c)
+unicode_separator(int c)
 { return PlBlankW(c);
 }
 
 int
-unicode_quoted_escape(wint_t c)
+unicode_quoted_escape(int c)
 { if ( c != ' ' )
   { int uflags = uflagsW(c);
 
@@ -1445,8 +1445,8 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  return TRUE;
 		}
 		c = getchr();
-		if ( isSymbolW(c) )
-		{ while( c != EOF && isSymbolW(c) &&
+		if ( PlSymbolW(c) )
+		{ while( c != EOF && PlSymbolW(c) &&
 			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
@@ -1460,7 +1460,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  break;
 		}
 	        /*FALLTHROUGH*/
-      default:	if ( (unsigned)c < 0xff )
+      default:	if ( (unsigned)c <= 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
@@ -1473,14 +1473,14 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      } while( c != EOF && PlBlankW(c) );
 		      goto handle_c;
 		    case SY:
+		    symbol:
 		      set_start_line;
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
 			if ( c == '`' && true(_PL_rd, BQ_MASK) )
 			  break;
-		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
-					/* TBD: wide symbols? */
+		      } while( c != EOF && PlSymbolW(c) );
 		      goto handle_c;
 		    case LC:
 		    case UC:
@@ -1508,7 +1508,9 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
 		  { goto blank;
-		  } else
+		  } else if ( PlSymbolW(c) )
+		  { goto symbol;
+		  }
 		  { addToBuffer(c, _PL_rd);
 		    set_start_line;
 		  }
@@ -2428,7 +2430,7 @@ again:
 	  return ESC_ERROR;
 	}
       }
-      if ( chr > PLMAXWCHAR )
+      if ( chr > UNICODE_MAX )
       { if ( _PL_rd )
 	{ last_token_start = (unsigned char*)errpos;
 	  errorWarning("Illegal character code", 0, _PL_rd);
@@ -2461,7 +2463,7 @@ again:
 	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
-	  if ( chr > PLMAXWCHAR )
+	  if ( chr > UNICODE_MAX )
 	  { if ( _PL_rd )
 	    { last_token_start = (unsigned char*)errpos;
 	      errorWarning("Illegal character code", 0, _PL_rd);
@@ -5641,7 +5643,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
        !PL_get_atom_ex(A2, &class) )
     return FALSE;
 
-  if ( code > PLMAXWCHAR )
+  if ( code > UNICODE_MAX )
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
 
   c = PL_atom_chars(class);

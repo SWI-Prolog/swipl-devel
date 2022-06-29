@@ -8,6 +8,10 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
+A UTF_8			"UTF-8"
+A UTF_16BE		"UTF-16BE"
+A UTF_16LE		"UTF-16LE"
+A ISO_8859_1		"ISO-8859-1"
 A dollar		"$"
 A abi			"abi"
 A abort			"abort"
@@ -921,6 +925,8 @@ A user_input		"user_input"
 A user_or_explicit	"user_or_explicit"
 A user_output		"user_output"
 A utc			"UTC"
+A utf16be		"utf16be"
+A utf16le		"utf16le"
 A utf8			"utf8"
 A v			"v"
 A value_count		"value_count"

@@ -607,11 +607,6 @@ them.  Descriptions:
 #define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(-PLMAXINT - 1)
 #define PLMAXINT		((int64_t)(((uint64_t)1<<(INT64BITSIZE-1)) - 1))
-#if SIZEOF_WCHAR_T == 2
-#define PLMAXWCHAR		(0xffff)
-#else
-#define PLMAXWCHAR		(0x10ffff)
-#endif
 
 #if vax
 #define MAXREAL			(1.701411834604692293e+38)

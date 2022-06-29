@@ -460,14 +460,15 @@ win_exec(size_t len, const wchar_t *cmd, UINT show)
 
 
 static void
-utf8towcs(wchar_t *o, const char *src)
+utf8towcs_buffer(Buffer b, const char *src)
 { for( ; *src; )
   { int wc;
 
     PL_utf8_code_point(&src, NULL, &wc);
-    *o++ = wc;
+    addUTF16Buffer(b, wc);
   }
-  *o = 0;
+
+  addUTF16Buffer(b, 0);
 }
 
 
@@ -476,15 +477,15 @@ System(char *command)			/* command is a UTF-8 string */
 { STARTUPINFOW sinfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
-  size_t len;
+  tmp_buffer buf;
   wchar_t *wcmd;
 
   memset(&sinfo, 0, sizeof(sinfo));
   sinfo.cb = sizeof(sinfo);
 
-  len = utf8_strlen(command, strlen(command));
-  wcmd = PL_malloc((len+1)*sizeof(wchar_t));
-  utf8towcs(wcmd, command);
+  initBuffer(&buf);
+  utf8towcs_buffer((Buffer)&buf, command);
+  wcmd = baseBuffer(&buf, wchar_t);
 
   if ( CreateProcessW(NULL,			/* module */
 		      wcmd,			/* command line */
@@ -500,7 +501,7 @@ System(char *command)			/* command is a UTF-8 string */
     DWORD code;
 
     CloseHandle(pinfo.hThread);			/* don't need this */
-    PL_free(wcmd);
+    discardBuffer(&buf);
 
     do
     { MSG msg;
@@ -517,7 +518,7 @@ System(char *command)			/* command is a UTF-8 string */
     shell_rval = (rval == TRUE ? code : -1);
     CloseHandle(pinfo.hProcess);
   } else
-  { PL_free(wcmd);
+  { discardBuffer(&buf);
     return shell_rval = -1;
   }
 

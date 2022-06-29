@@ -196,7 +196,10 @@ outtext(format_state *state, PL_chars_t *txt)
       const pl_wchar_t *e = &s[txt->length];
 
       while(s<e)
-      { if ( !outchr(state, *s++) )
+      { int c;
+
+	s = get_wchar(s, &c);
+	if ( !outchr(state, c) )
 	  return FALSE;
       }
 

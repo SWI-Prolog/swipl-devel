@@ -57,6 +57,7 @@ in this array.
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "os/pl-utf8.h"
 #include "pl-arith.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
@@ -1177,20 +1178,16 @@ int
 arithChar(DECL_LD Word p)
 { deRef(p);
 
-  if ( isInteger(*p) )
+  if ( isTaggedInt(*p) )
   { intptr_t chr = valInt(*p);
 
-    if ( chr >= 0 && chr <= PLMAXWCHAR )
+    if ( chr >= 0 && chr <= UNICODE_MAX )
       return (int)chr;
   } else if ( isAtom(*p) )
-  { PL_chars_t txt;
+  { int chr = charCode(*p);
 
-    if ( get_atom_text(*p, &txt) && txt.length == 1 )
-    { if ( txt.encoding == ENC_WCHAR )
-	return txt.text.w[0];
-      else
-	return txt.text.t[0]&0xff;
-    }
+    if ( chr >= 0 )
+      return chr;
   }
 
   PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -1225,6 +1222,13 @@ getCharExpression(DECL_LD Word p, Number r)
 	  r->type = V_INTEGER;
 	  return TRUE;
 	}
+#if SIZEOF_WCHAR_T == 2
+	if ( len == 2 && IS_UTF16_LEAD(ws[0]) )
+	{ r->value.i = utf16_decode(ws[0], ws[1]);
+	  r->type = V_INTEGER;
+	  return TRUE;
+	}
+#endif
       }
 
     len_not_one:

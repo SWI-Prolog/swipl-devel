@@ -34,6 +34,7 @@
 
 #include "pl-incl.h"
 #include "../pl-codelist.h"
+#include "pl-utf8.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
@@ -41,7 +42,8 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
 
 If l represents a list of codes   or characters, return a buffer holding
 the characters. If wide == TRUE  the   buffer  contains  objects of type
-pl_wchar_t. Otherwise it contains traditional characters.
+pl_wchar_t. Otherwise it contains traditional characters.  If wchar_t is
+2 bytes wide, the result contains surrogate pairs.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Buffer
@@ -76,7 +78,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
       else if ( c < 0 || c > 0x10ffff )
 	result->status = CVT_nocode;
 #if SIZEOF_WCHAR_T == 2
-      else if ( c > PLMAXWCHAR )
+      else if ( IS_UTF16_SURROGATE(c) )
 	result->status = CVT_representation;
 #endif
       else if ( c > 0xff )
@@ -122,7 +124,7 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
       else if ( c < 0 || c > 0x10ffff )
 	result->status = (type == CODES ? CVT_nocode : CVT_nochar);
 #if SIZEOF_WCHAR_T == 2
-      else if ( c > PLMAXWCHAR )
+      else if ( IS_UTF16_SURROGATE(c) )
 	result->status = CVT_representation;
 #endif
       else if ( c > 0xff )
@@ -131,9 +133,22 @@ codes_or_chars_to_buffer(term_t l, unsigned int flags, int wide,
     }
 
     if ( wide )
+    {
+#if SIZEOF_WCHAR_T == 2
+      if ( c <= 0xffff )
+      { addBuffer(b, (pl_wchar_t)c, pl_wchar_t);
+      } else
+      { int l, t;
+	utf16_encode(c, &l, &t);
+	addBuffer(b, (pl_wchar_t)l, pl_wchar_t);
+	addBuffer(b, (pl_wchar_t)t, pl_wchar_t);
+      }
+#else
       addBuffer(b, (pl_wchar_t)c, pl_wchar_t);
-    else
-      addBuffer(b, (unsigned char)c, unsigned char);
+#endif
+    } else
+    { addBuffer(b, (unsigned char)c, unsigned char);
+    }
 
     tail = argTermP(list, 1);
     deRef(tail);

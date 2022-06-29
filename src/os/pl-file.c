@@ -2810,7 +2810,18 @@ skip_cr(IOSTREAM *s)
   return FALSE;
 }
 
-#define read_pending_input(input, list, tail, chars) LDFUNC(read_pending_input, input, list, tail, chars)
+static int
+get_ucs2(const char *us, int be)
+{ if ( be )
+    return ((us[0]&0xff)<<8)+(us[1]&0xff);
+  else
+    return ((us[1]&0xff)<<8)+(us[0]&0xff);
+}
+
+
+#define read_pending_input(input, list, tail, chars) \
+	LDFUNC(read_pending_input, input, list, tail, chars)
+
 static foreign_t
 read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 { IOSTREAM *s;
@@ -2964,24 +2975,54 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	re_buffer(s, us, es-us);
         break;
       }
-      case ENC_UNICODE_BE:
-      case ENC_UNICODE_LE:
-      { size_t count = (size_t)n/2;
+      case ENC_UTF16BE:
+      case ENC_UTF16LE:
+      { size_t count = 0;
 	const char *us = buf;
-	size_t done, i;
+	const char *es = buf+n;
+	size_t done = 0, i;
+
+	while(us+2<=es)
+	{ int c = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	  us += 2;
+	  if ( IS_UTF16_LEAD(c) )
+	  { if ( us+2 <= es )
+	    { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	      if ( IS_UTF16_TRAIL(c2) )
+	      { count++;
+		us += 2;
+	      } else
+	      { Sseterr(s, SIO_WARN, "Illegal UTF-16 surrogate pair");
+		goto failure;
+	      }
+	    }
+	  } else
+	  { count++;
+	  }
+	}
 
 	if ( !allocList(count, &ctx) )
 	  return FALSE;
 
-	for(i=0; i<count; us+=2, i++)
-	{ int c;
+	for(us=buf,i=0; i<count; i++)
+	{ int c = get_ucs2(us, s->encoding == ENC_UTF16BE);
 
-	  if ( s->encoding == ENC_UNICODE_BE )
-	    c = ((us[0]&0xff)<<8)+(us[1]&0xff);
-	  else
-	    c = ((us[1]&0xff)<<8)+(us[0]&0xff);
+	  us += 2;
+	  done += 2;
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
+
+#if SIZEOF_WCHAR_T > 2
+	  if ( IS_UTF16_LEAD(c) )
+	  { int c2 = get_ucs2(us, s->encoding == ENC_UTF16BE);
+
+	    done += 2;
+	    us += 2;
+	    c = utf16_decode(c, c2);
+	  }
+#endif
 
 	  if ( s->position )
 	    S__fupdatefilepos_getc(s, c);
@@ -2989,7 +3030,6 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	  ADD_CODE(c);
 	}
 
-	done = count*2;
 	if ( s->position )
 	  s->position->byteno = pos0.byteno+done;
 	re_buffer(s, buf+done, n-done);
@@ -3591,9 +3631,16 @@ static struct encname
   { ENC_ISO_LATIN_1, ATOM_iso_latin_1 },
   { ENC_ANSI,	     ATOM_text },
   { ENC_UTF8,        ATOM_utf8 },
-  { ENC_UNICODE_BE,  ATOM_unicode_be },
-  { ENC_UNICODE_LE,  ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_utf16be },
+  { ENC_UTF16LE,     ATOM_utf16le },
   { ENC_WCHAR,	     ATOM_wchar_t },
+					/* Aliases */
+  { ENC_ISO_LATIN_1, ATOM_ISO_8859_1 },
+  { ENC_UTF8,        ATOM_UTF_8 },
+  { ENC_UTF16BE,     ATOM_unicode_be },
+  { ENC_UTF16LE,     ATOM_unicode_le },
+  { ENC_UTF16BE,     ATOM_UTF_16BE },
+  { ENC_UTF16LE,     ATOM_UTF_16LE },
   { ENC_UNKNOWN,     0 },
 };
 
@@ -3613,8 +3660,7 @@ PL_atom_to_encoding(atom_t a)
 
 atom_t
 PL_encoding_to_atom(IOENC enc)
-{ if ( (int)enc > 0 &&
-       (int)enc < sizeof(encoding_names)/sizeof(encoding_names[0]) )
+{ if ( (int)enc > 0 && (int)enc < ENC_WCHAR )
     return encoding_names[enc].name;
   return NULL_ATOM;
 }
