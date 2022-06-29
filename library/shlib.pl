@@ -579,7 +579,7 @@ win_add_dll_directory(Dir) :-
 % skipped.
 :- (   getenv('MINGW_PREFIX', Prefix)
    ->  format(atom(Bin), '~w/bin', [Prefix]),
-       win_add_dll_directory(Bin)
+       win_add_dll_directory(Bin, _)
    ;   true
    ).
 :- endif.
