@@ -36,6 +36,8 @@
 
 #include "pl-ctype.h"
 #include "pl-text.h"
+#include "pl-utf8.h"
+#include "pl-buffer.h"
 #include "../pl-read.h"
 #include "../pl-fli.h"
 #include <ctype.h>
@@ -92,7 +94,7 @@ fiscsymf(int chr)
 
 static int
 iseof(int chr)
-{ return chr == (wint_t)-1;
+{ return chr == -1;
 }
 
 static int
@@ -117,22 +119,38 @@ isquote(int chr)
 
 static int
 fupper(int chr)
-{ return iswlower(chr) ? (int)towupper(chr) : -1;
+{
+#if SIZEOF_WINT_T == 2
+  if ( chr > 0xffff ) return -1;
+#endif
+  return iswlower(chr) ? (int)towupper(chr) : -1;
 }
 
 static int
 flower(int chr)
-{ return iswupper(chr) ? (int)towlower(chr) : -1;
+{
+#if SIZEOF_WINT_T == 2
+  if ( chr > 0xffff ) return -1;
+#endif
+  return iswupper(chr) ? (int)towlower(chr) : -1;
 }
 
 static int
 ftoupper(int chr)
-{ return towupper(chr);
+{
+#if SIZEOF_WINT_T == 2
+  if ( chr > 0xffff ) return chr;
+#endif
+  return towupper(chr);
 }
 
 static int
 ftolower(int chr)
-{ return towlower(chr);
+{
+#if SIZEOF_WINT_T == 2
+  if ( chr > 0xffff ) return chr;
+#endif
+  return towlower(chr);
 }
 
 static int
@@ -212,10 +230,14 @@ rxdigit(int d)
   return -1;
 }
 
-
-
+#if SIZEOF_WINT_T == 2
+#define mkfunction(name) \
+	static int f ## name(int chr) { if ( chr > 0xffff ) return 0; \
+					return name(chr); }
+#else
 #define mkfunction(name) \
 	static int f ## name(int chr) { return name(chr); }
+#endif
 
 mkfunction(iswalnum)
 mkfunction(iswalpha)
@@ -356,9 +378,9 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 
       if ( do_enum == ENUM_NONE )
       { if ( arity == 0 )
-	  return (*cc->test)((wint_t)c) ? TRUE : FALSE;
+	  return (*cc->test)(c) ? TRUE : FALSE;
 	else
-	{ int rval = (*cc->test)((wint_t)c);
+	{ int rval = (*cc->test)(c);
 
 	  if ( rval >= 0 )
 	  { term_t a = PL_new_term_ref();
@@ -387,7 +409,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
 	_PL_get_arg(1, class, a);
 	if ( !PL_is_variable(a) )
 	{ if ( PL_get_char(a, &ca, FALSE) )
-	  { int c = (*cc->reverse)((wint_t)ca);
+	  { int c = (*cc->reverse)(ca);
 
 	    if ( c < 0 )
 	      fail;
@@ -426,7 +448,7 @@ do_char_type(term_t chr, term_t class, control_t h, int how)
     goto error;
 
   for(;;)
-  { int rval = (*gen->class->test)((wint_t)gen->current);
+  { int rval = (*gen->class->test)(gen->current);
 
     if ( (gen->class->arity == 0 && rval) ||
 	 (gen->class->arity  > 0 && rval >= 0) )
@@ -497,41 +519,40 @@ PRED_IMPL("iswctype", 2, iswctype, 0)
 #endif
 
 
-static int
-init_tout(PL_chars_t *t, size_t len)
-{ switch(t->encoding)
-  { case ENC_ISO_LATIN_1:
-      if ( len < sizeof(t->buf) )
-      { t->text.t = t->buf;
-	t->storage = PL_CHARS_LOCAL;
-      } else
-      { t->text.t = PL_malloc(len);
-	t->storage = PL_CHARS_MALLOC;
-      }
-      succeed;
-    case ENC_WCHAR:
-      if ( len*sizeof(pl_wchar_t) < sizeof(t->buf) )
-      { t->text.w = (pl_wchar_t*)t->buf;
-	t->storage = PL_CHARS_LOCAL;
-      } else
-      { t->text.w = PL_malloc(len*sizeof(pl_wchar_t));
-	t->storage = PL_CHARS_MALLOC;
-      }
-      succeed;
-    default:
-      assert(0);
-      fail;
-  }
+static void
+addUTF16Buffer(Buffer b, int c)
+{
+#if SIZEOF_WCHAR_T == 2
+  if ( c > 0xffff )
+  { int l, t;
+
+    utf16_encode(c, &l, &t);
+    addBuffer(b, l, wchar_t);
+    addBuffer(b, t, wchar_t);
+  } else
+#endif
+  addBuffer(b, c, wchar_t);
 }
 
 
-static inline wint_t
-get_chr_from_text(const PL_chars_t *t, size_t index)
-{ switch(t->encoding)
+static int
+get_chr_from_text(const PL_chars_t *t, size_t *index)
+{ if ( *index >= t->length )
+    return -1;
+
+  switch(t->encoding)
   { case ENC_ISO_LATIN_1:
-      return t->text.t[index]&0xff;
+      return t->text.t[(*index)++]&0xff;
     case ENC_WCHAR:
-      return t->text.w[index];
+    { int c = t->text.w[(*index)++];
+#if SIZEOF_WCHAR_T == 2
+      if ( IS_UTF16_LEAD(c) )
+      { int c2 = t->text.w[(*index)++];
+	c = utf16_decode(c, c2);
+      }
+#endif
+      return c;
+    }
     default:
       assert(0);
       return 0;
@@ -539,7 +560,9 @@ get_chr_from_text(const PL_chars_t *t, size_t index)
 }
 
 
-#define modify_case_atom(in, out, down, text_type) LDFUNC(modify_case_atom, in, out, down, text_type)
+#define modify_case_atom(in, out, down, text_type) \
+	LDFUNC(modify_case_atom, in, out, down, text_type)
+
 static foreign_t
 modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
 { PL_chars_t tin, tout;
@@ -548,80 +571,90 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
     return FALSE;
 
   if ( PL_get_text(out, &tout, CVT_ATOMIC) )
-  { unsigned int i;
+  { size_t i1=0, i2=0;
 
-    if ( tin.length != tout.length )
-      fail;
+    for(;;)
+    { int ci = get_chr_from_text(&tin, &i1);
+      int co = get_chr_from_text(&tout, &i2);
 
-    for(i=0; i<tin.length; i++)
-    { wint_t ci = get_chr_from_text(&tin, i);
-      wint_t co = get_chr_from_text(&tout, i);
+      if ( ci == -1 || co == -1 )
+	return ci == co;
 
       if ( down )
-      { if ( co != towlower(ci) )
-	  fail;
+      { if ( co != ftolower(ci) )
+	  return FALSE;
       } else
-      { if ( co != towupper(ci) )
-	  fail;
+      { if ( co != ftoupper(ci) )
+	  return FALSE;
       }
     }
 
-    succeed;
+    return TRUE;
   } else if ( PL_is_variable(out) )
-  { unsigned int i;
-
-    tout.encoding  = tin.encoding;
-    tout.length    = tin.length;
-    tout.canonical = FALSE;		/* or TRUE? Can WCHAR map to ISO? */
-
-    init_tout(&tout, tin.length);
+  { tmp_buffer b;
 
     if ( tin.encoding == ENC_ISO_LATIN_1 )
     { const unsigned char *in = (const unsigned char*)tin.text.t;
+      size_t i;
+
+      tout.encoding  = tin.encoding;
+      tout.length    = tin.length;
+      tout.canonical = TRUE;
+      if ( tout.length < sizeof(tout.buf) )
+      { tout.text.t  = tout.buf;
+	tout.storage = PL_CHARS_LOCAL;
+      } else
+      { tout.text.t  = PL_malloc(tout.length);
+	tout.storage = PL_CHARS_MALLOC;
+      }
 
       if ( down )
       { for(i=0; i<tin.length; i++)
 	{ wint_t c = towlower(in[i]);
 
-	  if ( c > 255 )
-	  { PL_promote_text(&tout);
-	    for( ; i<tin.length; i++)
-	    { tout.text.w[i] = towlower(in[i]);
-	    }
-	    break;
-	  } else
-	  { tout.text.t[i] = (char)c;
-	  }
+	  assert(c <= 0xff);
+	  tout.text.t[i] = (char)c;
 	}
       } else				/* upcase */
       { for(i=0; i<tin.length; i++)
 	{ wint_t c = towupper(in[i]);
 
-	  if ( c > 255 )
-	  { PL_promote_text(&tout);
-	    for( ; i<tin.length; i++)
-	    { tout.text.w[i] = towupper(in[i]);
-	    }
-	    break;
-	  } else
-	  { tout.text.t[i] = (char)c;
-	  }
+	  assert(c <= 0xff);
+	  tout.text.t[i] = (char)c;
 	}
       }
-    } else
-    { if ( down )
-      { for(i=0; i<tin.length; i++)
-	{ tout.text.w[i] = towlower(tin.text.w[i]);
+    } else				/* ENC_WCHAR */
+    { const wchar_t* s = (const wchar_t*)tin.text.w;
+      const wchar_t* e = &s[tin.length];
+      int c;
+
+      initBuffer(&b);
+
+      if ( down )
+      { while( s < e )
+	{ s = get_wchar(s, &c);
+	  c = ftolower(c);
+	  addUTF16Buffer((Buffer)&b, c);
 	}
       } else
-      { for(i=0; i<tin.length; i++)
-	{ tout.text.w[i] = towupper(tin.text.w[i]);
+      { while( s < e )
+	{ s = get_wchar(s, &c);
+	  c = ftoupper(c);
+	  addUTF16Buffer((Buffer)&b, c);
 	}
       }
+
+      tout.storage   = PL_CHARS_HEAP;
+      tout.text.w    = baseBuffer(&b, wchar_t);
+      tout.length    = entriesBuffer(&b, wchar_t);
+      tout.encoding  = ENC_WCHAR;
+      tout.canonical = FALSE;
     }
 
     PL_unify_text(out, 0, &tout, text_type);
     PL_free_text(&tout);
+    if ( tin.encoding != ENC_ISO_LATIN_1 )
+      discardBuffer(&b);
 
     succeed;
   } else
@@ -664,37 +697,63 @@ PRED_IMPL("string_upper", 2, string_upper, 0)
 		 *	    WHITE SPACE		*
 		 *******************************/
 
+static void
+skip_separators(PL_chars_t *t, size_t *i)
+{ for(;;)
+  { size_t at = *i;
+    int c  = get_chr_from_text(t, &at);
+
+    if ( c == -1 )
+      return;
+
+    if ( unicode_separator(c) )
+      *i=at;
+    else
+      return;
+  }
+}
+
+
+static int
+copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
+{ for(;;)
+  { size_t at = *i;
+    int c  = get_chr_from_text(t, &at);
+
+    if ( c == -1 )
+      return TRUE;
+
+    if ( !unicode_separator(c) )
+    { *i=at;
+      if ( Sputcode(c, out) < 0 )
+	return FALSE;
+    } else
+      return TRUE;
+  }
+}
+
+
 static int
 write_normalize_space(IOSTREAM *out, term_t in)
 { GET_LD
   PL_chars_t tin;
-  size_t i, end;
+  size_t i = 0, end;
 
   if ( !PL_get_text(in, &tin, CVT_ATOMIC|CVT_EXCEPTION) )
     return FALSE;
 
   end = tin.length;
-  i = 0;
-
-  while(i<end && unicode_separator(get_chr_from_text(&tin, i)))
-    i++;
+  skip_separators(&tin, &i);
   while( i<end )
-  { wint_t c;
-
-    while(i<end && !unicode_separator((c=get_chr_from_text(&tin, i))))
-    { if ( Sputcode(c, out) < 0 )
-	fail;
-      i++;
-    }
-    while(i<end && unicode_separator(get_chr_from_text(&tin, i)))
-      i++;
+  { copy_non_separators(out, &tin, &i);
+    skip_separators(&tin, &i);
     if ( i < end )
     { if (  Sputcode(' ', out) < 0 )
-	fail;
+	return FALSE;
     }
   }
 
-  succeed;
+  return TRUE;
 }
 
 
