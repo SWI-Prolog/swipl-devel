@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2017, University of Amsterdam
+    Copyright (c)  2007-2022, University of Amsterdam
                               VU University Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 	    [instantiation_error/1,must_be/2,syntax_error/1]).
 :- autoload(library(option),[option/3]).
 
+:- encoding(utf8).
 
 /** <module> Base64 encoding and decoding
 
@@ -66,7 +68,9 @@ to base64. Base64URL encoded strings do not contain white space.
 
 @tbd    Stream I/O
 @tbd    White-space introduction and parsing
-@author Jan Wielemaker
+@tbd	Encoding support (notably UTF-8)
+@bug	Base64 only works with _bytes_.  The grammars do not check
+        the input to be in the range 0..255.
 */
 
 %!  base64_encoded(+Plain, -Encoded, +Options) is det.
@@ -118,8 +122,28 @@ as(As, _, _) :-
 %!  base64(+Plain, -Encoded) is det.
 %!  base64(-Plain, +Encoded) is det.
 %
-%   Translates between plaintext and base64  encoded atom or string.
-%   See also base64//1.
+%   Translates between plaintext and base64 encoded  atom or string. See
+%   also base64//1.
+%
+%   __Warning__ Base64 encoding is  about  _bytes_,   while  an  atom is
+%   composed  of  Unicode  _code   points_,    integers   in  the  range
+%   0..0x10ffff. This predicate typically does what   you want for ASCII
+%   text. The upper half of the ISO-Latin-1 page is ambiguous. You might
+%   want to use encoding, but it is  not needed. Above that, an encoding
+%   is  required.  Most  standards  use   UTF-8.  In  specific  language
+%   communities other encoding may also be   used.  To encode text using
+%   UTF-8 and Base64 we may use:
+%
+%   ```
+%   ?- atom_codes('ő', Codes),
+%      phrase(utf8_codes(Codes), UTF8),
+%      phrase(base64(UTF8), Encoded),
+%      atom_codes(EncAtom, Encoded).
+%   Codes = [337],
+%   UTF8 = [197, 145],
+%   Encoded = [120, 90, 69, 61],
+%   EncAtom = 'xZE='.
+%   ```
 
 base64(Plain, Encoded) :-
     nonvar(Plain),
