@@ -3317,24 +3317,38 @@ SWI-Prolog's indexing capabilities.
 
 \section{Wide character support}		\label{sec:widechars}
 
-\index{UTF-8}\index{Unicode}\index{UCS}\index{internationalization}%
-SWI-Prolog supports \jargon{wide characters}, characters with character
-codes above 255 that cannot be represented in a single \jargon{byte}.
-\jargon{Universal Character Set} (UCS) is the ISO/IEC 10646 standard
-that specifies a unique 31-bit unsigned integer for any character in
-any language.  It is a superset of 16-bit Unicode, which in turn is
-a superset of ISO 8859-1 (ISO Latin-1), a superset of US-ASCII.  UCS
-can handle strings holding characters from multiple languages, and
-character classification (uppercase, lowercase, digit, etc.) and
-operations such as case conversion are unambiguously defined.
+\index{UTF-8}\index{UTF-16}\index{Unicode}\index{UCS}\index{internationalization}%
+SWI-Prolog represents characters using
+\href{https://home.unicode.org}{Unicode}. Unicode defines \jargon{code
+points} in the range $0\ldots{}0x10FFFF$. These code points represent
+virtually any character in any language. In addition, the Unicode
+standard defines character classes (letter, digit, punctuation, etc.),
+case conversion and much more. Unicode is a super set of ISO 8859-1 (ISO
+Latin-1), which is a superset of US-ASCII.
 
-For this reason SWI-Prolog has two representations for atoms and string
-objects (see \secref{string}). If the text fits in ISO Latin-1, it is
-represented as an array of 8-bit characters.  Otherwise the text is
-represented as an array of 32-bit numbers.  This representational issue
-is completely transparent to the Prolog user.  Users of the foreign
-language interface as described in \chapref{foreign} sometimes need to
-be aware of these issues though.
+SWI-Prolog has two representations for atoms and string objects (see
+\secref{string}). If the text fits in ISO Latin-1, it is represented as
+an array of 8-bit characters. Otherwise the text is represented as an
+array of \ctype{wchar_t} characters. On virtually all systems except for
+MS-Windows, \ctype{wchar_t} is a 32-bit unsigned integer and thus
+capable of representing all Unicode code points. On MS-Windows
+\ctype{wchar_t} is a 16-bit unsigned integer and thus only capable of
+representing the code points $0\ldots{}0xFFFF$. As of SWI-Prolog version
+8.5.14, the \ctype{wchar_t} is (on Windows) interpreted as a UTF-16
+string. The UTF-16 encoding uses \jargon{surrogate pairs} to represent
+the code points $0x10000\ldots{}0x10FFFF$ as two \jargon{code units} in
+the $0xD800\ldots{}0xDFFF$.  As Unicode \jargon{code points}, this range
+is \jargon{unassigned}.   For consistency, SWI-Prolog does not accept
+integers in the surrogate pair range as valid code points, e.g.
+
+\begin{code}
+?- char_code(X, 0xD800).
+ERROR: Type error: `character_code' expected, found `55296' (an integer)
+\end{code}
+
+The internal character representation is completely transparent to the
+Prolog user. Users of the foreign language interface as described in
+\chapref{foreign} sometimes need to be aware of these issues though.
 
 Character coding comes into view when characters of strings need to be
 read from or written to file or when they have to be communicated to
@@ -3345,15 +3359,15 @@ as well as I/O through network sockets.
 
 \subsection{Wide character encodings on streams} \label{sec:encoding}
 
-Although characters are uniquely coded using the UCS standard
+Although characters are uniquely coded using the Unicode standard
 internally, streams and files are byte (8-bit) oriented and there are a
-variety of ways to represent the larger UCS codes in an 8-bit octet
+variety of ways to represent the larger Unicode codes in an 8-bit octet
 stream. The most popular one, especially in the context of the web, is
 UTF-8. Bytes 0~\ldots{}~127 represent simply the corresponding US-ASCII
-character, while bytes 128~\ldots{}~255 are used for multi-byte
-encoding of characters placed higher in the UCS space. Especially on
-MS-Windows the 16-bit Unicode standard, represented by pairs of bytes, is
-also popular.
+character, while bytes 128~\ldots{}~255 are used for multi-byte encoding
+of characters placed higher in the Unicode space. Especially on MS-Windows
+the 16-bit UTF-16 standard, represented by pairs of bytes, is also
+popular.
 
 Prolog I/O streams have a property called \jargon{encoding} which
 specifies the used encoding that influences get_code/2 and put_code/2 as
