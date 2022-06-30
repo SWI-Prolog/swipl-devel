@@ -1181,7 +1181,7 @@ arithChar(DECL_LD Word p)
   if ( isTaggedInt(*p) )
   { intptr_t chr = valInt(*p);
 
-    if ( chr >= 0 && chr <= UNICODE_MAX )
+    if ( VALID_CODE_POINT(chr) )
       return (int)chr;
   } else if ( isAtom(*p) )
   { int chr = charCode(*p);

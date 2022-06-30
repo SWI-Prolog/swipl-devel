@@ -4134,12 +4134,9 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
   { if ( !PL_get_integer_ex(chr, &n) )
       return FALSE;
 
-    if ( n < 0 || n > 0x10ffff )
+    if ( !VALID_CODE_POINT(n) )
       return PL_type_error("character_code", chr);
-#if SIZEOF_WCHAR_T == 2
-    if ( IS_UTF16_SURROGATE(n) )
-      return PL_representation_error("character_code");
-#endif
+
     cchr = n;
   }
 
@@ -4157,7 +4154,7 @@ is_code(word w)
 { if ( isTaggedInt(w) )
   { intptr_t code = valInt(w);
 
-    return code >= 0 && code <= UNICODE_MAX;
+    return VALID_CODE_POINT(code);
   }
 
   return FALSE;
@@ -4169,7 +4166,7 @@ is_char(word w)
 
   return ( isAtom(w) &&
 	   get_atom_text(w, &text) &&
-	   text.length == 1
+	   PL_text_length(&text) == 1
 	 );
 }
 

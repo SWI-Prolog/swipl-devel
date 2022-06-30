@@ -156,6 +156,7 @@ utf8_code_bytes(int chr)
 #define IS_UTF16_LEAD(c)      ((c) >= 0xD800 && (c) <= 0xDBFF)
 #define IS_UTF16_TRAIL(c)     ((c) >= 0xDC00 && (c) <= 0xDFFF)
 #define IS_UTF16_SURROGATE(c) ((c) >= 0xD800 && (c) <= 0xDFFF)
+#define VALID_CODE_POINT(c)   ((c) >= 0 && (c) <= UNICODE_MAX && !IS_UTF16_SURROGATE(c))
 
 static inline int
 utf16_decode(int lead, int trail)
