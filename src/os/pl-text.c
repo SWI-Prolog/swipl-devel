@@ -439,7 +439,7 @@ textToAtom(PL_chars_t *text)
   atom_t a;
 
   PL_STRINGS_MARK();
-  if ( PL_canonicalise_text(text) )
+  if ( PL_canonicalise_text(text) == TRUE )
   { if ( text->encoding == ENC_ISO_LATIN_1 )
       a = lookupAtom(text->text.t, text->length);
     else
@@ -459,7 +459,7 @@ textToString(PL_chars_t *text)
   atom_t a;
 
   PL_STRINGS_MARK();
-  if ( PL_canonicalise_text(text) )
+  if ( PL_canonicalise_text(text) == TRUE )
   { if ( text->encoding == ENC_ISO_LATIN_1 )
       a = globalString(text->length, text->text.t);
     else
@@ -1089,6 +1089,13 @@ native_byte_order(IOENC enc)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+PL_canonicalise_text()  recodes  the  text  to   one  of  the  canonical
+encodings (ENC_ISO_LATIN_1 or ENC_WCHAR). If   the encoding is ENC_WCHAR
+we also make sure it  consists  of   valid  Unicode  code points and, if
+sizeof(wchar_t) == 2 (Windows) UTF-16 surrogate pairs are valid.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
@@ -1099,18 +1106,43 @@ PL_canonicalise_text(PL_chars_t *text)
         text->canonical = TRUE;
 	break;				/* nothing to do */
       case ENC_WCHAR:
-      { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
-	const pl_wchar_t *e = &w[text->length];
+      { const pl_wchar_t *w;
+	const pl_wchar_t *e;
+	int wide;
 
+#if SIZEOF_WCHAR_T == 2
+      case_wchar:
+#endif
+	w = (const pl_wchar_t*)text->text.w;
+	e = &w[text->length];
+	wide = FALSE;
+
+#if SIZEOF_WCHAR_T == 2
+        for(; w<e; w++)
+	{ if ( *w > 0xff )
+	    wide = TRUE;
+	  if ( IS_UTF16_LEAD(*w) )
+	  { if ( w+1<e && IS_UTF16_TRAIL(w[1]) )
+	      w++;
+	    else
+	      return ERR_TEXT_ILLEGAL_UTF16;
+	  }
+	}
+#else
 	for(; w<e; w++)
 	{ if ( *w > 0xff )
-	    return TRUE;
+	    wide = TRUE;
+	  if ( !VALID_CODE_POINT(*w) )
+	    return ERR_TEXT_INVALID_CODE_POINT;
 	}
+#endif
+        if ( !wide )
+	  return PL_demote_text(text, 0);
 
-	return PL_demote_text(text, 0);
+        return TRUE;
       }
-      case ENC_UNICODE_LE:		/* assume text->length is in bytes */
-      case ENC_UNICODE_BE:
+      case ENC_UTF16LE:		/* assume text->length is in bytes */
+      case ENC_UTF16BE:
       {
 #if SIZEOF_WCHAR_T == 2
         assert(text->length%2 == 0);
@@ -1120,9 +1152,10 @@ PL_canonicalise_text(PL_chars_t *text)
 	  flip_shorts((unsigned char*)text->text.t, text->length);
 	}
 	text->encoding = ENC_WCHAR;
-	return TRUE;
+	goto case_wchar;
 #else /*SIZEOF_WCHAR_T!=2*/
 	size_t len = text->length/sizeof(short);
+	size_t code_points = 0;
 	const unsigned short *w = (const unsigned short *)text->text.t;
 	const unsigned short *e = &w[len];
 	int wide = FALSE;
@@ -1135,18 +1168,29 @@ PL_canonicalise_text(PL_chars_t *text)
 	}
 
 	for(; w<e; w++)
-	{ if ( *w > 0xff )
-	  { wide = TRUE;
-	    break;
+	{ code_points++;
+
+	  if ( *w > 0xff )
+	    wide = TRUE;
+	  if ( IS_UTF16_LEAD(*w) )
+	  { if ( w+1<e && IS_UTF16_TRAIL(w[1]) )
+	      w++;
+	    else
+	      return ERR_TEXT_ILLEGAL_UTF16;
 	  }
 	}
 	w = (const unsigned short*)text->text.t;
 
 	if ( wide )
-	{ pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(len+1));
+	{ pl_wchar_t *t, *to = PL_malloc(sizeof(pl_wchar_t)*(code_points+1));
 
 	  for(t=to; w<e; )
-	  { *t++ = *w++;
+	  { if ( IS_UTF16_LEAD(*w) )
+	    { *t++ = utf16_decode(w[0], w[1]);
+	      w++;
+	    } else
+	    { *t++ = *w++;
+	    }
 	  }
 	  *t = EOS;
 
@@ -1159,7 +1203,7 @@ PL_canonicalise_text(PL_chars_t *text)
 
 	  text->text.w = to;
 	} else
-	{ unsigned char *t, *to = PL_malloc(len+1);
+	{ unsigned char *t, *to = PL_malloc(code_points+1);
 
 	  for(t=to; w<e; )
 	    *t++ = (unsigned char)*w++;
@@ -1175,7 +1219,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  text->text.t = (char*)to;
 	}
 
-	succeed;
+	return TRUE;
 #endif /*SIZEOF_WCHAR_T==2*/
       }
       case ENC_UTF8:
@@ -1197,7 +1241,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	    if ( chr > 0xff )		/* requires wide characters */
 	      wide = TRUE;
 	    len++;
-#if SIZEOF_WCHAR_T < 4
+#if SIZEOF_WCHAR_T == 2
 	    if ( chr > 0xffff )
 	      len++;
 #endif
@@ -1239,12 +1283,12 @@ PL_canonicalise_text(PL_chars_t *text)
 	  text->canonical = TRUE;
 	}
 
-	succeed;
+	return TRUE;
       }
       case ENC_ANSI:
       { mbstate_t mbs;
 	size_t len = 0;
-	int iso = TRUE;
+	int wide = FALSE;
 	char *s = text->text.t;
 	size_t rc, n = text->length;
 	wchar_t wc;
@@ -1252,11 +1296,15 @@ PL_canonicalise_text(PL_chars_t *text)
 	memset(&mbs, 0, sizeof(mbs));
 	while( n > 0 )
 	{ if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
-	    return FALSE;		/* encoding error */
+	    return ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE;
 
 	  if ( wc > 0xff )
-	    iso = FALSE;
+	    wide = TRUE;
 	  len++;
+#if SIZEOF_WCHAR_T == 2
+          if ( wc > 0xffff )
+	    len++;
+#endif
 	  n -= rc;
 	  s += rc;
 	}
@@ -1273,7 +1321,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  else
 	    do_free = NULL;
 
-	  if ( iso )
+	  if ( !wide )
 	  { char *to;
 
 	    text->encoding = ENC_ISO_LATIN_1;
@@ -1314,7 +1362,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	    while( n > 0 )
 	    { rc = mbrtowc(&wc, from, n, &mbs);
 
-	      *to++ = wc;
+	      to = put_wchar(to, wc);
 	      n -= rc;
 	      from += rc;
 	    }
@@ -1326,7 +1374,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  if ( do_free )
 	    PL_free(do_free);
 
-	  succeed;
+	  return TRUE;
 	}
 
 	fail;
@@ -1336,7 +1384,36 @@ PL_canonicalise_text(PL_chars_t *text)
     }
   }
 
-  succeed;
+  return TRUE;
+}
+
+static int
+text_error(PL_chars_t *text, int rc)
+{ (void)text;
+
+  switch(rc)
+  { case ERR_TEXT_ILLEGAL_UTF8:
+      return PL_syntax_error("illegal_utf8_sequence", NULL);
+    case ERR_TEXT_ILLEGAL_UTF16:
+      return PL_syntax_error("illegal_utf16_sequence", NULL);
+    case ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE:
+      return PL_syntax_error("illegal_multibyte_sequence", NULL);
+    case ERR_TEXT_INVALID_CODE_POINT:
+      return PL_representation_error("code_point");
+    default:
+      assert(0);
+      return FALSE;
+  }
+}
+
+int
+PL_canonicalise_text_ex(PL_chars_t *text)
+{ int rc;
+
+  if ( (rc=PL_canonicalise_text(text)) == TRUE )
+    return TRUE;
+
+  return text_error(text, rc);
 }
 
 

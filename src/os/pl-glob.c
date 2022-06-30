@@ -484,7 +484,7 @@ mb_add_path(DECL_LD const char *path, GlobInfo info)
   txt.encoding  = ENC_ANSI;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  if ( PL_canonicalise_text(&txt) &&
+  if ( (PL_canonicalise_text(&txt) == TRUE) &&
        PL_mb_text(&txt, REP_UTF8) )
   { addMultipleBuffer(&info->strings, txt.text.t, txt.length+1, char);
     addBuffer(&info->files, idx, int);
@@ -548,7 +548,7 @@ utf8_exists_file(DECL_LD const char *name)
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  rc = ( PL_canonicalise_text(&txt) &&
+  rc = ( (PL_canonicalise_text(&txt) == TRUE) &&
 	 PL_mb_text(&txt, REP_FN) &&
 	 AccessFile(txt.text.t, ACCESS_EXIST) );
   PL_free_text(&txt);
@@ -574,7 +574,7 @@ utf8_opendir(DECL_LD const char *name)
   txt.encoding  = ENC_UTF8;
   txt.storage   = PL_CHARS_HEAP;
   txt.canonical = FALSE;
-  if ( PL_canonicalise_text(&txt) &&
+  if ( (PL_canonicalise_text(&txt) == TRUE) &&
        PL_mb_text(&txt, REP_FN) )
     rc = opendir(txt.text.t);
   else

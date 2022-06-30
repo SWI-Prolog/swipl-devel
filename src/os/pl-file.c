@@ -3126,7 +3126,10 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.canonical = FALSE;
 	text.encoding  = s->encoding;
 
-	PL_canonicalise_text(&text);
+	if ( !PL_canonicalise_text_ex(&text) )
+	{ releaseStream(s);
+	  return FALSE;
+	}
 	if ( text.length >= len )
 	{ int rc = PL_unify_text_range(A3, &text, 0, len, PL_STRING);
 	  PL_free_text(&text);
@@ -3154,8 +3157,8 @@ PRED_IMPL("peek_string", 3, peek_string, 0)
 	text.canonical = FALSE;
 	text.encoding  = s->encoding;
 
-	PL_canonicalise_text(&text);
-	rc = PL_unify_text(A3, 0, &text, PL_STRING);
+	rc = ( PL_canonicalise_text_ex(&text) &&
+	       PL_unify_text(A3, 0, &text, PL_STRING) );
         releaseStream(s);
         return rc;
       }

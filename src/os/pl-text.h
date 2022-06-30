@@ -46,6 +46,11 @@ typedef enum
   PL_CHARS_LOCAL			/* stored in in-line buffer */
 } PL_chars_alloc_t;
 
+					/* PL_canonicalise_text() errors */
+#define ERR_TEXT_ILLEGAL_UTF8		    -1
+#define ERR_TEXT_ILLEGAL_UTF16		    -2
+#define ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE -3
+#define ERR_TEXT_INVALID_CODE_POINT	    -4
 
 typedef struct
 { union
@@ -79,7 +84,8 @@ int	PL_unify_text_range(term_t term, const PL_chars_t *text,
 
 int	PL_promote_text(PL_chars_t *text);
 int	PL_mb_text(PL_chars_t *text, int flags);
-int	PL_canonicalise_text(PL_chars_t *text);
+int	PL_canonicalise_text(PL_chars_t *text) WUNUSED;
+int	PL_canonicalise_text_ex(PL_chars_t *text) WUNUSED;
 
 int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 		    size_t len);
