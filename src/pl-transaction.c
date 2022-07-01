@@ -649,7 +649,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
   return rc;
 }
 
-static const opt_spec transaction_options[] =
+static const PL_option_t transaction_options[] =
 { { ATOM_bulk,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -660,9 +660,8 @@ PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
   int flags = TR_TRANSACTION;
   int bulk = FALSE;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_transaction_option, transaction_options,
-		     &bulk) )
+  if ( !PL_scan_options(A2, 0, "transaction_option",
+			transaction_options, &bulk) )
     return FALSE;
   if ( bulk )
     flags |= TR_BULK;

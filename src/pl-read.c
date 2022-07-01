@@ -5092,7 +5092,7 @@ Options:
 	* subterm_positions(-Layout)
 */
 
-static const opt_spec read_clause_options[] =
+static const PL_option_t read_clause_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_term_position,	    OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
@@ -5160,7 +5160,7 @@ retry:
   init_read_data(&rd, s);
 
   if ( options &&
-       !scan_options(options, 0, ATOM_read_option, read_clause_options,
+       !PL_scan_options(options, 0, "read_option", read_clause_options,
 		     &rd.varnames,
 		     &tpos,
 		     &rd.subtpos,
@@ -5225,7 +5225,7 @@ PRED_IMPL("read_clause", 3, read_clause, 0)
 }
 
 
-static const opt_spec read_term_options[] =
+static const PL_option_t read_term_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_variables,         OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
@@ -5265,7 +5265,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 retry:
   init_read_data(&rd, s);
 
-  if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
+  if ( !PL_scan_options(options, 0, "read_option", read_term_options,
 		     &rd.varnames,
 		     &rd.variables,
 		     &rd.singles,

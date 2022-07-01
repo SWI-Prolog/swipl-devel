@@ -1871,7 +1871,7 @@ set_os_thread_name(atom_t alias)
 }
 
 
-static const opt_spec make_thread_options[] =
+static const PL_option_t make_thread_options[] =
 { { ATOM_alias,		 OPT_ATOM },
   { ATOM_debug,		 OPT_BOOL },
   { ATOM_detached,	 OPT_BOOL },
@@ -2157,17 +2157,17 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   ldnew = info->thread_data;
 
-  if ( !scan_options(options, 0, /*OPT_ALL,*/
-		     ATOM_thread_option, make_thread_options,
-		     &alias,
-		     &debug,
-		     &detached,
-		     &stack,		/* stack */
-		     &c_stack,		/* c_stack */
-		     &at_exit,
-		     &inherit_from,
-		     &affinity,
-		     &queue_max_size) )
+  if ( !PL_scan_options(options, 0, /*OPT_ALL,*/
+			"thread_option", make_thread_options,
+			&alias,
+			&debug,
+			&detached,
+			&stack,		/* stack */
+			&c_stack,	/* c_stack */
+			&at_exit,
+			&inherit_from,
+			&affinity,
+			&queue_max_size) )
   { free_thread_info(info);
     fail;
   }
@@ -3559,7 +3559,7 @@ get_interactor(DECL_LD term_t t, thread_handle **thp, int warn)
 /** '$engine_create'(-Handle, +GoalAndTemplate, +Options)
 */
 
-static const opt_spec make_engine_options[] =
+static const PL_option_t make_engine_options[] =
 { { ATOM_stack_limit,	OPT_SIZE|OPT_INF },
   { ATOM_alias,		OPT_ATOM },
   { ATOM_inherit_from,	OPT_TERM },
@@ -3577,11 +3577,10 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
   term_t inherit_from =	0;
 
   memset(&attrs, 0, sizeof(attrs));
-  if ( !scan_options(A3, 0,
-		     ATOM_engine_option, make_engine_options,
-		     &stack,
-		     &alias,
-		     &inherit_from) )
+  if ( !PL_scan_options(A3, 0, "engine_option", make_engine_options,
+			&stack,
+			&alias,
+			&inherit_from) )
     return FALSE;
 
   if ( stack )
@@ -4656,7 +4655,7 @@ sizeof_message_queue(message_queue *queue)
 
 					/* Prolog predicates */
 
-static const opt_spec timeout_options[] =
+static const PL_option_t timeout_options[] =
 { { ATOM_timeout,	OPT_DOUBLE },
   { ATOM_deadline,	OPT_DOUBLE },
   { NULL_ATOM,		0 }
@@ -4696,9 +4695,8 @@ process_deadline_options(DECL_LD term_t options,
   double tmo = DBL_MAX;
   double dlo = DBL_MAX;
 
-  if ( !scan_options(options, 0,
-		     ATOM_timeout_option, timeout_options,
-		     &tmo, &dlo) )
+  if ( !PL_scan_options(options, 0, "timeout_option", timeout_options,
+			&tmo, &dlo) )
     return FALSE;
 
   get_current_timespec(&now);
@@ -5149,7 +5147,7 @@ PRED_IMPL("message_queue_create", 1, message_queue_create, 0)
 }
 
 
-static const opt_spec message_queue_options[] =
+static const PL_option_t message_queue_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { ATOM_max_size,	OPT_SIZE },
   { NULL_ATOM,		0 }
@@ -5163,10 +5161,9 @@ PRED_IMPL("message_queue_create", 2, message_queue_create2, 0)
   size_t max_size = 0;			/* to be processed */
   message_queue *q;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_queue_option, message_queue_options,
-		     &alias,
-		     &max_size) )
+  if ( !PL_scan_options(A2, 0, "queue_option", message_queue_options,
+			&alias,
+			&max_size) )
     fail;
 
   if ( alias )
@@ -5762,7 +5759,7 @@ unify_modified(DECL_LD term_t t)
 /** thread_wait_on_goal(:Goal, +Options) is semidet.
  */
 
-static const opt_spec thread_wait_options[] =
+static const PL_option_t thread_wait_options[] =
 { { ATOM_db,		OPT_BOOL   },
   { ATOM_wait_preds,	OPT_TERM   },
   { ATOM_modified,      OPT_TERM   },
@@ -5791,7 +5788,7 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
 
   if ( !PL_strip_module(A2, &module, options) ||
        !process_deadline_options(options, &deadline, &dlop) ||
-       !scan_options(options, 0, ATOM_thread_wait_options, thread_wait_options,
+       !PL_scan_options(options, 0, "thread_wait_options", thread_wait_options,
 		     &db, &wait_preds, &modified, &retry_every, &mname) )
     return FALSE;
 
@@ -5990,7 +5987,7 @@ signal_waiting_threads(Module m, thread_wait_channel *wch)
 }
 
 
-static const opt_spec thread_update_options[] =
+static const PL_option_t thread_update_options[] =
 { { ATOM_notify,  OPT_ATOM },
   { ATOM_module,  OPT_ATOM },
   { NULL_ATOM,	  0 }
@@ -6008,7 +6005,7 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
   module_cell mc;
 
   if ( !PL_strip_module(A2, &module, options) ||
-       !scan_options(options, 0, ATOM_thread_update_options,
+       !PL_scan_options(options, 0, "thread_update_options",
 		     thread_update_options,
 		     &notify, &mname) )
     return FALSE;

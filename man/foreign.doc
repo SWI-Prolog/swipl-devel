@@ -1391,6 +1391,98 @@ return value indicates the status of the list:
 It is allowed to pass 0 for \arg{tail} and \const{NULL} for \arg{len}.
 \end{description}
 
+\subsubsection{Processing option lists and dicts}
+\label{sec:foreign-options}
+
+\begin{description}
+    \cfunction{int}{PL_scan_options}{term_t options, int flags, const char* opttype,
+				     PL_option_t specs[], ...}
+Process an \jargon{option list} as we find with, e.g., write_term/2 and
+many other builtin predicates. This function takes an option list (or
+dict) and in the variadic argument list pointers that receive
+the option values.  PL_scan_options() takes care of validating the list,
+ensure the list is not cyclic, validate the option type and store the
+converted values using the supplied pointers.
+
+Below is an example. While \ctype{PL_option_t} is a struct its members
+are inidialised using the PL_OPTION() macro. The data structure is not
+constant because PL_scan_options() adds the option names as
+\jargon{atoms} to speed up option processing.  The macro PL_OPTIONS_END
+terminates the option list.
+
+\begin{code}
+static PL_option_t mypred_options[] =
+{ PL_OPTION("quoted",   OPT_BOOL),
+  PL_OPTION("length",   OPT_SIZE),
+  PL_OPTION("callback", OPT_TERM),
+  PL_OPTIONS_END
+};
+
+static foreign_t
+mypred(term_t a1, term_t options)
+{ int    quoted   = FALSE;
+  size_t length   = 10;
+  term_t callback = 0;
+
+  if ( !PL_scan_options(options, 0, "mypred_options", mypred_options,
+			&quoted, &length, &callback) )
+    return FALSE;
+
+  <implement mypred>
+}
+\end{code}
+
+The only defined \arg{flag} is currently \const{OPT_ALL}, which causes
+this function to raise a domain error if an option is passed that is not
+in \arg{specs}. Default in SWI-Prolog is to silently ignore such
+options. The \arg{opttype} argument defines the type (group) of the
+options, e.g., \exam{"write_option"}. Option \jargon{types} are defined
+by the ISO standard. SWI-Prolog only uses this if the \const{OPT_ALL} to
+raise a \const{domain_error} of the indicated type if some option is
+unused. The type name is normally the name of the predicate followed by
+\const{_option} or the name of a representative of a group of predicates
+to which the options apply.
+
+Defined option types and their corresponding pointer type are described
+below.
+
+\begin{description}
+    \definition{\const{OPT_BOOL}   \ctype{int}}
+Convert the option value to a bool.  This converts the values described
+by PL_get_bool(). In addition, an option without a value (i.e., a
+plain atom that denotes the option name) can act as a boolean
+\const{TRUE}.
+    \definition{\const{OPT_INT}    \ctype{int}}
+\nodescription
+    \definition{\const{OPT_INT64}  \ctype{int64_t}}
+\nodescription
+    \definition{\const{OPT_UINT64} \ctype{uint64_t}}
+\nodescription
+    \definition{\const{OPT_SIZE}   \ctype{size_t}}
+\nodescription
+    \definition{\const{OPT_DOUBLE} \ctype{double}}
+Numeric values of various types.  Raises an error if the Prolog
+value cannot be represented by the C type.
+    \definition{\const{OPT_STRING} \ctype{char*}}
+Uses PL_get_chars() using the flags
+\const{CVT_ALL|REP_UTF8|BUF_STACK|CVT_EXCEPTION}.  The buffered
+string must be guarded using PL_STRINGS_MARK() and PL_STRINGS_RELEASE().
+    \definition{\const{OPT_ATOM}   \ctype{atom_t}}
+Accepts	an atom.  Note that if the C function that implements
+the predicate wishes to keep hold of the atom after it returns
+it must use PL_register_atom().
+    \definition{\const{OPT_TERM}   \ctype{term_t}}
+Accepts an arbitrary Prolog term.   The ternm handle is scoped by
+the foreign predicate invocation.  Terms can be preserved using
+PL_record().
+\end{description}
+
+The ISO standard demands that if an option is repeated the \emph{last}
+occurance holds. This implies that PL_scan_options() must scan the
+option list to the end.
+\end{description}
+
+
 \subsubsection{An example: defining write/1 in C}
 \label{sec:foreign-write}
 

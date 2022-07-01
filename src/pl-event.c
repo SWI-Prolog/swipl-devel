@@ -224,7 +224,7 @@ get_event_listp(DECL_LD term_t type, event_list ***listpp, size_t *argc)
   return PL_type_error("callable", type);
 }
 
-static const opt_spec prolog_listen_options[] =
+static const PL_option_t prolog_listen_options[] =
 { { ATOM_as,		 OPT_ATOM },
   { ATOM_name,		 OPT_ATOM },
   { NULL_ATOM,		 0 }
@@ -238,9 +238,9 @@ prolog_listen(DECL_LD term_t type, term_t closure, term_t options)
   atom_t as = ATOM_first;
   atom_t name = 0;
 
-  if ( options && !scan_options(options, 0, /*OPT_ALL,*/
-				ATOM_prolog_listen_option, prolog_listen_options,
-				&as, &name) )
+  if ( options && !PL_scan_options(options, 0, /*OPT_ALL,*/
+				   "prolog_listen_option", prolog_listen_options,
+				   &as, &name) )
     return FALSE;
 
   if ( !(as == ATOM_first || as == ATOM_last) )

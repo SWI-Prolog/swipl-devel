@@ -989,7 +989,7 @@ PRED_IMPL("set_prolog_flag", 2, set_prolog_flag, PL_FA_ISO)
 /** create_prolog_flag(+Key, +Value, +Options) is det.
 */
 
-static const opt_spec prolog_flag_options[] =
+static const PL_option_t prolog_flag_options[] =
 { { ATOM_type,   OPT_ATOM },
   { ATOM_access, OPT_ATOM },
   { ATOM_keep,   OPT_BOOL },
@@ -1004,7 +1004,7 @@ PRED_IMPL("create_prolog_flag", 3, create_prolog_flag, PL_FA_ISO)
   atom_t access = ATOM_read_write;
   int keep = FALSE;
 
-  if ( !scan_options(A3, 0, ATOM_prolog_flag_option, prolog_flag_options,
+  if ( !PL_scan_options(A3, 0, "prolog_flag_option", prolog_flag_options,
 		     &type, &access, &keep) )
     return FALSE;
 

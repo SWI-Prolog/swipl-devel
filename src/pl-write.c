@@ -1927,7 +1927,7 @@ writeBlobMask(atom_t a)
 }
 
 
-static const opt_spec write_term_options[] =
+static const PL_option_t write_term_options[] =
 { { ATOM_quoted,		    OPT_BOOL },
   { ATOM_quote_non_ascii,	    OPT_BOOL },
   { ATOM_ignore_ops,		    OPT_BOOL },
@@ -1986,7 +1986,7 @@ pl_write_term3(term_t stream, term_t term, term_t opts)
   memset(&options, 0, sizeof(options));
   options.spacing = ATOM_standard;
 
-  if ( !scan_options(opts, 0, ATOM_write_option, write_term_options,
+  if ( !PL_scan_options(opts, 0, "write_option", write_term_options,
 		     &quoted, &quote_non_ascii, &ignore_ops, &dotlists, &braceterms,
 		     &numbervars, &portray, &portray, &gportray,
 		     &charescape, &charescape_unicode,
@@ -2279,7 +2279,7 @@ Emit Codes using the escaped character  syntax,   but  does not emit the
 start and end-code itself.
 */
 
-static const opt_spec put_quoted_options[] =
+static const PL_option_t put_quoted_options[] =
 { { ATOM_character_escapes_unicode, OPT_BOOL },
   { NULL_ATOM,			    0 }
 };
@@ -2296,7 +2296,7 @@ PRED_IMPL("$put_quoted", 4, put_quoted_codes, 0)
   int rc = TRUE;
   bool charescape_unicode = -1;
 
-  if ( !scan_options(A4, 0, ATOM_write_option, put_quoted_options,
+  if ( !PL_scan_options(A4, 0, "write_option", put_quoted_options,
 		     &charescape_unicode) )
     return FALSE;
 

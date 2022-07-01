@@ -258,7 +258,7 @@ PRED_IMPL("mutex_create", 1, mutex_create1, 0)
 }
 
 
-static const opt_spec mutex_options[] =
+static const PL_option_t mutex_options[] =
 { { ATOM_alias,		OPT_ATOM },
   { NULL_ATOM,		0 }
 };
@@ -270,9 +270,8 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
   int rval;
   atom_t alias = 0;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_mutex_option, mutex_options,
-		     &alias) )
+  if ( !PL_scan_options(A2, 0, "mutex_option", mutex_options,
+			&alias) )
     fail;
 
   if ( alias )

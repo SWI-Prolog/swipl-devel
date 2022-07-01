@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,31 +39,28 @@
 #include "../pl-fli.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Variable argument list:
-
-	atom_t	name
-	int	type	OPT_ATOM, OPT_STRING, OPT_BOOL, OPT_INT, OPT_LONG
-	pointer	value
+Option list (or dict) processing.  See PL_scan_options() for details.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define MAXOPTIONS 32
+#define MAXOPTIONS 64
 
 typedef union
-{ bool *b;				/* boolean value */
-  long *l;				/* long value */
-  int  *i;				/* integer value */
-  uintptr_t *sz;			/* size_t value */
-  double *f;				/* double value */
-  char **s;				/* string value */
-  word *a;				/* atom value */
-  term_t *t;				/* term-reference */
-  void *ptr;				/* anonymous pointer */
+{ int      *b;				/* boolean value */
+  int      *i;				/* integer value */
+  int64_t  *i64;			/* 64 bit integer */
+  uint64_t *ui64;			/* 64 bit unsigned integer */
+  size_t   *sz;				/* size_t value */
+  double   *f;				/* double value */
+  char    **s;				/* string value */
+  atom_t   *a;				/* atom value */
+  term_t   *t;				/* term-reference */
+  void	   *ptr;			/* anonymous pointer */
 } optvalue;
 
 
 #define get_optval(valp, spec, val) LDFUNC(get_optval, valp, spec, val)
 static int
-get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
+get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
 { switch((spec->type & OPT_TYPE_MASK))
   { case OPT_BOOL:
     { int bval;
@@ -79,20 +77,19 @@ get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
 
       return TRUE;
     }
-    case OPT_LONG:
+    case OPT_INT64:
     { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
-	*valp.l = LONG_MAX;
-      else if ( !PL_get_long_ex(val, valp.l) )
+	*valp.i64 = INT64_MAX;
+      else if ( !PL_get_int64_ex(val, valp.i64) )
 	return FALSE;
 
       return TRUE;
     }
-    case OPT_NATLONG:
-    { if ( !PL_get_long_ex(val, valp.l) )
+    case OPT_UINT64:
+    { if ( (spec->type & OPT_INF) && PL_is_inf(val) )
+	*valp.ui64 = (uint64_t)-1;
+      if ( !PL_get_uint64_ex(val, valp.ui64) )
 	return FALSE;
-      if ( *(valp.l) <= 0 )
-	return PL_error(NULL, 0, NULL, ERR_DOMAIN,
-			ATOM_not_less_than_one, val);
 
       return TRUE;
     }
@@ -154,7 +151,7 @@ get_optval(DECL_LD optvalue valp, const opt_spec *spec, term_t val)
 
 
 typedef struct dictopt_ctx
-{ const opt_spec       *specs;		/* specifications */
+{ const PL_option_t       *specs;		/* specifications */
   optvalue	       *values;		/* value pointers */
 } dictopt_ctx;
 
@@ -165,7 +162,7 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
 { dictopt_ctx *ctx = closure;
   atom_t name;
   int n;
-  const opt_spec *s;
+  const PL_option_t *s;
 
   if ( !PL_get_atom_ex(key, &name) )
     return -1;
@@ -186,7 +183,7 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
    sorting the option specification, after which we can perform a linear
    scan.  I think that the best way to do that is to associate the
    option specification with a writeable structure that is lazily
-   initialized to an array of opt_spec pointers using the ordering of
+   initialized to an array of PL_option_t pointers using the ordering of
    dicts.
 
    An alternative is to process the opt-specs in order and use the
@@ -195,9 +192,11 @@ dict_option(DECL_LD term_t key, term_t value, int last, void *closure)
    need to worry right now.
 */
 
-#define dict_options(dict, flags, specs, values) LDFUNC(dict_options, dict, flags, specs, values)
+#define dict_options(dict, flags, specs, values) \
+	LDFUNC(dict_options, dict, flags, specs, values)
+
 static int
-dict_options(DECL_LD term_t dict, int flags, const opt_spec *specs, optvalue *values)
+dict_options(DECL_LD term_t dict, int flags, const PL_option_t *specs, optvalue *values)
 { dictopt_ctx ctx;
 
   ctx.specs  = specs;
@@ -206,26 +205,29 @@ dict_options(DECL_LD term_t dict, int flags, const opt_spec *specs, optvalue *va
   return PL_for_dict(dict, dict_option, &ctx, 0) == 0 ? TRUE : FALSE;
 }
 
+#define vscan_options(list, flags, name, specs, args) \
+	LDFUNC(vscan_options, list, flags, name, specs, args)
 
-int
-scan_options(DECL_LD term_t options, int flags, atom_t optype,
-	     const opt_spec *specs, ...)
-{ va_list args;
-  const opt_spec *s;
+static int
+vscan_options(DECL_LD term_t options, int flags, const char *opttype,
+	      const PL_option_t *specs, va_list args)
+{ const PL_option_t *s;
   optvalue values[MAXOPTIONS];
   term_t list;
   term_t av, head, tmp, val;
   int n;
   int candiscard = TRUE;
   int count = 0;
+  (void)opttype;
 
   if ( truePrologFlag(PLFLAG_ISO) )
     flags |= OPT_ALL;
 
-  va_start(args, specs);
   for( n=0, s = specs; s->name; s++, n++ )
+  { if ( n >= MAXOPTIONS )
+      fatalError("PL_scan_options(): more than %d options", MAXOPTIONS);
     values[n].ptr = va_arg(args, void *);
-  va_end(args);
+  }
 
   if ( PL_is_dict(options) )
     return dict_options(options, flags, specs, values);
@@ -285,7 +287,10 @@ scan_options(DECL_LD term_t options, int flags, atom_t optype,
     }
 
     if ( !s->name && (implicit_true || (flags & OPT_ALL)) )
-      goto itemerror;
+    { if ( implicit_true )
+	goto itemerror;
+      return PL_domain_error(opttype, head);
+    }
   }
 
   if ( !PL_get_nil(list) )
@@ -296,3 +301,35 @@ scan_options(DECL_LD term_t options, int flags, atom_t optype,
 
   succeed;
 }
+
+
+int
+PL_scan_options(DECL_LD term_t options, int flags, const char *opttype,
+		const PL_option_t *specs, ...)
+{ int rc;
+  va_list args;
+
+  va_start(args, specs);
+  rc = vscan_options(options, flags, opttype, specs, args);
+  va_end(args);
+
+  return rc;
+}
+
+API_STUB(int)
+(PL_scan_options)(term_t options, int flags, const char *opttype,
+		  PL_option_t *specs, ...)
+( int rc;
+  va_list args;
+
+  for(PL_option_t *s = specs; s->name || s->string; s++)
+  { if ( !s->name && s->string )
+      s->name = PL_new_atom(s->string);
+  }
+
+  va_start(args, specs);
+  rc = vscan_options(options, flags, opttype, specs, args);
+  va_end(args);
+
+  return rc;
+)

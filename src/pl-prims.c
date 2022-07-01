@@ -3036,7 +3036,7 @@ numberVars(DECL_LD term_t t, nv_options *options, intptr_t n)
 }
 
 
-static const opt_spec numbervar_options[] =
+static const PL_option_t numbervar_options[] =
 { { ATOM_attvar,	    OPT_ATOM },
   { ATOM_functor_name,	    OPT_ATOM },
   { ATOM_singletons,	    OPT_BOOL },
@@ -3070,7 +3070,7 @@ PRED_IMPL("numbervars", 4, numbervars, 0)
     return FALSE;
 
   if ( options &&
-       !scan_options(options, 0, ATOM_numbervar_option, numbervar_options,
+       !PL_scan_options(options, 0, "numbervar_option", numbervar_options,
 		     &av, &name, &opts.singletons) )
     fail;
 

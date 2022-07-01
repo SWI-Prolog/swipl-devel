@@ -377,7 +377,7 @@ match_pattern(matchcode *p, const char *s, int flags)
 /** wildcard_match(+Pattern, +Name [, +Options]) is semidet.
 */
 
-static const opt_spec wildcard_options[] =
+static const PL_option_t wildcard_options[] =
 { { ATOM_case_sensitive,    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -392,7 +392,7 @@ wildcard_match(DECL_LD term_t pattern, term_t string, term_t options)
   int case_sensitive = TRUE;
 
   if ( options &&
-       !scan_options(options, 0, ATOM_wildcard_option,
+       !PL_scan_options(options, 0, "wildcard_option",
 		     wildcard_options, &case_sensitive) )
     return FALSE;
   if ( !case_sensitive )

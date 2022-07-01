@@ -580,7 +580,7 @@ get_zipper(term_t t, zipper **zipper)
 /** zip_open_stream(+Stream, -Zipper, +Options)
 */
 
-static const opt_spec zip_open_stream_options[] =
+static const PL_option_t zip_open_stream_options[] =
 { { ATOM_close_parent,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -591,7 +591,7 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   IOSTREAM *stream = NULL;
   int close_parent = FALSE;
 
-  if ( !scan_options(A3, 0, ATOM_zip_options, zip_open_stream_options,
+  if ( !PL_scan_options(A3, 0, "zip_options", zip_open_stream_options,
 		     &close_parent) )
     return FALSE;
 
@@ -868,7 +868,7 @@ zget_time(const unz_file_info64 *info)
 /** zipper_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
-static const opt_spec zip_new_file_options[] =
+static const PL_option_t zip_new_file_options[] =
 { { ATOM_extra,		    OPT_STRING },
   { ATOM_comment,	    OPT_STRING },
   { ATOM_time,		    OPT_DOUBLE },
@@ -894,7 +894,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int imethod;
   int zip64 = FALSE;
 
-  if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
+  if ( !PL_scan_options(A4, 0, "zip_options", zip_new_file_options,
 		     &extra, &comment, &ftime, &method, &level, &zip64) )
     return FALSE;
 
@@ -1041,7 +1041,7 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
  *  Open the current file as an input stream
  */
 
-static const opt_spec zipopen3_options[] =
+static const PL_option_t zipopen3_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
@@ -1063,7 +1063,7 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
   int flags         = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   IOENC enc;
 
-  if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
+  if ( !PL_scan_options(A3, 0, "stream_option", zipopen3_options,
 		     &type, &encoding, &bom, &release, &reposition) )
     return FALSE;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )

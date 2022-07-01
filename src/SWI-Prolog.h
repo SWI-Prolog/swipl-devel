@@ -1101,6 +1101,42 @@ PL_EXPORT(int)			PL_abort_unhook(PL_abort_hook_t);
 PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
 
 
+		 /*******************************
+		 *	      OPTIONS		*
+		 *******************************/
+
+typedef enum
+{ _OPT_END = -1,
+  OPT_BOOL = 0,				/* int */
+  OPT_INT,				/* int */
+  OPT_INT64,				/* int64_t */
+  OPT_UINT64,				/* uint64_t */
+  OPT_SIZE,				/* size_t */
+  OPT_DOUBLE,				/* double */
+  OPT_STRING,				/* char* (UTF-8) */
+  OPT_ATOM,				/* atom_t */
+  OPT_TERM,				/* term_t */
+  OPT_LOCALE				/* void* */
+} _PL_opt_enum_t;
+
+#define OPT_TYPE_MASK	0xff
+#define OPT_INF		0x100		/* allow 'inf' */
+
+#define OPT_ALL		0x1		/* flags */
+
+typedef struct
+{ atom_t		name;		/* Name of option */
+  _PL_opt_enum_t	type;		/* Type of option */
+  const char *		string;		/* For foreign access */
+} PL_option_t;
+
+#define PL_OPTION(name, type) { 0, type, name }
+#define PL_OPTIONS_END	      { 0, _OPT_END, (const char*)0 }
+
+PL_EXPORT(int)	PL_scan_options(term_t options, int flags, const char *opttype,
+				PL_option_t specs[], ...);
+
+
 		/********************************
 		*            SIGNALS            *
 		*********************************/

@@ -3844,7 +3844,7 @@ PRED_IMPL("$qlf_load", 2, qlf_load, PL_FA_TRANSPARENT)
 Write a header for a QLF-stream
 */
 
-static const opt_spec open_wic_options[] =
+static const PL_option_t open_wic_options[] =
 { { ATOM_obfuscate,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -3858,7 +3858,7 @@ PRED_IMPL("$open_wic", 2, open_wic, 0)
 
   assert(V_LABEL > I_HIGHEST);
 
-  if ( !scan_options(A2, 0, ATOM_state_option, open_wic_options,
+  if ( !PL_scan_options(A2, 0, "state_option", open_wic_options,
 		     &obfuscate) )
     fail;
 

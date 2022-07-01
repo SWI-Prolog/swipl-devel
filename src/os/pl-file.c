@@ -3852,7 +3852,7 @@ iri_hook(const char *url, iri_op op, ...)
 		*       STREAM BASED I/O        *
 		*********************************/
 
-static const opt_spec open4_options[] =
+static const PL_option_t open4_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_reposition,     OPT_BOOL },
   { ATOM_alias,	         OPT_ATOM },
@@ -3940,7 +3940,7 @@ openStream(term_t file, term_t mode, term_t options)
   IOENC enc;
 
   if ( options )
-  { if ( !scan_options(options, 0, ATOM_stream_option, open4_options,
+  { if ( !PL_scan_options(options, 0, "stream_option", open4_options,
 		       &type, &reposition, &alias, &eof_action,
 		       &close_on_abort, &buffer, &lock, &wait,
 		       &encoding, &newline, &bom, &create
@@ -4098,7 +4098,7 @@ openStream(term_t file, term_t mode, term_t options)
 #ifdef O_LOCALE
   if ( locale )
   { Ssetlocale(s, locale, NULL);
-    releaseLocale(locale);			/* acquired by scan_options() */
+    releaseLocale(locale);			/* acquired by PL_scan_options() */
   }
 #endif
   if ( !close_on_abort )
@@ -4502,7 +4502,7 @@ PRED_IMPL("close", 1, close, PL_FA_ISO)
 }
 
 
-static const opt_spec close2_options[] =
+static const PL_option_t close2_options[] =
 { { ATOM_force,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -4513,7 +4513,7 @@ PRED_IMPL("close", 2, close2, PL_FA_ISO)
 { PRED_LD
   int force = FALSE;
 
-  if ( !scan_options(A2, 0, ATOM_close_option, close2_options, &force) )
+  if ( !PL_scan_options(A2, 0, "close_option", close2_options, &force) )
     return FALSE;
 
   return pl_close(A1, force);
