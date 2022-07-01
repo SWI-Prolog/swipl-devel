@@ -568,7 +568,7 @@ pack_select_candidate(Pack, [Version-_|_], Options,
     current_pack(Pack),
     pack_info(Pack, _, version(InstalledAtom)),
     atom_version(InstalledAtom, Installed),
-    Installed @>= Version,
+    InstalledAtom @>= Version,
     !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
     option(url(URL), Options),
