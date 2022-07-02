@@ -587,13 +587,14 @@ pack_select_candidate(Pack, [Version-[URL]|_], Options,
     !,
     confirm(install_from(Pack, Version, git(URL)), yes, Options).
 pack_select_candidate(Pack, [Version-[URL]|More], Options,
-                      [url(URL), inquiry(true)]) :-
+                      [url(URL), inquiry(true) | Upgrade]) :-
     (   More == []
     ->  !
     ;   true
     ),
     confirm(install_from(Pack, Version, URL), yes, Options),
-    !.
+    !,
+    add_upgrade(Pack, Upgrade).
 pack_select_candidate(Pack, [Version-URLs|_], Options,
                       [url(URL), inquiry(true)|Rest]) :-
     maplist(url_menu_item, URLs, Tagged),
@@ -604,10 +605,17 @@ pack_select_candidate(Pack, [Version-URLs|_], Options,
     (   Choice == cancel
     ->  fail
     ;   Choice = git(URL)
-    ->  Rest = [git(true)]
+    ->  Rest = [git(true)|Upgrade]
     ;   Choice = URL,
-        Rest = []
-    ).
+        Rest = Upgrade
+    ),
+    add_upgrade(Pack, Upgrade).
+
+add_upgrade(Pack, Options) :-
+    current_pack(Pack),
+    !,
+    Options = [upgrade(true)].
+add_upgrade(_, []).
 
 url_menu_item(URL, git(URL)=install_from(git(URL))) :-
     git_url(URL, _),
