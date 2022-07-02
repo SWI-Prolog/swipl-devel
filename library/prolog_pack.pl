@@ -1370,6 +1370,7 @@ info_file(todo(_),   'todo').
 git_url(URL, Pack) :-
     uri_components(URL, Components),
     uri_data(scheme, Components, Scheme),
+    nonvar(Scheme),                         % must be full URL
     uri_data(path, Components, Path),
     (   Scheme == git
     ->  true
