@@ -1377,7 +1377,7 @@ git_url(URL, Pack) :-
     ;   git_download_scheme(Scheme),
         file_name_extension(_, git, Path)
     ;   git_download_scheme(Scheme),
-        catch(git_remote_branches(URL, _), _, fail)
+        catch(git_ls_remote(URL, _, [refs(['HEAD']), error(_)]), _, fail)
     ->  true
     ),
     file_base_name(Path, PackExt),
