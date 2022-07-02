@@ -563,11 +563,12 @@ version_options(_, _, []).
 %
 %   Select from available packages.
 
-pack_select_candidate(Pack, [Version-_|_], Options,
+pack_select_candidate(Pack, [AtomVersion-_|_], Options,
                       [already_installed(pack(Pack, Installed))|Options]) :-
     current_pack(Pack),
     pack_info(Pack, _, version(InstalledAtom)),
     atom_version(InstalledAtom, Installed),
+    atom_version(AtomVersion, Version),
     Installed @>= Version,
     !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
