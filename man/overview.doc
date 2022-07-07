@@ -1988,7 +1988,7 @@ if the string stack depth hits the tripwire value. See
 Available in multithreaded version (see \secref{threads}) where the
 operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
-calling thread. See also thread_self/1.
+calling thread.  On Linux systems this is the PID of the thread.
 
     \prologflagitem{table_incremental}{bool}{rw}
 Set the default for whether to use incremental tabling or not.
