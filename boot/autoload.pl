@@ -474,6 +474,12 @@ exports(File, Module, Exports) :-
             '$append'(E0, [PI], E1),
             nb_setarg(3, State, E1),
             fail
+        ;   Term = (:- use_foreign_library(Lib)),
+            nonvar(Lib),
+            arg(2, State, M),
+            atom(M)
+        ->  use_foreign_library(M:Lib),
+            fail
         ;   Term = (:- Directive),
             nonvar(Directive)
         ->  fail
