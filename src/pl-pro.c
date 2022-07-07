@@ -358,7 +358,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     *ex = 0;
   }
 
-  if ( !(g=PL_new_term_ref()) )
+  if ( !require_c_stack(C_STACK_MIN) ||
+       !(g=PL_new_term_ref()) )
   { error:
     if ( ex )
       *ex = exception_term;

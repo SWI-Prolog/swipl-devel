@@ -35,6 +35,10 @@
 #ifndef PL_CSTACK_H_INCLUDED
 #define PL_CSTACK_H_INCLUDED
 
+#if USE_LD_MACROS
+#define CStackSize(_)	LDFUNC(CStackSize, _)
+#endif /*USE_LD_MACROS*/
+
 COMMON(void)	print_c_backtrace(const char *why);
 COMMON(struct btrace *)	save_backtrace(const char *why);
 COMMON(void)	btrace_destroy(struct btrace *bt);
@@ -42,5 +46,9 @@ COMMON(void)	print_backtrace(int last);		/* 1..SAVE_TRACES */
 COMMON(void)	print_backtrace_named(const char *why);
 COMMON(void)	initBackTrace(void);
 COMMON(void)	sigCrashHandler(int sig);
+
+#define LDFUNC_DECLARATIONS
+size_t	CStackSize(void);
+#undef LDFUNC_DECLARATIONS
 
 #endif /*PL_CSTACK_H_INCLUDED*/

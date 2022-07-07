@@ -95,17 +95,19 @@ typedef enum
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  size_t	    stack_limit;	/* Stack sizes */
-  size_t	    table_space;	/* Max size for local tables */
-  size_t	    c_stack_size;	/* system (C-) stack */
-  rc_cancel	    (*cancel)(int id);	/* cancel function */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */
   unsigned	    debug         : 1;	/* thread can be debugged */
   unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
+  unsigned	    c_stack_low   : 1;	/* TRUE: Signalled low C stack */
   int		    joining_by;		/* TID of joining thread */
+  void		   *c_stack_base;	/* Base of the (C-) stack */
+  size_t	    c_stack_size;	/* system (C-) stack */
+  size_t	    stack_limit;	/* Stack sizes */
+  size_t	    table_space;	/* Max size for local tables */
+  rc_cancel	    (*cancel)(int id);	/* cancel function */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
 #ifdef PID_IDENTIFIES_THREAD
@@ -429,7 +431,6 @@ typedef struct thread_wait_area		/* module data for wait/update */
 
 #define WM_SIGNALLED (WM_USER+4201)	/* how to select a good number!? */
 
-
 		 /*******************************
 		 *	    FUNCTIONS		*
 		 *******************************/
@@ -564,6 +565,8 @@ foreign_t	pl_thread_self(term_t self);
 #define TWF_ASSERT	0x0001		/* Predicate actions */
 #define TWF_RETRACT	0x0002
 
+#define C_STACK_MIN	(100*1024)
+
 typedef struct
 { functor_t functor;			/* functor of property */
   /* FIXME: we should not be storing function pointers with
@@ -581,6 +584,8 @@ typedef struct
 #define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
 #define	ThreadCPUTime(which)		LDFUNC(ThreadCPUTime, which)
 #define updatePendingThreadSignals(_)	LDFUNC(updatePendingThreadSignals, _)
+#define require_c_stack(needed)		LDFUNC(require_c_stack, needed)
+#define clear_low_c_stack(_)		LDFUNC(clear_low_c_stack, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -603,6 +608,8 @@ int		signalGCThread(int sig);
 int		isSignalledGCThread(int sig);
 double	        ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
+int		require_c_stack(size_t needed);
+void		clear_low_c_stack(void);
 
 #undef LDFUNC_DECLARATIONS
 

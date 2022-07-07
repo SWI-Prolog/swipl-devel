@@ -49,11 +49,9 @@
 #include "pl-funct.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
+#include "os/pl-cstack.h"
 #include "pl-inline.h"
 #include <math.h>
-#ifdef HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
-#endif
 
 #undef LD
 #define LD LOCAL_LD
@@ -5544,28 +5542,6 @@ programSpace(void)
 }
 
 
-static size_t
-CStackSize(PL_local_data_t *ld)
-{
-#ifdef O_PLMT
-  if ( ld->thread.info->pl_tid != 1 )
-  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", ld->thread.info->c_stack_size));
-    return ld->thread.info->c_stack_size;
-  }
-#endif
-#ifdef HAVE_GETRLIMIT
-{ struct rlimit rlim;
-
-  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 )
-  { DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
-    return rlim.rlim_cur;
-  }
-}
-#endif
-
-  return 0;
-}
-
 #define QP_STATISTICS 1
 
 #ifdef QP_STATISTICS
@@ -5703,7 +5679,7 @@ swi_statistics(DECL_LD atom_t key, Number v)
   else if (key == ATOM_globalused )
     v->value.i = usedStack(global);
   else if (key == ATOM_c_stack)
-    v->value.i = CStackSize(LD);
+    v->value.i = CStackSize();
   else if (key == ATOM_atoms)				/* atoms */
     v->value.i = GD->statistics.atoms;
   else if (key == ATOM_atom_space)			/* atom_space */

@@ -39,6 +39,9 @@
 #include "pl-cstack.h"
 #include "../pl-setup.h"
 #include <time.h>
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of the library is to save   the  <N> most recent C stack traces
@@ -1056,3 +1059,67 @@ sigCrashHandler(int sig)
 #endif /*O_SIGNALS && HAVE_SIGNAL*/
 
 #endif /*BTRACE_DONE*/
+
+
+		 /*******************************
+		 *   STACK LOCATION AND SIZE	*
+		 *******************************/
+
+#ifdef HAVE_GETRLIMIT
+static size_t
+round_pages(size_t n)
+{ size_t psize;
+
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  if ( (psize = sysconf(_SC_PAGESIZE)) == (size_t)-1 )
+    psize = 8192;
+#else
+  psize = 8192;
+#endif
+
+  return ROUND(n, psize);
+}
+#endif
+
+size_t
+CStackSize(DECL_LD)
+{ PL_thread_info_t *info = LD->thread.info;
+
+  if ( info->c_stack_size )
+    return info->c_stack_size;
+
+#ifdef O_PLMT
+  if ( info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", LD->thread.info->c_stack_size));
+
+#ifdef HAVE_PTHREAD_GETATTR_NP
+    pthread_attr_t attr;
+
+    if ( pthread_getattr_np(info->tid, &attr) == 0 )
+      pthread_attr_getstack(&attr, &info->c_stack_base, &info->c_stack_size);
+    else
+      info->c_stack_size = (size_t)-1;
+#endif
+
+    return info->c_stack_size;
+  }
+#endif
+
+#ifdef HAVE_GETRLIMIT
+  struct rlimit rlim;
+
+  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 &&
+       rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur )
+  { size_t top = round_pages((size_t)&info);
+
+    DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
+    info->c_stack_size = rlim.rlim_cur;
+
+    info->c_stack_base = (void*)(top - info->c_stack_size);
+  } else
+  { info->c_stack_size = (size_t)-1;
+  }
+#endif
+
+  return info->c_stack_size;
+}

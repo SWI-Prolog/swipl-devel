@@ -1833,6 +1833,7 @@ resumeAfterException(int clear, Stack outofstack)
 
   LD->exception.processing = FALSE;
   LD->outofstack = NULL;
+  clear_low_c_stack();
 
 #ifdef O_PLMT
   updatePendingThreadSignals();

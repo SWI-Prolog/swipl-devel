@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2021, University of Amsterdam,
+    Copyright (c)  1999-2022, University of Amsterdam,
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -2746,6 +2746,7 @@ sizeof_thread(PL_thread_info_t *info)
 
   return size;
 }
+
 
 
 		 /*******************************
@@ -8034,6 +8035,60 @@ markAccessedPredicates(PL_local_data_t *ld)
       cgcActivatePredicate(dref.predicate, dref.generation);
   }
 }
+
+
+#if O_PLMT
+#define stack_avail(_) LDFUNC(stack_avail, _)
+
+static size_t
+stack_avail(DECL_LD)
+{ PL_thread_info_t *info = LD->thread.info;
+  size_t avail = (size_t)-1;
+
+  if ( !info->c_stack_size )
+    (void)CStackSize();
+
+  if ( info->c_stack_base )
+  { void *here = &info;
+
+    assert(here > info->c_stack_base); /* stack grows down */
+
+    avail = (char*)here - (char*)info->c_stack_base;
+  }
+
+  return avail;
+}
+#endif
+
+
+int
+require_c_stack(DECL_LD size_t needed)
+{
+#if O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
+
+  if ( !info->c_stack_low && needed > stack_avail() )
+  { info->c_stack_low = TRUE;
+
+    return PL_resource_error("c_stack");
+  }
+#endif
+
+  return TRUE;
+}
+
+
+void
+clear_low_c_stack(DECL_LD)
+{
+#if O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
+
+  if ( info->c_stack_low && stack_avail() > C_STACK_MIN )
+    info->c_stack_low = FALSE;
+#endif
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
