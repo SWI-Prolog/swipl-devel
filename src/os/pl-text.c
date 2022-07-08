@@ -49,6 +49,8 @@
 #undef LD
 #define LD LOCAL_LD
 
+static int text_representation_error(PL_chars_t *text, IOENC enc);
+static int text_error(PL_chars_t *text, int rc);
 
 		 /*******************************
 		 *	UNIFIED TEXT STUFF	*
@@ -62,6 +64,8 @@ bufsize_text(PL_chars_t *text, size_t len)
   { case ENC_ISO_LATIN_1:
     case ENC_ASCII:
     case ENC_UTF8:
+    case ENC_UTF16BE:
+    case ENC_UTF16LE:
     case ENC_ANSI:
       unit = sizeof(char);
       break;
@@ -507,16 +511,18 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
     }
     case PL_STRING:
     { word w;
+      int rc;
 
-      if ( PL_canonicalise_text(text) )
+      if ( (rc=PL_canonicalise_text(text)) == TRUE )
       { if ( hasGlobalSpace(globalSpaceRequirement(text)) ||
 	     PL_from_stack_text(text, 0) )
 	{ if ( (w = textToString(text)) )
 	    return _PL_unify_atomic(term, w);
 	}
-      }
 
-      return FALSE;
+	return FALSE;
+      } else
+	return text_error(text, rc);
     }
     case PL_CODE_LIST:
     case PL_CHAR_LIST:
@@ -864,8 +870,7 @@ PL_demote_text(PL_chars_t *text, int flags)
 	{ PL_free(new);
 	reperr:
 	  if ( (flags&CVT_EXCEPTION) )
-	    PL_error(NULL, 0, "cannot represent text as ISO latin 1",
-		     ERR_REPRESENTATION, ATOM_encoding);
+	    return text_representation_error(text, ENC_ISO_LATIN_1);
 	  return FALSE;
 	}
 	*t++ = *s++ & 0xff;
@@ -1143,9 +1148,9 @@ PL_canonicalise_text(PL_chars_t *text)
       }
       case ENC_UTF16LE:		/* assume text->length is in bytes */
       case ENC_UTF16BE:
-      {
+      { if ( text->length%2 != 0 )
+	  return ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE;
 #if SIZEOF_WCHAR_T == 2
-        assert(text->length%2 == 0);
 	if ( !native_byte_order(text->encoding) )
 	{ if ( text->storage == PL_CHARS_HEAP )
 	    PL_save_text(text, BUF_MALLOC);
@@ -1156,17 +1161,17 @@ PL_canonicalise_text(PL_chars_t *text)
 #else /*SIZEOF_WCHAR_T!=2*/
 	size_t len = text->length/sizeof(short);
 	size_t code_points = 0;
-	const unsigned short *w = (const unsigned short *)text->text.t;
-	const unsigned short *e = &w[len];
+	const unsigned short *w, *e;
 	int wide = FALSE;
 
-	assert(text->length%2 == 0);
 	if ( !native_byte_order(text->encoding) )
 	{ if ( text->storage == PL_CHARS_HEAP )
 	    PL_save_text(text, BUF_MALLOC);
 	  flip_shorts((unsigned char*)text->text.t, text->length);
 	}
 
+	w = (const unsigned short *)text->text.t;
+	e = &w[len];
 	for(; w<e; w++)
 	{ code_points++;
 
@@ -1387,6 +1392,18 @@ PL_canonicalise_text(PL_chars_t *text)
   return TRUE;
 }
 
+
+static int
+text_representation_error(PL_chars_t *text, IOENC enc)
+{ char msg[100];
+
+  Ssnprintf(msg, sizeof(msg), "cannot represent text using encoding %s",
+	    PL_atom_chars(PL_encoding_to_atom(enc)));
+
+  return PL_error(NULL, 0, msg, ERR_REPRESENTATION, ATOM_encoding);
+}
+
+
 static int
 text_error(PL_chars_t *text, int rc)
 { (void)text;
@@ -1398,6 +1415,8 @@ text_error(PL_chars_t *text, int rc)
       return PL_syntax_error("illegal_utf16_sequence", NULL);
     case ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE:
       return PL_syntax_error("illegal_multibyte_sequence", NULL);
+    case ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE:
+      return PL_syntax_error("incomplete_multibyte_sequence", NULL);
     case ERR_TEXT_INVALID_CODE_POINT:
       return PL_representation_error("code_point");
     default:
@@ -1428,6 +1447,38 @@ PL_free_text(PL_chars_t *text)
 Recode a text to the given   encoding. Currrenly only supports re-coding
 to UTF-8 for ENC_ASCII, ENC_ISO_LATIN_1, ENC_WCHAR and ENC_ANSI.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+addUTF16Buffer_unit(Buffer b, int c, IOENC enc)
+{ if ( native_byte_order(enc) )
+  { addBuffer(b, c, unsigned short);
+  } else
+  { union
+    { unsigned short s;
+      char  c[2];
+    } swap;
+
+    swap.s = c;
+    char t = swap.c[0];
+    swap.c[0] = swap.c[1];
+    swap.c[1] = t;
+    addBuffer(b, swap.s, unsigned short);
+  }
+}
+
+
+static void
+addUTF16Buffer(Buffer b, int c, IOENC enc)
+{ if ( c > 0xffff )
+  { int l, t;
+
+    utf16_encode(c, &l, &t);
+    addUTF16Buffer_unit(b, l, enc);
+    addUTF16Buffer_unit(b, t, enc);
+  } else
+    addUTF16Buffer_unit(b, c, enc);
+}
+
 
 int
 PL_text_recode(PL_chars_t *text, IOENC encoding)
@@ -1503,6 +1554,58 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    return FALSE;
 	}
 	return TRUE;
+        case ENC_ISO_LATIN_1:		/* --> ISO Latin 1 */
+	{ assert(text->canonical);
+	  switch(text->encoding)
+	  { case ENC_WCHAR:
+	      return text_representation_error(text, encoding);
+	    default:
+	      assert(0);
+	      return FALSE;
+	  }
+	}
+        case ENC_UTF16LE:		/* --> UTF-16 */
+        case ENC_UTF16BE:
+	{ Buffer b;
+
+	  assert(text->canonical);
+	  switch(text->encoding)
+	  { case ENC_ISO_LATIN_1:
+	    { b = findBuffer(BUF_STACK);
+	      const unsigned char *s = (const unsigned char *)text->text.t;
+	      const unsigned char *e = &s[text->length];
+
+	      for( ; s<e; s++)
+		addUTF16Buffer(b, *s, encoding);
+
+	    swap_to_utf16:
+	      PL_free_text(text);
+	      text->length   = entriesBuffer(b, char);
+	      addBuffer(b, EOS, short);
+	      text->text.t   = baseBuffer(b, char);
+	      text->encoding = encoding;
+	      text->storage  = PL_CHARS_RING;
+
+	      return TRUE;
+	    }
+	    case ENC_WCHAR:
+	    { b = findBuffer(BUF_STACK);
+	      const wchar_t *s = text->text.w;
+	      const wchar_t *e = &s[text->length];
+
+	      for( ; s<e; s++)
+		addUTF16Buffer(b, *s, encoding);
+	      goto swap_to_utf16;
+	    }
+	    default:
+	      assert(0);
+	      return FALSE;
+	  }
+	}
+        case ENC_ANSI:
+	{ assert(text->canonical);
+	  return PL_mb_text(text, REP_MB);
+	}
 	default:
 	  assert(0);
 	  return FALSE;

@@ -668,6 +668,7 @@ suggest predicates from a keyword.
 \predicatesummary{stream_position_data}{3}{Access fields from stream position}
 \predicatesummary{stream_property}{2}{Get stream properties}
 \predicatesummary{string}{1}{Type check for string}
+\predicatesummary{string_bytes}{3}{Translates between text and bytes in encoding}
 \predicatesummary{string_concat}{3}{atom_concat/3 for strings}
 \predicatesummary{string_length}{2}{Determine length of a string}
 \predicatesummary{string_chars}{2}{Conversion between string and list of characters}

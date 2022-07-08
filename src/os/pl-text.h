@@ -47,10 +47,11 @@ typedef enum
 } PL_chars_alloc_t;
 
 					/* PL_canonicalise_text() errors */
-#define ERR_TEXT_ILLEGAL_UTF8		    -1
-#define ERR_TEXT_ILLEGAL_UTF16		    -2
-#define ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE -3
-#define ERR_TEXT_INVALID_CODE_POINT	    -4
+#define ERR_TEXT_ILLEGAL_UTF8		       -1
+#define ERR_TEXT_ILLEGAL_UTF16		       -2
+#define ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE    -3
+#define ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE -4
+#define ERR_TEXT_INVALID_CODE_POINT	       -5
 
 typedef struct
 { union

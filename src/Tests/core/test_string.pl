@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2014, University of Amsterdam
+    Copyright (c)  2013-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -44,7 +45,8 @@ This module is a Unit test for predicates that manage string objects.
 */
 
 test_string :-
-	run_tests([ string
+	run_tests([ string,
+		    string_bytes
 		  ]).
 
 :- begin_tests(string).
@@ -84,3 +86,32 @@ test(string_upper, L == "ABC") :-
 	string_upper("aBc", L).
 
 :- end_tests(string).
+
+:- begin_tests(string_bytes).
+
+test(aap, L == [97, 97, 112]) :-
+	string_bytes(aap, L, utf8).
+test(aap, S == "aap") :-
+	string_bytes(S, [97, 97, 112], utf8).
+test(aap, L == [0, 97, 0, 97, 0, 112]) :-
+	string_bytes(aap, L, utf16be).
+test(aap, S == "aap") :-
+	string_bytes(S, [0, 97, 0, 97, 0, 112], utf16be).
+test(aap, L == [97, 0, 97, 0, 112, 0]) :-
+	string_bytes(aap, L, utf16le).
+test(aap, S == "aap") :-
+	string_bytes(S, [97, 0, 97, 0, 112, 0], utf16le).
+test(hello, L == [228,187,138,230,151,165,227,129,175]) :-
+	string_bytes(今日は, L, utf8).		% japanese for hello, good day
+test(hello, S == "今日は") :-
+	string_bytes(S, [228,187,138,230,151,165,227,129,175], utf8).
+test(hello, L == [202,78,229,101,111,48]) :-
+	string_bytes(今日は, L, utf16le).
+test(hello, S == "今日は") :-
+	string_bytes(S, [202,78,229,101,111,48], utf16le).
+test(hello, error(syntax_error(incomplete_multibyte_sequence))) :-
+	string_bytes(_, [202,78,229,101,111], utf16le).
+test(hello, error(representation_error(encoding))) :-
+	string_bytes(今日は, _, iso_latin_1).
+
+:- end_tests(string_bytes).
