@@ -465,10 +465,10 @@ utf8towcs_buffer(Buffer b, const char *src)
   { int wc;
 
     PL_utf8_code_point(&src, NULL, &wc);
-    addUTF16Buffer(b, wc);
+    addWcharBuffer(b, wc);
   }
 
-  addUTF16Buffer(b, 0);
+  addWcharBuffer(b, 0);
 }
 
 

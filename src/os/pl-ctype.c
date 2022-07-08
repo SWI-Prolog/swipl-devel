@@ -618,13 +618,13 @@ modify_case_atom(DECL_LD term_t in, term_t out, int down, int text_type)
       { while( s < e )
 	{ s = get_wchar(s, &c);
 	  c = ftolower(c);
-	  addUTF16Buffer((Buffer)&b, c);
+	  addWcharBuffer((Buffer)&b, c);
 	}
       } else
       { while( s < e )
 	{ s = get_wchar(s, &c);
 	  c = ftoupper(c);
-	  addUTF16Buffer((Buffer)&b, c);
+	  addWcharBuffer((Buffer)&b, c);
 	}
       }
 

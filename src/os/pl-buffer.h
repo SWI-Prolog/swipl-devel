@@ -108,7 +108,7 @@ int	growBuffer(Buffer b, size_t minfree);
 #endif					/* maybe need a better place? */
 
 static inline void
-addUTF16Buffer(Buffer b, int c)
+addWcharBuffer(Buffer b, int c)
 {
 #if SIZEOF_WCHAR_T == 2
   if ( c > 0xffff )
