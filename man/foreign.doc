@@ -1432,7 +1432,7 @@ mypred(term_t a1, term_t options)
 }
 \end{code}
 
-The only defined \arg{flag} is currently \const{OPT_ALL}, which causes
+The only defined value for \arg{flags} is currently \const{OPT_ALL}, which causes
 this function to raise a domain error if an option is passed that is not
 in \arg{specs}. Default in SWI-Prolog is to silently ignore such
 options. The \arg{opttype} argument defines the type (group) of the
