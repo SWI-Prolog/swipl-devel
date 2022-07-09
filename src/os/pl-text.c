@@ -1556,13 +1556,24 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	return TRUE;
         case ENC_ISO_LATIN_1:		/* --> ISO Latin 1 */
 	case ENC_OCTET:			/* --> bytes */
+	case ENC_ASCII:			/* --> ASCII */
 	{ assert(text->canonical);
 	  switch(text->encoding)
 	  { case ENC_WCHAR:
 	      return text_representation_error(text, encoding);
 	    case ENC_ISO_LATIN_1:
+	      if ( encoding == ENC_ASCII )
+	      { const unsigned char *s =(const unsigned char *)text->text.t;
+		const unsigned char *e = &s[text->length];
+
+		while(s<e)
+		{ int c = *s++;
+		  if ( c >= 128 )
+		    return text_representation_error(text, encoding);
+		}
+	      }
 	      text->canonical = FALSE;
-	      text->encoding = ENC_OCTET;
+	      text->encoding = encoding;
 
 	      return TRUE;
 	    default:
