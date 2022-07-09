@@ -336,7 +336,10 @@ predicate is notably intended as an intermediate step to perform byte
 oriented operations on text. Examples are (base64) encoding, encryption,
 computing a (secure) hash, etc. \arg{Encoding} is typically
 \const{utf8}. All valid stream encodings except for \const{wchar_t}
-are supporte.  See \secref{encoding}.
+are supported.  See \secref{encoding}.  Note that this translation
+is only provided for strings.  Creating an atom from bytes requires
+atom_string/2.\footnote{Strings are an efficient intermediate and this
+conversion is needed only in some uncommon scenarios.}
 
     \predicate[det]{text_to_string}{2}{+Text, -String}
 Converts \arg{Text} to a string.  \arg{Text} is \jargon{anytext}
