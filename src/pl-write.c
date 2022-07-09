@@ -898,7 +898,6 @@ writeString(term_t t, write_options *options)
 
   if ( true(options, PL_WRT_QUOTED) )
   { int quote;
-    unsigned int i;
 
     if ( true(options, PL_WRT_BACKQUOTED_STRING) )
       quote = '`';
@@ -908,22 +907,65 @@ writeString(term_t t, write_options *options)
     if ( !(rc=Putc(quote, options->out)) )
       goto out;
 
-    for(i=0; i<txt.length; i++)
-    { int chr = get_chr_from_text(&txt, i);
+    switch(txt.encoding)
+    { case ENC_ISO_LATIN_1:
+      { const unsigned char *s = (const unsigned char*)txt.text.t;
+	const unsigned char *e = &s[txt.length];
 
-      if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
-	goto out;
+	while(s<e)
+	{ int chr = *s++;
+
+	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      case ENC_WCHAR:
+      { const wchar_t *s = txt.text.w;
+	const wchar_t *e = &s[txt.length];
+
+	while(s<e)
+	{ int chr;
+
+	  s = get_wchar(s, &chr);
+	  if ( !(rc=putQuoted(chr, quote, options->flags, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      default:
+	assert(0);
     }
-
     rc = Putc(quote, options->out);
   } else
-  { unsigned int i;
+  { switch(txt.encoding)
+    { case ENC_ISO_LATIN_1:
+      { const unsigned char *s = (const unsigned char*)txt.text.t;
+	const unsigned char *e = &s[txt.length];
 
-    for(i=0; i<txt.length; i++)
-    { int chr = get_chr_from_text(&txt, i);
+	while(s<e)
+	{ int chr = *s++;
 
-      if ( !(rc=Putc(chr, options->out)) )
+	  if ( !(rc=Putc(chr, options->out)) )
+	    goto out;
+	}
 	break;
+      }
+      case ENC_WCHAR:
+      { const wchar_t *s = txt.text.w;
+	const wchar_t *e = &s[txt.length];
+
+	while(s<e)
+	{ int chr;
+
+	  s = get_wchar(s, &chr);
+	  if ( !(rc=Putc(chr, options->out)) )
+	    goto out;
+	}
+	break;
+      }
+      default:
+	assert(0);
     }
   }
   PL_STRINGS_RELEASE();
