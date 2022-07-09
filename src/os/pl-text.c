@@ -1555,10 +1555,16 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	}
 	return TRUE;
         case ENC_ISO_LATIN_1:		/* --> ISO Latin 1 */
+	case ENC_OCTET:			/* --> bytes */
 	{ assert(text->canonical);
 	  switch(text->encoding)
 	  { case ENC_WCHAR:
 	      return text_representation_error(text, encoding);
+	    case ENC_ISO_LATIN_1:
+	      text->canonical = FALSE;
+	      text->encoding = ENC_OCTET;
+
+	      return TRUE;
 	    default:
 	      assert(0);
 	      return FALSE;
