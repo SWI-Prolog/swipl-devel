@@ -11330,9 +11330,13 @@ available from library \pllib{statistics}. See \secref{statistics}.
 \begin{description}
     \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
-possible keys are given in the \tabref{statistics}.  This predicate
-supports additional keys for compatibility reasons.  These keys are
-described in \tabref{qpstatistics}.
+possible keys are given in the \tabref{statistics}. This predicate
+supports additional keys for compatibility reasons. These keys are
+described in \tabref{qpstatistics}. CPU time results are based on
+clock_gettime(), times() or wall time since the process was started (in
+that order of preference). On Windows GetProcessTimes() is used.
+Both clock_gettime() and GetProcessTimes() provide a nanosecond
+resolution interface.  The actual resolution depends on the platform.
 
 \begin{table}
 \begin{center}

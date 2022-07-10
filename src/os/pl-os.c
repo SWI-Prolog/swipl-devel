@@ -274,6 +274,7 @@ clock_jitter(double t)
 double
 CpuTime(cputime_kind which)
 {
+#ifndef __EMSCRIPTEN__
 #if defined(HAVE_CLOCK_GETTIME) && defined(CLOCK_PROCESS_CPUTIME_ID)
 #define CPU_TIME_DONE
   struct timespec ts;
@@ -311,9 +312,13 @@ CpuTime(cputime_kind which)
 
   return clock_jitter(used);
 #endif
+#endif /* not __EMSCRIPTEN__ */
 
 #if !defined(CPU_TIME_DONE)
+  GET_LD
   (void)which;
+
+  return WallTime() - LD->statistics.start_time;
 
   return 0.0;
 #endif
