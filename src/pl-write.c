@@ -873,20 +873,6 @@ writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags)
 
 #if O_STRING
 
-static inline int
-get_chr_from_text(const PL_chars_t *t, int index)
-{ switch(t->encoding)
-  { case ENC_ISO_LATIN_1:
-      return t->text.t[index]&0xff;
-    case ENC_WCHAR:
-      return t->text.w[index];
-    default:
-      assert(0);
-    return 0;
-  }
-}
-
-
 static int
 writeString(term_t t, write_options *options)
 { GET_LD
