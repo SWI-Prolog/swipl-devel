@@ -1065,7 +1065,7 @@ sigCrashHandler(int sig)
 		 *   STACK LOCATION AND SIZE	*
 		 *******************************/
 
-#ifdef HAVE_GETRLIMIT
+#if defined(HAVE_GETRLIMIT) && defined(O_PLMT)
 static size_t
 round_pages(size_t n)
 { size_t psize;
@@ -1083,12 +1083,13 @@ round_pages(size_t n)
 
 size_t
 CStackSize(DECL_LD)
-{ PL_thread_info_t *info = LD->thread.info;
+{
+#ifdef O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
 
   if ( info->c_stack_size )
     return info->c_stack_size;
 
-#ifdef O_PLMT
   if ( info->pl_tid != 1 )
   { DEBUG(1, Sdprintf("Thread-stack: %ld\n", LD->thread.info->c_stack_size));
 
@@ -1103,7 +1104,6 @@ CStackSize(DECL_LD)
 
     return info->c_stack_size;
   }
-#endif
 
 #ifdef HAVE_GETRLIMIT
   struct rlimit rlim;
@@ -1122,4 +1122,7 @@ CStackSize(DECL_LD)
 #endif
 
   return info->c_stack_size;
+#else
+  return (size_t)-1;
+#endif
 }
