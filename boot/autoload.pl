@@ -453,6 +453,16 @@ index_header(Fd):-
     format(Fd, '*/~n~n', []).
 
 exports(File, Module, Exports) :-
+    (   current_prolog_flag(xref, Old)
+    ->  true
+    ;   Old = false
+    ),
+    setup_call_cleanup(
+        set_prolog_flag(xref, true),
+        exports_(File, Module, Exports),
+        set_prolog_flag(xref, Old)).
+
+exports_(File, Module, Exports) :-
     State = state(true, _, []),
     (   '$source_term'(File, _,_,Term0,_,_,[syntax_errors(quiet)]),
         (   is_list(Term0)
