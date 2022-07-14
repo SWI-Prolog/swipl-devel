@@ -607,11 +607,9 @@ autoload_in(Module, How) :-
 
 autoload_in(true,             _,        _).
 autoload_in(explicit,         explicit, _).
-autoload_in(explicit_or_user, explicit, _).
-autoload_in(user,             explicit, user).
-autoload_in(explicit_or_user, explicit, _).
 autoload_in(user,             _,        user).
-autoload_in(explicit_or_user, general,  user).
+autoload_in(user_or_explicit, explicit, _).
+autoload_in(user_or_explicit, _,        user).
 
 
 %!  do_autoload(+File, :PI, +LoadModule) is det.
