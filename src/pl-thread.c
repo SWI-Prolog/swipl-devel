@@ -3261,7 +3261,7 @@ PRED_IMPL("sig_pending", 1, sig_pending, META)
   if ( LD->thread.sig_head )
   { struct siglist sl = {0};
     thread_sig *sg;
-    int rc;
+    int rc = FALSE;
 
     sl.list = A1;
 
