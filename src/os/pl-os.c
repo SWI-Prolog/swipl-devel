@@ -2160,15 +2160,12 @@ Sread_terminal(void *handle, char *buf, size_t size)
   int fd = (int)h;
   source_location oldsrc = LD->read_source;
 
-  if ( Soutput )
-  { if ( LD->prompt.next &&
-	 Sinput &&
-	 false(Sinput, SIO_RAW) &&
-	 true(Sinput, SIO_ISATTY) )
-      PL_write_prompt(TRUE);
-    else if ( true(Soutput, SIO_ISATTY) )
-      Sflush(Suser_output);
-  }
+  if ( LD->prompt.next &&
+       false(Sinput, SIO_RAW) &&
+       true(Sinput, SIO_ISATTY) )
+    PL_write_prompt(TRUE);
+  else if ( true(Soutput, SIO_ISATTY) )
+    Sflush(Suser_output);
 
   PL_dispatch(fd, PL_DISPATCH_WAIT);
   size = (*GD->os.org_terminal.read)(handle, buf, size);
