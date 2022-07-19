@@ -2653,6 +2653,32 @@ PRED_IMPL("$skip_list", 3, skip_list, 0)
   return FALSE;
 }
 
+/** '$seek_list'(+Count, +List, -RestCount, -Rest)
+*/
+
+static
+PRED_IMPL("$seek_list", 4, seek_list, 0)
+{ PRED_LD
+  size_t size;
+  Word tail;
+
+  if ( !PL_get_size_ex(A1, &size) )
+    return FALSE;
+  tail = valTermRef(A2);
+  while(size > 0)
+  { deRef(tail);
+    if ( isList(*tail) )
+    { tail = TailList(tail);
+      size--;
+    } else
+      break;
+  }
+
+  return ( unify_ptrs(valTermRef(A4), tail, ALLOW_GC|ALLOW_SHIFT) &&
+	   PL_unify_integer(A3, size)
+	 );
+}
+
 
 /*  Determine the length of a list.  Returns:
 
@@ -6185,6 +6211,7 @@ BeginPredDefs(prims)
   PRED_DEF("nb_setarg", 3, nb_setarg, 0)
   PRED_DEF("nb_linkarg", 3, nb_linkarg, 0)
   PRED_DEF("$skip_list", 3, skip_list, 0)
+  PRED_DEF("$seek_list", 4, seek_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
   PRED_DEF("$urgent_exception", 1, urgent_exception, 0)
 EndPredDefs
