@@ -2162,7 +2162,9 @@ Sread_terminal(void *handle, char *buf, size_t size)
 
   if ( Soutput )
   { if ( LD->prompt.next &&
+#ifndef __WINDOWS__
 	 Sinput &&
+#endif
 	 false(Sinput, SIO_RAW) &&
 	 true(Sinput, SIO_ISATTY) )
       PL_write_prompt(TRUE);
