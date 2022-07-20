@@ -2659,10 +2659,10 @@ PRED_IMPL("$skip_list", 3, skip_list, 0)
 static
 PRED_IMPL("$seek_list", 4, seek_list, 0)
 { PRED_LD
-  size_t size;
+  int64_t size;
   Word tail;
 
-  if ( !PL_get_size_ex(A1, &size) )
+  if ( !PL_get_int64_ex(A1, &size) )
     return FALSE;
   tail = valTermRef(A2);
   while(size > 0)
@@ -2670,6 +2670,9 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
     if ( isList(*tail) )
     { tail = TailList(tail);
       size--;
+      if ( size%1024 == 0 &&
+	   PL_handle_signals() < 0 )
+	return FALSE;
     } else
       break;
   }
