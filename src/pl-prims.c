@@ -2506,11 +2506,14 @@ setarg(DECL_LD term_t n, term_t term, term_t value, int flags)
     return FALSE;
 
   if ( (flags & SETARG_BACKTRACKABLE) )
-  { a = valTermRef(term);
+  { Word a2;
+
+    a = valTermRef(term);
     deRef(a);
     a = argTermP(*a, argn-1);
+    deRef2(a, a2);
 
-    if ( isVar(*a) )
+    if ( isVar(*a2) )
     { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT);
     } else
     { if ( !hasGlobalSpace(0) )
