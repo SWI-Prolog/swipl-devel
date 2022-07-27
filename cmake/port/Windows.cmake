@@ -6,9 +6,12 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 8)
   add_compile_options(-DWIN64)
   set(WIN64 1)
   set(WIN_PROGRAM_FILES "Program Files")
+  set(SWIPL_ARCH x64-win64)
 else()
   set(WIN_PROGRAM_FILES "Program Files (x86)")
+  set(SWIPL_ARCH i386-win32)
 endif()
+set(PLHOME "c:/${WIN_PROGRAM_FILES}/swipl")
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_REQUIRED_LIBRARIES} ws2_32)
 
