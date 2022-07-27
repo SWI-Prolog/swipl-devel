@@ -362,6 +362,7 @@ PL_mutex_lock(struct pl_mutex *m)
     rc = pthread_mutex_lock(&m->mutex);
 #endif
     assert(rc == 0);
+    (void)rc;
     m->count = 1;
     m->owner = self;
   }
