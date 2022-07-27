@@ -7190,10 +7190,13 @@ of global variables.
 
 \begin{description}
     \predicate{setarg}{3}{+Arg, +Term, +Value}
-Extra-logical predicate.  Assigns the \arg{Arg}-th argument of the
-compound term \arg{Term} with the given \arg{Value}.  The assignment
-is undone if backtracking brings the state back into a position before
-the setarg/3 call.  See also nb_setarg/3.
+Extra-logical predicate. Assigns the \arg{Arg}-th argument of the
+compound term \arg{Term} with the given \arg{Value}. The assignment is
+undone if backtracking brings the state back into a position before the
+setarg/3 call. If the designated argument of \arg{Term} is a variable,
+this variable is unified with \arg{Value} using normal unification. Note
+that this may produce a cyclic term if \arg{Value} contains this
+variable.  See also nb_setarg/3.
 
 This predicate may be used for destructive assignment to terms, using
 them as an extra-logical storage bin. Always try hard to avoid the use
