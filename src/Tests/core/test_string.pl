@@ -36,6 +36,7 @@
 :- module(test_string, [test_string/0]).
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
+:- encoding(utf8).
 
 /** <module> Test string manipulation primitives
 
