@@ -41,45 +41,12 @@
 #define PLNAME "swi"
 
 #ifdef __WINDOWS__
-#ifdef WIN64
-#include "config/win64.h"
-#define PLHOME       "c:/Program Files/swipl"
-#else
-#include "config/win32.h"
-#define PLHOME       "c:/Program Files (x86)/swipl"
-#endif
+#include "config/wincfg.h"
 #else /*__WINDOWS__*/
 #include <config.h>
 #endif
 
-#ifdef _MSC_VER
-#define C_LIBS	     ""
-#define C_STATICLIBS ""
-#define C_CC	     "cl"
-#if (_MSC_VER < 1400)
-#define C_CFLAGS     "/MD /GX"
-#else
-#define C_CFLAGS     "/MD /EHsc"
-#endif
-#define C_LDFLAGS    ""
-#if defined(_DEBUG)
-#define C_PLLIB	    "swiplD.lib"
-#else
-#define C_PLLIB	    "swipl.lib"
-#endif
-#else					/* !_MSC_VER  */
-#ifdef __WINDOWS__			/* I.e., MinGW */
-#define C_LIBS	     ""
-#define C_STATICLIBS ""
-#define C_CC	     "gcc"
-#define C_CFLAGS     ""
-#define C_PLLIB	     "-lswipl"		/* Or "libswipl.lib"? */
-#define C_LIBPLSO    "-lswipl"
-#define C_LDFLAGS    ""
-#else
 #include <parms.h>			/* pick from the working dir */
-#endif
-#endif
 
 /* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
 #ifdef HAVE_GMP_H
