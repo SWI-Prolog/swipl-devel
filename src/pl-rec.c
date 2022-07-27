@@ -417,7 +417,7 @@ addAtom(CompileInfo info, atom_t a)
   { Atom ap = atomValue(a);
 
     if ( true(ap->type, PL_BLOB_TEXT) )
-    { if ( isUCSAtom(ap) )
+    { if ( isUCSAtom(ap) ) /* TODO: || true(a->type, PL_BLOB_WCHAR) */
 	addOpCode(info, PL_TYPE_EXT_WATOM);
       else
 	addOpCode(info, PL_TYPE_EXT_ATOM);

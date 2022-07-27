@@ -674,7 +674,7 @@ initUCSAtoms(void)
 
 int
 isUCSAtom(Atom a)
-{ return a->type == &ucs_atom;
+{ return a->type == &ucs_atom; /* TODO: || true(a->type, PL_BLOB_WCHAR) */
 }
 
 
@@ -715,7 +715,7 @@ int
 get_atom_ptr_text(Atom a, PL_chars_t *text)
 { if ( false(a->type, PL_BLOB_TEXT) )
     fail;				/* non-textual atom */
-  if ( a->type == &ucs_atom )
+  if ( true(a->type, PL_BLOB_WCHAR) )   /* isUCSAtom */
   { text->text.w   = (pl_wchar_t *) a->name;
     text->length   = a->length / sizeof(pl_wchar_t);
     text->encoding = ENC_WCHAR;
@@ -870,7 +870,7 @@ const char *
 PL_atom_nchars(atom_t a, size_t *len)
 { Atom x = atomValue(a);
 
-  if ( x->type != &ucs_atom )
+  if ( x->type != &ucs_atom ) /* TODO: false(x>type, PL_BLOB_WCHAR)  */
   { if ( len )
       *len = x->length;
 
@@ -884,9 +884,9 @@ const wchar_t *
 PL_atom_wchars(atom_t a, size_t *len)
 { Atom x = atomValue(a);
 
-  if ( x->type == &ucs_atom )
+  if ( true(x->type, PL_BLOB_WCHAR) )  /* isUCSAtom */
   { if ( len )
-      *len = x->length / sizeof(pl_wchar_t);
+      *len = x->length / sizeof (pl_wchar_t);
 
     return (const wchar_t *)x->name;
   } else if ( true(x->type, PL_BLOB_TEXT) )
@@ -915,13 +915,13 @@ charCode(word w)
 
     if ( a->length == 1 && true(a->type, PL_BLOB_TEXT) )
       return a->name[0] & 0xff;
-    if ( a->length == sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    if ( a->length == sizeof (pl_wchar_t) && true(a->type, PL_BLOB_WCHAR) ) /* isUCSAtom */
     { pl_wchar_t *p = (pl_wchar_t*)a->name;
 
       return p[0];
     }
 #if SIZEOF_WCHAR_T == 2
-    if ( a->length == 2*sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    if ( a->length == 2*sizeof(pl_wchar_t) && (a->type == &ucs_atom || true(a->type, PL_BLOB_WCHAR)) )
     { pl_wchar_t *p = (pl_wchar_t*)a->name;
 
       return utf16_decode(p[0], p[1]);

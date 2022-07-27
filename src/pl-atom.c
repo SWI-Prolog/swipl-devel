@@ -1150,11 +1150,11 @@ void
 
 static char *
 dbgAtomName(Atom a, char *enc, char **buf)
-{ if ( a->type == &text_atom )
-  { if ( enc ) *enc = 'L';
-    return a->name;
-  } else if ( isUCSAtom(a) )
+{ if ( true(a->type, PL_BLOB_WCHAR) ) /* isUCSAtom */
   { if ( enc ) *enc = 'W';
+    return a->name;
+  } else if ( true(a->type, PL_BLOB_TEXT) ) /* == &text_atom */
+  { if ( enc ) *enc = 'L';
     return a->name;
   } else
   { size_t len = 0;
@@ -1905,7 +1905,7 @@ extendAtom(char *prefix, bool *unique, char *common)
     for(; index<upto; index++)
     { Atom a = b + index;
 
-      if ( ATOM_IS_VALID(a->references) && a->type == &text_atom &&
+      if ( ATOM_IS_VALID(a->references) && a->type == &text_atom &&  /* TODO: ucs_atom? true(a->type, PL_BLOB_TEXT) ? */
 	   global_atom(a) &&
 	   strprefix(a->name, prefix) &&
 	   strlen(a->name) < LINESIZ )

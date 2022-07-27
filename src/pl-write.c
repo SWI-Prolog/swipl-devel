@@ -145,7 +145,7 @@ atomIsVarName(atom_t a)
 
   if ( false(atom->type, PL_BLOB_TEXT) || atom->length == 0 )
     fail;
-  if ( isUCSAtom(atom) )
+  if ( true(atom->type, PL_BLOB_WCHAR) )  /* isUCSAtom */
   { pl_wchar_t *w = (pl_wchar_t*)atom->name;
     size_t len = atom->length / sizeof(pl_wchar_t);
 
@@ -385,7 +385,7 @@ unquoted_atom(atom_t a)
   if ( true(ap->type, PL_BLOB_TEXT) )
   { if ( !ap->type->write )		/* ordinary atoms */
     { return atomType(a, NULL) != AT_QUOTE;
-    } else if ( isUCSAtom(ap) )		/* wide atoms */
+    } else if ( true(ap->type, PL_BLOB_WCHAR) ) /* wide atoms */  /* isUCSAtom */
     { return unquoted_atomW(a, NULL, 0);
     }
   }
