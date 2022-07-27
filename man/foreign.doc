@@ -825,14 +825,14 @@ strlen().
 
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Deprecated. This function returns a pointer to the content represented
-by the atom or blob regardless of its type. New code should use the blob
-functions such as PL_blob_data() to get a pointer to the content, the
-size of the content, and the type of the content. Most applications that
-need to get text from a \ctype{term_t} handle should use PL_get_nchars()
-or PL_get_wchars(). If it is \emph{known} that \arg{atom} is a classical
-Prolog text atom, one can use PL_atom_nchars() to obtain the C string and
-its length (for ISO-Latin-1 atoms) or PL_atom_wchars() to obtain a C wide
-string (\ctype{wchar_t}).
+by the atom or blob regardless of its type. New code that uses blobs
+should use the blob functions such as PL_blob_data() to get a pointer to
+the content, the size of the content, and the type of the content. Most
+applications that need to get text from a \ctype{term_t} handle should
+use PL_get_nchars() or PL_get_wchars(). If it is \emph{known} that
+\arg{atom} is a classical Prolog text atom, one can use PL_atom_nchars()
+to obtain the C string and its length (for ISO-Latin-1 atoms) or
+PL_atom_wchars() to obtain a C wide string (\ctype{wchar_t}).
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity
@@ -2251,7 +2251,10 @@ writing it, sorting it, etc. Two atoms created with different types can
 represent the same sequence of bytes. Atoms are first ordered on the
 rank number of the type and then on the result of the
 \cfuncref{compare}{} function.  Rank numbers are assigned when the
-type is registered.
+type is registered.  This implies that thre results of inequality
+comparisons between blobs of different types is undefined and can
+change if the program is run twice (the ordering within a blob type
+will not change, of course).
 
 While the blob is alive, neither its handle nor the location of the
 contents (see PL_blob_data()) change. If the blob's type has the
@@ -2314,20 +2317,39 @@ first field must be initialised to \const{PL_BLOB_MAGIC}.  The
 
 \begin{description}
     \constitem{PL_BLOB_TEXT}
-If specified the blob is assumed to contain text and is considered
-a normal Prolog atom.
+If specified the blob is assumed to contain text and is considered a
+normal Prolog atom. The (currently) two predefined blob types that
+represent atoms have this flag set. User-defined blobs may not specify
+this, even if they contain only text. Applications should \emph{not} use
+the blob API to create normal text atoms or get access to the text
+represented by normal text atoms.  Most applications should use
+PL_get_nchars() and PL_unify_chars() to get text from Prolog terms
+or create Prolog terms that represent text.
 
     \constitem{PL_BLOB_UNIQUE}
 If specified the system ensures that the blob-handle is a unique
-reference for a blob with the given type, length and content.
-If this flag is not specified, each lookup creates a new blob.
+reference for a blob with the given type, length and content. If this
+flag is not specified, each lookup creates a new blob. Uniqueness is
+determined by comparing the bytes in the blobs unless
+\const{PL_BLOB_NOCOPY} is also specified, in which case the pointers are
+compared.
 
     \constitem{PL_BLOB_NOCOPY}
 By default the content of the blob is copied. Using this flag the blob
 references the external data directly. The user must ensure the provided
-pointer is valid as long as the atom lives.  If \const{PL_BLOB_UNIQUE}
-is also specified, uniqueness is determined by comparing the pointer
-rather than the data pointed at.
+pointer is valid as long as the atom lives. If \const{PL_BLOB_UNIQUE} is
+also specified, uniqueness is determined by comparing the pointer rather
+than the data pointed at. Using
+\const{PL_BLOB_UNIQUE\chr{|}PL_BLOB_NOCOPY} can be used to make a blob
+reference an arbitrary pointer where the pointer data may be reclaimed
+in the release() handler.
+
+    \constitem{PL_BLOB_WCHAR}
+If \const{PL_BLOB_TEXT} is also set, then the text is made up of
+\const{pl_wchar_t} items and the blob's lenght is the number of bytes
+(that is, the number of characters times \exam{sizeof(pl_wchar_t)}).
+As \const{PL_BLOB_TEXT}, this flag should not be set in user-defined
+blobs.
 \end{description}
 
 The \arg{name} field represents the type name as available to Prolog.
