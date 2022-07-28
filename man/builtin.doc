@@ -7905,7 +7905,7 @@ and modules.
 \begin{center}
 \begin{tabular}{|r|D{f}{f}{-1}|p{4in}|}
 \hline
-1200 & xfx & \op{-->}, \op{:-} \\
+1200 & xfx & \op{-->}, \op{:-}, \op{=>} \\
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
 	    \op{meta_predicate},
