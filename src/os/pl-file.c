@@ -829,9 +829,19 @@ PL_get_stream_handle(term_t t, IOSTREAM **s)
   return term_stream_handle(t, s, SH_ERRORS|SH_ALIAS|SH_NOPAIR);
 }
 
-
 int
 PL_get_stream(term_t t, IOSTREAM **s, int flags)
+{ GET_LD
+  atom_t a;
+
+  if ( !PL_get_atom(t, &a) )
+    return not_a_stream(t);
+
+  return PL_get_stream_from_blob(a, s, flags);
+}
+
+int
+PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 { GET_LD
   int myflags = SH_ERRORS|SH_ALIAS;
 
@@ -841,7 +851,7 @@ PL_get_stream(term_t t, IOSTREAM **s, int flags)
   if ( !(flags&(SIO_INPUT|SIO_OUTPUT)) )
     myflags |= SH_NOPAIR;
 
-  return term_stream_handle(t, s, myflags);
+  return get_stream_handle(a, s, myflags);
 }
 
 

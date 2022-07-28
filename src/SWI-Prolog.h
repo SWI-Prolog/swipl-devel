@@ -939,6 +939,7 @@ PL_EXPORT(void)         PL_release_string_buffers_from_mark(buf_mark_t mark);
 PL_EXPORT(int)		PL_unify_stream(term_t t, IOSTREAM *s);
 PL_EXPORT(int)		PL_get_stream_handle(term_t t, IOSTREAM **s);
 PL_EXPORT(int)		PL_get_stream(term_t t, IOSTREAM **s, int flags);
+PL_EXPORT(int)		PL_get_stream_from_blob(atom_t a, IOSTREAM**s, int flags);
 PL_EXPORT(IOSTREAM*)	PL_acquire_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream(IOSTREAM *s);
 PL_EXPORT(int)		PL_release_stream_noerror(IOSTREAM *s);

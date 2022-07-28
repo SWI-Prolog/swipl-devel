@@ -61,6 +61,12 @@ flags:
 The returned stream is owned by the calling thread using
 PL_acquire_stream().
 
+    \cfunction{int}{PL_get_stream_from_blob}{atom_t b, IOSTREAM **s, int flags}
+Same as PL_get_stream(), but operates directly on the blob \arg{b}. This
+allows for foreign code that wishes long term access to a stream to
+maintain a handle to the stream as a (registered) \ctype{atom_t} object
+rather than a \ctype{IOSTREAM*}.
+
     \cfunction{IOSTREAM *}{PL_acquire_stream}{IOSTREAM *s}
 Obtain ownership of \arg{s} and return \arg{s}. The application must
 call PL_release_stream() when done. Only one thread can own a stream and
