@@ -1097,9 +1097,11 @@ CStackSize(DECL_LD)
     pthread_attr_t attr;
 
     if ( pthread_getattr_np(info->tid, &attr) == 0 )
-      pthread_attr_getstack(&attr, &info->c_stack_base, &info->c_stack_size);
-    else
-      info->c_stack_size = (size_t)-1;
+    { pthread_attr_getstack(&attr, &info->c_stack_base, &info->c_stack_size);
+      pthread_attr_destroy(&attr);
+    } else
+    { info->c_stack_size = (size_t)-1;
+    }
 #endif
 
     return info->c_stack_size;
