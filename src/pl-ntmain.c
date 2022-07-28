@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2018, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,23 +38,15 @@
 #define _UNICODE 1
 #define UNICODE 1
 
-#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
-#endif
-
-#ifdef WIN64
-#include "config/win64.h"
-#else
-#include "config/win32.h"
-#endif
+#include "config/wincfg.h"
 
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
 #include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
-#include <windows.h>
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>
@@ -76,8 +69,8 @@ Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-This module combines swipl.dll and plterm.dll  with some glue to produce
-the final executable swipl-win.exe.
+This module combines libswipl.dll  and  plterm.dll   with  some  glue to
+produce the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 __declspec(dllexport)	rlc_console	PL_current_console(void);

@@ -37,11 +37,7 @@
 
 #ifdef __WINDOWS__
 #include "windows/uxnt.h"
-#ifdef WIN64
-#include "config/win64.h"
-#else
-#include "config/win32.h"
-#endif
+#include "config/wincfg.h"
 #include <winsock2.h>
 #define CRLF_MAPPING 1
 #else
