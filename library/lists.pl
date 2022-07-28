@@ -292,7 +292,8 @@ nth_gen([H|Tail], Elem, _, N, Base) :-
 nth1(Index, List, Elem) :-
     (   integer(Index)
     ->  Index0 is Index - 1,
-        nth0_det(Index0, List, Elem)        % take nth deterministically
+        '$seek_list'(Index0, List, RestIndex, RestList),
+        nth0_det(RestIndex, RestList, Elem) % take nth det
     ;   var(Index)
     ->  List = [H|T],
         nth_gen(T, Elem, H, 1, Index)       % match
