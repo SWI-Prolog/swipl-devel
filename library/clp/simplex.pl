@@ -919,7 +919,7 @@ linsum_negate(Coeff0*Var, Coeff*Var) :- Coeff is -Coeff0.
 
 linsum_row([], _, []).
 linsum_row([V|Vs], Ls, [C|Cs]) :-
-        (   member(Coeff*V, Ls) -> C is rationalize(Coeff)
+        (   memberchk(Coeff*V, Ls) -> C is rationalize(Coeff)
         ;   C = 0
         ),
         linsum_row(Vs, Ls, Cs).
@@ -1045,14 +1045,15 @@ gauss_elimination([Row0|Rows0], PivotRow, Col, [Row|Rows]) :-
 row_eliminate(row(Var, Ls0, R0), row(_, PLs, PR), Col, row(Var, Ls, R)) :-
         nth0(Col, Ls0, Coeff),
         (   Coeff =:= 0 -> Ls = Ls0, R = R0
-        ;   MCoeff is -Coeff,
-            all_times_plus([PR|PLs], MCoeff, [R0|Ls0], [R|Ls])
+        ;   all_times_minus([PR|PLs], Coeff, [R0|Ls0], [R|Ls])
         ).
 
-all_times_plus([], _, _, []).
-all_times_plus([A|As], T, [B|Bs], [AT|ATs]) :-
-        AT is A * T + B,
-        all_times_plus(As, T, Bs, ATs).
+all_times_minus([], _, _, []).
+all_times_minus([A|As], T, [B|Bs], [AT|ATs]) :-
+        (   A == 0 -> AT = B
+        ;   AT is B - A * T
+        ),
+        all_times_minus(As, T, Bs, ATs).
 
 all_times([], _, []).
 all_times([A|As], T, [AT|ATs]) :-
