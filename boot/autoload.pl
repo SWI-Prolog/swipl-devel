@@ -734,13 +734,15 @@ library_info(Spec, Context, FullFile, Module, Exports) :-
         fail
     ).
 
-
 library_info_from_file(FullFile, Module, Exports) :-
     setup_call_cleanup(
-        '$open_source'(FullFile, In, State, [], []),
-        '$term_in_file'(In, _Read, _RLayout, Term, _TLayout, _Stream,
-                        [FullFile], []),
-        '$close_source'(State, true)),
+        '$set_source_module'(OldModule, system),
+        setup_call_cleanup(
+            '$open_source'(FullFile, In, State, [], []),
+            '$term_in_file'(In, _Read, _RLayout, Term, _TLayout, _Stream,
+                            [FullFile], []),
+            '$close_source'(State, true)),
+        '$set_source_module'(OldModule)),
     (   Term = (:- module(Module, Exports))
     ->  !
     ;   nonvar(Term),
