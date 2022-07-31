@@ -3744,7 +3744,7 @@ modify_op(DECL_LD cterm_state *cstate, int cpri)
       PopOp(cstate);
     } else if ( op->kind == OP_INFIX && cstate->out_n > 0 &&
 		isOp(op, OP_POSTFIX, _PL_rd) )
-    { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfixn",
+    { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfix\n",
 				  stringOp(op)));
       cstate->rmo++;
       if ( !build_op_term(op, _PL_rd) )
