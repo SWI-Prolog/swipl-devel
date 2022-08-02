@@ -29,10 +29,7 @@ directory and browse to <http://localhost:8080/src/wasm/test.html>
 
             SWIPL({
                 noInitialRun: true,
-                arguments: [
-                    'swipl',
-		    '--home=/wasm-preload'
-                ],
+                arguments: [],
                 locateFile: function(file) {
                     return '/build.wasm/src/' + file;
                 },

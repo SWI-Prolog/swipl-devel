@@ -49,6 +49,7 @@ Prolog.prototype._bind = function() {
 // See http://www.swi-prolog.org/pldoc/doc_for?object=c(%27PL_initialise%27)
 Prolog.prototype._initialise = function() {
     let argv0 = this.args || [];
+    argv0.unshift("swipl");
     let argv = argv0.map(function(arg) {
         return this.module.allocate(
             this.module.intArrayFromString(arg),
