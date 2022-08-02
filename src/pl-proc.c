@@ -1263,8 +1263,10 @@ gcClauseRefs(void)
   if ( cref )
   { ClauseRef next;
     Definition *active_defs = predicates_in_use();
+#ifdef O_DEBUG
     int freed = 0;
     int kept = 0;
+#endif
 
     for( ; cref; cref = next)
     { Definition def;
@@ -1273,10 +1275,14 @@ gcClauseRefs(void)
       def = cref->value.clause->predicate;
       if ( !activePredicate(active_defs, def) )
       { freeClauseRef(cref);
+#ifdef O_DEBUG
 	freed++;
+#endif
       } else
       {	lingerClauseRef(cref);
+#ifdef O_DEBUG
 	kept++;
+#endif
       }
     }
 

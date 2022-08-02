@@ -1121,6 +1121,7 @@ gvars_to_term_refs(Word **saved_bar_at)
     DEBUG(MSG_GC_MARK_GVAR,
 	  Sdprintf("Found %d global vars on global stack. "
 		   "stored in frame %p\n", found, fli_context));
+    (void)found;
   }
 
   if ( LD->frozen_bar )
@@ -1167,6 +1168,7 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
       }
     }
     assert(found == fr->size);
+    (void)found;
 
     freeTableEnum(e);
   }
@@ -1247,6 +1249,7 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
     }
     assert(fp == (Word)(fr+1) + fr->size);
     assert(uwc == state->uwrite_count);
+    (void)uwc;
 
     DEBUG(CHK_SECURE,
 	  { if ( onStackArea(local, LD->query->registers.argp) )
