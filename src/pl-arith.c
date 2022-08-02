@@ -135,6 +135,11 @@ problem.
 #endif
 #endif
 
+typedef int (*ArithF0)(Number r);
+typedef int (*ArithF1)(Number n, Number r);
+typedef int (*ArithF2)(Number n1, Number n2, Number r);
+typedef int (*ArithF3)(Number n1, Number n2, Number n3, Number r);
+
 #if USE_LD_MACROS
 #define	set_roundtoward(p, old)		LDFUNC(set_roundtoward, p, old)
 #endif /*USE_LD_MACROS*/
@@ -967,11 +972,11 @@ valueExpression(DECL_LD term_t expr, number *result)
 	continue;
       }
       case TAG_ATOM:
-      { ArithF f;
+      { ArithF0 f;
 
 	functor = lookupFunctorDef(*p, 0);
       arity0:
-	if ( (f = isCurrentArithFunction(functor)) )
+	if ( (f = (ArithF0)isCurrentArithFunction(functor)) )
 	{ if ( (*f)(n) != TRUE )
 	    goto error;
 	} else
@@ -1080,7 +1085,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	  { int rc;
 	    number *a0 = topOfSegStack(&arg_stack);
 
-	    rc = (*f)(a0, n);
+	    rc = (*(ArithF1)f)(a0, n);
 	    clearNumber(a0);
 	    if ( rc == TRUE )
 	    { *a0 = *n;
@@ -1096,7 +1101,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	    void *a[2];
 
 	    topsOfSegStack(&arg_stack, 2, a);
-	    rc = (*f)((number*)a[0], (number*)a[1], n);
+	    rc = (*(ArithF2)f)((number*)a[0], (number*)a[1], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    popTopOfSegStack(&arg_stack);
@@ -1116,7 +1121,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	    void *a[3];
 
 	    topsOfSegStack(&arg_stack, 3, a);
-	    rc = (*f)((number*)a[0], (number*)a[1], (number*)a[2], n);
+	    rc = (*(ArithF3)f)((number*)a[0], (number*)a[1], (number*)a[2], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    clearNumber((number*)a[2]);
@@ -5041,16 +5046,16 @@ ar_func_n(DECL_LD int findex, int argc)
 
   switch(argc)
   { case 0:
-      rval = (*f)(&result);
+      rval = (*(ArithF0)f)(&result);
       break;
     case 1:
-      rval = (*f)(argv, &result);
+      rval = (*(ArithF1)f)(argv, &result);
       break;
     case 2:
-      rval = (*f)(argv+1, argv, &result);
+      rval = (*(ArithF2)f)(argv+1, argv, &result);
       break;
     case 3:
-      rval = (*f)(argv+2, argv+1, argv, &result);
+      rval = (*(ArithF3)f)(argv+2, argv+1, argv, &result);
       break;
     default:
       rval = FALSE;

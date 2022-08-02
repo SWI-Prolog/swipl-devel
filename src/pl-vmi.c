@@ -4588,7 +4588,8 @@ conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
+  va_func f = (va_func)*PC++;
   struct foreign_context context;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
@@ -4609,75 +4610,75 @@ a1, a2, ... calling conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ Func0 f = (Func0)*PC++;
 
   PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
 
-#define FCALL_DETN(h0_args...) \
-  Func f = (Func)*PC++; \
+#define FCALL_DETN(ac, h0_args...) \
+  Func##ac f = (Func##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0_args));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0);
+{ FCALL_DETN(1, h0);
 }
 END_VMI
 
 
 VMI(I_FCALLDET2, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1);
+{ FCALL_DETN(2, h0, h0+1);
 }
 END_VMI
 
 
 VMI(I_FCALLDET3, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2);
+{ FCALL_DETN(3, h0, h0+1, h0+2);
 }
 END_VMI
 
 
 VMI(I_FCALLDET4, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3);
+{ FCALL_DETN(4, h0, h0+1, h0+2, h0+3);
 }
 END_VMI
 
 
 VMI(I_FCALLDET5, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4);
+{ FCALL_DETN(5, h0, h0+1, h0+2, h0+3, h0+4);
 }
 END_VMI
 
 
 VMI(I_FCALLDET6, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
+{ FCALL_DETN(6, h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
 END_VMI
 
 
 VMI(I_FCALLDET7, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
+{ FCALL_DETN(7, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
 END_VMI
 
 
 VMI(I_FCALLDET8, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
+{ FCALL_DETN(8, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
 END_VMI
 
 
 VMI(I_FCALLDET9, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
+{ FCALL_DETN(9, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
 END_VMI
 
 
 VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
+{ FCALL_DETN(10, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
 END_VMI
 
@@ -4767,7 +4768,8 @@ END_VMH
 
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ typedef foreign_t (*ndet_func)(term_t h0, size_t arity, struct foreign_context*);
+  ndet_func f = (ndet_func)*PC++;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
   PROF_FOREIGN;
@@ -4777,76 +4779,76 @@ END_VMI
 
 
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ NdetFunc0 f = (NdetFunc0)*PC++;
 
   PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
 
-#define FCALL_NDETN(h0_args...) \
-  Func f = (Func)*PC++; \
+#define FCALL_NDETN(ac, h0_args...) \
+  NdetFunc##ac f = (NdetFunc##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0_args, &FNDET_CONTEXT));
 
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0);
+{ FCALL_NDETN(1, h0);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET2, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1);
+{ FCALL_NDETN(2, h0, h0+1);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET3, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2);
+{ FCALL_NDETN(3, h0, h0+1, h0+2);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET4, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3);
+{ FCALL_NDETN(4, h0, h0+1, h0+2, h0+3);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET5, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4);
+{ FCALL_NDETN(5, h0, h0+1, h0+2, h0+3, h0+4);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET6, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
+{ FCALL_NDETN(6, h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET7, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
+{ FCALL_NDETN(7, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET8, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
+{ FCALL_NDETN(8, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET9, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
+{ FCALL_NDETN(9, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
+{ FCALL_NDETN(10, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
 END_VMI
 
@@ -4856,7 +4858,7 @@ VMI(I_FEXITNDET, 0, 0, ())
 }
 END_VMI
 
-VMH(I_FEXITNDET, 1, (intptr_t), (rc))
+VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 { FliFrame ffr;
 
   LOAD_REGISTERS(QID);

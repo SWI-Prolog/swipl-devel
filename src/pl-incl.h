@@ -769,7 +769,7 @@ typedef word			functor_t;	/* encoded functor */
 typedef uintptr_t		code WORD_ALIGNED; /* bytes codes */
 typedef code *			Code;		/* pointer to byte codes */
 typedef int			Char;		/* char that can pass EOF */
-typedef word			(*Func)();	/* foreign functions */
+typedef foreign_t		(*Func)();	/* foreign functions */
 typedef int			(*ArithF)();	/* arithmetic function */
 
 typedef struct atom *		Atom;		/* atom */

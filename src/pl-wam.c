@@ -81,6 +81,49 @@
 #define newChoice(type, fr) LDFUNC(newChoice, type, fr)
 static Choice	newChoice(DECL_LD choice_type type, LocalFrame fr);
 
+typedef foreign_t (*Func0)(void);
+typedef foreign_t (*Func1)(term_t a1);
+typedef foreign_t (*Func2)(term_t a1, term_t a2);
+typedef foreign_t (*Func3)(term_t a1, term_t a2, term_t a3);
+typedef foreign_t (*Func4)(term_t a1, term_t a2, term_t a3, term_t a4);
+typedef foreign_t (*Func5)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5);
+typedef foreign_t (*Func6)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6);
+typedef foreign_t (*Func7)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7);
+typedef foreign_t (*Func8)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7, term_t a8);
+typedef foreign_t (*Func9)(term_t a1, term_t a2, term_t a3, term_t a4,
+			   term_t a5, term_t a6, term_t a7, term_t a8,
+			   term_t a9);
+typedef foreign_t (*Func10)(term_t a1, term_t a2, term_t a3, term_t a4,
+			    term_t a5, term_t a6, term_t a7, term_t a8,
+			    term_t a9, term_t a10);
+
+typedef foreign_t (*NdetFunc0)(control_t);
+typedef foreign_t (*NdetFunc1)(term_t a1, control_t);
+typedef foreign_t (*NdetFunc2)(term_t a1, term_t a2, control_t);
+typedef foreign_t (*NdetFunc3)(term_t a1, term_t a2, term_t a3, control_t);
+typedef foreign_t (*NdetFunc4)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       control_t);
+typedef foreign_t (*NdetFunc5)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, control_t);
+typedef foreign_t (*NdetFunc6)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, control_t);
+typedef foreign_t (*NdetFunc7)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, control_t);
+typedef foreign_t (*NdetFunc8)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, term_t a8,
+			       control_t);
+typedef foreign_t (*NdetFunc9)(term_t a1, term_t a2, term_t a3, term_t a4,
+			       term_t a5, term_t a6, term_t a7, term_t a8,
+			       term_t a9, control_t);
+typedef foreign_t (*NdetFunc10)(term_t a1, term_t a2, term_t a3, term_t a4,
+				term_t a5, term_t a6, term_t a7, term_t a8,
+				term_t a9, term_t a10, control_t);
+
+
 #if COUNTING
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -606,37 +649,37 @@ ssu_or_det_failed(DECL_LD LocalFrame fr)
 #define CALL_FCUTTED(argc, f, c) \
   { switch(argc) \
     { case 0: \
-	f(c); \
+	(*(NdetFunc0)f)(c); \
         break; \
       case 1: \
-	f(0,(c)); \
+	(*(NdetFunc1)f)(0,(c)); \
 	break; \
       case 2: \
-	f(0,0,(c)); \
+	(*(NdetFunc2)f)(0,0,(c)); \
         break; \
       case 3: \
-	f(0,0,0,(c)); \
+	(*(NdetFunc3)f)(0,0,0,(c)); \
         break; \
       case 4: \
-	f(0,0,0,0,(c)); \
+	(*(NdetFunc4)f)(0,0,0,0,(c)); \
         break; \
       case 5: \
-	f(0,0,0,0,0,(c)); \
+	(*(NdetFunc5)f)(0,0,0,0,0,(c)); \
         break; \
       case 6: \
-	f(0,0,0,0,0,0,(c)); \
+	(*(NdetFunc6)f)(0,0,0,0,0,0,(c)); \
         break; \
       case 7: \
-	f(0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc7)f)(0,0,0,0,0,0,0,(c)); \
         break; \
       case 8: \
-	f(0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc8)f)(0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 9: \
-	f(0,0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc9)f)(0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       case 10: \
-	f(0,0,0,0,0,0,0,0,0,0,(c)); \
+	(*(NdetFunc10)f)(0,0,0,0,0,0,0,0,0,0,(c)); \
         break; \
       default: \
 	assert(0); \
@@ -671,7 +714,8 @@ discardForeignFrame(DECL_LD LocalFrame fr)
 
   fid = PL_open_foreign_frame();
   if ( true(def, P_VARARG) )
-  { (*function)(0, argc, &context);
+  { typedef foreign_t (*FuncN)(term_t av, int argc, control_t);
+    (*(FuncN)function)(0, argc, &context);
   } else
   { CALL_FCUTTED(argc, (*function), &context);
   }

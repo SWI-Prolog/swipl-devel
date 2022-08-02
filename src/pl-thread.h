@@ -569,11 +569,7 @@ foreign_t	pl_thread_self(term_t self);
 
 typedef struct
 { functor_t functor;			/* functor of property */
-  /* FIXME: we should not be storing function pointers with
-   * incomplete prototypes! WASM in particular cannot call a
-   * function unless it has a full, correct prototype
-   */
-  int (*function)();			/* function to generate */
+  int (*function)();	/* function to generate */
 } tprop;
 
 #if USE_LD_MACROS

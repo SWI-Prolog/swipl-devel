@@ -52,6 +52,10 @@ Event interface
 
 static void	free_event_callback(event_callback *cb);
 
+typedef int (*ev_func0)(void *);
+typedef int (*ev_func1)(void *, term_t);
+typedef int (*ev_func2)(void *, term_t, term_t);
+
 #ifdef O_PLMT
 #define INIT_LIST_LOCK(l) recursiveMutexInit(&(l)->lock)
 #define DELETE_LIST_LOCK(l) recursiveMutexDelete(&(l)->lock)
@@ -399,13 +403,13 @@ call_event_list(DECL_LD event_list *list, int argc, term_t argv)
     { if ( ev->function )
       { switch(argc)
 	{ case 0:
-	    rc = (*ev->function)(ev->closure.pointer);
+	    rc = (*(ev_func0)ev->function)(ev->closure.pointer);
 	    break;
 	  case 1:
-	    rc = (*ev->function)(ev->closure.pointer, argv+1);
+	    rc = (*(ev_func1)ev->function)(ev->closure.pointer, argv+1);
 	    break;
 	  case 2:
-	    rc = (*ev->function)(ev->closure.pointer, argv+1, argv+2);
+	    rc = (*(ev_func2)ev->function)(ev->closure.pointer, argv+1, argv+2);
 	    break;
 	  default:
 	    rc = FALSE;
