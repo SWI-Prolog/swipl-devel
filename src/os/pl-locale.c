@@ -360,37 +360,53 @@ getLocaleEx(term_t t, PL_locale **lp)
 		 *	 PROLOG BINDING		*
 		 *******************************/
 
-#define locale_alias_property(l, prop) LDFUNC(locale_alias_property, l, prop)
+#define locale_alias_property(l, prop) \
+	LDFUNC(locale_alias_property, l, prop)
+
 static int		/* locale_property(Mutex, alias(Name)) */
-locale_alias_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->alias )
+locale_alias_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->alias )
     return PL_unify_atom(prop, l->alias);
 
   return FALSE;
 }
 
-#define locale_decimal_point_property(l, prop) LDFUNC(locale_decimal_point_property, l, prop)
+#define locale_decimal_point_property(l, prop)  \
+	LDFUNC(locale_decimal_point_property, l, prop)
+
 static int		/* locale_property(Locale, decimal_point(Atom)) */
-locale_decimal_point_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->decimal_point && l->decimal_point[0] )
+locale_decimal_point_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->decimal_point && l->decimal_point[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->decimal_point);
 
   return FALSE;
 }
 
-#define locale_thousands_sep_property(l, prop) LDFUNC(locale_thousands_sep_property, l, prop)
+#define locale_thousands_sep_property(l, prop) \
+	LDFUNC(locale_thousands_sep_property, l, prop)
+
 static int		/* locale_property(Locale, thousands_sep(Atom)) */
-locale_thousands_sep_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->thousands_sep && l->thousands_sep[0] )
+locale_thousands_sep_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->thousands_sep && l->thousands_sep[0] )
     return PL_unify_wchars(prop, PL_ATOM, (size_t)-1, l->thousands_sep);
 
   return FALSE;
 }
 
-#define locale_grouping_property(l, prop) LDFUNC(locale_grouping_property, l, prop)
+#define locale_grouping_property(l, prop) \
+	LDFUNC(locale_grouping_property, l, prop)
+
 static int		/* locale_property(Locale, grouping(List)) */
-locale_grouping_property(DECL_LD PL_locale *l, term_t prop)
-{ if ( l->grouping && l->grouping[0] )
+locale_grouping_property(DECL_LD void *ctx, term_t prop)
+{ PL_locale *l = ctx;
+
+  if ( l->grouping && l->grouping[0] )
   { term_t tail = PL_copy_term_ref(prop);
     term_t head = PL_new_term_ref();
     char *s;

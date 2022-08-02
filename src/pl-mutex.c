@@ -523,8 +523,10 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
 
 #define mutex_alias_property(m, prop) LDFUNC(mutex_alias_property, m, prop)
 static int		/* mutex_property(Mutex, alias(Name)) */
-mutex_alias_property(DECL_LD pl_mutex *m, term_t prop)
-{ if ( !m->anonymous )
+mutex_alias_property(DECL_LD void *ctx, term_t prop)
+{ pl_mutex *m = ctx;
+
+  if ( !m->anonymous )
     return PL_unify_atom(prop, m->id);
 
   fail;
@@ -533,8 +535,10 @@ mutex_alias_property(DECL_LD pl_mutex *m, term_t prop)
 
 #define mutex_status_property(m, prop) LDFUNC(mutex_status_property, m, prop)
 static int		/* mutex_property(Mutex, status(locked(By, Count))) */
-mutex_status_property(DECL_LD pl_mutex *m, term_t prop)
-{ if ( m->owner )
+mutex_status_property(DECL_LD void *ctx, term_t prop)
+{ pl_mutex *m = ctx;
+
+  if ( m->owner )
   { int owner = m->owner;
     int count = m->count;
     term_t owner_term = PL_new_term_ref();

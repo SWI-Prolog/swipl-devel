@@ -2765,14 +2765,17 @@ symbol_alias(atom_t symbol)
 
 #define thread_id_propery(info, prop) LDFUNC(thread_id_propery, info, prop)
 static int
-thread_id_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ return PL_unify_integer(prop, info->pl_tid);
+thread_id_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+
+  return PL_unify_integer(prop, info->pl_tid);
 }
 
 #define thread_alias_propery(info, prop) LDFUNC(thread_alias_propery, info, prop)
 static int
-thread_alias_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ atom_t symbol, alias;
+thread_alias_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+  atom_t symbol, alias;
 
   if ( (symbol=info->symbol) &&
        (alias=symbol_alias(symbol)) )
@@ -2783,40 +2786,46 @@ thread_alias_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_status_propery(info, prop) LDFUNC(thread_status_propery, info, prop)
 static int
-thread_status_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_status_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return unify_thread_status(prop, info, info->status, TRUE);
 }
 
 #define thread_detached_propery(info, prop) LDFUNC(thread_detached_propery, info, prop)
 static int
-thread_detached_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_detached_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->detached);
 }
 
 #define thread_debug_propery(info, prop) LDFUNC(thread_debug_propery, info, prop)
 static int
-thread_debug_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_debug_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->debug);
 }
 
 #define thread_engine_propery(info, prop) LDFUNC(thread_engine_propery, info, prop)
 static int
-thread_engine_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_engine_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   return PL_unify_bool_ex(prop, info->is_engine);
 }
 
 #define thread_thread_propery(info, prop) LDFUNC(thread_thread_propery, info, prop)
 static int
-thread_thread_propery(DECL_LD PL_thread_info_t *info, term_t prop)
-{ if ( info->is_engine )
+thread_thread_propery(DECL_LD void *ctx, term_t prop)
+{ PL_thread_info_t *info = ctx;
+
+  if ( info->is_engine )
   { thread_handle *th = symbol_thread_handle(info->symbol);
 
     if ( th->interactor.thread )
@@ -2831,8 +2840,9 @@ thread_thread_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_tid_propery(info, prop) LDFUNC(thread_tid_propery, info, prop)
 static int
-thread_tid_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_tid_propery(DECL_LD void *ctx, term_t prop)
 { IGNORE_LD
+  PL_thread_info_t *info = ctx;
 
   if ( info->has_tid )
   { intptr_t tid = system_thread_id(info);
@@ -2846,8 +2856,9 @@ thread_tid_propery(DECL_LD PL_thread_info_t *info, term_t prop)
 
 #define thread_size_propery(info, prop) LDFUNC(thread_size_propery, info, prop)
 static int
-thread_size_propery(DECL_LD PL_thread_info_t *info, term_t prop)
+thread_size_propery(DECL_LD void *ctx, term_t prop)
 { size_t size;
+  PL_thread_info_t *info = ctx;
 
   PL_LOCK(L_THREAD);
   size = sizeof_thread(info);
@@ -5223,8 +5234,10 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 
 #define message_queue_alias_property(q, prop) LDFUNC(message_queue_alias_property, q, prop)
 static int		/* message_queue_property(Queue, alias(Name)) */
-message_queue_alias_property(DECL_LD message_queue *q, term_t prop)
-{ if ( !q->anonymous )
+message_queue_alias_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+
+  if ( !q->anonymous )
     return PL_unify_atom(prop, q->id);
 
   fail;
@@ -5233,15 +5246,18 @@ message_queue_alias_property(DECL_LD message_queue *q, term_t prop)
 
 #define message_queue_size_property(q, prop) LDFUNC(message_queue_size_property, q, prop)
 static int		/* message_queue_property(Queue, size(Size)) */
-message_queue_size_property(DECL_LD message_queue *q, term_t prop)
-{ return PL_unify_integer(prop, q->size);
+message_queue_size_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+
+  return PL_unify_integer(prop, q->size);
 }
 
 
 #define message_queue_max_size_property(q, prop) LDFUNC(message_queue_max_size_property, q, prop)
 static int		/* message_queue_property(Queue, max_size(Size)) */
-message_queue_max_size_property(DECL_LD message_queue *q, term_t prop)
-{ size_t ms;
+message_queue_max_size_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+  size_t ms;
 
   if ( (ms=q->max_size) > 0 )
     return PL_unify_integer(prop, ms);
@@ -5251,8 +5267,9 @@ message_queue_max_size_property(DECL_LD message_queue *q, term_t prop)
 
 #define message_queue_waiting_property(q, prop) LDFUNC(message_queue_waiting_property, q, prop)
 static int		/* message_queue_property(Queue, waiting(Count)) */
-message_queue_waiting_property(DECL_LD message_queue *q, term_t prop)
-{ int waiting;
+message_queue_waiting_property(DECL_LD void *ctx, term_t prop)
+{ message_queue *q = ctx;
+  int waiting;
 
   if ( (waiting=q->waiting) > 0 )
     return PL_unify_integer(prop, waiting);
