@@ -48,7 +48,8 @@ Prolog.prototype._bind = function() {
 
 // See http://www.swi-prolog.org/pldoc/doc_for?object=c(%27PL_initialise%27)
 Prolog.prototype._initialise = function() {
-    var argv = this.args.map(function(arg) {
+    let argv0 = this.args || [];
+    let argv = argv0.map(function(arg) {
         return this.module.allocate(
             this.module.intArrayFromString(arg),
             'i8', this.module.ALLOC_NORMAL);
@@ -57,10 +58,10 @@ Prolog.prototype._initialise = function() {
     argv.forEach(function(arg, i) {
         this.module.setValue(ptr + i * 4, arg, '*');
     }, this);
-    if (!this.bindings.PL_initialise(4, ptr)) {
+    if (!this.bindings.PL_initialise(argv.length, ptr)) {
         throw new Error('SWI-Prolog initialisation failed.');
     }
-    this.call_string("assert(user:file_search_path(library, 'wasm-preload/library')).");
+    this.call_string("set_prolog_flag(color_term, false).");
 };
 
 // Helper function to parse a JavaScript
