@@ -34,7 +34,7 @@ set(WASM_WEB_LINK_FLAGS
     -s NO_EXIT_RUNTIME=0
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
-    --preload-file ${CMAKE_CURRENT_BINARY_DIR}/${WASM_PRELOAD_DIR}
+    --preload-file ${CMAKE_CURRENT_BINARY_DIR}/${WASM_PRELOAD_DIR}@${WASM_PRELOAD_DIR}
     --post-js ${CMAKE_SOURCE_DIR}/src/wasm/prolog.js)
 join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS})
 
