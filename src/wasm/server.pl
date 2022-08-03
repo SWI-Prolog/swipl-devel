@@ -5,11 +5,14 @@
 %     swipl ../src/wasm/server.pl
 %
 :- use_module(library(http/http_server)).
+:- use_module(library(main)).
+:- use_module(library(option)).
 
 user:file_search_path(source, '../src/wasm').
 user:file_search_path(wasm,   'src').
 
 :- http_handler('/', http_redirect(see_other, '/wasm/shell'), []).
+:- http_handler('/wasm/', http_redirect(see_other, '/wasm/shell'), []).
 :- http_handler('/wasm/shell',
                 http_reply_file(source('shell.html'), []), []).
 :- http_handler('/wasm/swipl-web.js',
@@ -21,8 +24,14 @@ user:file_search_path(wasm,   'src').
 
 :- initialization(server_loop, main).
 
+opt_type(port, port, nonneg).
+opt_help(port, "Port to listen to (default 8080)").
+
 server :-
-    http_server([port(8080)]).
+    current_prolog_flag(argv, Argv),
+    argv_options(Argv, _Positonal, Options),
+    merge_options(Options, [port(8080)], Options1),
+    http_server(Options1).
 
 server_loop :-
     server,
