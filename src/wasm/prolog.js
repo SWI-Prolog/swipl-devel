@@ -44,6 +44,8 @@ Prolog.prototype._bind = function() {
         'PL_call', 'number', ['number', 'number']);
     this.bindings.PL_unify_arg = this.module.cwrap(
         'PL_unify_arg', 'number', ['number', 'number', 'number']);
+    this.bindings.WASM_ttymode = this.module.cwrap(
+        'WASM_ttymode', 'number', []);
 };
 
 // See http://www.swi-prolog.org/pldoc/doc_for?object=c(%27PL_initialise%27)
@@ -135,14 +137,20 @@ Prolog.prototype.is_string = function(term) {
 };
 
 // Return a C-string for the text represented by the given atom.
+// FIXME: Return from atom is ISO Latin 1.
 Prolog.prototype.atom_chars = function(atom) {
     var ptr = this.bindings.PL_atom_chars(atom);
     if (ptr === 0) {
         return null;
     } else {
-        return this.module.Pointer_stringify(ptr);
+        return this.module.UTF8ToString(ptr);
     }
 };
+
+// Get the TTY mode as one of "notty", "raw" or "cooked"
+Prolog.prototype.ttymode = function() {
+    return this.module.UTF8ToString(this.bindings.WASM_ttymode());
+}
 
 // Call term t just like the Prolog predicate once/1.
 Prolog.prototype.call = function(term, module) {
