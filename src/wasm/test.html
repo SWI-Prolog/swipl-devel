@@ -10,86 +10,171 @@ Run http-server command in the swipl-devel
 directory and browse to <http://localhost:8080/src/wasm/test.html>
 -->
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>SWI-Prolog WebAssembly build test</title>
-    </head>
-    <body>
-        <style>
-	   span.stderr { color: red; }
-	   span.query  { font-weight: bold; }
-           #query { width: 90%; }
-	</style>
-	<pre id="output"></pre>
-	<form class="input" id="input">
-	  <span>?- </span><input type="text" name="query" id="query">
-	</form>
-        <script src="/build.wasm/src/swipl-web.js"></script>
-        <script>
-	    let output = document.getElementById('output');
-	    let input  = document.getElementById('input');
-            let stdin = '';
-            let stdinPosition = 0;
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WebAssembly build test</title>
+</head>
+<body>
+<style>
+:root {
+  --margin: 10px;
+}
 
-            // We use this to provide data into
-            // the SWI stdin.
-            const setStdin = (string) => {
-                stdin = string;
-                stdinPosition = 0;
-            };
-            const readStdin = () => {
-                if (stdinPosition >= stdin.length) {
-                    return null;
-                } else {
-                    const code = stdin.charCodeAt(stdinPosition);
-                    stdinPosition++;
-                    return code;
-                }
-            };
+body {
+  width: 100%; height: 100%; margin: var(--margin);
+}
+.scroll-wrapper {
+  box-sizing: border-box;
+  position: absolute;
+  height: calc(100% - 2*var(--margin)); width: calc(50% - 2*var(--margin)); border: 1px solid black;
+  overflow: auto; display: flex; flex-direction: column-reverse;
+  padding: 5px;
+}
+.scroll-start-at-top { flex: 1 1 0%; }
 
-	    function print_line(line, cls) {
-                const node = document.createElement('span');
-                node.className = cls;
-                node.textContent = line + '\n';
-                output.appendChild(node);
-            };
+.editor-container {
+  position: absolute;
+  left: 50%;
+  height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
+}
 
-	    function pl(s) {
-	       Module.prolog.call_string(s);
-	    }
+#editor {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
 
-	    function query(query) {
-		if ( ! /\.\s*/.test(query) )
-		    query += ".\n";
-	        print_line(`?- ${query}`, 'query');
-	        setStdin(query);
-		pl('break');
-	    }
+.editor-wrapper {
+  border: 1px solid black;
+  padding: 1px;
+  position: relative;
+  flex-grow: 1;
+}
 
-            input.addEventListener('submit', (e) => {
-                e.preventDefault();
-                query(e.target.elements.query.value);
-                e.target.elements.query.value = '';
-            }, false);
+#file {
+   box-sizing: border-box;
+   border: 0px;
+   resize: none;
+   width: 100%; height: 100%;
+}
 
-	    function bindStdin(module) {
-		module.FS.init(readStdin);
-	    }
+.editor-buttons {
+  margin-top: var(--margin);
+}
 
-	    var Module = {
-                noInitialRun: true,
-                arguments: [],
-                locateFile: function(file) {
-                    return '/build.wasm/src/' + file;
-                },
-		print:    (line) => print_line(line, 'stdout'),
-		printErr: (line) => print_line(line, 'stderr'),
-		preRun:   [() => bindStdin(Module)]
-            };
+#input {
+  margin-top: var(--margin);
+  box-sizing: border-box;
+  display: flex;
+  width: 100%;
+}
 
-            SWIPL(Module).then((module) => {
-                pl("format('SWI-Prolog WebAssembly ready!~n')");
-            });
-        </script>
-    </body>
+#query { flex-grow: 1; margin: 0px 10px;}
+
+.stderr { color: red; }
+.stderr, .stdout, .query { white-space: pre; font-family: monospace;}
+.query, .prompt { font-weight: bold; }
+.query { margin-top: 5px; }
+
+</style>
+
+<div class="scroll-wrapper">
+  <span class="scroll-start-at-top"></span>
+  <div class="console">
+    <div id="output"></div>
+    <form class="input" id="input">
+      <span class="prompt">?- </span><input type="text" name="query" id="query">
+    </form>
+  </div>
+</div>
+
+<div class="editor-container">
+  <form id="editor">
+    <div class="editor-wrapper">
+      <textarea id="file" placeholder="Program"></textarea>
+    </div>
+    <div class="editor-buttons">
+      <button>(Re)consult</button>
+    </div>
+  </form>
+</div>
+
+<script src="/build.wasm/src/swipl-web.js"></script>
+
+<script>
+let output  = document.getElementById('output');
+let input   = document.getElementById('input');
+let edigtor = document.getElementById('editor');
+let stdin = '';
+let stdinPosition = 0;
+
+// We use this to provide data into
+// the SWI stdin.
+const setStdin = (string) => {
+    stdin = string;
+    stdinPosition = 0;
+};
+const readStdin = () => {
+    if (stdinPosition >= stdin.length) {
+	return null;
+    } else {
+	const code = stdin.charCodeAt(stdinPosition);
+	stdinPosition++;
+	return code;
+    }
+};
+
+function print_line(line, cls) {
+    const node = document.createElement('div');
+    node.className = cls;
+    node.textContent = line;
+    output.appendChild(node);
+};
+
+function pl(s) {
+   Module.prolog.call_string(s);
+}
+
+function query(query) {
+    if ( ! /\.\s*/.test(query) )
+	query += ".\n";
+    print_line(`?- ${query}`, 'query');
+    setStdin(query);
+    pl('break');
+}
+
+input.addEventListener('submit', (e) => {
+    e.preventDefault();
+    query(e.target.elements.query.value);
+    e.target.elements.query.value = '';
+}, false);
+
+editor.addEventListener('submit', (e) => {
+  e.preventDefault();
+  console.log("writing");
+  Module.FS.writeFile('/file.pl', e.target.elements.file.value);
+  query("consult('/file.pl').");
+}, false);
+
+function bindStdin(module) {
+    module.FS.init(readStdin);
+}
+
+var Module = {
+    noInitialRun: true,
+    arguments: [],
+    locateFile: function(file) {
+	return '/build.wasm/src/' + file;
+    },
+    print:    (line) => print_line(line, 'stdout'),
+    printErr: (line) => print_line(line, 'stderr'),
+    preRun:   [() => bindStdin(Module)]
+};
+
+SWIPL(Module).then((module) => {
+    pl("format('SWI-Prolog WebAssembly ready!~n')");
+});
+</script>
+</body>
 </html>
