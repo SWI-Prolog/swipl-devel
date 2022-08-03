@@ -179,28 +179,24 @@ perform the process on your host Linux system.
 
 ### WASM (Emscripten)
 
-__Note__: due to a  bug  in   the  current  Emscripten  directory access
-functions we need the _native friend_   mechanism  to create the library
-index. The flags below   include `-DSWIPL_NATIVE_FRIEND=build`, assuming
-you built a  native  executable  in   the  directory  `build`  below the
-sources. Adjust as necessary.
-
-    [Assumes native Prolog in `build`.  See note above]
+Install  [Emscripten](https://emscripten.org/),  download    and   build
+[zlib](https://zlib.net/) using Emscripten. Now you   can build the core
+system using the commands  below  (assume   initial  working  dir is the
+root of the source tree).
 
     mkdir build.wasm
     cd build.wasm
     source ~/emsdk/emsdk_env.sh
     cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
           -DCMAKE_BUILD_TYPE=Release \
-          -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
-          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
+          -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
+          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
           -DMULTI_THREADED=OFF \
           -DUSE_SIGNALS=OFF \
           -DUSE_GMP=OFF \
           -DBUILD_SWIPL_LD=OFF \
           -DSWIPL_PACKAGES=OFF \
           -DINSTALL_DOCUMENTATION=OFF \
-          -DSWIPL_NATIVE_FRIEND=build \
           -G Ninja ..
 
 ### Building a 32-bit version on 64-bit Debian based Linux
