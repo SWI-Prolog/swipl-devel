@@ -46,9 +46,9 @@ set(WASM_WEB_LINK_FLAGS
     --post-js ${CMAKE_CURRENT_BINARY_DIR}/wasm/prolog.js)
 if(MULTI_THREADED)
   list(APPEND WASM_WEB_LINK_FLAGS
+       -pthread
        -s PTHREAD_POOL_SIZE=4)
 endif()
-
 join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS})
 
 add_executable(swipl-web ${SWIPL_SRC})

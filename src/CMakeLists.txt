@@ -373,6 +373,9 @@ target_c_stack(swipl${PGO_SUFFIX} 4000000)
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
+if(EMSCRIPTEN AND MULTI_THREADED)
+  target_link_options(swipl${PGO_SUFFIX} PRIVATE -pthread -s PTHREAD_POOL_SIZE=4)
+endif()
 
 # build the library
 if(SWIPL_SHARED_LIB)

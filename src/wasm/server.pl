@@ -14,9 +14,16 @@ user:file_search_path(wasm,   'src').
 :- http_handler('/', http_redirect(see_other, '/wasm/shell'), []).
 :- http_handler('/wasm/', http_redirect(see_other, '/wasm/shell'), []).
 :- http_handler('/wasm/shell',
-                http_reply_file(source('shell.html'), []), []).
+                http_reply_file(
+                    source('shell.html'),
+                    [ headers([ 'Cross-Origin-Opener-Policy'('same-origin'),
+                                'Cross-Origin-Embedder-Policy'('require-corp')
+                              ])]),
+                []).
 :- http_handler('/wasm/swipl-web.js',
                 http_reply_file(wasm('swipl-web.js'), []), []).
+:- http_handler('/wasm/swipl-web.worker.js',
+                http_reply_file(wasm('swipl-web.worker.js'), []), []).
 :- http_handler('/wasm/swipl-web.data',
                 http_reply_file(wasm('swipl-web.data'), []), []).
 :- http_handler('/wasm/swipl-web.wasm',

@@ -8,3 +8,6 @@ set(SWIPL_ARCH "wasm-emscripten")
 
 set(SRC_OS_SPECIFIC wasm/pl-wasm.c)
 
+if(MULTI_THREADED)
+  add_compile_options(-pthread)
+endif()
