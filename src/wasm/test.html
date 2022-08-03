@@ -20,9 +20,26 @@ directory and browse to <http://localhost:8080/src/wasm/test.html>
   --margin: 10px;
 }
 
-body {
-  width: 100%; height: 100%; margin: var(--margin);
+html {
+  height: 100%;
 }
+
+body {
+  display: flex;
+  flex-direction: column;
+  width: 100%; height: 100%; margin: var(--margin);
+  overflow: hidden;
+}
+
+.header {
+  padding-bottom: 5px;
+}
+
+.content {
+  position: relative;
+  flex-grow: 1;
+}
+
 .scroll-wrapper {
   box-sizing: border-box;
   position: absolute;
@@ -34,7 +51,7 @@ body {
 
 .editor-container {
   position: absolute;
-  left: 50%;
+  left: calc(50% - var(--margin));
   height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
 }
 
@@ -79,25 +96,30 @@ body {
 
 </style>
 
-<div class="scroll-wrapper">
-  <span class="scroll-start-at-top"></span>
-  <div class="console">
-    <div id="output"></div>
-    <form class="input" id="input">
-      <span class="prompt">?- </span><input type="text" name="query" id="query">
+<div class="header">
+  SWI-Prolog!
+</div>
+<div class="content">
+  <div class="scroll-wrapper">
+    <span class="scroll-start-at-top"></span>
+    <div class="console">
+      <div id="output"></div>
+      <form class="input" id="input">
+	<span class="prompt">?- </span><input type="text" name="query" id="query">
+      </form>
+    </div>
+  </div>
+
+  <div class="editor-container">
+    <form id="editor">
+      <div class="editor-wrapper">
+	<textarea id="file" placeholder="Program"></textarea>
+      </div>
+      <div class="editor-buttons">
+	<button>(Re)consult</button>
+      </div>
     </form>
   </div>
-</div>
-
-<div class="editor-container">
-  <form id="editor">
-    <div class="editor-wrapper">
-      <textarea id="file" placeholder="Program"></textarea>
-    </div>
-    <div class="editor-buttons">
-      <button>(Re)consult</button>
-    </div>
-  </form>
 </div>
 
 <script src="/build.wasm/src/swipl-web.js"></script>
@@ -105,7 +127,7 @@ body {
 <script>
 let output  = document.getElementById('output');
 let input   = document.getElementById('input');
-let edigtor = document.getElementById('editor');
+let editor  = document.getElementById('editor');
 let stdin = '';
 let stdinPosition = 0;
 
