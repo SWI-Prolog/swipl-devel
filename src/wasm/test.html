@@ -15,32 +15,80 @@ directory and browse to <http://localhost:8080/src/wasm/test.html>
         <title>SWI-Prolog WebAssembly build test</title>
     </head>
     <body>
+        <style>
+	   span.stderr { color: red; }
+	   span.query  { font-weight: bold; }
+           #query { width: 90%; }
+	</style>
 	<pre id="output"></pre>
+	<form class="input" id="input">
+	  <span>?- </span><input type="text" name="query" id="query">
+	</form>
         <script src="/build.wasm/src/swipl-web.js"></script>
         <script>
-	    output = document.getElementById('output');
+	    let output = document.getElementById('output');
+	    let input  = document.getElementById('input');
+            let stdin = '';
+            let stdinPosition = 0;
 
-	    function printErr(line) {
+            // We use this to provide data into
+            // the SWI stdin.
+            const setStdin = (string) => {
+                stdin = string;
+                stdinPosition = 0;
+            };
+            const readStdin = () => {
+                if (stdinPosition >= stdin.length) {
+                    return null;
+                } else {
+                    const code = stdin.charCodeAt(stdinPosition);
+                    stdinPosition++;
+                    return code;
+                }
+            };
+
+	    function print_line(line, cls) {
                 const node = document.createElement('span');
-                node.className = 'output-error';
+                node.className = cls;
                 node.textContent = line + '\n';
                 output.appendChild(node);
             };
 
-            SWIPL({
+	    function pl(s) {
+	       Module.prolog.call_string(s);
+	    }
+
+	    function query(query) {
+		if ( ! /\.\s*/.test(query) )
+		    query += ".\n";
+	        print_line(`?- ${query}`, 'query');
+	        setStdin(query);
+		pl('break');
+	    }
+
+            input.addEventListener('submit', (e) => {
+                e.preventDefault();
+                query(e.target.elements.query.value);
+                e.target.elements.query.value = '';
+            }, false);
+
+	    function bindStdin(module) {
+		module.FS.init(readStdin);
+	    }
+
+	    var Module = {
                 noInitialRun: true,
                 arguments: [],
                 locateFile: function(file) {
                     return '/build.wasm/src/' + file;
                 },
-		print:    (line) => { output.appendChild(document.createTextNode(line + '\n')); },
-		printErr: printErr
-            }).then(async (module) => {
-                module.prolog.call_string("format('Hello world!~n')");
-//              module.prolog.call_string("forall(current_prolog_flag(K,V), format('~q ~`.t ~40|~q~n', [K,V]))");
-//              module.prolog.call_string("use_module(library(shell))");
-                module.prolog.call_string("ls");
-                console.log('SWI-Prolog WebAssembly ready');
+		print:    (line) => print_line(line, 'stdout'),
+		printErr: (line) => print_line(line, 'stderr'),
+		preRun:   [() => bindStdin(Module)]
+            };
+
+            SWIPL(Module).then((module) => {
+                pl("format('SWI-Prolog WebAssembly ready!~n')");
             });
         </script>
     </body>
