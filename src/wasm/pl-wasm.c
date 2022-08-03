@@ -35,6 +35,7 @@
 */
 
 #include "../pl-incl.h"
+#include <emscripten.h>
 
 PL_EXPORT(const char *)		WASM_ttymode(void);
 
@@ -50,3 +51,26 @@ WASM_ttymode(void)
       return "notty";
   }
 }
+
+
+static
+PRED_IMPL("js_call", 1, js_call, 0)
+{ char *s;
+
+  PL_STRINGS_MARK();
+  if ( PL_get_chars(A1, &s, REP_UTF8|BUF_STACK|CVT_EXCEPTION|
+		            CVT_ATOM|CVT_STRING|CVT_LIST) )
+  { emscripten_run_script(s);
+  }
+  PL_STRINGS_RELEASE();
+
+  return TRUE;
+}
+
+		 /*******************************
+		 *      PUBLISH PREDICATES	*
+		 *******************************/
+
+BeginPredDefs(wasm)
+  PRED_DEF("js_call", 1, js_call, 0)
+EndPredDefs

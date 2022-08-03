@@ -425,6 +425,9 @@ DECL_PLIST(transaction);
 DECL_PLIST(undo);
 DECL_PLIST(error);
 DECL_PLIST(coverage);
+#ifdef __EMSCRIPTEN__
+DECL_PLIST(wasm);
+#endif
 
 void
 initBuildIns(void)
@@ -503,6 +506,9 @@ initBuildIns(void)
   REG_PLIST(error);
 #ifdef O_COVERAGE
   REG_PLIST(coverage);
+#endif
+#ifdef __EMSCRIPTEN__
+  REG_PLIST(wasm);
 #endif
 
 #define LOOKUPPROC(name) \
