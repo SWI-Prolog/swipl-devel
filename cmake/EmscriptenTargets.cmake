@@ -44,6 +44,11 @@ set(WASM_WEB_LINK_FLAGS
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
     --preload-file ${CMAKE_CURRENT_BINARY_DIR}/${WASM_PRELOAD_DIR}@swipl
     --post-js ${CMAKE_CURRENT_BINARY_DIR}/wasm/prolog.js)
+if(MULTI_THREADED)
+  list(APPEND WASM_WEB_LINK_FLAGS
+       -s PTHREAD_POOL_SIZE=4)
+endif()
+
 join_list(WASM_WEB_LINK_FLAGS_STRING " " ${WASM_WEB_LINK_FLAGS})
 
 add_executable(swipl-web ${SWIPL_SRC})

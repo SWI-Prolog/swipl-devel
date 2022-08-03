@@ -1639,7 +1639,7 @@ alertThread(PL_thread_info_t *info)
     return TRUE;			/* NOTE: PostThreadMessage() can */
 					/* fail if thread is being created */
   }
-#elif defined(SIG_ALERT)
+#elif defined(SIG_ALERT) && defined(HAVE_PTHREAD_KILL)
   WITH_LD(ld)
   { if ( info->has_tid && truePrologFlag(PLFLAG_SIGNALS) && GD->signals.sig_alert )
     { DEBUG(MSG_THREAD_SIGNAL, Sdprintf("Sending signal %d to %d\n",
@@ -7098,8 +7098,7 @@ SyncSystemCPU(int sig)
 
 double
 ThreadCPUTime(DECL_LD int which)
-{ GET_LD
-  PL_thread_info_t *info = LD->thread.info;
+{ PL_thread_info_t *info = LD->thread.info;
 
 #ifdef NO_THREAD_SYSTEM_TIME
   if ( which == CPU_SYSTEM )
@@ -7112,7 +7111,9 @@ ThreadCPUTime(DECL_LD int which)
     else
       SyncSystemCPU(0);
   } else
-  { struct sigaction old;
+  {
+#ifdef HAVE_PTHREAD_KILL
+    struct sigaction old;
     struct sigaction new;
     sigset_t sigmask;
     sigset_t set;
@@ -7141,6 +7142,9 @@ ThreadCPUTime(DECL_LD int which)
     unblockSignals(&set);
     if ( !ok )
       return 0.0;
+#else
+    return 0.0;
+#endif
   }
 
   if ( which == CPU_USER )
