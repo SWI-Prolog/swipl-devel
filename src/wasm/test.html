@@ -134,17 +134,20 @@ let stdinPosition = 0;
 // We use this to provide data into
 // the SWI stdin.
 const setStdin = (string) => {
-    stdin = string;
-    stdinPosition = 0;
+  stdin = string;
+  stdinPosition = 0;
 };
 const readStdin = () => {
-    if (stdinPosition >= stdin.length) {
-	return null;
-    } else {
-	const code = stdin.charCodeAt(stdinPosition);
-	stdinPosition++;
-	return code;
-    }
+  if (stdinPosition >= stdin.length) {
+    console.log(Module.prolog.ttymode());
+    if ( Module.prolog.ttymode() == "raw" )
+      console.log("It raw mode");
+    return null;
+  } else {
+    const code = stdin.charCodeAt(stdinPosition);
+    stdinPosition++;
+    return code;
+  }
 };
 
 function print_line(line, cls) {
@@ -196,6 +199,7 @@ var Module = {
 
 SWIPL(Module).then((module) => {
     pl("format('SWI-Prolog WebAssembly ready!~n')");
+    pl("set_prolog_flag(tty_control, true)");
 });
 </script>
 </body>
