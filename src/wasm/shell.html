@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <!--
-This is the test file for SWI-Prolog WebAssembly build.
-It must be served through a web server. The web server
-must use correct MIME type for wasm files.
-Such simple-to-use web server is http-server:
-<https://www.npmjs.com/package/http-server>
-Install using npm i -g http-server
-Run http-server command in the swipl-devel
-directory and browse to <http://localhost:8080/src/wasm/test.html>
+
+This is the test file  for  SWI-Prolog   WebAssembly  build.  It must be
+served through a web server. An example server is provided by server.pl.
+To use it, build the wasm version   in  e.g., `build.wasm` and from this
+directory, run
+
+    swipl ../src/wasm/server.pl
+
+and browse to http://localhost:8080/
 -->
+
 <html>
 <head>
   <meta charset="UTF-8">
@@ -124,7 +126,7 @@ body {
   </div>
 </div>
 
-<script src="/build.wasm/src/swipl-web.js"></script>
+<script src="/wasm/swipl-web.js"></script>
 
 <script>
 let output  = document.getElementById('output');
@@ -192,7 +194,7 @@ var Module = {
     noInitialRun: true,
     arguments: [],
     locateFile: function(file) {
-	return '/build.wasm/src/' + file;
+	return '/wasm/' + file;
     },
     print:    (line) => print_line(line, 'stdout'),
     printErr: (line) => print_line(line, 'stderr'),
