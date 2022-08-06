@@ -4278,6 +4278,13 @@ at_halt(Goal) :-
 cancel_halt(Reason) :-
     throw(cancel_halt(Reason)).
 
+%!  prolog:heartbeat
+%
+%   Called every _N_ inferences  of  the   Prolog  flag  `heartbeat`  is
+%   non-zero.
+
+:- multifile prolog:heartbeat/0.
+
 
                 /********************************
                 *      LOAD OTHER MODULES       *

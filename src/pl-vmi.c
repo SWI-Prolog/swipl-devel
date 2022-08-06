@@ -2380,8 +2380,27 @@ VMH(exit_checking_wakeup, 0, (), ())
     { PC = SUPERVISOR(exit);
       ATTVAR_WAKEUP;
     }
-  }
+  } else
 #endif
+  if ( LD->yield.frequency )
+  { uint64_t itrunc = LD->statistics.inferences&(~(uint64_t)0xf);
+
+    if ( itrunc % LD->yield.frequency == 0 &&
+	 LD->yield.fired != itrunc &&
+	 GD->procedures.heartbeat0->definition->impl.clauses.first_clause &&
+	 !exception_term )
+    { LD->yield.fired = itrunc;
+      PC = SUPERVISOR(exit);		/* See VMH(wakeup) */
+      NFR = lTop;
+      setNextFrameFlags(NFR, FR);
+      SAVE_REGISTERS(QID);
+      DEF = GD->procedures.heartbeat0->definition;
+      LOAD_REGISTERS(QID);
+      ARGP = argFrameP(NFR, 0);
+
+      VMH_GOTO(normal_call);
+    }
+  }
 
   VMI_GOTO(I_EXIT);
 }

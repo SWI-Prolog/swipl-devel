@@ -929,6 +929,8 @@ set_prolog_flag_unlocked(DECL_LD Module m, atom_t k, term_t value, int flags)
 	  return FALSE;
       } else if ( k == ATOM_string_stack_tripwire )
       { LD->fli.string_buffers.tripwire = (unsigned int)i;
+      } else if ( k == ATOM_heartbeat )
+      { LD->yield.frequency = i/16;
       }
       break;
     }
@@ -1644,6 +1646,7 @@ initPrologFlags(void)
   setPrologFlag("signals", FT_BOOL|FF_READONLY,
 		truePrologFlag(PLFLAG_SIGNALS), PLFLAG_SIGNALS);
   setPrologFlag("packs", FT_BOOL, GD->cmdline.packs, 0);
+  setPrologFlag("heartbeat", FT_INTEGER, 0);
 
 #if defined(__WINDOWS__) && defined(_DEBUG)
   setPrologFlag("kernel_compile_mode", FT_ATOM|FF_READONLY, "debug");

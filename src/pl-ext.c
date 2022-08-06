@@ -536,6 +536,8 @@ initBuildIns(void)
 #ifdef O_ATTVAR
   LOOKUPPROC(dwakeup1);
 #endif
+  GD->procedures.heartbeat0 = lookupProcedure(FUNCTOR_heartbeat0,
+					      PL_new_module(PL_new_atom("prolog")));
   PROCEDURE_exception_hook4  =
 	PL_predicate("prolog_exception_hook", 4, "user");
   PROCEDURE_tune_gc3 =

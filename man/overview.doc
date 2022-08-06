@@ -1561,6 +1561,10 @@ GMP library used.  See also \secref{gmpforeign}.
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.
 
+    \prologflagitem{heartbeat}{integer}{rw}
+If not zero, call prolog:heartbeat/0 every $N$ inferences.  $N$ is
+rounded to a multiple of 16.
+
     \prologflagitem{history}{integer}{rw}
 If $\arg{integer}> 0$, support Unix \program{csh(1)}-like history as
 described in \secref{history}. Otherwise, only support reusing commands

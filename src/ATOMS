@@ -396,6 +396,7 @@ A hashed		"hashed"
 A hat			"^"
 A heap_gc		"heap_gc"
 A heapused		"heapused"
+A heartbeat		"heartbeat"
 A help			"help"
 A hidden		"hidden"
 A hide_childs		"hide_childs"
@@ -1033,6 +1034,7 @@ F cut_exit		1
 F dand			2
 F date			3
 F date			9
+F heartbeat		0
 F dc_call_prolog	0
 F dcall			1
 F dcall_continuation	1

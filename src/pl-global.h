@@ -358,6 +358,7 @@ struct PL_global_data
     Procedure	drun_initialization2;	/* system:$run_initialization/2 */
     Procedure	dtranslated_source2;	/* system:$translated_source/2 */
     Procedure	findall_loop4;		/* $bags:findall_loop/4 */
+    Procedure	heartbeat0;		/* prolog:heartbeat/0 */
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
@@ -562,7 +563,12 @@ struct PL_local_data
 #endif
 
   struct
-  { int64_t	inferences;		/* inferences in this thread */
+  { uint64_t	fired;			/* autoyielding check */
+    uint64_t	frequency;		/* How often do we fire */
+  } yield;
+
+  struct
+  { uint64_t	inferences;		/* inferences in this thread */
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
     uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
