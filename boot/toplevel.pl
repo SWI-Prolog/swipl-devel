@@ -898,6 +898,13 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
 %   !-based history is enabled. The second is   used  if we have command
 %   line editing.
 
+:- if(current_prolog_flag(emscripten, true)).
+read_query(_Prompt, Goal, Bindings) :-
+    '$can_yield',
+    !,
+    js_yield(goal, GoalString),
+    term_string(Goal, GoalString, [variable_names(Bindings)]).
+:- endif.
 read_query(Prompt, Goal, Bindings) :-
     current_prolog_flag(history, N),
     integer(N), N > 0,
@@ -1625,6 +1632,13 @@ self_bounded(binding([Name], Value, [])) :-
 %
 %   Read the continuation entered by the user.
 
+:- if(current_prolog_flag(emscripten, true)).
+get_respons(Action, _Chp) :-
+    '$can_yield',
+    !,
+    js_yield(more, ActionS),
+    atom_string(Action, ActionS).
+:- endif.
 get_respons(Action, Chp) :-
     repeat,
         flush_output(user_output),
