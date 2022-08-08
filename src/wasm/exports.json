@@ -1,4 +1,5 @@
 [
+    "__PL_streams",
     "_PL_foreign_control",
     "_PL_foreign_context",
     "_PL_foreign_context_address",
@@ -81,6 +82,7 @@
     "_PL_put_list",
     "_PL_put_nil",
     "_PL_put_term",
+    "_PL_put_term_from_chars",
     "_PL_cons_functor",
     "_PL_cons_functor_v",
     "_PL_cons_list",
@@ -104,6 +106,7 @@
     "_PL_unify_term",
     "_PL_chars_to_term",
     "_PL_wchars_to_term",
+    "_PL_write_term",
     "_PL_quote",
     "_PL_get_atom_ex",
     "_PL_get_integer_ex",
@@ -199,5 +202,7 @@
     "_PL_copy_term_ref",
     "_PL_reset_term_refs",
 
-    "_WASM_ttymode"
+    "_WASM_ttymode",
+    "_WASM_yield_request",
+    "_WASM_set_yield_result"
 ]

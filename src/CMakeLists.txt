@@ -153,6 +153,9 @@ else()
     set(SWIPL_DATA_library ${SWIPL_DATA_library} win_menu.pl)
   endif()
 endif()
+if(EMSCRIPTEN)
+  set(SWIPL_DATA_library ${SWIPL_DATA_library} wasm.pl)
+endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
     pldoc_style.pl)
