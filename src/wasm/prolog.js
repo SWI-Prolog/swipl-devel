@@ -424,6 +424,8 @@ Prolog.prototype.set_yield_result = function(string)
  * predicated yielded control back.
  */
 
+let lastyieldat = 0;
+
 Prolog.prototype.call_yieldable = function(term, module) {
   var pred_call1;
 
@@ -434,22 +436,36 @@ Prolog.prototype.call_yieldable = function(term, module) {
 			    pred_call1, term);
 
   function next(prolog)
-  { const rc = prolog.next_solution(q);
+  { while(true)
+    { let rc = prolog.next_solution(q);
 
-    if ( rc == PL_S_YIELD )
-    { return { yield: prolog.yield_request(),
-	       query: q,
-	       resume: (value) =>
-	       { prolog.set_yield_result(value);
-		 return next(prolog);
-	       }
-	     };
-    } else
-    { prolog.close_query(q);
-      return ( rc == PL_S_FALSE     ? false :
-	       rc == PL_S_EXCEPTION ? undefined :
-				      true
-	     );
+      if ( rc == PL_S_YIELD )
+      { let request = prolog.yield_request();
+
+	if ( request == "beat" )
+	{ const now = Date.now();
+
+	  if ( now-lastyieldat < 20 )
+	  { prolog.set_yield_result("true");
+	    continue;
+	  }
+	  lastyieldat = now;
+	}
+
+	return { yield: request,
+		 query: q,
+		 resume: (value) =>
+		 { prolog.set_yield_result(value);
+		   return next(prolog);
+		 }
+	       };
+      } else
+      { prolog.close_query(q);
+	return ( rc == PL_S_FALSE     ? false :
+		 rc == PL_S_EXCEPTION ? undefined :
+					true
+	       );
+      }
     }
   }
 

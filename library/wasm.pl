@@ -45,7 +45,7 @@
 wasm_query_loop :-
     current_prolog_flag(heartbeat, Old),
     setup_call_cleanup(
-        set_prolog_flag(heartbeat, 1000),
+        set_prolog_flag(heartbeat, 10 000),
         '$toplevel':'$query_loop',
         set_prolog_flag(heartbeat, Old)).
 
