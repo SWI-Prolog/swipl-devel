@@ -4901,7 +4901,13 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
       CL = (ClauseRef)rc;
 
       if ( (rc&YIELD_PTR) )
-      { fid_t fid = PL_open_foreign_frame();
+      { fid_t fid;
+
+	ffr = (FliFrame) valTermRef(FFR_ID);
+	fli_context = ffr->parent;
+	lTop = (LocalFrame)(BFR+1);
+	BFR = BFR->parent;
+	fid = PL_open_foreign_frame();
 
 	if ( !fid )
 	  THROW_EXCEPTION;
@@ -4915,6 +4921,10 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	QF->foreign_frame = fid;
 	QF->solutions = -1;
 	QF->yield.term = -1;
+#if !O_VMI_FUNCTIONS
+	assert(LD->exception.throw_environment == &THROW_ENV);
+	LD->exception.throw_environment = THROW_ENV.parent;
+#endif
 	SOLUTION_RETURN(PL_S_YIELD);
       } else
       { ffr = (FliFrame) valTermRef(FFR_ID);
@@ -4953,9 +4963,6 @@ VMI(I_FREDO, 0, 0, ())
     case YIELD_PTR:
       FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       FNDET_CONTEXT.control = FRG_RESUME;
-      PC -= 4;
-      SAVE_REGISTERS(QID);
-      NEXT_INSTRUCTION;
       break;
     default:
       assert(0);
