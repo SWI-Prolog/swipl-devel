@@ -2364,9 +2364,8 @@ VMI(I_EXITFACT, 0, 0, ())
     }
 #endif /*O_DEBUGGER*/
     Coverage(FR, UNIFY_PORT);
-    VMH_GOTO(exit_checking_wakeup);
   }
-  VMI_GOTO(I_EXIT);
+  VMH_GOTO(exit_checking_wakeup);
 }
 END_VMI
 
