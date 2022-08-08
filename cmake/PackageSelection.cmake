@@ -25,11 +25,16 @@ set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
 set(SWIPL_PACKAGE_LIST_QT_title	     "Qt_console")
 set(SWIPL_PACKAGE_LIST_X_title	     "Graphics_subsystem")
+set(SWIPL_PACKAGE_LIST_WASM_title    "WASM libraries")
 
-set(SWIPL_PACKAGE_SETS
-    BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
-if(UNIX)
-  list(APPEND SWIPL_PACKAGE_SETS TERM)
+if(EMSCRIPTEN)
+  set(SWIPL_PACKAGE_SETS WASM)
+else()
+  set(SWIPL_PACKAGE_SETS
+      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
+  if(UNIX)
+    list(APPEND SWIPL_PACKAGE_SETS TERM)
+  endif()
 endif()
 
 foreach(pkgset ${SWIPL_PACKAGE_SETS})
@@ -104,6 +109,9 @@ set(SWIPL_PACKAGE_LIST_QT
 
 set(SWIPL_PACKAGE_LIST_X
     xpce)
+
+set(SWIPL_PACKAGE_LIST_WASM
+    clpqr plunit chr)
 
 # swipl_package_component(pkg var)
 #
