@@ -289,7 +289,7 @@ document.getElementById('create-button').onclick = e => {
   let input = document.getElementById("file-name");
   let name  = input.value.trim();
 
-  if ( /^[a-zA-Z 0-9.-]+$/.test(name) )
+  if ( /^[a-zA-Z 0-9.-_]+$/.test(name) )
   { if ( ! /\.pl$/.test(name) )
       name += ".pl";
 
