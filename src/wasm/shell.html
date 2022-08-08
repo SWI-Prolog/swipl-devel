@@ -186,9 +186,11 @@ function write(to, c)
 }
 
 function flush(to)
-{ const line = String.fromCharCode.apply(null, buffers[to]);
-  print_output(line, to);
-  buffers[to] = [];
+{ if ( buffers[to].length )
+  { const line = String.fromCharCode.apply(null, buffers[to]);
+    print_output(line, to);
+    buffers[to] = [];
+  }
 }
 
 function bindStdStreams(module)
