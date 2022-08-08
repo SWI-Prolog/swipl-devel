@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -334,6 +334,17 @@ PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 }
 
 
+/** '$can_yield' is semidet.
+ *
+ * True if the current query can use _foreign yielding_
+ */
+
+static
+PRED_IMPL("$can_yield", 0, can_yield, 0)
+{ PRED_LD
+
+  return !!true(LD->query, PL_Q_ALLOW_YIELD);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
@@ -876,4 +887,5 @@ BeginPredDefs(pro)
   PRED_DEF("sig_atomic",     1, sig_atomic,    PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
   PRED_DEF("$trap_gdb",      0, trap_gdb,      0)
   PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+  PRED_DEF("$can_yield",     0, can_yield,     0)
 EndPredDefs
