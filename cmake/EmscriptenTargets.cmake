@@ -20,6 +20,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_BOOT_FILE} ${WASM_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
 			     ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}/library
+    COMMAND ${CMAKE_COMMAND} -E copy
+			     ../packages/chr/chr.pl
+			     ../packages/chr/chr_translate.pl
+			     ${WASM_PRELOAD_DIR}/library
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home library_index
     VERBATIM)
 
