@@ -117,8 +117,8 @@ body {
     <div class="console" id="console">
       <div id="output">
 	<div id="more">
-	  <button onclick="reply_more('redo')">Next</button>
-	  <button onclick="reply_more('continue')">Stop</button>
+	  <button id="more.next" onclick="reply_more('redo')">Next</button>
+	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
 	</div>
       </div>
       <form class="input" id="input">
@@ -411,9 +411,11 @@ function next(rc)
       }
       case "goal":
         set_state("prompt goal");
+        input.elements.query.focus();
         break;
       case "more":
         set_state("more");
+        document.getElementById("more.next").focus();
         break;
     }
   } else if ( rc == undefined )
