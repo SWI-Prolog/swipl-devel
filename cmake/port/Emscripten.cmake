@@ -12,3 +12,20 @@ set(SRC_OS_SPECIFIC wasm/pl-wasm.c)
 if(MULTI_THREADED)
   add_compile_options(-pthread)
 endif()
+
+set(WASM_PRELOAD_DIR "${CMAKE_BINARY_DIR}/src/wasm-preload")
+add_custom_target(wasm_preload)
+
+# Install a file from the binary directory of a package in a specific
+# directory of the wasm-preload directory
+
+function(install_in_wasm_preload dir file)
+  string(REPLACE "/" "-" depname ${dir}${file})
+  add_custom_command(
+      OUTPUT ${WASM_PRELOAD_DIR}/${dir}/${file}
+      COMMAND ${CMAKE_COMMAND} -E copy ${file} ${WASM_PRELOAD_DIR}/${dir}
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/${file})
+  add_custom_target(wasm_preload${depname}
+		    DEPENDS ${WASM_PRELOAD_DIR}/${dir}/${file})
+  add_dependencies(wasm_preload wasm_preload${depname})
+endfunction()

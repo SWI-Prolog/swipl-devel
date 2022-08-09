@@ -12,22 +12,18 @@ set_target_properties(swipl PROPERTIES
 # alternatively we can put the library in the resource file and
 # link the resource file into the main executable.
 
-set(WASM_PRELOAD_DIR "wasm-preload")
-set(WASM_BOOT_FILE "wasm-preload/boot.prc")
+set(WASM_BOOT_FILE "${WASM_PRELOAD_DIR}/boot.prc")
 add_custom_command(
     OUTPUT ${WASM_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E make_directory ${WASM_PRELOAD_DIR}
     COMMAND ${CMAKE_COMMAND} -E copy ${SWIPL_BOOT_FILE} ${WASM_BOOT_FILE}
     COMMAND ${CMAKE_COMMAND} -E copy_directory
 			     ${SWIPL_BUILD_LIBRARY} ${WASM_PRELOAD_DIR}/library
-    COMMAND ${CMAKE_COMMAND} -E copy
-			     ../packages/chr/chr.pl
-			     ../packages/chr/chr_translate.pl
-			     ${WASM_PRELOAD_DIR}/library
     DEPENDS ${SWIPL_BOOT_FILE} prolog_home library_index
     VERBATIM)
 
-add_custom_target(wasm_preload DEPENDS ${WASM_BOOT_FILE})
+add_custom_target(wasm_preload_dir DEPENDS ${WASM_BOOT_FILE})
+add_dependencies(wasm_preload wasm_preload_dir)
 
 set(WASM_POST_JS ${CMAKE_CURRENT_SOURCE_DIR}/src/wasm/prolog.js)
 add_custom_command(
@@ -47,7 +43,7 @@ set(WASM_WEB_LINK_FLAGS
     -s ALLOW_MEMORY_GROWTH=1
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
-    --preload-file ${CMAKE_CURRENT_BINARY_DIR}/${WASM_PRELOAD_DIR}@swipl
+    --preload-file ${WASM_PRELOAD_DIR}@swipl
     --post-js ${CMAKE_CURRENT_BINARY_DIR}/wasm/prolog.js)
 if(MULTI_THREADED)
   list(APPEND WASM_WEB_LINK_FLAGS
