@@ -171,6 +171,7 @@ let   history       = { stack: [], current: null };
 let   files	    = { current: default_file,
 			list: [default_file]
 		      };
+const decoder       = new TextDecoder('utf-8');
 
 let buffers =
 { stdout: [],
@@ -185,9 +186,25 @@ function write(to, c)
     flush(to);
 }
 
+function decode(bytes)
+{ const ar = new Uint8Array(bytes.length);
+
+  for(var i=0; i<bytes.length; i++)
+  { let c = bytes[i];
+
+    if ( c < 0 )
+      c = 256+c;
+
+    ar[i] = c;
+  }
+
+  return decoder.decode(ar);
+}
+
 function flush(to)
 { if ( buffers[to].length )
-  { const line = String.fromCharCode.apply(null, buffers[to]);
+  { const line = decode(buffers[to]);
+
     print_output(line, to);
     buffers[to] = [];
   }
