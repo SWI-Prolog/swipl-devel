@@ -227,9 +227,19 @@ editor.addEventListener('submit', (e) => {
 }, false);
 
 document.getElementById('new-file').onclick = (e) => {
+  fname = document.getElementById("file-name");
   e.preventDefault();
   editor.className = "create-file";
   e.target.disabled = true;
+  fname.value = "";
+  fname.focus();
+};
+
+document.getElementById('file-name').onkeydown = (e) => {
+  if ( e.key === "Enter" )
+  { e.preventDefault();
+    document.getElementById('create-button').click();
+  }
 };
 
 document.getElementById('delete-file').onclick = (e) => {
