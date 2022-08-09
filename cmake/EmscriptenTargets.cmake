@@ -25,15 +25,9 @@ add_custom_command(
 add_custom_target(wasm_preload_dir DEPENDS ${WASM_BOOT_FILE})
 add_dependencies(wasm_preload wasm_preload_dir)
 
-set(WASM_POST_JS ${CMAKE_CURRENT_SOURCE_DIR}/src/wasm/prolog.js)
-add_custom_command(
-    OUTPUT wasm/prolog.js
-    COMMAND ${CMAKE_COMMAND} -E make_directory wasm
-    COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js wasm/prolog.js
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
-add_custom_target(wasm_js DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/wasm/prolog.js)
-
 # Build the browser-deployed binary with a bit different linker flags.
+
+set(POSTJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
 
 set(WASM_WEB_LINK_FLAGS
     -s WASM=1
@@ -44,7 +38,7 @@ set(WASM_WEB_LINK_FLAGS
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
     --preload-file ${WASM_PRELOAD_DIR}@swipl
-    --post-js ${CMAKE_CURRENT_BINARY_DIR}/wasm/prolog.js)
+    --post-js ${POSTJS})
 if(MULTI_THREADED)
   list(APPEND WASM_WEB_LINK_FLAGS
        -pthread
@@ -56,5 +50,6 @@ add_executable(swipl-web ${SWIPL_SRC})
 set_target_properties(swipl-web PROPERTIES
 		      LINK_FLAGS "${WASM_WEB_LINK_FLAGS_STRING}")
 target_link_libraries(swipl-web libswipl)
-add_dependencies(swipl-web wasm_preload wasm_js)
-
+add_dependencies(swipl-web wasm_preload)
+set_property(TARGET swipl-web PROPERTY LINK_DEPENDS
+	     ${POSTJS})
