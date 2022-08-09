@@ -371,8 +371,13 @@ input.addEventListener("keydown", (event) =>
 
 abort.addEventListener('submit', (e) => {
   e.preventDefault();
-  console.log("Requesting abort");
-  abort_request = true;
+  if ( yield && yield.abort )
+  { console.log("abortint", yield);
+    yield.abort();
+  } else
+  { console.log("Requesting abort");
+    abort_request = true;
+  }
 }, false);
 
 // Next/Stop
@@ -400,17 +405,14 @@ function next(rc)
     flush("stderr");
     flush("stdout");
 
+    if ( abort_request )
+    { abort_request = false;
+      return next(yield.resume("wasm_abort"));
+    }
+
     switch(rc.yield)
     { case "beat":
-      { let goal = "true";
-
-	if ( abort_request )
-	{ goal = "wasm_abort";
-	  abort_request = false;
-	}
-
-        return setTimeout(() => next(yield.resume(goal)), 0);
-      }
+        return setTimeout(() => next(yield.resume("true")), 0);
       case "goal":
         set_state("prompt goal");
         input.elements.query.focus();
@@ -418,6 +420,9 @@ function next(rc)
       case "more":
         set_state("more");
         document.getElementById("more.next").focus();
+        break;
+      case "builtin":
+        rc.resume((rc)=>next(rc));
         break;
     }
   } else if ( rc == undefined )

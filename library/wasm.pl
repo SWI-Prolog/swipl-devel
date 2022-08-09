@@ -34,7 +34,8 @@
 
 :- module(wasm,
           [ wasm_query_loop/0,
-            wasm_abort/0
+            wasm_abort/0,
+            sleep/1
           ]).
 
 /** <module> WASM version support
@@ -74,4 +75,22 @@ prolog:heartbeat :-
             ignore(call(Goal))
         )
     ;   true
+    ).
+
+%!  sleep(+Seconds)
+%
+%   Sleep by yielding when possible. Note   that this defines sleep/1 in
+%   `user`, overruling system:sleep/1.
+
+sleep(Seconds) :-
+    (   '$can_yield'
+    ->  format(string(Command), '{"command":"sleep","time":~w}', [Seconds]),
+        js_yield(Command, Reply),
+        term_string(Goal, Reply),
+        (   Reply == "true"
+        ->  true
+        ;   term_string(Goal, Reply),
+            ignore(call(Goal))
+        )
+    ;   system:sleep(Seconds)
     ).

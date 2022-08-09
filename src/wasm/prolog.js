@@ -415,7 +415,17 @@ Prolog.prototype.set_yield_result = function(string)
 };
 
 /**
- * Call a predicate that may yield.
+ * Call a predicate that may yield.  Returns an object if the predicate
+ * called js_yield/2.  Normally, the returned object contains a key
+ * `yield` that either holds a string or a JSON object representing
+ * the request.  The key `resume` is a function that should be called
+ * to resume Prolog with a value that appears in the second argument
+ * of js_call/2.
+ *
+ * The `yield` key can be `builtin`, in which case an object is returned
+ * that contains a `resume` key that executes the built-in and continues
+ * using the passed function. The returned object may provide an `abort`
+ * key to abort the query immediately.
  *
  * @param {term_t} [term]   Prolog goal to be called
  * @param {String} [module] Module in which to call the goal.
@@ -450,6 +460,36 @@ Prolog.prototype.call_yieldable = function(term, module) {
 	    continue;
 	  }
 	  lastyieldat = now;
+	} else
+	{ if ( request.charAt(0) == '{' )
+	    request = JSON.parse(request);
+
+	  if ( request.command == "sleep" )
+	  { let result = { yield: "builtin",
+			   request: request,
+			   query: q,
+			   resume: (cont) =>
+			   { if ( typeof(cont) === "string" )
+			     { prolog.set_yield_result(cont);
+			       return next(prolog);
+			     } else
+			     { result.cont = cont;
+			       result.timer = setTimeout(() => {
+				 prolog.set_yield_result("true");
+				 cont.call(prolog, next(prolog));
+			       }, request.time*1000);
+			     }
+			   },
+			   abort: () => {
+			     if ( result.timer )
+			     { clearTimeout(result.timer);
+			       prolog.set_yield_result("wasm_abort");
+			       result.cont.call(prolog, next(prolog));
+			     }
+			   }
+			 };
+	    return result;
+	  }
 	}
 
 	return { yield: request,
