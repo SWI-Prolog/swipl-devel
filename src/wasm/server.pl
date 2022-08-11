@@ -29,6 +29,18 @@ user:file_search_path(wasm,   'src').
 :- http_handler('/wasm/swipl-web.wasm',
                 http_reply_file(wasm('swipl-web.wasm'), []), []).
 
+% Test code
+:- http_handler('/wasm/test',
+                http_reply_file(
+                    source('test.html'),
+                    [ headers([ 'Cross-Origin-Opener-Policy'('same-origin'),
+                                'Cross-Origin-Embedder-Policy'('require-corp')
+                              ])]),
+                []).
+:- http_handler('/wasm/test.pl',
+                http_reply_file(source('test.pl'), []), []).
+
+
 :- initialization(server_loop, main).
 
 opt_type(port, port, nonneg).

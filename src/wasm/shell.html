@@ -426,7 +426,7 @@ function set_state(state)
 function next(rc)
 { yield = null;
 
-  if ( typeof(rc) === "object" )
+  if ( rc.yield !== undefined )
   { yield = rc;
 
     flush("stderr");
@@ -452,7 +452,7 @@ function next(rc)
         rc.resume((rc)=>next(rc));
         break;
     }
-  } else if ( rc == undefined )
+  } else if ( rc.error )
   { console.log("Unhandled exception; restarting");
     toplevel();
   }

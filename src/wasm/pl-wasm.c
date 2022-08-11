@@ -40,6 +40,7 @@
 PL_EXPORT(const char *)		WASM_ttymode(void);
 PL_EXPORT(const char *)		WASM_yield_request(void);
 PL_EXPORT(void)			WASM_set_yield_result(const char *s);
+PL_EXPORT(size_t)		WASM_variable_id(term_t t);
 
 const char *
 WASM_ttymode(void)
@@ -54,6 +55,15 @@ WASM_ttymode(void)
   }
 }
 
+size_t
+WASM_variable_id(term_t t)
+{ GET_LD
+  Word p = valTermRef(t);
+
+  deRef(p);
+  return (p > (Word)lBase) ? (p - (Word)lBase)*2
+			   : (p - gBase)*2+1;
+}
 
 #define CHARS_FLAGS (REP_UTF8|CVT_EXCEPTION|CVT_ATOM|CVT_STRING|CVT_LIST)
 

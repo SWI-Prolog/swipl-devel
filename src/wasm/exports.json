@@ -82,6 +82,7 @@
     "_PL_put_list",
     "_PL_put_nil",
     "_PL_put_term",
+    "_PL_put_dict",
     "_PL_put_term_from_chars",
     "_PL_cons_functor",
     "_PL_cons_functor_v",
@@ -204,5 +205,6 @@
 
     "_WASM_ttymode",
     "_WASM_yield_request",
-    "_WASM_set_yield_result"
+    "_WASM_set_yield_result",
+    "_WASM_variable_id"
 ]

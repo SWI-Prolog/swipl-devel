@@ -35,11 +35,15 @@
 :- module(wasm,
           [ wasm_query_loop/0,
             wasm_abort/0,
+            wasm_call_string/3,         % +String, +Input, -Output
             sleep/1
           ]).
+:- autoload(library(apply), [exclude/3]).
 
 /** <module> WASM version support
 */
+
+:- meta_predicate wasm_call_string(:, +, -).
 
 %!  wasm_query_loop
 
@@ -76,6 +80,32 @@ prolog:heartbeat :-
         )
     ;   true
     ).
+
+%!  wasm_call_string(+Goal:string, +Input, -Result) is nondet.
+%
+%   Run a Prolog goal from  a  string,   returning  a  dict  holding the
+%   variable bindings in Result. Variables   starting with an underscore
+%   are ignored.   This allows for
+%
+%   ```
+%     for(const answer on Prolog.query("p(X)")) {
+%       console.log(answer.X);
+%     }
+%   ```
+
+wasm_call_string(M:String, Input, Dict) :-
+    term_string(Goal, String, [variable_names(Map)]),
+    exclude(not_in_projection(Input), Map, Map1),
+    dict_create(Dict, bindings, Map1),
+
+    call(M:Goal).
+
+not_in_projection(Input, Name=Value) :-
+    (   get_dict(Name, Input, Value)
+    ->  true
+    ;   sub_atom(Name, 0, _, _, '_')
+    ).
+
 
 %!  sleep(+Seconds)
 %
