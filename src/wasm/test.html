@@ -57,6 +57,7 @@ function run()
      );
 
   test_sum_list();
+  test_error();
 }
 
 function run_p()
@@ -146,6 +147,12 @@ function test_sum_list()
   });
 }
 
+function test_error()
+{ println("title", "Test error handling");
+
+  const sum = sum_list(["aap", "noot", "mies"]);
+  println("stdout", `Sum is ${sum}`);
+}
 
 		 /*******************************
 		 *	   SIMPLE PRINT		*

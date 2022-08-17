@@ -198,6 +198,8 @@ Prolog.prototype._bind = function() {
 	'PL_close_query', 'number', ['number']);
     this.bindings.PL_cut_query = this.module.cwrap(
 	'PL_cut_query', 'number', ['number']);
+    this.bindings.PL_exception = this.module.cwrap(
+	'PL_exception', 'number', ['number']);
     this.bindings.WASM_ttymode = this.module.cwrap(
         'WASM_ttymode', 'number', []);
     this.bindings.WASM_yield_request = this.module.cwrap(
@@ -420,7 +422,7 @@ class Query {
   { module = module ? prolog.new_module(module) : 0;
     if ( typeof(pred) === "string" )
       pred = prolog.predicate(pred);
-    flags |= prolog.PL_Q_EXT_STATUS;
+    flags |= prolog.PL_Q_EXT_STATUS|prolog.PL_Q_PASS_EXCEPTION;
 
     this.prolog = prolog;
     this.map    = map;
@@ -440,8 +442,10 @@ class Query {
 
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
+        const msg = prolog.message_to_string(
+			       prolog.bindings.PL_exception(this.qid));
         this.close();
-	return { done: true, error: true };
+	return { done: true, error: true, message: msg };
       case prolog.PL_S_FALSE:
         this.close();
 	return { done: true };
