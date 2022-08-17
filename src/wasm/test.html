@@ -96,13 +96,11 @@ function run_p_with_iterator()
 function run_p_from_string_with_iterator()
 { println("title", "Using an iterator for p/1 and call string");
 
-  Prolog.with_frame(() =>
-  { let n = 0;
+  let n = 0;
 
-    for(const r of Prolog.query("p(X)"))
-    { println("stdout", r.X);
-    }
-  });
+  for(const r of Prolog.query("p(X)"))
+  { println("stdout", r.X);
+  }
 }
 
 function put(...args)
@@ -121,9 +119,7 @@ function put(...args)
 }
 
 function sum_list(list)
-{ return Prolog.with_frame(() =>
-  { return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
-  });
+{ return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
 }
 
 function test_sum_list()

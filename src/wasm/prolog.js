@@ -422,7 +422,7 @@ class Query {
   { module = module ? prolog.new_module(module) : 0;
     if ( typeof(pred) === "string" )
       pred = prolog.predicate(pred);
-    flags |= prolog.PL_Q_EXT_STATUS|prolog.PL_Q_PASS_EXCEPTION;
+    flags |= prolog.PL_Q_EXT_STATUS|prolog.PL_Q_CATCH_EXCEPTION;
 
     this.prolog = prolog;
     this.map    = map;
@@ -483,6 +483,8 @@ class Query {
   close()
   { if ( this.open )
     { this.prolog.bindings.PL_cut_query(this.qid);
+      if ( this.frame )
+	this.prolog.bindings.PL_discard_foreign_frame(this.frame);
       this.open = false;
     }
   }
@@ -493,9 +495,11 @@ Prolog.prototype.query = function(module, flags, pred, argv, map)
   { return new Query(this, module, flags, pred, argv, map);
   } else if ( typeof(module) === "string" && pred === undefined )
   { const goal = module;
+    const fid = this.bindings.PL_open_foreign_frame();
     const av = this.new_term_ref(3);
     const input = flags||{};
 
+    this.frame = fid;
     this.put_chars(av+0, goal);
     this.toProlog(input, av+1);
     return new Query(this, 0, this.PL_Q_NORMAL, "wasm_call_string/3", av,
