@@ -122,7 +122,7 @@ WASM_set_yield_result(const char *s)
 }
 
 static
-PRED_IMPL("js_call", 1, js_call, 0)
+PRED_IMPL("js_run_script", 1, js_call, 0)
 { char *s;
 
   PL_STRINGS_MARK();
@@ -139,6 +139,6 @@ PRED_IMPL("js_call", 1, js_call, 0)
 		 *******************************/
 
 BeginPredDefs(wasm)
-  PRED_DEF("js_yield",     2, js_yield,     PL_FA_NONDETERMINISTIC)
-  PRED_DEF("js_call",      1, js_call,      0)
+  PRED_DEF("js_yield",      2, js_yield,      PL_FA_NONDETERMINISTIC)
+  PRED_DEF("js_run_script", 1, js_run_script, 0)
 EndPredDefs
