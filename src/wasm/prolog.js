@@ -174,6 +174,8 @@ Prolog.prototype._bind = function() {
         'PL_put_dict', 'number', ['number','number','number','number','number']);
     this.bindings.PL_put_term_from_chars = this.module.cwrap(
         'PL_put_term_from_chars', 'number',['number','number','number','string']);
+    this.bindings.PL_put_term = this.module.cwrap(
+        'PL_put_term', 'number', ['number', 'number']);
     this.bindings.PL_write_term = this.module.cwrap(
         'PL_write_term', 'number', ['number', 'number', 'number', 'number']);
     this.bindings.PL_call = this.module.cwrap(
@@ -368,6 +370,34 @@ Prolog.prototype.consult = function(...args)
     return Promise.all(args.map((url) => consult_one(url)));
 }
 
+
+/**
+ * Convert a Prolog message term into a string.  Notably used to
+ * translate Prolog exceptions to meaningful messages in the JavaScript
+ * side.
+ *
+ * @return {String} string representation of the message
+ */
+
+Prolog.prototype.message_to_string = function(term)
+{ return this.with_frame(() =>
+  { const av = this.new_term_ref(2);
+
+    this.bindings.PL_put_term(av+0, term);
+    const flags = this.PL_Q_NORMAL;
+    const pred  = this.predicate("message_to_string/2");
+    const qid   = this.bindings.PL_open_query(0, flags, pred, av);
+    let msg;
+
+    if ( this.bindings.PL_next_solution(qid) )
+      msg = this.get_chars(av+1);
+    else
+      msg = "Unknown Prolog exception";
+
+    this.bindings.PL_close_query(qid);
+    return msg;
+  }, false);
+}
 
 /**
  * Open a new query.  Signatures:
