@@ -184,6 +184,8 @@ Prolog.prototype._bind = function() {
 	'PL_open_foreign_frame', 'number', []);
     this.bindings.PL_close_foreign_frame = this.module.cwrap(
 	'PL_close_foreign_frame', 'number', ['number']);
+    this.bindings.PL_discard_foreign_frame = this.module.cwrap(
+	'PL_close_foreign_frame', 'number', ['number']);
     this.bindings.PL_predicate = this.module.cwrap(
 	'PL_predicate', 'number', ['number', 'number', 'number']);
     this.bindings.PL_open_query = this.module.cwrap(
@@ -255,14 +257,19 @@ Prolog.prototype.call = function(goal, opts)
 
 /**
  * Call code while reclaiming possibly allocated term_t references.
- * @param `f` function to be called
+ * @param {Function} f function to be called
+ * @param {Boolean} [persist] if `false`, discard all binding created
+ * within the scope of the frame;
  */
 
-Prolog.prototype.with_frame = function(f) {
+Prolog.prototype.with_frame = function(f, persist) {
   const fid = this.bindings.PL_open_foreign_frame();
   if ( fid )
   { const rc = f.call(this);
-    this.bindings.PL_close_foreign_frame(fid);
+    if ( persist === false )
+      this.bindings.PL_discard_foreign_frame(fid);
+    else
+      this.bindings.PL_close_foreign_frame(fid);
     return rc;
   }
   return false;				/* Throw? */
