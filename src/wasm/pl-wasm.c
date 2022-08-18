@@ -41,6 +41,8 @@ PL_EXPORT(const char *)		WASM_ttymode(void);
 PL_EXPORT(const char *)		WASM_yield_request(void);
 PL_EXPORT(void)			WASM_set_yield_result(const char *s);
 PL_EXPORT(size_t)		WASM_variable_id(term_t t);
+PL_EXPORT(int)			js_unify_obj(term_t t, int32_t id);
+PL_EXPORT(int32_t)		js_get_obj(term_t t);
 
 const char *
 WASM_ttymode(void)
@@ -122,7 +124,7 @@ WASM_set_yield_result(const char *s)
 }
 
 static
-PRED_IMPL("js_run_script", 1, js_call, 0)
+PRED_IMPL("js_run_script", 1, js_run_script, 0)
 { char *s;
 
   PL_STRINGS_MARK();
@@ -134,6 +136,95 @@ PRED_IMPL("js_run_script", 1, js_call, 0)
   return TRUE;
 }
 
+static
+PRED_IMPL("$js_call", 2, js_call, 0)
+{ int rc = EM_ASM_INT({ return prolog_js_call($0, $1);
+		      }, (int32_t)A1, (int32_t)A2);
+  return !!rc;
+}
+
+		 /*******************************
+		 *	JAVASCRIPT OBJECTS	*
+		 *******************************/
+
+typedef struct objref
+{ int32_t id;
+} objref;
+
+
+static int
+write_jsobj_ref(IOSTREAM *s, atom_t aref, int flags)
+{ objref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
+
+  Sfprintf(s, "<js_object>(%d)", ref->id);
+  return TRUE;
+}
+
+
+static int
+release_jsobj_blob(atom_t aref)
+{ objref *ref = PL_blob_data(aref, NULL, NULL);
+
+  EM_ASM({ release_registered_object($0); }, ref->id);
+
+  return TRUE;
+}
+
+
+static int
+save_jsobj_ref(atom_t aref, IOSTREAM *fd)
+{ objref *ref = PL_blob_data(aref, NULL, NULL);
+  (void)fd;
+
+  return PL_warning("Cannot save reference to <js_object>(%d)",
+		    ref->id);
+}
+
+
+static atom_t
+load_jsobj_ref(IOSTREAM *fd)
+{ (void)fd;
+
+  return PL_new_atom("<saved-js-object>");
+}
+
+
+static PL_blob_t js_obj_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE,
+  "js_object",
+  release_jsobj_blob,
+  NULL,
+  write_jsobj_ref,
+  NULL,
+  save_jsobj_ref,
+  load_jsobj_ref
+};
+
+
+int
+js_unify_obj(term_t t, int32_t id)
+{ objref ref = { .id = id };
+
+  return PL_unify_blob(t, &ref, sizeof(ref), &js_obj_blob);
+}
+
+int32_t
+js_get_obj(term_t t)
+{ void *data;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(t, &data, NULL, &type) &&
+       type == &js_obj_blob )
+  { objref *ref = data;
+    return ref->id;
+  }
+
+  return -1;
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -141,4 +232,5 @@ PRED_IMPL("js_run_script", 1, js_call, 0)
 BeginPredDefs(wasm)
   PRED_DEF("js_yield",      2, js_yield,      PL_FA_NONDETERMINISTIC)
   PRED_DEF("js_run_script", 1, js_run_script, 0)
+  PRED_DEF("$js_call",      2, js_call,       0)
 EndPredDefs

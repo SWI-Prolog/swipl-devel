@@ -3,6 +3,8 @@ function Prolog(module, args)
   this.args = args;
   this.bindings = {};
   this._bind();
+  this.objects = {};
+  this.next_object_id = 0;
   this._initialise();
 
   this.PL_VARIABLE	       = (1);
@@ -208,6 +210,10 @@ Prolog.prototype._bind = function() {
         'WASM_set_yield_result', 'number', ['number']);
     this.bindings.WASM_variable_id = this.module.cwrap(
         'WASM_variable_id', 'number', ['number']);
+    this.bindings.js_unify_obj = this.module.cwrap(
+        'js_unify_obj', 'number', ['number', 'number']);
+    this.bindings.js_get_obj = this.module.cwrap(
+        'js_get_obj', 'number', ['number']);
 };
 
 // See http://www.swi-prolog.org/pldoc/doc_for?object=c(%27PL_initialise%27)
@@ -778,21 +784,29 @@ Prolog.prototype.arg_names = function(name, arity)
  * https://github.com/SWI-Prolog/packages-mqi/issues/4
  */
 
-function toJSON(prolog, term)
+function toJSON(prolog, term, options)
 { switch ( prolog.bindings.PL_term_type(term) )
   { case prolog.PL_VARIABLE:
       return { $v: "v",
                v: prolog.bindings.WASM_variable_id(term)
 	    // term: prolog.bindings.PL_copy_term_ref(term)
              };
+    case prolog.PL_STRING:
+      if ( options.string !== "string" )
+	return {$t: "s", v: prolog.get_chars(term)};
+      /*FALLTHROUGH*/
     case prolog.PL_ATOM:
       return prolog.get_chars(term);
-    case prolog.PL_STRING:
-      return {$t: "s", v: prolog.get_chars(term)};
     case prolog.PL_NIL:
       return [];
     case prolog.PL_BLOB:
+    { const id = prolog.bindings.js_get_obj(term);
+
+      if ( id != -1 )
+	return prolog.objects[id];
+
       return {"$t": "b"};
+    }
     case prolog.PL_INTEGER:
       return prolog.get_integer(term);
     case prolog.PL_RATIONAL:
@@ -815,7 +829,7 @@ function toJSON(prolog, term)
       { let result = { $tag: name };
 	for(var i=0; i<arity; i++)
 	{ prolog.get_arg(i+1, term, a);
-	  result[map[i]] = toJSON(prolog, a);
+	  result[map[i]] = toJSON(prolog, a, options);
 	}
 
 	return result;
@@ -825,7 +839,7 @@ function toJSON(prolog, term)
 
 	for(var i=1; i<=arity; i++)
 	{ prolog.get_arg(i, term, a);
-	  args.push(toJSON(prolog, a));
+	  args.push(toJSON(prolog, a, options));
 	}
 
 	result[name] = args;
@@ -837,12 +851,12 @@ function toJSON(prolog, term)
       const h = prolog.bindings.PL_new_term_ref();
       const t = prolog.bindings.PL_copy_term_ref(term);
       while( prolog.bindings.PL_get_list(t, h, t) )
-      { result.push(toJSON(prolog, h));
+      { result.push(toJSON(prolog, h, options));
       }
       if ( prolog.bindings.PL_get_nil(t) )
 	return result;
 
-      return { "$t": "partial", v:result, t:toJSON(prolog, t) };
+      return { "$t": "partial", v:result, t:toJSON(prolog, t, options) };
     }
     case prolog.PL_DICT:
     { let result = {};
@@ -850,12 +864,12 @@ function toJSON(prolog, term)
 
       prolog.get_arg(1, term, a);
       if ( !prolog.is_variable(a) )
-	result['$tag'] = toJSON(prolog, a);
+	result['$tag'] = toJSON(prolog, a, options);
       for(var i=2; ; i+=2)
       { if ( prolog.get_arg(i+1, term, a) )
-	{ let key = toJSON(prolog, a);
+	{ let key = toJSON(prolog, a, options);
 	  prolog.get_arg(i, term, a);
-	  result[key] = toJSON(prolog, a);
+	  result[key] = toJSON(prolog, a, options);
 	} else
 	  break;
       }
@@ -867,8 +881,9 @@ function toJSON(prolog, term)
   }
 }
 
-Prolog.prototype.toJSON = function(term)
-{ return toJSON(this, term);
+Prolog.prototype.toJSON = function(term, options)
+{ options = options||{};
+  return toJSON(this, term, options);
 }
 
 function toProlog(prolog, data, term, ctx)
@@ -947,6 +962,20 @@ function toProlog(prolog, data, term, ctx)
 	    }
 	    break;
 	  }
+	}
+      } else if ( data.nodeType !== undefined )	       /* DOM object */
+      { let id = data.prologId;
+
+	if ( id === undefined )
+	{ id = prolog.next_object_id+1;
+	  rc = prolog.bindings.js_unify_obj(term, id);
+	  if ( rc )
+	  { data.prologId = id;
+	    prolog.objects[id] = data;
+	    prolog.next_object_id = id;
+	  }
+	} else
+	{ rc = prolog.bindings.js_unify_obj(term, id);
 	}
       } else
       { const keys  = Object.keys(data);
@@ -1048,3 +1077,112 @@ Prolog.prototype.unify_arg = function(index, term, arg) {
 Module.onRuntimeInitialized = function() {
     Module.prolog = new Prolog(Module, Module.arguments);
 };
+
+		 /*******************************
+		 *	 CALL JAVASCRIPT	*
+		 *******************************/
+
+/**
+ * Call a chain of functions and selectors.  This function works on
+ * the data structures created by `:=/2`
+ */
+
+function prolog_js_call(request, result)
+{ const prolog = Module.prolog;
+
+  function eval_chain(ar, obj)
+  { obj = obj||window;
+
+    function eval_one(obj, fname, args)
+    { if ( args.length == 1 )
+      { switch(fname)
+	{ case "-": return -args[0];
+	  case "!": return !args[0];
+	}
+      } else if ( args.length == 2 )
+      { switch(fname)
+	{ case "+": return args[0] + args[1];
+	  case "-": return args[0] - args[1];
+	  case "*": return args[0] * args[1];
+	  case "/": return args[0] / args[1];
+	  case "&": return args[0] & args[1];
+	  case "|": return args[0] | args[1];
+	}
+      }
+
+      const func = obj[fname];
+      if ( func )
+	return func.apply(obj, args);
+      else
+	console.log("ERROR: Function", fname, "is not defined on", obj);
+    }
+
+    for(let i=0; i<ar.length; i++)
+    { const next = ar[i];
+
+      if ( typeof(next) === "string" )
+      { obj = obj[next];
+      } else if ( next.v !== undefined )
+      { obj = next.v;
+      } else
+      { const args = next.args.map((v) => eval_chain(v));
+
+	obj = eval_one(obj, next.f, args);
+      }
+    }
+
+    return obj;
+  }
+
+  return prolog.with_frame(() =>
+  { const ar = prolog.toJSON(request, { string: "string" });
+    let obj;
+
+    if ( ar.setter )
+    { const target = eval_chain(ar.target);
+      const value  = eval_chain(ar.value);
+      target[ar.setter] = value;
+      obj = true;
+    } else
+    { obj = eval_chain(ar);
+    }
+
+    return prolog.bindings.PL_unify(result, prolog.toProlog(obj));
+  }, false);
+}
+
+
+/**
+ * Release an object held by Prolog
+ */
+
+function release_registered_object(id)
+{ const prolog = Module.prolog;
+  const obj = prolog.object[id];
+
+//  console.log(`Releasing object ${id}`, obj);
+
+  delete obj.prologId;
+  delete prolog.object[id];
+}
+
+
+window.js_add_script = function(text, opts)
+{ opts = opts||{};
+  let node;
+
+  if ( opts.id )
+  { if ( (node = document.getElementById(opts.id)) )
+    { node.textContent = text;
+    } else
+    { node = document.createElement("script");
+      node.id = opts.id;
+      node.textContent = text;
+      document.body.appendChild(node);
+    }
+  } else
+  { node = document.createElement("script");
+    node.textContent = text;
+    document.body.appendChild(node);
+  }
+}

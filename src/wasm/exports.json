@@ -206,5 +206,7 @@
     "_WASM_ttymode",
     "_WASM_yield_request",
     "_WASM_set_yield_result",
-    "_WASM_variable_id"
+    "_WASM_variable_id",
+    "_js_unify_obj",
+    "_js_get_obj"
 ]

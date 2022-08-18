@@ -36,9 +36,16 @@
           [ wasm_query_loop/0,
             wasm_abort/0,
             wasm_call_string/3,         % +String, +Input, -Output
-            sleep/1
+            (:=)/2,                     % -Result, +Call
+            sleep/1,
+            js_script/2,                % +String, +Options
+
+            op(700, xfx, :=),           % Result := Expression
+            op(40,  fx,  #),            % #Value
+            op(50,  yf,  [])            % Expr[Expr]
           ]).
-:- autoload(library(apply), [exclude/3]).
+:- autoload(library(apply), [exclude/3, maplist/3]).
+:- autoload(library(terms), [mapsubterms/3]).
 
 /** <module> WASM version support
 */
@@ -56,7 +63,7 @@ wasm_query_loop :-
 
 %!  wasm_abort
 %
-%   Execution aborted by user
+%   Execution aborted by userthe
 
 wasm_abort :-
     print_message(error, '$aborted'),
@@ -124,3 +131,109 @@ sleep(Seconds) :-
         )
     ;   system:sleep(Seconds)
     ).
+
+%!  :=(-Result, +Call) is det.
+%!  :=(+Target, +Value) is det.
+%
+%   Call a JavaScript function expressed by   Call.  Call is a compound.
+%   The functor name denotes the function to be called and the arguments
+%   are converted using `Prolog.toJSON`. The   function return value can
+%   be accessed using js_call(Return = Call).   In this case `Return` is
+%   the return value of the function converted by `Prolog.toProlog()`.
+%   Examples:
+%
+%	?- Res := myfunc([1,2,3]).
+%	?- Max := 'Math'.max(10, 20).
+%	?- Out := document.getElementById('output').
+%	?- Par := document.createElement(p),
+%          Par.textContent := #Text.
+%       ?- Par.textContent := "aap" + " " + "noot".
+
+On[Setter] := Value, atom(Setter) =>
+    call_chain(On, TargetChain),
+    call_chain(Value, ValueChain),
+    '$js_call'(_{ setter:Setter,
+                  target:TargetChain,
+                  value:ValueChain
+                }, _Result).
+Result := Call =>
+    call_chain(Call, Chain),
+    '$js_call'(Chain, Result).
+
+%!  call_chain(+Callers, -Chain) is det.
+%
+%   Represent a chain of calls as  `obj.getter.f(x)   ...`  as a list of
+%   objects. Each object in the list is either  an atom (for a getter or
+%   the first global variable) or a callable term represented as
+%   `{ f: Name, args: Args }`.
+
+call_chain(Calls, Chain) :-
+    call_chain(Calls, Chain, []).
+
+call_chain(On[Call], Chain, Tail) =>
+    call_chain(On, Chain, Tail0),
+    call1(Call, Next),
+    Tail0 = [Next|Tail].
+call_chain(First, Chain, Tail) =>
+    call_first(First, Next),
+    Chain = [Next|Tail].
+
+call1(Getter, One), atom(Getter) =>
+    One = Getter.
+call1(Call, One), is_func(Call) =>
+    call_func(Call, One).
+
+call_first(#Value, One) =>
+    One = _{v:Value}.
+call_first(Getter, One), atom(Getter) =>
+    One = Getter.
+call_first(First, One), is_func(First) =>
+    call_func(First, One).
+call_first(Obj, One) =>
+    One = _{v:Obj}.
+
+is_func(Term) :-
+    compound(Term),
+    \+ is_dict(Term).
+
+call_func(Call, One) :-
+    compound_name_arguments(Call, Pred, Args),
+    maplist(call_chain, Args, Chains),
+    One = _{f:Pred, args:Chains}.
+
+
+:- multifile
+    user:goal_expansion/2.
+
+user:goal_expansion(In, Out) :-
+    In = (_Left := _Right),
+    mapsubterms(dot_list, In, Out),
+    Out \== In.
+
+dot_list(Dot, List) :-
+    compound(Dot),
+    compound_name_arguments(Dot,  '.', [A1, A2]),
+    List = A1[A2].
+
+%!  js_script(+String, +Options) is det.
+%
+%   Add a JavaScript script node to the  document body. For long strings
+%   one can use a `string` quasi quotation, e.g.
+%
+%   ```
+%   :- use_module(library(strings)).
+%   :- js_string({|string||
+%   function myfunc(a)
+%   ...
+%   |}).
+%   ```
+%
+%   Options:
+%
+%     - id(Atom)
+%       Node identifier.  Using the same id replaces the script rather
+%       than adding a new one.
+
+js_script(String, Options) :-
+    dict_options(Dict, Options),
+    _ := js_add_script(String, Dict).
