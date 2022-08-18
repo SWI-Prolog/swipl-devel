@@ -876,11 +876,12 @@ function toProlog(prolog, data, term, ctx)
     case "boolean":
       rc = prolog.put_chars(term, data ? "true" : "false", prolog.PL_ATOM);
       break;
+    case "undefined":
+      rc = prolog.put_chars(term, "undefined", prolog.PL_ATOM);
+      break;
     case "object":
       if ( data === null )
       { rc = prolog.put_chars(term, "null", prolog.PL_ATOM);
-      } else if ( data === undefined )
-      { rc = prolog.put_chars(term, "undefined", prolog.PL_ATOM);
       } else if ( Array.isArray(data) )
       { let h = prolog.new_term_ref();
 
