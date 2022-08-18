@@ -422,8 +422,13 @@ class Query {
   { module = module ? prolog.new_module(module) : 0;
     if ( typeof(pred) === "string" )
       pred = prolog.predicate(pred);
-    flags |= prolog.PL_Q_EXT_STATUS|prolog.PL_Q_CATCH_EXCEPTION;
+    flags |= prolog.PL_Q_EXT_STATUS;
+    if ( !(flags & (prolog.PL_Q_CATCH_EXCEPTION|
+		    prolog.PL_Q_PASS_EXCEPTION|
+		    prolog.PL_Q_NORMAL)) )
+      flags |= prolog.PL_Q_CATCH_EXCEPTION;
 
+    this.flags  = flags;
     this.prolog = prolog;
     this.map    = map;
     this.qid    = prolog.bindings.PL_open_query(module, flags, pred, argv);
@@ -442,10 +447,17 @@ class Query {
 
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
-        const msg = prolog.message_to_string(
-			       prolog.bindings.PL_exception(this.qid));
-        this.close();
-	return { done: true, error: true, message: msg };
+      { if ( (this.flags & prolog.PL_Q_NORMAL) )
+	{ this.close();
+	  return { done: true, error: true }
+	} else
+	{ const msg = prolog.message_to_string(
+				 prolog.bindings.PL_exception(this.qid));
+	  console.log(msg);
+	  this.close();
+	  return { done: true, error: true, message: msg };
+	}
+      }
       case prolog.PL_S_FALSE:
         this.close();
 	return { done: true };
@@ -679,7 +691,7 @@ let lastyieldat = 0;
 
 Prolog.prototype.call_yieldable = function(term, module) {
   var pred_call1;
-  const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD|this.PL_Q_EXT_STATUS;
+  const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
 
   if ( !pred_call1 )
     pred_call1 = this.predicate("call", 1, "system");
