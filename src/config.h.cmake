@@ -296,6 +296,7 @@
 #cmakedefine size_t @size_t@
 #cmakedefine vfork @vfork@
 #cmakedefine HAVE_TCMALLOC_EXTENSION_C_H @HAVE_TCMALLOC_EXTENSION_C_H@
+#cmakedefine O_STATIC_EXTENSIONS @O_STATIC_EXTENSIONS@
 
 #cmakedefine HAVE_PTHREAD_GETCPUCLOCKID
 #cmakedefine HAVE_F_SETLKW

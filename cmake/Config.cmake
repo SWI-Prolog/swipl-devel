@@ -68,7 +68,9 @@ else()
 set(HAVE_LIBATOMIC OFF CACHE BOOL "No need to link with -latomic")
 endif()
 
+if(NOT STATIC_EXTENSIONS)
 check_library_exists(dl	dlopen	      "" HAVE_LIBDL)
+endif()
 check_library_exists(m	sin	      "" HAVE_LIBM)
 check_library_exists(rt	clock_gettime "" HAVE_LIBRT)
 
@@ -402,6 +404,9 @@ if(SWIPL_SHARED_LIB)
 endif()
 if(VMI_FUNCTIONS)
   set(O_VMI_FUNCTIONS 1)
+endif()
+if(STATIC_EXTENSIONS)
+  set(O_STATIC_EXTENSIONS 1)
 endif()
 
 ################

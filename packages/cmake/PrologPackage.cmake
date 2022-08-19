@@ -94,7 +94,11 @@ endfunction()
 
 function(swipl_plugin name)
   set(target ${name})
+if(STATIC_EXTENSIONS)
+  set(type STATIC)
+else()
   set(type MODULE)
+endif()
   set(v_module ${name})
   set(v_c_sources)
   set(v_c_libs)
@@ -171,8 +175,13 @@ function(swipl_plugin name)
     set_target_properties(${foreign_target} PROPERTIES
 			  OUTPUT_NAME ${v_module} PREFIX "")
     target_compile_options(${foreign_target} PRIVATE -D__SWI_PROLOG__)
-    target_link_libraries(${foreign_target} PRIVATE
-			  ${v_c_libs} ${SWIPL_LIBRARIES})
+    if(STATIC_EXTENSIONS)
+      target_link_libraries(libswipl PRIVATE ${foreign_target})
+      set_property(GLOBAL APPEND PROPERTY static_extension_libs ${v_module})
+    else()
+      target_link_libraries(${foreign_target} PRIVATE
+			    ${v_c_libs} ${SWIPL_LIBRARIES})
+    endif()
     if(v_c_include_dirs)
       target_include_directories(${foreign_target} BEFORE PRIVATE
 				 ${v_c_include_dirs})

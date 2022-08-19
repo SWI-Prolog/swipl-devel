@@ -231,6 +231,12 @@ handy for it someone wants to add a data type to the system.
 #endif
 #endif
 
+/* Define either or none of O_DYNAMIC_EXTENSIONS and O_STATIC_EXTENSIONS */
+#if (defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)) \
+    && !defined(O_STATIC_EXTENSIONS)
+#define O_DYNAMIC_EXTENSIONS 1
+#endif
+
 #ifdef __WINDOWS__
 #define NOTTYCONTROL           TRUE
 #define O_DDE 1

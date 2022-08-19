@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -35,9 +36,8 @@
 
 #include "pl-load.h"
 #include "pl-fli.h"
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
+
+#ifndef O_STATIC_EXTENSIONS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog interface for runtime loading of foreign code (plugins).
@@ -342,6 +342,7 @@ Unload all foreign libraries.  As we are doing this at the very end of
 the cleanup, it should be safe now.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define CLEANUP_FOREIGN_DONE
 void
 cleanupForeign(void)
 { DlEntry e, next;
@@ -361,29 +362,98 @@ cleanupForeign(void)
   dl_head = dl_tail = NULL;
 }
 
-#else /*HAVE_DLOPEN*/
+#endif /*HAVE_DLOPEN*/
+#else /*O_STATIC_EXTENSIONS*/
+#include <dlfcn.h>
+#include <errno.h>
 
+static int
+activate_static_extension(const char *ename)
+{
+#if USE_DLOPEN_SELF
+  static void *handle = NULL;
+  char fname[256];
+
+  if ( !handle )
+  { handle = dlopen(NULL, 0);
+    if ( !handle )
+      Sdprintf("Could not open dlopen() executable: %s\n",
+	       strerror(errno));
+  }
+
+  strcpy(fname, "install_");
+  strcat(fname, ename);
+
+  if ( handle )
+  { void *sym = dlsym(handle, fname);
+
+    if ( sym )
+    { typedef void (*install_function)(void);
+      install_function f = sym;
+      (*f)();
+      return TRUE;
+    }
+
+    return FALSE;
+  }
+#else
+  typedef void (*install_func)(void);
+  typedef struct static_extension
+  { const char *name;
+    const install_func func;
+  } static_extension;
+
+#include <static_packages.h>
+
+  for(const static_extension *ext = static_extensions;
+      ext->name;
+      ext++)
+  { if ( strcmp(ename, ext->name) == 0 )
+    { (*ext->func)();
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+#endif
+}
+
+static
+PRED_IMPL("$activate_static_extension", 1, activate_static_extension,
+	  PL_FA_TRANSPARENT)
+{ char *ename;
+
+  if ( PL_get_chars(A1, &ename, CVT_ATOM|CVT_STRING|CVT_EXCEPTION) )
+  { if ( activate_static_extension(ename) )
+      return TRUE;
+    return PL_existence_error("foreign_extension", A1);
+  } else
+    return FALSE;
+}
+
+#endif /*O_STATIC_EXTENSIONS*/
+
+#ifndef CLEANUP_FOREIGN_DONE
 /* No-op stub for pl-init.c to call. */
 void
 cleanupForeign(void)
 {}
+#endif
 
-static
-PRED_IMPL("$open_shared_object", 3, open_shared_object, 0)
-{ return notImplemented("open_shared_object", 3);
-}
-
-#endif /*HAVE_DLOPEN*/
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
 BeginPredDefs(dlopen)
-  PRED_DEF("$open_shared_object", 3, open_shared_object, 0)
 #ifdef HAVE_SHARED_OBJECTS
+  PRED_DEF("$open_shared_object", 3, open_shared_object, 0)
   PRED_DEF("close_shared_object", 1, close_shared_object, 0)
   PRED_DEF("call_shared_object_function", 2, call_shared_object_function,
+	   PL_FA_TRANSPARENT)
+#endif
+#ifdef O_STATIC_EXTENSIONS
+  PRED_DEF("$activate_static_extension", 1, activate_static_extension,
 	   PL_FA_TRANSPARENT)
 #endif
 EndPredDefs

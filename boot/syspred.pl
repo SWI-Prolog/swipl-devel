@@ -48,8 +48,6 @@
             unload_file/1,
             exists_source/1,                    % +Spec
             exists_source/2,                    % +Spec, -Path
-            use_foreign_library/1,		% :FileSpec
-            use_foreign_library/2,		% :FileSpec, +Install
             prolog_load_context/2,
             stream_position_data/3,
             current_predicate/2,
@@ -67,8 +65,6 @@
             shell/1,                            % +Command
             on_signal/3,
             current_signal/3,
-            open_shared_object/2,
-            open_shared_object/3,
             format/1,
             garbage_collect/0,
             set_prolog_stack/2,
@@ -98,8 +94,6 @@
 
 :- meta_predicate
     dynamic(:, +),
-    use_foreign_library(:),
-    use_foreign_library(:, +),
     transaction(0),
     transaction(0,0,+),
     snapshot(0),
@@ -481,6 +475,8 @@ unload_file(File) :-
     ;   true
     ).
 
+:- if(current_prolog_flag(open_shared_object, true)).
+
                  /*******************************
                  *            DLOPEN            *
                  *******************************/
@@ -520,6 +516,9 @@ map_dlflags([F|T], M) :-
     ),
     M is M0 \/ I.
 
+:- export(open_shared_object/2).
+:- export(open_shared_object/3).
+
 
 		 /*******************************
 		 *      FOREIGN LIBRARIES	*
@@ -542,6 +541,10 @@ map_dlflags([F|T], M) :-
 %   _immediately_. I.e. the  difference  is   only  relevant  if the
 %   remainder of the file uses functionality of the C-library.
 
+:- meta_predicate
+    use_foreign_library(:),
+    use_foreign_library(:, +).
+
 use_foreign_library(FileSpec) :-
     ensure_shlib,
     initialization(shlib:load_foreign_library(FileSpec), now).
@@ -557,6 +560,20 @@ ensure_shlib :-
 ensure_shlib :-
     use_module(library(shlib), []).
 
+:- export(use_foreign_library/1).
+:- export(use_foreign_library/2).
+
+:- elif(current_predicate('$activate_static_extension'/1)).
+
+:- meta_predicate
+    use_foreign_library(:).
+
+use_foreign_library(Module:foreign(Extension)) =>
+    @('$activate_static_extension'(Extension), Module).
+
+:- export(use_foreign_library/1).
+
+:- endif. /* open_shared_object support */
 
                  /*******************************
                  *            STREAMS           *

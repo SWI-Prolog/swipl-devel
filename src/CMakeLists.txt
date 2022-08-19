@@ -116,7 +116,7 @@ endif()
 prepend(SWIPL_BOOT_FILES ${SWIPL_BUILD_HOME}/boot/ ${SWIPL_DATA_boot})
 
 set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
-    qsave.pl shlib.pl statistics.pl system.pl error.pl
+    qsave.pl statistics.pl system.pl error.pl
     backcomp.pl gensym.pl listing.pl debug.pl vm.pl
     quintus.pl edinburgh.pl ctypes.pl files.pl modules.pl
     edit.pl shell.pl check.pl heaps.pl console_input.pl
@@ -155,6 +155,9 @@ else()
 endif()
 if(EMSCRIPTEN)
   set(SWIPL_DATA_library ${SWIPL_DATA_library} wasm.pl)
+endif()
+if(NOT STATIC_EXTENSIONS)
+  set(SWIPL_DATA_library ${SWIPL_DATA_library} shlib.pl)
 endif()
 
 set(SWIPL_DATA_library_lynx format.pl html_style.pl html_text.pl
@@ -646,6 +649,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
 
+if(NOT STATIC_EXTENSIONS)
 # Install cmake config files
 install(EXPORT SWIPL_EXPORT
 	FILE SWIPLTargets.cmake
@@ -659,6 +663,8 @@ if(SWIPL_INSTALL_PKGCONFIG)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.pc
 	DESTINATION ${SWIPL_INSTALL_PKGCONFIG})
 endif()
+endif(NOT STATIC_EXTENSIONS)
+
 if(SWIPL_INSTALL_MANPAGES)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/swipl.1
 	DESTINATION ${SWIPL_INSTALL_MANPAGES})

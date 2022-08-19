@@ -1443,7 +1443,6 @@ initPrologFlagTable(void)
   }
 }
 
-
 void
 initPrologFlags(void)
 { GET_LD
@@ -1485,14 +1484,6 @@ initPrologFlags(void)
   setPrologFlag("vmi_builtin", FT_BOOL, TRUE, PLFLAG_VMI_BUILTIN);
   setPrologFlag("warn_override_implicit_import", FT_BOOL, TRUE,
 		PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT);
-  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
-  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
-#ifdef C_LIBDIR
-  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
-#endif
-  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
-  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
-  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
   setPrologFlag("tmp_dir", FT_ATOM, SWIPL_TMP_DIR);
 #if defined(O_LARGEFILES) || SIZEOF_LONG == 8
   setPrologFlag("large_files", FT_BOOL|FF_READONLY, TRUE, 0);
@@ -1509,10 +1500,18 @@ initPrologFlags(void)
   setPrologFlag("shared_table_space", FT_INTEGER, GD->options.sharedTableSpace);
 #endif
   setPrologFlag("stack_limit", FT_INTEGER, LD->stacks.limit);
-#if defined(HAVE_DLOPEN) || defined(HAVE_SHL_LOAD) || defined(EMULATE_DLOPEN)
-  setPrologFlag("open_shared_object",	  FT_BOOL|FF_READONLY, TRUE, 0);
-  setPrologFlag("shared_object_extension",	  FT_ATOM|FF_READONLY, SO_EXT);
+#ifdef O_DYNAMIC_EXTENSIONS
+  setPrologFlag("open_shared_object",	     FT_BOOL|FF_READONLY, TRUE, 0);
+  setPrologFlag("shared_object_extension",   FT_ATOM|FF_READONLY, SO_EXT);
   setPrologFlag("shared_object_search_path", FT_ATOM|FF_READONLY, SO_PATH);
+  setPrologFlag("c_cc",	     FT_ATOM, C_CC);
+  setPrologFlag("c_libs",    FT_ATOM, C_LIBS);
+#ifdef C_LIBDIR
+  setPrologFlag("c_libdir",  FT_ATOM, C_LIBDIR);
+#endif
+  setPrologFlag("c_libplso", FT_ATOM, C_LIBPLSO);
+  setPrologFlag("c_ldflags", FT_ATOM, C_LDFLAGS);
+  setPrologFlag("c_cflags",  FT_ATOM, C_CFLAGS);
 #endif
   setPrologFlag("address_bits", FT_INTEGER|FF_READONLY, sizeof(void*)*8);
 #ifdef HAVE_POPEN
