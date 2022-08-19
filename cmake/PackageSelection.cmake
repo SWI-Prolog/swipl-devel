@@ -111,7 +111,7 @@ set(SWIPL_PACKAGE_LIST_X
     xpce)
 
 set(SWIPL_PACKAGE_LIST_WASM
-    clpqr plunit chr clib)
+    clpqr plunit chr clib http)
 
 # swipl_package_component(pkg var)
 #
@@ -135,7 +135,6 @@ endfunction()
 set(SWIPL_PKG_DEPS_RDF clib semweb sgml)
 set(SWIPL_PKG_DEPS_archive clib)
 set(SWIPL_PKG_DEPS_clib sgml)
-set(SWIPL_PKG_DEPS_http clib sgml ssl)
 set(SWIPL_PKG_DEPS_ltx2htm clib)
 set(SWIPL_PKG_DEPS_pengines clib http)
 set(SWIPL_PKG_DEPS_stomp clib http)
@@ -143,6 +142,11 @@ set(SWIPL_PKG_DEPS_pldoc clib http pengines sgml)
 set(SWIPL_PKG_DEPS_semweb RDF clib http nlp sgml zlib)
 set(SWIPL_PKG_DEPS_ssl clib http sgml zlib)
 set(SWIPL_PKG_DEPS_tipc clib paxos)
+if(EMSCRIPTEN)
+set(SWIPL_PKG_DEPS_http clib sgml)
+else()
+set(SWIPL_PKG_DEPS_http clib sgml ssl)
+endif()
 
 set(SWIPL_PKG_EXPLICIT)				# Explicitly requested packages
 set(SWIPL_PKG_DEPENDENCY)			# Required packages
