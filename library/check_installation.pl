@@ -422,15 +422,19 @@ jquery_file :-
 
 %!  check_on_path
 %
-%   Validate that Prolog is installed in $PATH
+%   Validate that Prolog is installed in   $PATH.  Only performed if the
+%   running executable is  a  normal   executable  file,  assuming  some
+%   special installation such as the WASM version otherwise.
 
 check_on_path :-
     current_prolog_flag(executable, EXEFlag),
     prolog_to_os_filename(EXE, EXEFlag),
     file_base_name(EXE, Prog),
     absolute_file_name(EXE, AbsExe,
-                       [ access(execute)
+                       [ access(execute),
+                         file_errors(fail)
                        ]),
+    !,
     prolog_to_os_filename(AbsExe, OsExe),
     (   absolute_file_name(path(Prog), OnPath,
                            [ access(execute),
@@ -449,6 +453,7 @@ check_on_path :-
         )
     ;   print_message(warning, installation(not_on_path(OsExe, Prog)))
     ).
+check_on_path.
 
 
 		 /*******************************
