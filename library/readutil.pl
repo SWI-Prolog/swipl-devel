@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2001-2019, University of Amsterdam
+    Copyright (c)  2001-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,7 +49,6 @@
           ]).
 :- autoload(library(error),[must_be/2]).
 :- autoload(library(option),[option/3]).
-:- autoload(library(shlib),[load_foreign_library/1]).
 
 
 /** <module> Read utilities
@@ -87,7 +87,7 @@ implementation if the shared object cannot be found.
     read_stream_to_codes/3.
 
 link_foreign :-
-    catch(load_foreign_library(foreign(readutil)), _, fail),
+    catch(use_foreign_library(foreign(readutil)), _, fail),
     !.
 link_foreign :-
     assertz((read_line_to_codes(Stream, Line) :-
