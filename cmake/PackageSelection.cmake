@@ -111,7 +111,7 @@ set(SWIPL_PACKAGE_LIST_X
     xpce)
 
 set(SWIPL_PACKAGE_LIST_WASM
-    clpqr plunit chr clib http)
+    clpqr plunit chr clib http semweb)
 
 # swipl_package_component(pkg var)
 #
