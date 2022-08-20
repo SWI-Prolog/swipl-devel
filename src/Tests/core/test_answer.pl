@@ -124,7 +124,10 @@ compare_comment(_-C, _-C).
 hidden :-
 	dif(_X, a).
 
-:- begin_tests(answer, [sto(rational_trees)]).
+:- begin_tests(answer,
+	       [ sto(rational_trees),
+		 condition(current_prolog_flag(threads, true))
+	       ]).
 
 test(simple, true) :-
 	test_answer('A=1', ['A=1']).
