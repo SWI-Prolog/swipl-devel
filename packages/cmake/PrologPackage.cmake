@@ -182,6 +182,7 @@ endif()
       target_link_libraries(${foreign_target} PRIVATE
 			    ${v_c_libs} ${SWIPL_LIBRARIES})
     endif()
+    add_dependencies(library_index_library_always ${foreign_target})
     if(v_c_include_dirs)
       target_include_directories(${foreign_target} BEFORE PRIVATE
 				 ${v_c_include_dirs})
