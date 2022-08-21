@@ -749,6 +749,12 @@ Prolog.prototype.call_yieldable = function(term, module) {
 	}
       }
 
+      // Get back here instead of Query.next()
+      rc.resume = (value) =>
+      { prolog.set_yield_result(value);
+	return next(prolog);
+      };
+
       return rc
     }
   }
