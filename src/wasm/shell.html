@@ -460,9 +460,7 @@ function next(rc)
 
 function toplevel()
 { let rc = Module.prolog.call("wasm_query_loop",
-			      //"'$query_loop'",
-			      { async:true,
-				//module:'$toplevel'
+			      { async:true
 			      });
 
   next(rc);
