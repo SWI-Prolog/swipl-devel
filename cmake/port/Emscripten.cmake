@@ -7,6 +7,7 @@ set(PLHOME     "/swipl")
 set(SWIPL_ARCH "wasm-emscripten")
 set(USE_TCMALLOC OFF)
 set(STATIC_EXTENSIONS ON)
+set(BUILD_SWIPL_LD OFF)
 
 set(SRC_OS_SPECIFIC wasm/pl-wasm.c)
 
