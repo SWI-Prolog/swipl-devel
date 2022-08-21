@@ -3376,10 +3376,8 @@ variables used in the B_THROW instruction.
       DEBUG(CHK_SECURE, checkStacks(NULL));
       if ( exception_term )
 	THROW_EXCEPTION;
-      if ( QF->yield.term == -1 )		/* foreign yield */
-      { DEF = FR->predicate;
-	QF->yield.term = 0;
-      }
+      DEF = FR->predicate;
+      QF->yield.term = 0;
       NEXT_INSTRUCTION;
     } else
       BODY_FAILED;
