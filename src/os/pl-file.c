@@ -3673,7 +3673,7 @@ PL_atom_to_encoding(atom_t a)
 
 atom_t
 PL_encoding_to_atom(IOENC enc)
-{ if ( (int)enc > 0 && (int)enc < ENC_WCHAR )
+{ if ( (int)enc > 0 && (int)enc <= ENC_WCHAR )
     return encoding_names[enc].name;
   return NULL_ATOM;
 }
