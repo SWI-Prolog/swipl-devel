@@ -169,7 +169,9 @@ libsdoc(apply dicts error url pairs option optparse ordsets aggregate
         prolog_jiti tables listing strings terms ugraphs portray_text
         increval prolog_debug rbtrees statistics heaps fastrw gensym
         www_browser)
+if(NOT STATIC_EXTENSIONS)
 libdoc(shlib --subsection)
+endif()
 libdoc(pure_input --subsection)
 libdoc(explain --subsection)
 pldoc(lib/prologpack.tex "library(prolog_pack)"
