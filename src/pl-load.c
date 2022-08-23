@@ -37,8 +37,6 @@
 #include "pl-load.h"
 #include "pl-fli.h"
 
-#ifndef O_STATIC_EXTENSIONS
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 SWI-Prolog interface for runtime loading of foreign code (plugins).
 
@@ -167,6 +165,7 @@ PL_dlclose(void *handle)
 
 #endif /*EMULATE_DLOPEN*/
 
+#ifndef O_STATIC_EXTENSIONS
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 under_valgrind()
@@ -362,10 +361,14 @@ cleanupForeign(void)
   dl_head = dl_tail = NULL;
 }
 
+#endif /*O_STATIC_EXTENSIONS*/
 #endif /*HAVE_DLOPEN*/
-#else /*O_STATIC_EXTENSIONS*/
+
+#ifdef O_STATIC_EXTENSIONS
+#if USE_DLOPEN_SELF
 #include <dlfcn.h>
 #include <errno.h>
+#endif
 
 static int
 activate_static_extension(const char *ename)
@@ -446,7 +449,7 @@ cleanupForeign(void)
 		 *******************************/
 
 BeginPredDefs(dlopen)
-#ifdef HAVE_SHARED_OBJECTS
+#if defined(HAVE_SHARED_OBJECTS) && !defined(O_STATIC_EXTENSIONS)
   PRED_DEF("$open_shared_object", 3, open_shared_object, 0)
   PRED_DEF("close_shared_object", 1, close_shared_object, 0)
   PRED_DEF("call_shared_object_function", 2, call_shared_object_function,
