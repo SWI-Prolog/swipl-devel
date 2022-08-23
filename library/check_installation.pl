@@ -105,7 +105,7 @@ component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(odbc), _{}).
 component(library(pce),
-          _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
+          _{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
             url:'xpce.html'}).
 component(library(pcre), _{features:pcre_features}).
 component(library(pdt_console), _{}).
