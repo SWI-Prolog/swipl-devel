@@ -565,13 +565,38 @@ ensure_shlib :-
 
 :- elif(current_predicate('$activate_static_extension'/1)).
 
+% Version when using shared objects is disabled and extensions are added
+% as static libraries.
+
 :- meta_predicate
     use_foreign_library(:).
+:- dynamic
+    loading/1,
+    foreign_predicate/2.
 
 use_foreign_library(Module:foreign(Extension)) =>
-    @('$activate_static_extension'(Extension), Module).
+    setup_call_cleanup(
+        asserta(loading(foreign(Extension)), Ref),
+        @('$activate_static_extension'(Extension), Module),
+        erase(Ref)).
 
 :- export(use_foreign_library/1).
+
+system:'$foreign_registered'(M, H) :-
+    (   loading(Lib)
+    ->  true
+    ;   Lib = '<spontaneous>'
+    ),
+    assert(foreign_predicate(Lib, M:H)).
+
+%!  current_foreign_library(?File, -Public)
+%
+%   Query currently loaded shared libraries.
+
+current_foreign_library(File, Public) :-
+    setof(Pred, foreign_predicate(File, Pred), Public).
+
+:- export(current_foreign_library/2).
 
 :- endif. /* open_shared_object support */
 
