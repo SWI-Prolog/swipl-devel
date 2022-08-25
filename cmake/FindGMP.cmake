@@ -9,7 +9,7 @@
 # GMP_LIBRARIES_DIR - the directory the library we link with is found in.
 
 if (ANDROID AND (NOT $ENV{TERMUX_CMAKE_BUILD}))
-set( GMP_ROOT ${CMAKE_SOURCE_DIR}/../gmp/${ANDROID_ABI} )
+  set (GMP_ROOT ${CMAKE_SOURCE_DIR}/../gmp/${ANDROID_ABI})
   set (GMP_FOUND ON)
   set (GMP_INCLUDE_DIRS ${GMP_ROOT})
   set (GMP_LIBRARIES ${GMP_ROOT}/libgmp.so)
@@ -51,6 +51,20 @@ find_file(GMP_LIBRARY_DLL NAMES mpir.dll mpird.dll
 )
 
 else(MSVC)
+if(EMSCRIPTEN)
+
+# Somehow the Emscripten toolchain causes the generic find_library() to
+# fail.  If you happen to find out why, please share.
+
+if(NOT GMP_ROOT)
+  message("Please use -DGMP_ROOT=dir to enable GMP on Emscripen")
+endif()
+set(GMP_LIBRARIES ${GMP_ROOT}/lib/libgmp.a)
+set(GMP_LIBRARIES_DIR ${GMP_ROOT}/lib)
+set(GMP_INCLUDE_DIRS ${GMP_ROOT}/include)
+get_filename_component(GMP_LIBRARIES_DIR "${GMP_LIBRARIES}" PATH CACHE)
+
+else(EMSCRIPTEN)
 
 #use GMP, notice that there are two cases, everything is the same directory, or everything is in
 #its proper places
@@ -63,7 +77,7 @@ else(MSVC)
 			$ENV{GMP_ROOT}
 			$ENV{GMP_ROOT}/lib
 			${GMP_ROOT}
-			    			${GMP_ROOT}/lib
+						${GMP_ROOT}/lib
 			/usr/local/opt/gmp/lib
 			/opt/lib
 			/usr/local/lib
@@ -80,13 +94,13 @@ else(MSVC)
               $ENV{GMP_ROOT}/include
               ${GMP_ROOT}
               ${GMP_ROOT}/include
-  			${GMP_LIBRARIES_DIR}/../include
-  			${GMP_LIBRARIES_DIR}
-  			)
+			${GMP_LIBRARIES_DIR}/../include
+			${GMP_LIBRARIES_DIR}
+			)
 
 get_filename_component(GMP_LIBRARIES_DIR "${GMP_LIBRARIES}" PATH CACHE)
 
-
+endif(EMSCRIPTEN)
 endif(MSVC)
 endif(ANDROID AND (NOT $ENV{TERMUX_CMAKE_BUILD}))
 

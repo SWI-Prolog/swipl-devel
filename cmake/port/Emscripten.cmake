@@ -6,6 +6,8 @@ set(ALIGNOF_DOUBLE  8 CACHE STRING "Alignment for double")
 set(PLHOME     "/swipl")
 set(SWIPL_ARCH "wasm-emscripten")
 set(USE_TCMALLOC OFF)
+set(USE_SIGNALS OFF)
+set(MULTI_THREADED OFF)
 set(STATIC_EXTENSIONS ON)
 set(BUILD_SWIPL_LD OFF)
 

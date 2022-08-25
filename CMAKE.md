@@ -103,6 +103,7 @@ and libraries that are built.
   | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
   | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
+  | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
   | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
@@ -180,9 +181,9 @@ perform the process on your host Linux system.
 ### WASM (Emscripten)
 
 Install  [Emscripten](https://emscripten.org/),  download    and   build
-[zlib](https://zlib.net/) using Emscripten. Now you   can build the core
-system using the commands  below  (assume   initial  working  dir is the
-root of the source tree).
+[zlib](https://zlib.net/) using Emscripten. Now you can build the system
+using the commands below (assume initial working  dir is the root of the
+source tree).
 
     mkdir build.wasm
     cd build.wasm
@@ -191,13 +192,15 @@ root of the source tree).
           -DCMAKE_BUILD_TYPE=Release \
           -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
           -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
-          -DMULTI_THREADED=OFF \
-          -DUSE_SIGNALS=OFF \
-          -DUSE_GMP=OFF \
-          -DBUILD_SWIPL_LD=OFF \
-          -DSWIPL_PACKAGES=OFF \
+	  -DGMP_ROOT=$HOME/wasm \
           -DINSTALL_DOCUMENTATION=OFF \
           -G Ninja ..
+
+For   latest   news   on   the    WASM     version    see    the   [Wiki
+page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
+This page also discusses how to use the WASM version with Node.js and in
+a browser.
+
 
 ### Building a 32-bit version on 64-bit Debian based Linux
 
