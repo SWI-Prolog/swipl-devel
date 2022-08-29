@@ -1157,6 +1157,7 @@ PL_canonicalise_text(PL_chars_t *text)
 	  flip_shorts((unsigned char*)text->text.t, text->length);
 	}
 	text->encoding = ENC_WCHAR;
+	text->length /= sizeof(wchar_t);
 	goto case_wchar;
 #else /*SIZEOF_WCHAR_T!=2*/
 	size_t len = text->length/sizeof(short);
