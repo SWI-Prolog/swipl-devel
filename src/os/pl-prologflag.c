@@ -1461,6 +1461,7 @@ initPrologFlags(void)
 #endif
   setPrologFlag("file_name_case_handling", FT_ATOM,
 		stringAtom(currentFileNameCaseHandling()));
+  setPrologFlag("path_max", FT_INTEGER|FF_READONLY, PATH_MAX);
   setPrologFlag("version", FT_INTEGER|FF_READONLY, PLVERSION);
   setPrologFlag("dialect", FT_ATOM|FF_READONLY, "swi");
   if ( systemDefaults.home )

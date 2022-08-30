@@ -1806,6 +1806,14 @@ options.
 If \const{true}, extension packs (add-ons) are attached.  Can be set to
 \const{false} using the \cmdlineoption{--no-packs}.
 
+    \prologflagitem{path_max}{integer}{r}
+Maximum length of a file pathname as reported by the OS. This length
+does typically not directly define the number of characters in the file
+name.  The actual limit may be shorter due to jargon{encoding} (e.g.,
+on POSIX systems it typically defines the length limit of the (often)
+UTF-8 encoded name).  The underlying file system may impose additional
+limits.
+
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
 flag is implementation-defined.
