@@ -37,6 +37,7 @@
 #define UNICODE 1
 #define _UNICODE 1
 
+#include "../../config/wincfg.h"
 #define _UXNT_KERNEL 1
 #include "uxnt.h"			/* my prototypes */
 #include "utf8.c"
@@ -84,6 +85,11 @@
 
 #define XENOMAP 1
 #define XENOMEM 2
+
+#if WIN_PATH_MAX
+#undef PATH_MAX
+#define PATH_MAX WIN_PATH_MAX
+#endif
 
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
