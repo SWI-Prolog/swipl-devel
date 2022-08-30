@@ -10646,10 +10646,20 @@ deleting an open file on Windows is not possible.
 
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} as \arg{File2}. The semantics is compatible to the
-POSIX semantics of the rename() system call as far as the operating
+semantics of the POSIX rename() system call as far as the operating
 system allows. Notably, if \arg{File2} exists, the operation succeeds
 (except for possible permission errors) and is \jargon{atomic} (meaning
-there is no window where \arg{File2} does not exist).
+there is no window where \arg{File2} does not exist). Note that
+\arg{File2} cannot be an existing directory.\footnote{The POSIX
+semantics describe one exception: a directory can be moved to an
+existing \emph{empty} directory.} To move a file to another directory
+one must create \arg{File2} from the target directory and the base name
+of \arg{File1}.  See file_base_name/2.
+
+The rename() system call has a large number of error conditions. Errors
+are mapped to Prolog exceptions using a generic conversion based on the
+\arg{File1} argument. As a result, the errors may be confusing. Future
+versions may improve on this.
 
     \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in bytes.
