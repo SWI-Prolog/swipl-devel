@@ -66,7 +66,6 @@ static mpz_t MPZ_MAX_LONG;
 		 *******************************/
 
 #if O_MY_GMP_ALLOC
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GMP doesn't (yet) allow for handling  memory overflows. You can redefine
 the allocation handles, but you are not  allowed to return NULL or abort
@@ -76,8 +75,15 @@ created during the Prolog function evaluation  and use longjmp() through
 STACK_OVERFLOW_THROW.   Patrick Pelissier acknowledged this should work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void *(*smp_alloc)(size_t);
+static void *(*smp_realloc)(void *, size_t, size_t);
+static void  (*smp_free)(void *, size_t);
+
+#define NOT_IN_PROLOG_ARITHMETIC() \
+	(LD == NULL || LD->gmp.context == NULL || LD->gmp.persistent)
+
 static int
-gmp_too_big()
+gmp_too_big(void)
 { GET_LD
 
   DEBUG(1, Sdprintf("Signalling GMP overflow\n"));
@@ -92,8 +98,8 @@ mp_alloc(size_t bytes)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-    return malloc(bytes);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_alloc(bytes);
 
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
@@ -126,8 +132,8 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
   mp_mem_header *oldmem, *newmem;
 
-  if ( LD->gmp.persistent )
-    return realloc(ptr, newsize);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_realloc(ptr, oldsize, newsize);
 
   oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
@@ -163,8 +169,8 @@ mp_free(void *ptr, size_t size)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-  { free(ptr);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+  { smp_free(ptr, size);
     return;
   }
 
@@ -869,10 +875,6 @@ clearGMPNumber(Number n)
 		 /*******************************
 		 *	       INIT		*
 		 *******************************/
-
-static void *(*smp_alloc)(size_t);
-static void *(*smp_realloc)(void *, size_t, size_t);
-static void  (*smp_free)(void *, size_t);
 
 void
 initGMP(void)
