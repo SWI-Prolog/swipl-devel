@@ -961,7 +961,7 @@ wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 
 
 static void
-utf8tobuffer(wchar_t c, Buffer buf)
+utf8tobuffer(int c, Buffer buf)
 { if ( c <= 0x7f )
   { addBuffer(buf, (char)c, char);
   } else
@@ -1019,8 +1019,11 @@ PL_mb_text(PL_chars_t *text, int flags)
 	  const pl_wchar_t *e = &w[text->length];
 
 	  if ( target == ENC_UTF8 )
-	  { for( ; w<e; w++)
-	    { utf8tobuffer(*w, b);
+	  { while( w < e )
+	    { int c;
+
+	      w = get_wchar(w, &c);
+	      utf8tobuffer(c, b);
 	    }
 	    addBuffer(b, 0, char);
 	  } else /* if ( target == ENC_MB ) */
@@ -1525,8 +1528,12 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    const pl_wchar_t *e = &s[text->length];
 
 	    b = findBuffer(BUF_STACK);
-	    for( ; s<e; s++)
-	      utf8tobuffer(*s, b);
+	    while( s < e )
+	    { int c;
+
+	      s = get_wchar(s, &c);
+	      utf8tobuffer(c, b);
+	    }
 	    goto swap_to_utf8;
 	  }
 	  case ENC_ANSI:
