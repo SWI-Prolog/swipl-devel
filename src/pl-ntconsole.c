@@ -125,17 +125,34 @@ flush_ansi(ansi_stream *as)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We must flush surrogate pairs  as  a   single  unit  for  the console to
+interpret them. Thus, we will normally flush   while there is still room
+for one more code unit. If we  see   a  UTF-16  surrogate pair while the
+buffer is really full we need to flush anyway. This should never happen.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 send_ansi(ansi_stream *as, int chr)
-{ as->buffer[as->buffered++] = chr;
+{ int flush = FALSE;
 
-  if ( as->buffered == ANSI_BUFFER_SIZE ||
-       (as->pStream->flags & SIO_NBUF) ||
-       (chr == '\n' && (as->pStream->flags & SIO_LBUF)) )
+  as->buffer[as->buffered++] = chr;
+
+  if ( IS_UTF16_LEAD(chr) )
+  { if ( as->buffered >= ANSI_BUFFER_SIZE )
+      flush = TRUE;
+  } else
+  { if ( as->buffered >= ANSI_BUFFER_SIZE-1 ||
+	 (chr == '\n' && (as->pStream->flags & SIO_LBUF)) )
+      flush = TRUE;
+  }
+
+  if ( flush )
     return flush_ansi(as);
 
   return 0;
 }
+
 
 #define FG_MASK (FOREGROUND_RED|FOREGROUND_BLUE|FOREGROUND_GREEN)
 #define BG_MASK (BACKGROUND_RED|BACKGROUND_BLUE|BACKGROUND_GREEN)
@@ -334,6 +351,8 @@ write_ansi(void *handle, char *buffer, size_t size)
   { if ( put_ansi(as, *s) != 0 )
       return -1;			/* error */
   }
+  if ( as->pStream->flags & SIO_NBUF )
+    flush_ansi(as);
 
   return n * sizeof(wchar_t);
 }
