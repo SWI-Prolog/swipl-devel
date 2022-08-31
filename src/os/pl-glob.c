@@ -733,6 +733,23 @@ expand(const char *pattern, GlobInfo info)
 
 
 static int
+utf8casecmp(const char *s1, const char *s2)
+{ while(*s1 && *s2)
+  { int c1, c2;
+
+    s1 = utf8_get_char(s1, &c1);
+    s2 = utf8_get_char(s2, &c2);
+    c1 = makeLowerW(c1);
+    c2 = makeLowerW(c2);
+
+    if ( c1 != c2 )
+      return c1-c2;
+  }
+
+  return *s1 && *s2 ? 0 : *s1 ? 1 : -1;
+}
+
+static int
 compareBagEntries(const void *a1, const void *a2)
 { GET_LD
   GlobInfo info = LD->glob_info;
@@ -744,9 +761,9 @@ compareBagEntries(const void *a1, const void *a2)
   s2 = expand_str(info, i2);
 
   if ( truePrologFlag(PLFLAG_FILE_CASE) )
-    return mbscoll(s1, s2);
+    return strcmp(s1, s2);
   else
-    return mbscasecoll(s1, s2);
+    return utf8casecmp(s1, s2);
 }
 
 
