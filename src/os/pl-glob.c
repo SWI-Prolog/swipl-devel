@@ -296,7 +296,7 @@ compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 
 
 static int
-matchPattern(char *s, compiled_pattern *cbuf, int flags)
+matchPattern(const char *s, compiled_pattern *cbuf, int flags)
 { return match_pattern(baseBuffer(&cbuf->pattern, matchcode), s, flags);
 }
 
