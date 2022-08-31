@@ -319,11 +319,11 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
     { int wc;
 
       q = utf8_get_char(q, &wc);
-      if ( s+2 >= e )
+      if ( s+1+(wc>0xffff) >= e )
       { errno = ENAMETOOLONG;
 	return NULL;
       }
-      *s++ = wc;
+      s = utf16_put_char(s, wc);
     }
   }
 
