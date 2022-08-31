@@ -104,7 +104,11 @@ extern const char _PL_char_types[];	/* array of character types */
 #define isLetterW(c)	(PlCharType(c, == LC, iswalpha((wint_t)c)) || \
 			 PlCharType(c, == UC, FALSE))
 
-#define toLowerW(c)	((unsigned)(c) <= 'Z' ? (c) + 'a' - 'A' : towlower(c))
+#if SIZEOF_WINT_T == 2
+#define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : \
+			 (c) <= 0xffff ? towlower(c) : c)
+#else
 #define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : towlower(c))
+#endif
 
 #endif /*_PL_CTYPE_H*/

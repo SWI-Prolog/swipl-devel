@@ -1445,7 +1445,7 @@ utf8_path_lwr(char *s, size_t len)
   { int c;
 
     PL_utf8_code_point(&i, NULL, &c);
-    c = towlower((wint_t)c);
+    c = makeLowerW(c);
     if ( o >= s + PATH_MAX-6 )
     { char ls[10];
       char *e = utf8_put_char(ls,c);
