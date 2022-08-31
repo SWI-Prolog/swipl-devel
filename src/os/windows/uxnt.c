@@ -878,7 +878,7 @@ int
 _xos_stat(const char *path, struct _stati64 *sbuf)
 { TCHAR buf[PATH_MAX];
 
-   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
   return _wstati64(buf, sbuf);
