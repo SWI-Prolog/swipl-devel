@@ -10547,6 +10547,32 @@ the item.
 
 \section{File System Interaction}	\label{sec:files}
 
+The predicates in this section provide interaction with the file system
+and (syntactic) operations on file names. SWI-Prolog file system
+interaction is based on the POSIX standard. On Windows we use the
+Unicode (wide character) versions of the C runtime library functions.
+
+\index{errors,file}%
+The file operations define a large set of error conditions. Errors are
+mapped to Prolog exceptions using a generic function that receives the
+\arg{action} (e.g., \const{make_directory}), \arg{type} (e.g.,
+\const{directory}), the term that describes the object (name) of the
+file system and the \const{errno} value. Unfortunately, the resulting
+exceptions are often misleading. For example, calling make_directory/1
+such that it must create mutiple directories (e.g., \const{d1/d2/d3})
+returns an existence error on the directory \const{d1/d2/d3} rather than
+the missing component. On Windows the situation is even worse because
+many of its runtime functions distinguish only a few error codes. For
+example, _wmkdir() only produces \const{EEXIST} or \const{ENOENT} and
+all failures except for an already existing target result in an
+existence_error exception. We can only improve on this situation by
+implementing the translation of \const{errno} to a Prolog exception
+specifically for each file operation and perform additional tests to
+distinguish the different error conditions that are represented by the
+same \const{errno} value. This is hard, in particular because this
+translation needs to depend on the OS and specific file system
+limitations.
+
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
 True if \arg{File} exists and can be accessed by this Prolog
