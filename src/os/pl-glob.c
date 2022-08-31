@@ -556,7 +556,8 @@ utf8_exists_file(DECL_LD const char *name)
 
   return rc;
 #else
-  return AccessFile(name, ACCESS_EXIST);
+  // _xos_access_dir simply uses _waccess().  That is good enough for us.
+  return _xos_access_dir(name, F_OK) == 0 ? TRUE : FALSE;
 #endif
 }
 
