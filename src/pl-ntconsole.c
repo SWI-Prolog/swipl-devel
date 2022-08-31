@@ -35,13 +35,8 @@
 */
 
 #define WINDOWS_LEAN_AND_MEAN 1
-#if (_MSC_VER >= 1300) || defined(__MINGW32__)
-#include <winsock2.h>			/* Needed on VC8 */
-#include <windows.h>
-#else
-#include <windows.h>			/* Needed for MSVC 5&6 */
 #include <winsock2.h>
-#endif
+#include <windows.h>
 #include "pl-incl.h"
 #include "pl-nt.h"
 
