@@ -76,6 +76,9 @@
 #define PATH_MAX WIN_PATH_MAX
 #endif
 
+#define WIN_PATH_PREFIX _T("\\\\?\\")
+#define WIN_UNC_PREFIX  _T("\\\\?UNC\\")
+
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
 
@@ -262,63 +265,82 @@ Map a UTF-8 string in Prolog internal representation to a UNICODE string
 to be used with the Windows UNICODE access functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define ISSEP(c) ((c)=='/'||(c)=='\\')
+
+static int
+is_unc_path(const char *q)
+{ if ( ISSEP(q[0]) && ISSEP(q[1]) )
+  { const char *hp = q+2;
+
+    for(q=hp; *q && *q < 0x80 && (isalnum(*q) || *q == '.' || *q == ':'); q++)
+      ;
+    if ( ISSEP(*q) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+static int
+has_win_prefix(const wchar_t *s)
+{ if ( wcsncmp(s, WIN_PATH_PREFIX, wcslen(WIN_PATH_PREFIX)) == 0 )
+    return wcslen(WIN_PATH_PREFIX);
+  if ( wcsncmp(s, WIN_UNC_PREFIX,  wcslen(WIN_UNC_PREFIX)) == 0 )
+    return wcslen(WIN_UNC_PREFIX);
+
+  return 0;
+}
+
+
 wchar_t *
 _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
-{ wchar_t *s = osname;
-  wchar_t *e = &osname[len-1];
-  const char *q = cname;
+{ TCHAR buf[PATH_MAX];
+  wchar_t *s = buf;
+  wchar_t *e = &s[PATH_MAX-1];
+  const char *q;
+
+  for(q=cname; *q; )				/* UTF-8 --> UTF-16 */
+  { int wc;
+
+    q = utf8_get_char(q, &wc);
+    if ( s+1+(wc>0xffff) >= e )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+    s = utf16_put_char(s, wc);
+  }
+  *s = 0;
 
   s = osname;
-					/* /c:/ --> c:/ */
-  if ( q[0] == '/' && !(q[1]&0x80) && isalpha(q[1]) && q[2] == ':' &&
-       (q[3] == '/' || q[3] == '\0') )
-  { if ( s+2 >= e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    *s++ = q[1];
-    *s++ = ':';
-    q += 3;
+  if ( is_unc_path(cname) )
+  { wcscpy(s, WIN_UNC_PREFIX);
+    s += wcslen(s);
+  } else
+  { wcscpy(s, WIN_PATH_PREFIX);
+    s += wcslen(s);
+  }
+  len -= (s-osname);
+
+  DWORD rc = GetFullPathNameW(buf, len, s, NULL);
+  if ( rc > len )
+  { errno = ENAMETOOLONG;
+    return NULL;
+  } else if ( rc == 0 )
+  { errno = EINVAL;
+    return NULL;
   }
 
-  if ( (q[0] == '/' || q[0] == '\\') &&
-       (q[1] == '/' || q[1] == '\\') )	/* deal with //host/share */
-  { if ( s+1 >= e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    *s++ = '\\';
+  /* Work around a bug in GetFullPathNameW() which sometimes starts
+     adding its own \\?\ prefix.  If so, we delete it again ...
+  */
+
+  int n;
+  if ( (n=has_win_prefix(s)) )
+  { const wchar_t *from = s+n;
+    size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
+
+    memmove(s, from, bytes);
   }
-
-  while( *q )				/* map / --> \, delete multiple '\' */
-  { if ( *q == '/' || *q == '\\' )
-    { if ( s+1 >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
-      *s++ = '\\';
-      q++;
-      while(*q == '/' || *q == '\\')
-	q++;
-    } else
-    { int wc;
-
-      q = utf8_get_char(q, &wc);
-      if ( s+1+(wc>0xffff) >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
-      s = utf16_put_char(s, wc);
-    }
-  }
-
-  while(s > osname+1 && s[-1] == '\\' )	/* delete trailing '\' */
-    s--;
-					/* d: --> d:\ */
-  if ( s == &osname[2] && osname[1] == ':' &&
-       osname[0] < 0x80 && isalpha(osname[0]) )
-    *s++ = '\\';
-  *s = '\0';
 
   return osname;
 }
