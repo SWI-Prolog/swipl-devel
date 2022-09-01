@@ -761,17 +761,28 @@ void *
 PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
   DWORD llflags = 0;
-  size_t len = utf8_strlen(file, strlen(file));
-  wchar_t *wfile = alloca((len+10)*sizeof(wchar_t));
+  wchar_t wfile[PATH_MAX];
 
-  if ( !wfile )
-  { dlmsg = "No memory";
-    return NULL;
-  }
+  if ( strchr(file, '/') || strchr(file, '\\' ) )
+  { if ( _xos_os_filenameW(file, wfile, PATH_MAX) == NULL )
+    { dlmsg = "Name too long";
+      return NULL;
+    }
+  } else
+  { wchar_t *w = wfile;
+    wchar_t *e = &w[PATH_MAX-1];
 
-  if ( _xos_os_filenameW(file, wfile, len+10) == NULL )
-  { dlmsg = "Name too long";
-    return NULL;
+    for(const char *s = file; *s; )
+    { int c;
+
+      s = utf8_get_char(s, &c);
+      if ( w+2 >= e )
+      { dlmsg = "Name too long";
+	return NULL;
+      }
+      w = put_wchar(w, c);
+    }
+    *w = 0;
   }
 
   DEBUG(MSG_WIN_API, Sdprintf("dlopen(%Ws)\n", wfile));
