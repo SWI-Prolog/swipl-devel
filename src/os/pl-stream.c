@@ -2474,7 +2474,9 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 's':
 	    fs = va_arg(args, char *);
 	    if ( !fs )
-	      fs = "(null)";
+	    { fs = "(null)";
+	      enc = ENC_ISO_LATIN_1;
+	    }
 	    break;
 	}
 
