@@ -45,6 +45,7 @@
 #endif
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <io.h>
@@ -165,6 +166,7 @@ _export int	_xos_chmod(const char *path, int mode);
 _export int	_xos_remove(const char *path);
 _export int	_xos_rename(const char *old, const char *newname);
 _export int	_xos_stat(const char *path, struct _stati64 *sbuf);
+_export int	_xos_file_size(const char *path, uint64_t *sizep);
 _export int	_xos_chdir(const char *path);
 _export int	_xos_mkdir(const char *path, int mode);
 _export int	_xos_rmdir(const char *path);

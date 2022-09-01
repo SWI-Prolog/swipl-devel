@@ -163,13 +163,23 @@ be accessed.
 
 static int64_t
 SizeFile(const char *path)
-{ char tmp[PATH_MAX];
+{
+#if O_XOS
+  uint64_t size;
+
+  if ( _xos_file_size(path, &size) == 0 )
+    return (int64_t)size;
+
+  return -1;
+#else
+  char tmp[PATH_MAX];
   statstruct buf;
 
   if ( statfunc(OsPath(path, tmp), &buf) < 0 )
     return -1;
 
   return buf.st_size;
+#endif
 }
 
 

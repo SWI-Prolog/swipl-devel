@@ -892,6 +892,28 @@ _xos_stat(const char *path, struct _stati64 *sbuf)
 }
 
 
+int
+_xos_file_size(const char *path, uint64_t *sizep)
+{ TCHAR buf[PATH_MAX];
+  WIN32_FILE_ATTRIBUTE_DATA info;
+
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+    return -1;
+
+  if ( GetFileAttributesExW(buf, GetFileExInfoStandard, &info) )
+  { uint64_t size = info.nFileSizeHigh;
+
+    size <<= sizeof(info.nFileSizeHigh)*8;
+    size += info.nFileSizeLow;
+    *sizep = size;
+    return 0;
+  }
+
+  errno = ENOENT;
+  return -1;
+}
+
+
 static int
 exists_file_or_dir(const TCHAR *path, int flags)
 { DWORD a;
