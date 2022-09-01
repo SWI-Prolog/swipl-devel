@@ -71,21 +71,6 @@
 #define FALSE 0
 #endif
 
-#ifdef __LCC__
-#define _close close
-#define _read read
-#define _write write
-#define _lseek lseek
-#define _tell tell
-#define _chdir chdir
-#define _mkdir mkdir
-#define _rmdir rmdir
-#define _getcwd getcwd
-#endif
-
-#define XENOMAP 1
-#define XENOMEM 2
-
 #if WIN_PATH_MAX
 #undef PATH_MAX
 #define PATH_MAX WIN_PATH_MAX
