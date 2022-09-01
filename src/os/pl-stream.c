@@ -2207,7 +2207,9 @@ next_chr(const char **s, IOENC enc)
     }
     case ENC_WCHAR:
     { const wchar_t *w = (const wchar_t*)*s;
-      wint_t c = *w++;
+      int c;
+
+      w = get_wchar(w, &c);
       *s = (const char*)w;
       return c;
     }
