@@ -952,6 +952,12 @@ _xos_exists(const char *path, int flags)
 		 *	    DIRECTORIES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) According to the docs, FindFirstFileW()   does not _need_ the "\\?\"
+prefix. It seems that on some specific   directories  this goes wrong in
+Wine.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 DIR *
 opendir(const char *path)
 { TCHAR buf[PATH_MAX];
@@ -976,7 +982,8 @@ opendir(const char *path)
     return NULL;
   }
   dp->first = 1;
-  dp->handle = FindFirstFile(buf, dp->data);
+  wchar_t *pattern = buf+has_win_prefix(buf); /* see (*) */
+  dp->handle = FindFirstFile(pattern, dp->data);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
   { *edir = 0;
