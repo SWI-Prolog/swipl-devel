@@ -346,6 +346,17 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 }
 
 
+char *
+_xos_os_filename(const char *cname, char *osname, size_t len)
+{ TCHAR buf[PATH_MAX];
+
+  if ( !_xos_os_filenameW(cname, buf, PATH_MAX) )
+    return NULL;
+
+  return wcstoutf8(osname, buf, len);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Transform a UNICODE Windows filename into a UTF-8 representation of the
 filename in Prolog canonical representation.

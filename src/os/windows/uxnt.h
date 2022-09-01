@@ -137,6 +137,8 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 _export char *  _xos_home(void);
 _export wchar_t*_xos_os_filenameW(const char *cname,
 				  wchar_t *osname, size_t len);
+_export char *	_xos_os_filename(const char *cname,
+				 char *osname, size_t len);
 _export char *	_xos_canonical_filenameW(const wchar_t *cname,
 					 char *osname, size_t len, int flags);
 _export char *	_xos_canonical_filename(const char *cname,
