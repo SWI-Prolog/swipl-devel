@@ -1046,16 +1046,11 @@ _xos_chdir(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( buf[0] < 0x80 && isalpha(buf[0]) && buf[1] == ':' )
-  { int drv = tolower(buf[0]) - 'a' + 1;
+  if ( SetCurrentDirectoryW(buf) )
+    return 0;
 
-    if ( _getdrive() != drv )
-    { if ( _chdrive(drv) < 0 )
-	return -1;
-    }
-  }
-
-  return _wchdir(buf);
+  errno = ENOENT;
+  return -1;
 }
 
 
