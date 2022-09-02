@@ -427,13 +427,9 @@ _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 
 int
 _xos_is_absolute_filename(const char *spec)
-{ TCHAR buf[PATH_MAX];
-
-  if ( !_xos_os_filenameW(spec, buf, PATH_MAX) )
-    return FALSE;
-  if ( buf[1] == ':' && buf[0] < 0x80 && iswalpha(buf[0]) )
+{ if ( spec[1] == ':' && !(spec[0]&0x80) && iswalpha(spec[0]) )
     return TRUE;			/* drive */
-  if ( buf[0] == '\\' && buf[1] == '\\' )
+  if ( ISSEP(spec[0]) && ISSEP(spec[1]) )
     return TRUE;			/* UNC */
 
   return FALSE;
