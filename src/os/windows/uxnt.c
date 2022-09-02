@@ -309,23 +309,11 @@ _xos_win_prefix_lenght(const wchar_t *s)
 wchar_t *
 _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 { TCHAR buf[PATH_MAX];
-  wchar_t *s = buf;
-  wchar_t *e = &s[PATH_MAX-1];
-  const char *q;
+  wchar_t *s = osname;
 
-  for(q=cname; *q; )				/* UTF-8 --> UTF-16 */
-  { int wc;
+  if ( !_xos_utf8towcs(buf, cname, PATH_MAX) )
+    return NULL;
 
-    q = utf8_get_char(q, &wc);
-    if ( s+1+(wc>0xffff) >= e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    s = utf16_put_char(s, wc);
-  }
-  *s = 0;
-
-  s = osname;
   if ( is_unc_path(cname) )
   { wcscpy(s, WIN_UNC_PREFIX);
     s += wcslen(s);
