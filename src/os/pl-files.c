@@ -440,7 +440,8 @@ RenameFile(const char *old, const char *new)
 static int
 MarkExecutable(const char *name)
 {
-#if (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || defined(__unix__)
+#if ( (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || \
+      defined(__unix__) ) && !defined(__WINDOWS__)
   statstruct buf;
   mode_t um;
 
