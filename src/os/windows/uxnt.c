@@ -281,8 +281,8 @@ is_unc_path(const char *q)
   return FALSE;
 }
 
-static int
-has_win_prefix(const wchar_t *s)
+int
+_xos_win_prefix_lenght(const wchar_t *s)
 { if ( wcsncmp(s, WIN_PATH_PREFIX, wcslen(WIN_PATH_PREFIX)) == 0 )
     return wcslen(WIN_PATH_PREFIX);
   if ( wcsncmp(s, WIN_UNC_PREFIX,  wcslen(WIN_UNC_PREFIX)) == 0 )
@@ -335,7 +335,7 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
   */
 
   int n;
-  if ( (n=has_win_prefix(s)) )
+  if ( (n=_xos_win_prefix_lenght(s)) )
   { const wchar_t *from = s+n;
     size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
 
@@ -983,7 +983,7 @@ opendir(const char *path)
     return NULL;
   }
   dp->first = 1;
-  wchar_t *pattern = buf+has_win_prefix(buf); /* see (*) */
+  wchar_t *pattern = buf+_xos_win_prefix_lenght(buf); /* see (*) */
   dp->handle = FindFirstFile(pattern, dp->data);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )

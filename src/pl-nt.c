@@ -700,16 +700,16 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
   char *dirs;
 
   if ( PL_get_file_name(A1, &dirs, REP_UTF8) )
-  { size_t len = utf8_strlen(dirs, strlen(dirs));
-    wchar_t *dirw = alloca((len+10)*sizeof(wchar_t));
+  { wchar_t dirw[PATH_MAX];
     DLL_DIRECTORY_COOKIE cookie;
 
-    if ( _xos_os_filenameW(dirs, dirw, len+10) == NULL )
+    if ( _xos_os_filenameW(dirs, dirw, PATH_MAX) == NULL )
       return PL_representation_error("file_name");
     if ( load_library_search_flags() )
     { int eno;
 
-      if ( (cookie = (*f_AddDllDirectoryW)(dirw)) )
+      /* AddDllDirectoryW() cannot handle "\\?\" */
+      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_lenght(dirw))) )
       { DEBUG(MSG_WIN_API,
 	      Sdprintf("AddDllDirectory(%Ws) ok\n", dirw));
 
