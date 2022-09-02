@@ -91,6 +91,20 @@ _xos_errno(void)
 { return errno;
 }
 
+static void
+set_posix_error(int win_error)
+{ int error = 0;
+
+  switch(win_error)
+  { case ERROR_ACCESS_DENIED:	  error = EACCES; break;
+    case ERROR_FILE_NOT_FOUND:    error = ENOENT; break;
+    case ERROR_SHARING_VIOLATION: error = EAGAIN; break;
+    case ERROR_ALREADY_EXISTS:    error = EEXIST; break;
+  }
+
+  errno = error;
+}
+
 		 /*******************************
 		 *		UTF-8		*
 		 *******************************/
@@ -882,17 +896,6 @@ _xos_rename(const char *old, const char *new)
 
 
 int
-_xos_stat(const char *path, struct _stati64 *sbuf)
-{ TCHAR buf[PATH_MAX];
-
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
-    return -1;
-
-  return _wstati64(buf, sbuf);
-}
-
-
-int
 _xos_file_size(const char *path, uint64_t *sizep)
 { TCHAR buf[PATH_MAX];
   WIN32_FILE_ATTRIBUTE_DATA info;
@@ -910,6 +913,61 @@ _xos_file_size(const char *path, uint64_t *sizep)
   }
 
   errno = ENOENT;
+  return -1;
+}
+
+int
+_xos_get_file_time(const char *name, int which, double *tp)
+{ HANDLE hFile;
+  wchar_t wfile[PATH_MAX];
+
+#define nano * 0.000000001
+#define ntick 100.0
+#define SEC_TO_UNIX_EPOCH 11644473600.0
+
+  if ( !_xos_os_filenameW(name, wfile, PATH_MAX) )
+    return FALSE;
+
+  if ( (hFile=CreateFileW(wfile,
+			  0,
+			  FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+			  NULL,
+			  OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS,
+			  NULL)) != INVALID_HANDLE_VALUE )
+  { FILETIME wt;
+    int rc;
+
+    switch( which )
+    { case XOS_TIME_CREATE:
+	rc = GetFileTime(hFile, &wt, NULL, NULL);
+        break;
+      case XOS_TIME_ACCESS:
+	rc = GetFileTime(hFile, NULL, &wt, NULL);
+        break;
+      case XOS_TIME_MODIFIED:
+	rc = GetFileTime(hFile, NULL, NULL, &wt);
+        break;
+      default:
+	assert(0);
+    }
+    CloseHandle(hFile);
+
+    if ( rc )
+    { double t;
+
+      t  = (double)wt.dwHighDateTime * (4294967296.0 * ntick nano);
+      t += (double)wt.dwLowDateTime  * (ntick nano);
+      t -= SEC_TO_UNIX_EPOCH;
+
+      *tp = t;
+
+      return 0;
+    }
+  }
+
+  set_posix_error(GetLastError());
+
   return -1;
 }
 

@@ -89,7 +89,6 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define chmod(...)	_xos_chmod(__VA_ARGS__)
 #define remove(...)	_xos_remove(__VA_ARGS__)
 #define rename(...)	_xos_rename(__VA_ARGS__)
-#define statfunc(...)	_xos_stat(__VA_ARGS__)
 #define chdir(...)	_xos_chdir(__VA_ARGS__)
 #define mkdir(...)	_xos_mkdir(__VA_ARGS__)
 #define rmdir(...)	_xos_rmdir(__VA_ARGS__)
@@ -132,7 +131,9 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define XOS_ACCESS_GETFILESECURITY	1
 #define XOS_ACCESS_OPENCLOSE		2
 
-#undef _xos_stat
+#define XOS_TIME_CREATE			1
+#define XOS_TIME_ACCESS			2
+#define XOS_TIME_MODIFIED		3
 
 _export char *  _xos_home(void);
 _export int	_xos_win_prefix_lenght(const wchar_t *s);
@@ -166,8 +167,8 @@ _export int	_xos_access_dir(const char *path, int mode);
 _export int	_xos_chmod(const char *path, int mode);
 _export int	_xos_remove(const char *path);
 _export int	_xos_rename(const char *old, const char *newname);
-_export int	_xos_stat(const char *path, struct _stati64 *sbuf);
 _export int	_xos_file_size(const char *path, uint64_t *sizep);
+_export int	_xos_get_file_time(const char *name, int which, double *tm);
 _export int	_xos_chdir(const char *path);
 _export int	_xos_mkdir(const char *path, int mode);
 _export int	_xos_rmdir(const char *path);

@@ -60,27 +60,6 @@
 #undef LD
 #define LD LOCAL_LD
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-General file operations and binding to Prolog
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-#ifdef __WINDOWS__
-static void
-set_posix_error(int win_error)
-{ int error = 0;
-
-  switch(win_error)
-  { case ERROR_ACCESS_DENIED:	  error = EACCES; break;
-    case ERROR_FILE_NOT_FOUND:    error = ENOENT; break;
-    case ERROR_SHARING_VIOLATION: error = EAGAIN; break;
-    case ERROR_ALREADY_EXISTS:    error = EEXIST; break;
-  }
-
-  errno = error;
-}
-#endif /*__WINDOWS__*/
-
-
 		 /*******************************
 		 *	      OS STUFF		*
 		 *******************************/
@@ -97,46 +76,8 @@ intervals since January 1, 1601 (UTC).
 int
 LastModifiedFile(const char *name, double *tp)
 {
-#ifdef __WINDOWS__
-  HANDLE hFile;
-  wchar_t wfile[PATH_MAX];
-
-#define nano * 0.000000001
-#define ntick 100.0
-#define SEC_TO_UNIX_EPOCH 11644473600.0
-
-  if ( !_xos_os_filenameW(name, wfile, PATH_MAX) )
-    return FALSE;
-
-  if ( (hFile=CreateFileW(wfile,
-			  0,
-			  FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
-			  NULL,
-			  OPEN_EXISTING,
-			  FILE_FLAG_BACKUP_SEMANTICS,
-			  NULL)) != INVALID_HANDLE_VALUE )
-  { FILETIME wt;
-    int rc;
-
-    rc = GetFileTime(hFile, NULL, NULL, &wt);
-    CloseHandle(hFile);
-
-    if ( rc )
-    { double t;
-
-      t  = (double)wt.dwHighDateTime * (4294967296.0 * ntick nano);
-      t += (double)wt.dwLowDateTime  * (ntick nano);
-      t -= SEC_TO_UNIX_EPOCH;
-
-      *tp = t;
-
-      return TRUE;
-    }
-  }
-
-  set_posix_error(GetLastError());
-
-  return FALSE;
+#ifdef O_XOS
+  return _xos_get_file_time(name, XOS_TIME_MODIFIED, tp) == 0;
 #else
   char tmp[PATH_MAX];
   statstruct buf;
