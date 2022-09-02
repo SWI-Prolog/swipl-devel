@@ -982,9 +982,12 @@ opendir(const char *path)
     errno = ENOMEM;
     return NULL;
   }
-  dp->first = 1;
+  dp->first = TRUE;
   wchar_t *pattern = buf+_xos_win_prefix_lenght(buf); /* see (*) */
-  dp->handle = FindFirstFile(pattern, dp->data);
+  dp->handle = FindFirstFileExW(pattern,
+				FindExInfoBasic, dp->data,
+				FindExSearchNameMatch, NULL,
+				FIND_FIRST_EX_LARGE_FETCH);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
   { *edir = 0;
@@ -1014,36 +1017,21 @@ closedir(DIR *dp)
 }
 
 
-static struct dirent *
-translate_data(DIR *dp)
-{ if ( !dp->handle )
-    return NULL;
-
-  WIN32_FIND_DATA *data = dp->data;
-  if ( wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name)) )
-    return dp;
-
-  return NULL;
-}
-
-
 struct dirent *
 readdir(DIR *dp)
-{ for(;;)
-  { struct dirent *de;
-
-    if ( dp->first )
-    { dp->first = 0;
-    } else
-    { if ( dp->handle != INVALID_HANDLE_VALUE )
-      { if ( !FindNextFile(dp->handle, dp->data) )
-	  return NULL;
-      }
-    }
-
-    if ( (de = translate_data(dp)) )
-      return de;
+{ if ( dp->first )
+  { dp->first = FALSE;
+    if ( dp->handle == INVALID_HANDLE_VALUE )
+      return NULL;
+  } else
+  { if ( !FindNextFile(dp->handle, dp->data) )
+      return NULL;
   }
+
+  WIN32_FIND_DATA *data = dp->data;
+  wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name));
+
+  return dp;
 }
 
 
