@@ -541,26 +541,31 @@ _xos_absolute_filename(const char *local, char *absolute, size_t len)
 }
 
 
+static void
+delete_trailing_slash(wchar_t *s)
+{ wchar_t *end = s + wcslen(s);
+
+  while(end > s && end[-1] == '\\')
+  { end[-1] = 0;
+    end--;
+  }
+}
+
 int
 _xos_same_file(const char *p1, const char *p2)
 { if ( strcmp(p1, p2) == 0 )
   { return TRUE;
   } else
   { TCHAR osp1[PATH_MAX], osp2[PATH_MAX];
-    TCHAR abs1[PATH_MAX], abs2[PATH_MAX];
-    TCHAR *fp;
 
     if ( !_xos_os_filenameW(p1, osp1, PATH_MAX) ||
 	 !_xos_os_filenameW(p2, osp2, PATH_MAX) )
       return -1;			/* error */
 
-    if ( !GetFullPathName(osp1, PATH_MAX, abs1, &fp) ||
-	 !GetFullPathName(osp2, PATH_MAX, abs2, &fp) )
-      return -1;
+    delete_trailing_slash(osp1);
+    delete_trailing_slash(osp2);
 
-    //fwprintf(stderr, _T("f1='%s'\nf2='%s'\n"), abs1, abs2);
-
-    if ( _tcsicmp(abs1, abs2) == 0 )
+    if ( _tcsicmp(osp1, osp2) == 0 )
       return TRUE;
   }
 
