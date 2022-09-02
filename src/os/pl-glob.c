@@ -702,11 +702,7 @@ expand(const char *pattern, GlobInfo info)
 	  path[plen++] = '/';
 
 	for(e=readdir(d); e; e = readdir(d))
-	{
-#ifdef __MSDOS__
-	  strlwr(e->d_name);
-#endif
-	  if ( (dot || e->d_name[0] != '.') &&
+	{ if ( (dot || e->d_name[0] != '.') &&
 	       matchPattern(e->d_name, &info->pattern, mflags) )
 	  { char newp[PATH_MAX];
 
@@ -720,6 +716,8 @@ expand(const char *pattern, GlobInfo info)
 #endif
 	    }
 	  }
+	  if ( PL_handle_signals() < 0 )
+	    return FALSE;
 	}
 	closedir(d);
       }
