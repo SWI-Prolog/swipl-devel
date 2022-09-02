@@ -158,8 +158,8 @@ wcutf8len(const wchar_t *src)
 }
 
 
-static wchar_t *
-utf8towcs(wchar_t *dest, const char *src, size_t len)
+wchar_t *
+_xos_utf8towcs(wchar_t *dest, const char *src, size_t len)
 { wchar_t *o = dest;
   wchar_t *e = &o[len];
 
@@ -418,7 +418,7 @@ char *
 _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 { TCHAR buf[PATH_MAX];
 
-  if ( !utf8towcs(buf, spec, PATH_MAX) )
+  if ( !_xos_utf8towcs(buf, spec, PATH_MAX) )
     return NULL;
 
   return _xos_canonical_filenameW(buf, xname, len, flags);
@@ -531,7 +531,7 @@ _xos_long_file_name(const char *file, char *longname, size_t len)
 { TCHAR in[PATH_MAX];
   TCHAR out[PATH_MAX];
 
-  if ( !utf8towcs(in, file, PATH_MAX) )
+  if ( !_xos_utf8towcs(in, file, PATH_MAX) )
     return NULL;
 
   if ( !_xos_long_file_nameW(in, out, PATH_MAX) )
@@ -1155,7 +1155,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
   TCHAR *valp = val;
   size_t size;
 
-  if ( !utf8towcs(nm, name, PATH_MAX) )
+  if ( !_xos_utf8towcs(nm, name, PATH_MAX) )
     return -1;
   size = GetEnvironmentVariable(nm, valp, PATH_MAX);
 
@@ -1192,17 +1192,17 @@ _xos_setenv(const char *name, char *value, int overwrite)
   TCHAR *val = buf;
   int rc;
 
-  if ( !utf8towcs(nm, name, PATH_MAX) )
+  if ( !_xos_utf8towcs(nm, name, PATH_MAX) )
     return -1;
   if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
     return 0;
-  if ( !utf8towcs(val, value, PATH_MAX) )
+  if ( !_xos_utf8towcs(val, value, PATH_MAX) )
   { size_t wlen = utf8_wcslen(value, strlen(value)) + 1;
     wchar_t *s;
 
     if ( (val = malloc(wlen*sizeof(TCHAR))) == NULL )
       return -1;
-    s = utf8towcs(val, value, wlen);
+    s = _xos_utf8towcs(val, value, wlen);
     assert(s==val);
     (void)s;
   }

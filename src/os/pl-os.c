@@ -700,15 +700,12 @@ tmp_dir(void)
 static int
 verify_tmp_dir(const char* tmpdir)
 { const char *reason = NULL;
-  statstruct tdStat;
 
   if ( tmpdir == NULL )
     return FALSE;
 
-  if ( statfunc(tmpdir, &tdStat) )
-    reason = OsError();
-  else if ( !S_ISDIR(tdStat.st_mode) )
-    reason = "not a directory";
+  if ( !ExistsDirectory(tmpdir) )
+    reason = "no such directory";
 
   if ( reason )
   { if ( printMessage(ATOM_warning,
@@ -722,6 +719,17 @@ verify_tmp_dir(const char* tmpdir)
   return TRUE;
 }
 
+#ifdef O_XOS
+static wchar_t *
+xos_plain_name(const char *from, wchar_t *buf, size_t len)
+{ wchar_t *rc = _xos_os_filenameW(from, buf, len);
+
+  if ( rc )
+    rc += _xos_win_prefix_lenght(rc);
+
+  return rc;
+}
+#endif
 
 atom_t
 TemporaryFile(const char *id, const char *ext, int *fdp)
@@ -738,38 +746,18 @@ TemporaryFile(const char *id, const char *ext, int *fdp)
 retry:
 { int tmpid = ATOMIC_INC(&temp_counter);
 
-#ifdef __unix__
-{ const char *sep  = id[0]  ? "_" : "";
-  const char *esep = ext[0] ? "." : "";
-
-  if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d_%d%s%s",
-		 tmpdir, id, sep, (int) getpid(),
-		 tmpid,
-		 esep, ext) < 0 )
-  { errno = ENAMETOOLONG;
-    return NULL_ATOM;
-  }
-}
-#endif
-
-#ifdef __WINDOWS__
-{ char *tmp;
+#ifdef O_XOS
+  char *tmp;
   int rc;
-#ifndef __LCC__
   wchar_t *wtmp = NULL, *wtmpdir, *wid;
-  wchar_t buf1[PATH_MAX], buf2[PATH_MAX];
-#endif
+  wchar_t buf1[260], buf2[260];
 
-#ifdef __LCC__
-  rc = (tmp = tmpnam(NULL)) != NULL;
-#else
-  rc = ( (wtmpdir = _xos_os_filenameW(tmpdir, buf1, PATH_MAX)) &&
-	 (wid     = _xos_os_filenameW(id,     buf2, PATH_MAX)) &&
+  rc = ( (wtmpdir = xos_plain_name(tmpdir, buf1, PATH_MAX)) &&
+	 (wid     = _xos_utf8towcs(buf2,     id, PATH_MAX)) &&
 	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
 	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
   if ( wtmp )
     free(wtmp);
-#endif
 
   if ( rc )
   { if ( !PrologPath(tmp, temp, sizeof(temp)) )
@@ -784,7 +772,17 @@ retry:
       return NULL_ATOM;
     }
   }
-}
+#else
+  const char *sep  = id[0]  ? "_" : "";
+  const char *esep = ext[0] ? "." : "";
+
+  if ( Ssnprintf(temp, sizeof(temp), "%s/swipl_%s%s%d_%d%s%s",
+		 tmpdir, id, sep, (int) getpid(),
+		 tmpid,
+		 esep, ext) < 0 )
+  { errno = ENAMETOOLONG;
+    return NULL_ATOM;
+  }
 #endif
 }
 
