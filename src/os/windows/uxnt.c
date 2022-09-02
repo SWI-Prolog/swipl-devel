@@ -969,12 +969,13 @@ opendir(const char *path)
     return NULL;
   }
 
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX-5) )
+  /* -2: make sure there is space for the "\*" */
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX-2) )
   { free(dp);
     return NULL;
   }
   edir = buf+_tcslen(buf);
-  _tcscat(edir, _T("\\*.*"));		/* TBD: Just \\*? */
+  _tcscat(edir, _T("\\*"));
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { free(dp);
