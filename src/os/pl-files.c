@@ -322,7 +322,7 @@ SameFile(const char *f1, const char *f2)
   }
 #endif
 #ifdef O_XOS
-  return _xos_same_file(f1, f2);
+  return _xos_same_file(f1, f2) == TRUE;
 #endif /*O_XOS*/
     /* Amazing! There is no simple way to check two files for identity. */
     /* stat() and fstat() both return dummy values for inode and device. */

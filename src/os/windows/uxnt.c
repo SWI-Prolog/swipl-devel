@@ -599,6 +599,34 @@ delete_trailing_slash(wchar_t *s)
   }
 }
 
+
+static int
+compare_file_identifiers(const wchar_t *p1, const wchar_t *p2)
+{ HANDLE h1 = INVALID_HANDLE_VALUE, h2 = INVALID_HANDLE_VALUE;
+  int rc = FALSE;
+
+  if ( (h1=CreateFileW(p1, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+		       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL))
+       != INVALID_HANDLE_VALUE &&
+       (h2=CreateFileW(p2, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+		       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL))
+       != INVALID_HANDLE_VALUE )
+  { BY_HANDLE_FILE_INFORMATION info1, info2;
+
+    if ( GetFileInformationByHandle(h1, &info1) &&
+	 GetFileInformationByHandle(h2, &info2) )
+      rc = ( info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber &&
+	     info1.nFileIndexHigh       == info2.nFileIndexHigh &&
+	     info1.nFileIndexLow	== info2.nFileIndexLow );
+  }
+
+  if ( h1 != INVALID_HANDLE_VALUE ) CloseHandle(h1);
+  if ( h2 != INVALID_HANDLE_VALUE ) CloseHandle(h2);
+
+  return rc;
+}
+
+
 int
 _xos_same_file(const char *p1, const char *p2)
 { if ( strcmp(p1, p2) == 0 )
@@ -615,6 +643,8 @@ _xos_same_file(const char *p1, const char *p2)
 
     if ( _tcsicmp(osp1, osp2) == 0 )
       return TRUE;
+
+    return compare_file_identifiers(osp1, osp2);
   }
 
   return FALSE;
