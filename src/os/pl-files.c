@@ -1126,13 +1126,13 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
 
   if ( !PL_is_variable(pl) )
   { char *n;
-    wchar_t buf[PATH_MAX];
+    char buf[PATH_MAX];
 
     if ( PL_get_chars(pl, &n, CVT_ALL|REP_UTF8|CVT_EXCEPTION) )
-    { if ( !_xos_os_filenameW(n, buf, PATH_MAX) )
+    { if ( !_xos_os_filename(n, buf, PATH_MAX) )
 	return name_too_long();
 
-      return PL_unify_wchars(os, PL_ATOM, -1, buf);
+      return PL_unify_chars(os, PL_ATOM|REP_UTF8, -1, buf);
     }
     return FALSE;
   }

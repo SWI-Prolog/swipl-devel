@@ -348,14 +348,62 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Simple   Prolog   to   Windows   name     conversion    used   by   e.g.
+prolog_to_os_filename/2. Here we want to   preserve relative file names,
+drive root and UNC files. Removes   consequtive  slashes (except the UNC
+case),  only  uses  backslash  in  the    output  and  removes  trailing
+backslashes except for  after  the  drive   specification  or  UNC  host
+specification.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 _xos_os_filename(const char *cname, char *osname, size_t len)
-{ TCHAR buf[PATH_MAX];
+{ char *o = osname;
+  char *e = osname+len-1;
+  const char *s = cname;
+  int unc = FALSE;
+  char *eh = NULL;
 
-  if ( !_xos_os_filenameW(cname, buf, PATH_MAX) )
-    return NULL;
+  while( *s )
+  { int c;
 
-  return wcstoutf8(osname, buf, len);
+    s = utf8_get_char(s, &c);
+    if ( ISSEP(c) )
+    { int insert = FALSE;
+
+      if ( unc )
+	eh = o;				/* end of host */
+
+      if ( o == osname )
+      { insert = TRUE;
+      } else if ( o == osname+1 && osname[0] == '\\' )
+      { unc = TRUE;
+	insert = TRUE;
+      } else if ( o[-1] != '\\' )
+      { insert = TRUE;
+      }
+
+      if ( insert )
+      { if ( !FITS_UTF8(c, o, e) )
+	{ errno = ENAMETOOLONG;
+	  return NULL;
+	}
+	*o++ = '\\';
+      }
+    } else
+    { if ( !FITS_UTF8(c, o, e) )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
+      o = utf8_put_char(o, c);
+    }
+  }
+  while(o>osname+1 && o[-1] == '\\' && o[-2] != ':' && o-1 != eh)
+    o--;
+  *o = '\0';
+
+  return osname;
 }
 
 
