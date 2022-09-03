@@ -1017,6 +1017,7 @@ _xos_get_file_time(const char *name, int which, double *tp)
         break;
       default:
 	assert(0);
+        rc = FALSE;
     }
     CloseHandle(hFile);
 
