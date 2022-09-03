@@ -10573,6 +10573,32 @@ same \const{errno} value. This is hard, in particular because this
 translation needs to depend on the OS and specific file system
 limitations.
 
+\index{Windows,file names}%
+SWI-Prolog uses the Windows Unicode functions to access the file system.
+Internally all Prolog's file handling is based on C \ctype{char*}
+strings. On POSIX systems these strings use \jargon{multibyte encodings}
+according to the current \jargon{locale} (nowadays often UTF-8). On
+Windows the encoding is fixed to UTF-8 and a wrapper around the
+low-level file functions translates this to UTF-16\footnote{Before
+8.5.16 to UCS-2, allowing only for Unicode code points up to 0xffff.}
+before calling the Win32 *W() or C runtime _w*() functions.
+
+Windows absolute file paths are traditionally limited to 260 characters
+(\const{PATH_MAX}). More recent versions of Windows support long files.
+Many of the Unicode file functions support longer paths. For others,
+support for long paths can be forced by prefixing the path with
+``\verb$\\?\$'' (``\verb$\\?UNC\$'' for UNC paths (//server/path)). This
+syntax does \emph{not} allow for relative paths. Thus, SWI-Prolog file
+functions use GetFullPathName() to arrive at absolute canonical paths
+and apply the appropriate prefix before calling Windows low-level
+functions.
+
+Unfortunately the support is not very robust.  Some functions still
+apply length limits while others do not work with the above mentioned
+prefix.  The result depends on the Windows version, several Windows
+registry entries and the file system.  Exceeding the length limit is
+often reported as non-existence of the target file or directory.
+
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
 True if \arg{File} exists and can be accessed by this Prolog
@@ -10650,8 +10676,10 @@ point to the same file (due to hard or symbolic links and/or relative
 vs.\ absolute paths). On systems that provide stat() with meaningful
 values for \const{st_dev} and \const{st_inode}, same_file/2 is
 implemented by comparing the device and inode identifiers. On Windows,
-same_file/2 compares the strings returned by the GetFullPathName()
-system call.
+same_file/2 uses GetFileInformationByHandle() and compares the
+volume serial number and file index.\footnote{As of version 8.5.16.
+Earlier versions only compare the canonical name obtained using
+GetFullPathName().}
 
     \predicate{exists_directory}{1}{+Directory}
 True if \arg{Directory} exists and is a directory. This does not
@@ -10936,6 +10964,8 @@ also absolute_file_name/2 and chdir/1.%
 	     Changing directory while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3.}
 Note that the working directory is shared between all threads.
+Applications are strongly encouraged not to change the working directory
+or change the working directory once during the initialization.
 
     \predicate{chdir}{1}{+Path}
 Compatibility predicate.  New code should use working_directory/2.
