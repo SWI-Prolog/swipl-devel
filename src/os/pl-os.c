@@ -747,13 +747,14 @@ retry:
 { int tmpid = ATOMIC_INC(&temp_counter);
 
 #ifdef O_XOS
+#define SAFE_PATH_MAX 260
   char *tmp;
   int rc;
   wchar_t *wtmp = NULL, *wtmpdir, *wid;
-  wchar_t buf1[260], buf2[260];
+  wchar_t buf1[SAFE_PATH_MAX], buf2[SAFE_PATH_MAX];
 
-  rc = ( (wtmpdir = xos_plain_name(tmpdir, buf1, PATH_MAX)) &&
-	 (wid     = _xos_utf8towcs(buf2,     id, PATH_MAX)) &&
+  rc = ( (wtmpdir = xos_plain_name(tmpdir, buf1, SAFE_PATH_MAX)) &&
+	 (wid     = _xos_utf8towcs(buf2,     id, SAFE_PATH_MAX)) &&
 	 (wtmp    = _wtempnam(wtmpdir, wid)) &&
 	 (tmp     = _xos_canonical_filenameW(wtmp, temp, sizeof(temp), 0)) );
   if ( wtmp )
