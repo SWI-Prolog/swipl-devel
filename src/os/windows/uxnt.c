@@ -1161,6 +1161,12 @@ readdir(DIR *dp)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We cannot pass the "\\?\" prefix  to SetCurrentDirectoryW() as that will
+upset applications that inherit this directory. Still seems the argument
+is limited to 260 characters.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 int
 _xos_chdir(const char *path)
 { TCHAR buf[PATH_MAX];
@@ -1168,7 +1174,7 @@ _xos_chdir(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( SetCurrentDirectoryW(buf) )
+  if ( SetCurrentDirectoryW(buf+_xos_win_prefix_lenght(buf)) )
     return 0;
 
   errno = ENOENT;
