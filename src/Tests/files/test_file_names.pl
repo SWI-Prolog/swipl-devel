@@ -56,7 +56,7 @@ characters.
 
 :- op(400,fx,/).
 
-:- debug(files).
+% :- debug(files).
 
 :- dynamic
     dir/1,
