@@ -189,7 +189,7 @@ endif()
     endif()
     add_dependencies(${target} ${foreign_target})
 
-    if(NOT v_test)
+    if(NOT v_test OR INSTALL_TESTS)
       install(TARGETS ${foreign_target}
 	      LIBRARY DESTINATION ${SWIPL_INSTALL_MODULES})
     endif()
