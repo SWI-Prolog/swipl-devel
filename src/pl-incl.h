@@ -247,6 +247,14 @@ handy for it someone wants to add a data type to the system.
 #define O_RLC 1
 #endif
 
+#ifdef __EMSCRIPTEN__
+#define O_TIGHT_CSTACK 1
+#endif
+
+#ifdef __SANITIZE_ADDRESS__
+#define O_TIGHT_CSTACK 1
+#endif
+
 #ifndef DOUBLE_TO_LONG_CAST_RAISES_SIGFPE
 #ifdef __i386__
 #define DOUBLE_TO_LONG_CAST_RAISES_SIGFPE 1

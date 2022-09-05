@@ -897,7 +897,13 @@ right_recursion:
     FunctorDef fd = valueFunctor(f->definition);
     int rc;
 
-    if ( ++depth == 10000 && (rc=is_acyclic(head)) != TRUE )
+#if O_TIGHT_CSTACK
+#define CYCLE_CHECK_AT 1000
+#else
+#define CYCLE_CHECK_AT 10000
+#endif
+
+    if ( ++depth == CYCLE_CHECK_AT && (rc=is_acyclic(head)) != TRUE )
     { LD->comp.filledVars = ci->arity+nvars;
       resetVars();
 
