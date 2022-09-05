@@ -488,7 +488,7 @@ exports_(File, Module, Exports) :-
             nonvar(Lib),
             arg(2, State, M),
             atom(M)
-        ->  use_foreign_library(M:Lib),
+        ->  catch('$syspreds':use_foreign_library_noi(M:Lib), error(_,_), true),
             fail
         ;   Term = (:- Directive),
             nonvar(Directive)

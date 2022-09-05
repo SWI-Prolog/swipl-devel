@@ -544,10 +544,17 @@ map_dlflags([F|T], M) :-
 :- meta_predicate
     use_foreign_library(:),
     use_foreign_library(:, +).
+:- public
+    use_foreign_library_noi/1.
 
 use_foreign_library(FileSpec) :-
     ensure_shlib,
-    initialization(shlib:load_foreign_library(FileSpec), now).
+    initialization(use_foreign_library_noi(FileSpec), now).
+
+% noi -> no initialize; used by '$autoload':exports/3.
+use_foreign_library_noi(FileSpec) :-
+    ensure_shlib,
+    shlib:load_foreign_library(FileSpec).
 
 use_foreign_library(FileSpec, Entry) :-
     ensure_shlib,
@@ -570,11 +577,16 @@ ensure_shlib :-
 
 :- meta_predicate
     use_foreign_library(:).
+:- public
+    use_foreign_library_noi/1.
 :- dynamic
     loading/1,
     foreign_predicate/2.
 
-use_foreign_library(Module:foreign(Extension)) =>
+use_foreign_library(FileSpec) :-
+    initialization(use_foreign_library_noi(FileSpec), now).
+
+use_foreign_library_noi(Module:foreign(Extension)) :-
     setup_call_cleanup(
         asserta(loading(foreign(Extension)), Ref),
         @('$activate_static_extension'(Extension), Module),
