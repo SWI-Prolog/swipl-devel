@@ -378,7 +378,7 @@ As of SWI-Prolog 7.3.12, the arity of terms has changed from \ctype{int}
 to \ctype{size_t}. To deal with this transition, all affecting functions
 have two versions, where the old name exchanges the arity as \ctype{int}
 and a new function with name *_sz() exchanges the arity as
-\ctype{size_t}. Op to 8.1.28, the default was to use the old \ctype{int}
+\ctype{size_t}. Up to 8.1.28, the default was to use the old \ctype{int}
 functions. As of 8.1.29/8.2.x, the default is to use \ctype{size_t} and
 the old behaviour can be restored by defining \const{PL_ARITY_AS_SIZE}
 to \const{0} (zero). This makes old code compatible, but the following
@@ -837,7 +837,10 @@ string (\ctype{wchar_t}).
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity
 pair.  The returned handle is valid for the entire Prolog session.
-\cfunction{atom_t}{PL_functor_name}{functor_t f}
+Returns 0 for failure - the caller should typically then call
+PL_resource_error("memory").
+
+    \cfunction{atom_t}{PL_functor_name}{functor_t f}
 Return an atom representing the name of the given functor.
 \cfunction{size_t}{PL_functor_arity}{functor_t f}
 Return the arity of the given functor.
