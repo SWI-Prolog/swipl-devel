@@ -174,7 +174,7 @@ test(hidden3, true) :-
 :- else.				% No foreign(unix) found
 
 test_answer :-
-	format(user_error, 'Skipped toplevel answer tests; requires clib~n', []).
+	format(user_error, 'Skipped toplevel answer tests; requires library(unix) from clib~n', []).
 
 test_answer(_QueryAtom, _Replies).	% satisfy exports
 
