@@ -40,6 +40,12 @@ test_ieee754 :-
 
 /** <module> Test IEEE754 float handling
 
+Test IEEE754 arithmetic, notably rounding.
+
+__Note__: the Emscripten (WASM) version fails most tests. Rounding modes
+are not implemented and several operations   are very imprecise. For now
+we disabled this test on WASM.
+
 @tbd This test is only executed if GMP is   used as it contains a lot of
 tests that involve rational numbers. Most   tests however do not require
 rationals. This file should be split into  two and the non-rational part
@@ -47,7 +53,8 @@ should move back to the `core` tests.
 */
 
 :- begin_tests(ieee754,
-	       [ condition(current_prolog_flag(bounded, false)),
+	       [ condition(( current_prolog_flag(bounded, false),
+                             \+ current_prolog_flag(emscripten, true))),
                  setup(set_float_flags(Old,
                                        [ flag(float_overflow,infinity),
                                          flag(float_zero_div,infinity),
@@ -557,7 +564,7 @@ test(ieee_rndto) :-
     assertion(test_roundto( 0.0002 ** 1r3)),
     assertion(test_roundto(-0.0002 ** 1r3)),
     assertion(test_roundto( 0.0002 ** 2r3)),
-    assertion(test_roundto(-0.0002 ** 2r3)),        
+    assertion(test_roundto(-0.0002 ** 2r3)),
     assertion(test_roundto( 0.0002 ** -1r3)),
     assertion(test_roundto(-2.0002 ** -1r3)),
     assertion(test_roundto( 0.0002 ** -2r3)),
@@ -637,7 +644,7 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
 %
 %   Round is a term r(Nearest, Positive, Negative, Zero)
 
-check_round(_Exp, r(R,R,R,R)) :- 
+check_round(_Exp, r(R,R,R,R)) :-
 	float(R), float_class(R,infinite),
 	!.
 check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
