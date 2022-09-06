@@ -177,7 +177,7 @@ assert_equal(NumExpected,NumActual,ContextualInfo) :-
 	->  true
 	;   print_message(error,
 			  format('assert_equal failed in context of ~w: \c
-			  expected ~w but was ~w~n',
+			  expected ~w but was ~w',
 				 [ContextualInfo,NumExpected,NumActual])),
 	    fail
 	).
