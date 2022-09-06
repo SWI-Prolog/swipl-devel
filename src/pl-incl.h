@@ -248,6 +248,7 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 #ifdef __EMSCRIPTEN__
+#define NOTTYCONTROL           TRUE
 #define O_TIGHT_CSTACK 1
 #endif
 
