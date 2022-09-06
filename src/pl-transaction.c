@@ -593,14 +593,16 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.id          = parent.id;
     LD->transaction.flags	= parent.flags;
   } else
-  { int tid = PL_thread_self();
+  {
 #ifdef O_PLMT
+    int tid = PL_thread_self();
     pl_mutex *mutex = NULL;
     if ( lock && !get_mutex(lock, &mutex, TRUE) )
       return FALSE;
 #define TR_LOCK() PL_mutex_lock(mutex)
 #define TR_UNLOCK() PL_mutex_unlock(mutex)
 #else
+    int tid = 1;			/* without threads we get -2 */
 #define TR_LOCK() (void)0
 #define TR_UNLOCK() (void)0
 #endif
