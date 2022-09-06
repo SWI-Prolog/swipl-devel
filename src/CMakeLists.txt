@@ -192,9 +192,12 @@ set(SWIPL_DATA_library_dialect_iso iso_predicates.pl)
 set(SWIPL_DATA_library_dialect_yap README.TXT)
 set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
-    curr_sym.pl error_handler.pl lists.pl timed_call.pl
-    standard.pl gpp.pl thread.pl gensym.pl)
+    curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
+
+if(MULTI_THREADED)
+list(APPEND SWIPL_DATA_library_dialect_xsb timed_call.pl thread.pl)
+endif()
 
 set(SWIPL_DATA_demo likes.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
