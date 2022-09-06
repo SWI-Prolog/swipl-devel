@@ -100,7 +100,11 @@ body {
 #query { flex-grow: 1; margin: 0px 10px;}
 
 .stderr { color: red; }
-.stderr, .stdout, .query { white-space: pre; font-family: monospace;}
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
 .query, .prompt { font-weight: bold; }
 .query { margin-top: 5px; }
 
