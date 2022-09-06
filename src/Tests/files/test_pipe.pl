@@ -44,7 +44,10 @@ test_pipe :-
     run_tests([ pipe
               ]).
 
-:- begin_tests(pipe, [sto(rational_trees)]). % rational_trees: only run once
+:- begin_tests(pipe,
+               [ condition(current_prolog_flag(pipe,true)),
+                 sto(rational_trees)    % rational_trees: only run once
+               ]).
 
 
 test(pwd) :-
