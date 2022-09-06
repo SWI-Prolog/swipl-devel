@@ -536,7 +536,7 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
   if ( c <= gen && e > gen )
     return TRUE;
 
-  if ( unlikely(gen >= LD->transaction.gen_base) &&
+  if ( unlikely(LD->transaction.gen_base && gen >= LD->transaction.gen_base) &&
        true(cl->predicate, P_DYNAMIC) )
     return transaction_visible_clause(cl, gen);
 
