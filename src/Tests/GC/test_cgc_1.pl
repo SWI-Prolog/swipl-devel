@@ -76,7 +76,10 @@ retract/1: clause 1
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 test_cgc_1 :-
+        current_prolog_flag(threads, true),
+        !,
         chained_detached_goal(1, 1000).
+test_cgc_1.
 
 chained_detached_goal(I, Max) :-
         (   I >= Max
