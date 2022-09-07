@@ -306,6 +306,28 @@ _xos_win_prefix_lenght(const wchar_t *s)
 }
 
 
+static const wchar_t* reserved_file_names[] =
+{ _T("CON"),
+  _T("PRN"),
+  _T("AUX"),
+  _T("NUL"),
+  _T("COM1"), _T("COM2"), _T("COM3"), _T("COM4"), _T("COM5"),
+  _T("COM6"), _T("COM7"), _T("COM8"), _T("COM9"),
+  _T("LPT1"), _T("LPT2"), _T("LPT3"), _T("LPT4"), _T("LPT5"),
+  _T("LPT6"), _T("LPT7"), _T("LPT8"), _T("LPT9"),
+  (const wchar_t*)0
+};
+
+static int
+is_reserved_name(const wchar_t *name)
+{ for(const wchar_t**r = reserved_file_names; *r; r++)
+  { if ( _tcsicmp(name, *r) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
 wchar_t *
 _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 { TCHAR buf[PATH_MAX];
@@ -313,6 +335,11 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
 
   if ( !_xos_utf8towcs(buf, cname, PATH_MAX) )
     return NULL;
+
+  if ( is_reserved_name(buf) )
+  { wcscpy(osname, buf);
+    return osname;
+  }
 
   if ( is_unc_path(cname) )
   { wcscpy(s, WIN_UNC_PREFIX);
