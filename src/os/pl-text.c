@@ -441,15 +441,17 @@ atom_t
 textToAtom(PL_chars_t *text)
 { GET_LD
   atom_t a;
+  int rc;
 
   PL_STRINGS_MARK();
-  if ( PL_canonicalise_text(text) == TRUE )
+  if ( (rc=PL_canonicalise_text(text)) == TRUE )
   { if ( text->encoding == ENC_ISO_LATIN_1 )
       a = lookupAtom(text->text.t, text->length);
     else
       a = lookupUCSAtom(text->text.w, text->length);
   } else
-  { a = 0;
+  { text_error(text, rc);
+    a = 0;
   }
   PL_STRINGS_RELEASE();
 
@@ -461,15 +463,17 @@ word
 textToString(PL_chars_t *text)
 { GET_LD
   atom_t a;
+  int rc;
 
   PL_STRINGS_MARK();
-  if ( PL_canonicalise_text(text) == TRUE )
+  if ( (rc=PL_canonicalise_text(text)) == TRUE )
   { if ( text->encoding == ENC_ISO_LATIN_1 )
       a = globalString(text->length, text->text.t);
     else
       a = globalWString(text->length, text->text.w);
   } else
-  { a = 0;
+  { text_error(text, rc);
+    a = 0;
   }
   PL_STRINGS_RELEASE();
 
