@@ -258,13 +258,16 @@ Term references can safely be copied to other C variables of type
 Return a fresh reference to a term.  The reference is allocated on the
 \jargon{local} stack.  Allocating a term reference may trigger a stack-shift
 on machines that cannot use sparse memory management for allocation of the
-Prolog stacks.  The returned reference describes a variable.
+Prolog stacks. The returned reference describes a variable.  Raise a
+resource exception and returns \exam{(term_t)0} on failure.
+
 \cfunction{term_t}{PL_new_term_refs}{int n}
-Return \arg{n} new term references.  The first term reference is returned.
-The others are $\arg{t}+1$, $\arg{t}+2$, etc.  There are two reasons
-for using this function.  PL_open_query() expects the arguments as a set
-of consecutive term references, and {\em very} time-critical code requiring
-a number of term references can be written as:
+Return \arg{n} new term references. The first term reference is
+returned. The others are $\arg{t}+1$, $\arg{t}+2$, etc. Raise a resource
+exception and returns \exam{(term_t)0} on failure. There are two reasons
+for using this function. PL_open_query() expects the arguments as a set
+of consecutive term references, and \emph{very} time-critical code
+requiring a number of term references can be written as:
 
 \begin{code}
 pl_mypredicate(term_t a0, term_t a1)
@@ -274,10 +277,13 @@ pl_mypredicate(term_t a0, term_t a1)
   ...
 }
 \end{code}
+
 \cfunction{term_t}{PL_copy_term_ref}{term_t from}
-Create a new term reference and make it point initially to the same
-term as \arg{from}.  This function is commonly used to copy a predicate
-argument to a term reference that may be written.
+Create a new term reference and make it point initially to the same term
+as \arg{from}. This function is commonly used to copy a predicate
+argument to a term reference that may be written. Raise a resource
+exception and returns \exam{(term_t)0} on failure.
+
 \cfunction{void}{PL_reset_term_refs}{term_t after}
 Destroy all term references that have been created after \arg{after},
 including \arg{after} itself. Any reference to the invalidated  term
@@ -378,7 +384,7 @@ As of SWI-Prolog 7.3.12, the arity of terms has changed from \ctype{int}
 to \ctype{size_t}. To deal with this transition, all affecting functions
 have two versions, where the old name exchanges the arity as \ctype{int}
 and a new function with name *_sz() exchanges the arity as
-\ctype{size_t}. Op to 8.1.28, the default was to use the old \ctype{int}
+\ctype{size_t}. Up to 8.1.28, the default was to use the old \ctype{int}
 functions. As of 8.1.29/8.2.x, the default is to use \ctype{size_t} and
 the old behaviour can be restored by defining \const{PL_ARITY_AS_SIZE}
 to \const{0} (zero). This makes old code compatible, but the following
@@ -796,12 +802,15 @@ functors.
     \cfunction{atom_t}{PL_new_atom}{const char *}
 Return an atom handle for the given C-string.  This function always
 succeeds. The returned handle is valid as long as the atom is
-referenced (see \secref{atomgc}).  The following atoms are provided
-as macros, giving access to the empty list symbol and the name of the
-list constructor.  Prior to version~7, \const{ATOM_nil} is the same
-as \exam{PL_new_atom("[]")} and \const{ATOM_dot} is the same as
-\exam{PL_new_atom(".")}.  This is no long the case in SWI-Prolog
-version~7.
+referenced (see \secref{atomgc}).  Currently aborts the process
+with a \jargon{fatal error} on failure.  Future versions may raise
+a resource exception and return \exam{(atom_t)0}.
+
+The following atoms are provided as macros, giving access to the empty
+list symbol and the name of the list constructor. Prior to version~7,
+\const{ATOM_nil} is the same as \exam{PL_new_atom("[]")} and
+\const{ATOM_dot} is the same as \exam{PL_new_atom(".")}. This is no
+longer the case in SWI-Prolog version~7.
 
     \begin{description}
 	\cmacro{atom_t}{ATOM_nil}
@@ -821,7 +830,8 @@ This function generalizes PL_new_atom() and PL_new_atom_nchars() while
 allowing for multiple encodings. The \arg{rep} argument is one of
 \const{REP_ISO_LATIN_1}, \const{REP_UTF8} or \const{REP_MB}. If
 \arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
-strlen().
+strlen().  Raises an exception if \arg{s} violates \arg{rep} and
+returns \exam{(atom_t)0}. For other error conditions, see PL_new_atom().
 
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Deprecated. This function returns a pointer to the content represented
@@ -835,11 +845,16 @@ to obtain the C string and its length (for ISO-Latin-1 atoms) or
 PL_atom_wchars() to obtain a C wide string (\ctype{wchar_t}).
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
-Returns a {\em functor identifier}, a handle for the name/arity
-pair.  The returned handle is valid for the entire Prolog session.
-\cfunction{atom_t}{PL_functor_name}{functor_t f}
+Returns a {\em functor identifier}, a handle for the name/arity pair.
+The returned handle is valid for the entire Prolog session. Future
+versions may garbage collect functors as part of atom garbage
+collection. Currently aborts the process with a \jargon{fatal error} on
+failure. Future versions may raise a resource exception and return
+\exam{(atom_t)0}.
+
+    \cfunction{atom_t}{PL_functor_name}{functor_t f}
 Return an atom representing the name of the given functor.
-\cfunction{size_t}{PL_functor_arity}{functor_t f}
+    \cfunction{size_t}{PL_functor_arity}{functor_t f}
 Return the arity of the given functor.
 \end{description}
 
@@ -1256,7 +1271,7 @@ inspecting atoms:
     \cfunction{atom_t}{PL_new_atom_nchars}{size_t len, const char *s}
 Create a new atom as PL_new_atom(), but using the given length and characters.
 If \arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
-strlen().
+strlen().  See PL_new_atom() for error handling.
 
     \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
 Extract the text and length of an atom.
@@ -1282,6 +1297,8 @@ Create atom from wide-character string as PL_new_atom_nchars() does for
 ISO-Latin-1 strings. If \arg{s} only contains ISO-Latin-1 characters a
 normal byte-array atom is created. If \arg{len} is \exam{(size_t)-1}, it
 is computed from \arg{s} using wcslen().
+Returns \exam{(atom_t)0} for failure - the caller should typically then call
+PL_resource_error("memory").
 
     \cfunction{const pl_wchar_t*}{PL_atom_wchars}{atom_t atom, size_t *len}
 Extract characters from a wide-character atom.  Succeeds on any atom
@@ -2666,11 +2683,12 @@ specifies the predicate, and should be the result of a call to PL_pred()
 or PL_predicate(). Note that it is allowed to store this handle as
 global data and reuse it for future queries. The term reference \arg{t0}
 is the first of a vector of term references as returned by
-PL_new_term_refs(n).
+PL_new_term_refs(n). Raise a resource exception and returns
+\exam{(qid_t)0} on failure.
 
 The \arg{flags} arguments provides some additional options concerning
-debugging and exception handling.  It is a bitwise \emph{or} of the following
-values:
+debugging and exception handling. It is a bitwise \emph{or} of the
+following values:
 
 \begin{description}
     \definition{\const{PL_Q_NORMAL}}
@@ -2768,6 +2786,7 @@ engine to be \jargon{current}.  See PL_set_engine().
 Shorthand for PL_open_query(), PL_next_solution(), PL_cut_query(),
 generating a single solution.  The arguments are the same as for
 PL_open_query(), the return value is the same as PL_next_solution().
+
     \cfunction{int}{PL_call}{term_t t, module_t m}
 Call term \arg{t} just like the Prolog predicate once/1. \arg{t} is called
 in the module \arg{m}, or in the context module if \arg{m} == NULL.
@@ -2787,17 +2806,21 @@ term references and data. See \figref{calling} for an example.
 
 \begin{description}
 \cfunction{fid_t}{PL_open_foreign_frame}{}
-Create a foreign frame, holding a mark that allows the system to
-undo bindings and destroy data created after it, as well as providing
-the environment for creating term references.  This function is called
-by the kernel before calling a foreign predicate.
+Create a foreign frame, holding a mark that allows the system to undo
+bindings and destroy data created after it, as well as providing the
+environment for creating term references. This function is called by the
+kernel before calling a foreign predicate. Raise a resource exception
+and returns \exam{(fid_t)0} on failure.
+
 \cfunction{void}{PL_close_foreign_frame}{fid_t id}
 Discard all term references created after the frame was opened.  All
 other Prolog data is retained.  This function is called by the kernel
 whenever a foreign function returns control back to Prolog.
+
 \cfunction{void}{PL_discard_foreign_frame}{fid_t id}
 Same as PL_close_foreign_frame(), but also undo all bindings made since
 the open and destroy all Prolog data.
+
 \cfunction{void}{PL_rewind_foreign_frame}{fid_t id}
 Undo all bindings and discard all term references created since the
 frame was created, but do not pop the frame.  That is, the same frame
@@ -2886,7 +2909,8 @@ are available to query and manipulate modules.
 \begin{description}
     \cfunction{module_t}{PL_context}{}
 Return the module identifier of the context module of the currently
-active foreign predicate.
+active foreign predicate.  If there is no currently active predicate
+it returns a handle to the \const{user} module.
 
     \cfunction{int}{PL_strip_module}{term_t +raw, module_t *m, term_t -plain}
 Utility function. If \arg{raw} is a term, possibly holding the module
@@ -2910,11 +2934,14 @@ module is the user module:
 }
 \end{code}
 
-
-\cfunction{atom_t}{PL_module_name}{module_t module}
+    \cfunction{atom_t}{PL_module_name}{module_t module}
 Return the name of \arg{module} as an atom.
-\cfunction{module_t}{PL_new_module}{atom_t name}
+
+    \cfunction{module_t}{PL_new_module}{atom_t name}
 Find an existing module or create a new module with the name \arg{name}.
+Currently aborts the process with a \jargon{fatal error} on failure.
+Future versions may raise a resource exception and return
+\exam{(module_t)0}.
 \end{description}
 
 
@@ -3185,12 +3212,15 @@ threads.
     Record the term \arg{t} into the Prolog database as recorda/3 and
     return an opaque handle to the term.  The returned handle remains
     valid until PL_erase() is called on it.  PL_recorded() is used to
-    copy recorded terms back to the Prolog stack.
+    copy recorded terms back to the Prolog stack. Currently aborts the
+    process with a \jargon{fatal error} on failure. Future versions may
+    raise a resource exception and return \exam{(record_t)0}.
 
 \cfunction{record_t}{PL_duplicate_record}{record_t record}
     Return a duplicate of \arg{record}.  As records are read-only
     objects this function merely increments the records reference
-    count.
+    count. Returns \exam{(record_t)0} if the \arg{record} is an
+    \jargon{external record} (see PL_record_external()).
 
 \cfunction{int}{PL_recorded}{record_t record, term_t -t}
     Copy a recorded term back to the Prolog stack.  The same record
@@ -3237,7 +3267,9 @@ compatibility with older records.
 \cfunction{char *}{PL_record_external}{term_t +t, size_t *len}
     Record the term \arg{t} into the Prolog database as recorda/3 and
     return an opaque handle to the term.  The returned handle remains
-    valid until PL_erase_external() is called on it.
+    valid until PL_erase_external() is called on it.   Currently aborts the
+    process with a \jargon{fatal error} on failure. Future versions may
+    raise a resource exception and return \exam{(record_t)0}.
 
     It is allowed to copy the data and use PL_recorded_external() on
     the copy.  The user is responsible for the memory management of
