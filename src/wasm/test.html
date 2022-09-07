@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SWI-Prolog test playground</title>
+  <title>SWI-Prolog WASM tests</title>
 </head>
 <body>
 <style>
@@ -57,6 +57,7 @@ function run()
      );
 
   test_sum_list();
+  test_bigint();
   test_error();
 }
 
@@ -149,6 +150,15 @@ function test_error()
   const sum = sum_list(["aap", "noot", "mies"]);
   println("stdout", `Sum is ${sum}`);
 }
+
+function test_bigint()
+{ for(let i=0; i<64; i++)
+  { var bi = Prolog.query("bigint(I, Int)", {I:i}).once().Int;
+
+    println("stdout", `2^${i} = ${bi}`);
+  }
+}
+
 
 /* Callback test */
 

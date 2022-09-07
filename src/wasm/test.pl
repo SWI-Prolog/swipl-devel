@@ -1,8 +1,9 @@
+% :- debug(js).
 :- debug(js, 'Loading test.pl', []).
 
 p(1).
 p(3.14).
-%p(1r3).		% Needs GMP
+p(1r3).		% Needs GMP
 p(aap).
 p("noot").
 p([]).
@@ -16,3 +17,6 @@ p(user{name: "Jan", city: "Amsterdam"}).
 
 u(X,X) :-
     debug(js, 'u/2: Got ~q~n', [X]).
+
+bigint(I, N) :-
+    N is 2^I.

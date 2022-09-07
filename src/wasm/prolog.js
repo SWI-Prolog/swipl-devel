@@ -114,8 +114,6 @@ Prolog.prototype._bind = function() {
         'PL_get_chars', 'number', ['number', 'number', 'number']);
     this.bindings.PL_get_arg = this.module.cwrap(
         'PL_get_arg', 'number', ['number', 'number', 'number']);
-    this.bindings.PL_get_integer = this.module.cwrap(
-        'PL_get_integer', 'number', ['number', 'number']);
     this.bindings.PL_get_int64 = this.module.cwrap(
         'PL_get_int64', 'number', ['number', 'number']);
     this.bindings.PL_get_float = this.module.cwrap(
