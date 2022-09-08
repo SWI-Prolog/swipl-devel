@@ -38,6 +38,13 @@ SWIPL(Module).then((module) =>
         .then(() => run());
 });
 
+class Point {
+  constructor(x,y)
+  { this.x = y;
+    this.y = y;
+  }
+}
+
 function run()
 { Prolog.set_arg_names("point", ["x", "y"]);
 
@@ -56,6 +63,7 @@ function run()
       new Prolog.Compound("t", [1,2,"aap"]),
       { name: "Jan", location: "Amsterdam" },
       {},
+      new Point(9,9),
       [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
      );
 

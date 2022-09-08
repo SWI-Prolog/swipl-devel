@@ -1049,7 +1049,7 @@ class Prolog
 	      { rc = toList(term, data.v, data.t);
 	      }
 	    }
-	  } else if ( data.nodeType !== undefined )	       /* DOM object */
+	  } else if ( data.nodeType !== undefined )	 /* DOM object */
 	  { let id = data.prologId;
 
 	    if ( id === undefined )
@@ -1063,12 +1063,16 @@ class Prolog
 	    } else
 	    { rc = prolog.bindings.js_unify_obj(term, id);
 	    }
-	  } else
+	  } else					 /* Simple object */
 	  { const keys  = Object.keys(data);
 	    const len   = keys.length;
 	    const av    = prolog.new_term_ref(len);
 	    const atoms = prolog.module._malloc(4*len);
-	    const tag   = prolog.new_atom("js");
+	    let   tag   = 0;
+
+	    const class_name = data.constructor.name;
+	    if ( class_name != "Object" )
+	      tag = prolog.new_atom(class_name);
 
 	    for(var i=0; i<len; i++)
 	    { toProlog(prolog, data[keys[i]], av+i, ctx);
