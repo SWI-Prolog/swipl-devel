@@ -86,6 +86,9 @@ test(attvar, Shared == [x(Y)]) :-
 test(attvar,  CQ == q(CX,Y)) :-
     freeze(Y, writeln(Y)),
     copy_term(X, q(X,Y), CX, CQ).
+test(cycle, [sto(rational_trees), O == f(D,C)]) :-
+    A = f(A,B),
+    copy_term(B, f(B,C), D, O).
 
 :- end_tests(copy_term_4).
 

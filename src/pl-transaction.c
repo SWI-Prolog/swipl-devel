@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2020-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -300,36 +301,36 @@ transaction_commit(DECL_LD)
     PL_LOCK(L_GENERATION);
     gen_commit = global_generation()+1;
 
-    for_table(LD->transaction.clauses, n, v,
-	      { Clause cl = n;
-		uintptr_t lgen = (uintptr_t)v;
+    FOR_TABLE(LD->transaction.clauses, n, v)
+    { Clause cl = n;
+      uintptr_t lgen = (uintptr_t)v;
 
-		if ( IS_ASSERT_GEN(lgen) )
-		{ if ( false(cl, CL_ERASED) )
-		  { cl->generation.erased  = GEN_MAX;
-		    MEMORY_RELEASE();
-		    cl->generation.created = gen_commit;
-		    DEBUG(MSG_COMMIT,
-			Sdprintf("Commit added clause %p for %s\n",
-				 cl, predicateName(cl->predicate)));
-		  } else
-		  { DEBUG(MSG_COMMIT,
-			  Sdprintf("Discarded in-transaction clause %p for %s\n",
-				   cl, predicateName(cl->predicate)));
-		    cl->generation.erased  = GEN_TR_ASSERT_ERASE;
-		    MEMORY_RELEASE();
-		    cl->generation.created = GEN_TR_ASSERT_ERASE;
-		  }
-		} else if ( lgen == GEN_NESTED_RETRACT )
-		{ retract_clause(cl, gen_commit);
-		} else
-		{ DEBUG(MSG_COMMIT,
-			Sdprintf("Commit erased clause %p for %s\n",
-				 cl, predicateName(cl->predicate)));
-		  ATOMIC_DEC(&cl->tr_erased_no);
-		  retract_clause(cl, gen_commit);
-		}
-	      });
+      if ( IS_ASSERT_GEN(lgen) )
+      { if ( false(cl, CL_ERASED) )
+	{ cl->generation.erased  = GEN_MAX;
+	  MEMORY_RELEASE();
+	  cl->generation.created = gen_commit;
+	  DEBUG(MSG_COMMIT,
+	      Sdprintf("Commit added clause %p for %s\n",
+		       cl, predicateName(cl->predicate)));
+	} else
+	{ DEBUG(MSG_COMMIT,
+		Sdprintf("Discarded in-transaction clause %p for %s\n",
+			 cl, predicateName(cl->predicate)));
+	  cl->generation.erased  = GEN_TR_ASSERT_ERASE;
+	  MEMORY_RELEASE();
+	  cl->generation.created = GEN_TR_ASSERT_ERASE;
+	}
+      } else if ( lgen == GEN_NESTED_RETRACT )
+      { retract_clause(cl, gen_commit);
+      } else
+      { DEBUG(MSG_COMMIT,
+	      Sdprintf("Commit erased clause %p for %s\n",
+		       cl, predicateName(cl->predicate)));
+	ATOMIC_DEC(&cl->tr_erased_no);
+	retract_clause(cl, gen_commit);
+      }
+    }
     MEMORY_RELEASE();
     GD->_generation = gen_commit;
     PL_UNLOCK(L_GENERATION);
@@ -400,28 +401,29 @@ transaction_discard(DECL_LD)
 }
 
 static void
-merge_tables(Table into, Table from)
-{ for_table(from, n, v,
-	    { Clause cl = n;
+merge_clause_tables(Table into, Table from)
+{ FOR_TABLE(from, n, v)
+  { Clause cl = n;
 
-	      acquire_clause(cl);
-	      addHTable(into, n, v);
-	    });
+    if ( addHTable(into, cl, v) == v )
+      acquire_clause(cl);		/* new in outer table */
+    else
+      updateHTable(into, cl, v);	/* already in outer table */
+  };
 }
 
 #define merge_pred_tables(into, from) LDFUNC(merge_pred_tables, into, from)
 static void
 merge_pred_tables(DECL_LD Table into, Table from)
-{ for_table(from, n, v,
-	    { Definition def = n;
-	      void *lgen = v;
-	      void *lgen0 = lookupHTable(into, def);
-	      int oflags = PTR_GEN_FLAGS(lgen0);
+{ FOR_TABLE(from, n, v)
+  { Definition def = n;
+    void *lgen = v;
+    void *lgen0 = lookupHTable(into, def);
+    int oflags = PTR_GEN_FLAGS(lgen0);
 
 
-	      updateHTable(into, def,
-			   PTR_ADD_FLAGS(lgen, oflags));
-	    });
+    updateHTable(into, def, PTR_ADD_FLAGS(lgen, oflags));
+  };
 }
 
 
@@ -571,7 +573,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 	    if ( !announce_updates(&updates) )
 	      goto nested_discard;
 	  }
-	  merge_tables(parent.clauses, LD->transaction.clauses);
+	  merge_clause_tables(parent.clauses, LD->transaction.clauses);
 	  destroyHTable(LD->transaction.clauses);
 	} else
 	{ parent.clauses = LD->transaction.clauses;
@@ -591,14 +593,16 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.id          = parent.id;
     LD->transaction.flags	= parent.flags;
   } else
-  { int tid = PL_thread_self();
+  {
 #ifdef O_PLMT
+    int tid = PL_thread_self();
     pl_mutex *mutex = NULL;
     if ( lock && !get_mutex(lock, &mutex, TRUE) )
       return FALSE;
 #define TR_LOCK() PL_mutex_lock(mutex)
 #define TR_UNLOCK() PL_mutex_unlock(mutex)
 #else
+    int tid = 1;			/* without threads we get -2 */
 #define TR_LOCK() (void)0
 #define TR_UNLOCK() (void)0
 #endif
@@ -625,11 +629,13 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 	if ( constraint ) TR_UNLOCK();
       } else
       { if ( constraint ) TR_UNLOCK();
+	LD->transaction.generation = 0;	/* avoid recording the rollback */
 	transaction_discard();
 	transaction_rollback_tables();
       }
     } else
-    { rc = transaction_discard() && rc;
+    { LD->transaction.generation = 0;  /* avoid recording the rollback */
+      rc = transaction_discard() && rc;
       rc = transaction_rollback_tables() && rc;
     }
     LD->transaction.id         = 0;
@@ -645,7 +651,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
   return rc;
 }
 
-static const opt_spec transaction_options[] =
+static const PL_option_t transaction_options[] =
 { { ATOM_bulk,		 OPT_BOOL },
   { NULL_ATOM,		 0 }
 };
@@ -656,14 +662,13 @@ PRED_IMPL("$transaction", 2, transaction, PL_FA_TRANSPARENT)
   int flags = TR_TRANSACTION;
   int bulk = FALSE;
 
-  if ( !scan_options(A2, 0,
-		     ATOM_transaction_option, transaction_options,
-		     &bulk) )
+  if ( !PL_scan_options(A2, 0, "transaction_option",
+			transaction_options, &bulk) )
     return FALSE;
   if ( bulk )
     flags |= TR_BULK;
 
-  return transaction(A1, 0, 0, TR_TRANSACTION);
+  return transaction(A1, 0, 0, flags);
 }
 
 static

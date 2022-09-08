@@ -10,7 +10,7 @@ endif()
 
 # Architecture id (Prolog flag `arch`, architecture subdirs)
 if(NOT SWIPL_ARCH)
-  string(TOLOWER ${CMAKE_HOST_SYSTEM_PROCESSOR}-${CMAKE_HOST_SYSTEM_NAME}
+  string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR}-${CMAKE_SYSTEM_NAME}
 	 SWIPL_ARCH)
 endif()
 

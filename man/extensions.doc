@@ -326,6 +326,21 @@ See also: atom_chars/2.
 Bi-directional conversion between a string and a list of character
 codes. At least one of the two arguments must be instantiated.
 
+    \predicate{string_bytes}{3}{?String, ?Bytes, +Encoding}
+True when the (Unicode) \arg{String} is represented by \arg{Bytes} in
+\arg{Encoding}. If \arg{String} is instantiated it may represent text as
+an atom, string, list of character codes or list or characters.
+\arg{Bytes} is always a list of integers in the range $0\ldots{}255$. At
+least one of \arg{String} or \arg{Bytes} must be instantiated. This
+predicate is notably intended as an intermediate step to perform byte
+oriented operations on text. Examples are (base64) encoding, encryption,
+computing a (secure) hash, etc. \arg{Encoding} is typically
+\const{utf8}. All valid stream encodings except for \const{wchar_t}
+are supported.  See \secref{encoding}.  Note that this translation
+is only provided for strings.  Creating an atom from bytes requires
+atom_string/2.\footnote{Strings are an efficient intermediate and this
+conversion is needed only in some uncommon scenarios.}
+
     \predicate[det]{text_to_string}{2}{+Text, -String}
 Converts \arg{Text} to a string.  \arg{Text} is \jargon{anytext}
 excluding the number types. When running in

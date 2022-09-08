@@ -39,6 +39,7 @@
 :- use_module(library(dialect/sicstus4/lists), [subseq/3]).
 :- use_module(library(lists), [numlist/3]).
 :- use_module(library(plunit)).
+:- use_module(library(random), [random_subseq/3, random_numlist/4]).
 
 test_random :-
 	run_tests([ random

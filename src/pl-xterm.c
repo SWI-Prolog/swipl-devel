@@ -274,7 +274,7 @@ pl_open_xterm(term_t title, term_t in, term_t out, term_t err, term_t argv)
   if ( (pid = fork()) == 0 )
   { char arg[64];
     char *cc;
-    char tmp[MAXPATHLEN];
+    char tmp[PATH_MAX];
 
 
     signal(SIGINT, SIG_IGN);		/* Don't stop on user interaction */

@@ -709,6 +709,10 @@ There are several alternatives though:
           Interact with SWI-Prolog directly in Emacs buffers.
     \item \url{https://www.metalevel.at/etrace/}\\
           Trace Prolog code with Emacs.
+    \item \url{https://emacs-lsp.github.io/dap-mode/page/configuration/#swi-prolog}\\
+          Debug Adapter Protocol (DAP) for SWI-Prolog with Emacs using
+          \exam{dap-mode} and the \const{debug_adapter} pack from
+          \url{https://github.com/eshelyaron/debug_adapter}
 \end{shortlist}
 
 
@@ -1091,6 +1095,34 @@ using system access and system predicates can be redefined.
 Address size of the hosting machine.  Typically 32 or 64.  Except for
 the maximum stack limit, this has few implications to the user.  See
 also the Prolog flag \prologflag{arch}.
+
+    \prologflagitem{agc_close_streams}{boolean}{rw}
+When \const{true} (default \const{false}\footnote{Future versions are
+likely to change the default to \const{true}.}), that atom garbage
+collector streams that are garbage collected while being open. In
+addition, a warning is printed. Below is an example of such a warning.
+
+\begin{code}
+WARNING: AGC: closed <stream>(0x560e29014400)
+\end{code}
+
+Note that closing I/O streams should not be left to the (atom) garbage
+collector because it may take long before the atom garbage collector
+runs and because that atom garbage collector is \jargon{conservative},
+which implies that it is not guaranteed that all garbage atoms are
+reclaimed. Code that uses I/O streams should use setup_call_cleanup/3
+using the skeleton below, where \nopredref{process}{1} is a predicate
+that reads from or writes to \arg{Stream}.
+
+\begin{code}
+    setup_call_cleanup(
+	open(..., Stream),
+	process(Stream),
+	close(Stream)),
+    ...
+\end{code}
+
+Note that the setting for this flag in the \const{main} thread applies.
 
     \prologflagitem{agc_margin}{integer}{rw}
 If this amount of atoms possible garbage atoms exist perform atom
@@ -1529,6 +1561,10 @@ GMP library used.  See also \secref{gmpforeign}.
     \prologflagitem{gui}{bool}{r}
 Set to \const{true} if XPCE is around and can be used for graphics.
 
+    \prologflagitem{heartbeat}{integer}{rw}
+If not zero, call prolog:heartbeat/0 every $N$ inferences.  $N$ is
+rounded to a multiple of 16.
+
     \prologflagitem{history}{integer}{rw}
 If $\arg{integer}> 0$, support Unix \program{csh(1)}-like history as
 described in \secref{history}. Otherwise, only support reusing commands
@@ -1568,14 +1604,6 @@ SWI-Prolog behaviour.  Currently it has the following effect:
           predicates.
     \item Syntax is closer to the ISO standard:
 	  \begin{itemize}
-		\item Unquoted commas and bars appearing as atoms
-		      are not allowed.  Instead of
-		      \exam{f(,,a)} now write \exam{f(',',a)}.
-		      Unquoted commas can only be used to separate arguments in
-		      functional notation and list notation, and as a conjunction operator.
-		      Unquoted bars can only appear within lists to separate head
-		      and tail, like \exam{[Head|Tail]}, and as infix operator for
-		      alternation in grammar rules, like \exam{a --> b | c.}
 		\item Within functional notation and list notation terms must have priority
 		      below 1000.  That means that rules and control constructs
 		      appearing as arguments need bracketing.
@@ -1778,6 +1806,14 @@ options.
 If \const{true}, extension packs (add-ons) are attached.  Can be set to
 \const{false} using the \cmdlineoption{--no-packs}.
 
+    \prologflagitem{path_max}{integer}{r}
+Maximum length of a file pathname as reported by the OS. This length
+does typically not directly define the number of characters in the file
+name.  The actual limit may be shorter due to jargon{encoding} (e.g.,
+on POSIX systems it typically defines the length limit of the (often)
+UTF-8 encoded name).  The underlying file system may impose additional
+limits.
+
     \prologflagitem{pid}{int}{r}
 Process identifier of the running Prolog process.  Existence of this
 flag is implementation-defined.
@@ -1964,7 +2000,7 @@ if the string stack depth hits the tripwire value. See
 Available in multithreaded version (see \secref{threads}) where the
 operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
-calling thread. See also thread_self/1.
+calling thread.  On Linux systems this is the PID of the thread.
 
     \prologflagitem{table_incremental}{bool}{rw}
 Set the default for whether to use incremental tabling or not.
@@ -2201,6 +2237,15 @@ platform-specific version information as a list. \arg{Extra} is used for
     \prologflagitem{version_git}{atom}{r}
 Available if created from a git repository.  See \program{git-describe}
 for details.
+
+    \prologflagitem{vmi_builtin}{bool}{rw}
+Determines whether well known built-ins such as true/0 or atom/1 are
+handled by their translation into virtual machine code.  The default
+for this flag is \const{true}, unless debug mode is enabled. Setting
+this flag to \const{false} may improve other runtime instrumentation
+results.  Note that optimized arithmetic (\cmdlineoption{-O}, see
+Prolog flag \prologflag{optimise}) is currently not translated into
+a normal predicate call.
 
     \prologflagitem{warn_override_implicit_import}{bool}{rw}
 If \const{true} (default), a warning is printed if an implicitly
@@ -2857,10 +2902,10 @@ SWI-Prolog supports Unicode in source files we must extend the syntax.
 This section describes the implication for the source files, while
 writing international source files is described in \secref{intsrcfile}.
 
-The SWI-Prolog Unicode character classification is based on version
-6.0.0 of the Unicode standard. Please note that char_type/2 and
-friends, intended to be used with all text except Prolog source code, is
-based on the C library locale-based classification routines.
+The SWI-Prolog Unicode character classification is currently based on
+version 14.0.0 of the Unicode standard. Please note that char_type/2
+and friends, intended to be used with all text except Prolog source
+code, is based on the C library locale-based classification routines.
 
 
 \begin{itemlist}
@@ -2882,13 +2927,28 @@ an atom.  Note that many languages do not have the notion of
 character case.  In such languages variables \emph{must} be written as
 \verb$_name$.
 
+    \item [Numbers]
+
+Decimal number characters (Nd) are accepted to form numbers, regardless
+of the Unicode block in which they appear. Currently this is supported
+for integers, rational numbers (see \secref{syntax-rational-numbers})
+and floating point numbers. In any number, \emph{all} digits must come
+from the same block, i.e., if the nominator of a rational is uses
+Indian script, so must the demoninator.  All special characters such
+as the sign, rational separator, floating point \chr{.}, and floating
+point exponent must use their usual ASCII character.
+
     \item [White space]
 All characters marked as separators (Z*) in the Unicode tables are
 handled as layout characters.
 
     \item [Control and unassigned characters]
 Control and unassigned (C*) characters produce a syntax error if
-encountered outside quoted atoms/strings and outside comments.
+encountered outside quoted atoms/strings and outside comments. Quoted
+writing (e.g., writeq/1) of an atom or string that contains one of these
+characters causes the atom or string to be quoted and the control or
+unassigned characters to be written using an escape sequence.  See
+\secref{charescapes}.
 
     \item [Other characters]
 The first 128 characters follow the ISO Prolog standard.  Unicode symbol
@@ -3269,24 +3329,38 @@ SWI-Prolog's indexing capabilities.
 
 \section{Wide character support}		\label{sec:widechars}
 
-\index{UTF-8}\index{Unicode}\index{UCS}\index{internationalization}%
-SWI-Prolog supports \jargon{wide characters}, characters with character
-codes above 255 that cannot be represented in a single \jargon{byte}.
-\jargon{Universal Character Set} (UCS) is the ISO/IEC 10646 standard
-that specifies a unique 31-bit unsigned integer for any character in
-any language.  It is a superset of 16-bit Unicode, which in turn is
-a superset of ISO 8859-1 (ISO Latin-1), a superset of US-ASCII.  UCS
-can handle strings holding characters from multiple languages, and
-character classification (uppercase, lowercase, digit, etc.) and
-operations such as case conversion are unambiguously defined.
+\index{UTF-8}\index{UTF-16}\index{Unicode}\index{UCS}\index{internationalization}%
+SWI-Prolog represents characters using
+\href{https://home.unicode.org}{Unicode}. Unicode defines \jargon{code
+points} in the range $0\ldots{}0x10FFFF$. These code points represent
+virtually any character in any language. In addition, the Unicode
+standard defines character classes (letter, digit, punctuation, etc.),
+case conversion and much more. Unicode is a super set of ISO 8859-1 (ISO
+Latin-1), which is a superset of US-ASCII.
 
-For this reason SWI-Prolog has two representations for atoms and string
-objects (see \secref{string}). If the text fits in ISO Latin-1, it is
-represented as an array of 8-bit characters.  Otherwise the text is
-represented as an array of 32-bit numbers.  This representational issue
-is completely transparent to the Prolog user.  Users of the foreign
-language interface as described in \chapref{foreign} sometimes need to
-be aware of these issues though.
+SWI-Prolog has two representations for atoms and string objects (see
+\secref{string}). If the text fits in ISO Latin-1, it is represented as
+an array of 8-bit characters. Otherwise the text is represented as an
+array of \ctype{wchar_t} characters. On virtually all systems except for
+MS-Windows, \ctype{wchar_t} is a 32-bit unsigned integer and thus
+capable of representing all Unicode code points. On MS-Windows
+\ctype{wchar_t} is a 16-bit unsigned integer and thus only capable of
+representing the code points $0\ldots{}0xFFFF$. As of SWI-Prolog version
+8.5.14, the \ctype{wchar_t} is (on Windows) interpreted as a UTF-16
+string. The UTF-16 encoding uses \jargon{surrogate pairs} to represent
+the code points $0x10000\ldots{}0x10FFFF$ as two \jargon{code units} in
+the $0xD800\ldots{}0xDFFF$.  As Unicode \jargon{code points}, this range
+is \jargon{unassigned}.   For consistency, SWI-Prolog does not accept
+integers in the surrogate pair range as valid code points, e.g.
+
+\begin{code}
+?- char_code(X, 0xD800).
+ERROR: Type error: `character_code' expected, found `55296' (an integer)
+\end{code}
+
+The internal character representation is completely transparent to the
+Prolog user. Users of the foreign language interface as described in
+\chapref{foreign} sometimes need to be aware of these issues though.
 
 Character coding comes into view when characters of strings need to be
 read from or written to file or when they have to be communicated to
@@ -3297,15 +3371,15 @@ as well as I/O through network sockets.
 
 \subsection{Wide character encodings on streams} \label{sec:encoding}
 
-Although characters are uniquely coded using the UCS standard
+Although characters are uniquely coded using the Unicode standard
 internally, streams and files are byte (8-bit) oriented and there are a
-variety of ways to represent the larger UCS codes in an 8-bit octet
+variety of ways to represent the larger Unicode codes in an 8-bit octet
 stream. The most popular one, especially in the context of the web, is
 UTF-8. Bytes 0~\ldots{}~127 represent simply the corresponding US-ASCII
-character, while bytes 128~\ldots{}~255 are used for multi-byte
-encoding of characters placed higher in the UCS space. Especially on
-MS-Windows the 16-bit Unicode standard, represented by pairs of bytes, is
-also popular.
+character, while bytes 128~\ldots{}~255 are used for multi-byte encoding
+of characters placed higher in the Unicode space. Especially on MS-Windows
+the 16-bit UTF-16 standard, represented by pairs of bytes, is also
+popular.
 
 Prolog I/O streams have a property called \jargon{encoding} which
 specifies the used encoding that influences get_code/2 and put_code/2 as
@@ -3342,27 +3416,35 @@ but generates errors and warnings on encountering values above
 127.
 
     \termitem{iso_latin_1}{}
-8-bit encoding supporting many Western languages.  This causes
-the stream to be read and written fully untranslated.
+8-bit encoding supporting many Western languages. This causes the stream
+to be read and written fully untranslated. The above is the SWI-Prolog
+native name. This encoding may be specified using the official
+\href{https://www.iana.org}{IANA} name \const{ISO-8859-1}.
 
     \termitem{text}{}
 C library default locale encoding for text files.  Files are read and
 written using the C library functions mbrtowc() and wcrtomb().  This
-may be the same as one of the other locales, notably it may be the
+may be the same as one of the other encodings, notably it may be the
 same as \const{iso_latin_1} for Western languages and \const{utf8}
 in a UTF-8 context.
 
     \termitem{utf8}{}
-Multi-byte encoding of full UCS, compatible with \const{ascii}.
-See above.
+Multi-byte encoding of full Unicode, compatible with \const{ascii}.
+See above. The above is the SWI-Prolog native name.  This encoding
+may be specified using the official \href{https://www.iana.org}{IANA}
+name \const{UTF-8}.
 
-    \termitem{unicode_be}{}
-Unicode \jargon{Big Endian}.  Reads input in pairs of bytes, most
-significant byte first.  Can only represent 16-bit characters.
-
-    \termitem{unicode_le}{}
-Unicode \jargon{Little Endian}.  Reads input in pairs of bytes, least
-significant byte first.  Can only represent 16-bit characters.
+    \termitem{utf16be}{}
+    \nodescription
+    \termitem{utf16le}{}
+UTF-16 encoding. Reads input in pairs of bytes. \const{utf16be} is
+\jargon{Big Endian}, putting the most significant byte first and
+\const{utf16le} is \jargon{Little Endian}, putting the most significant
+byte second. UTF-16 can represent full Unicode using \jargon{surrogate
+pairs}.  The above are the SWI-Prolog native names.  These encodings
+may be specified using the official \href{https://www.iana.org}{IANA}
+names \const{UTF-16BE} and \const{UTF-16LE}.  For backward compatibility
+we also support \const{unicode_be} and \const{unicode_le}.
 \end{description}
 
 Note that not all encodings can represent all characters. This implies

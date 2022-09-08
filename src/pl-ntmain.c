@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2018, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,23 +38,15 @@
 #define _UNICODE 1
 #define UNICODE 1
 
-#ifdef __WINDOWS__
 #include <winsock2.h>
 #include <windows.h>
-#endif
-
-#ifdef WIN64
-#include "config/win64.h"
-#else
-#include "config/win32.h"
-#endif
+#include "config/wincfg.h"
 
 #include <tchar.h>
 #include <malloc.h>
 #include <stdio.h>
 #include "os/SWI-Stream.h"
 #include "SWI-Prolog.h"
-#include <windows.h>
 #include <ctype.h>
 #include "win32/console/console.h"
 #include <signal.h>
@@ -76,8 +69,8 @@ Main program for running SWI-Prolog from   a window. The window provides
 X11-xterm like features: scrollback for a   predefined  number of lines,
 cut/paste and the GNU readline library for command-line editing.
 
-This module combines swipl.dll and plterm.dll  with some glue to produce
-the final executable swipl-win.exe.
+This module combines libswipl.dll  and  plterm.dll   with  some  glue to
+produce the final executable swipl-win.exe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 __declspec(dllexport)	rlc_console	PL_current_console(void);
@@ -247,22 +240,23 @@ Srlc_write(void *handle, char *buffer, size_t size)
 }
 
 
+
 static int
 Srlc_close(void *handle)
 { rlc_console c = handle;
   uintptr_t v;
   int closed = 0;
 
-  if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v &&
-       ((IOSTREAM *)v)->flags && SIO_CLOSING )
+#define ison(p,f) (((p)->flags)&(f))
+#define IS_CLOSING(v) ison((IOSTREAM *)v, SIO_CLOSING)
+
+  if ( rlc_get(handle, RLC_PROLOG_INPUT, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_INPUT, 0L, NULL);
     closed++;
-  } else if ( rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v &&
-	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  } else if ( rlc_get(handle, RLC_PROLOG_OUTPUT, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_OUTPUT, 0L, NULL);
     closed++;
-  } else if ( rlc_get(handle, RLC_PROLOG_ERROR, &v) && v &&
-	      ((IOSTREAM *)v)->flags && SIO_CLOSING )
+  } else if ( rlc_get(handle, RLC_PROLOG_ERROR, &v) && v && IS_CLOSING(v) )
   { rlc_set(handle, RLC_PROLOG_ERROR, 0L, NULL);
   }
 

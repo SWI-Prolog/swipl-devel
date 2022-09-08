@@ -102,6 +102,26 @@ int	growBuffer(Buffer b, size_t minfree);
 	  (b)->top = (char *)_d; \
 	} while(0)
 
+
+#if SIZEOF_WCHAR_T == 2
+#include "pl-utf8.h"
+#endif					/* maybe need a better place? */
+
+static inline void
+addWcharBuffer(Buffer b, int c)
+{
+#if SIZEOF_WCHAR_T == 2
+  if ( c > 0xffff )
+  { int l, t;
+
+    utf16_encode(c, &l, &t);
+    addBuffer(b, l, wchar_t);
+    addBuffer(b, t, wchar_t);
+  } else
+#endif
+  addBuffer(b, c, wchar_t);
+}
+
 #define allocFromBuffer(b, bytes) \
 	f__allocFromBuffer((Buffer)(b), (bytes))
 

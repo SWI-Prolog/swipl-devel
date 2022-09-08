@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013, VU University Amsterdam
+    Copyright (c)  2013-2022, VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -51,6 +52,7 @@ typedef struct PL_locale
 #define PL_HAVE_PL_LOCALE 1
 
 COMMON(void)		initLocale(void);
+COMMON(void)		cleanupLocale(void);
 COMMON(void)		updateLocale(int category, const char *locale);
 COMMON(PL_locale *)	acquireLocale(PL_locale *l);
 COMMON(void)		releaseLocale(PL_locale *l);

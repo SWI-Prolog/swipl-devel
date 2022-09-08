@@ -833,7 +833,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
       v = valInt(*p);
     else if ( isBignum(*p) )
       v = valBignum(*p);
-    else
+    else				/* GMP integers */
       goto general;
 
     first |= (REC_INT|REC_GROUND);
@@ -887,7 +887,7 @@ PL_record_external(term_t t, size_t *len)
 
   if ( compile_external_record(t, &data) )
   { if ( data.simple )
-    { int scode = (int)sizeOfBuffer(&data.info.code);
+    { size_t scode = sizeOfBuffer(&data.info.code);
       char *rec = malloc(scode);
 
       if ( rec )
@@ -903,8 +903,8 @@ PL_record_external(term_t t, size_t *len)
 	return NULL;
       }
     } else
-    { int shdr  = (int)sizeOfBuffer(&data.hdr);
-      int scode = (int)sizeOfBuffer(&data.info.code);
+    { size_t shdr  = sizeOfBuffer(&data.hdr);
+      size_t scode = sizeOfBuffer(&data.info.code);
       char *rec = malloc(shdr + scode);
 
       if ( rec )
@@ -953,7 +953,8 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 
 	return rc;
       } else
-      { size_t shdr  = sizeOfBuffer(&data.hdr);
+      { int rc;
+	size_t shdr  = sizeOfBuffer(&data.hdr);
 	size_t scode = sizeOfBuffer(&data.info.code);
 	Word p;
 
@@ -965,7 +966,10 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 	  memcpy(q,      data.hdr.base,       shdr);
 	  memcpy(q+shdr, data.info.code.base, scode);
 
-	  return _PL_unify_atomic(string, w);
+	  rc = _PL_unify_atomic(string, w);
+	  discard_record_data(&data);
+
+	  return rc;
 	} else
 	{ discard_record_data(&data);
 	  return FALSE;

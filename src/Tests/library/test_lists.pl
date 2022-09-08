@@ -3,7 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2015, University of Amsterdam
+    Copyright (c)  2022, University of Amsterdam
+                         VU University Amsterdam
+		         CWI, Amsterdam
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -32,13 +34,20 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
-#define WIN32 1
+:- module(test_lists,
+	  [ test_lists/0
+	  ]).
+:- use_module(library(plunit)).
+:- use_module(library(lists)).
 
-#define BOOTFILE	"boot32.prc"
-#define PLARCH		"i386-win32"
-#define SIZEOF_VOIDP	4
-#ifdef _MSC_VER
-typedef long ssize_t;
-#endif
+test_lists :-
+	run_tests([ lists
+		  ]).
 
-#include "wincfg.h"
+:- begin_tests(lists).
+
+% must be deterministic.
+test(reverse, L == [b,a]) :-
+    reverse(L, [a,b]).
+
+:- end_tests(lists).

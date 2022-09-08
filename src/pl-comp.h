@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2020, University of Amsterdam
+    Copyright (c)  2022, University of Amsterdam
                          VU University Amsterdam
 		         CWI, Amsterdam
+			 SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -48,6 +49,7 @@
 #define LDFUNC_DECLARATIONS
 
 void		initWamTable(void);
+void		cleanupWamTable(void);
 void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
 int		get_head_and_body_clause(term_t clause,
@@ -74,6 +76,7 @@ void		wamListClause(Clause clause);
 Code		wamListInstruction(IOSTREAM *out, Code relto, Code bp);
 int		unify_definition(Module ctx, term_t head, Definition def,
 				 term_t thehead, int flags);
+void		cleanupBreakPoints(void);
 code		replacedBreak(Code PC);
 code		replacedBreakUnlocked(Code PC);
 int		clearBreakPointsClause(Clause clause) WUNUSED;

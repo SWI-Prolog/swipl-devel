@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -56,6 +57,7 @@ in this array.
 
 /*#define O_DEBUG 1*/
 #include "pl-incl.h"
+#include "os/pl-utf8.h"
 #include "pl-arith.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
@@ -132,6 +134,11 @@ problem.
 #define FP_X_OFL 0
 #endif
 #endif
+
+typedef int (*ArithF0)(Number r);
+typedef int (*ArithF1)(Number n, Number r);
+typedef int (*ArithF2)(Number n1, Number n2, Number r);
+typedef int (*ArithF3)(Number n1, Number n2, Number n3, Number r);
 
 #if USE_LD_MACROS
 #define	set_roundtoward(p, old)		LDFUNC(set_roundtoward, p, old)
@@ -965,11 +972,11 @@ valueExpression(DECL_LD term_t expr, number *result)
 	continue;
       }
       case TAG_ATOM:
-      { ArithF f;
+      { ArithF0 f;
 
 	functor = lookupFunctorDef(*p, 0);
       arity0:
-	if ( (f = isCurrentArithFunction(functor)) )
+	if ( (f = (ArithF0)isCurrentArithFunction(functor)) )
 	{ if ( (*f)(n) != TRUE )
 	    goto error;
 	} else
@@ -1078,7 +1085,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	  { int rc;
 	    number *a0 = topOfSegStack(&arg_stack);
 
-	    rc = (*f)(a0, n);
+	    rc = (*(ArithF1)f)(a0, n);
 	    clearNumber(a0);
 	    if ( rc == TRUE )
 	    { *a0 = *n;
@@ -1094,7 +1101,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	    void *a[2];
 
 	    topsOfSegStack(&arg_stack, 2, a);
-	    rc = (*f)((number*)a[0], (number*)a[1], n);
+	    rc = (*(ArithF2)f)((number*)a[0], (number*)a[1], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    popTopOfSegStack(&arg_stack);
@@ -1114,7 +1121,7 @@ valueExpression(DECL_LD term_t expr, number *result)
 	    void *a[3];
 
 	    topsOfSegStack(&arg_stack, 3, a);
-	    rc = (*f)((number*)a[0], (number*)a[1], (number*)a[2], n);
+	    rc = (*(ArithF3)f)((number*)a[0], (number*)a[1], (number*)a[2], n);
 	    clearNumber((number*)a[0]);
 	    clearNumber((number*)a[1]);
 	    clearNumber((number*)a[2]);
@@ -1176,20 +1183,16 @@ int
 arithChar(DECL_LD Word p)
 { deRef(p);
 
-  if ( isInteger(*p) )
+  if ( isTaggedInt(*p) )
   { intptr_t chr = valInt(*p);
 
-    if ( chr >= 0 && chr <= PLMAXWCHAR )
+    if ( VALID_CODE_POINT(chr) )
       return (int)chr;
   } else if ( isAtom(*p) )
-  { PL_chars_t txt;
+  { int chr = charCode(*p);
 
-    if ( get_atom_text(*p, &txt) && txt.length == 1 )
-    { if ( txt.encoding == ENC_WCHAR )
-	return txt.text.w[0];
-      else
-	return txt.text.t[0]&0xff;
-    }
+    if ( chr >= 0 )
+      return chr;
   }
 
   PL_error(NULL, 0, NULL, ERR_TYPE,
@@ -1224,6 +1227,13 @@ getCharExpression(DECL_LD Word p, Number r)
 	  r->type = V_INTEGER;
 	  return TRUE;
 	}
+#if SIZEOF_WCHAR_T == 2
+	if ( len == 2 && IS_UTF16_LEAD(ws[0]) )
+	{ r->value.i = utf16_decode(ws[0], ws[1]);
+	  r->type = V_INTEGER;
+	  return TRUE;
+	}
+#endif
       }
 
     len_not_one:
@@ -1852,6 +1862,226 @@ ar_lcm(Number n1, Number n2, Number r)
   return TRUE;
 }
 
+#if O_ROUND_UP_DOWN
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The implementation of the elementary real functions (exp, log, sin, cos,
+etc.) provided by the platform dependent 'libm's is variable and largely
+incorrect when considering all the IEEE   rounding  modes. However, most
+such implementations seem to agree when   using the default FE_TONEAREST
+mode. So rather than depending on correct results for the other rounding
+modes, the following defines a  set   of  elementary functions which use
+'libm'  in  FE_TONEAREST  mode  and  then   explicitly  "round"  in  the
+appropriate  direction,  as  defined  by   current  rounding  mode  from
+'fegetround()', using 'nexttoward()'. This  results   in  slightly wider
+"ranges" than a proper correctly rounded   library, e.g., crlibm, but is
+much simpler to incremenatally add compared   to  an additional external
+library. This assumes that the libraries do generate correct values when
+FE_TONEAREST mode is in effect which is not a proven fact.
+
+This set of correctly rounded functions (cr_exp, cr_log, cr_sin, cr_cos,
+etc.) are used to redefine the standard functions as used in the various
+'ar_...' arithmetic functions.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+// #define general form of unary function with no limits on result
+#define CR_FUNC(func) \
+static double cr_##func(double in) \
+{ double result; \
+  int roundMode = fegetround(); \
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST); \
+  result = func(in); \
+  if (isfinite(result)) switch( roundMode ) \
+  { case FE_UPWARD     : result = nexttoward(result, INFINITY); break; \
+    case FE_DOWNWARD   : result = nexttoward(result,-INFINITY); break; \
+    case FE_TOWARDZERO : result = nexttoward(result, 0); break; \
+  } \
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode); \
+  return result; \
+}
+
+// #define unary function with abs(result) =< 1.0
+#define CR_FUNC_1(func) \
+static double cr_##func(double in) \
+{ double result; \
+  int roundMode = fegetround(); \
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST); \
+  result = func(in); \
+  if ( isfinite(result) ) \
+  { switch( roundMode ) \
+    { case FE_UPWARD: \
+	result = (result <  1.0) ? nexttoward(result, INFINITY) :  1.0; \
+	break; \
+      case FE_DOWNWARD: \
+        result = (result > -1.0) ? nexttoward(result,-INFINITY) : -1.0; \
+        break; \
+      case FE_TOWARDZERO: \
+        result = nexttoward(result, 0); \
+        break; \
+    } \
+  } \
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode); \
+  return result; \
+}
+
+// special case for unary function exp with lower limit of 0.0
+static double
+cr_exp(double in)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = exp(in);
+  switch( roundMode )
+  { case FE_UPWARD:
+      if ( in != -INFINITY )
+	result = nexttoward(result, INFINITY);
+      break;
+    case FE_DOWNWARD:
+    case FE_TOWARDZERO:
+      if ( result != INFINITY )
+	result = nexttoward(result,0);
+      break;
+  }
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define exp(x) cr_exp(x)
+
+CR_FUNC(log)
+#define log(x) cr_log(x)
+
+CR_FUNC(log10)
+#define log10(x) cr_log10(x)
+
+CR_FUNC_1(sin)
+#define sin(x) cr_sin(x)
+
+CR_FUNC_1(cos)
+#define cos(x) cr_cos(x)
+
+CR_FUNC(tan)
+#define tan(x) cr_tan(x)
+
+CR_FUNC(asin)
+#define asin(x) cr_asin(x)
+
+CR_FUNC(acos)
+#define acos(x) cr_acos(x)
+
+CR_FUNC(atan)
+#define atan(x) cr_atan(x)
+
+// special case for binary atan2 function with standard rounding, finite result
+static double
+cr_atan2(double y, double x)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = atan2(y,x);  // abs(result) =< pi
+  switch( roundMode )
+  { case FE_UPWARD    : result = nexttoward(result, INFINITY); break;
+    case FE_DOWNWARD  : result = nexttoward(result,-INFINITY); break;
+    case FE_TOWARDZERO: result = nexttoward(result, 0); break;
+  }
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define atan2(y,x) cr_atan2(y,x)
+
+CR_FUNC(sinh)
+#define sinh(x) cr_sinh(x)
+
+// special case for unary cosh with lower limit of 1.0
+static double
+cr_cosh(double in)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = cosh(in);
+  if (fpclassify(result) != FP_NAN)
+  { switch( roundMode )
+    { case FE_UPWARD:
+	result = nexttoward(result, INFINITY);
+        break;
+      case FE_DOWNWARD:
+      case FE_TOWARDZERO:
+	if (result != INFINITY)
+	  result = (result > 1.0) ? nexttoward(result, 0) : 1.0;
+        break;
+    }
+  }
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define cosh(x) cr_cosh(x)
+
+CR_FUNC_1(tanh)
+#define tanh(x) cr_tanh(x)
+
+// special case for binary function pow with lower limit of 0.0
+static double
+cr_pow(double base, double exp)
+{ double result;
+  int roundMode = fegetround();
+  if (roundMode != FE_TONEAREST) fesetround(FE_TONEAREST);
+  result = pow(base, exp);
+  if ( fpclassify(result) != FP_NAN )
+  { switch( roundMode )
+    { case FE_UPWARD:
+	result = (exp == -INFINITY) ? 0.0 : nexttoward(result, INFINITY);
+        break;
+      case FE_DOWNWARD:
+	result = (exp == -INFINITY) ? 0.0 : nexttoward(result,-INFINITY);
+	break;
+      case FE_TOWARDZERO:
+	if (result !=  INFINITY)
+	  result = nexttoward(result,0);
+        break;
+    }
+  }
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define pow(b,e) cr_pow(b,e)
+
+// special case for unary erf with bounded by +/- 1.0
+static double
+cr_erf(double in)
+{ double result;
+  int roundMode = fegetround();
+  if ( roundMode != FE_TONEAREST ) fesetround(FE_TONEAREST);
+  result = erf(in);  // abs(result) =< 1.0
+  if ( (fpclassify(result) != FP_NAN) &&
+       (fpclassify(in) != FP_INFINITE))
+  { switch( roundMode )
+    { case FE_UPWARD:
+	result = (result <  1.0) ? nexttoward(result, INFINITY) : 1.0;
+        break;
+      case FE_DOWNWARD:
+	result = (result > -1.0) ? nexttoward(result,-INFINITY) : -1.0;
+        break;
+      case FE_TOWARDZERO:
+	if (fpclassify(in) != FP_INFINITE)
+	  result = nexttoward(result, 0);
+        break;
+    }
+  }
+  if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
+  return result;
+}
+#define erf(x) cr_erf(x)
+
+static double cr_erfc(double in)
+{ return 1.0 - cr_erf(in);
+}
+#define erfc(x) cr_erfc(x)
+
+CR_FUNC(lgamma)
+#define lgamma(x) cr_lgamma(x)
+
+#endif /*O_ROUND_UP_DOWN*/
+
 
 /* Unary functions requiring double argument */
 
@@ -2006,37 +2236,6 @@ get_int_exponent(Number n, unsigned long *expp)
 
   return TRUE;
 }
-
-/* cond_minus_pow() handles rounding mode issues calculating pow with
-   negative base float have to reverse to_positive and to_negative.
-*/
-
-static double
-cond_minus_pow(double base, double exp)
-{ double res;
-
-  if ( base < 0 )
-  { switch( fegetround() )
-    { case FE_UPWARD:
-	fesetround(FE_DOWNWARD);
-        res = -pow(-base,exp);
-	fesetround(FE_UPWARD);
-	break;
-      case FE_DOWNWARD:
-	fesetround(FE_UPWARD);
-        res = -pow(-base,exp);
-	fesetround(FE_DOWNWARD);
-	break;
-      default:
-	res = -pow(-base,exp);
-    }
-  } else
-  { res = pow(base,exp);
-  }
-
-  return res;
-}
-
 
 static int
 ar_smallint(Number n, int *i)
@@ -2321,17 +2520,65 @@ ar_pow(Number n1, Number n2, Number r)
         if ( n1->value.f < 0  && !( r_den & 1 ))
 	{ r->value.f = const_nan;	/* negative base, even denominator */
 	} else
-        {
+	{ int roundMode;
+	  int roundMode1, roundMode2;
+	  int neg_res;
+
 	doreal_mpq:
-	  mpq_init(r->value.mpq);
-	  mpq_set_ui(r->value.mpq,1,mpz_get_ui(mpq_denref(n2->value.mpq)));
-	  double dexp = mpq_get_d(r->value.mpq);  /* float(1/n2.den) */
-	  mpq_clear(r->value.mpq);
-	  r->value.f = pow(cond_minus_pow(n1->value.f, dexp),
-			   mpz_get_ui(mpq_numref(n2->value.mpq)));
+	  /* float n1 ^ rat n2*exp_sign, permit -ve float
+	   * Difficult to keep rounding modes straight as (1) the pow function
+	   * switches between monotonic increasing and decreasing depending on
+	   * value of n1 and n2, and (2) it is a two step function
+	   * (promoteToFloatNumber() * and pow()) with independent rounding.
+	   */
+	  roundMode = fegetround();
+	  neg_res = (n1->value.f < 0.0) &&
+		    (mpz_get_ui(mpq_numref(n2->value.mpq)) & 1);
+	  if ( neg_res )                 // pow monotonic increasing or decreasing
+	  { switch (roundMode)           // decreasing
+	    { case FE_UPWARD:
+		roundMode1 = FE_DOWNWARD;
+		break;
+	      case FE_DOWNWARD:
+		roundMode1 = FE_UPWARD;
+		break;
+	      default:
+		roundMode1 = roundMode;
+	    };
+	  } else                         // increasing
+	    roundMode1 = roundMode;
+
+	  n1->value.f = fabs(n1->value.f);
+	  if ( n1->value.f < 1.0 )       // pow monotonic increasing or decreasing
+	  { switch (roundMode1)          // decreasing
+	    { case FE_UPWARD:
+		roundMode2 = FE_DOWNWARD;
+		break;
+	      case FE_DOWNWARD:
+		roundMode2 = FE_UPWARD;
+		break;
+	      default:
+		roundMode2 = roundMode1;
+	    }
+	  } else                         // increasing
+	    roundMode2 = roundMode1;
+
+	  fesetround(roundMode2);
 	  if ( exp_sign == -1 )
-	    r->value.f = 1.0/r->value.f;
-        }
+	    mpq_neg(n2->value.mpq, n2->value.mpq);
+	  if ( !promoteToFloatNumber(n2) )             // using roundMode as set
+	    return FALSE;
+
+	  if (roundMode1 != roundMode2)
+	    fesetround(roundMode1);
+	  r->value.f = pow(n1->value.f, n2->value.f);  // using roundMode1
+
+	  if ( neg_res )
+	    r->value.f = -r->value.f;
+
+	  if ( roundMode1 != roundMode )
+	    fesetround(roundMode);
+	}  /* doreal_mpq */
 
         r->type = V_FLOAT;
         return check_float(r);
@@ -3609,15 +3856,23 @@ ar_integer(Number n1, Number r)
       }
 
       if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
-      { if ( n1->value.f > 0 )
-	{ r->value.i = (int64_t)(n1->value.f + 0.5);
-	  if ( r->value.i < 0 )		/* Why can this happen? */
-	    r->value.i = PLMAXINT;
-	} else
-	{ r->value.i = (int64_t)(n1->value.f - 0.5);
-	  if ( r->value.i > 0 )
-	    r->value.i = PLMININT;
-	}
+      {
+#if SIZEOF_LONG == 8
+	r->value.i = lround(n1->value.f);
+#else
+#if LLROUND_OK				/* Broken on MinGW (11.2) */
+        r->value.i = llround(n1->value.f) ;
+#else
+        /* The fix is to add not +/- 0.5, but +/- nextafter(0.5,-1.)
+         * See https://gcc.gnu.org/ml/gcc-patches/2006-10/msg00917.html and follow-ups
+         */
+        r->value.i = n1->value.f + copysign(nexttoward(0.5, -1.0), n1->value.f) ;
+#endif
+#endif
+	if ( n1->value.f > 0 && r->value.i < 0 )
+	  r->value.i = PLMAXINT;
+	else if ( n1->value.f < 0 && r->value.i > 0 )
+	  r->value.i = PLMININT;
 
 	r->type = V_INTEGER;
 	return TRUE;
@@ -3792,7 +4047,12 @@ ar_float_fractional_part(Number n1, Number r)
     case V_FLOAT:
     { double ip;
 
+#ifdef MODF_OK
       r->value.f = modf(n1->value.f, &ip);
+#else
+      /* return -0.0 for fractional part of -0.0 (IEEE754) */
+      r->value.f = copysign(modf(n1->value.f, &ip), n1->value.f);
+#endif
       r->type = V_FLOAT;
       return check_float(r);
     }
@@ -4786,16 +5046,16 @@ ar_func_n(DECL_LD int findex, int argc)
 
   switch(argc)
   { case 0:
-      rval = (*f)(&result);
+      rval = (*(ArithF0)f)(&result);
       break;
     case 1:
-      rval = (*f)(argv, &result);
+      rval = (*(ArithF1)f)(argv, &result);
       break;
     case 2:
-      rval = (*f)(argv+1, argv, &result);
+      rval = (*(ArithF2)f)(argv+1, argv, &result);
       break;
     case 3:
-      rval = (*f)(argv+2, argv+1, argv, &result);
+      rval = (*(ArithF3)f)(argv+2, argv+1, argv, &result);
       break;
     default:
       rval = FALSE;

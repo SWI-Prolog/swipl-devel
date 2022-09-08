@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -123,6 +123,36 @@ test(no_dup, [P==[x, y, z, z], nondet]) :-
 	permutation_no_dup([x,y,Z,Z],P), P=[x,y,z,z].
 test(17) :-		% from Issue#17
 	dif(A,[_|B]),A=[[]|_],A=[B].
+test(other_atts) :-
+	call_residue_vars((
+		freeze(X, XDone = true),
+		freeze(Y, YDone = true),
+		dif(A, B),
+		X = A,
+		Y = B,
+		\+ X = Y,
+		X = 1,
+		\+ Y = 1,
+		Y = 2
+	), Vars),
+	Vars == [],
+	XDone == true,
+	YDone == true.
+test(issue122) :-
+	A=[B|_],
+	C=[_|_],
+	dif(C, A),
+	C=[B|B].
+test(issue109, [sto(rational_trees)]) :-
+	A=[B|A], C=[D|B], dif(A, C), A=[D|A],
+	attvar(D).
+% See https://github.com/SWI-Prolog/issues/issues/113#issue-1234908231
+test(cyclic, blocked("Cyclic term")) :-
+	dif(A, B),
+	C=[D|D],
+	A=[D|E],
+	B=[C|D],
+	D=[E|E].
 
 :- end_tests(dif).
 

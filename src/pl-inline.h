@@ -496,7 +496,11 @@ linkValI(DECL_LD Word p)
 #define is_signalled(_) LDFUNC(is_signalled, _)
 static inline int
 is_signalled(DECL_LD)
-{ return HAS_LD && unlikely((LD->signal.pending[0]|LD->signal.pending[1]) != 0);
+{ if (!HAS_LD) return FALSE;
+  for (int i = 0; i < SIGMASK_WORDS; i++)
+  { if (unlikely(LD->signal.pending[i] != 0)) return TRUE;
+  }
+  return FALSE;
 }
 
 #define register_attvar(gp) LDFUNC(register_attvar, gp)
@@ -532,7 +536,7 @@ visibleClause(DECL_LD Clause cl, gen_t gen)
   if ( c <= gen && e > gen )
     return TRUE;
 
-  if ( unlikely(gen >= LD->transaction.gen_base) &&
+  if ( unlikely(LD->transaction.gen_base && gen >= LD->transaction.gen_base) &&
        true(cl->predicate, P_DYNAMIC) )
     return transaction_visible_clause(cl, gen);
 

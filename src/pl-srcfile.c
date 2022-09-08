@@ -238,18 +238,21 @@ clearSourceAdmin(atom_t sf_name)
 { GET_LD
   int rc = FALSE;
   fid_t fid;
-  static predicate_t pred = NULL;
+  predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("$clear_source_admin", 1, "system");
+  if ( GD->cleaning == CLN_DATA )
+    return TRUE;
+
+  pred = _PL_predicate("$clear_source_admin", 1, "system",
+		       &GD->procedures.clear_source_admin1);
 
   if ( (fid=PL_open_foreign_frame()) )
   { term_t name = PL_new_term_ref();
 
     PL_put_atom(name, sf_name);
-    startCritical;			/* block signals */
+    startCritical();			/* block signals */
     rc = PL_call_predicate(MODULE_system, PL_Q_NODEBUG, pred, name);
-    endCritical;
+    rc = endCritical() && rc;
 
     PL_discard_foreign_frame(fid);
   }
@@ -261,12 +264,13 @@ clearSourceAdmin(atom_t sf_name)
 static atom_t
 destroySourceFile(SourceFile sf)
 { if ( sf->magic == SF_MAGIC )
-  { SourceFile f;
-    atom_t name;
+  { atom_t name;
+    SourceFile f;
 
     sf->magic = SF_MAGIC_DESTROYING;
     f = deleteHTable(GD->files.table, (void*)sf->name);
     assert(f);
+    (void)f;
     name = sf->name;
     putSourceFileArray(sf->index, NULL);
     if ( GD->files.no_hole_before > sf->index )
@@ -599,33 +603,33 @@ static
 PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 { PRED_LD
   atom_t name;
-  int rc = TRUE;
+  int rc = FALSE;
   SourceFile sf;
 
   term_t file = A1;
 
-  PL_LOCK(L_SRCFILE);
   if ( PL_get_atom_ex(file, &name) &&
-       (sf = lookupSourceFile_unlocked(name, FALSE)) &&
-       sf->count > 0 )
-  { term_t tail = PL_copy_term_ref(A2);
-    term_t head = PL_new_term_ref();
-    ListCell cell;
+       (sf = lookupSourceFile(name, FALSE)) )
+  { if ( sf->count > 0 )
+    { term_t tail = PL_copy_term_ref(A2);
+      term_t head = PL_new_term_ref();
+      ListCell cell;
 
-    LOCKSRCFILE(sf);
-    for(cell=sf->procedures; rc && cell; cell = cell->next )
-    { Procedure proc = cell->value;
-      Definition def = proc->definition;
+      LOCKSRCFILE(sf);
+      for(cell=sf->procedures; rc && cell; cell = cell->next )
+      { Procedure proc = cell->value;
+	Definition def = proc->definition;
 
-      rc = ( PL_unify_list(tail, head, tail) &&
-	     unify_definition(MODULE_user, head, def, 0, GP_QUALIFY)
-	   );
+	rc = ( PL_unify_list(tail, head, tail) &&
+	       unify_definition(MODULE_user, head, def, 0, GP_QUALIFY)
+	     );
+      }
+      rc = (rc && PL_unify_nil(tail));
+      UNLOCKSRCFILE(sf);
     }
-    rc = (rc && PL_unify_nil(tail));
-    UNLOCKSRCFILE(sf);
-  } else
-    rc = FALSE;
-  PL_UNLOCK(L_SRCFILE);
+
+    releaseSourceFile(sf);
+  }
 
   return rc;
 }
@@ -776,7 +780,7 @@ unloadFile(SourceFile sf)
 
 static int
 unloadFile(SourceFile sf)
-{ ListCell cell, next;
+{ ListCell cell;
   size_t deleted = 0;
   int rc;
 
@@ -803,14 +807,9 @@ unloadFile(SourceFile sf)
     }
   }
   DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
+  (void)deleted;
 
-				      /* cleanup the procedure list */
-  for(cell = sf->procedures; cell; cell = next)
-  { next = cell->next;
-    freeHeap(cell, sizeof(struct list_cell));
-  }
-  sf->procedures = NULL;
-
+  freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);
   UNLOCKSRCFILE(sf);
 
@@ -1421,15 +1420,14 @@ fix_module(Module m, m_reload *r)
 { GET_LD
 
   LOCKMODULE(m);
-  for_table(m->public, n, v,
-	    { if ( !r->public ||
-		   !lookupHTable(r->public, n) )
-	      { DEBUG(MSG_RECONSULT_MODULE,
-		      Sdprintf("Delete export %s\n",
-			       procedureName(v)));
-		deleteHTable(m->public, n);
-	      }
-	    });
+  FOR_TABLE(m->public, n, v)
+  { if ( !r->public ||
+	 !lookupHTable(r->public, n) )
+    { DEBUG(MSG_RECONSULT_MODULE,
+	    Sdprintf("Delete export %s\n", procedureName(v)));
+      deleteHTable(m->public, n);
+    }
+  };
   UNLOCKMODULE(m);
 }
 
@@ -1491,6 +1489,8 @@ delete_old_predicates(SourceFile sf)
 	prev->next = cell->next;
       else
 	sf->procedures = cell->next;
+
+      freeHeap(cell, sizeof(*cell));
     } else
     { prev = cell;
     }
@@ -1570,27 +1570,27 @@ endReconsult(SourceFile sf)
     delayEvents();
     delete_old_predicates(sf);
 
-    for_table(reload->procedures, n, v,
-	      { Procedure proc = n;
-		p_reload *r = v;
+    FOR_TABLE(reload->procedures, n, v)
+    { Procedure proc = n;
+      p_reload *r = v;
 
-		accessed_preds -= end_reconsult_proc(sf, proc, r);
-	      });
+      accessed_preds -= end_reconsult_proc(sf, proc, r);
+    }
 
     popNPredicateAccess(accessed_preds);
     assert(reload->pred_access_count == popNPredicateAccess(0));
     destroyHTable(reload->procedures);
 
     if ( reload->modules )
-    { for_table(reload->modules, n, v,
-		{ Module m = n;
-		  m_reload *r = v;
+    { FOR_TABLE(reload->modules, n, v)
+      { Module m = n;
+	m_reload *r = v;
 
-		  fix_module(m, r);
-		  if ( r->public )
-		    destroyHTable(r->public);
-		  freeHeap(r, sizeof(*r));
-		});
+	fix_module(m, r);
+	if ( r->public )
+	  destroyHTable(r->public);
+	freeHeap(r, sizeof(*r));
+      }
       destroyHTable(reload->modules);
     }
 

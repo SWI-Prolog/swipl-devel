@@ -32,7 +32,7 @@ addons:
       - libxpm-dev
       - libxt-dev
       - libdb-dev
-      - libpcre3-dev
+      - libpcre2-dev
       - libyaml-dev
       - openjdk-8-jdk
       - junit
@@ -49,7 +49,7 @@ addons:
       - libyaml
       - unixodbc
       - berkeley-db
-      - pcre
+      - pcre2
       - jpeg
 
 # The  code  below  may  be  used  to   work  from  your  own  clone  of

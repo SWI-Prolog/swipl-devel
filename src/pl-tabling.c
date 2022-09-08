@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2021, VU University Amsterdam
+    Copyright (c)  2017-2022, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -1877,14 +1877,14 @@ call_answer_completion(DECL_LD trie *atrie)
 { fid_t fid;
 
   if ( (fid = PL_open_foreign_frame()) )
-  { static predicate_t pred = NULL;
+  { predicate_t pred;
     term_t av = PL_new_term_refs(2);
     int rc;
     tbl_component *scc_old = LD->tabling.component;
     int hsc = LD->tabling.has_scheduling_component;
 
-    if ( !pred )
-      pred = PL_predicate("answer_completion", 2, "$tabling");
+    pred = _PL_predicate("answer_completion", 2, "$tabling",
+			 &GD->procedures.answer_completion2);
 
     DEBUG(MSG_TABLING_AC,
 	  { term_t t = PL_new_term_ref();
@@ -2274,7 +2274,7 @@ reset_answer_table(trie *atrie, int cleanup)
   clear(atrie, TRIE_COMPLETE);
 
   if ( (n=atrie->data.IDG) )
-  { if ( true(atrie, TRIE_ISSHARED) )
+  { if ( true(atrie, TRIE_ISSHARED) && GD->cleaning != CLN_DATA )
     { idg_reset(n);
     } else
     { atrie->data.IDG = NULL;
@@ -2310,36 +2310,40 @@ is_variant_trie(trie *trie)
 
 
 static void
-clear_variant_table(PL_local_data_t *ld)
+clear_variant_table(trie **vtriep)
 { trie *vtrie;
 
-  if ( (vtrie=ld->tabling.variant_table) )
+  if ( (vtrie=*vtriep) )
   { vtrie->magic = TRIE_CMAGIC;
+    if ( true(vtrie, TRIE_ISSHARED) )
+      release_trie(vtrie);			/* acquired in variant_table() */
     trie_empty(vtrie);
     PL_unregister_atom(vtrie->symbol);
-    ld->tabling.variant_table = NULL;
+    *vtriep = NULL;
   }
 }
 
 
 #define VAR_SKEL_FAST 8
+static functor_t fast_ret_functor[VAR_SKEL_FAST] = {0};
 
 #define unify_trie_ret(ret, vars) LDFUNC(unify_trie_ret, ret, vars)
 static int
 unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 { Word *pp = baseBuffer(vars, Word);
   Word *ep = topBuffer(vars, Word);
-  static functor_t fast[VAR_SKEL_FAST] = {0};
   size_t arity = ep-pp;
   functor_t vf;
 
   assert(arity > 0);
   if ( arity < VAR_SKEL_FAST )
-  { if ( !(vf=fast[arity]) )
-      fast[arity] = vf = PL_new_functor(ATOM_ret, arity);
+  { if ( !(vf=fast_ret_functor[arity]) )
+      fast_ret_functor[arity] = vf = PL_new_functor(ATOM_ret, arity);
   } else
   { vf = PL_new_functor(ATOM_ret, arity);
   }
+
+  assert(valueFunctor(vf));
 
   if ( hasGlobalSpace(arity+1) )
   { Word p = allocGlobalNoShift(arity+1);
@@ -2562,7 +2566,7 @@ void
 clearThreadTablingData(PL_local_data_t *ld)
 { reset_global_worklist(ld->tabling.component);
   reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
-  clear_variant_table(ld);
+  clear_variant_table(&ld->tabling.variant_table);
 }
 
 
@@ -3804,15 +3808,15 @@ update_subsuming_answer(trie_node *node, void *ptr)
 
   if ( true(node, TN_SECONDARY) )
   { GET_LD
-    static predicate_t PRED_update7 = 0;
+    predicate_t PRED_update7;
     term_t av = ctx->argv;
     term_t agg = av+5;
     term_t action = av+6;
     atom_t conditional = answer_is_conditional(node) ? 0
 						     : AS_OLD_DEFINED;
 
-    if ( !PRED_update7 )
-	  PRED_update7 = PL_predicate("update", 7, "$tabling");
+    PRED_update7 = _PL_predicate("update", 7, "$tabling",
+				 &GD->procedures.update7);
 
     if ( tbl_put_moded_args(av+3, node) &&
 	 PL_put_integer(av+0, ctx->flags|conditional) &&
@@ -5100,16 +5104,13 @@ PRED_IMPL("$tbl_scc_data", 2, tbl_scc_data, 0)
   if ( get_scc(A1, &scc) )
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
-    static functor_t f = 0;
-
-    if ( !f ) f = PL_new_functor(PL_new_atom("scc"),5);
 
     return ( unify_pointer_or_nil(av+0, scc->parent) &&
 	     unify_scc_set(av+1, scc->children) &&
 	     unify_component_status(av+2, scc) &&
 	     unify_wl_set(av+3, scc->worklist) &&
 	     unify_wl_set(av+4, scc->created_worklists) &&
-	     PL_cons_functor_v(t, f, av) &&
+	     PL_cons_functor_v(t, FUNCTOR_scc5, av) &&
 	     PL_unify(t, A2) );
   }
 
@@ -5187,16 +5188,13 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
   if ( get_worklist(A1, &wl) )
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
-    static functor_t f = 0;
-
-    if ( !f ) f = PL_new_functor(PL_new_atom("worklist"),5);
 
     return ( PL_unify_pointer(av+0, wl->component) &&
 	     _PL_unify_atomic(av+1, wl->table->symbol) &&
 	     PL_unify_bool(av+2, wl->in_global_wl) &&
 	     PL_unify_bool(av+3, wl->executing) &&
 	     unify_clusters(av+4, wl) &&
-	     PL_cons_functor_v(t, f, av) &&
+	     PL_cons_functor_v(t, FUNCTOR_worklist5, av) &&
 	     PL_unify(t, A2)
 	   );
   }
@@ -6149,17 +6147,24 @@ idg_destroy(idg_node *node)
   PL_free(node);
 }
 
-static void
-idg_free_affected(void *n, void *v)
-{ idg_node *child  = v;
-  idg_node *parent = n;
-
-  while ( child->magic != IDG_NODE_MAGIC )
+static idg_node *
+free_mdep_chain(idg_node *child)
+{ while ( child->magic != IDG_NODE_MAGIC )
   { idg_mdep *mdep = (idg_mdep*)child;
 
     child = mdep->next.child;
     free_mdep(mdep);
   }
+
+  return child;
+}
+
+static void
+idg_free_affected(void *n, void *v)
+{ idg_node *child  = v;
+  idg_node *parent = n;
+
+  child = free_mdep_chain(child);
 
   assert(parent->dependent);
   if ( !deleteHTable(parent->dependent, child) )
@@ -6172,7 +6177,9 @@ idg_free_dependent(void *n, void *v)
   idg_node *child  = n;
 
   assert(child->affected);
-  if ( !deleteHTable(child->affected, parent) )
+  if ( (child=deleteHTable(child->affected, parent)) )
+    free_mdep_chain(child);
+  else
     Sdprintf("OOPS: idg_free_dependent() failed to delete backlink\n");
 }
 
@@ -7862,6 +7869,7 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
     }
 
     freeTableEnum(state->en);
+    state->en = NULL;
 
     if ( popSegStack(&state->stack, &state->idg, IDGNode) )
     { state->en = newTableEnum(state->idg->dependent);
@@ -7889,9 +7897,12 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
     state.visited = newHTable(4);
     addHTable(state.visited, idg, (void*)TRUE);
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
-    state.en = newTableEnum(idg->dependent);
 
+    state.en = newTableEnum(idg->dependent);
     invalid = mono_scc_is_complete_loop(&state);
+    if ( state.en )
+      freeTableEnum(state.en);
+
     clearSegStack(&state.stack);
     if ( !invalid )
     { FOR_TABLE(state.visited, k, v)
@@ -8942,10 +8953,10 @@ generalise_answer_substitution(DECL_LD term_t spec, term_t gen)
 
 static int
 add_answer_count_restraint(void)
-{ static predicate_t pred = NULL;
+{ predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("answer_count_restraint", 0, "system");
+  pred = _PL_predicate("answer_count_restraint", 0, "system",
+		       &GD->procedures.answer_count_restraint0);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8956,10 +8967,10 @@ add_answer_count_restraint(void)
 
 static int
 add_radial_restraint(void)
-{ static predicate_t pred = NULL;
+{ predicate_t pred;
 
-  if ( !pred )
-    pred = PL_predicate("radial_restraint", 0, "system");
+  pred = _PL_predicate("radial_restraint", 0, "system",
+		       &GD->procedures.radial_restraint0);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8971,11 +8982,10 @@ add_radial_restraint(void)
 static int
 tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 { GET_LD
-  static predicate_t pred = NULL;
+  predicate_t pred;
   term_t av;
 
-  if ( !pred )
-    pred = PL_predicate("tripwire", 3, "$tabling");
+  pred = _PL_predicate("tripwire", 3, "$tabling", &GD->procedures.tripwire3);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -8991,11 +9001,10 @@ tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 static int
 tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
 { GET_LD
-  static predicate_t pred = NULL;
+  predicate_t pred;
   term_t av;
 
-  if ( !pred )
-    pred = PL_predicate("tripwire", 3, "$tabling");
+  pred = _PL_predicate("tripwire", 3, "$tabling", &GD->procedures.tripwire3);
 
   DEBUG(MSG_TABLING_RESTRAINT,
 	Sdprintf("Calling %s\n", procedureName(pred)));
@@ -9117,11 +9126,24 @@ new_trie_array(void)
 { trie_array *a = allocHeapOrHalt(sizeof(*a));
 
   memset(a, 0, sizeof(*a));
-  a->blocks[0] = a->preallocated - 1;
-  a->blocks[1] = a->preallocated - 1;
-  a->blocks[2] = a->preallocated - 1;
+  for(int i=0; i<=MSB(TRIE_ARRAY_PREALLOCATED); i++)
+    a->blocks[i] = a->preallocated - 1;
 
   return a;
+}
+
+
+static void
+free_trie_array(trie_array *a)
+{ for(int i = 0; i < MAX_BLOCKS; i++)
+  { if ( a->blocks[i] && a->blocks[i] != a->preallocated - 1 )
+    { size_t bs = (size_t)1<<i;
+
+      PL_free(a->blocks[i]+bs);
+    }
+  }
+
+  freeHeap(a, sizeof(*a));
 }
 
 
@@ -9311,6 +9333,29 @@ initTabling(void)
   setPrologFlag("max_answers_for_subgoal",	  FT_INTEGER, -1);
   setPrologFlag("table_monotonic",	          FT_ATOM,    "eager");
 }
+
+void
+cleanupTabling(void)
+{ memset(fast_ret_functor, 0, sizeof(fast_ret_functor));
+
+#ifdef O_PLMT
+  clear_variant_table(&GD->tabling.variant_table);
+
+  deleteSimpleMutex(&GD->tabling.mutex);
+  cv_destroy(&GD->tabling.cvar);
+
+  if ( GD->tabling.node_pool )
+  { free_alloc_pool(GD->tabling.node_pool);
+    GD->tabling.node_pool = NULL;
+  }
+
+  if ( GD->tabling.waiting )
+  { free_trie_array(GD->tabling.waiting);
+    GD->tabling.waiting = NULL;
+  }
+#endif
+}
+
 
 		 /*******************************
 		 *      PUBLISH PREDICATES	*

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2021, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -80,6 +80,7 @@
 #define valHandleP(h)		valTermRef(h)
 
 static void	initVMIMerge(void);
+static void	cleanupMerge(void);
 
 static void
 checkCodeTable(void)
@@ -183,6 +184,13 @@ initWamTable(DECL_LD)
   initVMIMerge();
 }
 
+void
+cleanupWamTable(void)
+{ free(dewam_table);
+  dewam_table = NULL;
+  cleanupMerge();
+}
+
 /* See SEPARATE_VMI */
 
 void
@@ -197,6 +205,11 @@ initWamTable(DECL_LD)
 { checkCodeTable();
   initSupervisors();
   initVMIMerge();
+}
+
+void
+cleanupWamTable(void)
+{ cleanupMerge();
 }
 
 #endif /* VMCODE_IS_ADDRESS */
@@ -884,7 +897,13 @@ right_recursion:
     FunctorDef fd = valueFunctor(f->definition);
     int rc;
 
-    if ( ++depth == 10000 && (rc=is_acyclic(head)) != TRUE )
+#if O_TIGHT_CSTACK
+#define CYCLE_CHECK_AT 1000
+#else
+#define CYCLE_CHECK_AT 10000
+#endif
+
+    if ( ++depth == CYCLE_CHECK_AT && (rc=is_acyclic(head)) != TRUE )
     { LD->comp.filledVars = ci->arity+nvars;
       resetVars();
 
@@ -1667,6 +1686,17 @@ initVMIMerge(void)
   mergeSeq(H_VOID_N, I_SSU_CHOICE, I_SSU_CHOICE, 0);
   mergeSeq(H_VOID,   H_POP,	   H_POP,	 0);
   mergeSeq(H_VOID_N, H_POP,	   H_POP,	 0);
+}
+
+
+static void
+cleanupMerge(void)
+{ for(int i=0; i<I_HIGHEST; i++)
+  { if ( merge_def[i] )
+    { free(merge_def[i]);
+      merge_def[i] = NULL;
+    }
+  }
 }
 
 
@@ -8143,6 +8173,24 @@ matching_unify_break(Clause clause, int offset, code op)
 }
 
 
+static void
+free_break_symbol(void *name, void *value)
+{ BreakPoint bp = value;
+  Code PC = name;
+
+  *PC = bp->saved_instruction;
+
+  freeHeap(bp, sizeof(*bp));
+}
+
+void
+cleanupBreakPoints(void)
+{ if ( breakTable )
+  { destroyHTable(breakTable);
+    breakTable = NULL;
+  }
+}
+
 #define BRK_NOTSET 0
 #define BRK_SET    1
 #define BRK_EXISTS 2
@@ -8159,7 +8207,9 @@ set_second:
   dop = decode(op);
 
   if ( !breakTable )
-    breakTable = newHTable(16);
+  { breakTable = newHTable(16);
+    breakTable->free_symbol = free_break_symbol;
+  }
 
   if ( dop == D_BREAK )
     return BRK_EXISTS;
@@ -8230,22 +8280,22 @@ clear_second:
 
 int
 clearBreakPointsClause(Clause clause)
-{ if ( breakTable )
+{ if ( breakTable && true(clause, HAS_BREAKPOINTS) )
   { int rc = TRUE;
 
     delayEvents();
     PL_LOCK(L_BREAK);
-    for_table(breakTable, name, value,
-              { BreakPoint bp = (BreakPoint)value;
-		if ( bp->clause == clause )
-		{ int offset = bp->offset;
-		  clearBreak(clause, bp->offset);
-		  rc = callEventHook(PLEV_GCNOBREAK, clause, offset) && rc;
-		}
-	      })
+    FOR_TABLE(breakTable, name, value)
+    { BreakPoint bp = (BreakPoint)value;
+      if ( bp->clause == clause )
+      { int offset = bp->offset;
+	clearBreak(clause, bp->offset);
+	rc = callEventHook(PLEV_RETRACTNOBREAK, clause, offset) && rc;
+      }
+    }
     PL_UNLOCK(L_BREAK);
     clear(clause, HAS_BREAKPOINTS);
-    return sendDelayedEvents(rc);
+    return sendDelayedEvents(rc);	/* returns -1 on error */
   }
 
   return 0;
@@ -8319,9 +8369,9 @@ PRED_IMPL("$break_at", 3, break_at, 0)
     else
       et = PLEV_NOBREAK;
 
-    startCritical;			/* Call event handler sig_atomic */
+    startCritical();			/* Call event handler sig_atomic */
     rc = callEventHook(et, clause, offset);
-    rc = endCritical && rc;
+    rc = endCritical() && rc;
   }
 
   return rc;

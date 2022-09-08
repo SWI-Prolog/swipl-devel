@@ -83,7 +83,9 @@
 	      prolog_close_source/1,
 	      prolog_read_source_term/4
 	    ]).
+:- if(exists_source(library(shlib))).
 :- autoload(library(shlib),[current_foreign_library/2]).
+:- endif.
 :- autoload(library(solution_sequences),[distinct/2,limit/2]).
 
 :- if(exists_source(library(pldoc))).

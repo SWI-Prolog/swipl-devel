@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2015, University of Amsterdam
-                              Vu University Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,6 +37,7 @@
 #define UNICODE 1
 #define _UNICODE 1
 
+#include "../../config/wincfg.h"
 #define _UXNT_KERNEL 1
 #include "uxnt.h"			/* my prototypes */
 #include "utf8.c"
@@ -62,30 +64,20 @@
 #endif
 #include <errno.h>
 #include <fcntl.h>
+#include <assert.h>
 
 #ifndef TRUE
 #define TRUE 1
 #define FALSE 0
 #endif
 
-#ifdef __LCC__
-#define _close close
-#define _read read
-#define _write write
-#define _lseek lseek
-#define _tell tell
-#define _chdir chdir
-#define _mkdir mkdir
-#define _rmdir rmdir
-#define _getcwd getcwd
+#if WIN_PATH_MAX
+#undef PATH_MAX
+#define PATH_MAX WIN_PATH_MAX
 #endif
 
-#define XENOMAP 1
-#define XENOMEM 2
-
-#ifndef PATH_MAX
-#define PATH_MAX 260
-#endif
+#define WIN_PATH_PREFIX _T("\\\\?\\")
+#define WIN_UNC_PREFIX  _T("\\\\?UNC\\")
 
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
@@ -99,21 +91,41 @@ _xos_errno(void)
 { return errno;
 }
 
+static void
+set_posix_error(int win_error)
+{ int error = 0;
+
+  switch(win_error)
+  { case ERROR_ACCESS_DENIED:	  error = EACCES; break;
+    case ERROR_FILE_NOT_FOUND:    error = ENOENT; break;
+    case ERROR_SHARING_VIOLATION: error = EAGAIN; break;
+    case ERROR_ALREADY_EXISTS:    error = EEXIST; break;
+  }
+
+  errno = error;
+}
+
 		 /*******************************
 		 *		UTF-8		*
 		 *******************************/
 
+#define FITS_UTF8(c, o, e) \
+	((o)+6 < (e) || (o)+utf8_code_bytes(c) <= (e))
+
 static char *
 wcstoutf8(char *dest, const wchar_t *src, size_t len)
 { char *o = dest;
-  char *e = &o[len];
+  char *e = &o[len-1];
 
-  for(; *src; src++)
-  { if ( o+6 >= e && o+utf8_code_bytes(*src) >= e )
+  while( *src )
+  { int c;
+
+    src = get_wchar(src, &c);
+    if ( !FITS_UTF8(c, o, e) )
     { errno = ENAMETOOLONG;
       return NULL;
     }
-    o = utf8_put_char(o, *src);
+    o = utf8_put_char(o, c);
   }
   *o = '\0';
 
@@ -127,13 +139,17 @@ static size_t
 wcutf8len(const wchar_t *src)
 { size_t len = 0;
 
-  for(; *src; src++)
-  { if ( *src < 0x80 )
+  while( *src )
+  { int c;
+
+    src = get_wchar(src, &c);
+
+    if ( c < 0x80 )
     { len++;
     } else
     { char o[6];
       char *e;
-      e = utf8_put_char(o, *src);
+      e = utf8_put_char(o, c);
       len += e-o;
     }
   }
@@ -142,20 +158,22 @@ wcutf8len(const wchar_t *src)
 }
 
 
-static wchar_t *
-utf8towcs(wchar_t *dest, const char *src, size_t len)
+wchar_t *
+_xos_utf8towcs(wchar_t *dest, const char *src, size_t len)
 { wchar_t *o = dest;
-  wchar_t *e = &o[len-1];
+  wchar_t *e = &o[len];
 
   for( ; *src; )
   { int wc;
+    int wl;
 
     src = utf8_get_char(src, &wc);
-    if ( o >= e )
+    wl = (wc <= 0xffff ? 1 : 2);
+    if ( o+wl >= e )
     { errno = ENAMETOOLONG;
       return NULL;
     }
-    *o++ = wc;
+    o = put_wchar(o, wc);
   }
   *o = 0;
 
@@ -163,21 +181,24 @@ utf8towcs(wchar_t *dest, const char *src, size_t len)
 }
 
 
+/* length of wide string needed to represent UTF-8 string */
+
 static size_t
-utf8_strlen(const char *s, size_t len)
+utf8_wcslen(const char *s, size_t len)
 { const char *e = &s[len];
-  unsigned int l = 0;
+  size_t l = 0;
 
   while(s<e)
   { int chr;
 
     s = utf8_get_char(s, &chr);
+    if ( chr > 0xffff )
+      l++;
     l++;
   }
 
   return l;
 }
-
 
 
 		 /*******************************
@@ -186,10 +207,10 @@ utf8_strlen(const char *s, size_t len)
 
 static int
 existsAndWriteableDir(const TCHAR *name)
-{ DWORD a;
+{ DWORD a = GetFileAttributes(name);
 
-  if ( (a=GetFileAttributes(name)) != 0xFFFFFFFF )
-  { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+  if ( a != INVALID_FILE_ATTRIBUTES )
+  { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
     { if ( !(a & FILE_ATTRIBUTE_READONLY) )
 	return TRUE;
     }
@@ -200,7 +221,7 @@ existsAndWriteableDir(const TCHAR *name)
 
 
 char *
-_xos_home()				/* expansion of ~ */
+_xos_home(void)				/* expansion of ~ */
 { static char home[PATH_MAX];
   static int done = FALSE;
 
@@ -258,76 +279,158 @@ Map a UTF-8 string in Prolog internal representation to a UNICODE string
 to be used with the Windows UNICODE access functions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define ISSEP(c) ((c)=='/'||(c)=='\\')
+
+static int
+is_unc_path(const char *q)
+{ if ( ISSEP(q[0]) && ISSEP(q[1]) )
+  { const char *hp = q+2;
+
+    for(q=hp; *q && *q < 0x80 && (isalnum(*q) || *q == '.' || *q == ':'); q++)
+      ;
+    if ( ISSEP(*q) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
+int
+_xos_win_prefix_lenght(const wchar_t *s)
+{ if ( wcsncmp(s, WIN_PATH_PREFIX, wcslen(WIN_PATH_PREFIX)) == 0 )
+    return wcslen(WIN_PATH_PREFIX);
+  if ( wcsncmp(s, WIN_UNC_PREFIX,  wcslen(WIN_UNC_PREFIX)) == 0 )
+    return wcslen(WIN_UNC_PREFIX);
+
+  return 0;
+}
+
+
+static const wchar_t* reserved_file_names[] =
+{ _T("CON"),
+  _T("PRN"),
+  _T("AUX"),
+  _T("NUL"),
+  _T("COM1"), _T("COM2"), _T("COM3"), _T("COM4"), _T("COM5"),
+  _T("COM6"), _T("COM7"), _T("COM8"), _T("COM9"),
+  _T("LPT1"), _T("LPT2"), _T("LPT3"), _T("LPT4"), _T("LPT5"),
+  _T("LPT6"), _T("LPT7"), _T("LPT8"), _T("LPT9"),
+  (const wchar_t*)0
+};
+
+static int
+is_reserved_name(const wchar_t *name)
+{ for(const wchar_t**r = reserved_file_names; *r; r++)
+  { if ( _tcsicmp(name, *r) )
+      return TRUE;
+  }
+
+  return FALSE;
+}
+
 wchar_t *
 _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
-{ wchar_t *s = osname;
-  wchar_t *e = &osname[len-1];
-  const char *q = cname;
+{ TCHAR buf[PATH_MAX];
+  wchar_t *s = osname;
 
-  s = osname;
-					/* /c:/ --> c:/ */
-  if ( q[0] == '/' && q[1] < 0x80 && isalpha(q[1]) && q[2] == ':' &&
-       (q[3] == '/' || q[3] == '\0') )
-  { if ( s+2 >= e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    *s++ = q[1];
-    *s++ = ':';
-    q += 3;
+  if ( !_xos_utf8towcs(buf, cname, PATH_MAX) )
+    return NULL;
+
+  if ( is_reserved_name(buf) )
+  { wcscpy(osname, buf);
+    return osname;
   }
 
-  if ( (q[0] == '/' || q[0] == '\\') &&
-       (q[1] == '/' || q[1] == '\\') )	/* deal with //host/share */
-  { if ( s+1 >= e )
-    { errno = ENAMETOOLONG;
-      return NULL;
-    }
-    *s++ = '\\';
+  if ( is_unc_path(cname) )
+  { wcscpy(s, WIN_UNC_PREFIX);
+    s += wcslen(s);
+  } else
+  { wcscpy(s, WIN_PATH_PREFIX);
+    s += wcslen(s);
+  }
+  len -= (s-osname);
+
+  DWORD rc = GetFullPathNameW(buf, len, s, NULL);
+  if ( rc > len )
+  { errno = ENAMETOOLONG;
+    return NULL;
+  } else if ( rc == 0 )
+  { errno = EINVAL;
+    return NULL;
   }
 
-  while( *q )				/* map / --> \, delete multiple '\' */
-  { if ( *q == '/' || *q == '\\' )
-    { if ( s+1 >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
-      *s++ = '\\';
-      q++;
-      while(*q == '/' || *q == '\\')
-	q++;
-    } else
-    { int wc;
+  /* Work around a bug in GetFullPathNameW() which sometimes starts
+     adding its own \\?\ prefix.  If so, we delete it again ...
+  */
 
-      q = utf8_get_char(q, &wc);
-      if ( s+2 >= e )
-      { errno = ENAMETOOLONG;
-	return NULL;
-      }
-      *s++ = wc;
-    }
+  int n;
+  if ( (n=_xos_win_prefix_lenght(s)) )
+  { const wchar_t *from = s+n;
+    size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
+
+    memmove(s, from, bytes);
   }
-
-  while(s > osname+1 && s[-1] == '\\' )	/* delete trailing '\' */
-    s--;
-					/* d: --> d:\ */
-  if ( s == &osname[2] && osname[1] == ':' &&
-       osname[0] < 0x80 && isalpha(osname[0]) )
-    *s++ = '\\';
-  *s = '\0';
 
   return osname;
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Simple   Prolog   to   Windows   name     conversion    used   by   e.g.
+prolog_to_os_filename/2. Here we want to   preserve relative file names,
+drive root and UNC files. Removes   consequtive  slashes (except the UNC
+case),  only  uses  backslash  in  the    output  and  removes  trailing
+backslashes except for  after  the  drive   specification  or  UNC  host
+specification.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 _xos_os_filename(const char *cname, char *osname, size_t len)
-{ TCHAR buf[PATH_MAX];
+{ char *o = osname;
+  char *e = osname+len-1;
+  const char *s = cname;
+  int unc = FALSE;
+  char *eh = NULL;
 
-  if ( !_xos_os_filenameW(cname, buf, PATH_MAX) )
-    return NULL;
+  while( *s )
+  { int c;
 
-  return wcstoutf8(osname, buf, len);
+    s = utf8_get_char(s, &c);
+    if ( ISSEP(c) )
+    { int insert = FALSE;
+
+      if ( unc )
+	eh = o;				/* end of host */
+
+      if ( o == osname )
+      { insert = TRUE;
+      } else if ( o == osname+1 && osname[0] == '\\' )
+      { unc = TRUE;
+	insert = TRUE;
+      } else if ( o[-1] != '\\' )
+      { insert = TRUE;
+      }
+
+      if ( insert )
+      { if ( !FITS_UTF8(c, o, e) )
+	{ errno = ENAMETOOLONG;
+	  return NULL;
+	}
+	*o++ = '\\';
+      }
+    } else
+    { if ( !FITS_UTF8(c, o, e) )
+      { errno = ENAMETOOLONG;
+	return NULL;
+      }
+      o = utf8_put_char(o, c);
+    }
+  }
+  while(o>osname+1 && o[-1] == '\\' && o[-2] != ':' && o-1 != eh)
+    o--;
+  *o = '\0';
+
+  return osname;
 }
 
 
@@ -350,13 +453,16 @@ _xos_canonical_filenameW(const wchar_t *spec,
     s += 2;
   }
 
-  for(; *s; s++)
-  { int c = *s;
+  while(*s)
+  { int c;
+
+    s = get_wchar(s, &c);
 
     if ( c == '\\' )
     { c = '/';
     } else if ( (flags&XOS_DOWNCASE) )
-    { c = towlower((wchar_t)c);
+    { if ( c <= 0xffff )
+	c = towlower((wint_t)c);
     }
 
     if ( p+6 >= e )
@@ -375,7 +481,7 @@ char *
 _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 { TCHAR buf[PATH_MAX];
 
-  if ( !utf8towcs(buf, spec, PATH_MAX) )
+  if ( !_xos_utf8towcs(buf, spec, PATH_MAX) )
     return NULL;
 
   return _xos_canonical_filenameW(buf, xname, len, flags);
@@ -384,12 +490,9 @@ _xos_canonical_filename(const char *spec, char *xname, size_t len, int flags)
 
 int
 _xos_is_absolute_filename(const char *spec)
-{ TCHAR buf[PATH_MAX];
-
-  _xos_os_filenameW(spec, buf, PATH_MAX);
-  if ( buf[1] == ':' && buf[0] < 0x80 && iswalpha(buf[0]) )
+{ if ( spec[1] == ':' && !(spec[0]&0x80) && iswalpha(spec[0]) )
     return TRUE;			/* drive */
-  if ( buf[0] == '\\' && buf[1] == '\\' )
+  if ( ISSEP(spec[0]) && ISSEP(spec[1]) )
     return TRUE;			/* UNC */
 
   return FALSE;
@@ -487,7 +590,7 @@ _xos_long_file_name(const char *file, char *longname, size_t len)
 { TCHAR in[PATH_MAX];
   TCHAR out[PATH_MAX];
 
-  if ( !utf8towcs(in, file, PATH_MAX) )
+  if ( !_xos_utf8towcs(in, file, PATH_MAX) )
     return NULL;
 
   if ( !_xos_long_file_nameW(in, out, PATH_MAX) )
@@ -513,27 +616,62 @@ _xos_absolute_filename(const char *local, char *absolute, size_t len)
 }
 
 
+static void
+delete_trailing_slash(wchar_t *s)
+{ wchar_t *end = s + wcslen(s);
+
+  while(end > s && end[-1] == '\\')
+  { end[-1] = 0;
+    end--;
+  }
+}
+
+
+static int
+compare_file_identifiers(const wchar_t *p1, const wchar_t *p2)
+{ HANDLE h1 = INVALID_HANDLE_VALUE, h2 = INVALID_HANDLE_VALUE;
+  int rc = FALSE;
+
+  if ( (h1=CreateFileW(p1, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+		       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL))
+       != INVALID_HANDLE_VALUE &&
+       (h2=CreateFileW(p2, GENERIC_READ|GENERIC_WRITE, FILE_SHARE_READ|FILE_SHARE_WRITE,
+		       NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL))
+       != INVALID_HANDLE_VALUE )
+  { BY_HANDLE_FILE_INFORMATION info1, info2;
+
+    if ( GetFileInformationByHandle(h1, &info1) &&
+	 GetFileInformationByHandle(h2, &info2) )
+      rc = ( info1.dwVolumeSerialNumber == info2.dwVolumeSerialNumber &&
+	     info1.nFileIndexHigh       == info2.nFileIndexHigh &&
+	     info1.nFileIndexLow	== info2.nFileIndexLow );
+  }
+
+  if ( h1 != INVALID_HANDLE_VALUE ) CloseHandle(h1);
+  if ( h2 != INVALID_HANDLE_VALUE ) CloseHandle(h2);
+
+  return rc;
+}
+
+
 int
 _xos_same_file(const char *p1, const char *p2)
 { if ( strcmp(p1, p2) == 0 )
   { return TRUE;
   } else
   { TCHAR osp1[PATH_MAX], osp2[PATH_MAX];
-    TCHAR abs1[PATH_MAX], abs2[PATH_MAX];
-    TCHAR *fp;
 
     if ( !_xos_os_filenameW(p1, osp1, PATH_MAX) ||
 	 !_xos_os_filenameW(p2, osp2, PATH_MAX) )
       return -1;			/* error */
 
-    if ( !GetFullPathName(osp1, PATH_MAX, abs1, &fp) ||
-	 !GetFullPathName(osp2, PATH_MAX, abs2, &fp) )
-      return -1;
+    delete_trailing_slash(osp1);
+    delete_trailing_slash(osp2);
 
-    //fwprintf(stderr, _T("f1='%s'\nf2='%s'\n"), abs1, abs2);
-
-    if ( _tcsicmp(abs1, abs2) == 0 )
+    if ( _tcsicmp(osp1, osp2) == 0 )
       return TRUE;
+
+    return compare_file_identifiers(osp1, osp2);
   }
 
   return FALSE;
@@ -549,15 +687,21 @@ are in UTF-8 encoding!
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 char *
-_xos_limited_os_filename(const char *spec, char *limited)
+_xos_limited_os_filename(const char *spec, char *limited, size_t len)
 { const char *i = spec;
   char *o = limited;
+  char *e = &limited[len-1];
 
   while(*i)
   { int wc;
 
     i = utf8_get_char(i, &wc);
     wc = towlower((wchar_t)wc);
+    if ( !FITS_UTF8(wc, o, e) )
+    { errno = ENAMETOOLONG;
+      return NULL;
+    }
+
     o = utf8_put_char(o, wc);
   }
   *o = '\0';
@@ -809,7 +953,22 @@ _xos_remove(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _wremove(buf);
+  if ( _wremove(buf) == 0 )
+    return 0;
+
+  if ( errno == EACCES )		/* try to remove read only file */
+  { DWORD atts = GetFileAttributes(buf);
+
+    if ( (atts & FILE_ATTRIBUTE_READONLY) )
+    { DWORD rwatts = atts & ~FILE_ATTRIBUTE_READONLY;
+      SetFileAttributes(buf, rwatts);
+      if ( DeleteFile(buf) )
+	return 0;
+      SetFileAttributes(buf, atts);
+    }
+  }
+
+  return -1;
 }
 
 
@@ -831,13 +990,80 @@ _xos_rename(const char *old, const char *new)
 
 
 int
-_xos_stat(const char *path, struct _stati64 *sbuf)
+_xos_file_size(const char *path, uint64_t *sizep)
 { TCHAR buf[PATH_MAX];
+  WIN32_FILE_ATTRIBUTE_DATA info;
 
-   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  return _wstati64(buf, sbuf);
+  if ( GetFileAttributesExW(buf, GetFileExInfoStandard, &info) )
+  { uint64_t size = info.nFileSizeHigh;
+
+    size <<= sizeof(info.nFileSizeHigh)*8;
+    size += info.nFileSizeLow;
+    *sizep = size;
+    return 0;
+  }
+
+  errno = ENOENT;
+  return -1;
+}
+
+int
+_xos_get_file_time(const char *name, int which, double *tp)
+{ HANDLE hFile;
+  wchar_t wfile[PATH_MAX];
+
+#define nano * 0.000000001
+#define ntick 100.0
+#define SEC_TO_UNIX_EPOCH 11644473600.0
+
+  if ( !_xos_os_filenameW(name, wfile, PATH_MAX) )
+    return FALSE;
+
+  if ( (hFile=CreateFileW(wfile,
+			  0,
+			  FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE,
+			  NULL,
+			  OPEN_EXISTING,
+			  FILE_FLAG_BACKUP_SEMANTICS,
+			  NULL)) != INVALID_HANDLE_VALUE )
+  { FILETIME wt;
+    int rc;
+
+    switch( which )
+    { case XOS_TIME_CREATE:
+	rc = GetFileTime(hFile, &wt, NULL, NULL);
+        break;
+      case XOS_TIME_ACCESS:
+	rc = GetFileTime(hFile, NULL, &wt, NULL);
+        break;
+      case XOS_TIME_MODIFIED:
+	rc = GetFileTime(hFile, NULL, NULL, &wt);
+        break;
+      default:
+	assert(0);
+        rc = FALSE;
+    }
+    CloseHandle(hFile);
+
+    if ( rc )
+    { double t;
+
+      t  = (double)wt.dwHighDateTime * (4294967296.0 * ntick nano);
+      t += (double)wt.dwLowDateTime  * (ntick nano);
+      t -= SEC_TO_UNIX_EPOCH;
+
+      *tp = t;
+
+      return 0;
+    }
+  }
+
+  set_posix_error(GetLastError());
+
+  return -1;
 }
 
 
@@ -845,15 +1071,15 @@ static int
 exists_file_or_dir(const TCHAR *path, int flags)
 { DWORD a;
 
-  if ( (a=GetFileAttributes(path)) != 0xFFFFFFFF )
-  { if ( flags & _XOS_DIR )
-    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+  if ( (a=GetFileAttributes(path)) != INVALID_FILE_ATTRIBUTES )
+  { if ( (flags & _XOS_DIR) )
+    { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
 	return TRUE;
       else
 	return FALSE;
     }
-    if ( flags & _XOS_FILE )
-    { if ( a & FILE_ATTRIBUTE_DIRECTORY )
+    if ( (flags & _XOS_FILE) )
+    { if ( (a & FILE_ATTRIBUTE_DIRECTORY) )
 	return FALSE;
     }
 
@@ -879,34 +1105,48 @@ _xos_exists(const char *path, int flags)
 		 *	    DIRECTORIES		*
 		 *******************************/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) According to the docs, FindFirstFileW()   does not _need_ the "\\?\"
+prefix. It seems that on some specific   directories  this goes wrong in
+Wine.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 DIR *
 opendir(const char *path)
 { TCHAR buf[PATH_MAX];
-  DIR *dp = malloc(sizeof(DIR));
+  TCHAR *edir;
+  DIR *dp = malloc(sizeof(*dp));
 
   if ( !dp )
   { errno = ENOMEM;
     return NULL;
   }
 
-  if ( !_xos_os_filenameW(path, buf, PATH_MAX-4) )
+  /* -2: make sure there is space for the "\*" */
+  if ( !_xos_os_filenameW(path, buf, PATH_MAX-2) )
   { free(dp);
     return NULL;
   }
-  _tcscat(buf, _T("\\*.*"));
+  edir = buf+_tcslen(buf);
+  _tcscat(edir, _T("\\*"));
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { free(dp);
     errno = ENOMEM;
     return NULL;
   }
-  dp->first = 1;
-  dp->handle = FindFirstFile(buf, dp->data);
+  dp->first = TRUE;
+  wchar_t *pattern = buf+_xos_win_prefix_lenght(buf); /* see (*) */
+  dp->handle = FindFirstFileExW(pattern,
+				FindExInfoBasic, dp->data,
+				FindExSearchNameMatch, NULL,
+				FIND_FIRST_EX_LARGE_FETCH);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
-  { if ( _waccess(buf, 04) )		/* does not exist */
-    { free(dp->data);
-      free(dp);
+  { *edir = 0;
+
+    if ( _waccess(buf, R_OK) )		/* Dir does not exist or is unreadable */
+    { closedir(dp);
       return NULL;
     }
   }
@@ -918,7 +1158,7 @@ opendir(const char *path)
 int
 closedir(DIR *dp)
 { if ( dp )
-  { if ( dp->handle )
+  { if ( dp->handle != INVALID_HANDLE_VALUE )
       FindClose(dp->handle);
     free(dp->data);
     free(dp);
@@ -930,40 +1170,29 @@ closedir(DIR *dp)
 }
 
 
-static struct dirent *
-translate_data(DIR *dp)
-{ WIN32_FIND_DATA *data;
-
-  if ( !dp->handle )
-    return NULL;
-
-  data = dp->data;
-  if ( wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name)) )
-    return dp;
-
-  return NULL;
-}
-
-
 struct dirent *
 readdir(DIR *dp)
-{ for(;;)
-  { struct dirent *de;
-
-    if ( dp->first )
-    { dp->first = 0;
-    } else
-    { if ( dp->handle )
-      { if ( !FindNextFile(dp->handle, dp->data) )
-	  return NULL;
-      }
-    }
-
-    if ( (de = translate_data(dp)) )
-      return de;
+{ if ( dp->first )
+  { dp->first = FALSE;
+    if ( dp->handle == INVALID_HANDLE_VALUE )
+      return NULL;
+  } else
+  { if ( !FindNextFile(dp->handle, dp->data) )
+      return NULL;
   }
+
+  WIN32_FIND_DATA *data = dp->data;
+  wcstoutf8(dp->d_name, data->cFileName, sizeof(dp->d_name));
+
+  return dp;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We cannot pass the "\\?\" prefix  to SetCurrentDirectoryW() as that will
+upset applications that inherit this directory. Still seems the argument
+is limited to 260 characters.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
 _xos_chdir(const char *path)
@@ -972,16 +1201,11 @@ _xos_chdir(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( buf[0] < 0x80 && isalpha(buf[0]) && buf[1] == ':' )
-  { int drv = tolower(buf[0]) - 'a' + 1;
+  if ( SetCurrentDirectoryW(buf+_xos_win_prefix_lenght(buf)) )
+    return 0;
 
-    if ( _getdrive() != drv )
-    { if ( _chdrive(drv) < 0 )
-	return -1;
-    }
-  }
-
-  return _wchdir(buf);
+  errno = ENOENT;
+  return -1;
 }
 
 
@@ -1032,7 +1256,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
   TCHAR *valp = val;
   size_t size;
 
-  if ( !utf8towcs(nm, name, PATH_MAX) )
+  if ( !_xos_utf8towcs(nm, name, PATH_MAX) )
     return -1;
   size = GetEnvironmentVariable(nm, valp, PATH_MAX);
 
@@ -1046,6 +1270,7 @@ _xos_getenv(const char *name, char *buf, size_t buflen)
     }
 
     size = wcslen(valp);		/* return sometimes holds 0-bytes */
+
     if ( wcstoutf8(buf, valp, buflen) )
       rc = strlen(buf);
     else
@@ -1068,16 +1293,19 @@ _xos_setenv(const char *name, char *value, int overwrite)
   TCHAR *val = buf;
   int rc;
 
-  if ( !utf8towcs(nm, name, PATH_MAX) )
+  if ( !_xos_utf8towcs(nm, name, PATH_MAX) )
     return -1;
   if ( !overwrite && GetEnvironmentVariable(nm, NULL, 0) > 0 )
     return 0;
-  if ( !utf8towcs(val, value, PATH_MAX) )
-  { size_t wlen = utf8_strlen(value, strlen(value)) + 1;
+  if ( !_xos_utf8towcs(val, value, PATH_MAX) )
+  { size_t wlen = utf8_wcslen(value, strlen(value)) + 1;
+    wchar_t *s;
 
     if ( (val = malloc(wlen*sizeof(TCHAR))) == NULL )
       return -1;
-    utf8towcs(val, value, wlen);
+    s = _xos_utf8towcs(val, value, wlen);
+    assert(s==val);
+    (void)s;
   }
 
   rc = SetEnvironmentVariable(nm, val);

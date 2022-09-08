@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1995-2021, University of Amsterdam
+    Copyright (c)  1995-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -80,7 +80,7 @@ save_option(pce,         boolean,
             "Do (not) include the xpce graphics subsystem").
 save_option(packs,       boolean,
             "Do (not) attach packs").
-save_option(class,       oneof([runtime,development]),
+save_option(class,       oneof([runtime,development,prolog]),
             "Development state").
 save_option(op,          oneof([save,standard]),
             "Save operators").
@@ -220,29 +220,17 @@ qsave_init_file_option(_, Options, Options).
 %!  make_header(+Out:stream, +SaveClass, +Options) is det.
 
 make_header(Out, _, Options) :-
-    option(emulator(OptVal), Options),
+    stand_alone(Options),
     !,
-    absolute_file_name(OptVal, [access(read)], Emulator),
+    emulator(Emulator, Options),
     setup_call_cleanup(
         open(Emulator, read, In, [type(binary)]),
         copy_stream_data(In, Out),
         close(In)).
-make_header(Out, _, Options) :-
-    (   current_prolog_flag(windows, true)
-    ->  DefStandAlone = true
-    ;   DefStandAlone = false
-    ),
-    option(stand_alone(true), Options, DefStandAlone),
-    !,
-    current_prolog_flag(executable, Executable),
-    setup_call_cleanup(
-        open(Executable, read, In, [type(binary)]),
-        copy_stream_data(In, Out),
-        close(In)).
-make_header(Out, SaveClass, _Options) :-
+make_header(Out, SaveClass, Options) :-
     current_prolog_flag(unix, true),
     !,
-    current_prolog_flag(executable, Executable),
+    emulator(Emulator, Options),
     current_prolog_flag(posix_shell, Shell),
     format(Out, '#!~w~n', [Shell]),
     format(Out, '# SWI-Prolog saved state~n', []),
@@ -250,8 +238,22 @@ make_header(Out, SaveClass, _Options) :-
     ->  ArgSep = ' -- '
     ;   ArgSep = ' '
     ),
-    format(Out, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Executable, ArgSep]).
+    format(Out, 'exec ${SWIPL-~w} -x "$0"~w"$@"~n~n', [Emulator, ArgSep]).
 make_header(_, _, _).
+
+stand_alone(Options) :-
+    (   current_prolog_flag(windows, true)
+    ->  DefStandAlone = true
+    ;   DefStandAlone = false
+    ),
+    option(stand_alone(true), Options, DefStandAlone).
+
+emulator(Emulator, Options) :-
+    (   option(emulator(OptVal), Options)
+    ->  absolute_file_name(OptVal, [access(read)], Emulator)
+    ;   current_prolog_flag(executable, Emulator)
+    ).
+
 
 
                  /*******************************
@@ -677,14 +679,16 @@ save_predicate(P, SaveClass) :-
     feedback('~nsaving ~w/~d ', [F, A]),
     (   (   H = resource(_,_)
         ;   H = resource(_,_,_)
-        ),
-        SaveClass \== development
-    ->  save_attribute(P, (dynamic)),
-        (   M == user
-        ->  save_attribute(P, (multifile))
-        ),
-        feedback('(Skipped clauses)', []),
-        fail
+        )
+    ->  (   SaveClass == development
+        ->  true
+        ;   save_attribute(P, (dynamic)),
+            (   M == user
+            ->  save_attribute(P, (multifile))
+            ),
+            feedback('(Skipped clauses)', []),
+            fail
+        )
     ;   true
     ),
     (   no_save(P)
@@ -1007,7 +1011,7 @@ strip_file(File, Stripped) :-
 strip_file(File, File).
 
 do_strip_file(Strip, File, Stripped) :-
-    format(atom(Cmd), '"~w" -o "~w" "~w"',
+    format(atom(Cmd), '"~w" -x -o "~w" "~w"',
            [Strip, Stripped, File]),
     shell(Cmd),
     exists_file(Stripped).

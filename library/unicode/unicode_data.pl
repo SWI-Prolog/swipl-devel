@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2011, University of Amsterdam
+    Copyright (c)  2005-2022, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -60,14 +61,14 @@ directory  as  this  file  or  in    the   search  path  'unicode'  (see
 file_search_path/2).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-%       unicode_property(?Code, ?Property)
+%!  unicode_property(?Code, ?Property)
 %
-%       Logical predicate relating code  points   to  properties.  It is
-%       optimised for asking a single  property   of  a  known code, but
-%       works with any instantiation.
+%   Logical  predicate  relating  code  points   to  properties.  It  is
+%   optimised for asking a single property of   a  known code, but works
+%   with any instantiation.
 
 unicode_property(Code, Property) :-
-    table(Handle),
+    utable(Handle),
     property(Property),
     in_table(Handle, [code(Code), Property], _),
     \+ arg(1, Property, '').
@@ -103,10 +104,10 @@ property(simple_titlecase_mapping(_)).
        assert(user:file_search_path(unicode, Dir))
    ).
 
-table(Handle) :-
+utable(Handle) :-
     handle(Handle),
     !.
-table(Handle) :-
+utable(Handle) :-
     absolute_file_name(unicode('UnicodeData.txt'),
                        Path,
                        [ access(read)

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2021, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -920,6 +920,13 @@ charCode(word w)
 
       return p[0];
     }
+#if SIZEOF_WCHAR_T == 2
+    if ( a->length == 2*sizeof(pl_wchar_t) && a->type == &ucs_atom )
+    { pl_wchar_t *p = (pl_wchar_t*)a->name;
+
+      return utf16_decode(p[0], p[1]);
+    }
+#endif
   }
 
   return -1;
@@ -2949,12 +2956,13 @@ uncachedCodeToAtom(int chrcode)
     tmp[0] = (char)chrcode;
     return lookupAtom(tmp, 1);
   } else
-  { pl_wchar_t tmp[1];
+  { wchar_t tmp[2];
+    wchar_t *end;
     int new;
 
-    tmp[0] = chrcode;
+    end = put_wchar(tmp, chrcode);
 
-    return lookupBlob((const char *)tmp, sizeof(pl_wchar_t),
+    return lookupBlob((const char *)tmp, sizeof(tmp[0])*(end-tmp),
 		      &ucs_atom, &new);
   }
 }
@@ -3810,6 +3818,12 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
   if ( len )
     *len = x->length;
+  if ( unlikely(x->type == ATOM_TYPE_INVALID) )
+  { if ( type )
+      *type = NULL;
+    return NULL;
+  }
+
   if ( type )
     *type = x->type;
 
@@ -4588,27 +4602,20 @@ variable LSAN_OPTIONS=.
 
 static int
 haltProlog(int status)
-{ int reclaim_memory = FALSE;
+{ status |= PL_CLEANUP_NO_RECLAIM_MEMORY;
 
 #if defined(GC_DEBUG) || defined(O_DEBUG) || defined(__SANITIZE_ADDRESS__)
-  reclaim_memory = TRUE;
+  status &= ~PL_CLEANUP_NO_RECLAIM_MEMORY;
 #endif
 
-  if ( cleanupProlog(status, reclaim_memory) )
-  { run_on_halt(&GD->os.exit_hooks, status);
-
-#if 0 && defined(__SANITIZE_ADDRESS__)
-// Disabled as this doesn't work
-    Sdprintf("About to exit\n");
-    __lsan_do_leak_check();
-    Sdprintf("Done checking\n");
-    __lsan_disable();
-#endif
-
-    return TRUE;
+  switch( PL_cleanup(status) )
+  { case PL_CLEANUP_CANCELED:
+    case PL_CLEANUP_RECURSIVE:
+      return FALSE;
+    default:
+      run_on_halt(&GD->os.exit_hooks, status);
+      return TRUE;
   }
-
-  return FALSE;
 }
 
 int
@@ -4641,15 +4648,15 @@ PL_open_resource(Module m,
 { GET_LD
   IOSTREAM *s = NULL;
   fid_t fid;
-  static predicate_t MTOK_pred;
+  predicate_t pred;
   term_t t0;
 
   (void)rc_class;
 
   if ( !m )
     m = MODULE_user;
-  if ( !MTOK_pred )
-    MTOK_pred = PL_predicate("c_open_resource", 3, "$rc");
+  pred = _PL_predicate("c_open_resource", 3, "$rc",
+		       &GD->procedures.c_open_resource3);
 
   if ( !(fid = PL_open_foreign_frame()) )
   { errno = ENOENT;
@@ -4659,7 +4666,7 @@ PL_open_resource(Module m,
   PL_put_atom_chars(t0+0, name);
   PL_put_atom_chars(t0+1, mode);
 
-  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, MTOK_pred, t0) ||
+  if ( !PL_call_predicate(m, PL_Q_CATCH_EXCEPTION, pred, t0) ||
        !PL_get_stream_handle(t0+2, &s) )
     errno = ENOENT;
 
@@ -4685,11 +4692,8 @@ PL_raise(int sig)
 
 int
 PL_clearsig(DECL_LD int sig)
-{ if ( sig > 0 && sig <= MAXSIGNAL && HAS_LD )
-  { int off  = (sig-1)/32;
-    int mask = 1 << ((sig-1)%32);
-
-    ATOMIC_AND(&LD->signal.pending[off], ~mask);
+{ if ( IS_VALID_SIGNAL(sig) && HAS_LD )
+  { WSIGMASK_CLEAR(LD->signal.pending, sig);
     updateAlerted(LD);
     return TRUE;
   }
@@ -4725,16 +4729,38 @@ PL_abort_hook(PL_abort_hook_t func)
 }
 
 
+void
+cleanAbortHooks(PL_local_data_t *ld)
+{ WITH_LD(ld)
+  { AbortHandle next;
+
+    for(AbortHandle h = abort_head; h; h=next)
+    { next = h->next;
+      freeHeap(h, sizeof(*h));
+    }
+    abort_head = abort_tail = NULL;
+  }
+}
+
 int
 PL_abort_unhook(PL_abort_hook_t func)
 { GET_LD
   AbortHandle h = abort_head;
+  AbortHandle prev = NULL;
 
   for(; h; h = h->next)
   { if ( h->function == func )
     { h->function = NULL;
+      if ( prev )
+	prev->next = h->next;
+      else
+	abort_head = h->next;
+      if ( !h->next )
+	abort_tail = prev;
+      freeHeap(h, sizeof(*h));
       return TRUE;
     }
+    prev = h;
   }
 
   return FALSE;

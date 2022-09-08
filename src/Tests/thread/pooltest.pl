@@ -41,20 +41,18 @@ pooltest :-
 	thread_self(Me),
 	create_pool(PoolSize, Threads),
 	forall(between(0, 100, X),
-	       thread_send_message(queue,
-				   thread_send_message(Me, X))),
+	       thread_send_message(queue, reply(Me, X))),
 	forall(between(0, 100, X),
 	       thread_get_message(X)),
 	forall(between(1, PoolSize, X),
-	       thread_send_message(queue,
-				   thread_exit(done))),
+	       thread_send_message(queue, done)),
 	join_threads(Threads),
 	message_queue_destroy(queue).
 
 
 join_threads([]).
 join_threads([H|T]) :-
-	thread_join(H, exited(done)),
+	thread_join(H),
 	join_threads(T).
 
 
@@ -72,5 +70,10 @@ create_pool_threads(I, N, [Id|T]) :-
 worker(Queue) :-
 	repeat,
 	thread_get_message(Queue, Goal),
-	call(Goal),
-	fail.
+	(   Goal == done
+	->  true
+	;   Goal = reply(To, Msg),
+	    thread_send_message(To, Msg),
+	    fail
+	).
+

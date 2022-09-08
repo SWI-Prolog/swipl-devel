@@ -43,7 +43,9 @@
 test_prolog_listen :-
     run_tests(prolog_listen).
 
-:- begin_tests(prolog_listen).
+:- begin_tests(prolog_listen,
+               [ condition(current_prolog_flag(threads, true))
+               ]).
 
 :- dynamic p/1.
 

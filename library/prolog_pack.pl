@@ -563,11 +563,12 @@ version_options(_, _, []).
 %
 %   Select from available packages.
 
-pack_select_candidate(Pack, [Version-_|_], Options,
+pack_select_candidate(Pack, [AtomVersion-_|_], Options,
                       [already_installed(pack(Pack, Installed))|Options]) :-
     current_pack(Pack),
     pack_info(Pack, _, version(InstalledAtom)),
     atom_version(InstalledAtom, Installed),
+    atom_version(AtomVersion, Version),
     Installed @>= Version,
     !.
 pack_select_candidate(Pack, Available, Options, OptsOut) :-
@@ -586,13 +587,14 @@ pack_select_candidate(Pack, [Version-[URL]|_], Options,
     !,
     confirm(install_from(Pack, Version, git(URL)), yes, Options).
 pack_select_candidate(Pack, [Version-[URL]|More], Options,
-                      [url(URL), inquiry(true)]) :-
+                      [url(URL), inquiry(true) | Upgrade]) :-
     (   More == []
     ->  !
     ;   true
     ),
     confirm(install_from(Pack, Version, URL), yes, Options),
-    !.
+    !,
+    add_upgrade(Pack, Upgrade).
 pack_select_candidate(Pack, [Version-URLs|_], Options,
                       [url(URL), inquiry(true)|Rest]) :-
     maplist(url_menu_item, URLs, Tagged),
@@ -603,10 +605,17 @@ pack_select_candidate(Pack, [Version-URLs|_], Options,
     (   Choice == cancel
     ->  fail
     ;   Choice = git(URL)
-    ->  Rest = [git(true)]
+    ->  Rest = [git(true)|Upgrade]
     ;   Choice = URL,
-        Rest = []
-    ).
+        Rest = Upgrade
+    ),
+    add_upgrade(Pack, Upgrade).
+
+add_upgrade(Pack, Options) :-
+    current_pack(Pack),
+    !,
+    Options = [upgrade(true)].
+add_upgrade(_, []).
 
 url_menu_item(URL, git(URL)=install_from(git(URL))) :-
     git_url(URL, _),
@@ -1369,11 +1378,15 @@ info_file(todo(_),   'todo').
 git_url(URL, Pack) :-
     uri_components(URL, Components),
     uri_data(scheme, Components, Scheme),
+    nonvar(Scheme),                         % must be full URL
     uri_data(path, Components, Path),
     (   Scheme == git
     ->  true
     ;   git_download_scheme(Scheme),
         file_name_extension(_, git, Path)
+    ;   git_download_scheme(Scheme),
+        catch(git_ls_remote(URL, _, [refs(['HEAD']), error(_)]), _, fail)
+    ->  true
     ),
     file_base_name(Path, PackExt),
     (   file_name_extension(Pack, git, PackExt)

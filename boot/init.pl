@@ -2279,8 +2279,10 @@ load_files(Module:Files, Options) :-
                 Mode = qcompile,
                 LoadFile = FullFile
             ;   Why == old,
-                current_prolog_flag(home, PlHome),
-                sub_atom(FullFile, 0, _, _, PlHome)
+                (   current_prolog_flag(home, PlHome),
+                    sub_atom(FullFile, 0, _, _, PlHome)
+                ;   sub_atom(QlfFile, 0, _, _, 'res://')
+                )
             ->  print_message(silent,
                               qlf(system_lib_out_of_date(Spec, QlfFile))),
                 Mode = qload,
@@ -2313,7 +2315,9 @@ load_files(Module:Files, Options) :-
         (   PlTime > QlfTime
         ->  Why = old                   % PlFile is newer
         ;   Error = error(Formal,_),
-            catch('$qlf_sources'(QlfFile, _Files), Error, true),
+            catch('$qlf_info'(QlfFile, _CVer, _MLVer,
+                              _FVer, _CSig, _FSig),
+                  Error, true),
             nonvar(Formal)              % QlfFile is incompatible
         ->  Why = Error
         ;   fail                        % QlfFile is up-to-date and ok
@@ -2457,7 +2461,8 @@ load_files(Module:Files, Options) :-
 %   check the modification again.
 
 '$register_resource_file'(FullFile) :-
-    (   sub_atom(FullFile, 0, _, _, 'res://')
+    (   sub_atom(FullFile, 0, _, _, 'res://'),
+        \+ file_name_extension(_, qlf, FullFile)
     ->  '$set_source_file'(FullFile, resource, true)
     ;   true
     ).
@@ -4272,6 +4277,13 @@ at_halt(Goal) :-
 
 cancel_halt(Reason) :-
     throw(cancel_halt(Reason)).
+
+%!  prolog:heartbeat
+%
+%   Called every _N_ inferences  of  the   Prolog  flag  `heartbeat`  is
+%   non-zero.
+
+:- multifile prolog:heartbeat/0.
 
 
                 /********************************

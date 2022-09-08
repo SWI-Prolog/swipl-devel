@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -79,14 +80,13 @@ _lookupModule(DECL_LD atom_t name)
   if ( (m = lookupHTable(GD->tables.modules, (void*)name)) )
     return m;
 
-  DEBUG(MSG_CREATE_MODULE,
-	{ Sdprintf("Creating module %s:\n%s",
-		   PL_atom_chars(name),
-		   PL_backtrace_string(10,0));
-	});
-
   m = allocHeapOrHalt(sizeof(struct module));
   memset(m, 0, sizeof(*m));
+
+  DEBUG(MSG_CREATE_MODULE,
+	{ Sdprintf("Created module %s at %p\n",
+		   PL_atom_chars(name), m);
+	});
 
   m->name = name;
 #ifdef O_PLMT
@@ -191,21 +191,27 @@ acquireModulePtr(DECL_LD Module m)
   }
 }
 
+static void
+releaseModule_unlocked(Module m)
+{ if ( --m->references == 0 &&
+       true(m, M_DESTROYED) )
+  { unlinkSourceFilesModule(m);
+#ifdef O_PLMT
+    if ( m->wait )
+      free_wait_area(m->wait);
+#endif
+    GD->statistics.modules--;
+    PL_unregister_atom(m->name);
+    unallocModule(m);
+  }
+}
+
+
 void
 releaseModule(Module m)
 { if ( m->class == ATOM_temporary )
   { PL_LOCK(L_MODULE);
-    if ( --m->references == 0 &&
-	 true(m, M_DESTROYED) )
-    { unlinkSourceFilesModule(m);
-#ifdef O_PLMT
-      if ( m->wait )
-	free_wait_area(m->wait);
-#endif
-      GD->statistics.modules--;
-      PL_unregister_atom(m->name);
-      unallocModule(m);
-    }
+    releaseModule_unlocked(m);
     PL_UNLOCK(L_MODULE);
   }
 }
@@ -243,8 +249,8 @@ advanceModuleEnum(ModuleEnum en)
     if ( m && m->class == ATOM_temporary )
     { if ( (en->flags&MENUM_TEMP) )
       { m->references++;
-	if ( en->current )
-	  releaseModule(en->current);
+	if ( en->current && en->current->class == ATOM_temporary )
+	  releaseModule_unlocked(en->current);
 	en->current = m;
       } else
 	continue;
@@ -260,8 +266,8 @@ advanceModuleEnum(ModuleEnum en)
 void
 freeModuleEnum(ModuleEnum en)
 { freeTableEnum(en->tenum);
-  if ( en->current )
-    releaseModule(en->current);
+  if ( en->current && en->current->class == ATOM_temporary )
+    releaseModule_unlocked(en->current);
   free(en);
 }
 
@@ -312,7 +318,7 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
-    freeHeap(def, sizeof(*def));
+    unallocDefinition(def);
     freeHeap(c, sizeof(*c));
   }
 }
@@ -321,6 +327,9 @@ freeLingeringDefinitions(ListCell c)
 static void
 unallocModule(Module m)
 { GET_LD
+
+  DEBUG(MSG_CREATE_MODULE, Sdprintf("unallocModule(%s) at %p\n",
+				    PL_atom_chars(m->name), m));
 
 #ifdef O_PLMT
   if ( LD )
@@ -335,6 +344,7 @@ unallocModule(Module m)
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
   if ( m->mutex )      freeSimpleMutex(m->mutex);
+  if ( m->wait )       free_wait_area(m->wait);
 #endif
   if ( m->lingering )  freeLingeringDefinitions(m->lingering);
 
@@ -415,9 +425,12 @@ destroyModule(Module m)
 
 
 static void
-emptyModule(Module m)
-{ DEBUG(MSG_CLEANUP, Sdprintf("emptyModule(%s)\n", PL_atom_chars(m->name)));
-  if ( m->procedures ) clearHTable(m->procedures);
+empty_module(void *key, void *value)
+{ Module m = value;
+  atom_t name = (atom_t)key;
+
+  unallocModule(m);
+  (void)name;
 }
 
 
@@ -426,9 +439,8 @@ cleanupModules(void)
 { Table t;
 
   if ( (t=GD->tables.modules) )
-  { for_table(t, name, value, emptyModule(value));
-
-    GD->tables.modules = NULL;
+  { GD->tables.modules = NULL;
+    t->free_symbol = empty_module;
     destroyHTable(t);
   }
 }
@@ -1468,11 +1480,9 @@ head from the context module.
 
 int
 exportProcedure(Module module, Procedure proc)
-{ LOCKMODULE(module);
-  updateHTable(module->public,
+{ updateHTable(module->public,
 	       (void *)proc->definition->functor->functor,
 	       proc);
-  UNLOCKMODULE(module);
 
   return TRUE;
 }
@@ -1602,18 +1612,17 @@ static inline void
 fixExportModule(Module m, Definition old, Definition new)
 { LOCKMODULE(m);
 
-  for_table(m->procedures, name, value,
-	    { Procedure proc = value;
+  FOR_TABLE(m->procedures, name, value)
+  { Procedure proc = value;
 
-	      if ( proc->definition == old )
-	      { DEBUG(1, Sdprintf("Patched def of %s\n",
-				  procedureName(proc)));
-		shareDefinition(new);
-		proc->definition = new;
-		if ( unshareDefinition(old) == 0 )
-		  lingerDefinition(old);
-	      }
-	    });
+    if ( proc->definition == old )
+    { DEBUG(1, Sdprintf("Patched def of %s\n", procedureName(proc)));
+      shareDefinition(new);
+      proc->definition = new;
+      if ( unshareDefinition(old) == 0 )
+	lingerDefinition(old);
+    }
+  }
 
   UNLOCKMODULE(m);
 }
@@ -1621,9 +1630,9 @@ fixExportModule(Module m, Definition old, Definition new)
 
 static void
 fixExport(Definition old, Definition new)
-{ PL_LOCK(L_MODULE);
-  for_table(GD->tables.modules, name, value,
-	    fixExportModule(value, old, new));
+{ PL_LOCK(L_MODULE);		/* Otherwise tmp modules may disappear */
+  FOR_TABLE(GD->tables.modules, name, value)
+    fixExportModule(value, old, new);
   PL_UNLOCK(L_MODULE);
 }
 
@@ -1668,26 +1677,36 @@ import(DECL_LD term_t pred, term_t strength)
 retry:
   if ( (old = isCurrentProcedure(proc->definition->functor->functor,
 				 destination)) )
-  { if ( old->definition == proc->definition )
-      succeed;			/* already done this! */
+  { LOCKMODULE(destination);
+    if ( old->definition == proc->definition )
+    { UNLOCKMODULE(destination);
+      return TRUE;			/* already done this! */
+    }
 
     if ( !isDefinedProcedure(old) )
     { Definition odef = old->definition;
+      int fixup = FALSE;
 
       old->definition = proc->definition;
       shareDefinition(proc->definition);
       if ( unshareDefinition(odef) > 0 )
-      { fixExport(odef, proc->definition);
+      { fixup = TRUE;			/* delay to avoid a deadlock */
       } else
       { lingerDefinition(odef);
       }
       set(old, pflags|PROC_IMPORTED);
 
-      succeed;
+      UNLOCKMODULE(destination);
+      if ( fixup )
+	fixExport(odef, proc->definition);
+
+      return TRUE;
     }
 
     if ( old->definition->module == destination )
-    { if ( (pflags & PROC_WEAK) )
+    { UNLOCKMODULE(destination);
+
+      if ( (pflags & PROC_WEAK) )
       { if ( truePrologFlag(PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT) )
 	{ term_t pi = PL_new_term_ref();
 
@@ -1708,11 +1727,14 @@ retry:
     }
 
     if ( old->definition->module != source )	/* already imported */
-    { return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
+    { UNLOCKMODULE(destination);
+
+      return PL_error("import", 1, NULL, ERR_IMPORT_PROC,
 		      proc, destination->name,
 		      old->definition->module->name);
     }
 
+    UNLOCKMODULE(destination);
     sysError("Unknown problem importing %s into module %s",
 	     procedureName(proc),
 	     stringAtom(destination->name));
@@ -1739,10 +1761,8 @@ retry:
     shareDefinition(proc->definition);
     nproc->definition = proc->definition;
 
-    LOCKMODULE(destination);
     old = addHTable(destination->procedures,
 		    (void *)proc->definition->functor->functor, nproc);
-    UNLOCKMODULE(destination);
     if ( old != nproc )
     { int shared = unshareDefinition(proc->definition);
       assert(shared > 0);
@@ -1750,6 +1770,8 @@ retry:
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }
+    DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
+				   procedureName(nproc), nproc));
   }
 
   return TRUE;

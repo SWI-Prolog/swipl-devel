@@ -38,7 +38,13 @@ test_ieee754 :-
     run_tests([ ieee754
 	      ]).
 
-/** <module> Test IEEEE754 float handling
+/** <module> Test IEEE754 float handling
+
+Test IEEE754 arithmetic, notably rounding.
+
+__Note__: the Emscripten (WASM) version fails most tests. Rounding modes
+are not implemented and several operations   are very imprecise. For now
+we disabled this test on WASM.
 
 @tbd This test is only executed if GMP is   used as it contains a lot of
 tests that involve rational numbers. Most   tests however do not require
@@ -47,7 +53,8 @@ should move back to the `core` tests.
 */
 
 :- begin_tests(ieee754,
-	       [ condition(current_prolog_flag(bounded, false)),
+	       [ condition(( current_prolog_flag(bounded, false),
+                             \+ current_prolog_flag(emscripten, true))),
                  setup(set_float_flags(Old,
                                        [ flag(float_overflow,infinity),
                                          flag(float_zero_div,infinity),
@@ -528,6 +535,18 @@ test(ieee_rmode) :-
     assertion(test_rounding(pi)),
     assertion(test_rounding(e)).
 
+% rational exponent power tests (3)
+test(float_to_rat) :-
+    assertion(test_value(8.0 is 4.0**3r2)),
+    assertion(1.5NaN is -4.0**3r2),  % neg. base, even Q
+    assertion(test_value(2.0 is 8.0**1r3)),
+    assertion(test_value(-2.0 is -8.0**1r3)),
+    assertion(test_value(4.0 is 8.0**2r3)),
+    assertion(test_value(4.0 is -8.0**2r3)),
+    assertion(test_value(0.5 is 8.0** -1r3)),
+    assertion(test_value(-0.5 is -8.0** -1r3)),
+    assertion(2**1r2 =:= sqrt(2)).
+
 test(ieee_rndto) :-
     assertion(test_roundto(-1.0/(3))),
     assertion(test_roundto(float(1r3))),
@@ -535,10 +554,26 @@ test(ieee_rndto) :-
     assertion(test_roundto(sqrt(2))),
     assertion(test_roundto(exp(log(2)))),
     assertion(test_roundto(2**0.5)),
-    assertion(test_roundto(-2.0** 1r3)),
-    assertion(test_roundto( 2.0** 1r3)),
+    assertion(test_roundto(-2.0002** 2)),
+    assertion(test_roundto( 2.0002** 2)),
+    assertion(test_roundto( 2.0002** 1r2)),
+    assertion(test_roundto(-2.0002** 1r3)),
+    assertion(test_roundto( 2.0002** 1r3)),
+    assertion(test_roundto(-2.0002** 2r3)),
+    assertion(test_roundto( 2.0002** 2r3)),
+    assertion(test_roundto( 0.0002 ** 1r3)),
+    assertion(test_roundto(-0.0002 ** 1r3)),
+    assertion(test_roundto( 0.0002 ** 2r3)),
+    assertion(test_roundto(-0.0002 ** 2r3)),
+    assertion(test_roundto( 0.0002 ** -1r3)),
+    assertion(test_roundto(-2.0002 ** -1r3)),
+    assertion(test_roundto( 0.0002 ** -2r3)),
+    assertion(test_roundto(-2.0002 ** -2r3)),
     assertion(test_roundto(pi)),
-    assertion(test_roundto(e)).
+    assertion(test_roundto(e)),
+    assertion(test_roundto(sin(pi/2))),
+    assertion(test_roundto(atan2(1,-1))),
+    assertion(test_roundto(cosh(-0.5))).
 
 test(bounded) :-
     assertion(bounded_number(0,10,1)),
@@ -578,6 +613,10 @@ float_parts(F,Ip,Fp) :-
     Ip is float_integer_part(F),
     Fp is float_fractional_part(F).
 
+test_value(R is Exp) :-
+	Rp is roundtoward(Exp,to_positive),
+    Rn is roundtoward(Exp,to_negative),
+    Rn =< R,R =< Rp.
 
 test_rounding(Exp) :-
     rounding(Exp, Rounded),
@@ -605,7 +644,11 @@ roundto(Exp,r(Rc,Rp,Rn,Rz)) :-                  % for non-precise Exp
 %
 %   Round is a term r(Nearest, Positive, Negative, Zero)
 
+check_round(_Exp, r(R,R,R,R)) :-
+	float(R), float_class(R,infinite),
+	!.
 check_round(Exp, r(Rc,Rp,Rn,Rz)) :-
+    abs((Rp-Rc+Rn-Rz)/Rc) < 4e-15,
     Rn =< Rc, Rc =< Rp,
     (   Rc < 0
     ->  Rz >= Rc, expect_less_then(Exp, n=Rn, z=Rz)

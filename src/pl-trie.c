@@ -410,7 +410,7 @@ prune_node(trie *trie, trie_node *n)
     { switch( children.any->type )
       { case TN_KEY:
 	  if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
-	    PL_free(children.any);
+	    free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
 	  break;
 	case TN_HASHED:
 	  deleteHTable(children.hash->table, (void*)n->key);
@@ -492,7 +492,7 @@ prune_trie(trie *trie, trie_node *root,
       { switch( children.any->type )
 	{ case TN_KEY:
 	    if ( COMPARE_AND_SWAP_PTR(&p->children.any, children.any, NULL) )
-	      PL_free(children.any);
+	      free_to_pool(trie->alloc_pool, children.key, sizeof(*children.key));
 	    break;
 	  case TN_HASHED:
 	    deleteHTable(children.hash->table, (void*)n->key);
@@ -576,7 +576,8 @@ insert_child(DECL_LD trie *trie, trie_node *n, word key)
     { switch( children.any->type )
       { case TN_KEY:
 	{ if ( children.key->key == key )
-	  { return children.key->child;
+	  { destroy_node(trie, new);	/* someone else did this */
+	    return children.key->child;
 	  } else
 	  { trie_children_hashed *hnode;
 

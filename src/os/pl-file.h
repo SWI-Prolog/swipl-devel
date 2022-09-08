@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2020, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -61,6 +62,8 @@ typedef enum iri_op
 /* pl-file.c */
 void		initIO(void);
 void		dieIO(void);
+void		referenceStandardStreams(PL_local_data_t *ld);
+void		unreferenceStandardStreams(PL_local_data_t *ld);
 void		closeFiles(int all);
 int		openFileDescriptors(unsigned char *buf, int size);
 void		protocol(const char *s, size_t n);
@@ -96,8 +99,6 @@ word		pl_make_fat_filemap(term_t dir);
 int		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(void);
 void		popOutputContext(void);
-IOENC		atom_to_encoding(atom_t a);
-atom_t		encoding_to_atom(IOENC enc);
 int		setupOutputRedirect(term_t to,
 				    redir_context *ctx,
 				    int redir);

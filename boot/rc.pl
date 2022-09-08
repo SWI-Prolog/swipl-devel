@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1998-2018, University of Amsterdam
+    Copyright (c)  1998-2022, University of Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -68,12 +69,14 @@ open_resource(Module:RcName, Stream, Options) :-
     ->  absolute_file_name(FileSpec, File),
         open(File, read, Stream, Options)
     ;   '$rc_handle'(Zipper),
+        zip_close(Zipper, Clone),
         tag_rc_name(Module, RcName, TaggedName),
-        zipper_goto(Zipper, file(TaggedName))
-    ->  zipper_open_current(Zipper, Stream,
+        zipper_goto(Clone, file(TaggedName))
+    ->  zipper_open_current(Clone, Stream,
                             [ release(true)
                             | Options
-                            ])
+                            ]),
+        zip_close_(Clone, _)
     ;   '$existence_error'(resource, Module:RcName)
     ).
 open_resource(Name, _Class, Stream) :-

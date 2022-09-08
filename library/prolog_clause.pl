@@ -237,7 +237,7 @@ try_open_source(File, In) :-
     open_source(File, In),
     !.
 try_open_source(File, In) :-
-    open(File, read, In).
+    open(File, read, In, [reposition(true)]).
 
 
 %!  make_varnames(+ReadClause, +DecompiledClause,
@@ -322,15 +322,16 @@ unify_clause((RHead :- RBody), (CHead :- CBody), Module, TermPos1, TermPos) :-
                         BPos1, BPos2),
     RBody1 \== RBody,
     !,
-    unify_clause((RHead :- RBody1), (CHead :- CBody1), Module, TermPos2, TermPos).
+    unify_clause2((RHead :- RBody1), (CHead :- CBody1), Module,
+                  TermPos2, TermPos).
 unify_clause(Read, Decompiled, _, TermPos, TermPos) :-
     Read =@= Decompiled,
     !,
     Read = Decompiled.
-                                        % XPCE send-methods
 unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
     unify_clause_hook(Read, Decompiled, Module, TermPos0, TermPos),
     !.
+                                        % XPCE send-methods
 unify_clause(:->(Head, Body), (PlHead :- PlBody), M, TermPos0, TermPos) :-
     !,
     pce_method_clause(Head, Body, PlHead, PlBody, M, TermPos0, TermPos).
@@ -351,7 +352,7 @@ unify_clause((TH :- Body),
                                         % module:head :- body
 unify_clause((Head :- Read),
              (Head :- _M:Compiled), Module, TermPos0, TermPos) :-
-    unify_clause((Head :- Read), (Head :- Compiled), Module, TermPos0, TermPos1),
+    unify_clause2((Head :- Read), (Head :- Compiled), Module, TermPos0, TermPos1),
     TermPos1 = term_position(TA,TZ,FA,FZ,[PH,PB]),
     TermPos  = term_position(TA,TZ,FA,FZ,
                              [ PH,
@@ -373,33 +374,62 @@ unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
     !,
     TermPos2 = term_position(F,T,FF,FT,[ HP, BP ]),
     match_module(Compiled2, Compiled1, Module, TermPos2, TermPos).
+                                               % SSU rules
 unify_clause((Head,RCond => Body), (CHead :- CCondAndBody), Module,
              term_position(F,T,FF,FT,
                            [ term_position(_,_,_,_,[HP,CP]),
                              BP
                            ]),
              TermPos) :-
-    split_on_cut(CCondAndBody, CCond, CBody),
+    split_on_cut(CCondAndBody, CCond, CBody0),
     !,
     inlined_unification(RCond, CCond, RCond1, CCond1, Head, CP, CP1),
     TermPos1 = term_position(F,T,FF,FT, [HP, BP1]),
     BP2 = term_position(_,_,_,_, [FF-FT, BP]), % Represent (!, Body), placing
     (   CCond1 == true                         % ! at =>
     ->  BP1 = BP2,                             % Whole guard is inlined
-        unify_clause((Head :- !, Body), (CHead :- !, CBody),
-                     Module, TermPos1, TermPos)
-    ;   BP1 = term_position(_,_,_,_, [CP1, BP2]),
-        unify_clause((Head :- RCond1, !, Body), (CHead :- CCond1, !, CBody),
-                     Module, TermPos1, TermPos)
+        unify_clause2((Head :- !, Body), (CHead :- !, CBody0),
+                      Module, TermPos1, TermPos)
+    ;   mkconj_pos(RCond1, CP1, (!,Body), BP2, RBody, BP1),
+        mkconj_npos(CCond1, (!,CBody0), CBody),
+        unify_clause2((Head :- RBody), (CHead :- CBody),
+                      Module, TermPos1, TermPos)
     ).
 unify_clause((Head => Body), Compiled1, Module, TermPos0, TermPos) :-
     !,
-    unify_clause(Head :- Body, Compiled1, Module, TermPos0, TermPos).
-unify_clause(Read, Compiled1, Module, TermPos0, TermPos) :-
+    unify_clause2(Head :- Body, Compiled1, Module, TermPos0, TermPos).
+unify_clause(Read, Decompiled, Module, TermPos0, TermPos) :-
+    unify_clause2(Read, Decompiled, Module, TermPos0, TermPos).
+
+% mkconj, but also unify position info
+mkconj_pos((A,B), term_position(F,T,FF,FT,[PA,PB]), Ex, ExPos, Code, Pos) =>
+    Code = (A,B1),
+    Pos = term_position(F,T,FF,FT,[PA,PB1]),
+    mkconj_pos(B, PB, Ex, ExPos, B1, PB1).
+mkconj_pos(Last, LastPos, Ex, ExPos, Code, Pos) =>
+    Code = (Last,Ex),
+    Pos = term_position(_,_,_,_,[LastPos,ExPos]).
+
+% similar to mkconj, but we should __not__ optimize `true` away.
+mkconj_npos((A,B), Ex, Code) =>
+    Code = (A,B1),
+    mkconj_npos(B, Ex, B1).
+mkconj_npos(A, Ex, Code) =>
+    Code = (A,Ex).
+
+%!  unify_clause2(+Read, +Decompiled, +Module, +TermPosIn, -TermPosOut)
+%
+%   Stratified version to be used after the first match
+
+unify_clause2(Read, Decompiled, _, TermPos, TermPos) :-
+    Read =@= Decompiled,
+    !,
+    Read = Decompiled.
+unify_clause2(Read, Compiled1, Module, TermPos0, TermPos) :-
     ci_expand(Read, Compiled2, Module, TermPos0, TermPos1),
     match_module(Compiled2, Compiled1, Module, TermPos1, TermPos).
                                         % I don't know ...
-unify_clause(_, _, _, _, _) :-
+unify_clause2(_, _, _, _, _) :-
     debug(clause_info, 'Could not unify clause', []),
     fail.
 
@@ -414,14 +444,14 @@ unify_clause_head(H1, H2) :-
 
 inlined_unification((V=T,RBody0), (CV=CT,CBody0),
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     (V=T) =@= (CV=CT) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=T), (CV=CT),
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     (V=T) =@= (CV=CT) =>
     RBody = true,
@@ -429,14 +459,14 @@ inlined_unification((V=T), (CV=CT),
     argpos(2, BPos1, BPos).
 inlined_unification((V=T,RBody0), CBody0,
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2,
     \+ (CBody0 = (G1,_), G1 \=@= (V=T)) =>
     argpos(2, BPos1, BPos2),
     inlined_unification(RBody0, CBody0, RBody, CBody, RHead, BPos2, BPos).
 inlined_unification((V=_), true,
                     RBody, CBody, RHead, BPos1, BPos),
-    sub_term(V2, RHead),
+    inlineable_head_var(RHead, V2),
     V == V2 =>
     RBody = true,
     CBody = true,
@@ -446,6 +476,15 @@ inlined_unification(RBody0, CBody0, RBody, CBody, _RHead,
     RBody = RBody0,
     BPos  = BPos0,
     CBody = CBody0.
+
+%!  inlineable_head_var(+Head, -Var) is nondet
+%
+%   True when Var is a variable in  Head   that  may  be used for inline
+%   unification. Currently we only inline direct arguments to the head.
+
+inlineable_head_var(Head, Var) :-
+    compound(Head),
+    arg(_, Head, Var).
 
 split_on_cut((Cond0,!,Body0), Cond, Body) =>
     Cond = Cond0,
@@ -590,6 +629,15 @@ ubody(A, B, _, P1, P2) :-
 ubody(B, D, _, term_position(_,_,_,_,[_,RP]), TPOut) :-
     nonvar(B), B = M:R,
     ubody(R, D, M, RP, TPOut).
+ubody(B, D, M, term_position(_,_,_,_,[RP0,RP1]), TPOut) :-
+    nonvar(B), B = (B0,B1),
+    (   maybe_optimized(B0),
+        ubody(B1, D, M, RP1, TPOut)
+    ->  true
+    ;   maybe_optimized(B1),
+        ubody(B0, D, M, RP0, TPOut)
+    ),
+    !.
 ubody(B0, B, M,
       brace_term_position(F,T,A0),
       Pos) :-
@@ -669,6 +717,11 @@ ubody_elem(0, G0, G, M, PA0, PA) :-
     ubody(G0, G, M, PA0, PA).
 ubody_elem(_, G, G, _, PA, PA).
 
+%!  conj(+GoalTerm, +PositionTerm, -GoalList, -PositionList)
+%
+%   Turn a conjunctive body into a list   of  goals and their positions,
+%   i.e., removing the positions of the (,)/2 terms.
+
 conj(Goal, Pos, GoalList, PosList) :-
     conj(Goal, Pos, GoalList, [], PosList, []).
 
@@ -692,6 +745,8 @@ conj((!,(S=SR)), F-T, [!,S=SR|TG], TG, [F-T,F1-T1|TP], TP) :-
 conj(A, P, [A|TG], TG, [P|TP], TP).
 
 
+%!  mkconj(+Decompiled, +Module, -Position, +ReadGoals, +ReadPositions)
+
 mkconj(Goal, M, Pos, GoalList, PosList) :-
     mkconj(Goal, M, Pos, GoalList, [], PosList, []).
 
@@ -702,7 +757,15 @@ mkconj(Conj, M, term_position(0,0,0,0,[PA,PB]), GL, TG, PL, TP) :-
     mkconj(A, M, PA, GL, TGA, PL, TPA),
     mkconj(B, M, PB, TGA, TG, TPA, TP).
 mkconj(A0, M, P0, [A|TG], TG, [P|TP], TP) :-
-    ubody(A, A0, M, P, P0).
+    ubody(A, A0, M, P, P0),
+    !.
+mkconj(A0, M, P0, [RG|TG0], TG, [_|TP0], TP) :-
+    maybe_optimized(RG),
+    mkconj(A0, M, P0, TG0, TG, TP0, TP).
+
+maybe_optimized(debug(_,_,_)).
+maybe_optimized(assertion(_)).
+maybe_optimized(true).
 
 %!  argpos(+N, +PositionTerm, -ArgPositionTerm) is det.
 %

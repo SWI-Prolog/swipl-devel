@@ -49,6 +49,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 elseif(CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(CMAKE_C_FLAGS_DEBUG "-DO_DEBUG -gdwarf-2 -g3"
       CACHE STRING "CFLAGS for a Debug build" FORCE)
+elseif(EMSCRIPTEN)
 else()
   message("Unknown C compiler.  ${CMAKE_C_COMPILER_ID}")
 endif()

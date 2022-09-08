@@ -25,11 +25,16 @@ set(SWIPL_PACKAGE_LIST_SSL_title     "OpenSSL_interface")
 set(SWIPL_PACKAGE_LIST_TIPC_title    "TIPC_networking")
 set(SWIPL_PACKAGE_LIST_QT_title	     "Qt_console")
 set(SWIPL_PACKAGE_LIST_X_title	     "Graphics_subsystem")
+set(SWIPL_PACKAGE_LIST_WASM_title    "WASM libraries")
 
-set(SWIPL_PACKAGE_SETS
-    BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
-if(UNIX)
-  list(APPEND SWIPL_PACKAGE_SETS TERM)
+if(EMSCRIPTEN)
+  set(SWIPL_PACKAGE_SETS WASM)
+else()
+  set(SWIPL_PACKAGE_SETS
+      BASIC ARCHIVE ODBC BDB PCRE YAML JAVA SSL TIPC QT X)
+  if(UNIX)
+    list(APPEND SWIPL_PACKAGE_SETS TERM)
+  endif()
 endif()
 
 foreach(pkgset ${SWIPL_PACKAGE_SETS})
@@ -105,6 +110,9 @@ set(SWIPL_PACKAGE_LIST_QT
 set(SWIPL_PACKAGE_LIST_X
     xpce)
 
+set(SWIPL_PACKAGE_LIST_WASM
+    clpqr plunit chr clib http semweb)
+
 # swipl_package_component(pkg var)
 #
 # Set ${var} to the package group to which ${pkg} belongs
@@ -127,7 +135,6 @@ endfunction()
 set(SWIPL_PKG_DEPS_RDF clib semweb sgml)
 set(SWIPL_PKG_DEPS_archive clib)
 set(SWIPL_PKG_DEPS_clib sgml)
-set(SWIPL_PKG_DEPS_http clib sgml ssl)
 set(SWIPL_PKG_DEPS_ltx2htm clib)
 set(SWIPL_PKG_DEPS_pengines clib http)
 set(SWIPL_PKG_DEPS_stomp clib http)
@@ -135,6 +142,11 @@ set(SWIPL_PKG_DEPS_pldoc clib http pengines sgml)
 set(SWIPL_PKG_DEPS_semweb RDF clib http nlp sgml zlib)
 set(SWIPL_PKG_DEPS_ssl clib http sgml zlib)
 set(SWIPL_PKG_DEPS_tipc clib paxos)
+if(EMSCRIPTEN)
+set(SWIPL_PKG_DEPS_http clib sgml)
+else()
+set(SWIPL_PKG_DEPS_http clib sgml ssl)
+endif()
 
 set(SWIPL_PKG_EXPLICIT)				# Explicitly requested packages
 set(SWIPL_PKG_DEPENDENCY)			# Required packages
@@ -271,6 +283,12 @@ if(NOT MULTI_THREADED)
   swipl_del_package(tipc      "requires multi-threading")
   swipl_del_package(stomp     "requires multi-threading")
   swipl_del_package(mqi       "requires multi-threading")
+endif()
+if(STATIC_EXTENSIONS)
+  swipl_del_package(jpl       "requires dynamic loading")
+endif()
+if(WIN32)
+  swipl_del_package(swipl-win "Conflicts with native swipl-win.exe")
 endif()
 
 if(INSTALL_DOCUMENTATION)

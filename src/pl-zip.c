@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, University of Amsterdam
-                         VU University Amsterdam
-		         CWI, Amsterdam
+    Copyright (c)  2018-2022, University of Amsterdam
+			      VU University Amsterdam
+			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,22 @@
 #define __MINGW_USE_VC2005_COMPAT		/* Get Windows time_t as 64-bit */
 
 #include "pl-incl.h"
+
+#if defined(HAVE_MMAP) || defined(__WINDOWS__)
+#define HAVE_FILE_MAPPING 1
+
+typedef struct mapped_file
+{ char *start;
+  char *end;
+#ifdef __WINDOWS__
+  HANDLE hfile;					/* handle to the file */
+  HANDLE hmap;					/* handle to the map */
+#endif
+} mapped_file;
+
+static void	unmap_file(mapped_file *mf);
+#endif
+
 #include "pl-zip.h"
 #include "pl-fli.h"
 #include <fcntl.h>
@@ -477,6 +494,12 @@ close_zipper(zipper *z)
     }
     z->input.any = NULL;
   }
+#ifdef HAVE_FILE_MAPPING
+  if ( z->mapped_file )
+  { unmap_file(z->mapped_file);
+    z->mapped_file = NULL;
+  }
+#endif
 
   return rc;
 }
@@ -485,7 +508,10 @@ static int
 release_zipper(atom_t aref)
 { zipper *z = PL_blob_data(aref, NULL, NULL);
 
+  if ( z == GD->resources.DB )
+    GD->resources.DB = NULL;
   close_zipper(z);
+
 #ifdef O_PLMT
   simpleMutexDelete(&z->lock);
 #endif
@@ -554,7 +580,7 @@ get_zipper(term_t t, zipper **zipper)
 /** zip_open_stream(+Stream, -Zipper, +Options)
 */
 
-static const opt_spec zip_open_stream_options[] =
+static const PL_option_t zip_open_stream_options[] =
 { { ATOM_close_parent,	    OPT_BOOL },
   { NULL_ATOM,		    0 }
 };
@@ -565,7 +591,7 @@ PRED_IMPL("zip_open_stream", 3, zip_open_stream, 0)
   IOSTREAM *stream = NULL;
   int close_parent = FALSE;
 
-  if ( !scan_options(A3, 0, ATOM_zip_options, zip_open_stream_options,
+  if ( !PL_scan_options(A3, 0, "zip_options", zip_open_stream_options,
 		     &close_parent) )
     return FALSE;
 
@@ -632,7 +658,8 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
 #endif
     if ( clone->path )
       clone->path = strdup(clone->path);
-    clone->reader     = unzClone(clone->reader);
+    clone->reader = unzClone(clone->reader);
+    clone->mapped_file = NULL;			/* I'm just a clone */
 
     return unify_zipper(A2, clone);
   }
@@ -644,7 +671,7 @@ PRED_IMPL("zip_clone", 2, zip_clone, 0)
 */
 
 static
-PRED_IMPL("zip_close", 2, zip_close, 0)
+PRED_IMPL("zip_close_", 2, zip_close, 0)
 { PRED_LD
   char *comment = NULL;
   zipper *z;
@@ -655,11 +682,13 @@ PRED_IMPL("zip_close", 2, zip_close, 0)
        (PL_is_variable(A2) || PL_get_chars(A2, &comment, flags)) &&
        zacquire(z, ZIP_CLOSE, &prev_state, "close") )
   { if ( prev_state == ZIP_READ_ENTRY )
+    { PL_register_atom(z->symbol);
       return TRUE;				/* delay */
-    else if ( close_zipper(z) == 0 )
-      return TRUE;
-    else
-      return PL_warning("zip_close/2 failed");
+    } else if ( close_zipper(z) == 0 )
+    { return TRUE;
+    } else
+    { return PL_warning("zip_close/2 failed");
+    }
   }
 
   return FALSE;
@@ -719,6 +748,16 @@ Swrite_zip_entry(void *handle, char *buf, size_t size)
   }
 }
 
+static long
+Sseek_zip_entry(void *handle, long pos, int whence)
+{ (void) handle;
+  (void) pos;
+  (void) whence;
+
+  errno = ESPIPE;
+  return -1;
+}
+
 static int
 Sclose_zip_entry(void *handle)
 { zipper *z = handle;
@@ -732,6 +771,7 @@ Sclose_zip_entry(void *handle)
   if ( z->state == ZIP_CLOSE )
   { zrelease(z);
     close_zipper(z);
+    PL_register_atom(z->symbol);		/* revert delayed zip_close_/2 */
   } else if ( true(z, ZIP_RELEASE_ON_CLOSE) )
   { zrelease(z);
   } else
@@ -774,12 +814,20 @@ Scontrol_zip_entry(void *handle, int action, void *arg)
 IOFUNCTIONS Szipfunctions =
 { Sread_zip_entry,
   Swrite_zip_entry,
-  NULL,						/* seek */
+  NULL,
   Sclose_zip_entry,
-  Scontrol_zip_entry,				/* control */
+  Scontrol_zip_entry,
   NULL						/* seek64 */
 };
 
+IOFUNCTIONS Szipfunctions_repositioning =
+{ Sread_zip_entry,
+  Swrite_zip_entry,
+  Sseek_zip_entry,
+  Sclose_zip_entry,
+  Scontrol_zip_entry,
+  NULL						/* seek64 */
+};
 
 		 /*******************************
 		 *	  HANDLE ENTRIES	*
@@ -820,7 +868,7 @@ zget_time(const unz_file_info64 *info)
 /** zipper_open_new_file_in_zip(+Zipper, +Name, -Stream, +Options)
 */
 
-static const opt_spec zip_new_file_options[] =
+static const PL_option_t zip_new_file_options[] =
 { { ATOM_extra,		    OPT_STRING },
   { ATOM_comment,	    OPT_STRING },
   { ATOM_time,		    OPT_DOUBLE },
@@ -846,7 +894,7 @@ PRED_IMPL("zipper_open_new_file_in_zip", 4, zipper_open_new_file_in_zip, 0)
   int imethod;
   int zip64 = FALSE;
 
-  if ( !scan_options(A4, 0, ATOM_zip_options, zip_new_file_options,
+  if ( !PL_scan_options(A4, 0, "zip_options", zip_new_file_options,
 		     &extra, &comment, &ftime, &method, &level, &zip64) )
     return FALSE;
 
@@ -993,11 +1041,12 @@ PRED_IMPL("zipper_goto", 2, zipper_goto, 0)
  *  Open the current file as an input stream
  */
 
-static const opt_spec zipopen3_options[] =
+static const PL_option_t zipopen3_options[] =
 { { ATOM_type,		 OPT_ATOM },
   { ATOM_encoding,	 OPT_ATOM },
   { ATOM_bom,		 OPT_BOOL },
   { ATOM_release,	 OPT_BOOL },
+  { ATOM_reposition,	 OPT_BOOL },
   { NULL_ATOM,	         0 }
 };
 
@@ -1005,15 +1054,17 @@ static
 PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 { PRED_LD
   zipper *z;
-  atom_t type     = ATOM_text;
-  atom_t encoding = NULL_ATOM;
-  int	 bom      = -1;
-  int    release  = TRUE;
-  int flags       = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
+  atom_t type       = ATOM_text;
+  atom_t encoding   = NULL_ATOM;
+  int	 bom        = -1;
+  int    release    = TRUE;
+  int	 reposition = FALSE;
+  size_t size       = 0;
+  int flags         = SIO_INPUT|SIO_RECORDPOS|SIO_FBUF;
   IOENC enc;
 
-  if ( !scan_options(A3, 0, ATOM_stream_option, zipopen3_options,
-		     &type, &encoding, &bom, &release) )
+  if ( !PL_scan_options(A3, 0, "stream_option", zipopen3_options,
+		     &type, &encoding, &bom, &release, &reposition) )
     return FALSE;
   if ( !stream_encoding_options(type, encoding, &bom, &enc) )
     return FALSE;
@@ -1037,11 +1088,30 @@ PRED_IMPL("zipper_open_current", 3, zipper_open_current, 0)
 
     if ( release )
       set(z, ZIP_RELEASE_ON_CLOSE);
+
+    if ( reposition )
+    { unz_file_info64 info;
+      char fname[PATH_MAX];
+      char extra[1024];
+      char comment[1024];
+
+      if ( unzGetCurrentFileInfo64(z->reader,
+				 &info,
+				 fname, sizeof(fname),
+				 extra, sizeof(extra),
+				 comment, sizeof(comment)) == UNZ_OK )
+	size = info.uncompressed_size;
+    }
+
     if ( unzOpenCurrentFile(z->reader) == UNZ_OK )
-    { IOSTREAM *s = Snew(z, flags, &Szipfunctions);
+    { IOSTREAM *s = Snew(z, flags, reposition ? &Szipfunctions_repositioning
+					      : &Szipfunctions);
 
       if ( s )
       { s->encoding = enc;
+
+	if ( reposition && size )
+	  Ssetbuffer(s, NULL, size);
 
 	if ( bom && ScheckBOM(s) < 0 )
 	  return PL_release_stream(PL_acquire_stream(s));
@@ -1064,7 +1134,7 @@ PRED_IMPL("zip_file_info_", 3, zip_file_info, 0)
 
   if ( get_zipper(A1, &z) )
   { unz_file_info64 info;
-    char fname[MAXPATHLEN];
+    char fname[PATH_MAX];
     char extra[1024];
     char comment[1024];
 
@@ -1116,17 +1186,7 @@ PRED_IMPL("$rc_handle", 1, rc_handle, 0)
 		 *	      MAPPING		*
 		 *******************************/
 
-#if defined(HAVE_MMAP) || defined(__WINDOWS__)
-#define HAVE_FILE_MAPPING 1
-
-typedef struct mapped_file
-{ char *start;
-  char *end;
-#ifdef __WINDOWS__
-  HANDLE hfile;					/* handle to the file */
-  HANDLE hmap;					/* handle to the map */
-#endif
-} mapped_file;
+#ifdef HAVE_FILE_MAPPING
 
 #ifndef MAP_FAILED
 #define MAP_FAILED ((void *)-1)
@@ -1244,9 +1304,6 @@ unmap_file(mapped_file *mf)
 		 *	 ARCHIVE EMULATION	*
 		 *******************************/
 
-/* TBD: get rid of the mapped_file on close
-*/
-
 zipper *
 zip_open_archive(const char *file, int flags)
 { zipper z = {0};
@@ -1260,9 +1317,12 @@ zip_open_archive(const char *file, int flags)
     DEBUG(MSG_ZIP, Sdprintf("Opening %s using file mapping\n", file));
 
     if ( (mf=map_file(file)) )
-    { if ( !(r=zip_open_archive_mem((const unsigned char *)mf->start,
+    { if ( (r=zip_open_archive_mem((const unsigned char *)mf->start,
 				    mf->end-mf->start, flags)) )
-	unmap_file(mf);
+      { r->mapped_file = mf;
+      } else
+      { unmap_file(mf);
+      }
     }
 #else
     DEBUG(MSG_ZIP, Sdprintf("Opening %s as stream\n", file));
@@ -1275,8 +1335,8 @@ zip_open_archive(const char *file, int flags)
 #ifdef O_PLMT
       simpleMutexInit(&r->lock);
 #endif
-      r->input_type = ZIP_FILE;
-      r->input.any  = NULL;
+      r->input_type  = ZIP_FILE;
+      r->input.any   = NULL;
     }
 #endif
   } else
@@ -1332,7 +1392,10 @@ zip_open_archive_mem(const unsigned char *mem, size_t mem_size, int flags)
 
 int
 zip_close_archive(zipper *z)
-{ return close_zipper(z);
+{ int rc = close_zipper(z);
+
+  free(z);
+  return rc;
 }
 
 

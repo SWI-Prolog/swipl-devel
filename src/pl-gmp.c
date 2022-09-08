@@ -66,7 +66,6 @@ static mpz_t MPZ_MAX_LONG;
 		 *******************************/
 
 #if O_MY_GMP_ALLOC
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GMP doesn't (yet) allow for handling  memory overflows. You can redefine
 the allocation handles, but you are not  allowed to return NULL or abort
@@ -76,8 +75,15 @@ created during the Prolog function evaluation  and use longjmp() through
 STACK_OVERFLOW_THROW.   Patrick Pelissier acknowledged this should work.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void *(*smp_alloc)(size_t);
+static void *(*smp_realloc)(void *, size_t, size_t);
+static void  (*smp_free)(void *, size_t);
+
+#define NOT_IN_PROLOG_ARITHMETIC() \
+	(LD == NULL || LD->gmp.context == NULL || LD->gmp.persistent)
+
 static int
-gmp_too_big()
+gmp_too_big(void)
 { GET_LD
 
   DEBUG(1, Sdprintf("Signalling GMP overflow\n"));
@@ -92,8 +98,8 @@ mp_alloc(size_t bytes)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-    return malloc(bytes);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_alloc(bytes);
 
   if ( TOO_BIG_GMP(bytes) ||
        !(mem = malloc(sizeof(mp_mem_header)+bytes)) )
@@ -126,8 +132,8 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 { GET_LD
   mp_mem_header *oldmem, *newmem;
 
-  if ( LD->gmp.persistent )
-    return realloc(ptr, newsize);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_realloc(ptr, oldsize, newsize);
 
   oldmem = ((mp_mem_header*)ptr)-1;
   if ( TOO_BIG_GMP(newsize) ||
@@ -163,8 +169,8 @@ mp_free(void *ptr, size_t size)
 { GET_LD
   mp_mem_header *mem;
 
-  if ( LD->gmp.persistent )
-  { free(ptr);
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+  { smp_free(ptr, size);
     return;
   }
 
@@ -886,7 +892,9 @@ initGMP(void)
 #endif
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
+    { mp_get_memory_functions(&smp_alloc, &smp_realloc, &smp_free);
       mp_set_memory_functions(mp_alloc, mp_realloc, mp_free);
+    }
 #endif
 
 #if __GNU_MP__ > 3 && __GNU_MP__ < 6
@@ -899,18 +907,19 @@ initGMP(void)
 
 
 void
-cleanupGMP()
+cleanupGMP(void)
 { if ( GD->gmp.initialised )
   { GD->gmp.initialised = FALSE;
 
 #ifdef O_MY_GMP_ALLOC
     if ( !GD->gmp.keep_alloc_functions )
-      mp_set_memory_functions(NULL, NULL, NULL);
+      mp_set_memory_functions(smp_alloc, smp_realloc, smp_free);
 #endif
     mpz_clear(MPZ_MIN_TAGGED);
     mpz_clear(MPZ_MAX_TAGGED);
     mpz_clear(MPZ_MIN_PLINT);
     mpz_clear(MPZ_MAX_PLINT);
+    mpz_clear(MPZ_MAX_UINT64);
 #if SIZEOF_LONG < SIZEOF_VOIDP
     mpz_clear(MPZ_MIN_LONG);
     mpz_clear(MPZ_MAX_LONG);
@@ -1381,6 +1390,7 @@ cmpNumbers(Number n1, Number n2)
       return cmpFloatNumbers(n1, n2);
     rc = make_same_type_numbers(n1, n2);
     assert(rc != CMP_ERROR);
+    (void)rc;
   }
 
   switch(n1->type)
@@ -1537,9 +1547,9 @@ mpz_fdiv(mpz_t num, mpz_t den)
     }
 
     if ( swapped )
-      res = (l/s) * pow(2.0, le-se);
+      res = ldexp(l/s, le-se);
     else
-      res = (s/l) * pow(2.0, se-le);
+      res = ldexp(s/l, se-le);
 
     if ( negative )
       fesetround(r_mode);

@@ -1,36 +1,227 @@
 <!DOCTYPE html>
-<!--
-This is the test file for SWI-Prolog WebAssembly build.
-It must be served through a web server. The web server
-must use correct MIME type for wasm files.
-Such simple-to-use web server is http-server:
-<https://www.npmjs.com/package/http-server>
-Install using npm i -g http-server
-Run http-server command in the swipl-devel
-directory and browse to <http://localhost:8080/src/wasm/test.html>
--->
 <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>SWI-Prolog WebAssembly build test</title>
-    </head>
-    <body>
-        <script src="/build/src/swipl-web.js"></script>
-        <script>
-            SWIPL({
-                noInitialRun: true,
-                arguments: [
-                    'swipl',
-                    '-x', 'wasm-preload/boot.prc',
-                    '--nosignals'
-                ],
-                locateFile: function(file) {
-                    return '/build/src/' + file;
-                }
-            }).then(async (module) => {
-                //module.prolog.call_string("consult('/app/app.pl').");
-                console.log('SWI-Prolog WebAssembly ready');
-            });
-        </script>
-    </body>
+<head>
+  <meta charset="UTF-8">
+  <title>SWI-Prolog WASM tests</title>
+</head>
+<body>
+<style>
+.stderr { color: red; }
+.title  { font-weight: bold; font-size: 200%; font-family: sans-serif;
+	  margin-top: 1.5ex; margin-bottom: 1ex; display: block; }
+.stderr, .stdout, .query, .title { white-space: pre; font-family: monospace;}
+</style>
+<div id="output">
+</div>
+
+<script src="/wasm/swipl-web.js"></script>
+
+<script>
+output = document.getElementById('output');
+
+let Prolog;
+var Module = {
+    noInitialRun: true,
+    arguments: ["-q"],
+    locateFile: function(file) {
+	return '/wasm/' + file;
+    },
+    //preRun:   [() => bindStdStreams(Module)]
+};
+
+SWIPL(Module).then((module) =>
+{ Prolog = Module.prolog;
+
+  Prolog.call("use_module(library(wasm))");
+  Prolog.call("set_prolog_flag(debug_on_error, false)");
+  Prolog.consult("test.pl")
+        .then(() => run());
+});
+
+class Point {
+  constructor(x,y)
+  { this.x = y;
+    this.y = y;
+  }
+}
+
+function run()
+{ Prolog.set_arg_names("point", ["x", "y"]);
+
+  run_p();
+  run_p_with_iterator();
+  run_p_from_string_with_iterator();
+
+  put(42,
+      2n**200n,
+      3.14,
+      new Prolog.Rational(1,3),
+      "Hello world!",
+      new Prolog.String("A string"),
+      [ "aap", "noot", "mies" ],
+      new Prolog.List(["a1"], new Prolog.Var()),
+      new Prolog.Compound("t", [1,2,"aap"]),
+      { name: "Jan", location: "Amsterdam" },
+      {},
+      new Point(9,9),
+      [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
+     );
+
+  test_sum_list();
+  test_bigint();
+  test_error();
+}
+
+function run_p()
+{ println("title", "Printing results from p/1 as objects using a loop");
+
+  Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(1);
+    let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av);
+    let n = 0;
+
+    while(q.next().value)
+    { println("stdout",
+	      `${++n} `,
+	      Prolog.get_chars(av, Prolog.CVT_WRITEQ), " -> ",
+	      Prolog.toJSON(av));
+    }
+
+    q.close();
+  });
+}
+
+function run_p_with_iterator()
+{ println("title", "Using an iterator for p/1");
+
+  Prolog.with_frame(() =>
+  { let av = Prolog.new_term_ref(1);
+    let n = 0;
+
+    for(const r of Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av,
+				(v) => Prolog.toJSON(v)))
+    { println("stdout", r);
+    }
+  });
+}
+
+function run_p_from_string_with_iterator()
+{ println("title", "Using an iterator for p/1 and call string");
+
+  let n = 0;
+
+  for(const r of Prolog.query("p(X)"))
+  { println("stdout", r.X);
+  }
+}
+
+function put(...args)
+{ println("title", "Demonstrating round trip object -> Prolog -> object");
+
+  args.forEach((obj) => Prolog.with_frame(() =>
+  { const av = Prolog.new_term_ref(2);
+    Prolog.toProlog(obj, av+0);
+    rc = Prolog.query(0, Prolog.PL_Q_NORMAL, "u/2", av).once();
+
+    println("stdout",
+	    obj, " -> ",
+	    Prolog.get_chars(av+0, Prolog.CVT_WRITEQ), " -> ",
+	    Prolog.toJSON(av+1));
+  }));
+}
+
+function sum_list(list)
+{ return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
+}
+
+function test_sum_list()
+{ println("title", "Sum JavaScript list in Prolog");
+
+  sum_list([]);		// do the required autoloading
+  [ 1,
+    10,
+    100,
+    1000,
+    10000,
+    100000,
+//  1000000
+  ].forEach((len) =>
+  { const list = [];
+    for(var i=1; i<=len; i++)
+      list.push(i);
+
+    const sum = time("sum_list()", () => sum_list(list));
+    println("stdout", `Sum of 1..${len} is ${sum}`);
+  });
+}
+
+function test_bigint()
+{ println("title", "Big integer handling");
+
+  [0,31,32,62,63,64,200].forEach((i) =>
+  { const rc = Prolog.query("bigint(I, Pos, Neg)", {I:i}).once();
+    const pos = rc.Pos;
+    const neg = rc.Neg;
+
+    println("stdout", `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
+
+    const vin = BigInt(2)**BigInt(i);
+    const out = Prolog.query("u(In, Out)", {In:vin}).once().Out;
+
+    if ( vin === BigInt(out) )
+      println("stdout", `Round trip passed`);
+    else
+      println("stderr", `Round trip: ${vin} -> ${out}`);
+  });
+}
+
+/* Callback test */
+function test_error()
+{ println("title", "Test error handling");
+
+  const sum = sum_list(["aap", "noot", "mies"]);
+  println("stdout", `Sum is ${sum}`);
+}
+
+function add_one(i)
+{ return i+1;
+}
+
+
+		 /*******************************
+		 *	   SIMPLE PRINT		*
+		 *******************************/
+
+function print(line, cls, nl)
+{ const node = document.createElement('span');
+
+  cls = cls||"stdout";
+  if ( typeof(line) === "object" )
+    line = JSON.stringify(line);
+  if ( nl )
+    line += '\n';
+
+  node.className = cls;
+  node.textContent = line;
+  output.appendChild(node);
+};
+
+function println(cls, ...line)
+{ line.forEach((e) => print(e, cls));
+  output.appendChild(document.createElement('br'));
+}
+
+
+function time(msg, func)
+{ const t0 = Date.now();
+  const rc = func.call(window);
+  const t1 = Date.now();
+
+  println("stdout", `${msg} took ${(t1-t0)}ms`);
+
+  return rc;
+}
+
+</script>
+</body>
 </html>

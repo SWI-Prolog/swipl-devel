@@ -114,6 +114,7 @@
 #define MSG_CLEANUP_THREAD	 80
 #define MSG_INITIALISE		 81
 #define MSG_COPYTERM		 82
+#define MSG_PRED_COUNT		 83
 
 #define MSG_BACKTRACK		 90
 
@@ -219,6 +220,8 @@
 #define TABLING_NO_EARLY_COMPLETION 320
 #define TABLING_NO_SIMPLIFY	 321		/* these affect behaviour */
 #define TABLING_NO_AC		 322
+
+#define MSG_GVAR_LAZY		 330
 
 #define MSG_THREAD_WAIT		 350
 #define MSG_THREAD_SIGNAL	 351

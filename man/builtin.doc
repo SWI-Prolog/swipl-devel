@@ -2175,7 +2175,7 @@ X = 2 ;
 X = a.
 \end{code}
 
-It is strongly adviced to \emph{always} use parenthesis around
+It is strongly advised to \emph{always} use parenthesis around
 disjunctions. Conjunctions inside a disjunction should not use
 parenthesis.  Traditionally the \chr{;} is placed at the start
 of the line rather than at the end because a \chr{;} at the
@@ -3373,8 +3373,9 @@ in module <Module>. The handler is called with a single argument:
 the name of the signal as an atom. The Prolog names for signals are
 explained below.
 
-Three names have special meaning. \const{throw} implies Prolog will map
+Four names have special meaning. \const{throw} implies Prolog will map
 the signal onto a Prolog exception as described in \secref{exception},
+\const{ignore} causes Prolog to ignore the signal entirely,
 \const{debug} specifies the debug interrupt prompt that is initially
 bound to \const{SIGINT} (Control-C) and \const{default} resets the
 handler to the settings active before SWI-Prolog manipulated the
@@ -3406,6 +3407,8 @@ and start the tracer.
 Bound to an empty signal handler used to make blocking system calls
 return.  This allows thread_signal/2 to interrupt threads blocked in
 a system call.  See also prolog_alert_signal/2.
+    \definition{pipe}
+Ignored.
     \definition{hup, term, abrt, quit}
 Causes normal Prolog cleanup (e.g., at_halt/1) before terminating the
 process with the same signal.
@@ -4943,6 +4946,12 @@ matches.
 True if \arg{Head} can be unified with a clause head and \arg{Body} with
 the corresponding clause body. Gives alternative clauses on
 backtracking. For facts, \arg{Body} is unified with the atom \arg{true}.
+Note that SWI-Prolog allows clause/2 to work on both dynamic and static
+code.\footnote{Using clause/2 is disallowed if either the flag
+\prologflag{iso} or \prologflag{protect_static_code} is \const{true}.}
+Note that clause/2 \jargon{decompiles} the actual clause and may return
+a clause that is different from the source or asserted clause, i.e.,
+clause/2 only promises \jargon{semantic equivalence}.
 
     \predicate{clause}{3}{:Head, ?Body, ?Reference}
 Equivalent to clause/2, but unifies \arg{Reference} with a unique
@@ -5119,10 +5128,15 @@ SWI-Prolog also allows \arg{SrcDest} to be a term \term{pipe}{Command}.
 In this form, \arg{Command} is started as a child process and if
 \arg{Mode} is \const{write}, output written to \arg{Stream} is sent to
 the standard input of \arg{Command}. Vice versa, if \arg{Mode} is
-\const{read}, data written by \arg{Command} to the standard output may
+\const{read}, data written by \arg{Command} to the standard output can
 be read from \arg{Stream}. On Unix systems, \arg{Command} is handed to
 popen() which hands it to the Unix shell. On Windows, \arg{Command} is
-executed directly. See also process_create/3 from \pllib{process}.
+executed directly and therefore shell syntax such as redirecting (using
+e.g., \verb$>$ \arg{file}) does not work. Use of the
+\term{pipe}{Command} feature is deprecated. The predicate
+process_create/3 from \pllib{process} provides a richer and more
+portable alternative for interacting with processes including handling
+all three standard streams.
 
 If \arg{SrcDest} is an \jargon{IRI}, i.e., starts with
 <scheme>\verb$://$, where <scheme> is a non-empty sequence of lowercase
@@ -5228,6 +5242,12 @@ especially related to NFS (network file system), please study the
 fcntl() manual page before trusting your locks!
 
 The \const{lock} option is a SWI-Prolog extension.
+
+    \termitem{newline}{Mode}
+Set end-of-line processing for the stream. \arg{Mode} is one of
+\const{posix}, \const{dos} or \const{detect}. This option is ignored for
+binary streams. Using \const{detect} on an \jargon{output stream} raises
+an exception.  See also set_stream/2.
 
     \termitem{type}{Type}
 Using type \const{text} (default), Prolog will write a text file in
@@ -6407,6 +6427,12 @@ write_value(Value) :-
 	write('.'), nl.
 \end{code}
 
+In addition, if the priority is not 1200 or 999 this assumes we are
+printing an operant of an operator.  If \arg{Term} is an atom that is
+also an operator it will always be embraced.\footnote{If the priority
+is 1200 it is assumed to be a toplevel term and if the priority is
+999 it is assumed to be a list element or argument of a compound term.}
+
     \termitem{portray}{Bool}
 Same as \term{portrayed}{Bool}.  Deprecated.
 
@@ -7164,10 +7190,14 @@ of global variables.
 
 \begin{description}
     \predicate{setarg}{3}{+Arg, +Term, +Value}
-Extra-logical predicate.  Assigns the \arg{Arg}-th argument of the
-compound term \arg{Term} with the given \arg{Value}.  The assignment
-is undone if backtracking brings the state back into a position before
-the setarg/3 call.  See also nb_setarg/3.
+Extra-logical predicate. Assigns the \arg{Arg}-th argument of the
+compound term \arg{Term} with the given \arg{Value}. The assignment is
+undone if backtracking brings the state back into a position before the
+setarg/3 call. If the designated argument of \arg{Term} is a variable,
+this variable is unified with \arg{Value} using normal unification,
+i.e., setarg/3 behaves as arg/3 in this case. Note that this may produce
+a cyclic term if \arg{Value} contains this variable. See also
+nb_setarg/3.
 
 This predicate may be used for destructive assignment to terms, using
 them as an extra-logical storage bin. Always try hard to avoid the use
@@ -7627,7 +7657,8 @@ against the character classification function.
 \arg{Char} is an ASCII control character (0..31), ASCII DEL character
 (127), or non-ASCII character in the range 128..159 or 8232..8233.
     \termitem{digit}{}
-\arg{Char} is a digit.
+\arg{Char} is a digit, i.e., \arg{Char} is in $0 \ldots 9$.  See
+also \const{decimal}.
     \termitem{digit}{Weight}
 \arg{Char} is a digit with value \arg{Weight}. I.e.\ \exam{char_type(X,
 digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
@@ -7635,6 +7666,12 @@ digit(6))} yields \arg{X} = \exam{'6'}.  Useful for parsing numbers.
 \arg{Char} is a hexadecimal digit with value \arg{Weight}. I.e.\
 \exam{char_type(a, xdigit(X))} yields \arg{X} = \exam{'10'}. Useful for
 parsing numbers.
+    \termitem{decimal}{}
+\arg{Char} is a decimal digit in any script.   This implies it has the
+Unicode \jargon{general category} \textbf{Nd}).
+    \termitem{decimal}{Weight}
+\arg{Char} is a decimal digit in any script with \arg{Weight} $0 \ldots
+9$.
     \termitem{print}{}
 \arg{Char} is printable character.
     \termitem{graph}{}
@@ -7868,7 +7905,7 @@ and modules.
 \begin{center}
 \begin{tabular}{|r|D{f}{f}{-1}|p{4in}|}
 \hline
-1200 & xfx & \op{-->}, \op{:-} \\
+1200 & xfx & \op{-->}, \op{:-}, \op{=>} \\
 1200 & fx & \op{:-}, \op{?-} \\
 1150 & fx & \op{dynamic}, \op{discontiguous}, \op{initialization},
 	    \op{meta_predicate},
@@ -8279,6 +8316,18 @@ false.
 \end{code}
 \end{description}
 
+\subsubsection{Floating point arithmetic precision}
+\label{sec:float-precision}
+
+SWI-Prolog represents floats using the C \ctype{double} type. On
+virtually all modern hardware this implies it uses 64-bit IEEE~754
+floating point numbers. See also \secref{ieee-float}. All floating point
+arithmetic is performed using C. Different C compilers, different C math
+libraries and different hardware floating point support may yield
+different results for the same expression on different instances of
+SWI-Prolog.
+
+
 \subsubsection{Arithmetic Functions}	\label{sec:functions}
 
 Arithmetic functions are terms which are evaluated by the arithmetic
@@ -8306,7 +8355,7 @@ such functions on `as-needed' basis if the function is widely supported
 elsewhere and notably if it is part of the
 \href{http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1124.pdf}{C99}
 mathematical library.  In addition, we try to maintain compatibility
-with \href{http://www.dcc.fc.up.pt/~vsc/Yap/}{YAP}.
+with other Prolog implementations.
 
 \begin{description}
     \prefixfunction[ISO]{-}{+Expr}
@@ -8437,6 +8486,23 @@ Evaluate \arg{Expr1} using the floating point rounding mode
 values for \arg{RoundMode} are the same as the flag values:
 \const{to_nearest}, \const{to_positive}, \const{to_negative} or
 \const{to_zero}.
+
+Note that floating point arithmetic is provided by the C~compiler and
+C~runtime library. Unfortunately most C~libraries do not correctly
+implement the rounding modes for notably the trigonometry and
+exponential functions. There exist correct libraries such as
+\href{https://github.com/taschini/crlibm}{crlibm}, but these libraries
+are large, most of them are poorly maintained or have an incompatible
+license. C~runtime libraries do a better job using the default
+\jargon{to nearest} rounding mode. SWI-Prolog now assumes this mode is
+correct and translates upward rounding to be the \funcref{nexttoward}{2}
+infinity and downward rounding \funcref{nexttoward}{2} -infinity. If the
+``to nearest'' rounding mode is correct, this ensures that the true
+value is between the downward and upward rounded values, although the
+generated interval is larger than needed. Unfortunately this is not the
+case as shown in \href{https://hal.inria.fr/hal-03141101}{Accuracy of
+Mathematical Functions in Single, Double, Extended Double and Quadruple
+Precision} by \textit{Vincenzo Innocente and Paul Zimmermann}.
 
     \function[ISO]{max}{2}{+Expr1, +Expr2}
 Evaluate to the larger of \arg{Expr1} and \arg{Expr2}.  Both
@@ -9956,7 +10022,8 @@ Otherwise, \const{\%PATH\%} is extended with the provided directory.
 \arg{AbsDir} may be specified in the Prolog canonical syntax.  See
 prolog_to_os_filename/2.  Note that use_foreign_library/1 passes an
 absolute path to the DLL if the destination DLL can be located from
-the specification using absolute_file_name/3.
+the specification using absolute_file_name/3.  This predicate is
+available from library \pllib{shlib} and can be autoloaded.
 
     \predicate{win_add_dll_directory}{2}{+AbsDir, -Cookie}
 This predicate adds a directory to the search path for dependent DLL
@@ -9965,8 +10032,6 @@ that must be passed to win_remove_dll_directory/1 to remove the
 directory from the search path. Error conditions:
 
     \begin{itemize}
-    \item This predicate is available in the Windows port of SWI-Prolog
-	  starting from 6.3.8/6.2.6.
     \item This predicate \emph{fails} if Windows does not yet support the
           underlying primitives.  These are available in recently
 	  patched Windows~7 systems and later.
@@ -9980,7 +10045,7 @@ friends,\footnote{Windows~7 with up-to-date patches or Windows~8.}
 SWI-Prolog uses LoadLibraryEx() with the flags
 \const{LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR} and
 \const{LOAD_LIBRARY_SEARCH_DEFAULT_DIRS}. In this scenario, directories
-from \const{\%PATH\%} and \emph{not} searched. Additional directories
+from \const{\%PATH\%} are \emph{not} searched. Additional directories
 can be added using win_add_dll_directory/2.
 
     \predicate{win_remove_dll_directory}{1}{-Cookie}
@@ -10482,6 +10547,58 @@ the item.
 
 \section{File System Interaction}	\label{sec:files}
 
+The predicates in this section provide interaction with the file system
+and (syntactic) operations on file names. SWI-Prolog file system
+interaction is based on the POSIX standard. On Windows we use the
+Unicode (wide character) versions of the C runtime library functions.
+
+\index{errors,file}%
+The file operations define a large set of error conditions. Errors are
+mapped to Prolog exceptions using a generic function that receives the
+\arg{action} (e.g., \const{make_directory}), \arg{type} (e.g.,
+\const{directory}), the term that describes the object (name) of the
+file system and the \const{errno} value. Unfortunately, the resulting
+exceptions are often misleading. For example, calling make_directory/1
+such that it must create mutiple directories (e.g., \const{d1/d2/d3})
+returns an existence error on the directory \const{d1/d2/d3} rather than
+the missing component. On Windows the situation is even worse because
+many of its runtime functions distinguish only a few error codes. For
+example, _wmkdir() only produces \const{EEXIST} or \const{ENOENT} and
+all failures except for an already existing target result in an
+existence_error exception. We can only improve on this situation by
+implementing the translation of \const{errno} to a Prolog exception
+specifically for each file operation and perform additional tests to
+distinguish the different error conditions that are represented by the
+same \const{errno} value. This is hard, in particular because this
+translation needs to depend on the OS and specific file system
+limitations.
+
+\index{Windows,file names}%
+SWI-Prolog uses the Windows Unicode functions to access the file system.
+Internally all Prolog's file handling is based on C \ctype{char*}
+strings. On POSIX systems these strings use \jargon{multibyte encodings}
+according to the current \jargon{locale} (nowadays often UTF-8). On
+Windows the encoding is fixed to UTF-8 and a wrapper around the
+low-level file functions translates this to UTF-16\footnote{Before
+8.5.16 to UCS-2, allowing only for Unicode code points up to 0xffff.}
+before calling the Win32 *W() or C runtime _w*() functions.
+
+Windows absolute file paths are traditionally limited to 260 characters
+(\const{PATH_MAX}). More recent versions of Windows support long files.
+Many of the Unicode file functions support longer paths. For others,
+support for long paths can be forced by prefixing the path with
+``\verb$\\?\$'' (``\verb$\\?UNC\$'' for UNC paths (//server/path)). This
+syntax does \emph{not} allow for relative paths. Thus, SWI-Prolog file
+functions use GetFullPathName() to arrive at absolute canonical paths
+and apply the appropriate prefix before calling Windows low-level
+functions.
+
+Unfortunately the support is not very robust.  Some functions still
+apply length limits while others do not work with the above mentioned
+prefix.  The result depends on the Windows version, several Windows
+registry entries and the file system.  Exceeding the length limit is
+often reported as non-existence of the target file or directory.
+
 \begin{description}
     \predicate{access_file}{2}{+File, +Mode}
 True if \arg{File} exists and can be accessed by this Prolog
@@ -10559,8 +10676,10 @@ point to the same file (due to hard or symbolic links and/or relative
 vs.\ absolute paths). On systems that provide stat() with meaningful
 values for \const{st_dev} and \const{st_inode}, same_file/2 is
 implemented by comparing the device and inode identifiers. On Windows,
-same_file/2 compares the strings returned by the GetFullPathName()
-system call.
+same_file/2 uses GetFileInformationByHandle() and compares the
+volume serial number and file index.\footnote{As of version 8.5.16.
+Earlier versions only compare the canonical name obtained using
+GetFullPathName().}
 
     \predicate{exists_directory}{1}{+Directory}
 True if \arg{Directory} exists and is a directory. This does not
@@ -10568,14 +10687,33 @@ imply the user has read, search or write permission for the
 directory.
 
     \predicate{delete_file}{1}{+File}
-Remove \arg{File} from the file system.
+Remove \arg{File} from the file system. Note that on POSIX systems the
+remove() call works on read-only files as long as the containing
+directory has write access. The Windows remove() call raises a
+permission error if the file is read-only. SWI-Prolog removes the
+read-only attribute if remove() fails and tries again. If the file still
+cannot be removed it restores the read-only attribute and delete_file/1
+raises a permission error. As a consequence a read-only file that cannot
+be removed is briefly read-write. Also note that while an open file can
+be removed on POSIX systems (where it is actually deleted when closed),
+deleting an open file on Windows is not possible.
 
     \predicate{rename_file}{2}{+File1, +File2}
 Rename \arg{File1} as \arg{File2}. The semantics is compatible to the
-POSIX semantics of the rename() system call as far as the operating
+semantics of the POSIX rename() system call as far as the operating
 system allows. Notably, if \arg{File2} exists, the operation succeeds
 (except for possible permission errors) and is \jargon{atomic} (meaning
-there is no window where \arg{File2} does not exist).
+there is no window where \arg{File2} does not exist). Note that
+\arg{File2} cannot be an existing directory.\footnote{The POSIX
+semantics describe one exception: a directory can be moved to an
+existing \emph{empty} directory.} To move a file to another directory
+one must create \arg{File2} from the target directory and the base name
+of \arg{File1}.  See file_base_name/2.
+
+The rename() system call has a large number of error conditions. Errors
+are mapped to Prolog exceptions using a generic conversion based on the
+\arg{File1} argument. As a result, the errors may be confusing. Future
+versions may improve on this.
 
     \predicate{size_file}{2}{+File, -Size}
 Unify \arg{Size} with the size of \arg{File} in bytes.
@@ -10602,7 +10740,7 @@ defined as below, i.e., if an accessible file can be found using the
 provided search path this is returned. Otherwise it returns the the
 expansion of the alias path.\footnote{The SICStus implementation
 behaves as absolute_file_name/3 with an empty option list.}  Users are
-adviced to use absolute_file_name/3 with a appropriate options for
+advised to use absolute_file_name/3 with appropriate options for
 resolving an Alias(Relative) term.
 
 \begin{code}
@@ -10614,13 +10752,14 @@ absolute_file_name(Spec, AbsFile) :-
     absolute_file_name(Spec, AbsFile, []).
 \end{code}
 
-See also absolute_file_name/3 and expand_file_name/2.
+See also absolute_file_name/3, file_search_path/2, and expand_file_name/2.
 
     \predicate{absolute_file_name}{3}{+Spec, -Absolute, +Options}
 Convert the given file specification into an absolute path. \arg{Spec}
 is a term Alias(Relative) (e.g., \verb$(library(lists)$), a relative
 filename or an absolute filename. The primary intention of this
-predicate is to resolve files specified as Alias(Relative). This
+predicate is to resolve files specified as Alias(Relative), which use
+file_search_path/2 to look up the possibilities for Alias. This
 predicate \emph{only returns non-directories}, unless the option
 \term{file_type}{directory} is specified or the requested access
 is \const{none}.  Supported \arg{Options} are:
@@ -10682,7 +10821,7 @@ patterns such as \exam{*} should be avoided.
 \end{description}
 
 The Prolog flag \prologflag{verbose_file_search} can be set to \const{true}
-to help debugging Prolog's search for files.
+to help debugging Prolog's search for files. See also file_search_path/2.
 
 This predicate is derived from Quintus Prolog. In Quintus Prolog, the
 argument order was \term{absolute_file_name}{+Spec, +Options, -Path}.
@@ -10825,6 +10964,8 @@ also absolute_file_name/2 and chdir/1.%
 	     Changing directory while file-bound streams are open causes
 	     wrong results on telling/1, seeing/1 and current_stream/3.}
 Note that the working directory is shared between all threads.
+Applications are strongly encouraged not to change the working directory
+or change the working directory once during the initialization.
 
     \predicate{chdir}{1}{+Path}
 Compatibility predicate.  New code should use working_directory/2.
@@ -11151,6 +11292,19 @@ debugging and maintaining deterministic code easier. One of them is
 described in \secref{ssu}. This section deals with annotating your
 program.
 
+If a program does not behave according to these annotations it raises an
+\funcref{error}{2} exception where the formal term is
+\term{determinism_error}{Pred, Declared, Observed, DeclType}, where
+\arg{Declared} is currently always \const{det}, \arg{Observed} is one of
+\arg{fail} or \arg{nondet} and \arg{DeclType} is one of \arg{property}
+(det/1), \arg{guard} (\predref{$}{0}) or \arg{goal} (\predref{$}{1}).
+Using trap/1 or gtrap/1 we can ask Prolog to start the debugger in such
+events using
+
+\begin{code}
+?- gtrap(determinism_error(_,_,_,_)).
+\end{code}
+
 \begin{quote}
 \textbf{WARNING:} The primitives in this section are experimental.
 The naming and exact semantics may change.  If you are interested
@@ -11188,11 +11342,17 @@ ERROR: In:
 ERROR:   [10] p(a)
 \end{code}
 
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, property}.
+
     \predicate[experimental]{$}{0}{}
 The \predref{$}{0} constructs acts similar to the \predref{!}{0},
 but in addition declares that the remainder of the clause body shall
 succeed deterministically.  It exploits the same underlying mechanism
 as the det/1 declaration.   See also \predref{$}{1}.
+
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, guard}.
 
     \predicate[experimental]{$}{1}{:Goal}
 Verify that \arg{Goal} succeeds deterministically.  This predicate
@@ -11214,6 +11374,9 @@ or warnings. Last call optimization with determinism checking can be
 realised using \verb=..., $, Last.=, i.e. by executing
 \predref{$}{0} before the last call rather than wrapping the last call
 in \predref{$}{1}.
+
+Violations throw an \funcref{error}{2} exception
+\term{determinism_error}{Pred, Declared, Observed, goal}.
 \end{description}
 
 A deterministic predicate may call normal predicates. No error is
@@ -11228,14 +11391,22 @@ Prolog flag \prologflag{debug}) may be used to avoid last call
 optimization and find the call stack that causes the issue.
 
 
-\section{Obtaining Runtime Statistics}	\label{sec:statistics}
+\section{Obtaining Runtime Statistics}
+\label{sec:builtin-statistics}
+
+The predicate statistics/2 is built-in. More high level predicates are
+available from library \pllib{statistics}. See \secref{statistics}.
 
 \begin{description}
     \predicate{statistics}{2}{+Key, -Value}
 Unify system statistics determined by \arg{Key} with \arg{Value}. The
-possible keys are given in the \tabref{statistics}.  This predicate
-supports additional keys for compatibility reasons.  These keys are
-described in \tabref{qpstatistics}.
+possible keys are given in the \tabref{statistics}. This predicate
+supports additional keys for compatibility reasons. These keys are
+described in \tabref{qpstatistics}. CPU time results are based on
+clock_gettime(), times() or wall time since the process was started (in
+that order of preference). On Windows GetProcessTimes() is used.
+Both clock_gettime() and GetProcessTimes() provide a nanosecond
+resolution interface.  The actual resolution depends on the platform.
 
 \begin{table}
 \begin{center}
@@ -11351,18 +11522,6 @@ core		& Same as memory \\
 	     milliseconds.}
     \label{tab:qpstatistics}
 \end{table}
-
-    \predicate{statistics}{0}{}
-Display a table of system statistics on the stream \const{user_error}.
-
-    \predicate{time}{1}{:Goal}
-Execute \arg{Goal} just like call/1 and print time used, number of
-logical inferences and the average number of \arg{lips} (logical
-inferences per second). Note that SWI-Prolog counts the actual executed
-number of inferences rather than the number of passes through the call
-and redo ports of the theoretical 4-port model. If \arg{Goal} is
-non-deterministic, print statistics for each solution, where the
-reported values are relative to the previous answer.
 \end{description}
 
 		 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

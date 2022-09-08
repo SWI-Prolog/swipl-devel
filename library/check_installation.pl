@@ -82,7 +82,8 @@ shared objects/DLLs can be loaded.
 
 % Feature tests
 component(tcmalloc,
-          _{ test:test_tcmalloc,
+          _{ optional:true,
+             test:test_tcmalloc,
              url:'tcmalloc.html'
            }).
 component(gmp,
@@ -104,7 +105,7 @@ component(library(jpl), _{}).
 component(library(memfile), _{}).
 component(library(odbc), _{}).
 component(library(pce),
-          _{pre:load_foreign_library(pce_principal:foreign(pl2xpce)),
+          _{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
             url:'xpce.html'}).
 component(library(pcre), _{features:pcre_features}).
 component(library(pdt_console), _{}).
@@ -356,7 +357,7 @@ archive_format(F, Name) :-
     ->  archive_close(A)
     ;   true
     ),
-    \+ subsumes_term(error(domain_error(filter, _),_), E).
+    \+ subsumes_term(error(domain_error(format, _),_), E).
 
 a_filter(bzip2).
 a_filter(compress).
@@ -393,6 +394,11 @@ pcre_features :-
     (   Missing == []
     ->  true
     ;   print_message(warning, installation(pcre_missing(Missing)))
+    ),
+    (   re_config(compiled_widths(Widths)),
+        1 =:= Widths /\ 1
+    ->  true
+    ;   print_message(warning, installation(pcre_missing('8-bit support')))
     ).
 
 pcre_missing(X) :-
@@ -400,8 +406,7 @@ pcre_missing(X) :-
     Term =.. [X,true],
     \+ catch(re_config(Term), _, fail).
 
-pcre_must_have(utf8).
-pcre_must_have(unicode_properties).
+pcre_must_have(unicode).
 
 %!  jquery_file
 %
@@ -417,15 +422,19 @@ jquery_file :-
 
 %!  check_on_path
 %
-%   Validate that Prolog is installed in $PATH
+%   Validate that Prolog is installed in   $PATH.  Only performed if the
+%   running executable is  a  normal   executable  file,  assuming  some
+%   special installation such as the WASM version otherwise.
 
 check_on_path :-
     current_prolog_flag(executable, EXEFlag),
     prolog_to_os_filename(EXE, EXEFlag),
     file_base_name(EXE, Prog),
     absolute_file_name(EXE, AbsExe,
-                       [ access(execute)
+                       [ access(execute),
+                         file_errors(fail)
                        ]),
+    !,
     prolog_to_os_filename(AbsExe, OsExe),
     (   absolute_file_name(path(Prog), OnPath,
                            [ access(execute),
@@ -444,6 +453,7 @@ check_on_path :-
         )
     ;   print_message(warning, installation(not_on_path(OsExe, Prog)))
     ).
+check_on_path.
 
 
 		 /*******************************

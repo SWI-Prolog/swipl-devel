@@ -83,37 +83,43 @@ static void	  addUTF8Buffer(Buffer b, int c);
 				: uflagsW(c) & U_ID_START)
 #define PlIdContW(c)	CharTypeW(c, >= UC, U_ID_CONTINUE)
 #define PlSymbolW(c)	CharTypeW(c, == SY, U_SYMBOL)
+#define PlDecimalW(c)	CharTypeW(c, == DI, U_DECIMAL)
 #define PlPunctW(c)	CharTypeW(c, == PU, 0)
 #define PlSoloW(c)	CharTypeW(c, == SO, U_OTHER)
 #define PlInvalidW(c)   (uflagsW(c) == 0)
 
 int
-f_is_prolog_var_start(wint_t c)
+f_is_prolog_var_start(int c)
 { return (PlUpperW(c) || c == '_');
 }
 
 int
-f_is_prolog_atom_start(wint_t c)
+f_is_prolog_atom_start(int c)
 { return PlIdStartW(c) && !((PlUpperW(c) || c == '_'));
 }
 
 int
-f_is_prolog_identifier_continue(wint_t c)
+f_is_prolog_identifier_continue(int c)
 { return PlIdContW(c) || c == '_';
 }
 
 int
-f_is_prolog_symbol(wint_t c)
+f_is_prolog_symbol(int c)
 { return PlSymbolW(c) != 0;
 }
 
 int
-unicode_separator(pl_wchar_t c)
+f_is_decimal(int c)
+{ return PlDecimalW(c) != 0;
+}
+
+int
+unicode_separator(int c)
 { return PlBlankW(c);
 }
 
 int
-unicode_quoted_escape(wint_t c)
+unicode_quoted_escape(int c)
 { if ( c != ' ' )
   { int uflags = uflagsW(c);
 
@@ -122,6 +128,36 @@ unicode_quoted_escape(wint_t c)
   { return FALSE;
   }
 }
+
+
+int
+decimal_weight(int code)
+{ if ( code >= '0' && code <= '9' )
+  { return code-'0';
+  } else
+  { const int *s = decimal_bases;
+    const int *e = &decimal_bases[sizeof(decimal_bases)/sizeof(decimal_bases[0])];
+    const int *m = &s[(e-s)/2];
+
+    for(; e > s; )
+    { if ( code < *m )
+      { e = (e == m ? e-1 : m);
+	m = &s[(e-s)/2];
+      } else if ( code > *m+10 )
+      { s = (s == m ? s+1 : m);
+	m = &s[(e-s)/2];
+      } else
+      { return code - *m;
+      }
+    }
+
+    assert(0);
+    return -1;
+  }
+}
+
+
+
 
 /* unquoted_atomW() returns TRUE if text can be written to s as unquoted atom
 */
@@ -816,6 +852,14 @@ reportReadError(ReadData rd)
 		*           RAW READING         *
 		*********************************/
 
+static cucharp
+backskip_utf8(cucharp s)
+{ for(s--; ISUTF8_CB(*s); s--)
+    ;
+
+  return s;
+}
+
 static unsigned char *
 backSkipUTF8(unsigned const char *start, unsigned const char *end, int *chr)
 { const unsigned char *s;
@@ -1401,8 +1445,8 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  return TRUE;
 		}
 		c = getchr();
-		if ( isSymbolW(c) )
-		{ while( c != EOF && isSymbolW(c) &&
+		if ( PlSymbolW(c) )
+		{ while( c != EOF && PlSymbolW(c) &&
 			 !(c == '`' && true(_PL_rd, BQ_MASK)) )
 		  { addToBuffer(c, _PL_rd);
 		    c = getchr();
@@ -1416,7 +1460,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  break;
 		}
 	        /*FALLTHROUGH*/
-      default:	if ( (unsigned)c < 0xff )
+      default:	if ( (unsigned)c <= 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
 		    blank:
@@ -1429,14 +1473,14 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		      } while( c != EOF && PlBlankW(c) );
 		      goto handle_c;
 		    case SY:
+		    symbol:
 		      set_start_line;
 		      do
 		      { addToBuffer(c, _PL_rd);
 			c = getchr();
 			if ( c == '`' && true(_PL_rd, BQ_MASK) )
 			  break;
-		      } while( c != EOF && (unsigned)c <= 0xff && isSymbol(c) );
-					/* TBD: wide symbols? */
+		      } while( c != EOF && PlSymbolW(c) );
 		      goto handle_c;
 		    case LC:
 		    case UC:
@@ -1464,7 +1508,9 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    goto handle_c;
 		  } else if ( PlBlankW(c) )
 		  { goto blank;
-		  } else
+		  } else if ( PlSymbolW(c) )
+		  { goto symbol;
+		  }
 		  { addToBuffer(c, _PL_rd);
 		    set_start_line;
 		  }
@@ -1527,11 +1573,11 @@ Not sure whether it is worth the trouble to use a hash-table here.
 
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
 
-#define for_vars(v, code) \
-	{ Variable v   = baseBuffer(&var_buffer, struct variable); \
-	  Variable _ev = topBuffer(&var_buffer, struct variable); \
-	  for( ; v < _ev; v++ ) { code; } \
-	}
+#define FOR_VARS(v) \
+	for( Variable v = baseBuffer(&var_buffer, struct variable), \
+		    _ev = topBuffer(&var_buffer, struct variable); \
+	     v < _ev; \
+	     v++ )
 
 #define isAnonVarName(n)       ((n)[0] == '_' && (n)[1] == EOS)
 #define isAnonVarNameN(n, l)   ((n)[0] == '_' && (l) == 1)
@@ -1546,7 +1592,7 @@ save_var_name(const char *name, size_t len, ReadData _PL_rd)
   if ( (nb = baseBuffer(&var_name_buffer, char)) != ob )
   { ptrdiff_t shift = nb - ob;
 
-    for_vars(v, v->name += shift);
+    FOR_VARS(v) v->name += shift;
   }
 
   return baseBuffer(&var_name_buffer, char) + e;
@@ -1581,7 +1627,7 @@ rehashVariables(ReadData _PL_rd)
   if ( var_buckets )
   { memset(var_buckets, 0, var_hash_size*sizeof(*var_buckets));
 
-    for_vars(v, linkVariable(v, _PL_rd));
+    FOR_VARS(v) linkVariable(v, _PL_rd);
     return 0;
   } else
     return MEMORY_OVERFLOW;
@@ -1635,11 +1681,12 @@ lookupVariable(const char *name, size_t len, ReadData _PL_rd)
 	}
       }
     } else
-    { for_vars(v,
-	       if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
-	       { v->times++;
-		 return v;
-	       })
+    { FOR_VARS(v)
+      { if ( len == v->namelen && strncmp(name, v->name, len) == 0 )
+	{ v->times++;
+	  return v;
+	}
+      }
     }
   }
 
@@ -1750,15 +1797,16 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
   { term_t list = PL_copy_term_ref(_PL_rd->singles);
     term_t head = PL_new_term_ref();
 
-    for_vars(var,
-	     if ( is_singleton(var, LIST_SINGLETONS, _PL_rd) )
-	     {	if ( !PL_unify_list(list, head, list) ||
-		     !PL_unify_term(head,
-				    PL_FUNCTOR,    FUNCTOR_equals2,
-				    PL_UTF8_CHARS, var->name,
-				    PL_TERM,       var->variable) )
-		  fail;
-	     });
+    FOR_VARS(var)
+    { if ( is_singleton(var, LIST_SINGLETONS, _PL_rd) )
+      {	if ( !PL_unify_list(list, head, list) ||
+	     !PL_unify_term(head,
+			    PL_FUNCTOR,    FUNCTOR_equals2,
+			    PL_UTF8_CHARS, var->name,
+			    PL_TERM,       var->variable) )
+	  return FALSE;
+      }
+    }
 
     return PL_unify_nil(list);
   } else				/* just report */
@@ -1766,11 +1814,12 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
     int i = 0;
 
 					/* singletons */
-    for_vars(var,
-	     if ( is_singleton(var, IS_SINGLETON, _PL_rd) )
-	     { if ( i < MAX_SINGLETONS )
-		 singletons[i++] = var->name;
-	     });
+    FOR_VARS(var)
+    { if ( is_singleton(var, IS_SINGLETON, _PL_rd) )
+      { if ( i < MAX_SINGLETONS )
+	  singletons[i++] = var->name;
+      }
+    }
 
     if ( i > 0 )
     { if ( !singletonWarning(term, "singletons", singletons, i) )
@@ -1779,11 +1828,12 @@ check_singletons(DECL_LD term_t term, ReadData _PL_rd)
 
     if ( (_PL_rd->styleCheck&MULTITON_CHECK) )
     { i = 0;				/* multiple _X* */
-      for_vars(var,
-	       if ( is_singleton(var, IS_MULTITON, _PL_rd) )
-	       { if ( i < MAX_SINGLETONS )
-		   singletons[i++] = var->name;
-	       });
+      FOR_VARS(var)
+      { if ( is_singleton(var, IS_MULTITON, _PL_rd) )
+	{ if ( i < MAX_SINGLETONS )
+	    singletons[i++] = var->name;
+	}
+      }
 
       if ( i > 0 )
       { if ( !singletonWarning(term, "multitons", singletons, i) )
@@ -1803,24 +1853,30 @@ bind_variable_names(DECL_LD ReadData _PL_rd)
   term_t head = PL_new_term_ref();
   term_t a    = PL_new_term_ref();
 
-  for_vars(var,
-	   if ( !isAnonVarName(var->name) )
-	   { PL_chars_t txt;
+  FOR_VARS(var)
+  { if ( !isAnonVarName(var->name) )
+    { PL_chars_t txt;
+      int rc;
 
-	     txt.text.t    = var->name;
-	     txt.length    = strlen(var->name);
-	     txt.storage   = PL_CHARS_HEAP;
-	     txt.encoding  = ENC_UTF8;
-	     txt.canonical = FALSE;
+      txt.text.t    = var->name;
+      txt.length    = strlen(var->name);
+      txt.storage   = PL_CHARS_HEAP;
+      txt.encoding  = ENC_UTF8;
+      txt.canonical = FALSE;
 
-	     if ( !PL_unify_list(list, head, list) ||
-		  !PL_unify_functor(head, FUNCTOR_equals2) ||
-		  !PL_get_arg(1, head, a) ||
-		  !PL_unify_text(a, 0, &txt, PL_ATOM) ||
-		  !PL_get_arg(2, head, a) ||
-		  !PL_unify(a, var->variable) )
-	       fail;
-	   });
+      rc = ( PL_unify_list(list, head, list) &&
+	     PL_unify_functor(head, FUNCTOR_equals2) &&
+	     PL_get_arg(1, head, a) &&
+	     PL_unify_text(a, 0, &txt, PL_ATOM) &&
+	     PL_get_arg(2, head, a) &&
+	     PL_unify(a, var->variable) );
+
+      PL_free_text(&txt);
+
+      if ( !rc )
+	return FALSE;
+    }
+  }
 
   return PL_unify_nil(list);
 }
@@ -1832,11 +1888,11 @@ bind_variables(DECL_LD ReadData _PL_rd)
 { term_t list = PL_copy_term_ref(_PL_rd->variables);
   term_t head = PL_new_term_ref();
 
-  for_vars(var,
-	   if ( !PL_unify_list(list, head, list) ||
-		!PL_unify(head, var->variable) )
-	     fail;
-	   );
+  FOR_VARS(var)
+  { if ( !PL_unify_list(list, head, list) ||
+	 !PL_unify(head, var->variable) )
+      return FALSE;
+  }
 
   return PL_unify_nil(list);
 }
@@ -2076,25 +2132,48 @@ skip_digit_separator(cucharp *sp, int base, int *grouped)
 }
 
 
+static int
+skip_decimal_separator(cucharp *sp, int zero, int *grouped)
+{ cucharp s = *sp;
+  int c;
+
+  if ( *s == '_' )
+    s = skipSpaces(s+1);
+  else if ( *s == ' ' )
+    s++;
+
+  utf8_get_uchar(s, &c);
+  if ( isDecimal(zero, c) )
+  { *sp = s;
+    if ( grouped )
+      *grouped = TRUE;
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
 static strnumstat
-scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
+scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 { int64_t maxi = PLMAXINT/10;
   int maxlastdigit = PLMAXINT % 10;
   int64_t mini = PLMININT/10;
   int minlastdigit = PLMININT % 10;
   int64_t t = 0;
-  cucharp s = *sp;
-  int c = *s;
+  cucharp s = *sp, sn;
+  int c;
 
-  if ( !isDigit(c) )
+  utf8_get_uchar(s, &c);
+  if ( !isDecimal(zero, c) )
     return NUM_ERROR;
 
   *grouped = FALSE;
 
   do
-  { for(c = *s; isDigit(c); c = *++s)
-    { if (    (  negative && ( (t < mini) || (t == mini && '0' - c < minlastdigit) ))
-           || ( !negative && ( (t > maxi) || (t == maxi && c - '0' > maxlastdigit) )) )
+  { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+    { if (    (  negative && ( (t < mini) || (t == mini && zero - c < minlastdigit) ))
+           || ( !negative && ( (t > maxi) || (t == maxi && c - zero > maxlastdigit) )) )
       {
 #ifdef O_GMP
 	n->value.i = t;
@@ -2102,14 +2181,15 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 	promoteToMPZNumber(n);
 
 	do
-	{ for(c = *s; isDigit(c); c = *++s)
-	  { mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
+	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+	  { s = sn;
+	    mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
             if (negative)
-	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - '0');
+	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - zero);
             else
-              mpz_add_ui(n->value.mpz, n->value.mpz, c - '0');
+              mpz_add_ui(n->value.mpz, n->value.mpz, c - zero);
 	  }
-	} while ( skip_digit_separator(&s, 10, grouped) );
+	} while ( skip_decimal_separator(&s, zero, grouped) );
 
 	*sp = s;
 
@@ -2119,31 +2199,34 @@ scan_decimal(cucharp *sp, int negative, Number n, int *grouped)
 	double minf = -MAXREAL / 10.0 + 10.0;
 	double tf = (double)t;
 	do
-        { for(c = *s; isDigit(c); c = *++s)
-	  { if (negative)
+        { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+	  { s = sn;
+	    if (negative)
             { if ( tf < minf )
 	        fail;				/* number too large */
-              tf = tf * 10.0 - (double)(c - '0');
+              tf = tf * 10.0 - (double)(c - zero);
             } else
             { if ( tf > maxf )
 	        fail;				/* number too large */
-              tf = tf * 10.0 + (double)(c - '0');
+              tf = tf * 10.0 + (double)(c - zero);
             }
 	  }
-	} while ( skip_digit_separator(&s, 10, grouped) );
+	} while ( skip_decimal_separator(&s, zero, grouped) );
 	n->value.f = tf;
 	n->type = V_FLOAT;
 	*sp = s;
 	return NUM_OK;
 #endif
       } else
-      { if (negative)
-          t = t * 10 - (c - '0');
+      { s = sn;
+
+	if (negative)
+          t = t * 10 - (c - zero);
         else
-          t = t * 10 + (c - '0');
+          t = t * 10 + (c - zero);
       }
     }
-  } while ( skip_digit_separator(&s, 10, grouped) );
+  } while ( skip_decimal_separator(&s, zero, grouped) );
 
   *sp = s;
 
@@ -2347,7 +2430,7 @@ again:
 	  return ESC_ERROR;
 	}
       }
-      if ( chr > PLMAXWCHAR )
+      if ( !VALID_CODE_POINT(chr) )
       { if ( _PL_rd )
 	{ last_token_start = (unsigned char*)errpos;
 	  errorWarning("Illegal character code", 0, _PL_rd);
@@ -2380,7 +2463,7 @@ again:
 	while( (dv = digitValue(base, c)) >= 0 )
 	{ chr = chr * base + dv;
 	  c = *in++;
-	  if ( chr > PLMAXWCHAR )
+	  if ( !VALID_CODE_POINT(chr) )
 	  { if ( _PL_rd )
 	    { last_token_start = (unsigned char*)errpos;
 	      errorWarning("Illegal character code", 0, _PL_rd);
@@ -2558,6 +2641,28 @@ starts_1dot(cucharp s)
 }
 
 
+static int
+points_at_decimal(cucharp in, int zero)
+{ int c;
+
+  utf8_get_uchar(in, &c);
+
+  return isDecimal(zero, c);
+}
+
+
+static cucharp
+skip_decimals(cucharp in, int zero)
+{ int c;
+  cucharp n;
+
+  for(n=utf8_get_uchar(in, &c); isDecimal(zero, c); n=utf8_get_uchar(in, &c))
+    in = n;
+
+  return in;
+}
+
+
 static strnumstat
 special_float(cucharp *in, cucharp start, Number value)
 { cucharp s;
@@ -2584,6 +2689,54 @@ special_float(cucharp *in, cucharp start, Number value)
 
   *in = s;
   return NUM_OK;
+}
+
+static int
+ascii_to_double(cucharp s, cucharp e, double *dp)
+{ char *es;
+  double d;
+
+  errno = 0;
+  d = strtod((char*)s, &es);
+  if ( (cucharp)es == e || (e[0] == '.' && e+1 == (cucharp)es) )
+  { if ( errno == ERANGE && fabs(d) > 1.0 )
+      return NUM_FOVERFLOW;
+
+    *dp = d;
+    return NUM_OK;
+  }
+
+  return NUM_ERROR;
+}
+
+static int
+to_double(cucharp s, cucharp e, int zero, double *dp)
+{ if ( zero == '0' )
+  { return ascii_to_double(s, e, dp);
+  } else
+  { tmp_buffer b;
+    int rc;
+
+    initBuffer(&b);
+    for(; s<e; )
+    { int c;
+
+      s = utf8_get_uchar(s, &c);
+      if ( c >= zero )
+      { assert(c <= zero+9);
+	addBuffer(&b, c-zero+'0', char);
+      } else
+      { assert(c <= 127);
+	addBuffer(&b, c, char);
+      }
+    }
+    addBuffer(&b, 0, char);
+
+    rc = ascii_to_double(baseBuffer(&b, unsigned char),
+			 topBuffer(&b, unsigned char)-1, dp);
+    discardBuffer(&b);
+    return rc;
+  }
 }
 
 
@@ -2647,17 +2800,23 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
     }
   }
 
-  if ( (rc=scan_decimal(&in, negative, value, &grouped)) != NUM_OK )
+  int c0;
+  int zero = '0';
+  utf8_get_uchar(in, &c0);
+  if ( PlDecimalW(c0) )
+    zero = c0-decimal_weight(c0);
+
+  if ( (rc=scan_decimal(&in, zero, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
 
 #ifdef O_GMP
   if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
 	 *in == 'r') &&
-       isDigit(in[1]) )
+       points_at_decimal(in+1, zero) )
   { number num, den;
 
     in++;
-    if ( (rc=scan_decimal(&in, FALSE, &den, &grouped)) != NUM_OK )
+    if ( (rc=scan_decimal(&in, zero, FALSE, &den, &grouped)) != NUM_OK )
     { clearNumber(value);
       return rc;			/* too large? */
     }
@@ -2684,6 +2843,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 					/* base'value number */
   if ( *in == '\'' &&
+       zero == '0' &&
        value->type == V_INTEGER &&
        value->value.i <= 36 &&
        value->value.i > 1 &&
@@ -2699,25 +2859,22 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 
 					/* floating point numbers */
-  if ( *in == '.' && isDigit(in[1]) )
+  if ( *in == '.' && points_at_decimal(in+1, zero) )
   { clearNumber(value);
     value->type = V_FLOAT;
 
-    in++;
-    while( isDigit(*in) )
-      in++;
+    in = skip_decimals(in+1, zero);
   }
 
   if ( (*in == 'e' || *in == 'E') &&
-       ((isSign(in[1]) && isDigit(in[2])) || isDigit(in[1])) )
+       ((isSign(in[1]) && points_at_decimal(in+2, zero)) || points_at_decimal(in+1, zero)) )
   { clearNumber(value);
     value->type = V_FLOAT;
 
     in++;
     if ( isSign(*in) )
       in++;
-    while( isDigit(*in) )
-      in++;
+    in = skip_decimals(in, zero);
   }
 
   if ( (rc = special_float(&in, start, value)) != NUM_ERROR)
@@ -2727,14 +2884,8 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   }
 
   if ( value->type == V_FLOAT )
-  { char *e;
-
-    errno = 0;
-    value->value.f = strtod((char*)start, &e);
-    if ( e != (char*)in && !(*in == '.' && (char*)in+1 == e) )
-      return NUM_ERROR;
-    if ( errno == ERANGE && fabs(value->value.f) > 1.0 )
-      return NUM_FOVERFLOW;
+  { if ( (rc=to_double(start, in, zero, &value->value.f)) != NUM_OK )
+      return rc;
 
     *end = (ucharp)in;
 
@@ -2812,6 +2963,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     }
     if ( PlSymbolW(c) )
       goto case_symbol;
+    if ( PlDecimalW(c) )
+      goto case_digit;
     if ( PlInvalidW(c) )
       syntaxError("illegal_character", _PL_rd);
     goto case_solo;
@@ -2893,7 +3046,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case DI:	{ number value;
 		  strnumstat rc;
 
-		  if ( (rc=str_number(&rdhere[-1], &rdhere, &value,
+		  if ( (rc=str_number(backskip_utf8(rdhere), &rdhere, &value,
 				      _PL_rd->flags)) == NUM_OK )
 		  { cur_token.value.number = value;
 		    cur_token.type = T_NUMBER;
@@ -3591,7 +3744,7 @@ modify_op(DECL_LD cterm_state *cstate, int cpri)
       PopOp(cstate);
     } else if ( op->kind == OP_INFIX && cstate->out_n > 0 &&
 		isOp(op, OP_POSTFIX, _PL_rd) )
-    { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfixn",
+    { DEBUG(MSG_READ_OP, Sdprintf("Infix %s to postfix\n",
 				  stringOp(op)));
       cstate->rmo++;
       if ( !build_op_term(op, _PL_rd) )
@@ -3765,11 +3918,6 @@ is_name_token(Token token, int must_be_op, ReadData _PL_rd)
 	    return -1;
 	  }
 	  return TRUE;
-	case ',':
-	  if ( !must_be_op && _PL_rd->strictness > 0 )
-	  { errorWarning("quoted_punctuation", 0, _PL_rd);
-	    return -1;
-	  }
 	default:
 	  return TRUE;
       }
@@ -4570,6 +4718,8 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 	  return read_brace_term(token, positions, _PL_rd);
 	case '[':
 	  return read_list(token, positions, _PL_rd);
+        case ',':
+	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
 	{ term_t term = alloc_term(_PL_rd);
 	  PL_put_atom(term, codeToAtom(token->value.character));
@@ -4814,6 +4964,7 @@ backSkipBlanks(const unsigned char *start, const unsigned char *end)
       ;
     e = (unsigned char*)utf8_get_char((char*)s, &chr);
     assert(e == end);
+    (void)e;
     if ( !PlBlankW(chr) )
       return (unsigned char*)end;
   }
@@ -4870,6 +5021,7 @@ pl_raw_read2(term_t from, term_t term)
   txt.canonical = FALSE;
 
   rval = PL_unify_text(term, 0, &txt, PL_ATOM);
+  PL_free_text(&txt);
   free_read_data(&rd);
 
   return rval;
@@ -4940,7 +5092,7 @@ Options:
 	* subterm_positions(-Layout)
 */
 
-static const opt_spec read_clause_options[] =
+static const PL_option_t read_clause_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_term_position,	    OPT_TERM },
   { ATOM_subterm_positions, OPT_TERM },
@@ -5008,7 +5160,7 @@ retry:
   init_read_data(&rd, s);
 
   if ( options &&
-       !scan_options(options, 0, ATOM_read_option, read_clause_options,
+       !PL_scan_options(options, 0, "read_option", read_clause_options,
 		     &rd.varnames,
 		     &tpos,
 		     &rd.subtpos,
@@ -5073,7 +5225,7 @@ PRED_IMPL("read_clause", 3, read_clause, 0)
 }
 
 
-static const opt_spec read_term_options[] =
+static const PL_option_t read_term_options[] =
 { { ATOM_variable_names,    OPT_TERM },
   { ATOM_variables,         OPT_TERM },
   { ATOM_singletons,        OPT_TERM },
@@ -5113,7 +5265,7 @@ read_term_from_stream(DECL_LD IOSTREAM *s, term_t term, term_t options)
 retry:
   init_read_data(&rd, s);
 
-  if ( !scan_options(options, 0, ATOM_read_option, read_term_options,
+  if ( !PL_scan_options(options, 0, "read_option", read_term_options,
 		     &rd.varnames,
 		     &rd.variables,
 		     &rd.singles,
@@ -5491,7 +5643,7 @@ PRED_IMPL("$code_class", 2, code_class, 0)
        !PL_get_atom_ex(A2, &class) )
     return FALSE;
 
-  if ( code > PLMAXWCHAR )
+  if ( !VALID_CODE_POINT(code) )
     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, A1);
 
   c = PL_atom_chars(class);

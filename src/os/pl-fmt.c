@@ -51,6 +51,8 @@ source should also use format() to produce error messages, etc.
 #include <ctype.h>
 #include <stdio.h>
 
+typedef foreign_t (*Func1)(term_t a1);
+
 static char *	formatInteger(PL_locale *locale, int div, int radix,
 			     bool smll, Number n, Buffer out);
 static char *	formatFloat(PL_locale *locale, int how, int arg,
@@ -196,7 +198,10 @@ outtext(format_state *state, PL_chars_t *txt)
       const pl_wchar_t *e = &s[txt->length];
 
       while(s<e)
-      { if ( !outchr(state, *s++) )
+      { int c;
+
+	s = get_wchar(s, &c);
+	if ( !outchr(state, c) )
 	  return FALSE;
       }
 
@@ -707,7 +712,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, int argc, term_t argv, Module m)
 		  here++;
 		  break;
 		}
-		{ Func f;
+		{ Func1 f;
 		  sub_state sstate;
 
 	      case 'k':			/* write_canonical */

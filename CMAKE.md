@@ -103,6 +103,7 @@ and libraries that are built.
   | `-DVMI_FUNCTIONS=ON`          | Use functions for the VM instructions |
   | `-DSWIPL_SHARED_LIB=OFF`      | Build Prolog kernel as static lib     |
   | `-DSWIPL_STATIC_LIB=ON`       | Also build `libswipl_static.a`        |
+  | `-DSTATIC_EXTENSIONS=ON`      | Include packages into the main system |
   | `-DSWIPL_INSTALL_IN_LIB=ON`   | Install libswipl.so in `<prefix>/lib` |
   | `-DSWIPL_INSTALL_IN_SHARE=ON` | Install docs in `<prefix>/share`      |
   | `-DSWIPL_M32=ON`              | Make 32-bit version on 64-bit Linux   |
@@ -179,29 +180,27 @@ perform the process on your host Linux system.
 
 ### WASM (Emscripten)
 
-__Note__: due to a  bug  in   the  current  Emscripten  directory access
-functions we need the _native friend_   mechanism  to create the library
-index. The flags below   include `-DSWIPL_NATIVE_FRIEND=build`, assuming
-you built a  native  executable  in   the  directory  `build`  below the
-sources. Adjust as necessary.
-
-    [Assumes native Prolog in `build`.  See note above]
+Install  [Emscripten](https://emscripten.org/),  download    and   build
+[zlib](https://zlib.net/) using Emscripten. Now you can build the system
+using the commands below (assume initial working  dir is the root of the
+source tree).
 
     mkdir build.wasm
     cd build.wasm
     source ~/emsdk/emsdk_env.sh
     cmake -DCMAKE_TOOLCHAIN_FILE=$EMSCRIPTEN/cmake/Modules/Platform/Emscripten.cmake \
           -DCMAKE_BUILD_TYPE=Release \
-          -DZLIB_LIBRARY=$HOME/zlib-1.2.11/libz.a \
-          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.11 \
-          -DMULTI_THREADED=OFF \
-          -DUSE_SIGNALS=OFF \
-          -DUSE_GMP=OFF \
-          -DBUILD_SWIPL_LD=OFF \
-          -DSWIPL_PACKAGES=OFF \
+          -DZLIB_LIBRARY=$HOME/zlib-1.2.12/libz.a \
+          -DZLIB_INCLUDE_DIR=$HOME/zlib-1.2.12 \
+	  -DGMP_ROOT=$HOME/wasm \
           -DINSTALL_DOCUMENTATION=OFF \
-          -DSWIPL_NATIVE_FRIEND=build \
           -G Ninja ..
+
+For   latest   news   on   the    WASM     version    see    the   [Wiki
+page](https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm).
+This page also discusses how to use the WASM version with Node.js and in
+a browser.
+
 
 ### Building a 32-bit version on 64-bit Debian based Linux
 
@@ -318,10 +317,20 @@ See also `cmake/BuildType.cmake` and `PL_halt()` in `src/pl-fli.c`.
 
 You can run the tests normally using   `ctest`. Note that the `swipl:GC`
 test requires more stack than the   default when using AddressSanitizer.
-To fix this run (bash) `ulimit  -s   20000`  before running `ctest`. The
-test  `jpl:prolog_in_java`  will  fail  because  Java is not loaded with
-AddressSanitizer preloaded.   All other tests should pass (about 4 times
+To fix this run (bash) `ulimit -s unlimited` before running `ctest`. The
+test `jpl:prolog_in_java` will fail because  Java   is  not  loaded with
+AddressSanitizer preloaded. All other tests should   pass (about 4 times
 slower than normal).
+
+By   default,   memory   leak   checking   is   disabled   by   defining
+`__asan_default_options()` in `pl-main.c`. Leak checking  may be enabled
+by setting `ASAN_OPTIONS`:
+
+    % ASAN_OPTIONS=detect_leaks=1 src/swipl ...
+
+This option also causes Prolog  __not__   to  unload foreign extensions,
+which is needed to  make  ASAN   properly  report  locations  in foreign
+extensions.
 
 
 ## Packaging
@@ -389,7 +398,7 @@ The defined components are:
   | Commandline_editors  | Readline and libedit interfaces      |
   | ODBC_interface       | ODBC binding                         |
   | BerkeleyDB_interface | BDB interface                        |
-  | Perl_regex           | PCRE library binding                 |
+  | Perl_regex           | PCRE2 library binding                |
   | YAML_support         | Libyaml binding                      |
   | Java_interface       | Java interface (JPL)                 |
   | OpenSSL_interface    | Binding to OpenSSL/LibreSSL          |

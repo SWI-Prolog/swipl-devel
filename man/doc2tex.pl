@@ -51,7 +51,7 @@ LaTeX sources for the documentation is written as .doc files on which we
 do some preprocessing to generate the .tex. These steps include:
 
   - Change predicate references as Name/Arity into \predref{Name}{Arity}
-  - Change PL_*() into \cfuncref{Func} references
+  - Change PL_*() and S*() into \cfuncref{Func} references
   - Do tab expansion for code and verbatim blocks
   - Change hard-to-type sequences such as {=\=} into LaTeX url
     commands.
@@ -105,6 +105,12 @@ tr(\cfuncref(FName, Args)) -->
     {  atom_concat('PL_', Name, FName),
        string_chars(Args, Chars)
     }.
+tr(\cfuncref(FName, Args)) -->
+    "S", c_identifier(Name), "(", string_without(")", Chars), ")",
+    !,
+    {  atom_concat('S', Name, FName),
+       string_chars(Args, Chars)
+    }.
 tr([\begin(code),Code,\end(code),'\n\n',\noindent,'\n']) -->
     "\\begin{code}", string(CodeChars), "\\end{code}",
     !,
@@ -131,6 +137,11 @@ tr(Line) -->
 tr(Codes) -->
     here(Mark),
     "\\fmtseq{", tex_urlarg(1),
+    !,
+    matched(Mark, Codes).
+tr(Codes) -->
+    here(Mark),
+    "\\satom{", tex_urlarg(1),
     !,
     matched(Mark, Codes).
 tr(Codes) -->

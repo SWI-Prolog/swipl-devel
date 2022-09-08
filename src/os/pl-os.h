@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2019, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -36,12 +37,23 @@
 
 #ifndef _PL_OS_H
 #define _PL_OS_H
-#include "../pl-incl.h"
 
-#ifdef HAVE_SYS_PARAM_H			/* get MAXPATHLEN */
+/* Get PATH_MAX for legacy BSD systems */
+#ifndef PATH_MAX
+#ifdef HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
+#if defined(MAXPATHLEN)
+#define PATH_MAX MAXPATHLEN
+#elif defined(PATHSIZE)
+#define PATH_MAX PATHSIZE
+#endif
+#endif
 
+#if WIN_PATH_MAX
+#undef PATH_MAX
+#define PATH_MAX WIN_PATH_MAX
+#endif
 
 		/********************************
 		*         MISCELLANEOUS         *
@@ -72,16 +84,6 @@ int		Pause(double time);
 #define PIPE 1
 #define Popen(path, m)	Sopen_pipe(OsPath(path), m)
 #define Pclose(fd)	pclose(fd)
-#endif
-
-#ifndef MAXPATHLEN
-#ifdef PATH_MAX
-#define MAXPATHLEN PATH_MAX
-#else
-#ifdef PATHSIZE
-#define MAXPATHLEN PATHSIZE
-#endif
-#endif
 #endif
 
 char *		canonicaliseFileName(char *path);

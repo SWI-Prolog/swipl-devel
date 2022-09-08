@@ -130,8 +130,19 @@ same_set(S1, S2) :-
         assertion(SS1 == SS2)
     ).
 
+can_represent(Code) :-
+    catch(setup_call_cleanup(
+              open_null_stream(S),
+              ( set_stream(S, encoding(text)),
+                put_code(S, Code)
+              ),
+              close(S)),
+          error(_,_),
+          fail).
+
 test(glob) :-
     test_expand(['x.pl'], '*.pl').
+:- if(can_represent(0x440)).
 test(cyrillic) :-
     unicode_name("", "", 16, File),
     test_expand([File], File).
@@ -142,6 +153,7 @@ test(cyrillic) :-
 test(cyrillic) :-
     unicode_name("", "/x.pl", 16, File),
     test_expand([File], '*/x.pl').
+:- endif.
 
 :- end_tests(glob_expand).
 

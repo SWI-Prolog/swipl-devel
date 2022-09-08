@@ -44,7 +44,7 @@ typedef enum pl_event_type
   PLEV_BREAK,				/* a break-point was set */
   PLEV_BREAK_EXISTS,			/* existing breakpoint */
   PLEV_NOBREAK,				/* a break-point was cleared */
-  PLEV_GCNOBREAK,			/* cleared due to clause GC */
+  PLEV_RETRACTNOBREAK,			/* cleared due to clause GC */
   PLEV_FRAMEFINISHED,			/* A watched frame was discarded */
   PLEV_UNTABLE,				/* Stop tabling some predicate */
 					/* Keep these two at the end */
@@ -92,6 +92,7 @@ typedef struct event_type
 
 #define LDFUNC_DECLARATIONS
 
+void	cleanupEvents(void);
 int	delayEvents(void);
 int	sendDelayedEvents(int noerror);
 int	PL_call_event_hook(pl_event_type ev, ...);
@@ -109,7 +110,7 @@ int	retractall_event(Definition def, term_t head, atom_t start);
 
 #undef LDFUNC_DECLARATIONS
 
-GLOBAL const event_type PL_events[PLEV_THIS_THREAD_EXIT+2];
+extern const event_type PL_events[PLEV_THIS_THREAD_EXIT+2];
 
 static inline event_list**
 event_list_location(pl_event_type ev)

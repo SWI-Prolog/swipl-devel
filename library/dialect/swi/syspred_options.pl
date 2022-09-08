@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, VU University Amsterdam
+    Copyright (c)  2011-2022, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -43,6 +43,7 @@
 		     [ type(oneof([text,binary])),
 		       alias(atom),
 		       encoding(encoding),
+                       newline(oneof([dos,posix,detect])),
 		       bom(boolean),
 		       create(list(atom)),
 		       eof_action(oneof([eof_code,error,reset])),
@@ -171,7 +172,8 @@
 		       emulator(atom)
 		     ]).
 :- predicate_options(system:thread_create/3, 3,
-		     [ alias(atom),
+		     [ affinity(list(integer)),
+                       alias(atom),
 		       at_exit(callable),
 		       debug(boolean),
 		       inherit_from(any),

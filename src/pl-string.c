@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2013-2020, University of Amsterdam
+    Copyright (c)  2013-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -183,6 +184,68 @@ PRED_IMPL("text_to_string", 2, text_to_string, 0)
   { int rc = unify_text(A2, &t, PL_STRING);
     PL_free_text(&t);
     return rc;
+  }
+
+  return FALSE;
+}
+
+
+static int
+unit_length(IOENC enc)
+{ switch(enc)
+  { case ENC_WCHAR:
+      return sizeof(wchar_t);
+    default:
+      return 1;
+  }
+}
+
+static
+PRED_IMPL("string_bytes", 3, string_bytes, 0)
+{ PRED_LD
+  PL_chars_t t;
+  int rc;
+  atom_t ename;
+  IOENC enc;
+  char *s;
+  size_t len;
+
+  if ( !PL_get_atom_ex(A3, &ename) )
+    return FALSE;
+  if ( (enc=PL_atom_to_encoding(ename)) == ENC_UNKNOWN ||
+       enc == ENC_WCHAR )
+    return PL_domain_error("encoding", A3);
+
+  switch ( PL_get_text(A1, &t,
+		       CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|CVT_VARNOFAIL) )
+  { case TRUE:
+      if ( !PL_text_recode(&t, enc) )
+      { PL_free_text(&t);
+	return FALSE;
+      }
+      rc = PL_unify_chars(A2, PL_CODE_LIST|REP_ISO_LATIN_1,
+			  t.length * unit_length(t.encoding),
+			  t.text.t);
+      PL_free_text(&t);
+      return rc;
+    case FALSE:
+      return FALSE;
+    default:
+      /* 2: can unify */
+      break;
+  }
+
+  if ( PL_get_nchars(A2, &len, &s, CVT_LIST|REP_ISO_LATIN_1|CVT_EXCEPTION) )
+  { if ( len % unit_length(enc) != 0 )
+      return PL_syntax_error("incomplete_multibyte_sequence", NULL);
+
+    t.text.t    = s;
+    t.length    = len/unit_length(enc);
+    t.encoding  = enc;
+    t.canonical = FALSE;
+    t.storage   = PL_CHARS_HEAP;
+
+    return PL_unify_text(A1, 0, &t, PL_STRING);
   }
 
   return FALSE;
@@ -544,6 +607,7 @@ BeginPredDefs(strings)
   PRED_DEF("split_string",    4, split_string,	  0)
   PRED_DEF("string_codes",    2, string_codes,	  0)
   PRED_DEF("string_chars",    2, string_chars,	  0)
+  PRED_DEF("string_bytes",    3, string_bytes,	  0)
   PRED_DEF("text_to_string",  2, text_to_string,  0)
   PRED_DEF("string_code",     3, string_code,	  PL_FA_NONDETERMINISTIC)
   PRED_DEF("get_string_code", 3, get_string_code, 0)

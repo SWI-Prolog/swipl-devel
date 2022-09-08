@@ -148,7 +148,15 @@ all libraries loaded, the resulting executable is completely independent
 from the runtime environment or location where it was built. See also
 \secref{cmdlinecomp}.
 	\termitem{emulator}{+File}
-File to use for the emulator.  Default is the running Prolog image.
+File to use for the emulator or executable used by the startup script.
+Default is the running Prolog image \emph{after} following symbolic
+links, e.g., \file{/usr/lib/swipl/lib/x86_64-linux/swipl}.  To create
+a saved state based on the public executable such that it can run on
+multiple archirectures one can use e.g.
+
+\begin{code}
+$ swipl -o myexe --emulator=$(which swipl) -c myload.pl
+\end{code}
 
 	\termitem{foreign}{+Action}
 If \const{save}, include shared objects (DLLs) for the current
@@ -222,7 +230,7 @@ appropriate libraries.
 
 This predicate is used by qsave_program/[1,2] to ensure the saved state
 does not depend on availability of the libraries. The predicate
-autoload/0 examines all clauses of the loaded program (obtained with
+autoload_all/0 examines all clauses of the loaded program (obtained with
 clause/2) and analyzes the body for referenced goals. Such an analysis
 cannot be complete in Prolog, which allows for the creation of arbitrary terms at
 runtime and the use of them as a goal. The current analysis is limited to the

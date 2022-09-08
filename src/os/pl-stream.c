@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2021, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -37,11 +37,7 @@
 
 #ifdef __WINDOWS__
 #include "windows/uxnt.h"
-#ifdef WIN64
-#include "config/win64.h"
-#else
-#include "config/win32.h"
-#endif
+#include "config/wincfg.h"
 #include <winsock2.h>
 #define CRLF_MAPPING 1
 #else
@@ -862,6 +858,40 @@ reperror(int c, IOSTREAM *s)
   return -1;
 }
 
+static int
+put_usc2(int c, IOSTREAM *s, int be)
+{ if ( be )
+  { if ( put_byte(c>>8, s) < 0 ||
+	 put_byte(c&0xff, s) < 0 )
+      return -1;
+  } else
+  { if ( put_byte(c&0xff, s) < 0 ||
+	 put_byte(c>>8, s) < 0 )
+      return -1;
+  }
+
+  return 0;
+}
+
+static int
+put_utf16(int c, IOSTREAM *s, int be)
+{ if ( c > 0xffff )
+  { int c1, c2;
+
+    utf16_encode(c, &c1, &c2);
+    if ( put_usc2(c1, s, s->encoding == ENC_UTF16BE) < 0 ||
+	 put_usc2(c2, s, s->encoding == ENC_UTF16BE) < 0 )
+      return -1;
+  } else if ( IS_UTF16_SURROGATE(c) )
+  { if ( reperror(c, s) < 0 )
+      return -1;
+  } else
+  { if ( put_usc2(c, s, s->encoding == ENC_UTF16BE) < 0 )
+      return -1;
+  }
+
+  return 0;
+}
 
 
 static int
@@ -924,19 +954,25 @@ put_code(int c, IOSTREAM *s)
 
       break;
     }
-    case ENC_UNICODE_BE:
-      if ( put_byte(c>>8, s) < 0 )
-	return -1;
-      if ( put_byte(c&0xff, s) < 0 )
+    case ENC_UTF16BE:
+      if ( put_utf16(c, s, TRUE) < 0 )
 	return -1;
       break;
-    case ENC_UNICODE_LE:
-      if ( put_byte(c&0xff, s) < 0 )
-	return -1;
-      if ( put_byte(c>>8, s) < 0 )
+    case ENC_UTF16LE:
+      if ( put_utf16(c, s, FALSE) < 0 )
 	return -1;
       break;
     case ENC_WCHAR:
+#if SIZEOF_WCHAR_T == 2
+#ifdef WORDS_BIGENDIAN
+      if ( put_utf16(c, s, TRUE) < 0 )
+	return -1;
+#else
+      if ( put_utf16(c, s, FALSE) < 0 )
+	return -1;
+#endif
+      break;
+#else
     { pl_wchar_t chr = c;
       unsigned char *q = (unsigned char *)&chr;
       unsigned char *e = &q[sizeof(pl_wchar_t)];
@@ -948,6 +984,7 @@ put_code(int c, IOSTREAM *s)
 
       break;
     }
+#endif
     case ENC_UNKNOWN:
       return -1;
   }
@@ -1005,20 +1042,67 @@ Scanrepresent(int c, IOSTREAM *s)
 	return 0;
       return -1;
     }
-    case ENC_WCHAR:
-      if ( sizeof(wchar_t) > 2 )
-	return 0;
+    case ENC_UTF16BE:
+    case ENC_UTF16LE:
+#if SIZEOF_WCHAR_T > 2
+      if ( IS_UTF16_SURROGATE(c) )
+	return -1;
+#endif
     /*FALLTHROUGH*/
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
-      if ( c <= 0xffff )
-	return 0;
-      return -1;
+    case ENC_WCHAR:
+#if SIZEOF_WCHAR_T == 2
+      if ( IS_UTF16_SURROGATE(c) )
+	return -1;
+#endif
+    /*FALLTHROUGH*/
     case ENC_UTF8:
       return 0;
     default:
       assert(0);
       return -1;
+  }
+}
+
+
+static int
+get_ucs2(IOSTREAM *s, int be)
+{ int c1, c2;
+
+  c1 = get_byte(s);
+  if ( c1 == EOF )
+    return -1;
+  c2 = get_byte(s);
+
+  if ( c2 == EOF )
+  { Sseterr(s, SIO_WARN, "EOF in unicode character");
+    return UTF8_MALFORMED_REPLACEMENT;
+  } else
+  { if ( be )
+      return (c1<<8)+c2;
+    else
+      return (c2<<8)+c1;
+  }
+}
+
+
+static int
+get_utf16(IOSTREAM *s, int be)
+{ int c = get_ucs2(s, be);
+
+  if ( IS_UTF16_LEAD(c) )
+  { int c2 = get_ucs2(s, be);
+
+    if ( c2 == EOF )
+    { Sseterr(s, SIO_WARN, "EOF in unicode character");
+      return UTF8_MALFORMED_REPLACEMENT;
+    } else if ( !IS_UTF16_TRAIL(c2) )
+    { Sseterr(s, SIO_WARN, "Illegal UTF-16 continuation");
+      return UTF8_MALFORMED_REPLACEMENT;
+    } else
+    { return utf16_decode(c, c2);
+    }
+  } else
+  { return c;
   }
 }
 
@@ -1105,30 +1189,21 @@ retry:
       }
       break;
     }
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
-    { int c1, c2;
-
-      c1 = get_byte(s);
-      if ( c1 == EOF )
-      { c = -1;
-	goto out;
-      }
-      c2 = get_byte(s);
-
-      if ( c2 == EOF )
-      { Sseterr(s, SIO_WARN, "EOF in unicode character");
-	c = UTF8_MALFORMED_REPLACEMENT;
-      } else
-      { if ( s->encoding == ENC_UNICODE_BE )
-	  c = (c1<<8)+c2;
-	else
-	  c = (c2<<8)+c1;
-      }
-
+    case ENC_UTF16BE:
+      c = get_utf16(s, TRUE);
       break;
-    }
+    case ENC_UTF16LE:
+      c = get_utf16(s, FALSE);
+      break;
     case ENC_WCHAR:
+#if SIZEOF_WCHAR_T == 2
+#ifdef WORDS_BIGENDIAN
+      c = get_utf16(s, TRUE);
+#else
+      c = get_utf16(s, FALSE);
+#endif
+      break;
+#else
     { pl_wchar_t chr;
       char *p = (char*)&chr;
       size_t n;
@@ -1153,6 +1228,7 @@ retry:
       c = chr;
       break;
     }
+#endif
     default:
       assert(0);
       c = -1;
@@ -1420,8 +1496,8 @@ typedef struct
 
 static const bomdef bomdefs[] =
 { { ENC_UTF8,       3, "\357\273\277" }, /* 0xef, 0xbb, 0xbb */
-  { ENC_UNICODE_BE, 2, "\376\377" },	 /* 0xfe, 0xff */
-  { ENC_UNICODE_LE, 2, "\377\376" },	 /* 0xff, 0xfe */
+  { ENC_UTF16BE,    2, "\376\377" },	 /* 0xfe, 0xff */
+  { ENC_UTF16LE,    2, "\377\376" },	 /* 0xff, 0xfe */
   { ENC_UNKNOWN,    0, NULL }
 };
 
@@ -1463,8 +1539,8 @@ int
 SwriteBOM(IOSTREAM *s)
 { switch(s->encoding)
   { case ENC_UTF8:
-    case ENC_UNICODE_LE:
-    case ENC_UNICODE_BE:
+    case ENC_UTF16LE:
+    case ENC_UTF16BE:
     { if ( Sputcode(0xfeff, s) != -1 )
       { s->flags |= SIO_BOM;
 
@@ -1705,8 +1781,8 @@ Sunit_size(IOSTREAM *s)
     case ENC_ANSI:
     case ENC_UTF8:
       return 1;
-    case ENC_UNICODE_BE:
-    case ENC_UNICODE_LE:
+    case ENC_UTF16BE:
+    case ENC_UTF16LE:
       return 2;
     case ENC_WCHAR:
       return sizeof(wchar_t);
@@ -1806,7 +1882,7 @@ Sseek64(IOSTREAM *s, int64_t pos, int whence)
 
   if ( s->functions->seek64 )
     pos = (*s->functions->seek64)(s->handle, pos, whence);
-  else if ( pos <= LONG_MAX )
+  else if ( s->functions->seek && pos <= LONG_MAX && pos >= LONG_MIN )
     pos = (*s->functions->seek)(s->handle, (long)pos, whence);
   else
   { errno = EINVAL;
@@ -1907,6 +1983,11 @@ unallocStream(IOSTREAM *s)
   if ( s->context )
     Sdprintf("WARNING: unallocStream(): stream has context??\n");
 
+  if ( s->exception )
+  { PL_erase(s->exception);
+    s->exception = NULL;
+  }
+
   if ( !(s->flags & SIO_STATIC) )
     PL_free(s);
 }
@@ -1919,8 +2000,10 @@ object, which in turn calls the  ->unlink   which  may wish to close the
 associated stream.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
-Sclose(IOSTREAM *s)
+#define SIO_CLOSE_GC	0x4
+
+static int
+S__close(IOSTREAM *s, int flags)
 { int rval = 0;
 
   if ( s->magic != SIO_MAGIC )		/* already closed!? */
@@ -1938,7 +2021,19 @@ Sclose(IOSTREAM *s)
     return -1;
   }
 
-  SLOCK(s);
+  if ( (flags & (SIO_CLOSE_TRYLOCK|SIO_CLOSE_FORCE)) )
+  { if ( !STRYLOCK(s) )
+    { if ( (flags&SIO_CLOSE_FORCE) )
+      { PL_free(s->mutex);
+	s->mutex = NULL;
+      } else
+      { errno = EDEADLK;
+	return -1;
+      }
+    }
+  } else
+    SLOCK(s);
+
   s->flags |= SIO_CLOSING;
   rval = S__removebuf(s);
   if ( s->mbstate )
@@ -1965,8 +2060,8 @@ Sclose(IOSTREAM *s)
     if ( rval == 0 )
       rval = rc;
   }
-  if ( rval < 0 )
-    reportStreamError(s);
+  if ( rval < 0 && !(flags&SIO_CLOSE_GC) )
+    reportStreamError(s);		/* Cannot throw error from AGC */
   run_close_hooks(s);			/* deletes Prolog registration */
   s->magic = SIO_CMAGIC;
   SUNLOCK(s);
@@ -1981,6 +2076,16 @@ Sclose(IOSTREAM *s)
     s->erased = TRUE;
 
   return rval;
+}
+
+int
+Sclose(IOSTREAM *s)
+{ return S__close(s, 0);
+}
+
+int
+Sgcclose(IOSTREAM *s, int flags)
+{ return S__close(s, SIO_CLOSE_GC|flags);
 }
 
 
@@ -2018,12 +2123,16 @@ out:
 char *
 Sgets(char *buf)
 { char *s = Sfgets(buf, Slinesize, Sinput);
-  char *q;
 
   if ( s )				/* delete trailing \n */
-  { q = &s[strlen(s)];
-    if ( q > s && q[-1] == '\n' )
-      *--q = '\0';
+  { char *q;
+
+    for(q=s; q<s+Slinesize; q++)
+    { if ( *q == '\n' )
+      { *q = '\0';
+	break;
+      }
+    }
   }
 
   return s;
@@ -2098,7 +2207,9 @@ next_chr(const char **s, IOENC enc)
     }
     case ENC_WCHAR:
     { const wchar_t *w = (const wchar_t*)*s;
-      wint_t c = *w++;
+      int c;
+
+      w = get_wchar(w, &c);
       *s = (const char*)w;
       return c;
     }
@@ -2111,6 +2222,24 @@ next_chr(const char **s, IOENC enc)
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
+#define OUTFS() \
+	do \
+	{ if ( fs == fbuf ) \
+	  { while(fs < fe) \
+	    { int c = next_chr((const char**)&fs, enc); \
+	      OUTCHR(s, c); \
+	    } \
+	  } else \
+	  { for(;;) \
+	    { int c = next_chr((const char**)&fs, enc); \
+	      if ( c ) \
+		OUTCHR(s, c); \
+	      else \
+		break; \
+	    } \
+	  } \
+	} while(0)
+
 #define valdigit(c)	((c) - '0')
 #define A_LEFT	0			/* left-aligned field */
 #define A_RIGHT 1			/* right-aligned field */
@@ -2240,8 +2369,11 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 
 	switch(*fm)
 	{ case 'c':
-	    *fe++ = va_arg(args, int);
+	  { int c = va_arg(args, int);
+	    fe = utf8_put_char(fe, c);
+	    enc = ENC_UTF8;
 	    break;
+	  }
 	  case 'p':
 	  { void *ptr = va_arg(args, void*);
 	    char fmbuf[8], *fp=fmbuf;
@@ -2344,21 +2476,26 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  case 's':
 	    fs = va_arg(args, char *);
 	    if ( !fs )
-	      fs = "(null)";
+	    { fs = "(null)";
+	      enc = ENC_ISO_LATIN_1;
+	    }
 	    break;
 	}
+
+	/* Now `fs` is either the result of some sub-formatting or the
+           argument of `%s`.  In the latter case it is by definition
+	   0-terminated.  In the former case it may hold 0-bytes, e.g.,
+	   `%c` using a 0 argument.  `fe` points at the end.
+	*/
 
 	if ( has_arg1 )			/* aligned field */
 	{ if ( fs == fbuf )
 	    *fe = '\0';
 
 	  if ( align == A_LEFT )
-	  { int w = 0;
-	    while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	      w++;
-	    }
+	  { int printed0 = printed;
+	    OUTFS();
+	    int w = printed-printed0;
 	    while(w < arg1)
 	    { OUTCHR(s, pad);
 	      w++;
@@ -2394,21 +2531,10 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 		w--;
 	      }
 	    }
-	    while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	    }
+	    OUTFS();
 	  }
 	} else
-	{ if ( fs == fbuf )		/* unaligned field, just output */
-	  { while(fs < fe)
-	      OUTCHR(s, *fs++);
-	  } else
-	  { while(*fs)
-	    { int c = next_chr((const char**)&fs, enc);
-	      OUTCHR(s, c);
-	    }
-	  }
+	{ OUTFS();
 	}
 	fm++;
 	if ( fs_malloced )
@@ -3330,6 +3456,36 @@ Sopen_file(const char *path, const char *how)
 
 
 IOSTREAM *
+Sopen_iri_or_file(const char *path, const char *how)
+{ int sl;
+  IOSTREAM *s;
+
+  if ( (sl=file_name_is_iri(path)) )
+  { atom_t mname = how[0] == 'r' ? ATOM_read : ATOM_write;
+    const char *m;
+
+    if ( !iri_hook(path, IRI_OPEN, mname, 0, &s) )
+      return NULL;
+
+    for(m=&how[1]; *m; m++)
+    { if ( *m == 'b' )
+      { clear(s, SIO_TEXT);
+	s->encoding = ENC_OCTET;
+	s->newline  = SIO_NL_POSIX;
+      } else if ( *m == 'r' )
+      { clear(s, SIO_RECORDPOS);
+	s->position = NULL;
+      }
+    }
+  } else
+  { s = Sopen_file(path, how);
+  }
+
+  return s;
+}
+
+
+IOSTREAM *
 Sfdopen(int fd, const char *type)
 { intptr_t lfd;
   int flags = SIO_FILE|SIO_RECORDPOS|SIO_FBUF;
@@ -3421,14 +3577,6 @@ Swinsock(IOSTREAM *s)
 		 *******************************/
 
 #ifdef HAVE_POPEN
-#ifdef __WINDOWS__
-#include "windows/popen.c"
-
-#undef popen
-#undef pclose
-#define popen(cmd, how) pt_popen(cmd, how)
-#define pclose(fd)	pt_pclose(fd)
-#endif
 
 static ssize_t
 Sread_pipe(void *handle, char *buf, size_t size)
@@ -3769,6 +3917,7 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
 { memfile *mf = malloc(sizeof(memfile));
   int flags = SIO_FBUF|SIO_RECORDPOS|SIO_NOMUTEX|SIO_TEXT;
   size_t size;
+  IOSTREAM *s;
 
   if ( !mf )
   { errno = ENOMEM;
@@ -3818,7 +3967,10 @@ Sopenmem(char **bufp, size_t *sizep, const char *mode)
   mf->sizep	= sizep;
   mf->here      = 0;
 
-  return Snew(mf, flags, &Smemfunctions);
+  if ( (s=Snew(mf, flags, &Smemfunctions)) )
+    s->newline = SIO_NL_POSIX;
+
+  return s;
 }
 
 		 /*******************************
@@ -4016,10 +4168,6 @@ SinitStreams(void)
       s->newline = SIO_NL_DOS;
 #endif
     }
-
-#ifdef __WINDOWS__
-    pt_init();				/* init popen() issues */
-#endif
   }
 }
 
@@ -4108,6 +4256,10 @@ Scleanup(void)
   for(i=0; i<=2; i++)
   { IOSTREAM *s = &S__iob[i];
 
+    if ( s->mbstate )
+      free(s->mbstate);
+    if ( s->locale )
+      releaseLocale(s->locale);
     s->bufp = s->buffer;		/* avoid actual flush */
     S__removebuf(s);
 

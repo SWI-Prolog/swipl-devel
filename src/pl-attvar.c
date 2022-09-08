@@ -40,6 +40,7 @@
 #include "pl-write.h"
 #include "pl-prims.h"
 #include "pl-fli.h"
+#include "pl-write.h"
 #ifdef O_ATTVAR
 
 #undef LD
@@ -175,7 +176,7 @@ assignAttVar(DECL_LD Word av, Word value)
   DEBUG(CHK_SECURE, assert(on_attvar_chain(av)));
 
   DEBUG(MSG_WAKEUP,
-	{ char buf[32]; char buf2[32];
+	{ char buf[32]; char buf2[64];
 	  Sdprintf("assignAttVar(%s) at %s\n",
 		   var_name_ptr(av, buf),
 		   print_addr(av, buf2));
@@ -195,7 +196,7 @@ assignAttVar(DECL_LD Word av, Word value)
 
   TrailAssignment(av);
   if ( isAttVar(*value) )
-  { DEBUG(1, Sdprintf("Unifying two attvars\n"));
+  { DEBUG(MSG_WAKEUP, Sdprintf("  Unified two attvars\n"));
     *av = makeRefG(value);
   } else
     *av = *value;
@@ -1301,7 +1302,7 @@ scan_trail(DECL_LD Choice ch, int set)
 	      { char buf1[64]; char buf2[64];
 		word old = trailVal(te[1].address);
 		Sdprintf("Mark %s (%s)\n",
-			 print_addr(te->address, buf1), print_val(old, buf2));
+			 var_name_ptr(te->address, buf1), print_val(old, buf2));
 	      });
 	*te->address |= MARK_MASK;
       } else

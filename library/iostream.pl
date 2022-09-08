@@ -205,6 +205,7 @@ open_any_builtin(string(S), read, Stream, close(Stream), Options, Options) :-
     open_string(S, Stream).
 
 open_option(encoding(_)).
+open_option(newline(_)).
 open_option(type(_)).
 
 %!  close_any(+Goal)

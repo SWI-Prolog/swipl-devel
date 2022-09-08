@@ -8,6 +8,10 @@
 # This file is processed using defatom, compiled from defatom.c to
 # produce pl-atom.ic, pl-atom.ih, pl-funct.ic and pl-funct.ih.
 
+A UTF_8			"UTF-8"
+A UTF_16BE		"UTF-16BE"
+A UTF_16LE		"UTF-16LE"
+A ISO_8859_1		"ISO-8859-1"
 A dollar		"$"
 A abi			"abi"
 A abort			"abort"
@@ -105,6 +109,7 @@ A byte			"byte"
 A c_stack		"c_stack"
 A call			"call"
 A call_continuation	"call_continuation"
+A call_site		"call_site"
 A callable		"callable"
 A callpred		"$callpred"
 A canceled		"canceled"
@@ -204,6 +209,7 @@ A debugger_show_context "debugger_show_context"
 A debugger_write_options "debugger_write_options"
 A debugging		"debugging"
 A dec10			"dec10"
+A decimal		"decimal"
 A decimal_point		"decimal_point"
 A deep			"deep"
 A default		"default"
@@ -390,6 +396,7 @@ A hashed		"hashed"
 A hat			"^"
 A heap_gc		"heap_gc"
 A heapused		"heapused"
+A heartbeat		"heartbeat"
 A help			"help"
 A hidden		"hidden"
 A hide_childs		"hide_childs"
@@ -547,6 +554,7 @@ A nlink			"nlink"
 A no_lists		"no_lists"
 A no_memory		"no_memory"
 A no_value		"no_value"
+A node			"node"
 A node_count		"node_count"
 A nodebug		"nodebug"
 A non_empty_list	"non_empty_list"
@@ -720,6 +728,7 @@ A runtime		"runtime"
 A save_class		"save_class"
 A save_option		"save_option"
 A saved_goals		"saved_goals"
+A scc			"scc"
 A search		"search"
 A see			"see"
 A seed			"seed"
@@ -917,6 +926,8 @@ A user_input		"user_input"
 A user_or_explicit	"user_or_explicit"
 A user_output		"user_output"
 A utc			"UTC"
+A utf16be		"utf16be"
+A utf16le		"utf16le"
 A utf8			"utf8"
 A v			"v"
 A value_count		"value_count"
@@ -941,6 +952,7 @@ A wildcard_option	"wildcard_option"
 A win_file_access_check "win_file_access_check"
 A when_condition	"when_condition"
 A white			"white"
+A worklist		"worklist"
 A write			"write"
 A write_attributes	"write_attributes"
 A write_errors		"write_errors"
@@ -994,6 +1006,7 @@ F buffer_size		1
 F busy			2
 F call			1
 F call_continuation	1
+F call_site		3
 F callable		1
 F callpred		2
 F catch			3
@@ -1021,6 +1034,7 @@ F cut_exit		1
 F dand			2
 F date			3
 F date			9
+F heartbeat		0
 F dc_call_prolog	0
 F dcall			1
 F dcall_continuation	1
@@ -1149,6 +1163,7 @@ F nan			0
 F newline		1
 F nexttoward		2
 F nlink			1
+F node			7
 F nonvar		1
 F not_implemented	2
 F not_provable		1
@@ -1200,6 +1215,7 @@ F rollback		1
 F round			1
 F roundtoward		2
 F rshift		2
+F scc			5
 F semicolon		2
 F setup_call_catcher_cleanup 4
 F shared_object		2
@@ -1260,6 +1276,7 @@ F var			1
 F waiting		1
 F wakeup		3
 F warning		3
+F worklist		5
 F write_errors		1
 F xor			2
 F xpceref		1

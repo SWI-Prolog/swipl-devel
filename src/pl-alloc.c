@@ -222,17 +222,21 @@ freeHeap(void *mem, size_t n)
 
 void
 linger(linger_list** list, void (*unalloc)(void *), void *object)
-{ linger_list *c = allocHeapOrHalt(sizeof(*c));
-  linger_list *o;
+{ if ( GD->cleaning != CLN_DATA )
+  { linger_list *c = allocHeapOrHalt(sizeof(*c));
+    linger_list *o;
 
-  c->generation	= global_generation();
-  c->object	= object;
-  c->unalloc	= unalloc;
+    c->generation = global_generation();
+    c->object	  = object;
+    c->unalloc	  = unalloc;
 
-  do
-  { o = *list;
-    c->next = o;
-  } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
+    do
+    { o = *list;
+      c->next = o;
+    } while( !COMPARE_AND_SWAP_PTR(list, o, c) );
+  } else
+  { (*unalloc)(object);
+  }
 }
 
 void
@@ -1605,7 +1609,11 @@ stack_malloc(size_t size)
 void *
 stack_realloc(void *mem, size_t size)
 { size_t osize = tmp_malloc_size(mem);
-  void *ptr = tmp_realloc(mem, size);
+  void *ptr ;
+  if(mem)
+    ptr = tmp_realloc(mem, size);
+  else
+    ptr = tmp_malloc(size);
 
   if ( ptr )
   { size = tmp_malloc_size(ptr);

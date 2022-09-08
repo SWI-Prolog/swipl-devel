@@ -49,7 +49,7 @@ static PL_blob_t reserved_symbol =
 					/* unique representation of text */
   "reserved_symbol",
   NULL,					/* release */
-  compareReservedSymbol,			/* compare */
+  compareReservedSymbol,		/* compare */
   writeReservedSymbol,			/* write */
   NULL,					/* acquire */
   NULL,					/* save load to/from .qlf files */
@@ -83,7 +83,8 @@ static const atom_t reserved_symbols[] =
 
 void
 initReservedSymbols(void)
-{ PL_register_blob_type(&reserved_symbol);
+{ reserved_symbol.atom_name = ATOM_reserved_symbol; /* avoid recursion in */
+  PL_register_blob_type(&reserved_symbol);	    /* do_init_atoms() */
   reserved_symbol.rank = 0;		/* sort between normal blob and text */
   GD->atoms.nontext_rank++;
   atomValue(ATOM_dict)->type     = &reserved_symbol;
@@ -123,7 +124,7 @@ compareReservedSymbol(atom_t h1, atom_t h2)
 
 atom_t
 textToReservedSymbol(PL_chars_t *text)
-{ if ( !PL_canonicalise_text(text) )
+{ if ( PL_canonicalise_text(text) != TRUE )
     return 0;
 
   if ( text->encoding == ENC_ISO_LATIN_1 )

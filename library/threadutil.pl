@@ -63,7 +63,7 @@
 :- autoload(library(statistics),[thread_statistics/2,show_profile/1]).
 :- autoload(library(thread),[call_in_thread/2]).
 
-:- if((\+current_prolog_flag(xpce,flase),exists_source(library(pce)))).
+:- if((\+current_prolog_flag(xpce,false),exists_source(library(pce)))).
 :- autoload(library(gui_tracer),[gdebug/0]).
 :- autoload(library(pce),[send/2]).
 :- else.

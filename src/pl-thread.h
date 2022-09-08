@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1999-2020, University of Amsterdam
+    Copyright (c)  1999-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -50,6 +51,12 @@
 
 #ifndef __WINDOWS__
 #define SIG_ALERT  SIGUSR2
+#if HAVE_STDC_THREADS
+/* Use a C11 condition variable to do cross-thread alerting, if signal
+ * support is compiled out (!O_SIGNALS) or disabled (--sigalert=0)
+ */
+#define STDC_CV_ALERT 1
+#endif
 #endif
 
 #if defined(__linux__) || defined(__CYGWIN__)
@@ -88,17 +95,19 @@ typedef enum
 
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
-  size_t	    stack_limit;	/* Stack sizes */
-  size_t	    table_space;	/* Max size for local tables */
-  size_t	    c_stack_size;	/* system (C-) stack */
-  rc_cancel	    (*cancel)(int id);	/* cancel function */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
   unsigned	    detached      : 1;	/* detached thread */
   unsigned	    debug         : 1;	/* thread can be debugged */
   unsigned	    in_exit_hooks : 1;	/* TRUE: running exit hooks */
   unsigned	    has_tid       : 1;	/* TRUE: tid = valid */
   unsigned	    is_engine	  : 1;	/* TRUE: created as engine */
+  unsigned	    c_stack_low   : 1;	/* TRUE: Signalled low C stack */
   int		    joining_by;		/* TID of joining thread */
+  void		   *c_stack_base;	/* Base of the (C-) stack */
+  size_t	    c_stack_size;	/* system (C-) stack */
+  size_t	    stack_limit;	/* Stack sizes */
+  size_t	    table_space;	/* Max size for local tables */
+  rc_cancel	    (*cancel)(int id);	/* cancel function */
   thread_status	    status;		/* PL_THREAD_* */
   pthread_t	    tid;		/* Thread identifier */
 #ifdef PID_IDENTIFIES_THREAD
@@ -190,6 +199,9 @@ typedef struct pl_mutex
 
 #define ALERT_QUEUE_RD	1
 #define ALERT_QUEUE_WR	2
+#if STDC_CV_ALERT
+# define ALERT_LOCK_CV	3
+#endif
 
 typedef struct alert_channel
 { int	type;				/* Type of channel */
@@ -419,7 +431,6 @@ typedef struct thread_wait_area		/* module data for wait/update */
 
 #define WM_SIGNALLED (WM_USER+4201)	/* how to select a good number!? */
 
-
 		 /*******************************
 		 *	    FUNCTIONS		*
 		 *******************************/
@@ -456,7 +467,8 @@ void		get_current_timespec(struct timespec *time);
 void	        carry_timespec_nanos(struct timespec *time);
 int		signal_waiting_threads(Module m, thread_wait_channel *wch);
 void		free_wait_area(thread_wait_area *wa);
-
+void		free_thread_wait(PL_local_data_t *ld);
+void		free_predicate_references(PL_local_data_t *ld);
 
 		 /*******************************
 		 *	 GLOBAL GC SUPPORT	*
@@ -553,13 +565,11 @@ foreign_t	pl_thread_self(term_t self);
 #define TWF_ASSERT	0x0001		/* Predicate actions */
 #define TWF_RETRACT	0x0002
 
+#define C_STACK_MIN	(100*1024)
+
 typedef struct
 { functor_t functor;			/* functor of property */
-  /* FIXME: we should not be storing function pointers with
-   * incomplete prototypes! WASM in particular cannot call a
-   * function unless it has a full, correct prototype
-   */
-  int (*function)();			/* function to generate */
+  int LDFUNCP (*function)(DECL_LD void *ctx, term_t a);	/* function to generate */
 } tprop;
 
 #if USE_LD_MACROS
@@ -570,6 +580,8 @@ typedef struct
 #define	isSignalledGCThread(sig)	LDFUNC(isSignalledGCThread, sig)
 #define	ThreadCPUTime(which)		LDFUNC(ThreadCPUTime, which)
 #define updatePendingThreadSignals(_)	LDFUNC(updatePendingThreadSignals, _)
+#define require_c_stack(needed)		LDFUNC(require_c_stack, needed)
+#define clear_low_c_stack(_)		LDFUNC(clear_low_c_stack, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -592,6 +604,8 @@ int		signalGCThread(int sig);
 int		isSignalledGCThread(int sig);
 double	        ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
+int		require_c_stack(size_t needed);
+void		clear_low_c_stack(void);
 
 #undef LDFUNC_DECLARATIONS
 

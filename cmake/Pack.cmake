@@ -3,7 +3,11 @@
 if(NOT CPACK_GENERATOR AND NOT APPLE)
   message("-- Finding default package generator")
   if(WIN32)
-    set(CPACK_GENERATOR "NSIS")
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+      set(CPACK_GENERATOR "NSIS64")
+    else()
+      set(CPACK_GENERATOR "NSIS")
+    endif()    
   else()
     find_program(APT apt)
     find_program(DNF dnf)
@@ -88,13 +92,25 @@ if(WIN32)
   createShortCut("SWI-Prolog" "swipl-win" "--win_app" ON)
   createShortCut("SWI-Prolog (console)" "swipl" "" OFF)
 
-  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
-  WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
-  ")
-  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-  DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-  ")
+  if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+    SetRegView 64
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+    ")
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+    SetRegView 64
+    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+    ")
+  else()
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+    ")
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+    ")
+  endif()
 endif()
 
 if(NOT SWIPL_CPACK_ARCH)

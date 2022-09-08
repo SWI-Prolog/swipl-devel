@@ -282,31 +282,67 @@ typedef struct PL_global_data PL_global_data_t;
 #if (defined(O_PLMT) || defined(O_MULTIPLE_ENGINES)) && USE_LD_MACROS
 
 #ifdef __GNUC__
-# define _ASSERT_LD(cond) ({static_assert((cond), "Error: LOCAL_LD referenced without a local LD declaration in " __FILE__ ":" A_STRINGIFY(__LINE__)); NULL;})
-#else
-extern void* error_LOCAL_LD_referenced_without_a_local_LD_declaration(void);
-# define _ASSERT_LD(cond) ((cond)?NULL:error_LOCAL_LD_referenced_without_a_local_LD_declaration())
+/* Instructing GCC to treat this as a system header greatly simplifies
+ * diagnostic output when, for example, getting a no_local_ld error. */
+#pragma GCC system_header
 #endif
-#ifdef HAVE___BUILTIN_CHOOSE_EXPR
-/* __builtin_choose_expr is basically a ternary operator for compile-time constants */
-# define _CHOOSE_EXPR(cond, iftrue, iffalse) __builtin_choose_expr((cond), (iftrue), (iffalse))
-#else
-# define _CHOOSE_EXPR(cond, iftrue, iffalse) ((cond) ? (iftrue) : (iffalse))
-#endif
-#ifdef HAVE___BUILTIN_TYPES_COMPATIBLE_P
-/* __builtin_types_compatible_p is stricter than a sizeof check */
-# define _IS_LDPTR(expr) __builtin_types_compatible_p(typeof(expr), PL_local_data_t*)
-#else
-# define _IS_LDPTR(expr) (sizeof(expr) == sizeof(PL_local_data_t*) && sizeof(*expr) == sizeof(PL_local_data_t))
-#endif
-#define _AS_LDPTR(expr) ((PL_local_data_t*)(expr))
-#define _TRY_LDPTR(expr, otherwise) _CHOOSE_EXPR(_IS_LDPTR(expr), _AS_LDPTR(expr), otherwise)
 
-/* These will never be compiled, they are here simply for scope detection */
-extern char *__PL_ld;
-extern struct {char *engine;} *PL__ctx;
-#define _LD_WITH_FALLBACK(f) _TRY_LDPTR(__PL_ld, _TRY_LDPTR(PL__ctx->engine, f))
-#define LOCAL_LD  _LD_WITH_FALLBACK(_ASSERT_LD(_IS_LDPTR(__PL_ld) || _IS_LDPTR(PL__ctx->engine)))
+/* These are defined in pl-setup.c, but they'll never actually get used.
+ * They're just here for scope-detection. */
+const extern intptr_t __PL_ld;
+const extern intptr_t PL__ctx;
+
+/* __FIND_LD uses the C11 _Generic operator to resolve to the first
+ * expression iff it is recognized as a PL_local_data_t* in the current
+ * context, otherwise the engine of the second iff it is a control_t,
+ * otherwise the third. Since the above const declarations are in global
+ * scope and have type intptr_t, they will fail this test safely (i.e.
+ * without causing an undefined reference or syntax error) if no shadowing
+ * declaration has been made at block scope. And, since they are concrete
+ * variables set to a constant -1, a debugger can use the actual __FIND_LD
+ * function defined in pl-setup.c to resolve LD or LD-based expressions at
+ * debug-time, even if (like GDB) it doesn't recognize the _Generic operator.
+ */
+PL_local_data_t* __FIND_LD(PL_local_data_t *pl_ld, control_t pl_ctx, PL_local_data_t *fallback);
+#define __FIND_LD(pl_ld, pl_ctx, fallback) \
+	_Generic \
+	( (pl_ld), \
+	  PL_local_data_t*: (PL_local_data_t*)(pl_ld), \
+	  default: _Generic \
+	  ( (pl_ctx), \
+	    control_t: ((control_t)(pl_ctx))->engine, \
+	    default: (fallback) \
+	  ) \
+	)
+
+/* Abusing a GCC idiosyncracy here (don't call it a bug, they might fix it)
+ * because I haven't found ANY documented way to exercise control over which
+ * macros are recorded in the object file at -g3. In GCC, when a macro def
+ * is pushed and then popped, it gets removed from the list of macros
+ * presented to the debugger. The debugger will then fall back to the real
+ * definition of __FIND_LD present in pl-setup.c rather than stumbling on
+ * the above.
+ */
+#ifdef __GNUC__
+# pragma push_macro("__FIND_LD")
+# pragma pop_macro("__FIND_LD")
+#endif
+
+#if defined(__GNUC__) && __has_attribute(error)
+/* If code references LOCAL_LD (either explicitly or by redefining LD as its
+ * alias) but the current function is neither an LDFUNC nor provides a GET_LD
+ * or similar, that's a programming error we want to report. With GCC, we can
+ * use the error attribute to force a failure at compile-time... */
+PL_local_data_t* __attribute__((error("LOCAL_LD referenced without a local LD declaration"))) no_local_ld(void);
+#else
+/* ...otherwise, we reference this nonexistent but descriptively-named
+ * function to cause the failure at link-time. */
+#define no_local_ld error_LOCAL_LD_referenced_without_a_local_LD_declaration
+extern PL_local_data_t* no_local_ld(void);
+#endif
+
+#define _LD_WITH_FALLBACK(f) __FIND_LD(__PL_ld, PL__ctx, f)
+#define LOCAL_LD  _LD_WITH_FALLBACK(no_local_ld())
 #define ANY_LD    _LD_WITH_FALLBACK(GLOBAL_LD)
 
 #define GET_LD	  PL_local_data_t *__PL_ld = GLOBAL_LD;
@@ -403,9 +439,8 @@ extern struct {char *engine;} *PL__ctx;
 #define LDFUNC(func, ...) LDFUNC_NAME(func)(__VA_ARGS__)
 #define LDFUNCP(pdecl)		(pdecl)
 #define LDFUNC_REF(func)	(&LDFUNC_NAME(func))
-#define LOCAL_LD  (&PL_local_data)
-#define GLOBAL_LD (&PL_local_data)
-#define ANY_LD    (&PL_local_data)
+#define LOCAL_LD GLOBAL_LD
+#define ANY_LD GLOBAL_LD
 #define IGNORE_LD
 #define HAS_LD (1)
 
@@ -505,10 +540,10 @@ struct foreign_context
 #define FRG_REDO_MASK	0x03
 #define FRG_REDO_BITS	2
 #define REDO_PTR	0x00		/* Returned a pointer */
-#define REDO_INT	0x01		/* Returned an integer */
-#define YIELD_PTR	0x02		/* Returned a pointer */
+#define YIELD_PTR	0x01		/* Returned a pointer */
+#define REDO_INT	0x02		/* Returned an integer */
 
-#define ForeignRedoIntVal(v)	(((uintptr_t)(v)<<FRG_REDO_BITS)|REDO_INT)
+#define ForeignRedoIntVal(v)	(((uintptr_t)((v)<<FRG_REDO_BITS))|REDO_INT)
 #define ForeignRedoPtrVal(v)	(((uintptr_t)(v))|REDO_PTR)
 #define ForeignYieldPtrVal(v)	(((uintptr_t)(v))|YIELD_PTR)
 

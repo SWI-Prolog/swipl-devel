@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -58,6 +58,8 @@ static void
 freeCodes(Code codes)
 { size_t size = (size_t)codes[-1];
 
+  unregisterWrappedSupervisor(codes); /* holds atom_t references */
+
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
     freeHeap(&codes[-1], (size+1)*sizeof(code));
 }
@@ -87,7 +89,7 @@ freeSupervisor(Definition def, Code codes, int do_linger)
   { if ( do_linger )
       linger(&def->lingering, free_codes_ptr, codes);
     else
-      freeHeap(&codes[-1], (size+1)*sizeof(code));
+      freeCodes(codes);
   }
 }
 
@@ -99,7 +101,12 @@ freeCodesDefinition(Definition def, int do_linger)
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
   { if ( (codes = def->codes) )
     { if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
-      { resetWrappedSupervisor(def);
+      { resetWrappedSupervisor(def, do_linger);
+	if ( !do_linger )
+	{ codes = def->codes;
+	  def->codes = SUPERVISOR(virgin);
+	  freeSupervisor(def, codes, do_linger);
+	}
       } else
       { def->codes = SUPERVISOR(virgin);
 	freeSupervisor(def, codes, do_linger);
@@ -166,6 +173,23 @@ createForeignSupervisor(Definition def, Func f)
 #endif
 
   succeed;
+}
+
+
+static int
+equalSupervisors(const Code s1, const Code s2)
+{ if ( s1 != s2 )
+  { size_t sz1 = (size_t)s1[-1];
+    size_t sz2 = (size_t)s2[-1];
+
+    if ( sz1 && sz1 == sz2 &&
+	 memcmp(s1, s2, sz1*sizeof(*s1)) == 0 )
+      return TRUE;
+
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 
@@ -411,26 +435,51 @@ createSupervisor(Definition def)
 	       (codes = listSupervisor(def)) ||
 	       (codes = staticSupervisor(def)));
   assert(has_codes);
+  (void)has_codes;
   codes = chainPredicateSupervisor(def, codes);
 
   return codes;
 }
 
 
+void
+setSupervisor(Definition def, Code codes)
+{ PL_LOCK(L_PREDICATE);
+  Code old = def->codes;
+
+  if ( equalSupervisors(old, codes) )
+  { freeSupervisor(def, codes, FALSE);
+  } else
+  { MEMORY_BARRIER();
+    def->codes = codes;
+    freeSupervisor(def, old, TRUE);
+  }
+  PL_UNLOCK(L_PREDICATE);
+}
+
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-setSupervisor() is synchronised with   unloadFile() (reconsult/1). Seems
-this is not yet enough to stop all racer conditions between this code.
+setDefaultSupervisor() is synchronised with  unloadFile() (reconsult/1).
+Seems this is not yet enough to   stop all racer conditions between this
+code.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 int
-setSupervisor(Definition def)
-{ Code codes;
+setDefaultSupervisor(Definition def)
+{ if ( false(def, P_LOCKED_SUPERVISOR) )
+  { Code codes, old;
 
-  if ( false(def, P_LOCKED_SUPERVISOR) )
-  { PL_LOCK(L_PREDICATE);
+    PL_LOCK(L_PREDICATE);
+    old = def->codes;
     codes = createSupervisor(def);
-    MEMORY_BARRIER();
-    def->codes = codes;
+    if ( equalSupervisors(old, codes) )
+    { freeSupervisor(def, codes, FALSE);
+    } else
+    { MEMORY_BARRIER();
+      def->codes = codes;
+      freeSupervisor(def, old, TRUE);
+    }
     PL_UNLOCK(L_PREDICATE);
   }
 

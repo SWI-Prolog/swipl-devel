@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2021, University of Amsterdam
+    Copyright (c)  1997-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -110,8 +110,8 @@ struct PL_global_data
   } resources;
 
   struct
-  { sig_handler handlers[MAXSIGNAL];	/* How Prolog preceives signals */
-#ifdef HAVE_SIGNAL
+  { sig_handler handlers[NUM_SIGNALS];	/* How Prolog receives signals */
+#ifdef SIG_ALERT
     int		sig_alert;		/* our alert signal */
 #endif
   } signals;
@@ -122,6 +122,7 @@ struct PL_global_data
   { int		os_argc;		/* main(int argc, char **argv) */
     char **	os_argv;
     int		appl_argc;		/* Application options */
+    int		appl_malloc;		/* Array is allocated */
     char **	appl_argv;
     int		notty;			/* -tty: do not use ioctl() */
     int		optimise;		/* -O: optimised compilation */
@@ -321,10 +322,11 @@ struct PL_global_data
     Procedure	print_message2;
     Procedure	foreign_registered2;	/* $foreign_registered/2 */
     Procedure	prolog_trace_interception4;
-    Procedure	prolog_break_hook6;	/* prolog:break_hook/6 */
+    Procedure	prolog_break_hook7;	/* prolog:break_hook/7 */
     Procedure	portray;		/* portray/1 */
     Procedure   dcall1;			/* $call/1 */
-    Procedure   call3;			/* call/3*/
+    Procedure   call1;			/* call/1 */
+    Procedure   call3;			/* call/3 */
     Procedure	setup_call_catcher_cleanup4; /* setup_call_catcher_cleanup/4 */
     Procedure	undefinterc4;		/* $undefined_procedure/4 */
     Procedure   dthread_init0;		/* $thread_init/0 */
@@ -338,12 +340,36 @@ struct PL_global_data
     Procedure	tune_gc3;		/* prolog:tune_gc */
     Procedure	trie_gen_compiled2;
     Procedure	trie_gen_compiled3;
+    Procedure	exception3;		/* user:exception/3 */
+    Procedure	iri_hook4;		/* $iri:iri_hook/4 */
+    Procedure	absolute_file_name3;	/* system:absolute_file_name/3 */
+    Procedure	c_open_resource3;	/* $rc:c_open_resource/3 */
+    Procedure	clear_source_admin1;	/* system:$clear_source_admin/1 */
+    Procedure	answer_completion2;	/* $tabling:answer_completion/2 */
+    Procedure	update7;		/* $tabling:update/7 */
+    Procedure	answer_count_restraint0;/* $tabling:answer_count_restraint/0 */
+    Procedure	radial_restraint0;	/* $tabling:radial_restraint/0 */
+    Procedure	tripwire3;		/* $tabling:tripwire/3 */
+#if O_PLMT
+    Procedure	signal_is_blocked1;	/* $syspreds:signal_is_blocked1/1 */
+    Procedure	dgc0;			/* system:$gc/0 */
+#endif
+    Procedure	drun_undo1;		/* $syspreds:$run_undo/1 */
+    Procedure	drun_initialization2;	/* system:$run_initialization/2 */
+    Procedure	dtranslated_source2;	/* system:$translated_source/2 */
+    Procedure	findall_loop4;		/* $bags:findall_loop/4 */
+    Procedure	heartbeat0;		/* prolog:heartbeat/0 */
 
     int		static_dirty;		/* #static dirty procedures */
 #ifdef O_CLAUSEGC
     Table	dirty;			/* Table of dirty procedures */
 #endif
   } procedures;
+
+  struct				/* see raiseInferenceLimitException() */
+  { int		initialized;
+    predicate_t	not_exceed_[6];
+  } inference_limit;
 
   struct
   { ClauseRef	lingering;		/* Unlinked clause refs */
@@ -403,8 +429,13 @@ struct PL_global_data
     { pthread_mutex_t	mutex;
       pthread_cond_t	cond;
     } index;
+    linger_list	       *lingering;
   } thread;
 #endif /*O_PLMT*/
+
+  struct
+  { functor_t dict_functors[CACHED_DICT_FUNCTORS];
+  } dict;
 
 #ifdef O_LOCALE
   struct
@@ -412,6 +443,10 @@ struct PL_global_data
     PL_locale	       *default_locale;	/* System wide default */
   } locale;
 #endif
+
+  struct
+  { int tz_initialized;			/* time zone is initialized */
+  } date;
 
   struct stack		combined_stack; /* ID for combined stack */
 };
@@ -452,7 +487,11 @@ struct PL_local_data
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct
-  { int		pending[2];		/* PL_raise() pending signals */
+  { wsigmask_t	pending;		/* PL_raise() pending signals */
+#if STDC_CV_ALERT /* use C11 condition variable/mutex for thread signalling */
+    cnd_t	alert_cv;		/* notify when a signal is in pending */
+    mtx_t	alert_mtx;		/* lock on this while waiting for _cv */
+#endif
     int		current;		/* currently processing signal */
     int		is_sync;		/* current signal is synchronous */
 #ifndef __unix__
@@ -524,7 +563,12 @@ struct PL_local_data
 #endif
 
   struct
-  { int64_t	inferences;		/* inferences in this thread */
+  { uint64_t	fired;			/* autoyielding check */
+    uint64_t	frequency;		/* How often do we fire */
+  } yield;
+
+  struct
+  { uint64_t	inferences;		/* inferences in this thread */
     uintptr_t	last_cputime;		/* milliseconds last CPU time */
     uintptr_t	last_systime;		/* milliseconds last SYSTEM time */
     uintptr_t	last_real_time;		/* Last Real Time (seconds since Epoch) */
@@ -753,6 +797,13 @@ struct PL_local_data
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
   } clauses;
+
+#ifdef O_COVERAGE
+  struct
+  { Table	table;			/* Table for recording data */
+    int		active;			/* We are recording */
+  } coverage;
+#endif
 
   struct
   { gen_t	generation;		/* reload generation */

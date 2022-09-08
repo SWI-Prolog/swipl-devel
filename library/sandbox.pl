@@ -57,7 +57,8 @@
     safe_meta/2,                    % Goal, Calls
     safe_meta/3,                    % Goal, Context, Calls
     safe_global_variable/1,         % Name
-    safe_directive/1.               % Module:Goal
+    safe_directive/1,               % Module:Goal
+    safe_prolog_flag/2.             % +Name, +Value
 
 % :- debug(sandbox).
 
@@ -427,9 +428,9 @@ term_expansion(safe_primitive(Goal), Term) :-
     ->  Term = safe_primitive(Goal)
     ;   Term = []
     ).
-term_expansion((safe_primitive(Goal) :- _), Term) :-
+term_expansion((safe_primitive(Goal) :- Body), Term) :-
     (   verify_safe_declaration(Goal)
-    ->  Term = safe_primitive(Goal)
+    ->  Term = (safe_primitive(Goal) :- Body)
     ;   Term = []
     ).
 
@@ -439,10 +440,10 @@ system:term_expansion(sandbox:safe_primitive(Goal), Term) :-
     ->  Term = sandbox:safe_primitive(Goal)
     ;   Term = []
     ).
-system:term_expansion((sandbox:safe_primitive(Goal) :- _), Term) :-
+system:term_expansion((sandbox:safe_primitive(Goal) :- Body), Term) :-
     \+ current_prolog_flag(xref, true),
     (   verify_safe_declaration(Goal)
-    ->  Term = sandbox:safe_primitive(Goal)
+    ->  Term = (sandbox:safe_primitive(Goal) :- Body)
     ;   Term = []
     ).
 
@@ -477,6 +478,7 @@ ok_meta(system:assert(_)).
 ok_meta(system:load_files(_,_)).
 ok_meta(system:use_module(_,_)).
 ok_meta(system:use_module(_)).
+ok_meta('$syspreds':predicate_property(_,_)).
 
 verify_predefined_safe_declarations :-
     forall(clause(safe_primitive(Goal), _Body, Ref),
@@ -574,6 +576,7 @@ safe_primitive(system:setarg(_,_,_)).
 safe_primitive(system:nb_setarg(_,_,_)).
 safe_primitive(system:nb_linkarg(_,_,_)).
 safe_primitive(functor(_,_,_)).
+safe_primitive(system:functor(_,_,_,_)).
 safe_primitive(_ =.. _).
 safe_primitive(system:compound_name_arity(_,_,_)).
 safe_primitive(system:compound_name_arguments(_,_,_)).
@@ -658,6 +661,7 @@ safe_primitive(system:sleep(_)).
 safe_primitive(system:thread_self(_)).
 safe_primitive(system:get_time(_)).
 safe_primitive(system:statistics(_,_)).
+:- if(current_prolog_flag(threads,true)).
 safe_primitive(system:thread_statistics(Id,_,_)) :-
     (   var(Id)
     ->  instantiation_error(Id)
@@ -668,6 +672,7 @@ safe_primitive(system:thread_property(Id,_)) :-
     ->  instantiation_error(Id)
     ;   thread_self(Id)
     ).
+:- endif.
 safe_primitive(system:format_time(_,_,_)).
 safe_primitive(system:format_time(_,_,_,_)).
 safe_primitive(system:date_time_stamp(_,_)).
@@ -685,6 +690,9 @@ safe_primitive(assertz(X)) :- safe_assert(X).
 safe_primitive(retract(X)) :- safe_assert(X).
 safe_primitive(retractall(X)) :- safe_assert(X).
 safe_primitive('$dcg':dcg_translate_rule(_,_)).
+safe_primitive('$syspreds':predicate_property(Pred, _)) :-
+    nonvar(Pred),
+    Pred \= (_:_).
 
 % We need to do data flow analysis to find the tag of the
 % target key before we can conclude that functions on dicts

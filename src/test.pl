@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker and Anjo Anjewierden
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1996-2020, University of Amsterdam
+    Copyright (c)  1996-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,6 +38,9 @@
 %:- set_prolog_flag(optimise, true).
 % keep debug/3 goals, even if optimise = true.
 :- set_prolog_flag(optimise_debug, false).
+% do not load xpce from threadutil.pl as this leaks memory
+:- set_prolog_flag(xpce, false).
+:- set_prolog_flag(agc_close_streams, true).
 
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
@@ -2193,128 +2197,6 @@ io(tell-2) :-
 	set_output(OrgOut),
 	read_file_to_terms(TestY, [b], []),
 	delete_file(TestY).
-
-
-		 /*******************************
-		 *	       POPEN		*
-		 *******************************/
-
-popen(pwd-1) :-
-	(   current_prolog_flag(windows, true)
-	->  Command = 'cmd /c cd'
-	;   Command = pwd
-	),
-	open(pipe(Command), read, Fd),
-	collect_line(Fd, String),
-	close(Fd),
-	atom_codes(Pwd, String),
-	same_file(Pwd, '.').
-popen(cat-1) :-
-	(   current_prolog_flag(windows, true)
-	->  true		% there is *no* cmd.exe command like cat!?
-	;   current_prolog_flag(pid, Pid),
-	    format(atom(File), 'pltest-~w.txt', [Pid]),
-	    Text = 'Hello World',
-	    Cmd = cat,
-	    atomic_list_concat([Cmd, ' > ', File], Command),
-	    open(pipe(Command), write, Fd),
-	    format(Fd, '~w', [Text]),
-	    close(Fd),
-	    open(File, read, Fd2),
-	    collect_data(Fd2, String),
-	    close(Fd2),
-	    delete_file(File),
-	    atom_codes(A, String),
-	    A == Text
-	).
-popen(cat-2) :-
-	(   current_prolog_flag(windows, true)
-	->  Cmd = 'cmd /c rem true'
-	;   Cmd = true
-	),
-	open(pipe(Cmd), write, Pipe),
-	catch(forall(between(1, 10000, _), format(Pipe, '0123456789~n', [])),
-	      E,
-	      true),
-	catch(close(Pipe), _, true),	% ???
-	(   var(E)
-	->  format(user_error, 'No exception?~n', []),
-	    fail
-					% if signalling is enabled
-	;   E = error(signal(pipe, _), context(copy_stream_data/2, _))
-	->  true
-					% otherwise
-	;   E = error(io_error(write, _), context(_, 'Broken pipe'))
-	->  true
-	;   E = error(io_error(write, _), _),
-	    current_prolog_flag(windows, true)
-	->  true
-	;   format(user_error, 'Wrong exception: ~p~n', [E]),
-	    fail
-	).
-
-collect_line(Fd, String) :-
-	get0(Fd, C0),
-	collect_line(C0, Fd, String).
-
-collect_line(-1, _, []) :- !.
-collect_line(10, _, []) :- !.
-collect_line(13, _, []) :- !.
-collect_line(C, Fd, [C|T]) :-
-	get0(Fd, C2),
-	collect_line(C2, Fd, T).
-
-collect_data(Fd, String) :-
-	get0(Fd, C0),
-	collect_data(C0, Fd, String).
-
-collect_data(-1, _, []) :- !.
-collect_data(C, Fd, [C|T]) :-
-	get0(Fd, C2),
-	collect_data(C2, Fd, T).
-
-
-		 /*******************************
-		 *	      TIMEOUT		*
-		 *******************************/
-
-timeout(pipe-1) :-
-	(   current_prolog_flag(pipe, true),
-	    \+ current_prolog_flag(windows, true) % cannot wait on pipes
-	->  open(pipe('echo + && sleep 1 && echo xx.'), read, In,
-		 [ bom(false)
-		 ]),
-	    set_stream(In, timeout(0.2)),
-	    wait_for_input([In], [In], infinite),
-	    catch(read(In, Term1), E1, true),
-	    (	nonvar(E1),
-		E1 = error(timeout_error(read, _), _)
-	    ->	wait_for_input([In], [In], infinite),
-		catch(read(In, Term), E2, true),
-		(   var(E2)
-		->  (   Term == xx
-		    ->	close(In)
-		    ;	format(user_error, 'Term == ~q~n', [Term]),
-			true
-		    )
-		;   format(user_error, 'E2 == ~q~n', [E2]),
-		    fail
-		)
-	    ;   var(E1)
-	    ->	(   Term1 == (+ xx)
-		->  close(In),
-		    format(user_error,
-			   'timeout(pipe-1): ~q (machine heavy loaded?)~n',
-			   [Term1])
-		;   format(user_error,
-			   'var(E1) && Term == ~q~n', [Term1]),
-		    fail
-		)
-	    ;	format(user_error, 'E1 == ~q~n', [E1]),
-		fail
-	    )
-	;   true
-	).
 
 
 		 /*******************************

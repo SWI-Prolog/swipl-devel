@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2008-2021, University of Amsterdam
+    Copyright (c)  2008-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -268,7 +268,7 @@ END_VMH
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 D_BREAK implements break-points in the  code.   A  break-point is set by
-replacing  an  instruction  by  a   D_BREAK  instruction.  The  orininal
+replacing  an  instruction  by  a   D_BREAK  instruction.  The  original
 instruction is saved in a table. replacedBreak() fetches it.
 
 We simply switch to trace-mode, which will   trap the tracer on the next
@@ -1480,7 +1480,7 @@ VMI(B_EQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   int rc;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) || isVar(*v2) )
     { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
 			       v2 = varFrameP(FR, (int)PC[-1]);
@@ -1521,7 +1521,7 @@ VMI(B_EQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   word c  = (word)*PC++;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) )
     { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
       globaliseVar(v1);
@@ -1553,7 +1553,7 @@ VMI(B_NEQ_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
   int rc;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) || isVar(*v2) )
     { ENSURE_GLOBAL_SPACE(2, { v1 = varFrameP(FR, (int)PC[-2]);
 			       v2 = varFrameP(FR, (int)PC[-1]);
@@ -1597,7 +1597,7 @@ VMI(B_NEQ_VC, VIF_BREAK, 2, (CA1_VAR,CA1_DATA))
   word c  = (word)*PC++;
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { if ( isVar(*v1) )
     { ENSURE_GLOBAL_SPACE(1, v1 = varFrameP(FR, (int)PC[-2]));
       globaliseVar(v1);
@@ -1641,7 +1641,7 @@ VMH(arg3_fast, 4, (Word, intptr_t, Word, Word), (aidx, ai, aterm, aarg))
   { globaliseVar(aterm);
   } else
   { deRef(aterm);
-    if ( isTerm(*aterm) && likely(!debugstatus.debugging) )
+    if ( isTerm(*aterm) && likely(truePrologFlag(PLFLAG_VMI_BUILTIN)) )
     { size_t arity = arityTerm(*aterm);
       if ( ai > 0 && ai <= arity )
       { *aarg = linkValI(argTermP(*aterm, ai-1));
@@ -1907,6 +1907,8 @@ VMI(I_ENTER, VIF_BREAK, 0, ())
     }
 #endif /*O_DEBUGGER*/
 
+    Coverage(FR, UNIFY_PORT);
+
     CHECK_WAKEUP;
   }
   NEXT_INSTRUCTION;
@@ -2065,6 +2067,7 @@ VMH(depart_or_retry_continue, 0, (), ())
     }
 
     Profile(FR->prof_node = profCall(DEF));
+    Coverage(FR, CALL_PORT);
 
 #ifdef O_LIMIT_DEPTH
     { size_t depth = levelFrame(FR);
@@ -2291,6 +2294,8 @@ VMI(I_EXIT, VIF_BREAK, 0, ())
 #endif /*O_DEBUGGER*/
   }
 
+  Coverage(FR, EXIT_PORT);
+
   if ( (void *)BFR <= (void *)FR )	/* deterministic */
   { leave = true(FR, FR_WATCHED) ? FR : NULL;
     FR->clause = NULL;			/* leaveDefinition() destroys clause */
@@ -2358,9 +2363,9 @@ VMI(I_EXITFACT, 0, 0, ())
       }
     }
 #endif /*O_DEBUGGER*/
-    VMH_GOTO(exit_checking_wakeup);
+    Coverage(FR, UNIFY_PORT);
   }
-  VMI_GOTO(I_EXIT);
+  VMH_GOTO(exit_checking_wakeup);
 }
 END_VMI
 
@@ -2374,8 +2379,27 @@ VMH(exit_checking_wakeup, 0, (), ())
     { PC = SUPERVISOR(exit);
       ATTVAR_WAKEUP;
     }
-  }
+  } else
 #endif
+  if ( LD->yield.frequency )
+  { uint64_t itrunc = LD->statistics.inferences&(~(uint64_t)0xf);
+
+    if ( itrunc % LD->yield.frequency == 0 &&
+	 LD->yield.fired != itrunc &&
+	 GD->procedures.heartbeat0->definition->impl.clauses.first_clause &&
+	 !exception_term )
+    { LD->yield.fired = itrunc;
+      PC = SUPERVISOR(exit);		/* See VMH(wakeup) */
+      NFR = lTop;
+      setNextFrameFlags(NFR, FR);
+      SAVE_REGISTERS(QID);
+      DEF = GD->procedures.heartbeat0->definition;
+      LOAD_REGISTERS(QID);
+      ARGP = argFrameP(NFR, 0);
+
+      VMH_GOTO(normal_call);
+    }
+  }
 
   VMI_GOTO(I_EXIT);
 }
@@ -2867,7 +2891,7 @@ VMI(C_FASTCOND, 0, 2, (CA1_CHP,CA1_JUMP))
 { size_t skip;
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
     VMI_GOTO(C_IFTHENELSE);
 #endif
 
@@ -3203,7 +3227,7 @@ when in debug-mode, so we can trace the call.
 VMI(I_FAIL, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
     DEF = lookupDefinition(FUNCTOR_fail0, MODULE_system);
@@ -3223,7 +3247,7 @@ I_TRUE: Translation of true/0.  See also I_FAIL.
 VMI(I_TRUE, VIF_BREAK, 0, ())
 {
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { NFR = lTop;
     setNextFrameFlags(NFR, FR);
     DEF = lookupDefinition(FUNCTOR_true0, MODULE_system);
@@ -3244,7 +3268,7 @@ VMI(I_VAR, VIF_BREAK, 1, (CA1_VAR))
 { Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { VMH_GOTO(debug_pred1, FUNCTOR_var1, p);
   }
 #endif
@@ -3279,7 +3303,7 @@ VMI(I_NONVAR, VIF_BREAK, 1, (CA1_VAR))
 { Word p = varFrameP(FR, (int)*PC++);
 
 #ifdef O_DEBUGGER
-  if ( unlikely(debugstatus.debugging) )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { VMH_GOTO(debug_pred1, FUNCTOR_nonvar1, p);
   }
 #endif
@@ -3304,7 +3328,7 @@ END_VMI
 #else
 #define TYPE_TEST(functor, test)		\
 	Word p = varFrameP(FR, (int)*PC++);	\
-	if ( unlikely(debugstatus.debugging) )	\
+	if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )	\
         { VMH_GOTO(debug_pred1, functor, p);	\
 	}					\
 	deRef(p);				\
@@ -3397,7 +3421,7 @@ VMI(S_VIRGIN, 0, 0, ())
 #endif
   }
 
-  if ( setSupervisor(DEF) )
+  if ( setDefaultSupervisor(DEF) )
   { PC = DEF->codes;
     NEXT_INSTRUCTION;
   } else				/* TBD: temporary */
@@ -4239,7 +4263,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
   deRef(np);
 
 #ifdef O_DEBUGGER
-  if ( debugstatus.debugging )
+  if ( unlikely(!truePrologFlag(PLFLAG_VMI_BUILTIN)) )
   { Word expr;
 
     ENSURE_GLOBAL_SPACE(4,
@@ -4582,7 +4606,8 @@ conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FCALLDETVA, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ typedef foreign_t (*va_func)(term_t av, int ac, control_t ctx);
+  va_func f = (va_func)*PC++;
   struct foreign_context context;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
@@ -4603,75 +4628,75 @@ a1, a2, ... calling conventions.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(I_FCALLDET0, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ Func0 f = (Func0)*PC++;
 
   PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)());
 }
 END_VMI
 
-#define FCALL_DETN(h0_args...) \
-  Func f = (Func)*PC++; \
+#define FCALL_DETN(ac, h0_args...) \
+  Func##ac f = (Func##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITDET, (*f)(h0_args));
 
 VMI(I_FCALLDET1, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0);
+{ FCALL_DETN(1, h0);
 }
 END_VMI
 
 
 VMI(I_FCALLDET2, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1);
+{ FCALL_DETN(2, h0, h0+1);
 }
 END_VMI
 
 
 VMI(I_FCALLDET3, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2);
+{ FCALL_DETN(3, h0, h0+1, h0+2);
 }
 END_VMI
 
 
 VMI(I_FCALLDET4, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3);
+{ FCALL_DETN(4, h0, h0+1, h0+2, h0+3);
 }
 END_VMI
 
 
 VMI(I_FCALLDET5, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4);
+{ FCALL_DETN(5, h0, h0+1, h0+2, h0+3, h0+4);
 }
 END_VMI
 
 
 VMI(I_FCALLDET6, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
+{ FCALL_DETN(6, h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
 END_VMI
 
 
 VMI(I_FCALLDET7, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
+{ FCALL_DETN(7, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
 END_VMI
 
 
 VMI(I_FCALLDET8, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
+{ FCALL_DETN(8, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
 END_VMI
 
 
 VMI(I_FCALLDET9, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
+{ FCALL_DETN(9, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
 END_VMI
 
 
 VMI(I_FCALLDET10, 0, 1, (CA1_FOREIGN))
-{ FCALL_DETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
+{ FCALL_DETN(10, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
 END_VMI
 
@@ -4761,7 +4786,8 @@ END_VMH
 
 
 VMI(I_FCALLNDETVA, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ typedef foreign_t (*ndet_func)(term_t h0, size_t arity, struct foreign_context*);
+  ndet_func f = (ndet_func)*PC++;
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;
 
   PROF_FOREIGN;
@@ -4771,76 +4797,76 @@ END_VMI
 
 
 VMI(I_FCALLNDET0, 0, 1, (CA1_FOREIGN))
-{ Func f = (Func)*PC++;
+{ NdetFunc0 f = (NdetFunc0)*PC++;
 
   PROF_FOREIGN;
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(&FNDET_CONTEXT));
 }
 END_VMI
 
-#define FCALL_NDETN(h0_args...) \
-  Func f = (Func)*PC++; \
+#define FCALL_NDETN(ac, h0_args...) \
+  NdetFunc##ac f = (NdetFunc##ac)*PC++; \
   term_t h0 = argFrameP(FR, 0) - (Word)lBase;\
   PROF_FOREIGN; \
   VMH_GOTO_AS_VMI(I_FEXITNDET, (*f)(h0_args, &FNDET_CONTEXT));
 
 
 VMI(I_FCALLNDET1, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0);
+{ FCALL_NDETN(1, h0);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET2, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1);
+{ FCALL_NDETN(2, h0, h0+1);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET3, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2);
+{ FCALL_NDETN(3, h0, h0+1, h0+2);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET4, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3);
+{ FCALL_NDETN(4, h0, h0+1, h0+2, h0+3);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET5, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4);
+{ FCALL_NDETN(5, h0, h0+1, h0+2, h0+3, h0+4);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET6, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5);
+{ FCALL_NDETN(6, h0, h0+1, h0+2, h0+3, h0+4, h0+5);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET7, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
+{ FCALL_NDETN(7, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET8, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
+{ FCALL_NDETN(8, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET9, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
+{ FCALL_NDETN(9, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8);
 }
 END_VMI
 
 
 VMI(I_FCALLNDET10, 0, 1, (CA1_FOREIGN))
-{ FCALL_NDETN(h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
+{ FCALL_NDETN(10, h0, h0+1, h0+2, h0+3, h0+4, h0+5, h0+6, h0+7, h0+8, h0+9);
 }
 END_VMI
 
@@ -4850,7 +4876,7 @@ VMI(I_FEXITNDET, 0, 0, ())
 }
 END_VMI
 
-VMH(I_FEXITNDET, 1, (intptr_t), (rc))
+VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 { FliFrame ffr;
 
   LOAD_REGISTERS(QID);
@@ -4893,7 +4919,13 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
       CL = (ClauseRef)rc;
 
       if ( (rc&YIELD_PTR) )
-      { fid_t fid = PL_open_foreign_frame();
+      { fid_t fid;
+
+	ffr = (FliFrame) valTermRef(FFR_ID);
+	fli_context = ffr->parent;
+	lTop = (LocalFrame)(BFR+1);
+	BFR = BFR->parent;
+	fid = PL_open_foreign_frame();
 
 	if ( !fid )
 	  THROW_EXCEPTION;
@@ -4907,6 +4939,10 @@ VMH(I_FEXITNDET, 1, (intptr_t), (rc))
 	QF->foreign_frame = fid;
 	QF->solutions = -1;
 	QF->yield.term = -1;
+#if !O_VMI_FUNCTIONS
+	assert(LD->exception.throw_environment == &THROW_ENV);
+	LD->exception.throw_environment = THROW_ENV.parent;
+#endif
 	SOLUTION_RETURN(PL_S_YIELD);
       } else
       { ffr = (FliFrame) valTermRef(FFR_ID);
@@ -4935,7 +4971,7 @@ VMI(I_FREDO, 0, 0, ())
   FNDET_CONTEXT.engine = LD;
   switch((word)FR->clause & FRG_REDO_MASK)
   { case REDO_INT:
-      FNDET_CONTEXT.context = (word)FR->clause >> FRG_REDO_BITS;
+      FNDET_CONTEXT.context = (word)(((intptr_t)FR->clause) >> FRG_REDO_BITS);
       FNDET_CONTEXT.control = FRG_REDO;
       break;
     case REDO_PTR:
@@ -4945,9 +4981,6 @@ VMI(I_FREDO, 0, 0, ())
     case YIELD_PTR:
       FNDET_CONTEXT.context = (word)FR->clause & ~FRG_REDO_MASK;
       FNDET_CONTEXT.control = FRG_RESUME;
-      PC -= 4;
-      SAVE_REGISTERS(QID);
-      NEXT_INSTRUCTION;
       break;
     default:
       assert(0);

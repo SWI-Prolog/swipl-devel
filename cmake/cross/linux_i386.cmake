@@ -14,7 +14,7 @@
 #	libdb-dev:i386 libedit-dev:i386 libgmp-dev:i386 \
 #	libice-dev:i386 libjpeg-dev:i386 libjpeg8-dev:i386 \
 #	libncurses5-dev:i386 libossp-uuid-dev:i386 \
-#	libpcre3-dev:i386 libssl1.0-dev:i386 \
+#	libpcre2-dev:i386 libssl1.0-dev:i386 \
 #	libstdc++-7-dev:i386 libxext-dev:i386 libxft-dev:i386 \
 #	libxinerama-dev:i386 libxpm-dev:i386 libxt-dev:i386 \
 #	libyaml-dev:i386 zlib1g-dev:i386

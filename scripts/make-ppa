@@ -8,7 +8,7 @@
 PL_VERSION=`cat VERSION`
 VTAG=HEAD
 TARGET_DISTRO=none
-distros="bionic focal"
+distros="bionic focal jammy"
 build=true
 buildbin=false
 push=false

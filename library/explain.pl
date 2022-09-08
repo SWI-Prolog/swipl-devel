@@ -375,6 +375,7 @@ xpce_method_id(Ref, Id) :-
 hide_reference(pce_xref:exported(_,_)).
 hide_reference(pce_xref:defined(_,_,_)).
 hide_reference(pce_xref:called(_,_,_)).
+hide_reference(prolog_xref:called(_,_,_,_,_)).
 hide_reference(prolog_xref:pred_mode(_,_,_)).
 hide_reference(prolog_xref:exported(_,_)).
 hide_reference(prolog_xref:dynamic(_,_,_)).

@@ -715,7 +715,6 @@ unallocClauseIndexTableEntries(ClauseIndex ci)
     }
   }
 
-  ATOMIC_INC(&GD->statistics.indexes.destroyed);
   freeHeap(ci->entries, ci->buckets * sizeof(struct clause_bucket));
 }
 
@@ -724,6 +723,7 @@ void
 unallocClauseIndexTable(ClauseIndex ci)
 { unallocClauseIndexTableEntries(ci);
   freeHeap(ci, sizeof(struct clause_index));
+  ATOMIC_INC(&GD->statistics.indexes.destroyed);
 }
 
 
@@ -1466,6 +1466,12 @@ deleteIndexes(ClauseList clist, int isnew)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Only called from destroyDefinition(), which is only called when removing
+a temporary module or during  final  cleanup.   So,  there  are  no more
+references.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 void
 deleteIndexesDefinition(Definition def)
 { ClauseList clist = &def->impl.clauses;
@@ -1482,6 +1488,9 @@ deleteIndexesDefinition(Definition def)
 
       deleteIndexP(def, clist, cip);
     }
+
+    freeHeap(cip0, 0);
+    clist->clause_indexes = NULL;
   }
 }
 
@@ -1870,7 +1879,6 @@ insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
   if ( (ocip=clist->clause_indexes) )
   { ClauseIndex *cip = ocip;
     ClauseIndex *ncip;
-    int dead = 0;
 
     for(; *cip; cip++)
     { if ( ISDEADCI(*cip) )
@@ -1878,7 +1886,6 @@ insertIndex(Definition def, ClauseList clist, ClauseIndex ci)
 	if ( isSortedIndexes(ocip) )
 	  return;
 	*cip = DEAD_INDEX;
-	dead++;
       }
     }
 
@@ -2421,7 +2428,6 @@ assess_scan_clauses(ClauseList clist, size_t arity,
   ClauseRef cref;
   int i;
   bit_vector *ai = alloca(sizeof_bitvector(arity));
-  int ac = 0;
   int kp[MAXINDEXARG+1];			/* key-arg positions */
   int nk = 0;					/* number of key args */
   int *kpp;
@@ -2435,7 +2441,6 @@ assess_scan_clauses(ClauseList clist, size_t arity,
     for(j=0; a->args[j]; j++)
     { if ( !true_bit(ai, a->args[j]-1) )
       { set_bit(ai, a->args[j]-1);
-	ac++;
       }
     }
   }

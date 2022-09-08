@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2007-2016, University of Amsterdam
+    Copyright (c)  2007-2022, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -233,6 +234,8 @@ test(iso2, error(type_error(list, [a|1]))) :-
 
 test(neg, C = '\235\') :-		% test signed char handling
 	sub_atom('Azi\235\', _, 1, 0, C).
+test(nondet, X == 3) :-			% det when matching at last position
+	sub_atom('cadabra', X, 4, _, 'abra').
 
 :- end_tests(sub_atom).
 

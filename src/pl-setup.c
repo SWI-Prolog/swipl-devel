@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2020, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -47,6 +48,7 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-event.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
 #include "pl-modul.h"
@@ -61,6 +63,7 @@
 #include "pl-proc.h"
 #include "pl-pro.h"
 #include "pl-gvar.h"
+#include "pl-coverage.h"
 #include <sys/stat.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
@@ -82,9 +85,16 @@ access.   Finally  it holds the code to handle signals transparently for
 foreign language code or packages with which Prolog was linked together.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#if USE_LD_MACROS
+#define allocStacks(_)		LDFUNC(allocStacks, _)
+#define initSignals(_)		LDFUNC(initSignals, _)
+#endif
+
+#define LDFUNC_DECLARATIONS
 static int allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
+#undef LDFUNC_DECLARATIONS
 
 int
 setupProlog(void)
@@ -97,11 +107,10 @@ setupProlog(void)
 
   LD->critical = 0;
   LD->magic = LD_MAGIC;
-  LD->signal.pending[0] = 0;
-  LD->signal.pending[1] = 0;
+  for (int i = 0; i < SIGMASK_WORDS; i++)
+    LD->signal.pending[i] = 0;
   LD->statistics.start_time = WallTime();
 
-  startCritical;
   DEBUG(1, Sdprintf("wam_table ...\n"));
   initWamTable();
   DEBUG(1, Sdprintf("character types ...\n"));
@@ -165,9 +174,6 @@ setupProlog(void)
   GD->clauses.cgc_stack_factor  = 0.03;
   GD->clauses.cgc_clause_factor = 1.0;
 
-  if ( !endCritical )
-    return FALSE;
-
   DEBUG(1, Sdprintf("Heap Initialised\n"));
   return TRUE;
 }
@@ -189,6 +195,11 @@ initPrologLocalData(DECL_LD)
 #ifdef O_PLMT
   simpleMutexInit(&LD->thread.scan_lock);
   LD->transaction.gen_base = GEN_INFINITE;
+#endif
+
+#if STDC_CV_ALERT
+  cnd_init(&LD->signal.alert_cv);
+  mtx_init(&LD->signal.alert_mtx, mtx_plain);
 #endif
 
   updateAlerted(LD);
@@ -222,7 +233,11 @@ they  define  signal handlers to be int functions.  This should be fixed
 some day.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define PLSIG_USERFLAGS 0x0000ffff	/* range of API-visible flags */
+#define PLSIG_STATEFLAGS 0xffff0000	/* range of internal flags */
+
 #define PLSIG_PREPARED 0x00010000	/* signal is prepared */
+#define PLSIG_IGNORED  0x00020000	/* signal is ignored */
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Define the signals and  their  properties.   This  could  be  nicer, but
@@ -236,7 +251,7 @@ static struct signame
   int	      flags;
 } signames[] =
 {
-#ifdef HAVE_SIGNAL
+#ifdef HAVE_OS_SIGNALS
 #ifdef SIGHUP
   { SIGHUP,	"hup",    0},
 #endif
@@ -252,7 +267,7 @@ static struct signame
 #endif
   { SIGSEGV,	"segv",   0},
 #ifdef SIGPIPE
-  { SIGPIPE,	"pipe",   0},
+  { SIGPIPE,	"pipe",   PLSIG_IGNORE},
 #endif
 #ifdef SIGALRM
   { SIGALRM,	"alrm",   PLSIG_THROW},
@@ -315,7 +330,7 @@ static struct signame
 #ifdef SIGPWR
   { SIGPWR,	"pwr",    0},
 #endif
-#endif /*HAVE_SIGNAL*/
+#endif /*HAVE_OS_SIGNALS*/
 
 /* The signals below here are recorded as Prolog interrupts, but
    not supported by OS signals.  They start at offset 32.
@@ -451,7 +466,7 @@ is_fatal_signal(int sig)
 void
 dispatch_signal(int sig, int sync)
 { GET_LD
-  SigHandler sh = &GD->signals.handlers[sig-1];
+  SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   fid_t fid;
   term_t lTopSave;
   int saved_current_signal;
@@ -494,13 +509,13 @@ dispatch_signal(int sig, int sync)
   if ( is_fatal_signal(sig) && sig == LD->signal.current )
     sysError("Recursively received fatal signal %d", sig);
 
-  if ( gc_status.active && sig < SIG_PROLOG_OFFSET )
+  if ( gc_status.active && !IS_VSIG(sig) )
   { fatalError("Received signal %d (%s) while in %ld-th garbage collection",
 	       sig, signal_name(sig), LD->gc.stats.totals.collections);
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
-#ifdef HAVE_SIGNAL
+#if O_SIGNALS
        && sig != SIGINT
 #endif
        && !is_fatal_signal(sig)	)
@@ -567,8 +582,8 @@ dispatch_signal(int sig, int sync)
 #endif
 
     DEBUG(MSG_SIGNAL,
-	  Sdprintf("Handler %p finished (pending=0x%x,0x%x)\n",
-		   sh->handler, LD->signal.pending[0], LD->signal.pending[1]));
+	  Sdprintf("Handler %p finished (pending=0x%"PRIxFAST32",0x%"PRIxFAST32")\n",
+		   sh->handler, LD->signal.pending[0], SIGMASK_WORDS > 1 ? LD->signal.pending[1] : 0));
 
     if ( !ex_pending && exception_term && !sync )	/* handler: PL_raise_exception() */
       fatalError("Async exception handler for signal %s (%d) raised "
@@ -643,13 +658,23 @@ set_sighandler(int sig, handler_t func)
 }
 
 static SigHandler
-prepareSignal(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+prepareSignal(int sig, int plsig_flags)
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
+  int current_state = sh->flags & PLSIG_STATEFLAGS;
+  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED : PLSIG_PREPARED;
 
-  if ( false(sh, PLSIG_PREPARED) )
-  { set(sh, PLSIG_PREPARED);
-    if ( sig < SIG_PROLOG_OFFSET )
-      sh->saved_handler = set_sighandler(sig, pl_signal_handler);
+  plsig_flags &= ~(PLSIG_STATEFLAGS | PLSIG_IGNORE);
+
+  if ( current_state != desired_state )
+  { clearFlags(sh);
+    set(sh, desired_state | plsig_flags);
+    if ( !IS_VSIG(sig) )
+    { handler_t old_handler = set_sighandler(sig, desired_state == PLSIG_IGNORED ? SIG_IGN : pl_signal_handler);
+      if ( current_state == 0 )
+        sh->saved_handler = old_handler;
+    }
+  } else
+  { sh->flags = (sh->flags & ~PLSIG_USERFLAGS) | plsig_flags;
   }
 
   return sh;
@@ -658,10 +683,10 @@ prepareSignal(int sig)
 
 static void
 unprepareSignal(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
 
-  if ( true(sh, PLSIG_PREPARED) )
-  { if ( sig < SIG_PROLOG_OFFSET )
+  if ( true(sh, PLSIG_STATEFLAGS) )
+  { if ( !IS_VSIG(sig) )
       set_sighandler(sig, sh->saved_handler);
     sh->flags         = 0;
     sh->handler       = NULL;
@@ -670,6 +695,8 @@ unprepareSignal(int sig)
   }
 }
 
+
+#if O_SIGNALS
 
 #ifdef SIGHUP
 static void
@@ -681,7 +708,6 @@ hupHandler(int sig)
 #endif
 
 
-#ifdef HAVE_SIGNAL
 /* terminate_handler() is called on termination signals like SIGTERM.
    It runs hooks registered using PL_exit_hook() and then kills itself.
    The hooks are called with the exit status `3`.
@@ -734,7 +760,7 @@ initTerminationSignals(void)
   terminate_on_signal(SIGQUIT);
 #endif
 }
-#endif /*HAVE_SIGNAL*/
+#endif /*O_SIGNALS*/
 
 #ifdef O_C_STACK_GUARDED
 static void
@@ -838,7 +864,9 @@ with EINTR and thus make them interruptable for thread-signals.
 #ifdef SIG_ALERT
 static void
 alert_handler(int sig)
-{ SigHandler sh = &GD->signals.handlers[sig-1];
+{ SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
+
+  DEBUG(MSG_THREAD_SIGNAL, Sdprintf("[%d]: received alert\n", PL_thread_self()));
 
   if ( sh->saved_handler &&
        sh->saved_handler != SIG_IGN &&
@@ -849,19 +877,16 @@ alert_handler(int sig)
 
 
 static void
-initSignals(void)
-{ GET_LD
-
+initSignals(DECL_LD)
+{
+#if O_SIGNALS
   /* This is general signal handling that is not strictly needed */
   if ( truePrologFlag(PLFLAG_SIGNALS) )
   { struct signame *sn = signames;
-#ifdef HAVE_SIGNAL
-#ifdef SIGPIPE
-    set_sighandler(SIGPIPE, SIG_IGN);
-#endif
+#ifdef HAVE_OS_SIGNALS
     initTerminationSignals();
     initGuardCStack();
-#endif /*HAVE_SIGNAL*/
+#endif /*HAVE_OS_SIGNALS*/
     initBackTrace();
     for( ; sn->name; sn++)
     {
@@ -871,9 +896,7 @@ initSignals(void)
 	sn->flags = 0;
 #endif
       if ( sn->flags )
-      { SigHandler sh = prepareSignal(sn->sig);
-	sh->flags |= sn->flags;
-      }
+        prepareSignal(sn->sig, sn->flags);
     }
 
 #ifdef SIGHUP
@@ -888,6 +911,7 @@ initSignals(void)
   if ( GD->signals.sig_alert )
     PL_signal(GD->signals.sig_alert|PL_SIGNOFRAME, alert_handler);
 #endif
+#endif /*O_SIGNALS*/
 
   /* these signals are not related to Unix signals and can thus */
   /* be enabled always */
@@ -919,8 +943,8 @@ resetSignals(void)
 { GET_LD
 
   LD->signal.current = 0;
-  LD->signal.pending[0] = 0;
-  LD->signal.pending[1] = 0;
+  for (int i = 0; i < SIGMASK_WORDS; i++)
+    LD->signal.pending[i] = 0;
 }
 
 #if defined(O_PLMT) && defined(HAVE_PTHREAD_SIGMASK)
@@ -931,7 +955,7 @@ resetSignals(void)
 #define sigprocmask(how, new, old) pthread_sigmask(how, new, old)
 #endif
 
-#ifdef HAVE_SIGPROCMASK
+#if O_SIGNALS && defined(HAVE_SIGPROCMASK)
 
 void
 allSignalMask(sigset_t *set)
@@ -1030,7 +1054,7 @@ blockSignal(int sig)
   DEBUG(1, Sdprintf("signal %d\n", sig));
 }
 
-#else /*HAVE_SIGPROCMASK*/
+#else /*O_SIGNALS && defined(HAVE_SIGPROCMASK)*/
 
 void blockSignals(sigset_t *old) {}
 void unblockSignals(sigset_t *old) {}
@@ -1050,14 +1074,14 @@ int
 PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
 { SigHandler sh = NULL;
 
-  if ( sig < 0 || sig > MAXSIGNAL )
+  if ( sig && !IS_VALID_SIGNAL(sig) )
   { errno = EINVAL;
     return -1;
   }
 
   if ( sig == 0 )
-  { for(sig=SIG_PROLOG_OFFSET; sig<MAXSIGNAL; sig++)
-    { sh = &GD->signals.handlers[sig-1];
+  { for(sig=SIG_USER_OFFSET; sig<=MAXSIGNAL; sig++)
+    { sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
       if ( sh->flags == 0 )
 	break;
     }
@@ -1066,7 +1090,7 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
       return -2;
     }
   } else
-  { sh = &GD->signals.handlers[sig-1];
+  { sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   }
 
   if ( old )
@@ -1094,9 +1118,8 @@ PL_sigaction(int sig, pl_sigaction_t *act, pl_sigaction_t *old)
     if ( active )
     { sh->handler   = act->sa_cfunction;
       sh->predicate = act->sa_predicate;
-      sh->flags     = (sh->flags&~0xffff)|act->sa_flags;
-      if ( false(sh, PLSIG_PREPARED) )
-	prepareSignal(sig);
+      sh->flags     = (sh->flags&~PLSIG_USERFLAGS)|act->sa_flags;
+      prepareSignal(sig, act->sa_flags);
     } else
     { unprepareSignal(sig);
       sh->handler   = NULL;
@@ -1123,7 +1146,7 @@ PL_signal(int sigandflags, handler_t func)
   if ( (sigandflags&PL_SIGNOFRAME) )
     act.sa_flags |= PLSIG_NOFRAME;
 
-  if ( PL_sigaction((sigandflags & 0xffff), &act, &old) >= 0 )
+  if ( PL_sigaction((sigandflags & PLSIG_USERFLAGS), &act, &old) >= 0 )
   { if ( (old.sa_flags&PLSIG_PREPARED) && old.sa_cfunction )
       return old.sa_cfunction;
 
@@ -1151,10 +1174,8 @@ PL_handle_signals(void)
 #define handleSigInt(_) LDFUNC(handleSigInt, _)
 static int
 handleSigInt(DECL_LD)
-{ int intmask = 1<<(SIGINT-1);
-
-  if ( LD->signal.forced == SIGINT && LD->signal.pending[0] & intmask )
-  { ATOMIC_AND(&LD->signal.pending[0], ~intmask);
+{ if ( LD->signal.forced == SIGINT && WSIGMASK_ISSET(LD->signal.pending, SIGINT) )
+  { WSIGMASK_CLEAR(LD->signal.pending, SIGINT);
 
     LD->signal.forced = 0;
     dispatch_signal(SIGINT, TRUE);
@@ -1186,12 +1207,16 @@ handleSignals(DECL_LD)
     return done;
 #endif
   if ( LD->critical )
+  { DEBUG(MSG_THREAD_SIGNAL,
+	  Sdprintf("[%d]: ignoring signal (critical = %d)\n",
+		   PL_thread_self(), LD->critical));
     return 0;
+  }
 
-  for(i=0; i<2; i++)
+  for(i=0; i<SIGMASK_WORDS; i++)
   { while( LD->signal.pending[i] )
-    { int sig = 1+32*i;
-      unsigned mask = 1;
+    { int sig = MINSIGNAL+SIGMASK_WIDTH*i;
+      sigmask_t mask = 1;
 
       for( ; mask ; mask <<= 1, sig++ )
       { if ( LD->signal.pending[i] & mask )
@@ -1253,20 +1278,28 @@ PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
 #endif
 
 
+void
+startCritical(DECL_LD)
+{ LD->critical++;
+}
+
+
 int
-f_endCritical(DECL_LD)
-{ if ( exception_term )
+endCritical(DECL_LD)
+{ if ( --LD->critical == 0 && LD->alerted && exception_term )
     return FALSE;
 
   return TRUE;
 }
 
 
-#ifdef HAVE_SIGNAL
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 on_signal(?SigNum, ?SigName, :OldHandler, :NewHandler)
 
 Assign NewHandler to be called if signal arrives.
+
+We always support this even when compiled without OS-level signal support,
+because of internal virtual signal handling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -1316,7 +1349,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
        !get_meta_arg(new, mnew, new) )
     return FALSE;
 
-  if ( PL_get_integer(sig, &sign) && sign >= 1 && sign <= MAXSIGNAL )
+  if ( PL_get_integer(sig, &sign) && IS_VALID_SIGNAL(sign) )
   { TRY(PL_unify_atom_chars(name, signal_name(sign)));
   } else if ( PL_get_atom_chars(name, &sn) )
   { if ( (sign = signal_index(sn)) != -1 )
@@ -1326,10 +1359,12 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   } else
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_signal, sig);
 
-  sh = &GD->signals.handlers[sign-1];
+  sh = &GD->signals.handlers[SIGNAL_INDEX(sign)];
 
-  if ( false(sh, PLSIG_PREPARED) )		/* not handled */
+  if ( false(sh, PLSIG_STATEFLAGS) )		/* not handled */
   { TRY(PL_unify_atom(old, ATOM_default));
+  } else if ( true(sh, PLSIG_IGNORED) )		/* signal ignored */
+  { TRY(PL_unify_atom(old, ATOM_ignore));
   } else if ( true(sh, PLSIG_THROW) )		/* throw exception */
   { TRY(PL_unify_atom(old, ATOM_throw));
   } else if ( sh->predicate )			/* call predicate */
@@ -1361,15 +1396,15 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
   if ( PL_get_atom(new, &a) )
   { if ( a == ATOM_default )
     { unprepareSignal(sign);
+    } else if ( a == ATOM_ignore )
+    { prepareSignal(sign, PLSIG_IGNORE);	/* request to ignore this signal */
     } else if ( a == ATOM_throw )
-    { sh = prepareSignal(sign);
-      set(sh, PLSIG_THROW|PLSIG_SYNC);
+    { sh = prepareSignal(sign, PLSIG_THROW|PLSIG_SYNC);
       sh->handler   = NULL;
       sh->predicate = NULL;
     } else if ( a == ATOM_debug )
-    { sh = prepareSignal(sign);
+    { sh = prepareSignal(sign, 0);
 
-      clear(sh, PLSIG_THROW|PLSIG_SYNC);
       sh->handler = (handler_t)PL_interrupt;
       sh->predicate = NULL;
 
@@ -1381,9 +1416,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 	return FALSE;
       pred = lookupProcedure(PL_new_functor(a, 1), m);
 
-      sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW);
-      set(sh, PLSIG_SYNC);
+      sh = prepareSignal(sign, PLSIG_SYNC);
       sh->handler = NULL;
       sh->predicate = pred;
     }
@@ -1394,8 +1427,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     _PL_get_arg(1, new, a);
 
     if ( PL_get_pointer(a, &f) )
-    { sh = prepareSignal(sign);
-      clear(sh, PLSIG_THROW|PLSIG_SYNC);
+    { sh = prepareSignal(sign, 0);
       sh->handler = (handler_t)f;
       sh->predicate = NULL;
 
@@ -1408,8 +1440,6 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
 
   succeed;
 }
-
-#endif /*HAVE_SIGNAL*/
 
 
 		 /*******************************
@@ -1538,9 +1568,8 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 
 
 static int
-allocStacks(void)
-{ GET_LD
-  size_t minglobal = 8*SIZEOF_VOIDP K;
+allocStacks(DECL_LD)
+{ size_t minglobal = 8*SIZEOF_VOIDP K;
   size_t minlocal  = 4*SIZEOF_VOIDP K;
   size_t mintrail  = 4*SIZEOF_VOIDP K;
   size_t minarg    = 1*SIZEOF_VOIDP K;
@@ -1733,21 +1762,65 @@ freePrologLocalData(PL_local_data_t *ld)
     destroyHTable(ld->prolog_flag.table);
     PL_UNLOCK(L_PLFLAG);
   }
+  free_predicate_references(ld);
+  destroy_event_list(&ld->event.hook.onthreadexit);
+  free_thread_wait(ld);
+#endif
+
+#ifdef O_LOCALE
+  if ( ld->locale.current )
+    releaseLocale(ld->locale.current);
 #endif
 
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
-  if ( ld->tabling.node_pool )
-    free_alloc_pool(ld->tabling.node_pool);
 
   clearThreadTablingData(ld);
+  if ( ld->tabling.node_pool )
+    free_alloc_pool(ld->tabling.node_pool);
 
 #ifdef O_C_STACK_GUARDED
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif
+
+#ifdef O_COVERAGE
+  free_coverage_data(ld);
+#endif
+
+  free_undo_data(ld);
+
+  if ( ld->btrace_store )
+  { btrace_destroy(ld->btrace_store);
+    ld->btrace_store = NULL;
+  }
+
+  cleanAbortHooks(ld);
+  unreferenceStandardStreams(ld);
 }
 
+/* The following definitions aren't necessary for compiling, and in fact
+ * you could comment this whole section out without breaking the code.
+ * However, they don't take up much space in the binary and they assist
+ * in C-level debugging, so I'm leaving them in regardless of O_DEBUG. */
+
+const intptr_t __PL_ld = -1;
+const intptr_t PL__ctx = -1;
+
+inline PL_local_data_t*
+(__FIND_LD)(PL_local_data_t *pl_ld, control_t pl_ctx, PL_local_data_t *fallback)
+{ if ((intptr_t)pl_ld != -1)
+  { return pl_ld; }
+  if ((intptr_t)pl_ctx != -1)
+  { return pl_ctx->engine; }
+  return fallback;
+}
+
+#ifndef no_local_ld
+PL_local_data_t*
+no_local_ld(void)
+{ return NULL; }
+#endif
 
 
 		 /*******************************
@@ -1868,10 +1941,8 @@ PRED_IMPL("$set_prolog_stack", 4, set_prolog_stack, 0)
 BeginPredDefs(setup)
   PRED_DEF("$set_prolog_stack",	  4, set_prolog_stack,	  0)
   PRED_DEF("trim_stacks",	  0, trim_stacks,	  0)
-#ifdef HAVE_SIGNAL
   PRED_DEF("$on_signal",	  4, on_signal,		  0)
 #ifdef SIG_ALERT
   PRED_DEF("prolog_alert_signal", 2, prolog_alert_signal, 0)
-#endif
 #endif
 EndPredDefs

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2019, University of Amsterdam
+    Copyright (c)  1985-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -101,7 +101,6 @@ restore_after_exception(term_t except)
 
   tracemode(FALSE, NULL);
   debugmode(DBG_OFF, NULL);
-  setPrologFlagMask(PLFLAG_LASTCALL);
   if ( PL_get_atom(except, &a) && a == ATOM_aborted )
   { rc = ( callEventHook(PLEV_ABORT) &&
 	   printMessage(ATOM_informational, PL_ATOM, ATOM_aborted) );
@@ -304,9 +303,9 @@ PRED_IMPL("sig_atomic", 1, sig_atomic, PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
 { PRED_LD
   int rval;
 
-  startCritical;
+  startCritical();
   rval = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
-  if ( !endCritical )
+  if ( !endCritical() )
     fail;				/* aborted */
 
   return rval;
@@ -335,6 +334,17 @@ PRED_IMPL("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
 }
 
 
+/** '$can_yield' is semidet.
+ *
+ * True if the current query can use _foreign yielding_
+ */
+
+static
+PRED_IMPL("$can_yield", 0, can_yield, 0)
+{ PRED_LD
+
+  return !!true(LD->query, PL_Q_ALLOW_YIELD);
+}
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Call a prolog goal from C. The argument must  be  an  instantiated  term
@@ -359,7 +369,8 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     *ex = 0;
   }
 
-  if ( !(g=PL_new_term_ref()) )
+  if ( !require_c_stack(C_STACK_MIN) ||
+       !(g=PL_new_term_ref()) )
   { error:
     if ( ex )
       *ex = exception_term;
@@ -876,4 +887,5 @@ BeginPredDefs(pro)
   PRED_DEF("sig_atomic",     1, sig_atomic,    PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
   PRED_DEF("$trap_gdb",      0, trap_gdb,      0)
   PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)
+  PRED_DEF("$can_yield",     0, can_yield,     0)
 EndPredDefs

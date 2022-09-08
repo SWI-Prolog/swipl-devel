@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2017, University of Amsterdam
+    Copyright (c)  2011-2022, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -38,6 +39,9 @@
 #include "pl-cstack.h"
 #include "../pl-setup.h"
 #include <time.h>
+#ifdef HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
+#endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The task of the library is to save   the  <N> most recent C stack traces
@@ -763,11 +767,11 @@ print_trace(btrace *bt, int me)
       {
 #ifdef HAVE_LIBDWARF
         IMAGEHLP_MODULE64 moduleInfo;
-        char dwarf_srclinebuf[MAX_PATH];
+        char dwarf_srclinebuf[PATH_MAX];
         char *dwarf_srcline = dwarf_srclinebuf;
 
         memset(&moduleInfo,0,sizeof(IMAGEHLP_MODULE64));
-        memset(dwarf_srcline, 0, MAX_PATH);
+        memset(dwarf_srcline, 0, PATH_MAX);
         moduleInfo.SizeOfStruct = sizeof(IMAGEHLP_MODULE64);
         if ( SymGetModuleInfo64(hProcess, s->frame[depth].offset, &moduleInfo) &&
              dwarf_addr2line(&moduleInfo, s->frame[depth].offset, &dwarf_srcline) )
@@ -1016,7 +1020,7 @@ initBackTrace(void)
 {
 }
 
-#ifdef HAVE_SIGNAL
+#if O_SIGNALS && defined(HAVE_SIGNAL)
 void
 sigCrashHandler(int sig)
 { int tid;
@@ -1052,6 +1056,75 @@ sigCrashHandler(int sig)
 { fatalError("Something went wrong");
 }
 
-#endif /*HAVE_SIGNAL*/
+#endif /*O_SIGNALS && HAVE_SIGNAL*/
 
 #endif /*BTRACE_DONE*/
+
+
+		 /*******************************
+		 *   STACK LOCATION AND SIZE	*
+		 *******************************/
+
+#if defined(HAVE_GETRLIMIT) && defined(O_PLMT)
+static size_t
+round_pages(size_t n)
+{ size_t psize;
+
+#if defined(HAVE_SYSCONF) && defined(_SC_PAGESIZE)
+  if ( (psize = sysconf(_SC_PAGESIZE)) == (size_t)-1 )
+    psize = 8192;
+#else
+  psize = 8192;
+#endif
+
+  return ROUND(n, psize);
+}
+#endif
+
+size_t
+CStackSize(DECL_LD)
+{
+#ifdef O_PLMT
+  PL_thread_info_t *info = LD->thread.info;
+
+  if ( info->c_stack_size )
+    return info->c_stack_size;
+
+  if ( info->pl_tid != 1 )
+  { DEBUG(1, Sdprintf("Thread-stack: %ld\n", LD->thread.info->c_stack_size));
+
+#ifdef HAVE_PTHREAD_GETATTR_NP
+    pthread_attr_t attr;
+
+    if ( pthread_getattr_np(info->tid, &attr) == 0 )
+    { pthread_attr_getstack(&attr, &info->c_stack_base, &info->c_stack_size);
+      pthread_attr_destroy(&attr);
+    } else
+    { info->c_stack_size = (size_t)-1;
+    }
+#endif
+
+    return info->c_stack_size;
+  }
+
+#ifdef HAVE_GETRLIMIT
+  struct rlimit rlim;
+
+  if ( getrlimit(RLIMIT_STACK, &rlim) == 0 &&
+       rlim.rlim_cur != RLIM_INFINITY && rlim.rlim_cur )
+  { size_t top = round_pages((size_t)&info);
+
+    DEBUG(1, Sdprintf("Stack: %ld\n", rlim.rlim_cur));
+    info->c_stack_size = rlim.rlim_cur;
+
+    info->c_stack_base = (void*)(top - info->c_stack_size);
+  } else
+  { info->c_stack_size = (size_t)-1;
+  }
+#endif
+
+  return info->c_stack_size;
+#else
+  return (size_t)-1;
+#endif
+}

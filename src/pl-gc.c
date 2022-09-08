@@ -52,6 +52,7 @@
 #include "pl-setup.h"
 #include "pl-bag.h"
 #include "pl-wam.h"
+#include "pl-write.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module is based on
@@ -1120,6 +1121,7 @@ gvars_to_term_refs(Word **saved_bar_at)
     DEBUG(MSG_GC_MARK_GVAR,
 	  Sdprintf("Found %d global vars on global stack. "
 		   "stored in frame %p\n", found, fli_context));
+    (void)found;
   }
 
   if ( LD->frozen_bar )
@@ -1166,6 +1168,7 @@ term_refs_to_gvars(fid_t fid, Word *saved_bar_at)
       }
     }
     assert(found == fr->size);
+    (void)found;
 
     freeTableEnum(e);
   }
@@ -1246,6 +1249,7 @@ term_refs_to_argument_stack(vm_state *state, fid_t fid)
     }
     assert(fp == (Word)(fr+1) + fr->size);
     assert(uwc == state->uwrite_count);
+    (void)uwc;
 
     DEBUG(CHK_SECURE,
 	  { if ( onStackArea(local, LD->query->registers.argp) )
@@ -1480,7 +1484,10 @@ mergeTrailedAssignments(DECL_LD GCTrailEntry top, GCTrailEntry mark,
     { assignments--;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
-	      Sdprintf("Delete duplicate trailed assignment at %p\n", p));
+	      { char vname[32];
+		Sdprintf("Delete duplicate trailed assignment at %s\n",
+			 var_name_ptr(p, vname));
+	      });
 	te->address = 0;
 	te[1].address = 0;
 	trailcells_deleted += 2;
@@ -1531,7 +1538,14 @@ protected against GC so we  can  report   them.  There  is  also a false
 possitive scenario though. If the attvar is  subject to _early reset_ it
 becomes an unbound attvar again  and  is   reported.  If  we  are inside
 call_residue_vars/2 we reset the location  to ATOM_garbage_collected and
-keep the trail entry.  See test `call_residue_vars:early_reset`:
+keep the trail entry. See test `call_residue_vars:early_reset`:
+
+(**) This case deals  with  a   registered  attributed  variable  (under
+call_residue_vars/2) that is marked. If we  remove this trail entry, the
+attvar is not reset to a normal var.   Normally  that is not an issue as
+the global stack is truncated to before   the mark (gKeep), but this may
+not be the case if a later stack  freeze   is  in  effect at the time of
+backtracking.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define early_reset_vars(m, top, te) \
@@ -1609,13 +1623,26 @@ early_reset_vars(DECL_LD mark *m, Word top, GCTrailEntry te)
 	te->address = 0;
 	trailcells_deleted++;
       } else if ( tard > gKeep && tard < gMax )
-      { te->address = 0;
+      { if ( LD->attvar.attvars &&	/* see (**) */
+	     is_marked(tard) && isRef(*tard) &&
+	     te-1 >= tm )
+	{ Word tard2 = val_ptr(te[-1].address);
+
+	  if ( is_marked(tard2) && isAttVar(*tard2) )
+	  { te--;
+	    DEBUG(MSG_GC_RESET,
+		  Sdprintf("Keep trail for attvar _%lld\n",
+			   (int64_t)(tard2-gBase)*2));
+	    continue;
+	  }
+	}
+	te->address = 0;
 	trailcells_deleted++;
       } else if ( !is_marked(tard) )
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n",
-		       print_addr(tard, b1), print_val(*tard, b2)));
+		       var_name_ptr(tard, b1), print_val(*tard, b2)));
 	setVar(*tard);
 	te->address = 0;
 	trailcells_deleted++;
