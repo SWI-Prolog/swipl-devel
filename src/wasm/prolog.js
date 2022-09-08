@@ -39,6 +39,89 @@ Notes:
     so we use __ as prefix instead.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+const class_var = (class PrologVar {
+  constructor(id)
+  { this.$t = "v";
+    if ( id !== undefined )
+      this.v = id;
+  }
+});
+
+const class_string = (class PrologString {
+  constructor(string)
+  { this.$t = "s";
+    this.v  = string;
+  }
+
+  toString()
+  { return this.v;
+  }
+
+  toJSON()
+  { return this.v;
+  }
+});
+
+const class_rational = (class PrologRational {
+  constructor(d, n)
+  { this.$t = "r";
+    this.d = d;
+    this.n = n;
+  }
+
+  toNumber()
+  { return Number(this.d)/Number(this.n);
+  }
+
+  toString()
+  { return this.d + "r" + this.n;
+  }
+
+  toJSON()
+  { return this.toString();
+  }
+});
+
+const class_compound = (class PrologCompound {
+  constructor(name, args)
+  { this.$t = "t";
+    this.functor = name;
+    this[name] = args;
+  }
+
+  arguments()
+  { return this[this.functor];
+  }
+
+  arg(n)
+  { return this.arguments[n];
+  }
+
+  arity()
+  { return this.arguments.length;
+  }
+
+  toJSON()
+  { const obj = {$t:"t"}
+    obj[this.name] = this.arguments();
+    return obj;
+  }
+});
+
+const class_list = (class PrologList {
+  constructor(array, tail)
+  { this.$t = "l";
+    this.v = array;
+    if ( tail !== undefined )
+      this.t = tail;
+  }
+});
+
+const class_blob = (class PrologBlob {
+  constructor()
+  { this.$t = "b";
+  }
+});
 
 		 /*******************************
 		 *	   CLASS Prolog		*
@@ -63,6 +146,13 @@ class Prolog
 
     this.__set_foreign_constants();
     this.__bind_foreign_functions();
+
+    this.Var	  = class_var;
+    this.String	  = class_string;
+    this.Rational = class_rational;
+    this.Compound = class_compound;
+    this.List	  = class_list;
+    this.Blob	  = class_blob;
 
     let argv0 = this.args || [];
     argv0.unshift("swipl");
@@ -757,13 +847,10 @@ class Prolog
     function toJSON(prolog, term, options)
     { switch ( prolog.bindings.PL_term_type(term) )
       { case prolog.PL_VARIABLE:
-	  return { $v: "v",
-		   v: prolog.bindings.WASM_variable_id(term)
-		// term: prolog.bindings.PL_copy_term_ref(term)
-		 };
+	  return new prolog.Var(prolog.bindings.WASM_variable_id(term));
 	case prolog.PL_STRING:
 	  if ( options.string !== "string" )
-	    return {$t: "s", v: prolog.get_chars(term)};
+	    return new prolog.String(prolog.get_chars(term));
 	  /*FALLTHROUGH*/
 	case prolog.PL_ATOM:
 	  return prolog.get_chars(term);
@@ -775,7 +862,7 @@ class Prolog
 	  if ( id != -1 )
 	    return prolog.objects[id];
 
-	  return {"$t": "b"};
+	  return new prolog.Blob();
 	}
 	case prolog.PL_INTEGER:
 	  return prolog.get_integer(term);
@@ -790,7 +877,7 @@ class Prolog
 	    return bi;
 	  }
 
-	  return {"$t": "r", n: toInt(a[0]), d: toInt(a[1]), s:s};
+	  return new prolog.Rational(toInt(a[0]), toInt(a[1]));
 	}
 	case prolog.PL_FLOAT:
 	  return prolog.get_float(term);
@@ -818,8 +905,7 @@ class Prolog
 	      args.push(toJSON(prolog, a, options));
 	    }
 
-	    result[name] = args;
-	    return result;
+	    return new prolog.Compound(name, args);
 	  }
 	}
 	case prolog.PL_LIST_PAIR:
@@ -832,7 +918,7 @@ class Prolog
 	  if ( prolog.bindings.PL_get_nil(t) )
 	    return result;
 
-	  return { "$t": "partial", v:result, t:toJSON(prolog, t, options) };
+	  return new prolog.List(result, toJSON(prolog, t, options));
 	}
 	case prolog.PL_DICT:
 	{ let result = {};
@@ -867,6 +953,23 @@ class Prolog
     { term = term||prolog.new_term_ref();
       let rc;
 
+      function toList(term, data, tail)
+      { let h = prolog.new_term_ref();
+	let rc = true;
+
+	if ( tail )
+	  rc = toProlog(prolog, tail, term, ctx);
+	else
+	  rc = prolog.bindings.PL_put_nil(term);
+
+	for(var i=data.length-1; i >= 0 && rc; i--)
+	{ toProlog(prolog, data[i], h, ctx);
+	  rc = prolog.bindings.PL_cons_list(term, h, term);
+	}
+
+	return rc;
+      }
+
       switch(typeof(data))
       { case "number":
 	  if ( Number.isInteger(data) )
@@ -890,13 +993,7 @@ class Prolog
 	  if ( data === null )
 	  { rc = prolog.put_chars(term, "null", prolog.PL_ATOM);
 	  } else if ( Array.isArray(data) )
-	  { let h = prolog.new_term_ref();
-
-	    prolog.bindings.PL_put_nil(term);
-	    for(var i=data.length-1; i >= 0; i--)
-	    { toProlog(prolog, data[i], h, ctx);
-	      prolog.bindings.PL_cons_list(term, h, term); /* TBD: error handling */
-	    }
+	  { rc = toList(term, data);
 	  } else if ( data.$t )
 	  { switch( data.$t )
 	    { case "s":
@@ -947,6 +1044,9 @@ class Prolog
 		  }
 		}
 		break;
+	      }
+	      case "l":
+	      { rc = toList(term, data.v, data.t);
 	      }
 	    }
 	  } else if ( data.nodeType !== undefined )	       /* DOM object */
@@ -1159,6 +1259,11 @@ class Query {
     }
   }
 }
+
+
+		 /*******************************
+		 *   BIND PROLOG TO THE MODULE  *
+		 *******************************/
 
 
 Module.onRuntimeInitialized = function()

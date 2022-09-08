@@ -48,14 +48,15 @@ function run()
   put(42,
       2n**200n,
       3.14,
-      { $t:"r", n:1, d: 3},
+      new Prolog.Rational(1,3),
       "Hello world!",
-      { $t: "s", v: "A string" },
+      new Prolog.String("A string"),
       [ "aap", "noot", "mies" ],
-      { $t:"t", f:[1,2,"aap"]},
+      new Prolog.List(["a1"], new Prolog.Var()),
+      new Prolog.Compound("t", [1,2,"aap"]),
       { name: "Jan", location: "Amsterdam" },
       {},
-      [ { $t: "v", v: "A" }, { $t: "v", v: "A" }, {$t:"v"} ]
+      [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
      );
 
   test_sum_list();
