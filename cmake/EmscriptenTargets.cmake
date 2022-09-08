@@ -34,6 +34,7 @@ set(WASM_WEB_LINK_FLAGS
     -s MODULARIZE=1
     -s EXPORT_NAME=SWIPL
     -s NO_EXIT_RUNTIME=0
+    -s WASM_BIGINT=1
     -s ALLOW_MEMORY_GROWTH=1
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json

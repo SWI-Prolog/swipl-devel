@@ -588,16 +588,21 @@ Prolog.prototype.get_functor = function(term)
 
 // Returns integer number for the given term.
 // Returns null when the term is not an integer.
-Prolog.prototype.get_integer = function(term) {
-    const ptr = this.module._malloc(8);
-    let rc;
-    if (this.bindings.PL_get_int64(term, ptr)) {
-        rc = this.module.getValue(ptr, 'i64');
-    } else {
-        rc = null;
-    }
-    this.module._free(ptr);
-    return rc;
+Prolog.prototype.get_integer = function(term)
+{ const ptr = this.module._malloc(8);
+  let rc;
+
+  if ( this.bindings.PL_get_int64(term, ptr) )
+  { rc = this.module.getValue(ptr, 'i64');
+    if ( rc >= Number.MIN_SAFE_INTEGER && rc <= Number.MAX_SAFE_INTEGER )
+      rc = Number(rc);
+  } else
+  { const s = this.get_chars(term, this.CVT_INTEGER);
+    rc = BigInt(s);
+  }
+  this.module._free(ptr);
+
+  return rc;
 };
 
 Prolog.prototype.get_float = function(term) {
@@ -627,6 +632,11 @@ Prolog.prototype.put_chars = function(term, string, flags)
   const ret = !!this.bindings.PL_put_chars(term, flags, c.length, c.ptr);
   this.module._free(c.ptr);
   return ret;
+};
+
+Prolog.prototype.put_bigint = function(term, value)
+{ const s = value.toString();
+  return !!this.bindings.PL_put_term_from_chars(term, this.REP_UTF8, -1, s);
 };
 
 // Unifies the terms. Returns false if the terms
@@ -890,6 +900,12 @@ Prolog.prototype.toJSON = function(term, options)
   return toJSON(this, term, options);
 }
 
+if ( BigInt.prototype.toJSON === undefined )
+{ BigInt.prototype.toJSON = function ()
+  { return this.toString();
+  };
+}
+
 function toProlog(prolog, data, term, ctx)
 { term = term||prolog.new_term_ref();
   let rc;
@@ -900,6 +916,9 @@ function toProlog(prolog, data, term, ctx)
 	rc = prolog.bindings.PL_put_integer(term, data);
       else
 	rc = prolog.bindings.PL_put_float(term, data);
+      break;
+    case "bigint":
+      rc = prolog.put_bigint(term, data);
       break;
     case "string":
       rc = prolog.put_chars(term, data, prolog.PL_ATOM);

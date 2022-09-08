@@ -144,23 +144,33 @@ function test_sum_list()
   });
 }
 
+function test_bigint()
+{ println("title", "Big integer handling");
+
+  [0,31,32,62,63,64,200].forEach((i) =>
+  { const rc = Prolog.query("bigint(I, Pos, Neg)", {I:i}).once();
+    const pos = rc.Pos;
+    const neg = rc.Neg;
+
+    println("stdout", `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
+
+    const vin = BigInt(2)**BigInt(i);
+    const out = Prolog.query("u(In, Out)", {In:vin}).once().Out;
+
+    if ( vin === BigInt(out) )
+      println("stdout", `Round trip passed`);
+    else
+      println("stderr", `Round trip: ${vin} -> ${out}`);
+  });
+}
+
+/* Callback test */
 function test_error()
 { println("title", "Test error handling");
 
   const sum = sum_list(["aap", "noot", "mies"]);
   println("stdout", `Sum is ${sum}`);
 }
-
-function test_bigint()
-{ for(let i=0; i<64; i++)
-  { var bi = Prolog.query("bigint(I, Int)", {I:i}).once().Int;
-
-    println("stdout", `2^${i} = ${bi}`);
-  }
-}
-
-
-/* Callback test */
 
 function add_one(i)
 { return i+1;

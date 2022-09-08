@@ -18,5 +18,6 @@ p(user{name: "Jan", city: "Amsterdam"}).
 u(X,X) :-
     debug(js, 'u/2: Got ~q~n', [X]).
 
-bigint(I, N) :-
-    N is 2^I.
+bigint(I, N, Neg) :-
+    N is 2^I,
+    Neg is -N.
