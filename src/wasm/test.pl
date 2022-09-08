@@ -1,9 +1,14 @@
 % :- debug(js).
 :- debug(js, 'Loading test.pl', []).
+:- set_prolog_flag(prefer_rationals, true).
 
 p(1).
 p(3.14).
-p(1r3).		% Needs GMP
+:- if(current_prolog_flag(bounded, false)).
+p(Big) :- Big is 1<<200.
+p(R) :- R is 1/3.
+p(R) :- R is rational(pi).
+:- endif.
 p(aap).
 p("noot").
 p([]).

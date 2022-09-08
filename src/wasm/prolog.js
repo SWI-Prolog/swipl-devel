@@ -827,8 +827,14 @@ function toJSON(prolog, term, options)
     { let s = prolog.get_chars(term, this.CVT_RATIONAL);
       let a = s.split("r");
 
+      function toInt(s)
+      { const bi = BigInt(s);
+	if ( bi >= Number.MIN_SAFE_INTEGER && bi <= Number.MAX_SAFE_INTEGER )
+	  return Number(bi);
+	return bi;
+      }
 
-      return {"$t": "r", v: {n: parseInt(a[0]), d: parseInt(a[1])}, s:s};
+      return {"$t": "r", n: toInt(a[0]), d: toInt(a[1]), s:s};
     }
     case prolog.PL_FLOAT:
       return prolog.get_float(term);
@@ -945,6 +951,12 @@ function toProlog(prolog, data, term, ctx)
 	{ case "s":
 	    rc = prolog.put_chars(term, data.v, prolog.PL_STRING);
 	    break;
+	  case "r":
+	  { const s = data.n+"r"+data.d;
+	    rc = prolog.bindings.PL_put_term_from_chars(term, this.REP_UTF8,
+							-1, s);
+	    break;
+	  }
 	  case "t":
 	  { const keys  = Object.keys(data);
 	    let args;
