@@ -1296,9 +1296,7 @@ GNU C library (glibc) this represents 32-bit UCS4 characters.
 Create atom from wide-character string as PL_new_atom_nchars() does for
 ISO-Latin-1 strings. If \arg{s} only contains ISO-Latin-1 characters a
 normal byte-array atom is created. If \arg{len} is \exam{(size_t)-1}, it
-is computed from \arg{s} using wcslen().
-Returns \exam{(atom_t)0} for failure - the caller should typically then call
-PL_resource_error("memory").
+is computed from \arg{s} using wcslen().   See PL_new_atom() for error handling.
 
     \cfunction{const pl_wchar_t*}{PL_atom_wchars}{atom_t atom, size_t *len}
 Extract characters from a wide-character atom.  Succeeds on any atom
@@ -2635,9 +2633,14 @@ This handle is known by the type \ctype{predicate_t}.
 \begin{description}
     \cfunction{predicate_t}{PL_pred}{functor_t f, module_t m}
 Return a handle to a predicate for the specified name/arity in the given
-module. This function always succeeds, creating a handle for an
-undefined predicate if no handle was available.  If the module argument
-\arg{m} is \const{NULL}, the current context module is used.
+module. If the module argument \arg{m} is \const{NULL}, the current
+context module is used. If the target predicate does not exist a handle
+to a new \textit{undefined} predicate is returned. The predicate may
+fail, returning \exam{(predicate_t)0} after setting a resource
+exception, if the target module has a limit on the
+\const{program_space}, see set_module/1. Currently aborts the process
+with a \jargon{fatal error} when out of memory. Future versions may
+raise a resource exception and return \exam{(predicate_t)0}.
 
     \cfunction{predicate_t}{PL_predicate}{const char *name, int arity,
 					  const char* module}
