@@ -277,8 +277,6 @@ class Prolog
   { this.bindings =
     { _PL_streams: this.module.cwrap(
         '_PL_streams', 'number', []),
-      PL_atom_chars: this.module.cwrap(
-        'PL_atom_chars', 'number', ['number']),
       PL_functor_arity: this.module.cwrap(
         'PL_functor_arity', 'number', ['number']),
       PL_functor_name: this.module.cwrap(
@@ -311,8 +309,6 @@ class Prolog
         'PL_get_list', 'number', ['number', 'number', 'number']),
       PL_get_nil: this.module.cwrap(
         'PL_get_nil', 'number', ['number']),
-      PL_get_name_arity: this.module.cwrap(
-        'PL_get_name_arity', 'number', ['number', 'number', 'number']),
       PL_initialise: this.module.cwrap(
         'PL_initialise', 'number', ['number', 'number']),
       PL_new_atom: this.module.cwrap(
@@ -355,8 +351,6 @@ class Prolog
         'PL_write_term', 'number', ['number', 'number', 'number', 'number']),
       PL_call: this.module.cwrap(
         'PL_call', 'number', ['number', 'number']),
-      PL_unify_arg: this.module.cwrap(
-        'PL_unify_arg', 'number', ['number', 'number', 'number']),
       PL_open_foreign_frame: this.module.cwrap(
 	'PL_open_foreign_frame', 'number', []),
       PL_close_foreign_frame: this.module.cwrap(
@@ -1181,11 +1175,6 @@ class Prolog
   put_functor(term, functor)
   { return this.bindings.PL_put_functor(term, functor);
   }
-
-// Unifies the index-th argument (1-based) of term with arg.
-  unify_arg(index, term, arg)
-  { return this.bindings.PL_unify_arg(index, term, arg);
-  }
 }  /* End of class Prolog */
 
 
@@ -1369,7 +1358,7 @@ function prolog_js_call(request, result)
     { obj = eval_chain(ar);
     }
 
-    return prolog.bindings.PL_unify(result, prolog.toProlog(obj));
+    return prolog.uxnify(result, prolog.toProlog(obj));
   }, false);
 }
 
