@@ -1268,9 +1268,10 @@ colourise_setof(Term, TB, Pos) :-
 %       Colourise database modification calls (assert/1, retract/1 and
 %       friends.
 
-colourise_db((Head:-_Body), TB, term_position(_,_,_,_,[HP,_])) :-
+colourise_db((Head:-Body), TB, term_position(_,_,_,_,[HP,BP])) :-
     !,
-    colourise_db(Head, TB, HP).
+    colourise_db(Head, TB, HP),
+    colourise_body(Body, Head, TB, BP).
 colourise_db(Module:Head, TB, term_position(_,_,QF,QT,[MP,HP])) :-
     !,
     colourise_module(Module, TB, MP),
