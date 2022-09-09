@@ -439,7 +439,7 @@ class Prolog
     return false;				/* Throw? */
   }
 
-  string_to_c(string)
+  __string_to_c(string)
   { const len = this.module.lengthBytesUTF8(string);
     const ptr = this.module._malloc(len+1);
 
@@ -559,6 +559,23 @@ class Prolog
       this.bindings.PL_close_query(qid);
       return msg;
     }, false);
+  }
+
+/**
+ * When using `Module.on_output`, flush the output streams.
+ */
+
+  flush_output(stream)
+  { if ( stream == undefined )
+    { flush("stderr");
+      flush("stdout");
+    } else
+    { flush(stream);
+    }
+  }
+
+  log(...args)
+  { log_output("stdout", args);
   }
 
   query(module, flags, pred, argv, map)
@@ -683,7 +700,7 @@ class Prolog
   { flags  = flags||this.PL_STRING;
     flags |= this.REP_UTF8;
 
-    const c = this.string_to_c(string);
+    const c = this.__string_to_c(string);
     const ret = !!this.bindings.PL_put_chars(term, flags, c.length, c.ptr);
     this.module._free(c.ptr);
     return ret;

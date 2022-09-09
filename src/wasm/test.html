@@ -6,26 +6,62 @@
 </head>
 <body>
 <style>
-.stderr { color: red; }
-.title  { font-weight: bold; font-size: 200%; font-family: sans-serif;
+.title  { font-weight: bold; font-size: 200%; font-family: reset;
 	  margin-top: 1.5ex; margin-bottom: 1ex; display: block; }
-.stderr, .stdout, .query, .title { white-space: pre; font-family: monospace;}
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
 </style>
+<h2>Embedded SWI-Prolog demo and tests</h2>
+<p>
+  This page loads the SWI-Prolog WASM version and interacts with the
+  Prolog system to illustrate data exchange and various calling
+  conventions.  Please examine comments in the source code for
+  further explanation.
+</p>
 <div id="output">
 </div>
 
+<!-- Load prolog -->
 <script src="/wasm/swipl-web.js"></script>
 
 <script>
 output = document.getElementById('output');
 
+/*  Create Prolog.  This is still a bit ugly.  I am not sure (how) we can
+    improve on this.  `swipl-web.js` defines a single global function `SWIPL`
+    with represents the Emscripten generated module.  The object passed to
+    this is populated with all WASM stuff.  We may define some initial
+    properties to change the default behavior.  Notably:
+
+     - `arguments` provide the Prolog command line arguments.  Notably
+       `-q` may come handy to suppress the header.  Most other command
+       line arguments have little meaning in the context of the browser
+       version.  Do __not__ pass goals as we need to do some post
+       initialization steps before returning.
+     - `locateFile` is a function to find the other components
+       (`swipl-web.wasm` and `swipl-web.data`) from the plain file.
+     - `on_output` takes a function to handle output to `user_output`
+       and `user_error`.  It received a line of input (a String) and
+       either `"stderr"` or `"stdout"`.   When omitted, the output
+       is sent to the browser console.
+
+   The skeleton below is best I could find.  After creating the Module,
+   it calls SWIP(Module), which returns a Promise that is executed after
+   the other data files are loaded, Emscripten and Prolog are initialized.
+   `Module.prolog` is a class that provides the high level interaction
+   with Prolog.  In this example we load a file `test.pl` from the server
+   (relatvie to this file) and, when ready, call `run()`.
+*/
+
 let Prolog;
 var Module = {
-    arguments: ["-q"],
-    locateFile: function(file) {
-	return '/wasm/' + file;
-    },
-    //preRun:   [() => bindStdStreams(Module)]
+//  arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
 };
 
 SWIPL(Module).then((module) =>
@@ -35,12 +71,9 @@ SWIPL(Module).then((module) =>
         .then(() => run());
 });
 
-class Point {
-  constructor(x,y)
-  { this.x = y;
-    this.y = y;
-  }
-}
+
+/* Run test test cases.
+*/
 
 function run()
 { Prolog.set_arg_names("point", ["x", "y"]);
@@ -48,46 +81,42 @@ function run()
   run_p();
   run_p_with_iterator();
   run_p_from_string_with_iterator();
-
-  put(42,
-      2n**200n,
-      3.14,
-      new Prolog.Rational(1,3),
-      "Hello world!",
-      new Prolog.String("A string"),
-      [ "aap", "noot", "mies" ],
-      new Prolog.List(["a1"], new Prolog.Var()),
-      new Prolog.Compound("t", [1,2,"aap"]),
-      { name: "Jan", location: "Amsterdam" },
-      {},
-      new Point(9,9),
-      [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
-     );
-
+  test_data_rund_trip();
   test_sum_list();
   test_bigint();
   test_error();
 }
 
+/* Get all results from p/1, showing iteration over Prolog answers
+   and the format of the various result values.   Note that the
+   `Prolog.with_frame(func)` makes sure Prolog term references
+   are properly reclaimed.  This is needed to ensure `av` is
+   reclaimed.
+*/
+
 function run_p()
 { println("title", "Printing results from p/1 as objects using a loop");
 
   Prolog.with_frame(() =>
-  { let av = Prolog.new_term_ref(1);
-    let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av);
-    let n = 0;
+      { let av = Prolog.new_term_ref(1);
+	let q = Prolog.query(0, Prolog.PL_Q_NORMAL, "p/1", av);
+	let n = 0;
 
-    while(q.next().value)
-    { println("stdout",
-	      `${++n} `,
-	      Prolog.get_chars(av, Prolog.CVT_WRITEQ), " -> ",
-	      Prolog.toJSON(av));
-    }
+	while(q.next().value)
+	{ println("stdout",
+		  `${++n} `,
+		  Prolog.get_chars(av, Prolog.CVT_WRITEQ), " -> ",
+		  Prolog.toJSON(av));
+	}
 
-    q.close();
-  });
+	q.close();
+      });
 }
 
+/* Same as above, but using the JavaScript iterator (for..of) to enumerate
+   the results.  We still need the frame to get rid of `av`.
+*/
+  
 function run_p_with_iterator()
 { println("title", "Using an iterator for p/1");
 
@@ -102,6 +131,11 @@ function run_p_with_iterator()
   });
 }
 
+/* Pass a query from a string.  As the allocation of term references now happens
+   completely in the `Prolog.query()` call, the `with_frame()` happens inside the
+   interface and we no longer have to worry about leaks.
+*/
+
 function run_p_from_string_with_iterator()
 { println("title", "Using an iterator for p/1 and call string");
 
@@ -112,7 +146,36 @@ function run_p_from_string_with_iterator()
   }
 }
 
-function put(...args)
+
+/* This test tests round trip of data.   We start with a JavaScript object, pass it
+   to Prolog with returns it using u/2 defined as u(X,X).
+*/
+
+class Point {
+  constructor(x,y)
+  { this.x = y;
+    this.y = y;
+  }
+}
+
+function test_data_rund_trip()
+{ trip(42,
+       2n**200n,
+       3.14,
+       new Prolog.Rational(1,3),
+       "Hello world!",
+       new Prolog.String("A string"),
+       [ "aap", "noot", "mies" ],
+       new Prolog.List(["a1"], new Prolog.Var()),
+       new Prolog.Compound("t", [1,2,"aap"]),
+       { name: "Jan", location: "Amsterdam" },
+       {},
+       new Point(9,9),
+       [ new Prolog.Var("A"), new Prolog.Var("A"), new Prolog.Var() ]
+      );
+}
+
+function trip(...args)
 { println("title", "Demonstrating round trip object -> Prolog -> object");
 
   args.forEach((obj) => Prolog.with_frame(() =>
@@ -126,6 +189,13 @@ function put(...args)
 	    Prolog.toJSON(av+1));
   }));
 }
+
+
+/* Test calling a simple deterministic predicate.  Evaluates the performance
+   for exchanging data.  test_error() tests what happens when the predicate
+   raises an exception.  In that case the object returned by once() represents
+   the error and (thus) the target Prolog variables returned as `undefined`.
+*/  
 
 function sum_list(list)
 { return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;
@@ -152,6 +222,16 @@ function test_sum_list()
   });
 }
 
+function test_error()
+{ println("title", "Test error handling");
+
+  const sum = sum_list(["aap", "noot", "mies"]);
+  println("stdout", `Sum is ${sum}`);
+}
+
+/* Test data round trip for really big integers and some critial values.
+*/
+
 function test_bigint()
 { println("title", "Big integer handling");
 
@@ -173,12 +253,6 @@ function test_bigint()
 }
 
 /* Callback test */
-function test_error()
-{ println("title", "Test error handling");
-
-  const sum = sum_list(["aap", "noot", "mies"]);
-  println("stdout", `Sum is ${sum}`);
-}
 
 function add_one(i)
 { return i+1;

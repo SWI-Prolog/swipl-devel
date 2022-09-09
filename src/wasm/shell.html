@@ -175,48 +175,6 @@ let   history       = { stack: [], current: null };
 let   files	    = { current: default_file,
 			list: [default_file]
 		      };
-const decoder       = new TextDecoder('utf-8');
-
-let buffers =
-{ stdout: [],
-  stderr: []
-}
-
-function write(to, c)
-{ if ( c )
-    buffers[to].push(c);
-
-  if ( c == 10 || c == null )
-    flush(to);
-}
-
-function decode(bytes)
-{ const ar = new Uint8Array(bytes.length);
-
-  for(var i=0; i<bytes.length; i++)
-  { let c = bytes[i];
-
-    if ( c < 0 )
-      c = 256+c;
-
-    ar[i] = c;
-  }
-
-  return decoder.decode(ar);
-}
-
-function flush(to)
-{ if ( buffers[to].length )
-  { const line = decode(buffers[to]);
-
-    print_output(line, to);
-    buffers[to] = [];
-  }
-}
-
-function bindStdStreams(module)
-{ module.FS.init(undefined, (c) => write("stdout", c), (c) => write("stderr", c));
-}
 
 function print_output(line, cls) {
     const node = document.createElement('span');
@@ -226,7 +184,7 @@ function print_output(line, cls) {
 };
 
 function pl(s) {
-   Module.prolog.call(s);
+   Prolog.call(s);
 }
 
 function query(query)
@@ -433,8 +391,7 @@ function next(rc)
   if ( rc.yield !== undefined )
   { yield = rc;
 
-    flush("stderr");
-    flush("stdout");
+    Prolog.flush_output();
 
     if ( abort_request )
     { abort_request = false;
@@ -463,29 +420,31 @@ function next(rc)
 }
 
 function toplevel()
-{ let rc = Module.prolog.call("wasm_query_loop",
-			      { async:true
-			      });
+{ let rc = Prolog.call("wasm_query_loop",
+		       { async:true
+		       });
 
   next(rc);
 }
 
+let Prolog;
 var Module = {
     arguments: [],
     locateFile: function(file) {
 	return '/wasm/' + file;
     },
-    preRun:   [() => bindStdStreams(Module)]
+    on_output: print_output
 };
 
 SWIPL(Module).then((module) =>
-{ Module.FS.mkdir("/prolog");
-  restoreFiles();
-  pl("set_prolog_flag(tty_control, true)");
-  pl("working_directory(_, '/prolog')");
+    { Prolog = Module.prolog;
+      Module.FS.mkdir("/prolog");
+      restoreFiles();
+      pl("set_prolog_flag(tty_control, true)");
+      pl("working_directory(_, '/prolog')");
 
-  toplevel();
-});
+      toplevel();
+    });
 
 // Save/restore state
 

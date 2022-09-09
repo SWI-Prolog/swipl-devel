@@ -32,4 +32,95 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+		 /*******************************
+		 *	  MODULE DEFAULTS	*
+		 *******************************/
+
 Module.noInitialRun = true;
+
+
+		 /*******************************
+		 *	   BIND OUTPUT		*
+		 *******************************/
+
+/* Set `Module.on_output` to a function that receives the next output
+   fragment.  This may be a line or the result of a flush.  The passed
+   line will end with a newline if the flush is due to a newline.
+
+   This function will normally ass a `span` element to the DOM that
+   has the following style:
+
+   ```
+   .stderr, .stdout {
+      white-space: pre-wrap;
+      font-family: monospace;
+      overflow-wrap: anywhere;
+    }
+    ```
+
+    The second argument is one of "stdout" or "stderr", depending on the
+    stream flushed.
+*/
+
+let decoder;
+let buffers =
+    {  stdout: [],
+       stderr: []
+    };
+
+function write(to, c)
+{ if ( c )
+    buffers[to].push(c);
+
+  if ( c == 10 || c == null )
+    flush(to);
+}
+
+function decode(bytes)
+{ const ar = new Uint8Array(bytes.length);
+
+  for(var i=0; i<bytes.length; i++)
+  { let c = bytes[i];
+
+    if ( c < 0 )
+      c = 256+c;
+
+    ar[i] = c;
+  }
+
+  return decoder.decode(ar);
+}
+
+function flush(to)
+{ if ( buffers[to].length )
+  { const line = decode(buffers[to]);
+
+    Module.on_output(line, to);
+    buffers[to] = [];
+  }
+}
+
+
+function log_output(stream, args)
+{ if ( module.on_output )
+  { let s = "";
+    
+    flush(stream);
+    args.forEach((a) => { s += a; });
+    Module.on_output(s, stream);
+  } else
+  { console.log.apply(null, args);
+  }
+}
+
+
+function bind_std_streams()
+{ decoder = new TextDecoder('utf-8');
+  Module.FS.init(undefined,
+		 (c) => write("stdout", c),
+		 (c) => write("stderr", c));
+}
+
+if ( Module.on_output )
+{ Module.preRun.push(bind_std_streams);
+}
