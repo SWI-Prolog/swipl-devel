@@ -200,14 +200,14 @@ save_settings(TB, Ops, state(Style, Flags, OSM, Xref)) :-
     '$style_check'(Style, Style).
 
 qualify_op(M, op(P,T,N), op(P,T,M:N)) :-
-    atom(N), !.
+    (atom(N) ; N == []), !.
 qualify_op(M, op(P,T,L), op(P,T,QL)) :-
     is_list(L), !,
     maplist(qualify_op_name(M), L, QL).
 qualify_op(_, Op, Op).
 
 qualify_op_name(M, N, M:N) :-
-    atom(N),
+    (atom(N) ; N == []), !.
     !.
 qualify_op_name(_, N, N).
 
