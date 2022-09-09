@@ -199,17 +199,16 @@ save_settings(TB, Ops, state(Style, Flags, OSM, Xref)) :-
     syntax_flags(Flags),
     '$style_check'(Style, Style).
 
-qualify_op(M, op(P,T,N), op(P,T,M:N)) :-
-    atom(N), !.
-qualify_op(M, op(P,T,L), op(P,T,QL)) :-
-    is_list(L), !,
+qualify_op(M, op(P,T,[]), Q)            => Q = op(P,T,M:[]).
+qualify_op(M, op(P,T,N), Q), atom(N)    => Q = op(P,T,M:N).
+qualify_op(M, op(P,T,L), Q), is_list(Q) =>
+    Q = op(P, T, QL),
     maplist(qualify_op_name(M), L, QL).
-qualify_op(_, Op, Op).
+qualify_op(_, Op, Q)			=> Q = Op.
 
-qualify_op_name(M, N, M:N) :-
-    atom(N),
-    !.
-qualify_op_name(_, N, N).
+qualify_op_name(M, N,  Q), atom(N) => Q = M:N.
+qualify_op_name(M, [], Q)          => Q = M:[].
+qualify_op_name(_, V,  Q)          => Q = V.
 
 restore_settings(state(Style, Flags, OSM, Xref)) :-
     restore_syntax_flags(Flags),
