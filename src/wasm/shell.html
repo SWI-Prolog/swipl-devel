@@ -471,7 +471,6 @@ function toplevel()
 }
 
 var Module = {
-    noInitialRun: true,
     arguments: [],
     locateFile: function(file) {
 	return '/wasm/' + file;
@@ -482,9 +481,7 @@ var Module = {
 SWIPL(Module).then((module) =>
 { Module.FS.mkdir("/prolog");
   restoreFiles();
-  pl("use_module(library(wasm))");
   pl("set_prolog_flag(tty_control, true)");
-  pl("set_prolog_flag(debug_on_error, false)");
   pl("working_directory(_, '/prolog')");
 
   toplevel();

@@ -28,6 +28,7 @@ add_dependencies(wasm_preload wasm_preload_dir)
 # Build the browser-deployed binary with a bit different linker flags.
 
 set(POSTJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/prolog.js)
+set(PREJS ${CMAKE_CURRENT_SOURCE_DIR}/wasm/pre.js)
 
 set(WASM_WEB_LINK_FLAGS
     -s WASM=1
@@ -39,6 +40,7 @@ set(WASM_WEB_LINK_FLAGS
     -s EXPORTED_FUNCTIONS=@${CMAKE_SOURCE_DIR}/src/wasm/exports.json
     -s EXPORTED_RUNTIME_METHODS=@${CMAKE_SOURCE_DIR}/src/wasm/runtime_exports.json
     --preload-file ${WASM_PRELOAD_DIR}@swipl
+    --pre-js ${PREJS}
     --post-js ${POSTJS})
 if(MULTI_THREADED)
   list(APPEND WASM_WEB_LINK_FLAGS
@@ -53,4 +55,4 @@ set_target_properties(swipl-web PROPERTIES
 target_link_libraries(swipl-web libswipl)
 add_dependencies(swipl-web wasm_preload)
 set_property(TARGET swipl-web PROPERTY LINK_DEPENDS
-	     ${POSTJS})
+	     ${POSTJS} ${PREJS})

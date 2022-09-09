@@ -21,7 +21,6 @@ output = document.getElementById('output');
 
 let Prolog;
 var Module = {
-    noInitialRun: true,
     arguments: ["-q"],
     locateFile: function(file) {
 	return '/wasm/' + file;
@@ -32,8 +31,6 @@ var Module = {
 SWIPL(Module).then((module) =>
 { Prolog = Module.prolog;
 
-  Prolog.call("use_module(library(wasm))");
-  Prolog.call("set_prolog_flag(debug_on_error, false)");
   Prolog.consult("test.pl")
         .then(() => run());
 });

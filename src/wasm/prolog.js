@@ -146,15 +146,13 @@ class Prolog
 
     this.__set_foreign_constants();
     this.__bind_foreign_functions();
+    this.__export_classes();
+    this.__initialize();
+  }
 
-    this.Var	  = class_var;
-    this.String	  = class_string;
-    this.Rational = class_rational;
-    this.Compound = class_compound;
-    this.List	  = class_list;
-    this.Blob	  = class_blob;
 
-    let argv0 = this.args || [];
+  __initialize()
+  { let argv0 = this.args || [];
     argv0.unshift("swipl");
     let argv = argv0.map(function(arg) {
         return this.module.allocate(
@@ -169,6 +167,17 @@ class Prolog
         throw new Error('SWI-Prolog initialisation failed.');
     }
     this.call("set_prolog_flag(color_term, false).");
+    this.call("set_prolog_flag(debug_on_error, false)");
+    this.call("use_module(library(wasm))");
+  }
+
+  __export_classes()
+  { this.Var	  = class_var;
+    this.String	  = class_string;
+    this.Rational = class_rational;
+    this.Compound = class_compound;
+    this.List	  = class_list;
+    this.Blob	  = class_blob;
   }
 
   __set_foreign_constants()
