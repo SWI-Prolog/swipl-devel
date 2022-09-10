@@ -199,17 +199,20 @@ save_settings(TB, Ops, state(Style, Flags, OSM, Xref)) :-
     syntax_flags(Flags),
     '$style_check'(Style, Style).
 
-qualify_op(M, op(P,T,N), op(P,T,M:N)) :-
-    (atom(N) ; N == []), !.
-qualify_op(M, op(P,T,L), op(P,T,QL)) :-
-    is_list(L), !,
-    maplist(qualify_op_name(M), L, QL).
-qualify_op(_, Op, Op).
 
-qualify_op_name(M, N, M:N) :-
-    (atom(N) ; N == []), !.
-    !.
-qualify_op_name(_, N, N).
+qualify_op(M, op(P,T,L), Q), is_list(Q) =>
+    Q = op(P, T, QL),
+    qualify_op_list(L, M, QL).
+qualify_op(M, op(P,T,N), Q), atom(N)    => Q = op(P,T,M:N).
+qualify_op(_, op(P,T,V), Q), var(V)     => Q = op(P,T,V).
+
+qualify_op_list([], M, M:[]).  % handle [] as an operator
+qualify_op_list([H|T], M, QL) :-
+    maplist(qualify_op_name(M), [H|T], QL).
+
+qualify_op_name(M, N,  Q), atom(N) => Q = M:N.
+qualify_op_name(M, [], Q)          => Q = M:[].
+qualify_op_name(_, V,  Q), var(V)  => Q = V.
 
 restore_settings(state(Style, Flags, OSM, Xref)) :-
     restore_syntax_flags(Flags),
