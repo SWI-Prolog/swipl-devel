@@ -109,7 +109,7 @@ if(WIN32)
     ")
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
     DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-    DeleteRegKey HKLM 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'
+    DeleteRegKey HKLM 'Software\\\\WOW6432Node\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'
     ")
   endif()
 endif()
