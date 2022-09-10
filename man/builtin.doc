@@ -7885,8 +7885,6 @@ subtle and difficult to track errors.
     \item It is not allowed to redefine the comma (\verb$','$).
     \item The bar (\verb$|$) can only be (re-)defined as infix
           operator with priority not less than 1001.
-    \item It is not allowed to define the empty list (\verb$[]$) or the
-	  curly-bracket pair (\verb${}$) as operators.
 \end{itemize}
 
 In SWI-Prolog, operators are \emph{local} to a module (see also
