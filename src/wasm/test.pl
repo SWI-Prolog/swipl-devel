@@ -26,3 +26,10 @@ u(X,X) :-
 bigint(I, N, Neg) :-
     N is 2^I,
     Neg is -N.
+
+q(10) :- writeln(q=10).
+q(20) :- writeln(q=20).
+
+fib(0,1) :- !.
+fib(1,1) :- !.
+fib(N,X) :- N>1, M is N-1, fib(M,Y), L is M-1, fib(L,Z), X is Y+Z.

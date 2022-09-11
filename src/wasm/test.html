@@ -14,6 +14,8 @@
   font-family: monospace;
   overflow-wrap: anywhere;
 }
+#output { margin-top: 1.5ex; }
+#tests  { margin-bottom: 0.5ex; }
 </style>
 <h2>Embedded SWI-Prolog demo and tests</h2>
 <p>
@@ -22,14 +24,20 @@
   conventions.  Please examine comments in the source code for
   further explanation.
 </p>
-<div id="output">
+<div id="controls">
+  <div id="tests"></div>
+  <button onClick="select_all(true)">Select all</button>
+  <button onClick="select_all(false)">Deselect all</button>
+  <button onClick="run_selected_tests()">Run selected tests</button>
 </div>
+<div id="output"></div>
 
 <!-- Load prolog -->
 <script src="/wasm/swipl-web.js"></script>
 
 <script>
-output = document.getElementById('output');
+output   = document.getElementById('output');
+test_div = document.getElementById('tests');
 
 /*  Create Prolog.  This is still a bit ugly.  I am not sure (how) we can
     improve on this.  `swipl-web.js` defines a single global function `SWIPL`
@@ -72,19 +80,74 @@ SWIPL(Module).then((module) =>
 });
 
 
+  var tests =
+      [ { name: "p(X) with loop",
+	  call: run_p
+	},
+	{ name: "p(X) with iterator",
+	  call: run_p_with_iterator
+	},
+	{ name: "p(X) from string with iterator",
+	  call: run_p_from_string_with_iterator
+	},
+	{ name: "Round trip data",
+	  call: test_data_round_trip
+	},
+	{ name: "Sum array of integers in Prolog",
+	  call: test_sum_list
+	},
+	{ name: "Test big integer exchange",
+	  call: test_bigint
+	},
+	{ name: "Test simple error handling",
+	  call: test_error
+	},
+	{ name: "Test long running queries with sleep",
+	  call: test_foreach_1
+	},
+	{ name: "Test long running queries with sleep and error",
+	  call: test_foreach_2
+	},
+	{ name: "Test long running computation",
+	  call: () => test_fib(35)
+	},
+	{ name: "Test long running computation (configurable)",
+	  call: test_fib,
+	  checked: false
+	}
+      ];
+
+  for(let i=0; i<tests.length; i++) {
+    const t = tests[i];
+    const c = t.checked === false ? "" : "checked";
+    test_div.innerHTML += `<div><input type="checkbox" value="${i}" name="test" ${c}><label>${t.name}</label></div>`;
+  }
+
+  function select_all(val) {
+    const s = document.querySelectorAll("input[type=checkbox][name=test]");
+    s.forEach(e => e.checked = val);
+  }
+
+  async function run_selected_tests() {
+    output.innerHTML = "";
+    const s = Array.from(document.querySelectorAll("input[type=checkbox][name=test]:checked"),
+			 e => parseInt(e.value));
+    for(let i=0; i<s.length; i++) {
+      const test = tests[s[i]];
+      const rc = test.call();
+      if ( rc instanceof Promise ) {
+	await rc;
+      }
+    }
+  }
+
+
 /* Run test test cases.
 */
 
 function run()
 { Prolog.set_arg_names("point", ["x", "y"]);
 
-  run_p();
-  run_p_with_iterator();
-  run_p_from_string_with_iterator();
-  test_data_rund_trip();
-  test_sum_list();
-  test_bigint();
-  test_error();
 }
 
 /* Get all results from p/1, showing iteration over Prolog answers
@@ -158,7 +221,7 @@ class Point {
   }
 }
 
-function test_data_rund_trip()
+function test_data_round_trip()
 { trip(42,
        2n**200n,
        3.14,
@@ -222,13 +285,6 @@ function test_sum_list()
   });
 }
 
-function test_error()
-{ println("title", "Test error handling");
-
-  const sum = sum_list(["aap", "noot", "mies"]);
-  println("stdout", `Sum is ${sum}`);
-}
-
 /* Test data round trip for really big integers and some critial values.
 */
 
@@ -252,11 +308,69 @@ function test_bigint()
   });
 }
 
-/* Callback test */
+function test_error()
+{ println("title", "Test error handling");
 
-function add_one(i)
-{ return i+1;
+  const sum = sum_list(["aap", "noot", "mies"]);
+  println("stdout", `Sum is ${sum}`);
 }
+
+function test_foreach_1()
+{ println("title", "Run long running goal");
+  return Prolog.forEach("between(1,3,X),sleep(0.5)",
+			(r) => println("stdout", r.X))
+           .then((n) => println("stdout", `Got ${n} answers`))
+           .catch((e) => println("stderr", `Got error ${e}`));
+}
+
+function test_foreach_2(mx)
+{ mx = mx||5;
+
+  println("title", "Run long running goal; show exception");
+  return Prolog.forEach("between(1,MAX,X),sleep(0.5),Y is 1/(3-X)",
+			{MAX:mx},
+			(r) => println("stdout", r.X))
+           .then((n) => println("stdout", `Got ${n} answers`))
+           .catch((e) => println("stderr", `Got error ${e}`));
+}
+
+  function test_fib(n) {
+    if ( n === undefined ) {
+      output.innerHTML += `<form onsubmit="return fib_n(this)">
+                             <input name="n" type="number" min="1" max="40" value="22">
+			     <button type="submit">Run</button>
+                           </form>`;
+    } else {
+      println("title", `Testing async fib(${n})`);
+      println("stdout", `While computing the <textarea> must be responsive
+and it is possible to abort the computation`);
+
+      output.innerHTML += `
+<div>
+<textarea cols="50" placeholder="Type here to see interaction"></textarea>
+</div>
+<div>
+<button id="abort" onclick="Prolog.abort()">Abort</button>
+</div>`;
+
+      return Prolog.forEach("time(fib(X,Y))", {X:n})
+	.then((a) => println("stdout", `fib(${n}) => ${a[0].Y}`))
+	.catch((e) => println("stderr", `Got error ${e}`))
+	.finally(() => document.getElementById("abort").disabled = true);
+    }
+  }
+
+  function fib_n(e) {
+    const n = e.elements.n.value;
+    test_fib(parseInt(n));
+    return false;
+  }
+
+  /* Callback test */
+
+  function add_one(i)
+  { return i+1;
+  }
 
 
 		 /*******************************

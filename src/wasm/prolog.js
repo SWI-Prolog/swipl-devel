@@ -406,8 +406,10 @@ class Prolog
 	if ( !opts.async )
 	{ const module = opts.module ? this.new_module(opts.module) : 0;
 	  return !!this.bindings.PL_call(term, module);
+	} else if ( opts.on_answer )
+	{ return this.__call_async(term, opts.moduule);
 	} else
-	{ return this.call_yieldable(term, opts.module);
+	{ return this.__call_yieldable(term, opts);
 	}
       });
     }
@@ -589,8 +591,90 @@ class Prolog
     }
   }
 
+
+  /**
+   * Run a possibly long running goal and process its answers.
+   * Signature:
+   *  - foreach(goal, [input], [callback])
+   * @return {Promise} that is resolved on completion and rejected on
+   * a Prolog exception.
+   */
+
+
+  forEach(goal, ...args)
+  { const prolog = this;
+    const fid = this.bindings.PL_open_foreign_frame();
+    const av = this.new_term_ref(3);
+    let callback;
+    let input;
+
+    if ( typeof(args[0]) === "object" )
+    { input = args[0];
+      callback = args[1];
+    } else
+    { input = {};
+      callback = args[0];
+    }
+
+    if ( callback !== undefined && typeof(callback) !== "function" )
+      throw TypeError("callback must be a function");
+
+    this.frame = fid;
+    this.put_chars(av+0, goal);
+    this.toProlog(input, av+1);
+
+    const q = new Query(this, 0,
+			this.PL_Q_ALLOW_YIELD|this.PL_Q_CATCH_EXCEPTION,
+			"wasm_call_string_with_heartbeat/3", av,
+			(a) => this.toJSON(a+2));
+
+    return new Promise(function(resolve, reject) {
+      let answers = callback ? 0 : [];
+
+      function next_foreach(rc)
+      { while(true)
+	{ if ( rc.yield !== undefined )
+	  { switch(rc.yield)
+	    { case "beat":
+	        return setTimeout(() => next_foreach(rc.resume("true")), 0);
+	      case "builtin":
+                return rc.resume((rc) => next_foreach(rc));
+	      default:		// unsupported yield
+	        throw(rc); 
+	    }
+	  } else if ( rc.value )
+	  { if ( callback )
+	    { answers++;
+	      callback.call(prolog, rc.value);
+	    } else
+	    { answers.push(rc.value);
+	    }
+
+	    if ( rc.done == false )
+	    { rc = q.next_yieldable();
+	      continue;
+	    }
+	  }
+
+	  q.close();
+	  if ( rc.error )
+	    return reject(rc.message);
+	  if ( rc.done )
+	    return resolve(answers);
+	}
+      }
+
+      return next_foreach(q.next_yieldable());
+    });
+  }
+
+
+  abort()
+  { this.abort_request = true;
+  }
+
 /**
- * @return {IOSTREAM*} as a number
+ * @return {IOSTREAM*} as a number (pointer)
  */
 
   stream(name)
@@ -748,12 +832,12 @@ class Prolog
   }
 
 /**
- * Call a predicate that may yield.  Returns an object if the predicate
- * called js_yield/2.  Normally, the returned object contains a key
- * `yield` that either holds a string or a JSON object representing
- * the request.  The key `resume` is a function that should be called
- * to resume Prolog with a value that appears in the second argument
- * of js_call/2.
+ * Call a goal that may yield.  When no yield happens this returns the
+ * result of Query.next().  If the predicate called js_yield/2 an
+ * the returned object contains a key `yield` that either
+ * holds a string or a JSON object representing the request.  The key
+ * `resume` is a function that should be called to resume Prolog with
+ * a value that appears in the second argument of js_call/2.
  *
  * The `yield` key can be `builtin`, in which case an object is returned
  * that contains a `resume` key that executes the built-in and continues
@@ -762,12 +846,11 @@ class Prolog
  *
  * @param {term_t} [term]   Prolog goal to be called
  * @param {String} [module] Module in which to call the goal.
- * @return one of `false` (call failed), `true` (call succeeded),
- * `undefined` (raised an exception (TBD)) or an object if the
- * predicated yielded control back.
+ * @return Either the result of Query.next() or a _yield_ request as
+ * described above.
  */
 
-  call_yieldable(term, module)
+  __call_yieldable(term, module)
   { var pred_call1;
     const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
 
@@ -775,65 +858,9 @@ class Prolog
       pred_call1 = this.predicate("call", 1, "system");
 
     const q = this.query(module, flags, pred_call1, term);
-
-    function next(prolog)
-    { while(true)
-      { let rc = q.next();
-
-	if ( rc.yield !== undefined )
-	{ let request = rc.yield;
-
-	  if ( request == "beat" )
-	  { const now = Date.now();
-
-	    if ( now-prolog.lastyieldat < 20 )
-	    { prolog.set_yield_result("true");
-	      continue;
-	    }
-	    prolog.lastyieldat = now;
-	  } else
-	  { if ( request.command == "sleep" )
-	    { let result = { yield: "builtin",
-			     request: request,
-			     query: q,
-			     resume: (cont) =>
-			     { if ( typeof(cont) === "string" )
-			       { prolog.set_yield_result(cont);
-				 return next(prolog);
-			       } else
-			       { result.cont = cont;
-				 result.timer = setTimeout(() => {
-				   prolog.set_yield_result("true");
-				   cont.call(prolog, next(prolog));
-				 }, request.time*1000);
-			       }
-			     },
-			     abort: () => {
-			       if ( result.timer )
-			       { clearTimeout(result.timer);
-				 prolog.set_yield_result("wasm_abort");
-				 result.cont.call(prolog, next(prolog));
-			       }
-			     }
-			   };
-	      return result;
-	    }
-	  }
-	}
-
-	// Get back here instead of Query.next()
-	rc.resume = (value) =>
-	{ prolog.set_yield_result(value);
-	  return next(prolog);
-	};
-
-	return rc
-      }
-    }
-
-    return next(this);
+    return q.next_yieldable();
   }
-
+  
 
 		 /*******************************
 		 *	     CONVERSION		*
@@ -1261,6 +1288,77 @@ class Query {
 	       };
       }
     }
+  }
+
+  next_yieldable()
+  { function next(query)
+    { const prolog = query.prolog;
+      
+      while(true)
+      { let rc = query.next();
+
+	if ( rc.yield !== undefined )
+	{ let request = rc.yield;
+
+	  if ( prolog.abort_request )
+	  { prolog.abort_request = undefined;
+	    prolog.set_yield_result("abort");
+	    continue;
+	  }
+
+	  if ( request === "beat" )
+	  { const now = Date.now();
+	    const passed = now - prolog.lastyieldat;
+
+	    if ( passed < 20 )
+	    { prolog.set_yield_result("true");
+	      continue;
+	    }
+	    prolog.lastyieldat = now;
+	  } else
+	  { if ( request.command == "sleep" )
+	    { let result = { yield: "builtin",
+			     request: request,
+			     query: query,
+			     resume: (cont) =>
+			     { if ( typeof(cont) === "string" )
+			       { prolog.set_yield_result(cont);
+				 return next(query);
+			       } else
+			       { result.cont = cont;
+				 result.timer = setTimeout(() => {
+				   result.timer = undefined;
+				   prolog.set_yield_result("true");
+				   cont.call(prolog, next(query));
+				 }, request.time*1000);
+			       }
+			     },
+			     abort: () => {
+			       if ( result.timer )
+			       { clearTimeout(result.timer);
+				 prolog.set_yield_result("wasm_abort");
+				 result.cont.call(prolog, next(query));
+			       }
+			     }
+			   };
+	      return result;
+	    }
+	  }
+
+	  // Get back here instead of Query.next()
+	  rc.resume = (value) =>
+	  { prolog.set_yield_result(value);
+	    return next(query);
+	  };
+	} else if ( rc.done === false )
+	{ rc.resume = () => next(query);
+	}
+
+	return rc;
+      }
+    }
+
+    return next(this);
   }
 
   once()

@@ -36,6 +36,8 @@
           [ wasm_query_loop/0,
             wasm_abort/0,
             wasm_call_string/3,         % +String, +Input, -Output
+	    wasm_call_string_with_heartbeat/3,
+				        % +String, +Input, -Output
             (:=)/2,                     % -Result, +Call
             sleep/1,
             js_script/2,                % +String, +Options
@@ -50,16 +52,15 @@
 /** <module> WASM version support
 */
 
-:- meta_predicate wasm_call_string(:, +, -).
+:- meta_predicate
+   wasm_call_string(:, +, -),
+   wasm_call_string_with_heartbeat(:, +, -),
+   with_heartbeat(0).
 
 %!  wasm_query_loop
 
 wasm_query_loop :-
-    current_prolog_flag(heartbeat, Old),
-    setup_call_cleanup(
-        set_prolog_flag(heartbeat, 10 000),
-        '$toplevel':'$query_loop',
-        set_prolog_flag(heartbeat, Old)).
+    with_heartbeat('$toplevel':'$query_loop').
 
 %!  wasm_abort
 %
@@ -68,6 +69,13 @@ wasm_query_loop :-
 wasm_abort :-
     print_message(error, '$aborted'),
     abort.
+
+with_heartbeat(Goal) :-
+    current_prolog_flag(heartbeat, Old),
+    setup_call_cleanup(
+        set_prolog_flag(heartbeat, 10 000),
+	call(Goal),
+        set_prolog_flag(heartbeat, Old)).
 
 :- multifile
     prolog:heartbeat/0.
@@ -104,7 +112,6 @@ wasm_call_string(M:String, Input, Dict) :-
     term_string(Goal, String, [variable_names(Map)]),
     exclude(not_in_projection(Input), Map, Map1),
     dict_create(Dict, bindings, Map1),
-
     call(M:Goal).
 
 not_in_projection(Input, Name=Value) :-
@@ -112,6 +119,9 @@ not_in_projection(Input, Name=Value) :-
     ->  true
     ;   sub_atom(Name, 0, _, _, '_')
     ).
+
+wasm_call_string_with_heartbeat(String, Input, Dict) :-
+    with_heartbeat(wasm_call_string(String, Input, Dict)).
 
 
 %!  sleep(+Seconds)

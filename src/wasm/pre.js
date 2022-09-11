@@ -69,8 +69,12 @@ let buffers =
     };
 
 function write(to, c)
-{ if ( c )
-    buffers[to].push(c);
+{ const buf = buffers[to];
+
+  if ( c == 10 && buf.length == 0 )
+    buf.push(32);
+  if ( c )
+    buf.push(c);
 
   if ( c == 10 || c == null )
     flush(to);
