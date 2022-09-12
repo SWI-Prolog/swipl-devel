@@ -101,6 +101,7 @@ if(WIN32)
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
     SetRegView 64
     DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+    DeleteRegKey HKLM 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'    
     ")
   else()
     set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
@@ -109,7 +110,6 @@ if(WIN32)
     ")
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
     DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-    DeleteRegKey HKLM 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'
     ")
   endif()
 endif()
