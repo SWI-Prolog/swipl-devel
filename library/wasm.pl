@@ -131,8 +131,7 @@ wasm_call_string_with_heartbeat(String, Input, Dict) :-
 
 sleep(Seconds) :-
     (   '$can_yield'
-    ->  format(string(Command), '{"command":"sleep","time":~w}', [Seconds]),
-        js_yield(Command, Reply),
+    ->  js_yield(_{command:sleep, time:Seconds}, Reply),
         term_string(Goal, Reply),
         (   Reply == "true"
         ->  true

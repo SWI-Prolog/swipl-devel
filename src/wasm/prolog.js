@@ -821,7 +821,9 @@ class Prolog
   }
 
   yield_request()
-  { return this.module.UTF8ToString(this.bindings.WASM_yield_request());
+  { const tref = this.bindings.WASM_yield_request();
+
+    return this.toJSON(tref);
   }
 
   set_yield_result(string)
@@ -1274,9 +1276,6 @@ class Query {
 	       };
       case prolog.PL_S_YIELD:
       { let request = prolog.yield_request();
-
-	if ( request.charAt(0) == '{' )
-	  request = JSON.parse(request);
 
 	return { done: false,
 	         value: null,

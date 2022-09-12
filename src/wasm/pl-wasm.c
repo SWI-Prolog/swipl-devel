@@ -38,7 +38,7 @@
 #include <emscripten.h>
 
 PL_EXPORT(const char *)		WASM_ttymode(void);
-PL_EXPORT(const char *)		WASM_yield_request(void);
+PL_EXPORT(term_t)		WASM_yield_request(void);
 PL_EXPORT(void)			WASM_set_yield_result(const char *s);
 PL_EXPORT(size_t)		WASM_variable_id(term_t t);
 PL_EXPORT(int)			js_unify_obj(term_t t, int32_t id);
@@ -75,30 +75,24 @@ WASM_variable_id(term_t t)
  * Out
  */
 
-static char *yield_request = NULL;
+static term_t yield_request = 0;
 static char *yield_result  = NULL;
 
 static
 PRED_IMPL("js_yield", 2, js_yield, PL_FA_NONDETERMINISTIC)
 { switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
-    { char *s;
-
-      if ( PL_get_chars(A1, &s, BUF_MALLOC|CHARS_FLAGS) )
-      { yield_request = s;
-	PL_yield_address(s);
-	if ( yield_result )
-	{ free(yield_result);
-	  yield_result = NULL;
-	}
+    { yield_request = A1;
+      PL_yield_address(&yield_request);
+      if ( yield_result )
+      { free(yield_result);
+	yield_result = NULL;
       }
     }
     case PL_RESUME:
-    { char *s = CTX_PTR;
-      int rc = TRUE;
+    { int rc = TRUE;
 
-      PL_free(s);
-      yield_request = NULL;
+      yield_request = 0;
       if ( yield_result )
       { rc = PL_unify_chars(A2, PL_STRING|REP_UTF8, (size_t)-1, yield_result);
 	free(yield_result);
@@ -113,7 +107,7 @@ PRED_IMPL("js_yield", 2, js_yield, PL_FA_NONDETERMINISTIC)
   }
 }
 
-const char *
+term_t
 WASM_yield_request(void)
 { return yield_request;
 }
