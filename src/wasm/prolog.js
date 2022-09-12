@@ -397,21 +397,19 @@ class Prolog
   { opts = opts||{};
 
     if ( typeof(goal) === "string" )
-    { return this.with_frame(function()
-      { const term = this.new_term_ref();
+    { if ( opts.async )
+      { return this.__call_yieldable(goal, opts);
+      } else
+      { return this.with_frame(function()
+        { const term = this.new_term_ref();
 
-	if ( !this.chars_to_term(goal, term) )
-	  throw new Error('Query has a syntax error: ' + query);
+	  if ( !this.chars_to_term(goal, term) )
+	    throw new Error('Query has a syntax error: ' + query);
 
-	if ( !opts.async )
-	{ const module = opts.module ? this.new_module(opts.module) : 0;
+	  const module = opts.module ? this.new_module(opts.module) : 0;
 	  return !!this.bindings.PL_call(term, module);
-	} else if ( opts.on_answer )
-	{ return this.__call_async(term, opts.moduule);
-	} else
-	{ return this.__call_yieldable(term, opts);
-	}
-      });
+	});
+      }
     }
   }
 
@@ -574,7 +572,13 @@ class Prolog
   { log_output("stdout", args);
   }
 
-  query(module, flags, pred, argv, map)
+  /**
+   * Signature:
+   *  - query(module, flags, pred, argv, [map], [fid])
+   *  - query(goal, input)
+   */
+
+  query(module, flags, pred, argv, map, fid)
   { if ( typeof(argv) === "number" )	   /* term_t array */
     { return new Query(this, module, flags, pred, argv, map);
     } else if ( typeof(module) === "string" && pred === undefined )
@@ -826,11 +830,12 @@ class Prolog
     return this.toJSON(tref);
   }
 
-  set_yield_result(string)
-  { const c_str = allocateUTF8(string);
+  set_yield_result(obj)
+  { this.with_frame(() =>
+    { const term = this.toProlog(obj);
 
-    this.bindings.WASM_set_yield_result(c_str);
-    this.module._free(c_str);
+      this.bindings.WASM_set_yield_result(term);
+    }, true);
   }
 
 /**
@@ -846,20 +851,24 @@ class Prolog
  * using the passed function. The returned object may provide an `abort`
  * key to abort the query immediately.
  *
- * @param {term_t} [term]   Prolog goal to be called
+ * @param {String_t} goal  Prolog goal to be called
  * @param {String} [module] Module in which to call the goal.
  * @return Either the result of Query.next() or a _yield_ request as
  * described above.
  */
 
-  __call_yieldable(term, module)
+  __call_yieldable(goal, module)
   { var pred_call1;
     const flags = this.PL_Q_NORMAL|this.PL_Q_ALLOW_YIELD;
 
     if ( !pred_call1 )
       pred_call1 = this.predicate("call", 1, "system");
 
-    const q = this.query(module, flags, pred_call1, term);
+    const fid = this.bindings.PL_open_foreign_frame();
+    const term = this.new_term_ref();
+    if ( !this.chars_to_term(goal, term) )
+      throw new Error('Query has a syntax error: ' + query);
+    const q = this.query(module, flags, pred_call1, term, fid);
     return q.next_yieldable();
   }
   
@@ -1215,6 +1224,7 @@ class Prolog
  *     predicate:{String|predicate_t},
  *     argv:{term_t}
  *     [map]:{Function}
+ *     [fid]:{fid_t}
  *  2) module:{String|0},
  *     flags:{Integer},
  *     predicate:{String|predicate_t},
@@ -1224,7 +1234,7 @@ class Prolog
  */
 
 class Query {
-  constructor(prolog, module, flags, pred, argv, map)
+  constructor(prolog, module, flags, pred, argv, map, fid)
   { module = module ? prolog.new_module(module) : 0;
     if ( typeof(pred) === "string" )
       pred = prolog.predicate(pred);
@@ -1240,6 +1250,7 @@ class Query {
     this.qid    = prolog.bindings.PL_open_query(module, flags, pred, argv);
     this.open   = true;
     this.argv   = argv;
+    this.frame  = fid;
   }
 
   [Symbol.iterator]() { return this; }

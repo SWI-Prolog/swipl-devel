@@ -39,7 +39,7 @@
 
 PL_EXPORT(const char *)		WASM_ttymode(void);
 PL_EXPORT(term_t)		WASM_yield_request(void);
-PL_EXPORT(void)			WASM_set_yield_result(const char *s);
+PL_EXPORT(void)			WASM_set_yield_result(term_t result);
 PL_EXPORT(size_t)		WASM_variable_id(term_t t);
 PL_EXPORT(int)			js_unify_obj(term_t t, int32_t id);
 PL_EXPORT(int32_t)		js_get_obj(term_t t);
@@ -76,28 +76,24 @@ WASM_variable_id(term_t t)
  */
 
 static term_t yield_request = 0;
-static char *yield_result  = NULL;
+static term_t yield_result  = 0;
+static int    yield_unified = FALSE;
 
 static
 PRED_IMPL("js_yield", 2, js_yield, PL_FA_NONDETERMINISTIC)
 { switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
     { yield_request = A1;
+      yield_result  = A2;
+      yield_unified = FALSE;
       PL_yield_address(&yield_request);
-      if ( yield_result )
-      { free(yield_result);
-	yield_result = NULL;
-      }
     }
     case PL_RESUME:
-    { int rc = TRUE;
+    { int rc = yield_unified;
 
       yield_request = 0;
-      if ( yield_result )
-      { rc = PL_unify_chars(A2, PL_STRING|REP_UTF8, (size_t)-1, yield_result);
-	free(yield_result);
-	yield_result = NULL;
-      }
+      yield_result  = 0;
+      yield_unified = FALSE;
 
       return rc;
     }
@@ -113,8 +109,8 @@ WASM_yield_request(void)
 }
 
 void
-WASM_set_yield_result(const char *s)
-{ yield_result = strdup(s);
+WASM_set_yield_result(term_t result)
+{ yield_unified = PL_unify(yield_result, result);
 }
 
 static
