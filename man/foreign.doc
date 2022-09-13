@@ -1181,6 +1181,7 @@ modified.
 If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
 to the C constant \const{TRUE} or \const{FALSE} and return success,
 otherwise return failure.
+The values \const{on} and \const{off} are also accepted.
 \cfunction{int}{PL_get_pointer}{term_t +t, void **ptr}
 In the current system, pointers are represented by Prolog integers,
 but need some manipulation to make sure they do not get truncated due
@@ -1795,7 +1796,10 @@ to ignore the exception.
 Unify \arg{t} with the atom \arg{a} and return non-zero on success.
 
     \cfunction{int}{PL_unify_bool}{term_t ?t, int a}
-Unify \arg{t} with either \const{true} or \const{false}.
+Unify \arg{t} with either \const{false} or \const{true}, according
+to whether \arg{a} is zero or non-zero.
+If \arg{t} is instantiated, \const{off} and \const{on} are also
+accepted.
 
     \cfunction{int}{PL_unify_chars}{term_t ?t, int flags,
 				    size_t len,
@@ -2143,7 +2147,8 @@ integer does not fit in a C \ctype{size_t}.
 
     \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
 As PL_get_bool(), but raises a type or instantiation error if
-\arg{t} is not an boolean.
+\arg{t} is not a valid boolean value (\const{true}, \const{false},
+\const{on}, const{off}).
 
     \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
 As PL_get_float(), but raises a type or instantiation error if

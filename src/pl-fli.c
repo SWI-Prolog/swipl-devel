@@ -3277,7 +3277,9 @@ int
 PL_unify_bool(term_t t, int val)
 { GET_LD
 
-  return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+  return val ?
+    (PL_unify_atom(t, ATOM_true) || PL_unify_atom(t, ATOM_on)) :
+    (PL_unify_atom(t, ATOM_false) || PL_unify_atom(t, ATOM_off));
 }
 
 
