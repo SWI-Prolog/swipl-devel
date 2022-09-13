@@ -3276,8 +3276,15 @@ PL_unify_float(term_t t, double f)
 int
 PL_unify_bool(term_t t, int val)
 { GET_LD
+  word w = valHandle(t);
 
-  return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+  if ( canBind(w) )
+    return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
+
+  if ( val )
+    return w == ATOM_true || w == ATOM_on;
+  else
+    return w == ATOM_false || w == ATOM_off;
 }
 
 
