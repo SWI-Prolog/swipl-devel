@@ -1107,7 +1107,8 @@ class Prolog
 	      { rc = toList(term, data.v, data.t);
 	      }
 	    }
-	  } else if ( data.nodeType !== undefined )	 /* DOM object */
+	  } else if ( data.nodeType !== undefined ||	 /* DOM object */
+		      data instanceof Promise )
 	  { let id = data.prologId;
 
 	    if ( id === undefined )
@@ -1325,34 +1326,58 @@ class Query {
 	      continue;
 	    }
 	    prolog.lastyieldat = now;
-	  } else
-	  { if ( request.command == "sleep" )
-	    { let result = { yield: "builtin",
-			     request: request,
-			     query: query,
-			     resume: (cont) =>
-			     { if ( typeof(cont) === "string" )
-			       { prolog.set_yield_result(cont);
-				 return next(query);
-			       } else
-			       { result.cont = cont;
-				 result.timer = setTimeout(() => {
-				   result.timer = undefined;
-				   prolog.set_yield_result("true");
+	  } else if ( request instanceof Promise )
+	  { let result = { yield: "builtin",
+			   request: request,
+			   query: query,
+			   resume: (cont) =>
+			   { if ( typeof(cont) === "string" )
+			     { prolog.set_yield_result(cont);
+			       return next(query);
+			     } else
+			     { result.cont = cont;
+			       request
+			       .then((value) =>
+				 { prolog.set_yield_result(value);
 				   cont.call(prolog, next(query));
-				 }, request.time*1000);
-			       }
-			     },
-			     abort: () => {
-			       if ( result.timer )
-			       { clearTimeout(result.timer);
-				 prolog.set_yield_result("wasm_abort");
-				 result.cont.call(prolog, next(query));
-			       }
+				 })
+			       .catch((error) =>
+				 { prolog.set_yield_result({$error: value});
+				   cont.call(prolog, next(query));
+				 })
 			     }
-			   };
-	      return result;
-	    }
+			   },
+			/* abort: () =>
+			   { result.request.reject();
+			   } */
+			 };
+	    return result;
+	  } else if ( request.command == "sleep" )
+	  { let result = { yield: "builtin",
+			   request: request,
+			   query: query,
+			   resume: (cont) =>
+			   { if ( typeof(cont) === "string" )
+			     { prolog.set_yield_result(cont);
+			       return next(query);
+			     } else
+			     { result.cont = cont;
+			       result.timer = setTimeout(() => {
+				 result.timer = undefined;
+				 prolog.set_yield_result("true");
+				 cont.call(prolog, next(query));
+			       }, request.time*1000);
+			     }
+			   },
+			   abort: () =>
+			   { if ( result.timer )
+			     { clearTimeout(result.timer);
+			       prolog.set_yield_result("wasm_abort");
+			       result.cont.call(prolog, next(query));
+			     }
+			   }
+			 };
+	    return result;
 	  }
 
 	  // Get back here instead of Query.next()
