@@ -1,0 +1,401 @@
+\chapter{Using SWI-Prolog in your browser (WASM)}
+\label{sec:wasm}
+
+\href{https://emscripten.org/}{Emscripten} can compile C and C++ code
+to WebAssembly (WASM).  WASM runs on a virtual machine that is
+provided by almost all modern browsers.  This allows for compiling the
+SWI-Prolog source to WASM and run it in your browser.  We keep
+up-to-data instructions for building the WASM version on the
+\href{https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/5650}{wiki}
+page.
+
+Currently the WASM version is a fairly comprehensive version of
+SWI-Prolog.  It contains the core and a good selection of the
+\jargon{packages}, including many of the \jargon{foreign packages}.
+
+
+\section{Loading and initializing Prolog}
+\label{sec:wasm-loading}
+
+The WASM SWI-Prolog distribution consists of three files:
+
+\begin{description}
+\item[\file{swipl-web.js}] This is the main file that must be loaded
+  using a \verb$<script>$ element.  It defines a global function \const{SWIPL}
+  that loads the other components and gives access to the SWI-Prolog system.
+\item[\file{swipl-web.wasm}]
+  This is the actual WASM binary containing the compiled C code of the
+  core, foreign packages and required libraries.
+\item[\file{swipl-web.data}]
+  This data contains a \jargon{file system} that is \jargon{mounted} on
+  \file{/swipl}.  It contains the Prolog startup code and libraries.
+\end{description}
+
+Below is the skeleton for getting access to the Prolog system.  We
+first define the global \arg{Module} object, optionally with
+configuration parameters.  We use a global variable because some of
+the Emscripten configuration parameters require access to the
+\arg{Module}.  \const{SWIPL} returns a \ctype{Promise} that resolves
+when the WASM system is loaded and initialized.  This sets
+\const{Module.prolog} to an instance of the class \ctype{Prolog} that
+provides a high level interface from JavaScript.
+
+\begin{code}
+let Prolog;
+const Module = {
+  // Provide options for customization
+};
+
+SWIPL(Module).then((module) =>
+{ Prolog = Module.prolog;
+
+  // Start using Prolog
+};
+\end{code}
+
+\arg{Module} defines customization properties for the Emscripten module
+as well as for Prolog.   We highlight the important properties below.
+
+\begin{description}
+    \termitem{attributes}{}
+An \ctype{Array} of \ctype{String} objects that define the commandline
+arguments for initializing Prolog. \exam{argv[0]} is \emph{not} part of
+this array. Few arguments are useful in this context. The
+\cmdlineoption{-q} may be used to suppress the Prolog banner.
+
+    \termitem{locateFile}{}
+A \ctype{Function} that is used to translate \file{swipl-web.wasm} and
+\file{swipl-web.data} into a (relative) URL. Default is to find these
+resources in the same directory of the server.
+
+    \termitem{on_output}{}
+A \ctype{Function} that is called when Prolog writes to
+\const{user_output} or \const{user_input}. It is passed two arguments: a
+\ctype{String} containing the text to emit and one of the constant
+strings \const{"stdout"} or \const{"stderr"} to indicate the output
+stream. This uses the Emscripten \const{Module.FS.init} option to rebind
+the output and error streams, providing behaviour that is similar to the
+Emscripten properties \const{print} and \const{printErr}. However, our
+passed string contains the newline character and the handler is called
+when Prolog \jargon{flushes} the output. Normally the callback should
+insert a \verb$<span>$ element that has (at least) the following style:
+
+\begin{code}
+.stderr, .stdout {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+\end{code}
+\end{description}
+
+\subsection{Loading Prolog files}
+\label{sec:wasm-consult}
+
+\begin{description}
+    \cfunction{Promise}{Prolog.consult}{URL}
+Download a Prolog source file from the \ctype{String} \arg{URL} and load
+it. This returns a \ctype{Promise} that is resolved when the file is
+loaded into Prolog.
+\end{description}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Calling Prolog from JavaScript}
+\label{sec:wasm-calling}
+
+The \ctype{Prolog} class provides several methods for calling Prolog
+from JavaScript.
+
+\begin{description}
+    \cfunction{Boolean}{Prolog.call}{Goal}
+Processes a Prolog goal represented as a \ctype{String} and returns
+\const{true} or \const{false}. This simple calling pattern is intended
+for trivial goals such as setting a Prolog flag.  For example, the call
+below limits the Prolog stacks to 10Mb.
+
+\begin{code}
+Prolog.call("set_prolog_flag(stack_limit, 10 000 000)");
+\end{code}
+
+    \cfunction{Query}{Prolog.query}{Goal}
+    \nodescription
+    \cfunction{Query}{Prolog.query}{Goal, Input}
+Create a Prolog query from a \ctype{String}, optionally binding Prolog
+variables embedded in \arg{Goal} from properties of the \ctype{Object}
+\arg{Input}. The returned object is an instance of class \ctype{Query}.
+This instance can be used as a JavaScript \jargon{iterator}. The value
+returned in each iteration is an \ctype{Object} with properties for each
+variable in \arg{Goal} that is not in \arg{Input} and does not start
+with an underscore.  For example, we can iterate over the members of
+a list like below.  Further details on class \ctype{Query} are
+provided in \secref{wasm-query}.  The translation of data between
+Prolog and JavaScript is described in \secref{wasm-data-conversion}.
+
+\begin{code}
+for(let r of Prolog.query("member(Elem,List)",
+			  {List: ["aap", "noot", "mies"]}))
+{ console.log(r.Elem);
+}
+\end{code}
+
+The .exam{query{}} method is indented for fast queries that do not
+require the \jargon{yield} mechanism, i.e., the execution should not
+require asynchronous operations and the browser is not responsive
+during the execution.
+
+    \cfunction{Promise}{Prolog.forEach}{Goal}
+    \nodescription
+    \cfunction{Promise}{Prolog.forEach}{Goal, OnAnswer}
+    \nodescription
+    \cfunction{Promise}{Prolog.forEach}{Goal, Input}
+    \nodescription
+    \cfunction{Promise}{Prolog.forEach}{Goal, Input, OnAnswer}
+This method executes \arg{Goal} asynchronously. This implies that
+\arg{Goal} may execute asynchronous operations and the browser remains
+responsive while executing \arg{Goal}.  \arg{Goal} and \arg{Input} are
+processed as with \exam{.query()}. For each answer, \arg{OnAnswer} is a
+\ctype{Function} that is called with a \ctype{Object} that holds the
+bindings for the output arguments of \arg{Goal}.
+
+The returned \ctype{Promise} is resolved when the query completes. The
+value passed to the \exam{.then()} method of the \ctype{Promise} is the
+number of answers if \arg{OnAnswer} is provided or an \ctype{Array} of
+answers if \arg{OnAnswer} is omitted.  If \arg{Goal} raises an exception
+the \ctype{Promise} is rejected.
+
+Multiple calls to Prolog can be activated at any time.	Prolog processes
+such queries in \jargon{LIFO} \jargon{(Last In, First Out)} mode.  If
+queries need to be processed sequentially use JavaScript \const{await}
+or the \exam{Promise.finally()} method to wait for completion.
+\end{description}
+
+
+\subsection{The JavaScript class Query}
+\label{sec:wasm-query}
+
+\begin{description}
+    \cfunction{Object}{next}{}
+Implements the \jargon{iterator} protocol. This returns an object
+holding the keys \const{done} and \const{value}.  If exception
+handling is enabled it returns an object
+\{\const{done}:\const{true}, {\const{error}:\const{true},
+\const{message}:\arg{String}\}.
+
+    \cfunction{Object}{once}{}
+Close the query after the first answer.  Returns the \exam{.value}
+of the object returned by \exam{.next()} on success and the complete
+object on failure or error.  Thus, the return value maye contain these
+keys:
+
+    \begin{description}
+    \definition{\{Bindings\}}
+Query succeeded.  Objects holds a key for each output variable.
+    \definition{\{\const{done}:\const{true}\}}
+Query failed.  Note that the binding keys all start with an uppercase
+letter and this is thus not ambiguous.
+    \definition{\{\const{error}:true, \const{message}:\arg{String}\}}
+Query raised an exception.
+    \end{description}
+
+    \cfunction{Object}{close}{}
+Closes the query.  This can be used inside the iterator to stop
+further enumeration.
+\end{description}
+
+
+\subsection{Translating data between JavaScript and Prolog}
+\label{sec:wasm-data-conversion}
+
+JavaScript and Prolog are both dynamically typed languages. The WASM
+module defines a faithful translation between JavaScript data and Prolog
+data that aims at completeness as well as keeping the data
+representation clean in the common cases.  We describe the translation
+in two descriptions because round tripping does not always result in
+the original object.
+
+\subsubsection{Translating JavaScript data to Prolog}
+\label{sec:wasm-data-js-to-prolog}
+
+This section describes how data from JavaScript is translated into
+Prolog.  The interface is primarily designed for passing JavaScript
+data as typically used to a natural Prolog representation.  In
+addition a number of classes are provided to create Prolog specific
+data structures such as strings (as opposed to atoms), variables,
+compound terms, etc.
+
+\begin{description}
+    \definition{Number}
+Translate to a Prolog integer or floating point number.
+    \definition{BigInt}
+Translate to a Prolog integer.
+    \definition{String}
+Translate to a Prolog atom. Use	\exam{new Prolog.String(text)}
+to create a Prolog string.  See below.
+    \definition{Boolean}
+Translate to one of the Prolog atoms \const{true} or \const{false}.
+    \definition{undefined}
+Translate the Prolog atom \const{undefined}.
+    \definition{null}
+Translate the Prolog atom \const{null}.
+    \definition{Array}
+Translate to a Prolog list.
+    \definition{Objects holding the key \const{\$t}:\arg{Type}}
+Such objects are converted depending on the value for this key.
+The interface defines classes to simplify creating such objects.
+    \begin{description}
+       \definition{s}
+Represent a Prolog string.  The key \const{v} holds the text.
+May be created using \exam{new Prolog.string(text)}.
+May be created using \exam{new Prolog.String(text)}.
+       \definition{r}
+Represent a Prolog \jargon{rational number}.  The keys \const{d}
+and \const{n} represent the \jargon{denominator} and \jargon{nominator}.
+For example, to represent \exam{1r3}, use \{\const{\$t}:"r",
+\const{d}:1, \const{n}:3\}.
+May be created using \exam{new Prolog.Rational(d, n)}, where \arg{d}
+and \arg{n} can be JavaScript numbers or big integers.
+       \definition{t}
+Represent a Prolog \jargon{compound term}.  The object should hold
+exactly one key whose value is an array that holds the argument values.
+For example a term \term{point}{1,2} is constructed using
+\{\const{\$t}:"t", \const{point}:[1,2]\}.
+May be created using \exam{new Prolog.Compound(functor, args)}
+       \definition{v}
+Represent a variable.  If the key \const{v} is present this identifies
+the variable.  Two variables processed in the same translation with the
+same identifier represent the same Prolog variable.  If the \const{v}
+key is omitted the variable will be unique.
+May be created using \exam{new Prolog.Var(id)}.
+       \definition{l}
+Represent a Prolog list.  As a JavaScript \ctype{Array} we only need
+this typed object to create a \jargon{partial list}.  The \const{v}
+key contains the ``normal'' elements and the key \const{tail} contains
+the tail of the list.
+May be created using \exam{new Prolog.List(array, tail)}.
+    \end{description}
+    \definition{Object of class \const{Object}}
+Plain JavaScript objects are translated into a Prolog \const{dict}.
+Note that JavaScript object keys are always strings and (thus) all
+dict keys are atoms.  This, \{1:"one"\} is translated into
+\verb$_{'1': one}$.
+    \definition{Objects of a one class not being \const{Object}}
+Instances of non-plain JavaScript objects are translated into a
+Prolog \jargon{blob}. Such objects are written as \verb$<js_Class(id)>$.
+The Prolog interface allows for passing the objects back and calling
+methods on them.  See \secref{wasm-js-call}.
+\end{description}
+
+
+\subsubsection{Translating Prolog data to JavaScript}
+\label{sec:wasm-data-prolog-to-js}
+
+Most of the translation from Prolog data to JavaScript is the reverse of
+the translation described in \secref{wasm-data-js-to-prolog}. In some
+cases however reverse translation is ambiguous. For example, both
+\exam{42} and \exam{42n} (a JavaScript \ctype{BigInt}) translate to a
+simple Prolog integer. The other way around, as JavaScript
+\ctype{Number} is a float, both Prolog \exam{42} and \exam{42.0}
+translate to \exam{42} in JavaScript.
+
+\begin{description}
+    \definition{Variable}
+Translate to a JavaScript \ctype{Prolog.Variable} instance
+where the identifier is a unique number of each unique variable.
+    \definition{Integer}
+Translate to a JavaScript \ctype{Number} when possible or
+\ctype{BigInt} otherwise.  Currently JavaScript \ctype{Number}
+can represent integers upto $2^{53}$ precisely.
+    \definition{Rational}
+Translate to a JavaScript \ctype{Prolog.Rational} instance.
+    \definition{Float}
+Translate to a JavaScript \ctype{Number}.
+    \definition{Atom}
+Translate to a JavaScript \ctype{String}.
+    \definition{String}
+Translate to a JavaScript \ctype{Prolog.String} instance.
+    \definition{List}
+When a \jargon{proper list} create a JavaScript \ctype{Array},
+otherwise create a JavaScript \ctype{Prolog.List} instance.
+    \definition{Compound term}
+Create a JavaScript \ctype{Prolog.Compound} instance.
+    \definition{Dict}
+Create a plain JavaScript \ctype{Object} with the same keys.  If the
+dict has a non-var \jargon{tag}, add a \const{\$tag} property.
+\end{description}
+
+\section{Accessing JavaScript from Prolog}
+\label{sec:wasm-js-call}
+
+This section describes how we can interact with JavaScript from Prolog.
+The interface is captured in a single predicate \predref{:=/2}.
+
+\begin{description}
+    \infixop{:=}{Left}{Right}
+Depending on \arg{Left}, this predicate implements two different
+actions. If \arg{Left} is a Prolog variable, it evaluates the expression
+\arg{Right} in JavaScript and unifies the result to \arg{Left}. If
+\arg{Left} is a term \arg{Obj}[\arg{Key}], where \arg{Key} is an atom,
+it accesses a JavaScript \jargon{setter}. The general form of an
+expression is \arg{Expression}[\arg{Callable}] or simply \arg{Callable}.
+If \arg{Callable} is compound it expresses a function (or method) call.
+Otherwise it accesses a property or global variable (property of
+\const{window} in a browser).
+
+Prolog values are transated according to the rules in
+\secref{wasm-data-prolog-to-js} and the result is translated back to
+Prolog according to the rules in \secref{wasm-data-js-to-prolog}.
+Because callables are translated to function calls, object properties or
+global variables we cannot directly we need an escape to pass them as
+data. This is achieved using the prefix operator \const{#}. For
+convience Prolog strings are by default translated to JavaScript
+\ctype{String} objects rather than \ctype{Prolog.String} instances.
+Below are some examples:
+
+\begin{code}
+?- Res := myfunc([1,2,3]).
+?- Max := 'Math'.max(10, 20).
+?- Out := document.getElementById('output').
+?- Par := document.createElement(p),
+   Par.textContent := #Text.
+?- Par.textContent := "aap" + " " + "noot".
+\end{code}
+\end{description}
+
+\subsubsection{Asynchronous access to JavaScript from Prolog}
+\label{sec:wasm-js-async-call}
+
+While \secref{wasm-js-call} describes synchronous calls from Prolog to
+JavaScript, we also need asynchronous calling to implement sleep/1, wait
+for user input, downloading documents from the web, etc. Asynchronous
+calling is achieved by \jargon{yielding} from the Prolog virtual
+machine. This can only be done when Prolog is told to expect that the VM
+may yield. This is implemented by \exam{Prolog.forEach()} as described
+in \secref{wasm-calling}.
+
+\begin{description}
+    \predicate[det]{js_yield}{2}{+Promise, -Result}
+Yield the Prolog VM, returning control back to JavaScript.  When this
+is called from Prolog invoked using \exam{Prolog.forEach()}, execution
+of js_yield/2 completes when the \arg{Promise} resolves and \arg{Result}
+is unified with the value passed to the \exam{Promise.then()} method.
+When the \arg{Promise} is rejected js_yield/2 throws an exception.  Note
+that this allows, for example, downloading a URL from Prolog:
+
+\begin{code}
+?- FP := fetch("test.pl"), js_yield(FP, Response),
+   TP := Response.text(), js_yield(TP, T).
+FP = <js_Promise>(4),
+Response = <js_Response>(5),
+TP = <js_Promise>(6),
+T = '% :- debug(js) ...'.
+\end{code}
+
+    \predicate[semidet]{js_can_yield}{0}
+True when we can yield in the current state.  This implies Prolog has
+been called from JavaScript code that is prepared to deal with Prolog
+yielding and Prolog is not inside a callback from C (WASM).
+\end{description}
+
+
+
+

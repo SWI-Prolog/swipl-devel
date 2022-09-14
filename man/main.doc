@@ -165,6 +165,7 @@ California, 94041, USA.
 \include{threads}
 \include{engines}
 \include{foreign}
+\include{wasm}
 \include{runtime}
 \appendix
 \include{lib/library}
