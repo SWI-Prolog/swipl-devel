@@ -141,7 +141,8 @@ class Prolog
     this.args = args;
     this.lastyieldat = 0;
     this.functor_arg_names_ = {};
-    this.objects = {};
+    this.objects = {};			// id --> Object
+    this.object_ids = new WeakMap();	// objec --> id
     this.next_object_id = 0;
 
     this.__set_foreign_constants();
@@ -1108,13 +1109,13 @@ class Prolog
 	      }
 	    }
 	  } else if ( data.constructor.name !== "Object" )
-	  { let id = data.$PrologId;
+	  { let id = prolog.object_ids.get(data);
 
 	    if ( id === undefined )
 	    { id = prolog.next_object_id+1;
 	      rc = prolog.bindings.js_unify_obj(term, id);
 	      if ( rc )
-	      { data.$PrologId = id;
+	      { prolog.object_ids.set(data, id);
 		prolog.objects[id] = data;
 		prolog.next_object_id = id;
 	      }
@@ -1510,7 +1511,7 @@ function release_registered_object(id)
 { const prolog = Module.prolog;
   const obj = prolog.objects[id];
 
-  delete obj.$PrologId;
+  prolog.object_ids.delete(obj);
   delete prolog.objects[id];
 }
 
