@@ -142,12 +142,34 @@ typedef struct objref
 } objref;
 
 
+static atom_t
+js_obj_class(int32_t id)
+{ char *str = (char*)EM_ASM_PTR({
+      const s = prolog_js_obj_class_name($0);
+      const len = lengthBytesUTF8(s)+1;
+      const mem = _malloc(len);
+      stringToUTF8(s, mem, len);
+      return mem;
+    }, id);
+  atom_t a = PL_new_atom_mbchars(REP_UTF8, (size_t)-1, str);
+  free(str);
+
+  return a;
+}
+
+
 static int
-write_jsobj_ref(IOSTREAM *s, atom_t aref, int flags)
+write_jsobj_ref(IOSTREAM *out, atom_t aref, int flags)
 { objref *ref = PL_blob_data(aref, NULL, NULL);
   (void)flags;
+  atom_t cname = js_obj_class(ref->id);
+  const wchar_t *s;
 
-  Sfprintf(s, "<js_object>(%d)", ref->id);
+  PL_STRINGS_MARK();
+  s = PL_atom_wchars(cname, NULL);
+  Sfprintf(out, "<js_%Ws>(%d)", s, ref->id);
+  PL_STRINGS_RELEASE();
+
   return TRUE;
 }
 

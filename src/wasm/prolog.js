@@ -1496,16 +1496,23 @@ function prolog_js_call(request, result)
 }
 
 
+function prolog_js_obj_class_name(id)
+{ const prolog = Module.prolog;
+  const obj = prolog.objects[id];
+
+  return obj.constructor.name;
+}
+
 /**
  * Release an object held by Prolog
  */
 
 function release_registered_object(id)
 { const prolog = Module.prolog;
-  const obj = prolog.object[id];
+  const obj = prolog.objects[id];
 
   delete obj.prologId;
-  delete prolog.object[id];
+  delete prolog.objects[id];
 }
 
 if ( typeof window !== 'undefined' )
