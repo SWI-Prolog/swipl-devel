@@ -1491,7 +1491,7 @@ function prolog_js_call(request, result)
     { obj = eval_chain(ar);
     }
 
-    return prolog.uxnify(result, prolog.toProlog(obj));
+    return prolog.unify(result, prolog.toProlog(obj));
   }, false);
 }
 
