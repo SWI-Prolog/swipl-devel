@@ -39,6 +39,7 @@
 	    wasm_call_string_with_heartbeat/3,
 				        % +String, +Input, -Output
             (:=)/2,                     % -Result, +Call
+	    js_yield/2,			% +Request, - Result
             js_can_yield/0,
             sleep/1,
             js_script/2,                % +String, +Options
@@ -123,6 +124,23 @@ not_in_projection(Input, Name=Value) :-
 
 wasm_call_string_with_heartbeat(String, Input, Dict) :-
     with_heartbeat(wasm_call_string(String, Input, Dict)).
+
+
+%!  js_yield(+Request, -Result) is det.
+%
+%   Call asynchronous behavior.  Request is normally a JavaScript
+%   Promise instance.
+
+js_yield(Request, Result) :-
+    '$js_yield'(Request, Result0),
+    (   is_dict(Result0),
+        get_dict('$error', Result0, Error)
+    ->  (   Error == abort
+        ->  wasm_abort
+        ;   throw(Error)
+        )
+    ;   Result = Result0
+    ).
 
 
 %!  js_can_yield is semidet.
