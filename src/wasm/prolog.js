@@ -123,6 +123,21 @@ const class_blob = (class PrologBlob {
   }
 });
 
+
+const class_abortable_promise = (class AbortablePromise extends Promise {
+  constructor(executer)
+  { super(executer);
+    this.executer = executer;
+  }
+  
+  abort()
+  { if ( this.executer.abort )
+      this.executer.abort();
+    else
+      console.log("Cannot abort promise");
+  }
+});
+
 		 /*******************************
 		 *	   CLASS Prolog		*
 		 *******************************/
@@ -179,6 +194,7 @@ class Prolog
     this.Compound = class_compound;
     this.List	  = class_list;
     this.Blob	  = class_blob;
+    this.Promise  = class_abortable_promise;
   }
 
   __set_foreign_constants()
@@ -676,6 +692,32 @@ class Prolog
 
   abort()
   { this.abort_request = true;
+  }
+
+  /**
+   * Create an abortable promise that represents sleeping
+   * @param {Number} time to sleep in seconds.
+   * @return {Promise} This promise represents the sleep and provides a
+   * method abort() that aborts the sleep.
+   */
+
+  promise_sleep(time)
+  { const f = function(resolve, reject)
+    { f.reject = reject;
+      f.timer = setTimeout(() =>
+	{ f.timer = undefined;
+	  resolve(true);
+	}, time*1000);
+    };
+    f.abort = function()
+    { if ( f.timer )
+      { clearTimeout(f.timer);
+	f.timer = undefined;
+	f.reject("abort");
+      }
+    }
+
+    return new AbortablePromise(f);
   }
 
 /**
