@@ -39,6 +39,7 @@
 	    wasm_call_string_with_heartbeat/3,
 				        % +String, +Input, -Output
             (:=)/2,                     % -Result, +Call
+            js_can_yield/0,
             sleep/1,
             js_script/2,                % +String, +Options
 
@@ -122,6 +123,15 @@ not_in_projection(Input, Name=Value) :-
 
 wasm_call_string_with_heartbeat(String, Input, Dict) :-
     with_heartbeat(wasm_call_string(String, Input, Dict)).
+
+
+%!  js_can_yield is semidet.
+%
+%   True when we can call js_yield/2. We can  _not_ yield when we are in
+%   a _callback_ from C (WASM) to Prolog.
+
+js_can_yield :-
+    '$can_yield'.
 
 
 %!  sleep(+Seconds)
