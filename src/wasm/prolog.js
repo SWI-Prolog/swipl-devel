@@ -1108,13 +1108,13 @@ class Prolog
 	      }
 	    }
 	  } else if ( data.constructor.name !== "Object" )
-	  { let id = data.prologId;
+	  { let id = data.$PrologId;
 
 	    if ( id === undefined )
 	    { id = prolog.next_object_id+1;
 	      rc = prolog.bindings.js_unify_obj(term, id);
 	      if ( rc )
-	      { data.prologId = id;
+	      { data.$PrologId = id;
 		prolog.objects[id] = data;
 		prolog.next_object_id = id;
 	      }
@@ -1510,7 +1510,7 @@ function release_registered_object(id)
 { const prolog = Module.prolog;
   const obj = prolog.objects[id];
 
-  delete obj.prologId;
+  delete obj.$PrologId;
   delete prolog.objects[id];
 }
 
