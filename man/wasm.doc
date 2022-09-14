@@ -390,6 +390,10 @@ TP = <js_Promise>(6),
 T = '% :- debug(js) ...'.
 \end{code}
 
+Calls to js_yield/2 may be asynchronously aborted by calling
+\exam{Prolog.abort()} if \arg{Promise} implements \exam{.abort()}.
+See \secref{wasm-promise-abort} for implementing such a promise.
+
     \predicate[semidet]{js_can_yield}{0}
 True when we can yield in the current state.  This implies Prolog has
 been called from JavaScript code that is prepared to deal with Prolog
@@ -397,5 +401,40 @@ yielding and Prolog is not inside a callback from C (WASM).
 \end{description}
 
 
+\subsubsection{JavaScript Promise that can be aborted}
+\label{sec:wasm-promise-abort}
 
+A \ctype{Promise} resolves or is rejected. As Prolog waits for a
+specific promise on a call to js_yield/2 we may want to abort long
+running operations. This may be achieved using the class
+\ctype{Prolog.Promise} which extends \ctype{Promise}. To make the
+promise abortable the \jargon{executor} function must have an
+\const{abort} property. Below is the code for
+\exam{Prolog.promise_sleep()} that implements this schema.  First we
+create the \jargon{executor} and use properties on the function itself
+to represent the necessary state information (here, the running timer).
+Next, we add an \const{abort} property the clears the timer and runs
+the \const{reject} callback of the \ctype{Promise}.  Finally we return
+an instance of \ctype{Prolog.Promise} which implements \exam{.abort()}.
 
+\begin{code}
+promise_sleep(time)
+{ const f = function(resolve, reject)
+  { f.reject = reject;
+    f.timer = setTimeout(() =>
+      { f.timer = undefined;
+	resolve(true);
+      }, time*1000);
+  };
+
+  f.abort = function()
+  { if ( f.timer )
+    { clearTimeout(f.timer);
+      f.timer = undefined;
+      f.reject("abort");
+    }
+  }
+
+  return new Prolog.Promise(f);
+}
+\end{code}
