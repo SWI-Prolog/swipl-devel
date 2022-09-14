@@ -158,14 +158,9 @@ js_can_yield :-
 %   `user`, overruling system:sleep/1.
 
 sleep(Seconds) :-
-    (   '$can_yield'
-    ->  js_yield(_{command:sleep, time:Seconds}, Reply),
-        term_string(Goal, Reply),
-        (   Reply == "true"
-        ->  true
-        ;   term_string(Goal, Reply),
-            ignore(call(Goal))
-        )
+    (   js_can_yield
+    ->  Promise := prolog[promise_sleep(Seconds)],
+        js_yield(Promise, _)
     ;   system:sleep(Seconds)
     ).
 

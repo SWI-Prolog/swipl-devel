@@ -1384,39 +1384,16 @@ class Query {
 				   cont.call(prolog, next(query));
 				 })
 			       .catch((error) =>
-				 { prolog.set_yield_result({$error: value});
+				 { prolog.set_yield_result({$error: error});
 				   cont.call(prolog, next(query));
 				 })
 			     }
 			   },
-			/* abort: () =>
-			   { result.request.reject();
-			   } */
-			 };
-	    return result;
-	  } else if ( request.command == "sleep" )
-	  { let result = { yield: "builtin",
-			   request: request,
-			   query: query,
-			   resume: (cont) =>
-			   { if ( typeof(cont) === "string" )
-			     { prolog.set_yield_result(cont);
-			       return next(query);
-			     } else
-			     { result.cont = cont;
-			       result.timer = setTimeout(() => {
-				 result.timer = undefined;
-				 prolog.set_yield_result("true");
-				 cont.call(prolog, next(query));
-			       }, request.time*1000);
-			     }
-			   },
 			   abort: () =>
-			   { if ( result.timer )
-			     { clearTimeout(result.timer);
-			       prolog.set_yield_result("wasm_abort");
-			       result.cont.call(prolog, next(query));
-			     }
+			   { if ( request.abort )
+			       request.abort();
+			     else
+			       console.log("Cannot abort", request);
 			   }
 			 };
 	    return result;
@@ -1507,7 +1484,20 @@ function prolog_js_call(request, result)
     { const next = ar[i];
 
       if ( typeof(next) === "string" )
-      { obj = obj[next];
+      { if ( i == 0 )
+	{ switch(next)
+	  { case "prolog":
+	      obj = prolog;
+	      break;
+	    case "window":
+	      obj = window;
+	      break;
+	    default:
+	      obj = obj[next];
+	  }
+	} else
+	{ obj = obj[next];
+	}
       } else if ( next.v !== undefined )
       { obj = next.v;
       } else
@@ -1556,6 +1546,7 @@ function release_registered_object(id)
   prolog.object_ids.delete(obj);
   delete prolog.objects[id];
 }
+
 
 if ( typeof window !== 'undefined' )
 { window.js_add_script = function(text, opts)
