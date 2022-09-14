@@ -717,7 +717,7 @@ class Prolog
       }
     }
 
-    return new AbortablePromise(f);
+    return new this.Promise(f);
   }
 
 /**
