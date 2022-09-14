@@ -1107,8 +1107,7 @@ class Prolog
 	      { rc = toList(term, data.v, data.t);
 	      }
 	    }
-	  } else if ( data.nodeType !== undefined ||	 /* DOM object */
-		      data instanceof Promise )
+	  } else if ( data.constructor.name !== "Object" )
 	  { let id = data.prologId;
 
 	    if ( id === undefined )
