@@ -63,10 +63,10 @@ const class_string = (class PrologString {
 });
 
 const class_rational = (class PrologRational {
-  constructor(d, n)
+  constructor(n, d)
   { this.$t = "r";
-    this.d = d;
     this.n = n;
+    this.d = d;
   }
 
   toNumber()

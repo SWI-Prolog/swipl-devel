@@ -248,12 +248,12 @@ Represent a Prolog string.  The key \const{v} holds the text.
 May be created using \exam{new Prolog.string(text)}.
 May be created using \exam{new Prolog.String(text)}.
        \definition{r}
-Represent a Prolog \jargon{rational number}.  The keys \const{d}
-and \const{n} represent the \jargon{denominator} and \jargon{nominator}.
+Represent a Prolog \jargon{rational number}.  The keys \const{n}
+and \const{d} represent the \jargon{numerator} and \jargon{denominator}.
 For example, to represent \exam{1r3}, use \{\const{\$t}:"r",
-\const{d}:1, \const{n}:3\}.
-May be created using \exam{new Prolog.Rational(d, n)}, where \arg{d}
-and \arg{n} can be JavaScript numbers or big integers.
+\const{n}:1, \const{d}:3\}.
+May be created using \exam{new Prolog.Rational(n, d)}, where \arg{n}
+and \arg{d} can be JavaScript numbers or big integers.
        \definition{t}
 Represent a Prolog \jargon{compound term}.  The object should hold
 exactly one key whose value is an array that holds the argument values.
@@ -341,13 +341,13 @@ If \arg{Callable} is compound it expresses a function (or method) call.
 Otherwise it accesses a property or global variable (property of
 \const{window} in a browser).
 
-Prolog values are transated according to the rules in
+Prolog values are translated according to the rules in
 \secref{wasm-data-prolog-to-js} and the result is translated back to
 Prolog according to the rules in \secref{wasm-data-js-to-prolog}.
 Because callables are translated to function calls, object properties or
 global variables we cannot directly we need an escape to pass them as
 data. This is achieved using the prefix operator \const{#}. For
-convience Prolog strings are by default translated to JavaScript
+convenience Prolog strings are by default translated to JavaScript
 \ctype{String} objects rather than \ctype{Prolog.String} instances.
 Below are some examples:
 
