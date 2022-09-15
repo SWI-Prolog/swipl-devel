@@ -11,8 +11,9 @@
 user:file_search_path(source, '../src/wasm').
 user:file_search_path(wasm,   'src').
 
-:- http_handler('/', http_redirect(see_other, '/wasm/shell'), []).
-:- http_handler('/wasm/', http_redirect(see_other, '/wasm/shell'), []).
+:- http_handler('/', http_redirect(see_other, '/wasm/'), []).
+:- http_handler('/wasm/',
+                http_reply_file(source('index.html'), []), []).
 :- http_handler('/wasm/shell',
                 http_reply_file(
                     source('shell.html'),
