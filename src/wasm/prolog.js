@@ -1489,10 +1489,15 @@ function prolog_js_call(request, result)
   { obj = obj||window;
 
     function eval_one(obj, fname, args)
-    { if ( args.length == 1 )
+    { if ( args.length == 0 )
+      { switch(fname)
+	{ case "instanceof": return obj.constructor.name;
+	}
+      } else if ( args.length == 1 )
       { switch(fname)
 	{ case "-": return -args[0];
 	  case "!": return !args[0];
+	  case "instanceof": return obj instanceof args[0];
 	}
       } else if ( args.length == 2 )
       { switch(fname)

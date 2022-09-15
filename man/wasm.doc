@@ -378,6 +378,42 @@ Below are some examples:
 \end{code}
 \end{description}
 
+Some JavaScript expressions are not implemented as functions.  The
+following ``functions'' are handled directly by the implementation.
+
+    \begin{description}
+    \termitem{instanceof}{}
+    Returns the name of the class to which the object belongs.
+    Same as \exam{Obj.constructor.name}.
+    \termitem{instanceof}{ClassName}
+    Returns a \ctype{Boolean} indicating whether the object is an
+    instance of \arg{ClassName}.  Note that the class name must be
+    an atom and as JavaScript class names normally start with a
+    capital, the names dypically need to be quoted using \emph{single}
+    quotes.  For example:
+\begin{code}
+?- W := window, T := W.instanceof('Window').
+W = <js_Window>(1),
+T = true.
+\end{code}
+    \termitem{-}{Number}
+Numerical negation
+    \termitem{!}{Any}
+Logical negation.
+    \termitem{+}{Number, Number}
+    \nodescription
+    \termitem{-}{Number, Number}
+    \nodescription
+    \termitem{*}{Number, Number}
+    \nodescription
+    \termitem{/}{Number, Number}
+    \nodescription
+    \termitem{&}{Number, Number}
+    \nodescription
+    \termitem{|}{Number, Number}
+Binary numerical operators.
+    \end{description}
+
 \subsubsection{Asynchronous access to JavaScript from Prolog}
 \label{sec:wasm-js-async-call}
 
