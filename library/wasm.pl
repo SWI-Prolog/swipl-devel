@@ -235,9 +235,9 @@ call_func(Call, One) :-
 
 
 :- multifile
-    user:goal_expansion/2.
+    system:goal_expansion/2.
 
-user:goal_expansion(In, Out) :-
+system:goal_expansion(In, Out) :-
     In = (_Left := _Right),
     mapsubterms(dot_list, In, Out),
     Out \== In.

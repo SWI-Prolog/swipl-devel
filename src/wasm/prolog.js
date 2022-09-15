@@ -547,7 +547,7 @@ class Prolog
   load_string(s, id)
   { if ( !id )
     { this.__script_id = (this.__script_id+1)||1;
-      id = "anon"+this.__script_id;
+      id = "/string/"+this.__script_id;
     }
     return this.forEach("setup_call_cleanup("+
 			   "open_string(S, _In),"+
@@ -567,6 +567,14 @@ class Prolog
     } 
   }
 
+
+  bind(e, on, goal)
+  { const prolog = this;
+
+    e.addEventListener(on, (ev) =>
+    { prolog.query(goal, {Event__:ev}).once();
+    });
+  }
 
 /**
  * Convert a Prolog message term into a string.  Notably used to
@@ -1599,3 +1607,14 @@ if ( BigInt.prototype.toJSON === undefined )
   { return this.toString();
   }
 }
+
+HTMLCollection.prototype.toList = function()
+{ const ar = [];
+  
+  for(let i=0; i<this.length; i++)
+    ar.push(this.item(i));
+
+  return ar;
+}
+
+
