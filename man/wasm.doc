@@ -376,7 +376,6 @@ Below are some examples:
    Par.textContent := #Text.
 ?- Par.textContent := "aap" + " " + "noot".
 \end{code}
-\end{description}
 
 Some JavaScript expressions are not implemented as functions.  The
 following ``functions'' are handled directly by the implementation.
@@ -413,6 +412,14 @@ Logical negation.
     \termitem{|}{Number, Number}
 Binary numerical operators.
     \end{description}
+
+    \predicate[semidet]{is_object}{1}{@Term}
+True if \arg{Term} is a reference to a JavaScript object.
+    \predicate[semidet]{is_object}{2}{@Term, ?Class}
+True when \arg{Term} is an instance of \arg{Class}.  If \arg{Class}
+is unbound it is unified with the name of the \jargon{constructor},
+otherwise a JavaScript \exam{Term instanceof Class} is executed.
+\end{description}
 
 \subsubsection{Asynchronous access to JavaScript from Prolog}
 \label{sec:wasm-js-async-call}

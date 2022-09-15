@@ -38,6 +38,8 @@
             wasm_call_string/3,         % +String, +Input, -Output
 	    wasm_call_string_with_heartbeat/3,
 				        % +String, +Input, -Output
+            is_object/1,                % @Term
+            is_object/2,                % @Term,?Class
             (:=)/2,                     % -Result, +Call
 	    js_yield/2,			% +Request, - Result
             js_can_yield/0,
@@ -164,6 +166,22 @@ sleep(Seconds) :-
     ;   system:sleep(Seconds)
     ).
 
+%!  is_object(@Term) is semidet.
+%!  is_object(@Term, ?Class) is semidet.
+%
+%   Test whether a Prolog term is a JavaScript object.
+
+is_object(Term) :-
+    blob(Term, js_object).
+
+is_object(Term, Class), atom(Class) =>
+    blob(Term, js_object),
+    true := Term.instanceof(Class).
+is_object(Term, Class), var(Class) =>
+    blob(Term, js_object),
+    Class := Term.instanceof().
+
+
 %!  :=(-Result, +Call) is det.
 %!  :=(+Target, +Value) is det.
 %
@@ -269,3 +287,17 @@ dot_list(Dot, List) :-
 js_script(String, Options) :-
     dict_options(Dict, Options),
     _ := js_add_script(String, Dict).
+
+
+		 /*******************************
+		 *           MESSAGES		*
+		 *******************************/
+
+:- multifile
+    prolog:message//1.
+
+prolog:message(JsError) -->
+    { is_object(JsError),
+      Msg := JsError.toString()
+    },
+    [ 'JavaScript: ~w'-[Msg] ].
