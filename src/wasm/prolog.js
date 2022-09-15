@@ -578,6 +578,33 @@ class Prolog
     });
   }
 
+  fetch(url, opts, type)
+  { return fetch(url, opts).then((response) => response[type]());
+  }
+
+  url_properties(url)
+  { return fetch(url, {method: 'HEAD'}).then((r) =>
+    { if ( r.status == 200 )
+      { const size = parseInt(r.headers.get("content-length"));
+	const mods = r.headers.get("last-modified");
+	const time = Date.parse(mods) || 0;
+
+	if ( ! size instanceof Number )
+	  size = -1;
+	return { url: r.url,
+		 status: r.status,
+		 size: size,
+		 last_modified: time/1000
+	       };
+      } else
+      { return { url: url,
+		 status: r.status
+	       };
+      }
+    });
+  }
+
+
 /**
  * Convert a Prolog message term into a string.  Notably used to
  * translate Prolog exceptions to meaningful messages in the JavaScript

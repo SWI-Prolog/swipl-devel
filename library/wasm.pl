@@ -52,6 +52,11 @@
           ]).
 :- autoload(library(apply), [exclude/3, maplist/3]).
 :- autoload(library(terms), [mapsubterms/3]).
+:- autoload(library(error), [instantiation_error/1, existence_error/2]).
+:- autoload(library(option), [dict_options/2]).
+
+:- use_module(library(uri), [uri_is_global/1, uri_normalized/3]).
+:- use_module(library(debug), [debug/3]).
 
 /** <module> WASM version support
 */
@@ -287,6 +292,147 @@ dot_list(Dot, List) :-
 js_script(String, Options) :-
     dict_options(Dict, Options),
     _ := js_add_script(String, Dict).
+
+
+%!  user:prolog_load_file(:File, +Options) is semidet.
+%
+%   Hook for load_files/2 that allows loading files from URLs.
+
+:- multifile user:prolog_load_file/2.
+
+user:prolog_load_file(Module:File, Options) :-
+    file_url(File, URL),
+    load_options(URL, Options, Options1, Modified),
+    (   already_loaded(URL, Modified)
+    ->  '$already_loaded'(File, URL, Module, Options)
+    ;   debug(load_file(true), 'Loading ~p', [URL]),
+        fetch(URL, text, String),
+        setup_call_cleanup(
+            open_string(String, In),
+            load_files(Module:URL, [stream(In)|Options1]),
+            close(In))
+    ).
+
+file_url(File, _), compound(File), compound_name_arity(File, _, 1) =>
+    !,
+    fail.                               % Alias(Path)
+file_url(File, URL), atom(File), uri_is_global(File) =>
+    URL = File.
+file_url(File, URL), relative_path(File, Path) =>
+    \+ is_absolute_file_name(Path),
+    (   prolog_load_context(file, Base),
+        uri_is_global(Base)
+    ->  ensure_extension(Path, pl, PlPath)
+    ;   \+ exists_source(Path),
+        ensure_extension(Path, pl, PlPath)
+    ->  Base := window.location.toString()
+    ),
+    uri_normalized(PlPath, Base, URL).
+
+relative_path(Spec, Path) :-
+    phrase(segments(Spec), Segments),
+    atomic_list_concat(Segments, '/', Path).
+
+ensure_extension(Path0, Ext, Path) :-
+    (   file_name_extension(_, Ext0, Path0),
+        user:prolog_file_type(Ext0, prolog)
+    ->  Path = Path0
+    ;   file_name_extension(Path0, Ext, Path)
+    ).
+
+segments(Var) -->
+    { var(Var),
+      !,
+      instantiation_error(Var)
+    }.
+segments(A/B) -->
+    !,
+    segments(A),
+    segments(B).
+segments(A) -->
+    { atomic(A) },
+    [A].
+
+%!  already_loaded(+URL, +Modified) is semidet.
+%
+%   True when URL was already loaded.  Modified is the last change of
+%   the URL content when known, unbound otherwise.
+
+already_loaded(URL, Modified) :-
+    source_file(URL),
+    (   var(Modified),
+        source_file_property(URL, load_count(Count)),
+        Count >= 1
+    ->  debug(load_file(false), 'Already loaded (no time info) ~p', [URL])
+    ;   source_file_property(URL, modified(Loaded)),
+        Modified-Loaded < 1
+    ->  debug(load_file(false), 'Already loaded (not modified) ~p', [URL])
+    ).
+
+load_options(URL, Options, [modified(Modified)|Options], Modified) :-
+    url_properties(URL, Properties),
+    (   200 = Properties.get(status)
+    ->  true
+    ;   existence_error(url, URL)
+    ),
+    Modified = Properties.get(last_modified),
+    Modified > 0,
+    !.
+load_options(_, Options, Options, _).
+
+%!  http(+URL, +Action, -Result)
+%
+%   Implement the file access protocol for URLs.
+%
+%   @tbd requires the ability to  yield   from  the  callbacks that hook
+%   these predicates into the file access   primitives. The hook must be
+%   defined not to get errors on unknown iri scheme.
+
+:- if(true).
+http(_,_,_) :- !, fail.
+:- else.
+http(open(read, _Options), URL, In) :-
+    fetch(URL, text, String),
+    open_string(String, In).
+http(read, URL, Bool) :-
+    url_properties(URL, Properties),
+    (   Properties.status == 200
+    ->  Bool = true
+    ;   Bool = false
+    ).
+http(time, URL, Time) :-
+    url_properties(URL, Properties),
+    (   Time = Properties.get(time),
+        Time > 0
+    ).
+http(size, URL, Size) :-
+    url_properties(URL, Properties),
+    (   Size = Properties.get(size),
+        Size >= 0
+    ).
+:- endif.
+
+:- register_iri_scheme(http, http, []).
+
+%!  url_properties(+URL, -Properties:dict) is det.
+%
+%   Asynchronously fetch properties for URL   using  a ``HEAD`` request.
+%   Properties contains the keys `url`, `status`   and on success `size`
+%   and `last_modified`.
+
+url_properties(URL, Properties) :-
+    Promise := prolog.url_properties(#URL),
+    js_yield(Promise, Properties).
+
+%!  fetch(+URL, +Type, -Data) is det.
+%
+%   Fetch the content from URL asynchronously. Type  is a method name on
+%   the Response object  returned  by   fetch(),  e.g.,  `text`, `json`,
+%   `html`.
+
+fetch(URL, As, Data) :-
+    Promise := prolog.fetch(#URL, _{cache: 'no-cache'}, #As),
+    js_yield(Promise, Data).
 
 
 		 /*******************************
