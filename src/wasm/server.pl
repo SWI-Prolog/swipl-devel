@@ -41,6 +41,14 @@ user:file_search_path(wasm,   'src').
                 http_reply_file(source('test.pl'), []), []).
 
 
+:- http_handler('/wasm/cbg',
+                http_reply_file(
+                    source('cbg.html'),
+                    [ headers([ 'Cross-Origin-Opener-Policy'('same-origin'),
+                                'Cross-Origin-Embedder-Policy'('require-corp')
+                              ])]),
+                []).
+
 :- initialization(server_loop, main).
 
 opt_type(port, port, nonneg).

@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="stylesheet" href="/css/sketchy.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootswatch/4.1.3/sketchy/bootstrap.min.css"/>
+
     <title>CBG Chords</title>
   </head>
   <body>
@@ -16,6 +17,15 @@
         comes in. Just set your tuning and check out all the different chord inversions
         we can generate for it.
       </p>
+
+      <h3>About</h3>
+      <p>
+	This page is a port of a page written by Paul Brown for
+	Tau-Prolog to <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/">SWI-Prolog for WASM</a>.  See his
+	<a href="https://pbrown.me/blog/tau_prolog_chords/">blog</a> for an
+	announcement and details.
+      </p>
+
       <p><small><a href="/4string.html">Looking for the 4-string generator? Click here.</a></small></p>
       <div>
         <hr/>
@@ -80,11 +90,9 @@
       </div>
     </div>
 
-    <script src="/js/tau/cbg-tau.js"></script>
-
     <script type="text/prolog" id="code.pl">
-:- use_module(library(lists)).
 :- use_module(library(dom)).
+:- use_module(library(lists)).
 
 % Notes
 note(a, flat, 'A♭').
@@ -362,18 +370,49 @@ add_tab_pairs(UL, Tab-Notes) :-
 
     </script>
 
-    <script>
-      const session = pl.create(10000)
-      const parsed = session.consult("code.pl",
-          { success: function () {},
-            error: function (err) { console.log(err)}
-          })
-      const query = session.query("init.")
-      // session.answer needs a callback function, here we "mute" the output
-      session.answer((a) => {})
-      // unmuted:
-      // session.answer((a) => console.log(pl.format_answer(a)))
-    </script>
+<!-- Get SWI-Prolog going.  First we create a node for output from
+Prolog.  This is not needed as the output is otherwise sent to
+the browser console.  This makes debugging a little more pleasant.
+-->
 
-  </body>
+<!-- Temp Prolog output for debugging -->
+<div id="output"></div>
+<style>
+.stderr { color: red; }
+.stderr, .stdout, .query {
+  white-space: pre-wrap;
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+#output { margin-top: 1.5ex; }
+</style>
+
+    <script src="/wasm/swipl-web.js"></script>
+
+    <script>
+
+let Prolog;
+var Module = {
+    arguments: ["-q"],
+    locateFile: (file) => '/wasm/' + file,
+    on_output: print
+};
+
+SWIPL(Module).then((module) =>
+{ Prolog = Module.prolog;
+
+  Prolog.load_scripts().then(() =>
+    Prolog.call("init"));
+});
+
+function print(line, cls)
+{ const node = document.createElement('span');
+
+  node.className = cls;
+  node.textContent = line;
+  output.appendChild(node);
+};
+
+</script>
+
 </html>
