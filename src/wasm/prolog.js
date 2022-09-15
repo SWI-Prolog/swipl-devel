@@ -544,6 +544,30 @@ class Prolog
   }
 
 
+  load_string(s, id)
+  { if ( !id )
+    { this.__script_id = (this.__script_id+1)||1;
+      id = "anon"+this.__script_id;
+    }
+    return this.forEach("setup_call_cleanup("+
+			   "open_string(S, _In),"+
+			   "load_files(Id, [stream(_In)]),"+
+			   "close(_In))",
+			{S:new this.String(s), Id:id});
+  }
+
+  async load_scripts()
+  { const prolog = this;
+    const scripts = document.querySelectorAll("script[type='text/prolog']");
+
+    for(let i = 0; i<scripts.length; i++)
+    { const s = scripts[i];
+
+      await prolog.load_string(s.text, `/script/${s.id||s.name||i+1}`);
+    } 
+  }
+
+
 /**
  * Convert a Prolog message term into a string.  Notably used to
  * translate Prolog exceptions to meaningful messages in the JavaScript
