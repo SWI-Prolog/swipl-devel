@@ -909,7 +909,7 @@ class Prolog
 
   set_yield_result(obj)
   { this.with_frame(() =>
-    { const term = this.toProlog(obj);
+    { const term = this.toProlog(obj, undefined, {string:"string"});
 
       this.bindings.WASM_set_yield_result(term);
     }, true);
@@ -1116,8 +1116,11 @@ class Prolog
 	  rc = prolog.put_bigint(term, data);
 	  break;
 	case "string":
-	  rc = prolog.put_chars(term, data, prolog.PL_ATOM);
+	{ const flags = ctx.string === "string" ? prolog.PL_STRING
+		                                : prolog.PL_ATOM;
+	  rc = prolog.put_chars(term, data, flags);
 	  break;
+	}
 	case "boolean":
 	  rc = prolog.put_chars(term, data ? "true" : "false", prolog.PL_ATOM);
 	  break;

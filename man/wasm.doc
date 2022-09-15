@@ -434,12 +434,14 @@ in \secref{wasm-calling}.
 
 \begin{description}
     \predicate[det]{js_yield}{2}{+Promise, -Result}
-Yield the Prolog VM, returning control back to JavaScript.  When this
-is called from Prolog invoked using \exam{Prolog.forEach()}, execution
-of js_yield/2 completes when the \arg{Promise} resolves and \arg{Result}
-is unified with the value passed to the \exam{Promise.then()} method.
-When the \arg{Promise} is rejected js_yield/2 throws an exception.  Note
-that this allows, for example, downloading a URL from Prolog:
+Yield the Prolog VM, returning control back to JavaScript. When this is
+called from Prolog invoked using \exam{Prolog.forEach()}, execution of
+js_yield/2 completes when the \arg{Promise} resolves and \arg{Result} is
+unified with the value passed to the \exam{Promise.then()} method. As an
+exception to the normal conversion rules, if the result is a single
+\ctype{String}, it is returned as a Prolog string rather than an atom.
+When the \arg{Promise} is rejected js_yield/2 throws an exception. Note
+that js_yield/2 allows, for example, downloading a URL from Prolog:
 
 \begin{code}
 ?- FP := fetch("test.pl"), js_yield(FP, Response),
@@ -447,7 +449,7 @@ that this allows, for example, downloading a URL from Prolog:
 FP = <js_Promise>(4),
 Response = <js_Response>(5),
 TP = <js_Promise>(6),
-T = '% :- debug(js) ...'.
+T = "% :- debug(js) ...".
 \end{code}
 
 Calls to js_yield/2 may be asynchronously aborted by calling
