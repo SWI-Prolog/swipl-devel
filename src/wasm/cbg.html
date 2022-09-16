@@ -8,7 +8,7 @@
     <title>CBG Chords</title>
   </head>
   <body>
-    <div class="container">
+    <div class="container mt-4">
       <h1>CBG Chords</h1>
       <p class="lead">
         When it comes to Cigar Box Guitars, there are no rules. So you can tune
@@ -20,13 +20,9 @@
 
       <h3>About</h3>
       <p>
-	This page is a port of a page written by Paul Brown for
-	Tau-Prolog to <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/">SWI-Prolog for WASM</a>.  See his
-	<a href="https://pbrown.me/blog/tau_prolog_chords/">blog</a> for an
-	announcement and details.
+	This is a port of an web app initially written for Tau-Prolog to <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm/">SWI-Prolog for WASM</a>.
       </p>
 
-      <p><small><a href="/4string.html">Looking for the 4-string generator? Click here.</a></small></p>
       <div>
         <hr/>
         <h2 class="text-center">Tuning</h2>
@@ -57,7 +53,7 @@
           <button type="button" id="tuning" class="btn btn-primary">Set Tuning</button>
         </form>
       </div>
-      <div>
+      <div class="mb-3">
         <hr/>
         <h2 class="text-center">Chords</h2>
         <form>
@@ -88,6 +84,10 @@
         <div id="chords">
         </div>
       </div>
+      <hr/>
+      <footer class="footer mt-5 bt">
+	<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc/4.0/88x31.png" /></a><br /><span xmlns:dct="http://purl.org/dc/terms/" href="http://purl.org/dc/dcmitype/InteractiveResource" property="dct:title" rel="dct:type">CBG Chords</span> by <span xmlns:cc="http://creativecommons.org/ns#" property="cc:attributionName">Paul Brown</span> is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br />Based on a work at: <a xmlns:dct="http://purl.org/dc/terms/" href="https://pbrown.me/cbg.html" rel="dct:source">https://pbrown.me/cbg.html</a>.  See also: <a href="https://pbrown.me/blog/tau_prolog_chords/">blog post</a> with initial announcement and details.
+      </footer>
     </div>
 
     <script type="text/prolog" id="code.pl">
