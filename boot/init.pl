@@ -2715,7 +2715,7 @@ load_files(Module:Files, Options) :-
     '$restore_file_scoped_flags'(T).
 
 
-%!  '$import_from_loaded_module'(LoadedModule, Module, Options) is det.
+%! '$import_from_loaded_module'(+LoadedModule, +Module, +Options) is det.
 %
 %   Import public predicates from LoadedModule into Module
 
