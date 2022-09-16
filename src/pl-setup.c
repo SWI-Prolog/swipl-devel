@@ -515,9 +515,7 @@ dispatch_signal(int sig, int sync)
   }
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
-#if O_SIGNALS
-       && !(sig == SIGINT && sh->handler == PL_interrupt)
-#endif
+       && sh->handler != PL_interrupt
        && !is_fatal_signal(sig)	)
   { PL_raise(sig);			/* wait for better times! */
     return;
