@@ -412,7 +412,8 @@ http(size, URL, Size) :-
     ).
 :- endif.
 
-:- register_iri_scheme(http, http, []).
+:- register_iri_scheme(http,  http, []).
+:- register_iri_scheme(https, http, []).
 
 %!  url_properties(+URL, -Properties:dict) is det.
 %
