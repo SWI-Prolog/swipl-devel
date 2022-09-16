@@ -5,11 +5,14 @@
 %     swipl ../src/wasm/server.pl
 %
 :- use_module(library(http/http_server)).
+:- use_module(library(http/http_files)).
 :- use_module(library(main)).
 :- use_module(library(option)).
 
 user:file_search_path(source, '../src/wasm').
 user:file_search_path(wasm,   'src').
+user:file_search_path(scasp,  Dir) :-
+    getenv('SCASP_HOME', Dir).
 
 :- http_handler('/', http_redirect(see_other, '/wasm/'), []).
 :- http_handler('/wasm/',
@@ -49,6 +52,12 @@ user:file_search_path(wasm,   'src').
                                 'Cross-Origin-Embedder-Policy'('require-corp')
                               ])]),
                 []).
+
+
+:- if(absolute_file_name(scasp(.), _, [file_type(directory)])).
+:- http_handler('/wasm/scasp/', http_reply_from_files(scasp(.), []), [prefix]).
+:- endif.
+
 
 :- initialization(server_loop, main).
 
