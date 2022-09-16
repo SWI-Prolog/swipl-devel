@@ -516,7 +516,7 @@ dispatch_signal(int sig, int sync)
 
   if ( (LD->critical || (true(sh, PLSIG_SYNC) && !sync))
 #if O_SIGNALS
-       && sig != SIGINT
+       && !(sig == SIGINT && sh->handler == PL_interrupt)
 #endif
        && !is_fatal_signal(sig)	)
   { PL_raise(sig);			/* wait for better times! */
@@ -1405,7 +1405,7 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     } else if ( a == ATOM_debug )
     { sh = prepareSignal(sign, 0);
 
-      sh->handler = (handler_t)PL_interrupt;
+      sh->handler = PL_interrupt;
       sh->predicate = NULL;
 
     } else
