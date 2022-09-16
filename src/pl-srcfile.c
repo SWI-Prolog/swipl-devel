@@ -614,6 +614,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
     { term_t tail = PL_copy_term_ref(A2);
       term_t head = PL_new_term_ref();
       ListCell cell;
+      rc = TRUE;
 
       LOCKSRCFILE(sf);
       for(cell=sf->procedures; rc && cell; cell = cell->next )
