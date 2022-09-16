@@ -79,6 +79,7 @@ Ported from YAP 5.0.1 to SWI-Prolog by Jan Wielemaker.
 :- autoload(library(lists),[append/3]).
 :- autoload(library(ordsets),
 	    [ord_subtract/3,ord_union/3,ord_add_element/3,ord_union/4]).
+:- autoload(library(error), [instantiation_error/1]).
 
 %!  vertices(+Graph, -Vertices)
 %

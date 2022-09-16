@@ -40,10 +40,11 @@
             ansi_hyperlink/2,           % +Stream,+Location
             ansi_hyperlink/3            % +Stream,+URL,+Label
           ]).
-:- autoload(library(error),[domain_error/2,must_be/2]).
-:- autoload(library(lists),[append/3]).
+:- autoload(library(error), [domain_error/2, must_be/2, instantiation_error/1]).
+:- autoload(library(lists), [append/3]).
+:- autoload(library(uri), [uri_file_name/2]).
 :- if(exists_source(library(time))).
-:- autoload(library(time),[call_with_time_limit/2]).
+:- autoload(library(time), [call_with_time_limit/2]).
 :- endif.
 
 
