@@ -129,12 +129,14 @@ const class_abortable_promise = (class AbortablePromise extends Promise {
   { super(executer);
     this.executer = executer;
   }
-  
+
   abort()
   { if ( this.executer.abort )
-      this.executer.abort();
+      return this.executer.abort();
     else
       console.log("Cannot abort promise");
+
+    return false;
   }
 });
 
@@ -564,7 +566,7 @@ class Prolog
     { const s = scripts[i];
 
       await prolog.load_string(s.text, `/script/${s.id||s.name||i+1}`);
-    } 
+    }
   }
 
 
@@ -693,7 +695,7 @@ class Prolog
 	      case "builtin":
                 return rc.resume((rc) => next_foreach(rc));
 	      default:		// unsupported yield
-	        throw(rc); 
+	        throw(rc);
 	    }
 	  } else if ( rc.value )
 	  { if ( callback )
@@ -946,7 +948,7 @@ class Prolog
     const q = this.query(module, flags, pred_call1, term, fid);
     return q.next_yieldable();
   }
-  
+
 
 		 /*******************************
 		 *	     CONVERSION		*
@@ -1378,7 +1380,7 @@ class Query {
   next_yieldable()
   { function next(query)
     { const prolog = query.prolog;
-      
+
       while(true)
       { let rc = query.next();
 
@@ -1422,10 +1424,10 @@ class Query {
 			     }
 			   },
 			   abort: () =>
-			   { if ( request.abort )
-			       request.abort();
-			     else
-			       console.log("Cannot abort", request);
+			   { if ( !(request.abort && request.abort()) )
+			     { console.log("Cannot abort", request);
+			       prolog.abort_request = true;
+			     }
 			   }
 			 };
 	    return result;
@@ -1615,7 +1617,7 @@ if ( BigInt.prototype.toJSON === undefined )
 
 HTMLCollection.prototype.toList = function()
 { const ar = [];
-  
+
   for(let i=0; i<this.length; i++)
     ar.push(this.item(i));
 
