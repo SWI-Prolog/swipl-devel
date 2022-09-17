@@ -988,11 +988,20 @@ default_module(Me, Super) :-
                 *        SYSTEM MESSAGES        *
                 *********************************/
 
-%!  '$confirm'(Spec)
+%!  '$confirm'(Spec) is semidet.
 %
-%   Ask the user to confirm a question.  Spec is a term as used for
-%   print_message/2.
+%   Ask the user  to confirm a question.   Spec is a term  as used for
+%   print_message/2.   It is  printed the  the `query`  channel.  This
+%   predicate may be hooked  using prolog:confirm/2, which must return
+%   a boolean.
 
+:- multifile
+    prolog:confirm/2.
+
+'$confirm'(Spec) :-
+    prolog:confirm(Spec, Result),
+    !,
+    Result == true.
 '$confirm'(Spec) :-
     print_message(query, Spec),
     between(0, 5, _),

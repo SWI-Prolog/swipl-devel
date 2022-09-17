@@ -451,6 +451,19 @@ fetch(URL, As, Data) :-
     js_yield(Promise, Data).
 
 
+%!  prolog:confirm(+Message, -Boolean) is semidet.
+%
+%   Conform  some  action.   Currently uses  the  browser's  confirm()
+%   method.
+
+:- multifile
+       prolog:confirm/2.
+
+prolog:confirm(Message, Result) :-
+    message_to_string(Message, String),
+    Result := window.confirm(String).
+
+
 		 /*******************************
 		 *           MESSAGES		*
 		 *******************************/
