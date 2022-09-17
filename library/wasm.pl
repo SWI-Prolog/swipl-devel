@@ -360,9 +360,7 @@ segments(A) -->
 
 already_loaded(URL, Modified) :-
     source_file(URL),
-    (   var(Modified),
-        source_file_property(URL, load_count(Count)),
-        Count >= 1
+    (   var(Modified)
     ->  debug(load_file(false), 'Already loaded (no time info) ~p', [URL])
     ;   source_file_property(URL, modified(Loaded)),
         Modified-Loaded < 1
@@ -378,7 +376,8 @@ load_options(URL, Options, [modified(Modified)|Options], Modified) :-
     Modified = Properties.get(last_modified),
     Modified > 0,
     !.
-load_options(_, Options, Options, _).
+load_options(_, Options, [modified(Now)|Options], _) :-
+    get_time(Now).
 
 %!  http(+URL, +Action, -Result)
 %
@@ -417,13 +416,29 @@ http(size, URL, Size) :-
 
 %!  url_properties(+URL, -Properties:dict) is det.
 %
-%   Asynchronously fetch properties for URL   using  a ``HEAD`` request.
-%   Properties contains the keys `url`, `status`   and on success `size`
-%   and `last_modified`.
+%   Asynchronously fetch properties for  URL using a ``HEAD`` request.
+%   Properties contains the keys `url`, `status` and on success `size`
+%   and `last_modified`.  We  cache the result for at  least 5 seconds
+%   or 20 times the time to fetch it.
+
+:- dynamic
+       url_property_cache/3.
 
 url_properties(URL, Properties) :-
+    url_property_cache(URL, Properties, Expire),
+    get_time(Now),
+    (   Now < Expire
+    ->  !
+    ;   retractall(url_property_cache(URL, _, _)),
+        fail
+    ).
+url_properties(URL, Properties) :-
     Promise := prolog.url_properties(#URL),
-    js_yield(Promise, Properties).
+    get_time(Start),
+    js_yield(Promise, Properties),
+    get_time(Now),
+    Expire is Now + max(5, (Now-Start)*20),
+    asserta(url_property_cache(URL, Properties, Expire)).
 
 %!  fetch(+URL, +Type, -Data) is det.
 %
