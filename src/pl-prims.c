@@ -6101,7 +6101,7 @@ PRED_IMPL("throw", 1, throw, 0)
 }
 
 static
-PRED_IMPL("$urgent_exception", 1, urgent_exception, 0)
+PRED_IMPL("$urgent_exception", 3, urgent_exception, 0)
 { PRED_LD
   except_class c1 = classify_exception(A1);
   except_class c2 = classify_exception(A2);
@@ -6219,5 +6219,5 @@ BeginPredDefs(prims)
   PRED_DEF("$skip_list", 3, skip_list, 0)
   PRED_DEF("$seek_list", 4, seek_list, 0)
   PRED_DEF("throw", 1, throw, PL_FA_ISO)
-  PRED_DEF("$urgent_exception", 1, urgent_exception, 0)
+  PRED_DEF("$urgent_exception", 3, urgent_exception, 0)
 EndPredDefs
