@@ -157,6 +157,53 @@ body {
   </div>
 </div>
 
+<script type="text/prolog" id="wasm_shell.pl">
+:- module(wasm_shell, []).
+:- multifile prolog_edit:edit_source/1.
+
+%!  prolog_edit:edit_source(++Spec)
+%
+%   Make edit/1 work by filling the editor and trying to select the
+%   right line.
+
+prolog_edit:edit_source(Spec) :-
+    memberchk(file(File), Spec),
+    load_file(File, String),
+    document.getElementById("file").value := String,
+    (   range(String, Start-End, Spec)
+    ->  _ := document.getElementById("file").focus(),
+        _ := document.getElementById("file")
+		.setSelectionRange(Start,End)
+    ;   true
+    ).
+
+load_file(Spec, String) :-
+    uri_is_global(Spec),
+    !,
+    wasm:fetch(Spec, text, String).
+load_file(Spec, String) :-
+    setup_call_cleanup(
+        open(Spec, read, In),
+        read_string(In, _Len, String),
+        close(In)).
+
+range(String, Range, Pos) :-
+    setup_call_cleanup(
+	open_string(String, In),
+	range_stream(In, Range, Pos),
+	close(In)).
+
+range_stream(In, Range, Options) :-
+    memberchk(line(Line), Options),
+    forall(between(1, Line, _), skip(In, 0'\n)),
+    character_count(In, Start),
+    skip(In, 0'\n),
+    character_count(In, End1),
+    End is End1 - 1,
+    Range = Start-End.
+
+</script>
+
 <script src="/wasm/swipl-web.js"></script>
 
 <script>
@@ -442,6 +489,7 @@ SWIPL(Module).then((module) =>
       restoreFiles();
       pl("set_prolog_flag(tty_control, true)");
       pl("working_directory(_, '/prolog')");
+      Prolog.load_scripts();
 
       toplevel();
     });
