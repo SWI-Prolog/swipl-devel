@@ -173,7 +173,7 @@ load_trie(IOSTREAM *fd)
 
 static PL_blob_t trie_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE,
+  0,
   "trie",
   release_trie_ref,
   NULL,
