@@ -902,7 +902,7 @@ read_expanded_query(BreakLev, ExpandedQuery, ExpandedBindings) :-
 read_query(_Prompt, Goal, Bindings) :-
     '$can_yield',
     !,
-    js_yield(goal, GoalString),
+    await(goal, GoalString),
     term_string(Goal, GoalString, [variable_names(Bindings)]).
 :- endif.
 read_query(Prompt, Goal, Bindings) :-
@@ -1636,7 +1636,7 @@ self_bounded(binding([Name], Value, [])) :-
 get_respons(Action, _Chp) :-
     '$can_yield',
     !,
-    js_yield(more, ActionS),
+    await(more, ActionS),
     atom_string(Action, ActionS).
 :- endif.
 get_respons(Action, Chp) :-

@@ -944,7 +944,7 @@ class Prolog
 
 /**
  * Call a goal that may yield.  When no yield happens this returns the
- * result of Query.next().  If the predicate called js_yield/2 an
+ * result of Query.next().  If the predicate called await/2 an
  * the returned object contains a key `yield` that either
  * holds a string or a JSON object representing the request.  The key
  * `resume` is a function that should be called to resume Prolog with

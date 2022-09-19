@@ -69,7 +69,7 @@ WASM_variable_id(term_t t)
 
 #define CHARS_FLAGS (REP_UTF8|CVT_EXCEPTION|CVT_ATOM|CVT_STRING|CVT_LIST)
 
-/** js_yield(+In, -Out) is det.
+/** '$await'(+In, -Out) is det.
  *
  * Yield execution to JavaScript, passing In (a string) and receiving
  * Out
@@ -80,7 +80,7 @@ static term_t yield_result  = 0;
 static int    yield_unified = FALSE;
 
 static
-PRED_IMPL("$js_yield", 2, js_yield, PL_FA_NONDETERMINISTIC)
+PRED_IMPL("$await", 2, await, PL_FA_NONDETERMINISTIC)
 { switch(CTX_CNTRL)
   { case FRG_FIRST_CALL:
     { yield_request = A1;
@@ -242,7 +242,7 @@ js_get_obj(term_t t)
 		 *******************************/
 
 BeginPredDefs(wasm)
-  PRED_DEF("$js_yield",     2, js_yield,      PL_FA_NONDETERMINISTIC)
+  PRED_DEF("$await",        2, await,         PL_FA_NONDETERMINISTIC)
   PRED_DEF("js_run_script", 1, js_run_script, 0)
   PRED_DEF("$js_call",      2, js_call,       0)
 EndPredDefs

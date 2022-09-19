@@ -433,31 +433,31 @@ may yield. This is implemented by \exam{Prolog.forEach()} as described
 in \secref{wasm-calling}.
 
 \begin{description}
-    \predicate[det]{js_yield}{2}{+Promise, -Result}
+    \predicate[det]{await}{2}{+Promise, -Result}
 Yield the Prolog VM, returning control back to JavaScript. When this is
 called from Prolog invoked using \exam{Prolog.forEach()}, execution of
-js_yield/2 completes when the \arg{Promise} resolves and \arg{Result} is
+await/2 completes when the \arg{Promise} resolves and \arg{Result} is
 unified with the value passed to the \exam{Promise.then()} method. As an
 exception to the normal conversion rules, if the result is a single
 \ctype{String}, it is returned as a Prolog string rather than an atom.
-When the \arg{Promise} is rejected js_yield/2 throws an exception. Note
-that js_yield/2 allows, for example, downloading a URL from Prolog:
+When the \arg{Promise} is rejected await/2 throws an exception. Note
+that await/2 allows, for example, downloading a URL from Prolog:
 
 \begin{code}
-?- FP := fetch("test.pl"), js_yield(FP, Response),
-   TP := Response.text(), js_yield(TP, T).
+?- FP := fetch("test.pl"), await(FP, Response),
+   TP := Response.text(), await(TP, T).
 FP = <js_Promise>(4),
 Response = <js_Response>(5),
 TP = <js_Promise>(6),
 T = "% :- debug(js) ...".
 \end{code}
 
-Calls to js_yield/2 may be asynchronously aborted by calling
+Calls to await/2 may be asynchronously aborted by calling
 \exam{Prolog.abort()} if \arg{Promise} implements \exam{.abort()}.
 See \secref{wasm-promise-abort} for implementing such a promise.
 
-    \predicate[semidet]{js_can_yield}{0}
-True when we can yield in the current state.  This implies Prolog has
+    \predicate[semidet]{is_async}{0}
+True when we can call await/2 in the current state.  This implies Prolog has
 been called from JavaScript code that is prepared to deal with Prolog
 yielding and Prolog is not inside a callback from C (WASM).
 \end{description}
@@ -467,7 +467,7 @@ yielding and Prolog is not inside a callback from C (WASM).
 \label{sec:wasm-promise-abort}
 
 A \ctype{Promise} resolves or is rejected. As Prolog waits for a
-specific promise on a call to js_yield/2 we may want to abort long
+specific promise on a call to await/2 we may want to abort long
 running operations. This may be achieved using the class
 \ctype{Prolog.Promise} which extends \ctype{Promise}. To make the
 promise abortable the \jargon{executor} function must have an

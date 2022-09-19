@@ -41,8 +41,8 @@
             is_object/1,                % @Term
             is_object/2,                % @Term,?Class
             (:=)/2,                     % -Result, +Call
-	    js_yield/2,			% +Request, - Result
-            js_can_yield/0,
+	    await/2,			% +Request, - Result
+            is_async/0,
             sleep/1,
             js_script/2,                % +String, +Options
 
@@ -96,7 +96,7 @@ with_heartbeat(Goal) :-
 
 prolog:heartbeat :-
     (   '$can_yield'
-    ->  js_yield(beat, Reply),
+    ->  await(beat, Reply),
         (   Reply == "true"
         ->  true
         ;   term_string(Goal, Reply),
@@ -133,13 +133,13 @@ wasm_call_string_with_heartbeat(String, Input, Dict) :-
     with_heartbeat(wasm_call_string(String, Input, Dict)).
 
 
-%!  js_yield(+Request, -Result) is det.
+%!  await(+Request, -Result) is det.
 %
 %   Call asynchronous behavior.  Request is normally a JavaScript
 %   Promise instance.
 
-js_yield(Request, Result) :-
-    '$js_yield'(Request, Result0),
+await(Request, Result) :-
+    '$await'(Request, Result0),
     (   is_dict(Result0),
         get_dict('$error', Result0, Error)
     ->  (   Error == abort
@@ -150,12 +150,12 @@ js_yield(Request, Result) :-
     ).
 
 
-%!  js_can_yield is semidet.
+%!  is_async is semidet.
 %
-%   True when we can call js_yield/2. We can  _not_ yield when we are in
+%   True when we can call await/2. We can  _not_ yield when we are in
 %   a _callback_ from C (WASM) to Prolog.
 
-js_can_yield :-
+is_async :-
     '$can_yield'.
 
 
@@ -165,9 +165,9 @@ js_can_yield :-
 %   `user`, overruling system:sleep/1.
 
 sleep(Seconds) :-
-    (   js_can_yield
+    (   is_async
     ->  Promise := prolog[promise_sleep(Seconds)],
-        js_yield(Promise, _)
+        await(Promise, _)
     ;   system:sleep(Seconds)
     ).
 
@@ -435,7 +435,7 @@ url_properties(URL, Properties) :-
 url_properties(URL, Properties) :-
     Promise := prolog.url_properties(#URL),
     get_time(Start),
-    js_yield(Promise, Properties),
+    await(Promise, Properties),
     get_time(Now),
     Expire is Now + max(5, (Now-Start)*20),
     asserta(url_property_cache(URL, Properties, Expire)).
@@ -448,7 +448,7 @@ url_properties(URL, Properties) :-
 
 fetch(URL, As, Data) :-
     Promise := prolog.fetch(#URL, _{cache: 'no-cache'}, #As),
-    js_yield(Promise, Data).
+    await(Promise, Data).
 
 
 %!  prolog:confirm(+Message, -Boolean) is semidet.
