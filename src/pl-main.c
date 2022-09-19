@@ -153,6 +153,20 @@ main(int argc, char **argv)
 		 *   AddressSanitizer support   *
 		 *******************************/
 
+/* Clang way to detect address_sanitizer */
+#ifndef __has_feature
+  #define __has_feature(x) 0
+#endif
+#ifndef __SANITIZE_ADDRESS__
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+
+#ifdef __SANITIZE_ADDRESS__
+#include <sanitizer/lsan_interface.h>
+#endif
+
 #ifdef __SANITIZE_ADDRESS__
 const char*
 __asan_default_options()

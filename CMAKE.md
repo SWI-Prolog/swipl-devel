@@ -308,8 +308,8 @@ without recompilation. The downside is that   Valgrind makes the program
 run about 20 times slower. The slowdown   by AddressSanitizer is about a
 factor two. To compile for using with AddressSanitizer, do e.g.,
 
-    % mkdir build.sanitize
-    % cd build.sanitize
+    % mkdir build.asan
+    % cd build.asan
     % cmake -DCMAKE_BUILD_TYPE=Sanitize -G Ninja ..
     % ninja
 
@@ -331,6 +331,10 @@ by setting `ASAN_OPTIONS`:
 This option also causes Prolog  __not__   to  unload foreign extensions,
 which is needed to  make  ASAN   properly  report  locations  in foreign
 extensions.
+
+AddressSanitizer is reported (by Alessandro Bartolucci)   not to work on
+Apple using the xCode AppleClang. It should  work with a non-Apple Clang
+or GCC version.
 
 
 ## Packaging

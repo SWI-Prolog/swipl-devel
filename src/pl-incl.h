@@ -79,6 +79,16 @@
  */
 #define PL_OPAQUE(type) type
 
+/* Clang way to detect address_sanitizer */
+#ifndef __has_feature
+  #define __has_feature(x) 0
+#endif
+#ifndef __SANITIZE_ADDRESS__
+#if __has_feature(address_sanitizer)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+
 #ifdef __SANITIZE_ADDRESS__
 #include <sanitizer/lsan_interface.h>
 #endif
@@ -1600,7 +1610,7 @@ struct definition
   gen_t		last_modified;		/* Generation I was last modified */
   struct event_list  *events;		/* Forward update events */
   struct table_props *tabling;		/* Extended properties for tabling */
-#ifdef __SANITIZE_ADDRESS__
+#if defined(__SANITIZE_ADDRESS__)
   char	       *name;			/* Name for debugging */
 #endif
 #ifdef O_PROF_PENTIUM
@@ -2218,9 +2228,13 @@ alt_segv_handler().
 Note that we  use  setjmp()  rather   than  sigsetjmp().  The  latter is
 simpler, but a lot slower as it  implies   a  system  call. We assume no
 other signals are involved and unblock SIGSEGV by hand.
+
+Note that AddressSanitizer doesn't like these tricks, so we must disable
+stack guarding when compiling with the address sanitizer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#if O_SIGNALS && defined(HAVE_SIGALTSTACK) && !defined(__SANITIZE_ADDRESS__)
+#if O_SIGNALS && defined(HAVE_SIGALTSTACK) && \
+    !defined(__SANITIZE_ADDRESS__)
 #define O_C_STACK_GUARDED 1
 #define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
 	do						\
