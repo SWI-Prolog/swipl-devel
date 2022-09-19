@@ -16,6 +16,7 @@ include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 include(LibIndex)
+include("../../cmake/BuildType.cmake")
 
 if(MULTI_THREADED)
   set(O_PLMT 1)
