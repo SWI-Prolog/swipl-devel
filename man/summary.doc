@@ -25,6 +25,7 @@ suggest predicates from a keyword.
 \oppredsummary{*->}{2}{xfy}{1050}{Soft-cut}
 \predicatesummary{.}{2}{Consult. Also functional notation}
 \oppredsummary{:<}{2}{xfx}{700}{Select keys from a dict}
+\oppredsummary{:=}{2}{xfx}{700}{WASM: Call JavaScript}
 \oppredsummary{;}{2}{xfy}{1100}{Disjunction of two goals}
 \oppredsummary{<}{2}{xfx}{700}{Arithmetic smaller}
 \oppredsummary{=}{2}{xfx}{700}{True when arguments are unified}
@@ -111,6 +112,7 @@ suggest predicates from a keyword.
 \predicatesummary{autoload}{2}{Declare a file for autoloading specific predicates}
 \predicatesummary{autoload_all}{0}{Autoload all predicates now}
 \predicatesummary{autoload_path}{1}{Add directories for autoloading}
+\predicatesummary{await}{2}{WASM: Wait for a Promise}
 \predicatesummary{b_getval}{2}{Fetch backtrackable global variable}
 \predicatesummary{b_set_dict}{3}{Destructive assignment on a dict}
 \predicatesummary{b_setval}{2}{Assign backtrackable global variable}
@@ -371,11 +373,14 @@ suggest predicates from a keyword.
 \oppredsummary{is}{2}{xfx}{700}{Evaluate arithmetic expression}
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
+\predicatesummary{is_async}{0}{WASM: Test Prolog can call await/2}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_engine}{1}{Type check for an engine handle}
 \predicatesummary{is_list}{1}{Type check for a list}
 \predicatesummary{is_most_general_term}{1}{Type check for general term}
+\predicatesummary{is_object}{1}{WASM: Test JavaScript object}
+\predicatesummary{is_object}{2}{WASM: Test JavaScript object and class}
 \predicatesummary{is_stream}{1}{Type check for a stream handle}
 \predicatesummary{is_trie}{1}{Type check for a trie handle}
 \predicatesummary{is_thread}{1}{Type check for an thread handle}

@@ -92,10 +92,28 @@ insert a \verb$<span>$ element that has (at least) the following style:
 \subsection{Loading Prolog files}
 \label{sec:wasm-consult}
 
-There are three ways to load Prolog code: (1) loading from a string,
-(2) loading from \verb$<script>$ elements and (3) loading from URL.
-Note that all the loading methods return a \ctype{Promise} that is
-resolved when loading the data is completed.
+The WASM build ships with the Prolog library and thus Prolog code can be
+loaded using use_module/1, etc., for example, we can include the
+\const{lists} library using this directive.
+
+\begin{code}
+:- use_module(library(lists)).
+\end{code}
+
+When Prolog is in \jargon{asynchronous} mode, i.e., called through
+\cfuncref{Prolog.forEach}{}, we can also load code from a \jargon{URL}.
+For example, we can load the \const{CHAT80} demo program directly from
+\href{https://github.com/JanWielemaker/chat80}{GitHub} using
+
+\begin{code}
+?- consult('https://raw.githubusercontent.com/JanWielemaker/chat80/master/prolog/chat80.pl').
+\end{code}
+
+
+There are three ways to load Prolog code from JavaScript: (1) loading
+from a string, (2) loading from \verb$<script>$ elements and (3) loading
+from URL. Note that all the loading methods return a \ctype{Promise}
+that is resolved when loading the data is completed.
 
 \begin{description}
     \cfunction{Promise}{Prolog.load_string}{String, Id}
@@ -190,15 +208,21 @@ or the \exam{Promise.finally()} method to wait for completion.
 \subsection{The JavaScript class Query}
 \label{sec:wasm-query}
 
+The method \cfuncref{Prolog.query}{} returns an instance of the
+JavaScript class \ctype{Query} that may be used to explore the
+solutions of the query.  The \ctype{Query} class implements the
+JavaScript \jargon{iterator} protocol.
+
+
 \begin{description}
-    \cfunction{Object}{next}{}
+    \cfunction{Object}{Query.next}{}
 Implements the \jargon{iterator} protocol. This returns an object
 holding the keys \const{done} and \const{value}.  If exception
 handling is enabled it returns an object
 \{\const{done}:\const{true}, {\const{error}:\const{true},
 \const{message}:\arg{String}\}.
 
-    \cfunction{Object}{once}{}
+    \cfunction{Object}{Query.once}{}
 Close the query after the first answer.  Returns the \exam{.value}
 of the object returned by \exam{.next()} on success and the complete
 object on failure or error.  Thus, the return value maye contain these
@@ -214,7 +238,7 @@ letter and this is thus not ambiguous.
 Query raised an exception.
     \end{description}
 
-    \cfunction{Object}{close}{}
+    \cfunction{Object}{Query.close}{}
 Closes the query.  This can be used inside the iterator to stop
 further enumeration.
 \end{description}
@@ -456,7 +480,7 @@ Calls to await/2 may be asynchronously aborted by calling
 \exam{Prolog.abort()} if \arg{Promise} implements \exam{.abort()}.
 See \secref{wasm-promise-abort} for implementing such a promise.
 
-    \predicate[semidet]{is_async}{0}
+    \predicate[semidet]{is_async}{0}{}
 True when we can call await/2 in the current state.  This implies Prolog has
 been called from JavaScript code that is prepared to deal with Prolog
 yielding and Prolog is not inside a callback from C (WASM).
