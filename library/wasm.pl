@@ -306,10 +306,11 @@ user:prolog_load_file(Module:File, Options) :-
     (   already_loaded(URL, Modified)
     ->  '$already_loaded'(File, URL, Module, Options)
     ;   debug(load_file(true), 'Loading ~p', [URL]),
-        fetch(URL, text, String),
+        qlf_options(URL, Type, Options1, Options2),
+        fetch(URL, Type, String),
         setup_call_cleanup(
             open_string(String, In),
-            load_files(Module:URL, [stream(In)|Options1]),
+            load_files(Module:URL, [stream(In)|Options2]),
             close(In))
     ).
 
@@ -379,6 +380,13 @@ load_options(URL, Options, [modified(Modified)|Options], Modified) :-
 load_options(_, Options, [modified(Now)|Options], _) :-
     get_time(Now).
 
+qlf_options(URL, blob, Options, [format(qlf)|Options]) :-
+    file_name_extension(_, Ext, URL),
+    user:prolog_file_type(Ext, qlf),
+    !.
+qlf_options(_, text, Options, Options).
+
+
 %!  http(+URL, +Action, -Result)
 %
 %   Implement the file access protocol for URLs.
@@ -444,11 +452,16 @@ url_properties(URL, Properties) :-
 %
 %   Fetch the content from URL asynchronously. Type  is a method name on
 %   the Response object  returned  by   fetch(),  e.g.,  `text`, `json`,
-%   `html`.
+%   `html`, `blob`.
 
 fetch(URL, As, Data) :-
     Promise := prolog.fetch(#URL, _{cache: 'no-cache'}, #As),
-    await(Promise, Data).
+    await(Promise, Data0),
+    (   As == blob
+    ->  P2 := Data0.arrayBuffer(),
+        await(P2, Data)
+    ;   Data = Data0
+    ).
 
 
 %!  prolog:confirm(+Message, -Boolean) is semidet.

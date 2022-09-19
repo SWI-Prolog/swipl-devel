@@ -319,6 +319,9 @@ Plain JavaScript objects are translated into a Prolog \const{dict}.
 Note that JavaScript object keys are always strings and (thus) all
 dict keys are atoms.  This, \{1:"one"\} is translated into
 \verb$_{'1': one}$.
+    \definition{ArrayBuffer}
+Instances of \ctype{ArrayBuffer} are translated into a Prolog
+string that consists of characters in the range $0\ldots{}255$.
     \definition{Objects of a one class not being \const{Object}}
 Instances of non-plain JavaScript objects are translated into a
 Prolog \jargon{blob}. Such objects are written as \verb$<js_Class(id)>$.

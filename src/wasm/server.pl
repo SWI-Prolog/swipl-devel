@@ -43,6 +43,8 @@ user:file_search_path(scasp,  Dir) :-
                 []).
 :- http_handler('/wasm/test.pl',
                 http_reply_file(source('test.pl'), []), []).
+:- http_handler('/wasm/test.qlf',
+                http_reply_file(source('test.qlf'), []), []).
 
 
 :- http_handler('/wasm/cbg',

@@ -312,6 +312,8 @@ class Prolog
         'PL_get_float', 'number', ['number', 'number']),
       PL_put_chars: this.module.cwrap(
         'PL_put_chars', 'number', ['number', 'number', 'number', 'number']),
+      put_bytes: this.module.cwrap(
+        'PL_put_chars', 'number', ['number', 'number', 'number', 'array']),
       PL_put_atom: this.module.cwrap(
         'PL_put_atom', 'number', ['number']),
       PL_put_variable: this.module.cwrap(
@@ -892,6 +894,14 @@ class Prolog
     return ret;
   }
 
+  // See https://groups.google.com/g/emscripten-discuss/c/nQlUHq-Nk68
+  put_bytes(term, array_buffer)
+  { const content = new Uint8Array(array_buffer);
+    return !!this.bindings.put_bytes(term,
+				     this.PL_STRING|this.REP_ISO_LATIN_1,
+				     content.length, content);
+  }
+
   put_bigint(term, value)
   { const s = value.toString();
     return this.bindings.PL_put_term_from_chars(term, this.REP_UTF8, -1, s);
@@ -1214,40 +1224,50 @@ class Prolog
 	      { rc = toList(term, data.v, data.t);
 	      }
 	    }
-	  } else if ( data.constructor.name !== "Object" )
-	  { let id = prolog.object_ids.get(data);
-
-	    if ( id === undefined )
-	    { id = prolog.next_object_id+1;
-	      rc = prolog.bindings.js_unify_obj(term, id);
-	      if ( rc )
-	      { prolog.object_ids.set(data, id);
-		prolog.objects[id] = data;
-		prolog.next_object_id = id;
+	  } else
+	  { switch( data.constructor.name )
+	    { case "ArrayBuffer":
+	      { rc = prolog.put_bytes(term, data);
+		break;
 	      }
-	    } else
-	    { rc = prolog.bindings.js_unify_obj(term, id);
+	      case "Object":
+	      { const keys  = Object.keys(data);
+		const len   = keys.length;
+		const av    = prolog.new_term_ref(len);
+		const atoms = prolog.module._malloc(4*len);
+		let   tag   = 0;
+
+		const class_name = data.constructor.name;
+		if ( class_name != "Object" )
+		  tag = prolog.new_atom(class_name);
+
+		for(var i=0; i<len; i++)
+		{ toProlog(prolog, data[keys[i]], av+i, ctx);
+		  prolog.module.setValue(atoms+4*i, prolog.new_atom(keys[i]), 'i32');
+		}
+
+		rc = prolog.bindings.PL_put_dict(term, tag, len, atoms, av);
+		prolog.module._free(atoms);
+		break;
+	      }
+	      default:
+	      { let id = prolog.object_ids.get(data);
+
+		if ( id === undefined )
+		{ id = prolog.next_object_id+1;
+		  rc = prolog.bindings.js_unify_obj(term, id);
+		  if ( rc )
+		  { prolog.object_ids.set(data, id);
+		    prolog.objects[id] = data;
+		    prolog.next_object_id = id;
+		  }
+		} else
+		{ rc = prolog.bindings.js_unify_obj(term, id);
+		}
+	      }
 	    }
-	  } else					 /* Simple object */
-	  { const keys  = Object.keys(data);
-	    const len   = keys.length;
-	    const av    = prolog.new_term_ref(len);
-	    const atoms = prolog.module._malloc(4*len);
-	    let   tag   = 0;
-
-	    const class_name = data.constructor.name;
-	    if ( class_name != "Object" )
-	      tag = prolog.new_atom(class_name);
-
-	    for(var i=0; i<len; i++)
-	    { toProlog(prolog, data[keys[i]], av+i, ctx);
-	      prolog.module.setValue(atoms+4*i, prolog.new_atom(keys[i]), 'i32');
-	    }
-
-	    rc = prolog.bindings.PL_put_dict(term, tag, len, atoms, av);
-	    prolog.module._free(atoms);
+	    break;
 	  }
-	  break;
 	default:
 	  return null;
       }
