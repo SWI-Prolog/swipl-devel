@@ -1280,6 +1280,7 @@ xref_meta(call(G, _, _, _),     [G+3]).
 xref_meta(call(G, _, _, _, _),  [G+4]).
 xref_meta(not(G),               [G]).
 xref_meta(notrace(G),           [G]).
+xref_meta('$notrace'(G),        [G]).
 xref_meta(\+(G),                [G]).
 xref_meta(ignore(G),            [G]).
 xref_meta(once(G),              [G]).

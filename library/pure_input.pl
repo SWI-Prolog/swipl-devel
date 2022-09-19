@@ -248,7 +248,7 @@ stream_to_lazy_list(Stream, PrevPos, List) :-
     put_attr(List, pure_input, lazy_input(Stream, PrevPos, Pos, _)).
 
 attr_unify_hook(State, Value) :-
-    notrace(attr_unify_hook_ndebug(State, Value)).
+    '$notrace'(attr_unify_hook_ndebug(State, Value)).
 
 attr_unify_hook_ndebug(State, Value) :-
     State = lazy_input(Stream, _PrevPos, Pos, Read),

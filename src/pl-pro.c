@@ -50,6 +50,8 @@
 #include "pl-proc.h"
 #include "pl-fli.h"
 
+#undef LD
+#define LD LOCAL_LD
 
 		/********************************
 		*    CALLING THE INTERPRETER    *
@@ -267,8 +269,57 @@ currentBreakLevel(void)
 }
 
 
+#define NOTRACE_TRACE 0x1
+#define NOTRACE_DEBUG 0x2
+
 static
-PRED_IMPL("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+PRED_IMPL("$notrace", 2, notrace, PL_FA_NOTRACE)
+{ PRED_LD
+  int flags = 0;
+  
+  if ( debugstatus.tracing   ) flags |= NOTRACE_TRACE;
+  if ( debugstatus.debugging ) flags |= NOTRACE_DEBUG;
+
+  if ( PL_unify_integer(A1, flags) &&
+       PL_unify_int64(A2, debugstatus.skiplevel) )
+  { debugstatus.tracing   = FALSE;
+    debugstatus.debugging = FALSE;
+    debugstatus.skiplevel = SKIP_VERY_DEEP;
+    setPrologRunMode(RUN_MODE_NORMAL);
+    updateAlerted(LD);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static
+PRED_IMPL("$restore_trace", 2, restoretrace, PL_FA_NOTRACE)
+{ PRED_LD
+  int flags;
+  int64_t depth;
+
+  if ( PL_get_integer_ex(A1, &flags) &&
+       PL_get_int64_ex(A2, &depth) )
+  { debugstatus.tracing   = !!(flags&NOTRACE_TRACE);
+    debugstatus.debugging = !!(flags&NOTRACE_DEBUG);
+    debugstatus.skiplevel = depth;
+    if ( debugstatus.debugging )
+      clearPrologRunMode(RUN_MODE_NORMAL);
+    else
+      setPrologRunMode(RUN_MODE_NORMAL);
+    updateAlerted(LD);
+
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+static
+PRED_IMPL("$notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
 { PRED_LD
   int rval;
   term_t ex;
@@ -286,9 +337,6 @@ PRED_IMPL("notrace", 1, notrace, PL_FA_TRANSPARENT|PL_FA_NOTRACE)
 
   return rval;
 }
-
-#undef LD
-#define LD LOCAL_LD
 
 /** sig_atomic(:Goal) is semidet.
 
@@ -883,7 +931,9 @@ accessLevel(void)
 
 BeginPredDefs(pro)
   PRED_DEF("abort",	     0, abort,         0)
-  PRED_DEF("notrace",        1, notrace,       PL_FA_TRANSPARENT|PL_FA_NOTRACE)
+  PRED_DEF("$notrace",       2, notrace,       PL_FA_NOTRACE)
+  PRED_DEF("$restore_trace", 2, restoretrace,  PL_FA_NOTRACE)
+  PRED_DEF("$notrace",       1, notrace,       PL_FA_TRANSPARENT|PL_FA_NOTRACE)
   PRED_DEF("sig_atomic",     1, sig_atomic,    PL_FA_TRANSPARENT|PL_FA_SIG_ATOMIC)
   PRED_DEF("$trap_gdb",      0, trap_gdb,      0)
   PRED_DEF("$call_no_catch", 1, call_no_catch, PL_FA_TRANSPARENT)

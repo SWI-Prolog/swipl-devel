@@ -352,7 +352,8 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
               call_cleanup/2,
               call_cleanup/3,
               setup_call_cleanup/3,
-              setup_call_catcher_cleanup/4)).
+              setup_call_catcher_cleanup/4,
+              notrace/1)).
 
 :- meta_predicate
     ';'(0,0),
@@ -380,6 +381,7 @@ det(Spec)                :- '$set_pattr'(Spec, pred, det(true)).
     call_cleanup(0,0),
     call_cleanup(0,?,0),
     catch_with_backtrace(0,?,0),
+    notrace(0),
     '$meta_call'(0).
 
 :- '$iso'((call/1, (\+)/1, once/1, (;)/2, (',')/2, (->)/2, catch/3)).
@@ -579,6 +581,19 @@ prolog_cut_to(_Choice) :-
 %   Declare that Goal must succeed deterministically.
 
 $(Goal) :- $(Goal).
+
+%!  notrace(:Goal) is semidet.
+%
+%   Suspend the tracer while running Goal.
+
+:- '$hide'(notrace/1).
+
+notrace(Goal) :-
+    setup_call_cleanup(
+        '$notrace'(Flags, SkipLevel),
+        once(Goal),
+        '$restore_trace'(Flags, SkipLevel)).
+
 
 %!  reset(:Goal, ?Ball, -Continue)
 %
