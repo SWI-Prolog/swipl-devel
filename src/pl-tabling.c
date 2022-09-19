@@ -2505,8 +2505,8 @@ retry:
 	{ set(node, TN_PRIMARY);
 	  ATOMIC_INC(&variants->value_count);
 	} else
-	{ PL_unregister_atom(symb);
-	  trie_destroy(atrie);
+	{ release_trie_ref(symb);
+	  PL_unregister_atom(symb);
 	  atrie = symbol_trie(node->value);
 	}
       } else

@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2016-2021, VU University Amsterdam
+    Copyright (c)  2016-2022, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -115,6 +115,7 @@ static int	unify_key(ukey_state *state, word key);
 static void	init_ukey_state(ukey_state *state, trie *trie, Word p);
 static void	destroy_ukey_state(ukey_state *state);
 static void	set_trie_clause_general_undefined(Clause cl);
+static void	trie_destroy(trie *trie);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -139,15 +140,18 @@ write_trie_ref(IOSTREAM *s, atom_t aref, int flags)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GC a trie. Note that the  Prolog predicate trie_destroy/1 merely empties
-the trie, leaving its destruction to the atom garbage collector.
+the trie, leaving its destruction to   the  atom garbage collector. This
+function is also called from pl-tabling.c   when  we accidentally create
+the same variant trie concurrently and  need   to  dispose  of one. As a
+result, this must be public and thread-safe.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+int
 release_trie_ref(atom_t aref)
 { tref *ref = PL_blob_data(aref, NULL, NULL);
-  trie *t;
+  trie *t = ref->trie;
 
-  if ( (t=ref->trie) )
+  if ( t && COMPARE_AND_SWAP_PTR(&ref->trie, t, NULL) )
     trie_destroy(t);			/* can be called twice */
 
   return TRUE;
@@ -221,7 +225,7 @@ trie_create(alloc_pool *pool)
 }
 
 
-void
+static void
 trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie->magic = TRIE_CMAGIC;
