@@ -2265,6 +2265,8 @@ load_files(Module:Files, Options) :-
     '$modified_id'(FullFile, Modified, Options),
     Modified @=< LoadTime,
     !.
+'$noload'(exists, File, Options) :-
+    '$noload'(changed, File, Options).
 
 %!  '$qlf_file'(+Spec, +PlFile, -LoadFile, -Mode, +Options) is det.
 %
@@ -2432,7 +2434,9 @@ load_files(Module:Files, Options) :-
     ->  true
     ;   '$resolve_source_path'(File, FullFile, Options)
     ),
+    !,
     '$mt_load_file'(File, FullFile, Module, Options).
+'$load_file_e'(_, _, _).
 
 %!  '$resolved_source_path'(+File, -FullFile, +Options) is semidet.
 %
@@ -2448,18 +2452,23 @@ load_files(Module:Files, Options) :-
     ),
     !.
 
-%!  '$resolve_source_path'(+File, -FullFile, Options) is det.
+%!  '$resolve_source_path'(+File, -FullFile, +Options) is semidet.
 %
 %   Resolve a source file specification to   an absolute path. May throw
 %   existence and other errors.
 
-'$resolve_source_path'(File, FullFile, _Options) :-
+'$resolve_source_path'(File, FullFile, Options) :-
+    (   '$option'(if(If), Options),
+        If == exists
+    ->  Extra = [file_errors(fail)]
+    ;   Extra = []
+    ),
     absolute_file_name(File, FullFile,
                        [ file_type(prolog),
                          access(read)
+                       | Extra
                        ]),
     '$register_resolved_source_path'(File, FullFile).
-
 
 '$register_resolved_source_path'(File, FullFile) :-
     (   compound(File)
