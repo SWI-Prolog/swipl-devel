@@ -3068,7 +3068,7 @@ load_files(Module:Files, Options) :-
         (   arg(1, State, true)
         ->  '$first_term'(Term, Layout, Id, State, Options),
             nb_setarg(1, State, false)
-        ;   '$compile_term'(Term, Layout, Id)
+        ;   '$compile_term'(Term, Layout, Id, Options)
         ),
         arg(4, State, true)
     ;   '$fixup_reconsult'(Id),
@@ -3125,25 +3125,31 @@ load_files(Module:Files, Options) :-
     ).
 '$first_term'(Term, Layout, Id, State, Options) :-
     '$start_non_module'(Id, Term, State, Options),
-    '$compile_term'(Term, Layout, Id).
+    '$compile_term'(Term, Layout, Id, Options).
 
-'$compile_term'(Term, Layout, Id) :-
-    '$compile_term'(Term, Layout, Id, -).
+%!  '$compile_term'(+Term, +Layout, +SrcId, +Options) is det.
+%!  '$compile_term'(+Term, +Layout, +SrcId, +SrcLoc, +Options) is det.
+%
+%   Distinguish between directives and normal clauses.
 
-'$compile_term'(Var, _Layout, _Id, _Src) :-
+'$compile_term'(Term, Layout, SrcId, Options) :-
+    '$compile_term'(Term, Layout, SrcId, -, Options).
+
+'$compile_term'(Var, _Layout, _Id, _SrcLoc, _Options) :-
     var(Var),
     !,
     '$instantiation_error'(Var).
-'$compile_term'((?-Directive), _Layout, Id, _) :-
+'$compile_term'((?-Directive), _Layout, Id, _SrcLoc, Options) :-
     !,
-    '$execute_directive'(Directive, Id).
-'$compile_term'((:-Directive), _Layout, Id, _) :-
+    '$execute_directive'(Directive, Id, Options).
+'$compile_term'((:-Directive), _Layout, Id, _SrcLoc, Options) :-
     !,
-    '$execute_directive'(Directive, Id).
-'$compile_term'('$source_location'(File, Line):Term, Layout, Id, _) :-
+    '$execute_directive'(Directive, Id, Options).
+'$compile_term'('$source_location'(File, Line):Term,
+                Layout, Id, _SrcLoc, Options) :-
     !,
-    '$compile_term'(Term, Layout, Id, File:Line).
-'$compile_term'(Clause, Layout, Id, SrcLoc) :-
+    '$compile_term'(Term, Layout, Id, File:Line, Options).
+'$compile_term'(Clause, Layout, Id, SrcLoc, _Options) :-
     E = error(_,_),
     catch('$store_clause'(Clause, Layout, Id, SrcLoc), E,
           '$print_message'(error, E)).
@@ -3341,15 +3347,14 @@ load_files(Module:Files, Options) :-
     current_prolog_flag(home, Home),
     sub_atom(File, 0, Len, _, Home),
     (   sub_atom(File, Len, _, _, '/boot/')
-    ->  Class = system
+    ->  !, Class = system
     ;   '$lib_prefix'(Prefix),
         sub_atom(File, Len, _, _, Prefix)
-    ->  Class = library
+    ->  !, Class = library
     ;   file_directory_name(File, Home),
         file_name_extension(_, rc, File)
-    ->  Class = library
-    ),
-    !.
+    ->  !, Class = library
+    ).
 '$module_class'(_, user, user).
 
 '$lib_prefix'('/library').
@@ -3584,7 +3589,7 @@ load_files(Module:Files, Options) :-
 
 '$export_ops'([op(Pri, Assoc, Name)|T], Module, File) :-
     E = error(_,_),
-    catch(( '$execute_directive'(op(Pri, Assoc, Module:Name), File),
+    catch(( '$execute_directive'(op(Pri, Assoc, Module:Name), File, []),
             '$export_op'(Pri, Assoc, Name, Module, File)
           ),
           E, '$print_message'(error, E)),
@@ -3594,26 +3599,26 @@ load_files(Module:Files, Options) :-
 '$export_op'(Pri, Assoc, Name, Module, File) :-
     (   '$get_predicate_attribute'(Module:'$exported_op'(_,_,_), defined, 1)
     ->  true
-    ;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File)
+    ;   '$execute_directive'(discontiguous(Module:'$exported_op'/3), File, [])
     ),
     '$store_admin_clause'('$exported_op'(Pri, Assoc, Name), _Layout, File, -).
 
-%!  '$execute_directive'(:Goal, +File) is det.
+%!  '$execute_directive'(:Goal, +File, +Options) is det.
 %
 %   Execute the argument of :- or ?- while loading a file.
 
-'$execute_directive'(Goal, F) :-
-    '$execute_directive_2'(Goal, F).
-
-'$execute_directive_2'(encoding(Encoding), _F) :-
+'$execute_directive'(Var, _F, _Options) :-
+    var(Var),
+    '$instantiation_error'(Var).
+'$execute_directive'(encoding(Encoding), _F, _Options) :-
     !,
     (   '$load_input'(_F, S)
     ->  set_stream(S, encoding(Encoding))
     ).
-'$execute_directive_2'(Goal, _) :-
+'$execute_directive'(Goal, _, Options) :-
     \+ '$compilation_mode'(database),
     !,
-    '$add_directive_wic2'(Goal, Type),
+    '$add_directive_wic2'(Goal, Type, Options),
     (   Type == call                % suspend compiling into .qlf file
     ->  '$compilation_mode'(Old, database),
         setup_call_cleanup(
@@ -3624,7 +3629,7 @@ load_files(Module:Files, Options) :-
             ))
     ;   '$execute_directive_3'(Goal)
     ).
-'$execute_directive_2'(Goal, _) :-
+'$execute_directive'(Goal, _, _Options) :-
     '$execute_directive_3'(Goal).
 
 '$execute_directive_3'(Goal) :-
@@ -3675,54 +3680,92 @@ load_files(Module:Files, Options) :-
     '$print_message'(error, Term),
     fail.
 
-%       Note that the list, consult and ensure_loaded directives are already
-%       handled at compile time and therefore should not go into the
-%       intermediate code file.
+%!  '$add_directive_wic2'(+Directive, -Type, +Options) is det.
+%
+%   Classify Directive as  one  of  `load`   or  `call`.  Add  a  `call`
+%   directive  to  the  QLF  file.    `load`   directives  continue  the
+%   compilation into the QLF file.
 
-'$add_directive_wic2'(Goal, Type) :-
-    '$common_goal_type'(Goal, Type),
+'$add_directive_wic2'(Goal, Type, Options) :-
+    '$common_goal_type'(Goal, Type, Options),
     !,
     (   Type == load
     ->  true
     ;   '$current_source_module'(Module),
         '$add_directive_wic'(Module:Goal)
     ).
-'$add_directive_wic2'(Goal, _) :-
+'$add_directive_wic2'(Goal, _, _) :-
     (   '$compilation_mode'(qlf)    % no problem for qlf files
     ->  true
     ;   print_message(error, mixed_directive(Goal))
     ).
 
-'$common_goal_type'((A,B), Type) :-
-    !,
-    '$common_goal_type'(A, Type),
-    '$common_goal_type'(B, Type).
-'$common_goal_type'((A;B), Type) :-
-    !,
-    '$common_goal_type'(A, Type),
-    '$common_goal_type'(B, Type).
-'$common_goal_type'((A->B), Type) :-
-    !,
-    '$common_goal_type'(A, Type),
-    '$common_goal_type'(B, Type).
-'$common_goal_type'(Goal, Type) :-
-    '$goal_type'(Goal, Type).
+%!  '$common_goal_type'(+Directive, -Type, +Options) is semidet.
+%
+%   True when _all_ subgoals of Directive   must be handled using `load`
+%   or `call`.
 
-'$goal_type'(Goal, Type) :-
-    (   '$load_goal'(Goal)
+'$common_goal_type'((A,B), Type, Options) :-
+    !,
+    '$common_goal_type'(A, Type, Options),
+    '$common_goal_type'(B, Type, Options).
+'$common_goal_type'((A;B), Type, Options) :-
+    !,
+    '$common_goal_type'(A, Type, Options),
+    '$common_goal_type'(B, Type, Options).
+'$common_goal_type'((A->B), Type, Options) :-
+    !,
+    '$common_goal_type'(A, Type, Options),
+    '$common_goal_type'(B, Type, Options).
+'$common_goal_type'(Goal, Type, Options) :-
+    '$goal_type'(Goal, Type, Options).
+
+'$goal_type'(Goal, Type, Options) :-
+    (   '$load_goal'(Goal, Options)
     ->  Type = load
     ;   Type = call
     ).
 
-'$load_goal'([_|_]).
-'$load_goal'(consult(_)).
-'$load_goal'(load_files(_)).
-'$load_goal'(load_files(_,Options)) :-
+:- thread_local
+    '$qlf':qinclude/1.
+
+'$load_goal'([_|_], _).
+'$load_goal'(consult(_), _).
+'$load_goal'(load_files(_), _).
+'$load_goal'(load_files(_,Options), _) :-
     memberchk(qcompile(QlfMode), Options),
     '$qlf_part_mode'(QlfMode).
-'$load_goal'(ensure_loaded(_)) :- '$compilation_mode'(wic).
-'$load_goal'(use_module(_))    :- '$compilation_mode'(wic).
-'$load_goal'(use_module(_, _)) :- '$compilation_mode'(wic).
+'$load_goal'(ensure_loaded(_), _) :- '$compilation_mode'(wic).
+'$load_goal'(use_module(_), _)    :- '$compilation_mode'(wic).
+'$load_goal'(use_module(_, _), _) :- '$compilation_mode'(wic).
+'$load_goal'(Goal, _Options) :-
+    '$qlf':qinclude(user),
+    '$load_goal_file'(Goal, File),
+    '$all_user_files'(File).
+
+
+'$load_goal_file'(load_files(F), F).
+'$load_goal_file'(load_files(F, _), F).
+'$load_goal_file'(ensure_loaded(F), F).
+'$load_goal_file'(use_module(F), F).
+'$load_goal_file'(use_module(F, _), F).
+
+'$all_user_files'([]) :-
+    !.
+'$all_user_files'([H|T]) :-
+    !,
+    '$is_user_file'(H),
+    '$all_user_files'(T).
+'$all_user_files'(F) :-
+    ground(F),
+    '$is_user_file'(F).
+
+'$is_user_file'(File) :-
+    absolute_file_name(File, Path,
+                       [ file_type(prolog),
+                         access(read)
+                       ]),
+    '$module_class'(Path, user, _).
 
 '$qlf_part_mode'(part).
 '$qlf_part_mode'(true).                 % compatibility
@@ -3870,9 +3913,9 @@ compile_aux_clauses(Clauses) :-
     is_list(Clauses),
     !,
     forall('$member'(C,Clauses),
-           '$compile_term'(C, _Layout, File)).
+           '$compile_term'(C, _Layout, File, [])).
 '$store_aux_clauses'(Clause, File) :-
-    '$compile_term'(Clause, _Layout, File).
+    '$compile_term'(Clause, _Layout, File, []).
 
 
 		 /*******************************
@@ -4329,13 +4372,13 @@ cancel_halt(Reason) :-
 
 '$load_wic_files'(Files) :-
     Files = Module:_,
-    '$execute_directive'('$set_source_module'(OldM, Module), []),
+    '$execute_directive'('$set_source_module'(OldM, Module), [], []),
     '$save_lex_state'(LexState, []),
     '$style_check'(_, 0xC7),                % see style_name/2 in syspred.pl
     '$compilation_mode'(OldC, wic),
     consult(Files),
-    '$execute_directive'('$set_source_module'(OldM), []),
-    '$execute_directive'('$restore_lex_state'(LexState), []),
+    '$execute_directive'('$set_source_module'(OldM), [], []),
+    '$execute_directive'('$restore_lex_state'(LexState), [], []),
     '$set_compilation_mode'(OldC).
 
 
@@ -4373,6 +4416,6 @@ cancel_halt(Reason) :-
        ),
        '$boot_message'('SWI-Prolog boot files loaded~n', []),
        '$compilation_mode'(OldC, wic),
-       '$execute_directive'('$set_source_module'(user), []),
+       '$execute_directive'('$set_source_module'(user), [], []),
        '$set_compilation_mode'(OldC)
       )).

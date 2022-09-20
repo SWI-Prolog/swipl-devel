@@ -1591,7 +1591,28 @@ the Prolog source file from which the compiled code originates.
 
     \predicate{qcompile}{2}{:File, +Options}
 As qcompile/1, but processes additional options as defined by
-load_files/2.\bug{Option processing is currently incomplete.}
+load_files/2.  \arg{Options} are passed to load_files/2.  In addition
+the following options are processed:
+
+    \begin{description}
+	\termitem{include}{+Include}
+What to include into the QLF file. Currently accepts only a single
+value: the atom \const{user}. When specified, files loaded indirectly
+from \arg{File} that to not come from the Prolog library are included
+into the \fileext{qlf} file. This may be used to generate a single file
+from an application. The result is comparable to a \jargon{save state}
+(see qsave_program/2) with the folowing differences:
+
+	\begin{itemize}
+	\item Only your application code is included.  The Prolog
+	libraries and boot files are not.
+	\item Only Prolog code is included, \fileext{qlf} files cannot
+	include arbitrary \jargon{resources}.
+	\item The file can be loaded into a running Prolog process,
+	while a saved state can only be loaded into a virgin Prolog
+	virtual machine.
+	\end{itemize}
+    \end{description}
 \end{description}
 
 
