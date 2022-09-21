@@ -2186,6 +2186,12 @@ won't run out of memory if we create an integer that requires almost the
 complete stack size. It is also not a  problem if we underestimate a bit
 as long as the result fits  in  the   address  space.  In that case, the
 normal overflow handling will nicely generate a resource error.
+
+(*) When possible we compute the power using simple integer aritmetic to
+avoid the GMP allocation and conversion back to `int64_t`. The `r_bits <
+sizeof(int64_t)*8-1` is a too  optimistic  estimate,   so  we  can still
+overflow. We use mul64() to  guard   against  overflow. Alternatively we
+could use a safe estimate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_GMP
@@ -2203,6 +2209,8 @@ mpz_set_num(mpz_t mpz, Number n)
   }
 }
 
+#endif /*O_GMP*/
+
 static int
 get_int_exponent(Number n, unsigned long *expp)
 { long exp;
@@ -2212,10 +2220,12 @@ get_int_exponent(Number n, unsigned long *expp)
   { case V_INTEGER:
       i = n->value.i;
       break;
+#ifdef O_GMP
     case V_MPZ:
       if ( !mpz_to_int64(n->value.mpz, &i) )
 	return int_too_big();
       break;
+#endif
     default:
       assert(0);
       return FALSE;
@@ -2246,6 +2256,7 @@ ar_smallint(Number n, int *i)
 	return TRUE;
       }
       return FALSE;
+#ifdef O_GMP
     case V_MPZ:
       if ( mpz_cmp_si(n->value.mpz, -1L) >= 0 &&
 	   mpz_cmp_si(n->value.mpz,  1L) <= 0 )
@@ -2253,13 +2264,12 @@ ar_smallint(Number n, int *i)
 	return TRUE;
       }
       return FALSE;
+#endif
     default:
       assert(0);
       return FALSE;
   }
 }
-
-#endif /*O_GMP*/
 
 static inline int
 sign_f(double f)
@@ -2269,11 +2279,31 @@ sign_f(double f)
 	     0 ;  /* sign_f(NaN) = 0 */
 }
 
+static inline int
+pow64(int64_t m, int64_t n, int64_t *resp)	/* *resp = m^n */
+{ int64_t res = 1;
+
+  while (n != 0)
+  { if ( (n&1) )
+    { if ( !mul64(res, m, &res) )
+	return FALSE;
+    }
+    n >>= 1;
+    if ( n )
+    { if ( !mul64(m, m, &m) )
+	return FALSE;
+    }
+  }
+
+  *resp = res;
+  return TRUE;
+}
+
+
 static int
 ar_pow(Number n1, Number n2, Number r)
 { int zero_div_sign;
   int exp_sign;
-#ifdef O_GMP
   unsigned long exp;
   int exp_nan;
   int n1_val;
@@ -2316,37 +2346,61 @@ ar_pow(Number n1, Number n2, Number r)
       return FALSE;
 
     if ( exp_sign < 0 )
-    { GET_LD
+    {
+#ifdef O_GMP
+      GET_LD
 
       if ( truePrologFlag(PLFLAG_RATIONAL) )
       { promoteToMPQNumber(n1);
         goto int_pow_neg_int;
       }
+#endif
       goto doreal;
     }
 
-  { GET_LD				/* estimate the size, see above */
     size_t  op1_bits;
-    int64_t r_bits;
+    int64_t r_bits;				/* bit estimate for result */
 
     switch(n1->type)
     { case V_INTEGER:
-	op1_bits = MSB64(n1->value.i);
+      { int64_t v = n1->value.i;
+
+	if ( v < 0 ) v = -v;
+	op1_bits = MSB64(v);
         break;
+      }
+#ifdef O_GMP
       case V_MPZ:
 	op1_bits = mpz_sizeinbase(n1->value.mpz, 2);
         break;
+#endif
       default:
 	assert(0);
         fail;
     }
 
-    if ( !( mul64(op1_bits, exp, &r_bits) &&
-	    r_bits/8 < (int64_t)globalStackLimit()
-	  ) )
-      return int_too_big();
-  }
+    if ( mul64(op1_bits, exp, &r_bits) )
+    { if ( r_bits > 10000 )
+      { GET_LD
 
+	if ( r_bits/8 > (int64_t)globalStackLimit() )
+	  return int_too_big();
+      }
+    } else
+      return int_too_big();
+
+    /* Try using small integers.  See (*) above */
+    if ( n1->type == V_INTEGER && r_bits < sizeof(int64_t)*8-1 )
+    { int64_t res;
+
+      if ( pow64(n1->value.i, exp, &res) )
+      { r->type = V_INTEGER;
+	r->value.i = res;
+	succeed;
+      }
+    }
+
+#ifdef O_GMP
     r->type = V_MPZ;
     mpz_init(r->value.mpz);
 
@@ -2366,8 +2420,10 @@ ar_pow(Number n1, Number n2, Number r)
 	assert(0);
         fail;
     }
+#endif
   } /* end if ( intNumber(n1) && intNumber(n2) ) */
 
+#ifdef O_GMP
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
 
@@ -2587,8 +2643,8 @@ ar_pow(Number n1, Number n2, Number r)
     assert(0);
   } /* end if ( n2->type == V_MPQ ) */
 
-doreal:
 #endif /*O_GMP*/
+doreal:
   zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) &&
 		    signbit(n1->value.f) ) ? -1 : 1;
 
