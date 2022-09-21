@@ -103,7 +103,7 @@ const class_compound = (class PrologCompound {
 
   toJSON()
   { const obj = {$t:"t"}
-    obj[this.name] = this.arguments();
+    obj[this.functor] = this.arguments();
     return obj;
   }
 });
