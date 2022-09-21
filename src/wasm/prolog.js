@@ -1648,13 +1648,15 @@ if ( BigInt.prototype.toJSON === undefined )
   }
 }
 
-HTMLCollection.prototype.toList = function()
-{ const ar = [];
+if ( HTMLCollection !== undefined )
+{ HTMLCollection.prototype.toList = function()
+  { const ar = [];
 
-  for(let i=0; i<this.length; i++)
-    ar.push(this.item(i));
+    for(let i=0; i<this.length; i++)
+      ar.push(this.item(i));
 
-  return ar;
+    return ar;
+  }
 }
 
 
