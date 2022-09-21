@@ -57,7 +57,7 @@ SWIPL(Module).then((module) =>
 as well as for Prolog.   We highlight the important properties below.
 
 \begin{description}
-    \termitem{attributes}{}
+    \termitem{arguments}{}
 An \ctype{Array} of \ctype{String} objects that define the commandline
 arguments for initializing Prolog. \exam{argv[0]} is \emph{not} part of
 this array. Few arguments are useful in this context. The
@@ -66,7 +66,16 @@ this array. Few arguments are useful in this context. The
     \termitem{locateFile}{}
 A \ctype{Function} that is used to translate \file{swipl-web.wasm} and
 \file{swipl-web.data} into a (relative) URL. Default is to find these
-resources in the same directory of the server.
+resources in the same directory of the server. For example, to load
+\file{swipl-web.wasm} and \file{swipl-web.data} from \file{/wasm} use
+
+\begin{code}
+var Module = {
+  ...,
+  locateFile: (file) => '/wasm/' + file
+}
+\end{code}
+
 
     \termitem{on_output}{}
 A \ctype{Function} that is called when Prolog writes to
@@ -87,14 +96,29 @@ insert a \verb$<span>$ element that has (at least) the following style:
   overflow-wrap: anywhere;
 }
 \end{code}
+
+Here is a simple implementation of print(), assuming the document has
+a \verb$<div id="output">$ node.
+
+\begin{code}
+function print(line, cls)
+{ const output = document.getElementById("output");
+  const node   = document.createElement('span');
+
+  node.className = cls;
+  node.textContent = line;
+  output.appendChild(node);
+};
+\end{code}
 \end{description}
 
 \subsection{Loading Prolog files}
 \label{sec:wasm-consult}
 
-The WASM build ships with the Prolog library and thus Prolog code can be
-loaded using use_module/1, etc., for example, we can include the
-\const{lists} library using this directive.
+The WASM build ships with the Prolog library and thus Prolog libraries
+can be loaded as normal using use_module/1, etc., for example, we can
+include the \const{lists} library using this directive.  Note that the
+normal \jargon{autoloading} of library code works in the WASM version.
 
 \begin{code}
 :- use_module(library(lists)).
@@ -103,12 +127,25 @@ loaded using use_module/1, etc., for example, we can include the
 When Prolog is in \jargon{asynchronous} mode, i.e., called through
 \cfuncref{Prolog.forEach}{}, we can also load code from a \jargon{URL}.
 For example, we can load the \const{CHAT80} demo program directly from
-\href{https://github.com/JanWielemaker/chat80}{GitHub} using
+\href{https://github.com/JanWielemaker/chat80}{GitHub}
+using\footnote{The \chr{\}c continues the quoted atom from the next
+line after removing leading white space.}
 
 \begin{code}
-?- consult('https://raw.githubusercontent.com/JanWielemaker/chat80/master/prolog/chat80.pl').
+?- consult('https://raw.githubusercontent.com/JanWielemaker/\c
+            chat80/master/prolog/chat80.pl').
 \end{code}
 
+Larger files can be loaded as \fileext{qlf} files. See \secref{qlf} and
+qcompile/2. Notably we can create a single qlf file from an application
+using the \term{include}{user} option. Below we create a \fileext{qlf}
+file from \href{https://github.com/JanWielemaker/chat80}{CHAT80}.  The
+resulting \file{chat80.qlf} can be loaded from a URL using consult/1 as
+above.
+
+\begin{code}
+?- qcompile('chat80.pl', [include(user)]).
+\end{code}
 
 There are three ways to load Prolog code from JavaScript: (1) loading
 from a string, (2) loading from \verb$<script>$ elements and (3) loading
