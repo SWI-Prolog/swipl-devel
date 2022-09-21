@@ -165,10 +165,12 @@ is \file{/script/Id}, where \arg{Id} is derived from (1) the \const{id}
 of the script, (2) the \const{name} of the script o (3) being the nth
 Prolog script in the document.
 
-    \cfunction{Promise}{Prolog.consult}{URL}
-Download a Prolog source file from the \ctype{String} \arg{URL} and load
-it. This returns a \ctype{Promise} that is resolved when the file is
-loaded into Prolog.
+    \cfunction{Promise}{Prolog.consult}{...Sources}
+Load the given \arg{Sources}. Each source is either a file from the
+local file system, e.g., \exam{library(lists)} or a URL. The sources are
+downloaded and processed sequentially. This uses
+\cfuncref{Prolog.forEach}{} calling load_files/1. The returned
+\ctype{Promise} returns 1 on success.
 \end{description}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

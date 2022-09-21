@@ -522,31 +522,14 @@ class Prolog
   }
 
 /**
- * Download one or more files concurrently and consult them.  Note that
- * the consult happens in arbitrary order.
+ * Consult a list of files.  Files are loaded ordered and may
+ * be a mixture of local Prolog files and URLs.  Both `.pl` and
+ * `.qlf` files are supported.
  */
 
   consult(...args)
-  { const prolog = this;
-
-    function consult_one(url)
-    { let file = "/tmp/"+url.replace(/\//, "+");
-
-      return fetch(url)
-	  .then((response) => response.text())
-	  .then((text) =>
-		{ console.log(`Downloaded ${url} to ${file}`);
-		  Module.FS.writeFile(file, text);
-		  prolog.call(`consult('${file}')`);
-		})
-    }
-
-    if ( args.length == 1 )
-      return consult_one(args[0]);
-    else
-      return Promise.all(args.map((url) => consult_one(url)));
+  { return this.forEach("load_files(Files)", {Files:args});
   }
-
 
   load_string(s, id)
   { if ( !id )
