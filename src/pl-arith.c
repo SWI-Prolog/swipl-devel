@@ -2331,7 +2331,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch(n1->type)
     { case V_INTEGER:
-	op1_bits = MSB64(n1->value.i);
+	op1_bits = MSB64(llabs(n1->value.i));
         break;
       case V_MPZ:
 	op1_bits = mpz_sizeinbase(n1->value.mpz, 2);
@@ -2345,6 +2345,24 @@ ar_pow(Number n1, Number n2, Number r)
 	    r_bits/8 < (int64_t)globalStackLimit()
 	  ) )
       return int_too_big();
+
+    /* optimization when n1 is a V_INTEGER and the result fits in a V_INTEGER */
+    if (n1->type == V_INTEGER && r_bits < sizeof(long)*8-1)
+    {
+      long m = n1->value.i;
+      long n = exp;
+      long res = 1;
+      while (n != 0) {
+            if ((n & 1) != 0)
+                res *= m;
+            n >>= 1;
+            if (n != 0)
+                m *= m;
+      }
+      r->type = V_INTEGER;
+      r->value.i = res;
+      succeed;
+    }
   }
 
     r->type = V_MPZ;
