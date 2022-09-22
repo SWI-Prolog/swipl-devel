@@ -3322,7 +3322,11 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
 static int
 mul64(int64_t x, int64_t y, int64_t *r)
-{ if ( x == LL(0) || y == LL(0) )
+{
+#if HAVE___BUILTIN_MUL_OVERFLOW
+  return !__builtin_mul_overflow(x, y, r);
+#else
+  if ( x == LL(0) || y == LL(0) )
   { *r = LL(0);
     return TRUE;
   } else
@@ -3364,6 +3368,7 @@ mul64(int64_t x, int64_t y, int64_t *r)
 
     return FALSE;
   }
+#endif
 }
 
 

@@ -68,6 +68,14 @@ else()
 set(HAVE_LIBATOMIC OFF CACHE BOOL "No need to link with -latomic")
 endif()
 
+check_c_source_compiles(
+    "#include <stdint.h>
+     int64_t r1 = 1;
+     int64_t r2 = 3;
+     int64_t r3;
+     int main() { __builtin_mul_overflow(r1,r2,&r3); }"
+    HAVE___BUILTIN_MUL_OVERFLOW)
+
 if(NOT STATIC_EXTENSIONS)
 check_library_exists(dl	dlopen	      "" HAVE_LIBDL)
 endif()
