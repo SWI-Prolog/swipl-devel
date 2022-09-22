@@ -3757,6 +3757,8 @@ load_files(Module:Files, Options) :-
 '$load_goal'(ensure_loaded(_), _) :- '$compilation_mode'(wic).
 '$load_goal'(use_module(_), _)    :- '$compilation_mode'(wic).
 '$load_goal'(use_module(_, _), _) :- '$compilation_mode'(wic).
+'$load_goal'(reexport(_), _)      :- '$compilation_mode'(wic).
+'$load_goal'(reexport(_, _), _)   :- '$compilation_mode'(wic).
 '$load_goal'(Goal, _Options) :-
     '$qlf':qinclude(user),
     '$load_goal_file'(Goal, File),
@@ -3768,6 +3770,8 @@ load_files(Module:Files, Options) :-
 '$load_goal_file'(ensure_loaded(F), F).
 '$load_goal_file'(use_module(F), F).
 '$load_goal_file'(use_module(F, _), F).
+'$load_goal_file'(reexport(F), F).
+'$load_goal_file'(reexport(F, _), F).
 
 '$all_user_files'([]) :-
     !.
