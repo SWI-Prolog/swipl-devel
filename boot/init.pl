@@ -1883,9 +1883,10 @@ compiling :-
 '$term_in_file'(In, Read, RLayout, Term, TLayout, Stream, Parents, Options) :-
     '$skip_script_line'(In, Options),
     '$read_clause_options'(Options, ReadOptions),
-    repeat,
+    '$repeat_and_read_error_mode'(ErrorMode),
       read_clause(In, Raw,
-                  [ variable_names(Bindings),
+                  [ syntax_errors(ErrorMode),
+                    variable_names(Bindings),
                     term_position(Pos),
                     subterm_positions(RawLayout)
                   | ReadOptions
@@ -1915,6 +1916,24 @@ compiling :-
 '$read_clause_option'(syntax_errors(_)).
 '$read_clause_option'(term_position(_)).
 '$read_clause_option'(process_comment(_)).
+
+%!  '$repeat_and_read_error_mode'(-Mode) is multi.
+%
+%   Calls repeat/1 and return the error  mode. The implemenation is like
+%   this because during part of the  boot   cycle  expand.pl  is not yet
+%   loaded.
+
+'$repeat_and_read_error_mode'(Mode) :-
+    (   current_predicate('$including'/0)
+    ->  repeat,
+        (   '$including'
+        ->  Mode = dec10
+        ;   Mode = quiet
+        )
+    ;   Mode = dec10,
+        repeat
+    ).
+
 
 '$expanded_term'(In, Raw, RawLayout, Read, RLayout, Term, TLayout,
                  Stream, Parents, Options) :-

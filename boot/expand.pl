@@ -41,6 +41,7 @@
             expand_goal/4,              % +Goal0, ?Pos0, -Goal, -Pos
             var_property/2,             % +Var, ?Property
 
+            '$including'/0,
             '$expand_closure'/3         % +GoalIn, +Extra, -GoalOut
           ]).
 
