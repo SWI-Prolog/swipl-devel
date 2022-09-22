@@ -1283,7 +1283,22 @@ suffix(Suffix, List) :-
 \end{code}
 
 Note that these directives can only appear as separate terms in the
-input.  Typical usage scenarios include:
+input. SWI-Prolog accomodates syntax extensions under conditional
+compilation by silently ignoring syntax errors when in the
+\jargon{false} branch. This allow, for example, for the code below. With
+rational number support \exam{1r3} denotes the rational number 1/3 while
+without it is a syntax error. Note that this only works properly if (1)
+the syntax error still allows to re-synchronize on the full stop of the
+invalid clause and (2) the subsequent conditional compilation directive
+is valid.
+
+\begin{code}
+:- if(current_prolog_flag(bounded, false)).
+one_third(1r3).
+:- endif.
+\end{code}
+
+Typical usage scenarios include:
 
 \begin{shortlist}
     \item Load different libraries on different dialects.
