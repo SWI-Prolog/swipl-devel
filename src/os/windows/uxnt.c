@@ -81,6 +81,7 @@
 
 static int exists_file_or_dir(const TCHAR *path, int flags);
 
+extern int Sdprintf(const char *fmt, ...);
 
 		 /*******************************
 		 *	       ERRNO		*
@@ -321,7 +322,7 @@ static const wchar_t* reserved_file_names[] =
 static int
 is_reserved_name(const wchar_t *name)
 { for(const wchar_t**r = reserved_file_names; *r; r++)
-  { if ( _tcsicmp(name, *r) )
+  { if ( _tcsicmp(name, *r) == 0 )
       return TRUE;
   }
 
