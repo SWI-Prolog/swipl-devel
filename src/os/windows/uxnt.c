@@ -296,7 +296,7 @@ is_unc_path(const char *q)
 }
 
 int
-_xos_win_prefix_lenght(const wchar_t *s)
+_xos_win_prefix_length(const wchar_t *s)
 { if ( wcsncmp(s, WIN_PATH_PREFIX, wcslen(WIN_PATH_PREFIX)) == 0 )
     return wcslen(WIN_PATH_PREFIX);
   if ( wcsncmp(s, WIN_UNC_PREFIX,  wcslen(WIN_UNC_PREFIX)) == 0 )
@@ -364,7 +364,7 @@ _xos_os_filenameW(const char *cname, wchar_t *osname, size_t len)
   */
 
   int n;
-  if ( (n=_xos_win_prefix_lenght(s)) )
+  if ( (n=_xos_win_prefix_length(s)) )
   { const wchar_t *from = s+n;
     size_t bytes = (wcslen(from)+1)*sizeof(wchar_t);
 
@@ -1136,7 +1136,7 @@ opendir(const char *path)
     return NULL;
   }
   dp->first = TRUE;
-  wchar_t *pattern = buf+_xos_win_prefix_lenght(buf); /* see (*) */
+  wchar_t *pattern = buf+_xos_win_prefix_length(buf); /* see (*) */
   dp->handle = FindFirstFileExW(pattern,
 				FindExInfoBasic, dp->data,
 				FindExSearchNameMatch, NULL,
@@ -1201,7 +1201,7 @@ _xos_chdir(const char *path)
   if ( !_xos_os_filenameW(path, buf, PATH_MAX) )
     return -1;
 
-  if ( SetCurrentDirectoryW(buf+_xos_win_prefix_lenght(buf)) )
+  if ( SetCurrentDirectoryW(buf+_xos_win_prefix_length(buf)) )
     return 0;
 
   errno = ENOENT;

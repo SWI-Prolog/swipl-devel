@@ -136,7 +136,7 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define XOS_TIME_MODIFIED		3
 
 _export char *  _xos_home(void);
-_export int	_xos_win_prefix_lenght(const wchar_t *s);
+_export int	_xos_win_prefix_length(const wchar_t *s);
 _export wchar_t*_xos_utf8towcs(wchar_t *dest, const char *src, size_t len);
 _export wchar_t*_xos_os_filenameW(const char *cname,
 				  wchar_t *osname, size_t len);

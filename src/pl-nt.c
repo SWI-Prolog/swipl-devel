@@ -709,7 +709,7 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
     { int eno;
 
       /* AddDllDirectoryW() cannot handle "\\?\" */
-      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_lenght(dirw))) )
+      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_length(dirw))) )
       { DEBUG(MSG_WIN_API,
 	      Sdprintf("AddDllDirectory(%Ws) ok\n", dirw));
 

@@ -711,7 +711,7 @@ ATOM
 STRING
     For a string, the 27 bits are a pointer to the  global  stack.   The
     first  word  of  the  string  again reserves  the top 3 and bottom 2
-    bits.  The remaining bits indicate the lenght of the  string.   Next
+    bits.  The remaining bits indicate the length of the  string.   Next
     follows a 0 terminated character string.  Finally a word exactly the
     same  as the header word, to allow the garbage collector to traverse
     the stack downwards and identify the string.

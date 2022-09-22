@@ -725,7 +725,7 @@ xos_plain_name(const char *from, wchar_t *buf, size_t len)
 { wchar_t *rc = _xos_os_filenameW(from, buf, len);
 
   if ( rc )
-    rc += _xos_win_prefix_lenght(rc);
+    rc += _xos_win_prefix_length(rc);
 
   return rc;
 }
