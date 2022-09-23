@@ -731,11 +731,12 @@ do_portray_clause(Out, (:-Directive), Options) :-
     nlindent(Out, Indent),
     portray_list(List, Indent, Out, Options),
     write(Out, ').\n').
-do_portray_clause(Out, (:-Directive), Options) :-
+do_portray_clause(Out, Clause, Options) :-
+    directive(Clause, Op, Directive),
     !,
     option(indent(LeftMargin), Options, 0),
     indent(Out, LeftMargin),
-    write(Out, ':- '),
+    format(Out, '~w ', [Op]),
     DIndent is LeftMargin+3,
     portray_body(Directive, DIndent, noindent, 1199, Out, Options),
     full_stop(Out).
@@ -753,6 +754,9 @@ clause_term((Head-->Body), Head, -->, Body).
 full_stop(Out) :-
     '$put_token'(Out, '.'),
     nl(Out).
+
+directive((:- Directive), :-, Directive).
+directive((?- Directive), ?-, Directive).
 
 wrapped_list_directive(module(_,_)).
 %wrapped_list_directive(use_module(_,_)).
