@@ -41,7 +41,7 @@ foreach(pkgset ${SWIPL_PACKAGE_SETS})
   pkg_option(${pkgset} ${SWIPL_PACKAGE_LIST_${pkgset}_title})
 endforeach()
 
-# The pckages below do not depend on external libraries except for
+# The packages below do not depend on external libraries except for
 # the zlib package, but the core system already depends on zlib.
 set(SWIPL_PACKAGE_LIST_BASIC
     chr
@@ -64,6 +64,7 @@ set(SWIPL_PACKAGE_LIST_BASIC
     RDF
     semweb
     sgml
+    sweep
     table
     utf8proc
     zlib)
