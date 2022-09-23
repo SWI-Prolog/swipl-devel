@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2005-2020, University of Amsterdam
+    Copyright (c)  2005-2022, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
@@ -50,6 +50,7 @@
 
 #ifdef O_GMP
 
+static mpz_t MPZ_ONE;		/* 1 */
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
 static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
@@ -881,6 +882,7 @@ initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
+    mpz_init_set_si64(MPZ_ONE, 1);
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
@@ -1223,23 +1225,6 @@ API_STUB(int)
 		 *	     PROMOTION		*
 		 *******************************/
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The GMP functions which convert  mpz's   and  mpq's to double's truncate
-(round to zero) if necessary ignoring the current IEEE rounding mode. To
-correct this incorrect  rounding  when  the   mode  is  `to_postive`  or
-`to_negative` all calls  to  mpX_get_d()  should   be  wrapped  in  this
-function. Note that this function has no GMP dependencies.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-double
-mpX_round(double d) {
-  switch (fegetround()) {
-    case FE_UPWARD  : return (d>=0) ? nexttoward(d, INFINITY) : d;
-    case FE_DOWNWARD: return (d<=0) ? nexttoward(d,-INFINITY) : d;
-    default: return d;
-  }
-}
-
 int
 promoteToFloatNumber(Number n)
 { switch(n->type)
@@ -1249,7 +1234,7 @@ promoteToFloatNumber(Number n)
       break;
 #ifdef O_GMP
     case V_MPZ:
-    { double val = mpX_round(mpz_get_d(n->value.mpz));
+    { double val = mpz_to_double(n->value.mpz);
 
       clearNumber(n);
       n->value.f = val;
@@ -1337,7 +1322,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d2 = mpX_round(mpz_get_d(n2->value.mpz));
+	d2 = mpz_to_double(n2->value.mpz);
 	break;
       case V_MPQ:
 	d2 = mpq_to_double(n2->value.mpq);
@@ -1364,7 +1349,7 @@ cmpFloatNumbers(Number n1, Number n2)
 	break;
 #ifdef O_GMP
       case V_MPZ:
-	d1 = mpX_round(mpz_get_d(n1->value.mpz));
+	d1 = mpz_to_double(n1->value.mpz);
 	break;
       case V_MPQ:
 	d1 = mpq_to_double(n1->value.mpq);
@@ -1563,6 +1548,10 @@ mpq_to_double(mpq_t q)
 { return mpz_fdiv(mpq_numref(q), mpq_denref(q));
 }
 
+double
+mpz_to_double(mpz_t n)
+{ return mpz_fdiv(n, MPZ_ONE);
+}
 
 /*
  * Try to compute a "nice" rational from a float, using continued fractions.
