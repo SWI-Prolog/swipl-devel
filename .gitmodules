@@ -118,3 +118,6 @@
 [submodule "packages/mqi"]
 	path = packages/mqi
 	url = ../packages-mqi.git
+[submodule "packages/sweep"]
+	path = packages/sweep
+	url = ../packages-sweep.git
