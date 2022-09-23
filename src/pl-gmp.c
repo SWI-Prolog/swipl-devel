@@ -1434,113 +1434,83 @@ cpNumber(Number to, Number from)
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-This code is copied from ECLiPSe  7.0_53.   This  code is covered by the
-CMPL 1.1 (Cisco-style Mozilla Public License  Version 1.1), available at
-www.eclipse-clp.org/license.
+From   https://gmplib.org/list-archives/gmp-devel/2013-April/003223.html
+Changed interface to be compatible to  the   previous  code we used from
+ECLiPSe.  Whereas  the  ECLiPSe  truncates,  this  code  rounds  towards
+nearest.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/*
- * Divide two bignums giving a double float result. The naive solution
- *	return mpz_to_double(num) / mpz_to_double(den);
- * suffers from floating point overflows when the numbers are huge
- * and is inefficient because it looks at unnecessarily many digits.
- *
- * IEEE double precision is 53 bits mantissa and 12 bits signed exponent.
- * So the largest integer representable with doubles is 1024 bits wide,
- * of which the first 53 are ones, i.e. it lies between 2^1023 and 2^1024.
- * If the dividend's MSB is more than 1024 bits higher than the divisor's,
- * the result will always be floating point infinity (no need to divide).
- * If we do divide, we first drop excess integer precision by keeping only
- * DBL_PRECISION_LIMBS and ignoring the lower limbs for both operands
- * (i.e. we effectively scale the integers down, or right-shift them).
- */
-
-#define MIN_LIMB_DIFF (2+1024/GMP_NUMB_BITS)
-#define DBL_PRECISION_LIMBS (2+53/GMP_NUMB_BITS)
-#define MAX_ULONG_DBL ((double)~0L+1.0)
-
 static double
-mpz_fdiv(mpz_t num, mpz_t den)
-{ mp_ptr longer_d, shorter_d;
-  mp_size_t shorter_size, longer_size, ignored_limbs = 0;
-  int negative, swapped;
-  /* By declaring res volatile we make sure that the result is rounded
-   * to double precision instead of being returned with extended precision
-   * in a floating point register, which can have confusing consequences */
-  volatile double res;
+mpz_fdiv(mpz_t a, mpz_t b)
+{ size_t sa = mpz_sizeinbase(a, 2);
+  size_t sb = mpz_sizeinbase(b, 2);
+  size_t na, nb;
+  mpz_t aa, bb;
+  double d;
 
-  shorter_size = num->_mp_size;
-  longer_size = den->_mp_size;
-  negative = 0;
+  /* easy case: |a|, |b| < 2^53, no overflow nor underflow can occur */
+  if ( sa <= 53 && sb <= 53 )
+    return mpz_get_d(a) / mpz_get_d(b);
 
-  if ( shorter_size < 0 )
-  { shorter_size = -shorter_size;
-    negative = !negative;
-  }
-  if ( longer_size < 0 )
-  { longer_size = -longer_size;
-    negative = !negative;
-  }
-  if ( shorter_size > longer_size )
-  { longer_size = shorter_size;
-    longer_d = num->_mp_d;
-    shorter_size = (den->_mp_size >= 0 ? den->_mp_size : -den->_mp_size);
-    shorter_d = den->_mp_d;
-    swapped = 1;			/* abs(res) > 1 */
+  /* same if a = m*2^e with m representable on 53 bits, idem for b, but beware
+     that both a and b do not give an overflow */
+  na = sa - mpz_scan1(a, 0);
+  nb = sb - mpz_scan1(b, 0);
+  if (sa <= 1024 && na <= 53 && sb <= 1024 && nb <= 53)
+    return mpz_get_d(a) / mpz_get_d(b);
+
+  /* hard case */
+  mpz_init(aa);
+  mpz_init(bb);
+
+  if (sa >= sb)
+  { mpz_set(aa, a);
+    mpz_mul_2exp(bb, b, sa - sb);
   } else
-  { longer_d = den->_mp_d;
-    shorter_d = num->_mp_d;
-    swapped = 0;			/* abs(res) < 1 */
+  { mpz_mul_2exp(aa, a, sb - sa);
+    mpz_set(bb, b);
   }
 
-  if ( longer_size - shorter_size > MIN_LIMB_DIFF )
-  { res = swapped ? HUGE_VAL : 0.0;
-  } else
-  { double l,s;
-    long int le, se;
-    mpz_t li, si;
-    int r_mode;
+  /* q = aa/bb*2^(sa-sb) */
 
-    /* we ignore limbs that are not significant for the result */
-    if ( longer_size > MIN_LIMB_DIFF )	/* more can't be represented */
-    { ignored_limbs = longer_size - MIN_LIMB_DIFF;
-      longer_size -= ignored_limbs;
-      shorter_size -= ignored_limbs;
-    }
-    if ( shorter_size > DBL_PRECISION_LIMBS )	/* more exceeds the precision */
-    { ignored_limbs += shorter_size - DBL_PRECISION_LIMBS;
-      longer_size -= shorter_size - DBL_PRECISION_LIMBS;
-      shorter_size = DBL_PRECISION_LIMBS;
-    }
-    longer_d += ignored_limbs;
-    shorter_d += ignored_limbs;
-    li->_mp_alloc = li->_mp_size = longer_size; li->_mp_d = longer_d;
-    si->_mp_alloc = si->_mp_size = shorter_size; si->_mp_d = shorter_d;
+  if ( mpz_cmpabs(aa, bb) >= 0 )
+  { mpz_mul_2exp(bb, bb, 1);
+    sa++;
+  }
 
-    l = mpz_get_d_2exp(&le, li);
-    s = mpz_get_d_2exp(&se, si);
+  mpz_mul_2exp(aa, aa, 54);
+  sb += 54;
 
-    /* if result negative, some rounding modes must be swapped;
-       avoid if unnecessary */
-    if ( negative )
-    { r_mode = fegetround();
+  mpz_tdiv_qr(aa, bb, aa, bb);
 
-      switch (r_mode)
-      { case FE_UPWARD:   fesetround(FE_DOWNWARD); break;
-	case FE_DOWNWARD: fesetround(FE_UPWARD);
-      }
-    }
+  /* the quotient aa should have exactly 54 bits */
 
-    if ( swapped )
-      res = ldexp(l/s, le-se);
+  if ( mpz_tstbit(aa, 0) == 0 )
+  {
+  } else if (mpz_cmp_ui(bb, 0) != 0)
+  { if ( mpz_sgn(aa) > 0 )
+      mpz_add_ui(aa, aa, 1);
     else
-      res = ldexp(s/l, se-le);
-
-    if ( negative )
-      fesetround(r_mode);
+      mpz_sub_ui(aa, aa, 1);
+  } else /* mid case: round to even */
+  { if (mpz_tstbit(aa, 1) == 0)
+    { if (mpz_sgn(aa) > 0)
+	mpz_sub_ui(aa, aa, 1);
+      else
+	mpz_add_ui(aa, aa, 1);
+    } else
+    { if (mpz_sgn(aa) > 0)
+	mpz_add_ui(aa, aa, 1);
+      else
+	mpz_sub_ui(aa, aa, 1);
+    }
   }
 
-  return negative ? -res : res;
+  d = mpz_get_d(aa); /* exact */
+  mpz_clear(aa);
+  mpz_clear(bb);
+
+  return ldexp(d, (long)sa - (long)sb);
 }
 
 double
