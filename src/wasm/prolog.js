@@ -1648,7 +1648,7 @@ if ( BigInt.prototype.toJSON === undefined )
   }
 }
 
-if ( HTMLCollection !== undefined )
+if ( typeof HTMLCollection === "object" )
 { HTMLCollection.prototype.toList = function()
   { const ar = [];
 
