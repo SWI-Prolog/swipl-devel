@@ -136,11 +136,6 @@ test(4) :-
           remove(/Dir/File)
         ]).
 :- endif.
-:- if(\+ current_prolog_flag(windows, true)).
-
-% Blocked    as    despite    the     docs,    FindFirstFileExW()    and
-% SetCurrentDirectoryW() do not properly handle long file names.
-
 test(6) :-
     test_steps(safe,
         [ make_directory(/(long(200)=Dir)),
@@ -150,7 +145,6 @@ test(6) :-
           make_file(/Dir/Dir2/(long(100)=File)),
           remove(/Dir/Dir2/File)
         ]).
-:- endif.
 
 :- end_tests(file_names).
 
@@ -344,12 +338,30 @@ run_with_name(/, File, Name, Goal) =>
 run_with_name(., File, Name, Goal) =>
     use_name(., File, Name),
     call(Goal).
-run_with_name(Dir, File, Name, Goal) =>
+run_with_name(Dir, File, Name, Goal), safe_dir(Dir) =>
     use_name(Dir, File, Name),
     setup_call_cleanup(
         working_directory(Here, Dir),
         call(Goal),
         working_directory(_, Here)).
+run_with_name(_, _, _, _) =>
+    true.
+
+%!  safe_dir(+Dir) is semidet.
+%
+%   True  when Dir  is  a safe  directory which  to  make the  current
+%   directory.
+
+:- if(current_prolog_flag(windows, true)).
+safe_dir(Dir) :-
+    absolute_file_name(Dir, Path),
+    atom_length(Path, Len),
+    Len < 200.
+:- else.
+safe_dir(_).
+:- endif.
+
+
 
 %!  use_name(+From, +LocalName, -UseName) is det.
 

@@ -1126,10 +1126,13 @@ opendir(const char *path)
   /* -2: make sure there is space for the "\*" */
   if ( !_xos_os_filenameW(path, buf, PATH_MAX-2) )
   { free(dp);
+    errno = ENAMETOOLONG;
     return NULL;
   }
   edir = buf+_tcslen(buf);
-  _tcscat(edir, _T("\\*"));
+  if ( edir[-1] == '\\' )
+    edir--;
+  _tcscpy(edir, _T("\\*"));
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { free(dp);
@@ -1137,8 +1140,7 @@ opendir(const char *path)
     return NULL;
   }
   dp->first = TRUE;
-  wchar_t *pattern = buf+_xos_win_prefix_length(buf); /* see (*) */
-  dp->handle = FindFirstFileExW(pattern,
+  dp->handle = FindFirstFileExW(buf,
 				FindExInfoBasic, dp->data,
 				FindExSearchNameMatch, NULL,
 				FIND_FIRST_EX_LARGE_FETCH);
