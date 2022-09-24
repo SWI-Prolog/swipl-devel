@@ -4649,7 +4649,9 @@ stream_position_prop(DECL_LD IOSTREAM *s, term_t prop)
 }
 
 
-#define stream_end_of_stream_prop(s, prop) LDFUNC(stream_end_of_stream_prop, s, prop)
+#define stream_end_of_stream_prop(s, prop) \
+	LDFUNC(stream_end_of_stream_prop, s, prop)
+
 static int
 stream_end_of_stream_prop(DECL_LD IOSTREAM *s, term_t prop)
 { if ( s->magic == SIO_MAGIC && (s->flags & SIO_INPUT) )
@@ -4664,6 +4666,18 @@ stream_end_of_stream_prop(DECL_LD IOSTREAM *s, term_t prop)
 
     return PL_unify_atom(prop, val);
   }
+
+  return FALSE;
+}
+
+
+#define stream_error_prop(s, prop) \
+	LDFUNC(stream_error_prop, s, prop)
+
+static int
+stream_error_prop(DECL_LD IOSTREAM *s, term_t prop)
+{ if ( s->magic == SIO_MAGIC )
+    return PL_unify_bool(prop, Sferror(s));
 
   return FALSE;
 }
@@ -4949,6 +4963,7 @@ static const sprop sprop_list [] =
   _SP1( FUNCTOR_alias1,		stream_alias_prop ),
   _SP1( FUNCTOR_position1,	stream_position_prop ),
   _SP1( FUNCTOR_end_of_stream1,	stream_end_of_stream_prop ),
+  _SP1( FUNCTOR_error1,		stream_error_prop ),
   _SP1( FUNCTOR_eof_action1,	stream_eof_action_prop ),
   _SP1( FUNCTOR_reposition1,	stream_reposition_prop ),
   _SP1( FUNCTOR_type1,		stream_type_prop ),

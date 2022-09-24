@@ -1088,6 +1088,7 @@ F erased		1
 F erf			1
 F erfc			1
 F error			2
+F error			1
 F eval			1
 F evaluation_error	1
 F event_hook		1

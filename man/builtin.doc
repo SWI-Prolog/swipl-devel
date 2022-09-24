@@ -5395,6 +5395,10 @@ at_end_of_stream/[0,1].
 Unify \arg{A} with one of \const{eof_code}, \const{reset} or
 \const{error}.  See open/4 for details.
 
+    \termitem{error}{Bool}
+When \const{true}, the stream is in an error state.  Applies to
+both input and output streams.
+
     \termitem{file_name}{Atom}
 If \arg{Stream} is associated to a file, unify \arg{Atom} to the
 name of this file.
