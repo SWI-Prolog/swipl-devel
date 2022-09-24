@@ -937,15 +937,19 @@ read_query(Prompt, Goal, Bindings) :-
 %!  read_query_line(+Input, -Line) is det.
 
 read_query_line(Input, Line) :-
+    stream_property(Input, error(true)),
+    !,
+    Line = end_of_file.
+read_query_line(Input, Line) :-
     catch(read_term_as_atom(Input, Line), Error, true),
     save_debug_after_read,
     (   var(Error)
     ->  true
-    ;   Error = error(syntax_error(_),_)
-    ->  print_message(error, Error),
-        fail
-    ;   print_message(error, Error),
-        throw(Error)
+    ;   catch(print_message(error, Error), _, true),
+        (   Error = error(syntax_error(_),_)
+        ->  fail
+        ;   throw(Error)
+        )
     ).
 
 %!  read_term_as_atom(+Input, -Line)
