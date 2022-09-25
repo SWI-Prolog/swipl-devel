@@ -311,8 +311,8 @@ def_environment(VAR, Value, Options) :-
     ;   Extra = System
     ),
     (   current_prolog_flag(windows, true)
-    ->  current_prolog_flag(home, Home),
-        atomic_list_concat(['-L"', Home, '/bin"'], SystemLib),
+    ->  prolog_library_dir(LibDir),
+        atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
         System = [SystemLib]
     ;   apple_bundle_libdir(LibDir)
     ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
@@ -397,6 +397,11 @@ env_name_v(prefix,         2, 'SWIPL_PREFIX').
 prolog_library_dir(Dir) :-
     prolog:runtime_config(c_libdir, Dir),
     !.
+prolog_library_dir(Dir) :-
+    current_prolog_flag(windows, true),
+    current_prolog_flag(home, Home),
+    !,
+    atomic_list_concat([Home, bin], /, Dir).
 prolog_library_dir(Dir) :-
     current_prolog_flag(home, Home),
     (   current_prolog_flag(c_libdir, Rel)
@@ -707,6 +712,17 @@ setup_path(_) :-
     ).
 setup_path(_).
 
+%!  mingw_extend_path is semidet.
+%
+%   Check that gcc.exe is on ``%PATH%``  and if not, try to extend the
+%   search path.
+
+mingw_extend_path :-
+    absolute_file_name(path('gcc.exe'), _,
+                       [ access(exist),
+                         file_errors(fail)
+                       ]),
+    !.
 mingw_extend_path :-
     mingw_root(MinGW),
     directory_file_path(MinGW, bin, MinGWBinDir),
@@ -717,7 +733,9 @@ mingw_extend_path :-
     prolog_to_os_filename(MSysBinDir, WinDirMSYS),
     getenv('PATH', Path0),
     atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
-    setenv('PATH', Path).
+    setenv('PATH', Path),
+    print_message(informational,
+                  build(mingw_extend_path(WinDirMSYS, WinDirMinGW))).
 
 mingw_root(MinGwRoot) :-
     current_prolog_flag(executable, Exe),
@@ -745,6 +763,8 @@ message(process_output(Codes)) -->
     process_lines(Lines).
 message(step_failed(Step)) -->
     [ 'No build plugin could execute build step ~p'-[Step] ].
+message(mingw_extend_path(WinDirMSYS, WinDirMinGW)) -->
+    [ 'Extended %PATH% with ~p and ~p'-[WinDirMSYS, WinDirMinGW] ].
 
 split_lines([], []) :- !.
 split_lines(All, [Line1|More]) :-
