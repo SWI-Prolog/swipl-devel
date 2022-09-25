@@ -311,8 +311,8 @@ def_environment(VAR, Value, Options) :-
     ;   Extra = System
     ),
     (   current_prolog_flag(windows, true)
-    ->  current_prolog_flag(home, Home),
-        atomic_list_concat(['-L"', Home, '/bin"'], SystemLib),
+    ->  prolog_library_dir(LibDir),
+        atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
         System = [SystemLib]
     ;   apple_bundle_libdir(LibDir)
     ->  atomic_list_concat(['-L"', LibDir, '"'], SystemLib),
@@ -397,6 +397,11 @@ env_name_v(prefix,         2, 'SWIPL_PREFIX').
 prolog_library_dir(Dir) :-
     prolog:runtime_config(c_libdir, Dir),
     !.
+ prolog_library_dir(Dir) :-
+    current_prolog_flag(windows, true),
+    current_prolog_flag(home, Home),
+    !,
+    atomic_list_concat([Home, bin], /, Dir).
 prolog_library_dir(Dir) :-
     current_prolog_flag(home, Home),
     (   current_prolog_flag(c_libdir, Rel)
@@ -707,17 +712,21 @@ setup_path(_) :-
     ).
 setup_path(_).
 
+% gcc should already be in the path
 mingw_extend_path :-
-    mingw_root(MinGW),
-    directory_file_path(MinGW, bin, MinGWBinDir),
-    atom_concat(MinGW, '/msys/*/bin', Pattern),
-    expand_file_name(Pattern, MsysDirs),
-    last(MsysDirs, MSysBinDir),
-    prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
-    prolog_to_os_filename(MSysBinDir, WinDirMSYS),
-    getenv('PATH', Path0),
-    atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
-    setenv('PATH', Path).
+    !.
+
+%mingw_extend_path :-
+%    mingw_root(MinGW),
+%    directory_file_path(MinGW, bin, MinGWBinDir),
+%    atom_concat(MinGW, '/msys/*/bin', Pattern),
+%    expand_file_name(Pattern, MsysDirs),
+%    last(MsysDirs, MSysBinDir),
+%    prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
+%    prolog_to_os_filename(MSysBinDir, WinDirMSYS),
+%    getenv('PATH', Path0),
+%    atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
+%    setenv('PATH', Path).
 
 mingw_root(MinGwRoot) :-
     current_prolog_flag(executable, Exe),
