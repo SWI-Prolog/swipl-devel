@@ -712,21 +712,22 @@ setup_path(_) :-
     ).
 setup_path(_).
 
-% gcc should already be in the path
+% gcc is already on the PATH
 mingw_extend_path :-
+    absolute_file_name(path('gcc.exe'), _, [access(exist), file_errors(fail)]),
     !.
 
-%mingw_extend_path :-
-%    mingw_root(MinGW),
-%    directory_file_path(MinGW, bin, MinGWBinDir),
-%    atom_concat(MinGW, '/msys/*/bin', Pattern),
-%    expand_file_name(Pattern, MsysDirs),
-%    last(MsysDirs, MSysBinDir),
-%    prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
-%    prolog_to_os_filename(MSysBinDir, WinDirMSYS),
-%    getenv('PATH', Path0),
-%    atomic_list_concat([WinDirMSYS, WinDirMinGW, Path0], ';', Path),
-%    setenv('PATH', Path).
+% tell user to adjust the PATH
+mingw_extend_path :-
+    mingw_root(MinGW),
+    directory_file_path(MinGW, bin, MinGWBinDir),
+    atom_concat(MinGW, '/msys/*/bin', Pattern),
+    expand_file_name(Pattern, MsysDirs),
+    last(MsysDirs, MSysBinDir),
+    prolog_to_os_filename(MinGWBinDir, WinDirMinGW),
+    prolog_to_os_filename(MSysBinDir, WinDirMSYS),
+    print_message(informational, build(path(WinDirMSYS, WinDirMinGW))),
+    fail.
 
 mingw_root(MinGwRoot) :-
     current_prolog_flag(executable, Exe),
