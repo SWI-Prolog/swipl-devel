@@ -397,7 +397,7 @@ env_name_v(prefix,         2, 'SWIPL_PREFIX').
 prolog_library_dir(Dir) :-
     prolog:runtime_config(c_libdir, Dir),
     !.
- prolog_library_dir(Dir) :-
+prolog_library_dir(Dir) :-
     current_prolog_flag(windows, true),
     current_prolog_flag(home, Home),
     !,
