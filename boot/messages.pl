@@ -1919,33 +1919,31 @@ print_message(Level, _Term) :-
     !.
 print_message(Level, Term) :-
     setup_call_cleanup(
-        push_msg(Term),
-        print_message_guarded(Level, Term),
-        pop_msg),
+        push_msg(Term, Stack),
+        ignore(print_message_guarded(Level, Term)),
+        pop_msg(Stack)),
     !.
 print_message(Level, Term) :-
     (   Level \== silent
-    ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term])
+    ->  format(user_error, 'Recursive ~w message: ~q~n', [Level, Term]),
+        backtrace(20)
     ;   true
     ).
 
-push_msg(Term) :-
+push_msg(Term, Stack) :-
     nb_current('$inprint_message', Messages),
     !,
     \+ ( '$member'(Msg, Messages),
          Msg =@= Term
        ),
-    b_setval('$inprint_message', [Term|Messages]).
-push_msg(Term) :-
+    Stack = [Term|Messages],
+    b_setval('$inprint_message', Stack).
+push_msg(Term, [Term]) :-
     b_setval('$inprint_message', [Term]).
 
-pop_msg :-
-    (   nb_current('$inprint_message', [_|Messages]),
-        Messages \== []
-    ->  b_setval('$inprint_message', Messages)
-    ;   nb_delete('$inprint_message'),              % delete history
-        b_setval('$inprint_message', [])
-    ).
+pop_msg(Stack) :-
+    nb_delete('$inprint_message'),              % delete history
+    b_setval('$inprint_message', Stack).
 
 print_message_guarded(Level, Term) :-
     (   must_print(Level, Term)
