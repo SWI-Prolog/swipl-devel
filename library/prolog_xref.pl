@@ -1219,7 +1219,7 @@ xref_meta_src(Head, Called, _) :-
     arg(1, Head, G),
     Called = [G+Extra].
 xref_meta_src(Head, Called, _) :-
-    predicate_property(user:Head, meta_predicate(Meta)),
+    predicate_property('$xref_tmp':Head, meta_predicate(Meta)),
     !,
     Meta =.. [_|Args],
     meta_args(Args, 1, Head, Called).
@@ -1498,7 +1498,12 @@ process_goal(Goal, Origin, Src, P) :-
         ->  true
         ;   M = user
         ),
-        (   predicate_property(M:Goal, imported_from(IM))
+        pi_head(PI, M:Goal),
+        (   current_predicate(PI),
+            predicate_property(M:Goal, imported_from(IM))
+        ->  true
+        ;   PI = M:Name/Arity,
+            '$find_library'(M, Name, Arity, IM, _Library)
         ->  true
         ;   IM = M
         ),
