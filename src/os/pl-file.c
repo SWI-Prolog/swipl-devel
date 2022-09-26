@@ -5793,10 +5793,11 @@ wrapIO(IOSTREAM *s,
 static ssize_t
 Swrite_stderr(void *handle, char *buf, size_t size)
 { IOSTREAM *org = handle;
+  ssize_t rc;
 
-  return ( Sfwrite(buf, 1, size, org) == size &&
+  return ( (rc=Sfwrite(buf, 1, size, org)) > 0 &&
 	   Sflush(org) == 0
-	 ) ? 0 : -1;
+	 ) ? rc : -1;
 }
 
 static IOFUNCTIONS Sstderrfunctions =
