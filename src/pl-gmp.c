@@ -1485,26 +1485,41 @@ mpz_fdiv(mpz_t a, mpz_t b)
 
   /* the quotient aa should have exactly 54 bits */
 
-  if ( mpz_tstbit(aa, 0) == 0 )
-  {
-  } else if (mpz_cmp_ui(bb, 0) != 0)
-  { if ( mpz_sgn(aa) > 0 )
+  switch(fegetround())
+  { case FE_TONEAREST:
+      if ( mpz_tstbit(aa, 0) == 0 )
+      {
+      } else if (mpz_cmp_ui(bb, 0) != 0)
+      { if ( mpz_sgn(aa) > 0 )
+	  mpz_add_ui(aa, aa, 1);
+	else
+	  mpz_sub_ui(aa, aa, 1);
+      } else /* mid case: round to even */
+      { if (mpz_tstbit(aa, 1) == 0)
+	{ if (mpz_sgn(aa) > 0)
+	    mpz_sub_ui(aa, aa, 1);
+	  else
+	    mpz_add_ui(aa, aa, 1);
+	} else
+	{ if (mpz_sgn(aa) > 0)
+	    mpz_add_ui(aa, aa, 1);
+	  else
+	    mpz_sub_ui(aa, aa, 1);
+	}
+      }
+      break;
+    case FE_UPWARD:
       mpz_add_ui(aa, aa, 1);
-    else
+      break;
+    case FE_DOWNWARD:
       mpz_sub_ui(aa, aa, 1);
-  } else /* mid case: round to even */
-  { if (mpz_tstbit(aa, 1) == 0)
-    { if (mpz_sgn(aa) > 0)
+      break;
+    case FE_TOWARDZERO:
+      if ( mpz_sgn(aa) > 0 )
 	mpz_sub_ui(aa, aa, 1);
       else
 	mpz_add_ui(aa, aa, 1);
-    } else
-    { if (mpz_sgn(aa) > 0)
-	mpz_add_ui(aa, aa, 1);
-      else
-	mpz_sub_ui(aa, aa, 1);
-    }
-  }
+  }  /* switch(fegetround()) */
 
   d = mpz_get_d(aa); /* exact */
   mpz_clear(aa);
