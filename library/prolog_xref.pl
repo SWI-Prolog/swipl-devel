@@ -1482,6 +1482,9 @@ process_body(Body, Origin, Src) :-
 process_goal(Var, _, _, _) :-
     var(Var),
     !.
+process_goal(_:Goal, _, _, _) :-
+    var(Goal),
+    !.
 process_goal(Goal, Origin, Src, P) :-
     Goal = (_,_),                               % problems
     !,
