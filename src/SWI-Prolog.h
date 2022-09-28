@@ -793,6 +793,8 @@ PL_EXPORT(int)		PL_cvt_i_int(term_t p, int *c);
 PL_EXPORT(int)		PL_cvt_i_uint(term_t p, unsigned int *c);
 PL_EXPORT(int)		PL_cvt_i_long(term_t p, long *c);
 PL_EXPORT(int)		PL_cvt_i_ulong(term_t p, unsigned long *c);
+PL_EXPORT(int)		PL_cvt_i_int32(term_t p, int32_t *c);
+PL_EXPORT(int)		PL_cvt_i_uint32(term_t p, uint32_t *c);
 PL_EXPORT(int)		PL_cvt_i_int64(term_t p, int64_t *c);
 PL_EXPORT(int)		PL_cvt_i_uint64(term_t p, uint64_t *c);
 PL_EXPORT(int)		PL_cvt_i_size_t(term_t p, size_t *c);

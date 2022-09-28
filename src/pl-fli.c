@@ -1091,6 +1091,16 @@ PL_cvt_i_ulong(term_t p, unsigned long *c)
 }
 
 bool
+PL_cvt_i_int32(term_t p, int32_t *c)
+{ return PL_get_integer_ex(p, c);
+}
+
+bool
+PL_cvt_i_uint32(term_t p, uint32_t *c)
+{ return PL_cvt_i_uint(p, c);
+}
+
+bool
 PL_cvt_i_int64(term_t p, int64_t *c)
 { return PL_get_int64_ex(p, c);
 }
