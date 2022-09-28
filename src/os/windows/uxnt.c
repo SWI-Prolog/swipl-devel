@@ -1115,8 +1115,8 @@ Wine.
 DIR *
 opendir(const char *path)
 { TCHAR buf[PATH_MAX];
-  TCHAR *edir;
   DIR *dp = malloc(sizeof(*dp));
+  size_t len;
 
   if ( !dp )
   { errno = ENOMEM;
@@ -1129,10 +1129,10 @@ opendir(const char *path)
     errno = ENAMETOOLONG;
     return NULL;
   }
-  edir = buf+_tcslen(buf);
-  if ( edir[-1] == '\\' )
-    edir--;
-  _tcscpy(edir, _T("\\*"));
+  len = _tcslen(buf);
+  if ( len > 0 && buf[len-1] == '\\' )
+    len--;
+  _tcscpy(buf+len, _T("\\*"));
 
   if ( !(dp->data = malloc(sizeof(WIN32_FIND_DATA))) )
   { free(dp);
@@ -1146,7 +1146,7 @@ opendir(const char *path)
 				FIND_FIRST_EX_LARGE_FETCH);
 
   if ( dp->handle == INVALID_HANDLE_VALUE )
-  { *edir = 0;
+  { buf[len] = 0;
 
     if ( _waccess(buf, R_OK) )		/* Dir does not exist or is unreadable */
     { closedir(dp);
