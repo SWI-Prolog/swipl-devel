@@ -833,6 +833,17 @@ allowing for multiple encodings. The \arg{rep} argument is one of
 strlen().  Raises an exception if \arg{s} violates \arg{rep} and
 returns \exam{(atom_t)0}. For other error conditions, see PL_new_atom().
 
+    \cfunction{int}{PL_atom_mbchars}{atom_t atom, size_t len,
+				     char *s, unsigned int flags}
+This function generalizes fetching the text associated with an atom.
+The encoding depends on the flags \const{REP_UTF8}, \const{REP_MB}
+or \const{REP_ISO_LATIN_1}.   Storage is defined by the \const{BUF_*}
+flags as described with PL_get_chars().  The flag \const{CVT_EXCEPTION}
+defines whether or not the function fails silently or raises a Prolog
+exception.  This function may fail because \arg{atom} is not a text
+atom but a \jargon{blob} (see \secref{blob}), conversion to the
+requested encoding is not possible or a resource error occurs.
+
     \cfunction{const char*}{PL_atom_chars}{atom_t atom}
 Deprecated. This function returns a pointer to the content represented
 by the atom or blob regardless of its type. New code that uses blobs
@@ -1122,7 +1133,7 @@ If conversion fails due to a type error, raise a Prolog type error
 exception in addition to failure
 
     \termitem{BUF_DISCARDABLE}{}
-Data must copied immediately
+Data must copied immediately.
 
     \termitem{BUF_STACK}{}
 Data is stored on a stack.  The older \const{BUF_RING} is an alias

@@ -1516,6 +1516,36 @@ PL_get_atom_nchars(term_t t, size_t *len, char **s)
 }
 
 
+int
+PL_atom_mbchars(atom_t a, size_t *len, char **s, unsigned int flags)
+{ PL_chars_t text;
+
+  if ( !get_atom_text(a, &text) )
+  { if ( (flags&CVT_EXCEPTION) )
+    { term_t t;
+      return ((t = PL_new_term_ref()) &&
+	      PL_put_atom(t, a) &&
+	      PL_type_error("atom", t));
+    }
+    return FALSE;
+  }
+
+  if ( PL_mb_text(&text, flags) )
+  { PL_save_text(&text, flags);
+
+    if ( len )
+      *len = text.length;
+    *s = text.text.t;
+
+    return TRUE;
+  } else
+  { PL_free_text(&text);
+
+    return FALSE;
+  }
+}
+
+
 #ifdef O_STRING
 int
 PL_get_string(term_t t, char **s, size_t *len)

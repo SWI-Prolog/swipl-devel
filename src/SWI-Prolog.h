@@ -487,6 +487,8 @@ PL_EXPORT(atom_t)	PL_new_atom_wchars(size_t len, const pl_wchar_t *s);
 PL_EXPORT(atom_t)	PL_new_atom_mbchars(int rep, size_t len, const char *s);
 PL_EXPORT(const char *)	PL_atom_chars(atom_t a);
 PL_EXPORT(const char *)	PL_atom_nchars(atom_t a, size_t *len);
+PL_EXPORT(int)		PL_atom_mbchars(atom_t a, size_t *len, char **s,
+					unsigned int flags);
 PL_EXPORT(const wchar_t *)	PL_atom_wchars(atom_t a, size_t *len);
 PL_EXPORT(void)		PL_register_atom(atom_t a);
 PL_EXPORT(void)		PL_unregister_atom(atom_t a);
