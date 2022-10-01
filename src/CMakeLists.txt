@@ -213,6 +213,7 @@ if(NOT CMAKE_CROSSCOMPILING)
   add_executable(mkvmi mkvmi.c)
   add_executable(defatom defatom.c)
   add_executable(wrap-gcc EXCLUDE_FROM_ALL wrap-gcc.c) #only needed for PGO with GCC
+  target_include_directories(mkvmi BEFORE PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   set(PROG_MKVMI mkvmi)
   set(PROG_DEFATOM defatom)
   set(TARGET_WRAPGCC wrap-gcc)
@@ -235,7 +236,7 @@ else()
 
   add_custom_command(
       OUTPUT  ${PROG_MKVMI}
-      COMMAND ${CMAKE_HOST_CC} -o ${PROG_MKVMI}
+      COMMAND ${CMAKE_HOST_CC} -I${CMAKE_CURRENT_BINARY_DIR} -o ${PROG_MKVMI}
               ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/mkvmi.c
   )
