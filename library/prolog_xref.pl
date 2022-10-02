@@ -3,9 +3,10 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org/projects/xpce/
-    Copyright (c)  2006-2020, University of Amsterdam
+    Copyright (c)  2006-2022, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -77,12 +78,14 @@
 :- autoload(library(operators),[push_op/3]).
 :- autoload(library(option),[option/2,option/3]).
 :- autoload(library(ordsets),[ord_intersect/2,ord_intersection/3]).
+:- autoload(library(prolog_code), [pi_head/2]).
 :- autoload(library(prolog_source),
 	    [ prolog_canonical_source/2,
 	      prolog_open_source/2,
 	      prolog_close_source/1,
 	      prolog_read_source_term/4
 	    ]).
+
 :- if(exists_source(library(shlib))).
 :- autoload(library(shlib),[current_foreign_library/2]).
 :- endif.
@@ -91,6 +94,7 @@
 :- if(exists_source(library(pldoc))).
 :- use_module(library(pldoc), []).      % Must be loaded before doc_process
 :- use_module(library(pldoc/doc_process)).
+
 :- endif.
 
 :- predicate_options(xref_source/2, 2,
