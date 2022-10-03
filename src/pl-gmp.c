@@ -1508,17 +1508,17 @@ mpz_fdiv(mpz_t a, mpz_t b)
 	}
       }
       break;
-    case FE_UPWARD:
-      mpz_add_ui(aa, aa, 1);
+    case FE_UPWARD:        // negative aa defers to truncate (mpz_get_d)
+      if (mpz_sgn(aa) > 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+        mpz_add_ui(aa, aa, 2);
       break;
-    case FE_DOWNWARD:
-      mpz_sub_ui(aa, aa, 1);
+    case FE_DOWNWARD:      // positive aa defers to truncate (mpz_get_d)
+      if (mpz_sgn(aa) < 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
+        mpz_sub_ui(aa, aa, 2);
       break;
-    case FE_TOWARDZERO:
-      if ( mpz_sgn(aa) > 0 )
-	mpz_sub_ui(aa, aa, 1);
-      else
-	mpz_add_ui(aa, aa, 1);
+    case FE_TOWARDZERO:    // truncation performed by mpz_get_d
+      break;
+
   }  /* switch(fegetround()) */
 
   d = mpz_get_d(aa); /* exact */
@@ -1528,6 +1528,66 @@ mpz_fdiv(mpz_t a, mpz_t b)
   return ldexp(d, (long)sa - (long)sb);
 }
 
+/* Convert MPZ to a double by appropriate rounding of result from mpz_get_d */
+
+static double
+mpz_float(mpz_t a)
+{ double d = mpz_get_d(a);  // truncated
+  size_t sa = mpz_sizeinbase(a, 2);
+  size_t na = mpz_scan1(a, 0);
+  int bit54, trailing_zeros;  
+
+  /* float overflow check */
+  if (isinf(d)) 
+    return d;
+
+  /* if a = m*2^e with m representable on 53 bits */
+  if ((sa-na) <= 53)
+    return d;  // truncated value is accurate
+
+  /* round d outwards as determined by rounding mode */
+    
+  bit54 = mpz_tstbit(a, sa-54) ^ (d < 0);  // true if rounding compensation required
+  trailing_zeros = (na > sa-54);           // true if remaining trailing bits are zero
+
+  switch(fegetround())  /* Note: all uses of nextwoward can overflow */
+  {
+    case FE_TONEAREST:
+  if ( bit54 == 0 )
+  {
+  } else if (trailing_zeros == 0)  // trailing zeros false
+  { if ( d > 0 )  // round outward
+      d = nexttoward(d,  INFINITY); 
+    else
+      d = nexttoward(d, -INFINITY);
+  } else /* mid case: round to even */
+  { if ( mpz_tstbit(a, sa-53) == 1)  // if odd (bit 53 == 1)
+   {  if (d > 0)  // round to even
+      d = nexttoward(d,  INFINITY);
+    else
+      d = nexttoward(d, -INFINITY);
+   }
+  } 
+  break;
+  
+    case FE_UPWARD:
+  if (d >= 0 && (trailing_zeros == 0 || bit54 == 1))
+      d = nexttoward(d,  INFINITY);
+  break;
+  
+    case FE_DOWNWARD:
+  if (d <= 0 && (trailing_zeros == 0 || bit54 == 1))
+      d = nexttoward(d, -INFINITY);
+  break;
+  
+    case FE_TOWARDZERO:    // truncation already performed by mpz_get_d
+  break;
+
+  }  /* switch(fegetround()) */
+
+  return d;
+}
+
 double
 mpq_to_double(mpq_t q)
 { return mpz_fdiv(mpq_numref(q), mpq_denref(q));
@@ -1535,7 +1595,7 @@ mpq_to_double(mpq_t q)
 
 double
 mpz_to_double(mpz_t n)
-{ return mpz_fdiv(n, MPZ_ONE);
+{ return mpz_float(n);  // functionally equivalent to mpz_fdiv(n, MPZ_ONE)
 }
 
 /*
