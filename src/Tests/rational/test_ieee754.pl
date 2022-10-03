@@ -573,7 +573,27 @@ test(ieee_rndto) :-
     assertion(test_roundto(e)),
     assertion(test_roundto(sin(pi/2))),
     assertion(test_roundto(atan2(1,-1))),
-    assertion(test_roundto(cosh(-0.5))).
+    assertion(test_roundto(cosh(-0.5))),    
+      current_prolog_flag(max_tagged_integer,MTI),
+    assertion(test_roundto(float(MTI))),
+    assertion(test_roundto(float(-MTI))),    
+      ExtInt is 2**62-1,
+    assertion(test_roundto(float(ExtInt))), 
+    assertion(test_roundto(float(-ExtInt))),
+      MPZInt is 2**65,
+    assertion(rounding(float( MPZInt),r(R,R,R,R))),  % exact result
+    assertion(rounding(float(-MPZInt),r(R,R,R,R))),  % exact result
+    assertion(test_roundto(float(MPZInt+1))),
+    assertion(test_roundto(float(-(MPZInt+1)))),
+    assertion(test_roundto(float(MPZInt-1))),
+    assertion(test_roundto(float(-(MPZInt-1)))),
+      Overflow is 2^1024, current_prolog_flag(float_max,FMax), NMax is -FMax,  % all results exact
+    assertion(rounding(float( Overflow),r( 1.0Inf, 1.0Inf, 1.0Inf, 1.0Inf))),
+    assertion(rounding(float( Overflow+1),r( 1.0Inf, 1.0Inf, 1.0Inf, 1.0Inf))),
+    assertion(rounding(float( Overflow-1),r( 1.0Inf, 1.0Inf, FMax, FMax))),
+    assertion(rounding(float(-Overflow),r(-1.0Inf,-1.0Inf,-1.0Inf,-1.0Inf))),
+    assertion(rounding(float(-(Overflow+1)),r(-1.0Inf,-1.0Inf,-1.0Inf,-1.0Inf))),
+    assertion(rounding(float(-(Overflow-1)),r(-1.0Inf,NMax,-1.0Inf,NMax))).
 
 test(bounded) :-
     assertion(bounded_number(0,10,1)),
