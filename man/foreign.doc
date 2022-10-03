@@ -89,7 +89,7 @@ load the appropriate library at startup.
 Note that the definition of the foreign predicates is the same, regardless
 of the linking type used.
 
-\InputIfFileExists{lib/shlib}
+\InputIfFileExists{lib/shlib}{}{}
 
 \subsection{Low-level operations on shared libraries}
 \label{sec:sharedobj}
