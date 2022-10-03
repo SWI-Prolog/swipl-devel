@@ -53,6 +53,16 @@ else()
   endif()
 endif()
 
+# When installing to a non-standard location on macOS, the module
+# @rpath needs to be set to be able to correctly find libswipl.dylib
+if(APPLE AND (NOT CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT))
+  set(MACOSX_RPATH TRUE)
+  set(CMAKE_SKIP_BUILD_RPATH FALSE)
+  set(CMAKE_BUILD_INSTALL_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 # add_index(dir file ...)
 #
 # Create INDEX.pl for ${dir} if at least on of the files is a .pl file
