@@ -726,7 +726,8 @@ xref_defined_class(Source, Class, file(File)) :-
 
 :- thread_local
     current_cond/1,
-    source_line/1.
+    source_line/1,
+    current_test_unit/2.
 
 current_source_line(Line) :-
     source_line(Var),
@@ -1067,6 +1068,12 @@ process_directive(module(Module, Export, Import), Src) :-
     assert_module(Src, Module),
     assert_module_export(Src, Export),
     assert_module3(Import, Src).
+process_directive(begin_tests(Unit, _Options), Src) :-
+    enter_test_unit(Unit, Src).
+process_directive(begin_tests(Unit), Src) :-
+    enter_test_unit(Unit, Src).
+process_directive(end_tests(Unit), Src) :-
+    leave_test_unit(Unit, Src).
 process_directive('$set_source_module'(system), Src) :-
     assert_module(Src, system).     % hack for handling boot/init.pl
 process_directive(pce_begin_class_definition(Name, Meta, Super, Doc), Src) :-
@@ -1731,6 +1738,17 @@ partial_evaluate(_, _).
 
 eval(X = Y) :-
     unify_with_occurs_check(X, Y).
+
+		 /*******************************
+		 *        PLUNIT SUPPORT	*
+		 *******************************/
+
+enter_test_unit(Unit, _Src) :-
+    current_source_line(Line),
+    asserta(current_test_unit(Unit, Line)).
+
+leave_test_unit(Unit, _Src) :-
+    retractall(current_test_unit(Unit, _)).
 
 
                  /*******************************
@@ -2483,6 +2501,16 @@ expand_hide_called(pce_principal:pce_lazy_get_method(_,_,_)).
 expand_hide_called(pce_principal:pce_lazy_send_method(_,_,_)).
 
 assert_defined(Src, Goal) :-
+    Goal = test(_Test),
+    current_test_unit(Unit, Line),
+    assert_called(Src, '<test_unit>'(Unit), Goal, Line),
+    fail.
+assert_defined(Src, Goal) :-
+    Goal = test(_Test, _Options),
+    current_test_unit(Unit, Line),
+    assert_called(Src, '<test_unit>'(Unit), Goal, Line),
+    fail.
+assert_defined(Src, Goal) :-
     defined(Goal, Src, _),
     !.
 assert_defined(Src, Goal) :-
@@ -2781,6 +2809,15 @@ generalise(pce_principal:get_implementation(Id, _, _, _),
     atom(Id),
     !.
 generalise('<directive>'(Line), '<directive>'(Line)) :- !.
+generalise(test(Test), test(Test)) :-
+    current_test_unit(_,_),
+    ground(Test),
+    !.
+generalise(test(Test, _), test(Test, _)) :-
+    current_test_unit(_,_),
+    ground(Test),
+    !.
+generalise('<test_unit>'(Line), '<test_unit>'(Line)) :- !.
 generalise(Module:Goal0, Module:Goal) :-
     atom(Module),
     !,
