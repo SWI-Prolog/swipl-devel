@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018, CWI Amsterdam
+    Copyright (c)  2018-2022, CWI Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -37,24 +38,24 @@
             help/1,                     % +Object
             apropos/1                   % +Search
           ]).
-:- use_module(library(pldoc), []).
-:- autoload(library(apply),[maplist/3]).
-:- autoload(library(error),[must_be/2]).
-:- autoload(library(isub),[isub/4]).
-:- autoload(library(lists),[append/3,sum_list/2]).
-:- autoload(library(pairs),[pairs_values/2]).
-:- autoload(library(porter_stem),[tokenize_atom/2]).
-:- autoload(library(process),[process_create/3]).
-:- autoload(library(sgml),[load_html/3]).
-:- autoload(library(solution_sequences),[distinct/1]).
-:- autoload(library(http/html_write),[html/3,print_html/1]).
-:- autoload(library(lynx/html_text),[html_text/2]).
-:- autoload(pldoc(doc_man),[man_page/4]).
-:- autoload(pldoc(doc_words),[doc_related_word/3]).
-:- autoload(pldoc(man_index),
-	    [man_object_property/2,doc_object_identifier/2]).
-
-
+:- use_module(library(pldoc), [doc_collect/1]).
+:- autoload(library(apply), [maplist/3]).
+:- autoload(library(error), [must_be/2]).
+:- autoload(library(isub), [isub/4]).
+:- autoload(library(lists), [append/3, sum_list/2]).
+:- autoload(library(pairs), [pairs_values/2]).
+:- autoload(library(porter_stem), [tokenize_atom/2]).
+:- autoload(library(process), [process_create/3]).
+:- autoload(library(sgml), [load_html/3]).
+:- autoload(library(solution_sequences), [distinct/1]).
+:- autoload(library(http/html_write), [html/3, print_html/1]).
+:- autoload(library(lynx/html_text), [html_text/2]).
+:- autoload(pldoc(doc_man), [man_page/4]).
+:- autoload(pldoc(doc_modes), [mode/2]).
+:- autoload(pldoc(doc_words), [doc_related_word/3]).
+:- autoload(pldoc(man_index), [man_object_property/2, doc_object_identifier/2]).
+:- autoload(library(prolog_code), [pi_head/2]).
+:- autoload(library(make), [make_reload_file/1]).
 :- use_module(library(lynx/pldoc_style), []).
 
 /** <module> Text based manual
@@ -262,6 +263,37 @@ help_object(Func, How, c(Name), ID) :-
     compound_name_arity(Func, Fuzzy, 0),
     match_name(How, Fuzzy, Name),
     man_object_property(c(Name), id(ID)).
+% for currently loaded predicates
+help_object(Module, _How, Name/Arity, _ID) :-
+    atom(Module),
+    current_module(Module),
+    current_predicate_help(Module:Name/Arity).
+help_object(Name/Arity, _How, Name/Arity, _ID) :-
+    atom(Name),
+    current_predicate_help(_:Name/Arity).
+help_object(Fuzzy, How, Name/Arity, _ID) :-
+    atom(Fuzzy),
+    match_name(How, Fuzzy, Name),
+    current_predicate_help(_:Name/Arity).
+
+%!  current_predicate_help(?PI) is nondet.
+%
+%   True when we have documentation on  PI.   First  we decide we have a
+%   definition  for  PI,  then  we  check    whether   or  not  we  have
+%   documentation for the module in which PI  resides. If not, we switch
+%   to documentation collect mode and reload the file that defines PI.
+
+current_predicate_help(M:Name/Arity) :-
+    current_predicate(M:Name/Arity),
+    pi_head(Name/Arity,Head),
+    \+ predicate_property(M:Head, imported_from(_)),
+    (   mode(M:_, _)             % Some predicates are documented
+    ->  true
+    ;   predicate_property(M:Head,file(File)),
+        doc_collect(true),
+        make_reload_file(File)
+    ),
+    mode(M:Head, _).             % Test that our predicate is documented
 
 match_name(exact, Name, Name).
 match_name(dwim,  Name, Fuzzy) :-
