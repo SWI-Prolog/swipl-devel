@@ -2274,6 +2274,16 @@ classify_head(TB, Goal, unreferenced) :-
     colour_state_source_id(TB, SourceId),
     \+ (xref_called(SourceId, Goal, By), By \= Goal),
     !.
+classify_head(TB, Goal, test) :-
+    Goal = test(_),
+    colour_state_source_id(TB, SourceId),
+    xref_called(SourceId, Goal, '<test_unit>'(_Unit)),
+    !.
+classify_head(TB, Goal, test) :-
+    Goal = test(_, _),
+    colour_state_source_id(TB, SourceId),
+    xref_called(SourceId, Goal, '<test_unit>'(_Unit)),
+    !.
 classify_head(TB, Goal, How) :-
     colour_state_source_id(TB, SourceId),
     (   xref_defined(SourceId, Goal, imported(From))
@@ -2484,6 +2494,7 @@ def_style(head(built_in,_),        [background(orange), bold(true)]).
 def_style(head(iso,_),             [background(orange), bold(true)]).
 def_style(head(def_iso,_),         [colour(blue), bold(true)]).
 def_style(head(def_swi,_),         [colour(blue), bold(true)]).
+def_style(head(test,_),            [colour('#01bdbd'), bold(true)]).
 def_style(head(_,_),               [bold(true)]).
 def_style(rule_condition,	   [background('#d4ffe3')]).
 
