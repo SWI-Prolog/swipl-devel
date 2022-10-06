@@ -156,13 +156,13 @@ that is resolved when loading the data is completed.
     \cfunction{Promise}{Prolog.load_string}{String, Id}
 Load Prolog code from \arg{String}, pretending it was loaded from the
 file \arg{Id}.  The \arg{Id} is optional.  When omitted it generates
-\exam{/string/1}, \\exam{/string/2}, \ldots.
+\verb$/string/1$, \verb$/string/2$, \ldots.
 
     \cfunction{Promise}{Prolog.load_scripts}{}
 Load all scripts from the current docement that have their \const{type}
 set to \const{text/prolog}.  The file reference for the loaded script
 is \file{/script/Id}, where \arg{Id} is derived from (1) the \const{id}
-of the script, (2) the \const{name} of the script o (3) being the nth
+of the script, (2) the \const{name} of the script or (3) being the nth
 Prolog script in the document.
 
     \cfunction{Promise}{Prolog.consult}{...Sources}
