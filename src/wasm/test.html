@@ -90,6 +90,9 @@ SWIPL(Module).then((module) =>
 	{ name: "p(X) from string with iterator",
 	  call: run_p_from_string_with_iterator
 	},
+	{ name: "ground goal with iterator",
+	  call: run_ground_with_iterator
+	},
 	{ name: "Round trip data",
 	  call: test_data_round_trip
 	},
@@ -179,7 +182,7 @@ function run_p()
 /* Same as above, but using the JavaScript iterator (for..of) to enumerate
    the results.  We still need the frame to get rid of `av`.
 */
-  
+
 function run_p_with_iterator()
 { println("title", "Using an iterator for p/1");
 
@@ -207,6 +210,15 @@ function run_p_from_string_with_iterator()
   for(const r of Prolog.query("p(X)"))
   { println("stdout", r.X);
   }
+}
+
+
+function run_ground_with_iterator()
+{ println("title", "Running ground query");
+
+  println("stdout", Prolog.query("true").once());
+  println("stdout", Prolog.query("false").once());
+  println("stdout", Prolog.query("functor(_,_,_)").once());
 }
 
 
@@ -258,7 +270,7 @@ function trip(...args)
    for exchanging data.  test_error() tests what happens when the predicate
    raises an exception.  In that case the object returned by once() represents
    the error and (thus) the target Prolog variables returned as `undefined`.
-*/  
+*/
 
 function sum_list(list)
 { return Prolog.query("time(sum_list(List, Sum))", {List:list}).once().Sum;

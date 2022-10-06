@@ -262,17 +262,21 @@ handling is enabled it returns an object
 \const{message}:\arg{String}\}.
 
     \cfunction{Object}{Query.once}{}
-Close the query after the first answer.  Returns the \exam{.value}
-of the object returned by \exam{.next()} on success and the complete
-object on failure or error.  Thus, the return value maye contain these
-keys:
+Close the query after the first answer. Returns the \exam{.value} of the
+object returned by \exam{.next()} on success and the complete object on
+failure or error. In addition, on a logical result (no error), a field
+\const{success} is added with a boolean value. Thus, the return value
+may contain these keys:
 
     \begin{description}
     \definition{\{Bindings\}}
-Query succeeded.  Objects holds a key for each output variable.
-    \definition{\{\const{done}:\const{true}\}}
+Query succeeded.  Objects holds a key for each output variable.  In
+addition the \const{success} key is set to \const{true}.
+
+    \definition{\{\const{success}:\arg{false}\}}
 Query failed.  Note that the binding keys all start with an uppercase
 letter and this is thus not ambiguous.
+
     \definition{\{\const{error}:true, \const{message}:\arg{String}\}}
 Query raised an exception.
     \end{description}

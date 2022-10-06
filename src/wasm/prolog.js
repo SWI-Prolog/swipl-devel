@@ -638,7 +638,7 @@ class Prolog
   /**
    * Signature:
    *  - query(module, flags, pred, argv, [map], [fid])
-   *  - query(goal, input)
+   *  - query(goal[, input])
    */
 
   query(module, flags, pred, argv, map, fid)
@@ -653,8 +653,11 @@ class Prolog
       this.frame = fid;
       this.put_chars(av+0, goal);
       this.toProlog(input, av+1);
-      return new Query(this, 0, this.PL_Q_NORMAL, "wasm_call_string/3", av,
-		       (a) => this.toJSON(a+2));
+      const q = new Query(this, 0, this.PL_Q_CATCH_EXCEPTION,
+			  "wasm_call_string/3", av,
+			  (a) => this.toJSON(a+2));
+      q.from_text = true;
+      return q;
     }
   }
 
@@ -1390,7 +1393,9 @@ class Query {
 	return { done: true };
       case prolog.PL_S_LAST:
 	this.close();
-        /*FALLTHROUGH*/
+	return { done: true,
+	         value: this.map ? this.map.call(this, argv) : argv
+	       };
       case prolog.PL_S_TRUE:
 	return { done: false,
 	         value: this.map ? this.map.call(this, argv) : argv
@@ -1482,10 +1487,29 @@ class Query {
     return next(this);
   }
 
+  /**
+   * Run a query once.
+   * @return To simplify distinguishing success from failure the
+   * returned object has a field `success` if the Prolog query
+   * completed without an error.
+   */
+
   once()
   { const rc = this.next();
     this.close();
-    return rc.value ? rc.value : rc;
+    if ( this.from_text )
+    { delete rc.done;
+      if ( rc.value )
+      { rc.value.success = true;
+	return rc.value;
+      } else
+      { if ( !rc.error )
+	  rc.success = false;
+	return rc;
+      }
+    } else
+    { return rc.value ? rc.value : rc;
+    }
   }
 
   close()
