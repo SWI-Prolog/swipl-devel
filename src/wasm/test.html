@@ -223,7 +223,8 @@ function run_ground_with_iterator()
 
 
 /* This test tests round trip of data.   We start with a JavaScript object, pass it
-   to Prolog with returns it using u/2 defined as u(X,X).
+   to Prolog with returns it using u/3 defined as u(X,X,S), where S returns
+   the Prolog string representation for X.
 */
 
 class Point {
@@ -253,16 +254,11 @@ function test_data_round_trip()
 function trip(...args)
 { println("title", "Demonstrating round trip object -> Prolog -> object");
 
-  args.forEach((obj) => Prolog.with_frame(() =>
-  { const av = Prolog.new_term_ref(2);
-    Prolog.toProlog(obj, av+0);
-    rc = Prolog.query(0, Prolog.PL_Q_NORMAL, "u/2", av).once();
+  args.forEach((obj) =>
+  { const rc = Prolog.query("u(In,Out,S)", {In:obj}).once();
 
-    println("stdout",
-	    obj, " -> ",
-	    Prolog.get_chars(av+0, Prolog.CVT_WRITEQ), " -> ",
-	    Prolog.toJSON(av+1));
-  }));
+    println("stdout", obj, " -> ", rc.S, " -> ", rc.Out);
+  });
 }
 
 
@@ -311,7 +307,7 @@ function test_bigint()
     println("stdout", `2^${i} = ${pos}; -(2^${i}) = ${neg}`);
 
     const vin = BigInt(2)**BigInt(i);
-    const out = Prolog.query("u(In, Out)", {In:vin}).once().Out;
+    const out = Prolog.query("In = Out", {In:vin}).once().Out;
 
     if ( vin === BigInt(out) )
       println("stdout", `Round trip passed`);

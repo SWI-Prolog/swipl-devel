@@ -20,8 +20,8 @@ p(_{}).
 p(_{name: "Jan", city: "Amsterdam"}).
 p(user{name: "Jan", city: "Amsterdam"}).
 
-u(X,X) :-
-    debug(js, 'u/2: Got ~q~n', [X]).
+u(X,X,S) :-
+    format(string(S), '~q', [X]).
 
 bigint(I, N, Neg) :-
     N is 2^I,
