@@ -156,7 +156,7 @@ that is resolved when loading the data is completed.
     \cfunction{Promise}{Prolog.load_string}{String, Id}
 Load Prolog code from \arg{String}, pretending it was loaded from the
 file \arg{Id}.  The \arg{Id} is optional.  When omitted it generates
-\file{/string/1}, \file{/string/2}, \ldots.
+\exam{/string/1}, \\exam{/string/2}, \ldots.
 
     \cfunction{Promise}{Prolog.load_scripts}{}
 Load all scripts from the current docement that have their \const{type}
@@ -212,7 +212,23 @@ for(let r of Prolog.query("member(Elem,List)",
 }
 \end{code}
 
-The .exam{query{}} method is indented for fast queries that do not
+This interface is also practical for calling (fast) Prolog predicates to
+compute a single answer from an input using the \cfuncref{Query.once}{}
+method. Assuming a Prolog predicate \nopredref{fib}{2} that computes the
+nth \jargon{Fibonacci} number, we can call this using the code below.
+Note that if the \nopredref{fib}{2} fails or raises an exception the
+object returned by \cfuncref{Query.once}{} does not contain the
+\const{Out} key and thus our function returns \const{undefined}.
+
+\begin{code}
+function fib(in, out)
+{ return Prolog.query("fib(In,Out)", {In:in}).once().Out;
+}
+
+\end{code}
+
+
+The \exam{.query()} method is indented for fast queries that do not
 require the \jargon{yield} mechanism, i.e., the execution should not
 require asynchronous operations and the browser is not responsive
 during the execution.
