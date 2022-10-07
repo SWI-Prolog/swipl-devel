@@ -249,6 +249,7 @@ call_first(Obj, One) =>
 
 is_func(Term) :-
     compound(Term),
+    \+ Term = [_|_],
     \+ is_dict(Term).
 
 call_func(Call, One) :-
