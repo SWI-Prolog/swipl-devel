@@ -934,6 +934,11 @@ class Prolog
   { this.with_frame(() =>
     { const term = this.toProlog(obj, undefined, {string:"string"});
 
+      if ( !term )
+      { console.log("Could not convert", obj);
+	throw("Could not convert JavaScript data to Prolog");
+      }
+
       this.bindings.WASM_set_yield_result(term);
     }, true);
   }
@@ -1121,8 +1126,8 @@ class Prolog
 	  rc = prolog.bindings.PL_put_nil(term);
 
 	for(var i=data.length-1; i >= 0 && rc; i--)
-	{ toProlog(prolog, data[i], h, ctx);
-	  rc = prolog.bindings.PL_cons_list(term, h, term);
+	{ rc = ( toProlog(prolog, data[i], h, ctx) &&
+		 prolog.bindings.PL_cons_list(term, h, term) );
 	}
 
 	return rc;
@@ -1183,12 +1188,14 @@ class Prolog
 
 		if ( args !== undefined )
 		{ const av = prolog.new_term_ref(args.length);
-		  const f  = prolog.new_functor(prolog.new_atom(name), args.length);
+		  const f  = prolog.new_functor(prolog.new_atom(name),
+						args.length);
 
-		  for(var i=0; i<args.length; i++)
-		    toProlog(prolog, args[i], av+i, ctx);
+		  rc = true;
+		  for(var i=0; i<args.length && rc; i++)
+		    rc = toProlog(prolog, args[i], av+i, ctx);
 
-		  rc = prolog.bindings.PL_cons_functor_v(term, f, av);
+		  rc = rc && prolog.bindings.PL_cons_functor_v(term, f, av);
 		}
 		break;
 	      }
@@ -1232,12 +1239,16 @@ class Prolog
 		if ( class_name != "Object" )
 		  tag = prolog.new_atom(class_name);
 
-		for(var i=0; i<len; i++)
-		{ toProlog(prolog, data[keys[i]], av+i, ctx);
-		  prolog.module.setValue(atoms+4*i, prolog.new_atom(keys[i]), 'i32');
+		rc = true;
+		for(var i=0; i<len && rc; i++)
+		{ rc = toProlog(prolog, data[keys[i]], av+i, ctx);
+		  prolog.module.setValue(atoms+4*i,
+					 prolog.new_atom(keys[i]),
+					 'i32');
 		}
 
-		rc = prolog.bindings.PL_put_dict(term, tag, len, atoms, av);
+		rc = rc && prolog.bindings.PL_put_dict(term, tag, len,
+						       atoms, av);
 		prolog.module._free(atoms);
 		break;
 	      }
