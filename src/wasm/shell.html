@@ -15,79 +15,87 @@ and browse to http://localhost:8080/
 <head>
   <meta charset="UTF-8">
   <title>SWI-Prolog WebAssembly build test</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.css">
 </head>
 <body>
 <style>
 :root {
-  --margin: 10px;
+    --margin: 10px;
 }
 
 html {
-  height: 100%;
+    height: 100%;
 }
 
 body {
-  display: flex;
-  flex-direction: column;
-  width: 100%; height: 100%; margin: var(--margin);
-  overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 100%; height: 100%; margin: var(--margin);
+    overflow: hidden;
 }
 
 .header {
-  padding-bottom: 5px;
+    padding-bottom: 5px;
 }
 
 .content {
-  position: relative;
-  flex-grow: 1;
+    position: relative;
+    flex-grow: 1;
 }
 
 .scroll-wrapper {
-  box-sizing: border-box;
-  position: absolute;
-  height: calc(100% - 2*var(--margin)); width: calc(50% - 2*var(--margin)); border: 1px solid black;
-  overflow: auto; display: flex; flex-direction: column-reverse;
-  padding: 5px;
+    box-sizing: border-box;
+    position: absolute;
+    height: calc(100% - 2*var(--margin)); width: calc(50% - 2*var(--margin)); border: 1px solid black;
+    overflow: auto; display: flex; flex-direction: column-reverse;
+    padding: 5px;
 }
 .scroll-start-at-top { flex: 1 1 0%; }
 
 .editor-container {
-  position: absolute;
-  left: calc(50% - var(--margin));
-  height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
+    position: absolute;
+    left: calc(50% - var(--margin));
+    height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
 }
 
 #editor {
-  position: relative;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+    position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .editor-wrapper {
-  border: 1px solid black;
-  padding: 1px;
-  position: relative;
-  flex-grow: 1;
+    border: 1px solid black;
+    padding: 1px;
+    position: relative;
+    flex-grow: 1;
 }
 
 #editor-files button, #editor-files select { height: 26px; }
 
 #file {
-   box-sizing: border-box;
-   border: 0px;
-   resize: none;
-   width: 100%; height: 100%;
+    box-sizing: border-box;
+    border: 0px;
+    resize: none;
+    width: 100%; height: 100%;
+}
+
+.CodeMirror {
+    font-size: 130%;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
 }
 
 .editor-buttons {
-  margin-top: var(--margin);
+    margin-top: var(--margin);
 }
 
 #input {
-  margin-top: 5px;
-  box-sizing: border-box;
-  width: 100%;
+    margin-top: 5px;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 
@@ -101,9 +109,9 @@ body {
 
 .stderr { color: red; }
 .stderr, .stdout, .query {
-  white-space: pre-wrap;
-  font-family: monospace;
-  overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    font-family: monospace;
+    overflow-wrap: anywhere;
 }
 .query, .prompt { font-weight: bold; }
 .query { margin-top: 5px; }
@@ -148,7 +156,7 @@ body {
       </span>
       </div>
       <div class="editor-wrapper">
-	<textarea id="file" placeholder="Program"></textarea>
+      <div id="file"></div> <!-- Filled with CodeMirror -->
       </div>
       <div class="editor-buttons">
 	<button>(Re)consult</button>
@@ -169,7 +177,7 @@ body {
 prolog_edit:edit_source(Spec) :-
     memberchk(file(File), Spec),
     load_file(File, String),
-    document.getElementById("file").value := String,
+    _ := cm.setValue(String),
     (   range(String, Start-End, Spec)
     ->  _ := document.getElementById("file").focus(),
         _ := document.getElementById("file")
@@ -204,7 +212,60 @@ range_stream(In, Range, Options) :-
 
 </script>
 
+<!-- Load Prolog and CodeMirror -->
 <script src="/wasm/swipl-web.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+<script>
+  let CodeMirror;
+  let cm;
+
+  require.config(
+    { paths:
+      { "cm/lib/codemirror": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.min",
+	"cm/addon/edit/matchbrackets": "https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/matchbrackets.min",
+	"cm/mode/prolog": "https://www.swi-prolog.org/download/codemirror/mode/prolog"
+      }
+    });
+
+  function initCodeMirror()
+  { function createCM()
+    { cm = CodeMirror(document.getElementById("file"),
+                      { lineNumbers: true,
+			matchBrackets: true,
+			mode: "prolog",
+			theme: "prolog",
+			prologKeys: true
+                      });
+    }
+
+    require(["cm/lib/codemirror",
+	     "cm/addon/edit/matchbrackets",
+	     "cm/mode/prolog/prolog",
+	     "cm/mode/prolog/prolog_keys",
+	    ], (cm) => {
+	      CodeMirror = cm;
+	      createCM();
+	      restoreFiles();
+	    });
+  }
+
+  function loadCss(url)
+  { const link = document.createElement("link");
+    link.type = "text/css";
+    link.rel = "stylesheet";
+    link.href = url;
+    document.getElementsByTagName("head")[0].appendChild(link);
+  }
+
+  loadCss("https://eu.swi-prolog.org/download/codemirror/theme/prolog.css");
+</script>
+
+<!--
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/matchbrackets.min.js"></script>
+<script src="codemirror/mode/prolog/prolog-ctype.js"></script>
+<script src="codemirror/mode/prolog/prolog.js"></script>
+-->
 
 <script>
 const default_file  = "/prolog/program.pl";
@@ -486,10 +547,10 @@ var Module = {
 SWIPL(Module).then((module) =>
     { Prolog = Module.prolog;
       Module.FS.mkdir("/prolog");
-      restoreFiles();
       pl("set_prolog_flag(tty_control, true)");
       pl("working_directory(_, '/prolog')");
       Prolog.load_scripts();
+      initCodeMirror();
 
       toplevel();
     });
@@ -534,14 +595,14 @@ function loadFile(name)
 
   try
   { let content = Module.FS.readFile(name, { encoding: 'utf8' });
-    editor.elements.file.value = content;
+    cm.setValue(content);
   } catch(e)
-  { editor.elements.file.value = "";
+  { cm.setValue("");
   }
 }
 
 function saveFile()
-{ Module.FS.writeFile(files.current, editor.elements.file.value);
+{ Module.FS.writeFile(files.current, cm.getValue());
 }
 
 let autosave = true;
