@@ -1208,8 +1208,13 @@ class Prolog
 	      }
 	      case "l":
 	      { rc = toList(term, data.v, data.t);
+		break;
+	      }
+	      default:
+	      { console.log(`Object with invalid $t:${data.$t}`);
 	      }
 	    }
+	    break;
 	  } else
 	  { switch( data.constructor.name )
 	    { case "ArrayBuffer":
@@ -1254,6 +1259,7 @@ class Prolog
 	    }
 	    break;
 	  }
+	  break;
 	default:
 	  return null;
       }
