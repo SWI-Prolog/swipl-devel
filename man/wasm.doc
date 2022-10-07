@@ -442,14 +442,30 @@ it accesses a JavaScript \jargon{setter}. The general form of an
 expression is \arg{Expression}[\arg{Callable}] or simply \arg{Callable}.
 If \arg{Callable} is compound it expresses a function (or method) call.
 Otherwise it accesses a property or global variable (property of
-\const{window} in a browser).
+\const{window} in a browser), except for these special values:
+
+\begin{description}
+    \termitem{window}{}
+The main browser window itself (\const{undefined} when not in a browser).
+    \termitem{prolog}{}
+The \ctype{Prolog} instance.
+    \termitem{true}{}
+    \nodescription
+    \termitem{false}{}
+    \nodescription
+    \termitem{null}{}
+    \nodescription
+    \termitem{undefined}{}
+The JavaScript constants.
+\end{description}
 
 Prolog values are translated according to the rules in
 \secref{wasm-data-prolog-to-js} and the result is translated back to
 Prolog according to the rules in \secref{wasm-data-js-to-prolog}.
 Because callables are translated to function calls, object properties or
-global variables we cannot directly we need an escape to pass them as
-data. This is achieved using the prefix operator \const{#}. For
+global variables we need an escape to pass them as data. This is
+achieved using the prefix operator \const{#}. Note that lists are passed
+as JavaScript arrays rather than calls to the list functor. For
 convenience Prolog strings are by default translated to JavaScript
 \ctype{String} objects rather than \ctype{Prolog.String} instances.
 Below are some examples:
@@ -481,22 +497,28 @@ following ``functions'' are handled directly by the implementation.
 W = <js_Window>(1),
 T = true.
 \end{code}
-    \termitem{-}{Number}
+    \termitem{-}{Any}
 Numerical negation
     \termitem{!}{Any}
 Logical negation.
-    \termitem{+}{Number, Number}
+    \termitem{+}{Any, Any}
     \nodescription
-    \termitem{-}{Number, Number}
+    \termitem{-}{Any, Any}
     \nodescription
-    \termitem{*}{Number, Number}
+    \termitem{*}{Any, Any}
     \nodescription
-    \termitem{/}{Number, Number}
+    \termitem{/}{Any, Any}
     \nodescription
-    \termitem{&}{Number, Number}
+    \termitem{&}{Any, Any}
     \nodescription
-    \termitem{|}{Number, Number}
-Binary numerical operators.
+    \termitem{|}{Any, Any}
+    \termitem{&&}{Any, Any}
+    \nodescription
+    \termitem{||}{Any, Any}
+Binary operators. Note that some are not defined as Prolog operators and
+thus one must write e.g. \verb$A := &&(true,false)$.  \verb$||$ is not
+a Prolog atom, so logical disjunction gets \verb$A :=
+'||'(false,false)$.
     \end{description}
 
     \predicate[semidet]{is_object}{1}{@Term}

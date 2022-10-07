@@ -1583,11 +1583,13 @@ function prolog_js_call(request, result)
 	  case "/": return args[0] / args[1];
 	  case "&": return args[0] & args[1];
 	  case "|": return args[0] | args[1];
+	  case "&&": return args[0] && args[1];
+	  case "||": return args[0] || args[1];
 	}
       }
 
       const func = obj[fname];
-      if ( func )
+      if ( typeof(func) === "function"  )
 	return func.apply(obj, args);
       else
 	console.log("ERROR: Function", fname, "is not defined on", obj);
@@ -1604,6 +1606,18 @@ function prolog_js_call(request, result)
 	      break;
 	    case "window":
 	      obj = window;
+	      break;
+	    case "true":
+	      obj = true;
+	      break;
+	    case "false":
+	      obj = false;
+	      break;
+	    case "null":
+	      obj = null;
+	      break;
+	    case "undefined":
+	      obj = undefined;
 	      break;
 	    default:
 	      obj = obj[next];

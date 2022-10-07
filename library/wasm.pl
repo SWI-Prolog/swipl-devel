@@ -47,8 +47,8 @@
             js_script/2,                % +String, +Options
 
             op(700, xfx, :=),           % Result := Expression
-            op(40,  fx,  #),            % #Value
-            op(50,  yf,  [])            % Expr[Expr]
+            op(50,  fx,  #),            % #Value
+            op(40,  yf,  [])            % Expr[Expr]
           ]).
 :- autoload(library(apply), [exclude/3, maplist/3]).
 :- autoload(library(terms), [mapsubterms/3]).
