@@ -44,5 +44,3 @@ elseif(APPLE)
 else()
   set(SO_PATH LD_LIBRARY_PATH)
 endif()
-
-set(SO_DIR ${CMAKE_INSTALL_PREFIX}/${LIBSWIPL_DIR})

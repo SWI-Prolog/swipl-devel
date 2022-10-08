@@ -433,14 +433,6 @@ on_error_style(const char *s)
 }
 
 
-int plugin_is_GPL_compatible;
-
-int
-emacs_module_init(void*a) {
-  (void)a;
-  return 0;
-}
-
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 When detected to run under a  GNU-Emacs   shell  or using M-x run-prolog
 from GNU-Emacs, don't pretend we  can   manipulate  the TTY settings. On

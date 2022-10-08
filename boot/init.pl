@@ -1061,8 +1061,6 @@ user:file_search_path(swi, Home) :-
     current_prolog_flag(home, Home).
 user:file_search_path(swi, Home) :-
     current_prolog_flag(shared_home, Home).
-user:file_search_path(libswi, Dir) :-
-    current_prolog_flag(libswipl_dir, Dir).
 user:file_search_path(library, app_config(lib)).
 user:file_search_path(library, swi(library)).
 user:file_search_path(library, swi(library/clp)).
