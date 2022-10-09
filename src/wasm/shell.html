@@ -81,6 +81,8 @@ body {
 
 #editor-files button, #editor-files select { height: 26px; }
 
+#editor-files select option.url { color: blue; }
+
 #file {
     box-sizing: border-box;
     border: 0px;
@@ -179,7 +181,10 @@ body {
 </div>
 
 <script type="text/prolog" id="wasm_shell.pl">
-:- module(wasm_shell, []).
+:- module(wasm_shell, [wasm_add_examples/0]).
+:- use_module(library(xpath)).
+:- use_module(library(sgml)).
+
 :- multifile prolog_edit:edit_source/1.
 
 %!  prolog_edit:edit_source(++Spec)
@@ -191,10 +196,8 @@ prolog_edit:edit_source(Spec) :-
     memberchk(file(File), Spec),
     load_file(File, String),
     _ := cm.setValue(String),
-    (   range(String, Start-End, Spec)
-    ->  _ := document.getElementById("file").focus(),
-        _ := document.getElementById("file")
-		.setSelectionRange(Start,End)
+    (   range(String, _Start-_End, Spec)
+    ->  true % TBD: CodeMirror selection
     ;   true
     ).
 
@@ -222,6 +225,29 @@ range_stream(In, Range, Options) :-
     character_count(In, End1),
     End is End1 - 1,
     Range = Start-End.
+
+%!  wasm_add_examples
+
+wasm_add_examples :-
+    Select := document.getElementById("select-file"),
+    forall(ex(Ex), add_example(Select, Ex)).
+
+add_example(Select, Ex) :-
+    string_concat("/wasm/examples/", Ex, URL),
+    Opt := document.createElement("option"),
+    Opt.className := "url",
+    Opt.value := URL,
+    Opt.textContent := Ex + " (external)",
+    _ := Select.appendChild(Opt).
+
+ex(Ex) :-
+    wasm:fetch("/wasm/examples/", "text", String),
+    setup_call_cleanup(
+        open_string(String, In),
+        load_html(stream(In), DOM, []),
+        close(In)),
+    xpath(DOM, //(a(@(href(string)))), Ex),
+    file_name_extension(_, pl, Ex).
 
 </script>
 
@@ -260,6 +286,7 @@ range_stream(In, Range, Options) :-
 	      CodeMirror = cm;
 	      createCM();
 	      restoreFiles();
+	      Prolog.forEach("wasm_add_examples").then(()=>{console.log("ok");})
 	    });
   }
 
@@ -288,7 +315,7 @@ const output	    = document.getElementById('output');
 const input	    = document.getElementById('input');
 const more	    = document.getElementById('more');
 const editor	    = document.getElementById('editor');
-const select_files  = document.getElementById('select-files');
+const select_file   = document.getElementById('select-file');
 const abort	    = document.getElementById('abort');
 let   yield	    = null;
 let   abort_request = false;
@@ -322,7 +349,7 @@ function query(query)
 
 editor.addEventListener('submit', (e) => {
   e.preventDefault();
-  saveFile();
+  saveFile(files.current);
   query(`consult('${files.current}').`);
 }, false);
 
@@ -360,10 +387,9 @@ function baseName(path)
 }
 
 function addFileOption(name)
-{ const select = document.getElementById("select-file");
-  let found = false;
+{ let found = false;
 
-  Array.from(select.childNodes).forEach((n) => {
+  Array.from(select_file.childNodes).forEach((n) => {
     if ( n.value == name )
       found = true;
   });
@@ -373,12 +399,12 @@ function addFileOption(name)
     node.textContent = baseName(name);
     node.value = name;
     node.selected = true;
-    select.appendChild(node);
+    select_file.appendChild(node);
   }
 }
 
 function switchToFile(name)
-{ let options = Array.from(document.getElementById("select-file").childNodes);
+{ let options = Array.from(select_file.childNodes);
 
   options.forEach((e) => {
     e.selected = e.value == name;
@@ -386,7 +412,7 @@ function switchToFile(name)
 
   if ( files.current != name )
   { if ( file.current )
-      saveFile();
+      saveFile(file.current);
     files.current = name;
     if ( !files.list.includes(name) )
       files.list.push(name);
@@ -416,13 +442,27 @@ document.getElementById('create-button').onclick = e => {
 };
 
 function selectedFile()
-{ select = document.getElementById("select-file");
-
-  return select.options[select.selectedIndex].value;
+{ opt = select_file.options[select_file.selectedIndex];
+  return opt.value;
 }
 
 document.getElementById("select-file").onchange = (e) => {
-  switchToFile(selectedFile());
+  opt = select_file.options[select_file.selectedIndex];
+
+  if ( opt.className == "url" )
+  { fetch(opt.value)
+    .then((res) => res.text())
+    .then((s) => {
+      const name = baseName(opt.value);
+      opt.className = "local";
+      opt.value = "/prolog/" + name;
+      opt.textContent = name;
+      Module.FS.writeFile(opt.value, s);
+      switchToFile(opt.value);
+    });
+  } else
+  { switchToFile(opt.value);
+  }
 }
 
 // Goal input
@@ -557,12 +597,12 @@ var Module = {
     on_output: print_output
 };
 
-SWIPL(Module).then((module) =>
+SWIPL(Module).then(async (module) =>
     { Prolog = Module.prolog;
       Module.FS.mkdir("/prolog");
       pl("set_prolog_flag(tty_control, true)");
       pl("working_directory(_, '/prolog')");
-      Prolog.load_scripts();
+      await Prolog.load_scripts();
       initCodeMirror();
 
       toplevel();
@@ -614,8 +654,8 @@ function loadFile(name)
   }
 }
 
-function saveFile()
-{ Module.FS.writeFile(files.current, cm.getValue());
+function saveFile(name)
+{ Module.FS.writeFile(name, cm.getValue());
 }
 
 let autosave = true;
