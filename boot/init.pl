@@ -2579,8 +2579,13 @@ load_files(Module:Files, Options) :-
     '$noload'(If, FullFile, Options),
     !,
     '$already_loaded'(File, FullFile, Module, Options).
+:- if(current_prolog_flag(emscripten, true)).
+'$mt_load_file'(File, FullFile, Module, Options) :-
+    '$qdo_load_file'(File, FullFile, Module, Options).
+:- else.
 '$mt_load_file'(File, FullFile, Module, Options) :-
     sig_atomic('$qdo_load_file'(File, FullFile, Module, Options)).
+:- endif.
 
 '$mt_start_load'(FullFile, queue(Queue), _) :-
     '$loading_file'(FullFile, Queue, LoadThread),
