@@ -273,11 +273,13 @@ A dyield		"$yield"
 A dynamic		"dynamic"
 A e			"e"
 A eager			"eager"
+A else			"else"
 A encoding		"encoding"
 A end			"end"
 A end_of_file		"end_of_file"
 A end_of_line		"end_of_line"
 A end_of_stream		"end_of_stream"
+A endif			"endif"
 A engine		"engine"
 A engines		"engines"
 A engines_created	"engines_created"
@@ -405,6 +407,7 @@ A id			"id"
 A idg_affected_count	"idg_affected_count"
 A idg_dependent_count	"idg_dependent_count"
 A idg_size		"idg_size"
+A if			"if"
 A ifthen		"->"
 A ignore		"ignore"
 A ignore_ops		"ignore_ops"
@@ -1123,6 +1126,7 @@ F grouping		1
 F hat			2
 F hash			4
 F id			1
+F if			1
 F ifthen		2
 F import_into		1
 F inf			0

@@ -4123,6 +4123,87 @@ directiveClause(term_t directive, term_t clause, const char *functor)
   succeed;
 }
 
+
+typedef enum
+{ IF_FALSE,
+  IF_TRUE,
+  IF_ELSE_FALSE
+} iftrue;
+
+#define MAX_IFDEF_NEST 3
+
+typedef struct condc
+{ int    depth;
+  iftrue ctrue[MAX_IFDEF_NEST];
+} condc;
+
+static int
+cond_true(const condc *cond)
+{ return cond->ctrue[cond->depth] == IF_TRUE;
+}
+
+#define update_conditional_compilation(term, cond) \
+  LDFUNC(update_conditional_compilation, term, cond)
+
+static int
+update_conditional_compilation(DECL_LD term_t term, condc *cond)
+{ if ( !PL_is_functor(term, FUNCTOR_colon2) )
+    return FALSE;
+
+  term_t g = PL_new_term_ref();
+  _PL_get_arg(2, term, g);
+  int rc = FALSE;
+  int ctrue = cond_true(cond);
+  atom_t a;
+
+  if ( PL_is_functor(g, FUNCTOR_if1) )
+  { iftrue new;
+
+    if ( cond->depth+1 >= MAX_IFDEF_NEST )
+      fatalError("To deeply nested :- if");
+
+    if ( ctrue )
+    { term_t arg = PL_new_term_ref();
+
+      _PL_get_arg(1, g, arg);
+      if ( callProlog(MODULE_user, arg, PL_Q_NODEBUG, NULL) )
+	new = IF_TRUE;
+      else
+	new = IF_FALSE;
+    } else
+      new = IF_ELSE_FALSE;
+
+    cond->ctrue[++cond->depth] = new;
+    rc = TRUE;
+  } else if ( PL_get_atom(g, &a) )
+  { iftrue new;
+
+    if ( a == ATOM_else )
+    { switch(cond->ctrue[cond->depth])
+      { case IF_TRUE:
+	  new = IF_FALSE;
+	  break;
+        case IF_FALSE:
+	  new = IF_TRUE;
+	  break;
+        default:
+	  new = IF_ELSE_FALSE;
+      }
+      cond->ctrue[cond->depth] = new;
+      rc = TRUE;
+    } else if ( a == ATOM_endif )
+    { if ( cond->depth == 0 )
+	fatalError("Too many :- endif\n");
+      cond->depth--;
+      rc = TRUE;
+    }
+  }
+
+  PL_reset_term_refs(g);
+
+  return rc;
+}
+
 /*  Compile an entire file into intermediate code.
 
  ** Thu Apr 28 13:44:43 1988  jan@swivax.UUCP (Jan Wielemaker)  */
@@ -4135,6 +4216,7 @@ compileFile(wic_state *state, const char *file)
   term_t f = PL_new_term_ref();
   SourceFile sf;
   atom_t nf;
+  condc cond = {.depth = 0, .ctrue[0] = IF_TRUE};
 
   DEBUG(MSG_QLF_BOOT, Sdprintf("Boot compilation of %s\n", file));
   if ( !(path = AbsoluteFile(file, tmp)) )
@@ -4184,19 +4266,25 @@ compileFile(wic_state *state, const char *file)
 	    Sdprintf(":- ");
 	    PL_write_term(Serror, directive, 1200, 0);
 	    Sdprintf(".\n") );
-      addDirectiveWic(state, directive);
-      if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
-	Sdprintf("%s:%d: directive failed\n",
-		 PL_atom_chars(source_file_name),
-		 source_line_no);
-    } else if ( directiveClause(directive, t, "$:-") )
-    { DEBUG(MSG_QLF_DIRECTIVE,
-	    Sdprintf("$:- ");
-	    PL_write_term(Serror, directive, 1200, 0);
-	    Sdprintf(".\n"));
-      callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
-    } else
-      addClauseWic(state, t, nf);
+      if ( !update_conditional_compilation(directive, &cond) )
+      { if ( cond_true(&cond) )
+	{ addDirectiveWic(state, directive);
+	  if ( !callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL) )
+	    Sdprintf("%s:%d: directive failed\n",
+		     PL_atom_chars(source_file_name),
+		     source_line_no);
+	}
+      }
+    } else if ( cond_true(&cond) )
+    { if ( directiveClause(directive, t, "$:-") )
+      { DEBUG(MSG_QLF_DIRECTIVE,
+	      Sdprintf("$:- ");
+	      PL_write_term(Serror, directive, 1200, 0);
+	      Sdprintf(".\n"));
+	callProlog(MODULE_user, directive, PL_Q_NODEBUG, NULL);
+      } else
+	addClauseWic(state, t, nf);
+    }
 
     PL_discard_foreign_frame(cid);
   }
