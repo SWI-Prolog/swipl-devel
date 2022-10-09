@@ -16,6 +16,7 @@ and browse to http://localhost:8080/
   <meta charset="UTF-8">
   <title>SWI-Prolog WebAssembly build test</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/codemirror.css">
+  <link rel="icon" type="image/x-icon" href="https://www.swi-prolog.org/download/logo/swipl-64x64.ico">
 </head>
 <body>
 <style>
@@ -36,6 +37,12 @@ body {
 
 .header {
     padding-bottom: 5px;
+}
+
+#logo {
+    width: 5ex;
+    float: left;
+    margin-right: 2ex;
 }
 
 .content {
@@ -119,9 +126,15 @@ body {
 </style>
 
 <div class="header">
-<div><a href="https://www.swi-prolog.org" target="_blank">SWI-Prolog</a> using
-<a href="https://webassembly.org/" target="_blank">WASM</a> running in your browser</div>
-<div>Pre-alpha version.  See <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm" target="_blank">Wiki on Discourse</a> for status and usage</div>
+  <img id="logo" alt="SWI-Prolog logo" src="https://www.swi-prolog.org/download/logo/swipl-128.png">
+  <div>
+    This is a basic demo of
+    a <a href="https://www.swi-prolog.org"
+    target="_blank">SWI-Prolog</a> shell based on SWI-Prolog compiled to 
+    <a href="https://webassembly.org/" target="_blank">WASM</a></div>
+  <div>Alpha version.
+  See <a href="https://swi-prolog.discourse.group/t/swi-prolog-in-the-browser-using-wasm"
+  target="_blank">Wiki on Discourse</a> for status and usage</div>
 </div>
 <div class="content">
   <div class="scroll-wrapper">
