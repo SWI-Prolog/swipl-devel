@@ -1682,28 +1682,6 @@ function release_registered_object(id)
 }
 
 
-if ( typeof window !== 'undefined' )
-{ window.js_add_script = function(text, opts)
-  { opts = opts||{};
-    let node;
-
-    if ( opts.id )
-    { if ( (node = document.getElementById(opts.id)) )
-      { node.textContent = text;
-      } else
-      { node = document.createElement("script");
-        node.id = opts.id;
-        node.textContent = text;
-        document.body.appendChild(node);
-      }
-    } else
-    { node = document.createElement("script");
-      node.textContent = text;
-      document.body.appendChild(node);
-    }
-  }
-}
-
 if ( BigInt.prototype.toJSON === undefined )
 { BigInt.prototype.toJSON = function ()
   { return this.toString();

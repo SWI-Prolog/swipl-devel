@@ -273,26 +273,27 @@ dot_list(Dot, List) :-
 
 %!  js_script(+String, +Options) is det.
 %
-%   Add a JavaScript script node to the  document body. For long strings
-%   one can use a `string` quasi quotation, e.g.
+%   Evaluate  String  as  JavaScript,   for  example  for  defining  a
+%   function.   This  may be  used  together  with the  strings  quasi
+%   quotation facility  to easily support  long strings that  may also
+%   use double quotes.
 %
 %   ```
 %   :- use_module(library(strings)).
-%   :- js_string({|string||
+%   :- js_script({|string||
 %   function myfunc(a)
 %   ...
 %   |}).
 %   ```
 %
-%   Options:
+%   Options  is  currently   ignored.   While  this  used   to  add  a
+%   ``<script>`` node to  the document it now uses  (=:)/2 to evaluate
+%   the script.  I.e.  js_script is the same as:
 %
-%     - id(Atom)
-%       Node identifier.  Using the same id replaces the script rather
-%       than adding a new one.
+%       ?- _ := eval(String).
 
-js_script(String, Options) :-
-    dict_options(Dict, Options),
-    _ := js_add_script(String, Dict).
+js_script(String, _Options) :-
+    _ := eval(String).
 
 
 %!  user:prolog_load_file(:File, +Options) is semidet.
