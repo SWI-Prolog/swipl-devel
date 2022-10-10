@@ -184,6 +184,7 @@ class Prolog
     if (!this.bindings.PL_initialise(argv.length, ptr)) {
         throw new Error('SWI-Prolog initialisation failed.');
     }
+    this.MODULE_user = this.new_module("user");
     this.call("set_prolog_flag(color_term, false).");
     this.call("set_prolog_flag(debug_on_error, false)");
     this.call("use_module(library(wasm))");
@@ -427,7 +428,8 @@ class Prolog
 	  if ( !this.chars_to_term(goal, term) )
 	    throw new Error('Query has a syntax error: ' + query);
 
-	  const module = opts.module ? this.new_module(opts.module) : 0;
+	  const module = opts.module ? this.new_module(opts.module)
+				     : this.MODULE_user;
 	  return !!this.bindings.PL_call(term, module);
 	});
       }
@@ -698,7 +700,7 @@ class Prolog
     this.put_chars(av+0, goal);
     this.toProlog(input, av+1);
 
-    const q = new Query(this, 0,
+    const q = new Query(this, this.MODULE_user,
 			this.PL_Q_ALLOW_YIELD|this.PL_Q_CATCH_EXCEPTION,
 			"wasm_call_string_with_heartbeat/3", av,
 			(a) => this.toJSON(a+2));
