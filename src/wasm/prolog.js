@@ -546,12 +546,17 @@ class Prolog
   async load_scripts()
   { const prolog = this;
     const scripts = document.querySelectorAll("script[type='text/prolog']");
+    const loaded = [];
 
     for(let i = 0; i<scripts.length; i++)
     { const s = scripts[i];
+      const name = `/script/${s.id||s.name||i+1}`;
 
-      await prolog.load_string(s.text, `/script/${s.id||s.name||i+1}`);
+      await prolog.load_string(s.text, name);
+      loaded.push(name);
     }
+
+    return name;
   }
 
 

@@ -161,9 +161,10 @@ file \arg{Id}.  The \arg{Id} is optional.  When omitted it generates
     \cfunction{Promise}{Prolog.load_scripts}{}
 Load all scripts from the current docement that have their \const{type}
 set to \const{text/prolog}.  The file reference for the loaded script
-is \file{/script/Id}, where \arg{Id} is derived from (1) the \const{id}
-of the script, (2) the \const{name} of the script or (3) being the nth
-Prolog script in the document.
+is \exam{/script/Id}, where \arg{Id} is derived from (1) the
+\const{id} of the script, (2) the \const{name} of the script or (3)
+being the nth Prolog script in the document.  When resolved, the promise
+returns an array with the names of the loaded scripts.
 
     \cfunction{Promise}{Prolog.consult}{...Sources}
 Load the given \arg{Sources}. Each source is either a file from the
