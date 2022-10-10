@@ -181,9 +181,7 @@ body {
 </div>
 
 <script type="text/prolog" id="wasm_shell.pl">
-:- module(wasm_shell, [wasm_add_examples/0]).
-:- use_module(library(xpath)).
-:- use_module(library(sgml)).
+:- module(wasm_shell, []).
 
 :- multifile prolog_edit:edit_source/1.
 
@@ -204,7 +202,7 @@ prolog_edit:edit_source(Spec) :-
 load_file(Spec, String) :-
     uri_is_global(Spec),
     !,
-    wasm:fetch(Spec, text, String).
+    fetch(Spec, text, String).
 load_file(Spec, String) :-
     setup_call_cleanup(
         open(Spec, read, In),
@@ -226,29 +224,6 @@ range_stream(In, Range, Options) :-
     End is End1 - 1,
     Range = Start-End.
 
-%!  wasm_add_examples
-
-wasm_add_examples :-
-    Select := document.getElementById("select-file"),
-    forall(ex(Ex), add_example(Select, Ex)).
-
-add_example(Select, Ex) :-
-    string_concat("/wasm/examples/", Ex, URL),
-    Opt := document.createElement("option"),
-    Opt.className := "url",
-    Opt.value := URL,
-    Opt.textContent := Ex + " (external)",
-    _ := Select.appendChild(Opt).
-
-ex(Ex) :-
-    wasm:fetch("/wasm/examples/", "text", String),
-    setup_call_cleanup(
-        open_string(String, In),
-        load_html(stream(In), DOM, []),
-        close(In)),
-    xpath(DOM, //(a(@(href(string)))), Ex),
-    file_name_extension(_, pl, Ex).
-
 </script>
 
 <!-- Load Prolog and CodeMirror -->
@@ -267,7 +242,7 @@ ex(Ex) :-
       }
     });
 
-  function initCodeMirror()
+  function initCodeMirror(cont)
   { function createCM()
     { cm = CodeMirror(document.getElementById("file"),
                       { lineNumbers: true,
@@ -286,8 +261,31 @@ ex(Ex) :-
 	      CodeMirror = cm;
 	      createCM();
 	      restoreFiles();
-	      Prolog.forEach("wasm_add_examples").then(()=>{console.log("ok");})
+	      addExamples().then(()=>{cont();});
 	    });
+  }
+
+  async function addExamples()
+  { const json = await fetch("examples/index.json").then((r) =>
+    { return r.json();
+    });
+
+    if ( Array.isArray(json) && json.length > 0 )
+    { const sep = document.createElement("option");
+      sep.textContent = "Demos";
+      sep.disabled = true;
+      select_file.appendChild(sep);
+
+      json.forEach((ex) =>
+	{ if ( !hasFileOption("/prolog/"+ex.name) )
+	  { const opt = document.createElement("option");
+	    opt.className = "url";
+	    opt.value = "/wasm/examples/"+ex.name;
+	    opt.textContent = (ex.comment||ex.name) + " (demo)";
+	    select_file.appendChild(opt);
+	  }
+	});
+    }
   }
 
   function loadCss(url)
@@ -339,7 +337,8 @@ function query(query)
 { print_output(`?- ${query}\n`, 'query');
 
   if ( yield && yield.yield == "goal" )
-  { next(yield.resume(query));
+  { set_state("run");
+    next(yield.resume(query));
   } else
   { pl(query);
   }
@@ -386,7 +385,7 @@ function baseName(path)
 { return path.split("/").pop();
 }
 
-function addFileOption(name)
+function hasFileOption(name)
 { let found = false;
 
   Array.from(select_file.childNodes).forEach((n) => {
@@ -394,7 +393,11 @@ function addFileOption(name)
       found = true;
   });
 
-  if ( !found )
+  return found;
+}
+
+function addFileOption(name)
+{ if ( !hasFileOption(name) )
   { const node = document.createElement('option');
     node.textContent = baseName(name);
     node.value = name;
@@ -603,9 +606,7 @@ SWIPL(Module).then(async (module) =>
       pl("set_prolog_flag(tty_control, true)");
       pl("working_directory(_, '/prolog')");
       await Prolog.load_scripts();
-      initCodeMirror();
-
-      toplevel();
+      initCodeMirror(toplevel);
     });
 
 // Save/restore state
