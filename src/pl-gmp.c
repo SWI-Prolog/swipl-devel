@@ -50,7 +50,6 @@
 
 #ifdef O_GMP
 
-static mpz_t MPZ_ONE;		/* 1 */
 static mpz_t MPZ_MIN_TAGGED;		/* Prolog tagged integers */
 static mpz_t MPZ_MAX_TAGGED;
 static mpz_t MPZ_MIN_PLINT;		/* Prolog int64_t integers */
@@ -882,7 +881,6 @@ initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
-    mpz_init_set_si64(MPZ_ONE, 1);
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
     mpz_init_set_si64(MPZ_MAX_TAGGED, PLMAXTAGGEDINT);
     mpz_init_set_si64(MPZ_MIN_PLINT, PLMININT);
