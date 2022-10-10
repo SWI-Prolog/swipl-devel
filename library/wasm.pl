@@ -45,6 +45,7 @@
             is_async/0,
             sleep/1,
             js_script/2,                % +String, +Options
+            fetch/3,			% +URL, +Type, -Value
 
             op(700, xfx, :=),           % Result := Expression
             op(50,  fx,  #),            % #Value

@@ -528,6 +528,29 @@ True if \arg{Term} is a reference to a JavaScript object.
 True when \arg{Term} is an instance of \arg{Class}.  If \arg{Class}
 is unbound it is unified with the name of the \jargon{constructor},
 otherwise a JavaScript \exam{Term instanceof Class} is executed.
+
+    \predicate{js_script}{2}{+String, +Options}
+Evaluate \arg{String} as JavaScript.  This is designed to cooperate
+with string \jargon{quasi quotations}, so we can write e.g.,
+
+\begin{code}
+:- use_module(library(strings)).
+:- js_script({|string||
+function myfunc(a)
+...
+|}).
+\end{code}
+
+The implementation uses \predref{=:}{2}, calling the JavaScript
+function eval().
+
+    \predicate{fetch}{3}{+URL, +Type, -Data}
+Wrapper around JavaScript fetch(), conversion of the \ctype{Response}
+object and waiting for the \ctype{Promise}. Type is an atom or string
+that is used as method on the \ctype{Response} object. Examples are
+\const{text}, \const{json}, \const{html} or \const{blob}. The
+\const{blob} type returns the \arg{Data} as a string of \jargon{bytes},
+i.e., character codes in the range $0\ldots{}255$.
 \end{description}
 
 \subsubsection{Asynchronous access to JavaScript from Prolog}
