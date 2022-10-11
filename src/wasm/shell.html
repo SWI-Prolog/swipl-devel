@@ -108,6 +108,8 @@ body {
 }
 
 
+#more { margin-left: 3ex; }
+
 #input, #more, #abort, #create-file { display: none }
 .console.prompt.goal #input { display: flex }
 .console.more        #more  { display: inline-block }
@@ -123,7 +125,13 @@ body {
     overflow-wrap: anywhere;
 }
 .query, .prompt { font-weight: bold; }
-.query { margin-top: 5px; }
+.query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
+.query-answer:nth-child(even) { background-color: #eee; }
+
+.query-container, .query-answer { position: relative; }
+span.close-query { position: absolute; right: 5px; top: 0px; padding: 0px; margin: 0px;
+		   cursor: pointer; color: #444}
+span.close-query:hover { color: black; }
 
 </style>
 
@@ -143,10 +151,10 @@ body {
     <span class="scroll-start-at-top"></span>
     <div class="console" id="console">
       <div id="output">
-	<div id="more">
-	  <button id="more.next" onclick="reply_more('redo')">Next</button>
-	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
-	</div>
+      </div>
+      <div id="more">
+	<button id="more.next" onclick="reply_more('redo')">Next</button>
+	<button id="more.cont" onclick="reply_more('continue')">Stop</button>
       </div>
       <form class="input" id="input">
 	<span class="prompt">?- </span><input type="text" name="query"
@@ -310,6 +318,8 @@ const default_file  = "/prolog/program.pl";
 
 const terminal	    = document.getElementById('console');
 const output	    = document.getElementById('output');
+let   answer;
+let   answer_ignore_nl = false;
 const input	    = document.getElementById('input');
 const more	    = document.getElementById('more');
 const editor	    = document.getElementById('editor');
@@ -323,26 +333,68 @@ let   files	    = { current: default_file,
 		      };
 
 function print_output(line, cls) {
-    const node = document.createElement('span');
-    node.className = cls;
-    node.textContent = line;
-    output.insertBefore(node, more);
+  if ( line.trim() == "" && answer && answer_ignore_nl )
+  { answer_ignore_nl = false;
+    return;
+  }
+
+  const node = document.createElement('span');
+  node.className = cls;
+  node.textContent = line;
+  (answer||output).appendChild(node);
 };
 
 function pl(s) {
    Prolog.call(s);
 }
 
-function query(query)
-{ print_output(`?- ${query}\n`, 'query');
 
-  if ( yield && yield.yield == "goal" )
-  { set_state("run");
-    next(yield.resume(query));
-  } else
-  { pl(query);
+  function current_answer()
+  { return answer;
   }
-}
+
+  function add_query(query)
+  { const div1 = document.createElement("div");
+    const div2 = document.createElement("div");
+    const div3 = document.createElement("div");
+    const div4 = document.createElement("div");
+    const close = document.createElement("span");
+    close.className = "close-query";
+    close.textContent = "\u2715";
+    div1.className = "query-container";
+    div2.className = "query";
+    div3.className = "query-answers";
+    div4.className = "query-answer";
+    output.appendChild(div1);
+    div1.appendChild(close);
+    div1.appendChild(div2);
+    div1.appendChild(div3);
+    div3.appendChild(div4);
+    div2.textContent = `?- ${query}`;
+    answer = div4;
+    close.addEventListener("click", () => div1.remove(), false);
+  }
+
+  function next_answer()
+  { if ( answer )
+    { const div4 = document.createElement("div");
+      div4.className = "query-answer";
+      answer.after(div4);
+      answer = div4;
+      answer_ignore_nl = true; // suppress the first newline
+    }
+  }
+
+  function query(query)
+  { add_query(query);
+
+    if ( yield && yield.yield == "goal" )
+    { set_state("run");
+      next(yield.resume(query));
+    } else
+    { pl(query);
+    }
+  }
 
 // Editor and (Re)consult
 
@@ -481,7 +533,7 @@ input.addEventListener('submit', (e) =>
       query += ".";
     history.stack.push(query);
     history.current = null;
-    print_output(`?- ${query}\n`, 'query');
+    add_query(query);
 
     set_state("run");
     next(yield.resume(query));
@@ -538,8 +590,8 @@ abort.addEventListener('submit', (e) => {
 function reply_more(action)
 { if ( yield && yield.yield == "more" )
   { switch(action)
-    { case "redo":     print_output(";", "stdout"); break;
-      case "continue": print_output(".", "stdout"); break;
+    { case "redo":     print_output(";", "stdout"); next_answer(); break;
+      case "continue": print_output(".", "stdout"); answer_ignore_nl = true; break;
     }
     next(yield.resume(action));
   }
@@ -567,6 +619,7 @@ function next(rc)
         return setTimeout(() => next(yield.resume("true")), 0);
       case "goal":
         set_state("prompt goal");
+        answer = undefined;
         input.elements.query.focus();
         break;
       case "more":
