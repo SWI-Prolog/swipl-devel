@@ -220,6 +220,20 @@ set_version_info :-
 
 :- initialization(set_version_info).
 
+:- if(\+current_prolog_flag(windows, true)).
+%!  set_libswipl
+%
+%   Set the value for libswipl.
+
+set_libswipl :-
+    cmake_binary_directory(BinDir),
+    current_prolog_flag(shared_object_extension, SO),
+    format(atom(Value), '~w/src/libswipl.~w', [BinDir, SO]),
+    set_prolog_flag(libswipl, Value).
+
+:- initialization(set_libswipl).
+:- endif.
+
 % Avoid getting Java from the host when running under Wine.
 
 :- if(current_prolog_flag(wine_version, _)).

@@ -1452,6 +1452,10 @@ details.
 Pathname of the running executable. Used by qsave_program/2 as
 default emulator.
 
+   \prologflagitem{executable_format}{atom}{r}
+Format of the SWI-Prolog executable, e.g. \const{elf} for when
+\file{swipl} is an ELF binary file.
+
     \prologflagitem{exit_status}{integer}{r}
 Set by halt/1 to its argument, making the exit status available to
 hooks registered with at_halt/1.
@@ -1630,6 +1634,16 @@ Determines whether or not last-call optimisation is enabled. Normally
 the value of this flag is the negation of the \prologflag{debug} flag.
 As programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
+
+   \prologflagitem{libswipl}{atom}{rw}
+Path where the SWI-Prolog shared library \file{libswipl} resides.  On
+Windows this is computed reliably at runtime and the flag is read-only.
+On other systems it is the configured target installation location and
+thus this value can be wrong if the installation has been relocated.  As
+we do not have a cross-platform reliable way to compute this path the
+flag is read-write on such platforms.\footnote{When running from the
+build environment, this flag is adjusted to reflect the location in
+the build tree.}
 
     \prologflagitem{malloc}{atom}{r}
 Set after a successful identification of the used malloc()

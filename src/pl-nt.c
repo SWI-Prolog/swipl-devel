@@ -364,6 +364,28 @@ findExecutable(const char *module, char *exe, size_t exelen)
   return exe;
 }
 
+char *
+findModulePath(const char *module, char *buf, size_t len)
+{ wchar_t wbuf[PATH_MAX];
+  HMODULE hmod;
+
+  if ( (hmod = GetModuleHandle(module)) )
+  { int n;
+
+    if ( (n = GetModuleFileNameW(hmod, wbuf, PATH_MAX)) > 0 )
+    { wbuf[n] = EOS;
+      char osbuf[PATH_MAX];
+      char *osp;
+
+      if ( (osp=_xos_long_file_name_toA(wbuf, osbuf, sizeof(osbuf))) )
+	return PrologPath(osp, buf, len);
+    }
+  }
+
+  return NULL;
+}
+
+
 		 /*******************************
 		 *     SUPPORT FOR SHELL/2	*
 		 *******************************/

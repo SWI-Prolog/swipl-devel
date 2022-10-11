@@ -44,3 +44,11 @@ elseif(APPLE)
 else()
   set(SO_PATH LD_LIBRARY_PATH)
 endif()
+
+get_filename_component(
+  LIBPL_PATH
+  "${LIBSWIPL_DIR}/libswipl.${SO_EXT}"
+  ABSOLUTE
+  BASE_DIR ${CMAKE_INSTALL_PREFIX})
+
+string(TOLOWER ${CMAKE_EXECUTABLE_FORMAT} EXEC_FORMAT)

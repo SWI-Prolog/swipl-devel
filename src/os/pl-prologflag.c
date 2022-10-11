@@ -1434,6 +1434,10 @@ set_arch(void)
 #define C_LIBPLSO ""
 #endif
 
+#ifdef __WINDOWS__
+#include "../pl-nt.h"
+#endif
+
 static void
 initPrologFlagTable(void)
 { if ( !GD->prolog_flag.table )
@@ -1468,6 +1472,18 @@ initPrologFlags(void)
     setPrologFlag("home", FT_ATOM|FF_READONLY, systemDefaults.home);
 #ifdef PLSHAREDHOME
   setPrologFlag("shared_home", FT_ATOM|FF_READONLY, PLSHAREDHOME);
+#endif
+#ifdef __WINDOWS__
+  { char buf[PATH_MAX];
+    char *s;
+    if ( (s=findModulePath("libswipl.dll", buf, sizeof(buf))) )
+      setPrologFlag("libswipl", FT_ATOM|FF_READONLY, s);
+  }
+#elif defined(LIBPL_PATH)
+  setPrologFlag("libswipl", FT_ATOM, LIBPL_PATH);
+#endif
+#ifdef EXEC_FORMAT
+  setPrologFlag("executable_format", FT_ATOM|FF_READONLY, EXEC_FORMAT);
 #endif
   if ( GD->paths.executable )
     setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
