@@ -1469,6 +1469,12 @@ initPrologFlags(void)
 #ifdef PLSHAREDHOME
   setPrologFlag("shared_home", FT_ATOM|FF_READONLY, PLSHAREDHOME);
 #endif
+#ifdef LIBPL_PATH
+  setPrologFlag("libswipl", FT_ATOM|FF_READONLY, LIBPL_PATH);
+#endif
+#ifdef EXEC_FORMAT
+  setPrologFlag("executable_format", FT_ATOM|FF_READONLY, EXEC_FORMAT);
+#endif
   if ( GD->paths.executable )
     setPrologFlag("executable", FT_ATOM|FF_READONLY, GD->paths.executable);
 #if defined(HAVE_GETPID) || defined(EMULATE_GETPID)

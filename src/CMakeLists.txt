@@ -567,6 +567,12 @@ if(INSTALL_TESTS)
 install_tests()
 endif()
 
+if(SWIPL_INSTALL_IN_LIB)
+  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
+else()
+  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
+endif()
+
 # Populate parms.h, making the compilation environment known to Prolog
 include(Params)
 configure_file(parms.h.cmake parms.h)
@@ -595,12 +601,6 @@ configure_package_config_file(
 ################
 # Installation
 ################
-
-if(SWIPL_INSTALL_IN_LIB)
-  set(LIBSWIPL_DIR ${CMAKE_INSTALL_PREFIX}/lib)
-else()
-  set(LIBSWIPL_DIR ${SWIPL_INSTALL_ARCH_LIB})
-endif()
 
 # Make sure tmp directory exists
 #
