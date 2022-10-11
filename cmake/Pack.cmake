@@ -1,5 +1,4 @@
 # Setup package generation
-
 if(NOT CPACK_GENERATOR AND NOT APPLE)
   message("-- Finding default package generator")
   if(WIN32)
@@ -93,27 +92,17 @@ if(WIN32)
   createShortCut("SWI-Prolog (console)" "swipl" "" OFF)
 
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-    SetRegView 64
-    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
-    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
-    ")
-    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-    SetRegView 64
-    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-    DeleteRegKey HKLM 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'
-    ")
-  else()
-    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
-    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
-    WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
-    ")
-    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
-    DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
-    DeleteRegKey HKLM 'Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Uninstall\\\\Swipl'
-    ")
+   set(CPACK_NSIS_ONINIT_REGVIEW "SetRegView 64")
   endif()
-endif()
+
+  set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS "
+   WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'fileExtension' 'pl'
+   WriteRegStr HKLM 'Software\\\\SWI\\\\Prolog' 'home' '$INSTDIR'
+   ")
+  set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS "
+   DeleteRegKey HKLM 'Software\\\\SWI\\\\Prolog'
+   ")
+endif(WIN32)
 
 if(NOT SWIPL_CPACK_ARCH)
   set(SWIPL_CPACK_ARCH "${CMAKE_SYSTEM_PROCESSOR}")
