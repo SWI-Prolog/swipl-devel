@@ -25,7 +25,7 @@ html(Term) :-
     with_output_to(string(HTML), print_html(Tokens)),
     Div := document.createElement("div"),
     Div.innerHTML := HTML,
-    _ := current_source().appendChild(Div).
+    _ := current_answer().appendChild(Div).
 
 %!  flag_table
 %
@@ -35,5 +35,5 @@ flag_table :-
     html(\flag_table).
 
 flag_table -->
-    html(table(\foreach(order_by([Name], current_prolog_flag(Name, Value)),
+    html(table(\foreach(order_by([asc(Name)], current_prolog_flag(Name, Value)),
                         html(tr([th(Name), td('~p'-[Value])]))))).
