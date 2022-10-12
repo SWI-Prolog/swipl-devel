@@ -145,9 +145,14 @@ div.query, span.prompt { font-weight: bold; }
 .query-answer:nth-child(even) { background-color: #eee; }
 
 .query-container, .query-answer { position: relative; }
-span.close-query { position: absolute; right: 5px; top: 0px; padding: 0px; margin: 0px;
-		   cursor: pointer; color: #444}
-span.close-query:hover { color: black; }
+span.query-buttons { position: absolute; right: 5px; top: 1px; padding: 0px; margin: 0px;
+		     cursor: pointer; color: #666}
+span.query-buttons > span { margin-left: 0.5ex; border: 1px;}
+span.query-buttons > span:hover { color: black; border: 1px solid black;}
+.query-container.collapsed > .query-answers { display: none; }
+.query-container span.query-collapse:before { content: "\1401" }
+.query-container.collapsed span.query-collapse:before { content: "\1405" }
+span.query-collapse { font-size: 90%; }
 
 </style>
 
@@ -414,22 +419,52 @@ function pl(s) {
     const div2 = document.createElement("div");
     const div3 = document.createElement("div");
     const div4 = document.createElement("div");
+    const btns = document.createElement("span");
     const close = document.createElement("span");
-    close.className = "close-query";
+    const icon = document.createElement("span");
+    btns.className = "query-buttons";
     close.textContent = "\u2715";
+    icon.className = "query-collapse";
+    btns.appendChild(icon);
+    btns.appendChild(close);
+
+    const prev = last_query();
+    if ( prev )
+      query_collapsed(prev, true);
+
     div1.className = "query-container";
     div2.className = "query";
     div3.className = "query-answers";
     div4.className = "query-answer";
-    output.appendChild(div1);
-    div1.appendChild(close);
+    div1.appendChild(btns);
     div1.appendChild(div2);
     div1.appendChild(div3);
     div3.appendChild(div4);
     div2.textContent = `?- ${query}`;
     answer = div4;
     close.addEventListener("click", () => div1.remove(), false);
+    icon.addEventListener(
+      "click",
+      (e) => query_collapsed(e.target.closest("div.query-container")));
+    output.appendChild(div1);
   }
+
+  function last_query()
+  { const q = output.lastChild;
+    if ( q.classList.contains("query-container") )
+      return q;
+    return undefined;
+  }
+
+  function query_collapsed(query, how)
+  { if ( how === true )
+      query.classList.add("collapsed");
+    else if ( how === false )
+      query.classList.remove("collapsed");
+    else
+      query.classList.toggle("collapsed");
+  }
+
 
   /** Add a new answer `<div>` after we asked for more answers.
    */
