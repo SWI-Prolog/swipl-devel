@@ -48,20 +48,32 @@ body {
 .content {
     position: relative;
     flex-grow: 1;
+    display: flex;
+    flex-direction: row;
+    width: calc(100% - 2*var(--margin));
+}
+
+#left {
+    position: relative;
+    box-sizing: border-box;
+    height: calc(100% - 2*var(--margin)); border: 1px solid black;
 }
 
 .scroll-wrapper {
     box-sizing: border-box;
     position: absolute;
-    height: calc(100% - 2*var(--margin)); width: calc(50% - 2*var(--margin)); border: 1px solid black;
-    overflow: auto; display: flex; flex-direction: column-reverse;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 100%;
     padding: 5px;
+    overflow: auto; display: flex; flex-direction: column-reverse;
 }
 .scroll-start-at-top { flex: 1 1 0%; }
 
 .editor-container {
-    position: absolute;
-    left: calc(50% - var(--margin));
     height: calc(100% - 2*var(--margin)); width: calc(50% - var(--margin));
 }
 
@@ -97,6 +109,7 @@ body {
     top: 0;
     bottom: 0;
     height: 100%;
+    width: 100%;
     font-size: 130%;
 }
 
@@ -150,26 +163,28 @@ span.close-query:hover { color: black; }
   target="_blank">Wiki on Discourse</a> for status and usage</div>
 </div>
 <div class="content">
-  <div class="scroll-wrapper">
-    <span class="scroll-start-at-top"></span>
-    <div class="console" id="console">
-      <div id="output">
+  <div id="left">
+    <div class="scroll-wrapper">
+      <span class="scroll-start-at-top"></span>
+      <div class="console" id="console">
+	<div id="output">
+	</div>
+	<div id="more">
+	  <button id="more.next" onclick="reply_more('redo')">Next</button>
+	  <button id="more.cont" onclick="reply_more('continue')">Stop</button>
+	</div>
+	<form class="input" id="input">
+	  <span class="prompt">?- </span><input type="text" name="query"
+						id="query" autocomplete="off">
+	</form>
+	<form class="abort" id="abort">
+	  <button>Abort</button>
+	</form>
       </div>
-      <div id="more">
-	<button id="more.next" onclick="reply_more('redo')">Next</button>
-	<button id="more.cont" onclick="reply_more('continue')">Stop</button>
-      </div>
-      <form class="input" id="input">
-	<span class="prompt">?- </span><input type="text" name="query"
-				              id="query" autocomplete="off">
-      </form>
-      <form class="abort" id="abort">
-	<button>Abort</button>
-      </form>
     </div>
   </div>
 
-  <div class="editor-container">
+  <div class="editor-container" id="right">
     <form id="editor">
       <div id="editor-files">
       <select id="select-file">
@@ -237,9 +252,29 @@ range_stream(In, Range, Options) :-
 
 </script>
 
-<!-- Load Prolog and CodeMirror -->
+<!-- Load Prolog -->
 <script src="/wasm/swipl-web.js"></script>
 
+<!-- Splitter from https://split.js.org Requires #content to be flex.-->
+<script src="https://www.swi-prolog.org/download/web/split-1.6.5/split.min.js"></script>
+<script>
+  window.onload = () => {
+    Split(['#left', '#right'],
+	  { gutterSize: 10
+	  });
+  }
+</script>
+<style>
+.gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+    cursor: col-resize;
+}
+.gutter:hover { background-color: #ddd; }
+</style>
+
+<!-- Get CodeMirror, our editor -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
 <script>
   let CodeMirror;
@@ -310,12 +345,7 @@ range_stream(In, Range, Options) :-
   loadCss("https://eu.swi-prolog.org/download/codemirror/theme/prolog.css");
 </script>
 
-<!--
-<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.9/addon/edit/matchbrackets.min.js"></script>
-<script src="codemirror/mode/prolog/prolog-ctype.js"></script>
-<script src="codemirror/mode/prolog/prolog.js"></script>
--->
-
+<!-- Glue it all together -->
 <script>
 const default_file  = "/prolog/program.pl";
 
@@ -352,9 +382,32 @@ function pl(s) {
 }
 
 
+  /** @return {HTMLDivElement} in which the current query should dump
+   * its answer.
+   */
+
   function current_answer()
   { return answer;
   }
+
+
+  /** Add a structur for a query.  The structure is
+   *
+   * ```
+   * <div class="query-container">
+   *   <div class="query">?- betweenl(1,3,X).</div
+   *   <div class="query-answers">
+   *     <div class="query-answer">
+   *       <span class="stdout">X = 1;</span>
+   *     </div>
+   *     <div class="query-answer">
+   *       <span class="stdout">X = 2;</span>
+   *     </div>
+   *     ...
+   *   </div>
+   * </div>
+   * ```
+   */
 
   function add_query(query)
   { const div1 = document.createElement("div");
@@ -378,6 +431,8 @@ function pl(s) {
     close.addEventListener("click", () => div1.remove(), false);
   }
 
+  /** Add a new answer `<div>` after we asked for more answers.
+   */
   function next_answer()
   { if ( answer )
     { const div4 = document.createElement("div");
@@ -388,6 +443,9 @@ function pl(s) {
     }
   }
 
+  /** Run a query.
+   * @param {String} query is the query to run.
+   */
   function query(query)
   { add_query(query);
 
