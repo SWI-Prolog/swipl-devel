@@ -224,9 +224,11 @@ span.query-collapse { font-size: 90%; }
 prolog_edit:edit_source(Spec) :-
     memberchk(file(File), Spec),
     load_file(File, String),
+    _ := addFileOption(#File),
+    _ := switchToFile(#File),
     _ := cm.setValue(String),
-    (   range(String, _Start-_End, Spec)
-    ->  true % TBD: CodeMirror selection
+    (   memberchk(line(Line), Spec)
+    ->  _ := cm.scrollIntoView(_{line:Line, ch:0}, 200)
     ;   true
     ).
 
@@ -239,21 +241,6 @@ load_file(Spec, String) :-
         open(Spec, read, In),
         read_string(In, _Len, String),
         close(In)).
-
-range(String, Range, Pos) :-
-    setup_call_cleanup(
-	open_string(String, In),
-	range_stream(In, Range, Pos),
-	close(In)).
-
-range_stream(In, Range, Options) :-
-    memberchk(line(Line), Options),
-    forall(between(1, Line, _), skip(In, 0'\n)),
-    character_count(In, Start),
-    skip(In, 0'\n),
-    character_count(In, End1),
-    End is End1 - 1,
-    Range = Start-End.
 
 </script>
 
