@@ -492,3 +492,5 @@ prolog:message(JsError) -->
       Msg := JsError.toString()
     },
     [ 'JavaScript: ~w'-[Msg] ].
+prolog:error_message(js_error(Msg)) -->
+    [ 'JavaScript: ~w'-[Msg] ].

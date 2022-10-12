@@ -442,22 +442,14 @@ actions. If \arg{Left} is a Prolog variable, it evaluates the expression
 it accesses a JavaScript \jargon{setter}. The general form of an
 expression is \arg{Expression}[\arg{Callable}] or simply \arg{Callable}.
 If \arg{Callable} is compound it expresses a function (or method) call.
-Otherwise it accesses a property or global variable (property of
-\const{window} in a browser), except for these special values:
+Otherwise we call JavaScript \cfuncref{eval}{}, except for these
+special values:
 
 \begin{description}
     \termitem{window}{}
 The main browser window itself (\const{undefined} when not in a browser).
     \termitem{prolog}{}
 The \ctype{Prolog} instance.
-    \termitem{true}{}
-    \nodescription
-    \termitem{false}{}
-    \nodescription
-    \termitem{null}{}
-    \nodescription
-    \termitem{undefined}{}
-The JavaScript constants.
 \end{description}
 
 Prolog values are translated according to the rules in

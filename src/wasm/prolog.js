@@ -391,6 +391,8 @@ class Prolog
 	'PL_cut_query', 'number', ['number']),
       PL_exception: this.module.cwrap(
 	'PL_exception', 'number', ['number']),
+      PL_raise_exception: this.module.cwrap(
+	'PL_raise_exception', 'number', ['number']),
       WASM_ttymode: this.module.cwrap(
         'WASM_ttymode', 'number', []),
       WASM_yield_request: this.module.cwrap(
@@ -1614,20 +1616,8 @@ function prolog_js_call(request, result)
 	    case "window":
 	      obj = window;
 	      break;
-	    case "true":
-	      obj = true;
-	      break;
-	    case "false":
-	      obj = false;
-	      break;
-	    case "null":
-	      obj = null;
-	      break;
-	    case "undefined":
-	      obj = undefined;
-	      break;
 	    default:
-	      obj = obj[next];
+	      obj = eval(next);
 	  }
 	} else
 	{ obj = obj[next];
@@ -1644,21 +1634,29 @@ function prolog_js_call(request, result)
     return obj;
   }
 
-  return prolog.with_frame(() =>
-  { const ar = prolog.toJSON(request, { string: "string" });
-    let obj;
+  try
+  { return prolog.with_frame(() =>
+    { const ar = prolog.toJSON(request, { string: "string" });
+      let obj;
 
-    if ( ar.setter )
-    { const target = eval_chain(ar.target);
-      const value  = eval_chain(ar.value);
-      target[ar.setter] = value;
-      obj = true;
-    } else
-    { obj = eval_chain(ar);
-    }
+      if ( ar.setter )
+      { const target = eval_chain(ar.target);
+	const value  = eval_chain(ar.value);
+	target[ar.setter] = value;
+	obj = true;
+      } else
+      { obj = eval_chain(ar);
+      }
 
-    return prolog.unify(result, prolog.toProlog(obj));
-  }, false);
+      return prolog.unify(result, prolog.toProlog(obj));
+    }, false);
+  } catch (e)
+  { return prolog.bindings.PL_raise_exception(
+      prolog.toProlog(new prolog.Compound("error",
+					  [ new prolog.Compound("js_error", [e.toString()]),
+					    new prolog.Var()
+					  ])));
+  }
 }
 
 
