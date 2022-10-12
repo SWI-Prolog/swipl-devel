@@ -1530,7 +1530,7 @@ mpz_fdiv(mpz_t a, mpz_t b)
 
 double
 mpz_to_double(mpz_t a)
-{ double d = mpz_get_d(a);  // truncated
+{ double d = mpz_get_d(a);  // truncated, note: a != 0
   size_t sa = mpz_sizeinbase(a, 2);
   size_t na = mpz_scan1(a, 0);
   int bit54, trailing_zeros;
@@ -1547,33 +1547,31 @@ mpz_to_double(mpz_t a)
   /* bit54 is true if rounding compensation required */
   /* trailing_zeros is true if remaining trailing bits are zero */
 
-  bit54 = mpz_tstbit(a, sa-54) ^ (d < 0);
-  trailing_zeros = (na > sa-54);
+  bit54 = mpz_tstbit(a, sa-54);
+  trailing_zeros = (na >= sa-54);
 
-  switch(fegetround())  /* Note: all uses of nextwoward can overflow */
+  switch(fegetround())  /* Note: all uses of nexttoward can overflow */
   { case FE_TONEAREST:
-      if ( bit54 == 0 )
-      {
-      } else if ( trailing_zeros == 0 )
-      { if ( d > 0 )
-	  d = nexttoward(d,  INFINITY);
-	else
-	  d = nexttoward(d, -INFINITY);
-      } else /* mid case: round to even */
-      { if ( mpz_tstbit(a, sa-53) == 1)  // if odd (bit 53 == 1)
-	{  if ( d > 0 )  // round to even
-	     d = nexttoward(d,  INFINITY);
-	   else
-	     d = nexttoward(d, -INFINITY);
-	}
+      if ( d > 0 )
+      { if ( !bit54 )                           // d is positive
+        {
+        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
+        { d = nexttoward(d,  INFINITY);
+        }
+      } else
+      { if ( bit54 && !trailing_zeros )		// d is negative
+        {
+        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
+        { d = nexttoward(d, -INFINITY);
+        }
       }
       break;
     case FE_UPWARD:
-      if ( d >= 0 && (trailing_zeros == 0 || bit54 == 1) )
+      if ( d > 0 && (!trailing_zeros || bit54) )
 	d = nexttoward(d,  INFINITY);
       break;
     case FE_DOWNWARD:
-      if ( d <= 0 && (trailing_zeros == 0 || bit54 == 1) )
+      if ( d < 0 && (!trailing_zeros || bit54) )
 	d = nexttoward(d, -INFINITY);
       break;
     case FE_TOWARDZERO:    // truncation already performed by mpz_get_d
