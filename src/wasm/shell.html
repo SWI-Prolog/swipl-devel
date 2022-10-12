@@ -91,10 +91,13 @@ body {
 }
 
 .CodeMirror {
-    font-size: 130%;
-    box-sizing: border-box;
-    width: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
     height: 100%;
+    font-size: 130%;
 }
 
 .editor-buttons {
@@ -124,7 +127,7 @@ body {
     font-family: monospace;
     overflow-wrap: anywhere;
 }
-.query, .prompt { font-weight: bold; }
+div.query, span.prompt { font-weight: bold; }
 .query { margin-top: 5px; padding: 3px 0px; display: block; background-color: #add8e6;}
 .query-answer:nth-child(even) { background-color: #eee; }
 

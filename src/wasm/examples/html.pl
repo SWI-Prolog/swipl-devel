@@ -5,7 +5,6 @@
 % through the function `current_answer()`.
 
 :- use_module(library(http/html_write)).
-:- use_module(library(http/term_html)).
 :- use_module(library(dcg/high_order)).
 
 %!  clr
@@ -18,7 +17,9 @@ clr :-
 %!  html
 %
 %   Insert  HTML  into  the  current answer  using  SWI-Prolog's  HTML
-%   generation infra structure.
+%   generation infra structure.   For example:
+%
+%       ?- html(['Hello ', b(world)]).
 
 html(Term) :-
     phrase(html(Term), Tokens),
