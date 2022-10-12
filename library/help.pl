@@ -267,6 +267,8 @@ help_object(Func, How, c(Name), ID) :-
 help_object(Module, _How, Name/Arity, _ID) :-
     atom(Module),
     current_module(Module),
+    atom_concat('sec:', Module, SecLabel),
+    \+ man_object_property(section(_,_,SecLabel,_), _), % not a section
     current_predicate_help(Module:Name/Arity).
 help_object(Name/Arity, _How, Name/Arity, _ID) :-
     atom(Name),
