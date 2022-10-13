@@ -3,8 +3,9 @@
     Author:        Jan Wielemaker and Richard O'Keefe
     E-mail:        J.Wielemaker@cs.vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2019, VU University Amsterdam
+    Copyright (c)  2014-2022, VU University Amsterdam
                               CWI, Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -124,6 +125,7 @@ component(library(sha), _{}).
 component(library(snowball), _{}).
 component(library(socket), _{}).
 component(library(ssl), _{}).
+component(library(sweep), _{features:sweep_emacs_module}).
 component(library(crypto), _{}).
 component(library(syslog), _{os:unix}).
 component(library(table), _{}).
@@ -419,6 +421,14 @@ jquery_file :-
     ;   print_message(warning, installation(jquery(not_found(File))))
     ).
 
+sweep_emacs_module :-
+    with_output_to(string(S), write_sweep_module_location),
+    split_string(S, "\n", "\n", [Module]),
+    (   exists_file(Module)
+    ->  print_message(informational, installation(sweep(found(Module))))
+    ;   print_message(warning, installation(sweep(not_found(Module))))
+    ).
+
 
 %!  check_on_path
 %
@@ -607,6 +617,10 @@ message(jquery(found(Path))) -->
     [ '  jQuery from ~w'-[Path] ].
 message(jquery(not_found(File))) -->
     [ '  Cannot find jQuery (~w)'-[File] ].
+message(sweep(found(Path))) -->
+    [ '  Found GNU-Emacs plugin at ~w'-[Path] ].
+message(sweep(not_found(File))) -->
+    [ '  Could not find GNU-Emacs plugin (tried ~w)'-[File] ].
 message(testing(no_installed_tests)) -->
     [ '  Runtime testing is not enabled.', nl],
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
