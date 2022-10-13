@@ -1655,7 +1655,7 @@ the value of this flag is the negation of the \prologflag{debug} flag.
 As programs may run out of stack if last-call optimisation is omitted,
 it is sometimes necessary to enable it during debugging.
 
-   \prologflagitem{libswipl}{atom}{r}
+   \prologflagitem{libswipl}{atom}{rw}
 Path where the SWI-Prolog shared library \file{libswipl} is configured
 to be installed.\bug{This may not be the actual path to
   \file{libswipl} used in runtime in case the installation is
