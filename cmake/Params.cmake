@@ -48,7 +48,7 @@ endif()
 get_filename_component(
   LIBPL_PATH
   "${LIBSWIPL_DIR}/libswipl.${SO_EXT}"
-  REALPATH
+  ABSOLUTE
   BASE_DIR ${CMAKE_INSTALL_PREFIX})
 
 string(TOLOWER ${CMAKE_EXECUTABLE_FORMAT} EXEC_FORMAT)
