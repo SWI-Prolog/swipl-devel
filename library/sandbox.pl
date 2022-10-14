@@ -731,6 +731,7 @@ safe_primitive(system:upcase_atom(_,_)).
 safe_primitive(system:is_list(_)).
 safe_primitive(system:memberchk(_,_)).
 safe_primitive(system:'$skip_list'(_,_,_)).
+safe_primitive(system:'$seek_list'(_, _, _, _)).
                                         % attributes
 safe_primitive(system:get_attr(_,_,_)).
 safe_primitive(system:get_attrs(_,_)).
