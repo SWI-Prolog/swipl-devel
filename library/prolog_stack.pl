@@ -339,7 +339,8 @@ frame_predicate(clause(Clause, _PC), PI) :-
     clause_property(Clause, PI).
 
 default_backtrace_options(Options) :-
-    (   current_prolog_flag(backtrace_show_lines, true)
+    (   current_prolog_flag(backtrace_show_lines, true),
+        current_prolog_flag(iso, false)
     ->  Options = []
     ;   Options = [subgoal_positions(false)]
     ).
@@ -472,6 +473,9 @@ contiguous([frame(D1,_,_)|Frames], D0) :-
 %
 %   Produce a name (typically  Functor/Arity)   for  a  predicate to
 %   which Clause belongs.
+
+:- multifile
+    user:prolog_clause_name/2.
 
 clause_predicate_name(Clause, PredName) :-
     user:prolog_clause_name(Clause, PredName),
