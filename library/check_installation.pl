@@ -49,6 +49,7 @@
 :- autoload(library(pcre),[re_config/1]).
 :- autoload(library(prolog_source),[path_segments_atom/2]).
 :- use_module(library(settings),[setting/2]).
+:- autoload(library(dcg/high_order), [sequence//2]).
 
 
 /** <module> Check installation issues and features
@@ -423,10 +424,10 @@ jquery_file :-
 
 sweep_emacs_module :-
     with_output_to(string(S), write_sweep_module_location),
-    split_string(S, "\n", "\n", [Module]),
-    (   exists_file(Module)
-    ->  print_message(informational, installation(sweep(found(Module))))
-    ;   print_message(warning, installation(sweep(not_found(Module))))
+    split_string(S, "\n", "\n", Modules),
+    (   maplist(exists_file, Modules)
+    ->  print_message(informational, installation(sweep(found(Modules))))
+    ;   print_message(warning, installation(sweep(not_found(Modules))))
     ).
 
 
@@ -617,10 +618,12 @@ message(jquery(found(Path))) -->
     [ '  jQuery from ~w'-[Path] ].
 message(jquery(not_found(File))) -->
     [ '  Cannot find jQuery (~w)'-[File] ].
-message(sweep(found(Path))) -->
-    [ '  Found GNU-Emacs plugin at ~w'-[Path] ].
-message(sweep(not_found(File))) -->
-    [ '  Could not find GNU-Emacs plugin (tried ~w)'-[File] ].
+message(sweep(found(Paths))) -->
+    [ '  GNU-Emacs plugin loads'-[] ],
+    sequence(list_file, Paths).
+message(sweep(not_found(Paths))) -->
+    [ '  Could not find all GNU-Emacs libraries'-[] ],
+    sequence(list_file, Paths).
 message(testing(no_installed_tests)) -->
     [ '  Runtime testing is not enabled.', nl],
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
@@ -688,6 +691,9 @@ list_names([H|T]) -->
     ;   [ ', '-[] ],
         list_names(T)
     ).
+
+list_file(File) -->
+    [ nl, '    '-[], url(File) ].
 
 
 		 /*******************************
