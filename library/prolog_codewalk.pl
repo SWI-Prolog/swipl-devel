@@ -101,6 +101,7 @@ source file is passed into _Where.
                        trace_reference(any),
                        trace_condition(callable),
                        on_trace(callable),
+                       on_edge(callable),
                        infer_meta_predicates(oneof([false,true,all])),
                        evaluate(boolean),
                        verbose(boolean)
@@ -117,6 +118,7 @@ source file is passed into _Where.
                 clauses:list,               % Walk only these clauses
                 trace_reference:any=(-),
                 trace_condition:callable,   % Call-back condition
+                on_edge:callable,           % Call-back on trace hits
                 on_trace:callable,          % Call-back on trace hits
                                             % private stuff
                 clause,                     % Processed clause
@@ -195,9 +197,21 @@ source file is passed into _Where.
 %         If we are processing an initialization/1 directive, a term
 %         `File:Line` representing the location of the declaration.
 %
+%     * on_edge(:OnEdge)
+%     If a reference to `trace_reference` is found, call
+%     call(OnEdge, Callee, Caller, Location), where `Location` is a
+%     dict containing a subset of the keys `clause`, `file`,
+%     `character_count`, `line_count` and `line_position`.  If
+%     full position information is available all keys are present.
+%     If the clause layout is unknown the only the `clause`, `file`
+%     and `line_count` are available and the line is the start line
+%     of the clause.  For a dynamic clause, only the `clause` is
+%     present.  If the position is associated to a _directive_,
+%     the `clause` is missing.   If nothing is known the `Location`
+%     is an empty dict.
+%
 %     * on_trace(:OnTrace)
-%     If a reference to =trace_reference= is found, call
-%     call(OnTrace, Callee, Caller, Location), where Location is one
+%     As `on_edge`, but location is not translated and is one
 %     of these:
 %
 %       - clause_term_position(+ClauseRef, +TermPos)
@@ -210,7 +224,7 @@ source file is passed into _Where.
 %     atom '<initialization>'.
 %
 %     * source(+Boolean)
-%     If =false= (default =true=), to not try to obtain detailed
+%     If `false` (default `true`), to not try to obtain detailed
 %     source information for printed messages.
 %
 %     * verbose(+Boolean)
@@ -254,6 +268,7 @@ prolog_walk_code(Iteration, Options) :-
     ;   true
     ).
 
+is_meta(on_edge).
 is_meta(on_trace).
 is_meta(trace_condition).
 
@@ -700,9 +715,16 @@ print_reference(Goal, _, Why, OTerm) :-
 
 print_reference2(Goal, From, trace, OTerm) :-
     walk_option_on_trace(OTerm, Closure),
-    walk_option_caller(OTerm, Caller),
     nonvar(Closure),
+    walk_option_caller(OTerm, Caller),
     call(Closure, Goal, Caller, From),
+    !.
+print_reference2(Goal, From, trace, OTerm) :-
+    walk_option_on_edge(OTerm, Closure),
+    nonvar(Closure),
+    walk_option_caller(OTerm, Caller),
+    translate_location(From, Dict),
+    call(Closure, Goal, Caller, Dict),
     !.
 print_reference2(Goal, From, Why, _OTerm) :-
     make_message(Why, Goal, From, Message, Level),
@@ -1115,6 +1137,39 @@ initialization_clause(ClauseRef, OTerm) :-
     scan_module(M, OTerm).
 
 
+%!  translate_location(+Loc, -Dict) is det.
+
+translate_location(clause_term_position(ClauseRef, TermPos), Dict),
+    clause_property(ClauseRef, file(File)) =>
+    arg(1, TermPos, CharCount),
+    filepos_line(File, CharCount, Line, LinePos),
+    Dict = _{ clause: ClauseRef,
+              file: File,
+              character_count: CharCount,
+              line_count: Line,
+              line_position: LinePos
+            }.
+translate_location(clause(ClauseRef), Dict),
+    clause_property(ClauseRef, file(File)),
+    clause_property(ClauseRef, line_count(Line)) =>
+    Dict = _{ clause: ClauseRef,
+              file: File,
+              line_count: Line
+            }.
+translate_location(clause(ClauseRef), Dict) =>
+    Dict = _{ clause: ClauseRef
+            }.
+translate_location(file_term_position(Path, TermPos), Dict) =>
+    arg(1, TermPos, CharCount),
+    filepos_line(Path, CharCount, Line, LinePos),
+    Dict = _{ file: Path,
+              character_count: CharCount,
+              line_count: Line,
+              line_position: LinePos
+            }.
+translate_location(Var, Dict), var(Var) =>
+    Dict = _{}.
+
                  /*******************************
                  *            MESSAGES          *
                  *******************************/
@@ -1160,8 +1215,8 @@ message_location_file_term_position(File, TermPos) -->
 
 %!  filepos_line(+File, +CharPos, -Line, -Column) is det.
 %
-%   @param CharPos is 0-based character offset in the file.
-%   @param Column is the current column, counting tabs as 8 spaces.
+%   @arg CharPos is 0-based character offset in the file.
+%   @arg Column is the current column, counting tabs as 8 spaces.
 
 filepos_line(File, CharPos, Line, LinePos) :-
     setup_call_cleanup(
