@@ -532,7 +532,7 @@ class Prolog
  */
 
   consult(...args)
-  { return this.forEach("load_files(Files)", {Files:args});
+  { return this.forEach("load_files(user:Files)", {Files:args});
   }
 
   load_string(s, id)
@@ -542,7 +542,7 @@ class Prolog
     }
     return this.forEach("setup_call_cleanup("+
 			   "open_string(S, _In),"+
-			   "load_files(Id, [stream(_In)]),"+
+			   "load_files(user:Id, [stream(_In)]),"+
 			   "close(_In))",
 			{S:new this.String(s), Id:id});
   }
