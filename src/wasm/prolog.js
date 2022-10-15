@@ -161,6 +161,7 @@ class Prolog
     this.objects = {};			// id --> Object
     this.object_ids = new WeakMap();	// objec --> id
     this.next_object_id = 0;
+    this.open_queries = [];		// Stack with open queries
 
     this.__set_foreign_constants();
     this.__bind_foreign_functions();
@@ -1390,16 +1391,20 @@ class Query {
     this.open   = true;
     this.argv   = argv;
     this.frame  = fid;
+    prolog.open_queries.push(this);
   }
 
   [Symbol.iterator]() { return this; }
 
   next()
-  { if ( !this.open )
+  { const prolog = this.prolog;
+    const argv   = this.argv;
+
+    if ( !this.open )
       return { done: true };
 
-    const prolog = this.prolog;
-    const argv   = this.argv;
+    if ( this != prolog.open_queries.at(-1) )
+      console.log("Attempt for Query.next() on not innermost query");
 
     switch(prolog.bindings.PL_next_solution(this.qid))
     { case prolog.PL_S_EXCEPTION:
@@ -1540,7 +1545,13 @@ class Query {
 
   close()
   { if ( this.open )
-    { this.prolog.bindings.PL_cut_query(this.qid);
+    { const prolog = this.prolog;
+
+      if ( this != prolog.open_queries.at(-1) )
+	console.log("Attempt for Query.close() on not innermost query");
+      prolog.open_queries.pop();
+
+      this.prolog.bindings.PL_cut_query(this.qid);
       if ( this.frame )
 	this.prolog.bindings.PL_discard_foreign_frame(this.frame);
       this.open = false;
