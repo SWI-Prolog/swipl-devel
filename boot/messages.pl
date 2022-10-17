@@ -1930,7 +1930,7 @@ print_message(Level, Term) :-
     ;   true
     ).
 
-push_msg(Term, Stack) :-
+push_msg(Term, Messages) :-
     nb_current('$inprint_message', Messages),
     !,
     \+ ( '$member'(Msg, Messages),
@@ -1938,7 +1938,7 @@ push_msg(Term, Stack) :-
        ),
     Stack = [Term|Messages],
     b_setval('$inprint_message', Stack).
-push_msg(Term, [Term]) :-
+push_msg(Term, []) :-
     b_setval('$inprint_message', [Term]).
 
 pop_msg(Stack) :-
