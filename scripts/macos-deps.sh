@@ -323,6 +323,11 @@ build_libyaml()
 }
 
 
+build_emacs()
+{ cp /opt/local/include/emacs-module.h $PREFIX/include
+}
+
+
 ###########################
 # Do the whole lot for all prerequisites
 
@@ -366,4 +371,5 @@ build_prerequisites()
   build_libpcre
   build_libffi
   build_libyaml
+  build_emacs
 }
