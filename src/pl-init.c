@@ -119,27 +119,6 @@ static bool	vsysError(const char *fm, va_list args);
 			}
 #define K * 1024L
 
-#define EXECVARMAGIC "$EXECVARS="
-static const char exec_vars[512] = EXECVARMAGIC;
-
-static const char *
-exec_var(const char *name)
-{ const char *s=exec_vars + strlen(EXECVARMAGIC);
-  size_t l = strlen(name);
-
-  while(s < exec_vars+sizeof(exec_vars))
-  { if ( strncmp(name, s, l) == 0 && s[l] == '=' )
-      return &s[l+1];
-    while(s < exec_vars+sizeof(exec_vars) && *s)
-      s++;
-    while(s < exec_vars+sizeof(exec_vars) && *s == '\0')
-      s++;
-  }
-
-  return NULL;
-}
-
-
 static const char *
 optcmp(const char *av, const char *opt)
 { for(; *av && *opt && *av != '='; av++, opt++)
@@ -162,16 +141,15 @@ optcmp(const char *av, const char *opt)
 
 
 static const char *
-longopt(const char *opt, int argc, const char **argv)
+find_longopt(const char *opt, int argc, const char **argv)
 { for(; argc > 0; argc--, argv++)
   { const char *a = argv[0];
-    const char *v;
 
     if ( *a++ == '-' && *a++ == '-' )
     { if ( *a == EOS )		/* --: end of args */
 	return NULL;
-      if ( (v=optcmp(a, opt)) && *v )
-	return v;
+      if ( optcmp(a, opt) )
+	return a;
     }
   }
 
@@ -247,48 +225,59 @@ opt_append(opt_list **l, const char *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Find the installation location  of   the  SWI-Prolog  resources, notably
+where boot.prc and the library reside.  Tries:
+
+  - --home=DIR
+  - One of $SWI_HOME_DIR or $SWIPL
+  - Find ../swipl.home from the executable, and resolve its content
+    similar to a symbolic link
+  - Try the compiled-in location where Prolog should be installed
+
+If `--home` is given (without a dir),   follow the above steps exept for
+`--home=DIR` and report the location or  print   an  error and exit with
+status 1.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static char *
 findHome(const char *symbols, int argc, const char **argv)
-{ const char *home = NULL;
+{ char *home = NULL;
+  char *maybe_home;
   char envbuf[PATH_MAX];
   char plp[PATH_MAX];
+  const char *homeopt = find_longopt("home", argc, argv);
   const char *val;
 
-  if ( (val=longopt("home", argc, argv)) )
+  if ( homeopt && (val=is_longopt(homeopt, "home")) && val[0] )
   { if ( (home=PrologPath(val, plp, sizeof(plp))) )
       return store_string(home);
     return NULL;
   }
 
-  if ( (val  = exec_var("homevar")) &&
-       (home = Getenv(val, envbuf, sizeof(envbuf))) &&
-       (home = PrologPath(home, plp, sizeof(plp))) )
-    return store_string(home);
-  if ( (val = exec_var("home")) &&
-       (home = PrologPath(val, plp, sizeof(plp))) )
-    return store_string(home);
-
 #ifdef PLHOMEVAR_1
-  if ( !(home = Getenv(PLHOMEVAR_1, envbuf, sizeof(envbuf))) )
+  if ( !(maybe_home = Getenv(PLHOMEVAR_1, envbuf, sizeof(envbuf))) )
   {
 #ifdef PLHOMEVAR_2
-    home = Getenv(PLHOMEVAR_2, envbuf, sizeof(envbuf));
+    maybe_home = Getenv(PLHOMEVAR_2, envbuf, sizeof(envbuf));
 #endif
   }
-  if ( home &&
-       (home = PrologPath(home, plp, sizeof(plp))) &&
-       ExistsDirectory(home) )
-    return store_string(home);
+  if ( maybe_home &&
+       (maybe_home = PrologPath(home, plp, sizeof(plp))) &&
+       ExistsDirectory(maybe_home) )
+  { home = maybe_home;
+    goto out;
+  }
 #endif
 
 #ifdef PLHOMEFILE
-  if ( (home = symbols) )
+  if ( (maybe_home = (char*)symbols) )
   { char buf[PATH_MAX];
     char parent[PATH_MAX];
     IOSTREAM *fd;
     char *pparent;
 
-    if ( !(pparent=DirName(DirName(AbsoluteFile(home,parent),parent),parent)) ||
+    if ( !(pparent=DirName(DirName(AbsoluteFile(maybe_home,parent),parent),parent)) ||
 	 strlen(PLHOMEFILE) + 1 + strlen(pparent) + 1 > sizeof(parent) )
       fatalError("File name too long: %s", home);
 
@@ -313,16 +302,15 @@ findHome(const char *symbols, int argc, const char **argv)
 	{ char buf2[PATH_MAX];
 
 	  if ( Ssnprintf(buf2, sizeof(buf2), "%s/%s", parent, buf) < 0 ||
-	       !(home = AbsoluteFile(buf2, plp)) )
+	       !(maybe_home = AbsoluteFile(buf2, plp)) )
 	    fatalError("Path name too long: %s/%s", parent, buf);
 	} else
-	{ if ( !(home = AbsoluteFile(buf, plp)) )
+	{ if ( !(maybe_home = AbsoluteFile(buf, plp)) )
 	    fatalError("Path name too long: %s/%s", buf);
 	}
 
-	if ( ExistsDirectory(home) )
-	{ Sclose(fd);
-	  return store_string(home);
+	if ( ExistsDirectory(maybe_home) )
+	{ home = maybe_home;
 	}
       }
       Sclose(fd);
@@ -330,11 +318,27 @@ findHome(const char *symbols, int argc, const char **argv)
   }
 #endif /*PLHOMEFILE*/
 
-  if ( (home = PrologPath(PLHOME, plp, sizeof(plp))) &&
-       ExistsDirectory(home) )
-    return store_string(home);
+  if ( !home &&
+       ( (maybe_home = PrologPath(PLHOME, plp, sizeof(plp))) &&
+	 ExistsDirectory(maybe_home)
+       ) )
+    home = maybe_home;
 
-  return NULL;
+out:
+  if ( home )
+    home = store_string(home);
+
+  if ( homeopt )
+  { if ( home )
+    { Sprintf("%s\n", home);
+      exit(0);
+    } else
+    { Sdprintf("ERROR: Could not find SWI-Prolog home directory\n");
+      exit(1);
+    }
+  }
+
+  return home;
 }
 
 /*
@@ -1291,7 +1295,7 @@ usage(void)
     "    --debug-on-interrupt[=bool] Trap the debugger on interrupt\n",
     "    --quiet[=bool] (-q)      Do (not) suppress informational messages\n",
     "    --traditional            Disable extensions of version 7\n",
-    "    --home=DIR               Use DIR as SWI-Prolog home\n",
+    "    --home[=DIR]             Print home or use DIR as SWI-Prolog home\n",
     "    --stack-limit=size[BKMG] Specify maximum size of Prolog stacks\n",
     "    --table-space=size[BKMG] Specify maximum size of SLG tables\n",
 #ifdef O_PLMT

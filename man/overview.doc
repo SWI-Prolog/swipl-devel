@@ -405,8 +405,11 @@ on an interrupt while executing goals from \cmdlineoption{-g} or
 initialization/[1,2].  See also the Prolog flag
 \prologflag{debug_on_interrupt}.
 
-    \cmdlineoptionitem{--home=DIR}{}
+    \cmdlineoptionitem{--home[=DIR]}{}
 Use \arg{DIR} as home directory.  See \secref{findhome} for details.
+If \arg{DIR} is omitted, the found location is printed and the process
+exits.  If the location cannot be found an error is printed and the
+process exits with status 1.
 
     \cmdlineoptionitem{--quiet}{}
 \index{verbose}\index{quiet}%
