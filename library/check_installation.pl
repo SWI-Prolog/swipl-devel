@@ -42,14 +42,14 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
-:- autoload(library(apply),[maplist/2,maplist/3]).
-:- autoload(library(archive),[archive_open/3,archive_close/1]).
-:- autoload(library(lists),[append/3,member/2]).
-:- autoload(library(option),[option/2,merge_options/3]).
-:- autoload(library(pcre),[re_config/1]).
-:- autoload(library(prolog_source),[path_segments_atom/2]).
-:- use_module(library(settings),[setting/2]).
-:- autoload(library(dcg/high_order), [sequence//2]).
+:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(archive), [archive_open/3, archive_close/1]).
+:- autoload(library(lists), [append/3, member/2]).
+:- autoload(library(option), [option/2, merge_options/3]).
+:- autoload(library(prolog_source), [path_segments_atom/2]).
+:- use_module(library(settings), [setting/2]).
+:- autoload(library(dcg/high_order), [sequence//2, sequence/4]).
+:- autoload(library(error), [must_be/2]).
 
 
 /** <module> Check installation issues and features
@@ -126,7 +126,7 @@ component(library(sha), _{}).
 component(library(snowball), _{}).
 component(library(socket), _{}).
 component(library(ssl), _{}).
-component(library(sweep), _{features:sweep_emacs_module}).
+component(library(sweep_link), _{features:sweep_emacs_module}).
 component(library(crypto), _{}).
 component(library(syslog), _{os:unix}).
 component(library(table), _{}).
@@ -424,12 +424,19 @@ jquery_file :-
 
 sweep_emacs_module :-
     with_output_to(string(S), write_sweep_module_location),
-    split_string(S, "\n", "\n", Modules),
-    (   maplist(exists_file, Modules)
+    split_string(S, "\n", "\n", [VersionInfo|Modules]),
+    must_be(oneof(["V 1"]), VersionInfo),
+    (   maplist(check_sweep_lib, Modules)
     ->  print_message(informational, installation(sweep(found(Modules))))
     ;   print_message(warning, installation(sweep(not_found(Modules))))
     ).
 
+check_sweep_lib(Line) :-
+    sub_atom(Line, B, _, A, ' '),
+    sub_atom(Line, 0, B, _, Type),
+    must_be(oneof(['L', 'M']), Type),
+    sub_atom(Line, _, A, 0, Lib),
+    exists_file(Lib).
 
 %!  check_on_path
 %
