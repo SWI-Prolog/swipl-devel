@@ -263,7 +263,7 @@ findHome(const char *symbols, int argc, const char **argv)
 #endif
   }
   if ( maybe_home &&
-       (maybe_home = PrologPath(home, plp, sizeof(plp))) &&
+       (maybe_home = PrologPath(maybe_home, plp, sizeof(plp))) &&
        ExistsDirectory(maybe_home) )
   { home = maybe_home;
     goto out;
