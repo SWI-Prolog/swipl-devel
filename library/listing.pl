@@ -163,6 +163,8 @@ list_module(Module, Options) :-
 %       lists:append([], L, L).
 %       ==
 %
+%     * A clause reference as obtained for example from nth_clause/3.
+%
 %    The following options are defined:
 %
 %      - variable_names(+How)
@@ -204,6 +206,10 @@ listing_(M:List, Options) :-
     !,
     forall(member(Spec, List),
            listing_(M:Spec, Options)).
+listing_(M:CRef, Options) :-
+    blob(CRef, clause),
+    !,
+    list_clauserefs([CRef], M, Options).
 listing_(X, Options) :-
     (   prolog:locate_clauses(X, ClauseRefs)
     ->  strip_module(X, Context, _),
@@ -218,8 +224,8 @@ list_clauserefs([H|T], Context, Options) :-
     list_clauserefs(H, Context, Options),
     list_clauserefs(T, Context, Options).
 list_clauserefs(Ref, Context, Options) :-
-    @(rule(_, Rule, Ref), Context),
-    list_clause(Rule, Ref, Context, Options).
+    @(rule(M:_, Rule, Ref), Context),
+    list_clause(M:Rule, Ref, Context, Options).
 
 %!  list_predicates(:Preds:list(pi), :Spec, +Options) is det.
 
@@ -388,6 +394,8 @@ rule_head((Head0,_Cond => _Body), Head) :- !, Head = Head0.
 rule_head((Head0 => _Body), Head) :- !, Head = Head0.
 rule_head(?=>(Head0, _Body), Head) :- !, Head = Head0.
 rule_head(Head, Head).
+
+%!  list_clause(+Term, +ClauseRef, +ContextModule, +Options)
 
 list_clause(_Rule, Ref, _Source, Options) :-
     option(source(true), Options),
