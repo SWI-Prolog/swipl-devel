@@ -776,7 +776,7 @@ a single thread is used to manage the various states. The lack of good
 support for destructive state updates in Prolog makes it attractive to
 use threads for dealing with multiple inputs. The fact that Prolog
 discourages using shared global data such as dynamic predicates
-typically makes multi-threaded code easy to manage.
+typically makes multithreaded code easy to manage.
 
 It is not clear how much scalability we gain using Prolog engines
 instead of Prolog threads. The only difference between the two is the
@@ -850,10 +850,11 @@ by the atom or blob regardless of its type. New code that uses blobs
 should use the blob functions such as PL_blob_data() to get a pointer to
 the content, the size of the content, and the type of the content. Most
 applications that need to get text from a \ctype{term_t} handle should
-use PL_get_nchars() or PL_get_wchars(). If it is \emph{known} that
-\arg{atom} is a classical Prolog text atom, one can use PL_atom_nchars()
-to obtain the C string and its length (for ISO-Latin-1 atoms) or
-PL_atom_wchars() to obtain a C wide string (\ctype{wchar_t}).
+use PL_atom_nchars(), PL_atom_wchars(), or PL_atom_mbchars(). If it is
+\emph{known} that \arg{atom} is a classical Prolog text atom, one can
+use PL_atom_nchars() to obtain the C string and its length (for
+ISO-Latin-1 atoms) or PL_atom_wchars() to obtain a C wide string
+(\ctype{wchar_t}).
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity pair.
@@ -1286,7 +1287,9 @@ If \arg{len} is \exam{(size_t)-1}, it is computed from \arg{s} using
 strlen().  See PL_new_atom() for error handling.
 
     \cfunction{const char *}{PL_atom_nchars}{atom_t a, size_t *len}
-Extract the text and length of an atom.
+Extract the text and length of an atom. If you do not need the length,
+pass NULL as the value of \arg{len}. If PL_atom_nchars() is called for a
+blob, NULL is returned.
 \end{description}
 
 
@@ -1428,11 +1431,11 @@ Process an \jargon{option list} as we find with, e.g., write_term/2 and
 many other builtin predicates. This function takes an option list (or
 dict) and in the variadic argument list pointers that receive
 the option values.  PL_scan_options() takes care of validating the list,
-ensure the list is not cyclic, validate the option type and store the
+ensuring the list is not cyclic, validating the option type and storing the
 converted values using the supplied pointers.
 
-Below is an example. While \ctype{PL_option_t} is a struct its members
-are inidialised using the PL_OPTION() macro. The data structure is not
+Below is an example. While \ctype{PL_option_t} is a struct, its members
+are initialised using the PL_OPTION() macro. The data structure is not
 constant because PL_scan_options() adds the option names as
 \jargon{atoms} to speed up option processing.  The macro PL_OPTIONS_END
 terminates the option list.
@@ -1461,10 +1464,11 @@ mypred(term_t a1, term_t options)
 
 The only defined value for \arg{flags} is currently \const{OPT_ALL}, which causes
 this function to raise a domain error if an option is passed that is not
-in \arg{specs}. Default in SWI-Prolog is to silently ignore such
-options. The \arg{opttype} argument defines the type (group) of the
+in \arg{specs}. Default in SWI-Prolog is to silently ignore unknown
+options, unless the Prolog flag \prologflag{iso} is \const{true}.
+The \arg{opttype} argument defines the type (group) of the
 options, e.g., \exam{"write_option"}. Option \jargon{types} are defined
-by the ISO standard. SWI-Prolog only uses this if the \const{OPT_ALL} to
+by the ISO standard. SWI-Prolog only uses this if \const{OPT_ALL} is specified, to
 raise a \const{domain_error} of the indicated type if some option is
 unused. The type name is normally the name of the predicate followed by
 \const{_option} or the name of a representative of a group of predicates
@@ -1499,7 +1503,7 @@ Accepts	an atom.  Note that if the C function that implements
 the predicate wishes to keep hold of the atom after it returns
 it must use PL_register_atom().
     \definition{\const{OPT_TERM}   \ctype{term_t}}
-Accepts an arbitrary Prolog term.   The ternm handle is scoped by
+Accepts an arbitrary Prolog term.   The term handle is scoped by
 the foreign predicate invocation.  Terms can be preserved using
 PL_record().
 \end{description}
@@ -2282,7 +2286,7 @@ writing it, sorting it, etc. Two atoms created with different types can
 represent the same sequence of bytes. Atoms are first ordered on the
 rank number of the type and then on the result of the
 \cfuncref{compare}{} function.  Rank numbers are assigned when the
-type is registered.  This implies that thre results of inequality
+type is registered.  This implies that the results of inequality
 comparisons between blobs of different types is undefined and can
 change if the program is run twice (the ordering within a blob type
 will not change, of course).
@@ -2348,7 +2352,7 @@ first field must be initialised to \const{PL_BLOB_MAGIC}.  The
 
 \begin{description}
     \constitem{PL_BLOB_TEXT}
-If specified the blob is assumed to contain text and is considered a
+If specified, the blob is assumed to contain text and is considered a
 normal Prolog atom. The (currently) two predefined blob types that
 represent atoms have this flag set. User-defined blobs may not specify
 this, even if they contain only text. Applications should \emph{not} use
@@ -3255,8 +3259,8 @@ threads.
 
 The second group (headed by PL_record_external()) provides the same
 functionality, but the returned data has properties that enable storing
-the data on an external device. It has been designed to make it possible
-to store Prolog terms fast and compact in an external database.	Here are
+the data on an external device. It has been designed for fast and compact
+storage of Prolog terms in an external database. Here are
 the main features:
 
 \begin{itemlist}
