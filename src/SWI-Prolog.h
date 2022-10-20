@@ -786,6 +786,7 @@ PL_EXPORT(char *)	PL_cwd(char *buf, size_t buflen);
 		 *    QUINTUS/SICSTUS WRAPPER	*
 		 *******************************/
 
+PL_EXPORT(int)		PL_cvt_i_bool(term_t p, int *c); /* Note "int" because C has no "bool" */
 PL_EXPORT(int)		PL_cvt_i_char(term_t p, char *c);
 PL_EXPORT(int)		PL_cvt_i_schar(term_t p, signed char *c);
 PL_EXPORT(int)		PL_cvt_i_uchar(term_t p, unsigned char *c);
@@ -795,6 +796,8 @@ PL_EXPORT(int)		PL_cvt_i_int(term_t p, int *c);
 PL_EXPORT(int)		PL_cvt_i_uint(term_t p, unsigned int *c);
 PL_EXPORT(int)		PL_cvt_i_long(term_t p, long *c);
 PL_EXPORT(int)		PL_cvt_i_ulong(term_t p, unsigned long *c);
+PL_EXPORT(int)		PL_cvt_i_llong(term_t p, long long *c);
+PL_EXPORT(int)		PL_cvt_i_ullong(term_t p, unsigned long long *c);
 PL_EXPORT(int)		PL_cvt_i_int32(term_t p, int32_t *c);
 PL_EXPORT(int)		PL_cvt_i_uint32(term_t p, uint32_t *c);
 PL_EXPORT(int)		PL_cvt_i_int64(term_t p, int64_t *c);

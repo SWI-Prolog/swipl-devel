@@ -1048,6 +1048,23 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
 }
 
 bool
+PL_cvt_i_bool(term_t p, int *s)
+{ GET_LD
+  int i;
+
+  if ( PL_get_integer(p, &i) &&
+       i >= 0 && i <= 1 )
+  { *s = (bool)i;
+    return TRUE;
+  }
+
+  if ( PL_is_integer(p) )
+    return PL_representation_error("bool");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, p);
+}
+
+bool
 PL_cvt_i_short(term_t p, short *s)
 { return _PL_cvt_i_short(p, s, SHORT_MIN, SHORT_MAX);
 }
@@ -1117,6 +1134,35 @@ PL_cvt_i_size_t(term_t p, size_t *c)
   return PL_get_size_ex(p, c);
 }
 
+bool
+PL_cvt_i_llong(term_t p, long long *c)
+{ GET_LD
+  int64_t i;
+  if ( PL_get_int64_ex(p, &i) && i >= LLONG_MIN && i <= LLONG_MAX )
+  { *c = (long long)i;
+    return TRUE;
+  }
+
+  if ( PL_is_integer(p) )
+    return PL_representation_error("long long");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
+}
+
+bool
+PL_cvt_i_ullong(term_t p, unsigned long long *c)
+{ GET_LD
+  uint64_t i;
+  if ( PL_get_uint64_ex(p, &i) && i <= LLONG_MAX )
+  { *c = (unsigned long long)i;
+    return TRUE;
+  }
+
+  if ( PL_is_integer(p) )
+    return PL_representation_error("unsigned long long");
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
+}
 
 bool
 PL_cvt_i_float(term_t p, double *c)
