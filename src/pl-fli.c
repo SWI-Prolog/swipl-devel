@@ -1048,6 +1048,11 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
 }
 
 bool
+PL_cvt_i_bool(term_t p, int *s)
+{ return PL_get_bool_ex(p, s);
+}
+
+bool
 PL_cvt_i_short(term_t p, short *s)
 { return _PL_cvt_i_short(p, s, SHORT_MIN, SHORT_MAX);
 }
@@ -1117,6 +1122,25 @@ PL_cvt_i_size_t(term_t p, size_t *c)
   return PL_get_size_ex(p, c);
 }
 
+bool
+PL_cvt_i_llong(term_t p, long long *c)
+{
+#if SIZEOF_LONG_LONG == 8
+  return PL_cvt_i_int64(p, (int64_t*)c);
+#else
+  #error "Unsupported size for long long"
+#endif
+}
+
+bool
+PL_cvt_i_ullong(term_t p, unsigned long long *c)
+{
+#if SIZEOF_LONG_LONG == 8
+  return PL_cvt_i_uint64(p, (uint64_t*)c);
+#else
+  #error "Unsupported size for long long"
+#endif
+}
 
 bool
 PL_cvt_i_float(term_t p, double *c)
