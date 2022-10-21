@@ -295,7 +295,7 @@ endif()
 if(INSTALL_DOCUMENTATION)
   if(SWIPL_PACKAGES)
     swipl_add_packages(EXPLICIT
-		       PACKAGES ltx2htm pldoc nlp
+		       PACKAGES ltx2htm pldoc nlp archive
 		       COMMENT "required for online documentation.  Use "
 		       "-DINSTALL_DOCUMENTATION=OFF to avoid this dependency")
   else()
