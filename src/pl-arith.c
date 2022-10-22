@@ -248,7 +248,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
     case FRG_REDO:
       { state = CTX_PTR;
 
-	if ( !ar_add_ui(&state->low, 1) ||
+	if ( !ar_add_si(&state->low, 1) ||
 	     !PL_unify_number(n, &state->low) )
 	{ rc = FALSE;
 	  goto cleanup;
@@ -399,8 +399,8 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
       case V_INTEGER:
       { cpNumber(&lo, &n);
 	cpNumber(&hi, &n);
-	ar_add_ui(&lo, -1);
-	ar_add_ui(&hi, 1);
+	ar_add_si(&lo, -1);
+	ar_add_si(&hi, 1);
 	break;
       }
 #if O_GMP
@@ -1376,7 +1376,7 @@ promoteIntNumber(Number n)
 static int ar_u_minus(Number n1, Number r);
 
 int
-ar_add_ui(Number n, intptr_t add)
+ar_add_si(Number n, long add)
 { switch(n->type)
   { case V_INTEGER:
     { int64_t r = n->value.i + add;
@@ -1393,10 +1393,7 @@ ar_add_ui(Number n, intptr_t add)
     /*FALLTHROUGH*/
 #ifdef O_GMP
     case V_MPZ:
-    { if ( add > 0 )
-	mpz_add_ui(n->value.mpz, n->value.mpz, (unsigned long)add);
-      else
-	mpz_sub_ui(n->value.mpz, n->value.mpz, (unsigned long)-add);
+    { mpz_add_si(n->value.mpz, n->value.mpz, add);
 
       succeed;
     }

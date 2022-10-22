@@ -4317,7 +4317,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
       popTermRef();
       if ( rc )
       { ensureWritableNumber(&n);
-	if ( (rc=ar_add_ui(&n, add)) )
+	if ( (rc=ar_add_si(&n, add)) )
 	{ if ( (rc=put_number(&w, &n, ALLOW_GC)) != TRUE )
 	    rc = raiseStackOverflow(rc);
 	}

@@ -117,6 +117,15 @@ mpq_stack_size(word w)
 { return (int)w>>1;
 }
 
+static inline void
+mpz_add_si(mpz_t r, mpz_t n1, long add)
+{ if ( add > 0 )
+    mpz_add_ui(r, n1, add);
+  else
+    mpz_sub_ui(r, n1, -add);
+}
+
+
 #else /*O_GMP*/
 
 #define get_integer(w, n) \
