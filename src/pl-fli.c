@@ -1489,6 +1489,16 @@ PL_get_bool(term_t t, int *b)
     { *b = FALSE;
       succeed;
     }
+    fail;
+  }
+  if ( isInteger(w) )
+  { if ( w == consInt(0) )
+      *b = FALSE;
+    else if ( w == consInt(1) )
+      *b = TRUE;
+    else
+      fail;
+    succeed;
   }
 
   fail;
