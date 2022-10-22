@@ -1489,7 +1489,23 @@ PL_get_bool(term_t t, int *b)
     { *b = FALSE;
       succeed;
     }
+    fail;
   }
+  if ( isInteger(w) )
+  { intptr_t val = valInt(w);
+    if ( val == 0 )
+      *b = FALSE;
+    else if ( val == 1 )
+      *b = TRUE;
+    else
+      fail;
+    succeed;
+  }
+
+  /* TODO: isRational(w)? */
+  /* Probably don't do any other "truthy" conversions; for example, it
+     would be confusing to use a test against "" for strings,
+     resulting in "false" giving the value TRUE. */
 
   fail;
 }

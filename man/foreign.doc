@@ -1051,6 +1051,15 @@ Returns non-zero if \arg{term} is acyclic (i.e.\ a finite tree).
 The functions {\tt PL_get_*()} read information from a Prolog term. Most
 of them take two arguments.  The first is the input term and the second
 is a pointer to the output value or a term reference.
+The return value is \const{TRUE} or \const{FALSE}, indicating the success
+of the "get" operation.
+Most functions have a related "_ex" function that raises a type or
+instantiation error if the argument is of the wrong type (e.g.,
+PL_get_atom() and PL_get_atom_ex().
+
+For integers an alternative interface exists, which helps deal with the
+various integer types in C and C++. They are convenient for use with
+\exam{_Generic} selection or C++ overloading.
 
 \begin{description}
     \cfunction{int}{PL_get_atom}{term_t +t, atom_t *a}
@@ -1157,31 +1166,34 @@ Convert to default locale-defined 8-bit string. Success depends on the
 locale. Conversion is done using the wcrtomb() C library function.
 \end{description}
 
-
 \cfunction{int}{PL_get_list_chars}{+term_t l, char **s, unsigned flags}
 Same as \exam{PL_get_chars(\arg{l}, \arg{s}, CVT_LIST|\arg{flags})},
 provided \arg{flags} contains none of the {\tt CVT_*} flags.
+
 \cfunction{int}{PL_get_integer}{+term_t t, int *i}
 If \arg{t} is a Prolog integer, assign its value over \arg{i}.  On
 32-bit machines, this is the same as PL_get_long(), but avoids a
-warning from the compiler.  See also PL_get_long().
+warning from the compiler.  See also PL_get_long(), PL_cvt_i_int(),
+and PL_cvt_i_long().
 
 \cfunction{int}{PL_get_long}{term_t +t, long *i}
 If \arg{t} is a Prolog integer that can be represented as a long, assign
 its value over \arg{i}. If \arg{t} is an integer that cannot be
 represented by a C long, this function returns \const{FALSE}. If \arg{t}
 is a floating point number that can be represented as a long, this
-function succeeds as well.  See also PL_get_int64().
+function succeeds as well.  See also PL_get_int64() and PL_cvt_i_int64().
 
 \cfunction{int}{PL_get_int64}{term_t +t, int64_t *i}
 If \arg{t} is a Prolog integer or float that can be represented as a
 \ctype{int64_t}, assign its value over \arg{i}.
+See also PL_cvt_i_int64().
 
 \cfunction{int}{PL_get_uint64}{term_t +t, uint64_t *i}
 If \arg{t} is a Prolog integer that can be represented as a
 \ctype{uint64_t}, assign its value over \arg{i}. Note that this requires
 GMP support for representing \ctype{uint64_t} values with the high bit
 set.
+See also PL_cvt_i_uint64().
 
 \cfunction{int}{PL_get_intptr}{term_t +t, intptr_t *i}
 Get an integer that is at least as wide as a pointer. On most
@@ -1190,10 +1202,15 @@ bytes and longs only 4. Unlike PL_get_pointer(), the value is not
 modified.
 
 \cfunction{int}{PL_get_bool}{term_t +t, int *val}
-If \arg{t} has the value \const{true} or \const{false}, set \arg{val}
+If \arg{t} has the value \const{true}, \const{false}, set \arg{val}
 to the C constant \const{TRUE} or \const{FALSE} and return success,
 otherwise return failure.
 The values \const{on} and \const{off} are also accepted.
+In addition, if \arg{t} is an integer, return \const{TRUE} or
+\const{FALSE} according to whether the value is \const{1} or \const{0}
+- any other value gives a reprsentation error.
+See also PL_cvt_i_bool().
+
 \cfunction{int}{PL_get_pointer}{term_t +t, void **ptr}
 In the current system, pointers are represented by Prolog integers,
 but need some manipulation to make sure they do not get truncated due
@@ -1213,8 +1230,8 @@ PL_get_name_arity() and PL_is_functor().
 
 \cfunction{int}{PL_get_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
-over \arg{name} and the arity over \arg{arity}. See also
-PL_get_functor() and PL_is_functor().  See \secref{pl-arity-as-size}.
+over \arg{name} and the arity over \arg{arity} (either or both may be NULL).
+See also PL_get_functor() and PL_is_functor().  See \secref{pl-arity-as-size}.
 
 \cfunction{int}{PL_get_compound_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound term, the functor name will be assigned over
@@ -2106,6 +2123,12 @@ wrappers around (mostly) the PL_get_*() functions, such that we
 can write code in the style below and get proper exceptions if
 an argument is uninstantiated or of the wrong type.
 
+The PL_cvt_i_*() family of functions wrap the PL_get_*_ex() integern
+functions, suitable for use with a \exam{_Generic} selector or C++
+overloading.\footnote{\exam{_Generic} needs to take into account that
+there's no \ctype{bool} type in C but there is in C++. An overloaded
+integer() method is provided in the C++ interface.}
+
 \begin{code}
 /** set_size(+Name:atom, +Width:int, +Height:int) is det.
 
@@ -2163,7 +2186,8 @@ integer does not fit in a C \ctype{size_t}.
     \cfunction{int}{PL_get_bool_ex}{term_t t, int *i}
 As PL_get_bool(), but raises a type or instantiation error if
 \arg{t} is not a valid boolean value (\const{true}, \const{false},
-\const{on}, const{off}).
+\const{on}, const{off}), or is not an integer.
+Note that the pointer is to an \ctype{int} because C has no \ctype{bool} type.
 
     \cfunction{int}{PL_get_float_ex}{term_t t, double *f}
 As PL_get_float(), but raises a type or instantiation error if
@@ -2186,6 +2210,44 @@ As PL_get_list(), but raises a type or instantiation error if
     \cfunction{int}{PL_get_nil_ex}{term_t l}
 As PL_get_nil(), but raises a type or instantiation error if
 \arg{t} is not the empty list.
+
+    \cfunction{int}{PL_cvt_i_bool}{term_t p, int *c}
+    Wrapper for PL_get_bool_ex().
+    Note that the pointer is to an \ctype{int} because C has no \ctype{bool} type.
+    The return value is either \const{0} or \const{1}.
+
+    \cfunction{int}{PL_cvt_i_char}{term_t p, char *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_schar}{term_t p, signed char *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_uchar}{term_t p, unsigned char *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_short}{term_t p, short *s}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_ushort}{term_t p, unsigned short *s}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_int}{term_t p, int *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_uint}{term_t p, unsigned int *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_long}{term_t p, long *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_ulong}{term_t p, unsigned long *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_llong}{term_t p, long long *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_ullong}{term_t p, unsigned long long *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_int32}{term_t p, int32_t *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_uint32}{term_t p, uint32_t *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_int64}{term_t p, int64_t *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_uint64}{term_t p, uint64_t *c}
+    \nodescription
+    \cfunction{int}{PL_cvt_i_size_t}{term_t p, size_t *c}
+    \nodescription
 
     \cfunction{int}{PL_unify_list_ex}{term_t l, term_t h, term_t t}
 As PL_unify_list(), but raises a type error if \arg{t} is not a

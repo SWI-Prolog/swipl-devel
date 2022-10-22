@@ -1217,7 +1217,10 @@ PL_get_bool_ex(term_t t, int *i)
 { if ( PL_get_bool(t, i) )
     succeed;
 
-  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
+  if ( PL_is_integer( t ) )
+    return PL_domain_error("bool", t);
+  else
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
 }
 
 
