@@ -58,6 +58,10 @@ set(SRC_TAI caltime_utc.c caltime_tai.c leapsecs_sub.c leapsecs_add.c
     tai_unpack.c)
 prepend(SRC_TAI libtai/ ${SRC_TAI})
 
+if(USE_LIBBF)
+set(SRC_BF pl-bf.c libbf/libbf.c libbf/cutils.c)
+endif()
+
 set(SRC_MINIZIP zip.c unzip.c ioapi.c)
 prepend(SRC_MINIZIP minizip/ ${SRC_MINIZIP})
 
@@ -82,6 +86,7 @@ set(LIBSWIPL_SRC
     ${SRC_OS}
     ${SRC_OS_SPECIFIC}
     ${SRC_TAI}
+    ${SRC_BF}
     ${SRC_MINIZIP})
 set(SWIPL_SRC pl-main.c)
 

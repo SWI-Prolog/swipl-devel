@@ -49,8 +49,8 @@
 #include <parms.h>			/* pick from the working dir */
 
 /* gmp.h must be included PRIOR to SWI-Prolog.h to enable the API prototypes */
-#ifdef HAVE_GMP_H
-#define O_GMP			1
+#if O_GMP || O_BF
+#define O_BIGNUM			1
 #endif
 
 #ifdef O_GMP
