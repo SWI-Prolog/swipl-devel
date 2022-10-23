@@ -36,7 +36,23 @@
 
 #include "pl-bf.h"
 
+mp_alloc_wrapper alloc_wrapper = {0};
+
+static void *
+my_bf_realloc(void *opaque, void *ptr, size_t size)
+{ if ( alloc_wrapper.realloc_func )
+    return alloc_wrapper.realloc_func(ptr, 0, size);
+  else
+    return realloc(ptr, size);
+}
+
+void
+initBF(void)
+{ bf_context_init(&alloc_wrapper.bf_context, my_bf_realloc, NULL);
+}
+
 void
 bf_not_implemented(const char *msg)
 { Sdprintf("LibBF: Not implemented: %s\n", msg);
 }
+

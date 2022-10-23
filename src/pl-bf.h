@@ -40,6 +40,7 @@
 
 #include "libbf/bf_gmp.h"
 
+void initBF(void);
 void bf_not_implemented(const char *msg);
 
 #endif /*PLBF_INCLUDED*/
