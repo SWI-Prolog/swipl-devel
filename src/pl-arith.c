@@ -154,7 +154,6 @@ static int		set_roundtoward(Word p, Number old);
 
 #undef LDFUNC_DECLARATIONS
 
-
 		/********************************
 		*   LOGICAL INTEGER FUNCTIONS   *
 		*********************************/
@@ -162,8 +161,8 @@ static int		set_roundtoward(Word p, Number old);
 static inline void
 clearInteger(Number n)
 {
-#ifdef O_GMP
-  if ( n->type == V_MPZ && n->value.mpz->_mp_alloc )
+#ifdef O_BIGNUM
+  if ( n->type == V_MPZ && !MPZ_ON_STACK(n->value.mpz) )
     mpz_clear(n->value.mpz);
 #endif
 }
@@ -393,7 +392,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
   if ( PL_get_number(A3, &n) )
   { switch(n.type)
     {
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 #endif
       case V_INTEGER:
@@ -403,7 +402,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
 	ar_add_si(&hi, 1);
 	break;
       }
-#if O_GMP
+#if O_BIGNUM
       case V_MPQ:
 	promoteToFloatNumber(&n);
       /*FALLTHROUGH*/
@@ -442,7 +441,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
 		 *	 BIGNUM FUNCTIONS	*
 		 *******************************/
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 
 #define get_mpz(t, n) LDFUNC(get_mpz, t, n)
 static int
@@ -583,7 +582,7 @@ PRED_IMPL("rational", 3, rational, 0)
 }
 
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 static
 PRED_IMPL("float_parts", 4, float_parts, 0)
@@ -727,7 +726,7 @@ void
 freeArithLocalData(PL_local_data_t *ld)
 { if ( ld->arith.stack.base )
     PL_free(ld->arith.stack.base);
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( ld->arith.random.initialised )
   { DEBUG(0, { GET_LD
 	       assert(ld == LD);
@@ -865,15 +864,15 @@ check_zero_div(int sign_n, Number r, char *func, int arity)
 }
 
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 static int
 check_mpq(Number r)
 { GET_LD
   size_t sz;
 
   if ( (sz=LD->arith.rat.max_rational_size) != (size_t)-1 )
-  { int szn = mpq_numref(r->value.mpq)->_mp_size;
-    int szd = mpq_denref(r->value.mpq)->_mp_size;
+  { int szn = MPZ_LIMB_SIZE(mpq_numref(r->value.mpq));
+    int szd = MPZ_LIMB_SIZE(mpq_denref(r->value.mpq));
 
     if ( szn < 0 ) szn = -szn;
     if ( szd < 0 ) szd = -szd;
@@ -1301,7 +1300,7 @@ toIntegerNumber(Number n, int flags)
 { switch(n->type)
   { case V_INTEGER:
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       succeed;
     case V_MPQ:				/* never from stacks iff integer */
@@ -1328,7 +1327,7 @@ toIntegerNumber(Number n, int flags)
 	    return TRUE;
 	  }
 	  return FALSE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	} else
 	{ mpz_init_set_d(n->value.mpz, n->value.f);
 	  n->type = V_MPZ;
@@ -1353,7 +1352,7 @@ larger capacity.
 static int
 promoteIntNumber(Number n)
 {
-#ifdef O_GMP
+#ifdef O_BIGNUM
   promoteToMPZNumber(n);
 #else
   GET_LD
@@ -1391,7 +1390,7 @@ ar_add_si(Number n, long add)
       }
     }
     /*FALLTHROUGH*/
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { mpz_add_si(n->value.mpz, n->value.mpz, add);
 
@@ -1448,7 +1447,7 @@ pl_ar_add(Number n1, Number n2, Number r)
 	fail;
     }
     /*FALLTHROUGH*/
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -1495,7 +1494,7 @@ ar_minus(Number n1, Number n2, Number r)
 	succeed;
       }
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -1528,7 +1527,7 @@ ar_even(Number i)
 { switch(i->type)
   { case V_INTEGER:
       return i->value.i % 2 == 0;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return mpz_fdiv_ui(i->value.mpz, 2) == 0;
 #endif
@@ -1575,7 +1574,7 @@ ar_mod(Number n1, Number n2, Number r)
 	r->value.i = 0;
       r->type = V_INTEGER;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(n2->value.mpz) == 0 )
 	return PL_error("mod", 2, NULL, ERR_DIV_BY_ZERO);
@@ -1638,7 +1637,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       else
 	shift = (long)n2->value.i;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
@@ -1661,7 +1660,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( dir < 0 )			/* shift left (<<) */
       {
-#ifdef O_GMP				/* msb() is 0..63 */
+#ifdef O_BIGNUM				/* msb() is 0..63 */
         int bits = shift;
 
 	if ( n1->value.i >= 0 )
@@ -1686,14 +1685,14 @@ ar_shift(Number n1, Number n2, Number r, int dir)
       }
       r->type = V_INTEGER;
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     mpz:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
       if ( dir < 0 )
       {
-#ifdef O_GMP_PRECHECK_ALLOCATIONS
+#ifdef O_BIGNUM_PRECHECK_ALLOCATIONS
 	GET_LD
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
@@ -1701,7 +1700,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 	{ mpz_clear(r->value.mpz);
 	  return int_too_big();
 	}
-#endif /*O_GMP_PRECHECK_ALLOCATIONS*/
+#endif /*O_BIGNUM_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
       } else
       { mpz_fdiv_q_2exp(r->value.mpz, n1->value.mpz, shift);
@@ -1746,7 +1745,7 @@ same_positive_ints(const char *fname, Number n1, Number n2)
       { a = -(uint64_t)a;
 	if ( a < 0 )
 	{ promote:
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	  promoteToMPZNumber(n1);
 	  promoteToMPZNumber(n2);
 	  goto case_gmp;
@@ -1765,7 +1764,7 @@ same_positive_ints(const char *fname, Number n1, Number n2)
       n2->value.i = b;
       break;
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     case_gmp:
       /* we don't really need to make absolute here as the GMP functions
@@ -1811,7 +1810,7 @@ ar_gcd(Number n1, Number n2, Number r)
       r->value.i = i64_gcd(n1->value.i, n2->value.i);
       break;
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -1843,7 +1842,7 @@ ar_lcm(Number n1, Number n2, Number r)
 	return TRUE;
       }
     }
-#ifndef O_GMP
+#ifndef O_BIGNUM
       return PL_error("lcm", 2, NULL, ERR_EVALUATION, ATOM_int_overflow);
 #else
       promoteToMPZNumber(n1);
@@ -2095,7 +2094,7 @@ CR_FUNC(lgamma)
 
 /* Binary functions requiring integer argument */
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
   static int \
   name(Number n1, Number n2, Number r) \
@@ -2121,7 +2120,7 @@ CR_FUNC(lgamma)
     } \
   }
 
-#else /*O_GMP*/
+#else /*O_BIGNUM*/
 
 #define BINAIRY_INT_FUNCTION(name, plop, op, mpop) \
   static int \
@@ -2142,7 +2141,7 @@ CR_FUNC(lgamma)
         fail; \
     } \
   }
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 #define BINAIRY_FLOAT_FUNCTION(name, func) \
   static int \
@@ -2193,7 +2192,7 @@ overflow. We use mul64() to  guard   against  overflow. Alternatively we
 could use a safe estimate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 static void
 mpz_set_num(mpz_t mpz, Number n)
 { switch ( n->type )
@@ -2208,7 +2207,7 @@ mpz_set_num(mpz_t mpz, Number n)
   }
 }
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Get the _absolute_ value from `n` as an   unsigned  long. As we will use
@@ -2227,7 +2226,7 @@ get_int_exponent(Number n, unsigned long *expp)
   { case V_INTEGER:
       i = n->value.i;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( !mpz_to_int64(n->value.mpz, &i) )
 	return int_too_big();
@@ -2263,7 +2262,7 @@ ar_smallint(Number n, int *i)
 	return TRUE;
       }
       return FALSE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_cmp_si(n->value.mpz, -1L) >= 0 &&
 	   mpz_cmp_si(n->value.mpz,  1L) <= 0 )
@@ -2354,7 +2353,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     if ( exp_sign < 0 )
     {
-#ifdef O_GMP
+#ifdef O_BIGNUM
       GET_LD
 
       if ( truePrologFlag(PLFLAG_RATIONAL) )
@@ -2376,7 +2375,7 @@ ar_pow(Number n1, Number n2, Number r)
 	op1_bits = MSB64(v);
         break;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	op1_bits = mpz_sizeinbase(n1->value.mpz, 2);
         break;
@@ -2407,7 +2406,7 @@ ar_pow(Number n1, Number n2, Number r)
       }
     }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
     r->type = V_MPZ;
     mpz_init(r->value.mpz);
 
@@ -2430,7 +2429,7 @@ ar_pow(Number n1, Number n2, Number r)
 #endif
   } /* end if ( intNumber(n1) && intNumber(n2) ) */
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
 
@@ -2449,10 +2448,10 @@ ar_pow(Number n1, Number n2, Number r)
 
     nr.type = V_MPZ;
     nr.value.mpz[0] = mpq_numref(n1->value.mpq)[0];
-    nr.value.mpz->_mp_alloc = 0;	/* read-only */
+    MPZ_SET_READONLY(nr.value.mpz);
     nd.type = V_MPZ;
     nd.value.mpz[0] = mpq_denref(n1->value.mpq)[0];
-    nd.value.mpz->_mp_alloc = 0;
+    MPZ_SET_READONLY(nd.value.mpz);
 
     if ( ar_pow(&nr, &nexp, &nrp) &&
          ar_pow(&nd, &nexp, &ndp) )
@@ -2650,7 +2649,7 @@ ar_pow(Number n1, Number n2, Number r)
     assert(0);
   } /* end if ( n2->type == V_MPQ ) */
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 doreal:
   zero_div_sign = ( (n2->type == V_INTEGER) && (!ar_even(n2)) &&
 		    signbit(n1->value.f) ) ? -1 : 1;
@@ -2659,7 +2658,7 @@ doreal:
        !promoteToFloatNumber(n2) )
     return FALSE;
 
-#ifndef O_GMP
+#ifndef O_BIGNUM
   exp_sign = sign_f(n2->value.f);
 #endif
 
@@ -2684,7 +2683,7 @@ ar_powm(Number base, Number exp, Number mod, Number r)
   if ( !intNumber(exp) )
     PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   promoteToMPZNumber(base);
   promoteToMPZNumber(exp);
   promoteToMPZNumber(mod);
@@ -2828,7 +2827,7 @@ ar_tdiv(Number n1, Number n2, Number r)
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("//", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
 #endif
   { if ( n2->value.i == 0 )
@@ -2842,7 +2841,7 @@ ar_tdiv(Number n1, Number n2, Number r)
     }
   }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   promoteToMPZNumber(n1);
   promoteToMPZNumber(n2);
 
@@ -2875,7 +2874,7 @@ ar_div(Number n1, Number n2, Number r)
   if ( !toIntegerNumber(n2, 0) )
     return PL_error("div", 2, NULL, ERR_AR_TYPE, ATOM_integer, n2);
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( n1->type == V_INTEGER && n2->type == V_INTEGER )
 #endif
   { if ( n2->value.i == 0 )
@@ -2892,7 +2891,7 @@ ar_div(Number n1, Number n2, Number r)
     }
   }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   promoteToMPZNumber(n1);
   promoteToMPZNumber(n2);
 
@@ -2965,7 +2964,7 @@ ar_sign_i(Number n1)
 { switch(n1->type)
   { case V_INTEGER:
       return (n1->value.i < 0 ? -1 : n1->value.i > 0 ? 1 : 0);
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return mpz_sgn(n1->value.mpz);
     case V_MPQ:
@@ -2997,7 +2996,7 @@ ar_signbit(Number n)
 { switch(n->type)
   { case V_INTEGER:
       return n->value.i	< 0 ? -1 : 1;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { int i = mpz_sgn(n->value.mpz);
       return i < 0 ? -1 : 1;
@@ -3106,7 +3105,7 @@ ar_rem(Number n1, Number n2, Number r)
       r->type = V_INTEGER;
 
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { if ( mpz_sgn(n2->value.mpz) == 0 )
 	return PL_error("rem", 2, NULL, ERR_DIV_BY_ZERO);
@@ -3127,7 +3126,7 @@ ar_rem(Number n1, Number n2, Number r)
 }
 
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 static int
 ar_rational(Number n1, Number r)
 { cpNumber(r, n1);
@@ -3272,7 +3271,7 @@ ar_rdiv(Number n1, Number n2, Number r)
 
   return TRUE;
 }
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 
 static int
@@ -3304,7 +3303,7 @@ ar_divide(Number n1, Number n2, Number r)
 	  r->type = V_INTEGER;
 	  succeed;
 	}
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	if ( truePrologFlag(PLFLAG_RATIONAL) )
 	{ promoteToMPZNumber(n1);
 	  promoteToMPZNumber(n2);
@@ -3312,7 +3311,7 @@ ar_divide(Number n1, Number n2, Number r)
 	}
 #endif
 	break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	if ( mpz_sgn(n2->value.mpz) == 0 )
 	  return check_zero_div(ar_sign_i(n1), r, "/", 2);
@@ -3447,7 +3446,7 @@ ar_mul(Number n1, Number n2, Number r)
 	succeed;
       }
       /*FALLTHROUGH*/
-#ifdef O_GMP
+#ifdef O_BIGNUM
       promoteToMPZNumber(n1);
       promoteToMPZNumber(n2);
 
@@ -3554,7 +3553,7 @@ ar_negation(Number n1, Number r)
       r->value.i = ~n1->value.i;
       r->type = V_INTEGER;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -3594,7 +3593,7 @@ ar_msb(Number n1, Number r)
       r->value.i = MSB64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(n1->value.mpz) <= 0 )
 	return mustBePositive("msb", 1, n1);
@@ -3644,7 +3643,7 @@ ar_lsb(Number n1, Number r)
       r->value.i = lsb64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(n1->value.mpz) <= 0 )
 	return mustBePositive("lsb", 1, n1);
@@ -3692,7 +3691,7 @@ ar_popcount(Number n1, Number r)
       r->value.i = my_popcount64(n1->value.i);
       r->type = V_INTEGER;
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(n1->value.mpz) < 0 )
 	return notLessThanZero("popcount", 1, n1);
@@ -3738,7 +3737,7 @@ ar_getbit(Number I, Number K, Number r)
       }
       bit = K->value.i;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(K->value.mpz) < 0 )
 	return notLessThanZero("bit", 2, K);
@@ -3762,7 +3761,7 @@ ar_getbit(Number I, Number K, Number r)
       r->value.i = (I->value.i & ((int64_t)1<<bit)) != 0;
       r->type    = V_INTEGER;
       return TRUE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       if ( mpz_sgn(I->value.mpz) < 0 )
 	return notLessThanZero("bit", 2, I);
@@ -3786,7 +3785,7 @@ ar_u_minus(Number n1, Number r)
   { case V_INTEGER:
       if ( n1->value.i == PLMININT )
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
@@ -3799,7 +3798,7 @@ ar_u_minus(Number n1, Number r)
       { r->value.i = -n1->value.i;
 	break;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       mpz_init(r->value.mpz);
       mpz_neg(r->value.mpz, n1->value.mpz);
@@ -3841,7 +3840,7 @@ ar_abs(Number n1, Number r)
   { case V_INTEGER:
       if ( n1->value.i == PLMININT )
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	promoteToMPZNumber(n1);
 	r->type = V_MPZ;
 #else
@@ -3855,7 +3854,7 @@ ar_abs(Number n1, Number r)
 	r->type = V_INTEGER;
 	break;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -3891,12 +3890,12 @@ static int
 ar_integer(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
 #endif
       cpNumber(r, n1);
       return TRUE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
     { mpq_t q;
       mpq_t half;
@@ -3945,7 +3944,7 @@ ar_integer(Number n1, Number r)
 	r->type = V_INTEGER;
 	return TRUE;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       r->type = V_MPZ;
       mpz_init_set_d(r->value.mpz, n1->value.f);
       return TRUE;
@@ -3980,7 +3979,7 @@ ar_floor(Number n1, Number r)
   { case V_INTEGER:
       cpNumber(r, n1);
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       cpNumber(r, n1);
       succeed;
@@ -4012,7 +4011,7 @@ ar_floor(Number n1, Number r)
 	r->type = V_INTEGER;
       } else
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( n1->value.f < 0 && mpz_to_double(r->value.mpz) > n1->value.f )
@@ -4035,7 +4034,7 @@ ar_ceil(Number n1, Number r)
   { case V_INTEGER:
       cpNumber(r, n1);
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       cpNumber(r, n1);
       succeed;
@@ -4067,7 +4066,7 @@ ar_ceil(Number n1, Number r)
 	r->type = V_INTEGER;
       } else
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	r->type = V_MPZ;
 	mpz_init_set_d(r->value.mpz, n1->value.f);
 	if ( mpz_to_double(r->value.mpz) < n1->value.f )
@@ -4094,13 +4093,13 @@ static int
 ar_float_fractional_part(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
 #endif
       r->value.i = 0;
       r->type = V_INTEGER;
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
       r->type = V_MPQ;
       mpq_init(r->value.mpq);
@@ -4134,12 +4133,12 @@ static int
 ar_float_integer_part(Number n1, Number r)
 { switch(n1->type)
   { case V_INTEGER:
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
 #endif
       cpNumber(r, n1);
       succeed;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
@@ -4167,7 +4166,7 @@ static int
 ar_truncate(Number n1, Number r)
 { switch(n1->type)
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
       if ( mpq_sgn(n1->value.mpq) >= 0 )
 	return ar_floor(n1, r);
@@ -4190,7 +4189,7 @@ ar_truncate(Number n1, Number r)
 }
 
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 #ifdef HAVE_SYS_TYPES_H
 #include <sys/types.h>
 #endif
@@ -4308,7 +4307,7 @@ seed_random(DECL_LD)
   }
 }
 
-#else /* O_GMP */
+#else /* O_BIGNUM */
 
 #define seed_random(_) LDFUNC(seed_random, _)
 static void
@@ -4316,13 +4315,13 @@ seed_random(DECL_LD)
 { setRandom(NULL);
 }
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 #define init_random(_) LDFUNC(init_random, _)
 static void
 init_random(DECL_LD)
 {
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( !LD->arith.random.initialised )
   { LD->gmp.persistent++;
 #ifdef HAVE_GMP_RANDINIT_MT
@@ -4365,7 +4364,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
 			  ERR_TYPE, ATOM_seed, arg);
 	switch(n.type)
 	{
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	  case V_INTEGER:
 	    gmp_randseed_ui(LD->arith.random.state,
 			    (unsigned long)n.value.i);
@@ -4396,7 +4395,7 @@ PRED_IMPL("set_random", 1, set_random, 0)
       clearNumber(&n);
 
       return TRUE;
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
     } else
     { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_random_option, A1);
     }
@@ -4452,7 +4451,7 @@ ar_random(Number n1, Number r)
 
   switch(n1->type)
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_INTEGER:
       promoteToMPZNumber(n1);
       assert(n1->type == V_MPZ);
@@ -4491,7 +4490,7 @@ ar_random_float(Number r)
 
   do
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     mpf_t rop;
     mpf_init2(rop, sizeof(double)*8);
     mpf_urandomb(rop, LD->arith.random.state, sizeof(double)*8);
@@ -4671,7 +4670,7 @@ static const ar_funcdef ar_funcdefs[] = {
   ADD(FUNCTOR_minus2,		ar_minus, F_ISO),
   ADD(FUNCTOR_star2,		ar_mul, F_ISO),
   ADD(FUNCTOR_divide2,		ar_divide, F_ISO),
-#ifdef O_GMP
+#ifdef O_BIGNUM
   ADD(FUNCTOR_rational1,	ar_rational, 0),
   ADD(FUNCTOR_numerator1,	ar_numerator, 0),
   ADD(FUNCTOR_denominator1,	ar_denominator, 0),
@@ -4837,7 +4836,7 @@ initArith(void)
   const_inf     = HUGE_VAL;
   const_neg_inf = -HUGE_VAL;
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   LD->arith.rat.max_rational_size = (size_t)-1;
   LD->arith.rat.max_rational_size_action = ATOM_error;
 
@@ -4879,7 +4878,7 @@ cleanupArith(void)
 int
 is_arith_flag(atom_t k)
 { return (
-#ifdef O_GMP
+#ifdef O_BIGNUM
            k == ATOM_max_rational_size ||
 	   k == ATOM_max_rational_size_action ||
 #endif
@@ -4893,7 +4892,7 @@ is_arith_flag(atom_t k)
 int
 get_arith_flag(DECL_LD term_t val, atom_t k)
 { atom_t a;
-#ifdef O_GMP
+#ifdef O_BIGNUM
   size_t sz;
 
   if ( k == ATOM_max_rational_size &&
@@ -4918,7 +4917,7 @@ get_arith_flag(DECL_LD term_t val, atom_t k)
   return PL_unify_atom(val, a);
 }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 static int
 set_restraint(term_t t, size_t *valp)
 { GET_LD
@@ -4988,7 +4987,7 @@ int
 set_arith_flag(DECL_LD term_t val, atom_t key)
 { atom_t a;
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( key == ATOM_max_rational_size )
     return set_restraint(val, &LD->arith.rat.max_rational_size);
   if ( key == ATOM_max_rational_size_action )
@@ -5160,7 +5159,7 @@ PL_eval_expression_to_int64_ex(term_t t, int64_t *val)
 	  *val = n.value.i;
 	  rval = TRUE;
 	  break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	case V_MPZ:
 	{ if ( !(rval=mpz_to_int64(n.value.mpz, val)) )
 	    rval = PL_error(NULL, 0, NULL, ERR_EVALUATION, ATOM_int_overflow);
@@ -5206,7 +5205,7 @@ BeginPredDefs(arith)
   PRED_DEF("current_arithmetic_function", 1, current_arithmetic_function,
 	   PL_FA_NONDETERMINISTIC)
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   PRED_DEF("divmod", 4, divmod, 0)
   PRED_DEF("nth_integer_root_and_remainder", 4,
 	   nth_integer_root_and_remainder, 0)

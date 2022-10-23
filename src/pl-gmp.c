@@ -132,52 +132,6 @@ mp_alloc(size_t bytes)
 }
 
 
-static void *
-mp_realloc(void *ptr, size_t oldsize, size_t newsize)
-{ GET_LD
-  mp_mem_header *oldmem, *newmem;
-
-  if ( NOT_IN_PROLOG_ARITHMETIC() )
-    return smp_realloc(ptr, oldsize, newsize);
-
-#if O_BF
-  if ( !ptr )
-    return mp_alloc(newsize);
-  if ( !newsize )
-  { mp_free(ptr);
-    return NULL;
-  }
-#endif
-
-  oldmem = ((mp_mem_header*)ptr)-1;
-  if ( TOO_BIG_GMP(newsize) ||
-       !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
-  { gmp_too_big();
-    abortProlog();
-    PL_rethrow();
-    return NULL;			/* make compiler happy */
-  }
-
-  if ( oldmem != newmem )		/* re-link if moved */
-  { if ( newmem->prev )
-      newmem->prev->next = newmem;
-    else
-      LD->gmp.head = newmem;
-
-    if ( newmem->next )
-      newmem->next->prev = newmem;
-    else
-      LD->gmp.tail = newmem;
-  }
-
-  GMP_LEAK_CHECK(LD->gmp.allocated -= oldsize;
-		 LD->gmp.allocated += newsize);
-  DEBUG(9, Sdprintf("GMP: realloc %ld@%p --> %ld@%p\n", oldsize, ptr, newsize, &newmem[1]));
-
-  return &newmem[1];
-}
-
-
 static void
 mp_free(void *ptr, size_t size)
 { GET_LD
@@ -212,6 +166,52 @@ mp_free(void *ptr, size_t size)
   free(mem);
   DEBUG(9, Sdprintf("GMP: free: %ld@%p\n", size, ptr));
   GMP_LEAK_CHECK(LD->gmp.allocated -= size);
+}
+
+
+static void *
+mp_realloc(void *ptr, size_t oldsize, size_t newsize)
+{ GET_LD
+  mp_mem_header *oldmem, *newmem;
+
+  if ( NOT_IN_PROLOG_ARITHMETIC() )
+    return smp_realloc(ptr, oldsize, newsize);
+
+#if O_BF
+  if ( !ptr )
+    return mp_alloc(newsize);
+  if ( !newsize )
+  { mp_free(ptr, oldsize);
+    return NULL;
+  }
+#endif
+
+  oldmem = ((mp_mem_header*)ptr)-1;
+  if ( TOO_BIG_GMP(newsize) ||
+       !(newmem = realloc(oldmem, sizeof(mp_mem_header)+newsize)) )
+  { gmp_too_big();
+    abortProlog();
+    PL_rethrow();
+    return NULL;			/* make compiler happy */
+  }
+
+  if ( oldmem != newmem )		/* re-link if moved */
+  { if ( newmem->prev )
+      newmem->prev->next = newmem;
+    else
+      LD->gmp.head = newmem;
+
+    if ( newmem->next )
+      newmem->next->prev = newmem;
+    else
+      LD->gmp.tail = newmem;
+  }
+
+  GMP_LEAK_CHECK(LD->gmp.allocated -= oldsize;
+		 LD->gmp.allocated += newsize);
+  DEBUG(9, Sdprintf("GMP: realloc %ld@%p --> %ld@%p\n", oldsize, ptr, newsize, &newmem[1]));
+
+  return &newmem[1];
 }
 
 
@@ -273,13 +273,9 @@ mpz_wsize(const mpz_t mpz, size_t *s)
   return wsz;
 }
 
-#define MPZ_ON_STACK(n)		(!((n)->_mp_alloc))
-#define MPZ_LIMB_SIZE(n)	((n)->_mp_size)
-#define MPZ_LIMBS(n)		((n)->_mp_d)
-#define MPZ_STACK_EXTRA		(1)
-
 #elif O_BF
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 An MPZ when emulated using LibBF is represented as:
 
   - Indirect Header
@@ -287,12 +283,13 @@ An MPZ when emulated using LibBF is represented as:
   - Exponent
   - Limbs
   - Indirect Header
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 
 static size_t
 mpz_wsize(const mpz_t mpz, size_t *s)
 { const bf_t *bf = mpz;
   size_t size = sizeof(*bf->tab) * bf->len;
-  size_t size = sizeof(mp_limb_t)*abs(mpz->_mp_size);
   size_t wsz  = (size+sizeof(word)-1)/sizeof(word);
 
   if ( s )
@@ -300,11 +297,6 @@ mpz_wsize(const mpz_t mpz, size_t *s)
 
   return wsz;
 }
-
-#define MPZ_ON_STACK(n)		(!(n->ctx))
-#define MPZ_LIMB_SIZE(n)	((n)->sign ? -(n)->len : (n)->len)
-#define MPZ_LIMBS(n)		((n)->tab)
-#define MPZ_STACK_EXTRA		(2)
 
 #endif /*O_GMP||O_BF*/
 
@@ -350,7 +342,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 #if O_BF
     *p++     = mpz->expn;
 #endif
-    memcpy(p, MPZ_LIMBS(mpz));
+    memcpy(p, MPZ_LIMBS(mpz), size);
   } else				/* already on the stack */
   { Word p = (Word)MPZ_LIMBS(mpz) - MPZ_STACK_EXTRA - 1;
     if ( !onStack(global, p) )
@@ -411,7 +403,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     p += den_wsz;
     *p = m;
   } else					/* already on the stack */
-  { Word p = (Word)num->_mp_d-1-MPZ_STACK_EXTRA;
+  { Word p = (Word)MPZ_LIMBS(num)-1-MPZ_STACK_EXTRA;
     if ( !onStack(global, p) )
       goto copy;
     DEBUG(CHK_SECURE,
@@ -420,7 +412,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 	    size_t num_wsz = mpz_wsize(num, &num_size);
 	    size_t den_wsz = mpz_wsize(den, &den_size);
 	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, TAG_INTEGER));
-	    assert((Word)den->_mp_d == (Word)num->_mp_d + num_wsz);
+	    assert((Word)MPZ_LIMBS(den) == (Word)MPZ_LIMBS(num) + num_wsz);
 	  });
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
@@ -570,6 +562,9 @@ get_mpq_from_code(Code pc, mpq_t mpq)
   p += (limpsize+sizeof(word)-1)/sizeof(word);
   mpq_denref(mpq)->_mp_d     = (mp_limb_t*)p;
 #elif O_BF
+  (void)num_size;
+  (void)den_size;
+  (void)limpsize;
   assert(0);
 #endif
 
@@ -700,6 +695,7 @@ load_mpz_bits(const char *data, size_t size, size_t limpsize, int neg, Word p)
   mpz_import(mpz, size, 1, 1, 1, 0, data);
   assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
 #elif O_BF
+  (void)mpz;
   assert(0);
 #endif
 
@@ -1004,17 +1000,13 @@ clearGMPNumber(Number n)
 		 *	       INIT		*
 		 *******************************/
 
-#if O_BF
-bf_context_t bf_context = {0};
-#endif
-
 void
 initGMP(void)
 { if ( !GD->gmp.initialised )
   { GD->gmp.initialised = TRUE;
 
 #if O_BF
-    bf_context_init(&bf_ctx, my_bf_realloc, NULL);
+    initBF();
 #endif
 
     mpz_init_set_si64(MPZ_MIN_TAGGED, PLMINTAGGEDINT);
@@ -1223,7 +1215,7 @@ put_number(DECL_LD Word at, Number n, int flags)
 
       return put_int64(at, n->value.i, flags);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return put_mpz(at, n->value.mpz, flags);
     case V_MPQ:
@@ -1267,7 +1259,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
       if ( isTaggedInt(*p) )
 	return valInt(*p) == n->value.i;
       /*FALLTHOURGH*/
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
 #endif
       if ( isInteger(*p) )
@@ -1281,7 +1273,7 @@ PL_unify_number(DECL_LD term_t t, Number n)
 	return rc;
       }
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPQ:
     { if ( isRational(*p) )
       { number n2;
@@ -1368,7 +1360,7 @@ promoteToFloatNumber(Number n)
       n->value.f = (double)n->value.i;
       n->type = V_FLOAT;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { double val = mpz_to_double(n->value.mpz);
 
@@ -1518,7 +1510,7 @@ cmpNumbers(Number n1, Number n2)
   { case V_INTEGER:
       return n1->value.i  < n2->value.i ? CMP_LESS :
 	     n1->value.i == n2->value.i ? CMP_EQUAL : CMP_GREATER;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { int rc = mpz_cmp(n1->value.mpz, n2->value.mpz);
 
@@ -1548,7 +1540,7 @@ cpNumber(Number to, Number from)
   { case V_INTEGER:
       to->value.i = from->value.i;
       break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       mpz_init(to->value.mpz);
       mpz_set(to->value.mpz, from->value.mpz);
@@ -1563,7 +1555,7 @@ cpNumber(Number to, Number from)
   }
 }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 
 		 /*******************************
 		 *	 FLOAT <-> RATIONAL	*
