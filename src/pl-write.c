@@ -1199,13 +1199,13 @@ format_float(double f, char *buf)
   return buf;
 }
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
 #define writeMPZ(mpz, options) LDFUNC(writeMPZ, mpz, options)
 static int
 writeMPZ(DECL_LD mpz_t mpz, write_options *options)
 { char tmp[1024];
   char *buf;
-  size_t sz = mpz_sizeinbase(mpz, 10) + 2;
+  size_t sz = (mpz_sizeinbase(mpz, 2)*10)/3 + 10; /* log2(10)=3.322 */
   int rc;
 
   if ( sz <= sizeof(tmp) )

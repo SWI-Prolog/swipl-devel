@@ -65,8 +65,12 @@ void	cpNumber(Number to, Number from);
 
 #undef LDFUNC_DECLARATIONS
 
-#ifdef O_GMP
+#if O_BIGNUM
+#if O_GMP
 #include <gmp.h>
+#elif O_BF
+#include "libbf/bf_gmp.h"
+#endif
 
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
@@ -126,7 +130,7 @@ mpz_add_si(mpz_t r, mpz_t n1, long add)
 }
 
 
-#else /*O_GMP*/
+#else /*O_BIGNUM*/
 
 #define get_integer(w, n) \
 	do \
@@ -141,7 +145,7 @@ mpz_add_si(mpz_t r, mpz_t n1, long add)
 #define ensureWritableNumber(n) (void)0
 #define initGMP()		(void)0
 
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
 
 
 		 /*******************************
