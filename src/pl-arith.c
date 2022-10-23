@@ -2234,7 +2234,9 @@ get_int_exponent(Number n, unsigned long *expp)
   exp = (long)i;
 #if SIZEOF_LONG < 8
   if ( (int64_t)exp != i )
+  { *expp = (unsigned long)0 ; // suppress an uninitialized warning in ar_pow
     return int_too_big();
+  }
 #endif
 
   if ( exp >= 0 )
@@ -2242,7 +2244,9 @@ get_int_exponent(Number n, unsigned long *expp)
   else if ( -exp != exp )
     *expp = (unsigned long)-exp;
   else
-   return int_too_big();
+  { *expp = (unsigned long)0 ; // suppress an uninitialized warning in ar_pow
+    return int_too_big();
+  }
 
   return TRUE;
 }
