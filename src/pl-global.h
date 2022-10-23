@@ -245,7 +245,7 @@ struct PL_global_data
     int		  _loaded;		/* system extensions are loaded */
   } foreign;
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   struct
   { int initialised;			/* is GMP initialised? */
     int keep_alloc_functions;		/* do not change allocation */
@@ -580,7 +580,7 @@ struct PL_local_data
     int		warnings;		/* Printed warning messages */
   } statistics;
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   struct
   { int		persistent;		/* do persistent operations */
     size_t	allocated;		/* memory allocated */
@@ -640,7 +640,7 @@ struct PL_local_data
       Number	top;
       Number	max;
     } stack;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     struct
     { gmp_randstate_t state;
       int initialised;

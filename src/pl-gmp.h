@@ -68,8 +68,21 @@ void	cpNumber(Number to, Number from);
 #if O_BIGNUM
 #if O_GMP
 #include <gmp.h>
+
+#define MPZ_ON_STACK(n)		(!((n)->_mp_alloc))
+#define MPZ_SET_READONLY(n)	((n)->_mp_alloc = NULL)
+#define MPZ_LIMB_SIZE(n)	((n)->_mp_size)
+#define MPZ_LIMBS(n)		((n)->_mp_d)
+#define MPZ_STACK_EXTRA		(1)
 #elif O_BF
 #include "libbf/bf_gmp.h"
+#include "pl-bf.h"
+
+#define MPZ_ON_STACK(n)		(!(n->ctx))
+#define MPZ_SET_READONLY(n)	((n)->ctx = NULL)
+#define MPZ_LIMB_SIZE(n)	((n)->sign ? -(n)->len : (n)->len)
+#define MPZ_LIMBS(n)		((n)->tab)
+#define MPZ_STACK_EXTRA		(2)
 #endif
 
 #define O_MY_GMP_ALLOC 1
@@ -121,14 +134,15 @@ mpq_stack_size(word w)
 { return (int)w>>1;
 }
 
+#ifdef O_GMP
 static inline void
-mpz_add_si(mpz_t r, mpz_t n1, long add)
+mpz_add_si(mpz_t r, const mpz_t n1, long add)
 { if ( add > 0 )
     mpz_add_ui(r, n1, add);
   else
     mpz_sub_ui(r, n1, -add);
 }
-
+#endif
 
 #else /*O_BIGNUM*/
 
