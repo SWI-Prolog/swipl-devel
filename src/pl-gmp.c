@@ -695,18 +695,23 @@ load_mpz_bits(const char *data, size_t size, size_t limpsize, int neg, Word p)
   mpz_import(mpz, size, 1, 1, 1, 0, data);
   assert((Word)mpz->_mp_d == p);	/* check no (re-)allocation is done */
 #elif O_BF
-  (void)mpz;
-  assert(0);
+  mpz->len = limpsize;
+  mpz->tab = (mp_limb_t*)p;
+  mpz_import(mpz, size, 1, 1, 1, 0, data);
 #endif
 
   return (char*)data+size;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Load a bit integer from data as stored   in  records. A bigint is stored
+using 4 bytes in big endian notation   do represent the length, followed
+by N bytes in big endian notation.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
-{
-#if O_GMP
-  GET_LD
+{ GET_LD
   int size = 0;
   size_t limpsize;
   size_t wsize;
@@ -719,19 +724,19 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
   wsize = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
-  *store += (wsize+3);
+  *store += (wsize+2+MPZ_STACK_EXTRA);
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   m = mkIndHdr(wsize+1, TAG_INTEGER);
   *p++ = m;
-  p[wsize] = 0L;			/* pad out */
-  p[wsize+1] = m;
+  p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
+  p[wsize+MPZ_STACK_EXTRA] = m;
   *p++ = mpz_size_stack(neg ? -limpsize : limpsize);
+#if O_BF
+  unsigned int i = data[0];
+  *p++ = size*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8)); /* exponent */
+#endif
 
   return load_mpz_bits(data, size, limpsize, neg, p);
-#elif O_BF
-  assert(0);
-  return NULL;
-#endif
 }
 
 char *
