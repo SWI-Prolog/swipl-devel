@@ -36,7 +36,12 @@
 
 #include "pl-bf.h"
 
-mp_alloc_wrapper alloc_wrapper = {0};
+static void*
+default_realloc(void *ptr, size_t old, size_t new)
+{ return realloc(ptr, new);
+}
+
+mp_alloc_wrapper alloc_wrapper = { .realloc_func = default_realloc };
 
 static void *
 my_bf_realloc(void *opaque, void *ptr, size_t size)
