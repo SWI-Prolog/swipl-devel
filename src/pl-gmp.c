@@ -317,6 +317,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 
   copy:
     wsz = mpz_wsize(mpz, &size);
+    Sdprintf("wsz = %zd\n", wsz);
     m   = mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER);
 
     if ( wsizeofInd(m) != wsz+MPZ_STACK_EXTRA )
@@ -713,16 +714,23 @@ char *
 loadMPZFromCharp(const char *data, Word r, Word *store)
 { GET_LD
   int size = 0;
-  size_t limpsize;
+  size_t limbsize;
   size_t wsize;
   int neg;
   Word p;
   word m;
 
   data = load_abs_mpz_size(data, &size, &neg);
+#if O_BF
+  bf_t bf;
+  bf_import_dimension(&bf, (const unsigned char*)data, size);
+  limbsize = bf.len;
+#else
+  limbsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
 
-  limpsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  wsize = (limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+  wsize = (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+  Sdprintf("wsize = %zd\n", wsize);
   p = *store;
   *store += (wsize+2+MPZ_STACK_EXTRA);
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
@@ -730,13 +738,12 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   *p++ = m;
   p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
   p[wsize+MPZ_STACK_EXTRA] = m;
-  *p++ = mpz_size_stack(neg ? -limpsize : limpsize);
+  *p++ = mpz_size_stack(neg ? -limbsize : limbsize);
 #if O_BF
-  unsigned int i = data[0];
-  *p++ = size*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8)); /* exponent */
+  *p++ = bf.expn;
 #endif
 
-  return load_mpz_bits(data, size, limpsize, neg, p);
+  return load_mpz_bits(data, size, limbsize, neg, p);
 }
 
 char *

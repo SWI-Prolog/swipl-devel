@@ -134,28 +134,63 @@ mpz_get_d(const mpz_t n)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Fill the exponent and len given a bigint represented as a series of
+bytes.  Note that LibBF does not include 0-limbs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
+{ unsigned int i = data[0];
+  size_t  limbs = (len+sizeof(limb_t)-1)/sizeof(limb_t);
+  const unsigned char *ll = data + (len/sizeof(limb_t))*sizeof(limb_t);
+  const unsigned char *end = &data[len-1];
+  int byte = sizeof(limb_t);
+
+  r->expn = len*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
+  r->len  = limbs;
+  if ( end >= ll )
+  { for(; end >= ll; end-- )
+    { if ( *end )
+	return;				/* last limb non-zero */
+    }
+  }
+  while(!*end--)
+  { if ( --byte == 0 )
+    { r->len--;
+      byte = sizeof(limb_t);
+    }
+  }
+}
+
+
+
 static inline void
 mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 	   size_t SIZE, int ENDIAN, size_t NAILS, const void *OP)
 { if ( SIZE == 1 )
-  { size_t limbs = (COUNT+sizeof(limb_t)-1)/sizeof(limb_t);
+  { bf_t bf;
+    size_t byte = sizeof(limb_t)-1;
     size_t bytes = COUNT;
-    size_t byte = 7;
-    limb_t *lt = &ROP->tab[limbs-1];
+    limb_t *lt;
     limb_t l = 0;
-    const char *data = OP;
-    unsigned int i = data[0];
+    const unsigned char *data = OP;
+
+    bf_import_dimension(&bf, OP, COUNT);
+    lt = &ROP->tab[bf.len-1];
 
     assert(NAILS==0 && ORDER==1 && ENDIAN==1);
-    assert(limbs == ROP->len);
+    assert(bf.len == ROP->len);
 
     ROP->sign = 0;
-    ROP->expn = COUNT*8 - (__builtin_clz(i) - (sizeof(i)*8 - 8));
+    ROP->expn = bf.expn;
 
     while(bytes-->0)
     { l |= (limb_t)*data++ << bytes*8;
       if ( byte == 0 )
-      { byte = 7;
+      { byte =  sizeof(limb_t)-1;
+	if ( lt == ROP->tab )
+	  return;			/* rest is all zero */
 	*lt-- = l;
 	l = 0;
       } else
@@ -179,15 +214,18 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
     { size_t bytes = (OP->expn+7)/8;
       limb_t *lt = &OP->tab[OP->len-1];
       limb_t l = *lt;
-      int byte = 7;
-      char *out = ROP+bytes;
+      int byte = sizeof(limb_t)-1;
+      char *out = ROP;
 
       *COUNTP = bytes;
       while(bytes-->0)
-      { *--out = (l>>(8*byte))&0xff;
+      { *out++ = (l>>(8*byte))&0xff;
 	if ( byte == 0 )
-	{ byte = 7;
-	  l = *--lt;
+	{ byte = sizeof(limb_t)-1;
+	  if ( lt == OP->tab )
+	    l = 0;
+	  else
+	    l = *--lt;
 	} else
 	  byte--;
       }
