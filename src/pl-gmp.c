@@ -1401,7 +1401,7 @@ promoteNumber(Number n, numtype t)
 { switch(t)
   { case V_INTEGER:
       return TRUE;
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return promoteToMPZNumber(n);
     case V_MPQ:
