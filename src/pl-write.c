@@ -1243,7 +1243,7 @@ WriteNumber(Number n, write_options *options)
       sprintf(buf, "%" PRId64, n->value.i);
       return PutToken(buf, options->out);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
       return writeMPZ(n->value.mpz, options);
     case V_MPQ:
