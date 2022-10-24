@@ -59,7 +59,7 @@ set(SRC_TAI caltime_utc.c caltime_tai.c leapsecs_sub.c leapsecs_add.c
 prepend(SRC_TAI libtai/ ${SRC_TAI})
 
 if(USE_LIBBF)
-set(SRC_BF pl-bf.c libbf/libbf.c libbf/cutils.c)
+set(SRC_BF pl-bf.c libbf/bf_gmp.c libbf/libbf.c libbf/cutils.c)
 endif()
 
 set(SRC_MINIZIP zip.c unzip.c ioapi.c)
