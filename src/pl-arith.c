@@ -1596,7 +1596,9 @@ ar_mod(Number n1, Number n2, Number r)
 static int
 int_too_big(void)
 { GET_LD
-  return (int)outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+
+  outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+  return FALSE;
 }
 
 
