@@ -548,7 +548,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	      addOpCode(info, PL_TYPE_INTEGER);
 	      addInt64(info, n.value.i);
 	      break;
-#ifdef O_GMP
+#if O_BIGNUM
 	    case V_MPZ:
 	      addOpCode(info, PL_REC_MPZ);
 	      addMPZToBuffer((Buffer)&info->code, n.value.mpz);
