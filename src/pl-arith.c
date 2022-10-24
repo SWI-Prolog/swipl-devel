@@ -2210,10 +2210,18 @@ mpz_set_num(mpz_t mpz, Number n)
 
 #endif /*O_GMP*/
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Get the _absolute_ value from `n` as an   unsigned  long. As we will use
+this value for exponentation, and 0 is   already handled, any value that
+does not fit in an unsigned long   will  anyway generate an integer that
+will not fit on the  stacks  and   thus  this  routine generates a stack
+overflow rather that doing all the work  that will result in an overflow
+anyway.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static int
 get_int_exponent(Number n, unsigned long *expp)
-{ long exp;
-  int64_t i;
+{ int64_t i;
 
   switch(n->type)
   { case V_INTEGER:
@@ -2230,18 +2238,18 @@ get_int_exponent(Number n, unsigned long *expp)
       return FALSE;
   }
 
-  exp = (long)i;
 #if SIZEOF_LONG < 8
-  if ( (int64_t)exp != i )
+  if ( i > LONG_MAX || i < LONG_MIN )
     return int_too_big();
 #endif
 
-  if ( exp >= 0 )
-    *expp = (unsigned long)exp;
-  else if ( -exp != exp )
-    *expp = (unsigned long)-exp;
-  else
-   return int_too_big();
+  if ( i < 0 )
+  { i = -i;
+    if ( i < 0 )
+      return int_too_big();
+  }
+
+  *expp = (unsigned long)i;
 
   return TRUE;
 }
@@ -2426,14 +2434,14 @@ ar_pow(Number n1, Number n2, Number r)
   if ( n1->type == V_MPQ && intNumber(n2) )
   { number nr, nd, nrp, ndp, nexp;
 
-    if ( !get_int_exponent(n2, &exp) )
-      return FALSE;
-
     if ( exp_sign == 0 )
     { r->type = V_INTEGER;
       r->value.i = 1;
       return TRUE;
     }
+
+    if ( !get_int_exponent(n2, &exp) )
+      return FALSE;
 
   int_pow_neg_int:
     nexp.type = V_INTEGER;
