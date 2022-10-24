@@ -1714,7 +1714,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
       { skipLong(b);
 	continue;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case PL_REC_MPZ:
 	b->data = skipMPZOnCharp(b->data);
 	continue;
