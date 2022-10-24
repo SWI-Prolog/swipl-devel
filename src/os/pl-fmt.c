@@ -50,6 +50,7 @@ source should also use format() to produce error messages, etc.
 #include "../pl-pro.h"
 #include <ctype.h>
 #include <stdio.h>
+#include <math.h>
 
 typedef foreign_t (*Func1)(term_t a1);
 
@@ -1078,10 +1079,10 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
 
       return baseBuffer(out, char);
     }
-#ifdef O_GMP
+#ifdef O_BIGNUM
     case V_MPZ:
     { GET_LD
-      size_t len = mpz_sizeinbase(i->value.mpz, radix);
+      size_t len = (double)mpz_sizeinbase(i->value.mpz, 2) * log(radix)/log(2) * 1.2;
       char tmp[256];
       char *buf;
       int rc = TRUE;
