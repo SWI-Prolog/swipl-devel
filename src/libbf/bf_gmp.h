@@ -164,7 +164,20 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
   }
 }
 
-
+#if 0
+static inline void
+print_bytes(const unsigned char *data, size_t len)
+{ for(size_t i=0; i<len; i++)
+  { int byte = data[i];
+    int upper = (byte>>4)&0xf;
+    int c1 = upper < 10 ? '0'+upper : 'a'+upper-10;
+    int lower = byte&0xf;
+    int c2 = lower < 10 ? '0'+lower : 'a'+lower-10;
+    fprintf(stderr, "%c%c", c1, c2);
+  }
+  fprintf(stderr, "\n");
+}
+#endif
 
 static inline void
 mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
@@ -172,7 +185,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 { if ( SIZE == 1 )
   { bf_t bf;
     size_t byte = sizeof(limb_t)-1;
-    size_t bytes = COUNT;
+    ssize_t bytes = COUNT;
     limb_t *lt;
     limb_t l = 0;
     const unsigned char *data = OP;
@@ -187,7 +200,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     ROP->expn = bf.expn;
 
     int shift = COUNT*8-bf.expn;
-    limb_t mask = ((limb_t)1<<(shift-1))-1;
+    limb_t mask = ((limb_t)1<<shift)-1;
 
     while(bytes-->0)
     { l |= (limb_t)*data++ << byte*8;
@@ -195,7 +208,8 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
       { byte =  sizeof(limb_t)-1;
 	if ( shift )
 	{ l <<= shift;
-	  l |= (data[0] >> (8-shift))&mask;
+	  if ( bytes >= 0 )
+	    l |= (data[0] >> (8-shift))&mask;
 	}
 	*lt = l;
 	if ( lt == ROP->tab )
@@ -206,9 +220,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 	byte--;
     }
     if ( shift )
-    { l <<= shift;
-      l |= (data[0] >> (8-shift))&mask;
-    }
+      l <<= shift;
     *lt = l;
     assert(lt == ROP->tab);
   } else
@@ -227,14 +239,13 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
     { size_t bytes = (OP->expn+7)/8;
       limb_t *lt = &OP->tab[OP->len-1];
       int byte = sizeof(limb_t)-1;
-      char *out = ROP;
+      unsigned char *out = ROP;
       limb_t l = *lt;
       int shift = bytes*8-OP->expn;
-      limb_t mask = (1<<(shift-1))-1;
+      limb_t mask = (1<<shift)-1;
       limb_t low = l&mask;
-      limb_t high = low<<(sizeof(limb_t)-1)*8;
+      limb_t high = low<<(sizeof(limb_t)*8-shift);
       l >>= shift;
-      fprintf(stderr, "Shift=%d\n", shift);
 
       *COUNTP = bytes;
       while(bytes-->0)
@@ -250,11 +261,13 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
 	    low = l&mask;
 	    l>>=shift;
 	    l |= high;
-	    high = low<<(sizeof(limb_t)-1)*8;
+	    high = low<<(sizeof(limb_t)*8-shift);
 	  }
 	} else
 	  byte--;
       }
+      assert(out == (unsigned char*)ROP+*COUNTP);
+
       return ROP;
     }
   }
