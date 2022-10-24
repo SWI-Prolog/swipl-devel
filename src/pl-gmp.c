@@ -317,7 +317,6 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 
   copy:
     wsz = mpz_wsize(mpz, &size);
-    Sdprintf("wsz = %zd\n", wsz);
     m   = mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER);
 
     if ( wsizeofInd(m) != wsz+MPZ_STACK_EXTRA )
@@ -730,7 +729,6 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
 #endif
 
   wsize = (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
-  Sdprintf("wsize = %zd\n", wsize);
   p = *store;
   *store += (wsize+2+MPZ_STACK_EXTRA);
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);

@@ -542,8 +542,6 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 
 	  info->size += wsizeofIndirect(w) + 2;
 
-	  Sdprintf("bigint is %zd words\n", wsizeofIndirect(w) + 2);
-
 	  get_rational(w, &n);
 	  switch(n.type)
 	  { case V_INTEGER:
