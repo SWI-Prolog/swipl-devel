@@ -734,7 +734,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   p = *store;
   *store += (wsize+2+MPZ_STACK_EXTRA);
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+1, TAG_INTEGER);
+  m = mkIndHdr(wsize+MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
   p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
   p[wsize+MPZ_STACK_EXTRA] = m;
