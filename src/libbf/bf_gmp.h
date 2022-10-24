@@ -186,20 +186,21 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     ROP->sign = 0;
     ROP->expn = bf.expn;
 
-    int shift = SIZE*8-bf.expn;
+    int shift = COUNT*8-bf.expn;
     limb_t mask = ((limb_t)1<<(shift-1))-1;
 
     while(bytes-->0)
     { l |= (limb_t)*data++ << bytes*8;
       if ( byte == 0 )
       { byte =  sizeof(limb_t)-1;
-	if ( lt == ROP->tab )
-	  return;			/* rest is all zero */
 	if ( shift )
 	{ l <<= shift;
 	  l |= (data[0] >> (8-shift))&mask;
 	}
-	*lt-- = l;
+	*lt = l;
+	if ( lt == ROP->tab )
+	  return;			/* rest is all zero */
+	lt--;
 	l = 0;
       } else
 	byte--;
