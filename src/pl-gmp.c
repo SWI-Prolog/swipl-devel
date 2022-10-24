@@ -337,8 +337,8 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
 
     *p++     = m;
-    p[wsz]   = 0L;			/* pad out */
-    p[wsz+1] = m;
+    p[wsz+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
+    p[wsz+MPZ_STACK_EXTRA] = m;
     *p++     = mpz_size_stack(MPZ_LIMB_SIZE(mpz));
 #if O_BF
     *p++     = mpz->expn;
