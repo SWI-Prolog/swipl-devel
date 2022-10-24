@@ -190,7 +190,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     limb_t mask = ((limb_t)1<<(shift-1))-1;
 
     while(bytes-->0)
-    { l |= (limb_t)*data++ << bytes*8;
+    { l |= (limb_t)*data++ << byte*8;
       if ( byte == 0 )
       { byte =  sizeof(limb_t)-1;
 	if ( shift )
