@@ -154,6 +154,7 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
     { if ( *end )
 	return;				/* last limb non-zero */
     }
+    r->len--;
   }
   while(!*end--)
   { if ( --byte == 0 )
@@ -185,16 +186,27 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     ROP->sign = 0;
     ROP->expn = bf.expn;
 
+    int shift = SIZE*8-bf.expn;
+    limb_t mask = ((limb_t)1<<(shift-1))-1;
+
     while(bytes-->0)
     { l |= (limb_t)*data++ << bytes*8;
       if ( byte == 0 )
       { byte =  sizeof(limb_t)-1;
 	if ( lt == ROP->tab )
 	  return;			/* rest is all zero */
+	if ( shift )
+	{ l <<= shift;
+	  l |= (data[0] >> (8-shift))&mask;
+	}
 	*lt-- = l;
 	l = 0;
       } else
 	byte--;
+    }
+    if ( shift )
+    { l <<= shift;
+      l |= (data[0] >> (8-shift))&mask;
     }
     *lt = l;
     assert(lt == ROP->tab);
@@ -213,9 +225,15 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
     } else
     { size_t bytes = (OP->expn+7)/8;
       limb_t *lt = &OP->tab[OP->len-1];
-      limb_t l = *lt;
       int byte = sizeof(limb_t)-1;
       char *out = ROP;
+      limb_t l = *lt;
+      int shift = bytes*8-OP->expn;
+      limb_t mask = (1<<(shift-1))-1;
+      limb_t low = l&mask;
+      limb_t high = low<<(sizeof(limb_t)-1)*8;
+      l >>= shift;
+      fprintf(stderr, "Shift=%d\n", shift);
 
       *COUNTP = bytes;
       while(bytes-->0)
@@ -223,9 +241,16 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
 	if ( byte == 0 )
 	{ byte = sizeof(limb_t)-1;
 	  if ( lt == OP->tab )
-	    l = 0;
-	  else
-	    l = *--lt;
+	  { l = high;
+	    if ( bytes )
+	      *out++ = (l>>(8*byte))&0xff;
+	  } else
+	  { l = *--lt;
+	    low = l&mask;
+	    l>>=shift;
+	    l |= high;
+	    high = low<<(sizeof(limb_t)-1)*8;
+	  }
 	} else
 	  byte--;
       }
