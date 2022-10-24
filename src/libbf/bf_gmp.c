@@ -107,8 +107,7 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
 	{ byte = sizeof(limb_t)-1;
 	  if ( lt == OP->tab )
 	  { l = high;
-	    if ( bytes )
-	      *out++ = (l>>(8*byte))&0xff;
+	    high = 0;
 	  } else
 	  { l = *--lt;
 	    low = l&mask;
