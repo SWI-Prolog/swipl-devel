@@ -499,7 +499,15 @@ mpz_rootrem(mpz_t ROOT, mpz_t REM, const mpz_t U, unsigned long int N)
 
 static inline void
 mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned y)
-{ bf_not_implemented("mpz_ui_pow_ui");
+{ bf_t X, Y;
+
+  bf_init(&alloc_wrapper.bf_context, &X); /* TBD: Provide statically allocated versions */
+  bf_init(&alloc_wrapper.bf_context, &Y);
+  bf_set_si(&X, x);
+  bf_set_si(&Y, y);
+  bf_pow(r, &X, &Y, BF_PREC_INF, BF_RNDN);
+  bf_delete(&X);
+  bf_delete(&Y);
 }
 
 static inline void
