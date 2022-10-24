@@ -1433,7 +1433,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 	continue;
       }
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case PL_REC_MPZ:
 	b->data = loadMPZFromCharp(b->data, p, &b->gstore);
 	continue;
