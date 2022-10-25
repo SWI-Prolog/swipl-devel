@@ -305,7 +305,11 @@ mpz_submul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
 
 static inline void
 mpz_divexact(mpz_t Q, const mpz_t N, const mpz_t D)
-{
+{ bf_t rem;
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDN);
+  assert(bf_is_zero(&rem));
+  bf_delete(&rem);
 }
 
 static inline void
@@ -351,8 +355,15 @@ mpz_tdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
 
 static inline int
 mpz_divisible_p(const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_divisible_p");
-  return 0;
+{ bf_t rem;
+  int rc;
+
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_rem(&rem, N, D, BF_PREC_INF, 0, BF_RNDN);
+  rc = bf_is_zero(&rem);
+  bf_delete(&rem);
+
+  return rc;
 }
 
 static inline void
