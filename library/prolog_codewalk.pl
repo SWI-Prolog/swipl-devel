@@ -103,6 +103,7 @@ source file is passed into _Where.
                        on_trace(callable),
                        on_edge(callable),
                        infer_meta_predicates(oneof([false,true,all])),
+                       walk_meta_predicates(boolean),
                        evaluate(boolean),
                        verbose(boolean)
                      ]).
@@ -115,6 +116,7 @@ source file is passed into _Where.
                 module_class:list(oneof([user,system,library,
                                          test,development]))=[user,library],
                 infer_meta_predicates:oneof([false,true,all])=true,
+                walk_meta_predicates:boolean=true,
                 clauses:list,               % Walk only these clauses
                 trace_reference:any=(-),
                 trace_condition:callable,   % Call-back condition
@@ -174,6 +176,11 @@ source file is passed into _Where.
 %     only restarted if the inferred meta-predicate contains a
 %     callable argument.  If =all=, it will be restarted until no
 %     more new meta-predicates can be found.
+%
+%     * walk_meta_predicates(Boolean)
+%     When `false` (default `true`), do not analyse the arguments
+%     of meta predicates.  Standard Prolog control structures are
+%     always analysed.
 %
 %     * trace_reference(Callable)
 %     Print all calls to goals that subsume Callable. Goals are
@@ -568,6 +575,7 @@ walk_called(Goal, M, TermPos, OTerm) :-
     !,
     walk_called_by(Called, M, Goal, TermPos, OTerm).
 walk_called(Meta, M, term_position(_,E,_,_,ArgPosList), OTerm) :-
+    walk_option_walk_meta_predicates(OTerm, true),
     (   walk_option_autoload(OTerm, false)
     ->  nonvar(M),
         '$get_predicate_attribute'(M:Meta, defined, 1)
@@ -681,7 +689,7 @@ not_callable(Goal, TermPos, OTerm) :-
 %
 %   Print a reference to Goal, found at TermPos.
 %
-%   @param Why is one of =trace= or =undefined=
+%   @arg Why is one of `trace` or `undefined`
 
 print_reference(Goal, TermPos, Why, OTerm) :-
     walk_option_clause(OTerm, Clause), nonvar(Clause),
