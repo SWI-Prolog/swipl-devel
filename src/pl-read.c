@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -441,7 +441,7 @@ typedef struct
   unsigned char *end;			/* end of the clause */
   unsigned char *token_start;		/* start of most recent read token */
   struct token  token;			/* current token */
-  int	        _unget;			/* unget_token() */
+  int		_unget;			/* unget_token() */
   int		magic;			/* RD_MAGIC */
 
   source_location start_of_term;	/* Position of start of term */
@@ -996,7 +996,7 @@ getchr__(ReadData _PL_rd)
 #define ensure_space(c) { if ( something_read && \
 			       (c == '\n' || !isBlank(rb.here[-1])) ) \
 			   addToBuffer(c, _PL_rd); \
-		        }
+			}
 #define set_start_line { if ( !something_read ) \
 			 { setCurrentSourceLocation(_PL_rd); \
 			   something_read++; \
@@ -1229,7 +1229,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		} else
 		  pos = NULL;
 
-	        c = getchr();
+		c = getchr();
 		if ( c == '*' )
 		{ int last;
 		  int level = 1;
@@ -1272,7 +1272,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    { case EOF:
 			if ( cbuf )
 			  discardBuffer(cbuf);
-		        setErrorLocation(pos, _PL_rd);
+			setErrorLocation(pos, _PL_rd);
 			if ( Sferror(rb.stream) )
 			  return FALSE;
 			rawSyntaxError("end_of_file_in_block_comment");
@@ -1431,7 +1431,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  fail;
 		break;
       case '"':	set_start_line;
-                if ( !raw_read_quoted(c, _PL_rd) )
+		if ( !raw_read_quoted(c, _PL_rd) )
 		  fail;
 		break;
       case '.': addToBuffer(c, _PL_rd);
@@ -1459,7 +1459,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    fail;
 		  break;
 		}
-	        /*FALLTHROUGH*/
+		/*FALLTHROUGH*/
       default:	if ( (unsigned)c <= 0xff )
 		{ switch(_PL_char_types[c])
 		  { case SP:
@@ -2173,9 +2173,9 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
   do
   { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
     { if (    (  negative && ( (t < mini) || (t == mini && zero - c < minlastdigit) ))
-           || ( !negative && ( (t > maxi) || (t == maxi && c - zero > maxlastdigit) )) )
+	   || ( !negative && ( (t > maxi) || (t == maxi && c - zero > maxlastdigit) )) )
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	n->value.i = t;
 	n->type = V_INTEGER;
 	promoteToMPZNumber(n);
@@ -2184,10 +2184,10 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
 	  { s = sn;
 	    mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
-            if (negative)
+	    if (negative)
 	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - zero);
-            else
-              mpz_add_ui(n->value.mpz, n->value.mpz, c - zero);
+	    else
+	      mpz_add_ui(n->value.mpz, n->value.mpz, c - zero);
 	  }
 	} while ( skip_decimal_separator(&s, zero, grouped) );
 
@@ -2199,17 +2199,17 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
 	double minf = -MAXREAL / 10.0 + 10.0;
 	double tf = (double)t;
 	do
-        { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
 	  { s = sn;
 	    if (negative)
-            { if ( tf < minf )
-	        fail;				/* number too large */
-              tf = tf * 10.0 - (double)(c - zero);
-            } else
-            { if ( tf > maxf )
-	        fail;				/* number too large */
-              tf = tf * 10.0 + (double)(c - zero);
-            }
+	    { if ( tf < minf )
+		fail;				/* number too large */
+	      tf = tf * 10.0 - (double)(c - zero);
+	    } else
+	    { if ( tf > maxf )
+		fail;				/* number too large */
+	      tf = tf * 10.0 + (double)(c - zero);
+	    }
 	  }
 	} while ( skip_decimal_separator(&s, zero, grouped) );
 	n->value.f = tf;
@@ -2221,9 +2221,9 @@ scan_decimal(cucharp *sp, int zero, int negative, Number n, int *grouped)
       { s = sn;
 
 	if (negative)
-          t = t * 10 - (c - zero);
-        else
-          t = t * 10 + (c - zero);
+	  t = t * 10 - (c - zero);
+	else
+	  t = t * 10 + (c - zero);
       }
     }
   } while ( skip_decimal_separator(&s, zero, grouped) );
@@ -2252,9 +2252,9 @@ scan_number(cucharp *s, int negative, int b, Number n)
   do
   { while((d = digitValue(b, *q)) >= 0)
     { if (    (  negative && ( (t < mini) || (t == mini && d > minlastdigit) ))
-           || ( !negative && ( (t > maxi) || (t == maxi && d > maxlastdigit) )) )
+	   || ( !negative && ( (t > maxi) || (t == maxi && d > maxlastdigit) )) )
       {
-#ifdef O_GMP
+#ifdef O_BIGNUM
 	n->value.i = t;
 	n->type = V_INTEGER;
 	promoteToMPZNumber(n);
@@ -2263,10 +2263,10 @@ scan_number(cucharp *s, int negative, int b, Number n)
 	{ while((d = digitValue(b, *q)) >= 0)
 	  { q++;
 	    mpz_mul_ui(n->value.mpz, n->value.mpz, b);
-            if (negative)
-              mpz_sub_ui(n->value.mpz, n->value.mpz, d);
-            else
-              mpz_add_ui(n->value.mpz, n->value.mpz, d);
+	    if (negative)
+	      mpz_sub_ui(n->value.mpz, n->value.mpz, d);
+	    else
+	      mpz_add_ui(n->value.mpz, n->value.mpz, d);
 	  }
 	} while ( skip_digit_separator(&q, b, NULL) );
 
@@ -2281,15 +2281,15 @@ scan_number(cucharp *s, int negative, int b, Number n)
 	do
 	{ while((d = digitValue(b, *q)) >= 0)
 	  { q++;
-            if (negative)
-            { if ( tf < minf )
-	        fail;				/* number too large */
+	    if (negative)
+	    { if ( tf < minf )
+		fail;				/* number too large */
 	      tf = tf * (double)b - (double)d;
-            } else
-            { if ( tf > maxf )
-	        fail;				/* number too large */
+	    } else
+	    { if ( tf > maxf )
+		fail;				/* number too large */
 	      tf = tf * (double)b + (double)d;
-            }
+	    }
 	  }
 	} while ( skip_digit_separator(&q, b, NULL) );
 	n->value.f = tf;
@@ -2299,9 +2299,9 @@ scan_number(cucharp *s, int negative, int b, Number n)
 #endif
       } else
       { q++;
-        if (negative)
+	if (negative)
 	  t = t * b - d;
-        else
+	else
 	  t = t * b + d;
       }
     }
@@ -2600,9 +2600,9 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
       { GET_LD
 
 	return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_dquasi_quotation3,
-			          PL_POINTER, _PL_rd,
+				  PL_POINTER, _PL_rd,
 				  PL_INTPTR, (intptr_t)(start-rdbase),
-			          PL_INTPTR, (intptr_t)(in-start));
+				  PL_INTPTR, (intptr_t)(in-start));
       }
     }
   }
@@ -2780,13 +2780,13 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
       }
       case 'b':
 	base = 2;
-        break;
+	break;
       case 'x':
 	base = 16;
-        break;
+	break;
       case 'o':
 	base = 8;
-        break;
+	break;
     }
 
     if ( base )				/* 0b<binary>, 0x<hex>, 0o<oct> */
@@ -2809,7 +2809,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
   if ( (rc=scan_decimal(&in, zero, negative, value, &grouped)) != NUM_OK )
     return rc;				/* too large? */
 
-#ifdef O_GMP
+#ifdef O_BIGNUM
   if ( ((*in == '/' && (flags&RAT_NATURAL)) ||
 	 *in == 'r') &&
        points_at_decimal(in+1, zero) )
@@ -3070,7 +3070,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
     case SY:	if ( c == '`' && true(_PL_rd, BQ_MASK) )
 		  goto case_bq;
 
-	        rdhere = SkipSymbol(rdhere, _PL_rd);
+		rdhere = SkipSymbol(rdhere, _PL_rd);
 		if ( rdhere == start+1 )
 		{ if ( c == '-' &&			/* -number */
 		       !must_be_op &&
@@ -3513,7 +3513,7 @@ pop_out_op(ReadData _PL_rd)
 
 #define PopOut() \
 	pop_out_op(_PL_rd); \
-        cstate.out_n--;
+	cstate.out_n--;
 
 #define get_int_arg(t, n) LDFUNC(get_int_arg, t, n)
 static intptr_t
@@ -3796,8 +3796,8 @@ bad_operator(out_entry *out, op_entry *op, ReadData _PL_rd)
 /* can_reduce() returns
 
 	TRUE  if operator can be reduced;
-        FALSE if operator can not be reduced;
-        -1    if attempting is a syntax error
+	FALSE if operator can not be reduced;
+	-1    if attempting is a syntax error
 */
 
 static int
@@ -3810,7 +3810,7 @@ can_reduce(op_entry *op, short cpri, int out_n, ReadData _PL_rd)
   { switch(op->kind)
     { case OP_PREFIX:
 	rc = op->right_pri >= e[0].pri;
-        break;
+	break;
       case OP_POSTFIX:
 	rc = op->left_pri >= e[0].pri;
 	break;
@@ -3873,7 +3873,7 @@ sufficient operators and operands and the   priority  of the operator is
 lower or equal to the context.
 
 Returns: TRUE:   Ok
-         FALSE:  Error
+	 FALSE:  Error
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define reduce_op(cstate, cpri) \
@@ -4085,7 +4085,7 @@ complex_term(DECL_LD const char *stop, short maxpri, term_t positions,
 	    goto exit;
 	  break;
 #ifdef O_QUASIQUOTATIONS
-        case T_QQ_BAR:
+	case T_QQ_BAR:
 	  if ( stop != NULL && stop[0] == '|' )
 	    goto exit;
 	  break;
@@ -4217,8 +4217,8 @@ exit:
     if ( (ex = PL_new_term_ref()) &&
 	 PL_unify_term(ex,
 		       PL_FUNCTOR, FUNCTOR_punct2,
-		         PL_ATOM, SideOp(cstate.side_p)->op.atom,
-		         PL_ATOM, name_token(token, NULL, _PL_rd)) )
+			 PL_ATOM, SideOp(cstate.side_p)->op.atom,
+			 PL_ATOM, name_token(token, NULL, _PL_rd)) )
       return errorWarning(NULL, ex, _PL_rd);
 
     return FALSE;
@@ -4309,7 +4309,7 @@ term is to be written.
     if ( (rc=ensureSpaceForTermRefs(2)) != TRUE )
       return rc;
     if ( !hasGlobalSpace(3) &&
-         (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
+	 (rc=ensureGlobalSpace(3, ALLOW_GC)) != TRUE )
       return rc;
     argp = gTop;
     gTop += 3;
@@ -4718,7 +4718,7 @@ simple_term(DECL_LD Token token, term_t positions, ReadData _PL_rd)
 	  return read_brace_term(token, positions, _PL_rd);
 	case '[':
 	  return read_list(token, positions, _PL_rd);
-        case ',':
+	case ',':
 	  return errorWarning("quoted_punctuation", 0, _PL_rd);
 	default:
 	{ term_t term = alloc_term(_PL_rd);
@@ -4802,10 +4802,10 @@ subterm_positions = quasi_quotation_position(From, To, TypePos, ContentPos)
 
       PL_put_term(av+2, _PL_rd->varnames);	/* Arg 2: the var dictionary */
       if ( !PL_unify(av+3, result) )		/* Arg 3: the result */
-        return FALSE;
+	return FALSE;
 
       if ( !PL_cons_functor_v(av+0, FUNCTOR_quasi_quotation4, av) )
-        return FALSE;
+	return FALSE;
 
       if ( !(t = PL_new_term_ref()) ||
 	   !PL_unify_list(_PL_rd->qq_tail, t, _PL_rd->qq_tail) ||
@@ -5086,7 +5086,7 @@ unify_read_term_position(DECL_LD term_t tpos)
 Options:
 	* variable_names(-Names)
 	* process_comment(+Boolean)
-        * comments(-List)
+	* comments(-List)
 	* syntax_errors(+Atom)
 	* term_position(-Position)
 	* subterm_positions(-Layout)
