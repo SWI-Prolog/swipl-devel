@@ -496,23 +496,24 @@ mpq_sgn(const mpq_t q)
 
 static inline void
 mpq_abs(mpq_t r, const mpq_t q)
-{ mpq_init(r);
-  mpq_set(r, q);
+{ if ( r != q )
+  { mpq_init(r);
+    mpq_set(r, q);
+  }
   r[0].sign = 0;
   r[1].sign = 0;
 }
 
 static inline void
 mpq_neg(mpq_t r, const mpq_t q)
-{ mpq_init(r);
-  mpq_set(r, q);
+{ if ( r != q )
+  { mpq_init(r);
+    mpq_set(r, q);
+  }
   bf_neg(&r[0]);
 }
 
-static inline void
-mpq_canonicalize(mpq_t q)
-{ bf_not_implemented("mpq_canonicalize");
-}
+void mpq_canonicalize(mpq_t q);
 
 static inline void
 mpq_inv(mpq_t r, mpq_t q)

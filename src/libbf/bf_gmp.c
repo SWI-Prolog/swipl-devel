@@ -48,6 +48,28 @@ mpz_lcm(mpz_t r, const mpz_t n1, mpz_t n2)
 { bf_not_implemented("mpz_lcm");
 }
 
+
+void
+mpq_canonicalize(mpq_t q)
+{ mpz_t gcd;
+  mpz_t tmp;
+
+  mpz_init(gcd);
+  mpz_init(tmp);
+  mpz_gcd(gcd, mpq_numref(q), mpq_denref(q));
+  mpz_divexact(tmp, mpq_numref(q), gcd);
+  mpz_set(mpq_numref(q), tmp);
+  mpz_divexact(tmp, mpq_denref(q), gcd);
+  mpz_set(mpq_denref(q), tmp);
+  if ( q[1].sign )
+  { bf_neg(&q[0]);
+    q[1].sign = 0;
+  }
+  mpz_clear(gcd);
+  mpz_clear(tmp);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.
