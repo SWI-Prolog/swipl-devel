@@ -1,10 +1,46 @@
 #include <sys/types.h>			/* get ssize_t */
 #include <string.h>
+#include <stdio.h>
 #include "bf_gmp.h"
 
 void
+bf_print_i(const char *msg, const bf_t *i)
+{ printf("%s=%s\n",
+	 msg,
+	 bf_ftoa(NULL, i, 10, 0, BF_RNDZ|BF_FTOA_FORMAT_FRAC));
+}
+
+
+void
 mpz_gcd(mpz_t r, const mpz_t n1, mpz_t n2)
-{ bf_not_implemented("mpz_gcd");
+{ bf_t a, b, t;
+
+  if ( bf_is_zero(n1) )
+  { bf_set(r, n2);
+    return;
+  }
+  if ( bf_is_zero(n2) )
+  { bf_set(r, n1);
+    return;
+  }
+
+  bf_init(&alloc_wrapper.bf_context, &a);
+  bf_init(&alloc_wrapper.bf_context, &b);
+  bf_init(&alloc_wrapper.bf_context, &t);
+
+  bf_set(r, n1);
+  bf_set(&b, n2);
+
+  while( !bf_is_zero(&b) )
+  { bf_set(&t, &b);
+    bf_rem(&a, r, &b, BF_PREC_INF, 0, BF_RNDN);
+    bf_set(&b, &a);
+    bf_set(r, &t);
+  }
+
+  bf_delete(&a);
+  bf_delete(&b);
+  bf_delete(&t);
 }
 
 void
