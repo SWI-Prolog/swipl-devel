@@ -375,7 +375,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
   copy:
     num_wsz = mpz_wsize(num, &num_size);
     den_wsz = mpz_wsize(den, &den_size);
-    m       = mkIndHdr(num_wsz+den_wsz+2, TAG_INTEGER);
+    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, TAG_INTEGER);
 
     if ( wsizeofInd(m) != num_wsz+den_wsz+2*MPZ_STACK_EXTRA )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_rational);
