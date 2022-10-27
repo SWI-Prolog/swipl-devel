@@ -2,6 +2,16 @@
 #include <string.h>
 #include "bf_gmp.h"
 
+void
+mpz_gcd(mpz_t r, const mpz_t n1, mpz_t n2)
+{ bf_not_implemented("mpz_gcd");
+}
+
+void
+mpz_lcm(mpz_t r, const mpz_t n1, mpz_t n2)
+{ bf_not_implemented("mpz_lcm");
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.
@@ -142,4 +152,3 @@ print_bytes(const unsigned char *data, size_t len)
   fprintf(stderr, "\n");
 }
 #endif
-
