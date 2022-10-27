@@ -313,13 +313,18 @@ mpz_divexact(mpz_t Q, const mpz_t N, const mpz_t D)
 }
 
 static inline void
+mpz_fdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
+{ bf_div(Q, N, D, BF_PREC_INF, BF_RNDN);
+}
+
+static inline void
 mpz_fdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_fdiv_r");
+{ bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDN);
 }
 
 static inline void
 mpz_fdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_fdiv_qr");
+{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDN);
 }
 
 static inline unsigned long
@@ -339,18 +344,13 @@ mpz_tdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
 }
 
 static inline void
-mpz_fdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_fdiv_q");
-}
-
-static inline void
 mpz_tdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
 { bf_not_implemented("mpz_tdiv_qr");
 }
 
 static inline void
 mpz_tdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
-{
+{ bf_not_implemented("mpz_tdiv_r");
 }
 
 static inline int
