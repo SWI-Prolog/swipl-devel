@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  2005-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
     All rights reserved.
 
@@ -350,7 +350,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
 #ifndef NDEBUG
     size_t size;
     size_t wsz = mpz_wsize(mpz, &size);
-    assert(p[0] == mkIndHdr(wsz+1, TAG_INTEGER));
+    assert(p[0] == mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER));
 #endif
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
   }
@@ -923,7 +923,7 @@ promoteToMPQNumber(number *n)
       switch(fpclassify(v))
       { case FP_NAN:
 	  return PL_error(NULL, 0, NULL, ERR_AR_UNDEF);
-        case FP_INFINITE:
+	case FP_INFINITE:
 	  return PL_error(NULL, 0, NULL, ERR_AR_RAT_OVERFLOW);
       }
 
@@ -1220,7 +1220,7 @@ put_number(DECL_LD Word at, Number n, int flags)
 	}
 
 	*at = w;
-        return TRUE;
+	return TRUE;
       }
 
       return put_int64(at, n->value.i, flags);
@@ -1648,11 +1648,11 @@ mpz_fdiv(mpz_t a, mpz_t b)
       break;
     case FE_UPWARD:        // negative aa defers to truncate (mpz_get_d)
       if (mpz_sgn(aa) > 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
-        mpz_add_ui(aa, aa, 2);
+	mpz_add_ui(aa, aa, 2);
       break;
     case FE_DOWNWARD:      // positive aa defers to truncate (mpz_get_d)
       if (mpz_sgn(aa) < 0 && (mpz_cmp_ui(bb, 0) != 0 || mpz_tstbit(aa, 0) == 1))
-        mpz_sub_ui(aa, aa, 2);
+	mpz_sub_ui(aa, aa, 2);
       break;
     case FE_TOWARDZERO:    // truncation performed by mpz_get_d
       break;
@@ -1694,16 +1694,16 @@ mpz_to_double(mpz_t a)
   { case FE_TONEAREST:
       if ( d > 0 )
       { if ( !bit54 )                           // d is positive
-        {
-        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
-        { d = nexttoward(d,  INFINITY);
-        }
+	{
+	} else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 1 )
+	{ d = nexttoward(d,  INFINITY);
+	}
       } else
       { if ( bit54 && !trailing_zeros )		// d is negative
-        {
-        } else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
-        { d = nexttoward(d, -INFINITY);
-        }
+	{
+	} else if ( !trailing_zeros || mpz_tstbit(a, sa-53) == 0 )
+	{ d = nexttoward(d, -INFINITY);
+	}
       }
       break;
     case FE_UPWARD:
@@ -1822,12 +1822,12 @@ PL_get_mpz(term_t t, mpz_t mpz)
     switch(n.type)
     { case V_INTEGER:
 	promoteToMPZNumber(&n);
-        mpz_set(mpz, n.value.mpz);
+	mpz_set(mpz, n.value.mpz);
 	clearNumber(&n);
 	break;
       case V_MPZ:
 	mpz_set(mpz, n.value.mpz);
-        break;
+	break;
       default:
 	assert(0);
     }
