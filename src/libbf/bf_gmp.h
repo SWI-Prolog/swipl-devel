@@ -458,7 +458,7 @@ mpq_set(mpq_t r, const mpq_t q)
 }
 
 static inline void
-mpq_set_d(mpq_t r, double)
+mpq_set_d(mpq_t r, double f)
 { bf_not_implemented("mpq_set_d");
 }
 
