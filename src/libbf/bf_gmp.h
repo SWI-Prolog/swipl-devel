@@ -177,8 +177,12 @@ mpz_tstbit(const mpz_t n, mp_bitcnt_t i)
 
 static inline mp_bitcnt_t
 mpz_popcount(const mpz_t n)
-{ bf_not_implemented("mpz_popcount");
-  return 0;
+{ mp_bitcnt_t cnt = 0;
+
+  for(size_t i=0; i<n->len; i++)
+    cnt += __builtin_popcountll(n->tab[i]);
+
+  return cnt;
 }
 
 static inline void
