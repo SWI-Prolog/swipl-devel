@@ -182,6 +182,7 @@ mpz_urandom_2exp(mpz_t r, gmp_randstate_t state, const mp_bitcnt_t szbits)
     free(data);
 }
 
+/* See https://www.pcg-random.org/posts/bounded-rands.html */
 
 void
 mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
@@ -190,7 +191,9 @@ mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
   } else if ( bf_is_exp_2(N) )
   { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2));
   } else
-  { bf_not_implemented("mpz_urandomm for N != 2^M");
+  { do
+    { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2)+1);
+    } while( mpz_cmp(r, N) >= 0 );
   }
 }
 
