@@ -145,6 +145,10 @@ random_double(gmp_randstate_t state)
   return (double)i/(double)0xffffffffffffffff;
 }
 
+/* TBD: Currently ignores `bits`.  Guess we can resize, fill the `tab`
+   and set ->expn to 1?
+ */
+
 void
 mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
 { double rnd = random_double(state);
@@ -195,6 +199,22 @@ mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
     { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2)+1);
     } while( mpz_cmp(r, N) >= 0 );
   }
+}
+
+void
+bf_set_randstate(gmp_randstate_t state, const mpz_t n)
+{ size_t bytes = (mpz_sizeinbase(n, 2)+7)/8;
+  size_t count;
+
+  memset(state, 0, sizeof(state[0]));
+  mpz_export((unsigned char*)state+sizeof(state[0])-bytes,
+	     &count, 1, 1, 1, 0, n);
+  assert(count == bytes);
+}
+
+void
+bf_get_randstate(mpz_t n, const gmp_randstate_t state)
+{ mpz_import(n, sizeof(state[0]), 1, 1, 1, 0, state);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
