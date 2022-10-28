@@ -76,24 +76,44 @@ mpq_cmp(const mpq_t q1, const mpq_t q2)
   return 0;
 }
 
+static void
+mpq_addsub(mpq_t r, const mpq_t q1, const mpq_t q2, int add)
+{ mpz_t numa, numb;
+
+  mpz_init(numa);
+  mpz_init(numb);
+  mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cdenref(q2));
+  mpz_mul(numa, mpq_cnumref(q1), mpq_cdenref(q2));
+  mpz_mul(numb, mpq_cnumref(q2), mpq_cdenref(q1));
+  if ( add )
+    mpz_add(mpq_numref(r), numa, numb);
+  else
+    mpz_sub(mpq_numref(r), numa, numb);
+  mpz_clear(numa);
+  mpz_clear(numb);
+  mpq_canonicalize(r);
+}
+
 void
 mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_add");
+{ mpq_addsub(r, q1, q2, 1);
 }
 
 void
 mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_sub");
+{ mpq_addsub(r, q1, q2, 0);
 }
 
 void
 mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_mul");
+{ mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cnumref(q2));
+  mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cdenref(q2));
 }
 
 void
 mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_div");
+{ mpz_mul(mpq_numref(r), mpq_cnumref(q1), mpq_cdenref(q2));
+  mpz_mul(mpq_denref(r), mpq_cdenref(q1), mpq_cnumref(q2));
 }
 
 
