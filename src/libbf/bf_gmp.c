@@ -70,6 +70,33 @@ mpq_canonicalize(mpq_t q)
 }
 
 
+int
+mpq_cmp(const mpq_t q1, const mpq_t q2)
+{ bf_not_implemented("mpq_cmp");
+  return 0;
+}
+
+void
+mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2)
+{ bf_not_implemented("mpq_add");
+}
+
+void
+mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2)
+{ bf_not_implemented("mpq_sub");
+}
+
+void
+mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2)
+{ bf_not_implemented("mpq_mul");
+}
+
+void
+mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
+{ bf_not_implemented("mpq_div");
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.

@@ -522,31 +522,12 @@ mpq_inv(mpq_t r, mpq_t q)
   bf_set(&r[1], &q[0]);
 }
 
-static inline int
-mpq_cmp(const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_cmp");
-  return 0;
-}
+int	mpq_cmp(const mpq_t q1, const mpq_t q2);
+void	mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2);
+void	mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2);
+void	mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2);
+void	mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2);
 
-static inline void
-mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_add");
-}
-
-static inline void
-mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_sub");
-}
-
-static inline void
-mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_mul");
-}
-
-static inline void
-mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_div");
-}
 
 		 /*******************************
 		 *		MPF		*
