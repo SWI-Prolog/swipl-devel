@@ -21,22 +21,23 @@
 #define __STDC_LIMIT_MACROS
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define MT_SIZE   624
+#define MT_PERIOD 397
+
+typedef struct MTState {
+  uint32_t MT[MT_SIZE];
+  uint32_t MT_TEMPERED[MT_SIZE];
+  size_t index;
+} MTState;
 
 /*
  * Extract a pseudo-random unsigned 32-bit integer in the range 0 ... UINT32_MAX
  */
-uint32_t rand_u32();
+uint32_t mt_rand_u32(MTState *state);
 
 /*
  * Initialize Mersenne Twister with given seed value.
  */
-void seed(uint32_t seed_value);
-
-#ifdef __cplusplus
-} // extern "C"
-#endif
+void mt_randseed(MTState *state, const uint32_t *data, size_t len);
 
 #endif // MERSENNE_TWISTER_H
