@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "bf_gmp.h"
+#include <stdlib.h>
 
 void
 bf_print_i(const char *msg, const bf_t *i)
@@ -128,6 +129,71 @@ gmp_randseed_ui(gmp_randstate_t state, unsigned long seed)
 { mt_randseed(state, (const uint32_t*)&seed, sizeof(seed)/sizeof(uint32_t));
 }
 
+
+static int
+bf_is_exp_2(const bf_t *n)
+{ return ( n->len == 1 && __builtin_popcountll(n->tab[0]) == 1 );
+}
+
+
+static double
+random_double(gmp_randstate_t state)
+{ uint64_t l = mt_rand_u32(state);
+  uint64_t h = mt_rand_u32(state);
+  uint64_t i = (l<<32) | h;
+
+  return (double)i/(double)0xffffffffffffffff;
+}
+
+void
+mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
+{ double rnd = random_double(state);
+
+  bf_set_float64(r, rnd);
+}
+
+
+static void
+mpz_urandom_2exp(mpz_t r, gmp_randstate_t state, const mp_bitcnt_t szbits)
+{ size_t szbytes = (szbits+7)/8;
+  unsigned char buf[256];
+  unsigned char *data = szbytes <= sizeof(buf) ? buf : malloc(szbytes);
+  int byte = 0;
+  uint32_t rnd;
+
+  for(int i=0; i<szbytes; i++)
+  { if ( byte == 0 )
+    { rnd = mt_rand_u32(state);
+      byte = 3;
+    }
+    data[i] = (rnd>>(byte*8))&0xff;
+    byte--;
+  }
+
+  int bits_in_high_byte = szbits % 8;
+  if ( bits_in_high_byte != 0 )
+  { int mask = (1<<(bits_in_high_byte-1))-1;
+    data[0] &= mask;
+  }
+
+  mpz_import(r, szbytes, 1, 1, 1, 0, data);
+
+  if ( data != buf )
+    free(data);
+}
+
+
+void
+mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
+{ if ( bf_is_zero(N) )
+  { bf_set_si(r, 0);
+  } else if ( bf_is_exp_2(N) )
+  { mpz_urandom_2exp(r, state, mpz_sizeinbase(N,2));
+  } else
+  { bf_not_implemented("mpz_urandomm for N != 2^M");
+  }
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.
@@ -156,6 +222,9 @@ bf_import_dimension(bf_t *r, const unsigned char *data, size_t len)
       byte = sizeof(limb_t);
     }
   }
+
+  if ( r->len == 0 )
+    r->expn = BF_EXP_ZERO;
 }
 
 void
@@ -174,13 +243,15 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     assert(NAILS==0 && ORDER==1);
 
     bf_resize(ROP, bf.len);
-    lt = &ROP->tab[bf.len-1];
     ROP->sign = 0;
     ROP->expn = bf.expn;
+    if ( bf.expn == BF_EXP_ZERO )
+      return;
 
     int shift = COUNT*8-bf.expn;
     limb_t mask = ((limb_t)1<<shift)-1;
 
+    lt = &ROP->tab[bf.len-1];
     while(bytes-->0)
     { l |= (limb_t)*data++ << byte*8;
       if ( byte == 0 )
