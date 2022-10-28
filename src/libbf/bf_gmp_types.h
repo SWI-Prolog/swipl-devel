@@ -4,6 +4,8 @@
 #include "libbf.h"
 #include "mersenne-twister.h"
 
+#define HAVE_MP_BITCNT_T 1
+
 typedef bf_t MP_INT;
 typedef bf_t mpz_t[1];
 typedef bf_t mpq_t[2];			/* Numerator/Denumerator */
