@@ -410,7 +410,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     *p = m;
     assert(p==gTop-1);
   } else					/* already on the stack */
-  { Word p = (Word)MPZ_LIMBS(num)-1-MPZ_STACK_EXTRA;
+  { Word p = (Word)MPZ_LIMBS(num)-1-2*MPZ_STACK_EXTRA;
     if ( !onStack(global, p) )
       goto copy;
     DEBUG(CHK_SECURE,
