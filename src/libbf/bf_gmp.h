@@ -487,6 +487,16 @@ mpq_denref(mpq_t q)
 { return &q[1];
 }
 
+static inline const MP_INT*
+mpq_cnumref(const mpq_t q)
+{ return &q[0];
+}
+
+static inline const MP_INT*
+mpq_cdenref(const mpq_t q)
+{ return &q[1];
+}
+
 static inline int
 mpq_sgn(const mpq_t q)
 { int s0 = mpz_sgn(&q[0]);
