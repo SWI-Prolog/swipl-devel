@@ -566,7 +566,12 @@ mpf_get_d(const mpf_t f)
 
 static inline void
 mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
-{ bf_not_implemented("mpf_urandomb");
+{ uint64_t l = mt_rand_u32(state);
+  uint64_t h = mt_rand_u32(state);
+  uint64_t i = (l<<32) | h;
+  double rnd = (double)i/(double)0xffffffffffffffff;
+
+  bf_set_float64(r, rnd);
 }
 
 
@@ -575,29 +580,34 @@ mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
 		 *	       RANDOM		*
 		 *******************************/
 
+#define HAVE_GMP_RANDINIT_MT 1
+
 static inline void
 mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
 { bf_not_implemented("mpz_urandomm");
 }
 
 static inline void
-gmp_randinit_default(gmp_randstate_t state)
-{ bf_not_implemented("gmp_randinit_default");
+gmp_randinit_mt(gmp_randstate_t state)
+{ memset(state, 0, sizeof(state[0]));
 }
 
-static inline void
-gmp_randseed(gmp_randstate_t state, const mpz_t seed)
-{ bf_not_implemented("gmp_randseed");
-}
-
-static inline void
-gmp_randseed_ui(gmp_randstate_t state, unsigned long seed)
-{ bf_not_implemented("gmp_randseed_ui");
-}
+void	gmp_randseed(gmp_randstate_t state, const mpz_t seed);
+void	gmp_randseed_ui(gmp_randstate_t state, unsigned long seed);
 
 static inline void
 gmp_randclear(gmp_randstate_t state)
-{ bf_not_implemented("gmp_randclear");
+{ (void) state;
+}
+
+static inline void
+bf_set_randstate(gmp_randstate_t state, const mpz_t n)
+{ bf_not_implemented("bf_set_randstate");
+}
+
+static inline void
+bf_get_randstate(mpz_t n, const gmp_randstate_t state)
+{ bf_not_implemented("bf_set_randstate");
 }
 
 #endif /*BF_GMP_H_INCLUDED*/

@@ -117,6 +117,17 @@ mpq_div(mpq_t r, const mpq_t q1, const mpq_t q2)
 }
 
 
+void
+gmp_randseed(gmp_randstate_t state, const mpz_t seed)
+{ mt_randseed(state, (const uint32_t*)seed->tab,
+	      (seed->len*sizeof(limb_t))/sizeof(uint32_t));
+}
+
+void
+gmp_randseed_ui(gmp_randstate_t state, unsigned long seed)
+{ mt_randseed(state, (const uint32_t*)&seed, sizeof(seed)/sizeof(uint32_t));
+}
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.
@@ -159,11 +170,11 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
     const unsigned char *data = OP;
 
     bf_import_dimension(&bf, OP, COUNT);
+
+    assert(NAILS==0 && ORDER==1);
+
+    bf_resize(ROP, bf.len);
     lt = &ROP->tab[bf.len-1];
-
-    assert(NAILS==0 && ORDER==1 && ENDIAN==1);
-    assert(bf.len == ROP->len);
-
     ROP->sign = 0;
     ROP->expn = bf.expn;
 
