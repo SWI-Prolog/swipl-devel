@@ -1,4 +1,4 @@
-/* 
+/*
  * The Mersenne Twister pseudo-random number generator (PRNG)
  *
  * This is an implementation of fast PRNG called MT19937, meaning it has a
@@ -26,31 +26,19 @@
  * We have an array of 624 32-bit values, and there are 31 unused bits, so we
  * have a seed value of 624*32-31 = 19937 bits.
  */
-static const size_t SIZE   = 624;
-static const size_t PERIOD = 397;
-static const size_t DIFF   = SIZE - PERIOD;
-
-static const uint32_t MAGIC = 0x9908b0df;
-
-// State for a singleton Mersenne Twister. If you want to make this into a
-// class, these are what you need to isolate.
-struct MTState {
-  uint32_t MT[SIZE];
-  uint32_t MT_TEMPERED[SIZE];
-  size_t index = SIZE;
-};
-
-static MTState state;
+#define DIFF   (MT_SIZE - MT_PERIOD)
+#define MAGIC  0x9908b0df
 
 #define M32(x) (0x80000000 & x) // 32nd MSB
 #define L31(x) (0x7FFFFFFF & x) // 31 LSBs
 
 #define UNROLL(expr) \
-  y = M32(state.MT[i]) | L31(state.MT[i+1]); \
-  state.MT[i] = state.MT[expr] ^ (y >> 1) ^ (((int32_t(y) << 31) >> 31) & MAGIC); \
+  y = M32(state->MT[i]) | L31(state->MT[i+1]); \
+  state->MT[i] = state->MT[expr] ^ (y >> 1) ^ ((((int32_t)(y) << 31) >> 31) & MAGIC); \
   ++i;
 
-static void generate_numbers()
+static void
+generate_numbers(MTState *state)
 {
   /*
    * For performance reasons, we've unrolled the loop three times, thus
@@ -67,15 +55,15 @@ static void generate_numbers()
      * We're doing 226 = 113*2, an even number of steps, so we can safely
      * unroll one more step here for speed:
      */
-    UNROLL(i+PERIOD);
+    UNROLL(i+MT_PERIOD);
 
 #ifdef MT_UNROLL_MORE
-    UNROLL(i+PERIOD);
+    UNROLL(i+MT_PERIOD);
 #endif
   }
 
   // i = [227 ... 622]
-  while ( i < SIZE -1 ) {
+  while ( i < MT_SIZE -1 ) {
     /*
      * 623-227 = 396 = 2*2*3*3*11, so we can unroll this loop in any number
      * that evenly divides 396 (2, 4, 6, etc). Here we'll unroll 11 times.
@@ -98,25 +86,26 @@ static void generate_numbers()
 
   {
     // i = 623, last step rolls over
-    y = M32(state.MT[SIZE-1]) | L31(state.MT[0]);
-    state.MT[SIZE-1] = state.MT[PERIOD-1] ^ (y >> 1) ^ (((int32_t(y) << 31) >>
-          31) & MAGIC);
+    y = M32(state->MT[MT_SIZE-1]) | L31(state->MT[0]);
+    state->MT[MT_SIZE-1] = state->MT[MT_PERIOD-1] ^ (y >> 1) ^ ((((int32_t)(y) << 31) >>
+	  31) & MAGIC);
   }
 
   // Temper all numbers in a batch
-  for (size_t i = 0; i < SIZE; ++i) {
-    y = state.MT[i];
+  for (size_t i = 0; i < MT_SIZE; ++i) {
+    y = state->MT[i];
     y ^= y >> 11;
     y ^= y << 7  & 0x9d2c5680;
     y ^= y << 15 & 0xefc60000;
     y ^= y >> 18;
-    state.MT_TEMPERED[i] = y;
+    state->MT_TEMPERED[i] = y;
   }
 
-  state.index = 0;
+  state->index = 0;
 }
 
-extern "C" void seed(uint32_t value)
+void
+mt_randseed(MTState *state, const uint32_t *data, size_t len)
 {
   /*
    * The equation below is a linear congruential generator (LCG), one of the
@@ -149,19 +138,22 @@ extern "C" void seed(uint32_t value)
    * masking with 0xFFFFFFFF below.
    */
 
-  state.MT[0] = value;
-  state.index = SIZE;
+  state->index = MT_SIZE;
 
-  for ( uint_fast32_t i=1; i<SIZE; ++i )
-    state.MT[i] = 0x6c078965*(state.MT[i-1] ^ state.MT[i-1]>>30) + i;
+  int i;
+  for ( i=0; i<len && i<MT_SIZE; i++ )
+    state->MT[i] = data[i];
+  for ( ; i<MT_SIZE; ++i )
+    state->MT[i] = 0x6c078965*(state->MT[i-1] ^ state->MT[i-1]>>30) + i;
 }
 
-extern "C" uint32_t rand_u32()
+uint32_t
+mt_rand_u32(MTState *state)
 {
-  if ( state.index == SIZE ) {
-    generate_numbers();
-    state.index = 0;
+  if ( state->index == MT_SIZE ) {
+    generate_numbers(state);
+    state->index = 0;
   }
 
-  return state.MT_TEMPERED[state.index++];
+  return state->MT_TEMPERED[state->index++];
 }
