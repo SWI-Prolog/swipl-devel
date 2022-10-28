@@ -4,7 +4,7 @@
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
     Copyright (c)  1985-2022, University of Amsterdam
-                              VU University Amsterdam
+			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -365,7 +365,7 @@ do_unify(DECL_LD Word t1, Word t2)
       case TAG_FLOAT:
 	if ( equalIndirect(w1, w2) )
 	  continue;
-        goto out_fail;
+	goto out_fail;
       case TAG_COMPOUND:
       { Functor f1 = valueTerm(w1);
 	Functor f2 = valueTerm(w2);
@@ -515,8 +515,8 @@ unify_ptrs(DECL_LD Word t1, Word t2, int flags)
       { int rc2;
 
 	PushPtr(t1); PushPtr(t2);
-        rc2 = makeMoreStackSpace(rc, flags);
-        PopPtr(t2); PopPtr(t1);
+	rc2 = makeMoreStackSpace(rc, flags);
+	PopPtr(t2); PopPtr(t1);
 	if ( !rc2 )
 	  return FALSE;
       }
@@ -724,7 +724,7 @@ unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 	  rc = failed_unify_with_occurs_check(p, t, mode);
 	}
 	rc = FALSE;
-        break;
+	break;
       }
     }
   }
@@ -773,7 +773,7 @@ PRED_IMPL("float", 1, float, 0)
 { return PL_is_float(A1);
 }
 
-#if O_GMP
+#if O_BIGNUM
 static
 PRED_IMPL("rational", 1, rational, 0)
 { return PL_is_rational(A1);
