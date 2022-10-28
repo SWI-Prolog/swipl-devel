@@ -394,7 +394,13 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
     *p++ = m;
     *p++ = mpq_size_stack(MPZ_LIMB_SIZE(num));
+#if O_BF
+    *p++ = num->expn;
+#endif
     *p++ = mpq_size_stack(MPZ_LIMB_SIZE(den));
+#if O_BF
+    *p++ = den->expn;
+#endif
     p[num_wsz-1] = 0L;				/* pad out */
     memcpy(p, MPZ_LIMBS(num), num_size);
     p += num_wsz;
@@ -402,6 +408,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
     memcpy(p, MPZ_LIMBS(den), den_size);
     p += den_wsz;
     *p = m;
+    assert(p==gTop-1);
   } else					/* already on the stack */
   { Word p = (Word)MPZ_LIMBS(num)-1-MPZ_STACK_EXTRA;
     if ( !onStack(global, p) )
