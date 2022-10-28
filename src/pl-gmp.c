@@ -753,13 +753,11 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
 
 char *
 loadMPQFromCharp(const char *data, Word r, Word *store)
-{
-#if O_GMP
-  GET_LD
+{ GET_LD
   int num_size;
   int den_size;
-  size_t num_limpsize, num_wsize;
-  size_t den_limpsize, den_wsize;
+  size_t num_limbsize, num_wsize;
+  size_t den_limbsize, den_wsize;
   int num_neg, den_neg;
   size_t wsize;
   Word p;
@@ -768,33 +766,44 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
   data = load_abs_mpz_size(data, &num_size, &num_neg);
   data = load_abs_mpz_size(data, &den_size, &den_neg);
 
-  num_limpsize = (num_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  num_wsize = (num_limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
-  den_limpsize = (den_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
-  den_wsize = (den_limpsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+#if O_BF
+  bf_t num_bf, den_bf;
+  bf_import_dimension(&num_bf, (const unsigned char*)data, num_size);
+  num_limbsize = num_bf.len;
+  bf_import_dimension(&den_bf, (const unsigned char*)data+num_size, den_size);
+  den_limbsize = den_bf.len;
+#else
+  num_limbsize = (num_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+  den_limbsize = (den_size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
+
+  num_wsize = (num_limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+  den_wsize = (den_limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   wsize = num_wsize+den_wsize;
 
   p = *store;
-  *store += (wsize+4);
+  *store += wsize+2+2*MPZ_STACK_EXTRA;
   *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+2, TAG_INTEGER);
+  m = mkIndHdr(wsize+2+2*MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
-  *p++ = mpq_size_stack(num_neg ? -num_limpsize : num_limpsize);
-  *p++ = mpq_size_stack(den_neg ? -den_limpsize : den_limpsize);
+  *p++ = mpq_size_stack(num_neg ? -num_limbsize : num_limbsize);
+#if O_BF
+  *p++ = num_bf.expn;
+#endif
+  *p++ = mpq_size_stack(den_neg ? -den_limbsize : den_limbsize);
+#if O_BF
+  *p++ = den_bf.expn;
+#endif
   p[num_wsize-1] = 0;
-  data = load_mpz_bits(data, num_size, num_limpsize, num_neg, p);
+  data = load_mpz_bits(data, num_size, num_limbsize, num_neg, p);
   p += num_wsize;
   p[den_wsize-1] = 0;
-  data = load_mpz_bits(data, den_size, den_limpsize, den_neg, p);
+  data = load_mpz_bits(data, den_size, den_limbsize, den_neg, p);
   p += den_wsize;
   *p++ = m;
   assert(p == *store);
 
   return (char *)data;
-#elif O_BF
-  assert(0);
-  return NULL;
-#endif
 }
 
 char *
