@@ -293,7 +293,8 @@ mpz_mul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
 
 static inline void
 mpz_mul_2exp(mpz_t r, const mpz_t n1, mp_bitcnt_t n2)
-{ bf_set(r, n1);
+{ if ( r != n1 )
+    bf_set(r, n1);
   bf_mul_2exp(r, n2, BF_PREC_INF, BF_RNDN);
 }
 
@@ -568,16 +569,7 @@ mpf_get_d(const mpf_t f)
   return 0.0;
 }
 
-static inline void
-mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
-{ uint64_t l = mt_rand_u32(state);
-  uint64_t h = mt_rand_u32(state);
-  uint64_t i = (l<<32) | h;
-  double rnd = (double)i/(double)0xffffffffffffffff;
-
-  bf_set_float64(r, rnd);
-}
-
+void	mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits);
 
 
 		 /*******************************
@@ -586,10 +578,7 @@ mpf_urandomb(mpf_t r, gmp_randstate_t state, mp_bitcnt_t bits)
 
 #define HAVE_GMP_RANDINIT_MT 1
 
-static inline void
-mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N)
-{ bf_not_implemented("mpz_urandomm");
-}
+void	mpz_urandomm(mpz_t r, gmp_randstate_t state, const mpz_t N);
 
 static inline void
 gmp_randinit_mt(gmp_randstate_t state)
