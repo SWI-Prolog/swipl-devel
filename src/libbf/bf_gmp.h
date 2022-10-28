@@ -593,14 +593,7 @@ gmp_randclear(gmp_randstate_t state)
 { (void) state;
 }
 
-static inline void
-bf_set_randstate(gmp_randstate_t state, const mpz_t n)
-{ bf_not_implemented("bf_set_randstate");
-}
-
-static inline void
-bf_get_randstate(mpz_t n, const gmp_randstate_t state)
-{ bf_not_implemented("bf_set_randstate");
-}
+void	bf_set_randstate(gmp_randstate_t state, const mpz_t n);
+void	bf_get_randstate(mpz_t n, const gmp_randstate_t state);
 
 #endif /*BF_GMP_H_INCLUDED*/
