@@ -74,12 +74,6 @@ mpz_init_set_si64(mpz_t r, int64_t n)
   bf_set_si(r, n);
 }
 
-static inline void
-mpz_init_set_d(mpz_t r, double n)
-{ bf_init(&alloc_wrapper.bf_context, r);
-  bf_not_implemented("mpz_init_set_d");
-}
-
 // Copy
 static inline void
 mpz_set(mpz_t r, const mpz_t n)
@@ -92,14 +86,20 @@ mpz_set_ui(mpz_t r, unsigned long n)
   bf_set_si(r, n);
 }
 
+/* Actually we mpq_set_double(), which we might be able to do simply
+   by selecting the right rounding mode.
+ */
+
 static inline void
 mpz_set_d(mpz_t r, double d)
-{ bf_not_implemented("mpz_set_d");
+{ bf_set_float64(r, d);
+  bf_rint(r, BF_RNDZ);
 }
 
 static inline void
-mpz_set_q(mpz_t ROP, const mpq_t OP)
-{ bf_not_implemented("mpz_set_q");
+mpz_init_set_d(mpz_t r, double f)
+{ mpz_init(r);
+  mpz_set_d(r, f);
 }
 
 static inline long
@@ -535,6 +535,14 @@ mpq_inv(mpq_t r, mpq_t q)
 { mpq_init(r);
   bf_set(&r[0], &q[1]);
   bf_set(&r[1], &q[0]);
+}
+
+/* TBD: Incorrect A is integer(1<<100 / 3).
+*/
+static inline void
+mpz_set_q(mpz_t ROP, const mpq_t OP)
+{ bf_div(ROP, mpq_cnumref(OP), mpq_cdenref(OP), 0, BF_RNDN);
+  bf_not_implemented("mpz_set_q (incorrect)");
 }
 
 int	mpq_cmp(const mpq_t q1, const mpq_t q2);
