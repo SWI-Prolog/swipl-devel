@@ -544,11 +544,14 @@ mpq_inv(mpq_t r, mpq_t q)
   bf_set(&r[1], &q[0]);
 }
 
-/* TBD: Incorrect A is integer(1<<100 / 3).
-*/
 static inline void
 mpz_set_q(mpz_t ROP, const mpq_t OP)
-{ bf_div(ROP, mpq_cnumref(OP), mpq_cdenref(OP), BF_PREC_INF, BF_RNDZ);
+{ bf_t rem;
+
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(ROP, &rem, mpq_cnumref(OP), mpq_cdenref(OP),
+	    BF_PREC_INF, 0, BF_RNDZ);
+  bf_delete(&rem);
 }
 
 int	mpq_cmp(const mpq_t q1, const mpq_t q2);
