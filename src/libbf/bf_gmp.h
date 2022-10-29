@@ -358,6 +358,13 @@ mpz_tdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
 { bf_not_implemented("mpz_tdiv_r");
 }
 
+static inline unsigned long
+mpz_tdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long D)
+{ bf_not_implemented("mpz_tdiv_q_ui");
+  return 0;
+}
+
+
 static inline int
 mpz_divisible_p(const mpz_t N, const mpz_t D)
 { bf_t rem;
@@ -541,11 +548,11 @@ mpq_inv(mpq_t r, mpq_t q)
 */
 static inline void
 mpz_set_q(mpz_t ROP, const mpq_t OP)
-{ bf_div(ROP, mpq_cnumref(OP), mpq_cdenref(OP), 0, BF_RNDN);
-  bf_not_implemented("mpz_set_q (incorrect)");
+{ bf_div(ROP, mpq_cnumref(OP), mpq_cdenref(OP), BF_PREC_INF, BF_RNDZ);
 }
 
 int	mpq_cmp(const mpq_t q1, const mpq_t q2);
+int	mpq_cmp_ui(const mpq_t q1, unsigned long n, unsigned long d);
 void	mpq_add(mpq_t r, const mpq_t q1, const mpq_t q2);
 void	mpq_sub(mpq_t r, const mpq_t q1, const mpq_t q2);
 void	mpq_mul(mpq_t r, const mpq_t q1, const mpq_t q2);
@@ -564,6 +571,16 @@ mpf_init2(mpf_t r, mp_bitcnt_t bits)
 static inline void
 mpf_clear(mpf_t f)
 { bf_delete(f);
+}
+
+static inline void
+mpf_set_z(mpf_t f, mpz_t n)
+{ bf_not_implemented("mpf_set_z");
+}
+
+static inline void
+mpf_set_q(mpf_t f, mpq_t q)
+{ bf_not_implemented("mpf_set_q");
 }
 
 static inline double
@@ -603,5 +620,7 @@ gmp_randclear(gmp_randstate_t state)
 
 void	bf_set_randstate(gmp_randstate_t state, const mpz_t n);
 void	bf_get_randstate(mpz_t n, const gmp_randstate_t state);
+
+int	gmp_snprintf(char *BUF, size_t SIZE, const char *FMT, ...);
 
 #endif /*BF_GMP_H_INCLUDED*/
