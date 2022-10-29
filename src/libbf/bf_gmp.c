@@ -225,6 +225,31 @@ bf_get_randstate(mpz_t n, const gmp_randstate_t state)
 { mpz_import(n, sizeof(state[0]), 1, 1, 1, 0, state);
 }
 
+
+mp_bitcnt_t
+mpz_scan1(const mpz_t n, mp_bitcnt_t start)
+{ if ( bf_is_zero(n) )
+  { return ~(mp_bitcnt_t)0;
+  } else
+  { mp_bitcnt_t msb  = n->expn-1;
+    mp_bitcnt_t from = msb - n->len*sizeof(limb_t)*8;
+    const limb_t *lp = &n->tab[n->len-1];
+
+    if ( start > msb )
+      return ~(mp_bitcnt_t)0;
+    if ( start < from )
+      start = from;
+
+    for(;;)
+    { if ( *lp )
+	return start + __builtin_ffsll(*lp);
+      start += sizeof(limb_t)*8;
+      lp--;
+    }
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.
