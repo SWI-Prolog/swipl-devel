@@ -13,7 +13,7 @@ bf_print_i(const char *msg, const bf_t *i)
 
 
 void
-mpz_gcd(mpz_t r, const mpz_t n1, mpz_t n2)
+mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 { bf_t a, b, t;
 
   if ( bf_is_zero(n1) )
@@ -45,8 +45,17 @@ mpz_gcd(mpz_t r, const mpz_t n1, mpz_t n2)
 }
 
 void
-mpz_lcm(mpz_t r, const mpz_t n1, mpz_t n2)
-{ bf_not_implemented("mpz_lcm");
+mpz_lcm(mpz_t r, const mpz_t n1, const mpz_t n2)
+{ mpz_t gcd;
+  mpz_t prod;
+
+  mpz_init(gcd);
+  mpz_init(prod);
+  mpz_mul(prod, n1, n2);
+  mpz_gcd(gcd, n1, n2);
+  mpz_divexact(r, prod, gcd);
+  mpz_clear(prod);
+  mpz_clear(gcd);
 }
 
 
