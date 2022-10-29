@@ -1474,7 +1474,7 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d2 = (double)n2->value.i;
 	break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	d2 = mpz_to_double(n2->value.mpz);
 	break;
@@ -1501,7 +1501,7 @@ cmpFloatNumbers(Number n1, Number n2)
     { case V_INTEGER:
 	d1 = (double)n1->value.i;
 	break;
-#ifdef O_GMP
+#ifdef O_BIGNUM
       case V_MPZ:
 	d1 = mpz_to_double(n1->value.mpz);
 	break;
