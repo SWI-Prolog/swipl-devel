@@ -131,8 +131,16 @@ mpz_get_ui(const mpz_t n)
 static inline double
 mpz_get_d(const mpz_t n)
 { double d;
+  const bf_t *op = n;
+  bf_t copy;
 
-  if ( bf_get_float64(n, &d, BF_RNDZ) != 0 )
+  if ( !op->ctx )
+  { copy = n[0];
+    copy.ctx = &alloc_wrapper.bf_context;
+    op = &copy;
+  }
+
+  if ( bf_get_float64(op, &d, BF_RNDZ) != 0 )
     d = NAN;
 
   return d;
