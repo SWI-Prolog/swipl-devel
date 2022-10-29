@@ -317,6 +317,16 @@ mpz_divexact(mpz_t Q, const mpz_t N, const mpz_t D)
   bf_delete(&rem);
 }
 
+/* _fdiv_ and _tdiv_ functions.  Both compute the quatient and
+   remainder and for all holds N=Q*D+R and 0<=abs(R)<abs(D).  The two
+   families differ in the rounding.
+
+   - The _fdiv_ (floor div) family rounds Q to -infinity and R has the
+     same sign as D.
+   - the _tdiv_ (truncate div) family rounds Q towards 0 and R has the
+     same sign as N
+ */
+
 static inline void
 mpz_fdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
 { bf_div(Q, N, D, BF_PREC_INF, BF_RNDN);
