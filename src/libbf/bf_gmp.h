@@ -300,12 +300,22 @@ mpz_mul_2exp(mpz_t r, const mpz_t n1, mp_bitcnt_t n2)
 
 static inline void
 mpz_addmul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ bf_not_implemented("mpz_addmul_ui");
+{ mpz_t add;
+
+  mpz_init(add);
+  bf_mul_ui(add, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_add(r, n1, add, BF_PREC_INF, BF_RNDN);
+  mpz_clear(add);
 }
 
 static inline void
 mpz_submul_ui(mpz_t r, const mpz_t n1, unsigned long n2)
-{ bf_not_implemented("mpz_submul_ui");
+{ mpz_t sub;
+
+  mpz_init(sub);
+  bf_mul_ui(sub, n1, n2, BF_PREC_INF, BF_RNDN);
+  bf_sub(r, n1, sub, BF_PREC_INF, BF_RNDN);
+  mpz_clear(sub);
 }
 
 static inline void
