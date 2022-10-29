@@ -82,15 +82,34 @@ mpq_canonicalize(mpq_t q)
 
 int
 mpq_cmp(const mpq_t q1, const mpq_t q2)
-{ bf_not_implemented("mpq_cmp");
-  return 0;
+{ mpz_t numa, numb;
+  int rc;
+
+  mpz_init(numa);
+  mpz_init(numb);
+  mpz_mul(numa, mpq_cnumref(q1), mpq_cdenref(q2));
+  mpz_mul(numb, mpq_cnumref(q2), mpq_cdenref(q1));
+
+  rc = mpz_cmp(numa, numb);
+
+  mpz_clear(numa);
+  mpz_clear(numb);
+
+  return rc;
 }
 
 
 int
 mpq_cmp_ui(const mpq_t q1, unsigned long n, unsigned long d)
-{ bf_not_implemented("mpq_cmp");
-  return 0;
+{ mpq_t q2;
+  int rc;
+
+  mpq_init(q2);
+  mpq_set_ui(q2, n, d);
+  rc = mpq_cmp(q1, q2);
+  mpq_clear(q2);
+
+  return rc;
 }
 
 
