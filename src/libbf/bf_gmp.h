@@ -432,8 +432,8 @@ mpz_divisible_p(const mpz_t N, const mpz_t D)
   return rc;
 }
 
-void mpz_gcd(mpz_t r, const mpz_t n1, mpz_t n2);
-void mpz_lcm(mpz_t r, const mpz_t n1, mpz_t n2);
+void mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2);
+void mpz_lcm(mpz_t r, const mpz_t n1, const mpz_t n2);
 
 static inline int
 mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
