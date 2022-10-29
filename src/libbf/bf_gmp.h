@@ -329,49 +329,80 @@ mpz_divexact(mpz_t Q, const mpz_t N, const mpz_t D)
 
 static inline void
 mpz_fdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
-{ bf_div(Q, N, D, BF_PREC_INF, BF_RNDN);
+{ bf_t rem;
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+  bf_delete(&rem);
 }
 
 static inline void
 mpz_fdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDN);
+{ bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDD);
 }
 
 static inline void
 mpz_fdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDN);
+{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDD);
 }
 
-static inline unsigned long
-mpz_fdiv_ui(const mpz_t n1, unsigned long n2)
-{ bf_not_implemented("mpz_fdiv_ui");
-  return 0;
+static inline unsigned long	/* remainder of N/d */
+mpz_fdiv_ui(const mpz_t N, unsigned long d)
+{ mpz_t D, Q;
+  bf_t rem;
+  int64_t r;
+
+  mpz_init_set_ui(D, d);
+  mpz_init(Q);
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+  bf_get_int64(&r, &rem, BF_RNDN);
+  mpz_clear(Q);
+  bf_delete(&rem);
+  return r;
 }
 
 static inline void
 mpz_fdiv_q_2exp(mpz_t Q, const mpz_t N, mp_bitcnt_t B)
-{ bf_not_implemented("mpz_fdiv_q_2exp");
+{ bf_t rem;
+  mpz_t D;
+
+  mpz_init_set_ui(D, 1);
+  mpz_mul_2exp(D, D, B);
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDD);
+  bf_delete(&rem);
 }
 
 static inline void
 mpz_tdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_tdiv_q");
+{ bf_t rem;
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
+  bf_delete(&rem);
 }
 
 static inline void
 mpz_tdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_tdiv_qr");
+{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDZ);
 }
 
 static inline void
 mpz_tdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_not_implemented("mpz_tdiv_r");
+{ bf_rem(R, N, D, BF_PREC_INF, 0, BF_RNDZ);
 }
 
 static inline unsigned long
-mpz_tdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long D)
-{ bf_not_implemented("mpz_tdiv_q_ui");
-  return 0;
+mpz_tdiv_q_ui(mpz_t Q, const mpz_t N, unsigned long d)
+{ mpz_t D;
+  bf_t rem;
+  int64_t r;
+
+  mpz_init_set_ui(D, d);
+  bf_init(&alloc_wrapper.bf_context, &rem);
+  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
+  bf_get_int64(&r, &rem, BF_RNDN);
+  bf_delete(&rem);
+  return r;
 }
 
 
