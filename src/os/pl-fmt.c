@@ -1147,7 +1147,7 @@ formatInteger(PL_locale *locale, int div, int radix, bool smll, Number i,
       addBuffer(out, EOS, char);
       return baseBuffer(out, char);
     }
-#endif /*O_GMP*/
+#endif /*O_BIGNUM*/
     default:
       assert(0);
       return NULL;
@@ -1348,7 +1348,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
   switch(f->type)
   {
-#ifdef O_GMP
+#ifdef O_BIGNUM
     mpf_t mpf;
     mpz_t t1, t2;
     int neg;

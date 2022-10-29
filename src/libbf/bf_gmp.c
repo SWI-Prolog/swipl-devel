@@ -77,6 +77,14 @@ mpq_cmp(const mpq_t q1, const mpq_t q2)
   return 0;
 }
 
+
+int
+mpq_cmp_ui(const mpq_t q1, unsigned long n, unsigned long d)
+{ bf_not_implemented("mpq_cmp");
+  return 0;
+}
+
+
 static void
 mpq_addsub(mpq_t r, const mpq_t q1, const mpq_t q2, int add)
 { mpz_t numa, numb;
@@ -347,6 +355,14 @@ mpz_export(void *ROP, size_t *COUNTP, int ORDER,
   bf_not_implemented("mpz_export for SIZE != 1");
   return NULL;
 }
+
+
+int
+gmp_snprintf(char *BUF, size_t SIZE, const char *FMT, ...)
+{ bf_not_implemented("gmp_snprintf");
+  return 0;
+}
+
 
 #if 0
 static inline void
