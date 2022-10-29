@@ -468,13 +468,17 @@ mpz_ui_pow_ui(mpz_t r, unsigned long x, unsigned y)
 }
 
 static inline void
-mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
-{ bf_not_implemented("mpz_ui_powm");
+mpz_pow_ui(mpz_t r, const mpz_t x, unsigned long y)
+{ mpz_t Y;
+
+  mpz_init_set_ui(Y, y);
+  bf_pow(r, x, Y, BF_PREC_INF, BF_RNDN);
+  mpz_clear(Y);
 }
 
 static inline void
-mpz_pow_ui(mpz_t r, const mpz_t x, unsigned y)
-{ bf_not_implemented("mpz_pow_ui");
+mpz_powm(mpz_t r, const mpz_t base, const mpz_t exp, const mpz_t mod)
+{ bf_not_implemented("mpz_ui_powm");
 }
 
 static inline char *
