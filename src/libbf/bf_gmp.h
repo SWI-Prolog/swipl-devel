@@ -2,6 +2,7 @@
 #define BF_GMP_H_INCLUDED
 
 #include "bf_gmp_types.h"
+#include <math.h>
 #include <assert.h>
 
 typedef void *(*mp_malloc_t)(size_t);
@@ -129,8 +130,12 @@ mpz_get_ui(const mpz_t n)
 
 static inline double
 mpz_get_d(const mpz_t n)
-{ bf_not_implemented("mpz_get_d");
-  return 0.0;
+{ double d;
+
+  if ( bf_get_float64(n, &d, BF_RNDZ) != 0 )
+    d = NAN;
+
+  return d;
 }
 
 
@@ -185,6 +190,8 @@ mpz_popcount(const mpz_t n)
   return cnt;
 }
 
+// Should complement the ->tab, shift leading zeros and adjust expn
+// Maybe we can reuse bf_logic_xor()?
 static inline void
 mpz_com(mpz_t r, const mpz_t n)
 { bf_not_implemented("mpz_com");
@@ -192,24 +199,20 @@ mpz_com(mpz_t r, const mpz_t n)
 
 static inline void
 mpz_ior(mpz_t r, const mpz_t n1, const mpz_t n2)
-{ bf_not_implemented("mpz_ior");
+{ bf_logic_or(r, n1, n2);
 }
 
 static inline void
 mpz_and(mpz_t r, const mpz_t n1, const mpz_t n2)
-{ bf_not_implemented("mpz_ior");
+{ bf_logic_and(r, n1, n2);
 }
 
 static inline void
 mpz_xor(mpz_t r, const mpz_t n1, const mpz_t n2)
-{ bf_not_implemented("mpz_ior");
+{ bf_logic_xor(r, n1, n2);
 }
 
-static inline mp_bitcnt_t
-mpz_scan1(const mpz_t n, mp_bitcnt_t start)
-{ bf_not_implemented("mpz_scan1");
-  return 0;
-}
+mp_bitcnt_t	mpz_scan1(const mpz_t n, mp_bitcnt_t start);
 
 static inline size_t
 mpz_sizeinbase (const mpz_t n, int base)
