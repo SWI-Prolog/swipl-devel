@@ -295,6 +295,31 @@ mpz_scan1(const mpz_t n, mp_bitcnt_t start)
 }
 
 
+/* TBD: Close, but two calls to this crashes.
+
+   ?- A is \(1<<75), format('~16r~n', A).
+*/
+
+void
+mpz_com(mpz_t r, const mpz_t n)
+{ if ( r != n )
+    mpz_set(r, n);
+
+  size_t alllimbs = (r->expn+sizeof(limb_t)-1)/sizeof(limb_t);
+  size_t len0 = r->len;
+  if ( len0 < alllimbs )
+  { bf_resize(r, alllimbs);
+    for(size_t i=len0; i<alllimbs; i++)
+      r->tab[i] = ~(limb_t)0;
+  }
+
+  for(size_t i= 0; i<len0; i++)
+    r->tab[i] ^= ~(limb_t)0;
+
+  bf_normalize_and_round(r, BF_PREC_INF, BF_RNDN);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.

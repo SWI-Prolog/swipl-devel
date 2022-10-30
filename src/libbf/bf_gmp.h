@@ -195,12 +195,7 @@ mpz_popcount(const mpz_t n)
   return cnt;
 }
 
-// Should complement the ->tab, shift leading zeros and adjust expn
-// Maybe we can reuse bf_logic_xor()?
-static inline void
-mpz_com(mpz_t r, const mpz_t n)
-{ bf_not_implemented("mpz_com");
-}
+void	mpz_com(mpz_t r, const mpz_t n);
 
 static inline void
 mpz_ior(mpz_t r, const mpz_t n1, const mpz_t n2)
