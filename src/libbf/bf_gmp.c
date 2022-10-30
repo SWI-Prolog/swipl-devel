@@ -254,6 +254,23 @@ bf_get_randstate(mpz_t n, const gmp_randstate_t state)
 }
 
 
+int
+mpz_tstbit(const mpz_t n, mp_bitcnt_t i)
+{ if ( i >= n->expn )
+    return 0;
+
+  limb_t boffset = n->expn-1 - i; /* offset from msb */
+  limb_t loffset = boffset/(sizeof(limb_t)*8);
+  if ( loffset >= n->len )
+    return 0;
+
+  /* bit is 0..63, counting from lsb */
+  int bit = sizeof(limb_t)*8 - 1 - boffset % (sizeof(limb_t)*8);
+
+  return !!(n->tab[n->len-1-loffset] & ((limb_t)1<<bit));
+}
+
+
 mp_bitcnt_t
 mpz_scan1(const mpz_t n, mp_bitcnt_t start)
 { if ( bf_is_zero(n) )
