@@ -183,10 +183,7 @@ mpz_abs(mpz_t r, const mpz_t n)
 // Bit operations
 // Offsets are 0-based
 
-static inline int
-mpz_tstbit(const mpz_t n, mp_bitcnt_t i)
-{ return bf_tstbit(n, i);
-}
+int	mpz_tstbit(const mpz_t n, mp_bitcnt_t i);
 
 static inline mp_bitcnt_t
 mpz_popcount(const mpz_t n)
