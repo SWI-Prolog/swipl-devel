@@ -113,7 +113,7 @@ typedef enum {
     BF_RNDNA, /* round to nearest, ties away from zero */
     BF_RNDA, /* round away from zero */
     BF_RNDF, /* faithful rounding (nondeterministic, either RNDD or RNDU,
-                inexact flag is always set)  */
+		inexact flag is always set)  */
 } bf_rnd_t;
 
 /* allow subnormal numbers. Only available if the number of exponent
@@ -154,9 +154,9 @@ static inline int bf_get_exp_bits(bf_flags_t flags)
     int e;
     e = (flags >> BF_EXP_BITS_SHIFT) & BF_EXP_BITS_MASK;
     if (e == BF_EXP_BITS_MASK)
-        return BF_EXP_BITS_MAX + 1;
+	return BF_EXP_BITS_MAX + 1;
     else
-        return BF_EXP_BITS_MAX - e;
+	return BF_EXP_BITS_MAX - e;
 }
 
 static inline bf_flags_t bf_set_exp_bits(int n)
@@ -178,21 +178,21 @@ static inline bf_flags_t bf_set_exp_bits(int n)
 static inline slimb_t bf_max(slimb_t a, slimb_t b)
 {
     if (a > b)
-        return a;
+	return a;
     else
-        return b;
+	return b;
 }
 
 static inline slimb_t bf_min(slimb_t a, slimb_t b)
 {
     if (a < b)
-        return a;
+	return a;
     else
-        return b;
+	return b;
 }
 
 void bf_context_init(bf_context_t *s, bf_realloc_func_t *realloc_func,
-                     void *realloc_opaque);
+		     void *realloc_opaque);
 void bf_context_end(bf_context_t *s);
 /* free memory allocated for the bf cache data */
 void bf_clear_cache(bf_context_t *s);
@@ -212,7 +212,7 @@ static inline void bf_free(bf_context_t *s, void *ptr)
 {
     /* must test ptr otherwise equivalent to malloc(0) */
     if (ptr)
-        bf_realloc(s, ptr, 0);
+	bf_realloc(s, ptr, 0);
 }
 
 void bf_init(bf_context_t *s, bf_t *r);
@@ -222,7 +222,7 @@ static inline void bf_delete(bf_t *r)
     bf_context_t *s = r->ctx;
     /* we accept to delete a zeroed bf_t structure */
     if (s && r->tab) {
-        bf_realloc(s, r->tab, 0);
+	bf_realloc(s, r->tab, 0);
     }
 }
 
@@ -285,16 +285,16 @@ int bf_add_si(bf_t *r, const bf_t *a, int64_t b1, limb_t prec, bf_flags_t flags)
 int bf_mul(bf_t *r, const bf_t *a, const bf_t *b, limb_t prec, bf_flags_t flags);
 int bf_mul_ui(bf_t *r, const bf_t *a, uint64_t b1, limb_t prec, bf_flags_t flags);
 int bf_mul_si(bf_t *r, const bf_t *a, int64_t b1, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 int bf_mul_2exp(bf_t *r, slimb_t e, limb_t prec, bf_flags_t flags);
 int bf_div(bf_t *r, const bf_t *a, const bf_t *b, limb_t prec, bf_flags_t flags);
 #define BF_DIVREM_EUCLIDIAN BF_RNDF
 int bf_divrem(bf_t *q, bf_t *r, const bf_t *a, const bf_t *b,
-              limb_t prec, bf_flags_t flags, int rnd_mode);
+	      limb_t prec, bf_flags_t flags, int rnd_mode);
 int bf_rem(bf_t *r, const bf_t *a, const bf_t *b, limb_t prec,
-           bf_flags_t flags, int rnd_mode);
+	   bf_flags_t flags, int rnd_mode);
 int bf_remquo(slimb_t *pq, bf_t *r, const bf_t *a, const bf_t *b, limb_t prec,
-              bf_flags_t flags, int rnd_mode);
+	      bf_flags_t flags, int rnd_mode);
 /* round to integer with infinite precision */
 int bf_rint(bf_t *r, int rnd_mode);
 int bf_round(bf_t *r, limb_t prec, bf_flags_t flags);
@@ -304,7 +304,6 @@ slimb_t bf_get_exp_min(const bf_t *a);
 int bf_logic_or(bf_t *r, const bf_t *a, const bf_t *b);
 int bf_logic_xor(bf_t *r, const bf_t *a, const bf_t *b);
 int bf_logic_and(bf_t *r, const bf_t *a, const bf_t *b);
-int bf_tstbit(const bf_t *a, limb_t bit_pos);
 
 /* additional flags for bf_atof */
 /* do not accept hex radix prefix (0x or 0X) if radix = 0 or radix = 16 */
@@ -317,14 +316,14 @@ int bf_tstbit(const bf_t *a, limb_t bit_pos);
 #define BF_ATOF_EXPONENT       (1 << 19)
 
 int bf_atof(bf_t *a, const char *str, const char **pnext, int radix,
-            limb_t prec, bf_flags_t flags);
+	    limb_t prec, bf_flags_t flags);
 /* this version accepts prec = BF_PREC_INF and returns the radix
    exponent */
 int bf_atof2(bf_t *r, slimb_t *pexponent,
-             const char *str, const char **pnext, int radix,
-             limb_t prec, bf_flags_t flags);
+	     const char *str, const char **pnext, int radix,
+	     limb_t prec, bf_flags_t flags);
 int bf_mul_pow_radix(bf_t *r, const bf_t *T, limb_t radix,
-                     slimb_t expn, limb_t prec, bf_flags_t flags);
+		     slimb_t expn, limb_t prec, bf_flags_t flags);
 
 
 /* Conversion of floating point number to string. Return a null
@@ -371,7 +370,7 @@ int bf_mul_pow_radix(bf_t *r, const bf_t *T, limb_t radix,
 #define BF_FTOA_JS_QUIRKS    (1 << 22)
 
 char *bf_ftoa(size_t *plen, const bf_t *a, int radix, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 
 /* modulo 2^n instead of saturation. NaN and infinity return 0 */
 #define BF_GET_INT_MOD (1 << 0)
@@ -386,12 +385,12 @@ int bf_get_fft_size(int *pdpl, int *pnb_mods, limb_t len);
 int bf_normalize_and_round(bf_t *r, limb_t prec1, bf_flags_t flags);
 int bf_can_round(const bf_t *a, slimb_t prec, bf_rnd_t rnd_mode, slimb_t k);
 slimb_t bf_mul_log2_radix(slimb_t a1, unsigned int radix, int is_inv,
-                          int is_ceil1);
+			  int is_ceil1);
 int mp_mul(bf_context_t *s, limb_t *result,
-           const limb_t *op1, limb_t op1_size,
-           const limb_t *op2, limb_t op2_size);
+	   const limb_t *op1, limb_t op1_size,
+	   const limb_t *op2, limb_t op2_size);
 limb_t mp_add(limb_t *res, const limb_t *op1, const limb_t *op2,
-              limb_t n, limb_t carry);
+	      limb_t n, limb_t carry);
 limb_t mp_add_ui(limb_t *tab, limb_t b, size_t n);
 int mp_sqrtrem(bf_context_t *s, limb_t *tabs, limb_t *taba, limb_t n);
 int mp_recip(bf_context_t *s, limb_t *tabr, const limb_t *taba, limb_t n);
@@ -409,7 +408,7 @@ int bf_sin(bf_t *r, const bf_t *a, limb_t prec, bf_flags_t flags);
 int bf_tan(bf_t *r, const bf_t *a, limb_t prec, bf_flags_t flags);
 int bf_atan(bf_t *r, const bf_t *a, limb_t prec, bf_flags_t flags);
 int bf_atan2(bf_t *r, const bf_t *y, const bf_t *x,
-             limb_t prec, bf_flags_t flags);
+	     limb_t prec, bf_flags_t flags);
 int bf_asin(bf_t *r, const bf_t *a, limb_t prec, bf_flags_t flags);
 int bf_acos(bf_t *r, const bf_t *a, limb_t prec, bf_flags_t flags);
 
@@ -498,21 +497,21 @@ static inline int bfdec_cmp_lt(const bfdec_t *a, const bfdec_t *b)
 }
 
 int bfdec_add(bfdec_t *r, const bfdec_t *a, const bfdec_t *b, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 int bfdec_sub(bfdec_t *r, const bfdec_t *a, const bfdec_t *b, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 int bfdec_add_si(bfdec_t *r, const bfdec_t *a, int64_t b1, limb_t prec,
-                 bf_flags_t flags);
+		 bf_flags_t flags);
 int bfdec_mul(bfdec_t *r, const bfdec_t *a, const bfdec_t *b, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 int bfdec_mul_si(bfdec_t *r, const bfdec_t *a, int64_t b1, limb_t prec,
-                 bf_flags_t flags);
+		 bf_flags_t flags);
 int bfdec_div(bfdec_t *r, const bfdec_t *a, const bfdec_t *b, limb_t prec,
-              bf_flags_t flags);
+	      bf_flags_t flags);
 int bfdec_divrem(bfdec_t *q, bfdec_t *r, const bfdec_t *a, const bfdec_t *b,
-                 limb_t prec, bf_flags_t flags, int rnd_mode);
+		 limb_t prec, bf_flags_t flags, int rnd_mode);
 int bfdec_rem(bfdec_t *r, const bfdec_t *a, const bfdec_t *b, limb_t prec,
-              bf_flags_t flags, int rnd_mode);
+	      bf_flags_t flags, int rnd_mode);
 int bfdec_rint(bfdec_t *r, int rnd_mode);
 int bfdec_sqrt(bfdec_t *r, const bfdec_t *a, limb_t prec, bf_flags_t flags);
 int bfdec_round(bfdec_t *r, limb_t prec, bf_flags_t flags);
@@ -521,7 +520,7 @@ int bfdec_pow_ui(bfdec_t *r, const bfdec_t *a, limb_t b);
 
 char *bfdec_ftoa(size_t *plen, const bfdec_t *a, limb_t prec, bf_flags_t flags);
 int bfdec_atof(bfdec_t *r, const char *str, const char **pnext,
-               limb_t prec, bf_flags_t flags);
+	       limb_t prec, bf_flags_t flags);
 
 /* the following functions are exported for testing only. */
 extern const limb_t mp_pow_dec[LIMB_DIGITS + 1];
