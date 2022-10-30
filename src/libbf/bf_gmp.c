@@ -391,9 +391,13 @@ mpz_scan1(const mpz_t n, mp_bitcnt_t start)
 }
 
 
-/* TBD: Close, but two calls to this crashes.
-
-   ?- A is \(1<<75), format('~16r~n', A).
+/* Binary complement.   This would  be easy, but  we must  recall that
+   least significant 0-limbs are not  in tab.  These should become all
+   1's.  So, we need to extend the  tab, shift the bits we have to the
+   most significant place, fill the new least significant segment with
+   1s   and    complement   the    old   libs.    Finally    we   need
+   bf_normalize_and_round() to  adjust for 0s  we may now have  at the
+   most significant end.
 */
 
 void
@@ -401,15 +405,16 @@ mpz_com(mpz_t r, const mpz_t n)
 { if ( r != n )
     mpz_set(r, n);
 
-  size_t alllimbs = (r->expn+sizeof(limb_t)-1)/sizeof(limb_t);
+  size_t alllimbs = (r->expn+8*sizeof(limb_t)-1)/(8*sizeof(limb_t));
   size_t len0 = r->len;
   if ( len0 < alllimbs )
   { bf_resize(r, alllimbs);
-    for(size_t i=len0; i<alllimbs; i++)
+    memmove(&r->tab[alllimbs-len0], &r->tab[0], len0*sizeof(limb_t));
+    for(size_t i=0; i<alllimbs-len0; i++)
       r->tab[i] = ~(limb_t)0;
   }
 
-  for(size_t i= 0; i<len0; i++)
+  for(size_t i = alllimbs-len0; i<alllimbs; i++)
     r->tab[i] ^= ~(limb_t)0;
 
   bf_normalize_and_round(r, BF_PREC_INF, BF_RNDN);
