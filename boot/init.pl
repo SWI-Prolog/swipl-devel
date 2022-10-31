@@ -1039,9 +1039,9 @@ default_module(Me, Super) :-
     !.
 
 :- dynamic
-    user:portray/1.
+    user:portray/1, system:portray_var/2.
 :- multifile
-    user:portray/1.
+    user:portray/1, system:portray_var/2.
 
 
                  /*******************************
