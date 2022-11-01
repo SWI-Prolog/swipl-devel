@@ -374,7 +374,7 @@ mpz_scan1(const mpz_t n, mp_bitcnt_t start)
   } else
   { mp_bitcnt_t msb  = n->expn-1;
     mp_bitcnt_t from = msb - n->len*sizeof(limb_t)*8;
-    const limb_t *lp = &n->tab[n->len-1];
+    const limb_t *lp = &n->tab[0];
 
     if ( start > msb )
       return ~(mp_bitcnt_t)0;
@@ -385,7 +385,7 @@ mpz_scan1(const mpz_t n, mp_bitcnt_t start)
     { if ( *lp )
 	return start + __builtin_ffsll(*lp);
       start += sizeof(limb_t)*8;
-      lp--;
+      lp++;
     }
   }
 }
