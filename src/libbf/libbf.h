@@ -27,7 +27,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#if defined(__x86_64__)
+//TBD: Must check support for int128_t
+#if 1 // defined(__x86_64__)
 #define LIMB_LOG2_BITS 6
 #else
 #define LIMB_LOG2_BITS 5
