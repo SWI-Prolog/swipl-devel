@@ -4,6 +4,8 @@
 #include "bf_gmp.h"
 #include <stdlib.h>
 
+#define STEIN 1
+
 void
 bf_print_i(const char *msg, const bf_t *i)
 { printf("%s=%s\n",
@@ -12,12 +14,6 @@ bf_print_i(const char *msg, const bf_t *i)
 }
 
 
-#define STEIN 1
-
-#if STEIN
-
-/* multiply 'r' by 2^e */
-// shift in place (copied from libbf.c with rounding removed)
 static inline void
 mul_2exp(bf_t *r, slimb_t e)
 {
@@ -31,9 +27,13 @@ mul_2exp(bf_t *r, slimb_t e)
     return;
 }
 
+#if STEIN
+
+/* multiply 'r' by 2^e */
+// shift in place (copied from libbf.c with rounding removed)
 void
 mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
-{ bf_t a, b;
+{ mpz_t a, b;
 
   if ( bf_is_zero(n1) )
   { mpz_abs(r, n2);
@@ -44,45 +44,43 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
     return;
   }
 
-  mpz_init(&a);
-  mpz_init(&b);
+  mpz_init(a);
+  mpz_init(b);
   // gcd is always positive
-  mpz_abs(&a, n1);
-  mpz_abs(&b, n2);
+  mpz_abs(a, n1);
+  mpz_abs(b, n2);
   int d = 0;
 
-  while (mpz_cmp(&a, &b) != 0)
-    switch (mpz_tstbit(&a, 0)*2 + mpz_tstbit(&b, 0))
-    { case 0: // both even
-        mul_2exp(&a, -1);
-        mul_2exp(&b, -1);
-        d++;
-        break;
-      case 1: // a even, b odd
-        mul_2exp(&a, -1);
-        break;
-      case 2: // a odd, b even
-        mul_2exp(&b, -1);
-        break;
-      case 3: // both odd, use r as temporary for swapping
-        mpz_sub(r, &a, &b);
-        if (r->sign)
-        { mpz_set(&b, &a);  // a < b --> a0    -> b1
-          bf_neg(r);
-          mpz_set(&a, r);   //           b0-a0 -> a1
-        } else {
-          mpz_set(&a, &b);  // a > b --> b0    -> a1
-          mpz_set(&b, r);   //           a0-b0 -> b1
-        }
-        break;      
-    }  
-  
-  mul_2exp(&a, d);   // a==b, so we're done, a*2^d -> r
-  mpz_set(r, &a);
-  mpz_clear(&a);
-  mpz_clear(&b);
-  return;
+  while (mpz_cmp(a, b) != 0)
+  switch (mpz_tstbit(a, 0)*2 + mpz_tstbit(b, 0))
+  { case 0: // both even
+      mul_2exp(a, -1);
+      mul_2exp(b, -1);
+      d++;
+      break;
+    case 1: // a even, b odd
+      mul_2exp(a, -1);
+      break;
+    case 2: // a odd, b even
+      mul_2exp(b, -1);
+      break;
+    case 3: // both odd, use r as temporary for swapping
+      mpz_sub(r, a, b);
+      if (r->sign)
+      { mpz_set(b, a);  // a < b --> a0    -> b1
+	bf_neg(r);
+	mpz_set(a, r);   //           b0-a0 -> a1
+      } else
+      { mpz_set(a, b);  // a > b --> b0    -> a1
+	mpz_set(b, r);   //           a0-b0 -> b1
+      }
+      break;
+  }
 
+  mul_2exp(a, d);   // a==b, so we're done, a*2^d -> r
+  mpz_set(r, a);
+  mpz_clear(a);
+  mpz_clear(b);
 }
 
 
