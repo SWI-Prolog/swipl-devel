@@ -34,6 +34,7 @@ mul_2exp(bf_t *r, slimb_t e)
 void
 mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
 { mpz_t a, b;
+  mp_bitcnt_t als1, bls1, k;
 
   if ( bf_is_zero(n1) )
   { mpz_abs(r, n2);
@@ -52,29 +53,34 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
   int d = 0;
 
   while (mpz_cmp(a, b) != 0)
-  switch (mpz_tstbit(a, 0)*2 + mpz_tstbit(b, 0))
-  { case 0: // both even
-      mul_2exp(a, -1);
-      mul_2exp(b, -1);
-      d++;
-      break;
-    case 1: // a even, b odd
-      mul_2exp(a, -1);
-      break;
-    case 2: // a odd, b even
-      mul_2exp(b, -1);
-      break;
-    case 3: // both odd, use r as temporary for swapping
-      mpz_sub(r, a, b);
-      if (r->sign)
-      { mpz_set(b, a);  // a < b --> a0    -> b1
-	bf_neg(r);
-	mpz_set(a, r);   //           b0-a0 -> a1
-      } else
-      { mpz_set(a, b);  // a > b --> b0    -> a1
-	mpz_set(b, r);   //           a0-b0 -> b1
-      }
-      break;
+  { als1 = mpz_scan1(a, 0);
+    bls1 = mpz_scan1(b, 0);
+
+    switch ((als1 == 0)*2 +(bls1 == 0))
+    { case 0: // both even
+	k = -bf_min(als1,bls1);
+	mul_2exp(a, k);
+	mul_2exp(b, k);
+	d = d-k;  // add offset (k is negative)
+	break;
+      case 1: // a even, b odd
+	mul_2exp(a, -als1);
+	break;
+      case 2: // a odd, b even
+	mul_2exp(b, -bls1);
+	break;
+      case 3: // both odd, use r as temporary for swapping
+	mpz_sub(r, a, b);
+	if (r->sign)
+	{ mpz_set(b, a);  // a < b --> a0    -> b1
+	  bf_neg(r);
+	  mpz_set(a, r);   //           b0-a0 -> a1
+	} else
+	{ mpz_set(a, b);  // a > b --> b0    -> a1
+	  mpz_set(b, r);   //           a0-b0 -> b1
+	}
+	break;
+    }
   }
 
   mul_2exp(a, d);   // a==b, so we're done, a*2^d -> r
