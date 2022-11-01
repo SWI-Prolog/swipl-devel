@@ -60,6 +60,8 @@ static mpz_t MPZ_MIN_LONG;		/* Prolog int64_t integers */
 static mpz_t MPZ_MAX_LONG;
 #endif
 
+#define abs(v) ((v) < 0 ? -(v) : (v))
+
 
 		 /*******************************
 		 *	 MEMORY MANAGEMENT	*
