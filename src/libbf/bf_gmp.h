@@ -522,10 +522,7 @@ mpq_set(mpq_t r, const mpq_t q)
   bf_set(&r[1], &q[1]);
 }
 
-static inline void
-mpq_set_d(mpq_t r, double f)
-{ bf_not_implemented("mpq_set_d");
-}
+void	mpq_set_d(mpq_t r, double f);
 
 static inline void
 mpq_set_z(mpq_t r, const mpz_t n)

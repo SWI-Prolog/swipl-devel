@@ -137,6 +137,24 @@ mpz_lcm(mpz_t r, const mpz_t n1, const mpz_t n2)
 }
 
 
+// see https://stackoverflow.com/questions/72659156/convert-double-to-integer-mantissa-and-exponents
+void
+mpq_set_d(mpq_t r, double f)
+{ double m;
+  int exp;
+  int64_t man;
+
+  m = frexp(f, &exp);
+  man = (int64_t)scalbn(m, 53);
+  exp -= 53;
+  bf_set_si(mpq_numref(r), man);
+  bf_set_si(mpq_denref(r), 1);
+  mul_2exp(mpq_denref(r), -exp);
+
+  mpq_canonicalize(r);
+}
+
+
 void
 mpq_canonicalize(mpq_t q)
 { mpz_t gcd;
