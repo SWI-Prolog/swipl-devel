@@ -150,7 +150,7 @@ mpz_get_d(const mpz_t n)
     op = &copy;
   }
 
-  if ( bf_get_float64(op, &d, BF_RNDZ) != 0 )
+  if ( (bf_get_float64(op, &d, BF_RNDZ)&~BF_ST_INEXACT) != 0 )
     d = NAN;
 
   return d;
