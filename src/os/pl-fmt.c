@@ -1361,7 +1361,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  mpz_init(t2);
 	  mpz_ui_pow_ui(t1, 10, arg);
 	  mpz_mul(t1, f->value.mpz, t1);
-	  neg = (mpz_cmp_ui(t1, 0) < 0) ? 1 : 0;
+	  neg = mpz_sgn(t1) < 0;
 	  mpz_abs(t1, t1);
 	  goto print_mpz_f;
 	}
@@ -1371,7 +1371,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  mpz_init(t2);
 
 	  mpz_set(t1, f->value.mpz);
-	  neg = (mpz_cmp_ui(t1, 0) < 0) ? 1 : 0;
+	  neg = mpz_sgn(t1) < 0;
 	  mpz_abs(t1, t1);
 
 	  if (mpz_cmp_ui(t1, 0) == 0)
