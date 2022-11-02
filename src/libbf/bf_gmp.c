@@ -425,6 +425,47 @@ mpz_com(mpz_t r, const mpz_t n)
 }
 
 
+void
+mpz_rootrem(mpz_t rop, mpz_t rem, const mpz_t OP, unsigned long int n)
+{ mpz_t cn, cn1, nxt, x, tmp;
+  const MP_INT *op;
+
+  if ( rop == OP )
+  { mpz_init_set(tmp, OP);
+    op = &tmp[0];
+  } else
+    op = &OP[0];
+
+  mpz_init_set_ui(cn, n);     // const n
+  mpz_init_set_ui(cn1, n-1);  // const n-1
+  mpz_init_set(nxt, op);
+  mpz_init(x);
+
+  do  // using rop and rem as temporaries
+  { mpz_set(x, nxt);                  // x = nxt
+    //    mpz_pow_ui(rop, x, n-1);          // rop = pow(x, n-1)        PLUS 1
+    bf_pow(rop, x, cn1, BF_PREC_INF, BF_RNDN);  // rop = pow(x, n-1)
+    mpz_fdiv_qr(rop, rem, op, rop);     // rop = op // rop
+    //    mpz_addmul_ui(rop, &s, n-1);       // rop = rop + x * (n-1)    PLUS 1
+    mpz_mul_ui(rem, x, n-1);           // rem = x * (n-1)
+    mpz_add(rop, rop, rem);             // rop = rop + rem
+    mpz_fdiv_qr(nxt, rem, rop, cn);   // nxt = rop // n
+  } while (mpz_cmp(nxt, x) < 0);
+
+  mpz_set(rop, x);
+
+  bf_pow(rem, rop, cn, BF_PREC_INF, BF_RNDN);  // rem = pow(rop, n)
+  bf_sub(rem, op, rem, BF_PREC_INF, BF_RNDN);  // rem = op - rem
+
+  mpz_clear(cn);
+  mpz_clear(cn1);
+  mpz_clear(nxt);
+  mpz_clear(x);
+  if ( rop == OP )
+    mpz_clear(tmp);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Fill the exponent and len given a bigint represented as a series of
 bytes.  Note that LibBF does not include 0-limbs.

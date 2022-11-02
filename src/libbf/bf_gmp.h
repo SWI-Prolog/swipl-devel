@@ -365,7 +365,16 @@ mpz_fdiv_r(mpz_t R, const mpz_t N, const mpz_t D)
 
 static inline void
 mpz_fdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDD);
+{ if ( Q == D )
+  { mpz_t tmp;
+
+    mpz_init(tmp);
+    bf_divrem(tmp, R, N, D, BF_PREC_INF, 0, BF_RNDD);
+    mpz_set(Q, tmp);
+    mpz_clear(tmp);
+  } else
+  { bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDD);
+  }
 }
 
 static inline unsigned long	/* remainder of N/d */
@@ -445,15 +454,19 @@ mpz_divisible_p(const mpz_t N, const mpz_t D)
 void mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2);
 void mpz_lcm(mpz_t r, const mpz_t n1, const mpz_t n2);
 
+void	mpz_rootrem(mpz_t ROOT, mpz_t REM, const mpz_t U, unsigned long int N);
+
 static inline int
 mpz_root(mpz_t ROP, const mpz_t OP, unsigned long int N)
-{ bf_not_implemented("mpz_root");
-  return 0;
-}
+{ mpz_t rem;
+  int rc;
 
-static inline void
-mpz_rootrem(mpz_t ROOT, mpz_t REM, const mpz_t U, unsigned long int N)
-{ bf_not_implemented("mpz_rootrem");
+  mpz_init(rem);
+  mpz_rootrem(ROP, rem, OP, N);
+  rc = bf_is_zero(rem);
+  mpz_clear(rem);
+
+  return rc;
 }
 
 static inline void
