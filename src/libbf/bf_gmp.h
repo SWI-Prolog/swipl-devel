@@ -603,10 +603,13 @@ mpq_neg(mpq_t r, const mpq_t q)
 void mpq_canonicalize(mpq_t q);
 
 static inline void
-mpq_inv(mpq_t r, mpq_t q)
-{ mpq_init(r);
-  bf_set(&r[0], &q[1]);
-  bf_set(&r[1], &q[0]);
+mpq_inv(mpq_t r, const mpq_t q)
+{ if ( r == q )
+  { mpz_swap(mpq_numref(r), mpq_denref(r));
+  } else
+  { bf_set(&r[0], &q[1]);
+    bf_set(&r[1], &q[0]);
+  }
 }
 
 static inline void
