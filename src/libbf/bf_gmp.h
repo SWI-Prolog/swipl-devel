@@ -412,10 +412,18 @@ mpz_fdiv_q_2exp(mpz_t Q, const mpz_t N, mp_bitcnt_t B)
 
 static inline void
 mpz_tdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
-{ bf_t rem;
-  bf_init(&alloc_wrapper.bf_context, &rem);
-  bf_divrem(Q, &rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
-  bf_delete(&rem);
+{ mpz_t rem;
+
+  mpz_init(rem);
+  if ( Q == N )
+  { mpz_t q;
+    mpz_init(q);
+    bf_divrem(q, rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
+    mpz_set(Q, q);
+    mpz_clear(q);
+  } else
+    bf_divrem(Q, rem, N, D, BF_PREC_INF, 0, BF_RNDZ);
+  mpz_clear(rem);
 }
 
 static inline void
