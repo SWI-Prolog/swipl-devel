@@ -420,7 +420,17 @@ mpz_tdiv_q(mpz_t Q, const mpz_t N, const mpz_t D)
 
 static inline void
 mpz_tdiv_qr(mpz_t Q, mpz_t R, const mpz_t N, const mpz_t D)
-{ bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDZ);
+{ if ( Q == N || R == D )
+  { mpz_t q, r;
+    mpz_init(q);
+    mpz_init(r);
+    bf_divrem(q, r, N, D, BF_PREC_INF, 0, BF_RNDZ);
+    mpz_set(Q, q);
+    mpz_set(R, r);
+    mpz_clear(q);
+    mpz_clear(r);
+  } else
+    bf_divrem(Q, R, N, D, BF_PREC_INF, 0, BF_RNDZ);
 }
 
 static inline void
