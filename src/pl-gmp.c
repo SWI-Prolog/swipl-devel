@@ -1143,7 +1143,7 @@ mpz_to_uint64(mpz_t mpz, uint64_t *i)
 
 int
 mpz_to_int64(mpz_t mpz, int64_t *i)
-{ return bf_get_int64(i, mpz, BF_RNDZ) == 0;
+{ return bf_get_int64(i, mpz, 0) == 0;
 }
 
 int
