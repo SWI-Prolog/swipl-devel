@@ -1090,6 +1090,8 @@ cleanupGMP(void)
 		 *	   NUMBER HANDLING      *
 		 *******************************/
 
+#if O_GMP
+
 int
 mpz_to_int64(mpz_t mpz, int64_t *i)
 { if ( mpz_cmp(mpz, MPZ_MIN_PLINT) >= 0 &&
@@ -1114,7 +1116,6 @@ mpz_to_int64(mpz_t mpz, int64_t *i)
   return FALSE;
 }
 
-
 /* return: <0:              -1
 	   >MPZ_UINT64_MAX:  1
 	   (ok)		     0
@@ -1136,6 +1137,33 @@ mpz_to_uint64(mpz_t mpz, uint64_t *i)
 
   return 1;
 }
+
+
+#elif O_BF
+
+int
+mpz_to_int64(mpz_t mpz, int64_t *i)
+{ return bf_get_int64(i, mpz, BF_RNDZ) == 0;
+}
+
+int
+mpz_to_uint64(mpz_t mpz, uint64_t *i)
+{ if ( mpz_sgn(mpz) < 0 )
+    return -1;
+
+  if ( mpz_cmp(mpz, MPZ_MAX_UINT64) <= 0 )
+  { int64_t v;
+
+    if ( bf_get_int64(&v, mpz, BF_RNDZ|BF_GET_INT_MOD) == 0 )
+    { *i = (uint64_t)v;
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
+#endif
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
