@@ -72,11 +72,11 @@ mpz_gcd(mpz_t r, const mpz_t n1, const mpz_t n2)
       case 3: // both odd, use r as temporary for swapping
 	mpz_sub(r, a, b);
 	if (r->sign)
-	{ mpz_set(b, a);  // a < b --> a0    -> b1
+	{ mpz_swap(b, a);  // a < b --> a0    -> b1
 	  bf_neg(r);
 	  mpz_set(a, r);   //           b0-a0 -> a1
 	} else
-	{ mpz_set(a, b);  // a > b --> b0    -> a1
+	{ mpz_swap(a, b);  // a > b --> b0    -> a1
 	  mpz_set(b, r);   //           a0-b0 -> b1
 	}
 	break;

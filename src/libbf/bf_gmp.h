@@ -87,6 +87,16 @@ mpz_set_ui(mpz_t r, unsigned long n)
   bf_set_si(r, n);
 }
 
+static inline void
+mpz_swap(mpz_t a, mpz_t b)
+{ mpz_t tmp;
+
+  tmp[0] = a[0];
+  a[0] = b[0];
+  b[0] = tmp[0];
+}
+
+
 /* Actually we mpq_set_double(), which we might be able to do simply
    by selecting the right rounding mode.
  */
