@@ -253,7 +253,7 @@ mpz_cmp_ui(const mpz_t n, unsigned long i)
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
     return i == nv ? 0 : i > nv ? 1 : -1;
-  return n->sign ? 1 : -1;
+  return n->sign ? -1 : 1;
 }
 
 static inline int
@@ -262,7 +262,7 @@ mpz_cmp_si(const mpz_t n, long i)
 
   if ( bf_get_int64(&nv, n, BF_RNDN) == 0 )
     return i == nv ? 0 : i > nv ? 1 : -1;
-  return n->sign ? 1 : -1;
+  return n->sign ? -1 : 1;
 }
 
 // Basic arithmetic
