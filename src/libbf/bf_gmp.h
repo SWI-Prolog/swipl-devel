@@ -143,6 +143,7 @@ mpz_get_d(const mpz_t n)
 { double d;
   const bf_t *op = n;
   bf_t copy;
+  int rc;
 
   if ( !op->ctx )
   { copy = n[0];
@@ -150,10 +151,14 @@ mpz_get_d(const mpz_t n)
     op = &copy;
   }
 
-  if ( (bf_get_float64(op, &d, BF_RNDZ)&~BF_ST_INEXACT) != 0 )
-    d = NAN;
+  rc = bf_get_float64(op, &d, BF_RNDZ);
+  if ( (rc & ~BF_ST_INEXACT) == 0 )
+    return d;
+  if ( rc & BF_ST_OVERFLOW )
+    return n->sign ? -INFINITY : INFINITY;
 
-  return d;
+  assert(0);
+  return NAN;
 }
 
 
