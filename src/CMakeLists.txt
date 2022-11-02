@@ -175,7 +175,7 @@ set(SWIPL_DATA_library_iri_scheme file.pl)
 
 set(SWIPL_DATA_library_clp bounds.pl clp_events.pl clp_distinct.pl
     clpfd.pl clpb.pl)
-if(GMP_FOUND)
+if(USE_GMP OR USE_LIBBF)
   set(SWIPL_DATA_library_clp ${SWIPL_DATA_library_clp} simplex.pl)
 endif()
 
