@@ -105,6 +105,8 @@ function(target_link_swipl target)
     target_include_directories(${target}
       PRIVATE ${swipl_include_dir})
   endif()
+  set_target_properties(${target} PROPERTIES
+    OUTPUT_NAME ${target} PREFIX "")
 endfunction()
 
 # Avoid message on unused variable
