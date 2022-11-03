@@ -1374,7 +1374,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  neg = mpz_sgn(t1) < 0;
 	  mpz_abs(t1, t1);
 
-	  if (mpz_cmp_ui(t1, 0) == 0)
+	  if ( mpz_sgn(t1) == 0 )
 	  { exp = 0;
 	  } else
 	  { exp = mpz_sizeinbase(t1, 10)-1;  /* guess exponent */
@@ -1520,7 +1520,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  { mpz_mul(t1, mpq_numref(f->value.mpq), t1);
 	  }
 	  mpz_tdiv_q_ui(t2, mpq_denref(f->value.mpq), 2);
-	  if (mpq_cmp_ui(f->value.mpq, 0, 1) < 0)
+	  if ( mpq_sgn(f->value.mpq) < 0)
 	  { mpz_sub(t1, t1, t2);
 	    neg=1;
 	  } else
@@ -1539,7 +1539,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 	print_mpz_e:
 
-	  if (mpz_cmp_ui(t1, 0) == 0)
+	  if ( mpz_sgn(t1) == 0 )
 	    size = arg+7; /* reserve for 0.+e00<null> */
 	  else
 	    size = mpz_sizeinbase(t1, 10) + mpz_sizeinbase(t2, 10) + 6; /* reserve for -.e+0<null> */
@@ -1550,7 +1550,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  }
 	  written = gmp_snprintf(baseBuffer(out, char), size, "%Zd%c%+03d", t1, how, exp);
 
-	  if (mpz_cmp_ui(t1, 0) == 0)
+	  if ( mpz_sgn(t1) == 0 )
 	  { memmove(out->base+arg, out->base, written+1);
 	    memset(out->base, '0', arg);
 	    written += arg;

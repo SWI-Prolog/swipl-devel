@@ -612,9 +612,9 @@ mpq_cdenref(const mpq_t q)
 
 static inline int
 mpq_sgn(const mpq_t q)
-{ int s0 = mpz_sgn(&q[0]);
-
-  return q[1].sign ? -s0 : s0;
+{ if ( bf_is_zero(&q[0]) )
+    return 0;
+  return (q[0].sign ^ q[1].sign) ? -1 : 1;
 }
 
 static inline void
