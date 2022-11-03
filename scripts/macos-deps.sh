@@ -16,18 +16,17 @@ PREFIX="$HOME/deps"
 export MACOSX_DEPLOYMENT_TARGET=10.14
 
 GMP_VERSION=6.2.1
-SSL_VERSION=1.1.1m
-JPEG_VERSION=9b
-ZLIB_VERSION=1.2.11
-ARCHIVE_VERSION=3.5.2
+SSL_VERSION=3.0.7
+JPEG_VERSION=9e
+ZLIB_VERSION=1.2.13
+ARCHIVE_VERSION=3.6.1
 UUID_VERSION=1.6.2
 BDB_VERSION=6.1.26
-ODBC_VERSION=2.3.9
-PCRE_VERSION=8.45
+ODBC_VERSION=2.3.11
 PCRE2_VERSION=10.39
-FFI_VERSION=3.4.2
-YAML_VERSION=0.1.7
-READLINE_VERSION=8.0
+FFI_VERSION=3.4.4
+YAML_VERSION=0.2.5
+READLINE_VERSION=8.2
 
 # installation prefix.  This path should not have spaces in one of the
 # directory names.
@@ -223,25 +222,6 @@ build_libarchive()
 #################################
 # Download and install libpcre
 
-download_libpcre()
-{ PCRE_FILE=pcre-$PCRE_VERSION.tar.gz
-
-  [ -f $PCRE_FILE ] || \
-    wget https://ftp.pcre.org/pub/pcre/$PCRE_FILE
-  tar xzf $PCRE_FILE
-}
-
-
-build_libpcre()
-{ ( cd pcre-$PCRE_VERSION
-    ./configure --prefix=$PREFIX \
-	--disable-static --disable-cpp --enable-utf8 --enable-unicode-properties
-    make pcre.dll
-    make install
-  )
-}
-
-
 download_libpcre2()
 { PCRE2_FILE=pcre2-$PCRE2_VERSION.tar.gz
 
@@ -353,7 +333,7 @@ download_prerequisites()
   download_libuuid
   download_libdb
   download_odbc
-  download_libpcre
+  download_libpcre2
   download_libffi
   download_libyaml
 }
@@ -368,7 +348,7 @@ build_prerequisites()
   build_libuuid
   build_libdb
   build_odbc
-  build_libpcre
+  build_libpcre2
   build_libffi
   build_libyaml
   build_emacs
